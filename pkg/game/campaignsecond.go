@@ -349,6 +349,8 @@ func (secondCampaignRules) chatCampaign(town *Town) bool { return town != nil &&
 
 func (secondCampaignRules) files() *gameFiles { return &secondGameFiles }
 
+func (secondCampaignRules) routeStages() []routeStage { return secondRouteStages }
+
 func (secondCampaignRules) eventTags() eventTags { return secondEventTags{} }
 
 func (secondCampaignRules) newGameLimit(base.Profile) string {

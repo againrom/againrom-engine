@@ -89,6 +89,8 @@ type campaignService interface {
 	// files are the readers of the installed files the two games lay out
 	// differently.
 	files() *gameFiles
+	// routeStages is the route witness's step table.
+	routeStages() []routeStage
 	// censusRefusal refuses a census of the campaign's maps: the census
 	// reports each map of a destination bank.
 	censusRefusal() error

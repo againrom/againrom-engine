@@ -4049,5 +4049,10 @@ var Committed = Baseline{
 	// a ui test's facing step, and this note.
 	// It rose for the unit name page's mod document sync in change, the
 	// Scenario entry's group comment, the new mod name test, and this note.
-	CommentBytes: 10534753,
+	// It rose for the route witness's stage-row test and this note.
+	// It rose for the route witness's one stage row shape: the row data's
+	// docs in pkg/game/routewitness.go and routewitness_first.go, the stage
+	// kinds' walks, the guard internal/archtest/routewalk.go with its test,
+	// the stage-row tests, net of the per-game walks removed, and this note.
+	CommentBytes: 10541843,
 }

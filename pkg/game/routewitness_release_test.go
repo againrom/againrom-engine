@@ -44,8 +44,7 @@ func TestReleaseRouteWitness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second := archives.Game() == base.GameROM2
-	w, stages := newRouteWitness(t, second, "")
+	w, stages := newRouteWitness(t, archives.Game(), "")
 	f := w.f
 	start := time.Now()
 	w.walk(stages, "")
@@ -54,8 +53,8 @@ func TestReleaseRouteWitness(t *testing.T) {
 		counts = append(counts, fmt.Sprintf("%s=%d", s.name, w.steps[s.name]))
 	}
 	t.Logf("%s: %d steps, %d frames in %v; %s", f.Base().Profile.ID, len(w.rows), w.frames, time.Since(start).Round(time.Millisecond), strings.Join(counts, " "))
-	if !second {
-		w.townSaves(t)
+	if town := routeTownRows(stages); len(town) > 0 {
+		w.townSaves(t, town)
 	}
 }
 
@@ -63,7 +62,7 @@ func TestReleaseRouteWitness(t *testing.T) {
 // through the menu's Load window and walks the town rows from there, with
 // the file name leading each row and its frames in saves/<file>/. The walk
 // buys, hires and saves nothing. Each save's walk opens its own witness on t.
-func (w *routeWitness) townSaves(t *testing.T) {
+func (w *routeWitness) townSaves(t *testing.T, town []routeStage) {
 	dir := os.Getenv("AGAINROM_ROUTE_SAVES")
 	if dir == "" {
 		w.rows = append(w.rows, strings.Join([]string{fmt.Sprint(len(w.rows) + 1), "town-saves", w.screen(), "", "", "wait", "none: AGAINROM_ROUTE_SAVES names no town save set", "", "", ""}, "\t"))
@@ -90,7 +89,7 @@ func (w *routeWitness) townSaves(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(originals, name), payload, 0o600); err != nil {
 			w.t.Fatal(err)
 		}
-		s, _ := newRouteWitness(t, false, originals)
+		s, _ := newRouteWitness(t, w.f.Archives.Game(), originals)
 		if s.dir != "" {
 			s.dir = filepath.Join(s.dir, "saves", name)
 			if err := os.MkdirAll(s.dir, 0o700); err != nil {
@@ -124,28 +123,32 @@ func (w *routeWitness) townSaves(t *testing.T) {
 			continue
 		}
 		s.dialoguePages("town entry", nil)
-		s.walk(routeTownStages, name)
+		s.walk(town, name)
 		w.t.Logf("%s: %d steps", name, len(s.rows))
 	}
 }
 
-// newRouteWitness opens a front end and its App on the install as the
+// routeFronts opens each game's front end as its release tests run it.
+var routeFronts = map[base.Game]func(*testing.T) *FrontEnd{
+	base.GameROM1: func(t *testing.T) *FrontEnd {
+		f := releaseFront(t)
+		f.SetDeterministicFrames(true)
+		return f
+	},
+	base.GameROM2: secondGameFront,
+}
+
+// newRouteWitness opens game's front end and its App on the install as the
 // game runs, with originals, when set, as the original saves' directory,
 // and answers the witness and its game's stage table. Outside
 // AGAINROM_HEADLESS_ONLY a mission frame is the App's own Draw on the GPU.
-func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness, []routeStage) {
-	var f *FrontEnd
-	if second {
-		f = secondGameFront(t)
-	} else {
-		f = releaseFront(t)
-		f.SetDeterministicFrames(true)
-	}
+func newRouteWitness(t *testing.T, game base.Game, originals string) (*routeWitness, []routeStage) {
+	f := routeFronts[game](t)
 	size, err := routeWindowSize(os.Getenv("AGAINROM_ROUTE_WINDOW"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, stages := newRouteWitnessOn(t, f, second, originals, size, os.Getenv("AGAINROM_ROUTE_WITNESS_DIR"))
+	w, stages := newRouteWitnessOn(t, f, originals, size, os.Getenv("AGAINROM_ROUTE_WITNESS_DIR"))
 	w.emit = func(dir, name string, pix *image.RGBA) { writeTipRender(t, dir, name, pix) }
 	if os.Getenv("AGAINROM_HEADLESS_ONLY") != "1" {
 		w.render = func(app *ui.App, size image.Point) *image.RGBA {
@@ -250,7 +253,7 @@ func TestReleaseGeneratorFreePoolTooltip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, stages := newRouteWitness(t, archives.Game() == base.GameROM2, "")
+	w, stages := newRouteWitness(t, archives.Game(), "")
 	for _, s := range stages[:2] {
 		w.stage = s.name
 		s.walk(w)

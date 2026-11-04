@@ -153,6 +153,8 @@ func (firstCampaignRules) chatCampaign(*Town) bool { return false }
 
 func (firstCampaignRules) files() *gameFiles { return &firstGameFiles }
 
+func (firstCampaignRules) routeStages() []routeStage { return firstRouteStages }
+
 func (firstCampaignRules) eventTags() eventTags { return firstEventTags{} }
 
 func (firstCampaignRules) newGameLimit(p base.Profile) string {
