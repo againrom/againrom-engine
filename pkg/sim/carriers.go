@@ -7,11 +7,12 @@ import (
 	"slices"
 )
 
-// constructCarriers gives a first-game World every carrier a World loaded from
-// an original SAV holds, so one rule runs after a fresh start and after a
-// LOAD. A carrier the World already holds is kept. It runs in newWorld, the
-// controlled script copy and the byte decoder (after the whole form). A
-// second-game World keeps its present native paths (gameProfile). native
+// constructCarriers gives a World every carrier a World loaded from an
+// original SAV holds, so one rule runs after a fresh start and after a LOAD.
+// A carrier the World already holds is kept. It runs in newWorld, the
+// controlled script copy and the byte decoder (after the whole form). Every
+// World takes the Group registry; a second-game World keeps its other native
+// paths (gameProfile). native
 // names a World decoded from an older engine's state, whose Group registry
 // carries its native Group records (constructedGroups).
 func (w *World) constructCarriers(native bool) {
@@ -34,17 +35,16 @@ func (w *World) constructEffectDriver() {
 
 // groupDialectNative reports a World that holds no Group registry: it keeps
 // its native Group records and dispatch. It is state, not the game: every
-// first-game World constructs the registry at mission start and on decode
-// (constructGroups), and a second-game World holds one after an original
-// LOAD imports its Groups. The native Group arms run only behind this
-// accessor.
+// World of either game constructs the registry at mission start and on
+// decode (constructGroups), and an original LOAD imports its Groups into it.
+// The native Group arms run only behind this accessor.
 func (w *World) groupDialectNative() bool { return w.savedGroups == nil }
 
-// constructGroups gives a first-game World the Group registry the original's
+// constructGroups gives a World the Group registry the original's
 // mission start builds and the original-SAV importer fills (ImportSavedGroups).
 // A World that holds a registry keeps it.
 func (w *World) constructGroups(native bool) {
-	if w.game.nativeGroups || !w.groupDialectNative() {
+	if !w.groupDialectNative() {
 		return
 	}
 	w.savedGroups = w.constructedGroups(native)
@@ -56,7 +56,7 @@ func (w *World) constructGroups(native bool) {
 // constructs it again.
 func (w *World) groupsAsConstructed() bool {
 	s := w.savedGroups
-	if s == nil || !s.fresh || s.native || w.game.nativeGroups {
+	if s == nil || !s.fresh || s.native {
 		return false
 	}
 	return reflect.DeepEqual(cloneSavedGroups(s), cloneSavedGroups(w.constructedGroups(false)))
@@ -66,7 +66,7 @@ func (w *World) groupsAsConstructed() bool {
 // constructGroups built, as play has changed it since, and not one an import
 // installed.
 func (w *World) GroupsConstructed() bool {
-	return !w.groupDialectNative() && w.savedGroups.fresh && !w.game.nativeGroups
+	return !w.groupDialectNative() && w.savedGroups.fresh
 }
 
 // GroupsNative reports whether the constructed registry carries an older
@@ -79,7 +79,7 @@ func (w *World) GroupsNative() bool {
 // a World that a LOAD restores from the SAV of a World holding its constructed
 // registry holds it the same way. It reports whether a registry was marked.
 func (w *World) AdoptConstructedGroups(native bool) bool {
-	if w.groupDialectNative() || w.game.nativeGroups {
+	if w.groupDialectNative() {
 		return false
 	}
 	held := cloneSavedGroups(w.savedGroups)
@@ -88,10 +88,25 @@ func (w *World) AdoptConstructedGroups(native bool) bool {
 	return true
 }
 
+// WithGroupRegistry is the World a SAVE writes its Group records from: w when
+// it holds a Group registry, else a copy holding the registry the constructor
+// builds from the current state and its native Group records, so every save
+// takes the one roster path. w is not changed: the copy takes the
+// constructor's registry (constructGroups), and w is returned when the
+// constructor kept the registry w holds.
+func (w *World) WithGroupRegistry() *World {
+	next := *w
+	next.constructGroups(true)
+	if next.savedGroups == w.savedGroups {
+		return w
+	}
+	return &next
+}
+
 // groupsForm is the registry the byte form writes: none when the decoder
-// constructs the same one again.
+// constructs the same one again and the game's form omits it.
 func (w *World) groupsForm() *savedGroupState {
-	if w.groupsAsConstructed() {
+	if !w.game.formHoldsConstructedGroups && w.groupsAsConstructed() {
 		return nil
 	}
 	return w.savedGroups
@@ -192,22 +207,6 @@ func (w *World) constructedGroup(owner, selector uint32, members []int, named fu
 			orders = append(orders, constructedOrder(e, state))
 		}
 	}
-	return g, orders
-}
-
-// ConstructedGroup is the Group the constructor builds from the current
-// state for owner's Group selector holding members, with the native Group
-// record's order, base, commanded cell and roam counter, and its members'
-// orders: the programme and the posts a World holding no Group registry
-// runs. A member the World does not hold is left out.
-func (w *World) ConstructedGroup(owner, selector uint32, members []EntityID) (SavedGroup, []SavedActorOrder) {
-	var at []int
-	for _, id := range members {
-		if i := indexOfEntity(w.entities, id); i >= 0 {
-			at = append(at, i)
-		}
-	}
-	g, orders := w.constructedGroup(owner, selector, at, w.scriptNamedGroups(), true)
 	return g, orders
 }
 

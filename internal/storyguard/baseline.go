@@ -4073,5 +4073,13 @@ var Committed = Baseline{
 	// It rose for a Pointer's word in pkg/sim/structureuse.go, the second
 	// form's keeps in pkg/game/savform.go, the signpost SAV tests, and this
 	// note.
-	CommentBytes: 10556525,
+
+	// It rose for the second game's Group registry at a mission start and
+	// guard B's member cases: pkg/sim/guardstrike.go, the profile's form row
+	// and strike cases, the registry copy a SAVE writes, the command block's
+	// strike fields in pkg/formats/sav and pkg/game, their tests, the Troll.4
+	// release test, the decoded profile's choice in pkg/sim/binary.go, and
+	// this note.
+	// It rises for guard B's programme gate and the join-window regression tests.
+	CommentBytes: 10568127,
 }

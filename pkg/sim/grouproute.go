@@ -14,6 +14,16 @@ type groupRouteProfile struct {
 	// noHumanHealArm: a human's unit with no target takes no heal arm; else
 	// it does (AI-ACQUIRE-002, AI-349).
 	noHumanHealArm bool
+	// strikeCases: guard B's member cases 1, 2 and 4 run from the blow's
+	// record and the pursuit stamp (R2-ENGINE-844, DIV-4503).
+	strikeCases bool
+}
+
+// runsStrikeCases reports whether a Group at programme byte b runs guard B's
+// member cases 1, 2 and 4 and the pursuit stamp: only programme 18 does;
+// guard A has cases 3 and 6 (R2-ENGINE-844, R2-ENGINE-846).
+func (p *groupRouteProfile) runsStrikeCases(b uint8) bool {
+	return p.strikeCases && b == secondGuardRoute
 }
 
 func (p *groupRouteProfile) route(b uint8) uint8 {
@@ -37,6 +47,7 @@ var secondGameGroupRoute = groupRouteProfile{
 	guardAt18:                  true,
 	constructsForOlderRegistry: true,
 	noHumanHealArm:             true,
+	strikeCases:                true,
 }
 
 func (w *World) savedRoute(g *SavedGroup) uint8 {

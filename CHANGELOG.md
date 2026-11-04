@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] A monster walking home after you lead it away no longer turns on you at once when you hit it from beyond its guard circle; in a loaded original save its guard circle now widens once, as in the original.
+- [ROM2] A guarding monster you hit and then step away from now backs off for a while before it comes for you again, as in the original. A mission save keeps who hit it and when, so a loaded save, the original game's own included, carries on the same way.
 - [ROM2] When the original game loads a mission saved in Againrom, the player now sees around their own units again, and the monsters no longer walk off towards a corner of the map at the start.
 - [ROM2] Trolls, ogres and dragons speaking in the second game now show their whole head in the portrait, as in the original.
 - [ROM2] Saves now keep the character and creature identities the original game needs when loading a mission.

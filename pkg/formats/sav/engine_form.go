@@ -57,6 +57,9 @@ type formRetype struct{ from, to, word string }
 // sight its session matrix holds.
 type ProfileKeeps struct {
 	Pointers map[uint32]uint32
+	// Commands is each second-game Unit command's blow record and stamp,
+	// by the record's Token Identity.
+	Commands map[uint32]CommandStrike
 	// Sees answers whether Player slot viewer sees by the bodies of slot
 	// owner, the World's fog; nil sees nothing.
 	Sees func(viewer, owner uint32) bool
@@ -123,23 +126,83 @@ func zeroFill(n int) func([]byte) []byte {
 }
 
 // commandWord is word +0x16 of the second game's Unit command, 65500 in
-// every original-made record (R2-SESSION-339). The engine holds no state
-// for it: its meaning and the original's writer are Unknown (DIV-4479).
+// every original-made record (R2-SESSION-339) and the constructor's value
+// (R2-ENGINE-846); writeCommandStrikes writes an order's stamp over it
+// (DIV-4479).
 const commandWord = 65500
 
 // commandFill is the second game's 184-byte Unit command: word +0, the
 // command post the Group's mode-1 arm moves to (R2-ENGINE-824), is the
-// engine order's post, its word +0; word +0x16 is commandWord; the three
-// creature spell slots are the engine order's, in the second game's window;
-// every other byte is zero (DIV-4305, DIV-4490).
+// engine order's post, its word +0; word +0x16 is commandWord; the alarm
+// +0x54 and the notice +0x58..+0x5a are the engine order's (R2-ENGINE-845);
+// the three creature spell slots are the engine order's, in the second
+// game's window; every other byte is zero (DIV-4305, DIV-4490).
+// writeCommandStrikes writes the blow record and the stamp over it.
 func commandFill(engine []byte) []byte {
 	out := make([]byte, secondCreatureSpells.width)
 	copy(out[:2], engine)
 	put16(out, 0x16, commandWord)
+	if len(engine) > commandNoticeEnd {
+		copy(out[commandAlarm:commandNoticeEnd], engine[commandAlarm:commandNoticeEnd])
+	}
 	if slots, ok := firstCreatureSpells.slots(engine); ok {
 		secondCreatureSpells.put(out, slots)
 	}
 	return out
+}
+
+const (
+	// commandAlarm..commandNoticeEnd are the alarm +0x54 and the notice
+	// cell and count +0x58..+0x5a, at the same place in both games' blocks.
+	commandAlarm     = 0x54
+	commandNoticeEnd = 0x5b
+)
+
+// CommandStrike is the blow record and pursuit stamp of a second-game Unit
+// command (R2-ENGINE-845, R2-ENGINE-846): the stamp +0x16, the striker's
+// record key +0x94, the fine clock at the blow +0x98 and the cell +0x9c.
+type CommandStrike struct {
+	Stamp   uint16
+	Striker uint32
+	Clock   uint32
+	Away    uint16
+}
+
+// readCommandStrike is b's blow record and stamp; false for a block that is
+// not the second game's command.
+func readCommandStrike(b []byte) (CommandStrike, bool) {
+	if len(b) != secondCreatureSpells.width {
+		return CommandStrike{}, false
+	}
+	return CommandStrike{Stamp: u16(b, 0x16), Striker: u32(b, 0x94), Clock: u32(b, 0x98), Away: u16(b, 0x9c)}, true
+}
+
+// writeCommandStrikes writes each keeps entry into the command block of
+// the record its Token Identity names. A record without the block keeps
+// what it holds.
+func writeCommandStrikes(out *DocumentData, keeps map[uint32]CommandStrike) {
+	if len(keeps) == 0 {
+		return
+	}
+	for i := range out.Objects {
+		r := &out.Objects[i]
+		at := slices.IndexFunc(r.Values, func(v DocumentValueData) bool { return v.Name == "Identity" })
+		if at < 0 {
+			continue
+		}
+		k, ok := keeps[r.Values[at].Value]
+		if !ok {
+			continue
+		}
+		for j := range r.Raw {
+			if b := r.Raw[j].Bytes; r.Raw[j].Name == secondCreatureSpells.block && len(b) == secondCreatureSpells.width {
+				put16(b, 0x16, k.Stamp)
+				put32(b, 0x94, k.Striker)
+				put32(b, 0x98, k.Clock)
+				put16(b, 0x9c, k.Away)
+			}
+		}
+	}
 }
 
 // preferenceFill is the second game's 36 preference bytes: the engine's 32,
@@ -182,6 +245,7 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 	if err := p.form.pointer.retype(&out, keeps.Pointers); err != nil {
 		return DocumentData{}, false, err
 	}
+	writeCommandStrikes(&out, keeps.Commands)
 	dropClassRecords(&out, p.form.dropClasses)
 	out.Game = p.Game
 	out.Campaign = CityCampaignData{}

@@ -89,6 +89,23 @@ func applyOriginalGroups(ms *Mission, report *OriginalSaveResume) error {
 	if err := ms.World.ImportOriginalGroups(groups, orders); err != nil {
 		return err
 	}
+	// The second game's command holds the blow record, the stamp and the
+	// alarm (R2-ENGINE-845, R2-ENGINE-846); +0x94 names the striker's key.
+	var strikes []sim.LoadedStrike
+	for _, a := range r.sources {
+		if id, bound := bindings[a.ArchiveIndex]; bound && a.HasCommand {
+			k, n := a.CommandStrike, a.CommandNotice
+			row := sim.LoadedStrike{Entity: id, Attacker: targets[k.Striker], Struck: k.Striker != 0, Stamp: k.Stamp,
+				Alarm: n[0], Notice: binary.LittleEndian.Uint16(n[4:]), Scans: n[6], Clock: k.Clock, Away: k.Away}
+			if row.Attacker == id {
+				row.Attacker = 0
+			}
+			strikes = append(strikes, row)
+		}
+	}
+	if err := ms.World.ImportLoadedStrikes(strikes); err != nil {
+		return err
+	}
 	ms.World.RebuildLoadedActorTraversal()
 	report.GroupsRestored, report.GroupIssues = len(groups), ms.World.SavedGroupIssues()
 	return nil

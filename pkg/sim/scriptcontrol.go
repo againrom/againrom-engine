@@ -21,12 +21,16 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 	if err := out.UnmarshalBinary(form); err != nil {
 		return nil, fmt.Errorf("sim: restore controlled script world: %w", err)
 	}
+	// The trigger binder reads the new script (AI-452), and a copy into the
+	// other game takes that game's constructor. A registry play has changed
+	// is kept whole: a copy into the other game asks it of the copied
+	// World's own game and script, a copy in the same game of the new one.
+	held := !out.groupDialectNative() && out.savedGroups.fresh
+	rebuild := held && out.script.Dialect() != script.Dialect() && (out.savedGroups.native || out.groupsAsConstructed())
 	out.script = script
 	out.initializeROM2Script()
 	native := false
-	if !out.groupDialectNative() && out.savedGroups.fresh && (out.savedGroups.native || out.groupsAsConstructed()) {
-		// The trigger binder reads the new script (AI-452). A registry play
-		// has changed is kept whole.
+	if rebuild || held && (out.savedGroups.native || out.groupsAsConstructed()) {
 		native, out.savedGroups = out.savedGroups.native, nil
 	}
 	out.constructCarriers(native)

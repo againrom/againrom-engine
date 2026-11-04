@@ -96,10 +96,8 @@ func projectSavedGroupGraph(state *SnapshotSAVDocument, world *sim.World) error 
 		state.GroupBindings = bindings
 		return nil
 	}
-	groups, orders, present := world.SavedGroups()
-	if !present {
-		return projectCurrentGroups(state, world)
-	}
+	world = world.WithGroupRegistry()
+	groups, orders, _ := world.SavedGroups()
 	gap, err := projectSavedGroupRoster(next, world, groups)
 	if err != nil {
 		return err

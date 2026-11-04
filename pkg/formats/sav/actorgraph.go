@@ -66,7 +66,13 @@ type ActorRecord struct {
 	// post the Group's mode-1 arm moves to (R2-ENGINE-824, R2-ENGINE-823);
 	// zero where the record holds no such command.
 	CommandPost uint16
-	DyingTimer  int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
+	// CommandStrike is the second game's command's blow record and stamp,
+	// and CommandNotice its alarm and notice +0x54..+0x5a (R2-ENGINE-845);
+	// HasCommand marks a record holding that command.
+	CommandStrike CommandStrike
+	CommandNotice [commandNoticeEnd - commandAlarm]byte
+	HasCommand    bool
+	DyingTimer    int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
 	// Byte locators only; consumers can read independent layouts at these
 	// substructure starts without using decoded field values.
 	ControlOff, StateOff int
@@ -299,6 +305,10 @@ func currentActorGraph(players []*Record, current []uint16, dead ...[]*Record) (
 		copy(entry.Order[:], record.Raw["U158"])
 		if command := record.Raw["URaw184"]; len(command) >= 2 {
 			entry.CommandPost = u16(command, 0)
+			if strike, ok := readCommandStrike(command); ok {
+				entry.CommandStrike, entry.HasCommand = strike, true
+				copy(entry.CommandNotice[:], command[commandAlarm:commandNoticeEnd])
+			}
 		}
 		if len(record.Raw["U50"]) == 4 {
 			entry.ActorState = u32(record.Raw["U50"], 0)

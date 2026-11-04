@@ -119,6 +119,7 @@ var nstPinned = []struct {
 		// Decode context only: a wrapper form's hook giving the decoded spell
 		// rows their arms. The decoded world holds nil.
 		{"rowArms", "func([]sim.SpellRule)"},
+		{"formGame", "*sim.gameProfile"},
 		{"itemWeights", "[]sim.ItemWeight"},
 		{"script", "*sim.Script"},
 		{"rom2", "*sim.rom2ScriptState"},

@@ -45,20 +45,35 @@ func savedEscortBindingValid(o SavedActorOrder, entities []Entity, dead []origin
 // (DIV-4172), and LOAD keeps the state word its file holds until the Group
 // first decides.
 func (w *World) constructMissingOrders(g *SavedGroup, members []int) {
-	if order := w.savedRoute(g); !w.savedGroups.native && !w.game.groupRoute.constructsForOlderRegistry || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
+	if !w.buildsMissingOrders(g) {
 		return
 	}
 	for _, i := range members {
-		e := w.entities[i]
-		if e.Owner == 0 || w.savedOrder(e.ID) != nil {
-			continue
-		}
-		state := uint32(actorStateGuard)
-		if e.Owner == SelfSlot {
-			state = uint32(actorStateAcquire)
-		}
-		w.savedGroups.Orders = append(w.savedGroups.Orders, constructedOrder(e, state))
+		w.constructMissingOrder(i)
 	}
+}
+
+// buildsMissingOrders reports whether g's order needs a member order that
+// constructMissingOrders builds.
+func (w *World) buildsMissingOrders(g *SavedGroup) bool {
+	order := w.savedRoute(g)
+	return (w.savedGroups.native || w.game.groupRoute.constructsForOlderRegistry) && (order == 0 || order == 1 || order == 4 || order == 5 || order == 0x11)
+}
+
+// constructMissingOrder gives member i of a Group that buildsMissingOrders
+// the stance setter's order when it holds none and a Player owns it, and
+// answers the member's order.
+func (w *World) constructMissingOrder(i int) *SavedActorOrder {
+	e := w.entities[i]
+	if o := w.savedOrder(e.ID); o != nil || e.Owner == 0 {
+		return o
+	}
+	state := uint32(actorStateGuard)
+	if e.Owner == SelfSlot {
+		state = uint32(actorStateAcquire)
+	}
+	w.savedGroups.Orders = append(w.savedGroups.Orders, constructedOrder(e, state))
+	return &w.savedGroups.Orders[len(w.savedGroups.Orders)-1]
 }
 
 // This is an operation admission check, not a whole-file LOAD refusal. In
@@ -271,6 +286,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	cands = w.withEngagedFoes(ag.owner, members, order, cands)
 	id := g.ID
 	roam := g.AI[0x20] == 0x11
+	strikes := w.game.groupRoute.runsStrikeCases(g.AI[0x20])
 	w.walkSavedMembers(g, func(i int) {
 		if _, using := w.structureUseIndex(w.entities[i].ID); using {
 			return
@@ -295,6 +311,18 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			w.savedGroupMove(i, o, order == orderMove)
 			return
 		}
+		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
+		if guard && strikes && o != nil {
+			// Guard B's cases 1 and 2 precede the target case (R2-ENGINE-844).
+			w.stampPursuit(i, o)
+			if w.strikeWindow(i, o) {
+				if !human {
+					w.releaseAttack(i)
+				}
+				w.walkToStrikeAway(i, o)
+				return
+			}
+		}
 		best, at := scoreSeed, -1
 		if uint8(len(cands)) != 0 && uint8(len(members)) != 0 {
 			for _, ci := range cands {
@@ -306,7 +334,6 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 				}
 			}
 		}
-		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
 		if at >= 0 && w.engageRefused(i) {
 			// The engage refuses outright and writes nothing (AI-GUARD-007).
 		} else if at >= 0 {
@@ -348,7 +375,11 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			if order == orderGuard && o != nil {
 				e := &w.entities[i]
 				e.PostX, e.PostY = int32(o.Raw[0]), int32(o.Raw[1])
-				w.walkHome([]int{i})
+				if strikes && w.strikeRecent(i, o) {
+					w.walkToCell(i, int32(o.Strike.Away&0xff), int32(o.Strike.Away>>8))
+				} else {
+					w.walkHome([]int{i})
+				}
 				if e.HasTarget {
 					w.syncSavedDestination(i)
 				}

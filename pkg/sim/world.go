@@ -1919,6 +1919,10 @@ type World struct {
 	// the retained effects against them. A wrapper form sets it on the
 	// receiver it decodes into; the decoded world never holds it.
 	rowArms func([]SpellRule)
+	// formGame is the profile a wrapper form names for the World it wraps:
+	// the base form's World takes it, so each wrapper inside re-encodes the
+	// bytes the outer game wrote. The decoded world never holds it.
+	formGame *gameProfile
 
 	// itemWeights is what one unit of each item code this world can name
 	// weighs, sorted by code (weight.go). It is a TABLE the world is handed,

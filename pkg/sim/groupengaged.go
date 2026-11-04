@@ -125,7 +125,7 @@ func (w *World) joinEngagedGroups() {
 		if len(members) == 0 {
 			continue
 		}
-		w.joinEngagedGroup(record.owner, record.order, w.heldCircle(record.base, members), members, nil)
+		w.joinEngagedGroup(record.owner, record.order, w.heldCircle(record.base, members), members, nil, nil)
 	}
 }
 
@@ -198,7 +198,11 @@ func (w *World) joinSavedEngagedGroups() {
 		if order == 0x11 {
 			order = orderSwarm2
 		}
-		w.joinEngagedGroup(w.entities[members[0]].Owner, order, w.storedCircle(g), members, func(i int) {
+		inWindow := func(i int) bool {
+			o := w.savedOrder(w.entities[i].ID)
+			return o != nil && w.game.groupRoute.runsStrikeCases(g.AI[0x20]) && w.strikeWindow(i, o)
+		}
+		w.joinEngagedGroup(w.entities[members[0]].Owner, order, w.storedCircle(g), members, inWindow, func(i int) {
 			if o := w.savedOrder(w.entities[i].ID); o != nil {
 				o.Raw[8] = 5
 			}
@@ -206,7 +210,7 @@ func (w *World) joinSavedEngagedGroups() {
 	}
 }
 
-func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle, members []int, joined func(int)) {
+func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle, members []int, held func(int) bool, joined func(int)) {
 	if owner == 0 || owner == SelfSlot || !engagedOrder(order) || len(members) == 0 {
 		return
 	}
@@ -218,7 +222,7 @@ func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle,
 		return
 	}
 	for _, mi := range members {
-		if !w.joinsFight(mi) {
+		if !w.joinsFight(mi) || held != nil && held(mi) {
 			continue
 		}
 		best, at := scoreSeed, -1

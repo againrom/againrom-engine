@@ -194,6 +194,7 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 			o := &w.savedGroups.Orders[i]
 			ref(&o.Entity)
 			optional(&o.EscortTarget, o.EscortBound)
+			optional(&o.Strike.Attacker, o.Strike.Attacker != 0)
 		}
 	}
 	for i := range w.movers {

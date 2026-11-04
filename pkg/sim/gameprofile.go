@@ -32,9 +32,12 @@ type gameProfile struct {
 	// end; the first game keeps the one the mission set (SAV-1353).
 	cullClearsActionClock bool
 
-	// nativeGroups: no Group registry is constructed at mission start or on
-	// decode, and none is adopted or written as the constructed one.
-	nativeGroups bool
+	// formHoldsConstructedGroups: the byte form writes the constructed Group
+	// registry too. The second game's form has no session clock to name an
+	// older engine's, so a form without a registry is one written before its
+	// mission start built one, and its Groups take their native records
+	// (constructedGroups, DIV-4502).
+	formHoldsConstructedGroups bool
 	// nativeEffectDriver: the world-effect driver table is created by the
 	// first projectile, not at construction.
 	nativeEffectDriver bool
@@ -125,43 +128,43 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		return gameProfile{}
 	}
 	return gameProfile{
-		spellGame:               rules.SpellGameSecond,
-		groupRoute:              secondGameGroupRoute,
-		creatureAim:             secondGameCreatureAim,
-		suppressedRewards:       true,
-		nativeTick:              true,
-		bankedScript:            true,
-		activityMask:            true,
-		cullClearsActionClock:   true,
-		nativeGroups:            true,
-		nativeEffectDriver:      true,
-		nativeMovers:            true,
-		nativeFacing:            true,
-		nativeCellPlanes:        true,
-		nativeObjects:           true,
-		nativePointCasts:        true,
-		nativeTargetOrders:      true,
-		nativeShopUse:           true,
-		nativeWalkRefusal:       true,
-		cellCastReach:           true,
-		releaseRevalidates:      true,
-		blowOrdersAttack:        true,
-		bookWalkAll:             true,
-		postKeepsDying:          true,
-		savedProjectileAim:      true,
-		withdrawMoverPoint:      true,
-		withdrawAnchorCells:     true,
-		keepsSuppressedAcquirer: true,
-		noHealArmReach:          true,
-		noMageGroupSight:        true,
-		keepsWeaponSpell:        true,
-		autoCastFullDefault:     true,
-		nativeRegen:             true,
-		nativeDecay:             true,
-		keepsCastRetain:         true,
-		residueOverBookCasts:    true,
-		savesMissionFog:         true,
-		noCompanionObjective:    true,
+		spellGame:                  rules.SpellGameSecond,
+		groupRoute:                 secondGameGroupRoute,
+		creatureAim:                secondGameCreatureAim,
+		suppressedRewards:          true,
+		nativeTick:                 true,
+		bankedScript:               true,
+		activityMask:               true,
+		cullClearsActionClock:      true,
+		formHoldsConstructedGroups: true,
+		nativeEffectDriver:         true,
+		nativeMovers:               true,
+		nativeFacing:               true,
+		nativeCellPlanes:           true,
+		nativeObjects:              true,
+		nativePointCasts:           true,
+		nativeTargetOrders:         true,
+		nativeShopUse:              true,
+		nativeWalkRefusal:          true,
+		cellCastReach:              true,
+		releaseRevalidates:         true,
+		blowOrdersAttack:           true,
+		bookWalkAll:                true,
+		postKeepsDying:             true,
+		savedProjectileAim:         true,
+		withdrawMoverPoint:         true,
+		withdrawAnchorCells:        true,
+		keepsSuppressedAcquirer:    true,
+		noHealArmReach:             true,
+		noMageGroupSight:           true,
+		keepsWeaponSpell:           true,
+		autoCastFullDefault:        true,
+		nativeRegen:                true,
+		nativeDecay:                true,
+		keepsCastRetain:            true,
+		residueOverBookCasts:       true,
+		savesMissionFog:            true,
+		noCompanionObjective:       true,
 	}
 }
 

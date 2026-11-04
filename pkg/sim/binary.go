@@ -3280,6 +3280,12 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err := motionCheck.savedCellPlaneStateFault(); err != nil {
 		return err
 	}
+	// The decoded World takes the profile a wrapper form names, else the one
+	// its script dialect chooses.
+	game := newGameProfile(st.script.Dialect())
+	if w.formGame != nil {
+		game = *w.formGame
+	}
 	candidate := World{
 		entityIDFloor:       entityIDFloor,
 		savedWorldEffects:   worldEffects,
@@ -3345,7 +3351,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		equipment:         equipment,
 		purses:            purses,
 		script:            st.script,
-		game:              newGameProfile(st.script.Dialect()),
+		game:              game,
 		registers:         st.registers,
 		latches:           st.latches,
 		won:               st.won,

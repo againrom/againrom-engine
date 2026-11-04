@@ -21,6 +21,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		return nil, fmt.Errorf("current mission lacks installed descriptors")
 	}
 	ms, t := f.live.mission.state, f.Table
+	w = w.WithGroupRegistry()
 	diaryRows := 0
 	if t != nil && t.Units != nil {
 		diaryRows = t.Units.Len()
@@ -394,20 +395,15 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	if err := rootDeadActors(state, w); err != nil {
 		return nil, err
 	}
-	if groups, _, present := w.SavedGroups(); present {
-		gap, err := projectSavedGroupRoster(state, w, groups)
-		if err != nil {
-			return nil, err
-		}
-		if gap != "" {
-			return nil, fmt.Errorf("current Group construction: %s", gap)
-		}
-		projectSavedPlayerCounts(&b.doc)
-	} else {
-		if err := projectCurrentGroups(state, w); err != nil {
-			return nil, err
-		}
+	groups, _, _ := w.SavedGroups()
+	gap, err := projectSavedGroupRoster(state, w, groups)
+	if err != nil {
+		return nil, err
 	}
+	if gap != "" {
+		return nil, fmt.Errorf("current Group construction: %s", gap)
+	}
+	projectSavedPlayerCounts(&b.doc)
 	if err := b.currentSpatial(w, ms.Map, t, f.Archives.Containers); err != nil {
 		return nil, err
 	}
@@ -720,116 +716,6 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 	binary.LittleEndian.PutUint16(source.Modifier[10:], uint16(e.HealthRegeneration))
 	binary.LittleEndian.PutUint16(source.Modifier[14:], uint16(e.ManaRegeneration))
 	return source
-}
-
-func projectCurrentGroups(state *SnapshotSAVDocument, w *sim.World) error {
-	state.GroupBindings.Groups = nil
-	entities := w.Entities()
-	for _, p := range state.GroupBindings.Players {
-		r := &state.Document.Objects[p.ObjectIndex-1]
-		slot, _ := savedStructureValue(r, "Slot")
-		key, _ := savedStructureValue(r, "This")
-		r.Groups = nil
-		var selectors []uint32
-		for _, e := range entities {
-			if e.Owner == slot && e.Decay < sim.DecayBones && !slices.Contains(selectors, e.Group) {
-				selectors = append(selectors, e.Group)
-			}
-		}
-		var count uint32
-		for _, selector := range selectors {
-			g := sim.SavedGroup{ID: uint32(len(state.GroupBindings.Groups) + 1), Selector: selector, Owner: sim.SavedGroupReference{Class: 1, Owner: slot}}
-			var refs []uint16
-			var ids []sim.EntityID
-			for _, e := range entities {
-				if e.Owner != slot || e.Group != selector || e.Decay >= sim.DecayBones {
-					continue
-				}
-				for _, a := range state.Actors {
-					if a.EntityID == e.ID {
-						refs = append(refs, a.ObjectIndex)
-						ids = append(ids, e.ID)
-						g.Members = append(g.Members, sim.SavedGroupMember{Entity: e.ID, Bound: true})
-						break
-					}
-				}
-			}
-			// The World holds no Group registry: its Groups run the programme
-			// the constructor builds from the current state, and each member's
-			// order holds its post (R2-ENGINE-507, R2-ENGINE-824, DIV-4471).
-			constructed, orders := w.ConstructedGroup(slot, selector, ids)
-			g.AI = constructed.AI
-			for _, o := range orders {
-				if err := projectCommandPost(state, refs[slices.Index(ids, o.Entity)], o); err != nil {
-					return err
-				}
-			}
-			group := newSavedGroupRecord()
-			if err := projectSavedGroupFields(&group, g, refs, 0, key); err != nil {
-				return err
-			}
-			inline := uint32(len(r.Groups))
-			r.Groups = append(r.Groups, group)
-			count += uint32(len(refs))
-			state.GroupBindings.Groups = append(state.GroupBindings.Groups, SnapshotSAVGroupBinding{ID: g.ID, PlayerObject: p.ObjectIndex, InlineIndex: inline, ContainerID: p.ID, Authored: true, Owner: SnapshotSAVGroupReferenceBinding{Class: 1, Owner: slot, Key: key, ObjectIndex: p.ObjectIndex}})
-		}
-		mustSetCount(r, "Groups", uint32(len(r.Groups)))
-		mustSetCount(r, "Actors", count)
-	}
-	return projectCurrentPatrols(state, w)
-}
-
-// projectCommandPost writes the post o holds, its word +0, in the order of
-// the actor record at index; the record's other order bytes stay.
-func projectCommandPost(state *SnapshotSAVDocument, index uint16, o sim.SavedActorOrder) error {
-	if index == 0 || int(index) > len(state.Document.Objects) {
-		return fmt.Errorf("actor %d command post lacks its record", o.Entity)
-	}
-	next, sites, err := cloneSavedGroupFieldRecord(&state.Document.Objects[index-1])
-	if err != nil {
-		return err
-	}
-	raw, err := sites.fixedRaw(&next, "U158", 148)
-	if err != nil {
-		return err
-	}
-	copy(raw[:2], o.Raw[:2])
-	state.Document.Objects[index-1] = next
-	return nil
-}
-
-// projectCurrentPatrols writes the actor order of every living patroller from
-// current state: state 0x0a, its ring in U158_90 in ring order and a cursor
-// that is a ring member. Every other actor keeps its written order (DIV-1382).
-func projectCurrentPatrols(state *SnapshotSAVDocument, w *sim.World) error {
-	entities := w.Entities()
-	byID := make(map[sim.EntityID]sim.Entity, len(entities))
-	for _, e := range entities {
-		byID[e.ID] = e
-	}
-	for _, a := range state.Actors {
-		if a.Retired || a.ObjectIndex == 0 || int(a.ObjectIndex) > len(state.Document.Objects) {
-			continue
-		}
-		order, err := savedActorRaw(&state.Document.Objects[a.ObjectIndex-1], "U158", 148)
-		if err != nil {
-			continue
-		}
-		var raw [144]byte
-		copy(raw[:], order)
-		e, live := byID[a.EntityID]
-		if !live {
-			continue
-		}
-		o, patrol := sim.PatrolOrder(e, raw)
-		if !patrol {
-			continue
-		}
-		if err := projectNativeOrder(state, w, entities, a.ObjectIndex, o); err != nil {
-			return fmt.Errorf("actor %d patrol order: %w", a.EntityID, err)
-		}
-	}
-	return nil
 }
 
 // currentPlayerKey is the identity key the World holds for a Player slot: the

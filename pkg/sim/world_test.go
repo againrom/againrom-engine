@@ -112,7 +112,7 @@ func init() {
 	worldMethods = append(worldMethods, "AutoHealing", "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "AutoCast", "AutoCastCasts", "AutoCastLevelOfSpell", "AutoCastStored", "SetAutoCast")
 	worldWriters = append(worldWriters, "SetAutoCast")
-	worldMethods = append(worldMethods, "FrozenGroupAI", "ConstructedGroup", "RevealsOwner")
+	worldMethods = append(worldMethods, "FrozenGroupAI", "WithGroupRegistry", "RevealsOwner")
 	worldWriters = append(worldWriters, "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "CurrentWorldEffectOrder", "NativeSpellDeliverySaveStates", "SavedSpellGraph", "ImportSavedSpellGraph")
 	worldWriters = append(worldWriters, "ImportSavedSpellGraph")
@@ -139,6 +139,8 @@ func init() {
 	worldWriters = append(worldWriters, "RepairNativePackCells")
 	worldMethods = append(worldMethods, "ImportOriginalPointCasts")
 	worldWriters = append(worldWriters, "ImportOriginalPointCasts")
+	worldMethods = append(worldMethods, "ImportLoadedStrikes")
+	worldWriters = append(worldWriters, "ImportLoadedStrikes")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
@@ -165,7 +167,6 @@ var worldArgReaders = map[string][]reflect.Value{
 	"AutoCastLevelOfSpell": {reflect.ValueOf(uint16(6))},
 	"AutoCastCasts":        {reflect.ValueOf(DefaultAutoCast), reflect.ValueOf(uint16(6))},
 	"FrozenGroupAI":        {reflect.ValueOf(uint32(SelfSlot)), reflect.ValueOf(uint32(0))},
-	"ConstructedGroup":     {reflect.ValueOf(uint32(2)), reflect.ValueOf(uint32(0)), reflect.ValueOf([]EntityID{7, 2})},
 	"AppendCorpseStates":   {reflect.ValueOf([]CorpseState(nil))},
 	"ActorFinePosition":    {reflect.ValueOf(EntityID(7))},
 	"ApplyMover":           {reflect.ValueOf(EntityID(7)), reflect.ValueOf(new([180]byte))},

@@ -49,19 +49,29 @@ func (w *World) appendSavedGroups(b []byte) []byte {
 		for _, o := range s.Orders {
 			b = le.AppendUint32(b, uint32(o.Entity))
 			b = le.AppendUint32(b, o.State)
-			// Bit 1 of the construction byte is the stood-down walk.
-			b = append(b, layoutBool(o.Authored)|layoutBool(s.stoodDownWalk(&o))<<1, o.RepairStage)
+			// Bit 1 of the construction byte is the stood-down walk, bit 2 a
+			// strike record after the order's other fields.
+			struck := o.Strike != SavedStrike{}
+			b = append(b, layoutBool(o.Authored)|layoutBool(s.stoodDownWalk(&o))<<1|layoutBool(struck)<<2, o.RepairStage)
 			b = le.AppendUint32(b, uint32(o.EscortTarget))
 			b = append(b, layoutBool(o.EscortBound))
 			raw := w.maskedOrderRaw(o)
 			b = append(b, raw[:]...)
 			words(o.Patrol)
+			if struck {
+				k := o.Strike
+				b = le.AppendUint32(b, uint32(k.Attacker))
+				b = le.AppendUint32(b, k.Clock)
+				b = le.AppendUint16(b, k.Away)
+				b = le.AppendUint16(b, k.Stamp)
+				b = append(b, layoutBool(k.Held)|layoutBool(k.Stamped)<<1)
+			}
 		}
 		// A constructed registry written because it no longer equals the
 		// constructed one keeps that mark, so the decoded World omits it
 		// again exactly when the live one does. A form without the byte
 		// holds an imported registry.
-		if s.fresh && !w.game.nativeGroups {
+		if s.fresh {
 			b = append(b, 1+layoutBool(s.native))
 		}
 	}
@@ -147,7 +157,7 @@ func splitSavedGroups(b []byte) ([]byte, *savedGroupState, error) {
 		get(&o.State)
 		var authored uint8
 		get(&authored)
-		if authored > 3 {
+		if authored > 7 {
 			err = fmt.Errorf("sim: invalid actor order construction mode")
 		}
 		o.Authored, o.stoodDown = authored&1 == 1, authored&2 != 0
@@ -161,6 +171,19 @@ func splitSavedGroups(b []byte) ([]byte, *savedGroupState, error) {
 		o.EscortBound = bound == 1
 		get(&o.Raw)
 		o.Patrol = words()
+		if authored&4 != 0 {
+			k := &o.Strike
+			var marks uint8
+			get(&k.Attacker)
+			get(&k.Clock)
+			get(&k.Away)
+			get(&k.Stamp)
+			get(&marks)
+			if marks > 3 || *k == (SavedStrike{}) && marks == 0 {
+				err = fmt.Errorf("sim: invalid actor order strike record")
+			}
+			k.Held, k.Stamped = marks&1 != 0, marks&2 != 0
+		}
 	}
 	if err == nil && r.Len() == 1 {
 		var fresh uint8

@@ -101,6 +101,8 @@ type ActionOrderContinuation struct {
 	RepairStage, Inner, Progress, Retry uint8
 	Ordinal                             *uint32 `json:",omitempty"`
 	AbsentSpellKey                      *uint32 `json:",omitempty"`
+	// Strike is the order's second-game blow record and pursuit stamp.
+	Strike *SavedStrike `json:",omitempty"`
 	// Projected lists the order bytes the writer projects from typed
 	// current state (a victim's minted key, a reach) over the World's own
 	// order bytes. LOAD restores the World's bytes while the file still
@@ -206,6 +208,10 @@ func (w *World) Actions() ActionContinuations {
 			if s := w.orderState(&e); (s.booked() || s.queued) && binary.LittleEndian.Uint32(o.Raw[0x30:]) == 0 {
 				absent := uint32(0)
 				order.AbsentSpellKey = &absent
+			}
+			if o.Strike != (SavedStrike{}) {
+				k := o.Strike
+				order.Strike = &k
 			}
 		}
 		a.Actors = append(a.Actors, ActorContinuation{
@@ -540,6 +546,12 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 				o.Raw[8], o.Raw[9], o.Raw[0x15] = v.Order.Inner, v.Order.Progress, v.Order.Retry
 				if anchor := v.Order.AbsentSpellKey; anchor != nil && *anchor == binary.LittleEndian.Uint32(o.Raw[0x30:]) {
 					binary.LittleEndian.PutUint32(o.Raw[0x30:], 0)
+				}
+				if k := v.Order.Strike; k != nil {
+					if *k == (SavedStrike{}) || k.Attacker != 0 && indexOfEntity(n.entities, k.Attacker) < 0 {
+						return fmt.Errorf("sim: invalid order strike continuation")
+					}
+					o.Strike = *k
 				}
 			}
 		} else if !n.groupDialectNative() {

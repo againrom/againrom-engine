@@ -49,6 +49,8 @@ type SavedActorOrder struct {
 	// Raw excludes the replaced +90 list pointer.
 	Raw    [144]byte
 	Patrol []uint16
+	// Strike is the second game's blow record and pursuit stamp.
+	Strike SavedStrike
 	// stoodDown marks a Move or Swarm 2 member whose state 1 walk a refusal
 	// stood down to State 0xc (AI-649); only the setters clear it. LOAD
 	// derives it from State 0xc in a Group at order 4 or 5.

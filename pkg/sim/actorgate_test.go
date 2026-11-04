@@ -138,36 +138,33 @@ func TestScriptGuardOverAPatrolStopsThePatrolArm(t *testing.T) {
 	}
 }
 
-// TestSecondGameDispatchKeepsItsGuardOnlyGate: the second game's order machine
-// is its own, so its dispatch is unchanged. A patroller whose Group order is
-// raised to 1 is still read and still walks its ring.
-func TestSecondGameDispatchKeepsItsGuardOnlyGate(t *testing.T) {
+// TestSecondGameDispatchTakesTheRegistryGate: a second-game mission start
+// holds the Group registry, so its dispatch is the first game's (DIV-4502).
+// A patroller whose registry Group is raised to the guard programme 18 is no
+// longer read by the patrol arm: it walks back to its post, not on its ring.
+func TestSecondGameDispatchTakesTheRegistryGate(t *testing.T) {
 	m := withdrawalFighter(1, SelfSlot, 20, 20, 100)
 	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, Terrain{}, []Entity{m}, secondGameScript(t, nil, nil, nil), engRel(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !playsSecondGame(w) || !w.groupDialectNative() {
-		t.Fatal("fixture: not a second-game World")
+	if !playsSecondGame(w) || w.groupDialectNative() {
+		t.Fatal("fixture: not a second-game World holding the registry")
 	}
 	w.tick = scriptPassPhase
 	Step(w, []Command{GroupPatrolTo(1, CellPoint{X: 30, Y: 20}, 1)})
 	e := laEnt(t, w, 1)
-	raised := false
-	for gi := range w.groups {
-		if w.groups[gi].owner == e.Owner && w.groups[gi].group == effectiveGroup(&e) {
-			w.groups[gi].order, raised = orderGuard, true
-		}
+	g := w.savedGroupFor(e.ID)
+	if g == nil || e.ActorState != actorStatePatrol {
+		t.Fatalf("fixture: registry Group %v, state %#x", g != nil, e.ActorState)
 	}
-	if !raised || e.ActorState != actorStatePatrol {
-		t.Fatalf("fixture: Group record %v, state %#x", raised, e.ActorState)
-	}
+	g.AI[0x20] = secondGuardRoute
 	at := e.X
 	got := gateReads(1, func() { engRun(w, 4) })
-	if len(got) == 0 || got[0] != actorStatePatrol {
-		t.Fatalf("the second-game dispatch read %#x, want the patrol state", got)
+	if len(got) != 0 {
+		t.Fatalf("under the guard programme the dispatch read the patroller's state %#x", got)
 	}
-	if e := laEnt(t, w, 1); e.X <= at {
-		t.Fatalf("the second-game patroller stayed at (%d,%d)", e.X, e.Y)
+	if e := laEnt(t, w, 1); e.X > at {
+		t.Fatalf("under the guard programme the patroller walked on from %d to (%d,%d)", at, e.X, e.Y)
 	}
 }

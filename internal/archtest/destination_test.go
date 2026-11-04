@@ -8,7 +8,7 @@ import (
 )
 
 var wantDestinationWriters = []string{
-	"attachMoveOrder", "unmarshalBinary", "walkTo", "issueSavedGroupDestination", "armSwarm", "armPatrol", "walkHome",
+	"attachMoveOrder", "unmarshalBinary", "walkTo", "issueSavedGroupDestination", "armSwarm", "armPatrol", "walkToCell",
 	"guardWalkHome", "escortClose", "escortStepAway", "withdrawFromAny", "stepScrollCasts", "savedMove",
 	"savedDecision", "beginSavedRouteContinuation", "standDown", "retainCycleForState", "dispatchRetreatPending",
 }

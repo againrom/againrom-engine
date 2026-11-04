@@ -124,7 +124,9 @@ func TestROM2FormWrapsNativeTraining(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A second-game World builds no first-game Group registry.
+	// A second-game World an older engine wrote, before its mission start
+	// built the Group registry: the form holds none, and LOAD constructs it
+	// from the native Group records.
 	w.script, w.rom2, w.game, w.savedGroups = s, &rom2ScriptState{}, newGameProfile(ScriptROM2), nil
 	w.constructSessionClock()
 	raw, err := w.MarshalBinary()
@@ -140,6 +142,7 @@ func TestROM2FormWrapsNativeTraining(t *testing.T) {
 	if !bytes.Equal(peeled, base) {
 		t.Fatal("independent ROM2 peel changed predecessor bytes")
 	}
+	w.constructGroups(true)
 	var cold World
 	if err := cold.UnmarshalBinary(raw); err != nil || cold.Hash() != w.Hash() || cold.entities[0].NativeTraining != w.entities[0].NativeTraining || cold.structures[0].Blocking != 2 {
 		t.Fatal("combined native training and ROM2 cold restore failed", err)

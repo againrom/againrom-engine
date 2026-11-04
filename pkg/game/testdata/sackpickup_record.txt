@@ -1463,1465 +1463,1466 @@ t42 tick=43 hash=b41dea947d740298 form=9787d1c7d5b29fd5
 t43 tick=44 hash=de123c13475de843 form=f80d74a367202365
 t44 tick=45 hash=2bee22035cc8d35e form=cb6066990e84e616
 == second click
-open tick=0 hash=c082cea092495c52 form=0a9612dc3820dc16
+open tick=0 hash=88973901e0d77a89 form=3bc10727416b7294
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=500 items=[101]]
   queue=[]
   lines=[]
-grab tick=0 hash=c082cea092495c52 form=0a9612dc3820dc16
+grab tick=0 hash=88973901e0d77a89 form=3bc10727416b7294
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=ef6d46d9136d1124 form=4c5b621ed98e92a0
+t1 tick=1 hash=32ca23bf94ce0614 form=d2922a83443d485b
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=0a7ab85f46f3f956 form=f6857b5ec42a0b14
+t2 tick=2 hash=143c5cbe485b72ea form=98f6b333372ea72b
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t3 tick=3 hash=ae2cf5723b295bf0 form=20c40c74a327dfcf
+t3 tick=3 hash=074b904bcb50e2d0 form=8d5fbd6b8c34bf79
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t4 tick=4 hash=6bf6b3e266c7b2b6 form=d34a6a1832d358e3
+t4 tick=4 hash=644c2a893c0ceeca form=54acea421a4c79c1
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=2db91953acc846b4 form=7f74295b03089129
+t5 tick=5 hash=b0e5f4ed00a2e2c4 form=a8941ff1d957848c
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=a6999c015dc8f9ee form=e046fb426b51b61b
+t6 tick=6 hash=445b02c683c603c2 form=49ab3d77fd44d3e2
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=dc757e16bd3a47b8 form=2c7fa38c2702dcdb
+t7 tick=7 hash=eeaf5877b6c51c64 form=0e3d0f7225e6ab16
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=2134b587ba4ae48e form=7f8d7478a9e20603
+t8 tick=8 hash=678a0817eaba2a86 form=966ab24f6bcb012a
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=aba1f49d455a78b4 form=8401c811ef0fb213
+t9 tick=9 hash=501df3ad44ee2d38 form=08ddffa51ceb912f
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=3d28e6016522fbc6 form=a8c29b0665c4b35d
+t10 tick=10 hash=4a1fb5bd0f8cbe0e form=f2e673937407a338
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=d0f9b165ef1f4280 form=2bdb3edbffd2bc1c
+t11 tick=11 hash=21001c85e69891fc form=d7828264e3856331
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=82be8010e74e6c66 form=130bb09c0e51db08
+t12 tick=12 hash=4ba8eab585e0836e form=6f1d14c9231c0638
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=49852e6bf90fcf04 form=a4c8142be868b61b
+t13 tick=13 hash=bde978aede31f408 form=b06e01664b9f96f8
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=7d5ac2ca6385978e form=7a0671b24936a4fd
+t14 tick=14 hash=3677fef5fafb6b86 form=9b4431ab877d83d6
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=8464fea3d7c7e3b8 form=e8e1ebc8e9af8561
+t15 tick=15 hash=94c28c4ebcb01064 form=e6bede8f064304b8
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=ab7c205b38da4a8e form=d270b17495deb09f
+t16 tick=16 hash=ef8b6205c13aac86 form=db41df6a8d53e089
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=400c4076b0083dfd form=45496c9ff56acbdd
+t17 tick=17 hash=bdcb76b68f8504d7 form=95d1ea648b882b99
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=92c77c03d99ad6a7 form=83203e4f44a122f6
+t18 tick=18 hash=1db882d33bd410e5 form=5e2280b698ee5b31
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=7f2f5c88e7cb8b21 form=29a329783dc20fdc
+t19 tick=19 hash=dad4d3498da722c3 form=40b4468ad4ff1b65
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=ca8844bb90c98087 form=a90cbc1e25bf9311
+t20 tick=20 hash=0e6fb08817945085 form=7404ec5f8a3ff0d7
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=9f39e6da5e3e5ebd form=da9fcded13a8a4be
+t21 tick=21 hash=521f5fb926062697 form=af5809a1ae5bd390
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=116b9dcb4cedebe7 form=df85b993ed7c6955
+t22 tick=22 hash=8a5c597fd2a00925 form=9235c672a6280418
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=e0368abd6930e239 form=98ea185d33cf71f7
+t23 tick=23 hash=e48c62b082fc494b form=2e71090a5f1a12d5
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=26618b410ecac077 form=4e02f7c3c13c23fe
+t24 tick=24 hash=cf276f31a2586c75 form=b8ca3fb514ca1591
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=3d9a547a4b41f74d form=20e4a39506f8acc6
+t25 tick=25 hash=fe64050792a53927 form=6a02c1ca2773299b
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=875e074ef9bbae97 form=5dd473cde455a04e
+t26 tick=26 hash=91c15c3128119555 form=0f8553531ab512bb
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=9c692628c980bef1 form=e2d89e39b80b8942
+t27 tick=27 hash=8c15ebd33785ced3 form=5bc062081c705d84
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=bcab4ebbfac42db7 form=99cb674a1cfa0591
+t28 tick=28 hash=b590561ca91e23b5 form=37b0c63cbb84148b
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=85a491fe5cb495cd form=870a60fc0b49e213
+t29 tick=29 hash=261fbc6b3b7bb2a7 form=b0c8d9d1fbf4bf79
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=551967ec488fa5d7 form=72e0c6e1b77454c6
+t30 tick=30 hash=eaacd05cee12da95 form=4a224cbdc5e08c86
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=433e8fd55d62fe39 form=eac77c32db69ca21
+t31 tick=31 hash=671bdec518d0bd4b form=c2d6ee090a45e240
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=716867de28d725f5 form=578691a98b8ae60e
+t32 tick=32 hash=4ce6e32e4a37c68b form=8a83d642772d8a44
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=500 sacks=[]
   lines=["Picked up 500 gold" "Picked up Sword"]
-t33 tick=33 hash=2faca85eeca583cc form=e9d42cc494113434
+t33 tick=33 hash=888639114765a0e8 form=3031be69658e1e50
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t34 tick=34 hash=8400730e69613385 form=2468530838c25347
-t35 tick=35 hash=03dc699c1e5bfc9a form=c518e974cf760da8
-t36 tick=36 hash=c7a030a4f8478d8b form=2e775370e8d80ea0
+t34 tick=34 hash=dc2e491972f60661 form=30698c41b72804be
+t35 tick=35 hash=17c4d8f3ebb05206 form=7ed4c990b6c49704
+t36 tick=36 hash=f19bc5b761ff184f form=f059674045190cf3
 == second click-documents
-open tick=0 hash=b6489b45c5363bdf form=f72c925dcfa50307
+open tick=0 hash=2c23f449fffea212 form=1df22f41d0fb069d
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(3,6) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,6) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[101 e1c]]
   queue=[]
   lines=[]
-grab tick=0 hash=b6489b45c5363bdf form=f72c925dcfa50307
+grab tick=0 hash=2c23f449fffea212 form=1df22f41d0fb069d
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=fd2698329f4a05c3 form=851ee46fc8912581
+t1 tick=1 hash=b1f75dcee99b4e88 form=dccda9676a1e6319
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=13836a234205d041 form=6eb3ba86acf46a59
+t2 tick=2 hash=78374b3a910d60e6 form=0223b305ab1e9c65
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t3 tick=3 hash=431fbddb7889b117 form=11672f2bf3989d29
+t3 tick=3 hash=7637bafeceeed69c form=5013441169e5000a
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t4 tick=4 hash=e8e3d65ae2bf2269 form=456726189b3f5f69
+t4 tick=4 hash=b46c18d2cd087d4e form=8373ae0468418a7c
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=21f66dfe859c8afb form=84b829e152a09002
+t5 tick=5 hash=6324e27b11a8eae0 form=1bf1f1d47daa72a6
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=ea9ecdebfaaae5f1 form=c1be4df88b4b6e32
+t6 tick=6 hash=886fc2f9856d60f6 form=a5a0c574a7cb9681
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=5b3530dcd35215c7 form=9457a4d0e476111e
+t7 tick=7 hash=5331c59d950a88ac form=5e2ed0fd2b0c4b12
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=fb34719daf92f909 form=2c5a5d6ee7715e08
+t8 tick=8 hash=e119cbfa2c9d5c2e form=1c62148351932b0f
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=ed0b5363a25dd253 form=f934852650928990
+t9 tick=9 hash=f4987af91b24bab8 form=c35d833a980c9b50
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=a8aa65fa6dfe8c71 form=4d1e5e4ee2b01214
+t10 tick=10 hash=b5ce6eb4db8d9076 form=96d35c4677842b6c
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=c996beb8540008e7 form=85fa616d1813ee25
+t11 tick=11 hash=5951a5d62df2260c form=003e67f1e15c4558
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=5b9c1db5fef462e9 form=2ae80c448dd3bd16
+t12 tick=12 hash=db6024efe64de8ce form=e0c53ab1d8499c77
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=ceee8d6428f5c2db form=0bdad4b81dfc0a7b
+t13 tick=13 hash=36182acab59ea000 form=3de8146122f26ed2
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=d309f6e3f21cf1e1 form=50d9b02de4e0037a
+t14 tick=14 hash=e938dba0359b2bc6 form=0828cfe180876602
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=1a5f55bf3233d497 form=40659b570f6f0af5
+t15 tick=15 hash=02fb619f7f0d8d1c form=ffa9ad0e1e0db56c
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=022b1bb1f05f8aa9 form=a7eafe15eca3c6f2
+t16 tick=16 hash=e4f3acf13708168e form=fe82eb32b58a9b73
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=1ee917ed6b9eaaa2 form=fcea7f9f4af1adc5
+t17 tick=17 hash=06868858c9df77ef form=72d19e2307b34e15
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=3a1c1a8b893a22d0 form=669be271ba20face
+t18 tick=18 hash=c6c21dfefb31818d form=824e51a743f9f7eb
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=fb4a49cc077692fe form=44da494dbf5e890b
+t19 tick=19 hash=886b838af4bc7f5b form=bd961d4a95edb2a3
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=59239c2d61cd4428 form=e33e3de306955f4b
+t20 tick=20 hash=85c133f4176d1d45 form=5fc0ad48a2ba1a44
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=a0685b71dcd77062 form=649277c0f7bee757
+t21 tick=21 hash=4adb8f67cb5483af form=daf56cafdc16834f
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=c9d988311059aa90 form=962898ad8d5a60ea
+t22 tick=22 hash=ee3eb7cf03b4c74d form=d6e101da7516fe54
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=7a1ceaedcb2994f6 form=280f04bf91412bd5
+t23 tick=23 hash=7e4d621b486a9073 form=abbeb318bd2050a5
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=191707f2452aefd8 form=e7bd002e863f3953
+t24 tick=24 hash=c14f8acad0dcf1d5 form=a319f3255346911a
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=53b2fad47f5249f2 form=0f41c820544c0489
+t25 tick=25 hash=1b90b82a17295c9f form=b8a60764be49120d
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=f014e7e9aaf6c200 form=7d7ba629c1fec074
+t26 tick=26 hash=11b6ac1aeb1c44dd form=65cd41cf0947537e
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=561395f2874683de form=01a8657346177480
+t27 tick=27 hash=c92cc64531cba8fb form=6fabcc38f534139f
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=d3986048fd4f8028 form=f4b48e3ab2c32202
+t28 tick=28 hash=e4b2e741a3969145 form=fbbb1963f51e5c7d
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=a34b54efc34c5eb2 form=3c38c01c8dd7ac16
+t29 tick=29 hash=200e7cfd990a975f form=2ad1515e247c806c
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=6f0348e1926e3f80 form=889417e29b735a7b
+t30 tick=30 hash=a4cb05e3ce37295d form=ab863c603bd3ca14
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=71e64ad4bd726cc6 form=2fdc61956190016d
+t31 tick=31 hash=d1fd0a595147a6e3 form=e3a6db3242b48480
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=7b5c0bf7f0d557f5 form=b8827ee80b9ea57e
+t32 tick=32 hash=115cf09e3e25162f form=0c007764a7e52e51
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   actor 8 at=(3,6) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,6) pack=[0xe1c:1/0]
   purse=20 sacks=[]
   lines=["Picked up 20 gold" "Picked up Sword" "Picked up 0014028"]
-t33 tick=33 hash=eaefb6c899aaa084 form=1d0bd1e28a3ba170
+t33 tick=33 hash=1ddbd0ee61e84028 form=9a215f0f4be1de25
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t34 tick=34 hash=15c2a45e1de6e481 form=4e13ac5726ceb61d
-t35 tick=35 hash=1b8028b252c3c0fe form=bb9ee666be7400aa
-t36 tick=36 hash=8819c2223c06435b form=f25c1c1c5cec5969
+t34 tick=34 hash=eba6754834ab1ad1 form=915b209b33a31262
+t35 tick=35 hash=6fb75149671e2b5a form=d8be4f34ce7e02f4
+t36 tick=36 hash=815b65e64bacfbdb form=c8ea0c0ff1aaef76
 == second click-refused-document
-open tick=0 hash=76e0ffd138602a49 form=5350e31548abf5f0
+open tick=0 hash=2954837c9521fdde form=3a73bc739f4398d2
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[e1c]]
   queue=[]
   lines=[]
-grab tick=0 hash=76e0ffd138602a49 form=5350e31548abf5f0
+grab tick=0 hash=2954837c9521fdde form=3a73bc739f4398d2
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=54ee0084b4341a79 form=cfb4866b7eee66b6
+t1 tick=1 hash=dda02a5a041ad24b form=b8c69e90ec1718d6
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=09d3b8807b025feb form=a7d87309d982d49d
+t2 tick=2 hash=78f4983385fb5089 form=433fe71ddbcf4d29
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t3 tick=3 hash=c8ae1d6d34b71885 form=972e1bb0dbbe3e67
+t3 tick=3 hash=d2d0a9997f989d87 form=03e2bf130e88f9fb
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t4 tick=4 hash=f34f1549f4c9c70b form=7ef27394defedc3f
+t4 tick=4 hash=0aa30fd8f44d7c29 form=84c2ffc1fb5ab7e8
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=ed17f1215e87aa49 form=7f64b8def9ecdf01
+t5 tick=5 hash=476c8487053a65fb form=3aa4d02f57618bed
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=9f319aa977cec463 form=c291c7cbd599a9e2
+t6 tick=6 hash=d2dd5676d3988e61 form=d0ea257e756be27a
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=4feb8b7dd2ec426d form=d370c3be0e9b6132
+t7 tick=7 hash=1c0b8f6fc76965fb form=0ef5ac701b925779
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=3b10ed6d982e9bc3 form=e0486c6f78752d4a
+t8 tick=8 hash=5d641d257fcd7135 form=5af0b1346b24fcfa
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=6b00cc6af719dc49 form=c45a49aac59a24ef
+t9 tick=9 hash=ceae35e073707e4f form=73ac8d7ad97fae8e
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=ba6f75e849a8c4db form=08b0004eb825badb
+t10 tick=10 hash=1db223dac543553d form=290bcae8369dc906
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=8364f621dac20815 form=fec94bf06642907a
+t11 tick=11 hash=b4f7389e05f3e733 form=edb18c410f6fb081
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=259be6e52544afbb form=f5a32dd6d60f1f3b
+t12 tick=12 hash=03422bf43927565d form=c1d10185454f4788
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=e31823e1b8b82a19 form=ee3499fdd44fded4
+t13 tick=13 hash=8289351ea2cb9e5f form=f403daf18a301a7f
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=9736fab041694ec3 form=4bc8a806afadf3c7
+t14 tick=14 hash=2c521403900eb235 form=ca067ac1da78c508
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=f7db0c0aed79de6d form=e1f3d1db787f6ca8
+t15 tick=15 hash=c21ec346cd5459fb form=b88d3a8d5d1eef76
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=c558584116be01c3 form=2f436f157f8dac2d
+t16 tick=16 hash=e5657713564df335 form=ba18468326c0fa8e
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=770ebf02dea8c224 form=a1af50eda873276f
+t17 tick=17 hash=1dc28ab06da81578 form=21b1bb642422e19f
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=320e96d5c2af4b8e form=b728ff4689bdebff
+t18 tick=18 hash=1127b497a6e422fe form=ccddefd57570f040
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=e0ffc43d06ed7948 form=b647f5bdb86e0f17
+t19 tick=19 hash=c5d16cb3e7d42ed4 form=8de9c428a6c9291c
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=9778fec31938a22e form=b3e290faf6620803
+t20 tick=20 hash=52d134917c6bea5e form=52fd05d50df33816
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=3e7c5671e098a764 form=d4d9cd204fa39d58
+t21 tick=21 hash=8e17112559096fb8 form=8c5af03b75d5c2ab
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=88600214a1e0804e form=d69c561ecfc93db3
+t22 tick=22 hash=f644e08fedad5ebe form=7c6fa5907a1d33bd
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=c26a1abfedaf9540 form=21924ecd2b2b942c
+t23 tick=23 hash=2e6c7a51cb54749c form=4e45e1b4c834b3ee
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=34f669c2d40f759e form=a7acac2d162c782d
+t24 tick=24 hash=d7bef55e2cd16ece form=956b2386c7ae0ee6
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=faab84e08841b134 form=08371e17c9600b23
+t25 tick=25 hash=d89a0f8448542c48 form=131be849c9efeda4
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=3e67ee61ea7610fe form=b52aa7ad14db3104
+t26 tick=26 hash=e09e2fa8ba6af96e form=5c550ebaa7da8b07
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=bb6592b209a1e798 form=c6bd20f8281a0b13
+t27 tick=27 hash=02ee5daa7fccc224 form=1ac7618c7fa0efca
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=6e5d72e51b44885e form=30a8b5c65bffd8a8
+t28 tick=28 hash=41d1f24135bc988e form=ba0f7154b78a85b1
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=c4f731ecc176d4b4 form=2948d7dcbea78ba2
+t29 tick=29 hash=ac0a53c2b65b12c8 form=666aea96ab15a7ae
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=af4aa9ec33cf77be form=d49fd5280d086c82
+t30 tick=30 hash=e78aeb4b2c91d02e form=45800604cb55773e
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=25721fd7e1e1b140 form=9c2e10a296efe417
+t31 tick=31 hash=b0fbf6666128e89c form=bab9bf940c2b30dd
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=e5905be725a4c0dc form=cdb508deed5f4b26
+t32 tick=32 hash=af06cd1c9e282e0c form=aacdac6eeee01673
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t33 tick=33 hash=17b0f0c6f616b2fb form=ede4aba116dcbcf7
-t34 tick=34 hash=d74e921bd4de3592 form=826d7cbe2a34093a
-t35 tick=35 hash=abbdb414d7a650d1 form=70100c10bf8064e9
-key tick=35 hash=abbdb414d7a650d1 form=70100c10bf8064e9
+t33 tick=33 hash=92b8b6dcee5dde11 form=d5d2f8854e73ea81
+t34 tick=34 hash=3351010c513d796e form=f269a1d5a7e59470
+t35 tick=35 hash=2863fb0c5b0381bb form=800f6a1a5fa35c39
+key tick=35 hash=2863fb0c5b0381bb form=800f6a1a5fa35c39
 == second click-refused-owner
-open tick=0 hash=585853c6a50820c2 form=4ef35c5add715048
+open tick=0 hash=2e54598c8459b190 form=f53412436ba590eb
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[101]]
   queue=[]
   lines=[]
-grab tick=0 hash=585853c6a50820c2 form=4ef35c5add715048
+grab tick=0 hash=2e54598c8459b190 form=f53412436ba590eb
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=7de4f3338c369857 form=dfb1b080485fed34
+t1 tick=1 hash=e5c59e04de5454d9 form=4dd2705e755ec101
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=aff321128e8452c5 form=a0b69d585ef39893
+t2 tick=2 hash=068e38e6738e54ff form=375a0455f925a6e6
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t3 tick=3 hash=22096e27ba53fe03 form=9fd1828fbbe995c8
+t3 tick=3 hash=da0f3d13aca4a075 form=cd344a4399968e32
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t4 tick=4 hash=2cd88d6e1e8f4a65 form=1859248f5d0aeada
+t4 tick=4 hash=62bcd88702c1cfdf form=8893efb755a4e0c5
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=0a7252fe26eecda7 form=e18b997e09c026c2
+t5 tick=5 hash=9027a98dbb94b349 form=52fd4a8d534dcaed
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=c6997cda9394b1dd form=8ea7005153b10f40
+t6 tick=6 hash=25d9fc1bbe85d517 form=8f1fb04c9e7e02c2
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=116070868454f6ab form=c4b7a435e3fba821
+t7 tick=7 hash=5758dba959323f6a form=473bbfb914e2faf6
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=98a5d90d6d794cbd form=fa17233453ef66b9
+t8 tick=8 hash=70552484e3162f8c form=295166098981f6ec
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=885b2e47bf80ffa7 form=0f717814d449439d
+t9 tick=9 hash=893a224581372a7e form=02fe63bf5fd47436
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=e23ce2064d0de2f5 form=392fd886fc463616
+t10 tick=10 hash=0c99ff37a23699b4 form=6ccef0913f52d5bc
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=2c0cb767e6b152d3 form=ef50063a44110027
+t11 tick=11 hash=ee35e7624a152222 form=3c60c5cb57665435
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=19479810bb60e1d5 form=a0776349d80d64f6
+t12 tick=12 hash=b246cbcfbad0e494 form=081d0eb923ebb3de
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=3607011bf2b41877 form=187d1f9a18e7bf71
+t13 tick=13 hash=aa477e578ff8f8ae form=1e3b9611fab53441
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=f4cbe65016b3ffbd form=09ff7d61b6ec37bc
+t14 tick=14 hash=3f431b62f357708c form=ea092069595da403
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=b94ff1139ee292ab form=62ba7997009bd6ed
+t15 tick=15 hash=fd6c0f805f1d336a form=375e3409accfde85
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=22ed43e0ec08b2bd form=fb0cedc867fbdce0
+t16 tick=16 hash=f8567e72b996b18c form=5d41d880424f10f5
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=1077d85687f6b35a form=444de2343f112907
+t17 tick=17 hash=04051c32f6185891 form=b401a39718f149a5
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=f1813c770116dc48 form=7d1f1b86a991b3b4
+t18 tick=18 hash=8106624206a29b2f form=f425f68e16b4c629
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=ad28a0f2c7941b0e form=ae8877111b3c6a7d
+t19 tick=19 hash=21e6555e8430c82d form=5c31cb5a29e4ffac
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=5883598c824d33e8 form=80292b63042c4a8e
+t20 tick=20 hash=d45d9f4e5360db4f form=fa0e093b1c404100
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=257fc18fd8cd0a9a form=d0e3a4fddb266cb1
+t21 tick=21 hash=b9d83a3b5fef71d1 form=a499c3eaf677767a
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=20717f9910031b08 form=3cb82a74365ce156
+t22 tick=22 hash=84498d5e0acb09ef form=d9feb8bd50d87fbd
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=ddd3138a65a91fe6 form=cd3da250d2345dea
+t23 tick=23 hash=f21c3fa54fa4a075 form=06eda2f210413832
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=df0588f671556998 form=4c3ac81f4f86f8e0
+t24 tick=24 hash=28c495c2ff37741f form=283be5ac53e789fa
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=e81d3737a618f7ea form=e72efa38082256c9
+t25 tick=25 hash=ded9600e1e5ac801 form=cea1fdc38b978e95
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=d11211d5acb853f8 form=6c288c6516be5dae
+t26 tick=26 hash=dac3c0c5625bb97f form=eedfe7f12e6015ac
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=4ed456d1d8b73b1e form=4afce52ef4f2c5d2
+t27 tick=27 hash=93feab4afd2d071d form=af12f0cf354a7bc4
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=bae74f4f6f9c0858 form=9f6328933d9610d4
+t28 tick=28 hash=45395e70a8a23fdf form=782c794f521f644c
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=9ab1d252b6e6696a form=921207793fe89d44
+t29 tick=29 hash=640191933d248081 form=af460d2b142db849
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=62e77d24365ca2b8 form=e25ce1704b6daf52
+t30 tick=30 hash=05dca782c3a2443f form=2df33789c9996123
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=40db18a259db3be6 form=dd9b75a18d7de01e
+t31 tick=31 hash=74abbbb9e5791475 form=5db33849c8eabdc8
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=45b6cefb1bde90bc form=5741779c8ec2a445
+t32 tick=32 hash=3c31e076e568574d form=6e61f772fb9f5744
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t33 tick=33 hash=d4c253d4118c5bcb form=420069a00be1d1b0
-t34 tick=34 hash=68cb7584aed1fe1e form=485f96a78deff41f
-t35 tick=35 hash=6d4a60f41cfce1f5 form=5b5915b9fac0a363
+t33 tick=33 hash=e78ef366478f53d8 form=13459f039decec38
+t34 tick=34 hash=cb7be64afa453d6f form=d50ad92bf27f2444
+t35 tick=35 hash=e9bdca5cd42bc9a2 form=c46cf482f0457d8b
 == second click-no-sack
-open tick=0 hash=cef006c2e99a11d1 form=e58ae11911a5da97
+open tick=0 hash=238c02a67e1fa3c6 form=0353ed6baafb298a
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[]]
   queue=[]
   lines=[]
-grab tick=0 hash=cef006c2e99a11d1 form=e58ae11911a5da97
-grab-gold tick=0 hash=cef006c2e99a11d1 form=e58ae11911a5da97
+grab tick=0 hash=238c02a67e1fa3c6 form=0353ed6baafb298a
+grab-gold tick=0 hash=238c02a67e1fa3c6 form=0353ed6baafb298a
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=584e101be25e9f0b form=7d0c95cc148da3f1
+t1 tick=1 hash=5bfbed92ebc87e17 form=2eddb05051955648
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
 == second sack-gone
-open tick=0 hash=51e4519e021fc2c1 form=c4f968be2842348c
+open tick=0 hash=f4b85784f1609f9b form=72e3db5d3be08c46
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[101]]
   queue=[]
   lines=[]
-grab tick=0 hash=51e4519e021fc2c1 form=c4f968be2842348c
+grab tick=0 hash=f4b85784f1609f9b form=72e3db5d3be08c46
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=f347bb374badfb83 form=da1b6363019f6e74
+t1 tick=1 hash=8e2bd973d7a5c27d form=b348cbe76bf4848e
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-gone tick=1 hash=4333f2ad0451346a form=9c9a8b25075dd2be
+gone tick=1 hash=74c29b8a2a20bdd2 form=7728f21d84800eee
   actor 9 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=20 sacks=[]
   queue=[kind=3 entity=9 at=(5,9) group=2]
-t2 tick=2 hash=b1e7f50568600269 form=435ef5819598870a
+t2 tick=2 hash=f6b2ced12c56a955 form=e2aeb4b142ab225d
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   queue=[]
-t3 tick=3 hash=619000ca0d9f2fcc form=e7e6a5c0d08dcecd
+t3 tick=3 hash=169bcde232f38050 form=6143af8e7e10091c
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t4 tick=4 hash=1e3273e535b3a2ef form=bf117d48373f2e58
+t4 tick=4 hash=28a4941a84555ebb form=95280b452cf1330f
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t5 tick=5 hash=52f134d6e8b57b62 form=34157f7937b0588d
+t5 tick=5 hash=efe768dac4bdd636 form=9a07a06df4518165
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t6 tick=6 hash=2738eea6e5736765 form=0d6051e48fbdd63f
+t6 tick=6 hash=370350b25c90d359 form=402bce9c518ef67e
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t7 tick=7 hash=001ceb6f6efafe80 form=9accfd6d5b65b71f
+t7 tick=7 hash=da9b657c10a52f30 form=39ae3343ef2c3bba
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t8 tick=8 hash=546349d3c034d64b form=9b76abf4b1ac1d87
+t8 tick=8 hash=06aa96177db3396b form=9a179c379e46c5fa
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t9 tick=9 hash=f934b2a86703f8c6 form=42cb30b817ee99e2
+t9 tick=9 hash=11065e3f6d6fc596 form=429afa8d698b3224
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t10 tick=10 hash=280695527dda44c1 form=5c202a15fac920f8
+t10 tick=10 hash=a85bb49146851e71 form=2afe9c7c9f8fc682
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t11 tick=11 hash=752d82d841969644 form=026b6c878d3487b7
+t11 tick=11 hash=400a6daf0bafe744 form=da22089c65f060f8
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t12 tick=12 hash=66ae4d11a24c3a67 form=4c0d6aefef0afcf2
+t12 tick=12 hash=260b3d3ffe70c937 form=b93f28bc47b64101
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t13 tick=13 hash=440b47ee6807882a form=ecc9f32f1dbbf239
+t13 tick=13 hash=00f460e1b0879cfa form=9f4e632fd769d417
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t14 tick=14 hash=2ed8f81f57b3e59d form=797ce55c09bc5008
+t14 tick=14 hash=55eac394381710ed form=10927f382b02f463
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t15 tick=15 hash=cf77dab87b6355d8 form=187944b0ac8f83ac
+t15 tick=15 hash=3e5b7d59fc888ea8 form=615d2a90983a3c21
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t16 tick=16 hash=dc50caaaed8bd7c3 form=8c76c56b9ac6fc50
+t16 tick=16 hash=47895d1b87f75523 form=000fa0d67a879351
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t17 tick=17 hash=a595853e60afc1d1 form=bd6ef88b28639f81
+t17 tick=17 hash=0306cc9d680b00e1 form=08de3208e5850c56
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,4) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t18 tick=18 hash=b8160f655d967e4c form=6b2a930273737392
+t18 tick=18 hash=e711d2e87adbd26c form=1aa5efed7e85a444
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t19 tick=19 hash=6d1e3996356c537d form=3d112b20726d9081
+t19 tick=19 hash=6f96e0f7e56f5d0d form=0226efe812ecb4f8
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t20 tick=20 hash=b0cdced3f5e54016 form=c6c44372e95d726a
+t20 tick=20 hash=500a7786997ceaa6 form=e09f81f2304d24b2
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t21 tick=21 hash=73f07fc6c5327ad7 form=3a7cbc9b3b2379c1
+t21 tick=21 hash=a4ff59cef7b92727 form=48d015d44fc009b7
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t22 tick=22 hash=9738e21509884a50 form=a9be559460fd64ca
+t22 tick=22 hash=c39892282b1b9a80 form=a187218d2b133dfd
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t23 tick=23 hash=79839d8c166f8861 form=a0630134d51f3c92
+t23 tick=23 hash=e9b5d110f529dbd1 form=f6eb82dcbde4a28d
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t24 tick=24 hash=5057345ee60e7caa form=5cee2c62fb00c294
+t24 tick=24 hash=3e8740637abf9dba form=abcb4e39e389e574
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t25 tick=25 hash=893ef14ea6c237cb form=daede6f8d2e5a801
+t25 tick=25 hash=205fb6f26ff696eb form=b0a528cbf0e3e904
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t26 tick=26 hash=2d85d67be57bdd64 form=816b01de8adc57d3
+t26 tick=26 hash=9b9a46a71e88fb24 form=bb94003f336dfb34
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t27 tick=27 hash=57ecf5908c8e96d5 form=f7b1453114cac196
+t27 tick=27 hash=5b70e49aa74d8a25 form=6e14705086bd20d7
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t28 tick=28 hash=5e0079e3a39e3c4e form=848789b5f09e0846
+t28 tick=28 hash=ce3c737c456f2e7e form=d9d5e8a0533f9cb3
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t29 tick=29 hash=cda659edcb5eb7bf form=72237015dce45a72
+t29 tick=29 hash=983eaf636a15386f form=df24d6e9c59c80c7
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t30 tick=30 hash=7f7743f7b36fbea8 form=66bc0bba803b472f
+t30 tick=30 hash=a8169c929cd0a6f8 form=b7c04097c6b53f99
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t31 tick=31 hash=035402c1621aac99 form=a6af466f68f0f288
+t31 tick=31 hash=e6891b4fe862b769 form=4ebbfbe96c88cccb
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 9 at=(5,5) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t32 tick=32 hash=ff4f4597251b746f form=2f19a7f66c77a866
+t32 tick=32 hash=713cf17ecb02f35a form=e093f99005bcd6bf
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[]
   actor 9 at=(5,5) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t33 tick=33 hash=dce8c85315ea4049 form=c202e1a12d11b999
+t33 tick=33 hash=9716e391636c7c5a form=0b657ceda69c2438
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[]
   actor 9 at=(5,5) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t34 tick=34 hash=03ae25592bc5c1ea form=4d843c11c26f239a
+t34 tick=34 hash=6c7656c3af1712ab form=3463d62b151f79e7
   actor 9 at=(5,6) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t35 tick=35 hash=bb3c2e7552150ad2 form=c0dfd3423fa2cc78
+t35 tick=35 hash=584627e0bad3fca3 form=348be477c89c8379
   actor 9 at=(5,6) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t36 tick=36 hash=bc044ce51bc62f9a form=66bfc83f89395ada
+t36 tick=36 hash=ac9fe03aa8f38be3 form=6407796cf6e726a6
   actor 9 at=(5,6) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t37 tick=37 hash=76d64a803ef6cf0a form=4a4a176cc92fd589
+t37 tick=37 hash=5bfe6c605dcb4ee3 form=64adc70503efa903
   actor 9 at=(5,6) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t38 tick=38 hash=ee4a4669e0efee2a form=ee4dd3df56d939cd
+t38 tick=38 hash=9f56da4897899193 form=7280565d2adda795
   actor 9 at=(5,6) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t39 tick=39 hash=87b34642bcc96722 form=c456d0da5776595d
+t39 tick=39 hash=879d3d4f285392dc form=e1748aef9eee196d
   actor 9 at=(5,6) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t40 tick=40 hash=7ba65c0af33f25da form=a735714bff15e60a
+t40 tick=40 hash=32e8d12ac90fc35c form=7f4528773968b408
   actor 9 at=(5,6) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t41 tick=41 hash=31dc46576c074daa form=73f3d8b2a4af48bf
+t41 tick=41 hash=e70072bc112e5e0c form=9494653ce4eaf964
   actor 9 at=(5,6) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t42 tick=42 hash=775c7e53cbde9bba form=9fac2cc064553978
+t42 tick=42 hash=9a43fdd99b7a1dbc form=1fbe644a5493c212
   actor 9 at=(5,6) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t43 tick=43 hash=88e2ee4e11aaad12 form=dd7c3a4cb52be4f6
+t43 tick=43 hash=7ce7c20a6f418604 form=8d3c9bb01fd02340
   actor 9 at=(5,6) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t44 tick=44 hash=f4a7dd94dae0528a form=b90cd785583a7c0d
+t44 tick=44 hash=8fd999ca0ec87204 form=56542f70c2cfa0d7
   actor 9 at=(5,6) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t45 tick=45 hash=06a4536c8cb82b7a form=6103bad85c254921
+t45 tick=45 hash=629e70ea94f36304 form=25716b7dcbd88bf1
   actor 9 at=(5,6) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t46 tick=46 hash=f1ed252f893d987a form=d410550022b75fe2
+t46 tick=46 hash=a8ce8ef351ac8db4 form=c4ef8c4a83998129
   actor 9 at=(5,6) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t47 tick=47 hash=71bddb4bd4b27122 form=566ee41be301ae47
+t47 tick=47 hash=ec99660fe7f55f5c form=cf0665182f520118
   actor 9 at=(5,6) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t48 tick=48 hash=33ff3346fbaf968a form=85f6550a7f6ba144
+t48 tick=48 hash=015bea25e57f5c9c form=2dfd0eb5b3371a76
   actor 9 at=(5,6) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t49 tick=49 hash=c28e7502841cc1fa form=d01ee94d755ec769
+t49 tick=49 hash=bc7dbe250a35ffec form=2af9ef2be6bd120f
   actor 9 at=(5,6) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t50 tick=50 hash=ea39a04b32cc6c7a form=1f135ec6973cebc4
+t50 tick=50 hash=12180d70ab1716f4 form=70c98ac6b42c59a1
   actor 9 at=(5,7) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t51 tick=51 hash=0548fd6442499506 form=8b865ec7b381621b
+t51 tick=51 hash=8c7ab8d7f34df3b0 form=13dd567eb70925b4
   actor 9 at=(5,7) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t52 tick=52 hash=cfb0a8ed9ef1fbc6 form=011b6c5d3cc21203
+t52 tick=52 hash=f2b799fef967ba00 form=3b8c0f5dc68b81b2
   actor 9 at=(5,7) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t53 tick=53 hash=95a3e7785a182e6a form=6928eb3432fa0c79
+t53 tick=53 hash=c42142fd86c217c4 form=91a6ac5ff3da45df
   actor 9 at=(5,7) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t54 tick=54 hash=24da19b229b60bfa form=483ad55aca8b3e06
+t54 tick=54 hash=9e7d8beb6f411164 form=228c98999b6e6600
   actor 9 at=(5,7) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t55 tick=55 hash=303f781dfed1783e form=b29b72aa24bda3c7
+t55 tick=55 hash=ba21eaa05bc67478 form=85a845983adddd6b
   actor 9 at=(5,7) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t56 tick=56 hash=0ad390adbf26f2ae form=d356a99f1da0a3c1
+t56 tick=56 hash=eefe1e646ed01808 form=c85cf1837d6b2dd3
   actor 9 at=(5,7) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t57 tick=57 hash=1f34546a58f8a94a form=bae4c7dbc5cbdc66
+t57 tick=57 hash=f6081747059d3864 form=b49ebe7ef110c58c
   actor 9 at=(5,7) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t58 tick=58 hash=a7b0d366d2c3741a form=308e96772b28ed7f
+t58 tick=58 hash=91da0b4e55786a94 form=7e446b422fc0326e
   actor 9 at=(5,7) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t59 tick=59 hash=988c41949f740406 form=84e89e7977736322
+t59 tick=59 hash=f76d9ff38f1b03f0 form=6870f2fe94a88c55
   actor 9 at=(5,7) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t60 tick=60 hash=fec430636e760a46 form=6ecd82ba9922c0d3
+t60 tick=60 hash=0d80115d83e14d80 form=1b57c9df129075d5
   actor 9 at=(5,7) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t61 tick=61 hash=2bea7149ef71122a form=6b8fe1c829ea0086
+t61 tick=61 hash=bd3b2602a4db57c4 form=dc92a00d0684aa89
   actor 9 at=(5,7) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t62 tick=62 hash=cdf09e3dad07385a form=2dba50b997bc6d0a
+t62 tick=62 hash=378847f90d613044 form=9b3dbdaae38935c3
   actor 9 at=(5,7) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t63 tick=63 hash=7bbd734b09135dae form=cafc120c31502a13
+t63 tick=63 hash=a194f277612d49c8 form=9c4ec2b8662ddcd5
   actor 9 at=(5,7) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t64 tick=64 hash=f6b51a283ff104de form=656f5688032901c9
+t64 tick=64 hash=cad2338c707c7398 form=d4afde011080f99c
   actor 9 at=(5,7) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t65 tick=65 hash=1d168db9240e296a form=7b7b1ccdbc809862
+t65 tick=65 hash=8ab9e73e789ccb44 form=a41b8dff48eff0c8
   actor 9 at=(5,7) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t66 tick=66 hash=4239c054ad145c87 form=4b78995e2f3d7d8f
+t66 tick=66 hash=d122fa41279d6ff7 form=8cc08c8803e42371
   actor 9 at=(5,8) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t67 tick=67 hash=677bb52de0a86c3b form=cc4dfa71326d3dc9
+t67 tick=67 hash=3ccff0779e6f8a6b form=1e3890c5bc0e6b86
   actor 9 at=(5,8) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t68 tick=68 hash=47d834e3dc0794f7 form=9d8448ace1f2049e
+t68 tick=68 hash=2ff70e2a3769f17f form=fa79accebbd310f5
   actor 9 at=(5,8) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t69 tick=69 hash=f560eb684c23c503 form=59f4c35d8874f511
+t69 tick=69 hash=7d0e4f610cca2d6b form=16b304c0bca9ab85
   actor 9 at=(5,8) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t70 tick=70 hash=792941d3d5423ec7 form=aa3e97bcad999e2b
+t70 tick=70 hash=c257aaa9d877618f form=8cc9546fb118b4f4
   actor 9 at=(5,8) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t71 tick=71 hash=35de766239951943 form=ec56a6f441b78d75
+t71 tick=71 hash=e821d9064f26f43b form=4c39b848443a5744
   actor 9 at=(5,8) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t72 tick=72 hash=7537896ed38c3597 form=e550ae086e5d3a26
+t72 tick=72 hash=daa579f30c82bf57 form=452d87a6189dc905
   actor 9 at=(5,8) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t73 tick=73 hash=86fb28628ef6e75b form=c28f65c616fe9031
+t73 tick=73 hash=84be08772880d08b form=ac8675580845216d
   actor 9 at=(5,8) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t74 tick=74 hash=df7f698cb00e1ab7 form=4afe7ee65950c54b
+t74 tick=74 hash=445ed5dea7853c77 form=70c6bf195fdaaafa
   actor 9 at=(5,8) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t75 tick=75 hash=ac8c19616b08e7ab form=f5cbfcabe2071f38
+t75 tick=75 hash=6048c9fa48ea605b form=9c2812d4f93d2344
   actor 9 at=(5,8) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t76 tick=76 hash=c3d8269fb424ab27 form=cc0957086ca92e14
+t76 tick=76 hash=5901177aebaa094f form=0a1c3f880a3d26b1
   actor 9 at=(5,8) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t77 tick=77 hash=2665302cd997d5a3 form=79e1fa022d68cdd0
+t77 tick=77 hash=a82b6924e087e39b form=db815d1a371c58c7
   actor 9 at=(5,8) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t78 tick=78 hash=81a5db013e28fad7 form=8c953a2b2fa88106
+t78 tick=78 hash=12a8003e922fc1ff form=796693224cbb0e62
   actor 9 at=(5,8) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t79 tick=79 hash=e2239ddadb469f63 form=e5d06189087a417b
+t79 tick=79 hash=2cf2d550683bffab form=5927bccfe753df00
   actor 9 at=(5,8) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t80 tick=80 hash=c4816995f1f044a7 form=2ada58a3107149be
+t80 tick=80 hash=916101610b1870b7 form=c96e55bc141b48da
   actor 9 at=(5,8) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t81 tick=81 hash=f548758e5d73530b form=d58f42fefba2e866
+t81 tick=81 hash=bd94601127c2ca7b form=eea58f4f3d1914d1
   actor 9 at=(5,8) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,9) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t82 tick=82 hash=4e1a93043b8c1dfe form=7e4bc1b5be5dd492
+t82 tick=82 hash=ea0777b9b33313f0 form=9624aa3136e91ebf
   actor 9 at=(5,9) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t83 tick=83 hash=008309b2bc2b3e5a form=8a9b24606b43ff81
+t83 tick=83 hash=62db2753c5e527b4 form=c65ae0cfbf05df0a
   actor 9 at=(5,9) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t84 tick=84 hash=2ed9d353b246819e form=03f7bf4adc834b32
+t84 tick=84 hash=cdf4c15dedc44298 form=c27d053bd411a375
   actor 9 at=(5,9) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t85 tick=85 hash=dc44d879da38d96a form=1e54fefecc976af9
+t85 tick=85 hash=ef868c628ff072ac form=d8ddaa62382a0c2c
   actor 9 at=(5,9) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t86 tick=86 hash=07fbee8d5d7537be form=fbe51ada5d9008f7
+t86 tick=86 hash=6f5f1203dfcd0bb8 form=b8fa4ec0af8c9da6
   actor 9 at=(5,9) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t87 tick=87 hash=bbce7124dc1630d2 form=cd87b214022cd2ef
+t87 tick=87 hash=1f6384e83920637a form=1a7731eb6b6c1183
   actor 9 at=(5,9) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t88 tick=88 hash=1ad9031feebc43de form=6462afe3b53ef545
+t88 tick=88 hash=40b4b247435a8676 form=ddfec1318a39f553
   actor 9 at=(5,9) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t89 tick=89 hash=ac6e361819d05172 form=25cafd66a71a835e
+t89 tick=89 hash=8ac13c00190b3612 form=0355bebbfb01076a
   actor 9 at=(5,9) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t90 tick=90 hash=8f757d621746b55e form=9cb2107f3688701f
+t90 tick=90 hash=a1c28b4097ddf136 form=c4fde350a15c44f1
   actor 9 at=(5,9) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t91 tick=91 hash=f5833c29985b0b5a form=2f42022a49af7891
+t91 tick=91 hash=efd524c14eca5c5a form=823db717ae85b9e3
   actor 9 at=(5,9) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t92 tick=92 hash=9e80d3d2ef63b89e form=4d25147dba0be412
+t92 tick=92 hash=e690c08e2eebf0de form=a2702575bc37e3b6
   actor 9 at=(5,9) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t93 tick=93 hash=aa7c1121d16553aa form=b1ef15304482c8fc
+t93 tick=93 hash=057d69edafd3c5f2 form=8f5663b95ea33843
   actor 9 at=(5,9) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t94 tick=94 hash=7b9355d08a74ef1e form=ac64b83889f22d09
+t94 tick=94 hash=34dee7a6ebbe225e form=100ca7bb8716a2a3
   actor 9 at=(5,9) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t95 tick=95 hash=09580c64e19cc7c2 form=7cdef2c37ea0fc33
+t95 tick=95 hash=6cb418e0e390590a form=9f9d82c9218fe7b9
   actor 9 at=(5,9) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t96 tick=96 hash=30d84bdfaa99ba5e form=6544e1a05ce394f9
+t96 tick=96 hash=bd53e4aa732b41c6 form=c62615964f2abe1c
   actor 9 at=(5,9) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t97 tick=97 hash=3867a14dfb8d7b82 form=660c273562c80b60
+t97 tick=97 hash=7eba96fb39409b72 form=f1f041bfbfbaee8c
   actor 9 at=(5,9) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t98 tick=98 hash=3bdd55ca72e97f41 form=ca79146f790d748b
-t99 tick=99 hash=5fcabf6ead269394 form=e74733349294c6d0
-t100 tick=100 hash=c0f2eb9b4b4b2b7b form=a4616547f7850fda
+t98 tick=98 hash=9c20b98cbf71a7c7 form=0e9edd7190194dcf
+t99 tick=99 hash=8d719922fcc368fc form=fe4bf6c3a0def045
+t100 tick=100 hash=bb91c412bebf4721 form=980f536faad3e3d9
 == second later-order
-open tick=0 hash=74ed763506171edd form=01077486e5415d0a
+open tick=0 hash=6213a26db0ad7c6a form=b3e297885568540c
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[101]]
   queue=[]
   lines=[]
-grab tick=0 hash=74ed763506171edd form=01077486e5415d0a
+grab tick=0 hash=6213a26db0ad7c6a form=b3e297885568540c
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=c177102b5dffaf35 form=794e44ca83c286a3
+t1 tick=1 hash=736fb79bd2adb5d7 form=946a6c8d2ae2034d
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=6589f73ed9778f87 form=7b814b45b8369a9a
+t2 tick=2 hash=07b3d2c29cc47575 form=babf50249fc82716
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-move tick=2 hash=6589f73ed9778f87 form=7b814b45b8369a9a
+move tick=2 hash=07b3d2c29cc47575 form=babf50249fc82716
   queue=[kind=3 entity=7 at=(5,3) group=2]
-t3 tick=3 hash=01cfe40c16213b49 form=cd57a208712c16f7
+t3 tick=3 hash=16b45d323331b1a3 form=4be7683c05ed7108
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t4 tick=4 hash=7e213a0c16487223 form=a473e61bfdfa5427
+t4 tick=4 hash=9ad5da8a00337645 form=2e008e7edcdf0383
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=d2e30a5ca9520c3d form=a7f04d6d03921cbf
+t5 tick=5 hash=f34c1a79d1b0cfc7 form=5e18055d4515ddc9
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=e89d0abc6ac3482b form=0ce71b49fd80fdbd
+t6 tick=6 hash=0fa6a68c3a0a417d form=19b037677b1f531a
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=d39db66ca96549a1 form=c75d03425589cf47
+t7 tick=7 hash=54634694e4cd76e0 form=77dc5d5d9bc54784
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=fea64b7e90a4f2cb form=ca36f67e46950473
+t8 tick=8 hash=6d756b8ce3b4000e form=b4ccadc821ae5631
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=e5114e7a6aa7123d form=af60d9dfb4100b34
+t9 tick=9 hash=64f8f8176aa07854 form=90487d1293000389
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=4043fd53a33a3953 form=0d8cada00a7d3583
+t10 tick=10 hash=9a0a87b964662286 form=1468742f5fe4ac89
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=b1829da2dd9d3f79 form=0a872661249df86b
+t11 tick=11 hash=00f0533cf39c9a88 form=ece5be58467da817
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=ff894eb565a87ff3 form=850e3fc8e8259473
+t12 tick=12 hash=88aa1375a63f73a6 form=2531213df6b7acfa
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=09cb4cdd10883fad form=c6f3a2d36aa72cb6
+t13 tick=13 hash=541db1e61f397a84 form=7cd698e32b110fd7
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=76abef0d848773cb form=609cf4079a998b4c
+t14 tick=14 hash=cfffce2d69b0b90e form=d1816e968a673c77
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=0fc6ea4fdc413da1 form=394d5355c20a1e8e
+t15 tick=15 hash=886d632c3d1ecae0 form=d8af1ea86e1062aa
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=9ba636558be7f4cb form=54a677261fad234b
+t16 tick=16 hash=4ea407292abb720e form=826614a2190ba9c4
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=4092950929c831fa form=6bea66827387acd4
+t17 tick=17 hash=46673dee65f99543 form=891d0ab1bd50d08e
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=d7799b4e93e11da0 form=184c3cca96662322
+t18 tick=18 hash=c2423b9b6a9aac65 form=4939b8d2e27d3b22
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=b1a5c1334940cdce form=6984b7744b4237c4
+t19 tick=19 hash=6ae59784386aa1af form=43b9a7283bfa3864
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=b5b056aa9450a280 form=d9fad6a488be9464
+t20 tick=20 hash=c3f50afbf7ce15c5 form=7d36104742641743
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=1d733269c6e1e5ba form=e1d5ddb71929b07b
+t21 tick=21 hash=d5dec3089514ac03 form=ca69d6813eb001f9
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=02cbf967670fc5e0 form=7fc15f37ec1b9457
+t22 tick=22 hash=c9b89ca8f1ee7ea5 form=7567a0f0d85c1fec
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=d7163d6fce2227f6 form=1a1cb5495f06e038
+t23 tick=23 hash=09d6b7306aefb385 form=2298ec52d294303f
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=b960a842810174d0 form=625523b6cb002126
+t24 tick=24 hash=a5476230e16e2597 form=e871c4d505e53ae1
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=fa45cc0b3d75e4ea form=3421135f684712e8
+t25 tick=25 hash=060f8f5e8b70c7f1 form=1242f8a920af3d0c
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=b6a3dda01f543970 form=fbe41b3687faa665
+t26 tick=26 hash=7cf444af948d2637 form=1d7aa9f6281cf7c4
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=cd9c60abf7ed0c7e form=e0032340ebcba731
+t27 tick=27 hash=b32bf39566deb18d form=c5b69b76610aea71
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=4f8e7a30fe3c5c10 form=c34467e104645c3f
+t28 tick=28 hash=a642690a6881d2d7 form=544dfa9cfbe5a288
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=6605675dc1cb706a form=9d60b9c38d52fdf5
+t29 tick=29 hash=2327c8e716dffd71 form=31fff01d1d3a7029
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=21c156f6ee03ffb0 form=b74b8486e192e9ca
+t30 tick=30 hash=7af70a0ded834477 form=621a5e490f5e16cb
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=53a180300cc79bf6 form=85430fa0815935ed
+t31 tick=31 hash=47ae9f10a81e8785 form=2f57b9806905b6c4
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=511d5bf900a7ce00 form=a28a446707a48172
+t32 tick=32 hash=6ab75b7045dda547 form=731272d565a63bad
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t33 tick=33 hash=14a0f76aa3eb2c7f form=87582e1c7e652239
-t34 tick=34 hash=0f1db21659f33b16 form=d224c040138f7c53
-t35 tick=35 hash=bb46ba0224fbb745 form=01a560bcb354d639
+t33 tick=33 hash=fb16c65a6452b1ec form=1a893b5a5818fafa
+t34 tick=34 hash=7f78f39a2fdf4925 form=4e58f35c34e2acfc
+t35 tick=35 hash=752d7ef77f79a252 form=e3e2268a61e139af
 == second load
-open tick=0 hash=74ed763506171edd form=01077486e5415d0a
+open tick=0 hash=6213a26db0ad7c6a form=b3e297885568540c
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[101]]
   queue=[]
   lines=[]
-grab tick=0 hash=74ed763506171edd form=01077486e5415d0a
+grab tick=0 hash=6213a26db0ad7c6a form=b3e297885568540c
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=c177102b5dffaf35 form=794e44ca83c286a3
+t1 tick=1 hash=736fb79bd2adb5d7 form=946a6c8d2ae2034d
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   queue=[]
-t2 tick=2 hash=6589f73ed9778f87 form=7b814b45b8369a9a
+t2 tick=2 hash=07b3d2c29cc47575 form=babf50249fc82716
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t3 tick=3 hash=122dd480fb372631 form=2975583196e356db
+t3 tick=3 hash=0904bbade1ffa013 form=faae478f0015c98c
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-open tick=3 hash=122dd480fb372631 form=2975583196e356db
-t4 tick=4 hash=516cf42658ca58a7 form=6372dd11609da1d7
+open tick=3 hash=0904bbade1ffa013 form=faae478f0015c98c
+t4 tick=4 hash=8c7ca58af6701995 form=f679d10d9ebb1dae
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t5 tick=5 hash=9bed3c917edd4305 form=0e728df4f94a08d8
+t5 tick=5 hash=91b9e976f1d90187 form=b596d21062dc77ad
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t6 tick=6 hash=9a31b9ae9279ba7f form=610014ff5fb0a8c9
+t6 tick=6 hash=2faf470dfcf2678d form=3b2fd9452f5642bf
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t7 tick=7 hash=f6fa461484d42979 form=cbdb8dff93b3147e
+t7 tick=7 hash=3b07aecfbb6bd7ef form=10d9a7066fa8f377
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t8 tick=8 hash=73f82d6836e489df form=da7a9437a809fe92
+t8 tick=8 hash=d95341cebaa176e9 form=a08ddb9131278168
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t9 tick=9 hash=19d617db176f7505 form=53a3543a722cdd33
+t9 tick=9 hash=cb0d31b9cf10d0a3 form=d99d3038d7693bf8
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t10 tick=10 hash=2590d913afb69eb7 form=8e8701c7fea8b52b
+t10 tick=10 hash=27dc4fea94ef2331 form=8750f75885cd930d
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t11 tick=11 hash=27b1345309c5ff41 form=5a88dc6bc4814ee0
+t11 tick=11 hash=c293f3b3bb31f867 form=be2056291233e069
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t12 tick=12 hash=92d7a081d29ba397 form=5586e74a5f2042e8
+t12 tick=12 hash=3ba71901f60ae5d1 form=f6c9f1b587643706
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t13 tick=13 hash=746c73b0b7592dd5 form=c4994d94247aa8bb
+t13 tick=13 hash=f55db42cdf33a773 form=9583fa0e67d4ad38
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t14 tick=14 hash=d01e3aaae01f3cdf form=ca14dbc6675e3da6
+t14 tick=14 hash=a84138accae2b7e9 form=eb7b5e6da78e5c52
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t15 tick=15 hash=9ee9c6a19f61c579 form=72a0baf8bceca05e
+t15 tick=15 hash=e11ae2a6c156cbef form=bc02b92c0c7cfe63
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t16 tick=16 hash=fe3f983bb573efdf form=00d6e3a4bf1f3bf2
+t16 tick=16 hash=61549bbc9121f8e9 form=60a9ba6173d753de
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t17 tick=17 hash=4d32f03a50856788 form=c94d591481d80477
+t17 tick=17 hash=59cf4207baac9704 form=aafb84c3df1bf149
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=6f16183a3b793f72 form=56776e73083fbf17
+t18 tick=18 hash=7e3a6589a18e027a form=5fd4e8f1f0b75529
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=221871a299d8cb2c form=92755129ad474d1b
+t19 tick=19 hash=d75222e967ad4e70 form=905fc07a8a66d871
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=2f15fffe1610e812 form=f673b8b03d6c81c1
+t20 tick=20 hash=eee52f5f759d58da form=cf4e98a77e9a05c4
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=e3bc20245c12c5c8 form=ad77826c9125841a
+t21 tick=21 hash=dd648b560c4dc444 form=9f372df5e19f8dc3
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=cd264fd7636fff32 form=e6556e9a1d6004c1
+t22 tick=22 hash=be30cef74841e43a form=1cf2d803fce43b83
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=723298a2ab2caaa4 form=4cd8b2c9c8160f16
+t23 tick=23 hash=b9c018ec6f78b598 form=46339d8bb8759759
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=127b1054c048a9c2 form=f5602206192ab4df
+t24 tick=24 hash=648f6f05668c27ca form=a3303f7163e4d270
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=65f498a23d8130d8 form=cb9da6256bec2cf7
+t25 tick=25 hash=6e5a8229c58fd954 form=29de1faf7388ad36
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=fefa2e195f9902a2 form=c84ee87addc92557
+t26 tick=26 hash=2fc915c6a16ae4ea form=9c11090cf264a728
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=a64aca54dd4b927c form=97a0ff423ba0a952
+t27 tick=27 hash=8de0cabfd4cd2780 form=68ecbadd9ac5feb7
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=2861416740a71682 form=95212efe6cae208f
+t28 tick=28 hash=5a8910fee214768a form=b93dcc5169dc9ea6
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=304045ae76b65458 form=2c12faafc87ffbac
+t29 tick=29 hash=41cac6683396bfd4 form=3296d6098a41bcc0
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=8640df48d0484862 form=a7852fe8e0a24f2d
+t30 tick=30 hash=43c2400fcd1e48aa form=8ca798accf752341
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=d53a9dba9f5ec6a4 form=a4969d15757a1288
+t31 tick=31 hash=3c4f9501054d2998 form=8262ab81829a2bcd
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=8f438dcd3ab918f2 form=f812ebab8c575115
+t32 tick=32 hash=1db0aaf1ce70dffc form=1cda3d2c7acfa63b
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=20 sacks=[]
   lines=["Picked up 20 gold" "Picked up Sword"]
-t33 tick=33 hash=2eb335581bfbff57 form=2d3f34b103715df6
+t33 tick=33 hash=3961b5b34a415dcb form=4700b044e7a95661
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t34 tick=34 hash=e9f01b5b33d03242 form=a395f75ebd4fe05e
-t35 tick=35 hash=bae99aca05aba3dd form=3cb7b064faf85b5e
-t36 tick=36 hash=c7f21c3d8f6e19b0 form=c1fc4cbc7f72526c
+t34 tick=34 hash=805125775b6f18be form=e80a5fc085d9f423
+t35 tick=35 hash=1955cf8dd8252fa9 form=8571305c77794f25
+t36 tick=36 hash=1bde1d4de5dbe99c form=c744eae9970900f7
 == second two-pending
-open tick=0 hash=93732e1f90508dd3 form=d4047d3582a96d81
+open tick=0 hash=84118267e9bc5025 form=65d095c64e0a4183
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(3,5) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
   purse=0 sacks=[(5,3) gold=0 items=[101]; (5,5) gold=30 items=[]]
   queue=[]
   lines=[]
-grab tick=0 hash=93732e1f90508dd3 form=d4047d3582a96d81
+grab tick=0 hash=84118267e9bc5025 form=65d095c64e0a4183
   queue=[kind=24 entity=7 at=(5,3) group=0; kind=24 entity=8 at=(5,5) group=0]
-t1 tick=1 hash=2c2750ffed9e8466 form=9d9a2c8483607027
+t1 tick=1 hash=253d29ee91e68882 form=13d29e353e0e6927
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
   queue=[]
-t2 tick=2 hash=04dbcc47fa755707 form=146ab952d7a8b8e9
+t2 tick=2 hash=bca66fda9b80935f form=4358ace4c94e4f02
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t3 tick=3 hash=353d7177070aa488 form=d279415c461b2152
+t3 tick=3 hash=5c29cf58b4bd11c4 form=f05b5576e279f17e
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t4 tick=4 hash=8a292033fed1b661 form=7760fed00e57f939
+t4 tick=4 hash=26d4a581241dace1 form=3708d11aa73d5ff8
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t5 tick=5 hash=a29f2e65835b445a form=7103ded2156a0193
+t5 tick=5 hash=59a6be49bba2acb6 form=cb88daec35a0d03d
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t6 tick=6 hash=a5e619f75ef9a4bb form=282db82a4fd4757d
+t6 tick=6 hash=6896df7f3bb0a543 form=6da2490b1f3c4ca7
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t7 tick=7 hash=a62ead88c68577bc form=7e9d6e638c0835f2
+t7 tick=7 hash=12b72d8a07f151f4 form=f8137d675ba5d372
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t8 tick=8 hash=9e28dbaad9224b05 form=941ceccf8ee065b6
+t8 tick=8 hash=e4fd7ebd14835e21 form=ab5d0fe892b73555
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t9 tick=9 hash=aa8a1cd3511eb00e form=118881d93ac30dee
+t9 tick=9 hash=f72e23b9da5d7ac6 form=4b3ac295c6d7ac37
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t10 tick=10 hash=c16959b0dd2db70f form=a383f5b3c6f1d615
+t10 tick=10 hash=c7bf0d1f82f74c63 form=86b76fd9d77f7628
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t11 tick=11 hash=cbb41e88dd3746e0 form=f827411a2c5d46c5
+t11 tick=11 hash=7d26e73d14d87c60 form=2bd68827027ee7c5
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t12 tick=12 hash=66c042f4d9cab329 form=9359e0e2bc55818d
+t12 tick=12 hash=3f88428c5ef300cd form=a9c0f6e34859abc2
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t13 tick=13 hash=d1ed138a62f13822 form=a1f400ea23f98410
+t13 tick=13 hash=b93efee4440aac72 form=8efa477bbf6a036a
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t14 tick=14 hash=88211e8dea902ba3 form=f61da962c93efe95
+t14 tick=14 hash=304435c0a6e0fdbf form=655adb033c1eff64
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t15 tick=15 hash=132b8195c23454d4 form=5bc7148ea36ac6a2
+t15 tick=15 hash=78b8042e3810f2dc form=7d8aa27186669c89
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t16 tick=16 hash=4095e5c218ac304d form=0bb13cfaa3242097
+t16 tick=16 hash=9a993c610d61d879 form=8653bb9231c3e6d8
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=true(5,5) attack=false/0 phase=0 post=(3,5) pack=[]
-t17 tick=17 hash=082de750e363cffa form=b435ca8368676248
+t17 tick=17 hash=db46dedd04c2d1fa form=f6cf0cc6deb88468
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t18 tick=18 hash=2208aa2dcd9c73eb form=f4fe20652fa5da13
+t18 tick=18 hash=07d5b9fb5380ebe7 form=c611d30ebfe3fedd
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t19 tick=19 hash=89db96654582700c form=05bd2e5fa42c579d
+t19 tick=19 hash=26cb21f921e4bcc4 form=f79266bea8566e9c
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t20 tick=20 hash=ca28fa35161314d5 form=188cefa98ccc88d5
+t20 tick=20 hash=6518c62d73185ae1 form=3c3c5ac587806a7c
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t21 tick=21 hash=4005fd8becb0d45e form=6aacbc2f88dfcf3a
+t21 tick=21 hash=a4666e0d6b2ec516 form=76d6f19fbb5f3925
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t22 tick=22 hash=751ec91dffca043f form=dfd67ae7a62cdd2e
+t22 tick=22 hash=c1d119e864ef2f63 form=f8c85b60e9f6f982
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t23 tick=23 hash=dbaf52ed0b7b27a0 form=8f07a62e339b68a3
+t23 tick=23 hash=2e7bb606a955ae80 form=585655be9d74a3ac
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t24 tick=24 hash=50573d4c7a49f429 form=368aaea44c11db3c
+t24 tick=24 hash=6cb162ca10cc9dbd form=b832a940a8a8ad28
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t25 tick=25 hash=357c35c69ca32812 form=f22b2f300ed5aada
+t25 tick=25 hash=10a4a44b6ec71922 form=ab8ed412c4d1b14e
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t26 tick=26 hash=e71c141831f86e93 form=998f3a76cce811af
+t26 tick=26 hash=f21ac86ace3769bf form=5accd6b4e2187fee
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t27 tick=27 hash=fce23e7638f92b14 form=ba794073190829c1
+t27 tick=27 hash=4c589177bd25573c form=b1a0dd2e2ddcc491
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t28 tick=28 hash=d0a671aeca86a0fd form=c3e1f6e623b3cf99
+t28 tick=28 hash=6d2c9c92fce4f2f9 form=877184780aa39eb2
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t29 tick=29 hash=77cccdbd9d8f0356 form=0fb28546b6e24610
+t29 tick=29 hash=1bd405f9c61d471e form=e51289e34735ef48
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t30 tick=30 hash=cc14421d8c763d87 form=958fc2afb82ce522
+t30 tick=30 hash=0fa38456b97ba8fb form=89b85739baf65c3c
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t31 tick=31 hash=29b6e1f0052fd1a8 form=0f55dbcf0f61e71e
+t31 tick=31 hash=4fb137f460030158 form=9713405dc3653aae
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(5,5) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t32 tick=32 hash=ed788201187ece6d form=d59c3c1521780fea
+t32 tick=32 hash=1b2960f565778a48 form=0297a1b8c5b18481
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   actor 8 at=(5,5) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:5 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
   purse=0 sacks=[(5,5) gold=30 items=[]]
   lines=["Picked up Sword"]
-t33 tick=33 hash=e95c471722ef2d12 form=fea444d4fb4d8e4e
+t33 tick=33 hash=d192ca8374efb805 form=08cc5ecd877ea580
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   actor 8 at=(5,5) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,5) pack=[]
   purse=30 sacks=[]
   lines=["Picked up Sword" "Picked up 30 gold"]
-t34 tick=34 hash=bf2ba99604961d63 form=810661ec15d707f5
+t34 tick=34 hash=4415379921e79706 form=8fd41d0897b97484
   actor 8 at=(5,5) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,5) pack=[]
-t35 tick=35 hash=cf60dd819d0351ba form=2be83eb6b13a0e49
-t36 tick=36 hash=0c794506153a7899 form=5a259c93a149e696
-t37 tick=37 hash=b91c43da36902440 form=99d1933541655f2d
+t35 tick=35 hash=2660c3d629d09d4b form=d3ac83eb9057b78b
+t36 tick=36 hash=e408a8eab9fdced8 form=5ad7226c68613356
+t37 tick=37 hash=1c79896c3fc0a375 form=215f7fb40dfeca6d
 == second two-pending-blocked
-open tick=0 hash=c26ab1029182220e form=54cbc762d531d6f8
+open tick=0 hash=5937987473644730 form=9bcf4803a272fde1
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(3,5) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
   purse=0 sacks=[(7,3) gold=0 items=[101]; (4,5) gold=30 items=[]]
   queue=[]
   lines=[]
-grab tick=0 hash=c26ab1029182220e form=54cbc762d531d6f8
+grab tick=0 hash=5937987473644730 form=9bcf4803a272fde1
   queue=[kind=24 entity=7 at=(7,3) group=0; kind=24 entity=8 at=(4,5) group=0]
-t1 tick=1 hash=95796f542b480996 form=d4bf202e156fb2ee
+t1 tick=1 hash=e9b526968ee3284f form=8314e011a0126766
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
   queue=[]
-t2 tick=2 hash=1da863615509d41b form=88e786999690e5a2
+t2 tick=2 hash=f6c0746c61cea1fa form=00617cc15898e7d5
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t3 tick=3 hash=e34cbc4471a31f60 form=51218566900bf5b1
+t3 tick=3 hash=e4c7d6d61ba98bc5 form=32eca582d163480f
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t4 tick=4 hash=6bcbdf8b51a3344d form=92c692630f8887fc
+t4 tick=4 hash=410cddc8d6f6a2d0 form=4fd36760dda55f00
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t5 tick=5 hash=85c28b23f5db0852 form=9544e06e521ef600
+t5 tick=5 hash=bc50e9739347218b form=be1ac96e91058aeb
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t6 tick=6 hash=bf735be4cdb1d54f form=146f5d879011a84e
+t6 tick=6 hash=3d1e22027c495cee form=8c527a48ce3ceedf
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t7 tick=7 hash=fce1cf2e104f0ebc form=24a6a4a3628f9683
+t7 tick=7 hash=9c251d5ad7fcea45 form=f439f03ba48d94da
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t8 tick=8 hash=12b5b6a3082aba81 form=2da9a58341d6f077
+t8 tick=8 hash=08a06bc92a106a00 form=185bb7c472194cbd
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t9 tick=9 hash=bc1eb55e318d7c0e form=60b4b99558192746
+t9 tick=9 hash=edc1cae86541a9c3 form=61658998a58319a2
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t10 tick=10 hash=0c8668bc95433823 form=141ad75aa3b3826b
+t10 tick=10 hash=e8a0cf13b0c3aea6 form=0ae5ff000c9f7cf1
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t11 tick=11 hash=2514498840f99978 form=706493782ea8fa05
+t11 tick=11 hash=f09a6897c20de969 form=3b91b71efa2703af
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t12 tick=12 hash=4e7fe2dfddb67635 form=d72367e9ed97396a
+t12 tick=12 hash=8615c2b64500debc form=b55b982d70fc0e0e
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t13 tick=13 hash=0af91741f9abe92a form=fdf4964939742738
+t13 tick=13 hash=657ff6b7f251ace7 form=bd8f1b886532a51b
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t14 tick=14 hash=0c8e8382174cb517 form=8c87806d9a74597e
+t14 tick=14 hash=67224ead4db79c12 form=1541415197bf58d2
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t15 tick=15 hash=d4bfb9487a09a1b4 form=02b0b189c56017c3
+t15 tick=15 hash=b173ca012d69150d form=1211c4561d6c3ea4
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t16 tick=16 hash=d103a68b3a75a549 form=6604217fec159b3c
+t16 tick=16 hash=6fd09e10f9ae80b8 form=3cc030ee81f8ee0c
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(4,5) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:4 Y:5} target=false(0,0) attack=false/0 phase=0 post=(3,5) pack=[]
-t17 tick=17 hash=3baccdd838f9e03b form=f841c3487a551899
+t17 tick=17 hash=c9c1dcb1cfa86c7e form=cb13af7979e71d39
   actor 7 at=(5,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t18 tick=18 hash=37bd5e2225b45c0d form=eee754ad5c5dc0de
+t18 tick=18 hash=03404560b13daf54 form=05b3e6acd1cf7532
   actor 7 at=(5,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t19 tick=19 hash=99972faaccaab15b form=f6cfa6a57a698b63
+t19 tick=19 hash=709ffb21e316335e form=d5d174a90cd737a1
   actor 7 at=(5,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t20 tick=20 hash=603e29bdbdb94399 form=533a951263a4739d
+t20 tick=20 hash=887a074856bbc798 form=f95a043d4cefd107
   actor 7 at=(5,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t21 tick=21 hash=7e7c6cfe76986a4b form=13ac497b78005f56
+t21 tick=21 hash=74060e18c8a82eae form=119e79287a8435c4
   actor 7 at=(5,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t22 tick=22 hash=f885145f16085d9d form=c503de5f36029b6c
+t22 tick=22 hash=9dcd5cf6aa84c584 form=a09f6a2a55650d0d
   actor 7 at=(5,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t23 tick=23 hash=243648cbb7f13c2b form=e7746612a4e51435
+t23 tick=23 hash=b1e10a5e53244649 form=f906d2dc6e59992d
   actor 7 at=(5,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t24 tick=24 hash=6405d697265fa921 form=43c92c7ff9802408
+t24 tick=24 hash=1d3ad57f14a2a0c7 form=afe9e90befd19d58
   actor 7 at=(5,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t25 tick=25 hash=759f44c105776f2b form=cd9c949b0e0ee1c5
+t25 tick=25 hash=924e1fd3ac35c149 form=0dc8fee6df08c5cb
   actor 7 at=(5,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t26 tick=26 hash=9c6d22908070439d form=648e4f6d9d0a9343
+t26 tick=26 hash=9e08777f0d9317cb form=f4f0f95b575aa053
   actor 7 at=(5,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t27 tick=27 hash=10a97b89cf708f4b form=61aa813b253038c8
+t27 tick=27 hash=25b2ce138fa1b629 form=8e3fe3d00d0ff269
   actor 7 at=(5,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t28 tick=28 hash=f1725143c7e05599 form=f910055ed3b049b4
+t28 tick=28 hash=d993fbebe1b7505f form=693dafab9abeb2a5
   actor 7 at=(5,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t29 tick=29 hash=d5d426de01dedb7b form=835be8937b414c6b
+t29 tick=29 hash=25ea13b95e10f039 form=11263067a9a7be99
   actor 7 at=(5,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t30 tick=30 hash=6c5bec2896981ead form=3c87e79a890bf38a
+t30 tick=30 hash=b3fcccf517795ebb form=42afcf2f7ee37848
   actor 7 at=(5,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t31 tick=31 hash=6692459b767d73db form=678653bc1591949a
+t31 tick=31 hash=3a672011ce768759 form=689e79aab4eb51e9
   actor 7 at=(5,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t32 tick=32 hash=a9266001a1eac611 form=66448e48fafbd325
+t32 tick=32 hash=9214fc4c5646ddd7 form=4219dda0b8c0504d
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t33 tick=33 hash=b5c756f2c22f2f00 form=f1fa2a6e6575650b
+t33 tick=33 hash=c339514ebb70862a form=e5b70b1d8765652c
   actor 7 at=(6,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t34 tick=34 hash=7e3779466127687e form=663b812aa3c58355
+t34 tick=34 hash=796e0598f2cf7068 form=1faa862ef2b46509
   actor 7 at=(6,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t35 tick=35 hash=8f94c041153acad4 form=7fc8777d886dbb91
+t35 tick=35 hash=91bf887ae62db1b6 form=92b5049043782bb3
   actor 7 at=(6,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t36 tick=36 hash=ba5ebcde2b7d64a6 form=672f2672dc210a68
+t36 tick=36 hash=29fb450639449450 form=95e566af98602789
   actor 7 at=(6,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t37 tick=37 hash=7403b5ef7faf3a78 form=fc13316679d6c497
+t37 tick=37 hash=86ea1187b597d1a2 form=cfabb855efb0f63d
   actor 7 at=(6,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t38 tick=38 hash=94ecda1d4a7bfe4e form=75f42f1f806438ad
+t38 tick=38 hash=67ba75aaf209c658 form=87793626cbbae318
   actor 7 at=(6,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t39 tick=39 hash=e858751ab056f5a4 form=8a75e639def25fe6
+t39 tick=39 hash=091d8c3a32c1d7a6 form=8a55237f189c200c
   actor 7 at=(6,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t40 tick=40 hash=d75edb89da3da486 form=64edbdde27bf7486
+t40 tick=40 hash=774072ebdf92cf70 form=e6bb77074284563d
   actor 7 at=(6,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t41 tick=41 hash=fc2db0df29ff51f0 form=0e7fae8ac5bd48f7
+t41 tick=41 hash=d74dd2c226be373a form=f64f3c2da9099d7b
   actor 7 at=(6,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t42 tick=42 hash=09fd33f15903244e form=c85a72e65c86e47c
+t42 tick=42 hash=cb0a9cd451c97c58 form=43571406b82f1775
   actor 7 at=(6,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t43 tick=43 hash=9e65a2b0b4bd9504 form=b85f57b2211bd761
+t43 tick=43 hash=e8b2bbd3129ea746 form=7e8fbc6e6ce4d25b
   actor 7 at=(6,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t44 tick=44 hash=aa42642ece1518a6 form=1a6fee760b257cd0
+t44 tick=44 hash=3a98852e7dfb2850 form=06ac46d88549867b
   actor 7 at=(6,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t45 tick=45 hash=75fcd229e629c498 form=900fa46944767bac
+t45 tick=45 hash=31db12262af06f82 form=17dc7ae85b224a38
   actor 7 at=(6,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t46 tick=46 hash=eaea9168a1dbb55e form=ba1d548d9d65c85d
+t46 tick=46 hash=056794a8a59db608 form=54438f56f3206193
   actor 7 at=(6,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t47 tick=47 hash=eb7627c90f3d9bd4 form=271b6d4a9899a69d
+t47 tick=47 hash=976e32bb6bbb9ab6 form=6bf8ee138f7a618f
   actor 7 at=(6,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t48 tick=48 hash=ec0688c2b7607be6 form=ffdf8ede6686dd45
+t48 tick=48 hash=dadb3b7327847090 form=2d62988f27c04e3f
   actor 7 at=(6,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=true(7,3) attack=false/0 phase=0 post=(3,3) pack=[]
-t49 tick=49 hash=25157bd945fbefbb form=bb2e916db325bfe5
+t49 tick=49 hash=7b5b9cfcc377cd79 form=fe3697ffdff38e14
   actor 7 at=(7,3) transit=15 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t50 tick=50 hash=08a4a5f95cd59b75 form=5ff9c80fb2798fa0
+t50 tick=50 hash=64743d68766109a3 form=03abd357f15707bb
   actor 7 at=(7,3) transit=14 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t51 tick=51 hash=572e8d5107492167 form=31efb80d1b1d601d
+t51 tick=51 hash=4eb81555713daedd form=f5459db113d9038e
   actor 7 at=(7,3) transit=13 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t52 tick=52 hash=a4bb36100dfb545d form=a14a05a0b5008b9f
+t52 tick=52 hash=8babb4fd8319f78b form=71a7e3783a686b46
   actor 7 at=(7,3) transit=12 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t53 tick=53 hash=11f99494a388ac53 form=e579f2b170e7575a
+t53 tick=53 hash=76b2184793daec51 form=c917ccab22a68957
   actor 7 at=(7,3) transit=11 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t54 tick=54 hash=67cd18745d4dc935 form=532d4dd711de70b0
+t54 tick=54 hash=9ff39eaa92098063 form=9bd3dce2570ff612
   actor 7 at=(7,3) transit=10 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t55 tick=55 hash=0e77d422551cbd27 form=ccdd3756b2776b3b
+t55 tick=55 hash=4112cae9e524039d form=57f2be36600bec36
   actor 7 at=(7,3) transit=9 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t56 tick=56 hash=7bfb4938688cefad form=f01e3334e26df307
+t56 tick=56 hash=f69b77fc051f4bbb form=baa3d0bddc596f4b
   actor 7 at=(7,3) transit=8 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t57 tick=57 hash=6de1b9ca503aaf2b form=0daa2dc154fc6fa3
+t57 tick=57 hash=2c3d202d2930fd49 form=677a65e6e3145c06
   actor 7 at=(7,3) transit=7 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t58 tick=58 hash=1ab0be7f5d1717f5 form=b6ada38fe109cb14
+t58 tick=58 hash=f41e8474c560fe23 form=b99350e819bf196f
   actor 7 at=(7,3) transit=6 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t59 tick=59 hash=c9c2d676c9653d07 form=2c5a2f8b33d983ac
+t59 tick=59 hash=3f735dcb3f8715bd form=89ba5ae497b6365c
   actor 7 at=(7,3) transit=5 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t60 tick=60 hash=16b2123c3f36b22d form=3496874b6d44a836
+t60 tick=60 hash=7b9e587051f84e3b form=be91d4d4aae2f34f
   actor 7 at=(7,3) transit=4 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t61 tick=61 hash=c1c8c59381b23533 form=4b62b4c4ab6160d9
+t61 tick=61 hash=e20c74772f302971 form=7a38eeb53d9b6e50
   actor 7 at=(7,3) transit=3 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t62 tick=62 hash=5d6be070033ef3f5 form=15a513d977559e1b
+t62 tick=62 hash=ac33a1273e977a23 form=005f5d9a03a04bbe
   actor 7 at=(7,3) transit=2 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t63 tick=63 hash=b579b15c7b176f47 form=5db1c2461415d387
+t63 tick=63 hash=21bfbabef6354cfd form=df8602b60951fdc9
   actor 7 at=(7,3) transit=1 state=0xb pending={Kind:2 RowAdmitted:true Target:0 Spell:0 X:7 Y:3} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-t64 tick=64 hash=acf29f5a977d5451 form=eebf6b0e47486eae
+t64 tick=64 hash=4ff40958879702f8 form=c16c69693e73f745
   actor 7 at=(7,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(7,3) pack=[0x101:1/0]
   purse=0 sacks=[(4,5) gold=30 items=[]]
   lines=["Picked up Sword"]
-t65 tick=65 hash=e031c361e8d9b432 form=78d54f84ce1667e9
+t65 tick=65 hash=1178b511792e67c7 form=d4d805afb4dec099
   actor 7 at=(7,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(7,3) pack=[0x101:1/0]
   actor 8 at=(4,5) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,5) pack=[]
   purse=30 sacks=[]
   lines=["Picked up Sword" "Picked up 30 gold"]
-t66 tick=66 hash=24b7ba4f39bea4bb form=28172266ecf16803
+t66 tick=66 hash=591ce7306e550554 form=b861386aa89e1154
   actor 8 at=(4,5) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,5) pack=[]
-t67 tick=67 hash=9b6632081d9d9bd2 form=416f8bee47a57e1c
-t68 tick=68 hash=ec62d2c0bcff249d form=0d99e7e12334e6bb
-t69 tick=69 hash=8b04922cb8f05e8c form=c9adca67db05eece
+t67 tick=67 hash=c65d1256c18018ed form=55142164a9db0f36
+t68 tick=68 hash=7431ef0b6ff63d46 form=b029826f70a554d8
+t69 tick=69 hash=fd85c160321f2787 form=4bcc41c40603d217
 == second key-underfoot
-open tick=0 hash=0f0765907f38ca85 form=a526171fc9c3fef4
+open tick=0 hash=bca5c7278b17d834 form=db910cf03fec208a
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=true(20,20) attack=false/0 phase=0 post=(5,3) pack=[]
   purse=0 sacks=[(5,3) gold=17 items=[101]]
   queue=[]
   lines=[]
-key tick=0 hash=d69363008d61ab4e form=9cd6351c00858185
+key tick=0 hash=84fff2aabf0fd45e form=e3a278cf4b915849
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=17 sacks=[]
   lines=["Picked up 17 gold" "Picked up Sword"]
-t1 tick=1 hash=40f03b61197b91ef form=497bba35ce86e6d9
+t1 tick=1 hash=b6113cbe257a71b3 form=5f5118af486b867c
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t2 tick=2 hash=bb12e42028d4c5be form=a8ebf22b3ddd0216
-t3 tick=3 hash=4da2c9e0e8433c65 form=6d19258a365f1ac8
-t4 tick=4 hash=ec85acd47c00e4c4 form=ebe5ca8e1426cf39
+t2 tick=2 hash=858d94995559541c form=bfcaa821d92f0cd5
+t3 tick=3 hash=acfd7740975384a1 form=494b0da2007e7400
+t4 tick=4 hash=be0cfba65f7e7f32 form=68babb27f0b2e644
 == second key-predecessors
-open tick=0 hash=044cf5600ddd5065 form=8f6df58ce77acc2c
+open tick=0 hash=07a1acc5f6ea856f form=1183aab496438910
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 99 at=(20,20) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
   purse=0 sacks=[(3,3) gold=17 items=[]; (5,3) gold=0 items=[101]]
   queue=[]
   lines=[]
-queued tick=0 hash=044cf5600ddd5065 form=8f6df58ce77acc2c
+queued tick=0 hash=07a1acc5f6ea856f form=1183aab496438910
   queue=[kind=24 entity=7 at=(5,3) group=0; kind=5 entity=7 at=(999,1) group=0; kind=0 entity=99 at=(21,20) group=0]
-key tick=0 hash=6486efac3f5a199a form=b05fabcbc93cacd4
+key tick=0 hash=3fb2c3164ee7bd00 form=c8833e14fcd67460
   actor 7 at=(3,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=17 sacks=[(5,3) gold=0 items=[101]]
   queue=[kind=5 entity=7 at=(999,1) group=0; kind=0 entity=99 at=(21,20) group=0]
   lines=["Picked up 17 gold"]
-t1 tick=1 hash=7bf6868e31bb1bd7 form=e72f3153b694242d
+t1 tick=1 hash=68070a51c6f0a954 form=9affef947e8058da
   actor 7 at=(3,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 99 at=(21,20) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
   queue=[]
-t2 tick=2 hash=385559453a650b61 form=7b7ced1c57a5908f
+t2 tick=2 hash=dceffb6a00c059f2 form=d800545eb8a7a1fa
   actor 99 at=(21,20) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t3 tick=3 hash=e295c2ef575f3d8f form=0ba828910717d3cb
+t3 tick=3 hash=93a8b06efb88d0ec form=a091194790708536
   actor 99 at=(21,20) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t4 tick=4 hash=749712c5a236f3d5 form=3327df5ed0eb5769
+t4 tick=4 hash=ef8f19543608adbe form=d91633d51fc515eb
   actor 99 at=(21,20) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t5 tick=5 hash=b00ad6ffff6413df form=1765a81661bbc62f
+t5 tick=5 hash=cffad47286d869bc form=128eed5c717dc58d
   actor 99 at=(21,20) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t6 tick=6 hash=b8ab618fd76aab89 form=8759480ef4ab9ce1
+t6 tick=6 hash=0140d4225c7edd7a form=7d6f7ab25d4ad988
   actor 99 at=(21,20) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t7 tick=7 hash=22dbbde14fa832f7 form=2d8142d3a01c0ba4
+t7 tick=7 hash=938ed81da044ec73 form=33327cc7da68b75c
   actor 99 at=(21,20) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t8 tick=8 hash=891fe6cc79da1995 form=88a4b47bee021d80
+t8 tick=8 hash=64c91f5d7313e931 form=30d276ad42f1400a
   actor 99 at=(21,20) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t9 tick=9 hash=7d8ab2c6168dfcf7 form=ef6b7354c7740d49
+t9 tick=9 hash=b1d2b98076b0a673 form=2b5693613f303e3c
   actor 99 at=(21,20) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t10 tick=10 hash=6b3ce349f586ae21 form=9c0b4912d77264c8
+t10 tick=10 hash=c7a5b6a95c2b5afd form=4657def04fc579d0
   actor 99 at=(21,20) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t11 tick=11 hash=594958a614997bbf form=aac53e6c1fd1400d
+t11 tick=11 hash=dcb77b399a12a15b form=17f18d242c7c9a84
   actor 99 at=(21,20) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t12 tick=12 hash=646e49656a6c5875 form=c51c3abbff941237
+t12 tick=12 hash=e81b2a783dc9bbd1 form=c9ac498e9add34c1
   actor 99 at=(21,20) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t13 tick=13 hash=9922d08f3283f22f form=3f93e8d446312852
+t13 tick=13 hash=5285088645d904ab form=7a070a647ff3a73d
   actor 99 at=(21,20) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t14 tick=14 hash=f82d17d7aeeb69b9 form=adf0cc07b8fe245f
+t14 tick=14 hash=4f6404203a175ad5 form=3b35f4ea20b743ad
   actor 99 at=(21,20) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t15 tick=15 hash=203b99202fa1a877 form=6039259d7788bd59
+t15 tick=15 hash=ce0b6c9e4fc601f3 form=e6a89ff6864d90ab
   actor 99 at=(21,20) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t16 tick=16 hash=ee9f02d23cd00255 form=b7be6993f101c021
+t16 tick=16 hash=e0fe98c4a7104ef1 form=04cd0562ffb708a0
   actor 99 at=(21,20) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(20,20) pack=[]
-t17 tick=17 hash=7e37f9c8789c2388 form=f1786d6991ef08e5
-t18 tick=18 hash=3aa4e313a0606603 form=3a3b6ee19e15d13f
-t19 tick=19 hash=967896815d89cf8e form=ee3fd8bb6055b44f
+t17 tick=17 hash=e10aa233c7ff75cc form=053bf8a26dba13a9
+t18 tick=18 hash=b9aff9ca21932dff form=b1a4793a122e02d8
+t19 tick=19 hash=dc618bc34b70be92 form=502753af1bdbc502
 == second key-mid-attack
-open tick=0 hash=195c8e34b35eaa0a form=4cca6f3f5771d8c9
+open tick=0 hash=97798c36e7048be9 form=641b9673d59b28c2
   actor 2 at=(6,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(6,3) pack=[]
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=true/2 phase=1 post=(5,3) pack=[]
   purse=0 sacks=[(5,3) gold=17 items=[101]]
   queue=[]
   lines=[]
-key tick=0 hash=195c8e34b35eaa0a form=4cca6f3f5771d8c9
+key tick=0 hash=97798c36e7048be9 form=641b9673d59b28c2
   queue=[kind=24 entity=7 at=(5,3) group=0]
-t1 tick=1 hash=53f1be3485957a07 form=310da04e92fc1546
+t1 tick=1 hash=a7f4ba33dc190ec8 form=753fec0bbe3ed777
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=true/2 phase=1 post=(5,3) pack=[]
   queue=[]
-t2 tick=2 hash=9320bfd0f71f31a1 form=0eaaffdf3f9e0472
-t3 tick=3 hash=a88918bb3abd1937 form=435ea2d1420699fb
-t4 tick=4 hash=ce2e4e3c0a523735 form=95ca092b61b9f79a
-t5 tick=5 hash=384a3d2be81d09cb form=1423cfd19f4be039
+t2 tick=2 hash=e4ec31330305a066 form=91836718ef5a01af
+t3 tick=3 hash=617cb46b43933698 form=a637a75668849560
+t4 tick=4 hash=a574ade54e46a362 form=7954f85255c9733a
+t5 tick=5 hash=b907459d42b78a00 form=604fa7dcc6664fa1
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=true/2 phase=2 post=(5,3) pack=[]
-t6 tick=6 hash=661979cd78dd5967 form=e92c0e6caff4d1a5
-t7 tick=7 hash=fb8248eef4849483 form=20b0ca75fb361b0d
-t8 tick=8 hash=6b2ce3a938010601 form=9f9d29536876e9bc
-  actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=true/2 phase=4 post=(5,3) pack=[]
-t9 tick=9 hash=aa5d4435c5a71735 form=9c7aa675c20fa066
-  actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=true/2 phase=5 post=(5,3) pack=[]
-t10 tick=10 hash=d873b27c13230391 form=0ecb7483f3d7c32c
+t6 tick=6 hash=87d3e9fac6c7c974 form=9fb47d2bf1c0f244
+t7 tick=7 hash=c592f0434ed92cf2 form=7dbec8b91eb9b7cd
+  actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=2 post=(5,3) pack=[]
+t8 tick=8 hash=f010a12d1b9c8130 form=9b89c707d8c46a60
+  actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=4 post=(5,3) pack=[]
+t9 tick=9 hash=c652afa161bacaac form=7595ae5f005e0aba
+  actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=5 post=(5,3) pack=[]
+t10 tick=10 hash=33c40f47233c2d57 form=f285af07c091be6d
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=17 sacks=[]
   lines=["Picked up 17 gold" "Picked up Sword"]
-t11 tick=11 hash=b400f233f80b5a6c form=6a903e756af01c00
+t11 tick=11 hash=270ddfab64be89f4 form=052ab368e7b854b8
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t12 tick=12 hash=b003f5f98afab961 form=113e7c8cbea378ef
-t13 tick=13 hash=43c0124e58dca9de form=a03ff57f18c7922e
-t14 tick=14 hash=10deb053ef498f0b form=a2a6946a84ffa8a2
+t12 tick=12 hash=db538a17217be1d5 form=2d8ddf1a815d1a60
+t13 tick=13 hash=c24fceb6ff977f16 form=1679a285067a7e8a
+t14 tick=14 hash=5d2c26a8ecab1627 form=c89b32057704651a
 == second key-crossing
-open tick=0 hash=31254945ad8eb83b form=760a34333990a506
+open tick=0 hash=e4bad220e85a9410 form=f2b47cec45e0bc72
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(4,3) gold=500 items=[101]]
   queue=[]
   lines=[]
-t1 tick=1 hash=a26fdbfc95144a6a form=f481f51e531d595d
+t1 tick=1 hash=85bc8ce3774b8731 form=1076eb3c24508d4a
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=1 hash=a26fdbfc95144a6a form=f481f51e531d595d
-t2 tick=2 hash=a6d6c7551da54408 form=cc04b6e19e5dab8a
+key tick=1 hash=85bc8ce3774b8731 form=1076eb3c24508d4a
+t2 tick=2 hash=f261ea16677c37d3 form=83e641e918dba5c6
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=2 hash=a6d6c7551da54408 form=cc04b6e19e5dab8a
-t3 tick=3 hash=026bbbfc188aca4a form=3b4cf6dea1cbd789
+key tick=2 hash=f261ea16677c37d3 form=83e641e918dba5c6
+t3 tick=3 hash=7b4dd5e88dd1b891 form=b59445a0fd588941
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=3 hash=026bbbfc188aca4a form=3b4cf6dea1cbd789
-t4 tick=4 hash=e77032a47544ee84 form=26301488c7a94658
+key tick=3 hash=7b4dd5e88dd1b891 form=b59445a0fd588941
+t4 tick=4 hash=5233376cb036685f form=35b20afc53275c8e
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=4 hash=e77032a47544ee84 form=26301488c7a94658
-t5 tick=5 hash=877633412150c02a form=75f623ce3297ab59
+key tick=4 hash=5233376cb036685f form=35b20afc53275c8e
+t5 tick=5 hash=695c8e27a3108571 form=5d4f43559f2821e5
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=5 hash=877633412150c02a form=75f623ce3297ab59
-t6 tick=6 hash=4a0ebd535e6aa208 form=c6e61ff052292a18
+key tick=5 hash=695c8e27a3108571 form=5d4f43559f2821e5
+t6 tick=6 hash=e4423567217ce1d3 form=83f2373e01e90532
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=6 hash=4a0ebd535e6aa208 form=c6e61ff052292a18
-t7 tick=7 hash=a5addc147187900a form=b28e99f0ec6c81e6
+key tick=6 hash=e4423567217ce1d3 form=83f2373e01e90532
+t7 tick=7 hash=9a42093ea7ae0483 form=6885dbc5cff3180f
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=7 hash=a5addc147187900a form=b28e99f0ec6c81e6
-t8 tick=8 hash=648c4c94742c339c form=1d8494f2add102f5
+key tick=7 hash=9a42093ea7ae0483 form=6885dbc5cff3180f
+t8 tick=8 hash=cefb338fb295e79d form=451b66cba5bb1f3c
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=8 hash=648c4c94742c339c form=1d8494f2add102f5
-t9 tick=9 hash=9cf69a17fba9006a form=f8751b3af9f44c44
+key tick=8 hash=cefb338fb295e79d form=451b66cba5bb1f3c
+t9 tick=9 hash=10d9392d0b7e6723 form=defcc034f395899a
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=9 hash=9cf69a17fba9006a form=f8751b3af9f44c44
-t10 tick=10 hash=bd123d34a4cf46a8 form=1b0742b86642322c
+key tick=9 hash=10d9392d0b7e6723 form=defcc034f395899a
+t10 tick=10 hash=c06e4dfb8947f721 form=9244b59d2cab6840
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=10 hash=bd123d34a4cf46a8 form=1b0742b86642322c
-t11 tick=11 hash=00fb83612f40fc4a form=cc65773fc07c0078
+key tick=10 hash=c06e4dfb8947f721 form=9244b59d2cab6840
+t11 tick=11 hash=cb8ecd32a5b9b6c3 form=45c895e574881e31
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=11 hash=00fb83612f40fc4a form=cc65773fc07c0078
-t12 tick=12 hash=a24846504809bb64 form=f6a3a41dbaf7a734
+key tick=11 hash=cb8ecd32a5b9b6c3 form=45c895e574881e31
+t12 tick=12 hash=f756237d3861dd85 form=700d3d89b8f143b4
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=12 hash=a24846504809bb64 form=f6a3a41dbaf7a734
-t13 tick=13 hash=451ce7c09408602a form=acaf31a89cddd8aa
+key tick=12 hash=f756237d3861dd85 form=700d3d89b8f143b4
+t13 tick=13 hash=db8799bfd9fe2ae3 form=1f66bfba3e8a533b
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=13 hash=451ce7c09408602a form=acaf31a89cddd8aa
-t14 tick=14 hash=293596a31121e268 form=49f2cbe0aee6eb6d
+key tick=13 hash=db8799bfd9fe2ae3 form=1f66bfba3e8a533b
+t14 tick=14 hash=28fc762b663a72e1 form=94f8b49bffbc58c1
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=14 hash=293596a31121e268 form=49f2cbe0aee6eb6d
-t15 tick=15 hash=a0349a2fd81c460a form=068277ff4fcb0c5f
+key tick=14 hash=28fc762b663a72e1 form=94f8b49bffbc58c1
+t15 tick=15 hash=cbce03f3cac7f683 form=c7b4ca582cc8e24b
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=15 hash=a0349a2fd81c460a form=068277ff4fcb0c5f
-t16 tick=16 hash=f1b49c0881e7434c form=0a7ed0826b459ea8
+key tick=15 hash=cbce03f3cac7f683 form=c7b4ca582cc8e24b
+t16 tick=16 hash=923847e57806a8ed form=521f26b4a17a2888
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
-key tick=16 hash=4f96692a6a4780cd form=d75b13fb4db2dacf
+key tick=16 hash=71c519d638909cef form=b8c0b59f520ac0fc
   actor 7 at=(4,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,3) pack=[0x101:1/0]
   purse=500 sacks=[]
   lines=["Picked up 500 gold" "Picked up Sword"]
-t17 tick=17 hash=2fb783894e14b7a0 form=ccea937d86bec71b
+t17 tick=17 hash=7e511bde770722c4 form=805f15b7c2e12db8
   actor 7 at=(4,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,3) pack=[0x101:1/0]
-t18 tick=18 hash=cf2833658910ab95 form=f6131138e466c849
-t19 tick=19 hash=9c3c13b2ca480c92 form=75a05edd5b988068
-t20 tick=20 hash=2a97a360cdfa76cf form=aa564cf497171fb2
+t18 tick=18 hash=5e46001dddbc68c1 form=e9042e0629c2d460
+t19 tick=19 hash=9b088fe00326de9a form=2c1dd44b6ab5497f
+t20 tick=20 hash=09f92911be54f4cf form=879008a515b28b55
 == second key-refused-owner
-open tick=0 hash=042e596ca24f32d7 form=00fb16c1394a1b07
+open tick=0 hash=8a179c557d445839 form=012a8c5e85d4792f
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[]
   purse=0 sacks=[(5,3) gold=17 items=[101]]
   queue=[]
   lines=[]
-key tick=0 hash=042e596ca24f32d7 form=00fb16c1394a1b07
-t1 tick=1 hash=28c70e6de9f00170 form=482f6908ad1cf537
-t2 tick=2 hash=498b382ba0a04a79 form=39fa19667792c61b
-t3 tick=3 hash=9e61afb03427ee3a form=857b2f869a4c2fb6
-t4 tick=4 hash=d07680516f4a4443 form=d66a4dbb21eb45d1
+key tick=0 hash=8a179c557d445839 form=012a8c5e85d4792f
+t1 tick=1 hash=1a58172c9cd24d82 form=2e8fb337a71bd142
+t2 tick=2 hash=8e159c49e7f516eb form=1b0bbd7f78d679c0
+t3 tick=3 hash=35b30c24af9410a4 form=135c9c9028051d13
+t4 tick=4 hash=590f2ff57bd827b5 form=6766b4f5d8720f40
 == second cheat
-open tick=0 hash=e130749e29a5db4d form=313500d58913b3a1
+open tick=0 hash=cc13a2473273cad4 form=f96ea89fa96bfc3c
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   actor 8 at=(3,6) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,6) pack=[]
   purse=0 sacks=[(5,3) gold=5 items=[101]; (12,4) gold=9 items=[]; (10,10) gold=0 items=[e1c]]
   queue=[]
   lines=[]
 cheat error=<nil>
-cheat tick=0 hash=1f1952f2bed9310a form=c8df192e4bcf209b
+cheat tick=0 hash=5c74e1c8076df64e form=c7f5303c93c18e5d
   actor 7 at=(3,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[0x101:1/0]
   actor 8 at=(3,6) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,6) pack=[0xe1c:1/0]
   purse=14 sacks=[]
   lines=["Picked up 5 gold" "Picked up Sword" "Picked up 9 gold" "Picked up 0014028"]
-t1 tick=1 hash=104bee49e00f128b form=b5c58b5d6525bc9b
+t1 tick=1 hash=a686e8764318abcf form=90389a0c6e31854b
   actor 7 at=(3,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[0x101:1/0]
-t2 tick=2 hash=cff4cde729451bde form=df6ea462a3658f00
-t3 tick=3 hash=28d4aedcb45ffe91 form=2844fb440002860e
-t4 tick=4 hash=597a6d000a982e9c form=98999e63f12b3a72
+t2 tick=2 hash=4c3ce7e3c40448e8 form=999de75b969402f7
+t3 tick=3 hash=91d6a1c4b4011de5 form=59b50019fb84a86c
+t4 tick=4 hash=b394c9370f84d33e form=2515ab8f2bd806d1
 == second cheat-no-hero
-open tick=0 hash=89860f193ff6c0e7 form=577e024105dd40a3
+open tick=0 hash=76e99bcde44379d4 form=04d0d412fd42cfa2
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=5 items=[101]; (12,4) gold=9 items=[]; (10,10) gold=0 items=[e1c]]
   queue=[]
   lines=[]
 cheat error=<nil>
-cheat tick=0 hash=b98f0333c63f5834 form=52a0dc057ba09b36
+cheat tick=0 hash=39fea74c23e8d827 form=6bbd63812d92adc9
   actor 7 at=(3,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[0x101:1/0 0xe1c:1/0]
   purse=14 sacks=[]
   lines=["Picked up 5 gold" "Picked up Sword" "Picked up 9 gold" "Picked up 0014028"]
-t1 tick=1 hash=dbd34b466d38bc4b form=09f9c02d389ea6f1
+t1 tick=1 hash=6769c430271e7cb4 form=326baa41a03cd4ee
   actor 7 at=(3,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[0x101:1/0 0xe1c:1/0]
-t2 tick=2 hash=4db2613bb9cf0a5c form=b9eba4fdc0ccd869
-t3 tick=3 hash=3b7f0288cd622df9 form=13674d2f51a9137b
-t4 tick=4 hash=97029c86dfcb9dfa form=32e448f0ba7eae8a
+t2 tick=2 hash=b7b57170c10b7461 form=9b0287fb067346d7
+t3 tick=3 hash=bbbeafbefb7d519a form=1bfa649c35358ad2
+t4 tick=4 hash=d53db3d7024165cf form=8aaf94141ca37425
 == second cheat-refused
-open tick=0 hash=64ebd3d71c7c22b8 form=40b5b513743a7042
+open tick=0 hash=b6b16d89148342ce form=990f8f6fcf39d5ae
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=5 items=[101]; (12,4) gold=9 items=[]; (10,10) gold=0 items=[e1c]]
   queue=[]
   lines=[]
 cheat error=true
-cheat tick=0 hash=64ebd3d71c7c22b8 form=40b5b513743a7042
+cheat tick=0 hash=b6b16d89148342ce form=990f8f6fcf39d5ae
 == second scenario
 pick_item error=<nil>
-pick_item tick=32 hash=8f438dcd3ab918f2 form=f812ebab8c575115
+pick_item tick=32 hash=b1d8a50324a0c2b6 form=b7d24d59256cfcfd
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=20 sacks=[]
-t1 tick=33 hash=2eb335581bfbff57 form=2d3f34b103715df6
+t1 tick=33 hash=9982ba509c5af685 form=612cd4ada8502a43
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t2 tick=34 hash=e9f01b5b33d03242 form=a395f75ebd4fe05e
-t3 tick=35 hash=bae99aca05aba3dd form=3cb7b064faf85b5e
-t4 tick=36 hash=c7f21c3d8f6e19b0 form=c1fc4cbc7f72526c
+t2 tick=34 hash=4ebf9ae6e9e15094 form=6f4b1701b9d7baa7
+t3 tick=35 hash=5c986184c371401f form=84b8a8f5ad89f042
+t4 tick=36 hash=5a47022095c755d6 form=bdd22e3468065d08
 == second scenario-refused
 pick_item error=pick_item: entity 7 did not take the sack at (5,3)
-pick_item tick=32 hash=f2e1f0b67939b6ac form=e4861817fa106105
+pick_item tick=32 hash=decb039fb03a26ee form=f32ec48a41a6852f
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(5,3) gold=20 items=[e1c]]
-t1 tick=33 hash=14daf9db0a78e42b form=ae8cc3ffd1ce40c1
-t2 tick=34 hash=27994b6795fabbc2 form=dba079a9b1f5b827
-t3 tick=35 hash=ff561bdc982e43c1 form=b02cf162445efd5d
-t4 tick=36 hash=5efa60786cde2638 form=d26178d14c074ef0
+t1 tick=33 hash=fb6f822fcb3af547 form=1d9a794ecad80861
+t2 tick=34 hash=7864d15905c205ec form=4b6add0433710fe1
+t3 tick=35 hash=deb5cf6c7944e235 form=34cdb348287e8ea1
+t4 tick=36 hash=9481c4ff02754532 form=58c44f9c26126918
 == second mission
-move tick=1 hash=db8321e8eadd1147 form=34c3157ae83fa7ce
+move tick=1 hash=d4e6d3fc9880683e form=8692da4f265152f0
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(4,3) gold=20 items=[101 e1c]]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=1 hash=db8321e8eadd1147 form=34c3157ae83fa7ce
-t1 tick=2 hash=b1a21fb667dbf7e1 form=bccef8b7d2329cd0
+underfoot tick=1 hash=d4e6d3fc9880683e form=8692da4f265152f0
+t1 tick=2 hash=b570d096b2249d74 form=f58666c9c5311e4d
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=2 hash=b1a21fb667dbf7e1 form=bccef8b7d2329cd0
-t2 tick=3 hash=689ac6ea05410827 form=93ba7e94d825461f
+underfoot tick=2 hash=b570d096b2249d74 form=f58666c9c5311e4d
+t2 tick=3 hash=ca70689b25dc1d9e form=a61caa27bb9a0496
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=3 hash=689ac6ea05410827 form=93ba7e94d825461f
-t3 tick=4 hash=d6387eef8a125b15 form=bd77661fc644e3a6
+underfoot tick=3 hash=ca70689b25dc1d9e form=a61caa27bb9a0496
+t3 tick=4 hash=3825fe610953ec58 form=bdb25fe4ed80038e
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=4 hash=d6387eef8a125b15 form=bd77661fc644e3a6
-t4 tick=5 hash=c5423a3741d40907 form=e468b22266fc2d69
+underfoot tick=4 hash=3825fe610953ec58 form=bdb25fe4ed80038e
+t4 tick=5 hash=9e66f1bdb0bcf77e form=dfb2668f1475c765
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=5 hash=c5423a3741d40907 form=e468b22266fc2d69
-t5 tick=6 hash=779623436d0a91e1 form=4d8e707d8eccfbcd
+underfoot tick=5 hash=9e66f1bdb0bcf77e form=dfb2668f1475c765
+t5 tick=6 hash=9cbae6dafc6e1b74 form=b1a275fbce806fc8
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=6 hash=779623436d0a91e1 form=4d8e707d8eccfbcd
-t6 tick=7 hash=bb5f34227eac8de7 form=cdafa8a6402af2ef
+underfoot tick=6 hash=9cbae6dafc6e1b74 form=b1a275fbce806fc8
+t6 tick=7 hash=b8c884d0cd4f65da form=928adcb606ee0816
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=7 hash=bb5f34227eac8de7 form=cdafa8a6402af2ef
-t7 tick=8 hash=4d10cecbbd1cf8bd form=7818c2e0f88b5ea1
+underfoot tick=7 hash=b8c884d0cd4f65da form=928adcb606ee0816
+t7 tick=8 hash=db2c5ae5f83b37cc form=54caf7f4aeb27519
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=8 hash=4d10cecbbd1cf8bd form=7818c2e0f88b5ea1
-t8 tick=9 hash=412e4a0c35dbb347 form=777b241e9b7df4db
+underfoot tick=8 hash=db2c5ae5f83b37cc form=54caf7f4aeb27519
+t8 tick=9 hash=4d069ffc7fbf537a form=d92f05c303d5f367
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=9 hash=412e4a0c35dbb347 form=777b241e9b7df4db
-t9 tick=10 hash=ca0c8748e0d69681 form=3ef32f26fe2fde0c
+underfoot tick=9 hash=4d069ffc7fbf537a form=d92f05c303d5f367
+t9 tick=10 hash=cbe404fcae6e5258 form=e341a0f615b32bb3
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=10 hash=ca0c8748e0d69681 form=3ef32f26fe2fde0c
-t10 tick=11 hash=028e26a6ce711e27 form=96e91a3309740b30
+underfoot tick=10 hash=cbe404fcae6e5258 form=e341a0f615b32bb3
+t10 tick=11 hash=31ead2acb5f1fc1a form=4946e84f862b5f42
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=11 hash=028e26a6ce711e27 form=96e91a3309740b30
-t11 tick=12 hash=4bcdada0a3f15275 form=b26c95d9826b66c0
+underfoot tick=11 hash=31ead2acb5f1fc1a form=4946e84f862b5f42
+t11 tick=12 hash=b7f8167e384e8134 form=8964855568fcb5e6
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=12 hash=4bcdada0a3f15275 form=b26c95d9826b66c0
-t12 tick=13 hash=5b0dcc782432e907 form=d4a7736ac390a891
+underfoot tick=12 hash=b7f8167e384e8134 form=8964855568fcb5e6
+t12 tick=13 hash=a3b4f3ecdb9dd13a form=3f5cb771fbd2d4e2
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=13 hash=5b0dcc782432e907 form=d4a7736ac390a891
-t13 tick=14 hash=27ac8d7818a26241 form=5411d2a878a6651c
+underfoot tick=13 hash=a3b4f3ecdb9dd13a form=3f5cb771fbd2d4e2
+t13 tick=14 hash=53248c7b3a36a918 form=964962c84bf05c1b
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=14 hash=27ac8d7818a26241 form=5411d2a878a6651c
-t14 tick=15 hash=210a5c45c9ab2fe7 form=0f8ab78ac48aa1c5
+underfoot tick=14 hash=53248c7b3a36a918 form=964962c84bf05c1b
+t14 tick=15 hash=a5897ce5417abbda form=0b4134b65d5aec6a
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=15 hash=210a5c45c9ab2fe7 form=0f8ab78ac48aa1c5
-t15 tick=16 hash=02c8a4bea7d3872d form=35332809c4559156
+underfoot tick=15 hash=a5897ce5417abbda form=0b4134b65d5aec6a
+t15 tick=16 hash=e2f34aae08e66e7c form=053f22d09438023c
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=true sack=(4,3) gold=20 items=[101 e1c]
-underfoot tick=16 hash=f2596b8db389a62b form=77901aa83c03f003
+underfoot tick=16 hash=aed1f7136ec2ab1f form=45ad0d3be827bf47
   actor 7 at=(4,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,3) pack=[0x101:1/0 0xe1c:1/0]
   purse=20 sacks=[]
-t16 tick=17 hash=26b0d19a48353758 form=7df828d6c9d3e011
+t16 tick=17 hash=a8809c431ac9320a form=ca226a1b00624c9c
   actor 7 at=(4,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(4,3) pack=[0x101:1/0 0xe1c:1/0]
-t17 tick=18 hash=ff3e6ef9c2153763 form=a850a32214f19981
-t18 tick=19 hash=2fd5fd4f59794f26 form=9fabf2a6da9940a4
-t19 tick=20 hash=cf41fa87a8d02579 form=d12f78b983cca2ee
+t17 tick=18 hash=ba9d07e99d85c631 form=0889709cf30d9baa
+t18 tick=19 hash=3f5eb2468537da20 form=899fccdf6ef7ead4
+t19 tick=20 hash=e11273c36fa6be5f form=a66cfa331a194690
 == second mission-refused
-move tick=1 hash=5dd67529c5d19105 form=8ff34ef218298145
+move tick=1 hash=b25ccfa2c4e84f70 form=5a11d76a3cca50f4
   actor 7 at=(4,3) transit=15 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
   purse=0 sacks=[(4,3) gold=20 items=[e1c]]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=1 hash=5dd67529c5d19105 form=8ff34ef218298145
-t1 tick=2 hash=228960dc14c7406b form=fc9ee3ce4db40081
+underfoot tick=1 hash=b25ccfa2c4e84f70 form=5a11d76a3cca50f4
+t1 tick=2 hash=60772ac09bfe567a form=a06e015ec65be010
   actor 7 at=(4,3) transit=14 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=2 hash=228960dc14c7406b form=fc9ee3ce4db40081
-t2 tick=3 hash=91b9ed7d86e92da5 form=ed7a755718580ef3
+underfoot tick=2 hash=60772ac09bfe567a form=a06e015ec65be010
+t2 tick=3 hash=772edf92f4b57010 form=d7bfb1658106b593
   actor 7 at=(4,3) transit=13 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=3 hash=91b9ed7d86e92da5 form=ed7a755718580ef3
-t3 tick=4 hash=1008a55cb1f91447 form=e2c9555152d3d0db
+underfoot tick=3 hash=772edf92f4b57010 form=d7bfb1658106b593
+t3 tick=4 hash=3f1f6c619930ab46 form=167c92d9d2d1c073
   actor 7 at=(4,3) transit=12 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=4 hash=1008a55cb1f91447 form=e2c9555152d3d0db
-t4 tick=5 hash=75a1ba53de745045 form=220ccbc53d073c67
+underfoot tick=4 hash=3f1f6c619930ab46 form=167c92d9d2d1c073
+t4 tick=5 hash=1e7365fb10fa0430 form=0b599d8fdf3f713f
   actor 7 at=(4,3) transit=11 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=5 hash=75a1ba53de745045 form=220ccbc53d073c67
-t5 tick=6 hash=c5c156da558c9e6b form=ce0adf33c93704fa
+underfoot tick=5 hash=1e7365fb10fa0430 form=0b599d8fdf3f713f
+t5 tick=6 hash=5257761155ff007a form=7fac6712c605ca21
   actor 7 at=(4,3) transit=10 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=6 hash=c5c156da558c9e6b form=ce0adf33c93704fa
-t6 tick=7 hash=55c9150bb0a731e5 form=5dfd2a73e605012a
+underfoot tick=6 hash=5257761155ff007a form=7fac6712c605ca21
+t6 tick=7 hash=51edf5d1a3c8b53c form=5a9ad028ebe6f0cc
   actor 7 at=(4,3) transit=9 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=7 hash=55c9150bb0a731e5 form=5dfd2a73e605012a
-t7 tick=8 hash=8275d49bc864c11f form=faae08dfe0fd3c2e
+underfoot tick=7 hash=51edf5d1a3c8b53c form=5a9ad028ebe6f0cc
+t7 tick=8 hash=f4ff458de7acc1fa form=26254adc1b5f97c2
   actor 7 at=(4,3) transit=8 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=8 hash=8275d49bc864c11f form=faae08dfe0fd3c2e
-t8 tick=9 hash=585d33452c664705 form=7a71d8c9f911e374
+underfoot tick=8 hash=f4ff458de7acc1fa form=26254adc1b5f97c2
+t8 tick=9 hash=6e8507494a23b09c form=d7251d659ea857ae
   actor 7 at=(4,3) transit=7 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=9 hash=585d33452c664705 form=7a71d8c9f911e374
-t9 tick=10 hash=2acefab0c5310d4b form=6a8252fd3f7d2f26
+underfoot tick=9 hash=6e8507494a23b09c form=d7251d659ea857ae
+t9 tick=10 hash=0fc612fa42185b5e form=9ab8eb88d470fabc
   actor 7 at=(4,3) transit=6 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=10 hash=2acefab0c5310d4b form=6a8252fd3f7d2f26
-t10 tick=11 hash=9049b4e29d9f5fa5 form=c3878366adfe97ce
+underfoot tick=10 hash=0fc612fa42185b5e form=9ab8eb88d470fabc
+t10 tick=11 hash=666b40eadd0920fc form=7abe63277b994a21
   actor 7 at=(4,3) transit=5 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=11 hash=9049b4e29d9f5fa5 form=c3878366adfe97ce
-t11 tick=12 hash=4433ed8ff3468fe7 form=e1546d05e4bb9d3a
+underfoot tick=11 hash=666b40eadd0920fc form=7abe63277b994a21
+t11 tick=12 hash=ef149532be449a32 form=bb742ce9191dcea5
   actor 7 at=(4,3) transit=4 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=12 hash=4433ed8ff3468fe7 form=e1546d05e4bb9d3a
-t12 tick=13 hash=33486ed3512bf045 form=690cb212fa1184c4
+underfoot tick=12 hash=ef149532be449a32 form=bb742ce9191dcea5
+t12 tick=13 hash=16db99bfe15448dc form=f4d913db6ae5478f
   actor 7 at=(4,3) transit=3 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=13 hash=33486ed3512bf045 form=690cb212fa1184c4
-t13 tick=14 hash=6afbc5d8e3e7748b form=d6c79f81d6394381
+underfoot tick=13 hash=16db99bfe15448dc form=f4d913db6ae5478f
+t13 tick=14 hash=6720f4f79961369e form=571f01abd428d216
   actor 7 at=(4,3) transit=2 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=14 hash=6afbc5d8e3e7748b form=d6c79f81d6394381
-t14 tick=15 hash=504fd327173be7e5 form=7bcec6ee5ccef51f
+underfoot tick=14 hash=6720f4f79961369e form=571f01abd428d216
+t14 tick=15 hash=8379f086c6e2a73c form=4f9f3d75f3104fe0
   actor 7 at=(4,3) transit=1 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(0,0) gold=0 items=[]
-underfoot tick=15 hash=504fd327173be7e5 form=7bcec6ee5ccef51f
-t15 tick=16 hash=890d6bdf2f76ba2f form=e996de3b3b159cbe
+underfoot tick=15 hash=8379f086c6e2a73c form=4f9f3d75f3104fe0
+t15 tick=16 hash=c56167a5c0a2a8ca form=c02430098e01c35d
   actor 7 at=(4,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=16 hash=890d6bdf2f76ba2f form=e996de3b3b159cbe
-t16 tick=17 hash=9be6c1a24277c5d8 form=2403b3ecd196ad91
+underfoot tick=16 hash=c56167a5c0a2a8ca form=c02430098e01c35d
+t16 tick=17 hash=a8695d46b044be47 form=28737c0c65e3f2f7
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=17 hash=9be6c1a24277c5d8 form=2403b3ecd196ad91
-t17 tick=18 hash=3aee81c3ad93aa89 form=2193edd7239f673d
+underfoot tick=17 hash=a8695d46b044be47 form=28737c0c65e3f2f7
+t17 tick=18 hash=aff83db4d68724d8 form=a9b1bb818dc6a830
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=18 hash=3aee81c3ad93aa89 form=2193edd7239f673d
-t18 tick=19 hash=87bf13a0e1581812 form=dbf536522ef9075c
+underfoot tick=18 hash=aff83db4d68724d8 form=a9b1bb818dc6a830
+t18 tick=19 hash=292c7bcf16bb5ced form=5386b4ee134ad1a6
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=19 hash=87bf13a0e1581812 form=dbf536522ef9075c
-t19 tick=20 hash=be1a49f024917cb3 form=b6d7fd34e5b18ac5
+underfoot tick=19 hash=292c7bcf16bb5ced form=5386b4ee134ad1a6
+t19 tick=20 hash=203b8c1957d79016 form=ea48df26986f9ce3
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=20 hash=be1a49f024917cb3 form=b6d7fd34e5b18ac5
-t20 tick=21 hash=65640b981e1b4f0c form=444ab57088b1bb47
+underfoot tick=20 hash=203b8c1957d79016 form=ea48df26986f9ce3
+t20 tick=21 hash=049f7d580b9edd03 form=2f39f5dbdca052c9
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=21 hash=65640b981e1b4f0c form=444ab57088b1bb47
-t21 tick=22 hash=c4ef39ebb678716d form=de7cac1e0e1d340d
+underfoot tick=21 hash=049f7d580b9edd03 form=2f39f5dbdca052c9
+t21 tick=22 hash=f7c81845f59b4274 form=dd2d6267f4f34eff
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=22 hash=c4ef39ebb678716d form=de7cac1e0e1d340d
-t22 tick=23 hash=6e806df3725a3446 form=27f2696249e026fe
+underfoot tick=22 hash=f7c81845f59b4274 form=dd2d6267f4f34eff
+t22 tick=23 hash=6124518787c801e0 form=c532e74f05ddf7e2
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=23 hash=6e806df3725a3446 form=27f2696249e026fe
-t23 tick=24 hash=0768e9ef596b4a97 form=eaf8879b01d5714a
+underfoot tick=23 hash=6124518787c801e0 form=c532e74f05ddf7e2
+t23 tick=24 hash=99eb6832e5cdd3af form=5f31b33be3dd41ef
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=24 hash=0768e9ef596b4a97 form=eaf8879b01d5714a
-t24 tick=25 hash=41a3003868095c00 form=7a6e7ac1924fa50c
+underfoot tick=24 hash=99eb6832e5cdd3af form=5f31b33be3dd41ef
+t24 tick=25 hash=1fc56ee27b3ff95a form=9102a423f7da6ac9
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=25 hash=41a3003868095c00 form=7a6e7ac1924fa50c
-t25 tick=26 hash=c0a3a39cb8b5d491 form=44ce82875fc7329d
+underfoot tick=25 hash=1fc56ee27b3ff95a form=9102a423f7da6ac9
+t25 tick=26 hash=ee33749a4d7bcc31 form=75ccd5e2339c3c7e
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=26 hash=c0a3a39cb8b5d491 form=44ce82875fc7329d
-t26 tick=27 hash=0bd814509fa5499a form=9a850516ae6de194
+underfoot tick=26 hash=ee33749a4d7bcc31 form=75ccd5e2339c3c7e
+t26 tick=27 hash=10d017842ccc767c form=bdac76fb2f5242e4
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=27 hash=0bd814509fa5499a form=9a850516ae6de194
-t27 tick=28 hash=3bbfb5758da58e9b form=e82280beb5b23e0b
+underfoot tick=27 hash=10d017842ccc767c form=bdac76fb2f5242e4
+t27 tick=28 hash=64e62a33449529fb form=e50c41331853ed3b
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=28 hash=3bbfb5758da58e9b form=e82280beb5b23e0b
-t28 tick=29 hash=22840498cd9aef34 form=e77e0b7384c08cc8
+underfoot tick=28 hash=64e62a33449529fb form=e50c41331853ed3b
+t28 tick=29 hash=18a7e446e12c82b6 form=43d9bb875792a08b
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=29 hash=22840498cd9aef34 form=e77e0b7384c08cc8
-t29 tick=30 hash=bb80c2d7c0a0a9d5 form=35f9ab3f96adfc73
+underfoot tick=29 hash=18a7e446e12c82b6 form=43d9bb875792a08b
+t29 tick=30 hash=d4b22d8acca1c52d form=b0cf0637851888f1
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=30 hash=bb80c2d7c0a0a9d5 form=35f9ab3f96adfc73
-t30 tick=31 hash=e4bfdba89ca2086e form=3ef88a054c53ea70
+underfoot tick=30 hash=d4b22d8acca1c52d form=b0cf0637851888f1
+t30 tick=31 hash=65d540b01e472348 form=4ef3873b4f1ad796
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=31 hash=e4bfdba89ca2086e form=3ef88a054c53ea70
-t31 tick=32 hash=c7845cbe49f6995f form=588cb8a68b10af35
+underfoot tick=31 hash=65d540b01e472348 form=4ef3873b4f1ad796
+t31 tick=32 hash=a89dadec4a8f4957 form=69b09eb4a32cf1d8
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=32 hash=c7845cbe49f6995f form=588cb8a68b10af35
-t32 tick=33 hash=6d2a30f07a509288 form=5f62b7b4607f33af
+underfoot tick=32 hash=a89dadec4a8f4957 form=69b09eb4a32cf1d8
+t32 tick=33 hash=afdfcd7190c0d822 form=3143a997bf51d912
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=33 hash=6d2a30f07a509288 form=5f62b7b4607f33af
-t33 tick=34 hash=e888f0229b2a2139 form=3cb8705a76313b57
+underfoot tick=33 hash=afdfcd7190c0d822 form=3143a997bf51d912
+t33 tick=34 hash=0684c54466b24639 form=86073dc14e129dea
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=34 hash=e888f0229b2a2139 form=3cb8705a76313b57
-t34 tick=35 hash=c02ac314693ae942 form=c10f6cc5330548f5
+underfoot tick=34 hash=0684c54466b24639 form=86073dc14e129dea
+t34 tick=35 hash=2283a33328c0aee4 form=915918212154db56
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=35 hash=c02ac314693ae942 form=c10f6cc5330548f5
-t35 tick=36 hash=d00ac5f99cc91ca3 form=73ebd1ce8a68c778
+underfoot tick=35 hash=2283a33328c0aee4 form=915918212154db56
+t35 tick=36 hash=749021ed2ce59cc3 form=8d8beed37eb84c31
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=36 hash=d00ac5f99cc91ca3 form=73ebd1ce8a68c778
-t36 tick=37 hash=16fde0dd62e9f4fc form=80368bd7614ec87a
+underfoot tick=36 hash=749021ed2ce59cc3 form=8d8beed37eb84c31
+t36 tick=37 hash=c671b7d59c67093e form=0287cae0f9292051
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=37 hash=16fde0dd62e9f4fc form=80368bd7614ec87a
-t37 tick=38 hash=332393fc258c5e5d form=35777a9a9495123a
+underfoot tick=37 hash=c671b7d59c67093e form=0287cae0f9292051
+t37 tick=38 hash=e30eed5bfc250d15 form=4c1cdbf8d0d77c1f
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=38 hash=332393fc258c5e5d form=35777a9a9495123a
-t38 tick=39 hash=e363df3a25168fb6 form=110fe6999f92f4c0
+underfoot tick=38 hash=e30eed5bfc250d15 form=4c1cdbf8d0d77c1f
+t38 tick=39 hash=56af1643bc76f210 form=9e7e6db95fa01b41
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=39 hash=e363df3a25168fb6 form=110fe6999f92f4c0
-t39 tick=40 hash=6c86aa431d80ce07 form=64fadf4aa802f6bd
+underfoot tick=39 hash=56af1643bc76f210 form=9e7e6db95fa01b41
+t39 tick=40 hash=14b43cf9bfd6ef9f form=3974221f5ab23d18
 underfoot taken=false sack=(4,3) gold=20 items=[e1c]
-underfoot tick=40 hash=6c86aa431d80ce07 form=64fadf4aa802f6bd
-t40 tick=41 hash=425b543ce2b0b4f0 form=36213692c545e9f3
-t41 tick=42 hash=27e8ca9a26861dc1 form=424b67f9582065bf
-t42 tick=43 hash=67305393c978858a form=692e362d3b8a97f1
-t43 tick=44 hash=c1d6805948742e0b form=b890713c4080e779
-t44 tick=45 hash=f6b6a48cf72b9564 form=e17d98b607a1cf1a
+underfoot tick=40 hash=14b43cf9bfd6ef9f form=3974221f5ab23d18
+t40 tick=41 hash=9366d5aedb5d298a form=4c5849c67887b1cd
+t41 tick=42 hash=246d45aee0314621 form=ae34e702ffad9315
+t42 tick=43 hash=fa3799240d6ed2ec form=fe9f319be7696d3d
+t43 tick=44 hash=46c78371f18846ab form=6bea1977336b124b
+t44 tick=45 hash=f00c7c5640247ee6 form=14f61c76a029b62d

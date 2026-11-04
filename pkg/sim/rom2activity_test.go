@@ -112,10 +112,15 @@ func TestSecondGameActivityClearSurvivesColdWorldAndReportParity(t *testing.T) {
 }
 
 func TestSecondGameActivityDoesNotChangeFirstGameGroups(t *testing.T) {
-	w := secondGameActivityWorld(t, 1, 1)
+	// The controlled actor stands where the first game's activity cover
+	// holds the Group (AI-ACTIVITY-324).
+	w := secondGameActivityWorld(t, 90, 90)
 	w.script = nil
 	w.rom2, w.game = nil, gameProfile{}
 	w.constructSessionClock()
+	// A first-game World holds the registry its own constructor builds.
+	w.savedGroups = nil
+	w.constructGroups(false)
 	scriptTicks(w, 40, nil)
 	victim, _ := w.Entity(3)
 	if victim.HP == 20 {

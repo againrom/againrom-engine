@@ -234,8 +234,8 @@ func TestSecondGuardStrikerOutsideTheLeashIsNotJoined(t *testing.T) {
 	}
 }
 
-// The second game's mission start, which holds no Group registry, clips an
-// engaged striker to its circle as well (DIV-1523).
+// The second game's mission start, which holds the Group registry, clips an
+// engaged striker to its circle as well (DIV-1523, DIV-4502).
 func TestSecondGameMissionStartDoesNotJoinAStrikerOutsideTheCircle(t *testing.T) {
 	// The striker's recorded cell (40,20) lies 19 cells from the members'
 	// centre (21,20), past sight and past the held circle.
@@ -248,8 +248,8 @@ func TestSecondGameMissionStartDoesNotJoinAStrikerOutsideTheCircle(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !playsSecondGame(w) || !w.groupDialectNative() {
-		t.Fatal("fixture: not a second-game mission start without a registry")
+	if !playsSecondGame(w) || w.groupDialectNative() {
+		t.Fatal("fixture: not a second-game mission start holding the registry")
 	}
 	order, base, ok := w.groupState(leashSlot, 1)
 	if !ok || order != orderGuard {

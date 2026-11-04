@@ -472,16 +472,22 @@ func (w *World) groupOrderIssuesDestinations(owner, group uint32) bool {
 // member's own held fields.
 func (w *World) walkHome(members []int) {
 	for _, mi := range members {
-		e := &w.entities[mi]
-		if e.HasAttackTarget {
-			continue //
-		}
-		if e.X == e.PostX && e.Y == e.PostY {
-			continue //
-		}
-		w.clearOrder(mi)
-		e.TargetX, e.TargetY, e.HasTarget = e.PostX, e.PostY, true //
+		w.walkToCell(mi, w.entities[mi].PostX, w.entities[mi].PostY)
 	}
+}
+
+// walkToCell sends member mi with no attack target to cell (x, y), unless it
+// stands there.
+func (w *World) walkToCell(mi int, x, y int32) {
+	e := &w.entities[mi]
+	if e.HasAttackTarget {
+		return //
+	}
+	if e.X == x && e.Y == y {
+		return //
+	}
+	w.clearOrder(mi)
+	e.TargetX, e.TargetY, e.HasTarget = x, y, true //
 }
 
 // decide is one group's whole decision: build the candidates, clip them, and give

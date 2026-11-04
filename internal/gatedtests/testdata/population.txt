@@ -1001,6 +1001,7 @@ pkg/game.TestReleaseRouteWitness
 pkg/game.TestReleaseSecondGameMissionTenAllDialoguePages
 pkg/game.TestReleaseSecondGameAuthoredNewTriggersHaveNoGaps
 pkg/game.TestReleaseSecondGameCampaignMapsDecode
+pkg/game.TestReleaseSecondGuardStruckWalksAwayInsideTheStampWindow
 pkg/game.TestReleaseSecondGameSupportCensus
 pkg/game.TestReleaseDocPayloadMissionSAVRoundTrip
 pkg/game.TestReleaseDocPayloadOwnerResaves en

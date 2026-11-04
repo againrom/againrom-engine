@@ -2091,6 +2091,9 @@ func (w *World) remove(gone []EntityID) bool {
 			w.savedGroups.Orders = slices.DeleteFunc(w.savedGroups.Orders, func(o SavedActorOrder) bool { return o.Entity == id })
 			for i := range w.savedGroups.Orders {
 				o := &w.savedGroups.Orders[i]
+				if o.Strike.Attacker == id {
+					o.Strike.Attacker = 0
+				}
 				if o.EscortBound && o.EscortTarget == id {
 					// Retain the source key; its materialized binding expired.
 					o.EscortTarget, o.EscortBound = 0, false

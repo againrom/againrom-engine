@@ -130,7 +130,7 @@ func TestSecondAnimateRaisesEachCorpseKind(t *testing.T) {
 			if got.Speed != template.Speed || got.DamageBase != template.DamageBase || got.Absorption != template.Absorption || got.Protection != template.Protection || got.Resistance != template.Resistance {
 				t.Fatal("raise lost untouched template statistics")
 			}
-			if got.X != 16 || got.Y != 16 || got.Owner != before.Owner || got.Group == 0 || got.Group == before.Group || got.summonKey != 0 || !got.SuppressRewards || got.SuppressCorpseLoot != template.SuppressCorpseLoot {
+			if got.X != 16 || got.Y != 16 || got.Owner != before.Owner || w.savedGroupFor(got.ID) == nil || w.savedGroupFor(got.ID) == w.savedGroupFor(before.ID) || got.summonKey != 0 || !got.SuppressRewards || got.SuppressCorpseLoot != template.SuppressCorpseLoot {
 				t.Fatalf("raised placement/owner/group/marks: %+v", got)
 			}
 			terminal := w.CurrentTerminalActors()

@@ -27,7 +27,7 @@ type savedForm struct {
 	holders []savedFormHolder
 	// keeps is what the profile's records hold that the World keeps; nil
 	// for a document with no World.
-	keeps func(s Snapshot) (sav.ProfileKeeps, error)
+	keeps func(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error)
 	// tail writes the campaign tail after the state store; nil writes none.
 	tail func(s Snapshot) (*sav.SecondTail, error)
 	// leaf is that the engine's own document travels in the AgainromForm
@@ -76,7 +76,7 @@ func (form savedForm) write(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.
 	var keeps sav.ProfileKeeps
 	if form.keeps != nil {
 		var err error
-		if keeps, err = form.keeps(s); err != nil {
+		if keeps, err = form.keeps(s, &doc); err != nil {
 			return sav.DocumentData{}, false, err
 		}
 	}
@@ -98,8 +98,9 @@ func (form savedForm) write(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.
 // secondFormKeeps is what the second game's records hold that a mission's
 // World keeps beside the engine's records: the word of each structure of a
 // Pointer kind, its action slot, by its Token key, and the fog's owner gate
-// for the session matrix's sight.
-func secondFormKeeps(s Snapshot) (sav.ProfileKeeps, error) {
+// for the session matrix's sight, and each member order's blow record and
+// stamp by its record's key (secondCommandStrikes).
+func secondFormKeeps(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error) {
 	if len(s.World) == 0 {
 		return sav.ProfileKeeps{}, nil
 	}
@@ -122,7 +123,50 @@ func secondFormKeeps(s Snapshot) (sav.ProfileKeeps, error) {
 			keeps.Pointers[st.SourceKey] = word
 		}
 	}
-	return keeps, nil
+	var err error
+	keeps.Commands, err = secondCommandStrikes(&w, doc)
+	return keeps, err
+}
+
+// secondCommandStrikes is each member order's blow record and stamp in w,
+// by the Token Identity of its actor's record in doc (R2-ENGINE-845,
+// R2-ENGINE-846): +0x16 as the order holds it; +0x94 the
+// striker's record key, 0 when doc holds no record of it.
+func secondCommandStrikes(w *sim.World, doc *sav.DocumentData) (map[uint32]sav.CommandStrike, error) {
+	_, orders, _ := w.SavedGroups()
+	if !slices.ContainsFunc(orders, func(o sim.SavedActorOrder) bool { return o.Strike != (sim.SavedStrike{}) }) {
+		return nil, nil
+	}
+	a, err := readCurrentActions(doc)
+	if err != nil || a == nil {
+		return nil, err
+	}
+	key := func(id sim.EntityID) uint32 {
+		for _, b := range a.Bindings {
+			if b.ID == id && !b.Structure && !b.Missing && b.Object != 0 && int(b.Object) <= len(doc.Objects) {
+				v, _ := savedStructureValue(&doc.Objects[b.Object-1], "Identity")
+				return v
+			}
+		}
+		return 0
+	}
+	out := map[uint32]sav.CommandStrike{}
+	for _, o := range orders {
+		k := o.Strike
+		if k == (sim.SavedStrike{}) {
+			continue
+		}
+		victim := key(o.Entity)
+		if victim == 0 {
+			continue
+		}
+		c := sav.CommandStrike{Stamp: k.CommandStamp(), Clock: k.Clock, Away: k.Away}
+		if k.Attacker != 0 {
+			c.Striker = key(k.Attacker)
+		}
+		out[victim] = c
+	}
+	return out, nil
 }
 
 // savedFormHolder is a field a form's records hold that the engine's

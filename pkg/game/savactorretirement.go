@@ -9,18 +9,15 @@ import (
 )
 
 func retireCurrentActors(state *SnapshotSAVDocument, world *sim.World) error {
-	groups, _, present := world.SavedGroups()
 	if state.GroupBindings == nil {
 		return nil
 	}
-	if present {
-		if gap, err := projectSavedGroupRoster(state, world, groups); err != nil {
-			return err
-		} else if gap != "" {
-			return worldSaveUnsupportedf("%s", gap)
-		}
-	} else if err := projectCurrentGroups(state, world); err != nil {
+	world = world.WithGroupRegistry()
+	groups, _, _ := world.SavedGroups()
+	if gap, err := projectSavedGroupRoster(state, world, groups); err != nil {
 		return err
+	} else if gap != "" {
+		return worldSaveUnsupportedf("%s", gap)
 	}
 	projectSavedPlayerCounts(state.Document)
 	held := make(map[sim.EntityID]bool)

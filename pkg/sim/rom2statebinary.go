@@ -91,11 +91,12 @@ func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	// The byte form carries no arm: a second-game world's rows take theirs
 	// from the second game's table again, before the base form checks its
 	// retained areas against them.
-	next.rowArms = AssignSecondGameArms
+	second := newGameProfile(ScriptROM2)
+	next.rowArms, next.formGame = AssignSecondGameArms, &second
 	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
-	next.rowArms = nil
+	next.rowArms, next.formGame = nil, nil
 	var checks []ScriptCheck
 	var instants []ScriptInstant
 	var triggers []ScriptTrigger
