@@ -33,7 +33,7 @@ func TestAcquisitionAndEngagementWritersKeepDistinctPursuits(t *testing.T) {
 			w.commandGroup([]int{0}, orderGuard, cell{})
 			regDecide(t, w, 2, effectiveGroup(&w.entities[0]), []int{0})
 		}},
-		{"swarm", false, func(w *World) { w.armSwarm(aiGroup{owner: 2, group: 7, members: []int{0}}, []int{1}) }},
+		{"swarm", false, func(w *World) { regGroup(t, w, 2, 7).AI[0x20] = orderSwarm; regDecide(t, w, 2, 7, []int{0}) }},
 		{"guard post", false, func(w *World) { w.postEngage(0, cell{x: 20, y: 20}) }},
 		{"defend cover", false, func(w *World) { w.coverEngage(0, 0) }},
 	} {

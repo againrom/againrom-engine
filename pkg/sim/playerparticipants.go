@@ -37,7 +37,7 @@ func (w *World) RestoreCurrentPlayers(players []SavedGroupPlayer, rows []PlayerP
 	if err := currentPlayersFault(n); err != nil {
 		return err
 	}
-	if !w.groupDialectNative() && w.savedGroups.fresh {
+	if w.savedGroups != nil && w.savedGroups.fresh { // Decode installs Players before constructing an omitted registry.
 		// A constructed registry takes its Player containers from the
 		// current Players.
 		next := *w

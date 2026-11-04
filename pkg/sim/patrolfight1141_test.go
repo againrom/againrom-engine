@@ -50,7 +50,7 @@ func TestAPatrollerFightsWhatStandsInsideItsBlock(t *testing.T) {
 	t.Parallel()
 
 	w := pxPatroller(t, 10, 10, 20, 10, pxHostile(2, 13, 10))
-	w.actorPass()
+	regActorPass(w)
 
 	got := entityAt(t, w, 1)
 	if !got.HasAttackTarget || got.AttackTarget != 2 {
@@ -76,7 +76,7 @@ func TestAPatrollerWalksOnPastANonHostileNeighbour(t *testing.T) {
 	// hostile to itself, so this neighbour standing one cell away is a
 	// candidate the block filter drops.
 	w := pxPatroller(t, 10, 10, 20, 10, engFighter(2, 2, 11, 10))
-	w.actorPass()
+	regActorPass(w)
 
 	got := entityAt(t, w, 1)
 	if got.HasAttackTarget {
@@ -109,7 +109,7 @@ func TestAPatrollerWalksOnPastAHostileOutsideTheBlock(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			w := pxPatroller(t, 10, 10, 20, 10, pxHostile(2, tc.at, 10))
-			w.actorPass()
+			regActorPass(w)
 
 			got := entityAt(t, w, 1)
 			if got.HasAttackTarget != tc.engaging {
@@ -176,7 +176,7 @@ func TestGuardAnchorsAZeroPostOnItsOwnCell(t *testing.T) {
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 0, 0
 
-	w.actorPass()
+	regActorPass(w)
 
 	if got := entityAt(t, w, 1); got.PostX != 10 || got.PostY != 10 {
 		t.Errorf("post is (%d,%d) after the first guard pass, want the actor's own cell (10,10)",
@@ -201,11 +201,11 @@ func TestThePostFollowsAPatrollerAndStopsWhereGuardInterruptsIt(t *testing.T) {
 	w := pxPatroller(t, 10, 10, 20, 10)
 	i := indexOfEntity(w.entities, 1)
 
-	w.actorPass()
+	regActorPass(w)
 	// The mover is not run here; the actor is placed where a tick of walking
 	// would have put it, which is what the next entry re-anchors on.
 	w.entities[i].X = 11
-	w.actorPass()
+	regActorPass(w)
 	if got := entityAt(t, w, 1); got.PostX != 11 || got.PostY != 10 {
 		t.Fatalf("post is (%d,%d) after a patrolling step, want the actor's cell (11,10) — "+
 			"the post did not follow the patroller", got.PostX, got.PostY)
@@ -215,13 +215,13 @@ func TestThePostFollowsAPatrollerAndStopsWhereGuardInterruptsIt(t *testing.T) {
 	// not run, and the post must stop moving with the actor.
 	w.entities = append(w.entities, pxHostile(2, 13, 10))
 	w.routes = append(w.routes, nil)
-	w.actorPass()
+	regActorPass(w)
 	if got := entityAt(t, w, 1); !got.HasAttackTarget {
 		t.Fatalf("the patroller did not engage the hostile three cells away")
 	}
 	i = indexOfEntity(w.entities, 1)
 	w.entities[i].X = 12 // the pursuit carries it one cell on
-	w.actorPass()
+	regActorPass(w)
 	if got := entityAt(t, w, 1); got.PostX != 11 || got.PostY != 10 {
 		t.Errorf("post is (%d,%d) after a pursuing step, want it left at the break-off cell (11,10) — "+
 			"a post that follows a pursuit is a leash that never breaks", got.PostX, got.PostY)
@@ -239,7 +239,7 @@ func TestAPatrollersPursuitBreaksOffWhenTheTargetLeavesTheBlock(t *testing.T) {
 	t.Parallel()
 
 	w := pxPatroller(t, 10, 10, 20, 10, pxHostile(2, 13, 10))
-	w.actorPass()
+	regActorPass(w)
 	if got := entityAt(t, w, 1); !got.HasAttackTarget {
 		t.Fatalf("fixture: the patroller did not engage at all")
 	}
@@ -248,7 +248,7 @@ func TestAPatrollersPursuitBreaksOffWhenTheTargetLeavesTheBlock(t *testing.T) {
 	vi := indexOfEntity(w.entities, 2)
 	w.entities[i].X = 12  // it has chased two cells
 	w.entities[vi].X = 17 // and the target has passed 5 from the post (10,10)
-	w.actorPass()
+	regActorPass(w)
 
 	got := entityAt(t, w, 1)
 	if got.HasAttackTarget {
@@ -268,7 +268,7 @@ func TestAGuardAtHomeDropsAVictimThatLeftItsBlock(t *testing.T) {
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].AttackTarget, w.entities[i].HasAttackTarget = 2, true
 
-	w.actorPass()
+	regActorPass(w)
 
 	if got := entityAt(t, w, 1); got.HasAttackTarget {
 		t.Errorf("a guard standing on its post kept victim %d, ten cells away", got.AttackTarget)
@@ -288,7 +288,7 @@ func TestTheRingStillAdvancesWhenGuardFindsNothing(t *testing.T) {
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].X, w.entities[i].Y = 20, 10 // arrived at the tail
 
-	w.actorPass()
+	regActorPass(w)
 
 	got := entityAt(t, w, 1)
 	if got.PatrolLeg != patrolLegHead {
@@ -311,9 +311,9 @@ func TestAPatrollerKeepsItsTurnWhileWalkingTheSameLeg(t *testing.T) {
 
 	w := pxPatroller(t, 10, 10, 20, 10)
 	i := indexOfEntity(w.entities, 1)
-	w.actorPass() // gives it the tail as a destination
+	regActorPass(w) // gives it the tail as a destination
 	w.entities[i].TurnRemaining, w.entities[i].TurnTotal = 2, 4
-	w.actorPass()
+	regActorPass(w)
 
 	if got := entityAt(t, w, 1); got.TurnRemaining != 2 {
 		t.Errorf("the turn remaining is %d after a pass that changed no destination, want 2 kept",
@@ -334,13 +334,8 @@ func pxGuard(t *testing.T, x, y int32, others ...Entity) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
-	for gi := range w.groups {
-		if w.groups[gi].owner == 2 && w.groups[gi].group == 1 {
-			w.groups[gi].order = orderNone
-		}
-	}
-	// The per-actor guard arm these tests drive is the native one.
-	return nativeGroupArm(w)
+	regGroup(t, w, 2, 1).AI[0x20] = orderNone
+	return w
 }
 
 // TestTheGuardCaseRunsOnlyForAGroupUnderOrderZero is the gate `AI-ORDER-010`
@@ -354,7 +349,7 @@ func TestTheGuardCaseRunsOnlyForAGroupUnderOrderZero(t *testing.T) {
 	t.Run("order 0: the arm runs", func(t *testing.T) {
 		t.Parallel()
 		w := pxGuard(t, 10, 10, pxHostile(2, 13, 10))
-		w.actorPass()
+		regActorPass(w)
 		if got := entityAt(t, w, 1); !got.HasAttackTarget {
 			t.Errorf("a guard under group order 0 did not engage a hostile three cells from its post")
 		}
@@ -363,12 +358,10 @@ func TestTheGuardCaseRunsOnlyForAGroupUnderOrderZero(t *testing.T) {
 	t.Run("the group's own order: the arm does not", func(t *testing.T) {
 		t.Parallel()
 		w := pxGuard(t, 10, 10, pxHostile(2, 13, 10))
-		for gi := range w.groups {
-			w.groups[gi].order = orderGuard
-		}
+		regGroup(t, w, 2, 1).AI[0x20] = orderGuard
 		i := indexOfEntity(w.entities, 1)
 		before := w.entities[i]
-		w.actorPass()
+		regActorPass(w)
 		if w.entities[i] != before {
 			t.Errorf("a guard under group order 1 was decided by the actor layer as well:\n before %+v\n after  %+v",
 				before, w.entities[i])
@@ -387,7 +380,7 @@ func TestAnOffMapGuardIsLeftInEveryField(t *testing.T) {
 	w.entities[i].OffMap = true
 	before := w.entities[i]
 
-	w.actorPass()
+	regActorPass(w)
 
 	if w.entities[i] != before {
 		t.Errorf("an off-map guard was changed by its own arm:\n before %+v\n after  %+v",
@@ -424,7 +417,7 @@ func TestTheMission80TrollLeavesPatrolWhenAPartyUnitComesInside(t *testing.T) {
 	w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 3, HasGroup: true,
 		Args: [scriptParams]int32{subCommandPatrol, 110, 37}})
 
-	w.actorPass()
+	regActorPass(w)
 	got := entityAt(t, w, 112)
 	if got.HasAttackTarget || !got.HasTarget || got.TargetX != 110 {
 		t.Fatalf("with the party eighteen cells away the troll holds victim %v and destination (%d,%d), "+
@@ -435,7 +428,7 @@ func TestTheMission80TrollLeavesPatrolWhenAPartyUnitComesInside(t *testing.T) {
 	// troll's reach is 1, so nothing but the block can engage here.
 	hi := indexOfEntity(w.entities, 1)
 	w.entities[hi].X = 104
-	w.actorPass()
+	regActorPass(w)
 
 	got = entityAt(t, w, 112)
 	if !got.HasAttackTarget || got.AttackTarget != 1 {
@@ -509,7 +502,7 @@ func TestAScriptAttackSurvivesTheNextActorPass(t *testing.T) {
 		}
 	}
 
-	w.actorPass()
+	regActorPass(w)
 
 	for _, id := range []EntityID{2, 3} {
 		e := laEnt(t, w, id)
@@ -552,7 +545,7 @@ func TestAPatrollerEndsAnUnownedTurnUnlessItIsCasting(t *testing.T) {
 				w.bookCasts = append(w.bookCasts, bookCast{Caster: 1, Spell: 1, Phase: bookCharging, Remaining: 3})
 			}
 
-			w.actorPass()
+			regActorPass(w)
 
 			got := entityAt(t, w, 1)
 			if got.TurnRemaining != tc.want {
@@ -582,18 +575,18 @@ func TestAPatrollersWalkHomeSurvivesTheNextPass(t *testing.T) {
 	t.Parallel()
 
 	w := pxPatroller(t, 10, 10, 20, 10, pxHostile(2, 13, 10))
-	w.actorPass() // pass 1: engage
+	regActorPass(w) // pass 1: engage
 	i := indexOfEntity(w.entities, 1)
 	vi := indexOfEntity(w.entities, 2)
 	w.entities[i].X = 12  // chased two cells
 	w.entities[vi].X = 17 // the target has passed 5 from the post
-	w.actorPass()         // pass 2: break off, walk home
+	regActorPass(w)       // pass 2: break off, walk home
 	if got := entityAt(t, w, 1); got.HasAttackTarget || !got.HasTarget {
 		t.Fatalf("fixture: pass 2 did not produce a walk home (victim %v, destination %v)",
 			got.HasAttackTarget, got.HasTarget)
 	}
 
-	w.actorPass() // pass 3: the one this test exists for
+	regActorPass(w) // pass 3: the one this test exists for
 
 	got := entityAt(t, w, 1)
 	if got.PostX != 10 || got.PostY != 10 {
@@ -630,7 +623,7 @@ func TestAKitedPatrollerStaysOnItsLeash(t *testing.T) {
 
 	engaged, east := 0, int32(0)
 	for p := 0; p < passes; p++ {
-		w.actorPass()
+		regActorPass(w)
 		e := w.entities[i]
 		if e.HasAttackTarget {
 			engaged++

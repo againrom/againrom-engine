@@ -210,47 +210,18 @@ func (w *World) placeFree(i int, x, y int32) bool {
 	return w.placementOpen(i, x, y)
 }
 
-// groupMembers is every entity carrying the given group, in ascending id,
-// and it is what instants 32 and 33 walk.
-//
-// IT READS Group AND NOT effectiveGroup. Every other script arm over a group
-// — the count check, the hand-over, the group order — reads the map's
-// own group word; reading the command group here would make a script's
-// removal of a group depend on whether the player had moved it, which no
-// claim supports.
-//
-// THE DEAD ARE INCLUDED, on the group hand-over's own ground: membership and
-// identity outlive death everywhere in this runtime, and the decoded arms test
-// no member before calling their helper.
-//
-// THE MEMBERSHIP IS READ ONCE, BEFORE THE FIRST WRITE, on the hand-over's own
-// ground again — though neither arm here writes the field this selects on, so
-// unlike the hand-over it would still be correct done in one pass. Collecting
-// first is what makes the answer the membership as the node found it, whatever
-// a later arm comes to write.
+// groupMembers resolves the current registry membership for instants 32 and 33.
+// The dead remain members until teardown; selector resolution retains LOAD order.
 func (w *World) groupMembers(group uint32) []int {
-	if !w.groupDialectNative() {
-		groups, err := w.resolveSavedGroups(group)
-		if err != nil {
-			return nil
-		}
-		var out []int
-		for _, g := range groups {
-			for _, m := range g.Members {
-				out = append(out, indexOfEntity(w.entities, m.Entity))
-			}
-		}
-		return out
-	}
-	owner, ok := w.scriptGroupOwner(group)
-	if !ok {
+	groups, err := w.resolveSavedGroups(group)
+	if err != nil {
 		return nil
 	}
-	var members []int
-	for i := range w.entities {
-		if w.entities[i].Group == group && w.entities[i].Owner == owner {
-			members = append(members, i)
+	var out []int
+	for _, g := range groups {
+		for _, m := range g.Members {
+			out = append(out, indexOfEntity(w.entities, m.Entity))
 		}
 	}
-	return members
+	return out
 }

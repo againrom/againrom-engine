@@ -12,6 +12,7 @@ func TestAutoHealing1191CommandPercentagesAndSourceFloor(t *testing.T) {
 		{Owner: SelfSlot, MaxMana: 101, ActorLoad: ActorLoad{Source: SourceActor{Class: 1, HasOwner: true}}},
 		{Owner: SelfSlot + 1, MaxMana: 71, ActorLoad: ActorLoad{Source: SourceActor{Class: 1, HasOwner: true, ManaFloor: 43, ManaReservePercent: 61}}},
 	}}
+	w.constructGroups(false)
 	foreign := w.entities[1]
 	for _, tc := range []struct {
 		value   int32

@@ -2,56 +2,7 @@ package sim
 
 import "sort"
 
-// THE ENGAGEMENT DECISION: how a unit comes to be fighting something nobody told
-// it to fight.
-//
-// THE GROUP IS WHAT FIGHTS, and that is the fact this file is shaped around
-// rather than a way of organising it. The per-actor state machine is the layer a
-// reader meets first and it governs about one creature in a hundred and fifty:
-// over the shipped corpus the load walk leaves 8085 of 8094 placements under one
-// group order and 9 under another, and none at all under the value that would
-// hand a unit to its own state. Restricted to the creatures that can come after
-// the player, the group rule takes 7293 of 7571 and the per-actor rule 52
-// (AI-CENSUS-046, AI-CENSUS-047). A build that started at the per-actor machine
-// would have built the layer almost nothing runs.
-//
-// The decision is taken once per full tick and is NOT sticky in any part: the
-// candidate list is rebuilt from nothing, every member's target is rewritten from
-// nothing, and no field anywhere remembers last time (AI-SCORE-069). It can
-// afford that because the order it writes is executed by a faster clock — the
-// walk and the blow run every tick, the decision every sixteenth (AI-CLOCK-080).
-//
-// THE ARM HAS THREE OUTCOMES, and picking between them on every decision is
-// this file's whole job. A member that scores something is engaged, under
-// either stance, exactly as before. A member that scores nothing is RELEASED
-// under the guard stance: it ends the tick holding no victim, standing where
-// it stopped and facing where it faced. A member that scores nothing under
-// stand ground is the third outcome, and the arm leaves it exactly as it
-// was.
-//
-// THE RELEASE NO LONGER LEAVES NOTHING IN THE ORDER'S PLACE, since 0106: a
-// released member off its own post is walked home in the same tick, right
-// after the release that freed it (walkHome below); one already on its post
-// is left in every field, exactly as 0098 left every released member.
-//
-// WHAT THIS BUILD DOES NOT HAVE, since 0106, is only the SECOND half of the
-// law's own fourth outcome. AI-GRPGUARD-074 read the walk home's own absence
-// as forced — that nothing has ever written the post word (`ord+0x00`) for
-// a group under the guard order from load, since AI-POST-042's complete
-// writer set contains no group-order path — and that clause is RETRACTED
-// at the current pin: AI-POST-095 finds the load-time guard setter writes
-// the post itself. The walk home was absent for the reason the next
-// paragraph gives, a field this tree did not yet carry, never because the
-// game had nowhere to write it — and 0106 is where that field arrived.
-//
-// THE POST IS NOT THE MAP'S ORIGIN, and this paragraph said otherwise until
-// 0095: it read an unwritten packed cell as 0 and 0 as outside the playable
-// rectangle every shipped map declares, so it took a faithful walk home to
-// mean ordering every idle guard toward the map's corner. That reading is
-// wrong. The post is the cell the unit stood on when guard was issued, which
-// for a placed creature is its spawn cell — so a faithful walk home would
-// send an idle guard back to where the map put it, a real behaviour worth
-// having.
+// Group engagement runs through the World's registry and its actor orders.
 
 // minimalGuardRange is the floor under a group's notice radius.
 //
@@ -65,8 +16,7 @@ import "sort"
 const minimalGuardRange = 8
 
 // noticeMargin is the 4 the guard arm adds to the group's base radius
-// (AI-RADIUS-014). A registry Group adds it with a jitter once, when its latch
-// flips (guardLatch); the second game's Groups keep the margin alone.
+// (AI-RADIUS-014). Guard adds jitter once when its latch flips (guardLatch).
 const noticeMargin = 4
 
 // scoreSeed is the value the selection loop starts at and the value a vetoed
@@ -75,29 +25,7 @@ const noticeMargin = 4
 // large number would become takeable the moment the seed moved (AI-PREF-070).
 const scoreSeed int32 = 0xffffff
 
-// The five group orders a decision may read, named as the law's own byte
-// values (AI-GROUPCMD-020: 135 nodes over 20 campaign maps move one of
-// them).
-//
-// A COMMAND NOW INSTALLS IT DELIBERATELY, which is why it is named here,
-// orderNone, beside the five it used to stand apart from: the group
-// command's Patrol sub-command clears a named group's order to exactly this
-// value on its way to handing each member to the actor layer.
-//
-// THE ORDER IS STATE NOW, not a value derived on every decision: it is stored on
-// groupAI, carried by the byte form and the digest, and the only writer beside
-// construction is a script's group command — which this task does not yet build.
-// So orderGuard and orderStandGround are the only two a record can hold this
-// task, and decide below has no arm for the other three: a group under one is
-// unreachable until the command exists, and this decision leaves it untouched
-// rather than guessing at a behaviour that story owns.
-//
-// orderGuard clips the candidates to a circle about the group's centre, engages
-// what is inside it, and releases a member that scores nothing — the arm 95.6 %
-// of shipped hostile placements run. orderStandGround clips nothing, refuses
-// anything the member could not already strike, and never releases. Both are
-// unchanged from the two-value stance this build carried before 0096; only where
-// the value comes from has moved.
+// Group order bytes admitted by the registry dispatcher.
 const (
 	// orderNone is the value a group object carries before anything installs
 	// one, and — since 0099 — the value a command can install deliberately to
@@ -138,18 +66,7 @@ const (
 // constant serves both comparisons without a conversion at either.
 const SelfSlot = 1
 
-// aiGroup is one group as a decision sees it: the pair that identifies it and the
-// indices of its living members, ascending.
-//
-// It is built per decision and stored nowhere — a different shape from groupAI
-// below on purpose. The thing being reconstructed hangs a real object off a
-// player and keeps a frozen radius, a latch and an order byte on it; the radius
-// and, since 0096, the order and the commanded cell all have somewhere to be
-// frozen against now — groupAI's own fields, carried on the World, in the byte
-// form and in the digest. The latch is what is left with nothing to freeze
-// against, because this tree still has no membership changes to freeze it from.
-// So this struct stays the fresh, per-decision reconstruction its first line
-// says it is, and groupAI is what carries every field that did gain a freeze.
+// aiGroup projects one candidate scan's owner and living members.
 type aiGroup struct {
 	owner   uint32
 	group   uint32
@@ -179,20 +96,13 @@ func (w *World) engagementPassObserved(obs *castObs) { w.engagementPassTraced(ob
 // registry dispatch's withdrawal tail reports to.
 func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 	w.engageDrew = w.engageDrew[:0]
-	if !w.groupDialectNative() {
-		if !w.game.activityMask {
-			w.refreshSavedGroupActivity()
-		} else {
-			w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
-		}
-		w.savedGroupPassTraced(obs, withdrawals)
-		w.joinSavedEngagedGroups()
-		return
+	if !w.game.activityMask {
+		w.refreshSavedGroupActivity()
+	} else {
+		w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
 	}
-	for _, g := range w.aiGroups() {
-		w.decide(g)
-	}
-	w.joinEngagedGroups()
+	w.savedGroupPassTraced(obs, withdrawals)
+	w.joinSavedEngagedGroups()
 }
 
 // mageEngageCast is the full-book draw of the engage routine (AI-554,
@@ -282,73 +192,16 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	return false
 }
 
-// underCommand reports whether e is executing a player's order rather than
-// available to be decided over.
-//
-// HasTarget is the destination a move order writes and HasAttackTarget is the
-// victim an attack order writes; e is under command exactly while it holds the
-// first and not the second. Reading the pair costs no field of its own — it is
-// derived from two this record already carries rather than stored beside them.
-//
-// IT IS EXACT TODAY because exactly two writers give an entity a destination
-// while leaving it no victim — the plain move order and the group move
-// order — and both already end whatever fight the entity was in before
-// they write one, so a unit found holding a destination and no victim can
-// only be one this build itself sent walking.
-//
-// A FUTURE WRITER BREAKS THAT EXACTNESS. The walk home this file's own
-// header already names as absent — the guard arm's break-off that would
-// send a member with no candidate back to its post — and any
-// script-ordered move both hand an entity a destination without first taking
-// a victim from it, and neither is one of the two writers this argument
-// counts.
-//
-// THAT WRITER HAS NOW ARRIVED (0096: issueGroupDestination and armSwarm both
-// hand an entity a destination with no victim taken from it). This predicate
-// is UNCHANGED anyway — it still says exactly what it always said, "does
-// this entity hold a destination and no victim" — because the wrong
-// reading it warned about was never here: aiGroups is where a commanded
-// unit's exclusion from a decision is decided, and that is where the
-// narrowing landed.
+// underCommand reports a held movement or structure attack order.
 func underCommand(e Entity) bool {
 	return (e.HasTarget && !e.HasAttackTarget) || (e.HasAttackTarget && e.AttackTargetKind == AttackTargetStructure) || (e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetStructure)
 }
 
-// holdsOrderedVictim reports whether e is the human participant's unit and is
-// fighting the unit a player's attack order named.
-//
-// A player's attack order builds a fresh group at group order 0 and gives each
-// member the engage state with the named target (AI-CMD-033, AI-CMD-054), so no
-// group scorer runs for it, and being struck issues no order and produces no
-// target (AI-RETAL-056). This build leaves the member in the group the map
-// placed it in, so the stance decision passes over the member while this holds
-// and nothing else replaces the victim.
-//
-// The engage state is the mark. Every producer of an order publishes it with the
-// victim, and stanceMembers returns a member to guard once the victim is gone,
-// so a victim a decision acquires afterwards never reads as an ordered one.
+// holdsOrderedVictim keeps a human unit's ordered victim out of stance scoring
+// until its engage state ends (AI-CMD-054, AI-RETAL-056).
 func holdsOrderedVictim(e Entity) bool {
 	return e.Owner == SelfSlot && e.ActorState == actorStateEngage &&
 		(e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit || e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetUnit)
-}
-
-// stanceMembers is the part of a group its stance decision may score: the
-// members that do not hold an ordered victim. A member still in the engage
-// state with its victim gone has finished the order, and the decision takes it
-// back at guard before scoring it.
-func (w *World) stanceMembers(members []int) []int {
-	out := make([]int, 0, len(members))
-	for _, mi := range members {
-		e := &w.entities[mi]
-		if holdsOrderedVictim(*e) {
-			continue
-		}
-		if e.Owner == SelfSlot && e.ActorState == actorStateEngage && !e.HasAttackTarget {
-			e.ActorState = actorStateGuard
-		}
-		out = append(out, mi)
-	}
-	return out
 }
 
 // effectiveGroup selects the temporary command group while an explicit order
@@ -360,116 +213,7 @@ func effectiveGroup(e *Entity) uint32 {
 	return e.Group
 }
 
-// aiGroups partitions the world's living, owned entities into the groups the map
-// placed them in.
-//
-// The pair is the partition because the thing being reconstructed hangs a group
-// list off each PLAYER and forms each group by equality of the map's own group id
-// (AI-GROUP-009). Two players' units carrying the same group word are two groups,
-// and a build that partitioned on the word alone would give one decision to units
-// on opposite sides.
-//
-// AN ENTITY OF SLOT 0 BELONGS TO NO GROUP and takes no decision. The rule is
-// unchanged since 0086 and the population it names is not: it read "the hero, the
-// party, everything this tree spawns" until 0094 gave a start's party the roster
-// slot it stands on, so what is left here is a test's entity built without naming
-// an owner, and a decode of one. It stays a candidate for every other group,
-// which is the asymmetry the law has as well: an actor with no player has nothing
-// to run its AI, and the sweep that looks for candidates does not care — though
-// with slot 0 outside the matrix in BOTH directions, the hostility filter drops
-// it before the sweep's own indifference ever shows.
-//
-// A UNIT UNDER COMMAND BELONGS TO NO GROUP EITHER, and for a different
-// reason than slot 0's: it is not that it has nobody to decide for it, it is
-// that for as long as the command holds it is in the group its own command
-// built rather than the one the map placed it in. That group's whole order
-// is walk, and re-issue the walk — no candidate list, no scorer, no engage
-// — so leaving it out of the slice below is the whole of that group's
-// behaviour and not a partial rendering of it. It stays a candidate for
-// every other group on exactly the terms it had before, which is the same
-// asymmetry slot 0's own paragraph already states.
-//
-// THE SKIP IS NARROWED, since 0096 (AC-20): underCommand's own doc names
-// "any script-ordered move" as the writer that would break its exactness,
-// and a group command is that writer. What still decides whether a commanded
-// unit is skipped is not underCommand alone but ALSO its group's STORED
-// order — 1 or 3 (Guard, Stand Ground) issue no destination, so a
-// destination such a unit holds is a PLAYER'S and the old skip still
-// applies; 2, 4, 5 or 17 (Swarm, Move, Swarm 2, Roam) issue their own, so a
-// member walking under one of them walks BECAUSE of the group's own order
-// and must keep being decided for, or the arm that sent it never runs again.
-// A member this list leaves out is still reached by joinEngagedGroups while
-// its group is in a fight inside its circle (DIV-1523).
-//
-// It is a linear scan into a slice and not a map, for the reason containsIndex is
-// one: Go randomises map iteration order per process, and this is a path that
-// touches a world. The scan also buys the two orderings the decision needs
-// without a second rule — groups in ascending lowest-member id, members ascending
-// — so "the group's FIRST member", whose relation row governs the whole group, is
-// the head of its slice.
-func (w *World) aiGroups() []aiGroup {
-	var out []aiGroup
-	activity := w.rom2ActivityMask()
-	for i := range w.entities {
-		e := w.entities[i]
-		if !activity.groupActive(e.Owner, effectiveGroup(&e)) {
-			continue
-		}
-		// AN OFF-MAP UNIT IS NOT DECIDED FOR. THIS is the set a decision walks —
-		// groupLivingMembers below is a second, narrower reader and carries the
-		// same test, but a gate written only there would leave this loop putting a
-		// removed unit into a group and handing it a victim. Neither is the
-		// group's MEMBERSHIP: that is groupMembers (presence.go) and the script's
-		// count check, and both read every member whatever its presence.
-		if !e.Alive() || e.Owner == 0 || e.OffMap || w.stoneCursed(i) {
-			continue
-		}
-		if _, using := w.structureUseIndex(e.ID); using {
-			continue
-		}
-		if underCommand(e) && !w.groupOrderIssuesDestinations(e.Owner, effectiveGroup(&e)) {
-			continue
-		}
-		at := -1
-		for k := range out {
-			if out[k].owner == e.Owner && out[k].group == effectiveGroup(&e) {
-				at = k
-				break
-			}
-		}
-		if at < 0 {
-			out = append(out, aiGroup{owner: e.Owner, group: effectiveGroup(&e)})
-			at = len(out) - 1
-		}
-		out[at].members = append(out[at].members, i)
-	}
-	return out
-}
-
-// groupOrderIssuesDestinations reports whether (owner, group)'s STORED order
-// is one whose own arm can give a member a destination — Swarm, Move,
-// Swarm 2 or Roam — which is aiGroups' discriminator above. A pair no
-// record names answers false: such a pair takes no decision at all, so it is
-// excluded on the same terms it always was.
-func (w *World) groupOrderIssuesDestinations(owner, group uint32) bool {
-	order, _, ok := w.groupState(owner, group)
-	if !ok {
-		return false
-	}
-	return order == orderSwarm || order == orderMove || order == orderSwarm2 || order == orderRoam
-}
-
-// walkHome is the guard stance's own tail: the walk home, run once over a
-// whole group's members from each of decide's two guard-only exits below —
-// the empty-candidate branch and the foot of the per-member loop — and
-// from nowhere else. That is what makes SC-3's claim checkable by deletion
-// (AC-12): both call sites gate this function on order == orderGuard before
-// reaching it, so deleting the function and its two call sites leaves decide
-// compiling and leaves every non-guard order's own behaviour, and
-// stand-ground's and swarm 2's own share of these same two exits, untouched.
-//
-// It draws nothing from w.rng (SC-1): every branch below reads only the
-// member's own held fields.
+// walkHome sends victimless members to their current posts.
 func (w *World) walkHome(members []int) {
 	for _, mi := range members {
 		w.walkToCell(mi, w.entities[mi].PostX, w.entities[mi].PostY)
@@ -490,247 +234,9 @@ func (w *World) walkToCell(mi int, x, y int32) {
 	e.TargetX, e.TargetY, e.HasTarget = x, y, true //
 }
 
-// decide is one group's whole decision: build the candidates, clip them, and give
-// every member the cheapest one it will take.
-//
-// A GROUP NO RECORD NAMES TAKES NO DECISION. groupState's third return says
-// so, and this is its one caller: a pair with no record is left in every
-// field rather than falling back to a derivation from its owner. The
-// hand-over arms build a Stand Ground record for each new group, so they do not
-// reach this case.
-//
-// A GROUP UNDER ORDER 0 TAKES NO DECISION EITHER, AND NEEDS ITS OWN CLAUSE
-// NOW (AC-7). Order 0 used to be unreachable on a NAMED record —
-// freezeGroups writes only guard or stand ground, and nothing before 0099
-// could write anything else onto an existing one — so validGroupOrder's
-// own refusal of the byte was what stopped this function short for that
-// hypothetical case, on the same line that still guards every other
-// undefined order.
-//
-// A MEMBER THAT SCORES NOTHING IS RELEASED WHEN ITS GROUP'S OWNER IS NOT THE
-// LOCAL PARTICIPANT: it ends holding no victim, and — because
-// releaseAttack is a no-op on a member holding no victim to begin with — a
-// member that was not already fighting keeps its destination, its stall
-// count and its facing exactly as it held them.
-//
-// THE KEY IS THE OWNER, NOT THE ORDER. Until this story every Guard group's
-// owner was SelfSlot's opposite and every Stand Ground group was SelfSlot's
-// own — freezeGroups' own construction rule — so "released under Guard, kept
-// under Stand Ground" and "released off the owner" agreed on every world
-// 0098 could build, and it read as a rule about the stance. A group command
-// breaks that bijection (a script may stand an enemy group's ground, or set
-// the participant's own group to guard), which is exactly what AC-21 is
-// built to catch, and the rule below was already keyed on the owner alone —
-// see TestAReleaseKeysOnTheOwnerNotTheOrder.
-//
-// A LOCAL PARTICIPANT'S MEMBER UNDER STAND GROUND THAT SCORES NOTHING IS
-// STOOD DOWN INSTEAD: the order it holds is replaced by 0 (standDown), so a
-// pursuit of a victim that left reach ends at this decision (AI-349, AI-353).
-//
-// THE THREE NEW ARMS EACH TAKE THIS RULE ON THEIR OWN TERMS. Move's —
-// below, in moveArm — is the same per-member release the loop at the foot
-// of this function runs, restricted to members that have arrived.
-func (w *World) decide(g aiGroup) {
-	order, base, ok := w.groupState(g.owner, g.group)
-	if !ok || !validGroupOrder(order) || order == orderNone {
-		return
-	}
-	commanded := order == orderSwarm2
-	if order == orderRoam {
-		at, ok := w.nativeRoam(g)
-		if !ok {
-			return
-		}
-		defer func() { w.groups[at].roamCounter++ }()
-		order = orderSwarm2
-	}
-	cands := w.clipCircle(order, w.heldCircle(base, g.members), w.candidates(g))
-	// A group under attack adds its attackers inside the circle (DIV-1523).
-	cands = w.withEngagedFoes(g.owner, w.groupLivingMembers(g.owner, g.group), order, cands)
-
-	// A member holding a victim a player's attack order named is not scored:
-	// the group still sees through it and is centred on it, and only the
-	// rewrite of its victim is withheld (AI-CMD-054, AI-RETAL-056).
-	deciding := w.stanceMembers(g.members)
-
-	moveArm := func(cands []int) {
-		for _, mi := range deciding {
-			if !arrived(w.entities[mi]) {
-				continue
-			}
-			best, at := scoreSeed, -1
-			for _, ci := range cands {
-				if ci == mi {
-					continue
-				}
-				if cost := w.candidateCost(mi, ci, orderStandGround); cost < best {
-					best, at = cost, ci
-				}
-			}
-			if at >= 0 {
-				w.orderAcquire(mi, w.entities[at].ID)
-			} else if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
-				w.releaseAttack(mi)
-			}
-		}
-	}
-
-	if order == orderSwarm2 && len(cands) == 0 {
-		moveArm(cands)
-		if commanded {
-			w.resumeSwarm(aiGroup{owner: g.owner, group: g.group, members: deciding})
-		}
-		return
-	}
-
-	// SWARM AND MOVE ARE DISPATCHED HERE, BEFORE THE EMPTY-LIST BRANCH BELOW,
-	// and that placement is load-bearing rather than an ordering of
-	// convenience. Both arms score EVERY member's own path through an empty
-	// list correctly by themselves — armSwarm walks an unengaged, non-idle
-	// member whether or not any candidate exists at all, and moveArm's own
-	// arrival filter must run before anything touches a still-walking member.
-	// Guard, Stand Ground and Swarm 2's own non-empty branch have no such
-	// filter to lose, so they alone reach the branch below.
-	switch order {
-	case orderSwarm:
-		w.armSwarm(aiGroup{owner: g.owner, group: g.group, members: deciding}, cands)
-		return
-	case orderMove:
-		moveArm(cands)
-		return
-	}
-
-	// THE COUNT IS READ AS A BYTE, not compared against 256: the law reads it
-	// at the width noticeBase and candidateCost already read their own numbers
-	// at, and a modulus written out here would be a second spelling of the same
-	// fact. The member-count half can never fire — aiGroups only ever yields
-	// a group a living member was found for, so len(g.members) is at least 1
-	// and its narrowed value is zero only at exactly 256, 512, ... members —
-	// and it is tested anyway because the law tests both counts in the same
-	// instruction pair, and testing one without the other would be a silent
-	// claim about which of the two is reachable.
-	if uint8(len(cands)) == 0 || uint8(len(g.members)) == 0 {
-		for _, mi := range deciding {
-			if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
-				w.releaseAttack(mi)
-			} else if order == orderStandGround {
-				w.standDown(mi)
-			}
-		}
-		if order == orderGuard {
-			w.walkHome(deciding)
-		}
-		return
-	}
-
-	for _, mi := range deciding {
-		best, at := scoreSeed, -1
-		for _, ci := range cands {
-			// A MEMBER MAY NOT TAKE ITSELF, and this is the one refusal here that
-			// is ours rather than the law's. The engage routine has no self test;
-			// what stops it in the original is that a map forces its own diagonal
-			// to 2, whose bit 0 is clear. This package cannot REPRESENT a unit
-			// attacking itself — the constructor normalises such an order away and
-			// the decoder refuses it — so the refusal is here, where it is visible,
-			// rather than as a surprise two layers down. It is unreachable from any
-			// map: a self-hostile diagonal is a relation no loader writes.
-			if ci == mi {
-				continue
-			}
-			if cost := w.candidateCost(mi, ci, order); cost < best {
-				best, at = cost, ci
-			}
-		}
-		if at >= 0 {
-			w.orderAttack(mi, w.entities[at].ID)
-		} else if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
-			w.releaseAttack(mi)
-		} else if order == orderStandGround {
-			w.standDown(mi)
-		}
-	}
-	if order == orderGuard {
-		w.walkHome(deciding)
-	}
-}
-
 func arrived(e Entity) bool { return !e.HasTarget && e.Transit == 0 }
 
-// resumeSwarm walks the idle members of a commanded Swarm 2 group on toward
-// the cell they were commanded to, once the group sees nothing
-// (AI-SWARM2GATE-107, AI-MOVE-023). A fight ends a member's walk, and a
-// member has no stored destination of its own here, so the destination is
-// re-derived from the group's commanded cell and re-issued through the group
-// move writer, formation included. A member within formationSpread of that
-// cell counts as arrived and is left alone, so a group that has reached its
-// cell is not re-issued on every decision (DIV-1517).
-func (w *World) resumeSwarm(g aiGroup) {
-	cx, cy, ok := w.groupCommandedCell(g.owner, g.group)
-	if !ok {
-		return
-	}
-	to := cell{x: cx, y: cy}
-	var idle []int
-	for _, mi := range g.members {
-		e := w.entities[mi]
-		if arrived(e) && !e.HasAttackTarget && cellOf(&e).chebyshevTo(to) > formationSpread {
-			idle = append(idle, mi)
-		}
-	}
-	if len(idle) > 0 {
-		w.issueGroupDestination(idle, to)
-	}
-}
-
-// armSwarm is order 2's own arm: no clip, the ordinary cost — order passed
-// as the group's own orderSwarm, which candidateCost's single stance test
-// never matches, so every candidate scores the ordinary way — every member
-// scored. A member that scores a candidate engages it.
-//
-// IT IS A SEPARATE TOP-LEVEL FUNCTION, where moveArm is a closure, because it
-// never reaches releaseAttack: TestOrderAttackIsTheOnlySetterAndDecidesOnlyClearerIsTheRelease
-// pins that function to decide alone, and armSwarm simply never calls it.
-func (w *World) armSwarm(g aiGroup, cands []int) {
-	cx, cy, _ := w.groupCommandedCell(g.owner, g.group)
-	for _, mi := range g.members {
-		best, at := scoreSeed, -1
-		for _, ci := range cands {
-			if ci == mi {
-				continue
-			}
-			if cost := w.candidateCost(mi, ci, orderSwarm); cost < best {
-				best, at = cost, ci
-			}
-		}
-		if at >= 0 {
-			w.orderAttack(mi, w.entities[at].ID)
-			continue
-		}
-		e := &w.entities[mi]
-		if arrived(*e) && e.X == cx && e.Y == cy {
-			// Idle on the commanded cell: left in every field.
-			continue
-		}
-		if escortState(e.ActorState) {
-			w.cancelTurnForTargetChange(mi, cx, cy)
-			w.clearOrder(mi)
-			w.clearEscort(mi)
-		}
-		e.TargetX, e.TargetY, e.HasTarget = cx, cy, true
-		e.clearAttackBetweenCycles()
-		e.clearGroupSpeed()
-	}
-}
-
-// groupState is what a decision for (owner, group) reads off the frozen
-// record: the order it holds and the base its clip uses, and whether a
-// record names the pair at all. order and base are both zero then — not a
-// chosen sentinel, the zeroed span a group object carries before anything
-// installs one, on the law's own zeroed-allocation rule (AI-CMD-033).
-//
-// It is a scan over w.groups and not a map, for groupKeys' own reason: a map
-// would put Go's randomised iteration order on a path a decision touches, and
-// this is a small, fixed slice built once at construction.
+// groupState reads the retained native record used by older input and witnesses.
 func (w *World) groupState(owner, group uint32) (order, base uint8, ok bool) {
 	for i := range w.groups {
 		if w.groups[i].owner == owner && w.groups[i].group == group {
@@ -745,21 +251,6 @@ func (w *World) groupState(owner, group uint32) (order, base uint8, ok bool) {
 // frozen notice base for (owner, group).
 func (w *World) FrozenGroupAI(owner, group uint32) (order, base uint8, ok bool) {
 	return w.groupState(owner, group)
-}
-
-// groupCommandedCell is the cell a group command last named for (owner,
-// group) — read beside groupState rather than folded into it, so the
-// three-value lookup engage_test.go already pins keeps its shape across this
-// story. ok follows groupState's own rule — false for a pair no record
-// names — though armSwarm's caller has already established one exists by
-// the time it asks.
-func (w *World) groupCommandedCell(owner, group uint32) (x, y int32, ok bool) {
-	for i := range w.groups {
-		if w.groups[i].owner == owner && w.groups[i].group == group {
-			return w.groups[i].commandedX, w.groups[i].commandedY, true
-		}
-	}
-	return 0, 0, false
 }
 
 // scriptGroupOwner is the owner a script's Target_Group id resolves to
@@ -779,29 +270,6 @@ func (w *World) scriptGroupOwner(group uint32) (owner uint32, ok bool) {
 		}
 	}
 	return owner, ok
-}
-
-// groupsNamed is the indices into w.groups of the one record a script group
-// parameter names: the raw group id resolved to the greatest owner among the
-// records carrying it, which is scriptGroupOwner's rule over the group list. A
-// group id no record carries answers an empty slice, which is what a node naming
-// no group and one naming a group no entity carries both get - there is no
-// record to change.
-func (w *World) groupsNamed(group uint32) []int {
-	var out []int
-	for i := range w.groups {
-		if w.groups[i].group != group {
-			continue
-		}
-		if len(out) > 0 && w.groups[i].owner != w.groups[out[0]].owner {
-			if w.groups[i].owner < w.groups[out[0]].owner {
-				continue
-			}
-			out = out[:0]
-		}
-		out = append(out, i)
-	}
-	return out
 }
 
 // groupLivingMembers is groupKeys' and freezeGroups' own membership scan

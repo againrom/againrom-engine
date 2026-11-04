@@ -38,7 +38,7 @@ func (w *World) actorPass() {
 		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
-		if !w.groupDialectNative() && !w.nativePatrol(i) {
+		if !w.nativePatrol(i) {
 			continue
 		}
 		if _, using := w.structureUseIndex(w.entities[i].ID); using {
@@ -47,23 +47,11 @@ func (w *World) actorPass() {
 		if !w.entities[i].Alive() {
 			continue
 		}
-		// Command17 retains the old actor state, but its Group now owns
-		// evaluation. A retained patrol/escort must not decide a second time.
-		if order, _, ok := w.groupState(w.entities[i].Owner, effectiveGroup(&w.entities[i])); ok && order == orderRoam {
-			continue
-		}
-		// A World holding a Group registry enters every arm under Group
-		// order 0 alone (actorLayerDecides, AI-ORDER-010). A World without
-		// one keeps the native dispatch, which gates only the guard arm.
-		if !w.groupDialectNative() && !w.actorLayerDecides(i) {
+		// Every actor arm requires Group order 0 (AI-ORDER-010).
+		if !w.actorLayerDecides(i) {
 			continue
 		}
 		state := w.entities[i].ActorState
-		// Guard is the constructor's default for every entity, not a state a
-		// command writes, so the second game gates this arm on Group order 0.
-		if state == actorStateGuard && !w.actorLayerDecides(i) {
-			continue
-		}
 		noteActorState(w.entities[i].ID, state)
 		switch state {
 		case actorStateGuard:

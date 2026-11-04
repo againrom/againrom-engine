@@ -20,7 +20,7 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 	w.clearOrder(i)
 	e := &w.entities[i]
 	admitted := e.PendingOrder.RowAdmitted
-	if e.SourceBinding.GroupIndex != 0 && e.SourceBinding.GroupSelector != 0 && !w.groupDialectNative() {
+	if e.SourceBinding.GroupIndex != 0 && e.SourceBinding.GroupSelector != 0 {
 		if g := w.savedGroupFor(id); g != nil && g.Authored {
 			e.SourceBinding.GroupSelector = g.Selector
 		}
@@ -67,27 +67,11 @@ func (w *World) stepPickupCompletions() {
 		}
 		// Script orders can change an existing command group without going
 		// through commandGroup. That replacement wins as player orders do.
-		//
-		// A SAVED-GROUP WORLD HOLDS THE SAME FACT ON A DIFFERENT RECORD
-		// (1113): CompleteSackPickup's own commandGroup call reroutes to
-		// commandSavedGroup the instant w.savedGroups is non-nil, and that
-		// write lands on a SavedGroup, never on w.groups. groupState scans
-		// only w.groups, so it answered "no record names this pair" for
-		// every saved-Group world and this arm forced every completion to
-		// Guard, never to Acquire. This reads the record commandSavedGroup
-		// actually wrote: whichever SavedGroup presently binds the actor as
-		// a member, by its own AI[0x20] order byte — the saved form's
-		// groupAI.order (newSavedCommandGroup, cmdSavedGroupOrder).
 		if e.Owner != 0 {
-			if !w.groupDialectNative() {
-				g := w.savedGroupFor(e.ID)
-				if g == nil || g.AI[0x20] != orderNone {
-					e.ActorState = actorStateGuard
-					w.syncSavedOrderState(i)
-					continue
-				}
-			} else if order, _, ok := w.groupState(e.Owner, effectiveGroup(e)); !ok || order != orderNone {
+			g := w.savedGroupFor(e.ID)
+			if g == nil || g.AI[0x20] != orderNone {
 				e.ActorState = actorStateGuard
+				w.syncSavedOrderState(i)
 				continue
 			}
 		}

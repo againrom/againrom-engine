@@ -41,6 +41,8 @@ func TestACommandedGuardIsNotWalkedHomeButAnUncommandedOneIs(t *testing.T) {
 	ci, fi := indexOfEntity(w.entities, 1), indexOfEntity(w.entities, 2)
 	w.entities[ci].PostX, w.entities[ci].PostY = 5, 5
 	w.entities[fi].PostX, w.entities[fi].PostY = 15, 20
+	w.syncSavedPost(ci)
+	w.syncSavedPost(fi)
 
 	// Entity 1 is commanded a few cells off its placement — far enough (10
 	// cells) that the single Step below cannot walk the whole distance in
@@ -58,9 +60,7 @@ func TestACommandedGuardIsNotWalkedHomeButAnUncommandedOneIs(t *testing.T) {
 	w.entities[ci].X, w.entities[ci].Y = 8, 15
 	w.entities[ci].TargetX, w.entities[ci].TargetY, w.entities[ci].HasTarget = 0, 0, false
 
-	for _, g := range w.aiGroups() {
-		w.decide(g)
-	}
+	w.engagementPass()
 
 	after1 := cmdEntity(t, w, 1)
 	if after1.HasTarget {

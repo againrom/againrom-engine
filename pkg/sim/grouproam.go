@@ -8,51 +8,35 @@ const orderRoam uint8 = 17
 // then writes the Group order and first member's cell. It neither builds
 // Patrol's ring nor copies the new Group cell to a member destination.
 func (w *World) cmdGroupRoam(group uint32) {
-	if !w.groupDialectNative() {
-		groups, err := w.resolveSavedGroups(group)
-		if err != nil {
-			return
-		}
-		for _, g := range groups {
-			if len(g.Members) == 0 {
-				continue
-			}
-			first := indexOfEntity(w.entities, g.Members[0].Entity)
-			members, complete := w.savedLiving(g)
-			if first < 0 || !complete {
-				continue
-			}
-			g.AI[0x20] = 0
-			for _, i := range members {
-				w.stopRoamMember(i)
-				o := w.ensureSavedOrder(i)
-				o.Raw[0x14] = uint8(w.entities[i].Reach)
-				for _, at := range []int{0x38, 0x50, 0x60} {
-					clear(o.Raw[at : at+4])
-				}
-				if m := w.motionFor(w.entities[i].ID); m != nil {
-					clearPursuitVictim(&m.Mover)
-					m.ActorAction = 0
-				}
-			}
-			g.AI[0x20] = orderRoam
-			e := w.entities[first]
-			binary.LittleEndian.PutUint16(g.AI[10:], uint16(e.X)|uint16(e.Y)<<8)
-		}
+	groups, err := w.resolveSavedGroups(group)
+	if err != nil {
 		return
 	}
-	for _, gi := range w.groupsNamed(group) {
-		g := &w.groups[gi]
-		members := w.groupLivingMembers(g.owner, g.group)
-		if len(members) == 0 {
+	for _, g := range groups {
+		if len(g.Members) == 0 {
 			continue
 		}
-		g.order = orderNone
+		first := indexOfEntity(w.entities, g.Members[0].Entity)
+		members, complete := w.savedLiving(g)
+		if first < 0 || !complete {
+			continue
+		}
+		g.AI[0x20] = 0
 		for _, i := range members {
 			w.stopRoamMember(i)
+			o := w.ensureSavedOrder(i)
+			o.Raw[0x14] = uint8(w.entities[i].Reach)
+			for _, at := range []int{0x38, 0x50, 0x60} {
+				clear(o.Raw[at : at+4])
+			}
+			if m := w.motionFor(w.entities[i].ID); m != nil {
+				clearPursuitVictim(&m.Mover)
+				m.ActorAction = 0
+			}
 		}
-		g.order = orderRoam
-		g.commandedX, g.commandedY = w.entities[members[0]].X, w.entities[members[0]].Y
+		g.AI[0x20] = orderRoam
+		e := w.entities[first]
+		binary.LittleEndian.PutUint16(g.AI[10:], uint16(e.X)|uint16(e.Y)<<8)
 	}
 }
 
@@ -97,19 +81,4 @@ func (w *World) rollRoamCell(dst cell, members []int, counter uint8) (cell, uint
 		}
 	}
 	return fallback, 0, true
-}
-
-func (w *World) nativeRoam(g aiGroup) (int, bool) {
-	for i := range w.groups {
-		stored := &w.groups[i]
-		if stored.owner != g.owner || stored.group != g.group {
-			continue
-		}
-		cell, counter, ok := w.rollRoamCell(cell{stored.commandedX, stored.commandedY}, g.members, stored.roamCounter)
-		if ok {
-			stored.commandedX, stored.commandedY, stored.roamCounter = cell.x, cell.y, counter
-		}
-		return i, ok
-	}
-	return 0, false
 }

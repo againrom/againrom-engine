@@ -80,10 +80,6 @@ func (w *World) appendActorTraversal(id EntityID) {
 
 // AI-363. Actors absent from the retained group graph follow in identity order.
 func (w *World) RebuildLoadedActorTraversal() {
-	if w.groupDialectNative() {
-		w.actorTraversal = nil
-		return
-	}
 	ids := []EntityID{}
 	appendGroup := func(g SavedGroup) {
 		for _, m := range g.Members {

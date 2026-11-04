@@ -348,10 +348,10 @@ func TestTheGroupOrderHasNoMemberCountBranch(t *testing.T) {
 		t.Fatalf("reading the group order's own source: %v", err)
 	}
 	const needle = "len(members)"
-	if got := strings.Count(string(src), needle); got != 3 {
-		t.Errorf("group.go mentions %s %d time(s), and exactly 3 are accounted for: "+
-			"issueGroupDestination's and commandGroup's own empty-order guards, and the "+
-			"centroid's divisor. A fourth is a member-count arm, which FR-8 says may not exist",
+	if got := strings.Count(string(src), needle); got != 2 {
+		t.Errorf("group.go mentions %s %d time(s), and exactly 2 are accounted for: "+
+			"issueSavedGroupDestination's empty-order guard and the centroid's divisor. "+
+			"Empty command allocation belongs to newSavedCommandGroup; a third use here is a member-count arm",
 			needle, got)
 	}
 }

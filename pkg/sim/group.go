@@ -203,26 +203,8 @@ func (w *World) commandStance(members []int, order int32) {
 }
 
 func (w *World) commandPatrol(members []int, ordered cell) {
-	if !w.groupDialectNative() {
-		w.commandSavedGroup(members, 0, ordered)
-		w.setSavedPatrol(members, ordered)
-		return
-	}
-	w.commandGroup(members, orderNone, ordered)
-	for _, mi := range members {
-		e := &w.entities[mi]
-		w.clearOrder(mi)          // destination, stall count and stored route
-		w.retainCycleForState(mi) // victim, and the attack cycle unless one is loaded
-		e.clearGroupSpeed()       // the group rate term
-		e.ActorState = actorStatePatrol
-		e.PatrolHeadX, e.PatrolHeadY = e.X, e.Y
-		e.PatrolTailX, e.PatrolTailY = w.bounds.clamp(ordered.x, ordered.y)
-		e.PatrolLeg = patrolLegTail
-		// The post, on the script sibling's own ground (script.go,
-		// `AI-PATROL-018` `L00415`): the ring and the post are one write
-		// in the law's setter and are one write in both of ours.
-		e.PostX, e.PostY = e.X, e.Y
-	}
+	w.commandSavedGroup(members, 0, ordered)
+	w.setSavedPatrol(members, ordered)
 }
 
 // issueGroupDestination is the distribution itself, lifted out of groupOrder
@@ -367,133 +349,12 @@ func commandFloorAbove(group uint32) uint32 {
 	return group + 1
 }
 
-func (w *World) freeCommandGroup() uint32 {
-	id := w.commandFloor()
-	for {
-		taken := false
-		for i := range w.entities {
-			if effectiveGroup(&w.entities[i]) == id {
-				taken = true
-				break
-			}
-		}
-		if !taken {
-			return id
-		}
-		if id == ^uint32(0) {
-			return 0
-		}
-		id++
-	}
-}
-
 func (w *World) commandGroup(members []int, order uint8, ordered cell) {
 	for _, i := range members {
 		w.cancelStructureUse(w.entities[i].ID)
 		w.noteActorMotionOrder(w.entities[i].ID)
 	}
-	if !w.groupDialectNative() {
-		w.commandSavedGroup(members, order, ordered)
-		return
-	}
-	if len(members) == 0 {
-		return
-	}
-	for _, mi := range members {
-		w.entities[mi].CommandGroup = 0
-		// AND THE RING GOES OUT WITH THE MEMBERSHIP. A patrol is a standing
-		// arrangement exactly as a group is, and this is the one statement that
-		// takes a member out of whatever it stood in — so every player order
-		// there is, and every one there will be, ends a patrol without a rule
-		// anyone has to keep.
-		//
-		// IT IS NOT DEFENSIVE. Without it the actor pass re-issues the
-		// patroller's ring on the very tick the order arrives, one phase after
-		// the command was applied: the order is written, then overwritten,
-		// inside one advance. The player's own Patrol arm calls this function
-		// FIRST and installs its ring after, so it is not undone by its own
-		// release.
-		w.entities[mi].clearPatrol()
-		w.clearEscort(mi)
-	}
-	id := w.freeCommandGroup()
-	if id == 0 {
-		// freeCommandGroup's own unreachable edge (see its doc): nothing is
-		// left to allocate. Rather than write a command group under the
-		// sentinel that means "none", this command builds no group at all —
-		// every named member stays released to its placed group, which the
-		// drop above already left it in, and is the closest this state has
-		// to "unchanged".
-		return
-	}
-
-	var owners []uint32
-	for _, mi := range members {
-		e := &w.entities[mi]
-		if e.Owner == 0 {
-			continue //
-		}
-		e.CommandGroup = id
-		if !containsOwner(owners, e.Owner) {
-			owners = append(owners, e.Owner)
-		}
-	}
-
-	for _, owner := range owners {
-		var share []int
-		for _, mi := range members {
-			if w.entities[mi].Owner == owner {
-				share = append(share, mi)
-			}
-		}
-		cx, cy := groupCentroid(w.entities, share, subCellMean)
-		w.upsertGroup(groupAI{
-			owner:      owner,
-			group:      id,
-			base:       noticeBase(w.entities, share, cx, cy),
-			order:      order,
-			commandedX: ordered.x,
-			commandedY: ordered.y,
-		})
-	}
-}
-
-// upsertGroup writes rec into w.groups at (rec.owner, rec.group):
-// overwritten in place if a record already stands there, otherwise inserted
-// at the position that keeps the slice ascending by (owner, group) —
-// decodeGroups' own requirement of it — rather than appended and sorted
-// afterward, so the slice is never observed out of order even transiently.
-func (w *World) upsertGroup(rec groupAI) {
-	for i := range w.groups {
-		if w.groups[i].owner == rec.owner && w.groups[i].group == rec.group {
-			w.groups[i] = rec
-			return
-		}
-	}
-	at := len(w.groups)
-	for i := range w.groups {
-		if w.groups[i].owner > rec.owner ||
-			(w.groups[i].owner == rec.owner && w.groups[i].group > rec.group) {
-			at = i
-			break
-		}
-	}
-	w.groups = append(w.groups, groupAI{})
-	copy(w.groups[at+1:], w.groups[at:])
-	w.groups[at] = rec
-}
-
-// containsOwner is containsIndex's own twin over owner ids, for the same
-// reason: a group is what a player's click named, small enough that a scan
-// costs nothing, and a map here would put Go's randomised iteration order on
-// a path that touches a world.
-func containsOwner(owners []uint32, owner uint32) bool {
-	for _, o := range owners {
-		if o == owner {
-			return true
-		}
-	}
-	return false
+	w.commandSavedGroup(members, order, ordered)
 }
 
 // formationOffset is one axis of a member's displacement from its group's

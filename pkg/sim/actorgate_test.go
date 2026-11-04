@@ -89,7 +89,7 @@ func TestFirstGameArmsRunUnderGroupOrderZeroAlone(t *testing.T) {
 	for _, arm := range gateArms {
 		for _, order := range append([]uint8{orderNone}, gateOrders...) {
 			w := gateWorld(t, arm.state)
-			if w.groupDialectNative() {
+			if w.savedGroups == nil {
 				t.Fatal("fixture: a first-game World holds a Group registry")
 			}
 			gateSetOrder(t, w, order)
@@ -148,7 +148,7 @@ func TestSecondGameDispatchTakesTheRegistryGate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !playsSecondGame(w) || w.groupDialectNative() {
+	if !playsSecondGame(w) || (w.savedGroups == nil) {
 		t.Fatal("fixture: not a second-game World holding the registry")
 	}
 	w.tick = scriptPassPhase

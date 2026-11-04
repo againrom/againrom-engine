@@ -145,7 +145,7 @@ func TestAScriptedGroupMarchTakesItsFightingMembers(t *testing.T) {
 		t.Fatalf("the fixture produced no loaded attack cycle on member 2: %+v", e)
 	}
 
-	w.cmdGroupCommandedMove(0, orderMove, 12, 12)
+	w.cmdGroupOrder(ScriptInstant{Group: 0, HasGroup: true, Args: [scriptParams]int32{int32(orderMove), 12, 12}})
 
 	for _, id := range []EntityID{1, 2} {
 		if e := cbAt(t, w, id); !e.HasTarget {

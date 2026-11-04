@@ -504,7 +504,7 @@ const (
 // another pending order keep their own answers.
 func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
-	if w.game.nativeWalkRefusal || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
+	if w.game.nativeWalkRefusal || e.PendingOrder.Kind != PendingNone {
 		return walkArmNone
 	}
 	if e.ActorState == actorStateRetreat {

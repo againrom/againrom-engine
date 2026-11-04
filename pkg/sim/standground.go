@@ -56,12 +56,10 @@ func (w *World) standScriptedMembers(members []int) {
 		e.clearGroupSpeed()
 		e.clearPatrol()
 		w.clearEscort(mi)
-		if !w.groupDialectNative() {
-			// The script's arm stands each member with state 0xc (AI-370).
-			e.ActorState = actorStateAcquire
-			w.syncSavedStandGround(mi)
-			w.ensureSavedOrder(mi).State = uint32(e.ActorState)
-		}
+		// The script's arm stands each member with state 0xc (AI-370).
+		e.ActorState = actorStateAcquire
+		w.syncSavedStandGround(mi)
+		w.ensureSavedOrder(mi).State = uint32(e.ActorState)
 	}
 }
 
@@ -69,9 +67,6 @@ func (w *World) standScriptedMembers(members []int) {
 // 0, stop distance the member's reach, the words at +0x38, +0x50 and +0x60
 // and mover +0x7c zero (AI-351, AI-370).
 func (w *World) syncSavedStandGround(i int) {
-	if w.groupDialectNative() {
-		return
-	}
 	o := w.ensureSavedOrder(i)
 	o.Raw[8], o.Raw[0x14] = 0, uint8(w.entities[i].Reach)
 	for _, at := range []int{0x38, 0x50, 0x60} {

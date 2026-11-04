@@ -88,11 +88,9 @@ func TestAHandOverKeepsTheLoadedStrikeAndTheEvaluationReadsTheNewOwner(t *testin
 	}
 }
 
-// The native dialect's hand-over (a World holding no Group registry)
-// stands the member in a new one-member Stand Ground Group with state 0xc and
-// the post at its own cell, and keeps the loaded strike (AI-643, AI-351). Here
-// standHandedOverMember's two stores are the only writers of state and post.
-func TestANativeHandOverStandsAtTheOwnCellAndKeepsTheLoadedStrike(t *testing.T) {
+// A second-game hand-over builds a singleton Stand Ground registry Group
+// and keeps the loaded strike (AI-643, AI-351).
+func TestASecondGameHandOverStandsAtTheOwnCellAndKeepsTheLoadedStrike(t *testing.T) {
 	const oldOwner, newOwner = 7, 5
 	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, Terrain{},
 		[]Entity{engFighter(1, oldOwner, 5, 10), engFighter(2, 3, 30, 30)}, secondGameScript(t, nil, nil, nil),
@@ -100,8 +98,8 @@ func TestANativeHandOverStandsAtTheOwnCellAndKeepsTheLoadedStrike(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if nativeGroupArm(w); !playsSecondGame(w) || !w.groupDialectNative() {
-		t.Fatal("fixture: not a native-dialect World")
+	if !playsSecondGame(w) || w.savedGroups == nil {
+		t.Fatal("fixture: not a second-game World holding the registry")
 	}
 	e := &w.entities[0]
 	e.ActorState = actorStateGuard
@@ -126,7 +124,7 @@ func TestANativeHandOverStandsAtTheOwnCellAndKeepsTheLoadedStrike(t *testing.T) 
 	if got.ActorState != actorStateAcquire || got.PostX != got.X || got.PostY != got.Y {
 		t.Fatalf("state %#x post (%d,%d), want 0xc at the own cell (%d,%d)", got.ActorState, got.PostX, got.PostY, got.X, got.Y)
 	}
-	if order, _, ok := w.groupState(newOwner, got.Group); !ok || got.Group == 0 || order != orderStandGround {
+	if order, _, ok := regState(w, newOwner, effectiveGroup(&got)); !ok || got.CommandGroup == 0 || order != orderStandGround {
 		t.Fatalf("Group %d of the new owner: order %d, recorded %v; want a Stand Ground Group", got.Group, order, ok)
 	}
 }

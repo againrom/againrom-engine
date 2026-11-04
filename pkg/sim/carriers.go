@@ -33,18 +33,11 @@ func (w *World) constructEffectDriver() {
 	w.savedWorldEffects = &SavedWorldEffects{}
 }
 
-// groupDialectNative reports a World that holds no Group registry: it keeps
-// its native Group records and dispatch. It is state, not the game: every
-// World of either game constructs the registry at mission start and on
-// decode (constructGroups), and an original LOAD imports its Groups into it.
-// The native Group arms run only behind this accessor.
-func (w *World) groupDialectNative() bool { return w.savedGroups == nil }
-
 // constructGroups gives a World the Group registry the original's
 // mission start builds and the original-SAV importer fills (ImportSavedGroups).
 // A World that holds a registry keeps it.
 func (w *World) constructGroups(native bool) {
-	if !w.groupDialectNative() {
+	if w.savedGroups != nil { // Keep a registry already built or imported.
 		return
 	}
 	w.savedGroups = w.constructedGroups(native)
@@ -56,7 +49,7 @@ func (w *World) constructGroups(native bool) {
 // constructs it again.
 func (w *World) groupsAsConstructed() bool {
 	s := w.savedGroups
-	if s == nil || !s.fresh || s.native {
+	if s == nil || !s.fresh || s.native { // Decode can omit the registry until the complete form is read.
 		return false
 	}
 	return reflect.DeepEqual(cloneSavedGroups(s), cloneSavedGroups(w.constructedGroups(false)))
@@ -66,7 +59,7 @@ func (w *World) groupsAsConstructed() bool {
 // constructGroups built, as play has changed it since, and not one an import
 // installed.
 func (w *World) GroupsConstructed() bool {
-	return !w.groupDialectNative() && w.savedGroups.fresh
+	return w.savedGroups.fresh
 }
 
 // GroupsNative reports whether the constructed registry carries an older
@@ -79,9 +72,6 @@ func (w *World) GroupsNative() bool {
 // a World that a LOAD restores from the SAV of a World holding its constructed
 // registry holds it the same way. It reports whether a registry was marked.
 func (w *World) AdoptConstructedGroups(native bool) bool {
-	if w.groupDialectNative() {
-		return false
-	}
 	held := cloneSavedGroups(w.savedGroups)
 	held.fresh, held.native = true, native
 	w.savedGroups = held
@@ -339,7 +329,7 @@ func (w *World) constructGroupPlayers(s *savedGroupState) {
 // the archive index of its actor's restored source binding, the value
 // constructedGroups reads at mission start.
 func (w *World) syncConstructedMemberArchives() {
-	if w.groupDialectNative() || !w.savedGroups.fresh {
+	if !w.savedGroups.fresh {
 		return
 	}
 	w.savedGroups = cloneSavedGroups(w.savedGroups)
@@ -358,7 +348,7 @@ func (w *World) syncConstructedMemberArchives() {
 // spawner builds from that state. The caller keeps a registry that differs
 // from the constructed one.
 func (w *World) reconstructFreshGroups() {
-	if !w.groupDialectNative() && w.savedGroups.fresh {
+	if w.savedGroups.fresh {
 		w.savedGroups = w.constructedGroups(w.savedGroups.native)
 	}
 }

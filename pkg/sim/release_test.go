@@ -29,7 +29,7 @@ func TestAReleasedMemberHoldsNoneOfItsSevenFields(t *testing.T) {
 	}
 	i := indexOfEntity(w.entities, 2)
 	w.entities[i].X, w.entities[i].Y = 44, 44
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	e := w.entities[indexOfEntity(w.entities, 1)]
 	if e.HasAttackTarget || e.AttackTarget != 0 {
@@ -73,7 +73,7 @@ func TestAReleasedMemberWalksHomeThenStandsThereForeverAfter(t *testing.T) {
 	// reason.
 	w.entities[i].PostX, w.entities[i].PostY = 44, 44
 	w.syncSavedPost(i)
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 	if _, held := engVictim(w, 1); held {
 		t.Fatal("the fixture's own release did not fire — this test would pass for the wrong reason")
 	}
@@ -125,7 +125,7 @@ func TestAVictimThatStillScoresSurvivesASecondDecision(t *testing.T) {
 	}
 	beforeCountdown := w.entities[indexOfEntity(w.entities, 1)].AttackCountdown
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	after, held := engVictim(w, 1)
 	if !held || after != before {
@@ -146,7 +146,7 @@ func TestAWalkerWithNoVictimIsUntouchedByADecision(t *testing.T) {
 	w.routes[i] = []cell{{x: 6, y: 5}, {x: 7, y: 5}}
 	route := append([]cell(nil), w.routes[i]...)
 
-	w.decide(aiGroup{owner: 2, group: 0, members: []int{i}})
+	regDecide(t, w, 2, 0, []int{i})
 
 	e := w.entities[indexOfEntity(w.entities, 1)]
 	if !e.HasTarget || e.TargetX != 20 || e.TargetY != 20 {
@@ -175,7 +175,7 @@ func TestAnEmptyCandidateListReleasesOnlyTheVictimHolders(t *testing.T) {
 	w.entities[ib].TargetX, w.entities[ib].TargetY, w.entities[ib].HasTarget = 20, 20, true
 	w.entities[ib].Stall = 2
 
-	w.decide(aiGroup{owner: 2, group: 0, members: []int{ia, ib}})
+	regDecide(t, w, 2, 0, []int{ia, ib})
 
 	a := w.entities[indexOfEntity(w.entities, 1)]
 	if a.HasAttackTarget {
@@ -204,7 +204,7 @@ func TestAStandGroundMemberDropsAVictimThatStepsPastReach(t *testing.T) {
 	i := indexOfEntity(w.entities, 2)
 	w.entities[i].X += groupScorerReach + 1
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	if v, held := engVictim(w, 1); held {
 		t.Errorf("a stand-ground member kept victim %v once it stepped past reach", v)
@@ -231,7 +231,7 @@ func TestAVetoedCandidateReleasesAHeldVictim(t *testing.T) {
 		w := build(DomainGround)
 		i := indexOfEntity(w.entities, 2)
 		w.entities[i].Domain = DomainAir
-		w.decide(w.aiGroups()[0])
+		regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 		if v, held := engVictim(w, 1); held {
 			t.Errorf("a ground member kept victim %v after it turned into a flier", v)
 		}
@@ -239,7 +239,7 @@ func TestAVetoedCandidateReleasesAHeldVictim(t *testing.T) {
 	t.Run("veto absent keeps it", func(t *testing.T) {
 		t.Parallel()
 		w := build(DomainGround)
-		w.decide(w.aiGroups()[0])
+		regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 		if v, held := engVictim(w, 1); !held || v != 2 {
 			t.Errorf("without the veto a second decision moved the victim to %v/%v, want entity 2 kept", v, held)
 		}
@@ -302,7 +302,7 @@ func TestAReleasedMemberRoundTripsThroughTheByteForm(t *testing.T) {
 	}
 	i := indexOfEntity(w.entities, 2)
 	w.entities[i].X, w.entities[i].Y = 44, 44
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 	if _, held := engVictim(w, 1); held {
 		t.Fatal("the fixture's own release did not fire — this test would pass for the wrong reason")
 	}
@@ -414,24 +414,7 @@ func TestACommandedAttackIsNotPrivilegedUnderGuard(t *testing.T) {
 // what its owner would normally be given.
 func setGroupOrder(t *testing.T, w *World, owner, group uint32, order uint8) {
 	t.Helper()
-	// Both records: the registry a first-game World decides from, and the
-	// native record the native group arm reads.
-	found := false
-	if w.savedGroups != nil {
-		if g := regFind(w, owner, group); g != nil {
-			g.AI[0x20] = order
-			found = true
-		}
-	}
-	for i := range w.groups {
-		if w.groups[i].owner == owner && w.groups[i].group == group {
-			w.groups[i].order = order
-			return
-		}
-	}
-	if !found {
-		t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
-	}
+	regGroup(t, w, owner, group).AI[0x20] = order
 }
 
 func TestAReleaseKeysOnTheOwnerNotTheOrder(t *testing.T) {
@@ -447,7 +430,7 @@ func TestAReleaseKeysOnTheOwnerNotTheOrder(t *testing.T) {
 		w.entities[ia].AttackPhase, w.entities[ia].AttackCountdown = AttackReady, 5
 		setGroupOrder(t, w, 2, 0, orderStandGround)
 
-		w.decide(aiGroup{owner: 2, group: 0, members: []int{ia}})
+		regDecide(t, w, 2, 0, []int{ia})
 
 		if a := w.entities[indexOfEntity(w.entities, 1)]; a.HasAttackTarget {
 			t.Errorf("owner 2 (not SelfSlot) kept a stale victim under Stand Ground — "+
@@ -472,7 +455,7 @@ func TestAReleaseKeysOnTheOwnerNotTheOrder(t *testing.T) {
 		w.entities[ia].AttackPhase, w.entities[ia].AttackCountdown = AttackReady, 5
 		setGroupOrder(t, w, SelfSlot, 0, orderGuard)
 
-		w.decide(aiGroup{owner: SelfSlot, group: 0, members: []int{ia}})
+		regDecide(t, w, SelfSlot, 0, []int{ia})
 
 		a := w.entities[indexOfEntity(w.entities, 1)]
 		if !a.HasAttackTarget || a.AttackTarget != 999 {
@@ -632,10 +615,10 @@ func TestOrderAttackIsTheOnlySetterAndDecidesOnlyClearerIsTheRelease(t *testing.
 	if callers := funcsCalling(t, "attachAttack"); len(callers) != 4 || callers[0] != "armCastApproach" || callers[1] != "cmdGroupAttack" || callers[2] != "orderAttack" || callers[3] != "stepWorld" {
 		t.Errorf("attachAttack is called by %v, want exactly [armCastApproach cmdGroupAttack orderAttack stepWorld]", callers)
 	}
-	if callers := funcsCalling(t, "releaseAttack"); len(callers) != 2 || callers[0] != "decide" || callers[1] != "savedDecision" {
-		t.Errorf("releaseAttack is called by %v, want exactly [decide savedDecision]", callers)
+	if callers := funcsCalling(t, "releaseAttack"); len(callers) != 1 || callers[0] != "savedDecision" {
+		t.Errorf("releaseAttack is called by %v, want exactly [savedDecision]", callers)
 	}
-	if bodyCalls(t, "decide", "clearAttack") {
-		t.Error("decide's own body reaches clearAttack directly, not only through releaseAttack")
+	if bodyCalls(t, "savedDecision", "clearAttack") {
+		t.Error("savedDecision's own body reaches clearAttack directly, not only through releaseAttack")
 	}
 }

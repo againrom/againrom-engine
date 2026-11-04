@@ -1023,65 +1023,24 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		return
 
 	case ScriptCheckGroupCount:
-		// Group count reads the current SAV Group member list when present.
-		// Map-only worlds use the placed Group word on each entity.
-		//
-		// A check naming NO group measures nothing and writes no register, which
-		// is the treatment an unresolved unit reference gets and for the same
-		// reason: there is nothing to count. It is NOT the same as a count of
-		// zero, which is an answer — group zero is a real group, and a group id
-		// no entity carries answers zero rather than failing.
-		//
-		// A fallen actor remains a member until teardown, even when its dwell
-		// counter is zero. Saved Groups count their current member list. The
-		// map-only path has no mutable member list, so it retains Stage 1
-		// and excludes torn-down bodies (TRIG-REAP-017).
-		//
-		// The scan reads Group — the PLACED group the map gave each entity —
-		// and not effectiveGroup. That choice did not exist before 0117: until
-		// then nothing in this package moved an actor between groups at all, Group
-		// was the only group word an entity carried, and this note said so. 0117
-		// gives an actor a SECOND group word, a player's own — CommandGroup,
-		// written by a move order — and Group is the one of the two "never
-		// moves" is still true of. Reading Group here rather than effectiveGroup
-		// is what keeps a player's click out of this count: a trigger comparing it
-		// against zero is how a campaign says a place is cleared, and a commanded
-		// actor is still a living member of the group the map placed it in for
-		// exactly that purpose — whichever group it is being DECIDED under this
-		// tick (engage.go's own effectiveGroup, which the engagement layer alone
-		// reads).
-		//
-		// The scan is linear over the world's own ordered entities, and it
-		// stays one: there is no membership index and none is wanted, because
-		// Group itself never moves — an index over it would be a second
-		// representation of a fact that never changes, and it would be an
-		// iteration order reaching a value that enters the digest.
+		// Count the resolved registry's current members, excluding downed actors.
 		if !c.HasGroup {
 			silence = ScriptSilenceNoGroup
 			tr.silence(i, c, ScriptSilenceNoGroup)
 			return
 		}
 		n := int32(0)
-		owner, _ := w.scriptGroupOwner(c.Group)
-		for i := range w.entities {
-			if e := w.entities[i]; e.Group == c.Group && e.Owner == owner && (!scriptDead(e) || e.Decay == DecayFallen) {
-				n++
-			}
+		groups, err := w.resolveSavedGroups(c.Group)
+		if err != nil {
+			silence = ScriptSilenceUnsupported
+			tr.silence(i, c, silence)
+			return
 		}
-		if !w.groupDialectNative() {
-			groups, err := w.resolveSavedGroups(c.Group)
-			if err != nil {
-				silence = ScriptSilenceUnsupported
-				tr.silence(i, c, silence)
-				return
-			}
-			n = 0
-			for _, g := range groups {
-				for _, m := range g.Members {
-					// A downed member is out of the count, as above.
-					if k := indexOfEntity(w.entities, m.Entity); !m.Bound || k < 0 || !w.entities[k].Downed() {
-						n++
-					}
+		for _, g := range groups {
+			for _, m := range g.Members {
+				// A downed member is out of the count, as above.
+				if k := indexOfEntity(w.entities, m.Entity); !m.Bound || k < 0 || !w.entities[k].Downed() {
+					n++
 				}
 			}
 		}
@@ -1422,29 +1381,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 // Stand Ground, including the current post and pending-order reset (AI-351).
 func (w *World) handOver(i int, player uint32) {
 	w.handOverReference(i, player)
-	if !w.groupDialectNative() {
-		w.handOverSaved(i, player)
-		return
-	}
-	w.entities[i].CommandGroup = 0
-	w.entities[i].Owner = player
-	w.inheritAutoHealing(i)
-	id := w.freeCommandGroup()
-	w.entities[i].Group = id
-	if id == 0 {
-		return
-	}
-	// The ownership-change route applies Stand Ground to the new Group.
-	// AI-351, AI-STANCE-098.
-	members := []int{i}
-	cx, cy := groupCentroid(w.entities, members, subCellMean)
-	w.upsertGroup(groupAI{
-		owner: player,
-		group: id,
-		base:  noticeBase(w.entities, members, cx, cy),
-		order: orderStandGround,
-	})
-	w.standHandedOverMember(i)
+	w.handOverSaved(i, player)
 }
 
 func (w *World) standHandedOverMember(i int) {
@@ -1481,12 +1418,10 @@ func (w *World) handOverReference(i int, player uint32) {
 // a saved Group's reference to that Player, else the Reference most of the
 // slot's other actors carry, the lower key on a tie. Zero when none does.
 func (w *World) playerReferenceKey(slot uint32, except EntityID) uint32 {
-	if !w.groupDialectNative() {
-		for _, g := range w.savedGroups.Groups {
-			for _, ref := range []SavedGroupReference{g.Owner, g.Reference} {
-				if ref.Class == 1 && ref.Owner == slot && ref.Key != 0 {
-					return ref.Key
-				}
+	for _, g := range w.savedGroups.Groups {
+		for _, ref := range []SavedGroupReference{g.Owner, g.Reference} {
+			if ref.Class == 1 && ref.Owner == slot && ref.Key != 0 {
+				return ref.Key
 			}
 		}
 	}
@@ -1992,80 +1927,18 @@ func (w *World) scriptItemHolder(in ScriptInstant) (int, bool) {
 	return i, i >= 0
 }
 
-// cmdGroupOrder is opcode 6's own dispatch: which sub-command, over which
-// group, at which cell.
-//
-// A node naming no Group changes nothing. Command17 shares one setter for
-// native and imported Groups. Catalogue18 and unknown values reach no arm;
-// the support table above reports the same boundary.
+// cmdGroupOrder dispatches opcode 6 against the Group registry.
 func (w *World) cmdGroupOrder(in ScriptInstant) {
 	if in.HasGroup && in.Args[0] == int32(orderRoam) {
 		w.cmdGroupRoam(in.Group)
 		return
 	}
-	if !w.groupDialectNative() {
-		w.cmdSavedGroupOrder(in)
-		return
-	}
-	if !in.HasGroup {
-		return
-	}
-	switch in.Args[0] {
-	case int32(orderGuard):
-		w.cmdGroupGuard(in.Group)
-	case int32(orderStandGround):
-		w.cmdGroupStandGround(in.Group)
-	case int32(orderSwarm):
-		w.cmdGroupSwarm(in.Group, in.Args[1], in.Args[2])
-	case int32(orderMove):
-		w.cmdGroupCommandedMove(in.Group, orderMove, in.Args[1], in.Args[2])
-	case int32(orderSwarm2):
-		w.cmdGroupCommandedMove(in.Group, orderSwarm2, in.Args[1], in.Args[2])
-	case subCommandPatrol:
-		w.cmdGroupPatrol(in)
-	case subCommandAttack:
-		w.cmdGroupAttack(in)
-	case subCommandDefend:
-		w.cmdGroupEscort(in, actorStateDefend)
-	case subCommandFollow:
-		w.cmdGroupEscort(in, actorStateFollow)
-	}
+	w.cmdSavedGroupOrder(in)
 }
 
-// stopGroupMembers is the STOP all three of the last sub-commands begin
-// with: every living member's destination, stored route, stall count, victim
-// and attack cycle cleared, and the group's own stored order set to none.
-//
-// It is ONE function with three callers because all three arms perform the same
-// stop — the decoded dispatcher calls one helper per member and then writes 0
-// over the group order — and three copies is what would drift.
-//
-// THE ORDER GOES TO NONE AND NOT TO THE SUB-COMMAND'S OWN NUMBER, which is the
-// same thing subCommandPatrol already does and for the same reason: what these
-// three write is PER MEMBER, and a group order beside it would be a second
-// authority over members the arm has just given individual orders to.
-//
-// The group parameter names a raw id, which groupsNamed resolves to the one
-// record of its single owner.
+// stopGroupMembers clears the resolved registry Group's orders before a setter.
 func (w *World) stopGroupMembers(group uint32) []int {
-	if !w.groupDialectNative() {
-		return w.stopSavedGroupMembers(group)
-	}
-	var stopped []int
-	for _, gi := range w.groupsNamed(group) {
-		g := &w.groups[gi]
-		g.order = orderNone
-		for _, mi := range w.groupLivingMembers(g.owner, g.group) {
-			w.clearOrder(mi)
-			w.retainCycleForState(mi)
-			w.entities[mi].clearGroupSpeed()
-			if escortState(w.entities[mi].ActorState) {
-				w.clearEscort(mi)
-			}
-			stopped = append(stopped, mi)
-		}
-	}
-	return stopped
+	return w.stopSavedGroupMembers(group)
 }
 
 // acquireInPlace is `AI-STATE-011`'s acquire-with-no-leash, which the NAMED
@@ -2200,112 +2073,6 @@ func (w *World) cmdGroupEscort(in ScriptInstant, state uint8) {
 // unreachable from shipped data — every shipped range is 1 to 6 on both roots —
 // and it is reachable from an authored 256, which the byte path folds to 0.
 const escortRangeDefault uint8 = 3
-
-// cmdGroupGuard is sub-command 1: the order becomes Guard and the notice
-// base is RE-FROZEN from the group's LIVING members' present geometry —
-// noticeBase and freezeGroups' own construction rule, run again rather than
-// a second one; there is no override parameter because the law's own is 0 on
-// every path this build has. It is the only writer of a group's base after
-// construction.
-//
-// A group id naming more than one owned record takes the write on the one
-// record groupsNamed resolves it to.
-//
-// THE SAME WALK ALSO ANCHORS THE POST: every living member's post becomes
-// the cell it presently occupies, unconditionally — no test on whether it
-// is moving, engaged or idle — over the same members slice the notice base
-// above is frozen from, rather than a second call to groupLivingMembers.
-func (w *World) cmdGroupGuard(group uint32) {
-	for _, gi := range w.groupsNamed(group) {
-		g := &w.groups[gi]
-		g.order = orderGuard
-		members := w.groupLivingMembers(g.owner, g.group)
-		var cx, cy int32
-		if len(members) > 0 {
-			cx, cy = groupCentroid(w.entities, members, subCellMean)
-		}
-		g.base = noticeBase(w.entities, members, cx, cy)
-		for _, mi := range members {
-			w.entities[mi].PostX, w.entities[mi].PostY = w.entities[mi].X, w.entities[mi].Y
-		}
-	}
-}
-
-// cmdGroupStandGround is sub-command 3: the order becomes Stand Ground,
-// every living member's post is anchored at the cell it presently occupies,
-// and each member is stood where it is (standScriptedMembers).
-func (w *World) cmdGroupStandGround(group uint32) {
-	for _, gi := range w.groupsNamed(group) {
-		g := &w.groups[gi]
-		g.order = orderStandGround
-		members := w.groupLivingMembers(g.owner, g.group)
-		for _, mi := range members {
-			w.entities[mi].PostX, w.entities[mi].PostY = w.entities[mi].X, w.entities[mi].Y
-		}
-		w.standScriptedMembers(members)
-	}
-}
-
-// cmdGroupSwarm is sub-command 2: the order becomes Swarm and the commanded
-// cell becomes (x, y) — the node's second and third plain parameters. It
-// gives no member a destination; armSwarm is the only reader of what this
-// writes.
-func (w *World) cmdGroupSwarm(group uint32, x, y int32) {
-	for _, gi := range w.groupsNamed(group) {
-		w.groups[gi].order = orderSwarm
-		w.groups[gi].commandedX, w.groups[gi].commandedY = x, y
-	}
-}
-
-// cmdGroupCommandedMove is sub-commands 4 and 5: the order and the commanded
-// cell are written, and the group's LIVING members are handed
-// issueGroupDestination — the same distribution the player's own group
-// move performs, over the node's (x, y).
-func (w *World) cmdGroupCommandedMove(group uint32, order uint8, x, y int32) {
-	for _, gi := range w.groupsNamed(group) {
-		g := &w.groups[gi]
-		g.order = order
-		g.commandedX, g.commandedY = x, y
-		w.issueGroupDestination(w.groupLivingMembers(g.owner, g.group), cell{x: x, y: y})
-	}
-}
-
-// cmdGroupPatrol is sub-command 14, Patrol: the named group's order becomes
-// orderNone and nothing else on the group record moves — in particular not
-// the commanded cell, which this sub-command does not read and an earlier
-// command may have left behind. Every LIVING member is stopped, handed to
-// the actor layer at patrol, and given a ring built from where it stands now
-// to the node's own cell.
-//
-// IT DOES NOT REUSE issueGroupDestination, on purpose. That function is the
-// distribution the player's own group move shares with the script's Move and
-// Swarm 2 setters: it spreads a formation about a centroid, sets the group's
-// rate term on the formation arm, and clamps — three behaviours this
-// command does not have. The law's own Patrol command gives each member NO
-// destination at all here; it is the actor pass, at most one tick later,
-// that gives it one (actor.go). Sharing the body would have meant passing
-// flags in to turn its own content off, for a function whose whole point is
-// that content.
-//
-// The group parameter resolves through groupsNamed, as the siblings' does.
-func (w *World) cmdGroupPatrol(in ScriptInstant) {
-	for _, gi := range w.groupsNamed(in.Group) {
-		g := &w.groups[gi]
-		g.order = orderNone //
-		for _, mi := range w.groupLivingMembers(g.owner, g.group) {
-			e := &w.entities[mi]
-			w.clearOrder(mi)          //
-			w.retainCycleForState(mi) //
-			e.clearGroupSpeed()       //
-			w.clearEscort(mi)
-			e.ActorState = actorStatePatrol
-			e.PatrolHeadX, e.PatrolHeadY = e.X, e.Y
-			e.PatrolTailX, e.PatrolTailY = w.bounds.clamp(in.Args[1], in.Args[2])
-			e.PatrolLeg = patrolLegTail
-			e.PostX, e.PostY = e.X, e.Y
-		}
-	}
-}
 
 // scriptReport applies the campaign reporter's exact-one counter tests.
 //

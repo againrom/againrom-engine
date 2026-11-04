@@ -25,25 +25,8 @@ import (
 // order alone; this is its two-field twin.
 func setGroupCommand(t *testing.T, w *World, owner, group uint32, order uint8, cx, cy int32) {
 	t.Helper()
-	// Both records: the registry a first-game World decides from, and the
-	// native record the native group arm reads.
-	found := false
-	if w.savedGroups != nil {
-		if g := regFind(w, owner, group); g != nil {
-			g.AI[0x20], g.AI[10], g.AI[11] = order, uint8(cx), uint8(cy)
-			found = true
-		}
-	}
-	for i := range w.groups {
-		if w.groups[i].owner == owner && w.groups[i].group == group {
-			w.groups[i].order = order
-			w.groups[i].commandedX, w.groups[i].commandedY = cx, cy
-			return
-		}
-	}
-	if !found {
-		t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
-	}
+	g := regGroup(t, w, owner, group)
+	g.AI[0x20], g.AI[10], g.AI[11] = order, uint8(cx), uint8(cy)
 }
 
 // ---------------------------------------------------------------- AC-2, AC-3
@@ -452,10 +435,11 @@ func TestMoveScoresOnlyArrivedMembers(t *testing.T) {
 		setGroupOrder(t, w, 2, 0, orderMove)
 		i := indexOfEntity(w.entities, 1)
 		w.entities[i].TargetX, w.entities[i].TargetY, w.entities[i].HasTarget = 40, 40, true
+		w.syncSavedDestination(i)
 		w.entities[i].Stall = 2
 		before := w.entities[i]
 
-		w.decide(aiGroup{owner: 2, group: 0, members: []int{i}})
+		regDecide(t, w, 2, 0, []int{i})
 
 		after := w.entities[indexOfEntity(w.entities, 1)]
 		if after != before {
@@ -472,7 +456,7 @@ func TestMoveScoresOnlyArrivedMembers(t *testing.T) {
 		setGroupOrder(t, w, 2, 0, orderMove)
 		i := indexOfEntity(w.entities, 1)
 
-		w.decide(aiGroup{owner: 2, group: 0, members: []int{i}})
+		regDecide(t, w, 2, 0, []int{i})
 
 		if v, held := engVictim(w, 1); !held || v != 2 {
 			t.Errorf("an arrived Move member holds victim %v/%v, want entity 2 engaged", v, held)
@@ -489,9 +473,9 @@ func TestMoveScoresOnlyArrivedMembers(t *testing.T) {
 			return w
 		}
 		move := build(orderMove)
-		move.decide(aiGroup{owner: 2, group: 0, members: []int{indexOfEntity(move.entities, 1)}})
+		regDecide(t, move, 2, 0, []int{indexOfEntity(move.entities, 1)})
 		stand := build(orderStandGround)
-		stand.decide(aiGroup{owner: 2, group: 0, members: []int{indexOfEntity(stand.entities, 1)}})
+		regDecide(t, stand, 2, 0, []int{indexOfEntity(stand.entities, 1)})
 
 		mv, mvHeld := engVictim(move, 1)
 		sg, sgHeld := engVictim(stand, 1)
@@ -553,7 +537,7 @@ func TestSwarm2SeesOnlyACorpseAndRunsItsOwnBody(t *testing.T) {
 	setGroupOrder(t, w, 5, 0, orderSwarm2)
 
 	i := indexOfEntity(w.entities, 1)
-	w.decide(aiGroup{owner: 5, group: 0, members: []int{i}})
+	regDecide(t, w, 5, 0, []int{i})
 
 	after := w.entities[indexOfEntity(w.entities, 1)]
 	if after.HasTarget {
@@ -593,7 +577,7 @@ func TestSwarm2LeavesAnAllVetoedGroupUntouchedWhereSwarmWalks(t *testing.T) {
 		t.Parallel()
 		w := build(orderSwarm2)
 		before := w.entities[indexOfEntity(w.entities, 1)]
-		w.decide(aiGroup{owner: 5, group: 0, members: []int{indexOfEntity(w.entities, 1)}})
+		regDecide(t, w, 5, 0, []int{indexOfEntity(w.entities, 1)})
 		after := w.entities[indexOfEntity(w.entities, 1)]
 		if after != before {
 			t.Errorf("a Swarm 2 member with every candidate vetoed moved:\n before %+v\n after  %+v", before, after)
@@ -603,7 +587,7 @@ func TestSwarm2LeavesAnAllVetoedGroupUntouchedWhereSwarmWalks(t *testing.T) {
 	t.Run("swarm: walks to the commanded cell", func(t *testing.T) {
 		t.Parallel()
 		w := build(orderSwarm)
-		w.decide(aiGroup{owner: 5, group: 0, members: []int{indexOfEntity(w.entities, 1)}})
+		regDecide(t, w, 5, 0, []int{indexOfEntity(w.entities, 1)})
 		after := w.entities[indexOfEntity(w.entities, 1)]
 		if !after.HasTarget || after.TargetX != 40 || after.TargetY != 40 {
 			t.Errorf("a Swarm member with every candidate vetoed holds destination=%v (%d,%d), want (40,40)",

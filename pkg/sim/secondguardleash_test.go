@@ -248,7 +248,7 @@ func TestSecondGameMissionStartDoesNotJoinAStrikerOutsideTheCircle(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !playsSecondGame(w) || w.groupDialectNative() {
+	if !playsSecondGame(w) || (w.savedGroups == nil) {
 		t.Fatal("fixture: not a second-game mission start holding the registry")
 	}
 	order, base, ok := w.groupState(leashSlot, 1)

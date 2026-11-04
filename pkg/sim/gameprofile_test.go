@@ -153,7 +153,7 @@ func gameProfileAnswers(w *World) gameProfileRow {
 	if !playsSecondGame(w) && !reflect.DeepEqual(w.game, gameProfile{}) {
 		route, aim = "mixed", "mixed"
 	}
-	return gameProfileRow{second: playsSecondGame(w), native: w.groupDialectNative(), route: route, aim: aim, spell: int(w.SpellGame()), built: w.Hash()}
+	return gameProfileRow{second: playsSecondGame(w), native: (w.savedGroups == nil), route: route, aim: aim, spell: int(w.SpellGame()), built: w.Hash()}
 }
 
 // Every build path of every fixture World answers the game, the Group

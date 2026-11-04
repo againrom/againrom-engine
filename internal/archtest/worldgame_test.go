@@ -38,7 +38,7 @@ func TestTheWorldAsksItsGameOnce(t *testing.T) {
 	if chooser == 0 {
 		t.Fatal("no newGameProfile chooser found; the scan guards nothing")
 	}
-	for _, v := range CheckWorldGame(found, WorldGameAllowed, WorldGameStateCalls) {
+	for _, v := range CheckWorldGame(found, WorldGameAllowed) {
 		t.Error(v)
 	}
 }
@@ -50,7 +50,7 @@ func worldGamePlanted(t *testing.T, file, source string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return CheckWorldGame(found, WorldGameAllowed, nil)
+	return CheckWorldGame(found, WorldGameAllowed)
 }
 
 // Each shape planted outside its named sites is refused once; the same
@@ -64,6 +64,11 @@ func TestTheWorldGameScanRefusesEachPlantedShape(t *testing.T) {
 		{worldGameROM2Nil, "func f(w *World) bool { return w.rom2 != nil }\n"},
 		{worldGameROM2Nil, "func f(w *World) bool { return nil == w.rom2 }\n"},
 		{worldGameSavedGroups, "func f(w *World) bool { return w.savedGroups == nil }\n"},
+		{worldGameSavedGroups, "func f(w *World) bool { return nil != w.savedGroups }\n"},
+		{worldGameNative, "func f(w *World) bool { return w.groupDialectNative() }\n"},
+		{worldGameNative, "func groupDialectNative() bool { return false }\n"},
+		{worldGameNative, "var accessor = (*World).groupDialectNative\n"},
+		{worldGameSavedGroups, "func f(w *World) bool { registry := w.savedGroups; return registry == nil }\n"},
 		{worldGameDialect, "func f(w *World) bool { return w.script.Dialect() == ScriptROM2 }\n"},
 		{worldGameDialect, "func f(w *World) int {\n\tswitch w.script.Dialect() {\n\tcase ScriptROM1:\n\t\treturn 1\n\t}\n\treturn 0\n}\n"},
 		{worldGameChooser, "func f(w *World) { w.game = newGameProfile(ScriptROM2) }\n"},
@@ -75,7 +80,7 @@ func TestTheWorldGameScanRefusesEachPlantedShape(t *testing.T) {
 			t.Errorf("planted %s: violations %v", tc.shape, got)
 		}
 		for _, file := range []string{"pkg/sim/planted_test.go", "pkg/render/planted.go"} {
-			if got := worldGamePlanted(t, file, tc.source); len(got) != 0 {
+			if got := worldGamePlanted(t, file, tc.source); len(got) != 0 && !(file == "pkg/render/planted.go" && tc.shape == worldGameNative) {
 				t.Errorf("%s in %s: violations %v, want none", tc.shape, file, got)
 			}
 		}
@@ -105,7 +110,7 @@ func TestTheWorldGameScanRefusesEachSpellMarkerShape(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return CheckWorldGame(found, WorldGameAllowed, nil)
+		return CheckWorldGame(found, WorldGameAllowed)
 	}
 	for _, tc := range []struct {
 		file, shape, source string
@@ -142,28 +147,14 @@ func TestTheWorldGameScanRefusesEachSpellMarkerShape(t *testing.T) {
 	}
 }
 
-// The groupDialectNative state calls hold their count per file: a new
-// call, a new file and a fallen count each fail.
-func TestTheWorldGameScanRatchetsTheGroupRegistryTest(t *testing.T) {
-	found, err := FindWorldGame(map[string]string{
-		"pkg/sim/a.go": "package sim\nfunc f(w *World) bool { return w.groupDialectNative() && w.groupDialectNative() }\n",
-		"pkg/sim/b.go": "package sim\nfunc g(w *World) bool { return w.groupDialectNative() }\n",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, tc := range []struct {
-		state map[string]int
-		want  string
-	}{
-		{map[string]int{"pkg/sim/a.go": 2, "pkg/sim/b.go": 1}, ""},
-		{map[string]int{"pkg/sim/a.go": 1, "pkg/sim/b.go": 1}, "above its count"},
-		{map[string]int{"pkg/sim/a.go": 2}, "pkg/sim/b.go holds 1 groupDialectNative calls, above its count of 0"},
-		{map[string]int{"pkg/sim/a.go": 3, "pkg/sim/b.go": 1}, "below its count"},
-	} {
-		got := CheckWorldGame(found, nil, tc.state)
-		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || !strings.Contains(got[0], tc.want)) {
-			t.Errorf("state %v: violations %v, want %q", tc.state, got, tc.want)
+func TestTheWorldGameScanAllowsOnlyNamedRegistryGuards(t *testing.T) {
+	for site := range WorldGameAllowed[worldGameSavedGroups] {
+		parts := strings.Split(site, "#")
+		if got := worldGamePlanted(t, parts[0], "func "+parts[1]+"(w *World) { if w.savedGroups == nil { return } }"); len(got) != 0 {
+			t.Errorf("%s: %v", site, got)
+		}
+		if got := worldGamePlanted(t, parts[0], "func other(w *World) { if w.savedGroups == nil { return } }"); len(got) != 1 {
+			t.Errorf("another function in %s: %v", site, got)
 		}
 	}
 }

@@ -79,16 +79,6 @@ func TestGroupRoam1148RerollBoundariesAndNoValidCell(t *testing.T) {
 			t.Fatal("reroll threshold", tc, dst, c, ok)
 		}
 	}
-	w, err := NewWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, nil, []Entity{{ID: 1, Owner: 9, Group: 19, X: 8, Y: 8}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.cmdGroupOrder(ScriptInstant{HasGroup: true, Group: 19, Args: [10]int32{17}})
-	before := w.Hash()
-	w.decide(aiGroup{owner: 9, group: 19, members: []int{0}})
-	if w.Hash() != before {
-		t.Fatal("impossible reroll mutated or hung")
-	}
 }
 
 func TestGroupRoam1148SavedSetterPreservesOtherRawFields(t *testing.T) {
@@ -243,25 +233,26 @@ func TestGroupRoam1148KeepsActorStateButSupersedesPatrol(t *testing.T) {
 
 func TestGroupRoam1148CounterThresholdAndReplacement(t *testing.T) {
 	w := roamWorld1148(t)
-	w.groups[0].order, w.groups[0].roamCounter = 17, 50
-	w.groups[0].commandedX, w.groups[0].commandedY = 50, 50
+	group := regGroup(t, w, 9, 19)
+	group.AI[0x20], group.AI[0x15] = orderRoam, 50
+	group.AI[10], group.AI[11] = 50, 50
 	g := aiGroup{owner: 9, group: 19, members: []int{0, 1}}
-	w.decide(g)
-	if w.groups[0].roamCounter != 51 || w.groups[0].commandedX != 50 || w.groups[0].commandedY != 50 {
+	regDecide(t, w, g.owner, g.group, g.members)
+	if group.AI[0x15] != 51 || group.AI[10] != 50 || group.AI[11] != 50 {
 		t.Fatal("counter50 did not increment after evaluation")
 	}
-	w.decide(g)
-	if w.groups[0].roamCounter != 1 || w.groups[0].commandedX == 50 && w.groups[0].commandedY == 50 {
+	regDecide(t, w, g.owner, g.group, g.members)
+	if group.AI[0x15] != 1 || group.AI[10] == 50 && group.AI[11] == 50 {
 		t.Fatal("counter51 did not reroll/reset then increment")
 	}
-	w.groups[0].roamCounter = 255
+	group.AI[0x15] = 255
 	w.cmdGroupOrder(ScriptInstant{HasGroup: true, Group: 19, Args: [10]int32{3}})
-	if retreatRoundTrip1089(t, w).groups[0].roamCounter != 255 {
+	if regGroup(t, retreatRoundTrip1089(t, w), 9, 19).AI[0x15] != 255 {
 		t.Fatal("replacement order lost retained counter")
 	}
 	w.cmdGroupRoam(19)
-	w.decide(g)
-	if w.groups[0].roamCounter != 1 {
+	regDecide(t, w, g.owner, g.group, g.members)
+	if group.AI[0x15] != 1 {
 		t.Fatal("counter255 did not reset before increment")
 	}
 }
@@ -363,17 +354,17 @@ func TestGroupRoam1148WithdrawalKeepsEvaluationAcrossSave(t *testing.T) {
 
 func TestGroupRoam1148MovingMemberCountsTowardDistance(t *testing.T) {
 	w := roamWorld1148(t)
-	w.groups[0].order, w.groups[0].roamCounter = orderRoam, 50
-	w.groups[0].commandedX, w.groups[0].commandedY = 30, 30
+	g := regGroup(t, w, 9, 19)
+	g.AI[0x20], g.AI[0x15], g.AI[10], g.AI[11] = orderRoam, 50, 30, 30
 	w.entities[1].X = 50
 	w.entities[1].HasTarget, w.entities[1].TargetX, w.entities[1].TargetY = true, 60, 30
-	groups := w.aiGroups()
-	if len(groups) != 1 || len(groups[0].members) != 2 {
-		t.Fatal("moving Roam member vanished from the distance population", groups)
+	members, complete := w.savedLiving(g)
+	if !complete || len(members) != 2 {
+		t.Fatal("moving Roam member vanished from the distance population", members)
 	}
 	rng := w.rng
-	w.decide(groups[0])
-	if w.groups[0].roamCounter != 51 || w.groups[0].commandedX != 30 || w.groups[0].commandedY != 30 || w.rng != rng {
+	regDecide(t, w, 9, 19, members)
+	if g.AI[0x15] != 51 || g.AI[10] != 30 || g.AI[11] != 30 || w.rng != rng {
 		t.Fatal("far moving member did not prevent the proximity reroll")
 	}
 }

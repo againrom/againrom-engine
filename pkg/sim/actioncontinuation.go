@@ -162,10 +162,8 @@ func (w *World) Actions() ActionContinuations {
 	}
 	a.ActorTraversal = &traversal
 	ordinals := map[EntityID]uint32{}
-	if !w.groupDialectNative() {
-		for i, row := range w.savedGroups.Orders {
-			ordinals[row.Entity] = uint32(i)
-		}
+	for i, row := range w.savedGroups.Orders {
+		ordinals[row.Entity] = uint32(i)
 	}
 	for _, e := range w.attached {
 		if indexOfEntity(w.entities, e.Target) < 0 {
@@ -554,7 +552,7 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 					o.Strike = *k
 				}
 			}
-		} else if !n.groupDialectNative() {
+		} else {
 			n.savedGroups.Orders = slices.DeleteFunc(n.savedGroups.Orders, func(o SavedActorOrder) bool { return o.Entity == e.ID })
 			if o, ok := unstatedPatrolOrder(*e, loaded); ok {
 				patrols = append(patrols, o)

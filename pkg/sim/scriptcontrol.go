@@ -25,7 +25,7 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 	// other game takes that game's constructor. A registry play has changed
 	// is kept whole: a copy into the other game asks it of the copied
 	// World's own game and script, a copy in the same game of the new one.
-	held := !out.groupDialectNative() && out.savedGroups.fresh
+	held := out.savedGroups.fresh
 	rebuild := held && out.script.Dialect() != script.Dialect() && (out.savedGroups.native || out.groupsAsConstructed())
 	out.script = script
 	out.initializeROM2Script()

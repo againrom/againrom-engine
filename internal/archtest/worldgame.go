@@ -51,7 +51,13 @@ var WorldGameAllowed = map[string]map[string]string{
 		"pkg/sim/rom2statebinary.go#unmarshalROM2ScriptState": "state: decodes the state the wrapper carries",
 	},
 	worldGameSavedGroups: {
-		"pkg/sim/carriers.go#groupDialectNative": "state: the World holds no Group registry",
+		"pkg/sim/carriers.go#groupsAsConstructed":             "decode: an omitted registry cannot equal a constructed one yet",
+		"pkg/sim/savedgroups.go#ImportSavedGroups":            "import: preserve metadata only from an installed registry",
+		"pkg/sim/carriers.go#constructGroups":                 "construction: keep the installed registry",
+		"pkg/sim/creaturespell.go#fillOrderSlotWindows":       "decode: a wrapper can precede registry construction",
+		"pkg/sim/savedgroups.go#savedOrder":                   "decode: no order exists before the registry is constructed",
+		"pkg/sim/playerparticipants.go#RestoreCurrentPlayers": "decode: restore Players before constructing an omitted registry",
+		"pkg/sim/savedgroupplayers.go#SavedGroupPlayers":      "decode: a base form can omit its registry before the Player wrapper",
 	},
 	worldGameDialect: {
 		"pkg/sim/gameprofile.go#newGameProfile":                       "the one chooser of the World's game profile",
@@ -91,48 +97,6 @@ var WorldGameAllowed = map[string]map[string]string{
 		"pkg/sim/binary.go#unmarshalBinary":                   "the decoder's base form",
 		"pkg/sim/rom2statebinary.go#unmarshalROM2ScriptState": "the decoder's second-game wrapper",
 	},
-}
-
-// WorldGameStateCalls are the files that test whether the World holds a Group
-// registry, with their groupDialectNative call counts. The answer is state: an
-// original SAV LOAD gives a second-game World a registry. A count may only
-// fall; a file whose count reaches zero leaves the map in the same commit.
-var WorldGameStateCalls = map[string]int{
-	"pkg/sim/actioncontinuation.go":      2,
-	"pkg/sim/actor.go":                   2,
-	"pkg/sim/actortraversal.go":          1,
-	"pkg/sim/autohealing.go":             1,
-	"pkg/sim/carriers.go":                5,
-	"pkg/sim/combat.go":                  1,
-	"pkg/sim/createactor.go":             1,
-	"pkg/sim/creaturespell.go":           1,
-	"pkg/sim/currentarchive.go":          1,
-	"pkg/sim/currentidentity.go":         1,
-	"pkg/sim/currentobjects.go":          1,
-	"pkg/sim/currentplayeridentities.go": 1,
-	"pkg/sim/currentplayerslot.go":       1,
-	"pkg/sim/currentworldpolicy.go":      2,
-	"pkg/sim/dropgold.go":                1,
-	"pkg/sim/engage.go":                  1,
-	"pkg/sim/group.go":                   2,
-	"pkg/sim/groupcontinuation.go":       3,
-	"pkg/sim/grouproam.go":               1,
-	"pkg/sim/guardarm.go":                1,
-	"pkg/sim/pickupcompletion.go":        2,
-	"pkg/sim/playerparticipants.go":      1,
-	"pkg/sim/presence.go":                1,
-	"pkg/sim/savedformations.go":         3,
-	"pkg/sim/savedgroupcommands.go":      7,
-	"pkg/sim/savedgroupplayers.go":       6,
-	"pkg/sim/savedgroups.go":             5,
-	"pkg/sim/script.go":                  5,
-	"pkg/sim/scriptcontrol.go":           1,
-	"pkg/sim/scriptgrouptrace.go":        1,
-	"pkg/sim/standground.go":             2,
-	"pkg/sim/step.go":                    1,
-	"pkg/sim/structureuse.go":            1,
-	"pkg/sim/walkclaim.go":               1,
-	"pkg/sim/withdraw.go":                1,
 }
 
 // WorldGameFinding is one site and the shape found there. Func is the
@@ -182,6 +146,19 @@ func FindWorldGame(files map[string]string) ([]WorldGameFinding, error) {
 		scope := worldGameScopeOf(name)
 		for _, decl := range f.Decls {
 			owner := worldGameOwner(decl)
+			aliases := map[string]bool{}
+			ast.Inspect(decl, func(n ast.Node) bool {
+				if a, ok := n.(*ast.AssignStmt); ok {
+					for i, value := range a.Rhs {
+						if worldGameName(value) == "savedGroups" && i < len(a.Lhs) {
+							if id, ok := a.Lhs[i].(*ast.Ident); ok {
+								aliases[id.Name] = true
+							}
+						}
+					}
+				}
+				return true
+			})
 			add := func(n ast.Node, shape string) {
 				out = append(out, WorldGameFinding{File: name, Line: fset.Position(n.Pos()).Line, Func: owner, Shape: shape})
 			}
@@ -190,11 +167,11 @@ func FindWorldGame(files map[string]string) ([]WorldGameFinding, error) {
 				case *ast.ValueSpec:
 					// A declared name is not a use; its values are read.
 					for _, v := range x.Values {
-						ast.Inspect(v, func(m ast.Node) bool { worldGameNode(m, scope, add); return true })
+						ast.Inspect(v, func(m ast.Node) bool { worldGameNode(m, scope, aliases, add); return true })
 					}
 					return false
 				default:
-					worldGameNode(n, scope, add)
+					worldGameNode(n, scope, aliases, add)
 				}
 				return true
 			})
@@ -207,7 +184,7 @@ func worldGameScanned(name, source string) bool {
 	if strings.HasSuffix(name, "_test.go") || !strings.HasSuffix(name, ".go") {
 		return false
 	}
-	return worldGameScopeOf(name) != worldGameAnywhere || strings.Contains(source, "AssignSecondGameArms")
+	return worldGameScopeOf(name) != worldGameAnywhere || strings.Contains(source, "AssignSecondGameArms") || strings.Contains(source, "groupDialectNative")
 }
 
 func worldGameScopeOf(name string) worldGameScope {
@@ -238,9 +215,13 @@ func worldGameOwner(decl ast.Decl) string {
 // game, and a selector or key named Second, are read only in pkg/sim, where
 // the World's profile and the spell row live; elsewhere the names mean other
 // things. A Second read through a constant index is the whole table's format.
-func worldGameNode(n ast.Node, scope worldGameScope, add func(ast.Node, string)) {
+func worldGameNode(n ast.Node, scope worldGameScope, aliases map[string]bool, add func(ast.Node, string)) {
 	if id, ok := n.(*ast.Ident); ok && id.Name == "AssignSecondGameArms" {
 		add(id, worldGameSpellArms)
+		return
+	}
+	if id, ok := n.(*ast.Ident); ok && id.Name == "groupDialectNative" {
+		add(id, worldGameNative)
 		return
 	}
 	if scope == worldGameAnywhere {
@@ -262,8 +243,6 @@ func worldGameNode(n ast.Node, scope worldGameScope, add func(ast.Node, string))
 		switch worldGameName(x.Fun) {
 		case "SecondGame":
 			add(x, worldGameSecondGame)
-		case "groupDialectNative":
-			add(x, worldGameNative)
 		case "newGameProfile":
 			add(x, worldGameChooser)
 		}
@@ -275,7 +254,7 @@ func worldGameNode(n ast.Node, scope worldGameScope, add func(ast.Node, string))
 		switch {
 		case worldGameNil(x.X) && r == "rom2", worldGameNil(x.Y) && l == "rom2":
 			add(x, worldGameROM2Nil)
-		case worldGameNil(x.X) && r == "savedGroups", worldGameNil(x.Y) && l == "savedGroups":
+		case worldGameNil(x.X) && (r == "savedGroups" || aliases[r]), worldGameNil(x.Y) && (l == "savedGroups" || aliases[l]):
 			add(x, worldGameSavedGroups)
 		case worldGameDialectName(l), worldGameDialectName(r):
 			add(x, worldGameDialect)
@@ -327,44 +306,21 @@ func worldGameNil(e ast.Expr) bool {
 func worldGameDialectName(name string) bool { return name == "ScriptROM1" || name == "ScriptROM2" }
 
 // CheckWorldGame turns the findings into violations: a shape at a site that
-// is not allowed, and a file whose groupDialectNative calls differ from its
-// count.
-func CheckWorldGame(found []WorldGameFinding, allowed map[string]map[string]string, state map[string]int) []string {
+// is not allowed. Registry presence is allowed only at named construction
+// and decode guards.
+func CheckWorldGame(found []WorldGameFinding, allowed map[string]map[string]string) []string {
 	var out []string
-	held := map[string]int{}
 	for _, f := range found {
-		if f.Shape == worldGameNative {
-			held[f.File]++
-			continue
-		}
-		if a := allowed[f.Shape]; a[f.File] != "" || a[f.File+"#"+f.Func] != "" {
+		if a := allowed[f.Shape]; f.Shape != worldGameNative && (a[f.File] != "" || a[f.File+"#"+f.Func] != "") {
 			continue
 		}
 		switch f.Shape {
+		case worldGameNative, worldGameSavedGroups:
+			out = append(out, f.String()+"; every World uses its Group registry; only named construction and decode guards may test its presence")
 		case worldGameSpellRow, worldGameSpellTable, worldGameSpellArms:
 			out = append(out, f.String()+"; a spell row's format is chosen where its table is loaded or decoded; name the site with its reason")
 		default:
 			out = append(out, f.String()+"; read a field of the World's game profile")
-		}
-	}
-	files := map[string]bool{}
-	for name := range held {
-		files[name] = true
-	}
-	for name := range state {
-		files[name] = true
-	}
-	names := make([]string, 0, len(files))
-	for name := range files {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		switch got, want := held[name], state[name]; {
-		case got > want:
-			out = append(out, fmt.Sprintf("%s holds %d groupDialectNative calls, above its count of %d", name, got, want))
-		case got < want:
-			out = append(out, fmt.Sprintf("%s holds %d groupDialectNative calls, below its count of %d; lower WorldGameStateCalls", name, got, want))
 		}
 	}
 	return out

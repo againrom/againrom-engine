@@ -139,22 +139,10 @@ func (w *World) guardWalkHome(i int) {
 	e.TargetX, e.TargetY, e.HasTarget = x, y, true
 }
 
-// actorLayerDecides reports whether the per-actor machine decides entity i:
-// its Group's stored order is 0. `AI-ORDER-010` reads arm 0 as the one that
-// hands control to the members' own states, and `AI-POST-095` places the one
-// live call of the per-actor machine inside arm 0 (`callto:R0008` = 2/2/0).
-// No other order, 0xff and 0x11 included, evaluates `actor+0x50`.
-//
-// A first-game World reads the order its Group registry holds, which every
-// first-game Group command writes; the second game reads its native record.
-// A pair no record names answers false: it takes no Group decision, and an
-// actor decision in its place would be the derivation decide's rule removes.
+// actorLayerDecides admits only members of a registry Group under order 0
+// (AI-ORDER-010, AI-POST-095). A missing membership admits no decision.
 func (w *World) actorLayerDecides(i int) bool {
 	e := &w.entities[i]
-	if !w.groupDialectNative() {
-		g := w.savedGroupFor(e.ID)
-		return g != nil && g.AI[0x20] == orderNone
-	}
-	order, _, ok := w.groupState(e.Owner, effectiveGroup(e))
-	return ok && order == orderNone
+	g := w.savedGroupFor(e.ID)
+	return g != nil && g.AI[0x20] == orderNone
 }

@@ -262,47 +262,6 @@ func TestAPatrollerWalksTheRing(t *testing.T) {
 	}
 }
 
-func TestOrderNoneIsNotDecidedOver(t *testing.T) {
-	t.Parallel()
-
-	t.Run("a hostile candidate in plain sight is not scored", func(t *testing.T) {
-		t.Parallel()
-		m := engFighter(1, 2, 5, 5)
-		cand := engFighter(2, 3, 6, 5) // adjacent: inside reach, well inside sight
-		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), m, cand)
-		nativeGroupArm(w)
-		setGroupOrder(t, w, 2, 0, orderNone)
-		i := indexOfEntity(w.entities, 1)
-		before := w.entities[i]
-
-		w.engagementPass()
-
-		after := w.entities[i]
-		if after != before {
-			t.Errorf("a member of an order-0 group moved under the engagement decision:\n before %+v\n after  %+v",
-				before, after)
-		}
-	})
-
-	t.Run("an empty candidate list does not release it either", func(t *testing.T) {
-		t.Parallel()
-		m := engFighter(1, 2, 5, 5)
-		w := engWorld(t, engRel(t), m) // no relation at all: candidates() is empty
-		nativeGroupArm(w)
-		setGroupOrder(t, w, 2, 0, orderNone)
-		i := indexOfEntity(w.entities, 1)
-		// A victim it should not hold in this state, poked in directly so a
-		// spurious releaseAttack call is visible rather than a no-op.
-		w.entities[i].AttackTarget, w.entities[i].HasAttackTarget = 2, true
-
-		w.engagementPass()
-
-		if !w.entities[i].HasAttackTarget {
-			t.Error("a member of an order-0 group with an empty candidate list was released by the engagement decision")
-		}
-	})
-}
-
 // ------------------------------------------------------------------- SC-1
 
 // TestAnEntityInAnUnknownActorStateIsLeftInEveryField is SC-1's

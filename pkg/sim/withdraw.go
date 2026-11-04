@@ -41,7 +41,7 @@ func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
-		if !w.groupDialectNative() && !w.nativePatrol(i) {
+		if !w.nativePatrol(i) {
 			continue
 		}
 		w.withdrawalActor(i, obs)

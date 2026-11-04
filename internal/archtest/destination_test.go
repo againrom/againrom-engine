@@ -7,8 +7,10 @@ import (
 	"testing"
 )
 
+// savedDecision originates Swarm's commanded destination through the registry.
+// It replaces the native armSwarm writer without adding a destination source.
 var wantDestinationWriters = []string{
-	"attachMoveOrder", "unmarshalBinary", "walkTo", "issueSavedGroupDestination", "armSwarm", "armPatrol", "walkToCell",
+	"attachMoveOrder", "unmarshalBinary", "walkTo", "issueSavedGroupDestination", "armPatrol", "walkToCell",
 	"guardWalkHome", "escortClose", "escortStepAway", "withdrawFromAny", "stepScrollCasts", "savedMove",
 	"savedDecision", "beginSavedRouteContinuation", "standDown", "retainCycleForState", "dispatchRetreatPending",
 }
@@ -85,13 +87,7 @@ func TestDestinationWritersMatchFR2(t *testing.T) {
 // the check is proven to say which without the live tree having to be
 // broken.
 func TestDestinationWriterDiffNamesWhatChanged(t *testing.T) {
-	// THE TWO SYNTHETIC SOURCES ARE BUILT FROM wantDestinationWriters ITSELF
-	// and their expected counts are derived from its length. They were written
-	// out as literal name lists and literal counts until 0167 added two
-	// writers, at which point the pin, two name lists and two counts all had
-	// to move together — four places to keep in step for one fact. What each
-	// case asserts is the SHAPE of the diagnostic, which does not depend on how
-	// many writers the tree has.
+	// Synthetic sources use the same writer set; assertions pin diagnostics.
 	t.Run("an unexpected writer appears", func(t *testing.T) {
 		files := map[string]string{
 			"pkg/sim/x.go": sourceWithWriters(append(append([]string{}, wantDestinationWriters...), "sendHome")...),

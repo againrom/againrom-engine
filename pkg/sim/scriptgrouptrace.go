@@ -22,25 +22,15 @@ func ObserveScriptGroups(w *World, group uint32) []ScriptGroupState {
 		return nil
 	}
 	var out []ScriptGroupState
-	if !w.groupDialectNative() {
-		// The Groups the script reaches by this selector (resolveSavedGroups).
-		groups, _ := w.resolveSavedGroups(group)
-		for _, g := range groups {
-			owner := g.Owner.Owner
-			if p, ok := w.savedPlayerByID(g.OwnerID); ok {
-				owner = p.Slot
-			}
-			out = append(out, ScriptGroupState{Owner: owner, Group: g.Selector, Order: g.AI[0x20],
-				CommandedX: int32(g.AI[10]), CommandedY: int32(g.AI[11])})
+	// The Groups the script reaches by this selector (resolveSavedGroups).
+	groups, _ := w.resolveSavedGroups(group)
+	for _, g := range groups {
+		owner := g.Owner.Owner
+		if p, ok := w.savedPlayerByID(g.OwnerID); ok {
+			owner = p.Slot
 		}
-		return out
-	}
-	for _, i := range w.groupsNamed(group) {
-		g := w.groups[i]
-		out = append(out, ScriptGroupState{
-			Owner: g.owner, Group: g.group, Order: uint8(g.order),
-			CommandedX: g.commandedX, CommandedY: g.commandedY,
-		})
+		out = append(out, ScriptGroupState{Owner: owner, Group: g.Selector, Order: g.AI[0x20],
+			CommandedX: int32(g.AI[10]), CommandedY: int32(g.AI[11])})
 	}
 	return out
 }

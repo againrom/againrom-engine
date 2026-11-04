@@ -1,14 +1,6 @@
 package sim
 
-// The walk home: the guard stance's own tail (0106 T3, engage.go's
-// walkHome).
-//
-// Every fixture here builds a member OFF its own post before deciding for
-// it — never on the cell it was constructed at — because a constructor posts
-// every entity where it stands, so a fixture that never moves a member could
-// not tell "the walk home fired" apart from "nothing happened to it" (plan.md
-// note 4). No test here reads a game install (SC-4), and none draws from
-// w.rng (SC-1) — decide() and walkHome read only entity fields and w.groups.
+// Registry Guard reads each member's post from its order block.
 
 import "testing"
 
@@ -24,9 +16,11 @@ func TestAnOffPostGuardWithNoCandidatesWalksHome(t *testing.T) {
 	// what a member that walked away under some earlier order, with nothing
 	// since re-anchoring it, looks like.
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
+	w.syncSavedPost(i)
+	regGroup(t, w, 2, 0).AI[0x30] = 1
 	rngBefore := w.rng
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	got := w.entities[indexOfEntity(w.entities, 1)]
 	if !got.HasTarget || got.TargetX != 5 || got.TargetY != 5 {
@@ -58,7 +52,7 @@ func TestAnArrivedGuardIsLeftInEveryField(t *testing.T) {
 			before.X, before.Y, before.PostX, before.PostY)
 	}
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	after := w.entities[indexOfEntity(w.entities, 1)]
 	if after != before {
@@ -77,7 +71,8 @@ func TestAWalkedHomeMemberDoesNotReIssueOnTheNextDecision(t *testing.T) {
 	w := engWorld(t, engRel(t), engFighter(1, 2, 8, 5))
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
-	w.decide(w.aiGroups()[0])
+	w.syncSavedPost(i)
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 	if got := w.entities[indexOfEntity(w.entities, 1)]; !got.HasTarget || got.TargetX != 5 || got.TargetY != 5 {
 		t.Fatalf("fixture: the first decision did not walk the member home — got HasTarget=%v (%d,%d)",
 			got.HasTarget, got.TargetX, got.TargetY)
@@ -90,7 +85,7 @@ func TestAWalkedHomeMemberDoesNotReIssueOnTheNextDecision(t *testing.T) {
 	w.entities[i].TargetX, w.entities[i].TargetY, w.entities[i].HasTarget = 0, 0, false
 	arrived := w.entities[indexOfEntity(w.entities, 1)]
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	after := w.entities[indexOfEntity(w.entities, 1)]
 	if after != arrived {
@@ -106,8 +101,9 @@ func TestAGuardHoldingAVictimGainsNoDestinationEvenOffPost(t *testing.T) {
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), engFighter(1, 2, 8, 5), engFighter(2, 3, 9, 5))
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
+	w.syncSavedPost(i)
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	got := w.entities[indexOfEntity(w.entities, 1)]
 	if v, held := engVictim(w, 1); !held || v != 2 {
@@ -129,9 +125,10 @@ func TestAReleasedOffPostGuardIsWalkedHomeInTheSameTick(t *testing.T) {
 	w := engWorld(t, engRel(t), engFighter(1, 2, 8, 5))
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
+	w.syncSavedPost(i)
 	w.entities[i].AttackTarget, w.entities[i].HasAttackTarget = 99, true
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	got := w.entities[indexOfEntity(w.entities, 1)]
 	if got.HasAttackTarget {
@@ -155,11 +152,12 @@ func TestAGuardsOwnOffPostDestinationIsReplacedByItsPost(t *testing.T) {
 	w := engWorld(t, engRel(t), engFighter(1, 2, 8, 5))
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
+	w.syncSavedPost(i)
 	w.entities[i].TargetX, w.entities[i].TargetY, w.entities[i].HasTarget = 20, 20, true
 	w.entities[i].Stall = 3
 	w.routes[i] = []cell{{9, 5}, {10, 5}}
 
-	w.decide(aiGroup{owner: 2, group: 0, members: []int{i}})
+	regDecide(t, w, 2, 0, []int{i})
 
 	got := w.entities[indexOfEntity(w.entities, 1)]
 	if !got.HasTarget || got.TargetX != 5 || got.TargetY != 5 {
@@ -183,9 +181,10 @@ func TestAStandGroundMemberGainsNothingEvenOffPost(t *testing.T) {
 	setGroupOrder(t, w, 2, 0, orderStandGround)
 	i := indexOfEntity(w.entities, 1)
 	w.entities[i].PostX, w.entities[i].PostY = 5, 5
+	w.syncSavedPost(i)
 	before := w.entities[indexOfEntity(w.entities, 1)]
 
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 	after := w.entities[indexOfEntity(w.entities, 1)]
 	if after != before {
@@ -220,9 +219,10 @@ func TestNoNonGuardStanceWalksHomeOffTheLoopFoot(t *testing.T) {
 			setGroupOrder(t, w, 2, 0, tc.order)
 			i := indexOfEntity(w.entities, 1)
 			w.entities[i].PostX, w.entities[i].PostY = 5, 5
+			w.syncSavedPost(i)
 			before := w.entities[i]
 
-			w.decide(w.aiGroups()[0])
+			regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 
 			after := w.entities[indexOfEntity(w.entities, 1)]
 			if after.HasAttackTarget {

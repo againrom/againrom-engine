@@ -42,7 +42,7 @@ func TestAuthoredControlUnownedAcquisitionKeepsLegacyRule(t *testing.T) {
 	for i := range w.groups {
 		w.groups[i].order = orderStandGround
 	}
-	w.decide(aiGroup{owner: 0, group: w.entities[0].Group, members: []int{0}})
+	regDecide(t, w, 0, w.entities[0].Group, []int{0})
 	if !w.entities[0].HasTarget {
 		t.Fatal("unowned empty decision gained the human stand-down branch")
 	}
@@ -201,29 +201,6 @@ func TestAuthoredControlCreatureApproachAndColdRestore(t *testing.T) {
 			}
 			if !charged {
 				t.Fatal("eligible creature never completed its cast approach")
-			}
-		})
-	}
-}
-
-func TestAuthoredControlEmptyNativeDecisionAndColdRestore(t *testing.T) {
-	for _, tc := range acquireControlCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			w := engWorld(t, engRel(t), engFighter(1, tc.owner, 5, 5))
-			installAcquireControl(t, w, tc)
-			for i := range w.groups {
-				w.groups[i].order = orderStandGround
-			}
-			w.entities[0].TargetX, w.entities[0].TargetY, w.entities[0].HasTarget = 12, 5, true
-			cold := worldRoundTripForTest(t, w)
-			for _, live := range []*World{w, cold} {
-				live.decide(aiGroup{owner: tc.owner, group: live.entities[0].Group, members: []int{0}})
-				if got := live.entities[0].HasTarget; got == tc.human {
-					t.Fatalf("empty decision kept destination %v for human %v", got, tc.human)
-				}
-			}
-			if cold.Hash() != w.Hash() {
-				t.Fatal("cold restore changed empty decision")
 			}
 		})
 	}

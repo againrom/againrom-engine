@@ -14,7 +14,7 @@ type CurrentPlayerSlot struct {
 }
 
 func (w *World) RestoreCurrentPlayerSlots(rows []CurrentPlayerSlot, money map[uint32]uint32) error {
-	if w.groupDialectNative() || !w.savedGroups.PlayersPresent {
+	if !w.savedGroups.PlayersPresent {
 		return fmt.Errorf("sim: current Player slots lack imported containers")
 	}
 	next := *w

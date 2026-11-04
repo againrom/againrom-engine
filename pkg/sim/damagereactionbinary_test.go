@@ -84,8 +84,8 @@ func TestAttackNoticeNativeResume(t *testing.T) {
 func TestAttackNoticeMalformedSuffixIsAtomic(t *testing.T) {
 	w, _ := distantSpellWorld(t)
 	// The actor's own notice section: a World without a registry.
-	nativeGroupArm(w)
-	w.flipOnBlow(0, 1)
+	w.savedGroups = nil
+	w.entities[1].attackNotice = attackNotice{Cell: 0x1810}
 	valid := mustMarshal(t, w)
 	// entityIDFloor (form94) closes the form outside this section entirely.
 	end := len(valid) - entityIDFloorLen - spellDeliverySpanLen

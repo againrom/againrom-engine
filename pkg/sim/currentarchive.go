@@ -125,14 +125,12 @@ func (w *World) currentArchiveFields(ref func(*uint16)) {
 	for i := range w.savedStructures {
 		ref(&w.savedStructures[i].ArchiveIndex)
 	}
-	if !w.groupDialectNative() {
-		for i := range w.savedGroups.Groups {
-			g := &w.savedGroups.Groups[i]
-			ref(&g.Reference.Archive)
-			ref(&g.Owner.Archive)
-			for j := range g.Members {
-				ref(&g.Members[j].Archive)
-			}
+	for i := range w.savedGroups.Groups {
+		g := &w.savedGroups.Groups[i]
+		ref(&g.Reference.Archive)
+		ref(&g.Owner.Archive)
+		for j := range g.Members {
+			ref(&g.Members[j].Archive)
 		}
 	}
 }

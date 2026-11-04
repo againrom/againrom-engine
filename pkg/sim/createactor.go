@@ -107,25 +107,15 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		return 0, fmt.Errorf("sim: created source actor cannot derive owned state")
 	}
 	if !p.inherited {
-		if !n.groupDialectNative() {
-			container, owner := w.cheatSummonOwner(template.Owner, anchorX, anchorY)
-			if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
-				w.keepCandidateDraws(&n, keepDraws)
-				return 0, fmt.Errorf("sim: created actor saved group identity space exhausted")
-			}
-			if owner.Class == 1 {
-				n.savedGroupFor(id).Owner = owner
-			}
-			n.syncSavedActorCommand(i)
-		} else {
-			n.groups = append([]groupAI(nil), w.groups...)
-			n.commandGroup([]int{i}, orderNone, cell{x: px, y: py})
-			if template.Owner != 0 && n.entities[i].CommandGroup == 0 {
-				w.keepCandidateDraws(&n, keepDraws)
-				return 0, fmt.Errorf("sim: created actor native group identity space exhausted")
-			}
-			n.entities[i].Group = n.entities[i].CommandGroup
+		container, owner := w.cheatSummonOwner(template.Owner, anchorX, anchorY)
+		if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
+			w.keepCandidateDraws(&n, keepDraws)
+			return 0, fmt.Errorf("sim: created actor saved group identity space exhausted")
 		}
+		if owner.Class == 1 {
+			n.savedGroupFor(id).Owner = owner
+		}
+		n.syncSavedActorCommand(i)
 	}
 	if !p.transient {
 		if _, err := n.MarshalBinary(); err != nil {

@@ -913,7 +913,7 @@ func TestTwoDecisionsOnAnUnchangedWorldAgree(t *testing.T) {
 	}
 	engRun(w, 1)
 	first, _ := engVictim(w, 1)
-	w.decide(w.aiGroups()[0])
+	regDecide(t, w, w.savedGroups.Groups[0].Owner.Owner, w.savedGroups.Groups[0].Selector, nil)
 	second, _ := engVictim(w, 1)
 	if first != second {
 		t.Errorf("a second decision moved the assignment from %d to %d", first, second)

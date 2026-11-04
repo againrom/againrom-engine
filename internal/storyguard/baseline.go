@@ -3249,9 +3249,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1861,
-		"scclause":        505,
-		"barestorynumber": 1699,
+		"acclause":        1857,
+		"scclause":        501,
+		"barestorynumber": 1682,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3260,7 +3260,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1671,
+		"longcommentgroups":      1659,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4084,5 +4084,5 @@ var Committed = Baseline{
 	// It rises for the second game's structure +4 key: secondStructureKey and
 	// its holder rows in pkg/game/savform.go, and the tests in
 	// secondstructureid_test.go and secondoriginalfile_test.go.
-	CommentBytes: 10569473,
+	CommentBytes: 10537338,
 }

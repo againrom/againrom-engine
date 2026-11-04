@@ -183,19 +183,17 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 			ref(&body.ID)
 		}
 	}
-	if !w.groupDialectNative() {
-		for i := range w.savedGroups.Groups {
-			for j := range w.savedGroups.Groups[i].Members {
-				m := &w.savedGroups.Groups[i].Members[j]
-				optional(&m.Entity, m.Bound)
-			}
+	for i := range w.savedGroups.Groups {
+		for j := range w.savedGroups.Groups[i].Members {
+			m := &w.savedGroups.Groups[i].Members[j]
+			optional(&m.Entity, m.Bound)
 		}
-		for i := range w.savedGroups.Orders {
-			o := &w.savedGroups.Orders[i]
-			ref(&o.Entity)
-			optional(&o.EscortTarget, o.EscortBound)
-			optional(&o.Strike.Attacker, o.Strike.Attacker != 0)
-		}
+	}
+	for i := range w.savedGroups.Orders {
+		o := &w.savedGroups.Orders[i]
+		ref(&o.Entity)
+		optional(&o.EscortTarget, o.EscortBound)
+		optional(&o.Strike.Attacker, o.Strike.Attacker != 0)
 	}
 	for i := range w.movers {
 		ref(&w.movers[i].Entity)

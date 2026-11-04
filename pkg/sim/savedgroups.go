@@ -123,8 +123,8 @@ func cloneNonEmpty[S ~[]E, E any](s S) S {
 	return slices.Clone(s)
 }
 
-// SavedGroups returns detached current state. False is the explicit legacy
-// native mode, including old AGS; an empty imported registry is still present.
+// SavedGroups returns detached current state. False marks an unfinished decode;
+// an empty imported registry is present.
 func (w *World) SavedGroups() ([]SavedGroup, []SavedActorOrder, bool) {
 	s := cloneSavedGroups(w.savedGroups)
 	if s == nil {
@@ -148,7 +148,7 @@ func (w *World) ImportOriginalGroups(groups []SavedGroup, orders []SavedActorOrd
 
 func (w *World) ImportSavedGroups(groups []SavedGroup, orders []SavedActorOrder) error {
 	s := cloneSavedGroups(&savedGroupState{Groups: groups, Orders: orders})
-	if prior := w.savedGroups; prior != nil && !prior.fresh {
+	if prior := w.savedGroups; prior != nil && !prior.fresh { // Original import clears the registry before installing its replacement.
 		s.Players, s.PlayersPresent, s.HighWater = slices.Clone(prior.Players), prior.PlayersPresent, prior.HighWater
 		s.Formations, s.FormationsPresent = slices.Clone(prior.Formations), prior.FormationsPresent
 		old := make(map[uint32]bool, len(prior.Groups))
@@ -262,17 +262,15 @@ func (w *World) savedGroupByID(id uint32) *SavedGroup {
 }
 
 func (w *World) groupRateEntity(e Entity) Entity {
-	if !w.groupDialectNative() {
-		e.GroupSpeed = 0
-		if g := w.savedGroupFor(e.ID); g != nil {
-			e.GroupSpeed = g.AI[0x44]
-		}
+	e.GroupSpeed = 0
+	if g := w.savedGroupFor(e.ID); g != nil {
+		e.GroupSpeed = g.AI[0x44]
 	}
 	return e
 }
 
 func (w *World) savedOrder(id EntityID) *SavedActorOrder {
-	if !w.groupDialectNative() {
+	if w.savedGroups != nil { // Decode can read an order before the registry is constructed.
 		for i := range w.savedGroups.Orders {
 			if w.savedGroups.Orders[i].Entity == id {
 				return &w.savedGroups.Orders[i]
@@ -286,9 +284,6 @@ func (w *World) savedOrder(id EntityID) *SavedActorOrder {
 // values and membership remain saveable; a new supported player order can
 // replace an unsupported continuation without discarding the source Group.
 func (w *World) SavedGroupIssues() []string {
-	if w.groupDialectNative() {
-		return nil
-	}
 	var out []string
 	selectors := map[uint32]int{}
 	for _, g := range w.savedGroups.Groups {
@@ -351,9 +346,6 @@ func (w *World) SavedGroupIssues() []string {
 
 func (w *World) detachSavedMember(id EntityID) {
 	w.detachTerminalRegistry(id, false)
-	if w.groupDialectNative() {
-		return
-	}
 	for i := range w.savedGroups.Groups {
 		g := &w.savedGroups.Groups[i]
 		g.Members = slices.DeleteFunc(g.Members, func(m SavedGroupMember) bool { return m.Bound && m.Entity == id })
@@ -531,9 +523,6 @@ func (w *World) savedActorDispatch(i int) {
 func (w *World) savedGroupPass(obs *castObs) { w.savedGroupPassTraced(obs, nil) }
 
 func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
-	if w.groupDialectNative() {
-		return
-	}
 	// This build visits the registry in retained LOAD/append order. Original
 	// first-loaded global chronology is not established by the local claim.
 	count := len(w.savedGroups.Groups)

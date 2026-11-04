@@ -52,7 +52,7 @@ func (w *World) savedWalkRank(g *SavedGroup, index int) int {
 // A refused current count cannot let a stale register fire a trigger. The
 // refusal does not modify either its register or any dependent trigger latch.
 func (w *World) savedTriggerBlocked(t ScriptTrigger) bool {
-	if w.groupDialectNative() || w.script == nil {
+	if w.script == nil {
 		return false
 	}
 	for _, c := range w.script.checks {
@@ -103,9 +103,6 @@ func (w *World) ensureSavedOrder(i int) *SavedActorOrder {
 // source keys never become native escort identities. Action progress remains
 // owned by the entity and is not cancelled by this synchronization.
 func (w *World) syncSavedActorCommand(i int) *SavedActorOrder {
-	if w.groupDialectNative() {
-		return nil
-	}
 	e := w.entities[i]
 	o := w.ensureSavedOrder(i)
 	o.State, o.Patrol = uint32(e.ActorState), nil
@@ -136,7 +133,7 @@ func (w *World) commandSavedGroup(members []int, order uint8, ordered cell) {
 }
 
 func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, resetOrder bool, container uint32, cleanup bool) bool {
-	if len(members) == 0 || w.groupDialectNative() {
+	if len(members) == 0 {
 		return false
 	}
 	high := max(w.savedGroups.HighWater, maxSavedGroupID(w.savedGroups.Groups))
@@ -196,9 +193,6 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 // Group's identity, else of the Group the actor stands in. A command moves
 // actors between Groups and may delete an emptied one, which changes both.
 func (w *World) syncSourceGroupSelectors() {
-	if w.groupDialectNative() {
-		return
-	}
 	for i := range w.entities {
 		e := &w.entities[i]
 		if e.SourceBinding.GroupIndex == 0 {
@@ -257,9 +251,6 @@ func (w *World) savedMoveGroup(id EntityID) bool {
 }
 
 func (w *World) syncSavedDestination(i int) {
-	if w.groupDialectNative() {
-		return
-	}
 	e := w.entities[i]
 	o := w.ensureSavedOrder(i)
 	if e.HasTarget {
@@ -276,7 +267,7 @@ func (w *World) syncSavedDestination(i int) {
 // the order named to the cell the far search settled on, so the Group
 // dispatch does not re-issue the cell the order takes over from.
 func (w *World) settleSavedDestination(id EntityID, from, to cell) {
-	if from == to || w.groupDialectNative() {
+	if from == to {
 		return
 	}
 	if o := w.savedOrder(id); o != nil && int32(o.Raw[10]) == from.x && int32(o.Raw[11]) == from.y {
@@ -285,9 +276,6 @@ func (w *World) settleSavedDestination(id EntityID, from, to cell) {
 }
 
 func (w *World) syncSavedPost(i int) {
-	if w.groupDialectNative() {
-		return
-	}
 	e := w.entities[i]
 	o := w.ensureSavedOrder(i)
 	binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.PostX)|uint16(e.PostY)<<8)

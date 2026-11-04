@@ -15,16 +15,13 @@ type GroupContinuation struct {
 }
 
 func (w *World) GroupHighWater() uint32 {
-	if w.groupDialectNative() {
-		return 0
-	}
 	return w.savedGroups.HighWater
 }
 
 // The archive owns membership and AI. These local identities preserve the
 // current dispatch order, command lifetime and next insertion cursor.
 func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater uint32, absentPlayers ...uint32) error {
-	if w.groupDialectNative() || len(rows) != len(w.savedGroups.Groups) {
+	if len(rows) != len(w.savedGroups.Groups) {
 		return fmt.Errorf("sim: incomplete current Group continuation")
 	}
 	n := cloneSavedGroups(w.savedGroups)
@@ -128,7 +125,7 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 // Ordinary Players own the transported actor graph even when the native
 // registry has never acquired exact container or formation identities.
 func (w *World) RestoreGroupCarrierPresence(players, formations bool) error {
-	if w.groupDialectNative() || formations && !players {
+	if formations && !players {
 		return fmt.Errorf("sim: invalid current Group carrier presence")
 	}
 	n := cloneSavedGroups(w.savedGroups)

@@ -107,28 +107,6 @@ func (w *World) joinsFight(mi int) bool {
 	return !e.HasTarget || (e.TargetX == e.PostX && e.TargetY == e.PostY)
 }
 
-// joinEngagedGroups is the tail of a decision pass: every member of an engaged
-// group that holds no victim takes the cheapest foe it can take, as the
-// group's arm would have scored it. It exists for the members a decision does
-// not reach. aiGroups leaves out a unit that holds a destination and no victim
-// when the group's order issues none, and the walk home is exactly that, so a
-// member walking home, or a group of nothing but such members, would stand
-// deaf to its own group's fight until it arrived.
-//
-// A member already holding a victim is never touched, so the attack cycle and
-// the re-issue rule (AI-REISSUE-077) behave as before, and a member holding
-// any other destination keeps it.
-func (w *World) joinEngagedGroups() {
-	for gi := range w.groups {
-		record := w.groups[gi]
-		members := w.groupLivingMembers(record.owner, record.group)
-		if len(members) == 0 {
-			continue
-		}
-		w.joinEngagedGroup(record.owner, record.order, w.heldCircle(record.base, members), members, nil, nil)
-	}
-}
-
 // engagedCircle is the candidate list a group's decision clips, read without
 // ageing any attack notice: the group's sight, the members' remembered
 // attacker cells included, and for Guard the notice circle around the centroid
@@ -143,13 +121,6 @@ func (w *World) engagedCircle(owner uint32, order uint8, circle noticeCircle, me
 type noticeCircle struct {
 	x, y int32
 	r    int64
-}
-
-// heldCircle is a native Group's circle: the living members' sub-cell centre
-// and the frozen base widened by the margin.
-func (w *World) heldCircle(base uint8, members []int) noticeCircle {
-	cx, cy := groupCentroid(w.entities, members, subCellMean)
-	return noticeCircle{x: cx, y: cy, r: int64(noticeRadius(base))}
 }
 
 // storedCircle is a registry Group's circle as live Guard clips it: the

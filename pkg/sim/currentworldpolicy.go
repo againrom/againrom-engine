@@ -94,7 +94,7 @@ func (w *World) CurrentPolicy() CurrentWorldPolicy {
 		EntityIDFloor: &floor, Ghost: &ghost,
 		ItemWeights:  &weights,
 		Terrain:      Terrain{Block: slices.Clone(w.grid), Cost: slices.Clone(w.cost), Height: slices.Clone(w.height)},
-		GroupCarrier: !w.groupDialectNative(), MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
+		GroupCarrier: true, MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
 		StructureCarrier: w.hasSavedStructures, ObjectCarrier: w.savedObjects != nil, Formations: w.formations,
 		Scorched: slices.Clone(w.scorchedCells), SpellGraphCarrier: &graph, EffectDriverCarrier: &drivers}
 	if w.savedCellPlanes != nil {
@@ -220,7 +220,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		}
 	}
 	w.formations = p.Formations
-	if !p.GroupCarrier && !w.groupDialectNative() && w.savedGroups.FormationsPresent {
+	if !p.GroupCarrier && w.savedGroups.FormationsPresent {
 		for _, f := range w.savedGroups.Formations {
 			if f.TriggerID < relationSlots {
 				w.formations[f.TriggerID] = f.Mode

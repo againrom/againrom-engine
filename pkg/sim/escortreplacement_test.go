@@ -109,7 +109,7 @@ func TestScriptMoveAndSwarmReplaceEscortBeforeActorPass(t *testing.T) {
 							if saved {
 								w.savedDecision(&w.savedGroups.Groups[0], orderSwarm, nil)
 							} else {
-								w.armSwarm(aiGroup{owner: 2, group: 7, members: []int{1}}, nil)
+								regDecide(t, w, 2, 7, nil)
 							}
 						}
 						assertEscortEnded(t, w)
@@ -280,7 +280,7 @@ func TestScriptDestinationsKeepNonEscortPatrolRing(t *testing.T) {
 					if saved {
 						w.savedDecision(&w.savedGroups.Groups[0], orderSwarm, nil)
 					} else {
-						w.armSwarm(aiGroup{owner: 2, group: 7, members: []int{1}}, nil)
+						regDecide(t, w, 2, 7, nil)
 					}
 				}
 				e := w.entities[1]
@@ -291,18 +291,6 @@ func TestScriptDestinationsKeepNonEscortPatrolRing(t *testing.T) {
 				assertEscortReplacementSave(t, w)
 			})
 		}
-	}
-}
-
-func TestSwarmKeepsNonEscortRouteAndStall(t *testing.T) {
-	w := engWorld(t, engRel(t), laFighter(1, 2, 7, 20, 20))
-	w.cmdGroupSwarm(7, 40, 20)
-	w.entities[0].TargetX, w.entities[0].TargetY, w.entities[0].HasTarget = 40, 20, true
-	w.entities[0].Stall = 3
-	w.routes[0] = []cell{{21, 20}, {40, 20}}
-	w.armSwarm(aiGroup{owner: 2, group: 7, members: []int{0}}, nil)
-	if w.entities[0].Stall != 3 || len(w.routes[0]) != 2 {
-		t.Fatal("escort cleanup reset the non-escort Swarm route or stall")
 	}
 }
 
