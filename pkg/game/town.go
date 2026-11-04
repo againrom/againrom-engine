@@ -84,6 +84,12 @@ type TownOffer struct {
 // any town building has opened; entering a side mission does not replace it.
 type Town struct {
 	second *secondCampaign
+	// talk is the one town talk cursor of both games: the page cursor of the
+	// open conversation, whose part is the last attempted, including a failed
+	// lookup. It lives here, not on a town screen, because the second game
+	// rebuilds its screen on every visit and its save admission reads the
+	// cursor with no screen.
+	talk talkCursor
 	// guest is the mod mission a guest plays while the town waits, or the
 	// guest who won it and waits for the town's grant; nil when there is none.
 	guest       *guestMission

@@ -34,7 +34,7 @@ func (t *townScreen) AtTownShop() bool {
 	if t == nil {
 		return false
 	}
-	if t.hostRules().Shop == "bank" {
+	if t.hostRules().Shop == town.ShopBank {
 		return t.bankShopShown()
 	}
 	return t.displayRoom() == "shop"
@@ -78,7 +78,7 @@ func (t *townScreen) TownSquareActive(active bool) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	if t.hostRules().Pages == "entry" {
+	if t.hostRules().Pages == town.PagesEntry {
 		if t.composed != nil && t.campaignTown().ready() && !t.AtTownShop() {
 			t.roomActive(active)
 		}
@@ -104,7 +104,7 @@ func (t *townScreen) AdvanceTownSquareAnimation() {
 	if t == nil || t.sess == nil {
 		return
 	}
-	if t.hostRules().Pages == "entry" {
+	if t.hostRules().Pages == town.PagesEntry {
 		if !t.AtTownShop() {
 			t.advanceRoom()
 		}
@@ -153,7 +153,7 @@ func (t *townScreen) TownMusicTrack() (string, bool) {
 	if scene, _ := t.TownMusic(); scene != ui.MusicTown {
 		return "", false
 	}
-	if t.hostRules().TrackSource == "campaign" {
+	if t.hostRules().TrackSource == town.TrackCampaign {
 		if c := t.state(); c != nil && c.current.kind == placeTown {
 			return GameMusic(t.in.profile()).TownTrack(c.current.id)
 		}
@@ -166,7 +166,7 @@ func (t *townScreen) Rows() []ui.TownRow {
 	if !t.campaignTown().ready() {
 		return nil
 	}
-	if t.campaignTown().talking() && t.hostRules().Talk == "building" {
+	if t.campaignTown().talking() && t.hostRules().Talk == town.TalkBuilding {
 		return nil
 	}
 	d := t.townDescription()
@@ -203,7 +203,7 @@ func (t *townScreen) squareRows() []ui.TownRow {
 		if label == "" {
 			label = townRowText[h.Name]
 		}
-		if t.hostRules().Rows == "chapter-hints" {
+		if t.hostRules().Rows == town.RowsChapterHints {
 			hint := ""
 			switch h.Hint {
 			case "tavern-offers":
@@ -234,7 +234,7 @@ func (t *townScreen) fallbackRows() []ui.TownRow {
 }
 
 func (t *townScreen) Choose(i int) ui.TownAction {
-	if t.campaignTown().talking() && t.hostRules().Talk == "building" {
+	if t.campaignTown().talking() && t.hostRules().Talk == town.TalkBuilding {
 		return t.AdvanceTownDialogue()
 	}
 	d := t.townDescription()
@@ -332,7 +332,7 @@ func (t *townScreen) Back() bool {
 }
 
 func (t *townScreen) Header() string {
-	if t.hostRules().Header == "location" {
+	if t.hostRules().Header == town.HeaderLocation {
 		if t.campaignTown().present() {
 			switch t.roomName() {
 			case "inn":
@@ -368,7 +368,7 @@ func (t *townScreen) Header() string {
 }
 
 func (t *townScreen) Footer() []string {
-	if t.hostRules().Footer == "services" {
+	if t.hostRules().Footer == town.FooterServices {
 		var out []string
 		for _, id := range t.campaignTown().unavailableTowns() {
 			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
@@ -394,7 +394,7 @@ func (t *townScreen) Footer() []string {
 }
 
 func (t *townScreen) viewScene(d *town.Description, room string) *town.Scene {
-	if room == d.Square.Name && t.hostRules().Pages == "retained" {
+	if room == d.Square.Name && t.hostRules().Pages == town.PagesRetained {
 		return t.squareView()
 	}
 	return t.scene(d, room)

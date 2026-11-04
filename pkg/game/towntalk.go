@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -21,6 +22,14 @@ func (c *talkCursor) open(payload []byte) { c.payload, c.part, c.key = payload, 
 
 // openSection opens the text of section key.
 func (c *talkCursor) openSection(key string, payload []byte) { c.open(payload); c.key = key }
+
+// rewind returns the cursor to before its first part; a screen with no town
+// holds no cursor.
+func (c *talkCursor) rewind() {
+	if c != nil {
+		c.part = 0
+	}
+}
 
 func (c *talkCursor) close() { c.payload, c.part, c.key = nil, 0, "" }
 
@@ -65,7 +74,7 @@ var secondTownTalkProfile = townTalkProfile{trim: true, speech: townSpeechNames{
 
 // townTalkRules is each host talk rule's profile; an unnamed rule takes the
 // first game's.
-var townTalkRules = map[string]townTalkProfile{"building": firstTownTalkProfile, "section": secondTownTalkProfile}
+var townTalkRules = map[town.TalkMode]townTalkProfile{town.TalkBuilding: firstTownTalkProfile, town.TalkSection: secondTownTalkProfile}
 
 // townTalkHost is what the town talk reads of its screen.
 type townTalkHost interface {
@@ -181,9 +190,14 @@ func (s *townTalkSeat) AdvanceTownDialogue() ui.TownAction {
 	return s.talkWindow.Advance(s.turnTownTalk)
 }
 
-func (t *townScreen) campaignTalk() *talkCursor { return t.campaignTown().talkCursor() }
-func (t *townScreen) talkOpen() bool            { return t.campaignTown().talking() }
-func (t *townScreen) endTalk()                  { t.campaignTown().endTalk() }
+func (t *townScreen) campaignTalk() *talkCursor {
+	if !t.campaignTown().talkSeated() {
+		return nil
+	}
+	return t.talkPage()
+}
+func (t *townScreen) talkOpen() bool { return t.campaignTown().talking() }
+func (t *townScreen) endTalk()       { t.campaignTown().endTalk() }
 
 func (t *townScreen) talkProfile() townTalkProfile {
 	if p, ok := townTalkRules[t.hostRules().Talk]; ok {

@@ -224,7 +224,7 @@ func TestSecondCampaignOptionalMissionDepartureRetainsTown(t *testing.T) {
 		t.Fatal("optional ordinary departure invented a successor", c)
 	}
 	c.current = partyPlace{2, 2}
-	if !c.savePoint() {
+	if !(&Town{second: c}).secondSavePoint() {
 		t.Fatal("completed optional mission lost quiet town2 save point")
 	}
 }

@@ -75,7 +75,7 @@ func (p *worldMapPage) atMap() bool {
 		return p.host.room == roomGates
 	case "unlocated":
 		c := p.host.state()
-		return c != nil && c.current == (partyPlace{}) && c.talk.payload == nil
+		return c != nil && c.current == (partyPlace{}) && p.host.talkPage().payload == nil
 	}
 	return false
 }

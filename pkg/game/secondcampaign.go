@@ -32,7 +32,6 @@ type secondCampaign struct {
 	available []partyPlace
 	current   partyPlace
 	room      secondTownRoom
-	talk      talkCursor
 	shop      secondShop
 	// party is the hero alone; his bag is the shop's customer.
 	party []mapload.PartyMember
@@ -252,8 +251,7 @@ func (t *townScreen) setTownDialogue(key string, payload []byte) {
 		t.adapter = destinationTownCampaign{t}
 		t.defaults = townDescriptions["rom2-town1"]
 	}
-	c := t.state()
-	c.talk.openSection(key, payload)
+	t.talkPage().openSection(key, payload)
 	t.resetTownSpeech()
 	t.resolver = t.townSpeakers()
 	t.openTalk(t, payload, false)
@@ -289,13 +287,17 @@ func (t *townScreen) townSpeakers() speakerResolver {
 	return r
 }
 
-func (c *secondCampaign) savePoint() bool {
-	return c != nil && c.talk.payload == nil && c.talk.part == 0 && captureSecondCampaign(c).validateTown() == nil
+func (t *Town) secondSavePoint() bool { return t != nil && t.second.savePoint(t.talk) }
+
+// secondNoticePending reports whether the campaign holds an open dialogue.
+func (t *Town) secondNoticePending() bool { return t != nil && t.second.noticePending(t.talk) }
+
+func (c *secondCampaign) savePoint(talk talkCursor) bool {
+	return c != nil && talk.payload == nil && talk.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
-// noticePending reports whether the campaign holds an open dialogue.
-func (c *secondCampaign) noticePending() bool {
-	return c != nil && (c.talk.payload != nil || c.talk.part != 0)
+func (c *secondCampaign) noticePending(talk talkCursor) bool {
+	return c != nil && (talk.payload != nil || talk.part != 0)
 }
 
 // secondTownText is the town text file the inn talks are sections of.

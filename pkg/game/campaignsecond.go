@@ -31,9 +31,9 @@ func (secondCampaignRules) townSavePoint(f *FrontEnd) error {
 		c = f.Town.second
 	}
 	switch {
-	case c.savePoint():
+	case f.Town.secondSavePoint():
 		return nil
-	case c.noticePending():
+	case f.Town.secondNoticePending():
 		return secondRefusals.refuse(refusedTalk)
 	case c != nil && c.current == (partyPlace{}):
 		return secondRefusals.refuse(refusedWorldMap)
@@ -487,22 +487,17 @@ func (c destinationTownCampaign) ready() bool   { return c.bank() != nil }
 func (c destinationTownCampaign) present() bool { return c.townID() != 0 }
 func (c destinationTownCampaign) talking() bool {
 	s := c.bank()
-	return s != nil && s.talk.payload != nil
+	return s != nil && c.t.talkPage().payload != nil
 }
 
-func (c destinationTownCampaign) talkCursor() *talkCursor {
-	if s := c.bank(); s != nil {
-		return &s.talk
-	}
-	return nil
-}
+func (c destinationTownCampaign) talkSeated() bool { return c.bank() != nil }
 
 func (c destinationTownCampaign) endTalk() {
 	s := c.bank()
 	if s == nil {
 		return
 	}
-	s.talk.close()
+	c.t.talkPage().close()
 	if o := s.talking; o != nil {
 		s.talking = nil
 		c.t.endInnTalk(*o)
@@ -520,7 +515,9 @@ func (c destinationTownCampaign) value(name string) int {
 	}
 	return -1
 }
-func (c destinationTownCampaign) savePoint() bool { return c.bank().savePoint() }
+func (c destinationTownCampaign) savePoint() bool {
+	return c.bank() != nil && c.t.sess.Town.secondSavePoint()
+}
 func (c destinationTownCampaign) leave() {
 	if s := c.bank(); s != nil {
 		if s.leaveTown() {

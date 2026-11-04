@@ -172,7 +172,7 @@ var townHooks = map[string]townHook{
 	"shop-open":  {run: secondShopOpen, offers: "scenario-bank"},
 	"shop-leave": {run: func(t *townScreen, _ string) { c := t.state(); c.shop.leave(c.heroBag()) }, offers: "scenario-bank"},
 	"gate-closed": {run: func(t *townScreen, _ string) {
-		if t.hostRules().Talk == "section" {
+		if t.hostRules().Talk == town.TalkSection {
 			t.squareAction = t.openTownText(secondGateText)
 			return
 		}
@@ -183,7 +183,7 @@ var townHooks = map[string]townHook{
 	}, offers: ""},
 	"release-audio": {run: func(t *townScreen, _ string) { t.destroyRoomAudio() }, offers: ""},
 	"set-room":      {run: func(t *townScreen, room string) { t.campaignTown().setRoom(room); t.composed.hero = nil }, offers: ""},
-	"talk-clear":    {run: func(t *townScreen, _ string) { t.npc, t.offer, t.talkPage.part = 0, TownOffer{}, 0 }, offers: "chapter-keys"},
+	"talk-clear":    {run: func(t *townScreen, _ string) { t.npc, t.offer = 0, TownOffer{}; t.talkPage().rewind() }, offers: "chapter-keys"},
 	"tip":           {run: func(t *townScreen, room string) { t.loadRoomTip(room) }, offers: ""},
 	"school-reset": {run: func(t *townScreen, _ string) {
 		t.schoolSpent = [schoolLatchCount]bool{}
@@ -234,7 +234,7 @@ func (t *townScreen) squareView() *town.Scene {
 	}
 	fresh := t.square == nil
 	s := t.scene(d, d.Square.Name)
-	if fresh && t.hostRules().Pages == "retained" {
+	if fresh && t.hostRules().Pages == town.PagesRetained {
 		if st := t.draws.stream(random.TownWildlife); st != nil && st.Shared() {
 			s.SetRawDraw("wildlife", st.Raw)
 		}

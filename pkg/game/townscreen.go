@@ -98,9 +98,6 @@ type townScreen struct {
 	npc   int
 	offer TownOffer
 
-	// talkPage is the page cursor; its part is the last attempted, including
-	// a failed lookup.
-	talkPage talkCursor
 	townTalkSeat
 
 	// innQueue is the missions the tavern's conversations have queued and
@@ -218,7 +215,10 @@ func (t *townScreen) resetForNewGame() {
 	t.destroyRoomAudio()
 	t.atSquare()
 	t.dialogueBuilding, t.mercenaryTalk, t.talkDiagnostic = TownTavern, 0, ""
-	t.dialogue, t.talkPage = townDialogueState{}, talkCursor{}
+	t.dialogue = townDialogueState{}
+	if c := t.talkPage(); c != nil {
+		*c = talkCursor{}
+	}
 	t.talkWindow.Reset()
 	t.innQueue = nil
 	t.shopChosen, t.shopShelf = shopNoShelf, ShelfArmour
@@ -337,7 +337,7 @@ func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, np
 	}
 	wasOpen := t.room == roomTalk
 	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, building, npc, offer
-	t.talkPage.open(payload)
+	t.talkPage().open(payload)
 	t.resetTownSpeech()
 	t.mercenaryTalk, t.talkDiagnostic = 0, ""
 	t.openTalk(t, payload, wasOpen)
@@ -428,7 +428,7 @@ func (t *townScreen) openMercenaryDialogue(typ int) {
 	t.mercenaryTalk, t.talkDiagnostic = typ, ""
 	t.composeShopFaces()
 	payload := t.townPayload()
-	t.talkPage.open(payload)
+	t.talkPage().open(payload)
 	read := t.openTalk(t, payload, wasOpen)
 	// A candidate's talk takes the portrait shape whatever its text names.
 	t.dialogue.hasPortrait = true

@@ -167,7 +167,7 @@ func (t *townScreen) inShopInterior() bool { return t != nil && t.AtTownShop() }
 // resumes rebase both clocks and cannot catch up time spent behind a menu,
 // cutscene or focus loss.
 func (t *townScreen) ShopInteriorActive(active bool) {
-	if t != nil && t.hostRules().Pages == "entry" {
+	if t != nil && t.hostRules().Pages == town.PagesEntry {
 		if t.composed != nil && t.AtTownShop() {
 			t.roomActive(active)
 		}
@@ -185,7 +185,7 @@ func (t *townScreen) AdvanceShopInteriorAnimation() {
 		return
 	}
 	t.advanceShopSecondTip()
-	if t.hostRules().Pages == "entry" {
+	if t.hostRules().Pages == town.PagesEntry {
 		if t.composed != nil {
 			t.advanceRoom()
 		}

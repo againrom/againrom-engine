@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -379,7 +380,7 @@ func SecondTownSpeechCensus(root string, report io.Writer) error {
 		return fmt.Errorf("speech census: %w", err)
 	}
 	bank := OpenSpeech(root)
-	profile := townTalkRules["section"]
+	profile := townTalkRules[town.TalkSection]
 	rows, names, sections := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, key := range body.sectionKeys() {
 		folded := namefold.ArchiveText(key)

@@ -147,15 +147,15 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 		}
 	}
 	click(image.Pt(247, 445))
-	if s.composed.seat != 1 || c.talk.payload != nil {
-		t.Fatalf("seat 1 click: seat %d, talk open %v", s.composed.seat, c.talk.payload != nil)
+	if s.composed.seat != 1 || f.Town.talk.payload != nil {
+		t.Fatalf("seat 1 click: seat %d, talk open %v", s.composed.seat, f.Town.talk.payload != nil)
 	}
 	click(image.Pt(553, 90))
-	if s.composed.seat != 1 || c.talk.payload != nil {
+	if s.composed.seat != 1 || f.Town.talk.payload != nil {
 		t.Fatal("the blank first button acted on a talk seat")
 	}
 	click(image.Pt(553, 137))
-	if c.talk.payload == nil {
+	if f.Town.talk.payload == nil {
 		t.Fatal("Talk with seat 1 selected opened no talk")
 	}
 	if o := c.speakers()[1]; secondTalkKey(o.npc, o.topic) != "npc2108talk8" {

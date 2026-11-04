@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -49,7 +50,7 @@ type missionShopVisit struct {
 // its deal. The town is not open in it, so no offer speaks and no save is
 // admitted while the page shows.
 func (t *townScreen) OpenMissionShop() bool {
-	if t == nil || t.visit != nil || t.sess == nil || t.sess.Town == nil || t.hostRules().Shop != "chapter" {
+	if t == nil || t.visit != nil || t.sess == nil || t.sess.Town == nil || t.hostRules().Shop != town.ShopChapter {
 		return false
 	}
 	if d := t.townDescription(); d == nil || d.Room("shop") == nil {

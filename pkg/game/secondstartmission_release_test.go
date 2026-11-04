@@ -143,7 +143,7 @@ func TestReleaseSecondGameStartMissionGateRefusesBeforeTheMage(t *testing.T) {
 				}
 				w.run(1)
 			}
-			if !bytes.Equal(c.talk.payload, want) {
+			if !bytes.Equal(f.Town.talk.payload, want) {
 				t.Fatal("the box is not the gate guard's text")
 			}
 			if err := app.HeadlessActivate("notice"); err != nil {

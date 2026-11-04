@@ -126,19 +126,19 @@ func TestFirstTownTalkCursorThroughTheSeat(t *testing.T) {
 		t.Fatal(err)
 	}
 	for part, text := range []string{"One", "Two\r\n"} {
-		if s.room != roomTalk || s.talkPage.part != part+1 || s.dialogue.text != text {
-			t.Fatalf("page %d: room %v part %d %q", part+1, s.room, s.talkPage.part, s.dialogue.text)
+		if s.room != roomTalk || s.talkPage().part != part+1 || s.dialogue.text != text {
+			t.Fatalf("page %d: room %v part %d %q", part+1, s.room, s.talkPage().part, s.dialogue.text)
 		}
 		if _, open := s.TownDialogue(); !open || s.TownDialogueShows() == 0 {
 			t.Fatalf("page %d: the window is closed", part+1)
 		}
 		s.AdvanceTownDialogue()
 	}
-	if s.room != roomShop || s.talkPage.part != 3 || s.TownDialogueShows() != 0 {
-		t.Fatalf("the last OK left room %v part %d", s.room, s.talkPage.part)
+	if s.room != roomShop || s.talkPage().part != 3 || s.TownDialogueShows() != 0 {
+		t.Fatalf("the last OK left room %v part %d", s.room, s.talkPage().part)
 	}
-	if !s.openTownDialogue(s.dialogueBuilding, s.offer, s.npc) || s.talkPage.part != 1 || s.dialogue.text != "One" {
-		t.Fatalf("reopen: part %d %q", s.talkPage.part, s.dialogue.text)
+	if !s.openTownDialogue(s.dialogueBuilding, s.offer, s.npc) || s.talkPage().part != 1 || s.dialogue.text != "One" {
+		t.Fatalf("reopen: part %d %q", s.talkPage().part, s.dialogue.text)
 	}
 }
 
@@ -152,13 +152,13 @@ func TestSecondTownTalkCursorThroughTheSeat(t *testing.T) {
 		s.setTownDialogue("", []byte("<part=1>\r\nOne\r\n<part=2>\r\nTwo\r\n"))
 		for part, text := range []string{"One", "Two\r\n"} {
 			body, ok := s.dialogueBody()
-			if c.talk.part != part+1 || !ok || body != text || s.TownDialogueShows() != 1 {
-				t.Fatalf("round %d page %d: part %d %q %v", round, part+1, c.talk.part, body, ok)
+			if s.talkPage().part != part+1 || !ok || body != text || s.TownDialogueShows() != 1 {
+				t.Fatalf("round %d page %d: part %d %q %v", round, part+1, s.talkPage().part, body, ok)
 			}
 			s.AdvanceTownDialogue()
 		}
-		if c.talk.payload != nil || c.talk.part != 0 || s.TownDialogueShows() != 0 || c.noticePending() {
-			t.Fatalf("round %d: the last OK left part %d", round, c.talk.part)
+		if s.talkPage().payload != nil || s.talkPage().part != 0 || s.TownDialogueShows() != 0 || s.sess.Town.secondNoticePending() {
+			t.Fatalf("round %d: the last OK left part %d", round, s.talkPage().part)
 		}
 	}
 }

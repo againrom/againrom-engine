@@ -65,7 +65,7 @@ func (t *townScreen) bindShop(row shopBinding) {
 
 // hostShopRow is the row the host's rules choose for the town's shop room.
 func (t *townScreen) hostShopRow() shopBinding {
-	if t.hostRules().Shop == "bank" {
+	if t.hostRules().Shop == town.ShopBank {
 		return t.bankShopRow()
 	}
 	return t.chapterShopRow()

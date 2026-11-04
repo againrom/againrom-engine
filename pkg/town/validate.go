@@ -25,16 +25,16 @@ func (d *Description) Validate() error {
 			name, value string
 			values      []string
 		}{
-			{"rows", h.Rows, []string{"chapter-hints", "hotspots"}},
-			{"shop", h.Shop, []string{"chapter", "bank"}},
-			{"track-source", h.TrackSource, []string{"description", "campaign"}},
-			{"header", h.Header, []string{"chapter", "location"}},
-			{"footer", h.Footer, []string{"party", "services"}},
-			{"talk", h.Talk, []string{"building", "section"}},
-			{"pages", h.Pages, []string{"retained", "entry"}},
-			{"art", h.Art, []string{"pages", "manifest"}},
-			{"audio-room", h.AudioRoom, []string{"building", "requested"}},
-			{"leave", h.Leave, []string{"room-map", "destinations"}},
+			{"rows", string(h.Rows), modeTexts(RowsChapterHints, RowsHotspots)},
+			{"shop", string(h.Shop), modeTexts(ShopChapter, ShopBank)},
+			{"track-source", string(h.TrackSource), modeTexts(TrackDescription, TrackCampaign)},
+			{"header", string(h.Header), modeTexts(HeaderChapter, HeaderLocation)},
+			{"footer", string(h.Footer), modeTexts(FooterParty, FooterServices)},
+			{"talk", string(h.Talk), modeTexts(TalkBuilding, TalkSection)},
+			{"pages", string(h.Pages), modeTexts(PagesRetained, PagesEntry)},
+			{"art", string(h.Art), modeTexts(ArtPages, ArtManifest)},
+			{"audio-room", string(h.AudioRoom), modeTexts(AudioRoomBuilding, AudioRoomRequested)},
+			{"leave", string(h.Leave), modeTexts(LeaveRoomMap, LeaveDestinations)},
 		} {
 			if !slices.Contains(rule.values, rule.value) {
 				return fail("host %s %q%s", rule.name, rule.value, accepted(rule.values...))

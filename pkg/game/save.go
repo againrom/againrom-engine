@@ -283,7 +283,7 @@ func snapshotTown(t *Town, s *Snapshot, rules campaignService) {
 	}
 	s.second = captureSecondCampaign(t.second)
 	s.towns = t.townsRecord()
-	s.noticeOpen = t.second.noticePending()
+	s.noticeOpen = t.secondNoticePending()
 	s.Open, s.Gold = t.open, t.gold
 	s.MainMission = t.currentMain()
 	s.SelectedMission = t.selectedMission()

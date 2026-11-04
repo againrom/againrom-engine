@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/audio"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -24,7 +25,7 @@ func (t *townScreen) roomSoundPlayer(group audio.Channel, requested ...string) a
 		return nil
 	}
 	room := townRoomName(t.soundRoom())
-	if t.hostRules().AudioRoom == "requested" {
+	if t.hostRules().AudioRoom == town.AudioRoomRequested {
 		room = t.roomName()
 		if len(requested) != 0 {
 			room = requested[0]

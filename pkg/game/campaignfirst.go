@@ -216,12 +216,7 @@ func (c chapterTownCampaign) ready() bool   { return c.t.sess != nil && c.t.sess
 func (c chapterTownCampaign) present() bool { return true }
 func (c chapterTownCampaign) talking() bool { return c.t.room == roomTalk }
 
-func (c chapterTownCampaign) talkCursor() *talkCursor {
-	if !c.talking() {
-		return nil
-	}
-	return &c.t.talkPage
-}
+func (c chapterTownCampaign) talkSeated() bool { return c.talking() }
 
 // endTalk returns to the opening room; the room popup keeps its lifetime.
 func (c chapterTownCampaign) endTalk() {

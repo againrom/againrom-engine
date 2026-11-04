@@ -1060,7 +1060,7 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			f.Carried[0].StartingHero, f.Carried[0].PlayerCharacter = true, true
 			f.Offered = 20
 			townScreen := f.TownScreen().(*townScreen)
-			townScreen.room, townScreen.talkPage.part = roomTavern, 2
+			townScreen.room, townScreen.talkPage().part = roomTavern, 2
 
 			app := f.App("transactional-load")
 			if err := app.OpenMission(f.MissionOpener(10)); err != nil {
@@ -1123,8 +1123,8 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			if !reflect.DeepEqual(f.Carried, oldCarried) || f.Offered != oldOffered {
 				t.Fatalf("failed load changed carried/offered to (%+v, %d)", f.Carried, f.Offered)
 			}
-			if townScreen.room != roomTavern || townScreen.talkPage.part != 2 {
-				t.Fatalf("failed load moved town UI to room %v line %d", townScreen.room, townScreen.talkPage.part)
+			if townScreen.room != roomTavern || townScreen.talkPage().part != 2 {
+				t.Fatalf("failed load moved town UI to room %v line %d", townScreen.room, townScreen.talkPage().part)
 			}
 			gotBytes, err := f.live.world.MarshalBinary()
 			if err != nil {
@@ -1254,7 +1254,7 @@ func TestPreparedMissionCommitsOnceThroughTheLoadWindow(t *testing.T) {
 func TestLoadingPutsTheTownScreenBackAtTheSquare(t *testing.T) {
 	f := currentTrainingCity(t)
 	ts := f.TownScreen().(*townScreen)
-	ts.room, ts.talkPage.part = roomTavern, 2
+	ts.room, ts.talkPage().part = roomTavern, 2
 	snapshot, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
@@ -1267,8 +1267,8 @@ func TestLoadingPutsTheTownScreenBackAtTheSquare(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ts.room != roomSquare || ts.talkPage.part != 0 {
-		t.Errorf("the town screen came back in room %v with %d lines said, want the square", ts.room, ts.talkPage.part)
+	if ts.room != roomSquare || ts.talkPage().part != 0 {
+		t.Errorf("the town screen came back in room %v with %d lines said, want the square", ts.room, ts.talkPage().part)
 	}
 	if got, _ := f.TownScreen().(*townScreen); got != ts {
 		t.Error("TownScreen built a second screen; the flow holds the first for the life of the process")

@@ -22,7 +22,7 @@ func (t *townScreen) townDialogueLayout() (ui.NoticeLayout, []byte, bool) {
 	if !v.Open {
 		return ui.NoticeLayout{}, nil, false
 	}
-	return t.talkWindow.Layout(v), t.talkPage.payload, true
+	return t.talkWindow.Layout(v), t.talkPage().payload, true
 }
 
 // talkPages is a conversation of fixed pages; at is the shown page, 0 closed.
@@ -219,7 +219,7 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 // Each game keeps one page cursor: the first game's screen and the second
 // game's campaign hold one talkCursor, and no other part or payload field.
 func TestTownTalkHasOneCursor(t *testing.T) {
-	for _, holder := range []any{townScreen{}, townScreen{}, secondCampaign{}, townDialogueState{}} {
+	for _, holder := range []any{townScreen{}, townScreen{}, secondCampaign{}, townDialogueState{}, Town{}} {
 		typ := reflect.TypeOf(holder)
 		cursors := 0
 		for i := 0; i < typ.NumField(); i++ {
@@ -232,7 +232,7 @@ func TestTownTalkHasOneCursor(t *testing.T) {
 			}
 		}
 		want := 0
-		if typ.Name() == "townScreen" || typ.Name() == "secondCampaign" {
+		if typ.Name() == "Town" {
 			want = 1
 		}
 		if cursors != want {

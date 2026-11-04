@@ -138,7 +138,7 @@ func TestSecondTownTalkProbeReadsTheBoundScreen(t *testing.T) {
 	for page, words := range []string{"First page.", "Second page."} {
 		pic, open := screen.TownDialogue()
 		button, shown := screen.TownDialogueButton()
-		if !open || pic == nil || !shown || button.Empty() || f.Town.second.talk.part != page+1 {
+		if !open || pic == nil || !shown || button.Empty() || f.Town.talk.part != page+1 {
 			t.Fatalf("page %d: no bound dialogue or button", page+1)
 		}
 		layout := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(true).
@@ -161,7 +161,7 @@ func TestSecondTownTalkProbeReadsTheBoundScreen(t *testing.T) {
 		}
 		dialogueKeyPress(t, app, screen, "click")
 	}
-	if _, open := screen.TownDialogue(); open || f.Town.second.noticePending() {
+	if _, open := screen.TownDialogue(); open || f.Town.secondNoticePending() {
 		t.Fatal("the final pointer acknowledgement left the talk open")
 	}
 }
@@ -208,7 +208,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if screen.state().talk.payload != nil {
+	if screen.talkPage().payload != nil {
 		t.Fatal("conversation did not close")
 	}
 	if err := app.HeadlessActivate("TALK 517"); err != nil {

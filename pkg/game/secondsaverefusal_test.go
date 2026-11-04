@@ -131,12 +131,11 @@ func TestSecondSaveRefusalNamesTheReason(t *testing.T) {
 	if got := admit(false); got != "" {
 		t.Fatalf("a quiet town refused: %q", got)
 	}
-	c := f.Town.second
-	c.talk.open([]byte{1})
+	f.Town.talk.open([]byte{1})
 	if got, want := admit(false), ru.Text("save.refused.talk"); got != want {
 		t.Fatalf("open talk: %q, want %q", got, want)
 	}
-	c.talk = talkCursor{}
+	f.Town.talk = talkCursor{}
 
 	secondBagEnter(t, f, app, screen)
 	secondContinuedWin(t, f, app)

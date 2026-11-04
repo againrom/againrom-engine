@@ -7,6 +7,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/data"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -141,7 +142,7 @@ func TestTownTalkOpenBeforePartIsProfileData(t *testing.T) {
 	}
 }
 
-func setTalkRule(t *testing.T, rule string, p townTalkProfile) {
+func setTalkRule(t *testing.T, rule town.TalkMode, p townTalkProfile) {
 	t.Helper()
 	old := townTalkRules[rule]
 	townTalkRules[rule] = p

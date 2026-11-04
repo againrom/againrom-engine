@@ -10,9 +10,10 @@ type townCampaignAdapter interface {
 	ready() bool
 	present() bool
 	talking() bool
-	// talkCursor is the campaign's town talk cursor, nil where the campaign
-	// has none to turn; endTalk is what the talk's end does to the campaign.
-	talkCursor() *talkCursor
+	// talkSeated reports whether the campaign has a talk to turn, so that
+	// the town's one talk cursor is offered; endTalk is what the talk's end
+	// does to the campaign.
+	talkSeated() bool
 	endTalk()
 	condition(string) bool
 	value(string) int
@@ -39,6 +40,15 @@ func (t *townScreen) hostRules() town.HostSpec {
 		return *t.defaults.Host
 	}
 	return *ROM1TownDescription().Host
+}
+
+// talkPage is the town's one talk cursor, held by the session's town; nil
+// where the screen has no town.
+func (t *townScreen) talkPage() *talkCursor {
+	if t.sess == nil || t.sess.Town == nil {
+		return nil
+	}
+	return &t.sess.Town.talk
 }
 
 func (t *townScreen) roomName() string { return t.campaignTown().room() }

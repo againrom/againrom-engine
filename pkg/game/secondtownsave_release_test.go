@@ -715,7 +715,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := f.Town.second
-	payload, part := bytes.Clone(c.talk.payload), c.talk.part
+	payload, part := bytes.Clone(f.Town.talk.payload), f.Town.talk.part
 	if len(c.available) != 2 || len(payload) == 0 {
 		t.Fatal("already-unlocked TALK control absent")
 	}
@@ -750,18 +750,18 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	if !bytes.Equal(c.talk.payload, payload) || c.talk.part != part || !reflect.DeepEqual(c.available, []partyPlace{{2, 1}, {1, 10}}) {
+	if !bytes.Equal(f.Town.talk.payload, payload) || f.Town.talk.part != part || !reflect.DeepEqual(c.available, []partyPlace{{2, 1}, {1, 10}}) {
 		t.Fatal("refusal changed TALK modal/unlock")
 	}
 	if files, err := os.ReadDir(out); err != nil || len(files) != 0 {
 		t.Fatal("modal refusal left partial files", files, err)
 	}
-	for page := 0; len(c.talk.payload) != 0 && page < 64; page++ {
+	for page := 0; len(f.Town.talk.payload) != 0 && page < 64; page++ {
 		if err := app.HeadlessActivate("notice"); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if !f.Town.second.savePoint() {
+	if !f.Town.secondSavePoint() {
 		t.Fatal("closed TALK not saveable")
 	}
 	before := secondTownSampleNow(t, f, app)

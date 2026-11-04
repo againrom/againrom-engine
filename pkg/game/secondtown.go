@@ -87,7 +87,7 @@ func newTownSceneState(_ *FrontEnd) *townSceneState {
 // install profile's catalog composes it under the second game's hook set. A
 // town the catalog does not list keeps the row list.
 func (t *townScreen) composedTown() (*town.Description, bool) {
-	if t.composed == nil && t.hostRules().Pages == "entry" || !t.campaignTown().present() {
+	if t.composed == nil && t.hostRules().Pages == town.PagesEntry || !t.campaignTown().present() {
 		return nil, false
 	}
 	d := t.townDescription()
@@ -100,7 +100,7 @@ func (t *townScreen) scene(d *town.Description, room string) *town.Scene {
 	if t.composed == nil {
 		t.composed = newTownSceneState(nil)
 	}
-	if t.hostRules().Pages == "retained" {
+	if t.hostRules().Pages == town.PagesRetained {
 		if room == d.Square.Name && t.square != nil {
 			return t.square
 		}
@@ -109,7 +109,7 @@ func (t *townScreen) scene(d *town.Description, room string) *town.Scene {
 		}
 	}
 	key := d.Town + "/" + room
-	if s := t.composed.scenes[key]; s != nil && t.hostRules().Pages != "retained" {
+	if s := t.composed.scenes[key]; s != nil && t.hostRules().Pages != town.PagesRetained {
 		return s
 	}
 	s := town.NewScene(d, room, townSceneHost{t: t, room: room}, t.townProcess)

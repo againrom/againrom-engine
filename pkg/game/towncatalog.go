@@ -224,9 +224,9 @@ func checkTownCatalog(c *town.Catalog, data map[string][]byte, decoded map[strin
 
 func checkTownStateBinding(d *town.Description, offers string) error {
 	if h := d.Host; h != nil {
-		shop, talk, leave, cached, starts := "chapter", "building", "room-map", true, false
+		shop, talk, leave, cached, starts := town.ShopChapter, town.TalkBuilding, town.LeaveRoomMap, true, false
 		if offers == townOffersScenarioBank {
-			shop, talk, leave, cached, starts = "bank", "section", "destinations", false, true
+			shop, talk, leave, cached, starts = town.ShopBank, town.TalkSection, town.LeaveDestinations, false, true
 		}
 		if h.Shop != shop || h.Talk != talk || h.Leave != leave || h.CacheScreen != cached || h.StartsInTown != starts {
 			return fmt.Errorf("host state binding does not match offer source %s", offers)

@@ -45,7 +45,7 @@ func (t *townScreen) sceneArt(name string) *town.Art {
 	if t == nil || t.sess == nil {
 		return nil
 	}
-	if t.hostRules().Art == "manifest" {
+	if t.hostRules().Art == town.ArtManifest {
 		if d := t.townDescription(); d != nil {
 			return t.roomArt(d, name).scene
 		}
@@ -228,7 +228,7 @@ func (t *townScreen) sceneHook(name, room string) {
 }
 
 func (t *townScreen) sceneDialogue(key string) {
-	if t.hostRules().Talk == "section" {
+	if t.hostRules().Talk == town.TalkSection {
 		t.squareAction = t.openTownText(key)
 	}
 }

@@ -48,27 +48,27 @@ type Description struct {
 
 // HostSpec selects the town host's presentation and lifecycle rules.
 type HostSpec struct {
-	CurrentHookRoom bool     `json:"current-hook-room"`
-	Shop            string   `json:"shop"`
-	TrackSource     string   `json:"track-source"`
-	RequireArt      bool     `json:"require-art"`
-	Rows            string   `json:"rows"`
-	Header          string   `json:"header"`
-	HeaderPrefix    string   `json:"header-prefix"`
-	Footer          string   `json:"footer"`
-	Talk            string   `json:"talk"`
-	Pages           string   `json:"pages"`
-	Art             string   `json:"art"`
-	AudioRoom       string   `json:"audio-room"`
-	Leave           string   `json:"leave"`
-	Speech          bool     `json:"speech"`
-	SilentSquare    bool     `json:"silent-square"`
-	ClickSounds     bool     `json:"click-sounds"`
-	DialogueSpeech  bool     `json:"dialogue-speech"`
-	CacheScreen     bool     `json:"cache-screen"`
-	EagerSquare     bool     `json:"eager-square"`
-	StartsInTown    bool     `json:"starts-in-town"`
-	Cite            []string `json:"cite"`
+	CurrentHookRoom bool            `json:"current-hook-room"`
+	Shop            ShopMode        `json:"shop"`
+	TrackSource     TrackSourceMode `json:"track-source"`
+	RequireArt      bool            `json:"require-art"`
+	Rows            RowsMode        `json:"rows"`
+	Header          HeaderMode      `json:"header"`
+	HeaderPrefix    string          `json:"header-prefix"`
+	Footer          FooterMode      `json:"footer"`
+	Talk            TalkMode        `json:"talk"`
+	Pages           PagesMode       `json:"pages"`
+	Art             ArtMode         `json:"art"`
+	AudioRoom       AudioRoomMode   `json:"audio-room"`
+	Leave           LeaveMode       `json:"leave"`
+	Speech          bool            `json:"speech"`
+	SilentSquare    bool            `json:"silent-square"`
+	ClickSounds     bool            `json:"click-sounds"`
+	DialogueSpeech  bool            `json:"dialogue-speech"`
+	CacheScreen     bool            `json:"cache-screen"`
+	EagerSquare     bool            `json:"eager-square"`
+	StartsInTown    bool            `json:"starts-in-town"`
+	Cite            []string        `json:"cite"`
 }
 
 // ViewSpec is the view's size.
