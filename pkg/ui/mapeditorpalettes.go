@@ -61,28 +61,21 @@ func (e *MapEditor) objectRowsIn(trees bool) []BrushObject {
 }
 
 // scenarioRows are the Scenario palette's list rows, what each stands for
-// and the selection's row, -1 for none: New trigger, the one-click
-// trigger's command row, disabled where the map takes none; then the tree's
-// Scenario branch open and unsearched, from treeRowsOf, without its branch
-// row and a step less indented.
+// and the selection's row, -1 for none: the tree's Scenario branch open and
+// unsearched, from treeRowsOf, without its branch row and a step less
+// indented.
 func (e *MapEditor) scenarioRows() ([]PickerRow, []treeRow, int) {
-	rows := []PickerRow{{Text: e.word("editor.tool.newtrigger"), Choosable: e.triggerNowOpen()}}
-	if !rows[0].Choosable {
-		rows[0].Ink = popupHintInk
-	}
-	kinds := []treeRow{{record: -1}}
 	c, _ := categoryOf(editorScriptsFilter)
 	tree, members, sel := e.treeRowsOf([]editorCategory{c}, "", nil)
 	if len(tree) == 0 {
-		return rows, kinds, -1
+		return nil, nil, -1
 	}
+	var rows []PickerRow
 	for _, r := range tree[1:] {
 		r.Indent = max(0, r.Indent-1)
 		rows = append(rows, r)
 	}
-	// The branch row goes and New trigger stands first: a row keeps its
-	// index.
-	return rows, append(kinds, members[1:]...), sel
+	return rows, members[1:], sel - 1
 }
 
 // PaletteHolds is what bar palette p lists on the open document, as its

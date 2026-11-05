@@ -17,8 +17,7 @@ import (
 )
 
 // bareConditions holds the MCP call of each editor that added a bare
-// condition: the Add window places a condition as a wizard item's check in a
-// trigger, and add_record still adds the constant node Details then edits.
+// script record: add_record adds the record Details then edits.
 var bareConditions sync.Map
 
 func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
@@ -26,7 +25,7 @@ func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
 	if err := e.Key("scripts"); err != nil {
 		t.Fatal(err)
 	}
-	if kind == "Condition" {
+	if kind == "Condition" || kind == "Action" || kind == "Trigger" {
 		call, ok := bareConditions.Load(e)
 		if !ok {
 			_, must := editorMCP(t, e)
@@ -34,18 +33,15 @@ func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
 			bareConditions.Store(e, must)
 			t.Cleanup(func() { bareConditions.Delete(e) })
 		}
-		call.(func(string, any) editormcp.Result)("add_record", map[string]any{"kind": "Condition"})
-		index := len(e.Document().Script.Conditions) - 1
+		call.(func(string, any) editormcp.Result)("add_record", map[string]any{"kind": kind})
+		index := map[string]int{"Condition": len(e.Document().Script.Conditions), "Action": len(e.Document().Script.Actions), "Trigger": len(e.Document().Script.Triggers)}[kind] - 1
 		if !e.Select(recordOf(e.Document(), kind, index), false) {
-			t.Fatalf("no new Condition %d: %s", index, e.Message())
+			t.Fatalf("no new %s %d: %s", kind, index, e.Message())
 		}
 		return index
 	}
-	addWindow(t, e, "player", map[string]string{"kind": map[string]string{"Action": "0", "Trigger": "2"}[kind]})
-	if e.Selected() < 0 || string(e.Document().Records[e.Selected()].Kind) != kind {
-		t.Fatalf("no new %s selected: %d %s", kind, e.Selected(), e.Message())
-	}
-	return e.Document().Records[e.Selected()].Index
+	t.Fatalf("no route adds a %s", kind)
+	return 0
 }
 
 func scriptWindowSet(t *testing.T, e *ui.MapEditor, kind string, index int, key, value string) {

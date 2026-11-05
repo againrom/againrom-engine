@@ -228,7 +228,7 @@ func TestScriptsListVariableRegisterAndLabel(t *testing.T) {
 	}
 }
 
-func TestScriptsBarAndF2OpenOneListAndAddWizard(t *testing.T) {
+func TestScriptsBarAndF2OpenOneListAndNoAddWizard(t *testing.T) {
 	for _, bar := range []bool{false, true} {
 		e := scriptsListEditor(t)
 		if bar {
@@ -245,8 +245,8 @@ func TestScriptsBarAndF2OpenOneListAndAddWizard(t *testing.T) {
 			}
 		}
 		_ = e.Key("player")
-		if addKindNow(e) != "Script" {
-			t.Fatal("A did not open the script wizard")
+		if addKindNow(e) != "" {
+			t.Fatal("A opened an Add window on the Scenario list")
 		}
 	}
 }

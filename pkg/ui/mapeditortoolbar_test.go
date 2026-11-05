@@ -57,25 +57,17 @@ func openMenuRow(t *testing.T, e *MapEditor, menu, key string) {
 	modesClick(e, menuPoint(t, e, menuKeyRow(t, e, menu, key)))
 }
 
-// scriptsAddTrigger presses the Scenario bar entry, its palette's Add and
-// chooses Trigger in the kind step.
-func scriptsAddTrigger(t *testing.T, e *MapEditor) {
+// scriptsNewTrigger presses the Scenario bar entry and its palette's New
+// trigger button.
+func scriptsNewTrigger(t *testing.T, e *MapEditor) {
 	t.Helper()
 	modesClick(e, barPoint(t, e, "scripts"))
 	e.places[popObject].at = image.Pt(0, e.window.Y) // the selected script's popup stands clear of the list
-	r, ok := e.ListButtonKeyRect("add")
+	r, ok := e.ListButtonKeyRect("newtrigger")
 	if !ok {
-		t.Fatal("the Scenario palette has no Add button")
+		t.Fatal("the Scenario palette has no New trigger button")
 	}
 	modesClick(e, center(r))
-	if addKindNow(e) != "Script" {
-		t.Fatalf("Add opened %q", addKindNow(e))
-	}
-	e.prompt.path = "2"
-	_ = e.Key("enter")
-	if addKindNow(e) != "Trigger" {
-		t.Fatalf("choosing Trigger opened %q", addKindNow(e))
-	}
 }
 
 // baseViewToolsRows are the row keys the old View and Tools menus held, with
@@ -591,9 +583,8 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 }
 
 // (f) Owner item 3: Tools' Generate group runs random landscape and random
-// heights as their keys do, and the Scenario palette's Add, choosing
-// Trigger, walks the trigger steps the trigger popup's New walks and adds
-// the same trigger.
+// heights as their keys do, and the Scenario palette's New trigger
+// adds the trigger the trigger popup's New adds.
 func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	e, _, _ := terrainEditor(t)
 	items := e.menuItems("tools") // Owner item 3.
@@ -624,13 +615,9 @@ func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	}
 	byAdd, addCalls := newModesEditor(t, "full")
 	byRow, rowCalls := newModesEditor(t, "full")
-	scriptsAddTrigger(t, byAdd)
+	scriptsNewTrigger(t, byAdd)
 	byRow.newTrigger()
-	for i := 0; i < 6 && addKindNow(byRow) != ""; i++ {
-		addAdvance(t, byRow, 1)
-		addAdvance(t, byAdd, 1)
-	}
-	if addKindNow(byAdd) != "" || fmt.Sprint(addCalls.lines) != fmt.Sprint(rowCalls.lines) || len(addCalls.lines) != 1 || !strings.HasPrefix(addCalls.lines[0], "AddRecord Trigger") {
-		t.Fatalf("Add wrote %v, New trigger %v", addCalls.lines, rowCalls.lines)
+	if addKindNow(byAdd) != "" || addKindNow(byRow) != "" || fmt.Sprint(addCalls.lines) != fmt.Sprint(rowCalls.lines) || len(addCalls.lines) != 1 || !strings.HasPrefix(addCalls.lines[0], "AddRecord Trigger") {
+		t.Fatalf("the button wrote %v, New %v", addCalls.lines, rowCalls.lines)
 	}
 }

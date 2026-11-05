@@ -66,13 +66,6 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 			if st.Key == "" || st.Control > addItem {
 				t.Errorf("%s step %+v is not a builder step", k.Kind, st)
 			}
-			for _, next := range st.Kinds {
-				row, ok := addKindOf(next)
-				if !ok {
-					t.Errorf("%s offers kind %s, no row", k.Kind, next)
-				}
-				has(row.ChoiceWord)
-			}
 		}
 		for _, f := range k.Filters {
 			if filters[f] != "" {
@@ -81,7 +74,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 			filters[f] = string(k.Kind)
 		}
 	}
-	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script"}
+	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player"}
 	for f, kind := range want {
 		if filters[f] != kind {
 			t.Errorf("list %d adds %q, want %q", f, filters[f], kind)
@@ -125,7 +118,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
 		}
 	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script"} {
+	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player"} {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		_ = e.Key("player")
@@ -145,7 +138,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 	}
 	e, _ := newModesEditor(t, "full")
 	e.newTrigger()
-	if addKindNow(e) != "Trigger" {
+	if addKindNow(e) != "" {
 		t.Error("the trigger popup's New opened", addKindNow(e))
 	}
 	plain, _ := newModesEditor(t, "plain")
@@ -358,20 +351,5 @@ func TestMapEditorAddManyAndScriptKinds(t *testing.T) {
 	_ = e.Key("enter")
 	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Sack (25,20) true [{item 2 false  false}]") {
 		t.Fatal("the sack add is wrong", calls.lines)
-	}
-
-	e, calls = newModesEditor(t, "full")
-	e.showRecords(editorScriptsFilter)
-	_ = e.Key("player")
-	e.prompt.path = "2"
-	_ = e.Key("enter")
-	if r, _ := e.addRunning(); r.kind != "Trigger" {
-		t.Fatal("the kind step did not go on as a trigger", r.kind)
-	}
-	for n := 0; n < 8 && addKindNow(e) != ""; n++ {
-		addAdvance(t, e, 1)
-	}
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], `AddRecord Trigger (0,0) false [{name 0 true New false} {once 1 false  false}]`) {
-		t.Fatal("the trigger add is wrong", calls.lines)
 	}
 }

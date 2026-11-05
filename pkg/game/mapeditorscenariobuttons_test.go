@@ -1,0 +1,215 @@
+package game
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
+	"image"
+	"slices"
+	"strings"
+	"testing"
+
+	"againrom/pkg/ui"
+	"againrom/pkg/words"
+)
+
+// scenarioButtonClick presses the Scenario palette's button key.
+func scenarioButtonClick(t *testing.T, e *ui.MapEditor, key string) {
+	t.Helper()
+	scenarioOpen(t, e)
+	r, ok := e.ListButtonKeyRect(key)
+	trigClick(t, e, r, ok, "palette button "+key)
+}
+
+// The hash of the map scriptAddMap builds, and of the bytes the script Add
+// window wrote for a trigger with every proposal accepted, taken from the
+// window before it was removed.
+const (
+	scenarioMapSum        = "8d0f9bb5c2a07f0c0580ea3a8412713b825577ccb1a749213f08205f57406135"
+	scenarioTriggerAddSum = "9b396a9a5ecbf126db4ccbed199e8f94006eca23ae0ce02328e7ae8c080e2251"
+)
+
+func sumOf(b []byte) string { return fmt.Sprintf("%x", sha256.Sum256(b)) }
+
+// The Scenario palette lists the rows of the tree's Scenario branch in the
+// tree's order and words, one step less indented, from row 0; no New trigger
+// row stands first. Every row shows at 1920x1080, and a click on a row
+// selects and opens what a click on its tree row does. EN and RU.
+func TestMapEditorScenarioPaletteListsOnlyTheRecordRows(t *testing.T) {
+	b := scriptAddMap(t)
+	window := image.Rect(0, 0, 1920, 1080)
+	for _, l := range scriptAddLangs {
+		t.Run(l.name, func(t *testing.T) {
+			e, _, w := scriptAddEditor(t, l, b)
+			_, tree := scenarioBranch(t, e)
+			var want []string
+			for _, line := range tree[1:] {
+				want = append(want, strings.TrimPrefix(line, "  "))
+			}
+			scenarioOpen(t, e)
+			got := e.ListLines()
+			if !slices.Equal(got, want) || slices.Contains(got, w("editor.tool.newtrigger")) {
+				t.Fatalf("the palette lists\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+			}
+			for n := range want {
+				if r, ok := e.ListRowRect(n); !ok || !r.In(window) {
+					t.Fatalf("palette row %d shows %v at %v", n, ok, r)
+				}
+			}
+			members := 0
+			for k := 0; ; k++ {
+				x, _, _ := scriptAddEditor(t, l, b)
+				showTree(x)
+				row := x.TreeMemberRow("scripts", k)
+				if row < 0 {
+					break
+				}
+				members++
+				branch := x.TreeBranchRow("scripts")
+				r, ok := x.TreeRowRect(row)
+				trigClick(t, x, r, ok, "tree row")
+				y, _, _ := scriptAddEditor(t, l, b)
+				scenarioOpen(t, y)
+				r, ok = y.ListRowRect(row - branch - 1)
+				trigClick(t, y, r, ok, "palette row")
+				if y.Selected() != x.Selected() || y.Selected() < 0 || y.WizardShown() != x.WizardShown() || trigLines(y) != trigLines(x) {
+					t.Fatalf("palette row %d opens %d\n%s\nthe tree row opens %d\n%s", row-branch-1, y.Selected(), trigLines(y), x.Selected(), trigLines(x))
+				}
+			}
+			if members == 0 {
+				t.Fatal("the Scenario branch holds no member row")
+			}
+		})
+	}
+}
+
+// The palette's buttons are the drop zone switch, New trigger and New
+// variable, in that row; Add is gone.
+func TestMapEditorScenarioPaletteButtonKeys(t *testing.T) {
+	b := scriptAddMap(t)
+	window := image.Rect(0, 0, 1920, 1080)
+	for _, l := range scriptAddLangs {
+		e, _, _ := scriptAddEditor(t, l, b)
+		scenarioOpen(t, e)
+		var rects []image.Rectangle
+		for _, k := range []string{"drop", "newtrigger", "newvariable"} {
+			r, ok := e.ListButtonKeyRect(k)
+			if !ok || !r.In(window) {
+				t.Fatalf("%s: button %s shows %v at %v", l.name, k, ok, r)
+			}
+			rects = append(rects, r)
+		}
+		if _, ok := e.ListButtonKeyRect("add"); ok {
+			t.Fatalf("%s: the palette still has Add", l.name)
+		}
+		for i := 1; i < len(rects); i++ {
+			if rects[i].Overlaps(rects[i-1]) || rects[i].Min.X < rects[i-1].Max.X || rects[i].Min.Y != rects[i-1].Min.Y {
+				t.Fatalf("%s: buttons %d and %d at %v and %v", l.name, i-1, i, rects[i-1], rects[i])
+			}
+		}
+	}
+}
+
+// One click on New trigger writes the bytes the script Add window wrote for
+// a trigger with every proposal accepted, and opens the trigger in the
+// wizard, its name field focused with the name selected. EN and RU.
+func TestMapEditorScenarioNewTriggerButtonAddsInOneClick(t *testing.T) {
+	b := scriptAddMap(t)
+	if sumOf(b) != scenarioMapSum {
+		t.Fatal("the test map changed")
+	}
+	triggers := len(wizScript(t, b).Triggers)
+	for _, l := range scriptAddLangs {
+		t.Run(l.name, func(t *testing.T) {
+			e, _, _ := scriptAddEditor(t, l, b)
+			scenarioButtonClick(t, e, "newtrigger")
+			if got := sumOf(e.Document().SourceBytes); got != scenarioTriggerAddSum {
+				t.Fatalf("the button wrote %s, the Add window wrote %s", got, scenarioTriggerAddSum)
+			}
+			freshTriggerShown(t, e, triggers+1)
+			if _, _, open := e.AddStep(); open {
+				t.Fatal("the button opened an Add window")
+			}
+			r, ok := e.PopupButtonRect(1)
+			trigClick(t, e, r, ok, "Cancel")
+			if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, b) {
+				t.Fatalf("one undo left the trigger: %v", err)
+			}
+		})
+	}
+}
+
+// One click on New variable adds the variable with the label proposal on the
+// register the host offers, selects it, opens the label for editing with the
+// text selected, so typing replaces it, and one undo removes it. EN and RU.
+func TestMapEditorScenarioNewVariableButtonAddsInOneClick(t *testing.T) {
+	b := scriptAddMap(t)
+	for _, l := range scriptAddLangs {
+		t.Run(l.name, func(t *testing.T) {
+			proposal := words.For(l.profile.Language).Text("editor.add.variable")
+			e, _, _ := scriptAddEditor(t, l, b)
+			r0 := variableTarget(t, e)
+			scenarioButtonClick(t, e, "newvariable")
+			if got := e.Document().Script.Labels[r0]; got != proposal || !e.Dirty() || !bytes.Equal(e.Document().SourceBytes, b) {
+				t.Fatalf("register %d labelled %q, want %q; dirty %v", r0, got, proposal, e.Dirty())
+			}
+			if e.Selected() > -2 {
+				t.Fatalf("the new variable is not selected: %d", e.Selected())
+			}
+			if key, _, ok := e.AddStep(); !ok || key != "label" {
+				t.Fatalf("the label is not open for editing: %q %v", key, ok)
+			}
+			if r1 := variableTarget(t, e); r1 == r0 {
+				t.Fatalf("the next variable takes register %d again", r1)
+			}
+
+			c, _, _ := scriptAddEditor(t, l, b)
+			scenarioButtonClick(t, c, "newvariable")
+			c.TextInput("Gold")
+			if err := c.Key("enter"); err != nil {
+				t.Fatal(err)
+			}
+			if got := c.Document().Script.Labels[r0]; got != "Gold" {
+				t.Fatalf("typing over the selection left %q", got)
+			}
+
+			u, _, _ := scriptAddEditor(t, l, b)
+			scenarioButtonClick(t, u, "newvariable")
+			if err := u.Key("escape"); err != nil {
+				t.Fatal(err)
+			}
+			if err := u.Key("undo"); err != nil {
+				t.Fatal(err)
+			}
+			if len(u.Document().Script.Labels) != 0 || u.Dirty() {
+				t.Fatalf("one undo left labels %v, dirty %v", u.Document().Script.Labels, u.Dirty())
+			}
+		})
+	}
+}
+
+// No route opens the script Add window: the A key on the palette, the
+// wizard's New (which adds the one-click trigger) and F4.
+func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
+	b := scriptAddMap(t)
+	triggers := len(wizScript(t, b).Triggers)
+	for _, l := range scriptAddLangs {
+		e, _, _ := scriptAddEditor(t, l, b)
+		scenarioOpen(t, e)
+		_ = e.Key("player")
+		if _, _, open := e.AddStep(); open {
+			t.Fatalf("%s: the A key opened the Add window", l.name)
+		}
+		e.Select(trigRecord(t, e, "Trigger", 0), true)
+		r, ok := e.PopupButtonRect(2)
+		trigClick(t, e, r, ok, "New")
+		if _, _, open := e.AddStep(); open {
+			t.Fatalf("%s: the wizard's New opened the Add window", l.name)
+		}
+		freshTriggerShown(t, e, triggers+1)
+		pressF4(t, e)
+		if _, _, open := e.AddStep(); open {
+			t.Fatalf("%s: F4 opened the Add window", l.name)
+		}
+	}
+}

@@ -366,15 +366,6 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 			e.TextInput("Rewritten")
 			messageButton(t, e, 0)
 		}, fixed(commandCall{"write_message", map[string]any{"page": 1, "parts": []any{map[string]any{"source": 0, "body": "Rewritten"}}}})},
-		{"add_record message", message, func(t *testing.T, e *ui.MapEditor) {
-			if err := e.Key("scripts"); err != nil {
-				t.Fatal(err)
-			}
-			addWindow(t, e, "player", map[string]string{"kind": "3"})
-			messageField(t, e, 0)
-			e.TextInput("Hello")
-			messageButton(t, e, 0)
-		}, fixed(commandCall{"add_record", map[string]any{"kind": "Message", "parts": []any{map[string]any{"body": "Hello"}}}})},
 		{"add_box_area new trigger", areas, func(t *testing.T, e *ui.MapEditor) {
 			areaDraw(t, e, image.Pt(6, 33), image.Pt(2, 30))
 			_ = e.Key("enter")

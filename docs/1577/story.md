@@ -119,3 +119,12 @@ Release tests for the next release, EN and RU, not run in the lane:
 - The Scenario palette does not move when the left panel opens under it.
 - `WizardShown` loads the selected record's popup, so after Cancel it reports the wizard as shown
   while no window is open. The tests read `OpenWindows`.
+
+## Later change
+
+The Scenario palette no longer lists «Новый триггер» as row 0 and no longer has «Добавить»; its
+buttons are «Зоны высадки (D)», «Новый триггер» and «Новая переменная». Both new buttons, F4, the
+Tools row and the wizard's «Новый» go through `addNow` (`pkg/ui/mapeditortrigger.go`), the one-click
+add of a script record by kind, and the script Add window with its kind list is gone. The rows,
+tests and routes described above that read row 0 or the Add window stand replaced by
+`pkg/game/mapeditorscenariobuttons_test.go` and `pkg/ui/mapeditorscenariobuttons_test.go`.

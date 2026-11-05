@@ -94,140 +94,6 @@ func addWalk(t *testing.T, e *ui.MapEditor, values map[string]string, stop strin
 	return nil
 }
 
-// openScriptAdd opens the Add window of the Scripts list.
-func openScriptAdd(t *testing.T, e *ui.MapEditor) {
-	t.Helper()
-	if err := e.Key("scripts"); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.Key("player"); err != nil {
-		t.Fatal(err)
-	}
-	if key, _, ok := e.AddStep(); !ok || key != "kind" {
-		t.Fatalf("the Scripts list's Add opened %q %v", key, ok)
-	}
-}
-
-// addCheck adds condition item into trigger (-1 a new one) through the
-// Conditions Add, answering the steps it asked.
-func addCheck(t *testing.T, e *ui.MapEditor, item, trigger int) []string {
-	t.Helper()
-	openScriptAdd(t, e)
-	return addWalk(t, e, map[string]string{"kind": "1", "check": strconv.Itoa(item), "trigger": strconv.Itoa(trigger)}, "")
-}
-
-// wizardCheck adds a condition row of the item labelled label as row key
-// of trigger's wizard, with the row's defaults, and applies it.
-func wizardCheck(t *testing.T, e *ui.MapEditor, trigger int, key, label string) {
-	t.Helper()
-	e.Select(trigRecord(t, e, "Trigger", trigger), true)
-	wizPress(t, e, "", 0)
-	trigChoose(t, e, wizField(t, e, key+".item"), label)
-	wizApply(t, e)
-}
-
-// checkKinds are condition items covering each parameter kind a condition
-// takes: the item's index in the wizard's table, its label word and the
-// parameter and comparison steps the Add window asks.
-var checkKinds = []struct {
-	kind  string
-	item  int
-	word  string
-	steps []string
-}{
-	{"unit", 4, "editor.wizard.c.unitdead", []string{"p0"}},
-	{"player", 6, "editor.wizard.c.playercount", []string{"p0", "p1", "cmp"}},
-	{"cell", 15, "editor.wizard.c.sackgone", []string{"p0"}},
-	{"variable", 21, "editor.wizard.c.variable", []string{"p0", "p1", "cmp"}},
-	{"item", 17, "editor.wizard.c.hasitem", []string{"p0", "p1"}},
-	{"group", 5, "editor.wizard.c.groupcount", []string{"p0", "p1", "cmp"}},
-	{"number", 11, "editor.wizard.c.health", []string{"p0", "p1", "cmp"}},
-	{"structure", 20, "editor.wizard.c.structure", []string{"p0", "p1", "cmp"}},
-	{"area", 0, "editor.wizard.c.heroarea", []string{"p0", "p1"}},
-}
-
-// The Conditions Add offers the wizard's condition items in the editor's
-// words, EN and RU, asks the item's parameters, and writes the item's form
-// exactly as a wizard row of that item writes it: into an existing trigger
-// the map bytes equal the wizard's, the check in the trigger's first free
-// pair; into a new trigger the nodes and the pair are the wizard row's, the
-// new trigger reads back with the row as that item, and no constant 0 node
-// is written alone.
-func TestScriptsAddConditionWritesTheWizardRowOfEachParameterKind(t *testing.T) {
-	b := scriptAddMap(t)
-	for _, l := range scriptAddLangs {
-		for _, k := range checkKinds {
-			name := l.name + " " + k.kind
-			x, _, w := scriptAddEditor(t, l, b)
-			wizardCheck(t, x, 1, "c1", w(k.word))
-			wizard := wizScript(t, x.Document().SourceBytes)
-
-			y, _, _ := scriptAddEditor(t, l, b)
-			openScriptAdd(t, y)
-			addWalk(t, y, map[string]string{"kind": "1"}, "check")
-			if lines := y.AddListLines(); !slices.Contains(lines, w(k.word)) {
-				t.Fatalf("%s: the item list lacks %q: %q", name, w(k.word), lines)
-			}
-			keys := addWalk(t, y, map[string]string{"check": strconv.Itoa(k.item), "trigger": "1"}, "")
-			if want := append(append([]string{"check"}, k.steps...), "trigger"); !slices.Equal(keys, want) {
-				t.Fatalf("%s: the Add window asked %q, want %q", name, keys, want)
-			}
-			if !bytes.Equal(y.Document().SourceBytes, x.Document().SourceBytes) {
-				got := wizScript(t, y.Document().SourceBytes)
-				t.Fatalf("%s: Add wrote %+v / %+v, the wizard %+v / %+v", name, got.Triggers[1], got.Conditions[4:], wizard.Triggers[1], wizard.Conditions[4:])
-			}
-			if tr := wizard.Triggers[1]; tr.Left[1] == 0 || tr.Left[0] != 1 || tr.Left[2] != 0 {
-				t.Fatalf("%s: the check is not in the first free pair: %+v", name, tr)
-			}
-
-			z, _, _ := scriptAddEditor(t, l, b)
-			addCheck(t, z, k.item, -1)
-			sc := wizScript(t, z.Document().SourceBytes)
-			if len(sc.Triggers) != 3 {
-				t.Fatalf("%s: %d triggers after a check into a new trigger", name, len(sc.Triggers))
-			}
-			tr, want := sc.Triggers[2], wizard.Triggers[1]
-			if !reflect.DeepEqual(sc.Conditions, wizard.Conditions) || tr.Left[0] != want.Left[1] || tr.Right[0] != want.Right[1] || tr.Cmp[0] != want.Cmp[1] {
-				t.Fatalf("%s: the new trigger %+v over %+v, the wizard row %+v over %+v", name, tr, sc.Conditions[4:], want, wizard.Conditions[4:])
-			}
-			for _, n := range sc.Conditions[4:] {
-				if n.Opcode == 0x10002 && n.Value[0] == 0 && n.ID != tr.Right[0] {
-					t.Fatalf("%s: a constant 0 node no pair names was written: %+v", name, n)
-				}
-			}
-			z.Select(trigRecord(t, z, "Trigger", 2), true)
-			row := w("editor.wizard.condition") + " " + w(k.word)
-			if _, kept := z.WizardRowCounts(); kept != 0 || !slices.Contains(z.PopupLines(), row) {
-				t.Fatalf("%s: the new trigger does not read back as %q:\n%s", name, row, trigLines(z))
-			}
-		}
-	}
-}
-
-// A trigger with no free pair is refused at the trigger step in the
-// editor's words, EN and RU; the window stays, and leaving it changes no
-// byte of the map.
-func TestScriptsAddConditionRefusesAFullTrigger(t *testing.T) {
-	b := scriptAddMap(t)
-	for _, l := range scriptAddLangs {
-		e, _, w := scriptAddEditor(t, l, b)
-		openScriptAdd(t, e)
-		addWalk(t, e, map[string]string{"kind": "1", "check": "4"}, "trigger")
-		_ = e.Key("clear")
-		e.TextInput("0")
-		_ = e.Key("enter")
-		key, note, ok := e.AddStep()
-		if !ok || key != "trigger" || note != w("editor.area.full", 1) {
-			t.Fatalf("%s: a full trigger answered %q %q %v, want %q", l.name, key, note, ok, w("editor.area.full", 1))
-		}
-		r, ok := e.PromptButtonRect(2)
-		trigClick(t, e, r, ok, "Cancel")
-		if _, _, open := e.AddStep(); open || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, b) {
-			t.Fatalf("%s: the refusal changed the map or left the window open", l.name)
-		}
-	}
-}
-
 // A condition no pair names offers Add to trigger in its popup, EN and RU.
 // The check the wizard reads as an item enters as that item's row, the
 // unit-to-unit check no item reads enters as Details enters a pair (== a
@@ -320,11 +186,12 @@ func variableTarget(t *testing.T, e *ui.MapEditor) uint32 {
 	return 0
 }
 
-// newVariable adds a variable labelled label through the Scripts list's Add.
+// newVariable adds a variable through the Scenario palette's New variable
+// and labels it label.
 func newVariable(t *testing.T, e *ui.MapEditor, label string) {
 	t.Helper()
-	openScriptAdd(t, e)
-	if keys := addWalk(t, e, map[string]string{"kind": "4", "label": label}, ""); !slices.Equal(keys, []string{"kind", "label"}) {
+	scenarioButtonClick(t, e, "newvariable")
+	if keys := addWalk(t, e, map[string]string{"label": label}, ""); !slices.Equal(keys, []string{"label"}) {
 		t.Fatalf("New variable asked %q", keys)
 	}
 }

@@ -4094,5 +4094,6 @@ var Committed = Baseline{
 
 	// It rises for strideEntersStep in pkg/sim/areacost.go, the crossing-tick
 	// trap request in pkg/sim/step.go and trapcrossing_test.go.
-	CommentBytes: 10522189,
+	// CommentBytes falls with the one-click add of a script record replacing the trigger-only builder and the script Add window.
+	CommentBytes: 10522031,
 }

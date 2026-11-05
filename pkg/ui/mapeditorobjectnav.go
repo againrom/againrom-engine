@@ -85,11 +85,16 @@ func (e *MapEditor) objectBackButton(s *popupSpec) {
 // fitButtons widens s so its whole button row lies inside the popup, each
 // button at the width popupButtonWidths gives it in the font body.
 func fitButtons(s *popupSpec, body *text.Font) {
+	s.Width = max(s.Width, buttonRowWidth(*s, body))
+}
+
+// buttonRowWidth is the width the popup needs for its button row.
+func buttonRowWidth(s popupSpec, body *text.Font) int {
 	row := popupPad
-	for _, bw := range popupButtonWidths(*s, body) {
+	for _, bw := range popupButtonWidths(s, body) {
 		row += bw + popupPad
 	}
-	s.Width = max(s.Width, row)
+	return row
 }
 
 func (e *MapEditor) backObject() {

@@ -754,14 +754,9 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 	}
 }
 
-// newTrigger opens the Add window on a new trigger.
-func (e *MapEditor) newTrigger() {
-	if e.objectDirty() {
-		e.obj.note = e.word("editor.trigger.applyfirst")
-		return
-	}
-	e.openAdd(KindTrigger)
-}
+// newTrigger adds a new trigger in one click, as the Scenario palette's New
+// trigger does.
+func (e *MapEditor) newTrigger() { e.addNow(KindTrigger) }
 
 // freshTrigger is the trigger the one click added, the document its add made
 // and the wizard session that click opened; wiz nil for none.
@@ -771,16 +766,17 @@ type freshTrigger struct {
 	wiz   *wizardState
 }
 
-// addTriggerNow is the one-click trigger, the New trigger command row's
-// action: it adds the trigger the Add window's trigger steps add with every
-// proposal accepted, as one history entry, closes the list popup and opens
-// the trigger in the wizard, its name field focused with its text selected,
-// so typing replaces the name. A shown popup with unapplied edits keeps
-// them and says so.
-func (e *MapEditor) addTriggerNow() {
+// addNow is the one-click add of a script record, the Scenario palette's New
+// trigger and New variable buttons and the New trigger command row: it adds
+// the record the Add steps of kind add with every proposal accepted, as one
+// history entry, and closes the list popup. A trigger opens in the wizard,
+// its name field focused with its text selected; a variable is selected and
+// opens where its label is edited, the label selected, so typing replaces
+// it. A shown popup with unapplied edits keeps them and says so.
+func (e *MapEditor) addNow(kind RecordKind) {
 	host, ok := e.addHost()
-	row, _ := addKindOf(KindTrigger)
-	if !ok || !e.triggerNowOpen() {
+	row, _ := addKindOf(kind)
+	if !ok || !e.addNowOpen(kind) {
 		return
 	}
 	if e.objectDirty() {
@@ -791,7 +787,29 @@ func (e *MapEditor) addTriggerNow() {
 	e.closeList()
 	run := &addRun{kind: row.Kind}
 	run.setSteps(row.Steps)
-	ch, err := e.commandAddRecord(e.addAccepted(host, run, -1, image.Point{}))
+	record := e.addAccepted(host, run, -1, image.Point{})
+	if kind == KindVariable {
+		label := ""
+		for _, v := range record.Values {
+			if v.Key == addLabel.Key {
+				label = v.TextValue
+			}
+		}
+		_, register, err := e.commandLabelVariable(nil, label)
+		if err != nil {
+			e.message = e.editorHostText(err.Error())
+			return
+		}
+		e.selectVariable(register)
+		if v, ok := e.scriptVariableRow(e.selected); ok {
+			e.variableButton(v, variableLabelButton)
+			if m, _ := e.inputModel(); m != nil {
+				m.selectAll()
+			}
+		}
+		return
+	}
+	ch, err := e.commandAddRecord(record)
 	if err != nil {
 		e.message = e.editorHostText(err.Error())
 		return
@@ -812,11 +830,11 @@ func (e *MapEditor) addTriggerNow() {
 	}
 }
 
-// triggerNowOpen reports that the open map takes the one-click trigger: its
-// host adds records, as the Add window's trigger steps need.
-func (e *MapEditor) triggerNowOpen() bool {
+// addNowOpen reports that the open map takes the one-click add of kind: its
+// host adds records, as the Add steps need, and keeps labels for a variable.
+func (e *MapEditor) addNowOpen(kind RecordKind) bool {
 	_, ok := e.addHost()
-	return ok && e.addKindOpen(KindTrigger)
+	return ok && e.addKindOpen(kind)
 }
 
 // joinsAdd reports that the Apply of trigger index is the first one of the

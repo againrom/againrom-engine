@@ -96,33 +96,15 @@ func wizNode(t *testing.T, nodes []alm.ScriptNode, id uint32) alm.ScriptNode {
 	return alm.ScriptNode{}
 }
 
-// wizNewTrigger runs the Scenario palette's Add, chooses Trigger and names
-// the trigger name. The palette opens over the map's top rows, so the
-// window of the record it chooses closes and the palette, then the front
-// window, is dragged by its title to the window's left edge, clear of the
-// cells the tests draw on.
+// wizNewTrigger presses the Scenario palette's New trigger button and types
+// name over the selected name of the trigger it opened.
 func wizNewTrigger(t *testing.T, e *ui.MapEditor, name string) {
 	t.Helper()
 	r, ok := e.BarRect("scripts")
 	trigClick(t, e, r, ok, "Scenario")
-	front := func() bool {
-		add, _ := e.ListButtonKeyRect("add")
-		pr, ok := e.PopupRect()
-		return ok && add.In(pr)
-	}
-	if !front() {
-		_ = e.Key("escape")
-	}
-	if !front() {
-		t.Fatalf("the Scenario palette is not the front window:\n%s", trigLines(e))
-	}
-	title, _ := e.TitleRect()
-	if before, after := titleDrag(t, e, image.Pt(-title.Min.X, 0)); after.Min.X >= before.Min.X && before.Min.X > 0 {
-		t.Fatalf("the Scenario palette did not move left: title at %v, then %v", before, after)
-	}
-	r, ok = e.ListButtonKeyRect("add")
-	trigClick(t, e, r, ok, "Add")
-	addSteps(t, e, map[string]string{"kind": "2", "name": name})
+	r, ok = e.ListButtonKeyRect("newtrigger")
+	trigClick(t, e, r, ok, "New trigger")
+	e.TextInput(name)
 	if !e.WizardShown() {
 		t.Fatalf("the new trigger does not open the wizard:\n%s", trigLines(e))
 	}

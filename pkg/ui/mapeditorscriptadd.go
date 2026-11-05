@@ -165,7 +165,7 @@ func (e *MapEditor) scriptStepOffer(r *addRun, i int) InspectionNewStep {
 				}
 			}
 		}
-		return InspectionNewStep{}
+		return InspectionNewStep{Text: e.plainWord("editor.add.variable")}
 	}
 	item := e.addItemOf(r)
 	if item < 0 {

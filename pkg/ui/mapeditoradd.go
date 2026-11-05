@@ -70,34 +70,30 @@ const (
 	addName                      // typed text
 	addCell                      // a cell picked on the map or typed x,y
 	addMany                      // one or more of the host's choices
-	addKind                      // the record kind the window goes on as
 	addItem                      // the wizard condition item the window goes on with
 )
 
 // addStep is one step: the host's key for its value, its label's word and
 // its control. An optional step is left out when the host marks it Absent
-// or a choice step is offered fewer than two choices; a kind step offers
-// Kinds. An Editor step is the editor's own, offered and checked from the
-// wizard's item table and the script the editor holds (scriptStepOffer),
-// not by the host; the host's add takes no value of it.
+// or a choice step is offered fewer than two choices. An Editor step is the
+// editor's own, offered and checked from the wizard's item table and the
+// script the editor holds (scriptStepOffer), not by the host; the host's add
+// takes no value of it.
 type addStep struct {
 	Key      string
 	Word     string
 	Control  addControl
 	Optional bool
-	Kinds    []RecordKind
 	Editor   bool
 }
 
 // addKindRow is one record kind the window adds: the kind the host adds, the
-// title word, the word a kind step offers it by, the list views whose Add
-// button opens it and its steps.
+// title word, the list views whose Add button opens it and its steps.
 type addKindRow struct {
-	Kind       RecordKind
-	Word       string
-	ChoiceWord string
-	Filters    []int
-	Steps      []addStep
+	Kind    RecordKind
+	Word    string
+	Filters []int
+	Steps   []addStep
 }
 
 var (
@@ -126,17 +122,15 @@ var addKinds = []addKindRow{
 	{Kind: KindPlayer, Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
 		addNamed, {Key: "colour", Word: "editor.add.colour", Control: addNumber},
 		{Key: "control", Word: "editor.add.control", Control: addChoice}}},
-	{Kind: KindTrigger, Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
+	{Kind: KindTrigger, Word: "editor.add.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
-	{Kind: KindScript, Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
-		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []RecordKind{KindAction, KindCondition, KindTrigger, KindMessage, KindVariable}}}},
-	{Kind: KindMessage, Word: "editor.message.new", ChoiceWord: "editor.message.new"},
-	{Kind: KindAction, Word: "editor.add.action", ChoiceWord: "editor.add.kind.action"},
+	{Kind: KindMessage, Word: "editor.message.new"},
+	{Kind: KindAction, Word: "editor.add.action"},
 	// A condition is a wizard item's check, with its parameters, placed in a
 	// trigger's first free pair as that item's row.
-	{Kind: KindCondition, Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition", Steps: []addStep{
+	{Kind: KindCondition, Word: "editor.add.condition", Steps: []addStep{
 		{Key: "check", Word: "editor.wizard.condition", Control: addItem, Editor: true}, addTrigger}},
-	{Kind: KindVariable, Word: "editor.add.variable", ChoiceWord: "editor.add.kind.variable", Steps: []addStep{addLabel}},
+	{Kind: KindVariable, Word: "editor.add.variable", Steps: []addStep{addLabel}},
 }
 
 var (
@@ -268,7 +262,6 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 			continue
 		}
 		switch st.Control {
-		case addKind:
 		case addCell:
 			if c, ok := parseCell(text); ok {
 				out.Cell, out.HasCell = c, true
@@ -335,7 +328,6 @@ func (e *MapEditor) addAccepted(host InspectionNewRecords, run *addRun, asked in
 			continue
 		}
 		switch st.Control {
-		case addKind:
 		case addName:
 			if i > asked {
 				run.texts[i] = addDefault(st, offer)
@@ -366,15 +358,7 @@ func parseCell(s string) (image.Point, bool) {
 func (e *MapEditor) addOffer(host InspectionNewRecords, r *addRun, i int) (InspectionNewStep, bool) {
 	st := r.steps[i]
 	var offer InspectionNewStep
-	if st.Control == addKind {
-		for n, k := range st.Kinds {
-			row, _ := addKindOf(k)
-			offer.Choices = append(offer.Choices, InspectionChoice{Value: int64(n), Label: e.word(row.ChoiceWord)})
-			if !e.addKindOpen(k) {
-				offer.Shut = append(offer.Shut, int64(n))
-			}
-		}
-	} else if st.Editor {
+	if st.Editor {
 		offer = e.scriptStepOffer(r, i)
 	} else {
 		offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
@@ -471,11 +455,6 @@ func (e *MapEditor) addNext() {
 	e.message = ""
 	st, text := r.steps[r.at], strings.TrimSpace(e.prompt.path)
 	switch st.Control {
-	case addKind:
-		if c, ok := r.choiceAt(text); !ok || slices.Contains(r.offer.Shut, c.Value) {
-			r.note = e.word("editor.add.choose")
-			return
-		}
 	case addChoice, addSprites, addItem:
 		// A typed value off the list stands when the host's check passes it.
 		if _, err := strconv.ParseInt(text, 10, 64); err != nil {
@@ -508,7 +487,7 @@ func (e *MapEditor) addNext() {
 			r.note = note
 			return
 		}
-	} else if st.Control != addKind && st.Control != addMany {
+	} else if st.Control != addMany {
 		if err := host.CheckNewRecord(e.addRecord(r, r.at+1), st.Key); err != nil {
 			r.note = e.editorHostText(err.Error())
 			return
@@ -523,12 +502,6 @@ func (e *MapEditor) addNext() {
 	r.labels[r.at], r.manyLabels[r.at] = e.addValueText(r, r.at), nil
 	for _, v := range r.many[r.at] {
 		r.manyLabels[r.at] = append(r.manyLabels[r.at], r.labelOf(v))
-	}
-	if st.Control == addKind {
-		c, _ := r.choiceAt(text)
-		next, _ := addKindOf(st.Kinds[c.Value])
-		r.kind, r.title = next.Kind, e.word(next.Word)
-		r.setSteps(append(append([]addStep(nil), r.steps[:r.at+1]...), next.Steps...))
 	}
 	if st.Control == addItem {
 		r.setSteps(e.itemSteps(r, r.at))
@@ -749,7 +722,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 			row.Focus = true
 			row.Value = e.addValueText(r, i)
 			switch st.Control {
-			case addChoice, addSprites, addKind, addItem:
+			case addChoice, addSprites, addItem:
 				row = row.withChoices(r.offer.Choices, r.offer.ChoicePad, e.prompt.path)
 			case addCell:
 				row.Kind = popupPick
@@ -811,7 +784,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 		}
 	}
 	finish := e.word("editor.button.next")
-	if r.at == len(r.steps)-1 && r.steps[r.at].Control != addKind {
+	if r.at == len(r.steps)-1 {
 		finish = e.word("editor.button.finish")
 	}
 	s.Buttons = []string{e.word("editor.button.back"), finish, e.word("editor.button.cancel")}

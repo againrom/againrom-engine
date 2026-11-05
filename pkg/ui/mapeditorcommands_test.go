@@ -168,7 +168,7 @@ func newWalkEditor(t *testing.T) (*MapEditor, *walkHost) {
 
 // The Add window and add_record build one record from the same answers for
 // every kind add_record adds: the window asked step by step with Enter, a
-// many step value by value, a script kind through the Script kind step.
+// many step value by value.
 func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 	for _, c := range []struct {
 		kind   string
@@ -180,16 +180,9 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 		{"Player", nil}, {"Player", map[string]any{"name": "Rivals", "colour": 4, "control": 2}},
 		{"Trigger", nil}, {"Trigger", map[string]any{"name": "Gate", "once": 2}},
 		{"Enchantment", nil}, {"Enchantment", map[string]any{"template": 2, "link": 7, "spell": 2, "power": 9}},
-		{"Action", nil},
 	} {
 		w, wh := newWalkEditor(t)
-		if c.kind == "Action" {
-			w.openAdd("Script")
-			w.prompt.path = "0"
-			_ = w.Key("enter")
-		} else {
-			w.openAdd(RecordKind(c.kind))
-		}
+		w.openAdd(RecordKind(c.kind))
 		onCell := false
 		for n := 0; n < 16; n++ {
 			r, ok := w.addRunning()

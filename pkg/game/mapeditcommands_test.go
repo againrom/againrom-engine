@@ -182,7 +182,13 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 			return []commandCall{{"delete_drop_zone", map[string]any{"zone": 1}}}
 		}},
 		{"write_trigger", goal(image.Pt(12, 12)), func(t *testing.T, e *ui.MapEditor) {
-			wizNewTrigger(t, e, "Treasure")
+			// The one-click add and the rename in a later wizard session are two
+			// history entries, as the commands add_record and write_trigger are.
+			wizNewTrigger(t, e, "")
+			r, ok := e.PopupButtonRect(1)
+			trigClick(t, e, r, ok, "Cancel")
+			e.Select(recordOf(e.Document(), "Trigger", len(e.Document().Script.Triggers)-1), true)
+			wizType(t, e, "name", "Treasure")
 			wizPress(t, e, "", 0)
 			wizPress(t, e, "c0.p1", 0)
 			dragCell(e, image.Pt(10, 12), image.Pt(14, 15))
@@ -196,7 +202,7 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			return []commandCall{{"add_record", map[string]any{"kind": "Trigger", "values": map[string]any{"name": "Treasure"}}},
+			return []commandCall{{"add_record", map[string]any{"kind": "Trigger", "values": map[string]any{"once": 1}}},
 				{"write_trigger", map[string]any{"index": index, "name": "Treasure",
 					"conditions": []any{map[string]any{"item": "c.heroarea", "params": []any{hero, []int{10, 12, 14, 15}}}},
 					"actions":    []any{map[string]any{"item": "a.gold"}, map[string]any{"item": "a.win"}}}}}

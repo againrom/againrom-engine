@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"image"
 	"slices"
 	"strings"
 	"testing"
@@ -40,12 +39,10 @@ func scenarioBranch(t *testing.T, e *ui.MapEditor) (int, []string) {
 	return b, lines[b:end]
 }
 
-// newTriggerClick presses the Scenario palette's New trigger row.
+// newTriggerClick presses the Scenario palette's New trigger button.
 func newTriggerClick(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	scenarioOpen(t, e)
-	r, ok := e.ListRowRect(0)
-	trigClick(t, e, r, ok, "New trigger")
+	scenarioButtonClick(t, e, "newtrigger")
 }
 
 // pressF4 runs one editor frame in which F4 goes down.
@@ -74,83 +71,6 @@ func freshTriggerShown(t *testing.T, e *ui.MapEditor, triggers int) {
 	name := string(sc.Triggers[len(sc.Triggers)-1].Name)
 	if field, from, to := e.FieldFocus(); field != wizField(t, e, "name") || from != 0 || to != len([]rune(name)) {
 		t.Fatalf("focus field %d selection %d-%d, want the name field %d with %q selected", field, from, to, wizField(t, e, "name"), name)
-	}
-}
-
-// The Scenario palette lists New trigger, then the rows of the tree's
-// Scenario branch in the tree's order and words, one step less indented;
-// every row shows at 1920x1080, and a click on a record row selects and
-// opens what a click on its tree row does. EN and RU.
-func TestMapEditorScenarioPaletteListsTheTreesRows(t *testing.T) {
-	b := scriptAddMap(t)
-	window := image.Rect(0, 0, 1920, 1080)
-	for _, l := range scriptAddLangs {
-		t.Run(l.name, func(t *testing.T) {
-			e, _, w := scriptAddEditor(t, l, b)
-			branch, tree := scenarioBranch(t, e)
-			want := []string{w("editor.tool.newtrigger")}
-			for _, line := range tree[1:] {
-				want = append(want, strings.TrimPrefix(line, "  "))
-			}
-			scenarioOpen(t, e)
-			if got := e.ListLines(); !slices.Equal(got, want) {
-				t.Fatalf("the palette lists\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
-			}
-			for n := range want {
-				if r, ok := e.ListRowRect(n); !ok || !r.In(window) {
-					t.Fatalf("palette row %d shows %v at %v", n, ok, r)
-				}
-			}
-			members := 0
-			for k := 0; ; k++ {
-				x, _, _ := scriptAddEditor(t, l, b)
-				showTree(x)
-				row := x.TreeMemberRow("scripts", k)
-				if row < 0 {
-					break
-				}
-				members++
-				r, ok := x.TreeRowRect(row)
-				trigClick(t, x, r, ok, "tree row")
-				y, _, _ := scriptAddEditor(t, l, b)
-				scenarioOpen(t, y)
-				r, ok = y.ListRowRect(row - branch)
-				trigClick(t, y, r, ok, "palette row")
-				if y.Selected() != x.Selected() || y.Selected() < 0 || y.WizardShown() != x.WizardShown() || trigLines(y) != trigLines(x) {
-					t.Fatalf("palette row %d opens %d %v\n%s\nthe tree row opens %d %v\n%s", row-branch, y.Selected(), y.WizardShown(), trigLines(y), x.Selected(), x.WizardShown(), trigLines(x))
-				}
-			}
-			if members == 0 {
-				t.Fatal("the Scenario branch holds no member row")
-			}
-		})
-	}
-}
-
-// One click on New trigger writes the bytes the Add window's trigger steps
-// write with their proposals accepted, and opens the trigger at once in the
-// wizard, the one window open, its name field focused with the name
-// selected. The Add window still asks its trigger steps. EN and RU.
-func TestMapEditorNewTriggerTakesOneClick(t *testing.T) {
-	b := scriptAddMap(t)
-	triggers := len(wizScript(t, b).Triggers)
-	for _, l := range scriptAddLangs {
-		t.Run(l.name, func(t *testing.T) {
-			add, _, _ := scriptAddEditor(t, l, b)
-			openScriptAdd(t, add)
-			if keys := addWalk(t, add, map[string]string{"kind": "2"}, ""); !slices.Equal(keys, []string{"kind", "name", "once"}) {
-				t.Fatalf("the Add window's trigger asked %q", keys)
-			}
-			e, _, _ := scriptAddEditor(t, l, b)
-			newTriggerClick(t, e)
-			if got := e.Document().SourceBytes; bytes.Equal(got, b) || !bytes.Equal(got, add.Document().SourceBytes) {
-				t.Fatalf("one click wrote %d bytes, the Add window %d, the map %d", len(got), len(add.Document().SourceBytes), len(b))
-			}
-			freshTriggerShown(t, e, triggers+1)
-			if !e.Dirty() {
-				t.Fatal("the map is not dirty after the one-click trigger")
-			}
-		})
 	}
 }
 
@@ -307,7 +227,7 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 				t.Fatalf("Cancel left windows %q", c.OpenWindows())
 			}
 			shown := false
-			for row := 1; row < 64 && !shown; row++ {
+			for row := 0; row < 64 && !shown; row++ {
 				scenarioOpen(t, c)
 				r, ok = c.ListRowRect(row)
 				if !ok {

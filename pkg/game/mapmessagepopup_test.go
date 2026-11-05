@@ -155,32 +155,6 @@ func TestMessageChoiceKeepsNegativeValue(t *testing.T) {
 	}
 }
 
-func TestMessageWizardWindowOpensPage(t *testing.T) {
-	e, s := messagePopupFixture(t, 77)
-	_ = e.Key("scripts")
-	_ = e.Key("player")
-	for range 3 {
-		_ = e.Key("down")
-	}
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
-	if len(e.PopupLines()) != 3 || len(s.workspace.Pages) != 0 || len(e.Document().Script.Actions) != 1 {
-		t.Fatal("wizard did not open an unmade page", e.PopupLines())
-	}
-	messageButton(t, e, 0)
-	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
-		t.Fatal("wizard Apply did not make the page")
-	}
-	messageButton(t, e, 2)
-	if len(e.Document().Script.Actions) != 2 {
-		t.Fatal("wizard omitted message action")
-	}
-	if err := e.Key("undo"); err != nil || len(e.Document().Script.Actions) != 1 || len(s.workspace.Pages) != 0 {
-		t.Fatal("wizard Undo", err)
-	}
-}
-
 func TestMessagePopupRemovedPageReturnsToNode(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	before := bytes.Clone(s.model.Bytes())

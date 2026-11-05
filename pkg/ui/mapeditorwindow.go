@@ -137,11 +137,16 @@ func (e *MapEditor) bodyFont() *text.Font {
 // word is the editor's word of id in the editor's language, in the font's
 // encoding.
 func (e *MapEditor) word(id string) string {
+	return e.editorHostText(e.plainWord(id))
+}
+
+// plainWord is the editor's word of id as UTF-8 text, for text the map keeps.
+func (e *MapEditor) plainWord(id string) string {
 	b := e.book
 	if !e.hasBook {
 		b = words.For("")
 	}
-	return e.editorHostText(b.Text(id))
+	return b.Text(id)
 }
 
 // barRowHeight is the height of one row of the top bar and of the status
@@ -592,7 +597,7 @@ func (e *MapEditor) menuAct(key string) {
 		}
 		e.chooseBrush(brushOff)
 	case "newtrigger":
-		e.addTriggerNow()
+		e.addNow(KindTrigger)
 	default:
 		if e.Key(key) == ebiten.Termination {
 			e.exitAsked = true
@@ -958,9 +963,13 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 		s.ButtonFit = e.filter == editorScriptsFilter
 		for _, b := range e.listButtons() {
-			s.Buttons = append(s.Buttons, b.label)
+			s.Buttons, s.Disabled = append(s.Buttons, b.label), append(s.Disabled, b.off)
 			// A switch's caption carries its mark beside its word.
 			s.ButtonFit = s.ButtonFit || b.key != "add"
+		}
+		if e.filter == editorScriptsFilter {
+			// The palette is as wide as its three buttons need.
+			s.Width = e.popupWide(popList, max(400, buttonRowWidth(s, e.bodyFont())))
 		}
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
@@ -1041,7 +1050,8 @@ func (e *MapEditor) dockedNoteWidth() int {
 }
 
 // listButtons are the keys and captions of the records list's buttons: on
-// the Scenario list the drop zone tool's switch, then Add where the list adds.
+// the Scenario list the drop zone tool's switch, then New trigger and New
+// variable; Add where another list adds.
 func (e *MapEditor) listButtons() []menuItem {
 	var out []menuItem
 	if e.filter == editorCellSpellsFilter {
@@ -1053,6 +1063,11 @@ func (e *MapEditor) listButtons() []menuItem {
 	if _, ok := e.script(); ok && e.listKind() == "records" && e.filter == editorScriptsFilter {
 		out = append(out, menuItem{key: "drop", label: markWord(e.pick == pickDrop, e.word("editor.tools.dropzones"))})
 	}
+	if e.listKind() == "records" && e.filter == editorScriptsFilter {
+		for _, kind := range scenarioNew {
+			out = append(out, menuItem{key: kind.key, label: e.word(kind.word), off: !e.addNowOpen(kind.kind)})
+		}
+	}
 	if _, ok := e.listAdd(); ok {
 		out = append(out, menuItem{key: "add", label: e.word("editor.button.add")})
 	}
@@ -1060,6 +1075,16 @@ func (e *MapEditor) listButtons() []menuItem {
 		out = append(out, menuItem{key: "ruined", label: markWord(e.place.ruined, e.word("editor.place.ruined"))})
 	}
 	return out
+}
+
+// scenarioNew are the Scenario palette's one-click add buttons: the key and
+// caption word of each and the record kind it adds.
+var scenarioNew = []struct {
+	key, word string
+	kind      RecordKind
+}{
+	{"newtrigger", "editor.tool.newtrigger", KindTrigger},
+	{"newvariable", "editor.add.variable", KindVariable},
 }
 
 // ListButtonKeyRect is the window rectangle of the records list's button
@@ -1116,14 +1141,12 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	}
 }
 
-// scenarioChoose is a press on Scenario palette row n: New trigger performs
-// its command row, a record row chooses its record as its tree row does.
+// scenarioChoose is a press on Scenario palette row n: a record row chooses
+// its record as its tree row does.
 func (e *MapEditor) scenarioChoose(n int) {
 	rows, kinds, _ := e.scenarioRows()
 	switch {
 	case n < 0 || n >= len(rows) || !rows[n].Choosable:
-	case n == 0:
-		e.menuAct("newtrigger")
 	case kinds[n].member:
 		e.model.Select(n)
 		e.memberChoose(kinds[n])
@@ -2236,6 +2259,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				case "add":
 					row, _ := e.listAdd()
 					e.openAdd(row.Kind)
+				case scenarioNew[0].key, scenarioNew[1].key:
+					for _, kind := range scenarioNew {
+						if kind.key == bs[n].key {
+							e.addNow(kind.kind)
+						}
+					}
 				case "ruined":
 					e.place.ruined = !e.place.ruined
 				}

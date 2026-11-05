@@ -18,7 +18,6 @@ const (
 	KindCondition   RecordKind = "Condition"
 	KindAction      RecordKind = "Action"
 	KindMessage     RecordKind = "Message"
-	KindScript      RecordKind = "Script"
 	KindEnchantment RecordKind = "Enchantment"
 	KindMod         RecordKind = "Mod"
 	// KindDrop is the cell the script drops the party on; the host admits a
@@ -61,7 +60,6 @@ var recordKinds = map[RecordKind]recordKindRow{
 	KindEnchantment: {fielded: true, listed: true, rank: 4, filter: editorCellSpellsFilter},
 	KindSection:     {},
 	KindMessage:     {},
-	KindScript:      {},
 	KindMod:         {},
 	KindDrop:        {},
 	KindVariable:    {},

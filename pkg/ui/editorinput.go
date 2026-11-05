@@ -126,7 +126,7 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 			key += fmt.Sprintf("/%p/%d", r, r.at)
 			kind, name = r.kind, r.steps[r.at].Key
 			switch r.steps[r.at].Control {
-			case addChoice, addSprites, addNumber, addKind:
+			case addChoice, addSprites, addNumber:
 				p.limit, p.bytes = 64, editorNumericBytes
 			case addCell:
 				p.limit, p.bytes = 64, editorCoordinateBytes

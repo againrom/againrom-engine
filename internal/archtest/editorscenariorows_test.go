@@ -11,16 +11,17 @@ import (
 )
 
 // scenarioBuilderRefs names, for each map editor method the Scenario
-// palette and the one-click trigger rest on, the pkg/ui functions that may
+// palette and the one-click adds rest on, the pkg/ui functions that may
 // name it: the palette's rows come from the tree's row builder, a new
 // record's proposals from the Add window's step offer, and the one-click
-// trigger from its command row's action.
+// trigger and variable from one builder, reached from the command row, the
+// wizard's New and the palette's buttons.
 var scenarioBuilderRefs = map[string][]string{
 	"treeMembers":   {"treeMatches", "treeRowsOf", "treeFollow"},
 	"treeRowsOf":    {"treeRows", "scenarioRows"},
-	"addAccepted":   {"addPlacement", "addTriggerNow"},
+	"addAccepted":   {"addPlacement", "addNow"},
 	"NewRecordStep": {"addOffer", "placeChoices"},
-	"addTriggerNow": {"menuAct"},
+	"addNow":        {"menuAct", "newTrigger", "chromePress"},
 }
 
 // checkScenarioBuilders reports, in one non-test pkg/ui source file, a
@@ -100,10 +101,10 @@ func TestEditorScenarioGuardSeesASecondBuilder(t *testing.T) {
 		{"pkg/ui/mapeditorpalettes.go", "package ui\nfunc (e *MapEditor) scenarioRows() { e.treeMembers(c) }", 1},
 		{"pkg/ui/mapeditoradd.go", "package ui\nfunc (e *MapEditor) addOffer() { h.NewRecordStep(r, k) }", 0},
 		{"pkg/ui/mapeditortrigger.go", "package ui\nfunc (e *MapEditor) triggerName() { h.NewRecordStep(r, \"name\") }", 1},
-		{"pkg/ui/mapeditortrigger.go", "package ui\nfunc (e *MapEditor) addTriggerNow() { e.addAccepted(h, r, -1, p) }", 0},
+		{"pkg/ui/mapeditortrigger.go", "package ui\nfunc (e *MapEditor) addNow() { e.addAccepted(h, r, -1, p) }", 0},
 		{"pkg/ui/mapeditorwizard.go", "package ui\nfunc (e *MapEditor) wizardNew() { e.addAccepted(h, r, -1, p) }", 1},
-		{"pkg/ui/mapeditorwindow.go", "package ui\nfunc (e *MapEditor) menuAct(k string) { e.addTriggerNow() }", 0},
-		{"pkg/ui/mapeditorkeys.go", "package ui\nvar rows = []keyRow{{act: (*MapEditor).addTriggerNow}}", 1},
+		{"pkg/ui/mapeditorwindow.go", "package ui\nfunc (e *MapEditor) menuAct(k string) { e.addNow() }", 0},
+		{"pkg/ui/mapeditorkeys.go", "package ui\nvar rows = []keyRow{{act: (*MapEditor).addNow}}", 1},
 		{"pkg/game/mapinspectionadd.go", "package game\nfunc (s *edits) addKey() { s.NewRecordStep(r, k) }", 0},
 	} {
 		if got := checkScenarioBuilders(tc.name, tc.src); len(got) != tc.want {

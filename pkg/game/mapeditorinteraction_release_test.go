@@ -91,22 +91,12 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				r, ok := e.BarRect(bar)
 				trigClick(t, e, r, ok, bar)
 				selected, mark := e.Selected(), s.model.Mark()
-				_ = e.Key("player")
-				r, ok = e.PromptButtonRect(2)
-				trigClick(t, e, r, ok, "Cancel Add "+bar)
-				check(selected, mark)
-				popups++
-				if bar == "scripts" {
-					for choice := 1; choice < 4; choice++ {
-						_ = e.Key("player")
-						for j := 0; j < choice; j++ {
-							_ = e.Key("down")
-						}
-						r, ok = e.PromptButtonRect(2)
-						trigClick(t, e, r, ok, "Cancel script kind")
-						check(selected, mark)
-						popups++
-					}
+				if bar == "players" {
+					_ = e.Key("player")
+					r, ok = e.PromptButtonRect(2)
+					trigClick(t, e, r, ok, "Cancel Add "+bar)
+					check(selected, mark)
+					popups++
 				}
 			}
 			openMessage := x.inspectionUTF8(x.word("editor.param.open") + " " + x.word("editor.message.parameter"))

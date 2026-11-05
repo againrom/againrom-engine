@@ -56,8 +56,8 @@ func TestMapEditorTreeBranchesAreTheBarsRecordEntries(t *testing.T) {
 // count: the placement grid with its note and Add for Units and Structures,
 // Add for Sacks, the relation matrix and Add for Players, the selection
 // notes and the two group buttons for Groups. The Scenario palette keeps
-// the hint, the drop zone switch and Add, and lists New trigger over the
-// tree's Scenario rows (TestMapEditorScenarioPaletteListsTheTreesRows).
+// the hint, the drop zone switch, New trigger and New variable, and lists the
+// tree's Scenario rows (TestMapEditorScenarioPaletteListsOnlyTheRecordRows).
 func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 	count := regexp.MustCompile(`^\d+-\d+ / \d+$`)
 	for _, c := range editorCategories {
@@ -69,8 +69,7 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				t.Fatalf("the %s palette did not open", c.key)
 			}
 			if c.key == "scripts" {
-				add := e.word("editor.button.add")
-				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 2 || s.Buttons[1] != add || s.List == nil {
+				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 3 || s.Buttons[1] != e.word("editor.tool.newtrigger") || s.Buttons[2] != e.word("editor.add.variable") || s.List == nil {
 					t.Errorf("the scripts palette %q %q, list %v", s.Notes, s.Buttons, s.List != nil)
 				}
 				return

@@ -848,7 +848,7 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 func addCommandKinds() []RecordKind {
 	var out []RecordKind
 	for _, k := range addKinds {
-		if k.Kind != KindScript && slices.ContainsFunc(k.Steps, func(st addStep) bool { return !st.Editor }) {
+		if slices.ContainsFunc(k.Steps, func(st addStep) bool { return !st.Editor }) {
 			out = append(out, k.Kind)
 		}
 	}
@@ -899,7 +899,7 @@ type addStepSeen func(st addStep, offer InspectionNewStep, skipped bool, refused
 func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]json.RawMessage, seen addStepSeen) (InspectionNewRecord, error) {
 	row, ok := addKindOf(kind)
 	host, hok := e.addHost()
-	if !ok || !hok || kind == KindScript || kind == KindMessage {
+	if !ok || !hok || kind == KindMessage {
 		return InspectionNewRecord{}, fmt.Errorf("add_record adds no %q record", kind)
 	}
 	r := &addRun{kind: kind, at: -1}

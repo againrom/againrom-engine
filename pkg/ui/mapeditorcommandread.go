@@ -295,7 +295,7 @@ type addStepRead struct {
 	Refused  string             `json:"refused,omitempty"`
 }
 
-var addControlNames = map[addControl]string{addChoice: "choice", addSprites: "choice", addNumber: "number", addName: "text", addCell: "cell", addMany: "many", addKind: "kind"}
+var addControlNames = map[addControl]string{addChoice: "choice", addSprites: "choice", addNumber: "number", addName: "text", addCell: "cell", addMany: "many"}
 
 func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 	a, err := decodeArgs[struct {
