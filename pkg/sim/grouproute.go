@@ -15,16 +15,26 @@ type groupRouteProfile struct {
 	// it does (AI-ACQUIRE-002, AI-349).
 	noHumanHealArm bool
 	recordsBlows   bool
-	// strikeCases: guard B's member cases 1, 2 and 4 run from the blow's
-	// record and the pursuit stamp (R2-ENGINE-844, DIV-4503).
-	strikeCases bool
+	// stampWindow: guard B's member cases 1 and 2 run from the stamp a
+	// failed approach route writes (R2-ENGINE-844, R2-ENGINE-873).
+	stampWindow bool
+	// recentBlow: guard B's member case 4 runs from the blow's clock
+	// (R2-ENGINE-844, DIV-4503).
+	recentBlow bool
 }
 
-// runsStrikeCases reports whether a Group at programme byte b runs guard B's
-// member cases 1, 2 and 4 and the pursuit stamp: only programme 18 does;
-// guard A has cases 3 and 6 (R2-ENGINE-844, R2-ENGINE-846).
-func (p *groupRouteProfile) runsStrikeCases(b uint8) bool {
-	return p.strikeCases && b == secondGuardRoute
+// runsStampWindow reports whether a Group at programme byte b runs guard
+// B's member cases 1 and 2 and its members' approaches stamp: only
+// programme 18 does; guard A has cases 3 and 6 (R2-ENGINE-844,
+// R2-ENGINE-873).
+func (p *groupRouteProfile) runsStampWindow(b uint8) bool {
+	return p.stampWindow && b == secondGuardRoute
+}
+
+// runsRecentBlow reports whether a Group at programme byte b runs guard B's
+// member case 4.
+func (p *groupRouteProfile) runsRecentBlow(b uint8) bool {
+	return p.recentBlow && b == secondGuardRoute
 }
 
 func (p *groupRouteProfile) route(b uint8) uint8 {
@@ -49,7 +59,8 @@ var secondGameGroupRoute = groupRouteProfile{
 	constructsForOlderRegistry: true,
 	noHumanHealArm:             true,
 	recordsBlows:               true,
-	strikeCases:                false,
+	stampWindow:                true,
+	recentBlow:                 false,
 }
 
 func (w *World) savedRoute(g *SavedGroup) uint8 {

@@ -7,8 +7,8 @@ import (
 
 // missionStartWorld is a second-game mission start: the hero, and slot 3's
 // Groups 1 (members at cells) and 2 (one member at (30,30)), with no
-// original file read.
-func missionStartWorld(t *testing.T, cells []cell) *World {
+// original file read, over terrain[0] when one is given.
+func missionStartWorld(t *testing.T, cells []cell, terrain ...Terrain) *World {
 	t.Helper()
 	ents := []Entity{engFighter(leashHero, SelfSlot, 5, 5)}
 	for k, c := range cells {
@@ -20,7 +20,11 @@ func missionStartWorld(t *testing.T, cells []cell) *World {
 	other.Group = 2
 	ents = append(ents, other)
 	rel := engRel(t, [3]uint32{leashSlot, SelfSlot, 1}, [3]uint32{SelfSlot, leashSlot, 2})
-	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, Terrain{}, ents, secondGameScript(t, nil, nil, nil), rel)
+	ground := Terrain{}
+	if len(terrain) > 0 {
+		ground = terrain[0]
+	}
+	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, ground, ents, secondGameScript(t, nil, nil, nil), rel)
 	if err != nil {
 		t.Fatal(err)
 	}

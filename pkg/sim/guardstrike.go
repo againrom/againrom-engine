@@ -67,26 +67,48 @@ func roundedQuotient(n, d int32) int32 {
 	return (n*2 + d) / (2 * d)
 }
 
-// stampPursuit writes +0x16 for member i pursuing (cmd +8 = 5) a unit beyond
-// its reach: this build's reading of the stamp's unread test
-// (R2-ENGINE-846, DIV-4503).
-func (w *World) stampPursuit(i int, o *SavedActorOrder) {
+// stampMissedApproach writes +0x16 for attacker i whose approach search
+// missed goal and settled for sub, the zero cell for none: a member of a
+// Group running the stamp window, with cmd +8 = 5, when the gap from sub
+// to goal exceeds its approach range (R2-ENGINE-873, R2-ENGINE-878).
+func (w *World) stampMissedApproach(i int, sub, goal cell) {
 	e := w.entities[i]
-	if o.Raw[8] != 5 || !e.HasAttackTarget || e.AttackTargetKind == AttackTargetStructure {
+	o, g := w.savedOrder(e.ID), w.savedGroupFor(e.ID)
+	if o == nil || g == nil || o.Raw[8] != 5 || !w.game.groupRoute.runsStampWindow(g.AI[0x20]) {
 		return
 	}
-	if t := indexOfEntity(w.entities, e.AttackTarget); t >= 0 && !inReach(e, w.entities[t]) {
+	if approachGap(sub, goal, footprintSide(e.TokenSize)) > w.approachRange(e) {
 		o.Strike.Stamp, o.Strike.Stamped = w.groupClock(), true
 	}
 }
 
-// strikeWindow is guard B's cases 1 and 2 for a member holding a blow:
-// |+0x16 - server word +0| below 30 while hurt, else below 10
-// (R2-ENGINE-844).
-func (w *World) strikeWindow(i int, o *SavedActorOrder) bool {
-	if !o.Strike.Held {
-		return false
+// approachGap is the stamp's per-axis distance from a to b for a mover of
+// side size: b - a - size + 1, floored at 0, on an axis where a < b, else
+// a - b; the larger axis (R2-ENGINE-878).
+func approachGap(a, b cell, size int32) int64 {
+	axis := func(a, b int32) int64 {
+		if a < b {
+			return max(int64(b)-int64(a)-int64(size)+1, 0)
+		}
+		return int64(a) - int64(b)
 	}
+	return max(axis(a.x, b.x), axis(a.y, b.y))
+}
+
+// approachRange is the range the stamp compares with: the weapon spell's
+// range where the approach closes on it in cells, else the reach
+// (R2-ENGINE-873, Medium; closedOn).
+func (w *World) approachRange(e Entity) int64 {
+	if rule, ok := w.weaponSpell(e); ok && w.game.cellCastReach {
+		return int64(rule.MaxRange)
+	}
+	return int64(e.Reach)
+}
+
+// strikeWindow is guard B's cases 1 and 2: |+0x16 - server word +0| below
+// 30 while hurt, else below 10; neither tests the blow (R2-ENGINE-844,
+// R2-ENGINE-883).
+func (w *World) strikeWindow(i int, o *SavedActorOrder) bool {
 	d := int32(o.Strike.CommandStamp()) - int32(w.groupClock())
 	if d < 0 {
 		d = -d
@@ -120,9 +142,9 @@ type LoadedStrike struct {
 // ImportLoadedStrikes writes each row into its member's order. A member of
 // a Group whose order builds member orders (buildsMissingOrders) and that
 // holds none takes the stance setter's order first, as the Group's first
-// decision would give it, when the row holds a blow or an alarm: a stamp
-// alone decides nothing without a blow. A row holding nothing, and a row of
-// a member in no such Group, changes nothing.
+// decision would give it, when the row holds a blow, an alarm or a stamp,
+// which opens case 2 without a blow (R2-ENGINE-883). A row holding nothing,
+// and a row of a member in no such Group, changes nothing.
 func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 	for _, r := range rows {
 		blow := r != (LoadedStrike{Entity: r.Entity, Stamp: r.Stamp})
@@ -135,9 +157,6 @@ func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 		}
 		o := w.savedOrder(r.Entity)
 		if o == nil {
-			if !blow {
-				continue
-			}
 			if g := w.savedGroupFor(r.Entity); g == nil || !w.buildsMissingOrders(g) {
 				continue
 			}
@@ -155,9 +174,31 @@ func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 	return nil
 }
 
-// walkToStrikeAway walks member i to its command's +0x9c.
-func (w *World) walkToStrikeAway(i int, o *SavedActorOrder) {
-	w.walkToCell(i, int32(o.Strike.Away&0xff), int32(o.Strike.Away>>8))
+// holdStrikeWindow is guard B's cases 1 and 2 for member i. A member that is
+// no human's unit keeps its unit target with its pursuit idle and its
+// search forgotten, so the target case attacks it again after the window
+// and its approach searches afresh (R2-ENGINE-874); any other target is
+// released. A member holding a blow walks to +0x9c; one holding none
+// holds its cell (DIV-4544).
+func (w *World) holdStrikeWindow(i int, o *SavedActorOrder, human bool) {
+	e := &w.entities[i]
+	if !human && e.HasAttackTarget {
+		if e.AttackTargetKind == AttackTargetUnit {
+			e.AcquirePursuit, e.PursuitIdle, e.Pursuit = false, true, PursuitSearch{}
+		} else {
+			w.releaseAttack(i)
+		}
+	}
+	if e.HasAttackTarget && !e.PursuitIdle {
+		return
+	}
+	if !o.Strike.Held {
+		if e.HasTarget {
+			w.clearOrder(i)
+		}
+		return
+	}
+	w.walkToCell(i, int32(o.Strike.Away&0xff), int32(o.Strike.Away>>8), true)
 	if w.entities[i].HasTarget {
 		w.syncSavedDestination(i)
 	}

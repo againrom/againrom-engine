@@ -1755,7 +1755,10 @@ func (e *Entity) clearTarget() {
 // — which is the far search's contract in that mode.
 func (w *World) searchRoute(s *routeScratch, self int, r relation, half int32, rule budgetRule, settle settleRule, tx, ty int32) ([]cell, bool) {
 	if w.mode == ModeOptimised {
-		return w.optimisedRoute(s, self, r, half, settle, tx, ty)
+		// This search takes no substitute, so a refusal is a missed goal.
+		route, ok := w.optimisedRoute(s, self, r, half, settle, tx, ty)
+		s.missed = !ok
+		return route, ok
 	}
 	return w.canonicalRoute(s, self, r, half, rule, settle, tx, ty)
 }

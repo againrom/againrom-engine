@@ -286,7 +286,8 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	cands = w.withEngagedFoes(ag.owner, members, order, cands)
 	id := g.ID
 	roam := g.AI[0x20] == 0x11
-	strikes := w.game.groupRoute.runsStrikeCases(g.AI[0x20])
+	stamps := w.game.groupRoute.runsStampWindow(g.AI[0x20])
+	recent := w.game.groupRoute.runsRecentBlow(g.AI[0x20])
 	w.walkSavedMembers(g, func(i int) {
 		if _, using := w.structureUseIndex(w.entities[i].ID); using {
 			return
@@ -312,16 +313,10 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			return
 		}
 		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
-		if guard && strikes && o != nil {
+		if guard && stamps && o != nil && w.strikeWindow(i, o) {
 			// Guard B's cases 1 and 2 precede the target case (R2-ENGINE-844).
-			w.stampPursuit(i, o)
-			if w.strikeWindow(i, o) {
-				if !human {
-					w.releaseAttack(i)
-				}
-				w.walkToStrikeAway(i, o)
-				return
-			}
+			w.holdStrikeWindow(i, o, human)
+			return
 		}
 		best, at := scoreSeed, -1
 		if uint8(len(cands)) != 0 && uint8(len(members)) != 0 {
@@ -375,8 +370,8 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			if order == orderGuard && o != nil {
 				e := &w.entities[i]
 				e.PostX, e.PostY = int32(o.Raw[0]), int32(o.Raw[1])
-				if strikes && w.strikeRecent(i, o) {
-					w.walkToCell(i, int32(o.Strike.Away&0xff), int32(o.Strike.Away>>8))
+				if recent && w.strikeRecent(i, o) {
+					w.walkToCell(i, int32(o.Strike.Away&0xff), int32(o.Strike.Away>>8), false)
 				} else {
 					w.walkHome([]int{i})
 				}

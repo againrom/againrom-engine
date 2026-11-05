@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A monster that cannot reach you steps back for a moment and then attacks again.
 - [BASE] With smoothing on, units, objects, buildings and some shots get the soft edge the original draws.
 - [BASE] Health and mana bars sit higher above tall units such as horsemen. Shorter units keep their usual bar positions.
 - [ROM2] Monsters fight back again when attacked instead of running away or standing still.

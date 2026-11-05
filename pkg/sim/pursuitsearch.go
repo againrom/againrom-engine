@@ -35,6 +35,7 @@ const dynamicByStaticLookup = 3
 // victim starts afresh (AI-413). Passes above a third of the static count plus
 // one re-search: in full toward the victim's cell while the last count is above
 // five, else the route end alone, and an empty list cancels (AI-415, AI-373).
+// A full search that misses the victim's cell stamps (stampMissedApproach).
 // Standing on the route end with the victim where the last full search found
 // it forgets the victim (AI-415). The near search aims at the route end, the
 // head or the node three after it and settles by picker B; empty and aimed at
@@ -52,6 +53,9 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	if int(p.Passes) > len(w.routes[i])/3+1 {
 		if p.Count > staticIsntNeeded {
 			route, ok := w.searchRoute(s, i, terrainRelation, noWindow, w.farBudgetFor(i), settleOrdered, victim.x, victim.y)
+			if s.missed {
+				w.stampMissedApproach(i, s.sub, victim)
+			}
 			if !ok {
 				route = nil
 			}

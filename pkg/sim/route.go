@@ -110,6 +110,11 @@ type routeScratch struct {
 	next     []cell
 	occ      []int32
 	cells    int
+	// missed is set when the last search's goal stayed unlabelled, and sub
+	// is the substitute it settled for then, the zero cell when it took
+	// none; the next search's reset clears both.
+	missed bool
+	sub    cell
 }
 
 // at is the count standing on cell index i of layer, and it is the only way a
@@ -267,6 +272,7 @@ func (s *routeScratch) reset() {
 	s.touched = s.touched[:0]
 	s.frontier = s.frontier[:0]
 	s.next = s.next[:0]
+	s.missed, s.sub = false, cell{}
 }
 
 // cellIndex is (x, y)'s slot in the grid and in the label plane, and whether the
@@ -882,8 +888,10 @@ func (w *World) canonicalRoute(s *routeScratch, self int, r relation, half int32
 			// a substitute is chosen in. A search that may not settle answers
 			// that there is no route, which is what every search did before
 			// there was a second answer.
+			s.missed = true
 			if settle.settles() {
 				if sub, ok := w.settleFor(s, self, settle, start, target); ok {
+					s.sub = sub
 					return w.walkBack(s, dom, win, start, sub)
 				}
 			}

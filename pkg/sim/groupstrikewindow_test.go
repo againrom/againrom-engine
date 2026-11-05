@@ -42,7 +42,10 @@ func strikeLeashed(t *testing.T, w *World, standoff int32) {
 	leashRun(w, 1)
 }
 
-func TestSecondGameStrikeWindowDoesNotBlockJoinedFoe(t *testing.T) {
+// Inside the stamp's window the join pass leaves the member alone and the
+// member walks to the blow's cell; when the window ends it takes the
+// striker (R2-ENGINE-844 cases 1 and 2 precede the target case).
+func TestSecondGameStrikeWindowHoldsTheMemberFromAJoinedFoe(t *testing.T) {
 	for _, fighting := range []bool{false, true} {
 		name := "striker stands on its blow cell"
 		if fighting {
@@ -56,24 +59,34 @@ func TestSecondGameStrikeWindowDoesNotBlockJoinedFoe(t *testing.T) {
 			m.MaxHP, m.HP = 4000, 3000
 			leashAt(w, leashHero).DamageBase = 1
 			o := w.savedOrder(2)
-			o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+			stamp := w.groupClock()
+			o.Strike.Stamped, o.Strike.Stamp = true, stamp
 			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
 			w.engageDrew = nil
 			if !w.strikeWindow(indexOfEntity(w.entities, 2), o) || !w.joinsFight(indexOfEntity(w.entities, 2)) {
-				t.Fatal("fixture: member is not free to join inside a retained window")
+				t.Fatal("fixture: member is not free to join inside the window")
 			}
 			w.joinSavedEngagedGroups()
-			if v, held := engVictim(w, 2); !held || v != leashHero {
-				t.Fatalf("join pass: victim %d/%v, want striker", v, held)
+			if v, held := engVictim(w, 2); held {
+				t.Fatalf("join pass inside the window: victim %d, want none", v)
 			}
-			for n := range 4 {
+			for n := 1; ; n++ {
 				if fighting {
 					Step(w, []Command{Attack(leashHero, 2)})
 				}
 				leashRun(w, 1)
-				if v, held := engVictim(w, 2); !held || v != leashHero {
-					t.Fatalf("group pass %d: victim %d/%v, want striker", n+1, v, held)
+				v, held := engVictim(w, 2)
+				if w.groupClock()-stamp < 30 {
+					if held || !walksTo(w, cell{int32(o.Strike.Away & 0xff), int32(o.Strike.Away >> 8)}) {
+						t.Fatalf("group pass %d inside the window: victim %d/%v; want none and the walk to +0x9c", n, v, held)
+					}
+					continue
 				}
+				if !held || v != leashHero {
+					m := leashAt(w, 2)
+					t.Fatalf("group pass %d after the window: victim %d/%v at (%d,%d); want striker", n, v, held, m.X, m.Y)
+				}
+				break
 			}
 		})
 	}

@@ -4134,5 +4134,15 @@ var Committed = Baseline{
 
 	// It rises for the mod tavern buttons test in pkg/game/townshell_test.go
 	// and this note, net of the shorter tavernButtons comment.
-	CommentBytes: 10553612,
+
+	// It rises for guard B's route stamp and window: stampMissedApproach,
+	// approachGap, approachRange and holdStrikeWindow in
+	// pkg/sim/guardstrike.go, the profile rows in pkg/sim/grouproute.go, the
+	// missed-goal fields in pkg/sim/route.go and pkg/sim/step.go, the tests in
+	// pkg/sim/groupstrikeroute_test.go, pkg/sim/groupstrikewindow_test.go and
+	// pkg/sim/secondguardstrike_test.go, and this note, net of stampPursuit.
+
+	// It rises for the per-byte profile check in pkg/sim/grouproute_test.go
+	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
+	CommentBytes: 10557581,
 }

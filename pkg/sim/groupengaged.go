@@ -171,7 +171,7 @@ func (w *World) joinSavedEngagedGroups() {
 		}
 		inWindow := func(i int) bool {
 			o := w.savedOrder(w.entities[i].ID)
-			return o != nil && w.game.groupRoute.runsStrikeCases(g.AI[0x20]) && w.strikeWindow(i, o)
+			return o != nil && w.game.groupRoute.runsStampWindow(g.AI[0x20]) && w.strikeWindow(i, o)
 		}
 		w.joinEngagedGroup(w.entities[members[0]].Owner, order, w.storedCircle(g), members, inWindow, func(i int) {
 			if o := w.savedOrder(w.entities[i].ID); o != nil {

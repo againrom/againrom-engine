@@ -216,15 +216,15 @@ func effectiveGroup(e *Entity) uint32 {
 // walkHome sends victimless members to their current posts.
 func (w *World) walkHome(members []int) {
 	for _, mi := range members {
-		w.walkToCell(mi, w.entities[mi].PostX, w.entities[mi].PostY)
+		w.walkToCell(mi, w.entities[mi].PostX, w.entities[mi].PostY, false)
 	}
 }
 
 // walkToCell sends member mi with no attack target to cell (x, y), unless it
-// stands there.
-func (w *World) walkToCell(mi int, x, y int32) {
+// stands there. With keepIdle a unit target the member holds idle stays.
+func (w *World) walkToCell(mi int, x, y int32, keepIdle bool) {
 	e := &w.entities[mi]
-	if e.HasAttackTarget {
+	if e.HasAttackTarget && !(keepIdle && e.PursuitIdle) {
 		return //
 	}
 	if e.X == x && e.Y == y {

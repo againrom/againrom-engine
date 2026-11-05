@@ -25,7 +25,7 @@ func TestGuardStruckMemberTakesTheStrikerOnTheSameTickInBothGames(t *testing.T) 
 					}
 				}
 				o := w.savedOrder(guardRouteFoe)
-				o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+				o.Strike.Stamped, o.Strike.Stamp = true, expiredStamp(w)
 				leashAt(w, guardRouteFoe).HP = 100
 				w.flipOnBlow(indexOfEntity(w.entities, guardRouteHero), indexOfEntity(w.entities, guardRouteFoe))
 				if game == 0 && o.Strike.Held {
@@ -86,7 +86,7 @@ func TestSecondGuardStruckMemberFightsBack(t *testing.T) {
 					leashMove(t, w, leashHero, m.X+dx, m.Y)
 				}
 				o := w.savedOrder(2)
-				o.Strike.Stamped, o.Strike.Stamp = stamped, w.groupClock()
+				o.Strike.Stamped, o.Strike.Stamp = stamped, expiredStamp(w)
 				m.HP = m.MaxHP / 4
 				startX, heroHP := m.X, leashAt(w, leashHero).HP
 				w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
@@ -111,6 +111,10 @@ func TestSecondGuardStruckMemberFightsBack(t *testing.T) {
 		}
 	}
 }
+
+// expiredStamp is a +0x16 stamp written 30 group ticks before now: a
+// retained stamp outside both windows of cases 1 and 2.
+func expiredStamp(w *World) uint16 { return w.groupClock() - 30 }
 
 // strikeGuard is slot 3's Group 1 of a missionStartWorld.
 func strikeGuard(t *testing.T, w *World) SavedGroup {
@@ -245,7 +249,7 @@ func TestSecondGuardHurtMemberOutsideTheCircleKeepsItsPost(t *testing.T) {
 func TestSecondGuardBlowAndTargetSurviveAColdLoad(t *testing.T) {
 	w, _ := strikePursuit(t)
 	o := w.savedOrder(2)
-	o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+	o.Strike.Stamped, o.Strike.Stamp = true, expiredStamp(w)
 	stamp := o.Strike.Stamp
 	strikeFrom(t, w, 2)
 	leashRun(w, 1)
