@@ -544,21 +544,23 @@ func (v *Viewer) SetNoticeBackdrop(c color.RGBA) { v.noticeBackdrop = c; v.notic
 // visibly: the frame is then byte-identical to the frame before the dim existed,
 // instead of merely looking like it.
 //
-// Notices dim the map viewport; the menu profile can dim the whole mission.
+// The dim covers the whole mission frame, the right column and the bottom
+// band included; popupDim builds the rectangle.
 func (v *Viewer) noticeBackdropOf() (image.Rectangle, color.RGBA, bool) {
+	p, ok := v.popupDimPlanOf()
+	return p.rect, p.colour, ok
+}
+
+// popupDimPlanOf is the popup dim plan of this frame, or false for no dim.
+func (v *Viewer) popupDimPlanOf() (popupDimPlan, bool) {
 	c := v.noticeBackdrop
-	w, h := v.cam.ViewW, v.cam.ViewH
 	if v.menuBackdropUp() {
 		c = v.menuBackdrop
-		w, h = v.frameW, v.frameH
 	}
-	if !v.popupOpen() || c.A == 0 {
-		return image.Rectangle{}, color.RGBA{}, false
+	if !v.popupOpen() {
+		return popupDimPlan{}, false
 	}
-	if w <= 0 || h <= 0 {
-		return image.Rectangle{}, color.RGBA{}, false
-	}
-	return image.Rect(0, 0, w, h), c, true
+	return popupDim(image.Rect(0, 0, v.frameW, v.frameH), c)
 }
 
 // menuBackdropUp reports the menu profile's whole-frame backdrop: the menu is

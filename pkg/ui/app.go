@@ -10,7 +10,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/intmath"
@@ -4300,9 +4299,9 @@ func (a *App) paintGameMenuOnWideCanvas(dst *ebiten.Image) {
 	if dst == nil {
 		return
 	}
-	vector.DrawFilledRect(dst, 0, 0, float32(dst.Bounds().Dx()), float32(frame.H),
-		AuthoredNoticeBackdrop(), false)
-	a.presentLog.overSolid(image.Rect(0, 0, dst.Bounds().Dx(), frame.H), AuthoredNoticeBackdrop())
+	if p, ok := popupDim(dst.Bounds(), AuthoredNoticeBackdrop()); ok {
+		paintPopupDim(dst, &a.presentLog, p)
+	}
 	if a.menuCanvas == nil {
 		a.menuCanvas = ebiten.NewImage(frame.W, frame.H)
 	}

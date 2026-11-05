@@ -194,11 +194,11 @@ func TestMissionMenuBackdropDarkensWithoutTint(t *testing.T) {
 	}
 	a.SetGameMenuProfile(GameMenuProfile{})
 	a.flow.setMenuUp(true)
-	if r, c, _ := v.noticeBackdropOf(); c != v.noticeBackdrop || r != image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH) {
+	if r, c, _ := v.noticeBackdropOf(); c != v.noticeBackdrop || r != image.Rect(0, 0, v.frameW, v.frameH) {
 		t.Fatal("first-game menu backdrop changed")
 	}
 	a.flow.setMenuUp(false)
-	if r, c, _ := v.noticeBackdropOf(); c != v.noticeBackdrop || r != image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH) {
+	if r, c, _ := v.noticeBackdropOf(); c != v.noticeBackdrop || r != image.Rect(0, 0, v.frameW, v.frameH) {
 		t.Fatal("notice backdrop changed")
 	}
 }

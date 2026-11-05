@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A popup now darkens the whole screen, with no undimmed edge: the right column and the bottom boxes darken with the map.
 - [ROM2] A merchant in the second game sometimes speaks about an item you move from the shelf to the table.
 
 ### For map makers and modders

@@ -4089,5 +4089,7 @@ var Committed = Baseline{
 	// Disjoint rectangle cover and host-resolved structure fences.
 
 	// Shared hover, cursor hotspots, row zero and moving overlap.
-	CommentBytes: 10522851,
+
+	// It rises for the popup dim builder in pkg/ui/popupdim.go and its tests.
+	CommentBytes: 10523969,
 }

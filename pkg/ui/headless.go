@@ -374,7 +374,9 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 		p.paint(wide)
 	}
 	if menuPanel != nil {
-		draw.Draw(wide, wide.Bounds(), &image.Uniform{C: AuthoredNoticeBackdrop()}, image.Point{}, draw.Over)
+		if p, ok := popupDim(wide.Bounds(), AuthoredNoticeBackdrop()); ok {
+			paintPopupDimRGBA(wide, p)
+		}
 		newWideFrameLayout(wide.Bounds().Dx(), wideFrameCentered).plan().paint(wide, menuPanel, draw.Over)
 	}
 	a.paintTooltip(wide)

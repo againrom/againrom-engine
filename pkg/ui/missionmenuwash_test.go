@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
@@ -42,20 +40,20 @@ func frameValues(v *Viewer) ([]color.RGBA, []bool) {
 	return vals, known
 }
 
-// The mission menu's backdrop darkens every layer of the mission frame in the
-// second game, and the menu panel is composed after that frame. The first
-// game's notice dim keeps its place under the right column and the pack bar.
+// The mission menu's backdrop darkens every layer of the mission frame in both
+// games, and the menu panel is composed after that frame.
 func TestMissionMenuBackdropDarkensEveryMissionLayer(t *testing.T) {
-	wash := color.RGBA{A: 64}
 	for _, tc := range []struct {
 		name    string
 		profile GameMenuProfile
+		wash    color.RGBA
 		darkens bool
 	}{
-		{"second", GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: wash, WindowsCloseMenu: true}, true},
-		{"first", GameMenuProfile{}, false},
+		{"second", GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true}, color.RGBA{A: 64}, true},
+		{"first", GameMenuProfile{}, AuthoredNoticeBackdrop(), true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			wash := tc.wash
 			a, v := washViewerApp(t, tc.profile)
 			layers := recordColumnLayers(t)
 			screen := ebiten.NewImage(MissionFrameW, MissionFrameH)
@@ -150,19 +148,6 @@ func TestMissionMenuBackdropDarkensEveryMissionLayer(t *testing.T) {
 				if op.kind != pixelUnknown && op.pic == nil && op.layer == nil && op.solid == wash {
 					t.Fatal("the menu canvas holds the mission backdrop")
 				}
-			}
-			if !tc.darkens {
-				h := sha256.New()
-				for i := range up {
-					c := up[i]
-					var k byte
-					if upKnown[i] {
-						k = 1
-					}
-					h.Write([]byte{c.R, c.G, c.B, c.A, k})
-				}
-				binary.Write(h, binary.LittleEndian, int64(len(v.canvasLog.ops)))
-				t.Logf("first-game frame with the menu up: %x", h.Sum(nil))
 			}
 		})
 	}

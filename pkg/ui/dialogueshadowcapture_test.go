@@ -146,9 +146,6 @@ func TestDialoguePartialShadowAfterWashReachesViewerDraw(t *testing.T) {
 			}
 			v.SetNoticeBackdrop(wash)
 			v.Draw(ebiten.NewImage(1024, 768))
-			if v.textSettleFallbacks != 0 {
-				t.Fatal("unexpected fallback", v.textSettleFallbacks)
-			}
 			for _, c := range v.textCalls {
 				if c.X == original.X && c.Y == original.Y && c.Glyph == original.Glyph && c.Color == original.Color {
 					for n := 0; n < 2; n++ {

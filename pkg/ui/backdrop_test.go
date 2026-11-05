@@ -52,8 +52,8 @@ func TestAnOpenNoticeDimsTheWholeView(t *testing.T) {
 	if !ok {
 		t.Fatal("a notice is open and no dim was composed")
 	}
-	if want := image.Rect(0, 0, backdropViewW, backdropViewH); r != want {
-		t.Errorf("dim covers %v, want the whole view %v", r, want)
+	if want := image.Rect(0, 0, backdropViewW+MissionPanelW, backdropViewH); r != want {
+		t.Errorf("dim covers %v, want the whole frame %v", r, want)
 	}
 	if want := AuthoredNoticeBackdrop(); c != want {
 		t.Errorf("dim colour = %v, want the authored %v", c, want)
@@ -139,7 +139,7 @@ func TestTheDimIsTheValueItWasGiven(t *testing.T) {
 	if c != want {
 		t.Errorf("dim colour = %v, want the supplied %v", c, want)
 	}
-	if got := image.Rect(0, 0, backdropViewW, backdropViewH); r != got {
+	if got := image.Rect(0, 0, backdropViewW+MissionPanelW, backdropViewH); r != got {
 		t.Errorf("supplying a colour moved the rectangle to %v", r)
 	}
 }
@@ -172,7 +172,7 @@ func TestNoDimWithoutADrawableArea(t *testing.T) {
 		t.Fatalf("NewViewer: %v", err)
 	}
 	v.SetFont(panelFont())
-	v.cam.ViewW, v.cam.ViewH = 0, 0
+	v.frameW, v.frameH = 0, 0
 	v.SetNotice("words", NoticeDialogue)
 	if _, _, ok := v.noticeBackdropOf(); ok {
 		t.Error("a viewer with no drawable area composed a dim")
@@ -231,9 +231,8 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 		return found
 	}
 
-	// The popup backdrop has two places, both through paintPopupBackdrop: the
-	// notice dim under the right column and the bottom boxes, and the
-	// dialogue lookup and the menu's whole-frame backdrop after the tooltip.
+	// The popup backdrop has one place, through paintPopupBackdrop: after the
+	// tooltip, over every mission layer.
 	var sites []int
 	for i, stmt := range body.List {
 		ast.Inspect(stmt, func(n ast.Node) bool {
@@ -243,26 +242,12 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 			return true
 		})
 	}
-	if len(sites) != 2 {
-		t.Fatalf("paintPopupBackdrop is called at statements %v, want two places", sites)
+	if len(sites) != 1 {
+		t.Fatalf("paintPopupBackdrop is called at statements %v, want one place", sites)
 	}
-	dim, over := sites[0], sites[1]
-	// Everything the front end draws over the map: the overlay passes and the
-	// route strokes are the last of the map picture proper, and the unit
-	// information panel and the debug readout are the two boxes that used to
-	// stand over the dim and now stand under it.
-	for _, under := range []string{"overlayPasses", "displayedPathSegments", "panelPresent", "readoutPresent"} {
-		if i := at(under); i >= dim {
-			t.Errorf("the dim is composed at statement %d, at or before %q at %d — "+
-				"that surface would not dim", dim, under, i)
-		}
-	}
-	// The notice dim covers the map viewport alone and stays under the column.
-	if i := at("columnFillerPresent"); i <= dim {
-		t.Errorf("the notice dim at statement %d stands over the column filler at %d", dim, i)
-	}
-	// The whole-frame backdrops darken every mission layer, the tooltip last.
-	for _, under := range []string{"columnFillerPresent", "missionCardPresentWith", "wornPresent", "packBarPresent",
+	over := sites[0]
+	// The backdrop darkens every mission layer, the tooltip last.
+	for _, under := range []string{"overlayPasses", "displayedPathSegments", "panelPresent", "readoutPresent", "columnFillerPresent", "missionCardPresentWith", "wornPresent", "packBarPresent",
 		"commandPanelPresent", "goldModalPresent", "messagePresent", "tooltipPresent"} {
 		if i := at(under); i >= over {
 			t.Errorf("the whole-frame backdrop at statement %d stands before %q at %d", over, under, i)
