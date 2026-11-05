@@ -4095,5 +4095,11 @@ var Committed = Baseline{
 	// It rises for strideEntersStep in pkg/sim/areacost.go, the crossing-tick
 	// trap request in pkg/sim/step.go and trapcrossing_test.go.
 	// CommentBytes falls with the one-click add of a script record replacing the trigger-only builder and the script Add window.
-	CommentBytes: 10521297,
+
+	// It rises for the mod stock record test in
+	// pkg/game/modstockrecord_test.go and this note.
+	// It rises for the one mod stock reader and its game profiles in
+	// pkg/game/moditems.go, mapload.LayerItemIn, the mod stock scan in
+	// internal/archtest/modstock.go and its tests, and this note.
+	CommentBytes: 10525329,
 }

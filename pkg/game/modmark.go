@@ -62,13 +62,7 @@ func applyModLayers(party []mapload.PartyMember, layers []modMarkLayer, items []
 	}
 	mapload.NameParty(party)
 	for _, l := range layers {
-		isLayer := false
-		for _, m := range items {
-			if m.Code == l.Code && m.Layer != 0 {
-				isLayer = true
-			}
-		}
-		if !isLayer {
+		if _, isLayer := mapload.LayerItemIn(items, l.Code); !isLayer {
 			return modMarkRefusal("the mod mark names layer item %#04x, which no active mod adds as a layer", l.Code)
 		}
 		i := slices.IndexFunc(party, func(p mapload.PartyMember) bool { return p.ID == l.Member })

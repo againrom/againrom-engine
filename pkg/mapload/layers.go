@@ -13,10 +13,19 @@ const (
 // LayerItem returns the mod item a code names when that item is a clothing
 // layer.
 func LayerItem(t *Table, code uint16) (ModItem, bool) {
-	if t == nil || code == 0 {
+	if t == nil {
 		return ModItem{}, false
 	}
-	for _, m := range t.Mods.Items {
+	return LayerItemIn(t.Mods.Items, code)
+}
+
+// LayerItemIn is LayerItem over a mod context's item list, the form a save's
+// mod mark is checked against.
+func LayerItemIn(items []ModItem, code uint16) (ModItem, bool) {
+	if code == 0 {
+		return ModItem{}, false
+	}
+	for _, m := range items {
 		if m.Code == code && m.Layer != 0 {
 			return m, true
 		}

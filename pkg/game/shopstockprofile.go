@@ -109,9 +109,14 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 		})
 	}
 	p.Place = func(stock [][]ShopItem) {
-		if extra := modShopStock(t, s.drawSeed, s.restocks, len(armour)); len(extra) != 0 {
-			armoury := stock[ShelfArmour]
-			stock[ShelfArmour] = order(append(armoury[:len(armoury):len(armoury)], extra...))
+		policy := firstModStock(s.drawSeed, s.restocks, len(armour))
+		var extra []ShopItem
+		for _, m := range modStock(t, policy) {
+			extra = append(extra, m.shelfItem())
+		}
+		if len(extra) != 0 {
+			shelf := stock[policy.shelf]
+			stock[policy.shelf] = order(append(shelf[:len(shelf):len(shelf)], extra...))
 		}
 	}
 	p.Multiplier = shopstock.Multiplier[ShopItem]{

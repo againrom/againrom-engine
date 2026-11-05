@@ -283,13 +283,13 @@ func TakeUnits(bag []sim.ItemInstance, i int) (left, taken []sim.ItemInstance, s
 	return left, taken, all[i], true
 }
 
-// Stocked reads a mod's armour or shield code as one unit of a shop item at
-// price, or false when the code is neither in the bag's item form.
+// Stocked reads a mod item's code as one unit of a shop item at price, of
+// the type byte its table takes, so the item's Table is its category; false
+// when the code names no item in the bag's form.
 func Stocked(code uint16, price int32) (Item, bool) {
-	for _, kind := range []uint8{typeArmor, 0} {
-		if it, ok := FromInstance(sim.ItemInstance{Code: code, Kind: kind, Price: price}); ok && (it.Table == Armor || it.Table == Shield) {
-			return it, true
-		}
+	it, ok := idItem(code)
+	if !ok {
+		return Item{}, false
 	}
-	return Item{}, false
+	return FromInstance(sim.ItemInstance{Code: code, Kind: typeOf(it.Table), Price: price})
 }

@@ -266,11 +266,14 @@ func TestModShopStockListsTheItemsThatAskForAPlace(t *testing.T) {
 	if err := itemFront(tab).SetModItems(mod.ItemData{Rows: []mod.ItemRow{a, b}}); err != nil {
 		t.Fatal(err)
 	}
-	stock := modShopStock(tab, 0, 0, 100)
+	var stock []ShopItem
+	for _, m := range modStock(tab, firstModStock(0, 0, 100)) {
+		stock = append(stock, m.shelfItem())
+	}
 	if len(stock) != 1 || stock[0].Code != data.ComposeItemCode(0, 7, 0, 10) || stock[0].Price != 120 || stock[0].Count != 1 || stock[0].Kind != 1 {
 		t.Fatalf("%+v", stock)
 	}
-	if modShopStock(fixtureItemTable(10, 5, 5), 0, 0, 100) != nil {
+	if modStock(fixtureItemTable(10, 5, 5), firstModStock(0, 0, 100)) != nil {
 		t.Fatal("an unmodded table has mod stock")
 	}
 }

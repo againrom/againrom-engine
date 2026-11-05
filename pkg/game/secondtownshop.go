@@ -284,10 +284,8 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 		c, is := x.src.(secondshop.Collection)
 		*x.dst, ok = c, ok && is && c != nil
 	}
-	for _, m := range t.Mods.Items {
-		if it, is := secondshop.Stocked(m.Code, m.Price); m.Stock && is {
-			out.Stocked = append(out.Stocked, it)
-		}
+	for _, m := range modStock(t, secondModStock) {
+		out.Stocked = append(out.Stocked, m.Item)
 	}
 	return out, ok
 }

@@ -2,11 +2,13 @@ package game
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 )
 
@@ -190,20 +192,68 @@ func checkItemNumbers(r mod.ItemRow, code data.ItemCode, t *mapload.Table) error
 	return nil
 }
 
-// modShopStock is the units the mods put on the armour shelf, one per item that
-// asks for a place there. The town-arrival stock always holds them. A tavern
-// restock (restocks above zero) offers each one with the chance a shipped
-// armour row has of appearing in one generation, decided by a hash of the shop
-// seed and the item code, so it takes no draw and the shelf stays reproducible.
-func modShopStock(t *mapload.Table, seed int64, restocks uint64, poolSize int) []ShopItem {
+// modStockPolicy is one game's profile of the mods' stocked items: the
+// categories its shop carries, the shelf a first-game shop puts them on, and
+// the stocking's draw policy. A stocking with restocks zero offers every
+// carried item; a later one offers each with the chance a row of a pool of
+// pool rows has of appearing in one generation (DIV-1862), decided by a hash
+// of seed and the item code, so it takes no draw.
+type modStockPolicy struct {
+	// carries are the categories placed; nil places a stocked item of any.
+	carries  []secondshop.Kind
+	shelf    ShopShelf
+	seed     int64
+	restocks uint64
+	pool     int
+}
+
+// secondModStock is the second game's profile: its shop carries the mods'
+// stocked armour and shields at every fill, each filed by its record's
+// placement. Mod weapons stay out (owner decision).
+var secondModStock = modStockPolicy{carries: []secondshop.Kind{secondshop.Armor, secondshop.Shield}}
+
+// firstModStock is the first game's profile at one stocking: every stocked
+// item on the armour shelf, offered by the chance of the shipped plain armour
+// pool of pool rows.
+func firstModStock(seed int64, restocks uint64, pool int) modStockPolicy {
+	return modStockPolicy{shelf: ShelfArmour, seed: seed, restocks: restocks, pool: pool}
+}
+
+// modStocked is one mod item a shop places: its own code and unit price, and
+// the second game's shop item of one unit, whose Table is its category (zero
+// when the code names no item in the bag's form).
+type modStocked struct {
+	Code  uint16
+	Price int32
+	Item  secondshop.Item
+}
+
+// shelfItem is one unit of it on a first-game shelf, of the armour kind.
+func (m modStocked) shelfItem() ShopItem {
+	return shopItemFromInstance(sim.ItemInstance{Code: m.Code, Kind: 1, Price: m.Price}, 1)
+}
+
+// modStock is the one reader of the mods' stocked items for both games'
+// shops: each merged mod item that asks for a shop place, read once and
+// classified once, kept when p carries its category and offers it at this
+// stocking, in the order the mods added them.
+func modStock(t *mapload.Table, p modStockPolicy) []modStocked {
 	if t == nil {
 		return nil
 	}
-	var out []ShopItem
+	var out []modStocked
 	for _, m := range t.Mods.Items {
-		if m.Stock && modStockOffered(seed, restocks, m.Code, poolSize) {
-			out = append(out, shopItemFromInstance(sim.ItemInstance{Code: m.Code, Kind: 1, Price: m.Price}, 1))
+		if !m.Stock {
+			continue
 		}
+		it, ok := secondshop.Stocked(m.Code, m.Price)
+		if !ok {
+			it = secondshop.Item{}
+		}
+		if p.carries != nil && !slices.Contains(p.carries, it.Table) || !modStockOffered(p.seed, p.restocks, m.Code, p.pool) {
+			continue
+		}
+		out = append(out, modStocked{Code: m.Code, Price: m.Price, Item: it})
 	}
 	return out
 }
