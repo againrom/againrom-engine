@@ -69,20 +69,21 @@ type WorldMapDescription struct {
 // WorldMapPagePolicy supplies the host conditions, record sources and actions
 // of one map opening. Location entries remain campaign operations.
 type WorldMapPagePolicy struct {
-	Open         string                `json:"open"`
-	Build        string                `json:"build"`
-	Mode         string                `json:"mode"`
-	RouteMode    string                `json:"route-mode"`
-	Point        string                `json:"point"`
-	Records      []string              `json:"records"`
-	Font         string                `json:"font"`
-	HomeTitle    bool                  `json:"home-title"`
-	Task         bool                  `json:"task"`
-	History      bool                  `json:"history"`
-	RecordText   bool                  `json:"record-text"`
-	TravelOnOpen bool                  `json:"travel-on-open"`
-	Leave        string                `json:"leave"`
-	Arrival      WorldMapArrivalPolicy `json:"arrival"`
+	Open              string                `json:"open"`
+	Build             string                `json:"build"`
+	Mode              string                `json:"mode"`
+	RouteMode         string                `json:"route-mode"`
+	Point             string                `json:"point"`
+	Records           []string              `json:"records"`
+	Font              string                `json:"font"`
+	HomeTitle         bool                  `json:"home-title"`
+	Task              bool                  `json:"task"`
+	History           bool                  `json:"history"`
+	RecordText        bool                  `json:"record-text"`
+	TravelOnOpen      bool                  `json:"travel-on-open"`
+	EscapeSkipsTravel bool                  `json:"escape-skips-travel"`
+	Leave             string                `json:"leave"`
+	Arrival           WorldMapArrivalPolicy `json:"arrival"`
 }
 
 type WorldMapArrivalPolicy struct {

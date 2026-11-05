@@ -2,7 +2,7 @@
   "worldmap": "rom2",
   "page": {
     "open": "unlocated", "build": "opening", "mode": "select", "route-mode": "route", "point": "from-record",
-    "records": ["destinations"], "font": "install", "record-text": true, "travel-on-open": true, "leave": "none",
+    "records": ["destinations"], "font": "install", "record-text": true, "travel-on-open": true, "escape-skips-travel": true, "leave": "none",
     "arrival": {"snap": true, "clear-cross": true, "town": "location", "mission": "location"}
   },
   "art": [

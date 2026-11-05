@@ -301,6 +301,10 @@ func (t *townScreen) Back() bool {
 		t.AdvanceTownDialogue()
 		return true
 	}
+	if t.AtWorldMap() && t.mapPage().policy().EscapeSkipsTravel {
+		worldMapChoose(t.mapPage())
+		return true
+	}
 	room := t.roomName()
 	if room == "square" || room == "" {
 		return false
