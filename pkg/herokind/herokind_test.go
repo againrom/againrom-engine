@@ -79,14 +79,18 @@ func TestAnOrderPlacesTheFourKinds(t *testing.T) {
 		k        Kind
 		selector int
 		picture  int
+		audience int
 	}{
-		{MaleFighter, 0, 0}, {FemaleFighter, 1, 2}, {MaleMage, 2, 1}, {FemaleMage, 3, 3},
+		{MaleFighter, 0, 0, 3}, {FemaleFighter, 1, 2, 1}, {MaleMage, 2, 1, 2}, {FemaleMage, 3, 3, 0},
 	} {
 		if c.k.Index() != c.selector || c.k.In(PictureOrder) != c.picture {
 			t.Errorf("%v: Index %d, In(PictureOrder) %d; want %d, %d", c.k, c.k.Index(), c.k.In(PictureOrder), c.selector, c.picture)
 		}
 		if PictureOrder[c.picture] != c.k {
 			t.Errorf("PictureOrder[%d] = %v, want %v", c.picture, PictureOrder[c.picture], c.k)
+		}
+		if c.k.In(AudienceOrder) != c.audience || AudienceOrder[c.audience] != c.k {
+			t.Errorf("%v: In(AudienceOrder) %d, AudienceOrder[%d] %v", c.k, c.k.In(AudienceOrder), c.audience, AudienceOrder[c.audience])
 		}
 	}
 }

@@ -350,8 +350,9 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// UI tier's own leaf that reads the system's double-click setting;
 	// pkg/ui/heldkey is its leaf that reads held keyboard keys.
 	// pkg/pathdialog is the shared system path service; it imports no game state.
+	// pkg/herokind is the shared selector and order leaf.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold"}
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {
@@ -379,6 +380,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	for _, rel := range []string{
 		"pkg/render", "pkg/render/terrain", "pkg/render/camera",
 		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video", "pkg/words", "pkg/pathdialog", "pkg/editormcp",
+		"pkg/herokind",
 	} {
 		if vs := Check(map[string][]string{"pkg/ui": {ModulePath + "/" + rel}}); len(vs) != 0 {
 			t.Errorf("pkg/ui -> %s: got %v, want no violation — the render tier and the audio leaf are the UI's grant", rel, vs)

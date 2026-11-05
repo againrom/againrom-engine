@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
@@ -36,7 +37,10 @@ var heroLabels = []string{"editor.message.hero.womanmage", "editor.message.hero.
 
 // heroAudience is a planted hero of the cells' order: 0 woman mage, 1
 // woman fighter, 2 man mage, 3 man fighter.
-func heroAudience(h int) EventAudience { return EventAudience{HeroFemale: h < 2, HeroMage: h%2 == 0} }
+func heroAudience(h int) EventAudience {
+	k := herokind.AudienceOrder[h]
+	return EventAudience{HeroFemale: k.Female(), HeroMage: k.Mage()}
+}
 
 // readerText is part n of page as the event text reader gives it to hero h,
 // as the editor's text box holds it, and its speaker; ok is false when no tag

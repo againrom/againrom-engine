@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/textfit"
@@ -248,7 +249,7 @@ func (s *mapInspectionEdits) heroFace(id int64, heroes ui.HeroAudience) (*image.
 		return nil, false
 	}
 	var face *image.RGBA
-	for h := range 4 {
+	for h, k := range herokind.AudienceOrder {
 		if heroes&(1<<h) == 0 {
 			continue
 		}
@@ -256,7 +257,7 @@ func (s *mapInspectionEdits) heroFace(id int64, heroes ui.HeroAudience) (*image.
 		pic, tried := sp.heroFaces[key]
 		if !tried {
 			r := s.speakerResolver(sp)
-			r.cast = newSpeakerCast(plantedHero(h < 2, h%2 == 0), &speakerWorld{actors: sp.cast.actors, alive: sp.cast.alive, worn: sp.cast.worn})
+			r.cast = newSpeakerCast(plantedHero(k), &speakerWorld{actors: sp.cast.actors, alive: sp.cast.alive, worn: sp.cast.worn})
 			if f, window, ok := r.SpeakerFace(int(id)); ok {
 				pic = ui.SpeakerPortrait(f, window)
 			}
@@ -302,8 +303,8 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 func (s *mapInspectionEdits) heroAudiences() [4]EventAudience {
 	records := s.missionStart().records
 	var out [4]EventAudience
-	for h := range out {
-		out[h] = partyAudience(plantedHero(h < 2, h%2 == 0), records)
+	for h, k := range herokind.AudienceOrder {
+		out[h] = partyAudience(plantedHero(k), records)
 		out[h].tags = s.inspector.eventTags()
 	}
 	return out
@@ -348,7 +349,9 @@ func messageCells(d messageMarkupDocument, heroes [4]EventAudience) []ui.Inspect
 			}
 		}
 		reached := map[int]bool{}
-		for _, h := range ui.HeroCells(got[0] != got[2] || got[1] != got[3], got[0] != got[1] || got[2] != got[3]) {
+		fm, ff := got[herokind.FemaleMage.In(herokind.AudienceOrder)], got[herokind.FemaleFighter.In(herokind.AudienceOrder)]
+		mm, mf := got[herokind.MaleMage.In(herokind.AudienceOrder)], got[herokind.MaleFighter.In(herokind.AudienceOrder)]
+		for _, h := range ui.HeroCells(fm != mm || ff != mf, fm != ff || mm != mf) {
 			source := got[bits.TrailingZeros8(uint8(h))]
 			part := ui.InspectionMessagePart{Source: -1, Number: n, Speaker: -1, Ends: true}
 			if source >= 0 {

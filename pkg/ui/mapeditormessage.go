@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/herokind"
 )
 
 // InspectionMessages edits message pages and their owner as one history entry.
@@ -125,7 +127,11 @@ const (
 func HeroCells(sex, class bool) []HeroAudience {
 	switch {
 	case sex && class:
-		return []HeroAudience{HeroWomanMage, HeroWomanFighter, HeroManMage, HeroManFighter}
+		var cells []HeroAudience
+		for _, k := range herokind.AudienceOrder {
+			cells = append(cells, HeroOf(k.Mage(), k.Female()))
+		}
+		return cells
 	case sex:
 		return []HeroAudience{HeroWomanMage | HeroWomanFighter, HeroManMage | HeroManFighter}
 	case class:
@@ -181,14 +187,7 @@ var heroWords = []struct {
 
 // HeroOf is the one hero of the class and sex given.
 func HeroOf(mage, female bool) HeroAudience {
-	h := HeroWomanMage
-	if !mage {
-		h <<= 1
-	}
-	if !female {
-		h <<= 2
-	}
-	return h
+	return 1 << herokind.Of(mage, female).In(herokind.AudienceOrder)
 }
 
 // HeroWord is the word that labels a cell of heroes h, empty for none.

@@ -46,6 +46,9 @@ type Order [kinds]Kind
 // mage, female fighter, female mage (the face and installed-name tables).
 var PictureOrder = Order{MaleFighter, MaleMage, FemaleFighter, FemaleMage}
 
+// AudienceOrder is the editor dialogue cells' order.
+var AudienceOrder = Order{FemaleMage, FemaleFighter, MaleMage, MaleFighter}
+
 // In is the place of k in the order o, 0..3; a kind the order omits answers 0.
 func (k Kind) In(o Order) int {
 	for i, c := range o {

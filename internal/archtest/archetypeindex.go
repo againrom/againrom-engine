@@ -12,17 +12,15 @@ import (
 
 // The archetype-index scan: a hero's class and sex turn into a place 0..3 in
 // one function, herokind.Of, and a table in another order reads it through
-// herokind.Kind.In. In pkg/data, pkg/game, pkg/sim and pkg/mapload it refuses
-// an if whose condition reads the class or the sex (a name archetypeAxisName
-// matches) when its body adds 1 or 2 to a number or ORs 1 or 2 into one: a
-// second index function.
+// herokind.Kind.In. It refuses axis-conditioned additions, ORs and shifts,
+// and calls that derive a hero's sex or class from a cell ordinal.
 
-var archetypeRoots = []string{"pkg/data/", "pkg/game/", "pkg/sim/", "pkg/mapload/"}
+var archetypeRoots = []string{"pkg/data/", "pkg/game/", "pkg/sim/", "pkg/mapload/", "pkg/ui/"}
 
 var archetypeAxisName = regexp.MustCompile(`^(?i:is|hero)?(?i:mage|female)$|^NPCToken(Mage|Female)$`)
 
-// CheckArchetypeIndex reports every if that builds a hero archetype index
-// outside pkg/herokind. files is keyed by module-relative slash path.
+// CheckArchetypeIndex reports hero index and cell conversions outside
+// pkg/herokind. files is keyed by module-relative slash path.
 func CheckArchetypeIndex(files map[string]string) []Violation {
 	if len(files) == 0 {
 		return []Violation{{From: "pkg", Reason: "no sources scanned - the archetype-index scan found nothing to read"}}
@@ -44,6 +42,25 @@ func CheckArchetypeIndex(files map[string]string) []Violation {
 			continue
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
+			if field, ok := n.(*ast.KeyValueExpr); ok {
+				if key, ok := field.Key.(*ast.Ident); ok && archetypeAxisName.MatchString(key.Name) && ordinalHeroAxis(field.Value) {
+					vs = append(vs, Violation{
+						From:   name + ":" + strconv.Itoa(fset.Position(field.Pos()).Line),
+						Reason: "a hero axis is built from a cell ordinal here; read herokind.AudienceOrder",
+					})
+				}
+			}
+			if call, ok := n.(*ast.CallExpr); ok {
+				for _, arg := range call.Args {
+					if ordinalHeroAxis(arg) || ordinalHeroCell(call, arg) {
+						vs = append(vs, Violation{
+							From:   name + ":" + strconv.Itoa(fset.Position(call.Pos()).Line),
+							Reason: "a cell ordinal is turned into sex or class here; read herokind.AudienceOrder and Kind.Female or Kind.Mage",
+						})
+						break
+					}
+				}
+			}
 			stmt, ok := n.(*ast.IfStmt)
 			if !ok || !readsHeroAxis(stmt.Cond) {
 				return true
@@ -83,8 +100,69 @@ func readsHeroAxis(e ast.Expr) bool {
 	return found
 }
 
+func ordinalHeroCell(call *ast.CallExpr, arg ast.Expr) bool {
+	var name string
+	switch f := call.Fun.(type) {
+	case *ast.Ident:
+		name = f.Name
+	case *ast.SelectorExpr:
+		name = f.Sel.Name
+	}
+	if name != "HeroCells" {
+		return false
+	}
+	found := false
+	ast.Inspect(arg, func(n ast.Node) bool {
+		if index, ok := n.(*ast.IndexExpr); ok && archetypeLiteral(index.Index, "0", "1", "2", "3") {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+func ordinalHeroAxis(arg ast.Expr) bool {
+	arg = ast.Unparen(arg)
+	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.NOT {
+		return ordinalHeroAxis(unary.X)
+	}
+	binary, ok := arg.(*ast.BinaryExpr)
+	if !ok {
+		return false
+	}
+	switch binary.Op {
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ, token.LAND, token.LOR:
+	default:
+		return false
+	}
+	found := false
+	ast.Inspect(binary, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.CallExpr, *ast.FuncLit:
+			return false
+		case *ast.BinaryExpr:
+			found = found || (n.Op == token.LSS || n.Op == token.REM) && archetypeLiteral(n.Y, "2")
+		}
+		return !found
+	})
+	return found
+}
+
+func archetypeLiteral(e ast.Expr, values ...string) bool {
+	lit, ok := ast.Unparen(e).(*ast.BasicLit)
+	if !ok || lit.Kind != token.INT {
+		return false
+	}
+	for _, value := range values {
+		if lit.Value == value {
+			return true
+		}
+	}
+	return false
+}
+
 // addsToIndex answers the first statement of body that adds 1 or 2 to a
-// number or ORs 1 or 2 into one, outside loops and closures.
+// number, ORs them into one or shifts by them, outside loops and closures.
 func addsToIndex(body *ast.BlockStmt) ast.Node {
 	var hit ast.Node
 	ast.Inspect(body, func(n ast.Node) bool {
@@ -99,8 +177,11 @@ func addsToIndex(body *ast.BlockStmt) ast.Node {
 				hit = n
 			}
 		case *ast.AssignStmt:
-			if (n.Tok == token.ADD_ASSIGN || n.Tok == token.OR_ASSIGN) && len(n.Rhs) == 1 {
-				if lit, ok := n.Rhs[0].(*ast.BasicLit); ok && lit.Kind == token.INT && (lit.Value == "1" || lit.Value == "2") {
+			if len(n.Rhs) == 1 {
+				if (n.Tok == token.ADD_ASSIGN || n.Tok == token.OR_ASSIGN || n.Tok == token.SHL_ASSIGN) && archetypeLiteral(n.Rhs[0], "1", "2") {
+					hit = n
+				}
+				if shift, ok := ast.Unparen(n.Rhs[0]).(*ast.BinaryExpr); ok && shift.Op == token.SHL && archetypeLiteral(shift.Y, "1", "2") {
 					hit = n
 				}
 			}

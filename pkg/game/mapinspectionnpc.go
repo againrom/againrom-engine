@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -335,14 +336,14 @@ func (x *MapInspector) editorHeroLabels() ui.HeroLabels {
 // editorHero is the player's hero the editor's speakers are built with: a
 // man, a fighter, the first face. A map has no player yet, and a speaker whose
 // face the game takes from the player's hero is shown as it is for a man.
-func editorHero() []mapload.PartyMember { return plantedHero(false, false) }
+func editorHero() []mapload.PartyMember { return plantedHero(herokind.MaleFighter) }
 
 // plantedHero is a party of one starting hero of that sex and class, the
 // first face: the hero the editor reads a dialogue's branch for.
-func plantedHero(female, mage bool) []mapload.PartyMember {
+func plantedHero(k herokind.Kind) []mapload.PartyMember {
 	return []mapload.PartyMember{{
 		PlayerCharacter: true, StartingHero: true,
-		FigureDir: string(data.FigureDirFor(mage, female)), Mage: mage, FigureFace: 1,
+		FigureDir: string(data.FigureDirFor(k.Mage(), k.Female())), Mage: k.Mage(), FigureFace: 1,
 	}}
 }
 
