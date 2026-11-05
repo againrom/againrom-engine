@@ -345,3 +345,14 @@ func strideCrossing(s NativeStride, tick int32) (from, to cell, crossed bool) {
 	from, to = strideCell(s, tick), strideCell(s, tick+1)
 	return from, to, from != to
 }
+
+// strideEntersStep reports the one crossing of a step that enters its
+// destination footprint: the y axis's cell change, or the x axis's when the
+// step has no y motion. A diagonal whose x axis crosses a tick apart takes
+// the y crossing, as the original's direction 1/5 correction does (MOVE-194).
+func strideEntersStep(s NativeStride, from, to cell) bool {
+	if s.StepY != 0 {
+		return from.y != to.y
+	}
+	return from.x != to.x
+}

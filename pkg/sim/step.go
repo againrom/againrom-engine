@@ -966,6 +966,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				if from, to, crossed := strideCrossing(e.Stride, int32(e.TransitTotal)-1-int32(e.Transit)); crossed {
 					w.recomputeCrossing(*e, from, to)
 					w.moverCrossed(e.ID)
+					if strideEntersStep(e.Stride, from, to) {
+						w.requestFootprintCasts(i, e.X, e.Y)
+					}
 				}
 			}
 			continue
@@ -2188,8 +2191,9 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 	if heldFirstCall && e.Facing != facingBefore {
 		return stepTurned
 	}
-	w.requestFootprintCasts(i, next.x, next.y)
+	// A held cell still fires its trap, on the refused attempt (DIV-4527).
 	if e.Domain != DomainAir && !w.occupancyOpenFootprint(scratch, i, next.x, next.y) {
+		w.requestFootprintCasts(i, next.x, next.y)
 		return stepBlocked
 	}
 	w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
@@ -2231,6 +2235,11 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 		e.TransitTotal = uint16(t)
 		e.Transit = uint16(t - 1)
 		e.retainStride(from, rate)
+	}
+	// A stride requests the entered footprint's traps on its crossing tick
+	// (MOVE-194); a step without one has no crossing and requests them now.
+	if !e.Stride.Present {
+		w.requestFootprintCasts(i, e.X, e.Y)
 	}
 	e.startAction(w.tick, max(1, int64(e.TransitTotal)))
 	// Only a mover its plane counts WHILE IT MOVES tells the plane anything.

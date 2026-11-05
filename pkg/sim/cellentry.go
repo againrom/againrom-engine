@@ -28,8 +28,9 @@ func (w *World) DeclareCellTails(tails []CellTail) error {
 }
 
 // requestFootprintCasts is an attachment attempt, never a route-search probe.
-// It runs before occupancy acceptance and visits every destination footprint
-// cell, including overlap with the actor's prior footprint. Standing does not
+// A stride runs it on its crossing tick, a refused step on the attempt; it
+// visits every destination footprint cell, including overlap with the actor's
+// prior footprint (MOVE-196). Standing does not
 // call it. UNIT-M10ENTRY-055 admits ground and ghost, not air; UNIT-M10LIFE-057
 // supplies the two disabled spell bytes and no local cooldown or once flag.
 // External caller frequency is Unknown; DIV-540 records our integration seam.

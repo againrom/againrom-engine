@@ -473,8 +473,8 @@ func (w *World) movePlaneMotionSlots(i int, to uint16) bool {
 
 // moveNativeCellSlots is a native mover's crossing on a World with planes:
 // the release of the footprint at from, then the occupation of the footprint
-// at to (MOVE-088). The native step requested the entry's cell casts at its
-// transit start, so the occupation requests none. A native actor without a
+// at to (MOVE-088). The native step's crossing requests the entry's cell
+// casts, so the occupation requests none. A native actor without a
 // source identity binds its slots with key 0; SAVE supplies the key.
 func (w *World) moveNativeCellSlots(i int, from, to cell) {
 	key := w.motionActorKey(w.entities[i].ID)

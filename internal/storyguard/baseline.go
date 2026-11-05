@@ -4091,5 +4091,8 @@ var Committed = Baseline{
 	// Shared hover, cursor hotspots, row zero and moving overlap.
 
 	// It rises for the popup dim builder in pkg/ui/popupdim.go and its tests.
-	CommentBytes: 10523969,
+
+	// It rises for strideEntersStep in pkg/sim/areacost.go, the crossing-tick
+	// trap request in pkg/sim/step.go and trapcrossing_test.go.
+	CommentBytes: 10525021,
 }
