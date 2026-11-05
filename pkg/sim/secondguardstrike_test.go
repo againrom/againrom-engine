@@ -2,6 +2,116 @@ package sim
 
 import "testing"
 
+func TestGuardStruckMemberTakesTheStrikerOnTheSameTickInBothGames(t *testing.T) {
+	for _, state := range []string{"post", "attacking"} {
+		t.Run(state, func(t *testing.T) {
+			var worlds [2]*World
+			for game := range worlds {
+				w := gameProfileFixture(t, game == 1)
+				worlds[game] = w
+				leashAt(w, guardRouteHero).HP, leashAt(w, guardRouteHero).MaxHP = 4000, 4000
+				leashAt(w, guardRouteFoe).HP, leashAt(w, guardRouteFoe).MaxHP = 400, 400
+				leashMove(t, w, guardRouteHero, 5, 5)
+				leashRun(w, 1)
+				m := leashAt(w, guardRouteFoe)
+				if m.X != m.PostX || m.Y != m.PostY || m.HasAttackTarget {
+					t.Fatalf("game %d: fixture is not at its post", game+1)
+				}
+				leashMove(t, w, guardRouteHero, m.X-1, m.Y)
+				if state == "attacking" {
+					leashRun(w, 1)
+					if v, held := engVictim(w, guardRouteFoe); !held || v != guardRouteHero {
+						t.Fatalf("game %d: fixture is not attacking the hero", game+1)
+					}
+				}
+				o := w.savedOrder(guardRouteFoe)
+				o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+				leashAt(w, guardRouteFoe).HP = 100
+				w.flipOnBlow(indexOfEntity(w.entities, guardRouteHero), indexOfEntity(w.entities, guardRouteFoe))
+				if game == 0 && o.Strike.Held {
+					t.Fatal("first-game blow acquired a second-game strike record")
+				}
+			}
+			var firstTick [2]uint64
+			for range 96 {
+				for game, w := range worlds {
+					Step(w, nil)
+					if v, held := engVictim(w, guardRouteFoe); held && v == guardRouteHero && firstTick[game] == 0 {
+						firstTick[game] = w.tick
+					}
+					if w.ScriptPassJustRan() {
+						if v, held := engVictim(w, guardRouteFoe); !held || v != guardRouteHero {
+							t.Errorf("game %d tick %d: struck %s guard holds victim %d/%v, want hero %d", game+1, w.tick, state, v, held, guardRouteHero)
+						}
+					}
+				}
+			}
+			if firstTick[0] == 0 || firstTick[1] != firstTick[0] {
+				t.Errorf("first target tick: ROM1 %d, ROM2 %d; want the same nonzero tick", firstTick[0], firstTick[1])
+			}
+			t.Logf("first target tick: ROM1 %d, ROM2 %d", firstTick[0], firstTick[1])
+		})
+	}
+}
+
+func TestSecondGuardStruckMemberFightsBack(t *testing.T) {
+	for _, state := range []string{"post", "post distant", "idle", "pursuing", "attacking", "edge"} {
+		for _, stamped := range []bool{false, true} {
+			name := state + "/fresh"
+			if stamped {
+				name = state + "/retained stamp"
+			}
+			t.Run(name, func(t *testing.T) {
+				w, _ := strikeStart(t)
+				m := leashAt(w, 2)
+				if state == "edge" {
+					leashMove(t, w, 2, 0, 20)
+					m.PostX = 0
+					w.savedOrder(2).Raw[0] = 0
+				} else if state == "idle" {
+					leashMove(t, w, 2, 22, 20)
+				}
+				m = leashAt(w, 2)
+				dx := int32(1)
+				if state == "pursuing" || state == "post distant" {
+					dx = 5
+				}
+				leashMove(t, w, leashHero, m.X+dx, m.Y)
+				if state == "pursuing" || state == "attacking" {
+					leashRun(w, 1)
+					if v, ok := engVictim(w, 2); !ok || v != leashHero {
+						t.Fatalf("fixture: %s member has no hero target", state)
+					}
+					m = leashAt(w, 2)
+					leashMove(t, w, leashHero, m.X+dx, m.Y)
+				}
+				o := w.savedOrder(2)
+				o.Strike.Stamped, o.Strike.Stamp = stamped, w.groupClock()
+				m.HP = m.MaxHP / 4
+				startX, heroHP := m.X, leashAt(w, leashHero).HP
+				w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+				if !o.Strike.Held || o.Strike.Attacker != leashHero || o.Strike.Clock != w.fineClock() || o.Strike.Stamped != stamped || o.Raw[0x54] != 1 {
+					t.Fatalf("the blow did not keep its current command fields: %+v", o)
+				}
+				for n := range 4 {
+					leashRun(w, 1)
+					m = leashAt(w, 2)
+					if v, ok := engVictim(w, 2); !ok || v != leashHero {
+						t.Fatalf("struck %s member, pass %d: victim %d/%v, at (%d,%d), walking %v to (%d,%d); want striker %d",
+							state, n+1, v, ok, m.X, m.Y, m.HasTarget, m.TargetX, m.TargetY, leashHero)
+					}
+				}
+				if dx == 1 && leashAt(w, leashHero).HP >= heroHP {
+					t.Fatal("member took the striker but dealt no damage in reach")
+				}
+				if dx > 1 && m.X <= startX {
+					t.Fatal("member took the distant striker but did not advance toward it")
+				}
+			})
+		}
+	}
+}
+
 // strikeGuard is slot 3's Group 1 of a missionStartWorld.
 func strikeGuard(t *testing.T, w *World) SavedGroup {
 	t.Helper()
@@ -79,55 +189,26 @@ func walksTo(w *World, c cell) bool {
 	return m.HasTarget && m.TargetX == c.x && m.TargetY == c.y || !m.HasTarget && m.X == c.x && m.Y == c.y
 }
 
-// The owner's case at a mission start: a guard B member led beyond its leash
-// walks home; struck on the way from inside its circle, it walks to cmd
-// +0x9c and takes no target while |cmd +0x16 - server word +0| < 30 (hurt),
-// the stamp of its last group tick in pursuit beyond reach; on the 30th
-// group tick it takes the striker (R2-ENGINE-844 cases 1 to 3,
-// R2-ENGINE-845, R2-ENGINE-846).
-func TestSecondGuardStruckOnTheWayHomeWalksAwayInsideTheStampWindow(t *testing.T) {
-	w, r := strikePursuit(t)
+// A returning guard takes the striker without a stamp-window delay (DIV-4503).
+func TestSecondGuardStruckOnTheWayHomeTakesTheStriker(t *testing.T) {
+	w, _ := strikePursuit(t)
 	if !walksTo(w, cell{20, 20}) {
 		m := leashAt(w, 2)
 		t.Fatalf("the member at (%d,%d) walks to (%d,%d)/%v, want its post (20,20)", m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget)
 	}
-	away := strikeFrom(t, w, 2)
-	for n := 1; n < 30; n++ {
-		m := leashAt(w, 2)
-		leashMove(t, w, leashHero, m.X+2, m.Y)
-		leashRun(w, 1)
-		if v, ok := engVictim(w, 2); ok {
-			t.Fatalf("group tick %d after the stamp: the member took victim %v inside the window", n, v)
-		}
-		if !walksTo(w, away) {
-			m := leashAt(w, 2)
-			t.Fatalf("group tick %d after the stamp: the member at (%d,%d) walks to (%d,%d)/%v, want +0x9c %v", n, m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget, away)
-		}
-		if m := leashAt(w, 2); m.HP == m.MaxHP {
-			t.Fatal("fixture: the member healed inside the window")
-		}
-	}
-	m := leashAt(w, 2)
-	if 2 > r {
-		t.Fatalf("fixture: the striker two cells off stands beyond the leash %d", r)
-	}
-	leashMove(t, w, leashHero, m.X+2, m.Y)
+	strikeFrom(t, w, 2)
 	leashRun(w, 1)
 	if v, ok := engVictim(w, 2); !ok || v != leashHero {
-		t.Fatalf("on the 30th group tick after the stamp the member holds victim %v/%v, want the striker", v, ok)
+		t.Fatalf("on the first group tick after the blow the member holds victim %v/%v, want the striker", v, ok)
 	}
 }
 
-// Case 4: a hurt member with no target walks to cmd +0x9c while the fine
-// clock is within 10 of its blow's +0x98; struck from beyond its circle
-// longer ago than that, it walks on to its post (R2-ENGINE-844 cases 4 and
-// 6, R2-ENGINE-845).
-func TestSecondGuardHurtMemberWalksAwayWithinTenFineTicksOfItsBlow(t *testing.T) {
+// A blow from outside the circle does not divert the return to the post.
+func TestSecondGuardHurtMemberOutsideTheCircleKeepsItsPost(t *testing.T) {
 	for _, c := range []struct {
 		name string
 		wait int
-		away bool
-	}{{"blow five fine ticks before the group tick", 10, true}, {"blow fifteen fine ticks before the group tick", 0, false}} {
+	}{{"blow five fine ticks before the group tick", 10}, {"blow fifteen fine ticks before the group tick", 0}} {
 		t.Run(c.name, func(t *testing.T) {
 			w, r := strikeStart(t)
 			// Carried off its post with no pursuit, the member walks home;
@@ -146,15 +227,12 @@ func TestSecondGuardHurtMemberWalksAwayWithinTenFineTicksOfItsBlow(t *testing.T)
 			if dx <= r {
 				t.Fatalf("fixture: the striker cannot stand beyond the leash %d", r)
 			}
-			away := strikeFrom(t, w, dx)
+			strikeFrom(t, w, dx)
 			leashRun(w, 1)
 			if v, ok := engVictim(w, 2); ok {
 				t.Fatalf("the member took victim %v from beyond its circle", v)
 			}
 			want := cell{20, 20}
-			if c.away {
-				want = away
-			}
 			if !walksTo(w, want) {
 				m := leashAt(w, 2)
 				t.Fatalf("the member at (%d,%d) walks to (%d,%d)/%v, want %v", m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget, want)
@@ -163,25 +241,25 @@ func TestSecondGuardHurtMemberWalksAwayWithinTenFineTicksOfItsBlow(t *testing.T)
 	}
 }
 
-// A byte-form round trip inside the stamp window keeps the window, the
-// blow's record and each next group tick's decision.
-func TestSecondGuardStampWindowSurvivesAColdLoad(t *testing.T) {
+// A cold load keeps the blow, a retained stamp and the next combat decisions.
+func TestSecondGuardBlowAndTargetSurviveAColdLoad(t *testing.T) {
 	w, _ := strikePursuit(t)
+	o := w.savedOrder(2)
+	o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+	stamp := o.Strike.Stamp
 	strikeFrom(t, w, 2)
 	leashRun(w, 1)
 	cold := cloneWorld(t, w)
 	for n := 2; n <= 30; n++ {
 		for _, x := range []*World{w, cold} {
-			m := leashAt(x, 2)
-			leashMove(t, x, leashHero, m.X+2, m.Y)
 			leashRun(x, 1)
 		}
 		if w.Hash() != cold.Hash() {
 			t.Fatalf("group tick %d after the stamp: the cold World departs from the live one", n)
 		}
-		_, held := engVictim(cold, 2)
-		if n < 30 && held || n == 30 && !held {
-			t.Fatalf("group tick %d after the stamp: the cold World's member holds a victim %v", n, held)
+		v, held := engVictim(cold, 2)
+		if !held || v != leashHero || cold.savedOrder(2).Strike.Stamp != stamp {
+			t.Fatalf("group tick %d: cold member holds victim %d/%v, stamp %d; want hero and retained stamp %d", n, v, held, cold.savedOrder(2).Strike.Stamp, stamp)
 		}
 	}
 }

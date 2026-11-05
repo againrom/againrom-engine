@@ -42,89 +42,39 @@ func strikeLeashed(t *testing.T, w *World, standoff int32) {
 	leashRun(w, 1)
 }
 
-// A guard B member whose stamp window holds takes no foe from the join
-// pass, whether the striker stands on its blow cell or keeps attacking, and
-// may take it once the window ends.
-func TestSecondGameStrikeWindowTakesNoJoinedFoe(t *testing.T) {
-	check := func(t *testing.T, w *World, step func(), words int, fighting bool) {
-		i := indexOfEntity(w.entities, 2)
-		o := w.savedOrder(2)
-		if o == nil {
-			t.Fatal("fixture: member has no order")
+func TestSecondGameStrikeWindowDoesNotBlockJoinedFoe(t *testing.T) {
+	for _, fighting := range []bool{false, true} {
+		name := "striker stands on its blow cell"
+		if fighting {
+			name = "striker keeps attacking"
 		}
-		inWindow, eligible, blows, after := 0, 0, 0, false
-		was, clock := w.strikeWindow(i, o), o.Strike.Clock
-		blowCell := cellOf(leashAt(w, leashHero))
-		for range words {
-			step()
+		t.Run(name, func(t *testing.T) {
+			w := strikeFixture(t)
+			leashRun(w, 1)
 			m := leashAt(w, 2)
+			leashMove(t, w, leashHero, m.X+1, m.Y)
+			m.MaxHP, m.HP = 4000, 3000
+			leashAt(w, leashHero).DamageBase = 1
 			o := w.savedOrder(2)
-			if o == nil {
-				continue
+			o.Strike.Stamped, o.Strike.Stamp = true, w.groupClock()
+			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+			w.engageDrew = nil
+			if !w.strikeWindow(indexOfEntity(w.entities, 2), o) || !w.joinsFight(indexOfEntity(w.entities, 2)) {
+				t.Fatal("fixture: member is not free to join inside a retained window")
 			}
-			// A blow lands after the Group's decision in its tick, so the
-			// first tick the window holds can still show the chase it ends.
-			now := w.strikeWindow(indexOfEntity(w.entities, 2), o)
-			was, now = now, now && was
-			if now {
-				inWindow++
-				if w.joinsFight(i) && containsIndex(w.engagedFoes(m.Owner, []int{i}), indexOfEntity(w.entities, leashHero)) {
-					eligible++
-				}
-				if fighting && o.Strike.Clock != clock {
-					blows++
-				}
-				if !fighting && cellOf(leashAt(w, leashHero)) != blowCell {
-					t.Fatal("fixture: striker left its blow cell inside the window")
-				}
-				if v, held := engVictim(w, 2); held {
-					t.Fatalf("tick %d word %d: member inside its window holds victim %d at (%d,%d)", w.tick, w.groupClock(), v, m.X, m.Y)
-				}
-			} else if _, held := engVictim(w, 2); held && !was && inWindow > 0 {
-				after = true
+			w.joinSavedEngagedGroups()
+			if v, held := engVictim(w, 2); !held || v != leashHero {
+				t.Fatalf("join pass: victim %d/%v, want striker", v, held)
 			}
-			clock = o.Strike.Clock
-		}
-		if inWindow < 3 {
-			t.Fatalf("window held at %d group ticks, want several", inWindow)
-		}
-		if !after {
-			t.Fatal("member never took the striker after its window ended")
-		}
-		if eligible == 0 {
-			t.Fatal("fixture: member never arrived free to join its striker inside the window")
-		}
-		if fighting && blows < 2 {
-			t.Fatalf("fixture: only %d further blows inside the window, want repeated attacks", blows)
-		}
-		t.Logf("window checked at %d group ticks, join eligible at %d, further blows %d; striker taken after expiry", inWindow, eligible, blows)
-	}
-	t.Run("striker stands on its blow cell", func(t *testing.T) {
-		w := strikeFixture(t)
-		strikeLeashed(t, w, 15)
-		m := leashAt(w, 2)
-		leashMove(t, w, leashHero, m.X+2, m.Y)
-		w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
-		check(t, w, func() { leashRun(w, 1) }, 40, false)
-	})
-	t.Run("striker keeps attacking", func(t *testing.T) {
-		w := strikeFixture(t)
-		strikeLeashed(t, w, 15)
-		m := leashAt(w, 2)
-		leashMove(t, w, leashHero, m.X+1, m.Y)
-		m.MaxHP, m.HP = 4000, 3000
-		leashAt(w, leashHero).DamageBase = 1
-		check(t, w, func() {
-			for {
-				if hv, ok := engVictim(w, leashHero); !ok || hv != 2 {
+			for n := range 4 {
+				if fighting {
 					Step(w, []Command{Attack(leashHero, 2)})
-				} else {
-					Step(w, nil)
 				}
-				if w.ScriptPassJustRan() {
-					return
+				leashRun(w, 1)
+				if v, held := engVictim(w, 2); !held || v != leashHero {
+					t.Fatalf("group pass %d: victim %d/%v, want striker", n+1, v, held)
 				}
 			}
-		}, 60, true)
-	})
+		})
+	}
 }

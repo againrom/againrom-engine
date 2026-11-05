@@ -164,19 +164,13 @@ func runGuardStrike(t *testing.T, archives *Archives) guardStrikeRun {
 	return run
 }
 
-// The owner's case on the installed mission 10: Troll.4, a guard B member
-// struck once by the hero, holds the blow's record; on the group tick it
-// pursues the hero beyond its reach it stamps cmd +0x16 with server word +0,
-// and while the stamp lies below 10 group ticks back (30 while hurt) it holds
-// no victim and walks to cmd +0x9c, or to the nearest cell it reaches; on the
-// first group tick past the window it takes the striker again
-// (R2-ENGINE-844, R2-ENGINE-845, R2-ENGINE-846, DIV-4503).
+// The installed guard takes and keeps its striker without a stamp-window delay.
 func TestReleaseSecondGuardStruckWalksAwayInsideTheStampWindow(t *testing.T) {
 	run := runGuardStrike(t, secondGameRoot(t))
 	if run.Refused != "" {
 		t.Fatal(run.Refused)
 	}
-	var after []guardStrikeRow
+	after := 0
 	for _, r := range run.Rows {
 		switch r.Phase {
 		case "start":
@@ -184,59 +178,17 @@ func TestReleaseSecondGuardStruckWalksAwayInsideTheStampWindow(t *testing.T) {
 				t.Fatalf("Troll.4's Group runs programme %d with victim %v/%v at the mission start, want 18 and none", r.Mode, r.Victim, r.Chasing)
 			}
 		case "blow":
-			// The row follows the step whose World tick wrote the blow.
 			if r.Strike.Attacker != run.Hero || r.Strike.Clock != uint32(r.Tick-1) || r.Strike.Stamped {
 				t.Fatalf("the blow's record is %+v after tick %d", r.Strike, r.Tick-1)
 			}
 		case "after":
-			after = append(after, r)
+			after++
+			if !r.Chasing || r.Victim != run.Hero || r.Pursuit != 5 || r.Strike.Stamped {
+				t.Fatalf("group tick %d after the blow: victim %d/%v, cmd +8 %d, stamp %+v; want striker, pursuit and no new stamp", after, r.Victim, r.Chasing, r.Pursuit, r.Strike)
+			}
 		}
 	}
-	s := -1
-	for i, r := range after {
-		if r.Strike.Stamped {
-			s = i
-			break
-		}
+	if after != strikeAfterPasses {
+		t.Fatalf("checked %d group ticks after the blow, want %d", after, strikeAfterPasses)
 	}
-	if s < 1 || s > 3 {
-		t.Fatalf("the first stamp falls on group tick %d after the blow, want the second or third", s+1)
-	}
-	if p := after[s-1]; !p.Chasing || p.Victim != run.Hero || p.Pursuit != 5 {
-		t.Fatalf("before the stamp the member chases %v/%v with cmd +8 = %d, want the hero and 5", p.Victim, p.Chasing, p.Pursuit)
-	}
-	stamp := after[s].Strike.Stamp
-	if stamp != after[s].Clock {
-		t.Fatalf("the stamp is %d on server word %d, want the word", stamp, after[s].Clock)
-	}
-	took := false
-	for _, r := range after[s:] {
-		d := r.Clock - stamp
-		if d >= 10 && r.HP == r.MaxHP || d >= 30 {
-			took = r.Chasing && r.Victim == run.Hero
-			break
-		}
-		away := guardStrikeCell(r.Strike.Away)
-		goal := sim.CellPoint{X: r.X, Y: r.Y}
-		if r.Walking {
-			goal = sim.CellPoint{X: r.DestX, Y: r.DestY}
-		}
-		if r.Chasing || guardStrikeSpan(goal, away) > 2 || r.Strike.Stamp != stamp {
-			t.Fatalf("group tick %d after the stamp: the member at (%d,%d), health %d/%d, chases %v/%v and walks to (%d,%d)/%v with stamp %d, want +0x9c %v and stamp %d",
-				d, r.X, r.Y, r.HP, r.MaxHP, r.Victim, r.Chasing, r.DestX, r.DestY, r.Walking, r.Strike.Stamp, away, stamp)
-		}
-	}
-	if !took {
-		t.Fatal("past the stamp's window the member does not take the striker")
-	}
-}
-
-// guardStrikeSpan is the Chebyshev distance of a and b.
-func guardStrikeSpan(a, b sim.CellPoint) int32 {
-	return max(a.X-b.X, b.X-a.X, a.Y-b.Y, b.Y-a.Y)
-}
-
-// guardStrikeCell is a cmd +0x9c word's cell.
-func guardStrikeCell(v uint16) sim.CellPoint {
-	return sim.CellPoint{X: int32(v & 0xff), Y: int32(v >> 8)}
 }

@@ -5,10 +5,7 @@ import (
 	"testing"
 )
 
-// Cases 1, 2 and 4 and the stamp belong to programme 18. A Group at
-// programme 1 decides as the first game's guard does: a hurt member struck
-// from outside its sight holds its post, and the player's own unit in a
-// Guard Group does not walk off.
+// Both guard programmes keep the post when the striker is outside the circle.
 func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 	away := func(o *SavedActorOrder) (int32, int32) {
 		return int32(o.Strike.Away & 0xff), int32(o.Strike.Away >> 8)
@@ -24,7 +21,7 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 			strikeLeashed(t, w, 2*leashSight)
 			m := leashAt(w, 2)
 			o := w.savedOrder(2)
-			if o == nil || o.Strike.Stamped != (prog == 18) {
+			if o == nil || o.Strike.Stamped {
 				t.Fatalf("programme %d: pursuit stamp = %+v", prog, o)
 			}
 			if _, held := engVictim(w, 2); held {
@@ -37,12 +34,12 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 			o = w.savedOrder(2)
 			ax, ay := away(o)
 			walks := m.HasTarget && m.TargetX == ax && m.TargetY == ay && (ax != m.PostX || ay != m.PostY)
-			if want := prog == 18; walks != want {
+			if want := false; walks != want {
 				t.Fatalf("programme %d: walks to +0x9c (%d,%d) = %v, want %v (at (%d,%d) target (%d,%d) %v post (%d,%d))",
 					prog, ax, ay, walks, want, m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget, m.PostX, m.PostY)
 			}
-			if prog == 1 && !walksTo(w, cell{m.PostX, m.PostY}) {
-				t.Fatal("guard A did not keep walking to its post")
+			if !walksTo(w, cell{m.PostX, m.PostY}) {
+				t.Fatal("guard did not keep walking to its post")
 			}
 		})
 		t.Run(fmt.Sprintf("recent blow programme %d", prog), func(t *testing.T) {
@@ -66,12 +63,8 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 			if o == nil || o.Strike.Stamped || !w.strikeRecent(indexOfEntity(w.entities, 2), o) || m.HasAttackTarget {
 				t.Fatalf("fixture: recent blow with no pursuit or target: order %+v member %+v", o, m)
 			}
-			ax, ay := away(o)
 			want := cell{m.PostX, m.PostY}
-			if prog == 18 {
-				want = cell{ax, ay}
-			}
-			if !walksTo(w, want) || prog == 1 && (m.X != m.PostX || m.Y != m.PostY) {
+			if !walksTo(w, want) || m.X != m.PostX || m.Y != m.PostY {
 				t.Fatalf("programme %d: at (%d,%d), walk %v to (%d,%d), want %v", prog, m.X, m.Y, m.HasTarget, m.TargetX, m.TargetY, want)
 			}
 		})

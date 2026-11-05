@@ -34,7 +34,7 @@ func (w *World) rememberAttacker(ai, ti int) {
 	w.setAttackNotice(ti, attackNotice{Cell: uint16(a.Y)<<8 | uint16(uint8(a.X))})
 	if o := w.savedOrder(w.entities[ti].ID); o != nil {
 		o.Raw[0x54] = 1 // AI-RETAL-056's separate idle-turn alarm.
-		if w.game.groupRoute.strikeCases {
+		if w.game.groupRoute.recordsBlows {
 			w.recordBlow(ai, ti, o)
 		}
 	}
