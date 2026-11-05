@@ -4146,5 +4146,5 @@ var Committed = Baseline{
 	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
 	// The shared shop state removes the separate state and rules comments.
 	// Whole-basket buying shortens the obsolete prefix-buy comments.
-	CommentBytes: 10552687,
+	CommentBytes: 10552553,
 }

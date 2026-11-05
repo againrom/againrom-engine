@@ -216,3 +216,37 @@ func TestSecondGuardLoadedStampAloneOpensTheWindow(t *testing.T) {
 		t.Fatal("the loaded stamp does not open case 2")
 	}
 }
+
+func TestLoadedStrikeMissingOrderAdmission(t *testing.T) {
+	for _, programme := range []uint8{0, 1, 4, 5, 0x11, secondGuardRoute} {
+		for _, mode := range []string{"stamp only", "blow", "alarm", "existing order"} {
+			t.Run(fmt.Sprintf("programme %d/%s", programme, mode), func(t *testing.T) {
+				w := leashWorld(t, cell{5, 5}, []cell{{20, 20}}, nil)
+				w.savedGroupFor(2).AI[0x20] = programme
+				row := LoadedStrike{Entity: 2, Stamp: w.groupClock()}
+				switch mode {
+				case "blow":
+					row.Struck = true
+				case "alarm":
+					row.Alarm = 1
+				case "existing order":
+					w.constructMissingOrder(indexOfEntity(w.entities, 2))
+				}
+				before := w.Hash()
+				if err := w.ImportLoadedStrikes([]LoadedStrike{row}); err != nil {
+					t.Fatal(err)
+				}
+				o := w.savedOrder(2)
+				if mode == "stamp only" && programme != secondGuardRoute {
+					if o != nil || w.Hash() != before {
+						t.Fatalf("a stamp with no reader constructed an order: %+v", o)
+					}
+					return
+				}
+				if o == nil || !o.Strike.Stamped || o.Strike.Stamp != row.Stamp || o.Strike.Held != row.Struck || o.Raw[0x54] != row.Alarm {
+					t.Fatalf("loaded command lost its stamp, blow or alarm: %+v", o)
+				}
+			})
+		}
+	}
+}

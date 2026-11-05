@@ -1,7 +1,9 @@
 package game
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"image"
@@ -102,6 +104,27 @@ func TestCampaignRecordRoutesWriteTheBaseBytes(t *testing.T) {
 	name, first := worldCarrierSave(t, f, dir)
 	cold, _ := secondMissionLoad(t, dir, name)
 	_, second := worldCarrierSave(t, cold, t.TempDir())
+	for _, raw := range [][]byte{first, second} {
+		doc := engineSaveDocument(t, raw)
+		hero := secondKnightRecord(t, &doc, secondMissionFixtureHero().mapUnitID)
+		if state := documentRawBytes(t, hero, "U50"); !bytes.Equal(state, make([]byte, 4)) {
+			t.Errorf("mission file hero U50 = %x, want 00000000 before play resumes", state)
+		}
+		if order := documentRawBytes(t, hero, "U158"); !bytes.Equal(order, make([]byte, 148)) {
+			t.Errorf("mission file hero U158 = %x, want the zero order before play resumes", order)
+		}
+		native, err := sav.DecodeDocumentData(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		command := documentRawBytes(t, secondKnightRecord(t, &native, secondMissionFixtureHero().mapUnitID), "URaw184")
+		if len(command) != 184 {
+			t.Fatalf("mission file hero URaw184 has %d bytes, want 184", len(command))
+		}
+		if post, stamp := binary.LittleEndian.Uint16(command), binary.LittleEndian.Uint16(command[0x16:]); post != 0 || stamp != 65500 {
+			t.Errorf("mission file hero URaw184 post = %#04x, stamp +0x16 = %d, want 0 and 65500", post, stamp)
+		}
+	}
 	if a, b := savedOfferChapter(first), savedOfferChapter(second); a != "10" || b != "10" {
 		t.Fatalf("the second game's mission file SAVE writes offer chapter %s and its resave %s, want 10 and 10", a, b)
 	}

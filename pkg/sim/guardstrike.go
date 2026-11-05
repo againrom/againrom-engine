@@ -139,12 +139,10 @@ type LoadedStrike struct {
 	Away             uint16
 }
 
-// ImportLoadedStrikes writes each row into its member's order. A member of
-// a Group whose order builds member orders (buildsMissingOrders) and that
-// holds none takes the stance setter's order first, as the Group's first
-// decision would give it, when the row holds a blow, an alarm or a stamp,
-// which opens case 2 without a blow (R2-ENGINE-883). A row holding nothing,
-// and a row of a member in no such Group, changes nothing.
+// ImportLoadedStrikes writes each row into its member's order. A missing
+// order is built by the stance setter for a Group that buildsMissingOrders
+// when the row holds a blow or alarm, or a stamp its Group's case 2 reads
+// (R2-ENGINE-883). Other rows leave a missing order absent until dispatch.
 func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 	for _, r := range rows {
 		blow := r != (LoadedStrike{Entity: r.Entity, Stamp: r.Stamp})
@@ -157,7 +155,8 @@ func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 		}
 		o := w.savedOrder(r.Entity)
 		if o == nil {
-			if g := w.savedGroupFor(r.Entity); g == nil || !w.buildsMissingOrders(g) {
+			g := w.savedGroupFor(r.Entity)
+			if g == nil || !w.buildsMissingOrders(g) || !blow && !w.game.groupRoute.runsStampWindow(g.AI[0x20]) {
 				continue
 			}
 			if o = w.constructMissingOrder(i); o == nil {
