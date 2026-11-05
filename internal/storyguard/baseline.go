@@ -3260,7 +3260,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1651,
+		"longcommentgroups":      1650,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4094,5 +4094,5 @@ var Committed = Baseline{
 
 	// It rises for strideEntersStep in pkg/sim/areacost.go, the crossing-tick
 	// trap request in pkg/sim/step.go and trapcrossing_test.go.
-	CommentBytes: 10523372,
+	CommentBytes: 10522189,
 }

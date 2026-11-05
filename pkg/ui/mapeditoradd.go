@@ -35,6 +35,7 @@ type InspectionNewRecord struct {
 // record as asked so far has no such value.
 type InspectionNewStep struct {
 	Choices   []InspectionChoice
+	Groups    []InspectionChoiceGroup
 	ChoicePad []image.Point
 	Value     int64
 	Text      string

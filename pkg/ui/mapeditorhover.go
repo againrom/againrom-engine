@@ -41,7 +41,7 @@ func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for i, r := range l.GridCells {
-		if n := l.GridFirst + i; p.In(r) && n < len(s.Grid.Cells) && s.Grid.Cells[n].Tip != "" {
+		if n := l.gridIndex(i); p.In(r) && n < len(s.Grid.Cells) && s.Grid.Cells[n].Tip != "" {
 			return s.Grid.Cells[n].Tip, r.Min, true
 		}
 	}

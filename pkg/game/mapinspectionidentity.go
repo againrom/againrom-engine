@@ -56,6 +56,72 @@ var identityKindWords = map[mapload.UnitKind]struct{ kindWord, headingWord strin
 	mapload.UnitNamed:    {kindWord: "editor.unit.kind.named", headingWord: "editor.unit.identity.named"},
 }
 
+var creatureIdentityGroups = []struct {
+	word  string
+	types []string
+}{
+	{"catapults", []string{"Catapult", "Ballista"}},
+	{"goblins", []string{"Goblin_Pike", "Goblin_Sling"}},
+	{"orcs", []string{"Orc_Sword", "Orc_Bow"}},
+	{"ogres", []string{"Ogre", "Troll"}},
+	{"bats", []string{"Bat_Sonic", "Ghost", "Bee"}},
+	{"squirrels", []string{"Squirrel", "Foot_Animated", "Turtle"}},
+	{"dragons", []string{"Dragon"}},
+	{"daemon", []string{"Daemon"}},
+}
+
+func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.InspectionChoiceGroup {
+	word := func(key string) string { return x.inspectionUTF8(x.word("editor.unit.groups." + key)) }
+	creatures, people := word("creatures"), word("people")
+	var groups []ui.InspectionChoiceGroup
+	for _, group := range creatureIdentityGroups {
+		groups = append(groups, ui.InspectionChoiceGroup{Block: creatures, Head: word(group.word)})
+	}
+	other := len(groups)
+	groups = append(groups,
+		ui.InspectionChoiceGroup{Block: creatures, Head: word("othercreatures")},
+		ui.InspectionChoiceGroup{Block: people, Head: word("npc")},
+		ui.InspectionChoiceGroup{Block: people, Head: word("others")},
+		ui.InspectionChoiceGroup{Block: people, Head: word("heroes")},
+		ui.InspectionChoiceGroup{Block: people, Head: word("pc")})
+	for _, c := range choices {
+		id, ok := x.identities[c.Value]
+		if !ok {
+			continue
+		}
+		group := other
+		switch id.Kind {
+		case mapload.UnitCreature:
+			name, _, _ := strings.Cut(x.table.Units.EntryName(id.Row), ".")
+			for i, rule := range creatureIdentityGroups {
+				for _, typ := range rule.types {
+					if name == typ {
+						group = i
+					}
+				}
+			}
+		case mapload.UnitPerson:
+			name := x.table.Humans.EntryName(id.Row)
+			group = other + 2
+			if strings.HasPrefix(name, "NPC") {
+				group = other + 1
+			} else if strings.HasPrefix(name, "PC_") {
+				group = other + 4
+			}
+		case mapload.UnitNamed:
+			group = other + 3
+		}
+		groups[group].Values = append(groups[group].Values, c.Value)
+	}
+	var populated []ui.InspectionChoiceGroup
+	for _, group := range groups {
+		if len(group.Values) > 0 {
+			populated = append(populated, group)
+		}
+	}
+	return populated
+}
+
 // identityName is who id is, in the font's bytes: a creature's Units row
 // name with its variant where its class has several, a person's Humans row
 // name, a named character's npc record name and number. A record the start
@@ -130,7 +196,7 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 }
 
 // identityPictures are the pictures of the identity choices, by value: a
-// creature's standing sprite as the Add window shows a class, a person's
+// creature's placed tier sprite, a person's
 // figure as the face choice draws it, and a named character's portrait as a
 // dialogue on this map shows it at mission start.
 func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map[int64]*image.RGBA {
@@ -177,7 +243,8 @@ func (s *mapInspectionEdits) identityFigure(id mapload.Identity) *image.RGBA {
 		return nil
 	}
 	if id.Kind == mapload.UnitCreature {
-		return s.NewRecordPreview(ui.KindUnit, "class", int64(u.ClassID))
+		tier, _ := placementTier(u, x.table)
+		return s.unitPreview(u.ClassID, tier)
 	}
 	dir, face, ok := mapload.PlacedFigure(u, x.table)
 	if !ok || x.archives == nil {

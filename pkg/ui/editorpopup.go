@@ -151,11 +151,12 @@ type popupRowDrag struct {
 // zero for every row the room holds (fitGrid), and Top the first row shown;
 // the columns follow the popup's width unless Cols fixes them.
 type popupGrid struct {
-	Cells []popupGridCell
-	Side  int // a cell's side in pixels; zero is gridCellSide
-	Rows  int
-	Top   int
-	Cols  int
+	Cells  []popupGridCell
+	Groups []popupGridGroup
+	Side   int // a cell's side in pixels; zero is gridCellSide
+	Rows   int
+	Top    int
+	Cols   int
 	// RowHeads and ColHeads head a matrix: RowHeads[r] stands left of grid
 	// row r in a column HeadW pixels wide, ColHeads[c] above column c in a
 	// row one cell high. With HeadH set the column heads stand upright,
@@ -163,6 +164,51 @@ type popupGrid struct {
 	// line over one shows it whole.
 	RowHeads, ColHeads []string
 	HeadW, HeadH       int
+}
+
+type popupGridGroup struct {
+	Block, Head string
+	Cells       []int
+}
+
+type popupGridRow struct {
+	Head  string
+	Cells []int
+}
+
+// rows wraps the grid's cell indices, with group and block heads on full rows.
+func (g *popupGrid) rows(cols int) []popupGridRow {
+	var rows []popupGridRow
+	if len(g.Groups) == 0 {
+		for first := 0; first < len(g.Cells); first += cols {
+			row := popupGridRow{}
+			if r := first / cols; r < len(g.RowHeads) {
+				row.Head = g.RowHeads[r]
+			}
+			for n := first; n < min(first+cols, len(g.Cells)); n++ {
+				row.Cells = append(row.Cells, n)
+			}
+			rows = append(rows, row)
+		}
+		return rows
+	}
+	block := ""
+	for _, group := range g.Groups {
+		if len(group.Cells) == 0 {
+			continue
+		}
+		if group.Block != "" && group.Block != block {
+			rows = append(rows, popupGridRow{Head: group.Block})
+			block = group.Block
+		}
+		if group.Head != "" {
+			rows = append(rows, popupGridRow{Head: group.Head})
+		}
+		for first := 0; first < len(group.Cells); first += cols {
+			rows = append(rows, popupGridRow{Cells: group.Cells[first:min(first+cols, len(group.Cells))]})
+		}
+	}
+	return rows
 }
 
 // popupGridCell is one cell of a grid. Label is drawn on a cell without a
@@ -218,6 +264,9 @@ func (g *popupGrid) columns(width int) int {
 
 // totalRows is how many rows the grid's cells fill at cols columns.
 func (g *popupGrid) totalRows(cols int) int {
+	if len(g.Groups) > 0 {
+		return len(g.rows(cols))
+	}
 	return (len(g.Cells) + cols - 1) / cols
 }
 
@@ -395,6 +444,8 @@ type popupLayout struct {
 	// take no press.
 	GridRowHeads, GridColHeads []image.Rectangle
 	GridInert                  []bool
+	GridIndices                []int
+	GridHeadText               []string
 	// Drop is the card, counted among the spec's card rows, that a held card
 	// lands before, the card count for after the last, -1 for no drag;
 	// Marker is the bar drawn at that gap while the drop moves the card.
@@ -1087,18 +1138,30 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			l.GridColHeads = append(l.GridColHeads, image.Rect(x+c*side, y, x+(c+1)*side, y+g.headHeight()))
 		}
 		y += g.headHeight()
-		for k := 0; k < shown && l.GridTop+k < len(g.RowHeads); k++ {
-			l.GridRowHeads = append(l.GridRowHeads, image.Rect(r.Min.X+popupPad, y+k*side, x, y+(k+1)*side))
-		}
 		l.Grid = image.Rect(x, y, x+l.GridCols*side, y+shown*side)
 		if total > shown {
 			l.GridBar = image.Rect(r.Max.X-popupPad-widgetSpriteSize, y, r.Max.X-popupPad, l.Grid.Max.Y)
 		}
 		l.GridFirst = l.GridTop * l.GridCols
-		for i := l.GridFirst; i < len(g.Cells) && i < l.GridFirst+shown*l.GridCols; i++ {
-			at := image.Pt(l.Grid.Min.X+(i-l.GridFirst)%l.GridCols*side, y+(i-l.GridFirst)/l.GridCols*side)
-			l.GridCells = append(l.GridCells, image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}.Inset(1))
-			l.GridInert = append(l.GridInert, g.Cells[i].Inert)
+		rows := g.rows(l.GridCols)
+		for k := 0; k < shown && l.GridTop+k < len(rows); k++ {
+			row := rows[l.GridTop+k]
+			if row.Head != "" || len(g.Groups) == 0 && l.GridTop+k < len(g.RowHeads) {
+				left, right := r.Min.X+popupPad, x
+				if len(g.Groups) > 0 {
+					left, right = x, l.Grid.Max.X
+				}
+				l.GridRowHeads = append(l.GridRowHeads, image.Rect(left, y+k*side, right, y+(k+1)*side))
+				l.GridHeadText = append(l.GridHeadText, row.Head)
+			}
+			for column, n := range row.Cells {
+				at := image.Pt(x+column*side, y+k*side)
+				l.GridCells = append(l.GridCells, image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}.Inset(1))
+				l.GridInert = append(l.GridInert, g.Cells[n].Inert)
+				if len(g.Groups) > 0 {
+					l.GridIndices = append(l.GridIndices, n)
+				}
+			}
 		}
 		y = top + g.height()
 	}
@@ -1273,6 +1336,14 @@ const (
 	popupTitleButton // the title row's TitleButton
 )
 
+// gridIndex maps a visible rectangle to its unchanged source cell index.
+func (l popupLayout) gridIndex(shown int) int {
+	if len(l.GridIndices) > 0 {
+		return l.GridIndices[shown]
+	}
+	return l.GridFirst + shown
+}
+
 // hit reports the part under p and its row, list or button index.
 func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	if !p.In(l.Rect) {
@@ -1310,7 +1381,7 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	for i, c := range l.GridCells {
 		if p.In(c) && !l.GridInert[i] {
-			return popupGridPart, l.GridFirst + i
+			return popupGridPart, l.gridIndex(i)
 		}
 	}
 	if l.HasList {
@@ -1820,7 +1891,13 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		body.Draw(dst.SubImage(r).(*image.RGBA), s, x, r.Min.Y+(r.Dy()-fontHeight(body, 15))/2, ink.Label)
 	}
 	for k, r := range l.GridRowHeads {
-		head(r, g.RowHeads[l.GridTop+k], false)
+		label := ""
+		if len(l.GridHeadText) > 0 {
+			label = l.GridHeadText[k]
+		} else {
+			label = g.RowHeads[l.GridTop+k]
+		}
+		head(r, label, false)
 	}
 	for c, r := range l.GridColHeads {
 		if g.HeadH > 0 && body != nil {
@@ -1830,7 +1907,7 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		head(r, g.ColHeads[c], true)
 	}
 	for i, c := range l.GridCells {
-		cell := g.Cells[l.GridFirst+i]
+		cell := g.Cells[l.gridIndex(i)]
 		if cell.Inert {
 			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
 			continue

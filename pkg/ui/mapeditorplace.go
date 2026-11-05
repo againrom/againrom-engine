@@ -29,7 +29,15 @@ type placeGrid struct {
 	doc           *InspectionDocument
 	kind          RecordKind
 	choices       []InspectionChoice
+	groups        []InspectionChoiceGroup
 	palettes      map[int64]Palette
+}
+
+// InspectionChoiceGroup places choice values under a block and row heading.
+// Headings are in the font's bytes; values keep their field meanings.
+type InspectionChoiceGroup struct {
+	Block, Head string
+	Values      []int64
 }
 
 var placeGridSides = map[RecordKind]int{KindStructure: 2*(gridCellSide-8) + 8}
@@ -84,6 +92,7 @@ func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice
 		step := host.NewRecordStep(InspectionNewRecord{Kind: kind}, key)
 		e.place.doc, e.place.kind = e.doc, kind
 		e.place.choices, e.place.palettes = nil, step.Palettes
+		e.place.groups = step.Groups
 		for _, c := range step.Choices {
 			if !slices.Contains(step.Shut, c.Value) {
 				e.place.choices = append(e.place.choices, c)
@@ -196,6 +205,23 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		}
 		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label})
 	}
+	if len(e.place.groups) > 0 {
+		indices := make(map[int64]int, len(choices))
+		for i, c := range choices {
+			indices[c.Value] = i
+		}
+		for _, group := range e.place.groups {
+			row := popupGridGroup{Block: group.Block, Head: group.Head}
+			for _, value := range group.Values {
+				if n, ok := indices[value]; ok {
+					row.Cells = append(row.Cells, n)
+				}
+			}
+			if len(row.Cells) > 0 {
+				g.Groups = append(g.Groups, row)
+			}
+		}
+	}
 	return g, note, true
 }
 
@@ -204,7 +230,11 @@ func (e *MapEditor) placeGridWheel(l popupLayout, rows int) {
 	if l.GridCols <= 0 {
 		return
 	}
-	total := (len(e.placeShown()) + l.GridCols - 1) / l.GridCols
+	g, _, ok := e.placeGridSpec()
+	if !ok {
+		return
+	}
+	total := g.totalRows(l.GridCols)
 	top := e.placeTop()
 	*top = max(0, min(*top+rows, total-l.GridRows))
 }
@@ -249,10 +279,12 @@ func (e *MapEditor) PlaceGridCellRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	if n < l.GridFirst || n >= l.GridFirst+len(l.GridCells) {
-		return image.Rectangle{}, false
+	for i, rect := range l.GridCells {
+		if l.gridIndex(i) == n {
+			return rect, true
+		}
 	}
-	return l.GridCells[n-l.GridFirst], true
+	return image.Rectangle{}, false
 }
 
 // PlaceGridLen is how many cells the shown tab's grid has.

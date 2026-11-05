@@ -7,55 +7,35 @@ import (
 	"againrom/pkg/sim"
 )
 
-// entityTiers is the tier every placement of m resolves to, keyed by the entity
-// id the world builder mints for it, and holding an entry only for a placement
-// that states one.
-//
-// THE KEY IS THE MINTED ID, and this function may say so because the world
-// builder documents it: the i-th unit record takes id i, counting from zero,
-// and both this lookup and that world are built from the same decoded map in
-// the same call. A lookup by loop index that happened to agree would be the
-// same numbers by guess, not contract.
-//
-// ONLY THE ARM THAT CARRIES STATS CARRIES A TIER. A placement diverted to the
-// scenario npc table, one resolved through the overriding definition id, one
-// naming a humans entry, and one whose key reaches no entry at all are all
-// ABSENT from the map — and absent is the answer, not zero written down: a
-// missing key reads as the zero tier, which is the render tier's "no tier
-// stated" and draws the sheet's own colours. Writing a 1 for them instead would
-// assert that every such placement is a first-tier creature, which the table
-// does not say.
-//
-// It is TOTAL and reports nothing. A nil map, a nil table, a table with no
-// units collection and an entry this build's definition contract refuses each
-// contribute no entry rather than an error: the world beside it was already
-// built from the same inputs and has already failed on anything fatal, and a
-// placement with no tier draws, which is the point.
-//
-// It is a pure function of the map and the table. Called twice with neither
-// changed it answers the same tiers, so a snapshot built twice cannot report
-// a creature in two colours.
+// entityTiers keys each resolved Units row's tier by the world builder's
+// minted entity ID: placement i becomes entity i in the same decoded map.
+// Other resolution arms and invalid definitions contribute no entry. An
+// absent tier draws the sheet's own colours. The lookup is a pure function
+// of the map and table; nil inputs state no tiers.
 func entityTiers(m *alm.Map, t *mapload.Table) map[sim.EntityID]int {
 	if m == nil || t == nil || t.Units == nil {
 		return nil
 	}
 	out := make(map[sim.EntityID]int, len(m.Units))
 	for i, u := range m.Units {
-		r := mapload.Resolve(u, t)
-		if r.Arm != mapload.ArmUnits || !r.Found() {
-			continue
+		if tier, ok := placementTier(u, t); ok {
+			out[sim.EntityID(i)] = tier
 		}
-		d, err := data.NewUnitDef(t.Units.EntryName(r.Index), t.Units.EntryParams(r.Index))
-		if err != nil {
-			continue
-		}
-		// The definition's own column, carried whole. It is not clamped, ranged
-		// or defaulted here: how many tiers the class it names actually has is
-		// the bundle's answer, given at the draw, and a second bound here would
-		// be a second place for the two to disagree.
-		out[sim.EntityID(i)] = int(d.Face)
 	}
 	return out
+}
+
+// placementTier reads the resolved Units row's face, leaving art bounds to TierFrames.
+func placementTier(u alm.Unit, t *mapload.Table) (int, bool) {
+	if t == nil || t.Units == nil {
+		return 0, false
+	}
+	r := mapload.Resolve(u, t)
+	if r.Arm != mapload.ArmUnits || !r.Found() {
+		return 0, false
+	}
+	d, err := data.NewUnitDef(t.Units.EntryName(r.Index), t.Units.EntryParams(r.Index))
+	return int(d.Face), err == nil
 }
 
 func savedActorTiers(m *alm.Map, placed map[sim.EntityID]int, entities []sim.Entity, state *SnapshotSAVDocument) map[sim.EntityID]int {
