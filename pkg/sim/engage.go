@@ -117,14 +117,12 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 // took the pass.
 func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
-	if w.humanParticipantUnit(e) || !isMage(e) || w.orderStateAt(i).recoveryWaiting() {
+	r := castRequest{issuer: castEngage, caster: i, aim: castAim{target: victim, victim: victim}}
+	if w.humanParticipantUnit(e) || !isMage(e) || w.castRecoveryRefuses(r) {
 		return false
 	}
-	busy := w.actorCastBusy(i)
 	if e.Mind > 59 && w.rng.aiRange(100) < 30 {
-		if busy {
-			w.creatureReplaceCastOrder(i, 0, victim)
-		} else {
+		if !w.castOwned(r) {
 			// The hand-back's engage order replaces an armed one (AI-376).
 			w.dropCastApproach(i)
 		}
@@ -154,8 +152,10 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	default:
 		return false
 	}
-	if busy {
-		w.replaceRetainedCast(i, id, victim, w.victimAimOperands)
+	// The draw read no cast state, so a cast that owns the mage takes the
+	// drawn spell into its retained order only now.
+	r.spell = id
+	if w.castOwned(r) {
 		return false
 	}
 	w.dropCastApproach(i)
@@ -164,21 +164,21 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	if !ok {
 		return false
 	}
-	refusal := w.creatureCastRefusal(i, victim, 0, 0, false, id, false)
+	refusal := w.castRefusal(r, false)
 	if refusal == "" {
 		return w.startEngageCast(i, victim, victim, vx, vy, false, id)
 	}
 	rest := refusal
 	if isRangeRefusal(refusal) {
-		rest = w.creatureCastRefusal(i, victim, 0, 0, false, id, true)
+		rest = w.castRefusal(r, true)
 	}
-	if w.strikeHoldsCast(i, rest) {
+	if w.castStrikeWaits(r, rest) {
 		rest = ""
 	}
-	switch rest {
-	case "":
+	if rest == "" {
 		return w.armCreatureCast(i, victim, victim, vx, vy, false, id)
-	case "insufficient mana":
+	}
+	if isManaRefusal(rest) {
 		// Admission refuses on mana alone and the order waits (MAGIC-348);
 		// only the unfiltered last spell reaches here.
 		vi := indexOfEntity(w.entities, victim)
@@ -778,7 +778,7 @@ func (w *World) orderAttack(i int, victim EntityID, targetKind ...AttackTargetKi
 	if kind == AttackTargetUnit && w.creatureEngageCast(i, victim) {
 		return true
 	}
-	if w.actorCastBusy(i) {
+	if w.castHolds(i, waitCastAction) {
 		return false
 	}
 	return w.attachAttack(i, victim, kind, false)

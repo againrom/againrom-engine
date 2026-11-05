@@ -705,7 +705,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			if kind == AttackTargetUnit {
 				ti := indexOfEntity(w.entities, victim)
 				if w.targetVetoed(i, ti) {
-					if w.actorCastBusy(i) {
+					if w.castHolds(i, waitCastAction) {
 						continue
 					}
 					w.cancelStructureUse(e.ID)
@@ -926,7 +926,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if w.stoneCursed(i) {
 			continue
 		}
-		if e.Transit == 0 && !w.actorCastBusy(i) && e.AttackPhase == AttackReady && e.AttackCountdown == 0 && w.stepEscortOrder(scratch, i) {
+		if e.Transit == 0 && !w.castHolds(i, waitCastAction) && e.AttackPhase == AttackReady && e.AttackCountdown == 0 && w.stepEscortOrder(scratch, i) {
 			continue
 		}
 		// The head pass above is the turn's only advance. A remainder still held
@@ -1225,7 +1225,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			continue
 		}
 		// A loaded strike runs on under an armed cast order (AI-356).
-		if s := w.orderState(e); s.booked() && !(s.approaching() && s.strike) || s.wait {
+		if w.castHolds(i, waitStrikeAdvance) {
 			continue
 		}
 		loaded := e.AttackPhase != AttackReady

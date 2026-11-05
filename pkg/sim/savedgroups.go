@@ -476,7 +476,7 @@ func (w *World) savedActorDispatch(i int) {
 			}
 		}
 	case 8, 0x11:
-		if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+		if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 			return
 		}
 		if !o.Authored {

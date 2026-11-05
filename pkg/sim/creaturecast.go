@@ -152,10 +152,6 @@ func (w *World) creatureAimOperands(i int, victim EntityID, id uint32) (target E
 	return 0, 0, 0, false, false
 }
 
-func isRangeRefusal(refusal string) bool {
-	return refusal == refusalTargetOutOfRange || refusal == refusalCellOutOfRange
-}
-
 // creatureEngageCast is the spell arm of the engage routine for a creature
 // whose class carries a spellbook. The draw runs on every pass, whether or not
 // the creature's own cast is pending (AI-376). A draw that selects a spell
@@ -183,8 +179,8 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !w.creatureKeepsPick(i, victim, id) {
 		id = 0
 	}
-	if w.actorCastBusy(i) {
-		w.creatureReplaceCastOrder(i, id, victim)
+	r := castRequest{issuer: castCreature, caster: i, spell: id, aim: castAim{victim: victim}}
+	if w.castOwned(r) {
 		return false
 	}
 	if id == 0 {
@@ -200,26 +196,18 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 		return indexOfEntity(w.entities, victim) >= 0
 	}
 	w.dropCastApproach(i)
-	refusal := w.creatureCastRefusal(i, target, x, y, atCell, id, false)
+	r.aim = castAim{target: target, x: x, y: y, atCell: atCell, victim: victim}
+	refusal := w.castRefusal(r, false)
 	if refusal == "" {
 		return w.startEngageCast(i, victim, target, x, y, atCell, id)
 	}
-	if w.strikeHoldsCast(i, refusal) {
+	if w.castStrikeWaits(r, refusal) {
 		return w.armCreatureCast(i, victim, target, x, y, atCell, id)
 	}
-	if !isRangeRefusal(refusal) || w.creatureCastRefusal(i, target, x, y, atCell, id, true) != "" {
+	if !isRangeRefusal(refusal) || w.castRefusal(r, true) != "" {
 		return false
 	}
 	return w.armCreatureCast(i, victim, target, x, y, atCell, id)
-}
-
-// creatureCastRefusal is the engine's admission verdict for a drawn cast, with
-// or without the range test.
-func (w *World) creatureCastRefusal(i int, target EntityID, x, y int32, atCell bool, id uint32, skipRange bool) string {
-	if atCell {
-		return w.bookSpellCellAdmissionRange(i, x, y, id, false, true, true, skipRange)
-	}
-	return w.bookSpellAdmissionRange(i, target, id, false, true, true, skipRange)
 }
 
 // crossingDefersCast reports a caster still crossing into a cell: both games'
@@ -361,16 +349,6 @@ func (w *World) walkApproach(i int, c *bookCast) {
 	}
 }
 
-// creatureReplaceCastOrder is what a draw does to the retained cast order of a
-// creature whose cast is pending. The cast in flight is the actor's own and
-// runs on; a draw that selects no spell replaces the retained order with the
-// ordinary engage, so no further cast follows, and a draw that selects a spell
-// replaces the retained operands that the next cast takes. A draw that lands
-// during the wind-up leaves the retained operands as they are.
-func (w *World) creatureReplaceCastOrder(i int, id uint32, victim EntityID) {
-	w.replaceRetainedCast(i, id, victim, w.creatureAimOperands)
-}
-
 // victimAimOperands aims a cast at the victim itself, as the full-book draw
 // does for every id (AI-554).
 func (w *World) victimAimOperands(_ int, victim EntityID, _ uint32) (EntityID, int32, int32, bool, bool) {
@@ -379,36 +357,4 @@ func (w *World) victimAimOperands(_ int, victim EntityID, _ uint32) (EntityID, i
 		return 0, 0, 0, false, false
 	}
 	return victim, w.entities[vi].X, w.entities[vi].Y, false, true
-}
-
-// replaceRetainedCast is creatureReplaceCastOrder with the draw's own aim.
-func (w *World) replaceRetainedCast(i int, id uint32, victim EntityID,
-	aim func(int, EntityID, uint32) (EntityID, int32, int32, bool, bool)) {
-	k, ok := w.bookCastIndex(w.entities[i].ID)
-	if !ok || !w.bookCasts[k].Retained {
-		return
-	}
-	c := &w.bookCasts[k]
-	if id == 0 {
-		switch c.Phase {
-		case bookCharging:
-			c.Retained = false
-		case bookRelaxing:
-			w.entities[i].CastWait = c.Remaining
-			w.bookCasts = append(w.bookCasts[:k], w.bookCasts[k+1:]...)
-		default:
-			w.bookCasts = append(w.bookCasts[:k], w.bookCasts[k+1:]...)
-		}
-		return
-	}
-	if c.Phase == bookCharging || !knowsSpell(w.entities[i], id) {
-		return
-	}
-	target, x, y, atCell, ok := aim(i, victim, id)
-	if !ok {
-		return
-	}
-	c.Spell, c.Target, c.X, c.Y, c.AtCell = uint16(id), target, x, y, atCell
-	// The actor's selected spell follows the order, as LOAD restores it.
-	w.entities[i].AdmittedBookSpell = uint16(id)
 }

@@ -14,7 +14,7 @@ func (w *World) executorProgress(i int) uint8 {
 		return 4
 	case e.Transit != 0 || w.motionActive(e.ID):
 		return 3
-	case w.actorCastBusy(i):
+	case w.castHolds(i, waitCastAction):
 		return 2
 	case e.AttackPhase != AttackReady:
 		return 1
@@ -133,13 +133,7 @@ func (w *World) consumeRetreatProgress(i int) bool {
 	case 1:
 		complete = e.Retreat.Complete && e.Retreat.Counter > 2
 	case 2:
-		s := w.orderState(e)
-		busy := s.wait || s.scroll == scrollStarted
-		book := s.booked()
-		if e.PendingOrder.Kind == PendingNone {
-			busy = w.actorCastBusy(i)
-		}
-		complete = !busy && !book && e.Retreat.Counter > 2
+		complete = !w.castHolds(i, waitRetreatProgress) && e.Retreat.Counter > 2
 	case 3:
 		complete = e.Transit == 0 && !w.motionActive(e.ID)
 	case 4:

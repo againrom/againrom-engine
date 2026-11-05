@@ -23,7 +23,7 @@ var orderCarrierAllowance = map[string]int{
 	"pkg/sim/actionguard.go:bookCastIndex":         1,
 	"pkg/sim/activity.go:bookCastIndex":            1,
 	"pkg/sim/activity.go:scrollIndex":              1,
-	"pkg/sim/creaturecast.go:bookCastIndex":        1,
+	"pkg/sim/castrequest.go:bookCastIndex":         1,
 	"pkg/sim/spell.go:bookCastIndex":               3,
 	"pkg/sim/spelldelivery.go:bookCastIndex":       2,
 	"pkg/sim/spelldeliverybinary.go:bookCastIndex": 1,

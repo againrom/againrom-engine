@@ -2017,7 +2017,7 @@ func (w *World) cmdGroupAttack(in ScriptInstant) {
 		}
 		// TRIG-GRPARM-047 names the same explicit setter as the player command.
 		w.clearEscort(mi)
-		accepted := !w.actorCastBusy(mi) && w.attachAttack(mi, in.Unit, AttackTargetUnit, true)
+		accepted := !w.castHolds(mi, waitCastAction) && w.attachAttack(mi, in.Unit, AttackTargetUnit, true)
 		// AND THE STATE THE ORDER BELONGS TO (1141). It was left at guard while no
 		// arm read the byte; the per-actor guard arm reads it now, and a member
 		// left at guard here would have its order broken off by that arm's own

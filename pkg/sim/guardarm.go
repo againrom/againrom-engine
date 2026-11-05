@@ -89,7 +89,7 @@ func postLeashed(e Entity) bool {
 }
 
 func (w *World) armGuard(i int) {
-	if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
 	e := &w.entities[i]

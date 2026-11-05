@@ -17,7 +17,7 @@ func (w *World) clearEscort(i int) {
 }
 
 func (w *World) armDefend(i int) {
-	if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
 	ti, stop, dist, ok := w.escortSubject(i)
@@ -43,7 +43,7 @@ func (w *World) armDefend(i int) {
 }
 
 func (w *World) armFollow(i int) {
-	if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
 	ti, stop, dist, ok := w.escortSubject(i)
@@ -91,7 +91,7 @@ func (w *World) escortHeal(i, ti int) bool {
 	if rule.bookInstance {
 		mana = int32(int16(mana))
 	}
-	if !ok || !rule.Restorative || rule.ManaCost > mana || w.bookSpellRefusal(i, target.ID, heal, false, false) != "" {
+	if !ok || !rule.Restorative || rule.ManaCost > mana || w.castRefusal(castRequest{issuer: castAuto, caster: i, spell: heal, aim: castAim{target: target.ID}}, false) != "" {
 		return false
 	}
 	w.clearOrder(i)

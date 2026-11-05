@@ -300,12 +300,12 @@ func TestDefenderHealExtraAdmissionGatesFallThroughToCover(t *testing.T) {
 			w := residueDefender(t, 49, 20, 0)
 			if gate == "restorative" {
 				w.spells[0].Restorative, w.spells[0].Damaging = false, true
-				if r := w.bookSpellRefusal(1, 1, 6, false, false); r != "" {
+				if r := w.castRefusal(castRequest{issuer: castAuto, caster: 1, spell: 6, aim: castAim{target: 1}}, false); r != "" {
 					t.Fatalf("restorative control also refused by %q", r)
 				}
 			} else {
 				w.spells[0].MaxRange = 0
-				if r := w.bookSpellRefusal(1, 1, 6, false, false); r != refusalTargetOutOfRange {
+				if r := w.castRefusal(castRequest{issuer: castAuto, caster: 1, spell: 6, aim: castAim{target: 1}}, false); r != refusalTargetOutOfRange {
 					t.Fatalf("range control refused by %q", r)
 				}
 			}

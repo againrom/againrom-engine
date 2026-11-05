@@ -42,7 +42,8 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 		return false
 	}
 	e := w.entities[ci]
-	if !e.Living() || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) || w.actorCastBusy(ci) {
+	r := castRequest{issuer: castScroll, caster: ci, aim: castAim{target: target, x: x, y: y, atCell: atCell}}
+	if !e.Living() || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) || w.castOwned(r) {
 		return false
 	}
 	if !w.sourceMutationReady(ci) {
@@ -50,6 +51,7 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 	}
 	item := w.carried[ci][index].Instance()
 	id, _, ok := ScrollSpell(item)
+	r.spell = uint32(id)
 	rule, found := w.findSpell(uint32(id))
 	if !ok || !found || !spellApplicable(rule) {
 		return false
@@ -91,7 +93,7 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 		return false
 	}
 	progress := w.pendingLogicalProgress(ci)
-	if w.retainsOldStrike(ci) {
+	if w.castStrikeWaits(r, "") {
 		w.entities[ci].releaseBetweenCycles(PendingScroll)
 		w.entities[ci].PendingOrder = PendingOrder{Kind: PendingScroll, RowAdmitted: progress == 0}
 	} else {

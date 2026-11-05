@@ -92,7 +92,7 @@ func (w *World) normaliseSavedTargetOrders() {
 				continue
 			}
 			e = &w.entities[i]
-			if !w.actorCastBusy(i) {
+			if !w.castHolds(i, waitCastAction) {
 				if _, _, requested := e.RequestedAttackTarget(); requested {
 					if order := w.savedOrder(e.ID); order != nil {
 						order.authorNative()

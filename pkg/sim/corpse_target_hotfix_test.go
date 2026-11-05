@@ -27,7 +27,7 @@ func TestOrdinaryTargetBoundaryIsStrictlyAboveMinusTen(t *testing.T) {
 			spellTarget := spEnt(2, 2, 0)
 			spellTarget.HP = tc.hp
 			sw := spWorld(t, 244, []SpellRule{rule}, mage, spellTarget)
-			refused := sw.bookSpellRefusal(0, 2, 1, false, true) != ""
+			refused := sw.castBeginRefusal(0, 1, castAim{target: 2}, true) != ""
 			if got := !refused; got != tc.want {
 				t.Fatalf("spell target at HP %d: admitted=%v, want %v", tc.hp, got, tc.want)
 			}

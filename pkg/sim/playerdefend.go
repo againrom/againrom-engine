@@ -40,7 +40,7 @@ func (w *World) commandDefend(members []int, subject EntityID) {
 // armAcquire uses the standing, reach-limited picker without a guard-post
 // leash (AI-STATE-011, AI-ACQUIRE-002). A cast remains the actor's owner.
 func (w *World) armAcquire(i int) {
-	if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
 	w.acquireStanding(i)

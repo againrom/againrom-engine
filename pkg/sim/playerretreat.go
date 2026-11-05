@@ -46,7 +46,7 @@ func (w *World) retreatOrder(cmds []Command, first int, consumed []bool) {
 		// The already committed crossing and loaded attack/cast survive. Only
 		// the old pending destination is cancelled (AI-RETREAT-271/272).
 		w.clearOrder(i)
-		if !w.actorCastBusy(i) {
+		if !w.castHolds(i, waitCastAction) {
 			e.clearTurn()
 		}
 		if e.AttackPhase == AttackReady {
@@ -61,7 +61,7 @@ func (w *World) retreatProgressBusy(i int) bool {
 	if e.Retreat.Known {
 		return e.Retreat.Progress != 0
 	}
-	return e.Transit != 0 || e.AttackPhase != AttackReady || w.actorCastBusy(i) || w.stoneCursed(i)
+	return e.Transit != 0 || e.AttackPhase != AttackReady || w.castHolds(i, waitCastAction) || w.stoneCursed(i)
 }
 
 // armRetreat is state 0x16's persistent full-tick decision. Arrival alone

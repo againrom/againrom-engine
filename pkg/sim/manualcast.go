@@ -10,13 +10,36 @@ func (w *World) manualCastRefusal(c Command) string {
 	if w.entities[i].OffMap {
 		return "caster off map"
 	}
-	switch c.Kind {
-	case KindCast:
-		return w.bookSpellAdmission(i, EntityID(uint32(c.X)), uint32(c.Y), false, false, false)
-	case KindCastAt:
-		return w.bookSpellCellAdmission(i, c.X, c.Y, uint32(c.Spell), false, false, false)
+	if c.Kind != KindCast && c.Kind != KindCastAt {
+		return "not a manual cast"
 	}
-	return "not a manual cast"
+	return w.castRefusal(manualRequestOf(i, c), false)
+}
+
+// manualRequestOf is the book command c of the caster at index i as a cast
+// request: a unit cast names its target in X and its spell in Y.
+func manualRequestOf(i int, c Command) castRequest {
+	if c.Kind == KindCastAt {
+		return castRequest{issuer: castManual, caster: i, spell: uint32(c.Spell), aim: castAim{x: c.X, y: c.Y, atCell: true}}
+	}
+	return castRequest{issuer: castManual, caster: i, spell: uint32(c.Y), aim: castAim{target: EntityID(uint32(c.X))}}
+}
+
+// manualCastRequest is manualRequestOf for the command's own caster, and
+// false for an absent caster or a command that is no book cast.
+func (w *World) manualCastRequest(c Command) (castRequest, bool) {
+	i := indexOfEntity(w.entities, c.Entity)
+	if i < 0 || c.Kind != KindCast && c.Kind != KindCastAt {
+		return castRequest{}, false
+	}
+	return manualRequestOf(i, c), true
+}
+
+// manualCastOwned reports a cast that keeps the caster against the book
+// command c: the manual row keeps a paid wind-up.
+func (w *World) manualCastOwned(c Command) bool {
+	r, ok := w.manualCastRequest(c)
+	return ok && w.castOwned(r)
 }
 
 // Do not release an old book or scroll on the same tick that a valid manual
@@ -24,10 +47,10 @@ func (w *World) manualCastRefusal(c Command) string {
 func (w *World) manualActionInterruptions(cmds []Command) map[EntityID]bool {
 	var interrupted map[EntityID]bool
 	for _, c := range cmds {
-		admitted := (c.Kind == KindCast || c.Kind == KindCastAt) && !w.paidWindUp(c.Entity) && (w.manualCastRefusal(c) == "" && !w.manualCastContinues(c) || w.manualCastApproach(c))
+		admitted := (c.Kind == KindCast || c.Kind == KindCastAt) && !w.manualCastOwned(c) && (w.manualCastRefusal(c) == "" && !w.manualCastContinues(c) || w.manualCastApproach(c))
 		if c.Kind == KindUseStructure {
 			i := indexOfEntity(w.entities, c.Entity)
-			admitted = w.validStructureUse(i, StructureID(uint32(c.X))) && !w.paidWindUp(c.Entity)
+			admitted = w.validStructureUse(i, StructureID(uint32(c.X))) && !w.castHolds(i, waitStructureUse)
 			if admitted {
 				if i >= 0 && w.orderState(&w.entities[i]).scrollPending() {
 					// Refund admission can fail in source containers. Probe an
@@ -48,14 +71,15 @@ func (w *World) manualActionInterruptions(cmds []Command) map[EntityID]bool {
 }
 
 func (w *World) beginManualCast(i int, c Command) bool {
+	r := manualRequestOf(i, c)
 	if w.manualCastRefusal(c) != "" {
 		if !w.manualCastApproach(c) {
 			return false
 		}
-		if w.paidWindUp(c.Entity) {
+		if w.manualCastOwned(c) {
 			return w.castAfterWindUp(i, c)
 		}
-		if w.retainsOldStrike(i) {
+		if w.castStrikeWaits(r, "") {
 			return w.castAfterStrike(i, c)
 		}
 		return w.beginCastApproach(i, c)
@@ -66,7 +90,7 @@ func (w *World) beginManualCast(i int, c Command) bool {
 		}
 		return true
 	}
-	if w.paidWindUp(c.Entity) {
+	if w.manualCastOwned(c) {
 		return w.castAfterWindUp(i, c)
 	}
 	if !w.cancelScroll(i) {
@@ -74,7 +98,7 @@ func (w *World) beginManualCast(i int, c Command) bool {
 	}
 	// A step between two cells completes: the cast waits for its end like one
 	// behind a strike, and the figure is never moved to the cell centre.
-	if w.retainsOldStrike(i) || w.entities[i].Transit != 0 {
+	if w.castStrikeWaits(r, "") || w.entities[i].Transit != 0 {
 		return w.castAfterStrike(i, c)
 	}
 	// At progress zero a unit cast retains the player's separate attack endpoint
@@ -141,13 +165,6 @@ func (w *World) castOrder(i int, c Command) bool {
 	return w.beginBookSpellOnce(i, EntityID(uint32(c.X)), uint32(c.Y))
 }
 
-// paidWindUp reads the order state of the caster by id; an absent caster
-// has no wind-up.
-func (w *World) paidWindUp(caster EntityID) bool {
-	i := indexOfEntity(w.entities, caster)
-	return i >= 0 && w.orderStateAt(i).paidWindUp()
-}
-
 // castAfterWindUp keeps a manual cast as the caster's next order while a paid
 // wind-up runs (AI-356, AI-354). The pending row runs after the release
 // (takePendingOrders).
@@ -160,23 +177,11 @@ func (w *World) castAfterWindUp(i int, c Command) bool {
 	return true
 }
 
-// manualCastContinues reports a click that repeats the cast still winding up:
-// the same spell at the same unit or cell. It is no new order, so the wind-up
-// runs on without a restart and a cast queued behind it is dropped.
+// manualCastContinues reports a click that repeats the cast still winding up
+// (castRepeats).
 func (w *World) manualCastContinues(c Command) bool {
-	i := indexOfEntity(w.entities, c.Entity)
-	if i < 0 {
-		return false
-	}
-	s := w.orderStateAt(i)
-	if !s.charging() {
-		return false
-	}
-	b := w.bookCasts[s.bookAt]
-	if c.Kind == KindCastAt {
-		return b.AtCell && b.Spell == c.Spell && b.X == c.X && b.Y == c.Y
-	}
-	return c.Kind == KindCast && !b.AtCell && b.Target == EntityID(uint32(c.X)) && uint32(b.Spell) == uint32(c.Y)
+	r, ok := w.manualCastRequest(c)
+	return ok && w.castRepeats(r)
 }
 
 // manualCastApproach reports a player's book cast refused for reach alone, or
@@ -190,15 +195,15 @@ func (w *World) manualCastApproach(c Command) bool {
 		return false
 	}
 	refusal := w.manualCastRefusal(c)
+	r := manualRequestOf(i, c)
 	if c.Kind == KindCastAt {
-		return isRangeRefusal(refusal) &&
-			w.bookSpellCellAdmissionRange(i, c.X, c.Y, uint32(c.Spell), false, false, false, true) == ""
+		return isRangeRefusal(refusal) && w.castRefusal(r, true) == ""
 	}
 	victim := EntityID(uint32(c.X))
-	if !isRangeRefusal(refusal) && (refusal != refusalTargetNotVisible || !w.ownerSees(w.entities[i].Owner, victim)) {
+	if !isRangeRefusal(refusal) && (!isSightRefusal(refusal) || !w.ownerSees(w.entities[i].Owner, victim)) {
 		return false
 	}
-	return w.bookSpellAdmissionRange(i, victim, uint32(c.Y), false, false, false, true) == ""
+	return w.castRefusal(r, true) == ""
 }
 
 // ownerSees reports whether a living unit of owner sees the entity id.
@@ -215,7 +220,7 @@ func (w *World) ownerSees(owner uint32, id EntityID) bool {
 // beginCastApproach replaces the caster's order with a walk into reach and
 // arms the cast; stepBookCasts starts it when the target is in reach.
 func (w *World) beginCastApproach(i int, c Command) bool {
-	if !w.cancelScroll(i) || w.retainsOldStrike(i) || w.stoneCursed(i) {
+	if !w.cancelScroll(i) || w.castStrikeWaits(manualRequestOf(i, c), "") || w.stoneCursed(i) {
 		return false
 	}
 	w.clearActorCast(i)
@@ -256,7 +261,7 @@ func (w *World) approachHeld(i int, c bookCast) bool {
 // and for a walking caster the target's sight. The original's executor gate
 // tests facing and reach and its admission no sight (MAGIC-340, MAGIC-348).
 func (w *World) approachWalksOn(i int, refusal string) bool {
-	return isRangeRefusal(refusal) || refusal == refusalTargetNotVisible && !w.castApproachPursues(w.entities[i])
+	return isRangeRefusal(refusal) || isSightRefusal(refusal) && !w.castApproachPursues(w.entities[i])
 }
 
 // standCaster ends a walking caster's walk and leaves it standing in place,

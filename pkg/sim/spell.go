@@ -1472,66 +1472,6 @@ func (w *World) bookCastIndex(caster EntityID) (int, bool) {
 	return i, i < len(w.bookCasts) && w.bookCasts[i].Caster == caster
 }
 
-// actorActionBusy is the CAST admission guard: it answers "may a new spell
-// begin on this actor now", and nothing else. A spell may not begin while a
-// physical or weapon attack cycle is loaded, and may not begin while a book
-// cast owns the actor. That is the non-overlap the contract asks for between a
-// armed autocast, idle Heal, AI cast, weapon-spell attack and physical attack.
-// Manual book commands validate their target, then cancel the old action
-// before reaching this ordinary admission path (DIV-1015).
-//
-// IT IS NOT A MOVEMENT GUARD AND IT IS NOT AN ATTACK-ORDER GUARD. A movement
-// order ends whatever fight the unit was in and is never refused; an attack
-// order competes with another attack order under orderAttack's own rule,
-// which resets the cycle on a different victim. Applying this predicate to
-// either of those made a fighting or approaching unit ignore a right-click,
-// which neither contract.md nor spec.md sanctions.
-//
-// The approach half is deliberately absent too. HasAttackTarget with a
-// destination is a walk, not an interval: non-overlap between the attack cycle
-// and a cast is already total, because the attack advance and the mover both
-// stand down for an actor that carries a cast (step.go), and this predicate
-// refuses a cast for an actor whose cycle is loaded.
-func (w *World) actorActionBusy(i int) bool {
-	if w.motionActive(w.entities[i].ID) {
-		return true
-	}
-	if w.stoneCursed(i) {
-		return true
-	}
-	e := w.entities[i]
-	// HasAttackTarget is the durable instruction, not by itself an active
-	// interval. At Ready/0 the preceding strike has recovered and another
-	// attack or spell may win fresh admission before the next wind-up loads.
-	if e.AttackPhase != AttackReady || e.AttackCountdown != 0 {
-		return true
-	}
-	return w.actorCastBusy(i)
-}
-
-// retainedCastBusy is actorActionBusy with the caller's own retained book
-// record excluded. It keeps physical/weapon actions and an older direct-cast
-// recovery mutually exclusive with retry admission.
-func (w *World) retainedCastBusy(i int) bool {
-	if w.motionActive(w.entities[i].ID) {
-		return true
-	}
-	if w.stoneCursed(i) {
-		return true
-	}
-	e := w.entities[i]
-	return e.AttackPhase != AttackReady || e.AttackCountdown != 0 || w.orderState(&e).recoveryWaiting()
-}
-
-// strikeHoldsCast reports a computer caster busy only with its loaded strike:
-// its drawn cast waits for the strike's end (AI-554, MAGIC-239, AI-356).
-func (w *World) strikeHoldsCast(i int, refusal string) bool {
-	e := w.entities[i]
-	return refusal == "caster action busy" && !w.humanParticipantUnit(e) &&
-		!w.motionActive(e.ID) && !w.stoneCursed(i) && !w.actorCastBusy(i) &&
-		(e.AttackPhase != AttackReady || e.AttackCountdown != 0)
-}
-
 // withinCastReach is the unit-target cast gate. In the first game the caster
 // itself is always in reach and any other target is within the cast's reach
 // when the footprint-gap distance of the two bodies does not exceed it
@@ -1647,7 +1587,7 @@ func (w *World) beginBookSpellOnce(ci int, victim EntityID, spellID uint32) bool
 
 func (w *World) beginBookSpellMode(ci int, victim EntityID, spellID uint32, retained bool) bool {
 	caster := w.entities[ci]
-	if w.bookSpellRefusal(ci, victim, spellID, false, retained) != "" {
+	if w.castBeginRefusal(ci, spellID, castAim{target: victim}, retained) != "" {
 		return false
 	}
 	rule, _ := w.bookSpell(caster, spellID)
@@ -1713,7 +1653,7 @@ func (w *World) BookSpellRefusal(casterID, victim EntityID, spellID uint32) stri
 	if w.entities[ci].OffMap {
 		return "caster off map"
 	}
-	return w.bookSpellAdmission(ci, victim, spellID, false, false, false)
+	return w.castRefusal(castRequest{issuer: castManual, caster: ci, spell: spellID, aim: castAim{target: victim}}, false)
 }
 
 // BookSpellCellRefusal is BookSpellRefusal for the CELL form: why a cast of
@@ -1733,24 +1673,16 @@ func (w *World) BookSpellCellRefusal(casterID EntityID, x, y int32, spellID uint
 	if w.entities[ci].OffMap {
 		return "caster off map"
 	}
-	return w.bookSpellCellAdmission(ci, x, y, spellID, false, false, false)
+	return w.castRefusal(castRequest{issuer: castManual, caster: ci, spell: spellID,
+		aim: castAim{x: x, y: y, atCell: true}}, false)
 }
 
-// bookSpellCellRefusal states beginBookSpellAt's refusals in the order that
-// function asks them, so the two cannot report different verdicts about one
-// cast. Both read areaLandingRefusal for the landing's own half.
-func (w *World) bookSpellCellRefusal(ci int, x, y int32, spellID uint32, retained, allowInsufficient bool) string {
-	return w.bookSpellCellAdmission(ci, x, y, spellID, retained, allowInsufficient, true)
-}
-
-func (w *World) bookSpellCellAdmission(ci int, x, y int32, spellID uint32, retained, allowInsufficient, checkAction bool) string {
-	return w.bookSpellCellAdmissionRange(ci, x, y, spellID, retained, allowInsufficient, checkAction, false)
-}
-
-// bookSpellCellAdmissionRange is bookSpellCellAdmission with the range test
-// optionally skipped, for the caller that asks whether a cast is refused for
-// range alone.
-func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, retained, allowInsufficient, checkAction, skipRange bool) string {
+// bookSpellCellAdmissionRange is the cell form of the book admission, asked
+// through castAdmission: beginBookSpellAt asks the same verdict the read-only
+// instrument reports, so the two cannot disagree about one cast. Both read
+// areaLandingRefusal for the landing's own half. The range test is optionally
+// skipped, for the caller that asks whether a cast is refused for range alone.
+func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, allowInsufficient bool, gate castGate, skipRange bool) string {
 	caster := w.entities[ci]
 	if !caster.Alive() {
 		return "caster not alive"
@@ -1785,34 +1717,19 @@ func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, 
 	if r := w.areaLandingRefusal(rule, uint16(power), x, y); r != "" {
 		return r
 	}
-	if w.stoneCursed(ci) || checkAction && (!retained && w.actorActionBusy(ci) || retained && w.retainedCastBusy(ci)) {
-		return "caster action busy"
+	if w.stoneCursed(ci) || w.castActionBusy(ci, gate) {
+		return refusalCasterBusy
 	}
 	if !allowInsufficient && !bookAffords(caster, rule) {
-		return "insufficient mana"
+		return refusalNoMana
 	}
 	return ""
 }
 
-// The two admission refusals a cast turns into a walk, and the sight refusal
-// a walking caster walks on through.
-const (
-	refusalTargetOutOfRange = "target out of range"
-	refusalCellOutOfRange   = "cell out of range"
-	refusalTargetNotVisible = "target not currently visible"
-)
-
-func (w *World) bookSpellRefusal(ci int, victim EntityID, spellID uint32, retained, allowInsufficient bool) string {
-	return w.bookSpellAdmission(ci, victim, spellID, retained, allowInsufficient, true)
-}
-
-func (w *World) bookSpellAdmission(ci int, victim EntityID, spellID uint32, retained, allowInsufficient, checkAction bool) string {
-	return w.bookSpellAdmissionRange(ci, victim, spellID, retained, allowInsufficient, checkAction, false)
-}
-
-// bookSpellAdmissionRange is bookSpellAdmission with the sight and range tests
-// optionally skipped, for the caller that asks whether a walk would admit it.
-func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32, retained, allowInsufficient, checkAction, skipRange bool) string {
+// bookSpellAdmissionRange is the unit form of the book admission, asked
+// through castAdmission, with the sight and range tests optionally skipped,
+// for the caller that asks whether a walk would admit it.
+func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32, allowInsufficient bool, gate castGate, skipRange bool) string {
 	caster := w.entities[ci]
 	if !caster.Alive() {
 		return "caster not alive"
@@ -1872,11 +1789,11 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if r := w.areaLandingRefusal(rule, uint16(spellPowerUnder(w.rules, rule, level, caster.Mind)), target.X, target.Y); r != "" {
 		return r
 	}
-	if w.stoneCursed(ci) || checkAction && (!retained && w.actorActionBusy(ci) || retained && w.retainedCastBusy(ci)) {
-		return "caster action busy"
+	if w.stoneCursed(ci) || w.castActionBusy(ci, gate) {
+		return refusalCasterBusy
 	}
 	if !allowInsufficient && !bookAffords(caster, rule) {
-		return "insufficient mana"
+		return refusalNoMana
 	}
 	return ""
 }
@@ -1897,12 +1814,12 @@ func (w *World) beginBookSpellAt(ci int, x, y int32, spellID uint32) bool {
 }
 
 func (w *World) beginBookSpellAtMode(ci int, x, y int32, spellID uint32, retained bool) bool {
-	// The refusals are bookSpellCellRefusal's, asked once and stated there
+	// The refusals are the cell admission's, asked once and stated there
 	// rather than here, on beginBookSpell's own shape for the unit form. That
 	// is what makes the read-only instrument report what this function will do:
 	// a cast the instrument calls admissible and this one drops, or the other
 	// way round, is the disagreement the two exist to prevent.
-	if w.bookSpellCellRefusal(ci, x, y, spellID, false, retained) != "" {
+	if w.castBeginRefusal(ci, spellID, castAim{x: x, y: y, atCell: true}, retained) != "" {
 		return false
 	}
 	caster := w.entities[ci]
@@ -1957,7 +1874,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				continue
 			}
 			refusal := w.retainedBookRefusal(ci, *c)
-			if refusal == "insufficient mana" {
+			if isManaRefusal(refusal) {
 				if !c.Retained {
 					w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 					continue
@@ -2007,12 +1924,12 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				if !w.crossingDefersCast(ci) {
 					w.startApproachedCast(ci, c)
 				}
-			case refusal == "insufficient mana" && held && c.Retained && w.castApproachPursues(w.entities[ci]):
+			case isManaRefusal(refusal) && held && c.Retained && w.castApproachPursues(w.entities[ci]):
 				// In reach without the mana, a retained order waits for it as
 				// the admission retries (MAGIC-340, AI-554).
 				w.standForCreatureCast(ci)
 				c.Phase, c.Progress, c.Complete = bookPending, 0, false
-			case held && c.Retained && w.strikeHoldsCast(ci, refusal):
+			case held && c.Retained && w.castStrikeWaits(retainedRequest(ci, *c), refusal):
 				// The order waits for the loaded strike to end.
 			case !held || !w.approachWalksOn(ci, refusal):
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
@@ -2046,7 +1963,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 		}
 		state := *c
 		refusal := w.releaseBookRefusal(ci, state)
-		if refusal == "insufficient mana" {
+		if isManaRefusal(refusal) {
 			if !c.Retained {
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 				continue
@@ -2127,17 +2044,11 @@ func (w *World) releaseBookRefusal(ci int, c bookCast) string {
 	if w.game.releaseRevalidates {
 		return w.retainedBookRefusal(ci, c)
 	}
-	if c.AtCell {
-		return w.bookSpellCellAdmissionRange(ci, c.X, c.Y, uint32(c.Spell), true, c.Paid, true, true)
-	}
-	return w.bookSpellAdmissionRange(ci, c.Target, uint32(c.Spell), true, c.Paid, true, true)
+	return w.castRefusal(retainedRequest(ci, c), true)
 }
 
 func (w *World) retainedBookRefusal(ci int, c bookCast) string {
-	if c.AtCell {
-		return w.bookSpellCellRefusal(ci, c.X, c.Y, uint32(c.Spell), true, c.Paid)
-	}
-	return w.bookSpellRefusal(ci, c.Target, uint32(c.Spell), true, c.Paid)
+	return w.castRefusal(retainedRequest(ci, c), false)
 }
 
 // markSpellEffect puts the spell effect mark on one entity: the full life,
@@ -2261,11 +2172,10 @@ const autoHealReserveNum, autoHealReserveDen = 1, 4
 // pick could name within its reach, a held victim within reach, or a victim a
 // player's attack order named keeps it from healing.
 func (w *World) inCombat(ci int) bool {
-	e := w.entities[ci]
-	s := w.orderState(&e)
-	if s.wait || s.booked() {
+	if w.castHolds(ci, waitIdleHeal) {
 		return true
 	}
+	e := w.entities[ci]
 	if w.healArmRules(e) {
 		return holdsOrderedVictim(e) || w.victimInReach(e) || w.hostileInReach(ci)
 	}

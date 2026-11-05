@@ -4117,5 +4117,12 @@ var Committed = Baseline{
 	// internal/archtest/winroute.go and its tests, the campaign service's
 	// bank set answer in pkg/game/campaignservice.go and
 	// pkg/game/campaignsecond.go, and this note.
-	CommentBytes: 10540696,
+
+	// It rises for the cast request record in pkg/sim/castrequestrecord_test.go
+	// and this note.
+
+	// It rises for the cast request boundary's rows and busy query in
+	// pkg/sim/castrequest.go, its guard in internal/archtest/castrequest.go and
+	// this note, net of the docs it moves.
+	CommentBytes: 10549647,
 }

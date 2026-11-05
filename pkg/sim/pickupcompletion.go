@@ -33,7 +33,7 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 		e.Retreat = RetreatContinuation{}
 	}
 	e.clearGroupSpeed()
-	if !w.actorCastBusy(i) {
+	if !w.castHolds(i, waitCastAction) {
 		e.clearTurn()
 	}
 	e.ActorState = actorStatePickupComplete
