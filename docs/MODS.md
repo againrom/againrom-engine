@@ -1021,6 +1021,11 @@ fields as the top level: `view`, `random`, `art`, `sounds`, `clocks`, `actors`,
 `layers`), `art`, `music`, `seats`, `buttons` and `pane`. A step is
 `{ "hook": name }` or `{ "composer": "reset" }`.
 
+A button named `sleep` is the town's Sleep, which restocks the shop; its word
+is `tavern.sleep`. The first game's tavern always takes the shipped first
+town's buttons, whose first is Sleep; a `tavern` room's own `buttons` do not
+change them.
+
 A room's optional `pane` is the character pane its page shows: `rect`, the
 pane's rectangle `[x0, y0, x1, y1]`; `book`, `true` when the pane has the
 spellbook corner; and `font`, where `"install"` draws the pane's arrows and

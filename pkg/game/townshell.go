@@ -7,7 +7,6 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
-	"againrom/pkg/random"
 	"againrom/pkg/render/text"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
@@ -297,9 +296,10 @@ func (t *townScreen) selectedSchoolSlot() (int, int, bool) {
 	return slot, price, price > 0
 }
 
+// The tavern's buttons after button 0, which is the tavern room's Sleep
+// control row.
 const (
-	tavernButtonSleep = iota
-	tavernButtonHire
+	tavernButtonHire = iota + 1
 	tavernButtonTalk
 	tavernButtonExit
 )
@@ -498,10 +498,11 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	if t.room == roomTavern {
-		switch i {
-		case tavernButtonSleep:
-			t.restockShop()
+		if sleepButton(t.tavernButtons(), i) {
+			t.sleep()
 			return ui.TownAction{}
+		}
+		switch i {
 		case tavernButtonHire:
 			if o, ok := t.selectedMercenary(); ok {
 				t.pressMercenary(o.Type)
@@ -542,14 +543,6 @@ func trainingPostedLine(msg string) string {
 		}
 	}
 	return ""
-}
-
-func (t *townScreen) restockShop() bool {
-	if t == nil || t.sess == nil || t.sess.Town == nil || t.sess.Shop == nil {
-		return false
-	}
-	seed := shopSeed(t.sess.Town.Chapter(), t.sess.Town.finishedCount(), t.sess.Shop.Ceiling())
-	return t.sess.Shop.RestockWith(t.in.Table, seed, t.draws.stream(random.ShopStock))
 }
 
 // schoolPurseShown is the figure on Exit: the purse less the quoted training

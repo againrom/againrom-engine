@@ -238,3 +238,12 @@ func (c chapterTownCampaign) value(name string) int {
 func (c chapterTownCampaign) savePoint() bool     { return c.ready() && c.t.sess.Town.Open() }
 func (chapterTownCampaign) leave()                {}
 func (chapterTownCampaign) bank() *secondCampaign { return nil }
+
+// townShop is the session's town-arrival shop, none while the session holds
+// none.
+func (c chapterTownCampaign) townShop() townRestocker {
+	if c.t.sess == nil || c.t.sess.Shop == nil {
+		return nil
+	}
+	return c.t.sess.Shop
+}

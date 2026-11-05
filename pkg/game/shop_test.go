@@ -96,6 +96,9 @@ func (c shopMagicCollection) EntryParams(i int) []int32 {
 	return p
 }
 
+// Restock is RestockWith drawing on the seed's own generator.
+func (s *Shop) Restock(t *mapload.Table, seed int64) bool { return s.RestockWith(t, seed, nil) }
+
 // shopTable is an item table holding one weapon row and one armour row, each
 // admitting two materials at shape 0.
 func shopTable() *mapload.Table {

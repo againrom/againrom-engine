@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"reflect"
+	"slices"
 	"testing"
 
 	"againrom/internal/synth"
@@ -12,6 +13,7 @@ import (
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -145,6 +147,65 @@ func TestSelectedMercenaryButtonChangesFromHireToFire(t *testing.T) {
 	button = s.TownSurface().Buttons[tavernButtonHire]
 	if button.Label != "Hire" || !button.Enabled || f.Town.MercenaryHired(3) {
 		t.Fatalf("returned squad button/state = %+v/%v, want enabled Hire/not hired", button, f.Town.MercenaryHired(3))
+	}
+}
+
+// tavernButtonSleep is the tavern's button 0, its Sleep control row.
+const tavernButtonSleep = 0
+
+// The first game's tavern Sleep is the tavern room's Sleep control row: its
+// rectangle is the drawn button's and its word the button's caption.
+func TestTavernSleepIsTheTavernRoomsSleepRow(t *testing.T) {
+	r := ROM1TownDescription().Room("tavern")
+	if r == nil || len(r.Buttons) != 1 || !sleepButton(r.Buttons, tavernButtonSleep) || r.Buttons[0].Word != "tavern.sleep" ||
+		r.Buttons[0].Rect.Rectangle() != ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, tavernButtonSleep) {
+		t.Fatalf("tavern room buttons = %+v", r)
+	}
+	f := shellFrontEnd()
+	if got := f.Words.Engine.Text(r.Buttons[0].Word); got != f.townUI.TownSurface().Buttons[tavernButtonSleep].Label {
+		t.Fatalf("Sleep row word %q, button caption %q", got, f.townUI.TownSurface().Buttons[tavernButtonSleep].Label)
+	}
+	if !sleepButton(f.townUI.tavernButtons(), tavernButtonSleep) || sleepButton(f.townUI.tavernButtons(), tavernButtonHire) {
+		t.Fatal("the tavern's button 0 is not its only Sleep control")
+	}
+}
+
+// A mod first-game tavern room's own buttons do not move Sleep: the shown
+// button 0 restocks once and button 1 (Hire) restocks none, whatever the room
+// names.
+func TestModTavernButtonsKeepSleepAtButtonZero(t *testing.T) {
+	shipped := townBooks["rom1"]
+	sleepRow := shipped.descriptions["rom1"].Room("tavern").Buttons[0]
+	named := func(name string) town.ButtonSpec {
+		b := sleepRow
+		b.Name, b.Cite = name, nil
+		return b
+	}
+	rooms := map[string][]town.ButtonSpec{
+		"talk":       {named("talk")},
+		"hire,sleep": {named("hire"), sleepRow},
+		"shipped":    {sleepRow},
+	}
+	for name, buttons := range rooms {
+		for pressed, want := range []uint64{1, 0} {
+			f := shellFrontEnd()
+			table := shopTable()
+			table.Humans, table.NPC = f.Table.Humans, f.Table.NPC
+			f.Table = table
+			f.Shop = NewShop(1000)
+			f.Shop.Generate(f.Table, 1)
+			d := *shipped.descriptions["rom1"]
+			d.Rooms = slices.Clone(d.Rooms)
+			d.Room("tavern").Buttons = buttons
+			f.Town.camp.Towns = &townBook{catalog: shipped.catalog, descriptions: map[string]*town.Description{"rom1": &d}}
+			if f.townUI.townDescription() != &d || f.townUI.tavernRoom().Seats == nil {
+				t.Fatalf("%s: the tavern is not the mod room", name)
+			}
+			f.townUI.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: pressed}, false)
+			if f.Shop.restocks != want {
+				t.Errorf("room buttons [%s], button %d: restocks %d, want %d", name, pressed, f.Shop.restocks, want)
+			}
+		}
 	}
 }
 

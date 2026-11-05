@@ -468,6 +468,9 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i + 1}, true
 	}
 	if i := page.ButtonAt(p); i >= 0 {
+		if sleepButton(r.Buttons, i) {
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: 0}, true
+		}
 		seat := v.t.composed.seat
 		switch r.Buttons[i].Name {
 		case "hire":
@@ -480,8 +483,6 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 			}
 		case "exit":
 			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats + 1}, true
-		case "sleep":
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: 0}, true
 		}
 	}
 	return ui.TownSquareControl{}, false

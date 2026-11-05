@@ -78,6 +78,15 @@ func (t *townScreen) tavernRoom() *town.RoomSpec {
 	return d.Room("tavern")
 }
 
+// tavernButtons are the first game's tavern buttons in index order: the
+// shipped first town's, whatever a mod tavern room's buttons name.
+func (t *townScreen) tavernButtons() []town.ButtonSpec {
+	if r := ROM1TownDescription().Room("tavern"); r != nil {
+		return r.Buttons
+	}
+	return nil
+}
+
 // TavernPageLayout is the first game's tavern page of n seats, the first
 // hires a mercenary's, as its tavern room lays it out over the loaded art.
 func (in *InstallResources) TavernPageLayout(n, hires int) ui.RoomPage {

@@ -6,7 +6,6 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
-	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -186,15 +185,13 @@ func (t *townScreen) StartNewGame() error {
 }
 
 // innAct dispatches the selected seat's action (Hire, Fire, TALK:
-// R2-ENGINE-496; the room events: DIV-4372) or the first, Sleep row. i is
-// an inn row: row 0 is Sleep and row i+1 is seat i.
+// R2-ENGINE-496; the room events: DIV-4372) or the first row, the town's
+// one Sleep. i is an inn row: row 0 is Sleep and row i+1 is seat i.
 func (t *townScreen) innAct(c *secondCampaign, row int) ui.TownAction {
 	seats, hires := c.innSeats()
 	i := row - 1
 	if row == 0 {
-		if tables, ok := secondShopTables(t.in.Table); ok && t.draws != nil {
-			c.shop.restock(tables, c.current.id, t.draws.stream(random.ShopStock).Raw)
-		}
+		t.sleep()
 		return ui.TownAction{}
 	}
 	if i < 0 || i >= len(seats) {

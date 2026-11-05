@@ -48,7 +48,7 @@ func sleepTown(id int) (*FrontEnd, *townScreen) {
 	s.adapter = destinationTownCampaign{s}
 	f.townUI = s
 	tables, _ := secondShopTables(tab)
-	c.shop.restock(tables, id, f.randomService().Stream(random.ShopStock).Raw)
+	c.shop.drawStock(tables, id, f.randomService().Stream(random.ShopStock).Raw)
 	return f, s
 }
 

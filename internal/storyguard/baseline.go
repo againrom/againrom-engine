@@ -4124,5 +4124,15 @@ var Committed = Baseline{
 	// It rises for the cast request boundary's rows and busy query in
 	// pkg/sim/castrequest.go, its guard in internal/archtest/castrequest.go and
 	// this note, net of the docs it moves.
-	CommentBytes: 10549647,
+
+	// It rises for the Sleep record in pkg/game/sleeprecord_test.go and this
+	// note.
+
+	// It rises for the one Sleep runner in pkg/game/sleep.go, the tavern's
+	// buttons in pkg/game/roompageview.go, the two campaigns' townShop, the
+	// guard in internal/archtest/sleep.go and its tests, and this note.
+
+	// It rises for the mod tavern buttons test in pkg/game/townshell_test.go
+	// and this note, net of the shorter tavernButtons comment.
+	CommentBytes: 10553612,
 }

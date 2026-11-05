@@ -394,10 +394,10 @@ func (s *secondShop) leave(bag *[]sim.ItemInstance) {
 	s.dropEmptied(s.rules())
 }
 
-// restock draws the stock of location anew from its record: the draw a LOAD
-// of a save made in a town makes before the shop can be entered. A SAV
-// carries no stock; reloading is what restocks the shop.
-func (s *secondShop) restock(tables secondshop.Tables, location int, rnd secondshop.Rand) {
+// drawStock draws the stock of location anew from its record: the draw a
+// LOAD of a save made in a town makes before the shop can be entered, and the
+// draw a Sleep makes. A SAV carries no stock.
+func (s *secondShop) drawStock(tables secondshop.Tables, location int, rnd secondshop.Rand) {
 	s.table, s.category, s.tables = nil, 0, tables
 	if location <= 0 || location >= len(s.records) {
 		s.shelves, s.filled = [shopShelfCount][]ShopItem{}, 0

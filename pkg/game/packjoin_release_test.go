@@ -64,7 +64,7 @@ func TestReleaseBoughtSpearJoinsTheLootedSpears(t *testing.T) {
 		if slices.ContainsFunc(s.sess.Shop.Shelf(s.shopShelf), func(it ShopItem) bool { return it.Code == packJoinSpear }) {
 			break
 		}
-		s.restockShop()
+		s.sleep()
 	}
 	currentTownBuy(t, s, roomWeapons, packJoinSpear)
 	if err := f.App("bought spear").OpenMission(f.MissionOpenerWith(50, f.NextParty())); err != nil {

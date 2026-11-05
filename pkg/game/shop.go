@@ -262,13 +262,10 @@ func (s *Shop) GenerateWith(t *mapload.Table, seed int64, stock *random.Stream) 
 	s.generate(t, r)
 }
 
-// Restock clears and refills an unattended shop with a fresh deterministic
-// draw. A non-empty table is refused: leaving the shop normally clears it, and
-// destroying a staged player item would turn the tavern convenience into an
-// inventory mutation.
-func (s *Shop) Restock(t *mapload.Table, seed int64) bool { return s.RestockWith(t, seed, nil) }
-
-// RestockWith is Restock drawing as GenerateWith does.
+// RestockWith clears and refills an unattended shop with a fresh
+// deterministic draw, drawing as GenerateWith does. A non-empty table is
+// refused: leaving the shop normally clears it, and destroying a staged
+// player item would turn the tavern convenience into an inventory mutation.
 func (s *Shop) RestockWith(t *mapload.Table, seed int64, stock *random.Stream) bool {
 	if s == nil || t == nil || len(s.table) != 0 {
 		return false

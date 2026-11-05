@@ -234,6 +234,9 @@
   "rooms": [
     {"name": "tavern", "page": "tavern",
      "music-rule": {"scene": "tavern", "cite": ["owner"]},
+     "buttons": [
+       {"name": "sleep", "rect": [494, 15, 614, 67], "word": "tavern.sleep", "cite": ["DIV-483", "DIV-1763"]}
+     ],
      "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},

@@ -239,7 +239,7 @@ func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 		return
 	}
 	if ok {
-		second.shop.restock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
+		second.shop.drawStock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
 	}
 }
 
@@ -380,6 +380,17 @@ func (c destinationTownCampaign) startCampaign() error {
 		return fmt.Errorf("initial campaign town: %w", err)
 	}
 	return c.t.start()
+}
+
+// townShop is the campaign, whose one shop stocks the party's town.
+func (c destinationTownCampaign) townShop() townRestocker {
+	if c.t.sess == nil {
+		return nil
+	}
+	if s := secondOf(c.t.sess); s != nil {
+		return s
+	}
+	return nil
 }
 
 func (c destinationTownCampaign) bank() *secondCampaign {
