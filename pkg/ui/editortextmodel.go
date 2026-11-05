@@ -340,6 +340,34 @@ func (m *TextInputState) replace(s string) {
 	}
 }
 
+func (m *TextInputState) deleteWordEdge(back bool) int {
+	r := m.units()
+	at, end, step, offset := m.Caret, len(r), 1, 0
+	if back {
+		end, step, offset = 0, -1, -1
+	}
+	class := func(c rune) int {
+		switch {
+		case unicode.IsSpace(c):
+			return 0
+		case unicode.IsLetter(c) || unicode.IsDigit(c):
+			return 1
+		default:
+			return 2
+		}
+	}
+	for at != end && class(r[at+offset]) == 0 {
+		at += step
+	}
+	if at != end {
+		kind := class(r[at+offset])
+		for at != end && class(r[at+offset]) == kind {
+			at += step
+		}
+	}
+	return at
+}
+
 func (m *TextInputState) erase(back bool) {
 	if m.rules.Selection == TextDetachedSelection {
 		m.clamp()

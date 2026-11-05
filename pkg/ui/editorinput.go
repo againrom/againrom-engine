@@ -344,6 +344,9 @@ func (e *MapEditor) textKey(key string) bool {
 	case "selectall":
 		m.selectAll()
 	case "backspace", "delete":
+		if lo, hi := m.selection(); ctrl && lo == hi {
+			m.Anchor = m.deleteWordEdge(key == "backspace")
+		}
 		m.erase(key == "backspace")
 		e.inputChanged()
 	case "copy", "cut":

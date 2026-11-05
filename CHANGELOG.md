@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Ctrl+Backspace and Ctrl+Delete remove a whole word before or after the caret in the dialogue editor and other map editor text fields.
 - [BASE] Switching tools on the map editor's top bar puts away the windows of the tool you leave and brings them back when you return.
 - [BASE] In the map editor the Units grid shows creatures and people in two blocks, a row per creature type with each variant in its own colours, and people grouped as NPC, others, heroes and PC.
 - [BASE] In the map editor the Scenario palette's New trigger and New variable buttons add the record in one click; the old Add window for script records, and the palette's Add button, are gone.

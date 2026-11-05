@@ -667,9 +667,9 @@ func (e *MapEditor) keyHistory(key string) error {
 
 func (e *MapEditor) keyBackspace(string) error {
 	if !e.prompt.open() && !e.objectHidden && e.searchableObjectChoices() && e.dropdownOpen() {
-		query := []rune(e.obj.search)
-		if len(query) > 0 {
-			e.obj.search = string(query[:len(query)-1])
+		state := EditText(TextInputState{Text: e.obj.search}, TextInputKeys{Backspace: true}, TextInputRules{AppendOnly: true})
+		if state.Text != e.obj.search {
+			e.obj.search = state.Text
 			e.obj.choice.Find(e.obj.search, e.editorSearchText)
 		}
 		return nil
