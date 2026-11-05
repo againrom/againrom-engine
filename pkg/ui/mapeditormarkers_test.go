@@ -21,7 +21,7 @@ func TestEditorSpatialRecordMarkerAndJoinedCells(t *testing.T) {
 	if hits := e.hitsAt(p.Sub(image.Pt(int(ox), int(oy)))); len(hits) != 1 || hits[0] != 0 {
 		t.Fatal("map hit did not find marked record", hits)
 	}
-	labels := e.markerLabels()
+	labels := e.mapLabelsOf(labelRecord)
 	if len(labels) != 1 || labels[0].text != "Lightning" {
 		t.Fatal("spell name absent", labels)
 	}
@@ -51,7 +51,7 @@ func TestEditorSpatialRecordMarkerKeepsTheInstallTextBytes(t *testing.T) {
 	marker := "13: \x8c\xae\xab\xad\xa8\xef"
 	e.doc.Records = []InspectionRecord{{Kind: KindEnchantment, Index: 0, Spatial: true, Cell: image.Pt(20, 20), Size: image.Pt(1, 1), Marker: marker}}
 	e.selected = -1
-	if labels := e.markerLabels(); len(labels) != 1 || labels[0].text != marker {
+	if labels := e.mapLabelsOf(labelRecord); len(labels) != 1 || labels[0].text != marker {
 		t.Fatalf("marker label %v, want the install text %q", labels, marker)
 	}
 }
@@ -73,7 +73,7 @@ func TestEditorMarkerCaptureKeepsOnlyVisibleGlyphs(t *testing.T) {
 		e.doc.Viewer.cam.X = wx - float64(x) + 7 + ox
 		e.doc.Viewer.cam.Y = wy - float64(y) - float64(fontHeight(e.bodyFont(), 15)) - 2 + oy
 		pic := image.NewRGBA(image.Rectangle{Max: e.window})
-		calls := text.Record(func() { e.drawMarkerLabels(pic) })
+		calls := text.Record(func() { e.drawMapLabels(pic) })
 		if !edge && len(calls) == 0 {
 			t.Fatal("the control label drew no glyph")
 		}

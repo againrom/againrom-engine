@@ -1533,10 +1533,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	if f := e.bodyFont(); f != nil {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
-	e.drawHeightLabels(pic)
-	e.drawMarkerLabels(pic)
-	e.drawAreaLabels(pic)
-	e.drawGroupBadges(pic)
+	e.drawMapLabels(pic)
 	e.drawPlayerLegend(pic)
 	if fade {
 		e.drawSidePanels(pic, panelsDocked)

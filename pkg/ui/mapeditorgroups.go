@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/draw"
 	"maps"
 	"slices"
 	"strconv"
@@ -648,49 +647,25 @@ func (e *MapEditor) SelectionButtonRect(n int) (image.Rectangle, bool) {
 	return l.Buttons[n], true
 }
 
-// groupBadges are the number badges of the chosen group's members: a box
-// above each member's cell holding the group number, in window pixels; a
-// badge an open popup covers is left out.
-func (e *MapEditor) groupBadges() []areaLabel {
+func (e *MapEditor) groupLabelRows() []mapLabel {
 	if !e.groupSel.set || e.doc == nil || e.catalog {
 		return nil
 	}
-	f := e.bodyFont()
 	text := strconv.Itoa(e.groupSel.group)
-	w, h := 8, fontHeight(f, 15)+2
-	if f != nil {
-		w += f.Advance(text)
-	}
-	area, popups := e.mapArea(), e.popupRects()
-	var out []areaLabel
+	var out []mapLabel
 	for _, id := range e.groupSel.members {
 		if id >= len(e.doc.Records) {
 			continue
 		}
-		c := e.CellPoint(e.doc.Records[id].Cell)
-		r := image.Rect(c.X-w/2, c.Y-24-h, c.X-w/2+w, c.Y-24)
-		covered := false
-		for _, p := range popups {
-			covered = covered || p.Overlaps(r)
-		}
-		if r.In(area) && !covered {
-			out = append(out, areaLabel{rect: r, text: text})
-		}
+		out = append(out, mapLabel{
+			source: labelGroup, index: id, anchor: e.CellPoint(e.doc.Records[id].Cell),
+			offset: image.Pt(0, -24), above: true, centered: true, text: text,
+			padding: image.Pt(4, 1), ink: editorCondition, border: editorCondition,
+			popup: labelPopupOmit, edge: labelInside, layer: 3,
+		})
 	}
 	return out
 }
 
 // GroupBadges is how many badges the chosen group shows.
-func (e *MapEditor) GroupBadges() int { return len(e.groupBadges()) }
-
-// drawGroupBadges draws the chosen group's badges.
-func (e *MapEditor) drawGroupBadges(pic *image.RGBA) {
-	f := e.bodyFont()
-	for _, b := range e.groupBadges() {
-		draw.Draw(pic, b.rect, image.NewUniform(editorInk), image.Point{}, draw.Src)
-		drawFrame(pic, panelFrame(b.rect, editorInk, editorCondition))
-		if f != nil {
-			f.Draw(pic.SubImage(b.rect).(*image.RGBA), b.text, b.rect.Min.X+4, b.rect.Min.Y+1, editorCondition)
-		}
-	}
-}
+func (e *MapEditor) GroupBadges() int { return len(e.mapLabelsOf(labelGroup)) }

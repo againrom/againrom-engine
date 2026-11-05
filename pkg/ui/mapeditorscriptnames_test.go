@@ -41,7 +41,7 @@ func textEditor(t *testing.T) *MapEditor {
 // font's bytes, through the host encoder.
 func TestTriggerNameIsDrawnThroughTheHostEncoder(t *testing.T) {
 	e := textEditor(t)
-	labels := e.areaLabels()
+	labels := e.mapLabelsOf(labelTrigger)
 	if len(labels) != 1 || labels[0].text != "T1 WIN" {
 		t.Fatalf("area labels %+v", labels)
 	}

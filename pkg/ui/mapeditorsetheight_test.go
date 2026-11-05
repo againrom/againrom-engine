@@ -50,7 +50,7 @@ func TestSetHeightDragMakesOneStroke(t *testing.T) {
 	if s := e.statusText(); !strings.Contains(s, "Height -27, target ") {
 		t.Fatalf("status %q", s)
 	}
-	if l, ok := e.heightDragLabel(); !ok || l.text != strconv.Itoa(g.target-HeightLabelZero) {
+	if labels := e.mapLabelsOf(labelHeightGesture); len(labels) != 1 || labels[0].text != strconv.Itoa(g.target-HeightLabelZero) {
 		t.Fatal("no target beside the pointer")
 	}
 	if len(p.strokes) != 0 {
@@ -67,7 +67,7 @@ func TestSetHeightDragMakesOneStroke(t *testing.T) {
 	if e.brush.set != nil || e.brush.down {
 		t.Fatal("the gesture outlived the release")
 	}
-	if _, ok := e.heightDragLabel(); ok {
+	if len(e.mapLabelsOf(labelHeightGesture)) != 0 {
 		t.Fatal("target label after the release")
 	}
 }

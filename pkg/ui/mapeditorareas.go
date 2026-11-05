@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
-	"slices"
 )
 
 // The triggers on the map: every place a trigger's conditions and actions
@@ -133,77 +131,35 @@ func (e *MapEditor) areaLines() []editorLine {
 	return append(append(out, top...), handles...)
 }
 
-// areaLabel is one trigger's label on the map: where it stands in the
-// window, its text and its trigger.
-type areaLabel struct {
-	trigger int
-	rect    image.Rectangle
-	text    string
-}
-
-// areaLabels place one label per trigger at the top left corner of its first
-// area, moved down while it would cover a label already placed and left of
-// an open popup it would run under; a label a popup still covers is left
-// out.
-func (e *MapEditor) areaLabels() []areaLabel {
+func (e *MapEditor) triggerLabelRows() []mapLabel {
 	if !e.areasShown() {
 		return nil
 	}
-	popups := e.popupRects()
-	f := e.bodyFont()
-	h := fontHeight(f, 15) + 2
-	area := e.mapArea()
 	ox, oy := e.mapOrigin()
-	var out []areaLabel
+	var out []mapLabel
 	done := map[int]bool{}
+	sel := e.selectedTrigger()
 	for _, a := range e.doc.Script.Areas {
 		if done[a.Trigger] || a.Rect.Empty() || a.Trigger >= len(e.doc.Script.Triggers) {
 			continue
 		}
 		done[a.Trigger] = true
 		t := e.doc.Script.Triggers[a.Trigger]
-		text := editorClip(f, fmt.Sprintf("T%d %s", a.Trigger+1, e.editorHostText(t.Name)), 160)
-		w := 8
-		if f != nil {
-			w += f.Advance(text)
-		}
 		x, y := e.corner(a.Rect.Min)
-		r := image.Rect(int(float64(x)+ox), int(float64(y)+oy)-h, int(float64(x)+ox)+w, int(float64(y)+oy))
-		for _, p := range popups {
-			if p.Overlaps(r) && r.Min.X < p.Min.X {
-				r = r.Sub(image.Pt(r.Max.X-p.Min.X, 0)) // to the popup's left, beside its area
-			}
-		}
-		// Down past every label already placed; below the map it is left out.
-		for r.Min.Y < area.Max.Y && slices.ContainsFunc(out, func(l areaLabel) bool { return l.rect.Overlaps(r) }) {
-			r = r.Add(image.Pt(0, h))
-		}
-		covered := false
-		for _, p := range popups {
-			covered = covered || p.Overlaps(r)
-		}
-		if r.In(area) && !covered {
-			out = append(out, areaLabel{trigger: a.Trigger, rect: r, text: text})
-		}
-	}
-	return out
-}
-
-// drawAreaLabels paints the labels on the chrome picture, under the popups.
-func (e *MapEditor) drawAreaLabels(pic *image.RGBA) {
-	sel := e.selectedTrigger()
-	f := e.bodyFont()
-	for _, l := range e.areaLabels() {
-		ink := areaInk(l.trigger)
-		if l.trigger == sel {
+		ink := areaInk(a.Trigger)
+		if a.Trigger == sel {
 			ink = editorGold
 		}
-		draw.Draw(pic, l.rect, image.NewUniform(editorInk), image.Point{}, draw.Src)
-		drawFrame(pic, panelFrame(l.rect, editorInk, ink))
-		if f != nil {
-			f.Draw(pic.SubImage(l.rect).(*image.RGBA), l.text, l.rect.Min.X+4, l.rect.Min.Y+1, ink)
-		}
+		out = append(out, mapLabel{
+			source: labelTrigger, index: a.Trigger,
+			anchor: image.Pt(int(float64(x)+ox), int(float64(y)+oy)), above: true,
+			text: fmt.Sprintf("T%d %s", a.Trigger+1, e.editorHostText(t.Name)), maxTextWidth: 160,
+			padding: image.Pt(4, 1), ink: ink, border: ink,
+			popup: labelPopupLeft, edge: labelInside,
+			collides: labelTrigger, moveDown: true, stopAtBottom: true, layer: 2,
+		})
 	}
+	return out
 }
 
 // popupRects are the window rectangles of the open list, object and prompt
@@ -224,10 +180,10 @@ func (e *MapEditor) popupRects() []image.Rectangle {
 
 // areaLabelAt is the trigger whose label is under the window point p.
 func (e *MapEditor) areaLabelAt(p image.Point) (int, bool) {
-	labels := e.areaLabels()
+	labels := e.mapLabelsOf(labelTrigger)
 	for i := len(labels) - 1; i >= 0; i-- {
 		if p.In(labels[i].rect) {
-			return labels[i].trigger, true
+			return labels[i].index, true
 		}
 	}
 	return 0, false
@@ -235,8 +191,8 @@ func (e *MapEditor) areaLabelAt(p image.Point) (int, bool) {
 
 // AreaLabelRect is the window rectangle of trigger t's label on the map.
 func (e *MapEditor) AreaLabelRect(t int) (image.Rectangle, bool) {
-	for _, l := range e.areaLabels() {
-		if l.trigger == t {
+	for _, l := range e.mapLabelsOf(labelTrigger) {
+		if l.index == t {
 			return l.rect, true
 		}
 	}
