@@ -166,7 +166,7 @@ func (w *World) constructedGroups(native bool) *savedGroupState {
 // selector holding the entities at members, and its members' orders.
 func (w *World) constructedGroup(owner, selector uint32, members []int, named func(uint32, []int) bool, native bool) (SavedGroup, []SavedActorOrder) {
 	g := SavedGroup{Selector: selector, Owner: SavedGroupReference{Class: 1, Owner: owner}}
-	g.AI[0x45] = 1
+	setGroupWords(w, &g, members, rowGate, groupValues{active: 1})
 	state := uint32(0)
 	switch owner {
 	case 0:
@@ -174,20 +174,19 @@ func (w *World) constructedGroup(owner, selector uint32, members []int, named fu
 		// gets an order block, so the Group dispatch decides nothing for
 		// it, as a Group with no Player record.
 	case SelfSlot:
-		g.AI[0x20], state = orderStandGround, uint32(actorStateAcquire)
+		setGroupWords(w, &g, members, rowStanceStand, groupValues{order: orderStandGround})
+		state = uint32(actorStateAcquire)
 	default:
-		w.guardSetter(&g, members)
+		// The guard's programme byte is 1, the second game's 18.
+		setGroupWords(w, &g, members, rowStanceGuard, groupValues{order: orderGuard})
 		state = uint32(actorStateGuard)
 	}
 	if record := w.nativeGroupRecord(owner, selector); native && record != nil {
-		g.AI[0x20], g.AI[0x38], g.AI[0x15] = w.game.groupRoute.programme(record.order), record.base, record.roamCounter
-		if record.order == orderGuard {
-			g.AI[0x2d] = record.base
-		}
-		binary.LittleEndian.PutUint16(g.AI[10:], uint16(record.commandedX)|uint16(record.commandedY)<<8)
+		setGroupWords(w, &g, members, nativeRecordRow(record), groupValues{order: record.order, notice: record.base,
+			roam: record.roamCounter, commanded: cell{x: record.commandedX, y: record.commandedY}})
 	}
 	if named(selector, members) {
-		binary.LittleEndian.PutUint32(g.AI[0x48:], 1)
+		setGroupWords(w, &g, members, rowNamed, groupValues{})
 	}
 	var orders []SavedActorOrder
 	for _, i := range members {
@@ -220,41 +219,6 @@ func constructedOrder(e Entity, state uint32) SavedActorOrder {
 		o.State, o.Authored = uint32(e.ActorState), true
 	}
 	return o
-}
-
-// guardSetter is the load-time guard setter with no range argument (AI-450):
-// the guard's programme byte (1, the second game's 18); the members' fine centroid at +0x24 and its cell word at +0x28 and
-// +0x00; the widest Chebyshev distance to that cell at +0x2a, the widest sight
-// at +0x2b and the widest of their sums at +0x2c; +0x2d = +0x38 = +0x2c raised
-// to MinimalGuardRange; +0x39 zero. An empty Group keeps the centroid fields.
-func (w *World) guardSetter(g *SavedGroup, members []int) {
-	g.AI[0x20] = w.game.groupRoute.programme(orderGuard)
-	if n := int64(uint8(len(members))); n > 0 {
-		var sx, sy int64
-		for _, i := range members {
-			sx += int64(w.entities[i].X)*subCell + subCell/2
-			sy += int64(w.entities[i].Y)*subCell + subCell/2
-		}
-		fx, fy := uint16(sx/n), uint16(sy/n)
-		binary.LittleEndian.PutUint32(g.AI[0x24:], uint32(fy)<<16|uint32(fx))
-		centre := cell{x: int32(fx >> 8), y: int32(fy >> 8)}
-		binary.LittleEndian.PutUint16(g.AI[0x28:], uint16(centre.x)|uint16(centre.y)<<8)
-		g.AI[0x2a], g.AI[0x2b], g.AI[0x2c] = groupSpread(w.entities, members, centre)
-	}
-	copy(g.AI[0x00:0x02], g.AI[0x28:0x2a])
-	g.AI[0x2d] = max(g.AI[0x2c], minimalGuardRange)
-	g.AI[0x38], g.AI[0x39] = g.AI[0x2d], 0
-}
-
-// groupSpread is the members' widest Chebyshev distance to centre, widest
-// sight and widest sum of the two, each a byte: the three fields both the
-// guard setter and live Guard store at +0x2a..+0x2c.
-func groupSpread(ents []Entity, members []int, centre cell) (spread, sight, widest uint8) {
-	for _, i := range members {
-		d, s := uint8(cellOf(&ents[i]).chebyshevTo(centre)), ents[i].ScanRange
-		spread, sight, widest = max(spread, d), max(sight, s), max(widest, d+s)
-	}
-	return spread, sight, widest
 }
 
 func (w *World) nativeGroupRecord(owner, group uint32) *groupAI {

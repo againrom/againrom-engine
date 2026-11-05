@@ -52,7 +52,7 @@ func (w *World) refreshSavedGroupActivity() {
 			}
 		}
 		if represented {
-			g.AI[0x45] = count
+			setGroupWords(w, g, nil, rowGate, groupValues{active: count})
 		}
 	}
 }

@@ -131,7 +131,7 @@ func (w *World) finishStructureUse(i int) {
 	binary.LittleEndian.PutUint16(o.Raw[10:], dst)
 	binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
 	if g := w.savedGroupFor(e.ID); g != nil {
-		binary.LittleEndian.PutUint16(g.AI[10:], dst)
+		setGroupWords(w, g, nil, rowCommanded, groupValues{commanded: cellOf(&e)})
 	}
 }
 

@@ -533,7 +533,7 @@ func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 			continue
 		}
 		if len(g.Members) == 0 {
-			g.AI[0x20] = 0xff
+			setGroupWords(w, g, nil, rowOrder, groupValues{order: 0xff})
 		}
 		order := w.savedRoute(g)
 		members, complete := w.savedLiving(g)

@@ -4101,5 +4101,11 @@ var Committed = Baseline{
 	// It rises for the one mod stock reader and its game profiles in
 	// pkg/game/moditems.go, mapload.LayerItemIn, the mod stock scan in
 	// internal/archtest/modstock.go and its tests, and this note.
-	CommentBytes: 10525329,
+	// It rises for the Group words record in pkg/sim/groupwords_test.go and
+	// this note.
+	// It rises for the one Group words setter: its rows and rules in
+	// pkg/sim/groupwords.go, the stance setter's centroid rule in
+	// pkg/sim/group.go, the guard in internal/archtest/groupwords.go and its
+	// test, and this note, net of the writers it replaces.
+	CommentBytes: 10532571,
 }

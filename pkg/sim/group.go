@@ -301,7 +301,7 @@ func (w *World) issueSavedGroupDestination(g *SavedGroup, members []int, ordered
 			e.GroupSpeed = term
 			if g := w.savedGroupFor(e.ID); g != nil {
 				// A formation order writes its Group's rate byte (MOVE-GATE-035).
-				g.AI[0x44] = term
+				setGroupWords(w, g, nil, rowSpeed, groupValues{speed: term})
 			}
 		}
 		tx, ty := w.bounds.clamp(x, y)
@@ -374,14 +374,25 @@ func (w *World) commandGroup(members []int, order uint8, ordered cell) {
 // admits the two readings agree, so nothing measurable here separates them.
 func formationOffset(delta int32) int32 { return int32(int8(int16(delta))) }
 
-// centroidRule names which of the original's two centre bodies groupCentroid
-// runs: the guard issue's sub-cell mean, or live Guard's whole-cell mean.
+// centroidRule names which of the original's centre bodies groupCentroid
+// runs: the guard issue's sub-cell mean, live Guard's whole-cell mean, or the
+// stance setter's fine mean.
 type centroidRule uint8
 
 const (
 	subCellMean centroidRule = iota
 	wholeCells
+	fineSubCells
 )
+
+// centre is the cell a Group's geometry stores for the mean groupCentroid
+// answered under r: the fine mean's whole cells, else each axis's low byte.
+func (r centroidRule) centre(x, y int32) cell {
+	if r == fineSubCells {
+		return cell{x: int32(uint16(x) >> 8), y: int32(uint16(y) >> 8)}
+	}
+	return cell{x: int32(uint8(x)), y: int32(uint8(y))}
+}
 
 // groupCentroid is the group's centre cell, per axis, over the members named.
 //
@@ -412,6 +423,8 @@ const (
 // wholeCells is live Guard's own body instead (AI-739): it sums the members'
 // cell bytes with no half-cell, in 16 bits, and divides by the count's low
 // byte, so the mean is floored. The caller tests that byte for zero first.
+// fineSubCells is the stance setter's (AI-450): the centred sub-cell sum over
+// the count's low byte, kept in sub-cell units as a 16-bit word.
 func groupCentroid(ents []Entity, members []int, rule centroidRule) (int32, int32) {
 	count := len(members)
 	if rule == wholeCells {
@@ -427,6 +440,10 @@ func groupCentroid(ents []Entity, members []int, rule centroidRule) (int32, int3
 	for _, i := range members {
 		sx += int64(ents[i].X)*subCell + subCell/2
 		sy += int64(ents[i].Y)*subCell + subCell/2
+	}
+	if rule == fineSubCells {
+		n := int64(uint8(count))
+		return int32(uint16(sx / n)), int32(uint16(sy / n))
 	}
 	n := int64(count)
 	return int32(floorDiv(floorDiv(sx, n), subCell)), int32(floorDiv(floorDiv(sy, n), subCell))

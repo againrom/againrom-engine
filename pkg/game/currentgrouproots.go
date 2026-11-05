@@ -194,8 +194,7 @@ func appendCurrentActorRoots(state *SnapshotSAVDocument, world *sim.World) error
 				id++
 			}
 			usedIDs[id] = true
-			g := sim.SavedGroup{ID: id, Selector: e.Group}
-			g.AI[0x45] = 1
+			g := sim.RootGroupRecord(id, e.Group)
 			at, sites[s] = len(groups), len(groups)
 			groups = append(groups, group{player: owner, current: g})
 		}

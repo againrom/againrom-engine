@@ -67,10 +67,11 @@ func (w *World) refreshROM2SavedGroupActivity(a *rom2Activity) {
 			active = active || a.groupActive(e.Owner, effectiveGroup(&e))
 		}
 		if represented {
-			g.AI[0x45] = 0
+			gate := uint8(0)
 			if active {
-				g.AI[0x45] = 1
+				gate = 1
 			}
+			setGroupWords(w, g, nil, rowGate, groupValues{active: gate})
 		}
 	}
 }

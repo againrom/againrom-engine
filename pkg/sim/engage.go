@@ -520,11 +520,7 @@ func freezeGroups(ents []Entity) []groupAI {
 				members = append(members, k)
 			}
 		}
-		var cx, cy int32
-		if len(members) > 0 {
-			cx, cy = groupCentroid(ents, members, subCellMean)
-		}
-		out[i].base = noticeBase(ents, members, cx, cy)
+		out[i].base = centroidNotice(ents, members)
 		if out[i].owner == SelfSlot {
 			out[i].order = orderStandGround
 		} else {

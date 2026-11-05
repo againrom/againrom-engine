@@ -153,14 +153,7 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 	if w.hasSavedFormations() {
 		g.OwnerID = container
 	}
-	g.AI[0x20], g.AI[0x45] = order, 1
-	binary.LittleEndian.PutUint16(g.AI[10:], uint16(ordered.x)|uint16(ordered.y)<<8)
-	cx, cy := groupCentroid(w.entities, members, subCellMean)
-	g.AI[0x38] = noticeBase(w.entities, members, cx, cy)
-	if order == orderGuard {
-		// The guard issue installs the working radius beside the base (AI-741).
-		g.AI[0x2d] = g.AI[0x38]
-	}
+	setGroupWords(w, &g, members, commandIssueRow(order), groupValues{order: order, active: 1, commanded: ordered})
 	for _, i := range members {
 		e := &w.entities[i]
 		w.detachSavedMember(e.ID)
@@ -259,7 +252,7 @@ func (w *World) syncSavedDestination(i int) {
 	}
 	binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
 	if g := w.savedGroupFor(e.ID); g != nil && g.Authored && g.AI[0x44] == 0 && e.GroupSpeed != 0 {
-		g.AI[0x44] = e.GroupSpeed
+		setGroupWords(w, g, nil, rowSpeed, groupValues{speed: e.GroupSpeed})
 	}
 }
 
@@ -352,17 +345,11 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 		point := cell{x: in.Args[1], y: in.Args[2]}
 		switch order {
 		case 1, 3:
-			g.AI[0x20] = uint8(order)
+			row := rowOrder
 			if order == 1 {
-				var cx, cy int32
-				if len(members) > 0 {
-					cx, cy = groupCentroid(w.entities, members, subCellMean)
-				}
-				g.AI[0x38] = noticeBase(w.entities, members, cx, cy)
-				// The issue installs the working radius beside the base (AI-741);
-				// no claim names a latch or counter store in it, so both stand.
-				g.AI[0x2d] = g.AI[0x38]
+				row = rowScriptGuard
 			}
+			setGroupWords(w, g, members, row, groupValues{order: uint8(order)})
 			for _, i := range members {
 				w.entities[i].PostX, w.entities[i].PostY = w.entities[i].X, w.entities[i].Y
 				w.syncSavedPost(i)
@@ -371,9 +358,8 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 				w.standScriptedMembers(members)
 			}
 		case 2, 4, 5:
-			g.AI[0x20] = uint8(order)
 			x, y := w.bounds.clamp(point.x, point.y)
-			binary.LittleEndian.PutUint16(g.AI[10:], uint16(x)|uint16(y)<<8)
+			setGroupWords(w, g, members, rowOrderToCell, groupValues{order: uint8(order), commanded: cell{x, y}})
 			if order == 4 || order == 5 {
 				// The move setter writes every member's destination; a member
 				// Stone holds walks once it thaws.
@@ -382,7 +368,7 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 				w.issueSavedGroupDestination(g, on, cell{x, y})
 			}
 		case subCommandPatrol:
-			g.AI[0x20] = 0
+			setGroupWords(w, g, members, rowOrder, groupValues{order: orderNone})
 			w.setSavedPatrol(members, point)
 		}
 	}
@@ -418,7 +404,7 @@ func (w *World) stopSavedGroupMembers(group uint32) []int {
 	var stopped []int
 	for _, g := range groups {
 		members, _ := w.savedLiving(g)
-		g.AI[0x20] = 0
+		setGroupWords(w, g, members, rowOrder, groupValues{order: orderNone})
 		for _, i := range members {
 			w.clearOrder(i)
 			w.retainCycleForState(i)

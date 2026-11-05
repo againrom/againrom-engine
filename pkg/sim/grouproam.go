@@ -1,7 +1,5 @@
 package sim
 
-import "encoding/binary"
-
 const orderRoam uint8 = 17
 
 // AI-GROUPCMD-020 and AI-PATROL-018: command17 runs the stop helper,
@@ -21,7 +19,7 @@ func (w *World) cmdGroupRoam(group uint32) {
 		if first < 0 || !complete {
 			continue
 		}
-		g.AI[0x20] = 0
+		setGroupWords(w, g, members, rowOrder, groupValues{order: orderNone})
 		for _, i := range members {
 			w.stopRoamMember(i)
 			o := w.ensureSavedOrder(i)
@@ -34,9 +32,8 @@ func (w *World) cmdGroupRoam(group uint32) {
 				m.ActorAction = 0
 			}
 		}
-		g.AI[0x20] = orderRoam
 		e := w.entities[first]
-		binary.LittleEndian.PutUint16(g.AI[10:], uint16(e.X)|uint16(e.Y)<<8)
+		setGroupWords(w, g, members, rowOrderToCell, groupValues{order: orderRoam, commanded: cellOf(&e)})
 	}
 }
 
