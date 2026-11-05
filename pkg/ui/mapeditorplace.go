@@ -20,10 +20,12 @@ import (
 // same way.
 
 // placeGrid is the tabs' grid state: its first shown row, and the object
-// brush's, the pictures the host gave, by kind and value, and the choices
-// of the document they were read for with the palette of each.
+// brush's, the block its switch shows, the pictures the host gave, by kind
+// and value, and the choices of the document they were read for with the
+// palette of each.
 type placeGrid struct {
 	top, brushTop int
+	block         int
 	ruined        bool
 	icons         map[string]*image.RGBA
 	doc           *InspectionDocument
@@ -205,24 +207,75 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		}
 		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label})
 	}
-	if len(e.place.groups) > 0 {
-		indices := make(map[int64]int, len(choices))
-		for i, c := range choices {
-			indices[c.Value] = i
-		}
-		for _, group := range e.place.groups {
-			row := popupGridGroup{Block: group.Block, Head: group.Head}
-			for _, value := range group.Values {
-				if n, ok := indices[value]; ok {
-					row.Cells = append(row.Cells, n)
-				}
-			}
-			if len(row.Cells) > 0 {
-				g.Groups = append(g.Groups, row)
-			}
+	groups, blocks := e.placeGroups(choices)
+	if len(blocks) < 2 {
+		g.Groups = groups
+		return g, note, true
+	}
+	shown := blocks[e.placeBlock(blocks)]
+	for _, row := range groups {
+		if row.Block == shown {
+			row.Block = ""
+			g.Groups = append(g.Groups, row)
 		}
 	}
 	return g, note, true
+}
+
+// placeGroups are the grid's groups over choices, each with a cell, and the
+// blocks they fall in, in their order.
+func (e *MapEditor) placeGroups(choices []InspectionChoice) ([]popupGridGroup, []string) {
+	if len(e.place.groups) == 0 {
+		return nil, nil
+	}
+	indices := make(map[int64]int, len(choices))
+	for i, c := range choices {
+		indices[c.Value] = i
+	}
+	var groups []popupGridGroup
+	var blocks []string
+	for _, group := range e.place.groups {
+		row := popupGridGroup{Block: group.Block, Head: group.Head}
+		for _, value := range group.Values {
+			if n, ok := indices[value]; ok {
+				row.Cells = append(row.Cells, n)
+			}
+		}
+		if len(row.Cells) > 0 {
+			groups = append(groups, row)
+			if !slices.Contains(blocks, row.Block) {
+				blocks = append(blocks, row.Block)
+			}
+		}
+	}
+	return groups, blocks
+}
+
+// placeBlock is the index of the block the grid's switch shows among
+// blocks: the one last chosen while the editor runs, the first at the
+// start.
+func (e *MapEditor) placeBlock(blocks []string) int {
+	return max(0, min(e.place.block, len(blocks)-1))
+}
+
+// placeSwitch is the shown grid's switch on popup s: a tab for each block
+// of a grid whose groups fall in two or more, the shown block pressed. The
+// grid then shows that block alone, without its block heading.
+func (e *MapEditor) placeSwitch(s *popupSpec) {
+	if _, blocks := e.placeGroups(e.placeShown()); len(blocks) > 1 {
+		s.Tabs, s.ActiveTab, s.TabSwitch = blocks, e.placeBlock(blocks), true
+	}
+}
+
+// placeSwitchTo is a press on the grid switch's tab n: the grid shows that
+// block from its top.
+func (e *MapEditor) placeSwitchTo(n int) {
+	_, blocks := e.placeGroups(e.placeShown())
+	if len(blocks) < 2 || n < 0 || n >= len(blocks) || n == e.placeBlock(blocks) {
+		return
+	}
+	e.place.block = n
+	*e.placeTop() = 0
 }
 
 // placeGridWheel scrolls the grid by the wheel's rows.
@@ -283,6 +336,16 @@ func (e *MapEditor) PlaceGridCellRect(n int) (image.Rectangle, bool) {
 		}
 	}
 	return image.Rectangle{}, false
+}
+
+// PlaceGridSwitchRect is the window rectangle of tab n of the list popup
+// grid's switch, when the grid has one: a headless driver presses it.
+func (e *MapEditor) PlaceGridSwitchRect(n int) (image.Rectangle, bool) {
+	s, ok := e.listSpec()
+	if !ok || !s.TabSwitch || n < 0 || n >= len(s.Tabs) {
+		return image.Rectangle{}, false
+	}
+	return layoutPopup(s, e.font, e.bodyFont()).Tabs[n], true
 }
 
 // PlaceGridLen is how many cells the shown tab's grid has.

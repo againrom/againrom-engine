@@ -3239,6 +3239,12 @@ package storyguard
 // the dag entry's note in internal/archtest/dag.go, the new tests
 // pkg/mapload/startingherochoice_test.go and
 // pkg/game/startingherochoice_test.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the Units grid's block switch:
+// placeGroups, placeBlock, placeSwitch, placeSwitchTo and
+// PlaceGridSwitchRect in pkg/ui/mapeditorplace.go, the TabSwitch field in
+// pkg/ui/editorpopup.go, the test helpers in
+// pkg/ui/mapeditoridentitygrid_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4454,
 	TestFileCount:  264,
@@ -4146,5 +4152,5 @@ var Committed = Baseline{
 	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
 	// The shared shop state removes the separate state and rules comments.
 	// Whole-basket buying shortens the obsolete prefix-buy comments.
-	CommentBytes: 10552553,
+	CommentBytes: 10553958,
 }

@@ -999,6 +999,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
 			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
+			e.placeSwitch(&s)
 		}
 		if g, rows, ok := e.relationGridSpec(); ok {
 			s.Grid, s.Rows = g, append(s.Rows, rows...)
@@ -2242,6 +2243,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			}
 		}
 		switch part, n := l.hit(p); part {
+		case popupTab:
+			e.placeSwitchTo(n)
 		case popupClose:
 			if e.reportDocked() {
 				e.togglePanel(panelBottom)

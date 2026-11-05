@@ -60,7 +60,7 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 	if !slices.Equal(values, offered) || len(blocks) != 2 {
 		t.Fatal("installed grid loses identities or its two blocks")
 	}
-	for _, block := range []string{"creatures", "people"} {
+	for switched, block := range []string{"creatures", "people"} {
 		members := blocks[x.inspectionUTF8(x.word("editor.unit.groups."+block))]
 		if len(members) == 0 {
 			t.Fatal("installed block is empty", block)
@@ -75,6 +75,8 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 			c := &editorClicker{t: t, now: time.Unix(50, 0)}
 			r, ok := e.BarRect("units")
 			c.click(e, r, ok, "Units")
+			r, ok = e.PlaceGridSwitchRect(switched)
+			c.click(e, r, ok, "block switch")
 			index := -1
 			for _, choice := range step.Choices {
 				if slices.Contains(step.Shut, choice.Value) {

@@ -334,9 +334,12 @@ type popupSpec struct {
 	Columns     int
 	Tabs        []string
 	ActiveTab   int
-	Card        *PanelSubject
-	CardFont    *text.Font
-	CardAside   int
+	// TabSwitch draws the active tab pressed, a switch's chosen state,
+	// instead of focused.
+	TabSwitch bool
+	Card      *PanelSubject
+	CardFont  *text.Font
+	CardAside int
 	// CardScale draws the card that many times its size, 0 and 1 its own;
 	// CardBelow stands the card under the rows, across the row width.
 	CardScale int
@@ -1532,7 +1535,8 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	for i, tab := range l.Tabs {
-		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i, Hover: pointerOK && pointer.In(tab)})
+		chosen := s.TabSwitch && s.ActiveTab == i
+		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i && !s.TabSwitch, Pressed: chosen, Inside: chosen, Hover: pointerOK && pointer.In(tab)})
 	}
 	bodyText := func(r image.Rectangle, s string, c color.RGBA) {
 		if body == nil || s == "" {
