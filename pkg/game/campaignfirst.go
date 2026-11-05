@@ -122,17 +122,7 @@ func (firstCampaignRules) keepsTownActorState() bool { return true }
 
 func (firstCampaignRules) beforeAdvance(*FrontEnd, int, *Mission, ui.NoticeAction) string { return "" }
 
-func (firstCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, string) {
-	return f.FinishMissionWithRoster(n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
-}
-
-func (firstCampaignRules) route(f *FrontEnd, n, successor int) winRoute {
-	return f.CampaignSession.routeAfterWin(f.Campaign.Value(), n, successor)
-}
-
-func (firstCampaignRules) returnToTown(f *FrontEnd, n int) {
-	f.TownScreen().(*townScreen).beginWorldMapReturn(f.Town.guestMission().returnMission(n))
-}
+func (firstCampaignRules) bankWin(*FrontEnd, bool) bool { return false }
 
 func (firstCampaignRules) openMission(*ui.Viewer) {}
 

@@ -73,13 +73,13 @@ func TestSessionAdoptThenClear(t *testing.T) {
 func TestActivateLiveReturnsOnlyAReplacedWorld(t *testing.T) {
 	s := CampaignSession{Town: NewTown(Campaign{})}
 	first, second := &mapWorld{}, &mapWorld{}
-	if out := s.activateLive(firstCampaignRules{}, first, 0, nil); out != nil {
+	if out := s.activateLive(firstCampaignRules{}, first, missionIdentity{}, nil); out != nil {
 		t.Fatalf("first activation replaced %v", out)
 	}
-	if out := s.activateLive(firstCampaignRules{}, first, 0, nil); out != nil {
+	if out := s.activateLive(firstCampaignRules{}, first, missionIdentity{}, nil); out != nil {
 		t.Fatal("re-activating the live map reported it as replaced")
 	}
-	if out := s.activateLive(firstCampaignRules{}, second, 0, nil); out != first || s.live != second {
+	if out := s.activateLive(firstCampaignRules{}, second, missionIdentity{}, nil); out != first || s.live != second {
 		t.Fatalf("replacement returned %v, live %v", out, s.live)
 	}
 	if out := s.endLive(); out != second || s.live != nil || s.liveMission != 0 {

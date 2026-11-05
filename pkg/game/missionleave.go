@@ -36,7 +36,7 @@ func (f *FrontEnd) leaveMission(n int, ms *Mission, action ui.NoticeAction) (ui.
 	if !f.canLeaveMission(n, ms.World) {
 		return ui.NoticeStay, "", nil
 	}
-	if f.Town.guestMission().playing(n) && action != ui.NoticeRestart {
+	if f.missionIdentity(n).guest && action != ui.NoticeRestart {
 		return ui.NoticeStay, "a guest's mission ends in victory or defeat; it cannot be abandoned", nil
 	}
 	screen, ok := f.TownScreen().(*townScreen)

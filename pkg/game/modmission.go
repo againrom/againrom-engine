@@ -28,14 +28,6 @@ import (
 // guest who joins recorded beside it as she ended her mission, and the town's
 // own grant of that companion takes her in that state (DIV-3023, DIV-4001).
 
-// guestMission returns the town's guest; nil for a nil town.
-func (t *Town) guestMission() *guestMission {
-	if t == nil {
-		return nil
-	}
-	return t.guest
-}
-
 // guestMission is the session's record of a chain of mod missions and its
 // guest party.
 type guestMission struct {
@@ -62,11 +54,6 @@ type guestMission struct {
 type guestHero struct {
 	Mage      bool
 	FigureDir string
-}
-
-// playing reports that mission n is the guest's mission, still under way.
-func (g *guestMission) playing(n int) bool {
-	return g != nil && g.stash != nil && g.mission.Number == n
 }
 
 // links are the chain's links from the first through the current one.
@@ -105,15 +92,6 @@ func (g *guestMission) joining(chapter, npc int) (mapload.PartyMember, bool) {
 	m := mapload.CloneParty([]mapload.PartyMember{*g.member})[0]
 	m.StartingHero = false
 	return m, true
-}
-
-// returnMission is the mission whose return the world map shows after mission
-// n: for a link of the guest's chain, the win that started the chain.
-func (g *guestMission) returnMission(n int) int {
-	if g != nil && slices.ContainsFunc(g.links(), func(m mod.Mission) bool { return m.Number == n }) {
-		return g.links()[0].After
-	}
-	return n
 }
 
 // heroParty is the party a link's npc records resolve against: the waiting
@@ -607,67 +585,6 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 	return 0, fmt.Sprintf("mod %q: the waiting party could not be written: %v", m.Mod, err)
 }
 
-// guestEntry is the party and purse the guest's mission n opens with: the
-// guest party alone with the declared purse.
-func (g *guestMission) guestEntry(n int) ([]mapload.PartyMember, uint32, bool) {
-	if !g.playing(n) {
-		return nil, 0, false
-	}
-	return g.party(), uint32(g.mission.Gold), true
-}
-
-// finishGuestMission is the win of the guest's mission n. The guest party
-// comes home through the carry every won mission uses. When a guest mission
-// plays after n, the party opens it with no town between, each member it
-// names again as she ended n. Otherwise the waiting party comes back through
-// the one town LOAD of the stash, which records the guest who joins beside
-// it so the town's grant takes her as she is now; nothing else of the chain
-// carries back.
-func (f *FrontEnd) finishGuestMission(n int, party []mapload.PartyMember,
-	w *sim.World, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember) (int, string) {
-	g := f.Town.guestMission()
-	if refused := f.carryMissionHome(f.townInstall(), n, party, w, ids, roster); refused != "" {
-		return -1, refused
-	}
-	member := g.member
-	joiner, joins := g.joiner()
-	if joins {
-		in := func(p mapload.PartyMember) bool { return p.CompanionNPC == joiner.Guest }
-		if i := slices.IndexFunc(f.Carried, in); i >= 0 {
-			c := mapload.CloneParty([]mapload.PartyMember{f.Carried[i]})[0]
-			member = &c
-		} else if slices.ContainsFunc(g.party(), in) {
-			return -1, fmt.Sprintf("mission %d won - companion %d did not come home", n, joiner.Guest)
-		}
-	}
-	missions := f.Table.Mods.Missions
-	if next, ok := missions.AfterWin(n, mapload.StartingHeroKind(mapload.HeroHold{Party: g.heroParty(f.Carried)})); ok {
-		town, _ := f.townInstall().campaign.NextMission(g.links()[0].After)
-		start, err := f.guestParty(next, town.Mission, g.heroParty(f.Carried), f.Carried)
-		if err != nil {
-			return -1, fmt.Sprintf("mission %d won - mod %q: %v", n, next.Mod, err)
-		}
-		f.Town.guest = &guestMission{mission: next, stash: g.stash, start: start[0], rest: start[1:],
-			member: member, chain: missions.Chain(next), hero: g.hero}
-		return next.Number, fmt.Sprintf("mission %d won - the guest party goes on to mission %d", n, next.Number)
-	}
-	var back *guestMission
-	if member != nil {
-		start := *member
-		if joiner.Number == g.mission.Number {
-			start = g.start
-		}
-		back = &guestMission{mission: joiner, start: start, member: member}
-	}
-	if _, _, err := f.restoreOriginal(g.stash, back); err != nil {
-		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", n, err)
-	}
-	if member == nil {
-		return 0, fmt.Sprintf("mission %d won - the party goes on to the town", n)
-	}
-	return 0, fmt.Sprintf("mission %d won - %s returns; the party goes on to the town", n, member.Name)
-}
-
 // currentGuest is the supplement's record of a guest party: the mod and the
 // link under way, the stash while the chain runs, the party at the link's
 // start (Start and Party), the guest who joins as she ended her link once it
@@ -749,29 +666,4 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 		g.member = &member
 	}
 	return g, nil
-}
-
-// refuseUnmarkedReplaced refuses a save inside mission n, written without a
-// mod mark, while an active mod replaces that mission's map: its world was
-// built from another map. A marked save passed the mod mark, so the mod that
-// replaces the map now replaced it when the save was written.
-func refuseUnmarkedReplaced(saved []byte, n int, mods mapload.ModContext) error {
-	m, ok := mods.Missions.Replacing(n)
-	if !ok || carriesModMark(saved) {
-		return nil
-	}
-	return modMarkRefusal("this save plays mission %d without a mod mark, and mod %q replaces that mission's map; start without that mod to load it", n, m.Mod)
-}
-
-// carriesModMark reports that saved holds a readable mod mark.
-func carriesModMark(saved []byte) bool {
-	if !sav.MayCarryNativeMods(saved) {
-		return false
-	}
-	doc, err := sav.DecodeDocumentData(saved)
-	if err != nil {
-		return false
-	}
-	_, ok, err := readModMark(doc)
-	return ok && err == nil
 }

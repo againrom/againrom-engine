@@ -141,7 +141,7 @@ func secondBagWin(t *testing.T, f *FrontEnd, n int) {
 		t.Fatal("the mission was not won")
 	}
 	ms := &Mission{Number: n, World: won, Party: mw.mission.party, Start: mapload.Start{IDs: mw.mission.ids}}
-	if _, refused := (secondCampaignRules{}).finishWon(f, n, ms); refused != "" {
+	if _, refused := (frontTransitions{f}).finishWon(n, ms); refused != "" {
 		t.Fatal(refused)
 	}
 	if c := f.Town.second; c.current != (partyPlace{}) {

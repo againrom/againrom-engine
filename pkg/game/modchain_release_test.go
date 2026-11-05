@@ -115,7 +115,7 @@ func releaseMissionChainSAV(t *testing.T, dir string) {
 
 	f := chainFront(t, dir, chainModID)
 	app, next := guestRoute(t, f, []int{0, 0, 0})
-	if next != guestMissionNo || f.campaign().route(f, 20, next) != winMission {
+	if next != guestMissionNo || (frontTransitions{f}).route(20, next) != winMission {
 		t.Fatalf("mission 20's win answered %d", next)
 	}
 	gained := chainSecond(t, f, app)

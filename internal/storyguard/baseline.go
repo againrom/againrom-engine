@@ -4107,5 +4107,15 @@ var Committed = Baseline{
 	// pkg/sim/groupwords.go, the stance setter's centroid rule in
 	// pkg/sim/group.go, the guard in internal/archtest/groupwords.go and its
 	// test, and this note, net of the writers it replaces.
-	CommentBytes: 10532571,
+
+	// It rises for the win route record test in
+	// pkg/game/winroute_record_test.go and this note.
+
+	// It rises for the session mission identity in
+	// pkg/game/sessionmission.go, the win finisher's rows in
+	// pkg/game/winfinish.go, the win route guard in
+	// internal/archtest/winroute.go and its tests, the campaign service's
+	// bank set answer in pkg/game/campaignservice.go and
+	// pkg/game/campaignsecond.go, and this note.
+	CommentBytes: 10540696,
 }

@@ -108,13 +108,14 @@ func (s *CampaignSession) endLive() *mapWorld {
 //
 // party is the mission's own slice and not a copy: the running mission writes
 // through it and a save must read what it holds now.
-func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n int, party []mapload.PartyMember) (outgoing *mapWorld) {
+func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, id missionIdentity, party []mapload.PartyMember) (outgoing *mapWorld) {
+	n := id.played
 	outgoing = s.live
 	s.detachProjectileCounter()
 	mapload.NameParty(party)
 	s.bindFameObserver(mw)
 	// A guest's mission is no mission of the waiting town's campaign.
-	if !s.Town.guestMission().playing(n) {
+	if !id.guest {
 		s.Town.activateMission(n)
 	}
 	s.live, s.liveMission, s.liveParty = mw, n, party

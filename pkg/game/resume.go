@@ -97,7 +97,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	fame := cloneFame(f.fame)
 	s.Fame = &fame
 	s.QuickSpells = f.quickSpells
-	s.guest = f.Town.guestMission().clone()
+	s.guest = f.Town.snapshotGuest()
 	snapshotTown(f.Town, &s, f.campaign())
 	if s.CampaignState {
 		s.Campaign.MissionTime = fame.Time
@@ -657,7 +657,7 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 // identities OwnParty did, in place, so nothing downstream sees a different
 // member id.
 func (f *FrontEnd) liveDriver(mw *mapWorld, n int, party []mapload.PartyMember) {
-	releaseWorldAudio(f.runtimeAudio(), f.activateLive(f.campaign(), mw, n, party))
+	releaseWorldAudio(f.runtimeAudio(), f.activateLive(f.campaign(), mw, f.missionIdentity(n), party))
 }
 
 // LiveWorld is the world the open map screen is running, for a developer tool

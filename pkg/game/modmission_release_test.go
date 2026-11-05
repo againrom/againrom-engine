@@ -297,7 +297,7 @@ func TestReleaseModMissionGuestPlaysAndJoins(t *testing.T) {
 	// The guest route without a SAVE in the middle.
 	f := guestFront(t, dir, guestModID)
 	app, next := guestRoute(t, f, []int{0, 0, 0})
-	if next != guestMissionNo || f.Town.guest == nil || len(f.Town.guest.stash) == 0 || f.campaign().route(f, 20, next) != winMission {
+	if next != guestMissionNo || f.Town.guest == nil || len(f.Town.guest.stash) == 0 || (frontTransitions{f}).route(20, next) != winMission {
 		t.Fatalf("mission 20's win answered %d (guest %v)", next, f.Town.guest != nil)
 	}
 	if len(f.Town.guest.stash) > 1<<20 {

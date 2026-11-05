@@ -109,14 +109,8 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	if err != nil {
 		return nil, err
 	}
-	guest, err := restoreGuest(decoded.session, mods)
+	identity, err := restoreMissionIdentity(raw, decoded.mission, decoded.session, mods)
 	if err != nil {
-		return nil, err
-	}
-	if m, ok := mods.Missions.ByNumber(decoded.mission); ok && guest == nil {
-		return nil, fmt.Errorf("this save is mission %d of mod %q and carries no guest record; it cannot be loaded", decoded.mission, m.Mod)
-	}
-	if err := refuseUnmarkedReplaced(raw, decoded.mission, mods); err != nil {
 		return nil, err
 	}
 	n := decoded.mission
@@ -129,7 +123,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		tails: tails, hasTails: hasTails, cellRecords: cellRecords, hasCellRecords: hasCellRecords,
 		spellEffects: spellEffects, hasSpellEffects: hasSpellEffects, projectiles: projectiles,
 		hasProjectiles: hasProjectiles, diaryChars: diaryChars, diaryPlayerRec: diaryPlayerRec,
-		session: session, hasSession: hasSession, guest: guest, fileView: stated.fileView}
+		session: session, hasSession: hasSession, guest: identity.record, fileView: stated.fileView}
 	if n != 0 {
 		src.missionDocument, src.documentOrigins, src.heldDocument = decodeSavedRecord(saved)
 		if err := validateOriginalApplicationSource(src.missionDocument.Document); err != nil {

@@ -67,11 +67,12 @@ type campaignService interface {
 	// state the cull; in both games a town SAVE writes the actor state and
 	// Player colour a LOAD read, else the town constructor's.
 	keepsTownActorState() bool
-	// The four steps of a mission's acknowledged end.
+	// beforeAdvance refuses a mission's acknowledged end before it advances;
+	// what follows a win is the one finisher's (finishWin).
 	beforeAdvance(f *FrontEnd, n int, ms *Mission, action ui.NoticeAction) string
-	finishWon(f *FrontEnd, n int, ms *Mission) (int, string)
-	route(f *FrontEnd, n, successor int) winRoute
-	returnToTown(f *FrontEnd, n int)
+	// bankWin reports whether a win, through the mission seam when seam
+	// holds, takes the finisher's bank row set.
+	bankWin(f *FrontEnd, seam bool) bool
 	// The mission driver's campaign behaviour: the movie a departure picks,
 	// the script message queue, the notice flow and the speaker audience.
 	// The per-mission text, the outcome text and the objectives panel are

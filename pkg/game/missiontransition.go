@@ -108,13 +108,14 @@ func (t frontTransitions) leave(n int, ms *Mission, action ui.NoticeAction) (ui.
 }
 
 func (t frontTransitions) finishWon(n int, ms *Mission) (int, string) {
-	return t.f.campaign().finishWon(t.f, n, ms)
+	return t.f.finishWin(winInput{n: n, party: ms.Party, w: ms.World, ids: ms.Start.IDs, roster: ms.Start.Roster,
+		seam: true, won: t.won(n, ms)})
 }
 
 func (t frontTransitions) route(n, successor int) winRoute {
-	return t.f.campaign().route(t.f, n, successor)
+	return t.f.winRows(true).route(t.f, n, successor)
 }
 
 func (t frontTransitions) opener(n int) ui.MapOpener { return t.f.MissionOpener(n) }
 
-func (t frontTransitions) returnToTown(n int) { t.f.campaign().returnToTown(t.f, n) }
+func (t frontTransitions) returnToTown(n int) { t.f.winRows(true).home(t.f, n) }

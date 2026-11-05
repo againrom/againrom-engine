@@ -129,8 +129,7 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 		return false
 	}
 	return s.carryCompanion(in, npc, func() (mapload.PartyMember, bool) {
-		if member, ok := s.Town.guestMission().joining(chapter, npc); ok {
-			s.Town.guest = nil
+		if member, ok := s.Town.takeGuestJoining(chapter, npc); ok {
 			return member, true
 		}
 		member, ok := townCompanion(in, chapter, npc, s.Carried)

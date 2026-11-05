@@ -249,6 +249,11 @@ func (secondCampaignRules) keepsTownSurface(c *restoreCandidate) bool {
 
 func (secondCampaignRules) keepsTownActorState() bool { return false }
 
+// bankWin holds only for a win through the seam on a town the bank stands for.
+func (secondCampaignRules) bankWin(f *FrontEnd, seam bool) bool {
+	return seam && f.Town != nil && f.Town.second != nil
+}
+
 func (secondCampaignRules) beforeAdvance(f *FrontEnd, n int, ms *Mission, action ui.NoticeAction) string {
 	town, live := f.Town, f.live
 	if town == nil || town.second == nil || live == nil || live.mission == nil {
@@ -263,59 +268,6 @@ func (secondCampaignRules) beforeAdvance(f *FrontEnd, n int, ms *Mission, action
 		}
 	}
 	return ""
-}
-
-func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, string) {
-	town := f.Town
-	if town == nil || town.second == nil {
-		return r.firstCampaignRules.finishWon(f, n, ms)
-	}
-	if err := town.second.finish(n, ms.World, frontTransitions{f}.won(n, ms)); err != nil {
-		return -1, err.Error()
-	}
-	if refused := f.CampaignSession.carryMissionHome(f.townInstall(), n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster); refused != "" {
-		return -1, refused
-	}
-	// The output reads the bank before the case stores (R2-ENGINE-148).
-	output := town.second.complete(ms.World)
-	f.CampaignSession.leftLocation(f.townInstall())
-	if live := f.live; live != nil && live.view != nil {
-		movie := ""
-		if in := f.Archives; in != nil && in.Containers != nil {
-			movie = secondGameCompletionDirectory(in.Containers, InstallTextCode(in.Containers, in.Game().Edition()), output)
-		}
-		live.view.SetCompletionCutscene(movie)
-	}
-	town.won[n] = true
-	f.Offered = 0
-	for _, l := range town.second.available {
-		if l.kind == placeMission {
-			f.Offered = l.id
-			break
-		}
-	}
-	return town.second.enteredWithoutMap(), ""
-}
-
-func (r secondCampaignRules) route(f *FrontEnd, n, successor int) winRoute {
-	if f.Town == nil || f.Town.second == nil {
-		return r.firstCampaignRules.route(f, n, successor)
-	}
-	if successor < 0 {
-		return winStay
-	}
-	if successor > 0 {
-		return winMission
-	}
-	return winTown
-}
-
-func (r secondCampaignRules) returnToTown(f *FrontEnd, n int) {
-	if f.Town == nil || f.Town.second == nil {
-		r.firstCampaignRules.returnToTown(f, n)
-		return
-	}
-	releaseWorldAudio(f.runtimeAudio(), f.endLive())
 }
 
 // openMission leaves the completion movie unset: the departure output

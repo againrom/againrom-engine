@@ -199,12 +199,13 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 		if r.fresh() {
 			seedProjectileCounter(ms.World, mw.files(), ports.projectiles.value())
 		}
-		if r.fresh() && r.town != nil && r.town.progress != nil && !r.town.guestMission().playing(r.n) {
+		if r.fresh() && r.town != nil && r.town.progress != nil && !r.town.missionIdentity(r.n, tableMissions(ports.install.missionTable())).guest {
 			r.town.selectMission(r.n)
 			// The party now stands on the mission's map object (SAV-1331).
 			r.town.progress.firstMapPoint = false
 		}
-		releaseWorldAudio(ports.audio, ports.session.activateLive(ports.rules(), mw, r.n, ms.Party))
+		releaseWorldAudio(ports.audio, ports.session.activateLive(ports.rules(), mw,
+			ports.session.Town.missionIdentity(r.n, tableMissions(ports.install.missionTable())), ms.Party))
 		mw.mission.resumed = r.snap != nil || r.prepare != nil
 	}
 	if r.activate == nil {

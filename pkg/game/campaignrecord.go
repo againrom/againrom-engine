@@ -173,7 +173,7 @@ func (f *FrontEnd) overlayCampaignRecord(record sav.CampaignProjection, s Snapsh
 		record.Children = append(record.Children, child)
 	}
 	// A guest's mission is no mission of the waiting campaign.
-	if o.playedSelected && !s.guest.playing(mission) {
+	if o.playedSelected && !newMissionIdentity(mission, s.guest, tableMissions(f.Table)).guest {
 		record.SelectedMission = uint32(mission)
 	}
 	// Mission 10 carries its successor 20 under AutoGetMission; every other

@@ -54,12 +54,8 @@ func (s installMission) loadPartyBodies(ms *Mission, units *terrain.UnitSet) {
 // one mission two behaviours depending on when it ran.
 func (s installMission) openMissionDriver(ms *Mission, units *terrain.UnitSet, v *ui.Viewer) *mapWorld {
 	mw := openMission(ms, s.in.Table, units, v, s.in.Archives.Containers, s.in.Faces, s.in.NPCFaces)
-	if s.in.Table != nil {
-		_, guest := s.in.Table.Mods.Missions.ByNumber(ms.Number)
-		_, replacement := s.in.Table.Mods.Missions.Replacing(ms.Number)
-		if guest || replacement {
-			mw.usePlayerColours(ms.Map)
-		}
+	if newMissionIdentity(ms.Number, nil, tableMissions(s.in.Table)).modMap() {
+		mw.usePlayerColours(ms.Map)
 	}
 	return mw
 }
