@@ -85,18 +85,18 @@ func StatusBarFill(kind StatusBarKind, width, value, maximum int) (fill int, ok 
 }
 
 // StatusBarRect uses the class selection width when it holds both caps.
-// Vertical placement retains the screenshot-based rule in DIV-1460. The rect
-// is about the stored cell; the caller adds the footprint centre with the body.
+// One-cell bars rise from the fixed row to clear taller boxes. DIV-1460
+// The rect is about the stored cell; the caller adds the footprint centre.
 func StatusBarRect(kind StatusBarKind, col, row, cols, rows int, c *UnitClass) (image.Rectangle, bool) {
 	if kind < HealthBar || kind > ManaBar || markerCellRejected(col, row, cols, rows, CellSize) {
 		return image.Rectangle{}, false
 	}
 	if c != nil && c.Selection.Dx() >= 2*statusBarCap {
 		x0 := col*CellSize + CellSize/2 + c.Selection.Min.X - c.CenterX
-		y0 := row*CellSize - statusBarAbove[kind]
-		if c.TileSize > 1 {
-			y0 = row*CellSize + CellSize/2 + c.Selection.Min.Y - c.CenterY - statusBarOverBox +
-				statusBarAbove[HealthBar] - statusBarAbove[kind]
+		y0 := row*CellSize + CellSize/2 + c.Selection.Min.Y - c.CenterY - statusBarOverBox +
+			statusBarAbove[HealthBar] - statusBarAbove[kind]
+		if c.TileSize <= 1 {
+			y0 = min(y0, row*CellSize-statusBarAbove[kind])
 		}
 		return image.Rect(x0, y0, x0+c.Selection.Dx(), y0+StatusBarHeight), true
 	}

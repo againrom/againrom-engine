@@ -10,7 +10,7 @@ import (
 
 // The installed classes the wide-unit cases below are written from: the
 // dragon's and the troll's canvas centre, TileSize and selection box as
-// units.reg holds them, the human mage's for the one-cell rule, and a one-cell
+// units.reg holds them, the human mage's reference, and a one-cell
 // class whose box is wider than its cell.
 var (
 	sbDragon = &terrain.UnitClass{Width: 160, Height: 160, CenterX: 80, CenterY: 80, TileSize: 3,
@@ -28,9 +28,9 @@ var (
 // a class without valid selection geometry, has a 32 by 4 fallback bar, its top
 // edge 16 rows (health) or 12 rows (mana) above the footprint's top edge.
 // Cell (1,1) on a 4 by 4 map has its footprint at [32,64) x [32,64) and its
-// centre, where a body's class centre lands, at (48,48). A class wider than
-// one cell spans its selection box placed about that centre, health 2 rows
-// above the box's top edge and mana directly under it. The footprint centre is
+// centre, where a body's class centre lands, at (48,48). Health stands 2 rows
+// above the box top; one-cell bars never fall below their fixed rows.
+// Mana stands directly under health. The footprint centre is
 // the caller's term (the viewer's), so every rect here is about the stored
 // cell whatever the unit's side.
 func TestStatusBarRectGeometry(t *testing.T) {
@@ -47,8 +47,8 @@ func TestStatusBarRectGeometry(t *testing.T) {
 	}{
 		{"health over one cell", terrain.HealthBar, 1, 1, nil, image.Rect(32, 16, 64, 20), true},
 		{"mana directly under health", terrain.ManaBar, 1, 1, nil, image.Rect(32, 20, 64, 24), true},
-		{"a one-cell class keeps the cell rule", terrain.HealthBar, 1, 1, sbMage, image.Rect(32, 16, 64, 20), true},
-		{"a one-cell class uses its selection width", terrain.ManaBar, 1, 1, sbLance, image.Rect(24, 20, 72, 24), true},
+		{"the mage keeps its measured rows", terrain.HealthBar, 1, 1, sbMage, image.Rect(32, 16, 64, 20), true},
+		{"the mounted class uses its selection top", terrain.ManaBar, 1, 1, sbLance, image.Rect(24, 12, 72, 16), true},
 		{"the dragon's health spans its box", terrain.HealthBar, 1, 1, sbDragon, image.Rect(0, -2, 96, 2), true},
 		{"the dragon's mana under its health", terrain.ManaBar, 1, 1, sbDragon, image.Rect(0, 2, 96, 6), true},
 		{"the troll's health spans its box", terrain.HealthBar, 1, 1, sbTroll, image.Rect(18, -4, 78, 0), true},
@@ -98,6 +98,43 @@ func TestStatusBarsOfEveryInstalledWideClass(t *testing.T) {
 				t.Errorf("%s, kind %d: StatusBarRect = %v, %v; want %v", tc.name, kind, got, ok, want)
 			}
 		}
+	}
+}
+
+func TestStatusBarsRaiseTallBodiesWithoutLoweringShortBodies(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		class *terrain.UnitClass
+		want  image.Rectangle
+		wide  image.Rectangle
+	}{
+		{"mounted sword and lance", sbLance, image.Rect(24, 8, 72, 12), image.Rect(24, 8, 72, 12)},
+		{"mage unchanged", sbMage, image.Rect(32, 16, 64, 20), image.Rect(32, 16, 64, 20)},
+		{"dragon unchanged", sbDragon, image.Rect(0, -2, 96, 2), image.Rect(0, -2, 96, 2)},
+		{"troll unchanged", sbTroll, image.Rect(18, -4, 78, 0), image.Rect(18, -4, 78, 0)},
+		{"squirrel keeps the fixed row", &terrain.UnitClass{CenterX: 64, CenterY: 58,
+			Selection: image.Rect(48, 48, 80, 90)}, image.Rect(32, 16, 64, 20), image.Rect(32, 36, 64, 40)},
+		{"off-centre body", &terrain.UnitClass{CenterX: 63, CenterY: 76,
+			Selection: image.Rect(48, 48, 80, 90)}, image.Rect(33, 16, 65, 20), image.Rect(33, 18, 65, 22)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, side := range []int{0, 1, 2, 3} {
+				c := *tc.class
+				c.TileSize = side
+				for _, kind := range []terrain.StatusBarKind{terrain.HealthBar, terrain.ManaBar} {
+					want := tc.want
+					if side > 1 {
+						want = tc.wide
+					}
+					if kind == terrain.ManaBar {
+						want = want.Add(image.Pt(0, 4))
+					}
+					if got, ok := terrain.StatusBarRect(kind, 1, 1, 8, 8, &c); !ok || got != want {
+						t.Errorf("side %d kind %d: got %v, %v; want %v, true", side, kind, got, ok, want)
+					}
+				}
+			}
+		})
 	}
 }
 
