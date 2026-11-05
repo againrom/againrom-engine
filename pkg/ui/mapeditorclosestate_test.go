@@ -252,9 +252,6 @@ func TestMapPanelCloseStates(t *testing.T) {
 							e.openPanel()
 						}
 					}
-					if state == "report-open" || state == "line-victory-open" || state == "line-defeat-open" || state == "line-report-open" {
-						want.mode.report = reportState{}
-					}
 					if control == "close-list" {
 						want = mapPanelCloseStateOf(e)
 					}

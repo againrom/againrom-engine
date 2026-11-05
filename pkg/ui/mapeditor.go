@@ -224,6 +224,9 @@ type MapEditor struct {
 	pathDialog                  editorPathDialog
 	selected                    int
 	filter                      int
+	barSets                     map[string]barWindowSet
+	barOwner                    string
+	barRecords                  barRecordKeys
 	editorMode                  // the window's mode: catalogue, prompt, pick, brush and report
 	message                     string
 	down, moved                 bool
@@ -314,11 +317,18 @@ func (e *MapEditor) openMap(source string) error {
 	}
 	next.Viewer.editorView = true
 	e.doc = next
+	e.barSets, e.barOwner = nil, ""
+	e.barRecords = barRecordKeys{}
+	e.barRecordKey(RecordRef{})
 	e.saveStatus = saveNotice{}
 	e.cancelRestore = nil
 	e.listRestore = nil
 	e.Layout(e.window.X, e.window.Y)
-	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt | leavePanel)
+	x := leaveDrag | leavePick | leaveReport | leaveCatalog | leavePrompt | leavePanel | leaveObject
+	if e.brush.mode == brushObjects {
+		x |= leaveBrush
+	}
+	e.leave(x)
 	e.selected, e.filter, e.listShown = -1, 0, false
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
 	e.objectBack = nil

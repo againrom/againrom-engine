@@ -54,9 +54,8 @@ func pressF4(t *testing.T, e *ui.MapEditor) {
 	}
 }
 
-// freshTriggerShown checks that the newest trigger's wizard is the one
-// window open, its name field focused with the whole name selected.
-func freshTriggerShown(t *testing.T, e *ui.MapEditor, triggers int) {
+// freshTriggerShown checks the wizard, its palette and selected name.
+func freshTriggerShown(t *testing.T, e *ui.MapEditor, triggers int, palette bool) {
 	t.Helper()
 	sc := wizScript(t, e.Document().SourceBytes)
 	if len(sc.Triggers) != triggers {
@@ -65,8 +64,12 @@ func freshTriggerShown(t *testing.T, e *ui.MapEditor, triggers int) {
 	if !e.WizardShown() {
 		t.Fatalf("the new trigger's wizard is not shown:\n%s", trigLines(e))
 	}
-	if w := e.OpenWindows(); !slices.Equal(w, []string{"object"}) {
-		t.Fatalf("windows open %q, want the wizard alone", w)
+	want := []string{"object"}
+	if palette {
+		want = append(want, "list")
+	}
+	if w := e.OpenWindows(); !slices.Equal(w, want) {
+		t.Fatalf("windows open %q, want %q", w, want)
 	}
 	name := string(sc.Triggers[len(sc.Triggers)-1].Name)
 	if field, from, to := e.FieldFocus(); field != wizField(t, e, "name") || from != 0 || to != len([]rune(name)) {
@@ -77,7 +80,7 @@ func freshTriggerShown(t *testing.T, e *ui.MapEditor, triggers int) {
 // Typing replaces the selected name and Apply writes it; one undo takes the
 // named trigger out and one redo puts it back. Cancel leaves the trigger in
 // the map; one undo takes it out and one redo puts it back. The palette
-// stays closed when the wizard closes. EN and RU.
+// stays open when the wizard closes. EN and RU.
 func TestMapEditorOneClickTriggerUndoesInOneStep(t *testing.T) {
 	b := scriptAddMap(t)
 	triggers := len(wizScript(t, b).Triggers)
@@ -92,8 +95,8 @@ func TestMapEditorOneClickTriggerUndoesInOneStep(t *testing.T) {
 			if len(sc.Triggers) != triggers+1 || string(sc.Triggers[triggers].Name) != "Gate" || !e.Dirty() {
 				t.Fatalf("Apply wrote %d triggers, the last %q, dirty %v", len(sc.Triggers), sc.Triggers[len(sc.Triggers)-1].Name, e.Dirty())
 			}
-			if w := e.OpenWindows(); slices.Contains(w, "list") {
-				t.Fatalf("Apply reopened the palette: %q", w)
+			if w := e.OpenWindows(); !slices.Contains(w, "list") {
+				t.Fatalf("Apply closed the palette: %q", w)
 			}
 			step := func(key string, want []byte) {
 				t.Helper()
@@ -112,7 +115,7 @@ func TestMapEditorOneClickTriggerUndoesInOneStep(t *testing.T) {
 			added := slices.Clone(c.Document().SourceBytes)
 			r, ok := c.PopupButtonRect(1)
 			trigClick(t, c, r, ok, "Cancel")
-			if len(c.OpenWindows()) != 0 || !bytes.Equal(c.Document().SourceBytes, added) {
+			if !slices.Equal(c.OpenWindows(), []string{"list"}) || !bytes.Equal(c.Document().SourceBytes, added) {
 				t.Fatalf("Cancel left windows %q, the trigger kept %v", c.OpenWindows(), bytes.Equal(c.Document().SourceBytes, added))
 			}
 			e = c
@@ -135,7 +138,7 @@ func TestMapEditorNewTriggerKeyWorksFromTheMap(t *testing.T) {
 				t.Fatalf("the map view shows %q", w)
 			}
 			pressF4(t, e)
-			freshTriggerShown(t, e, triggers+1)
+			freshTriggerShown(t, e, triggers+1, false)
 			click, _, _ := scriptAddEditor(t, l, b)
 			newTriggerClick(t, click)
 			if !bytes.Equal(e.Document().SourceBytes, click.Document().SourceBytes) {
@@ -148,7 +151,7 @@ func TestMapEditorNewTriggerKeyWorksFromTheMap(t *testing.T) {
 				t.Fatal("the Map panel did not open with the map")
 			}
 			pressF4(t, p)
-			freshTriggerShown(t, p, triggers+1)
+			freshTriggerShown(t, p, triggers+1, false)
 			if p.PanelOpen() {
 				t.Fatal("the Map panel stays open over the new trigger's wizard")
 			}

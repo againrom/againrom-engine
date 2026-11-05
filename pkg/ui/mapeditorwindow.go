@@ -545,6 +545,9 @@ func (e *MapEditor) barAct(key string) {
 		e.closeBarWindow()
 		return
 	}
+	e.closeBarWindow()
+	set, remembered := e.barSets[key]
+	delete(e.barSets, key)
 	switch key {
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
@@ -554,6 +557,9 @@ func (e *MapEditor) barAct(key string) {
 		if c, ok := categoryByKey(key); ok {
 			e.showRecords(c.filter)
 		}
+	}
+	if remembered {
+		e.restoreBarWindows(set)
 	}
 }
 
@@ -645,11 +651,21 @@ func (e *MapEditor) openPalette(c editorCategory) {
 
 // openRecords opens the list popup on the records filter shows.
 func (e *MapEditor) openRecords(filter int) {
-	e.closeBarWindow()
+	c, category := categoryOf(filter)
+	same := category && e.barWindow() == c.key
+	if !same {
+		e.closeBarWindow()
+	}
 	e.rememberListCancel("records")
-	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
+	if !same {
+		e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
+	}
 	e.message = ""
 	e.filter, e.listShown = filter, true
+	if category {
+		e.barOwner = c.key
+		delete(e.barSets, c.key)
+	}
 }
 
 // chooseFirstOf selects the first player record when the Players entry
@@ -693,6 +709,7 @@ func (e *MapEditor) closeList() {
 	default:
 		e.leave(leaveRecords)
 	}
+	e.releaseBarWindow()
 }
 
 // listKind is what the list popup shows: the map picker, the report or
@@ -703,7 +720,7 @@ func (e *MapEditor) listKind() string {
 		return "catalog"
 	case e.report.open:
 		return "report"
-	case e.brushActive():
+	case e.brushActive() || e.prompt.kind == promptAdd && e.prompt.add != nil && e.prompt.add.brush && e.brush.mode == brushObjects:
 		return "brush"
 	case e.listShown && e.doc != nil:
 		return "records"
@@ -1236,10 +1253,10 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if e.modWindow && !e.prompt.open() && !e.catalog {
 		return e.modSpec()
 	}
-	if e.messagePage != 0 && !e.catalog && !e.objectHidden && (e.pick == pickNone || e.speakerPicking()) && e.prompt.kind != promptAdd {
+	if e.messagePage != 0 && (!e.objectBlocked() || !e.catalog && !e.objectHidden && e.speakerPicking()) {
 		return e.messageSpec()
 	}
-	if v, ok := e.scriptVariableRow(e.selected); ok && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
+	if v, ok := e.scriptVariableRow(e.selected); ok && !e.objectBlocked() {
 		s, links, ok := e.variableSpec(v)
 		e.objectBackButton(&s)
 		return s, links, ok
@@ -1252,9 +1269,8 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if s, ok := e.selectionSpec(); ok {
 		return s, nil, true
 	}
-	// A cell pick moves the object popup aside: the pick is a click on the map.
-	// The Add window stands in its place until it closes.
-	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected < 0 || e.selected >= len(e.doc.Records) {
+	// A record's cell pick moves its popup aside for the map click.
+	if e.doc == nil || e.objectBlocked() || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
 	// The record's own window and a script record's window stand in the

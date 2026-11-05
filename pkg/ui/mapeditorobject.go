@@ -959,6 +959,7 @@ func (e *MapEditor) closeObject() {
 	e.objectBack = nil
 	e.selection.hidden = true
 	e.panels.detached = ""
+	e.releaseBarWindow()
 }
 
 // followReference frames reference n and, when it names one record's cell,
@@ -1050,7 +1051,7 @@ func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
 // groupSpec is the chosen group's popup: a row per member that opens it.
 func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	g := e.groupSel
-	if !g.set || e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected >= 0 {
+	if !g.set || e.doc == nil || e.objectBlocked() || e.selected >= 0 {
 		return popupSpec{}, nil, false
 	}
 	e.loadObject()

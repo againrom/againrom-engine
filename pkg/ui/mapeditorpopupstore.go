@@ -177,6 +177,17 @@ func (e *MapEditor) floatPlace(id editorPopupID, r image.Rectangle) {
 	e.places[id] = popupStanding{at: r.Min, placed: true, size: r.Size(), minWide: 1, slack: true}
 }
 
+func (e *MapEditor) restoreBarPlaces(places [popCount]popupStanding) {
+	for _, id := range []editorPopupID{popList, popObject, popPrompt, popProps} {
+		e.places[id] = places[id]
+	}
+	e.places[popList].key = e.windowKey(popList, "")
+	e.places[popPrompt].key = e.windowKey(popPrompt, "")
+	if s, _, ok := e.objectSpecBase(); ok {
+		e.places[e.storeRow(popObject)].key = s.Title
+	}
+}
+
 // floatRect is the corner and size popup id's window was given.
 func (e *MapEditor) floatRect(id editorPopupID) image.Rectangle {
 	p := e.places[id]

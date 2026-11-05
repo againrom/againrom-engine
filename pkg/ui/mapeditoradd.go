@@ -220,7 +220,11 @@ func (e *MapEditor) openAddRun(run *addRun) {
 	}
 	e.rememberCancel()
 	restore := e.cancelRestore
-	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
+	x := leaveDrag | leavePick | leavePrompt
+	if e.barWindow() != "objects" && e.barWindow() != "trees" {
+		x |= leaveBrush
+	}
+	e.leave(x)
 	e.cancelRestore = restore
 	e.openPrompt(editorPrompt{kind: promptAdd, add: run})
 	e.enterAddStep(0, 1)

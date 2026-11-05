@@ -302,8 +302,8 @@ func editorCommandRows() []editorCommand {
 }
 
 // adopted takes the document a host operation returned.
-func (e *MapEditor) adopted(next *InspectionDocument, ref *RecordRef) (editorChange, error) {
-	_ = e.adoptEdit(next, nil)
+func (e *MapEditor) adopted(next *InspectionDocument, ref *RecordRef, removed ...RecordRef) (editorChange, error) {
+	_ = e.adoptEdit(next, nil, removed...)
 	return editorChange{doc: next, record: ref}, nil
 }
 
@@ -499,7 +499,7 @@ func (e *MapEditor) commandDelete(ref RecordRef) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
-	ch, err := e.adopted(next, &ref)
+	ch, err := e.adopted(next, &ref, ref)
 	ch.removed = true
 	if next != nil && kept != nil {
 		e.followLoot(*kept, ref)
@@ -672,7 +672,12 @@ func (e *MapEditor) commandHistory(redo bool) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
+	e.barRecords.history = -1
+	if redo {
+		e.barRecords.history = 1
+	}
 	ch, _ := e.adopted(next, nil)
+	e.barRecords.history = 0
 	e.refreshMessagePage()
 	return ch, nil
 }

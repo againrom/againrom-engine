@@ -83,7 +83,7 @@ func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 			r, placing := e.addRunning()
 			e.leave(leavePick | leavePrompt)
 			e.message = ""
-			if placing && r.brush {
+			if placing && r.brush && e.brush.mode != brushObjects {
 				e.objectBrush(false)
 			}
 		}

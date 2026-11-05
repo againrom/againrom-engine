@@ -126,7 +126,7 @@ func TestMapEditorScenarioNewTriggerButtonAddsInOneClick(t *testing.T) {
 			if got := sumOf(e.Document().SourceBytes); got != scenarioTriggerAddSum {
 				t.Fatalf("the button wrote %s, the Add window wrote %s", got, scenarioTriggerAddSum)
 			}
-			freshTriggerShown(t, e, triggers+1)
+			freshTriggerShown(t, e, triggers+1, true)
 			if _, _, open := e.AddStep(); open {
 				t.Fatal("the button opened an Add window")
 			}
@@ -206,10 +206,52 @@ func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
 		if _, _, open := e.AddStep(); open {
 			t.Fatalf("%s: the wizard's New opened the Add window", l.name)
 		}
-		freshTriggerShown(t, e, triggers+1)
+		freshTriggerShown(t, e, triggers+1, true)
 		pressF4(t, e)
 		if _, _, open := e.AddStep(); open {
 			t.Fatalf("%s: F4 opened the Add window", l.name)
+		}
+	}
+}
+
+func TestMapEditorScenarioWindowsReturnAfterSwitch(t *testing.T) {
+	b := scriptAddMap(t)
+	for _, l := range scriptAddLangs {
+		for _, key := range []string{"newtrigger", "newvariable"} {
+			t.Run(l.name+"/"+key, func(t *testing.T) {
+				e, _, _ := scriptAddEditor(t, l, b)
+				scenarioButtonClick(t, e, key)
+				before := slices.Clone(e.Document().SourceBytes)
+				e.TextInput("discard me")
+				r, ok := e.BarRect("units")
+				trigClick(t, e, r, ok, "Units")
+				r, ok = e.BarRect("scripts")
+				trigClick(t, e, r, ok, "Scenario")
+				if !bytes.Equal(e.Document().SourceBytes, before) || len(e.ListLines()) == 0 || strings.Contains(trigLines(e), "discard me") {
+					t.Fatal("return lost the palette, kept a draft or wrote the map")
+				}
+				if key == "newtrigger" {
+					if !e.WizardShown() {
+						t.Fatal("the trigger wizard did not return")
+					}
+				} else {
+					if step, _, ok := e.AddStep(); !ok || step != "label" {
+						t.Fatal("the variable label window did not return")
+					}
+					_ = e.Key("selectall")
+					e.TextInput("Gold")
+					if err := e.Key("enter"); err != nil {
+						t.Fatal(err)
+					}
+					found := false
+					for _, label := range e.Document().Script.Labels {
+						found = found || label == "Gold"
+					}
+					if !found {
+						t.Fatal("the returned label window did not edit its variable")
+					}
+				}
+			})
 		}
 	}
 }

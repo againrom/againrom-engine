@@ -168,6 +168,27 @@ func (e *MapEditor) checker() (InspectionChecker, bool) {
 	return c, ok
 }
 
+func (e *MapEditor) refreshBarReport() {
+	if e.barOwner == "" {
+		e.closeReport()
+		return
+	}
+	if !e.report.open {
+		return
+	}
+	selected := e.report.sel
+	if len(e.report.goals) > 0 {
+		if host, ok := e.script(); ok {
+			e.openGoals(host, selected, false)
+		}
+	} else if host, ok := e.checker(); ok && e.checkShown() {
+		rows := host.Report()
+		errs, warnings := CountFindings(rows)
+		e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
+	}
+	e.report.sel = max(0, min(selected, len(e.report.rows)-1))
+}
+
 // afterSave shows the warnings of the map just saved.
 func (e *MapEditor) afterSave() {
 	c, ok := e.checker()

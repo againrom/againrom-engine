@@ -241,9 +241,7 @@ func (e *MapEditor) placeGridWheel(l popupLayout, rows int) {
 
 // placeChoose is a press on grid cell n: it opens the Add window on that
 // choice's settings, with the cell pick armed, to place copies of it. A
-// press on the chosen cell ends the placing. A press in the object brush
-// leaves the brush, as every Add does, and shows no records list while
-// the copies are placed; Esc goes back to the brush.
+// press on the chosen cell ends the placing. Its palette stays open.
 func (e *MapEditor) placeChoose(n int) {
 	kind, key, _, ok := e.placeGridOf()
 	choices := e.placeShown()
@@ -261,7 +259,7 @@ func (e *MapEditor) placeChoose(n int) {
 		return
 	}
 	if fromBrush {
-		e.listShown, r.brush = false, true
+		r.brush = true
 	}
 	r.repeat = true
 	e.prompt.path = strconv.FormatInt(choices[n].Value, 10)

@@ -16,7 +16,16 @@ func sackField(r InspectionRecord, f InspectionField) bool {
 }
 
 // linkedRecord is the document index of the record ref names, -1 for none.
-func (e *MapEditor) linkedRecord(ref RecordRef) int {
+func (e *MapEditor) linkedRecord(ref RecordRef, identity ...uint64) int {
+	if len(identity) > 0 && identity[0] != 0 {
+		ref = RecordRef{}
+		for current, key := range e.barRecords.current {
+			if key == identity[0] {
+				ref = current
+				break
+			}
+		}
+	}
 	if ref.Kind == "" || e.doc == nil {
 		return -1
 	}
@@ -35,6 +44,7 @@ type objectPlace struct {
 	hidden     bool
 	details    int // the trigger details view shown, as triggerDetails
 	section    int // the person window's tab shown
+	identity   uint64
 }
 
 func objectParameter(t uint32) bool {
@@ -129,11 +139,8 @@ func (e *MapEditor) backObject() {
 		e.chooseGroup(p.group, true)
 		e.refreshGroup()
 	} else {
-		for i, r := range e.doc.Records {
-			if r.Kind == p.kind && r.Index == p.index {
-				e.Select(i, false)
-				break
-			}
+		if i := e.linkedRecord(RecordRef{Kind: p.kind, Index: p.index}, p.identity); i >= 0 {
+			e.Select(i, false)
 		}
 	}
 	e.objectBack, e.objectTop, e.triggerDetails = back, p.top, p.details

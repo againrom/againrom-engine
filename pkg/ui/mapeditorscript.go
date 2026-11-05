@@ -41,7 +41,7 @@ func (e *MapEditor) scriptKey(key string) {
 	e.openGoals(s, 0)
 }
 
-func (e *MapEditor) openGoals(s InspectionScript, sel int) {
+func (e *MapEditor) openGoals(s InspectionScript, sel int, follow ...bool) {
 	goals := s.Goals()
 	if drops, ok := s.(interface{ DropGoals() []InspectionGoal }); ok {
 		goals = append(goals, drops.DropGoals()...)
@@ -51,7 +51,7 @@ func (e *MapEditor) openGoals(s InspectionScript, sel int) {
 		rows[i] = InspectionFinding{Rule: g.Arm, Kind: g.Kind, Index: g.Index, Cell: g.Cell, HasCell: g.HasCell, Text: g.Text}
 	}
 	e.openReport(rows, fmt.Sprintf(e.word("editor.arms.count"), len(goals)), goals)
-	if len(goals) > 0 {
+	if len(goals) > 0 && (len(follow) == 0 || follow[0]) {
 		e.selectFinding(max(0, min(sel, len(goals)-1)))
 	}
 }

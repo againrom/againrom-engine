@@ -29,14 +29,13 @@ func (e *MapEditor) keyRecords(key string) error {
 		return nil
 	}
 	if key == "structure" {
-		e.leave(leaveReport)
 		e.openAdd(KindStructure)
 		return nil
 	}
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
 		return nil
 	}
-	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush | leaveReport)
+	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
 	kind, index := e.selectedRecord()
 	if key == "stock" {
 		if kind != KindUnit {

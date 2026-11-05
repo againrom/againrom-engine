@@ -569,7 +569,7 @@ func (e *MapEditor) PromptListRowRect(n int) (image.Rectangle, bool) {
 // holds and the group buttons and Delete. A chosen group's popup stands
 // instead.
 func (e *MapEditor) selectionSpec() (popupSpec, bool) {
-	if !e.selectionShown() || e.selection.hidden || e.groupSel.set || e.pick != pickNone || e.prompt.kind == promptAdd || e.messagePage != 0 {
+	if !e.selectionWindow() || e.pick != pickNone && !e.addPicking() || e.messagePage != 0 {
 		return popupSpec{}, false
 	}
 	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
@@ -610,6 +610,10 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		s.Width = max(s.Width, len(s.Buttons)*s.ButtonW+(len(s.Buttons)+1)*popupPad)
 	}
 	return s, true
+}
+
+func (e *MapEditor) selectionWindow() bool {
+	return e.selectionShown() && !e.selection.hidden && !e.groupSel.set
 }
 
 // selectionPress is a press on the selection's popup.

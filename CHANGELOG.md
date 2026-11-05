@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Switching tools on the map editor's top bar puts away the windows of the tool you leave and brings them back when you return.
 - [BASE] In the map editor the Units grid shows creatures and people in two blocks, a row per creature type with each variant in its own colours, and people grouped as NPC, others, heroes and PC.
 - [BASE] In the map editor the Scenario palette's New trigger and New variable buttons add the record in one click; the old Add window for script records, and the palette's Add button, are gone.
 - [BASE] In the map editor each top bar window button opens its windows and stays pressed; a second click closes them, and choosing another button closes the previous windows.

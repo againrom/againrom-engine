@@ -1,5 +1,7 @@
 package ui
 
+import "slices"
+
 // The map editor window's modes are held in one value, editorMode. Its layers
 // are the ones an author can have at once: the catalogue instead of the record
 // list, a text prompt, an armed pick, a brush, and the report or script panel.
@@ -187,6 +189,7 @@ func (e *MapEditor) barWindow() string {
 		if c, ok := categoryOf(e.filter); ok && e.listShown {
 			return c.key
 		}
+		return e.barOwner
 	case "brush":
 		if e.brush.mode == brushObjects {
 			if e.brush.forest.trees || e.brush.forest.on {
@@ -195,6 +198,11 @@ func (e *MapEditor) barWindow() string {
 			return "objects"
 		}
 	case "":
+		if !e.objectHidden && (e.selected != -1 || e.groupSel.set || e.messagePage != 0) || e.selectionWindow() || e.prompt.kind == promptAdd {
+			if e.barOwner != "" {
+				return e.barOwner
+			}
+		}
 		if !e.objectHidden && e.selectedTrigger() >= 0 {
 			return "scripts"
 		}
@@ -203,20 +211,47 @@ func (e *MapEditor) barWindow() string {
 }
 
 func (e *MapEditor) closeBarWindow() {
-	if e.barWindow() == "" {
+	key := e.barWindow()
+	if key == "" {
 		return
 	}
+	if e.barSets == nil {
+		e.barSets = map[string]barWindowSet{}
+	}
+	e.barSets[key] = e.barWindowSet()
 	e.closeList()
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveReport | leaveCatalog | leaveBrush | leavePanel | leaveObject | leaveRecords)
 	e.listRestore = nil
+	e.barOwner = ""
 	e.message = ""
+}
+
+func (e *MapEditor) releaseBarWindow() {
+	if e.barWindow() == "" {
+		e.barOwner = ""
+	}
 }
 
 func (e *MapEditor) restoreMode(mode editorMode) { e.editorMode = mode }
 
+func (e *MapEditor) restoreBarBrush(brush brushState) { e.brush = brush }
+
+func (e *MapEditor) barReportCopy() reportState {
+	r := e.report
+	r.goals = slices.Clone(r.goals)
+	r.rows = slices.Clone(r.rows)
+	r.copies = slices.Clone(r.copies)
+	r.confirm = nil
+	return r
+}
+
 // openPanel shows the Map panel in the list popup.
 func (e *MapEditor) openPanel() {
-	e.closeBarWindow()
+	if e.barWindow() != "panel" {
+		e.closeBarWindow()
+	}
+	e.barOwner = "panel"
+	delete(e.barSets, "panel")
 	e.rememberListCancel("panel")
 	e.leave(leaveCatalog | leaveReport | leaveBrush)
 	e.panel = true
@@ -275,6 +310,7 @@ func (e *MapEditor) toggleBrush(mode brushMode) {
 // restored when the panel closes. goals is set while the rows are the script
 // panel's arms.
 func (e *MapEditor) openReport(rows []InspectionFinding, note string, goals []InspectionGoal) {
+	e.barOwner = e.barWindow()
 	e.rememberListCancel("report")
 	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
 	e.report.goals = goals
@@ -294,6 +330,7 @@ func (e *MapEditor) closeReport() {
 	}
 	e.report = reportState{}
 	e.resetList(0)
+	e.releaseBarWindow()
 }
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a
@@ -304,3 +341,7 @@ func (m *editorMode) blocksCanvas() bool {
 
 // addPicking reports that the Add window waits for a cell click on the map.
 func (m *editorMode) addPicking() bool { return m.prompt.kind == promptAdd && m.pick == pickAddCell }
+
+func (e *MapEditor) objectBlocked() bool {
+	return e.catalog || e.objectHidden || e.pick != pickNone && !e.addPicking()
+}
