@@ -38,6 +38,10 @@ func TestMapEditorBarLayout(t *testing.T) {
 			t.Fatal("owner item 1: Map is disabled with a panel host")
 		}
 		chromeClick(e, barPoint(t, e, "panel"))
+		if e.listKind() != "" {
+			t.Fatal("Map did not close the initially open Map panel")
+		}
+		chromeClick(e, barPoint(t, e, "panel"))
 		if e.listKind() != "panel" {
 			t.Fatal("owner item 1: Map did not open the existing Map panel")
 		}
@@ -150,7 +154,11 @@ func TestMapEditorHeldButtonLook(t *testing.T) {
 			if kind == "menu" && !e.view.grid {
 				t.Fatal("the menu action did not run on press")
 			}
-			if look(true, image.Pt(-1, -1)) || !look(true, at) || look(false, at) {
+			if kind == "bar" {
+				if !look(true, image.Pt(-1, -1)) || !look(true, at) || !look(false, at) {
+					t.Fatal("open bar entry lost its persistent pressed look")
+				}
+			} else if look(true, image.Pt(-1, -1)) || !look(true, at) || look(false, at) {
 				t.Fatal("owner item 2: pressed look does not follow inside and release")
 			}
 		})

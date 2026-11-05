@@ -581,9 +581,10 @@ func (e *MapEditor) objectBrush(forest bool) {
 		return
 	}
 	if e.brush.mode == brushObjects && e.brush.forest.on == forest && e.brush.forest.trees == forest {
-		e.toggleBrush(brushObjects)
+		e.closeBarWindow()
 		return
 	}
+	e.closeBarWindow()
 	e.chooseBrush(brushObjects)
 	if e.brush.forest.trees != forest {
 		e.brush.sel[brushObjects] = 0

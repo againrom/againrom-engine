@@ -107,7 +107,14 @@ func TestScenarioClickClosesTheOpenTrigger(t *testing.T) {
 			_ = e.Key("scripts")
 		}
 		e.treeSpec()
-		scenarioOpensNothing(t, e, route)
+		if route == "bar" {
+			assertBarWindowsClosed(t, e)
+			if e.Selected() != 2 {
+				t.Fatal("closing the trigger window changed its selection")
+			}
+		} else {
+			scenarioOpensNothing(t, e, route)
+		}
 		if route == "branch" {
 			clickTreeRow(t, e, e.TreeBranchRow("scripts"))
 			e.treeSpec()

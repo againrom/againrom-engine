@@ -119,7 +119,7 @@ func (m *editorMode) free() bool {
 func (m *editorMode) listView() bool { return !m.catalog && !m.report.open }
 
 // exits names the layers one change of mode leaves.
-type exits uint8
+type exits uint16
 
 const (
 	leaveDrag    exits = 1 << iota // a record drag in progress
@@ -129,6 +129,8 @@ const (
 	leaveCatalog                   // the catalogue
 	leaveBrush                     // the brush mode and its stroke
 	leavePanel                     // the Map panel
+	leaveObject
+	leaveRecords
 )
 
 // leave clears what the named layers own, the list's fractional wheel
@@ -158,13 +160,63 @@ func (e *MapEditor) leave(x exits) {
 	if x&leavePanel != 0 {
 		e.panel = false
 	}
+	if x&leaveObject != 0 {
+		e.obj.doc = nil
+		e.closeObject()
+	}
+	if x&leaveRecords != 0 {
+		e.listShown, e.filter = false, 0
+	}
+}
+
+func (e *MapEditor) barWindow() string {
+	if run, ok := e.addRunning(); ok && run.brush {
+		return "objects"
+	}
+	switch e.listKind() {
+	case "panel":
+		return "panel"
+	case "records":
+		if c, ok := categoryOf(e.filter); ok {
+			return c.key
+		}
+	case "report":
+		if e.panel {
+			return "panel"
+		}
+		if c, ok := categoryOf(e.filter); ok && e.listShown {
+			return c.key
+		}
+	case "brush":
+		if e.brush.mode == brushObjects {
+			if e.brush.forest.trees || e.brush.forest.on {
+				return "trees"
+			}
+			return "objects"
+		}
+	case "":
+		if !e.objectHidden && e.selectedTrigger() >= 0 {
+			return "scripts"
+		}
+	}
+	return ""
+}
+
+func (e *MapEditor) closeBarWindow() {
+	if e.barWindow() == "" {
+		return
+	}
+	e.closeList()
+	e.leave(leaveDrag | leavePick | leavePrompt | leaveReport | leaveCatalog | leaveBrush | leavePanel | leaveObject | leaveRecords)
+	e.listRestore = nil
+	e.message = ""
 }
 
 func (e *MapEditor) restoreMode(mode editorMode) { e.editorMode = mode }
 
-// openPanel shows the Map panel in the list popup: the records list it
-// stands under closes.
+// openPanel shows the Map panel in the list popup.
 func (e *MapEditor) openPanel() {
+	e.closeBarWindow()
 	e.rememberListCancel("panel")
 	e.leave(leaveCatalog | leaveReport | leaveBrush)
 	e.panel = true

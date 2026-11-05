@@ -19,13 +19,11 @@ func (e *MapEditor) keyPlayers(string) error {
 	if e.doc == nil {
 		return nil
 	}
-	wasPlayers := e.listView() && !e.brushActive() && e.filter == editorPlayersFilter
-	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
-	e.message = ""
-	e.filter, e.listShown = 0, !wasPlayers
-	if !wasPlayers {
-		e.filter = editorPlayersFilter
+	if e.barWindow() == "players" {
+		e.closeBarWindow()
+		return nil
 	}
+	e.openRecords(editorPlayersFilter)
 	e.resetList(0)
 	rows := e.rows()
 	if len(rows) == 0 {

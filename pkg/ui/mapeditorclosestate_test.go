@@ -243,6 +243,18 @@ func TestMapPanelCloseStates(t *testing.T) {
 							}
 						}
 					}
+					if state == "bar-records" || state == "line-players-open" || state == "line-players-closed" {
+						want.filter, want.list = 0, false
+						if state == "line-players-closed" {
+							if e.PanelOpen() {
+								t.Fatal("closing Players restored the previous Map window")
+							}
+							e.openPanel()
+						}
+					}
+					if state == "report-open" || state == "line-victory-open" || state == "line-defeat-open" || state == "line-report-open" {
+						want.mode.report = reportState{}
+					}
 					if control == "close-list" {
 						want = mapPanelCloseStateOf(e)
 					}

@@ -12,7 +12,9 @@ func openGroup(t *testing.T, e *MapEditor) {
 	t.Helper()
 	// The Groups entry leaves the left panel as it is; the tree shows.
 	e.showPanel(panelLeft, true)
-	chromeClick(e, barPoint(t, e, "groups"))
+	if !e.groupsShown() {
+		chromeClick(e, barPoint(t, e, "groups"))
+	}
 	e.listSpec()
 	r, ok := e.GroupsRowRect(1, 1, false) // player 1, group 1: units 0 and 2
 	if !ok {

@@ -191,16 +191,19 @@ type barEntry struct {
 	menu       bool
 	field      bool
 	disabled   bool
+	on         bool
 	rect       image.Rectangle
 }
 
 // barEntries is the top bar's entries in their rows, each with its state.
 func (e *MapEditor) barEntries() []barEntry {
 	entries := e.barRows()
+	mode := e.barWindow()
 	for i := range entries {
 		if entries[i].menu {
 			continue
 		}
+		entries[i].on = entries[i].key == mode
 		switch entries[i].key {
 		case "objects", "trees":
 			entries[i].disabled = e.brushHost() == nil
@@ -538,6 +541,10 @@ func (e *MapEditor) barAct(key string) {
 			return
 		}
 	}
+	if e.barWindow() == key {
+		e.closeBarWindow()
+		return
+	}
 	switch key {
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
@@ -638,6 +645,7 @@ func (e *MapEditor) openPalette(c editorCategory) {
 
 // openRecords opens the list popup on the records filter shows.
 func (e *MapEditor) openRecords(filter int) {
+	e.closeBarWindow()
 	e.rememberListCancel("records")
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
@@ -683,7 +691,7 @@ func (e *MapEditor) closeList() {
 	case "panel":
 		e.leave(leavePanel)
 	default:
-		e.listShown, e.filter = false, 0
+		e.leave(leaveRecords)
 	}
 }
 
@@ -1548,7 +1556,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 			drawDropdown(pic, e.font, nil, e.menuDropdown(b, false), nil, e.pointer, e.pointerOK)
 			continue
 		}
-		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Hover: e.pointerOK && e.pointer.In(b.rect), Press: &e.buttonPress})
+		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Pressed: b.on, Inside: b.on, Hover: e.pointerOK && e.pointer.In(b.rect), Press: &e.buttonPress})
 	}
 	e.drawToolbar(pic, false)
 	status := e.statusRect()
@@ -2030,6 +2038,15 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	}
 	target := e.chromeHit(p)
 	modal := e.prompt.open() && !e.addPicking() || e.message != ""
+	barWindow := false
+	if target == popBar && e.barWindow() != "" {
+		for _, b := range e.barEntries() {
+			if !b.menu && !b.disabled && p.In(b.rect) {
+				barWindow = true
+				break
+			}
+		}
+	}
 	if target == popNone && !modal {
 		return false
 	}
@@ -2037,7 +2054,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		e.chromeWheel(target, in)
 	}
 	if pressed {
-		if !modal || target == popPrompt || target == popMenu {
+		if !modal || target == popPrompt || target == popMenu || barWindow {
 			e.buttonPress = buttonPress{pointer: p, capturing: true}
 			pic := e.ChromeImage()
 			e.buttonPress.begin(pic)
@@ -2050,7 +2067,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 				return true
 			}
 		}
-		if modal && target != popPrompt && target != popMenu {
+		if modal && target != popPrompt && target != popMenu && !barWindow {
 			return true
 		}
 		e.chromePress(target, p, double)

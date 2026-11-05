@@ -407,7 +407,8 @@ func (p *buttonPress) apply(b *pushButton, f *text.Font) {
 		}
 	}
 	if p.latch.Pressed(1) && b.Rect == p.button.Rect && b.Label == p.button.Label {
-		b.Pressed, b.Inside, p.seen = true, p.pointer.In(b.Rect), true
+		b.Inside = b.sunk() || p.pointer.In(b.Rect)
+		b.Pressed, p.seen = true, true
 	}
 }
 
