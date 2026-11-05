@@ -191,8 +191,8 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 		if b.Display {
 			px, py, lift = b.Pos.X-boltStampCentre, b.Pos.Y-boltStampCentre, v.displayLift()
 		}
-		r, ok := v.placeLifted(lift, image.Rect(px, py, px+f.Width, py+f.Height))
-		if !ok {
+		r, _ := spriteScreenRect(image.Rect(px, py, px+f.Width, py+f.Height).Add(image.Pt(0, lift)), v.cam)
+		if len(v.spritePair(staticScreenRect{screenRect: r, Effect: f, Mirror: b.Mirror}, f.Boundary)) == 0 {
 			continue
 		}
 		out = append(out, effectScreenRect{screenRect: r, Cell: b.Cell, Frame: f, Mirror: b.Mirror, Pass: b.Pass})
@@ -234,7 +234,6 @@ func (v *Viewer) spellBoltLift(b SpellBolt) int {
 // choice, and smoothing would bleed a transparent edge pixel into its
 // neighbour's colour.
 func (v *Viewer) drawSpellArt(target imageTarget, placements []effectScreenRect, pass SpellPass) {
-	zoom := v.cam.Zoom
 	for _, s := range placements {
 		if s.Pass != pass {
 			continue
@@ -243,16 +242,9 @@ func (v *Viewer) drawSpellArt(target imageTarget, placements []effectScreenRect,
 			v.drawBackgroundDeformation(target, s)
 			continue
 		}
-		var op ebiten.DrawImageOptions
-		op.Filter = ebiten.FilterNearest
-		if s.Mirror {
-			op.GeoM.Scale(-zoom, zoom)
-			op.GeoM.Translate(s.X+s.W, s.Y)
-		} else {
-			op.GeoM.Scale(zoom, zoom)
-			op.GeoM.Translate(s.X, s.Y)
+		for _, sprite := range v.spritePair(staticScreenRect{screenRect: s.screenRect, Effect: s.Frame, Mirror: s.Mirror}, s.Frame.Boundary) {
+			v.drawPlaneSprite(target, sprite)
 		}
-		target.DrawImage(v.effectImage(s.Frame), &op)
 	}
 }
 

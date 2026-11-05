@@ -25,6 +25,7 @@ func ownerShadeFrame() *terrain.StaticFrame {
 // draw on base and fails the first composed-pixel assertion below.
 func TestEntityDrawsAppliesOwnerShadeAtTheProductionFrameSeam(t *testing.T) {
 	base := ownerShadeFrame()
+	base.Boundary = ownerShadeFrame()
 	shared := &terrain.UnitClass{Frames: []*terrain.StaticFrame{base}, OwnerShaded: true}
 	classPalette := &terrain.UnitClass{Frames: []*terrain.StaticFrame{base}}
 	set := &terrain.UnitSet{
@@ -60,6 +61,9 @@ func TestEntityDrawsAppliesOwnerShadeAtTheProductionFrameSeam(t *testing.T) {
 		got := draws[i].Frame.RGBA().RGBAAt(0, 0)
 		if got != want {
 			t.Errorf("draw %d composed pixel = %+v, want %+v", i, got, want)
+		}
+		if boundary := draws[i].Frame.Boundary; boundary == nil || boundary.RGBA().RGBAAt(0, 0) != want {
+			t.Errorf("draw %d boundary lost the base palette", i)
 		}
 	}
 	if draws[0].Frame == base || draws[1].Frame == base {

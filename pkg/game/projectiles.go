@@ -242,6 +242,7 @@ func projectileSet(src terrain.EntrySource, records *data.Projectiles, game rule
 		shared bool
 	}
 	decoded := make(map[sheetKey][]*terrain.EffectFrame)
+	siblings := sheetCache{src: src, decoded: make(map[string]*spr256.Sprite), converted: make(map[string][]*terrain.StaticFrame)}
 	shared := sharedProjectileTable(src)
 	for _, id := range records.IDs() {
 		p, _ := records.ByID(id)
@@ -271,6 +272,14 @@ func projectileSet(src terrain.EntrySource, records *data.Projectiles, game rule
 				frames = indexedEffectFrames(src, graphicsPrefix+path, key.shared, shared)
 			}
 			decoded[key] = frames
+			if p.A16 == 0 && p.Palette != 0 {
+				paired := siblings.boundaryFrames(siblings.frames(path), path, p.OverlayPath())
+				if len(paired) == len(frames) {
+					for i, frame := range frames {
+						frame.Boundary = paired[i]
+					}
+				}
+			}
 		}
 		if len(frames) == 0 {
 			continue

@@ -70,6 +70,8 @@ func staticsOf(src terrain.EntrySource, classes *ObjectCatalog) *terrain.StaticS
 		// a class's phase count is set on classes carrying no arrays at all, so it
 		// does not say whether a class has a cycle.
 		path := c.SpritePath()
+		frames := sheets.frames(path)
+		sheets.boundaryFrames(frames, path, c.OverlayPath())
 		set.Classes[b] = &terrain.StaticClass{
 			Width:      int(c.Width),
 			Height:     int(c.Height),
@@ -77,7 +79,7 @@ func staticsOf(src terrain.EntrySource, classes *ObjectCatalog) *terrain.StaticS
 			CenterY:    int(c.CenterY),
 			FireObject: c.FireObject,
 			Frame:      sheets.frame(path, c.Index),
-			Frames:     sheets.frames(path),
+			Frames:     frames,
 			Index:      int(c.Index),
 			Timeline:   c.Timeline(),
 		}
@@ -161,6 +163,12 @@ func (c *sheetCache) sheet(path string) *spr256.Sprite {
 // not an alpha channel, transparency here is structural, and StaticFrame's
 // contract is that nothing may read an entry's alpha as one.
 func (c *sheetCache) frame(path string, index int32) *terrain.StaticFrame {
+	if frames, converted := c.converted[path]; converted {
+		if index < 0 || int(index) >= len(frames) {
+			return nil
+		}
+		return frames[index]
+	}
 	s := c.sheet(path)
 	if s == nil || index < 0 || int(index) >= len(s.Frames) {
 		return nil

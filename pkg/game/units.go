@@ -114,17 +114,20 @@ func unitSet(src terrain.EntrySource, classes *data.UnitClasses) *terrain.UnitSe
 	}
 	dying := make(map[int32]int32, len(classes.All()))
 	for _, c := range classes.All() {
+		frames := sheets.frames(c.SpritePath())
+		boundary := sheets.boundaryFrames(frames, c.SpritePath(), c.OverlayPath())
 		// The canvas is carried across whatever it holds: StaticAnchor is
 		// defined at either sign, and refusing a shape here would invent an
 		// exclusion the contract does not have.
 		set.Classes[c.ID] = &terrain.UnitClass{
-			Z:       int(c.Z),
-			Width:   int(c.Width),
-			Height:  int(c.Height),
-			CenterX: int(c.CenterX),
-			CenterY: int(c.CenterY),
-			Frames:  sheets.frames(c.SpritePath()),
-			Anim:    unitAnim(c.Anim()),
+			Z:        int(c.Z),
+			Width:    int(c.Width),
+			Height:   int(c.Height),
+			CenterX:  int(c.CenterX),
+			CenterY:  int(c.CenterY),
+			Frames:   frames,
+			Boundary: boundary,
+			Anim:     unitAnim(c.Anim()),
 			// The registry's own TileSize, carried across unconverted: the
 			// scale every effect-mark offset is multiplied by (1002).
 			TileSize:     int(c.TileSize),
@@ -156,10 +159,6 @@ func unitSet(src terrain.EntrySource, classes *data.UnitClasses) *terrain.UnitSe
 			ShootOffset: shootOffsets(c.ShootOffset),
 		}
 		dying[c.ID] = c.Dying
-	}
-	for _, c := range classes.All() {
-		cls := set.Classes[c.ID]
-		cls.Boundary = sheets.boundaryFrames(cls.Frames, c.SpritePath(), c.OverlayPath())
 	}
 	linkCorpses(set.Classes, dying)
 	return set
@@ -253,6 +252,11 @@ func repalette(base []*terrain.StaticFrame, p [256]color.RGBA) []*terrain.Static
 	for i, f := range base {
 		tinted := *f
 		tinted.Palette = p
+		if f.Boundary != nil {
+			boundary := *f.Boundary
+			boundary.Palette = p
+			tinted.Boundary = &boundary
+		}
 		out[i] = &tinted
 	}
 	return out

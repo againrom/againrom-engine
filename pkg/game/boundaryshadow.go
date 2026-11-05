@@ -2,10 +2,8 @@ package game
 
 import "againrom/pkg/render/terrain"
 
-// boundaryFrames is the frames of the spritesb sibling at boundaryPath, one per
-// frame of base. The sibling takes the base sheet's palette, as the sack
-// boundary does, and only its coverage is read. A missing sibling, a sibling of
-// another frame count and a base without frames each answer nil.
+// boundaryFrames pairs a sibling with the base frames, using the base palette.
+// A missing or mismatched sheet leaves the base unchanged.
 func (c *sheetCache) boundaryFrames(base []*terrain.StaticFrame, basePath, boundaryPath string) []*terrain.StaticFrame {
 	if boundaryPath == "" || len(base) == 0 {
 		return nil
@@ -14,7 +12,7 @@ func (c *sheetCache) boundaryFrames(base []*terrain.StaticFrame, basePath, bound
 	if sheet == nil || sibling == nil || !sheet.HasPalette || len(sibling.Frames) != len(base) {
 		return nil
 	}
-	key := boundaryPath + "\x00paired"
+	key := basePath + "\x00" + boundaryPath + "\x00paired"
 	paired, tried := c.converted[key]
 	if !tried {
 		copy := *sibling
@@ -33,6 +31,9 @@ func (c *sheetCache) boundaryFrames(base []*terrain.StaticFrame, basePath, bound
 	}
 	if len(paired) != len(base) {
 		return nil
+	}
+	for i, f := range base {
+		f.Boundary = paired[i]
 	}
 	return paired
 }

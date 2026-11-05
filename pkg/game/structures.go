@@ -136,6 +136,7 @@ func LoadStructures(src terrain.EntrySource) (*terrain.StructureSet, error) {
 				sc.PreviewFrame = frames[0]
 			}
 		}
+		sheets.boundaryFrames(sheets.frames(c.SpritePath()), c.SpritePath(), c.OverlayPath())
 		set.Classes[b] = sc
 	}
 	return set, nil

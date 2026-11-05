@@ -12,12 +12,5 @@ func LoadSackBoundaries(src terrain.EntrySource) []*terrain.StaticFrame {
 		return nil
 	}
 	c := sheetCache{src: src, decoded: make(map[string]*spr256.Sprite), converted: make(map[string][]*terrain.StaticFrame)}
-	base, boundary := c.sheet(sackSheetPath), c.sheet("backpack/spritesb.256")
-	if base == nil || boundary == nil || !base.HasPalette || len(base.Frames) != len(boundary.Frames) {
-		return nil
-	}
-	copy := *boundary
-	copy.Palette, copy.HasPalette = base.Palette, true
-	c.decoded["backpack/spritesb.256"] = &copy
-	return c.frames("backpack/spritesb.256")
+	return c.boundaryFrames(c.frames(sackSheetPath), sackSheetPath, "backpack/spritesb.256")
 }

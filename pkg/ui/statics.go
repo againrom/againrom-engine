@@ -39,6 +39,7 @@ type staticScreenRect struct {
 	SackOutline        bool
 	Brightness         float32
 	ShadeZero          bool
+	Unlit              bool
 	Inspection         InspectionSubject
 	Tint               spriteTint
 }
@@ -109,10 +110,12 @@ func spriteScreenRect(r image.Rectangle, cam *camera.Camera) (screenRect, bool) 
 	sx, sy := cam.WorldToScreen(float64(r.Min.X), float64(r.Min.Y))
 	w := float64(r.Dx()) * zoom
 	h := float64(r.Dy()) * zoom
-	if sx+w <= 0 || sy+h <= 0 || sx >= float64(cam.ViewW) || sy >= float64(cam.ViewH) {
-		return screenRect{}, false
-	}
-	return screenRect{X: sx, Y: sy, W: w, H: h}, true
+	s := screenRect{X: sx, Y: sy, W: w, H: h}
+	return s, spriteVisible(s, cam)
+}
+
+func spriteVisible(s screenRect, cam *camera.Camera) bool {
+	return s.X+s.W > 0 && s.Y+s.H > 0 && s.X < float64(cam.ViewW) && s.Y < float64(cam.ViewH)
 }
 
 // imageTarget is the one method drawStatics needs out of a draw target.
@@ -191,6 +194,7 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 	out := make([]staticScreenRect, 0, len(v.depthOrder))
 	for _, ref := range v.depthOrder {
 		var f *terrain.StaticFrame
+		var boundary *terrain.StaticFrame
 		var rect image.Rectangle
 		var mirror bool
 		var stone, translucent bool
@@ -213,6 +217,7 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 					inspection = InspectionSubject{Kind: InspectionUnit, ID: marked[ref.Index].ID}
 				}
 				stone, translucent = marked[ref.Index].Stone, marked[ref.Index].Translucent
+				boundary = marked[ref.Index].Boundary
 				factor := v.spellSpriteFactor(marked[ref.Index].Cell)
 				if _, shadeZero = v.hoverSpriteFactor(marked[ref.Index].ID); shadeZero {
 					factor = 1
@@ -277,24 +282,20 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 		// exactly the case a shared cull would drop.
 		start := len(out)
 		out = append(out, back...)
-		if r, ok := spriteScreenRect(rect, v.cam); f != nil && ok {
-			out = append(out, staticScreenRect{screenRect: r, Frame: f, Mirror: mirror,
+		if r, _ := spriteScreenRect(rect, v.cam); f != nil {
+			if f.Boundary != nil {
+				boundary = f.Boundary
+			}
+			if ref.Kind == terrain.PlaneSack {
+				boundary = v.sackBoundaries[f]
+			}
+			out = append(out, v.spritePair(staticScreenRect{screenRect: r, Frame: f, Mirror: mirror,
 				Stone: stone, Translucent: translucent, Brightness: brightness, ShadeZero: shadeZero, Inspection: inspection,
-				Tint: v.tintOf(inspection)})
+				Tint: v.tintOf(inspection)}, boundary)...)
 		}
 		if ref.Kind == terrain.PlaneSack && v.sackHighlight && f != nil {
 			if r, ok := spriteScreenRect(rect, v.cam); ok {
 				out = append(out, staticScreenRect{screenRect: r, Frame: f, SackOutline: true})
-			}
-		}
-		if ref.Kind == terrain.PlaneSack && v.graphics.Smoothing {
-			if boundary := v.sackBoundaries[f]; boundary != nil {
-				// Both original calls share their sprite origin. The boundary
-				// occupies its own dimensions and follows its base in the band.
-				b := image.Rect(rect.Min.X, rect.Min.Y, rect.Min.X+boundary.Width, rect.Min.Y+boundary.Height)
-				if br, visible := spriteScreenRect(b, v.cam); visible {
-					out = append(out, staticScreenRect{screenRect: br, Frame: boundary, Translucent: true, Brightness: brightness})
-				}
 			}
 		}
 
@@ -324,6 +325,29 @@ func (v *Viewer) drawPlane(target imageTarget) {
 	for _, s := range v.planeSprites() {
 		v.drawPlaneSprite(target, s)
 	}
+}
+
+func (v *Viewer) spritePair(base staticScreenRect, boundary *terrain.StaticFrame) []staticScreenRect {
+	var out []staticScreenRect
+	if spriteVisible(base.screenRect, v.cam) {
+		out = append(out, base)
+	}
+	if !v.graphics.Smoothing || boundary == nil {
+		return out
+	}
+	sibling := base
+	sibling.Frame, sibling.Effect = boundary, nil
+	sibling.Inspection = InspectionSubject{}
+	sibling.W, sibling.H = float64(boundary.Width)*v.cam.Zoom, float64(boundary.Height)*v.cam.Zoom
+	if base.Mirror {
+		sibling.X += base.W - sibling.W
+	}
+	sibling.Translucent = true
+	sibling.Unlit = base.Effect != nil
+	if spriteVisible(sibling.screenRect, v.cam) {
+		out = append(out, sibling)
+	}
+	return out
 }
 
 func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {
@@ -357,6 +381,9 @@ func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {
 	row := v.spriteRow()
 	if s.ShadeZero {
 		row = 0
+	}
+	if s.Unlit {
+		row = spriteUnlit
 	}
 	img := v.staticImage(s.Frame, row)
 	if s.Stone {
@@ -414,7 +441,12 @@ func (v *Viewer) drawStructuresFlat(target imageTarget) {
 		if p.Class == nil || !p.Class.Flat {
 			continue
 		}
-		v.drawSprite(target, p.Frame, p.Rect(), v.tintOf(InspectionSubject{Kind: InspectionStructure, ID: p.StructureID}))
+		r, _ := spriteScreenRect(p.Rect(), v.cam)
+		if p.Frame != nil {
+			for _, s := range v.spritePair(staticScreenRect{screenRect: r, Frame: p.Frame, Tint: v.tintOf(InspectionSubject{Kind: InspectionStructure, ID: p.StructureID})}, p.Frame.Boundary) {
+				v.drawPlaneSprite(target, s)
+			}
+		}
 	}
 }
 

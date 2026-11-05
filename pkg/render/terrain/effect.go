@@ -28,9 +28,10 @@ import (
 // this tier neither holds a palette nor walks one. That is the statics loader's
 // own division and it is what keeps a second, disagreeing blend out of the tree.
 type EffectFrame struct {
-	Width  int
-	Height int
-	Pixels []color.RGBA
+	Boundary *StaticFrame
+	Width    int
+	Height   int
+	Pixels   []color.RGBA
 }
 
 // RGBA is the frame as an image the window tier can upload: the same

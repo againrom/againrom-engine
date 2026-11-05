@@ -86,9 +86,10 @@ func TestAnIndexedRowDrawsThroughTheTableItsPaletteBitNames(t *testing.T) {
 				projNode("RotationPhases", 1), projNode("Palette", 1)},
 		},
 		map[string][]byte{
-			"projectiles/archer/arrow.256": indexedSheet(own),
-			"projectiles/goblin/arrow.256": indexedSheet(own),
-			"projectiles/projectiles.pal":  synth.BMP8(image.NewPaletted(image.Rect(0, 0, 1, 1), shared)),
+			"projectiles/archer/arrow.256":  indexedSheet(own),
+			"projectiles/archer/arrowb.256": indexedSheet(own),
+			"projectiles/goblin/arrow.256":  indexedSheet(own),
+			"projectiles/projectiles.pal":   synth.BMP8(image.NewPaletted(image.Rect(0, 0, 1, 1), shared)),
 		},
 	)
 	set, err := game.LoadProjectiles(src)
@@ -108,6 +109,9 @@ func TestAnIndexedRowDrawsThroughTheTableItsPaletteBitNames(t *testing.T) {
 			continue
 		}
 		f := sheet.Frames[0]
+		if tc.picture == 1 && f.Boundary != nil {
+			t.Fatal("shared-palette shot admitted a boundary")
+		}
 		if f.Width != 2 || f.Height != 1 || f.Pixels[0] != tc.want || f.Pixels[1] != (color.RGBA{}) {
 			t.Errorf("picture %d frame is %dx%d %v, want %v then a hole", tc.picture, f.Width, f.Height, f.Pixels, tc.want)
 		}

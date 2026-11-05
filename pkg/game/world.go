@@ -5515,13 +5515,12 @@ func (mw *mapWorld) ownerFrame(c *terrain.UnitClass, frame *terrain.StaticFrame,
 	if tinted := mw.ownerFrames[key]; tinted != nil {
 		return tinted
 	}
-	tinted := *frame
-	tinted.Palette = *palette
+	tinted := repalette([]*terrain.StaticFrame{frame}, *palette)[0]
 	if mw.ownerFrames == nil {
 		mw.ownerFrames = make(map[ownerFrameKey]*terrain.StaticFrame)
 	}
-	mw.ownerFrames[key] = &tinted
-	return &tinted
+	mw.ownerFrames[key] = tinted
+	return tinted
 }
 
 // markTileSize is a class's own footprint scale for the mark builders, or 1 for

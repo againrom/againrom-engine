@@ -179,6 +179,13 @@ func (p *Projectile) SpritePath() string {
 	return ProjectilePrefix + strings.ReplaceAll(p.File, "\\", "/") + ext
 }
 
+func (p *Projectile) OverlayPath() string {
+	if p.File == "" || p.A16 != 0 {
+		return ""
+	}
+	return overlayPath(ProjectilePrefix + slashPath(p.File))
+}
+
 // CastPicture and BurstPicture are the two picture ids a spell computes:
 // 2*id + 8 for the object that flies and 2*id + 9 for the burst.
 //

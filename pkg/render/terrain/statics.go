@@ -37,10 +37,11 @@ type StaticPixel struct {
 // nothing may read it as one, StaticPixel.Opaque being the only answer to which
 // pixels are holes.
 type StaticFrame struct {
-	Width   int
-	Height  int
-	Pixels  []StaticPixel
-	Palette [256]color.RGBA
+	Boundary *StaticFrame
+	Width    int
+	Height   int
+	Pixels   []StaticPixel
+	Palette  [256]color.RGBA
 }
 
 // StaticClass is one object class as this layer draws it: the canvas geometry
