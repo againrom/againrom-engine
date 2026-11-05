@@ -139,17 +139,17 @@ func TestInstallWordsWithoutTablesAreAuthored(t *testing.T) {
 				want.ItemRays, want.TavernSleep = "\x8b\xe3\xe7\xa8", "\x91\xaf\xa0\xe2\xec"
 				want.Received = "\x8f\xae\xab\xe3\xe7\xa5\xad\xae:"
 			}
-			if got := w.Words(); got != want {
+			if got := w.Words(); !reflect.DeepEqual(got, want) {
 				t.Fatal("missing tables did not retain authored labels for the chosen language")
 			}
 		})
 	}
 	// A nil source and a nil word set take the same arm.
-	if got := LoadInstallWords(nil, TextCode{}).Words(); got != ui.AuthoredWords() {
+	if got := LoadInstallWords(nil, TextCode{}).Words(); !reflect.DeepEqual(got, ui.AuthoredWords()) {
 		t.Fatal("a nil source resolved something")
 	}
 	var nilWords *InstallWords
-	if got := nilWords.Words(); got != ui.AuthoredWords() {
+	if got := nilWords.Words(); !reflect.DeepEqual(got, ui.AuthoredWords()) {
 		t.Fatal("a nil word set resolved something")
 	}
 }
@@ -231,7 +231,7 @@ func TestInstallWordsResolveEveryDecodedIndex(t *testing.T) {
 	for i, s := range map[int]string{77: "Ok", 140: "Mission Completed", 141: "Mission Failed", 119: "Game halted. Press OK.", 127: "Shut", 128: "Keep showing tips", 72: "Undo Table", 70: "Buy Item", 71: "Sell Item", 73: "Leave Shop"} {
 		want.Hover[i] = s
 	}
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("words = %#v, want %#v", got, want)
 	}
 }
@@ -457,7 +457,7 @@ func TestInstallWordsOverALawfulInstall(t *testing.T) {
 		if resolved != 17 {
 			t.Errorf("%s: %d of 17 install lookups resolved", root, resolved)
 		}
-		if got == authored {
+		if reflect.DeepEqual(got, authored) {
 			t.Errorf("%s: every word equals this build's authored English", root)
 		}
 		return got

@@ -48,7 +48,7 @@ func companionNameRow(p mapload.PartyMember) int {
 // drawnName is the display name's entity stage: the name the map draws for e
 // with class c (its composed body when it has one), class row nameIndex.
 // definitionCharName reports that the character's own name is only its
-// definition row's, which an ordinary actor does not show.
+// definition row's, which the actor does not show.
 func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Words) (name string, nameIndex int, definitionCharName bool) {
 	if c != nil {
 		name = c.Name
@@ -84,6 +84,12 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Wor
 		if className, ok := ui.DisplayName(ui.InspectionUnit, "", nameIndex, words); ok {
 			name = className
 		}
+	}
+	if member := mw.missionPartyMember(e.ID); member != nil && member.CampaignHireID() != 0 &&
+		(char.Name == "" || char.Name == member.Name) && (saved == "" || saved == member.Name) {
+		in := InstallResources{Table: mw.mission.table}
+		name = in.definitionName(*member, nameIndex, words, "")
+		definitionCharName = char.Name == member.Name
 	}
 	// The map's own name for the placed unit is its last stage.
 	if authored, ok := mw.authoredName(e); ok {

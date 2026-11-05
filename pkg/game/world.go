@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"reflect"
 	"slices"
 	"time"
 
@@ -1291,7 +1292,7 @@ func partyCharacters(ms *Mission, tables ...*mapload.Table) map[sim.EntityID]ui.
 func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.Words) ui.PanelSubject {
 	d, health, mana := mapload.PartyDisplayWithTable(p, t)
 	words := ui.AuthoredWords()
-	if len(installed) > 0 && installed[0] != (ui.Words{}) {
+	if len(installed) > 0 && !reflect.ValueOf(installed[0]).IsZero() {
 		words = installed[0]
 	}
 	// THE PAIR'S SECOND NUMBER IS THE DERIVED MAXIMUM, NOT THE CURRENT POOL

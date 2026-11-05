@@ -561,6 +561,9 @@ func (w *InstallWords) Words() ui.Words {
 			}
 		}
 	}
+	if w != nil && w.unitNames.Lines() != 0 {
+		out.UnitNames = make([]string, w.unitNames.Lines())
+	}
 	for i := range out.UnitNames {
 		if s, ok := w.UnitName(i); ok {
 			out.UnitNames[i] = s

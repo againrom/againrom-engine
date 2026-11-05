@@ -177,7 +177,7 @@ func TestSetWordsRewritesOnlyTheButtonWord(t *testing.T) {
 	if v.noticeLayouts[NoticeSuccess] != success {
 		t.Errorf("success layout changed beyond its two control words")
 	}
-	if v.Words() != installedWords() {
+	if !reflect.DeepEqual(v.Words(), installedWords()) {
 		t.Fatal("the viewer did not keep the set it was given")
 	}
 }
@@ -378,7 +378,7 @@ func TestAuthoredPanelCaptionsAreUnchanged(t *testing.T) {
 func TestWordsReachEveryViewerAndTheMenu(t *testing.T) {
 	seams := &[]*mapSeam{}
 	a := newTestApp(t, appRows(3), seamLoader(t, seams))
-	if got := a.flow.words; got != AuthoredWords() {
+	if got := a.flow.words; !reflect.DeepEqual(got, AuthoredWords()) {
 		t.Fatal("a fresh flow did not start on the authored words")
 	}
 	a.SetWords(installedWords(), nil, nil)
@@ -389,7 +389,7 @@ func TestWordsReachEveryViewerAndTheMenu(t *testing.T) {
 		t.Fatalf("setup: screen = %v", a.Screen())
 	}
 	v := a.flow.viewer
-	if v.Words() != installedWords() {
+	if !reflect.DeepEqual(v.Words(), installedWords()) {
 		t.Fatal("the map this flow opened did not get the words")
 	}
 	if got := v.noticeLayouts[1].ButtonLabel; got != "Ok" {
@@ -399,7 +399,7 @@ func TestWordsReachEveryViewerAndTheMenu(t *testing.T) {
 	// A viewer already open when the call lands is written too, so the call
 	// cannot leave half the application on the old set.
 	a.SetWords(AuthoredWords(), nil, nil)
-	if v.Words() != AuthoredWords() || v.noticeLayouts[0].ButtonLabel != AuthoredNoticeButton {
+	if !reflect.DeepEqual(v.Words(), AuthoredWords()) || v.noticeLayouts[0].ButtonLabel != AuthoredNoticeButton {
 		t.Fatal("an open viewer kept the previous words")
 	}
 

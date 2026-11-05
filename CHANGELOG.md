@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] Escape on the world map skips the current journey, or leaves the map open when no journey is running.
+- [ROM2] Necromancers and hired troops show their translated unit names instead of blank names or internal labels.
 - [ROM2] A monster that cannot reach you steps back for a moment and then attacks again.
 - [ROM2] A purchase is refused in full when there is not enough gold for everything on the table.
 - [ROM2] The shop's buy, sell and exit totals now match the prices shown on the table.

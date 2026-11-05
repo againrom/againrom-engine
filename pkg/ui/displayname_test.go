@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 )
@@ -19,6 +20,7 @@ func previousPanelSubjectName(s PanelSubject) (string, bool) {
 // displayNameTables are fixture tables for the two games, some rows empty.
 func displayNameTables() map[string]Words {
 	var first, second Words
+	first.UnitNames, second.UnitNames = make([]string, 81), make([]string, 108)
 	for i := range first.UnitNames {
 		if i%7 == 5 {
 			continue
@@ -57,5 +59,41 @@ func TestDisplayNameWithoutAWordTableShowsOnlyTheOwnName(t *testing.T) {
 	}
 	if name, ok := DisplayName(InspectionStructure, "Tower", 3, nil); !ok || name != "Tower" {
 		t.Fatalf("own name without a table: %q %t", name, ok)
+	}
+}
+
+func TestLoadedNamesRemainIndependentAndRefreshBothCards(t *testing.T) {
+	v := missionPaneViewer(t)
+	v.SetEntities([]MapEntity{{ID: 1, UnitNameIndex: 99, Life: LifeAlive, HP: 10, MaxHP: 10}})
+	v.sel = selection{1}
+	w := AuthoredWords()
+	w.UnitNames = make([]string, 119)
+	w.UnitNames[99] = "First type"
+	v.SetWords(w)
+	w.UnitNames[99] = "Changed caller"
+	copy := v.Words()
+	copy.UnitNames[99] = "Changed reader"
+	if got, _ := DisplayName(InspectionUnit, "", 99, &v.words); got != "First type" {
+		t.Fatalf("a word-table copy changed the viewer: %q", got)
+	}
+	upper, _, upperOK := v.panelPresent()
+	lower, _, lowerOK := v.missionCardPresent()
+	if !upperOK || !lowerOK {
+		t.Fatal("both card caches must be present")
+	}
+	builds := v.panelBuilds
+	v.SetWords(v.Words())
+	unchanged, _, _ := v.missionCardPresent()
+	v.panelPresent()
+	if unchanged != lower || v.panelBuilds != builds {
+		t.Fatal("equal name-table contents rebuilt the cards")
+	}
+	w = v.Words()
+	w.UnitNames[99] = "Second type"
+	v.SetWords(w)
+	newUpper, _, _ := v.panelPresent()
+	newLower, _, _ := v.missionCardPresent()
+	if newUpper == upper || newLower == lower || v.panelBuilds != builds+1 || bytes.Equal(newLower.Pix, lower.Pix) {
+		t.Fatal("changed type label left a stale card")
 	}
 }

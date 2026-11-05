@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -391,10 +392,7 @@ type UnitCharacter struct {
 	// Blade-through-Shooting order, which is also the order XPSlot 1..5 selects
 	// in the physical resolver (1039).
 	//
-	// FIXED-SIZE ARRAYS OF int, DELIBERATELY NOT SLICES: UnitCharacter is
-	// carried inside PanelSubject, which must stay comparable with == because
-	// the panel's own refresh key holds one, and a [5]int is comparable where
-	// a []int would make the whole subject stop being one.
+	// Each family has exactly five elemental or damage-kind slots.
 	Protection [5]int
 	Resistance [5]int
 
@@ -491,9 +489,8 @@ const (
 // stated values and the id that says which unit they belong to — and how many
 // units the selection it was drawn from presently holds.
 //
-// It is a value type of builtins and one point, so it is copied by assignment
-// and compared with ==, which is what lets the refresh rule be a comparison of
-// two of these rather than a walk of a snapshot. It names no simulation type:
+// The refresh rule compares its contents, including the loaded word table.
+// It names no simulation type:
 // the id is the id's own width, carried across the seam like every other.
 //
 // SELECTED IS A PROPERTY OF THE SELECTION, NOT OF THE UNIT, and it lives on
@@ -503,11 +500,8 @@ const (
 // else about what is stated. Carried anywhere else, a selection that grew or
 // shrank while the described unit stayed identical would compare equal, and
 // the panel would go on stating the old number until something about the
-// unit happened to change. THE TWO GROUPS RIDE INSIDE IT rather than beside
-// it. Both are comparable values of builtins, so the whole subject is still
-// copied by assignment and compared with ==, and the refresh rule below
-// therefore covers a statistic and a combat number for free — a value that
-// moved the picture and was not in here would leave a stale box on screen.
+// unit happened to change. Both groups live here so the refresh rule also
+// covers a statistic or combat number that changes the picture.
 type PanelSubject struct {
 	Kind    InspectionKind
 	ClassID int32
@@ -569,9 +563,7 @@ type PanelSubject struct {
 	// holds the item collections — not the running window, which carries
 	// none.
 	//
-	// IT IS A FIXED-SIZE ARRAY AND NOT A SLICE, for UnitCharacter.Skills' own
-	// reason above: PanelSubject is carried inside panelKey and compared with
-	// ==, and a slice would end that.
+	// Its length follows the equipment slots.
 	Worn [PanelWornSlots]string
 
 	// Weight is the subject's carried load in the weight column's own units,
@@ -2077,7 +2069,7 @@ func drawPanelBackground(dst, src *image.RGBA) {
 }
 
 // panelKey is everything the presented picture is a function of, as one
-// comparable value: which unit, what it states, which layout and font, and
+// value: which unit, what it states, which layout and font, and
 // how big the area it is placed in is.
 //
 // IT HOLDS THE SUBJECT AND NOT THE ENTITY. An entity's route, step, art and
@@ -2255,7 +2247,7 @@ func (v *Viewer) panelPresent() (*image.RGBA, image.Point, bool) {
 		statistics: view.Statistics, figure: view.Figure,
 		packOpen: view.PackOpen, bookOpen: view.BookOpen,
 		selectionStatus: view.SelectionStatus}
-	if v.panelPic == nil || key != v.panelKey {
+	if v.panelPic == nil || !reflect.DeepEqual(key, v.panelKey) {
 		// ONE STATEMENT, so a fresh picture can never be presented under a
 		// texture holding the last one: what the upload reads and the flag
 		// that says it must are written together or not at all.

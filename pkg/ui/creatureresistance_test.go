@@ -352,7 +352,7 @@ func TestCreatureResistanceHeadingRuleReachesSelectedAndInspectedSubjects(t *tes
 			t.Fatalf("inspected subject did not receive rule %v: %+v", preserve, inspected)
 		}
 		inspected.Selected = selected.Selected
-		if inspected != selected {
+		if !reflect.DeepEqual(inspected, selected) {
 			t.Fatal("selected and inspected subjects differ outside the selection count")
 		}
 	}

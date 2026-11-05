@@ -164,7 +164,7 @@ func TestChargenPreviewUsesTheConfirmedPartyProjection(t *testing.T) {
 	// Both values are projections before a mission has placed the party. The
 	// shared panel therefore receives the same explicit unplaced context.
 	confirmed.Unplaced = true
-	if got, want := preview.Subject, confirmed; got != want {
+	if got, want := preview.Subject, confirmed; !reflect.DeepEqual(got, want) {
 		t.Fatalf("preview subject = %+v, want %+v", got, want)
 	}
 	if got, want := ui.PanelStatement(ui.AuthoredPanelLayout(), preview.Subject), ui.PanelStatement(ui.AuthoredPanelLayout(), confirmed); !reflect.DeepEqual(got, want) {

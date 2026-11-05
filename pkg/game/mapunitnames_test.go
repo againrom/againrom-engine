@@ -50,6 +50,7 @@ func TestEditorUnitNameInBothViews(t *testing.T) {
 					s.inspector.archives.Base.Profile.Language = lang
 					s.inspector.recordOptions = nil
 					words := ui.AuthoredWords()
+					words.UnitNames = make([]string, 81)
 					for i := range words.UnitNames {
 						words.UnitNames[i] = "Kind"
 					}

@@ -70,7 +70,7 @@ func TestInspectionProductionPointerKeepsSelectionAndBothPanelsTogether(t *testi
 					t.Fatalf("subject=%+v,%v", s, ok)
 				}
 				view := v.characterPaneView(true)
-				if view.Subject != s || view.Figure == nil {
+				if !reflect.DeepEqual(view.Subject, s) || view.Figure == nil {
 					t.Fatal("card and figure subjects disagree")
 				}
 				if ref.Kind == InspectionStructure {
@@ -92,7 +92,7 @@ func TestInspectionProductionPointerKeepsSelectionAndBothPanelsTogether(t *testi
 				if _, _, ok := v.missionCardPresent(); !ok {
 					t.Fatal("card not composed")
 				}
-				if v.panelKey.subject != s || v.missionCardKey.subject != s {
+				if !reflect.DeepEqual(v.panelKey.subject, s) || !reflect.DeepEqual(v.missionCardKey.subject, s) {
 					t.Fatal("composed subjects disagree")
 				}
 				if !reflect.DeepEqual(v.sel, selection{1}) || !reflect.DeepEqual(v.invSubject, inventory) {

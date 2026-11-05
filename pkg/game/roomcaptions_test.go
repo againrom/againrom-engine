@@ -28,7 +28,7 @@ func TestSchoolCaptionSourcesAndFallbacks(t *testing.T) {
 			want.SchoolTrain = "resolved-train"
 			want.Hover[231] = "resolved-train"
 		}
-		if w != want {
+		if !reflect.DeepEqual(w, want) {
 			t.Fatalf("partial table length %d did not resolve per field", lines)
 		}
 	}
@@ -52,7 +52,7 @@ func TestTavernCaptionSourcesAndFallbacks(t *testing.T) {
 			want.TavernHire = "resolved-hire"
 			want.Hover[258] = "resolved-hire"
 		}
-		if w != want {
+		if !reflect.DeepEqual(w, want) {
 			t.Fatalf("partial tavern table length %d did not resolve per field", lines)
 		}
 	}

@@ -85,6 +85,7 @@ func TestOriginalPanelDetailLevelsZeroThroughSeven(t *testing.T) {
 
 func TestPanelUsesSubjectNameBeforeInstalledClassAndResolvesFixedCaptions(t *testing.T) {
 	w := AuthoredWords()
+	w.UnitNames = make([]string, 24)
 	w.UnitNames[23] = "installed unit"
 	w.PanelCaptions[15] = "installed body"
 	w.PanelCaptions[37] = "installed water school"

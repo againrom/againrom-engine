@@ -59,6 +59,7 @@ func nameDraws(t *testing.T, ents ...sim.Entity) map[uint32]struct {
 		t.Fatalf("NewViewer: %v", err)
 	}
 	words := ui.AuthoredWords()
+	words.UnitNames = make([]string, nameBones+1)
 	words.UnitNames[nameWalker], words.UnitNames[nameBones] = walkerCaption, bonesCaption
 	v.SetWords(words)
 	mw := newMapWorld(w, nil, nameBundle(), v)

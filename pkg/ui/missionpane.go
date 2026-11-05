@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"reflect"
 
 	"againrom/pkg/render/text"
 )
@@ -325,7 +326,7 @@ func (v *Viewer) missionCardPresentWith(blank bool) (*image.RGBA, image.Point, b
 		statistics: true, figure: nil,
 		packOpen: view.PackOpen, bookOpen: view.BookOpen,
 		selectionStatus: view.SelectionStatus}
-	if v.missionCardPic == nil || key != v.missionCardKey {
+	if v.missionCardPic == nil || !reflect.DeepEqual(key, v.missionCardKey) {
 		// ONE STATEMENT, panelPresent's own reason: what the upload reads and
 		// the flag that says it must are written together or not at all.
 		pic := image.NewRGBA(image.Rect(0, 0, rect.Dx()+characterPaneSeamW, rect.Dy()))

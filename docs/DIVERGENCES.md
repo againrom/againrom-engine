@@ -173,6 +173,7 @@ copying those counts.
 | `docs/divergences/rom2-humans.md` |
 | `docs/divergences/rom2-menu-and-save-pages.md` |
 | `docs/divergences/rom2-music.md` |
+| `docs/divergences/rom2-names.md` |
 | `docs/divergences/rom2-saves.md` |
 | `docs/divergences/rom2-saves-town.md` |
 | `docs/divergences/rom2-shop.md` |

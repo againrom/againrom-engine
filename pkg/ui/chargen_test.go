@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -86,7 +87,7 @@ func TestChargenResetPreservesSkillAndReplacesPreview(t *testing.T) {
 	if c.AdjustStat(0, 30) {
 		t.Fatal("over-ceiling statistic edit was accepted")
 	}
-	if got := c.Preview(); got != before || calls != 4 {
+	if got := c.Preview(); !reflect.DeepEqual(got, before) || calls != 4 {
 		t.Fatalf("refused edit rebuilt preview = (%+v, %d calls), want (%+v, 4)", got, calls, before)
 	}
 	if !c.Back() || c.Stage() != PreCreateStage {
@@ -185,7 +186,7 @@ func TestDetailedPointBuyRefusalsKeepTheWholeProjection(t *testing.T) {
 			if got := c.Remaining(); got != beforeRemaining {
 				t.Fatalf("refusal changed remaining: got %d, want %d", got, beforeRemaining)
 			}
-			if got := c.Preview(); got != beforePreview || calls != 1 {
+			if got := c.Preview(); !reflect.DeepEqual(got, beforePreview) || calls != 1 {
 				t.Fatalf("refusal changed/rebuilt preview: got %+v calls %d, want %+v calls 1", got, calls, beforePreview)
 			}
 		})

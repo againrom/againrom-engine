@@ -64,6 +64,7 @@ func definitionNameFixture(t *testing.T, game string) *FrontEnd {
 	f.Table = &mapload.Table{Mods: mapload.ModContext{Characters: []mapload.ModCharacter{
 		{Mod: "m", Rows: []string{"M_Brigand3", "PC_Naira"}, Name: game + " mod brigand"},
 	}}}
+	f.Words.UnitNames = make([]string, 81)
 	for i := range f.Words.UnitNames {
 		if i%6 != 4 {
 			f.Words.UnitNames[i] = fmt.Sprintf("%s class %d", game, i)

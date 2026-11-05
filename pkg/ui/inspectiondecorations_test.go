@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"reflect"
 	"testing"
 )
 
@@ -39,7 +40,7 @@ func TestInspectionSkipsDecorationsButKeepsDamagedBuildings(t *testing.T) {
 				}
 				card, ok := v.InspectionPanel()
 				pane := v.characterPaneView(true)
-				if !ok || card.Kind != want.Kind || card.ID != want.ID || !pane.HasSubject || pane.Subject != card {
+				if !ok || card.Kind != want.Kind || card.ID != want.ID || !pane.HasSubject || !reflect.DeepEqual(pane.Subject, card) {
 					t.Fatal("figure and health card did not follow the eligible subject")
 				}
 				if !tc.inspect {

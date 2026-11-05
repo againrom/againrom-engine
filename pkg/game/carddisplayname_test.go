@@ -31,6 +31,7 @@ func cardCaptionFixtureSubject(t *testing.T, f *FrontEnd, app *ui.App, id sim.En
 func TestSourceDefinitionNamesReachTheCardAsInstalledCaptions(t *testing.T) {
 	f := actorRegistryFront(t)
 	f.SetDeterministicFrames(true)
+	f.Words.UnitNames = make([]string, 36)
 	f.Words.UnitNames[35] = "Localized creature"
 	f.Words.UnitNames[3] = "Localized person"
 	raw := actorRegistrySave(f.Table.Units.EntryName(1), f.Table.Humans.EntryName(1))
@@ -127,6 +128,7 @@ func TestSourceRowZeroDefinitionNamesReachTheCardAsInstalledCaptions(t *testing.
 			parameters[29], parameters[30] = 35, tc.face
 			f.Table.Units = dbCollection{{}, {name: tc.key, params: parameters}}
 			const caption = "Localized row-zero creature"
+			f.Words.UnitNames = make([]string, 36)
 			f.Words.UnitNames[35] = caption
 			body, actors := actorRegistryBody1111(tc.key)
 			body[actors[0].off+16] = 0

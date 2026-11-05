@@ -1,11 +1,15 @@
 package ui
 
-import "againrom/pkg/words"
+import (
+	"slices"
+
+	"againrom/pkg/words"
+)
 
 // Words is the set of program-chosen words this build resolves from the
 // install.
 //
-// A FIELD PER SCALAR WORD OR ONE FINITE ARRAY PER DECODED TABLE. AuthoredWords
+// A FIELD PER SCALAR WORD OR ONE INDEXED TABLE PER DECODED TABLE. AuthoredWords
 // fills the production positions with English fallback strings, and resolution
 // overwrites fields the install states a line for. An unresolved word is a
 // visible default rather than a missing key that draws as nothing.
@@ -106,10 +110,9 @@ type Words struct {
 	// because the eight are read together, by cell, rather than by name.
 	Command [8]string
 
-	// The original unit sheet reads its class name from unitname.txt and its
-	// fixed captions from main.txt. Arrays preserve those two decoded index
-	// spaces without making an index in one table usable in the other.
-	UnitNames [81]string
+	// UnitNames holds every loaded unitname.txt line; indexes outside that
+	// table have no label. PanelCaptions holds the separate main.txt indexes.
+	UnitNames []string
 	// BuildingNames is building.txt indexed by structure class ID (line ID-1);
 	// an empty entry leaves the registry's own name text.
 	BuildingNames [67]string
@@ -397,6 +400,7 @@ func (w Words) OnLayout(l NoticeLayout) NoticeLayout {
 // replaced them through SetNoticeLayouts keeps its own, and this stays the one
 // writer of a word rather than a second writer of an appearance.
 func (v *Viewer) SetWords(w Words) {
+	w.UnitNames = slices.Clone(w.UnitNames)
 	v.words = w
 	v.noticeLayouts[0] = w.OnLayout(v.noticeLayouts[0])
 	v.noticeLayouts[1] = w.OnLayout(v.noticeLayouts[1])
@@ -419,7 +423,11 @@ func (v *Viewer) SetWords(w Words) {
 // Words is the viewer's resolved word set. The tier that owns the world asks
 // for it rather than holding a second copy, so the sentence a notice states and
 // the word its button states cannot come from two different installs.
-func (v *Viewer) Words() Words { return v.words }
+func (v *Viewer) Words() Words {
+	w := v.words
+	w.UnitNames = slices.Clone(w.UnitNames)
+	return w
+}
 
 // word is the engine's own word id in the install's language, in UTF-8.
 func (f *flow) word(id string) string { return f.words.Engine.Text(id) }

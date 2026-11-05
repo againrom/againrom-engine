@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"reflect"
 	"testing"
 )
 
@@ -256,23 +257,16 @@ func TestPanelTwoCellRowPaintStaysInsideTheBox(t *testing.T) {
 	}
 }
 
-// AC-10 — PanelSubject stays comparable with ==. The refresh key (panelKey)
-// holds one directly, and this is that same requirement pinned as a compile
-// check of its own: this test will not build at all once PanelSubject stops
-// being a valid map key.
-func TestPanelSubjectIsUsableAsAMapKey(t *testing.T) {
-	m := map[PanelSubject]int{}
+func TestPanelSubjectComparisonIncludesIdentityAndLoadedNames(t *testing.T) {
 	a := panelSubjectFixture()
 	b := a
 	b.ID = a.ID + 1
-
-	m[a] = 1
-	m[b] = 2
-
-	if m[a] != 1 || m[b] != 2 {
-		t.Errorf("map over PanelSubject keys = %v, %v, want 1, 2", m[a], m[b])
+	if reflect.DeepEqual(a, b) || reflect.DeepEqual(a, PanelSubject{}) {
+		t.Fatal("subject comparison lost identity or zero distinction")
 	}
-	if _, ok := m[PanelSubject{}]; ok {
-		t.Error("the zero PanelSubject was present in a map that never inserted it")
+	b = a
+	b.Words.UnitNames = []string{"Loaded type"}
+	if reflect.DeepEqual(a, b) {
+		t.Fatal("subject comparison ignored the loaded name table")
 	}
 }

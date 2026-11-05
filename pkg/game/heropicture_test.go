@@ -57,6 +57,7 @@ func pictureDriver(t *testing.T, art map[sim.EntityID]*terrain.UnitClass,
 		t.Fatalf("NewViewer: %v", err)
 	}
 	words := ui.AuthoredWords()
+	words.UnitNames = make([]string, pictureBodyClass+1)
 	words.UnitNames[pictureClass], words.UnitNames[pictureBodyClass] = pictureCaption, pictureBodyCaption
 	v.SetWords(words)
 	return newMapWorldWith(w, nil, set, nil, nil, art, v)

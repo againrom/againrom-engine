@@ -3249,7 +3249,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1856,
+		"acclause":        1855,
 		"scclause":        501,
 		"barestorynumber": 1678,
 	},
@@ -4146,5 +4146,5 @@ var Committed = Baseline{
 	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
 	// The shared shop state removes the separate state and rules comments.
 	// Whole-basket buying shortens the obsolete prefix-buy comments.
-	CommentBytes: 10553744,
+	CommentBytes: 10552687,
 }

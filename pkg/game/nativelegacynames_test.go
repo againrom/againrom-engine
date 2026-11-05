@@ -369,6 +369,7 @@ func TestNativeObservedClassNameUsesInstalledCaption(t *testing.T) {
 			mw := newMapWorld(world, nil, &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{69: art}}, worldFixtureViewer(t, m))
 			mw.installActorManifest(manifest)
 			words := mw.view.Words()
+			words.UnitNames = make([]string, 70)
 			words.UnitNames[69] = tc.label
 			mw.view.SetWords(words)
 			hash := world.Hash()
