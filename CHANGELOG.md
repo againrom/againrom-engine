@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] Monsters fight back again when attacked instead of running away or standing still.
+- [ROM1] Improved save compatibility with the original game for protections, Bless, haste and invisibility, including saves made by earlier versions.
 - [BASE] A cell trap now fires when a character steps onto it, not before.
 - [BASE] A popup now darkens the whole screen, with no undimmed edge: the right column and the bottom boxes darken with the map.
 - [ROM2] A merchant in the second game sometimes speaks about an item you move from the shelf to the table.

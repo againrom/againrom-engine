@@ -29,8 +29,15 @@ func originalActorEffect(value sim.SavedEffectObject, target sim.EntityID) (sim.
 	e.Mode = sim.EffectMode(value.Value.Mode)
 	kinds := map[uint8]sim.EffectKind{6: sim.EffectHealth, 8: sim.EffectHealthRegeneration, 11: sim.EffectManaRegeneration, 16: sim.EffectAbsorption, 17: sim.EffectSpeed, 19: sim.EffectScanRange, 21: sim.EffectProtectionFire, 22: sim.EffectProtectionWater, 23: sim.EffectProtectionAir, 24: sim.EffectProtectionEarth, 38: sim.EffectInvisible, 39: sim.EffectBless, 40: sim.EffectCurse}
 	e.Kind = kinds[value.Value.Kind]
-	// Tag 0 is the blank effect a second-game Stone Curse attaches; the
-	// importer admits it only where the World's row attaches one.
+	if value.Value.Kind == 0 {
+		switch e.Spell {
+		case 15:
+			e.Kind = sim.EffectInvisible
+		case 23:
+			e.Kind = sim.EffectBless
+		}
+	}
+	// Other tag-0 rows stay blank, admitted only by the World's blank row.
 	if value.Value.Mode == 0 || value.Value.Mode > 7 || e.Spell >= sim.SpellIDLimit || e.Kind == sim.EffectNone && (value.Value.Kind != 0 || e.Spell == 0) || e.Spell == 0 && (value.Value.Mode > 2 || e.Kind != sim.EffectHealthRegeneration && e.Kind != sim.EffectManaRegeneration && e.Kind != sim.EffectAbsorption) {
 		return e, fmt.Errorf("unsupported actor Effect id%d/kind%d/mode%d", value.E0C, value.Value.Kind, value.Value.Mode)
 	}
@@ -370,6 +377,10 @@ func projectSavedActorEffects(state *SnapshotSAVDocument, world *sim.World) erro
 		for _, name := range []string{"T0C", "E0C", "E3C", "E3D", "E40"} {
 			value, _ := savedStructureValue(&current, name)
 			savedObjectSetValue(&next.Document.Objects[row.ObjectIndex-1], name, value)
+		}
+		if retained, _ := savedStructureValue(&next.Document.Objects[row.ObjectIndex-1], "T0E"); retained == 0 {
+			value, _ := savedStructureValue(&current, "T0E")
+			savedObjectSetValue(&next.Document.Objects[row.ObjectIndex-1], "T0E", value)
 		}
 		savedObjectSetValue(actor, "U144", mask|uint32(1)<<row.Spell)
 	}

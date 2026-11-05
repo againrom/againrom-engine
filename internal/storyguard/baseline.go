@@ -4094,5 +4094,5 @@ var Committed = Baseline{
 
 	// It rises for strideEntersStep in pkg/sim/areacost.go, the crossing-tick
 	// trap request in pkg/sim/step.go and trapcrossing_test.go.
-	CommentBytes: 10523431,
+	CommentBytes: 10523372,
 }

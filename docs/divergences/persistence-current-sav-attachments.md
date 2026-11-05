@@ -1,0 +1,15 @@
+# Divergences -- Persistence -- current SAV unit attachments
+
+Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
+
+## Divergences
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4529 | current SAV / repair of retained unit Effect fields | Heal earlier engine saves whose attached spell effects have Token type zero; preserve a loaded nonzero type | `MAGIC-438` (Medium) finds no explicit same-id refresh store to the retained type or kind; fresh attachment copies the incoming type. `SAV-1397` (Medium) finds type zero in all 28 attachments of the measured engine save and kind zero in the nine nonzero-type Bless and invisibility records | The existing attachment projection refreshes current operands through `newEffectAttachment`. For rows 5, 10, 15, 16, 18, 22, 23 and 24 it replaces a retained zero T0E with 2*row+8. Every loaded nonzero T0E stays loaded. Bless row 23 and invisibility row 15 normalize their legacy kinds 39 and 38 to zero; `originalActorEffect` derives those live kinds from the row | DEVIATION | SAVE repairs the engine's earlier constructor fields without waiting for expiry and a fresh cast. The original's local refresh preserves them; callback mutations and complete LOAD retention remain Unknown | Owner withdraws the repair policy, or research establishes the same field repair in the original | OPEN |
+
+## Authored where research is silent
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4530 | current SAV / unit Effect constructor fields outside the established fresh values | Write the eight directed unit-effect types as a fresh original cast writes them; keep Token +0x04 zero while its construction rule is unread | `SAV-1397` (Medium) observes nonzero Token +0x04 in 13 nonzero-type attachments, zero kind in Bless and invisibility, and kind 17 in haste. The constructor setting +0x04 is unread. `MAGIC-438` (Medium) shows cast types 2*row+8 for the eight directed rows and 2*id+9 in other branches; the full cast-to-attachment composition remains Unknown | `newEffectAttachment` writes T0E 2*row+8 for rows 5, 10, 15, 16, 18, 22, 23 and 24, kind zero for row-15 invisibility and row-23 Bless, and the current kind for other effects. New Token +0x04 remains zero; a bound record keeps its loaded +0x04. Other representable rows keep constructor type zero. Fresh original kinds for rows 5, 10, 16, 18 and 22 are not sampled; their current kinds remain 21, 22, 23, 16 and 24 | UNKNOWN | No rule derives +0x04. Only the eight directed cast types have unit-attachment authority for this repair. The other-row constructor policy remains bounded debt rather than an invented field value | Establish the Token +0x04 constructor and fresh unit-attachment fields for the other rows; validate original cold LOAD separately | OPEN |

@@ -16,6 +16,13 @@ func newEffectAttachment(e sim.ActiveEffect) (sav.DocumentRecordData, error) {
 	}
 	row := sim.SavedEffectObject{E0C: uint8(e.Spell), Value: sim.ItemEffect{Kind: kind, Mode: uint8(e.Mode), Operand: uint32(uint16(e.Magnitude)) | uint32(e.Remaining)<<16}}
 	row.Token.T0C = row.E0C
+	switch e.Spell {
+	case 5, 10, 15, 16, 18, 22, 23, 24:
+		row.Token.T0E = 2*e.Spell + 8
+	}
+	if e.Spell == 15 && e.Kind == sim.EffectInvisible || e.Spell == 23 && e.Kind == sim.EffectBless {
+		row.Value.Kind = 0
+	}
 	back, err := originalActorEffect(row, e.Target)
 	e.Caster, e.HasCaster = 0, false
 	e.Magnitude = int32(int16(e.Magnitude))
