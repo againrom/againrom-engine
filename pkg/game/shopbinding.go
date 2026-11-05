@@ -66,10 +66,7 @@ func (t *townScreen) bindShop(row shopBinding) {
 
 // hostShopRow is the row the host's rules choose for the town's shop room.
 func (t *townScreen) hostShopRow() shopBinding {
-	if t.hostRules().Shop == town.ShopBank {
-		return t.bankShopRow()
-	}
-	return t.chapterShopRow()
+	return t.campaignTown().townShop().profile().binding(t)
 }
 
 // chapterShopRow is the first game's town room as the page's row: the

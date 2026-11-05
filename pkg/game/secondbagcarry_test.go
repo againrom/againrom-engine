@@ -574,7 +574,7 @@ func TestSecondBagComesHomeAsTheMissionLeftIt(t *testing.T) {
 	i := slices.IndexFunc(stacks, func(it secondshop.Item) bool { return it.Table == secondshop.Magic && it.Row == 1 })
 	c.shop.filled, c.shop.tables = 1, secondShopTestTables
 	gold := 0
-	if i < 0 || !c.shop.offer(c.heroBag(), i) || !c.shop.sell(c.heroBag(), &gold) || gold != 20 {
+	if i < 0 || !c.shop.offer(c.heroBag(), i) || !c.shop.sellBag(c.heroBag(), &gold) || gold != 20 {
 		t.Fatalf("the sale of the potions: stack %d gold %d", i, gold)
 	}
 }

@@ -98,7 +98,7 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 		v.InputEpoch = shop.inputEpoch
 	}
 	purse := int32(t.sess.Town.Gold())
-	buy, sell := shop.BuyTotal(), shop.SellTotal()
+	buy, sell := t.shownShopTotals()
 	v.Purse, v.Buy, v.Sell, v.Total = purse, buy, sell, purse+sell-buy
 
 	// Buy and Sell accept a press even on an empty table. The transaction
@@ -675,6 +675,16 @@ func (t *shopController) shownShopPrice(in sim.ItemInstance) int32 {
 		return t.row.shownPrice(in)
 	}
 	return in.Price
+}
+
+func (t *shopController) shownShopTotals() (buy, sell int32) {
+	shop := t.deal()
+	if shop == nil {
+		return
+	}
+	rules := shop.rules()
+	rules.price = func(i ShopItem) int64 { return int64(t.shownShopPrice(i.Instance())) }
+	return int32(shop.buyTotal(rules)), int32(shop.sellTotal(rules))
 }
 
 // itemInfo is the caption of a cell holding instance: the item lines of the

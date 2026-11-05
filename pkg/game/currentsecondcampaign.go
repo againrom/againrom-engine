@@ -243,7 +243,8 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c.Aux != nil {
 		// A document with the array predates the records in the shop: they
 		// are rebuilt from the bank's departures (R2-ENGINE-330).
-		out.shop.records = replayRecords(c.Bank)
+		records := replayRecords(c.Bank)
+		out.shop.records = shopRecordRows(records)
 	}
 	if c.Room != nil {
 		out.room = *c.Room
@@ -280,7 +281,7 @@ func secondFileSession(sf *sav.File) (*currentSessionData, error) {
 	if !ok {
 		return nil, fmt.Errorf("second-game save names no current location")
 	}
-	var shop secondShop
+	shop := newSecondShop()
 	for l, record := range tail.Shops {
 		for k, cell := range record {
 			shop.records[l][k] = secondshop.Category(cell)

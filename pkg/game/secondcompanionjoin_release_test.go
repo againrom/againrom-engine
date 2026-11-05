@@ -149,7 +149,8 @@ func TestReleaseSecondKaargShopPaneStepsToIglez(t *testing.T) {
 	for n := 10; n < int(c.bank[768]); n += 10 {
 		c.bank[896+n] = 1
 	}
-	c.shop.records = replayRecords(c.bank)
+	records := replayRecords(c.bank)
+	c.shop.records = shopRecordRows(records)
 	secondLaterChoose(t, app, "EXIT")
 	secondShopEnter(t, f, app, s)
 	f.Town.gold = 5000000
@@ -170,7 +171,7 @@ func TestReleaseSecondKaargShopPaneStepsToIglez(t *testing.T) {
 			continue
 		}
 		secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[cat])
-		for i, it := range c.shop.shelf() {
+		for i, it := range c.shop.shownShelf() {
 			if it.Count >= 1 && i < len(s.ShopScreen().Shelf) {
 				entry = i
 				break

@@ -241,7 +241,7 @@ func (chapterTownCampaign) bank() *secondCampaign { return nil }
 
 // townShop is the session's town-arrival shop, none while the session holds
 // none.
-func (c chapterTownCampaign) townShop() townRestocker {
+func (c chapterTownCampaign) townShop() *Shop {
 	if c.t.sess == nil || c.t.sess.Shop == nil {
 		return nil
 	}

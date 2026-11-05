@@ -154,7 +154,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 			t.Fatal(err)
 		}
 		restored := cold.restore()
-		restored.shop.trade = c.shop.trade
+		restored.shop.location = c.shop.location
 		if !reflect.DeepEqual(c, restored) {
 			t.Fatal("quiet town2 restoration")
 		}

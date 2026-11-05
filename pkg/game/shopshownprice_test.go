@@ -46,7 +46,7 @@ func TestShownShelfClickAndUndoKeepServerOrder(t *testing.T) {
 	c.shop.shelves[0] = secondShopItems(secondShopTestTables, server)
 	s := secondShopPage(c, 1000)
 	s.click(ui.ShopControlShelfPick, 0)
-	if got := c.shop.shelf()[0].Effects[0].Operand; got != 2 {
+	if got := c.shop.shownShelf()[0].Effects[0].Operand; got != 2 {
 		t.Fatalf("first shown effect %d, want 2", got)
 	}
 	before := c.shop.stock()
@@ -61,7 +61,7 @@ func TestShownShelfClickAndUndoKeepServerOrder(t *testing.T) {
 	if !reflect.DeepEqual(before, c.shop.stock()) {
 		t.Fatal("Undo changed server order or quantities")
 	}
-	clone := cloneShopMutation(&c.shop.Shop)
+	clone := cloneShopMutation(&c.shop)
 	if !reflect.DeepEqual(clone.shelves[0], c.shop.shelves[0]) {
 		t.Fatal("mutation clone changed server order")
 	}

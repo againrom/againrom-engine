@@ -24,7 +24,9 @@ func TestCurrentSecondCampaignJSONBoundsAndDetachment(t *testing.T) {
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(source, decoded.restore()) {
+	want := *source
+	want.shop = newShopState(&bankShopProfile, shopRecordRows(source.shop.nativeRecords()))
+	if !reflect.DeepEqual(&want, decoded.restore()) {
 		t.Fatal("campaign bank/destination changed")
 	}
 	source.bank[1000]++
@@ -129,7 +131,9 @@ func TestCurrentSecondOrdinaryMissionsKeepTheirCampaign(t *testing.T) {
 		if err := json.Unmarshal(raw, &decoded); err != nil {
 			t.Fatalf("ordinary mission %d refused: %v", mission, err)
 		}
-		if !reflect.DeepEqual(source, decoded.restore()) {
+		want := *source
+		want.shop = newShopState(&bankShopProfile, shopRecordRows(source.shop.nativeRecords()))
+		if !reflect.DeepEqual(&want, decoded.restore()) {
 			t.Fatalf("ordinary mission %d lost its campaign", mission)
 		}
 	}

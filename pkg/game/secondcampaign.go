@@ -31,7 +31,7 @@ type secondCampaign struct {
 	available []partyPlace
 	current   partyPlace
 	room      secondTownRoom
-	shop      secondShop
+	shop      Shop
 	// party is the hero alone; his bag is the shop's customer.
 	party []mapload.PartyMember
 	// legacyHero is an older document's hero list waiting for the
@@ -127,6 +127,10 @@ func (c *secondCampaign) complete(w *sim.World) int {
 // and answers the output DWORD: -1 unless a case body stores one
 // (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148, R2-SESSION-047..050).
 func (c *secondCampaign) completeBank(bank [1024]int32) int {
+	if c.shop.policy == nil {
+		shop := newShopState(&bankShopProfile, shopRecordRows(c.shop.nativeRecords()))
+		c.shop.policy, c.shop.records = shop.policy, shop.records
+	}
 	n := c.current.id
 	output := -1
 	c.bank = bank

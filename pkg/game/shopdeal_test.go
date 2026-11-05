@@ -26,7 +26,7 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 		t.Fatal("first game: a purse short of the whole basket bought (whole-basket guard)")
 	}
 
-	second := &secondShop{records: secondshop.NewGameRecords, filled: 1}
+	second := &Shop{policy: &bankShopProfile, records: shopRecordRows(secondshop.NewGameRecords), filled: 1}
 	second.shelves[0] = secondShopItems(secondshop.Tables{}, []secondshop.Item{
 		{Table: secondshop.Magic, Row: 70, Count: 1, Price: 40},
 		{Table: secondshop.Magic, Row: 71, Count: 1, Price: 30},
@@ -42,8 +42,8 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 		t.Fatalf("second game: emptied entries %v, want placeholders kept", second.shelves[0])
 	}
 	bought, spent, ok := second.shopDeal.buy(r, 75)
-	if !ok || len(bought) != 2 || spent != 50 || len(second.buying()) != 1 || second.buying()[0].Row != 70 || len(second.shelves[0]) != 3 {
-		t.Fatalf("second game: buy at 75 bought %v spent %d left %v, want the first two and the third kept", bought, spent, second.buying())
+	if ok || len(bought) != 0 || spent != 0 || len(second.buying()) != 3 || len(second.shelves[0]) != 3 {
+		t.Fatalf("second game: buy at 75 bought %v spent %d left %v, want the whole basket refused", bought, spent, second.buying())
 	}
 	// Loss control: the first game's rules on the same deal refuse it whole.
 	whole := r

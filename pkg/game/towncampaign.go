@@ -21,7 +21,7 @@ type townCampaignAdapter interface {
 	leave()
 	bank() *secondCampaign
 	// townShop is the shop the town's Sleep restocks; nil is none.
-	townShop() townRestocker
+	townShop() *Shop
 	chapter() int
 	unavailableTowns() []int
 	startCampaign() error

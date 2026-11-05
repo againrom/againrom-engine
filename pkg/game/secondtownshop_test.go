@@ -47,17 +47,17 @@ func TestSecondShopDealSettlesGoldAndItems(t *testing.T) {
 	if !s.take(0) || !s.take(0) || s.shelves[0][0].Count != 1 || len(s.buying()) != 1 || s.buying()[0].Count != 2 {
 		t.Fatalf("take: stock %v buying %v", s.shelves[0], s.buying())
 	}
-	if !s.buy(bag, &gold) || gold != 50 || len(s.buying()) != 0 || len(c.heroItems()) != 2 || c.heroItems()[1].Count != 2 || len(*bag) != 6 {
+	if !s.buyBag(bag, &gold) || gold != 50 || len(s.buying()) != 0 || len(c.heroItems()) != 2 || c.heroItems()[1].Count != 2 || len(*bag) != 6 {
 		t.Fatalf("buy: gold %d buying %v hero %v", gold, s.buying(), c.heroItems())
 	}
 	if (*bag)[4].Code != 2<<12|6<<8|1<<5|3 || (*bag)[0].Code != 0x0e00|70 {
 		t.Fatalf("bag codes %#04x %#04x", (*bag)[4].Code, (*bag)[0].Code)
 	}
 	s.take(0)
-	if s.buy(bag, &gold) || gold != 50 || len(s.buying()) != 1 {
+	if s.buyBag(bag, &gold) || gold != 50 || len(s.buying()) != 1 {
 		t.Fatalf("unaffordable buy settled: gold %d buying %v", gold, s.buying())
 	}
-	if !s.offer(bag, 1) || !s.sell(bag, &gold) || gold != 50+125 || s.shelves[0][0].Count != 2 {
+	if !s.offer(bag, 1) || !s.sellBag(bag, &gold) || gold != 50+125 || s.shelves[0][0].Count != 2 {
 		t.Fatalf("sell: gold %d stock %v", gold, s.shelves[0])
 	}
 	s.leave(bag)
@@ -69,7 +69,7 @@ func TestSecondShopDealSettlesGoldAndItems(t *testing.T) {
 	*bag, _ = secondShopTestTables.Units(secondshop.Item{Table: secondshop.Magic, Row: 70, Count: 3, Price: 83})
 	gold = 0
 	s.offer(bag, 0)
-	s.sell(bag, &gold)
+	s.sellBag(bag, &gold)
 	if gold != 125 || len(*bag) != 0 {
 		t.Fatalf("sale credit of 3 at 83 = %d, want 125; bag %d", gold, len(*bag))
 	}
@@ -104,7 +104,7 @@ func TestSecondShopSaveRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	sample := secondShopSample()
-	want := secondShop{records: sample.shop.records}
+	want := newShopState(&bankShopProfile, sample.shop.records)
 	restored := decoded.restore()
 	if !reflect.DeepEqual(restored.shop, want) || !reflect.DeepEqual(restored.heroItems(), sample.heroItems()) {
 		t.Fatalf("restored shop %+v hero %v, want %+v %v", restored.shop, restored.heroItems(), want, sample.heroItems())
@@ -270,7 +270,7 @@ func TestSecondShopModStockReachesShelf(t *testing.T) {
 	}
 	gold := 100
 	c.shop.category = shelf
-	if !c.shop.take(at) || !c.shop.buy(c.heroBag(), &gold) || gold != 23 || len(*c.heroBag()) != 1 || (*c.heroBag())[0].Code != code {
+	if !c.shop.take(at) || !c.shop.buyBag(c.heroBag(), &gold) || gold != 23 || len(*c.heroBag()) != 1 || (*c.heroBag())[0].Code != code {
 		t.Fatalf("buy of the mod item: gold %d bag %v", gold, *c.heroBag())
 	}
 }
@@ -282,9 +282,9 @@ func (c *secondCampaign) heroItems() []secondshop.Item {
 }
 
 // visibleShelf answers the shown category's entries with units left.
-func (s *secondShop) visibleShelf() []int {
+func (s *Shop) visibleShelf() []int {
 	var out []int
-	for i, it := range s.shelf() {
+	for i, it := range s.shownShelf() {
 		if it.Count > 0 {
 			out = append(out, i)
 		}

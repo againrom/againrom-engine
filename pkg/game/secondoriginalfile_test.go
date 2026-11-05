@@ -573,7 +573,7 @@ func TestSecondFileSessionReadsTheCampaignTail(t *testing.T) {
 		t.Fatalf("session %+v, want the second game's", s)
 	}
 	c := s.Second
-	if c.Shop != nil || c.restore().shop.records != secondshop.NewGameRecords {
+	if c.Shop != nil || c.restore().shop.nativeRecords() != secondshop.NewGameRecords {
 		t.Fatalf("a grid of the new game's records restores %+v", c.Shop)
 	}
 	if c.Bank[768] != 10 || c.Current != (currentSecondLocation{placeTown, 1}) {
@@ -807,7 +807,7 @@ func TestBsgTownShopRecordsAreTheGrids(t *testing.T) {
 	if second == nil || second.current != (partyPlace{placeTown, 2}) {
 		t.Fatalf("town %+v, want town 2", second)
 	}
-	if got := second.shop.records; got != grid || got == secondshop.NewGameRecords {
+	if got := second.shop.nativeRecords(); got != grid || got == secondshop.NewGameRecords {
 		t.Fatalf("records %+v, want the grid's %+v", got, grid)
 	}
 	saved := captureSecondCampaign(second)
@@ -822,7 +822,7 @@ func TestBsgTownShopRecordsAreTheGrids(t *testing.T) {
 	if err := json.Unmarshal(raw, &cold); err != nil {
 		t.Fatalf("cold LOAD: %v", err)
 	}
-	if got := cold.restore().shop.records; got != grid {
+	if got := cold.restore().shop.nativeRecords(); got != grid {
 		t.Fatalf("the cold LOAD restores %+v, want the grid's records", got)
 	}
 }

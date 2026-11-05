@@ -89,9 +89,8 @@ func TestSecondShopOlderLargeStackLoads(t *testing.T) {
 
 // TestSecondShopPageKeepsUnstackableLotsApart stages two equal enchanted
 // items and two units of one book through the page: each is its own table
-// place, so a purse that pays for one buys one and leaves the next pending
-// (R2-ENGINE-265, R2-ENGINE-266, DIV-3065); the bought books stay apart in
-// the bag view and each offered book opens its own place.
+// place. A short purse refuses both; an affordable pair stays apart in the
+// bag view and each offered book opens its own place.
 func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	armour := secondshop.Item{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Effects: []sim.ItemEffect{{Kind: 15, Operand: 4}}, Count: 1, Price: 901}
 	c := secondShopSample()
@@ -105,8 +104,8 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 		t.Fatalf("two enchanted items staged as %d places", len(c.shop.Table()))
 	}
 	s.click(ui.ShopControlButton, 1)
-	if s.sess.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
-		t.Fatalf("enchanted partial buy: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
+	if s.sess.Town.gold != 901 || len(*c.heroBag()) != 0 || secondShopUnits(c) != 2 {
+		t.Fatalf("enchanted whole refusal: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
 	}
 
 	c = secondShopSample()
@@ -119,10 +118,10 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 		t.Fatalf("two units of a book staged as %d places", len(c.shop.Table()))
 	}
 	s.click(ui.ShopControlButton, 1)
-	if s.sess.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
-		t.Fatalf("book partial buy: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
+	if s.sess.Town.gold != 1000 || len(*c.heroBag()) != 0 || secondShopUnits(c) != 2 {
+		t.Fatalf("book whole refusal: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
 	}
-	s.sess.Town.gold = 1000
+	s.sess.Town.gold = 2000
 	s.click(ui.ShopControlButton, 1)
 	v := s.ShopScreen()
 	if len(*c.heroBag()) != 2 || v.Pack[1].Count != 1 || v.Pack[2].Count != 1 {

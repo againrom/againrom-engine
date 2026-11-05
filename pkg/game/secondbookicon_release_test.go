@@ -109,9 +109,9 @@ func TestReleaseSecondShopBookIcons(t *testing.T) {
 		if got := s.shopItemIcon(book); !sameIcon(got, want) {
 			t.Errorf("spell %d code %04x: icon %v, want the school's", it.Spell, book.Code, got != nil)
 		}
-		entry := slices.IndexFunc(c.shop.shelf(), func(x secondshop.Item) bool { return x.Table == secondshop.Book && x.Spell == it.Spell })
+		entry := slices.IndexFunc(c.shop.shownShelf(), func(x secondshop.Item) bool { return x.Table == secondshop.Book && x.Spell == it.Spell })
 		var cell *ui.ShopCell
-		s.ShopScroll(ui.ShopWheelShelf, -len(c.shop.shelf()))
+		s.ShopScroll(ui.ShopWheelShelf, -len(c.shop.shownShelf()))
 		for top := 0; top <= entry && cell == nil; top++ {
 			s.ShopScroll(ui.ShopWheelShelf, min(top, 1))
 			v := s.ShopScreen()
@@ -144,7 +144,7 @@ func TestReleaseSecondShopBookIcons(t *testing.T) {
 
 	// The table and the pack: buy the first book.
 	visible := c.shop.visibleShelf()
-	at := slices.Index(visible, slices.IndexFunc(c.shop.shelf(), func(it secondshop.Item) bool { return it.Table == secondshop.Book && it.Spell == first.Spell }))
+	at := slices.Index(visible, slices.IndexFunc(c.shop.shownShelf(), func(it secondshop.Item) bool { return it.Table == secondshop.Book && it.Spell == first.Spell }))
 	if at < 0 {
 		t.Fatal("the first book is not on the shown shelf")
 	}
@@ -152,9 +152,9 @@ func TestReleaseSecondShopBookIcons(t *testing.T) {
 	// The app's own shop page turns by the wheel over the shelf, one row a
 	// notch, from its top row.
 	pick, top := visible[at], secondShopPagePoint(t, app, "shelf", 0)
-	for n := range len(c.shop.shelf()) + pick/2 {
+	for n := range len(c.shop.shownShelf()) + pick/2 {
 		action := "wheel-up"
-		if n >= len(c.shop.shelf()) {
+		if n >= len(c.shop.shownShelf()) {
 			action = "wheel-down"
 		}
 		if err := app.HeadlessPointer(action, top.X, top.Y); err != nil {

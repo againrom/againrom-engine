@@ -57,10 +57,10 @@ func TestReleaseSecondShopLiftedItemLeavesNoName(t *testing.T) {
 	for k := 0; k < 4 && books == 0; k++ {
 		secondShopActivate(t, f, app, fmt.Sprintf("SHELF %d", k+1))
 		for _, idx := range c.shop.visibleShelf() {
-			if c.shop.shelf()[idx].Table == secondshop.Book {
+			if c.shop.shownShelf()[idx].Table == secondshop.Book {
 				s.ShopScroll(ui.ShopWheelShelf, idx/2)
 				shopTap(t, app, secondShopPagePoint(t, app, "shelf", idx-s.shelfBase), "press", "release")
-				s.ShopScroll(ui.ShopWheelShelf, -len(c.shop.shelf()))
+				s.ShopScroll(ui.ShopWheelShelf, -len(c.shop.shownShelf()))
 				secondShopActivate(t, f, app, "BUY")
 				books++
 				break

@@ -70,7 +70,7 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 
 			// The shown category, in the deal's order.
 			v := s.ShopScreen()
-			shelf := c.shop.shelf()
+			shelf := c.shop.shownShelf()
 			for i := 0; i < len(v.Shelf) && i < len(shelf); i++ {
 				cell, it := v.Shelf[i], shelf[i]
 				shown := it.Price
@@ -100,7 +100,7 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 					continue
 				}
 				secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[cat])
-				for i, it := range c.shop.shelf() {
+				for i, it := range c.shop.shownShelf() {
 					if it.Count >= 2 && i < len(v.Shelf) {
 						k, entry = cat, i
 						break
@@ -110,18 +110,18 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 			if entry < 0 {
 				t.Fatal("no shown entry holds two units")
 			}
-			want := c.shop.shelf()[entry]
+			want := c.shop.shownShelf()[entry]
 			at := secondShopPagePoint(t, app, "shelf", entry)
 			shopTap(t, app, at, "press", "release")
-			if secondShopUnits(c) != 1 || c.shop.shelf()[entry].Count != want.Count-1 {
+			if secondShopUnits(c) != 1 || c.shop.shownShelf()[entry].Count != want.Count-1 {
 				t.Fatalf("a click took %d units", secondShopUnits(c))
 			}
 			shopTap(t, app, at, "shift-press", "shift-release")
-			if secondShopUnits(c) != int(want.Count) || c.shop.shelf()[entry].Count != 0 {
+			if secondShopUnits(c) != int(want.Count) || c.shop.shownShelf()[entry].Count != 0 {
 				t.Fatalf("a shift click left %d of %d units staged", secondShopUnits(c), want.Count)
 			}
 			secondShopActivate(t, f, app, "UNDO")
-			if secondShopUnits(c) != 0 || c.shop.shelf()[entry].Count != want.Count {
+			if secondShopUnits(c) != 0 || c.shop.shownShelf()[entry].Count != want.Count {
 				t.Fatal("UNDO did not return the units")
 			}
 
@@ -250,7 +250,7 @@ func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 			continue
 		}
 		secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[k])
-		for i, it := range c.shop.shelf() {
+		for i, it := range c.shop.shownShelf() {
 			if it.Table == secondshop.Book && it.Count >= 2 && it.Price > 0 && entry < 0 {
 				entry, book = i, it
 			}
@@ -290,7 +290,7 @@ func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 		}
 		secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[cat])
 		stack, others = -1, nil
-		for i, it := range c.shop.shelf() {
+		for i, it := range c.shop.shownShelf() {
 			switch {
 			case i >= cells || it.Count < 1:
 			case stack < 0 && it.Count >= 2 && secondshop.Stacking.Merges(it, it):
@@ -335,12 +335,12 @@ func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 		t.Logf("tap at %v: table %d places, bag %d", at, len(c.shop.Table()), len(*c.heroBag()))
 	}
 	places(ShopTablePlaces, 1, "five mixed lots")
-	sixth := c.shop.shelf()[others[2]].Count
+	sixth := c.shop.shownShelf()[others[2]].Count
 	shopTap(t, app, shelf(others[2]), "press", "release")
 	shopTap(t, app, pack(), "press", "release")
 	places(ShopTablePlaces, 1, "a sixth distinct lot")
-	if c.shop.shelf()[others[2]].Count != sixth {
-		t.Fatalf("the refused lot left the shelf: %d of %d", c.shop.shelf()[others[2]].Count, sixth)
+	if c.shop.shownShelf()[others[2]].Count != sixth {
+		t.Fatalf("the refused lot left the shelf: %d of %d", c.shop.shownShelf()[others[2]].Count, sixth)
 	}
 	shopTap(t, app, shelf(stack), "press", "release")
 	places(ShopTablePlaces, 1, "a joining unit at capacity")
@@ -371,10 +371,10 @@ func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 	places(ShopTablePlaces, 1, "the lot after a return")
 	secondShopActivate(t, f, app, "UNDO")
 	places(0, 3, "undo")
-	if c.shop.shelf()[stack].Count < 2 || c.shop.shelf()[others[0]].Count < 1 {
-		t.Fatalf("undo left the shelf %v", c.shop.shelf())
+	if c.shop.shownShelf()[stack].Count < 2 || c.shop.shownShelf()[others[0]].Count < 1 {
+		t.Fatalf("undo left the shelf %v", c.shop.shownShelf())
 	}
-	price := c.shop.shelf()[others[2]].Price
+	price := c.shop.shownShelf()[others[2]].Price
 	shopTap(t, app, shelf(others[2]), "press", "release")
 	places(1, 3, "the lot after undo")
 	gold := f.Town.gold

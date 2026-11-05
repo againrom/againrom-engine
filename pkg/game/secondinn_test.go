@@ -13,6 +13,7 @@ import (
 
 func innAt(town int, stage int32, slots map[int]int32) *secondCampaign {
 	c := &secondCampaign{current: partyPlace{2, town}, available: []partyPlace{{2, town}}}
+	c.shop = newShopState(&bankShopProfile, shopRecordRows(c.shop.nativeRecords()))
 	c.bank[768] = stage
 	for slot, value := range slots {
 		c.bank[slot] = value

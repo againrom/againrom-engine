@@ -34,10 +34,7 @@ func (t *townScreen) AtTownShop() bool {
 	if t == nil {
 		return false
 	}
-	if t.hostRules().Shop == town.ShopBank {
-		return t.bankShopShown()
-	}
-	return t.displayRoom() == "shop"
+	return t.campaignTown().townShop().profile().shown(t)
 }
 
 func (t *townScreen) AtTownSquare() bool {

@@ -100,7 +100,15 @@ func (t *Town) newShop(in townInstall) *Shop {
 	ceiling := int32(t.ChapterData().ShopMax)
 	shop := NewShop(ceiling)
 	shop.stockMultiplier = in.stockMultiplier
-	shop.GenerateWith(in.table, shopSeed(t.Chapter(), t.finishedCount(), ceiling), in.stock)
+	ids := []int{t.townID()}
+	for _, entry := range t.camp.Towns.chapterTowns() {
+		ids = append(ids, entry.ID)
+	}
+	shop.location = t.townID()
+	shop.deriveRecords(ids)
+	if shop.profile().fillOnArrival {
+		shop.GenerateWith(in.table, shopSeed(t.Chapter(), t.finishedCount(), ceiling), in.stock)
+	}
 	return shop
 }
 

@@ -52,12 +52,13 @@ func shopFixedBound(n int) shopstock.Bound {
 // (DIV-1862). The stock multiplier (DIV-3960) rolls on its own generator
 // from the shop's seed. A nil draw source stocks no books shelf.
 func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profile[shopStockCandidate, ShopItem] {
-	allArmour := shopArmourPool(t, s.ceiling)
-	allWeapons := shopWeaponPool(t, s.ceiling)
+	record := *s.records[s.location]
+	ceiling := record[ShelfArmour].Max
+	allArmour := shopArmourPool(t, ceiling)
+	allWeapons := shopWeaponPool(t, ceiling)
 	armour := shopPlainShelfPool(allArmour)
 	weapons := shopPlainShelfPool(allWeapons)
 	magic := append(append([]data.ShopCandidate{}, allArmour...), allWeapons...)
-	ceiling := s.ceiling
 	stack := shopShelfStack(t)
 	order := func(items []ShopItem) []ShopItem {
 		if len(items) < 2 {
@@ -84,10 +85,10 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	enchanted := func(c shopStockCandidate, src shopstock.Source) (ShopItem, bool) {
 		return shopEnchant(c.row, ceiling, t, src, p.Repeat)
 	}
-	plainDraws, magicDraws := shopShelfDraws[ShelfArmour], shopShelfDraws[ShelfMagic]
+	plainDraws, magicDraws := int(record[ShelfArmour].Draws), int(record[ShelfMagic].Draws)
 	p.Categories = []shopstock.Category[shopStockCandidate, ShopItem]{
 		ShelfArmour:  shelf(armour, plainDraws, plainDraws, plainDraws, plain),
-		ShelfWeapons: shelf(weapons, shopShelfDraws[ShelfWeapons], shopShelfDraws[ShelfWeapons], shopShelfDraws[ShelfWeapons], plain),
+		ShelfWeapons: shelf(weapons, int(record[ShelfWeapons].Draws), int(record[ShelfWeapons].Draws), int(record[ShelfWeapons].Draws), plain),
 		ShelfMagic:   shelf(magic, magicDraws, 10*magicDraws+1, 100*(10*magicDraws+1), enchanted),
 	}
 	if r != nil {

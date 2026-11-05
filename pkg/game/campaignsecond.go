@@ -383,12 +383,13 @@ func (c destinationTownCampaign) startCampaign() error {
 }
 
 // townShop is the campaign, whose one shop stocks the party's town.
-func (c destinationTownCampaign) townShop() townRestocker {
+func (c destinationTownCampaign) townShop() *Shop {
 	if c.t.sess == nil {
 		return nil
 	}
 	if s := secondOf(c.t.sess); s != nil {
-		return s
+		s.shop.location = s.current.id
+		return &s.shop
 	}
 	return nil
 }

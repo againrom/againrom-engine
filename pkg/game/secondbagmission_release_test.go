@@ -211,7 +211,7 @@ func secondBagComeHome(t *testing.T, f *FrontEnd, app *ui.App, bag []string, rep
 	}
 	c.shop.filled, c.shop.tables = 2, tables
 	gold, units := f.Town.gold, len(*c.heroBag())
-	if !c.shop.offer(c.heroBag(), 0) || !c.shop.sell(c.heroBag(), &f.Town.gold) || len(*c.heroBag()) >= units || f.Town.gold < gold {
+	if !c.shop.offer(c.heroBag(), 0) || !c.shop.sellBag(c.heroBag(), &f.Town.gold) || len(*c.heroBag()) >= units || f.Town.gold < gold {
 		t.Fatalf("the sale at town 2: gold %d -> %d, units %d -> %d", gold, f.Town.gold, units, len(*c.heroBag()))
 	}
 }
@@ -245,10 +245,10 @@ func TestReleaseSecondBagPotionIsDrunkInMissionTen(t *testing.T) {
 	// rows the page shows.
 	for k := range c.shop.shelves {
 		c.shop.choose(k)
-		for i, it := range c.shop.shelf() {
+		for i, it := range c.shop.shownShelf() {
 			u, ok := c.shop.tables.Instance(it)
 			if h, potion := secondBagHealing(u.Code, f.Table); ok && potion && it.Count > 0 && code == 0 {
-				if !c.shop.take(i) || !c.shop.buy(c.heroBag(), &f.Town.gold) {
+				if !c.shop.take(i) || !c.shop.buyBag(c.heroBag(), &f.Town.gold) {
 					t.Fatalf("the shop did not sell potion %#04x", u.Code)
 				}
 				code, heal = u.Code, h

@@ -82,7 +82,7 @@ func secondPartyJSON(p []currentPartyMember) string {
 
 // secondShopUndone is the stock s holds once its open deal is undone,
 // without changing s.
-func secondShopUndone(s secondShop) secondshop.Stock {
+func secondShopUndone(s Shop) secondshop.Stock {
 	for c := range s.shelves {
 		s.shelves[c] = append([]ShopItem(nil), s.shelves[c]...)
 	}
@@ -165,7 +165,7 @@ func secondShopColdProof(t *testing.T, path string, id int) {
 	if !ok {
 		t.Fatal("no shop tables")
 	}
-	fresh := tables.Fill(c.shop.records[id], random.NewService(f.randomService().Session()).Stream(random.ShopStock).Raw)
+	fresh := tables.Fill(*c.shop.records[id], random.NewService(f.randomService().Session()).Stream(random.ShopStock).Raw)
 	if c.shop.filled != id || !reflect.DeepEqual(c.shop.stock(), fresh) {
 		t.Fatalf("cold LOAD: filled %d, stock equals a fresh draw %v", c.shop.filled, reflect.DeepEqual(c.shop.stock(), fresh))
 	}
@@ -174,7 +174,7 @@ func secondShopColdProof(t *testing.T, path string, id int) {
 	if reflect.DeepEqual(proof.Old, fresh) {
 		t.Fatal("loss control: the stock at SAVE equals the fresh draw")
 	}
-	first := c.shop.shelf()[c.shop.visibleShelf()[0]]
+	first := c.shop.shownShelf()[c.shop.visibleShelf()[0]]
 	hero := len(c.heroItems())
 	secondShopActivate(t, f, app, "UNDO", "ITEM 1", "BUY")
 	if f.Town.gold != proof.Gold-int(first.Price) || len(c.heroItems()) < hero || f.TownScreen().Header() != "ROM2 campaign: shop" {
@@ -253,7 +253,7 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 	secondShopWitness(t, app, "town1-shop-open")
 	secondShopNamesResolve(t, f)
 	f.Town.gold = 5000
-	first := c.shop.shelf()[c.shop.visibleShelf()[0]]
+	first := c.shop.shownShelf()[c.shop.visibleShelf()[0]]
 	secondShopActivate(t, f, app, "ITEM 1", "BUY")
 	if f.Town.gold != 5000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Count != 1 {
 		t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())

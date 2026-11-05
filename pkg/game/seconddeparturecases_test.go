@@ -72,20 +72,20 @@ func departureOutput(n int, bank [1024]int32) int {
 }
 
 // auxOf is the departure's auxiliary view of the shop: records 2 and 3.
-func auxOf(s secondShop) secondAux {
+func auxOf(s Shop) secondAux {
 	var aux secondAux
 	for i := range aux {
-		e := s.entry(i)
+		e := &s.records[2+i/4][i%4]
 		aux[i] = [5]int32{e.Min, e.Max, e.Draws, e.Bound, int32(e.Mask)}
 	}
 	return aux
 }
 
 // shopWithAux is a new game's shop whose records 2 and 3 hold aux.
-func shopWithAux(aux secondAux) secondShop {
+func shopWithAux(aux secondAux) Shop {
 	s := newSecondShop()
 	for i, f := range aux {
-		*s.entry(i) = secondshop.Category{Min: f[0], Max: f[1], Draws: f[2], Bound: f[3], Mask: uint32(f[4])}
+		s.records[2+i/4][i%4] = secondshop.Category{Min: f[0], Max: f[1], Draws: f[2], Bound: f[3], Mask: uint32(f[4])}
 	}
 	return s
 }
@@ -366,7 +366,7 @@ func TestCurrentSecondLegacyAuxiliaryArrayRebuildsRecords(t *testing.T) {
 	if err := json.Unmarshal([]byte(legacy), &decoded); err != nil || decoded.Aux == nil {
 		t.Fatal("legacy auxiliary array refused", err)
 	}
-	got := decoded.restore().shop.records
+	got := decoded.restore().shop.nativeRecords()
 	want := secondshop.NewGameRecords
 	for k := range want[2] {
 		want[2][k].Max = 10000
@@ -403,7 +403,7 @@ func TestCurrentSecondLegacyAuxiliaryArrayRebuildsRecords(t *testing.T) {
 // departure keeps its node (R2-ENGINE-144).
 func TestSecondCampaignThirdTown(t *testing.T) {
 	f, app, screen := secondCampaignFixture(t, true)
-	c := &secondCampaign{current: partyPlace{1, 50}, available: []partyPlace{{2, 2}, {1, 50}, {1, 60}}}
+	c := &secondCampaign{shop: newShopState(&bankShopProfile, shopRecordRows([4]secondshop.Record{})), current: partyPlace{1, 50}, available: []partyPlace{{2, 2}, {1, 50}, {1, 60}}}
 	c.bank[768] = 40
 	f.Town.second = c
 	app.SetTown(screen)

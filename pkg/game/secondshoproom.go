@@ -60,8 +60,7 @@ func (t *townScreen) bankShopRow() shopBinding {
 			if c == nil {
 				return nil
 			}
-			c.shop.rules()
-			return &c.shop.Shop
+			return &c.shop
 		},
 		bag: func(s *CampaignSession) *[]sim.ItemInstance {
 			c := secondOf(s)

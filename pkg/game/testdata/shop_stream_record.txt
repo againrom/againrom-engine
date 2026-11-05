@@ -1,0 +1,54 @@
+first mode 0 arrival: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+first mode 0 entry: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+first mode 0 sleep 1: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+first mode 0 sleep 2: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+first mode 0 sleep 3: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+first mode 0 chapter: seeded ee2f29f98280d2c081be8d87fac996d797bbd93a42b617cc7484ae7e8072152b
+second 1 mode 0 arrival: seeded 45138ec9cdd0ec9804abc880da86a34dd23ebcefcaf0df01ef66c7920a741eea
+second 1 mode 0 entry: seeded 6bdbd2c6c5f30ed6af7f9d40790331e740f1832e2f5e5627f80173b9ae411319
+second 1 mode 0 sleep 1: seeded 2938fc710721b6d5027fddb2f392956bf4c9f5a1819af083df3cdb01acbe7685
+second 1 mode 0 sleep 2: seeded 3431f731a026b99134459cc54b66b4499c770e3e2ea17c90547802a3824a7a67
+second 1 mode 0 sleep 3: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 1 mode 0 record writes: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 1 mode 0 changed record entry: seeded b2d995f4365868d19d244505c0d8d7f405fdd2262612df58ddd406266383c070
+second 2 mode 0 arrival: seeded 45138ec9cdd0ec9804abc880da86a34dd23ebcefcaf0df01ef66c7920a741eea
+second 2 mode 0 entry: seeded 6bdbd2c6c5f30ed6af7f9d40790331e740f1832e2f5e5627f80173b9ae411319
+second 2 mode 0 sleep 1: seeded 2938fc710721b6d5027fddb2f392956bf4c9f5a1819af083df3cdb01acbe7685
+second 2 mode 0 sleep 2: seeded 3431f731a026b99134459cc54b66b4499c770e3e2ea17c90547802a3824a7a67
+second 2 mode 0 sleep 3: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 2 mode 0 record writes: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 2 mode 0 changed record entry: seeded b2d995f4365868d19d244505c0d8d7f405fdd2262612df58ddd406266383c070
+second 3 mode 0 arrival: seeded 45138ec9cdd0ec9804abc880da86a34dd23ebcefcaf0df01ef66c7920a741eea
+second 3 mode 0 entry: seeded 6bdbd2c6c5f30ed6af7f9d40790331e740f1832e2f5e5627f80173b9ae411319
+second 3 mode 0 sleep 1: seeded 2938fc710721b6d5027fddb2f392956bf4c9f5a1819af083df3cdb01acbe7685
+second 3 mode 0 sleep 2: seeded 3431f731a026b99134459cc54b66b4499c770e3e2ea17c90547802a3824a7a67
+second 3 mode 0 sleep 3: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 3 mode 0 record writes: seeded 63d0088d640e8f0d3af1109f3616645fa85454dc753ac43e4fdc4d58c10c919a
+second 3 mode 0 changed record entry: seeded b2d995f4365868d19d244505c0d8d7f405fdd2262612df58ddd406266383c070
+first mode 1 arrival: shared 1049808696
+first mode 1 entry: shared 1049808696
+first mode 1 sleep 1: shared 838670132
+first mode 1 sleep 2: shared 1445058931
+first mode 1 sleep 3: shared 987418111
+first mode 1 chapter: shared 1352321426
+second 1 mode 1 arrival: shared 3255514357
+second 1 mode 1 entry: shared 3770957214
+second 1 mode 1 sleep 1: shared 1023663179
+second 1 mode 1 sleep 2: shared 605878924
+second 1 mode 1 sleep 3: shared 2569338417
+second 1 mode 1 record writes: shared 2569338417
+second 1 mode 1 changed record entry: shared 3475067466
+second 2 mode 1 arrival: shared 3255514357
+second 2 mode 1 entry: shared 3770957214
+second 2 mode 1 sleep 1: shared 1023663179
+second 2 mode 1 sleep 2: shared 605878924
+second 2 mode 1 sleep 3: shared 2569338417
+second 2 mode 1 record writes: shared 2569338417
+second 2 mode 1 changed record entry: shared 3475067466
+second 3 mode 1 arrival: shared 3255514357
+second 3 mode 1 entry: shared 3770957214
+second 3 mode 1 sleep 1: shared 1023663179
+second 3 mode 1 sleep 2: shared 605878924
+second 3 mode 1 sleep 3: shared 2569338417
+second 3 mode 1 record writes: shared 2569338417
+second 3 mode 1 changed record entry: shared 3475067466

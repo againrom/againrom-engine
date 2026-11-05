@@ -4,8 +4,8 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/shopitem"
-	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 	"strings"
 )
@@ -177,15 +177,23 @@ type Shop struct {
 	// decide whether a mod's stocked item is offered again (modStockOffered).
 	drawSeed int64
 
-	// trade is the rules the shop trades by when they are not the first
-	// game's: the second game's shop sets its own (secondShop.rules).
-	trade *shopRules[ShopItem, ShopShelf]
+	policy   *shopProfile
+	records  shopRecords
+	location int
+	filled   int
+	tables   secondshop.Tables
+	category int
 }
 
 // NewShop is an empty shop at a ceiling. It stocks nothing: generation is the
 // caller's own step, because SHOP-TOWN-022 puts SetCap and Generate together at
 // one moment and this type should not decide when that moment is.
-func NewShop(ceiling int32) *Shop { return &Shop{ceiling: ceiling, inputEpoch: new(byte)} }
+func NewShop(ceiling int32) *Shop {
+	s := newShopState(&chapterShopProfile, nil)
+	s.ceiling, s.location, s.inputEpoch = ceiling, 1, new(byte)
+	s.deriveRecords([]int{1})
+	return &s
+}
 
 // Isolate stock/table ownership until a source actor callback has admitted
 // the paired pack change. This does not create a new click epoch.
@@ -194,6 +202,7 @@ func cloneShopMutation(s *Shop) *Shop {
 		return &Shop{}
 	}
 	n := *s
+	n.records = s.records.clone()
 	n.table = s.Table()
 	for i := range n.shelves {
 		n.shelves[i] = s.shelf(shopRules[ShopItem, ShopShelf]{clone: ShopItem.Clone}, ShopShelf(i))
@@ -256,22 +265,30 @@ func (s *Shop) Generate(t *mapload.Table, seed int64) { s.GenerateWith(t, seed, 
 func (s *Shop) GenerateWith(t *mapload.Table, seed int64, stock *random.Stream) {
 	s.drawSeed = seed
 	var r shopDrawSource = random.NewGo(seed)
-	if stock != nil && stock.Shared() {
+	if s.profile().rawStream {
+		r = shopRawDraw(stock.Raw)
+	} else if stock != nil && stock.Shared() {
 		r = stock
 	}
 	s.generate(t, r)
 }
 
-// RestockWith clears and refills an unattended shop with a fresh
-// deterministic draw, drawing as GenerateWith does. A non-empty table is
-// refused: leaving the shop normally clears it, and destroying a staged
-// player item would turn the tavern convenience into an inventory mutation.
 func (s *Shop) RestockWith(t *mapload.Table, seed int64, stock *random.Stream) bool {
-	if s == nil || t == nil || len(s.table) != 0 {
+	if s == nil || t == nil || s.profile().blockRestock && len(s.table) != 0 {
 		return false
 	}
-	s.restocks++
-	s.GenerateWith(t, shopRestockSeed(seed, s.restocks), stock)
+	if s.profile().rawStream {
+		tables, ok := secondShopTables(t)
+		if !ok || stock == nil {
+			return false
+		}
+		s.tables = tables
+	}
+	if s.profile().ordinalSeed {
+		s.restocks++
+		seed = shopRestockSeed(seed, s.restocks)
+	}
+	s.GenerateWith(t, seed, stock)
 	return true
 }
 
@@ -279,13 +296,25 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	if s == nil {
 		return
 	}
-	s.inputEpoch = new(byte)
+	p := s.profile()
+	if p.resetCategoryOnFill {
+		s.category = 0
+	}
+	if p.clickEpoch {
+		s.inputEpoch = new(byte)
+	}
 	s.table = nil
 	s.tbl = t
-	for i := range s.shelves {
-		s.shelves[i] = nil
+	s.shelves = [shopShelfCount][]ShopItem{}
+	if p.derivedRecords {
+		s.deriveRecords(nil)
 	}
-	copy(s.shelves[:], shopstock.Generate(s.stockProfile(t, r), r))
+	if p.rawStream && (s.location <= 0 || s.records[s.location] == nil) {
+		s.filled = 0
+		return
+	}
+	s.shelves = p.fill(s, t, r)
+	s.filled = s.location
 }
 
 // shopExtraRollSeed is the seed of the stock multiplier's further rolls,
@@ -670,39 +699,19 @@ func shopRestockSeed(seed int64, ordinal uint64) int64 {
 	return int64(h >> 1)
 }
 
-// rules are the first game's buying and selling values: five table places
-// (SHOP-TRAY-024), the client's whole-basket buy guard (SHOP-TRAY-026), an
-// unpriced sale kept on the table, an emptied entry leaving the shelf, a
-// sold item shelved by its class (SHOP-SELL-010) and a returned item merged
-// into an equal entry, else filed in the shelf's order (SHOP-DUP-028,
-// shopShelfStack).
 func (s *Shop) rules() shopRules[ShopItem, ShopShelf] {
-	if s.trade != nil {
-		return *s.trade
-	}
+	p := s.profile()
 	return shopRules[ShopItem, ShopShelf]{
-		places: ShopTablePlaces, wholeBasket: true, fallback: ShelfMagic,
-		count: func(i ShopItem) int64 { return int64(i.Count) },
-		price: func(i ShopItem) int64 { return int64(i.Price) },
-		withCount: func(i ShopItem, n int64) ShopItem {
-			i.Count = int32(n)
-			return i
-		},
-		clone: ShopItem.Clone,
-		split: func(i ShopItem, n int64) (ShopItem, ShopItem) {
-			moved, rest := i, i
-			moved.Count, rest.Count = int32(n), i.Count-int32(n)
-			moved.Owners, rest.Owners = takeShopOwners(i.Owners, int32(n))
-			return moved, rest
-		},
-		home:   func(p ShopPlace) ShopShelf { return p.From },
-		shelve: func(i ShopItem) ShopShelf { return shopShelfForItem(i, s.tbl) },
-		put: func(items []ShopItem, item ShopItem) []ShopItem {
-			item.Owners = nil
-			if item.Count <= 0 {
-				return items
-			}
-			return shopstock.Insert(items, shopShelfStack(s.tbl), item)
-		},
+		places: ShopTablePlaces, wholeBasket: p.wholeBasket,
+		unpricedBack: p.unpricedBack, keepEmptied: p.keepEmptied, fallback: p.fallback,
+		count:     func(i ShopItem) int64 { return int64(i.Count) },
+		price:     func(i ShopItem) int64 { return int64(i.Price) },
+		withCount: func(i ShopItem, n int64) ShopItem { i.Count = int32(n); return i },
+		clone:     ShopItem.Clone,
+		split:     p.split,
+		home:      func(place ShopPlace) ShopShelf { return p.home(s, place) },
+		shelve:    func(i ShopItem) ShopShelf { return p.shelve(s, i) },
+		put:       func(items []ShopItem, i ShopItem) []ShopItem { return p.put(s, items, i) },
+		order:     p.order(s), join: p.join,
 	}
 }

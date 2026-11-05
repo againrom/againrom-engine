@@ -4144,5 +4144,7 @@ var Committed = Baseline{
 
 	// It rises for the per-byte profile check in pkg/sim/grouproute_test.go
 	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
-	CommentBytes: 10557581,
+	// The shared shop state removes the separate state and rules comments.
+	// Whole-basket buying shortens the obsolete prefix-buy comments.
+	CommentBytes: 10553744,
 }

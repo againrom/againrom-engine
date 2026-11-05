@@ -39,7 +39,8 @@ func sleepTown(id int) (*FrontEnd, *townScreen) {
 	c := newSecondCampaign()
 	c.current, c.available, c.room = partyPlace{2, id}, []partyPlace{{2, id}}, secondTownInn
 	c.party = []mapload.PartyMember{{ID: "21", Name: "Sleeper", StartingHero: true, PlayerCharacter: true, Hero: data.NewCampaignHero(1)}}
-	c.shop.records[id] = secondshop.Record{3: {Min: 0, Max: 10000, Draws: 5, Bound: 2, Mask: 1 << 26}}
+	record := secondshop.Record{3: {Min: 0, Max: 10000, Draws: 5, Bound: 2, Mask: 1 << 26}}
+	c.shop.records[id] = &record
 	f := &FrontEnd{InstallResources: InstallResources{Table: tab, Words: ui.AuthoredWords(), Archives: &Archives{Base: base.Match{Profile: base.Profile{Game: base.GameROM2}}}},
 		CampaignSession: CampaignSession{Town: &Town{second: c, gold: 1234}, Carried: mapload.CloneParty(c.party)},
 		RuntimeServices: RuntimeServices{Random: random.NewService(random.Session{Seed: 71})}}
@@ -125,12 +126,12 @@ func TestSecondInnSleepUsesTheStockStreamAndChangesOnlyShelves(t *testing.T) {
 			c := f.Town.second
 			control, _ := sleepTown(id)
 			before := captureSecondCampaign(c)
-			records := c.shop.records
+			records := c.shop.records.clone()
 			party, gold, selection := mapload.CloneParty(f.Carried), f.Town.gold, s.shopMember
 			old := c.shop.stock()
 			for n := 0; n < 2; n++ {
 				tables, _ := secondShopTables(f.Table)
-				want := tables.Fill(c.shop.records[id], control.randomService().Stream(random.ShopStock).Raw)
+				want := tables.Fill(*c.shop.records[id], control.randomService().Stream(random.ShopStock).Raw)
 				for k, shelf := range stockOf(tables, want) {
 					want[k] = secondItems(shelf)
 				}
@@ -141,7 +142,7 @@ func TestSecondInnSleepUsesTheStockStreamAndChangesOnlyShelves(t *testing.T) {
 				old = c.shop.stock()
 				after := captureSecondCampaign(c)
 				after.Shop, before.Shop = nil, nil
-				if !reflect.DeepEqual(before, after) || !reflect.DeepEqual(party, f.Carried) || gold != f.Town.gold || selection != s.shopMember || c.shop.records != records {
+				if !reflect.DeepEqual(before, after) || !reflect.DeepEqual(party, f.Carried) || gold != f.Town.gold || selection != s.shopMember || !reflect.DeepEqual(c.shop.records, records) {
 					t.Fatal("Sleep changed party, gold, bank, destination, room or selected hero")
 				}
 			}

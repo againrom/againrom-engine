@@ -33,7 +33,8 @@ func secondShopLaterTown(t *testing.T, id int) (*FrontEnd, *ui.App, *townScreen,
 	for n := 10; n < int(c.bank[768]); n += 10 {
 		c.bank[896+n] = 1
 	}
-	c.shop.records = replayRecords(c.bank)
+	records := replayRecords(c.bank)
+	c.shop.records = shopRecordRows(records)
 	return f, app, s, now
 }
 
@@ -147,7 +148,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			witness := map[int]string{2: "town2", 3: "town3"}[tc.id]
 			secondShopWitness(t, app, witness+"-shop-open")
 			f.Town.gold = 500000
-			first := c.shop.shelf()[c.shop.visibleShelf()[0]]
+			first := c.shop.shownShelf()[c.shop.visibleShelf()[0]]
 			// Since the bag goes into the mission and comes back at the next
 			// town, a later town's bag already holds the hero's start unit:
 			// the purchase is the stack after those held, and the sale sells it.
@@ -167,7 +168,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			}
 			secondShopWitness(t, app, witness+"-shop-deal-open")
 			saved, savedGold, old := captureSecondCampaign(c), f.Town.gold, secondShopUndone(c.shop)
-			if saved.Shop.Records != c.shop.records {
+			if saved.Shop.Records != c.shop.nativeRecords() {
 				t.Fatal("the captured records are not the campaign's")
 			}
 			dir := secondMissionSaveDirectory(t)

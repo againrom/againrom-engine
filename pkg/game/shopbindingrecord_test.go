@@ -74,7 +74,7 @@ func shopBindingRecord(s *townScreen, probes []sim.ItemInstance, second *secondC
 		line("deal nil")
 	case d == s.sess.Shop:
 		line("deal session shop")
-	case second != nil && d == &second.shop.Shop:
+	case second != nil && d == &second.shop:
 		line("deal second campaign shop")
 	default:
 		line("deal other")
