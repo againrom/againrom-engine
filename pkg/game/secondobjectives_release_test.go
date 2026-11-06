@@ -73,20 +73,23 @@ func TestReleaseSecondMapObjectiveWiring(t *testing.T) {
 	}
 }
 
-// secondObjectiveOriginalFiles are the corpus's mission 20 files and the
-// objective 2 state each holds (R2-SESSION-348).
+// secondObjectiveOriginalFiles are the corpus's mission 20 files, the
+// objective 2 state each holds (R2-SESSION-348) and whether the file is won.
 var secondObjectiveOriginalFiles = []struct {
 	name  string
 	state int32
 	mark  int
+	won   bool
 }{
-	{"game0009.sav", 1, 0},
-	{"game0010.sav", 3, 1},
+	{"game0009.sav", 1, 0, false},
+	{"game0010.sav", 3, 1, true},
 }
 
 // A LOAD of each original mission 20 file restores the file's objective
 // slots, the window shows objective 2 with the mark its state selects, and
 // our SAVE of that mission carries the same slots back through both LOADs.
+// A won file loads with its victory panel standing, which refuses SAVE
+// (DIV-4297); Escape answers it with Continue and admits SAVE (DIV-4298).
 func TestReleaseSecondOriginalMissionFileKeepsTheObjectiveSlots(t *testing.T) {
 	dir := filepath.Join(secondCompanionCorpus, "rom2-gog-original-2")
 	if _, err := os.Stat(dir); err != nil {
@@ -118,6 +121,17 @@ func TestReleaseSecondOriginalMissionFileKeepsTheObjectiveSlots(t *testing.T) {
 			rows := f.live.missionObjectives()
 			if len(rows) != 1 || rows[0].Mark != file.mark || rows[0].Text == "" {
 				t.Fatalf("the window shows %v, want objective 2 with mark %d", rows, file.mark)
+			}
+			if _, kind, up := f.LiveNotice(); file.won != (up && kind == ui.NoticeSuccess) {
+				t.Fatalf("the LOAD shows a panel %v of kind %v, want the victory panel %v", up, kind, file.won)
+			}
+			if file.won {
+				if err := app.HeadlessKey("escape"); err != nil {
+					t.Fatal(err)
+				}
+				if m := f.live.mission; m.open || !m.delayedVictory {
+					t.Fatalf("Escape left the victory panel open %v, continued %v", m.open, m.delayedVictory)
+				}
 			}
 			ours := secondObjectiveSave(t, f, out, "ours")
 			doc := checkSecondMissionFile(t, ours, 20)

@@ -4216,5 +4216,9 @@ var Committed = Baseline{
 	// doc comment, and this note.
 	// It rises for the doc comment of the town LOAD shop test in
 	// pkg/game/secondtownshopbinding_test.go and this note.
-	CommentBytes: 10584568,
+
+	// It rises for the same-side area witness and the victory Continue in
+	// pkg/game/secondguardstrike_release_test.go and
+	// secondobjectives_release_test.go, and this note.
+	CommentBytes: 10585487,
 }
