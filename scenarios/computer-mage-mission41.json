@@ -4,8 +4,8 @@
     {"command": "assert_unit", "unit": "u38", "expect": {"alive": true, "x": 66, "y": 67, "mana_at_least": 106}},
     {"command": "place", "unit": "p0", "x": 62, "y": 67},
     {"command": "report", "name": "placed"},
-    {"command": "wait_ticks", "ticks": 30},
+    {"command": "wait_ticks", "ticks": 36},
     {"command": "assert_unit", "unit": "u38", "expect": {"mana_at_most": 105}},
-    {"command": "report", "name": "cast"}
+    {"command": "report", "name": "cast after the 7-tick turn to face p0"}
   ]
 }
