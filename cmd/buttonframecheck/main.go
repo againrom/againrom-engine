@@ -255,7 +255,7 @@ func checkRoom(w io.Writer, src terrain.EntrySource, name string, kind ui.TownSu
 				name, i, art, want)
 			continue
 		}
-		production := ui.TownSurfaceButtonWell(kind, i)
+		production := game.TownRoomButtonWell(kind, i)
 		mark := "ok"
 		if production != want {
 			mark, fail = "FAIL", true
@@ -297,7 +297,7 @@ func checkShop(w io.Writer, src terrain.EntrySource) (bool, error) {
 			mark, fail = "FAIL", true
 		}
 		fmt.Fprintf(w, "shop button %d rect measured %v production %v %s\n", i-1, got, want, mark)
-		tavern := ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, i-1)
+		tavern := game.TownRoomButtonRect(ui.TownSurfaceTavern, i-1)
 		tavernMark := "ok"
 		if tavern != want {
 			tavernMark, fail = "FAIL", true
@@ -405,7 +405,7 @@ func driveRooms(root string, w io.Writer) (bool, error) {
 		v := surface.TownSurface()
 		fmt.Fprintf(w, "drive %s: %d buttons\n", name, len(v.Buttons))
 		for i, b := range v.Buttons {
-			r := ui.TownSurfaceButtonRect(v.Kind, i)
+			r := game.TownRoomButtonRect(v.Kind, i)
 			mid := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 			c, hit := ui.TownSurfaceControlAt(v, mid)
 			mark := "ok"

@@ -1,8 +1,12 @@
 package game
 
 import (
+	"fmt"
 	"image"
 
+	"againrom/pkg/data"
+	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -55,27 +59,9 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 			}
 		}
 	}
-	// A patron is no player character: the card withholds its weight and
-	// its experience, and its figure draws without the hero's backdrop.
-	member.PlayerCharacter = false
-	p.known = true
-	p.subject = partyPanelSubject(member, tbl, t.in.Words)
-	p.subject.Char.ExperienceWithheld = true
-	p.subject.Unplaced = true
-	// The sheet's heading (R2-ENGINE-581): the person's own name when it has
-	// one, else Mercenary above the type's unitname entry for an actor of
-	// flags 0x11, else the type's entry alone.
-	p.subject.Name, p.subject.Char.Name = "", ""
-	if name := secondInnPersonName(t.in, npc, member.Name); name != "" {
-		p.subject.Name, p.subject.Char.Name = name, name
-	} else if p.subject.OriginalPanel.Flags&0x11 != 0 {
-		p.subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
-	}
-	if t.in.Archives != nil {
-		portrait := composeMemberPortrait(t.in.Archives.Containers, t.in.Units, 0, equipmentFromSlots(member.Worn), member)
-		p.figure, p.mask = portrait.Figure, portrait.SlotMask
-	}
-	p.info = t.in.wornItemLines(member, nil)
+	person := t.buildRoomPatron(member, npc, roomPersonProfiles["campaign"], nil)
+	person.frames = p.frames
+	*p = *person
 	return p
 }
 
@@ -95,7 +81,7 @@ func secondInnPersonName(in *InstallResources, npc int, resolved ...string) stri
 }
 
 // selectedPatron is the selected seat's person, nil without a selection.
-func (v townRoomView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *secondInnPatron {
+func (v roomPageView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *secondInnPatron {
 	list, _ := v.t.state().innSeats()
 	seat := v.t.composed.seat
 	if seat < 0 || seat >= len(list) {
@@ -106,14 +92,116 @@ func (v townRoomView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *sec
 
 // patron is the selected seat's person placed on the page: its statistics
 // card in the generator's font and its full figure.
-func (v townRoomView) patron(r *town.RoomSpec, page *screenart.Set) ui.RoomPerson {
+func (v roomPageView) patron(r *town.RoomSpec, page *screenart.Set) ui.RoomPerson {
 	p := v.selectedPatron(r, page)
 	if p == nil || !p.known {
 		return ui.RoomPerson{}
 	}
-	var card ui.TownCharacterView
-	if a := v.t.in.ChargenAssets; a != nil && a.Presentation != nil {
-		card = a.Presentation.CardView(p.subject, image.Rectangle{}, image.Point{}, nil, nil)
-	}
+	card := v.t.roomPersonCard(p.subject, p.figure, true)
 	return placeRoomPerson(r.Seats, page.Picture, card, p.figure)
+}
+
+type roomPersonProfile struct {
+	name                                                                                        string
+	selected                                                                                    int
+	fullSight, withheld, noPlayer, requireArchives, hoverMask, currentItems, keyFigure, compose bool
+}
+
+var roomPersonProfiles = map[string]roomPersonProfile{
+	"campaign": {name: "actor", withheld: true, noPlayer: true, requireArchives: true, compose: true},
+	"stock":    {name: "template", selected: 1, fullSight: true, hoverMask: true, currentItems: true, keyFigure: true, compose: true},
+	"live":     {selected: 1},
+}
+
+type roomPersonHeading struct {
+	name, role string
+	index      int
+	hasIndex   bool
+}
+
+var roomPersonNames = map[string]func(*townScreen, mapload.PartyMember, int, ui.PanelSubject) roomPersonHeading{
+	"actor": func(t *townScreen, m mapload.PartyMember, key int, s ui.PanelSubject) roomPersonHeading {
+		h := roomPersonHeading{name: secondInnPersonName(t.in, key, m.Name)}
+		if h.name == "" && s.OriginalPanel.Flags&0x11 != 0 {
+			h.role = t.in.Words.PanelCaptions[mainSlotMercenary]
+		}
+		return h
+	},
+	"template": func(t *townScreen, m mapload.PartyMember, key int, s ui.PanelSubject) roomPersonHeading {
+		index := int(m.Class)
+		if key > 2 {
+			template := fmt.Sprintf("NPC%02d_%d", key, mercenaryLevel(t.sess.Town.Chapter()))
+			if i := data.FindHumanByName(t.in.Table.Humans, template); i != data.NotFound {
+				if d, err := data.NewHumanDef(template, t.in.Table.Humans.EntryParams(i)); err == nil {
+					index = int(d.TypeID)
+				}
+			}
+		}
+		return roomPersonHeading{name: t.in.definitionName(m, index, &s.Words, ""), role: t.in.Words.PanelCaptions[mainSlotMercenary], index: index, hasIndex: true}
+	},
+}
+
+// buildRoomPatron projects every seated member through the same subject,
+// portrait and item producers; the source's profile preserves its card rules.
+func (t *townScreen) buildRoomPatron(m mapload.PartyMember, key int, profile roomPersonProfile, figure *image.RGBA) *secondInnPatron {
+	if profile.noPlayer {
+		m.PlayerCharacter = false
+	}
+	p := &secondInnPatron{known: true, figure: figure}
+	p.subject = partyPanelSubject(m, t.in.Table, t.in.Words)
+	p.subject.Unplaced, p.subject.Selected = true, profile.selected
+	if profile.withheld {
+		p.subject.Char.ExperienceWithheld = true
+	}
+	if names := roomPersonNames[profile.name]; names != nil {
+		h := names(t, m, key, p.subject)
+		p.subject.Name, p.subject.Char.Name, p.subject.Role = h.name, h.name, h.role
+		if h.hasIndex {
+			p.subject.UnitNameIndex, p.subject.Char.UnitNameIndex = h.index, h.index
+		}
+	}
+	if c := p.subject.Char; profile.fullSight && c.Mind+c.Reaction > 0 {
+		if word, ok := rules.SightWordIn(int32(c.Mind), int32(c.Reaction), int32(c.Sight)); ok {
+			p.subject.Char.Sight256 = word
+		}
+	}
+	if profile.compose && (!profile.requireArchives || t.in.Archives != nil) {
+		var src entrySource
+		if t.in.Archives != nil {
+			src = t.in.Archives.Containers
+		}
+		eq, id := equipmentFromSlots(m.Worn), uint32(0)
+		if profile.currentItems {
+			eq = mapload.EquipmentFromParty(m)
+		}
+		if profile.keyFigure {
+			id = uint32(key)
+		}
+		portrait := composeMemberPortrait(src, t.in.Units, id, eq, m)
+		p.figure, p.mask = portrait.Figure, portrait.SlotMask
+		if profile.hoverMask && portrait.HoverSlotMask != nil {
+			p.mask = portrait.HoverSlotMask
+		}
+	}
+	if profile.currentItems {
+		for i, item := range mapload.MemberItemEquipment(m, t.in.Table) {
+			if item.Code != 0 {
+				p.info[i] = itemInstanceInfoLines(item, t.in.Table, t.in.Words)
+			}
+		}
+	} else {
+		p.info = t.in.wornItemLines(m, nil)
+	}
+	return p
+}
+
+func (t *townScreen) roomPersonCard(subject ui.PanelSubject, figure *image.RGBA, known bool) ui.TownCharacterView {
+	if t.in.roomCardFromGenerator() {
+		if a := t.in.ChargenAssets; a != nil && a.Presentation != nil {
+			return a.Presentation.CardView(subject, image.Rectangle{}, image.Point{}, nil, nil)
+		}
+		return ui.TownCharacterView{}
+	}
+	panes := t.art.characterPanes()
+	return ui.TownCharacterView{Subject: subject, HasSubject: known, Font: t.in.Font.Value(), CardFont: t.in.tipFont(), FigurePane: panes.Figure, StatsPane: panes.Stats, Figure: figure}
 }

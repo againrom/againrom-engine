@@ -71,7 +71,7 @@ func TestSecondInnSleepButtonAndCardProfiles(t *testing.T) {
 		s.composed = &townSceneState{seat: 0, patrons: map[secondInnPatronKey]*secondInnPatron{
 			{room: r, npc: seats[0].npc}: {known: true, subject: ui.PanelSubject{Name: "Sleeper"}},
 		}}
-		person := (townRoomView{t: s, d: d, room: "inn"}).patron(r, &screenart.Set{})
+		person := (roomPageView{t: s, d: d, room: "inn"}).patron(r, &screenart.Set{})
 		hero, _, _ := s.heroPane(r.Pane)
 		want := &ui.TextShadow{Ink: color.RGBA{8, 8, 8, 255}, At: image.Pt(1, 1)}
 		if person.Card == nil || !reflect.DeepEqual(person.Card.CardShadow, want) || !reflect.DeepEqual(hero.CardShadow, want) {

@@ -51,12 +51,12 @@ func TestReleaseSchoolMaskNamesTheSkillItIsDrawnOver(t *testing.T) {
 			SchoolClass: class,
 		}
 		for slot := 0; slot < 5; slot++ {
-			r := ui.SchoolSkillRect(class, slot)
+			r := TownSchoolRegion([]string{"fighter", "mage"}[class], slot)
 			if r.Empty() {
 				t.Fatalf("class %d slot %d has no production rectangle", class, slot)
 			}
 			p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
-			c, ok := ui.TownSurfaceControlAt(v, p)
+			c, ok := ui.TownSurfaceControlAt(roomSurfaceFixture(v), p)
 			if !ok || c.Kind != ui.TownSurfaceControlCell {
 				t.Fatalf("class %d slot %d: the centre %v of its own drawn rect %v answers no cell",
 					class, slot, p, r)

@@ -157,8 +157,8 @@ const tavernButtonSleep = 0
 // rectangle is the drawn button's and its word the button's caption.
 func TestTavernSleepIsTheTavernRoomsSleepRow(t *testing.T) {
 	r := ROM1TownDescription().Room("tavern")
-	if r == nil || len(r.Buttons) != 1 || !sleepButton(r.Buttons, tavernButtonSleep) || r.Buttons[0].Word != "tavern.sleep" ||
-		r.Buttons[0].Rect.Rectangle() != ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, tavernButtonSleep) {
+	if r == nil || len(r.Buttons) != 4 || !sleepButton(r.Buttons, tavernButtonSleep) || r.Buttons[0].Word != "tavern.sleep" ||
+		r.Buttons[0].Rect.Rectangle() != TownRoomButtonRect(ui.TownSurfaceTavern, tavernButtonSleep) {
 		t.Fatalf("tavern room buttons = %+v", r)
 	}
 	f := shellFrontEnd()

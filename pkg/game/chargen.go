@@ -205,6 +205,8 @@ type generatorProfile struct {
 	campaignOutfit bool
 	// documents gives the hero the campaign's documents (DIV-305).
 	documents bool
+	// roomCard shares the generator's card presentation with town people.
+	roomCard bool
 	// start is what an accepted result begins.
 	start generatorStart
 }
@@ -222,6 +224,10 @@ const (
 
 // generatorRow is the generator row of the front end's game.
 func (f *FrontEnd) generatorRow() generatorProfile { return f.campaign().files().generator }
+
+func (in *InstallResources) roomCardFromGenerator() bool {
+	return filesOf(in.profile().Game).generator.roomCard
+}
 
 // generatorSetup gives each picture the preset its game's generator row
 // names, and marks a start in town on the setup. A picture whose source row

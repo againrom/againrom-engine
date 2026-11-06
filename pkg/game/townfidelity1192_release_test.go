@@ -161,10 +161,10 @@ func TestReleaseTownFidelity1192(t *testing.T) {
 			exit := len(view.Buttons) - 1
 			for i, b := range view.Buttons {
 				if b.Enabled {
-					checkPlaquePointer1192(t, a, fmt.Sprintf("%s%d", door, i), ui.TownSurfaceButtonRect(view.Kind, i))
+					checkPlaquePointer1192(t, a, fmt.Sprintf("%s%d", door, i), TownRoomButtonRect(view.Kind, i))
 				}
 			}
-			p := ui.TownSurfaceButtonRect(view.Kind, exit).Min.Add(ui.TownSurfaceButtonRect(view.Kind, exit).Max).Div(2)
+			p := TownRoomButtonRect(view.Kind, exit).Min.Add(TownRoomButtonRect(view.Kind, exit).Max).Div(2)
 			if err := a.HeadlessPointer("press", p.X, p.Y); err != nil {
 				t.Fatal(err)
 			}

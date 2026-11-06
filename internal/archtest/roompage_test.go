@@ -102,3 +102,65 @@ func TestRoomPageHasOneBuilder(t *testing.T) {
 		t.Errorf("%s: %s", v.From, v.Reason)
 	}
 }
+
+func TestCheckRoomPageNamesAlternateShapes(t *testing.T) {
+	cases := []struct{ file, source, want string }{
+		{"pkg/ui/townshell.go", `package ui; import "image"; func innButton() image.Rectangle { return image.Rect(1,2,3,4) }`, "Go rectangle for room control in innButton"},
+		{"pkg/ui/townshell.go", `package ui; import img "image"; var innControls=[]img.Rectangle{img.Rect(1,2,3,4)}`, "Go rectangle for room control innControls"},
+		{"pkg/ui/townshell.go", `package ui; import "image"; var innControl=image.Rectangle{Min:image.Point{1,2},Max:image.Point{3,4}}`, "Go rectangle for room control innControl"},
+		{"pkg/ui/townshell.go", `package ui; func townSurfacePanel(){ local:=image.Rect(1,2,3,4); _=local }`, "Go rectangle for room control in townSurfacePanel"},
+		{"pkg/ui/townshell.go", `package ui; func drawCharacterPaneBody(){ a:=image.Rect(1,2,3,4); b:=image.Rect(5,6,7,8); _,_=a,b }`, "Go rectangle for room control in drawCharacterPaneBody"},
+		{"pkg/ui/townshell.go", `package ui; func drawSelectionStatus(){ a:=image.Rect(1,2,3,4); _=a }`, "Go rectangle for room control in drawSelectionStatus"},
+		{"pkg/game/other.go", `package game; type copied struct { p *town.Scene }; func (v copied) Paint(){}`, "second room page adapter copied"},
+		{"pkg/game/other.go", `package game; type copied struct {}; func (v copied) Paint(){}; func (v copied) ControlAt(){}`, "second room page adapter copied"},
+		{"pkg/game/other.go", `package game; func f(){ _=ui.RoomSeat{Frame:1} }`, "second room page builder constructs RoomSeat"},
+		{"pkg/game/other.go", `package game; func f(){ _=ui.RoomPage{Phase:1} }`, "second room page builder constructs RoomPage"},
+		{"pkg/game/other.go", `package game; func f(){ _=roomPageView{room:"inn"} }`, "second room page reader"},
+		{"pkg/game/townshell.go", `package game; func patron(){ _=partyPanelSubject(m,t,w) }`, "second room person builder"},
+		{"pkg/game/taverntalk.go", `package game; func patron(){ _=composeMemberPortrait(s,u,i,e,m) }`, "second room person builder"},
+		{"pkg/game/secondtown.go", `package game; func f(){ if p.Game==base.GameROM2 { draw() } }`, "game identity chooses a room page path"},
+	}
+	for _, tc := range cases {
+		var got []string
+		for _, v := range CheckRoomPage(map[string]string{tc.file: tc.source}) {
+			got = append(got, v.From+": "+v.Reason)
+		}
+		if !strings.Contains(strings.Join(got, "\n"), tc.want) {
+			t.Errorf("%s: got %v, want %s", tc.file, got, tc.want)
+		}
+	}
+}
+
+// TestRoomShellBudgetsAreExact lowers each admitted painter's budget by one on
+// the live source: every budget must then be refused, so none admits a
+// rectangle the painter does not use.
+func TestRoomShellBudgetsAreExact(t *testing.T) {
+	raw, err := os.ReadFile("../../pkg/ui/townshell.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{"pkg/ui/townshell.go": string(raw)}
+	if vs := CheckRoomPage(files); len(vs) != 0 {
+		t.Fatalf("live source: %v", vs)
+	}
+	saved := map[string]int{}
+	for k, v := range roomShellGeometry {
+		saved[k] = v
+	}
+	defer func() {
+		for k, v := range saved {
+			roomShellGeometry[k] = v
+		}
+	}()
+	for k, v := range saved {
+		roomShellGeometry[k] = v - 1
+		named := false
+		for _, x := range CheckRoomPage(files) {
+			named = named || strings.Contains(x.Reason, k)
+		}
+		roomShellGeometry[k] = v
+		if !named {
+			t.Errorf("budget %s=%d is larger than its use", k, v)
+		}
+	}
+}

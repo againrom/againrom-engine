@@ -275,7 +275,7 @@ func TestReleaseTownPopupDismissalSurvivesDialogue(t *testing.T) {
 					if !r.s.TownSurface().Cells[0].Selected {
 						t.Fatal("App down failed to select installed talk candidate")
 					}
-					button := ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, tavernButtonTalk)
+					button := TownRoomButtonRect(ui.TownSurfaceTavern, tavernButtonTalk)
 					r.click(button.Min.Add(button.Max).Div(2))
 				} else {
 					r.setQuest(false)

@@ -92,7 +92,7 @@ func TestReleaseSchoolColumnClassTransitionInstalledPixelsAndSound(t *testing.T)
 		// (TOWN-500); its own witness compares those pixels.
 		var shine image.Rectangle
 		if view.SchoolIdleShine && (frame == 0 || frame == 15) {
-			shine = ui.SchoolSkillRect(frame/15, view.SchoolIdleSlot)
+			shine = TownSchoolRegion([]string{"fighter", "mage"}[frame/15], view.SchoolIdleSlot)
 		}
 		for y := 0; y < 208; y++ {
 			for x := 0; x < 148; x++ {

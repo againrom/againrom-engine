@@ -335,7 +335,7 @@ var secondGameFiles = gameFiles{
 	heldMarks:    secondHeldMarks,
 	objectives:   objectivesProfile{subobjectives: true, lossEntries: true, npcKeys: true},
 	unitVoices:   secondGameVoices,
-	generator:    generatorProfile{templates: true, classProfile: true, campaignOutfit: true, start: generatorStartTown},
+	generator:    generatorProfile{templates: true, classProfile: true, campaignOutfit: true, roomCard: true, start: generatorStartTown},
 }
 
 // speakerFaces is the speaker table of t's campaign: the catalog's portraits,

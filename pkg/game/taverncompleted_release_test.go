@@ -57,7 +57,7 @@ func TestReleaseCompletedExtraTavernTalkerDisappearsThroughAppAndCurrentSAV(t *t
 	if !s.TownSurface().Buttons[tavernButtonTalk].Enabled {
 		t.Fatal("unfinished installed extra41 has grey Talk")
 	}
-	r := ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, tavernButtonTalk)
+	r := TownRoomButtonRect(ui.TownSurfaceTavern, tavernButtonTalk)
 	turtleTap(t, app, r.Min.Add(r.Max).Div(2))
 	if path, ok := s.townTextPath(); !ok || s.room != roomTalk || path != "main/text/inn/npc/npc90m41.txt" {
 		t.Fatal("pointer Talk did not open installed extra41 text", path)

@@ -57,7 +57,7 @@ func TestLitRoomButtonsDrawAsButtonsThatCanAct(t *testing.T) {
 		Buttons: []TownSurfaceButton{{Label: "Train", Value: "0"}, {Label: "Exit", Enabled: true}}}
 	for _, lit := range []bool{false, true} {
 		school.ButtonStyle = litTestStyle(lit)
-		if p := townSurfacePanel(school, false, false, false); p.buttons[0].Disabled == lit {
+		if p := townSurfacePanel(firstTavernPage(school), false, false, false); p.buttons[0].Disabled == lit {
 			t.Errorf("lit %t: Train at 0 disabled %t", lit, p.buttons[0].Disabled)
 		}
 	}
@@ -142,7 +142,7 @@ func TestOneLineShopButtonsJoinCaptionAndNumber(t *testing.T) {
 	}
 	school := TownSurfaceView{Kind: TownSurfaceSchool, SchoolClass: -1, ButtonStyle: v.ButtonStyle,
 		Buttons: []TownSurfaceButton{{Label: "Train", Value: "0", Enabled: true}, {Label: "Exit", Value: "600", Enabled: true}}}
-	c = townSurfacePanel(school, false, false, false).buttons[1].Face.Captions
+	c = townSurfacePanel(firstTavernPage(school), false, false, false).buttons[1].Face.Captions
 	r = TownSurfaceButtonRect(TownSurfaceSchool, 1)
 	if c[0].Rect != townButtonLabelRect(r).Add(image.Pt(0, 6)) || c[1].Rect != townButtonValueRect(r).Add(image.Pt(0, 1)) {
 		t.Errorf("school Exit label band %v value band %v, want the shared bands moved by (0,6) and (0,1)", c[0].Rect, c[1].Rect)

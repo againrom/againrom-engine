@@ -23,7 +23,7 @@ func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
 	}
 	s := f.TownScreen().(*townScreen)
 	v := ui.TownSurfaceView{Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(),
-		SchoolClass: -1, HoverCell: -1, Scene: roomScene{s.schoolPage()}}
+		SchoolClass: -1, HoverCell: -1, Scene: s.roomView("school")}
 	for frame := 0; frame < 9; frame++ {
 		// Read the literal claim address independently of LoadTownSchoolArt.
 		// The expected pixels do not come from its array or RGBA conversion.
@@ -40,7 +40,7 @@ func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
 			t.Fatalf("%s: %dx%d, want 80x76", name, want.Width, want.Height)
 		}
 		setSchoolDiamondState(s, diamondState{frame: frame, step: 1, ready: true})
-		got := ui.ComposeTownSurface(v)
+		got := ui.ComposeTownSurface(roomSurfaceFixture(v))
 		for y := 0; y < 76; y++ {
 			for x := 0; x < 80; x++ {
 				c := want.At(x, y)

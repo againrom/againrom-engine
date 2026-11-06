@@ -37,7 +37,7 @@ func TestSchoolTrainingOpaqueSidesDrawBetweenBackgroundAndSchoolOverlays(t *test
 		HoverCell: -1,
 		Cells:     []TownSurfaceCell{{Enabled: true, Selected: true}},
 	}
-	pix := ComposeTownSurface(v)
+	pix := ComposeTownSurface(firstTavernPage(v))
 	if got := pix.RGBAAt(0, 200); got != mage {
 		t.Fatalf("mage side = %v, want opaque training frame", got)
 	}

@@ -46,7 +46,7 @@ func hearInnOfferIndex(t *testing.T, app *ui.App, s *townScreen, mission, index 
 		}
 	}
 	if s.room != roomTalk {
-		r := ui.TownSurfaceButtonRect(surface.Kind, tavernButtonTalk)
+		r := TownRoomButtonRect(surface.Kind, tavernButtonTalk)
 		p := r.Min.Add(r.Max).Div(2)
 		for _, edge := range []string{"press", "release"} {
 			if err := app.HeadlessPointer(edge, p.X, p.Y); err != nil {

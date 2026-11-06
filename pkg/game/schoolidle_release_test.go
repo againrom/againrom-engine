@@ -97,7 +97,7 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 			quiet := v
 			quiet.SchoolIdleShine = false
 			base := ui.ComposeTownSurface(quiet)
-			r := ui.SchoolSkillRect(class, v.SchoolIdleSlot)
+			r := TownSchoolRegion([]string{"fighter", "mage"}[class], v.SchoolIdleSlot)
 			if class == 0 && v.SchoolIdleSlot != c {
 				t.Fatalf("fighter cycle %d lit slot %d, want the drawn order", c, v.SchoolIdleSlot)
 			}

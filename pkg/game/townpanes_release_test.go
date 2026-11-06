@@ -121,10 +121,10 @@ func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
 
 	characterPanelControls := ui.TownCharacterPersistentControls()
 
-	tavernFrame := ui.ComposeTownSurface(ui.TownSurfaceView{
+	tavernFrame := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 		Kind: ui.TownSurfaceTavern, TavernArt: f.TownTavernArt.Value(), Font: f.Font.Value(), HoverCell: -1,
 		Hero: ui.TownCharacterView{HasSubject: false, FigurePane: panes.Figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-	})
+	}))
 
 	// tavernWithout composes the tavern frame with one named TavernArt seam
 	// field suppressed, everything else production. A shallow copy of
@@ -134,10 +134,10 @@ func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
 	tavernWithout := func(mutate func(*ui.TownTavernArt)) *image.RGBA {
 		artCopy := *f.TownTavernArt.Value()
 		mutate(&artCopy)
-		return ui.ComposeTownSurface(ui.TownSurfaceView{
+		return ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 			Kind: ui.TownSurfaceTavern, TavernArt: &artCopy, Font: f.Font.Value(), HoverCell: -1,
 			Hero: ui.TownCharacterView{HasSubject: false, FigurePane: panes.Figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-		})
+		}))
 	}
 	t.Run("tavern left upper", func(t *testing.T) {
 		assertRegion(t, tavernFrame, image.Rect(0, 0, 160, 238), f.TownTavernArt.Value().LeftStats)
@@ -160,10 +160,10 @@ func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
 		} else {
 			figure.Seam = nil
 		}
-		return ui.ComposeTownSurface(ui.TownSurfaceView{
+		return ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 			Kind: ui.TownSurfaceTavern, TavernArt: f.TownTavernArt.Value(), Font: f.Font.Value(), HoverCell: -1,
 			Hero: ui.TownCharacterView{Statistics: statistics, HasSubject: false, FigurePane: figure, StatsPane: stats, Font: f.Font.Value()},
-		})
+		}))
 	}
 	t.Run("tavern character panel figure mode", func(t *testing.T) {
 		assertRegion(t, tavernFrame, ui.TownCharacterRegion, panes.Figure.Body, characterPanelControls...)
@@ -171,28 +171,28 @@ func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
 		assertSeamRegion(t, tavernFrame, before, image.Rect(464, 238, 480, 480), panes.Figure.Seam)
 	})
 
-	tavernStats := ui.ComposeTownSurface(ui.TownSurfaceView{
+	tavernStats := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 		Kind: ui.TownSurfaceTavern, TavernArt: f.TownTavernArt.Value(), Font: f.Font.Value(), HoverCell: -1,
 		Hero: ui.TownCharacterView{Statistics: true, HasSubject: false, FigurePane: panes.Figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-	})
+	}))
 	t.Run("tavern character panel stats mode", func(t *testing.T) {
 		assertRegion(t, tavernStats, ui.TownCharacterRegion, panes.Stats.Body, characterPanelControls...)
 		before := tavernCharacterWithout(true)
 		assertSeamRegion(t, tavernStats, before, image.Rect(464, 238, 480, 480), panes.Stats.Seam)
 	})
 
-	schoolFrame := ui.ComposeTownSurface(ui.TownSurfaceView{
+	schoolFrame := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 		Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(), SchoolClass: -1, Font: f.Font.Value(), HoverCell: -1,
 		Hero: ui.TownCharacterView{HasSubject: false, FigurePane: panes.Figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-	})
+	}))
 	t.Run("school character panel figure mode", func(t *testing.T) {
 		assertRegion(t, schoolFrame, ui.TownCharacterRegion, panes.Figure.Body, characterPanelControls...)
 		figure := panes.Figure
 		figure.Seam = nil
-		before := ui.ComposeTownSurface(ui.TownSurfaceView{
+		before := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 			Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(), SchoolClass: -1, Font: f.Font.Value(), HoverCell: -1,
 			Hero: ui.TownCharacterView{HasSubject: false, FigurePane: figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-		})
+		}))
 		assertSeamRegion(t, schoolFrame, before, image.Rect(464, 238, 480, 480), panes.Figure.Seam)
 	})
 
@@ -202,18 +202,18 @@ func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
 	// the population never composed at all — the same shared TownCharacterView
 	// the tavern's own "stats mode" subtest above already exercises, applied
 	// to the school's SchoolArt instead of TavernArt.
-	schoolStats := ui.ComposeTownSurface(ui.TownSurfaceView{
+	schoolStats := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 		Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(), SchoolClass: -1, Font: f.Font.Value(), HoverCell: -1,
 		Hero: ui.TownCharacterView{Statistics: true, HasSubject: false, FigurePane: panes.Figure, StatsPane: panes.Stats, Font: f.Font.Value()},
-	})
+	}))
 	t.Run("school character panel stats mode", func(t *testing.T) {
 		assertRegion(t, schoolStats, ui.TownCharacterRegion, panes.Stats.Body, characterPanelControls...)
 		stats := panes.Stats
 		stats.Seam = nil
-		before := ui.ComposeTownSurface(ui.TownSurfaceView{
+		before := ui.ComposeTownSurface(roomSurfaceFixture(ui.TownSurfaceView{
 			Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(), SchoolClass: -1, Font: f.Font.Value(), HoverCell: -1,
 			Hero: ui.TownCharacterView{Statistics: true, HasSubject: false, FigurePane: panes.Figure, StatsPane: stats, Font: f.Font.Value()},
-		})
+		}))
 		assertSeamRegion(t, schoolStats, before, image.Rect(464, 238, 480, 480), panes.Stats.Seam)
 	})
 

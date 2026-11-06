@@ -2,9 +2,12 @@ package game
 
 import (
 	"bytes"
+	"encoding/json"
 	"image"
 	"image/color"
 	"image/draw"
+	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/town"
@@ -15,6 +18,64 @@ func roomPageTestPicture(w, h int, c color.RGBA) *image.RGBA {
 	m := image.NewRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(m, m.Bounds(), &image.Uniform{C: c}, image.Point{}, draw.Src)
 	return m
+}
+
+func roomSurfaceFixture(v ui.TownSurfaceView) ui.TownSurfaceView {
+	if v.Kind == ui.TownSurfaceSchool && v.Page.Regions == nil {
+		v.Page = (&InstallResources{}).SurfacePageLayout(v, 0)
+	}
+	return v
+}
+
+func TestTavernOlderDescriptionKeepsItsBackdropAndSeatAppearance(t *testing.T) {
+	f := shellFrontEnd()
+	art, err := LoadTownTavernArt(ROM1TownDescription(), townTavernSource())
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.TownTavernArt = resolved(art, nil)
+	s := f.townUI
+	want := ui.ComposeTownSurface(s.TownSurface())
+	book := s.townBook()
+	d := *s.townDescription()
+	d.Rooms = slices.Clone(d.Rooms)
+	r := d.Room("tavern")
+	scene, seats := *r.Scene, *r.Seats
+	scene.Backdrop, seats.Appearance = nil, nil
+	r.Scene, r.Seats = &scene, &seats
+	f.Town.camp.Towns = &townBook{catalog: book.catalog, descriptions: map[string]*town.Description{"rom1": &d}}
+	got := ui.ComposeTownSurface(s.TownSurface())
+	if !bytes.Equal(want.Pix, got.Pix) {
+		t.Fatal("a room without the new optional page data lost its existing backdrop or seat appearance")
+	}
+}
+
+func TestRoomPageDescriptionRejectsMalformedData(t *testing.T) {
+	cases := []struct {
+		name   string
+		change func(*town.Description)
+		want   string
+	}{
+		{"caption", func(d *town.Description) { d.Room("tavern").Seats.Appearance.Captions[0].Value = "unknown" }, "seat caption"},
+		{"caption place", func(d *town.Description) { d.Room("tavern").Seats.Appearance.Captions[0].Place = 4 }, "seat caption"},
+		{"region", func(d *town.Description) { d.Room("school").Regions[0].Rects[0] = town.Rect{} }, "region"},
+		{"repeated region", func(d *town.Description) { r := d.Room("school"); r.Regions = append(r.Regions, r.Regions[0]) }, "repeated region"},
+		{"backdrop art", func(d *town.Description) { d.Room("tavern").Scene.Backdrop[0].Art = "unknown" }, "page art"},
+		{"backdrop rectangle", func(d *town.Description) { d.Room("tavern").Scene.Backdrop[0].Rect = town.Rect{} }, "empty rectangle"},
+		{"backdrop source", func(d *town.Description) { d.Room("tavern").Scene.Backdrop[0].Scene = "centre" }, "exactly one"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var d town.Description
+			if err := json.Unmarshal(rom1TownJSON, &d); err != nil {
+				t.Fatal(err)
+			}
+			tc.change(&d)
+			if err := d.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("Validate = %v; want %s", err, tc.want)
+			}
+		})
+	}
 }
 
 // roomPageTestRoom is a page of three 10x20 seats a row from first, two

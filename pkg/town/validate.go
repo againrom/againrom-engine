@@ -157,8 +157,20 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		return nil
 	}
 	if s := r.Seats; s != nil {
+		var captions []SeatCaption
+		if s.Appearance != nil {
+			captions = s.Appearance.Captions
+		}
+		for _, caption := range captions {
+			if !slices.Contains([]string{"price", "detail", "hired"}, caption.Value) || caption.Place < 0 || caption.Place > 3 {
+				return fail("invalid seat caption %q place %d", caption.Value, caption.Place)
+			}
+		}
 		if s.Columns <= 0 || s.Rows <= 0 || s.First.Rectangle().Empty() {
 			return fail("seats need columns, rows and a first seat")
+		}
+		if s.FrameTicks < 0 || s.FrameTicks > 0 && s.FrameMS != 0 {
+			return fail("seats count either client ticks or milliseconds")
 		}
 		if s.FrameMS < 0 || s.FrameMS > 0 && s.Compare != "greater" && s.Compare != "at-least" {
 			return fail("seats need a frame period and its compare, one of %s", strings.Join(compares, ", "))
@@ -201,6 +213,33 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 	}
 	if err := validatePane(r.Pane, fail); err != nil {
 		return err
+	}
+	regions := map[string]bool{}
+	for _, region := range r.Regions {
+		if region.Name == "" || regions[region.Name] {
+			return fail("missing or repeated region %q", region.Name)
+		}
+		regions[region.Name] = true
+		for _, rect := range region.Rects {
+			if rect.Rectangle().Empty() {
+				return fail("empty rectangle in region %q", region.Name)
+			}
+		}
+	}
+	if r.Scene != nil {
+		for _, layer := range r.Scene.Backdrop {
+			if (layer.Art == "") == (layer.Scene == "") {
+				return fail("backdrop needs exactly one page art or scene group")
+			}
+			if layer.Art != "" {
+				if err := needArt("backdrop", layer.Art); err != nil {
+					return err
+				}
+				if layer.Rect.Rectangle().Empty() {
+					return fail("backdrop %q has an empty rectangle", layer.Art)
+				}
+			}
+		}
 	}
 	names := map[string]bool{}
 	for i, b := range r.Buttons {

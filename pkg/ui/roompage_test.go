@@ -2,8 +2,11 @@ package ui
 
 import (
 	"bytes"
+	"encoding/json"
 	"image"
 	"image/color"
+	"os"
+	"sync"
 	"testing"
 )
 
@@ -11,6 +14,24 @@ import (
 // it from the first game's tavern room data; a view of another kind, or one
 // whose page is set, is answered unchanged.
 func firstTavernPage(v TownSurfaceView) TownSurfaceView {
+	if v.Page.Regions == nil {
+		v.Page.Regions = map[string][]image.Rectangle{}
+		for _, r := range testSurfaceDescription().Rooms {
+			if r.Name != "school" {
+				continue
+			}
+			for _, region := range r.Regions {
+				for _, rect := range region.Rects {
+					v.Page.Regions[region.Name] = append(v.Page.Regions[region.Name], image.Rect(rect[0], rect[1], rect[2], rect[3]))
+				}
+			}
+		}
+	}
+	if len(v.Page.Buttons) == 0 {
+		for i := range v.Buttons {
+			v.Page.Buttons = append(v.Page.Buttons, TownSurfaceButtonRect(v.Kind, i))
+		}
+	}
 	if v.Kind != TownSurfaceTavern || len(v.Page.Seats) > 0 || v.Page.Person.Card != nil || v.Page.Person.Figure.Rect != (image.Rectangle{}) {
 		return v
 	}
@@ -27,7 +48,24 @@ func firstTavernPage(v TownSurfaceView) TownSurfaceView {
 			back = art.ManBackTalk
 		}
 		r := image.Rect(176, 416, 224, 480).Add(image.Pt(48*(i%6), -64*(i/6)))
-		v.Page.Seats = append(v.Page.Seats, RoomSeat{Rect: r, Back: back})
+		font := v.CardFont
+		if font == nil {
+			font = v.Font
+		}
+		frames := c.Frames
+		if len(frames) == 0 && c.Picture != nil {
+			frames = []image.Image{c.Picture}
+		}
+		seat := RoomSeat{Rect: r, Back: back, Boxed: true, Animated: c.Selected, Frames: frames, Hidden: v.RosterUnpainted,
+			Captions: []RoomCaption{{Text: c.Price, Font: font, Place: RoomCaptionTopRight}, {Text: c.Detail, Font: font, Place: RoomCaptionBottomLeft}}}
+		hired := v.HiredLabel
+		if hired == "" {
+			hired = AuthoredWords().TavernHired
+		}
+		if c.Hired {
+			seat.Captions = append(seat.Captions, RoomCaption{Text: hired, Font: font, Place: RoomCaptionMark})
+		}
+		v.Page.Seats = append(v.Page.Seats, seat)
 	}
 	if c := v.Candidate; c.HasSubject {
 		c.Statistics, c.PaneRect, c.CardOffset = true, image.Rect(0, 0, 160, 238), image.Pt(12, 0)
@@ -36,7 +74,72 @@ func firstTavernPage(v TownSurfaceView) TownSurfaceView {
 	}
 	v.Page.Person.Figure = RoomFigure{Picture: v.Candidate.Figure, Rect: image.Rect(0, 238, 160, 480), Offset: image.Pt(8, 1), Centre: true}
 	v.Page.Person.Picture, v.Page.Person.Text = v.CandidatePixels, v.CandidateText
+	v.Page.Scene = v.Scene
+	for _, layer := range testSurfaceDescription().Rooms[0].Scene.Backdrop {
+		pictures := map[string]image.Image{"center": art.Center, "left-stats": art.LeftStats, "left-stats-seam": art.LeftStatsSeam, "left-picture": art.LeftPicture, "left-picture-seam": art.LeftPictureSeam}
+		v.Page.Backdrop = append(v.Page.Backdrop, RoomBackdrop{Picture: pictures[layer.Art], Rect: image.Rect(layer.Rect[0], layer.Rect[1], layer.Rect[2], layer.Rect[3]), Scene: layer.Scene, Over: layer.Over})
+	}
 	return v
+}
+
+type testSurfaceData struct {
+	Rooms []struct {
+		Name    string
+		Regions []struct {
+			Name  string
+			Rects [][4]int
+		}
+		Buttons []struct{ Rect [4]int }
+		Scene   struct {
+			Backdrop []struct {
+				Art, Scene string
+				Rect       [4]int
+				Over       bool
+			}
+		}
+	}
+}
+
+var surfaceDataOnce sync.Once
+var surfaceData testSurfaceData
+
+var townSurfaceButtonWells = map[TownSurfaceKind][]image.Rectangle{TownSurfaceSchool: {TownSurfaceButtonWell(TownSurfaceSchool, 0), TownSurfaceButtonWell(TownSurfaceSchool, 1)}}
+
+var schoolPanelRects = [2]image.Rectangle{SchoolPanelRect(0), SchoolPanelRect(1)}
+
+func testSurfaceDescription() testSurfaceData {
+	surfaceDataOnce.Do(func() {
+		raw, err := os.ReadFile("../game/towns/rom1.json")
+		if err != nil {
+			panic(err)
+		}
+		if err := json.Unmarshal(raw, &surfaceData); err != nil {
+			panic(err)
+		}
+	})
+	return surfaceData
+}
+
+func TownSurfaceButtonRect(kind TownSurfaceKind, i int) image.Rectangle {
+	name := map[TownSurfaceKind]string{TownSurfaceTavern: "tavern", TownSurfaceSchool: "school"}[kind]
+	for _, r := range testSurfaceDescription().Rooms {
+		if r.Name == name && i >= 0 && i < len(r.Buttons) {
+			b := r.Buttons[i].Rect
+			return image.Rect(b[0], b[1], b[2], b[3])
+		}
+	}
+	return image.Rectangle{}
+}
+
+func townSurfaceButtonRect(kind TownSurfaceKind, i int) image.Rectangle {
+	return TownSurfaceButtonRect(kind, i)
+}
+func TownSurfaceButtonWell(kind TownSurfaceKind, i int) image.Rectangle {
+	origin := TownUpperRegion.Min
+	if kind == TownSurfaceTavern {
+		origin = TownWideUpperRegion.Min
+	}
+	return TownSurfaceButtonRect(kind, i).Sub(origin)
 }
 
 // townSurfaceCellRectFor is cell i's rectangle: the tavern's seat i of its
@@ -126,4 +229,17 @@ func TestRoomPageHiddenSeatIsHitButNotDrawn(t *testing.T) {
 	if got := p.SeatAt(image.Pt(40, 60)); got != 0 {
 		t.Fatalf("hidden seat hit = %d, want 0", got)
 	}
+}
+
+func SchoolSkillRect(class, slot int) image.Rectangle {
+	if class < 0 || class > 1 || slot < 0 || slot > 4 {
+		return image.Rectangle{}
+	}
+	return firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool}).Page.Region([]string{"fighter", "mage"}[class], slot)
+}
+func SchoolPanelRect(class int) image.Rectangle {
+	return firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool}).Page.Region("panels", class)
+}
+func townSurfaceCellRect(i int) image.Rectangle {
+	return firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool}).Page.Region("cells", i)
 }

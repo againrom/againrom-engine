@@ -337,10 +337,10 @@ func (r *townFiguresRig) exitPoint(room townRoom) image.Point {
 		}
 		return image.Pt(x, y)
 	case roomTavern:
-		b := ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, tavernButtonExit)
+		b := TownRoomButtonRect(ui.TownSurfaceTavern, tavernButtonExit)
 		return b.Min.Add(b.Max).Div(2)
 	case roomSchool:
-		b := ui.TownSurfaceButtonRect(ui.TownSurfaceSchool, 1)
+		b := TownRoomButtonRect(ui.TownSurfaceSchool, 1)
 		return b.Min.Add(b.Max).Div(2)
 	}
 	r.t.Fatalf("room %d has no Exit button", room)

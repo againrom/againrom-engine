@@ -520,11 +520,18 @@ type RoomSpec struct {
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`
 	Buttons []ButtonSpec `json:"buttons"`
+	Regions []RegionSpec `json:"regions"`
 	// Pane is the page's character pane; nil shows none.
 	Pane *PaneSpec `json:"pane"`
 	// Shop is a shop page's own drawing rules; nil keeps the first game's.
 	Shop *ShopSpec `json:"shop"`
 	Cite []string  `json:"cite"`
+}
+
+type RegionSpec struct {
+	Name  string   `json:"name"`
+	Rects []Rect   `json:"rects"`
+	Cite  []string `json:"cite"`
 }
 
 // ShopSpec is a shop page's rules as data. MoneyLast shows the gold

@@ -104,7 +104,7 @@ func TestShopAndSchoolCaptionsUseSharedColors(t *testing.T) {
 				shop.Press = ShopControl{Kind: ShopControlButton}
 				school.Press = TownSurfaceControl{Kind: TownSurfaceControlButton}
 			}
-			for _, panel := range []buttonPanel{shopButtonPanel(shop, p, state.hover), townSurfacePanel(school, false, false, false)} {
+			for _, panel := range []buttonPanel{shopButtonPanel(shop, p, state.hover), townSurfacePanel(firstTavernPage(school), false, false, false)} {
 				button := panel.buttons[0]
 				if button.Face.Ink != plaqueCommandInk || button.ink() != state.ink {
 					t.Fatalf("caption palette or state differs: face %+v, state %v", button.Face.Ink, button.ink())

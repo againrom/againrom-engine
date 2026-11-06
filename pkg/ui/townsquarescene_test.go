@@ -12,7 +12,7 @@ type fakeSquareScene struct {
 
 func (s *fakeSquareScene) Size() image.Point { return image.Pt(640, 480) }
 
-func (s *fakeSquareScene) Paint(dst *image.RGBA) {
+func (s *fakeSquareScene) Paint(dst *image.RGBA, groups ...string) {
 	for i := range dst.Pix {
 		dst.Pix[i] = s.fill
 	}

@@ -245,7 +245,8 @@ type literalShopScene struct {
 	merchant image.Image
 }
 
-func (l literalShopScene) Paint(dst *image.RGBA, group string) {
+func (l literalShopScene) Paint(dst *image.RGBA, groups ...string) {
+	group := groups[0]
 	if group != "interior" {
 		return
 	}
@@ -261,3 +262,9 @@ func (l literalShopScene) Paint(dst *image.RGBA, group string) {
 		draw.Draw(dst, b.Add(image.Pt(277, 112).Sub(b.Min)), l.merchant, b.Min, draw.Over)
 	}
 }
+
+func (s literalShopScene) Size() image.Point { return image.Point{} }
+func (s literalShopScene) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
+	return ui.TownSquareControl{}, false
+}
+func (s literalShopScene) TipAt(p image.Point) (int, bool) { return 0, false }

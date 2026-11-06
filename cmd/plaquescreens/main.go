@@ -99,6 +99,7 @@ func writeSchool(f *game.FrontEnd, dir string) error {
 		Buttons: []ui.TownSurfaceButton{{Label: f.Words.SchoolTrain, Value: "200", Enabled: true}, {Label: f.Words.SchoolExit, Value: "500", Enabled: true}},
 		Hero:    ui.TownCharacterView{FigurePane: panes.Figure, StatsPane: panes.Stats},
 	}
+	v.Page = f.SurfacePageLayout(v, 0)
 	return writePNG(filepath.Join(dir, "school.png"), ui.ComposeTownSurface(v))
 }
 
@@ -118,8 +119,8 @@ func writeTavern(f *game.FrontEnd, dir string) error {
 			{Label: f.Words.TavernExit, Enabled: true},
 		},
 		Hero: ui.TownCharacterView{FigurePane: panes.Figure, StatsPane: panes.Stats},
-		Page: f.TavernPageLayout(len(cells), len(cells)),
 	}
+	v.Page = f.SurfacePageLayout(v, len(cells))
 	return writePNG(filepath.Join(dir, "tavern.png"), ui.ComposeTownSurface(v))
 }
 

@@ -6,7 +6,7 @@ import (
 	"againrom/pkg/town"
 )
 
-func (t *townScreen) schoolPage() *town.Scene { return t.roomPage("school") }
+func (t *townScreen) schoolPage() *town.Scene { return t.roomView("school").scene() }
 
 func (t *townScreen) schoolColumn() *town.Target {
 	return t.schoolPage().Actor("column").(*town.Target)
@@ -144,7 +144,7 @@ func (t *townScreen) schoolPanelClass() int {
 // a room page. A school dialogue keeps its room background painting too.
 func (t *townScreen) AdvanceTownSurfaceAnimation() {
 	if t.inTavernInterior() {
-		t.tavernPage().Advance()
+		t.roomView("tavern").scene().Advance()
 		return
 	}
 	if t.inSchoolTraining() {

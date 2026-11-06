@@ -110,7 +110,7 @@ func TestReleaseTownRoomTraceIsUnchanged(t *testing.T) {
 	tr.closeDialogue()
 	tr.hover(idle, 41*time.Millisecond, 160)
 	for i := 0; i < 4; i++ {
-		tr.hover(centre(ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, i)), 37*time.Millisecond, 6)
+		tr.hover(centre(TownRoomButtonRect(ui.TownSurfaceTavern, i)), 37*time.Millisecond, 6)
 	}
 	for i := 0; i < 6; i++ {
 		cell := image.Pt(176+48*i+24, 480-32)
@@ -176,7 +176,7 @@ func TestReleaseTownRoomTraceIsUnchanged(t *testing.T) {
 	tr.hover(idle, 41*time.Millisecond, 160)
 	for class := 0; class < 2; class++ {
 		for slot := 0; slot < 5; slot++ {
-			tr.hover(centre(ui.SchoolSkillRect(class, slot)), 37*time.Millisecond, 4)
+			tr.hover(centre(TownSchoolRegion([]string{"fighter", "mage"}[class], slot)), 37*time.Millisecond, 4)
 		}
 	}
 	for _, picker := range []image.Point{next, next, prev} {
@@ -186,13 +186,13 @@ func TestReleaseTownRoomTraceIsUnchanged(t *testing.T) {
 	}
 	for slot := 0; slot < 5; slot++ {
 		for class := 0; class < 2; class++ {
-			p := centre(ui.SchoolSkillRect(class, slot))
+			p := centre(TownSchoolRegion([]string{"fighter", "mage"}[class], slot))
 			tr.click(p)
 			tr.closeDialogue()
 			tr.hover(p, 41*time.Millisecond, 4)
 		}
 	}
-	train := centre(ui.TownSurfaceButtonRect(ui.TownSurfaceSchool, 0))
+	train := centre(TownRoomButtonRect(ui.TownSurfaceSchool, 0))
 	tr.hover(train, 37*time.Millisecond, 4)
 	tr.click(train)
 	tr.closeDialogue()
@@ -200,7 +200,7 @@ func TestReleaseTownRoomTraceIsUnchanged(t *testing.T) {
 	tr.hover(idle, 53*time.Millisecond, 200)
 	tr.pause(25)
 	tr.hover(idle, 53*time.Millisecond, 160)
-	exit := centre(ui.TownSurfaceButtonRect(ui.TownSurfaceSchool, 1))
+	exit := centre(TownRoomButtonRect(ui.TownSurfaceSchool, 1))
 	tr.hover(exit, 37*time.Millisecond, 4)
 	tr.click(exit)
 	tr.closeDialogue()

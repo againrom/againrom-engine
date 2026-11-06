@@ -84,9 +84,9 @@ func TestReleaseSchoolButtonPressShowsItsOwnOnState(t *testing.T) {
 			pressed := c.v
 			pressed.Press = ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: i}
 
-			off := ui.ComposeTownSurface(released)
-			on := ui.ComposeTownSurface(pressed)
-			well := ui.TownSurfaceButtonRect(c.kind, i)
+			off := ui.ComposeTownSurface(roomSurfaceFixture(released))
+			on := ui.ComposeTownSurface(roomSurfaceFixture(pressed))
+			well := TownRoomButtonRect(c.kind, i)
 
 			differ := 0
 			for y := well.Min.Y; y < well.Max.Y; y++ {
@@ -291,8 +291,8 @@ func TestReleaseSchoolAndTavernButtonArtIsPlacedAndLabelled(t *testing.T) {
 		composed := make([]*image.RGBA, n)
 		wells := make([]image.Rectangle, n)
 		for i := 0; i < n; i++ {
-			composed[i] = ui.ComposeTownSurface(c.v)
-			wells[i] = ui.TownSurfaceButtonRect(c.kind, i)
+			composed[i] = ui.ComposeTownSurface(roomSurfaceFixture(c.v))
+			wells[i] = TownRoomButtonRect(c.kind, i)
 		}
 		for i := 0; i < n; i++ {
 			well := wells[i]
@@ -345,8 +345,8 @@ func TestReleaseSchoolButtonPressedArtIsPlacedAndLabelled(t *testing.T) {
 	for i := range buttons {
 		v := base
 		v.Press = ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: i}
-		composed := ui.ComposeTownSurface(v)
-		well := ui.TownSurfaceButtonRect(ui.TownSurfaceSchool, i)
+		composed := ui.ComposeTownSurface(roomSurfaceFixture(v))
+		well := TownRoomButtonRect(ui.TownSurfaceSchool, i)
 		oracle := oracleTownButtonWell(nil, image.Point{}, f.TownSchoolArt.Value().Buttons[i][1], well, f.Font.Value(), buttons[i], true, nil)
 		if diff, ex := diffWells(composed, oracle, well); diff != 0 {
 			t.Errorf("school button %d pressed (%q/%q, enabled=%v): composed well %v differs from the "+
@@ -376,7 +376,7 @@ func TestReleaseSchoolAndTavernUpperRegionMatchesShippedArtOutsideButtonWells(t 
 				p := image.Pt(x, y)
 				inside := false
 				for i := 0; i < count; i++ {
-					if p.In(ui.TownSurfaceButtonRect(kind, i)) {
+					if p.In(TownRoomButtonRect(kind, i)) {
 						inside = true
 						break
 					}
@@ -403,11 +403,11 @@ func TestReleaseSchoolAndTavernUpperRegionMatchesShippedArtOutsideButtonWells(t 
 		artCopy.UpperSeam = nil
 		beforeV := v
 		beforeV.SchoolArt = &artCopy
-		want := ui.ComposeTownSurface(beforeV)
+		want := ui.ComposeTownSurface(roomSurfaceFixture(beforeV))
 		draw.Draw(want, ui.TownUpperRegion, f.TownSchoolArt.Value().Upper, f.TownSchoolArt.Value().Upper.Bounds().Min, draw.Src)
 		draw.Draw(want, image.Rect(464, 0, 480, 238), f.TownSchoolArt.Value().UpperSeam,
 			f.TownSchoolArt.Value().UpperSeam.Bounds().Min, draw.Over)
-		compareOutside(t, ui.ComposeTownSurface(v), want, ui.TownSurfaceSchool, len(buttons))
+		compareOutside(t, ui.ComposeTownSurface(roomSurfaceFixture(v)), want, ui.TownSurfaceSchool, len(buttons))
 	})
 
 	t.Run("tavern shop composition", func(t *testing.T) {
@@ -421,9 +421,9 @@ func TestReleaseSchoolAndTavernUpperRegionMatchesShippedArtOutsideButtonWells(t 
 		artCopy.CommandButtons = [4]image.Image{}
 		beforeV := v
 		beforeV.TavernArt = &artCopy
-		want := ui.ComposeTownSurface(beforeV)
+		want := ui.ComposeTownSurface(roomSurfaceFixture(beforeV))
 		draw.Draw(want, ui.TownWideUpperRegion, f.TownTavernArt.Value().CommandUpper,
 			f.TownTavernArt.Value().CommandUpper.Bounds().Min, draw.Over)
-		compareOutside(t, ui.ComposeTownSurface(v), want, ui.TownSurfaceTavern, len(buttons))
+		compareOutside(t, ui.ComposeTownSurface(roomSurfaceFixture(v)), want, ui.TownSurfaceTavern, len(buttons))
 	})
 }

@@ -10,17 +10,17 @@ import (
 	"againrom/pkg/town"
 )
 
-// roomPage answers the composer scene of a room the profile's room
-// description gives a scene, building it on first use.
-func (t *townScreen) roomPage(room string) *town.Scene {
-	d := t.townDescription()
-	if d == nil {
-		return nil
-	}
-	return t.scene(d, room)
+// roomView is the page adapter for every room and square.
+func (t *townScreen) roomView(room string) roomPageView {
+	return roomPageView{t: t, d: t.townDescription(), room: room}
 }
 
-func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
+func (v roomPageView) scene() *town.Scene {
+	if v.d == nil {
+		return nil
+	}
+	return v.t.viewScene(v.d, v.room)
+}
 
 // TownClickSounds: the first game's tip Close and dialogue page presses
 // request click01 and its tavern and school buttons request none (TOWN-547,
@@ -64,7 +64,7 @@ func (t *townScreen) roomSound(room, on string) {
 	if t == nil || t.sess == nil || t.townDescription() == nil {
 		return
 	}
-	t.roomPage(room).Trigger(on)
+	t.roomView(room).scene().Trigger(on)
 }
 
 // shownRoomSound requests a room event on the shown room of a composed
@@ -75,7 +75,7 @@ func (t *townScreen) shownRoomSound(on string) {
 	}
 }
 
-func (t *townScreen) shopPage() *town.Scene { return t.roomPage("shop") }
+func (t *townScreen) shopPage() *town.Scene { return t.roomView("shop").scene() }
 
 // loadRoomSceneArt resolves a room scene's art as room description d names
 // it: its pictures by entry name, and the problems of the entries that did
@@ -129,11 +129,6 @@ var roomValues = map[string]func(t *townScreen) int{
 	"school-hover": func(t *townScreen) int { return t.schoolHover },
 }
 
-// roomScene is a page's composed centre as ui paints it.
-type roomScene struct{ p *town.Scene }
-
-func (s roomScene) Paint(dst *image.RGBA, group string) { s.p.Paint(dst, group) }
-
 func (t *townScreen) inTavernInterior() bool {
 	return t != nil && (t.room == roomTavern || t.room == roomTalk && t.dialogueBuilding == TownTavern)
 }
@@ -144,7 +139,7 @@ func (t *townScreen) leaveTavernInterior() {
 	if t == nil {
 		return
 	}
-	t.tavernPage().SetActive(false, t.inTavernInterior())
+	t.roomView("tavern").scene().SetActive(false, t.inTavernInterior())
 	if !t.inTavernInterior() && t.audioRoom == "tavern" {
 		t.destroyRoomAudio()
 	}
@@ -157,7 +152,7 @@ func (t *townScreen) TavernInteriorActive(active bool) {
 	if t == nil || t.sess == nil || t.townDescription() == nil || t.townDescription().Room("tavern") == nil {
 		return
 	}
-	t.tavernPage().SetActive(active, t.inTavernInterior())
+	t.roomView("tavern").scene().SetActive(active, t.inTavernInterior())
 }
 
 func (t *townScreen) inShopInterior() bool { return t != nil && t.AtTownShop() }

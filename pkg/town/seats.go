@@ -2,6 +2,17 @@ package town
 
 import "image"
 
+// TickSeats answers the seat grid whose clock counts client ticks, nil when
+// no room has one.
+func (d *Description) TickSeats() *SeatSpec {
+	for i := range d.Rooms {
+		if s := d.Rooms[i].Seats; s != nil && s.FrameTicks > 0 {
+			return s
+		}
+	}
+	return nil
+}
+
 // SeatSpec is a page's seat grid: Columns seats in a row, Rows rows, the
 // first seat at First, each next seat of a row offset by Step and each next
 // row by RowStep. Seat i is in row i/Columns and column i%Columns. Back is
@@ -27,6 +38,11 @@ type SeatSpec struct {
 	Select  string `json:"select"`
 	FrameMS int    `json:"frame-ms"`
 	Compare string `json:"compare"`
+	// FrameTicks is the period of a seat clock the client drives: the
+	// selected actor advances one frame after that many client ticks, and a
+	// press on a seat restarts the count. It replaces FrameMS and Compare;
+	// both zero runs no seat clock.
+	FrameTicks int `json:"frame-ticks"`
 	// Clock names a process clock of the page scene whose stamp the seat step
 	// reads and writes, so the step outlives every entry; empty stamps the
 	// step at each entry.
@@ -34,8 +50,22 @@ type SeatSpec struct {
 	Cite  []string `json:"cite"`
 	// Card and Figure are where the selected seat's person shows its
 	// statistics card and its full figure; nil shows neither.
-	Card   *SeatCard   `json:"card"`
-	Figure *SeatFigure `json:"figure"`
+	Card       *SeatCard       `json:"card"`
+	Figure     *SeatFigure     `json:"figure"`
+	Appearance *SeatAppearance `json:"appearance"`
+}
+
+type SeatAppearance struct {
+	Boxed    bool          `json:"boxed"`
+	Phase    bool          `json:"phase"`
+	Captions []SeatCaption `json:"captions"`
+	Cite     []string      `json:"cite"`
+}
+
+type SeatCaption struct {
+	Value string   `json:"value"`
+	Place int      `json:"place"`
+	Cite  []string `json:"cite"`
 }
 
 // SeatCard is the selected person's statistics card: drawn in Rect over the

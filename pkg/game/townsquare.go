@@ -205,7 +205,7 @@ var townHooks = map[string]townHook{
 			t.openOfferDialogue(building, offers[0], 0)
 		}
 	}, offers: "chapter-keys"},
-	"tavern-interior":     {run: func(t *townScreen, _ string) { t.tavernPage().Enter() }, offers: "chapter-keys"},
+	"tavern-interior":     {run: func(t *townScreen, _ string) { t.roomView("tavern").scene().Enter() }, offers: "chapter-keys"},
 	"tavern-detail-clear": {run: func(t *townScreen, _ string) { t.clearTavernDetail() }, offers: "chapter-keys"},
 	"tavern-selection":    {run: func(t *townScreen, _ string) { t.activateTavernSelection(t.tavernCandidates()) }, offers: "chapter-keys"},
 	"navigate": {run: func(t *townScreen, _ string) {

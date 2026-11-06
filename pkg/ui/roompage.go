@@ -12,11 +12,29 @@ import (
 // button rectangles and the selected person. The game builds it from the
 // room's data; DrawRoomPage paints it and SeatAt and ButtonAt hit-test it.
 type RoomPage struct {
-	Seats   []RoomSeat
-	Buttons []image.Rectangle
+	Seats    []RoomSeat
+	Buttons  []image.Rectangle
+	Backdrop []RoomBackdrop
+	Scene    RoomScene
+	Regions  map[string][]image.Rectangle
 	// Phase is the animation phase an Animated seat shows.
 	Phase  int
 	Person RoomPerson
+}
+
+func (p RoomPage) Region(name string, i int) image.Rectangle {
+	if rows := p.Regions[name]; i >= 0 && i < len(rows) {
+		return rows[i]
+	}
+	return image.Rectangle{}
+}
+
+// RoomBackdrop is a page picture or a named scene group in paint order.
+type RoomBackdrop struct {
+	Picture image.Image
+	Rect    image.Rectangle
+	Scene   string
+	Over    bool
 }
 
 // RoomSeat is one seat: its back drawn opaque, then its actor's frame, both
@@ -127,7 +145,31 @@ func RenderRoomPerson(p RoomPerson) *image.RGBA {
 }
 
 // DrawRoomPage paints the seats in index order and then the person.
-func DrawRoomPage(dst *image.RGBA, p RoomPage) {
+func DrawRoomPage(dst *image.RGBA, p RoomPage, groups ...string) {
+	group := ""
+	if len(groups) > 0 {
+		group = groups[0]
+	}
+	if group == "" || group == "backdrop" {
+		if p.Scene != nil {
+			p.Scene.Paint(dst, "back")
+		}
+		for _, layer := range p.Backdrop {
+			if layer.Scene != "" && p.Scene != nil {
+				p.Scene.Paint(dst, layer.Scene)
+			}
+			if layer.Picture != nil {
+				op := draw.Src
+				if layer.Over {
+					op = draw.Over
+				}
+				draw.Draw(dst, layer.Rect, layer.Picture, layer.Picture.Bounds().Min, op)
+			}
+		}
+	}
+	if group == "backdrop" {
+		return
+	}
 	for _, s := range p.Seats {
 		if !s.Hidden {
 			drawRoomSeat(dst, s, p.Phase)
@@ -136,9 +178,12 @@ func DrawRoomPage(dst *image.RGBA, p RoomPage) {
 	if pic := p.Person.Picture; pic != nil {
 		draw.Draw(dst, pic.Bounds(), pic, pic.Bounds().Min, draw.Over)
 		text.Append(p.Person.Text, 0, 0)
-		return
+	} else {
+		DrawRoomPerson(dst, p.Person)
 	}
-	DrawRoomPerson(dst, p.Person)
+	if p.Scene != nil {
+		p.Scene.Paint(dst, "front")
+	}
 }
 
 func drawRoomSeat(dst *image.RGBA, s RoomSeat, phase int) {

@@ -52,11 +52,11 @@ func tavernTenderState(name string) int {
 }
 
 func tavernLoop(s *townScreen, name string) *town.Loop {
-	return s.tavernPage().Actor(name).(*town.Loop)
+	return s.roomView("tavern").scene().Actor(name).(*town.Loop)
 }
 
 func tavernTender(s *townScreen) *town.Alternating {
-	return s.tavernPage().Actor("tender").(*town.Alternating)
+	return s.roomView("tavern").scene().Actor("tender").(*town.Alternating)
 }
 
 func TestTavernTenderReplacesStaticBodyThroughBlackShadows(t *testing.T) {
@@ -72,10 +72,11 @@ func TestTavernTenderReplacesStaticBodyThroughBlackShadows(t *testing.T) {
 		s := bareTownScreen(t)
 		s.draws = fakeTownDraws{}
 		s.in.TownTavernArt = resolved(art, nil)
-		p := s.tavernPage()
+		p := s.roomView("tavern").scene()
 		p.Enter()
 		tavernTender(s).ShownState = tavernTenderState(tender)
-		view := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern, TavernArt: art, Scene: roomScene{p}}
+		view := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern, TavernArt: art, Scene: s.roomView("tavern")}
+		s.setTavernPage(&view, len(view.Cells), len(view.Cells))
 		frame := ui.ComposeTownSurface(view)
 		if got := frame.RGBAAt(250, 155); got != (color.RGBA{A: 255}) {
 			t.Fatalf("static tender shows through the replacement shadow: %v", got)
@@ -225,13 +226,13 @@ func TestTavernInteriorActualAppStrictCyclesAndKeeperCaches(t *testing.T) {
 	si.State, si.Direction = 2, -1
 	si.Index[tavernBreath], si.Cached[tavernBreath] = tavernBreathLoaded-1, tavernBreathLoaded-1
 	si.Delay = time.Hour
-	s.tavernPage().SetClock("tender", now.Add(-84*time.Millisecond))
+	s.roomView("tavern").scene().SetClock("tender", now.Add(-84*time.Millisecond))
 	frame = drawTavernApp(t, a, s, now, 0)
 	if frame.RGBAAt(260, 153).G != tavernBreathLoaded || si.State != 0 || si.Index[tavernBreath] != 0 || si.Cached[tavernBreath] != tavernBreathLoaded-1 || si.Direction != -1 {
 		t.Fatalf("breath completion = mode%d index/cache%d/%d direction%d", si.State, si.Index[tavernBreath], si.Cached[tavernBreath], si.Direction)
 	}
 	si.State = 2
-	s.tavernPage().SetClock("tender", *now)
+	s.roomView("tavern").scene().SetClock("tender", *now)
 	frame = drawTavernApp(t, a, s, now, 0)
 	if frame.RGBAAt(260, 153).G != tavernBreathLoaded {
 		t.Fatal("next breath did not first draw stale cached br0024")
@@ -246,7 +247,7 @@ func TestTavernInteriorActualAppStrictCyclesAndKeeperCaches(t *testing.T) {
 	si.State, si.Direction = 1, 1
 	si.Index[tavernDrink], si.Cached[tavernDrink] = tavernDrinkLoaded-1, tavernDrinkLoaded-1
 	si.Delay = time.Hour
-	s.tavernPage().SetClock("tender", now.Add(-84*time.Millisecond))
+	s.roomView("tavern").scene().SetClock("tender", now.Add(-84*time.Millisecond))
 	frame = drawTavernApp(t, a, s, now, 0)
 	if frame.RGBAAt(260, 153).G != tavernDrinkLoaded || si.Direction != -1 || si.Index[tavernDrink] != tavernDrinkLoaded-2 {
 		t.Fatalf("drink turnaround = picture%d direction%d index%d", frame.RGBAAt(260, 153).G, si.Direction, si.Index[tavernDrink])
@@ -261,7 +262,7 @@ func TestTavernInteriorActualAppStrictCyclesAndKeeperCaches(t *testing.T) {
 	si.State, si.Direction = 1, -1
 	si.Index[tavernDrink], si.Cached[tavernDrink] = 20, 20
 	si.Delay = 3001 * time.Millisecond
-	s.tavernPage().SetClock("tender", now.Add(-3002*time.Millisecond))
+	s.roomView("tavern").scene().SetClock("tender", now.Add(-3002*time.Millisecond))
 	frame = drawTavernApp(t, a, s, now, 0)
 	if frame.RGBAAt(260, 153).G != 21 || si.State != 1 || si.Direction != 1 || si.Index[tavernDrink] != 21 {
 		t.Fatalf("active rearm = pixel%d mode%d direction%d index%d", frame.RGBAAt(260, 153).G, si.State, si.Direction, si.Index[tavernDrink])
@@ -313,7 +314,7 @@ func TestTavernInteriorConditionalSoundStatusAndInterruption(t *testing.T) {
 	if r.count("water") != 1 {
 		t.Fatal("repeat water ignored retained playing status")
 	}
-	s.tavernPage().Voice("water").(*tavernInteriorVoice).playing = false
+	s.roomView("tavern").scene().Voice("water").(*tavernInteriorVoice).playing = false
 	drawTavernApp(t, a, s, now, 0)
 	if r.count("water") != 2 {
 		t.Fatal("completed repeat water did not retry")
@@ -334,7 +335,7 @@ func TestTavernInteriorConditionalSoundStatusAndInterruption(t *testing.T) {
 	si.State, si.Direction = 1, -1
 	si.Index[tavernDrink], si.Cached[tavernDrink] = 0, 0
 	si.Delay = time.Hour
-	s.tavernPage().SetClock("tender", now.Add(-84*time.Millisecond))
+	s.roomView("tavern").scene().SetClock("tender", now.Add(-84*time.Millisecond))
 	drawTavernApp(t, a, s, now, 0)
 	if r.count("glotok") != 1 || si.State != 0 || si.Direction != 0 {
 		t.Fatal("reverse completion did not request glotok and clear mode/direction")
@@ -342,13 +343,13 @@ func TestTavernInteriorConditionalSoundStatusAndInterruption(t *testing.T) {
 	si.State, si.Direction = 1, 1
 	si.Index[tavernDrink], si.Cached[tavernDrink] = 30, 30
 	si.Delay = time.Hour
-	s.tavernPage().SetClock("tender", *now)
+	s.roomView("tavern").scene().SetClock("tender", *now)
 	drawTavernApp(t, a, s, now, 0)
 	drawTavernApp(t, a, s, now, 0)
 	if r.count("drink") != 1 {
 		t.Fatal("index30 request ignored status")
 	}
-	s.tavernPage().Voice("drink").(*tavernInteriorVoice).playing = false
+	s.roomView("tavern").scene().Voice("drink").(*tavernInteriorVoice).playing = false
 	drawTavernApp(t, a, s, now, 0)
 	if r.count("drink") != 2 {
 		t.Fatal("index30 request did not retry after status zero")
@@ -360,11 +361,11 @@ func TestTavernInteriorConditionalSoundStatusAndInterruption(t *testing.T) {
 	if err := a.HeadlessFocus(false); err != nil {
 		t.Fatal(err)
 	}
-	if s.tavernPage().Active() {
+	if s.roomView("tavern").scene().Active() {
 		t.Fatal("focus loss left controller active")
 	}
 	for _, slot := range tavernSounds {
-		if s.tavernPage().Voice(slot) != nil {
+		if s.roomView("tavern").scene().Voice(slot) != nil {
 			t.Fatalf("focus loss retained voice %s", slot)
 		}
 	}
@@ -387,7 +388,7 @@ func TestTavernInteriorConditionalSoundStatusAndInterruption(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
-	if s.room != roomSquare || s.tavernPage().Active() {
+	if s.room != roomSquare || s.roomView("tavern").scene().Active() {
 		t.Fatal("Back did not interrupt tavern")
 	}
 	if err := a.HeadlessKey("escape"); err != nil {
@@ -438,7 +439,7 @@ func TestTavernInteriorInteractionsReentryLoadAndMissingFamilies(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
-	if s.room != roomTavern || !s.tavernPage().Ready() {
+	if s.room != roomTavern || !s.roomView("tavern").scene().Ready() {
 		t.Fatal("conversation Back reset controller")
 	}
 	if err := a.HeadlessActivate("Sleep"); err != nil {
@@ -469,7 +470,7 @@ func TestTavernInteriorInteractionsReentryLoadAndMissingFamilies(t *testing.T) {
 	if err := a.HeadlessActivate("@first"); err != nil {
 		t.Fatal(err)
 	}
-	if a.Screen() != ui.ScreenTown || s.room != roomSquare || s.tavernPage().Ready() {
+	if a.Screen() != ui.ScreenTown || s.room != roomSquare || s.roomView("tavern").scene().Ready() {
 		t.Fatal("native App load retained tavern presentation")
 	}
 
@@ -582,7 +583,7 @@ func TestTavernInteriorPresentationLeavesNativeBytesAndHashIdentical(t *testing.
 		t.Fatal("presentation changed sim hash or binary state")
 	}
 	s.resetForNewGame()
-	if s.tavernPage().Ready() {
+	if s.roomView("tavern").scene().Ready() {
 		t.Fatal("new game retained tavern controller")
 	}
 }

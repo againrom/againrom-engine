@@ -381,7 +381,8 @@ type literalSchoolMovies struct {
 	mage, fighter image.Image
 }
 
-func (l literalSchoolMovies) Paint(dst *image.RGBA, group string) {
+func (l literalSchoolMovies) Paint(dst *image.RGBA, groups ...string) {
+	group := groups[0]
 	if group != "movies" {
 		l.page.Paint(dst, group)
 		return
@@ -399,3 +400,9 @@ func (l literalSchoolMovies) Paint(dst *image.RGBA, group string) {
 		draw.Draw(dst, clip, layer.pic, b.Min.Add(clip.Min.Sub(placed.Min)), draw.Src)
 	}
 }
+
+func (s literalSchoolMovies) Size() image.Point { return image.Point{} }
+func (s literalSchoolMovies) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
+	return ui.TownSquareControl{}, false
+}
+func (s literalSchoolMovies) TipAt(p image.Point) (int, bool) { return 0, false }

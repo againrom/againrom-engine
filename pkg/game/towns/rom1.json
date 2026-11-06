@@ -235,7 +235,10 @@
     {"name": "tavern", "page": "tavern",
      "music-rule": {"scene": "tavern", "cite": ["owner"]},
      "buttons": [
-       {"name": "sleep", "rect": [494, 15, 614, 67], "word": "tavern.sleep", "cite": ["DIV-483", "DIV-1763"]}
+       {"name": "sleep", "rect": [494, 15, 614, 67], "word": "tavern.sleep", "cite": ["DIV-483", "DIV-1763"]},
+       {"name": "hire", "rect": [483, 67, 623, 113], "cite": ["TOWN-391", "DIV-483"]},
+       {"name": "talk", "rect": [483, 114, 623, 160], "cite": ["TOWN-391", "DIV-483"]},
+       {"name": "exit", "rect": [494, 160, 614, 212], "cite": ["TOWN-391", "DIV-483"]}
      ],
      "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [
@@ -276,11 +279,23 @@
        {"name": "hero-mage", "format": "sprites", "key": "graphics/interface/inn/heromage/sprites.16a", "cite": ["TAVERN-TALKPIC-016"]}
      ],
      "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
-               "back": "man-back-talk", "hire-back": "man-back",
+               "appearance": {"boxed": true, "phase": true,
+               "captions": [{"value": "price", "place": 1, "cite": ["TOWN-467"]},
+                            {"value": "detail", "place": 2, "cite": ["TOWN-467"]},
+                            {"value": "hired", "place": 3, "cite": ["TOWN-468"]}], "cite": ["owner"]},
+               "back": "man-back-talk", "hire-back": "man-back", "frame-ticks": 6,
                "card": {"rect": [0, 0, 160, 238], "art": "left-stats", "seam": "left-stats-seam", "offset": [12, 0], "cite": ["TAVERN-TALKSTATS-017"]},
                "figure": {"rect": [0, 238, 160, 480], "offset": [8, 1], "centre": true, "cite": ["owner"]},
                "cite": ["TOWN-467", "TOWN-468"]},
      "scene": {
+       "backdrop": [
+         {"art": "center", "rect": [160, 0, 480, 480], "cite": ["TOWN-214", "DIV-176"]},
+         {"scene": "centre", "cite": ["TOWN-407"]},
+         {"art": "left-stats", "rect": [0, 0, 160, 238], "cite": ["TOWN-009"]},
+         {"art": "left-stats-seam", "rect": [160, 0, 176, 238], "over": true, "cite": ["TOWN-012", "DIV-168"]},
+         {"art": "left-picture", "rect": [0, 238, 160, 480], "cite": ["TOWN-009"]},
+         {"art": "left-picture-seam", "rect": [160, 238, 176, 480], "over": true, "cite": ["DIV-168"]}
+       ],
        "random": [{"name": "tender", "source": "host", "cite": ["TOWN-409", "DIV-843"]}],
        "art": [
          {"name": "candle", "format": "series", "key": "graphics/interface/inn/candle/t%04d.bmp", "count": 10,
@@ -484,6 +499,11 @@
        "cite": ["SHOP-ANIMATION-081", "DIV-850", "DIV-852", "DIV-855"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "school", "page": "school",
+     "regions": [{"name": "cells", "rects": [[10, 64, 94, 184], [102, 64, 186, 184], [194, 64, 278, 184], [286, 64, 370, 184], [378, 64, 462, 184], [10, 210, 94, 330], [102, 210, 186, 330], [194, 210, 278, 330], [286, 210, 370, 330], [378, 210, 462, 330]], "cite": ["owner"]}, {"name": "fighter", "rects": [[200, 196, 280, 228], [200, 216, 280, 252], [200, 248, 280, 276], [200, 272, 280, 288], [200, 288, 280, 308]], "cite": ["owner"]}, {"name": "mage", "rects": [[264, 232, 284, 260], [192, 240, 216, 260], [224, 200, 252, 224], [228, 272, 256, 298], [224, 236, 256, 262]], "cite": ["owner"]}, {"name": "panels", "rects": [[192, 192, 284, 312], [188, 188, 288, 308]], "cite": ["TOWN-018"]}],
+     "buttons": [
+       {"name": "train", "rect": [484, 71, 624, 117], "cite": ["TOWN-181", "TOWN-182"]},
+       {"name": "exit", "rect": [484, 117, 624, 163], "cite": ["TOWN-181", "TOWN-182"]}
+     ],
      "music-rule": {"scene": "school", "by": "member-class", "cite": ["owner"]},
      "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [

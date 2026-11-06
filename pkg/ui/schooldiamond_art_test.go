@@ -10,7 +10,8 @@ import (
 // room page in composer tests.
 type groupScene map[string]func(dst *image.RGBA)
 
-func (g groupScene) Paint(dst *image.RGBA, group string) {
+func (g groupScene) Paint(dst *image.RGBA, groups ...string) {
+	group := groups[0]
 	if paint := g[group]; paint != nil {
 		paint(dst)
 	}
@@ -26,7 +27,7 @@ func TestSchoolPaintsTheSceneGroupsInOrder(t *testing.T) {
 	}
 	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
 	scene := groupScene{"movies": record("movies"), "column": record("column"), "diamond": record("diamond"), "centre": record("centre")}
-	ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1, Scene: scene})
+	ComposeTownSurface(firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1, Scene: scene}))
 	if len(order) != 3 || order[0] != "movies" || order[1] != "column" || order[2] != "diamond" {
 		t.Fatalf("painted groups = %v, want movies, column, diamond", order)
 	}
@@ -34,12 +35,12 @@ func TestSchoolPaintsTheSceneGroupsInOrder(t *testing.T) {
 
 func TestSchoolWithoutASceneLeavesTheRoomVisible(t *testing.T) {
 	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
-	got := ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1})
+	got := ComposeTownSurface(firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1}))
 	if got.RGBAAt(200, 60) != (color.RGBA{R: 61, A: 255}) {
 		t.Fatal("a school without a scene obscured the background")
 	}
 	// Optional art still permits fixture and damaged-install text fallbacks.
-	ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, Scene: groupScene{}})
+	ComposeTownSurface(firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool, Scene: groupScene{}}))
 }
 
 // fill paints a uniform picture at a point.
@@ -54,3 +55,9 @@ func fill(pic image.Image, at image.Point) func(*image.RGBA) {
 		}
 	}
 }
+
+func (s groupScene) Size() image.Point { return image.Point{} }
+func (s groupScene) ControlAt(p image.Point) (TownSquareControl, bool) {
+	return TownSquareControl{}, false
+}
+func (s groupScene) TipAt(p image.Point) (int, bool) { return 0, false }

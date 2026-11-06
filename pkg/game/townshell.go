@@ -163,59 +163,13 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 	if !ok || len(members) != 1 {
 		return ui.TownCharacterView{}, nil, info, false
 	}
-	m := members[0]
-	subject := partyPanelSubject(m, t.in.Table, t.in.Words)
-	// Generated template ids such as NPC06_1 are source keys, not the
-	// installed display name. A human template's own TypeID, rather than the
-	// equipment-derived body Class stored on PartyMember, indexes UnitNames.
-	// The definition stage resolves that localized name, a mod's name first,
-	// and makes it explicit so PanelFieldName's actual-name-first rule is obeyed.
-	nameIndex := int(m.Class)
-	if typ > 2 {
-		template := fmt.Sprintf("NPC%02d_%d", typ, mercenaryLevel(t.sess.Town.Chapter()))
-		if i := data.FindHumanByName(t.in.Table.Humans, template); i != data.NotFound {
-			if def, err := data.NewHumanDef(template, t.in.Table.Humans.EntryParams(i)); err == nil {
-				nameIndex = int(def.TypeID)
-			}
-		}
-	}
-	subject.UnitNameIndex, subject.Char.UnitNameIndex = nameIndex, nameIndex
-	name := t.in.definitionName(m, nameIndex, &subject.Words, "")
-	subject.Name, subject.Char.Name = name, name
-	subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
-	// A candidate is a live actor whose sheet prints its whole sight word
-	// (HERO-104); the recompute keeps only its high byte, the whole cells.
-	if c := subject.Char; c.Mind+c.Reaction > 0 {
-		if word, ok := rules.SightWordIn(int32(c.Mind), int32(c.Reaction), int32(c.Sight)); ok {
-			subject.Char.Sight256 = word
-		}
-	}
-	subject.Unplaced, subject.Selected = true, 1
-
-	var src entrySource
-	if t.in.Archives != nil {
-		src = t.in.Archives.Containers
-	}
-	eq := mapload.EquipmentFromParty(m)
-	composed := composeMemberPortrait(src, t.in.Units, uint32(typ), eq, m)
-	items := mapload.MemberItemEquipment(m, t.in.Table)
-	for i, item := range items {
-		if item.Code != 0 {
-			info[i] = itemInstanceInfoLines(item, t.in.Table, t.in.Words)
-		}
-	}
-	panes := t.art.characterPanes()
-	v := ui.TownCharacterView{Subject: subject, HasSubject: true, Figure: composed.Figure,
-		Font: t.in.Font.Value(), CardFont: t.in.tipFont(), FigurePane: panes.Figure, StatsPane: panes.Stats}
-	hoverMask := composed.HoverSlotMask
-	if hoverMask == nil {
-		hoverMask = composed.SlotMask
-	}
-	t.tavernDetailType, t.tavernDetail, t.tavernDetailMask, t.tavernDetailInfo = typ, v, hoverMask, info
+	p := t.buildRoomPatron(members[0], typ, roomPersonProfiles["stock"], nil)
+	v := t.roomPersonCard(p.subject, p.figure, true)
+	t.tavernDetailType, t.tavernDetail, t.tavernDetailMask, t.tavernDetailInfo = typ, v, p.mask, p.info
 	t.tavernDetailText = text.Record(func() {
 		t.tavernDetailPixels = t.renderTavernPerson(v)
 	})
-	return v, hoverMask, info, true
+	return v, p.mask, p.info, true
 }
 
 func (t *townScreen) schoolSurfaceCells() []ui.TownSurfaceCell {
@@ -317,7 +271,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	if school {
 		v.Kind, v.Title, v.Cells = ui.TownSurfaceSchool, "", t.schoolSurfaceCells()
 		v.SchoolArt = t.schoolArt()
-		v.Scene = roomScene{t.schoolPage()}
+		v.Scene = t.roomView("school")
 		v.SchoolClass = t.schoolPanelClass()
 		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumnShown()
 		if shine := t.schoolShine(); shine.Stamped {
@@ -335,15 +289,17 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: true},
 			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(schoolPurseShown(t.sess.Town.Gold(), price, ok))), Enabled: true},
 		}
+		v.Page = buildRoomPage(ROM1TownDescription().Room("school"), nil, 0, 0)
 		v.Tip = t.roomTipView("school")
 		return v
 	}
 	candidates := t.tavernCandidates()
 	v.Kind, v.Title = ui.TownSurfaceTavern, "TAVERN"
+	v.AnimationFrame = t.townSeatPhase()
 	cells, selected, hasSelection := t.tavernSnapshot(candidates)
 	v.Cells = cells
 	v.TavernArt = t.tavernArt()
-	v.Scene = roomScene{t.tavernPage()}
+	v.Scene = t.roomView("tavern")
 	o, merc := selected.merc, hasSelection && selected.key.kind == tavernCandidateMercenary
 	value := ""
 	if merc {

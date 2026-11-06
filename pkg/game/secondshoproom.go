@@ -262,7 +262,7 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 		a.shop.Book = t.in.BottomHUDArt.Value()
 	}
 	v.Art = a.shop
-	v.Scene = roomScene{t.scene(d, room)}
+	v.Scene = t.roomView(room)
 	v.TipPanel = t.roomTipView(room)
 }
 

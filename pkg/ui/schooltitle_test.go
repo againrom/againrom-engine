@@ -12,7 +12,7 @@ func TestSchoolSurfaceDrawsNoTitleOverItsArt(t *testing.T) {
 	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
 	compose := func(art *TownSchoolArt, title string) []byte {
 		v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, Title: title, Font: panelFont()}
-		return ComposeTownSurface(v).Pix
+		return ComposeTownSurface(firstTavernPage(v)).Pix
 	}
 	if !bytes.Equal(compose(art, "SKILL SCHOOL"), compose(art, "")) {
 		t.Error("a title is drawn over the school art")

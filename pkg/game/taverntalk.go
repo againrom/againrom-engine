@@ -196,9 +196,7 @@ func (t *townScreen) tavernTalkObject(npc int) tavernTalkObject {
 // its class's infowindow picture.
 func (t *townScreen) tavernTalkDetail(npc int) (ui.TownCharacterView, bool) {
 	o := t.tavernTalkObject(npc)
-	panes := t.art.characterPanes()
-	v := ui.TownCharacterView{Font: t.in.Font.Value(), CardFont: t.in.tipFont(),
-		FigurePane: panes.Figure, StatsPane: panes.Stats}
+	v := t.roomPersonCard(ui.PanelSubject{}, nil, false)
 	if o.stock > 0 {
 		detail, _, _, ok := t.tavernCandidateDetail(o.stock)
 		return detail, ok
@@ -209,12 +207,12 @@ func (t *townScreen) tavernTalkDetail(npc int) (ui.TownCharacterView, bool) {
 			t.composeShopFaces()
 		}
 		m := party[o.live]
-		v.Subject = partyPanelSubject(m, t.in.Table, t.in.Words)
-		v.Subject.Unplaced, v.Subject.Selected = true, 1
-		v.HasSubject = true
+		var figure *image.RGBA
 		if o.live < len(t.shopFigures) {
-			v.Figure = t.shopFigures[o.live]
+			figure = t.shopFigures[o.live]
 		}
+		p := t.buildRoomPatron(m, npc, roomPersonProfiles["live"], figure)
+		v = t.roomPersonCard(p.subject, p.figure, true)
 		return v, true
 	}
 	if o.composed() {

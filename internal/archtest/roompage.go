@@ -69,8 +69,146 @@ func CheckRoomPage(files map[string]string) []Violation {
 				vs = append(vs, roomSeatReads(fn, name, at)...)
 			}
 		}
+		vs = append(vs, roomPageShapes(f, name, at)...)
 	}
 	return vs
+}
+
+// Shared chrome, text bands and canvas bounds are not room controls. Counts
+// prevent adding a control rectangle inside an admitted painter.
+var roomShellGeometry = map[string]int{
+	"TownContentRegion": 1, "TownUpperRegion": 1, "TownWideUpperRegion": 1, "TownCharacterRegion": 1,
+	"townButtonLabelRect": 1, "townButtonValueRect": 1, "townSurfaceMessageRect": 1,
+	"drawCharacterPaneBody": 1, "ComposeTownSurface": 4, "shiftedCardBackground": 3,
+}
+
+func roomPageShapes(f *ast.File, name string, at func(ast.Node) string) []Violation {
+	var vs []Violation
+	imageNames := map[string]bool{"image": true}
+	for _, imp := range f.Imports {
+		if imp.Path.Value == `"image"` && imp.Name != nil {
+			imageNames[imp.Name.Name] = true
+		}
+	}
+	rectangle := func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.CallExpr:
+			if sel, ok := n.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Rect" {
+				if id, ok := sel.X.(*ast.Ident); ok && imageNames[id.Name] {
+					return hasNumberLiteral(n)
+				}
+			}
+		case *ast.CompositeLit:
+			if sel, ok := n.Type.(*ast.SelectorExpr); ok && sel.Sel.Name == "Rectangle" {
+				if id, ok := sel.X.(*ast.Ident); ok && imageNames[id.Name] {
+					return hasNumberLiteral(n)
+				}
+			}
+		}
+		return false
+	}
+	methods := map[string]map[string]bool{}
+	for _, decl := range f.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok {
+			if fn.Recv != nil {
+				typ := fn.Recv.List[0].Type
+				if ptr, ok := typ.(*ast.StarExpr); ok {
+					typ = ptr.X
+				}
+				if id, ok := typ.(*ast.Ident); ok {
+					if methods[id.Name] == nil {
+						methods[id.Name] = map[string]bool{}
+					}
+					methods[id.Name][fn.Name.Name] = true
+				}
+			}
+			count := 0
+			ast.Inspect(fn, func(n ast.Node) bool {
+				if name == "pkg/ui/townshell.go" && rectangle(n) {
+					count++
+					if count > roomShellGeometry[fn.Name.Name] {
+						vs = append(vs, Violation{From: at(n), Reason: "Go rectangle for room control in " + fn.Name.Name + "; control geometry belongs to the room description"})
+					}
+				}
+				if call, ok := n.(*ast.CallExpr); ok && isRoomPersonSource(name) && fn.Name.Name != "buildRoomPatron" {
+					if id, ok := call.Fun.(*ast.Ident); ok && (id.Name == "partyPanelSubject" || id.Name == "composeMemberPortrait") {
+						vs = append(vs, Violation{From: at(call), Reason: "second room person builder; use buildRoomPatron with source profile data"})
+					}
+				}
+				return true
+			})
+		}
+	}
+	for typ, m := range methods {
+		if strings.HasPrefix(name, "pkg/game/") && typ != "roomPageView" && m["Paint"] && (m["ControlAt"] || m["TipAt"]) {
+			vs = append(vs, Violation{From: name, Reason: "second room page adapter " + typ + "; use roomPageView"})
+		}
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.ValueSpec:
+			if name == "pkg/ui/townshell.go" {
+				for _, id := range n.Names {
+					count := 0
+					for _, v := range n.Values {
+						ast.Inspect(v, func(child ast.Node) bool {
+							if rectangle(child) {
+								count++
+								if count > roomShellGeometry[id.Name] {
+									vs = append(vs, Violation{From: at(child), Reason: "Go rectangle for room control " + id.Name + "; control geometry belongs to the room description"})
+								}
+							}
+							return true
+						})
+					}
+				}
+			}
+		case *ast.TypeSpec:
+			if !strings.HasPrefix(name, "pkg/game/") || n.Name.Name == "roomPageView" {
+				break
+			}
+			if body, ok := n.Type.(*ast.StructType); ok && (len(body.Fields.List) == 1 || methods[n.Name.Name]["Paint"]) {
+				for _, field := range body.Fields.List {
+					typ := field.Type
+					if ptr, ok := typ.(*ast.StarExpr); ok {
+						typ = ptr.X
+					}
+					if sel, ok := typ.(*ast.SelectorExpr); ok && sel.Sel.Name == "Scene" {
+						vs = append(vs, Violation{From: at(n), Reason: "second room page adapter " + n.Name.Name + " holds a scene; use roomPageView"})
+					}
+				}
+			}
+		case *ast.CompositeLit:
+			typ := ""
+			switch t := n.Type.(type) {
+			case *ast.SelectorExpr:
+				typ = t.Sel.Name
+			case *ast.Ident:
+				typ = t.Name
+			}
+			if (typ == "RoomSeat" || typ == "RoomPage" || typ == "RoomBackdrop") && len(n.Elts) > 0 && name != roomPageBuilder && name != roomPagePainter {
+				vs = append(vs, Violation{From: at(n), Reason: "second room page builder constructs " + typ + "; use buildRoomPage"})
+			}
+			if typ == "roomPageView" && name != "pkg/game/roompage.go" {
+				vs = append(vs, Violation{From: at(n), Reason: "second room page reader; use townScreen.roomView"})
+			}
+		case *ast.IfStmt:
+			if name == roomPageBuilder || name == "pkg/game/secondtown.go" || name == "pkg/ui/townshell.go" {
+				ast.Inspect(n.Cond, func(child ast.Node) bool {
+					if id, ok := child.(*ast.Ident); ok && (id.Name == "GameROM1" || id.Name == "GameROM2" || id.Name == "isSecondGame") {
+						vs = append(vs, Violation{From: at(id), Reason: "game identity chooses a room page path; use room profile data"})
+					}
+					return true
+				})
+			}
+		}
+		return true
+	})
+	return vs
+}
+
+func isRoomPersonSource(name string) bool {
+	return name == "pkg/game/townshell.go" || name == "pkg/game/taverntalk.go" || name == "pkg/game/secondinnpatron.go"
 }
 
 // numberInRoomPageGeometry answers the reason when call is image.Rect or

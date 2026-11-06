@@ -16,12 +16,25 @@ type fakeTavernInspectionTown struct {
 	view         TownSurfaceView
 	clicks       []TownSurfaceControl
 	surfaceCalls int
+	// ticks and phase stand for the town's seat clock with a period of six.
+	ticks, phase int
 }
+
+func (f *fakeTavernInspectionTown) TownSeatTick(shown bool) {
+	if !shown {
+		f.ticks, f.phase = 0, 0
+	} else if f.ticks++; f.ticks == 6 {
+		f.ticks, f.phase = 0, f.phase+1
+	}
+}
+func (f *fakeTavernInspectionTown) TownSeatRestart() { f.ticks, f.phase = 0, 0 }
 
 func (f *fakeTavernInspectionTown) AtTownSurface() bool { return true }
 func (f *fakeTavernInspectionTown) TownSurface() TownSurfaceView {
 	f.surfaceCalls++
-	return firstTavernPage(f.view)
+	v := f.view
+	v.AnimationFrame = f.phase
+	return firstTavernPage(v)
 }
 func (f *fakeTavernInspectionTown) TownSurfaceClick(c TownSurfaceControl, _ bool) TownAction {
 	f.clicks = append(f.clicks, c)
@@ -163,8 +176,8 @@ func TestAppTavernClockAdvancesOnlyTheSelectedMiniature(t *testing.T) {
 	}
 	a.flow.screen = ScreenMenu
 	a.step(appInput{}, now.Add(time.Second))
-	if a.townSurfaceAnimationTick != 0 {
-		t.Fatalf("leaving the tavern retained presentation tick %d", a.townSurfaceAnimationTick)
+	if town.ticks != 0 || town.phase != 0 {
+		t.Fatalf("leaving the tavern retained seat clock %d ticks, phase %d", town.ticks, town.phase)
 	}
 }
 

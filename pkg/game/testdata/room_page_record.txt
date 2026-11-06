@@ -1,0 +1,487 @@
+rom1/tavern/phase-0 cell 0 2:3 "" "2/2" "50" true true false frames 1
+rom1/tavern/phase-0 cell 1 1:0 "NPC 9" "" "" true false false frames 1
+rom1/tavern/phase-0 candidate true [BODY 30  HEALTH  AGILITY 30  70/70 MIND 20 SPIRIT 20 DMG 0-0  ABSORB 0 ATTACK 6  DEFENSE 10 SKILLS   RESISTANCE  BLADE 0  FIRE 10 AXE 0  WATER 10 BLUDGEON 0  AIR 10 PIKE 0  EARTH 10 SHOOTING 0  ASTRAL 10 GENERAL 0 SIGHT 6.0 SPEED 18 SWING 8/4 CELL -, -]
+rom1/tavern/phase-0 page phase 0 seats 2 figure (0,238)-(160,480) (8,1) true
+rom1/tavern/phase-0 seat 0 (176,416)-(224,480)
+rom1/tavern/phase-0 seat 1 (224,416)-(272,480)
+rom1/tavern/phase-0 card (0,0)-(160,238) (12,0) true
+rom1/tavern/phase-0 button 0 "Sleep" "" false (494,15)-(614,67)
+rom1/tavern/phase-0 at (494,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-0 at (613,66) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-0 at (493,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (614,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-0 at (554,41) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-0 button 1 "Hire" "50" true (483,67)-(623,113)
+rom1/tavern/phase-0 at (483,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-0 at (622,112) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-0 at (482,67) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (623,113) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (553,90) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-0 button 2 "Talk" "" true (483,114)-(623,160)
+rom1/tavern/phase-0 at (483,114) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-0 at (622,159) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-0 at (482,114) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (623,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (553,137) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-0 button 3 "EXIT" "1,000" true (494,160)-(614,212)
+rom1/tavern/phase-0 at (494,160) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-0 at (613,211) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-0 at (493,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (614,212) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-0 at (554,186) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-1 cell 0 2:3 "" "2/2" "50" true true false frames 1
+rom1/tavern/phase-1 cell 1 1:0 "NPC 9" "" "" true false false frames 1
+rom1/tavern/phase-1 candidate true [BODY 30  HEALTH  AGILITY 30  70/70 MIND 20 SPIRIT 20 DMG 0-0  ABSORB 0 ATTACK 6  DEFENSE 10 SKILLS   RESISTANCE  BLADE 0  FIRE 10 AXE 0  WATER 10 BLUDGEON 0  AIR 10 PIKE 0  EARTH 10 SHOOTING 0  ASTRAL 10 GENERAL 0 SIGHT 6.0 SPEED 18 SWING 8/4 CELL -, -]
+rom1/tavern/phase-1 page phase 0 seats 2 figure (0,238)-(160,480) (8,1) true
+rom1/tavern/phase-1 seat 0 (176,416)-(224,480)
+rom1/tavern/phase-1 seat 1 (224,416)-(272,480)
+rom1/tavern/phase-1 card (0,0)-(160,238) (12,0) true
+rom1/tavern/phase-1 button 0 "Sleep" "" false (494,15)-(614,67)
+rom1/tavern/phase-1 at (494,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-1 at (613,66) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-1 at (493,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (614,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-1 at (554,41) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-1 button 1 "Hire" "50" true (483,67)-(623,113)
+rom1/tavern/phase-1 at (483,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-1 at (622,112) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-1 at (482,67) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (623,113) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (553,90) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-1 button 2 "Talk" "" true (483,114)-(623,160)
+rom1/tavern/phase-1 at (483,114) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-1 at (622,159) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-1 at (482,114) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (623,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (553,137) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-1 button 3 "EXIT" "1,000" true (494,160)-(614,212)
+rom1/tavern/phase-1 at (494,160) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-1 at (613,211) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-1 at (493,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (614,212) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-1 at (554,186) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-2 cell 0 2:3 "" "2/2" "50" true true false frames 1
+rom1/tavern/phase-2 cell 1 1:0 "NPC 9" "" "" true false false frames 1
+rom1/tavern/phase-2 candidate true [BODY 30  HEALTH  AGILITY 30  70/70 MIND 20 SPIRIT 20 DMG 0-0  ABSORB 0 ATTACK 6  DEFENSE 10 SKILLS   RESISTANCE  BLADE 0  FIRE 10 AXE 0  WATER 10 BLUDGEON 0  AIR 10 PIKE 0  EARTH 10 SHOOTING 0  ASTRAL 10 GENERAL 0 SIGHT 6.0 SPEED 18 SWING 8/4 CELL -, -]
+rom1/tavern/phase-2 page phase 0 seats 2 figure (0,238)-(160,480) (8,1) true
+rom1/tavern/phase-2 seat 0 (176,416)-(224,480)
+rom1/tavern/phase-2 seat 1 (224,416)-(272,480)
+rom1/tavern/phase-2 card (0,0)-(160,238) (12,0) true
+rom1/tavern/phase-2 button 0 "Sleep" "" false (494,15)-(614,67)
+rom1/tavern/phase-2 at (494,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-2 at (613,66) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-2 at (493,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (614,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-2 at (554,41) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-2 button 1 "Hire" "50" true (483,67)-(623,113)
+rom1/tavern/phase-2 at (483,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-2 at (622,112) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-2 at (482,67) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (623,113) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (553,90) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-2 button 2 "Talk" "" true (483,114)-(623,160)
+rom1/tavern/phase-2 at (483,114) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-2 at (622,159) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-2 at (482,114) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (623,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (553,137) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-2 button 3 "EXIT" "1,000" true (494,160)-(614,212)
+rom1/tavern/phase-2 at (494,160) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-2 at (613,211) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-2 at (493,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (614,212) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-2 at (554,186) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-5 cell 0 2:3 "" "2/2" "50" true true false frames 1
+rom1/tavern/phase-5 cell 1 1:0 "NPC 9" "" "" true false false frames 1
+rom1/tavern/phase-5 candidate true [BODY 30  HEALTH  AGILITY 30  70/70 MIND 20 SPIRIT 20 DMG 0-0  ABSORB 0 ATTACK 6  DEFENSE 10 SKILLS   RESISTANCE  BLADE 0  FIRE 10 AXE 0  WATER 10 BLUDGEON 0  AIR 10 PIKE 0  EARTH 10 SHOOTING 0  ASTRAL 10 GENERAL 0 SIGHT 6.0 SPEED 18 SWING 8/4 CELL -, -]
+rom1/tavern/phase-5 page phase 0 seats 2 figure (0,238)-(160,480) (8,1) true
+rom1/tavern/phase-5 seat 0 (176,416)-(224,480)
+rom1/tavern/phase-5 seat 1 (224,416)-(272,480)
+rom1/tavern/phase-5 card (0,0)-(160,238) (12,0) true
+rom1/tavern/phase-5 button 0 "Sleep" "" false (494,15)-(614,67)
+rom1/tavern/phase-5 at (494,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-5 at (613,66) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-5 at (493,15) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (614,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-5 at (554,41) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 3a7b57392f0b4dabe7d147f4a0b3e86a55cf510b9f9f7444ed52e18d3645c62a
+rom1/tavern/phase-5 button 1 "Hire" "50" true (483,67)-(623,113)
+rom1/tavern/phase-5 at (483,67) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-5 at (622,112) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-5 at (482,67) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (623,113) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (553,90) {1 1} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 1060596c3762e01231ee4712588e43706e127e9939ab7feb5fc703e33a715ec9
+rom1/tavern/phase-5 button 2 "Talk" "" true (483,114)-(623,160)
+rom1/tavern/phase-5 at (483,114) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-5 at (622,159) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-5 at (482,114) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (623,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (553,137) {1 2} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 67b55f550398e121c63532a34c14c3406dc6555e0c01222fa0575114c991dc88
+rom1/tavern/phase-5 button 3 "EXIT" "1,000" true (494,160)-(614,212)
+rom1/tavern/phase-5 at (494,160) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-5 at (613,211) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/tavern/phase-5 at (493,160) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (614,212) {0 0} false pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 9fabe376f4d66f8f86dc7f096eb187e8755fdc1d8448c5d08e2dbf92320d62ec
+rom1/tavern/phase-5 at (554,186) {1 3} true pixels 6a3e411f947d041e1ca85208153c3d798b22b607911df60d775ab27ff5ab06ae text 106d2fc07146d4c5eaa84d6aaa4d786a9a478fa4db61d04cf5868115556f0d77
+rom1/school/phase-0 cell 0  "Blade" "level 10 / 518" "" true false false frames 0
+rom1/school/phase-0 cell 1  "Axe" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-0 cell 2  "Bludgen" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-0 cell 3  "Pike" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-0 cell 4  "Shooting" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-0 cell 5  "Fire" "level 10 / 518" "" false false false frames 0
+rom1/school/phase-0 cell 6  "Water" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-0 cell 7  "Air" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-0 cell 8  "Earth" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-0 cell 9  "Astral" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-0 candidate false [HEALTH  0/0 CELL 0, 0]
+rom1/school/phase-0 page phase 0 seats 0 figure (0,0)-(0,0) (0,0) false
+rom1/school/phase-0 button 0 "Train" "0" true (484,71)-(624,117)
+rom1/school/phase-0 at (484,71) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-0 at (623,116) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-0 at (483,71) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-0 at (624,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-0 at (554,94) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-0 button 1 "EXIT" "1,000" true (484,117)-(624,163)
+rom1/school/phase-0 at (484,117) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-0 at (623,162) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-0 at (483,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-0 at (624,163) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-0 at (554,140) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-1 cell 0  "Blade" "level 10 / 518" "" true false false frames 0
+rom1/school/phase-1 cell 1  "Axe" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-1 cell 2  "Bludgen" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-1 cell 3  "Pike" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-1 cell 4  "Shooting" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-1 cell 5  "Fire" "level 10 / 518" "" false false false frames 0
+rom1/school/phase-1 cell 6  "Water" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-1 cell 7  "Air" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-1 cell 8  "Earth" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-1 cell 9  "Astral" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-1 candidate false [HEALTH  0/0 CELL 0, 0]
+rom1/school/phase-1 page phase 0 seats 0 figure (0,0)-(0,0) (0,0) false
+rom1/school/phase-1 button 0 "Train" "0" true (484,71)-(624,117)
+rom1/school/phase-1 at (484,71) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-1 at (623,116) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-1 at (483,71) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-1 at (624,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-1 at (554,94) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-1 button 1 "EXIT" "1,000" true (484,117)-(624,163)
+rom1/school/phase-1 at (484,117) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-1 at (623,162) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-1 at (483,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-1 at (624,163) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-1 at (554,140) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-2 cell 0  "Blade" "level 10 / 518" "" true false false frames 0
+rom1/school/phase-2 cell 1  "Axe" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-2 cell 2  "Bludgen" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-2 cell 3  "Pike" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-2 cell 4  "Shooting" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-2 cell 5  "Fire" "level 10 / 518" "" false false false frames 0
+rom1/school/phase-2 cell 6  "Water" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-2 cell 7  "Air" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-2 cell 8  "Earth" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-2 cell 9  "Astral" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-2 candidate false [HEALTH  0/0 CELL 0, 0]
+rom1/school/phase-2 page phase 0 seats 0 figure (0,0)-(0,0) (0,0) false
+rom1/school/phase-2 button 0 "Train" "0" true (484,71)-(624,117)
+rom1/school/phase-2 at (484,71) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-2 at (623,116) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-2 at (483,71) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-2 at (624,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-2 at (554,94) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-2 button 1 "EXIT" "1,000" true (484,117)-(624,163)
+rom1/school/phase-2 at (484,117) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-2 at (623,162) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-2 at (483,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-2 at (624,163) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-2 at (554,140) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-5 cell 0  "Blade" "level 10 / 518" "" true false false frames 0
+rom1/school/phase-5 cell 1  "Axe" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-5 cell 2  "Bludgen" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-5 cell 3  "Pike" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-5 cell 4  "Shooting" "level 0 / 200" "" true false false frames 0
+rom1/school/phase-5 cell 5  "Fire" "level 10 / 518" "" false false false frames 0
+rom1/school/phase-5 cell 6  "Water" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-5 cell 7  "Air" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-5 cell 8  "Earth" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-5 cell 9  "Astral" "level 0 / 200" "" false false false frames 0
+rom1/school/phase-5 candidate false [HEALTH  0/0 CELL 0, 0]
+rom1/school/phase-5 page phase 0 seats 0 figure (0,0)-(0,0) (0,0) false
+rom1/school/phase-5 button 0 "Train" "0" true (484,71)-(624,117)
+rom1/school/phase-5 at (484,71) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-5 at (623,116) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-5 at (483,71) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-5 at (624,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-5 at (554,94) {1 0} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 6747fa16e891ad808b821ab523ed3ee3e629de140ed3074113ca8cd21f195cc3
+rom1/school/phase-5 button 1 "EXIT" "1,000" true (484,117)-(624,163)
+rom1/school/phase-5 at (484,117) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-5 at (623,162) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1/school/phase-5 at (483,117) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-5 at (624,163) {0 0} false pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 70b27ff0fe353097b6a7768074ba55b779f7858345450383dde66973e61d2b87
+rom1/school/phase-5 at (554,140) {1 1} true pixels fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text fc6e94b8b2e0bb0846dca27949c655e6fecc8a7e928f6ef0bb247b3d717c6236
+rom1-square/square scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom1-square/tavern scene (0,0) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom1-square/shop scene (0,0) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom1-square/school scene (0,0) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town1/square scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town1/square paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/inn scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town1/inn paint 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn enter seat 0 frames []
+rom2-town1/inn step 0s seat 0 frames []
+rom2-town1/inn step 125ms seat 0 frames []
+rom2-town1/inn step 126ms seat 0 frames [1]
+rom2-town1/inn step 126ms seat 0 frames [2]
+rom2-town1/inn page phase 0 seats 3 figure (0,0)-(0,0) (0,0) false
+rom2-town1/inn seat 0 (176,416)-(224,480)
+rom2-town1/inn seat 1 (224,416)-(272,480)
+rom2-town1/inn seat 2 (272,416)-(320,480)
+rom2-town1/inn person 0 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town1/inn person 1 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town1/inn person 2 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town1/inn button 0 sleep (494,15)-(614,67)
+rom2-town1/inn at (494,15) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town1/inn at (613,66) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town1/inn at (493,15) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (614,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (554,41) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town1/inn button 1 hire (483,67)-(623,113)
+rom2-town1/inn at (483,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (622,112) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (482,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (623,113) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (553,90) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn button 2 talk (483,114)-(623,160)
+rom2-town1/inn at (483,114) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (622,159) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (482,114) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (623,160) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (553,137) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn button 3 exit (494,160)-(614,212)
+rom2-town1/inn at (494,160) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (613,211) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (493,160) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (614,212) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/inn at (554,186) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town1/shop scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town1/shop paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop button 0 shelf/0 (354,110)-(459,295)
+rom2-town1/shop at (354,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (458,294) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (353,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (459,295) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (406,202) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop button 1 shelf/1 (169,110)-(274,295)
+rom2-town1/shop at (169,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (273,294) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (168,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (274,295) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (221,202) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop button 2 shelf/2 (314,5)-(454,105)
+rom2-town1/shop at (314,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (453,104) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (313,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (454,105) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (384,55) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop button 3 shelf/3 (172,5)-(314,105)
+rom2-town1/shop at (172,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (313,104) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (171,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (314,105) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (243,55) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop button 4 merchant (274,110)-(354,295)
+rom2-town1/shop at (274,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (353,294) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (273,110) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (354,295) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town1/shop at (314,202) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/square scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town2/square paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/inn scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town2/inn paint 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn enter seat 0 frames []
+rom2-town2/inn step 0s seat 0 frames [1]
+rom2-town2/inn step 125ms seat 0 frames [1]
+rom2-town2/inn step 126ms seat 0 frames [2]
+rom2-town2/inn step 126ms seat 0 frames [0]
+rom2-town2/inn page phase 0 seats 3 figure (0,0)-(0,0) (0,0) false
+rom2-town2/inn seat 0 (176,416)-(224,480)
+rom2-town2/inn seat 1 (224,416)-(272,480)
+rom2-town2/inn seat 2 (272,416)-(320,480)
+rom2-town2/inn person 0 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town2/inn person 1 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town2/inn person 2 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town2/inn button 0 sleep (494,15)-(614,67)
+rom2-town2/inn at (494,15) {1 0} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town2/inn at (613,66) {1 0} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town2/inn at (493,15) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (614,67) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (554,41) {1 0} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town2/inn button 1 hire (483,67)-(623,113)
+rom2-town2/inn at (483,67) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (622,112) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (482,67) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (623,113) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (553,90) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn button 2 talk (483,114)-(623,160)
+rom2-town2/inn at (483,114) {1 3} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (622,159) {1 3} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (482,114) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (623,160) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (553,137) {1 3} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn button 3 exit (494,160)-(614,212)
+rom2-town2/inn at (494,160) {1 4} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (613,211) {1 4} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (493,160) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (614,212) {0 0} false tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/inn at (554,186) {1 4} true tip 0 false pixels 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town2/shop scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town2/shop paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop button 0 shelf/0 (169,5)-(229,207)
+rom2-town2/shop at (169,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (228,206) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (168,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (229,207) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (199,106) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop button 1 shelf/1 (229,63)-(277,213)
+rom2-town2/shop at (229,63) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (276,212) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (228,63) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (277,213) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (253,138) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop button 2 shelf/2 (229,5)-(353,63)
+rom2-town2/shop at (229,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (352,62) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (228,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (353,63) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (291,34) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop button 3 shelf/3 (359,5)-(457,265)
+rom2-town2/shop at (359,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (456,264) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (358,5) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (457,265) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (408,135) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop button 4 merchant (289,113)-(361,209)
+rom2-town2/shop at (289,113) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (360,208) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (288,113) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (361,209) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town2/shop at (325,161) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/square scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town3/square paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/inn scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town3/inn paint 172de03e8e574822e498b07e14bd5c6fbc0676f2eca26d2b2f4e50f09354f010 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn enter seat 0 frames []
+rom2-town3/inn step 0s seat 0 frames []
+rom2-town3/inn step 125ms seat 0 frames []
+rom2-town3/inn step 126ms seat 0 frames [1]
+rom2-town3/inn step 126ms seat 0 frames [2]
+rom2-town3/inn page phase 0 seats 3 figure (0,0)-(0,0) (0,0) false
+rom2-town3/inn seat 0 (176,416)-(224,480)
+rom2-town3/inn seat 1 (224,416)-(272,480)
+rom2-town3/inn seat 2 (272,416)-(320,480)
+rom2-town3/inn person 0 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town3/inn person 1 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town3/inn person 2 known false lines [HEALTH  0/0 CELL 0, 0]
+rom2-town3/inn button 0 sleep (494,15)-(614,67)
+rom2-town3/inn at (494,15) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town3/inn at (613,66) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town3/inn at (493,15) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (614,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (554,41) {1 0} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text f2aa367f503a03dd64a89f451a13aa54be163b2ecc0957c02f1857fd99338ee8
+rom2-town3/inn button 1 hire (483,67)-(623,113)
+rom2-town3/inn at (483,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (622,112) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (482,67) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (623,113) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (553,90) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn button 2 talk (483,114)-(623,160)
+rom2-town3/inn at (483,114) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (622,159) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (482,114) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (623,160) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (553,137) {1 3} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn button 3 exit (494,160)-(614,212)
+rom2-town3/inn at (494,160) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (613,211) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (493,160) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (614,212) {0 0} false tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/inn at (554,186) {1 4} true tip 0 false pixels 6c7dab8b9acb62fd92b40efc329dd9114b1b4e34728b9f815a5c91df0d32c1b2 text 0d508c3faa25678b0b27cba6c0b32de6fe2f459a63600ca57cb5fa481c33056d
+rom2-town3/shop scene (640,480) 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c
+rom2-town3/shop paint 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop button 0 shelf/0 (169,112)-(257,224)
+rom2-town3/shop at (169,112) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (256,223) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (168,112) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (257,224) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (213,168) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop button 1 shelf/1 (169,52)-(265,112)
+rom2-town3/shop at (169,52) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (264,111) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (168,52) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (265,112) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (217,82) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop button 2 shelf/2 (285,36)-(357,148)
+rom2-town3/shop at (285,36) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (356,147) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (284,36) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (357,148) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (321,92) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop button 3 shelf/3 (257,172)-(353,276)
+rom2-town3/shop at (257,172) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (352,275) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (256,172) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (353,276) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (305,224) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop button 4 merchant (361,92)-(433,256)
+rom2-town3/shop at (361,92) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (432,255) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (360,92) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (433,256) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2-town3/shop at (397,174) {0 0} false tip 0 false pixels 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+first sleeps 0: button "Sleep" enabled true rect (494,15)-(614,67)
+first sleeps 0: restocks 0 seed 3867411049178356555 table 0
+first sleeps 0 shelf 0 #0 of 3: code 0x4201 price 15 units 27 kind 1
+first sleeps 0 shelf 0 #1 of 3: code 0x2601 price 25 units 37 kind 1
+first sleeps 0 shelf 0 #2 of 3: code 0x3601 price 25 units 36 kind 1
+first sleeps 0 shelf 1 #0 of 2: code 0x1101 price 40 units 46 kind 2
+first sleeps 0 shelf 1 #1 of 2: code 0x0101 price 40 units 54 kind 2
+first sleeps 0 shelf 2 #0 of 5: code 0x0101 price 140 units 4 kind 2
+first sleeps 0 shelf 2 #1 of 5: code 0x1101 price 140 units 6 kind 2
+first sleeps 0 shelf 2 #2 of 5: code 0x4201 price 115 units 4 kind 1
+first sleeps 0 shelf 2 #3 of 5: code 0x2601 price 125 units 4 kind 1
+first sleeps 0 shelf 2 #4 of 5: code 0x3601 price 125 units 2 kind 1
+first sleeps 0: gold 1000 room 4 sav 2997 bytes 9c27fe5ce8ee8d544ff925b859f3ab57a333d1d16a9a014ea8b13b922f9abb81
+first sleeps 0: next stock draw 26277
+second town 1 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
+second town 1 sleeps 0: row 0 "Sleep" choosable true of 5
+second town 1 sleeps 0: filled 1 table 0 category 0
+second town 1 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
+second town 1 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
+second town 1 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
+second town 1 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
+second town 1 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
+second town 1 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 1 sleeps 0: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
+second town 1 sleeps 0: next stock draw 17887
+second town 2 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
+second town 2 sleeps 0: row 0 "Sleep" choosable true of 5
+second town 2 sleeps 0: filled 2 table 0 category 0
+second town 2 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
+second town 2 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
+second town 2 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
+second town 2 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
+second town 2 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
+second town 2 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 2 sleeps 0: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
+second town 2 sleeps 0: next stock draw 17887
+second town 3 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
+second town 3 sleeps 0: row 0 "Sleep" choosable true of 5
+second town 3 sleeps 0: filled 3 table 0 category 0
+second town 3 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
+second town 3 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
+second town 3 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
+second town 3 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
+second town 3 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
+second town 3 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 3 sleeps 0: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
+second town 3 sleeps 0: next stock draw 17887

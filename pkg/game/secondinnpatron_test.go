@@ -1,11 +1,49 @@
 package game
 
 import (
+	"image"
 	"strings"
 	"testing"
 
+	"againrom/pkg/base"
+	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
+
+func TestRoomPersonCardUsesTheGeneratorRow(t *testing.T) {
+	for _, tc := range []struct {
+		id         string
+		statistics bool
+	}{
+		{base.ROM1EN, false},
+		{base.ROM2EN, true},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			profile, ok := base.Find(tc.id)
+			if !ok {
+				t.Fatal("missing profile")
+			}
+			f := shellFrontEnd()
+			f.Archives = &Archives{Base: base.Match{Profile: profile}}
+			font, generatorFont := missionFont(), missionFont()
+			f.Font = resolved(font, nil)
+			f.ChargenAssets = &ChargenAssets{Presentation: &ui.ChargenPresentation{Font: generatorFont}}
+			figure := image.NewRGBA(image.Rect(0, 0, 2, 3))
+			subject := ui.PanelSubject{Name: "Seated person"}
+			card := f.townUI.roomPersonCard(subject, figure, true)
+			if !card.HasSubject || card.Subject.Name != subject.Name || card.Statistics != tc.statistics {
+				t.Fatalf("room card subject/presentation: %+v", card)
+			}
+			wantFont, wantFigure := font, figure
+			if tc.statistics {
+				wantFont, wantFigure = generatorFont, nil
+			}
+			if card.Font != wantFont || card.Figure != wantFigure {
+				t.Fatal("room card changed its font or figure placement")
+			}
+		})
+	}
+}
 
 // An inn patron's own name is the npcnames entry of a key of 1000 or more;
 // a smaller key has none and the sheet heads the card with Mercenary over

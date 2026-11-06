@@ -104,7 +104,7 @@ func recordFirstSleeps(t *testing.T, line func(string, ...any), n int, shop bool
 	}
 	s := f.townUI
 	b := s.TownSurface().Buttons[0]
-	line("%s: button %q enabled %v rect %v", key, b.Label, b.Enabled, ui.TownSurfaceButtonRect(ui.TownSurfaceTavern, 0))
+	line("%s: button %q enabled %v rect %v", key, b.Label, b.Enabled, TownRoomButtonRect(ui.TownSurfaceTavern, 0))
 	for i := 0; i < n; i++ {
 		if act := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: 0}, false); act.Msg != "" || act.Open != nil || act.Info {
 			line("%s: press %d acted %+v", key, i+1, act)
@@ -139,7 +139,7 @@ func recordSecondSleeps(t *testing.T, line func(string, ...any), id, n int, shop
 		b := r.Buttons[0]
 		s.composed = &townSceneState{seat: -1}
 		at := b.Rect.Rectangle().Min.Add(image.Pt(5, 5))
-		ctl, ok := (townRoomView{t: s, d: d, room: "inn"}).ControlAt(at)
+		ctl, ok := (roomPageView{t: s, d: d, room: "inn"}).ControlAt(at)
 		line("%s: plaque %q word %q rect %v click %v kind %d door %d", key, b.Name, b.Word, b.Rect.Rectangle(), ok, ctl.Kind, ctl.Door)
 	}
 	rows := s.Rows()

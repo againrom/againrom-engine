@@ -63,7 +63,7 @@ func nonZeroTownScreen() *townScreen {
 	ts.talkHost = ts
 	ts.talkWindow.SetVisual(ui.DialogueButtonState{Hover: true, Pressed: true, Inside: true, Disabled: true}, ui.DialogueBackdrop{Clipped: true, Clip: image.Rect(1, 2, 3, 4)})
 	ts.square = newSquareScene(ts, ROM1TownDescription())
-	ts.tavernPage().Enter()
+	ts.roomView("tavern").scene().Enter()
 	// A mission Shop visit shows: the screen it stood over binds no deal
 	// hooks, as every screen outside a visit.
 	saved := *ts

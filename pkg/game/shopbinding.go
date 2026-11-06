@@ -94,7 +94,7 @@ func (t *townScreen) chapterShopRow() shopBinding {
 			fresh: t.nextParty,
 			dress: func(v *ui.ShopScreenView) {
 				v.Art = t.shopArt()
-				v.Scene = roomScene{t.shopPage()}
+				v.Scene = t.roomView("shop")
 				v.TipPanel = t.roomTipView("shop")
 				v.Character, _, _ = t.heroPane(t.chapterPane("shop"))
 				v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())

@@ -22,7 +22,7 @@ func TestSchoolColumnIntermediateFrameSuppressesIconsAndMaskHits(t *testing.T) {
 		SchoolColumnSet: true, HoverCell: -1, Scene: scene, Cells: []TownSurfaceCell{{Enabled: true, Selected: true}}}
 	for _, frame := range []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14} {
 		v.SchoolColumnFrame, shown = frame, frame
-		pix := ComposeTownSurface(v)
+		pix := ComposeTownSurface(firstTavernPage(v))
 		if got := pix.RGBAAt(240, 212); got != (color.RGBA{R: uint8(frame), A: 255}) {
 			t.Fatalf("frame %d overpainted by an endpoint/skill: %v", frame, got)
 		}
@@ -32,7 +32,7 @@ func TestSchoolColumnIntermediateFrameSuppressesIconsAndMaskHits(t *testing.T) {
 	}
 	for _, frame := range []int{-1, 16, 100} {
 		v.SchoolColumnFrame = frame
-		ComposeTownSurface(v)
+		ComposeTownSurface(firstTavernPage(v))
 		if _, ok := TownSurfaceControlAt(v, image.Pt(240, 212)); ok {
 			t.Fatal("invalid column frame retained a mask")
 		}

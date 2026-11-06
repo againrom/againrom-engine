@@ -230,7 +230,7 @@ func checkTurtleTavernApp(t *testing.T, f *FrontEnd, app *ui.App, current bool) 
 		if v.Buttons[tavernButtonTalk].Enabled {
 			t.Fatal("Talk remains enabled for kept NPC32 without a current mission51 record")
 		}
-		r := ui.TownSurfaceButtonRect(v.Kind, tavernButtonTalk)
+		r := TownRoomButtonRect(v.Kind, tavernButtonTalk)
 		turtleTap(t, app, r.Min.Add(r.Max).Div(2))
 		turtleTap(t, app, p)
 		turtleTap(t, app, p)

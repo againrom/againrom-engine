@@ -45,7 +45,7 @@
 // areas, and the five-to-five assignment is required to be a bijection. That is
 // the mask-code-to-skill correspondence, computed here rather than assumed.
 //
-// The two instruments are then checked against production: ui.SchoolSkillRect
+// The two instruments are then checked against production: game.TownSchoolRegion
 // must equal instrument A's rectangle, and ui.TownSurfaceControlAt, run over
 // the install's own mask, must answer instrument B's cell index. Any
 // disagreement is a non-zero exit.
@@ -444,7 +444,7 @@ func run(args []string, w io.Writer) error {
 	}
 	for class := 0; class < 2; class++ {
 		for slot := 0; slot < 5; slot++ {
-			got := ui.SchoolSkillRect(class, slot)
+			got := game.TownSchoolRegion([]string{"fighter", "mage"}[class], slot)
 			mark := "ok"
 			if got != rect[class][slot] {
 				mark, fail = "FAIL", true
@@ -464,11 +464,12 @@ func run(args []string, w io.Writer) error {
 		cells[i].Enabled = true
 	}
 	for class := 0; class < 2; class++ {
-		panel := ui.SchoolPanelRect(class)
+		panel := game.TownSchoolRegion("panels", class)
 		boxes := maskBoxes(art.Masks[class])
 		fmt.Fprintf(w, "%s panel %v mask %v codes %d\n", className[class], panel,
 			art.Masks[class].Bounds().Size(), len(boxes))
 		v := ui.TownSurfaceView{Kind: ui.TownSurfaceSchool, SchoolArt: art, SchoolClass: class, Cells: cells}
+		v.Page = (&game.InstallResources{}).SurfacePageLayout(v, 0)
 		taken := [5]int{-1, -1, -1, -1, -1}
 		for ci, code := range maskCodes {
 			box, ok := boxes[code]
@@ -602,6 +603,7 @@ func writeSurfaces(root string, art *ui.TownSchoolArt, dir string, w io.Writer) 
 			{Label: f.Words.SchoolTrain, Value: "200", Enabled: true},
 			{Label: f.Words.SchoolExit, Value: "500", Enabled: true},
 		}
+		v.Page = f.SurfacePageLayout(v, 0)
 		out, err := os.Create(filepath.Join(dir, "school-"+className[class]+".png"))
 		if err != nil {
 			return err
@@ -624,7 +626,7 @@ func writeSurfaces(root string, art *ui.TownSchoolArt, dir string, w io.Writer) 
 // as selected and what it quotes for it.
 //
 // THE POINT COMES FROM THE DRAW SIDE AND THE ANSWER FROM THE MASK, which is
-// what makes this a cross-check and not a tautology. ui.SchoolSkillRect says
+// what makes this a cross-check and not a tautology. game.TownSchoolRegion says
 // where the icon is painted; ui.TownSurfaceControlAt reads the install's own
 // mask.bmp at that pixel; the game side turns the cell it answers into a hero
 // skill and a price. A click that lands on the icon a player is looking at and
@@ -672,7 +674,7 @@ func driveSchoolRoom(root string, w io.Writer) (bool, error) {
 		seen[class] = true
 		fmt.Fprintf(w, "drive %s member %d of %d\n", className[class], member+1, len(f.Carried))
 		for slot := 0; slot < 5; slot++ {
-			r := ui.SchoolSkillRect(class, slot)
+			r := game.TownSchoolRegion([]string{"fighter", "mage"}[class], slot)
 			mid := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 			c, hit := ui.TownSurfaceControlAt(surface.TownSurface(), mid)
 			if !hit || c.Kind != ui.TownSurfaceControlCell {

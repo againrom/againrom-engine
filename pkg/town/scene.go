@@ -31,10 +31,20 @@ type SceneSpec struct {
 	EnterActive bool `json:"enter-active"`
 	// Enter runs once each time the scene is entered, after every actor's own
 	// entry: "sound <slot>" requests a slot's sound.
-	Enter  []string    `json:"enter"`
-	Steps  []StepGroup `json:"steps"`
-	Layers []LayerSpec `json:"layers"`
-	Cite   []string    `json:"cite"`
+	Enter    []string        `json:"enter"`
+	Steps    []StepGroup     `json:"steps"`
+	Layers   []LayerSpec     `json:"layers"`
+	Backdrop []PageLayerSpec `json:"backdrop"`
+	Cite     []string        `json:"cite"`
+}
+
+// PageLayerSpec places page art or a scene group in the room backdrop.
+type PageLayerSpec struct {
+	Art   string   `json:"art"`
+	Rect  Rect     `json:"rect"`
+	Scene string   `json:"scene"`
+	Over  bool     `json:"over"`
+	Cite  []string `json:"cite"`
 }
 
 // LifecycleShown is the lifecycle of a scene entered each time it is shown.

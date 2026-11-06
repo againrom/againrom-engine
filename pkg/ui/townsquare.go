@@ -10,15 +10,7 @@ import (
 // TownSquareScene is the composed town square a game supplies: it paints
 // itself and answers what a point of it does. The ui draws the message line
 // and the tip panel over it and owns no fact of the square.
-type TownSquareScene interface {
-	// Size is the scene's size; Paint draws it onto dst at the origin.
-	Size() image.Point
-	Paint(dst *image.RGBA)
-	// ControlAt answers the door or the menu a click at p reaches.
-	ControlAt(p image.Point) (TownSquareControl, bool)
-	// TipAt answers the main text slot of the tooltip at p.
-	TipAt(p image.Point) (int, bool)
-}
+type TownSquareScene = RoomScene
 
 // TownSquareControlKind is what a click on the square's picture resolved to:
 // one of the four doors Choose(i) already accepts, or the statue, which

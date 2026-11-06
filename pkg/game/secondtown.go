@@ -57,6 +57,10 @@ type townSceneState struct {
 
 	seat       int
 	seatFrames []int
+	// seatTicks counts the client ticks since the last frame of a seat grid
+	// whose period is in ticks; seatPhase counts those frames. The selected
+	// seat alone shows seatPhase.
+	seatTicks, seatPhase int
 	// patrons are the seated people the pages have shown, built on first
 	// show.
 	patrons   map[secondInnPatronKey]*secondInnPatron
@@ -252,7 +256,46 @@ func (t *townScreen) enterSeats() {
 		t.composed.seat = 0
 	}
 	t.composed.seatFrames = nil
+	t.composed.seatTicks, t.composed.seatPhase = 0, 0
 	t.composed.seatStamp = t.sceneNow()
+}
+
+// TownSeatTick is one client tick of a seat clock whose period the room
+// counts in ticks: the selected seat advances one frame every FrameTicks
+// ticks while a room surface is shown, and the count restarts when none is.
+func (t *townScreen) TownSeatTick(shown bool) {
+	st := t.composed
+	if st == nil {
+		return
+	}
+	var seats *town.SeatSpec
+	if d := t.townDescription(); d != nil && shown {
+		seats = d.TickSeats()
+	}
+	if seats == nil {
+		st.seatTicks, st.seatPhase = 0, 0
+		return
+	}
+	if st.seatTicks++; st.seatTicks >= seats.FrameTicks {
+		st.seatTicks = 0
+		st.seatPhase++
+	}
+}
+
+// TownSeatRestart starts the selected seat's frames and tick count again, as
+// a press on a seat does.
+func (t *townScreen) TownSeatRestart() {
+	if st := t.composed; st != nil {
+		st.seatTicks, st.seatPhase = 0, 0
+	}
+}
+
+// townSeatPhase is the frame the selected seat of a tick-driven grid shows.
+func (t *townScreen) townSeatPhase() int {
+	if st := t.composed; st != nil {
+		return st.seatPhase
+	}
+	return 0
 }
 
 // advanceSeats advances the selected seat's actor one frame once its period
@@ -302,31 +345,36 @@ func (t *townScreen) openTownText(key string) ui.TownAction {
 	return ui.TownAction{}
 }
 
-// townRoomView is a composed room as ui paints and hit-tests it.
-type townRoomView struct {
+// roomPageView is a composed room as ui paints and hit-tests it.
+type roomPageView struct {
 	t    *townScreen
 	d    *town.Description
 	room string
 }
 
-func (v townRoomView) Size() image.Point { return v.t.viewScene(v.d, v.room).Size() }
+func (v roomPageView) Size() image.Point { return v.t.viewScene(v.d, v.room).Size() }
 
 // Paint draws the room: the square's layers, or a page's back layers, its
 // seated speakers, its front layers and its buttons.
-func (v townRoomView) Paint(dst *image.RGBA) {
-	s := v.t.viewScene(v.d, v.room)
+func (v roomPageView) Paint(dst *image.RGBA, groups ...string) {
+	s := v.scene()
+	if s == nil {
+		return
+	}
+	if len(groups) > 0 {
+		s.Paint(dst, groups[0])
+		return
+	}
 	r := v.d.Room(v.room)
 	if r == nil {
 		s.Paint(dst, "")
 		return
 	}
 	page := v.t.roomArt(v.d, v.room).page
-	s.Paint(dst, "back")
 	words, font := v.t.in.Words, v.t.in.Font.Value()
-	if r.Seats != nil {
-		ui.DrawRoomPage(dst, v.page(r, page, words, font))
-	}
-	s.Paint(dst, "front")
+	p := v.page(r, page, words, font)
+	p.Scene = v
+	ui.DrawRoomPage(dst, p)
 	var buttons []ui.RoomButton
 	for _, b := range s.ShownButtons(r.Buttons) {
 		rect := b.Rect.Rectangle()
@@ -394,29 +442,35 @@ const (
 // and its person's frame, the hired mark over a hire actor whose copied word
 // has the high bit, and the selected seat's person. No hire actor is drawn
 // while no seat is selected (R2-ENGINE-497, DIV-2964).
-func (v townRoomView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) ui.RoomPage {
+func (v roomPageView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) ui.RoomPage {
+	if r.Seats == nil {
+		return buildRoomPage(r, page.Picture, 0, 0)
+	}
 	c := v.t.state()
 	list, hires := c.innSeats()
-	p := buildRoomPage(r, page.Picture, len(list), hires)
-	for i := range p.Seats {
-		s, o := &p.Seats[i], list[i]
-		if i < hires && v.t.composed.seat < 0 {
-			s.Hidden = true
-			continue
-		}
-		s.Frames, s.Frame = v.t.innPatron(r, page, o.npc).frames, v.t.seatFrame(i)
-		if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) {
-			s.Captions = []ui.RoomCaption{{Text: words.Hover[secondInnHiredMark], Font: font}}
-		}
+	content := roomPageContents{person: v.patron(r, page), font: font}
+	if secondInnHiredMark < len(words.Hover) {
+		content.hired = words.Hover[secondInnHiredMark]
 	}
-	p.Person = v.patron(r, page)
-	return p
+	for i, o := range list {
+		s := roomSeatInput{}
+		if i < hires && v.t.composed.seat < 0 {
+			s.hidden = true
+		} else {
+			s.frames, s.frame = v.t.innPatron(r, page, o.npc).frames, v.t.seatFrame(i)
+			if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) {
+				s.hired = true
+			}
+		}
+		content.seats = append(content.seats, s)
+	}
+	return buildRoomPage(r, page.Picture, len(list), hires, content)
 }
 
 // hireCaption is the hire button's caption: Fire on a selected hire actor
 // whose copied word has the high bit, Hire on any other selected hire
 // actor, none on a talk actor or without a selection (R2-ENGINE-246).
-func (v townRoomView) hireCaption() *int {
+func (v roomPageView) hireCaption() *int {
 	c := v.t.state()
 	list, hires := c.innSeats()
 	seat := v.t.composed.seat
@@ -442,7 +496,7 @@ func drawAt(dst *image.RGBA, pic image.Image, at image.Point, op draw.Op) {
 // ControlAt answers what a click at p reaches: on the square a hotspot's row
 // or the menu; on a page a seat to select, or the row its talk or exit button
 // acts on.
-func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
+func (v roomPageView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	r := v.d.Room(v.room)
 	if r == nil {
 		h := v.t.viewScene(v.d, v.room).HotspotAt(p)
@@ -489,7 +543,7 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 }
 
 // TipAt answers the square hotspot's tip slot; a page has no hover tips.
-func (v townRoomView) TipAt(p image.Point) (int, bool) {
+func (v roomPageView) TipAt(p image.Point) (int, bool) {
 	if v.d.Room(v.room) != nil {
 		return 0, false
 	}

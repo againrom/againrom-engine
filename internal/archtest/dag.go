@@ -316,8 +316,8 @@ var allow = map[string][]string{
 	// feeds a decision the game itself makes.
 	"cmd/menuaccelcheck": {"pkg/game", "pkg/ui", "pkg/formats/res"},
 	// schoolcheck is 1015's own instrument. It opens an install through
-	// pkg/game (OpenArchives, LoadTownSchoolArt) and asks pkg/ui for the
-	// production school rectangles and the production hit test, so the
+	// pkg/game (OpenArchives, LoadTownSchoolArt) and reads the town description
+	// through pkg/game and the production hit test through pkg/ui, so the
 	// correlation it measures off the shipped art is compared against the
 	// code the game runs rather than against a copy of it. It names
 	// pkg/formats/bmp to decode the sixteen rotation frames the front end
@@ -326,8 +326,7 @@ var allow = map[string][]string{
 	"cmd/schoolcheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain", "pkg/intmath"},
 	// buttonframecheck is 1017's own instrument, on schoolcheck's own
 	// pattern: it opens an install through pkg/game (OpenArchives) and asks
-	// pkg/ui for the production button wells (TownSurfaceButtonWell,
-	// ShopButtonRect), so the correlation it measures off the shipped art is
+	// pkg/game for the room button rows and pkg/ui for ShopButtonRect, so the correlation it measures off the shipped art is
 	// compared against the code the game runs. It names pkg/formats/bmp to
 	// decode the area pictures and button bitmaps directly, and
 	// pkg/render/terrain only for the EntrySource type pkg/game already

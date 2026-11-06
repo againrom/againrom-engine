@@ -92,7 +92,7 @@ func CheckTownHost(files map[string]string) []Violation {
 		if name != "townScreen" && has(name, townHostSeams) {
 			vs = append(vs, Violation{From: "pkg/game:" + name, Reason: "town input has a second screen host"})
 		}
-		if name != "townRoomView" && has(name, []string{"Size", "Paint", "ControlAt", "TipAt"}) {
+		if name != "roomPageView" && has(name, []string{"Size", "Paint", "ControlAt", "TipAt"}) {
 			vs = append(vs, Violation{From: "pkg/game:" + name, Reason: "town square has a second scene view"})
 		}
 		for _, seam := range townOwnedSeams {
@@ -106,8 +106,8 @@ func CheckTownHost(files map[string]string) []Violation {
 			vs = append(vs, Violation{From: "pkg/game:townScreen", Reason: "missing town seam " + seam})
 		}
 	}
-	if !has("townRoomView", []string{"Size", "Paint", "ControlAt", "TipAt"}) {
-		vs = append(vs, Violation{From: "pkg/game:townRoomView", Reason: "missing town square scene view"})
+	if !has("roomPageView", []string{"Size", "Paint", "ControlAt", "TipAt"}) {
+		vs = append(vs, Violation{From: "pkg/game:roomPageView", Reason: "missing town square scene view"})
 	}
 	return vs
 }

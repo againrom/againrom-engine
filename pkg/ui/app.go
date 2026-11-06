@@ -945,10 +945,6 @@ type App struct {
 	townTipPress       buttonLatch
 	townTipPressOwner  townTipOwner
 	townPaintAdmission func() bool
-	// townSurfaceAnimationTick is presentation time only. Six client ticks
-	// make one shipped miniature frame; TownSurfaceView applies it only to
-	// the selected card, so no simulation clock or hash consumes it.
-	townSurfaceAnimationTick int
 
 	// worldMapTickAt is the wall-clock time WorldMapTick last fired
 	// (`DIV-136`, authored): the zero value fires on the world map's first
@@ -1593,14 +1589,8 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		return false
 	}
 	a.flow.settleCover()
-	if a.flow.screen == ScreenTown {
-		if atTownSurface(a.flow.town) {
-			a.townSurfaceAnimationTick++
-		} else {
-			a.townSurfaceAnimationTick = 0
-		}
-	} else {
-		a.townSurfaceAnimationTick = 0
+	if clock, ok := a.flow.town.(TownSeatClock); ok {
+		clock.TownSeatTick(a.flow.screen == ScreenTown && atTownSurface(a.flow.town))
 	}
 	shop, atShop := a.flow.town.(TownShopScreen)
 	if a.flow.screen != ScreenTown || !atShop || !shop.AtTownShop() {
@@ -2919,7 +2909,9 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						key := surface.Cells[c.Index].Key
 						a.clickTownSurface(c, surface.Kind == TownSurfaceTavern && in.PrimaryDouble && key == a.townSurfacePairKey)
 						a.townSurfacePairKey = key
-						a.townSurfaceAnimationTick = 0
+						if clock, ok := a.flow.town.(TownSeatClock); ok {
+							clock.TownSeatRestart()
+						}
 						a.syncViewerLayout()
 					}
 				}
@@ -4711,7 +4703,9 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 		surface.Tip = tipPanelWithPointer(surface.Tip, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 		surface.SuppressHover = true
 		surface.Message = msg
-		surface.AnimationFrame = animationFrame
+		if animationFrame != townOwnSeatFrame {
+			surface.AnimationFrame = animationFrame
+		}
 		if hasCursor {
 			surface.Hover = cursor
 			surface.HasHover = true
@@ -4788,7 +4782,7 @@ func (a *App) composeTownRoom() (*image.RGBA, error) {
 		}
 	}
 	dragIcon, hasDrag := a.shopDragItemPresent()
-	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePressed(), dragIcon, hasDrag, a.townSurfaceAnimationTick/6, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true,
+	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePressed(), dragIcon, hasDrag, townOwnSeatFrame, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true,
 		townRoomPointerState{shopPress: a.shopButtonPress, tipPress: a.townTipPress, tipOwner: a.townTipPressOwner})
 	if errors.Is(err, errTownRowList) {
 		return composeTownList(a.flow.town, a.flow.townList, a.flow.msg), nil
@@ -4869,7 +4863,7 @@ func ComposeTownScreen(t TownScreen, msg string) (*image.RGBA, error) {
 
 // ComposeTownScreenFrame is ComposeTownScreen at one explicit client-only
 // tavern animation phase. It exists for headless production captures; the
-// live App supplies the same phase from townSurfaceAnimationTick. The school
+// live App leaves the phase to the town's own seat clock. The school
 // diamond instead advances once per invocation of the room compositor.
 func ComposeTownScreenFrame(t TownScreen, msg string, animationFrame int) (*image.RGBA, error) {
 	pix, err := composeTownRoom(t, msg, image.Point{}, false, TownSurfaceControl{}, nil, false, animationFrame, nil, ShopControl{}, 0, false)

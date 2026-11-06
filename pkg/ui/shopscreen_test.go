@@ -444,7 +444,8 @@ func TestComposeShopScreenPaintsTheRoomSceneInterior(t *testing.T) {
 
 type recordingScene struct{ groups []string }
 
-func (r *recordingScene) Paint(dst *image.RGBA, group string) {
+func (r *recordingScene) Paint(dst *image.RGBA, groups ...string) {
+	group := groups[0]
 	r.groups = append(r.groups, group)
 	dst.SetRGBA(shopMerchantRect.Min.X, shopMerchantRect.Min.Y, color.RGBA{R: 0x11, A: 0xff})
 }
@@ -973,3 +974,9 @@ func TestTheShopBookIsTheSharedIconBookWithInspectionOnlyCells(t *testing.T) {
 		t.Fatal("the shop's first book cell painted none of the supplied spell icon")
 	}
 }
+
+func (s *recordingScene) Size() image.Point { return image.Point{} }
+func (s *recordingScene) ControlAt(p image.Point) (TownSquareControl, bool) {
+	return TownSquareControl{}, false
+}
+func (s *recordingScene) TipAt(p image.Point) (int, bool) { return 0, false }

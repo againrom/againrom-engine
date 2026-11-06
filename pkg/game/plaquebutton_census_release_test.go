@@ -180,7 +180,7 @@ func TestReleasePlaqueButtonCensus(t *testing.T) {
 			}
 			v := s.TownSurface()
 			for i, b := range v.Buttons {
-				at := centreOf(ui.TownSurfaceButtonRect(v.Kind, i))
+				at := centreOf(TownRoomButtonRect(v.Kind, i))
 				name := fmt.Sprintf("%s-button%d", room.name, i)
 				if !b.Enabled {
 					census.pointer(t, app, name+"-disabled-hover", "hover", at)
@@ -209,7 +209,7 @@ func TestReleasePlaqueButtonCensus(t *testing.T) {
 			census.record(t, "compose-"+room.name, ui.ComposeTownSurface(v))
 			for i, b := range v.Buttons {
 				h := v
-				h.Hover, h.HasHover = centreOf(ui.TownSurfaceButtonRect(v.Kind, i)), true
+				h.Hover, h.HasHover = centreOf(TownRoomButtonRect(v.Kind, i)), true
 				census.record(t, fmt.Sprintf("compose-%s-button%d-hover", room.name, i), ui.ComposeTownSurface(h))
 				if !b.Enabled {
 					continue

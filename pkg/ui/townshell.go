@@ -290,10 +290,12 @@ type TownTavernArt struct {
 	Picture func(name string) image.Image
 }
 
-// RoomScene paints one named group of a room's composed centre onto the
-// screen. The game owns its clocks and frames; painting changes no state.
+// RoomScene paints a page or a named layer group and answers its controls.
 type RoomScene interface {
-	Paint(dst *image.RGBA, group string)
+	Size() image.Point
+	Paint(dst *image.RGBA, groups ...string)
+	ControlAt(p image.Point) (TownSquareControl, bool)
+	TipAt(p image.Point) (int, bool)
 }
 
 // TownSurfaceView is a complete tavern or school frame before a modal dialogue
@@ -463,64 +465,6 @@ func townSurfaceUpperRect(kind TownSurfaceKind) image.Rectangle {
 	return TownUpperRegion
 }
 
-// townSurfaceButtonWells gives each school button's own well, in coordinates
-// local to the button-area picture's own origin. The school's
-// picture is drawn at TownUpperRegion, not the wider TownWideUpperRegion the
-// school's own widget occupies; a well measured against the widget's edge
-// instead of the picture's own origin lands off the shipped button art. The
-// school wells are measured by sliding each shipped button bitmap over its
-// room's own area picture. The tavern delegates to the shop's four rectangles
-// below instead of maintaining a second copy of that composition.
-var townSurfaceButtonWells = map[TownSurfaceKind][]image.Rectangle{
-	TownSurfaceSchool: {
-		image.Rect(4, 71, 144, 117),
-		image.Rect(4, 117, 144, 163),
-	},
-}
-
-// TownSurfaceButtonWell is the well townSurfaceButtonRect draws button i in
-// and hit-tests it against, local to that room's button-area picture: the
-// school's 160-wide body at TownUpperRegion.Min, or the tavern's shop-derived
-// 176-wide body at TownWideUpperRegion.Min. Exported for buttonframecheck.
-// Unknown kind/index returns the zero rectangle.
-func TownSurfaceButtonWell(kind TownSurfaceKind, i int) image.Rectangle {
-	if kind == TownSurfaceTavern {
-		r := ShopButtonRect(i)
-		if r.Empty() {
-			return image.Rectangle{}
-		}
-		return r.Sub(TownWideUpperRegion.Min)
-	}
-	if wells, ok := townSurfaceButtonWells[kind]; ok && i >= 0 && i < len(wells) {
-		return wells[i]
-	}
-	return image.Rectangle{}
-}
-
-// TownSurfaceButtonRect is the same rectangle used to draw button i and as
-// the hit-test argument for it: draw position and hit rectangle are one
-// RECT, never two independently maintained ones. Tavern delegates directly
-// to ShopButtonRect, so its four-button composition cannot drift from the
-// panel the owner selected. Unknown kinds retain the flat-box fallback.
-func TownSurfaceButtonRect(kind TownSurfaceKind, i int) image.Rectangle {
-	if kind == TownSurfaceTavern {
-		return ShopButtonRect(i)
-	}
-	if wells, ok := townSurfaceButtonWells[kind]; ok && i >= 0 && i < len(wells) {
-		return wells[i].Add(TownUpperRegion.Min)
-	}
-	r := townSurfaceUpperRect(kind)
-	left := r.Min.X + 10
-	if kind == TownSurfaceSchool {
-		left = r.Min.X
-	}
-	return image.Rect(left, 16+i*68, r.Max.X-10, 68+i*68)
-}
-
-func townSurfaceButtonRect(kind TownSurfaceKind, i int) image.Rectangle {
-	return TownSurfaceButtonRect(kind, i)
-}
-
 // townButtonLabelRect and townButtonValueRect are a surface button's own two
 // text bands within its well r: the label on the first line, the button's
 // current value on the second. Both are named producers rather than inline
@@ -541,117 +485,11 @@ func townSurfaceMessageRect() image.Rectangle {
 	return image.Rect(12, 448, 468, 478)
 }
 
-// townSurfaceCellRect is the school's skill cell, its draw and hit
-// rectangle: the two five-slot rows share this one mapping, the first row
-// fighter, the second mage.
-func townSurfaceCellRect(i int) image.Rectangle {
-	col, row := i%5, i/5
-	return image.Rect(10+col*92, 64+row*146, 94+col*92, 184+row*146)
-}
-
-// tavernPage is the tavern's room page: the game's seats, each filled with
-// its cell's frames and captions, the panel's button rectangles, and the
-// person only over the tavern's own art.
-func (v TownSurfaceView) tavernPage(art bool) RoomPage {
-	p := v.Page
-	p.Phase = v.AnimationFrame
-	n := min(len(p.Seats), len(v.Cells))
-	p.Seats = append([]RoomSeat(nil), p.Seats[:n]...)
-	font := v.CardFont
-	if font == nil {
-		font = v.Font
-	}
-	hired := v.HiredLabel
-	if hired == "" {
-		hired = AuthoredWords().TavernHired
-	}
-	for i := range p.Seats {
-		c, s := v.Cells[i], &p.Seats[i]
-		s.Hidden, s.Boxed, s.Animated, s.Frames = v.RosterUnpainted, true, c.Selected, c.Frames
-		if len(s.Frames) == 0 && c.Picture != nil {
-			s.Frames = []image.Image{c.Picture}
-		}
-		s.Captions = []RoomCaption{{Text: c.Price, Font: font, Place: RoomCaptionTopRight},
-			{Text: c.Detail, Font: font, Place: RoomCaptionBottomLeft}}
-		if c.Hired {
-			s.Captions = append(s.Captions, RoomCaption{Text: hired, Font: font, Place: RoomCaptionMark})
-		}
-	}
-	p.Buttons = make([]image.Rectangle, len(v.Buttons))
-	for i := range p.Buttons {
-		p.Buttons[i] = townSurfaceButtonRect(v.Kind, i)
-	}
-	if !art {
-		p.Person = RoomPerson{}
-	}
-	return p
-}
-
 // SchoolFaceOrigin is where the training column's own rotation frame sits in
 // the 480x480 room. It is measured, not authored: cmd/schoolcheck correlates
 // the shipped frame against the shipped background over the whole background
 // and reports the winning offset with the best fraction anywhere else.
 var SchoolFaceOrigin = image.Pt(168, 176)
-
-// schoolSkillRects is each class's five skill rectangles, indexed by class then
-// by the shared slot order (Blade/Fire, Axe/Water, Bludgen/Air, Pike/Earth,
-// Shooting/Astral).
-//
-// THE TWO CLASSES DO NOT SHARE ONE ARRAY. The two column faces are two faces of
-// one cylinder and their engravings are in different places: the fighter's five
-// are full-width horizontal bands, the mage's five are small symbols scattered
-// over the face. Every rectangle here is the patch's own placement on its own
-// face, measured by cmd/schoolcheck and cross-checked against the class mask's
-// colour-code bounding boxes. docs/DIVERGENCES.md DIV-145 carries the conflict
-// with TOWN-068's one-shared-array reading.
-var schoolSkillRects = [2][5]image.Rectangle{
-	{
-		image.Rect(200, 196, 280, 228),
-		image.Rect(200, 216, 280, 252),
-		// Research establishes one shared rectangle array but not why its third
-		// and fourth entries cross visual order. The owner selected detailed
-		// chargen order, so Bludgen/Club uses the visually earlier 28px row and
-		// Pike the later 16px row.
-		image.Rect(200, 248, 280, 276),
-		image.Rect(200, 272, 280, 288),
-		image.Rect(200, 288, 280, 308),
-	},
-	{
-		image.Rect(264, 232, 284, 260),
-		image.Rect(192, 240, 216, 260),
-		image.Rect(224, 200, 252, 224),
-		image.Rect(228, 272, 256, 298),
-		image.Rect(224, 236, 256, 262),
-	},
-}
-
-var schoolPanelRects = [2]image.Rectangle{
-	image.Rect(192, 192, 284, 312), // fighter
-	image.Rect(188, 188, 288, 308), // mage
-}
-
-// SchoolSkillRect is the screen rectangle one class's skill icon is drawn at,
-// and SchoolPanelRect the rectangle that class's raster mask is placed at.
-//
-// BOTH ARE EXPORTED FOR cmd/schoolcheck, the story's measuring instrument. That
-// tool derives the same rectangles from the shipped art by correlation and from
-// the mask's own colour-code bounding boxes, and compares them with these
-// values. A Go test may not read an install (golden rule 2), so the comparison
-// can only be made from a command. An out-of-range argument answers the empty
-// rectangle rather than panicking.
-func SchoolSkillRect(class, slot int) image.Rectangle {
-	if class < 0 || class > 1 || slot < 0 || slot > 4 {
-		return image.Rectangle{}
-	}
-	return schoolSkillRects[class][slot]
-}
-
-func SchoolPanelRect(class int) image.Rectangle {
-	if class < 0 || class > 1 {
-		return image.Rectangle{}
-	}
-	return schoolPanelRects[class]
-}
 
 // schoolMaskSlot maps one mask colour code to the slot index the rest of this
 // package uses: the shared slot order Blade/Fire, Axe/Water, Bludgen/Air,
@@ -724,7 +562,7 @@ func schoolControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl, bool
 		return TownSurfaceControl{}, false
 	}
 	mask := v.SchoolArt.Masks[v.SchoolClass]
-	r := schoolPanelRects[v.SchoolClass]
+	r := v.Page.Region("panels", v.SchoolClass)
 	if mask == nil || !p.In(r) {
 		return TownSurfaceControl{}, false
 	}
@@ -767,9 +605,9 @@ func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl,
 	if v.BookView != nil && p.In(shopTableRegion) {
 		return TownSurfaceControl{Kind: TownSurfaceControlBookPage}, true
 	}
-	page := v.tavernPage(false)
+	page := v.Page
 	for i := range v.Buttons {
-		if p.In(townSurfaceButtonRect(v.Kind, i)) {
+		if i < len(page.Buttons) && p.In(page.Buttons[i]) {
 			if !v.Buttons[i].Enabled {
 				return TownSurfaceControl{}, false
 			}
@@ -795,7 +633,7 @@ func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl,
 		return TownSurfaceControl{}, false
 	}
 	for i := range v.Cells {
-		if p.In(townSurfaceCellRect(i)) {
+		if p.In(v.Page.Region("cells", i)) {
 			if visible, enabled := townSurfaceCellState(v, i); !visible || !enabled {
 				return TownSurfaceControl{}, false
 			}
@@ -1114,16 +952,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	if artSchool && v.SchoolArt.Background != nil {
 		draw.Draw(dst, TownContentRegion, v.SchoolArt.Background, v.SchoolArt.Background.Bounds().Min, draw.Src)
 	} else if artTavern && v.TavernArt.Center != nil {
-		// LeftStats (238 rows) upper, LeftPicture (242 rows) lower, an
-		// authored order: TOWN-282 does not resolve the destination (DIV-176).
-		draw.Draw(dst, image.Rect(160, 0, 480, 480), v.TavernArt.Center, v.TavernArt.Center.Bounds().Min, draw.Src)
-		// TOWN-407: the central child's own pictures, placed after
-		// CenterArea.bmp.
-		if v.Scene != nil {
-			v.Scene.Paint(dst, "centre")
-		}
-		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftStats, Seam: v.TavernArt.LeftStatsSeam}, image.Rect(0, 0, 160, 238), image.Rect(160, 0, 176, 238))
-		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftPicture, Seam: v.TavernArt.LeftPictureSeam}, image.Rect(0, 238, 160, 480), image.Rect(160, 238, 176, 480))
+		DrawRoomPage(dst, v.Page, "backdrop")
 	} else {
 		drawTownShellBox(dst, TownContentRegion, false)
 	}
@@ -1142,13 +971,18 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		drawTownShellText(dst, v.Font, v.Title, image.Rect(176, 12, 470, 44), townShellText)
 	}
 	if v.Kind == TownSurfaceTavern {
-		DrawRoomPage(dst, v.tavernPage(artTavern))
+		page := v.Page
+		page.Phase = v.AnimationFrame
+		if !artTavern {
+			page.Person = RoomPerson{}
+		}
+		DrawRoomPage(dst, page, "content")
 	}
 	for i, c := range v.Cells {
 		if artSchool || v.Kind == TownSurfaceTavern {
 			continue
 		}
-		r := townSurfaceCellRect(i)
+		r := v.Page.Region("cells", i)
 		ink := townShellText
 		if !c.Enabled {
 			ink = townShellDisabled
@@ -1203,7 +1037,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 				continue
 			}
 			pic := v.SchoolArt.Skills[class][slot][state]
-			r := schoolSkillRects[class][slot]
+			r := v.Page.Region([]string{"fighter", "mage"}[class], slot)
 			b := pic.Bounds()
 			at := image.Pt(r.Min.X+(r.Dx()-b.Dx())/2, r.Min.Y+(r.Dy()-b.Dy())/2)
 			draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
@@ -1220,7 +1054,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 			}
 			if i < len(v.Cells) && v.Cells[i].Enabled && v.SchoolArt.Skills[class][slot][state] != nil {
 				pic := v.SchoolArt.Skills[class][slot][state]
-				r := schoolSkillRects[class][slot]
+				r := v.Page.Region([]string{"fighter", "mage"}[class], slot)
 				b := pic.Bounds()
 				at := image.Pt(r.Min.X+(r.Dx()-b.Dx())/2, r.Min.Y+(r.Dy()-b.Dy())/2)
 				draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
@@ -1269,10 +1103,12 @@ func townSurfacePanel(v TownSurfaceView, artSchool, artTavern, commandTavern boo
 		art.Body, art.Seam = v.TavernArt.Upper, v.TavernArt.UpperSeam
 	}
 	n := len(v.Buttons)
-	if !commandTavern {
+	{
 		comp.Plaques = make([]image.Rectangle, n)
 		for i := range comp.Plaques {
-			comp.Plaques[i] = townSurfaceButtonRect(v.Kind, i)
+			if i < len(v.Page.Buttons) {
+				comp.Plaques[i] = v.Page.Buttons[i]
+			}
 		}
 	}
 	art.Plaques = make([][2]image.Image, n)
@@ -1297,7 +1133,10 @@ func townSurfacePanel(v TownSurfaceView, artSchool, artTavern, commandTavern boo
 		if pressedOnly {
 			pressed = pressed && b.Enabled
 		}
-		r := townSurfaceButtonRect(v.Kind, i)
+		r := image.Rectangle{}
+		if i < len(v.Page.Buttons) {
+			r = v.Page.Buttons[i]
+		}
 		buttons[i] = panelButton{Captions: []string{b.Label, b.Value}, Hover: v.HasHover && v.Hover.In(r),
 			Pressed: pressed, Inside: true, Disabled: v.ButtonStyle.disabled(b.Enabled)}
 	}

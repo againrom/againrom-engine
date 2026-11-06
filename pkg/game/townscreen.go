@@ -230,7 +230,7 @@ func (t *townScreen) resetForNewGame() {
 	t.schoolHover = -1
 	t.schoolSounds.Stop()
 	t.schoolPage().Reset()
-	t.tavernPage().Reset()
+	t.roomView("tavern").scene().Reset()
 	t.shopPage().Reset()
 	t.townStats, t.shopBook = false, false
 	t.clearTavernDetail()
@@ -244,6 +244,7 @@ func (t *townScreen) resetForNewGame() {
 	t.resetRoomTip()
 	if t.composed != nil {
 		t.composed.seat, t.composed.seatFrames, t.composed.patrons = -1, nil, nil
+		t.composed.seatTicks, t.composed.seatPhase = 0, 0
 		t.composed.hero, t.composed.innShown = nil, false
 		t.composed.pointer = image.Pt(-1, -1)
 	}

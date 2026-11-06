@@ -4182,5 +4182,8 @@ var Committed = Baseline{
 	// tests, the new secondobjective*, secondmapobjectives,
 	// questobjectiverows and scenariobank test files; and this note, net of
 	// the removed text-mark and caption comments.
-	CommentBytes: 10568439,
+
+	// CommentBytes falls with the shared room page, adapter and person profiles.
+	// It rises for the generator row's shared room card field and this note.
+	CommentBytes: 10566275,
 }

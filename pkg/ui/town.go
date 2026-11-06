@@ -163,6 +163,18 @@ type TownSurfaceAnimator interface {
 	AdvanceTownSurfaceAnimation()
 }
 
+// townOwnSeatFrame asks composeTownRoom to leave the seat frame to the
+// town's own seat clock.
+const townOwnSeatFrame = -1
+
+// TownSeatClock is the room's seat clock as the client drives it: one tick
+// per client step with whether a room surface is shown, and a restart when a
+// press selects a seat. The period and the frames are the room's.
+type TownSeatClock interface {
+	TownSeatTick(shown bool)
+	TownSeatRestart()
+}
+
 // SchoolTrainingLifecycle freezes the school's private clocks whenever its
 // live room is not focused. It stays separate from TownSurfaceAnimator so
 // synthetic surface implementations need not invent lifecycle state.

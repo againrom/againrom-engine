@@ -81,7 +81,7 @@ func (t *townScreen) paneSquareView(v *ui.TownSquareView, d *town.Description, r
 	if r == nil || r.Seats == nil || page == nil {
 		return
 	}
-	view := townRoomView{t: t, room: r.Name}
+	view := t.roomView(r.Name)
 	p := view.selectedPatron(r, page.page)
 	if p == nil || !p.known || p.figure == nil || p.mask == nil {
 		return

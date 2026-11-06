@@ -161,8 +161,9 @@ func TestReleaseEveryShippedMercenaryPriceFitsAndMatchesTheHireAction(t *testing
 			}
 
 			view := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern, Font: f.Font.Value(), CardFont: font,
-				TavernArt: f.TownTavernArt.Value(), Page: f.TavernPageLayout(1, 1),
-				Cells: []ui.TownSurfaceCell{{Portrait: true, Price: priceText, Detail: detailText}}}
+				TavernArt: f.TownTavernArt.Value(),
+				Cells:     []ui.TownSurfaceCell{{Portrait: true, Price: priceText, Detail: detailText}}}
+			view.Page = f.SurfacePageLayout(view, 1)
 			got := ui.ComposeTownSurface(view)
 			want := image.NewRGBA(image.Rect(0, 0, cardWidth, cardHeight))
 			draw.Draw(want, want.Bounds(), f.TownTavernArt.Value().ManBack, f.TownTavernArt.Value().ManBack.Bounds().Min, draw.Src)
