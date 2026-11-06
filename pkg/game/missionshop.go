@@ -86,7 +86,7 @@ func (t *townScreen) OpenMissionShop() bool {
 	n.Shop = mw.shop.stock
 	t.visit, t.sess = v, &n
 	row := t.hostShopRow()
-	row.bag = func(*CampaignSession) *[]sim.ItemInstance { return &v.bag }
+	row.bag = func(*CampaignSession, int) *[]sim.ItemInstance { return &v.bag }
 	row.settle = t.settleMissionDeal
 	row.wornFixed = true
 	t.bindShop(row)

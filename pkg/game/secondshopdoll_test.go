@@ -127,14 +127,19 @@ func TestSecondShopDollWearsFromTheBagAndTakesOffIntoIt(t *testing.T) {
 		t.Fatalf("the axe taken off is %+v, want the unit worn", bag)
 	}
 
+	own, ok := memberWithPack(s.sess.Carried[1], []sim.ItemInstance{secondshop.MissionUnit(secondDollAxe, secondMissionItem(s.in.Table))}, s.in.Table, true)
+	if !ok {
+		t.Fatal("Iglez takes no pack")
+	}
+	s.sess.Carried[1] = own
 	s.click(ui.ShopControlPickerNext, 0)
-	s.ShopDrag(secondDollPack(s, 2), doll(1))
+	s.ShopDrag(secondDollPack(s, 0), doll(1))
 	if s.sess.Carried[1].WornItems[0].Code != secondDollAxe.Code || !s.sess.Carried[0].WornItems[0].Empty() {
 		t.Fatalf("NEXT then a drag: Iglez wears %+v, the hero %+v", s.sess.Carried[1].WornItems[0], s.sess.Carried[0].WornItems[0])
 	}
 	s.ShopDrag(doll(1), secondDollPack(s, 0))
-	if !s.sess.Carried[1].WornItems[0].Empty() || len(*c.heroBag()) != 3 {
-		t.Fatalf("Iglez's axe was not taken off into the bag: %+v", *c.heroBag())
+	if !s.sess.Carried[1].WornItems[0].Empty() || len(*c.heroBag()) != 3 || len(s.shopPackItemInstances()) != 1 {
+		t.Fatalf("Iglez's axe was not taken off into his pack: bag %+v, pack %+v", *c.heroBag(), s.shopPackItemInstances())
 	}
 
 	after := secondDollNow(s, c)

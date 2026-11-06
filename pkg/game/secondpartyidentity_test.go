@@ -124,8 +124,8 @@ func TestSecondPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 
 // In the shop, PREVIOUS and NEXT step the party the pane shows: with
 // identity 22 carried, NEXT shows him and PREVIOUS the hero. The doll is
-// his while the strip stays the bag, so a purchase made while the pane
-// shows him still lands in the bag (DIV-3043).
+// his and so is the strip, so a purchase made while the pane shows him
+// lands in his pack and the hero's bag stays as it was.
 func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	f, _, screen := secondCampaignFixtureFiles(t, false)
 	f.Table = identityTable()
@@ -144,14 +144,15 @@ func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	if v, _, _ := screen.heroPane(spec); v.MemberCount != 2 || v.Member != 1 || screen.heroFace().member != 1 {
 		t.Fatalf("NEXT shows member %d of %d, want identity 22, the second of 2", v.Member, v.MemberCount)
 	}
-	if screen.shopMemberIndex() != 1 || len(screen.shopPackItemInstances()) != len(*c.heroBag()) {
-		t.Fatalf("the shop's doll is member %d with a strip of %d units, want identity 22 beside the bag", screen.shopMemberIndex(), len(screen.shopPackItemInstances()))
+	bag := len(*c.heroBag())
+	if screen.shopMemberIndex() != 1 || len(screen.shopPackItemInstances()) != iglez {
+		t.Fatalf("the shop's doll is member %d with a strip of %d units, want identity 22 with his %d", screen.shopMemberIndex(), len(screen.shopPackItemInstances()), iglez)
 	}
 	screen.click(ui.ShopControlShelfPick, 0)
 	screen.click(ui.ShopControlShelfCell, 0)
 	screen.click(ui.ShopControlButton, 1)
-	if f.Town.gold != 300-125 || len(*c.heroBag()) != 4+1 || len(f.Carried[1].CarriedItems) != iglez {
-		t.Fatalf("purchase: gold %d bag %d, identity 22 carries %d (was %d)", f.Town.gold, len(*c.heroBag()), len(f.Carried[1].CarriedItems), iglez)
+	if f.Town.gold != 300-125 || len(*c.heroBag()) != bag || len(f.Carried[1].CarriedItems) != iglez+1 {
+		t.Fatalf("purchase: gold %d bag %d (was %d), identity 22 carries %d (was %d)", f.Town.gold, len(*c.heroBag()), bag, len(f.Carried[1].CarriedItems), iglez)
 	}
 	screen.click(ui.ShopControlPickerPrev, 0)
 	if v, _, _ := screen.heroPane(spec); v.Member != 0 {

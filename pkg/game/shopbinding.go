@@ -24,12 +24,16 @@ type shopBinding struct {
 	// which the city object graph holds, so a trade mutates that graph.
 	dealOf    func(*CampaignSession) *Shop
 	cityGraph bool
-	// bag is the one pack the strip shows and the deal trades with, the same
-	// whichever member the panel shows, and bagUnit the form an item takes
-	// on entering it; a nil bag is the shown customer's own pack, which
-	// takes its items as they are.
-	bag     func(*CampaignSession) *[]sim.ItemInstance
-	bagUnit func(sim.ItemInstance) sim.ItemInstance
+	// bag is the pack of the member the panel shows, which the strip shows
+	// and the deal trades with, and bagUnit the form an item takes on
+	// entering it; a nil row, or a nil answer, is the member's own pack,
+	// which takes its items as they are unless packRead and packWrite give
+	// the form the row's goods take there: the units the pack shows, and the
+	// pack after it holds the shown units items.
+	bag       func(s *CampaignSession, member int) *[]sim.ItemInstance
+	bagUnit   func(sim.ItemInstance) sim.ItemInstance
+	packRead  func(s *CampaignSession, member int) []sim.ItemInstance
+	packWrite func(s *CampaignSession, member int, items []sim.ItemInstance, refresh bool) bool
 	// racks answers the room's four racks now and rackLabel names rack i.
 	racks     func() [4]shopRack
 	rackLabel func(i int) string

@@ -520,6 +520,9 @@ func (t *shopController) stepMemberOver(party []mapload.PartyMember, step int) u
 	}
 	to := (at + step%n + n) % n
 	i := roster[to]
+	if t.shop.parting != nil && i != previous {
+		t.shop.parting()
+	}
 	t.shopMember, t.packBase = i, 0
 	if t.shop.stepped != nil {
 		t.shop.stepped(party[previous], party[i])

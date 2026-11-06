@@ -170,7 +170,7 @@ type townHook struct {
 
 var townHooks = map[string]townHook{
 	"shop-open":  {run: secondShopOpen, offers: "scenario-bank"},
-	"shop-leave": {run: func(t *townScreen, _ string) { c := t.state(); c.shop.leave(c.heroBag()) }, offers: "scenario-bank"},
+	"shop-leave": {run: func(t *townScreen, _ string) { t.leaveSecondShop() }, offers: "scenario-bank"},
 	"gate-closed": {run: func(t *townScreen, _ string) {
 		if t.hostRules().Talk == town.TalkSection {
 			t.squareAction = t.openTownText(secondGateText)

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] In the shop, switching to another party member now shows that member's items, and buying, selling and the table act on that member.
+
 ## 0.148.0
 
 ### For players

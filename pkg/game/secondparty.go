@@ -194,6 +194,65 @@ func leaveBagToCampaign(party []mapload.PartyMember, table *mapload.Table) error
 	return nil
 }
 
+// memberUnits are the units of member i's own pack that the second game's
+// shop shows, each as a bag unit: the units secondshop.KeptUnit takes
+// without a loss, in pack order.
+func (s *CampaignSession) memberUnits(i int, table *mapload.Table) []sim.ItemInstance {
+	if i < 0 || i >= len(s.Carried) {
+		return nil
+	}
+	var out []sim.ItemInstance
+	for _, it := range mapload.MemberCarriedItems(s.Carried[i], table) {
+		if unit, ok := secondshop.KeptUnit(it, secondMissionItem(table)); ok {
+			out = append(out, unit)
+		}
+	}
+	return out
+}
+
+// setMemberUnits makes items the units member i's pack shows: a pack unit
+// that is still among them stays as it is, a new one enters in its mission
+// form (secondshop.MissionUnit), and the units the shop does not show stay
+// in his pack. The town's item graph follows the pack. It is false when the
+// member's carried load refuses the pack.
+func (s *CampaignSession) setMemberUnits(i int, items []sim.ItemInstance, table *mapload.Table, refresh bool) bool {
+	if i < 0 || i >= len(s.Carried) {
+		return false
+	}
+	var out, shown, held []sim.ItemInstance
+	for _, it := range mapload.MemberCarriedItems(s.Carried[i], table) {
+		if unit, ok := secondshop.KeptUnit(it, secondMissionItem(table)); ok {
+			shown, held = append(shown, unit), append(held, it)
+		} else {
+			out = append(out, it)
+		}
+	}
+	for _, it := range items {
+		at := slices.IndexFunc(shown, func(u sim.ItemInstance) bool { return sim.SameUnit(u, it, sim.UnitForm) })
+		if at < 0 {
+			out = append(out, secondshop.MissionUnit(secondshop.Unit(it), secondMissionItem(table)))
+			continue
+		}
+		out = append(out, held[at])
+		shown, held = slices.Delete(shown, at, at+1), slices.Delete(held, at, at+1)
+	}
+	member, ok := memberWithPack(s.Carried[i], out, table, refresh)
+	if !ok {
+		return false
+	}
+	party := slices.Clone(s.Carried)
+	party[i] = member
+	graph, err := s.followHeroPack(s.Carried[i], party, i, table)
+	if err != nil {
+		return false
+	}
+	s.Carried[i] = member
+	if graph != nil {
+		s.Town.cityObjects = graph
+	}
+	return true
+}
+
 // heroBag is the hero's pack, made when the campaign has no party yet.
 func (c *secondCampaign) heroBag() *[]sim.ItemInstance {
 	if len(c.party) == 0 {

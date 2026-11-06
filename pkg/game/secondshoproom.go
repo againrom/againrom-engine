@@ -40,6 +40,16 @@ func secondShopOpen(t *townScreen, _ string) {
 	t.shopChosen, t.shopShelf, t.shelfBase, t.packBase, t.tableBase, t.shopMember = 0, 0, 0, 0, 0, 0
 }
 
+// leaveSecondShop ends the deal on leaving the room: the units on the table
+// go back to the pack of the member the page shows, the emptied entries drop.
+func (t *townScreen) leaveSecondShop() {
+	c := t.state()
+	if t.row.dealOf != nil && len(c.shop.Table()) != 0 {
+		t.shopClear()
+	}
+	c.shop.leave(c.heroBag())
+}
+
 // bankShopRow is the composed town's shop room as the one shop page's row: the
 // second campaign's deal and bag, the campaign party as the customers whose
 // doll the pane shows, the room's art, scene and rectangles from
@@ -62,15 +72,24 @@ func (t *townScreen) bankShopRow() shopBinding {
 			}
 			return &c.shop
 		},
-		bag: func(s *CampaignSession) *[]sim.ItemInstance {
+		bag: func(s *CampaignSession, member int) *[]sim.ItemInstance {
 			c := secondOf(s)
 			if c == nil {
 				return new([]sim.ItemInstance)
 			}
+			if hero := secondHeroIndex(s.Carried); hero >= 0 && member != hero {
+				return nil
+			}
 			return c.heroBag()
 		},
 		bagUnit: secondshop.Unit,
-		racks:   t.shopRacks,
+		packRead: func(s *CampaignSession, member int) []sim.ItemInstance {
+			return s.memberUnits(member, t.in.Table)
+		},
+		packWrite: func(s *CampaignSession, member int, items []sim.ItemInstance, refresh bool) bool {
+			return s.setMemberUnits(member, items, t.in.Table, refresh)
+		},
+		racks: t.shopRacks,
 		rackLabel: func(i int) string {
 			if racks := t.shopRacks(); i >= 0 && i < len(racks) {
 				return racks[i].name
@@ -119,7 +138,12 @@ func (t *townScreen) bankShopRow() shopBinding {
 				}
 			},
 			stats: func() { t.townStats = !t.townStats },
-			face:  t.heroFaceView,
+			parting: func() {
+				if len(t.deal().Table()) != 0 {
+					t.shopClear()
+				}
+			},
+			face: t.heroFaceView,
 			faces: func(entrySource, []mapload.PartyMember, *image.RGBA, map[int]*image.RGBA) {
 				if t.composed != nil {
 					t.composed.hero = nil

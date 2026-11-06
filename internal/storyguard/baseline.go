@@ -4238,5 +4238,10 @@ var Committed = Baseline{
 	// internal/archtest/hire.go, and this note.
 
 	// It rises for the campaign service's hire state, and this note.
-	CommentBytes: 10594265,
+
+	//
+	// CommentBytes rises for the doc comments of the member pack hooks in
+	// pkg/game/shopbinding.go, shoproom.go, secondparty.go and
+	// secondshoproom.go, and this note.
+	CommentBytes: 10595704,
 }

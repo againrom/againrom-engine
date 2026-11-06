@@ -402,11 +402,14 @@ func (t *shopController) shopPartyMember(i int) *mapload.PartyMember {
 func (t *shopController) shopPackItemInstances() []sim.ItemInstance {
 	var source []sim.ItemInstance
 	party := t.shopParty()
-	if t.row.bag == nil && len(party) == 0 {
+	bag := t.shopBag()
+	if bag == nil && len(party) == 0 {
 		return nil
 	}
-	if t.row.bag != nil {
-		source = *t.row.bag(t.sess)
+	if bag != nil {
+		source = *bag
+	} else if t.row.packRead != nil {
+		source = t.row.packRead(t.sess, t.shopMemberIndex())
 	} else if m := &party[t.shopMemberIndex()]; m.Carry != nil {
 		if len(m.Carry.ItemInstances) > 0 || len(m.Carry.Items) == 0 {
 			source = m.Carry.ItemInstances
@@ -435,8 +438,17 @@ func (t *shopController) setShopPackItemInstances(items []sim.ItemInstance) bool
 	return t.setShopPackItemInstancesRefresh(items, true)
 }
 
+// shopBag is the row's bag of the shown member, nil when he trades from his
+// own pack.
+func (t *shopController) shopBag() *[]sim.ItemInstance {
+	if t.row.bag == nil {
+		return nil
+	}
+	return t.row.bag(t.sess, t.shopMemberIndex())
+}
+
 func (t *shopController) shopHasActorContainer() bool {
-	if t.row.bag != nil {
+	if t.shopBag() != nil {
 		return true
 	}
 	m := t.shopPartyMember(t.shopMemberIndex())
@@ -476,12 +488,12 @@ func memberWithPack(member mapload.PartyMember, items []sim.ItemInstance, table 
 }
 
 func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
-	if t.row.bag != nil {
+	if held := t.shopBag(); held != nil {
 		bag := make([]sim.ItemInstance, len(items))
 		for k := range items {
 			bag[k] = t.row.bagUnit(items[k])
 		}
-		*t.row.bag(t.sess) = bag
+		*held = bag
 		return true
 	}
 	party := t.shopParty()
@@ -489,6 +501,9 @@ func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstanc
 		return false
 	}
 	i := t.shopMemberIndex()
+	if t.row.packWrite != nil {
+		return t.row.packWrite(t.sess, i, items, refresh)
+	}
 	if reflect.DeepEqual(t.shopPackItemInstances(), items) {
 		return true
 	}
@@ -1203,9 +1218,9 @@ func (t *shopController) shopParty() []mapload.PartyMember {
 // Equipped array means "wearing nothing"; minting one here for a member who has
 // never finished a mission would strip what he starts wearing.
 func (t *shopController) shopPackItems() []uint16 {
-	if t.row.bag != nil {
+	if bag := t.shopBag(); bag != nil {
 		var codes []uint16
-		for _, item := range *t.row.bag(t.sess) {
+		for _, item := range *bag {
 			codes = append(codes, item.Code)
 		}
 		return codes
@@ -1230,7 +1245,7 @@ func (t *shopController) shopPackStacks() []sim.ItemStack {
 		}
 		return nil
 	}
-	if m := t.shopPartyMember(t.shopMemberIndex()); t.row.bag == nil && m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
+	if m := t.shopPartyMember(t.shopMemberIndex()); t.shopBag() == nil && t.row.packRead == nil && m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
 		out := make([]sim.ItemStack, len(m.Carry.OrderedStacks))
 		for i, s := range m.Carry.OrderedStacks {
 			out[i] = sim.StackItem(s.Instance(), s.Count)

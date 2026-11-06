@@ -181,15 +181,15 @@ func TestReleaseSecondKaargShopPaneStepsToIglez(t *testing.T) {
 	if entry < 0 {
 		t.Fatal("no shown shelf entry")
 	}
-	bag, iglez, gold := len(*c.heroBag()), len(f.Carried[1].CarriedItems), f.Town.gold
+	bag, iglez, gold, strip := len(*c.heroBag()), len(f.Carried[1].CarriedItems), f.Town.gold, len(s.shopPackItemInstances())
 	shopTap(t, app, secondShopPagePoint(t, app, "shelf", entry), "press", "release")
 	secondShopActivate(t, f, app, "BUY")
-	// Since the shop's doll follows the shown member and the strip is the
-	// bag whichever member is shown, the customer is Iglez beside the bag.
-	if f.Town.gold >= gold || len(*c.heroBag()) <= bag || len(f.Carried[1].CarriedItems) != iglez ||
-		s.shopMemberIndex() != 1 || len(s.shopPackItemInstances()) != len(*c.heroBag()) {
-		t.Fatalf("a purchase with Iglez shown: gold %d -> %d, bag %d -> %d, Iglez carries %d (was %d), customer %d with a strip of %d units",
-			gold, f.Town.gold, bag, len(*c.heroBag()), len(f.Carried[1].CarriedItems), iglez, s.shopMemberIndex(), len(s.shopPackItemInstances()))
+	// The strip and the purchase are the shown member's: Iglez's pack takes
+	// the unit and the hero's bag stays as it was.
+	if f.Town.gold >= gold || len(*c.heroBag()) != bag || len(f.Carried[1].CarriedItems) != iglez+1 ||
+		s.shopMemberIndex() != 1 || len(s.shopPackItemInstances()) != strip+1 {
+		t.Fatalf("a purchase with Iglez shown: gold %d -> %d, bag %d -> %d, Iglez carries %d (was %d), customer %d with a strip of %d units (was %d)",
+			gold, f.Town.gold, bag, len(*c.heroBag()), len(f.Carried[1].CarriedItems), iglez, s.shopMemberIndex(), len(s.shopPackItemInstances()), strip)
 	}
 	if m, _ := pane(); m != 1 {
 		t.Fatalf("the purchase moved the pane to member %d", m)
