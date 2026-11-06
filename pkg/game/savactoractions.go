@@ -22,11 +22,14 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World, load
 	for _, d := range world.OriginalDeadActors() {
 		recorded[d.ID] = true
 	}
-	boundaryIdleMotion := map[sim.EntityID]bool{}
+	boundaryIdleMotion, castMotion := map[sim.EntityID]bool{}, map[sim.EntityID]bool{}
 	motions, _, _, _ := world.SavedActorMotions()
 	for _, motion := range motions {
 		if motion.Current && motion.ActorAction == 0 {
 			boundaryIdleMotion[motion.Entity] = true
+		}
+		if motion.Current && (motion.ActorAction == 0xd || motion.ActorAction == 0xe) {
+			castMotion[motion.Entity] = true
 		}
 	}
 	boundaryIdleOrder := map[sim.EntityID]bool{}
@@ -129,6 +132,15 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World, load
 				}
 			}
 		}
+		// LOAD reads action 0xd/0xe at phase 7 as cast wait (DIV-3357). While
+		// the imported cast action is the actor's current motion, that wait is
+		// written back as the recovery it was read from: phase 7 and the
+		// remaining wait as countdown.
+		recovery := castMotion[e.ID] && e.Alive() && e.CastWait != 0 && !keepLoadedOrder &&
+			!e.HasAttackTarget && !e.Retreat.Known && e.PendingOrder.Kind == sim.PendingNone
+		if recovery {
+			phase = 7
+		}
 		if e.Retreat.Known && e.Retreat.Complete {
 			complete = 1
 		}
@@ -187,6 +199,9 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World, load
 		// explicitly carried by Actions; never modulo-truncate its next tick.
 		if !keepLoadedOrder {
 			countdown := worldOrderCountdown(e)
+			if recovery {
+				countdown = uint32(e.CastWait)
+			}
 			if residue := e.HeldOrder; residue.Kind == sim.HeldOrderResidue {
 				if complete == 0 {
 					complete = residue.Complete

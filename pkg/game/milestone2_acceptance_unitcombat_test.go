@@ -7,7 +7,9 @@ func TestMilestone2UnitCombat(t *testing.T) {
 	worlds, cities, rawRecords, worldRecords, cityRecords, live, rawOnly, bytesRead, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	// The writer admission selects the files (docs/SAV-SUPPLEMENT.md,
+	// "Milestone-2 admission").
+	milestone2CarrierCorpus(t, milestone2InstrumentCarriers[t.Name()], func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		want, err := readUnitCombatExpected(mf.f, mf.raw)
 		if err != nil {
 			mismatches++

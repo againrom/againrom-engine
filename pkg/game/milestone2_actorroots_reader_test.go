@@ -313,8 +313,16 @@ func actorRootEntityDifferences(roots []actor1161Record, r *sackByteReader, orig
 			}
 			id, kind, mode, operand := raw.values["E0C"], raw.values["E3C"], raw.values["E3D"], raw.values["E40"]
 			kinds := map[uint32]sim.EffectKind{6: sim.EffectHealth, 8: sim.EffectHealthRegeneration, 11: sim.EffectManaRegeneration, 16: sim.EffectAbsorption, 17: sim.EffectSpeed, 19: sim.EffectScanRange, 21: sim.EffectProtectionFire, 22: sim.EffectProtectionWater, 23: sim.EffectProtectionAir, 24: sim.EffectProtectionEarth, 38: sim.EffectInvisible, 39: sim.EffectBless, 40: sim.EffectCurse}
+			want := kinds[kind]
+			// The original's own invisibility (row 15) and Bless (row 23)
+			// attachments hold kind 0 (SAV-1397, rows by MAGIC-437).
+			if kind == 0 && id == 15 {
+				want = sim.EffectInvisible
+			} else if kind == 0 && id == 23 {
+				want = sim.EffectBless
+			}
 			got, found := active[[2]uint32{uint32(e.ID), id}]
-			if !found || kinds[kind] == sim.EffectNone || !nativeActorCasterMatches(got, e.ID, id, native, modes) || got.Kind != kinds[kind] || uint32(got.Mode) != mode || got.Magnitude != int32(int16(operand)) || got.Remaining != uint16(operand>>16) {
+			if !found || want == sim.EffectNone || !nativeActorCasterMatches(got, e.ID, id, native, modes) || got.Kind != want || uint32(got.Mode) != mode || got.Magnitude != int32(int16(operand)) || got.Remaining != uint16(operand>>16) {
 				add("%s live Effect%d differs from raw id%d/kind%d/mode%d/operand%d", prefix, ref, id, kind, mode, operand)
 			}
 			bound := 0

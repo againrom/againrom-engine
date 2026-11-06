@@ -7,7 +7,9 @@ func TestMilestone2ActorRoots(t *testing.T) {
 	worlds, cities, actors, children, mismatches := 0, 0, 0, 0, 0
 	var total actor1161Population
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	// The writer admission selects the files (docs/SAV-SUPPLEMENT.md,
+	// "Milestone-2 admission").
+	milestone2CarrierCorpus(t, milestone2InstrumentCarriers[t.Name()], func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		roots, r, origins, err := readActorRoots(mf.f, mf.raw)
 		if err != nil {
 			mismatches++

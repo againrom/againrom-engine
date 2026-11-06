@@ -25,6 +25,7 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 	}
 	f.SetDeterministicFrames(true)
 
+	carrier := milestone2InstrumentCarriers[t.Name()]
 	total, worlds, cities, unreadable, mismatches := 0, 0, 0, 0, 0
 	droppedRows, releasedKeys := 0, 0
 	walkErr := walkFirstGameSaves(corpus, func(path, rel string) error {
@@ -38,6 +39,12 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 			if err != nil {
 				unreadable++
 				t.Logf("unreadable, skipped: %v", err)
+				return
+			}
+			// The writer admission selects the files (docs/SAV-SUPPLEMENT.md,
+			// "Milestone-2 admission").
+			if mf := (milestone2File{rel: rel, raw: raw, body: source.Body, f: source, present: source.World != nil}); !milestone2CarrierApplies(t, mf, carrier) {
+				milestone2WriterRoundTrip(t, assets, mf, false)
 				return
 			}
 			if source.World == nil {

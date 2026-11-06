@@ -4220,5 +4220,15 @@ var Committed = Baseline{
 	// It rises for the same-side area witness and the victory Continue in
 	// pkg/game/secondguardstrike_release_test.go and
 	// secondobjectives_release_test.go, and this note.
-	CommentBytes: 10585487,
+
+	// It rises for a resave of a book cast's recovery: the cast-wait write in
+	// projectSavedActorActions in pkg/game/savactoractions.go, the kind-0
+	// effect rows of the actor-roots instrument, the new
+	// pkg/game/savcastrecovery_test.go, and this note.
+
+	// It rises for the writer admission of four corpus instruments: the new
+	// pkg/game/milestone2_instrumentcarriers_test.go, the admission notes in
+	// the actor-roots, unit-combat, unit-scalar and cell-record audits, and
+	// this note.
+	CommentBytes: 10588080,
 }
