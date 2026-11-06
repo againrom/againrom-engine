@@ -848,7 +848,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"pendingDamage": true, "soundEntities": true,
 		"spellSoundCues": true,
 		"markElements":   true, "shots": true, "flights": true, "drawnMoving": true,
-		"weaponSwap": true}
+		"weaponSwap": true, "invDollGesture": true}
 
 	ft := reflect.TypeOf(mapWorld{})
 	for i := 0; i < ft.NumField(); i++ {

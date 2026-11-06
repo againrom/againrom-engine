@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [ROM2] In the shop, switching to another party member now shows that member's items, and buying, selling and the table act on that member.
 - [ROM2] In the shop, two equal staves, two equally enchanted items or two copies of one book in a party member's bag show as one stack again, for the hero and for a companion.
 - [ROM2] In the shop, putting an item on a character plays the put-on sound and taking it off plays the take-off sound.
+- [ROM2] In a mission, putting an item on a character in the inventory plays the put-on sound, and taking it off or dropping it plays the take-off sound.
 
 ## 0.148.0
 

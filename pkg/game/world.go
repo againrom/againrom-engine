@@ -516,6 +516,10 @@ type mapWorld struct {
 	// invFigureEquipmentItems is refreshEquipment's complete-instance tracker.
 	// It keeps worn popups and enchantment marks live across equal-code swaps.
 	invFigureEquipmentItems [sim.EquipSlots]sim.ItemInstance
+	// invDollGesture is raised when an inventory gesture queues a command that
+	// puts an item on the figure or takes one off, and lowered once the tick
+	// that applied it has been seen by refreshEquipment.
+	invDollGesture bool
 
 	// invLayers and invFigureLayers are the clothing layers rearm and
 	// refreshEquipment last derived from and composed. Both stay nil without a
@@ -2693,6 +2697,7 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 			mw.pending = append(mw.pending, sim.Equip(id, sim.ItemSlot(element), 1))
 		}
 	}
+	mw.invDollGesture = true
 	mw.pending = append(mw.pending, sim.EquipDisplacing(id, sim.ItemSlot(idx), sim.EquipSlot(slot), sim.EquipSlot(displace)))
 }
 
@@ -2771,6 +2776,7 @@ func (mw *mapWorld) enqueueUnequip(idx int) {
 		}
 	}
 	id := sim.EntityID(mw.invSubject.ID)
+	mw.invDollGesture = true
 	mw.pending = append(mw.pending, sim.Unequip(id, sim.EquipSlot(idx+1)))
 }
 
@@ -2888,6 +2894,7 @@ func (mw *mapWorld) enqueueDrop(worn bool, idx int, x, y int32, whole ...bool) {
 				return
 			}
 		}
+		mw.invDollGesture = true
 		mw.pending = append(mw.pending, sim.DropWorn(id, sim.EquipSlot(idx+1), mw.dropAim(id, x, y)))
 		return
 	}
@@ -2940,17 +2947,47 @@ func (mw *mapWorld) currentEquipmentItems() [sim.EquipSlots]sim.ItemInstance {
 
 func itemEquipmentStateEqual(a, b [sim.EquipSlots]sim.ItemInstance) bool {
 	for i := range a {
-		if a[i].Code != b[i].Code || a[i].Kind != b[i].Kind || a[i].Price != b[i].Price ||
-			len(a[i].Effects) != len(b[i].Effects) {
+		if !itemStateEqual(a[i], b[i]) {
 			return false
-		}
-		for k := range a[i].Effects {
-			if a[i].Effects[k] != b[i].Effects[k] {
-				return false
-			}
 		}
 	}
 	return true
+}
+
+func itemStateEqual(a, b sim.ItemInstance) bool {
+	if a.Code != b.Code || a.Kind != b.Kind || a.Price != b.Price || len(a.Effects) != len(b.Effects) {
+		return false
+	}
+	for k := range a.Effects {
+		if a.Effects[k] != b.Effects[k] {
+			return false
+		}
+	}
+	return true
+}
+
+// playDollChange plays the profile's put-on member when a slot gained or
+// changed an item between before and after, else its take-off member when a
+// slot lost one. The sound is presentation only and enters no state.
+func (mw *mapWorld) playDollChange(before, after [sim.EquipSlots]sim.ItemInstance) {
+	sounds := mw.files().dollSounds
+	var on, off bool
+	for i := range before {
+		if itemStateEqual(before[i], after[i]) {
+			continue
+		}
+		if after[i].Empty() {
+			off = true
+		} else {
+			on = true
+		}
+	}
+	switch {
+	case on:
+		mw.view.PlayNamedUISound(sounds.on)
+	case off:
+		mw.view.PlayNamedUISound(sounds.off)
+	}
 }
 
 // weaponFallbackSpent is a PRESENT-STATE OBSERVATION with exactly one term:
@@ -3125,6 +3162,10 @@ func (mw *mapWorld) refreshEquipment() {
 	fallback := mw.currentWeaponFallbackActive()
 	figureItems := mw.currentFigureEquipmentItems()
 	layers := mw.activeLayers(sim.EntityID(mw.invSubject.ID))
+	gesture := mw.invDollGesture
+	if len(mw.pending) == 0 {
+		mw.invDollGesture = false
+	}
 	if eq == mw.invFigureEquipment &&
 		itemEquipmentStateEqual(figureItems, mw.invFigureEquipmentItems) &&
 		fallback == mw.invSubject.WeaponFallback &&
@@ -3154,6 +3195,9 @@ func (mw *mapWorld) refreshEquipment() {
 	// press time to refuse arming a drag for a slot nothing in the live entity
 	// backs.
 	mw.invSubject.WeaponFallback = fallback
+	if gesture {
+		mw.playDollChange(mw.invFigureEquipmentItems, figureItems)
+	}
 	mw.invFigureEquipment = eq
 	mw.invFigureEquipmentItems = figureItems
 	// invComposedEquipment MOVES WITH invFigureEquipment HERE (C1b): this

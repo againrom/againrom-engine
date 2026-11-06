@@ -1501,6 +1501,7 @@ type Viewer struct {
 	soundBank               SoundBank
 	voices                  map[uint32]voiceMemory
 	idleVoices              map[UISoundSlot]audio.Voice
+	namedVoices             SFXVoices
 	entrySounds             []MapEntity
 	soundMessages           []soundMessage
 	commandAcknowledgment   func(VoiceGesture, []uint32, time.Time)

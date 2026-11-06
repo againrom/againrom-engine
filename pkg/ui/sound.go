@@ -246,6 +246,14 @@ func (v *Viewer) PlayUISoundIdle(slot UISoundSlot) {
 	v.idleVoices[slot] = voice
 }
 
+// PlayNamedUISound plays the sfx.res member named on the effects device,
+// restarting an instance of it still playing. An empty name, a bank that
+// answers no named samples or a missing member is silent.
+func (v *Viewer) PlayNamedUISound(member string) {
+	b, _ := v.soundBank.(NamedSoundBank)
+	v.namedVoices.RestartFor("mission-inventory", v.soundPlayer, b, member)
+}
+
 func (v *Viewer) SetAudio(p audio.Player, b SoundBank) {
 	v.soundPlayer = p
 	v.soundBank = b

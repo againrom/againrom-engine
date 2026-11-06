@@ -16,6 +16,10 @@ import (
 // roomSoundHome is the one file that turns a room event into a sound request.
 const roomSoundHome = "pkg/game/roompage.go"
 
+// roomSoundProfileHome is the per-game profile, which names the interface
+// sounds of screens that are not town rooms, such as the mission inventory.
+const roomSoundProfileHome = "pkg/game/gamefiles.go"
+
 // roomEventDoors are the functions that raise an event on a town room. Their
 // callers name an event by a constant of roomSoundHome, never by a string.
 var roomEventDoors = map[string]bool{
@@ -101,7 +105,7 @@ func RoomSoundSites(root string) ([]string, error) {
 				return rerr
 			}
 			rel = filepath.ToSlash(rel)
-			if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || rel == roomSoundHome {
+			if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || rel == roomSoundHome || rel == roomSoundProfileHome {
 				return nil
 			}
 			src, rerr := os.ReadFile(path)
