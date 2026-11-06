@@ -60,30 +60,30 @@ var creatureIdentityGroups = []struct {
 	word  string
 	types []string
 }{
-	{"catapults", []string{"Catapult", "Ballista"}},
-	{"goblins", []string{"Goblin_Pike", "Goblin_Sling"}},
-	{"orcs", []string{"Orc_Sword", "Orc_Bow"}},
-	{"ogres", []string{"Ogre", "Troll"}},
-	{"bats", []string{"Bat_Sonic", "Ghost", "Bee"}},
-	{"squirrels", []string{"Squirrel", "Foot_Animated", "Turtle"}},
-	{"dragons", []string{"Dragon"}},
-	{"daemon", []string{"Daemon"}},
+	{word: "editor.unit.groups.catapults", types: []string{"Catapult", "Ballista"}},
+	{word: "editor.unit.groups.goblins", types: []string{"Goblin_Pike", "Goblin_Sling"}},
+	{word: "editor.unit.groups.orcs", types: []string{"Orc_Sword", "Orc_Bow"}},
+	{word: "editor.unit.groups.ogres", types: []string{"Ogre", "Troll"}},
+	{word: "editor.unit.groups.bats", types: []string{"Bat_Sonic", "Ghost", "Bee"}},
+	{word: "editor.unit.groups.squirrels", types: []string{"Squirrel", "Foot_Animated", "Turtle"}},
+	{word: "editor.unit.groups.dragons", types: []string{"Dragon"}},
+	{word: "editor.unit.groups.daemon", types: []string{"Daemon"}},
 }
 
 func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.InspectionChoiceGroup {
-	word := func(key string) string { return x.inspectionUTF8(x.word("editor.unit.groups." + key)) }
-	creatures, people := word("creatures"), word("people")
+	utf := x.inspectionUTF8
+	creatures, people := utf(x.word("editor.unit.groups.creatures")), utf(x.word("editor.unit.groups.people"))
 	var groups []ui.InspectionChoiceGroup
 	for _, group := range creatureIdentityGroups {
-		groups = append(groups, ui.InspectionChoiceGroup{Block: creatures, Head: word(group.word)})
+		groups = append(groups, ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word(group.word))})
 	}
 	other := len(groups)
 	groups = append(groups,
-		ui.InspectionChoiceGroup{Block: creatures, Head: word("othercreatures")},
-		ui.InspectionChoiceGroup{Block: people, Head: word("npc")},
-		ui.InspectionChoiceGroup{Block: people, Head: word("others")},
-		ui.InspectionChoiceGroup{Block: people, Head: word("heroes")},
-		ui.InspectionChoiceGroup{Block: people, Head: word("pc")})
+		ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word("editor.unit.groups.othercreatures"))},
+		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.npc"))},
+		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.others"))},
+		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.heroes"))},
+		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.pc"))})
 	for _, c := range choices {
 		id, ok := x.identities[c.Value]
 		if !ok {

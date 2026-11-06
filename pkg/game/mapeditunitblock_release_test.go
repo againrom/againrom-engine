@@ -1,7 +1,6 @@
 package game
 
 import (
-	"image"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -86,9 +85,9 @@ func TestReleaseEditorHealthZeroUnitDrawsFallen(t *testing.T) {
 }
 
 // TestReleaseEditorUnitBlockFrames writes the owner frames of the unit block,
-// the fallen unit, a message's whole text and a moved Add window, rendered
-// headless from the install, as PNGs into AGAINROM_EDITOR_FRAMES; without it
-// the same steps run.
+// the fallen unit and a message's whole text, rendered headless from the
+// install, as PNGs into AGAINROM_EDITOR_FRAMES; without it the same steps
+// run.
 func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -153,13 +152,4 @@ func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	}
 	t.Logf("action %d shows its whole message of %d bytes; its row shows %q", action, longest, targets[k].Choice)
 	shot(e, "message-whole")
-
-	_ = e.Key("escape")
-	_ = e.Key("scripts")
-	_ = e.Key("player")
-	before, after := titleDrag(t, e, image.Pt(-300, 160))
-	if after.Min != before.Min.Add(image.Pt(-300, 160)) {
-		t.Fatalf("the Add window moved from %v to %v", before, after)
-	}
-	shot(e, "add-moved")
 }

@@ -280,6 +280,7 @@ func (e *MapEditor) toggleAt(p image.Point) {
 	if slices.Contains(refs, ref) {
 		e.Select(hit, false)
 		e.replaceGroup(refs)
+		e.selection.hidden = false
 		e.objectHidden = len(refs) > 1
 		return
 	}

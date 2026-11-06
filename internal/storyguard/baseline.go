@@ -4196,5 +4196,10 @@ var Committed = Baseline{
 	// turnToCastAim in heading.go, the re-entry and wind-up turns in
 	// spell.go, the new pkg/sim/mageemptywalk_test.go and
 	// castfacing_test.go, and this note.
-	CommentBytes: 10574309,
+
+	// It rises for the Shift-click selection test in
+	// pkg/ui/mapeditorgroups_test.go, the one-click trigger routes and
+	// their witness in pkg/game/mapeditadd_release_test.go, and this note,
+	// net of the removed Add window comments of the release tests.
+	CommentBytes: 10575284,
 }

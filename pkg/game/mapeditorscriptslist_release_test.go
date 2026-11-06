@@ -164,7 +164,8 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 		if err := e.Open(key); err != nil {
 			t.Fatal(err)
 		}
-		m, err := alm.Open(e.Document().SourceBytes)
+		source := bytes.Clone(e.Document().SourceBytes)
+		m, err := alm.Open(source)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -188,14 +189,20 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 		trigClick(t, e, r, true, "trigger row")
 		shot("scripts-trigger")
 		_ = e.Key("escape")
-		_ = e.Key("player")
-		if _, ok := e.PromptRect(); !ok {
-			t.Fatal("Scripts A did not open Add")
+		r, ok := e.ListButtonKeyRect("newtrigger")
+		if !ok {
+			scenarioOpen(t, e)
+			r, ok = e.ListButtonKeyRect("newtrigger")
 		}
-		shot("scripts-add")
-		_ = e.Key("escape")
-		if e.Dirty() {
-			t.Fatal("frames changed the map")
+		trigClick(t, e, r, ok, "New trigger")
+		if !e.WizardShown() {
+			t.Fatal("New trigger opened no wizard")
+		}
+		shot("scripts-newtrigger")
+		r, ok = e.PopupButtonRect(1)
+		trigClick(t, e, r, ok, "Cancel")
+		if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, source) {
+			t.Fatalf("frames changed the map: %v", err)
 		}
 		t.Logf("all four headings: %s counts=%v", key, [4]int{len(sections[0]), len(sections[1]), len(sections[2]), len(sections[3])})
 		return

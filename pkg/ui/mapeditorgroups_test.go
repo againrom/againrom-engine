@@ -500,6 +500,29 @@ func TestMapEditorDeleteAsksBeforeEmptyingAUsedGroup(t *testing.T) {
 	}
 }
 
+// A selection made on a freshly opened map by choosing unit 0 and Shift
+// clicking unit 1 shows its window, and the window's Delete asks first.
+func TestMapEditorShiftClickedSelectionShowsItsDeleteButton(t *testing.T) {
+	e, p := groupsEditor(t)
+	e.Layout(2400, 1400)
+	e.Select(0, true)
+	at := e.CellPoint(e.doc.Records[1].Cell)
+	now := time.Unix(1, 0)
+	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true, Shift: true}, now)
+	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, Shift: true}, now)
+	if got := fmt.Sprint(e.selection.refs); got != "[{Unit 0} {Unit 1}]" {
+		t.Fatalf("the Shift click selected %s", got)
+	}
+	r, ok := e.SelectionButtonRect(2)
+	if !ok {
+		t.Fatal("the selection window shows no Delete")
+	}
+	chromeClick(e, center(r))
+	if e.prompt.kind != promptGroupWarn || len(p.calls.lines) != 0 {
+		t.Fatalf("Delete did not ask first: prompt %d, calls %v", e.prompt.kind, p.calls.lines)
+	}
+}
+
 // Remove from group on units of two players takes the group's player's units
 // out and notes the others.
 func TestMapEditorRemoveFromGroupSkipsOtherPlayersUnits(t *testing.T) {

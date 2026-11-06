@@ -349,12 +349,13 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		return fields("Trigger", trigIndex, value(fmt.Sprintf("action%d", free), int64(id)))
 	})
 
-	// A new trigger, then its deletion.
+	// A new trigger in one click, its wizard cancelled, then its deletion.
 	before := e.Document().SourceBytes
 	n := len(e.Document().Script.Triggers)
 	r, ok = e.PopupButtonRect(2)
 	trigClick(t, e, r, ok, "New")
-	addSteps(t, e, nil)
+	r, ok = e.PopupButtonRect(1)
+	trigClick(t, e, r, ok, "Cancel")
 	d, err := author.AddScript("Trigger")
 	if err != nil {
 		t.Fatal(err)
