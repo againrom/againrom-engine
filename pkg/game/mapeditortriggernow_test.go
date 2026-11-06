@@ -226,7 +226,7 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 			sel := c.Selected()
 			r, ok := c.PopupButtonRect(1)
 			trigClick(t, c, r, ok, "Cancel")
-			if len(c.OpenWindows()) != 0 {
+			if !slices.Equal(c.OpenWindows(), []string{"list"}) {
 				t.Fatalf("Cancel left windows %q", c.OpenWindows())
 			}
 			shown := false
