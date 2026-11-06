@@ -121,9 +121,8 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 			if id, _ := mapload.Identify(m.Units[index], s.inspector.table); id.Kind == mapload.UnitNamed {
 				speaker = int(id.NPC)
 			}
-			pic, window, _ := r.SpeakerFace(speaker)
-			if pic != nil {
-				c.pictures[entity.ID] = &ui.InspectionUnitPreview{Doll: pic, Face: pic, FaceWindow: window}
+			if pic, _, _ := r.SpeakerFace(speaker); pic != nil {
+				c.pictures[entity.ID] = &ui.InspectionUnitPreview{Doll: pic}
 			}
 		}
 	}

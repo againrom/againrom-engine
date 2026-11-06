@@ -11,7 +11,7 @@ import (
 
 func TestPopupTitleFitsBeforeItsControls(t *testing.T) {
 	f := solidFont15()
-	s := popupSpec{Title: strings.Repeat("Long title ", 20), TitleButton: "View", Width: 240, Bounds: image.Rect(0, 0, 300, 200)}
+	s := popupSpec{Title: strings.Repeat("Long title ", 20), Width: 240, Bounds: image.Rect(0, 0, 300, 200)}
 	l := layoutPopup(s, f, f)
 	dst := image.NewRGBA(s.Bounds)
 	calls := text.Record(func() { drawPopup(dst, f, f, nil, s, l, editorPopupInk, image.Point{}, false, nil) })

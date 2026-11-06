@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
 
@@ -22,59 +23,47 @@ func lastButton(t *testing.T, e *ui.MapEditor, c *editorClicker) {
 	c.click(e, r, ok, "the last button")
 }
 
-// openSackRow presses the selected unit's sack row and returns the record
-// of the stock it selects. The unit's basic view shows no bag: from it the
-// switch turns to the detailed view, whose bag opens the sack, and turns
-// the sack's window back to the basic view.
-func openSackRow(t *testing.T, e *ui.MapEditor, c *editorClicker) int {
+// unitStock is the record of the selected unit's own stock, -1 for none or
+// for a unit the person window does not edit.
+func unitStock(e *ui.MapEditor) int {
+	s, ok := e.Document().Edits.(*mapInspectionEdits)
+	if !ok || e.Selected() < 0 {
+		return -1
+	}
+	stock, err := s.unitTemplate(mapedit.KindUnit, e.Document().Records[e.Selected()].Index).stock()
+	if err != nil || stock < 0 {
+		return -1
+	}
+	return slices.IndexFunc(e.Document().Records, func(r ui.InspectionRecord) bool { return r.Kind == ui.KindStock && r.Index == stock })
+}
+
+// openUnitStock selects the selected unit's own stock as the records list
+// selects it, the window the full sack editor stands in, and returns its
+// record.
+func openUnitStock(t *testing.T, e *ui.MapEditor) int {
 	t.Helper()
-	basic := e.PlainView()
-	if basic {
-		if showField(t, e, c, "sack") {
-			t.Fatalf("the unit's basic view shows the bag: %q", e.PopupLines())
-		}
-		r, ok := e.ViewSwitchRect()
-		c.click(e, r, ok, "view switch")
+	stock := unitStock(e)
+	if stock < 0 {
+		t.Fatal("the unit has no stock")
 	}
-	fields := e.ObjectFields()
-	sack := fields[fieldIndex(t, fields, "sack")]
-	stock := slices.IndexFunc(e.Document().Records, func(r ui.InspectionRecord) bool { return r.Kind == sack.Link.Kind && r.Index == sack.Link.Index })
-	if sack.Link.Kind != ui.KindStock || stock < 0 {
-		t.Fatalf("the bag's sack row links %v", sack.Link)
-	}
-	if !showField(t, e, c, "sack") {
-		t.Fatalf("the bag shows no sack row: %q", e.PopupLines())
-	}
-	n := slices.Index(e.PopupRecordLinks(), stock)
-	e.ScrollDetails(-1000)
-	r, ok := e.PopupRowRect(n)
-	for k := 0; !ok && n >= 0 && k < 80; k++ {
-		e.ScrollDetails(1)
-		r, ok = e.PopupRowRect(n)
-	}
-	c.click(e, r, ok, "the sack row")
+	e.Select(stock, false)
 	if e.Selected() != stock {
-		t.Fatalf("the sack row selects record %d, want the stock %d", e.Selected(), stock)
-	}
-	if basic {
-		r, ok := e.ViewSwitchRect()
-		c.click(e, r, ok, "view switch")
+		t.Fatalf("selecting the stock shows record %d, want %d", e.Selected(), stock)
 	}
 	return stock
 }
 
-// The unit's sack opens from the unit's bag, over the game's host, in the
-// window a selected stock takes, in both views: an edit there writes the
-// bytes the host's field writer writes, undoes and redoes exactly with the
-// sack's window kept, and Back returns to the unit.
+// The unit's own stock, selected, edits in the window a selected stock
+// takes, over the game's host, in both views: an edit there writes the
+// bytes the host's field writer writes and undoes and redoes exactly with
+// the stock's window kept.
 func TestEditorUnitSackEditsInTheStockWindow(t *testing.T) {
 	for _, plain := range []bool{true, false} {
 		s, raw := viewsMap(t)
 		c := &editorClicker{t: t}
 		e := viewsWindow(t, s, plain, ui.KindUnit)
 		e.Layout(1920, 1080)
-		unit := e.Selected()
-		stock := openSackRow(t, e, c)
+		stock := openUnitStock(t, e)
 		if e.PlainView() != plain {
 			t.Fatalf("plain %v: the sack's window changed the view", plain)
 		}
@@ -98,10 +87,6 @@ func TestEditorUnitSackEditsInTheStockWindow(t *testing.T) {
 				t.Fatalf("plain %v: %s gives other bytes or leaves the sack (record %d): %v", plain, step.key, e.Selected(), err)
 			}
 		}
-		lastButton(t, e, c)
-		if e.Selected() != unit {
-			t.Fatalf("plain %v: Back shows record %d, want the unit %d", plain, e.Selected(), unit)
-		}
 	}
 }
 
@@ -116,8 +101,8 @@ func TestEditorUnitSackBytesMatchTheWriters(t *testing.T) {
 	}
 }
 
-// K on a unit opens the stock it adds in the window the sack row opens,
-// with Back to the unit.
+// K on a unit opens the stock it adds in the stock's window, with Back to
+// the unit.
 func TestEditorStockKeyOpensTheNewStockWithBack(t *testing.T) {
 	e := openIdentifiedUnits(t)
 	unit := recordIndex(t, e, "Unit", 0)

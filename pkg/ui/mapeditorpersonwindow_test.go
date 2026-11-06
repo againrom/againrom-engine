@@ -21,28 +21,7 @@ func (p *personPortraitProbe) UnitSettings(index int, values []InspectionFieldVa
 	pic := image.NewRGBA(image.Rect(0, 0, 160, 240))
 	draw.Draw(pic, image.Rect(36, 8, 108, 100), image.NewUniform(color.RGBA{R: byte(entity.HP), G: 80, A: 255}), image.Point{}, draw.Src)
 	draw.Draw(pic, image.Rect(50, 104, 100, 230), image.NewUniform(color.RGBA{B: 180, A: 255}), image.Point{}, draw.Src)
-	return entity, fields, &InspectionUnitPreview{Doll: pic, Face: pic}, err
-}
-
-func TestEditorPersonDialoguePortraitPaintsBesideDoll(t *testing.T) {
-	e, host := popupEditor(t)
-	_ = e.Open("popups")
-	e.doc.Edits = &personPortraitProbe{&personSettingsProbe{&settingsPreviewProbe{popupHost: host}}}
-	e.Layout(800, 600)
-	e.Select(0, false)
-	for _, value := range []string{"10", "42"} {
-		e.objectSpec()
-		e.obj.buf[0] = value
-		s, _, _ := e.objectSpec()
-		l := layoutPopup(s, e.font, e.bodyFont())
-		pic := image.NewRGBA(image.Rect(0, 0, 800, 600))
-		e.drawObjectPreview(pic, s)
-		at := image.Pt(l.Rect.Max.X-popupPad-244+12, l.Tabs[0].Max.Y+2*popupPad+compactPanelH+12)
-		want := color.RGBA{R: byte(e.obj.unit.entity.HP), G: 80, A: 255}
-		if got := pic.RGBAAt(at.X, at.Y); got != want {
-			t.Errorf("draft %s dialogue portrait at %v = %v, want %v", value, at, got, want)
-		}
-	}
+	return entity, fields, &InspectionUnitPreview{Doll: pic}, err
 }
 
 func TestEditorPersonWindowOwnerFrames(t *testing.T) {
@@ -134,7 +113,7 @@ func TestEditorPersonNativeTabFromEveryField(t *testing.T) {
 				updateEditorKeys(t, e)
 				updateEditorKeys(t, e, ebiten.KeyTab)
 			}
-			if len(seen) != 3 || seen["inventory"] {
+			if len(seen) != 4 {
 				t.Error("native Tab cannot visit every section with a field", seen)
 			}
 		})
@@ -172,8 +151,8 @@ func TestEditorPersonEveryFieldRemainsReachable(t *testing.T) {
 					}
 				}
 				for i, field := range e.obj.fields {
-					// A field of the unit's sack is the sack's own window's.
-					if field.Section == name && !seen[i] && !sackField(e.doc.Records[e.selected], field) {
+					// The window shows no facing, speaker or map keys.
+					if field.Section == name && !seen[i] && !hiddenField(e.doc.Records[e.selected], field) {
 						t.Errorf("scrolling cannot reach %s", field.Key)
 					}
 				}

@@ -115,11 +115,11 @@ func drawnCells(e *MapEditor, s popupSpec) []drawnCell {
 }
 
 // A unit's basic view is its card drawn twice its size under the name,
-// the player, the group, who the unit is and its dialogue line: each stat
+// the player, the group and who the unit is: each stat
 // the card draws is the field's input at the place the card draws it, and
 // each other value the card draws a line whose tip says the map does not
-// store it. Equipment, the bag, the look and the map file fields are not
-// shown. For a person and a creature, in English and Russian, floating and
+// store it. Equipment, the bag, the look, the facing, the dialogue line
+// and the map file fields are not shown. For a person and a creature, in English and Russian, floating and
 // in the right panel, at 1920x1080.
 func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
@@ -162,10 +162,10 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 				if want := []string{"owner", "group", "identity"}; !slices.Equal(main, want) {
 					t.Errorf("%s: rows above the card edit %q, want %q", name, main, want)
 				}
-				if !speaker {
-					t.Errorf("%s: no line above the card says whether a dialogue shows the unit", name)
+				if speaker {
+					t.Errorf("%s: a line above the card says whether a dialogue shows the unit", name)
 				}
-				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "keys"} {
+				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "keys", "speaker", "facing"} {
 					if keys[key] {
 						t.Errorf("%s: the basic view shows %s", name, key)
 					}

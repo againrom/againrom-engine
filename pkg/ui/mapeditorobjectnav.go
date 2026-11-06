@@ -8,11 +8,20 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// sackField reports that f, on record r, writes the unit's sack: an
-// editable field of the person window's bag. The sack's own window edits
-// it, as it edits a selected sack; the bag shows the row that opens it.
-func sackField(r InspectionRecord, f InspectionField) bool {
-	return r.Kind == KindUnit && f.Section == "inventory" && !f.ReadOnly
+// personHidden are the keys of the person window's fields it shows in
+// neither view: the facing, the speaker line and the map keys. Their values
+// stay on the unit; Apply writes only the fields a row edits.
+var personHidden = []string{"facing", "speaker", "keys"}
+
+// personQuiet are the keys of the person window's fields shown without the
+// lines that explain them.
+var personQuiet = []string{"name"}
+
+// hiddenField reports that the window of record r does not show field f:
+// a field of the person window, which alone gives fields a section, named
+// in personHidden.
+func hiddenField(r InspectionRecord, f InspectionField) bool {
+	return r.Kind == KindUnit && f.Section != "" && slices.Contains(personHidden, f.Key)
 }
 
 // linkedRecord is the document index of the record ref names, -1 for none.
@@ -103,6 +112,9 @@ func buttonRowWidth(s popupSpec, body *text.Font) int {
 	row := popupPad
 	for _, bw := range popupButtonWidths(s, body) {
 		row += bw + popupPad
+	}
+	if sw := switchButtonWidth(s, body); sw > 0 {
+		row += sw + popupPad
 	}
 	return row
 }

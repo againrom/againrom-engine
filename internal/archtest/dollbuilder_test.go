@@ -58,6 +58,8 @@ func TestDollLayersHaveOneBuilder(t *testing.T) {
 	}
 }
 
+// The person window's figure is the doll the speaker builder composes,
+// placed by its game size; the window paints no portrait of its own.
 func TestEditorDraftPortraitUsesSpeakerBuilder(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -69,7 +71,8 @@ func TestEditorDraftPortraitUsesSpeakerBuilder(t *testing.T) {
 	}
 	for _, tc := range []struct{ file, function, builder, forbidden string }{
 		{"pkg/game/mapinspectionunitsettings.go", "UnitSettings", "SpeakerFace", "composeUnitFigure"},
-		{"pkg/ui/mapeditorwindow.go", "drawObjectPreview", "drawNoticePortrait", "blitNoticeWindow"},
+		{"pkg/ui/mapeditorwindow.go", "drawObjectPreview", "unitFigureSize", "drawNoticePortrait"},
+		{"pkg/ui/mapeditorwindow.go", "drawObjectPreview", "unitFigureSize", "blitNoticeWindow"},
 	} {
 		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, tc.file), nil, parser.SkipObjectResolution)
 		if err != nil {

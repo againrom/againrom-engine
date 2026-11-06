@@ -135,7 +135,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if !e.modWindow {
 		r = e.doc.Records[e.selected]
 	}
-	o.rowBlock, o.usesShown, o.viewOffer = nil, false, false
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
 	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
@@ -156,13 +156,14 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	// column, and the window fits them as a window in the right panel
 	// does, the label column widened to them or a label over its field.
 	s.Fit = s.Fit || plainShown
-	if !e.modWindow && !plainShown {
+	native := e.nativeUnitWindow()
+	// The person window's sections head its fields.
+	if !e.modWindow && !plainShown && !native {
 		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
 	}
 	o.first = len(s.Rows)
 	o.rowField = map[int]int{}
 	card, fields := e.unitSettings()
-	native := e.nativeUnitWindow()
 	if card != nil {
 		s.Card = card
 		s.CardFont = e.cardFont
@@ -173,7 +174,8 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			s.Width = min(1180, e.unitWindowWidth()-32)
 		}
 		if s.Card != nil {
-			s.CardAside = compactPanelW + noticeFaceW + 2*popupPad
+			// The column under the card holds the figure at the game's size.
+			s.CardAside = max(compactPanelW, e.unitFigureSize().X)
 			if aside := e.hostedAside(*s); aside > 0 {
 				s.Width -= aside + popupPad
 			}
@@ -216,7 +218,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if fields != nil && !slices.ContainsFunc(fields, func(current InspectionField) bool { return current.Key == f.Key }) {
 			return -1
 		}
-		if sackField(r, f) {
+		if hiddenField(r, f) {
 			return -1
 		}
 		if heads && f.Group != group {
@@ -297,6 +299,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				break
 			}
 		}
+		if native && slices.Contains(personQuiet, f.Key) {
+			meaning = ""
+		}
 		if f.Inherit {
 			if row.Value == "" {
 				row.Hint = inherited
@@ -360,16 +365,6 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 	}
 	o.viewOffer = offer
-	if native {
-		count := 0
-		for _, f := range o.fields {
-			if f.Inherit && (f.Value != f.Absent || f.Text && f.TextValue != "") {
-				count++
-			}
-		}
-		s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.person.overrides"), count))
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.word("editor.person.keys"), s.Width-20)...)
-	}
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
 	}

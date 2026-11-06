@@ -88,7 +88,10 @@ func TestEditorAddWindowAsksTheUnitsFacing(t *testing.T) {
 	}
 }
 
-func TestEditorFacingPadWritesTheSameBytesInBothUnitViews(t *testing.T) {
+// The person window shows no facing in either view; the host still gives
+// the facing field its compass pad, and each of its nine values written
+// through the host's field writer gives the old setter's bytes and save.
+func TestEditorHiddenFacingWritesTheOldSetterBytes(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		for _, docked := range []bool{false, true} {
 			for _, plain := range []bool{false, true} {
@@ -102,8 +105,13 @@ func TestEditorFacingPadWritesTheSameBytesInBothUnitViews(t *testing.T) {
 					if !slices.Equal(f.ChoicePad, wantPad) {
 						t.Fatal("production facing choices lost compass positions", f.ChoicePad)
 					}
+					if showField(t, e, c, "facing") {
+						t.Fatal("the person window shows the facing")
+					}
 					for n := range 9 {
-						chooseField(t, e, c, "facing", int64(n))
+						if _, err := s.SetFields(ui.KindUnit, 0, []ui.InspectionFieldValue{{Key: "facing", Value: int64(n), Step: 1}}); err != nil {
+							t.Fatal(err)
+						}
 						want := base.Clone()
 						if err := want.SetField(mapedit.KindUnit, 0, "facing", int64(n)); err != nil {
 							t.Fatal(err)
@@ -201,7 +209,8 @@ func typeText(t *testing.T, e *ui.MapEditor, c *editorClicker, key, text string)
 // speed or sight shows the kind's value; each value set writes its byte; a
 // value outside the range is refused with its reason and writes nothing; an
 // emptied field clears its byte; Undo restores the record. The basic view
-// stands speed and sight on the card and facing in its first block.
+// stands speed and sight on the card; neither view shows the facing,
+// which the host's field writer still writes.
 func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		for _, docked := range []bool{false, true} {
@@ -226,13 +235,18 @@ func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 					}
 					if plain {
 						blocks := e.PlainFieldBlocks()
-						if blocks["speed"] != "card" || blocks["sight"] != "card" || blocks["facing"] != "main" {
+						if blocks["speed"] != "card" || blocks["sight"] != "card" || blocks["facing"] != "" {
 							t.Fatalf("plain blocks speed %q sight %q facing %q", blocks["speed"], blocks["sight"], blocks["facing"])
 						}
 					}
 					typeField(t, e, c, "speed", 37)
 					typeField(t, e, c, "sight", 7)
-					chooseField(t, e, c, "facing", 3)
+					if showField(t, e, c, "facing") {
+						t.Fatal("the person window shows the facing")
+					}
+					if _, err := s.SetFields(ui.KindUnit, 0, []ui.InspectionFieldValue{{Key: "facing", Value: 3, Step: 1}}); err != nil {
+						t.Fatal(err)
+					}
 					rec, _ := s.model.UnitRecord(0)
 					if rec[alm.UnitSpeed] != 37 || rec[alm.UnitSight] != 7 || rec[alm.UnitFacing] != 3 {
 						t.Fatalf("bytes % x after the three edits", []byte{rec[alm.UnitSpeed], rec[alm.UnitSight], rec[alm.UnitFacing]})

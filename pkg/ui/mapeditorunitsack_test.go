@@ -13,7 +13,7 @@ import (
 
 // sackHost is the wide fixture whose unit carries its own sack: the stock
 // record after the script records, with the ground sack's fields under its
-// own values, the bag's sack row linking it, and an undo history.
+// own values, and an undo history.
 type sackHost struct {
 	*wideHost
 	past, future []map[string]int64
@@ -28,15 +28,6 @@ func (h *sackHost) Fields(kind RecordKind, index int) []InspectionField {
 		out := h.wideHost.Fields(KindSack, index)
 		for i := range out {
 			out[i].Value = h.value(KindStock, out[i].Key)
-		}
-		return out
-	case KindUnit:
-		var out []InspectionField
-		for _, f := range h.wideHost.Fields(KindUnit, index) {
-			if f.Key == "carry1" {
-				out = append(out, InspectionField{Key: "sack", ReadOnly: true, Section: "inventory", Label: "Open the unit's sack (2 items)", Link: RecordRef{KindStock, 0}})
-			}
-			out = append(out, f)
 		}
 		return out
 	}
@@ -153,135 +144,31 @@ func openUnitBag(t *testing.T, e *MapEditor, view string) {
 	}
 }
 
-// pressSackRow scrolls the sack row into the window and presses it.
-func pressSackRow(t *testing.T, e *MapEditor) {
-	t.Helper()
-	n := sackRow(e)
-	if n < 0 {
-		t.Fatalf("the unit window shows no sack row:\n%s", strings.Join(e.PopupLines(), "\n"))
-	}
-	r, ok := e.PopupRowRect(n)
-	for step := 0; !ok && step < 80; step++ {
-		e.ScrollDetails(1)
-		r, ok = e.PopupRowRect(n)
-	}
-	if !ok {
-		t.Fatal("the sack row does not come into the window")
-	}
-	chromeClick(e, center(r))
-}
-
-// A unit's sack opens from the unit's bag in the window a selected sack
-// takes: in the right panel, in the profile's view, the sack's plain table
-// or its technical rows; the bag edits none of the sack's fields; Back
-// returns to the unit, on the tab it left.
-func TestMapEditorUnitSackOpensInTheSackView(t *testing.T) {
+// The unit's bag, in the detailed view, is the pick that adds an item to
+// the unit's sack and the sack's items; no row of it opens the sack, and
+// the basic view shows no bag. The unit's sack, selected, opens in the
+// window a selected sack takes, in the right panel.
+func TestMapEditorUnitBagIsThePickAndTheItems(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, view := range []string{"plain", "technical"} {
 			t.Run(lang+"/"+view, func(t *testing.T) {
 				e, _ := sackEditor(t, lang, view)
 				openUnitBag(t, e, view)
-				if !e.panels.hosted || !e.objectInPanel() {
-					t.Fatal("the unit's bag stands in a second floating window")
+				s, _, _ := e.objectSpec()
+				keys := map[string]bool{}
+				for n := range s.Rows {
+					if i, ok := e.obj.rowField[n]; ok {
+						keys[e.obj.fields[i].Key] = true
+					}
 				}
-				lines := strings.Join(e.PopupLines(), "\n")
-				if strings.Contains(lines, "Carried item") || strings.Contains(lines, "Add carried item") || !strings.Contains(lines, "Bag: Mace") {
-					t.Fatalf("the bag shows\n%s", lines)
+				if !keys["carryadd"] || !keys["carry1"] || !keys["carry2"] || sackRow(e) >= 0 {
+					t.Fatalf("the bag edits %v, sack row %d:\n%s", keys, sackRow(e), strings.Join(e.PopupLines(), "\n"))
 				}
-				pressSackRow(t, e)
-				if e.selected != sackStock {
-					t.Fatalf("the sack row selects %d", e.selected)
-				}
-				if view == "plain" {
-					clickSwitch(t, e) // the sack's basic view
-				}
-				// The same window as the stock selected on its own, but for
-				// Back; and the same view as the ground sack.
-				twin, _ := sackEditor(t, lang, view)
-				twin.Select(sackStock, false)
-				a, _, okA := e.objectSpec()
-				b, _, okB := twin.objectSpec()
-				if !okA || !okB || !e.panels.hosted || rowsText(a) != rowsText(b) {
-					t.Fatalf("the sack from its unit\n%s\nthe sack selected\n%s", rowsText(a), rowsText(b))
-				}
-				back := e.word("editor.trigger.back")
-				if a.Buttons[len(a.Buttons)-1] != back || fmt.Sprint(b.Buttons) != fmt.Sprint(a.Buttons[:len(a.Buttons)-1]) {
-					t.Fatalf("buttons from the unit %q, selected %q", a.Buttons, b.Buttons)
-				}
-				if e.PlainView() != (view == "plain") {
-					t.Fatalf("the sack shows plain %v in the %s profile", e.PlainView(), view)
-				}
-				blocks := e.PlainFieldBlocks()
-				twin.Select(viewsSack, false)
-				if fmt.Sprint(blocks) != fmt.Sprint(twin.PlainFieldBlocks()) {
-					t.Fatalf("the unit's sack's blocks %v, the ground sack's %v", blocks, twin.PlainFieldBlocks())
-				}
-				r, ok := e.PopupButtonRect(len(a.Buttons) - 1)
-				if !ok {
-					t.Fatal("no Back button")
-				}
-				chromeClick(e, center(r))
-				// Back shows the unit in the view the sack showed: the bag's
-				// tab in the detailed view, no bag in the basic view.
-				if e.selected != viewsUnit || view == "technical" && (e.obj.section != 2 || sackRow(e) < 0) || view == "plain" && sackRow(e) >= 0 {
-					t.Fatalf("Back shows record %d, section %d", e.selected, e.obj.section)
+				e.Select(sackStock, false)
+				if _, _, ok := e.objectSpec(); !ok || e.selected != sackStock || !e.panels.hosted || !e.objectInPanel() {
+					t.Fatal("the unit's sack, selected, stands in no sack window in the right panel")
 				}
 			})
 		}
-	}
-}
-
-// An edit made in the unit's sack's window undoes and redoes as the same
-// edit made in the stock's window selected on its own: the same values and
-// the same window after each step, Back kept.
-func TestMapEditorUnitSackEditUndoes(t *testing.T) {
-	for _, view := range []string{"plain", "technical"} {
-		t.Run(view, func(t *testing.T) {
-			e, h := sackEditor(t, "en", view)
-			openUnitBag(t, e, view)
-			pressSackRow(t, e)
-			if view == "plain" {
-				clickSwitch(t, e) // the sack's basic view
-			}
-			twin, th := sackEditor(t, "en", view)
-			twin.Select(sackStock, false)
-			for _, m := range []*MapEditor{e, twin} {
-				n := -1
-				for i, f := range m.ObjectFields() {
-					if f.Key == "gold" {
-						n = i
-					}
-				}
-				r, ok := m.FieldRect(n)
-				if !ok {
-					t.Fatalf("the gold field does not show:\n%s", strings.Join(m.PopupLines(), "\n"))
-				}
-				chromeClick(m, center(r))
-				for range 4 {
-					_ = m.Key("backspace")
-				}
-				m.TextInput("77")
-				r, _ = m.PopupButtonRect(0)
-				chromeClick(m, center(r))
-			}
-			step := func(what string, gold int64) {
-				t.Helper()
-				if h.values["Stock/gold"] != gold || th.values["Stock/gold"] != gold {
-					t.Fatalf("%s: gold %d, the selected stock's %d, want %d", what, h.values["Stock/gold"], th.values["Stock/gold"], gold)
-				}
-				a, _, _ := e.objectSpec()
-				b, _, _ := twin.objectSpec()
-				if e.selected != sackStock || twin.selected != sackStock || rowsText(a) != rowsText(b) || len(e.objectBack) != 1 {
-					t.Fatalf("%s: the windows differ, back %d\n%s\n%s", what, len(e.objectBack), rowsText(a), rowsText(b))
-				}
-			}
-			step("Apply", 77)
-			_ = e.Key("undo")
-			_ = twin.Key("undo")
-			step("undo", 12)
-			_ = e.Key("redo")
-			_ = twin.Key("redo")
-			step("redo", 77)
-		})
 	}
 }

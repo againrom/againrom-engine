@@ -139,17 +139,11 @@ func (s *mapInspectionEdits) inventoryFields(u *unitTemplateView) []ui.Inspectio
 	if err != nil {
 		return nil
 	}
-	// The bag's first row opens the unit's sack in the sack's own window;
-	// the person window does not show the fields below, which write the
-	// same sack.
-	sack := ui.InspectionField{Key: "sack", ReadOnly: true, Section: "inventory"}
-	if stock >= 0 {
-		sack.Label = fmt.Sprintf(x.word("editor.inventory.sack"), len(loot.Records[stock].Elements))
-		sack.Link = ui.RecordRef{Kind: ui.KindStock, Index: stock}
-	} else {
-		sack.Lines = []ui.InspectionLine{{Text: x.inspectionUTF8(x.word("editor.inventory.nosack"))}}
-	}
-	out := []ui.InspectionField{sack}
+	// The bag is the item pick that adds to the unit's sack, then the
+	// sack's items, numbered; each writes the sack the sack's own window
+	// edits.
+	out := []ui.InspectionField{{Key: "carryadd", Label: x.word("editor.inventory.add"),
+		Choices: append([]ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.choose"))}}, x.recordCatalog("item")...)}}
 	if stock >= 0 {
 		ordinal := 0
 		for i, item := range loot.Records[stock].Elements {
@@ -165,14 +159,6 @@ func (s *mapInspectionEdits) inventoryFields(u *unitTemplateView) []ui.Inspectio
 				Parent: fmt.Sprintf("carry%d", i+1), Value: int64(item.TileMarkerIndex), Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices(ui.KindStock, stock, "recipe")...)})
 			out = append(out, s.itemRecipeFields(fmt.Sprintf("carryrecipe%d", i+1), fmt.Sprintf("carry%d", i+1), "inventory", stock, i+1)...)
 		}
-	}
-	out = append(out, ui.InspectionField{Key: "carryadd", Label: x.word("editor.inventory.add"), Group: x.word("editor.inventory.added"),
-		Choices: append([]ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.choose"))}}, x.recordCatalog("item")...)})
-	if sheets := s.unitViewSheets(); u.index < len(sheets) {
-		sheet := sheets[u.index]
-		lines := []ui.InspectionLine{{Text: fmt.Sprintf(x.inspectionUTF8(x.word("editor.equipment.carried")), x.itemList(sheet.Carried))}}
-		lines = append(lines, x.corpseDropLines(sheet)...)
-		out = append(out, ui.InspectionField{Key: "holdings", ReadOnly: true, Group: x.word("editor.inventory.after"), Lines: lines})
 	}
 	return out
 }

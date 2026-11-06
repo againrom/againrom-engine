@@ -94,9 +94,8 @@ func (h *viewsHost) Fields(kind RecordKind, index int) []InspectionField {
 			field("gear", "Gear set", "equipment"),
 			wear, material, recipe,
 			field("wear2", "Slot 2", "equipment"),
-			field("carry1", "Carried item 1", "inventory"),
 			field("carryadd", "Add carried item", "inventory"),
-			{Key: "holdings", ReadOnly: true, Section: "inventory", Lines: []InspectionLine{{Text: "Corpse: Sword"}}},
+			field("carry1", "Carried item 1", "inventory"),
 			{Key: "speaker", Label: "In a dialogue", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "In a dialogue"}, {Text: "A mission-start dialogue does not show it."}}},
 			{Key: "keys", Label: "Map keys", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "Map keys"}, {Text: "Class key: 300"}}},
 		}
@@ -150,7 +149,7 @@ func (h *viewsHost) UnitSettings(index int, values []InspectionFieldValue) (MapE
 	pic := image.NewRGBA(image.Rect(0, 0, 2, 2))
 	pic.Pix[3] = 255
 	char := UnitCharacter{Known: true, Band: CharacterBandPerson, Body: 10, Experience: 1200}
-	return MapEntity{ID: 1, Name: "Guard", Char: char, HP: 40, MaxHP: 50}, fields, &InspectionUnitPreview{Doll: pic, Face: pic}, nil
+	return MapEntity{ID: 1, Name: "Guard", Char: char, HP: 40, MaxHP: 50}, fields, &InspectionUnitPreview{Doll: pic}, nil
 }
 
 // ItemLook names Sword and Mace and gives each a one-colour icon.

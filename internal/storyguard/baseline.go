@@ -4164,5 +4164,13 @@ var Committed = Baseline{
 
 	// It rises for wizNewTrigger's Scenario entry note in
 	// pkg/game/mapeditorwizard_test.go and this note.
-	CommentBytes: 10554983,
+
+	// It rises for the person window tests in
+	// pkg/game/mapeditorpersonrows_test.go and
+	// pkg/ui/mapeditorpersonfigure_test.go, the doc comments of
+	// personHidden, personQuiet, hiddenField, switchButtonWidth and
+	// unitFigureSize in pkg/ui, the doll guard's note in
+	// internal/archtest/dollbuilder_test.go, and this note, net of the
+	// removed sack row, carried loot and portrait comments.
+	CommentBytes: 10557738,
 }

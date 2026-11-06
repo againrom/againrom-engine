@@ -145,7 +145,7 @@ func (p *settingsPreviewProbe) UnitSettings(index int, values []InspectionFieldV
 	if p.hide {
 		fields = fields[:1]
 	}
-	return MapEntity{ID: uint32(index), Char: UnitCharacter{Known: true, Band: CharacterBandPerson, Body: body}, HP: body, MaxHP: 100}, fields, &InspectionUnitPreview{Doll: pic, Face: pic}, nil
+	return MapEntity{ID: uint32(index), Char: UnitCharacter{Known: true, Band: CharacterBandPerson, Body: body}, HP: body, MaxHP: 100}, fields, &InspectionUnitPreview{Doll: pic}, nil
 }
 
 func TestEditorUnitCardRebuildsForDraftWithoutApply(t *testing.T) {

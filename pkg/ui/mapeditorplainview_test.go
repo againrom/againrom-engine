@@ -157,21 +157,17 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 }
 
 // unitRows are the fixture unit's basic rows: the name, the player, the
-// group, who the unit is, the lines of its dialogue line and the folded
-// map keys, then a row on the card for each value the card draws, in the
+// group and who the unit is, with no cell, facing, dialogue line or map
+// keys, then a row on the card for each value the card draws, in the
 // card's order: the field's input where the fixture has the field, else a
 // line stating the value, then a line of words for a stat whose card value
 // differs from the stored one.
 func unitRows() []string {
 	return []string{
-		"4 Position | 10,10  1x1",
 		"0 Name | Guard",
 		"3 Player | Self",
 		"2 Group | 2",
-		"3 Who | 300: Fighter",
-		"0 In a dialogue |",
-		"0 A mission-start dialogue does not show it. |",
-		"1 + Map keys (for modders) |",
+		"3 Kind | 300: Fighter",
 		"0  | Guard",
 		"2 Body | 12",
 		"0 AGILITY | 0",
@@ -204,10 +200,10 @@ var plainShapes = map[RecordKind]map[string]string{
 	// detailed view only. The fixture's skill.fire is no skill the card
 	// draws.
 	KindUnit: {
-		"identity": "main", "owner": "main", "group": "main", "speaker": "main", "keys": "keys",
+		"identity": "main", "owner": "main", "group": "main",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "protection.*": "card",
 		"face": "", "sex": "", "gear": "", "wear#": "", "wearmaterial#": "", "wearrecipe#": "",
-		"sack": "", "holdings": "", "skill.*": "", "resolved": "",
+		"carryadd": "", "carry#": "", "skill.*": "", "resolved": "",
 	},
 	KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -237,17 +233,17 @@ func fieldShape(key string) string {
 
 // (c) Every field of the fixture's unit, structure and sack is placed in a
 // block of the plain view, and every field is reachable in the technical
-// view: its row stands in the window in the section that holds it. A field
-// of the unit's sack is the sack's own window's.
+// view: its row stands in the window in the section that holds it. A
+// unit's facing, speaker and map keys stand in neither view.
 func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 	for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
 		e, _, _ := plainEditor(t, "en", minimizedPanels, record)
 		kind := e.doc.Records[record].Kind
 		blocks := e.PlainFieldBlocks()
 		for _, f := range e.ObjectFields() {
-			if sackField(e.doc.Records[record], f) {
+			if hiddenField(e.doc.Records[record], f) {
 				if _, shown := blocks[f.Key]; shown {
-					t.Errorf("%s %s: the unit's window edits its sack", kind, f.Key)
+					t.Errorf("%s %s: the basic view places a field the window hides", kind, f.Key)
 				}
 				continue
 			}
@@ -266,7 +262,7 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 			t.Fatal("the switch kept the plain view")
 		}
 		for i, f := range e.ObjectFields() {
-			if sackField(e.doc.Records[record], f) {
+			if hiddenField(e.doc.Records[record], f) {
 				continue
 			}
 			if tab, ok := e.ObjectSectionRect(f.Section); ok {
@@ -372,7 +368,7 @@ func TestMapEditorViewSwitchNamesBasicAndDetailed(t *testing.T) {
 			e.Layout(1920, 1080)
 			caption := func() string {
 				s, _, _ := e.objectSpec()
-				return s.TitleButton
+				return s.SwitchButton
 			}
 			if got := caption(); got != e.editorHostText(c.basic) || !e.PlainView() {
 				t.Errorf("%s record %d: switch %q plain %v, want %q", c.lang, record, got, e.PlainView(), c.basic)
@@ -384,8 +380,8 @@ func TestMapEditorViewSwitchNamesBasicAndDetailed(t *testing.T) {
 		}
 		old, _, _ := plainEditor(t, c.lang, []byte(`{"right":{"minimized":true,"view":"technical","width":520}}`), viewsUnit)
 		old.Layout(1920, 1080)
-		if s, _, _ := old.objectSpec(); s.TitleButton != old.editorHostText(c.detailed) || old.PlainView() {
-			t.Errorf("%s: the technical profile opens %q plain %v, want %q", c.lang, s.TitleButton, old.PlainView(), c.detailed)
+		if s, _, _ := old.objectSpec(); s.SwitchButton != old.editorHostText(c.detailed) || old.PlainView() {
+			t.Errorf("%s: the technical profile opens %q plain %v, want %q", c.lang, s.SwitchButton, old.PlainView(), c.detailed)
 		}
 	}
 }

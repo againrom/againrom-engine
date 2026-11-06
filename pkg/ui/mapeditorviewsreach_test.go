@@ -118,11 +118,11 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 					}
 					var missed []string
 					for _, f := range e.obj.fields {
-						// A field of the unit's sack is the sack's own
-						// window's. The unit's basic view reaches the
+						// The window shows no facing, speaker or map
+						// keys. The unit's basic view reaches the
 						// fields it places and no other: the rest stand in
 						// the detailed view.
-						if sackField(e.doc.Records[record], f) {
+						if hiddenField(e.doc.Records[record], f) {
 							continue
 						}
 						if basicUnit && blocks[f.Key] == "" {
@@ -152,7 +152,7 @@ func plainWordsOf(e *MapEditor, record int, placement, kind int64) []string {
 	switch record {
 	case viewsUnit:
 		var out []string
-		for _, id := range []string{"position", "name", "player", "group", "who"} {
+		for _, id := range []string{"name", "player", "group", "who"} {
 			out = append(out, w("editor.plain."+id))
 		}
 		return out
@@ -268,11 +268,11 @@ func TestMapEditorPlainWordsShowWhole(t *testing.T) {
 				if !ok || !r.In(l.Rect) || e.bodyFont().Advance(caption)+8 > r.Dx() {
 					t.Errorf("%s: the switch %q in %v does not fit the window %v", where, caption, r, l.Rect)
 				}
-				// It stands out of the button row, whose room the base's
-				// buttons keep, and clear of the close button.
+				// It stands in the button row clear of its buttons and of
+				// the close button.
 				for _, other := range append(slices.Clone(l.Buttons), l.Close) {
 					if r.Overlaps(other) {
-						t.Errorf("%s: the switch %v stands on the button row or the close button %v", where, r, other)
+						t.Errorf("%s: the switch %v stands on a button or the close button %v", where, r, other)
 					}
 				}
 			}

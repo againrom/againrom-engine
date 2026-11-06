@@ -74,14 +74,12 @@ type plainView struct {
 var plainViews = map[RecordKind]plainView{
 	KindUnit: {
 		// The name, the player and the group, then who the unit is, which
-		// gives the card's lower part its template, and whether a dialogue
-		// shows it. Every stat the card draws stands on it; the map keys
-		// behind who it is fold away; equipment, the bag, the look, the
-		// resolved values, the overrides and the map file fields stand in
-		// the detailed view only.
+		// gives the card's lower part its template. Every stat the card
+		// draws stands on it; equipment, the bag, the look, the resolved
+		// values, the overrides and the map file fields stand in the
+		// detailed view only.
 		blocks: []plainBlock{
 			{id: "main"},
-			{id: "keys", word: "editor.plain.keys", fold: true},
 			{id: "card", card: true},
 		},
 		rows: []plainRow{
@@ -89,9 +87,6 @@ var plainViews = map[RecordKind]plainView{
 			{key: "owner", word: "editor.plain.player", order: 2, block: "main"},
 			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
 			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
-			{key: "facing", word: "editor.plain.facing", order: 5, block: "main"},
-			{key: "speaker", order: 6, block: "main"},
-			{key: "keys", order: 7, block: "keys"},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
@@ -292,12 +287,12 @@ func (e *MapEditor) switchView() {
 	e.savePanels()
 }
 
-// viewSwitchButton puts the offered view switch in the window's title row,
-// left of its close button: the button row and the rows keep their room
-// and their places in both views.
+// viewSwitchButton puts the offered view switch at the left end of the
+// window's button row, the window widened to hold the whole row.
 func (e *MapEditor) viewSwitchButton(s *popupSpec) {
 	if e.obj.viewOffer {
-		s.TitleButton = e.viewCaption()
+		s.SwitchButton = e.viewCaption()
+		fitButtons(s, e.bodyFont())
 	}
 }
 
@@ -305,10 +300,10 @@ func (e *MapEditor) viewSwitchButton(s *popupSpec) {
 // switch, when the window shows one.
 func (e *MapEditor) ViewSwitchRect() (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
-	if !ok || s.TitleButton == "" {
+	if !ok || s.SwitchButton == "" {
 		return image.Rectangle{}, false
 	}
-	return layoutPopup(s, e.font, e.bodyFont()).TitleButton, true
+	return layoutPopup(s, e.font, e.bodyFont()).SwitchButton, true
 }
 
 // PlainView reports that the object window shows its plain view.
@@ -332,7 +327,7 @@ func (e *MapEditor) PlainFieldBlocks() map[string]string {
 	out := map[string]string{}
 	r := e.doc.Records[e.selected]
 	for _, p := range plainEntries(v, e.obj.fields) {
-		if p.field < 0 || sackField(r, e.obj.fields[p.field]) {
+		if p.field < 0 || hiddenField(r, e.obj.fields[p.field]) {
 			continue
 		}
 		key := e.obj.fields[p.field].Key
@@ -395,7 +390,7 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 	var card []plainEntry
 	for _, p := range entries {
 		at := slices.IndexFunc(v.blocks, func(b plainBlock) bool { return b.id == p.block })
-		if at < 0 || p.field >= 0 && sackField(record, o.fields[p.field]) {
+		if at < 0 || p.field >= 0 && hiddenField(record, o.fields[p.field]) {
 			continue
 		}
 		b := v.blocks[at]

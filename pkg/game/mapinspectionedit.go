@@ -387,7 +387,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 						f.Parent = ""
 					}
 				}
-				if _, _, ok := carriedField(f.Key); ok || f.Key == "holdings" {
+				if _, _, ok := carriedField(f.Key); ok {
 					f.Section = "inventory"
 				}
 			}

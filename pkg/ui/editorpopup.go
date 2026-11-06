@@ -348,12 +348,13 @@ type popupSpec struct {
 	// CloseLabel is the title row button's caption; empty is the close
 	// button's x.
 	CloseLabel string
-	// TitleButton is the caption of a button the title row holds left of
-	// its close button, as wide as its caption; empty is none.
-	TitleButton string
-	At          image.Point
-	Width       int
-	Bounds      image.Rectangle
+	// SwitchButton is the caption of a button the button row holds at its
+	// left end, apart from Buttons and as wide as its caption; empty is
+	// none.
+	SwitchButton string
+	At           image.Point
+	Width        int
+	Bounds       image.Rectangle
 	// Room is what a grid of every row (Rows 0) grows into while the popup
 	// keeps its own size: the width that shows its least columns, then the
 	// rows down to Room's bottom. Empty is Bounds.
@@ -423,8 +424,8 @@ type popupLayout struct {
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
-	// TitleButton is the title row's TitleButton, empty for none.
-	TitleButton  image.Rectangle
+	// SwitchButton is the button row's SwitchButton, empty for none.
+	SwitchButton image.Rectangle
 	Rows         []popupRowRect
 	RowsViewport image.Rectangle
 	List         listBox
@@ -590,7 +591,7 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	}
 	ws := popupButtonWidths(s, body)
 	f.buttonLine = make([]int, len(ws))
-	if len(ws) > 0 {
+	if len(ws) > 0 || s.SwitchButton != "" {
 		f.buttonLines = 1
 	}
 	f.cardH, f.cardBelow = cardSize(s).Y, s.Card != nil && s.CardBelow
@@ -616,7 +617,13 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	if f.tabsPerLine > 0 {
 		f.tabLines = (len(s.Tabs) + f.tabsPerLine - 1) / f.tabsPerLine
 	}
-	f.buttonLine, f.buttonLines = flowLines(ws, popupPad, inner, 0)
+	// The switch button leads the first line, left of the buttons.
+	if sw := switchButtonWidth(s, body); sw > 0 {
+		lines, n := flowLines(append([]int{sw}, ws...), popupPad, inner, 0)
+		f.buttonLine, f.buttonLines = lines[1:], n
+	} else {
+		f.buttonLine, f.buttonLines = flowLines(ws, popupPad, inner, 0)
+	}
 	if s.Columns > 1 {
 		return f
 	}
@@ -724,14 +731,7 @@ const popupMinRows = 3
 // popupMinWidth is the narrowest a sized popup gets: the width where its
 // buttons and each row's own buttons still fit beside a label and a field.
 func popupMinWidth(s popupSpec, body *text.Font) int {
-	w := 240
-	if ws := popupButtonWidths(s, body); len(ws) > 0 {
-		need := popupPad
-		for _, bw := range ws {
-			need += bw + popupPad
-		}
-		w = max(w, need)
-	}
+	w := max(240, buttonRowWidth(s, body))
 	for _, row := range s.Rows {
 		caps := rowButtons(s, row)
 		if len(caps) == 0 {
@@ -971,10 +971,6 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		}
 	}
 	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
-	if s.TitleButton != "" {
-		bw := popupButtonWidths(popupSpec{Buttons: []string{s.TitleButton}, ButtonW: 48, ButtonFit: true}, body)[0]
-		l.TitleButton = image.Rect(l.Close.Min.X-4-bw, l.Close.Min.Y, l.Close.Min.X-4, l.Close.Max.Y)
-	}
 	contentRight := r.Max.X - popupPad
 	cardY := r.Min.Y + titleH + popupPad
 	card := cardSize(s)
@@ -1180,11 +1176,14 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		l.Notes = append(l.Notes, image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad, y+pitch))
 		y += pitch
 	}
-	if n := len(s.Buttons); n > 0 {
+	if n := len(s.Buttons); n > 0 || s.SwitchButton != "" {
 		step := pitch + 4 + popupPad
 		y += popupPad
 		if sized {
 			y = r.Max.Y - popupPad - (pitch + 4) - (flow.buttonLines-1)*step
+		}
+		if sw := switchButtonWidth(s, body); sw > 0 {
+			l.SwitchButton = image.Rect(r.Min.X+popupPad, y, r.Min.X+popupPad+sw, y+pitch+4)
 		}
 		ws := popupButtonWidths(s, body)
 		xs := make([]int, flow.buttonLines)
@@ -1205,6 +1204,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		bottom := r.Max.Y - popupPad
 		if len(l.Buttons) > 0 {
 			bottom = l.Buttons[0].Min.Y - popupPad
+		} else if !l.SwitchButton.Empty() {
+			bottom = l.SwitchButton.Min.Y - popupPad
 		}
 		// No room under the card leaves it empty, never turned over the buttons.
 		top := l.Card.Max.Y + popupPad
@@ -1295,6 +1296,15 @@ func popupButtonWidths(s popupSpec, body *text.Font) []int {
 	return ws
 }
 
+// switchButtonWidth is the width of s's SwitchButton, as wide as its
+// caption; 0 for none.
+func switchButtonWidth(s popupSpec, body *text.Font) int {
+	if s.SwitchButton == "" {
+		return 0
+	}
+	return popupButtonWidths(popupSpec{Buttons: []string{s.SwitchButton}, ButtonW: 48, ButtonFit: true}, body)[0]
+}
+
 // rowButtons are the captions of row's buttons.
 func rowButtons(s popupSpec, row popupRow) []string {
 	if len(row.Buttons) > 0 {
@@ -1336,7 +1346,7 @@ const (
 	popupGridBar                     // the grid's scroll bar
 	popupRowGrip                     // a card's grip: a drag moves the card
 	popupTab
-	popupTitleButton // the title row's TitleButton
+	popupSwitchButton // the button row's SwitchButton
 )
 
 // gridIndex maps a visible rectangle to its unchanged source cell index.
@@ -1354,9 +1364,6 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	if p.In(l.Close) {
 		return popupClose, 0
-	}
-	if p.In(l.TitleButton) {
-		return popupTitleButton, 0
 	}
 	if p.In(l.Title) {
 		return popupTitle, 0
@@ -1399,6 +1406,9 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 		if p.In(b) {
 			return popupButton, i
 		}
+	}
+	if p.In(l.SwitchButton) {
+		return popupSwitchButton, 0
 	}
 	return popupBody, 0
 }
@@ -1520,13 +1530,8 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
 	drawPopupGrip(dst, l.Rect, ink.Edge)
-	titleEnd := l.Close.Min.X
-	if !l.TitleButton.Empty() {
-		titleEnd = l.TitleButton.Min.X
-		drawPushButton(dst, body, pushButton{Press: held, Rect: l.TitleButton, Label: s.TitleButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.TitleButton)})
-	}
 	if title != nil {
-		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, titleEnd-2, l.Title.Max.Y)).(*image.RGBA)
+		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
 		title.Draw(clip, editorClip(title, s.Title, clip.Bounds().Dx()), l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 	}
 	closeLabel := "x"
@@ -1684,6 +1689,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	for i, r := range l.Buttons {
 		disabled := i < len(s.Disabled) && s.Disabled[i]
 		drawPushButton(dst, body, pushButton{Press: held, Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Focus: s.ButtonFocus != nil && *s.ButtonFocus == i, Hover: pointerOK && pointer.In(r)})
+	}
+	if r := l.SwitchButton; !r.Empty() {
+		drawPushButton(dst, body, pushButton{Press: held, Rect: r, Label: s.SwitchButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(r)})
 	}
 	if tip, ok := popupTipAt(dst.Bounds(), title, body, s, l, pointer, pointerOK); ok {
 		drawFrame(dst, panelFrame(tip.Rect, ink.TitleGround, ink.Edge))

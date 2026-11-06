@@ -148,13 +148,13 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 // table and this table place it.
 var gameFieldShapes = map[ui.RecordKind]map[string]string{
 	ui.KindUnit: {
-		"identity": "main", "name": "main", "owner": "main", "group": "main", "speaker": "main", "keys": "keys",
+		"identity": "main", "name": "main", "owner": "main", "group": "main",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
-		"speed": "card", "sight": "card", "facing": "main",
+		"speed": "card", "sight": "card",
 		"face": "", "sex": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
-		"sack": "", "holdings": "", "resolved": "", "overrides": "",
+		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "resolved": "", "overrides": "",
 	},
 	ui.KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -168,10 +168,10 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 	},
 }
 
-// unitSackField reports that f is one of the unit's fields that write its
-// sack: the bag's editable fields, which the sack's own window edits.
-func unitSackField(kind ui.RecordKind, f ui.InspectionField) bool {
-	return kind == ui.KindUnit && f.Section == "inventory" && !f.ReadOnly
+// unitHiddenField reports that f is one of the unit's fields neither view
+// shows: its facing, its dialogue speaker and its map keys.
+func unitHiddenField(kind ui.RecordKind, f ui.InspectionField) bool {
+	return kind == ui.KindUnit && slices.Contains([]string{"facing", "speaker", "keys"}, f.Key)
 }
 
 // viewsShape is key with its first number as "#" and anything after a dot
@@ -195,7 +195,7 @@ func viewsShape(key string) string {
 // unit's sack has its block in the plain view and shows there once the
 // blocks open, or is a unit field the basic view leaves to the detailed
 // view, and shows in the technical view in the section that holds it; a
-// unit's field that writes its sack shows in neither unit view.
+// unit's facing, speaker and map keys show in neither unit view.
 func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 	for _, kind := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock} {
 		s, _ := viewsMap(t)
@@ -208,7 +208,7 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 			t.Fatalf("%s has no fields", kind)
 		}
 		for _, f := range fields {
-			if unitSackField(kind, f) {
+			if unitHiddenField(kind, f) {
 				if _, shown := blocks[f.Key]; shown || showField(t, plain, c, f.Key) {
 					t.Errorf("%s %s: the unit's window edits its sack", kind, f.Key)
 				}
@@ -231,7 +231,7 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 		}
 		technical := viewsWindow(t, s, false, kind)
 		for _, f := range technical.ObjectFields() {
-			if shown := showField(t, technical, c, f.Key); shown == unitSackField(kind, f) {
+			if shown := showField(t, technical, c, f.Key); shown == unitHiddenField(kind, f) {
 				t.Errorf("%s %s shows %v in the technical view", kind, f.Key, shown)
 			}
 		}

@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"image"
 	"image/color"
 	"testing"
 
@@ -34,23 +33,22 @@ func TestEditorDraftPortraitFollowsFaceSexAndNPC(t *testing.T) {
 		values []ui.InspectionFieldValue
 		red    uint8
 		green  uint8
-		window image.Rectangle
 	}{
 		{name: "inherited", red: 40, green: 140},
 		{name: "face", values: []ui.InspectionFieldValue{{Key: "face", Value: 7}}, red: 140, green: 140},
 		{name: "sex", values: []ui.InspectionFieldValue{{Key: "sex", Value: 0}}, red: 40, green: 60},
 		{name: "face and sex", values: []ui.InspectionFieldValue{{Key: "face", Value: 7}, {Key: "sex", Value: 0}}, red: 140, green: 60},
-		{name: "NPC", values: []ui.InspectionFieldValue{{Key: "identity", Value: namedIdentity(8)}}, red: 140, green: 60, window: ui.NoticeFaceWindow(40, 10)},
+		{name: "NPC", values: []ui.InspectionFieldValue{{Key: "identity", Value: namedIdentity(8)}}, red: 140, green: 60},
 		{name: "return to inherited", red: 40, green: 140},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, preview, err := s.UnitSettings(0, tc.values)
-			if err != nil || preview == nil || preview.Face == nil || preview.Doll == nil {
-				t.Fatal("draft has no dialogue portrait or doll", err)
+			if err != nil || preview == nil || preview.Doll == nil {
+				t.Fatal("draft has no figure", err)
 			}
 			want := color.RGBA{R: tc.red, G: tc.green, A: 255}
-			if got := preview.Face.RGBAAt(50, 40); got != want || preview.FaceWindow != tc.window || !bytes.Equal(preview.Face.Pix, preview.Doll.Pix) {
-				t.Fatalf("portrait=%v window=%v, want %v %v", got, preview.FaceWindow, want, tc.window)
+			if got := preview.Doll.RGBAAt(50, 40); got != want {
+				t.Fatalf("figure=%v, want %v", got, want)
 			}
 			if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
 				t.Fatal("portrait preview wrote map bytes or history")

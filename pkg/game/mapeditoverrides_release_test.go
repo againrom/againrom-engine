@@ -416,10 +416,10 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		t.Fatal("carried item catalog is empty")
 	}
 	// A carried item is added in the unit's sack's window, the stock's: the
-	// sack row opens one the unit has, and K adds one it lacks.
+	// records list selects one the unit has, and K adds one it lacks.
 	undos := 1
-	if link := fields[fieldIndex(t, fields, "sack")].Link; link.Kind == ui.KindStock {
-		e.Select(recordOf(e.Document(), string(ui.KindStock), link.Index), true)
+	if stock := unitStock(e); stock >= 0 {
+		e.Select(stock, true)
 	} else {
 		if err := e.Key("stock"); err != nil {
 			t.Fatal(err)
@@ -430,13 +430,18 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	recordFieldInput(t, e, "additem", choices[1].Value)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	fields = objectEdits(t, e).Fields("Unit", i)
-	if field := fields[fieldIndex(t, fields, "holdings")]; !field.ReadOnly || len(field.Lines) < 2 {
-		t.Fatal("missing read-only derived carrier and loot")
+	// The person window's bag lists the added item.
+	carried := slices.IndexFunc(fields, func(f ui.InspectionField) bool {
+		_, _, ok := carriedField(f.Key)
+		return ok && f.Parent == "" && f.Key != "carryadd" && f.Value == choices[1].Value
+	})
+	if carried < 0 {
+		t.Fatal("the bag does not list the added item")
 	}
-	fieldShot(e, i, "holdings", "human-carried-and-derived-loot")
+	fieldShot(e, i, fields[carried].Key, "human-carried-and-derived-loot")
 	for _, size := range []image.Point{{800, 600}, {640, 480}} {
 		e.Layout(size.X, size.Y)
-		fieldShot(e, i, "holdings", fmt.Sprintf("human-setup-%dx%d", size.X, size.Y))
+		fieldShot(e, i, fields[carried].Key, fmt.Sprintf("human-setup-%dx%d", size.X, size.Y))
 	}
 	e.Layout(1280, 800)
 	for range undos {

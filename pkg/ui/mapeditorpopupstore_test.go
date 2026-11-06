@@ -15,7 +15,7 @@ import (
 // a title drag, every border drag and a window resize move it step by step,
 // and where it reopens.
 const (
-	popupTranscriptHash  = "465ae227ea384ba1d7e39bad83e4e194c77d22bd06b78471bd9243704186a67b"
+	popupTranscriptHash  = "d18560a4e7bfebb0bfa80481bc17776031ed91d17270b10c2d20ee2d6dfed0d8"
 	popupTranscriptLines = 1155
 )
 

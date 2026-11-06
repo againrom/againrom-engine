@@ -59,7 +59,7 @@ func groundSack(t *testing.T, s *mapInspectionEdits) int {
 	return -1
 }
 
-// sackRecipeWindow opens the unit's sack from its bag at 1920x1080 in lang,
+// sackRecipeWindow selects the unit's own stock at 1920x1080 in lang,
 // in the plain or the technical view, every plain block open.
 func sackRecipeWindow(t *testing.T, s *mapInspectionEdits, lang string, plain bool) (*ui.MapEditor, *editorClicker) {
 	t.Helper()
@@ -68,7 +68,7 @@ func sackRecipeWindow(t *testing.T, s *mapInspectionEdits, lang string, plain bo
 	e.SetWords(words.For(lang))
 	e.SetHostTextEncoder(s.inspector.inspectionUTF8)
 	e.Layout(1920, 1080)
-	openSackRow(t, e, c)
+	openUnitStock(t, e)
 	if plain {
 		openBlocks(t, e, c)
 	}

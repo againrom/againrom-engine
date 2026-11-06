@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -16,8 +15,9 @@ import (
 // TestReleaseMapEditorUnitSackBytes opens the first installed maps that
 // hold a unit, at 1920x1080 in both views. Save with no edit writes the
 // bytes the map writer writes for the source. An item added in the window
-// the unit's sack row opens (or K, for a unit without a stock) writes the
-// bytes the host's own stock and field writers write. Each root runs it.
+// of the unit's own stock, selected (or K, for a unit without a stock),
+// writes the bytes the host's own stock and field writers write. Each root
+// runs it.
 func TestReleaseMapEditorUnitSackBytes(t *testing.T) {
 	x := installedInspector(t)
 	maps := 0
@@ -90,9 +90,8 @@ func unitSackBytes(t *testing.T, x *MapInspector, key string, plain bool) bool {
 	twin := open().Document().Edits.(*mapInspectionEdits)
 	before := bytes.Clone(s.model.Bytes())
 	var stock int
-	fields := s.Fields(ui.KindUnit, 0)
-	if at := slices.IndexFunc(fields, func(f ui.InspectionField) bool { return f.Key == "sack" }); at >= 0 && fields[at].Link.Kind == ui.KindStock {
-		stock = e.Document().Records[openSackRow(t, e, c)].Index
+	if unitStock(e) >= 0 {
+		stock = e.Document().Records[openUnitStock(t, e)].Index
 	} else {
 		if err := e.Key("stock"); err != nil {
 			t.Fatal(key, err)

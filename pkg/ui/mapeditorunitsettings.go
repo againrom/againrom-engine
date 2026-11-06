@@ -25,9 +25,10 @@ type InspectionUnitSettings interface {
 	UnitSettings(int, []InspectionFieldValue) (MapEntity, []InspectionField, *InspectionUnitPreview, error)
 }
 
+// InspectionUnitPreview is the person window's figure: the unit's doll as
+// the game composes it.
 type InspectionUnitPreview struct {
-	Doll, Face *image.RGBA
-	FaceWindow image.Rectangle
+	Doll *image.RGBA
 }
 
 type unitSettingsView struct {
@@ -106,6 +107,15 @@ func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
 		s.Cell = *o.move
 	}
 	return &s, o.unit.fields
+}
+
+// unitFigureSize is the size of the shown person's figure as the game draws
+// it, zero while the host gives none.
+func (e *MapEditor) unitFigureSize() image.Point {
+	if p := e.obj.unit.picture; p != nil && p.Doll != nil {
+		return p.Doll.Bounds().Size()
+	}
+	return image.Point{}
 }
 
 func (e *MapEditor) UnitCharacterSubject() (PanelSubject, bool) {

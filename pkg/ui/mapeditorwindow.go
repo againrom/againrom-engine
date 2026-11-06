@@ -1299,15 +1299,19 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)
 	}
-	if r.Spatial {
+	// The person window moves its unit by a drag on the map; it shows no
+	// cell row.
+	if r.Spatial && !e.nativeUnitWindow() {
 		add(popupRow{Kind: popupText, Label: e.word("editor.object.cell"), Value: fmt.Sprintf("%d,%d  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y)}, 0)
 	}
 	e.objectFieldRows(&s, &links)
 	if e.nativeUnitWindow() {
 		// The person window lists the triggers that use the unit under its
-		// fields on every section, as the unit popup lists them.
+		// fields on every section; a unit no trigger uses shows no list.
 		if e.hasUsedBy() && !e.obj.usesShown {
-			e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
+			if rows := e.usedByRows(); len(rows) > 0 {
+				e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), rows)
+			}
 		}
 		e.obj.data = -1
 		e.viewSwitchButton(&s)
@@ -1322,7 +1326,15 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		if s.CardBelow {
 			most = height
 		}
-		naturalSize(&s, image.Pt(s.Width, min(most, height, e.popupRoom().Dy()-16)))
+		room := e.popupRoom().Dy() - 16
+		naturalSize(&s, image.Pt(s.Width, min(most, height, room)))
+		// The column under the card grows to hold the figure at the game's
+		// size while the room allows.
+		if l := layoutPopup(s, e.font, e.bodyFont()); s.Card != nil && l.CardRest.Min.Y >= l.Card.Max.Y {
+			if short := e.unitFigureSize().Y - l.CardRest.Dy(); short > 0 {
+				naturalSize(&s, image.Pt(s.Width, min(l.Rect.Dy()+short, room)))
+			}
+		}
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.clampObjectTop(&s, popupRowCount(s))
 		return s, links, true
@@ -1680,14 +1692,10 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 	}
 	r := e.doc.Records[e.selected]
 	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
-		// The doll stands at the right of the room the layout leaves beside
-		// the card, the face left of it.
+		// The figure stands at the right of the room the layout leaves
+		// beside the card, at the game's size where the room holds it.
 		rest := layoutPopup(s, e.font, e.bodyFont()).CardRest
-		hasFace := s.CardAside > compactPanelW
-		left := rest.Max.X - compactPanelW
-		if hasFace {
-			left = max(left, rest.Min.X+noticeFaceW+popupPad)
-		}
+		left := max(rest.Min.X, rest.Max.X-max(compactPanelW, e.unitFigureSize().X))
 		box := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y).Intersect(pic.Bounds())
 		if box.Empty() {
 			return
@@ -1695,14 +1703,6 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		var preview *image.RGBA
 		if pictures := e.obj.unit.picture; pictures != nil {
 			preview = pictures.Doll
-			if hasFace {
-				at := image.Pt(rest.Min.X, min(rest.Min.Y, rest.Max.Y-noticeFaceH))
-				face := AuthoredDialogueLayout().WithFaceWindow(pictures.FaceWindow)
-				face.Portrait = image.Rectangle{Min: at, Max: at.Add(image.Pt(noticeFaceW, noticeFaceH))}
-				face.PortraitAt = image.Point{}
-				face.Frame = nil
-				drawNoticePortrait(pic, face, pictures.Face)
-			}
 		}
 		if preview == nil || preview.Bounds().Empty() {
 			if f := e.bodyFont(); f != nil {
@@ -2382,7 +2382,7 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		e.objectRowPress(part, n)
-	case popupTitleButton:
+	case popupSwitchButton:
 		e.switchView()
 	case popupButton:
 		if len(e.objectBack) > 0 && n == len(s.Buttons)-1 {

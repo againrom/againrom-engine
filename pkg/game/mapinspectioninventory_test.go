@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -23,22 +22,15 @@ func nativeInventoryEditor(t *testing.T) (*FrontEnd, *mapInspectionEdits, []byte
 	return f, s, raw
 }
 
-func TestEditorCarriedDraftAndDerivedLootHaveNoWriteControls(t *testing.T) {
+// A carried item drafted in the person window writes nothing; the bag's
+// pick then writes it once through the stock writer, and Undo is exact.
+func TestEditorCarriedDraftWritesNothing(t *testing.T) {
 	_, s, raw := nativeInventoryEditor(t)
-	_, fields, _, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "carryadd", Value: 0x0e08}})
-	if err != nil {
+	if _, _, _, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "carryadd", Value: 0x0e08}}); err != nil {
 		t.Fatal(err)
 	}
-	f := fields[fieldIndex(t, fields, "holdings")]
-	text := ""
-	for _, line := range f.Lines {
-		text += line.Text + "\n"
-	}
-	if !f.ReadOnly || !strings.Contains(text, "Health potion") || !strings.Contains(text, "Corpse") || !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
-		t.Fatal("draft loot is missing or mutates the map", f, text)
-	}
-	if _, err := s.SetField("Unit", 0, "holdings", 0); err == nil || !bytes.Equal(raw, s.model.Bytes()) {
-		t.Fatal("derived loot accepted a write", err)
+	if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
+		t.Fatal("the drafted bag mutates the map")
 	}
 	if _, err := s.SetField("Unit", 0, "carryadd", 0x0e08); err != nil {
 		t.Fatal(err)

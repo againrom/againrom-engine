@@ -64,10 +64,9 @@ func (h *wideHost) Fields(kind RecordKind, index int) []InspectionField {
 			}
 		}
 		out = append(out,
+			field("carryadd", "Add carried item", "inventory", ""),
 			field("carry1", "Carried item 1", "inventory", "Added items"),
 			field("carry2", "Carried item 2", "inventory", "Added items"),
-			field("carryadd", "Add carried item", "inventory", "Added items"),
-			InspectionField{Key: "holdings", ReadOnly: true, Section: "inventory", Group: "After the map", Lines: []InspectionLine{{Text: "Corpse: Sword"}, {Text: "Bag: Mace"}}},
 			stat("hp", "Health", "Health and mana"),
 			stat("mana", "Mana", "Health and mana"),
 			stat("body", "Body", "Attributes"),
