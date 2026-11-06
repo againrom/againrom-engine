@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"image"
 	"slices"
+	"time"
 )
+
+// unitTypingPause is how long a unit window text field must stay unchanged
+// while it is typed in before the preview is built for it.
+const unitTypingPause = 300 * time.Millisecond
 
 func (e *MapEditor) nativeUnitWindow() bool {
 	return len(e.obj.pending) > 0 || slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Section != "" })
@@ -37,9 +42,27 @@ type unitSettingsView struct {
 	fields  []InspectionField
 	picture *InspectionUnitPreview
 	ok      bool
+	// heldKey is the draft a typing pause is waiting out, and heldAt when it
+	// last changed.
+	heldKey string
+	heldAt  time.Time
 }
 
 func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
+	return e.unitSettingsFor(false)
+}
+
+// unitTextTyping reports that the keyboard edits a text field of the unit
+// window.
+func (e *MapEditor) unitTextTyping() bool {
+	o := &e.obj
+	return e.objectTyping() && o.fields[o.focus].Text && e.input.target == &o.buf[o.focus]
+}
+
+// unitSettingsFor builds the unit window's preview for the draft. While a text
+// field is typed in, the draft is built once it has stayed unchanged for
+// unitTypingPause; commit builds it at once.
+func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionField) {
 	kind, index := e.selectedRecord()
 	host, ok := e.doc.Edits.(InspectionUnitSettings)
 	if kind != KindUnit || !ok {
@@ -47,7 +70,15 @@ func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
 	}
 	o := &e.obj
 	key := fmt.Sprint(o.buf)
-	if o.unit.key != key {
+	rebuild := o.unit.key != key
+	if rebuild && !commit && o.unit.ok && e.unitTextTyping() {
+		now := time.Now()
+		if o.unit.heldKey != key {
+			o.unit.heldKey, o.unit.heldAt = key, now
+		}
+		rebuild = (cadence{period: unitTypingPause, gate: gateAtLeast}).due(o.unit.heldAt, now)
+	}
+	if rebuild {
 		o.unit = unitSettingsView{key: key}
 		var values []InspectionFieldValue
 		values = append(values, o.pending...)

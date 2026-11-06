@@ -499,7 +499,7 @@ func (e *MapEditor) keyEnter(string) error {
 		if len(e.obj.fields[e.obj.focus].Choices) > 0 {
 			e.objectRowPress(popupRowControl, e.fieldRow(e.obj.focus))
 		} else {
-			e.unitSettings()
+			e.unitSettingsFor(true)
 			e.obj.focus = -1
 		}
 		return nil

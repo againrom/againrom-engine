@@ -239,6 +239,10 @@ type MapEditor struct {
 	textOverlay                 textOverlay
 	textLayers                  []textLayer
 	chromeWindows               []ChromeWindow // what ChromeWindows reads: the windows the last captured chrome drew
+	chromeSettled               chromeSettled
+	chromeSpare                 *image.RGBA // a composed picture that equalled the settled one
+	chromeUploaded              *image.RGBA // the settled upload chromeImage holds
+	chromeUploadedTo            *ebiten.Image
 	textCaptured, textKept      int
 	placementKey                string
 	placementDoc, placementView *InspectionDocument

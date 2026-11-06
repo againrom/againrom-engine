@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -1588,7 +1589,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 // strip are drawn as they are, and chromeFaded draws the floating windows.
 func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	e.chromeWindows = e.chromeWindows[:0]
-	pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
+	pic := e.chromeBlank()
 	bar := image.Rect(0, 0, e.window.X, e.barHeight())
 	drawFrame(pic, stripFrame(bar, edgeBottomBit))
 	for _, b := range e.barEntries() {
@@ -1896,7 +1897,10 @@ func (e *MapEditor) drawChrome(screen *ebiten.Image) []text.DrawCall {
 		}
 		e.chromeImage = ebiten.NewImage(pic.Bounds().Dx(), pic.Bounds().Dy())
 	}
-	e.chromeImage.WritePixels(blit.Pix)
+	if e.chromeUploaded != blit || e.chromeUploadedTo != e.chromeImage {
+		e.chromeImage.WritePixels(blit.Pix)
+		e.chromeUploaded, e.chromeUploadedTo = blit, e.chromeImage
+	}
 	screen.DrawImage(e.chromeImage, &ebiten.DrawImageOptions{})
 	return kept
 }
@@ -1909,7 +1913,16 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 		pic = e.ChromeImage()
 		return pic, pic, nil, nil
 	}
-	calls = text.Record(func() { pic = e.chromeCompose(e.dragFades()) })
+	fade := e.dragFades()
+	calls = text.Record(func() { pic = e.chromeCompose(fade) })
+	if fade {
+		e.chromeSettled = chromeSettled{}
+	} else if c := &e.chromeSettled; c.pic != nil && c.pic.Rect == pic.Rect && bytes.Equal(c.pic.Pix, pic.Pix) && sameCalls(c.calls, calls, true) {
+		// The composition is the one already settled: its settled upload and
+		// kept text are the answer, and this picture is free for the next frame.
+		e.chromeSpare = pic
+		return c.pic, c.blit, c.calls, c.kept
+	}
 	blit = image.NewRGBA(pic.Bounds())
 	copy(blit.Pix, pic.Pix)
 	kept = textsmooth.Settle(blit, calls)
@@ -1924,7 +1937,34 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 		draw.Draw(pic, pic.Bounds(), layer, image.Point{}, draw.Over)
 		draw.Draw(blit, blit.Bounds(), layer, image.Point{}, draw.Over)
 	}
-	return pic, blit, calls, text.MarkErased(kept)
+	kept = text.MarkErased(kept)
+	if !fade {
+		e.chromeSettled = chromeSettled{pic: pic, blit: blit, calls: calls, kept: kept}
+	}
+	return pic, blit, calls, kept
+}
+
+// chromeSettled is the last composition chromePicture settled: the picture
+// and the text calls it was composed from, the upload and the kept text it
+// settled to. A composition that equals it is not settled again.
+type chromeSettled struct {
+	pic, blit *image.RGBA
+	calls     []text.DrawCall
+	kept      []text.DrawCall
+}
+
+// chromeBlank is a transparent window-size picture to compose the chrome on:
+// the picture of an unchanged frame, which nothing else holds, when there is
+// one.
+func (e *MapEditor) chromeBlank() *image.RGBA {
+	r := image.Rect(0, 0, e.window.X, e.window.Y)
+	if spare := e.chromeSpare; spare != nil && spare.Rect == r {
+		e.chromeSpare = nil
+		clear(spare.Pix)
+		return spare
+	}
+	e.chromeSpare = nil
+	return image.NewRGBA(r)
 }
 
 // chromeHit is the foremost chrome part under p. Within a hover sample (chromePointer)

@@ -4250,5 +4250,5 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the figure sound in
 	// pkg/game/world.go, gamefiles.go and pkg/ui/sound.go, the new
 	// pkg/game/missiondollsound_test.go, and this note.
-	CommentBytes: 10599574,
+	CommentBytes: 10601103,
 }
