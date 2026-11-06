@@ -88,6 +88,28 @@ func (t *Table) creatureBooks() *CreatureBooks {
 	return t.CreatureBooks
 }
 
+// knownMask is params' knownSpells mask when the game has the cell and the
+// mask is neither 0 nor -1: the mask that replaces the book.
+func (b *CreatureBooks) knownMask(params []int32) (uint32, bool) {
+	if b.KnownCell <= 0 || b.KnownCell >= len(params) || params[b.KnownCell] == 0 || params[b.KnownCell] == -1 {
+		return 0, false
+	}
+	return uint32(params[b.KnownCell]), true
+}
+
+// UnitMaskMage reports whether the Units row's knownSpells mask makes its
+// creature a mage: the template loader that builds the mask's book also sets
+// the mage bit (R2-ENGINE-652). A game whose book source has no mask cell,
+// the first, answers false.
+func (t *Table) UnitMaskMage(row int) bool {
+	units := t.units()
+	if units == nil || row < 0 || row >= units.Len() {
+		return false
+	}
+	_, ok := t.creatureBooks().knownMask(units.EntryParams(row))
+	return ok
+}
+
 func (b *CreatureBooks) rowFor(typeID, face int32) (CreatureBookRow, bool) {
 	for _, r := range b.Rows {
 		if r.TypeID == typeID && (r.Face == 0 || r.Face == face) {
@@ -115,8 +137,7 @@ func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known 
 			skill[i] = params[b.PowerCell]
 		}
 	}
-	if b.KnownCell > 0 && b.KnownCell < len(params) && params[b.KnownCell] != 0 && params[b.KnownCell] != -1 {
-		mask := uint32(params[b.KnownCell])
+	if mask, ok := b.knownMask(params); ok {
 		*book, *known = sim.Spellbook{State: sim.BookPresent}, 0
 		for id := int32(1); id <= 29; id++ {
 			if mask&(uint32(1)<<uint(id)) != 0 {

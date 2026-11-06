@@ -211,6 +211,9 @@ type formHolding struct {
 var secondFormHolders = []savedFormHolder{
 	{class: "Unit", field: "U148", site: holderValue, value: secondActorTemplateKey},
 	{class: "Human", field: "U148", site: holderValue, value: secondActorTemplateKey},
+	// R2-ENGINE-652, R2-ENGINE-900: a creature whose Units row holds a
+	// knownSpells mask is a mage; the engine keeps that in the row (DIV-4560).
+	{class: "Unit", field: "U4C", site: holderValue, value: secondUnitMageFlags},
 	// R2-ENGINE-319, R2-ENGINE-320: the experience block opens with the main
 	// skill.
 	{class: "Human", field: "H1CC", site: holderFirstWord, value: secondMainSkillHeld},
@@ -248,6 +251,24 @@ func secondStructureKey(h *formHolding, i int) (uint32, bool) {
 		return 0, false
 	}
 	return 0x6000 + id, true
+}
+
+// secondUnitMageFlags is a creature's +0x4c with the mage bit, 4, set when
+// its Units row's knownSpells mask makes it a mage (R2-ENGINE-652); without
+// the bit the original's LOAD keeps it from casting its book and casts its
+// weapon Spell only from a strike (R2-ENGINE-901, R2-ENGINE-902). Every other
+// bit, and the byte of any other creature, stays as the record holds it.
+func secondUnitMageFlags(h *formHolding, i int) (uint32, bool) {
+	r := &h.doc.Objects[i]
+	flags, err := savedStructureValue(r, "U4C")
+	if err != nil || h.table == nil {
+		return flags, false
+	}
+	row, err := savedStructureValue(r, "T0C")
+	if err != nil || !h.table.UnitMaskMage(int(row)) {
+		return flags, false
+	}
+	return flags | 4, true
 }
 
 func secondActorTemplateKey(h *formHolding, i int) (uint32, bool) {

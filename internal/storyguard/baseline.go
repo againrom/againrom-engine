@@ -4185,5 +4185,10 @@ var Committed = Baseline{
 
 	// CommentBytes falls with the shared room page, adapter and person profiles.
 	// It rises for the generator row's shared room card field and this note.
-	CommentBytes: 10566936,
+
+	// It rises for a second-game creature's mage bit in the SAVE: the
+	// holder and secondUnitMageFlags in pkg/game/savform.go, knownMask and
+	// UnitMaskMage in pkg/mapload/spell.go, the new
+	// pkg/game/secondcreaturemage_test.go, and this note.
+	CommentBytes: 10570526,
 }
