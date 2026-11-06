@@ -116,6 +116,9 @@ type Words struct {
 	// UnitNames holds every loaded unitname.txt line; indexes outside that
 	// table have no label. PanelCaptions holds the separate main.txt indexes.
 	UnitNames []string
+	// NPCNames holds every loaded npcnames.txt line; a unit's NPC word w
+	// names line w-1 (NPCName).
+	NPCNames []string
 	// BuildingNames is building.txt indexed by structure class ID (line ID-1);
 	// an empty entry leaves the registry's own name text.
 	BuildingNames [67]string

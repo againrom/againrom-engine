@@ -20,11 +20,30 @@ func (in *InstallResources) definitionName(p mapload.PartyMember, classIndex int
 	if name, ok := in.modCharacterName(p.Name); ok {
 		return name
 	}
+	// A second-game hire's ID names its NPC line.
+	if id := p.CampaignHireID(); id != 0 && id <= hireNameLines {
+		if name, ok := ui.NPCName(id, words); ok {
+			return name
+		}
+	}
 	// An ordinary Human carries a table key such as M_Brigand3 as its name.
 	if name, ok := ui.DisplayName(ui.InspectionUnit, "", classIndex, words); ok {
 		return name
 	}
 	return fallback
+}
+
+// hireNameLines is how many hire IDs name an NPC line; the later IDs show
+// their type label.
+const hireNameLines = 7
+
+// npcWord is the NPC word of entity id's placement, where the game keeps one.
+func (mw *mapWorld) npcWord(id sim.EntityID) (uint16, bool) {
+	if mw.mission == nil {
+		return 0, false
+	}
+	word, ok := mw.mission.npcKeys[id]
+	return word, ok && word != 0
 }
 
 // companionNameRow is companion p's row of the installed NPC names.
@@ -90,6 +109,16 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Wor
 		in := InstallResources{Table: mw.mission.table}
 		name = in.definitionName(*member, nameIndex, words, "")
 		definitionCharName = char.Name == member.Name
+	}
+	// A placed unit holding no own name, only its type label, takes the line
+	// its NPC word names when that line is not empty.
+	if ordinary {
+		label, _ := ui.DisplayName(ui.InspectionUnit, "", nameIndex, words)
+		if word, ok := mw.npcWord(e.ID); ok && (name == "" || name == label) {
+			if line, ok := ui.NPCName(int(word), words); ok {
+				name = line
+			}
+		}
 	}
 	// The map's own name for the placed unit is its last stage.
 	if authored, ok := mw.authoredName(e); ok {

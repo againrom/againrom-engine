@@ -63,7 +63,7 @@ var (
 		"rom2 event 10,2 true -> \"Second event two\\r\\n\" [main/id,main/text/mission10.txt]",
 		"rom2 event 10,3 false -> \"\" [main/id,main/text/mission10.txt]",
 		"rom2 event 11,2 false -> \"\" [main/id,main/text/mission11.txt]",
-		"failure 10 -> \"[\\\"Failure two\\\\r\\\\n\\\" \\\"Failure three\\\\r\\\\n\\\" \\\"\\\"]\" [main/text/mission10.txt,main/text/main.txt,main/text/dialogs.txt,main/text/stats.txt,main/text/unitname.txt,main/text/building.txt,main/text/sites.txt,main/text/spell.txt,main/text/spells.txt,main/id,main/text/help.txt]",
+		"failure 10 -> \"[\\\"Failure two\\\\r\\\\n\\\" \\\"Failure three\\\\r\\\\n\\\" \\\"\\\"]\" [main/text/mission10.txt,main/text/main.txt,main/text/dialogs.txt,main/text/stats.txt,main/text/unitname.txt,main/text/npcnames.txt,main/text/building.txt,main/text/sites.txt,main/text/spell.txt,main/text/spells.txt,main/id,main/text/help.txt]",
 		"failure 11 -> \"[]\" [main/text/mission11.txt]",
 		"failure 0 -> \"[]\" []",
 	}

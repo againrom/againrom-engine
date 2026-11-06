@@ -4185,5 +4185,5 @@ var Committed = Baseline{
 
 	// CommentBytes falls with the shared room page, adapter and person profiles.
 	// It rises for the generator row's shared room card field and this note.
-	CommentBytes: 10566275,
+	CommentBytes: 10566936,
 }

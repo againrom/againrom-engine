@@ -55,7 +55,7 @@ func TestWordsHoldsExactlyTheNamedVocabularyFields(t *testing.T) {
 		"TavernHire": false, "TavernHired": false, "TavernFire": false, "TavernTalk": false, "TavernExit": false, "TavernSleep": false,
 		"Command": false,
 		"Hover":   false, "SiteHints": false,
-		"UnitNames": false, "BuildingNames": false, "PanelCaptions": false, "ItemStats": false,
+		"UnitNames": false, "NPCNames": false, "BuildingNames": false, "PanelCaptions": false, "ItemStats": false,
 		"ItemCasts": false, "ItemDamage": false, "ItemRange": false, "ItemRays": false,
 		"ItemMagic": false, "ItemSpellOf": false, "ItemSpellOfSuffix": false, "ItemSpellNames": false, "SpellBookNames": false,
 		"DurationUnit": false,

@@ -29,6 +29,7 @@ const (
 	DialogsTextPath    = mainPrefix + "text/dialogs.txt"
 	StatsTextPath      = mainPrefix + "text/stats.txt"
 	UnitNameTextPath   = mainPrefix + "text/unitname.txt"
+	NPCNameTextPath    = mainPrefix + "text/npcnames.txt"
 	SitesTextPath      = mainPrefix + "text/sites.txt"
 	BuildingTextPath   = mainPrefix + "text/building.txt"
 	SpellNamesTextPath = mainPrefix + "text/spell.txt"
@@ -360,6 +361,7 @@ type InstallWords struct {
 	dialogs        *TextTable
 	stats          *TextTable
 	unitNames      *TextTable
+	npcNames       *TextTable
 	buildingNames  *TextTable
 	sites          *TextTable
 	spellNames     *TextTable
@@ -394,6 +396,7 @@ func LoadInstallWords(src terrain.EntrySource, code TextCode) *InstallWords {
 		dialogs:        LoadTextTable(src, DialogsTextPath, code),
 		stats:          LoadTextTable(src, StatsTextPath, code),
 		unitNames:      LoadTextTable(src, UnitNameTextPath, code),
+		npcNames:       LoadTextTable(src, NPCNameTextPath, code),
 		buildingNames:  LoadTextTable(src, BuildingTextPath, code),
 		sites:          LoadTextTable(src, SitesTextPath, code),
 		spellNames:     LoadTextTable(src, SpellNamesTextPath, code),
@@ -577,6 +580,12 @@ func (w *InstallWords) Words() ui.Words {
 	for i := range out.UnitNames {
 		if s, ok := w.UnitName(i); ok {
 			out.UnitNames[i] = s
+		}
+	}
+	if w != nil && w.npcNames.Lines() != 0 {
+		out.NPCNames = make([]string, w.npcNames.Lines())
+		for i := range out.NPCNames {
+			out.NPCNames[i], _ = w.npcNames.At(i)
 		}
 	}
 	for i := range out.ItemStats {
