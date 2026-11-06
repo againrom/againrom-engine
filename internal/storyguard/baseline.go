@@ -4247,5 +4247,5 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the customer's join in
 	// pkg/game/shoproom.go, the new pkg/game/secondshopstack_test.go and
 	// secondshoppage_test.go's test note, and this note.
-	CommentBytes: 10596919,
+	CommentBytes: 10597838,
 }

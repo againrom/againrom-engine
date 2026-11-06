@@ -100,7 +100,7 @@ func shopBindingRecord(s *townScreen, probes []sim.ItemInstance, second *secondC
 	}
 	// What one table gesture settles.
 	calls := 0
-	a := s.shopTableSounds(false, func() ui.TownAction { calls++; return ui.TownAction{Msg: "gesture"} })
+	a := s.shopTableSounds(false, false, func() ui.TownAction { calls++; return ui.TownAction{Msg: "gesture"} })
 	line("gesture calls %d msg %q", calls, a.Msg)
 	// The presentation state.
 	line("state chosen %d shelf %d shelfBase %d packBase %d tableBase %d member %d book %v",

@@ -281,28 +281,63 @@ func (t *shopController) ShopDrag(from, to ui.ShopControl) ui.TownAction {
 	previous := t.speechTableRelease
 	t.speechTableRelease = from.Kind == ui.ShopControlShelfCell && to.Kind == ui.ShopControlTableCell
 	defer func() { t.speechTableRelease = previous }()
-	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell, func() ui.TownAction { return t.shopDrag(from, to) })
+	onFigure := from.Kind == ui.ShopControlDoll || to.Kind == ui.ShopControlDoll
+	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell && !onFigure, onFigure, func() ui.TownAction { return t.shopDrag(from, to) })
 }
 
 // shopTableSounds runs one shop gesture with the trade table's sounds: a
 // pick from the table requests its pick sound before the take, which stands
 // when the take refuses; a gesture that puts units on the table requests its
-// drop sound after them (SHOP-SOUND-135). Moves between the shelf, the
-// backpack and the figure request nothing.
-func (t *shopController) shopTableSounds(pick bool, act func() ui.TownAction) ui.TownAction {
+// drop sound after them (SHOP-SOUND-135). A gesture that ends or starts on
+// the figure (onFigure) requests the figure's sound instead of the table's:
+// doll-on when the shown member wears more or other items after it, doll-off
+// when he wears fewer. The room's sound table decides whether either sounds.
+func (t *shopController) shopTableSounds(pick, onFigure bool, act func() ui.TownAction) ui.TownAction {
 	if pick {
 		t.play("table-pick")
 	}
 	before, places := t.shopTableUnits(), t.shopTablePlaces()
+	member, wornBefore := t.shopMemberIndex(), t.shopWornSnapshot()
 	a := t.row.settle(act)
-	if !pick && t.shopTableUnits() > before {
+	if !pick && !onFigure && t.shopTableUnits() > before {
 		t.play("table-drop")
+	}
+	if wornAfter := t.shopWornSnapshot(); t.shopMemberIndex() == member {
+		switch had, has := wornCount(wornBefore), wornCount(wornAfter); {
+		case has < had:
+			t.play("doll-off")
+		case has > had || wornAfter != wornBefore:
+			t.play("doll-on")
+		}
 	}
 	if t.shopTablePlaces() > places {
 		// A new place shows: the strip turns to the last one.
 		t.tableBase = t.tableScrollMax()
 	}
 	return a
+}
+
+// shopWornSnapshot is what the shown member wears now, as the figure shows it.
+func (t *shopController) shopWornSnapshot() (out [sim.EquipSlots]string) {
+	if !t.shownRoom() || t.sess == nil {
+		return out
+	}
+	i := t.shopMemberIndex()
+	for n := 1; n <= sim.EquipSlots; n++ {
+		if item, ok := t.shopEquippedItem(i, n); ok && !item.Empty() {
+			out[n-1] = fmt.Sprintf("%#v", item)
+		}
+	}
+	return out
+}
+
+func wornCount(w [sim.EquipSlots]string) (n int) {
+	for _, s := range w {
+		if s != "" {
+			n++
+		}
+	}
+	return n
 }
 
 func (t *shopController) shopTablePlaces() int {
@@ -834,7 +869,7 @@ func (t *shopController) ShopClick(c ui.ShopControl) ui.TownAction {
 		return ui.TownAction{}
 	}
 	pick := c.Kind == ui.ShopControlTableCell && !t.shopBook
-	return t.shopTableSounds(pick, func() ui.TownAction { return t.shopClick(c) })
+	return t.shopTableSounds(pick, c.Kind == ui.ShopControlDoll, func() ui.TownAction { return t.shopClick(c) })
 }
 
 func (t *shopController) shopClick(c ui.ShopControl) ui.TownAction {
