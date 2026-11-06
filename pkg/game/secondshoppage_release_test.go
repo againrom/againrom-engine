@@ -234,9 +234,9 @@ func TestReleaseSecondTownShopFullBagRefusesPurchase(t *testing.T) {
 }
 
 // TestReleaseSecondTownShopBookPartialBuy clicks one shelf book of town 1
-// twice by pointer and buys with gold for one: one book enters the bag, the
-// gold is spent and the second book stays pending, each in its own table
-// place (R2-ENGINE-265, R2-ENGINE-266, DIV-3065).
+// twice by pointer, each unit in its own table place, and buys with gold for
+// one: the whole purchase is refused, so the gold is kept, the bag stays
+// empty and both books stay pending (R2-ENGINE-265, R2-ENGINE-269, DIV-3065).
 func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 	secondGameRoot(t)
 	f, app, s, _ := secondShopTownOne(t)
@@ -268,7 +268,7 @@ func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 		t.Fatalf("two units of book spell %d staged as %d places", book.Spell, len(c.shop.Table()))
 	}
 	secondShopActivate(t, f, app, "BUY")
-	if f.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
+	if f.Town.gold != int(book.Price) || len(*c.heroBag()) != 0 || secondShopUnits(c) != 2 {
 		t.Fatalf("book spell %d at %d: gold %d bag %d pending %d", book.Spell, book.Price, f.Town.gold, len(*c.heroBag()), secondShopUnits(c))
 	}
 }

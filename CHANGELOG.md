@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A town shop shows its room and its goods again and buys and sells; after New Game the shop page showed no shop picture and nothing could be bought.
 - [ROM2] Enemy casters out of mana for their spellbook strike with their staff instead of standing and waiting for mana, and every caster turns to face its target before it casts.
 - [ROM2] The original game now loads our saves with necromancers that still cast spells from their staff and their spellbook.
 - [ROM2] Quest Objectives lists each opened goal with the original's box, tick or cross, and a finished goal plays a sound instead of showing a caption. A save made in a mission now keeps the goals opened there.

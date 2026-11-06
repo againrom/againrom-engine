@@ -18,11 +18,13 @@ func sleepButton(buttons []town.ButtonSpec, i int) bool {
 }
 
 // restockInput is what a shop state's restock reads: the install's item
-// table, the session's town and the draws whose shop-stock stream it takes.
+// table, the session's town, the party's town the stock is drawn for and the
+// draws whose shop-stock stream it takes.
 type restockInput struct {
-	table *mapload.Table
-	town  *Town
-	draws townDraws
+	table    *mapload.Table
+	town     *Town
+	location int
+	draws    townDraws
 }
 
 // sleep is the town's one Sleep: the campaign's town shop restocks once and
@@ -36,12 +38,17 @@ func (t *townScreen) sleep() bool {
 	if shop == nil {
 		return false
 	}
-	return shop.restock(restockInput{table: t.in.Table, town: t.sess.Town, draws: t.draws})
+	return shop.restock(restockInput{table: t.in.Table, town: t.sess.Town, location: t.campaignTown().townID(), draws: t.draws})
 }
 
+// restock draws the stock anew for the party's town when the shop holds
+// that town's record.
 func (s *Shop) restock(in restockInput) bool {
 	if s == nil || in.town == nil || in.draws == nil {
 		return false
+	}
+	if s.records[in.location] != nil {
+		s.location = in.location
 	}
 	seed := shopSeed(in.town.Chapter(), in.town.finishedCount(), s.Ceiling())
 	return s.RestockWith(in.table, seed, in.draws.stream(random.ShopStock))

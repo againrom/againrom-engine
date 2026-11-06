@@ -4208,5 +4208,13 @@ var Committed = Baseline{
 	// pkg/ui/mapeditorvariabletable.go (its right-side comparison reading and
 	// its test included), its tests in pkg/ui and pkg/game,
 	// and this note.
-	CommentBytes: 10582917,
+
+	// It rises for the town shop's profile before the campaign holds a
+	// shop: townShopProfile and hostShopProfiles in pkg/game/shopprofile.go,
+	// the party's town of a restock in sleep.go, the new
+	// pkg/game/secondtownshopbinding_test.go, a release test's corrected
+	// doc comment, and this note.
+	// It rises for the doc comment of the town LOAD shop test in
+	// pkg/game/secondtownshopbinding_test.go and this note.
+	CommentBytes: 10584568,
 }

@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/shopstock"
+	"againrom/pkg/town"
 )
 
 type shopProfile struct {
@@ -96,6 +97,23 @@ func (s *Shop) profile() *shopProfile {
 		return &chapterShopProfile
 	}
 	return s.policy
+}
+
+// hostShopProfiles are the profiles the town host's shop mode names.
+var hostShopProfiles = map[town.ShopMode]*shopProfile{town.ShopChapter: &chapterShopProfile, town.ShopBank: &bankShopProfile}
+
+// townShopProfile is the profile the town's shop room shows and trades by:
+// the campaign's town shop's own, and while the campaign holds no shop yet,
+// as a town screen bound before NEW GAME or LOAD does, the one the town
+// host's shop mode names.
+func (t *townScreen) townShopProfile() *shopProfile {
+	if s := t.campaignTown().townShop(); s != nil {
+		return s.profile()
+	}
+	if p := hostShopProfiles[t.hostRules().Shop]; p != nil {
+		return p
+	}
+	return &chapterShopProfile
 }
 
 func newShopState(p *shopProfile, records shopRecords) Shop {

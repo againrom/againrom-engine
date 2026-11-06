@@ -34,7 +34,7 @@ func (t *townScreen) AtTownShop() bool {
 	if t == nil {
 		return false
 	}
-	return t.campaignTown().townShop().profile().shown(t)
+	return t.townShopProfile().shown(t)
 }
 
 func (t *townScreen) AtTownSquare() bool {

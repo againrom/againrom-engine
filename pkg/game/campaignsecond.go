@@ -391,7 +391,6 @@ func (c destinationTownCampaign) townShop() *Shop {
 		return nil
 	}
 	if s := secondOf(c.t.sess); s != nil {
-		s.shop.location = s.current.id
 		return &s.shop
 	}
 	return nil

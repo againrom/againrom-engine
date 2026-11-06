@@ -49,7 +49,7 @@ type missionShopVisit struct {
 // its deal. The town is not open in it, so no offer speaks and no save is
 // admitted while the page shows.
 func (t *townScreen) OpenMissionShop() bool {
-	if t == nil || t.visit != nil || t.sess == nil || t.sess.Town == nil || !t.campaignTown().townShop().profile().missionVisits {
+	if t == nil || t.visit != nil || t.sess == nil || t.sess.Town == nil || !t.townShopProfile().missionVisits {
 		return false
 	}
 	if d := t.townDescription(); d == nil || d.Room("shop") == nil {
