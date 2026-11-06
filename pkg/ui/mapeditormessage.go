@@ -114,40 +114,52 @@ type InspectionMessagePart struct {
 // fighters.
 type HeroAudience uint8
 
-const (
-	HeroWomanMage HeroAudience = 1 << iota
-	HeroWomanFighter
-	HeroManMage
-	HeroManFighter
-	EveryHero = HeroWomanMage | HeroWomanFighter | HeroManMage | HeroManFighter
+var (
+	HeroWomanMage    HeroAudience = 1 << herokind.FemaleMage.In(herokind.AudienceOrder)
+	HeroWomanFighter HeroAudience = 1 << herokind.FemaleFighter.In(herokind.AudienceOrder)
+	HeroManMage      HeroAudience = 1 << herokind.MaleMage.In(herokind.AudienceOrder)
+	HeroManFighter   HeroAudience = 1 << herokind.MaleFighter.In(herokind.AudienceOrder)
 )
+
+const EveryHero HeroAudience = HeroAudience(herokind.Every)
 
 // HeroCells are the cells of a part told apart by the hero's sex, class,
 // both or neither, in order.
 func HeroCells(sex, class bool) []HeroAudience {
-	switch {
-	case sex && class:
-		var cells []HeroAudience
-		for _, k := range herokind.AudienceOrder {
-			cells = append(cells, HeroOf(k.Mage(), k.Female()))
+	var groups []herokind.Kind
+	var cells []HeroAudience
+	for _, k := range herokind.AudienceOrder {
+		at := slices.IndexFunc(groups, func(g herokind.Kind) bool {
+			return (!sex || g.Female() == k.Female()) && (!class || g.Mage() == k.Mage())
+		})
+		if at < 0 {
+			at = len(cells)
+			groups = append(groups, k)
+			cells = append(cells, 0)
 		}
-		return cells
-	case sex:
-		return []HeroAudience{HeroWomanMage | HeroWomanFighter, HeroManMage | HeroManFighter}
-	case class:
-		return []HeroAudience{HeroWomanMage | HeroManMage, HeroWomanFighter | HeroManFighter}
+		cells[at] |= HeroOf(k.Mage(), k.Female())
 	}
-	return []HeroAudience{EveryHero}
+	return cells
+}
+
+// Kinds reads the cell's bits through the declared audience order.
+func (h HeroAudience) Kinds() herokind.Set {
+	var set herokind.Set
+	for _, k := range herokind.AudienceOrder {
+		if h&(1<<k.In(herokind.AudienceOrder)) != 0 {
+			set |= herokind.SetOf(k)
+		}
+	}
+	return set
 }
 
 // HeroSplit is whether cells tell the heroes apart by sex and by class: a
 // cell holding one sex, or one class, of the heroes.
 func HeroSplit(cells []HeroAudience) (sex, class bool) {
 	for _, h := range cells {
-		women, men := h&(HeroWomanMage|HeroWomanFighter), h&(HeroManMage|HeroManFighter)
-		mages, fighters := h&(HeroWomanMage|HeroManMage), h&(HeroWomanFighter|HeroManFighter)
-		sex = sex || h != 0 && (women == 0 || men == 0)
-		class = class || h != 0 && (mages == 0 || fighters == 0)
+		women, men, mages, fighters := h.Kinds().Axes()
+		sex = sex || h != 0 && (!women || !men)
+		class = class || h != 0 && (!mages || !fighters)
 	}
 	return sex, class
 }

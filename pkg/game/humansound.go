@@ -68,7 +68,8 @@ func (mw *mapWorld) unitVoice(e sim.Entity, r *unitVoiceRules, tiered bool) unit
 	female, mage, armed, tier := false, false, false, -1
 	switch {
 	case person && data.FigureIsHero(t):
-		female, mage, tier = (t-0x21)&1 != 0, (t-0x21)&2 != 0, 0
+		kind := herokind.Kind(t - 0x21)
+		female, mage, tier = kind.Female(), kind.Mage(), 0
 		armed = !r.heroArm && !mage && mw.showsWeapon(e.ID)
 	case person && data.ComposesFigure(t):
 		female, mage = fig.Dir.Female(), t == 0x17 || t == 0x18

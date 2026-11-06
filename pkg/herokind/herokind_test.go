@@ -21,6 +21,24 @@ func TestKindIsTheComposedSelector(t *testing.T) {
 	}
 }
 
+func TestSetAxesNameOnlyTheKindsPresent(t *testing.T) {
+	for set, want := range [][4]bool{
+		{false, false, false, false}, {false, true, false, true},
+		{true, false, false, true}, {true, true, false, true},
+		{false, true, true, false}, {false, true, true, true},
+		{true, true, true, true}, {true, true, true, true},
+		{true, false, true, false}, {true, true, true, true},
+		{true, false, true, true}, {true, true, true, true},
+		{true, true, true, false}, {true, true, true, true},
+		{true, true, true, true}, {true, true, true, true},
+	} {
+		female, male, mage, fighter := Set(set).Axes()
+		if got := [4]bool{female, male, mage, fighter}; got != want {
+			t.Errorf("set %04b axes %v, want %v", set, got, want)
+		}
+	}
+}
+
 func TestParseNamesTheHeroesOfAClassAndASex(t *testing.T) {
 	for _, c := range []struct {
 		class, sex string

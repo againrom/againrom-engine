@@ -10,6 +10,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/bmp"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -1707,7 +1708,7 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 		if class >= 0x20 && class < 0x40 {
 			// HERO-APPEAR-041/042: the wire hero axes select a dying body;
 			// they are not a units.reg class index.
-			body := data.HeroBodyName(data.BodyUnarmed, false, (class-0x21)&2 != 0, true)
+			body := data.HeroBodyName(data.BodyUnarmed, false, herokind.Kind(class-0x21).Mage(), true)
 			class, _ = data.HeroBodyClass(body)
 		}
 		resolved := units.Classes[class]

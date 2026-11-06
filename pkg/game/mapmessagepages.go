@@ -591,8 +591,7 @@ func heroLiterals(h ui.HeroAudience, sex, class bool) []string {
 	if h == 0 {
 		h = ui.EveryHero
 	}
-	women, men := h&(ui.HeroWomanMage|ui.HeroWomanFighter) != 0, h&(ui.HeroManMage|ui.HeroManFighter) != 0
-	mages, fighters := h&(ui.HeroWomanMage|ui.HeroManMage) != 0, h&(ui.HeroWomanFighter|ui.HeroManFighter) != 0
+	women, men, mages, fighters := h.Kinds().Axes()
 	// eventArms opens with iamfemale, iammale, iammage and iamfighter.
 	var lits []string
 	if sex && women != men {

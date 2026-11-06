@@ -136,6 +136,17 @@ func Named(class, sex string) Set {
 func (s Set) Holds(k Kind) bool   { return k < kinds && s&(1<<k) != 0 }
 func (s Set) Overlaps(o Set) bool { return s&o != 0 }
 
+// Axes reports the sexes and classes present in s.
+func (s Set) Axes() (female, male, mage, fighter bool) {
+	for k := MaleFighter; k < kinds; k++ {
+		if s.Holds(k) {
+			female, male = female || k.Female(), male || !k.Female()
+			mage, fighter = mage || k.Mage(), fighter || !k.Mage()
+		}
+	}
+	return
+}
+
 // String names the set's heroes, "every hero", "a mage", "a female fighter"
 // or "a male fighter or a female mage".
 func (s Set) String() string {

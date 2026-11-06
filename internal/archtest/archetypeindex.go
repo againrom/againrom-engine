@@ -10,14 +10,13 @@ import (
 	"strings"
 )
 
-// The archetype-index scan: a hero's class and sex turn into a place 0..3 in
-// one function, herokind.Of, and a table in another order reads it through
-// herokind.Kind.In. It refuses axis-conditioned additions, ORs and shifts,
-// and calls that derive a hero's sex or class from a cell ordinal.
+// Hero index and cell conversions belong to pkg/herokind.
 
 var archetypeRoots = []string{"pkg/data/", "pkg/game/", "pkg/sim/", "pkg/mapload/", "pkg/ui/"}
 
 var archetypeAxisName = regexp.MustCompile(`^(?i:is|hero)?(?i:mage|female)$|^NPCToken(Mage|Female)$`)
+var archetypeBitName = regexp.MustCompile(`^Hero(Woman|Man)(Mage|Fighter)$`)
+var archetypeTagName = regexp.MustCompile(`(?i)^(at|hero|axes|herotag|heroindex)$`)
 
 // CheckArchetypeIndex reports hero index and cell conversions outside
 // pkg/herokind. files is keyed by module-relative slash path.
@@ -42,6 +41,24 @@ func CheckArchetypeIndex(files map[string]string) []Violation {
 			continue
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
+			if bits, ok := n.(*ast.BinaryExpr); ok && archetypeBitCopy(bits) {
+				vs = append(vs, Violation{
+					From:   name + ":" + strconv.Itoa(fset.Position(bits.Pos()).Line),
+					Reason: "hero bits are decoded here; read herokind.Kind or HeroAudience.Kinds",
+				})
+			}
+			if decl, ok := n.(*ast.ValueSpec); ok && archetypeBitOrder(decl) {
+				vs = append(vs, Violation{
+					From:   name + ":" + strconv.Itoa(fset.Position(decl.Pos()).Line),
+					Reason: "a hero bit order is declared here; read herokind.AudienceOrder",
+				})
+			}
+			if cells, ok := n.(*ast.CompositeLit); ok && archetypeMaskCells(cells) {
+				vs = append(vs, Violation{
+					From:   name + ":" + strconv.Itoa(fset.Position(cells.Pos()).Line),
+					Reason: "hero cells are grouped by masks here; read herokind.AudienceOrder and Kind axes",
+				})
+			}
 			if field, ok := n.(*ast.KeyValueExpr); ok {
 				if key, ok := field.Key.(*ast.Ident); ok && archetypeAxisName.MatchString(key.Name) && ordinalHeroAxis(field.Value) {
 					vs = append(vs, Violation{
@@ -75,6 +92,91 @@ func CheckArchetypeIndex(files map[string]string) []Violation {
 		})
 	}
 	return vs
+}
+
+func archetypeBitCopy(e *ast.BinaryExpr) bool {
+	if e.Op != token.AND {
+		return false
+	}
+	if archetypeHasAudienceBit(e) {
+		return true
+	}
+	for _, pair := range [][2]ast.Expr{{e.X, e.Y}, {e.Y, e.X}} {
+		if !archetypeLiteral(pair[1], "1", "2") {
+			continue
+		}
+		switch tag := ast.Unparen(pair[0]).(type) {
+		case *ast.Ident:
+			if archetypeTagName.MatchString(tag.Name) {
+				return true
+			}
+		case *ast.BinaryExpr:
+			if tag.Op == token.SUB && archetypeLiteral(tag.Y, "0x21", "33") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func archetypeHasAudienceBit(e ast.Expr) bool {
+	found := false
+	ast.Inspect(e, func(n ast.Node) bool {
+		if id, ok := n.(*ast.Ident); ok && archetypeBitName.MatchString(id.Name) {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+func archetypeBitOrder(decl *ast.ValueSpec) bool {
+	hero := false
+	if typ, ok := decl.Type.(*ast.Ident); ok && typ.Name == "HeroAudience" {
+		hero = true
+	}
+	for _, name := range decl.Names {
+		hero = hero || archetypeBitName.MatchString(name.Name)
+	}
+	if !hero {
+		return false
+	}
+	found := false
+	for _, value := range decl.Values {
+		ast.Inspect(value, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.Ident:
+				found = found || n.Name == "iota"
+			case *ast.BinaryExpr:
+				found = found || n.Op == token.SHL && archetypeLiteral(n.Y, "0", "1", "2", "3")
+			}
+			return !found
+		})
+	}
+	return found
+}
+
+func archetypeMaskCells(cells *ast.CompositeLit) bool {
+	array, ok := cells.Type.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	name := ""
+	switch typ := array.Elt.(type) {
+	case *ast.Ident:
+		name = typ.Name
+	case *ast.SelectorExpr:
+		name = typ.Sel.Name
+	}
+	if name != "HeroAudience" {
+		return false
+	}
+	for _, cell := range cells.Elts {
+		if group, ok := ast.Unparen(cell).(*ast.BinaryExpr); ok && group.Op == token.OR && archetypeHasAudienceBit(group) {
+			return true
+		}
+	}
+	return false
 }
 
 func archetypeRoot(name string) bool {
@@ -161,8 +263,7 @@ func archetypeLiteral(e ast.Expr, values ...string) bool {
 	return false
 }
 
-// addsToIndex answers the first statement of body that adds 1 or 2 to a
-// number, ORs them into one or shifts by them, outside loops and closures.
+// addsToIndex finds additions, ORs and shifts outside loops and closures.
 func addsToIndex(body *ast.BlockStmt) ast.Node {
 	var hit ast.Node
 	ast.Inspect(body, func(n ast.Node) bool {

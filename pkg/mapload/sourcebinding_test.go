@@ -30,6 +30,8 @@ func TestSourceActorPersonDecodesWireAppearance(t *testing.T) {
 		{"hero female fighter", 0x22, 4, "ffighter", 4, false},
 		{"hero mage", 0x23, 5, "mmage", 5, true},
 		{"hero female mage", 0x24, 5, "fmage", 5, true},
+		{"hero range low", 0x20, 6, "fmage", 6, true},
+		{"hero range high", 0x3f, 7, "mmage", 7, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// The DAT row deliberately disagrees: saved type and face are live

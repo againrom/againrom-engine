@@ -199,7 +199,8 @@ func (t *townScreen) townSpeechPath() (string, bool) {
 		if names.heroFallback && t.in.Archives != nil {
 			if language, known := locale.ByEntry(t.in.Archives.Base.Profile.Language); known && language.SecondSpeechHeroFallback != 0 {
 				if at := strings.IndexByte(names.heroLetters, language.SecondSpeechHeroFallback); at >= 0 {
-					audience.HeroFemale, audience.HeroMage = at&1 != 0, at&2 != 0
+					kind := herokind.Kind(at)
+					audience.HeroFemale, audience.HeroMage = kind.Female(), kind.Mage()
 				}
 			}
 		}
@@ -230,10 +231,11 @@ func (t *townScreen) townSpeechPath() (string, bool) {
 		return name, true
 	}
 	sex, class := "m", "f"
-	if actor.fig.Dir.Female() {
+	kind := herokind.Of(actor.fig.Dir.Mage(), actor.fig.Dir.Female())
+	if kind.Female() {
 		sex = "f"
 	}
-	if actor.fig.Dir.Mage() {
+	if kind.Mage() {
 		class = "m"
 	}
 	// A speaker whose sex/class recording the install lacks plays the

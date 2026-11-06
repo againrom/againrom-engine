@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/herokind"
 	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
@@ -385,17 +386,19 @@ func SecondTownSpeechCensus(root string, report io.Writer) error {
 	for _, key := range body.sectionKeys() {
 		folded := namefold.ArchiveText(key)
 		payload := []byte(body.section(key))
-		for hero := 0; hero < 8; hero++ {
-			audience := EventAudience{HeroFemale: hero&1 != 0, HeroMage: hero&2 != 0, tags: secondEventTags{},
-				NPCPresent: func(int) bool { return hero&4 != 0 }}
-			var c talkCursor
-			c.openSection(key, payload)
-			var d townDialogueState
-			for ; d.lookup(c, audience, profile) && c.part < 1000; c.next() {
-				if name, ok := townSpeechTagPath(profile.speech, c.key, d.tag, d.displayPart, audience); ok {
-					rows[folded+" "+name] = true
-					names[name] = true
-					sections[folded] = true
+		for _, present := range []bool{false, true} {
+			for kind := herokind.MaleFighter; herokind.Every.Holds(kind); kind++ {
+				audience := EventAudience{HeroFemale: kind.Female(), HeroMage: kind.Mage(), tags: secondEventTags{},
+					NPCPresent: func(int) bool { return present }}
+				var c talkCursor
+				c.openSection(key, payload)
+				var d townDialogueState
+				for ; d.lookup(c, audience, profile) && c.part < 1000; c.next() {
+					if name, ok := townSpeechTagPath(profile.speech, c.key, d.tag, d.displayPart, audience); ok {
+						rows[folded+" "+name] = true
+						names[name] = true
+						sections[folded] = true
+					}
 				}
 			}
 		}

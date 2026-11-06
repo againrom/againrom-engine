@@ -4172,5 +4172,5 @@ var Committed = Baseline{
 	// unitFigureSize in pkg/ui, the doll guard's note in
 	// internal/archtest/dollbuilder_test.go, and this note, net of the
 	// removed sack row, carried loot and portrait comments.
-	CommentBytes: 10556947,
+	CommentBytes: 10556756,
 }

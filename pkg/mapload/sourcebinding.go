@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/sim"
 )
 
@@ -89,8 +90,8 @@ func SourceActorPerson(e sim.Entity, name string, t *Table) (PartyMember, error)
 		dir, face = data.FigureForFaceByte(int32(s.TypeID), s.Face)
 	} else if s.TypeID >= 0x20 && s.TypeID < 0x40 {
 		// Hero wire classes carry both axes in TypeID instead (HERO-APPEAR-041).
-		axes := s.TypeID - 0x21
-		dir, face = data.FigureDirFor(axes&2 != 0, axes&1 != 0), int(s.Face)
+		kind := herokind.Kind(s.TypeID - 0x21)
+		dir, face = data.FigureDirFor(kind.Mage(), kind.Female()), int(s.Face)
 	}
 	h := SourceHumanState(e.SourceNow(), e.ActorLoad.Accumulator)
 	return PartyMember{ID: fmt.Sprintf("join:%d", e.ID), Name: name,
