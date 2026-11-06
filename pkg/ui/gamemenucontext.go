@@ -8,9 +8,20 @@ type GameMenuRelation struct {
 	State string
 }
 
+// QuestObjective is one shown row of the objectives window: its text and the
+// subobj.256 frame its state selects, NoObjectiveMark for none
+// (R2-ENGINE-888, R2-ENGINE-889).
+type QuestObjective struct {
+	Text string
+	Mark int
+}
+
+const NoObjectiveMark = -1
+
 // GameMenuContext is the campaign/session projection read when the in-game menu
 // opens. Campaign selects the decoded Load/Diplomacy and Quest gates. Objective
-// and Relations supply the two owner-directed information pages.
+// and Relations supply the two owner-directed information pages; Objectives
+// are the objectives window's rows below the briefing.
 type GameMenuContext struct {
 	Campaign bool
 	// CampaignVictory selects the decoded phase-2 End Quest constructor.
@@ -22,6 +33,7 @@ type GameMenuContext struct {
 	// still undecided, so a mod entry may abandon or restart it.
 	LeaveToTown bool
 	Objective   string
+	Objectives  []QuestObjective
 	Relations   []GameMenuRelation
 }
 
@@ -57,5 +69,6 @@ func (v *Viewer) readGameMenuContext() GameMenuContext {
 	}
 	c := v.gameMenuContext()
 	c.Relations = append([]GameMenuRelation(nil), c.Relations...)
+	c.Objectives = append([]QuestObjective(nil), c.Objectives...)
 	return c
 }

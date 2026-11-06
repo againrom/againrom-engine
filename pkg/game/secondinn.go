@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -52,13 +53,15 @@ func (c *secondCampaign) speakers() []innOffer {
 func (c *secondCampaign) talkTo(o innOffer) {
 	switch {
 	case o.kind == 0 && o.npc == 5:
-		c.bank[536], c.bank[556], c.bank[774] = 1, 3, 2
+		sim.SetScenario(&c.bank, 536, 1)
+		sim.SetScenario(&c.bank, 556, 3)
+		sim.SetScenario(&c.bank, 774, 2)
 	case o.kind == 0 && o.npc == 675 && o.topic == 78:
-		c.bank[770] = 2
+		sim.SetScenario(&c.bank, 770, 2)
 		c.shop.addClass4()
 	case o.kind == 1 && o.npc >= 1 && o.npc <= secondHireSlots:
-		slot := &c.bank[secondHireSelection+o.npc-1]
-		*slot = boolInt32(*slot == 0)
+		slot := int64(secondHireSelection + o.npc - 1)
+		sim.SetScenario(&c.bank, slot, boolInt32(c.bank[slot] == 0))
 	}
 	if o.kind != 3 {
 		return
@@ -68,10 +71,11 @@ func (c *secondCampaign) talkTo(o innOffer) {
 		c.available = append(c.available, mission)
 	}
 	if o.topic == 10 {
-		c.bank[769] = 1
+		sim.SetScenario(&c.bank, 769, 1)
 	}
 	if o.npc == 22 && o.topic == 30 {
-		c.bank[533], c.bank[553] = 1, 2
+		sim.SetScenario(&c.bank, 533, 1)
+		sim.SetScenario(&c.bank, 553, 2)
 	}
 }
 

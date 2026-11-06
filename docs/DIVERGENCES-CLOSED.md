@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 quest objective marks
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-2380 | ROM2 objectives / status presentation | Owner: new subobjective triggers show their result | `R2-ENGINE-888` (High / Medium): row i shows only when slot 752+i is nonzero, in cache order, with a 24x24 mark at x 48..72 beside text from x 80; bits 2, 4 and 1, in that priority, pass mark values 11, 12 and 10. `R2-ENGINE-889` (High / Medium): those values draw frames 1, 2 and 0 of `graphics/interface/subobj.256`. The `R2-ENGINE-046` clause this row cited, "sprite frames 11,12,10", is retracted | The one row producer gives each nonzero slot its text and the frame its bits select, bit 2 before bit 4 before bit 1; a nonzero slot with none of the three bits has no mark. The window draws the installed subobj.256 frame at (48, y - 3)..(72, y + 21) from its left edge and the text from x 80. Opening the window writes no slot. The text marks [+], [-] and [ ] are gone | UNKNOWN | Settled: the marks, their priority and their geometry follow the claims | None for the marks; DIV-4556, DIV-4557 and DIV-4558 bound the window, the text styles and the text cache | CLOSED |
+
 ## ROM2 dialogue music and music off
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

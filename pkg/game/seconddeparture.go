@@ -1,6 +1,10 @@
 package game
 
-import "slices"
+import (
+	"slices"
+
+	"againrom/pkg/sim"
+)
 
 // secondDepartureExit is a location an ordinary departure adds when its gates
 // hold.
@@ -102,15 +106,15 @@ func (d secondDepartureRow) run(c *secondCampaign, add func(partyPlace)) int {
 		}
 	}
 	for _, w := range d.writes {
-		c.bank[w.slot] = w.value
+		sim.SetScenario(&c.bank, int64(w.slot), w.value)
 	}
 	return output
 }
 
 // enterLocation clears the slots a location entry owns, 752..767, in the
 // bank a mission seats or a town entry holds (R2-ENGINE-048).
-func enterLocation(bank *[1024]int32) { clear(bank[752:768]) }
+func enterLocation(bank *[1024]int32) { sim.EnterLocation(bank) }
 
 // secondDepartureReset clears the slot a departure row may store a pending
 // value in, before any row runs.
-func secondDepartureReset(bank *[1024]int32) { bank[773] = 0 }
+func secondDepartureReset(bank *[1024]int32) { sim.SetScenario(bank, 773, 0) }

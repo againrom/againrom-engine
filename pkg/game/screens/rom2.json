@@ -134,7 +134,10 @@
        {"name": "piece/7", "format": "frame", "key": "graphics/interface/lm.256", "frame": 7, "required": true, "cite": ["owner"]},
        {"name": "piece/8", "format": "frame", "key": "graphics/interface/lm.256", "frame": 8, "required": true, "cite": ["owner"]},
        {"name": "portrait", "format": "frame", "key": "graphics/interface/t_border.256", "frame": 0, "cite": ["owner"]},
-       {"name": "portrait-back", "format": "picture", "key": "graphics/interface/t_back.bmp", "size": [160, 240], "cite": ["owner"]}
+       {"name": "portrait-back", "format": "picture", "key": "graphics/interface/t_back.bmp", "size": [160, 240], "cite": ["owner"]},
+       {"name": "objective-mark/0", "format": "frame", "key": "graphics/interface/subobj.256", "frame": 0, "cite": ["R2-ENGINE-889"]},
+       {"name": "objective-mark/1", "format": "frame", "key": "graphics/interface/subobj.256", "frame": 1, "cite": ["R2-ENGINE-889"]},
+       {"name": "objective-mark/2", "format": "frame", "key": "graphics/interface/subobj.256", "frame": 2, "cite": ["R2-ENGINE-889"]}
      ],
      "cite": ["owner"]},
     {"screen": "game-options",

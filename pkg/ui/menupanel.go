@@ -14,7 +14,18 @@ type DialogFrame struct {
 	PortraitBack *image.RGBA
 	Minimap      *image.RGBA
 	MinimapSeam  *image.RGBA
-	helpScroll   []*image.RGBA
+	// ObjectiveMarks are the three 24x24 frames of subobj.256 an objective
+	// row draws: an empty box, a check and a cross (R2-ENGINE-889).
+	ObjectiveMarks [3]*image.RGBA
+	helpScroll     []*image.RGBA
+}
+
+// objectiveMark is objective mark frame i, nil for none or absent art.
+func (art *DialogFrame) objectiveMark(i int) *image.RGBA {
+	if art == nil || i < 0 || i >= len(art.ObjectiveMarks) {
+		return nil
+	}
+	return art.ObjectiveMarks[i]
 }
 
 // MenuPanelArt retains the existing loader seam. All modal windows use the

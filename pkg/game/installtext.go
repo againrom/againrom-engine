@@ -96,6 +96,7 @@ const (
 	dialogsSlotSoundOptions    = 0x25
 	dialogsSlotQuestObjectives = 0x26
 	dialogsSlotQuestHeading    = 68
+	patchSlotNewMission        = 0x61
 	dialogsSlotEndQuest        = 0x27
 	dialogsSlotReturn          = 0x28
 	dialogsSlotChangeMap       = 0x2a
@@ -363,6 +364,7 @@ type InstallWords struct {
 	sites          *TextTable
 	spellNames     *TextTable
 	spellBookNames *TextTable
+	patch          *TextTable
 	help           string
 
 	// Selector is the install's language digit, `main\id`'s last character
@@ -442,6 +444,14 @@ func (w *InstallWords) Global(k int) (string, bool) {
 		return "", false
 	}
 	return w.main.At(k)
+}
+
+// patchRow is row i of patch.txt, absent without the patch table.
+func (w *InstallWords) patchRow(i int) (string, bool) {
+	if w == nil {
+		return "", false
+	}
+	return w.patch.At(i)
 }
 
 func (w *InstallWords) Dialogs(i int) (string, bool) {
@@ -585,6 +595,9 @@ func (w *InstallWords) Words() ui.Words {
 	d(&out.MenuSoundOptions, dialogsSlotSoundOptions)
 	d(&out.MenuQuestObjectives, dialogsSlotQuestObjectives)
 	d(&out.QuestHeading, dialogsSlotQuestHeading)
+	if s, ok := w.patchRow(patchSlotNewMission); ok {
+		out.NewMission = s
+	}
 	d(&out.MenuEndQuest, dialogsSlotEndQuest)
 	d(&out.MenuReturn, dialogsSlotReturn)
 	d(&out.MenuAbort, dialogsSlotAbort)

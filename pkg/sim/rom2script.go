@@ -23,7 +23,7 @@ const (
 )
 
 type rom2ScriptState struct {
-	Scenario [1024]int32
+	Scenario ScenarioBank
 	Groups   []rom2GroupActivity
 }
 
@@ -58,7 +58,7 @@ func (w *World) ROM2ScenarioValue(index int32) (int32, bool) {
 
 func (w *World) setROM2Scenario(index int32, value int32) {
 	if _, ok := w.ROM2ScenarioValue(index); ok {
-		w.rom2.Scenario[index] = value
+		SetScenario(&w.rom2.Scenario, int64(index), value)
 	}
 }
 
@@ -82,8 +82,7 @@ func (w *World) initializeROM2Script() {
 	if w.script.Dialect() != ScriptROM2 {
 		return
 	}
-	w.rom2 = &rom2ScriptState{}
-	w.rom2.Scenario[768] = 10 // R2-ENGINE-045, R2-SESSION-023
+	w.rom2 = &rom2ScriptState{Scenario: NewGameScenarioBank()} // R2-SESSION-023
 	for _, g := range w.groups {
 		w.rom2.Groups = append(w.rom2.Groups, rom2GroupActivity{Owner: g.owner, Group: g.group})
 	}
@@ -202,28 +201,8 @@ func (w *World) rom2Instant(in ScriptInstant, obs *castObs) bool {
 	case ScriptInstantSetScenario:
 		w.setROM2Scenario(in.Args[0], in.Args[1])
 	case ScriptInstantObjective:
-		index, mode := int64(752)+int64(in.Args[0]), in.Args[1] // R2-ENGINE-046
-		if index < 0 || index >= 1024 {
-			return true
-		}
-		old := w.rom2.Scenario[index]
-		switch mode {
-		case 1:
-			if old == 0 {
-				w.rom2.Scenario[index] = 1
-			}
-		case 2:
-			if old != 4 {
-				if old&2 == 0 {
-					obs.recordScriptMessage(253)
-				}
-				w.rom2.Scenario[index] = 3
-			}
-		case 4:
-			obs.recordScriptMessage(254)
-			w.rom2.Scenario[index] = 5
-		default:
-			w.rom2.Scenario[index] = mode
+		if event := WriteObjective(&w.rom2.Scenario, int64(in.Args[0]), in.Args[1]); event != objectiveNoEvent {
+			obs.recordScriptMessage(event)
 		}
 	case ScriptInstantDiagnostic:
 	case ScriptInstantTakeItemFromMap:

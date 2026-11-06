@@ -1,7 +1,6 @@
 package game
 
 import (
-	"strings"
 	"time"
 
 	"againrom/pkg/sim"
@@ -15,7 +14,10 @@ func (mw *mapWorld) observeScriptMessages(messages []int32) {
 }
 
 // observeSecondGameMessages takes the special message numbers the second
-// game's script raises and queues every other one as a dialogue.
+// game's script raises and queues every other one as a dialogue. The
+// objective events 253 and 254 and event 250 play an interface entry when it
+// is idle, and 250 also posts the new-mission line for 30 s; none writes
+// state or opens a window (R2-ENGINE-891).
 func (mw *mapWorld) observeSecondGameMessages(messages []int32) {
 	m := mw.mission
 	for _, event := range messages {
@@ -23,19 +25,14 @@ func (mw *mapWorld) observeSecondGameMessages(messages []int32) {
 		case 255:
 			mw.latchOutcome(sim.OutcomeLost, lossCause{})
 		case 250:
-			if words := LoadInstallWords(m.src, InstallTextCode(m.src, m.edition())); words != nil {
-				if caption, ok := words.Global(0); ok {
-					mw.view.PostMessage(caption, ui.MessageWhite, 5*time.Second)
-				}
+			mw.view.PlayUISoundIdle(ui.UISoundMissionComplete)
+			if line := mw.view.Words().NewMission; line != "" {
+				mw.view.PostMessage(line, ui.MessageWhite, 30*time.Second)
 			}
-		case 253, 254:
-			// The native special branch is separate from ordinary dialogue.
-			// DIV-2379 keeps presentation in the existing map message surface.
-			caption := strings.ReplaceAll(mw.view.Words().MenuQuestObjectives, "~", "")
-			if caption == "" {
-				caption = "Quest objectives"
-			}
-			mw.view.PostMessage(caption, ui.MessageWhite, 5*time.Second)
+		case sim.ObjectiveEventDone:
+			mw.view.PlayUISoundIdle(ui.UISoundMissionComplete)
+		case sim.ObjectiveEventMode4:
+			mw.view.PlayUISoundIdle(ui.UISoundMissionFailed)
 		default:
 			m.pendingMessages = append(m.pendingMessages, event)
 		}

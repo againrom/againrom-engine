@@ -723,7 +723,8 @@ func secondEngineReach() map[int]bool {
 		g := secondGeneratorCampaigns[name]
 		for _, choice := range [][2]int32{{0, 0}, {0, 1}, {1, 0}, {1, 1}} {
 			c := newSecondCampaign()
-			c.bank[g.MageSlot], c.bank[g.FemaleSlot] = choice[0], choice[1]
+			sim.SetScenario(&c.bank, int64(g.MageSlot), choice[0])
+			sim.SetScenario(&c.bank, int64(g.FemaleSlot), choice[1])
 			maps.Copy(reach, secondEngineReachFrom(c))
 		}
 	}
@@ -765,7 +766,8 @@ func secondEngineReachFrom(c *secondCampaign) map[int]bool {
 			}
 			c.current = l
 			bank := c.bank
-			bank[772], bank[780] = 1, 1
+			sim.SetScenario(&bank, 772, 1)
+			sim.SetScenario(&bank, 780, 1)
 			c.completeBank(bank)
 			break
 		}
@@ -830,7 +832,7 @@ func secondEngineExit(n int, e SecondExit) bool {
 		var bank [1024]int32
 		for i, g := range e.Gates {
 			if g.Nonzero != (i == flip) {
-				bank[g.Slot] = 1
+				sim.SetScenario(&bank, int64(g.Slot), 1)
 			}
 		}
 		adds, movie := secondEngineDeparture(n, bank)

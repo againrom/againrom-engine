@@ -55,9 +55,7 @@ type secondCampaign struct {
 
 func newSecondCampaign() *secondCampaign {
 	initial := partyPlace{kind: placeTown, id: 1}
-	c := &secondCampaign{available: []partyPlace{initial}, current: initial, shop: newSecondShop()}
-	c.bank[768] = 10
-	return c
+	return &secondCampaign{available: []partyPlace{initial}, current: initial, shop: newSecondShop(), bank: sim.NewGameScenarioBank()}
 }
 
 func (c *secondCampaign) has(location partyPlace) bool {
@@ -137,14 +135,14 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	secondDepartureReset(&c.bank)
 	for i := 0; i < 20; i++ {
 		if c.bank[532+i] != 0 {
-			c.bank[532+i] = 1
+			sim.SetScenario(&c.bank, int64(532+i), 1)
 			if c.bank[512+i] != 0 {
-				c.bank[532+i] = 2
+				sim.SetScenario(&c.bank, int64(532+i), 2)
 			}
 		}
-		c.bank[512+i] = 0
+		sim.SetScenario(&c.bank, int64(512+i), 0)
 	}
-	c.bank[896+n] = 1
+	sim.SetScenario(&c.bank, int64(896+n), 1)
 	remaining := c.available[:0]
 	for _, l := range c.available {
 		if l != c.current {
@@ -162,7 +160,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	}
 	c.shop.depart(n)
 	if n%10 == 0 {
-		c.bank[768] += 10
+		sim.SetScenario(&c.bank, 768, c.bank[768]+10)
 	}
 	c.shop.stage(c.bank[768])
 	c.openMap(c.current)

@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -125,8 +126,8 @@ func (f *FrontEnd) startGeneratedTown(res ui.ChargenResult) error {
 	f.Difficulty = level
 	f.Town.gold = g.Gold
 	bank := &f.Town.second.bank
-	bank[g.MageSlot] = boolDWORD(chargenChoiceIndex(res, chargenChoiceClass) != 0)
-	bank[g.FemaleSlot] = boolDWORD(chargenChoiceIndex(res, chargenChoiceSex) != 0)
+	sim.SetScenario(bank, int64(g.MageSlot), boolDWORD(chargenChoiceIndex(res, chargenChoiceClass) != 0))
+	sim.SetScenario(bank, int64(g.FemaleSlot), boolDWORD(chargenChoiceIndex(res, chargenChoiceSex) != 0))
 	return nil
 }
 

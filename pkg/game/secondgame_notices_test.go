@@ -1,7 +1,7 @@
 package game
 
 import (
-	"strings"
+	"reflect"
 	"testing"
 
 	"againrom/pkg/base"
@@ -66,9 +66,9 @@ func TestSecondGameObjectivesReadLiveFlagsWithoutAcknowledging(t *testing.T) {
 	for i := 0; i < 48; i++ {
 		sim.Step(w, nil)
 	}
-	got := gameMenuContext(mw, true, "briefing").Objective
-	if got != "briefing\n\n[+] first\n[-] second" || strings.Contains(got, "hidden") {
-		t.Fatalf("objectives = %q", got)
+	got := gameMenuContext(mw, true, "briefing").Objectives
+	if want := []ui.QuestObjective{{Text: "first", Mark: 1}, {Text: "second", Mark: 2}}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("objectives = %v, want %v", got, want)
 	}
 	for index, want := range map[int32]int32{752: 3, 753: 5, 754: 0} {
 		if value, ok := w.ROM2ScenarioValue(index); !ok || value != want {

@@ -31,16 +31,17 @@ const (
 // playUISound resolves a fixed selector through the same shipped SoundBank as
 // map sounds, but plays it centred: an interface event has no map cell from
 // which a positional placement could lawfully be derived. Missing device,
-// bank or registry entry is the existing silent degradation.
-func playUISound(p audio.Player, b SoundBank, slot UISoundSlot) {
+// bank or registry entry is the existing silent degradation. It answers the
+// voice the player reports, nil when it reports none.
+func playUISound(p audio.Player, b SoundBank, slot UISoundSlot) audio.Voice {
 	if p == nil || b == nil || slot <= 0 {
-		return
+		return nil
 	}
 	s, ok := b.Sample(int(slot))
 	if !ok {
-		return
+		return nil
 	}
-	audio.Dispatch(p, s, audio.FixedRequest("fixed-interface", "registry:"+strconv.Itoa(int(slot)),
+	return audio.Dispatch(p, s, audio.FixedRequest("fixed-interface", "registry:"+strconv.Itoa(int(slot)),
 		audio.EffectsChannel, 220, false, audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
 }
 
@@ -224,6 +225,25 @@ func (v *Viewer) PlaySlotAt(slot int, owner uint32, cell image.Point) {
 // which creates the completion/failure child and therefore owns that event.
 func (v *Viewer) PlayUISound(slot UISoundSlot) {
 	playUISound(v.soundPlayer, v.soundBank, slot)
+}
+
+// PlayUISoundIdle is PlayUISound only while the voice it last started for
+// slot is not playing: the second game's objective events play their entry
+// only when that entry is idle (R2-ENGINE-891). A player that reports no
+// voice leaves the entry idle.
+func (v *Viewer) PlayUISoundIdle(slot UISoundSlot) {
+	if last := v.idleVoices[slot]; last != nil && last.Playing() {
+		return
+	}
+	voice := playUISound(v.soundPlayer, v.soundBank, slot)
+	if voice == nil {
+		delete(v.idleVoices, slot)
+		return
+	}
+	if v.idleVoices == nil {
+		v.idleVoices = map[UISoundSlot]audio.Voice{}
+	}
+	v.idleVoices[slot] = voice
 }
 
 func (v *Viewer) SetAudio(p audio.Player, b SoundBank) {

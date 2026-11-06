@@ -1500,6 +1500,7 @@ type Viewer struct {
 	audioScope              *AudioScope
 	soundBank               SoundBank
 	voices                  map[uint32]voiceMemory
+	idleVoices              map[UISoundSlot]audio.Voice
 	entrySounds             []MapEntity
 	soundMessages           []soundMessage
 	commandAcknowledgment   func(VoiceGesture, []uint32, time.Time)

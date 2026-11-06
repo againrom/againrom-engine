@@ -2,11 +2,11 @@ package game
 
 import (
 	"fmt"
-	"strings"
 
 	"againrom/pkg/base"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // MissionObjectives reads the installed briefing for this mission. The owner
@@ -90,30 +90,36 @@ func outcomeText(mw *mapWorld, body string) string {
 	return body
 }
 
-// missionObjectives is the one objectives panel producer: the briefing,
-// extended by each opened sub-objective of the scenario bank, marked done or
-// failed, where the game's row reads them.
-func (mw *mapWorld) missionObjectives(briefing string) string {
+// missionObjectives is the one producer of the objectives window's rows:
+// for each cached text i, in cache order, whose bank slot 752+i is nonzero,
+// the text and the mark its state selects (R2-ENGINE-888). A game whose row
+// reads no sub-objectives shows none.
+func (mw *mapWorld) missionObjectives() []ui.QuestObjective {
 	if !mw.mission.files().objectives.subobjectives {
-		return briefing
+		return nil
 	}
-	var rows []string
-	if briefing != "" {
-		rows = append(rows, briefing, "")
-	}
+	var rows []ui.QuestObjective
 	for i, label := range mw.mission.objectiveLabels {
-		value, ok := mw.world.ROM2ScenarioValue(int32(752 + i))
+		value, ok := mw.world.ROM2ScenarioValue(int32(sim.ObjectiveSlotBase + i))
 		if !ok || value == 0 {
 			continue
 		}
-		mark := "[ ]"
-		switch {
-		case value&2 != 0:
-			mark = "[+]"
-		case value&4 != 0:
-			mark = "[-]"
-		}
-		rows = append(rows, mark+" "+label)
+		rows = append(rows, ui.QuestObjective{Text: label, Mark: objectiveMark(value)})
 	}
-	return strings.TrimSpace(strings.Join(rows, "\n"))
+	return rows
+}
+
+// objectiveMark is the subobj.256 frame an objective state draws: bit 2
+// frame 1, else bit 4 frame 2, else bit 1 frame 0, else none (R2-ENGINE-888,
+// R2-ENGINE-889).
+func objectiveMark(state int32) int {
+	switch {
+	case state&2 != 0:
+		return 1
+	case state&4 != 0:
+		return 2
+	case state&1 != 0:
+		return 0
+	}
+	return ui.NoObjectiveMark
 }

@@ -296,7 +296,7 @@ func (a *App) missionMenuRect() image.Rectangle {
 			return soundOptionsDialog.Rectangle
 		}
 	case gameMenuQuestObjectivesPage:
-		return windowFrame(questPanelRect, f.menuArt).rect()
+		return windowFrame(f.questLayout().Panel, f.menuArt).rect()
 	}
 	return windowFrame(gameMenuPanelRectFor(f.menuPanelSurface(), f.menuRows(), f.menuGeometryProfile()), f.menuArt).rect()
 }

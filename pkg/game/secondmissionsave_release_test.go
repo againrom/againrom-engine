@@ -180,7 +180,7 @@ type secondSaveSample struct {
 	Gold                int
 	Quick               [4]uint32
 	Party               [][]byte
-	Objectives          string
+	Objectives          []ui.QuestObjective
 	Explored, Visible   []byte
 	Pending             []sim.Command
 	Ignored             []bool
@@ -208,7 +208,7 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := secondSaveSample{World: raw, Hash: f.live.world.Hash(), View: f.live.view.SaveApplication(), Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Quick: f.quickSpells, Objectives: f.live.missionObjectives(""), Explored: bytes.Clone(f.live.fog.explored), Visible: bytes.Clone(f.live.fog.visible), Pending: append([]sim.Command(nil), f.live.pending...), Ignored: append([]bool(nil), f.live.pendingIgnored...), Notices: append([]int32(nil), f.live.mission.pendingMessages...)}
+	s := secondSaveSample{World: raw, Hash: f.live.world.Hash(), View: f.live.view.SaveApplication(), Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Quick: f.quickSpells, Objectives: f.live.missionObjectives(), Explored: bytes.Clone(f.live.fog.explored), Visible: bytes.Clone(f.live.fog.visible), Pending: append([]sim.Command(nil), f.live.pending...), Ignored: append([]bool(nil), f.live.pendingIgnored...), Notices: append([]int32(nil), f.live.mission.pendingMessages...)}
 	for _, drawn := range f.live.entityDraws() {
 		pose := secondPoseSample{ID: drawn.ID, Name: []byte(drawn.Name), Cell: drawn.Cell, Step: drawn.Step, Mirror: drawn.Mirror, FinePosition: drawn.FinePosition, FineX: drawn.FineX, FineY: drawn.FineY, Transit: drawn.Transit, TransitSpan: drawn.TransitSpan, DamageJolt: drawn.DamageJolt}
 		if drawn.Art != nil {
@@ -306,7 +306,7 @@ func secondAssertSample(t *testing.T, want, got secondSaveSample) {
 			}
 			t.Logf("viewport mismatch evidence %s; animation=%+v/%+v sun=%s/%s", out, want.Animation, got.Animation, want.Sun, got.Sun)
 		}
-		t.Fatalf("cold continuation differs: World=%v hash=%x/%x View=%+v/%+v campaign=%v party=%v objectives=%v fog=%v/%v pending=%v notices=%v HUD=%v minimap=%v viewport=%v/%v policy=%v program=%v partyIDs=%v won=%v offered=%d/%d", bytes.Equal(want.World, got.World), want.Hash, got.Hash, want.View, got.View, reflect.DeepEqual(want.Campaign, got.Campaign), reflect.DeepEqual(want.Party, got.Party), want.Objectives == got.Objectives, bytes.Equal(want.Explored, got.Explored), bytes.Equal(want.Visible, got.Visible), reflect.DeepEqual(want.Pending, got.Pending), reflect.DeepEqual(want.Notices, got.Notices), want.HUD == got.HUD, want.Minimap == got.Minimap, want.Viewport == got.Viewport, want.Under == got.Under, reflect.DeepEqual(want.Policy, got.Policy), reflect.DeepEqual(want.Program, got.Program), reflect.DeepEqual(want.PartyIDs, got.PartyIDs), reflect.DeepEqual(want.Won, got.Won), want.Offered, got.Offered)
+		t.Fatalf("cold continuation differs: World=%v hash=%x/%x View=%+v/%+v campaign=%v party=%v objectives=%v fog=%v/%v pending=%v notices=%v HUD=%v minimap=%v viewport=%v/%v policy=%v program=%v partyIDs=%v won=%v offered=%d/%d", bytes.Equal(want.World, got.World), want.Hash, got.Hash, want.View, got.View, reflect.DeepEqual(want.Campaign, got.Campaign), reflect.DeepEqual(want.Party, got.Party), reflect.DeepEqual(want.Objectives, got.Objectives), bytes.Equal(want.Explored, got.Explored), bytes.Equal(want.Visible, got.Visible), reflect.DeepEqual(want.Pending, got.Pending), reflect.DeepEqual(want.Notices, got.Notices), want.HUD == got.HUD, want.Minimap == got.Minimap, want.Viewport == got.Viewport, want.Under == got.Under, reflect.DeepEqual(want.Policy, got.Policy), reflect.DeepEqual(want.Program, got.Program), reflect.DeepEqual(want.PartyIDs, got.PartyIDs), reflect.DeepEqual(want.Won, got.Won), want.Offered, got.Offered)
 	}
 }
 

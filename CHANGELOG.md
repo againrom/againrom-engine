@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Quest Objectives lists each opened goal with the original's box, tick or cross, and a finished goal plays a sound instead of showing a caption. A save made in a mission now keeps the goals opened there.
 - [ROM2] Escape on the world map skips the current journey, or leaves the map open when no journey is running.
 - [ROM2] Necromancers and hired troops show their translated unit names instead of blank names or internal labels.
 - [ROM2] Loading and immediately saving a mission no longer changes an idle hero's orders.

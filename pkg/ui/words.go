@@ -71,6 +71,9 @@ type Words struct {
 	// OutcomeContinue is dialogs.txt's local string 154, the second control on
 	// the campaign-success panel (MISSION-VICTORY-029).
 	OutcomeContinue string
+	// NewMission is patch.txt row 0x61, the line the second game's script
+	// event 250 posts (R2-ENGINE-891).
+	NewMission      string
 	MenuExitMain    string
 	MenuExitWindows string
 
@@ -280,6 +283,7 @@ func AuthoredWords() Words {
 		MenuSoundOptions:    "SOU~ND OPTIONS",
 		MenuQuestObjectives: "~QUEST OBJECTIVES",
 		QuestHeading:        "Quest Objectives and Hints:",
+		NewMission:          "You've got a new mission!",
 		MenuEndQuest:        "~END QUEST",
 		MenuReturn:          "~RETURN TO GAME",
 		MenuAbort:           "ABORT GAME",

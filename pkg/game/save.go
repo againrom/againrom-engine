@@ -45,6 +45,9 @@ type Snapshot struct {
 	// randomSession is the random session at capture; the SAV records it.
 	randomSession random.Session
 	second        *currentSecondCampaign
+	// liveBank is a second-game mission's live scenario bank, which its
+	// SAV's campaign tail carries; nil outside a mission.
+	liveBank *[1024]int32
 	// towns is the first game's town record: nil while the party belongs to
 	// town 1 and every other town keeps its fresh state.
 	towns      *currentTowns

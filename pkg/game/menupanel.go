@@ -18,6 +18,9 @@ func LoadMenuPanelArt(src terrain.EntrySource, d *Screens) (*ui.MenuPanelArt, er
 	}
 	art.Portrait = rgbaOf(set.Picture("portrait"))
 	art.PortraitBack = rgbaOf(set.Picture("portrait-back"))
+	for i := range art.ObjectiveMarks {
+		art.ObjectiveMarks[i] = rgbaOf(set.Picture(fmt.Sprintf("objective-mark/%d", i)))
+	}
 	minimap, _ := loadScreen(src, d, "mission-minimap", "background", "seam")
 	art.Minimap = rgbaOf(minimap.Picture("background"))
 	art.MinimapSeam = rgbaOf(minimap.Picture("seam"))

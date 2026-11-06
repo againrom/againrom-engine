@@ -4172,5 +4172,15 @@ var Committed = Baseline{
 	// unitFigureSize in pkg/ui, the doll guard's note in
 	// internal/archtest/dollbuilder_test.go, and this note, net of the
 	// removed sack row, carried loot and portrait comments.
-	CommentBytes: 10556744,
+
+	// It rises for the second game's quest objectives: the bank writer in
+	// pkg/sim/scenariobank.go; the live bank of the mission SAV in
+	// pkg/game/save.go, savform.go and campaignsecond.go; the event sounds
+	// and line in pkg/game/secondgamenotices.go, installtext.go and
+	// pkg/ui/sound.go; the rows and marks in pkg/game/questobjectives.go,
+	// pkg/ui/questobjectives.go, gamemenucontext.go and menupanel.go; their
+	// tests, the new secondobjective*, secondmapobjectives,
+	// questobjectiverows and scenariobank test files; and this note, net of
+	// the removed text-mark and caption comments.
+	CommentBytes: 10567208,
 }

@@ -49,6 +49,9 @@ func (secondCampaignRules) captureMission(f *FrontEnd, s *Snapshot) {
 		s.mapAnimation = &animation
 		s.mapMotion = captureCurrentMapMotion(f.live)
 	}
+	if bank, ok := f.live.world.ROM2ScenarioState(); ok {
+		s.liveBank = &bank
+	}
 	m := f.live.mission
 	s.noticeOpen = m != nil && m.open
 	s.victoryContinued = m != nil && m.delayedVictory && !m.victoryTaken && m.outcome == sim.OutcomeWon

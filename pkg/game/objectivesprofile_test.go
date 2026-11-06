@@ -1,6 +1,7 @@
 package game
 
 import (
+	"reflect"
 	"testing"
 
 	"againrom/pkg/base"
@@ -10,8 +11,9 @@ import (
 )
 
 // TestObjectivesAndOutcomeAnswersPerGame records what the objectives panel
-// and the outcome text answer in both games over fixture data. The answers
-// were recorded before the one producer replaced the per-game hooks.
+// and the outcome text answer in both games over fixture data: the briefing
+// as given, and in the second game a row with its mark frame per opened
+// sub-objective.
 func TestObjectivesAndOutcomeAnswersPerGame(t *testing.T) {
 	w := secondGameScriptWorld(t,
 		[]sim.ScriptInstant{{Op: 35, Args: [10]int32{752, 3}}, {Op: 35, Args: [10]int32{753, 5}}},
@@ -21,26 +23,28 @@ func TestObjectivesAndOutcomeAnswersPerGame(t *testing.T) {
 	}
 	labels := []string{"first", "second", "hidden", "open"}
 	failures := []string{"dead hero", "", "lost caravan"}
+	opened := []ui.QuestObjective{{Text: "first", Mark: 1}, {Text: "second", Mark: 2}}
 	panels := []struct {
 		name     string
 		game     base.Game
 		briefing string
-		want     string
+		rows     []ui.QuestObjective
 	}{
-		{"first plain", base.GameROM1, "briefing", "briefing"},
-		{"first padded", base.GameROM1, "  briefing\n", "  briefing\n"},
-		{"first empty", base.GameROM1, "", ""},
-		{"second plain", base.GameROM2, "briefing", "briefing\n\n[+] first\n[-] second"},
-		{"second padded", base.GameROM2, "  briefing\n", "briefing\n\n\n[+] first\n[-] second"},
-		{"second empty", base.GameROM2, "", "[+] first\n[-] second"},
+		{"first plain", base.GameROM1, "briefing", nil},
+		{"first padded", base.GameROM1, "  briefing\n", nil},
+		{"first empty", base.GameROM1, "", nil},
+		{"second plain", base.GameROM2, "briefing", opened},
+		{"second padded", base.GameROM2, "  briefing\n", opened},
+		{"second empty", base.GameROM2, "", opened},
 	}
 	for _, tc := range panels {
 		t.Run("panel "+tc.name, func(t *testing.T) {
 			mw := &mapWorld{world: w, mission: &missionNotices{
 				table: readUnder(tc.game, &mapload.Table{}), objectiveLabels: labels,
 			}}
-			if got := gameMenuContext(mw, true, tc.briefing).Objective; got != tc.want {
-				t.Fatalf("objectives = %q, want %q", got, tc.want)
+			ctx := gameMenuContext(mw, true, tc.briefing)
+			if ctx.Objective != tc.briefing || !reflect.DeepEqual(ctx.Objectives, tc.rows) {
+				t.Fatalf("objectives = %q %v, want %q %v", ctx.Objective, ctx.Objectives, tc.briefing, tc.rows)
 			}
 		})
 	}
