@@ -496,6 +496,19 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		}
 		add(r)
 	}
+	for i := range d.Records {
+		r := &d.Records[i]
+		switch r.Kind {
+		case ui.KindScenery:
+			r.Key = model.SceneryKey(r.Index)
+		case ui.KindSection:
+			r.Key = model.SectionKey(r.Index)
+		default:
+			if k, ok := editKinds[r.Kind]; ok {
+				r.Key = model.RecordKey(k, r.Index)
+			}
+		}
+	}
 	return d, nil
 }
 

@@ -14,6 +14,9 @@ func toolWindowsEditor(t *testing.T, key string) *MapEditor {
 		s := scriptsListEditor(t)
 		e.doc.Script, e.doc.Records = s.doc.Script, s.doc.Records
 	}
+	for i := range e.doc.Records {
+		e.doc.Records[i].Key = uint64(i + 1)
+	}
 	e.doc.Records[0].Player, e.doc.Records[0].Group = 1, 7
 	e.barAct(key)
 	switch key {
@@ -247,7 +250,7 @@ func TestMapEditorToolWindowsSkipStockDeletedWithUnit(t *testing.T) {
 		t.Run(string(rune('0'+target)), func(t *testing.T) {
 			e := toolWindowsEditor(t, "units")
 			at := len(e.doc.Records)
-			e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: KindStock, Index: 0, Label: "owner 1"}, InspectionRecord{Kind: KindStock, Index: 1, Label: "owner 2"})
+			e.doc.Records = append(e.doc.Records, InspectionRecord{Key: 100, Kind: KindStock, Index: 0, Label: "owner 1"}, InspectionRecord{Key: 101, Kind: KindStock, Index: 1, Label: "owner 2"})
 			e.Select(at+target, false)
 			h := &toolWindowHistory{InspectionEdits: e.doc.Edits, before: e.doc}
 			e.doc.Edits = h
@@ -504,6 +507,8 @@ func TestMapEditorToolWindowsHistoryKeepsIdenticalRecordGenerations(t *testing.T
 		t.Fatal(err)
 	}
 	readded := *original
+	readded.Records = slices.Clone(original.Records)
+	readded.Records[0].Key = 100
 	if err := e.adoptEdit(&readded, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -518,5 +523,35 @@ func TestMapEditorToolWindowsHistoryKeepsIdenticalRecordGenerations(t *testing.T
 	e.barAct("units")
 	if _, _, ok := e.objectSpec(); !ok {
 		t.Fatal("equal document bytes hid the original record behind its replacement's identity")
+	}
+}
+
+func TestMapEditorToolWindowsKeepLinkedBackKeyAfterDelete(t *testing.T) {
+	e := toolWindowsEditor(t, "units")
+	e.Select(1, false)
+	key := e.doc.Records[1].Key
+	e.openObjectRecord(0, false)
+	if len(e.objectBack) != 1 {
+		t.Fatal("linked fixture has no Back")
+	}
+	next := *e.doc
+	next.Records = slices.Clone(e.doc.Records)
+	next.Records = slices.DeleteFunc(next.Records, func(r InspectionRecord) bool { return r.Kind == KindUnit && r.Index == 0 })
+	for i := range next.Records {
+		if next.Records[i].Kind == KindUnit {
+			next.Records[i].Index--
+		}
+	}
+	if err := e.adoptEdit(&next, nil); err != nil {
+		t.Fatal(err)
+	}
+	s := e.barWindowSet()
+	if len(s.back) != 1 || s.back[0].identity != key {
+		t.Fatal("remembered Back rebuilt its identity from a stale address")
+	}
+	e.objectBack = s.back
+	e.backObject()
+	if e.selected < 0 || e.doc.Records[e.selected].Key != key {
+		t.Fatal("linked Back followed a different record")
 	}
 }

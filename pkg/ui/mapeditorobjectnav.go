@@ -26,16 +26,13 @@ func hiddenField(r InspectionRecord, f InspectionField) bool {
 
 // linkedRecord is the document index of the record ref names, -1 for none.
 func (e *MapEditor) linkedRecord(ref RecordRef, identity ...uint64) int {
-	if len(identity) > 0 && identity[0] != 0 {
-		ref = RecordRef{}
-		for current, key := range e.barRecords.current {
-			if key == identity[0] {
-				ref = current
-				break
-			}
-		}
+	if e.doc == nil {
+		return -1
 	}
-	if ref.Kind == "" || e.doc == nil {
+	if len(identity) > 0 {
+		return slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return identity[0] != 0 && r.Key == identity[0] })
+	}
+	if ref.Kind == "" {
 		return -1
 	}
 	return slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return r.Kind == ref.Kind && r.Index == ref.Index })
@@ -69,6 +66,7 @@ func (e *MapEditor) objectPlace() objectPlace {
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
 		r := e.doc.Records[e.selected]
 		p.kind, p.index = r.Kind, r.Index
+		p.identity = r.Key
 	}
 	return p
 }

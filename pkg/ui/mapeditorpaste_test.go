@@ -25,7 +25,7 @@ func (p *pastePreviewHost) PreviewPlacement(r InspectionNewRecord) (*InspectionD
 	}
 	p.asked = append(p.asked, r.Cell)
 	d := p.doc(p.self)
-	d.Records = append(d.Records, InspectionRecord{Kind: "Unit", Index: 2, Section: 6, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1)})
+	d.Records = append(d.Records, InspectionRecord{Key: 100, Kind: "Unit", Index: 2, Section: 6, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1)})
 	d.Viewer.SetEntities([]MapEntity{{ID: 2, Cell: r.Cell, Frame: sackFrame(18, 25), Art: &terrain.UnitClass{TileSize: 1}}})
 	return d, nil
 }

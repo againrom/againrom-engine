@@ -792,7 +792,7 @@ func equalSlice[T comparable](a, b []T) bool {
 // adoptTerrainEdit takes a document whose terrain changed. The viewer is the
 // new document's own, since a viewer cannot replace its grid; the camera and
 // the display switches carry over from the old one.
-func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error, removed ...RecordRef) error {
+func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error {
 	if err != nil {
 		e.message = err.Error()
 		return err
@@ -801,16 +801,13 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error, remove
 		return nil
 	}
 	old := e.doc.Viewer
-	var kind RecordKind
-	index := -1
+	var key uint64
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
-		r := e.doc.Records[e.selected]
-		kind, index = r.Kind, r.Index
+		key = e.doc.Records[e.selected].Key
 	}
 	nv := next.Viewer
 	nv.editorView = true
 	nv.flat, nv.unshaded, nv.showGrid = old.flat, old.unshaded, old.showGrid
-	e.carryBarRecordKeys(next, removed)
 	e.doc = next
 	e.cancelRestore, e.listRestore = nil, nil
 	e.clearSelection()
@@ -819,13 +816,7 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error, remove
 	nv.cam.Zoom, nv.cam.X, nv.cam.Y = old.cam.Zoom, old.cam.X, old.cam.Y
 	nv.cam.Clamp()
 	e.refreshBarReport()
-	e.selected = -1
-	for i, r := range next.Records {
-		if r.Kind == kind && r.Index == index {
-			e.selected = i
-			break
-		}
-	}
+	e.selected = e.linkedRecord(RecordRef{}, key)
 	e.refreshGroup()
 	e.message = ""
 	return nil

@@ -35,8 +35,8 @@ type recordsPaste struct {
 
 // adoptedGroup takes a group edit as the window takes it: its document, the
 // records it leaves selected and its note.
-func (e *MapEditor) adoptedGroup(r SelectionEdit, err error, removed ...RecordRef) (editorChange, error) {
-	if err := e.adoptSelection(r, err, removed...); err != nil {
+func (e *MapEditor) adoptedGroup(r SelectionEdit, err error) (editorChange, error) {
+	if err := e.adoptSelection(r, err); err != nil {
 		return editorChange{}, err
 	}
 	return editorChange{doc: r.Doc, group: &r}, nil
@@ -56,10 +56,7 @@ func (e *MapEditor) commandDeleteRecords(refs []RecordRef) (editorChange, error)
 		return editorChange{}, errNoEditHost
 	}
 	r, err := h.DeleteRecords(refs)
-	removed := slices.DeleteFunc(slices.Clone(refs), func(ref RecordRef) bool {
-		return slices.ContainsFunc(r.Refused, func(f SelectionRefusal) bool { return f.Ref == ref })
-	})
-	return e.adoptedGroup(r, err, removed...)
+	return e.adoptedGroup(r, err)
 }
 
 func (e *MapEditor) commandPaste(p recordsPaste) (editorChange, error) {

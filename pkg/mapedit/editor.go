@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"slices"
 
 	"againrom/pkg/formats/alm"
@@ -17,10 +18,12 @@ import (
 //
 // An Editor is a single-goroutine session and is not safe for concurrent use.
 type Editor struct {
-	data   []byte // the accepted stream
-	log    []edit // the accepted mutations, oldest first
-	cursor int    // len(log) with nothing undone; the redo boundary otherwise
-	setsAt []spellSets
+	data    []byte // the accepted stream
+	log     []edit // the accepted mutations, oldest first
+	cursor  int    // len(log) with nothing undone; the redo boundary otherwise
+	setsAt  []spellSets
+	keysAt  []map[int]recordIdentity
+	nextKey *uint64
 }
 
 // New loads an ALM byte stream into a fresh edit model.
@@ -43,7 +46,7 @@ func New(data []byte) (*Editor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mapedit: %w", err)
 	}
-	return &Editor{data: doc.Write(), setsAt: []spellSets{nil}}, nil
+	return &Editor{data: doc.Write(), setsAt: []spellSets{nil}, keysAt: []map[int]recordIdentity{{}}, nextKey: new(uint64)}, nil
 }
 
 // Bytes returns the current serialized map in a fresh buffer. Mutating it
@@ -82,7 +85,9 @@ func (e *Editor) onlySpellEdits() bool {
 // Clone preserves the complete undo/redo branch for a transactional edit.
 // Parts are immutable after creation; the log slice and current bytes are not.
 func (e *Editor) Clone() *Editor {
-	return &Editor{data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt)}
+	keys := slices.Clone(e.keysAt)
+	keys[e.cursor] = maps.Clone(keys[e.cursor])
+	return &Editor{data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey}
 }
 
 // Map returns the interpreted view of the current bytes: alm.Open of a fresh
@@ -109,6 +114,7 @@ func (e *Editor) Undo() bool {
 		return false
 	}
 	e.cursor--
+	e.keysAt[e.cursor] = maps.Clone(e.keysAt[e.cursor])
 	e.splice(e.log[e.cursor], revert)
 	return true
 }
@@ -122,6 +128,7 @@ func (e *Editor) Redo() bool {
 	}
 	e.splice(e.log[e.cursor], forward)
 	e.cursor++
+	e.keysAt[e.cursor] = maps.Clone(e.keysAt[e.cursor])
 	return true
 }
 
@@ -142,6 +149,7 @@ func (e *Editor) Squash(mark int) {
 	}
 	e.log = append(e.log[:mark], edit{replace(0, before.data, e.data)})
 	e.setsAt = append(e.setsAt[:mark+1], e.setsAt[e.cursor])
+	e.keysAt = append(e.keysAt[:mark+1], e.keysAt[e.cursor])
 	e.cursor = len(e.log)
 }
 
@@ -150,9 +158,10 @@ func (e *Editor) Squash(mark int) {
 // history entry depends neither on the buffer it was read out of nor on a
 // slice the caller may still change.
 type part struct {
-	off      int
-	removed  []byte
-	inserted []byte
+	off       int
+	removed   []byte
+	inserted  []byte
+	relocated map[int]int
 }
 
 // edit is one accepted mutation: the parts it writes, applied and reverted as
@@ -178,9 +187,16 @@ func replace(off int, removed, inserted []byte) part {
 // fail, which is why a rejection can have written and recorded nothing.
 func (e *Editor) apply(ed edit) {
 	sets := e.shiftSpellSets(ed)
+	keys := e.shiftRecordKeys(ed)
 	e.splice(ed, forward)
+	for at, identity := range keys {
+		if identity.cell && e.data[at] == 0 {
+			delete(keys, at)
+		}
+	}
 	e.log = append(e.log[:e.cursor], ed)
 	e.setsAt = append(e.setsAt[:e.cursor+1], sets)
+	e.keysAt = append(e.keysAt[:e.cursor+1], keys)
 	e.cursor = len(e.log)
 }
 
@@ -254,8 +270,9 @@ func (s span) abs(rel int) int { return s.payloadOff + rel }
 // accessors below are the only way to read the array: required for the ids
 // acceptance guarantees, optional for the ids it does not.
 type frame struct {
-	record  [alm.TypeIDCount]span
-	present [alm.TypeIDCount]bool
+	record   [alm.TypeIDCount]span
+	present  [alm.TypeIDCount]bool
+	physical []span
 }
 
 // required returns the record carrying typeId tid, for the three ids
@@ -322,8 +339,10 @@ func (e *Editor) locate() frame {
 		if size > uint64(len(e.data)-start) {
 			break
 		}
+		sp := span{headerOff: cursor, payloadOff: start, payloadSize: int(size)}
+		f.physical = append(f.physical, sp)
 		if tid := binary.LittleEndian.Uint32(e.data[cursor+alm.RecordTypeID:]); tid < alm.TypeIDCount {
-			f.record[tid] = span{headerOff: cursor, payloadOff: start, payloadSize: int(size)}
+			f.record[tid] = sp
 			f.present[tid] = true
 		}
 		cursor = start + int(size)

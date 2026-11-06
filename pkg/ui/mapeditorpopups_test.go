@@ -158,9 +158,9 @@ func popupEditor(t *testing.T) (*MapEditor, *popupHost) {
 			if g, err := strconv.Atoi(h.units[i]["group"]); err == nil {
 				group = g
 			}
-			d.Records = append(d.Records, InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: image.Pt(40+i, 40), Spatial: true, Size: image.Pt(1, 1), Label: h.units[i]["name"], Player: 1 + i/3, Group: group})
+			d.Records = append(d.Records, InspectionRecord{Key: uint64(i + 1), Kind: "Unit", Index: i, Section: 6, Cell: image.Pt(40+i, 40), Spatial: true, Size: image.Pt(1, 1), Label: h.units[i]["name"], Player: 1 + i/3, Group: group})
 		}
-		d.Records = append(d.Records, InspectionRecord{Kind: "Scenery", Index: 0, Section: 3, Cell: image.Pt(2, 2), Spatial: true, Size: image.Pt(1, 1), Label: "tree"})
+		d.Records = append(d.Records, InspectionRecord{Key: 100, Kind: "Scenery", Index: 0, Section: 3, Cell: image.Pt(2, 2), Spatial: true, Size: image.Pt(1, 1), Label: "tree"})
 		return d
 	}
 	h.commit()

@@ -56,6 +56,9 @@ func panelsEditor(t *testing.T, w, h int, lang string) (e *MapEditor, p *groupsP
 			Triggers: []InspectionTrigger{{Record: 7, Name: "Hide them", Acts: [4]uint32{1}}},
 			Targets:  map[uint32][]InspectionScriptTarget{scriptGroup: targets},
 		}
+		for i := range d.Records {
+			d.Records[i].Key = uint64(i + 1)
+		}
 		return d
 	}
 	p.doc = func(InspectionEdits) *InspectionDocument { return build("edited") }

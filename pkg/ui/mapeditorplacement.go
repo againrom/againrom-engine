@@ -57,15 +57,15 @@ func (r InspectionRecord) footprint() image.Rectangle {
 }
 
 // newRecords are the spatial records of d, the preview of the map after a
-// placement, past the last index of their kind the open document holds.
+// placement, whose host keys the open document does not hold.
 func (e *MapEditor) newRecords(d *InspectionDocument) []InspectionRecord {
-	next := map[RecordKind]int{}
+	seen := map[uint64]bool{}
 	for _, r := range e.doc.Records {
-		next[r.Kind] = max(next[r.Kind], r.Index+1)
+		seen[r.Key] = true
 	}
 	var out []InspectionRecord
 	for _, r := range d.Records {
-		if r.Spatial && r.Index >= next[r.Kind] {
+		if r.Spatial && r.Key != 0 && !seen[r.Key] {
 			out = append(out, r)
 		}
 	}

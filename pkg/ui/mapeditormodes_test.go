@@ -288,6 +288,9 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 			d.Records = append(d.Records, InspectionRecord{Kind: "Player", Index: i, Section: 5, Label: name,
 				Details: []string{"Name: " + name, fmt.Sprintf("Colour: %d", i), "Control: computer", "Relation to Self: hostile"}})
 		}
+		for i := range d.Records {
+			d.Records[i].Key = uint64(i + 1)
+		}
 		return d
 	}
 	base.doc = func(e InspectionEdits) *InspectionDocument { return build("edited", e) }

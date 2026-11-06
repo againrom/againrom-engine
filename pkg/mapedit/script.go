@@ -138,6 +138,7 @@ func (e *Editor) Reorder(k Kind, from, to int) error {
 	end, l := w.at(hi)
 	end += l
 	var next []byte
+	relocated := map[int]int{}
 	for i := lo; i <= hi; i++ {
 		j := i
 		if from < to {
@@ -154,9 +155,12 @@ func (e *Editor) Reorder(k Kind, from, to int) error {
 			}
 		}
 		at, n := w.at(j)
+		relocated[at] = start + len(next)
 		next = append(next, e.data[at:at+n]...)
 	}
-	e.apply(edit{replace(start, e.data[start:end], next)})
+	p := replace(start, e.data[start:end], next)
+	p.relocated = relocated
+	e.apply(edit{p})
 	return nil
 }
 

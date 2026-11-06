@@ -158,7 +158,7 @@ func (e *MapEditor) refreshGroup() {
 	e.groupSel = editorGroup{}
 }
 
-func (e *MapEditor) adoptEdit(next *InspectionDocument, err error, removed ...RecordRef) error {
+func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if err != nil {
 		e.message = err.Error()
 		return err
@@ -168,7 +168,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error, removed ...Re
 	}
 	e.saveNote, e.saveStatus = "", saveNotice{}
 	if e.terrainDiffers(next) {
-		return e.adoptTerrainEdit(next, nil, removed...)
+		return e.adoptTerrainEdit(next, nil)
 	}
 	e.clearSelection()
 	// A record edit does not change terrain. Retain the live viewer (camera,
@@ -177,24 +177,15 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error, removed ...Re
 	old.SetEntities(next.Viewer.entities)
 	old.adoptPlacements(next.Viewer)
 	next.Viewer = old
-	var kind RecordKind
-	index := -1
+	var key uint64
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
-		r := e.doc.Records[e.selected]
-		kind, index = r.Kind, r.Index
+		key = e.doc.Records[e.selected].Key
 	}
-	e.carryBarRecordKeys(next, removed)
 	e.doc = next
 	e.cancelRestore = nil
 	e.listRestore = nil
 	e.refreshBarReport()
-	e.selected = -1
-	for i, r := range next.Records {
-		if r.Kind == kind && r.Index == index {
-			e.selected = i
-			break
-		}
-	}
+	e.selected = e.linkedRecord(RecordRef{}, key)
 	e.refreshGroup()
 	e.message = ""
 	return nil

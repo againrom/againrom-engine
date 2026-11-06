@@ -33,7 +33,7 @@ func newMapEditorFixture(t *testing.T) *MapEditor {
 		}
 		d := &InspectionDocument{Viewer: v, Source: source, Width: 50, Height: 50, SourceBytes: []byte("untouched")}
 		for i := 0; i < 40; i++ {
-			d.Records = append(d.Records, InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: image.Pt(i+1, 20), Spatial: true, Size: image.Pt(1, 1)})
+			d.Records = append(d.Records, InspectionRecord{Key: uint64(i + 1), Kind: "Unit", Index: i, Section: 6, Cell: image.Pt(i+1, 20), Spatial: true, Size: image.Pt(1, 1)})
 		}
 		d.Records[30].Kind = "Sack"
 		return d, nil

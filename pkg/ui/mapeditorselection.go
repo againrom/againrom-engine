@@ -444,13 +444,13 @@ func (e *MapEditor) moveArea(offset image.Point) error {
 
 // adoptSelection takes a group edit: its document, the records it leaves
 // selected and its note. An edit that changed nothing keeps the group.
-func (e *MapEditor) adoptSelection(r SelectionEdit, err error, removed ...RecordRef) error {
+func (e *MapEditor) adoptSelection(r SelectionEdit, err error) error {
 	if err != nil {
 		e.message = err.Error()
 		return err
 	}
 	if r.Doc != nil {
-		if err := e.adoptEdit(r.Doc, nil, removed...); err != nil {
+		if err := e.adoptEdit(r.Doc, nil); err != nil {
 			return err
 		}
 		e.setSelection(r.Selected)

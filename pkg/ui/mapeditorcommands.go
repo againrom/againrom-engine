@@ -302,8 +302,8 @@ func editorCommandRows() []editorCommand {
 }
 
 // adopted takes the document a host operation returned.
-func (e *MapEditor) adopted(next *InspectionDocument, ref *RecordRef, removed ...RecordRef) (editorChange, error) {
-	_ = e.adoptEdit(next, nil, removed...)
+func (e *MapEditor) adopted(next *InspectionDocument, ref *RecordRef) (editorChange, error) {
+	_ = e.adoptEdit(next, nil)
 	return editorChange{doc: next, record: ref}, nil
 }
 
@@ -489,42 +489,13 @@ func newestOf(d *InspectionDocument, kind RecordKind) *RecordRef {
 }
 
 func (e *MapEditor) commandDelete(ref RecordRef) (editorChange, error) {
-	var kept *InspectionRecord
-	if e.selected >= 0 && e.selected < len(e.doc.Records) {
-		if r := e.doc.Records[e.selected]; r.Kind == KindStock || r.Kind == KindSack {
-			kept = &r
-		}
-	}
 	next, err := e.doc.Edits.Delete(ref.Kind, ref.Index)
 	if err != nil {
 		return editorChange{}, err
 	}
-	ch, err := e.adopted(next, &ref, ref)
+	ch, err := e.adopted(next, &ref)
 	ch.removed = true
-	if next != nil && kept != nil {
-		e.followLoot(*kept, ref)
-	}
 	return ch, err
-}
-
-// followLoot keeps a selected sack or stock selected across a delete that
-// moved its index: deleting a sack, a stock or the unit that owns a stock
-// lowers the index of the loot records after it. The record is found again by
-// its kind, label, cell and details, at its old index or the nearest lower
-// one; it is dropped when it is the record deleted or is gone.
-func (e *MapEditor) followLoot(was InspectionRecord, deleted RecordRef) {
-	e.selected = -1
-	if was.Kind == deleted.Kind && was.Index == deleted.Index {
-		return
-	}
-	best := -1
-	for i, r := range e.doc.Records {
-		if r.Kind == was.Kind && r.Index <= was.Index && r.Label == was.Label && r.Cell == was.Cell &&
-			slices.Equal(r.Details, was.Details) && (best < 0 || r.Index > e.doc.Records[best].Index) {
-			best = i
-		}
-	}
-	e.selected = best
 }
 
 func (e *MapEditor) commandSetDropCell(cell image.Point) (editorChange, error) {
@@ -672,12 +643,7 @@ func (e *MapEditor) commandHistory(redo bool) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
-	e.barRecords.history = -1
-	if redo {
-		e.barRecords.history = 1
-	}
 	ch, _ := e.adopted(next, nil)
-	e.barRecords.history = 0
 	e.refreshMessagePage()
 	return ch, nil
 }
@@ -1754,18 +1720,18 @@ func differs[T comparable](a, b []T, i int, part func(T) T) bool {
 // the host stores by reference differs when its stored bytes do, any other
 // when its list entry does.
 func changedRecords(before, after []InspectionRecord, was, now map[RecordRef][]byte) []RecordRef {
-	old := map[RecordRef]InspectionRecord{}
+	old := map[uint64]InspectionRecord{}
 	for _, r := range before {
 		r.Preview = nil
-		old[RecordRef{Kind: r.Kind, Index: r.Index}] = r
+		old[r.Key] = r
 	}
 	out := []RecordRef{}
 	for _, r := range after {
 		ref := RecordRef{Kind: r.Kind, Index: r.Index}
 		r.Preview = nil
-		prior, ok := old[ref]
-		delete(old, ref)
-		storedWas, okWas := was[ref]
+		prior, ok := old[r.Key]
+		delete(old, r.Key)
+		storedWas, okWas := was[RecordRef{Kind: prior.Kind, Index: prior.Index}]
 		storedNow, okNow := now[ref]
 		switch {
 		case !ok:
@@ -1779,9 +1745,9 @@ func changedRecords(before, after []InspectionRecord, was, now map[RecordRef][]b
 		}
 	}
 	for _, r := range before {
-		if ref := (RecordRef{Kind: r.Kind, Index: r.Index}); old[ref].Kind != "" {
+		if ref := (RecordRef{Kind: r.Kind, Index: r.Index}); old[r.Key].Kind != "" {
 			out = append(out, ref)
-			delete(old, ref)
+			delete(old, r.Key)
 		}
 	}
 	return out

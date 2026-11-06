@@ -23,6 +23,9 @@ func barWindowEditor(t *testing.T) (*MapEditor, *modesCalls) {
 	h := &barPanelHost{e.doc.Edits.(*placeableHost)}
 	h.self, e.doc.Edits = h, h
 	e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: KindEnchantment, Index: 0, Label: "trap", Spatial: true, Cell: image.Pt(8, 8), Size: image.Pt(1, 1)})
+	for i := range e.doc.Records {
+		e.doc.Records[i].Key = uint64(i + 1)
+	}
 	e.closeList()
 	e.closeObject()
 	e.places[popList].at = image.Pt(8, e.barHeight()+8)

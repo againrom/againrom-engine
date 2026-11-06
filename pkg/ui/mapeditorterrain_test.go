@@ -67,12 +67,12 @@ func terrainEditor(t *testing.T) (*MapEditor, *terrainHost, *[]string) {
 		}
 		d := &InspectionDocument{Viewer: v, Source: "scenario/10.alm", Width: terrainSide, Height: terrainSide, SourceBytes: []byte("map"), Edits: edits}
 		d.Records = []InspectionRecord{
-			{Kind: "Unit", Index: 0, Section: 6, Cell: image.Pt(10, 10), Spatial: true, Size: image.Pt(1, 1)},
-			{Kind: "Unit", Index: 1, Section: 6, Cell: image.Pt(30, 30), Spatial: true, Size: image.Pt(1, 1)},
+			{Key: 1, Kind: "Unit", Index: 0, Section: 6, Cell: image.Pt(10, 10), Spatial: true, Size: image.Pt(1, 1)},
+			{Key: 2, Kind: "Unit", Index: 1, Section: 6, Cell: image.Pt(30, 30), Spatial: true, Size: image.Pt(1, 1)},
 		}
 		for i, b := range h.objects {
 			if b != 0 {
-				d.Records = append(d.Records, InspectionRecord{Kind: "Scenery", Section: 3, Index: i, Cell: image.Pt(i%terrainSide, i/terrainSide), Spatial: true, Size: image.Pt(1, 1)})
+				d.Records = append(d.Records, InspectionRecord{Key: uint64(i + 100), Kind: "Scenery", Section: 3, Index: i, Cell: image.Pt(i%terrainSide, i/terrainSide), Spatial: true, Size: image.Pt(1, 1)})
 			}
 		}
 		return d

@@ -24,12 +24,12 @@ func (h *ghostHost) PreviewPlacement(r InspectionNewRecord) (*InspectionDocument
 	d.Records = slices.Clone(h.base.Records)
 	square := image.Rectangle{Min: r.Cell, Max: r.Cell.Add(image.Pt(2, 2))}
 	if r.Clip != nil {
-		d.Records = append(d.Records, InspectionRecord{Kind: "Unit", Index: 2, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1), Footprint: square})
+		d.Records = append(d.Records, InspectionRecord{Key: 100, Kind: "Unit", Index: 2, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1), Footprint: square})
 		east := r.Cell.Add(image.Pt(4, 0))
 		d.Refused = []SelectionRefusal{{Ref: RecordRef{Kind: "Structure", Index: 0}, Footprint: image.Rectangle{Min: east, Max: east.Add(image.Pt(3, 2))}}}
 		return &d, nil
 	}
-	d.Records = append(d.Records, InspectionRecord{Kind: r.Kind, Index: 2, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1), Footprint: square})
+	d.Records = append(d.Records, InspectionRecord{Key: 100, Kind: r.Kind, Index: 2, Cell: r.Cell, Spatial: true, Size: image.Pt(1, 1), Footprint: square})
 	if h.refuse {
 		return &d, fmt.Errorf("footprint overlaps another object")
 	}

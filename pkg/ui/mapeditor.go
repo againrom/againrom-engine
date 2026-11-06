@@ -27,6 +27,7 @@ var editorWarning = color.RGBA{0xb8, 0x5e, 0x46, 255}
 var editorCondition = color.RGBA{0x78, 0xb6, 0xc2, 255}
 
 type InspectionRecord struct {
+	Key            uint64 // host-owned session identity, restored with document history
 	Kind           RecordKind
 	Section, Index int // original section and file-order index (cell index for type 3)
 	Label          string
@@ -226,7 +227,6 @@ type MapEditor struct {
 	filter                      int
 	barSets                     map[string]barWindowSet
 	barOwner                    string
-	barRecords                  barRecordKeys
 	editorMode                  // the window's mode: catalogue, prompt, pick, brush and report
 	message                     string
 	down, moved                 bool
@@ -318,8 +318,6 @@ func (e *MapEditor) openMap(source string) error {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.barSets, e.barOwner = nil, ""
-	e.barRecords = barRecordKeys{}
-	e.barRecordKey(RecordRef{})
 	e.saveStatus = saveNotice{}
 	e.cancelRestore = nil
 	e.listRestore = nil

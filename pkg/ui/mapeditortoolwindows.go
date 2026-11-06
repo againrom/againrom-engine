@@ -13,7 +13,7 @@ type barWindowSet struct {
 	selection           []uint64
 	page                uint32
 	metadata            string
-	document            [32]byte
+	document            *InspectionDocument
 	report              reportState
 	brush               brushState
 	add                 barAddWindow
@@ -39,14 +39,10 @@ func (e *MapEditor) barWindowSet() barWindowSet {
 		brush: e.brush, report: e.barReportCopy(), places: e.places,
 		gridTop: e.place.top, brushTop: e.place.brushTop}
 	s.record.group.members = nil
-	if e.doc != nil {
-		s.document = barRecordState(e.doc)
-	}
-	s.record.identity = e.barRecordKey(RecordRef{Kind: s.record.kind, Index: s.record.index})
+	s.document = e.doc
 	s.back = slices.Clone(e.objectBack)
 	for i := range s.back {
 		s.back[i].draft, s.back[i].group.members = nil, nil
-		s.back[i].identity = e.barRecordKey(RecordRef{Kind: s.back[i].kind, Index: s.back[i].index})
 	}
 	s.brush.endStroke()
 	s.brush.forest.ticks = maps.Clone(e.brush.forest.ticks)
@@ -135,7 +131,7 @@ func (e *MapEditor) restoreBarWindows(s barWindowSet) {
 	if s.report.open {
 		e.openReport(s.report.rows, s.report.note, s.report.goals)
 		e.report.sel, e.report.copies, e.report.hint = s.report.sel, s.report.copies, s.report.hint
-		if e.doc != nil && s.document != barRecordState(e.doc) {
+		if s.document != e.doc {
 			e.refreshBarReport()
 		}
 	}
