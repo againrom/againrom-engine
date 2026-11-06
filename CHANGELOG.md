@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor Ctrl+Left/Right and Ctrl+Shift+Left/Right use the same word and punctuation stops as Ctrl+Backspace/Delete, including around underscores.
 - [BASE] In the map editor the Scenario palette no longer has a New variable button; choose New variable in a trigger's variable field instead, and the variable appears in the list.
 - [BASE] In the map editor the Units grid has a Creatures / People switch at its top: it shows one set of units at a time, starts on Creatures and keeps the last choice while the editor is open.
 - [BASE] In the map editor a click on empty ground inside a trigger's area on the map no longer selects that trigger and clears the selection, as anywhere else; a click on the trigger's label above its area selects it.

@@ -133,13 +133,13 @@ func TestEditorRepeatKeepsDelayWhenChoiceChangesText(t *testing.T) {
 func TestEditorWordJumps(t *testing.T) {
 	var m TextInputState
 	m.reset("Latin, два_3! four")
-	for _, want := range []string{"Latin, два_3! ", "Latin, ", ""} {
+	for _, want := range []string{"Latin, два_3! ", "Latin, два_3", "Latin, два_", "Latin, два", "Latin, ", "Latin", ""} {
 		m.move("left", true, false)
 		if got := string([]rune(m.Text)[:m.Caret]); got != want {
 			t.Fatalf("Ctrl+Left: %q, want %q", got, want)
 		}
 	}
-	for _, want := range []string{"Latin, ", "Latin, два_3! ", "Latin, два_3! four"} {
+	for _, want := range []string{"Latin", "Latin,", "Latin, два", "Latin, два_", "Latin, два_3", "Latin, два_3!", "Latin, два_3! four"} {
 		m.move("right", true, false)
 		if got := string([]rune(m.Text)[:m.Caret]); got != want {
 			t.Fatalf("Ctrl+Right: %q, want %q", got, want)

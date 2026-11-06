@@ -200,7 +200,16 @@ func (m *TextInputState) selectAll() {
 	}
 }
 
-func editorWord(r rune) bool { return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' }
+func editorWordClass(r rune) int {
+	switch {
+	case unicode.IsSpace(r):
+		return 0
+	case unicode.IsLetter(r) || unicode.IsDigit(r):
+		return 1
+	default:
+		return 2
+	}
+}
 
 func editorLineEnd(r []rune, at int) bool {
 	return r[at] == '\n' || r[at] == '\r' && (at+1 == len(r) || r[at+1] == '\n')
@@ -221,26 +230,17 @@ func (m *TextInputState) move(key string, ctrl, shift bool) {
 	} else {
 		switch key {
 		case "left":
-			at = max(0, at-1)
-			if !m.rules.SplitLineBreaks && !ctrl && at > 0 && r[at] == '\n' && r[at-1] == '\r' {
-				at--
-			}
 			if ctrl {
-				for at > 0 && !editorWord(r[at]) {
-					at--
-				}
-				for at > 0 && editorWord(r[at-1]) {
+				at = m.deleteWordEdge(true)
+			} else {
+				at = max(0, at-1)
+				if !m.rules.SplitLineBreaks && at > 0 && r[at] == '\n' && r[at-1] == '\r' {
 					at--
 				}
 			}
 		case "right":
 			if ctrl {
-				for at < len(r) && editorWord(r[at]) {
-					at++
-				}
-				for at < len(r) && !editorWord(r[at]) {
-					at++
-				}
+				at = m.deleteWordEdge(false)
 			} else {
 				if !m.rules.SplitLineBreaks && at+1 < len(r) && r[at] == '\r' && r[at+1] == '\n' {
 					at += 2
@@ -346,22 +346,12 @@ func (m *TextInputState) deleteWordEdge(back bool) int {
 	if back {
 		end, step, offset = 0, -1, -1
 	}
-	class := func(c rune) int {
-		switch {
-		case unicode.IsSpace(c):
-			return 0
-		case unicode.IsLetter(c) || unicode.IsDigit(c):
-			return 1
-		default:
-			return 2
-		}
-	}
-	for at != end && class(r[at+offset]) == 0 {
+	for at != end && editorWordClass(r[at+offset]) == 0 {
 		at += step
 	}
 	if at != end {
-		kind := class(r[at+offset])
-		for at != end && class(r[at+offset]) == kind {
+		kind := editorWordClass(r[at+offset])
+		for at != end && editorWordClass(r[at+offset]) == kind {
 			at += step
 		}
 	}
