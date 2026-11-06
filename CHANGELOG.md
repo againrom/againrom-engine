@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.148.0
+
 ### For players
 
 - [ROM2] A town shop shows its room and its goods again and buys and sells; after New Game the shop page showed no shop picture and nothing could be bought.
