@@ -4182,5 +4182,5 @@ var Committed = Baseline{
 	// tests, the new secondobjective*, secondmapobjectives,
 	// questobjectiverows and scenariobank test files; and this note, net of
 	// the removed text-mark and caption comments.
-	CommentBytes: 10567208,
+	CommentBytes: 10568439,
 }
