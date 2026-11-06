@@ -258,11 +258,8 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			}
 			w.clearOrder(ci)
 			c.Started, c.Remaining = true, castWindupTicks(*e)
-			if ti := indexOfEntity(w.entities, c.Target); !c.AtCell && ti >= 0 {
-				w.turnToActor(ci, ti)
-			} else {
-				w.turnToCell(ci, c.X, c.Y)
-			}
+			atCell := c.AtCell || indexOfEntity(w.entities, c.Target) < 0
+			w.turnToCastAim(ci, c.Target, atCell, c.X, c.Y)
 			w.startSpellAction(ci)
 			k++
 			continue

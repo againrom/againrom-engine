@@ -93,6 +93,19 @@ func (w *World) turnToCell(i int, x, y int32) bool {
 	return w.turnTo(i, heading(cellHeading(w.entities[i].X, w.entities[i].Y, x, y)))
 }
 
+// turnToCastAim turns i toward a cast's aim before its wind-up: the cell of a
+// cast at a cell, the unit of a unit cast. The original installs a cast only
+// once the caster's facing equals that heading (MOVE-107, MAGIC-340, AI-446);
+// a cast at the caster itself keeps its facing. Its result says the cast
+// waits.
+func (w *World) turnToCastAim(i int, target EntityID, atCell bool, x, y int32) bool {
+	if atCell {
+		return w.turnToCell(i, x, y)
+	}
+	ti := indexOfEntity(w.entities, target)
+	return ti >= 0 && w.turnToActor(i, ti)
+}
+
 func (w *World) turnToStep(i int, x, y int32) bool {
 	return w.turnTo(i, heading(w.stepHeading(w.entities[i], x, y)))
 }

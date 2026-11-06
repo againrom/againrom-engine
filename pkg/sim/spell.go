@@ -1603,7 +1603,7 @@ func (w *World) beginBookSpellMode(ci int, victim EntityID, spellID uint32, reta
 	w.entities[ci].AdmittedBookSpell = uint16(spellID)
 	// Facing is part of admission: a refusal above writes nothing, and target
 	// movement during wind-up cannot restart or retarget this action.
-	w.turnToActor(ci, indexOfEntity(w.entities, victim))
+	w.turnToCastAim(ci, victim, false, 0, 0)
 	if c.Phase == bookCharging {
 		w.chargeBookCast(ci, rule)
 	}
@@ -1832,7 +1832,7 @@ func (w *World) beginBookSpellAtMode(ci int, x, y int32, spellID uint32, retaine
 		return false
 	}
 	w.entities[ci].AdmittedBookSpell = uint16(spellID)
-	w.turnToCell(ci, x, y)
+	w.turnToCastAim(ci, 0, true, x, y)
 	if c.Phase == bookCharging {
 		w.chargeBookCast(ci, rule)
 	}
@@ -1896,6 +1896,9 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging,
 				castWindupTicks(w.entities[ci]), 0, false
 			rule, _ := w.bookSpell(w.entities[ci], uint32(c.Spell))
+			// A retained order re-entering faces its aim again, as each
+			// install passes the facing gate.
+			w.turnToCastAim(ci, c.Target, c.AtCell, c.X, c.Y)
 			w.chargeBookCast(ci, rule)
 			i++
 			continue
@@ -1947,7 +1950,13 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 			continue
 		}
-		if w.entities[ci].Turning() && c.Target != c.Caster {
+		held := w.entities[ci].Turning() && c.Target != c.Caster
+		if !held && c.Remaining == castWindupTicks(w.entities[ci]) {
+			// The wind-up starts only facing the aim: a stop that cut the
+			// turn turns the caster again.
+			held = w.turnToCastAim(ci, c.Target, c.AtCell, c.X, c.Y)
+		}
+		if held {
 			if obs != nil {
 				obs.held = append(obs.held, c.Caster)
 			}

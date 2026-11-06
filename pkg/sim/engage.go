@@ -150,6 +150,11 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	case falls && knowsSpell(e, fallback):
 		id = fallback
 	default:
+		// A walk with nothing affordable is a miss: the engage's attack
+		// replaces the retained order, as the hand-back's does.
+		if w.game.emptyWalkEngages && !w.castOwned(r) {
+			w.dropCastApproach(i)
+		}
 		return false
 	}
 	// The draw read no cast state, so a cast that owns the mage takes the

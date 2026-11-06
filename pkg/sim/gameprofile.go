@@ -76,6 +76,10 @@ type gameProfile struct {
 	blowOrdersAttack bool
 	// bookWalkAll: the engage book walk takes every row and has no fallback.
 	bookWalkAll bool
+	// emptyWalkEngages: a computer mage's book walk that selects no spell
+	// ends the retained cast order, so the engage's attack replaces it
+	// (R2-ENGINE-902).
+	emptyWalkEngages bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
 	// savedProjectileAim: a projectile aims at the saved target point, not
@@ -152,6 +156,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		releaseRevalidates:         true,
 		blowOrdersAttack:           true,
 		bookWalkAll:                true,
+		emptyWalkEngages:           true,
 		postKeepsDying:             true,
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,

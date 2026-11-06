@@ -317,11 +317,7 @@ func (w *World) startApproachedCast(i int, c *bookCast) {
 	rule, _ := w.bookSpell(caster, uint32(c.Spell))
 	c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging, castWindupTicks(caster), 0, false
 	c.Retained = retained
-	if c.AtCell {
-		w.turnToCell(i, c.X, c.Y)
-	} else if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {
-		w.turnToActor(i, ti)
-	}
+	w.turnToCastAim(i, c.Target, c.AtCell, c.X, c.Y)
 	w.chargeBookCast(i, rule)
 }
 

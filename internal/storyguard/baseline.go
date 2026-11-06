@@ -4190,5 +4190,11 @@ var Committed = Baseline{
 	// holder and secondUnitMageFlags in pkg/game/savform.go, knownMask and
 	// UnitMaskMage in pkg/mapload/spell.go, the new
 	// pkg/game/secondcreaturemage_test.go, and this note.
-	CommentBytes: 10570526,
+
+	// It rises for a second-game mage's empty book walk and a cast's turn:
+	// emptyWalkEngages in pkg/sim/gameprofile.go, the miss in engage.go,
+	// turnToCastAim in heading.go, the re-entry and wind-up turns in
+	// spell.go, the new pkg/sim/mageemptywalk_test.go and
+	// castfacing_test.go, and this note.
+	CommentBytes: 10574309,
 }

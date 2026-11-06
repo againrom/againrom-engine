@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Enemy casters out of mana for their spellbook strike with their staff instead of standing and waiting for mana, and every caster turns to face its target before it casts.
 - [ROM2] The original game now loads our saves with necromancers that still cast spells from their staff and their spellbook.
 - [ROM2] Quest Objectives lists each opened goal with the original's box, tick or cross, and a finished goal plays a sound instead of showing a caption. A save made in a mission now keeps the goals opened there.
 - [ROM2] Escape on the world map skips the current journey, or leaves the map open when no journey is running.
@@ -35,6 +36,7 @@ modder or developer can notice gets no entry.
 - [BASE] A cell trap now fires when a character steps onto it, not before.
 - [BASE] A popup now darkens the whole screen, with no undimmed edge: the right column and the bottom boxes darken with the map.
 - [ROM2] A merchant in the second game sometimes speaks about an item you move from the shelf to the table.
+- [ROM1] Enemy casters and spellcasting creatures turn to face their target before they start a spell.
 
 ### For map makers and modders
 
