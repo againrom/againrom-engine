@@ -36,6 +36,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor the Units grid has a Creatures / People switch at its top: it shows one set of units at a time, starts on Creatures and keeps the last choice while the editor is open.
+- [BASE] In the map editor a click on empty ground inside a trigger's area on the map no longer selects that trigger and clears the selection, as anywhere else; a click on the trigger's label above its area selects it.
 - [BASE] Ctrl+Backspace and Ctrl+Delete remove a whole word before or after the caret in the dialogue editor and other map editor text fields.
 - [BASE] Switching tools on the map editor's top bar puts away the windows of the tool you leave and brings them back when you return.
 - [BASE] In the map editor the Units grid shows creatures and people in two blocks, a row per creature type with each variant in its own colours, and people grouped as NPC, others, heroes and PC.

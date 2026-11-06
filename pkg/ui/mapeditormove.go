@@ -243,16 +243,14 @@ func (e *MapEditor) hitsAt(p image.Point) []int {
 	return hits
 }
 
+// selectAt is a map press at p: a record under it is selected, the next of
+// several under it on a second press. Bare ground clears the selection,
+// inside a trigger area too: only the area's label selects the trigger.
 func (e *MapEditor) selectAt(p image.Point) {
 	hits := e.hitsAt(p)
 	if len(hits) == 0 {
 		e.selected = -1
 		e.clearSelection()
-		if x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y)); ok {
-			if t, ok := e.areaAt(image.Pt(x, y)); ok {
-				e.selectTrigger(t, false)
-			}
-		}
 		return
 	}
 	chosen := hits[0]

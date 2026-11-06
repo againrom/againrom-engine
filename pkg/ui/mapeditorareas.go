@@ -8,8 +8,9 @@ import (
 
 // The triggers on the map: every place a trigger's conditions and actions
 // name is outlined in that trigger's colour and labelled with its number and
-// name. The selected trigger's areas are gold; a click on an area or its
-// label selects the trigger. The Layers menu shows or hides them.
+// name. The selected trigger's areas are gold; a click on its label selects
+// the trigger, a click inside an area does not. The Layers menu shows or
+// hides them.
 
 // areaInks tell overlapping triggers apart; gold is the selection's.
 var areaInks = []color.RGBA{
@@ -213,13 +214,6 @@ func (e *MapEditor) areaUnder(cell image.Point) (InspectionArea, bool) {
 		}
 	}
 	return best, found
-}
-
-// areaAt is the trigger of the smallest area covering cell, false when no
-// area does.
-func (e *MapEditor) areaAt(cell image.Point) (int, bool) {
-	a, ok := e.areaUnder(cell)
-	return a.Trigger, ok
 }
 
 // selectTrigger selects trigger t and opens its popup.

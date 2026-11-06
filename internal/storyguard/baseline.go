@@ -4152,5 +4152,17 @@ var Committed = Baseline{
 	// and the loaded stamp test in pkg/sim/groupstrikeroute_test.go.
 	// The shared shop state removes the separate state and rules comments.
 	// Whole-basket buying shortens the obsolete prefix-buy comments.
-	CommentBytes: 10553958,
+
+	// It rises for the trigger area press test in
+	// pkg/ui/mapeditorareapress_test.go and this note.
+
+	// It rises for selectAt's doc comment in pkg/ui/mapeditormove.go and
+	// this note, net of the removed areaAt.
+
+	// It rises for the clearing press in pkg/ui/mapeditorareapress_test.go
+	// and this note.
+
+	// It rises for wizNewTrigger's Scenario entry note in
+	// pkg/game/mapeditorwizard_test.go and this note.
+	CommentBytes: 10554983,
 }

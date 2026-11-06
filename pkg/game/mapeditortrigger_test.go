@@ -355,8 +355,13 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 	}
 	p := e.CellPoint(image.Pt(5, 6))
 	trigClick(t, e, image.Rect(p.X, p.Y, p.X+1, p.Y+1), true, "inside Near")
+	if n := e.Selected(); n != -1 {
+		t.Fatalf("a click in Near's area left %+v selected", e.Document().Records[n])
+	}
+	r, ok = e.AreaLabelRect(0)
+	trigClick(t, e, r, ok, "the Near label")
 	if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" || v.Index != 0 {
-		t.Fatalf("a click in the area selected %+v", v)
+		t.Fatalf("the Near label selected %+v", v)
 	}
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
 	r, ok = e.ToolbarRect("areas")

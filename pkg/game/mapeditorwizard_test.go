@@ -100,9 +100,17 @@ func wizNode(t *testing.T, nodes []alm.ScriptNode, id uint32) alm.ScriptNode {
 // name over the selected name of the trigger it opened.
 func wizNewTrigger(t *testing.T, e *ui.MapEditor, name string) {
 	t.Helper()
-	r, ok := e.BarRect("scripts")
-	trigClick(t, e, r, ok, "Scenario")
-	r, ok = e.ListButtonKeyRect("newtrigger")
+	// The Scenario entry is pressed only while its palette is closed. An
+	// open trigger window is the entry's own window: a press would close
+	// it and the next bring it back, so Esc closes it first.
+	if _, ok := e.ListButtonKeyRect("newtrigger"); !ok {
+		if len(e.PopupLines()) != 0 {
+			_ = e.Key("escape")
+		}
+		r, ok := e.BarRect("scripts")
+		trigClick(t, e, r, ok, "Scenario")
+	}
+	r, ok := e.ListButtonKeyRect("newtrigger")
 	trigClick(t, e, r, ok, "New trigger")
 	e.TextInput(name)
 	if !e.WizardShown() {
