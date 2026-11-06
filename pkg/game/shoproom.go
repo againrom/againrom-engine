@@ -207,12 +207,14 @@ func shopFindJoinPlace(table []ShopPlace, item ShopItem, mine bool, from ShopShe
 }
 
 // shopJoin is the page's rule for a lot joining a held table place or pack
-// stack: an equal item, admitted by the deal's join where its rules set one
-// (the second game's: a stackable item, R2-ENGINE-265). The first game's
-// rules set none, and the page folds every equal lot.
-func (t *shopController) shopJoin() func(held, lot ShopItem) bool {
+// stack: an equal item. A merchant's lot also needs the deal's join where
+// its rules set one (the second game's: a stackable item, R2-ENGINE-265);
+// the customer's units join as every pack merge joins them, equally
+// enchanted items included (DIV-1473, DIV-4584). The first game's rules set
+// no join.
+func (t *shopController) shopJoin(mine bool) func(held, lot ShopItem) bool {
 	var join func(a, b ShopItem) bool
-	if d := t.deal(); d != nil {
+	if d := t.deal(); d != nil && !mine {
 		join = d.rules().join
 	}
 	return func(held, lot ShopItem) bool {
@@ -237,7 +239,7 @@ func (t *shopController) shopFromShelf(i int, whole bool) ui.TownAction {
 	if whole || st.Count <= 1 {
 		n = st.Count
 	}
-	if idx, found := shopFindJoinPlace(t.deal().Table(), st, false, t.shopShelf, t.shopJoin()); found {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), st, false, t.shopShelf, t.shopJoin(false)); found {
 		if _, ok := t.deal().RemoveFromShelf(t.shopShelf, i, n); !ok {
 			return ui.TownAction{}
 		}
@@ -290,7 +292,7 @@ func (t *shopController) shopFromPack(i int, whole bool) ui.TownAction {
 	candidate := t.prepareOriginalCitySale(item, n)
 	shop := cloneShopMutation(t.deal())
 
-	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin()); found {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin(true)); found {
 		if !shop.growOwnedTablePlace(idx, shopItem) {
 			return ui.TownAction{}
 		}
@@ -1122,7 +1124,7 @@ func (t *shopController) shopUnequipToTableValues(slot int) ui.TownAction {
 		shopItem := shopItemFromInstance(item, 1)
 		shopItem.Price = t.shopItemValue(item)
 		shopItem = t.ownShopItem(shopItem, -1)
-		if idx, found := shopFindJoinPlace(trade.Table(), shopItem, true, 0, t.shopJoin()); found {
+		if idx, found := shopFindJoinPlace(trade.Table(), shopItem, true, 0, t.shopJoin(true)); found {
 			ok = trade.growOwnedTablePlace(idx, shopItem)
 		} else {
 			ok = trade.PutOnTable(shopItem)
@@ -1160,7 +1162,7 @@ func (t *shopController) shopUnequipToTableValues(slot int) ui.TownAction {
 	shopItem := shopItemFromInstance(item, 1)
 	shopItem.Price = price
 	shopItem = t.ownShopItem(shopItem, -1)
-	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin()); found {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin(true)); found {
 		if !t.deal().growOwnedTablePlace(idx, shopItem) {
 			return ui.TownAction{}
 		}
@@ -1253,7 +1255,7 @@ func (t *shopController) shopPackStacks() []sim.ItemStack {
 		return out
 	}
 	var out []sim.ItemStack
-	join := t.shopJoin()
+	join := t.shopJoin(true)
 	for _, item := range t.shopPackItemInstances() {
 		found := -1
 		for i := range out {

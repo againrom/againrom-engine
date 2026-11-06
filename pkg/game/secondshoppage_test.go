@@ -88,9 +88,10 @@ func TestSecondShopOlderLargeStackLoads(t *testing.T) {
 }
 
 // TestSecondShopPageKeepsUnstackableLotsApart stages two equal enchanted
-// items and two units of one book through the page: each is its own table
-// place. A short purse refuses both; an affordable pair stays apart in the
-// bag view and each offered book opens its own place.
+// items and two units of one book through the page: each merchant's lot is
+// its own table place. A short purse refuses both; an affordable pair of
+// books is one stack of two in the bag view, and the two offered books join
+// one place (DIV-1473).
 func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	armour := secondshop.Item{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Effects: []sim.ItemEffect{{Kind: 15, Operand: 4}}, Count: 1, Price: 901}
 	c := secondShopSample()
@@ -124,12 +125,12 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	s.sess.Town.gold = 2000
 	s.click(ui.ShopControlButton, 1)
 	v := s.ShopScreen()
-	if len(*c.heroBag()) != 2 || v.Pack[1].Count != 1 || v.Pack[2].Count != 1 {
+	if len(*c.heroBag()) != 2 || v.Pack[1].Count != 2 || v.Pack[2].Count != 0 {
 		t.Fatalf("two books in the bag view: bag %d cells %d %d", len(*c.heroBag()), v.Pack[1].Count, v.Pack[2].Count)
 	}
 	s.click(ui.ShopControlPackCell, 1)
 	s.click(ui.ShopControlPackCell, 1)
-	if got := c.shop.selling(); len(got) != 2 || got[0].Count != 1 || got[1].Count != 1 {
+	if got := c.shop.selling(); len(got) != 1 || got[0].Count != 2 {
 		t.Fatalf("two offered books: %v", got)
 	}
 }
