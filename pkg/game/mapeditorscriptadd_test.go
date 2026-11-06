@@ -186,13 +186,26 @@ func variableTarget(t *testing.T, e *ui.MapEditor) uint32 {
 	return 0
 }
 
-// newVariable adds a variable through the Scenario palette's New variable
-// and labels it label.
-func newVariable(t *testing.T, e *ui.MapEditor, label string) {
+// newVariable makes a variable the way a map maker does: a new Add 1 action
+// of the second trigger takes the host's New variable choice, and Label...
+// then labels the register.
+func newVariable(t *testing.T, e *ui.MapEditor, w func(string, ...any) string, label string) {
 	t.Helper()
-	scenarioButtonClick(t, e, "newvariable")
+	r0 := variableTarget(t, e)
+	e.Select(trigRecord(t, e, "Trigger", 1), true)
+	wizPress(t, e, "+action", 0)
+	last := -1
+	for n := 0; e.WizardField(fmt.Sprintf("a%d.item", n)) >= 0; n++ {
+		last = n
+	}
+	trigChoose(t, e, wizField(t, e, fmt.Sprintf("a%d.item", last)), w("editor.wizard.a.addvar"))
+	trigChoose(t, e, wizField(t, e, fmt.Sprintf("a%d.p0", last)), w("editor.param.newvariable"))
+	wizApply(t, e)
+	openVariable(t, e, w("editor.scripts.variable", r0))
+	r, ok := e.PopupButtonRect(0)
+	trigClick(t, e, r, ok, "Label...")
 	if keys := addWalk(t, e, map[string]string{"label": label}, ""); !slices.Equal(keys, []string{"label"}) {
-		t.Fatalf("New variable asked %q", keys)
+		t.Fatalf("Label... asked %q", keys)
 	}
 }
 
@@ -212,28 +225,32 @@ func treeHas(e *ui.MapEditor, text string) bool {
 	}
 }
 
-// New variable asks a label and takes the register the host's allocator
-// offers; the variable is listed at once, before any node addresses it, and
-// its window says no trigger uses it. The label shows in the list, in the
-// wizard's and Details' variable choices and in a wizard row's text; a new
-// condition after it takes another register, and so does a second
-// variable. Label... edits the label, Clear label clears it, and the row
-// then reads Variable N. EN and RU.
+// A variable a trigger's New variable choice makes takes the register the
+// host's allocator offers; it is listed in the tree and in the Scenario
+// palette, and its window does not say no trigger uses it. The label shows in
+// the list, in the wizard's and Details' variable choices and in a wizard
+// row's text; a new condition after it takes another register, and so does a
+// second variable. Label... edits the label, Clear label clears it, and the
+// row then reads Variable N. EN and RU.
 func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 	b := scriptAddMap(t)
 	for _, l := range scriptAddLangs {
 		e, _, w := scriptAddEditor(t, l, b)
 		r0 := variableTarget(t, e)
-		newVariable(t, e, "Gold")
-		if got := e.Document().Script.Labels[r0]; got != "Gold" || !bytes.Equal(e.Document().SourceBytes, b) || !e.Dirty() {
-			t.Fatalf("%s: register %d labelled %q; the map bytes moved %v; dirty %v", l.name, r0, got, !bytes.Equal(e.Document().SourceBytes, b), e.Dirty())
+		newVariable(t, e, w, "Gold")
+		if got := e.Document().Script.Labels[r0]; got != "Gold" || !e.Dirty() {
+			t.Fatalf("%s: register %d labelled %q; dirty %v", l.name, r0, got, e.Dirty())
 		}
 		title := w("editor.scripts.variable", r0) + "  Gold"
-		if lines := e.PopupLines(); e.Selected() > -2 || !slices.Contains(lines, w("editor.labels.unused")) {
+		if lines := e.PopupLines(); e.Selected() > -2 || slices.Contains(lines, w("editor.labels.unused")) {
 			t.Fatalf("%s: the new variable's window shows %q (selected %d)", l.name, lines, e.Selected())
 		}
 		if !treeHas(e, title) {
 			t.Fatalf("%s: the list lacks %q: %q", l.name, title, e.TreeLines())
+		}
+		scenarioOpen(t, e)
+		if !slices.Contains(e.ListLines(), "  "+title) && !slices.Contains(e.ListLines(), title) {
+			t.Fatalf("%s: the palette lacks %q: %q", l.name, title, e.ListLines())
 		}
 
 		// The wizard's variable choice names it; the row then shows it.
@@ -279,7 +296,7 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 
 		// A second variable takes another register.
 		r1 := variableTarget(t, e)
-		newVariable(t, e, "Silver")
+		newVariable(t, e, w, "Silver")
 		if r1 == r0 || e.Document().Script.Labels[r1] != "Silver" || int(r1) < len(e.Document().Script.Conditions) {
 			t.Fatalf("%s: the second variable took register %d (first %d)", l.name, r1, r0)
 		}
@@ -344,23 +361,23 @@ func TestScriptsVariableLabelsFileBesideTheMap(t *testing.T) {
 	b := scriptAddMap(t)
 	for _, l := range scriptAddLangs {
 		dir := t.TempDir()
-		e, x, _ := scriptAddEditor(t, l, b)
+		e, x, w := scriptAddEditor(t, l, b)
 		r0 := variableTarget(t, e)
-		newVariable(t, e, "Gold")
+		newVariable(t, e, w, "Gold")
 		target := filepath.Join(dir, "labelled.alm")
 		if _, err := e.Document().Edits.SaveAs(target); err != nil {
 			t.Fatal(err)
 		}
 		saved, err := os.ReadFile(target)
-		if err != nil || !bytes.Equal(saved, b) {
-			t.Fatalf("%s: the labelled save's map bytes differ from the map: %v", l.name, err)
+		if err != nil || !bytes.Equal(saved, e.Document().SourceBytes) {
+			t.Fatalf("%s: the labelled save's map bytes differ from the edited map: %v", l.name, err)
 		}
 		labels, err := os.ReadFile(filepath.Join(dir, "labelled.variables"))
 		if want := fmt.Sprintf("{\n  \"variables\": [\n    {\n      \"register\": %d,\n      \"label\": \"Gold\"\n    }\n  ]\n}\n", r0); err != nil || string(labels) != want {
 			t.Fatalf("%s: the label file holds %q (%v), want %q", l.name, labels, err, want)
 		}
 
-		plain, _, _ := scriptAddEditor(t, l, b)
+		plain, _, _ := scriptAddEditor(t, l, saved)
 		bare := filepath.Join(dir, "plain.alm")
 		if _, err := plain.Document().Edits.SaveAs(bare); err != nil {
 			t.Fatal(err)

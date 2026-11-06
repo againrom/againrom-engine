@@ -130,7 +130,6 @@ var addKinds = []addKindRow{
 	// trigger's first free pair as that item's row.
 	{Kind: KindCondition, Word: "editor.add.condition", Steps: []addStep{
 		{Key: "check", Word: "editor.wizard.condition", Control: addItem, Editor: true}, addTrigger}},
-	{Kind: KindVariable, Word: "editor.add.variable", Steps: []addStep{addLabel}},
 }
 
 var (

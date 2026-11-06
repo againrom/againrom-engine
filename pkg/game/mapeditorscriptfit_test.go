@@ -102,7 +102,7 @@ func TestScriptsPopupButtonsFitTheirCaptions(t *testing.T) {
 		check("listed condition", []string{"editor.button.apply", "editor.button.cancel", "editor.scripts.totrigger"})
 
 		r0 := variableTarget(t, e)
-		newVariable(t, e, "Gold")
+		newVariable(t, e, w, "Gold")
 		openVariable(t, e, w("editor.scripts.variable", r0)+"  Gold")
 		check("variable", []string{"editor.labels.edit", "editor.labels.clear", "editor.button.cancel"})
 	}

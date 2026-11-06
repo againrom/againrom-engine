@@ -1076,8 +1076,7 @@ func (e *MapEditor) dockedNoteWidth() int {
 }
 
 // listButtons are the keys and captions of the records list's buttons: on
-// the Scenario list the drop zone tool's switch, then New trigger and New
-// variable; Add where another list adds.
+// the Scenario list the drop zone tool's switch, then New trigger; Add where another list adds.
 func (e *MapEditor) listButtons() []menuItem {
 	var out []menuItem
 	if e.filter == editorCellSpellsFilter {
@@ -1110,7 +1109,6 @@ var scenarioNew = []struct {
 	kind      RecordKind
 }{
 	{"newtrigger", "editor.tool.newtrigger", KindTrigger},
-	{"newvariable", "editor.add.variable", KindVariable},
 }
 
 // ListButtonKeyRect is the window rectangle of the records list's button
@@ -2295,7 +2293,7 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				case "add":
 					row, _ := e.listAdd()
 					e.openAdd(row.Kind)
-				case scenarioNew[0].key, scenarioNew[1].key:
+				case scenarioNew[0].key:
 					for _, kind := range scenarioNew {
 						if kind.key == bs[n].key {
 							e.addNow(kind.kind)

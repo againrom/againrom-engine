@@ -69,7 +69,7 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				t.Fatalf("the %s palette did not open", c.key)
 			}
 			if c.key == "scripts" {
-				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 3 || s.Buttons[1] != e.word("editor.tool.newtrigger") || s.Buttons[2] != e.word("editor.add.variable") || s.List == nil {
+				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 2 || s.Buttons[1] != e.word("editor.tool.newtrigger") || s.List == nil {
 					t.Errorf("the scripts palette %q %q, list %v", s.Notes, s.Buttons, s.List != nil)
 				}
 				return

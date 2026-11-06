@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor the Scenario palette no longer has a New variable button; choose New variable in a trigger's variable field instead, and the variable appears in the list.
 - [BASE] In the map editor the Units grid has a Creatures / People switch at its top: it shows one set of units at a time, starts on Creatures and keeps the last choice while the editor is open.
 - [BASE] In the map editor a click on empty ground inside a trigger's area on the map no longer selects that trigger and clears the selection, as anywhere else; a click on the trigger's label above its area selects it.
 - [BASE] In the map editor the unit window is shorter: Kind and Player head its first column, the bag is an Add item pick over the bag's numbered items, and the figure stands at the game's own size. The Basic / Detailed switch now sits at the left of the bottom button row; the cell, facing, dialogue speaker, map keys and hint lines are gone, and their values are kept.

@@ -10,15 +10,13 @@ import (
 // The Add window's script steps the editor offers and checks itself, from
 // the wizard's item table and the script it holds: a condition is a wizard
 // item's check placed in a trigger's first free pair as the item's row, a
-// condition no pair names goes into a trigger the same way, and a variable
-// is a labelled register the host's allocator gives.
+// condition no pair names goes into a trigger the same way, and a variable's
+// label is edited in the Add window.
 
 // InspectionVariableLabels is implemented by a host that keeps the
-// mapmaker's labels of variable registers. NewVariable labels the register
-// the host offers as the new variable and answers it; LabelVariable sets a
-// variable's label, an empty label clearing it. Each is one history entry.
+// mapmaker's labels of variable registers. LabelVariable sets a variable's
+// label, an empty label clearing it, as one history entry.
 type InspectionVariableLabels interface {
-	NewVariable(label string) (*InspectionDocument, uint32, error)
 	LabelVariable(register uint32, label string) (*InspectionDocument, error)
 }
 
@@ -31,15 +29,12 @@ func (e *MapEditor) variableLabels() (InspectionVariableLabels, bool) {
 }
 
 // addKindOpen reports whether the Add window adds kind on this map: a
-// condition needs the script the editor reads, a variable also a host that
-// keeps labels; every other kind is the host's.
+// condition needs the script the editor reads; every other kind is the
+// host's.
 func (e *MapEditor) addKindOpen(kind RecordKind) bool {
 	switch kind {
 	case KindCondition:
 		return e.doc != nil && e.doc.Script != nil
-	case KindVariable:
-		_, ok := e.variableLabels()
-		return ok && e.doc.Script != nil
 	}
 	return true
 }
@@ -165,7 +160,7 @@ func (e *MapEditor) scriptStepOffer(r *addRun, i int) InspectionNewStep {
 				}
 			}
 		}
-		return InspectionNewStep{Text: e.plainWord("editor.add.variable")}
+		return InspectionNewStep{}
 	}
 	item := e.addItemOf(r)
 	if item < 0 {
@@ -338,10 +333,9 @@ func (e *MapEditor) addToTrigger(v scriptView) {
 	e.openAddRun(run)
 }
 
-// addVariableFinish makes the run's new variable, or labels the variable it
-// relabels, and shows it.
+// addVariableFinish labels the variable the run relabels and shows it.
 func (e *MapEditor) addVariableFinish(r *addRun) {
-	_, register, err := e.commandLabelVariable(r.relabel, e.addStepText(r, addLabel.Key))
+	_, register, err := e.commandLabelVariable(*r.relabel, e.addStepText(r, addLabel.Key))
 	if err != nil {
 		r.note = e.editorHostText(err.Error())
 		return
@@ -350,27 +344,18 @@ func (e *MapEditor) addVariableFinish(r *addRun) {
 	e.selectVariable(register)
 }
 
-// commandLabelVariable labels register, nil the host's new variable, and
-// answers the register labelled.
-func (e *MapEditor) commandLabelVariable(register *uint32, label string) (editorChange, uint32, error) {
+// commandLabelVariable labels register and answers it.
+func (e *MapEditor) commandLabelVariable(register uint32, label string) (editorChange, uint32, error) {
 	host, ok := e.variableLabels()
 	if !ok {
 		return editorChange{}, 0, errNoEditHost
 	}
-	var next *InspectionDocument
-	var err error
-	var r uint32
-	if register == nil {
-		next, r, err = host.NewVariable(label)
-	} else {
-		r = *register
-		next, err = host.LabelVariable(r, label)
-	}
+	next, err := host.LabelVariable(register, label)
 	if err != nil {
 		return editorChange{}, 0, err
 	}
 	ch, err := e.adopted(next, nil)
-	return ch, r, err
+	return ch, register, err
 }
 
 // selectVariable selects the Variables row of register, or nothing when no
@@ -408,7 +393,7 @@ func (e *MapEditor) variableButton(v scriptVariableView, n int) {
 		if v.label == "" {
 			return
 		}
-		if _, _, err := e.commandLabelVariable(&v.register, ""); err != nil {
+		if _, _, err := e.commandLabelVariable(v.register, ""); err != nil {
 			e.message = err.Error()
 			return
 		}

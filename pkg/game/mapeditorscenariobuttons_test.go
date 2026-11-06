@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"againrom/pkg/ui"
-	"againrom/pkg/words"
 )
 
 // scenarioButtonClick presses the Scenario palette's button key.
@@ -83,8 +82,8 @@ func TestMapEditorScenarioPaletteListsOnlyTheRecordRows(t *testing.T) {
 	}
 }
 
-// The palette's buttons are the drop zone switch, New trigger and New
-// variable, in that row; Add is gone.
+// The palette's buttons are the drop zone switch and New trigger, in
+// that row; Add is gone.
 func TestMapEditorScenarioPaletteButtonKeys(t *testing.T) {
 	b := scriptAddMap(t)
 	window := image.Rect(0, 0, 1920, 1080)
@@ -92,7 +91,7 @@ func TestMapEditorScenarioPaletteButtonKeys(t *testing.T) {
 		e, _, _ := scriptAddEditor(t, l, b)
 		scenarioOpen(t, e)
 		var rects []image.Rectangle
-		for _, k := range []string{"drop", "newtrigger", "newvariable"} {
+		for _, k := range []string{"drop", "newtrigger"} {
 			r, ok := e.ListButtonKeyRect(k)
 			if !ok || !r.In(window) {
 				t.Fatalf("%s: button %s shows %v at %v", l.name, k, ok, r)
@@ -101,6 +100,9 @@ func TestMapEditorScenarioPaletteButtonKeys(t *testing.T) {
 		}
 		if _, ok := e.ListButtonKeyRect("add"); ok {
 			t.Fatalf("%s: the palette still has Add", l.name)
+		}
+		if _, ok := e.ListButtonKeyRect("newvariable"); ok {
+			t.Fatalf("%s: the palette still has New variable", l.name)
 		}
 		for i := 1; i < len(rects); i++ {
 			if rects[i].Overlaps(rects[i-1]) || rects[i].Min.X < rects[i-1].Max.X || rects[i].Min.Y != rects[i-1].Min.Y {
@@ -139,55 +141,6 @@ func TestMapEditorScenarioNewTriggerButtonAddsInOneClick(t *testing.T) {
 	}
 }
 
-// One click on New variable adds the variable with the label proposal on the
-// register the host offers, selects it, opens the label for editing with the
-// text selected, so typing replaces it, and one undo removes it. EN and RU.
-func TestMapEditorScenarioNewVariableButtonAddsInOneClick(t *testing.T) {
-	b := scriptAddMap(t)
-	for _, l := range scriptAddLangs {
-		t.Run(l.name, func(t *testing.T) {
-			proposal := words.For(l.profile.Language).Text("editor.add.variable")
-			e, _, _ := scriptAddEditor(t, l, b)
-			r0 := variableTarget(t, e)
-			scenarioButtonClick(t, e, "newvariable")
-			if got := e.Document().Script.Labels[r0]; got != proposal || !e.Dirty() || !bytes.Equal(e.Document().SourceBytes, b) {
-				t.Fatalf("register %d labelled %q, want %q; dirty %v", r0, got, proposal, e.Dirty())
-			}
-			if e.Selected() > -2 {
-				t.Fatalf("the new variable is not selected: %d", e.Selected())
-			}
-			if key, _, ok := e.AddStep(); !ok || key != "label" {
-				t.Fatalf("the label is not open for editing: %q %v", key, ok)
-			}
-			if r1 := variableTarget(t, e); r1 == r0 {
-				t.Fatalf("the next variable takes register %d again", r1)
-			}
-
-			c, _, _ := scriptAddEditor(t, l, b)
-			scenarioButtonClick(t, c, "newvariable")
-			c.TextInput("Gold")
-			if err := c.Key("enter"); err != nil {
-				t.Fatal(err)
-			}
-			if got := c.Document().Script.Labels[r0]; got != "Gold" {
-				t.Fatalf("typing over the selection left %q", got)
-			}
-
-			u, _, _ := scriptAddEditor(t, l, b)
-			scenarioButtonClick(t, u, "newvariable")
-			if err := u.Key("escape"); err != nil {
-				t.Fatal(err)
-			}
-			if err := u.Key("undo"); err != nil {
-				t.Fatal(err)
-			}
-			if len(u.Document().Script.Labels) != 0 || u.Dirty() {
-				t.Fatalf("one undo left labels %v, dirty %v", u.Document().Script.Labels, u.Dirty())
-			}
-		})
-	}
-}
-
 // No route opens the script Add window: the A key on the palette, the
 // wizard's New (which adds the one-click trigger) and F4.
 func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
@@ -217,41 +170,21 @@ func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
 func TestMapEditorScenarioWindowsReturnAfterSwitch(t *testing.T) {
 	b := scriptAddMap(t)
 	for _, l := range scriptAddLangs {
-		for _, key := range []string{"newtrigger", "newvariable"} {
-			t.Run(l.name+"/"+key, func(t *testing.T) {
-				e, _, _ := scriptAddEditor(t, l, b)
-				scenarioButtonClick(t, e, key)
-				before := slices.Clone(e.Document().SourceBytes)
-				e.TextInput("discard me")
-				r, ok := e.BarRect("units")
-				trigClick(t, e, r, ok, "Units")
-				r, ok = e.BarRect("scripts")
-				trigClick(t, e, r, ok, "Scenario")
-				if !bytes.Equal(e.Document().SourceBytes, before) || len(e.ListLines()) == 0 || strings.Contains(trigLines(e), "discard me") {
-					t.Fatal("return lost the palette, kept a draft or wrote the map")
-				}
-				if key == "newtrigger" {
-					if !e.WizardShown() {
-						t.Fatal("the trigger wizard did not return")
-					}
-				} else {
-					if step, _, ok := e.AddStep(); !ok || step != "label" {
-						t.Fatal("the variable label window did not return")
-					}
-					_ = e.Key("selectall")
-					e.TextInput("Gold")
-					if err := e.Key("enter"); err != nil {
-						t.Fatal(err)
-					}
-					found := false
-					for _, label := range e.Document().Script.Labels {
-						found = found || label == "Gold"
-					}
-					if !found {
-						t.Fatal("the returned label window did not edit its variable")
-					}
-				}
-			})
-		}
+		t.Run(l.name, func(t *testing.T) {
+			e, _, _ := scriptAddEditor(t, l, b)
+			scenarioButtonClick(t, e, "newtrigger")
+			before := slices.Clone(e.Document().SourceBytes)
+			e.TextInput("discard me")
+			r, ok := e.BarRect("units")
+			trigClick(t, e, r, ok, "Units")
+			r, ok = e.BarRect("scripts")
+			trigClick(t, e, r, ok, "Scenario")
+			if !bytes.Equal(e.Document().SourceBytes, before) || len(e.ListLines()) == 0 || strings.Contains(trigLines(e), "discard me") {
+				t.Fatal("return lost the palette, kept a draft or wrote the map")
+			}
+			if !e.WizardShown() {
+				t.Fatal("the trigger wizard did not return")
+			}
+		})
 	}
 }

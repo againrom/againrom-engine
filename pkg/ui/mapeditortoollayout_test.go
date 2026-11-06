@@ -118,20 +118,19 @@ func TestMapEditorObjectsAndTreesEntriesOpenTheObjectBrush(t *testing.T) {
 }
 
 // The Scenario list's bottom row holds the Drop zones toggle left of New
-// trigger and New variable; it
-// turns the drop tool on and off and shows its state. No menu holds Drop
-// zones or Draw trigger area; the toolbar and L reach the area tool, which
-// on this map without a script says so.
+// trigger; it turns the drop tool on and off and shows its state. No menu
+// holds Drop zones or Draw trigger area; the toolbar and L reach the area
+// tool, which on this map without a script says so.
 func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.showRecords(editorScriptsFilter)
 	e.places[popObject].at = image.Pt(0, e.window.Y) // a selected record's popup stands clear of the list
 	s, ok := e.listSpec()
-	if !ok || !slices.Equal(s.Buttons, []string{"[ ] Drop zones (D)", "New trigger", "New variable"}) {
+	if !ok || !slices.Equal(s.Buttons, []string{"[ ] Drop zones (D)", "New trigger"}) {
 		t.Fatalf("the Scenario list's buttons are %q", s.Buttons)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	if len(l.Buttons) != 3 || l.Buttons[0].Max.X > l.Buttons[1].Min.X || e.font.Advance(s.Buttons[0]) > l.Buttons[0].Dx() {
+	if len(l.Buttons) != 2 || l.Buttons[0].Max.X > l.Buttons[1].Min.X || e.font.Advance(s.Buttons[0]) > l.Buttons[0].Dx() {
 		t.Fatalf("the toggle does not stand whole left of the add buttons: %v", l.Buttons)
 	}
 	modesClick(e, center(l.Buttons[0]))
