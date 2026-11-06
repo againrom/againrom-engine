@@ -377,7 +377,7 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	// The two siege mercenary types use their exact Units rows at mission
 	// minting time, including the row's secondary key.
 	for typ := 1; typ <= 2; typ++ {
-		members, ok := buildSiegeSquad(f.Table, typ, 1)
+		members, ok := hireMembers(&tavernHires, hireState{table: f.Table}, typ, 1)
 		if !ok || len(members) != 1 {
 			t.Fatalf("production siege type %d did not resolve", typ)
 		}

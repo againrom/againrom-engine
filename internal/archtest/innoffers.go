@@ -10,12 +10,14 @@ import (
 )
 
 // The inn offers scan: innOffers builds an inn's or tavern's options from
-// the catalog's offer rows, innHires the hires and ChapterOffer a tavern
-// row. An option or row literal elsewhere under pkg/ is a second producer;
-// a type TavernRow or InnRow is a second row type.
-var innOfferBuilders = map[string]bool{"pkg/game/innoffers.go:innOffers": true, "pkg/game/innoffers.go:innHires": true, "pkg/town/inn.go:ChapterOffer": true}
+// the catalog's offer rows, hireOffers the hires from the hire rows,
+// tavernMercenaries projects them to the tavern's offers and ChapterOffer
+// builds a tavern row. An option or row literal elsewhere under pkg/ is a
+// second producer; a type TavernRow or InnRow is a second row type.
+var innOfferBuilders = map[string]bool{"pkg/game/innoffers.go:innOffers": true, "pkg/game/hire.go:hireOffers": true,
+	"pkg/game/tavern.go:tavernMercenaries": true, "pkg/town/inn.go:ChapterOffer": true}
 
-var innOfferTypes = map[string]bool{"innOffer": true, "OfferRow": true}
+var innOfferTypes = map[string]bool{"innOffer": true, "OfferRow": true, "TavernOffer": true}
 
 var secondOfferRowTypes = map[string]bool{"TavernRow": true, "InnRow": true}
 

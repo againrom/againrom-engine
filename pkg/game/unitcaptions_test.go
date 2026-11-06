@@ -99,12 +99,12 @@ func TestCampaignHireNamesUseTheTypeWithoutChangingState(t *testing.T) {
 	for id := 1; id <= len(keys); id++ {
 		town.second.bank[511+id], town.second.bank[531+id] = 1, 1
 	}
-	party, err := (secondCampaignRules{}).missionParty(nil, town, f.Table)
+	party, err := enterHires(secondCampaignRules{}, nil, town, f.Table)
 	if err != nil || len(party) != len(keys) {
 		t.Fatal("campaign party", len(party), err)
 	}
 	for i, p := range party {
-		built, ok := mapload.CampaignActor(f.Table, mapload.CampaignActorSpec{Profile: keyedCampaignActor, Identity: i + 1, Stage: 70, Hire: true}, nil)
+		built, ok := mapload.CampaignActor(f.Table, mapload.CampaignActorSpec{Profile: bankHires.rows[i].arm, Identity: i + 1, Stage: 70, Hire: true}, nil)
 		if !ok || p.Name != keys[i] || !reflect.DeepEqual(p, built) {
 			t.Fatalf("hire %d did not use its template: %+v", i+1, p)
 		}
@@ -179,7 +179,7 @@ func TestFirstPartyOwnNameKeepsItsDisplay(t *testing.T) {
 	f := cellStateFront(t)
 	f.Words = LoadInstallWords(installFixture{UnitNameTextPath: textFile(81, map[int]string{33: "Fixture first type"})}, TextCode{}).Words()
 	party := []mapload.PartyMember{{Name: "Authored first hero", Class: 33, PlayerCharacter: true}}
-	party, err := (firstCampaignRules{}).missionParty(party, nil, f.Table)
+	party, err := enterHires(firstCampaignRules{}, party, nil, f.Table)
 	if err != nil {
 		t.Fatal(err)
 	}

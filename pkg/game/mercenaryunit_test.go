@@ -206,7 +206,7 @@ func mercenaryHumansRow(name string, typeID, face, gender int32) mercenaryHumans
 // THE THREE ASSERTED FIELDS ARE WHAT THE RENDERER READS. terrain.UnitSet's own
 // doc states the rule: a member with no Body misses the Bodies map and is drawn
 // from the class record its Class names, which is how a placed person is drawn
-// and how buildSiegeSquad's Catapult and Ballista already were.
+// and how the siege hire rows' Catapult and Ballista already were.
 //
 // HIS FIGURE IS ASSERTED TOO, and it is the field that did NOT move. A placed
 // person's wire class byte is gender+0x21 or gender+0x23, so he takes the hero
@@ -221,9 +221,9 @@ func TestBuildMercenarySquadGivesAHiredHumanHisOwnRowIdentity(t *testing.T) {
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.NewBodyList("unarmed")}, CampaignSession: CampaignSession{Town: NewTown(c)}}
 	s := f.TownScreen().(*townScreen)
 
-	members, ok := s.buildMercenarySquad(3, 2)
+	members, ok := s.tavernSquad(3, 2)
 	if !ok || len(members) != 2 {
-		t.Fatalf("buildMercenarySquad(3, 2) = %d members, ok %v", len(members), ok)
+		t.Fatalf("tavernSquad(3, 2) = %d members, ok %v", len(members), ok)
 	}
 	wantDir, wantFace := data.FigureFor(typeID, face, gender)
 	for i, m := range members {
@@ -300,9 +300,9 @@ func TestBuildMercenarySquadCarriesTheHiredRowsOwnRotationSpeed(t *testing.T) {
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.NewBodyList("unarmed")}, CampaignSession: CampaignSession{Town: NewTown(c)}}
 	s := f.TownScreen().(*townScreen)
 
-	members, ok := s.buildMercenarySquad(11, 1)
+	members, ok := s.tavernSquad(11, 1)
 	if !ok || len(members) != 1 {
-		t.Fatalf("buildMercenarySquad(11, 1) = %d members, ok %v", len(members), ok)
+		t.Fatalf("tavernSquad(11, 1) = %d members, ok %v", len(members), ok)
 	}
 	m := members[0]
 	if m.Class != npc11TypeID {

@@ -340,7 +340,7 @@ func ordinaryActorName(member mapload.PartyMember, table *mapload.Table) string 
 // per file, health 120 at hire; SAV-617: one new group under the Player).
 // Neither claim reads the Name field itself, so this is not a wire-format
 // fact -- it is this tree's own read-side counterpart of the exact template
-// string buildMercenarySquad (tavern.go) already writes at hire time,
+// string hireMembers (hire.go) already writes at hire time,
 // fmt.Sprintf("NPC%02d_%d", typ, level), reused verbatim rather than
 // re-derived by a second parser. The full round-trip equality (not just a
 // prefix or a partial Sscanf count) rejects a name that merely starts the
@@ -353,7 +353,7 @@ func mercenaryHireTypeFromName(name string) (int, bool) {
 	if name != fmt.Sprintf("NPC%02d_%d", typ, level) {
 		return 0, false
 	}
-	// buildMercenarySquad routes typ<=2 to buildSiegeSquad instead (Catapult/
+	// The hire rows route typ<=2 to a Units row instead (Catapult/
 	// Ballista, a Units-table Unit(0x198) record, MERC-LEVEL-005) -- a
 	// different wire class SAV-608's retraction does not cover. Only 3..15
 	// name a Human(0x1e8) mercenary this function's caller may treat as

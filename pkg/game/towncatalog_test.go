@@ -215,7 +215,7 @@ func stateLeaks(one, two *Town) []string {
 	offers, pool, hired := one.Offers(TownTavern), one.MercenaryPool(1), one.MercenaryHired(1)
 	two.gold = 1 << 20
 	two.Take(TownTavern, 0)
-	two.mercenaryHire(1, 0)
+	two.squadDeal(1, 0, false).run()
 	var leaks []string
 	if one.MercenaryHired(1) != hired {
 		leaks = append(leaks, "hire")

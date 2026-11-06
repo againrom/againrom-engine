@@ -398,7 +398,7 @@ func TestMercenaryKeepsItsTemplateMagicStaffInStatsAndEquipment(t *testing.T) {
 	f.Table.Shapes, f.Table.Materials = emptyScale{}, emptyScale{}
 	s := f.townUI
 
-	members, ok := s.buildMercenarySquad(3, 1)
+	members, ok := s.tavernSquad(3, 1)
 	if !ok || len(members) != 1 {
 		t.Fatalf("mage mercenary build = %d members, %v", len(members), ok)
 	}

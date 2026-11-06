@@ -60,7 +60,7 @@ func TestReleaseTownFidelity1192(t *testing.T) {
 		f.Carried = f.NextParty()
 		s := f.TownScreen().(*townScreen)
 		for typ := 1; typ <= 2; typ++ {
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok {
 				t.Fatal("missing siege", typ)
 			}

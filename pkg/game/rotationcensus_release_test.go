@@ -17,14 +17,14 @@ import (
 // types (adversarial return round 3, second P2 instance: this test's own
 // first cut excluded typ <= 2 with the comment "siege units, not Humans
 // rows" -- true about the collection, and the reason the population never
-// saw buildSiegeSquad's missing HiredRotationSpeed at all).
+// saw the siege squad's missing HiredRotationSpeed at all).
 //
 // A Humans template's expected value is data.NewHumanDef(template,
 // ...).RotationSpeed, read by data.FindHumanByName off the row's own name --
 // never through data.FindHumanByType, which is the many-to-one lookup round
 // 2's own P2 was the defect in. A siege type's expected value is read off its
-// own Units row by name (Catapult, Ballista), the collection buildSiegeSquad
-// itself resolves against; a Units TypeID is absent from Humans entirely, so
+// own Units row by name (Catapult, Ballista), the collection the siege hire
+// rows resolve against; a Units TypeID is absent from Humans entirely, so
 // there is no by-TypeID comparison to make for these two.
 func TestReleaseEveryReachableMercenaryCarriesItsOwnRotationSpeed(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
@@ -80,7 +80,7 @@ func TestReleaseEveryReachableMercenaryCarriesItsOwnRotationSpeed(t *testing.T) 
 				}
 				ownRotation := def.RotationSpeed
 
-				members, ok := s.buildMercenarySquad(typ, 1)
+				members, ok := s.tavernSquad(typ, 1)
 				if !ok || len(members) != 1 {
 					t.Fatalf("mission %d type %d production template is unavailable", mission, typ)
 				}
@@ -123,7 +123,7 @@ func TestReleaseEveryReachableMercenaryCarriesItsOwnRotationSpeed(t *testing.T) 
 				differFromByTypeID++
 			}
 
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok || len(members) != 1 {
 				t.Fatalf("mission %d type %d production template is unavailable", mission, typ)
 			}

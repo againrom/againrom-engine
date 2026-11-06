@@ -133,15 +133,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	output := -1
 	c.bank = bank
 	secondDepartureReset(&c.bank)
-	for i := 0; i < 20; i++ {
-		if c.bank[532+i] != 0 {
-			sim.SetScenario(&c.bank, int64(532+i), 1)
-			if c.bank[512+i] != 0 {
-				sim.SetScenario(&c.bank, int64(532+i), 2)
-			}
-		}
-		sim.SetScenario(&c.bank, int64(512+i), 0)
-	}
+	departHires(&c.bank)
 	sim.SetScenario(&c.bank, int64(896+n), 1)
 	remaining := c.available[:0]
 	for _, l := range c.available {
@@ -205,7 +197,7 @@ func (t *townScreen) innAct(c *secondCampaign, row int) ui.TownAction {
 	}
 	npc := seats[i].npc
 	fired := c.hired(npc)
-	key := c.hireOrFire(npc)
+	key := c.seatHire(npc)
 	switch {
 	case fired:
 		t.raiseShownRoomEvent(roomEventDismiss)

@@ -1495,7 +1495,7 @@ func canonicalizePartyAppearance(ms *Mission, units *terrain.UnitSet, src entryS
 		// player character's appearance law and it ran over every party member, so
 		// it restored the composed hero sheet at every mission open even for a
 		// member the tavern had built correctly. He is drawn from his own class
-		// record; see buildMercenarySquad.
+		// record; see hireMembers.
 		if member.Hired() {
 			continue
 		}

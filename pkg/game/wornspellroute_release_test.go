@@ -63,7 +63,7 @@ func TestReleaseTavernHireWearsTheBuiltStaffSpell(t *testing.T) {
 			if raw[0].SourceEquipment.Spell.Present {
 				t.Fatalf("control: template %s's row Weapon already holds a Spell", template)
 			}
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok || len(members) != 1 {
 				t.Fatalf("template %s is unavailable", template)
 			}

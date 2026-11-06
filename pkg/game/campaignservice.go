@@ -51,7 +51,6 @@ type campaignService interface {
 	statesCampaign(s *currentSessionData) bool
 	// canEnter reports whether mission n is a destination the town offers.
 	canEnter(town *Town, n int) bool
-	missionParty(party []mapload.PartyMember, town *Town, table *mapload.Table) ([]mapload.PartyMember, error)
 	// enterMission records that mission n is under way.
 	enterMission(town *Town, n int)
 	// seatWorld gives a fresh mission's world the campaign's own state.
@@ -90,6 +89,9 @@ type campaignService interface {
 	// files are the readers of the installed files the two games lay out
 	// differently.
 	files() *gameFiles
+	// hires is the hire state town's mission entry reads: its pools, and
+	// the campaign's bank where the game keeps one.
+	hires(town *Town, table *mapload.Table) hireState
 	// routeStages is the route witness's step table.
 	routeStages() []routeStage
 	// censusRefusal refuses a census of the campaign's maps: the census

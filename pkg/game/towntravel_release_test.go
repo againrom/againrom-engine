@@ -48,7 +48,7 @@ func TestReleaseTwoTownSaveLoadsIntoTheSecondTown(t *testing.T) {
 	reachabilityWalkArrive(t, f, "Travel Hero")
 	hired := 0
 	for typ := 1; typ < len(f.Town.mercPool) && hired == 0; typ++ {
-		if _, ok := f.Town.mercenaryHire(typ, 0); ok {
+		if _, ok, _ := f.Town.squadDeal(typ, 0, false).run(); ok {
 			hired = typ
 		}
 	}

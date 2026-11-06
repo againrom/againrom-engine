@@ -149,6 +149,8 @@ type gameFiles struct {
 	objectives objectivesProfile
 	// generator is the game's hero generator row (chargen.go).
 	generator generatorProfile
+	// hire is the game's hire rows, moment and cost (hire.go).
+	hire *hireProfile
 }
 
 func (f *gameFiles) spellTakesBody(id uint32) bool {
@@ -184,6 +186,7 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
+	hire:              &tavernHires,
 	hover:             ui.KindRectangleHover,
 	cursorHotspots:    firstCursorHotspots,
 	portraitWindows:   portraitWindowProfile{fallback: ui.AuthoredDialogueLayout().PortraitWindow},
@@ -233,6 +236,7 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
+	hire:           &bankHires,
 	hover:          ui.KindRectangleHover,
 	cursorHotspots: secondCursorHotspots,
 	portraitWindows: portraitWindowProfile{

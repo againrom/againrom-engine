@@ -25,30 +25,10 @@ func (t *townScreen) tavernMercenaries() []TavernOffer {
 	if t == nil || t.sess == nil || t.sess.Town == nil {
 		return nil
 	}
-	listed := make(map[int]bool)
-	for _, typ := range t.sess.Town.ChapterData().Mercenaries {
-		listed[typ] = true
-	}
 	var out []TavernOffer
-	for _, typ := range tavernStockWalk(t.sess.Town.tavernStockIDs) {
-		if !listed[typ] || !t.sess.Town.MercenaryEnabled(typ) || t.sess.Town.mercenaryHiredElsewhere(typ) {
-			continue
-		}
-		count := t.sess.Town.MercenaryPool(typ)
-		hired := t.sess.Town.MercenaryHired(typ)
-		if count <= 0 {
-			continue
-		}
-		capacity := t.sess.Town.MercenaryCapacity(typ)
-		if capacity < count {
-			capacity = count
-		}
-		price, ok := t.mercenaryPrice(typ, count)
-		if !ok {
-			continue
-		}
-		out = append(out, TavernOffer{Type: typ, Count: count, Capacity: capacity, Price: price,
-			Hired: hired, Affordable: hired || price <= t.sess.Town.Gold()})
+	for _, o := range innOffers(nil, innState{hire: &tavernHires, home: t.sess.Town, table: t.in.Table}) {
+		out = append(out, TavernOffer{Type: o.npc, Count: o.count, Capacity: o.capacity, Price: o.price,
+			Hired: o.high, Affordable: o.affordable})
 	}
 	return out
 }
@@ -191,87 +171,70 @@ func (t *townScreen) toggleMercenary(typ int) (string, bool) {
 	if t == nil || t.sess == nil || t.sess.Town == nil {
 		return "tavern unavailable", false
 	}
-	if t.sess.Town.MercenaryHired(typ) {
-		count := t.mercenaryPartyCount(typ)
-		price, ok := t.mercenaryPrice(typ, t.sess.Town.MercenaryPool(typ))
-		if !ok || !t.sess.Town.mercenaryReturn(typ, count, price) {
+	tw := t.sess.Town
+	if tw.MercenaryHired(typ) {
+		price, ok := t.mercenaryPrice(typ, tw.MercenaryPool(typ))
+		if !ok {
 			return "the squad cannot be returned", false
 		}
-		var returned []string
-		kept := t.sess.Carried[:0]
-		for _, member := range t.sess.Carried {
-			if int(member.MercenaryType) != typ {
-				kept = append(kept, member)
-			} else {
-				returned = append(returned, member.ID)
-			}
+		d := tw.squadDeal(typ, price, true)
+		d.party = &t.sess.Carried
+		_, ok, returned := d.run()
+		if !ok {
+			return "the squad cannot be returned", false
 		}
-		t.sess.Carried = kept
-		t.sess.Town.refundCityGroups(t.sess.Carried, returned)
+		tw.refundCityGroups(t.sess.Carried, returned)
 		t.clampTownMember()
 		t.composeShopFaces()
 		return "", true
 	}
 
-	count := t.sess.Town.MercenaryPool(typ)
+	count := tw.MercenaryPool(typ)
 	price, ok := t.mercenaryPrice(typ, count)
 	if !ok {
 		return "mercenary data unavailable", false
 	}
-	members, ok := t.buildMercenarySquad(typ, count)
+	members, ok := t.tavernSquad(typ, count)
 	if !ok {
 		return "mercenary template unavailable", false
 	}
-	if _, ok := t.sess.Town.mercenaryHire(typ, price); !ok {
+	d := tw.squadDeal(typ, price, false)
+	d.party, d.members = &t.sess.Carried, members
+	if _, ok, _ := d.run(); !ok {
 		return "the squad cannot be hired", false
 	}
-	t.sess.Carried = mapload.OwnParty(append(t.sess.Carried, members...))
-	t.sess.Town.settleCityGroups(t.sess.Carried)
+	tw.settleCityGroups(t.sess.Carried)
 	t.composeShopFaces()
 	return "", true
+}
+
+// squadDeal is the tavern's deal for type typ's whole squad at price: a gold
+// cost from the town's purse and the type's hired flag, refused while
+// another town holds the type or the pool is empty. fire dismisses it.
+func (t *Town) squadDeal(typ, price int, fire bool) hireDeal {
+	row, ok := tavernHires.row(typ)
+	d := hireDeal{fire: fire, cost: tavernHires.cost, price: price, row: row}
+	if t == nil || !ok || typ >= len(t.mercPool) {
+		return d
+	}
+	d.purse, d.held = &t.gold, &t.mercHired[typ]
+	if t.mercenaryHiredElsewhere(typ) || t.mercPool[typ] <= 0 {
+		d.refusal = "the squad cannot be hired"
+	}
+	return d
 }
 
 // mercenaryLevel is the squad level at mission, by the catalog's mercenary
 // rule.
 func mercenaryLevel(mission int) int { return tavernRule.Level(mission) }
 
-func (t *townScreen) buildMercenarySquad(typ, count int) ([]mapload.PartyMember, bool) {
+// tavernSquad is count members of tavern type typ through the hire
+// producer, at the chapter the town is in.
+func (t *townScreen) tavernSquad(typ, count int) ([]mapload.PartyMember, bool) {
 	if t == nil || t.sess == nil {
 		return nil, false
 	}
-	return buildMercenarySquad(t.in.Table, t.sess.Town, typ, count)
-}
-
-// buildMercenarySquad builds count members of tavern type typ from the
-// install's table, at the chapter the town is in.
-func buildMercenarySquad(table *mapload.Table, town *Town, typ, count int) ([]mapload.PartyMember, bool) {
-	if table == nil || count <= 0 {
-		return nil, false
-	}
-	base, ok := mapload.CampaignActor(table, mapload.CampaignActorSpec{
-		Profile:  firstHireProfile(typ),
-		Identity: typ, Stage: mercenaryLevel(town.Chapter()), MercenaryType: uint8(typ),
-	}, nil)
-	if !ok {
-		return nil, false
-	}
-	joinedWornSpells(base.WornItems[:], table)
-	out := make([]mapload.PartyMember, count)
-	for i := range out {
-		out[i] = base
-	}
-	return out, true
-}
-
-func buildSiegeSquad(table *mapload.Table, typ, count int) ([]mapload.PartyMember, bool) {
-	return buildMercenarySquad(table, nil, typ, count)
-}
-
-func firstHireProfile(typ int) mapload.CampaignActorProfile {
-	if typ <= 2 {
-		return mapload.CampaignActorProfile{UnitName: siegeHireName(typ), Temporary: true}
-	}
-	return mapload.CampaignActorProfile{HumanName: "NPC%02d_%d", Temporary: true, RowFigure: true, RowRotation: true, RowDefinition: true}
+	return hireMembers(&tavernHires, hireState{town: t.sess.Town, table: t.in.Table}, typ, count)
 }
 
 // siegeHireName is the Units row name of a hired siege engine (tavern type 1
@@ -287,7 +250,10 @@ func siegeHireName(typ int) string {
 // Units row. A tavern hire and a restored saved Unit share it, so a loaded hire
 // equals a fresh one.
 func siegeHireMember(c data.Collection, typ int) (mapload.PartyMember, bool) {
-	return mapload.CampaignActor(&mapload.Table{Units: c}, mapload.CampaignActorSpec{
-		Profile: firstHireProfile(typ), MercenaryType: uint8(typ),
-	}, nil)
+	var member mapload.PartyMember
+	members, ok := hireMembers(&tavernHires, hireState{table: &mapload.Table{Units: c}}, typ, 1)
+	if ok {
+		member = members[0]
+	}
+	return member, ok
 }

@@ -35,7 +35,7 @@ func TestHireEndsInItsTownWhereverTheMissionEnds(t *testing.T) {
 	if !tw.travelTo(2) {
 		t.Fatal("the party cannot travel to East")
 	}
-	if _, ok := tw.mercenaryHire(boundaryHiredType, 0); ok {
+	if _, ok, _ := tw.squadDeal(boundaryHiredType, 0, false).run(); ok {
 		t.Error("East hires a type West holds: the party carries two squads of one type")
 	}
 	ms, ids := mercenaryBoundaryMission(t, 10)

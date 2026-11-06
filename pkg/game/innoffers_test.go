@@ -56,7 +56,7 @@ func TestInnOffersFollowTheRows(t *testing.T) {
 		t.Fatalf("no bank reads zero: %v", got)
 	}
 	b[secondHireAvailability+1], b[secondHireTown+1], b[secondHireSelection+1] = 1, 2, 1
-	got := innOffers(rows[:1], innState{town: 2, stage: 30, bank: &b, hire: true})
+	got := innOffers(rows[:1], innState{town: 2, stage: 30, bank: &b, hire: &bankHires})
 	if want := []innOffer{{kind: 0, topic: 5, npc: 7}, {kind: 1, npc: 2, high: true}}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("rows then hires: %+v, want %+v", got, want)
 	}

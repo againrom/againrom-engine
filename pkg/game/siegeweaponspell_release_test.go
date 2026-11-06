@@ -19,7 +19,7 @@ func TestReleaseSiegeEnginesCarryAFireBallWeaponSpell(t *testing.T) {
 	s := f.TownScreen().(*townScreen)
 	s.room = roomTavern
 	for typ, name := range map[int]string{1: "Catapult", 2: "Ballista"} {
-		members, ok := s.buildMercenarySquad(typ, 1)
+		members, ok := s.tavernSquad(typ, 1)
 		if !ok || len(members) != 1 {
 			t.Fatalf("%s: the production template is unavailable", name)
 		}

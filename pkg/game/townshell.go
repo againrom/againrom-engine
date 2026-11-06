@@ -159,7 +159,7 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 		return t.tavernDetail, t.tavernDetailMask, t.tavernDetailInfo, true
 	}
 	var info [12][]string
-	members, ok := t.buildMercenarySquad(typ, 1)
+	members, ok := t.tavernSquad(typ, 1)
 	if !ok || len(members) != 1 {
 		return ui.TownCharacterView{}, nil, info, false
 	}

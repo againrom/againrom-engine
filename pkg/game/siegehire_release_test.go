@@ -16,7 +16,7 @@ import (
 )
 
 // siegeTypes returns the TypeIDs of the installed Catapult and Ballista rows,
-// found by name as the tavern's buildSiegeSquad finds them.
+// found by name as the tavern's siege hire rows find them.
 func siegeTypes(t *testing.T, f *FrontEnd) map[int32]bool {
 	t.Helper()
 	types := map[int32]bool{}
@@ -131,7 +131,7 @@ func TestReleaseHiredSiegeCreaturesSurviveMissionSAV(t *testing.T) {
 	types := siegeTypes(t, f)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Siege witness", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	for typ := 1; typ <= 2; typ++ {
-		members, ok := buildSiegeSquad(f.Table, typ, 1)
+		members, ok := hireMembers(&tavernHires, hireState{table: f.Table}, typ, 1)
 		if !ok || len(members) != 1 {
 			t.Fatalf("siege type %d did not resolve", typ)
 		}

@@ -15,7 +15,7 @@ const legacyCityHireRebuildCap = 12
 // mercenaryHireTypeFromName (originalparty.go) and already installed in
 // the session's Carried by the time this runs (RestoreOriginal). This function is now
 // that path's FALLBACK only: per type, it rebuilds through
-// buildMercenarySquad — the same tavern template builder the
+// hireMembers — the same hire producer the
 // live hire action itself calls — only when no member of that type already
 // reached f.Carried some other way. Two shapes still take the fallback: a
 // siege engine (typ 1 or 2, Catapult/Ballista) whose file holds no Unit actor
@@ -57,7 +57,7 @@ func (s *CampaignSession) restoreHiredMercenaries(table *mapload.Table) error {
 		if count > legacyCityHireRebuildCap {
 			return fmt.Errorf("original city save: hired type %d's own MercenaryWorking cell is %d, over the %d-member roster cap", typ, count, legacyCityHireRebuildCap)
 		}
-		members, ok := buildMercenarySquad(table, t, typ, count)
+		members, ok := hireMembers(&tavernHires, hireState{town: t, table: table}, typ, count)
 		if !ok {
 			continue
 		}

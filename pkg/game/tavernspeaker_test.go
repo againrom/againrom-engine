@@ -82,7 +82,7 @@ func TestTavernDialogueDressesTheStockUnitItsSpeakerAnswersFor(t *testing.T) {
 	f.Carried[0].FigureFace = 1
 	s := f.townUI
 
-	squad, ok := s.buildMercenarySquad(10, 1)
+	squad, ok := s.tavernSquad(10, 1)
 	if !ok || len(squad) != 1 {
 		t.Fatal("the stock unit's template did not build")
 	}

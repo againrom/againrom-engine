@@ -4230,5 +4230,13 @@ var Committed = Baseline{
 	// pkg/game/milestone2_instrumentcarriers_test.go, the admission notes in
 	// the actor-roots, unit-combat, unit-scalar and cell-record audits, and
 	// this note.
-	CommentBytes: 10588080,
+
+	// It rises for the hire record in pkg/game/hirerecord_test.go and this
+	// note.
+
+	// It rises for the hire rows in pkg/game/hire.go, the hire scan in
+	// internal/archtest/hire.go, and this note.
+
+	// It rises for the campaign service's hire state, and this note.
+	CommentBytes: 10594265,
 }

@@ -920,7 +920,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// HIS SERVER TYPE ID, AND WHETHER HE TRAINS (owner).
 		//
 		// A hired man carries his own Humans row's type id, which is what
-		// p.Class holds for him -- buildMercenarySquad writes the row's TypeID
+		// p.Class holds for him -- hireMembers writes the row's TypeID
 		// there, the same field and the same value the map path's composed-NPC
 		// arm writes. Every one of the 52 shipped NPC%02d_%d rows states one in
 		// 3..24, so none of them is inside the band; a player character keeps

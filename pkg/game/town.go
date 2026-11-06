@@ -599,28 +599,6 @@ func (t *Town) mercenaryHiredElsewhere(typ int) bool {
 	return false
 }
 
-// mercenaryHire sets the hired flag and charges the fee; pool untouched until merge.
-func (t *Town) mercenaryHire(typ, cost int) (count int, ok bool) {
-	if t == nil || typ <= 0 || typ >= len(t.mercPool) || t.mercHired[typ] || t.mercenaryHiredElsewhere(typ) ||
-		t.mercPool[typ] <= 0 || cost < 0 || t.gold < cost {
-		return 0, false
-	}
-	count = t.mercPool[typ]
-	t.mercHired[typ] = true
-	t.gold -= cost
-	return count, true
-}
-
-// mercenaryReturn clears the hired flag and refunds the fee; pool untouched.
-func (t *Town) mercenaryReturn(typ, count, refund int) bool {
-	if t == nil || typ <= 0 || typ >= len(t.mercPool) || !t.mercHired[typ] || count <= 0 {
-		return false
-	}
-	t.mercHired[typ] = false
-	t.gold += refund
-	return true
-}
-
 // mercenaryBoundary is MERC-DEATH-006's end-of-mission merge: the half of the
 // tavern economy that runs when a mission ends rather than when a man is hired.
 //

@@ -22,7 +22,7 @@ var shippedMercenaryTalkTypes = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14}
 
 // expectedInstalledMercenaryTalkPicture builds the expected candidate picture
 // directly from the installed Units/Humans rows and the shared picture
-// composers. It does not call buildMercenarySquad, tavernCandidateDetail or
+// composers. It does not call hireMembers, tavernCandidateDetail or
 // speakerResolver, so a dialogue that substitutes the party/player picture
 // cannot make its own expected result agree.
 func expectedInstalledMercenaryTalkPicture(t *testing.T, f *FrontEnd, typ int) *image.RGBA {
@@ -427,7 +427,7 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 				pic := ui.ComposeTownSurface(shown)
 				witness.PNG(t, filepath.Join(out, fmt.Sprintf("candidate-%02d.png", typ)), pic)
 			}
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok || len(members) != 1 {
 				t.Fatalf("type %d production hire template is unavailable", typ)
 			}
@@ -537,7 +537,7 @@ func TestReleaseEveryReachableMercenaryWeaponReachesStatsAndDoll(t *testing.T) {
 				t.Fatalf("mission %d type %d template %s is absent", mission, typ, template)
 			}
 			cells := f.Table.Humans.EntryStrings(row)
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok || len(members) != 1 {
 				t.Fatalf("mission %d type %d production template is unavailable", mission, typ)
 			}

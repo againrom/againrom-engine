@@ -190,7 +190,7 @@ func TestPartyTravelsBetweenTwoChapterTowns(t *testing.T) {
 	if m, ok := tw.Take(TownShop, 0); !ok || m != 31 {
 		t.Fatalf("East's shop take: %d %v", m, ok)
 	}
-	tw.mercenaryHire(1, 0)
+	tw.squadDeal(1, 0, false).run()
 
 	s.Choose(3)
 	v = s.WorldMapView()
@@ -279,7 +279,7 @@ func TestShippedFirstGameHoldsOneTown(t *testing.T) {
 func TestTownRecordCarriesThePartysTownAcrossLoad(t *testing.T) {
 	f, s := travelFront(t, travelCatalog)
 	tw := f.Town
-	tw.mercenaryHire(1, 0)
+	tw.squadDeal(1, 0, false).run()
 	s.Choose(3)
 	travelCard(t, s, placeTown, 2)
 	tw.gold = 1 << 20

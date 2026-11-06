@@ -5,11 +5,6 @@ import (
 	"againrom/pkg/mapload"
 )
 
-var keyedCampaignActor = mapload.CampaignActorProfile{
-	ServerBase: 10000, ServerStride: 10, StageDivisor: 10, StageBias: -2,
-	Temporary: true, RowFigure: true, RowRotation: true, RowDefinition: true,
-}
-
 func (t *townScreen) campaignActor(npc int) (mapload.PartyMember, bool) {
 	for _, p := range t.sess.Carried {
 		if p.CompanionNPC == npc || p.CampaignHireID() == npc {
@@ -19,9 +14,13 @@ func (t *townScreen) campaignActor(npc int) (mapload.PartyMember, bool) {
 	c := t.state()
 	for _, o := range c.hires() {
 		if o.npc == npc {
-			return mapload.CampaignActor(t.in.Table, mapload.CampaignActorSpec{
-				Profile: keyedCampaignActor, Identity: npc, Stage: int(c.bank[768]), Hire: true,
-			}, nil)
+			s := c.hireState()
+			s.table = t.in.Table
+			members, ok := hireMembers(&bankHires, s, npc, 1)
+			if !ok {
+				return mapload.PartyMember{}, false
+			}
+			return members[0], true
 		}
 	}
 	if _, ok := tableEdition(t.in.Table).PartyIdentity(npc); ok {

@@ -4,16 +4,20 @@ import (
 	"slices"
 
 	"againrom/pkg/herokind"
+	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/town"
 )
 
 // innOffer is one option of an inn's or tavern's offer list: kind, topic and
 // NPC key, and the high bit the hire state sets (R2-ENGINE-216,
-// R2-ENGINE-221). Kinds 0 and 3 are talks, 1 and 2 hires.
+// R2-ENGINE-221). Kinds 0 and 3 are talks, 1 and 2 hires. A squad hire
+// also carries its size, capacity and price and whether the purse affords it.
 type innOffer struct {
-	kind, topic, npc int
-	high             bool
+	kind, topic, npc       int
+	high                   bool
+	count, capacity, price int
+	affordable             bool
 }
 
 func (o innOffer) speaker() bool { return o.kind == town.OfferTalk || o.kind == town.OfferMission }
@@ -21,15 +25,18 @@ func (o innOffer) speaker() bool { return o.kind == town.OfferTalk || o.kind == 
 // innState is the campaign state an offer list is admitted over: the town
 // the party stands in (every admits the rows of every town), the stage, the
 // bank the rows' gates read, nil reading zero, the starting hero a row's
-// class and sex are chosen by, and the hire bank the hire options come
-// from, absent when hire is false.
+// class and sex are chosen by, and the hire the hire options come from,
+// absent when hire is nil, read over the bank, the town's pools in home and
+// the actor table.
 type innState struct {
 	town  int
 	every bool
 	stage int
 	bank  *[innBankSlots]int32
 	hero  herokind.Kind
-	hire  bool
+	hire  *hireProfile
+	home  *Town
+	table *mapload.Table
 }
 
 func (s innState) slot(i int) int32 {
@@ -67,8 +74,9 @@ func (s innState) admits(r town.OfferRow) bool {
 	return len(r.Any) == 0 || slices.ContainsFunc(r.Any, func(i int) bool { return s.slot(i) != 0 })
 }
 
-// innOffers is the one builder of an offer list: the rows s admits, in row
-// order, then the hire options of s's hire bank. It changes no state.
+// innOffers is the one builder of an offer list, the inn's, the tavern's and
+// the talks': the rows s admits, in row order, then the hire options of s's
+// hire. It changes no state.
 func innOffers(rows []town.OfferRow, s innState) []innOffer {
 	var out []innOffer
 	for _, r := range rows {
@@ -76,8 +84,8 @@ func innOffers(rows []town.OfferRow, s innState) []innOffer {
 			out = append(out, innOffer{kind: r.Kind, topic: r.Topic, npc: r.NPC})
 		}
 	}
-	if s.hire && s.bank != nil {
-		out = append(out, innHires(s.bank, s.town)...)
+	if s.hire != nil {
+		out = append(out, hireOffers(s.hire, hireState{town: s.home, bank: s.bank, here: s.town, table: s.table})...)
 	}
 	return out
 }
@@ -126,29 +134,6 @@ func checkOfferRows(rows []town.OfferRow, table town.OfferTable) error {
 		}
 	}
 	return nil
-}
-
-// The hire bank: hire h (1..20) has selection slot 511+h, availability slot
-// 531+h and town slot 551+h (R2-ENGINE-221, R2-ENGINE-380).
-const (
-	secondHireSlots        = 20
-	secondHireSelection    = 512
-	secondHireAvailability = 532
-	secondHireTown         = 552
-)
-
-// innHires is the one hire producer: every hire of the bank standing in
-// town whose availability is 1 or 2, as an option of that kind with the
-// hire's number as NPC key and its selection as the high bit.
-func innHires(b *[innBankSlots]int32, here int) []innOffer {
-	var out []innOffer
-	for i := 0; i < secondHireSlots; i++ {
-		kind := b[secondHireAvailability+i]
-		if int(b[secondHireTown+i]) == here && (kind == 1 || kind == 2) {
-			out = append(out, innOffer{kind: int(kind), npc: i + 1, high: b[secondHireSelection+i] > 0})
-		}
-	}
-	return out
 }
 
 // offerRows are the book's offer rows; nil for no book.

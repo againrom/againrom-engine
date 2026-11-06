@@ -103,7 +103,7 @@ func openFigureMission(t *testing.T, mission int, hero figureHero) *figureRig {
 		// hires through the tavern's controls.
 		s.room = roomTavern
 		for typ := 1; typ <= 15; typ++ {
-			members, ok := s.buildMercenarySquad(typ, 1)
+			members, ok := s.tavernSquad(typ, 1)
 			if !ok {
 				continue
 			}

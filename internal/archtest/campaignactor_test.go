@@ -29,7 +29,7 @@ func campaignActorViolations(files map[string]string) []string {
 				out = append(out, name+": campaign actor resolver has another owner")
 			}
 			switch fn.Name.Name {
-			case "CharacterMember", "buildMercenarySquad", "buildSiegeSquad", "siegeHireMember":
+			case "CharacterMember", "hireMembers", "siegeHireMember":
 				ast.Inspect(fn.Body, func(n ast.Node) bool {
 					if call, ok := n.(*ast.CallExpr); ok {
 						if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
@@ -76,7 +76,7 @@ func TestCampaignActorEntryPointsDelegateConstruction(t *testing.T) {
 		t.Error(violation)
 	}
 	for _, body := range []string{
-		"func buildSiegeSquad() { _ = mapload.PartyMember{} }",
+		"func hireMembers() { _ = mapload.PartyMember{} }",
 		"func CharacterMember() { data.NewHumanDef() }",
 		"func siegeHireMember() { data.NewUnitDef() }",
 	} {

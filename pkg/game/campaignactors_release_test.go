@@ -76,7 +76,7 @@ func TestReleaseCampaignActorLossControls(t *testing.T) {
 		town := NewTown(Campaign{})
 		town.main = chapter
 		for typ := 1; typ <= 15; typ++ {
-			members, ok := buildMercenarySquad(f.Table, town, typ, 2)
+			members, ok := hireMembers(&tavernHires, hireState{town: town, table: f.Table}, typ, 2)
 			actorWitnessReceipt(t, fmt.Sprintf("squad-%d-%d", chapter, typ), struct {
 				Members []mapload.PartyMember
 				OK      bool
@@ -103,7 +103,7 @@ func TestReleaseCampaignActorLossControls(t *testing.T) {
 	f.arriveInTown()
 	f.addChapterCompanions(f.Town.Chapter())
 	for typ := 1; typ <= 15; typ++ {
-		members, ok := buildMercenarySquad(f.Table, f.Town, typ, 1)
+		members, ok := hireMembers(&tavernHires, hireState{town: f.Town, table: f.Table}, typ, 1)
 		if ok {
 			f.Carried = mapload.OwnParty(append(f.Carried, members...))
 		}

@@ -618,7 +618,7 @@ func (t *townScreen) mercenaryTalkPicture(typ int) (*image.RGBA, bool) {
 	if t == nil || t.sess == nil {
 		return nil, false
 	}
-	members, ok := t.buildMercenarySquad(typ, 1)
+	members, ok := t.tavernSquad(typ, 1)
 	if !ok || len(members) != 1 {
 		return nil, false
 	}

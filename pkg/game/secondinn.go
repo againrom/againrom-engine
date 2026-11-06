@@ -16,7 +16,7 @@ import (
 // changes no state.
 func (c *secondCampaign) innOptions() []innOffer {
 	hero := mapload.StartingHeroKind(mapload.HeroHold{Slots: secondBook().catalog.HeroSlots, Bank: c.bank[:]})
-	return innOffers(c.offerRows(), innState{town: c.current.id, stage: int(c.bank[768]), bank: &c.bank, hero: hero, hire: true})
+	return innOffers(c.offerRows(), innState{town: c.current.id, stage: int(c.bank[768]), bank: &c.bank, hero: hero, hire: &bankHires})
 }
 
 // offerRows are the inn rows the campaign admits: the rows of the book its
@@ -53,15 +53,17 @@ func (c *secondCampaign) speakers() []innOffer {
 func (c *secondCampaign) talkTo(o innOffer) {
 	switch {
 	case o.kind == 0 && o.npc == 5:
-		sim.SetScenario(&c.bank, 536, 1)
-		sim.SetScenario(&c.bank, 556, 3)
+		hire, _ := bankHires.row(5)
+		sim.SetScenario(&c.bank, int64(hire.availability), 1)
+		sim.SetScenario(&c.bank, int64(hire.town), 3)
 		sim.SetScenario(&c.bank, 774, 2)
 	case o.kind == 0 && o.npc == 675 && o.topic == 78:
 		sim.SetScenario(&c.bank, 770, 2)
 		c.shop.addClass4()
-	case o.kind == 1 && o.npc >= 1 && o.npc <= secondHireSlots:
-		slot := int64(secondHireSelection + o.npc - 1)
-		sim.SetScenario(&c.bank, slot, boolInt32(c.bank[slot] == 0))
+	case o.kind == 1:
+		if hire, ok := bankHires.row(o.npc); ok {
+			sim.SetScenario(&c.bank, int64(hire.selection), boolInt32(c.bank[hire.selection] == 0))
+		}
 	}
 	if o.kind != 3 {
 		return
@@ -74,8 +76,9 @@ func (c *secondCampaign) talkTo(o innOffer) {
 		sim.SetScenario(&c.bank, 769, 1)
 	}
 	if o.npc == 22 && o.topic == 30 {
-		sim.SetScenario(&c.bank, 533, 1)
-		sim.SetScenario(&c.bank, 553, 2)
+		hire, _ := bankHires.row(2)
+		sim.SetScenario(&c.bank, int64(hire.availability), 1)
+		sim.SetScenario(&c.bank, int64(hire.town), 2)
 	}
 }
 
@@ -152,28 +155,22 @@ func (c *secondCampaign) hired(npc int) bool {
 	return ok && o.high
 }
 
-// hireOrFire is the action on a hire seat (R2-ENGINE-495, R2-ENGINE-496):
-// Fire when the copied word has the high bit, which clears it and sends the
-// word to TalkTo; otherwise Hire, which on a kind 1 word answers the accept
-// section, sets the high bit and sends the word to TalkTo, and on any other
-// word answers the reject section only. The section key is "" for Fire.
-func (c *secondCampaign) hireOrFire(npc int) string {
+// seatHire runs the hire transaction on a hire seat (R2-ENGINE-495,
+// R2-ENGINE-496): Fire when the copied word has the high bit, which clears
+// it and sends the word to TalkTo; otherwise Hire, which on a kind 1 word
+// answers the accept section, sets the high bit and sends the word to
+// TalkTo, and on any other word answers the reject section only. The
+// section key is "" for Fire.
+func (c *secondCampaign) seatHire(npc int) string {
 	o, ok := c.innWord(npc)
 	if !ok {
 		return ""
 	}
-	if c.innBits == nil {
-		c.innBits = map[int]bool{}
-	}
-	if o.high {
-		o.high, c.innBits[npc] = false, false
-		c.talkTo(o)
-		return ""
-	}
+	d := hireDeal{fire: o.high, cost: bankHires.cost, talk: c, word: o, seat: &c.innBits, npc: npc,
+		caption: fmt.Sprintf("npc%daccept%d", npc, c.bank[768])}
 	if o.kind != 1 {
-		return fmt.Sprintf("npc%dreject%d", npc, c.bank[768])
+		d.refusal = fmt.Sprintf("npc%dreject%d", npc, c.bank[768])
 	}
-	o.high, c.innBits[npc] = true, true
-	c.talkTo(o)
-	return fmt.Sprintf("npc%daccept%d", npc, c.bank[768])
+	caption, _, _ := d.run()
+	return caption
 }

@@ -101,7 +101,7 @@ func (t *townScreen) tavernSpeakerCast() speakerCast {
 	c.actors = c.actors[len(party):]
 	worn := make(map[sim.EntityID]data.Equipment, len(stock))
 	for k, unit := range stock {
-		if squad, ok := t.buildMercenarySquad(unit.typ, 1); ok && len(squad) == 1 {
+		if squad, ok := t.tavernSquad(unit.typ, 1); ok && len(squad) == 1 {
 			worn[c.actors[k].id] = mapload.EquipmentFromParty(squad[0])
 		}
 	}

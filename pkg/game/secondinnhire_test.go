@@ -40,23 +40,23 @@ func TestSecondInnHireAndFire(t *testing.T) {
 		{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}}) {
 		t.Fatal("rows", rows)
 	}
-	if key := c.hireOrFire(1); key != "npc1accept30" || c.bank[512] != 1 || !c.hired(1) {
+	if key := c.seatHire(1); key != "npc1accept30" || c.bank[512] != 1 || !c.hired(1) {
 		t.Fatalf("Hire 1: %q bank %d", key, c.bank[512])
 	}
-	if key := c.hireOrFire(1); key != "" || c.bank[512] != 0 || c.hired(1) {
+	if key := c.seatHire(1); key != "" || c.bank[512] != 0 || c.hired(1) {
 		t.Fatalf("Fire 1: %q bank %d", key, c.bank[512])
 	}
-	if key := c.hireOrFire(2); key != "" || c.bank[513] != 1 || c.hired(2) {
+	if key := c.seatHire(2); key != "" || c.bank[513] != 1 || c.hired(2) {
 		t.Fatalf("Fire on kind 2: %q bank %d", key, c.bank[513])
 	}
-	if key := c.hireOrFire(2); key != "npc2reject30" || c.bank[513] != 1 || c.hired(2) {
+	if key := c.seatHire(2); key != "npc2reject30" || c.bank[513] != 1 || c.hired(2) {
 		t.Fatalf("Hire on kind 2: %q bank %d", key, c.bank[513])
 	}
 	c.enterInn()
 	if !c.hired(2) {
 		t.Fatal("a new visit did not copy the bank's high bit")
 	}
-	if key := c.hireOrFire(9); key != "" || c.bank != innAt(2, 30, map[int]int32{532: 1, 552: 2, 533: 2, 553: 2, 513: 1}).bank {
+	if key := c.seatHire(9); key != "" || c.bank != innAt(2, 30, map[int]int32{532: 1, 552: 2, 533: 2, 553: 2, 513: 1}).bank {
 		t.Fatal("an absent seat acted", key)
 	}
 }
@@ -71,12 +71,12 @@ func TestSecondInnHireTakesFirstWord(t *testing.T) {
 		t.Fatalf("seats %v hires %d", seats, hires)
 	}
 	before := c.bank
-	if key := c.hireOrFire(2); key != "npc2reject50" || c.bank != before || c.hired(2) {
+	if key := c.seatHire(2); key != "npc2reject50" || c.bank != before || c.hired(2) {
 		t.Fatalf("Hire on hire 2: %q", key)
 	}
 	// Loss control: without topic 51 (947 set) the same seat accepts.
 	c.bank[947] = 1
-	if key := c.hireOrFire(2); key != "npc2accept50" || c.bank[513] != 1 {
+	if key := c.seatHire(2); key != "npc2accept50" || c.bank[513] != 1 {
 		t.Fatalf("Hire without topic 51: %q", key)
 	}
 }

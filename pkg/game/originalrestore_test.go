@@ -77,10 +77,10 @@ func TestRestoreHiredMercenariesRefusesAnOversizedPoolOnASessionAlone(t *testing
 }
 
 func TestBuildMercenarySquadNeedsATableAndACount(t *testing.T) {
-	if _, ok := buildMercenarySquad(nil, nil, 3, 1); ok {
+	if _, ok := hireMembers(&tavernHires, hireState{}, 3, 1); ok {
 		t.Fatal("a squad was built with no table")
 	}
-	if _, ok := buildMercenarySquad(&mapload.Table{}, nil, 3, 0); ok {
+	if _, ok := hireMembers(&tavernHires, hireState{table: &mapload.Table{}}, 3, 0); ok {
 		t.Fatal("a squad was built for a count of zero")
 	}
 }

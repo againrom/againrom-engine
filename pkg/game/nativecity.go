@@ -89,7 +89,7 @@ func nativeCityToken(identity, owner uint32, defRow byte, typeWord uint16) []byt
 // what the row supplies, so this only ever affects cosmetics.
 //
 // A HIRED MERCENARY IS FOUND BY NAME, THE SAME WAY HE WAS HIRED:
-// buildMercenarySquad (tavern.go) resolves his one row with
+// hireMembers (hire.go) resolves his one row with
 // data.FindHumanByName(table.Humans, name) before it ever builds the
 // PartyMember, and member.Name is that identical "NPC%02d_%d" string
 // (mercenaryHireTypeFromName, originalparty.go, reads it back the same way
@@ -103,7 +103,7 @@ func nativeCityToken(identity, owner uint32, defRow byte, typeWord uint16) []byt
 // A companion or a CampaignServerID this table cannot place, npc22 aside —
 // or a hired mercenary whose own name this table no longer carries — falls
 // to the legacy TypeID lookup RotationSpeedBase's own fallback already uses
-// elsewhere: tavern.go's own buildMercenarySquad sets Class from a resolved
+// elsewhere: hire.go's own hireMembers sets Class from a resolved
 // Humans row's TypeID (def.TypeID), and mapload.CampaignNPCMember itself
 // sets a companion's Class from that same column (d.TypeID) off the row
 // FindHumanByServerID already resolved for it at join time — TypeID is
@@ -186,9 +186,9 @@ func nativeCityRosterMembers(party []mapload.PartyMember) []mapload.PartyMember 
 }
 
 // nativeCitySiegeMember is Catapult/Ballista (tavern type 1 or 2) — the
-// Units-table Unit(0x198) hire buildSiegeSquad (tavern.go) builds, a
+// Units-table Unit(0x198) hire hireMembers (hire.go) builds, a
 // different wire class from the Humans-table Human(0x1e8) hire
-// buildMercenarySquad's typ>=3 branch builds (MERC-LEVEL-005).
+// the rows of types 3 and up build (MERC-LEVEL-005).
 func nativeCitySiegeMember(member mapload.PartyMember) bool {
 	return member.UnitMember()
 }
@@ -728,7 +728,7 @@ func nativeCityDismissedCompanion(t *Town, party []mapload.PartyMember) int {
 
 // nativeCityEqualUint16s and nativeCityEqualItemInstance(s) compare by
 // content, treating a nil slice and an allocated zero-length slice as equal.
-// buildMercenarySquad (tavern.go) always allocates Carried via
+// hireMembers (hire.go) always allocates Carried via
 // make([]uint16, len(carriedItems)) — non-nil even for a type whose row
 // carries nothing — while a live PartyMember's own zero value leaves the same
 // field nil; reflect.DeepEqual treats the two as different. Measured: a first
