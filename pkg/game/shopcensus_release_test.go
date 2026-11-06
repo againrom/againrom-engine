@@ -45,7 +45,7 @@ func shopCensus(t *testing.T, f *FrontEnd) string {
 	}
 	units := 0
 	for seed := int64(1); seed <= shopCensusSeeds; seed++ {
-		var s Shop
+		s := NewShop(0)
 		s.Generate(f.Table, seed)
 		for _, shelf := range []ShopShelf{ShelfWeapons, ShelfArmour, ShelfMagic, ShelfBooks} {
 			items := s.Shelf(shelf)

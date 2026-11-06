@@ -21,8 +21,12 @@ func roomPageTestPicture(w, h int, c color.RGBA) *image.RGBA {
 }
 
 func roomSurfaceFixture(v ui.TownSurfaceView) ui.TownSurfaceView {
-	if v.Kind == ui.TownSurfaceSchool && v.Page.Regions == nil {
-		v.Page = (&InstallResources{}).SurfacePageLayout(v, 0)
+	if (v.Kind == ui.TownSurfaceSchool || v.Kind == ui.TownSurfaceTavern) && v.Page.Regions == nil {
+		in := &InstallResources{}
+		if v.Kind == ui.TownSurfaceTavern && v.TavernArt != nil {
+			in.TownTavernArt = resolved(v.TavernArt, nil)
+		}
+		v.Page = in.SurfacePageLayout(v, 0)
 	}
 	return v
 }

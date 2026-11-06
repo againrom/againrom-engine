@@ -407,6 +407,10 @@ func TestReleaseSecondGameMusicStops(t *testing.T) {
 	}
 	tail.expect(t, "destinations after the mission", []string{"stop", "request:map.wav"}, []string{"stop", "start"})
 
+	if err := app.HeadlessActivate("town 2"); err != nil {
+		t.Fatal(err)
+	}
+	tail.expect(t, "arrival in the town", []string{"stop", "request:b16.wav"}, []string{"stop", "start"})
 	for presses := 0; app.Screen() == ui.ScreenTown && presses < 4; presses++ {
 		if err := app.HeadlessKey("escape"); err != nil {
 			t.Fatal(err)

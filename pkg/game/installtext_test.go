@@ -589,7 +589,7 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 			switch v.Kind() {
 			case reflect.String:
 				out[path] = v.String()
-			case reflect.Array:
+			case reflect.Array, reflect.Slice:
 				for i := 0; i < v.Len(); i++ {
 					walk(v.Index(i), path+"["+strconv.Itoa(i)+"]")
 				}

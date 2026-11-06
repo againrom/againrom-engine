@@ -615,10 +615,16 @@ func TestOrderAttackIsTheOnlySetterAndDecidesOnlyClearerIsTheRelease(t *testing.
 	if callers := funcsCalling(t, "attachAttack"); len(callers) != 4 || callers[0] != "armCastApproach" || callers[1] != "cmdGroupAttack" || callers[2] != "orderAttack" || callers[3] != "stepWorld" {
 		t.Errorf("attachAttack is called by %v, want exactly [armCastApproach cmdGroupAttack orderAttack stepWorld]", callers)
 	}
-	if callers := funcsCalling(t, "releaseAttack"); len(callers) != 1 || callers[0] != "savedDecision" {
-		t.Errorf("releaseAttack is called by %v, want exactly [savedDecision]", callers)
+	if callers := funcsCalling(t, "releaseAttack"); len(callers) != 2 || callers[0] != "holdStrikeWindow" || callers[1] != "savedDecision" {
+		t.Errorf("releaseAttack is called by %v, want exactly [holdStrikeWindow savedDecision]", callers)
+	}
+	if callers := funcsCalling(t, "holdStrikeWindow"); len(callers) != 1 || callers[0] != "savedDecision" {
+		t.Errorf("holdStrikeWindow is called by %v, want exactly [savedDecision]", callers)
 	}
 	if bodyCalls(t, "savedDecision", "clearAttack") {
 		t.Error("savedDecision's own body reaches clearAttack directly, not only through releaseAttack")
+	}
+	if bodyCalls(t, "holdStrikeWindow", "clearAttack") {
+		t.Error("holdStrikeWindow's own body reaches clearAttack directly, not only through releaseAttack")
 	}
 }
