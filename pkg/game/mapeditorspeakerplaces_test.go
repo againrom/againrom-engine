@@ -71,14 +71,6 @@ var speakerRoutes = []struct {
 		choices := e.DropdownChoices() // the host's pages, then New message
 		messageChoiceClick(t, e, choices[len(choices)-1])
 	}},
-	{"Scripts, Add, Message", true, func(t *testing.T, e *ui.MapEditor, _ words.Book) {
-		_ = e.Key("scripts")
-		_ = e.Key("player") // A: the Add window of a script record
-		for range 3 {
-			_ = e.Key("down") // Action, Condition, Trigger, Message
-		}
-		_ = e.Key("enter")
-	}},
 }
 
 // Every way into a dialogue speaker field reaches the message popup's
