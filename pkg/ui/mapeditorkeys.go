@@ -165,6 +165,7 @@ func init() {
 		{key: "casts", label: "F3", act: func(e *MapEditor, _ string) error { e.openAdd(KindEnchantment); return nil }, help: keys(helpLine{Word: "editor.keys.casts"})},
 		{key: "cellspells", act: func(e *MapEditor, _ string) error { e.showRecords(editorCellSpellsFilter); return nil }, unlisted: "palette entry"},
 		{key: "traparea", act: (*MapEditor).keyTrapArea, unlisted: "Tools menu and cell spell palette"},
+		{key: "variables", act: func(e *MapEditor, _ string) error { e.toggleVariables(); return nil }, unlisted: "Window menu"},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, linePlayers}, {screenPlayers, lineRoster}}},
 		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, lineRoster}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},

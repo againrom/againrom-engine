@@ -4201,5 +4201,12 @@ var Committed = Baseline{
 	// pkg/ui/mapeditorgroups_test.go, the one-click trigger routes and
 	// their witness in pkg/game/mapeditadd_release_test.go, and this note,
 	// net of the removed Add window comments of the release tests.
-	CommentBytes: 10575284,
+	// It rises for the editor's variables table: listColumn, listShares,
+	// listHeadLines and the head fields in pkg/ui/editorpopup.go, listBox's
+	// Columns and columnStops in pkg/ui/widgetscroll.go, scriptVariableUse
+	// and variableNode in pkg/ui/mapeditorscriptauthor.go, the new
+	// pkg/ui/mapeditorvariabletable.go (its right-side comparison reading and
+	// its test included), its tests in pkg/ui and pkg/game,
+	// and this note.
+	CommentBytes: 10582917,
 }

@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"strings"
 
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/text"
@@ -258,6 +259,32 @@ type listBox struct {
 	BarGap int
 	// HeadingFace draws the rows marked Heading; nil draws them as any row.
 	HeadingFace *text.Font
+	// Columns, when set, are the shares of the row width its columns take,
+	// left to right: a row's text holds one cell per column, parted by a
+	// tab, each cell cut at its column's edge, and a rule parts the columns.
+	Columns []int
+}
+
+// listColumnGap is the room between a column's text and the next column.
+const listColumnGap = 8
+
+// columnStops are the left edges, from the text's left, of the columns that
+// take shares of width, then width itself.
+func columnStops(shares []int, width int) []int {
+	total := 0
+	for _, s := range shares {
+		total += max(0, s)
+	}
+	stops := make([]int, len(shares)+1)
+	at := 0
+	for i, s := range shares {
+		if total > 0 {
+			stops[i] = at * width / total
+		}
+		at += max(0, s)
+	}
+	stops[len(shares)] = width
+	return stops
 }
 
 // newListBox places a list of rows rows at the argument rectangle's top
@@ -372,7 +399,23 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			if rows := m.Rows(); l.HeadingFace != nil && top+i < len(rows) && rows[top+i].Heading {
 				face = l.HeadingFace
 			}
-			face.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
+			row := dst.SubImage(r.Inset(1)).(*image.RGBA)
+			if len(l.Columns) == 0 {
+				face.Draw(row, rowText(top+i, width), x, r.Min.Y+listTextY, ink)
+				continue
+			}
+			stops := columnStops(l.Columns, width)
+			for k, cell := range strings.SplitN(rowText(top+i, width), "\t", len(l.Columns)) {
+				box := image.Rect(x+stops[k], r.Min.Y, x+stops[k+1]-listColumnGap/2, r.Max.Y)
+				face.Draw(row.SubImage(box).(*image.RGBA), cell, x+stops[k], r.Min.Y+listTextY, ink)
+			}
+		}
+	}
+	if len(l.Columns) > 1 {
+		x, width := l.Rect.Min.X+listTextX, l.Rect.Dx()-2*listTextX
+		for _, stop := range columnStops(l.Columns, width)[1:len(l.Columns)] {
+			at := x + stop - listColumnGap/2
+			draw.Draw(dst, image.Rect(at, l.Rect.Min.Y, at+1, l.Rect.Max.Y), &image.Uniform{C: listRuleLight}, image.Point{}, draw.Src)
 		}
 	}
 	if l.Ruled {

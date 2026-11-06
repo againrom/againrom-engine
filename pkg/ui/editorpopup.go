@@ -373,10 +373,13 @@ type popupSpec struct {
 	ListText  listRowText
 	// ListAside is a column right of the list kept free for a picture.
 	ListAside int
-	Notes     []string
-	NoteInk   color.RGBA
-	Buttons   []string
-	Disabled  []bool
+	// ListColumns parts the list into columns (listBox's Columns), each
+	// head over its column, wrapped to its width.
+	ListColumns []listColumn
+	Notes       []string
+	NoteInk     color.RGBA
+	Buttons     []string
+	Disabled    []bool
 	// ButtonW is the button row's button width; zero is the default.
 	ButtonW int
 	// ButtonFit widens each button of the row to its caption where the
@@ -431,9 +434,13 @@ type popupLayout struct {
 	List         listBox
 	HasList      bool
 	Aside        image.Rectangle // the column ListAside keeps
-	Notes        []image.Rectangle
-	Buttons      []image.Rectangle
-	Pitch        int
+	// ListHeads are the list columns' head boxes and ListHeadLines their
+	// lines; none without ListColumns.
+	ListHeads     []image.Rectangle
+	ListHeadLines [][]string
+	Notes         []image.Rectangle
+	Buttons       []image.Rectangle
+	Pitch         int
 	// ListRows and RowsFit are the list rows and the scrolled rows the
 	// layout shows: the spec's own, or the ones a sized popup fits.
 	ListRows, RowsFit int
@@ -493,6 +500,41 @@ type popupFlow struct {
 	// the rows instead of above them.
 	cardH     int
 	cardBelow bool
+	// listHeads are the list columns' head lines and listHeadH the band
+	// they take over the list.
+	listHeads [][]string
+	listHeadH int
+}
+
+// listColumn is one column of a list: its head and its share of the width.
+type listColumn struct {
+	Head  string
+	Share int
+}
+
+// listShares are the shares of columns.
+func listShares(columns []listColumn) []int {
+	out := make([]int, len(columns))
+	for i, c := range columns {
+		out[i] = c.Share
+	}
+	return out
+}
+
+// listHeadLines are the heads of s's list columns, each wrapped to its
+// column at popup width w, and the height of their band.
+func listHeadLines(s popupSpec, body *text.Font, w int) ([][]string, int) {
+	if s.List == nil || len(s.ListColumns) == 0 {
+		return nil, 0
+	}
+	stops := columnStops(listShares(s.ListColumns), w-2*popupPad-widgetSpriteSize-s.ListAside-2*listTextX)
+	heads := make([][]string, len(s.ListColumns))
+	lines := 1
+	for k, c := range s.ListColumns {
+		heads[k] = editorTextLines(body, c.Head, max(1, stops[k+1]-stops[k]-listColumnGap))
+		lines = max(lines, len(heads[k]))
+	}
+	return heads, lines*fontHeight(body, 15) + popupPad
 }
 
 // cardSize is the card's drawn size: the character panel's own, times the
@@ -596,6 +638,7 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	}
 	f.cardH, f.cardBelow = cardSize(s).Y, s.Card != nil && s.CardBelow
 	f.cardTop = f.cardBelow
+	f.listHeads, f.listHeadH = listHeadLines(s, body, w)
 	if !s.Fit {
 		return f
 	}
@@ -806,7 +849,7 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 	if s.List != nil {
 		listBase = newListBox(image.Rect(0, 0, 10, 0), 0, body).Rect.Dy()
 		lp = newListBox(image.Rect(0, 0, 10, 0), 1, body).Rect.Dy() - listBase
-		fixed += listBase + popupPad
+		fixed += listBase + popupPad + flow.listHeadH
 	}
 	// The least height holds the flexible part at its least rows.
 	least, listLeast := fixed, popupMinRows
@@ -932,7 +975,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	var list listBox
 	if s.List != nil {
 		list = newListBox(image.Rect(0, 0, w-2*popupPad-widgetSpriteSize, 0), max(1, s.ListRows), body)
-		h += list.Rect.Dy() + popupPad
+		h += list.Rect.Dy() + popupPad + flow.listHeadH
 	}
 	h += len(s.Notes)*pitch + popupPad
 	h += flow.buttonLines * (pitch + 4 + popupPad)
@@ -1165,7 +1208,17 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		y = top + g.height()
 	}
 	if s.List != nil {
+		if len(flow.listHeads) > 0 {
+			x := r.Min.X + popupPad + listTextX
+			stops := columnStops(listShares(s.ListColumns), r.Dx()-2*popupPad-widgetSpriteSize-s.ListAside-2*listTextX)
+			for k := range flow.listHeads {
+				l.ListHeads = append(l.ListHeads, image.Rect(x+stops[k], y, x+stops[k+1]-listColumnGap/2, y+flow.listHeadH-popupPad))
+			}
+			l.ListHeadLines = flow.listHeads
+			y += flow.listHeadH
+		}
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
+		l.List.Columns = listShares(s.ListColumns)
 		l.HasList = true
 		if s.ListAside > 0 {
 			l.Aside = image.Rect(r.Max.X-popupPad-s.ListAside+popupPad, y, r.Max.X-popupPad, l.List.Rect.Max.Y)
@@ -1682,6 +1735,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		box := l.List
 		box.HeadingFace = title
 		drawListBox(dst, body, frames, box, s.List, s.ListText, pointer, pointerOK)
+	}
+	for k, r := range l.ListHeads {
+		for j, line := range l.ListHeadLines[k] {
+			body.Draw(dst.SubImage(r).(*image.RGBA), line, r.Min.X, r.Min.Y+j*fontHeight(body, 15), ink.Title)
+		}
 	}
 	for i, r := range l.Notes {
 		bodyText(r, s.Notes[i], s.NoteInk)

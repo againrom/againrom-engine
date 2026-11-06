@@ -29,7 +29,7 @@ var menuRowKeys = map[string][]string{
 	"file":   mapRowKeys,
 	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "traparea", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
-	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel"},
+	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel", "variables"},
 }
 
 // menuLabel is the label of the row key of menu, and whether it has one.

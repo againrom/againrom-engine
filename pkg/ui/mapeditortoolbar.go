@@ -122,6 +122,7 @@ func init() {
 		{key: sidePanels[panelLeft].key, icon: &iconObjectsPanel, word: "editor.tool.objectspanel", keyRow: sidePanels[panelLeft].key, group: toolRight, kind: toolSwitch, cell: image.Pt(0, 11), on: func(e *MapEditor) bool { return e.panelOn(panelLeft) }, menu: "window"},
 		{key: sidePanels[panelRight].key, icon: &iconPropertiesPanel, word: "editor.tool.propertiespanel", keyRow: sidePanels[panelRight].key, group: toolRight, kind: toolSwitch, cell: image.Pt(0, 12), on: func(e *MapEditor) bool { return e.panelOn(panelRight) }, menu: "window"},
 		{key: sidePanels[panelBottom].key, word: "editor.tool.reportpanel", keyRow: sidePanels[panelBottom].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOn(panelBottom) }, menu: "window"},
+		{key: "variables", word: "editor.variables.title", group: toolRight, kind: toolSwitch, on: (*MapEditor).variablesShown, off: noMap, menu: "window"},
 	}
 }
 

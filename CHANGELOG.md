@@ -41,6 +41,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor, a selection made by Shift-clicking units on a freshly opened map shows its window again, with the group buttons and Delete.
+- [BASE] In the map editor the Window menu opens a variables table: each variable the scripts use, with its value, its comparison or action and its trigger; a click on a row selects that trigger.
 - [BASE] In the map editor Ctrl+Left/Right and Ctrl+Shift+Left/Right use the same word and punctuation stops as Ctrl+Backspace/Delete, including around underscores.
 - [BASE] In the map editor, remembered windows stay on the same spell or item recipe after an earlier one is deleted.
 - [BASE] In the map editor the Scenario palette no longer has a New variable button; choose New variable in a trigger's variable field instead, and the variable appears in the list.

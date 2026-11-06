@@ -713,7 +713,8 @@ func (e *MapEditor) closeList() {
 }
 
 // listKind is what the list popup shows: the map picker, the report or
-// script panel, the brush palette, a records list, or nothing.
+// script panel, the brush palette, the variables table, a records list,
+// or nothing.
 func (e *MapEditor) listKind() string {
 	switch {
 	case e.catalog:
@@ -722,6 +723,8 @@ func (e *MapEditor) listKind() string {
 		return "report"
 	case e.brushActive() || e.prompt.kind == promptAdd && e.prompt.add != nil && e.prompt.add.brush && e.brush.mode == brushObjects:
 		return "brush"
+	case e.listShown && e.doc != nil && e.filter == editorVariablesFilter:
+		return "variables"
 	case e.listShown && e.doc != nil:
 		return "records"
 	case e.panel && e.doc != nil:
@@ -799,6 +802,10 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 			rows = append(rows, row)
 		}
 		sel = e.brush.sel[e.brush.mode]
+	case "variables":
+		for _, r := range e.variableTableRows() {
+			rows = append(rows, PickerRow{Text: strings.Join(r.cells[:], "\t"), Choosable: true})
+		}
 	case "records":
 		if e.filter == editorScriptsFilter {
 			rows, _, sel = e.scenarioRows()
@@ -846,6 +853,8 @@ func (e *MapEditor) listTitle(kind string) string {
 		return e.report.note
 	case "brush":
 		return e.brushStatus()
+	case "variables":
+		return e.word("editor.variables.title")
 	}
 	switch e.filter {
 	case 1:
@@ -979,6 +988,8 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Notes = []string{e.word("editor.picker.hint")}
 		}
 		s.Buttons = []string{e.word("editor.button.open"), e.word("editor.button.file")}
+	case "variables":
+		e.variableTableSpec(&s, m)
 	case "records":
 		if e.filter == editorScriptsFilter {
 			s.Notes = []string{e.word("editor.scripts.hint")}
@@ -1154,6 +1165,8 @@ func (e *MapEditor) listChoose(n int, open bool) {
 		e.selectFinding(n)
 	case "brush":
 		e.brushRowClick(n)
+	case "variables":
+		e.variablesChoose(n)
 	case "records":
 		if e.filter == editorScriptsFilter {
 			e.scenarioChoose(n)

@@ -91,13 +91,35 @@ func (e *MapEditor) scriptRowText(id, section int) string {
 
 // scriptVariableView is one variable: its register, the preset constant or
 // the check sharing its register (-1 none), the triggers that change and
-// read it, whether any node addresses it, and its label.
+// read it, whether any node addresses it, its label, and each place a
+// trigger names a node that addresses it.
 type scriptVariableView struct {
 	register         uint32
 	constant, shared int
 	readers, writers []int
 	addressed        bool
 	label            string
+	uses             []scriptVariableUse
+}
+
+// scriptVariableUse is one place a trigger names a node that addresses a
+// variable: the trigger's index, its pair (0..2) or action slot (0..3), the
+// side of the pair, and the node. Uses run in trigger order, a trigger's
+// pairs before its actions, the left side before the right.
+type scriptVariableUse struct {
+	trigger, slot int
+	action, right bool
+	node          InspectionScriptNode
+}
+
+// variableNode is the node of nodes with id that addresses register.
+func variableNode(nodes []InspectionScriptNode, id, register uint32) (InspectionScriptNode, bool) {
+	for _, n := range nodes {
+		if id != 0 && n.ID == id && n.AddressesVariable && n.VariableRegister == register {
+			return n, true
+		}
+	}
+	return InspectionScriptNode{}, false
 }
 
 // scriptVariables are the variables in register order: each register a node
@@ -131,24 +153,24 @@ func (e *MapEditor) scriptVariables() []scriptVariableView {
 				v.shared = n.Record
 			}
 		}
-		for _, t := range m.Triggers {
-			uses := func(nodes []InspectionScriptNode, ids []uint32) bool {
-				for _, n := range nodes {
-					if !n.AddressesVariable || n.VariableRegister != register || n.ID == 0 {
-						continue
-					}
-					for _, id := range ids {
-						if id == n.ID {
-							return true
-						}
+		for ti, t := range m.Triggers {
+			read, written := false, false
+			for p := range t.Left {
+				for side, id := range [2]uint32{t.Left[p], t.Right[p]} {
+					if n, ok := variableNode(m.Conditions, id, register); ok {
+						v.uses, read = append(v.uses, scriptVariableUse{trigger: ti, slot: p, right: side == 1, node: n}), true
 					}
 				}
-				return false
 			}
-			if uses(m.Actions, t.Acts[:]) {
+			for a, id := range t.Acts {
+				if n, ok := variableNode(m.Actions, id, register); ok {
+					v.uses, written = append(v.uses, scriptVariableUse{trigger: ti, slot: a, action: true, node: n}), true
+				}
+			}
+			if written {
 				v.writers = append(v.writers, t.Record)
 			}
-			if uses(m.Conditions, append(append([]uint32{}, t.Left[:]...), t.Right[:]...)) {
+			if read {
 				v.readers = append(v.readers, t.Record)
 			}
 		}
