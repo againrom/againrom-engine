@@ -31,6 +31,21 @@ type documentForm struct {
 	// sightBit is the bit of the matrix cell M[owner][viewer] that lets
 	// viewer see by owner's bodies; zero where the profile stores none.
 	sightBit uint8
+	// order is the profile's rule for a Unit record's attack order; nil
+	// writes the engine's order code unchanged.
+	order *formOrder
+}
+
+// formOrder writes a Unit record's attack order with its target: an
+// engine order attack whose command key at target names another record of
+// the document writes that key into the profile's command block at
+// target; any other attack order writes order idle with state and phase
+// 0. A Unit record is the one that holds the code, state, phase and from
+// raw fields; into is the command block the profile writes.
+type formOrder struct {
+	code, state, phase, from, into string
+	attack, idle                   uint32
+	target                         int
 }
 
 // terrainForm is how the profile's terrain serializer writes the key list
@@ -236,11 +251,17 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 		p.worldForm(out.World)
 		p.form.sight(&out, keeps.Sees)
 	}
+	held := map[uint32]bool{}
+	for _, r := range out.Objects {
+		if at := slices.IndexFunc(r.Values, func(v DocumentValueData) bool { return v.Name == "Identity" }); at >= 0 && !slices.Contains(p.form.dropClasses, r.Class) {
+			held[r.Values[at].Value] = true
+		}
+	}
 	for i := range out.Objects {
 		if _, ok := p.programmes[out.Objects[i].Class]; !ok && !slices.Contains(p.form.dropClasses, out.Objects[i].Class) {
 			return DocumentData{}, false, fmt.Errorf("sav: a %s record has no %s form", out.Objects[i].Class, p.Game)
 		}
-		out.Objects[i] = p.form.record(out.Objects[i])
+		out.Objects[i] = p.form.record(out.Objects[i], held)
 	}
 	if err := p.form.pointer.retype(&out, keeps.Pointers); err != nil {
 		return DocumentData{}, false, err
@@ -393,9 +414,11 @@ func (t *terrainForm) write(w *DocumentWorldData, rest int) {
 	}
 }
 
-// record applies every field change to r; group records hold no field a
+// record applies every field change to r and the attack order rule, whose
+// targets are the Token Identities held; group records hold no field a
 // form changes.
-func (f *documentForm) record(r DocumentRecordData) DocumentRecordData {
+func (f *documentForm) record(r DocumentRecordData, held map[uint32]bool) DocumentRecordData {
+	attack, key := f.order.read(r)
 	for _, field := range f.fields {
 		switch field.site {
 		case formRaw:
@@ -424,7 +447,46 @@ func (f *documentForm) record(r DocumentRecordData) DocumentRecordData {
 			}
 		}
 	}
+	f.order.write(&r, attack, key, held)
 	return r
+}
+
+// raw is r's raw field name when it is width bytes or more.
+func (o *formOrder) raw(r DocumentRecordData, name string, width int) []byte {
+	at := slices.IndexFunc(r.Raw, func(v DocumentRawData) bool { return v.Name == name })
+	if at < 0 || len(r.Raw[at].Bytes) < width {
+		return nil
+	}
+	return r.Raw[at].Bytes
+}
+
+// read reports whether r is a Unit record under the engine's attack order,
+// and the key its engine command holds at target.
+func (o *formOrder) read(r DocumentRecordData) (bool, uint32) {
+	if o == nil {
+		return false, 0
+	}
+	code, from := o.raw(r, o.code, 4), o.raw(r, o.from, o.target+4)
+	if code == nil || from == nil || o.raw(r, o.state, 4) == nil || o.raw(r, o.phase, 4) == nil || u32(code, 0) != o.attack {
+		return false, 0
+	}
+	return true, u32(from, o.target)
+}
+
+// write gives the profile's record of an attack order its target key, or
+// the idle order when the key names no other record held.
+func (o *formOrder) write(r *DocumentRecordData, attack bool, key uint32, held map[uint32]bool) {
+	if !attack {
+		return
+	}
+	self := slices.IndexFunc(r.Values, func(v DocumentValueData) bool { return v.Name == "Identity" })
+	if into := o.raw(*r, o.into, o.target+4); key != 0 && held[key] && (self < 0 || r.Values[self].Value != key) && into != nil {
+		put32(into, o.target, key)
+		return
+	}
+	put32(o.raw(*r, o.code, 4), 0, o.idle)
+	put32(o.raw(*r, o.state, 4), 0, 0)
+	put32(o.raw(*r, o.phase, 4), 0, 0)
 }
 
 // StoreEngineDocument is a profile document holding the engine's own encoded

@@ -4250,5 +4250,10 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the figure sound in
 	// pkg/game/world.go, gamefiles.go and pkg/ui/sound.go, the new
 	// pkg/game/missiondollsound_test.go, and this note.
-	CommentBytes: 10601103,
+
+	// CommentBytes rises for the doc comments of the attack order rule in
+	// pkg/formats/sav/engine_form.go and profile.go, the new
+	// engine_form_order_test.go and pkg/game/secondattackorder_test.go, and
+	// this note.
+	CommentBytes: 10603741,
 }
