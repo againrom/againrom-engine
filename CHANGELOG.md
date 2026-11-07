@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.149.0
+
 ### For players
 
 - [ROM2] Heal and Drain Life sparkles now surround a large creature's body instead of gathering at its upper-left corner.
