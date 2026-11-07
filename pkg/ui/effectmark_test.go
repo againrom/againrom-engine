@@ -114,3 +114,48 @@ func TestTargetMarksUseCurrentFinePoseAndBothActorPasses(t *testing.T) {
 		t.Fatal("target mark passes did not surround the current actor", band)
 	}
 }
+
+func TestMarksAndNumeralsShareALargeUnitsBodyAnchor(t *testing.T) {
+	for _, side := range []int{1, 2, 3} {
+		for _, relief := range []bool{false, true} {
+			art := entityArtA()
+			art.TileSize = side
+			e := withFrame(shiftSpriteCell, art)
+			e.ID, e.TokenSize, e.HP, e.MaxHP = 1, side, 50, 100
+			e.FinePosition, e.FineX, e.FineY = true, 192, 64
+			e.Marks = []UnitMark{
+				{Sheet: markSheet(), Mark: terrain.EffectMark{DX: 7, DY: -12, Depth: 5}},
+				{Sheet: markSheet(), Mark: terrain.EffectMark{DX: -3, DY: -24, Depth: -4}},
+			}
+			v := shiftViewer(t, relief, []MapEntity{e}, 0, 0)
+			sprites, _, _ := v.entityLayer()
+			if len(sprites) != 1 {
+				t.Fatal("body absent")
+			}
+			body := sprites[0].Ground()
+			want := image.Pt(e.Cell.X*32+side*16+8, e.Cell.Y*32+side*16-8+shiftLift(shiftProjection(), relief, e.Cell))
+			if body != want {
+				t.Fatalf("side %d relief %v body %v, want %v", side, relief, body, want)
+			}
+			back, front := v.entityMarkRects(e)
+			if len(back) != 1 || len(front) != 1 {
+				t.Fatal("mark passes absent")
+			}
+			for i, r := range []staticScreenRect{back[0], front[0]} {
+				m := e.Marks[i]
+				x, y := v.cam.ScreenToWorld(r.X, r.Y)
+				anchor := image.Pt(int(x)-m.Mark.DX+m.Sheet.CenterX, int(y)-m.Mark.DY+m.Mark.Depth+m.Sheet.CenterY)
+				if anchor != body {
+					t.Fatalf("side %d relief %v mark %d anchor %v, body %v", side, relief, i, anchor, body)
+				}
+			}
+			off := image.Pt(-16, -48)
+			v.numerals = []damageNumeral{{victim: e.ID, off: off, pic: image.NewRGBA(image.Rect(0, 0, 4, 6))}}
+			placed := v.numeralPlacements()
+			x, y := v.cam.WorldToScreen(float64(body.X+off.X), float64(body.Y+16+off.Y))
+			if len(placed) != 1 || placed[0].At != image.Pt(int(x), int(y)) {
+				t.Fatalf("side %d relief %v numeral left the body anchor: %+v", side, relief, placed)
+			}
+		}
+	}
+}

@@ -128,8 +128,7 @@ type gameFiles struct {
 	fogStampOnMove bool
 	// flight is the record producer's profile.
 	flight flightProfile
-	// targetMarkOnRelease marks the target of a Wall or Summon-arm release
-	// with its cast picture.
+	// targetMarkOnRelease attaches Heal and Drain showers to their actor.
 	targetMarkOnRelease bool
 	// teleportCast is how a Teleport cast's caster plays and sounds.
 	teleportCast teleportCastProfile
@@ -344,6 +343,7 @@ var secondGameFiles = gameFiles{
 	unitSpeakers:     true,
 	flight: flightProfile{FlightProfile: sim.FlightProfile{Release: sim.ReleaseAtClient, StartFromMovedCaster: true, ShotsNeedArt: true},
 		drawnClass: true},
+	targetMarkOnRelease: true,
 	// R2-ENGINE-704: state 8 for the type's attack frame list, Sfx 554 at
 	// AttackDelay from that run and none from the cast message.
 	teleportCast: teleportCastProfile{run: true},

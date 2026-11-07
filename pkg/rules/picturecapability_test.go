@@ -33,14 +33,12 @@ func previousDrive(game SpellGame, id int32) EffectDrive {
 	return EffectDrive{}
 }
 
-// previousMark is the former sim and game mark test, the oracle.
-func previousMark(game SpellGame, p int32) TargetMark {
+// expectedMark states the actor-mark pictures independently of the catalogue.
+func expectedMark(game SpellGame, p int32) TargetMark {
 	switch {
-	case game != SpellGameFirst:
-		return TargetMarkNone
-	case p == 20:
+	case game == SpellGameFirst && p == 20, game == SpellGameSecond && p == 56:
 		return TargetMarkHeal
-	case p == 30:
+	case game == SpellGameFirst && p == 30, game == SpellGameSecond && p == 60:
 		return TargetMarkDrainLife
 	}
 	return TargetMarkNone
@@ -69,7 +67,7 @@ func TestEachPictureGetsTodaysMarkDriveUnboundAndSoundPhase(t *testing.T) {
 			if got, want := row.Drive, previousDrive(game, p); got != want || EffectDriveOf(game, p) != want {
 				t.Fatalf("game %d picture %d: drive %+v, want %+v", game, p, got, want)
 			}
-			if got, want := row.Mark, previousMark(game, p); got != want {
+			if got, want := row.Mark, expectedMark(game, p); got != want {
 				t.Fatalf("game %d picture %d: mark %d, want %d", game, p, got, want)
 			}
 			if got, want := row.SoundPhase, previousSoundPhase(game, p); got != want {

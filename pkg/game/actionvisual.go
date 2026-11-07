@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"fmt"
 	"image"
@@ -219,7 +220,11 @@ func validateTargetMarks(rows []SnapshotTargetMark) error {
 	for _, r := range rows {
 		kind, count := r.Element>>16, uint16(r.Element)
 		key := [2]uint32{uint32(r.Entity), kind}
-		if (kind != 20 && kind != 30) || count == 0 || count > healBurstLife || seen[key] {
+		known := false
+		for _, game := range []rules.SpellGame{rules.SpellGameFirst, rules.SpellGameSecond} {
+			known = known || rules.PictureCapabilityOf(game, int32(kind)).Mark != rules.TargetMarkNone
+		}
+		if !known || count == 0 || count > healBurstLife || seen[key] {
 			return fmt.Errorf("invalid current target mark")
 		}
 		seen[key] = true

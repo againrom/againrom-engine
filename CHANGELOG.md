@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Heal and Drain Life sparkles now surround a large creature's body instead of gathering at its upper-left corner.
 - [BASE] A creature that has only one set of colours now shows those colours at every level instead of the picture's default colours, and a unit turned to stone by Stone Curse now has the original's shades of grey.
 - [ROM2] Units on the map no longer all face north when a mission starts: each one, and each creature a Summon or Animate Dead spell brings, starts facing its own direction, as in the original, and keeps it through saving and loading.
 - [ROM2] Saves of mission 42 made before 0.148.20 now load with their bridges in place.
