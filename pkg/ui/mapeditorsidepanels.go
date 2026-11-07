@@ -1086,8 +1086,8 @@ var editorCategories = []editorCategory{
 	{key: "groups", word: "editor.bar.groups", filter: editorGroupsFilter, members: membersGroups},
 	{key: "units", word: "editor.bar.units", filter: 1},
 	{key: "sacks", word: "editor.bar.sacks", filter: 3},
-	{key: "structures", word: "editor.bar.structures", filter: 2},
 	{key: "cellspells", word: "editor.cast.palette", filter: editorCellSpellsFilter, listRecords: true},
+	{key: "structures", word: "editor.bar.structures", filter: 2},
 }
 
 // categoryByKey is the category whose key is key.

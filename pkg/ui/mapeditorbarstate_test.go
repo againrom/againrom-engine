@@ -11,7 +11,7 @@ import (
 	"againrom/pkg/words"
 )
 
-var barWindowKeys = []string{"panel", "scripts", "players", "groups", "units", "sacks", "structures", "cellspells", "objects", "trees"}
+var barWindowKeys = []string{"panel", "scripts", "players", "groups", "units", "sacks", "cellspells", "structures", "objects", "trees"}
 
 type barPanelHost struct{ *placeableHost }
 

@@ -1,4 +1,4 @@
-== trigger-en-1920x1080 c337ab1d6fa2e4d0 panels=[260 520 26] map=(260,58)-(1400,1038)
+== trigger-en-1920x1080 e39ba162e0c841ec panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -19,9 +19,9 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Trigger 1"
 2 "Name" "Hide them" [] ""
 6 "Fire once" "No: fires every second while the conditions hold" [] ""
@@ -32,7 +32,7 @@ title "Trigger 1"
 3 "  Group" "" [On map] ""
 0 "" "" [Add action] ""
 0 "With no condition the trigger never runs." "" [] ""
-== trigger-ru-1920x1080 b0a414c095da78a0 panels=[260 520 26] map=(260,58)-(1400,1038)
+== trigger-ru-1920x1080 aa6930d752035f00 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры
@@ -53,9 +53,9 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Мешки (0)
+ - Ловушки и заклинания (0)
  - Постройки (1)
    Structure #0  hall  30,30
- - Ловушки и заклинания (0)
 title "Триггер 1"
 2 "Название" "Hide them" [] ""
 6 "Один раз" "Нет: каждую секунду, пока условия выполнены" [] ""
@@ -66,7 +66,7 @@ title "Триггер 1"
 3 "  Группа" "" [На карте] ""
 0 "" "" [Добавить действие] ""
 0 "Без условия триггер не сработает." "" [] ""
-== search-en-1920x1080 0b3c5f1abc5a199f panels=[260 520 26] map=(260,58)-(1400,1038)
+== search-en-1920x1080 35f5d80d94b7e8ab panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Units (5)
    Unit #0  unit0  P1  10,10
@@ -82,7 +82,7 @@ title "Unit #3"
 0 "Used by: none" "" [] ""
 1 "Data" "" [] ""
 0 "unit3" "" [] ""
-== defaults-en-1920x1080 c9e8bf9e40182311 panels=[260 520 26] map=(260,58)-(1400,1038)
+== defaults-en-1920x1080 22dc1c7d29d2cfbd panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -103,12 +103,12 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== toolbar-en-1920x1080 230302782b4d2699 panels=[260 520 26] map=(260,58)-(1400,1038)
+== toolbar-en-1920x1080 884c1611e95e6435 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select brush.terrain* brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -129,12 +129,12 @@ toolbar select brush.terrain* brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== toolbar-ru-1920x1080 39f9985892cd50fd panels=[260 520 26] map=(260,58)-(1400,1038)
+== toolbar-ru-1920x1080 642b8e8a961cf4f5 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select brush.terrain* brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры
@@ -155,12 +155,12 @@ toolbar select brush.terrain* brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Мешки (0)
+ - Ловушки и заклинания (0)
  - Постройки (1)
    Structure #0  hall  30,30
- - Ловушки и заклинания (0)
 title "Свойства"
 0 "Выберите объект на карте или в дереве." "" [] ""
-== layers-en-1920x1080 f6e5e1ec5082eace panels=[260 520 26] map=(260,58)-(1400,1038)
+== layers-en-1920x1080 357cf66add87001a panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview* playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -181,12 +181,12 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== report-en-1920x1080 88343e0455d6169a panels=[260 520 180] map=(260,58)-(1400,884)
+== report-en-1920x1080 3e141b2df2abc11e panels=[260 520 180] map=(260,58)-(1400,884)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report* objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -207,9 +207,9 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability brush
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Unit #0"
 4 "Cell" "10,10  1x1" [] ""
 1 "Fields" "" [] ""
@@ -218,7 +218,7 @@ title "Unit #0"
 0 "Used by: none" "" [] ""
 1 "Data" "" [] ""
 0 "unit0" "" [] ""
-== nobrush-en-1920x1080 e2971f61bdf07f71 panels=[260 520 26] map=(260,58)-(1400,1038)
+== nobrush-en-1920x1080 79aa2071d01424ed panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain- brush.height- brush.objects- brush.passability- brush.bridge- drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report- objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -239,8 +239,8 @@ toolbar select* brush.terrain- brush.height- brush.objects- brush.passability- b
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""

@@ -90,12 +90,13 @@ type editorChrome struct {
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
-	saveNote, saveNoteFor  string       // the status line's account of the last save, and the source it is for
-	saveStatus             saveNotice   // the status line's notice of a save
-	saveDeferred           func() error // the write a window frame waits on, so the writing notice is drawn first
-	deferSaves             bool         // set while the window's own update runs: a save waits one frame
-	saveErrors             int          // the errors a confirmed save is writing
-	saveThen               *leaveStep   // the step a Save As asked from the question runs once saved
+	saveNote, saveNoteFor  string           // the status line's account of the last save, and the source it is for
+	saveStatus             saveNotice       // the status line's notice of a save
+	saveClock              func() time.Time // the time the written notice is stamped and read by; time.Now when nil
+	saveDeferred           func() error     // the write a window frame waits on, so the writing notice is drawn first
+	deferSaves             bool             // set while the window's own update runs: a save waits one frame
+	saveErrors             int              // the errors a confirmed save is writing
+	saveThen               *leaveStep       // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
 	messagePage            uint32
 	messageNew             InspectionMessageOwner // where a new message is named, while messagePage is NewMessagePage

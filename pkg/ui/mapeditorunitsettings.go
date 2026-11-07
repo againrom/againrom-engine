@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -119,6 +120,12 @@ func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionFie
 					if f.Key == focus {
 						o.focus = i
 					}
+				}
+				// A host that trims the ends of a text field hands the text back
+				// without the blanks being typed; the typed text stays in the
+				// field, so a space between two words is not lost to the pause.
+				if typing && o.focus >= 0 && o.buf[o.focus] != e.input.model.Text && o.buf[o.focus] == strings.TrimSpace(e.input.model.Text) {
+					o.buf[o.focus] = e.input.model.Text
 				}
 				if typing && o.focus >= 0 && o.buf[o.focus] == e.input.model.Text {
 					e.input.target = &o.buf[o.focus]

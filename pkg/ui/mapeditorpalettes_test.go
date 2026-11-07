@@ -37,10 +37,10 @@ func TestMapEditorTreeBranchesAreTheBarsRecordEntries(t *testing.T) {
 		}
 		tree = append(tree, r.branch+" "+word)
 	}
-	if want := []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"}; len(bar) != len(want) || !slices.Equal(bar, tree) {
+	if want := []string{"scripts", "players", "groups", "units", "sacks", "cellspells", "structures"}; len(bar) != len(want) || !slices.Equal(bar, tree) {
 		t.Fatalf("bar %q, tree %q, want the keys %q", bar, tree, want)
 	}
-	for i, k := range []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"} {
+	for i, k := range []string{"scripts", "players", "groups", "units", "sacks", "cellspells", "structures"} {
 		if !strings.HasPrefix(bar[i], k+" ") {
 			t.Fatalf("bar entry %d is %q, want %s", i, bar[i], k)
 		}

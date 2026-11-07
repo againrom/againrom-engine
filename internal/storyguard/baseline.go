@@ -4281,5 +4281,5 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the worn weapon arm in
 	// pkg/sim/nativebasismutation.go and pkg/game/savactorproject.go, the new
 	// pkg/game/secondweaponarm_test.go, and this note.
-	CommentBytes: 10621535,
+	CommentBytes: 10622303,
 }

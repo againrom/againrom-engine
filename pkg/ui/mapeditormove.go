@@ -6,6 +6,7 @@ import (
 	"math"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"againrom/pkg/render/text"
 )
@@ -74,6 +75,17 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 type saveNotice struct {
 	state  saveStage
 	detail string
+	at     time.Time // when a written notice was set
+}
+
+// savedNoticeShown is how long the written notice stays on the status line.
+const savedNoticeShown = 5 * time.Second
+
+func (e *MapEditor) saveNow() time.Time {
+	if e.saveClock != nil {
+		return e.saveClock()
+	}
+	return time.Now()
 }
 
 type saveStage uint8
@@ -92,6 +104,9 @@ func (e *MapEditor) saveNoticeLine() string {
 	case saveWriting:
 		return e.word("editor.save.writing")
 	case saveWritten:
+		if (cadence{period: savedNoticeShown, gate: gateAtLeast}).due(n.at, e.saveNow()) {
+			return ""
+		}
 		return fmt.Sprintf(e.word("editor.save.written"), e.editorHostText(n.detail))
 	case saveFailed:
 		return fmt.Sprintf(e.word("editor.save.failed"), e.editorHostText(n.detail))
@@ -106,11 +121,11 @@ func (e *MapEditor) writeSave(write func() (string, error)) (string, error) {
 	source, err := write()
 	switch r, refused := refusal(err); {
 	case err == nil:
-		e.saveStatus = saveNotice{saveWritten, filepath.Base(filepath.FromSlash(source))}
+		e.saveStatus = saveNotice{saveWritten, filepath.Base(filepath.FromSlash(source)), e.saveNow()}
 	case refused && r.Ask: // the question that follows is the notice
 		e.saveStatus = saveNotice{}
 	default:
-		e.saveStatus = saveNotice{saveFailed, err.Error()}
+		e.saveStatus = saveNotice{state: saveFailed, detail: err.Error()}
 	}
 	return source, err
 }

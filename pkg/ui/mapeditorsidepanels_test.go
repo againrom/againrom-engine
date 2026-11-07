@@ -364,9 +364,9 @@ func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
  - Sacks (0)
+ - Traps and spells (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Traps and spells (0)
 `
 	got := treeText(e)
 	if got != want {
@@ -389,7 +389,7 @@ func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}
-	if got := treeText(e); !strings.Contains(got, " - Units (0)\n - Sacks (0)\n - Structures (1)") || !strings.Contains(got, " - Groups (0)\n") {
+	if got := treeText(e); !strings.Contains(got, " - Units (0)\n - Sacks (0)\n - Traps and spells (0)\n - Structures (1)") || !strings.Contains(got, " - Groups (0)\n") {
 		t.Fatalf("empty branches:\n%s", got)
 	}
 	// A branch row closes and opens its branch.

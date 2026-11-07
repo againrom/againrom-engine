@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 // noticeEdits records the status line as the write finds it.
@@ -33,7 +34,7 @@ func noticeEditor(t *testing.T) (*MapEditor, *noticeEdits) {
 // A save shows the writing notice on the status line before it writes, the
 // written notice after it, and the error when the write is refused.
 func TestMapEditorSaveShowsWritingWrittenAndFailedNotices(t *testing.T) {
-	writing, written, failed := "Saving the map", "Map saved: made.alm", "Save failed: disk full"
+	writing, written, failed := "Saving...", "Saved: made.alm", "Save failed: disk full"
 	e, p := noticeEditor(t)
 	if err := e.saveAs("dir/made.alm"); err != nil {
 		t.Fatal(err)
@@ -66,11 +67,37 @@ func TestMapEditorWindowSaveWaitsOneFrameForItsNotice(t *testing.T) {
 	if len(p.during) != 0 {
 		t.Fatal("the save wrote in the frame that asked for it")
 	}
-	if got := e.statusText(); !strings.Contains(got, "Saving the map") {
+	if got := e.statusText(); !strings.Contains(got, "Saving...") {
 		t.Fatalf("status while the save waits: %q", got)
 	}
 	updateEditorKeys(t, e)
-	if len(p.during) != 1 || !strings.Contains(e.statusText(), "Map saved: made.alm") {
+	if len(p.during) != 1 || !strings.Contains(e.statusText(), "Saved: made.alm") {
 		t.Fatalf("the next frame wrote %d times, status %q", len(p.during), e.statusText())
+	}
+}
+
+// The written notice stays a few seconds and then clears; the failure stays.
+func TestMapEditorSavedNoticeClearsAfterAFewSeconds(t *testing.T) {
+	now := time.Unix(1000, 0)
+	e, p := noticeEditor(t)
+	e.saveClock = func() time.Time { return now }
+	if err := e.saveAs("dir/made.alm"); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(savedNoticeShown - time.Second)
+	if !strings.Contains(e.statusText(), "Saved: made.alm") {
+		t.Fatalf("status before the notice runs out: %q", e.statusText())
+	}
+	now = now.Add(time.Second)
+	if strings.Contains(e.statusText(), "Saved: ") {
+		t.Fatalf("status after the notice ran out: %q", e.statusText())
+	}
+	e, p = noticeEditor(t)
+	e.saveClock = func() time.Time { return now }
+	p.fail = errors.New("disk full")
+	_ = e.saveAs("dir/made.alm")
+	now = now.Add(time.Hour)
+	if !strings.Contains(e.statusText(), "Save failed: disk full") {
+		t.Fatalf("the failure cleared: %q", e.statusText())
 	}
 }
