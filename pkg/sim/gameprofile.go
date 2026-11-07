@@ -105,6 +105,7 @@ type gameProfile struct {
 	// autoCastFullDefault: a Player without a stored setting reads
 	// DefaultAutoCast (DIV-3007); the first game reads Off (DIV-3006).
 	autoCastFullDefault bool
+	computerSupport     supportCastPolicy
 	// nativeRegen: regeneration runs as a pass of the step.
 	nativeRegen bool
 	// nativeDecay: the decay ladder walks held dead and decaying health on
@@ -166,6 +167,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		noMageGroupSight:           true,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
+		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, selfOnly: true, idleOnly: true},
 		nativeRegen:                true,
 		nativeDecay:                true,
 		keepsCastRetain:            true,

@@ -134,22 +134,41 @@ func (w *World) AutoCastCasts(s AutoCastSetting, id uint16) bool {
 	return l != 0 && s.Level()&l == l
 }
 
-// supportCast is the level-gated sequence for the human player's mage at
-// slot ci (R2-ENGINE-346, R2-ENGINE-347, R2-ENGINE-362). Each attempt goes
-// through beginBookSpellOnce, the routine a player's own cast reaches, so
-// book, cost and range admission are the cast's own. The first attempt that
-// begins ends the sequence.
+type supportCastPolicy struct {
+	minimumMana  int32
+	requiresHeal bool
+	selfOnly     bool
+	idleOnly     bool
+}
+
+// supportCast shares the self-support prefix and book admission. Computer
+// policy is profile data (R2-ENGINE-351, R2-ENGINE-457).
 func (w *World) supportCast(ci int) {
 	caster := w.entities[ci]
 	s := w.AutoCast(caster.Owner)
-	if caster.Mana < autoCastTiers[0].mana || s&autoCastTiers[0].bit == 0 {
+	policy := supportCastPolicy{minimumMana: autoCastTiers[0].mana}
+	if computer := w.game.computerSupport; computer.minimumMana != 0 && !w.humanParticipantUnit(caster) {
+		policy, s = computer, AutoCastMinimum
+	} else if caster.Owner != SelfSlot {
+		return
+	}
+	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && caster.HasAttackTarget {
 		return
 	}
 	heal := autoCastRoleArm(autoCastHealer)
+	if policy.requiresHeal {
+		id := w.spellIDOfArm(heal)
+		if _, ok := w.bookSpell(caster, uint32(id)); !ok || !knowsSpell(caster, uint32(id)) {
+			return
+		}
+	}
 	if caster.HP != caster.MaxHP && w.autoCastAt(ci, ci, heal, false) {
 		return
 	}
 	if w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
+		return
+	}
+	if policy.selfOnly {
 		return
 	}
 	candidates := w.autoCastCandidates(ci, s)

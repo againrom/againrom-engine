@@ -2348,7 +2348,7 @@ func (w *World) autoCast(ci int) {
 			return
 		}
 	}
-	if e := w.entities[ci]; e.Owner == SelfSlot && e.KnownSpells != 0 && w.AutoCast(e.Owner).Level() != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportAllowed(ci) {
+	if e := w.entities[ci]; e.KnownSpells != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportAllowed(ci) {
 		w.supportCast(ci)
 	}
 }
