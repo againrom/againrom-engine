@@ -21,7 +21,7 @@ func diplomacyEditor(t *testing.T, language string, stored uint32) (*MapEditor, 
 		d.Records = []InspectionRecord{{Kind: "Trigger", Index: 0, Section: 7},
 			{Kind: "Condition", Index: 0, Section: 7}, {Kind: "Condition", Index: 1, Section: 7}, {Kind: "Action", Index: 0, Section: 7}}
 		d.Script = &InspectionScriptModel{
-			Triggers: []InspectionTrigger{{Record: 0, Name: "Veglud", Once: 1, Left: [3]uint32{1}, Right: [3]uint32{2}, Cmp: [3]uint32{1}, Acts: [4]uint32{11}}},
+			Triggers: []InspectionTrigger{{Record: 0, Name: "Veglud", Once: 1, Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Cmp: []uint32{1, 0, 0}, Acts: []uint32{11, 0, 0, 0}}},
 			Conditions: []InspectionScriptNode{
 				{Record: 1, ID: 1, Opcode: 10, Types: [10]uint32{scriptPlayer, scriptPlayer}, Values: [10]uint32{8, 1}},
 				{Record: 2, ID: 2, Opcode: scriptConstantOp, Types: [10]uint32{scriptInt}, Values: [10]uint32{0}}},

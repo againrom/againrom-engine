@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/scriptprofile"
@@ -186,11 +187,34 @@ func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]by
 type ScriptLimit int
 
 const (
-	LimitPairs   ScriptLimit = iota // condition pairs per trigger
-	LimitActions                    // action ids per trigger
-	LimitCompare                    // the highest comparison code
-	LimitID                         // the highest node id a slot names
+	LimitPairs     ScriptLimit = iota // condition pairs per trigger
+	LimitActions                      // action ids per trigger
+	LimitCompare                      // the highest comparison code
+	LimitID                           // the highest node id a slot names
+	LimitGroups                       // OR groups: the original record holds one
+	LimitTriggers                     // triggers a map holds; Got is the count held
+	LimitChecks                       // check registers; Got is the checks held
+	LimitVariables                    // the highest variable a node addresses
 )
+
+// Lifted reports a limit the Againrom script record lifts: the value fits
+// the extended profile, so the map can hold it once it is extended.
+func (e *ScriptLimitError) Lifted() bool {
+	x := scriptprofile.Extended
+	switch e.Limit {
+	case LimitPairs:
+		return e.Got <= int64(x.Pairs)
+	case LimitActions:
+		return e.Got <= int64(x.Actions)
+	case LimitGroups, LimitChecks:
+		return true
+	case LimitTriggers:
+		return e.Got < int64(x.Triggers)
+	case LimitVariables:
+		return e.Got < int64(x.Variables)
+	}
+	return false
+}
 
 // ScriptLimitError is a trigger value the original record cannot hold:
 // Limit is the limit passed, Max its value and Got what the value asks.
@@ -207,6 +231,14 @@ func (e *ScriptLimitError) Error() string {
 		return fmt.Sprintf("mapedit: a trigger record holds %d actions, not %d", e.Max, e.Got)
 	case LimitCompare:
 		return fmt.Sprintf("mapedit: a comparison code is 0..%d, not %d", e.Max, e.Got)
+	case LimitGroups:
+		return fmt.Sprintf("mapedit: a trigger record holds one condition group, not %d", e.Got)
+	case LimitTriggers:
+		return fmt.Sprintf("mapedit: the script already holds %d of %d triggers", e.Got, e.Max)
+	case LimitChecks:
+		return fmt.Sprintf("mapedit: the script already uses %d of %d check registers", e.Got, e.Max)
+	case LimitVariables:
+		return fmt.Sprintf("mapedit: a variable is 0..%d, not %d", e.Max-1, e.Got)
 	}
 	return fmt.Sprintf("mapedit: a trigger slot names a node id up to %d, not %d", e.Max, e.Got)
 }
@@ -225,6 +257,9 @@ func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Fie
 	}
 	if len(t.Acts) > script.Actions {
 		return nil, nil, &ScriptLimitError{Limit: LimitActions, Max: int64(script.Actions), Got: int64(len(t.Acts))}
+	}
+	if g := slices.Max(append([]uint32{0}, t.Group...)); g > 0 {
+		return nil, nil, &ScriptLimitError{Limit: LimitGroups, Max: 1, Got: int64(g) + 1}
 	}
 	fields := triggerFields()
 	slots := fields[1 : len(fields)-1]
@@ -257,15 +292,24 @@ func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Fie
 // pairs or actions than it has slots, a code above the alphabet, an id above
 // the cap) is a *ScriptLimitError and builds nothing.
 func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
-	if len(t.Name) >= alm.ScriptLabelLen {
+	name, err := alm.ScriptLabelText.Encode(t.Name)
+	if err != nil {
+		return nil, err
+	}
+	if len(name) >= alm.ScriptLabelLen {
 		return nil, fmt.Errorf("mapedit: a trigger name is under %d bytes", alm.ScriptLabelLen)
 	}
 	slots, words, err := triggerWords(t, nil)
 	if err != nil {
 		return nil, err
 	}
+	if t.Pairs() == 0 && slices.ContainsFunc(t.Acts, func(id uint32) bool { return id != 0 }) {
+		// A nonzero first left ID binds the trigger; an empty right side adds
+		// no comparison (TRIG-BIND-010), so its actions run unconditionally.
+		words[0] = 1
+	}
 	rec := make([]byte, alm.ScriptTriggerSize)
-	copy(rec, t.Name)
+	copy(rec, name)
 	for i, f := range slots {
 		binary.LittleEndian.PutUint32(rec[f.Offset:], words[i])
 	}
@@ -278,11 +322,15 @@ func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
 // the words that change; its name and the bytes no field names stay. A word
 // the record already holds is kept unchecked, so a shipped code outside the
 // alphabet survives a write of the other slots; a changed word the record
-// cannot hold is a *ScriptLimitError and nothing is written.
+// cannot hold is a *ScriptLimitError and nothing is written. On an extended
+// map trigger i becomes t, its name kept, through the record's encoder.
 func (e *Editor) SetTriggerSlots(i int, t alm.ScriptTrigger) error {
 	rec, err := e.Record(KindTrigger, i)
 	if err != nil {
 		return err
+	}
+	if e.Extended() {
+		return e.setRecordTrigger(i, rec, t)
 	}
 	held := func(f Field, v uint32) bool { return binary.LittleEndian.Uint32(rec[f.Offset:]) == v }
 	slots, words, err := triggerWords(t, held)
@@ -413,8 +461,8 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 	if x > 255 || y > 255 {
 		return 0, fmt.Errorf("mapedit: a drop cell %d,%d is outside 0..255", x, y)
 	}
-	if e.Count(KindTrigger)+1 > script.Triggers {
-		return 0, fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), script.Triggers)
+	if err := e.scriptRoom(0, 1); err != nil {
+		return 0, err
 	}
 	zones, err := e.DropZones()
 	if err != nil {
@@ -428,7 +476,7 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	trigger, err := NewScriptTrigger(alm.ScriptTrigger{Name: dropTrigger, Acts: []uint32{id}, Once: 1})
+	trigger, err := e.NewTrigger(alm.ScriptTrigger{Name: dropTrigger, Acts: []uint32{id}, Once: 1})
 	if err != nil {
 		return 0, err
 	}

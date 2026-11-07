@@ -364,8 +364,8 @@ func areaDraw(t *testing.T, e *ui.MapEditor, a, b image.Point) {
 
 // Drawing a box asks which trigger takes it, a new trigger first: Create
 // adds the box check and a new trigger with that pair only, or one more
-// pair of a chosen trigger; a full trigger is refused and Cancel writes
-// nothing. Each Create is one Undo step.
+// pair of a chosen trigger; a full trigger asks to extend the map, Cancel
+// writes nothing. Each Create is one Undo step.
 func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 	b := areaEditMap(t, true)
 	e, _ := areaEditors(t, b)
@@ -406,17 +406,34 @@ func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 		t.Fatalf("T2: other bytes than its third pair set directly; message %q", e.Message())
 	}
 
-	// T2 is now full: refused in the prompt, and Cancel writes nothing.
-	areaDraw(t, e, image.Pt(2, 35), image.Pt(3, 36))
-	_ = e.Key("down")
-	_ = e.Key("down")
-	_ = e.Key("enter")
-	if notes := strings.Join(e.PromptNotes(), ""); !strings.Contains(notes, "Trigger 2 already has three condition pairs") {
-		t.Fatalf("a full trigger was not refused: %q", notes)
+	// T2 is now full: the box asks to extend the map. Cancel writes nothing;
+	// Yes extends the map and adds the box as T2's fourth condition.
+	areas := len(e.TriggerAreas(1))
+	for _, yes := range []bool{false, true} {
+		areaDraw(t, e, image.Pt(2, 35), image.Pt(3, 36))
+		_ = e.Key("down")
+		_ = e.Key("down")
+		_ = e.Key("enter")
+		notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
+		if !strings.Contains(notes, "the original game will not open it") {
+			t.Fatalf("a full trigger did not ask to extend the map: %q", notes)
+		}
+		if !yes {
+			_ = e.Key("escape")
+			if _, open := e.PromptRect(); open || !bytes.Equal(e.Document().SourceBytes, after) || e.Document().Script.Extended {
+				t.Fatalf("Cancel left the question open (%v) or wrote the map", open)
+			}
+			continue
+		}
+		r, ok = e.PromptButtonRect(0)
+		trigClick(t, e, r, ok, "Extend")
 	}
-	_ = e.Key("escape")
-	if _, open := e.PromptRect(); open || !bytes.Equal(e.Document().SourceBytes, after) {
-		t.Fatalf("Cancel left the choice open (%v) or wrote the map", open)
+	sc = e.Document().Script
+	if !sc.Extended || len(sc.Triggers[1].Left) != 4 || len(e.TriggerAreas(1)) != areas+1 {
+		t.Fatalf("Yes left T2 %+v, %d areas; message %q", sc.Triggers[1], len(e.TriggerAreas(1)), e.Message())
+	}
+	if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" || v.Index != 1 {
+		t.Fatalf("T2 is not selected: %+v", v)
 	}
 }
 

@@ -72,9 +72,20 @@ var (
 		Variables: ExtendedVariables, Groups: true}
 )
 
-// LeftKey, RightKey and CmpKey name pair p's fields of a trigger record, and
-// ActionKey action slot a's, counting from 0.
+// Of is the profile of a first-game map script: Extended when the map
+// carries the Againrom script record, First when it does not.
+func Of(extended bool) Profile {
+	if extended {
+		return Extended
+	}
+	return First
+}
+
+// LeftKey, RightKey and CmpKey name pair p's fields of a trigger record,
+// GroupKey its group in the Againrom record, and ActionKey action slot a's,
+// counting from 0.
 func LeftKey(p int) string   { return "left" + strconv.Itoa(p) }
 func RightKey(p int) string  { return "right" + strconv.Itoa(p) }
 func CmpKey(p int) string    { return "cmp" + strconv.Itoa(p) }
+func GroupKey(p int) string  { return "group" + strconv.Itoa(p) }
 func ActionKey(a int) string { return "action" + strconv.Itoa(a) }

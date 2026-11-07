@@ -101,6 +101,12 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	defer func() { s.stage = nil }()
 	next := s.model.Clone()
 	changed, err := apply(next)
+	if err == nil && changed {
+		err = raiseVariables(next)
+	}
+	if need := formNeeded(s.model, err); need != nil {
+		return nil, need
+	}
 	named := stage.staged(s.workspaceImage)
 	if err != nil || !changed && !named {
 		return nil, err
@@ -415,6 +421,9 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 	if err != nil {
 		return nil, err
 	}
+	if _, _, slot := triggerSlot(key); slot && k == mapedit.KindTrigger {
+		return s.SetFields(kind, index, []ui.InspectionFieldValue{{Key: key, Value: value}})
+	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		return s.setFieldOn(m, kind, k, index, key, value)
 	})
@@ -461,8 +470,15 @@ func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []u
 		start = end
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		changed, mark := false, m.Mark()
-		for _, v := range ordered {
+		changed, mark, todo := false, m.Mark(), ordered
+		if k == mapedit.KindTrigger && wholeTrigger(m, index, todo) {
+			rest, err := s.setTriggerSlots(m, index, todo)
+			if err != nil {
+				return false, err
+			}
+			changed, todo = m.Mark() != mark, rest
+		}
+		for _, v := range todo {
 			var c bool
 			var err error
 			if k == mapedit.KindUnit && v.Key == unitNameField {
@@ -815,7 +831,7 @@ func (s *mapInspectionEdits) OwnFile() (string, bool) {
 		root = s.inspector.archives.Root
 	}
 	abs, err := filepath.Abs(src)
-	if err != nil || !namefold.HostEqual(filepath.Ext(abs), ".alm") || !editorOrdinaryFilename(filepath.Base(abs)) {
+	if err != nil || !isMapExt(filepath.Ext(abs), namefold.HostEqual) || !editorOrdinaryFilename(filepath.Base(abs)) {
 		return "", false
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
@@ -830,11 +846,19 @@ func (s *mapInspectionEdits) OwnFile() (string, bool) {
 }
 
 // SaveInPlace writes the model over the map's own file; OwnFile says whether
-// there is one.
+// there is one. An extended map whose own file is an .alm is written beside
+// it as a new .almx of the same name, unless its script fits the original
+// records again, when the save asks to fold it first.
 func (s *mapInspectionEdits) SaveInPlace() (string, error) {
 	path, ok := s.OwnFile()
 	if !ok {
 		return "", fmt.Errorf("the map has no file of its own to save over")
+	}
+	if err := s.scriptSaveForm(path); err != nil {
+		if errors.As(err, new(*ui.ScriptFormNeeded)) {
+			return "", err
+		}
+		return s.save(strings.TrimSuffix(path, filepath.Ext(path))+extendedMapExt, false)
 	}
 	return s.save(path, true)
 }
@@ -842,6 +866,9 @@ func (s *mapInspectionEdits) SaveInPlace() (string, error) {
 func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	defer func() { s.errorsAllowed = false }()
 	s.saveNote = ""
+	if err := s.scriptSaveForm(path); err != nil {
+		return "", err
+	}
 	if err := s.gate(true); err != nil {
 		return "", err
 	}
@@ -924,22 +951,12 @@ func mapOutputDirectory(abs string) (string, error) {
 	return parent, nil
 }
 
-// refuseExtendedMap refuses to open an extended map: a source named .almx or
-// a map carrying the extended script record. The editor reads and writes the
-// original record set alone, so it never saves an extended map as an .alm;
-// it opens extended maps at step 3 of the extended scripts (DIV-4603).
-func refuseExtendedMap(model *mapedit.Editor, source string) error {
-	named := namefold.HostEqual(filepath.Ext(source), extendedMapExt)
-	m, err := model.Map()
-	if !named && (err != nil || !m.HasScriptRecord()) {
-		return nil
-	}
-	return fmt.Errorf("the map editor does not open %s: it is an extended .almx map, which the editor opens from step 3 of the extended scripts", source)
-}
-
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+	if err := extendedName(data, path); err != nil {
+		return "", err
+	}
 	parent, target, err := editedMapTarget(root, source, path, overwrite, grants...)
 	if err != nil {
 		return "", err
@@ -957,8 +974,8 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 // editedMapTarget validates an edited map's path against its fences and its
 // source and returns the resolved folder and file it is written to.
 func editedMapTarget(root, source, path string, overwrite bool, grants ...*runtimeProfileAccess) (parent, target string, err error) {
-	if strings.TrimSpace(path) == "" || !namefold.HostEqual(filepath.Ext(path), ".alm") {
-		return "", "", fmt.Errorf("Save As needs an explicit new .alm path")
+	if strings.TrimSpace(path) == "" || !isMapExt(filepath.Ext(path), namefold.HostEqual) {
+		return "", "", fmt.Errorf("Save As needs an explicit new .alm or .almx path")
 	}
 	// Require a resolvable existing parent. Unlike the shared save-directory
 	// helper, an ambiguous reparse point fails closed for this explicit writer.

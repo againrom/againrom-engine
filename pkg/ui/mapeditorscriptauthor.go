@@ -23,7 +23,7 @@ func (e *MapEditor) scriptSections() [4][]int {
 	conditions, actions, variables := map[uint32]bool{}, map[uint32]bool{}, map[int]bool{}
 	if m != nil {
 		for _, t := range m.Triggers {
-			for _, ids := range [][3]uint32{t.Left, t.Right} {
+			for _, ids := range [][]uint32{t.Left, t.Right} {
 				for _, id := range ids {
 					if id != 0 {
 						conditions[id] = true

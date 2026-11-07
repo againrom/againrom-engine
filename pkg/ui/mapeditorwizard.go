@@ -325,12 +325,13 @@ func (it wizItem) twoNodes() bool {
 // those it was read with, so an unchanged row keeps its nodes. origItem is
 // the item it was read with, -2 for a row added in the window: only a row
 // read as kept offers "Other" back. swapped marks a pair read with its
-// sides exchanged: its check stands on the right in the map.
+// sides exchanged: its check stands on the right in the map. group is a
+// condition's OR group.
 type wizRow struct {
 	condition        bool
 	item, origItem   int
 	left, right, act uint32
-	cmp              uint32
+	cmp, group       uint32
 	swapped          bool
 	vals, orig       []string
 }
@@ -371,7 +372,7 @@ func (e *MapEditor) wizardRows(t *InspectionTrigger) []wizRow {
 		if t.Left[k] == 0 && t.Right[k] == 0 {
 			continue
 		}
-		r := wizRow{condition: true, item: -1, left: t.Left[k], right: t.Right[k], cmp: t.Cmp[k]}
+		r := wizRow{condition: true, item: -1, left: t.Left[k], right: t.Right[k], cmp: t.Cmp[k], group: t.GroupOf(k)}
 		r.item, r.vals, r.swapped = e.readCondition(t.Left[k], t.Right[k], t.Cmp[k])
 		rows = append(rows, r)
 	}
@@ -1109,24 +1110,37 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			text("    "+e.word(it.hintWord), "")
 		}
 	}
+	// Each OR group opens with "When" or "Or when" and its second condition
+	// with "And if".
+	inGroup, group := 0, uint32(0)
 	for r, wr := range w.rows {
 		if !wr.condition {
 			continue
 		}
-		switch conds {
-		case 0:
+		if conds > 0 && wr.group != group {
+			add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.orwhen")}, -1)
+			inGroup = 0
+		}
+		switch {
+		case conds == 0:
 			add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.when")}, -1)
-		case 1:
+		case inGroup == 1:
 			add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.andif")}, -1)
 		}
+		group = wr.group
 		conds++
+		inGroup++
 		row(r)
 	}
 	if conds == 0 {
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.when")}, -1)
 	}
-	if conds < scriptprofile.RecordPairs {
+	// The add rows reach the extended record's limits on any map: past
+	// the original record's, Apply asks to extend the map.
+	if most := scriptprofile.Extended; conds == 0 {
 		add(popupRow{Kind: popupText}, -1, actAddPair)
+	} else if conds < most.Pairs {
+		add(popupRow{Kind: popupText}, -1, actAddPair, actAddGroup)
 	}
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.do")}, -1)
 	for r, wr := range w.rows {
@@ -1136,7 +1150,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			row(r)
 		}
 	}
-	if acts < scriptprofile.RecordActions {
+	if acts < scriptprofile.Extended.Actions {
 		add(popupRow{Kind: popupText}, -1, actAddAct)
 	}
 	if conds == 0 && acts > drops {
@@ -1169,18 +1183,22 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		}
 		o.focus = -1
 		e.wizardFields(v)
-	case actAddPair, actAddAct:
-		condition := act == actAddPair
+	case actAddPair, actAddGroup, actAddAct:
+		condition := act != actAddAct
 		r := wizRow{condition: condition, origItem: -2}
 		r.item, r.vals = 0, e.wizardDefaults(condition, 0)
-		// A condition goes after the last condition, an action last.
+		// A condition goes after the last condition, in its group or, for
+		// a new OR group, the next; an action goes last.
 		at := len(w.rows)
 		if condition {
 			at = 0
 			for k, x := range w.rows {
 				if x.condition {
-					at = k + 1
+					at, r.group = k+1, x.group
 				}
+			}
+			if act == actAddGroup && at > 0 {
+				r.group++
 			}
 		}
 		w.rows = append(w.rows[:at], append([]wizRow{r}, w.rows[at:]...)...)
@@ -1321,7 +1339,7 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 		}
 		if row.item < 0 || unchanged {
 			if row.condition {
-				t.Pairs = append(t.Pairs, WizardPair{Left: WizardNode{ID: row.left, Keep: true}, Right: WizardNode{ID: row.right, Keep: true}, Cmp: row.cmp})
+				t.Pairs = append(t.Pairs, WizardPair{Left: WizardNode{ID: row.left, Keep: true}, Right: WizardNode{ID: row.right, Keep: true}, Cmp: row.cmp, Group: row.group})
 			} else {
 				t.Actions = append(t.Actions, WizardNode{ID: row.act, Keep: true})
 			}
@@ -1336,13 +1354,15 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 			if row.swapped { // the check is written on the left
 				node.ID, right.ID = row.right, row.left
 			}
-			t.Pairs = append(t.Pairs, WizardPair{Left: node, Cmp: cmp, Right: right})
+			t.Pairs = append(t.Pairs, WizardPair{Left: node, Cmp: cmp, Right: right, Group: row.group})
 		} else {
 			node.ID = row.act
 			t.Actions = append(t.Actions, node)
 		}
 	}
-	if len(t.Pairs) > scriptprofile.RecordPairs || len(t.Actions) > scriptprofile.RecordActions {
+	// Past the original record's limits the host asks to extend the map;
+	// past the extended record's the plan is refused here.
+	if most := scriptprofile.Extended; len(t.Pairs) > most.Pairs || len(t.Actions) > most.Actions {
 		return t, fmt.Errorf("%s", e.word("editor.wizard.full"))
 	}
 	return t, nil
@@ -1492,6 +1512,15 @@ func (e *MapEditor) applyWizard(v scriptView) {
 	}
 	t.Join = e.joinsAdd(v.index)
 	ch, err := e.commandWriteTrigger(t)
+	again := func() {
+		t.Join = false
+		if _, err := e.commandWriteTrigger(t); err != nil {
+			e.message = e.editorHostText(err.Error())
+		}
+	}
+	if e.askScriptForm(err, again) {
+		return
+	}
 	if err != nil {
 		o.note = err.Error() // host text: the popup encodes its note
 		return

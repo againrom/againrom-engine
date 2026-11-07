@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -126,10 +127,20 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	// A new variable takes the highest free register, so the checks the map
 	// adds next, each at the next condition index, keep clear of it until the
 	// 100 registers cannot hold both.
-	for r := uint32(99); r < 100; r-- {
-		if !registers[r] && uint64(r) >= uint64(len(sc.Conditions)) {
+	// On an extended map the checks take no register; past the hundred the
+	// new variable is the first one no node addresses, which on an original
+	// map asks to extend the script.
+	fresh := false
+	for r := uint32(99); r < 100 && !fresh; r-- {
+		if !registers[r] && (sc.Extended || uint64(r) >= uint64(len(sc.Conditions))) {
 			add(ui.ScriptVariableParameter, r, -1, x.inspectionUTF8(x.word("editor.param.newvariable")), "", 0)
-			break
+			fresh = true
+		}
+	}
+	for r := uint32(100); r < scriptprofile.ExtendedVariables && !fresh; r++ {
+		if !registers[r] {
+			add(ui.ScriptVariableParameter, r, -1, x.inspectionUTF8(x.word("editor.param.newvariable")), "", 0)
+			fresh = true
 		}
 	}
 	x.messageTargets(out, pages)

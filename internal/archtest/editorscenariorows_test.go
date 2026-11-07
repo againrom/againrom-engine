@@ -15,13 +15,14 @@ import (
 // name it: the palette's rows come from the tree's row builder, a new
 // record's proposals from the Add window's step offer, and the one-click
 // trigger and variable from one builder, reached from the command row, the
-// wizard's New and the palette's buttons.
+// wizard's New and the palette's buttons, and run again by itself once the
+// map is extended.
 var scenarioBuilderRefs = map[string][]string{
 	"treeMembers":   {"treeMatches", "treeRowsOf", "treeFollow"},
 	"treeRowsOf":    {"treeRows", "scenarioRows"},
 	"addAccepted":   {"addPlacement", "addNow"},
 	"NewRecordStep": {"addOffer", "placeChoices"},
-	"addNow":        {"menuAct", "newTrigger", "chromePress"},
+	"addNow":        {"menuAct", "newTrigger", "chromePress", "addNow"},
 }
 
 // checkScenarioBuilders reports, in one non-test pkg/ui source file, a

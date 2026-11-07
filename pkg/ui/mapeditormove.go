@@ -43,6 +43,12 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 	}
 	source, err := e.writeSave(write)
 	if err != nil {
+		if e.askScriptForm(err, func() {
+			e.saveThen = then
+			_ = e.saveWith(write)
+		}) {
+			return err
+		}
 		if r, ok := refusal(err); ok {
 			if r.Ask {
 				e.askSaveWithErrors(r, func() error {

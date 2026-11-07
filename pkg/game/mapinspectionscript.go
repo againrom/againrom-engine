@@ -378,10 +378,19 @@ func (r registerTaken) Error() string {
 	return fmt.Sprintf("script variable %d would share the register of the new check", r.register)
 }
 
-// errChecksFull refuses a check beyond the register file.
-var errChecksFull = fmt.Errorf("the script already uses %d check registers", scriptprofile.First.Registers)
+// errChecksFull refuses a check beyond the register file, a limit the
+// extended record lifts: there each check owns a result of its own.
+var errChecksFull error = &liftedLimit{
+	text:  fmt.Sprintf("the script already uses %d check registers", scriptprofile.First.Registers),
+	limit: &mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: int64(scriptprofile.First.Registers), Got: int64(scriptprofile.First.Registers)},
+}
 
+// registerCollides refuses check register next where a variable uses it; on
+// an extended map the variables are an array of their own, so none does.
 func registerCollides(sc alm.Script, next uint32) error {
+	if sc.Extended {
+		return nil
+	}
 	for _, set := range []struct {
 		nodes   []alm.ScriptNode
 		opcodes [2]uint32

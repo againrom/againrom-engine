@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"againrom/pkg/scriptprofile"
 )
 
 // The object popup edits every field of the selected record at once. Its
@@ -70,13 +68,13 @@ type objectEdit struct {
 	rowBlock  map[int]string
 	usesShown bool
 	viewOffer bool
-	// added marks a trigger's pairs, then its action slots, shown
+	// addedPair and addedAct mark a trigger's pairs and action slots shown
 	// before a node is chosen for them; types are a node's slot types as
 	// its chosen operation sets them; pickField is the field a cell pick
 	// fills, -1 for none.
-	added     [scriptprofile.RecordPairs + scriptprofile.RecordActions]bool
-	types     [10]uint32
-	pickField int
+	addedPair, addedAct []bool
+	types               [10]uint32
+	pickField           int
 	// signature is the operation and group command types was set for.
 	signature [2]int64
 	// wiz is the trigger wizard's rows, nil when the popup is no wizard.
@@ -914,6 +912,14 @@ func (e *MapEditor) applyObject() {
 		}
 		if err == nil {
 			_, err = e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values})
+		}
+		again := func() {
+			if _, err := e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values}); err != nil {
+				e.message = e.editorHostText(err.Error())
+			}
+		}
+		if e.askScriptForm(err, again) {
+			return
 		}
 		if err != nil {
 			o.note = err.Error()

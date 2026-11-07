@@ -74,7 +74,7 @@ func groupsEditor(t *testing.T) (*MapEditor, *groupsProbe) {
 		}
 		d.Script = &InspectionScriptModel{
 			Actions:  []InspectionScriptNode{{Record: 6, ID: 1, Opcode: 32, Label: "off map", Types: [10]uint32{scriptGroup}, Values: [10]uint32{1}}},
-			Triggers: []InspectionTrigger{{Record: 7, Name: "Hide them", Acts: [4]uint32{1}}},
+			Triggers: []InspectionTrigger{{Record: 7, Name: "Hide them", Left: make([]uint32, 3), Right: make([]uint32, 3), Cmp: make([]uint32, 3), Acts: []uint32{1, 0, 0, 0}}},
 			Targets:  map[uint32][]InspectionScriptTarget{scriptGroup: targets},
 		}
 		for i := range d.Records {

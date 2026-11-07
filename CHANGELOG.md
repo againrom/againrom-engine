@@ -46,6 +46,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor the Traps and spells tab now stands before Buildings, in the top bar and in the tree.
 - [BASE] A unit's own name can now hold a space between words ("Old Bob"); before, the space typed after a word was lost when typing paused.
 - [ROM1] A map can now be an `.almx` file whose triggers fire when any of several groups of conditions holds, with up to 64 conditions and 64 actions per trigger, 4096 variables and 10000 triggers; the game lists, plays, saves and loads it, and a mod mission may name one. The map editor does not open such a map yet.
+- [ROM1] The map editor now opens `.almx` maps and edits their triggers: groups of conditions joined by OR, up to 64 conditions and 64 actions, variables past 99. On an `.alm` map the first edit the original trigger cannot hold asks once whether to make the map an `.almx`, which the original game does not open; such a map saves as `.almx`, and one that fits the original triggers again can be saved back as `.alm` after a question. Saving back keeps Cyrillic trigger names and lets a trigger with no conditions run its actions in the original game.
 
 ## 0.148.0
 

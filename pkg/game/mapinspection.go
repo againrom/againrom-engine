@@ -230,9 +230,6 @@ func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument,
 	if err != nil {
 		return nil, err
 	}
-	if err := refuseExtendedMap(model, source); err != nil {
-		return nil, err
-	}
 	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes()}
 	d, err := s.project(model)
 	if err == nil {

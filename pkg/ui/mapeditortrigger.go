@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -64,20 +65,71 @@ func (e *MapEditor) scriptPopup() (scriptView, bool) {
 	return e.scriptViewOf(e.selected)
 }
 
-// The trigger's fields, in this order: name, once, the record's pairs as
-// left, comparison and right, then its action slots.
+// The trigger's fields, in this order: name, once, its pairs as left,
+// comparison and right, its action slots, then, on an extended map or once
+// an OR group is added, each pair's group. An original trigger spells the
+// record's three pairs and four actions; an added slot past them widens
+// the fields, and Apply then asks to extend the map.
 const (
 	trigName  = 0
 	trigOnce  = 1
 	trigPairs = 2
 	pairSides = 3 // left, comparison, right
-	trigActs  = trigPairs + pairSides*scriptprofile.RecordPairs
 )
 
 func pairField(p, side int) int { return trigPairs + pairSides*p + side }
 
-// actionAdded is action slot a's mark in objectEdit.added, after the pairs'.
-func actionAdded(a int) int { return scriptprofile.RecordPairs + a }
+// triggerSlots are the pairs and action slots the trigger fields spell and
+// whether they spell the pairs' groups.
+func (o *objectEdit) triggerSlots() (pairs, acts int, grouped bool) {
+	for _, f := range o.fields {
+		switch {
+		case strings.HasPrefix(f.Key, "left"):
+			pairs++
+		case strings.HasPrefix(f.Key, "action"):
+			acts++
+		case strings.HasPrefix(f.Key, "group"):
+			grouped = true
+		}
+	}
+	return pairs, acts, grouped
+}
+
+// actField is action slot a's field; groupField pair p's group field, -1
+// when the fields spell no groups.
+func (o *objectEdit) actField(a int) int {
+	pairs, _, _ := o.triggerSlots()
+	return trigPairs + pairSides*pairs + a
+}
+
+func (o *objectEdit) groupField(p int) int {
+	pairs, acts, grouped := o.triggerSlots()
+	if !grouped {
+		return -1
+	}
+	return trigPairs + pairSides*pairs + acts + p
+}
+
+// pairGroup is pair p's group as its field reads, 0 without groups.
+func (o *objectEdit) pairGroup(p int) int64 {
+	f := o.groupField(p)
+	if f < 0 {
+		return 0
+	}
+	g, _ := strconv.ParseInt(strings.TrimSpace(o.buf[f]), 10, 64)
+	return g
+}
+
+// marked is mark i of marks, false past them.
+func marked(marks []bool, i int) bool { return i >= 0 && i < len(marks) && marks[i] }
+
+// mark sets mark i of marks to on, growing them to hold it.
+func mark(marks *[]bool, i int, on bool) {
+	for len(*marks) <= i {
+		*marks = append(*marks, false)
+	}
+	(*marks)[i] = on
+}
 
 // opName is the operation's word: its name where a claim names it, else
 // "Condition N" or "Action N".
@@ -281,23 +333,61 @@ func (e *MapEditor) nodeChoices(condition bool) []InspectionChoice {
 // scriptFields are the fields the popup edits for a script record.
 func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 	if t := v.trigger; t != nil {
-		out := []InspectionField{{Key: "name", Label: e.word("editor.trigger.name"), Text: true, TextValue: t.Name},
-			{Key: "once", Label: e.word("editor.trigger.once"), Value: int64(t.Once), Choices: []InspectionChoice{{1, e.word("editor.trigger.once.yes")}, {0, e.word("editor.trigger.once.no")}}}}
-		var cmps []InspectionChoice
-		for c := int64(0); c <= scriptprofile.MaxCompare; c++ {
-			cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
-		}
-		for p := range scriptprofile.RecordPairs {
-			out = append(out, InspectionField{Key: scriptprofile.LeftKey(p), Value: int64(t.Left[p]), Choices: e.nodeChoices(true)},
-				InspectionField{Key: scriptprofile.CmpKey(p), Value: int64(t.Cmp[p]), Choices: cmps},
-				InspectionField{Key: scriptprofile.RightKey(p), Value: int64(t.Right[p]), Choices: e.nodeChoices(true)})
-		}
-		for a := range scriptprofile.RecordActions {
-			out = append(out, InspectionField{Key: scriptprofile.ActionKey(a), Value: int64(t.Acts[a]), Choices: e.nodeChoices(false)})
-		}
-		return out
+		extended := e.doc.Script != nil && e.doc.Script.Extended
+		return e.triggerFields(t, len(t.Left), len(t.Acts), extended)
 	}
 	return e.nodeFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+}
+
+// triggerFields are trigger t's fields spelling pairs pairs and acts action
+// slots, with the pairs' groups when grouped; a slot past t's is empty.
+func (e *MapEditor) triggerFields(t *InspectionTrigger, pairs, acts int, grouped bool) []InspectionField {
+	out := []InspectionField{{Key: "name", Label: e.word("editor.trigger.name"), Text: true, TextValue: t.Name},
+		{Key: "once", Label: e.word("editor.trigger.once"), Value: int64(t.Once), Choices: []InspectionChoice{{1, e.word("editor.trigger.once.yes")}, {0, e.word("editor.trigger.once.no")}}}}
+	var cmps []InspectionChoice
+	for c := int64(0); c <= scriptprofile.MaxCompare; c++ {
+		cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
+	}
+	slot := func(s []uint32, k int) int64 {
+		if k < len(s) {
+			return int64(s[k])
+		}
+		return 0
+	}
+	for p := range pairs {
+		out = append(out, InspectionField{Key: scriptprofile.LeftKey(p), Value: slot(t.Left, p), Choices: e.nodeChoices(true)},
+			InspectionField{Key: scriptprofile.CmpKey(p), Value: slot(t.Cmp, p), Choices: cmps},
+			InspectionField{Key: scriptprofile.RightKey(p), Value: slot(t.Right, p), Choices: e.nodeChoices(true)})
+	}
+	for a := range acts {
+		out = append(out, InspectionField{Key: scriptprofile.ActionKey(a), Value: slot(t.Acts, a), Choices: e.nodeChoices(false)})
+	}
+	if grouped {
+		for p := range pairs {
+			out = append(out, InspectionField{Key: scriptprofile.GroupKey(p), Value: slot(t.Group, p)})
+		}
+	}
+	return out
+}
+
+// widenTrigger spells pairs pairs and acts action slots in the shown
+// trigger's fields, with groups when grouped, each field keeping its text.
+func (e *MapEditor) widenTrigger(v scriptView, pairs, acts int, grouped bool) {
+	o := &e.obj
+	text := map[string]string{}
+	for i, f := range o.fields {
+		text[f.Key] = o.buf[i]
+	}
+	o.fields = e.triggerFields(v.trigger, pairs, acts, grouped)
+	o.buf = o.buf[:0]
+	for _, f := range o.fields {
+		b := fieldInput(f)
+		if t, ok := text[f.Key]; ok {
+			b = t
+		}
+		o.buf = append(o.buf, b)
+	}
+	o.focus, o.open = -1, -1
 }
 
 // slotValue is a slot's value as its field reads it: a number or constant
@@ -440,11 +530,11 @@ func keySlotTypeKept(key string, old, now [10]uint32) bool {
 // scriptAdd marks the shown pairs and action slots beyond those the buffer
 // names: a pair or action added and not yet chosen.
 func (o *objectEdit) shownPair(p int) bool {
-	return o.added[p] || o.buf[pairField(p, 0)] != "0" || o.buf[pairField(p, 2)] != "0"
+	return marked(o.addedPair, p) || o.buf[pairField(p, 0)] != "0" || o.buf[pairField(p, 2)] != "0"
 }
 
 func (o *objectEdit) shownAction(a int) bool {
-	return o.added[actionAdded(a)] || o.buf[trigActs+a] != "0"
+	return marked(o.addedAct, a) || o.buf[o.actField(a)] != "0"
 }
 
 // row actions of the script popups.
@@ -454,6 +544,7 @@ const (
 	actAddPair    = "addpair"
 	actRemoveAct  = "removeaction"
 	actAddAct     = "addaction"
+	actAddGroup   = "addgroup"
 	actPick       = "pick"
 )
 
@@ -503,10 +594,18 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 		add(popupRow{Kind: popupSwitch, Label: o.fields[trigOnce].Label, Value: once}, trigOnce)
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.conditions")}, -1)
-		pairs := 0
-		for p := range scriptprofile.RecordPairs {
+		pairs, group := 0, int64(0)
+		slots, actSlots, _ := o.triggerSlots()
+		for p := range slots {
 			if !o.shownPair(p) {
 				continue
+			}
+			// A pair in another group than the one before opens an OR group.
+			if g := o.pairGroup(p); pairs > 0 && g != group {
+				add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.orgroup")}, -1)
+				group = g
+			} else if pairs == 0 {
+				group = g
 			}
 			pairs++
 			for side := range pairSides {
@@ -530,24 +629,29 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		if pairs == 0 {
 			text(e.word("editor.trigger.nopair"), "warning")
 		}
-		if pairs < scriptprofile.RecordPairs {
+		// The add rows reach the extended record's limits on any map: past
+		// the original record's, Apply asks to extend the map.
+		if most := scriptprofile.Extended; pairs == 0 {
 			add(popupRow{Kind: popupText}, -1, actAddPair)
+		} else if pairs < most.Pairs {
+			add(popupRow{Kind: popupText}, -1, actAddPair, actAddGroup)
 		}
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.actions")}, -1)
 		acts := 0
-		for a := range scriptprofile.RecordActions {
+		for a := range actSlots {
 			if !o.shownAction(a) {
 				continue
 			}
 			actionGap(add, acts)
 			acts++
-			title, params := e.slotText(false, o.buf[trigActs+a])
-			add(popupRow{Kind: popupChoice, Label: fmt.Sprintf(e.word("editor.trigger.action"), acts), Value: title, Ink: editorGold}, trigActs+a, actEdit, actRemoveAct)
+			f := o.actField(a)
+			title, params := e.slotText(false, o.buf[f])
+			add(popupRow{Kind: popupChoice, Label: fmt.Sprintf(e.word("editor.trigger.action"), acts), Value: title, Ink: editorGold}, f, actEdit, actRemoveAct)
 			if params != "" {
 				text("    "+params, "")
 			}
 		}
-		if acts < scriptprofile.RecordActions {
+		if acts < scriptprofile.Extended.Actions {
 			add(popupRow{Kind: popupText}, -1, actAddAct)
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back")}
@@ -625,6 +729,8 @@ func (e *MapEditor) actWord(a string) string {
 			return e.word("editor.wizard.addaction")
 		}
 		return e.word("editor.trigger.addaction")
+	case actAddGroup:
+		return e.word("editor.trigger.addgroup")
 	case actDraw:
 		return e.word("editor.wizard.draw")
 	case actConfigure:
@@ -671,34 +777,39 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 		e.editSlotNode(f)
 	case actRemovePair:
 		p := (f - trigPairs) / pairSides
-		last := scriptprofile.RecordPairs - 1
+		pairs, _, _ := o.triggerSlots()
+		last := pairs - 1
 		for q := p; q < last; q++ {
 			for side := range pairSides {
 				o.buf[pairField(q, side)] = o.buf[pairField(q+1, side)]
 			}
-			o.added[q] = o.added[q+1]
-		}
-		o.buf[pairField(last, 0)], o.buf[pairField(last, 2)], o.added[last] = "0", "0", false
-	case actAddPair:
-		for p := range scriptprofile.RecordPairs {
-			if !o.shownPair(p) {
-				o.added[p] = true
-				if c, err := strconv.ParseInt(strings.TrimSpace(o.buf[pairField(p, 1)]), 10, 64); err != nil || c < 0 || c > scriptprofile.MaxCompare {
-					o.buf[pairField(p, 1)] = "0"
-				}
-				break
+			if g := o.groupField(q); g >= 0 {
+				o.buf[g] = o.buf[g+1]
 			}
+			mark(&o.addedPair, q, marked(o.addedPair, q+1))
 		}
+		o.buf[pairField(last, 0)], o.buf[pairField(last, 2)] = "0", "0"
+		mark(&o.addedPair, last, false)
+	case actAddPair, actAddGroup:
+		e.addTriggerPair(acts[k] == actAddGroup)
 	case actRemoveAct:
-		a := f - trigActs
-		o.buf[f], o.added[actionAdded(a)] = "0", false
+		mark(&o.addedAct, f-o.actField(0), false)
+		o.buf[f] = "0"
 	case actAddAct:
-		for a := range scriptprofile.RecordActions {
-			if !o.shownAction(a) {
-				o.added[actionAdded(a)] = true
-				break
-			}
+		_, actSlots, _ := o.triggerSlots()
+		a := 0
+		for a < actSlots && o.shownAction(a) {
+			a++
 		}
+		if a == actSlots {
+			if a >= scriptprofile.Extended.Actions {
+				return
+			}
+			v, _ := e.scriptPopup()
+			pairs, _, grouped := o.triggerSlots()
+			e.widenTrigger(v, pairs, a+1, grouped)
+		}
+		mark(&o.addedAct, a, true)
 	case actPick:
 		if hasField {
 			o.focus = f
@@ -713,10 +824,53 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 	}
 }
 
+// addTriggerPair shows one more condition pair. Without groups it is the
+// first empty pair, as the original record fills its pairs; with groups,
+// or for a new OR group, it is the pair after the last one shown, in that
+// pair's group or, for a new group, the next. A pair past the fields widens
+// them.
+func (e *MapEditor) addTriggerPair(newGroup bool) {
+	o := &e.obj
+	v, _ := e.scriptPopup()
+	pairs, acts, grouped := o.triggerSlots()
+	if newGroup && !grouped {
+		e.widenTrigger(v, pairs, acts, true)
+		grouped = true
+	}
+	p, last := -1, -1
+	for q := range pairs {
+		if o.shownPair(q) {
+			last = q
+		} else if p < 0 && !grouped {
+			p = q
+		}
+	}
+	if p < 0 {
+		p = last + 1
+	}
+	if p >= pairs {
+		if p >= scriptprofile.Extended.Pairs {
+			return
+		}
+		e.widenTrigger(v, p+1, acts, grouped)
+	}
+	mark(&o.addedPair, p, true)
+	if c, err := strconv.ParseInt(strings.TrimSpace(o.buf[pairField(p, 1)]), 10, 64); err != nil || c < 0 || c > scriptprofile.MaxCompare {
+		o.buf[pairField(p, 1)] = "0"
+	}
+	if grouped {
+		g := int64(0)
+		if last >= 0 {
+			g = o.pairGroup(last) + int64(refCount(newGroup))
+		}
+		o.buf[o.groupField(p)] = strconv.FormatInt(g, 10)
+	}
+}
+
 func (e *MapEditor) editSlotNode(f int) {
 	o := &e.obj
 	id, _ := strconv.ParseInt(strings.TrimSpace(o.buf[f]), 10, 64)
-	n, ok := e.nodeByID(f < trigActs, uint32(id))
+	n, ok := e.nodeByID(f < o.actField(0), uint32(id))
 	if id <= 0 || !ok {
 		o.note = e.word("editor.trigger.choosefirst")
 		return
@@ -798,6 +952,9 @@ func (e *MapEditor) addNow(kind RecordKind) {
 	run.setSteps(row.Steps)
 	record := e.addAccepted(host, run, -1, image.Point{})
 	ch, err := e.commandAddRecord(record)
+	if e.askScriptForm(err, func() { e.addNow(kind) }) {
+		return
+	}
 	if err != nil {
 		e.message = e.editorHostText(err.Error())
 		return
@@ -859,18 +1016,23 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		return n, nil
 	}
 	if v.trigger != nil {
-		for p := range scriptprofile.RecordPairs {
+		pairs, acts, grouped := o.triggerSlots()
+		for p := range pairs {
 			if o.shownPair(p) && (o.buf[pairField(p, 0)] == "0" || o.buf[pairField(p, 2)] == "0") {
 				return nil, fmt.Errorf(e.word("editor.trigger.sides"), p+1)
 			}
 		}
-		for a := range scriptprofile.RecordActions {
-			if o.added[actionAdded(a)] && o.buf[trigActs+a] == "0" {
+		for a := range acts {
+			if marked(o.addedAct, a) && o.buf[o.actField(a)] == "0" {
 				return nil, fmt.Errorf(e.word("editor.trigger.noaction"), a+1)
 			}
 		}
+		// Fields wider than the original record, or an extended map's, are
+		// written whole: the host writes them as one trigger.
+		whole := grouped || pairs > scriptprofile.RecordPairs || acts > scriptprofile.RecordActions || e.doc.Script.Extended
 		for i, f := range o.fields {
-			if o.buf[i] == fieldInput(f) {
+			slot := i >= trigPairs
+			if o.buf[i] == fieldInput(f) && !(whole && slot) {
 				continue
 			}
 			if f.Text {
@@ -960,12 +1122,7 @@ func (e *MapEditor) scriptDirty(v scriptView) bool {
 		return o.wiz.dirty()
 	}
 	if v.trigger != nil {
-		for _, a := range o.added {
-			if a {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(o.addedPair, true) || slices.Contains(o.addedAct, true)
 	}
 	return o.types != v.node.Types
 }
@@ -1084,8 +1241,8 @@ func (e *MapEditor) PopupButtons() []string {
 }
 
 // RowButtonRect is the window rectangle of button k of the shown row that
-// edits field n; n -1 with actions false is the add-pair row's button, with
-// actions true the add-action row's. In the dialog editor n 2c+1 is card
+// edits field n; n -1 with actions false is the add-pair row's button (k 1
+// adds an OR group), with actions true the add-action row's. In the dialog editor n 2c+1 is card
 // c's cross or Restore and n -1 the "+".
 func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
@@ -1102,7 +1259,7 @@ func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool
 			f, has = 2*part+1, true
 		}
 		acts := e.obj.rowActs[rr.Index]
-		match := has && f == n || n < 0 && !has && len(acts) == 1 && acts[0] == want
+		match := has && f == n || n < 0 && !has && len(acts) > 0 && acts[0] == want
 		if match && k >= 0 && k < len(rr.Buttons) {
 			return rr.Buttons[k], true
 		}

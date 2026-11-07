@@ -535,6 +535,9 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptGroupWarn:
 		e.groupWarnGo()
 		return nil
+	case promptScriptForm:
+		e.scriptFormGo()
+		return nil
 	case promptAdd:
 		e.addNext()
 		return nil

@@ -3,7 +3,9 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/pathdialog"
 )
 
@@ -38,11 +40,16 @@ func (e *MapEditor) SetMapsFolder(folder func() string) { e.pathDialog.mapsFolde
 func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 	r := pathdialog.Request{
 		Kind: kind, Title: "Open map", StartDir: e.pathDialog.baseDir,
-		Filters: []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm"}}, {Name: "All files", Extensions: []string{"*"}}},
+		Filters: []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}},
+	}
+	// An extended map is saved as an .almx (DIV-4603).
+	ext := ".alm"
+	if e.doc != nil && e.doc.Script != nil && e.doc.Script.Extended {
+		ext = ".almx"
 	}
 	if kind == pathdialog.SaveFile {
 		r.Title = "Save map as"
-		r.DefaultName = "new-map.alm"
+		r.DefaultName = "new-map" + ext
 	}
 	if e.doc != nil {
 		source := e.doc.Source
@@ -50,6 +57,9 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 		if source != "" && src.Kind != SourceNew {
 			if kind == pathdialog.SaveFile {
 				r.DefaultName = filepath.Base(filepath.FromSlash(source))
+				if x := filepath.Ext(r.DefaultName); ext == ".almx" && !namefold.HostEqual(x, ext) {
+					r.DefaultName = strings.TrimSuffix(r.DefaultName, x) + ext
+				}
 			}
 			if src.Kind != SourceScenario {
 				if src.Kind == SourceLoose {
@@ -131,7 +141,8 @@ func (e *MapEditor) PollPathDialog() bool {
 			} else {
 				err = e.Open(reply.result.Path)
 			}
-			if err != nil {
+			// A save that asks to fold the script keeps its question.
+			if err != nil && e.prompt.kind != promptScriptForm {
 				message := e.message
 				e.cancelPopup(popPrompt)
 				e.message = message

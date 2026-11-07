@@ -27,7 +27,7 @@ func variableTableEditor(t *testing.T, lang string) *MapEditor {
 		{Record: 11, ID: 2, Opcode: 0x10002, Types: [10]uint32{scriptInt}, Values: [10]uint32{7}},
 	}
 	s.Actions = append(s.Actions, InspectionScriptNode{Record: 12, ID: 2, Opcode: 8, Types: [10]uint32{scriptInt}, Values: [10]uint32{31}, AddressesVariable: true, VariableRegister: 31})
-	s.Triggers = append(s.Triggers, InspectionTrigger{Record: 13, Name: "Count", Left: [3]uint32{1}, Right: [3]uint32{2}, Cmp: [3]uint32{4}, Acts: [4]uint32{2}})
+	s.Triggers = append(s.Triggers, InspectionTrigger{Record: 13, Name: "Count", Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Cmp: []uint32{4, 0, 0}, Acts: []uint32{2, 0, 0, 0}})
 	s.Labels = map[uint32]string{32: "Spare"}
 	return e
 }
@@ -269,12 +269,12 @@ func TestVariablesTableReadsAPairFromTheCheckSide(t *testing.T) {
 	holds := [6]int64{0, 1, 3, 2, 5, 4}
 	var want []string
 	for c := uint32(0); c < 6; c++ {
-		s.Triggers = append(s.Triggers, InspectionTrigger{Record: 13 + int(c), Name: "T", Left: [3]uint32{2}, Right: [3]uint32{1}, Cmp: [3]uint32{c}})
+		s.Triggers = append(s.Triggers, InspectionTrigger{Record: 13 + int(c), Name: "T", Left: []uint32{2, 0, 0}, Right: []uint32{1, 0, 0}, Cmp: []uint32{c, 0, 0}, Acts: make([]uint32, 4)})
 		r := InspectionRecord{Kind: "Trigger", Index: int(c), Key: uint64(len(e.doc.Records) + 1)}
 		e.doc.Records = append(e.doc.Records, r)
 		want = append(want, "30\t7\t"+e.cmpWord(holds[c]))
 	}
-	s.Triggers = append(s.Triggers, InspectionTrigger{Record: 19, Name: "T", Left: [3]uint32{1}, Right: [3]uint32{3}, Cmp: [3]uint32{3}})
+	s.Triggers = append(s.Triggers, InspectionTrigger{Record: 19, Name: "T", Left: []uint32{1, 0, 0}, Right: []uint32{3, 0, 0}, Cmp: []uint32{3, 0, 0}, Acts: make([]uint32, 4)})
 	e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: "Trigger", Index: 6, Key: uint64(len(e.doc.Records) + 1)})
 	n1, _ := e.nodeByID(true, 1)
 	n3, _ := e.nodeByID(true, 3)

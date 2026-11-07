@@ -28,7 +28,7 @@ var (
 		"MoveRecords": true, "DeleteRecords": true, "CopyRecords": true, "PasteRecords": true, "CopyArea": true, "MoveArea": true,
 		"SetUnitsGroup": true, "AddStock": true, "AddItemRecipe": true,
 		"SetMessageParts": true, "CreateMessageParts": true, "PointMessageParts": true, "SetMessage": true, "CreateMessage": true,
-		"AddBoxArea": true, "SetGoalTarget": true}
+		"AddBoxArea": true, "SetGoalTarget": true, "ExtendScript": true, "FoldScript": true}
 	editorEditsOps = map[string]bool{"Move": true, "Clone": true, "Delete": true, "SetField": true, "Undo": true, "Redo": true}
 )
 

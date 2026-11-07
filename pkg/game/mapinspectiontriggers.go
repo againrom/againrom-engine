@@ -73,8 +73,17 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 	}
 	for i, t := range script.Triggers {
 		it := ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Once: t.Once}
-		for p := range it.Left {
+		pairs, acts := scriptprofile.RecordPairs, scriptprofile.RecordActions
+		if script.Extended {
+			pairs, acts = t.Pairs(), len(t.Acts)
+			it.Group = make([]uint32, pairs)
+		}
+		it.Left, it.Right, it.Cmp, it.Acts = make([]uint32, pairs), make([]uint32, pairs), make([]uint32, pairs), make([]uint32, acts)
+		for p := range pairs {
 			it.Left[p], it.Right[p], it.Cmp[p] = t.Pair(p)
+			if script.Extended {
+				it.Group[p] = t.GroupOf(p)
+			}
 		}
 		for a := range it.Acts {
 			it.Acts[a] = t.Act(a)
@@ -88,6 +97,9 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		s.line(&r, fmt.Sprintf("Once %d: %s", t.Once, once), "")
 		s.line(&r, "Conditions / AND", "condition")
 		for p := range t.Left {
+			if p > 0 && t.GroupOf(p) != t.GroupOf(p-1) {
+				s.line(&r, "OR", "condition")
+			}
 			comparison := "unknown"
 			if t.Cmp[p] <= scriptprofile.MaxCompare {
 				comparison = mapload.ScriptComparisons[t.Cmp[p]]
@@ -115,7 +127,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 			s.line(&r, fmt.Sprintf("%d: A%d / %s", p+1, id, label), "action")
 		}
 		s.line(&r, "Live state unknown; not executed", "")
-		if t.Left[0] == 0 {
+		if first, _, _ := t.Pair(0); first == 0 && !script.Extended {
 			s.line(&r, "First Left 0: omitted by runtime builder", "")
 		}
 		// Preserve every reference in the summary; expand each node identity only
@@ -155,6 +167,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 			Slots: a.Slots, RadiusNode: radius, RadiusSlot: a.RadiusSlot, RadiusBias: a.RadiusBias})
 	}
 	model.Catalog = scriptCatalog()
+	model.Extended, model.Variables = script.Extended, script.Variables
 	d.Script = model
 }
 

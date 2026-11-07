@@ -631,7 +631,7 @@ func (e *MapEditor) areaWheel(wheel wheelSource) bool {
 }
 
 // areaCreate adds the drawn box to the chosen trigger, or to a new one, as
-// one edit, then selects that trigger. A trigger with no free pair is
+// one edit, then selects that trigger. A full trigger of an extended map is
 // refused in the prompt.
 func (e *MapEditor) areaCreate() {
 	a := e.prompt.area
@@ -643,19 +643,35 @@ func (e *MapEditor) areaCreate() {
 		a.note = note
 		return
 	}
-	ch, err := e.commandAddBoxArea(boxArea{Box: a.box, Trigger: trigger})
+	if note := e.areaAdd(a.box, trigger); note != "" {
+		a.note = note
+	}
+}
+
+// areaAdd adds box to trigger as one edit and selects that trigger; it
+// answers the refusal. On an original map a pair the record cannot hold
+// asks to extend the map first and is added again once it is extended.
+func (e *MapEditor) areaAdd(box image.Rectangle, trigger int) string {
+	ch, err := e.commandAddBoxArea(boxArea{Box: box, Trigger: trigger})
+	if e.askScriptForm(err, func() { e.againNote(e.areaAdd(box, trigger)) }) {
+		return ""
+	}
 	if err != nil {
-		a.note = e.editorHostText(err.Error())
-		return
+		return e.editorHostText(err.Error())
 	}
 	e.leave(leavePrompt)
 	if ch.record != nil {
 		e.selectTrigger(ch.record.Index, false)
 	}
+	return ""
 }
 
-// freePair reports that trigger t has an empty condition pair.
-func freePair(t InspectionTrigger) bool {
+// freePair reports that trigger t has an empty condition pair; on an
+// extended map, that it holds fewer conditions than the record does.
+func freePair(t InspectionTrigger, m *InspectionScriptModel) bool {
+	if p := m.Profile(); p.Groups {
+		return len(t.Left) < p.Pairs
+	}
 	for k := range t.Left {
 		if t.Left[k] == 0 && t.Right[k] == 0 {
 			return true

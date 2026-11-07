@@ -122,12 +122,13 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 
 // liveLabels is the labels whose registers are still variables: a register a
 // node addresses, or one no check result takes, at or above the condition
-// count. A label of any other register is dropped.
+// count; on an extended map any variable of the array. A label of any other
+// register is dropped.
 func liveLabels(sc alm.Script, labels map[uint32]string) map[uint32]string {
 	addressed := variableRegisters(sc)
 	var out map[uint32]string
 	for r, label := range labels {
-		if r < scriptprofile.FirstRegisters && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
+		if sc.Extended && r < scriptprofile.ExtendedVariables || r < scriptprofile.FirstRegisters && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
 			if out == nil {
 				out = map[uint32]string{}
 			}

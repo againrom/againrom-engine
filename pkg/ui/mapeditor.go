@@ -327,6 +327,7 @@ func (e *MapEditor) openMap(source string) error {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.barSets, e.barOwner = nil, ""
+	e.formAgreed = false
 	e.saveStatus = saveNotice{}
 	e.cancelRestore = nil
 	e.listRestore = nil

@@ -190,7 +190,7 @@ func viewsDocument(h *viewsHost) *InspectionDocument {
 	}
 	d.Script = &InspectionScriptModel{
 		Actions:  []InspectionScriptNode{{Record: 3, ID: 1, Opcode: 32, Label: "Burn the hall", Types: [10]uint32{scriptStructure}, Values: [10]uint32{3}}},
-		Triggers: []InspectionTrigger{{Record: 4, Name: "Raid", Acts: [4]uint32{1}}},
+		Triggers: []InspectionTrigger{{Record: 4, Name: "Raid", Left: make([]uint32, 3), Right: make([]uint32, 3), Cmp: make([]uint32, 3), Acts: []uint32{1, 0, 0, 0}}},
 		Targets:  map[uint32][]InspectionScriptTarget{scriptStructure: {{Value: 3, Record: viewsStructure, Uses: []InspectionScriptUse{{Node: 3, Triggers: []int{4}}}}}},
 	}
 	return d

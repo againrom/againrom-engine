@@ -97,11 +97,8 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 			return fmt.Errorf("mapedit: a %s target is 1..65535, not %d", arm.Name, target)
 		}
 	}
-	if e.Count(KindCondition)+ArmConditions > script.Registers {
-		return fmt.Errorf("mapedit: the script already uses %d of %d check registers", e.Count(KindCondition), script.Registers)
-	}
-	if e.Count(KindTrigger)+1 > script.Triggers {
-		return fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), script.Triggers)
+	if err := e.scriptRoom(ArmConditions, 1); err != nil {
+		return err
 	}
 	actionID, err := e.NextScriptID(KindAction)
 	if err != nil {
@@ -126,7 +123,7 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 	if err != nil {
 		return err
 	}
-	trigger, err := NewScriptTrigger(alm.ScriptTrigger{Name: arm.TriggerName, Left: []uint32{checkID}, Right: []uint32{checkID + 1},
+	trigger, err := e.NewTrigger(alm.ScriptTrigger{Name: arm.TriggerName, Left: []uint32{checkID}, Right: []uint32{checkID + 1},
 		Cmp: []uint32{arm.Compare}, Acts: []uint32{actionID}, Once: 1})
 	if err != nil {
 		return err

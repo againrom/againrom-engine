@@ -99,7 +99,8 @@ func addWalk(t *testing.T, e *ui.MapEditor, values map[string]string, stop strin
 // unit-to-unit check no item reads enters as Details enters a pair (== a
 // new constant) and the trigger shows its Details. Either way the pair
 // names the condition's ID, every node the map held and every other
-// trigger stay as they were, and a full trigger is refused.
+// trigger stay as they were. A full trigger asks to extend the map, and Yes
+// puts the condition in its fourth pair.
 func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 	b := scriptAddMap(t)
 	before := wizScript(t, b)
@@ -127,8 +128,16 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				e.TextInput(strconv.Itoa(trigger))
 				_ = e.Key("enter")
 				if trigger == 0 {
-					if _, note, _ := e.AddStep(); note != w("editor.area.full", 1) || !bytes.Equal(e.Document().SourceBytes, b) {
-						t.Fatalf("%s: a full trigger answered %q", name, note)
+					if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) || !bytes.Equal(e.Document().SourceBytes, b) {
+						t.Fatalf("%s: a full trigger did not ask to extend the map: %q", name, e.PromptNotes())
+					}
+					r, ok := e.PromptButtonRect(0)
+					trigClick(t, e, r, ok, "Extend")
+					sc := e.Document().Script
+					tr, old := sc.Triggers[0], before.Triggers[0]
+					if !sc.Extended || len(tr.Left) != 4 || tr.Left[3] != c.id || tr.Right[3] == 0 || tr.Right[3] == c.id ||
+						!slices.Equal(tr.Left[:3], old.Left[:3]) || !slices.Equal(tr.Right[:3], old.Right[:3]) {
+						t.Fatalf("%s: Yes left %+v, was %+v; message %q", name, tr, old, e.Message())
 					}
 					continue
 				}
@@ -492,7 +501,8 @@ func TestScriptsVariableLabelsFilePlacement(t *testing.T) {
 }
 
 // The label file's reader refuses what a mapmaker's hand or another tool
-// could leave: unknown fields, trailing data, a register of 100 or more,
+// could leave: unknown fields, trailing data, a register past the extended
+// record's,
 // one register twice, and a blank or control-character label; it keeps
 // labels of up to 64 characters, Cyrillic ones included, and reads no file
 // as no labels.
@@ -510,7 +520,9 @@ func TestScriptsVariableLabelsFileReader(t *testing.T) {
 		{`{"variables":[{"register":99,"label":"Золото"}]}`, true},
 		{`{"variables":[{"register":5,"label":"` + strings.Repeat("я", 64) + `"}]}`, true},
 		{`{"variables":[{"register":5,"label":"` + strings.Repeat("я", 65) + `"}]}`, false},
-		{`{"variables":[{"register":100,"label":"x"}]}`, false},
+		{`{"variables":[{"register":100,"label":"x"}]}`, true},
+		{`{"variables":[{"register":4095,"label":"x"}]}`, true},
+		{`{"variables":[{"register":4096,"label":"x"}]}`, false},
 		{`{"variables":[{"register":5,"label":"x"},{"register":5,"label":"y"}]}`, false},
 		{`{"variables":[{"register":5,"label":" "}]}`, false},
 		{`{"variables":[{"register":5,"label":"a\u0007"}]}`, false},

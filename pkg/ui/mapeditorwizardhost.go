@@ -25,6 +25,9 @@ type WizardNode struct {
 type WizardPair struct {
 	Left, Right WizardNode
 	Cmp         uint32
+	// Group is the condition's OR group on an extended map; the original
+	// record holds group 0 alone.
+	Group uint32
 }
 
 // WizardTrigger is the trigger the wizard writes: Index -1 adds a trigger.

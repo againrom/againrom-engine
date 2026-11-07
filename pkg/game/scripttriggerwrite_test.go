@@ -93,13 +93,14 @@ var triggerWriteCases = []struct {
 const outsideCode = 0xffffffff
 
 // triggerWriteGolden is each case's map digest and last trigger record digest
-// as the engine's trigger writers produced them before they became one.
+// as the engine's trigger writers produced them before they became one,
+// with the drop trigger's nonzero first left ID for conditionless actions.
 var triggerWriteGolden = map[string][2]string{
 	"arm win unit":                             {"0e9d07dbc6605b6e7b8f17ce", "ad26e809c19c3930e31e7d1d"},
 	"arm win group":                            {"0d2ed6cc831b649c276fcd65", "ad26e809c19c3930e31e7d1d"},
 	"arm win structure":                        {"edc6da97a6182a292d056f94", "0e09eac9366f705be99c0301"},
 	"arm lose unit":                            {"986556b07b8b75035df24977", "604df6f8f31d956f15845abb"},
-	"drop zone":                                {"7ad6c997f0901f563bbb8e20", "d171bd56047b7c29683ea0d6"},
+	"drop zone":                                {"2f4e50d51d42c906b797b3a8", "751776b1d66252b3aded8745"},
 	"new trigger":                              {"bf6cb5122adfc85bd472631e", "53c85ee5597fdb373e3ccd71"},
 	"box area on trigger":                      {"25400a6a3df8d06056d318b6", "e8cb45d6973c3687be8e18e2"},
 	"box area new trigger":                     {"0a284e1c2c1c8ec15a069fa2", "ab8a267af44da1e0ff8aac3d"},

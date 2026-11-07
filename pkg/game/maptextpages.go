@@ -278,7 +278,9 @@ func (x *MapInspector) mapLabels(source string) (map[uint32]string, error) {
 	}
 	out := map[uint32]string{}
 	for _, v := range f.Variables {
-		if _, twice := out[v.Register]; twice || v.Register >= scriptprofile.FirstRegisters || !labelAllowed(v.Label) {
+		// The bound is the extended array's; liveLabels keeps the labels
+		// the map's form holds.
+		if _, twice := out[v.Register]; twice || v.Register >= scriptprofile.ExtendedVariables || !labelAllowed(v.Label) {
 			return nil, fmt.Errorf("%s: register %d", name, v.Register)
 		}
 		out[v.Register] = v.Label
@@ -342,6 +344,9 @@ func placeMapLabels(target string, labels []byte, overwrite bool, lang string) e
 // writeEditedMapPages writes the map and what the editor keeps beside it: the
 // texts folder of pages and the labels file of labels.
 func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+	if err := extendedName(data, path); err != nil {
+		return "", err
+	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err

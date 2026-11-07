@@ -102,7 +102,7 @@ func groupOrderEditor(t *testing.T) *MapEditor {
 		d := &InspectionDocument{Viewer: v, Source: "order", Width: 120, Height: 120, SourceBytes: []byte("map"), Edits: &editorTextEdits{}}
 		d.Records = []InspectionRecord{{Kind: "Trigger", Index: 0, Section: 7}, {Kind: "Action", Index: 0, Section: 7}}
 		d.Script = &InspectionScriptModel{
-			Triggers: []InspectionTrigger{{Record: 0, Name: "D - Brigands gone mad", Once: 1, Acts: [4]uint32{21}}},
+			Triggers: []InspectionTrigger{{Record: 0, Name: "D - Brigands gone mad", Once: 1, Left: make([]uint32, 3), Right: make([]uint32, 3), Cmp: make([]uint32, 3), Acts: []uint32{21, 0, 0, 0}}},
 			Actions: []InspectionScriptNode{{Record: 1, ID: 21, Opcode: scriptGroupCommand,
 				Types: [10]uint32{7, 5, 6, 9: 2}, Values: [10]uint32{5, 96, 84, 9: 5}}},
 			Targets: map[uint32][]InspectionScriptTarget{scriptGroup: {

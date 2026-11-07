@@ -20,6 +20,36 @@ type InspectionScriptModel struct {
 	Labels map[uint32]string
 	// Catalog is what the host's decoder knows of the operations.
 	Catalog InspectionScriptCatalog
+	// Extended is set on a map whose triggers are the Againrom script
+	// record's (DIV-4599): any number of conditions in OR groups and of
+	// actions, up to scriptprofile.Extended, and Variables variables.
+	Extended  bool
+	Variables int
+}
+
+// Profile is the limits the map's script is written to.
+func (m *InspectionScriptModel) Profile() scriptprofile.Profile {
+	return scriptprofile.Of(m != nil && m.Extended)
+}
+
+// ScriptFormNeeded answers an edit or a save that needs the map's script in
+// the other form: on an original map an edit the 184-byte trigger record or
+// the original counts cannot hold, Why the host's refusal; with Fold, a save
+// under an .alm name of an extended map that the original records hold
+// again. Nothing is written; the editor asks before it changes the form.
+type ScriptFormNeeded struct {
+	Fold bool
+	Why  string
+}
+
+func (n *ScriptFormNeeded) Error() string { return n.Why }
+
+// InspectionScriptForm is implemented by edits whose host moves the map's
+// triggers between the two forms, each as one edit: ExtendScript into the
+// Againrom script record, FoldScript back into type-7 trigger records.
+type InspectionScriptForm interface {
+	ExtendScript() (*InspectionDocument, error)
+	FoldScript() (*InspectionDocument, error)
 }
 
 // InspectionScriptCatalog is the operations a node can run: the opcodes of
@@ -126,13 +156,24 @@ type InspectionScriptNode struct {
 }
 
 // InspectionTrigger is one trigger: its condition pairs, comparisons,
-// actions and once flag.
+// actions and once flag. An original trigger spells every slot of its
+// record, three pairs and four actions, an empty one 0; an extended one
+// spells the conditions and actions it holds, Group naming each
+// condition's OR group.
 type InspectionTrigger struct {
-	Record           int
-	Name             string // UTF-8, the text its name field edits
-	Left, Right, Cmp [scriptprofile.RecordPairs]uint32
-	Acts             [scriptprofile.RecordActions]uint32
-	Once             uint32
+	Record                  int
+	Name                    string // UTF-8, the text its name field edits
+	Left, Right, Cmp, Group []uint32
+	Acts                    []uint32
+	Once                    uint32
+}
+
+// GroupOf is condition p's OR group, 0 past the groups t spells.
+func (t *InspectionTrigger) GroupOf(p int) uint32 {
+	if p < 0 || p >= len(t.Group) {
+		return 0
+	}
+	return t.Group[p]
 }
 
 // The shapes of an area.

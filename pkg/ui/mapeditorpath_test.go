@@ -53,7 +53,7 @@ func TestEditorOpenDialogKeyAndMenu(t *testing.T) {
 			finishEditorDialog(t, e)
 			select {
 			case r := <-requests:
-				want := []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm"}}, {Name: "All files", Extensions: []string{"*"}}}
+				want := []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}}
 				if r.Kind != pathdialog.OpenFile || r.StartDir != filepath.Dir(current) || !reflect.DeepEqual(r.Filters, want) {
 					t.Errorf("request = %+v", r)
 				}

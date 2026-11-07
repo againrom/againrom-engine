@@ -289,6 +289,9 @@ func writeModMap(root, dir, rel string, data []byte) (string, error) {
 	if len(data) > mod.MaxFileBytes {
 		return "", fmt.Errorf("the map is %d bytes; a mod map holds at most %d", len(data), mod.MaxFileBytes)
 	}
+	if err := extendedName(data, rel); err != nil {
+		return "", err
+	}
 	full := filepath.Join(dir, filepath.FromSlash(rel))
 	if err := checkModMapDirectory(root, dir, filepath.Dir(full), rel); err != nil {
 		return "", err

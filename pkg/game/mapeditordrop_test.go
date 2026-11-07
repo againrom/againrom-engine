@@ -10,10 +10,8 @@ import (
 	"againrom/pkg/ui"
 )
 
-// dropShape checks that action node a is a drop zone on cell as the shipped
-// maps write one: "Drop Location" with an X and a Y, named by exactly one
-// trigger "Deploy Location" with no condition pair and only that action,
-// firing once.
+// dropShape checks the authored drop node and its one fire-once trigger.
+// The trigger has the writer's conditionless pair and only that action.
 func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point) {
 	t.Helper()
 	if a.Label != "Drop Location" || a.Opcode != mapload.ScriptConstant ||
@@ -26,7 +24,7 @@ func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point) 
 			continue
 		}
 		n++
-		if tr.Name != "Deploy Location" || [3]uint32(tr.Left) != [3]uint32{} || [3]uint32(tr.Right) != [3]uint32{} ||
+		if tr.Name != "Deploy Location" || [3]uint32(tr.Left) != [3]uint32{1} || [3]uint32(tr.Right) != [3]uint32{} ||
 			[4]uint32(tr.Acts) != [4]uint32{a.ID} || tr.Once != 1 {
 			t.Fatalf("the drop trigger reads %+v", tr)
 		}
@@ -104,6 +102,48 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	_ = e.Key("drop")
 	if on, _ := e.DropToolOn(); on {
 		t.Fatal("D did not end the tool")
+	}
+}
+
+func TestDropZoneDeletionKeepsTriggersWithComparisons(t *testing.T) {
+	for _, c := range []struct {
+		name         string
+		left, right  int64
+		keepsTrigger bool
+	}{
+		{"legacy empty pairs", 0, 0, false},
+		{"unconditional pair", 1, 0, false},
+		{"comparison", 1, 2, true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			e, _ := openGoalMap(t, formMap(t, 2))
+			s := formHost(e)
+			if _, err := s.AddDropZone(image.Pt(9, 10)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.SetFields(ui.KindTrigger, 2, []ui.InspectionFieldValue{{Key: "left0", Value: c.left}, {Key: "right0", Value: c.right}}); err != nil {
+				t.Fatal(err)
+			}
+			d, err := s.DeleteDropZone(1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			script := wizScript(t, d.SourceBytes)
+			want := 2
+			if c.keepsTrigger {
+				want++
+			}
+			if len(script.Triggers) != want || len(d.Drops) != 1 {
+				t.Fatalf("after deletion: %d triggers, %d zones", len(script.Triggers), len(d.Drops))
+			}
+			if c.keepsTrigger {
+				for _, id := range script.Triggers[2].Acts {
+					if id != 0 {
+						t.Fatalf("retained trigger still names an action: %+v", script.Triggers[2])
+					}
+				}
+			}
+		})
 	}
 }
 

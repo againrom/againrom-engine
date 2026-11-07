@@ -65,6 +65,9 @@ const (
 	promptToGroup
 	// promptGroupWarn warns before an edit empties a group a trigger names.
 	promptGroupWarn
+	// promptScriptForm asks before the map's script changes form: before an
+	// edit makes an original map extended, or a save folds it back.
+	promptScriptForm
 	// promptForestShare asks for the Forest brush's density in per cent.
 	promptForestShare
 	// promptSeed asks for the seed of a whole-map command; scope is the
@@ -88,6 +91,8 @@ type editorPrompt struct {
 	area *areaPrompt
 	// group is what a group prompt holds: the units and their group.
 	group *groupPrompt
+	// form is what the script form question holds.
+	form *formPrompt
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

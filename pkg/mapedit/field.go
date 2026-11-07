@@ -136,9 +136,10 @@ func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	f, ok := fieldByKey(sections[k].fields(e, rec), key)
+	row := e.rowOf(k)
+	f, ok := fieldByKey(row.fields(e, rec), key)
 	if !ok {
-		return 0, fmt.Errorf("mapedit: no %s field %q", sections[k].name, key)
+		return 0, fmt.Errorf("mapedit: no %s field %q", row.name, key)
 	}
 	if f.Text != nil {
 		return 0, fmt.Errorf("mapedit: %s is a text field", f.Label)
@@ -229,9 +230,10 @@ func (e *Editor) TextFieldValue(k Kind, i int, key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	f, ok := fieldByKey(sections[k].fields(e, rec), key)
+	row := e.rowOf(k)
+	f, ok := fieldByKey(row.fields(e, rec), key)
 	if !ok || f.Text == nil {
-		return "", fmt.Errorf("mapedit: no %s text field %q", sections[k].name, key)
+		return "", fmt.Errorf("mapedit: no %s text field %q", row.name, key)
 	}
 	return f.Text.Decode(rec[f.Offset : f.Offset+f.Width]), nil
 }

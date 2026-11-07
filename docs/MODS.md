@@ -767,9 +767,12 @@ over every record of typeId 10 or above, and the second game reads typeIds
 10 to 12, so 100 stays clear of both. An `.almx` lists in the game's map list
 beside the `.alm` files, and a mission's `map` in `data/missions.toml` may
 name one (`map = "mission/{lang}/map.almx"`). A mod mission's map that carries
-the record but is named `.alm` is refused at load (DIV-4603), so an `.alm`
-loads exactly as the original loads it. A mission plays on its map as
-always; the extended record only changes how its script runs.
+the record but is named `.alm` is refused at load (DIV-4603). A loose map in
+the game's map list is read by its bytes, not its name: a loose `.alm` that
+carries the record lists and plays as an `.almx`, and the original game would
+run its nodes with no trigger. No Againrom writer makes such a file. A mission
+plays on its map as always; the extended record only changes how its script
+runs.
 
 What the extended machine holds (DIV-4601):
 
@@ -843,13 +846,28 @@ state.
 
 ### The map editor
 
-The map editor does not open an `.almx` yet: it refuses a file named `.almx`,
-and any map carrying the extended record, with a message naming step 3. The
-editor's next step will open `.almx` maps, and the first time an edit needs
-what the original record cannot hold (a fourth condition, a second group, a
-fifth action, a variable past 99, or a trigger past 1000) it will ask once for
-confirmation before the map becomes an `.almx`. A map is never fitted back
-into original records.
+The map editor opens `.alm` and `.almx` maps. An extended map's trigger
+window shows its conditions in OR groups: Add condition pair adds a condition
+to the last group, Add OR group starts a group, and Remove on a condition's
+comparison row or on an action's row takes it out. A trigger holds up to 64 conditions and 64
+actions, and the variable pickers offer variables 0..4095.
+
+To make an extended map, open an `.alm` and make an edit the original record
+cannot hold: a fourth condition pair, an OR group, a fifth action, a variable
+at 100 or above, or a trigger past 1000. The editor asks once, in EN or RU,
+whether to make the map extended; it then saves as `.almx` and the original
+game will not open it (DIV-4615). Cancel changes nothing. Yes moves every
+trigger into the extended record as one history entry, applies the edit, and
+asks nothing more for that opened map.
+
+An extended map saves as `.almx`. Save over the map's own `.alm` writes
+`<name>.almx` beside it, and the `.alm` stays as it was. When the script fits
+the original records again (one group per trigger, at most 3 pairs and 4
+actions, variables 0..99 free of check results, at most 1000 triggers),
+Save or Save As to an `.alm` name asks whether to save it as an original map;
+Yes writes the triggers back into 184-byte records, Cancel writes nothing.
+Save As to an `.alm` name of a map that does not fit is refused (DIV-4616).
+An original map with no extended edit saves byte for byte as before.
 
 ## Towns
 

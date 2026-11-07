@@ -35,17 +35,18 @@ func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (*ui.InspectionDocume
 func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	var rec []byte
 	var id uint32
-	limits := scriptprofile.First
+	limits := scriptprofile.Of(m.Extended())
 	if k == mapedit.KindTrigger {
-		if m.Count(k) >= limits.Triggers {
-			return 0, fmt.Errorf("the script already holds %d triggers", limits.Triggers)
+		if n := m.Count(k); n >= limits.Triggers {
+			return 0, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
+				fmt.Sprintf("the script already holds %d triggers", limits.Triggers))
 		}
 		var err error
-		if rec, err = mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: "Trigger", Once: 1}); err != nil {
+		if rec, err = m.NewTrigger(alm.ScriptTrigger{Name: "Trigger", Once: 1}); err != nil {
 			return 0, err
 		}
 	} else {
-		if k == mapedit.KindCondition && m.Count(k) >= limits.Registers {
+		if k == mapedit.KindCondition && limits.Registers > 0 && m.Count(k) >= limits.Registers {
 			return 0, errChecksFull
 		}
 		var err error
@@ -243,9 +244,20 @@ func scriptAddressesVariable(condition bool, opcode uint32) bool {
 	return condition && opcode == 19 || !condition && (opcode == 3 || opcode == 8)
 }
 
+// scriptRegisterAllowed refuses a variable the map's script cannot hold: on
+// an extended map one past the variable array; on an original map one past
+// the hundred registers, a limit the extended record lifts, or one whose
+// register a check result takes.
 func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
+	if limit := uint32(scriptprofile.Extended.Variables); sc.Extended {
+		if variable >= limit {
+			return fmt.Errorf("variable %d is outside 0..%d", variable, limit-1)
+		}
+		return nil
+	}
 	if limits := scriptprofile.First; variable >= uint32(limits.Registers) {
-		return fmt.Errorf("variable register %d is outside 0..%d", variable, limits.Registers-1)
+		return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitVariables, Max: int64(limits.Registers), Got: int64(variable)},
+			fmt.Sprintf("variable register %d is outside 0..%d", variable, limits.Registers-1))
 	}
 	if int(variable) < len(sc.Conditions) && sc.Conditions[variable].Opcode != 0x10002 {
 		return fmt.Errorf("variable register %d is overwritten by condition %d; use a constant/preset slot or a free register", variable, sc.Conditions[variable].ID)

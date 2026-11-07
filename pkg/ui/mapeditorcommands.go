@@ -586,6 +586,31 @@ func (e *MapEditor) commandWriteTrigger(t WizardTrigger) (editorChange, error) {
 	return e.adopted(next, ref)
 }
 
+// commandScriptForm moves the map's triggers into the Againrom script record,
+// or with fold back into type-7 records, as one edit.
+func (e *MapEditor) commandScriptForm(fold bool) (editorChange, error) {
+	host, ok := e.doc.Edits.(InspectionScriptForm)
+	if !ok {
+		return editorChange{}, errNoEditHost
+	}
+	move := host.ExtendScript
+	if fold {
+		move = host.FoldScript
+	}
+	kind, index := e.selectedRecord()
+	doc, err := move()
+	if err != nil {
+		return editorChange{}, err
+	}
+	change, err := e.adopted(doc, nil)
+	// The form moves the trigger records, whose keys are their places: the
+	// record shown is found again by kind and position.
+	if index >= 0 && e.selected < 0 {
+		e.selected = e.linkedRecord(RecordRef{Kind: kind, Index: index})
+	}
+	return change, err
+}
+
 // mapField is one map property: its field group, key and typed value.
 type mapField struct {
 	Scope, Key, Value string

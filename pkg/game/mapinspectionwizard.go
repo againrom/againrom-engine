@@ -32,7 +32,7 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDoc
 			case errors.As(err, &taken):
 				err = fmt.Errorf(s.inspector.word("editor.wizard.registers"), taken.register)
 			case errors.Is(err, errChecksFull):
-				err = errors.New(s.inspector.word("editor.wizard.checksfull"))
+				err = lifted(err, s.inspector.word("editor.wizard.checksfull"))
 			}
 			return false, err
 		}
@@ -108,10 +108,31 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 	return at
 }
 
+// wizardRoom refuses a plan the map's trigger form cannot hold: more pairs
+// or actions than the profile's, or on an original map a second group.
+func wizardRoom(t ui.WizardTrigger, extended bool) error {
+	limits := scriptprofile.Of(extended)
+	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(len(t.Pairs))}
+	switch {
+	case len(t.Pairs) > limits.Pairs:
+	case len(t.Actions) > limits.Actions:
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitActions, Max: int64(limits.Actions), Got: int64(len(t.Actions))}
+	case !extended && slices.ContainsFunc(t.Pairs, func(p ui.WizardPair) bool { return p.Group != 0 }):
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGroups, Max: 1, Got: 2}
+	default:
+		return nil
+	}
+	if extended {
+		return lifted(limit, fmt.Sprintf("a trigger holds %d conditions and %d actions", limits.Pairs, limits.Actions))
+	}
+	return lifted(limit, "a trigger holds three condition pairs and four actions")
+}
+
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
-	limits := scriptprofile.First
-	if len(t.Pairs) > limits.Pairs || len(t.Actions) > limits.Actions {
-		return fmt.Errorf("a trigger holds three condition pairs and four actions")
+	extended := m.Extended()
+	limits := scriptprofile.Of(extended)
+	if err := wizardRoom(t, extended); err != nil {
+		return err
 	}
 	_, sc, err := wizardScript(m)
 	if err != nil {
@@ -147,11 +168,15 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	}
 	// Rows fill the trigger's used slots in order, then its empty ones; a
 	// slot no row reaches keeps what the map holds, and a used slot left
-	// without a row is cleared.
-	next := alm.ScriptTrigger{Left: make([]uint32, limits.Pairs), Right: make([]uint32, limits.Pairs),
-		Cmp: make([]uint32, limits.Pairs), Acts: make([]uint32, limits.Actions)}
+	// without a row is cleared. An extended trigger holds the rows alone.
+	pairs, acts := limits.Pairs, limits.Actions
+	if extended {
+		pairs, acts = len(t.Pairs), len(t.Actions)
+	}
+	next := alm.ScriptTrigger{Left: make([]uint32, pairs), Right: make([]uint32, pairs),
+		Cmp: make([]uint32, pairs), Group: make([]uint32, pairs), Acts: make([]uint32, acts)}
 	var pairSlots, actSlots []int
-	if len(before) > 0 {
+	if len(before) > 0 && !extended {
 		old := before[0]
 		for k := range next.Left {
 			next.Left[k], next.Right[k], next.Cmp[k] = old.Pair(k)
@@ -184,12 +209,12 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		}
 		return false
 	}
-	for k := 0; len(pairSlots) < len(t.Pairs) && k < limits.Pairs; k++ {
+	for k := 0; len(pairSlots) < len(t.Pairs) && k < pairs; k++ {
 		if !used(pairSlots, k) {
 			pairSlots = append(pairSlots, k)
 		}
 	}
-	for k := 0; len(actSlots) < len(t.Actions) && k < limits.Actions; k++ {
+	for k := 0; len(actSlots) < len(t.Actions) && k < acts; k++ {
 		if !used(actSlots, k) {
 			actSlots = append(actSlots, k)
 		}
@@ -215,7 +240,7 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 				next.Right[slot] = id
 			}
 		}
-		next.Cmp[slot] = p.Cmp
+		next.Cmp[slot], next.Group[slot] = p.Cmp, p.Group
 	}
 	for k, a := range t.Actions {
 		id, err := wizardNode(m, false, a, actRefs, planned)
@@ -233,6 +258,9 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	}
 	if t.Once != 0 {
 		next.Once = 1
+	}
+	if extended {
+		next = packTrigger(next, true)
 	}
 	if err := m.SetTriggerSlots(index, next); err != nil {
 		return err
@@ -298,8 +326,9 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		}
 		return n.ID, m.SetScriptNode(kind, at, label, n.Opcode, params...)
 	}
+	limits := scriptprofile.Of(sc.Extended)
 	if condition {
-		if len(sc.Conditions)+1 > scriptprofile.First.Registers {
+		if limits.Registers > 0 && len(sc.Conditions)+1 > limits.Registers {
 			return 0, errChecksFull
 		}
 		if err := registerCollision(sc, 1); err != nil {
@@ -310,7 +339,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	if err != nil {
 		return 0, err
 	}
-	if maxID := scriptprofile.First.MaxID; id > maxID {
+	if maxID := limits.MaxID; id > maxID {
 		return 0, fmt.Errorf("the next node ID exceeds %d", maxID)
 	}
 	rec, err := mapedit.NewScriptNode(label, n.Opcode, id, params...)
@@ -442,7 +471,7 @@ func (s *mapInspectionEdits) DeleteDropZone(zone int) (*ui.InspectionDocument, e
 			only := true
 			for k := range tr.Pairs() {
 				left, right, _ := tr.Pair(k)
-				only = only && left == 0 && right == 0
+				only = only && (left == 0 || right == 0)
 			}
 			for _, a := range tr.Acts {
 				only = only && (a == 0 || a == id)

@@ -24,7 +24,7 @@ func scriptsListEditor(t *testing.T) *MapEditor {
 			{Record: 3, ID: 21, Opcode: 0x10002, Label: "Counter"},
 			{Record: 4, ID: 22, Opcode: 0x10002, Label: "Unused condition"},
 		},
-		Triggers: []InspectionTrigger{{Record: 2, Name: "Rule", Left: [3]uint32{20}, Right: [3]uint32{21}, Acts: [4]uint32{10}}},
+		Triggers: []InspectionTrigger{{Record: 2, Name: "Rule", Left: []uint32{20, 0, 0}, Right: []uint32{21, 0, 0}, Cmp: make([]uint32, 3), Acts: []uint32{10, 0, 0, 0}}},
 	}
 	// The Scripts entry leaves the left panel as it is; the tree shows.
 	e.showPanel(panelLeft, true)

@@ -112,6 +112,21 @@ func sectionOf(k Kind) (*section, error) {
 	return nil, fmt.Errorf("mapedit: no record section %d", k)
 }
 
+// sectionFor is k's row in frame f. A map carrying the Againrom script
+// record holds its triggers there, so KindTrigger is that record's row.
+func sectionFor(k Kind, f frame) (*section, error) {
+	if k == KindTrigger && f.carries(alm.ScriptRecordTypeID) {
+		return recordTriggers, nil
+	}
+	return sectionOf(k)
+}
+
+// rowOf is k's row in the current buffer; k must have one.
+func (e *Editor) rowOf(k Kind) *section {
+	s, _ := sectionFor(k, e.locate())
+	return s
+}
+
 // walk is one section located in the current buffer: its record and the
 // payload-relative start of each record, with the payload end last.
 type walk struct {
@@ -140,11 +155,16 @@ func (w walk) at(i int) (int, int) {
 // through the grammar. A section that does not consume its payload exactly
 // is refused: no edit is built over bytes the grammar cannot account for.
 func (e *Editor) walkSection(k Kind, what string) (walk, error) {
-	sec, err := sectionOf(k)
+	f := e.locate()
+	sec, err := sectionFor(k, f)
 	if err != nil {
 		return walk{}, err
 	}
-	f := e.locate()
+	return e.walkRow(f, sec, what)
+}
+
+// walkRow is walkSection over row sec of frame f.
+func (e *Editor) walkRow(f frame, sec *section, what string) (walk, error) {
 	sp, err := f.optional(what, sec.typeID)
 	if err != nil {
 		return walk{}, err
@@ -188,11 +208,11 @@ func (e *Editor) walkIndex(k Kind, what string, i int) (walk, error) {
 }
 
 func (e *Editor) placementSection(k Kind, what string) (walk, error) {
-	sec, err := sectionOf(k)
+	f := e.locate()
+	sec, err := sectionFor(k, f)
 	if err != nil {
 		return walk{}, err
 	}
-	f := e.locate()
 	if f.carries(sec.typeID) || !sec.create {
 		return e.walkSection(k, what)
 	}
@@ -233,7 +253,7 @@ func (e *Editor) Position(k Kind, i int) (x, y uint32, err error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	sec := sections[k]
+	sec := e.rowOf(k)
 	if sec.cellless != nil && sec.cellless(rec) {
 		return 0, 0, fmt.Errorf("mapedit: %s %d has no map cell", sec.name, i)
 	}
@@ -487,8 +507,9 @@ type Placement struct {
 
 // PlaceAll appends every record of batch, in order within its kind, as one
 // edit and returns each record's new index in batch order. The kinds must be
-// arrays of one counted payload (the type-7 script): the edit is the records,
-// each array's count word and the payload's size word, so one Undo reverts the
+// arrays of counted payloads (the type-7 script, the Againrom script record):
+// the edit is the records, each array's count word and each payload's size
+// word, so one Undo reverts the
 // whole batch to the exact earlier bytes. A record of a kind is checked
 // against that kind's grammar, as Place does.
 func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
@@ -508,11 +529,6 @@ func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
 			}
 			if w.sec.layout == nil {
 				return nil, fmt.Errorf("mapedit: cannot place several records: the %s section is not one array of a counted payload", w.sec.name)
-			}
-			for _, other := range walks {
-				if other.span != w.span {
-					return nil, fmt.Errorf("mapedit: cannot place records of different payloads in one edit")
-				}
 			}
 			walks[p.Kind] = w
 		}
@@ -540,17 +556,19 @@ func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
 		}
 		return at[off]
 	}
-	var sp span
-	total := 0
+	total := map[span]int{}
+	var spans []span
 	for _, k := range kinds {
 		w := walks[k]
-		sp = w.span
+		if _, ok := total[w.span]; !ok {
+			spans = append(spans, w.span)
+		}
 		end := w.span.abs(w.starts[w.n()])
 		slot(end).records = added[k]
 		word := e.wordPart(w.countAt, counts[k])
 		s := slot(w.countAt)
 		s.removed, s.word = word.removed, word.inserted
-		total += len(added[k])
+		total[w.span] += len(added[k])
 	}
 	var offs []int
 	for off := range at {
@@ -562,7 +580,9 @@ func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
 		s := at[off]
 		ed = append(ed, replace(off, s.removed, append(slices.Clone(s.records), s.word...)))
 	}
-	ed = append(ed, e.sizeWordPart(sp, total))
+	for _, sp := range spans {
+		ed = append(ed, e.sizeWordPart(sp, total[sp]))
+	}
 	e.apply(ed)
 	return index, nil
 }

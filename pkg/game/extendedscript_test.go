@@ -12,8 +12,8 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/vfs"
 )
@@ -316,24 +316,34 @@ func TestModMissionManifestNamesAnAlmxMap(t *testing.T) {
 	}
 }
 
-func TestMapEditorRefusesAnExtendedScriptMap(t *testing.T) {
+// The editor opens a map carrying the extended record under either name,
+// and an .almx without it, and shows the record's triggers and groups.
+func TestMapEditorOpensAnExtendedScriptMap(t *testing.T) {
 	dir := t.TempDir()
-	x := checkInspector()
+	x := &MapInspector{tiles: &terrain.Tileset{}, rules: []mapRule{}}
 	for name, b := range map[string][]byte{"either.almx": extendedScriptMap(t, nil, 1), "either.alm": extendedScriptMap(t, nil, 1),
 		"plain.almx": guestMapBytes()} {
 		p := filepath.Join(dir, name)
 		if err := os.WriteFile(p, b, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := x.Open(p); err == nil || !strings.Contains(err.Error(), "step 3") {
+		d, err := x.Open(p)
+		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-	}
-	model, err := mapedit.New(guestMapBytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := refuseExtendedMap(model, filepath.Join(dir, "plain.alm")); err != nil {
-		t.Fatal(err)
+		if name == "plain.almx" {
+			if d.Script != nil && d.Script.Extended {
+				t.Fatalf("%s reads as extended", name)
+			}
+			continue
+		}
+		sc := d.Script
+		if sc == nil || !sc.Extended || sc.Variables != 150 || len(sc.Triggers) != extendedTail+1 {
+			t.Fatalf("%s: the script model %+v", name, sc)
+		}
+		either := sc.Triggers[1]
+		if either.Name != "Either" || len(either.Left) != 6 || len(either.Acts) != 6 || !reflect.DeepEqual(either.Group, []uint32{0, 0, 0, 1, 1, 1}) {
+			t.Fatalf("%s: trigger Either %+v", name, either)
+		}
 	}
 }

@@ -4320,5 +4320,17 @@ var Committed = Baseline{
 
 	// CommentBytes falls with the shared membership, identity codec and join catalog.
 	// Tavern profile reads replace the repeated range explanation.
-	CommentBytes: 10645977,
+
+	// CommentBytes rises for the doc comments of the editor's extended
+	// script: the new pkg/mapedit/scriptform.go, pkg/game's
+	// mapinspectionscriptform.go and pkg/ui/mapeditorscriptform.go; the
+	// trigger codec in pkg/formats/alm/scriptrecord.go, scriptprofile.Of and
+	// GroupKey; the section, field and script edits in pkg/mapedit; the
+	// host's slots, wizard, areas and saves in pkg/game; the trigger window,
+	// wizard, Add window, area box, commands and save path in pkg/ui; the
+	// record names in pkg/mapedit/arch_test.go and the one-click guard in
+	// internal/archtest; their new tests in
+	// pkg/mapedit/scriptform_test.go and pkg/game/mapeditorscriptform_test.go;
+	// and this note.
+	CommentBytes: 10664771,
 }

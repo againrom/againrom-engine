@@ -44,19 +44,38 @@ var almReferences = nameTable{
 	// trigger writer takes the format's trigger value.
 	"script.go/scriptLayout":              {"alm.FrameScript", "alm.ScriptFrameError"},
 	"script.go/triggerWords":              {"alm.ScriptTrigger"},
-	"script.go/NewScriptTrigger":          {"alm.ScriptTrigger"},
+	"script.go/NewScriptTrigger":          {"alm.ScriptLabelText", "alm.ScriptTrigger"},
 	"script.go/(*Editor).SetTriggerSlots": {"alm.ScriptTrigger"},
 	"script.go/(*Editor).AddDropZone":     {"alm.ScriptTrigger"},
 	"arm.go/(*Editor).AddArm":             {"alm.ScriptTrigger"},
-	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
-	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
-	"brush.go/(Brush).heights":            {"alm.MaxHeight"},
-	"brush.go/(Brush).addHeights":         {"alm.MaxHeight"},
-	"brush.go/(*Editor).tileEdit":         {"alm.TileGroupMask"},
-	"brush.go/waterIndex":                 {"alm.TileIndex"},
-	"groupbrush.go/(*Editor).groupStroke": {"alm.TileGroup"},
-	"groupbrush.go/BrushGroup":            {"alm.InstallTileGroups", "alm.TileGroupCount"},
-	"groupbrush.go/opaqueWord":            {"alm.InstallTileGroups", "alm.TileGroup"},
+	// The Againrom script record: the frame finds it by its typeId, its
+	// trigger row measures and writes through the record's one trigger
+	// decoder and encoder, and the two form moves frame and decode it.
+	"editor.go/(*Editor).locate":                 {"alm.ScriptRecordTypeID"},
+	"editor.go/(frame).at":                       {"alm.ScriptRecordTypeID"},
+	"section.go/sectionFor":                      {"alm.ScriptRecordTypeID"},
+	"scriptform.go/" + fileScope:                 {"alm.ScriptRecordTypeID"},
+	"scriptform.go/recordTriggerLayout":          {"alm.ScriptRecordHeadSize", "alm.ScriptRecordTriggerCount"},
+	"scriptform.go/recordTriggerLength":          {"alm.DecodeScriptRecordTrigger"},
+	"scriptform.go/recordTriggerFields":          {"alm.ScriptLabelText", "alm.ScriptRecordActionSize", "alm.ScriptRecordConditionSize", "alm.ScriptRecordCounts", "alm.ScriptRecordOnce", "alm.ScriptRecordTriggerHead"},
+	"scriptform.go/(*Editor).Extended":           {"alm.ScriptRecordTypeID"},
+	"scriptform.go/(*Editor).NewTrigger":         {"alm.EncodeScriptRecordTrigger", "alm.ScriptTrigger"},
+	"scriptform.go/(*Editor).setRecordTrigger":   {"alm.DecodeScriptRecordTrigger", "alm.EncodeScriptRecordTrigger", "alm.ScriptTrigger"},
+	"scriptform.go/(*Editor).ScriptVariables":    {"alm.ScriptRecordHeadSize", "alm.ScriptRecordTypeID", "alm.ScriptRecordVariables"},
+	"scriptform.go/(*Editor).SetScriptVariables": {"alm.ScriptRecordTypeID", "alm.ScriptRecordVariables"},
+	"scriptform.go/scriptFormsOf":                {"alm.Script"},
+	"scriptform.go/(scriptForms).extended":       {"alm.ScriptTrigger"},
+	"scriptform.go/(*Editor).ExtendScript":       {"alm.FrameScriptRecord", "alm.ScriptRecord"},
+	"scriptform.go/(*Editor).FoldScript":         {"alm.DecodeScriptRecord", "alm.ScriptRecordTypeID"},
+	"meta.go/(*Editor).SetDescription":           {"alm.EncodeDescription"},
+	"newmap.go/NewMap":                           {"alm.NewMap", "alm.NewMapSpec"},
+	"brush.go/(Brush).heights":                   {"alm.MaxHeight"},
+	"brush.go/(Brush).addHeights":                {"alm.MaxHeight"},
+	"brush.go/(*Editor).tileEdit":                {"alm.TileGroupMask"},
+	"brush.go/waterIndex":                        {"alm.TileIndex"},
+	"groupbrush.go/(*Editor).groupStroke":        {"alm.TileGroup"},
+	"groupbrush.go/BrushGroup":                   {"alm.InstallTileGroups", "alm.TileGroupCount"},
+	"groupbrush.go/opaqueWord":                   {"alm.InstallTileGroups", "alm.TileGroup"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload
@@ -81,8 +100,14 @@ var payloadLengthReferences = nameTable{
 	"unit.go/(*Editor).sizeWordPart": {"RecordPayloadSize"},
 	// The section walk slices the payload and refuses a walk that does not
 	// consume it exactly; the count it walks is the type-0 word.
-	"section.go/(*Editor).walkSection":        {"payloadSize"},
+	"section.go/(*Editor).walkRow":            {"payloadSize"},
 	"section.go/(*Editor).insertSectionParts": {"RecordPayloadSize", "payloadSize"},
+	// The Againrom script record's head, trigger rows and the two form moves
+	// address the record's own payload; none reads the type-6 length.
+	"scriptform.go/recordTriggerLayout":       {"payloadSize"},
+	"scriptform.go/(*Editor).ScriptVariables": {"payloadSize"},
+	"scriptform.go/(*Editor).ExtendScript":    {"payloadSize"},
+	"scriptform.go/(*Editor).FoldScript":      {"payloadSize"},
 	"enchantment.go/enchantmentLayout":        {"payloadSize"},
 	// The type-7 layout walks the payload's three counted arrays and refuses a
 	// payload they do not tile.

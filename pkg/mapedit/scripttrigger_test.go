@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"strings"
 	"testing"
 
 	"againrom/internal/synth"
@@ -40,10 +41,36 @@ func TestNewScriptTriggerLaysOutTheRecord(t *testing.T) {
 		"short slices are empty slots": {alm.ScriptTrigger{Name: "Short", Left: []uint32{9}, Right: []uint32{10, 11}, Acts: []uint32{12}},
 			testTriggerRecord("Short", [3]uint32{9}, [3]uint32{10, 11}, [3]uint32{}, [4]uint32{12}, 0)},
 		"no slot": {alm.ScriptTrigger{Name: "Trigger", Once: 1}, testTriggerRecord("Trigger", [3]uint32{}, [3]uint32{}, [3]uint32{}, [4]uint32{}, 1)},
+		"conditionless actions": {alm.ScriptTrigger{Name: "Always", Acts: []uint32{0, 7}, Once: 1},
+			testTriggerRecord("Always", [3]uint32{1}, [3]uint32{}, [3]uint32{}, [4]uint32{0, 7}, 1)},
+		"empty action slots": {alm.ScriptTrigger{Name: "Empty", Acts: []uint32{0, 0}},
+			testTriggerRecord("Empty", [3]uint32{}, [3]uint32{}, [3]uint32{}, [4]uint32{}, 0)},
+		"explicit empty pairs stay": {alm.ScriptTrigger{Name: "Dormant", Left: []uint32{0}, Acts: []uint32{7}},
+			testTriggerRecord("Dormant", [3]uint32{}, [3]uint32{}, [3]uint32{}, [4]uint32{7}, 0)},
 	} {
 		got, err := mapedit.NewScriptTrigger(c.in)
 		if err != nil || !bytes.Equal(got, c.want) {
 			t.Errorf("%s: %v, % x", name, err, got)
+		}
+	}
+}
+
+func TestNewScriptTriggerEncodesTheLabel(t *testing.T) {
+	for _, name := range []string{"Вход", strings.Repeat("Я", alm.ScriptLabelLen-1)} {
+		rec, err := mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := alm.ScriptLabelText.Decode(rec[:alm.ScriptLabelLen]); got != name {
+			t.Errorf("name %q read as %q", name, got)
+		}
+		if name == "Вход" && !bytes.Equal(rec[:5], []byte{0xc2, 0xf5, 0xee, 0xe4, 0}) {
+			t.Errorf("name bytes %x", rec[:5])
+		}
+	}
+	for _, name := range []string{strings.Repeat("A", alm.ScriptLabelLen), strings.Repeat("Я", alm.ScriptLabelLen), "入口", "a\x00b"} {
+		if rec, err := mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: name}); err == nil || rec != nil {
+			t.Errorf("refused name %q wrote %x: %v", name, rec, err)
 		}
 	}
 }

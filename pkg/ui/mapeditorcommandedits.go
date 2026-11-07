@@ -575,7 +575,7 @@ func (e *MapEditor) decodeAddBoxArea(raw json.RawMessage) (boxArea, error) {
 	switch {
 	case b.Trigger < -1 || b.Trigger >= len(triggers):
 		return b, fmt.Errorf("the map has no trigger %d", b.Trigger)
-	case b.Trigger >= 0 && !freePair(triggers[b.Trigger]):
+	case b.Trigger >= 0 && !freePair(triggers[b.Trigger], e.doc.Script):
 		return b, fmt.Errorf("%s", e.mcpDisplay(fmt.Sprintf(e.word("editor.area.full"), b.Trigger+1)))
 	}
 	return b, nil

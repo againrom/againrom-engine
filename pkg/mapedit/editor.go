@@ -273,6 +273,18 @@ type frame struct {
 	record   [alm.TypeIDCount]span
 	present  [alm.TypeIDCount]bool
 	physical []span
+	// script is the Againrom script record, the one id past the original's
+	// ten this model addresses; scripted says the stream carries it.
+	script   span
+	scripted bool
+}
+
+// at is the record carrying tid and whether the stream carries it.
+func (f frame) at(tid uint32) (span, bool) {
+	if tid == alm.ScriptRecordTypeID {
+		return f.script, f.scripted
+	}
+	return f.record[tid], f.present[tid]
 }
 
 // required returns the record carrying typeId tid, for the three ids
@@ -292,16 +304,20 @@ func (f frame) required(tid uint32) span { return f.record[tid] }
 // id — past EOF, not offset zero — so even a caller that dropped the error
 // would take a slice subscript out of range rather than edit the file header.
 func (f frame) optional(what string, tid uint32) (span, error) {
-	if !f.present[tid] {
-		return f.record[tid], fmt.Errorf("mapedit: cannot %s: this map carries no type-%d record", what, tid)
+	sp, ok := f.at(tid)
+	if !ok {
+		return sp, fmt.Errorf("mapedit: cannot %s: this map carries no type-%d record", what, tid)
 	}
-	return f.record[tid], nil
+	return sp, nil
 }
 
 // carries reports whether the accepted stream really held the record with this
 // typeId — the same distinction alm.Map.Present draws, read off this model's
 // own walk.
-func (f frame) carries(tid uint32) bool { return f.present[tid] }
+func (f frame) carries(tid uint32) bool {
+	_, ok := f.at(tid)
+	return ok
+}
 
 // locate walks the record frame of the current buffer and returns it. It is
 // computed per call and never stored — that is what lets a length-changing
@@ -327,6 +343,7 @@ func (e *Editor) locate() frame {
 	for tid := range f.record {
 		f.record[tid] = span{headerOff: past, payloadOff: past}
 	}
+	f.script = span{headerOff: past, payloadOff: past}
 
 	n := e.u32(alm.FileRecordCount)
 	cursor := alm.FileHeaderSize
@@ -344,6 +361,8 @@ func (e *Editor) locate() frame {
 		if tid := binary.LittleEndian.Uint32(e.data[cursor+alm.RecordTypeID:]); tid < alm.TypeIDCount {
 			f.record[tid] = sp
 			f.present[tid] = true
+		} else if tid == alm.ScriptRecordTypeID {
+			f.script, f.scripted = sp, true
 		}
 		cursor = start + int(size)
 	}

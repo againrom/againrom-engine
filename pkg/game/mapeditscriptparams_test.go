@@ -157,11 +157,17 @@ func TestScriptNewVariableSkipsConditionSlots(t *testing.T) {
 					continue
 				}
 				found = true
-				if count == 100 || target.Value != 99 { // the highest free register
+				// The highest free register; with none free, the first
+				// past the original record's, which asks to extend the map.
+				want := uint32(99)
+				if count == 100 {
+					want = 100
+				}
+				if target.Value != want {
 					t.Fatalf("New variable register %d, condition slots %d", target.Value, count)
 				}
 			}
-			if count < 100 && !found {
+			if !found {
 				t.Fatal("free register omitted")
 			}
 		})

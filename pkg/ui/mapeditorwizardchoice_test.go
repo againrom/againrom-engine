@@ -37,7 +37,7 @@ func wizardChoiceEditor(t *testing.T) (*MapEditor, *wizardWrites) {
 			{Kind: "Action", Index: 0, Section: 7}, {Kind: "Action", Index: 1, Section: 7}}
 		d.Script = &InspectionScriptModel{
 			Triggers: []InspectionTrigger{{Record: 0, Name: "Start", Once: 1,
-				Left: [3]uint32{1, 3}, Right: [3]uint32{2, 2}, Acts: [4]uint32{11, 12}}},
+				Left: []uint32{1, 3, 0}, Right: []uint32{2, 2, 0}, Cmp: make([]uint32, 3), Acts: []uint32{11, 12, 0, 0}}},
 			Conditions: []InspectionScriptNode{
 				{Record: 1, ID: 1, Opcode: scriptConstantOp, Types: [10]uint32{scriptInt}, Values: [10]uint32{1}},
 				{Record: 2, ID: 2, Opcode: scriptConstantOp, Types: [10]uint32{scriptInt}, Values: [10]uint32{1}},

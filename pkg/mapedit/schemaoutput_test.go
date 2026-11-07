@@ -11,12 +11,10 @@ import (
 	"againrom/pkg/mapedit"
 )
 
-// editorOutputDigest is the SHA-256 of every byte image, field list and error
-// the scripted session in TestEditorOutputKeepsItsBytes produces, taken on the
-// tree whose editor spelled its own record offsets, then with the unit's
-// speed, sight and facing fields, without which it is unchanged, then with
-// the 3x3 extension of a new wooden bridge, without which it is unchanged.
-const editorOutputDigest = "68c01c8f50a205d63853ab3330a16014a969c2423dce072b61f008c2a82f85d0"
+// editorOutputDigest hashes every byte image, field list and error in the
+// scripted editor session, including the conditionless drop trigger's
+// nonzero first left ID.
+const editorOutputDigest = "ccf321e6c1e0fa42c2e7abdfa6b62471c472a2315df6264de30e8fafd2a046ba"
 
 func TestEditorOutputKeepsItsBytes(t *testing.T) {
 	e, err := mapedit.NewMap(alm.DefaultNewMap())

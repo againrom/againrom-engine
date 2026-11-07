@@ -53,6 +53,9 @@ type editorChrome struct {
 	// history entry, while its wizard session lasts and no save stands
 	// between.
 	fresh freshTrigger
+	// formAgreed is set once the author agreed to extend the open map's
+	// script; the question is asked once per opened map.
+	formAgreed bool
 	// dropSel is the drop zone, plus one, the drop tool has selected.
 	dropSel                int
 	body                   *text.Font
@@ -1466,6 +1469,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return e.toGroupSpec(), true
 	case promptGroupWarn:
 		return e.groupWarnSpec(), true
+	case promptScriptForm:
+		return e.scriptFormSpec(), true
 	}
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -2255,6 +2260,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			return
 		case promptGroupWarn:
 			e.groupWarnPress(p)
+			return
+		case promptScriptForm:
+			e.scriptFormPress(p)
 			return
 		}
 		s, _ := e.promptSpec()

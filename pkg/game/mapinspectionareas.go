@@ -49,7 +49,9 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	if box.Empty() || !box.In(image.Rect(0, 0, min(view.Width, 256), min(view.Height, 256))) {
 		return fmt.Errorf("the box %v lies outside the map", box)
 	}
-	limits := scriptprofile.First
+	// On an extended map the pair is one more condition of the trigger's
+	// last group; on an original map it takes the first empty pair.
+	limits := scriptprofile.Of(sc.Extended)
 	pair := 0
 	if trigger >= 0 {
 		if trigger >= len(sc.Triggers) {
@@ -58,17 +60,21 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		pair = -1
 		t := sc.Triggers[trigger]
 		for k := range limits.Pairs {
-			if left, right, _ := t.Pair(k); left == 0 && right == 0 {
+			if left, right, _ := t.Pair(k); left == 0 && right == 0 || sc.Extended && k == t.Pairs() {
 				pair = k
 				break
 			}
 		}
 		if pair < 0 {
-			return fmt.Errorf("trigger %d already has three condition pairs", trigger+1)
+			text := fmt.Sprintf("trigger %d already has three condition pairs", trigger+1)
+			if sc.Extended {
+				text = fmt.Sprintf("trigger %d already has %d conditions", trigger+1, limits.Pairs)
+			}
+			return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(limits.Pairs) + 1}, text)
 		}
 	}
 	one, found := unsharedConstant(sc, 1)
-	if need := 1 + refCount(!found); len(sc.Conditions)+need > limits.Registers {
+	if need := 1 + refCount(!found); limits.Registers > 0 && len(sc.Conditions)+need > limits.Registers {
 		return errChecksFull
 	}
 	if err := registerCollision(sc, 1+refCount(!found)); err != nil {
@@ -112,6 +118,11 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		return err
 	}
 	t := now.Triggers[trigger]
+	if now.Extended {
+		t.Left, t.Right, t.Cmp = append(t.Left, id), append(t.Right, one), append(t.Cmp, 0)
+		t.Group = append(t.Group, t.GroupOf(len(t.Group)-1))
+		return m.SetTriggerSlots(trigger, t)
+	}
 	t.Left[pair], t.Right[pair], t.Cmp[pair] = id, one, 0
 	return m.SetTriggerSlots(trigger, t)
 }

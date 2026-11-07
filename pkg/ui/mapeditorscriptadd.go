@@ -67,11 +67,13 @@ func (e *MapEditor) triggerChoices() []InspectionChoice {
 	return out
 }
 
-// triggerFull is, in the editor's words, why trigger takes no new condition
-// pair: it has none free. It is empty for a trigger that takes one and for a
-// new trigger (-1).
+// triggerFull is, in the editor's words, why trigger takes no new condition:
+// it is an extended map's trigger holding all the record does. On an original
+// map a full trigger is no refusal, since the host asks to extend the map. It
+// is empty for a trigger that takes one and for a new trigger (-1).
 func (e *MapEditor) triggerFull(trigger int) string {
-	if e.doc.Script != nil && trigger >= 0 && trigger < len(e.doc.Script.Triggers) && !freePair(e.doc.Script.Triggers[trigger]) {
+	s := e.doc.Script
+	if s != nil && s.Profile().Groups && trigger >= 0 && trigger < len(s.Triggers) && !freePair(s.Triggers[trigger], s) {
 		return fmt.Sprintf(e.word("editor.area.full"), trigger+1)
 	}
 	return ""
@@ -255,7 +257,8 @@ func (e *MapEditor) addConditionFinish(r *addRun) {
 
 // placeCheck writes row into trigger's first free pair, -1 a new trigger,
 // as the wizard's Apply writes a new row of its item, then shows the
-// trigger. It answers the refusal, shown as it stands.
+// trigger. It answers the refusal, shown as it stands. A pair the original
+// record cannot hold asks to extend the map first.
 func (e *MapEditor) placeCheck(trigger int, row wizRow) string {
 	var t WizardTrigger
 	var err error
@@ -268,6 +271,9 @@ func (e *MapEditor) placeCheck(trigger int, row wizRow) string {
 		return err.Error() // the editor's words, encoded
 	}
 	ch, err := e.commandWriteTrigger(t)
+	if e.askScriptForm(err, func() { e.againNote(e.placeCheck(trigger, row)) }) {
+		return ""
+	}
 	if err != nil {
 		return e.editorHostText(err.Error())
 	}
@@ -281,7 +287,8 @@ func (e *MapEditor) placeCheck(trigger int, row wizRow) string {
 // listedToTrigger puts condition id, which no pair names, into trigger's
 // first free pair, -1 a new trigger: as the row of the wizard item that
 // reads it when one does, else as Details enters a pair, id compared by ==
-// with a new constant, and the trigger then shows its Details.
+// with a new constant, and the trigger then shows its Details. A pair the
+// original record cannot hold asks to extend the map first.
 func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 	n, ok := e.nodeByID(true, id)
 	if !ok {
@@ -293,7 +300,7 @@ func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 	pair := 0
 	if trigger >= 0 {
 		t := e.doc.Script.Triggers[trigger]
-		for pair < scriptprofile.RecordPairs-1 && (t.Left[pair] != 0 || t.Right[pair] != 0) {
+		for pair < len(t.Left) && (t.Left[pair] != 0 || t.Right[pair] != 0) {
 			pair++
 		}
 	}
@@ -305,6 +312,9 @@ func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 		ch, err = e.commandAddRecord(InspectionNewRecord{Kind: KindTrigger, Values: values})
 	} else {
 		ch, err = e.commandSetFields(recordFields{Kind: KindTrigger, Index: trigger, Values: values})
+	}
+	if e.askScriptForm(err, func() { e.againNote(e.listedToTrigger(id, trigger)) }) {
+		return ""
 	}
 	if err != nil {
 		return e.editorHostText(err.Error())

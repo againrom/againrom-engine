@@ -37,6 +37,8 @@ const (
 	ScriptRecordTypeID        = 100
 	ScriptRecordVersion       = 1
 	ScriptRecordHeadSize      = 12
+	ScriptRecordVariables     = 4 // the head's variable count word
+	ScriptRecordTriggerCount  = 8 // the head's trigger count word
 	ScriptRecordTriggerHead   = 76
 	ScriptRecordConditionSize = 16
 	ScriptRecordActionSize    = 4
@@ -111,49 +113,12 @@ func DecodeScriptRecord(payload []byte) (ScriptRecord, error) {
 	}
 	out := ScriptRecord{Variables: int(vars), Triggers: make([]ScriptTrigger, n)}
 	for i := range out.Triggers {
-		if total-at < ScriptRecordTriggerHead {
-			return ScriptRecord{}, recordRefusal(i, -1, "length", ScriptRecordTriggerHead, total-at)
-		}
-		head := payload[at : at+ScriptRecordTriggerHead]
-		once := int64(le.Uint32(head[ScriptRecordOnce:]))
-		conds := int64(le.Uint32(head[ScriptRecordCounts:]))
-		acts := int64(le.Uint32(head[ScriptRecordCounts+4:]))
-		if once > 1 {
-			return ScriptRecord{}, recordRefusal(i, -1, "fire-once word", 1, once)
-		}
-		if conds > int64(limits.Pairs) {
-			return ScriptRecord{}, recordRefusal(i, -1, "conditions", int64(limits.Pairs), conds)
-		}
-		if acts > int64(limits.Actions) {
-			return ScriptRecord{}, recordRefusal(i, -1, "actions", int64(limits.Actions), acts)
-		}
-		at += ScriptRecordTriggerHead
-		if need := conds*ScriptRecordConditionSize + acts*ScriptRecordActionSize; need > total-at {
-			return ScriptRecord{}, recordRefusal(i, -1, "length", need, total-at)
-		}
-		words := make([]uint32, 4*conds+acts)
-		t := ScriptTrigger{
-			Name:  ScriptLabelText.Decode(head[:ScriptLabelLen]),
-			Group: words[0*conds : 1*conds : 1*conds],
-			Left:  words[1*conds : 2*conds : 2*conds],
-			Right: words[2*conds : 3*conds : 3*conds],
-			Cmp:   words[3*conds : 4*conds : 4*conds],
-			Acts:  words[4*conds:],
-			Once:  uint32(once),
-		}
-		for k := range conds {
-			rec := payload[at+k*ScriptRecordConditionSize:]
-			t.Group[k], t.Left[k], t.Right[k], t.Cmp[k] = le.Uint32(rec), le.Uint32(rec[4:]), le.Uint32(rec[8:]), le.Uint32(rec[12:])
-		}
-		at += conds * ScriptRecordConditionSize
-		for k := range acts {
-			t.Acts[k] = le.Uint32(payload[at+k*ScriptRecordActionSize:])
-		}
-		at += acts * ScriptRecordActionSize
-		if err := checkRecordTrigger(i, t); err != nil {
+		t, size, err := DecodeScriptRecordTrigger(i, payload[at:])
+		if err != nil {
 			return ScriptRecord{}, err
 		}
 		out.Triggers[i] = t
+		at += int64(size)
 	}
 	if at != total {
 		return ScriptRecord{}, recordRefusal(-1, -1, "trailing", 0, total-at)
@@ -217,29 +182,96 @@ func EncodeScriptRecord(r ScriptRecord) ([]byte, error) {
 	le.PutUint32(out[4:], uint32(r.Variables))
 	le.PutUint32(out[8:], uint32(len(r.Triggers)))
 	for i, t := range r.Triggers {
-		if err := checkRecordTrigger(i, t); err != nil {
+		b, err := EncodeScriptRecordTrigger(i, t)
+		if err != nil {
 			return nil, err
 		}
-		name, err := ScriptLabelText.Encode(t.Name)
-		if err != nil {
-			return nil, fmt.Errorf("alm: script record trigger %d: %w", i, err)
-		}
-		head := make([]byte, ScriptRecordTriggerHead)
-		copy(head, name)
-		le.PutUint32(head[ScriptRecordOnce:], t.Once)
-		le.PutUint32(head[ScriptRecordCounts:], uint32(t.Pairs()))
-		le.PutUint32(head[ScriptRecordCounts+4:], uint32(len(t.Acts)))
-		out = append(out, head...)
-		for k := range t.Pairs() {
-			left, right, cmp := t.Pair(k)
-			out = le.AppendUint32(out, slot(t.Group, k))
-			out = le.AppendUint32(out, left)
-			out = le.AppendUint32(out, right)
-			out = le.AppendUint32(out, cmp)
-		}
-		for _, id := range t.Acts {
-			out = le.AppendUint32(out, id)
-		}
+		out = append(out, b...)
+	}
+	return out, nil
+}
+
+// DecodeScriptRecordTrigger is the one decoder of a trigger of the record:
+// trigger i at the start of b, and the bytes it takes. Its counts are bounded
+// by the extended profile and by the bytes left before anything is allocated,
+// and its values are held to the record's rules; a refusal is a
+// *ScriptRecordError.
+func DecodeScriptRecordTrigger(i int, b []byte) (ScriptTrigger, int, error) {
+	limits := scriptprofile.Extended
+	le := binary.LittleEndian
+	total := int64(len(b))
+	if total < ScriptRecordTriggerHead {
+		return ScriptTrigger{}, 0, recordRefusal(i, -1, "length", ScriptRecordTriggerHead, total)
+	}
+	head := b[:ScriptRecordTriggerHead]
+	once := int64(le.Uint32(head[ScriptRecordOnce:]))
+	conds := int64(le.Uint32(head[ScriptRecordCounts:]))
+	acts := int64(le.Uint32(head[ScriptRecordCounts+4:]))
+	if once > 1 {
+		return ScriptTrigger{}, 0, recordRefusal(i, -1, "fire-once word", 1, once)
+	}
+	if conds > int64(limits.Pairs) {
+		return ScriptTrigger{}, 0, recordRefusal(i, -1, "conditions", int64(limits.Pairs), conds)
+	}
+	if acts > int64(limits.Actions) {
+		return ScriptTrigger{}, 0, recordRefusal(i, -1, "actions", int64(limits.Actions), acts)
+	}
+	at := int64(ScriptRecordTriggerHead)
+	if need := conds*ScriptRecordConditionSize + acts*ScriptRecordActionSize; need > total-at {
+		return ScriptTrigger{}, 0, recordRefusal(i, -1, "length", need, total-at)
+	}
+	words := make([]uint32, 4*conds+acts)
+	t := ScriptTrigger{
+		Name:  ScriptLabelText.Decode(head[:ScriptLabelLen]),
+		Group: words[0*conds : 1*conds : 1*conds],
+		Left:  words[1*conds : 2*conds : 2*conds],
+		Right: words[2*conds : 3*conds : 3*conds],
+		Cmp:   words[3*conds : 4*conds : 4*conds],
+		Acts:  words[4*conds:],
+		Once:  uint32(once),
+	}
+	for k := range conds {
+		rec := b[at+k*ScriptRecordConditionSize:]
+		t.Group[k], t.Left[k], t.Right[k], t.Cmp[k] = le.Uint32(rec), le.Uint32(rec[4:]), le.Uint32(rec[8:]), le.Uint32(rec[12:])
+	}
+	at += conds * ScriptRecordConditionSize
+	for k := range acts {
+		t.Acts[k] = le.Uint32(b[at+k*ScriptRecordActionSize:])
+	}
+	at += acts * ScriptRecordActionSize
+	if err := checkRecordTrigger(i, t); err != nil {
+		return ScriptTrigger{}, 0, err
+	}
+	return t, int(at), nil
+}
+
+// EncodeScriptRecordTrigger is the one encoder of a trigger of the record:
+// trigger i's bytes, refused with a *ScriptRecordError on everything
+// DecodeScriptRecordTrigger refuses. A name the 64-byte field cannot hold is
+// an error.
+func EncodeScriptRecordTrigger(i int, t ScriptTrigger) ([]byte, error) {
+	if err := checkRecordTrigger(i, t); err != nil {
+		return nil, err
+	}
+	name, err := ScriptLabelText.Encode(t.Name)
+	if err != nil {
+		return nil, fmt.Errorf("alm: script record trigger %d: %w", i, err)
+	}
+	le := binary.LittleEndian
+	out := make([]byte, ScriptRecordTriggerHead, ScriptRecordTriggerHead+ScriptRecordConditionSize*t.Pairs()+ScriptRecordActionSize*len(t.Acts))
+	copy(out, name)
+	le.PutUint32(out[ScriptRecordOnce:], t.Once)
+	le.PutUint32(out[ScriptRecordCounts:], uint32(t.Pairs()))
+	le.PutUint32(out[ScriptRecordCounts+4:], uint32(len(t.Acts)))
+	for k := range t.Pairs() {
+		left, right, cmp := t.Pair(k)
+		out = le.AppendUint32(out, slot(t.Group, k))
+		out = le.AppendUint32(out, left)
+		out = le.AppendUint32(out, right)
+		out = le.AppendUint32(out, cmp)
+	}
+	for _, id := range t.Acts {
+		out = le.AppendUint32(out, id)
 	}
 	return out, nil
 }
@@ -255,7 +287,7 @@ func AppendScriptRecord(stream []byte, r ScriptRecord) ([]byte, error) {
 	if m.HasScriptRecord() {
 		return nil, recordRefusal(-1, -1, "records", 1, 2)
 	}
-	payload, err := EncodeScriptRecord(r)
+	framed, err := FrameScriptRecord(r)
 	if err != nil {
 		return nil, err
 	}
@@ -263,17 +295,28 @@ func AppendScriptRecord(stream []byte, r ScriptRecord) ([]byte, error) {
 	for _, rec := range m.Records {
 		end += RecordHeaderSize + int(rec.PayloadSize)
 	}
-	le := binary.LittleEndian
-	out := make([]byte, 0, end+RecordHeaderSize+len(payload))
+	out := make([]byte, 0, end+len(framed))
 	out = append(out, stream[:end]...)
-	le.PutUint32(out[FileRecordCount:], m.RecordCount+1)
-	hdr := make([]byte, RecordHeaderSize)
-	le.PutUint32(hdr[RecordTag:], recordTag)
-	le.PutUint32(hdr[RecordHeaderLength:], recordHdrLen)
-	le.PutUint32(hdr[RecordPayloadSize:], uint32(len(payload)))
-	le.PutUint32(hdr[RecordTypeID:], ScriptRecordTypeID)
-	out = append(append(out, hdr...), payload...)
+	binary.LittleEndian.PutUint32(out[FileRecordCount:], m.RecordCount+1)
+	out = append(out, framed...)
 	return append(out, stream[end:]...), nil
+}
+
+// FrameScriptRecord is r as one record of the stream: its 20-byte record
+// header, then the payload EncodeScriptRecord writes. A writer that adds the
+// record after a stream's last one raises the file header's record count.
+func FrameScriptRecord(r ScriptRecord) ([]byte, error) {
+	payload, err := EncodeScriptRecord(r)
+	if err != nil {
+		return nil, err
+	}
+	le := binary.LittleEndian
+	out := make([]byte, RecordHeaderSize, RecordHeaderSize+len(payload))
+	le.PutUint32(out[RecordTag:], recordTag)
+	le.PutUint32(out[RecordHeaderLength:], recordHdrLen)
+	le.PutUint32(out[RecordPayloadSize:], uint32(len(payload)))
+	le.PutUint32(out[RecordTypeID:], ScriptRecordTypeID)
+	return append(out, payload...), nil
 }
 
 // HasScriptRecord reports whether the map carries the Againrom script record.
