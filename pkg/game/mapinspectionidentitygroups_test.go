@@ -34,23 +34,23 @@ func TestEditorIdentityGroupsKeepTableOrderAndEveryRow(t *testing.T) {
 			}
 			before := append([]byte(nil), s.model.Bytes()...)
 			step := s.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "identity")
-			heads := []string{"Catapults", "Goblins", "Orcs", "Ogres and trolls", "Bats, ghosts and bees", "Squirrels, caterpillars and turtles", "Dragons", "Daemon", "Other creatures", "NPC", "Others", "Heroes", "PC"}
+			heads := []string{"Catapults", "Goblins", "Orcs", "Ogres and trolls", "Bats, ghosts and bees", "Squirrels, caterpillars and turtles", "Dragons", "Daemon", "Other creatures", "Story heroes", "Player characters", "Others: fighters"}
 			blocks := []string{"Creatures", "People"}
 			if lang == "ru" {
-				heads = []string{"Катапульты", "Гоблины", "Орки", "Людоеды и тролли", "Мыши, духи и осы", "Белки, гусеницы и черепахи", "Драконы", "Демон", "Другие существа", "NPC", "Другие", "Герои", "PC"}
+				heads = []string{"Катапульты", "Гоблины", "Орки", "Людоеды и тролли", "Мыши, духи и осы", "Белки, гусеницы и черепахи", "Драконы", "Демон", "Другие существа", "Сюжетные герои", "Персонажи игрока", "Прочие: бойцы"}
 				blocks = []string{"Существа", "Люди"}
 			}
 			if len(step.Groups) != len(heads) {
-				t.Fatalf("grid has %d groups, want %d headed groups", len(step.Groups), len(heads))
+				t.Fatalf("grid has %d groups %+v, want %d headed groups", len(step.Groups), step.Groups, len(heads))
 			}
-			wantRows := [][]int{{3, 5}, {2, 4}, {6, 7}, {8, 9}, {10, 11, 12}, {13, 14, 15}, {1}, {16}, {17, 18}, {1, 5}, {6}, {0, 7, 8}, {2}}
+			wantRows := [][]int{{3, 5}, {2, 4}, {6, 7}, {8, 9}, {10, 11, 12}, {13, 14, 15}, {1}, {16}, {17, 18}, {0, 7, 8}, {2}, {5, 6, 1}}
 			var seen []int64
 			for i, g := range step.Groups {
 				kind, block := mapload.UnitCreature, blocks[0]
 				if i >= 9 {
 					kind, block = mapload.UnitPerson, blocks[1]
 				}
-				if i == 11 {
+				if i == 9 {
 					kind = mapload.UnitNamed
 				}
 				var want []int64

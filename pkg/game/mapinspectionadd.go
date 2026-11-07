@@ -512,7 +512,12 @@ func (s *mapInspectionEdits) unitPreview(class int16, tier int) *image.RGBA {
 	if s.inspector.units == nil {
 		return nil
 	}
-	c := s.inspector.units.Classes[int32(class)]
+	return classPreview(s.inspector.units.Classes[int32(class)], tier)
+}
+
+// classPreview is class c's first frame at tier in the direction a placed
+// unit faces by default, as the map draws it; nil for a class with none.
+func classPreview(c *terrain.UnitClass, tier int) *image.RGBA {
 	frames := c.TierFrames(tier)
 	if len(frames) == 0 {
 		return nil

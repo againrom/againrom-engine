@@ -306,6 +306,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 	template := s.unitTemplate(k, index)
 	if template != nil && s.inspector.table.ClassPlacementFields() {
 		out = append(out, s.identityField(template.m.AuthoredUnits[index]))
+		if level, ok := s.levelField(template.m.AuthoredUnits[index]); ok {
+			out = append(out, level)
+		}
 	}
 	for _, f := range fields {
 		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
@@ -525,6 +528,9 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	if k == mapedit.KindUnit && key == "identity" {
 		return s.setIdentity(m, index, value)
+	}
+	if k == mapedit.KindUnit && key == "level" {
+		return s.setMercenaryLevel(m, index, value)
 	}
 	if k == mapedit.KindUnit && unitKeyFields[key] {
 		return false, fmt.Errorf("the unit's %s key is read-only: choose who the unit is, and the editor writes its keys", key)

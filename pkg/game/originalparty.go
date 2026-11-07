@@ -346,12 +346,19 @@ func ordinaryActorName(member mapload.PartyMember, table *mapload.Table) string 
 // prefix or a partial Sscanf count) rejects a name that merely starts the
 // same way, including one with no zero-padded type digit.
 func mercenaryHireTypeFromName(name string) (int, bool) {
-	var typ, level int
+	typ, _, ok := mercenaryRowFromName(name)
+	return typ, ok
+}
+
+// mercenaryRowFromName is the tavern type and level a Humans row name
+// "NPC<type>_<level>" carries, by mercenaryHireTypeFromName's rule; the map
+// editor reads it to give a mercenary one cell and a level choice.
+func mercenaryRowFromName(name string) (typ, level int, ok bool) {
 	if n, err := fmt.Sscanf(name, "NPC%02d_%d", &typ, &level); n != 2 || err != nil {
-		return 0, false
+		return 0, 0, false
 	}
 	if name != fmt.Sprintf("NPC%02d_%d", typ, level) {
-		return 0, false
+		return 0, 0, false
 	}
 	// The hire rows route typ<=2 to a Units row instead (Catapult/
 	// Ballista, a Units-table Unit(0x198) record, MERC-LEVEL-005) -- a
@@ -359,9 +366,9 @@ func mercenaryHireTypeFromName(name string) (int, bool) {
 	// name a Human(0x1e8) mercenary this function's caller may treat as
 	// persistent.
 	if typ < 3 || typ > 15 {
-		return 0, false
+		return 0, 0, false
 	}
-	return typ, true
+	return typ, level, true
 }
 
 // LeadRule names which rule put a character at the head of the party.
