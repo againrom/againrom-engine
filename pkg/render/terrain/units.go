@@ -178,32 +178,14 @@ func (c *UnitClass) BoundaryOf(f *StaticFrame) *StaticFrame {
 	return nil
 }
 
-// TierFrames is the frame slice this class draws at a tier: its own where
-// that tier has one, and the sheet's otherwise.
-//
-// IT IS TOTAL, and the four ways to have no tier of one's own are ONE ARM
-// rather than four checks each caller performs: tier 0, which is what a
-// placement stating no tier carries; a negative tier; a tier past this class's
-// count; and a tier whose slice the loader left empty because its table was
-// absent or refused. Every one of them answers Frames — the colours the sheet
-// ships — which is what leaves a class with no tiers, and this build before
-// this story, drawing exactly the picture it drew.
-//
-// THE TIER IS ONE-BASED because the shipped numbering is: a creature is its
-// class's first, second, third or fourth version, and the column that says
-// which reads 1 through 4. Subtracting one here, at the single site that
-// subscripts, is what keeps that offset out of every caller.
-//
-// It is defined on a NIL RECEIVER — the answer is nil, which is the answer a
-// class with no frames already gives — so a caller holding an unresolved class
-// needs no guard of its own, exactly as the map lookup that produced it needed
-// none.
-//
-// It reads its receiver and its argument, builds nothing and writes nothing, so
-// two calls at one tier answer the same slice and no draw order can move it.
+// TierFrames selects palette 0 for a single-table class, otherwise tier-1.
+// An unavailable table falls back to the sheet. R2-ENGINE-955, TERR-LIGHT-064.
 func (c *UnitClass) TierFrames(tier int) []*StaticFrame {
 	if c == nil {
 		return nil
+	}
+	if len(c.Tiers) == 1 {
+		tier = 1
 	}
 	if tier >= 1 && tier <= len(c.Tiers) {
 		if f := c.Tiers[tier-1]; len(f) > 0 {

@@ -400,29 +400,12 @@ func (v *Viewer) stoneImage(f *terrain.StaticFrame, rows ...int) *ebiten.Image {
 	if img, ok := v.stoneImages[key]; ok {
 		return img
 	}
-	img := ebiten.NewImageFromImage(grayscaleRGBA(v.spritePixels(f, rows...)))
+	img := ebiten.NewImageFromImage(v.spritePixels(f, rows...))
 	if v.stoneImages == nil {
 		v.stoneImages = make(map[spriteTextureKey]*ebiten.Image)
 	}
 	v.stoneImages[key] = img
 	return img
-}
-
-// grayscaleRGBA converts the already lit/tinted unit canvas to neutral grey.
-// Alpha is preserved exactly, including transparent holes in the sprite.
-func grayscaleRGBA(src *image.RGBA) *image.RGBA {
-	dst := image.NewRGBA(src.Bounds())
-	for y := src.Rect.Min.Y; y < src.Rect.Max.Y; y++ {
-		for x := src.Rect.Min.X; x < src.Rect.Max.X; x++ {
-			i := src.PixOffset(x, y)
-			grey := uint8((77*uint32(src.Pix[i]) + 150*uint32(src.Pix[i+1]) + 29*uint32(src.Pix[i+2]) + 128) >> 8)
-			dst.Pix[dst.PixOffset(x, y)+0] = grey
-			dst.Pix[dst.PixOffset(x, y)+1] = grey
-			dst.Pix[dst.PixOffset(x, y)+2] = grey
-			dst.Pix[dst.PixOffset(x, y)+3] = src.Pix[i+3]
-		}
-	}
-	return dst
 }
 
 // drawStructuresFlat is the EARLY pass: every entry of a class with Flat

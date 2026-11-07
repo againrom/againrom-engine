@@ -89,9 +89,6 @@ func tintPixels(src *image.RGBA, c color.RGBA, focus bool) *image.RGBA {
 // picture, grey when stone, with the colour blended over it.
 func (v *Viewer) tintedPixels(f *terrain.StaticFrame, stone bool, c color.RGBA, focus bool, rows ...int) *image.RGBA {
 	src := v.spritePixels(f, rows...)
-	if stone {
-		src = grayscaleRGBA(src)
-	}
 	return tintPixels(src, c, focus)
 }
 

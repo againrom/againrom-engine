@@ -25,7 +25,7 @@ func TestReleaseReniestaHalfTurnDrawsEveryStandingSixteenth(t *testing.T) {
 		}
 		frame := -1
 		for index, source := range draw.Art.TierFrames(mw.tiers[body.ID]) {
-			if mw.ownerFrame(draw.Art, source, body.Owner) == draw.Frame {
+			if mw.ownerFrame(draw.Art, source, body.Owner, draw.Stone) == draw.Frame {
 				frame = index
 				break
 			}

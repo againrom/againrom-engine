@@ -73,7 +73,7 @@ func TestSpriteRampIsFR1AtEveryRow(t *testing.T) {
 					want.B = v
 				}
 			}
-			if got := terrain.SpriteRGBA(entry, [3]uint8{}, row); got != want {
+			if got := terrain.SpriteRGBA(entry, [3]uint8{}, row, false); got != want {
 				bad++
 				if bad <= 5 {
 					t.Errorf("row %d entry %d: SpriteRGBA(%v) = %v, want %v", row, i, entry, got, want)
@@ -114,7 +114,7 @@ func TestSpriteRampDoesNotClampTheSumBeforeTheMultiply(t *testing.T) {
 	// another's: three distinct tint bytes over one grey entry.
 	entry := color.RGBA{R: 60, G: 60, B: 60}
 	tints := [3]uint8{0, 40, 200}
-	got := terrain.SpriteRGBA(entry, tints, 4)
+	got := terrain.SpriteRGBA(entry, tints, 4, false)
 	want3 := color.RGBA{
 		R: terrain.SpriteChannel(60, tints[0], 4),
 		G: terrain.SpriteChannel(60, tints[1], 4),
@@ -126,10 +126,23 @@ func TestSpriteRampDoesNotClampTheSumBeforeTheMultiply(t *testing.T) {
 	}
 }
 
+func TestStoneRampUsesEverySourceChannelBeforeClamping(t *testing.T) {
+	for row := 0; row < 16; row++ {
+		for i := 0; i < 256; i++ {
+			entry := color.RGBA{R: byte(i), G: byte(i*7 + 3), B: byte(255 - i)}
+			want := byte(min((int(entry.R)+int(entry.G)+int(entry.B))*(16-row)*2/48, 255))
+			got := terrain.SpriteRGBA(entry, [3]uint8{255, 1, 97}, row, true)
+			if got != (color.RGBA{R: want, G: want, B: want, A: 255}) {
+				t.Fatalf("mode 5 row=%d source=%v: got %v, want grey %d", row, entry, got, want)
+			}
+		}
+	}
+}
+
 func TestSpriteRowEightReproducesTheRawPalette(t *testing.T) {
 	for i, entry := range spriteRampPalette() {
 		want := color.RGBA{R: entry.R, G: entry.G, B: entry.B, A: 0xff}
-		if got := terrain.SpriteRGBA(entry, [3]uint8{}, 8); got != want {
+		if got := terrain.SpriteRGBA(entry, [3]uint8{}, 8, false); got != want {
 			t.Fatalf("entry %d: row 8 gives %v, want the raw entry %v — row 8 is gain 1.0", i, got, want)
 		}
 	}

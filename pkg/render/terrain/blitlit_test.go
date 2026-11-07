@@ -106,7 +106,7 @@ func TestLitBlitChangesColourAndNeverCoverage(t *testing.T) {
 
 				painted++
 				idx := f.Pixels[sy*f.Width+sx].Index
-				want := terrain.SpriteRGBA(f.Palette[idx], noTint, row)
+				want := terrain.SpriteRGBA(f.Palette[idx], noTint, row, false)
 				if idx == blitAlphaZeroIndex {
 					alphaZeroSeen++
 					if f.Palette[idx].A != 0 {

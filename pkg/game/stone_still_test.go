@@ -68,7 +68,7 @@ func TestStoneDrawUsesFacingAndCanonicalPosition(t *testing.T) {
 					if draw.ID != 2 {
 						continue
 					}
-					if !draw.Stone || draw.Frame != frames[wantFacing] || draw.Mirror || !draw.FinePosition ||
+					if !draw.Stone || draw.Frame != mw.ownerFrame(art, frames[wantFacing], 2, true) || draw.Mirror || !draw.FinePosition ||
 						draw.Cell != wantCell || draw.FineX != wantX || draw.FineY != wantY {
 						t.Fatalf("tick %d: frame=%d mirror=%t cell=%v fine=%t:%d,%d; want facing=%d cell=%v fine=%d,%d",
 							tick, stoneFrameIndex(draw.Frame, frames), draw.Mirror, draw.Cell, draw.FinePosition,

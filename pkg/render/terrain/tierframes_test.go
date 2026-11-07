@@ -59,6 +59,18 @@ func TestTierFramesAnswersTheTiersOwnSlice(t *testing.T) {
 	}
 }
 
+func TestSinglePaletteIgnoresTheUnitTier(t *testing.T) {
+	c := &terrain.UnitClass{
+		Frames: []*terrain.StaticFrame{tierFrame(9)},
+		Tiers:  [][]*terrain.StaticFrame{{tierFrame(3)}},
+	}
+	for _, tier := range []int{-1, 0, 1, 2, 255} {
+		if got := c.TierFrames(tier); !same(got, c.Tiers[0]) {
+			t.Errorf("Palette 1, unit tier %d: selected sheet, want type palette 0", tier)
+		}
+	}
+}
+
 // AC-6, AC-11. Every way of having no tier of one's own is one arm: below the
 // range, above it, an absent slice and an empty one.
 func TestTierFramesIsTotalAndFallsBackToTheSheet(t *testing.T) {

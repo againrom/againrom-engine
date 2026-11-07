@@ -72,7 +72,7 @@ func stoneStillDraw(t *testing.T, f *FrontEnd, id sim.EntityID, phase int) stone
 	}
 	frame := -1
 	for index, source := range entity.Art.TierFrames(mw.tiers[id]) {
-		if source == entity.Frame || mw.ownerFrame(entity.Art, source, entity.Owner) == entity.Frame {
+		if source == entity.Frame || mw.ownerFrame(entity.Art, source, entity.Owner, entity.Stone) == entity.Frame {
 			frame = index
 			break
 		}

@@ -58,20 +58,15 @@ func SpriteChannel(ch, tint uint8, row int) uint8 {
 	return uint8(v)
 }
 
-// SpriteRGBA shades one palette entry at a ramp row, per channel, adding the
-// sky tint per channel before the multiply — the same tint the terrain transform
-// adds (TERR-LIGHT-060/021).
-//
-// Alpha is forced opaque and the entry's OWN alpha is never read: a palette
-// entry is a colour at full opacity and nothing may read its alpha as a
-// transparency channel, so an entry a loader left at zero alpha shades to its
-// colour rather than to an invisible pixel. Which pixels are holes is
-// StaticPixel.Opaque's answer alone.
-//
-// The result depends on this entry, the tint and the row and on nothing else —
-// never on another sprite's palette and never on the terrain's, which no sprite
-// sheet carries in any case (TERR-LIGHT-064).
-func SpriteRGBA(c color.RGBA, tint [3]uint8, row int) color.RGBA {
+// SpriteRGBA shades a source entry with mode 2, or mode 5 without tint.
+// Alpha is opaque; pixel coverage comes only from StaticPixel.Opaque.
+// TERR-LIGHT-060, R2-ENGINE-957, R2-ENGINE-784.
+func SpriteRGBA(c color.RGBA, tint [3]uint8, row int, grayscale bool) color.RGBA {
+	if grayscale {
+		level := SpriteRowCount - clampSpriteRow(row)
+		grey := min((int(c.R)+int(c.G)+int(c.B))*level*2/3/spriteRowDivisor, 255)
+		return color.RGBA{R: uint8(grey), G: uint8(grey), B: uint8(grey), A: 255}
+	}
 	return color.RGBA{
 		R: SpriteChannel(c.R, tint[0], row),
 		G: SpriteChannel(c.G, tint[1], row),

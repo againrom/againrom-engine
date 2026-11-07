@@ -3273,7 +3273,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1649,
+		"longcommentgroups":      1647,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4339,5 +4339,5 @@ var Committed = Baseline{
 	// pkg/data/unitdef.go, the table's draw in pkg/mapload/spawn.go and
 	// pkg/game's gamefiles.go and secondtownshop.go, the death list in
 	// pkg/secondshop's fill.go and shop.go, their new tests, and this note.
-	CommentBytes: 10674325,
+	CommentBytes: 10672400,
 }

@@ -42,6 +42,8 @@ type StaticFrame struct {
 	Height   int
 	Pixels   []StaticPixel
 	Palette  [256]color.RGBA
+	// Grayscale selects mode 5 from the source palette, without channel tint.
+	Grayscale bool
 }
 
 // StaticClass is one object class as this layer draws it: the canvas geometry

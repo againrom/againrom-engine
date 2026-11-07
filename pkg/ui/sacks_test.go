@@ -323,7 +323,7 @@ func TestSackAndSiblingSpriteShareLightRowAndTint(t *testing.T) {
 						continue
 					}
 					got := pix.RGBAAt(i%f.Width, i/f.Width)
-					want := terrain.SpriteRGBA(f.Palette[p.Index], tc.sun.SkyTint, sackKey.row)
+					want := terrain.SpriteRGBA(f.Palette[p.Index], tc.sun.SkyTint, sackKey.row, false)
 					if got != want {
 						t.Fatalf("%dx%d frame index %d shaded to %v, want %v (AC-9: the decoded frame's own, "+
 							"changed by nothing but the light row and tint)", f.Width, f.Height, p.Index, got, want)

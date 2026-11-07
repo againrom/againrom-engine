@@ -167,7 +167,7 @@ func TestBothWindowPassesTakeOneRowAndOneRule(t *testing.T) {
 				continue
 			}
 			got := pix.RGBAAt(i%f.Width, i/f.Width)
-			want := terrain.SpriteRGBA(f.Palette[p.Index], terrain.DefaultDaytime.SkyTint, spriteLightWantRow)
+			want := terrain.SpriteRGBA(f.Palette[p.Index], terrain.DefaultDaytime.SkyTint, spriteLightWantRow, false)
 			if got != want {
 				t.Fatalf("%dx%d frame, index %d shaded to %v, want %v", f.Width, f.Height, p.Index, got, want)
 			}

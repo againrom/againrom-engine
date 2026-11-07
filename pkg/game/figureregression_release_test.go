@@ -403,7 +403,7 @@ func auditPlacedFigures(r *figureRig) []string {
 				report("%s: creature has no frame in tier %d", who, def.Face)
 				continue
 			}
-			want := mw.ownerFrame(class, frames[0], e.Owner)
+			want := mw.ownerFrame(class, frames[0], e.Owner, false)
 			if d.Frame.Palette != want.Palette {
 				report("%s: creature class %d tier %d drawn in another tier's palette", who, def.TypeID, def.Face)
 			}

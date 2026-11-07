@@ -4,6 +4,7 @@
 # root (EN) only, both roots in release mode.
 # No column: every root. A new test takes no column; scan_test.go holds the
 # count of "en" rows (firstRootOnlyRows), which may only fall.
+pkg/game.TestReleaseSecondGameMissionMagePaletteInputs
 pkg/game.TestReleaseShopStockMultiplierDefaultMatchesMain
 pkg/game.TestReleaseShopStockMultiplierRollsEveryShelf
 pkg/game.TestReleaseShopStockHoldsOneEntryPerEffectKind

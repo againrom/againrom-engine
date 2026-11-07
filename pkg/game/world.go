@@ -5432,9 +5432,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			}
 		}
 		draw.Boundary = draw.Art.BoundaryOf(draw.Frame)
-		if !draw.Stone {
-			draw.Frame = mw.ownerFrame(draw.Art, draw.Frame, e.Owner)
-		}
+		draw.Frame = mw.ownerFrame(draw.Art, draw.Frame, e.Owner, draw.Stone)
 		kept = append(kept, draw)
 	}
 	kept = append(kept, mw.virtualDeadDraws()...)
@@ -5527,7 +5525,7 @@ func (mw *mapWorld) virtualDeadDraws() []ui.MapEntity {
 			DrawCategory: terrain.UnitCategoryFor(c, r.Current.Stage), CorpseStage: r.Current.Stage,
 		}
 		draw.Boundary = draw.Art.BoundaryOf(draw.Frame)
-		draw.Frame = mw.ownerFrame(draw.Art, draw.Frame, draw.Owner)
+		draw.Frame = mw.ownerFrame(draw.Art, draw.Frame, draw.Owner, false)
 		out = append(out, draw)
 	}
 	return out
@@ -5535,27 +5533,51 @@ func (mw *mapWorld) virtualDeadDraws() []ui.MapEntity {
 
 type ownerFrameKey struct {
 	frame *terrain.StaticFrame
+	class *terrain.UnitClass
 	shade uint8
+	stone bool
 }
 
-// ownerFrame resolves one already-selected production body frame through its
-// owner's shared palette. Selection of the class, tier, body replacement,
-// corpse and animation frame has already happened; only the table consulted by
-// the canonical indexed-pixel blit changes here.
-func (mw *mapWorld) ownerFrame(c *terrain.UnitClass, frame *terrain.StaticFrame, owner uint32) *terrain.StaticFrame {
+// ownerFrame selects the shared owner table or the mode-5 source table 0.
+// Frame selection and indexed pixels remain unchanged. R2-ENGINE-784/955.
+func (mw *mapWorld) ownerFrame(c *terrain.UnitClass, frame *terrain.StaticFrame, owner uint32, stone bool) *terrain.StaticFrame {
 	if frame == nil || mw == nil || mw.units == nil {
 		return frame
 	}
 	shade := mw.ownerShade(owner)
+	if stone {
+		shade = 0
+	}
 	palette := mw.units.OwnerPalette(c, shade)
-	if palette == nil || frame.Palette == *palette {
+	if stone && palette == nil && c != nil {
+		if frames := c.TierFrames(1); len(frames) > 0 {
+			palette = &frames[0].Palette
+		}
+	}
+	if !stone && (palette == nil || frame.Palette == *palette) {
 		return frame
 	}
-	key := ownerFrameKey{frame: frame, shade: uint8(shade)}
+	key := ownerFrameKey{frame: frame, shade: uint8(shade), stone: stone}
+	if stone {
+		key.class = c
+	}
 	if tinted := mw.ownerFrames[key]; tinted != nil {
 		return tinted
 	}
-	tinted := repalette([]*terrain.StaticFrame{frame}, *palette)[0]
+	tinted := frame
+	if palette != nil {
+		tinted = repalette([]*terrain.StaticFrame{frame}, *palette)[0]
+	}
+	if stone {
+		grey := *tinted
+		grey.Grayscale = true
+		if grey.Boundary != nil {
+			boundary := *grey.Boundary
+			boundary.Grayscale = true
+			grey.Boundary = &boundary
+		}
+		tinted = &grey
+	}
 	if mw.ownerFrames == nil {
 		mw.ownerFrames = make(map[ownerFrameKey]*terrain.StaticFrame)
 	}

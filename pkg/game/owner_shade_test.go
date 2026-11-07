@@ -106,11 +106,6 @@ func TestEntityDrawsFallsBackWhenTheOwnerPaletteIsUnavailable(t *testing.T) {
 	}
 }
 
-func stoneGrey(p color.RGBA) color.RGBA {
-	grey := uint8((77*uint32(p.R) + 150*uint32(p.G) + 29*uint32(p.B) + 128) >> 8)
-	return color.RGBA{R: grey, G: grey, B: grey, A: p.A}
-}
-
 func stoneOwnerClass() *terrain.UnitClass {
 	frames := make([]*terrain.StaticFrame, 6)
 	for i := range frames {
@@ -137,6 +132,7 @@ func stoneOwnerSet(class *terrain.UnitClass) *terrain.UnitSet {
 	}
 	set.OwnerPalettes[1][55] = color.RGBA{R: 250, A: 0xff}
 	set.OwnerPalettes[2][55] = color.RGBA{G: 250, A: 0xff}
+	set.OwnerPalettes[0][55] = color.RGBA{R: 200, G: 100, B: 20, A: 0xff}
 	return set
 }
 
@@ -210,7 +206,7 @@ func stoneOwnerEntity(t *testing.T, w *sim.World) sim.Entity {
 func TestStoneOwnerClassesFollowTheResearchedDecayGate(t *testing.T) {
 	class := stoneOwnerClass()
 	set := stoneOwnerSet(class)
-	wantNeutral := color.RGBA{R: 121, G: 121, B: 121, A: 0xff}
+	wantNeutral := color.RGBA{R: 106, G: 106, B: 106, A: 0xff}
 	cases := []struct {
 		name      string
 		attacking bool
@@ -262,15 +258,15 @@ func TestStoneOwnerClassesFollowTheResearchedDecayGate(t *testing.T) {
 				}
 
 				if tc.stone {
-					if draw.Frame != base {
-						t.Fatalf("stage %d Stone owner %d crossed with frame %p, want base %p",
+					if draw.Frame == base || !draw.Frame.Grayscale || &draw.Frame.Pixels[0] != &base.Pixels[0] {
+						t.Fatalf("stage %d Stone owner %d crossed with frame %p, want mode-5 copy of %p",
 							tc.stage, owner, draw.Frame, base)
 					}
-					if len(mw.ownerFrames) != 0 {
-						t.Fatalf("stage %d Stone owner %d populated %d owner-frame cache entries",
+					if len(mw.ownerFrames) != 1 {
+						t.Fatalf("stage %d Stone owner %d populated %d frame cache entries, want 1",
 							tc.stage, owner, len(mw.ownerFrames))
 					}
-					if got := stoneGrey(draw.Frame.RGBA().RGBAAt(0, 0)); got != wantNeutral {
+					if got := draw.Frame.RGBA().RGBAAt(0, 0); got != wantNeutral {
 						t.Fatalf("stage %d Stone owner %d final grey = %+v, want %+v",
 							tc.stage, owner, got, wantNeutral)
 					}
@@ -320,7 +316,7 @@ func TestStoneDecayGateUsesTheSelectedBodyClass(t *testing.T) {
 		mw.art = map[sim.EntityID]*terrain.UnitClass{2: hero}
 
 		live := stoneOwnerTarget(t, mw)
-		if live.Art != hero || !live.Stone || live.Frame != hero.Frames[0] {
+		if live.Art != hero || !live.Stone || !live.Frame.Grayscale || &live.Frame.Pixels[0] != &hero.Frames[0].Pixels[0] {
 			t.Fatalf("Stone hero live draw = art %p Stone=%t frame %p, want hero %p neutral frame %p",
 				live.Art, live.Stone, live.Frame, hero, hero.Frames[0])
 		}

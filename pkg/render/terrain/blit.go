@@ -70,16 +70,21 @@ func blitPalette(dst *image.RGBA, f *StaticFrame, destX, destY int, pal *[256]co
 // rejected — 16 KB per frame held for the session, to answer one row per render,
 // and it would be the first materialised shading table in the tree against the
 // standing decision to apply the transform arithmetically.
-func spriteRampRow(pal *[256]color.RGBA, tint [3]uint8, row int) [256]color.RGBA {
+func spriteRampRow(f *StaticFrame, tint [3]uint8, row int) [256]color.RGBA {
 	var out [256]color.RGBA
-	for i, c := range pal {
-		out[i] = SpriteRGBA(c, tint, row)
+	for i, c := range f.Palette {
+		out[i] = SpriteRGBA(c, tint, row, f.Grayscale)
 	}
 	return out
 }
 
 func BlitStatic(dst *image.RGBA, f *StaticFrame, destX, destY int) {
 	if !blitWalkable(dst, f) {
+		return
+	}
+	if f.Grayscale {
+		neutral := spriteRampRow(f, [3]uint8{}, SpriteRowCount/2)
+		blitPalette(dst, f, destX, destY, &neutral)
 		return
 	}
 	blitPalette(dst, f, destX, destY, &f.Palette)
@@ -111,7 +116,7 @@ func BlitStaticLit(dst *image.RGBA, f *StaticFrame, destX, destY int, tint [3]ui
 	if !blitWalkable(dst, f) {
 		return
 	}
-	lit := spriteRampRow(&f.Palette, tint, row)
+	lit := spriteRampRow(f, tint, row)
 	blitPalette(dst, f, destX, destY, &lit)
 }
 
