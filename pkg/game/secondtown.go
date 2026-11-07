@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image"
 	"image/draw"
 	"time"
@@ -52,8 +51,9 @@ const secondInnExit = "EXIT"
 // its room audio, the inn's seat selection and the action a hook left. It
 // lives with the screen; the campaign state holds the room.
 type townSceneState struct {
-	scenes map[string]*town.Scene
-	art    map[string]*townRoomArt
+	scenes     map[string]*town.Scene
+	art        map[string]*townRoomArt
+	artBundles map[*town.Description]*townArtLoads
 
 	seat       int
 	seatFrames []int
@@ -139,29 +139,22 @@ func (t *townScreen) roomArt(d *town.Description, room string) *townRoomArt {
 	if a := t.composed.art[key]; a != nil {
 		return a
 	}
-	a := &townRoomArt{}
+	a := t.screenArtBundle(d).room(room)
 	t.composed.art[key] = a
-	src := t.in.Archives.artSource()
-	if src == nil {
-		a.err = fmt.Errorf("town %s: no install art", d.Town)
-		return a
-	}
-	spec := d.Scene(room)
-	if spec == nil {
-		a.err = fmt.Errorf("town %s: room %s has no scene", d.Town, room)
-		return a
-	}
-	a.scene, a.err = town.LoadArt(spec, screenArtOf(src))
-	if a.err != nil {
-		return a
-	}
-	if r := d.Room(room); r != nil {
-		a.page, a.err = screenArtOf(src).Load(room, r.Art)
-		if a.err != nil {
-			a.scene = nil
-		}
-	}
 	return a
+}
+
+// screenArtBundle is description d's art for the screen, built once.
+func (t *townScreen) screenArtBundle(d *town.Description) *townArtLoads {
+	if t.composed.artBundles == nil {
+		t.composed.artBundles = map[*town.Description]*townArtLoads{}
+	}
+	bundle := t.composed.artBundles[d]
+	if bundle == nil {
+		bundle = newTownArtLoads(d, t.in.Archives.artSource())
+		t.composed.artBundles[d] = bundle
+	}
+	return bundle
 }
 
 // composedRoom answers the composed description and room shown now, and

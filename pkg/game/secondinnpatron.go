@@ -52,11 +52,9 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 	if !ok {
 		return p
 	}
-	if seats.Patron != "" {
-		if src := t.in.Archives.artSource(); src != nil {
-			if frames, err := screenArtOf(src).Bind(r.Name, r.Art, seats.Patron, member.Class); err == nil && len(frames) > 0 {
-				p.frames = frames
-			}
+	if d := t.townDescription(); d != nil && seats.Patron != "" {
+		if frames := t.screenArtBundle(d).patron(r.Name, member.Class); len(frames) > 0 {
+			p.frames = frames
 		}
 	}
 	person := t.buildRoomPatron(member, npc, roomPersonProfiles["campaign"], nil)

@@ -15,7 +15,7 @@ func twoTownBoundaryFront(t *testing.T) *FrontEnd {
 	book := travelBook(t, travelCatalog)
 	tw.camp.Towns = book
 	e2, _ := book.catalog.Town(2)
-	east := newTownState(e2, tw.camp)
+	east := newTownState(e2, tw.camp, nil)
 	for _, typ := range []int{boundaryHiredType, boundarySecondType} {
 		east.mercPool[typ], east.mercCapacity[typ] = 4, 4
 	}

@@ -220,6 +220,8 @@ const (
 type townState struct {
 	// id is the town's catalog ID.
 	id int
+	// bankOffers shares the scenario bank and shop across destination rows.
+	bankOffers *secondCampaign
 
 	// taken records consumed stable offer indices. Native authored lists use
 	// it as their removal set; ordinary arrays already contain the removals.
@@ -238,8 +240,16 @@ type townState struct {
 // pools at the campaign's MercenaryCount. A town whose offers are the
 // scenario bank holds no pool: the bank holds its inn and the shop records
 // hold its shop, both indexed by its ID.
-func newTownState(e town.Entry, c Campaign) townState {
+func newTownState(e town.Entry, c Campaign, bank *secondCampaign) townState {
 	s := townState{id: e.ID, taken: make(map[offerRef]bool)}
+	if e.Offers == townOffersScenarioBank {
+		if bank == nil {
+			initial := partyPlace{kind: placeTown, id: 1}
+			bank = &secondCampaign{available: []partyPlace{initial}, current: initial, shop: newSecondShop(), bank: sim.NewGameScenarioBank()}
+		}
+		s.bankOffers = bank
+		return s
+	}
 	if e.Offers != townOffersChapterKeys {
 		return s
 	}
@@ -280,21 +290,30 @@ func NewTown(c Campaign) *Town {
 		won:       make(map[int]bool),
 		available: make(map[int]bool),
 	}
-	for _, e := range c.Towns.chapterTowns() {
-		if e.ID == chapterTown {
-			t.townState = newTownState(e, c)
-			continue
-		}
-		if t.others == nil {
-			t.others = map[int]townState{}
-		}
-		t.others[e.ID] = newTownState(e, c)
-	}
+	t.resetTownStates(c.Towns.chapterTowns(), nil)
 	if len(c.Main) != 0 {
 		t.main = c.Main[0]
 	}
 	t.records = newCampaignRecords(c, t.main)
 	return t
+}
+
+func (t *Town) resetTownStates(entries []town.Entry, bank *secondCampaign) {
+	t.others = nil
+	for _, e := range entries {
+		state := newTownState(e, t.camp, bank)
+		if state.bankOffers != nil {
+			bank, t.second = state.bankOffers, state.bankOffers
+		}
+		if e.ID == chapterTown {
+			t.townState = state
+			continue
+		}
+		if t.others == nil {
+			t.others = map[int]townState{}
+		}
+		t.others[e.ID] = state
+	}
 }
 
 func newTownFromCampaignProgress(c Campaign, p *campaignProgress) *Town {

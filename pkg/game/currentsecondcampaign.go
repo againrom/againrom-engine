@@ -236,7 +236,9 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &secondCampaign{bank: c.Bank, current: partyPlace{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party), kept: c.Kept.clone()}
+	out := newSecondCampaign()
+	out.bank, out.current, out.shop = c.Bank, partyPlace{c.Current.Kind, c.Current.ID}, c.Shop.restore()
+	out.party, out.kept, out.available = restoreSecondParty(c.Party), c.Kept.clone(), nil
 	if c.Shop != nil {
 		out.legacyHero = slices.Clone(c.Shop.Hero)
 	}

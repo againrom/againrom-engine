@@ -103,7 +103,7 @@ func TestSecondGameCatalogListsItsThreeTowns(t *testing.T) {
 			if e.ID >= len(shop.records) {
 				t.Errorf("%s: town %d addresses no shop assortment record", id, e.ID)
 			}
-			if st := newTownState(e, Campaign{MercenaryCount: []int{4}}); st.id != e.ID || st.mercPool != ([16]int{}) {
+			if st := newTownState(e, Campaign{MercenaryCount: []int{4}}, nil); st.id != e.ID || st.mercPool != ([16]int{}) {
 				t.Errorf("%s: town %d state %+v; want its ID and no pool", id, e.ID, st)
 			}
 		}
@@ -198,7 +198,7 @@ func buildTownStates(cat *town.Catalog, c Campaign) map[int]townState {
 	states := make(map[int]townState, len(cat.IDs()))
 	for _, id := range cat.IDs() {
 		e, _ := cat.Town(id)
-		states[id] = newTownState(e, c)
+		states[id] = newTownState(e, c, nil)
 	}
 	return states
 }

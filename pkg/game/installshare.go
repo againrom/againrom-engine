@@ -100,9 +100,8 @@ func loadModInstallShare(root string, files mod.FileData, sounds *SoundBank) (*i
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
 	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
 	square, src := TownDescription(match.Profile), archives.artSource()
-	s.townSchool = deferredRead(func() (*ui.TownSchoolArt, error) { return LoadTownSchoolArt(square, src) })
-	s.townTavern = deferredRead(func() (*ui.TownTavernArt, error) { return LoadTownTavernArt(square, src) })
-	s.townSquare = deferredRead(func() (*town.Art, error) { return LoadTownSquareArtFor(square, src) })
+	art := newTownArtLoads(square, src)
+	s.townSchool, s.townTavern, s.townSquare = art.school, art.tavern, art.square
 	return s, nil
 }
 

@@ -54,8 +54,8 @@ type secondCampaign struct {
 }
 
 func newSecondCampaign() *secondCampaign {
-	initial := partyPlace{kind: placeTown, id: 1}
-	return &secondCampaign{available: []partyPlace{initial}, current: initial, shop: newSecondShop(), bank: sim.NewGameScenarioBank()}
+	e, _ := secondBook().catalog.Town(1)
+	return newTownState(e, Campaign{}, nil).bankOffers
 }
 
 func (c *secondCampaign) has(location partyPlace) bool {

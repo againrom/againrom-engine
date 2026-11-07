@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+	"image"
 	"sync"
 
 	"againrom/pkg/render/terrain"
@@ -15,6 +17,16 @@ type townArtLoads struct {
 	tavern *lazyLoad[*ui.TownTavernArt]
 	school *lazyLoad[*ui.TownSchoolArt]
 	shop   *lazyLoad[*ui.ShopScreenArt]
+	room   func(string) *townRoomArt
+	// patron is the room's seat frames for one class, bound from the room's
+	// manifest on first use; nil when the room names none or the bind fails.
+	patron func(room string, class int32) []image.Image
+}
+
+// townPatronKey is one room's bound seat frames of one class.
+type townPatronKey struct {
+	room  string
+	class int32
 }
 
 // townArtMu guards every Archives' townArt map and every book's loads.
@@ -65,7 +77,51 @@ func (b *townBook) modTownArtOf(d *town.Description, a *Archives) *townArtLoads 
 
 // newTownArtLoads are description d's deferred art reads from src.
 func newTownArtLoads(d *town.Description, src terrain.EntrySource) *townArtLoads {
+	rooms := map[string]*townRoomArt{}
+	patrons := map[townPatronKey][]image.Image{}
 	return &townArtLoads{
+		patron: func(room string, class int32) []image.Image {
+			key := townPatronKey{room, class}
+			if frames, done := patrons[key]; done {
+				return frames
+			}
+			patrons[key] = nil
+			r := d.Room(room)
+			if src == nil || r == nil || r.Seats == nil || r.Seats.Patron == "" {
+				return nil
+			}
+			if frames, err := screenArtOf(src).Bind(r.Name, r.Art, r.Seats.Patron, class); err == nil && len(frames) > 0 {
+				patrons[key] = frames
+			}
+			return patrons[key]
+		},
+		room: func(room string) *townRoomArt {
+			if a := rooms[room]; a != nil {
+				return a
+			}
+			a := &townRoomArt{}
+			rooms[room] = a
+			if src == nil {
+				a.err = fmt.Errorf("town %s: no install art", d.Town)
+				return a
+			}
+			spec := d.Scene(room)
+			if spec == nil {
+				a.err = fmt.Errorf("town %s: room %s has no scene", d.Town, room)
+				return a
+			}
+			a.scene, a.err = town.LoadArt(spec, screenArtOf(src))
+			if a.err != nil {
+				return a
+			}
+			if r := d.Room(room); r != nil {
+				a.page, a.err = screenArtOf(src).Load(room, r.Art)
+				if a.err != nil {
+					a.scene = nil
+				}
+			}
+			return a
+		},
 		square: deferredRead(func() (*town.Art, error) { return LoadTownSquareArtFor(d, src) }),
 		tavern: deferredRead(func() (*ui.TownTavernArt, error) { return LoadTownTavernArt(d, src) }),
 		school: deferredRead(func() (*ui.TownSchoolArt, error) { return LoadTownSchoolArt(d, src) }),

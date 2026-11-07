@@ -4345,5 +4345,7 @@ var Committed = Baseline{
 	// pkg/sim/secondconstructfacing_test.go, pkg/game/secondstartfacing_test.go
 	// and pkg/game/secondstartfacing_release_test.go, the facing notes in
 	// pkg/sim/mover.go and pkg/mapload/start.go, and this note.
-	CommentBytes: 10676300,
+
+	// CommentBytes rises for the town bank adapter and town state guard docs.
+	CommentBytes: 10677328,
 }

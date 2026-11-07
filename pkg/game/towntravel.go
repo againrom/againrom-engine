@@ -60,8 +60,16 @@ func (t *Town) travelTo(id int) bool {
 	if t == nil || id == t.townID() {
 		return false
 	}
-	next, ok := t.others[id]
+	_, ok := t.others[id]
 	if !ok || !slices.ContainsFunc(t.travelTowns(), func(e town.Entry) bool { return e.ID == id }) {
+		return false
+	}
+	return t.selectTownState(id)
+}
+
+func (t *Town) selectTownState(id int) bool {
+	next, ok := t.others[id]
+	if !ok {
 		return false
 	}
 	others := maps.Clone(t.others)
@@ -239,13 +247,13 @@ func (r *currentTowns) clone() *currentTowns {
 // belongs to town 1 and every other town keeps its fresh state, so a game of
 // one town writes none.
 func (t *Town) townsRecord() *currentTowns {
-	if t == nil {
+	if t == nil || t.bankOffers != nil {
 		return nil
 	}
 	r := &currentTowns{Town: t.townID()}
 	for _, e := range t.camp.Towns.chapterTowns() {
 		s, ok := t.others[e.ID]
-		if !ok || sameTownState(s, newTownState(e, t.camp)) {
+		if !ok || sameTownState(s, newTownState(e, t.camp, nil)) {
 			continue
 		}
 		o := currentTownState{ID: e.ID}
@@ -295,7 +303,7 @@ func (t *Town) restoreTowns(r *currentTowns) error {
 	others := map[int]townState{}
 	for _, e := range entries {
 		if e.ID != r.Town {
-			others[e.ID] = newTownState(e, t.camp)
+			others[e.ID] = newTownState(e, t.camp, nil)
 		}
 	}
 	seen := map[int]bool{}
@@ -306,7 +314,7 @@ func (t *Town) restoreTowns(r *currentTowns) error {
 			return fmt.Errorf("save holds a state of town %d it cannot restore", o.ID)
 		}
 		seen[o.ID] = true
-		s := newTownState(e, t.camp)
+		s := newTownState(e, t.camp, nil)
 		for _, ref := range o.Taken {
 			s.taken[offerRef{chapter: ref.Chapter, building: TownBuilding(ref.Building), index: ref.Index}] = true
 		}

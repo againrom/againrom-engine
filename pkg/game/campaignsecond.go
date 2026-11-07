@@ -371,7 +371,7 @@ func (c destinationTownCampaign) townShop() *Shop {
 	if c.t.sess == nil {
 		return nil
 	}
-	if s := secondOf(c.t.sess); s != nil {
+	if s := c.bank(); s != nil {
 		return &s.shop
 	}
 	return nil
@@ -383,6 +383,15 @@ func (c destinationTownCampaign) bank() *secondCampaign {
 	}
 	s := c.t.sess.Town.second
 	if s != nil {
+		// The rows bind once and share the bank; the Town keeps its own
+		// row, so its ID stays the chapter town's.
+		tw := c.t.sess.Town
+		if b := c.book(); b != nil && tw.bankOffers != s {
+			tw.resetTownStates(b.catalog.Towns, s)
+		}
+		if tw.bankOffers != nil {
+			s = tw.bankOffers
+		}
 		// The campaign binds the rows of a layered book; the shipped
 		// book's are its default.
 		s.offers = nil
