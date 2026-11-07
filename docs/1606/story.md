@@ -34,11 +34,15 @@ the people block in this order. A group with no member is left out.
 |---|---|
 | Story heroes / Сюжетные герои | a named npc character (`mapload.UnitNamed`) |
 | Player characters / Персонажи игрока | a Humans row whose name starts `PC_` |
-| Mercenaries / Наёмники | a row `mercenaryRowFromName` reads as `NPC<type>_<level>`, type 3..15; one cell per type |
+| Mercenaries / Наемники | a row `mercenaryRowFromName` reads as `NPC<type>_<level>`, type 3..15; one cell per type |
 | Others: fighters / Прочие: бойцы | any other row whose type composes a figure and is neither a horse type nor a mage figure |
 | Others: mages / Прочие: маги | the figure `mapload.PlacedFigure` gives is a man or woman mage (types 0x17, 0x18) |
 | Others: riders / Прочие: всадники | `data.FigureHasHorse` (types 0x11..0x15) |
 | Others: <class> / Прочие: <class> | a type that composes no figure (`!data.ComposesFigure`) or is a hero type (`data.FigureIsHero`); one head per class name of the sheet the mission draws, after the fixed heads |
+
+The RU mercenary head is «Наемники», not the brief's «Наёмники». The
+editor's font draws ё as И, and `TestRussianStringsCarryNoYo`
+(`pkg/words`) refuses the letter.
 
 `personRole` reads the type from the Humans row. When
 `mapload.PlacedClientHero` gives a second-game client hero type, that type is
@@ -77,8 +81,11 @@ would reset the level. `AddUnitIdentity` keys a new placement through
 
 `identityPictures` → `identityFigure`:
 
-- A creature keeps its placed tier sprite (`unitPreview`).
-- A person or named character takes `classPreview` of `personDraws()`.
+- A creature keeps its placed tier sprite: its class's sheet at
+  `placementTier`.
+- A person or named character takes the sheet and tier `personDraws()` gives.
+
+Both go through `unitPreview` once.
 
 `personDraws` places every person and named identity on one new map:
 
@@ -93,9 +100,12 @@ also returns that table, supplies it. A start that refuses its placements is
 started again one placement at a time, so only the refused placement draws
 nothing.
 
-`classPreview` (`pkg/game/mapinspectionadd.go`) is the body of `unitPreview`
-taken out for reuse: the first frame of `TierFrames(tier)` at the default
-facing, `SelectUnitFrame(..., false, 0, 0, 0)`. Portraits and paper dolls no
+`unitPreview` (`pkg/game/mapinspectionadd.go`) now takes the class sheet
+instead of the class id. `MapInspector.unitClass` does the lookup for the
+creature and class callers. `unitPreview` is still the only caller of
+`TierFrames`, as the archtest guard
+`TestEditorIdentityPictureAndPlacementShareTierBuilders` requires. It gives
+the first frame at the default facing, `SelectUnitFrame(..., false, 0, 0, 0)`. Portraits and paper dolls no
 longer reach the palette. The hover tip is unchanged: the cell label
 `identityName`, which is the Humans row name, or the npc record name and
 number.
@@ -107,7 +117,7 @@ number.
 | The identity choice's groups | `identityGroups` | new heads as data (`personGroupWords`), a role per identity (`personRole`), a head per unfit class, men then women |
 | An identity cell's picture | `identityPictures`, `identityFigure` | a person's picture comes from the mission art path; the npc portrait and `composeDoll` calls are removed |
 | A unit's map sprite | the mission's art path: `StartCampaignMission`, `canonicalizePartyAppearance`, `missionAppearanceArt` (`pkg/game/world.go`), `entityTiers` | called unchanged |
-| A class sheet's first frame | `unitPreview` | its body became `classPreview`, and `unitPreview` calls it |
+| A class sheet's first frame | `unitPreview` | takes the sheet; `unitClass` looks up a class id's sheet |
 | A unit popup field and its edit | `Fields`, `setField`, `identityField`, `setIdentity` | one more field (`levelField`); `setIdentity`'s writer became `keyIdentity`, shared by the level |
 | The placed record of an identity | `mapload.Place`, `mapload.IdentifyAt` | `Place` calls the new `PlaceOn`, which returns the table it resolves on |
 | A mercenary's type and level | `mercenaryHireTypeFromName` (`pkg/game/originalparty.go`) | its body became `mercenaryRowFromName`, which also returns the level, and the hire calls it |
@@ -136,7 +146,7 @@ Each class sheet has its own frame size.
   mercenaries [5, 6], fighters [2, 1], mages [14, 13], riders [16, 15],
   "Others: Odd class" [17]. It also checks that no level 2..4 row is a choice.
 - `TestEditorIdentityPeopleCellsDrawTheMissionSprite`. Each person and named
-  cell equals, pixel for pixel, `classPreview` of the art that a separate
+  cell equals, pixel for pixel, `unitPreview` of the art that a separate
   mission start of that one placement gives through `missionAppearanceArt`.
   That art is also the type's own sheet. No cell equals the npc portrait or
   the bare doll, and every row of one type draws one picture.
