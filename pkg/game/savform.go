@@ -192,18 +192,21 @@ const (
 	holderValue
 	// holderPresentValue is a value written where the record holds it.
 	holderPresentValue
-	// holderRecords is a reference slot the source fills with records.
+	// holderRecords is a reference slot the source fills with records, or
+	// the state leaves it writes.
 	holderRecords
 )
 
 // formHolding is what the holders' sources read: the document being
-// formed, the snapshot, the installed table and the hero's record.
+// formed, the snapshot, the installed table and the hero's record. keys is
+// each +4 a holder rewrote, the form's key by the engine's.
 type formHolding struct {
 	doc     *sav.DocumentData
 	s       Snapshot
 	table   *mapload.Table
 	hero    uint16
 	rewards map[int]bool
+	keys    map[uint32]uint32
 }
 
 // secondFormHolders are the fields the second game's records hold that the
@@ -235,9 +238,18 @@ var secondFormHolders = []savedFormHolder{
 	{class: "Outpost", field: "RuntimeID", site: holderValue, value: secondStructureKey},
 	{class: "Tavern", field: "RuntimeID", site: holderValue, value: secondStructureKey},
 	{class: "Shop", field: "RuntimeID", site: holderValue, value: secondStructureKey},
+	// R2-ENGINE-156, R2-ENGINE-513: a mission's map-built creature or person
+	// holds its map id plus 0x6000 at +4, the key the original's client
+	// builds its unit object under from the map (R2-ENGINE-615). The actors
+	// of the hero's Player keep their key (DIV-4592).
+	{class: "Unit", field: "RuntimeID", site: holderValue, value: secondMapActorKey},
+	{class: "Human", field: "RuntimeID", site: holderValue, value: secondMapActorKey},
 	// R2-ENGINE-402: a bag's weight is the sum of its Items' unit weight
 	// times quantity.
 	{class: "Human", field: "Inventory20", site: holderPresentValue, value: secondBagWeight},
+	// R2-ENGINE-614, R2-SESSION-245: the selection and a projectile's
+	// target name an object by its +4.
+	{field: "RuntimeID", site: holderRecords, records: secondKeyEdges},
 }
 
 // secondStructureKey is a mission structure's +4: 0x6000 plus its map id, the
@@ -250,7 +262,74 @@ func secondStructureKey(h *formHolding, i int) (uint32, bool) {
 	if err != nil {
 		return 0, false
 	}
-	return 0x6000 + id, true
+	return h.rekeyed(i, 0x6000+id)
+}
+
+// secondMapActorKey is a mission actor's +4: 0x6000 plus its map id, the
+// record's +8, for an actor the map placed (+8 from 1 to 0x9fff, so that
+// the key fits the client's word) that the hero's Player does not own.
+func secondMapActorKey(h *formHolding, i int) (uint32, bool) {
+	r := &h.doc.Objects[i]
+	id, err := savedStructureValue(r, "T08")
+	if h.s.Mission == 0 || err != nil || id == 0 || id > 0x9fff {
+		return 0, false
+	}
+	owner, err := savedStructureValue(r, "Reference")
+	if hero, herr := savedStructureValue(&h.doc.Objects[h.hero-1], "Reference"); err != nil || herr != nil || owner == hero {
+		return 0, false
+	}
+	return h.rekeyed(i, 0x6000+id)
+}
+
+// rekeyed is key, record i's +4 in the form, noted by the record's engine
+// key for the leaves that name the record (secondKeyEdges).
+func (h *formHolding) rekeyed(i int, key uint32) (uint32, bool) {
+	if was, err := savedStructureValue(&h.doc.Objects[i], "RuntimeID"); err == nil && was != 0 && was != key {
+		if h.keys == nil {
+			h.keys = map[uint32]uint32{}
+		}
+		h.keys[was] = key
+	}
+	return key, true
+}
+
+// secondKeyEdges writes the form's key in the state leaves that name a
+// rekeyed record by its engine key: each entry of the selection and each
+// projectile's actiontarget.
+func secondKeyEdges(h *formHolding) error {
+	if len(h.keys) == 0 {
+		return nil
+	}
+	st := &h.doc.State
+	rekey := func(key uint32) uint32 {
+		if to, found := h.keys[key]; found {
+			return to
+		}
+		return key
+	}
+	if _, err := patchStateLeaf(st.RootKind, st.DirectoryRecords, st.ValueRecords, "/Objects/Selection", func(leaf *sav.CityStateValueData) error {
+		for n := 0; n+4 <= len(leaf.Bytes); n += 4 {
+			binary.LittleEndian.PutUint32(leaf.Bytes[n:], rekey(binary.LittleEndian.Uint32(leaf.Bytes[n:])))
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	seen := map[string]bool{}
+	for _, record := range st.ValueRecords {
+		root, _ := splitStatePath(record.Path)
+		if len(root) < 3 || seen[root] || !stateRootMatches(st.RootKind, record.Path, "Prj"+root[3:]) {
+			continue
+		}
+		seen[root] = true
+		if _, err := patchStateLeaf(st.RootKind, st.DirectoryRecords, st.ValueRecords, "/Prj"+root[3:]+"/actiontarget", func(leaf *sav.CityStateValueData) error {
+			leaf.Int32 = int32(rekey(uint32(leaf.Int32)))
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // secondUnitMageFlags is a creature's +0x4c with the mage bit, 4, set when

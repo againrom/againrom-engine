@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Our saves load in the original game without it stopping on a hero who was attacking; before, the original stopped a moment after loading such a save.
 - [ROM2] In our saves loaded in the original game, a hero you had sent somewhere goes there and stays; before, he walked off towards a corner of the map.
 - [ROM2] A hero who changed his weapon before you saved keeps his real damage when you change weapons again after loading that save in the original game; before, the original could show him with damage near 243-485.
+- [ROM2] Our mission saves now give each creature and person placed on the map the number the original game knows it by. In such a save loaded in the original, a wounded dragon is expected to show its real health at once and to stay visible when it comes back into sight; before, it showed full health until its next hit and could turn invisible.
 
 ### For map makers and modders
 

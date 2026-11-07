@@ -4290,5 +4290,9 @@ var Committed = Baseline{
 	// in pkg/ui/mapeditorparampick.go, the new
 	// pkg/ui/mapeditorspeakeroverlap_test.go and
 	// pkg/game/mapeditorspeakerlook_test.go, and this note.
-	CommentBytes: 10624857,
+
+	// CommentBytes rises for the doc comments of the mission actor key in
+	// pkg/game/savform.go, the new pkg/game/secondactorkey_test.go, and this
+	// note.
+	CommentBytes: 10626931,
 }
