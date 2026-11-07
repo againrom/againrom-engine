@@ -52,6 +52,8 @@ type MapInspector struct {
 	// identities; identityDraws is nil until first asked.
 	mercenaryLevels map[int]map[int]int
 	identityDraws   map[int64]personDraw
+	// placedArts is the last map's placed people's sheets (placedArt).
+	placedArts *placedArtCache
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.
@@ -302,12 +304,21 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			}
 		}
 	}
+	// A person is drawn with the sheet the mission starting this map draws
+	// him with (startedArt), not the sheet of his class key.
+	var missionArt map[sim.EntityID]*terrain.UnitClass
+	if x.table != nil && x.units != nil && len(m.Units) > 0 {
+		missionArt = x.placedArt(model, m.Units, x.testPlayNumber(w))
+	}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
 		r := ui.InspectionRecord{Kind: ui.KindUnit, Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID), ScriptID: int(u.UnitID)}
 		var c *terrain.UnitClass
 		if x.units != nil {
 			c = x.units.Classes[int32(u.ClassID)]
+		}
+		if drawn := missionArt[sim.EntityID(i)]; drawn != nil {
+			c = drawn
 		}
 		e := ui.MapEntity{ID: uint32(i), Cell: cell, Art: c, Owner: u.Owner}
 		if c != nil {

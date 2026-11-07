@@ -389,8 +389,6 @@ func (x *MapInspector) personDraws() map[int64]personDraw {
 		}
 		starts[i].values, starts[i].units = append(starts[i].values, v), append(starts[i].units, u)
 	}
-	src := x.archives.artSource()
-	list, _ := ReadBodyList(src)
 	for _, st := range starts {
 		// A start one placement refuses is started again one placement a
 		// time, so the refused one alone draws nothing.
@@ -405,7 +403,7 @@ func (x *MapInspector) personDraws() map[int64]personDraw {
 			for i, n := range part {
 				units[i] = st.units[n]
 			}
-			art, tiers, err := x.peopleArt(units, st.table, src, list)
+			art, tiers, err := x.peopleArt(units, st.table)
 			if err != nil && len(part) > 1 {
 				for _, n := range part {
 					parts = append(parts, []int{n})
@@ -420,10 +418,76 @@ func (x *MapInspector) personDraws() map[int64]personDraw {
 	return x.identityDraws
 }
 
+// placedArtCache is the sheets startedArt gave a unit list: the list with
+// every position cleared (a move changes no sheet) and the mission number.
+type placedArtCache struct {
+	mission int
+	keys    []alm.Unit
+	art     map[sim.EntityID]*terrain.UnitClass
+}
+
+// placedArtRestart is the most units placedArt starts again by themselves.
+const placedArtRestart = 8
+
+// placedArt is startedArt for the units of the model's map, remembered while
+// the units are the same. When a few units changed or were added at the end
+// (an edit, a preview), only those are started, alone and by the same
+// builder; any other change starts the whole map.
+func (x *MapInspector) placedArt(model *mapedit.Editor, units []alm.Unit, mission int) map[sim.EntityID]*terrain.UnitClass {
+	keys := slices.Clone(units)
+	for i := range keys {
+		keys[i].X, keys[i].Y = 0, 0
+	}
+	c := x.placedArts
+	if c != nil && c.mission == mission {
+		var changed []int
+		for i := range keys {
+			if i >= len(c.keys) || keys[i] != c.keys[i] {
+				changed = append(changed, i)
+			}
+		}
+		if len(changed) == 0 && len(keys) == len(c.keys) {
+			return c.art
+		}
+		if len(keys) >= len(c.keys) && len(changed) <= placedArtRestart {
+			started, err := model.Map()
+			if err != nil {
+				return nil
+			}
+			picked := make([]alm.Unit, len(changed))
+			for j, i := range changed {
+				picked[j] = started.Units[i]
+			}
+			started.Units, started.AuthoredUnits = picked, nil
+			part, _ := x.startedArt(started, x.table, mission)
+			out := map[sim.EntityID]*terrain.UnitClass{}
+			maps.Copy(out, c.art)
+			for j, i := range changed {
+				delete(out, sim.EntityID(i))
+				if class := part[sim.EntityID(j)]; class != nil {
+					out[sim.EntityID(i)] = class
+				}
+			}
+			x.placedArts = &placedArtCache{mission: mission, keys: keys, art: out}
+			return out
+		}
+	}
+	started, err := model.Map()
+	if err != nil {
+		return nil
+	}
+	art, err := x.startedArt(started, x.table, mission)
+	if err != nil {
+		return nil
+	}
+	x.placedArts = &placedArtCache{mission: mission, keys: keys, art: art}
+	return art
+}
+
 // peopleArt is the class each of units is drawn with when a mission on table
 // t starts them on one new map, and the tier each is drawn at, by entity id
 // (the placement's index).
-func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table, src terrain.EntrySource, list data.BodyList) (map[sim.EntityID]*terrain.UnitClass, map[sim.EntityID]int, error) {
+func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table) (map[sim.EntityID]*terrain.UnitClass, map[sim.EntityID]int, error) {
 	side := 32
 	for (side-4)*(side-4) < len(units) {
 		side += 8
@@ -450,13 +514,28 @@ func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table, src terrain
 		keyed.UnitID = uint16(i + 1)
 		m.Units = append(m.Units, keyed)
 	}
-	w, st, err := mapload.StartCampaignMission(m, t, openDifficulty, nil, x.identityMission)
+	art, err := x.startedArt(m, t, x.identityMission)
 	if err != nil {
 		return nil, nil, err
 	}
-	ms := &Mission{Number: x.identityMission, Map: m, World: w, Start: st}
+	return art, entityTiers(m, t), nil
+}
+
+// startedArt is the class sheet the mission draws each person of map m with
+// when it starts the map on table t as mission number mission, by entity id
+// (the placement's index). A placement the mission draws from his class
+// record has no entry. The map is started, so a caller that keeps m passes a
+// fresh decode.
+func (x *MapInspector) startedArt(m *alm.Map, t *mapload.Table, mission int) (map[sim.EntityID]*terrain.UnitClass, error) {
+	w, st, err := mapload.StartCampaignMission(m, t, openDifficulty, nil, mission)
+	if err != nil {
+		return nil, err
+	}
+	src := x.archives.artSource()
+	list, _ := ReadBodyList(src)
+	ms := &Mission{Number: mission, Map: m, World: w, Start: st}
 	canonicalizePartyAppearance(ms, x.units, src, list)
-	return missionAppearanceArt(ms, x.units, list, src, placedClientHeroes(ms, t)), entityTiers(m, t), nil
+	return missionAppearanceArt(ms, x.units, list, src, placedClientHeroes(ms, t)), nil
 }
 
 // identityPicture is the picture of the identity choice value v.

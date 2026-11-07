@@ -4274,5 +4274,5 @@ var Committed = Baseline{
 	// the trigger writer in pkg/mapedit/script.go, the script framing guard
 	// in internal/archtest/scriptframe.go, their tests, the leaf's line in
 	// internal/archtest/dag_test.go's UI pin, and this note.
-	CommentBytes: 10617393,
+	CommentBytes: 10618822,
 }
