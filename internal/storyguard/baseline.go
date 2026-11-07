@@ -4294,5 +4294,17 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the mission actor key in
 	// pkg/game/savform.go, the new pkg/game/secondactorkey_test.go, and this
 	// note.
-	CommentBytes: 10627385,
+
+	// CommentBytes rises for the doc comments of the extended script record
+	// in the new pkg/formats/alm/scriptrecord.go and in alm.go and script.go,
+	// the extended limits in pkg/scriptprofile/profile.go, the extended
+	// trigger in pkg/mapload/script.go, the extended machine in pkg/sim's
+	// script.go, world.go, scriptcontrol.go, scriptbinary.go, binary.go and
+	// formwrapper.go, the map list, editor refusal and mod gate in
+	// pkg/game's maplist.go, mapinspectionedit.go and mapcheck.go, the
+	// supplement's program in currentscriptprogram.go, the record line in
+	// cmd/almtool/script.go, the World method pin in pkg/sim/world_test.go,
+	// the map list near-miss in pkg/game/maplist_test.go, their new tests,
+	// and this note.
+	CommentBytes: 10643518,
 }

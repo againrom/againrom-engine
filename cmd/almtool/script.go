@@ -76,6 +76,10 @@ func cmdScript(path string) error {
 	fmt.Printf("map:        %q  %dx%d  version=%d\n", m.Name, m.Width, m.Height, m.FormatVersion)
 	fmt.Printf("type7:      present=%v  entryCount=%d  body=%d bytes\n",
 		m.Present(alm.TypeScript), m.Triggers.EntryCount, len(m.Triggers.Body))
+	if src.Extended {
+		fmt.Printf("record:     extended script record typeId %d: %d variable(s), %d trigger(s)\n",
+			alm.ScriptRecordTypeID, src.Variables, len(src.Triggers))
+	}
 	if src.Empty() {
 		fmt.Println("script:     none — this map authors no mission script")
 		return nil
@@ -335,13 +339,23 @@ func cmdScript(path string) error {
 		}
 		fmt.Printf("  trigger %d (map position %d, %s, %s)\n", i, t.Latch, once, state)
 
+		// An extended trigger carries its conditions and actions as lists; a
+		// condition's group is printed, the trigger holding when any group does.
+		pairs, instants := t.Pairs[:], t.Instants[:]
+		if len(t.Conditions) != 0 || len(t.Actions) != 0 {
+			pairs, instants = t.Conditions, t.Actions
+		}
 		used := 0
-		for p, pr := range t.Pairs {
+		for p, pr := range pairs {
 			if !pr.Used {
 				continue
 			}
 			used++
-			fmt.Printf("    pair %d: register %d %s register %d\n", p, pr.Left, cmpName(pr.Cmp), pr.Right)
+			group := ""
+			if src.Extended {
+				group = fmt.Sprintf(" (group %d)", pr.Group)
+			}
+			fmt.Printf("    pair %d%s: register %d %s register %d\n", p, group, pr.Left, cmpName(pr.Cmp), pr.Right)
 			printRegister(pr.Left)
 			printRegister(pr.Right)
 		}
@@ -350,7 +364,7 @@ func cmdScript(path string) error {
 		}
 
 		ran := 0
-		for _, n := range t.Instants {
+		for _, n := range instants {
 			if n == scriptNone {
 				continue
 			}

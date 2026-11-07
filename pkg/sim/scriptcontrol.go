@@ -37,6 +37,8 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 	out.reserveScriptEntityIDs()
 	out.registers = [scriptRegisters]int32{}
 	out.latches = [scriptLatches]byte{}
+	out.scriptVars, out.scriptResults, out.latchTail = nil, nil, nil
+	out.fitScriptState()
 	out.won, out.lost, out.outcome = 0, 0, OutcomeUndecided
 	out.casts = nil
 	out.presetRegisters()
@@ -47,7 +49,8 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 // the running program state (registers, latches, counters and outcome). A
 // current SAV may learn a bounded objective after its party has been restored;
 // that objective changes the program shape while the execution state remains
-// the saved world's state.
+// the saved world's state. An extended program's own state is fitted to the
+// new program, keeping what fits.
 func (w *World) RestoreScriptProgram(program *Script) error {
 	if w == nil || program == nil {
 		return fmt.Errorf("sim: cannot restore an absent script program")
@@ -55,11 +58,12 @@ func (w *World) RestoreScriptProgram(program *Script) error {
 	if w.script.Dialect() != program.Dialect() {
 		return fmt.Errorf("sim: cannot change restored script dialect")
 	}
-	restored, err := newScript(program.Dialect(), program.Checks(), program.Instants(), program.Triggers())
+	restored, err := newScriptOn(program.Dialect(), program.machine, program.Checks(), program.Instants(), program.Triggers())
 	if err != nil {
 		return err
 	}
 	w.script = restored
+	w.fitScriptState()
 	w.reserveScriptEntityIDs()
 	return nil
 }

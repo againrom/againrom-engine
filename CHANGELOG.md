@@ -41,6 +41,7 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor's status line shows "Saving..." while a map is written and "Saved: file name" afterwards for a few seconds, or the reason the save failed (EN and RU).
 - [BASE] In the map editor the Traps and spells tab now stands before Buildings, in the top bar and in the tree.
 - [BASE] A unit's own name can now hold a space between words ("Old Bob"); before, the space typed after a word was lost when typing paused.
+- [ROM1] A map can now be an `.almx` file whose triggers fire when any of several groups of conditions holds, with up to 64 conditions and 64 actions per trigger, 4096 variables and 10000 triggers; the game lists, plays, saves and loads it, and a mod mission may name one. The map editor does not open such a map yet.
 
 ## 0.148.0
 

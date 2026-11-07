@@ -1940,6 +1940,14 @@ type World struct {
 	lost      uint32
 	outcome   Outcome
 
+	// scriptVars, scriptResults and latchTail are an extended program's
+	// state past the registers and latches, sized by fitScriptState: the
+	// variables from 100 on, one result per check, the latches from 1000 on.
+	// They are nil for any other program.
+	scriptVars    []int32
+	scriptResults []int32
+	latchTail     []byte
+
 	// rawSessionHead and rawSessionMid are the two opaque session-block spans
 	// ImportOriginalSession carries in from an original save and nothing in
 	// this package reads (SAV-SESS-031, docs/1130/story.md).
@@ -2590,6 +2598,7 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	w.resetFormations()
 	w.initializeROM2Script()
 	w.constructCarriers(false)
+	w.fitScriptState()
 	w.presetRegisters()
 	w.reserveObservableEntityIDs()
 	// THE LOAD IS WRITTEN AT GUARD, unconditionally, and a caller's own value

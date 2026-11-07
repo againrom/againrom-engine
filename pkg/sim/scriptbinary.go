@@ -20,6 +20,7 @@ package sim
 // builder first.
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -106,12 +107,23 @@ const (
 // scriptSectionLen is how many bytes w's script section occupies.
 func (w *World) scriptSectionLen() int {
 	n := scriptStateLen + scriptCountsLen
-	if w.script == nil {
+	s := w.sectionScript()
+	if s == nil {
 		return n
 	}
-	return n + scriptCheckLen*len(w.script.checks) +
-		scriptInstantLen*len(w.script.instants) +
-		scriptTriggerLen*len(w.script.triggers)
+	return n + scriptCheckLen*len(s.checks) +
+		scriptInstantLen*len(s.instants) +
+		scriptTriggerLen*len(s.triggers)
+}
+
+// sectionScript is the program the script section carries. An extended
+// program travels whole in its own form wrapper, and the section then
+// carries none.
+func (w *World) sectionScript() *Script {
+	if w.script.Extended() {
+		return nil
+	}
+	return w.script
 }
 
 // encodeScript writes the script section into b at off and returns the offset
@@ -131,14 +143,20 @@ func (w *World) encodeScript(b []byte, off int) int {
 	var checks []ScriptCheck
 	var instants []ScriptInstant
 	var triggers []ScriptTrigger
-	if w.script != nil {
-		checks, instants, triggers = w.script.checks, w.script.instants, w.script.triggers
+	if s := w.sectionScript(); s != nil {
+		checks, instants, triggers = s.checks, s.instants, s.triggers
 	}
 	binary.LittleEndian.PutUint32(b[off:off+4], uint32(len(checks)))
 	binary.LittleEndian.PutUint32(b[off+4:off+8], uint32(len(instants)))
 	binary.LittleEndian.PutUint32(b[off+8:off+12], uint32(len(triggers)))
 	off += scriptCountsLen
+	return putScriptRecords(b, off, checks, instants, triggers)
+}
 
+// putScriptRecords writes the check, instant and trigger records into b at
+// off and returns the offset past them. A trigger record is its record
+// slots; an extended trigger's lists are its form wrapper's.
+func putScriptRecords(b []byte, off int, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) int {
 	for _, c := range checks {
 		binary.LittleEndian.PutUint32(b[off:off+4], uint32(c.Op))
 		binary.LittleEndian.PutUint32(b[off+4:off+8], uint32(c.Register))
@@ -303,7 +321,28 @@ func decodeScript(data []byte) (scriptState, error) {
 		return st, fmt.Errorf("sim: script section declares %d check(s), %d instant(s) and %d trigger(s), "+
 			"which are %d byte(s), and carries %d", nChecks, nInstants, nTriggers, span, avail)
 	}
+	recs, err := readScriptRecords(data[off:], nChecks, nInstants, nTriggers)
+	if err != nil {
+		return st, err
+	}
 
+	if nChecks == 0 && nInstants == 0 && nTriggers == 0 {
+		return st, nil
+	}
+	s, err := NewScript(recs.checks, recs.instants, recs.triggers)
+	if err != nil {
+		return st, err
+	}
+	st.script = s
+	return st, nil
+}
+
+// readScriptRecords reads the check, instant and trigger records from data,
+// which the caller has measured to hold them, refusing a flag byte outside
+// 0 and 1.
+func readScriptRecords(data []byte, nChecks, nInstants, nTriggers uint32) (scriptRecords, error) {
+	var st scriptRecords
+	off := 0
 	checks := make([]ScriptCheck, nChecks)
 	for i := range checks {
 		o := off + scriptCheckLen*i
@@ -412,16 +451,14 @@ func decodeScript(data []byte) (scriptState, error) {
 		t.Latch = int32(binary.LittleEndian.Uint32(data[o+56 : o+60]))
 		triggers[i] = t
 	}
+	return scriptRecords{checks, instants, triggers}, nil
+}
 
-	if nChecks == 0 && nInstants == 0 && nTriggers == 0 {
-		return st, nil
-	}
-	s, err := NewScript(checks, instants, triggers)
-	if err != nil {
-		return st, err
-	}
-	st.script = s
-	return st, nil
+// scriptRecords is the three record arrays as read.
+type scriptRecords struct {
+	checks   []ScriptCheck
+	instants []ScriptInstant
+	triggers []ScriptTrigger
 }
 
 // scriptFlag reads one of the section's boolean bytes, refusing anything but 0
@@ -435,4 +472,166 @@ func scriptFlag(b byte, what string, i int, field string) (bool, error) {
 		return true, nil
 	}
 	return false, fmt.Errorf("sim: script %s %d: %s byte is %d, want 0 or 1", what, i, field, b)
+}
+
+// extendedScriptFormVersion wraps a World running an extended program. The
+// script section then carries no program, and this section carries all of
+// it and its state past the section's registers and latches. A World
+// running any other program writes no form, so its bytes and hash are
+// unchanged.
+const extendedScriptFormVersion byte = 133
+
+// The extended script section, every word a little-endian uint32:
+//
+//	the variable, check, instant and trigger counts
+//	the check, instant and trigger records, as the script section's
+//	per trigger: its condition and action counts, the conditions (group,
+//	  left, right, code: 16 bytes each), the actions (4 bytes each)
+//	one result per check, the variables from 100 on
+//	the latch count past 1000, then those latches, a byte each
+const extendedScriptHeadLen = 16
+
+func (w *World) appendExtendedScript(b []byte) []byte {
+	s := w.script
+	if !s.Extended() {
+		return b
+	}
+	le := binary.LittleEndian
+	ws := beginWrapper(b)
+	for _, n := range [4]int{int(s.machine.variables), len(s.checks), len(s.instants), len(s.triggers)} {
+		b = le.AppendUint32(b, uint32(n))
+	}
+	at := len(b)
+	b = append(b, make([]byte, scriptCheckLen*len(s.checks)+scriptInstantLen*len(s.instants)+scriptTriggerLen*len(s.triggers))...)
+	putScriptRecords(b, at, s.checks, s.instants, s.triggers)
+	for _, t := range s.triggers {
+		b = le.AppendUint32(b, uint32(len(t.Conditions)))
+		b = le.AppendUint32(b, uint32(len(t.Actions)))
+		for _, p := range t.Conditions {
+			for _, v := range [4]int32{p.Group, p.Left, p.Right, p.Cmp} {
+				b = le.AppendUint32(b, uint32(v))
+			}
+		}
+		for _, a := range t.Actions {
+			b = le.AppendUint32(b, uint32(a))
+		}
+	}
+	for _, v := range w.scriptResults {
+		b = le.AppendUint32(b, uint32(v))
+	}
+	for _, v := range w.scriptVars {
+		b = le.AppendUint32(b, uint32(v))
+	}
+	b = le.AppendUint32(b, uint32(len(w.latchTail)))
+	b = append(b, w.latchTail...)
+	return endWrapper(b, ws, extendedScriptFormVersion)
+}
+
+// unmarshalExtendedScript decodes the wrapped form, then installs the
+// section's program through NewExtendedScript and its state. Every count is
+// measured against the bytes left before anything is allocated.
+func (w *World) unmarshalExtendedScript(data []byte, proof formProof) error {
+	fail := func() error { return fmt.Errorf("malformed extended script section") }
+	env, ok := readWrapper(data, extendedScriptFormVersion)
+	if !ok {
+		return fail()
+	}
+	s := env.section()
+	le := binary.LittleEndian
+	off := int64(0)
+	take := func(n int64) ([]byte, bool) {
+		if n < 0 || n > int64(len(s))-off {
+			return nil, false
+		}
+		out := s[off : off+n]
+		off += n
+		return out, true
+	}
+	word := func() (uint32, bool) {
+		b, ok := take(4)
+		if !ok {
+			return 0, false
+		}
+		return le.Uint32(b), true
+	}
+	words := func(n int64) ([]int32, bool) {
+		b, ok := take(4 * n)
+		if !ok {
+			return nil, false
+		}
+		var out []int32
+		if n > 0 {
+			out = make([]int32, n)
+		}
+		for i := range out {
+			out[i] = int32(le.Uint32(b[4*i:]))
+		}
+		return out, true
+	}
+	head, ok := take(extendedScriptHeadLen)
+	if !ok {
+		return fail()
+	}
+	vars, nc, ni, nt := le.Uint32(head), le.Uint32(head[4:]), le.Uint32(head[8:]), le.Uint32(head[12:])
+	body, ok := take(int64(nc)*scriptCheckLen + int64(ni)*scriptInstantLen + int64(nt)*scriptTriggerLen)
+	if !ok {
+		return fail()
+	}
+	recs, err := readScriptRecords(body, nc, ni, nt)
+	if err != nil {
+		return err
+	}
+	for i := range recs.triggers {
+		t := &recs.triggers[i]
+		nCond, ok1 := word()
+		nAct, ok2 := word()
+		if !ok1 || !ok2 {
+			return fail()
+		}
+		conds, ok1 := words(4 * int64(nCond))
+		acts, ok2 := words(int64(nAct))
+		if !ok1 || !ok2 {
+			return fail()
+		}
+		for k := 0; k < len(conds); k += 4 {
+			t.Conditions = append(t.Conditions, ScriptPair{Group: conds[k], Left: conds[k+1], Right: conds[k+2], Cmp: conds[k+3], Used: true})
+		}
+		t.Actions = acts
+	}
+	results, ok1 := words(int64(nc))
+	tail, ok2 := words(max(0, int64(vars)-scriptRegisters))
+	nLatch, ok3 := word()
+	if !ok1 || !ok2 || !ok3 {
+		return fail()
+	}
+	latches, ok := take(int64(nLatch))
+	if !ok || off != int64(len(s)) {
+		return fail()
+	}
+	program, err := NewExtendedScript(int32(vars), recs.checks, recs.instants, recs.triggers)
+	if err != nil {
+		return err
+	}
+	next := *w
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
+		return err
+	}
+	if next.script != nil {
+		return fail()
+	}
+	next.script = program
+	next.scriptVars, next.scriptResults, next.latchTail = nil, nil, nil
+	next.fitScriptState()
+	state := ScriptExtendedState{Variables: tail, Results: results}
+	if len(latches) != 0 {
+		state.Latches = bytes.Clone(latches)
+	}
+	if err := next.RestoreScriptExtendedState(state); err != nil {
+		return err
+	}
+	if !next.marshalsTo(data, proof) {
+		return fail()
+	}
+	*w = next
+	return nil
 }

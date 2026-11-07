@@ -923,6 +923,19 @@ func mapOutputDirectory(abs string) (string, error) {
 	return parent, nil
 }
 
+// refuseExtendedMap refuses to open an extended map: a source named .almx or
+// a map carrying the extended script record. The editor reads and writes the
+// original record set alone, so it never saves an extended map as an .alm;
+// it opens extended maps at step 3 of the extended scripts (DIV-4603).
+func refuseExtendedMap(model *mapedit.Editor, source string) error {
+	named := namefold.HostEqual(filepath.Ext(source), extendedMapExt)
+	m, err := model.Map()
+	if !named && (err != nil || !m.HasScriptRecord()) {
+		return nil
+	}
+	return fmt.Errorf("the map editor does not open %s: it is an extended .almx map, which the editor opens from step 3 of the extended scripts", source)
+}
+
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {

@@ -16,6 +16,7 @@ import (
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
@@ -203,6 +204,11 @@ func (x *MapInspector) CheckModMap(m mod.Mission, source string) []ui.Inspection
 	model, err := mapedit.New(m.MapBytes)
 	if err != nil {
 		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: err.Error()}}
+	}
+	// A map carrying the extended script record is named .almx, so an .alm
+	// loads exactly as the original loads it (DIV-4603).
+	if mp, err := model.Map(); err == nil && mp.HasScriptRecord() && !namefold.HostEqual(filepath.Ext(m.Map), extendedMapExt) {
+		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: "the map carries the extended script record; name it " + extendedMapExt}}
 	}
 	return x.report(model, source, m.HeldPages())
 }

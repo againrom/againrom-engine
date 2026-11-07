@@ -15,22 +15,41 @@ import (
 
 // Program presence distinguishes an intentionally empty current program from
 // an older SAV whose mission program must still come from the installed map.
+//
+// Extended is present for an extended program alone: its variable count and
+// its state past the session block, which holds the first hundred variables
+// and the first thousand latches (DIV-4602, DIV-4604).
 type currentScriptProgram struct {
 	Dialect  sim.ScriptDialect `json:",omitempty"`
 	Checks   []sim.ScriptCheck
 	Instants []sim.ScriptInstant
 	Triggers []sim.ScriptTrigger
+	Extended *currentExtendedScript `json:",omitempty"`
+}
+
+// currentExtendedScript is an extended program's machine and state.
+type currentExtendedScript struct {
+	Variables int32
+	State     sim.ScriptExtendedState
 }
 
 const maxCurrentScriptNodes = 65536
 
 func captureCurrentScriptProgram(w *sim.World) *currentScriptProgram {
 	p := w.Script()
-	return &currentScriptProgram{Dialect: p.Dialect(), Checks: p.Checks(), Instants: p.Instants(), Triggers: p.Triggers()}
+	out := &currentScriptProgram{Dialect: p.Dialect(), Checks: p.Checks(), Instants: p.Instants(), Triggers: p.Triggers()}
+	if p.Extended() {
+		out.Extended = &currentExtendedScript{Variables: p.Variables(), State: w.ScriptExtendedState()}
+	}
+	return out
 }
 
 func (p *currentScriptProgram) compile() (*sim.Script, error) {
-	if len(p.Checks) > scriptprofile.FirstRegisters || len(p.Instants) > maxCurrentScriptNodes || len(p.Triggers) > maxCurrentScriptNodes {
+	checks := scriptprofile.FirstRegisters
+	if p.Extended != nil {
+		checks = maxCurrentScriptNodes
+	}
+	if len(p.Checks) > checks || len(p.Instants) > maxCurrentScriptNodes || len(p.Triggers) > maxCurrentScriptNodes {
 		return nil, fmt.Errorf("current script program exceeds its register/node bounds")
 	}
 	// A negative action slot is refused, as the World byte form refuses it.
@@ -43,10 +62,12 @@ func (p *currentScriptProgram) compile() (*sim.Script, error) {
 	}
 	var program *sim.Script
 	var err error
-	switch p.Dialect {
-	case sim.ScriptROM1:
+	switch {
+	case p.Dialect == sim.ScriptROM1 && p.Extended != nil:
+		program, err = sim.NewExtendedScript(p.Extended.Variables, p.Checks, p.Instants, triggers)
+	case p.Dialect == sim.ScriptROM1:
 		program, err = sim.NewScript(p.Checks, p.Instants, triggers)
-	case sim.ScriptROM2:
+	case p.Dialect == sim.ScriptROM2 && p.Extended == nil:
 		program, err = sim.NewROM2Script(p.Checks, p.Instants, triggers)
 	default:
 		return nil, fmt.Errorf("invalid current script dialect")
@@ -54,7 +75,7 @@ func (p *currentScriptProgram) compile() (*sim.Script, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Equal(program.Triggers(), p.Triggers) {
+	if !sim.EqualTriggers(program.Triggers(), p.Triggers) {
 		return nil, fmt.Errorf("current script has inconsistent derived trigger state")
 	}
 	return program, nil
@@ -100,15 +121,20 @@ func (p *currentScriptProgram) UnmarshalJSON(raw []byte) error {
 	var fields struct {
 		Dialect                    sim.ScriptDialect
 		Checks, Instants, Triggers json.RawMessage
+		Extended                   *currentExtendedScript
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if err := d.Decode(&fields); err != nil {
 		return err
 	}
-	next := currentScriptProgram{Dialect: fields.Dialect}
+	next := currentScriptProgram{Dialect: fields.Dialect, Extended: fields.Extended}
+	checks := scriptprofile.FirstRegisters
+	if next.Extended != nil {
+		checks = maxCurrentScriptNodes
+	}
 	var err error
-	if next.Checks, err = currentScriptRows[sim.ScriptCheck](fields.Checks, 100); err != nil {
+	if next.Checks, err = currentScriptRows[sim.ScriptCheck](fields.Checks, checks); err != nil {
 		return err
 	}
 	if next.Instants, err = currentScriptRows[sim.ScriptInstant](fields.Instants, maxCurrentScriptNodes); err != nil {
@@ -181,5 +207,11 @@ func restoreCurrentScriptProgram(ms *Mission, table *mapload.Table, p *currentSc
 	if err != nil {
 		return err
 	}
-	return ms.World.RestoreScriptProgram(program)
+	if err := ms.World.RestoreScriptProgram(program); err != nil {
+		return err
+	}
+	if p.Extended == nil {
+		return nil
+	}
+	return ms.World.RestoreScriptExtendedState(p.Extended.State)
 }

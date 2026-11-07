@@ -63,7 +63,7 @@ func coldCurrentScript(t *testing.T, f *FrontEnd, raw []byte) *FrontEnd {
 func checkCurrentScriptState(t *testing.T, want, got *sim.World) {
 	t.Helper()
 	a, b := want.Script(), got.Script()
-	if !slices.Equal(a.Checks(), b.Checks()) || !slices.Equal(a.Instants(), b.Instants()) || !slices.Equal(a.Triggers(), b.Triggers()) ||
+	if !slices.Equal(a.Checks(), b.Checks()) || !slices.Equal(a.Instants(), b.Instants()) || !sim.EqualTriggers(a.Triggers(), b.Triggers()) ||
 		want.ScriptRegisters() != got.ScriptRegisters() || want.Outcome() != got.Outcome() {
 		t.Fatal("current program, complete registers or outcome changed")
 	}
@@ -180,7 +180,7 @@ func TestCurrentScriptProgramLossControls(t *testing.T) {
 				if got.ScriptRegister(10) != 123 || !slices.Equal(got.Script().Checks(), expected.Script().Checks()) {
 					t.Fatal("program reset the ordinary current register")
 				}
-			} else if slices.Equal(got.Script().Checks(), expected.Script().Checks()) && slices.Equal(got.Script().Triggers(), expected.Script().Triggers()) {
+			} else if slices.Equal(got.Script().Checks(), expected.Script().Checks()) && sim.EqualTriggers(got.Script().Triggers(), expected.Script().Triggers()) {
 				t.Fatal("independent program comparison did not detect the deliberate loss")
 			}
 			if change == "empty" && !got.Script().Empty() {

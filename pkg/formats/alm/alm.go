@@ -337,6 +337,11 @@ type Map struct {
 
 	// present[t] is true iff the file actually carried a record with typeId t.
 	present [TypeIDCount]bool
+
+	// scriptRecord is the last Againrom script record's payload and
+	// scriptRecords how many the file carried; Script decodes it.
+	scriptRecord  []byte
+	scriptRecords int
 }
 
 // Present reports whether the accepted stream actually carried a record with
@@ -401,6 +406,8 @@ func open(data []byte, d dialect) (*Map, error) {
 		MetaRecordWord: f.headerWords[TypeMeta],
 		Records:        f.records,
 		present:        f.present,
+		scriptRecord:   f.scriptRecord,
+		scriptRecords:  f.scriptRecords,
 	}
 
 	if err := m.decodeMeta(f.payloads[TypeMeta], d); err != nil {
@@ -512,6 +519,9 @@ type recordFrame struct {
 	headerWords [TypeIDCount]uint32
 	present     [TypeIDCount]bool
 	records     []Record
+
+	scriptRecord  []byte
+	scriptRecords int
 }
 
 // walkRecords validates the file header and walks the recordCount
@@ -607,6 +617,12 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 		if d == dialectROM2 && typeID >= TypeIDCount && typeID < TypeIDCount+3 {
 			f.extPresent[typeID-TypeIDCount] = true
 			f.ext[typeID-TypeIDCount] = data[payloadStart:payloadEnd]
+		}
+		// The Againrom script record is the first game's alone; the second
+		// game's reader leaves the id where the original leaves it.
+		if d == dialectROM1 && typeID == ScriptRecordTypeID {
+			f.scriptRecords++
+			f.scriptRecord = data[payloadStart:payloadEnd]
 		}
 		if typeID < TypeIDCount {
 			f.present[typeID] = true

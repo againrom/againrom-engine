@@ -7,6 +7,7 @@ package sim
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"againrom/pkg/intmath"
@@ -486,11 +487,15 @@ type ScriptInstant struct {
 // half-empty; an unused slot is not a comparison against register zero, it is no
 // comparison at all, and the difference decides whether a trigger with one
 // authored condition also has to satisfy two accidental ones.
+//
+// Group is the pair's group in an extended trigger's condition list; a
+// trigger's three record pairs are all group 0.
 type ScriptPair struct {
 	Left  int32
 	Right int32
 	Cmp   int32
 	Used  bool
+	Group int32 `json:",omitempty"`
 }
 
 // The six comparison codes, in the order the engine's own six-entry table puts
@@ -523,12 +528,34 @@ const ScriptNone int32 = -1
 // arm of this build writes. An inert trigger is skipped whole — it is not
 // evaluated, its latch is not touched, and it can never fire. That is the
 // loudness rule stated as behaviour rather than as a report.
+//
+// Conditions and Actions are an extended trigger's (DIV-4600, DIV-4601): its
+// conditions in OR-ed groups and its instant subscripts in order, the record
+// slots left unused. An original trigger leaves both empty; its used pairs
+// are the one group 0.
 type ScriptTrigger struct {
-	Pairs    [scriptprofile.RecordPairs]ScriptPair
-	Instants [scriptprofile.RecordActions]int32
-	Once     bool
-	Latch    int32
-	Inert    bool
+	Pairs      [scriptprofile.RecordPairs]ScriptPair
+	Instants   [scriptprofile.RecordActions]int32
+	Once       bool
+	Latch      int32
+	Inert      bool
+	Conditions []ScriptPair `json:",omitempty"`
+	Actions    []int32      `json:",omitempty"`
+}
+
+// Equal reports whether t and u are the same trigger, lists included.
+func (t ScriptTrigger) Equal(u ScriptTrigger) bool {
+	return t.Pairs == u.Pairs && t.Instants == u.Instants && t.Once == u.Once && t.Latch == u.Latch &&
+		t.Inert == u.Inert && slices.Equal(t.Conditions, u.Conditions) && slices.Equal(t.Actions, u.Actions)
+}
+
+// EqualTriggers reports whether a and b hold the same triggers in order.
+func EqualTriggers(a, b []ScriptTrigger) bool { return slices.EqualFunc(a, b, ScriptTrigger.Equal) }
+
+// clone is t with lists of its own.
+func (t ScriptTrigger) clone() ScriptTrigger {
+	t.Conditions, t.Actions = slices.Clone(t.Conditions), slices.Clone(t.Actions)
+	return t
 }
 
 // ScriptGapKind says which array a reported gap is in.
@@ -569,12 +596,55 @@ type ScriptGap struct {
 // that holds one rely on the invariants NewScript established.
 type Script struct {
 	dialect  ScriptDialect
+	machine  scriptMachine
 	checks   []ScriptCheck
 	instants []ScriptInstant
 	triggers []ScriptTrigger
 
 	gaps  []ScriptGap
 	inert []int32
+}
+
+// scriptMachine is the extended machine's shape; the zero value is the
+// original's. An extended program gives each check a result slot of its own
+// and keeps its variables apart from them (DIV-4602); latches is one
+// past the highest latch position its triggers use.
+type scriptMachine struct {
+	extended  bool
+	variables int32
+	latches   int32
+}
+
+// NewExtendedScript compiles an extended program: the first game's opcodes
+// on the extended machine, with variables variables. It refuses what NewScript
+// refuses, measured against the extended profile, and a record slot used on
+// an extended trigger.
+func NewExtendedScript(variables int32, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
+	if variables < 0 || variables > scriptprofile.ExtendedVariables {
+		return nil, fmt.Errorf("sim: an extended script holds %d variables, at most %d", variables, scriptprofile.ExtendedVariables)
+	}
+	return newScriptOn(ScriptROM1, scriptMachine{extended: true, variables: variables}, checks, instants, triggers)
+}
+
+// Recompile compiles the given arrays on s's dialect and machine, as
+// NewScript, NewROM2Script or NewExtendedScript compiled s.
+func (s *Script) Recompile(checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
+	var m scriptMachine
+	if s != nil {
+		m = s.machine
+	}
+	return newScriptOn(s.Dialect(), m, checks, instants, triggers)
+}
+
+// Extended reports whether s runs on the extended machine.
+func (s *Script) Extended() bool { return s != nil && s.machine.extended }
+
+// Variables is the extended program's variable count, 0 for any other.
+func (s *Script) Variables() int32 {
+	if s == nil {
+		return 0
+	}
+	return s.machine.variables
 }
 
 // NewScript compiles the three arrays into a script, computing which triggers
@@ -596,10 +666,25 @@ func NewScript(checks []ScriptCheck, instants []ScriptInstant, triggers []Script
 }
 
 func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
+	return newScriptOn(dialect, scriptMachine{}, checks, instants, triggers)
+}
+
+// newScriptOn is newScript on machine m: the original's register file and
+// latch array, or the extended machine's result slots, one per check, and
+// its latch positions. m.latches is derived here and any value given is
+// overwritten.
+func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
+	registers, latches := scriptRegisters, scriptLatches
+	if m.extended {
+		registers, latches = len(checks), scriptprofile.Extended.Latches
+		if len(triggers) > scriptprofile.Extended.Triggers {
+			return nil, fmt.Errorf("sim: an extended script holds %d triggers, at most %d", len(triggers), scriptprofile.Extended.Triggers)
+		}
+	}
 	// owner[r] is the check that writes register r, or -1. It is what decides
 	// inertness, and building it is also how the "two checks, one register"
 	// refusal is made.
-	var owner [scriptRegisters]int32
+	owner := make([]int32, registers)
 	for i := range owner {
 		owner[i] = ScriptNone
 	}
@@ -607,9 +692,9 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 	cp := append([]ScriptCheck(nil), checks...)
 	for i := range cp {
 		r := cp[i].Register
-		if r < 0 || r >= scriptRegisters {
+		if r < 0 || int(r) >= registers {
 			return nil, fmt.Errorf("sim: script check %d owns register %d, the file has %d",
-				i, r, scriptRegisters)
+				i, r, registers)
 		}
 		if owner[r] != ScriptNone {
 			return nil, fmt.Errorf("sim: script checks %d and %d both own register %d",
@@ -628,7 +713,7 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 	// not poisoned: that is an authored mission variable, legitimately zero
 	// until an instant writes it, and a trigger reading one is doing exactly
 	// what the map asked for.
-	var poisoned [scriptRegisters]bool
+	poisoned := make([]bool, registers)
 	var gaps []ScriptGap
 	for i := range cp {
 		if scriptCheckSupported(cp[i].Op) || dialect == ScriptROM2 && rom2CheckSupported(cp[i].Op) {
@@ -648,30 +733,49 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 		gaps = append(gaps, g)
 	}
 
-	tp := append([]ScriptTrigger(nil), triggers...)
+	var tp []ScriptTrigger
+	if len(triggers) != 0 {
+		tp = make([]ScriptTrigger, len(triggers))
+	}
 	var inert []int32
+	m.latches = 0
 	for i := range tp {
+		tp[i] = triggers[i].clone()
 		t := &tp[i]
 		t.Inert = false
-		if t.Latch < 0 || t.Latch >= scriptLatches {
+		if t.Latch < 0 || int(t.Latch) >= latches {
 			return nil, fmt.Errorf("sim: script trigger %d latches at %d, the array holds %d",
-				i, t.Latch, scriptLatches)
+				i, t.Latch, latches)
 		}
-		for k := range t.Pairs {
-			p := t.Pairs[k]
+		m.latches = max(m.latches, t.Latch+1)
+		if err := checkTriggerLists(m, i, *t); err != nil {
+			return nil, err
+		}
+		for k, p := range t.Pairs {
+			if p.Used && p.Group != 0 {
+				return nil, fmt.Errorf("sim: script trigger %d pair %d is in group %d, a record pair is in group 0", i, k, p.Group)
+			}
+		}
+		for k, p := range t.conditions() {
 			if !p.Used {
 				continue
 			}
-			if p.Left < 0 || p.Left >= scriptRegisters || p.Right < 0 || p.Right >= scriptRegisters {
-				return nil, fmt.Errorf("sim: script trigger %d pair %d reads registers %d and %d, the file has %d",
-					i, k, p.Left, p.Right, scriptRegisters)
+			// An extended condition naming no check reads ScriptNone, which
+			// holds 0 and is no register.
+			low := int32(0)
+			if m.extended {
+				low = ScriptNone
 			}
-			if poisoned[p.Left] || poisoned[p.Right] {
+			if p.Left < low || int(p.Left) >= registers || p.Right < low || int(p.Right) >= registers {
+				return nil, fmt.Errorf("sim: script trigger %d pair %d reads registers %d and %d, the file has %d",
+					i, k, p.Left, p.Right, registers)
+			}
+			if p.Left >= 0 && poisoned[p.Left] || p.Right >= 0 && poisoned[p.Right] {
 				t.Inert = true
 			}
 		}
-		for k, s := range t.Instants {
-			if s == ScriptNone {
+		for k, s := range t.actions() {
+			if s == ScriptNone && len(t.Actions) == 0 {
 				continue
 			}
 			if s < 0 || int(s) >= len(ip) {
@@ -687,7 +791,58 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 		}
 	}
 
-	return &Script{dialect: dialect, checks: cp, instants: ip, triggers: tp, gaps: gaps, inert: inert}, nil
+	if !m.extended {
+		m.latches = 0
+	}
+	return &Script{dialect: dialect, machine: m, checks: cp, instants: ip, triggers: tp, gaps: gaps, inert: inert}, nil
+}
+
+// checkTriggerLists holds trigger i's lists to machine m: an original trigger
+// has none, and an extended one uses no record slot and holds the extended
+// profile's conditions and actions, its groups numbered from 0 and rising by
+// at most one from each condition to the next.
+func checkTriggerLists(m scriptMachine, i int, t ScriptTrigger) error {
+	if !m.extended {
+		if len(t.Conditions) != 0 || len(t.Actions) != 0 {
+			return fmt.Errorf("sim: script trigger %d holds a condition or action list outside an extended script", i)
+		}
+		return nil
+	}
+	unused := [scriptprofile.RecordActions]int32{ScriptNone, ScriptNone, ScriptNone, ScriptNone}
+	if t.Pairs != ([scriptprofile.RecordPairs]ScriptPair{}) || t.Instants != unused {
+		return fmt.Errorf("sim: extended script trigger %d uses a record slot", i)
+	}
+	limits := scriptprofile.Extended
+	if len(t.Conditions) > limits.Pairs || len(t.Actions) > limits.Actions {
+		return fmt.Errorf("sim: extended script trigger %d holds %d conditions and %d actions, at most %d and %d",
+			i, len(t.Conditions), len(t.Actions), limits.Pairs, limits.Actions)
+	}
+	group := int32(0)
+	for k, p := range t.Conditions {
+		if !p.Used || k == 0 && p.Group != 0 || k > 0 && p.Group != group && p.Group != group+1 {
+			return fmt.Errorf("sim: extended script trigger %d condition %d is in group %d after group %d", i, k, p.Group, group)
+		}
+		group = p.Group
+	}
+	return nil
+}
+
+// conditions is the trigger's condition list: an extended trigger's own, or
+// the record's three pairs, of which the used ones are group 0.
+func (t *ScriptTrigger) conditions() []ScriptPair {
+	if len(t.Conditions) != 0 {
+		return t.Conditions
+	}
+	return t.Pairs[:]
+}
+
+// actions is the trigger's instant subscripts: an extended trigger's list, or
+// the record's four slots, an unused one ScriptNone.
+func (t *ScriptTrigger) actions() []int32 {
+	if len(t.Actions) != 0 {
+		return t.Actions
+	}
+	return t.Instants[:]
 }
 
 // WithVIP returns this program with one additional protect-unit check.
@@ -706,14 +861,22 @@ func (s *Script) WithVIP(unit EntityID) (*Script, error) {
 	var checks []ScriptCheck
 	var instants []ScriptInstant
 	var triggers []ScriptTrigger
+	var machine scriptMachine
 	if s != nil {
 		checks = append(checks, s.checks...)
 		instants = append(instants, s.instants...)
 		triggers = append(triggers, s.triggers...)
+		machine = s.machine
 	}
-	var used [scriptRegisters]bool
+	// An extended program's checks own a result slot each, so the new one
+	// takes the slot after the last.
+	slots := scriptRegisters
+	if machine.extended {
+		slots = len(checks) + 1
+	}
+	used := make([]bool, slots)
 	for _, c := range checks {
-		if c.Register >= 0 && c.Register < scriptRegisters {
+		if c.Register >= 0 && int(c.Register) < slots {
 			used[c.Register] = true
 		}
 	}
@@ -730,7 +893,7 @@ func (s *Script) WithVIP(unit EntityID) (*Script, error) {
 	checks = append(checks, ScriptCheck{
 		Op: ScriptCheckVIP, Register: register, Unit: unit, HasUnit: true,
 	})
-	return newScript(s.Dialect(), checks, instants, triggers)
+	return newScriptOn(s.Dialect(), machine, checks, instants, triggers)
 }
 
 // Empty reports whether the script holds nothing at all. A world given an empty
@@ -756,10 +919,14 @@ func (s *Script) Instants() []ScriptInstant {
 }
 
 func (s *Script) Triggers() []ScriptTrigger {
-	if s == nil {
+	if s == nil || len(s.triggers) == 0 {
 		return nil
 	}
-	return append([]ScriptTrigger(nil), s.triggers...)
+	out := make([]ScriptTrigger, len(s.triggers))
+	for i, t := range s.triggers {
+		out[i] = t.clone()
+	}
+	return out
 }
 
 // Unsupported returns every arm this script asks for that this build does not
@@ -863,7 +1030,7 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 	}
 	for i := range s.triggers {
 		t := s.triggers[i]
-		latchBefore := w.latches[t.Latch]
+		latchBefore := w.latch(t.Latch)
 		run := tr.triggerStart(w, int32(i), t)
 		// An inert trigger is skipped BEFORE the latch is touched. Its recorded
 		// decision names that skip; canonical latch state stays exactly as it was.
@@ -878,16 +1045,16 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 		// The fire-once gate: a latched one-shot is skipped whole. A trigger
 		// that is not one-shot never takes this arm, which is what makes it
 		// re-fire on every pass its conditions hold.
-		if t.Once && w.latches[t.Latch] != 0 {
+		if t.Once && w.latch(t.Latch) != 0 {
 			tr.triggerDone(w, run, ScriptTriggerSpent)
 			continue
 		}
-		w.latches[t.Latch] = 0
+		w.setLatch(t.Latch, 0)
 		if !w.triggerHolds(t, tr, run) {
 			tr.triggerDone(w, run, ScriptTriggerFailed)
 			continue
 		}
-		w.latches[t.Latch] = 1
+		w.setLatch(t.Latch, 1)
 		decision := ScriptTriggerFired
 		if latchBefore != 0 {
 			decision = ScriptTriggerHeld
@@ -897,7 +1064,7 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 		// because an instant may write a register a later trigger reads: the
 		// values a pair was compared on exist only at this point in the pass.
 		firing := tr.firing(w, int32(i), t)
-		for slot, k := range t.Instants {
+		for slot, k := range t.actions() {
 			if k == ScriptNone {
 				continue
 			}
@@ -916,20 +1083,30 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 // pass, which is the editor's own "always" idiom; the accumulator starting at
 // true is the whole of that rule and there is no separate arm for it.
 //
-// THERE IS NO OR ANYWHERE. Three pairs is the whole of a trigger's logic.
+// THE ORIGINAL HAS NO OR. Its three pairs are one group, the whole of a
+// trigger's logic. An extended trigger's conditions are OR-ed groups
+// (DIV-4600): the first group that holds ends the test, and a failing
+// condition ends its own group's.
 func (w *World) triggerHolds(t ScriptTrigger, tr *ScriptTrace, run int) bool {
-	for i, p := range t.Pairs {
+	holds, group := true, int32(0)
+	for i, p := range t.conditions() {
 		if !p.Used {
 			continue
 		}
-		left, right := w.registers[p.Left], w.registers[p.Right]
-		holds := scriptCompare(p.Cmp, left, right)
-		tr.triggerPair(run, i, p, left, right, holds)
-		if !holds {
-			return false
+		if p.Group != group {
+			if holds {
+				return true
+			}
+			holds, group = true, p.Group
 		}
+		if !holds {
+			continue
+		}
+		left, right := w.checkResult(p.Left), w.checkResult(p.Right)
+		holds = scriptCompare(p.Cmp, left, right)
+		tr.triggerPair(run, i, p, left, right, holds)
 	}
-	return true
+	return holds
 }
 
 // scriptCompare applies one comparison code to two register values.
@@ -979,7 +1156,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	var before int32
 	var lostBefore uint32
 	if tr != nil {
-		before, lostBefore = w.registerAt(c.Register), w.lost
+		before, lostBefore = w.checkResult(c.Register), w.lost
 	}
 	dispatched, wrote := true, false
 	silence := ScriptSilenceNone
@@ -2213,7 +2390,44 @@ func scriptByte(v int64) int32 { return int32(v & 0xff) }
 // setRegister writes a COMPILED subscript, which NewScript has already bounded.
 // It exists so that every register write in this file goes through a named
 // function and the bound is stated once.
-func (w *World) setRegister(r, v int32) { w.registers[r] = v }
+func (w *World) setRegister(r, v int32) {
+	if w.script.Extended() {
+		w.scriptResults[r] = v
+		return
+	}
+	w.registers[r] = v
+}
+
+// checkResult reads a COMPILED subscript: check r's result. An extended
+// program's results are their own slots, and its ScriptNone, a condition
+// naming no check, holds 0.
+func (w *World) checkResult(r int32) int32 {
+	if w.script.Extended() {
+		if r < 0 {
+			return 0
+		}
+		return w.scriptResults[r]
+	}
+	return w.registers[r]
+}
+
+// latch and setLatch read and write the fire-once latch at map position i,
+// which NewScript has already bounded: the thousand latch bytes, then an
+// extended program's own past them.
+func (w *World) latch(i int32) byte {
+	if i >= scriptLatches {
+		return w.latchTail[i-scriptLatches]
+	}
+	return w.latches[i]
+}
+
+func (w *World) setLatch(i int32, v byte) {
+	if i >= scriptLatches {
+		w.latchTail[i-scriptLatches] = v
+		return
+	}
+	w.latches[i] = v
+}
 
 // registerAt and setRegisterAt read and write an AUTHORED subscript — a number a
 // map wrote, bounded by nothing.
@@ -2223,19 +2437,64 @@ func (w *World) setRegister(r, v int32) { w.registers[r] = v }
 // an authored one past that walks off the end. That is undefined behaviour and
 // not a mechanism, so a read outside the file answers zero and a write outside
 // it does nothing — a disclosed divergence, and the customisation limit is the
-// hundred registers themselves.
+// hundred registers themselves. An extended program's variables are an array of
+// their own past the hundred registers, bounded by its variable count (DIV-4602).
 func (w *World) registerAt(r int32) int32 {
-	if r < 0 || r >= scriptRegisters {
+	if r < 0 || r >= w.variableCount() {
 		return 0
+	}
+	if r >= scriptRegisters {
+		return w.scriptVars[r-scriptRegisters]
 	}
 	return w.registers[r]
 }
 
 func (w *World) setRegisterAt(r, v int32) {
-	if r < 0 || r >= scriptRegisters {
+	if r < 0 || r >= w.variableCount() {
+		return
+	}
+	if r >= scriptRegisters {
+		w.scriptVars[r-scriptRegisters] = v
 		return
 	}
 	w.registers[r] = v
+}
+
+// variableCount is how many variables an authored subscript may name.
+func (w *World) variableCount() int32 {
+	if w.script.Extended() {
+		return w.script.machine.variables
+	}
+	return scriptRegisters
+}
+
+// fitScriptState sizes the extended machine's state to w's program, keeping
+// what fits of the state it had: the variables past the hundred registers,
+// one result per check and the latches past the thousand. An original
+// program's are empty.
+func (w *World) fitScriptState() {
+	vars, results, tail := 0, 0, 0
+	if s := w.script; s.Extended() {
+		vars, results = max(0, int(s.machine.variables)-scriptRegisters), len(s.checks)
+		tail = max(0, int(s.machine.latches)-scriptLatches)
+	}
+	w.scriptVars = fitSlice(w.scriptVars, vars)
+	w.scriptResults = fitSlice(w.scriptResults, results)
+	w.latchTail = fitSlice(w.latchTail, tail)
+}
+
+// fitSlice is s at length n, s itself when it already is, else a new slice
+// holding what of s fits; nil at length 0.
+func fitSlice[T any](s []T, n int) []T {
+	if len(s) == n {
+		return s
+	}
+	if n == 0 {
+		return nil
+	}
+	out := make([]T, n)
+	copy(out, s)
+	return out
 }
 
 // presetRegisters applies the build-time constants: every constant check's
@@ -2269,7 +2528,7 @@ func (w *World) presetRegisters() {
 	}
 	for _, c := range w.script.checks {
 		if c.Op == ScriptCheckConstant {
-			w.registers[c.Register] = c.Args[0]
+			w.setRegister(c.Register, c.Args[0])
 		}
 	}
 }
@@ -2335,10 +2594,43 @@ func (w *World) ScriptTriggerBlocked(latch int32) bool {
 // ScriptLatched reports whether the trigger at map position i has fired. A
 // position outside the latch array has not.
 func (w *World) ScriptLatched(i int32) bool {
-	if i < 0 || i >= scriptLatches {
+	if i < 0 || i >= scriptLatches+int32(len(w.latchTail)) {
 		return false
 	}
-	return w.latches[i] != 0
+	return w.latch(i) != 0
+}
+
+// ScriptExtendedState is an extended program's state past the original's
+// session fields: the variables from subscript 100 on, one result per check,
+// and the fire-once latches from position 1000 on, each latch 0 or 1.
+type ScriptExtendedState struct {
+	Variables []int32 `json:",omitempty"`
+	Results   []int32 `json:",omitempty"`
+	Latches   []byte  `json:",omitempty"`
+}
+
+// ScriptExtendedState returns a copy of w's extended state; it is empty for
+// an original program.
+func (w *World) ScriptExtendedState() ScriptExtendedState {
+	return ScriptExtendedState{Variables: slices.Clone(w.scriptVars), Results: slices.Clone(w.scriptResults),
+		Latches: slices.Clone(w.latchTail)}
+}
+
+// RestoreScriptExtendedState replaces w's extended state with s, which must
+// have the lengths w's program gives it and latches of 0 or 1. An error
+// leaves w unchanged.
+func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
+	if len(s.Variables) != len(w.scriptVars) || len(s.Results) != len(w.scriptResults) || len(s.Latches) != len(w.latchTail) {
+		return fmt.Errorf("sim: extended script state holds %d variables, %d results and %d latches, the program %d, %d and %d",
+			len(s.Variables), len(s.Results), len(s.Latches), len(w.scriptVars), len(w.scriptResults), len(w.latchTail))
+	}
+	if slices.ContainsFunc(s.Latches, func(b byte) bool { return b > 1 }) {
+		return fmt.Errorf("sim: an extended script latch is neither 0 nor 1")
+	}
+	w.scriptVars = fitSlice(slices.Clone(s.Variables), len(w.scriptVars))
+	w.scriptResults = fitSlice(slices.Clone(s.Results), len(w.scriptResults))
+	w.latchTail = fitSlice(slices.Clone(s.Latches), len(w.latchTail))
+	return nil
 }
 
 // sortedGaps is not used by the runtime and exists so the two consumers of a gap

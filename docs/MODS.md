@@ -758,6 +758,99 @@ writes nothing else. When the map editor saves into a mod, its map report warns
 about a message the map's script sends for which neither the mod's `texts`
 folder nor, for a replacing mission, the install holds an `eventNN.txt`.
 
+## Extended map scripts (.almx)
+
+A first-game map whose script needs more than the original trigger record
+holds is an `.almx` file: an ALM file with one more record, the extended
+script record, of typeId 100 (DIV-4599). The original game's loader steps
+over every record of typeId 10 or above, and the second game reads typeIds
+10 to 12, so 100 stays clear of both. An `.almx` lists in the game's map list
+beside the `.alm` files, and a mission's `map` in `data/missions.toml` may
+name one (`map = "mission/{lang}/map.almx"`). A mod mission's map that carries
+the record but is named `.alm` is refused at load (DIV-4603), so an `.alm`
+loads exactly as the original loads it. A mission plays on its map as
+always; the extended record only changes how its script runs.
+
+What the extended machine holds (DIV-4601):
+
+| limit | original record | extended record |
+|---|---|---|
+| variables | 100, shared with the check results | 0..4096, an array of their own |
+| triggers | 1000 latches | 10000 |
+| conditions per trigger | 3 pairs, all must hold | 64, in groups |
+| actions per trigger | 4 | 64 |
+| condition and action ids | | 1..5000 |
+| comparison codes | 0..5 | 0..5 |
+
+A trigger's conditions are numbered into groups. It fires when any group
+holds (OR), and a group holds when all of its conditions hold (AND)
+(DIV-4600). The first condition is in group 0 and each next one is in its
+predecessor's group or the one after it. A trigger with no condition fires on
+every pass. Triggers run in map order on the original's pass: once every 16
+ticks, every check first, then every trigger. A fire-once trigger fires once
+for the whole mission.
+
+The variables are their own array (DIV-4602). Check 19 reads variable p0;
+actions 3 and 8 set and raise one. A check's result is its own slot, read
+only by the conditions that name the check's id, so a variable never takes a
+check's result. Variable 93 counts the passes, as register 93 does in an
+original map, when the map has at least 94 variables. A condition id that
+names no condition node reads 0; an action id that names no action node, or
+the drop location, runs nothing. A subscript past the map's variable count
+reads 0 and writes nothing.
+
+The type-7 record keeps the action and condition nodes as in any ALM, and
+its trigger count is 0: the triggers live in the extended record alone. A map
+carrying the extended record and a type-7 trigger, two extended records, or a
+value past a limit above is refused, and the message names the trigger and
+the entry.
+
+### The record's bytes
+
+Every word is a little-endian unsigned 32-bit integer. Append the record
+after the file's last record and add 1 to the record count at file header
++0x0c. The record header is the usual 20 bytes: 7, 20, the payload size, 100,
+and 0.
+
+| offset | payload field |
+|---|---|
+| +0x00 | version, 1 |
+| +0x04 | variable count, 0..4096 |
+| +0x08 | trigger count, 0..10000 |
+| +0x0c | the triggers, back to back |
+
+| offset in a trigger | field |
+|---|---|
+| +0x00 | name, 64 bytes, Windows-1251, padded with zero bytes |
+| +0x40 | fire-once word: 1 fires once, 0 on every pass it holds |
+| +0x44 | condition count C, 0..64 |
+| +0x48 | action count A, 0..64 |
+| +0x4c | C conditions, 16 bytes each: group, left condition id, right condition id, comparison code |
+| +0x4c + 16C | A action ids, 4 bytes each |
+
+The payload ends after the last trigger's last action id. The comparison
+codes are 0 `==`, 1 `!=`, 2 `>`, 3 `<`, 4 `>=`, 5 `<=`, applied as
+left `op` right. `almtool script <file>` prints the record's head and each
+trigger's conditions with their groups.
+
+### Saves of an extended map
+
+A SAV of an extended map holds the first 100 variables and the first 1000
+trigger latches in the original session block, and the program with the rest
+of its state, every variable past 99, every check result and every latch past
+999, in the Againrom supplement (DIV-4604). LOAD resumes the same mission
+state.
+
+### The map editor
+
+The map editor does not open an `.almx` yet: it refuses a file named `.almx`,
+and any map carrying the extended record, with a message naming step 3. The
+editor's next step will open `.almx` maps, and the first time an edit needs
+what the original record cannot hold (a fourth condition, a second group, a
+fifth action, a variable past 99, or a trigger past 1000) it will ask once for
+confirmation before the map becomes an `.almx`. A map is never fitted back
+into original records.
+
 ## Towns
 
 `data/towns.toml` holds `[[town]]` tables. Each is a layer record over the

@@ -80,6 +80,10 @@ type ScriptNode struct {
 // written: Script fills ScriptPairs pairs and ScriptActionRefs actions, every
 // slot of the record, and a value built to be written may hold fewer, the
 // rest of the record's slots being empty.
+//
+// Group is pair k's group in the Againrom script record, where a trigger
+// holds when any group of pairs all hold. It is nil for a type-7 trigger,
+// whose pairs are the one group 0.
 type ScriptTrigger struct {
 	Name  string
 	Left  []uint32
@@ -87,7 +91,11 @@ type ScriptTrigger struct {
 	Cmp   []uint32
 	Acts  []uint32
 	Once  uint32
+	Group []uint32
 }
+
+// GroupOf is pair k's group, 0 past the groups t spells.
+func (t ScriptTrigger) GroupOf(k int) uint32 { return slot(t.Group, k) }
 
 // Pairs is how many condition pairs t spells: the longest of Left, Right and
 // Cmp.
@@ -115,10 +123,16 @@ func slot(s []uint32, k int) uint32 {
 // A map carrying no type-7 record decodes to a Script with three empty arrays
 // and no error — the absent record is the skipped arm of the loader's own rule
 // and not a malformed map.
+//
+// Extended is set when the triggers come from the Againrom script record:
+// they then run on the extended machine, with Variables variables of their
+// own.
 type Script struct {
 	Actions    []ScriptNode
 	Conditions []ScriptNode
 	Triggers   []ScriptTrigger
+	Extended   bool
+	Variables  int
 }
 
 // Empty reports whether the script holds nothing at all: no action, no condition
@@ -142,11 +156,33 @@ func (s Script) Empty() bool {
 // A map with no type-7 record yields an empty Script and no error. That is not
 // the same as an error, and Present(7) is what tells a caller which of the two
 // it had — exactly as it does for every other absent record.
+//
+// A map carrying the Againrom script record takes its triggers from it and is
+// Extended. Its type-7 record then holds the nodes alone: a type-7 trigger
+// beside the record, or a second record, is a *ScriptRecordError.
 func (m *Map) Script() (Script, error) {
-	if !m.Present(TypeScript) {
-		return Script{}, nil
+	var s Script
+	if m.Present(TypeScript) {
+		var err error
+		if s, err = m.Triggers.Decode(); err != nil {
+			return Script{}, err
+		}
 	}
-	return m.Triggers.Decode()
+	if m.scriptRecords == 0 {
+		return s, nil
+	}
+	if m.scriptRecords > 1 {
+		return Script{}, recordRefusal(-1, -1, "records", 1, int64(m.scriptRecords))
+	}
+	if len(s.Triggers) != 0 {
+		return Script{}, recordRefusal(-1, -1, "type-7 trigger count", 0, int64(len(s.Triggers)))
+	}
+	rec, err := DecodeScriptRecord(m.scriptRecord)
+	if err != nil {
+		return Script{}, err
+	}
+	s.Triggers, s.Extended, s.Variables = rec.Triggers, true, rec.Variables
+	return s, nil
 }
 
 // Decode decodes the payload t holds into its three arrays, on Script's

@@ -19,6 +19,17 @@ func TestProfilesHoldTheEnginesLimits(t *testing.T) {
 	}
 }
 
+// The extended profile holds the owner's limits: 64 conditions and 64 actions
+// per trigger in OR-ed groups, 4096 variables apart from the check results,
+// 10000 triggers with a latch each, the original's codes and id cap.
+func TestExtendedProfileHoldsTheOwnersLimits(t *testing.T) {
+	want := Profile{Pairs: 64, Actions: 64, MaxCompare: 5, Latches: 10000, Triggers: 10000, MaxID: 5000,
+		Variables: 4096, Groups: true}
+	if Extended != want {
+		t.Errorf("Extended = %+v, want %+v", Extended, want)
+	}
+}
+
 func TestTriggerKeysSpellTheFieldTable(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		for _, c := range []struct{ got, want string }{

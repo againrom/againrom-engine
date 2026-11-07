@@ -634,7 +634,7 @@ func TestDirMapsScan(t *testing.T) {
 	// Dropped: near-misses on the extension.
 	write(root, "KIDS.LM", mapBytes("Near Miss"))  // the install really holds one of these
 	write(root, "x.al", mapBytes("Short"))         // truncated extension
-	write(root, "y.almx", mapBytes("Long"))        // extension is ".almx", not ".alm"
+	write(root, "y.almxx", mapBytes("Long"))       // extension is ".almxx", neither ".alm" nor ".almx"
 	write(root, "noext", mapBytes("No Extension")) // no extension at all
 
 	// Dropped: the scan covers the asset root itself, not its subdirectories.

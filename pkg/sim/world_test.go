@@ -47,6 +47,9 @@ func init() {
 	// Native LOAD may fill a verified legacy program's missing bindings.
 	worldMethods = append(worldMethods, "RestoreScriptBindings", "RestoreScriptProgram", "ReserveEntityIDs")
 	worldWriters = append(worldWriters, "RestoreScriptBindings", "RestoreScriptProgram", "ReserveEntityIDs")
+	// Native LOAD restores an extended program's state past the session block.
+	worldMethods = append(worldMethods, "ScriptExtendedState", "RestoreScriptExtendedState")
+	worldWriters = append(worldWriters, "RestoreScriptExtendedState")
 	// Mission completion is an explicit boundary writer, never a tick API.
 	worldMethods = append(worldMethods, "NormalizeMissionSurvivors")
 	worldWriters = append(worldWriters, "NormalizeMissionSurvivors")

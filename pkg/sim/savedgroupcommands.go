@@ -62,13 +62,13 @@ func (w *World) savedTriggerBlocked(t ScriptTrigger) bool {
 		if _, err := w.resolveSavedGroups(c.Group); err == nil {
 			continue
 		}
-		for _, p := range t.Pairs {
+		for _, p := range t.conditions() {
 			if p.Used && (p.Left == c.Register || p.Right == c.Register) {
 				return true
 			}
 		}
 	}
-	for _, index := range t.Instants {
+	for _, index := range t.actions() {
 		if index < 0 || int(index) >= len(w.script.instants) {
 			continue
 		}

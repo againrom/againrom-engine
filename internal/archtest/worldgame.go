@@ -64,7 +64,7 @@ var WorldGameAllowed = map[string]map[string]string{
 		"pkg/sim/rom2script.go#initializeROM2Script":                  "builds the second game's script state with the profile",
 		"pkg/sim/currentrom2policy.go#restoreCurrentROM2Policy":       "refuses a policy whose second-game state disagrees with the program's dialect",
 		"pkg/sim/rom2statebinary.go#rom2ScriptStateFault":             "the byte form holds the state exactly when the dialect is the second game's",
-		"pkg/sim/script.go#newScript":                                 "the compiler admits each operation by the program's own dialect",
+		"pkg/sim/script.go#newScriptOn":                               "the compiler admits each operation by the program's own dialect",
 		"pkg/sim/scriptslotbinary.go#unmarshalScriptSlots":            "the slot form exists only for a second-game program",
 		"pkg/sim/world.go#newWorld":                                   "an empty first-game program is no program",
 		"pkg/game/campaignfirst.go":                                   "the first game's campaign service refuses another game's save",

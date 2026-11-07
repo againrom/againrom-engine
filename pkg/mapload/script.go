@@ -445,6 +445,10 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			rep.OmittedTriggers = append(rep.OmittedTriggers, i)
 			continue
 		}
+		if src.Extended {
+			triggers = append(triggers, extendedTrigger(i, t, registerOf, instantOf, buildTime, instants, &rep))
+			continue
+		}
 		// A trigger whose FIRST pair's left id is zero is dropped whole, before
 		// anything of it is built. It is not a trigger with no condition — that
 		// is a trigger whose first pair IS set and whose others are not.
@@ -521,7 +525,14 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	}
 
 	compile := sim.NewScript
-	if dialect == sim.ScriptROM2 {
+	switch {
+	case src.Extended && dialect != sim.ScriptROM1:
+		return nil, rep, fmt.Errorf("mapload: the Againrom script record is the first game's")
+	case src.Extended:
+		compile = func(c []sim.ScriptCheck, in []sim.ScriptInstant, t []sim.ScriptTrigger) (*sim.Script, error) {
+			return sim.NewExtendedScript(int32(src.Variables), c, in, t)
+		}
+	case dialect == sim.ScriptROM2:
 		compile = sim.NewROM2Script
 	}
 	s, err := compile(checks, instants, triggers)
@@ -529,6 +540,41 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		return nil, rep, fmt.Errorf("mapload: compiling the map's script: %w", err)
 	}
 	return s, rep, nil
+}
+
+// extendedTrigger compiles trigger i of the Againrom script record: every
+// condition with its group, every action in order, the latch at the map
+// position. A condition id naming no built check reads ScriptNone, which
+// holds 0; an action id naming no built instant runs nothing.
+func extendedTrigger(i int, t alm.ScriptTrigger, registerOf, instantOf map[uint32]int32, buildTime map[uint32]bool,
+	instants []sim.ScriptInstant, rep *ScriptReport) sim.ScriptTrigger {
+	out := sim.ScriptTrigger{Once: t.Once != 0, Latch: int32(i)}
+	for k := range out.Instants {
+		out.Instants[k] = sim.ScriptNone
+	}
+	result := func(id uint32) int32 {
+		if r, ok := registerOf[id]; ok {
+			return r
+		}
+		return sim.ScriptNone
+	}
+	for k := range t.Pairs() {
+		left, right, cmp := t.Pair(k)
+		out.Conditions = append(out.Conditions, sim.ScriptPair{
+			Left: result(left), Right: result(right), Cmp: int32(cmp), Used: true, Group: int32(t.GroupOf(k)),
+		})
+	}
+	for _, act := range t.Acts {
+		idx, hit := instantOf[act]
+		if buildTime[act] || !hit {
+			continue
+		}
+		if instants[idx].Op == scriptMessageOpcode {
+			rep.Raises = append(rep.Raises, ScriptRaise{Latch: out.Latch, Event: instants[idx].Args[0]})
+		}
+		out.Actions = append(out.Actions, idx)
+	}
+	return out
 }
 
 // againromNodeNamesUnit refuses an Againrom node (DIV-4009) that names no

@@ -13,9 +13,24 @@ import (
 	"againrom/pkg/vfs"
 )
 
-// mapExt is the map file extension, matched without regard to case: a stock
-// install ships both `Kids.alm` and `Tomb.ALM`.
-const mapExt = ".alm"
+// mapExts are the map file extensions, matched without regard to case: a stock
+// install ships both `Kids.alm` and `Tomb.ALM`. An `.almx` file is an `.alm`
+// that carries the extended script record (DIV-4603).
+var mapExts = []string{".alm", extendedMapExt}
+
+// extendedMapExt is the extension a map carrying the extended script record
+// is named with.
+const extendedMapExt = ".almx"
+
+// isMapExt reports whether ext names a map file under the equality same.
+func isMapExt(ext string, same func(a, b string) bool) bool {
+	for _, e := range mapExts {
+		if same(ext, e) {
+			return true
+		}
+	}
+	return false
+}
 
 // scenarioIdentity is scenario.res's address identity and scenarioPrefix is
 // that identity with its separator: the prefix of every map address this
@@ -315,7 +330,7 @@ func DirMaps(root string, loose *vfs.FS) (NamedReader, error) {
 		if ent.IsDir() {
 			continue
 		}
-		if !namefold.HostEqual(filepath.Ext(ent.Name()), mapExt) {
+		if !isMapExt(filepath.Ext(ent.Name()), namefold.HostEqual) {
 			continue
 		}
 		d.names = append(d.names, ent.Name())
@@ -367,7 +382,7 @@ func ArchiveMaps(containers *vfs.FS) NamedReader {
 			continue
 		}
 		name := strings.TrimPrefix(e.Address, scenarioPrefix)
-		if !namefold.ArchiveTextEqual(filepath.Ext(name), mapExt) {
+		if !isMapExt(filepath.Ext(name), namefold.ArchiveTextEqual) {
 			continue
 		}
 		m.names = append(m.names, name)

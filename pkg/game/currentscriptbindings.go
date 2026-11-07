@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -110,7 +109,8 @@ func restoreMission40CompanionObjective(ms *Mission) error {
 
 func restoreCurrentScriptRoles(w *sim.World, roles *sim.Script) error {
 	current := w.Script()
-	if current == nil || roles == nil || current.Dialect() != roles.Dialect() || !slices.Equal(current.Triggers(), roles.Triggers()) {
+	if current == nil || roles == nil || current.Dialect() != roles.Dialect() || current.Extended() != roles.Extended() ||
+		current.Variables() != roles.Variables() || !sim.EqualTriggers(current.Triggers(), roles.Triggers()) {
 		return nil
 	}
 	checks, instants := current.Checks(), current.Instants()
@@ -151,11 +151,7 @@ func restoreCurrentScriptRoles(w *sim.World, roles *sim.Script) error {
 	if !changed {
 		return nil
 	}
-	compile := sim.NewScript
-	if current.Dialect() == sim.ScriptROM2 {
-		compile = sim.NewROM2Script
-	}
-	next, err := compile(checks, instants, current.Triggers())
+	next, err := current.Recompile(checks, instants, current.Triggers())
 	if err != nil {
 		return err
 	}

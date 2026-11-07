@@ -11,7 +11,7 @@ func (w *World) RestoreScriptBindings(legacy, current *Script) bool {
 		!sameScriptProgram(w.script, legacy) ||
 		len(legacy.checks) != len(current.checks) ||
 		len(legacy.instants) != len(current.instants) ||
-		!slices.Equal(legacy.triggers, current.triggers) {
+		legacy.machine != current.machine || !EqualTriggers(legacy.triggers, current.triggers) {
 		return false
 	}
 
@@ -48,7 +48,7 @@ func (w *World) RestoreScriptBindings(legacy, current *Script) bool {
 		return false
 	}
 
-	restored, err := newScript(current.Dialect(), current.checks, current.instants, current.triggers)
+	restored, err := newScriptOn(current.Dialect(), current.machine, current.checks, current.instants, current.triggers)
 	if err != nil {
 		return false
 	}
@@ -58,7 +58,7 @@ func (w *World) RestoreScriptBindings(legacy, current *Script) bool {
 }
 
 func sameScriptProgram(a, b *Script) bool {
-	return a.Dialect() == b.Dialect() && slices.Equal(a.checks, b.checks) &&
+	return a.Dialect() == b.Dialect() && a.machine == b.machine && slices.Equal(a.checks, b.checks) &&
 		slices.Equal(a.instants, b.instants) &&
-		slices.Equal(a.triggers, b.triggers)
+		EqualTriggers(a.triggers, b.triggers)
 }

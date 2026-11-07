@@ -149,7 +149,8 @@ const (
 // ScriptTriggerRun is one trigger's complete disposition in one pass. Pairs
 // contains only comparisons that ran, in authored order; a failed result is the
 // last element because trigger conditions short-circuit. FirstFailed is
-// ScriptNone when no pair failed.
+// ScriptNone when no pair failed. An extended trigger's run lists each
+// group's comparisons in turn, and FirstFailed is the first that failed.
 type ScriptTriggerRun struct {
 	Trigger     int32
 	Latch       int32
@@ -269,7 +270,7 @@ func (tr *ScriptTrace) check(i int32, c ScriptCheck, before int32, lostBefore ui
 	r := ScriptCheckRun{
 		Check: i, Op: c.Op, Register: c.Register,
 		Dispatched: dispatched, Wrote: wrote, Before: before,
-		Value: w.registerAt(c.Register), Silence: ScriptSilenceNone,
+		Value: w.checkResult(c.Register), Silence: ScriptSilenceNone,
 		LostBefore: lostBefore, LostAfter: w.lost,
 	}
 	if !wrote {
@@ -284,7 +285,7 @@ func (tr *ScriptTrace) triggerStart(w *World, i int32, t ScriptTrigger) int {
 	}
 	tr.Triggers = append(tr.Triggers, ScriptTriggerRun{
 		Trigger: i, Latch: t.Latch, Once: t.Once,
-		LatchBefore: w.latches[t.Latch], FirstFailed: ScriptNone,
+		LatchBefore: w.latch(t.Latch), FirstFailed: ScriptNone,
 	})
 	return len(tr.Triggers) - 1
 }
@@ -297,7 +298,7 @@ func (tr *ScriptTrace) triggerPair(run, index int, p ScriptPair, left, right int
 	r.Pairs = append(r.Pairs, ScriptPairValue{
 		Index: int32(index), Pair: p, Left: left, Right: right, Result: result,
 	})
-	if !result {
+	if !result && r.FirstFailed == ScriptNone {
 		r.FirstFailed = int32(index)
 	}
 }
@@ -307,7 +308,7 @@ func (tr *ScriptTrace) triggerDone(w *World, run int, decision ScriptTriggerDeci
 		return
 	}
 	tr.Triggers[run].Decision = decision
-	tr.Triggers[run].LatchAfter = w.latches[tr.Triggers[run].Latch]
+	tr.Triggers[run].LatchAfter = w.latch(tr.Triggers[run].Latch)
 }
 
 // firing records a trigger that held, WITH THE REGISTERS AS THEY STAND. It is
@@ -327,8 +328,8 @@ func (tr *ScriptTrace) firing(w *World, i int32, t ScriptTrigger) int {
 		if !p.Used {
 			continue
 		}
-		f.Pairs[k].Left = w.registers[p.Left]
-		f.Pairs[k].Right = w.registers[p.Right]
+		f.Pairs[k].Left = w.checkResult(p.Left)
+		f.Pairs[k].Right = w.checkResult(p.Right)
 		f.Pairs[k].Result = true
 	}
 	tr.Firings = append(tr.Firings, f)
