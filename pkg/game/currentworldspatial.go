@@ -50,10 +50,7 @@ func projectCurrentTerrain(doc *sav.DocumentData, w *sim.World, fresh bool) {
 			}
 			b := blocks[cell]
 			b.Cell = cell
-			stat := grid&3 | (grid&8)>>1
-			b.Static = b.Static&^7 | stat
-			b.Dyn = b.Dyn&^7 | stat
-			blocks[cell] = b
+			blocks[cell] = terrainBlockRecord(b, grid)
 		}
 	}
 	doc.World.Blocks = make([]sav.BlockRecord, 0, len(blocks))
@@ -61,6 +58,16 @@ func projectCurrentTerrain(doc *sav.DocumentData, w *sim.World, fresh bool) {
 		doc.World.Blocks = append(doc.World.Blocks, block)
 	}
 	slices.SortFunc(doc.World.Blocks, func(a, b sav.BlockRecord) int { return int(a.Cell) - int(b.Cell) })
+}
+
+// terrainBlockRecord is b with its low three Static and Dynamic bits taken
+// from the native block byte grid: ground and air passability, and the
+// static-object bit as bit 2.
+func terrainBlockRecord(b sav.BlockRecord, grid byte) sav.BlockRecord {
+	stat := grid&3 | (grid&8)>>1
+	b.Static = b.Static&^7 | stat
+	b.Dyn = b.Dyn&^7 | stat
+	return b
 }
 
 func (b *generatedDocumentBuilder) currentActorCells(w *sim.World, m *alm.Map, src entrySource, groups *mod.TerrainData) error {

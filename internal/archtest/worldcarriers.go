@@ -203,6 +203,7 @@ var worldCarrierNilDocumentOwners = []string{
 	"againrom/pkg/game.restoreLoadedRuntimeIDs",
 	"againrom/pkg/game.restoreOriginalActions",
 	"againrom/pkg/game.restoreOriginalRandomState",
+	"againrom/pkg/game.restoreVariableExtents",
 	"againrom/pkg/game.resumeWorld",
 	"againrom/pkg/game.retainSavedActorPlacements",
 	"againrom/pkg/game.savedActorTiers",

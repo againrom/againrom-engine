@@ -5,17 +5,21 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"fmt"
+	"slices"
 )
 
 // applyOriginalStructures installs the exact source roster and saved cell
 // overlay. ALM is only an authored-script binding and terrain baseline.
 func applyOriginalStructures(ms *Mission, source []sav.Building, present bool,
 	table *mapload.Table, report *OriginalSaveResume, files ...*sav.File) error {
-	return applyOriginalStructuresCurrent(ms, source, present, table, report, nil, files...)
+	return applyOriginalStructuresCurrent(ms, source, present, table, nil, nil, report, nil, files...)
 }
 
-func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present bool,
-	table *mapload.Table, report *OriginalSaveResume, current *currentActionData, files ...*sav.File) error {
+// applyOriginalStructuresCurrent is the LOAD of the saved roster. src is the
+// install the map's cell planes are read from and doc the mission document
+// the cell planes import reads; each is nil where there is none.
+func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present bool, table *mapload.Table,
+	src entrySource, doc *SnapshotSAVDocument, report *OriginalSaveResume, current *currentActionData, files ...*sav.File) error {
 	if !present {
 		return nil
 	}
@@ -165,6 +169,10 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			grid[y*ms.Map.Width+x] = block
 		}
 	}
+	cells, counts.Repaired, err = restoreVariableExtents(ms, structures, sources, cells, grid, src, doc, table)
+	if err != nil {
+		return err
+	}
 	if err := ms.World.ImportOriginalStructures(structures, sources, cells, grid); err != nil {
 		return err
 	}
@@ -179,4 +187,103 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 
 type originalStructureCounts struct {
 	Restored, Subclasses, Unbound, Unmatched, Topology, Absent int
+	// Repaired counts the Buildings restoreVariableExtents rebuilt.
+	Repaired int
+}
+
+// restoreVariableExtents rebuilds a loaded Building from the map where the
+// document holds it at 1x1 and its map record's VariableExtent is larger
+// (DIV-4627): builds before the extent read the English second game's flagged
+// bridge kind saved its bridges collapsed, the deck left water. The Building
+// must be bound to that record and keep its kind and anchor cell. Its
+// rectangle and masks, its cell rows and their block bytes are the map's
+// fresh build, read from the candidate World before the import replaces its
+// roster. In doc, the mission document later stages and a SAVE read, each
+// rebuilt cell's Block rows take that byte as a SAVE writes it, and its last
+// Cell record names the Building (a cell without one gets one with the
+// baselines). Any other Building loads as saved.
+func restoreVariableExtents(ms *Mission, structures []sim.Structure, sources []sim.SavedStructure, cells []sim.SavedStructureCell,
+	grid []byte, src entrySource, doc *SnapshotSAVDocument, table *mapload.Table) ([]sim.SavedStructureCell, int, error) {
+	if _, _, imported := ms.World.SavedStructures(); imported {
+		return cells, 0, nil
+	}
+	fresh := ms.World.Structures()
+	type rebuild struct {
+		id  sim.StructureID
+		key uint32
+	}
+	built := make(map[sim.StructureID]rebuild)
+	for i, s := range structures {
+		bound := sources[i]
+		if s.Width != 1 || s.Height != 1 || !bound.HasAuthored || uint64(bound.AuthoredIndex) >= uint64(len(ms.Map.Objects)) {
+			continue
+		}
+		if w, h, ok := ms.Map.Objects[bound.AuthoredIndex].VariableExtent(); !ok || w*h <= 1 {
+			continue
+		}
+		at := slices.IndexFunc(fresh, func(f sim.Structure) bool { return uint64(f.ID) == uint64(bound.AuthoredIndex) })
+		if at < 0 || fresh[at].Kind != s.Kind || fresh[at].Col != s.Col || fresh[at].Row != s.Row {
+			continue
+		}
+		f := fresh[at]
+		structures[i].Width, structures[i].Height, structures[i].Attach, structures[i].Blocking = f.Width, f.Height, f.Attach, f.Blocking
+		sources[i].Blocking = f.Blocking
+		built[f.ID] = rebuild{s.ID, bound.SourceKey}
+	}
+	if len(built) == 0 {
+		return cells, 0, nil
+	}
+	planes, err := currentSpatialPlanes(ms.World, ms.Map, src, table.ModTerrain())
+	if err != nil {
+		return nil, 0, err
+	}
+	owner := make(map[uint16]sim.SavedStructureCell, len(cells))
+	for _, c := range cells {
+		owner[c.Cell] = c
+	}
+	block := ms.World.CurrentPolicy().Terrain.Block
+	type rebuiltCell struct {
+		row   sim.SavedStructureCell
+		key   uint32
+		block byte
+	}
+	var rebuilt []rebuiltCell
+	for _, row := range currentBuildingCells(ms.World, planes) {
+		b, ok := built[row.ID]
+		x, y := int(row.Cell&255), int(row.Cell>>8)
+		if c, taken := owner[row.Cell]; !ok || taken && c.HasStructure && c.ID != b.id || x >= ms.Map.Width || y >= ms.Map.Height {
+			continue
+		}
+		row.ID = b.id
+		cells = append(cells, row)
+		grid[y*ms.Map.Width+x] = block[y*ms.Map.Width+x]
+		rebuilt = append(rebuilt, rebuiltCell{row, b.key, block[y*ms.Map.Width+x]})
+	}
+	if doc != nil && doc.Document != nil && doc.Document.World != nil {
+		world := doc.Document.World
+		blocks := make(map[uint16][]int)
+		for i, b := range world.Blocks {
+			blocks[b.Cell] = append(blocks[b.Cell], i)
+		}
+		last := make(map[uint16]int)
+		for i, c := range world.Cells {
+			last[c.Cell] = i
+		}
+		for _, c := range rebuilt {
+			for _, i := range blocks[c.row.Cell] {
+				world.Blocks[i] = terrainBlockRecord(world.Blocks[i], c.block)
+			}
+			if len(blocks[c.row.Cell]) == 0 {
+				world.Blocks = append(world.Blocks, terrainBlockRecord(sav.BlockRecord{Cell: c.row.Cell}, c.block))
+			}
+			if i, ok := last[c.row.Cell]; ok {
+				world.Cells[i].Building = c.key
+			} else {
+				world.Cells = append(world.Cells, sav.DocumentCellData{Cell: c.row.Cell,
+					Cost: c.row.BaselineCost, Static: c.row.BaselineStatic, Building: c.key})
+			}
+		}
+		slices.SortStableFunc(world.Blocks, func(a, b sav.BlockRecord) int { return int(a.Cell) - int(b.Cell) })
+	}
+	return cells, len(built), nil
 }

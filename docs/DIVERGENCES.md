@@ -176,6 +176,7 @@ copying those counts.
 | `docs/divergences/rom2-names.md` |
 | `docs/divergences/rom2-saves.md` |
 | `docs/divergences/rom2-saves-actors.md` |
+| `docs/divergences/rom2-saves-structures.md` |
 | `docs/divergences/rom2-saves-town.md` |
 | `docs/divergences/rom2-shop.md` |
 | `docs/divergences/rom2-spellbooks.md` |

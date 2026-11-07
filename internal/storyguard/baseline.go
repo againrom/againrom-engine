@@ -4311,5 +4311,11 @@ var Committed = Baseline{
 	// pkg/formats/alm/alm.go, the ruin gate's maximum-health line in
 	// pkg/ui/viewer.go, the new pkg/game/secondbridges_release_test.go and
 	// the new test in pkg/ui/structurehealth1052_test.go, and this note.
-	CommentBytes: 10645080,
+
+	// CommentBytes rises for the doc comments of restoreVariableExtents and
+	// its count in pkg/game/originalstructures.go, currentBuildingCells in
+	// pkg/game/currentbuildingconstructor.go, terrainBlockRecord in
+	// pkg/game/currentworldspatial.go, the new
+	// pkg/game/variableextentload_test.go, and this note.
+	CommentBytes: 10647797,
 }

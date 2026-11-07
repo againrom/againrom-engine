@@ -43,11 +43,19 @@ func constructCurrentBuildings(ms *Mission, src entrySource, groups *mod.Terrain
 		}
 		sources[i] = s
 	}
+	return w.ConstructSavedStructures(sources, currentBuildingCells(w, planes))
+}
+
+// currentBuildingCells is the cell row of every cell a structure of w's
+// roster occupies, with the baselines planes holds. The constructor and the
+// LOAD of a collapsed variable extent (restoreVariableExtents) build their
+// rows here.
+func currentBuildingCells(w *sim.World, planes *sim.SavedCellPlanes) []sim.SavedStructureCell {
 	occupied := w.StructureOccupancy()
 	cells := make([]sim.SavedStructureCell, len(occupied))
 	for i, cell := range occupied {
 		cells[i] = sim.SavedStructureCell{Cell: cell.Cell, ID: cell.ID, HasStructure: true,
 			BaselineCost: planes.Cost[cell.Cell], BaselineStatic: planes.Static[cell.Cell]}
 	}
-	return w.ConstructSavedStructures(sources, cells)
+	return cells
 }

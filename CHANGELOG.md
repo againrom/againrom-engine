@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Saves of mission 42 made before 0.148.20 now load with their bridges in place.
 - [ROM2] On the English install the map's wooden bridges now appear and can be crossed, and a building that cannot be damaged, such as the crypt on the Dragon Killer map, is drawn whole instead of as ruins; a save made inside such a mission before this fix keeps the missing bridges, so enter the mission again from a save made outside it.
 - [ROM2] Computer-controlled mages with Heal and Shield now protect themselves with Shield while idle when they have enough mana.
 - [ROM2] In the shop, items you lay on the table stay there when you switch to another party member, so you can pass items between members through the table; leaving the shop or saving puts every item back in a pack or on its shelf, where before a save made with items on the table lost them.
