@@ -1557,3 +1557,5 @@ pkg/game.TestReleaseMissionHoverRectangleReaders
 pkg/game.TestReleaseSecondMapObjectiveWiring
 pkg/game.TestReleaseSecondOriginalMissionFileKeepsTheObjectiveSlots
 pkg/game.TestReleaseSecondGameMissionBridgesSurviveSAVAndLoad
+pkg/game.TestEditorInstalledItemGroups
+pkg/game.TestEditorInstalledItemChoiceFirstOpenCost

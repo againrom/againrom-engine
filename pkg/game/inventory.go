@@ -703,15 +703,15 @@ func inventoryGold(subject ui.InventorySubject) uint32 {
 
 // itemIcon is the icon item code shows and the address it is read from: one
 // read per code, kept in cache; a failed or absent read is a nil icon.
-func itemIcon(src entrySource, table *mapload.Table, code uint16, cache map[uint16]*image.RGBA) (*image.RGBA, string) {
+func itemIcon[K ~uint16 | ~int64](src entrySource, table *mapload.Table, code uint16, cache map[K]*image.RGBA) (*image.RGBA, string) {
 	addr := graphicsPrefix + data.ItemIconPath(itemTemplateCode(table, code))
 	if src == nil {
 		return nil, addr
 	}
-	icon, tried := cache[code]
+	icon, tried := cache[K(code)]
 	if !tried {
 		icon, _ = loadItemIcon(src, addr) // a failure resolves to a nil icon, cached alike
-		cache[code] = icon
+		cache[K(code)] = icon
 	}
 	return icon, addr
 }

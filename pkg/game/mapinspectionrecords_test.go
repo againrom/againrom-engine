@@ -173,6 +173,9 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	if _, note, _ := e.AddStep(); note == "" || !bytes.Equal(e.Document().SourceBytes, history[len(history)-1]) {
 		t.Fatal("an unnamed item was accepted or wrote")
 	}
+	for _, key := range []string{"clear", "enter", "down", "enter", "down"} {
+		_ = e.Key(key)
+	}
 	addSteps(t, e, map[string]string{"item": "257"})
 	step("add sack", func(_ *alm.Map, l []alm.LootRecord) bool {
 		return len(l) == 2 && l[1].Ground() && l[1].X == 14*256+128 && l[1].Y == 14*256+128 && len(l[1].Elements) == 1 && l[1].Elements[0].ItemCode() == 0x0101

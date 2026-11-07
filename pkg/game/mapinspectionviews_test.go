@@ -276,6 +276,25 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 	}
 	r, ok := e.FieldRect(n)
 	c.click(e, r, ok, key)
+	for _, group := range f.Groups {
+		if !slices.Contains(group.Values, value) {
+			continue
+		}
+		for _, label := range []string{group.Block + " >", group.Head + " >"} {
+			row := slices.Index(e.DropdownChoices(), label)
+			if row < 0 {
+				t.Fatalf("%s's list has no group %q: %q", key, label, e.DropdownChoices())
+			}
+			e.ScrollDropdown(-len(f.Choices))
+			r, ok = e.DropdownRowRect(row)
+			for step := 0; !ok && step < len(f.Choices)+10; step++ {
+				e.ScrollDropdown(1)
+				r, ok = e.DropdownRowRect(row)
+			}
+			c.click(e, r, ok, label)
+		}
+		break
+	}
 	row := slices.Index(e.DropdownChoices(), f.Choices[at].Label)
 	if row < 0 {
 		t.Fatalf("%s's open list has no row %q: %q", key, f.Choices[at].Label, e.DropdownChoices())

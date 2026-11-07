@@ -32,6 +32,7 @@ const (
 // itemNameAllowed are the sites that read item rows or the shipped table for
 // something other than a shown name, keyed by file, function and shape.
 var itemNameAllowed = map[string]string{
+	"pkg/game/mapinspectionitemgroups.go (*MapInspector).itemChoiceGroups " + itemNameRowName:     "category captions from the class and material tables; individual items still use the name resolver",
 	"pkg/game/mapinspectionedit.go (*MapInspector).checkItem " + itemNameShippedLookup:            "existence check: refuses a code the shipped table does not name (DIV-3134)",
 	"pkg/game/mapinspectionequipment.go (*mapInspectionEdits).setEquipment " + itemNameNamesTable: "existence check: refuses a worn variant the shipped table does not name",
 	"pkg/game/table.go LoadDefinitionsFor " + itemNameNamesTable:                                  "the loader stores the shipped table",

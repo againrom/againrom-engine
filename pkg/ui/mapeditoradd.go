@@ -36,6 +36,7 @@ type InspectionNewRecord struct {
 type InspectionNewStep struct {
 	Choices   []InspectionChoice
 	Groups    []InspectionChoiceGroup
+	Pictures  func([]InspectionChoice) map[int64]*image.RGBA `json:"-"`
 	ChoicePad []image.Point
 	Value     int64
 	Text      string
@@ -175,6 +176,7 @@ type addRun struct {
 	skip       []bool
 	offer      InspectionNewStep
 	list       *Picker
+	choices    choiceList
 	note       string
 	// repeat keeps the window and its cell pick after each record it adds,
 	// so the map takes copy after copy; placed counts them and stroke is a
@@ -417,10 +419,17 @@ func (e *MapEditor) addList() {
 	if len(r.offer.Choices) == 0 {
 		return
 	}
-	rows := make([]PickerRow, len(r.offer.Choices))
+	r.choices = choiceList{field: InspectionField{Choices: r.offer.Choices, Groups: r.offer.Groups, Pictures: r.offer.Pictures, Shut: r.offer.Shut}, back: e.word("editor.button.back"), plain: true}
+	if r.steps[r.at].Control == addSprites {
+		r.choices.field.Groups = nil
+	}
+	rows := r.choices.rows()
 	sel := 0
-	for k, c := range r.offer.Choices {
-		rows[k] = PickerRow{Text: c.Label, Choosable: !slices.Contains(r.offer.Shut, c.Value)}
+	for k, entry := range r.choices.entries {
+		if entry.index < 0 {
+			continue
+		}
+		c := r.offer.Choices[entry.index]
 		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(e.prompt.path) {
 			sel = k
 		}
@@ -453,6 +462,10 @@ func (e *MapEditor) addNext() {
 	r, ok := e.addRunning()
 	host, hok := e.addHost()
 	if !ok || !hok {
+		return
+	}
+	if len(r.choices.field.Groups) > 0 && r.list != nil && r.choices.index(r.list.Selection()) < 0 && strings.TrimSpace(e.prompt.path) == "" {
+		e.addTake(r.list.Selection())
 		return
 	}
 	e.message = ""
@@ -608,6 +621,14 @@ func (e *MapEditor) addMove(delta int) {
 	if !ok || r.list == nil {
 		return
 	}
+	if len(r.choices.field.Groups) > 0 {
+		r.list.MoveChoice(delta)
+		e.prompt.path = ""
+		if index := r.choices.index(r.list.Selection()); index >= 0 {
+			e.prompt.path = strconv.FormatInt(r.offer.Choices[index].Value, 10)
+		}
+		return
+	}
 	switch _, ok := r.choiceAt(e.prompt.path); {
 	case ok && len(r.offer.Shut) > 0:
 		r.list.MoveChoice(delta) // a heading is not a value
@@ -620,10 +641,21 @@ func (e *MapEditor) addMove(delta int) {
 // addTake makes choice row k the asked step's value.
 func (e *MapEditor) addTake(k int) {
 	r, _ := e.addRunning()
+	index, navigate := r.choices.take(k)
+	if navigate {
+		rows := r.choices.rows()
+		r.list = NewPicker(rows).SetWindow(min(addListRows, len(rows)))
+		return
+	}
+	if index < 0 {
+		return
+	}
+	row := k
+	k = index
 	if k < 0 || k >= len(r.offer.Choices) || slices.Contains(r.offer.Shut, r.offer.Choices[k].Value) {
 		return
 	}
-	r.list.Select(k)
+	r.list.Select(row)
 	e.prompt.path, r.note = strconv.FormatInt(r.offer.Choices[k].Value, 10), ""
 }
 
@@ -633,7 +665,11 @@ func (e *MapEditor) addFollow() {
 	if !ok || r.list == nil {
 		return
 	}
-	for k, c := range r.offer.Choices {
+	for k, entry := range r.choices.entries {
+		if entry.index < 0 {
+			continue
+		}
+		c := r.offer.Choices[entry.index]
 		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(e.prompt.path) {
 			r.list.Select(k)
 			return
@@ -865,8 +901,9 @@ func (e *MapEditor) addPress(p image.Point, double bool) {
 		if n >= count {
 			return
 		}
+		value := r.choices.index(top+n) >= 0
 		e.addTake(top + n)
-		if double {
+		if double && value {
 			e.addNext()
 		}
 	}

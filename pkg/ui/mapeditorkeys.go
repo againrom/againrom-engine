@@ -491,7 +491,7 @@ func (e *MapEditor) keyEnter(string) error {
 		e.tree.typing = false
 		return nil
 	}
-	if e.nativeUnitWindow() && e.dropdownOpen() && e.obj.choice != nil && !e.prompt.open() {
+	if (e.nativeUnitWindow() || len(e.obj.choices.field.Groups) > 0) && e.dropdownOpen() && e.obj.choice != nil && !e.prompt.open() {
 		e.chooseObjectChoice(e.obj.choice.Selection())
 		return nil
 	}
@@ -720,7 +720,10 @@ func (e *MapEditor) keyPage(key string) error {
 		m.Select(m.Len() - 1)
 	}
 	if add {
-		e.addTake(m.Selection())
+		r, _ := e.addRunning()
+		if len(r.choices.field.Groups) == 0 || r.choices.index(m.Selection()) >= 0 {
+			e.addTake(m.Selection())
+		}
 	}
 	if e.catalog && m.Len() > 0 && !m.Rows()[m.Selection()].Choosable {
 		if key == "end" || key == "pagedown" {

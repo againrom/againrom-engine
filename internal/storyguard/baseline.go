@@ -4311,5 +4311,5 @@ var Committed = Baseline{
 	// pkg/formats/alm/alm.go, the ruin gate's maximum-health line in
 	// pkg/ui/viewer.go, the new pkg/game/secondbridges_release_test.go and
 	// the new test in pkg/ui/structurehealth1052_test.go, and this note.
-	CommentBytes: 10645128,
+	CommentBytes: 10645080,
 }

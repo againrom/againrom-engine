@@ -53,6 +53,7 @@ type objectEdit struct {
 	focus   int
 	open    int
 	choice  *Picker
+	choices choiceList
 	search  string
 	note    string
 	first   int // the spec row of the first field
@@ -596,9 +597,14 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		o.open = i
 		o.search = ""
 		f := o.fields[i]
-		rows := choiceRows(f)
+		o.choices = choiceList{field: f, back: e.word("editor.button.back")}
+		rows := o.choices.rows()
 		sel := 0
-		for k, c := range f.Choices {
+		for k, entry := range o.choices.entries {
+			if entry.index < 0 {
+				continue
+			}
+			c := f.Choices[entry.index]
 			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
 				sel = k
 			}
@@ -728,9 +734,21 @@ func (e *MapEditor) objectWheelDropdown(wheel wheelSource) bool {
 // closes it.
 func (e *MapEditor) chooseObjectChoice(row int) {
 	o := &e.obj
-	if o.open < 0 || o.open >= len(o.fields) || row < 0 || row >= len(o.fields[o.open].Choices) {
+	if o.open < 0 || o.open >= len(o.fields) {
 		return
 	}
+	index, navigate := o.choices.take(row)
+	if navigate {
+		o.search = ""
+		rows := o.choices.rows()
+		o.choice = NewPicker(rows).SetWindow(e.choiceWindow(o.open, len(rows)))
+		return
+	}
+	if index < 0 {
+		return
+	}
+	selected := row
+	row = index
 	if slices.Contains(o.fields[o.open].Shut, o.fields[o.open].Choices[row].Value) {
 		return
 	}
@@ -747,7 +765,7 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 	field, value := o.open, o.fields[o.open].Choices[row].Value
 	commit := e.messageChoiceAlone(field, value)
 	o.buf[field] = strconv.FormatInt(value, 10)
-	o.choice.Select(row)
+	o.choice.Select(selected)
 	o.open = -1
 	e.retypeNode()
 	if commit {
@@ -763,7 +781,7 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 func (e *MapEditor) chooseObjectChoiceKeep() {
 	o := &e.obj
 	if o.open >= 0 && o.open < len(o.fields) && o.choice != nil {
-		if k := o.choice.Selection(); k >= 0 && k < len(o.fields[o.open].Choices) {
+		if k := o.choices.index(o.choice.Selection()); k >= 0 && k < len(o.fields[o.open].Choices) {
 			if !slices.Contains(o.fields[o.open].Shut, o.fields[o.open].Choices[k].Value) {
 				o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[k].Value, 10)
 			}
@@ -780,6 +798,10 @@ func (e *MapEditor) objectStep(delta int) bool {
 		return false
 	}
 	f := o.fields[o.focus]
+	if len(f.Groups) > 0 {
+		e.objectRowPress(popupRowControl, e.fieldRow(o.focus))
+		return true
+	}
 	rows := choiceRows(f)
 	at := -1
 	for k, c := range f.Choices {

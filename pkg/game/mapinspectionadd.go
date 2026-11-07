@@ -355,7 +355,7 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		}
 		first()
 	case "item":
-		out.Choices = s.RecordChoices(ui.KindSack, -1, "item")
+		out = s.fieldChoiceOffer(fieldChoiceAsk{kind: ui.KindSack, index: -1, key: "item"})
 	case "cell":
 	default:
 		out.Value, out.Text = s.newFieldDefault(r, key)

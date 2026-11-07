@@ -163,7 +163,9 @@ type InspectionField struct {
 	Text            bool
 	TextValue       string
 	Choices         []InspectionChoice
-	ChoicePad       []image.Point `json:"-"`
+	Groups          []InspectionChoiceGroup                        `json:"-"`
+	Pictures        func([]InspectionChoice) map[int64]*image.RGBA `json:"-"`
+	ChoicePad       []image.Point                                  `json:"-"`
 	// Group is the heading the field shows under; "" for none.
 	Group string
 	// IconTip shows a choice's picture at full size in the editor's tip

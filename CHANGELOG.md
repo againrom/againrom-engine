@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] Choose sack items by their inventory pictures, grouped by item type and material, in both the sack and carried-item windows.
 - [ROM1] The map editor's unit window now shows the face the dialogue would draw if this unit were the speaker, under its "Dialogue speaker" line; a unit no speaker shows gets the reason in words instead of a face.
 - [ROM1] In the map editor, choosing a dialogue speaker "on the map" now picks a unit that stands under another unit's cell: a click on a small unit inside a larger unit's outline takes the larger unit as the speaker when the small one shows no speaker, instead of refusing the click.
 - [BASE] The map editor draws faster, and typing a name in the unit window no longer stalls on every letter; the unit picture refreshes when you pause typing or press Enter.

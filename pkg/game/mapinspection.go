@@ -44,6 +44,7 @@ type MapInspector struct {
 	rules          []mapRule        // the map report's rule table; nil is mapRules
 	recordOptions  map[string][]ui.InspectionChoice
 	recordPictures map[string]map[int64]*image.RGBA
+	itemGroups     []ui.InspectionChoiceGroup
 	// identities are the identity choice's identities by value, built with
 	// recordOptions["identity"].
 	identities map[int64]mapload.Identity
@@ -63,8 +64,7 @@ type MapInspector struct {
 	// portraits by address and composed figures by figure and worn set.
 	speakerPictures map[string]*image.RGBA
 	speakerFigures  map[figureCacheKey]*image.RGBA
-	itemIcons       map[uint16]*image.RGBA // ItemLook's icons by item code, read once each
-	tiers           *tierCache             // tiersOf's answers; nil computes each time
+	tiers           *tierCache // tiersOf's answers; nil computes each time
 	panelWords      *ui.Words
 	cardFont        *text.Font
 }

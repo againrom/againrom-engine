@@ -30,6 +30,7 @@ type fieldChoiceRow struct {
 	prefix   bool
 	script   bool
 	pad      []image.Point
+	items    bool
 	supply   func(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice
 }
 
@@ -54,10 +55,10 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{field: "recipeitem", supply: recipeItemChoices},
 	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "recipe", prefix: true, supply: stockRecipeChoices},
 	{field: "recipe", prefix: true, supply: recipeChoices},
-	{field: "item", supply: catalogChoices("item", "")},
-	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "item", prefix: true, supply: stockItemChoices},
-	{field: "item", prefix: true, supply: catalogChoices("item", "Remove this item")},
-	{field: "additem", supply: catalogChoices("item", "")},
+	{field: "item", items: true, supply: catalogChoices("item", "")},
+	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "item", prefix: true, items: true, supply: stockItemChoices},
+	{field: "item", prefix: true, items: true, supply: catalogChoices("item", "Remove this item")},
+	{field: "additem", items: true, supply: catalogChoices("item", "")},
 	{field: "addeffect", supply: catalogChoices("effect", "")},
 	{field: "effect", prefix: true, supply: catalogChoices("effect", "Remove this effect")},
 	{prefix: true, supply: keyCatalogChoices},
@@ -76,7 +77,11 @@ func (r fieldChoiceRow) serves(a fieldChoiceAsk) bool {
 func (s *mapInspectionEdits) fieldChoiceOffer(a fieldChoiceAsk) ui.InspectionNewStep {
 	for _, r := range fieldChoiceRows {
 		if r.serves(a) {
-			return ui.InspectionNewStep{Choices: r.supply(s, a), ChoicePad: r.pad}
+			offer := ui.InspectionNewStep{Choices: r.supply(s, a), ChoicePad: r.pad}
+			if r.items {
+				offer.Groups, offer.Pictures = s.inspector.itemGroups, s.itemPictures
+			}
+			return offer
 		}
 	}
 	return ui.InspectionNewStep{}
@@ -240,10 +245,13 @@ func (s *mapInspectionEdits) ItemLook(code int64) (string, *image.RGBA) {
 	if art := x.archives.artSource(); art != nil {
 		src = art
 	}
-	if x.itemIcons == nil {
-		x.itemIcons = map[uint16]*image.RGBA{}
+	if x.recordPictures == nil {
+		x.recordPictures = map[string]map[int64]*image.RGBA{}
 	}
-	icon, _ := itemIcon(src, x.table, uint16(code), x.itemIcons)
+	if x.recordPictures["item"] == nil {
+		x.recordPictures["item"] = map[int64]*image.RGBA{}
+	}
+	icon, _ := itemIcon(src, x.table, uint16(code), x.recordPictures["item"])
 	return name, icon
 }
 
@@ -408,5 +416,8 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 		return 0
 	})
 	x.recordOptions[category] = slices.Clone(rows)
+	if category == "item" {
+		x.itemGroups = x.itemChoiceGroups(rows)
+	}
 	return rows
 }

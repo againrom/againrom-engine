@@ -143,7 +143,7 @@ func (s *mapInspectionEdits) inventoryFields(u *unitTemplateView) []ui.Inspectio
 	// sack's items, numbered; each writes the sack the sack's own window
 	// edits.
 	out := []ui.InspectionField{{Key: "carryadd", Label: x.word("editor.inventory.add"),
-		Choices: append([]ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.choose"))}}, x.recordCatalog("item")...)}}
+		Choices: append([]ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.choose"))}}, x.recordCatalog("item")...), Groups: x.itemGroups, Pictures: s.itemPictures}}
 	if stock >= 0 {
 		ordinal := 0
 		for i, item := range loot.Records[stock].Elements {
@@ -154,7 +154,7 @@ func (s *mapInspectionEdits) inventoryFields(u *unitTemplateView) []ui.Inspectio
 			choices := append([]ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.remove"))}, {Value: -1, Label: x.inspectionUTF8(x.word("editor.inventory.duplicate"))}}, x.recordCatalog("item")...)
 			label := fmt.Sprintf(x.word("editor.inventory.item"), ordinal)
 			out = append(out, ui.InspectionField{Key: fmt.Sprintf("carry%d", i+1), Label: label, Group: x.word("editor.inventory.added"),
-				Value: int64(item.ItemCode()), Choices: choices})
+				Value: int64(item.ItemCode()), Choices: choices, Groups: x.itemGroups, Pictures: s.itemPictures})
 			out = append(out, ui.InspectionField{Key: fmt.Sprintf("carryrecipe%d", i+1), Label: label + " / " + x.word("editor.equipment.magic"), Group: x.word("editor.inventory.added"),
 				Parent: fmt.Sprintf("carry%d", i+1), Value: int64(item.TileMarkerIndex), Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices(ui.KindStock, stock, "recipe")...)})
 			out = append(out, s.itemRecipeFields(fmt.Sprintf("carryrecipe%d", i+1), fmt.Sprintf("carry%d", i+1), "inventory", stock, i+1)...)
