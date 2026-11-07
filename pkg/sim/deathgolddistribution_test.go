@@ -17,7 +17,7 @@ func TestDeathGoldDrawsTheRowLawFromTheSeededGenerator(t *testing.T) {
 	var sum float64
 	low, high := uint32(1<<31), uint32(0)
 	for i := 0; i < draws; i++ {
-		g := w.deathGold(0)
+		g := deathRollGold(w, 0)
 		if g == 0 {
 			zero++
 			continue

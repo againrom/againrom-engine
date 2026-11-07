@@ -42,6 +42,7 @@ func SourceActorSeed(s sim.SourceBinding, t *Table) (sim.Entity, error) {
 		def.RotationSpeed, def.DyingTime = d.RotationSpeed, d.DyingTime
 		def.Withdraw, def.Wimpy, def.SeeInvisible = d.Withdraw, d.Wimpy, sightOf(d.SeeInvisible)
 		def.XPValue, def.GoldChance, def.TreasureMin, def.TreasureMax = d.XPValue, d.GoldChance, d.TreasureMin, d.TreasureMax
+		def.DeathItem = t.deathItem(d)
 		def.AlwaysHits = d.AlwaysHits
 		return sim.NewActor(def, sim.ActorPlacement{}), nil
 	}

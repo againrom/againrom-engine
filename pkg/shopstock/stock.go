@@ -12,9 +12,8 @@ type Source interface {
 	Intn(n int) int
 }
 
-// Bound ends a category's draws: Attempts bounds every attempt and Failures
-// the failed ones, each a function of the draw count. A nil function is no
-// bound.
+// Bound stops at Attempts attempts or above Failures failures, each a
+// function of the draw count. Nil is unbounded.
 type Bound struct {
 	Attempts, Failures func(n int) int
 }
@@ -24,7 +23,7 @@ type Bound struct {
 type Category[C, I any] struct {
 	// Candidates is the category's candidate list; it may draw.
 	Candidates func(src Source) []C
-	// Lead is the list the draws start from; it may draw. Nil starts empty.
+	// Lead starts a category with candidates; it may draw. Nil starts empty.
 	Lead func(cands []C, src Source) []I
 	// Count is how many items the draws take. It is asked only when the
 	// category has candidates, and it may draw.
@@ -32,8 +31,8 @@ type Category[C, I any] struct {
 	// Bound ends the draws of the first roll; Again ends each further roll
 	// of the multiplier.
 	Bound, Again Bound
-	// Redraw marks a candidate the pick draws again, up to Redraws times; a
-	// pick still marked fails the attempt. Nil marks none.
+	// Redraw marks a candidate to draw again up to Redraws times, then ends
+	// the roll if still marked. Nil marks none.
 	Redraw  func(c C) bool
 	Redraws int
 	// Make is the item an attempt makes of candidate c; false fails the
@@ -75,10 +74,10 @@ func Generate[C, I any](p Profile[C, I], src Source) [][]I {
 	for k, cat := range p.Categories {
 		cands[k] = cat.Candidates(src)
 		var list []I
-		if cat.Lead != nil {
-			list = cat.Lead(cands[k], src)
-		}
 		if len(cands[k]) > 0 {
+			if cat.Lead != nil {
+				list = cat.Lead(cands[k], src)
+			}
 			list, took[k] = roll(cat, cat.Bound, cands[k], cat.Count(src), list, src)
 		}
 		if cat.Finish != nil {
@@ -118,15 +117,14 @@ func roll[C, I any](cat Category[C, I], bound Bound, cands []C, n int, list []I,
 		failures = bound.Failures(n)
 	}
 	done, failed := 0, 0
-	for done < n && (attempts < 0 || done+failed < attempts) && (failures < 0 || failed < failures) {
+	for done < n && (attempts < 0 || done+failed < attempts) && (failures < 0 || failed <= failures) {
 		c := cands[src.Intn(len(cands))]
 		if cat.Redraw != nil {
 			for i := 0; cat.Redraw(c) && i < cat.Redraws; i++ {
 				c = cands[src.Intn(len(cands))]
 			}
 			if cat.Redraw(c) {
-				failed++
-				continue
+				break
 			}
 		}
 		it, ok := cat.Make(c, src)

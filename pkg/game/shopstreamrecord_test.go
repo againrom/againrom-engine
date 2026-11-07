@@ -99,6 +99,7 @@ func TestShopStreamStateRecord(t *testing.T) {
 			line(game, "changed record entry", f.Random)
 		}
 	}
+	// R2-ENGINE-941: a candidate precedes the potion lead.
 	path := filepath.Join("testdata", "shop_stream_record.txt")
 	if os.Getenv("AGAINROM_WRITE_SHOP_STREAM_RECORD") == "1" {
 		if err := os.WriteFile(path, []byte(out.String()), 0644); err != nil {

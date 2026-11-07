@@ -32,6 +32,7 @@ func TestSleepRecord(t *testing.T) {
 		}
 		recordSecondSleeps(t, line, id, 1, false)
 	}
+	// R2-ENGINE-941: a candidate precedes the potion lead.
 	compareSleepRecord(t, filepath.Join("testdata", "sleep_record.txt"), b.String())
 }
 

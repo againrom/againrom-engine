@@ -4332,5 +4332,12 @@ var Committed = Baseline{
 	// internal/archtest; their new tests in
 	// pkg/mapedit/scriptform_test.go and pkg/game/mapeditorscriptform_test.go;
 	// and this note.
-	CommentBytes: 10664771,
+
+	// CommentBytes rises for the doc comments of the second game's death
+	// item roll in the new pkg/sim/deathroll.go and in pkg/sim's world.go,
+	// gameprofile.go and actorconstructor.go, the death item columns in
+	// pkg/data/unitdef.go, the table's draw in pkg/mapload/spawn.go and
+	// pkg/game's gamefiles.go and secondtownshop.go, the death list in
+	// pkg/secondshop's fill.go and shop.go, their new tests, and this note.
+	CommentBytes: 10674325,
 }

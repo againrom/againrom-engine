@@ -75,7 +75,7 @@ func (e Entity) discardsCorpseLoot() bool {
 
 func (w *World) hasTerminalLoot(i int) bool {
 	e := w.entities[i]
-	if !w.paysNoReward(e) && e.TypeID > 0x40 && e.GoldChance > 0 && (e.TreasureMin != 0 || e.TreasureMax != 0) {
+	if w.rollsAtDeath(e) && (e.GoldChance > 0 && (e.TreasureMin != 0 || e.TreasureMax != 0) || w.rollsDeathItem(e)) {
 		return true
 	}
 	if e.discardsCorpseLoot() {

@@ -1046,7 +1046,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	if err != nil {
 		return nil, Start{}, err
 	}
-	out.SetRules(t.rules())
+	t.bindTableInputs(out)
 	BindFlightInputs(out, t)
 	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
@@ -1197,7 +1197,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	if err != nil {
 		return nil, Start{}, err
 	}
-	out.SetRules(t.rules())
+	t.bindTableInputs(out)
 	BindFlightInputs(out, t)
 	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {

@@ -34,7 +34,7 @@ func TestRewardOutputsAreRecorded(t *testing.T) {
 			source.SuppressRewards = tc.marked
 			w := cbWorld(t, 7, attacker, source)
 			w.game = newGameProfile(tc.dialect)
-			got := output{gold: w.deathGold(1), loot: w.hasTerminalLoot(1)}
+			got := output{gold: deathRollGold(w, 1), loot: w.hasTerminalLoot(1)}
 			w.awardSkill(0, 0, 100, 1)
 			got.xp = w.entities[0].SkillXP[3]
 			got.paid = got.xp != 0

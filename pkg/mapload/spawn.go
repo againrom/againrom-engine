@@ -105,6 +105,11 @@ type Table struct {
 	// FlightInputs are installed release rules and geometry, independent of art.
 	FlightInputs *sim.FlightInputs
 
+	// DeathItems is the game's death item draw. A table with one gives each
+	// Units actor its row's death item columns and binds the draw to the
+	// World; nil, the first game's, gives none.
+	DeathItems sim.DeathItemDraw
+
 	// DocumentCellPlanes marks a World whose cell planes a loaded document
 	// supplies: Planes names no installed base, so the World is built without
 	// planes and the LOAD import builds them (SAV-LOAD-057).
@@ -1228,6 +1233,23 @@ func personRowName(u alm.Unit, t *Table) string {
 }
 
 func TableRules(t *Table) sim.Rules { return t.rules() }
+
+// deathItem is a Units row's death item columns as an actor holds them:
+// none unless the table carries a death item draw.
+func (t *Table) deathItem(d data.UnitDef) sim.DeathItemRoll {
+	if t == nil || t.DeathItems == nil {
+		return sim.DeathItemRoll{}
+	}
+	return sim.DeathItemRoll{Chance: d.ItemChance, Min: d.ItemMin, Max: d.ItemMax, Mask: uint32(d.ItemMask)}
+}
+
+// bindTableInputs binds the table's rules and death item draw to w.
+func (t *Table) bindTableInputs(w *sim.World) {
+	w.SetRules(t.rules())
+	if t != nil {
+		w.SetDeathItemDraw(t.DeathItems)
+	}
+}
 
 // rules is the table's rules; a nil table runs under the original game's.
 func (t *Table) rules() sim.Rules {

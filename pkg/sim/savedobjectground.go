@@ -237,8 +237,11 @@ func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 	if e.discardsCorpseLoot() && !w.disposeSavedPack(i) {
 		return false
 	}
-	if validCell && !w.dropSavedPackAt(i, w.deathGold(i), x, y) {
-		return false
+	if validCell {
+		gold, item, rolled := w.deathRoll(i)
+		if rolled && !w.addCarried(i, StackItem(item, 1)) || !w.dropSavedPackAt(i, gold, x, y) {
+			return false
+		}
 	}
 	if e.ActorLoad.Present {
 		e.ActorLoad.ContainerPresent, e.ActorLoad.InsertIndex = true, 10000

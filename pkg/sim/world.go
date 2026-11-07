@@ -534,6 +534,9 @@ type Entity struct {
 	// gate keeps them from producing gold.
 	TypeID                               int32
 	GoldChance, TreasureMin, TreasureMax int32
+	// DeathItem is the Units row's death item columns, canonical for the
+	// same reason; zero in the first game, whose SAV bytes it leaves alone.
+	DeathItem DeathItemRoll `json:",omitzero"`
 
 	// XPSlot is the slot a gain THIS entity earns is credited to: the skill of
 	// the weapon in its hand for a class that fights, slot 0 for one that casts
@@ -1904,10 +1907,13 @@ type World struct {
 	// its constructor writes (BindMergeOperands). Install-derived input like
 	// ghost, carried across a decode and never encoded.
 	mergeOperands []ItemWeight
-	safeMode      bool
-	carried       [][]ItemStack
-	equipment     [][EquipSlots]ItemInstance
-	purses        [relationSlots]uint32
+	// deathItems is the death item draw (SetDeathItemDraw), install-derived
+	// input like ghost, carried across a decode and never encoded.
+	deathItems DeathItemDraw
+	safeMode   bool
+	carried    [][]ItemStack
+	equipment  [][EquipSlots]ItemInstance
+	purses     [relationSlots]uint32
 
 	// burst holds the Fire_Ball burst's installed phase count and the blasts of
 	// the current effect walk that have not yet built their record. Neither is

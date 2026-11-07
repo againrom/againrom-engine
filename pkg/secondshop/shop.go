@@ -53,9 +53,14 @@ const (
 	kindMagic    = 0x4000000
 	kindStaff    = 0x8000000
 	bitEnchanted = 1 << 29
-	classShift   = 15
-	classCount   = 7
-	materialBits = 15
+	// bitHalfEnchant with bitEnchanted enchants a unit only on a draw of
+	// rand(100), Intn(101), above 50 (R2-ENGINE-264, R2-ENGINE-941).
+	bitHalfEnchant  = 1 << 28
+	halfEnchantDraw = 101
+	halfEnchantPass = 50
+	classShift      = 15
+	classCount      = 7
+	materialBits    = 15
 )
 
 // The data.bin columns the rules read, as parameter-array slots: the price of
@@ -236,12 +241,15 @@ const (
 func (t Tables) Candidates(c Category, rnd Rand) []Item {
 	var out []Item
 	enchanted := c.Mask&bitEnchanted != 0
+	inRange := func(price float64) bool {
+		p := int64(price)
+		return p >= int64(c.Min) && p <= int64(c.Max)
+	}
 	admit := func(it Item, price float64) bool {
 		if enchanted {
 			return math.Pow(float64(c.Min), 0.4) <= float64(t.levelProduct(it))
 		}
-		p := int64(price)
-		return p >= int64(c.Min) && p <= int64(c.Max)
+		return inRange(price)
 	}
 	type table struct {
 		kind Kind
@@ -287,10 +295,12 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 			}
 		}
 	}
+	// The magic admission keeps books and scrolls by price, enchanted or
+	// not (R2-ENGINE-941).
 	if c.Mask&kindMagic != 0 {
 		for s := 1; s <= bookSpells; s++ {
 			it := Item{Table: Book, Spell: s}
-			if !bookSkipped[s] && admit(it, float64(t.Price(it))) {
+			if !bookSkipped[s] && inRange(float64(t.Price(it))) {
 				out = append(out, it)
 			}
 		}
@@ -300,7 +310,7 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 				row = i + superOffset
 			}
 			it := Item{Table: Magic, Row: row}
-			if admit(it, float64(t.Price(it))) {
+			if inRange(float64(t.Price(it))) {
 				out = append(out, it)
 			}
 		}

@@ -58,7 +58,7 @@ func TestABandTypeIDPaysNoDeathGold(t *testing.T) {
 			GoldChance: 100, TreasureMin: 500, TreasureMax: 500},
 	})
 	for i, want := range map[int]bool{0: false, 1: false, 2: true} {
-		got := w.deathGold(i) > 0
+		got := deathRollGold(w, i) > 0
 		if got != want {
 			t.Errorf("entity %d (type id %#x) paid gold = %v, want %v",
 				i+1, w.entities[i].TypeID, got, want)

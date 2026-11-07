@@ -39,7 +39,7 @@ func (b spawnBlock) actorDefinition(t *Table) sim.ActorDefinition {
 		KnownSpells: b.knownSpells, Book: b.book, CreatureSpells: b.creatureSpells,
 		XPValue: b.xpValue, Reaction: b.reaction, Mind: b.mind, Spirit: b.spirit,
 		XPSlot: uint8(b.combat.SkillSlot), GainsXP: b.gainsXP,
-		GoldChance: b.goldChance, TreasureMin: b.treasureMin, TreasureMax: b.treasureMax,
+		GoldChance: b.goldChance, TreasureMin: b.treasureMin, TreasureMax: b.treasureMax, DeathItem: b.deathItem,
 		Skill: b.skill, SkillXP: b.skillXP, SuppressCorpseLoot: b.suppressCorpseLoot,
 		NativeBasis: b.nativeBasis, NativeClass: b.nativeClass,
 	}

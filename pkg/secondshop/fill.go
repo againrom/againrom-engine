@@ -14,9 +14,8 @@ type Stock [4][]Item
 // a fighter's (R2-ENGINE-265, R2-ENGINE-711).
 var castSpells = [2][]uint16{{1, 10, 11, 18, 26, 5, 16}, {18, 26}}
 
-// Fill limits (R2-ENGINE-265): a book pick is redrawn up to 1000 times and
-// failures end a category after ten times its draws. Potions enter at 51..100
-// and books at quantity 2.
+// R2-ENGINE-941: stop above ten failures per draw or at a book timeout.
+// Potions enter at 51..100 and books at quantity 2 (R2-ENGINE-265).
 const (
 	bookRetries    = 1000
 	failuresFactor = 10
@@ -31,7 +30,7 @@ type picks Rand
 
 func (r picks) Intn(n int) int { return (r() * n) >> 15 }
 
-// Fill draws a whole stock from record r (R2-ENGINE-265) through the shared
+// Fill draws a stock from record r (R2-ENGINE-265) through the shared
 // generator.
 func (t Tables) Fill(r Record, rnd Rand) Stock {
 	var s Stock
@@ -43,27 +42,14 @@ func (t Tables) Fill(r Record, rnd Rand) Stock {
 // Each category admits its candidates; the magic category first takes each
 // admitted book at quantity 2 and the six potions; each draw then picks a
 // candidate, redrawing a book; an enchanted category enchants its pick and
-// drops a price outside the range. Failures end a category at ten times its
-// draws, and Sort orders it (R2-ENGINE-710). The mods' stocked items then
+// drops a price outside the range. Failures above ten times its draws end
+// it (R2-ENGINE-941); Sort orders it (R2-ENGINE-710). Mods' stocked items then
 // join the stock by placement; they take no draw. The second game has no
 // count multiplier.
 func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 	p := shopstock.Profile[Item, Item]{Repeat: effectRepeat}
 	for _, cat := range r {
-		p.Categories = append(p.Categories, shopstock.Category[Item, Item]{
-			Candidates: func(shopstock.Source) []Item { return t.Candidates(cat, rnd) },
-			Lead:       func(cands []Item, src shopstock.Source) []Item { return t.lead(cat, cands, src) },
-			Count:      func(shopstock.Source) int { return int(cat.Draws) },
-			Bound:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
-			Redraw:     func(it Item) bool { return it.Table == Book },
-			Redraws:    bookRetries,
-			Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
-			Insert:     insert,
-			Finish: func(list []Item, _ shopstock.Source) []Item {
-				t.sortFill(list)
-				return list
-			},
-		})
+		p.Categories = append(p.Categories, t.category(cat, rnd))
 	}
 	p.Place = func(stock [][]Item) {
 		for _, it := range t.Stocked {
@@ -74,8 +60,49 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 	return p
 }
 
-// lead is what a magic category holds before its draws: each admitted book
-// at quantity 2, then the six potions at 51..100.
+// category is cat as the shared generator's category: the one draw of a
+// shop's category and of a death's item list.
+func (t Tables) category(cat Category, rnd Rand) shopstock.Category[Item, Item] {
+	return shopstock.Category[Item, Item]{
+		Candidates: func(shopstock.Source) []Item { return t.Candidates(cat, rnd) },
+		Lead:       func(cands []Item, src shopstock.Source) []Item { return t.lead(cat, cands, src) },
+		Count:      func(shopstock.Source) int { return int(cat.Draws) },
+		Bound:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
+		Redraw:     func(it Item) bool { return it.Table == Book },
+		Redraws:    bookRetries,
+		Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
+		Insert:     insert,
+		Finish: func(list []Item, _ shopstock.Source) []Item {
+			t.sortFill(list)
+			return list
+		},
+	}
+}
+
+// The death item draw's record (R2-ENGINE-940): 100 draws at bound 1.
+const (
+	deathDraws = 100
+	deathBound = 1
+)
+
+// DeathItems is the list a death's item draw generates (R2-ENGINE-941): the
+// shop draw of one category {least, most, 100 draws, bound 1, mask} on rnd,
+// without the mods' stocked items, each entry one unit as the bag holds it.
+// An entry with no bag form is a zero item in its place.
+func (t Tables) DeathItems(least, most int32, mask uint32, rnd Rand) []sim.ItemInstance {
+	cat := Category{Min: least, Max: most, Draws: deathDraws, Bound: deathBound, Mask: mask}
+	p := shopstock.Profile[Item, Item]{Repeat: effectRepeat, Categories: []shopstock.Category[Item, Item]{t.category(cat, rnd)}}
+	list := shopstock.Generate(p, picks(rnd))[0]
+	out := make([]sim.ItemInstance, len(list))
+	for i, it := range list {
+		if unit, ok := t.Instance(it); ok {
+			out[i] = unit
+		}
+	}
+	return out
+}
+
+// lead preloads a nonempty magic category: books at 2, six potions at 51..100.
 func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 	if cat.Mask&kindMagic == 0 {
 		return nil
@@ -95,25 +122,31 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 	return list
 }
 
-// make is one drawn unit of it: an enchanted category enchants it and
-// refuses a price outside the range; another draws a stackable quantity of
-// 1..Bound+1.
+// make is one drawn unit of it (R2-ENGINE-941). An enchanted category
+// enchants it, with bit 28 too only on a rand(100) above 50, and refuses a
+// price outside the range, a unit left plain too. A kept unit that stacks
+// draws a quantity of 1..Bound+1.
 func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
-	enchanted := cat.Mask&bitEnchanted != 0
+	checked := cat.Mask&bitEnchanted != 0
+	enchant := checked
+	if checked && cat.Mask&bitHalfEnchant != 0 {
+		enchant = src.Intn(halfEnchantDraw) > halfEnchantPass
+	}
 	it.Count = 1
-	if enchanted {
+	if enchant {
 		effects, _, ok := t.enchant().Apply(t.enchantBase(it, cat), src)
 		if !ok {
 			return it, false
 		}
 		it.Effects = shopstock.EffectsAs[sim.ItemEffect](effects)
-	} else if stackable(it) {
-		it.Count = int32(1 + src.Intn(int(cat.Bound+1)))
 	}
 	p := t.Price(it)
 	it.Price = int32(p)
-	if enchanted && (p < int64(cat.Min) || p > int64(cat.Max)) {
+	if checked && (p < int64(cat.Min) || p > int64(cat.Max)) {
 		return it, false
+	}
+	if stackable(it) {
+		it.Count = int32(1 + src.Intn(int(cat.Bound+1)))
 	}
 	return it, true
 }

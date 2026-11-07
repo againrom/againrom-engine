@@ -190,6 +190,7 @@ var slotOutcomes = map[int][]string{
 	// has its own target-filter consumer.
 	33: {"DyingTime"}, 34: {"Withdraw"}, 35: {"Wimpy"}, 36: {"SeeInvisible"},
 	37: {"XPValue"}, 38: {"GoldChance"}, 39: {"TreasureMin"}, 40: {"TreasureMax"},
+	41: {"ItemChance"}, 42: {"ItemMin"}, 43: {"ItemMax"}, 44: {"ItemMask"},
 }
 
 func TestEachSlotHasExactlyOneOutcome(t *testing.T) {
@@ -198,7 +199,7 @@ func TestEachSlotHasExactlyOneOutcome(t *testing.T) {
 	}
 	base := UnitDefaults()
 	for slot := 0; slot <= lastUnitSlot; slot++ {
-		row := sentinelRow(41)
+		row := sentinelRow(lastUnitSlot + 1)
 		// The selector's only value that leaves a mark of its own.
 		row[slot] = 3
 		if slot != 13 {
@@ -285,10 +286,10 @@ func TestTheDamageSelectorRoutesAndRefuses(t *testing.T) {
 	}
 }
 
-// TestNothingPastSlot40IsRead pins the streamed window: later cells belong to
-// other consumers.
-func TestNothingPastSlot40IsRead(t *testing.T) {
-	narrow, err := NewUnitDef("Narrow", distinctRow(41))
+// TestNothingPastTheLastSlotIsRead pins the streamed window, which ends at
+// the death item mask: later cells belong to other consumers.
+func TestNothingPastTheLastSlotIsRead(t *testing.T) {
+	narrow, err := NewUnitDef("Narrow", distinctRow(lastUnitSlot+1))
 	if err != nil {
 		t.Fatalf("NewUnitDef: %v", err)
 	}
@@ -297,7 +298,7 @@ func TestNothingPastSlot40IsRead(t *testing.T) {
 		t.Fatalf("NewUnitDef: %v", err)
 	}
 	if narrow != wide {
-		t.Errorf("a 55-cell row loaded differently from its 41-cell prefix:\n %+v\n %+v", wide, narrow)
+		t.Errorf("a 55-cell row loaded differently from its %d-cell prefix:\n %+v\n %+v", lastUnitSlot+1, wide, narrow)
 	}
 }
 

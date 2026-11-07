@@ -539,7 +539,10 @@ func (w *World) sourceTerminalLoot(i int, x, y int32, validCell bool) bool {
 		e.ActorLoad.Accumulator, e.ActorLoad.InsertIndex = 0, 10000
 	}
 	if validCell {
-		gold := w.deathGold(i)
+		gold, item, rolled := w.deathRoll(i)
+		if rolled && !w.sourcePutCarried(i, item) {
+			return false
+		}
 		if gold != 0 || len(w.carried[i]) != 0 {
 			if w.savedObjects != nil {
 				if !w.dropSavedPackAt(i, gold, x, y) {

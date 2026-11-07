@@ -137,6 +137,19 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 	return out, ok
 }
 
+// secondDeathItems is the second game's death item draw over t's tables:
+// the shop draw of the death's category (R2-ENGINE-941). Tables without the
+// item collections draw no list.
+func secondDeathItems(t *mapload.Table) sim.DeathItemDraw {
+	return func(roll sim.DeathItemRoll, rnd func() int) []sim.ItemInstance {
+		tables, ok := secondShopTables(t)
+		if !ok {
+			return nil
+		}
+		return tables.DeathItems(roll.Min, roll.Max, roll.Mask, rnd)
+	}
+}
+
 // ShopTables exposes the installed shop profile to headless instruments.
 func (f *FrontEnd) ShopTables() (secondshop.Tables, bool) { return secondShopTables(f.Table) }
 

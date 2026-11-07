@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 empty shop and death draw
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4621 | ROM2 towns 1, 2 and 3 and creature death / a magic category with no candidate | - | `R2-ENGINE-941` (High): with no candidate the draw returns 0 and the list stays empty before the books and six potions enter. `R2-ENGINE-265` names the town fill's EN draw as the same function | The shared generator checks for candidates before calling the lead, so an empty magic category returns no item and consumes no potion draws in the town fill and the death draw. The no-candidate Dragon witness leaves only gold and ends at random state 1423890337 | FIDELITY-DEBT | Settled: the one generator follows the same original routine's empty-list exit for both callers; synthetic town records are updated to the claim | None | CLOSED |
+
 ## ROM2 quest objective marks
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

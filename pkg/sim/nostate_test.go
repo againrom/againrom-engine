@@ -108,6 +108,8 @@ var nstPinned = []struct {
 		// no derived or actor state; all operands live in ActorLoad.Source.
 		{"sourceDerive", "sim.SourceDerive"},
 		{"mergeOperands", "[]sim.ItemWeight"},
+		// The death item draw: install-derived input like ghost.
+		{"deathItems", "sim.DeathItemDraw"},
 		{"safeMode", "bool"},
 		{"carried", "[][]sim.ItemStack"},
 		{"equipment", "[][12]sim.ItemInstance"},
@@ -309,6 +311,7 @@ var nstPinned = []struct {
 		{"Reaction", "int32"}, {"Mind", "int32"}, {"Spirit", "int32"}, {"XPValue", "int32"},
 		{"TypeID", "int32"}, {"GoldChance", "int32"},
 		{"TreasureMin", "int32"}, {"TreasureMax", "int32"},
+		{"DeathItem", "sim.DeathItemRoll"},
 		{"XPSlot", "uint8"}, {"GainsXP", "bool"},
 		// The entity's own spellbook (0127 T3, FR-4b): a bitmask
 		// subscripted by spell id, read by the cast and written by

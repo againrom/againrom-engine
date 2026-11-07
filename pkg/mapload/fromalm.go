@@ -372,7 +372,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	if err != nil {
 		return nil, nil, err
 	}
-	w.SetRules(t.rules())
+	t.bindTableInputs(w)
 	BindFlightInputs(w, t)
 	authored := units
 	if m != nil && m.AuthoredUnits != nil {
@@ -797,6 +797,7 @@ type spawnBlock struct {
 
 	typeID                               int32
 	goldChance, treasureMin, treasureMax int32
+	deathItem                            sim.DeathItemRoll
 
 	skill   [data.SkillSlots]int32
 	skillXP [data.SkillSlots]int32
@@ -1067,6 +1068,6 @@ func unitRowBlock(class int32, index int, def data.UnitDef, worn [sim.EquipSlots
 		// and the flag says so rather than leaving a gain to be paid at zero.
 		xpValue: def.XPValue, reaction: def.Reaction, mind: def.Mind, spirit: def.Spirit, gainsXP: false,
 		typeID: def.TypeID, goldChance: def.GoldChance,
-		treasureMin: def.TreasureMin, treasureMax: def.TreasureMax, capacity: data.UnitCapacity(),
+		treasureMin: def.TreasureMin, treasureMax: def.TreasureMax, deathItem: t.deathItem(def), capacity: data.UnitCapacity(),
 		skill: skill, knownSpells: known, book: book, creatureSpells: slots, worn: worn}
 }

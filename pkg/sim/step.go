@@ -1626,13 +1626,18 @@ func (w *World) dropTerminalLoot(i int) bool {
 		w.equipment[i] = [EquipSlots]ItemInstance{}
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 		if validCell {
-			if gold := w.deathGold(i); gold != 0 {
-				w.pourSack(x, y, gold, nil)
+			// The bag is discarded; the roll still drops (R2-ENGINE-943).
+			if gold, item, rolled := w.deathRoll(i); gold != 0 || rolled {
+				var items []ItemInstance
+				if rolled {
+					items = []ItemInstance{item}
+				}
+				w.pourSack(x, y, gold, items)
 			}
 		}
 	} else if validCell {
-		gold := w.deathGold(i)
-		if gold != 0 || w.holdsSomething(i) {
+		gold, rolledItem, rolled := w.deathRoll(i)
+		if gold != 0 || rolled || w.holdsSomething(i) {
 			items := expandItems(w.carried[i])
 			// Original drop order: carried items, slot 2, slot 1, then slots
 			// 3..12 ascending.
@@ -1650,6 +1655,10 @@ func (w *World) dropTerminalLoot(i int) bool {
 					items = append(items, item.Clone())
 					w.equipment[i][slot] = ItemInstance{}
 				}
+			}
+			if rolled {
+				// The rolled item joins the bag after its holdings.
+				items = append(items, rolledItem)
 			}
 			if gold != 0 || len(items) != 0 {
 				w.pourSack(x, y, gold, items)
@@ -1701,24 +1710,6 @@ func (w *World) restoreAfterHealthGain(i int, before int32) {
 	if e.HeldOrder.Kind == HeldOrderFrozen {
 		e.HeldOrder = HeldOrder{}
 	}
-}
-
-// deathGold performs the Units-row death roll (HERO-KILL-027). Only type ids
-// above 0x40 are eligible. The chance comparison and both bounded draws are
-// inclusive at the upper end because rng.uniform is U[0,n]. Conversion to
-// uint32 preserves the purse and sack arithmetic's wrapping width.
-func (w *World) deathGold(i int) uint32 {
-	e := w.entities[i]
-	if w.paysNoReward(e) {
-		return 0
-	}
-	if e.TypeID <= 0x40 {
-		return 0
-	}
-	if e.GoldChance <= w.rng.uniform(100) {
-		return 0
-	}
-	return uint32(e.TreasureMin + w.rng.uniform(e.TreasureMax))
 }
 
 // clearTarget drops e's target and the stall count that goes with it. It is the

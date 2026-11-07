@@ -34,6 +34,10 @@ func sleepTown(id int) (*FrontEnd, *townScreen) {
 	for i := 69; i <= 74; i++ {
 		rows.secondShopTestCollection[i] = []int32{10}
 	}
+	// R2-ENGINE-941 requires a candidate before the potion lead.
+	for _, i := range []int{6, 35} {
+		rows.secondShopTestCollection[i] = []int32{10}
+	}
 	tab := &mapload.Table{Shapes: rows, Materials: rows, Armors: rows, Shields: rows,
 		Weapons: rows, MagicItems: rows, Spells: sleepCollection{secondShopTestCollection{}, 1}, Magic: rows}
 	c := newSecondCampaign()

@@ -29,6 +29,7 @@ func TestRollBoundsCountAttemptsOrFailures(t *testing.T) {
 	}{
 		{"attempts", Bound{Attempts: func(n int) int { return n + 1 }}, []int{1, 1}, 4},
 		{"failures", Bound{Failures: func(n int) int { return n + 1 }}, []int{1, 1, 1}, 6},
+		{"failure exit", Bound{Failures: func(n int) int { return n - 1 }}, []int{1, 1}, 5},
 		{"none", Bound{}, []int{1, 1, 1}, 6},
 	} {
 		src := &seq{values: []int{0, 1}}
@@ -47,10 +48,20 @@ func TestRollRedrawsMarkedPick(t *testing.T) {
 	}
 	src := &seq{values: []int{0, 0, 1, 0, 0, 0, 1}}
 	got, done := roll(cat, Bound{Failures: func(int) int { return 5 }}, []int{0, 1}, 2, nil, src)
-	// The first pick takes two redraws; the second exhausts them, fails,
-	// and the next pick passes.
-	if !reflect.DeepEqual(got, []int{1, 1}) || done != 2 || src.at != 7 {
+	// R2-ENGINE-941: the second pick exhausts its redraws and ends the roll.
+	if !reflect.DeepEqual(got, []int{1}) || done != 1 || src.at != 6 {
 		t.Fatalf("got %v took %d after %d draws", got, done, src.at)
+	}
+}
+
+func TestGenerateNeedsCandidatesBeforeLead(t *testing.T) {
+	cat := Category[int, int]{
+		Candidates: func(Source) []int { return nil },
+		Lead:       func([]int, Source) []int { t.Fatal("lead without candidates"); return nil },
+		Count:      func(Source) int { t.Fatal("count without candidates"); return 1 },
+	}
+	if got := Generate(Profile[int, int]{Categories: []Category[int, int]{cat}}, &seq{values: []int{0}}); len(got) != 1 || len(got[0]) != 0 {
+		t.Fatalf("empty category generated %v", got)
 	}
 }
 

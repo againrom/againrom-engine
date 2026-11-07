@@ -22,6 +22,8 @@ modder or developer can notice gets no entry.
 - [ROM2] Saves of mission 42 made before 0.148.20 now load with their bridges in place.
 - [ROM2] On the English install the map's wooden bridges now appear and can be crossed, and a building that cannot be damaged, such as the crypt on the Dragon Killer map, is drawn whole instead of as ruins; a save made inside such a mission before this fix keeps the missing bridges, so enter the mission again from a save made outside it.
 - [ROM2] Computer-controlled mages with Heal and Shield now protect themselves with Shield while idle when they have enough mana.
+- [ROM2] Slain monsters now leave items in the sack beside their gold, as in the original: dragons nearly always a staff, book, scroll or potion; ogres, orcs, the undead and necromancers now and then an enchanted weapon, shield, armour or magic item. Goblin spearmen now drop gold too.
+- [ROM2] Some town shops now offer the correct selection of magic goods and weapons.
 - [ROM2] In the shop, items you lay on the table stay there when you switch to another party member, so you can pass items between members through the table; leaving the shop or saving puts every item back in a pack or on its shelf, where before a save made with items on the table lost them.
 - [ROM2] In the objectives window, the objective rows now start right below the last line of the briefing instead of leaving a gap of empty lines.
 - [ROM2] In the shop, an item you take from the shelf now leaves the shelf at once instead of staying behind as an item that cannot be taken or bought; putting it back returns it, and after a purchase the shelf shows only what the shop still holds.

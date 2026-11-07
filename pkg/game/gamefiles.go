@@ -38,6 +38,9 @@ type gameFiles struct {
 	storedFormMerge bool
 	// creatureBooks is the creature book source; nil is the first game's.
 	creatureBooks *mapload.CreatureBooks
+	// deathItems builds a table's death item draw; nil, the first game's,
+	// draws no death item.
+	deathItems func(*mapload.Table) sim.DeathItemDraw
 	// storedOwnWeight keeps a native Human's stored own weight in a SAVE
 	// instead of its worn weight: no second-game claim states the rule.
 	storedOwnWeight bool
@@ -316,6 +319,7 @@ var secondGameFiles = gameFiles{
 	freshPlayers:         mapload.NoFreshPlayers,
 	storedFormMerge:      true,
 	creatureBooks:        mapload.ClassCellBooks,
+	deathItems:           secondDeathItems,
 	storedOwnWeight:      true,
 	storedWeaponSpell:    true,
 	releasedSpellReadout: true,

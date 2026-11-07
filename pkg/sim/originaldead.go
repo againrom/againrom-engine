@@ -221,7 +221,7 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		w.clearFelled(i)
 		e.clearKillCredit()
 		e.SuppressCorpseLoot = true
-		e.GoldChance, e.TreasureMin, e.TreasureMax = 0, 0, 0
+		e.GoldChance, e.TreasureMin, e.TreasureMax, e.DeathItem = 0, 0, 0, DeathItemRoll{}
 		w.carried[i], w.equipment[i] = nil, [EquipSlots]ItemInstance{}
 		syncWeaponItem(e, ItemInstance{})
 		w.recomputeLoad(i)

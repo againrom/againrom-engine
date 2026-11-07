@@ -44,6 +44,8 @@ func init() {
 	worldMethods = append(worldMethods, "ImportCurrentLivingActors")
 	worldWriters = append(worldWriters, "ImportCurrentLivingActors")
 	worldMethods = append(worldMethods, "AppendCorpseStates")
+	worldMethods = append(worldMethods, "SetDeathItemDraw", "DeathItemDraw")
+	worldWriters = append(worldWriters, "SetDeathItemDraw")
 	// Native LOAD may fill a verified legacy program's missing bindings.
 	worldMethods = append(worldMethods, "RestoreScriptBindings", "RestoreScriptProgram", "ReserveEntityIDs")
 	worldWriters = append(worldWriters, "RestoreScriptBindings", "RestoreScriptProgram", "ReserveEntityIDs")

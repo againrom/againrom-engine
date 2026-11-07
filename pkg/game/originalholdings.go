@@ -215,6 +215,7 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 	var staged sim.World
 	mapload.BindSourceDerive(&staged)
 	staged.SetRules(ms.World.Rules())
+	staged.SetDeathItemDraw(ms.World.DeathItemDraw())
 	staged.CopyDiaryUnits(ms.World)
 	staged.DeclareSpellCreatures(ms.World.SpellCreatures())
 	// STORIES 1130..1135 primed this staging round trip's fresh receiver by

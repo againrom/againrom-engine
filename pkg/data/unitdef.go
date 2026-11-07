@@ -8,9 +8,10 @@ import "fmt"
 const unitSentinel int32 = -1
 
 // lastUnitSlot is the last parameter slot the spawn path consumes. Slots 38 to
-// 40 are the three death-gold columns: chance, minimum and random span.
+// 40 are the three death-gold columns: chance, minimum and random span; 41
+// to 44 the death item columns: chance, price bounds and kind mask.
 const (
-	lastUnitSlot     = 40
+	lastUnitSlot     = 44
 	lastRequiredSlot = 37
 )
 
@@ -160,6 +161,11 @@ type UnitDef struct {
 	// simulation keeps them on the spawned entity because death can happen after
 	// a save and must make the same draw after restore.
 	GoldChance, TreasureMin, TreasureMax int32
+
+	// ItemChance, ItemMin, ItemMax and ItemMask are the death item columns
+	// (R2-ASSET-224); the first game's rows hold them too and no first-game
+	// rule reads them.
+	ItemChance, ItemMin, ItemMax, ItemMask int32
 }
 
 // protectionNames are the five ELEMENTAL protection columns' own titles, in the
@@ -391,6 +397,14 @@ func NewUnitDef(name string, params []int32) (UnitDef, error) {
 			c.store(&d.TreasureMin)
 		case 40:
 			c.store(&d.TreasureMax)
+		case 41:
+			c.store(&d.ItemChance)
+		case 42:
+			c.store(&d.ItemMin)
+		case 43:
+			c.store(&d.ItemMax)
+		case 44:
+			c.store(&d.ItemMask)
 		}
 	}
 

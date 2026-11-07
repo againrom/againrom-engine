@@ -43,6 +43,7 @@ type ActorDefinition struct {
 	XPSlot                               uint8
 	GainsXP                              bool
 	GoldChance, TreasureMin, TreasureMax int32
+	DeathItem                            DeathItemRoll `json:",omitzero"`
 	Skill, SkillXP                       [skillSlots]int32
 	SuppressCorpseLoot                   bool
 
@@ -92,7 +93,7 @@ func NewActor(d ActorDefinition, at ActorPlacement) Entity {
 		KnownSpells: d.KnownSpells, Book: d.Book, CreatureSpells: d.CreatureSpells, AutoSpell: d.AutoSpell,
 		XPValue: d.XPValue, Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit,
 		XPSlot: d.XPSlot, GainsXP: d.GainsXP,
-		GoldChance: d.GoldChance, TreasureMin: d.TreasureMin, TreasureMax: d.TreasureMax,
+		GoldChance: d.GoldChance, TreasureMin: d.TreasureMin, TreasureMax: d.TreasureMax, DeathItem: d.DeathItem,
 		Skill: d.Skill, SkillXP: d.SkillXP, SuppressCorpseLoot: d.SuppressCorpseLoot,
 		NativeBasis: d.NativeBasis, NativeClass: d.NativeClass, NativeTraining: d.NativeTraining,
 	}

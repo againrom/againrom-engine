@@ -61,165 +61,180 @@ first no shop: next stock draw 26277
 second town 1 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 1 sleeps 0: row 0 "Sleep" choosable true of 5
 second town 1 sleeps 0: filled 1 table 0 category 0
-second town 1 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 1 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 1 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 1 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 1 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 1 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 1 sleeps 0 shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 1 sleeps 0 shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 1 sleeps 0 shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 1 sleeps 0 shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 1 sleeps 0 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 1 sleeps 0 shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 1 sleeps 0 shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 1 sleeps 0: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
-second town 1 sleeps 0: next stock draw 17887
+second town 1 sleeps 0: next stock draw 18844
 second town 1 sleeps 1: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 1 sleeps 1: row 0 "Sleep" choosable true of 5
 second town 1 sleeps 1: filled 1 table 0 category 0
-second town 1 sleeps 1 shelf 3 #0 of 6: code 0x0e45 price 10 units 76 kind 0
-second town 1 sleeps 1 shelf 3 #1 of 6: code 0x0e46 price 10 units 65 kind 0
-second town 1 sleeps 1 shelf 3 #2 of 6: code 0x0e47 price 10 units 93 kind 0
-second town 1 sleeps 1 shelf 3 #3 of 6: code 0x0e48 price 10 units 89 kind 0
-second town 1 sleeps 1 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 1 sleeps 1 shelf 3 #5 of 6: code 0x0e4a price 10 units 77 kind 0
+second town 1 sleeps 1 shelf 3 #0 of 7: code 0x0e45 price 10 units 93 kind 0
+second town 1 sleeps 1 shelf 3 #1 of 7: code 0x0e46 price 10 units 67 kind 0
+second town 1 sleeps 1 shelf 3 #2 of 7: code 0x0e47 price 10 units 54 kind 0
+second town 1 sleeps 1 shelf 3 #3 of 7: code 0x0e48 price 10 units 65 kind 0
+second town 1 sleeps 1 shelf 3 #4 of 7: code 0x0e49 price 10 units 77 kind 0
+second town 1 sleeps 1 shelf 3 #5 of 7: code 0x0e4a price 10 units 53 kind 0
+second town 1 sleeps 1 shelf 3 #6 of 7: code 0x0e23 price 10 units 10 kind 0
 second town 1 sleeps 1: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
-second town 1 sleeps 1: next stock draw 21503
+second town 1 sleeps 1: next stock draw 19725
 second town 1 sleeps 2: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 1 sleeps 2: row 0 "Sleep" choosable true of 5
 second town 1 sleeps 2: filled 1 table 0 category 0
-second town 1 sleeps 2 shelf 3 #0 of 6: code 0x0e45 price 10 units 81 kind 0
-second town 1 sleeps 2 shelf 3 #1 of 6: code 0x0e46 price 10 units 100 kind 0
-second town 1 sleeps 2 shelf 3 #2 of 6: code 0x0e47 price 10 units 96 kind 0
-second town 1 sleeps 2 shelf 3 #3 of 6: code 0x0e48 price 10 units 70 kind 0
-second town 1 sleeps 2 shelf 3 #4 of 6: code 0x0e49 price 10 units 91 kind 0
-second town 1 sleeps 2 shelf 3 #5 of 6: code 0x0e4a price 10 units 61 kind 0
+second town 1 sleeps 2 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 1 sleeps 2 shelf 3 #1 of 7: code 0x0e46 price 10 units 73 kind 0
+second town 1 sleeps 2 shelf 3 #2 of 7: code 0x0e47 price 10 units 68 kind 0
+second town 1 sleeps 2 shelf 3 #3 of 7: code 0x0e48 price 10 units 96 kind 0
+second town 1 sleeps 2 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 1 sleeps 2 shelf 3 #5 of 7: code 0x0e4a price 10 units 58 kind 0
+second town 1 sleeps 2 shelf 3 #6 of 7: code 0x0e23 price 10 units 8 kind 0
 second town 1 sleeps 2: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
-second town 1 sleeps 2: next stock draw 26349
+second town 1 sleeps 2: next stock draw 11731
 second town 1 sleeps 3: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 1 sleeps 3: row 0 "Sleep" choosable true of 5
 second town 1 sleeps 3: filled 1 table 0 category 0
-second town 1 sleeps 3 shelf 3 #0 of 6: code 0x0e45 price 10 units 53 kind 0
-second town 1 sleeps 3 shelf 3 #1 of 6: code 0x0e46 price 10 units 68 kind 0
-second town 1 sleeps 3 shelf 3 #2 of 6: code 0x0e47 price 10 units 64 kind 0
-second town 1 sleeps 3 shelf 3 #3 of 6: code 0x0e48 price 10 units 74 kind 0
-second town 1 sleeps 3 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 1 sleeps 3 shelf 3 #5 of 6: code 0x0e4a price 10 units 52 kind 0
+second town 1 sleeps 3 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 1 sleeps 3 shelf 3 #1 of 7: code 0x0e46 price 10 units 78 kind 0
+second town 1 sleeps 3 shelf 3 #2 of 7: code 0x0e47 price 10 units 95 kind 0
+second town 1 sleeps 3 shelf 3 #3 of 7: code 0x0e48 price 10 units 76 kind 0
+second town 1 sleeps 3 shelf 3 #4 of 7: code 0x0e49 price 10 units 71 kind 0
+second town 1 sleeps 3 shelf 3 #5 of 7: code 0x0e4a price 10 units 91 kind 0
+second town 1 sleeps 3 shelf 3 #6 of 7: code 0x0e06 price 10 units 11 kind 0
 second town 1 sleeps 3: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
-second town 1 sleeps 3: next stock draw 30673
+second town 1 sleeps 3: next stock draw 5866
 second town 1 no shop: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 1 no shop: row 0 "Sleep" choosable true of 5
 second town 1 no shop: filled 1 table 0 category 0
-second town 1 no shop shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 1 no shop shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 1 no shop shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 1 no shop shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 1 no shop shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 1 no shop shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 1 no shop shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 1 no shop shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 1 no shop shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 1 no shop shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 1 no shop shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 1 no shop shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 1 no shop shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 1 no shop: gold 1234 room 1 sav 11794 bytes e7c941039e9736d9d2819b080a2e7c5dd23127373b31d157d727c98ad8faaf30
-second town 1 no shop: next stock draw 17887
+second town 1 no shop: next stock draw 18844
 second town 2 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 2 sleeps 0: row 0 "Sleep" choosable true of 5
 second town 2 sleeps 0: filled 2 table 0 category 0
-second town 2 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 2 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 2 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 2 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 2 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 2 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 2 sleeps 0 shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 2 sleeps 0 shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 2 sleeps 0 shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 2 sleeps 0 shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 2 sleeps 0 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 2 sleeps 0 shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 2 sleeps 0 shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 2 sleeps 0: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
-second town 2 sleeps 0: next stock draw 17887
+second town 2 sleeps 0: next stock draw 18844
 second town 2 sleeps 1: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 2 sleeps 1: row 0 "Sleep" choosable true of 5
 second town 2 sleeps 1: filled 2 table 0 category 0
-second town 2 sleeps 1 shelf 3 #0 of 6: code 0x0e45 price 10 units 76 kind 0
-second town 2 sleeps 1 shelf 3 #1 of 6: code 0x0e46 price 10 units 65 kind 0
-second town 2 sleeps 1 shelf 3 #2 of 6: code 0x0e47 price 10 units 93 kind 0
-second town 2 sleeps 1 shelf 3 #3 of 6: code 0x0e48 price 10 units 89 kind 0
-second town 2 sleeps 1 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 2 sleeps 1 shelf 3 #5 of 6: code 0x0e4a price 10 units 77 kind 0
+second town 2 sleeps 1 shelf 3 #0 of 7: code 0x0e45 price 10 units 93 kind 0
+second town 2 sleeps 1 shelf 3 #1 of 7: code 0x0e46 price 10 units 67 kind 0
+second town 2 sleeps 1 shelf 3 #2 of 7: code 0x0e47 price 10 units 54 kind 0
+second town 2 sleeps 1 shelf 3 #3 of 7: code 0x0e48 price 10 units 65 kind 0
+second town 2 sleeps 1 shelf 3 #4 of 7: code 0x0e49 price 10 units 77 kind 0
+second town 2 sleeps 1 shelf 3 #5 of 7: code 0x0e4a price 10 units 53 kind 0
+second town 2 sleeps 1 shelf 3 #6 of 7: code 0x0e23 price 10 units 10 kind 0
 second town 2 sleeps 1: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
-second town 2 sleeps 1: next stock draw 21503
+second town 2 sleeps 1: next stock draw 19725
 second town 2 sleeps 2: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 2 sleeps 2: row 0 "Sleep" choosable true of 5
 second town 2 sleeps 2: filled 2 table 0 category 0
-second town 2 sleeps 2 shelf 3 #0 of 6: code 0x0e45 price 10 units 81 kind 0
-second town 2 sleeps 2 shelf 3 #1 of 6: code 0x0e46 price 10 units 100 kind 0
-second town 2 sleeps 2 shelf 3 #2 of 6: code 0x0e47 price 10 units 96 kind 0
-second town 2 sleeps 2 shelf 3 #3 of 6: code 0x0e48 price 10 units 70 kind 0
-second town 2 sleeps 2 shelf 3 #4 of 6: code 0x0e49 price 10 units 91 kind 0
-second town 2 sleeps 2 shelf 3 #5 of 6: code 0x0e4a price 10 units 61 kind 0
+second town 2 sleeps 2 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 2 sleeps 2 shelf 3 #1 of 7: code 0x0e46 price 10 units 73 kind 0
+second town 2 sleeps 2 shelf 3 #2 of 7: code 0x0e47 price 10 units 68 kind 0
+second town 2 sleeps 2 shelf 3 #3 of 7: code 0x0e48 price 10 units 96 kind 0
+second town 2 sleeps 2 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 2 sleeps 2 shelf 3 #5 of 7: code 0x0e4a price 10 units 58 kind 0
+second town 2 sleeps 2 shelf 3 #6 of 7: code 0x0e23 price 10 units 8 kind 0
 second town 2 sleeps 2: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
-second town 2 sleeps 2: next stock draw 26349
+second town 2 sleeps 2: next stock draw 11731
 second town 2 sleeps 3: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 2 sleeps 3: row 0 "Sleep" choosable true of 5
 second town 2 sleeps 3: filled 2 table 0 category 0
-second town 2 sleeps 3 shelf 3 #0 of 6: code 0x0e45 price 10 units 53 kind 0
-second town 2 sleeps 3 shelf 3 #1 of 6: code 0x0e46 price 10 units 68 kind 0
-second town 2 sleeps 3 shelf 3 #2 of 6: code 0x0e47 price 10 units 64 kind 0
-second town 2 sleeps 3 shelf 3 #3 of 6: code 0x0e48 price 10 units 74 kind 0
-second town 2 sleeps 3 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 2 sleeps 3 shelf 3 #5 of 6: code 0x0e4a price 10 units 52 kind 0
+second town 2 sleeps 3 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 2 sleeps 3 shelf 3 #1 of 7: code 0x0e46 price 10 units 78 kind 0
+second town 2 sleeps 3 shelf 3 #2 of 7: code 0x0e47 price 10 units 95 kind 0
+second town 2 sleeps 3 shelf 3 #3 of 7: code 0x0e48 price 10 units 76 kind 0
+second town 2 sleeps 3 shelf 3 #4 of 7: code 0x0e49 price 10 units 71 kind 0
+second town 2 sleeps 3 shelf 3 #5 of 7: code 0x0e4a price 10 units 91 kind 0
+second town 2 sleeps 3 shelf 3 #6 of 7: code 0x0e06 price 10 units 11 kind 0
 second town 2 sleeps 3: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
-second town 2 sleeps 3: next stock draw 30673
+second town 2 sleeps 3: next stock draw 5866
 second town 2 no shop: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 2 no shop: row 0 "Sleep" choosable true of 5
 second town 2 no shop: filled 2 table 0 category 0
-second town 2 no shop shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 2 no shop shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 2 no shop shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 2 no shop shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 2 no shop shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 2 no shop shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 2 no shop shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 2 no shop shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 2 no shop shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 2 no shop shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 2 no shop shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 2 no shop shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 2 no shop shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 2 no shop: gold 1234 room 1 sav 11794 bytes 7edc4f15b73d6cab9a2d3f0c60fd24c2e0507b11c9e6be94906907750d9a4422
-second town 2 no shop: next stock draw 17887
+second town 2 no shop: next stock draw 18844
 second town 3 sleeps 0: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 3 sleeps 0: row 0 "Sleep" choosable true of 5
 second town 3 sleeps 0: filled 3 table 0 category 0
-second town 3 sleeps 0 shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 3 sleeps 0 shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 3 sleeps 0 shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 3 sleeps 0 shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 3 sleeps 0 shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 3 sleeps 0 shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 3 sleeps 0 shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 3 sleeps 0 shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 3 sleeps 0 shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 3 sleeps 0 shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 3 sleeps 0 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 3 sleeps 0 shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 3 sleeps 0 shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 3 sleeps 0: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
-second town 3 sleeps 0: next stock draw 17887
+second town 3 sleeps 0: next stock draw 18844
 second town 3 sleeps 1: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 3 sleeps 1: row 0 "Sleep" choosable true of 5
 second town 3 sleeps 1: filled 3 table 0 category 0
-second town 3 sleeps 1 shelf 3 #0 of 6: code 0x0e45 price 10 units 76 kind 0
-second town 3 sleeps 1 shelf 3 #1 of 6: code 0x0e46 price 10 units 65 kind 0
-second town 3 sleeps 1 shelf 3 #2 of 6: code 0x0e47 price 10 units 93 kind 0
-second town 3 sleeps 1 shelf 3 #3 of 6: code 0x0e48 price 10 units 89 kind 0
-second town 3 sleeps 1 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 3 sleeps 1 shelf 3 #5 of 6: code 0x0e4a price 10 units 77 kind 0
+second town 3 sleeps 1 shelf 3 #0 of 7: code 0x0e45 price 10 units 93 kind 0
+second town 3 sleeps 1 shelf 3 #1 of 7: code 0x0e46 price 10 units 67 kind 0
+second town 3 sleeps 1 shelf 3 #2 of 7: code 0x0e47 price 10 units 54 kind 0
+second town 3 sleeps 1 shelf 3 #3 of 7: code 0x0e48 price 10 units 65 kind 0
+second town 3 sleeps 1 shelf 3 #4 of 7: code 0x0e49 price 10 units 77 kind 0
+second town 3 sleeps 1 shelf 3 #5 of 7: code 0x0e4a price 10 units 53 kind 0
+second town 3 sleeps 1 shelf 3 #6 of 7: code 0x0e23 price 10 units 10 kind 0
 second town 3 sleeps 1: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
-second town 3 sleeps 1: next stock draw 21503
+second town 3 sleeps 1: next stock draw 19725
 second town 3 sleeps 2: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 3 sleeps 2: row 0 "Sleep" choosable true of 5
 second town 3 sleeps 2: filled 3 table 0 category 0
-second town 3 sleeps 2 shelf 3 #0 of 6: code 0x0e45 price 10 units 81 kind 0
-second town 3 sleeps 2 shelf 3 #1 of 6: code 0x0e46 price 10 units 100 kind 0
-second town 3 sleeps 2 shelf 3 #2 of 6: code 0x0e47 price 10 units 96 kind 0
-second town 3 sleeps 2 shelf 3 #3 of 6: code 0x0e48 price 10 units 70 kind 0
-second town 3 sleeps 2 shelf 3 #4 of 6: code 0x0e49 price 10 units 91 kind 0
-second town 3 sleeps 2 shelf 3 #5 of 6: code 0x0e4a price 10 units 61 kind 0
+second town 3 sleeps 2 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 3 sleeps 2 shelf 3 #1 of 7: code 0x0e46 price 10 units 73 kind 0
+second town 3 sleeps 2 shelf 3 #2 of 7: code 0x0e47 price 10 units 68 kind 0
+second town 3 sleeps 2 shelf 3 #3 of 7: code 0x0e48 price 10 units 96 kind 0
+second town 3 sleeps 2 shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 3 sleeps 2 shelf 3 #5 of 7: code 0x0e4a price 10 units 58 kind 0
+second town 3 sleeps 2 shelf 3 #6 of 7: code 0x0e23 price 10 units 8 kind 0
 second town 3 sleeps 2: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
-second town 3 sleeps 2: next stock draw 26349
+second town 3 sleeps 2: next stock draw 11731
 second town 3 sleeps 3: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 3 sleeps 3: row 0 "Sleep" choosable true of 5
 second town 3 sleeps 3: filled 3 table 0 category 0
-second town 3 sleeps 3 shelf 3 #0 of 6: code 0x0e45 price 10 units 53 kind 0
-second town 3 sleeps 3 shelf 3 #1 of 6: code 0x0e46 price 10 units 68 kind 0
-second town 3 sleeps 3 shelf 3 #2 of 6: code 0x0e47 price 10 units 64 kind 0
-second town 3 sleeps 3 shelf 3 #3 of 6: code 0x0e48 price 10 units 74 kind 0
-second town 3 sleeps 3 shelf 3 #4 of 6: code 0x0e49 price 10 units 85 kind 0
-second town 3 sleeps 3 shelf 3 #5 of 6: code 0x0e4a price 10 units 52 kind 0
+second town 3 sleeps 3 shelf 3 #0 of 7: code 0x0e45 price 10 units 100 kind 0
+second town 3 sleeps 3 shelf 3 #1 of 7: code 0x0e46 price 10 units 78 kind 0
+second town 3 sleeps 3 shelf 3 #2 of 7: code 0x0e47 price 10 units 95 kind 0
+second town 3 sleeps 3 shelf 3 #3 of 7: code 0x0e48 price 10 units 76 kind 0
+second town 3 sleeps 3 shelf 3 #4 of 7: code 0x0e49 price 10 units 71 kind 0
+second town 3 sleeps 3 shelf 3 #5 of 7: code 0x0e4a price 10 units 91 kind 0
+second town 3 sleeps 3 shelf 3 #6 of 7: code 0x0e06 price 10 units 11 kind 0
 second town 3 sleeps 3: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
-second town 3 sleeps 3: next stock draw 30673
+second town 3 sleeps 3: next stock draw 5866
 second town 3 no shop: plaque "sleep" word "tavern.sleep" rect (494,15)-(614,67) click true kind 1 door 0
 second town 3 no shop: row 0 "Sleep" choosable true of 5
 second town 3 no shop: filled 3 table 0 category 0
-second town 3 no shop shelf 3 #0 of 6: code 0x0e45 price 10 units 99 kind 0
-second town 3 no shop shelf 3 #1 of 6: code 0x0e46 price 10 units 56 kind 0
-second town 3 no shop shelf 3 #2 of 6: code 0x0e47 price 10 units 61 kind 0
-second town 3 no shop shelf 3 #3 of 6: code 0x0e48 price 10 units 67 kind 0
-second town 3 no shop shelf 3 #4 of 6: code 0x0e49 price 10 units 88 kind 0
-second town 3 no shop shelf 3 #5 of 6: code 0x0e4a price 10 units 55 kind 0
+second town 3 no shop shelf 3 #0 of 7: code 0x0e45 price 10 units 99 kind 0
+second town 3 no shop shelf 3 #1 of 7: code 0x0e46 price 10 units 56 kind 0
+second town 3 no shop shelf 3 #2 of 7: code 0x0e47 price 10 units 61 kind 0
+second town 3 no shop shelf 3 #3 of 7: code 0x0e48 price 10 units 67 kind 0
+second town 3 no shop shelf 3 #4 of 7: code 0x0e49 price 10 units 88 kind 0
+second town 3 no shop shelf 3 #5 of 7: code 0x0e4a price 10 units 55 kind 0
+second town 3 no shop shelf 3 #6 of 7: code 0x0e23 price 10 units 7 kind 0
 second town 3 no shop: gold 1234 room 1 sav 11842 bytes d1369e333d86ee50e274da416c048a199ff77312dfb3dec532ab29812d94092f
-second town 3 no shop: next stock draw 17887
+second town 3 no shop: next stock draw 18844
