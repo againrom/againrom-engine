@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -48,6 +49,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	if box.Empty() || !box.In(image.Rect(0, 0, min(view.Width, 256), min(view.Height, 256))) {
 		return fmt.Errorf("the box %v lies outside the map", box)
 	}
+	limits := scriptprofile.First
 	pair := 0
 	if trigger >= 0 {
 		if trigger >= len(sc.Triggers) {
@@ -55,8 +57,8 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		}
 		pair = -1
 		t := sc.Triggers[trigger]
-		for k := range t.Left {
-			if t.Left[k] == 0 && t.Right[k] == 0 {
+		for k := range limits.Pairs {
+			if left, right, _ := t.Pair(k); left == 0 && right == 0 {
 				pair = k
 				break
 			}
@@ -66,7 +68,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		}
 	}
 	one, found := unsharedConstant(sc, 1)
-	if need := 1 + refCount(!found); len(sc.Conditions)+need > 100 {
+	if need := 1 + refCount(!found); len(sc.Conditions)+need > limits.Registers {
 		return errChecksFull
 	}
 	if err := registerCollision(sc, 1+refCount(!found)); err != nil {
@@ -76,8 +78,8 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	if err != nil {
 		return err
 	}
-	if id > 5000 || !found && id+1 > 5000 {
-		return fmt.Errorf("the next node ID exceeds 5000")
+	if id > limits.MaxID || !found && id+1 > limits.MaxID {
+		return fmt.Errorf("the next node ID exceeds %d", limits.MaxID)
 	}
 	rec, err := mapedit.NewScriptNode(mapload.ScriptOperationName(true, 2), 2, id,
 		mapedit.ScriptParam{Type: mapload.ScriptUnit, Value: boxAreaUnit},
@@ -105,8 +107,13 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		}
 		trigger = m.Count(mapedit.KindTrigger) - 1
 	}
-	return m.SetFields(mapedit.KindTrigger, trigger, mapedit.FieldSet{Key: fmt.Sprintf("left%d", pair), Value: int64(id)},
-		mapedit.FieldSet{Key: fmt.Sprintf("right%d", pair), Value: int64(one)}, mapedit.FieldSet{Key: fmt.Sprintf("cmp%d", pair), Value: 0})
+	_, now, err := wizardScript(m)
+	if err != nil {
+		return err
+	}
+	t := now.Triggers[trigger]
+	t.Left[pair], t.Right[pair], t.Cmp[pair] = id, one, 0
+	return m.SetTriggerSlots(trigger, t)
 }
 
 // unsharedConstant is the id of a constant condition holding value that no

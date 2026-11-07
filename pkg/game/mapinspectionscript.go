@@ -1,7 +1,6 @@
 package game
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -378,8 +378,8 @@ func (r registerTaken) Error() string {
 	return fmt.Sprintf("script variable %d would share the register of the new check", r.register)
 }
 
-// errChecksFull refuses a check beyond the 100 registers.
-var errChecksFull = errors.New("the script already uses 100 check registers")
+// errChecksFull refuses a check beyond the register file.
+var errChecksFull = fmt.Errorf("the script already uses %d check registers", scriptprofile.First.Registers)
 
 func registerCollides(sc alm.Script, next uint32) error {
 	for _, set := range []struct {

@@ -1,6 +1,10 @@
 package ui
 
-import "image"
+import (
+	"image"
+
+	"againrom/pkg/scriptprofile"
+)
 
 // InspectionScriptModel is the map's script as the trigger editor reads it:
 // its nodes and triggers with the document record each one is, the places
@@ -126,8 +130,8 @@ type InspectionScriptNode struct {
 type InspectionTrigger struct {
 	Record           int
 	Name             string // UTF-8, the text its name field edits
-	Left, Right, Cmp [3]uint32
-	Acts             [4]uint32
+	Left, Right, Cmp [scriptprofile.RecordPairs]uint32
+	Acts             [scriptprofile.RecordActions]uint32
 	Once             uint32
 }
 

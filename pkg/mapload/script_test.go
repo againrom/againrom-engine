@@ -31,7 +31,7 @@ var gap = [2]uint32{0, 0}
 
 // trg builds one trigger record.
 func trg(name string, left, right, cmp [3]uint32, acts [4]uint32, once uint32) alm.ScriptTrigger {
-	return alm.ScriptTrigger{Name: name, Left: left, Right: right, Cmp: cmp, Acts: acts, Once: once}
+	return alm.ScriptTrigger{Name: name, Left: left[:], Right: right[:], Cmp: cmp[:], Acts: acts[:], Once: once}
 }
 
 func compile(t *testing.T, src alm.Script, refs mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport) {

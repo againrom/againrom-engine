@@ -1,10 +1,10 @@
 package mapedit
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 // A win or lose arm is the script shape the shipped maps author: an action
@@ -38,14 +38,13 @@ const (
 const (
 	instantWin  = 4
 	instantLose = 5
-
-	// The binder numbers conditions into a 100-word register file and reads
-	// one latch byte per trigger from a 1000-byte array (MISSION-SLOT-008);
-	// an id above 5000 is a suspicious reference (TRIG-BIND-010).
-	scriptRegisters = 100
-	scriptTriggers  = 1000
-	scriptMaxID     = 5000
 )
+
+// script is the limits the editor writes a map's script to: the binder
+// numbers conditions into the register file and reads one latch byte per
+// trigger (MISSION-SLOT-008); an id above the cap is a suspicious reference
+// (TRIG-BIND-010).
+var script = scriptprofile.First
 
 // Arm is one row of the arm table: what the arm's records say. Target is the
 // parameter type code of the check's one parameter (ALM-TRIG-046).
@@ -98,11 +97,11 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 			return fmt.Errorf("mapedit: a %s target is 1..65535, not %d", arm.Name, target)
 		}
 	}
-	if e.Count(KindCondition)+ArmConditions > scriptRegisters {
-		return fmt.Errorf("mapedit: the script already uses %d of %d check registers", e.Count(KindCondition), scriptRegisters)
+	if e.Count(KindCondition)+ArmConditions > script.Registers {
+		return fmt.Errorf("mapedit: the script already uses %d of %d check registers", e.Count(KindCondition), script.Registers)
 	}
-	if e.Count(KindTrigger)+1 > scriptTriggers {
-		return fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), scriptTriggers)
+	if e.Count(KindTrigger)+1 > script.Triggers {
+		return fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), script.Triggers)
 	}
 	actionID, err := e.NextScriptID(KindAction)
 	if err != nil {
@@ -112,8 +111,8 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 	if err != nil {
 		return err
 	}
-	if actionID > scriptMaxID || checkID+1 > scriptMaxID {
-		return fmt.Errorf("mapedit: the next node id passes %d", scriptMaxID)
+	if actionID > script.MaxID || checkID+1 > script.MaxID {
+		return fmt.Errorf("mapedit: the next node id passes %d", script.MaxID)
 	}
 	action, err := NewScriptNode(arm.ActionLabel, arm.Instant, actionID)
 	if err != nil {
@@ -127,13 +126,11 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 	if err != nil {
 		return err
 	}
-	trigger := make([]byte, alm.ScriptTriggerSize)
-	copy(trigger, arm.TriggerName)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerPairs:], checkID)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerPairs+4:], checkID+1)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerActions:], actionID)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerCompare:], arm.Compare)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerOnce:], 1)
+	trigger, err := NewScriptTrigger(alm.ScriptTrigger{Name: arm.TriggerName, Left: []uint32{checkID}, Right: []uint32{checkID + 1},
+		Cmp: []uint32{arm.Compare}, Acts: []uint32{actionID}, Once: 1})
+	if err != nil {
+		return err
+	}
 	_, err = e.PlaceAll([]Placement{{KindAction, action}, {KindCondition, check}, {KindCondition, limit}, {KindTrigger, trigger}})
 	return err
 }

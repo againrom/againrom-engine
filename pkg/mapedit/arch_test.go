@@ -40,15 +40,23 @@ var almReferences = nameTable{
 	"player.go/" + fileScope:                {"alm.PlayerNameText"},
 	"script.go/nodeFields":                  {"alm.ScriptLabelText"},
 	"script.go/triggerFields":               {"alm.ScriptLabelText"},
-	"meta.go/(*Editor).SetDescription":      {"alm.EncodeDescription"},
-	"newmap.go/NewMap":                      {"alm.NewMap", "alm.NewMapSpec"},
-	"brush.go/(Brush).heights":              {"alm.MaxHeight"},
-	"brush.go/(Brush).addHeights":           {"alm.MaxHeight"},
-	"brush.go/(*Editor).tileEdit":           {"alm.TileGroupMask"},
-	"brush.go/waterIndex":                   {"alm.TileIndex"},
-	"groupbrush.go/(*Editor).groupStroke":   {"alm.TileGroup"},
-	"groupbrush.go/BrushGroup":              {"alm.InstallTileGroups", "alm.TileGroupCount"},
-	"groupbrush.go/opaqueWord":              {"alm.InstallTileGroups", "alm.TileGroup"},
+	// The type-7 layout reads the format's one walk of the three arrays; the
+	// trigger writer takes the format's trigger value.
+	"script.go/scriptLayout":              {"alm.FrameScript", "alm.ScriptFrameError"},
+	"script.go/triggerWords":              {"alm.ScriptTrigger"},
+	"script.go/NewScriptTrigger":          {"alm.ScriptTrigger"},
+	"script.go/(*Editor).SetTriggerSlots": {"alm.ScriptTrigger"},
+	"script.go/(*Editor).AddDropZone":     {"alm.ScriptTrigger"},
+	"arm.go/(*Editor).AddArm":             {"alm.ScriptTrigger"},
+	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
+	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
+	"brush.go/(Brush).heights":            {"alm.MaxHeight"},
+	"brush.go/(Brush).addHeights":         {"alm.MaxHeight"},
+	"brush.go/(*Editor).tileEdit":         {"alm.TileGroupMask"},
+	"brush.go/waterIndex":                 {"alm.TileIndex"},
+	"groupbrush.go/(*Editor).groupStroke": {"alm.TileGroup"},
+	"groupbrush.go/BrushGroup":            {"alm.InstallTileGroups", "alm.TileGroupCount"},
+	"groupbrush.go/opaqueWord":            {"alm.InstallTileGroups", "alm.TileGroup"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

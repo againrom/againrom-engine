@@ -1,5 +1,7 @@
 package alm
 
+import "againrom/pkg/scriptprofile"
+
 // The ROM1 record layout the readers and the map editor address: record type
 // ids, field offsets relative to their record (the file header's to the file),
 // record and field sizes, and the bits of the tile word and the unit flags.
@@ -125,8 +127,8 @@ const (
 	ScriptTriggerActions = 0x98
 	ScriptTriggerCompare = 0xa8
 	ScriptTriggerOnce    = 0xb4
-	ScriptPairs          = 3
-	ScriptActionRefs     = 4
+	ScriptPairs          = scriptprofile.RecordPairs
+	ScriptActionRefs     = scriptprofile.RecordActions
 
 	LootCount           = 0x00
 	LootOwner           = 0x04

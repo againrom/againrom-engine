@@ -4268,5 +4268,11 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the shop shelf listing in
 	// pkg/game/shopdeal.go, the new pkg/game/secondshopghost_test.go, and
 	// this note.
-	CommentBytes: 10610541,
+
+	// CommentBytes rises for the doc comments of the script profile in
+	// pkg/scriptprofile, the one type-7 walk in pkg/formats/alm/script.go,
+	// the trigger writer in pkg/mapedit/script.go, the script framing guard
+	// in internal/archtest/scriptframe.go, their tests, the leaf's line in
+	// internal/archtest/dag_test.go's UI pin, and this note.
+	CommentBytes: 10617393,
 }

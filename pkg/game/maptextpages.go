@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
@@ -277,7 +278,7 @@ func (x *MapInspector) mapLabels(source string) (map[uint32]string, error) {
 	}
 	out := map[uint32]string{}
 	for _, v := range f.Variables {
-		if _, twice := out[v.Register]; twice || v.Register >= 100 || !labelAllowed(v.Label) {
+		if _, twice := out[v.Register]; twice || v.Register >= scriptprofile.FirstRegisters || !labelAllowed(v.Label) {
 			return nil, fmt.Errorf("%s: register %d", name, v.Register)
 		}
 		out[v.Register] = v.Label

@@ -24,7 +24,7 @@ func areaMap() *alm.Map {
 }
 
 func pair(left, right, cmp uint32) alm.ScriptTrigger {
-	return alm.ScriptTrigger{Left: [3]uint32{left}, Right: [3]uint32{right}, Cmp: [3]uint32{cmp}}
+	return alm.ScriptTrigger{Left: []uint32{left, 0, 0}, Right: []uint32{right, 0, 0}, Cmp: []uint32{cmp, 0, 0}}
 }
 
 func onlyArea(t *testing.T, sc alm.Script) (ScriptArea, ScriptPlaceNote) {
@@ -53,7 +53,7 @@ func TestScriptAreaOfACellIsThatCell(t *testing.T) {
 	}
 	// An action's cells: instant 21 casts from one cell at another.
 	sc = alm.Script{Actions: []alm.ScriptNode{areaNode(21, 4, [2]uint32{ScriptX, 1}, [2]uint32{ScriptY, 2}, [2]uint32{ScriptX, 39}, [2]uint32{ScriptY, 29}, [2]uint32{ScriptInt, 3})},
-		Triggers: []alm.ScriptTrigger{{Acts: [4]uint32{4}}}}
+		Triggers: []alm.ScriptTrigger{{Acts: []uint32{4, 0, 0, 0}}}}
 	areas, _ := ScriptAreas(areaMap(), sc)
 	if len(areas) != 2 || areas[0].Rect != image.Rect(1, 2, 2, 3) || areas[1].Rect != image.Rect(39, 29, 40, 30) || areas[0].Condition {
 		t.Fatalf("cast cells: %+v", areas)
@@ -136,7 +136,7 @@ func TestScriptAreaNotesWhatIsNotDrawn(t *testing.T) {
 	sc := alm.Script{
 		Conditions: []alm.ScriptNode{areaNode(5, 1, [2]uint32{ScriptUnit, 7}), areaNode(ScriptConstant, 2, [2]uint32{ScriptInt, 1})},
 		Actions:    []alm.ScriptNode{areaNode(4, 1), areaNode(27, 2, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 50}, [2]uint32{ScriptY, 3})},
-		Triggers:   []alm.ScriptTrigger{{Left: [3]uint32{1}, Right: [3]uint32{2}, Acts: [4]uint32{1, 2, 9}}},
+		Triggers:   []alm.ScriptTrigger{{Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Acts: []uint32{1, 2, 9, 0}}},
 	}
 	areas, notes := ScriptAreas(areaMap(), sc)
 	reasons := map[string]int{}
@@ -197,8 +197,8 @@ func TestScriptAreaNamesTheSlotsItComesFrom(t *testing.T) {
 		areaNode(6, 6, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptUnit, 8}),
 	}, Actions: []alm.ScriptNode{areaNode(27, 1, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 30}, [2]uint32{ScriptY, 3})},
 		Triggers: []alm.ScriptTrigger{
-			{Left: [3]uint32{1, 3, 4}, Right: [3]uint32{2, 2, 5}, Cmp: [3]uint32{0, 0, 3}, Acts: [4]uint32{1}},
-			{Left: [3]uint32{5}, Right: [3]uint32{4}, Cmp: [3]uint32{2}},
+			{Left: []uint32{1, 3, 4}, Right: []uint32{2, 2, 5}, Cmp: []uint32{0, 0, 3}, Acts: []uint32{1, 0, 0, 0}},
+			{Left: []uint32{5, 0, 0}, Right: []uint32{4, 0, 0}, Cmp: []uint32{2, 0, 0}},
 			pair(6, 5, 5),
 		}}
 	areas, _ := ScriptAreas(areaMap(), sc)

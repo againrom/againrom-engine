@@ -5,6 +5,8 @@ import (
 	"image"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/scriptprofile"
 )
 
 // The trigger editor: a trigger's popup reads as the rule it is, its name,
@@ -62,16 +64,20 @@ func (e *MapEditor) scriptPopup() (scriptView, bool) {
 	return e.scriptViewOf(e.selected)
 }
 
-// The trigger's fields, in this order: name, once, the three pairs as
-// left, comparison and right, then the four action slots.
+// The trigger's fields, in this order: name, once, the record's pairs as
+// left, comparison and right, then its action slots.
 const (
 	trigName  = 0
 	trigOnce  = 1
 	trigPairs = 2
-	trigActs  = 11
+	pairSides = 3 // left, comparison, right
+	trigActs  = trigPairs + pairSides*scriptprofile.RecordPairs
 )
 
-func pairField(p, side int) int { return trigPairs + 3*p + side }
+func pairField(p, side int) int { return trigPairs + pairSides*p + side }
+
+// actionAdded is action slot a's mark in objectEdit.added, after the pairs'.
+func actionAdded(a int) int { return scriptprofile.RecordPairs + a }
 
 // opName is the operation's word: its name where a claim names it, else
 // "Condition N" or "Action N".
@@ -278,16 +284,16 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 		out := []InspectionField{{Key: "name", Label: e.word("editor.trigger.name"), Text: true, TextValue: t.Name},
 			{Key: "once", Label: e.word("editor.trigger.once"), Value: int64(t.Once), Choices: []InspectionChoice{{1, e.word("editor.trigger.once.yes")}, {0, e.word("editor.trigger.once.no")}}}}
 		var cmps []InspectionChoice
-		for c := int64(0); c <= 5; c++ {
+		for c := int64(0); c <= scriptprofile.MaxCompare; c++ {
 			cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
 		}
-		for p := 0; p < 3; p++ {
-			out = append(out, InspectionField{Key: fmt.Sprintf("left%d", p), Value: int64(t.Left[p]), Choices: e.nodeChoices(true)},
-				InspectionField{Key: fmt.Sprintf("cmp%d", p), Value: int64(t.Cmp[p]), Choices: cmps},
-				InspectionField{Key: fmt.Sprintf("right%d", p), Value: int64(t.Right[p]), Choices: e.nodeChoices(true)})
+		for p := range scriptprofile.RecordPairs {
+			out = append(out, InspectionField{Key: scriptprofile.LeftKey(p), Value: int64(t.Left[p]), Choices: e.nodeChoices(true)},
+				InspectionField{Key: scriptprofile.CmpKey(p), Value: int64(t.Cmp[p]), Choices: cmps},
+				InspectionField{Key: scriptprofile.RightKey(p), Value: int64(t.Right[p]), Choices: e.nodeChoices(true)})
 		}
-		for a := 0; a < 4; a++ {
-			out = append(out, InspectionField{Key: fmt.Sprintf("action%d", a), Value: int64(t.Acts[a]), Choices: e.nodeChoices(false)})
+		for a := range scriptprofile.RecordActions {
+			out = append(out, InspectionField{Key: scriptprofile.ActionKey(a), Value: int64(t.Acts[a]), Choices: e.nodeChoices(false)})
 		}
 		return out
 	}
@@ -438,7 +444,7 @@ func (o *objectEdit) shownPair(p int) bool {
 }
 
 func (o *objectEdit) shownAction(a int) bool {
-	return o.added[3+a] || o.buf[trigActs+a] != "0"
+	return o.added[actionAdded(a)] || o.buf[trigActs+a] != "0"
 }
 
 // row actions of the script popups.
@@ -498,12 +504,12 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		add(popupRow{Kind: popupSwitch, Label: o.fields[trigOnce].Label, Value: once}, trigOnce)
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.conditions")}, -1)
 		pairs := 0
-		for p := 0; p < 3; p++ {
+		for p := range scriptprofile.RecordPairs {
 			if !o.shownPair(p) {
 				continue
 			}
 			pairs++
-			for side := 0; side < 3; side++ {
+			for side := range pairSides {
 				f := pairField(p, side)
 				if side == 1 {
 					code, _ := strconv.ParseInt(strings.TrimSpace(o.buf[f]), 10, 64)
@@ -524,12 +530,12 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		if pairs == 0 {
 			text(e.word("editor.trigger.nopair"), "warning")
 		}
-		if pairs < 3 {
+		if pairs < scriptprofile.RecordPairs {
 			add(popupRow{Kind: popupText}, -1, actAddPair)
 		}
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.actions")}, -1)
 		acts := 0
-		for a := 0; a < 4; a++ {
+		for a := range scriptprofile.RecordActions {
 			if !o.shownAction(a) {
 				continue
 			}
@@ -541,7 +547,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 				text("    "+params, "")
 			}
 		}
-		if acts < 4 {
+		if acts < scriptprofile.RecordActions {
 			add(popupRow{Kind: popupText}, -1, actAddAct)
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back")}
@@ -664,19 +670,20 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 	case actEdit:
 		e.editSlotNode(f)
 	case actRemovePair:
-		p := (f - trigPairs) / 3
-		for q := p; q < 2; q++ {
-			for side := 0; side < 3; side++ {
+		p := (f - trigPairs) / pairSides
+		last := scriptprofile.RecordPairs - 1
+		for q := p; q < last; q++ {
+			for side := range pairSides {
 				o.buf[pairField(q, side)] = o.buf[pairField(q+1, side)]
 			}
 			o.added[q] = o.added[q+1]
 		}
-		o.buf[pairField(2, 0)], o.buf[pairField(2, 2)], o.added[2] = "0", "0", false
+		o.buf[pairField(last, 0)], o.buf[pairField(last, 2)], o.added[last] = "0", "0", false
 	case actAddPair:
-		for p := 0; p < 3; p++ {
+		for p := range scriptprofile.RecordPairs {
 			if !o.shownPair(p) {
 				o.added[p] = true
-				if c, err := strconv.ParseInt(strings.TrimSpace(o.buf[pairField(p, 1)]), 10, 64); err != nil || c < 0 || c > 5 {
+				if c, err := strconv.ParseInt(strings.TrimSpace(o.buf[pairField(p, 1)]), 10, 64); err != nil || c < 0 || c > scriptprofile.MaxCompare {
 					o.buf[pairField(p, 1)] = "0"
 				}
 				break
@@ -684,11 +691,11 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 		}
 	case actRemoveAct:
 		a := f - trigActs
-		o.buf[f], o.added[3+a] = "0", false
+		o.buf[f], o.added[actionAdded(a)] = "0", false
 	case actAddAct:
-		for a := 0; a < 4; a++ {
+		for a := range scriptprofile.RecordActions {
 			if !o.shownAction(a) {
-				o.added[3+a] = true
+				o.added[actionAdded(a)] = true
 				break
 			}
 		}
@@ -852,13 +859,13 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		return n, nil
 	}
 	if v.trigger != nil {
-		for p := 0; p < 3; p++ {
+		for p := range scriptprofile.RecordPairs {
 			if o.shownPair(p) && (o.buf[pairField(p, 0)] == "0" || o.buf[pairField(p, 2)] == "0") {
 				return nil, fmt.Errorf(e.word("editor.trigger.sides"), p+1)
 			}
 		}
-		for a := 0; a < 4; a++ {
-			if o.added[3+a] && o.buf[trigActs+a] == "0" {
+		for a := range scriptprofile.RecordActions {
+			if o.added[actionAdded(a)] && o.buf[trigActs+a] == "0" {
 				return nil, fmt.Errorf(e.word("editor.trigger.noaction"), a+1)
 			}
 		}

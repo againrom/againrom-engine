@@ -41,6 +41,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | words | `pkg/words` | the engine's own words: one strings table per language, keyed by message id, in the mod text layout |
 | locale | `pkg/locale` | the install languages: one record per language (archive entry, selector, table code, base id, code page, font remap) |
 | namefold | `pkg/namefold` | the resource name case folding policies: archive ASCII, mod tree, host Unicode |
+| scriptprofile | `pkg/scriptprofile` | the map script's limits per game and the trigger record's field keys |
 | ui | `pkg/ui` | user interface |
 | game | `pkg/game` | wire the engine together; top-level config |
 | cmd | `cmd/againrom` | the game entry point |
@@ -62,7 +63,7 @@ allow-map; the two must stay identical.
 |---|---|---|
 | `pkg/formats/res` | `pkg/namefold` | stdlib + `golang.org/x/text` + the name folding leaf |
 | `pkg/formats/reg` | `pkg/namefold` | **stdlib + the name folding leaf only**, enforced (`.reg` stores bytes and the parser converts none of them, so it takes no text-encoding dependency) |
-| `pkg/formats/alm` | — | stdlib + `golang.org/x/text` only |
+| `pkg/formats/alm` | `pkg/scriptprofile` | stdlib + `golang.org/x/text` + the script limits leaf |
 | `pkg/formats/spr256` | `pkg/formats/pal` | **stdlib only** (`.256` carries no strings) |
 | `pkg/formats/spr16` | `pkg/formats/pal` | **stdlib only**, enforced (neither 16-bit grammar carries text, so it takes no text-encoding dependency) |
 | `pkg/formats/databin` | — | **stdlib only**, enforced (the table's names are handed back as the file's own bytes and no character encoding is applied, so it takes no text-encoding dependency) |
@@ -73,11 +74,11 @@ allow-map; the two must stay identical.
 | `pkg/formats/itemname` | — | **stdlib only**, enforced (0151 T12: a line is stored as the shipped bytes with no code-page conversion — pkg/render/text applies the conversion per drawn byte instead — so this format takes no text-encoding dependency) |
 | `pkg/vfs` | `pkg/formats/res`, `pkg/namefold` | |
 | `pkg/data` | `pkg/vfs`, `pkg/formats/reg`, `pkg/namefold` | |
-| `pkg/sim` | `pkg/random` | stdlib and the random leaf (determinism wall) |
+| `pkg/sim` | `pkg/random`, `pkg/scriptprofile` | stdlib, the random leaf and the script limits leaf (determinism wall) |
 | `pkg/random` | — | **stdlib only**: a leaf that reads no clock and no operating-system state |
 | `pkg/intmath` | — | **stdlib only**: the one generic `Abs`; `pkg/sim` (tests too), `pkg/mapedit`, `pkg/render/terrain`, `pkg/audio`, `pkg/ui` and the check tools name it |
 | `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim`, `pkg/random` | |
-| `pkg/mapedit` | `pkg/formats/alm` | stdlib and that leaf only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
+| `pkg/mapedit` | `pkg/formats/alm`, `pkg/scriptprofile` | stdlib and those leaves only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
 | `pkg/render` | `pkg/sim` (read-only), `pkg/vfs` | |
 | `pkg/render/terrain` | `pkg/formats/bmp` | the mapping and composite pieces take decoded images and integers; tile bitmaps decode through the bitmap leaf |
 | `pkg/render/camera` | — | **stdlib only**: the camera arithmetic is engine-free and unit-testable without a window |
@@ -87,11 +88,12 @@ allow-map; the two must stay identical.
 | `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
-| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random`, `pkg/words`, `pkg/locale`, `pkg/ui/systemclick`, `pkg/ui/heldkey`, `pkg/pathdialog` and `pkg/namefold` | audio devices, video-frame players and system input services are presentation leaves; none can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language; `pkg/locale` the install language's code page and font remap |
+| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random`, `pkg/words`, `pkg/locale`, `pkg/ui/systemclick`, `pkg/ui/heldkey`, `pkg/pathdialog`, `pkg/namefold` and `pkg/scriptprofile` | audio devices, video-frame players and system input services are presentation leaves; none can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language; `pkg/locale` the install language's code page and font remap |
 | `pkg/pathdialog` | none | one system file/folder dialog builder shared by the editor and starter; Windows uses x/sys and macOS uses purego/objc; callers apply its result on their own UI loop |
 | `pkg/words` | `pkg/mod`, `pkg/locale` | reads its embedded tables through the mod text lookup (`mod.Lookup`), the one lookup engine and mod words share; no UI, game or simulation types |
 | `pkg/locale` | — | **stdlib only**: the table of install languages, one record per language |
 | `pkg/namefold` | — | **stdlib only**: the three resource name folding policies (archive ASCII, mod tree, host Unicode) |
+| `pkg/scriptprofile` | — | **stdlib only**: the map script's limits per game (pairs, actions, comparison codes, registers, latches, triggers, node ids) and the trigger field keys; the format, the simulation, the editor and the UI read the one table |
 | `cmd/cutscenehelper` | `pkg/video` | separately built Windows/386 native adapter; the normal game remains amd64 |
 | `pkg/game` | any `pkg/*` | top library tier |
 | `cmd/againrom` | any `pkg/*` | the game |

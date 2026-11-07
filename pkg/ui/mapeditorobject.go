@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/scriptprofile"
 )
 
 // The object popup edits every field of the selected record at once. Its
@@ -67,11 +69,11 @@ type objectEdit struct {
 	rowBlock  map[int]string
 	usesShown bool
 	viewOffer bool
-	// added marks a trigger's pairs (0..2) and action slots (3..6) shown
+	// added marks a trigger's pairs, then its action slots, shown
 	// before a node is chosen for them; types are a node's slot types as
 	// its chosen operation sets them; pickField is the field a cell pick
 	// fills, -1 for none.
-	added     [7]bool
+	added     [scriptprofile.RecordPairs + scriptprofile.RecordActions]bool
 	types     [10]uint32
 	pickField int
 	// signature is the operation and group command types was set for.

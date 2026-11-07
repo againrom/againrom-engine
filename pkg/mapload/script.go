@@ -435,8 +435,8 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	for i, t := range src.Triggers {
 		omitted := false
 		if dialect == sim.ScriptROM2 {
-			for k := range t.Left {
-				if omittedChecks[t.Left[k]] || omittedChecks[t.Right[k]] {
+			for k := range t.Pairs() {
+				if left, right, _ := t.Pair(k); omittedChecks[left] || omittedChecks[right] {
 					omitted = true
 				}
 			}
@@ -448,7 +448,11 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		// A trigger whose FIRST pair's left id is zero is dropped whole, before
 		// anything of it is built. It is not a trigger with no condition — that
 		// is a trigger whose first pair IS set and whose others are not.
-		if t.Left[0] == 0 {
+		if t.Pairs() > len(sim.ScriptTrigger{}.Pairs) || len(t.Acts) > len(sim.ScriptTrigger{}.Instants) {
+			return nil, rep, fmt.Errorf("mapload: trigger %d holds %d pairs and %d actions, past the record's %d and %d",
+				i, t.Pairs(), len(t.Acts), len(sim.ScriptTrigger{}.Pairs), len(sim.ScriptTrigger{}.Instants))
+		}
+		if first, _, _ := t.Pair(0); first == 0 {
 			rep.DroppedTriggers = append(rep.DroppedTriggers, i)
 			continue
 		}
@@ -458,30 +462,32 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		// slice — a dropped trigger leaves its latch unused rather than shifting
 		// every later one onto its neighbour's.
 		out.Latch = int32(i)
-		for k := 0; k < 3; k++ {
+		for k := range out.Pairs {
+			left, right, cmp := t.Pair(k)
 			// Only a pair with BOTH ids set is a pair. The corpus has no
 			// half-empty one, and an unset slot is no comparison rather than a
 			// comparison against register zero.
-			if t.Left[k] == 0 || t.Right[k] == 0 {
+			if left == 0 || right == 0 {
 				continue
 			}
 			out.Pairs[k] = sim.ScriptPair{
-				Left:  lookupOr0(registerOf, t.Left[k]),
-				Right: lookupOr0(registerOf, t.Right[k]),
-				Cmp:   int32(t.Cmp[k]),
+				Left:  lookupOr0(registerOf, left),
+				Right: lookupOr0(registerOf, right),
+				Cmp:   int32(cmp),
 				Used:  true,
 			}
 		}
-		for k := 0; k < 4; k++ {
+		for k := range out.Instants {
+			act := t.Act(k)
 			out.Instants[k] = sim.ScriptNone
-			if t.Acts[k] == 0 {
+			if act == 0 {
 				continue
 			}
 			// A consumed or discarded build-time record owns no runtime
 			// instant and therefore no runtime trigger slot. Do not pass it
 			// through the general missing-id rule: aliasing it to instant 0
 			// executes an unrelated action when the trigger fires.
-			if buildTime[t.Acts[k]] {
+			if buildTime[act] {
 				continue
 			}
 			// An id that names no built instant resolves to subscript 0, which
@@ -499,8 +505,8 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			// A slot naming an action the ROM1 binder left unbuilt is the one
 			// miss that does run subscript 0 as the original does (DIV-2793), so
 			// it takes instant 0's announcement in its own slot position.
-			idx, hit := instantOf[t.Acts[k]]
-			if !hit && unbuilt[t.Acts[k]] {
+			idx, hit := instantOf[act]
+			if !hit && unbuilt[act] {
 				idx, hit = 0, true
 			}
 			if hit && instants[idx].Op == scriptMessageOpcode {
@@ -509,7 +515,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 					Event: instants[idx].Args[0],
 				})
 			}
-			out.Instants[k] = lookupOr0(instantOf, t.Acts[k])
+			out.Instants[k] = lookupOr0(instantOf, act)
 		}
 		triggers = append(triggers, out)
 	}

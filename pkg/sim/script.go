@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"againrom/pkg/intmath"
+	"againrom/pkg/scriptprofile"
 )
 
 // The two fixed arrays and their caps, which are CUSTOMISATION LIMITS and are
@@ -24,8 +25,8 @@ import (
 // this file knowingly parts company with what it reconstructs, and it parts
 // company only where the original's own behaviour is undefined.
 const (
-	scriptRegisters = 100  // signed int result slots, one per compiled check
-	scriptLatches   = 1000 // fire-once latch bytes, one per trigger position
+	scriptRegisters = scriptprofile.FirstRegisters // signed int result slots, one per compiled check
+	scriptLatches   = scriptprofile.Latches        // fire-once latch bytes, one per trigger position
 )
 
 // sessionRawHeadLen and sessionRawMidLen are the two opaque session-block
@@ -523,8 +524,8 @@ const ScriptNone int32 = -1
 // evaluated, its latch is not touched, and it can never fire. That is the
 // loudness rule stated as behaviour rather than as a report.
 type ScriptTrigger struct {
-	Pairs    [3]ScriptPair
-	Instants [4]int32
+	Pairs    [scriptprofile.RecordPairs]ScriptPair
+	Instants [scriptprofile.RecordActions]int32
 	Once     bool
 	Latch    int32
 	Inert    bool

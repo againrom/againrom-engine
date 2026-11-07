@@ -2,10 +2,12 @@ package mapedit
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 // The parameter type codes of ALM-TRIG-046 a node field is offered for.
@@ -43,33 +45,26 @@ func scriptSection(name string, array int) *section {
 // payload, in file order: actions, conditions, triggers.
 var scriptArraySizes = [3]int{alm.ScriptNodeSize, alm.ScriptNodeSize, alm.ScriptTriggerSize}
 
-// scriptLayout locates array a (0 actions, 1 conditions, 2 triggers) in the type-7
-// payload. The three arrays must tile the payload exactly, as the engine's
-// own walk requires; otherwise no node edit is built over the bytes.
+// scriptLayout locates array a (0 actions, 1 conditions, 2 triggers) in the
+// type-7 payload through the format's one walk of it. The three arrays must
+// tile the payload exactly; otherwise no node edit is built over the bytes.
 func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 	return func(e *Editor, sp span) (arrayLayout, error) {
 		p := e.data[sp.payloadOff : sp.payloadOff+sp.payloadSize]
-		sizes := scriptArraySizes
-		var lay arrayLayout
-		off := 0
-		for k, size := range sizes {
-			if off+alm.CountWordSize > len(p) {
-				return lay, fmt.Errorf("the type-7 payload ends before array %d", k)
-			}
-			n := uint64(binary.LittleEndian.Uint32(p[off:]))
-			if n > uint64(len(p)-off-alm.CountWordSize)/uint64(size) {
-				return lay, fmt.Errorf("type-7 array %d counts %d records past the payload", k, n)
-			}
-			start := off + alm.CountWordSize
-			if k == a {
-				lay = arrayLayout{countAt: sp.abs(off), first: start, n: int(n), after: len(p) - (start + int(n)*size)}
-			}
-			off = start + int(n)*size
+		f, err := alm.FrameScript(p)
+		var fe *alm.ScriptFrameError
+		switch {
+		case errors.As(err, &fe) && fe.Array < 0:
+			return arrayLayout{}, fmt.Errorf("the type-7 payload is not three counted arrays: %d of %d bytes", fe.End, fe.Len)
+		case errors.As(err, &fe) && fe.Short:
+			return arrayLayout{}, fmt.Errorf("the type-7 payload ends before array %d", fe.Array)
+		case errors.As(err, &fe):
+			return arrayLayout{}, fmt.Errorf("type-7 array %d counts %d records past the payload", fe.Array, fe.Count)
+		case err != nil:
+			return arrayLayout{}, err
 		}
-		if off != len(p) {
-			return lay, fmt.Errorf("the type-7 payload is not three counted arrays: %d of %d bytes", off, len(p))
-		}
-		return lay, nil
+		arr := f.Arrays()[a]
+		return arrayLayout{countAt: sp.abs(arr.CountAt), first: arr.First, n: arr.N, after: len(p) - arr.End()}, nil
 	}
 }
 
@@ -78,7 +73,7 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 func nodeFields(rec []byte) []Field {
 	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText},
 		{Key: "opcode", Label: "Operation", Offset: alm.ScriptNodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
-		{Key: "id", Label: "Node ID", Offset: alm.ScriptNodeID, Width: 4, Min: 1, Max: scriptMaxID}}
+		{Key: "id", Label: "Node ID", Offset: alm.ScriptNodeID, Width: 4, Min: 1, Max: int64(script.MaxID)}}
 	for i := 0; i < alm.ScriptParams; i++ {
 		t := binary.LittleEndian.Uint32(rec[alm.ScriptNodeTypes+4*i:])
 		out = append(out, Field{Key: fmt.Sprintf("type%d", i), Label: fmt.Sprintf("Par%d kind", i), Offset: alm.ScriptNodeTypes + 4*i, Width: 4, Min: 0, Max: 9})
@@ -109,15 +104,18 @@ func nodeFields(rec []byte) []Field {
 	return out
 }
 
+// triggerFields is the trigger record's field table: the name, each slot of
+// the record and the fire-once flag. SetTriggerSlots writes through it.
 func triggerFields() []Field {
 	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText}}
-	for i := 0; i < 3; i++ {
-		out = append(out, Field{Key: fmt.Sprintf("left%d", i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: alm.ScriptTriggerPairs + 8*i, Width: 4, Max: scriptMaxID},
-			Field{Key: fmt.Sprintf("right%d", i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: alm.ScriptTriggerPairs + 8*i + 4, Width: 4, Max: scriptMaxID},
-			Field{Key: fmt.Sprintf("cmp%d", i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: alm.ScriptTriggerCompare + 4*i, Width: 4, Max: 5})
+	maxID := int64(script.MaxID)
+	for i := 0; i < alm.ScriptPairs; i++ {
+		out = append(out, Field{Key: scriptprofile.LeftKey(i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: alm.ScriptTriggerPairs + 8*i, Width: 4, Max: maxID},
+			Field{Key: scriptprofile.RightKey(i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: alm.ScriptTriggerPairs + 8*i + 4, Width: 4, Max: maxID},
+			Field{Key: scriptprofile.CmpKey(i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: alm.ScriptTriggerCompare + 4*i, Width: 4, Max: int64(script.MaxCompare)})
 	}
-	for i := 0; i < 4; i++ {
-		out = append(out, Field{Key: fmt.Sprintf("action%d", i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: alm.ScriptTriggerActions + 4*i, Width: 4, Max: scriptMaxID})
+	for i := 0; i < alm.ScriptActionRefs; i++ {
+		out = append(out, Field{Key: scriptprofile.ActionKey(i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: alm.ScriptTriggerActions + 4*i, Width: 4, Max: maxID})
 	}
 	return append(out, Field{Key: "once", Label: "Fire once", Offset: alm.ScriptTriggerOnce, Width: 4, Max: 1})
 }
@@ -182,6 +180,128 @@ func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]by
 		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*i:], p.Type)
 	}
 	return rec, nil
+}
+
+// ScriptLimit names a limit of the original trigger record.
+type ScriptLimit int
+
+const (
+	LimitPairs   ScriptLimit = iota // condition pairs per trigger
+	LimitActions                    // action ids per trigger
+	LimitCompare                    // the highest comparison code
+	LimitID                         // the highest node id a slot names
+)
+
+// ScriptLimitError is a trigger value the original record cannot hold:
+// Limit is the limit passed, Max its value and Got what the value asks.
+type ScriptLimitError struct {
+	Limit    ScriptLimit
+	Max, Got int64
+}
+
+func (e *ScriptLimitError) Error() string {
+	switch e.Limit {
+	case LimitPairs:
+		return fmt.Sprintf("mapedit: a trigger record holds %d condition pairs, not %d", e.Max, e.Got)
+	case LimitActions:
+		return fmt.Sprintf("mapedit: a trigger record holds %d actions, not %d", e.Max, e.Got)
+	case LimitCompare:
+		return fmt.Sprintf("mapedit: a comparison code is 0..%d, not %d", e.Max, e.Got)
+	}
+	return fmt.Sprintf("mapedit: a trigger slot names a node id up to %d, not %d", e.Max, e.Got)
+}
+
+// pairSides is the words of one pair in the field table: left, right, code.
+const pairSides = 3
+
+// triggerWords is t as the record's slot words beside their fields: each
+// pair's left, right and code, then each action, every slot of the record,
+// the ones t does not spell empty. A value the record cannot hold is a *ScriptLimitError; kept
+// reports the slot words to leave unchecked, the ones the record already
+// holds.
+func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Field, []uint32, error) {
+	if t.Pairs() > script.Pairs {
+		return nil, nil, &ScriptLimitError{Limit: LimitPairs, Max: int64(script.Pairs), Got: int64(t.Pairs())}
+	}
+	if len(t.Acts) > script.Actions {
+		return nil, nil, &ScriptLimitError{Limit: LimitActions, Max: int64(script.Actions), Got: int64(len(t.Acts))}
+	}
+	fields := triggerFields()
+	slots := fields[1 : len(fields)-1]
+	words := make([]uint32, 0, len(slots))
+	for p := 0; p < alm.ScriptPairs; p++ {
+		left, right, cmp := t.Pair(p)
+		words = append(words, left, right, cmp)
+	}
+	for a := 0; a < alm.ScriptActionRefs; a++ {
+		words = append(words, t.Act(a))
+	}
+	for i, v := range words {
+		if kept != nil && kept(slots[i], v) {
+			continue
+		}
+		limit, most := LimitID, script.MaxID
+		if i < pairSides*alm.ScriptPairs && i%pairSides == pairSides-1 {
+			limit, most = LimitCompare, script.MaxCompare
+		}
+		if v > most {
+			return nil, nil, &ScriptLimitError{Limit: limit, Max: int64(most), Got: int64(v)}
+		}
+	}
+	return slots, words, nil
+}
+
+// NewScriptTrigger builds one trigger record from t: a zero record with the
+// name, the pairs, their codes, the actions and the fire-once word set. It is
+// the one encoder of a trigger record; a value the record cannot hold (more
+// pairs or actions than it has slots, a code above the alphabet, an id above
+// the cap) is a *ScriptLimitError and builds nothing.
+func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
+	if len(t.Name) >= alm.ScriptLabelLen {
+		return nil, fmt.Errorf("mapedit: a trigger name is under %d bytes", alm.ScriptLabelLen)
+	}
+	slots, words, err := triggerWords(t, nil)
+	if err != nil {
+		return nil, err
+	}
+	rec := make([]byte, alm.ScriptTriggerSize)
+	copy(rec, t.Name)
+	for i, f := range slots {
+		binary.LittleEndian.PutUint32(rec[f.Offset:], words[i])
+	}
+	binary.LittleEndian.PutUint32(rec[alm.ScriptTriggerOnce:], t.Once)
+	return rec, nil
+}
+
+// SetTriggerSlots writes t's pairs, codes, actions and fire-once word over
+// trigger i as one edit, through the trigger's field table, writing only
+// the words that change; its name and the bytes no field names stay. A word
+// the record already holds is kept unchecked, so a shipped code outside the
+// alphabet survives a write of the other slots; a changed word the record
+// cannot hold is a *ScriptLimitError and nothing is written.
+func (e *Editor) SetTriggerSlots(i int, t alm.ScriptTrigger) error {
+	rec, err := e.Record(KindTrigger, i)
+	if err != nil {
+		return err
+	}
+	held := func(f Field, v uint32) bool { return binary.LittleEndian.Uint32(rec[f.Offset:]) == v }
+	slots, words, err := triggerWords(t, held)
+	if err != nil {
+		return err
+	}
+	var sets []FieldSet
+	for k, f := range slots {
+		if !held(f, words[k]) {
+			sets = append(sets, FieldSet{Key: f.Key, Value: int64(words[k])})
+		}
+	}
+	if binary.LittleEndian.Uint32(rec[alm.ScriptTriggerOnce:]) != t.Once {
+		sets = append(sets, FieldSet{Key: "once", Value: int64(t.Once)})
+	}
+	if len(sets) == 0 {
+		return nil
+	}
+	return e.SetFields(KindTrigger, i, sets...)
 }
 
 // NextScriptID is one above the highest id among the records of node array k,
@@ -293,8 +413,8 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 	if x > 255 || y > 255 {
 		return 0, fmt.Errorf("mapedit: a drop cell %d,%d is outside 0..255", x, y)
 	}
-	if e.Count(KindTrigger)+1 > scriptTriggers {
-		return 0, fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), scriptTriggers)
+	if e.Count(KindTrigger)+1 > script.Triggers {
+		return 0, fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), script.Triggers)
 	}
 	zones, err := e.DropZones()
 	if err != nil {
@@ -308,10 +428,10 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	trigger := make([]byte, alm.ScriptTriggerSize)
-	copy(trigger, dropTrigger)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerActions:], id)
-	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerOnce:], 1)
+	trigger, err := NewScriptTrigger(alm.ScriptTrigger{Name: dropTrigger, Acts: []uint32{id}, Once: 1})
+	if err != nil {
+		return 0, err
+	}
 	if _, err := e.PlaceAll([]Placement{{KindAction, action}, {KindTrigger, trigger}}); err != nil {
 		return 0, err
 	}

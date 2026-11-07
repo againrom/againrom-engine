@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/scriptprofile"
 )
 
 // The Add window's script steps the editor offers and checks itself, from
@@ -193,7 +195,7 @@ func (e *MapEditor) scriptStepRefusal(r *addRun, i int, text string) string {
 		return e.triggerFull(int(n))
 	case st.Key == addLabel.Key:
 	case st.Key == "cmp":
-		if err != nil || n < 0 || n > 5 {
+		if err != nil || n < 0 || n > scriptprofile.MaxCompare {
 			return choose
 		}
 	default:
@@ -291,12 +293,12 @@ func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 	pair := 0
 	if trigger >= 0 {
 		t := e.doc.Script.Triggers[trigger]
-		for pair < 2 && (t.Left[pair] != 0 || t.Right[pair] != 0) {
+		for pair < scriptprofile.RecordPairs-1 && (t.Left[pair] != 0 || t.Right[pair] != 0) {
 			pair++
 		}
 	}
-	values := []InspectionFieldValue{{Key: fmt.Sprintf("left%d", pair), Value: int64(id)},
-		{Key: fmt.Sprintf("cmp%d", pair), Value: 0}, {Key: fmt.Sprintf("right%d", pair), Value: -1, New: true}}
+	values := []InspectionFieldValue{{Key: scriptprofile.LeftKey(pair), Value: int64(id)},
+		{Key: scriptprofile.CmpKey(pair), Value: 0}, {Key: scriptprofile.RightKey(pair), Value: -1, New: true}}
 	var ch editorChange
 	var err error
 	if trigger < 0 {

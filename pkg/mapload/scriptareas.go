@@ -75,17 +75,18 @@ func ScriptAreas(m *alm.Map, sc alm.Script) ([]ScriptArea, []ScriptPlaceNote) {
 	}
 	for t, tr := range sc.Triggers {
 		seen := map[[2]uint32]bool{}
-		for k := range tr.Left {
-			for side, id := range []uint32{tr.Left[k], tr.Right[k]} {
-				other := tr.Right[k]
+		for k := range tr.Pairs() {
+			left, right, cmp := tr.Pair(k)
+			for side, id := range []uint32{left, right} {
+				other := right
 				if side == 1 {
-					other = tr.Left[k]
+					other = left
 				}
 				if id == 0 || seen[[2]uint32{1, id}] {
 					continue
 				}
 				seen[[2]uint32{1, id}] = true
-				p.node(t, true, id, comparison{other: other, code: tr.Cmp[k], left: side == 0})
+				p.node(t, true, id, comparison{other: other, code: cmp, left: side == 0})
 			}
 		}
 		for _, id := range tr.Acts {

@@ -40,7 +40,7 @@ const starlarkModule = "go.starlark.net"
 var allow = map[string][]string{
 	"pkg/formats/res":     {"pkg/namefold"},
 	"pkg/formats/reg":     {"pkg/namefold"},
-	"pkg/formats/alm":     {},
+	"pkg/formats/alm":     {"pkg/scriptprofile"},
 	"pkg/formats/spr256":  {"pkg/formats/pal"},
 	"pkg/formats/spr16":   {"pkg/formats/pal"},
 	"pkg/formats/databin": {},
@@ -77,12 +77,15 @@ var allow = map[string][]string{
 	// The data tier classifies a spell row's damage pair by asking the
 	// simulation's spell-arm table, the one owner of which arm heals or drains.
 	"pkg/data": {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold", "pkg/sim", "pkg/herokind"},
-	"pkg/sim":  {"pkg/rules", "pkg/random", "pkg/intmath", "pkg/herokind"},
+	"pkg/sim":  {"pkg/rules", "pkg/random", "pkg/intmath", "pkg/herokind", "pkg/scriptprofile"},
 	// The chooser by the starting hero's class and sex is a leaf every tier
 	// that chooses a record by the hero can name.
 	"pkg/herokind": {},
-	"pkg/rules":    {},
-	"pkg/intmath":  {},
+	// The one table of a map script's limits; the format, the simulation, the
+	// editor and its window size and check against it.
+	"pkg/scriptprofile": {},
+	"pkg/rules":         {},
+	"pkg/intmath":       {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random": {},
@@ -99,7 +102,7 @@ var allow = map[string][]string{
 	// The map tier reads the starting hero in the hero slots a town catalog
 	// names, the town package's type.
 	"pkg/mapload":   {"pkg/formats/alm", "pkg/formats/itempkt", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town"},
-	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
+	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath", "pkg/scriptprofile"},
 	"pkg/editormcp": {"pkg/hostfile"},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf and reads the tile-group
@@ -160,7 +163,8 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind"},
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
+		"pkg/scriptprofile"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.

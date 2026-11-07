@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 )
 
@@ -29,7 +30,7 @@ func captureCurrentScriptProgram(w *sim.World) *currentScriptProgram {
 }
 
 func (p *currentScriptProgram) compile() (*sim.Script, error) {
-	if len(p.Checks) > 100 || len(p.Instants) > maxCurrentScriptNodes || len(p.Triggers) > maxCurrentScriptNodes {
+	if len(p.Checks) > scriptprofile.FirstRegisters || len(p.Instants) > maxCurrentScriptNodes || len(p.Triggers) > maxCurrentScriptNodes {
 		return nil, fmt.Errorf("current script program exceeds its register/node bounds")
 	}
 	// A negative action slot is refused, as the World byte form refuses it.

@@ -440,7 +440,7 @@ func TestAreaDrawnBoxAddsItsConstantWhenNoneIsFree(t *testing.T) {
 	}
 	box, one, tr := sc.Conditions[5], sc.Conditions[6], sc.Triggers[len(sc.Triggers)-1]
 	if box.Opcode != 2 || box.Value != [10]uint32{10001, 2, 30, 6, 33} || one.Opcode != mapload.ScriptConstant || one.Value[0] != 1 ||
-		tr.Left != [3]uint32{box.ID} || tr.Right != [3]uint32{one.ID} || tr.Cmp != [3]uint32{} || tr.Acts != [4]uint32{} || tr.Once != 1 {
+		[3]uint32(tr.Left) != [3]uint32{box.ID} || [3]uint32(tr.Right) != [3]uint32{one.ID} || [3]uint32(tr.Cmp) != [3]uint32{} || [4]uint32(tr.Acts) != [4]uint32{} || tr.Once != 1 {
 		t.Fatalf("decoded: box %+v constant %+v trigger %+v", box, one, tr)
 	}
 }

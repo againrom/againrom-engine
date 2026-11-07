@@ -75,13 +75,38 @@ type ScriptNode struct {
 //
 // The 64 bytes at +0x40 are read by nothing here: they are never a printable
 // string on any of the 421 shipped triggers and carry editor heap addresses.
+//
+// The slots are slices so one value serves the record read and the record
+// written: Script fills ScriptPairs pairs and ScriptActionRefs actions, every
+// slot of the record, and a value built to be written may hold fewer, the
+// rest of the record's slots being empty.
 type ScriptTrigger struct {
 	Name  string
-	Left  [ScriptPairs]uint32
-	Right [ScriptPairs]uint32
-	Cmp   [ScriptPairs]uint32
-	Acts  [ScriptActionRefs]uint32
+	Left  []uint32
+	Right []uint32
+	Cmp   []uint32
+	Acts  []uint32
 	Once  uint32
+}
+
+// Pairs is how many condition pairs t spells: the longest of Left, Right and
+// Cmp.
+func (t ScriptTrigger) Pairs() int { return max(len(t.Left), len(t.Right), len(t.Cmp)) }
+
+// Pair is pair k's left and right condition ids and comparison code, zero
+// past the slots t spells.
+func (t ScriptTrigger) Pair(k int) (left, right, cmp uint32) {
+	return slot(t.Left, k), slot(t.Right, k), slot(t.Cmp, k)
+}
+
+// Act is action slot k's id, zero past the slots t spells.
+func (t ScriptTrigger) Act(k int) uint32 { return slot(t.Acts, k) }
+
+func slot(s []uint32, k int) uint32 {
+	if k < 0 || k >= len(s) {
+		return 0
+	}
+	return s[k]
 }
 
 // Script is a map's decoded type-7 payload: the two node arrays and the trigger
@@ -121,51 +146,133 @@ func (m *Map) Script() (Script, error) {
 	if !m.Present(TypeScript) {
 		return Script{}, nil
 	}
+	return m.Triggers.Decode()
+}
 
-	// The first count word is Triggers.EntryCount, which alm.go read off the
-	// payload's own +0x00; Body is everything after it. So the action array
-	// starts at Body[0] and the other two counts are read as the walk reaches
-	// them.
-	b := m.Triggers.Body
-	off := 0
-
-	acts, off, err := readScriptNodes(b, off, int64(m.Triggers.EntryCount), "action")
+// Decode decodes the payload t holds into its three arrays, on Script's
+// terms but without asking whether the map carried the record: an absent
+// record's zero Triggers does not tile and is an error here.
+func (t Triggers) Decode() (Script, error) {
+	// The first count word is EntryCount, which alm.go read off the payload's
+	// own +0x00; Body is everything after it, so a payload offset is a Body
+	// offset plus one count word.
+	b := t.Body
+	f, err := frameScript(t.EntryCount, b)
 	if err != nil {
 		return Script{}, err
 	}
-
-	nCond, off, err := readCount(b, off, "condition")
+	acts, _, err := readScriptNodes(b, f.Actions.First-CountWordSize, int64(f.Actions.N), "action")
 	if err != nil {
 		return Script{}, err
 	}
-	conds, off, err := readScriptNodes(b, off, nCond, "condition")
+	conds, _, err := readScriptNodes(b, f.Conditions.First-CountWordSize, int64(f.Conditions.N), "condition")
 	if err != nil {
 		return Script{}, err
 	}
-
-	nTrg, off, err := readCount(b, off, "trigger")
+	trgs, _, err := readScriptTriggers(b, f.Triggers.First-CountWordSize, int64(f.Triggers.N))
 	if err != nil {
 		return Script{}, err
-	}
-	trgs, off, err := readScriptTriggers(b, off, nTrg)
-	if err != nil {
-		return Script{}, err
-	}
-
-	if off != len(b) {
-		return Script{}, fmt.Errorf("alm: type7 walk consumed %d of %d body bytes", off, len(b))
 	}
 	return Script{Actions: acts, Conditions: conds, Triggers: trgs}, nil
 }
 
-// readCount reads one of the two count words the body carries inline.
-func readCount(b []byte, off int, what string) (int64, int, error) {
-	if len(b)-off < CountWordSize {
-		return 0, off, fmt.Errorf("alm: type7 body has %d byte(s) left at the %s count word, want %d",
-			len(b)-off, what, CountWordSize)
+// ScriptArray is where one counted array of the type-7 payload sits. CountAt
+// and First are payload offsets, from the payload's first byte (the action
+// count word): its count word's and its first record's. N is the record
+// count and Size the record size.
+type ScriptArray struct {
+	CountAt, First, N, Size int
+}
+
+// End is the payload offset just past the array's last record.
+func (a ScriptArray) End() int { return a.First + a.N*a.Size }
+
+// ScriptFrame is the type-7 payload's three counted arrays, in file order.
+type ScriptFrame struct {
+	Actions, Conditions, Triggers ScriptArray
+}
+
+// Arrays is the frame's arrays in file order: 0 actions, 1 conditions, 2
+// triggers.
+func (f ScriptFrame) Arrays() [3]ScriptArray {
+	return [3]ScriptArray{f.Actions, f.Conditions, f.Triggers}
+}
+
+// ScriptFrameError is a type-7 payload the three counted arrays do not tile.
+// Array is the array the walk stopped at (0 actions, 1 conditions, 2
+// triggers), or -1 when the arrays end before the payload does. Short means
+// the payload ends before the array's count word, with Remain bytes left at
+// it; otherwise the array declares Count records of Size bytes and Remain
+// bytes follow its count word. End and Len are the payload offset the arrays
+// end at and the payload's length.
+type ScriptFrameError struct {
+	Array        int
+	Short        bool
+	Count        int64
+	Size, Remain int
+	End, Len     int
+}
+
+// Error words the refusal in Body offsets, the bytes after the first count
+// word, as Script has always reported it.
+func (e *ScriptFrameError) Error() string {
+	what := [3]string{"action", "condition", "trigger"}
+	switch {
+	case e.Array < 0:
+		return fmt.Sprintf("alm: type7 walk consumed %d of %d body bytes", e.End-CountWordSize, e.Len-CountWordSize)
+	case e.Short:
+		return fmt.Sprintf("alm: type7 body has %d byte(s) left at the %s count word, want %d", e.Remain, what[e.Array], CountWordSize)
+	case e.Array == 2:
+		return fmt.Sprintf("alm: type7 declares %d trigger(s), which are %d byte(s), and %d remain", e.Count, e.Count*int64(e.Size), e.Remain)
 	}
-	n := int64(binary.LittleEndian.Uint32(b[off : off+CountWordSize]))
-	return n, off + CountWordSize, nil
+	return fmt.Sprintf("alm: type7 declares %d %s node(s), which are %d byte(s), and %d remain",
+		e.Count, what[e.Array], e.Count*int64(e.Size), e.Remain)
+}
+
+// FrameScript locates the three counted arrays of a whole type-7 payload,
+// its first count word included. It is the one walk of the type-7 framing:
+// Script decodes through it and the map editor patches records at its
+// offsets. A payload the arrays do not tile exactly is a *ScriptFrameError.
+func FrameScript(payload []byte) (ScriptFrame, error) {
+	if len(payload) < CountWordSize {
+		return ScriptFrame{}, &ScriptFrameError{Array: 0, Short: true, Remain: len(payload), Len: len(payload)}
+	}
+	return frameScript(binary.LittleEndian.Uint32(payload), payload[CountWordSize:])
+}
+
+// frameScript is FrameScript over a payload given as its first count word
+// and the body after it, the shape Triggers holds.
+//
+// Each span is multiplied out in int64 before it is compared, so a declared
+// count near the top of its width cannot wrap into a small plausible span
+// that the buffer then satisfies. The arrays must end exactly at the end of
+// the body: they tile the whole payload on every shipped map, and a short
+// walk means the model is wrong rather than that the map has a tail.
+func frameScript(first uint32, body []byte) (ScriptFrame, error) {
+	var f ScriptFrame
+	arrays := [3]*ScriptArray{&f.Actions, &f.Conditions, &f.Triggers}
+	sizes := [3]int{ScriptNodeSize, ScriptNodeSize, ScriptTriggerSize}
+	total := len(body) + CountWordSize
+	at := 0
+	for k, a := range arrays {
+		n := int64(first)
+		if k > 0 {
+			if total-at < CountWordSize {
+				return f, &ScriptFrameError{Array: k, Short: true, Remain: total - at, Len: total}
+			}
+			n = int64(binary.LittleEndian.Uint32(body[at-CountWordSize:]))
+		}
+		start := at + CountWordSize
+		if n*int64(sizes[k]) > int64(total-start) {
+			return f, &ScriptFrameError{Array: k, Count: n, Size: sizes[k], Remain: total - start, Len: total}
+		}
+		*a = ScriptArray{CountAt: at, First: start, N: int(n), Size: sizes[k]}
+		at = a.End()
+	}
+	if at != total {
+		return f, &ScriptFrameError{Array: -1, End: at, Len: total}
+	}
+	return f, nil
 }
 
 // readScriptNodes reads n fixed-width node records from b at off.
@@ -208,9 +315,14 @@ func readScriptTriggers(b []byte, off int, n int64) ([]ScriptTrigger, int, error
 	out := make([]ScriptTrigger, n)
 	for i := range out {
 		rec := b[off+i*ScriptTriggerSize : off+(i+1)*ScriptTriggerSize]
+		w := make([]uint32, 3*ScriptPairs+ScriptActionRefs)
 		t := ScriptTrigger{
-			Name: ScriptLabelText.Decode(rec[:ScriptLabelLen]),
-			Once: binary.LittleEndian.Uint32(rec[ScriptTriggerOnce:]),
+			Name:  ScriptLabelText.Decode(rec[:ScriptLabelLen]),
+			Left:  w[0:ScriptPairs:ScriptPairs],
+			Right: w[ScriptPairs : 2*ScriptPairs : 2*ScriptPairs],
+			Cmp:   w[2*ScriptPairs : 3*ScriptPairs : 3*ScriptPairs],
+			Acts:  w[3*ScriptPairs:],
+			Once:  binary.LittleEndian.Uint32(rec[ScriptTriggerOnce:]),
 		}
 		for k := 0; k < ScriptPairs; k++ {
 			t.Left[k] = binary.LittleEndian.Uint32(rec[ScriptTriggerPairs+8*k:])

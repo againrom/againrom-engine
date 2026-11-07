@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
@@ -126,7 +127,7 @@ func liveLabels(sc alm.Script, labels map[uint32]string) map[uint32]string {
 	addressed := variableRegisters(sc)
 	var out map[uint32]string
 	for r, label := range labels {
-		if r < 100 && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
+		if r < scriptprofile.FirstRegisters && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
 			if out == nil {
 				out = map[uint32]string{}
 			}

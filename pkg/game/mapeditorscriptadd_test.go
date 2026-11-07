@@ -149,13 +149,14 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				}
 				for i, old := range before.Triggers {
 					if i == index {
+						old.Left, old.Right, old.Cmp = slices.Clone(old.Left), slices.Clone(old.Right), slices.Clone(old.Cmp)
 						old.Left[pair], old.Right[pair], old.Cmp[pair] = tr.Left[pair], tr.Right[pair], tr.Cmp[pair]
 					}
 					if !reflect.DeepEqual(sc.Triggers[i], old) {
 						t.Fatalf("%s: trigger %d moved: %+v, was %+v", name, i, sc.Triggers[i], old)
 					}
 				}
-				if trigger < 0 && (tr.Acts != [4]uint32{} || tr.Left[1] != 0 || tr.Left[2] != 0) {
+				if trigger < 0 && ([4]uint32(tr.Acts) != [4]uint32{} || tr.Left[1] != 0 || tr.Left[2] != 0) {
 					t.Fatalf("%s: the new trigger holds more than the pair: %+v", name, tr)
 				}
 				if c.details {

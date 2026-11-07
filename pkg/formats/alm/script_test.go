@@ -4,6 +4,8 @@ package alm_test
 // here from the documented record layout; nothing reads a file.
 
 import (
+	"errors"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -129,8 +131,8 @@ func TestScriptDecodesThreeCountedArrays(t *testing.T) {
 	if g.Name != "Snoot" || g.Once != 1 {
 		t.Errorf("trigger[0] = {%q, once %d}, want {\"Snoot\", once 1}", g.Name, g.Once)
 	}
-	if g.Left != ([3]uint32{4, 0, 0}) || g.Right != ([3]uint32{12, 0, 0}) ||
-		g.Cmp != ([3]uint32{5, 0, 0}) || g.Acts != ([4]uint32{7, 9, 0, 0}) {
+	if !slices.Equal(g.Left, []uint32{4, 0, 0}) || !slices.Equal(g.Right, []uint32{12, 0, 0}) ||
+		!slices.Equal(g.Cmp, []uint32{5, 0, 0}) || !slices.Equal(g.Acts, []uint32{7, 9, 0, 0}) {
 		t.Errorf("trigger[0] bindings = %v %v %v %v, want {4,0,0} {12,0,0} {5,0,0} {7,9,0,0}",
 			g.Left, g.Right, g.Cmp, g.Acts)
 	}
@@ -193,7 +195,44 @@ func TestScriptWalkIsExact(t *testing.T) {
 				t.Errorf("Script() accepted %s: %d/%d/%d nodes",
 					tc.name, len(s.Actions), len(s.Conditions), len(s.Triggers))
 			}
+			var fe *alm.ScriptFrameError
+			if _, err := alm.FrameScript(tc.payload); !errors.As(err, &fe) {
+				t.Errorf("FrameScript(%s) = %v, want a *ScriptFrameError", tc.name, err)
+			}
 		})
+	}
+}
+
+// FrameScript gives each array's count word, first record and count in
+// payload offsets, and Script's refusals keep their Body-offset words.
+func TestFrameScriptLocatesTheThreeArrays(t *testing.T) {
+	one := scriptNode("a", 1, 1, [10]uint32{}, [10]uint32{})
+	trig := make([]byte, 184)
+	p := scriptPayload([][]byte{one, one}, [][]byte{one}, [][]byte{trig})
+	f, err := alm.FrameScript(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := alm.ScriptFrame{
+		Actions:    alm.ScriptArray{CountAt: 0, First: 4, N: 2, Size: 796},
+		Conditions: alm.ScriptArray{CountAt: 1596, First: 1600, N: 1, Size: 796},
+		Triggers:   alm.ScriptArray{CountAt: 2396, First: 2400, N: 1, Size: 184},
+	}
+	if f != want || f.Triggers.End() != len(p) || f.Arrays()[1] != want.Conditions {
+		t.Errorf("FrameScript = %+v, want %+v ending at %d", f, want, len(p))
+	}
+	for _, c := range []struct {
+		payload []byte
+		want    string
+	}{
+		{concat(scriptPayload([][]byte{one}, nil, nil), []byte{0}), "alm: type7 walk consumed 804 of 805 body bytes"},
+		{concat(le32(2), one, le32(0), le32(0)), "alm: type7 declares 2 action node(s), which are 1592 byte(s), and 804 remain"},
+		{concat(le32(1), one), "alm: type7 body has 0 byte(s) left at the condition count word, want 4"},
+		{concat(le32(0), le32(0), le32(1), make([]byte, 183)), "alm: type7 declares 1 trigger(s), which are 184 byte(s), and 183 remain"},
+	} {
+		if _, err := mapWithScript(t, c.payload).Script(); err == nil || err.Error() != c.want {
+			t.Errorf("Script() = %v, want %q", err, c.want)
+		}
 	}
 }
 

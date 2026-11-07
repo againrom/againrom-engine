@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -97,8 +99,9 @@ func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
 			want = tr
 		}
 	}
+	want.Acts, have.Acts = slices.Clone(want.Acts), slices.Clone(have.Acts)
 	want.Acts[0], have.Acts[0] = 0, 0
-	if want != have {
+	if !reflect.DeepEqual(want, have) {
 		t.Fatalf("the tool's trigger %+v, scenario 10's %+v", have, want)
 	}
 	t.Logf("scenario 10: %q drop on %v, trigger %q once %d", d[0].Label, cell, want.Name, want.Once)

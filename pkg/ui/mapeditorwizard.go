@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/scriptprofile"
 )
 
 // The trigger wizard: a trigger read as When (its first condition), And if
@@ -463,7 +465,7 @@ func (e *MapEditor) itemCommands(it wizItem) []uint32 {
 
 // mirroredCmps are, by code, the comparison of b with a that holds when a
 // compared with b does (TRIG-CMP-006).
-var mirroredCmps = [6]uint32{0, 1, 3, 2, 5, 4}
+var mirroredCmps = [scriptprofile.MaxCompare + 1]uint32{0, 1, 3, 2, 5, 4}
 
 // readCondition is the item and field texts of the pair left cmp right, -1
 // when no item reads it, and whether it read the sides exchanged: a pair
@@ -733,11 +735,11 @@ func (e *MapEditor) paramField(condition bool, i, k int, value string) Inspectio
 // code outside them the row was read with.
 func (e *MapEditor) cmpField(value string) InspectionField {
 	var cmps []InspectionChoice
-	for c := int64(0); c <= 5; c++ {
+	for c := int64(0); c <= scriptprofile.MaxCompare; c++ {
 		cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
 	}
 	n, _ := strconv.ParseInt(value, 10, 64)
-	if n < 0 || n > 5 {
+	if n < 0 || n > scriptprofile.MaxCompare {
 		cmps = append(cmps, InspectionChoice{n, e.cmpWord(n)})
 	}
 	return InspectionField{Label: e.word("editor.trigger.comparison"), Value: n, Choices: cmps}
@@ -1123,7 +1125,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 	if conds == 0 {
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.when")}, -1)
 	}
-	if conds < 3 {
+	if conds < scriptprofile.RecordPairs {
 		add(popupRow{Kind: popupText}, -1, actAddPair)
 	}
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.do")}, -1)
@@ -1134,7 +1136,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			row(r)
 		}
 	}
-	if acts < 4 {
+	if acts < scriptprofile.RecordActions {
 		add(popupRow{Kind: popupText}, -1, actAddAct)
 	}
 	if conds == 0 && acts > drops {
@@ -1340,7 +1342,7 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 			t.Actions = append(t.Actions, node)
 		}
 	}
-	if len(t.Pairs) > 3 || len(t.Actions) > 4 {
+	if len(t.Pairs) > scriptprofile.RecordPairs || len(t.Actions) > scriptprofile.RecordActions {
 		return t, fmt.Errorf("%s", e.word("editor.wizard.full"))
 	}
 	return t, nil
@@ -1388,9 +1390,9 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 	}
 	cmp := uint32(it.cmp)
 	if it.chooseCmp {
-		// A code outside 0..5 the row was read with stays choosable.
+		// A code outside the alphabet the row was read with stays choosable.
 		c, err := strconv.ParseInt(strings.TrimSpace(row.vals[len(it.params)+1]), 10, 64)
-		if err != nil || c < 0 || c > math.MaxUint32 || c > 5 && uint32(c) != row.cmp {
+		if err != nil || c < 0 || c > math.MaxUint32 || c > scriptprofile.MaxCompare && uint32(c) != row.cmp {
 			return n, rn, 0, fmt.Errorf("%s: %s", e.word("editor.trigger.comparison"), e.word("editor.object.number"))
 		}
 		cmp = uint32(c)

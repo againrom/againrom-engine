@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -192,7 +193,7 @@ func TestTriggerWizardBuildsTheHeroAreaExample(t *testing.T) {
 		t.Fatalf("the saved map differs: %v", err)
 	}
 	back := wizScript(t, saved)
-	if back.Triggers[1] != tr || len(back.Conditions) != len(sc.Conditions) || len(back.Actions) != len(sc.Actions) {
+	if !reflect.DeepEqual(back.Triggers[1], tr) || len(back.Conditions) != len(sc.Conditions) || len(back.Actions) != len(sc.Actions) {
 		t.Fatal("the saved map reads another trigger")
 	}
 	reopened, _ := openGoalMap(t, saved)
@@ -254,7 +255,7 @@ func TestTriggerWizardEditsAndRemovesRows(t *testing.T) {
 	wizApply(t, e)
 	sc = wizScript(t, e.Document().SourceBytes)
 	near, far := sc.Triggers[0], sc.Triggers[1]
-	if near.Left != [3]uint32{} || near.Acts != [4]uint32{} || len(sc.Conditions) != 2 || len(sc.Actions) != 3 {
+	if [3]uint32(near.Left) != [3]uint32{} || [4]uint32(near.Acts) != [4]uint32{} || len(sc.Conditions) != 2 || len(sc.Actions) != 3 {
 		t.Fatalf("Near %+v over %d conditions and %d actions", near, len(sc.Conditions), len(sc.Actions))
 	}
 	if far.Left[0] != 3 || far.Right[0] != 4 || far.Acts[0] != 2 || far.Acts[1] != 3 {

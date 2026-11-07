@@ -26,8 +26,8 @@ func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point) 
 			continue
 		}
 		n++
-		if tr.Name != "Deploy Location" || tr.Left != [3]uint32{} || tr.Right != [3]uint32{} ||
-			tr.Acts != [4]uint32{a.ID} || tr.Once != 1 {
+		if tr.Name != "Deploy Location" || [3]uint32(tr.Left) != [3]uint32{} || [3]uint32(tr.Right) != [3]uint32{} ||
+			[4]uint32(tr.Acts) != [4]uint32{a.ID} || tr.Once != 1 {
 			t.Fatalf("the drop trigger reads %+v", tr)
 		}
 	}

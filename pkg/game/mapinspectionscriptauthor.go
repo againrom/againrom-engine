@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -35,23 +35,25 @@ func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (*ui.InspectionDocume
 func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	var rec []byte
 	var id uint32
+	limits := scriptprofile.First
 	if k == mapedit.KindTrigger {
-		if m.Count(k) >= 1000 {
-			return 0, fmt.Errorf("the script already holds 1000 triggers")
+		if m.Count(k) >= limits.Triggers {
+			return 0, fmt.Errorf("the script already holds %d triggers", limits.Triggers)
 		}
-		rec = make([]byte, alm.ScriptTriggerSize)
-		copy(rec, "Trigger")
-		binary.LittleEndian.PutUint32(rec[alm.ScriptTriggerOnce:], 1)
+		var err error
+		if rec, err = mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: "Trigger", Once: 1}); err != nil {
+			return 0, err
+		}
 	} else {
-		if k == mapedit.KindCondition && m.Count(k) >= 100 {
+		if k == mapedit.KindCondition && m.Count(k) >= limits.Registers {
 			return 0, errChecksFull
 		}
 		var err error
 		if id, err = m.NextScriptID(k); err != nil {
 			return 0, err
 		}
-		if id > 5000 {
-			return 0, fmt.Errorf("the next node ID exceeds 5000")
+		if id > limits.MaxID {
+			return 0, fmt.Errorf("the next node ID exceeds %d", limits.MaxID)
 		}
 		op, value := uint32(2), uint32(1)
 		if k == mapedit.KindCondition {
@@ -242,8 +244,8 @@ func scriptAddressesVariable(condition bool, opcode uint32) bool {
 }
 
 func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
-	if variable >= 100 {
-		return fmt.Errorf("variable register %d is outside 0..99", variable)
+	if limits := scriptprofile.First; variable >= uint32(limits.Registers) {
+		return fmt.Errorf("variable register %d is outside 0..%d", variable, limits.Registers-1)
 	}
 	if int(variable) < len(sc.Conditions) && sc.Conditions[variable].Opcode != 0x10002 {
 		return fmt.Errorf("variable register %d is overwritten by condition %d; use a constant/preset slot or a free register", variable, sc.Conditions[variable].ID)

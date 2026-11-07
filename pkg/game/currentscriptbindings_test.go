@@ -20,7 +20,7 @@ func currentScriptRoleSource() alm.Script {
 			{ID: 3, Opcode: uint32(sim.ScriptCheckAlive), Type: [10]uint32{4}, Value: [10]uint32{77}},
 			{ID: 4, Opcode: uint32(sim.ScriptCheckAlive), Type: [10]uint32{4}, Value: [10]uint32{10003}},
 		},
-		Triggers: []alm.ScriptTrigger{{Left: [3]uint32{1}, Right: [3]uint32{2}, Cmp: [3]uint32{uint32(sim.ScriptCmpLT)}, Acts: [4]uint32{10}, Once: 1}},
+		Triggers: []alm.ScriptTrigger{{Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Cmp: []uint32{uint32(sim.ScriptCmpLT), 0, 0}, Acts: []uint32{10, 0, 0, 0}, Once: 1}},
 	}
 }
 

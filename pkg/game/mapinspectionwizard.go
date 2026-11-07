@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -108,7 +109,8 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 }
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
-	if len(t.Pairs) > 3 || len(t.Actions) > 4 {
+	limits := scriptprofile.First
+	if len(t.Pairs) > limits.Pairs || len(t.Actions) > limits.Actions {
 		return fmt.Errorf("a trigger holds three condition pairs and four actions")
 	}
 	_, sc, err := wizardScript(m)
@@ -146,30 +148,32 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	// Rows fill the trigger's used slots in order, then its empty ones; a
 	// slot no row reaches keeps what the map holds, and a used slot left
 	// without a row is cleared.
-	var pairs [3][3]uint32 // left, right, comparison
-	var acts [4]uint32
+	next := alm.ScriptTrigger{Left: make([]uint32, limits.Pairs), Right: make([]uint32, limits.Pairs),
+		Cmp: make([]uint32, limits.Pairs), Acts: make([]uint32, limits.Actions)}
 	var pairSlots, actSlots []int
 	if len(before) > 0 {
 		old := before[0]
-		for k := range old.Left {
-			pairs[k] = [3]uint32{old.Left[k], old.Right[k], old.Cmp[k]}
+		for k := range next.Left {
+			next.Left[k], next.Right[k], next.Cmp[k] = old.Pair(k)
 		}
-		acts = old.Acts
-		for k := range old.Left {
-			if old.Left[k] != 0 || old.Right[k] != 0 {
+		for k := range next.Acts {
+			next.Acts[k] = old.Act(k)
+		}
+		for k := range next.Left {
+			if next.Left[k] != 0 || next.Right[k] != 0 {
 				pairSlots = append(pairSlots, k)
 			}
 		}
-		for k := range old.Acts {
-			if old.Acts[k] != 0 {
+		for k := range next.Acts {
+			if next.Acts[k] != 0 {
 				actSlots = append(actSlots, k)
 			}
 		}
 		for _, k := range pairSlots {
-			pairs[k] = [3]uint32{}
+			next.Left[k], next.Right[k], next.Cmp[k] = 0, 0, 0
 		}
 		for _, k := range actSlots {
-			acts[k] = 0
+			next.Acts[k] = 0
 		}
 	}
 	used := func(slots []int, k int) bool {
@@ -180,12 +184,12 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		}
 		return false
 	}
-	for k := 0; len(pairSlots) < len(t.Pairs) && k < 3; k++ {
+	for k := 0; len(pairSlots) < len(t.Pairs) && k < limits.Pairs; k++ {
 		if !used(pairSlots, k) {
 			pairSlots = append(pairSlots, k)
 		}
 	}
-	for k := 0; len(actSlots) < len(t.Actions) && k < 4; k++ {
+	for k := 0; len(actSlots) < len(t.Actions) && k < limits.Actions; k++ {
 		if !used(actSlots, k) {
 			actSlots = append(actSlots, k)
 		}
@@ -194,26 +198,31 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		slot := pairSlots[k]
 		keepsCmp := false
 		if len(before) > 0 {
-			keepsCmp = p.Cmp == before[0].Cmp[slot]
+			_, _, held := before[0].Pair(slot)
+			keepsCmp = p.Cmp == held
 		}
-		if p.Cmp > 5 && !keepsCmp {
-			return fmt.Errorf("condition %d: comparison %d is outside 0..5", k+1, p.Cmp)
+		if p.Cmp > limits.MaxCompare && !keepsCmp {
+			return fmt.Errorf("condition %d: comparison %d is outside 0..%d", k+1, p.Cmp, limits.MaxCompare)
 		}
 		for side, n := range []ui.WizardNode{p.Left, p.Right} {
 			id, err := wizardNode(m, true, n, condRefs, planned)
 			if err != nil {
 				return fmt.Errorf("condition %d: %w", k+1, err)
 			}
-			pairs[slot][side] = id
+			if side == 0 {
+				next.Left[slot] = id
+			} else {
+				next.Right[slot] = id
+			}
 		}
-		pairs[slot][2] = p.Cmp
+		next.Cmp[slot] = p.Cmp
 	}
 	for k, a := range t.Actions {
 		id, err := wizardNode(m, false, a, actRefs, planned)
 		if err != nil {
 			return fmt.Errorf("action %d: %w", k+1, err)
 		}
-		acts[actSlots[k]] = id
+		next.Acts[actSlots[k]] = id
 	}
 	index := t.Index
 	if index < 0 {
@@ -222,21 +231,10 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		}
 		index = m.Count(mapedit.KindTrigger) - 1
 	}
-	var sets []mapedit.FieldSet
-	for k := 0; k < 3; k++ {
-		sets = append(sets, mapedit.FieldSet{Key: fmt.Sprintf("left%d", k), Value: int64(pairs[k][0])},
-			mapedit.FieldSet{Key: fmt.Sprintf("right%d", k), Value: int64(pairs[k][1])},
-			mapedit.FieldSet{Key: fmt.Sprintf("cmp%d", k), Value: int64(pairs[k][2])})
-	}
-	for k := 0; k < 4; k++ {
-		sets = append(sets, mapedit.FieldSet{Key: fmt.Sprintf("action%d", k), Value: int64(acts[k])})
-	}
-	once := int64(0)
 	if t.Once != 0 {
-		once = 1
+		next.Once = 1
 	}
-	sets = append(sets, mapedit.FieldSet{Key: "once", Value: once})
-	if err := setChangedFields(m, mapedit.KindTrigger, index, sets); err != nil {
+	if err := m.SetTriggerSlots(index, next); err != nil {
 		return err
 	}
 	if t.Name != "" {
@@ -245,24 +243,6 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		}
 	}
 	return dropUnnamed(m, before)
-}
-
-// setChangedFields writes the sets whose value differs from the record's.
-func setChangedFields(m *mapedit.Editor, k mapedit.Kind, index int, sets []mapedit.FieldSet) error {
-	var changed []mapedit.FieldSet
-	for _, set := range sets {
-		v, err := m.FieldValue(k, index, set.Key)
-		if err != nil {
-			return err
-		}
-		if v != set.Value {
-			changed = append(changed, set)
-		}
-	}
-	if len(changed) == 0 {
-		return nil
-	}
-	return m.SetFields(k, index, changed...)
 }
 
 // wizardNode is the id a row's node has once written: kept, rewritten in
@@ -319,7 +299,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		return n.ID, m.SetScriptNode(kind, at, label, n.Opcode, params...)
 	}
 	if condition {
-		if len(sc.Conditions)+1 > 100 {
+		if len(sc.Conditions)+1 > scriptprofile.First.Registers {
 			return 0, errChecksFull
 		}
 		if err := registerCollision(sc, 1); err != nil {
@@ -330,8 +310,8 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	if err != nil {
 		return 0, err
 	}
-	if id > 5000 {
-		return 0, fmt.Errorf("the next node ID exceeds 5000")
+	if maxID := scriptprofile.First.MaxID; id > maxID {
+		return 0, fmt.Errorf("the next node ID exceeds %d", maxID)
 	}
 	rec, err := mapedit.NewScriptNode(label, n.Opcode, id, params...)
 	if err != nil {
@@ -459,7 +439,11 @@ func (s *mapInspectionEdits) DeleteDropZone(zone int) (*ui.InspectionDocument, e
 			if !slices.Contains(tr.Acts[:], id) {
 				continue
 			}
-			only := tr.Left == [3]uint32{} && tr.Right == [3]uint32{}
+			only := true
+			for k := range tr.Pairs() {
+				left, right, _ := tr.Pair(k)
+				only = only && left == 0 && right == 0
+			}
 			for _, a := range tr.Acts {
 				only = only && (a == 0 || a == id)
 			}
@@ -469,13 +453,14 @@ func (s *mapInspectionEdits) DeleteDropZone(zone int) (*ui.InspectionDocument, e
 				}
 				continue
 			}
-			var sets []mapedit.FieldSet
-			for k, a := range tr.Acts {
+			next := tr
+			next.Acts = slices.Clone(tr.Acts)
+			for k, a := range next.Acts {
 				if a == id {
-					sets = append(sets, mapedit.FieldSet{Key: fmt.Sprintf("action%d", k), Value: 0})
+					next.Acts[k] = 0
 				}
 			}
-			if err := m.SetFields(mapedit.KindTrigger, t, sets...); err != nil {
+			if err := m.SetTriggerSlots(t, next); err != nil {
 				return false, err
 			}
 		}

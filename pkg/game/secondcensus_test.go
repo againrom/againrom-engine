@@ -57,9 +57,9 @@ func TestSecondOmissionsAttributeEachTriggerToItsGreatestCause(t *testing.T) {
 			censusNode(19, 11, censusUnit(10002), [2]uint32{3, 1}),
 		},
 		Triggers: []alm.ScriptTrigger{
-			{Left: [3]uint32{2}, Right: [3]uint32{1}, Acts: [4]uint32{10}},
-			{Left: [3]uint32{3, 4}, Right: [3]uint32{1, 1}, Acts: [4]uint32{10}},
-			{Left: [3]uint32{1}, Right: [3]uint32{1}, Acts: [4]uint32{10, 11}},
+			{Left: []uint32{2, 0, 0}, Right: []uint32{1, 0, 0}, Acts: []uint32{10, 0, 0, 0}},
+			{Left: []uint32{3, 4, 0}, Right: []uint32{1, 1, 0}, Acts: []uint32{10, 0, 0, 0}},
+			{Left: []uint32{1, 0, 0}, Right: []uint32{1, 0, 0}, Acts: []uint32{10, 11, 0, 0}},
 		},
 	}
 	refs := mapload.ScriptRefs{Hero: 5, HasHero: true}

@@ -7,8 +7,19 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
+
+// conditionIDs is t's condition ids, each pair's left then right.
+func conditionIDs(t alm.ScriptTrigger) []uint32 {
+	var out []uint32
+	for p := range t.Pairs() {
+		left, right, _ := t.Pair(p)
+		out = append(out, left, right)
+	}
+	return out
+}
 
 func inspectionOperation(kind ui.RecordKind, opcode uint32) string {
 	return mapload.ScriptOperationName(kind == ui.KindCondition, opcode)
@@ -61,7 +72,14 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		}
 	}
 	for i, t := range script.Triggers {
-		model.Triggers = append(model.Triggers, ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Left: t.Left, Right: t.Right, Cmp: t.Cmp, Acts: t.Acts, Once: t.Once})
+		it := ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Once: t.Once}
+		for p := range it.Left {
+			it.Left[p], it.Right[p], it.Cmp[p] = t.Pair(p)
+		}
+		for a := range it.Acts {
+			it.Acts[a] = t.Act(a)
+		}
+		model.Triggers = append(model.Triggers, it)
 		r := ui.InspectionRecord{Kind: ui.KindTrigger, Section: 7, Index: i, Label: text(t.Name)}
 		once := "repeat while conditions hold"
 		if t.Once != 0 {
@@ -71,7 +89,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		s.line(&r, "Conditions / AND", "condition")
 		for p := range t.Left {
 			comparison := "unknown"
-			if t.Cmp[p] < 6 {
+			if t.Cmp[p] <= scriptprofile.MaxCompare {
 				comparison = mapload.ScriptComparisons[t.Cmp[p]]
 			}
 			status := ""
@@ -84,7 +102,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 			if status == " / incomplete pair" {
 				s.issue(&r, fmt.Sprintf("Pair %d incomplete; raw sides retained", p+1))
 			}
-			if t.Cmp[p] > 5 {
+			if t.Cmp[p] > scriptprofile.MaxCompare {
 				s.issue(&r, fmt.Sprintf("Pair %d unknown comparator %#x", p+1, t.Cmp[p]))
 			}
 		}
@@ -106,7 +124,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		for _, family := range []struct {
 			kind ui.RecordKind
 			ids  []uint32
-		}{{ui.KindCondition, []uint32{t.Left[0], t.Right[0], t.Left[1], t.Right[1], t.Left[2], t.Right[2]}}, {ui.KindAction, t.Acts[:]}} {
+		}{{ui.KindCondition, conditionIDs(t)}, {ui.KindAction, t.Acts}} {
 			for _, id := range family.ids {
 				key := fmt.Sprintf("%s:%d", family.kind, id)
 				if id == 0 || seen[key] {
