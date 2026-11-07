@@ -4251,6 +4251,11 @@ var Committed = Baseline{
 	// pkg/game/world.go, gamefiles.go and pkg/ui/sound.go, the new
 	// pkg/game/missiondollsound_test.go, and this note.
 
+	// CommentBytes rises for the doc comments of the attack order rule in
+	// pkg/formats/sav/engine_form.go and profile.go, the new
+	// engine_form_order_test.go and pkg/game/secondattackorder_test.go, and
+	// this note.
+
 	// CommentBytes rises for the doc comments of the editor's people groups,
 	// mission sprites and mercenary level in pkg/game/mapinspectionidentity.go,
 	// mapinspectionadd.go (unitPreview now takes the class sheet) and

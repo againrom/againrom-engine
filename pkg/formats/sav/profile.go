@@ -99,7 +99,13 @@ var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArra
 	// Player P sight by Player Q's bodies from bit 0x10 of M[Q][P]
 	// (R2-ENGINE-826).
 	terrain: &terrainForm{from: 0x807, to: 0xedee, above: 0x0f, buckets: 100, keyAt: 0x3a - 0x2c},
-	results: map[int]int32{901: 1}, diplomacyHead: []byte{1, 1, 0, 0}, sightBit: 0x10, fields: []formField{
+	results: map[int]int32{901: 1}, diplomacyHead: []byte{1, 1, 0, 0}, sightBit: 0x10,
+	// The original's attack planner reads the target of order 3 before any
+	// null test (R2-ENGINE-936), and its order-3 setter stores a target
+	// (R2-ENGINE-937). An attack with no target to write is the record of
+	// a unit with no order: order 12, state 0 (R2-SESSION-356).
+	order: &formOrder{code: "U50", state: "U54", phase: "U58", from: "U158", into: "URaw184", attack: 3, idle: 12, target: 0x0c},
+	fields: []formField{
 		{site: formRaw, name: PlayerTailName, into: []formAdd{{"PRaw2560", zeroFill(2560)}, {"PRaw36", preferenceFill}}},
 		{site: formRaw, name: "U158", into: []formAdd{{"URaw184", commandFill}}},
 		{site: formInline, name: "Diary"},
