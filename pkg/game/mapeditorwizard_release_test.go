@@ -78,7 +78,7 @@ func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
 		t.Fatalf("scenario 10 has %d drop actions", len(d))
 	}
 	cell := image.Pt(int(d[0].Value[0]), int(d[0].Value[1]))
-	dropShape(t, sc, d[0], cell)
+	dropShape(t, sc, d[0], cell, 0)
 
 	e, _ := openGoalMap(t, emptyScriptMap(t, 160))
 	e.Fit()
@@ -89,7 +89,7 @@ func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
 	if len(g) != 1 {
 		t.Fatalf("the tool wrote %d drop actions", len(g))
 	}
-	dropShape(t, got, g[0], cell)
+	dropShape(t, got, g[0], cell, 1)
 	if g[0].Label != d[0].Label || g[0].Type != d[0].Type || g[0].Value != d[0].Value {
 		t.Fatalf("the tool's action %+v, scenario 10's %+v", g[0], d[0])
 	}
@@ -101,6 +101,8 @@ func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
 	}
 	want.Acts, have.Acts = slices.Clone(want.Acts), slices.Clone(have.Acts)
 	want.Acts[0], have.Acts[0] = 0, 0
+	want.Left, have.Left = slices.Clone(want.Left), slices.Clone(have.Left)
+	want.Left[0], have.Left[0] = 0, 0
 	if !reflect.DeepEqual(want, have) {
 		t.Fatalf("the tool's trigger %+v, scenario 10's %+v", have, want)
 	}

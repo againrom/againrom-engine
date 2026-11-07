@@ -4347,5 +4347,7 @@ var Committed = Baseline{
 	// pkg/sim/mover.go and pkg/mapload/start.go, and this note.
 
 	// CommentBytes rises for the town bank adapter and town state guard docs.
-	CommentBytes: 10677328,
+	// It rises for addEndGroups' doc in pkg/game/mapeditadd_test.go.
+	// It rises for runGuardStrike's note on the mage it removes.
+	CommentBytes: 10677936,
 }

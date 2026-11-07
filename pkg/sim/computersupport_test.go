@@ -90,6 +90,12 @@ func TestComputerSupportUsesTheExistingAdmission(t *testing.T) {
 		{"an attack order keeps the caster", func(w *World) {
 			w.entities[0].HasAttackTarget, w.entities[0].AttackTarget, w.entities[0].AttackTargetKind = true, 2, AttackTargetUnit
 		}, false},
+		{"a hostile striking the wounded caster keeps it", func(w *World) {
+			w.entities[0].HP = 50
+			w.relations.Set(7, SelfSlot, relationHostile)
+			w.relations.Set(SelfSlot, 7, relationHostile)
+			w.entities[1].HasAttackTarget, w.entities[1].AttackTarget, w.entities[1].AttackTargetKind = true, 1, AttackTargetUnit
+		}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, _, heal := computerSupportFixture(t, true, 7, 1, 11, true, true, 3)

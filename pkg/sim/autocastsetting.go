@@ -152,7 +152,7 @@ func (w *World) supportCast(ci int) {
 	} else if caster.Owner != SelfSlot {
 		return
 	}
-	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && caster.HasAttackTarget {
+	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.engaged(ci) {
 		return
 	}
 	heal := autoCastRoleArm(autoCastHealer)

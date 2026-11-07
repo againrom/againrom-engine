@@ -10,9 +10,9 @@ import (
 	"againrom/pkg/ui"
 )
 
-// dropShape checks the authored drop node and its one fire-once trigger.
-// The trigger has the writer's conditionless pair and only that action.
-func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point) {
+// dropShape checks a drop node and its one fire-once trigger, which names
+// only it; left is its first left ID: 1 written, 0 shipped (no pairs).
+func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point, left uint32) {
 	t.Helper()
 	if a.Label != "Drop Location" || a.Opcode != mapload.ScriptConstant ||
 		a.Type != [10]uint32{5, 6} || a.Value != [10]uint32{uint32(cell.X), uint32(cell.Y)} {
@@ -24,7 +24,7 @@ func dropShape(t *testing.T, sc alm.Script, a alm.ScriptNode, cell image.Point) 
 			continue
 		}
 		n++
-		if tr.Name != "Deploy Location" || [3]uint32(tr.Left) != [3]uint32{1} || [3]uint32(tr.Right) != [3]uint32{} ||
+		if tr.Name != "Deploy Location" || [3]uint32(tr.Left) != [3]uint32{left} || [3]uint32(tr.Right) != [3]uint32{} ||
 			[4]uint32(tr.Acts) != [4]uint32{a.ID} || tr.Once != 1 {
 			t.Fatalf("the drop trigger reads %+v", tr)
 		}
@@ -65,8 +65,8 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	if len(d) != 2 || len(sc.Triggers) != 2 {
 		t.Fatalf("%d drop actions and %d triggers", len(d), len(sc.Triggers))
 	}
-	dropShape(t, sc, d[0], image.Pt(12, 12))
-	dropShape(t, sc, d[1], image.Pt(30, 8))
+	dropShape(t, sc, d[0], image.Pt(12, 12), 1)
+	dropShape(t, sc, d[1], image.Pt(30, 8), 1)
 	if got := e.Document().Drops; len(got) != 2 || got[0] != image.Pt(12, 12) || got[1] != image.Pt(30, 8) {
 		t.Fatalf("the document's drops %v", got)
 	}
@@ -80,7 +80,7 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	if d = drops(sc); len(d) != 2 {
 		t.Fatalf("the drag left %d zones", len(d))
 	}
-	dropShape(t, sc, d[0], image.Pt(9, 20))
+	dropShape(t, sc, d[0], image.Pt(9, 20), 1)
 	if err := e.Key("undo"); err != nil || wizScript(t, e.Document().SourceBytes).Actions[0].Value[0] != 12 {
 		t.Fatal("one Undo did not take the move back", err)
 	}
@@ -95,7 +95,7 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	if d = drops(sc); len(d) != 1 || len(sc.Triggers) != 1 {
 		t.Fatalf("Del left %d zones and %d triggers", len(d), len(sc.Triggers))
 	}
-	dropShape(t, sc, d[0], image.Pt(9, 20))
+	dropShape(t, sc, d[0], image.Pt(9, 20), 1)
 	if on, _ := e.DropToolOn(); !on {
 		t.Fatal("Del ended the tool")
 	}

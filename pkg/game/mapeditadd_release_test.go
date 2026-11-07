@@ -384,6 +384,7 @@ func TestReleaseMapEditorAddWindowFrames(t *testing.T) {
 					_ = e.Key("enter")
 				}
 				shot(e, fmt.Sprintf("add-%s-%d-%s", c.name, at, key))
+				addEndGroups(e)
 				_ = e.Key("enter")
 				continue
 			}

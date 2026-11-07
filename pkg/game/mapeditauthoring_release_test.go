@@ -453,6 +453,10 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 		if len(rows) == 0 || rows[0].Label == "" || strings.Contains(rows[0].Label, "raw ") {
 			t.Fatalf("%s has no visible installed name: %+v", c.kind, rows)
 		}
+		if c.kind == "Sack" {
+			g := s.inspector.itemGroups[0]
+			rows = slices.DeleteFunc(rows, func(ch ui.InspectionChoice) bool { return !slices.Contains(g.Values, ch.Value) })
+		}
 		chosen[c.kind] = rows[0].Value
 		// The Add window's list walks with Down and Up; a many step takes the
 		// highlighted row with Enter and goes on with the next.
@@ -464,11 +468,12 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 			}
 			switch key {
 			case c.field:
-				_ = e.Key("down")
+				keys := []string{"down", "up"}
 				if c.kind == "Sack" {
-					_ = e.Key("enter")
-				} else {
-					_ = e.Key("up")
+					keys = []string{"enter", "down", "enter", "down", "enter"}
+				}
+				for _, k := range keys {
+					_ = e.Key(k)
 				}
 			case "cell":
 				_ = e.Key("clear")

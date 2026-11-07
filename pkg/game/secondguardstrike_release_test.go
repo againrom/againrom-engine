@@ -1,6 +1,7 @@
 package game
 
 import (
+	"slices"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -83,6 +84,21 @@ func runGuardStrike(t *testing.T, archives *Archives) guardStrikeRun {
 	}
 	if found != 1 {
 		t.Fatalf("mission 10 holds %d bound members of Group %d, want one", found, strikeGroupSelector)
+	}
+	// The subject is the group's pursuit after the blow. Mission 10's idle
+	// Player 8 mage (Units row 24, start cell 64,36) shields itself, and an
+	// unrelated mage's own casts shift the shared draw stream the hero's
+	// to-hit roll reads; whether the original's Shield cast draws from it is
+	// Unknown. The run removes that mage before its first pass.
+	all := w.Entities()
+	mage := slices.IndexFunc(all, func(e sim.Entity) bool {
+		return e.Owner == 8 && e.TypeID == 24 && e.X == 64 && e.Y == 36
+	})
+	if mage < 0 {
+		t.Fatal("mission 10 holds no Player 8 mage of Units row 24 on cell 64,36")
+	}
+	if err := w.HeadlessKill(all[mage].ID); err != nil {
+		t.Fatal(err)
 	}
 	run := guardStrikeRun{Member: member, Hero: hero}
 	sideArea := false

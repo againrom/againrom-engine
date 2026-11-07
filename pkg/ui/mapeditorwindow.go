@@ -1407,9 +1407,9 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		s.Width += aside + popupPad
 	}
 	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
-	if s.Fit && !e.objectInPanel() {
-		// A label over its field takes a second line: the window shows
-		// fewer rows so that it keeps inside the editor.
+	if !e.objectInPanel() {
+		// A label over its field or a face takes more lines: the window
+		// shows fewer rows and keeps inside the editor.
 		e.clampObjectTop(&s, len(s.Rows))
 		for s.MaxRows > popupMinRows && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > e.popupBounds().Dy() {
 			s.MaxRows--

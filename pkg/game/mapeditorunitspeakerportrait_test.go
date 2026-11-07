@@ -48,3 +48,24 @@ func TestUnitWindowShowsTheFaceItsSpeakerWears(t *testing.T) {
 		t.Fatalf("the refused unit's lines %v, want the refusal %q", field.Lines, want)
 	}
 }
+
+func TestUnitWindowWithAFaceKeepsInsideTheEditor(t *testing.T) {
+	e, _ := speakerPickEditor(t)
+	e.Layout(1280, 800)
+	e.Select(recordIndex(t, e, "Unit", 3), true)
+	c := &editorClicker{t: t}
+	for _, view := range []string{"first", "switched"} {
+		if view == "switched" {
+			r, ok := e.ViewSwitchRect()
+			c.click(e, r, ok, "view switch")
+		}
+		e.ScrollDetails(-100)
+		for step := 0; step < 40; step++ {
+			r, ok := e.PopupRect()
+			if !ok || r.Min.Y < 0 || r.Max.Y > 800 {
+				t.Fatalf("%s view, scroll %d: the unit window stands at %v %v", view, step, r, ok)
+			}
+			e.ScrollDetails(1)
+		}
+	}
+}

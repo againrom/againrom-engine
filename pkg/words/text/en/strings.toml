@@ -938,7 +938,6 @@
 "editor.trigger.addpair" = "Add condition pair"
 "editor.trigger.addgroup" = "Add OR group"
 "editor.trigger.orgroup" = "Or: all of these must hold"
-"editor.trigger.always" = "With no condition the trigger fires on every pass."
 "editor.trigger.actions" = "Actions: run in order"
 "editor.trigger.action" = "Action %d"
 "editor.trigger.addaction" = "Add action"

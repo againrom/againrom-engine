@@ -52,6 +52,8 @@ func addStepsN(t *testing.T, e *ui.MapEditor, values map[string]string, n int) b
 			}
 			_ = e.Key("clear")
 			e.TextInput(parts[len(parts)-1])
+		} else if given[key] {
+			addEndGroups(e)
 		}
 		enter(key)
 		if next, _, ok := e.AddStep(); !ok || next != key {
@@ -60,6 +62,17 @@ func addStepsN(t *testing.T, e *ui.MapEditor, values map[string]string, n int) b
 	}
 	t.Fatal("the Add window did not end")
 	return false
+}
+
+// addEndGroups highlights, unchosen, the first grouped item, where an empty
+// Enter ends the step; on a group row Enter opens the group.
+func addEndGroups(e *ui.MapEditor) {
+	if lines := e.AddListLines(); len(lines) == 0 || !strings.HasSuffix(lines[0], " >") {
+		return
+	}
+	for _, key := range []string{"home", "enter", "down", "enter", "down", "clear"} {
+		_ = e.Key(key)
+	}
 }
 
 // addWindow opens the Add window with key and drives it to its end.

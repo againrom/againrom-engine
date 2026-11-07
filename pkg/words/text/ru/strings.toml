@@ -885,7 +885,6 @@
 "editor.trigger.addpair" = "Добавить пару условий"
 "editor.trigger.addgroup" = "Добавить группу ИЛИ"
 "editor.trigger.orgroup" = "Или: все эти должны выполняться"
-"editor.trigger.always" = "Без условий триггер срабатывает на каждом проходе."
 "editor.trigger.actions" = "Действия: по порядку"
 "editor.trigger.action" = "Действие %d"
 "editor.trigger.addaction" = "Добавить действие"
