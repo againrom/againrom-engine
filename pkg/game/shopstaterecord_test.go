@@ -139,6 +139,7 @@ func TestShopStateRecord(t *testing.T) {
 		t.Fatal("the record must contain SAV bytes, not a refusal")
 	}
 	// R2-ENGINE-941: a candidate precedes the potion lead.
+	// a72c6ee21: SAVE returns table items before later trades.
 	path := filepath.Join("testdata", "shop_state_record.txt")
 	if os.Getenv("AGAINROM_WRITE_SHOP_STATE_RECORD") == "1" {
 		if err := os.WriteFile(path, []byte(got), 0644); err != nil {

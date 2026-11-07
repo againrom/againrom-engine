@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -110,18 +111,24 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 			if entry < 0 {
 				t.Fatal("no shown entry holds two units")
 			}
-			want := c.shop.shownShelf()[entry]
+			before := c.shop.shownShelf()
+			want := before[entry]
 			at := secondShopPagePoint(t, app, "shelf", entry)
 			shopTap(t, app, at, "press", "release")
 			if secondShopUnits(c) != 1 || c.shop.shownShelf()[entry].Count != want.Count-1 {
 				t.Fatalf("a click took %d units", secondShopUnits(c))
 			}
 			shopTap(t, app, at, "shift-press", "shift-release")
-			if secondShopUnits(c) != int(want.Count) || c.shop.shownShelf()[entry].Count != 0 {
+			// 686ae13b5: emptied shelf entries leave the shown list.
+			remaining := slices.Delete(slices.Clone(before), entry, entry+1)
+			if secondShopUnits(c) != int(want.Count) {
 				t.Fatalf("a shift click left %d of %d units staged", secondShopUnits(c), want.Count)
 			}
+			if got := c.shop.shownShelf(); !reflect.DeepEqual(got, remaining) {
+				t.Fatalf("a shift click left shelf %v, want %v", got, remaining)
+			}
 			secondShopActivate(t, f, app, "UNDO")
-			if secondShopUnits(c) != 0 || c.shop.shownShelf()[entry].Count != want.Count {
+			if secondShopUnits(c) != 0 || !reflect.DeepEqual(c.shop.shownShelf(), before) {
 				t.Fatal("UNDO did not return the units")
 			}
 

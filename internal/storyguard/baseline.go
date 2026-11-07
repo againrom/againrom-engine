@@ -4339,5 +4339,5 @@ var Committed = Baseline{
 	// pkg/data/unitdef.go, the table's draw in pkg/mapload/spawn.go and
 	// pkg/game's gamefiles.go and secondtownshop.go, the death list in
 	// pkg/secondshop's fill.go and shop.go, their new tests, and this note.
-	CommentBytes: 10672400,
+	CommentBytes: 10672389,
 }

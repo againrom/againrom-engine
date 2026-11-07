@@ -108,31 +108,33 @@ func TestMessageSpeakerListCarriesEachSpeakersFace(t *testing.T) {
 	}
 }
 
-// The person window's NPC list is the speaker list's builder: each record
-// with a face carries the same picture the speaker list carries for it, the
-// face a dialogue shows at mission start on this map.
+// 93b9ff232: identity cells show map sprites; portraits use the speaker row.
 func TestPersonWindowNPCListCarriesTheSpeakerListsFaces(t *testing.T) {
 	_, s, _ := nativeIdentityEditor(t)
 	faces := map[int32]data.NPCFace{8: {Kind: data.NPCFigure, Dir: data.FigureDirWomanFighter, Face: 7, HasWindow: true}, 7: {Kind: data.NPCNoPicture}}
 	s.inspector.table.NPCCatalog.Faces = faces
-	fields := s.Fields("Unit", 0)
-	npc := fields[fieldIndex(t, fields, "identity")]
-	if !npc.IconTip {
-		t.Error("the NPC list shows its faces in its rows, not at full size in the tip")
+	speakers := s.MessageFields(ui.NewMessagePage)
+	if len(speakers) != 2 || !speakers[1].IconTip {
+		t.Fatal("the speaker list does not show faces in its rows")
 	}
-	for _, id := range []int{8, 7} {
-		want := missionStartFace(t, s, id)
-		if got := npc.Icons[namedIdentity(int32(id))]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
-			t.Fatalf("NPC %d carries no face, or not the face a dialogue shows at mission start", id)
-		}
-	}
-	for _, id := range []int32{0, 9} {
-		if _, held := npc.Icons[namedIdentity(id)]; held {
+	for _, id := range []int64{0, 9} {
+		if _, held := speakers[1].Icons[id]; held {
 			t.Errorf("NPC %d has no face and carries a picture", id)
 		}
 	}
-	speakers := s.MessageFields(ui.NewMessagePage)
-	if len(speakers) != 2 || speakers[1].Icons[8] != npc.Icons[namedIdentity(8)] {
-		t.Error("the person window and the speaker list carry different pictures of NPC 8")
+	for _, id := range []int{8, 7} {
+		if _, err := s.SetField(ui.KindUnit, 0, "identity", namedIdentity(int32(id))); err != nil {
+			t.Fatal(err)
+		}
+		fields := s.Fields(ui.KindUnit, 0)
+		npc := fields[fieldIndex(t, fields, "speaker")]
+		want := missionStartFace(t, s, id)
+		if got := npc.Picture; got == nil || got.Rect != want.Rect || !bytes.Equal(got.Pix, want.Pix) {
+			t.Fatalf("NPC %d carries no face, or not the face a dialogue shows at mission start", id)
+		}
+		speakers := s.MessageFields(ui.NewMessagePage)
+		if len(speakers) != 2 || speakers[1].Icons[int64(id)] != npc.Picture {
+			t.Errorf("the person window and the speaker list carry different pictures of NPC %d", id)
+		}
 	}
 }
