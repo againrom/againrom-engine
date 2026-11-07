@@ -58,7 +58,8 @@ const questIndent = " "
 // questLayout is the objectives window as drawn. Below the briefing stands
 // one row per shown objective: its 24x24 mark at x 48..72 from y - 3 beside
 // its text, wrapped from x 80 to 48 short of the right edge, the first row
-// 16 below the briefing and 10 px between rows (R2-ENGINE-888). The window
+// 16 below the briefing's last drawn line (below its scroll area when the
+// briefing is longer than the area) and 10 px between rows (R2-ENGINE-888). The window
 // grows by its rows about the same centre; without rows it is the base panel.
 type questLayout struct {
 	Panel, Button, Bar image.Rectangle
@@ -86,6 +87,9 @@ func (f *flow) questLayout() questLayout {
 	pitch := f.questPitch()
 	left := questPanelRect.Min.X
 	y := questBarRect.Max.Y + 16
+	if n := len(f.questLines()); n <= max(1, questBarRect.Dy()/pitch) {
+		y = questBarRect.Min.Y + n*pitch + 16
+	}
 	var rows []questRowLayout
 	for _, o := range f.menuContext.Objectives {
 		lines := f.questRowLines(o.Text, questPanelRect.Dx()-128)

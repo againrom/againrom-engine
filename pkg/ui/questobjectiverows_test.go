@@ -44,7 +44,7 @@ func TestQuestObjectiveRowsStandBelowTheBriefing(t *testing.T) {
 	if wantLines[2] < 2 {
 		t.Fatalf("the long text wraps to %d lines", wantLines[2])
 	}
-	y := questBarRect.Max.Y + 16
+	y := questBarRect.Min.Y + len(f.questLines())*pitch + 16
 	var ys []int
 	for _, n := range wantLines {
 		ys = append(ys, y)
@@ -76,6 +76,36 @@ func TestQuestObjectiveRowsStandBelowTheBriefing(t *testing.T) {
 	want = append(want, "Plain")
 	if len(texts) == 0 || !slices.Equal(texts[:len(texts)-1], want) {
 		t.Fatalf("the window's rows read %q, want %q", texts, want)
+	}
+}
+
+// A briefing that fits puts the first row 16 below its last drawn line; a
+// briefing longer than its area keeps the first row below the area.
+func TestQuestObjectiveFirstRowFollowsTheBriefing(t *testing.T) {
+	f := openMissionMenu(t)
+	f.menuFont = gameMenuTestFont()
+	pitch := f.questPitch()
+	f.menuContext.Objectives = []QuestObjective{{Text: "a", Mark: 0}, {Text: "b", Mark: 1},
+		{Text: "c", Mark: 2}, {Text: "d", Mark: NoObjectiveMark}}
+	rowY := func() int {
+		l := f.questLayout()
+		return l.Rows[0].Text.Y - (l.Bar.Min.Y - questBarRect.Min.Y)
+	}
+	f.menuContext.Objective = "one\ntwo\nthree"
+	if n := len(f.questLines()); n != 3 {
+		t.Fatalf("the briefing has %d lines, want 3", n)
+	}
+	lastLine := questBarRect.Min.Y + 2*pitch
+	if got, want := rowY(), lastLine+pitch+16; got != want {
+		t.Fatalf("first row at %d, want %d", got, want)
+	}
+	long := strings.TrimSpace(strings.Repeat("line\n", questBarRect.Dy()/pitch+3))
+	f.menuContext.Objective = long
+	if n := len(f.questLines()); n <= questBarRect.Dy()/pitch {
+		t.Fatalf("the long briefing has %d lines", n)
+	}
+	if got, want := rowY(), questBarRect.Max.Y+16; got != want {
+		t.Fatalf("first row of a long briefing at %d, want %d", got, want)
 	}
 }
 

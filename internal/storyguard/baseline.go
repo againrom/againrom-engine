@@ -32,6 +32,9 @@ package storyguard
 // docs state that every input it feeds those wrappers is real install or
 // mission data, not a fixture.
 //
+// CommentBytes rose by the doc comments of the objectives window layout in
+// pkg/ui/questobjectives.go and its test, and this paragraph.
+//
 // CommentBytes rose by the doc comments of the dead-flyer SAV fix and its tests.
 //
 // CommentBytes rose by the doc comments of the map editor's test play, all new
@@ -4261,5 +4264,5 @@ var Committed = Baseline{
 	// mapinspectionadd.go (unitPreview now takes the class sheet) and
 	// originalparty.go, PlaceOn in pkg/mapload/identity.go, the new
 	// pkg/game/mapinspectionpeople_test.go, and this note.
-	CommentBytes: 10609111,
+	CommentBytes: 10609478,
 }
