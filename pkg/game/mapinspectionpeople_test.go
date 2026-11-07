@@ -69,15 +69,16 @@ func peopleIdentityEditor(t *testing.T, lang string) *mapInspectionEdits {
 
 func personValue(row int) int64 { return identityValue(identityPerson, row) }
 
-// The people block holds story heroes, player characters, one cell per
-// mercenary type and the other rows by the class sheet the mission draws,
-// men first, in both languages.
+// The people block holds story heroes, player characters, every mercenary
+// level row (a type's levels one after another) and the other rows by the
+// class sheet the mission draws, men first, in both languages.
 func TestEditorIdentityPeopleGroupByRoleAndDrawnClass(t *testing.T) {
 	heads := map[string][]string{
 		"en": {"Story heroes", "Player characters", "Mercenaries", "Others: fighters", "Others: mages", "Others: riders", "Others: Odd class"},
 		"ru": {"Сюжетные герои", "Персонажи игрока", "Наемники", "Прочие: бойцы", "Прочие: маги", "Прочие: всадники", "Прочие: Odd class"},
 	}
-	want := [][]int64{{identityValue(identityNamed, 8)}, {personValue(3), personValue(4)}, {personValue(5), personValue(6)},
+	want := [][]int64{{identityValue(identityNamed, 8)}, {personValue(3), personValue(4)},
+		{personValue(5), personValue(7), personValue(9), personValue(11), personValue(6), personValue(8), personValue(10), personValue(12)},
 		{personValue(2), personValue(1)}, {personValue(14), personValue(13)}, {personValue(16), personValue(15)}, {personValue(17)}}
 	for _, lang := range []string{"en", "ru"} {
 		t.Run(lang, func(t *testing.T) {
@@ -97,11 +98,6 @@ func TestEditorIdentityPeopleGroupByRoleAndDrawnClass(t *testing.T) {
 			for i, g := range got {
 				if g.Head != x.inspectionUTF8(heads[lang][i]) || !slices.Equal(g.Values, want[i]) {
 					t.Errorf("group %d = %q %v, want %q %v", i, g.Head, g.Values, heads[lang][i], want[i])
-				}
-			}
-			for row := 7; row <= 12; row++ {
-				if slices.ContainsFunc(step.Choices, func(c ui.InspectionChoice) bool { return c.Value == personValue(row) }) {
-					t.Errorf("mercenary row %d of a level above 1 has a cell of its own", row)
 				}
 			}
 		})
@@ -182,10 +178,11 @@ func TestEditorIdentityPeopleCellsDrawTheMissionSprite(t *testing.T) {
 	}
 }
 
-// A mercenary cell places its type at level 1; the unit popup's level field
-// switches the record to the type's row of that level as one edit that undo
-// and redo travel, the other fields keep their values and the identity
-// field shows the type's one cell at every level.
+// A mercenary level-1 cell places its type at level 1; the unit popup's level
+// field switches the record to the type's row of that level as one edit that
+// undo and redo travel, the other fields keep their values, the identity
+// field shows that row's own cell and choosing that cell writes the same
+// bytes as the level field.
 func TestEditorUnitMercenaryLevelSwitchesTheRowWithUndo(t *testing.T) {
 	s := peopleIdentityEditor(t, "en")
 	x := s.inspector
@@ -202,7 +199,7 @@ func TestEditorUnitMercenaryLevelSwitchesTheRowWithUndo(t *testing.T) {
 	settled := func() map[string]int64 {
 		out := map[string]int64{}
 		for _, f := range s.Fields(ui.KindUnit, index) {
-			if !f.ReadOnly && f.Key != "level" {
+			if !f.ReadOnly && f.Key != "level" && f.Key != "identity" {
 				out[f.Key] = f.Value
 			}
 		}
@@ -230,8 +227,11 @@ func TestEditorUnitMercenaryLevelSwitchesTheRowWithUndo(t *testing.T) {
 	if got := settled(); !maps.Equal(got, before) {
 		t.Fatalf("the level changed other fields: %v, was %v", got, before)
 	}
-	if _, err := s.SetField(ui.KindUnit, index, "identity", personValue(5)); err != nil || !bytes.Equal(after, s.model.Bytes()) {
-		t.Fatal("choosing the type's own cell changed the level", err)
+	if f := s.Fields(ui.KindUnit, index); f[fieldIndex(t, f, "identity")].Value != personValue(9) {
+		t.Fatal("the identity field does not show the level-3 row's cell")
+	}
+	if _, err := s.SetField(ui.KindUnit, index, "identity", personValue(9)); err != nil || !bytes.Equal(after, s.model.Bytes()) {
+		t.Fatal("choosing the row's own cell changed the unit", err)
 	}
 	if _, err := s.Undo(); err != nil || !bytes.Equal(raw, s.model.Bytes()) || row() != 5 {
 		t.Fatal("undo did not restore level 1", err)

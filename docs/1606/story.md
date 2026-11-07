@@ -4,8 +4,8 @@
 
 The unit popup's identity choice tells the map maker who each person is.
 People are grouped by role, and inside the other rows by the class sheet the
-mission draws. A mercenary type is one cell, and its level is a separate
-choice. Every person cell shows the sprite the game draws on the map, never a
+mission draws. A mercenary level is a cell of its own, and the level is also a
+choice in the unit window. Every person cell shows the sprite the game draws on the map, never a
 portrait or a bare paper doll. Map editor work counts zero toward a release.
 
 ## Authority
@@ -15,7 +15,7 @@ The owner asked for this: «надо дальше начать делить Лю
 answered «Как рекомендуешь» to the seat's four proposals:
 
 1. People are grouped by role, and inside a role by the sprite the game draws.
-2. A mercenary type has one cell, and its level 1..4 is a choice.
+2. Every mercenary level row is a cell, a type's levels one after another; the level 1..4 is also a choice in the unit window.
 3. A cell shows the map sprite.
 4. This is one map editor story.
 
@@ -34,7 +34,7 @@ the people block in this order. A group with no member is left out.
 |---|---|
 | Story heroes / Сюжетные герои | a named npc character (`mapload.UnitNamed`) |
 | Player characters / Персонажи игрока | a Humans row whose name starts `PC_` |
-| Mercenaries / Наемники | a row `mercenaryRowFromName` reads as `NPC<type>_<level>`, type 3..15; one cell per type |
+| Mercenaries / Наемники | a row `mercenaryRowFromName` reads as `NPC<type>_<level>`, type 3..15; every level row is a cell, in level order per type |
 | Others: fighters / Прочие: бойцы | any other row whose type composes a figure and is neither a horse type nor a mage figure |
 | Others: mages / Прочие: маги | the figure `mapload.PlacedFigure` gives is a man or woman mage (types 0x17, 0x18) |
 | Others: riders / Прочие: всадники | `data.FigureHasHorse` (types 0x11..0x15) |
@@ -59,23 +59,26 @@ men in the riders head.
 ### Mercenaries
 
 `identityChoices` collects each type's levels into `mercenaryLevels`. It
-offers only the lowest level's row as the type's cell, which is level 1 on
-both installs. The other levels are not choices.
+offers every level row as a cell, labelled by its own row name, as the
+creature tiers are. `identityGroups` sorts the mercenaries group by type, then
+level.
 
-`identityField` shows a placed mercenary of any level as his type's cell.
+`identityField` shows a placed mercenary as his own row's cell.
 `levelField` adds one `ui.InspectionField` with key `level` (EN "Level",
 RU «Уровень») after the identity field. Its choices are the type's levels,
 and its value is the placement's level.
+
+The basic view's unit table, `plainViews[KindUnit]`, has a `level` row in the
+main block after the identity row, with the field's own label. The detailed
+view lists it by section as before. Choosing a level cell or the level
+field gives the same bytes.
 
 `setField` routes `level` to `setMercenaryLevel`. That function keys the
 record to the type's row of the chosen level through `keyIdentity`, which is
 the identity field's writer. So the change is one `SetFields` edit with undo
 and redo. Only the class, tier, definition and npc-flag keys move.
 
-`setIdentity` does not touch a mercenary when the popup sends back his type's
-cell. Without that guard, applying the popup with another field changed
-would reset the level. `AddUnitIdentity` keys a new placement through
-`keyIdentity` directly.
+`AddUnitIdentity` keys a new placement through `keyIdentity` directly.
 
 ### Pictures
 
@@ -143,18 +146,23 @@ Each class sheet has its own frame size.
 
 - `TestEditorIdentityPeopleGroupByRoleAndDrawnClass`, EN and RU. It checks
   the people heads and their members: story [named 8], player [3, 4],
-  mercenaries [5, 6], fighters [2, 1], mages [14, 13], riders [16, 15],
-  "Others: Odd class" [17]. It also checks that no level 2..4 row is a choice.
+  mercenaries [5, 7, 9, 11, 6, 8, 10, 12], fighters [2, 1], mages [14, 13], riders [16, 15],
+  "Others: Odd class" [17].
 - `TestEditorIdentityPeopleCellsDrawTheMissionSprite`. Each person and named
   cell equals, pixel for pixel, `unitPreview` of the art that a separate
   mission start of that one placement gives through `missionAppearanceArt`.
   That art is also the type's own sheet. No cell equals the npc portrait or
   the bare doll, and every row of one type draws one picture.
+- `TestEditorPlainUnitWindowOffersTheMercenaryLevel` opens a placed level-3
+  mercenary in the basic view of a real `ui.MapEditor`. The window lists the
+  identity, labelled "NPC03_3", and the level field, reading 3. The mercenaries group lists every level row of each type in level order. Choosing 2
+  through the drop-down keys `NPC03_2`, the level-2 cell writes the same
+  bytes, and one undo restores the level-3 bytes. A unit that is no mercenary has no level field in either view.
 - `TestEditorUnitMercenaryLevelSwitchesTheRowWithUndo` checks the level route:
   - The cell places `NPC03_1`.
   - The level field reads 1 with choices 1..4.
   - Level 3 rekeys the record to `NPC03_3` and keeps every other editable field.
-  - Choosing the type's cell again changes nothing.
+  - The identity field shows the row's own cell, and choosing that cell changes nothing.
   - Undo restores the level-1 bytes, and redo restores the level-3 bytes.
   - Level 5 is refused.
   - A unit that is not a mercenary has no level field.
@@ -179,12 +187,12 @@ through `NewMapInspector`, `identityChoices`, `identityGroups` and
 |---|---|
 | Story heroes | 23 |
 | Player characters | 20 |
-| Mercenaries | 13 |
+| Mercenaries | 52 (13 types x 4 levels, derived from the 13 types) |
 | Others: fighters | 89 |
 | Others: mages | 38 |
 | Others: riders | 11 |
 
-- Mercenaries: 13 types (3..15), each with 4 levels.
+- Mercenaries: 13 types (3..15), each with 4 levels. On the EN install the four level cells of a type draw one picture, one sheet and tier 0, for all 13 types (`census/mercenary-levels-en.txt` in the notes). The count table above was taken before every level became a cell.
 - People cells: 194. Three have no picture: rows 17 `ManHorse_Unarmed`,
   18 `ManHorse_Sword` and 20 `ManHorse_Lance`. Their types 0x11, 0x12 and
   0x14 have no class sheet in `units.Classes`, so the mission art path gives

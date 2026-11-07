@@ -1,6 +1,7 @@
 package game
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"maps"
@@ -122,6 +123,12 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 		}
 		groups[group].Values = append(groups[group].Values, c.Value)
 	}
+	// A mercenary type's levels stand one after another, in level order.
+	slices.SortStableFunc(groups[other+1+int(personMercenary)].Values, func(a, b int64) int {
+		ta, la, _ := x.mercenaryOf(x.identities[a])
+		tb, lb, _ := x.mercenaryOf(x.identities[b])
+		return cmp.Or(cmp.Compare(ta, tb), cmp.Compare(la, lb))
+	})
 	var populated []ui.InspectionChoiceGroup
 	for i, group := range groups {
 		group.Values = append(group.Values, women[i]...)
@@ -190,16 +197,6 @@ func (x *MapInspector) personRole(id mapload.Identity) (personRole, string, bool
 		return personMage, "", dir.Female()
 	}
 	return personFighter, "", dir.Female()
-}
-
-// mercenaryCell is the Humans row of mercenary type typ's one choice: its
-// lowest level among the identities last built.
-func (x *MapInspector) mercenaryCell(typ int) (int, bool) {
-	levels := x.mercenaryLevels[typ]
-	if len(levels) == 0 {
-		return 0, false
-	}
-	return levels[slices.Min(slices.Collect(maps.Keys(levels)))], true
 }
 
 // mercenaryOf is the mercenary type and level of person identity id; false
@@ -274,13 +271,6 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 		}
 		kind := mapload.UnitKind(math.MaxUint8)
 		for _, id := range ids {
-			// A mercenary type is one choice, its lowest level; the unit
-			// popup's level field picks the others.
-			if typ, _, ok := x.mercenaryOf(id); ok {
-				if cell, _ := x.mercenaryCell(typ); cell != id.Row {
-					continue
-				}
-			}
 			if id.Kind != kind {
 				kind = id.Kind
 				choices = append(choices, ui.InspectionChoice{Value: identityHeading(kind), Label: x.inspectionUTF8(x.word(identityKindWords[kind].headingWord))})
@@ -486,11 +476,6 @@ func (s *mapInspectionEdits) identityField(u alm.Unit) ui.InspectionField {
 		Meaning: x.word("editor.unit.identity.note")}
 	if id, rows, ok := mapload.IdentifyAt(u, x.table, mission); ok {
 		f.Value = identityChoiceValue(id)
-		if typ, _, merc := x.mercenaryOf(id); merc {
-			if row, ok := x.mercenaryCell(typ); ok {
-				f.Value = identityChoiceValue(mapload.Identity{Kind: mapload.UnitPerson, Row: row})
-			}
-		}
 		if len(rows) > 0 {
 			f.Meaning = fmt.Sprintf(x.word("editor.unit.identity.composed"), mission, x.heroRowsText(rows)) + " " + f.Meaning
 		}
@@ -615,21 +600,12 @@ func (s *mapInspectionEdits) speakerField(unit int) ui.InspectionField {
 
 // setIdentity keys placement index of m to the identity choice value: the
 // keys mapload.Place writes for it, through the placement's field writer as
-// one edit. A placement that already is that identity, or a mercenary of any
-// level given his type's one choice, is not edited.
+// one edit. A placement that already is that identity is not edited.
 func (s *mapInspectionEdits) setIdentity(m *mapedit.Editor, index int, value int64) (bool, error) {
 	t := s.inspector.table
 	id, ok := s.identityOf(value)
 	if !ok || !t.ClassPlacementFields() {
 		return false, fmt.Errorf("choose who this unit is: a creature, a person or a named character")
-	}
-	if view, err := m.Map(); err == nil && index >= 0 && index < len(view.AuthoredUnits) {
-		was, _, _ := mapload.IdentifyAt(view.AuthoredUnits[index], t, s.mission())
-		if typ, _, merc := s.inspector.mercenaryOf(was); merc {
-			if row, _ := s.inspector.mercenaryCell(typ); id == (mapload.Identity{Kind: mapload.UnitPerson, Row: row}) {
-				return false, nil
-			}
-		}
 	}
 	return s.keyIdentity(m, index, id)
 }

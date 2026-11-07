@@ -28,7 +28,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] The map editor draws faster, and typing a name in the unit window no longer stalls on every letter; the unit picture refreshes when you pause typing or press Enter.
-- [BASE] In the map editor's unit list, people are sorted into story heroes, player characters, mercenaries, and other fighters, mages and riders. Each picture is the figure the game draws on the map. A mercenary is one entry, and his unit window has a level from 1 to 4.
+- [BASE] In the map editor's unit list, people are sorted into story heroes, player characters, mercenaries, and other fighters, mages and riders. Each picture is the figure the game draws on the map. Each level of a mercenary is its own entry, a type's levels one after another, and his unit window also has a level from 1 to 4.
 
 ## 0.148.0
 
