@@ -49,8 +49,6 @@ type gameProfile struct {
 	// nativeMovers: no actor holds a Mover record; byte forms carrying one
 	// are refused, and the flee search keeps ScanRange (DIV-347).
 	nativeMovers bool
-	// nativeFacing: an actor keeps its facing; no constructor facing is drawn.
-	nativeFacing bool
 	// nativeCellPlanes: an older engine SAV without the plane mark drops the
 	// cell planes its LOAD import built.
 	nativeCellPlanes bool
@@ -152,7 +150,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		formHoldsConstructedGroups: true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
-		nativeFacing:               true,
 		nativeCellPlanes:           true,
 		nativeObjects:              true,
 		nativePointCasts:           true,

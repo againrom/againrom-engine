@@ -32,12 +32,10 @@ func constructorFacing(r *rng, id EntityID) uint8 {
 }
 
 // constructFacing gives e the constructor facing and wants no turn. Every path
-// that constructs an actor in a first-game World calls it once, in the
-// original's order of construction; a second-game World keeps its facing.
+// that constructs an actor calls it once, in the original's order of
+// construction; the second game's Unit initialization draws the same value
+// (R2-ENGINE-959).
 func (w *World) constructFacing(e *Entity) {
-	if w.game.nativeFacing {
-		return
-	}
 	e.Facing = constructorFacing(&w.rng, e.ID)
 	e.DesiredFacing = e.Facing
 }
@@ -51,9 +49,11 @@ func (w *World) constructFacing(e *Entity) {
 // withdrawnBefore lists, in record order, how many World actors precede each
 // such placement. It runs on an unadvanced World only. An actor authored
 // lists draws its value too, so the stream after the start is unchanged, and
-// then faces the listed direction, 0 north clockwise to 7 north-west.
+// then faces the listed direction, 0 north clockwise to 7 north-west. The
+// second game's actor builder draws the same way (R2-ENGINE-959,
+// R2-ENGINE-960).
 func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int, authored map[EntityID]int) {
-	if w == nil || w.tick != 0 || w.game.nativeFacing || d == nil {
+	if w == nil || w.tick != 0 || d == nil {
 		return
 	}
 	next := 0

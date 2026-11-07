@@ -4339,5 +4339,11 @@ var Committed = Baseline{
 	// pkg/data/unitdef.go, the table's draw in pkg/mapload/spawn.go and
 	// pkg/game's gamefiles.go and secondtownshop.go, the death list in
 	// pkg/secondshop's fill.go and shop.go, their new tests, and this note.
-	CommentBytes: 10672389,
+
+	// CommentBytes rises for the doc comments of the second game's
+	// constructor facing: the new pkg/mapload/secondstartfacing_test.go,
+	// pkg/sim/secondconstructfacing_test.go, pkg/game/secondstartfacing_test.go
+	// and pkg/game/secondstartfacing_release_test.go, the facing notes in
+	// pkg/sim/mover.go and pkg/mapload/start.go, and this note.
+	CommentBytes: 10676300,
 }

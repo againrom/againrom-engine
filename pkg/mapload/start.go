@@ -691,7 +691,7 @@ func StartCampaignMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 // startMission places the party with draws, or with a sequence at StartSeed
 // when draws is nil. Draws on the original's generator continue into the
 // World, which then starts from their state instead of Seed. second marks a
-// second-game map, whose actors keep their placement facing.
+// second-game map, whose actors hold no Mover record.
 func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int, draws *sim.Draws, second bool) (*sim.World, Start, error) {
 	// The loader owns the roster it is about to mint. In particular, no Carry
@@ -716,10 +716,9 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		draws = sim.NewDraws(StartSeed)
 	}
 	// The spawner constructs every map actor, and the constructor draws its
-	// facing, before the join walk draws the drop cell (MOVE-119, MOVE-122).
-	if !second {
-		base.ConstructPlacementFacings(draws, withdrawnBefore(m), authoredFacings(m))
-	}
+	// facing, before the join walk draws the drop cell (MOVE-119, MOVE-122,
+	// R2-ENGINE-959).
+	base.ConstructPlacementFacings(draws, withdrawnBefore(m), authoredFacings(m))
 	cells := DropCells(m)
 	// The map's person roster travels with the start (0159 D-9). It keys on
 	// placement ids, which the party append below never reuses: the party takes
