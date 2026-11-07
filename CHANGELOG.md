@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] On the English install the map's wooden bridges now appear and can be crossed, and a building that cannot be damaged, such as the crypt on the Dragon Killer map, is drawn whole instead of as ruins; a save made inside such a mission before this fix keeps the missing bridges, so enter the mission again from a save made outside it.
 - [ROM2] In the shop, items you lay on the table stay there when you switch to another party member, so you can pass items between members through the table; leaving the shop or saving puts every item back in a pack or on its shelf, where before a save made with items on the table lost them.
 - [ROM2] In the objectives window, the objective rows now start right below the last line of the briefing instead of leaving a gap of empty lines.
 - [ROM2] In the shop, an item you take from the shelf now leaves the shelf at once instead of staying behind as an item that cannot be taken or bought; putting it back returns it, and after a purchase the shelf shows only what the shop still holds.

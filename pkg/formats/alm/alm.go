@@ -77,6 +77,21 @@ type Object struct {
 	Ext     []byte // +0x14 extension (8 bytes) iff Kind==0x21, else nil
 }
 
+// VariableExtent is the author-sized rectangle of a bridge record: the low
+// bytes of the extension's two dwords, file +0x14 and +0x18 (ALM-OBJ-062).
+// It needs a kind word of ObjectExtKind and the extension. The second game
+// may also flag the extension with bit 24 of the kind dword and keeps the
+// kind in its low word (R2-ASSET-019, R2-ASSET-123), so a bridge reads 0x21
+// or 0x1000021. ok is false when the two bytes sum to zero, the footprint
+// arm's gate (TERR-STRUCT-090).
+func (o Object) VariableExtent() (w, h int, ok bool) {
+	if uint16(o.Kind) != ObjectExtKind || len(o.Ext) < ObjectExtSize {
+		return 0, 0, false
+	}
+	w, h = int(o.Ext[0]), int(o.Ext[ObjectHeight-ObjectWidth])
+	return w, h, w+h > 0
+}
+
 // Group is one player/group roster entry (type5). Scalar (+0x08, {0,5000}) is raw;
 // Name (+0x0c) is NUL-terminated ASCII decoded to UTF-8.
 //

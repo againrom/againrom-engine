@@ -38,23 +38,6 @@ const (
 	entryParams = attachSlot + 1
 )
 
-// extensionKind is the class key whose record carries an eight-byte extension.
-//
-// It is compared against the WHOLE key and never its low byte, which is the
-// opposite of how the same field selects a definition entry: two different
-// questions asked of one field, and a key of 0x121 answers them differently —
-// it resolves the entry 0x21 names and carries no extension at all.
-const extensionKind = 0x21
-
-// The two bytes of an extension that decide anything: the low byte of its first
-// four is a width and the low byte of its second four a height. The other six
-// bytes reach nothing.
-const (
-	extWidthByte  = 0
-	extHeightByte = 4
-	extSize       = 8
-)
-
 // footprintBits is how many cells one set can name. A rectangle longer than this
 // ALIASES — cell 32 shares cell 0's bit, in the attach set and the blocking set
 // alike — and that is the rule rather than a defect: the original masks its
@@ -197,16 +180,13 @@ func StructureMaxHealth(t *Table, kind byte) (int32, bool) {
 // steps is contract rather than detail.
 //
 // The entry is selected by the key's LOW BYTE, so a key above 255 resolves the
-// entry that byte names; the extension is selected by the WHOLE key, so a key
-// whose low byte is the extension kind but whose value is not carries none. The
+// entry that byte names; the extension arm is alm.Object.VariableExtent, so a
+// key of 0x121 resolves the entry 0x21 names and carries no extension. The
 // zero-extent test runs LAST because a zero can arrive from the entry or from
 // the extension, and one test after the override covers both sources.
 //
-// The extension arm is gated on the SUM of the two extent bytes and not on the
-// kind. A record of the extension kind carrying two zero bytes therefore falls
-// through to its entry's own rectangle, sets and all — a case no shipped record
-// exercises, which is why it can only come from reading the branch rather than
-// from measuring the corpus.
+// A record of the extension kind carrying two zero bytes falls through to its
+// entry's own rectangle, sets and all — a case no shipped record exercises.
 func resolve(o alm.Object, c data.Collection, counts *StructureCounts) (Footprint, bool) {
 	p, ok := buildingParams(o, c)
 	if !ok {
@@ -230,14 +210,11 @@ func resolve(o alm.Object, c data.Collection, counts *StructureCounts) (Footprin
 		Attach:   uint32(p[attachSlot]),
 	}
 
-	if o.Kind == extensionKind && len(o.Ext) >= extSize {
-		w, h := int(o.Ext[extWidthByte]), int(o.Ext[extHeightByte])
-		if w+h > 0 {
-			// The whole rectangle occupies and none of it closes: an
-			// author-sized hole in the plane, whatever the entry says.
-			f.Width, f.Height = w, h
-			f.Attach, f.Blocking = ^uint32(0), 0
-		}
+	if w, h, ok := o.VariableExtent(); ok {
+		// The whole rectangle occupies and none of it closes: an
+		// author-sized hole in the plane, whatever the entry says.
+		f.Width, f.Height = w, h
+		f.Attach, f.Blocking = ^uint32(0), 0
 	}
 
 	if f.Width == 0 || f.Height == 0 {

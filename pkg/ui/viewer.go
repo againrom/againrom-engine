@@ -2383,7 +2383,9 @@ type MapStructure struct {
 }
 
 // SetStructures adopts the current inspection snapshot and destroyed set.
-// Placement and passability do not change when health reaches zero.
+// Placement and passability do not change when health reaches zero. The
+// health the ruin gate reads is Health when MaxHealth is nonzero, else 1000
+// (TERR-STRUCT-210), so a structure without maximum health stays intact.
 func (v *Viewer) SetStructures(structures []MapStructure) {
 	v.hover.valid = false
 	v.structureStates = structures
@@ -2398,7 +2400,7 @@ func (v *Viewer) SetStructures(structures []MapStructure) {
 		clear(ruined)
 	}
 	for _, s := range structures {
-		if int16(s.Health) <= 0 {
+		if s.MaxHealth != 0 && int16(s.Health) <= 0 {
 			ruined[s.ID] = true
 		}
 	}

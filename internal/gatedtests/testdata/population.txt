@@ -1556,3 +1556,4 @@ pkg/game.TestSignpostInExploredGroundAnswersHoverAndClick
 pkg/game.TestReleaseMissionHoverRectangleReaders
 pkg/game.TestReleaseSecondMapObjectiveWiring
 pkg/game.TestReleaseSecondOriginalMissionFileKeepsTheObjectiveSlots
+pkg/game.TestReleaseSecondGameMissionBridgesSurviveSAVAndLoad

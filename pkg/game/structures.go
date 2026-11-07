@@ -188,11 +188,8 @@ func StructureRecords(objects []alm.Object) []terrain.StructureRecord {
 	out := make([]terrain.StructureRecord, 0, len(objects))
 	for i, o := range objects {
 		rec := terrain.StructureRecord{ID: uint32(i), X: o.X, Y: o.Y, Key: o.Kind}
-		if o.Kind == 0x21 && len(o.Ext) >= 8 {
-			w, h := int(o.Ext[0]), int(o.Ext[4])
-			if w+h > 0 {
-				rec.VariableWidth, rec.VariableHeight = w, h
-			}
+		if w, h, ok := o.VariableExtent(); ok {
+			rec.VariableWidth, rec.VariableHeight = w, h
 		}
 		out = append(out, rec)
 	}

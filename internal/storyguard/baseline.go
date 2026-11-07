@@ -3273,7 +3273,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1650,
+		"longcommentgroups":      1649,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4306,5 +4306,10 @@ var Committed = Baseline{
 	// cmd/almtool/script.go, the World method pin in pkg/sim/world_test.go,
 	// the map list near-miss in pkg/game/maplist_test.go, their new tests,
 	// and this note.
-	CommentBytes: 10643518,
+
+	// CommentBytes rises for the doc comments of Object.VariableExtent in
+	// pkg/formats/alm/alm.go, the ruin gate's maximum-health line in
+	// pkg/ui/viewer.go, the new pkg/game/secondbridges_release_test.go and
+	// the new test in pkg/ui/structurehealth1052_test.go, and this note.
+	CommentBytes: 10645323,
 }

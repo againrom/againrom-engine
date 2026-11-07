@@ -194,6 +194,16 @@ func TestExtensionResolution(t *testing.T) {
 		}
 	})
 
+	t.Run("the second game's flagged kind takes the record's rectangle", func(t *testing.T) {
+		got, _ := mapload.Footprints(structMap(place(0x1000021, 2, 3, ext(7, 2))), tbl)
+		if len(got) != 1 {
+			t.Fatalf("resolved %d, want 1", len(got))
+		}
+		if f := got[0]; f.Width != 7 || f.Height != 2 || f.Attach != ^uint32(0) || f.Blocking != 0 {
+			t.Errorf("got %+v, want the record's 7x2, every cell attached, none blocking", f)
+		}
+	})
+
 	t.Run("the six other bytes decide nothing", func(t *testing.T) {
 		quiet := []byte{3, 0, 0, 0, 4, 0, 0, 0}
 		a, _ := mapload.Footprints(structMap(place(0x21, 2, 3, ext(3, 4))), tbl)
