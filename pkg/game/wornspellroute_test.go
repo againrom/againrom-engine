@@ -25,7 +25,7 @@ func TestGuestJoinKeepsHerWornWeaponAsHeld(t *testing.T) {
 	guest.Worn[0], guest.WornItems[0] = staff.Code, staff
 	g := &guestMission{mission: guestDecl(), member: &guest}
 	s := CampaignSession{Carried: []mapload.PartyMember{{ID: "hero", StartingHero: true}}, Town: &Town{guest: g}}
-	if !s.carryTownCompanion(townInstall{campaign: guestCampaign(), table: table}, 30, 22) || len(s.Carried) != 2 {
+	if !s.joinChapterMember(townInstall{campaign: guestCampaign(), table: table}, 30, 22) || len(s.Carried) != 2 {
 		t.Fatalf("the grant took %+v", s.Carried)
 	}
 	if got := s.Carried[1].WornItems[0].SourceEquipment.Spell; got.Present {

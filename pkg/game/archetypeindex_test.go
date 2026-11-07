@@ -29,7 +29,7 @@ func TestGameTablesKeepTheirHeroEntries(t *testing.T) {
 			t.Errorf("companionName(%v, %v) = %q, want %q", c.mage, c.female, got, want)
 		}
 		p.CompanionNPC = 21
-		if got, want := companionNameRow(p), 20+c.archetype; got != want {
+		if got, want := companionNameRow(p, nil), 20+c.archetype; got != want {
 			t.Errorf("companionNameRow(%v, %v) = %d, want %d", c.mage, c.female, got, want)
 		}
 	}

@@ -67,7 +67,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 		if row < 0 || row > maxTokenRow {
 			return e, "", fmt.Errorf("party actor %d definition is unavailable", e.ID)
 		}
-	} else if member.UnitMember() && member.CampaignHireID() != 0 {
+	} else if member.UnitMember() && member.Membership().Is(CampaignMember) {
 		row = int(member.DefinitionRow)
 	} else if member.ID == "" {
 		// A creature neither placed nor in the party was raised by Control
@@ -122,12 +122,12 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	s := HumanSourceActor(h, basis)
 	s.Reach, s.AttackCharge, s.AttackRelax, s.EquipmentRuntimePresent = e.Reach, uint8(e.AttackCharge), uint8(e.AttackRelax), true
 	e.SourceBinding = sim.SourceBinding{Class: class, Identity: key, RuntimeID: runtime, TokenRow: uint16(row), TypeID: uint16(e.TypeID), Face: face}
-	if id := member.CampaignHireID(); id != 0 {
-		e.SourceBinding.DisplayBacking = uint32(id)
+	if member.Membership().Is(CampaignMember) {
+		e.SourceBinding.DisplayBacking = uint32(member.CampaignHireID())
 	}
 	if e.Humanoid {
-		if member.CampaignHireID() == 0 {
-			e.SourceBinding.DisplayBacking = uint32(member.MercenaryType)
+		if !member.Membership().Is(CampaignMember) {
+			e.SourceBinding.DisplayBacking = uint32(member.TavernType())
 		}
 		// Below TypeID 0x1a the face byte's high bit is the female flag, so a
 		// portrait there is 1..127; a higher TypeID keeps the whole byte.

@@ -23,9 +23,9 @@ type hireRow struct {
 // holds reports whether m is a member hired by r.
 func (r hireRow) holds(m mapload.PartyMember) bool {
 	if r.tavern {
-		return int(m.MercenaryType) == r.identity
+		return m.Membership().Matches(mapload.TavernMember, r.identity)
 	}
-	return m.CampaignHireID() == r.identity
+	return m.Membership().Matches(mapload.CampaignMember, r.identity)
 }
 
 // hireMoment is when the hire producer builds a hired member.
@@ -95,11 +95,13 @@ func (p *hireProfile) row(id int) (hireRow, bool) {
 // from the purse, and the tavern builds the squad as it is hired.
 var tavernHires = hireProfile{
 	rows: func() []hireRow {
-		rows := make([]hireRow, tavernMercenaryTypes)
+		profile := mapload.TableEdition(nil)
+		types := profile.TavernTypes()
+		rows := make([]hireRow, len(types))
 		for i := range rows {
-			typ := i + 1
+			typ := types[i]
 			arm := mapload.CampaignActorProfile{HumanName: "NPC%02d_%d", Temporary: true, RowFigure: true, RowRotation: true, RowDefinition: true}
-			if typ <= 2 {
+			if profile.TavernUnit(typ) {
 				arm = mapload.CampaignActorProfile{UnitName: siegeHireName(typ), Temporary: true}
 			}
 			rows[i] = hireRow{identity: typ, tavern: true, arm: arm}

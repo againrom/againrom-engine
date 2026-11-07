@@ -374,8 +374,10 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 		return faces
 	}
 	companions := map[int32]int32{}
-	for _, p := range tableEdition(t).PartyIdentities {
-		companions[p.ServerID] = int32(p.Identity)
+	for _, p := range (townInstall{table: t}).joins() {
+		if p.ServerID != 0 {
+			companions[p.ServerID] = int32(p.Identity)
+		}
 	}
 	out := map[int32]data.NPCFace{}
 	if t.Humans != nil {

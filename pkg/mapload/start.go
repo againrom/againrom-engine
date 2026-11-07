@@ -324,10 +324,6 @@ type PartyMember struct {
 	Kept *KeptActor
 }
 
-// Hired recognizes a tavern type or temporary campaign hire membership.
-// Script joiners carry neither and retain the player-character rules.
-func (p PartyMember) Hired() bool { return p.MercenaryType != 0 || p.CampaignHireID() != 0 }
-
 // ServerTypeID is the type id the party mint gives this member and the type a
 // SAVE writes for a party hero. A hired man keeps his own row's type id. A
 // player character takes the player-character constructor's type: the gender
@@ -337,19 +333,6 @@ func (p PartyMember) ServerTypeID() int32 {
 		return p.Class
 	}
 	return sim.HeroTypeID(p.Mage, data.FigureDir(p.FigureDir).Female())
-}
-
-// CampaignHireID reads campaign hire membership independently of tavern types.
-func (p PartyMember) CampaignHireID() int {
-	if p.Temporary && p.CampaignHire >= 1 && p.CampaignHire <= 20 {
-		return int(p.CampaignHire)
-	}
-	return 0
-}
-
-// UnitMember selects the Units constructor for a hired creature or siege unit.
-func (p PartyMember) UnitMember() bool {
-	return p.MercenaryType == 1 || p.MercenaryType == 2 || p.CampaignHireID() != 0 && p.CampaignUnit
 }
 
 // Start is what a mission start decided, beside the world it built.

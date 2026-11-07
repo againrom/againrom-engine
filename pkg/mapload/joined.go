@@ -98,7 +98,7 @@ func characterTemplate(t *Table, s CharacterSpec, party []PartyMember, exactRow 
 		return PartyMember{}, false
 	}
 	if s.NPC != 0 {
-		member.ID = fmt.Sprintf("npc:%d", s.NPC)
+		member.ID = (Membership{Kind: CompanionMember, Identity: int(s.NPC)}).ID(0)
 		member.CompanionNPC = int(s.NPC)
 	}
 	member.StartingHero = false

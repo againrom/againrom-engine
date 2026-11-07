@@ -14,15 +14,15 @@ import (
 // definitionName is the display name's definition stage for party member p:
 // its companion name, else its mod name, else its class row, else fallback.
 func (in *InstallResources) definitionName(p mapload.PartyMember, classIndex int, words *ui.Words, fallback string) string {
-	if p.CompanionNPC != 0 {
-		return in.localizedNPCName(companionNameRow(p), fallback)
+	if p.Membership().Is(mapload.CompanionMember) {
+		return in.localizedNPCName(companionNameRow(p, in.Table), fallback)
 	}
 	if name, ok := in.modCharacterName(p.Name); ok {
 		return name
 	}
 	// A second-game hire's ID names its NPC line.
-	if id := p.CampaignHireID(); id != 0 && id <= hireNameLines {
-		if name, ok := ui.NPCName(id, words); ok {
+	if m := p.Membership(); m.Is(mapload.CampaignMember) && m.Identity <= hireNameLines {
+		if name, ok := ui.NPCName(m.Identity, words); ok {
 			return name
 		}
 	}
@@ -47,9 +47,9 @@ func (mw *mapWorld) npcWord(id sim.EntityID) (uint16, bool) {
 }
 
 // companionNameRow is companion p's row of the installed NPC names.
-func companionNameRow(p mapload.PartyMember) int {
-	if p.CompanionNPC < 21 || p.CompanionNPC > 24 {
-		return p.CompanionNPC - 1
+func companionNameRow(p mapload.PartyMember, table *mapload.Table) int {
+	if !mapload.TableEdition(table).ComposedCompanion(p.CompanionID()) {
+		return p.CompanionID() - 1
 	}
 	selector := -1
 	for i, base := range data.ChargenBaseNames() {
@@ -104,7 +104,7 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Wor
 			name = className
 		}
 	}
-	if member := mw.missionPartyMember(e.ID); member != nil && member.CampaignHireID() != 0 &&
+	if member := mw.missionPartyMember(e.ID); member != nil && member.Membership().Is(mapload.CampaignMember) &&
 		(char.Name == "" || char.Name == member.Name) && (saved == "" || saved == member.Name) {
 		in := InstallResources{Table: mw.mission.table}
 		name = in.definitionName(*member, nameIndex, words, "")

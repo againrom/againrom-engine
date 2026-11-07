@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 )
 
 // campaignProgress is the mutable game-layer copy of an original save's
@@ -83,7 +84,7 @@ func progressRecordFromSAV(in sav.CampaignRecord) campaignProgressRecord {
 
 func validateMercenaryTypes(name string, values []int) error {
 	for i, typ := range values {
-		if typ <= 0 || typ >= 16 {
+		if !mapload.TableEdition(nil).TavernType(typ) {
 			return fmt.Errorf("original campaign %s[%d] type %d is outside 1..15", name, i, typ)
 		}
 	}

@@ -69,7 +69,7 @@ func (t *townScreen) tavernStockActors() []tavernStockActor {
 	}
 	var out []tavernStockActor
 	for _, typ := range tavernStockWalk(t.sess.Town.tavernStockIDs) {
-		if typ <= 2 {
+		if mapload.TableEdition(nil).TavernUnit(typ) {
 			continue
 		}
 		name := fmt.Sprintf("NPC%02d_%d", typ, mercenaryLevel(t.sess.Town.Chapter()))
@@ -117,7 +117,7 @@ func (t *townScreen) tavernSpeakerCast() speakerCast {
 // (TAVERN-TALKSTATS-017); the owner saw the original show the type-2 stock
 // unit's statistics for npc2 (DIV-2778).
 func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.PartyMember, stock []tavernStockActor) tavernTalkObject {
-	if known && rec.Tokens.Has(data.NPCTokenPlatoon) && npc >= 1 && npc <= tavernMercenaryTypes {
+	if known && rec.Tokens.Has(data.NPCTokenPlatoon) && mapload.TableEdition(nil).TavernType(npc) {
 		return platoonTalkObject(npc, party)
 	}
 	cast := tavernTalkCast(party, stock)
@@ -125,7 +125,7 @@ func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.Pa
 		if a, ok := cast.resolveNPC(int32(npc), rec); ok {
 			o := tavernTalkObject{live: int(a.id), hero: a.hero, mage: a.fig.Dir.Mage(), human: !a.hero}
 			if i := int(a.id); i < len(party) {
-				o.sheet = int(party[i].MercenaryType)
+				o.sheet = int(party[i].TavernType())
 			} else {
 				o.stock = stock[i-len(party)].typ
 				o.sheet = o.stock
@@ -148,17 +148,13 @@ func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.Pa
 	return o
 }
 
-// tavernMercenaryTypes is the count of tavern mercenary types, 1..15
-// (TAVERN-ORDER-015).
-const tavernMercenaryTypes = 15
-
 // platoonTalkObject is the object a Platoon record of mercenary type typ
 // stands for: the first carried member of that type, else the stock unit of
 // that type, which counts as live after the party.
 func platoonTalkObject(typ int, party []mapload.PartyMember) tavernTalkObject {
-	o := tavernTalkObject{live: len(party), sheet: typ, stock: typ, human: typ > 2}
+	o := tavernTalkObject{live: len(party), sheet: typ, stock: typ, human: typ > 0 && !mapload.TableEdition(nil).TavernUnit(typ)}
 	for i, p := range party {
-		if int(p.MercenaryType) == typ {
+		if p.Membership().Matches(mapload.TavernMember, typ) {
 			o.live, o.stock = i, 0
 			break
 		}

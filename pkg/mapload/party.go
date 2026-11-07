@@ -135,21 +135,6 @@ func clonePartyMember(in PartyMember) PartyMember {
 	return out
 }
 
-func inferredPartyID(p PartyMember, index int) string {
-	switch {
-	case p.StartingHero:
-		return "hero"
-	case p.CompanionNPC != 0:
-		return fmt.Sprintf("npc:%d", p.CompanionNPC)
-	case p.MercenaryType != 0:
-		return fmt.Sprintf("mercenary:%d:%d", p.MercenaryType, index+1)
-	case p.PlayerCharacter && p.Name != "":
-		return "player:" + stablePartyName(p.Name)
-	default:
-		return fmt.Sprintf("temporary:%d", index+1)
-	}
-}
-
 func stablePartyName(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	name = strings.Join(strings.Fields(name), "-")

@@ -547,14 +547,6 @@ func (f *FrontEnd) arriveInTown() {
 	}
 }
 
-// addChapterCompanions grants the companions a chapter's town hands out.
-func (f *FrontEnd) addChapterCompanions(chapter int) {
-	if f == nil {
-		return
-	}
-	f.CampaignSession.addChapterCompanions(f.townInstall(), chapter)
-}
-
 // SetDeterministicFrames selects the no-wall-clock adapter used by the
 // production headless scenario runner. It must be called before a map is opened.
 func (f *FrontEnd) SetDeterministicFrames(on bool) {
@@ -1639,7 +1631,7 @@ func liveMercenaries(party []mapload.PartyMember, w *sim.World, ids []sim.Entity
 		if i >= len(ids) || !p.Hired() {
 			continue
 		}
-		typ := int(p.MercenaryType)
+		typ := int(p.TavernType())
 		if typ <= 0 || typ >= len(live) || !alive[ids[i]] {
 			continue
 		}

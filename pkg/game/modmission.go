@@ -300,7 +300,7 @@ const guestLevelMissions = 40
 // own for a record of npc.reg, else the mod character's key.
 func guestMemberID(c mod.Character) string {
 	if c.NPC != 0 {
-		return fmt.Sprintf("npc:%d", c.NPC)
+		return (mapload.Membership{Kind: mapload.CompanionMember, Identity: int(c.NPC)}).ID(0)
 	}
 	return "char:" + c.Key
 }
@@ -463,7 +463,7 @@ func (f *FrontEnd) guestParty(m mod.Mission, town int, ref, continuing []mapload
 	}
 	var party []mapload.PartyMember
 	if len(m.Party) == 0 {
-		member, ok := again(fmt.Sprintf("npc:%d", m.Guest))
+		member, ok := again((mapload.Membership{Kind: mapload.CompanionMember, Identity: m.Guest}).ID(0))
 		if !ok {
 			member, ok = townCompanion(f.townInstall(), m.Chapter, m.Guest, ref)
 		}
@@ -660,8 +660,8 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 	}
 	if r.Member != nil {
 		member := r.Member.restore()
-		if member.CompanionNPC != joiner.Guest {
-			return nil, fmt.Errorf("current guest record of mod %q names companion %d, not %d", r.Mod, member.CompanionNPC, joiner.Guest)
+		if !member.Membership().Matches(mapload.CompanionMember, joiner.Guest) {
+			return nil, fmt.Errorf("current guest record of mod %q names companion %d, not %d", r.Mod, member.CompanionID(), joiner.Guest)
 		}
 		g.member = &member
 	}

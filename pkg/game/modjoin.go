@@ -52,23 +52,3 @@ func (f *FrontEnd) setModCompanions(d mod.CompanionData) ([]mod.Override, error)
 	f.Table.Mods.Companions = d
 	return overrides, nil
 }
-
-// joinOnTalk joins the held companions whose tavern conversation talk has just
-// opened in the current chapter's town, and reports whether any joined.
-func (s *CampaignSession) joinOnTalk(in townInstall, talk int) bool {
-	if s == nil || in.table == nil || s.Town == nil || in.table.Mods.Companions.Empty() {
-		return false
-	}
-	chapter := s.Town.Chapter()
-	joined := false
-	for _, j := range in.table.Mods.Companions.ForTalk(chapter, mod.BuildingTavern, talk) {
-		if !s.Town.takeAddHero(chapter, j.Companion) {
-			continue
-		}
-		if s.carryTownCompanion(in, chapter, j.Companion) {
-			joined = true
-		}
-	}
-	s.settleCompanionArrival(in, joined)
-	return joined
-}

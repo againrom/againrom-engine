@@ -374,7 +374,7 @@ func (t *townScreen) openOfferDialogue(building TownBuilding, offer TownOffer, n
 	if building == TownTavern && !t.tavernOfferCanTalk(offer) {
 		return false
 	}
-	if building == TownTavern && t.sess.joinOnTalk(t.in.townInstall(), offer.NPC) {
+	if building == TownTavern && t.sess.joinAtTalk(t.in.townInstall(), offer.NPC) {
 		// The speaker is a party member from here on: the cast the tavern
 		// resolves its speakers over is rebuilt with her in it.
 		t.composeShopFaces()
@@ -589,8 +589,8 @@ func (t *shopController) composeShopFaces() {
 		if i == 0 {
 			playerFigure = subject.Figure
 		}
-		if member.CompanionNPC != 0 {
-			playerFigures[member.CompanionNPC] = subject.Figure
+		if member.Membership().Is(mapload.CompanionMember) {
+			playerFigures[member.CompanionID()] = subject.Figure
 		}
 	}
 	// A RECOMPOSITION INVALIDATES ANY CACHED SUPPRESSED PICTURE (1005 round
@@ -653,7 +653,7 @@ func (t *townScreen) platoonTalkPicture(speaker int) (*image.RGBA, bool) {
 		return nil, false
 	}
 	for i, member := range t.sess.Carried {
-		if int(member.MercenaryType) == speaker && i < len(t.shopFigures) && t.shopFigures[i] != nil {
+		if member.Membership().Matches(mapload.TavernMember, speaker) && i < len(t.shopFigures) && t.shopFigures[i] != nil {
 			return t.shopFigures[i], true
 		}
 	}

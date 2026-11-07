@@ -4317,5 +4317,8 @@ var Committed = Baseline{
 	// pkg/game/currentbuildingconstructor.go, terrainBlockRecord in
 	// pkg/game/currentworldspatial.go, the new
 	// pkg/game/variableextentload_test.go, and this note.
-	CommentBytes: 10647797,
+
+	// CommentBytes falls with the shared membership, identity codec and join catalog.
+	// Tavern profile reads replace the repeated range explanation.
+	CommentBytes: 10645977,
 }

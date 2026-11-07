@@ -1533,7 +1533,7 @@ func redressPlacedHeroes(ms *Mission, list data.BodyList) {
 	slices.Sort(ids)
 	for _, id := range ids {
 		member := ms.Start.Roster[id]
-		if slices.Contains(ms.Start.IDs, id) || member.Hired() || member.MercenaryType != 0 {
+		if slices.Contains(ms.Start.IDs, id) || member.Hired() {
 			continue
 		}
 		e, held := ms.World.Entity(id)
@@ -1928,8 +1928,7 @@ func (mw *mapWorld) latchOutcome(o sim.Outcome, c lossCause) {
 // missionLossReason is the one producer of a lost mission's failure reason,
 // the number the loss notice selects the mission's failure text by
 // (R2-ENGINE-631). A fallen character gives the reason his party identity
-// carries in the edition: HeroFailureReason for the hero, a row's
-// FailureReason for a companion (R2-ENGINE-625). Any other loss, and a fall
+// carries in the edition's join row (R2-ENGINE-625). Any other loss, and a fall
 // the edition names no reason for, gives the reason the script stored:
 // instant 5 sets it and check 18 counts it (R2-ENGINE-624, R2-ENGINE-627).
 func (mw *mapWorld) missionLossReason(c lossCause) int32 {
@@ -1951,12 +1950,7 @@ func partyFailureReason(member mapload.PartyMember, t *mapload.Table) int32 {
 	if !ok {
 		return 0
 	}
-	e := tableEdition(t)
-	if identity == e.HeroIdentity {
-		return e.HeroFailureReason
-	}
-	row, _ := e.PartyIdentity(identity)
-	return row.FailureReason
+	return tableEdition(t).JoinFailure(identity)
 }
 
 func (mw *mapWorld) showOutcome() {

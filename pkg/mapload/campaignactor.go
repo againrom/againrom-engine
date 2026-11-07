@@ -120,7 +120,7 @@ func CampaignActor(t *Table, s CampaignActorSpec, party []PartyMember) (PartyMem
 			p.DefinitionRow = uint16(first)
 		}
 	}
-	if s.MercenaryType != 0 {
+	if p.Membership().Is(TavernMember) {
 		p.ID = ""
 		if !unit && p.Carried == nil {
 			p.Carried = make([]uint16, 0)
@@ -130,7 +130,7 @@ func CampaignActor(t *Table, s CampaignActorSpec, party []PartyMember) (PartyMem
 		if s.Identity < 1 || s.Identity > 20 {
 			return PartyMember{}, false
 		}
-		p.ID = fmt.Sprintf("hire:%d", s.Identity)
+		p.ID = (Membership{Kind: CampaignMember, Identity: s.Identity}).ID(0)
 		p.CampaignHire, p.CampaignUnit = uint8(s.Identity), unit
 	}
 	return p, true

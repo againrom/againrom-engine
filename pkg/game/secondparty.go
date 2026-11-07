@@ -26,9 +26,7 @@ func (s *CampaignSession) leftLocation(in townInstall) {
 		return
 	}
 	s.packBag(c, in.table)
-	if c.bank[773] != 0 {
-		s.addPartyIdentity(in, int(c.bank[773]))
-	}
+	s.addLeaveIdentities(in, &c.bank)
 }
 
 // enteredTown follows the party's arrival at a town: each hero's pack unit

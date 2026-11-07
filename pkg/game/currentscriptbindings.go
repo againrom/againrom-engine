@@ -81,7 +81,7 @@ func restoreMission40CompanionObjective(ms *Mission) error {
 		return nil
 	}
 	for i, member := range ms.Party {
-		if member.CompanionNPC != 22 && member.ID != "npc:22" {
+		if !member.Membership().Matches(mapload.CompanionMember, 22) && member.ID != "npc:22" {
 			continue
 		}
 		if i >= len(ms.Start.IDs) {

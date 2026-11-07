@@ -1,6 +1,9 @@
 package base
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // Edition is what the two games differ in, stated as data. A profile selects
 // one through its game, once, when the base is detected; code outside this
@@ -73,14 +76,7 @@ type Edition struct {
 	// the identity source; 10001+k then names the party member whose
 	// identity is HeroIdentity+k.
 	HeroIdentity int
-	// HeroFailureReason is the mission failure reason the hero's fall gives
-	// the loss notice, as a PartyIdentity's FailureReason does; zero leaves
-	// the generic body.
-	HeroFailureReason int32
-
-	// PartyIdentities are the members the campaign's addition producer
-	// builds, one row per identity.
-	PartyIdentities []PartyIdentity
+	PartyProfile PartyProfile
 
 	// TextCodePage is the code page the install writes a language's text
 	// files in, from the language's font and Windows code pages. The second
@@ -122,18 +118,59 @@ type CutsceneArchive struct {
 	Logos string
 }
 
-// PartyIdentity is one member the addition producer builds: the identity
-// he carries, the Humans row he is built from, by its serverID, and the
-// inn talk, by NPC key and topic, whose end adds him. A zero talk NPC is a
-// member no talk adds. FailureReason is the mission failure reason his fall
-// gives the loss notice, the mission text's failure section of that number;
-// zero leaves the generic body.
+// PartyIdentity is a join catalog row: identity, Humans key, trigger and loss
+// reason. A town grant resolves its NPC through the campaign registry; the hero
+// row supplies a loss reason without granting a member.
 type PartyIdentity struct {
 	Identity      int
 	ServerID      int32
 	TalkNPC       int
 	TalkTopic     int
 	FailureReason int32
+	Trigger       JoinTrigger
+	BankSlot      int
+	Chapter       int
+	Building      string
+	TownGrant     bool
+}
+
+type JoinTrigger uint8
+
+const (
+	JoinNone JoinTrigger = iota
+	JoinChapter
+	JoinTalkOpen
+	JoinTalkEnd
+	JoinLeave
+)
+
+// PartyProfile supplies the membership identities and join rows of an edition.
+type PartyProfile struct {
+	Rows         []PartyIdentity
+	TavernTypes  []int
+	TavernUnits  []int
+	ComposedNPCs []int
+}
+
+func (e Edition) JoinRows() []PartyIdentity { return e.PartyProfile.Rows }
+
+func (e Edition) TavernTypes() []int { return e.PartyProfile.TavernTypes }
+
+func (e Edition) TavernType(id int) bool { return slices.Contains(e.TavernTypes(), id) }
+
+func (e Edition) TavernUnit(id int) bool { return slices.Contains(e.PartyProfile.TavernUnits, id) }
+
+func (e Edition) ComposedCompanion(id int) bool {
+	return slices.Contains(e.PartyProfile.ComposedNPCs, id)
+}
+
+func (e Edition) JoinFailure(id int) int32 {
+	for _, row := range e.JoinRows() {
+		if row.Identity == id {
+			return row.FailureReason
+		}
+	}
+	return 0
 }
 
 // HeroBand names an identity source: what a script's hero band 10001+k is
@@ -152,8 +189,8 @@ const (
 
 // PartyIdentity is the edition's row for identity id.
 func (e Edition) PartyIdentity(id int) (PartyIdentity, bool) {
-	for _, p := range e.PartyIdentities {
-		if p.Identity == id {
+	for _, p := range e.JoinRows() {
+		if p.Identity == id && p.ServerID != 0 {
 			return p, true
 		}
 	}
@@ -173,6 +210,11 @@ const (
 )
 
 var firstEdition = Edition{
+	PartyProfile: PartyProfile{
+		TavernTypes:  []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+		TavernUnits:  []int{1, 2},
+		ComposedNPCs: []int{21, 22, 23, 24},
+	},
 	TextCodePage:              FontText,
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
@@ -224,12 +266,15 @@ var secondEdition = Edition{
 	// (DIV-4186); slot 773 adds 23 at a location leave (R2-ENGINE-379).
 	// The fall of identity n sends failure reason n - 19 (R2-ENGINE-625):
 	// 2 for the hero, 3 for 22 and 4 for 23 (DIV-4224).
-	HeroBand:          HeroBandIdentity,
-	HeroIdentity:      21,
-	HeroFailureReason: 2,
-	PartyIdentities: []PartyIdentity{
-		{Identity: 22, ServerID: 10220, TalkNPC: 22, TalkTopic: 30, FailureReason: 3},
-		{Identity: 23, ServerID: 10230, FailureReason: 4},
+	HeroBand:     HeroBandIdentity,
+	HeroIdentity: 21,
+	PartyProfile: PartyProfile{
+		ComposedNPCs: []int{21, 22, 23, 24},
+		Rows: []PartyIdentity{
+			{Identity: 21, FailureReason: 2},
+			{Identity: 22, ServerID: 10220, Trigger: JoinTalkEnd, TalkNPC: 22, TalkTopic: 30, FailureReason: 3},
+			{Identity: 23, ServerID: 10230, Trigger: JoinLeave, BankSlot: 773, FailureReason: 4},
+		},
 	},
 	// The logos, then the intro cutscene, play before the menu
 	// (R2-ENGINE-338); the intro is cutpaths.txt row 0, video\intro\NN.smk

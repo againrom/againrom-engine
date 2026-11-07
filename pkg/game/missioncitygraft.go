@@ -13,7 +13,7 @@ import (
 // a value of the campaign's AddHero arrays). Any other unbound member is
 // refused by name rather than silently guessed at.
 func nativeCityGraftableMember(member mapload.PartyMember, c Campaign) bool {
-	return member.Carry == nil && c.townGrants(member.CompanionNPC)
+	return member.Carry == nil && c.townGrants(member.CompanionID())
 }
 
 // graftNativeCityMember appends one natively constructed Human object, and its

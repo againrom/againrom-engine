@@ -219,7 +219,7 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 	var hero mapload.PartyMember
 	if member := mw.missionPartyMember(id); member != nil {
 		hero = *member
-		if member.MercenaryType != 0 {
+		if member.Membership().Is(mapload.TavernMember) {
 			return hero.Class
 		}
 	} else {
@@ -231,7 +231,7 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 			return fallbackClass
 		}
 		hero = roster[id]
-		if hero.MercenaryType != 0 {
+		if hero.Membership().Is(mapload.TavernMember) {
 			return hero.Class
 		}
 		// Only a Hero placement derives its class from equipment (ANIM-106).

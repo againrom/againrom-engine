@@ -193,7 +193,7 @@ func guestJoiner(f *FrontEnd, in winInput, s *winState) string {
 	if !joins {
 		return ""
 	}
-	is := func(p mapload.PartyMember) bool { return p.CompanionNPC == joiner.Guest }
+	is := func(p mapload.PartyMember) bool { return p.Membership().Matches(mapload.CompanionMember, joiner.Guest) }
 	if i := slices.IndexFunc(f.Carried, is); i >= 0 {
 		c := mapload.CloneParty([]mapload.PartyMember{f.Carried[i]})[0]
 		s.member = &c

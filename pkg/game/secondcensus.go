@@ -259,8 +259,10 @@ func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
 func secondCensusParty(defs *Definitions) []mapload.PartyMember {
 	s := &CampaignSession{Carried: MissionPartyAs(false, defs.StartWeapon, defs.Bodies, defs.Table)}
 	in := townInstall{table: defs.Table, bodies: defs.Bodies}
-	for _, p := range tableEdition(defs.Table).PartyIdentities {
-		s.addPartyIdentity(in, p.Identity)
+	for _, p := range in.joins() {
+		if p.ServerID != 0 {
+			s.addPartyIdentity(in, p.Identity)
+		}
 	}
 	return s.Carried
 }

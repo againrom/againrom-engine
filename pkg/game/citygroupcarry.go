@@ -76,10 +76,10 @@ func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([
 		g := constructed
 		switch {
 		case p.Hired():
-			k, ok := hireGroup[p.MercenaryType]
+			k, ok := hireGroup[p.TavernType()]
 			if !ok {
 				k = len(out)
-				hireGroup[p.MercenaryType] = k
+				hireGroup[p.TavernType()] = k
 				out, members = append(out, cityLiveGroup{Payload: cityHireGroup()}), append(members, nil)
 			}
 			g = k

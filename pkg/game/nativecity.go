@@ -177,7 +177,7 @@ func nativeCityHeroOf(party []mapload.PartyMember) mapload.PartyMember {
 func nativeCityRosterMembers(party []mapload.PartyMember) []mapload.PartyMember {
 	out := make([]mapload.PartyMember, 0, len(party))
 	for _, member := range party {
-		if member.MercenaryType != 0 {
+		if member.Membership().Is(mapload.TavernMember) {
 			continue
 		}
 		out = append(out, member)
@@ -200,7 +200,7 @@ func nativeCitySiegeMember(member mapload.PartyMember) bool {
 func nativeCityHumanHiredMembers(party []mapload.PartyMember) []mapload.PartyMember {
 	out := make([]mapload.PartyMember, 0, len(party))
 	for _, member := range party {
-		if member.MercenaryType == 0 || nativeCitySiegeMember(member) {
+		if !member.Membership().Is(mapload.TavernMember) || nativeCitySiegeMember(member) {
 			continue
 		}
 		out = append(out, member)
@@ -220,7 +220,7 @@ func nativeCityUnitData(identity, owner uint32, member, hero mapload.PartyMember
 		// identity holds it in the actor's WORD +0x14c.
 		binary.LittleEndian.PutUint32(scalar2[47:51], uint32(id))
 	} else if member.Hired() && !nativeCitySiegeMember(member) {
-		binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.MercenaryType))
+		binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.TavernType()))
 	}
 	for i, v := range stats {
 		binary.LittleEndian.PutUint16(scalar2[2*i:], v)
@@ -714,7 +714,7 @@ func nativeCityDismissedCompanion(t *Town, party []mapload.PartyMember) int {
 		}
 		present := false
 		for _, member := range party {
-			if member.CompanionNPC == npc {
+			if member.Membership().Matches(mapload.CompanionMember, npc) {
 				present = true
 				break
 			}
@@ -827,7 +827,7 @@ func nativeCitySiegeHireOrderMismatch(party []mapload.PartyMember) int {
 	sawHumanHire := false
 	for _, member := range party {
 		if nativeCitySiegeMember(member) {
-			typ := int(member.MercenaryType)
+			typ := int(member.TavernType())
 			if sawHumanHire {
 				return typ
 			}
@@ -837,7 +837,7 @@ func nativeCitySiegeHireOrderMismatch(party []mapload.PartyMember) int {
 			lastSiegeType = typ
 			continue
 		}
-		if member.MercenaryType != 0 {
+		if member.Membership().Is(mapload.TavernMember) {
 			sawHumanHire = true
 		}
 	}

@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -372,12 +371,8 @@ func (c Campaign) FirstMission() (int, bool) {
 // Town activation is that array's one consumer (REG-SCN-098, HERO-JOIN-127),
 // so every value it carries is a companion a town grants.
 func (c Campaign) townGrants(npc int) bool {
-	for _, ch := range c.Chapters {
-		if slices.Contains(ch.AddHero, npc) {
-			return true
-		}
-	}
-	return false
+	_, ok := (townInstall{campaign: c}).joins().townRow(-1, npc)
+	return ok
 }
 
 // LoadCampaign reads the scenario registry out of the container filesystem.

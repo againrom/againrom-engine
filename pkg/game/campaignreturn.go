@@ -58,17 +58,6 @@ func (in townInstall) localizedNPC(index int, fallback string) string {
 	return in.npcName(index, fallback)
 }
 
-// holdsCompanion reports that a mod keeps the town's grant of npc pending
-// until a conversation opens. The pending grant is the AddHero array the save
-// already writes, so the held state needs no field of its own.
-func (in townInstall) holdsCompanion(chapter, npc int) bool {
-	if in.table == nil {
-		return false
-	}
-	_, ok := in.table.Mods.Companions.Find(chapter, npc)
-	return ok
-}
-
 // arriveInTown latches the town open and stocks the merchant, which is the
 // original's own SetCap-then-Generate pair (SHOP-TOWN-022). It writes campaign
 // state only; the town screen's own reset on an ordinary return is the caller's.
@@ -110,93 +99,6 @@ func (t *Town) newShop(in townInstall) *Shop {
 		shop.GenerateWith(in.table, shopSeed(t.Chapter(), t.finishedCount(), ceiling), in.stock)
 	}
 	return shop
-}
-
-func (s *CampaignSession) addChapterCompanions(in townInstall, chapter int) {
-	if s == nil || in.table == nil {
-		return
-	}
-	grants := append([]int(nil), in.campaign.Chapters[chapter].AddHero...)
-	if s.Town != nil {
-		grants = s.Town.takeAddHeroesExcept(chapter, func(npc int) bool { return in.holdsCompanion(chapter, npc) })
-	}
-	added := false
-	for _, npc := range grants {
-		if s.carryTownCompanion(in, chapter, npc) {
-			added = true
-		}
-	}
-	s.settleCompanionArrival(in, added)
-}
-
-// carryTownCompanion appends the companion a town grants to the carried party
-// and reports whether it did. Only a value of the campaign's AddHero arrays is
-// a town companion; a companion already carried is not added twice.
-func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) bool {
-	if !in.campaign.townGrants(npc) {
-		return false
-	}
-	return s.carryCompanion(in, npc, func() (mapload.PartyMember, bool) {
-		if member, ok := s.Town.takeGuestJoining(chapter, npc); ok {
-			return member, true
-		}
-		member, ok := townCompanion(in, chapter, npc, s.Carried)
-		if ok {
-			joinedWornSpells(member.WornItems[:], in.table)
-		}
-		return member, ok
-	})
-}
-
-// carryCompanion appends companion npc, built by build, to the carried
-// party and reports whether it did. A companion already carried is reused
-// and not built again; an empty party carries nobody.
-func (s *CampaignSession) carryCompanion(in townInstall, npc int, build func() (mapload.PartyMember, bool)) bool {
-	for _, p := range s.Carried {
-		if p.CompanionNPC == npc {
-			return false
-		}
-	}
-	if len(s.Carried) == 0 {
-		return false
-	}
-	member, ok := build()
-	if !ok {
-		return false
-	}
-	s.Carried = mapload.OwnParty(append(s.Carried, member))
-	return true
-}
-
-// addPartyIdentity is the addition producer for the edition's identity
-// rows (R2-ENGINE-106): a carried member that already carries identity id
-// is reused; otherwise the member is built from the row's Humans row,
-// carries id and joins the party with the city state every member has.
-func (s *CampaignSession) addPartyIdentity(in townInstall, id int) bool {
-	_, ok := tableEdition(in.table).PartyIdentity(id)
-	if !ok || in.table == nil || in.table.Humans == nil {
-		return false
-	}
-	added := s.carryCompanion(in, id, func() (mapload.PartyMember, bool) {
-		spec := mapload.CharacterSpec{NPC: int32(id)}
-		member, ok := in.character(spec, in.localizedNPC(id-1, ""), s.Carried)
-		if ok {
-			joinedWornSpells(member.WornItems[:], in.table)
-		}
-		return member, ok
-	})
-	s.settleCompanionArrival(in, added)
-	return added
-}
-
-// addTalkIdentities runs the addition producer for every identity row
-// whose talk is the inn talk with NPC npc at topic.
-func (s *CampaignSession) addTalkIdentities(in townInstall, npc, topic int) {
-	for _, p := range tableEdition(in.table).PartyIdentities {
-		if p.TalkNPC != 0 && p.TalkNPC == npc && p.TalkTopic == topic {
-			s.addPartyIdentity(in, p.Identity)
-		}
-	}
 }
 
 // townCompanion is the member the town of chapter grants as companion npc to

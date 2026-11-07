@@ -31,21 +31,21 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		}
 		return row
 	}
-	if member.CampaignHireID() != 0 {
+	if member.Membership().Is(CampaignMember) {
 		return int(member.DefinitionRow)
 	}
 	if row, ok := identityRow(member, t); ok {
 		return row
 	}
-	if member.CompanionNPC != 0 {
+	if member.Membership().Is(CompanionMember) {
 		k := StartingHeroKind(HeroHold{Party: []PartyMember{hero}})
-		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionNPC), 0, k.Mage(), k.Female()); ok {
+		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionID()), 0, k.Mage(), k.Female()); ok {
 			if row := data.FindHumanByServerID(t.Humans, serverID); row > 0 && row <= maxTokenRow {
 				return row
 			}
 		}
 	}
-	if member.MercenaryType != 0 && member.MercenaryType != 1 && member.MercenaryType != 2 {
+	if member.Membership().Is(TavernMember) && !member.UnitMember() {
 		if row := int(member.DefinitionRow); row > 0 && row < t.Humans.Len() {
 			return row
 		}
@@ -69,27 +69,10 @@ func BindHeroBand(t *Table, party []PartyMember, placed []data.HeroTraits, bind 
 	source.bind(t, e, party, placed, bind)
 }
 
-// PartyIdentity is the party identity member carries under the identity
-// source of the table's edition: the hero's own, or a companion's identity
-// row (R2-ENGINE-105, R2-ENGINE-106). The role source gives none.
-func PartyIdentity(member PartyMember, t *Table) (int, bool) {
-	source, e := heroBand(t)
-	return source.identity(member, e)
-}
-
-// CompanionIdentity is the identity row a companion carrying identity id is
-// built from under the identity source of the table's edition. The role
-// source names none, and the hero's own identity is no companion's.
-func CompanionIdentity(id int, t *Table) (base.PartyIdentity, bool) {
-	source, e := heroBand(t)
-	return source.companion(id, e)
-}
-
 // heroBandSource is one identity source, the row an edition's HeroBand
 // names.
 type heroBandSource interface {
-	identity(member PartyMember, e *base.Edition) (int, bool)
-	companion(id int, e *base.Edition) (base.PartyIdentity, bool)
+	identities() bool
 	bind(t *Table, e *base.Edition, party []PartyMember, placed []data.HeroTraits, bind func(k, i int))
 }
 
@@ -120,28 +103,12 @@ func heroBand(t *Table) (heroBandSource, *base.Edition) {
 // HeroIdentity+k (R2-ENGINE-107).
 type identityBand struct{}
 
-func (identityBand) identity(member PartyMember, e *base.Edition) (int, bool) {
-	if member.StartingHero {
-		return e.HeroIdentity, true
-	}
-	if id := member.CampaignHireID(); id != 0 {
-		return id, true
-	}
-	if _, ok := e.PartyIdentity(member.CompanionNPC); ok && !member.Hired() {
-		return member.CompanionNPC, true
-	}
-	return 0, false
-}
+func (identityBand) identities() bool { return true }
 
-func (identityBand) companion(id int, e *base.Edition) (base.PartyIdentity, bool) {
-	p, ok := e.PartyIdentity(id)
-	return p, ok && id != e.HeroIdentity
-}
-
-func (b identityBand) bind(_ *Table, e *base.Edition, party []PartyMember, _ []data.HeroTraits, bind func(k, i int)) {
+func (b identityBand) bind(t *Table, e *base.Edition, party []PartyMember, _ []data.HeroTraits, bind func(k, i int)) {
 	hero := e.HeroIdentity
 	for i, p := range party {
-		if id, ok := b.identity(p, e); ok && id >= hero && id-hero <= 999 {
+		if id, ok := PartyIdentity(p, t); ok && id >= hero && id-hero <= 999 {
 			bind(id-hero, i)
 		}
 	}
@@ -152,11 +119,7 @@ func (b identityBand) bind(_ *Table, e *base.Edition, party []PartyMember, _ []d
 // No member carries a party identity under it.
 type roleBand struct{}
 
-func (roleBand) identity(PartyMember, *base.Edition) (int, bool) { return 0, false }
-
-func (roleBand) companion(int, *base.Edition) (base.PartyIdentity, bool) {
-	return base.PartyIdentity{}, false
-}
+func (roleBand) identities() bool { return false }
 
 func (roleBand) bind(t *Table, _ *base.Edition, party []PartyMember, placed []data.HeroTraits, bind func(k, i int)) {
 	if len(party) == 0 {

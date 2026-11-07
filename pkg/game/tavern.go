@@ -123,7 +123,7 @@ func mercenarySquadPrice(table *mapload.Table, mission, typ, count int) (int, bo
 func (t *townScreen) mercenaryPartyCount(typ int) int {
 	n := 0
 	for _, member := range t.sess.Carried {
-		if int(member.MercenaryType) == typ {
+		if member.Membership().Matches(mapload.TavernMember, typ) {
 			n++
 		}
 	}

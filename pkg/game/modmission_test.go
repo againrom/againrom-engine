@@ -184,7 +184,7 @@ func TestGuestJoinsInHerCarriedStateOnlyThroughHerGrant(t *testing.T) {
 		}
 	}
 	s := CampaignSession{Carried: []mapload.PartyMember{{ID: "hero", StartingHero: true}}, Town: &Town{guest: g}}
-	if !s.carryTownCompanion(townInstall{campaign: guestCampaign()}, 30, 22) || s.Town.guest != nil ||
+	if !s.joinChapterMember(townInstall{campaign: guestCampaign()}, 30, 22) || s.Town.guest != nil ||
 		len(s.Carried) != 2 || s.Carried[1].Name != "Guest" || s.Carried[1].StartingHero {
 		t.Fatalf("the grant took %+v, guest %v", s.Carried, s.Town.guest)
 	}

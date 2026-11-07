@@ -229,7 +229,7 @@ func restorePartyCharacters(chars []sav.Character, err error, fresh []mapload.Pa
 	// in his record (R2-ENGINE-106), and is that companion.
 	for i, c := range chars {
 		if id, ok := originalPartyIdentity(c, t); ok {
-			out[i].CompanionNPC, out[i].ID = id, fmt.Sprintf("npc:%d", id)
+			out[i].CompanionNPC, out[i].ID = id, (mapload.Membership{Kind: mapload.CompanionMember, Identity: id}).ID(0)
 		}
 	}
 	// SAV records carry their Humans row, not this engine's CompanionNPC.
@@ -238,12 +238,12 @@ func restorePartyCharacters(chars []sav.Character, err error, fresh []mapload.Pa
 	if t != nil && r.LeadRule == LeadNamed {
 		heroDir := data.FigureDir(out[0].FigureDir)
 		for i, c := range chars {
-			if c.Hero || out[i].Hired() || out[i].CompanionNPC != 0 {
+			if c.Hero || out[i].Hired() || out[i].Membership().Is(mapload.CompanionMember) {
 				continue
 			}
 			if npc, ok := t.NPC.CampaignCompanionForRow(t.Humans, int(c.DefRow), heroDir.Mage(), heroDir.Female()); ok {
 				out[i].CompanionNPC = int(npc)
-				out[i].ID = fmt.Sprintf("npc:%d", npc)
+				out[i].ID = (mapload.Membership{Kind: mapload.CompanionMember, Identity: int(npc)}).ID(0)
 			}
 		}
 	}
@@ -282,15 +282,7 @@ func persistentOriginalCharacter(c sav.Character, t *mapload.Table) bool {
 // edition's identity source: a Human, not the hero, whose identity names a
 // companion's row and whose definition row is that identity's row.
 func originalPartyIdentity(c sav.Character, t *mapload.Table) (int, bool) {
-	if c.Hero || c.Class != "Human" || t == nil || t.Humans == nil {
-		return 0, false
-	}
-	id := int(uint16(c.DisplayBacking))
-	p, ok := mapload.CompanionIdentity(id, t)
-	if !ok || int(c.DefRow) != data.FindHumanByServerID(t.Humans, p.ServerID) {
-		return 0, false
-	}
-	return id, true
+	return mapload.DecodePartyIdentity(c.DisplayBacking, c.DefRow, c.Hero, c.Class == "Human", t)
 }
 
 // originalSiegeHire names the hired siege engine a saved Unit actor is: the
@@ -301,11 +293,11 @@ func originalSiegeHire(c sav.Character, t *mapload.Table) (int, bool) {
 	if c.Hero || c.Class != "Unit" || t == nil || t.Units == nil || c.DefRow == 0 || int(c.DefRow) >= t.Units.Len() {
 		return 0, false
 	}
-	switch t.Units.EntryName(int(c.DefRow)) {
-	case siegeHireName(1):
-		return 1, true
-	case siegeHireName(2):
-		return 2, true
+	profile := mapload.TableEdition(nil)
+	for _, typ := range profile.TavernTypes() {
+		if profile.TavernUnit(typ) && t.Units.EntryName(int(c.DefRow)) == siegeHireName(typ) {
+			return typ, true
+		}
 	}
 	return 0, false
 }
@@ -317,7 +309,8 @@ func originalMercenaryType(c sav.Character, t *mapload.Table) (int, bool) {
 	definition := t.Humans.EntryName(int(c.DefRow))
 	typ := uint8(c.DisplayBacking)
 	if typ != 0 {
-		return int(typ), typ >= 3 && typ <= 15 && strings.Contains(definition, "NPC")
+		profile := mapload.TableEdition(nil)
+		return int(typ), profile.TavernType(int(typ)) && !profile.TavernUnit(int(typ)) && strings.Contains(definition, "NPC")
 	}
 	if c.DisplayBacking == 0 && c.Name != "" && c.Name == definition {
 		return mercenaryHireTypeFromName(c.Name)
@@ -326,7 +319,7 @@ func originalMercenaryType(c sav.Character, t *mapload.Table) (int, bool) {
 }
 
 func ordinaryActorName(member mapload.PartyMember, table *mapload.Table) string {
-	if typ, ok := mercenaryHireTypeFromName(member.Name); ok && typ == int(member.MercenaryType) && table != nil && table.Humans != nil {
+	if typ, ok := mercenaryHireTypeFromName(member.Name); ok && member.Membership().Matches(mapload.TavernMember, typ) && table != nil && table.Humans != nil {
 		row := nativeCityDefRow(member, mapload.PartyMember{}, table)
 		if row != 0 && table.Humans.EntryName(int(row)) == member.Name {
 			return ""
@@ -360,12 +353,9 @@ func mercenaryRowFromName(name string) (typ, level int, ok bool) {
 	if name != fmt.Sprintf("NPC%02d_%d", typ, level) {
 		return 0, 0, false
 	}
-	// The hire rows route typ<=2 to a Units row instead (Catapult/
-	// Ballista, a Units-table Unit(0x198) record, MERC-LEVEL-005) -- a
-	// different wire class SAV-608's retraction does not cover. Only 3..15
-	// name a Human(0x1e8) mercenary this function's caller may treat as
-	// persistent.
-	if typ < 3 || typ > 15 {
+	// Only the profile's Human types name a persistent Human mercenary.
+	profile := mapload.TableEdition(nil)
+	if !profile.TavernType(typ) || profile.TavernUnit(typ) {
 		return 0, 0, false
 	}
 	return typ, level, true

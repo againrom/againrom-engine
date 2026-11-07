@@ -32,13 +32,13 @@ func (s *CampaignSession) restoreHiredMercenaries(table *mapload.Table) error {
 	t := s.Town
 	present := make(map[int]bool, len(s.Carried))
 	for _, member := range s.Carried {
-		if member.MercenaryType != 0 {
-			present[int(member.MercenaryType)] = true
+		if member.Membership().Is(mapload.TavernMember) {
+			present[int(member.TavernType())] = true
 		}
 	}
 	insertAt := len(s.Carried)
 	for i, member := range s.Carried {
-		if member.MercenaryType != 0 {
+		if member.Membership().Is(mapload.TavernMember) {
 			insertAt = i
 			break
 		}

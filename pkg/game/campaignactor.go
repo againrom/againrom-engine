@@ -7,7 +7,7 @@ import (
 
 func (t *townScreen) campaignActor(npc int) (mapload.PartyMember, bool) {
 	for _, p := range t.sess.Carried {
-		if p.CompanionNPC == npc || p.CampaignHireID() == npc {
+		if p.Membership().Matches(mapload.CompanionMember, npc) || p.Membership().Matches(mapload.CampaignMember, npc) {
 			return p, true
 		}
 	}

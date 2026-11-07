@@ -208,7 +208,7 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 				class = placement.typeID
 			}
 			out = append(out, speakerActor{
-				id: pe.id, hero: hero, npc: int32(p.CompanionNPC),
+				id: pe.id, hero: hero, npc: int32(p.CompanionID()),
 				fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: class,
 			})
 			continue
@@ -233,14 +233,14 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 // MercenaryType is the hire's own type; the two fields are written by
 // different constructors, so both are tested.
 func playerCharacter(p mapload.PartyMember) bool {
-	return p.PlayerCharacter && p.MercenaryType == 0
+	return p.PlayerCharacter && !p.Membership().Is(mapload.TavernMember)
 }
 
 // partyActor is the speaker candidate a party member is.
 func partyActor(id sim.EntityID, p mapload.PartyMember) speakerActor {
 	dir, face := memberFigure(p)
 	return speakerActor{
-		id: id, me: primaryPlayerHero(p), hero: playerCharacter(p), npc: int32(p.CompanionNPC),
+		id: id, me: primaryPlayerHero(p), hero: playerCharacter(p), npc: int32(p.CompanionID()),
 		fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: p.Class,
 	}
 }

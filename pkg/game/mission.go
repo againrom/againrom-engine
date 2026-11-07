@@ -232,7 +232,7 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 	// and leaves every other party member outside the objective.
 	if companion := edition.CompanionObjectiveMission; companion != 0 && n == companion {
 		for i := range party {
-			if party[i].CompanionNPC != 22 && party[i].ID != "npc:22" {
+			if !party[i].Membership().Matches(mapload.CompanionMember, 22) && party[i].ID != "npc:22" {
 				continue
 			}
 			critical := mapload.PartyEntity(m, i)

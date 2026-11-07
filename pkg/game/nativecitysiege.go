@@ -51,7 +51,7 @@ func nativeCitySiegeUnit(identity, owner uint32, member mapload.PartyMember, tab
 	binary.LittleEndian.PutUint16(scalar2[32:], s.Sight)
 	scalar2[34], scalar2[39], scalar2[40], scalar2[41] = s.Reach, s.AttackCharge, s.AttackRelax, siegeHireU136
 	binary.LittleEndian.PutUint32(scalar2[35:], s.Experience)
-	binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.MercenaryType))
+	binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.TavernType()))
 
 	mover := sim.SiegeHireMover(domain, s.MoverSpeed)
 
