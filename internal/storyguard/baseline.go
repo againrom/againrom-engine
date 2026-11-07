@@ -4261,5 +4261,5 @@ var Committed = Baseline{
 	// mapinspectionadd.go (unitPreview now takes the class sheet) and
 	// originalparty.go, PlaceOn in pkg/mapload/identity.go, the new
 	// pkg/game/mapinspectionpeople_test.go, and this note.
-	CommentBytes: 10606348,
+	CommentBytes: 10608986,
 }
