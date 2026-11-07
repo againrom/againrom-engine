@@ -413,8 +413,8 @@
          "triggers": [
            {"on": "table-drop", "slot": "put-on", "cite": ["R2-ENGINE-249", "DIV-4372"]},
            {"on": "table-pick", "slot": "put-off", "cite": ["R2-ENGINE-249", "DIV-4372"]},
-           {"on": "doll-on", "slot": "put-on", "cite": ["DIV-4585"]},
-           {"on": "doll-off", "slot": "put-off", "cite": ["DIV-4585"]},
+           {"on": "doll-on", "slot": "put-on", "cite": ["R2-ENGINE-249", "DIV-4585"]},
+           {"on": "doll-off", "slot": "put-off", "cite": ["R2-ENGINE-249", "DIV-4585"]},
            {"on": "shelf-arrow", "slot": "shelf-scroll", "cite": ["R2-ENGINE-249", "DIV-4372"]},
            {"on": "pack-arrow", "slot": "pack-scroll", "cite": ["R2-ENGINE-249", "DIV-4372"]},
            {"on": "rack-changed", "slot": "depart", "cite": ["R2-ENGINE-269", "DIV-4372"]},

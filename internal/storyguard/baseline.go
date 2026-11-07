@@ -4264,5 +4264,9 @@ var Committed = Baseline{
 	// mapinspectionadd.go (unitPreview now takes the class sheet) and
 	// originalparty.go, PlaceOn in pkg/mapload/identity.go, the new
 	// pkg/game/mapinspectionpeople_test.go, and this note.
-	CommentBytes: 10609478,
+
+	// CommentBytes rises for the doc comments of the shop shelf listing in
+	// pkg/game/shopdeal.go, the new pkg/game/secondshopghost_test.go, and
+	// this note.
+	CommentBytes: 10610541,
 }

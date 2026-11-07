@@ -100,7 +100,7 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	s := secondShopPage(c, 901)
 	s.click(ui.ShopControlShelfPick, 0)
 	s.click(ui.ShopControlShelfCell, 0)
-	s.click(ui.ShopControlShelfCell, 1)
+	s.click(ui.ShopControlShelfCell, 0)
 	if len(c.shop.Table()) != 2 {
 		t.Fatalf("two enchanted items staged as %d places", len(c.shop.Table()))
 	}
@@ -155,11 +155,11 @@ func TestSecondShopPageTableHoldsFive(t *testing.T) {
 	s.click(ui.ShopControlPackCell, s.packCell(0))
 	s.click(ui.ShopControlPackCell, s.packCell(0))
 	s.click(ui.ShopControlShelfCell, 1)
-	s.click(ui.ShopControlShelfCell, 2)
+	s.click(ui.ShopControlShelfCell, 1)
 	if got := c.shop.Table(); len(got) != ShopTablePlaces || len(*c.heroBag()) != 1 {
 		t.Fatalf("five mixed lots: table %d places, bag %d", len(got), len(*c.heroBag()))
 	}
-	s.click(ui.ShopControlShelfCell, 3)
+	s.click(ui.ShopControlShelfCell, 1)
 	s.click(ui.ShopControlPackCell, s.packCell(0))
 	if got := c.shop.Table(); len(got) != ShopTablePlaces || c.shop.shelves[0][3].Count != 1 || len(*c.heroBag()) != 1 {
 		t.Fatalf("a sixth distinct lot: table %d places, shelf entry %d, bag %d", len(got), c.shop.shelves[0][3].Count, len(*c.heroBag()))
@@ -208,7 +208,7 @@ func TestSecondShopPageTableHoldsFive(t *testing.T) {
 	if len(c.shop.Table()) != 0 || len(*c.heroBag()) != 3 || units(69) != 2 || units(70) != 1 || units(71) != 1 {
 		t.Fatalf("undo: table %d, bag %d, stock units %d %d %d", len(c.shop.Table()), len(*c.heroBag()), units(69), units(70), units(71))
 	}
-	s.click(ui.ShopControlShelfCell, 3)
+	s.click(ui.ShopControlShelfCell, 0)
 	s.click(ui.ShopControlButton, 1)
 	if len(c.shop.Table()) != 0 || s.sess.Town.gold != 1000-13 || len(*c.heroBag()) != 4 || c.shop.shelves[0][3].Count != 0 {
 		t.Fatalf("the lot after undo, bought: table %d gold %d bag %d", len(c.shop.Table()), s.sess.Town.gold, len(*c.heroBag()))

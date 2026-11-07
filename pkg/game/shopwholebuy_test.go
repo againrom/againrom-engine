@@ -21,11 +21,7 @@ func TestShopBuyRefusesWholeBasket(t *testing.T) {
 			if !s.TakeFromShelf(0, 0, 1) {
 				t.Fatal("first place")
 			}
-			index := 0
-			if s.profile().keepEmptied {
-				index = 1
-			}
-			if !s.TakeFromShelf(0, index, 1) {
+			if !s.TakeFromShelf(0, 0, 1) {
 				t.Fatal("second place")
 			}
 			before := cloneShopMutation(s)
@@ -40,7 +36,7 @@ func TestShopBuyRefusesWholeBasket(t *testing.T) {
 	s := secondShopPage(c, 30)
 	s.shopShelf = 0
 	s.shopFromShelf(0, false)
-	s.shopFromShelf(1, false)
+	s.shopFromShelf(0, false)
 	if c.shop.BuyTotal() != 60 {
 		t.Fatal("fixture did not stage the two lots", c.shop.Table())
 	}

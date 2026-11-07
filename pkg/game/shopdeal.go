@@ -66,39 +66,54 @@ func (d *shopDeal[T, S]) full(r shopRules[T, S]) bool {
 
 func (d *shopDeal[T, S]) shelf(r shopRules[T, S], shelf S) []T {
 	items := d.shelves[shelf]
-	out := make([]T, len(items))
+	shown := d.shownIndex(r, shelf)
+	out := make([]T, len(shown))
+	for i, j := range shown {
+		out[i] = r.clone(items[j])
+	}
+	return out
+}
+
+// shownIndex lists the entries of shelf in shown order as indexes into the
+// stored entries. Under keepEmptied an entry with no units is a placeholder
+// and is not shown.
+func (d *shopDeal[T, S]) shownIndex(r shopRules[T, S], shelf S) []int {
+	items := d.shelves[shelf]
 	var order []int
 	if r.order != nil {
 		order = r.order(items)
 	}
-	for i := range out {
+	out := make([]int, 0, len(items))
+	for i := range items {
 		j := i
 		if order != nil {
 			j = order[i]
 		}
-		out[i] = r.clone(items[j])
+		if r.keepEmptied && r.count(items[j]) < 1 {
+			continue
+		}
+		out = append(out, j)
 	}
 	return out
 }
 
 // removeFromShelf takes n units of entry i off shelf. The returned item
 // holds what moved: n, or the whole entry, which then leaves the shelf or,
-// under keepEmptied, stays with no units. An entry with no units refuses
-// under keepEmptied.
+// under keepEmptied, stays stored with no units and is no longer shown or
+// addressable.
 func (d *shopDeal[T, S]) removeFromShelf(r shopRules[T, S], shelf S, i int, n int64) (T, bool) {
 	var zero T
 	if n <= 0 || shelf < 0 || int(shelf) >= shopShelfCount || i < 0 || i >= len(d.shelves[shelf]) {
 		return zero, false
 	}
 	items := d.shelves[shelf]
-	if r.order != nil {
-		i = r.order(items)[i]
-	}
-	item := r.clone(items[i])
-	have := r.count(item)
-	if r.keepEmptied && have < 1 {
+	shown := d.shownIndex(r, shelf)
+	if i >= len(shown) {
 		return zero, false
 	}
+	i = shown[i]
+	item := r.clone(items[i])
+	have := r.count(item)
 	if n >= have {
 		if r.keepEmptied {
 			items = append([]T(nil), items...)

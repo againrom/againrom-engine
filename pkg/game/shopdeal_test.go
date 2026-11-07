@@ -34,7 +34,7 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 	})
 	r := second.rules()
 	for i := range 3 {
-		if !second.takeFromShelf(r, 0, i, 1) {
+		if !second.takeFromShelf(r, 0, 0, 1) {
 			t.Fatalf("second game: take %d refused", i)
 		}
 	}
