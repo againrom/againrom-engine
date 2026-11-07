@@ -47,6 +47,11 @@ type MapInspector struct {
 	// identities are the identity choice's identities by value, built with
 	// recordOptions["identity"].
 	identities map[int64]mapload.Identity
+	// mercenaryLevels are each mercenary type's Humans rows by level and
+	// identityDraws each person's map sprite by value, built with the
+	// identities; identityDraws is nil until first asked.
+	mercenaryLevels map[int]map[int]int
+	identityDraws   map[int64]personDraw
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.

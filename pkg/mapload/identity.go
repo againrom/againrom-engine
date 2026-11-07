@@ -92,18 +92,26 @@ func Identities(t *Table, mission int) []Identity {
 // row. A placement that already is id comes back unchanged. False when the
 // key rule cannot key a placement to id.
 func Place(u alm.Unit, id Identity, t *Table, mission int) (alm.Unit, bool) {
-	if was, _, ok := IdentifyAt(u, t, mission); ok && was == id {
-		return u, true
-	}
+	out, _, ok := PlaceOn(u, id, t, mission)
+	return out, ok
+}
+
+// PlaceOn is Place with the table a start of mission resolves the placement
+// on: t, or for a named character the start composes from the starting hero,
+// t with the npc records composed for the hero kind whose row Place keys.
+func PlaceOn(u alm.Unit, id Identity, t *Table, mission int) (alm.Unit, *Table, bool) {
 	on, key := t, id
 	if npc, ok := npcPlacement(id.NPC); ok && id.Kind == UnitNamed && id.Row == data.NotFound {
 		if _, rows, ok := IdentifyAt(npc, t, mission); ok {
 			on, key.Row = tableForHero(t, rows[0].Hero, mission), rows[0].Row
 		}
 	}
+	if was, _, ok := IdentifyAt(u, t, mission); ok && was == id {
+		return u, on, true
+	}
 	out := t.unitKeys().place(u, key, on)
 	got, _, ok := IdentifyAt(out, t, mission)
-	return out, ok && got == id
+	return out, on, ok && got == id
 }
 
 // rowParams is row i's parameters, nil outside the collection.

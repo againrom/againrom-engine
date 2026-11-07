@@ -473,7 +473,7 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 		if value < math.MinInt16 || value > math.MaxInt16 {
 			return nil
 		}
-		return s.unitPreview(int16(value), 0)
+		return s.unitPreview(x.unitClass(int16(value)), 0)
 	case "kind", "kind-grid":
 		if x.structures == nil || value <= 0 || value >= int64(len(x.structures.Classes)) {
 			return nil
@@ -508,11 +508,10 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 	return nil
 }
 
-func (s *mapInspectionEdits) unitPreview(class int16, tier int) *image.RGBA {
-	if s.inspector.units == nil {
-		return nil
-	}
-	c := s.inspector.units.Classes[int32(class)]
+// unitPreview is class sheet c's first frame at tier in the direction a
+// placed unit faces by default, as the map draws it; nil for a sheet with
+// none.
+func (s *mapInspectionEdits) unitPreview(c *terrain.UnitClass, tier int) *image.RGBA {
 	frames := c.TierFrames(tier)
 	if len(frames) == 0 {
 		return nil

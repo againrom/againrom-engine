@@ -97,7 +97,7 @@ func (s *mapInspectionEdits) AddUnitIdentity(cell image.Point, value int64) (*ui
 		if err != nil {
 			return false, err
 		}
-		if _, err := s.setIdentity(m, i, value); err != nil {
+		if _, err := s.keyIdentity(m, i, id); err != nil {
 			return false, err
 		}
 		return true, s.checkPlacement(admissionOf(ui.KindUnit, admitAdd), mapedit.KindUnit, m, i, image.Rectangle{})

@@ -1,15 +1,21 @@
 package game
 
 import (
+	"cmp"
 	"fmt"
 	"image"
+	"maps"
 	"math"
+	"slices"
+	"strconv"
 	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/render/terrain"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -78,12 +84,12 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 		groups = append(groups, ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word(group.word))})
 	}
 	other := len(groups)
-	groups = append(groups,
-		ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word("editor.unit.groups.othercreatures"))},
-		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.npc"))},
-		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.others"))},
-		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.heroes"))},
-		ui.InspectionChoiceGroup{Block: people, Head: utf(x.word("editor.unit.groups.pc"))})
+	groups = append(groups, ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word("editor.unit.groups.othercreatures"))})
+	for _, word := range personGroupWords {
+		groups = append(groups, ui.InspectionChoiceGroup{Block: people, Head: utf(x.word(word))})
+	}
+	// Each head of the other people holds its men, then its women.
+	women := map[int][]int64{}
 	for _, c := range choices {
 		id, ok := x.identities[c.Value]
 		if !ok {
@@ -100,26 +106,106 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 					}
 				}
 			}
-		case mapload.UnitPerson:
-			name := x.table.Humans.EntryName(id.Row)
-			group = other + 2
-			if strings.HasPrefix(name, "NPC") {
-				group = other + 1
-			} else if strings.HasPrefix(name, "PC_") {
-				group = other + 4
+		case mapload.UnitPerson, mapload.UnitNamed:
+			role, head, female := x.personRole(id)
+			group = other + 1 + int(role)
+			if role == personOther {
+				group = slices.IndexFunc(groups, func(g ui.InspectionChoiceGroup) bool { return g.Block == people && g.Head == utf(head) })
+				if group < 0 {
+					group = len(groups)
+					groups = append(groups, ui.InspectionChoiceGroup{Block: people, Head: utf(head)})
+				}
 			}
-		case mapload.UnitNamed:
-			group = other + 3
+			if female {
+				women[group] = append(women[group], c.Value)
+				continue
+			}
 		}
 		groups[group].Values = append(groups[group].Values, c.Value)
 	}
+	// A mercenary type's levels stand one after another, in level order.
+	slices.SortStableFunc(groups[other+1+int(personMercenary)].Values, func(a, b int64) int {
+		ta, la, _ := x.mercenaryOf(x.identities[a])
+		tb, lb, _ := x.mercenaryOf(x.identities[b])
+		return cmp.Or(cmp.Compare(ta, tb), cmp.Compare(la, lb))
+	})
 	var populated []ui.InspectionChoiceGroup
-	for _, group := range groups {
+	for i, group := range groups {
+		group.Values = append(group.Values, women[i]...)
 		if len(group.Values) > 0 {
 			populated = append(populated, group)
 		}
 	}
 	return populated
+}
+
+// personRole is a group of the people block: story heroes (named
+// characters), player characters (the PC_ rows), mercenaries (the tavern's
+// NPC<type>_<level> rows) and the other Humans rows, split by the class sheet
+// the mission draws them with.
+type personRole uint8
+
+const (
+	personStory personRole = iota
+	personPlayer
+	personMercenary
+	personFighter
+	personMage
+	personRider
+	personOther
+)
+
+// personGroupWords are the heads of the people block's fixed groups, in
+// personRole's order; a class that fits none of them heads its own group
+// after them.
+var personGroupWords = []string{"editor.unit.groups.story", "editor.unit.groups.player", "editor.unit.groups.mercenaries",
+	"editor.unit.groups.fighters", "editor.unit.groups.mages", "editor.unit.groups.riders"}
+
+// personRole is the people group of person or named identity id, the head
+// of its own group for a class that fits no fixed one, and whether an other
+// person is a woman. An other Humans row is grouped by the type id the
+// mission draws it with (the client hero type the second game gives it, or
+// the row's): a horse type is a rider, the figure's mage class a mage, any
+// other figure type a fighter; a type that composes no figure is its class.
+func (x *MapInspector) personRole(id mapload.Identity) (personRole, string, bool) {
+	if id.Kind == mapload.UnitNamed {
+		return personStory, "", false
+	}
+	name := x.table.Humans.EntryName(id.Row)
+	if strings.HasPrefix(name, "PC_") {
+		return personPlayer, "", false
+	}
+	if _, _, ok := mercenaryRowFromName(name); ok {
+		return personMercenary, "", false
+	}
+	u, _ := mapload.Place(alm.Unit{}, id, x.table, x.identityMission)
+	typeID, _ := data.HumanTypeID(x.table.Humans.EntryParams(id.Row))
+	if hero, ok := mapload.PlacedClientHero(u, x.table); ok {
+		typeID = hero
+	}
+	dir, _, _ := mapload.PlacedFigure(u, x.table)
+	switch {
+	case !data.ComposesFigure(typeID) || data.FigureIsHero(typeID):
+		class := fmt.Sprint(typeID)
+		if c := x.personDraws()[identityChoiceValue(id)].class; c != nil && c.Name != "" {
+			class = c.Name
+		}
+		return personOther, fmt.Sprintf(x.word("editor.unit.groups.otherclass"), class), dir.Female()
+	case data.FigureHasHorse(typeID):
+		return personRider, "", dir.Female()
+	case dir.Mage():
+		return personMage, "", dir.Female()
+	}
+	return personFighter, "", dir.Female()
+}
+
+// mercenaryOf is the mercenary type and level of person identity id; false
+// for an identity that is no mercenary's row.
+func (x *MapInspector) mercenaryOf(id mapload.Identity) (typ, level int, ok bool) {
+	if id.Kind != mapload.UnitPerson || x.table == nil {
+		return 0, 0, false
+	}
+	return mercenaryRowFromName(x.table.Humans.EntryName(id.Row))
 }
 
 // identityName is who id is, in the font's bytes: a creature's Units row
@@ -173,8 +259,18 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 	choices, ok := x.recordOptions["identity"]
 	if !ok || x.identities == nil || x.identityMission != mission {
 		choices, x.identities, x.identityMission = nil, map[int64]mapload.Identity{}, mission
+		x.mercenaryLevels, x.identityDraws = map[int]map[int]int{}, nil
+		ids := mapload.Identities(x.table, mission)
+		for _, id := range ids {
+			if typ, level, ok := x.mercenaryOf(id); ok {
+				if x.mercenaryLevels[typ] == nil {
+					x.mercenaryLevels[typ] = map[int]int{}
+				}
+				x.mercenaryLevels[typ][level] = id.Row
+			}
+		}
 		kind := mapload.UnitKind(math.MaxUint8)
-		for _, id := range mapload.Identities(x.table, mission) {
+		for _, id := range ids {
 			if id.Kind != kind {
 				kind = id.Kind
 				choices = append(choices, ui.InspectionChoice{Value: identityHeading(kind), Label: x.inspectionUTF8(x.word(identityKindWords[kind].headingWord))})
@@ -195,10 +291,9 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 	return append([]ui.InspectionChoice(nil), choices...), shut
 }
 
-// identityPictures are the pictures of the identity choices, by value: a
-// creature's placed tier sprite, a person's
-// figure as the face choice draws it, and a named character's portrait as a
-// dialogue on this map shows it at mission start.
+// identityPictures are the pictures of the identity choices, by value: the
+// sprite the map draws each one with, a creature's at its placed tier and a
+// person's or named character's as the mission draws it (personDraws).
 func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map[int64]*image.RGBA {
 	x := s.inspector
 	if x.recordPictures == nil {
@@ -214,44 +309,154 @@ func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map
 			continue
 		}
 		id, ok := x.identityOf(c.Value)
-		if !ok || id.Kind == mapload.UnitNamed {
+		if !ok {
 			continue
 		}
 		pictures[c.Value] = s.identityFigure(id)
 	}
 	out := map[int64]*image.RGBA{}
-	var named []ui.InspectionChoice
 	for _, c := range choices {
 		if pic := pictures[c.Value]; pic != nil {
 			out[c.Value] = pic
 		}
-		if c.Value >= 0 && mapload.UnitKind(c.Value>>32) == mapload.UnitNamed {
-			named = append(named, ui.InspectionChoice{Value: int64(uint32(c.Value))})
-		}
-	}
-	for npc, pic := range s.npcPortraits(named) {
-		out[int64(mapload.UnitNamed)<<32|int64(uint32(npc))] = pic
 	}
 	return out
 }
 
-// identityFigure is a creature's or a person's picture, nil for none.
+// identityFigure is the sprite the map draws identity id with, nil for none.
 func (s *mapInspectionEdits) identityFigure(id mapload.Identity) *image.RGBA {
 	x := s.inspector
-	u, ok := mapload.Place(alm.Unit{}, id, x.table, x.identityMission)
-	if !ok {
-		return nil
-	}
+	var draw personDraw
 	if id.Kind == mapload.UnitCreature {
-		tier, _ := placementTier(u, x.table)
-		return s.unitPreview(u.ClassID, tier)
+		u, ok := mapload.Place(alm.Unit{}, id, x.table, x.identityMission)
+		if !ok {
+			return nil
+		}
+		draw.class = x.unitClass(u.ClassID)
+		draw.tier, _ = placementTier(u, x.table)
+	} else {
+		draw = x.personDraws()[identityChoiceValue(id)]
 	}
-	dir, face, ok := mapload.PlacedFigure(u, x.table)
-	if !ok || x.archives == nil {
+	return s.unitPreview(draw.class, draw.tier)
+}
+
+// unitClass is the class sheet of unit class id class, nil for none.
+func (x *MapInspector) unitClass(class int16) *terrain.UnitClass {
+	if x.units == nil {
 		return nil
 	}
-	doll, _ := composeDoll(x.archives.artSource(), 0, data.Equipment{}, nil, dir, face, false)
-	return doll.Figure
+	return x.units.Classes[int32(class)]
+}
+
+// personDraw is a class sheet and the tier a cell draws it at: for a person,
+// the ones the mission draws him with.
+type personDraw struct {
+	class *terrain.UnitClass
+	tier  int
+}
+
+// personDraws are the class sheets the mission draws each person and named
+// identity of the choices last built with, by value: every one placed on one
+// new map, the map started as a mission starts it (on the table a composed
+// named character's start resolves him on, mapload.PlaceOn), its look
+// settled as a mission's opening settles it and its art taken from
+// missionAppearanceArt. An identity with no entry draws nothing.
+func (x *MapInspector) personDraws() map[int64]personDraw {
+	if x.identityDraws != nil {
+		return x.identityDraws
+	}
+	x.identityDraws = map[int64]personDraw{}
+	type start struct {
+		table  *mapload.Table
+		values []int64
+		units  []alm.Unit
+	}
+	var starts []*start
+	values := slices.Sorted(maps.Keys(x.identities))
+	for _, v := range values {
+		id := x.identities[v]
+		if id.Kind == mapload.UnitCreature {
+			continue
+		}
+		u, on, ok := mapload.PlaceOn(alm.Unit{}, id, x.table, x.identityMission)
+		if !ok {
+			continue
+		}
+		i := slices.IndexFunc(starts, func(s *start) bool { return s.table == on })
+		if i < 0 {
+			i = len(starts)
+			starts = append(starts, &start{table: on})
+		}
+		starts[i].values, starts[i].units = append(starts[i].values, v), append(starts[i].units, u)
+	}
+	src := x.archives.artSource()
+	list, _ := ReadBodyList(src)
+	for _, st := range starts {
+		// A start one placement refuses is started again one placement a
+		// time, so the refused one alone draws nothing.
+		parts := [][]int{make([]int, len(st.units))}
+		for i := range st.units {
+			parts[0][i] = i
+		}
+		for len(parts) > 0 {
+			part := parts[0]
+			parts = parts[1:]
+			units := make([]alm.Unit, len(part))
+			for i, n := range part {
+				units[i] = st.units[n]
+			}
+			art, tiers, err := x.peopleArt(units, st.table, src, list)
+			if err != nil && len(part) > 1 {
+				for _, n := range part {
+					parts = append(parts, []int{n})
+				}
+				continue
+			}
+			for i, n := range part {
+				x.identityDraws[st.values[n]] = personDraw{class: art[sim.EntityID(i)], tier: tiers[sim.EntityID(i)]}
+			}
+		}
+	}
+	return x.identityDraws
+}
+
+// peopleArt is the class each of units is drawn with when a mission on table
+// t starts them on one new map, and the tier each is drawn at, by entity id
+// (the placement's index).
+func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table, src terrain.EntrySource, list data.BodyList) (map[sim.EntityID]*terrain.UnitClass, map[sim.EntityID]int, error) {
+	side := 32
+	for (side-4)*(side-4) < len(units) {
+		side += 8
+	}
+	spec := alm.DefaultNewMap()
+	spec.Width, spec.Height = side, side
+	model, err := mapedit.NewMap(spec)
+	if err != nil {
+		return nil, nil, err
+	}
+	if _, err := placeNewUnit(model, image.Pt(2, 2), 0, 0); err != nil {
+		return nil, nil, err
+	}
+	m, err := model.Map()
+	if err != nil {
+		return nil, nil, err
+	}
+	blank := m.Units[0]
+	m.Units, m.AuthoredUnits = nil, nil
+	for i, u := range units {
+		keyed := blank
+		keyed.ClassID, keyed.ClassSubID, keyed.DefID, keyed.Flags, keyed.ServerID = u.ClassID, u.ClassSubID, u.DefID, u.Flags, u.ServerID
+		keyed.X, keyed.Y = cellWords(image.Pt(2+i%(side-4), 2+i/(side-4)), newUnitFraction, newUnitFraction)
+		keyed.UnitID = uint16(i + 1)
+		m.Units = append(m.Units, keyed)
+	}
+	w, st, err := mapload.StartCampaignMission(m, t, openDifficulty, nil, x.identityMission)
+	if err != nil {
+		return nil, nil, err
+	}
+	ms := &Mission{Number: x.identityMission, Map: m, World: w, Start: st}
+	canonicalizePartyAppearance(ms, x.units, src, list)
+	return missionAppearanceArt(ms, x.units, list, src, placedClientHeroes(ms, t)), entityTiers(m, t), nil
 }
 
 // identityPicture is the picture of the identity choice value v.
@@ -281,6 +486,50 @@ func (s *mapInspectionEdits) identityField(u alm.Unit) ui.InspectionField {
 	}
 	f.Icons = s.identityPictures(f.Choices)
 	return f
+}
+
+// levelField is the unit popup's level choice for a mercenary placement u:
+// the levels its type has a Humans row for, its own chosen. False for a
+// placement that is no mercenary's row.
+func (s *mapInspectionEdits) levelField(u alm.Unit) (ui.InspectionField, bool) {
+	x := s.inspector
+	mission := s.mission()
+	x.identityChoices(mission)
+	id, _, ok := mapload.IdentifyAt(u, x.table, mission)
+	typ, level, merc := x.mercenaryOf(id)
+	if !ok || !merc || len(x.mercenaryLevels[typ]) == 0 {
+		return ui.InspectionField{}, false
+	}
+	f := ui.InspectionField{Key: "level", Label: x.word("editor.unit.field.level"), Value: int64(level), Meaning: x.word("editor.unit.level.note")}
+	for _, l := range slices.Sorted(maps.Keys(x.mercenaryLevels[typ])) {
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(l), Label: strconv.Itoa(l)})
+	}
+	return f, true
+}
+
+// setMercenaryLevel keys mercenary placement index of m to its type's Humans
+// row of level, through the identity field's writer as one edit.
+func (s *mapInspectionEdits) setMercenaryLevel(m *mapedit.Editor, index int, level int64) (bool, error) {
+	x := s.inspector
+	view, err := m.Map()
+	if err != nil {
+		return false, err
+	}
+	if index < 0 || index >= len(view.AuthoredUnits) {
+		return false, fmt.Errorf("no unit %d", index)
+	}
+	mission := s.mission()
+	x.identityChoices(mission)
+	id, _, ok := mapload.IdentifyAt(view.AuthoredUnits[index], x.table, mission)
+	typ, _, merc := x.mercenaryOf(id)
+	if !ok || !merc {
+		return false, fmt.Errorf("only a mercenary has a level")
+	}
+	row, ok := x.mercenaryLevels[typ][int(min(max(level, 0), math.MaxInt32))]
+	if !ok {
+		return false, fmt.Errorf("mercenary type %d has no level %d", typ, level)
+	}
+	return s.keyIdentity(m, index, mapload.Identity{Kind: mapload.UnitPerson, Row: row})
 }
 
 // heroRowsText is each kind of starting hero with the Humans row a start
@@ -356,6 +605,16 @@ func (s *mapInspectionEdits) setIdentity(m *mapedit.Editor, index int, value int
 	t := s.inspector.table
 	id, ok := s.identityOf(value)
 	if !ok || !t.ClassPlacementFields() {
+		return false, fmt.Errorf("choose who this unit is: a creature, a person or a named character")
+	}
+	return s.keyIdentity(m, index, id)
+}
+
+// keyIdentity keys placement index of m to identity id: setIdentity's
+// writer, which the level field shares.
+func (s *mapInspectionEdits) keyIdentity(m *mapedit.Editor, index int, id mapload.Identity) (bool, error) {
+	t := s.inspector.table
+	if !t.ClassPlacementFields() {
 		return false, fmt.Errorf("choose who this unit is: a creature, a person or a named character")
 	}
 	view, err := m.Map()

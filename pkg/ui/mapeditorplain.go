@@ -87,6 +87,7 @@ var plainViews = map[RecordKind]plainView{
 			{key: "owner", word: "editor.plain.player", order: 2, block: "main"},
 			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
 			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
+			{key: "level", order: 5, block: "main"},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
