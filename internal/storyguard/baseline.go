@@ -4281,5 +4281,10 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the worn weapon arm in
 	// pkg/sim/nativebasismutation.go and pkg/game/savactorproject.go, the new
 	// pkg/game/secondweaponarm_test.go, and this note.
-	CommentBytes: 10622303,
+
+	// CommentBytes rises for the doc comments of the speaker pick's hit order
+	// in pkg/ui/mapeditorparampick.go, the new
+	// pkg/ui/mapeditorspeakeroverlap_test.go and
+	// pkg/game/mapeditorspeakerlook_test.go, and this note.
+	CommentBytes: 10623269,
 }

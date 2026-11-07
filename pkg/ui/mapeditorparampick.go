@@ -222,7 +222,11 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 		miss.why = e.speakerWhy(nil)
 	}
 	refused := false
-	for _, id := range e.recordHitsAt(p, record) {
+	hits, on := e.recordHitsAt(p, record)
+	if target != targetSpeaker && on > 0 {
+		hits = hits[:on]
+	}
+	for _, id := range hits {
 		r := e.doc.Records[id]
 		if target == targetSpeaker {
 			if host, ok := e.doc.Edits.(InspectionMessages); ok {
@@ -251,12 +255,13 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 	return miss, false
 }
 
-// recordHitsAt are the records of kind under p that a pick names: those
-// standing on the cell under p when any does, else those whose footprint
-// covers it. A unit inside a larger unit's outline is the one picked on its
-// own cell.
-func (e *MapEditor) recordHitsAt(p image.Point, kind RecordKind) []int {
-	var on, over []int
+// recordHitsAt are the records of kind whose footprint covers the cell under
+// p, as the map's own selection finds them, those standing on that cell first;
+// on counts those. A unit inside a larger unit's outline is
+// the one a pick names on its own cell; the speaker pick goes on to the larger
+// unit when the one on the cell shows no speaker.
+func (e *MapEditor) recordHitsAt(p image.Point, kind RecordKind) (hits []int, on int) {
+	var rest []int
 	cx, cy, _ := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	for _, id := range e.hitsAt(p) {
 		r := e.doc.Records[id]
@@ -264,14 +269,12 @@ func (e *MapEditor) recordHitsAt(p image.Point, kind RecordKind) []int {
 			continue
 		}
 		if r.Cell == image.Pt(cx, cy) {
-			on = append(on, id)
+			hits = append(hits, id)
+		} else {
+			rest = append(rest, id)
 		}
-		over = append(over, id)
 	}
-	if len(on) > 0 {
-		return on
-	}
-	return over
+	return append(hits, rest...), len(hits)
 }
 
 // speakerWhy says in whole sentences why the speaker pick found no speaker:
