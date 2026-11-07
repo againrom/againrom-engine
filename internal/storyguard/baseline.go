@@ -4253,8 +4253,8 @@ var Committed = Baseline{
 
 	// CommentBytes rises for the doc comments of the editor's people groups,
 	// mission sprites and mercenary level in pkg/game/mapinspectionidentity.go,
-	// mapinspectionadd.go and originalparty.go, PlaceOn in
-	// pkg/mapload/identity.go, the new pkg/game/mapinspectionpeople_test.go,
-	// and this note.
-	CommentBytes: 10606212,
+	// mapinspectionadd.go (unitPreview now takes the class sheet) and
+	// originalparty.go, PlaceOn in pkg/mapload/identity.go, the new
+	// pkg/game/mapinspectionpeople_test.go, and this note.
+	CommentBytes: 10606348,
 }

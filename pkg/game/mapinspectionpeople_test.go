@@ -75,7 +75,7 @@ func personValue(row int) int64 { return identityValue(identityPerson, row) }
 func TestEditorIdentityPeopleGroupByRoleAndDrawnClass(t *testing.T) {
 	heads := map[string][]string{
 		"en": {"Story heroes", "Player characters", "Mercenaries", "Others: fighters", "Others: mages", "Others: riders", "Others: Odd class"},
-		"ru": {"Сюжетные герои", "Персонажи игрока", "Наёмники", "Прочие: бойцы", "Прочие: маги", "Прочие: всадники", "Прочие: Odd class"},
+		"ru": {"Сюжетные герои", "Персонажи игрока", "Наемники", "Прочие: бойцы", "Прочие: маги", "Прочие: всадники", "Прочие: Odd class"},
 	}
 	want := [][]int64{{identityValue(identityNamed, 8)}, {personValue(3), personValue(4)}, {personValue(5), personValue(6)},
 		{personValue(2), personValue(1)}, {personValue(14), personValue(13)}, {personValue(16), personValue(15)}, {personValue(17)}}
@@ -154,7 +154,7 @@ func TestEditorIdentityPeopleCellsDrawTheMissionSprite(t *testing.T) {
 		}
 		pic := s.NewRecordPreview(ui.KindUnit, "identity", v)
 		c, tier := missionArt(t, s, u)
-		want := classPreview(c, tier)
+		want := s.unitPreview(c, tier)
 		if pic == nil || want == nil || pic.Bounds() != want.Bounds() || !bytes.Equal(pic.Pix, want.Pix) {
 			t.Errorf("identity %#x: cell differs from the mission's sprite", v)
 			continue

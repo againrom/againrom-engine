@@ -336,20 +336,30 @@ func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map
 // identityFigure is the sprite the map draws identity id with, nil for none.
 func (s *mapInspectionEdits) identityFigure(id mapload.Identity) *image.RGBA {
 	x := s.inspector
-	if id.Kind != mapload.UnitCreature {
-		draw := x.personDraws()[identityChoiceValue(id)]
-		return classPreview(draw.class, draw.tier)
+	var draw personDraw
+	if id.Kind == mapload.UnitCreature {
+		u, ok := mapload.Place(alm.Unit{}, id, x.table, x.identityMission)
+		if !ok {
+			return nil
+		}
+		draw.class = x.unitClass(u.ClassID)
+		draw.tier, _ = placementTier(u, x.table)
+	} else {
+		draw = x.personDraws()[identityChoiceValue(id)]
 	}
-	u, ok := mapload.Place(alm.Unit{}, id, x.table, x.identityMission)
-	if !ok {
-		return nil
-	}
-	tier, _ := placementTier(u, x.table)
-	return s.unitPreview(u.ClassID, tier)
+	return s.unitPreview(draw.class, draw.tier)
 }
 
-// personDraw is the class sheet the mission draws a person with and the
-// tier it draws him at.
+// unitClass is the class sheet of unit class id class, nil for none.
+func (x *MapInspector) unitClass(class int16) *terrain.UnitClass {
+	if x.units == nil {
+		return nil
+	}
+	return x.units.Classes[int32(class)]
+}
+
+// personDraw is a class sheet and the tier a cell draws it at: for a person,
+// the ones the mission draws him with.
 type personDraw struct {
 	class *terrain.UnitClass
 	tier  int
