@@ -254,6 +254,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 					s.Rows, *links = append(s.Rows, popupRow{Kind: kind, Label: part}), append(*links, 0)
 				}
 			}
+			if f.Picture != nil {
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Portrait: f.Picture, Lines: 4}), append(*links, 0)
+			}
 			deferColumn()
 			return -1
 		}

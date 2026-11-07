@@ -738,7 +738,7 @@ func (f popupFlow) rowHeight(row popupRow, i, pitch int) int {
 		return 0
 	}
 	h := pitch
-	if row.Kind == popupMultiline {
+	if row.Kind == popupMultiline || pictureRow(row) {
 		h = multilineRows(row) * pitch
 	}
 	if row.Kind == popupDirection {
@@ -748,6 +748,12 @@ func (f popupFlow) rowHeight(row popupRow, i, pitch int) int {
 		h += f.rowExtra[i] * pitch
 	}
 	return h
+}
+
+// pictureRow is a read-only row that holds a picture in its label column and
+// takes Lines rows of height for it.
+func pictureRow(row popupRow) bool {
+	return row.Kind == popupText && row.Portrait != nil && row.Lines > 0
 }
 
 // multilineRows is a multi-line row's height in rows.
@@ -1076,7 +1082,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		// top is the control's line: under the label when the label takes a
 		// line of its own.
 		top, fieldH := y, pitch
-		if row.Kind == popupMultiline {
+		if row.Kind == popupMultiline || pictureRow(row) {
 			fieldH = multilineRows(row) * pitch
 		}
 		if row.Kind == popupDirection {
@@ -1101,7 +1107,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		case popupHeading:
 			rr.Label, rr.Control = line, image.Rectangle{}
 		case popupText, popupLink:
-			if row.Value == "" { // a line of text runs across the row
+			if row.Value == "" && !pictureRow(row) { // a line of text runs across the row
 				rr.Label, rr.Control = line, image.Rectangle{}
 			}
 		case popupCard:

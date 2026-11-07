@@ -4294,5 +4294,5 @@ var Committed = Baseline{
 	// CommentBytes rises for the doc comments of the mission actor key in
 	// pkg/game/savform.go, the new pkg/game/secondactorkey_test.go, and this
 	// note.
-	CommentBytes: 10626931,
+	CommentBytes: 10627385,
 }

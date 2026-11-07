@@ -193,6 +193,9 @@ type InspectionField struct {
 	// window, with Back to this one: a unit's sack. The zero RecordRef
 	// opens none.
 	Link RecordRef
+	// Picture, on a read-only field, is drawn under its lines: the face a
+	// dialogue shows for a unit's speaker.
+	Picture *image.RGBA
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

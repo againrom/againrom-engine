@@ -668,13 +668,15 @@ func (s *mapInspectionEdits) speakerField(unit int) ui.InspectionField {
 		return fmt.Sprintf("%d: %s", id, enc(label))
 	}
 	var text string
+	var picture *image.RGBA
 	if miss.Cause == ui.SpeakerShown {
 		text = fmt.Sprintf(enc(x.word("editor.unit.speaker.shown")), record(n))
+		picture = s.npcPortraits([]ui.InspectionChoice{{Value: n}})[n]
 	} else {
 		text = ui.SpeakerMissText(func(id string) string { return enc(x.word(id)) }, &miss, record(miss.Record))
 	}
 	return ui.InspectionField{Key: "speaker", Label: x.word("editor.unit.speaker"), ReadOnly: true, Lines: []ui.InspectionLine{
-		{Text: enc(x.word("editor.unit.speaker")), Role: "heading"}, {Text: text}}}
+		{Text: enc(x.word("editor.unit.speaker")), Role: "heading"}, {Text: text}}, Picture: picture}
 }
 
 // setIdentity keys placement index of m to the identity choice value: the
