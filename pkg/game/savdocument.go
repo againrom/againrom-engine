@@ -334,6 +334,9 @@ func snapshotSavedDocument(ms *Mission, fresh ...bool) (*SnapshotSAVDocument, er
 	if err := projectSavedActorValues(state.Document, state.Actors, ms.World, fresh...); err != nil {
 		return nil, err
 	}
+	if err := projectWornWeaponArm(state.Document, state.Actors, ms.World, ms.Start.ConstructionTable); err != nil {
+		return nil, err
+	}
 	if !tableFiles(ms.Start.ConstructionTable).storedOwnWeight {
 		if err := projectWornOwnWeight(state.Document, state.Actors, ms.World); err != nil {
 			return nil, err

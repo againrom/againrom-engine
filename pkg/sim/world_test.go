@@ -68,7 +68,7 @@ func init() {
 	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "CellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries")
 	// The burst picture's phase count is install-derived input, set once per world.
 	worldMethods = append(worldMethods, "SetBurstPhases", "WindUpElapsed")
-	worldMethods = append(worldMethods, "WornWeight", "ContainerWeight")
+	worldMethods = append(worldMethods, "WornWeight", "WornWeaponArm", "ContainerWeight")
 	worldMethods = append(worldMethods, "ReleaseCast", "ReleaseAreaBurst", "ProjectilePoint")
 	worldWriters = append(worldWriters, "ReleaseCast", "ReleaseAreaBurst")
 	worldMethods = append(worldMethods, "ReleaseCasts", "ReleaseScriptCasts", "ReleaseAreaPaints", "ReleaseClientShots")
@@ -173,6 +173,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"ActorMotionActive":    {reflect.ValueOf(EntityID(7))},
 	"WindUpElapsed":        {reflect.ValueOf(EntityID(7))},
 	"WornWeight":           {reflect.ValueOf(EntityID(7))},
+	"WornWeaponArm":        {reflect.ValueOf(EntityID(7)), reflect.ValueOf(func(ItemInstance) SourceEquipment { return SourceEquipment{} })},
 	"ContainerWeight":      {reflect.ValueOf(EntityID(7))},
 	"ProjectilePoint":      {reflect.ValueOf(EntityID(7))},
 	"BookSpellRefusal":     {reflect.ValueOf(EntityID(7)), reflect.ValueOf(EntityID(9)), reflect.ValueOf(uint32(1))},

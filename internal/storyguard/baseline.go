@@ -4274,5 +4274,12 @@ var Committed = Baseline{
 	// the trigger writer in pkg/mapedit/script.go, the script framing guard
 	// in internal/archtest/scriptframe.go, their tests, the leaf's line in
 	// internal/archtest/dag_test.go's UI pin, and this note.
-	CommentBytes: 10618822,
+
+	// CommentBytes rises for the doc comments of the walk goal in
+	// pkg/formats/sav/engine_form.go, the new engine_form_goal_test.go and
+	// pkg/game/secondwalkgoal_test.go, and this note.
+	// CommentBytes rises for the doc comments of the worn weapon arm in
+	// pkg/sim/nativebasismutation.go and pkg/game/savactorproject.go, the new
+	// pkg/game/secondweaponarm_test.go, and this note.
+	CommentBytes: 10621535,
 }

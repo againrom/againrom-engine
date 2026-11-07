@@ -148,7 +148,9 @@ const commandWord = 65500
 
 // commandFill is the second game's 184-byte Unit command: word +0, the
 // command post the Group's mode-1 arm moves to (R2-ENGINE-824), is the
-// engine order's post, its word +0; word +0x16 is commandWord; the alarm
+// engine order's post, its word +0; word +0x0a, the goal the walk stores
+// and the Move programme walks a member to (R2-ENGINE-844, AI-MOVE-023),
+// is the engine order's goal; word +0x16 is commandWord; the alarm
 // +0x54 and the notice +0x58..+0x5a are the engine order's (R2-ENGINE-845);
 // the three creature spell slots are the engine order's, in the second
 // game's window; every other byte is zero (DIV-4305, DIV-4490).
@@ -156,6 +158,9 @@ const commandWord = 65500
 func commandFill(engine []byte) []byte {
 	out := make([]byte, secondCreatureSpells.width)
 	copy(out[:2], engine)
+	if len(engine) >= commandGoal+2 {
+		copy(out[commandGoal:commandGoal+2], engine[commandGoal:])
+	}
 	put16(out, 0x16, commandWord)
 	if len(engine) > commandNoticeEnd {
 		copy(out[commandAlarm:commandNoticeEnd], engine[commandAlarm:commandNoticeEnd])
@@ -167,6 +172,9 @@ func commandFill(engine []byte) []byte {
 }
 
 const (
+	// commandGoal is the walk's goal cell word, at the same place in both
+	// games' blocks.
+	commandGoal = 0x0a
 	// commandAlarm..commandNoticeEnd are the alarm +0x54 and the notice
 	// cell and count +0x58..+0x5a, at the same place in both games' blocks.
 	commandAlarm     = 0x54

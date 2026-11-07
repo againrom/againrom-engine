@@ -26,6 +26,8 @@ modder or developer can notice gets no entry.
 - [ROM2] In the shop, putting an item on a character plays the put-on sound and taking it off plays the take-off sound.
 - [ROM2] In a mission, putting an item on a character in the inventory plays the put-on sound, and taking it off or dropping it plays the take-off sound.
 - [ROM2] Our saves load in the original game without it stopping on a hero who was attacking; before, the original stopped a moment after loading such a save.
+- [ROM2] In our saves loaded in the original game, a hero you had sent somewhere goes there and stays; before, he walked off towards a corner of the map.
+- [ROM2] A hero who changed his weapon before you saved keeps his real damage when you change weapons again after loading that save in the original game; before, the original could show him with damage near 243-485.
 
 ### For map makers and modders
 

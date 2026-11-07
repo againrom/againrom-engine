@@ -158,25 +158,56 @@ func (w *World) reformNativeWeaponArm(e *Entity) {
 	if i < 0 || i >= len(w.equipment) || &w.entities[i] != e {
 		return
 	}
+	e.NativeBasis, _ = w.WornWeaponArm(e.ID, func(ItemInstance) SourceEquipment { return SourceEquipment{} })
+}
+
+// WornWeaponArm is entity id's modifier basis with its unavailable
+// weapon-arm bytes formed from its worn set. A worn item the World holds no
+// constructor for takes constructor's; supplied reports whether one did,
+// which is when an equip of that item could not form these bytes.
+func (w *World) WornWeaponArm(id EntityID, constructor func(ItemInstance) SourceEquipment) (basis NativeActorBasis, supplied bool) {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 || i >= len(w.equipment) {
+		return NativeActorBasis{}, false
+	}
+	e, worn := &w.entities[i], w.equipment[i]
+	for k := range worn {
+		if worn[k].Empty() || worn[k].SourceEquipment.Class != 0 {
+			continue
+		}
+		if worn[k].SourceEquipment = w.itemConstructor(worn[k].Code); worn[k].SourceEquipment.Class == 0 {
+			worn[k].SourceEquipment, supplied = constructor(worn[k]), true
+		}
+	}
+	return formNativeWeaponArm(e.NativeBasis, worn, e.Skill[0], e.Humanoid, e.NativeClass), supplied
+}
+
+// formNativeWeaponArm gives basis's unavailable weapon-arm bytes the values
+// the worn set contributes as the construction forms them (DIV-3359). An
+// item without a constructor leaves its bytes unavailable; available bytes
+// are kept.
+func formNativeWeaponArm(basis NativeActorBasis, worn [EquipSlots]ItemInstance, general int32, humanoid bool, class NativeClass) NativeActorBasis {
 	unknown := false
 	for _, n := range nativeWeaponArmBytes {
-		unknown = unknown || !e.NativeBasis.ModifierByteKnown(n)
+		unknown = unknown || !basis.ModifierByteKnown(n)
 	}
-	if !unknown {
-		return
+	if !unknown || !basis.ModifierPresent {
+		return basis
 	}
 	var fresh Entity
+	var w World
 	fresh.NativeBasis = NativeActorBasis{}.WithModifier([64]byte{})
-	fresh.Humanoid, fresh.NativeClass, fresh.Skill[0] = e.Humanoid, e.NativeClass, e.Skill[0]
-	for _, item := range w.equipment[i] {
+	fresh.Humanoid, fresh.NativeClass, fresh.Skill[0] = humanoid, class, general
+	for _, item := range worn {
 		w.applyNativeEquipmentBasis(&fresh, item, NativeModifierAttach)
 	}
 	for _, n := range nativeWeaponArmBytes {
-		if !e.NativeBasis.ModifierByteKnown(n) && fresh.NativeBasis.ModifierByteKnown(n) {
-			e.NativeBasis.Modifier[n] = fresh.NativeBasis.Modifier[n]
-			e.NativeBasis.ModifierKnown |= uint64(1) << n
+		if !basis.ModifierByteKnown(n) && fresh.NativeBasis.ModifierByteKnown(n) {
+			basis.Modifier[n] = fresh.NativeBasis.Modifier[n]
+			basis.ModifierKnown |= uint64(1) << n
 		}
 	}
+	return basis
 }
 
 func sameItemEffects(a, b []ItemEffect) bool {

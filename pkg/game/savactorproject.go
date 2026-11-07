@@ -144,6 +144,49 @@ func projectWornOwnWeight(document *sav.DocumentData, bindings []SnapshotSAVActo
 	return nil
 }
 
+// wornWeaponArmWords are the UD4 bytes of the to-hit word and the damage
+// pair the original's equip adds a weapon's attack block into and its
+// removal subtracts it from (R2-ENGINE-479).
+var wornWeaponArmWords = [...]int{0x12, 0x13, 0x20, 0x21}
+
+// projectWornWeaponArm writes a native Human's unavailable to-hit word and
+// damage pair as its worn set forms them when the World holds no constructor
+// for a worn item, so its equip could not form them (DIV-3359, DIV-4591).
+// Each such item takes the constructor its SAVE record is written from.
+func projectWornWeaponArm(document *sav.DocumentData, bindings []SnapshotSAVActor, world *sim.World, table *mapload.Table) error {
+	weights := make(map[uint16]sim.ItemWeight)
+	for _, weight := range world.ItemWeights() {
+		weights[weight.Code] = weight
+	}
+	constructor := func(item sim.ItemInstance) sim.SourceEquipment {
+		return currentItemRecordValue(item, true, weights, table).SourceEquipment
+	}
+	for _, binding := range bindings {
+		if binding.Retired || binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(document.Objects) {
+			continue
+		}
+		e, ok := world.Entity(binding.EntityID)
+		record := &document.Objects[binding.ObjectIndex-1]
+		if !ok || e.ActorLoad.Source.Class != 0 || !e.NativeBasis.ModifierPresent || record.Class != "Human" {
+			continue
+		}
+		formed, supplied := world.WornWeaponArm(e.ID, constructor)
+		if !supplied {
+			continue
+		}
+		block, err := savedActorRaw(record, "UD4", 64)
+		if err != nil {
+			return err
+		}
+		for _, n := range wornWeaponArmWords {
+			if !e.NativeBasis.ModifierByteKnown(n) && formed.ModifierByteKnown(n) {
+				block[n] = formed.Modifier[n]
+			}
+		}
+	}
+	return nil
+}
+
 // projectCurrentActorOwner writes the actor's owner Reference from its current
 // owner: the key of the one Player whose slot is that owner. A script hand-over
 // sets actor+14 to the new Player before the actor joins its new Group
