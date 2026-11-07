@@ -81,6 +81,10 @@ func (mw *mapWorld) applyExplored(cols, rows int, explored []byte) bool {
 // Snapshot captures the running game. A map opened from the list names no
 // mission (f.liveMission is zero), so it is refused.
 func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
+	if t := f.townUI; t != nil {
+		// The SAV carries no table: the units on it go back to the packs first.
+		t.settleSecondTable()
+	}
 	if t := f.townUI; t != nil && t.worldMap != nil && t.worldMap.returnMission != 0 {
 		return Snapshot{}, "", f.campaign().refusals().refuse(refusedWorldMapReturn)
 	}

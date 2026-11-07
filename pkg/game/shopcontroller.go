@@ -96,9 +96,6 @@ type shopHost struct {
 	// stepped follows the character picker from one member to another;
 	// stats toggles the character panel's mode; leave closes the room.
 	stepped func(from, to mapload.PartyMember)
-	// parting runs before the picker leaves a member for another, while the
-	// page still shows the one it leaves.
-	parting func()
 	stats   func()
 	leave   func() bool
 	// chose follows a rack the player chose; nil keeps the choice on the page.

@@ -35,6 +35,10 @@ package storyguard
 // CommentBytes rose by the doc comments of the objectives window layout in
 // pkg/ui/questobjectives.go and its test, and this paragraph.
 //
+// CommentBytes rose by the doc comments of the shop table settling in
+// pkg/game/secondshoproom.go and pkg/game/resume.go, its tests in
+// pkg/game/shoptablemember_test.go, and this paragraph.
+//
 // CommentBytes rose by the doc comments of the dead-flyer SAV fix and its tests.
 //
 // CommentBytes rose by the doc comments of the map editor's test play, all new
@@ -4286,5 +4290,5 @@ var Committed = Baseline{
 	// in pkg/ui/mapeditorparampick.go, the new
 	// pkg/ui/mapeditorspeakeroverlap_test.go and
 	// pkg/game/mapeditorspeakerlook_test.go, and this note.
-	CommentBytes: 10623269,
+	CommentBytes: 10624857,
 }

@@ -44,10 +44,23 @@ func secondShopOpen(t *townScreen, _ string) {
 // go back to the pack of the member the page shows, the emptied entries drop.
 func (t *townScreen) leaveSecondShop() {
 	c := t.state()
-	if t.row.dealOf != nil && len(c.shop.Table()) != 0 {
+	t.settleSecondTable()
+	c.shop.leave(c.heroBag())
+}
+
+// settleSecondTable sends every place on the table home: the player's units
+// to the pack of the member the page shows, the merchant's to their shelves.
+// A pack that refuses the units leaves them for the shop's own undo, which
+// puts them in the hero's bag, so no unit is lost.
+func (t *townScreen) settleSecondTable() {
+	c := t.state()
+	if c == nil || len(c.shop.Table()) == 0 {
+		return
+	}
+	if t.row.dealOf != nil {
 		t.shopClear()
 	}
-	c.shop.leave(c.heroBag())
+	c.shop.undo(c.heroBag())
 }
 
 // bankShopRow is the composed town's shop room as the one shop page's row: the
@@ -138,12 +151,7 @@ func (t *townScreen) bankShopRow() shopBinding {
 				}
 			},
 			stats: func() { t.townStats = !t.townStats },
-			parting: func() {
-				if len(t.deal().Table()) != 0 {
-					t.shopClear()
-				}
-			},
-			face: t.heroFaceView,
+			face:  t.heroFaceView,
 			faces: func(entrySource, []mapload.PartyMember, *image.RGBA, map[int]*image.RGBA) {
 				if t.composed != nil {
 					t.composed.hero = nil
