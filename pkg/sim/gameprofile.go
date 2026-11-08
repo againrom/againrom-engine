@@ -120,7 +120,8 @@ type gameProfile struct {
 	savesMissionFog bool
 	// noCompanionObjective: a current-SAV LOAD restores no mission companion
 	// objective into the script; the first game restores its VIP check.
-	noCompanionObjective bool
+	noCompanionObjective    bool
+	keepsHealthAboveMaximum bool
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -144,6 +145,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		activityMask:               true,
 		cullClearsActionClock:      true,
 		formHoldsConstructedGroups: true,
+		keepsHealthAboveMaximum:    true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,

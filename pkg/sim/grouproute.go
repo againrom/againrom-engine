@@ -21,6 +21,8 @@ type groupRouteProfile struct {
 	// recentBlow: guard B's member case 4 runs from the blow's clock
 	// (R2-ENGINE-844, DIV-4503).
 	recentBlow bool
+	// endsTargetlessEngage (DIV-4691).
+	endsTargetlessEngage bool
 }
 
 // runsStampWindow reports whether a Group at programme byte b runs guard
@@ -61,6 +63,7 @@ var secondGameGroupRoute = groupRouteProfile{
 	recordsBlows:               true,
 	stampWindow:                true,
 	recentBlow:                 false,
+	endsTargetlessEngage:       true,
 }
 
 func (w *World) savedRoute(g *SavedGroup) uint8 {

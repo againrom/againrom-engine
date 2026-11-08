@@ -55,7 +55,8 @@ func (w *World) ImportOriginalActorPools(pools []OriginalActorPools, current ...
 			if originalDyingEntity(e) {
 				validHP = LifeDecaying.Holds(int64(pool.HP), 0, false) && pool.MaxHP > 0
 			}
-			if !validHP || pool.MaxHP < pool.HP || pool.Mana < 0 || pool.MaxMana < pool.Mana {
+			overHealed := pool.MaxHP < pool.HP && !w.game.keepsHealthAboveMaximum
+			if !validHP || overHealed || pool.Mana < 0 || pool.MaxMana < pool.Mana {
 				return fmt.Errorf("original actor pools: entity %d has unsupported pools HP %d/%d mana %d/%d",
 					pool.ID, pool.HP, pool.MaxHP, pool.Mana, pool.MaxMana)
 			}

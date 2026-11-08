@@ -4347,6 +4347,7 @@ var Committed = Baseline{
 	// pkg/sim/mover.go and pkg/mapload/start.go, and this note.
 
 	// CommentBytes rises for the town bank adapter and town state guard docs.
+	// CommentBytes rises for the second-game engage stop's doc comments.
 	// It rises for addEndGroups' doc in pkg/game/mapeditadd_test.go.
 	// It rises for runGuardStrike's note on the mage it removes.
 	// It rises for fallenHires' doc in pkg/game/hire.go and its test.
@@ -4395,5 +4396,5 @@ var Committed = Baseline{
 	// It rises for the weapon swap memory in the SAV supplement: the rows and
 	// their restore in pkg/game/weaponswap.go, the new
 	// pkg/game/weaponswapsave_test.go; and this note.
-	CommentBytes: 10698206,
+	CommentBytes: 10698379,
 }

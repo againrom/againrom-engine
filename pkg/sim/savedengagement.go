@@ -56,12 +56,23 @@ func (w *World) savedEngage(i int, o *SavedActorOrder) {
 		o.Raw[8], o.Raw[0x14] = 5, uint8(e.Reach)
 		return
 	}
+	if !ok && w.game.groupRoute.endsTargetlessEngage && w.engageHasNothingLeft(i) {
+		w.stopTargetOrder(i)
+		return
+	}
 	if !ok || !w.orderAttack(i, id) {
 		return
 	}
 	e := &w.entities[i]
 	e.ActorState = actorStateEngage
 	o.Raw[8], o.Raw[0x14] = 5, uint8(e.Reach)
+}
+
+// engageHasNothingLeft: no victim, walk or pending order (DIV-4691).
+func (w *World) engageHasNothingLeft(i int) bool {
+	e := &w.entities[i]
+	_, _, named := e.RequestedAttackTarget()
+	return !named && !e.HasTarget && e.PendingOrder.Kind == PendingNone
 }
 
 // Both tactical producers publish the accepted typed action. A cast or
