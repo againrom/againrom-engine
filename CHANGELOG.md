@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] On macOS, Command now works where Control does in a mission: Command+1 assigns the selected units to squad 1, Command+2 to squad 2, and so on. Control still works.
+- [ROM2] An Elven Scroll now works like an ordinary scroll at its own greater power: its description names its spell, and any hero can read it to cast that spell. Before, its description showed only its name and no hero could read it.
 - [ROM2] Drain Life's picture on its target now starts on the same frame as in the original game.
 - [ROM2] A creature hit by a Darkness its own side casts now keeps fighting its enemy: in mission 10 the troll under its bats' Darkness keeps hitting the hero instead of turning on the bat.
 - [BASE] Enemy dragons' and mages' Fire Ball, Wall of Fire and Poison Cloud now land where the target stands when the spell goes off, a fleeing caster stops casting, and in the first game a caster out of mana attacks instead of standing still.

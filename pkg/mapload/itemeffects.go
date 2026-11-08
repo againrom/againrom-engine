@@ -440,6 +440,14 @@ func cloneItemEquipment(items [sim.EquipSlots]sim.ItemInstance) (out [sim.EquipS
 	return out
 }
 
+// magicItemKinds is the MagicItems row-name prefix of each class-14 kind:
+// 3 Potion, 4 Scroll or SuperScroll (the second game's Elven Scroll), 5 Book
+// (R2-ENGINE-709). The first game's rows hold no SuperScroll name.
+var magicItemKinds = []struct {
+	prefix string
+	kind   uint8
+}{{"Potion", 3}, {"Scroll", 4}, {"SuperScroll", 4}, {"Book", 5}}
+
 // ItemInstanceFromCode constructs the complete base object named by a packed
 // code. Equipment price uses its shape/material scale; class 14 uses its signed
 // MagicItems value and name-derived kind.
@@ -471,13 +479,11 @@ func ItemInstanceFromCode(code uint16, table *Table) sim.ItemInstance {
 		return item
 	}
 	name := table.MagicItems.EntryName(row)
-	switch {
-	case strings.HasPrefix(name, "Potion"):
-		item.Kind = 3
-	case strings.HasPrefix(name, "Scroll"):
-		item.Kind = 4
-	case strings.HasPrefix(name, "Book"):
-		item.Kind = 5
+	for _, p := range magicItemKinds {
+		if strings.HasPrefix(name, p.prefix) {
+			item.Kind = p.kind
+			break
+		}
 	}
 	params := table.MagicItems.EntryParams(row)
 	if len(params) > 0 {

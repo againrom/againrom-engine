@@ -4383,5 +4383,9 @@ var Committed = Baseline{
 	// pkg/sim/celleffect.go, the new pkg/sim/secondareablow_test.go and
 	// internal/archtest/areablow_test.go, net of the struck-guard witness's
 	// removed same-side admission; and this note.
-	CommentBytes: 10689350,
+
+	// It rises for the class-14 kind prefixes: magicItemKinds in
+	// pkg/mapload/itemeffects.go, the new pkg/game/scrolluse_test.go and
+	// pkg/game/elvenscrollsav_test.go; and this note.
+	CommentBytes: 10691722,
 }
