@@ -4349,5 +4349,6 @@ var Committed = Baseline{
 	// CommentBytes rises for the town bank adapter and town state guard docs.
 	// It rises for addEndGroups' doc in pkg/game/mapeditadd_test.go.
 	// It rises for runGuardStrike's note on the mage it removes.
-	CommentBytes: 10677923,
+	// It rises for fallenHires' doc in pkg/game/hire.go and its test.
+	CommentBytes: 10678756,
 }

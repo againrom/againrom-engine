@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] Visiting the inn can now bring back a missing Iglez or Dina at the appropriate point in the campaign, including after loading an older save.
+- [ROM2] A hired companion who dies in a mission no longer comes back for hire at the inn after his rest; a companion who survives still rests one mission and can be hired again.
 
 ## 0.149.0
 

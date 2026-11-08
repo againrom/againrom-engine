@@ -262,11 +262,31 @@ func enterHires(rules campaignService, party []mapload.PartyMember, town *Town, 
 	return mapload.OwnParty(out), nil
 }
 
+// fallenHires is the identities of the hires in party whose actor, ids[i]
+// in w, fell below -10 health or has left the world (R2-SESSION-195).
+func fallenHires(party []mapload.PartyMember, ids []sim.EntityID, w *sim.World) []int {
+	var out []int
+	for i, m := range party {
+		r := slices.IndexFunc(bankHires.rows, func(r hireRow) bool { return r.holds(m) })
+		if r < 0 || i >= len(ids) || w == nil {
+			continue
+		}
+		if e, ok := w.Entity(ids[i]); !ok || e.InLife(sim.LifeFinished) {
+			out = append(out, bankHires.rows[r].identity)
+		}
+	}
+	return out
+}
+
 // departHires is the hire part of a won mission's ordinary departure over
-// the hire bank: a hire left available becomes 1, a selected one 2, and
-// every selection clears.
-func departHires(bank *[innBankSlots]int32) {
+// the hire bank: a fallen hire's availability clears first (DIV-4645), then
+// a hire left available becomes 1, a selected one 2, and every selection
+// clears.
+func departHires(bank *[innBankSlots]int32, fallen []int) {
 	for _, r := range bankHires.rows {
+		if slices.Contains(fallen, r.identity) {
+			sim.SetScenario(bank, int64(r.availability), 0)
+		}
 		if bank[r.availability] != 0 {
 			sim.SetScenario(bank, int64(r.availability), 1)
 			if bank[r.selection] != 0 {

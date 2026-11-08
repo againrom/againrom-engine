@@ -283,7 +283,7 @@ func TestSecondCampaignLeaveBankAlgebraAndUnknownBoundary(t *testing.T) {
 	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err != nil {
 		t.Fatal(err)
 	}
-	c.complete(w)
+	c.complete(w, nil, nil)
 	for i, value := range c.bank {
 		want := incoming[i]
 		switch {

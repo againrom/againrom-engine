@@ -115,16 +115,18 @@ func (c *secondCampaign) finish(n int, w *sim.World, won bool) error {
 // every ordinary ID whose slot 896+ID lies inside the bank (R2-SESSION-052).
 func secondContinues(n int) bool { return n > 0 && n < 128 }
 
-// complete applies the ordinary departure and answers its output DWORD.
-func (c *secondCampaign) complete(w *sim.World) int {
+// complete applies the ordinary departure to the bank w left, with the hires
+// of party, entered as ids, that fell in w, and answers its output DWORD.
+func (c *secondCampaign) complete(w *sim.World, party []mapload.PartyMember, ids []sim.EntityID) int {
 	bank, _ := w.ROM2ScenarioState()
-	return c.completeBank(bank)
+	return c.completeBank(bank, fallenHires(party, ids, w)...)
 }
 
-// completeBank applies the ordinary departure to the bank a won mission left
-// and answers the output DWORD: -1 unless a case body stores one
-// (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148, R2-SESSION-047..050).
-func (c *secondCampaign) completeBank(bank [1024]int32) int {
+// completeBank applies the ordinary departure to the bank a won mission left,
+// in which the fallen hires died, and answers the output DWORD: -1 unless a
+// case body stores one (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148,
+// R2-SESSION-047..050).
+func (c *secondCampaign) completeBank(bank [1024]int32, fallen ...int) int {
 	if c.shop.policy == nil {
 		shop := newShopState(&bankShopProfile, shopRecordRows(c.shop.nativeRecords()))
 		c.shop.policy, c.shop.records = shop.policy, shop.records
@@ -133,7 +135,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	output := -1
 	c.bank = bank
 	secondDepartureReset(&c.bank)
-	departHires(&c.bank)
+	departHires(&c.bank, fallen)
 	sim.SetScenario(&c.bank, int64(896+n), 1)
 	remaining := c.available[:0]
 	for _, l := range c.available {

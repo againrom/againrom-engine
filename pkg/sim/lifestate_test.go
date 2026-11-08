@@ -24,6 +24,7 @@ func TestLifeStatesAnswerTheRawTests(t *testing.T) {
 					LifeGone:        hp < -600,
 					LifeConsumed:    hp < -10000,
 					LifeNonNegative: hp >= 0,
+					LifeFinished:    hp < -10,
 				}
 				for state, w := range want {
 					if got := e.InLife(state); got != w {
@@ -88,6 +89,8 @@ func TestLifeStateHoldsAtEachEdge(t *testing.T) {
 		{LifeConsumed, -10000, 0, false, false}, {LifeConsumed, -10001, 10, true, true},
 		{LifeNonNegative, -1, 0, false, false}, {LifeNonNegative, 0, 0, false, true}, {LifeNonNegative, 1, 0, false, true},
 		{LifeNonNegative, -1, 10, true, false},
+		{LifeFinished, -11, 0, false, true}, {LifeFinished, -10, 0, false, false}, {LifeFinished, -9, 0, false, false},
+		{LifeFinished, -11, 10, true, true},
 	}
 	for _, r := range rows {
 		if got := r.state.Holds(r.hp, r.maxHP, r.undying); got != r.want {

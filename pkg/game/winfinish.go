@@ -145,7 +145,7 @@ func bankFinish(f *FrontEnd, in winInput, _ *winState) string {
 func bankComplete(f *FrontEnd, in winInput, _ *winState) string {
 	town := f.Town
 	// The output reads the bank before the case stores (R2-ENGINE-148).
-	output := town.second.complete(in.w)
+	output := town.second.complete(in.w, in.party, in.ids)
 	f.CampaignSession.leftLocation(f.townInstall())
 	if live := f.live; live != nil && live.view != nil {
 		movie := ""

@@ -1280,6 +1280,7 @@ const (
 	LifeGone                         // health below the last rung of the decay ladder
 	LifeConsumed                     // health at or below a consumed corpse's pinned value
 	LifeNonNegative                  // health at or above zero
+	LifeFinished                     // health below the first decay threshold
 )
 
 // Holds reports whether health hp, maximum maxHP and the undying flag are in
@@ -1308,6 +1309,8 @@ func (s LifeState) Holds(hp, maxHP int64, undying bool) bool {
 		return hp <= controlSpiritCorpseHP
 	case LifeNonNegative:
 		return hp >= 0
+	case LifeFinished:
+		return hp < decayBonesHP
 	}
 	return false
 }

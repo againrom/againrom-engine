@@ -68,7 +68,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if err := c.finish(20, w, w.Outcome() == sim.OutcomeWon); err != nil {
 			t.Fatal(err)
 		}
-		c.complete(w)
+		c.complete(w, nil, nil)
 		for slot, got := range c.bank {
 			want := incoming[slot]
 			switch {
@@ -219,7 +219,7 @@ func TestSecondCampaignOptionalMissionDepartureRetainsTown(t *testing.T) {
 	if err := c.finish(21, w, w.Outcome() == sim.OutcomeWon); err != nil {
 		t.Fatal(err)
 	}
-	c.complete(w)
+	c.complete(w, nil, nil)
 	if c.bank != want || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}}) {
 		t.Fatal("optional ordinary departure invented a successor", c)
 	}
