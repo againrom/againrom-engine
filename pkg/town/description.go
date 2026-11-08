@@ -50,6 +50,7 @@ type Description struct {
 type HostSpec struct {
 	CurrentHookRoom bool            `json:"current-hook-room"`
 	Shop            ShopMode        `json:"shop"`
+	Inn             InnMode         `json:"inn"`
 	TrackSource     TrackSourceMode `json:"track-source"`
 	RequireArt      bool            `json:"require-art"`
 	Rows            RowsMode        `json:"rows"`

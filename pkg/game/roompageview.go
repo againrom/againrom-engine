@@ -20,6 +20,7 @@ func buildRoomPage(r *town.RoomSpec, pic func(string) image.Image, n, hires int,
 		content = contents[0]
 	}
 	p.Person, p.Scene = content.person, content.scene
+	p.Font = content.font
 	if r == nil {
 		return p
 	}
@@ -70,10 +71,15 @@ func buildRoomPage(r *town.RoomSpec, pic func(string) image.Image, n, hires int,
 			p.Backdrop = append(p.Backdrop, ui.RoomBackdrop{Picture: pagePicture(pic, layer.Art), Rect: layer.Rect.Rectangle(), Scene: layer.Scene, Over: layer.Over})
 		}
 	}
+	finishRoomPage(&p, content)
 	return p
 }
 
 type roomPageContents struct {
+	surface    *ui.TownRoomView
+	buttons    []ui.RoomButton
+	targets    []ui.RoomControl
+	style      *ui.RoomButtonStyle
 	seats      []roomSeatInput
 	person     ui.RoomPerson
 	scene      ui.RoomScene
@@ -90,7 +96,7 @@ type roomSeatInput struct {
 }
 
 func surfaceRoomContents(v ui.TownSurfaceView) roomPageContents {
-	var c roomPageContents
+	c := roomPageContents{surface: &v}
 	c.appearance = ROM1TownDescription().Room("tavern").Seats.Appearance
 	font := v.CardFont
 	if font == nil {
@@ -260,4 +266,127 @@ func (t *townScreen) renderTavernPerson(c ui.TownCharacterView) *image.RGBA {
 		return nil
 	}
 	return ui.RenderRoomPerson(t.tavernPerson(c))
+}
+
+func finishRoomPage(p *ui.RoomPage, c roomPageContents) {
+	if v := c.surface; v != nil {
+		p.ViewInputs = true
+		p.Scene = v.Scene
+		p.Font, p.Cells = v.Font, v.Cells
+		school := v.Kind == ui.TownSurfaceSchool && v.SchoolArt != nil
+		tavern := v.Kind == ui.TownSurfaceTavern && v.TavernArt != nil
+		command := tavern && len(v.Buttons) == 4 && v.TavernArt.CommandUpper != nil
+		p.Layers = []ui.RoomLayer{{Kind: ui.RoomLayerFill, Ink: ui.TownRoomFill}}
+		switch {
+		case school && v.SchoolArt.Background != nil:
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerPicture, Rect: ui.TownContentRegion, Picture: v.SchoolArt.Background})
+		case tavern && v.TavernArt.Center != nil:
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerBackdrop})
+		default:
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerBox, Rect: ui.TownContentRegion})
+		}
+		if school {
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerScene, Scene: "movies"})
+		}
+		p.Panel = roomPagePanel(*p, *v, school, tavern, command)
+		p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerPanel})
+		if !school && !tavern {
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerTitle, Rect: ui.TownRoomTitleRegion, Text: v.Title, Ink: ui.TownRoomText})
+		}
+		if v.Kind == ui.TownSurfaceTavern {
+			p.HidePerson = !tavern
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerContent})
+		} else if !school {
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerCells})
+		}
+		if school {
+			p.School = &ui.RoomSchool{Art: v.SchoolArt, Class: v.SchoolClass, ColumnFrame: v.SchoolColumnFrame,
+				ColumnSet: v.SchoolColumnSet, IdleShine: v.SchoolIdleShine, IdleSlot: v.SchoolIdleSlot}
+			p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerScene, Scene: "column"}, ui.RoomLayer{Kind: ui.RoomLayerSchool}, ui.RoomLayer{Kind: ui.RoomLayerScene, Scene: "diamond"})
+		}
+		p.Layers = append(p.Layers, ui.RoomLayer{Kind: ui.RoomLayerButtons})
+		for i, b := range v.Buttons {
+			if i < len(p.Buttons) {
+				p.BeforePane = append(p.BeforePane, ui.RoomHit{Rect: p.Buttons[i], Enabled: b.Enabled,
+					Control: ui.RoomControl{Surface: ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: i}}})
+			}
+		}
+		if v.Kind == ui.TownSurfaceTavern {
+			for i, s := range p.Seats {
+				p.AfterPane = append(p.AfterPane, ui.RoomHit{Rect: s.Rect, Enabled: true,
+					Control: ui.RoomControl{Surface: ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: i}}})
+			}
+		} else {
+			for i, cell := range v.Cells {
+				p.AfterPane = append(p.AfterPane, ui.RoomHit{Rect: p.Region("cells", i), Enabled: cell.Enabled,
+					Control: ui.RoomControl{Surface: ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: i}}})
+			}
+		}
+		return
+	}
+	p.Panel = ui.RoomPanel{Composition: ui.TownRoomEntryPanel, Style: c.style, TrackPointer: true, HoverInside: true}
+	for _, b := range c.buttons {
+		p.Panel.Composition.Plaques = append(p.Panel.Composition.Plaques, b.Rect)
+		pair := [2]image.Image{b.Off, b.On}
+		if b.On == nil {
+			pair[1] = b.Off
+		}
+		p.Panel.Art.Plaques = append(p.Panel.Art.Plaques, pair)
+		button := ui.PanelButton{}
+		if b.Caption != "" {
+			button.Captions = []string{b.Caption}
+		}
+		p.Panel.Buttons = append(p.Panel.Buttons, button)
+	}
+	for i, s := range p.Seats {
+		p.AfterPane = append(p.AfterPane, ui.RoomHit{Rect: s.Rect, Enabled: true,
+			Control: ui.RoomControl{Square: ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i + 1}}})
+	}
+	for i, target := range c.targets {
+		if i < len(p.Buttons) {
+			p.AfterPane = append(p.AfterPane, ui.RoomHit{Rect: p.Buttons[i], Enabled: target.Square.Kind != ui.TownSquareControlNone, Control: target})
+		}
+	}
+}
+
+func roomPagePanel(p ui.RoomPage, v ui.TownRoomView, school, tavern, command bool) ui.RoomPanel {
+	panel := ui.RoomPanel{Composition: ui.TownRoomPanel, Style: v.ButtonStyle, TrackPointer: true, TwoLines: true, Values: v.Buttons}
+	if v.Kind == ui.TownSurfaceSchool {
+		panel.Composition.MissingBox = ui.TownWideUpperRegion
+	}
+	switch {
+	case school && v.SchoolArt.Upper != nil:
+		panel.Art.Body, panel.Art.Seam = v.SchoolArt.Upper, v.SchoolArt.UpperSeam
+	case command:
+		panel.Composition = ui.TownRoomShopPanel
+		panel.Art.Body = v.TavernArt.CommandUpper
+	case tavern && v.TavernArt.Upper != nil:
+		panel.Art.Body, panel.Art.Seam = v.TavernArt.Upper, v.TavernArt.UpperSeam
+	}
+	for i := range v.Buttons {
+		rect := image.Rectangle{}
+		if i < len(p.Buttons) {
+			rect = p.Buttons[i]
+		}
+		panel.Composition.Plaques = append(panel.Composition.Plaques, rect)
+		var pair [2]image.Image
+		pressedOnly := false
+		switch {
+		case school && i < len(v.SchoolArt.Buttons):
+			pair = ui.WholeRoomPair(v.SchoolArt.Buttons[i])
+		case command && i < len(v.TavernArt.CommandButtons):
+			pair[1], pressedOnly = v.TavernArt.CommandButtons[i], true
+		case tavern:
+			artIndex := i
+			if len(v.Buttons) == 4 && i > 0 {
+				artIndex = i - 1
+			}
+			if artIndex < len(v.TavernArt.Buttons) {
+				pair = ui.WholeRoomPair(v.TavernArt.Buttons[artIndex])
+			}
+		}
+		panel.Art.Plaques = append(panel.Art.Plaques, pair)
+		panel.PressedOnly = append(panel.PressedOnly, pressedOnly)
+	}
+	return panel
 }

@@ -8,15 +8,26 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// RoomPage is a tavern or inn page as both games paint it: its seats, its
-// button rectangles and the selected person. The game builds it from the
-// room's data; DrawRoomPage paints it and SeatAt and ButtonAt hit-test it.
+// RoomPage is a town room's ordered paint layers and controls. The game
+// builds its data once; DrawRoomPage paints it and ControlAt hit-tests it.
 type RoomPage struct {
-	Seats    []RoomSeat
-	Buttons  []image.Rectangle
-	Backdrop []RoomBackdrop
-	Scene    RoomScene
-	Regions  map[string][]image.Rectangle
+	Layers                []RoomLayer
+	Panel                 RoomPanel
+	Cells                 []TownSurfaceCell
+	Font                  *text.Font
+	School                *RoomSchool
+	BeforePane, AfterPane []RoomHit
+	Pane                  *TownCharacterView
+	Book                  bool
+	HitScene, PaneBlocks  bool
+	HidePerson            bool
+	ViewInputs            bool
+	Pointer               RoomPointer
+	Seats                 []RoomSeat
+	Buttons               []image.Rectangle
+	Backdrop              []RoomBackdrop
+	Scene                 RoomScene
+	Regions               map[string][]image.Rectangle
 	// Phase is the animation phase an Animated seat shows.
 	Phase  int
 	Person RoomPerson
@@ -144,42 +155,85 @@ func RenderRoomPerson(p RoomPerson) *image.RGBA {
 	return dst
 }
 
-// DrawRoomPage paints the seats in index order and then the person.
+// DrawRoomPage paints the page's layers in order, using the shared widgets.
 func DrawRoomPage(dst *image.RGBA, p RoomPage, groups ...string) {
-	group := ""
 	if len(groups) > 0 {
-		group = groups[0]
-	}
-	if group == "" || group == "backdrop" {
-		if p.Scene != nil {
-			p.Scene.Paint(dst, "back")
+		if groups[0] == "backdrop" {
+			drawRoomBackdrop(dst, p)
+		} else {
+			drawRoomContents(dst, p)
 		}
-		for _, layer := range p.Backdrop {
-			if layer.Scene != "" && p.Scene != nil {
-				p.Scene.Paint(dst, layer.Scene)
-			}
-			if layer.Picture != nil {
-				op := draw.Src
-				if layer.Over {
-					op = draw.Over
-				}
-				draw.Draw(dst, layer.Rect, layer.Picture, layer.Picture.Bounds().Min, op)
-			}
-		}
-	}
-	if group == "backdrop" {
 		return
 	}
+	layers := p.Layers
+	if layers == nil {
+		layers = []RoomLayer{{Kind: RoomLayerBackdrop}, {Kind: RoomLayerContent}, {Kind: RoomLayerButtons}}
+	}
+	for _, layer := range layers {
+		switch layer.Kind {
+		case RoomLayerFill:
+			draw.Draw(dst, dst.Bounds(), &image.Uniform{C: layer.Ink}, image.Point{}, draw.Src)
+		case RoomLayerBox:
+			drawTownShellBox(dst, layer.Rect, false)
+		case RoomLayerPicture:
+			if layer.Picture != nil {
+				draw.Draw(dst, layer.Rect, layer.Picture, layer.Picture.Bounds().Min, draw.Src)
+			}
+		case RoomLayerBackdrop:
+			drawRoomBackdrop(dst, p)
+		case RoomLayerScene:
+			if p.Scene != nil {
+				p.Scene.Paint(dst, layer.Scene)
+			}
+		case RoomLayerPanel:
+			p.Panel.resolve(p.Pointer).drawBody(dst)
+		case RoomLayerTitle:
+			drawTownShellText(dst, p.Font, layer.Text, layer.Rect, layer.Ink)
+		case RoomLayerContent:
+			drawRoomContents(dst, p)
+		case RoomLayerCells:
+			drawRoomCells(dst, p)
+		case RoomLayerSchool:
+			if p.School != nil {
+				p.School.draw(dst, p)
+			}
+		case RoomLayerButtons:
+			p.Panel.resolve(p.Pointer).drawButtons(dst, p.Panel.Style.font(p.Font))
+		}
+	}
+}
+
+func drawRoomBackdrop(dst *image.RGBA, p RoomPage) {
+	if p.Scene != nil {
+		p.Scene.Paint(dst, "back")
+	}
+	for _, layer := range p.Backdrop {
+		if layer.Scene != "" && p.Scene != nil {
+			p.Scene.Paint(dst, layer.Scene)
+		}
+		if layer.Picture != nil {
+			op := draw.Src
+			if layer.Over {
+				op = draw.Over
+			}
+			draw.Draw(dst, layer.Rect, layer.Picture, layer.Picture.Bounds().Min, op)
+		}
+	}
+}
+
+func drawRoomContents(dst *image.RGBA, p RoomPage) {
 	for _, s := range p.Seats {
 		if !s.Hidden {
 			drawRoomSeat(dst, s, p.Phase)
 		}
 	}
-	if pic := p.Person.Picture; pic != nil {
-		draw.Draw(dst, pic.Bounds(), pic, pic.Bounds().Min, draw.Over)
-		text.Append(p.Person.Text, 0, 0)
-	} else {
-		DrawRoomPerson(dst, p.Person)
+	if !p.HidePerson {
+		if pic := p.Person.Picture; pic != nil {
+			draw.Draw(dst, pic.Bounds(), pic, pic.Bounds().Min, draw.Over)
+			text.Append(p.Person.Text, 0, 0)
+		} else {
+			DrawRoomPerson(dst, p.Person)
+		}
 	}
 	if p.Scene != nil {
 		p.Scene.Paint(dst, "front")

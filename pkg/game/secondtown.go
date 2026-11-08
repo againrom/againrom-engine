@@ -210,8 +210,8 @@ func (t *townScreen) advanceRoom() {
 	s.Advance()
 	if r := d.Room(room); r != nil && r.Seats != nil && s.Active() {
 		var frames []image.Image
-		if list, _ := t.state().innSeats(); t.composed.seat >= 0 && t.composed.seat < len(list) {
-			frames = t.innPatron(r, t.roomArt(d, room).page, list[t.composed.seat].npc).frames
+		if list, _ := t.innPageSeats(); t.composed.seat >= 0 && t.composed.seat < len(list) {
+			frames = t.innPatron(r, t.roomArt(d, room).page, list[t.composed.seat].word.npc).frames
 		}
 		t.advanceSeats(s, r.Seats, frames)
 	}
@@ -225,7 +225,7 @@ func (t *townScreen) SelectTownSquare(i int) {
 		return
 	}
 	r := d.Room(room)
-	if seats, _ := t.state().innSeats(); r == nil || r.Seats == nil || i < 1 || i > len(seats) {
+	if seats, _ := t.innPageSeats(); r == nil || r.Seats == nil || i < 1 || i > len(seats) {
 		return
 	}
 	t.selectSeat(t.scene(d, room), r.Seats, i-1)
@@ -247,7 +247,7 @@ func (t *townScreen) enterSeats() {
 	t.sess.addOfferIdentities(t.in.townInstall(), base.JoinInnEntry, c.innOptions())
 	t.composed.patrons = nil
 	t.composed.seat = -1
-	if seats, _ := c.innSeats(); len(seats) > 0 {
+	if seats, _ := t.innPageSeats(); len(seats) > 0 {
 		t.composed.seat = 0
 	}
 	t.composed.seatFrames = nil
@@ -330,7 +330,7 @@ func (t *townScreen) seatFrame(i int) int {
 // openTownText opens a town text section as the town dialogue; a missing
 // section opens nothing.
 func (t *townScreen) openTownText(key string) ui.TownAction {
-	action, _ := t.startInnTalk(bankInnProfile, innTalkRequest{key: key, plain: true})
+	action, _ := t.startInnTalk(t.innProfile(), innTalkRequest{key: key, plain: true})
 	return action
 }
 
@@ -363,27 +363,8 @@ func (v roomPageView) Paint(dst *image.RGBA, groups ...string) {
 	words, font := v.t.in.Words, v.t.in.Font.Value()
 	p := v.page(r, page, words, font)
 	p.Scene = v
+	p.Pointer = ui.RoomPointer{At: v.t.composed.pointer, Hover: true, Cell: -1}
 	ui.DrawRoomPage(dst, p)
-	var buttons []ui.RoomButton
-	for _, b := range s.ShownButtons(r.Buttons) {
-		rect := b.Rect.Rectangle()
-		rb := ui.RoomButton{Rect: rect, Off: page.Picture(b.Off), Hover: v.t.composed.pointer.In(rect)}
-		if b.On != "" {
-			rb.On = page.Picture(b.On)
-		}
-		caption := b.Caption
-		if b.Name == "hire" {
-			caption = v.hireCaption()
-		}
-		if caption != nil && *caption < len(words.Hover) {
-			rb.Caption = words.Hover[*caption]
-		}
-		if b.Word != "" {
-			rb.Caption = v.t.in.engineWord(b.Word)
-		}
-		buttons = append(buttons, rb)
-	}
-	ui.DrawRoomButtons(dst, font, v.t.in.roomButtonStyle(v.d), buttons)
 }
 
 // engineWord is an engine word in the install's code page, the form a button
@@ -419,25 +400,33 @@ func (in *InstallResources) roomButtonStyle(d *town.Description) *ui.RoomButtonS
 	return s
 }
 
-// Main-text keys of the inn page: the hired mark (R2-ENGINE-497) and the
-// hire button's Hire and Fire captions (R2-ENGINE-246).
-const (
-	secondInnHiredMark   = 257
-	secondInnHireCaption = 258
-	secondInnFireCaption = 259
-)
+// secondInnHiredMark is the inn page's main-text key of the hired mark
+// (R2-ENGINE-497).
+const secondInnHiredMark = 257
 
 // page is the inn page as the room's data lays it out: each seat's back
 // and its person's frame, the hired mark over a hire actor whose copied word
 // has the high bit, and the selected seat's person. No hire actor is drawn
 // while no seat is selected (R2-ENGINE-497, DIV-2964).
 func (v roomPageView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) ui.RoomPage {
-	if r.Seats == nil {
-		return buildRoomPage(r, page.Picture, 0, 0)
-	}
 	c := v.t.state()
-	list, hires := c.innSeats()
-	content := roomPageContents{person: v.patron(r, page), font: font}
+	list, hires, targets := v.controls(r)
+	content := roomPageContents{font: font, style: v.t.in.roomButtonStyle(v.d)}
+	content.targets = targets
+	if r.Seats != nil {
+		content.person = v.patron(r, page)
+	}
+	hireSeat, hired := v.hireSeat()
+	for _, b := range v.scene().ShownButtons(r.Buttons) {
+		rb := ui.RoomButton{Rect: b.Rect.Rectangle(), Off: page.Picture(b.Off), Caption: v.t.in.roomButtonCaption(b, hireSeat, hired)}
+		if b.On != "" {
+			rb.On = page.Picture(b.On)
+		}
+		content.buttons = append(content.buttons, rb)
+	}
+	if r.Seats == nil {
+		return buildRoomPage(r, page.Picture, 0, 0, content)
+	}
 	if secondInnHiredMark < len(words.Hover) {
 		content.hired = words.Hover[secondInnHiredMark]
 	}
@@ -446,8 +435,8 @@ func (v roomPageView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words
 		if i < hires && v.t.composed.seat < 0 {
 			s.hidden = true
 		} else {
-			s.frames, s.frame = v.t.innPatron(r, page, o.npc).frames, v.t.seatFrame(i)
-			if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) {
+			s.frames, s.frame = v.t.innPatron(r, page, o.word.npc).frames, v.t.seatFrame(i)
+			if i < hires && c.hired(o.word.npc) && secondInnHiredMark < len(words.Hover) {
 				s.hired = true
 			}
 		}
@@ -456,21 +445,15 @@ func (v roomPageView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words
 	return buildRoomPage(r, page.Picture, len(list), hires, content)
 }
 
-// hireCaption is the hire button's caption: Fire on a selected hire actor
-// whose copied word has the high bit, Hire on any other selected hire
-// actor, none on a talk actor or without a selection (R2-ENGINE-246).
-func (v roomPageView) hireCaption() *int {
-	c := v.t.state()
-	list, hires := c.innSeats()
+// hireSeat reports whether the selected seat is a hire actor's and whether
+// its copied word has the high bit (R2-ENGINE-246).
+func (v roomPageView) hireSeat() (hire, hired bool) {
+	list, hires := v.t.innPageSeats()
 	seat := v.t.composed.seat
 	if seat < 0 || seat >= hires {
-		return nil
+		return false, false
 	}
-	key := secondInnHireCaption
-	if c.hired(list[seat].npc) {
-		key = secondInnFireCaption
-	}
-	return &key
+	return true, v.t.state().hired(list[seat].word.npc)
 }
 
 // drawAt draws pic with its top-left corner at at.
@@ -502,18 +485,21 @@ func (v roomPageView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	if r.Page == "shop" {
 		return ui.TownSquareControl{}, false
 	}
-	list, hires := v.t.state().innSeats()
-	seats := len(list)
-	page := buildRoomPage(r, nil, seats, hires)
-	if i := page.SeatAt(p); i >= 0 {
-		// A seat click selects the seat and acts on nothing; the
-		// buttons act on the selection (R2-SESSION-203, R2-SESSION-213).
-		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i + 1}, true
+	list, hires, targets := v.controls(r)
+	content := roomPageContents{targets: targets}
+	page := buildRoomPage(r, nil, len(list), hires, content)
+	c, hit := page.ControlAt(p)
+	return c.Square, hit
+}
+
+func (v roomPageView) controls(r *town.RoomSpec) ([]innSeat, int, []ui.RoomControl) {
+	list, hires := v.t.innPageSeats()
+	var targets []ui.RoomControl
+	for i, b := range r.Buttons {
+		target, _ := innControl(v.t.innProfile(), v.t.sess.Town, list, v.t.composed.seat, b.Name, i)
+		targets = append(targets, ui.RoomControl{Square: target})
 	}
-	if i := page.ButtonAt(p); i >= 0 {
-		return innControl(bankInnProfile, v.t.sess.Town, list, v.t.composed.seat, r.Buttons[i].Name, i)
-	}
-	return ui.TownSquareControl{}, false
+	return list, hires, targets
 }
 
 // TipAt answers the square hotspot's tip slot; a page has no hover tips.

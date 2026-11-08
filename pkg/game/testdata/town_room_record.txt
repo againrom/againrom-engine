@@ -1,0 +1,754 @@
+rom1 square select -1 row 0 "TAVERN    1 with something to say" true
+rom1 square select -1 row 1 "SHOP      0 on the shelf" true
+rom1 square select -1 row 2 "SCHOOL    0 on the board" true
+rom1 square select -1 row 3 "GATES     0 mission(s) available" true
+rom1 square select -1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square select -1 frame error "the row-list room has no shipped picture"
+rom1 square select -1 hit grid a9b1092dd0f160c3951b43a9c7234e3619b596ac350d3447cda8c5874931f2ab
+rom1 square choose -1 result "" info false open false
+rom1 square choose -1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square choose 0 result "" info false open false
+rom1 square choose 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square choose 1 result "" info false open false
+rom1 square choose 1 room "shop" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square choose 2 result "" info false open false
+rom1 square choose 2 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square choose 3 result "Town dialogue unavailable: main/text/inn/mercenary/npc35.txt" info false open false
+rom1 square choose 3 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 square choose 4 result "" info false open false
+rom1 square choose 4 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 row 0 "NPC 9    wants to talk" true
+rom1 tavern select -1 row 1 "NPC 9    nothing to say" true
+rom1 tavern select -1 caption 0 "Sleep" "" false
+rom1 tavern select -1 caption 1 "Hire" "50" true
+rom1 tavern select -1 caption 2 "Talk" "" true
+rom1 tavern select -1 caption 3 "EXIT" "1,000" true
+rom1 tavern select -1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 frame 6d884c4fa3b9ae85075bb24680e28dc456e19f34683f8d2853304227f24a6350 text 211 fb1006cca348440e90adb63589f0d0e824806a54f752646417fdf11fe2486856
+rom1 tavern select -1 hit grid 9d60d41b4764bae51f553ac9741285832115ea45b3a64e12ff561fae02422891
+rom1 tavern select -1 button 0 (494,15)-(614,67) centre {0 0}/false outside {1 1}/true
+rom1 tavern select -1 button 1 (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom1 tavern select -1 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 tavern select -1 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 tavern select -1 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 tavern select -1 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 tavern select -1 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 tavern select -1 press button 0 result "" info false open false
+rom1 tavern select -1 press button 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 press button 1 result "" info false open false
+rom1 tavern select -1 press button 1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero mercenary:3:2 mercenary:3:3] gold 950 queue [] SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 tavern select -1 press button 2 result "" info false open false
+rom1 tavern select -1 press button 2 room "talk" selected {2 3} npc 0 candidate 3 dialogue "" text "candidate words" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 press button 3 result "" info false open false
+rom1 tavern select -1 press button 3 room "square" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 press seat 0 result "" info false open false
+rom1 tavern select -1 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 press seat 1 result "" info false open false
+rom1 tavern select -1 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select -1 press seat 2 result "" info false open false
+rom1 tavern select -1 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 row 0 "NPC 9    wants to talk" true
+rom1 tavern select 0 row 1 "NPC 9    nothing to say" true
+rom1 tavern select 0 caption 0 "Sleep" "" false
+rom1 tavern select 0 caption 1 "Hire" "50" true
+rom1 tavern select 0 caption 2 "Talk" "" true
+rom1 tavern select 0 caption 3 "EXIT" "1,000" true
+rom1 tavern select 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 frame 6d884c4fa3b9ae85075bb24680e28dc456e19f34683f8d2853304227f24a6350 text 211 fb1006cca348440e90adb63589f0d0e824806a54f752646417fdf11fe2486856
+rom1 tavern select 0 hit grid 9d60d41b4764bae51f553ac9741285832115ea45b3a64e12ff561fae02422891
+rom1 tavern select 0 button 0 (494,15)-(614,67) centre {0 0}/false outside {1 1}/true
+rom1 tavern select 0 button 1 (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom1 tavern select 0 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 tavern select 0 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 tavern select 0 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 tavern select 0 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 tavern select 0 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 tavern select 0 press button 0 result "" info false open false
+rom1 tavern select 0 press button 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 press button 1 result "" info false open false
+rom1 tavern select 0 press button 1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero mercenary:3:2 mercenary:3:3] gold 950 queue [] SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 tavern select 0 press button 2 result "" info false open false
+rom1 tavern select 0 press button 2 room "talk" selected {2 3} npc 0 candidate 3 dialogue "" text "candidate words" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 press button 3 result "" info false open false
+rom1 tavern select 0 press button 3 room "square" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 press seat 0 result "" info false open false
+rom1 tavern select 0 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 press seat 1 result "" info false open false
+rom1 tavern select 0 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 0 press seat 2 result "" info false open false
+rom1 tavern select 0 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 row 0 "NPC 9    wants to talk" true
+rom1 tavern select 1 row 1 "NPC 9    nothing to say" true
+rom1 tavern select 1 caption 0 "Sleep" "" false
+rom1 tavern select 1 caption 1 "" "" false
+rom1 tavern select 1 caption 2 "Talk" "" true
+rom1 tavern select 1 caption 3 "EXIT" "1,000" true
+rom1 tavern select 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 frame e1f032444fbd93e50d06a890e52ee67ecead0178f3114455b0fcbb1225736419 text 23 525cd5d9be22b5309c4573cffb10bd34a07440a0b3593b37d59829b9bef5e51f
+rom1 tavern select 1 hit grid e9cbf8a2933d262c7caa27cd0da6e35b230f65dbfe33ff79514c7fa51b0d2e61
+rom1 tavern select 1 button 0 (494,15)-(614,67) centre {0 0}/false outside {0 0}/false
+rom1 tavern select 1 button 1 (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom1 tavern select 1 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 tavern select 1 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 tavern select 1 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 tavern select 1 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 tavern select 1 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 tavern select 1 press button 0 result "" info false open false
+rom1 tavern select 1 press button 0 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 press button 1 result "" info false open false
+rom1 tavern select 1 press button 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 press button 2 result "" info false open false
+rom1 tavern select 1 press button 2 room "talk" selected {1 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [30] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 tavern select 1 press button 3 result "" info false open false
+rom1 tavern select 1 press button 3 room "square" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 press seat 0 result "" info false open false
+rom1 tavern select 1 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 press seat 1 result "" info false open false
+rom1 tavern select 1 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 1 press seat 2 result "" info false open false
+rom1 tavern select 1 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 row 0 "NPC 9    wants to talk" true
+rom1 tavern select 2 row 1 "NPC 9    nothing to say" true
+rom1 tavern select 2 caption 0 "Sleep" "" false
+rom1 tavern select 2 caption 1 "" "" false
+rom1 tavern select 2 caption 2 "Talk" "" true
+rom1 tavern select 2 caption 3 "EXIT" "1,000" true
+rom1 tavern select 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 frame e1f032444fbd93e50d06a890e52ee67ecead0178f3114455b0fcbb1225736419 text 23 525cd5d9be22b5309c4573cffb10bd34a07440a0b3593b37d59829b9bef5e51f
+rom1 tavern select 2 hit grid e9cbf8a2933d262c7caa27cd0da6e35b230f65dbfe33ff79514c7fa51b0d2e61
+rom1 tavern select 2 button 0 (494,15)-(614,67) centre {0 0}/false outside {0 0}/false
+rom1 tavern select 2 button 1 (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom1 tavern select 2 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 tavern select 2 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 tavern select 2 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 tavern select 2 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 tavern select 2 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 tavern select 2 press button 0 result "" info false open false
+rom1 tavern select 2 press button 0 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 press button 1 result "" info false open false
+rom1 tavern select 2 press button 1 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 press button 2 result "" info false open false
+rom1 tavern select 2 press button 2 room "talk" selected {1 1} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 tavern select 2 press button 3 result "" info false open false
+rom1 tavern select 2 press button 3 room "square" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 press seat 0 result "" info false open false
+rom1 tavern select 2 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 press seat 1 result "" info false open false
+rom1 tavern select 2 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern select 2 press seat 2 result "" info false open false
+rom1 tavern select 2 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern choose -1 result "" info false open false
+rom1 tavern choose -1 room "tavern" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 tavern choose 0 result "" info false open false
+rom1 tavern choose 0 room "talk" selected {0 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [30] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 tavern choose 1 result "" info false open false
+rom1 tavern choose 1 room "talk" selected {0 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 tavern choose 2 result "" info false open false
+rom1 tavern choose 2 room "tavern" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school select -1 row 0 "training is not yet available - what the school has today is work" false
+rom1 school select -1 row 1 "nothing on offer in this chapter" false
+rom1 school select -1 caption 0 "Train" "0" true
+rom1 school select -1 caption 1 "EXIT" "1,000" true
+rom1 school select -1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school select -1 frame fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 197 264fd815668d83b9508cae1d6a63e3b094317b90dc707a21f9345a20b60426bb
+rom1 school select -1 hit grid ac332fed113ce3b670df214986237f336b072bfb41b6ebb9f4466b996f928215
+rom1 school select -1 button 0 (484,71)-(624,117) centre {1 0}/true outside {0 0}/false
+rom1 school select -1 button 1 (484,117)-(624,163) centre {1 1}/true outside {0 0}/false
+rom1 school select -1 press button 0 result "" info false open false
+rom1 school select -1 press button 0 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school select -1 press button 1 result "" info false open false
+rom1 school select -1 press button 1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school choose -1 result "" info false open false
+rom1 school choose -1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school choose 0 result "" info false open false
+rom1 school choose 0 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school choose 1 result "" info false open false
+rom1 school choose 1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 school choose 2 result "" info false open false
+rom1 school choose 2 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square select -1 row 0 "TAVERN    1 with something to say" true
+rom1 installed square select -1 row 1 "SHOP      0 on the shelf" true
+rom1 installed square select -1 row 2 "SCHOOL    0 on the board" true
+rom1 installed square select -1 row 3 "GATES     0 mission(s) available" true
+rom1 installed square select -1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square select -1 frame error "the row-list room has no shipped picture"
+rom1 installed square select -1 hit grid a9b1092dd0f160c3951b43a9c7234e3619b596ac350d3447cda8c5874931f2ab
+rom1 installed square choose -1 result "" info false open false
+rom1 installed square choose -1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square choose 0 result "" info false open false
+rom1 installed square choose 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square choose 1 result "" info false open false
+rom1 installed square choose 1 room "shop" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square choose 2 result "" info false open false
+rom1 installed square choose 2 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square choose 3 result "Town dialogue unavailable: main/text/inn/mercenary/npc35.txt" info false open false
+rom1 installed square choose 3 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed square choose 4 result "" info false open false
+rom1 installed square choose 4 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 row 0 "NPC 9    wants to talk" true
+rom1 installed tavern select -1 row 1 "NPC 9    nothing to say" true
+rom1 installed tavern select -1 caption 0 "Sleep" "" false
+rom1 installed tavern select -1 caption 1 "slot-258" "50" true
+rom1 installed tavern select -1 caption 2 "slot-242" "" true
+rom1 installed tavern select -1 caption 3 "slot-232" "1,000" true
+rom1 installed tavern select -1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 frame 6d884c4fa3b9ae85075bb24680e28dc456e19f34683f8d2853304227f24a6350 text 223 eef27a318942692ab87ec1e290d736591ce7c55ef0aebfe909fb1f98c8cc1153
+rom1 installed tavern select -1 hit grid 9d60d41b4764bae51f553ac9741285832115ea45b3a64e12ff561fae02422891
+rom1 installed tavern select -1 button 0 (494,15)-(614,67) centre {0 0}/false outside {1 1}/true
+rom1 installed tavern select -1 button 1 (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom1 installed tavern select -1 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 installed tavern select -1 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 installed tavern select -1 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 installed tavern select -1 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 installed tavern select -1 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 installed tavern select -1 press button 0 result "" info false open false
+rom1 installed tavern select -1 press button 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 press button 1 result "" info false open false
+rom1 installed tavern select -1 press button 1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero mercenary:3:2 mercenary:3:3] gold 950 queue [] SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 installed tavern select -1 press button 2 result "" info false open false
+rom1 installed tavern select -1 press button 2 room "talk" selected {2 3} npc 0 candidate 3 dialogue "" text "candidate words" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 press button 3 result "" info false open false
+rom1 installed tavern select -1 press button 3 room "square" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 press seat 0 result "" info false open false
+rom1 installed tavern select -1 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 press seat 1 result "" info false open false
+rom1 installed tavern select -1 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select -1 press seat 2 result "" info false open false
+rom1 installed tavern select -1 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 row 0 "NPC 9    wants to talk" true
+rom1 installed tavern select 0 row 1 "NPC 9    nothing to say" true
+rom1 installed tavern select 0 caption 0 "Sleep" "" false
+rom1 installed tavern select 0 caption 1 "slot-258" "50" true
+rom1 installed tavern select 0 caption 2 "slot-242" "" true
+rom1 installed tavern select 0 caption 3 "slot-232" "1,000" true
+rom1 installed tavern select 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 frame 6d884c4fa3b9ae85075bb24680e28dc456e19f34683f8d2853304227f24a6350 text 223 eef27a318942692ab87ec1e290d736591ce7c55ef0aebfe909fb1f98c8cc1153
+rom1 installed tavern select 0 hit grid 9d60d41b4764bae51f553ac9741285832115ea45b3a64e12ff561fae02422891
+rom1 installed tavern select 0 button 0 (494,15)-(614,67) centre {0 0}/false outside {1 1}/true
+rom1 installed tavern select 0 button 1 (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom1 installed tavern select 0 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 installed tavern select 0 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 installed tavern select 0 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 installed tavern select 0 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 installed tavern select 0 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 installed tavern select 0 press button 0 result "" info false open false
+rom1 installed tavern select 0 press button 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 press button 1 result "" info false open false
+rom1 installed tavern select 0 press button 1 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero mercenary:3:2 mercenary:3:3] gold 950 queue [] SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 installed tavern select 0 press button 2 result "" info false open false
+rom1 installed tavern select 0 press button 2 room "talk" selected {2 3} npc 0 candidate 3 dialogue "" text "candidate words" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 press button 3 result "" info false open false
+rom1 installed tavern select 0 press button 3 room "square" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 press seat 0 result "" info false open false
+rom1 installed tavern select 0 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 press seat 1 result "" info false open false
+rom1 installed tavern select 0 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 0 press seat 2 result "" info false open false
+rom1 installed tavern select 0 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 row 0 "NPC 9    wants to talk" true
+rom1 installed tavern select 1 row 1 "NPC 9    nothing to say" true
+rom1 installed tavern select 1 caption 0 "Sleep" "" false
+rom1 installed tavern select 1 caption 1 "" "" false
+rom1 installed tavern select 1 caption 2 "slot-242" "" true
+rom1 installed tavern select 1 caption 3 "slot-232" "1,000" true
+rom1 installed tavern select 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 frame e1f032444fbd93e50d06a890e52ee67ecead0178f3114455b0fcbb1225736419 text 31 794072ceaabcb1569a3e6b4a60887b57ec5637b6ceb5c4a375dfc39068bed937
+rom1 installed tavern select 1 hit grid e9cbf8a2933d262c7caa27cd0da6e35b230f65dbfe33ff79514c7fa51b0d2e61
+rom1 installed tavern select 1 button 0 (494,15)-(614,67) centre {0 0}/false outside {0 0}/false
+rom1 installed tavern select 1 button 1 (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom1 installed tavern select 1 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 installed tavern select 1 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 installed tavern select 1 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 installed tavern select 1 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 installed tavern select 1 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 installed tavern select 1 press button 0 result "" info false open false
+rom1 installed tavern select 1 press button 0 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 press button 1 result "" info false open false
+rom1 installed tavern select 1 press button 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 press button 2 result "" info false open false
+rom1 installed tavern select 1 press button 2 room "talk" selected {1 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [30] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 installed tavern select 1 press button 3 result "" info false open false
+rom1 installed tavern select 1 press button 3 room "square" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 press seat 0 result "" info false open false
+rom1 installed tavern select 1 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 press seat 1 result "" info false open false
+rom1 installed tavern select 1 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 1 press seat 2 result "" info false open false
+rom1 installed tavern select 1 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 row 0 "NPC 9    wants to talk" true
+rom1 installed tavern select 2 row 1 "NPC 9    nothing to say" true
+rom1 installed tavern select 2 caption 0 "Sleep" "" false
+rom1 installed tavern select 2 caption 1 "" "" false
+rom1 installed tavern select 2 caption 2 "slot-242" "" true
+rom1 installed tavern select 2 caption 3 "slot-232" "1,000" true
+rom1 installed tavern select 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 frame e1f032444fbd93e50d06a890e52ee67ecead0178f3114455b0fcbb1225736419 text 31 794072ceaabcb1569a3e6b4a60887b57ec5637b6ceb5c4a375dfc39068bed937
+rom1 installed tavern select 2 hit grid e9cbf8a2933d262c7caa27cd0da6e35b230f65dbfe33ff79514c7fa51b0d2e61
+rom1 installed tavern select 2 button 0 (494,15)-(614,67) centre {0 0}/false outside {0 0}/false
+rom1 installed tavern select 2 button 1 (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom1 installed tavern select 2 button 2 (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom1 installed tavern select 2 button 3 (494,160)-(614,212) centre {1 3}/true outside {0 0}/false
+rom1 installed tavern select 2 seat 0 (176,416)-(224,480) centre {2 0}/true outside {0 0}/false
+rom1 installed tavern select 2 seat 1 (224,416)-(272,480) centre {2 1}/true outside {0 0}/false
+rom1 installed tavern select 2 seat 2 (272,416)-(320,480) centre {2 2}/true outside {0 0}/false
+rom1 installed tavern select 2 press button 0 result "" info false open false
+rom1 installed tavern select 2 press button 0 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 press button 1 result "" info false open false
+rom1 installed tavern select 2 press button 1 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 press button 2 result "" info false open false
+rom1 installed tavern select 2 press button 2 room "talk" selected {1 1} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 installed tavern select 2 press button 3 result "" info false open false
+rom1 installed tavern select 2 press button 3 room "square" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 press seat 0 result "" info false open false
+rom1 installed tavern select 2 press seat 0 room "tavern" selected {2 3} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 press seat 1 result "" info false open false
+rom1 installed tavern select 2 press seat 1 room "tavern" selected {1 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern select 2 press seat 2 result "" info false open false
+rom1 installed tavern select 2 press seat 2 room "tavern" selected {1 1} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern choose -1 result "" info false open false
+rom1 installed tavern choose -1 room "tavern" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed tavern choose 0 result "" info false open false
+rom1 installed tavern choose 0 room "talk" selected {0 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [30] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 installed tavern choose 1 result "" info false open false
+rom1 installed tavern choose 1 room "talk" selected {0 0} npc 9 candidate 0 dialogue "" text "story words" party [hero npc:22] gold 1000 queue [] SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
+rom1 installed tavern choose 2 result "" info false open false
+rom1 installed tavern choose 2 room "tavern" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school select -1 row 0 "training is not yet available - what the school has today is work" false
+rom1 installed school select -1 row 1 "nothing on offer in this chapter" false
+rom1 installed school select -1 caption 0 "slot-231" "0" true
+rom1 installed school select -1 caption 1 "slot-232" "1,000" true
+rom1 installed school select -1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school select -1 frame fc8f500616253eb8d0cbdb09dfa9d206f3db3bf48cd5890d1757014cb1de52e3 text 204 0d396164cbed294414c190ebf060d160da1a0683825e15e57993280547149268
+rom1 installed school select -1 hit grid ac332fed113ce3b670df214986237f336b072bfb41b6ebb9f4466b996f928215
+rom1 installed school select -1 button 0 (484,71)-(624,117) centre {1 0}/true outside {0 0}/false
+rom1 installed school select -1 button 1 (484,117)-(624,163) centre {1 1}/true outside {0 0}/false
+rom1 installed school select -1 press button 0 result "" info false open false
+rom1 installed school select -1 press button 0 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school select -1 press button 1 result "" info false open false
+rom1 installed school select -1 press button 1 room "square" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school choose -1 result "" info false open false
+rom1 installed school choose -1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school choose 0 result "" info false open false
+rom1 installed school choose 0 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school choose 1 result "" info false open false
+rom1 installed school choose 1 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom1 installed school choose 2 result "" info false open false
+rom1 installed school choose 2 room "school" selected {0 0} npc 0 candidate 0 dialogue "" text "" party [hero] gold 1000 queue [] SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
+rom2 square select -1 row 0 "TAVERN" true
+rom2 square select -1 row 1 "GATES" true
+rom2 square select -1 row 2 "GIRL 1" true
+rom2 square select -1 row 3 "GIRL 2" true
+rom2 square select -1 row 4 "GUARD" true
+rom2 square select -1 row 5 "DERVISH" true
+rom2 square select -1 row 6 "SHOP" true
+rom2 square select -1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square select -1 frame 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2 square select -1 hit grid 403f6442003573772806be22f6e7c089aef446bca25a42ae6fa57b3bddfd1eab
+rom2 square choose -1 result "" info false open false
+rom2 square choose -1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square choose 0 result "" info false open false
+rom2 square choose 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 square choose 1 result "" info false open false
+rom2 square choose 1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 square choose 2 result "" info false open false
+rom2 square choose 2 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square choose 3 result "" info false open false
+rom2 square choose 3 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square choose 4 result "" info false open false
+rom2 square choose 4 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square choose 5 result "" info false open false
+rom2 square choose 5 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 square choose 6 result "" info false open false
+rom2 square choose 6 room "shop" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 db45118fd728305d1adaad1488d9a3b7935bf8c61be3a16e47e0e4a06d07835c
+rom2 square choose 7 result "" info false open false
+rom2 square choose 7 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select -1 row 0 "Sleep" true
+rom2 inn select -1 row 1 "HIRE 1" true
+rom2 inn select -1 row 2 "TALK 22" true
+rom2 inn select -1 row 3 "TALK 2108" true
+rom2 inn select -1 row 4 "TALK 2110" true
+rom2 inn select -1 row 5 "EXIT" true
+rom2 inn select -1 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select -1 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 5 f850bcb7cc2806d411c3c6ee8bbd860edeabacd32e57b6139c9248dfcbee3053
+rom2 inn select -1 hit grid 1814896b76ba9d9a5a6b1aa06b0cc9b186c604aba3902b53b07ba3ed69ffb292
+rom2 inn select -1 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {1 1}/true
+rom2 inn select -1 button 1 hire (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom2 inn select -1 button 2 talk (483,114)-(623,160) centre {4 2}/true outside {0 0}/false
+rom2 inn select -1 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 inn select -1 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 inn select -1 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 inn select -1 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 inn select -1 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 inn select -1 press button 0 sleep result "" info false open false
+rom2 inn select -1 press button 0 sleep room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select -1 press button 1 hire result "" info false open false
+rom2 inn select -1 press button 1 hire room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select -1 press button 2 talk result "" info false open false
+rom2 inn select -1 press button 2 talk room "inn" selected 0 npc 0 candidate 0 dialogue "npc1about" text "About hire.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select -1 press button 3 exit result "" info false open false
+rom2 inn select -1 press button 3 exit room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select -1 press seat 0 result "" info false open false
+rom2 inn select -1 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select -1 press seat 1 result "" info false open false
+rom2 inn select -1 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select -1 press seat 2 result "" info false open false
+rom2 inn select -1 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select -1 press seat 3 result "" info false open false
+rom2 inn select -1 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 row 0 "Sleep" true
+rom2 inn select 0 row 1 "HIRE 1" true
+rom2 inn select 0 row 2 "TALK 22" true
+rom2 inn select 0 row 3 "TALK 2108" true
+rom2 inn select 0 row 4 "TALK 2110" true
+rom2 inn select 0 row 5 "EXIT" true
+rom2 inn select 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 5 f850bcb7cc2806d411c3c6ee8bbd860edeabacd32e57b6139c9248dfcbee3053
+rom2 inn select 0 hit grid 1814896b76ba9d9a5a6b1aa06b0cc9b186c604aba3902b53b07ba3ed69ffb292
+rom2 inn select 0 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {1 1}/true
+rom2 inn select 0 button 1 hire (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom2 inn select 0 button 2 talk (483,114)-(623,160) centre {4 2}/true outside {0 0}/false
+rom2 inn select 0 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 inn select 0 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 inn select 0 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 inn select 0 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 inn select 0 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 inn select 0 press button 0 sleep result "" info false open false
+rom2 inn select 0 press button 0 sleep room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 press button 1 hire result "" info false open false
+rom2 inn select 0 press button 1 hire room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select 0 press button 2 talk result "" info false open false
+rom2 inn select 0 press button 2 talk room "inn" selected 0 npc 0 candidate 0 dialogue "npc1about" text "About hire.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select 0 press button 3 exit result "" info false open false
+rom2 inn select 0 press button 3 exit room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select 0 press seat 0 result "" info false open false
+rom2 inn select 0 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 press seat 1 result "" info false open false
+rom2 inn select 0 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 press seat 2 result "" info false open false
+rom2 inn select 0 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 0 press seat 3 result "" info false open false
+rom2 inn select 0 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 row 0 "Sleep" true
+rom2 inn select 1 row 1 "HIRE 1" true
+rom2 inn select 1 row 2 "TALK 22" true
+rom2 inn select 1 row 3 "TALK 2108" true
+rom2 inn select 1 row 4 "TALK 2110" true
+rom2 inn select 1 row 5 "EXIT" true
+rom2 inn select 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 5 f850bcb7cc2806d411c3c6ee8bbd860edeabacd32e57b6139c9248dfcbee3053
+rom2 inn select 1 hit grid f37fa724e8517e7ee1193718854afc0211f71ff880925cd7ff4c7384d845953c
+rom2 inn select 1 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 inn select 1 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 inn select 1 button 2 talk (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom2 inn select 1 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 inn select 1 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 inn select 1 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 inn select 1 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 inn select 1 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 inn select 1 press button 0 sleep result "" info false open false
+rom2 inn select 1 press button 0 sleep room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 press button 1 hire result "" info false open false
+rom2 inn select 1 press button 1 hire room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 press button 2 talk result "" info false open false
+rom2 inn select 1 press button 2 talk room "inn" selected 1 npc 0 candidate 0 dialogue "npc22talk30" text "A quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select 1 press button 3 exit result "" info false open false
+rom2 inn select 1 press button 3 exit room "square" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select 1 press seat 0 result "" info false open false
+rom2 inn select 1 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 press seat 1 result "" info false open false
+rom2 inn select 1 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 press seat 2 result "" info false open false
+rom2 inn select 1 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 1 press seat 3 result "" info false open false
+rom2 inn select 1 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 row 0 "Sleep" true
+rom2 inn select 2 row 1 "HIRE 1" true
+rom2 inn select 2 row 2 "TALK 22" true
+rom2 inn select 2 row 3 "TALK 2108" true
+rom2 inn select 2 row 4 "TALK 2110" true
+rom2 inn select 2 row 5 "EXIT" true
+rom2 inn select 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 5 f850bcb7cc2806d411c3c6ee8bbd860edeabacd32e57b6139c9248dfcbee3053
+rom2 inn select 2 hit grid 75035cc8c4686e872ec977f8a4c3218229a58706e1918657e26c83b47ee9f35f
+rom2 inn select 2 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 inn select 2 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 inn select 2 button 2 talk (483,114)-(623,160) centre {1 3}/true outside {0 0}/false
+rom2 inn select 2 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 inn select 2 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 inn select 2 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 inn select 2 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 inn select 2 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 inn select 2 press button 0 sleep result "" info false open false
+rom2 inn select 2 press button 0 sleep room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 press button 1 hire result "" info false open false
+rom2 inn select 2 press button 1 hire room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 press button 2 talk result "" info false open false
+rom2 inn select 2 press button 2 talk room "inn" selected 2 npc 0 candidate 0 dialogue "npc2108talk31" text "Another quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select 2 press button 3 exit result "" info false open false
+rom2 inn select 2 press button 3 exit room "square" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select 2 press seat 0 result "" info false open false
+rom2 inn select 2 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 press seat 1 result "" info false open false
+rom2 inn select 2 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 press seat 2 result "" info false open false
+rom2 inn select 2 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 2 press seat 3 result "" info false open false
+rom2 inn select 2 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 row 0 "Sleep" true
+rom2 inn select 3 row 1 "HIRE 1" true
+rom2 inn select 3 row 2 "TALK 22" true
+rom2 inn select 3 row 3 "TALK 2108" true
+rom2 inn select 3 row 4 "TALK 2110" true
+rom2 inn select 3 row 5 "EXIT" true
+rom2 inn select 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 5 f850bcb7cc2806d411c3c6ee8bbd860edeabacd32e57b6139c9248dfcbee3053
+rom2 inn select 3 hit grid 6cc4e6424962ca288eb714f16b920e32b3145bed738218938f1c2587624e3685
+rom2 inn select 3 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 inn select 3 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 inn select 3 button 2 talk (483,114)-(623,160) centre {1 4}/true outside {0 0}/false
+rom2 inn select 3 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 inn select 3 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 inn select 3 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 inn select 3 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 inn select 3 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 inn select 3 press button 0 sleep result "" info false open false
+rom2 inn select 3 press button 0 sleep room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 press button 1 hire result "" info false open false
+rom2 inn select 3 press button 1 hire room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 press button 2 talk result "" info false open false
+rom2 inn select 3 press button 2 talk room "inn" selected 3 npc 0 candidate 0 dialogue "npc2110talk39" text "Words.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn select 3 press button 3 exit result "" info false open false
+rom2 inn select 3 press button 3 exit room "square" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn select 3 press seat 0 result "" info false open false
+rom2 inn select 3 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 press seat 1 result "" info false open false
+rom2 inn select 3 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 press seat 2 result "" info false open false
+rom2 inn select 3 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn select 3 press seat 3 result "" info false open false
+rom2 inn select 3 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn choose -1 result "" info false open false
+rom2 inn choose -1 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn choose 0 result "" info false open false
+rom2 inn choose 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 inn choose 1 result "" info false open false
+rom2 inn choose 1 room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn choose 2 result "" info false open false
+rom2 inn choose 2 room "inn" selected 1 npc 0 candidate 0 dialogue "npc22talk30" text "A quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn choose 3 result "" info false open false
+rom2 inn choose 3 room "inn" selected 2 npc 0 candidate 0 dialogue "npc2108talk31" text "Another quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn choose 4 result "" info false open false
+rom2 inn choose 4 room "inn" selected 3 npc 0 candidate 0 dialogue "npc2110talk39" text "Words.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 inn choose 5 result "" info false open false
+rom2 inn choose 5 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 inn choose 6 result "" info false open false
+rom2 inn choose 6 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed square select -1 row 0 "TAVERN" true
+rom2 installed square select -1 row 1 "GATES" true
+rom2 installed square select -1 row 2 "GIRL 1" true
+rom2 installed square select -1 row 3 "GIRL 2" true
+rom2 installed square select -1 row 4 "GUARD" true
+rom2 installed square select -1 row 5 "DERVISH" true
+rom2 installed square select -1 row 6 "SHOP" true
+rom2 installed square select -1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square select -1 frame 3630e065eb7b4540fbab11dbfd2619e8500f211b9c404380a1867fdc44b77c0c text 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rom2 installed square select -1 hit grid 403f6442003573772806be22f6e7c089aef446bca25a42ae6fa57b3bddfd1eab
+rom2 installed square choose -1 result "" info false open false
+rom2 installed square choose -1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square choose 0 result "" info false open false
+rom2 installed square choose 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed square choose 1 result "" info false open false
+rom2 installed square choose 1 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed square choose 2 result "" info false open false
+rom2 installed square choose 2 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square choose 3 result "" info false open false
+rom2 installed square choose 3 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square choose 4 result "" info false open false
+rom2 installed square choose 4 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square choose 5 result "" info false open false
+rom2 installed square choose 5 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed square choose 6 result "" info false open false
+rom2 installed square choose 6 room "shop" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 db45118fd728305d1adaad1488d9a3b7935bf8c61be3a16e47e0e4a06d07835c
+rom2 installed square choose 7 result "" info false open false
+rom2 installed square choose 7 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select -1 row 0 "Sleep" true
+rom2 installed inn select -1 row 1 "HIRE 1" true
+rom2 installed inn select -1 row 2 "TALK 22" true
+rom2 installed inn select -1 row 3 "TALK 2108" true
+rom2 installed inn select -1 row 4 "TALK 2110" true
+rom2 installed inn select -1 row 5 "EXIT" true
+rom2 installed inn select -1 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select -1 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 29 4dc512bab547dd184491e7ec41c9660efae0f848851de6a3aa50fa21e177abd2
+rom2 installed inn select -1 hit grid 1814896b76ba9d9a5a6b1aa06b0cc9b186c604aba3902b53b07ba3ed69ffb292
+rom2 installed inn select -1 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {1 1}/true
+rom2 installed inn select -1 button 1 hire (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom2 installed inn select -1 button 2 talk (483,114)-(623,160) centre {4 2}/true outside {0 0}/false
+rom2 installed inn select -1 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 installed inn select -1 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 installed inn select -1 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 installed inn select -1 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 installed inn select -1 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 installed inn select -1 press button 0 sleep result "" info false open false
+rom2 installed inn select -1 press button 0 sleep room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select -1 press button 1 hire result "" info false open false
+rom2 installed inn select -1 press button 1 hire room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select -1 press button 2 talk result "" info false open false
+rom2 installed inn select -1 press button 2 talk room "inn" selected 0 npc 0 candidate 0 dialogue "npc1about" text "About hire.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select -1 press button 3 exit result "" info false open false
+rom2 installed inn select -1 press button 3 exit room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select -1 press seat 0 result "" info false open false
+rom2 installed inn select -1 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select -1 press seat 1 result "" info false open false
+rom2 installed inn select -1 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select -1 press seat 2 result "" info false open false
+rom2 installed inn select -1 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select -1 press seat 3 result "" info false open false
+rom2 installed inn select -1 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 row 0 "Sleep" true
+rom2 installed inn select 0 row 1 "HIRE 1" true
+rom2 installed inn select 0 row 2 "TALK 22" true
+rom2 installed inn select 0 row 3 "TALK 2108" true
+rom2 installed inn select 0 row 4 "TALK 2110" true
+rom2 installed inn select 0 row 5 "EXIT" true
+rom2 installed inn select 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 29 4dc512bab547dd184491e7ec41c9660efae0f848851de6a3aa50fa21e177abd2
+rom2 installed inn select 0 hit grid 1814896b76ba9d9a5a6b1aa06b0cc9b186c604aba3902b53b07ba3ed69ffb292
+rom2 installed inn select 0 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {1 1}/true
+rom2 installed inn select 0 button 1 hire (483,67)-(623,113) centre {1 1}/true outside {0 0}/false
+rom2 installed inn select 0 button 2 talk (483,114)-(623,160) centre {4 2}/true outside {0 0}/false
+rom2 installed inn select 0 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 installed inn select 0 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 installed inn select 0 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 installed inn select 0 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 installed inn select 0 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 installed inn select 0 press button 0 sleep result "" info false open false
+rom2 installed inn select 0 press button 0 sleep room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 press button 1 hire result "" info false open false
+rom2 installed inn select 0 press button 1 hire room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select 0 press button 2 talk result "" info false open false
+rom2 installed inn select 0 press button 2 talk room "inn" selected 0 npc 0 candidate 0 dialogue "npc1about" text "About hire.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select 0 press button 3 exit result "" info false open false
+rom2 installed inn select 0 press button 3 exit room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select 0 press seat 0 result "" info false open false
+rom2 installed inn select 0 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 press seat 1 result "" info false open false
+rom2 installed inn select 0 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 press seat 2 result "" info false open false
+rom2 installed inn select 0 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 0 press seat 3 result "" info false open false
+rom2 installed inn select 0 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 row 0 "Sleep" true
+rom2 installed inn select 1 row 1 "HIRE 1" true
+rom2 installed inn select 1 row 2 "TALK 22" true
+rom2 installed inn select 1 row 3 "TALK 2108" true
+rom2 installed inn select 1 row 4 "TALK 2110" true
+rom2 installed inn select 1 row 5 "EXIT" true
+rom2 installed inn select 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 21 f8defb34360ab18b5af2029bd7eaffa30eb2db350e4ba31f2740e173d2f9a263
+rom2 installed inn select 1 hit grid f37fa724e8517e7ee1193718854afc0211f71ff880925cd7ff4c7384d845953c
+rom2 installed inn select 1 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 installed inn select 1 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 installed inn select 1 button 2 talk (483,114)-(623,160) centre {1 2}/true outside {0 0}/false
+rom2 installed inn select 1 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 installed inn select 1 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 installed inn select 1 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 installed inn select 1 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 installed inn select 1 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 installed inn select 1 press button 0 sleep result "" info false open false
+rom2 installed inn select 1 press button 0 sleep room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 press button 1 hire result "" info false open false
+rom2 installed inn select 1 press button 1 hire room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 press button 2 talk result "" info false open false
+rom2 installed inn select 1 press button 2 talk room "inn" selected 1 npc 0 candidate 0 dialogue "npc22talk30" text "A quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select 1 press button 3 exit result "" info false open false
+rom2 installed inn select 1 press button 3 exit room "square" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select 1 press seat 0 result "" info false open false
+rom2 installed inn select 1 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 press seat 1 result "" info false open false
+rom2 installed inn select 1 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 press seat 2 result "" info false open false
+rom2 installed inn select 1 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 1 press seat 3 result "" info false open false
+rom2 installed inn select 1 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 row 0 "Sleep" true
+rom2 installed inn select 2 row 1 "HIRE 1" true
+rom2 installed inn select 2 row 2 "TALK 22" true
+rom2 installed inn select 2 row 3 "TALK 2108" true
+rom2 installed inn select 2 row 4 "TALK 2110" true
+rom2 installed inn select 2 row 5 "EXIT" true
+rom2 installed inn select 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 21 f8defb34360ab18b5af2029bd7eaffa30eb2db350e4ba31f2740e173d2f9a263
+rom2 installed inn select 2 hit grid 75035cc8c4686e872ec977f8a4c3218229a58706e1918657e26c83b47ee9f35f
+rom2 installed inn select 2 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 installed inn select 2 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 installed inn select 2 button 2 talk (483,114)-(623,160) centre {1 3}/true outside {0 0}/false
+rom2 installed inn select 2 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 installed inn select 2 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 installed inn select 2 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 installed inn select 2 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 installed inn select 2 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 installed inn select 2 press button 0 sleep result "" info false open false
+rom2 installed inn select 2 press button 0 sleep room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 press button 1 hire result "" info false open false
+rom2 installed inn select 2 press button 1 hire room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 press button 2 talk result "" info false open false
+rom2 installed inn select 2 press button 2 talk room "inn" selected 2 npc 0 candidate 0 dialogue "npc2108talk31" text "Another quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select 2 press button 3 exit result "" info false open false
+rom2 installed inn select 2 press button 3 exit room "square" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select 2 press seat 0 result "" info false open false
+rom2 installed inn select 2 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 press seat 1 result "" info false open false
+rom2 installed inn select 2 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 press seat 2 result "" info false open false
+rom2 installed inn select 2 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 2 press seat 3 result "" info false open false
+rom2 installed inn select 2 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 row 0 "Sleep" true
+rom2 installed inn select 3 row 1 "HIRE 1" true
+rom2 installed inn select 3 row 2 "TALK 22" true
+rom2 installed inn select 3 row 3 "TALK 2108" true
+rom2 installed inn select 3 row 4 "TALK 2110" true
+rom2 installed inn select 3 row 5 "EXIT" true
+rom2 installed inn select 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 frame b0c5925003138d19d47217439dd9ed134eb41cae158bd479494a4fdab7bde14a text 21 f8defb34360ab18b5af2029bd7eaffa30eb2db350e4ba31f2740e173d2f9a263
+rom2 installed inn select 3 hit grid 6cc4e6424962ca288eb714f16b920e32b3145bed738218938f1c2587624e3685
+rom2 installed inn select 3 button 0 sleep (494,15)-(614,67) centre {1 0}/true outside {0 0}/false
+rom2 installed inn select 3 button 1 hire (483,67)-(623,113) centre {0 0}/false outside {0 0}/false
+rom2 installed inn select 3 button 2 talk (483,114)-(623,160) centre {1 4}/true outside {0 0}/false
+rom2 installed inn select 3 button 3 exit (494,160)-(614,212) centre {1 5}/true outside {0 0}/false
+rom2 installed inn select 3 seat 0 (176,416)-(224,480) centre {3 1}/true outside {0 0}/false
+rom2 installed inn select 3 seat 1 (224,416)-(272,480) centre {3 2}/true outside {0 0}/false
+rom2 installed inn select 3 seat 2 (272,416)-(320,480) centre {3 3}/true outside {0 0}/false
+rom2 installed inn select 3 seat 3 (320,416)-(368,480) centre {3 4}/true outside {0 0}/false
+rom2 installed inn select 3 press button 0 sleep result "" info false open false
+rom2 installed inn select 3 press button 0 sleep room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 press button 1 hire result "" info false open false
+rom2 installed inn select 3 press button 1 hire room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 press button 2 talk result "" info false open false
+rom2 installed inn select 3 press button 2 talk room "inn" selected 3 npc 0 candidate 0 dialogue "npc2110talk39" text "Words.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn select 3 press button 3 exit result "" info false open false
+rom2 installed inn select 3 press button 3 exit room "square" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn select 3 press seat 0 result "" info false open false
+rom2 installed inn select 3 press seat 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 press seat 1 result "" info false open false
+rom2 installed inn select 3 press seat 1 room "inn" selected 1 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 press seat 2 result "" info false open false
+rom2 installed inn select 3 press seat 2 room "inn" selected 2 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn select 3 press seat 3 result "" info false open false
+rom2 installed inn select 3 press seat 3 room "inn" selected 3 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn choose -1 result "" info false open false
+rom2 installed inn choose -1 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn choose 0 result "" info false open false
+rom2 installed inn choose 0 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e
+rom2 installed inn choose 1 result "" info false open false
+rom2 installed inn choose 1 room "inn" selected 0 npc 0 candidate 0 dialogue "npc1accept30" text "Accepted.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn choose 2 result "" info false open false
+rom2 installed inn choose 2 room "inn" selected 1 npc 0 candidate 0 dialogue "npc22talk30" text "A quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn choose 3 result "" info false open false
+rom2 installed inn choose 3 room "inn" selected 2 npc 0 candidate 0 dialogue "npc2108talk31" text "Another quest.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn choose 4 result "" info false open false
+rom2 installed inn choose 4 room "inn" selected 3 npc 0 candidate 0 dialogue "npc2110talk39" text "Words.\r\n" party [hero] gold 500 queue [] SAV error "saving is not available for this game yet"
+rom2 installed inn choose 5 result "" info false open false
+rom2 installed inn choose 5 room "square" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 973bb75e41078861448625572543ee99fcba429ec3367f1e2dd4acda84b99a9c
+rom2 installed inn choose 6 result "" info false open false
+rom2 installed inn choose 6 room "inn" selected 0 npc 0 candidate 0 dialogue "" text "" party [hero] gold 500 queue [] SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e

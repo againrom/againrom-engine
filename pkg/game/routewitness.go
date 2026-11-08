@@ -1059,7 +1059,7 @@ func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)
 	seats := 0
 	if d, room, ok := w.town.composedRoom(); ok {
 		if page = d.Room(room); page != nil {
-			list, _ := w.town.state().innSeats()
+			list, _ := w.town.innPageSeats()
 			seats = len(list)
 		}
 	}
@@ -1344,7 +1344,7 @@ func (w *routeWitness) surfacePicks(regions []routeRegion) {
 // and reports the hire offer. The talk with patron 2 takes the original's
 // modality steps.
 func (w *routeWitness) innTalks() {
-	seats, hires := w.town.state().innSeats()
+	seats, hires := w.town.innPageSeats()
 	if hires == 0 {
 		w.record("hire offer", image.Rectangle{}, "wait", "none offered: the inn seats no hire actor")
 	}

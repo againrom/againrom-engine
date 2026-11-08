@@ -63,11 +63,7 @@ func (t *townScreen) tavernCandidates() []tavernCandidate {
 	for _, o := range t.tavernMercenaries() {
 		mercenaries[o.Type] = o
 	}
-	var hi []innOffer
-	if t.sess.Town != nil {
-		hi = innOffers(nil, innState{hire: &tavernHires, home: t.sess.Town, table: t.in.Table})
-	}
-	seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, hi)
+	seats, _ := t.innPageSeats()
 	out := make([]tavernCandidate, 0, len(seats))
 	art := t.tavernArt()
 	for _, seat := range seats {
@@ -268,7 +264,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	if school {
 		pane = t.chapterPane("school")
 	}
-	v := ui.TownSurfaceView{Font: t.in.Font.Value(), CardFont: t.in.tipFont(), HiredLabel: t.in.Words.TavernHired, HoverCell: -1, SchoolClass: -1}
+	v := ui.TownSurfaceView{Pane: true, Font: t.in.Font.Value(), CardFont: t.in.tipFont(), HiredLabel: t.in.Words.TavernHired, HoverCell: -1, SchoolClass: -1}
 	v.Hero, v.HeroSlotMask, v.HeroSlotInfo = t.heroPane(pane)
 	v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
 	if school {
@@ -292,7 +288,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: true},
 			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(schoolPurseShown(t.sess.Town.Gold(), price, ok))), Enabled: true},
 		}
-		v.Page = buildRoomPage(ROM1TownDescription().Room("school"), nil, 0, 0)
+		v.Page = buildRoomPage(ROM1TownDescription().Room("school"), nil, 0, 0, roomPageContents{surface: &v})
 		v.Tip = t.roomTipView("school")
 		return v
 	}
@@ -320,28 +316,28 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	for hires < len(candidates) && candidates[hires].key.kind == tavernCandidateMercenary {
 		hires++
 	}
-	t.setTavernPage(&v, len(cells), hires)
 	// TOWN-391/392: no selected squad has no hire caption or price; an
 	// active squad selects the install's hire/fire word, not the constructor
 	// caption. The owner-added Sleep control is intentionally separate.
-	hireLabel := ""
-	if merc {
-		hireLabel = t.in.Words.TavernHire
-		if o.Hired {
-			hireLabel = t.in.Words.TavernFire
-		}
-	}
 	var seat *innSeat
 	if hasSelection {
 		seat = &selected.seat
 	}
-	enabled := innButtons(chapterInnProfile, t.sess.Town, seat, t.sess.Shop != nil && t.in.Table != nil)
-	v.Buttons = []ui.TownSurfaceButton{
-		{Label: t.in.Words.TavernSleep, Enabled: enabled[innSleep]},
-		{Label: hireLabel, Value: value, Enabled: enabled[innHire]},
-		{Label: t.in.Words.TavernTalk, Enabled: enabled[innTalk]},
-		{Label: t.in.Words.TavernExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
+	enabled := innButtons(t.innProfile(), t.sess.Town, seat, t.sess.Shop != nil && t.in.Table != nil)
+	for _, b := range t.tavernButtons() {
+		button := ui.TownSurfaceButton{Label: t.in.roomButtonCaption(b, merc, merc && o.Hired)}
+		if verb, ok := innButtonVerb(b.Name); ok {
+			button.Enabled = enabled[verb]
+		}
+		switch b.Value {
+		case town.ValuePrice:
+			button.Value = value
+		case town.ValueGold:
+			button.Value = ui.GroupDigits(int64(t.sess.Town.Gold()))
+		}
+		v.Buttons = append(v.Buttons, button)
 	}
+	t.setTavernPage(&v, len(cells), hires)
 	v.Tip = t.roomTipView("tavern")
 	return v
 }
@@ -422,7 +418,7 @@ func (t *townScreen) TownSurfaceClick(c ui.TownSurfaceControl, double bool) ui.T
 			if !ok {
 				return ui.TownAction{}
 			}
-			return t.innAction(chapterInnProfile, &candidate.seat, innActivate)
+			return t.innAction(t.innProfile(), &candidate.seat, innActivate)
 		}
 		return ui.TownAction{}
 	case ui.TownSurfaceControlButton:
@@ -462,7 +458,7 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 	}
 	if t.room == roomTavern {
 		if sleepButton(t.tavernButtons(), i) {
-			return t.innAction(chapterInnProfile, nil, innSleep)
+			return t.innAction(t.innProfile(), nil, innSleep)
 		}
 		candidate, ok := t.selectedTavernCandidate()
 		var seat *innSeat
@@ -471,7 +467,7 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 		}
 		verbs := map[int]innVerb{tavernButtonHire: innHire, tavernButtonTalk: innTalk, tavernButtonExit: innExit}
 		if verb, ok := verbs[i]; ok {
-			return t.innAction(chapterInnProfile, seat, verb)
+			return t.innAction(t.innProfile(), seat, verb)
 		}
 	}
 	return ui.TownAction{}

@@ -52,7 +52,7 @@ func (t *townScreen) AtTownSquare() bool {
 		return true
 	}
 	r := d.Room(room)
-	return r != nil && r.Page == "inn" && !t.AtTownShop()
+	return r != nil && innPage(r) && t.hostRules().Pages == town.PagesEntry && !t.AtTownShop()
 }
 
 func (t *townScreen) TownSquareView() ui.TownSquareView {
@@ -171,15 +171,14 @@ func (t *townScreen) Rows() []ui.TownRow {
 		return t.fallbackRows()
 	}
 	if r := d.Room(t.roomName()); r != nil {
+		if innPage(r) {
+			return innRowTexts(t.innRows(true))
+		}
 		switch r.Page {
 		case "shop", "world-map":
 			return nil
 		case "school":
 			return t.shelfRows(TownSchool)
-		case "tavern":
-			return t.tavernRows()
-		case "inn":
-			return append(t.state().innRows(t.in.Words.TavernSleep), ui.TownRow{Text: secondInnExit, Choosable: true})
 		}
 	}
 	return t.squareRows()
@@ -227,7 +226,7 @@ func (t *townScreen) fallbackRows() []ui.TownRow {
 	if t.roomName() != "inn" {
 		return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
 	}
-	return append(c.innRows(t.in.Words.TavernSleep), gates)
+	return append(innRowTexts(t.innRows(false)), gates)
 }
 
 func (t *townScreen) Choose(i int) ui.TownAction {
@@ -240,30 +239,21 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 	}
 	room := t.roomName()
 	if r := d.Room(room); r != nil {
-		switch r.Page {
-		case "school":
+		if innPage(r) {
+			if !t.campaignTown().ready() {
+				return ui.TownAction{}
+			}
+			rows := t.innRows(true)
+			if i >= 0 && i < len(rows) && rows[i].Choosable && rows[i].seat != nil && r.Seats != nil && t.innProfile().rows.selects {
+				t.selectSeat(t.scene(d, room), r.Seats, rows[i].index)
+			}
+			return t.innAct(rows, i)
+		}
+		if r.Page == "school" {
 			if t.schoolTrainingBusy() {
 				return ui.TownAction{}
 			}
 			return t.openBuildingDialogue(TownSchool, i)
-		case "tavern":
-			seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, nil)
-			if i < 0 || i >= len(seats) {
-				return ui.TownAction{}
-			}
-			return t.innAction(chapterInnProfile, &seats[i], innTalk)
-		case "inn":
-			rows := t.Rows()
-			if i < 0 || i >= len(rows) || !rows[i].Choosable {
-				return ui.TownAction{}
-			}
-			if seats, _ := t.state().innSeats(); i <= len(seats) {
-				if r.Seats != nil && i > 0 {
-					t.selectSeat(t.scene(d, room), r.Seats, i-1)
-				}
-				return t.innAct(t.state(), i)
-			}
-			return t.innAction(bankInnProfile, nil, innExit)
 		}
 		return ui.TownAction{}
 	}
@@ -288,7 +278,7 @@ func (t *townScreen) chooseFallback(i int) ui.TownAction {
 		c.enterInn()
 		return ui.TownAction{}
 	}
-	return t.innAct(c, i)
+	return t.innAct(t.innRows(false), i)
 }
 
 func (t *townScreen) Back() bool {

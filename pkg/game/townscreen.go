@@ -333,17 +333,8 @@ func (t *townScreen) townPayloadFor(building TownBuilding, offer TownOffer, npc 
 // openTownDialogue retains a constructed panel after a failed first lookup.
 // Missing resources remain outside the constructed-panel route.
 func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, npc int) bool {
-	_, ok := t.startInnTalk(chapterInnProfile, innTalkRequest{building: building, offer: offer, npc: npc, plain: true})
+	_, ok := t.startInnTalk(t.innProfile(), innTalkRequest{building: building, offer: offer, npc: npc, plain: true})
 	return ok
-}
-
-func (t *townScreen) tavernVisibleOffers() []TownOffer {
-	seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, nil)
-	out := make([]TownOffer, 0, len(seats))
-	for _, s := range seats {
-		out = append(out, s.offer())
-	}
-	return out
 }
 
 // openOfferDialogue opens the conversation of one offered mission and
@@ -351,7 +342,7 @@ func (t *townScreen) tavernVisibleOffers() []TownOffer {
 // no accept or decline state: Enter, Escape and the button all turn the page
 // and close it, so what the player pressed decides nothing.
 func (t *townScreen) openOfferDialogue(building TownBuilding, offer TownOffer, npc int) bool {
-	_, ok := t.startInnTalk(chapterInnProfile, innTalkRequest{building: building, offer: offer, npc: npc})
+	_, ok := t.startInnTalk(t.innProfile(), innTalkRequest{building: building, offer: offer, npc: npc})
 	return ok
 }
 
@@ -380,7 +371,7 @@ func registerInnMissions(queue []int, register func(int)) {
 // A bad external file remains visible as a concise diagnostic instead of
 // silently substituting prose that no shipped candidate authored.
 func (t *townScreen) openMercenaryDialogue(typ int) {
-	t.startInnTalk(chapterInnProfile, innTalkRequest{building: TownTavern, candidate: typ})
+	t.startInnTalk(t.innProfile(), innTalkRequest{building: TownTavern, candidate: typ})
 }
 
 // townLines reads the game's own inn dialogue and pages its numbered parts.
@@ -686,28 +677,6 @@ func headMark(k int) string {
 		return "   <- take this"
 	}
 	return "   (behind the one above)"
-}
-
-// tavernRows lists the chapter's NPCs. An NPC with nothing to give is LISTED
-// AND CHOOSABLE — he says so when spoken to, which is REG-SCN-064's zero
-// arm, and hiding him would hide half the mechanism.
-func (t *townScreen) tavernRows() []ui.TownRow {
-	offers := t.tavernVisibleOffers()
-	if len(offers) == 0 {
-		return []ui.TownRow{{Text: "the tavern is quiet - nobody here has work in this chapter"}}
-	}
-	rows := make([]ui.TownRow, 0, len(offers))
-	for _, o := range offers {
-		what := "nothing to say"
-		if o.Mission > 0 {
-			what = "wants to talk"
-		}
-		rows = append(rows, ui.TownRow{
-			Text:      fmt.Sprintf("NPC %-3d  %s", o.NPC, what),
-			Choosable: true,
-		})
-	}
-	return rows
 }
 
 // openBuildingDialogue opens the shipped shop or school conversation for the

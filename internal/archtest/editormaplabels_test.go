@@ -98,7 +98,7 @@ func mapLabelWidget(file, typ string) bool {
 	// These rectangles belong to widgets or pointer tooltips, not map points.
 	switch file + ":" + typ {
 	case "pkg/ui/townpointer.go:townTipOwner", "pkg/ui/chargen.go:ChargenTip",
-		"pkg/ui/tippanel.go:TipPanelView", "pkg/ui/widgetbutton.go:plaqueCaption",
+		"pkg/ui/roompaint.go:RoomLayer", "pkg/ui/tippanel.go:TipPanelView", "pkg/ui/widgetbutton.go:plaqueCaption",
 		"pkg/ui/widgetdropdown.go:dropdown":
 		return true
 	}

@@ -358,6 +358,16 @@ func (c destinationTownCampaign) townShop() *Shop {
 	return nil
 }
 
+// innInput is the campaign's inn input: the inn's options and its hire
+// options, which the options already carry.
+func (c destinationTownCampaign) innInput(innProfile) (options, hires []innOffer) {
+	s := c.bank()
+	if s == nil {
+		return nil, nil
+	}
+	return s.innOptions(), s.hires()
+}
+
 func (c destinationTownCampaign) bank() *secondCampaign {
 	if c.t.sess == nil || c.t.sess.Town == nil {
 		return nil

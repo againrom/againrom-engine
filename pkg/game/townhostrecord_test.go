@@ -104,7 +104,7 @@ func hostRecordDump(t *testing.T) string {
 	return b.String()
 }
 
-const hostRecordWant = `defaults: CurrentHookRoom=true Shop=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
+const hostRecordWant = `defaults: CurrentHookRoom=true Shop=chapter Inn=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
   missionshop.go Shop!=chapter: false
   roompage.go Pages==entry: false
   roomsound.go AudioRoom==requested: false
@@ -120,7 +120,7 @@ const hostRecordWant = `defaults: CurrentHookRoom=true Shop=chapter TrackSource=
   towntalk.go townTalkRules[Talk]: true
   talkProfile trim=false heroNPC=0
   StartsInTown=false TownClickSounds=true Header="the town square - the campaign offers nothing further" Footer=["gold 0    party 1    carried 1 items, 0 worn" "available []    done 0"]
-rom1: CurrentHookRoom=true Shop=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
+rom1: CurrentHookRoom=true Shop=chapter Inn=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
   missionshop.go Shop!=chapter: false
   roompage.go Pages==entry: false
   roomsound.go AudioRoom==requested: false
@@ -136,7 +136,7 @@ rom1: CurrentHookRoom=true Shop=chapter TrackSource=description RequireArt=false
   towntalk.go townTalkRules[Talk]: true
   talkProfile trim=false heroNPC=0
   StartsInTown=false TownClickSounds=true Header="the town square - the campaign offers nothing further" Footer=["gold 0    party 1    carried 1 items, 0 worn" "available []    done 0"]
-rom2-town1: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
+rom2-town1: CurrentHookRoom=false Shop=bank Inn=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
   missionshop.go Shop!=chapter: true
   roompage.go Pages==entry: true
   roomsound.go AudioRoom==requested: true
@@ -152,7 +152,7 @@ rom2-town1: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true
   towntalk.go townTalkRules[Talk]: true
   talkProfile trim=true heroNPC=21
   StartsInTown=true TownClickSounds=false Header="ROM2 campaign: town 1" Footer=[]
-rom2-town2: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
+rom2-town2: CurrentHookRoom=false Shop=bank Inn=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
   missionshop.go Shop!=chapter: true
   roompage.go Pages==entry: true
   roomsound.go AudioRoom==requested: true
@@ -168,7 +168,7 @@ rom2-town2: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true
   towntalk.go townTalkRules[Talk]: true
   talkProfile trim=true heroNPC=21
   StartsInTown=true TownClickSounds=false Header="ROM2 campaign: town 1" Footer=[]
-rom2-town3: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
+rom2-town3: CurrentHookRoom=false Shop=bank Inn=bank TrackSource=campaign RequireArt=true Rows=hotspots Header=location HeaderPrefix=ROM2 campaign Footer=services Talk=section Pages=entry Art=manifest AudioRoom=requested Leave=destinations Speech=false SilentSquare=false ClickSounds=false DialogueSpeech=true CacheScreen=false EagerSquare=false StartsInTown=true
   missionshop.go Shop!=chapter: true
   roompage.go Pages==entry: true
   roomsound.go AudioRoom==requested: true
@@ -184,7 +184,7 @@ rom2-town3: CurrentHookRoom=false Shop=bank TrackSource=campaign RequireArt=true
   towntalk.go townTalkRules[Talk]: true
   talkProfile trim=true heroNPC=21
   StartsInTown=true TownClickSounds=false Header="ROM2 campaign: town 1" Footer=[]
-no-host: CurrentHookRoom=true Shop=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
+no-host: CurrentHookRoom=true Shop=chapter Inn=chapter TrackSource=description RequireArt=false Rows=chapter-hints Header=chapter HeaderPrefix= Footer=party Talk=building Pages=retained Art=pages AudioRoom=building Leave=room-map Speech=true SilentSquare=true ClickSounds=true DialogueSpeech=true CacheScreen=true EagerSquare=true StartsInTown=false
 `
 
 // The host's modes and the branch each call site takes, for every shipped

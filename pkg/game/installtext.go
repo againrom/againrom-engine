@@ -113,6 +113,35 @@ const (
 	dialogsSlotMapListColumn1 = 136
 )
 
+// namedMainWords are the named words main.txt global slots install, each
+// keeping its authored text where the install has none; a room button row
+// marked authored reads its slot through this table.
+var namedMainWords = []struct {
+	slot int
+	word func(*ui.Words) *string
+}{
+	{mainSlotTavernHire, func(w *ui.Words) *string { return &w.TavernHire }},
+	{mainSlotTavernFire, func(w *ui.Words) *string { return &w.TavernFire }},
+	{mainSlotTavernTalk, func(w *ui.Words) *string { return &w.TavernTalk }},
+	{mainSlotTavernExit, func(w *ui.Words) *string { return &w.TavernExit }},
+}
+
+// mainWord is main.txt global slot's word: with authored, the named word
+// the slot installs, else the install's slot text.
+func mainWord(w *ui.Words, slot int, authored bool) string {
+	if authored {
+		for _, n := range namedMainWords {
+			if n.slot == slot {
+				return *n.word(w)
+			}
+		}
+	}
+	if slot >= 0 && slot < len(w.Hover) {
+		return w.Hover[slot]
+	}
+	return ""
+}
+
 // TextTable is one install text file split into lines by the decoded
 // loader's own walk.
 //
@@ -625,11 +654,10 @@ func (w *InstallWords) Words() ui.Words {
 	g(&out.ShopExit, mainSlotShopExit)
 	g(&out.SchoolTrain, mainSlotSchoolTrain)
 	g(&out.SchoolExit, mainSlotSchoolExit)
-	g(&out.TavernHire, mainSlotTavernHire)
 	g(&out.TavernHired, 257)
-	g(&out.TavernFire, mainSlotTavernFire)
-	g(&out.TavernTalk, mainSlotTavernTalk)
-	g(&out.TavernExit, mainSlotTavernExit)
+	for _, n := range namedMainWords {
+		g(n.word(&out), n.slot)
+	}
 
 	// The command panel's eight cell labels, main.txt global slots 0-7 in the
 	// panel's own cell order (docs/1028-command-panel contract; `MENU-COMBAT-

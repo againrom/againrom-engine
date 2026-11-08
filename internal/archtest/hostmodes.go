@@ -12,7 +12,7 @@ import (
 // hostModeFields are the town.HostSpec fields that carry a mode. Each has a
 // named type in pkg/town and is compared against that type's constants only.
 var hostModeFields = map[string]bool{
-	"Shop": true, "TrackSource": true, "Rows": true, "Header": true, "Footer": true,
+	"Shop": true, "Inn": true, "TrackSource": true, "Rows": true, "Header": true, "Footer": true,
 	"Talk": true, "Pages": true, "Art": true, "AudioRoom": true, "Leave": true,
 }
 

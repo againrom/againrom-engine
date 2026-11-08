@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -17,13 +18,137 @@ type innProfile struct {
 	leaveScene, soundBeforeTalk                 bool
 	hire                                        *hireProfile
 	hireTalkKey                                 string
+	rows                                        innRowProfile
 }
 
-var chapterInnProfile = innProfile{keepSpeakers: true, hideCompleted: true,
-	tokenActors: true, disablePoorHire: true, squadHire: true, joinOnOpen: true, queueOffers: true, hire: &tavernHires}
+// innRowProfile is how an inn page lists its rows: a Sleep row first, the
+// hire seats listed, whether choosing a seat row selects that seat, the
+// talk row's format of the NPC and of the word for a seat without and with
+// a topic, the hire and fire rows' formats, the row a list with no other
+// row shows, and the last row.
+type innRowProfile struct {
+	sleep, hires, selects bool
+	talk                  string
+	topic                 [2]string
+	hire, fire            string
+	quiet, exit           string
+}
 
-var bankInnProfile = innProfile{uniqueSpeakers: true, identityActors: true, keyedActors: true,
-	sectionText: true, applyTalk: true, leaveScene: true, soundBeforeTalk: true, hire: &bankHires, hireTalkKey: "npc%dabout"}
+// hostInnProfiles are the profiles the town host's inn mode names. The
+// bank's talk seats are one per NPC key, each the first option with that
+// key (R2-ENGINE-220, DIV-2635); its rows are Sleep, then HIRE or FIRE per
+// hire seat (R2-ENGINE-246) and TALK per talk seat, then the exit. The
+// chapter's rows are its talk seats only, one with nothing to say listed
+// and choosable, which is REG-SCN-064's zero arm.
+var hostInnProfiles = map[town.InnMode]*innProfile{
+	town.InnChapter: {keepSpeakers: true, hideCompleted: true,
+		tokenActors: true, disablePoorHire: true, squadHire: true, joinOnOpen: true, queueOffers: true, hire: &tavernHires,
+		rows: innRowProfile{talk: "NPC %-3d  %s", topic: [2]string{"nothing to say", "wants to talk"},
+			quiet: "the tavern is quiet - nobody here has work in this chapter"}},
+	town.InnBank: {uniqueSpeakers: true, identityActors: true, keyedActors: true,
+		sectionText: true, applyTalk: true, leaveScene: true, soundBeforeTalk: true, hire: &bankHires, hireTalkKey: "npc%dabout",
+		rows: innRowProfile{sleep: true, hires: true, selects: true, talk: "TALK %d%s", hire: "HIRE %d", fire: "FIRE %d", exit: secondInnExit}},
+}
+
+// innProfile is the profile the town host's inn mode names.
+func (t *townScreen) innProfile() innProfile { return hostInnProfile(t.hostRules().Inn) }
+
+// hostInnProfile is the profile inn mode m names, and the chapter profile
+// where it names none.
+func hostInnProfile(m town.InnMode) innProfile {
+	if p := hostInnProfiles[m]; p != nil {
+		return *p
+	}
+	return *hostInnProfiles[town.InnChapter]
+}
+
+// innPageSeats is the inn page's seats as the edition's profile seats them,
+// the hire seats then the talk seats (R2-ENGINE-497), and the number of
+// hire seats.
+func (t *townScreen) innPageSeats() ([]innSeat, int) {
+	p := t.innProfile()
+	options, hires := t.campaignTown().innInput(p)
+	return innSeats(p, t.sess.Town, options, hires)
+}
+
+// innPage reports whether room r is an inn page. The key is the page and
+// not the seats because a town description may hold a tavern or inn page
+// with no seat grid, which still lists and chooses its rows.
+func innPage(r *town.RoomSpec) bool { return r.Page == "tavern" || r.Page == "inn" }
+
+// innRow is one row of the inn page's list, the verb choosing it runs and
+// the seat that verb takes, nil on a row of no seat; index is the seat's.
+type innRow struct {
+	ui.TownRow
+	verb  innVerb
+	seat  *innSeat
+	index int
+}
+
+// innRows is the inn page's one row list as the edition's profile lists
+// it: Sleep, a row per listed seat, the quiet row when no other row is
+// listed, and with exit the last row.
+func (t *townScreen) innRows(exit bool) []innRow {
+	seats, hires := t.innPageSeats()
+	hired := func(int) bool { return false }
+	if c := t.state(); c != nil {
+		hired = c.hired
+	}
+	return innPageRows(t.innProfile().rows, t.in.Words.TavernSleep, seats, hires, hired, exit)
+}
+
+// innPageRows lists seats, the first hires of them hire seats, under row
+// profile p with the Sleep word sleep; hired answers whether a hire seat's
+// NPC is hired.
+func innPageRows(p innRowProfile, sleep string, seats []innSeat, hires int, hired func(npc int) bool, exit bool) []innRow {
+	var rows []innRow
+	if p.sleep {
+		rows = append(rows, innRow{TownRow: ui.TownRow{Text: sleep, Choosable: true}, verb: innSleep})
+	}
+	for i := range seats {
+		npc, topic := seats[i].word.npc, p.topic[0]
+		if seats[i].word.topic > 0 {
+			topic = p.topic[1]
+		}
+		text := fmt.Sprintf(p.talk, npc, topic)
+		if i < hires {
+			if !p.hires {
+				continue
+			}
+			text = fmt.Sprintf(p.hire, npc)
+			if hired(npc) {
+				text = fmt.Sprintf(p.fire, npc)
+			}
+		}
+		rows = append(rows, innRow{TownRow: ui.TownRow{Text: text, Choosable: true}, verb: innActivate, seat: &seats[i], index: i})
+	}
+	if len(rows) == 0 && p.quiet != "" {
+		rows = append(rows, innRow{TownRow: ui.TownRow{Text: p.quiet}})
+	}
+	if exit && p.exit != "" {
+		rows = append(rows, innRow{TownRow: ui.TownRow{Text: p.exit, Choosable: true}, verb: innExit})
+	}
+	return rows
+}
+
+// innRowTexts are the rows' list texts.
+func innRowTexts(rows []innRow) []ui.TownRow {
+	out := make([]ui.TownRow, len(rows))
+	for i, r := range rows {
+		out[i] = r.TownRow
+	}
+	return out
+}
+
+// innAct runs row i's verb on its seat (Hire, Fire, TALK: R2-ENGINE-496;
+// the room events: DIV-4372); a row out of range or not choosable runs
+// nothing.
+func (t *townScreen) innAct(rows []innRow, i int) ui.TownAction {
+	if i < 0 || i >= len(rows) || !rows[i].Choosable {
+		return ui.TownAction{}
+	}
+	return t.innAction(t.innProfile(), rows[i].seat, rows[i].verb)
+}
 
 type innSeat struct {
 	word  innOffer
@@ -322,6 +447,34 @@ func (t *townScreen) innAction(p innProfile, seat *innSeat, verb innVerb) ui.Tow
 	return ui.TownAction{}
 }
 
+// innButtonSlot is button b's caption slot. A button with a fire caption
+// shows its fire slot on a selected hire seat that is hired, its caption
+// slot on any other selected hire seat and none without one (TOWN-391,
+// TOWN-392, R2-ENGINE-246); any other button shows its caption slot.
+func innButtonSlot(b town.ButtonSpec, hireSeat, hired bool) *int {
+	switch {
+	case b.Fire == nil:
+		return b.Caption
+	case !hireSeat:
+		return nil
+	case hired:
+		return b.Fire
+	}
+	return b.Caption
+}
+
+// roomButtonCaption is button b's caption: its engine word, else its slot's
+// main text word.
+func (in *InstallResources) roomButtonCaption(b town.ButtonSpec, hireSeat, hired bool) string {
+	if b.Word != "" {
+		return in.engineWord(b.Word)
+	}
+	if slot := innButtonSlot(b, hireSeat, hired); slot != nil {
+		return mainWord(&in.Words, *slot, b.Authored)
+	}
+	return ""
+}
+
 var innButtonVerbs = map[string]innVerb{"hire": innHire, "talk": innTalk, "exit": innExit}
 
 // innButtonVerb maps a control name to its inn verb; the Sleep control is
@@ -334,10 +487,10 @@ func innButtonVerb(name string) (innVerb, bool) {
 	return verb, ok
 }
 
-func innControl(p innProfile, home *Town, seats []innOffer, selected int, name string, button int) (ui.TownSquareControl, bool) {
+func innControl(p innProfile, home *Town, seats []innSeat, selected int, name string, button int) (ui.TownSquareControl, bool) {
 	var seat *innSeat
 	if selected >= 0 && selected < len(seats) {
-		seat = &innSeat{word: seats[selected]}
+		seat = &seats[selected]
 	}
 	verb, found := innButtonVerb(name)
 	if !found || !innButtons(p, home, seat, true)[verb] {
@@ -362,7 +515,7 @@ func (t *townScreen) TownSquareButton(i int) ui.TownAction {
 	if r == nil || i < 0 || i >= len(r.Buttons) {
 		return ui.TownAction{}
 	}
-	seats, _ := t.state().innSeats()
+	seats, _ := t.innPageSeats()
 	selected := t.composed.seat
 	if selected < 0 || selected >= len(seats) {
 		return ui.TownAction{}
@@ -371,7 +524,7 @@ func (t *townScreen) TownSquareButton(i int) ui.TownAction {
 	if !ok {
 		return ui.TownAction{}
 	}
-	return t.innAction(bankInnProfile, &innSeat{word: seats[selected]}, verb)
+	return t.innAction(t.innProfile(), &seats[selected], verb)
 }
 
 type innTalkRequest struct {

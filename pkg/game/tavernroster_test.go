@@ -132,28 +132,28 @@ func TestTavernTalkCellDrawsItsObjectsSheet(t *testing.T) {
 	art.UnitFrames[41], art.UnitFrames[10] = sheet(), sheet()
 	same := func(a, b []image.Image) bool { return len(a) > 0 && len(b) > 0 && &a[0] == &b[0] }
 
-	live := resolveTavernTalk(25, brianRecord, true, brianParty(), nil)
+	live := resolveTavernTalk(firstInnProfile(), 25, brianRecord, true, brianParty(), nil)
 	if live.live != 1 || !live.statistics() || !same(tavernTalkFrames(art, live), art.HeroFrames[0]) {
 		t.Fatalf("Brian = %+v, want the live member 1 on HeroFighter", live)
 	}
-	synthHero := resolveTavernTalk(25, brianRecord, true, brianParty()[:1], nil)
+	synthHero := resolveTavernTalk(firstInnProfile(), 25, brianRecord, true, brianParty()[:1], nil)
 	if synthHero.live != -1 || synthHero.statistics() || !same(tavernTalkFrames(art, synthHero), art.HeroFrames[0]) {
 		t.Fatalf("unmatched Hero record = %+v, want synthesised on HeroFighter", synthHero)
 	}
 	mage := brianRecord
 	mage.Tokens = data.NPCTokens(data.NPCTokenHero) | data.NPCTokens(data.NPCTokenMage) | data.NPCTokens(data.NPCTokenNotHuman)
-	if o := resolveTavernTalk(22, mage, true, brianParty(), nil); !same(tavernTalkFrames(art, o), art.HeroFrames[1]) {
+	if o := resolveTavernTalk(firstInnProfile(), 22, mage, true, brianParty(), nil); !same(tavernTalkFrames(art, o), art.HeroFrames[1]) {
 		t.Fatalf("Hero mage record = %+v, want HeroMage", o)
 	}
 	plain := data.NPCFace{Tokens: data.NPCTokens(data.NPCTokenNotHuman)}
-	if o := resolveTavernTalk(41, plain, true, brianParty(), nil); !same(tavernTalkFrames(art, o), art.UnitFrames[41]) {
+	if o := resolveTavernTalk(firstInnProfile(), 41, plain, true, brianParty(), nil); !same(tavernTalkFrames(art, o), art.UnitFrames[41]) {
 		t.Fatalf("npc41 = %+v, want its own Unit41 sheet", o)
 	}
-	if o := resolveTavernTalk(59, plain, true, brianParty(), nil); tavernTalkFrames(art, o) != nil {
+	if o := resolveTavernTalk(firstInnProfile(), 59, plain, true, brianParty(), nil); tavernTalkFrames(art, o) != nil {
 		t.Fatal("npc59 drew a sheet; Unit59 does not ship")
 	}
 	hired := []mapload.PartyMember{{Name: "Guard", MercenaryType: 10}}
-	if o := resolveTavernTalk(90, data.NPCFace{}, true, hired, nil); o.live != 0 || !same(tavernTalkFrames(art, o), art.UnitFrames[10]) {
+	if o := resolveTavernTalk(firstInnProfile(), 90, data.NPCFace{}, true, hired, nil); o.live != 0 || !same(tavernTalkFrames(art, o), art.UnitFrames[10]) {
 		t.Fatalf("live stock mercenary = %+v, want Unit10", o)
 	}
 }
@@ -202,7 +202,7 @@ func TestTavernTalkResolvesOverTheStockUnits(t *testing.T) {
 	}
 	rec := data.NPCFace{Face: 2, Tokens: data.NPCTokens(data.NPCTokenHuman) | data.NPCTokens(data.NPCTokenFace) |
 		data.NPCTokens(data.NPCTokenNotFemale)}
-	o := resolveTavernTalk(59, rec, true, brianParty(), stock)
+	o := resolveTavernTalk(firstInnProfile(), 59, rec, true, brianParty(), stock)
 	if o.stock != 8 || o.live != len(brianParty())+1 || !o.statistics() || &tavernTalkFrames(art, o)[0] != &art.UnitFrames[8][0] {
 		t.Fatalf("npc59 = %+v, want the type-8 stock unit", o)
 	}
@@ -215,16 +215,16 @@ func TestPlatoonTalkResolvesToItsMercenaryType(t *testing.T) {
 	art := &ui.TownTavernArt{}
 	art.UnitFrames[2] = []image.Image{image.NewRGBA(image.Rect(0, 0, 1, 1))}
 	rec := data.NPCFace{Tokens: data.NPCTokens(data.NPCTokenPlatoon)}
-	o := resolveTavernTalk(2, rec, true, brianParty(), nil)
+	o := resolveTavernTalk(firstInnProfile(), 2, rec, true, brianParty(), nil)
 	if o.stock != 2 || !o.statistics() || o.hero || &tavernTalkFrames(art, o)[0] != &art.UnitFrames[2][0] {
 		t.Fatalf("npc2 = %+v, want the type-2 stock unit", o)
 	}
 	hired := append(brianParty(), mapload.PartyMember{Name: "Catapult", MercenaryType: 1},
 		mapload.PartyMember{Name: "Ballista", MercenaryType: 2})
-	if o := resolveTavernTalk(2, rec, true, hired, nil); o.live != 3 || o.stock != 0 || !o.statistics() {
+	if o := resolveTavernTalk(firstInnProfile(), 2, rec, true, hired, nil); o.live != 3 || o.stock != 0 || !o.statistics() {
 		t.Fatalf("npc2 over a carried ballista = %+v, want member 3", o)
 	}
-	if o := resolveTavernTalk(41, rec, true, brianParty(), nil); o.live >= 0 {
+	if o := resolveTavernTalk(firstInnProfile(), 41, rec, true, brianParty(), nil); o.live >= 0 {
 		t.Fatalf("a Platoon record outside the mercenary types = %+v, want the synthesised object", o)
 	}
 }
@@ -234,11 +234,11 @@ func TestPlatoonTalkResolvesToItsMercenaryType(t *testing.T) {
 func TestHumanTermExcludesHeroes(t *testing.T) {
 	rec := data.NPCFace{Face: 1, Tokens: data.NPCTokens(data.NPCTokenHuman) | data.NPCTokens(data.NPCTokenFace) |
 		data.NPCTokens(data.NPCTokenNotFemale)}
-	if o := resolveTavernTalk(90, rec, true, brianParty(), nil); o.live >= 0 {
+	if o := resolveTavernTalk(firstInnProfile(), 90, rec, true, brianParty(), nil); o.live >= 0 {
 		t.Fatalf("Human record = %+v, want no live hero", o)
 	}
 	hired := []mapload.PartyMember{{Name: "Guard", MercenaryType: 10, FigureDir: string(data.FigureDirManFighter), FigureFace: 1}}
-	if o := resolveTavernTalk(90, rec, true, hired, nil); o.live != 0 {
+	if o := resolveTavernTalk(firstInnProfile(), 90, rec, true, hired, nil); o.live != 0 {
 		t.Fatalf("Human record over a hired human = %+v, want member 0", o)
 	}
 }

@@ -1,5 +1,5 @@
 {
-  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": true, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
+  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": true, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "inn": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
   "town": "rom2-town3",
   "cite": ["R2-ENGINE-251", "R2-ENGINE-257", "R2-SESSION-123"],
   "view": {"size": [640, 480], "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
@@ -171,7 +171,7 @@
      "pane": {"rect": [480, 238, 640, 480], "book": false, "cite": ["R2-ENGINE-246", "R2-SESSION-204", "R2-SESSION-214"]},
      "buttons": [
        {"name": "sleep", "rect": [494, 15, 614, 67], "on": "button/0", "word": "tavern.sleep", "cite": ["R2-ENGINE-246", "DIV-4440"]},
-       {"name": "hire", "rect": [483, 67, 623, 113], "on": "button/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "R2-ENGINE-496", "DIV-3110"]},
+       {"name": "hire", "rect": [483, 67, 623, 113], "on": "button/1", "caption": 258, "fire-caption": 259, "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "R2-ENGINE-496", "DIV-3110"]},
        {"name": "talk", "rect": [483, 114, 623, 160], "on": "button/2", "caption": 242, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
        {"name": "exit", "rect": [494, 160, 614, 212], "on": "button/3", "caption": 232, "cite": ["R2-ENGINE-246", "R2-ENGINE-250", "R2-ENGINE-260"]}
      ],

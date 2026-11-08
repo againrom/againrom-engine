@@ -298,8 +298,8 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 				return hint
 			}
 		}
-		if control, ok := schoolControlAt(surface, p); ok && control.Index >= 0 && control.Index < 10 {
-			// schoolControlAt already maps the painted mask to semantic skill
+		if control, ok := surface.SurfaceControlAt(p); surface.Page.School != nil && ok && control.Kind == TownSurfaceControlCell && control.Index >= 0 && control.Index < 10 {
+			// The page already maps the painted mask to semantic skill
 			// order. Applying the original visual permutation again swaps skills.
 			slot := 171 + control.Index
 			return mainTooltip(w, slot, fmt.Sprintf("school/%d", slot), surface.Font)

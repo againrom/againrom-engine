@@ -8,12 +8,52 @@ import (
 	"os"
 	"sync"
 	"testing"
+
+	"againrom/pkg/render/text"
 )
+
+func TestRoomPageCopiedViewKeepsLiveInputs(t *testing.T) {
+	originalFont, editedFont := shippedShapeFont(), shippedShapeFont()
+	v := firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool, Font: originalFont, SchoolClass: -1,
+		HoverCell: -1, Buttons: []TownSurfaceButton{{Label: "A", Enabled: true}}})
+	edited := v
+	edited.Buttons = append([]TownSurfaceButton(nil), v.Buttons...)
+	edited.Buttons[0].Label = "B"
+	edited.Font = editedFont
+	edited.ButtonStyle = &RoomButtonStyle{Font: editedFont, Ink: testRoomStyleInk}
+	calls := text.Record(func() { ComposeTownSurface(edited) })
+	if !glyphsOf(editedFont, calls) || recordedText(editedFont, calls) != "B" {
+		t.Fatal("the copied frame did not use its current caption and font")
+	}
+	edited.Buttons[0].Enabled = false
+	r := TownSurfaceButtonRect(TownSurfaceSchool, 0)
+	if control, hit := TownSurfaceControlAt(edited, r.Min.Add(r.Size().Div(2))); hit || control != (TownSurfaceControl{}) {
+		t.Fatalf("disabled copied button returned %v/%v", control, hit)
+	}
+	calls = text.Record(func() { ComposeTownSurface(v) })
+	if !glyphsOf(originalFont, calls) || recordedText(originalFont, calls) != "A" || !v.Buttons[0].Enabled {
+		t.Fatal("editing a copied frame changed the original frame")
+	}
+}
+
+func TestRoomPageRetainedViewKeepsItsPane(t *testing.T) {
+	v := firstTavernPage(TownSurfaceView{Kind: TownSurfaceSchool, SchoolClass: -1, HoverCell: -1})
+	v.Pane = false
+	ink := color.RGBA{R: 41, G: 73, B: 19, A: 255}
+	v.Hero.FigurePane.Body = uniform(160, 242, ink)
+	if got := ComposeTownSurface(v).RGBAAt(500, 300); got != ink {
+		t.Fatalf("retained pane pixel %v, want %v", got, ink)
+	}
+}
 
 // firstTavernPage fills a hand-built tavern view's page as the game builds
 // it from the first game's tavern room data; a view of another kind, or one
 // whose page is set, is answered unchanged.
-func firstTavernPage(v TownSurfaceView) TownSurfaceView {
+func firstTavernPage(v TownSurfaceView) (result TownSurfaceView) {
+	defer func() {
+		result.Pane = true
+		finishTestRoomPage(&result.Page, result)
+	}()
 	if v.Page.Regions == nil {
 		v.Page.Regions = map[string][]image.Rectangle{}
 		for _, r := range testSurfaceDescription().Rooms {

@@ -8,7 +8,6 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
-	"againrom/pkg/ui"
 )
 
 type secondTownRoom uint8
@@ -180,31 +179,11 @@ func (t *townScreen) StartNewGame() error {
 	return t.campaignTown().startCampaign()
 }
 
-// innAct dispatches the selected seat's action (Hire, Fire, TALK:
-// R2-ENGINE-496; the room events: DIV-4372) or the first row, the town's
-// one Sleep. i is an inn row: row 0 is Sleep and row i+1 is seat i.
-func (t *townScreen) innAct(c *secondCampaign, row int) ui.TownAction {
-	if row == 0 {
-		return t.innAction(bankInnProfile, nil, innSleep)
-	}
-	seats, _ := c.innSeats()
-	i := row - 1
-	if i < 0 || i >= len(seats) {
-		return ui.TownAction{}
-	}
-	return t.innAction(bankInnProfile, &innSeat{word: seats[i]}, innActivate)
-}
-
 // endInnTalk is the end of the inn talk o: the party gains each identity
 // the edition adds at that talk's end (DIV-4186).
 func (t *townScreen) endInnTalk(o innOffer) {
 	t.sess.addTalkIdentities(t.in.townInstall(), o.npc, o.topic)
 	t.composed.patrons = nil
-}
-
-// setTownDialogue opens section key's conversation and its speaker resolver.
-func (t *townScreen) setTownDialogue(key string, payload []byte) {
-	t.startInnTalk(bankInnProfile, innTalkRequest{key: key, payload: payload, loaded: true, plain: true})
 }
 
 // townSpeakers resolves a town speaker over the carried party as a mission
@@ -221,8 +200,9 @@ func (t *townScreen) townSpeakers() speakerResolver {
 	r := speakerResolver{units: t.in.Units, npcFaces: t.in.NPCFaces,
 		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA), cast: cast}
 	r.campaignActors = map[int]mapload.PartyMember{}
-	seats, _ := t.state().innSeats()
-	for _, seat := range seats {
+	seats, _ := t.innPageSeats()
+	for _, s := range seats {
+		seat := s.word
 		_, controlled := tableEdition(t.in.Table).PartyIdentity(seat.npc)
 		if !controlled && seat.kind != 1 && seat.kind != 2 {
 			continue

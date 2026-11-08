@@ -20,6 +20,9 @@ type townCampaignAdapter interface {
 	savePoint() bool
 	leave()
 	bank() *secondCampaign
+	// innInput is what the inn page seats under profile p: the campaign's
+	// inn options and hire offers.
+	innInput(p innProfile) (options, hires []innOffer)
 	// townShop is the shop the town's Sleep restocks; nil is none.
 	townShop() *Shop
 	chapter() int

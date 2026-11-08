@@ -80,12 +80,12 @@ func secondInnPersonName(in *InstallResources, npc int, resolved ...string) stri
 
 // selectedPatron is the selected seat's person, nil without a selection.
 func (v roomPageView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *secondInnPatron {
-	list, _ := v.t.state().innSeats()
+	list, _ := v.t.innPageSeats()
 	seat := v.t.composed.seat
 	if seat < 0 || seat >= len(list) {
 		return nil
 	}
-	return v.t.innPatron(r, page, list[seat].npc)
+	return v.t.innPatron(r, page, list[seat].word.npc)
 }
 
 // patron is the selected seat's person placed on the page: its statistics

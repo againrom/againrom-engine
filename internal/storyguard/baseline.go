@@ -4385,6 +4385,11 @@ var Committed = Baseline{
 	// internal/archtest/areablow_test.go, net of the struck-guard witness's
 	// removed same-side admission; and this note.
 
+	// It rises for the town room record's doc comments in the new
+	// pkg/game/townroomrecord_test.go, and this note.
+	// It rises for the inn page's profile table, row producer and caption
+	// rows in pkg/game/inn.go, pkg/game/innprofilefixture_test.go and
+	// pkg/town/seats.go, the new internal/archtest/innpage.go, and this note.
 	// It rises for the class-14 kind prefixes: magicItemKinds in
 	// pkg/mapload/itemeffects.go, the new pkg/game/scrolluse_test.go and
 	// pkg/game/elvenscrollsav_test.go; and this note.
@@ -4414,5 +4419,7 @@ var Committed = Baseline{
 	// It rises for the building casters' docs in pkg/sim, pkg/mapload,
 	// pkg/formats/sav, pkg/game and cmd/missionrun, their tests and the
 	// release test, and this note.
-	CommentBytes: 10713761,
+	// Recomputed after merging the inn page and current main's independent changes.
+	// CommentBytes rises for live-input binding in pkg/ui/roomframe.go and this note.
+	CommentBytes: 10718801,
 }

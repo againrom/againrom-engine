@@ -67,6 +67,11 @@ type buttonPanel struct {
 // buildButtonPanel builds a panel from its composition, art and button
 // states. Buttons beyond the composition's plaques are dropped.
 func buildButtonPanel(c panelComposition, art panelArt, buttons []panelButton) buttonPanel {
+	return (RoomPanel{Composition: c, Art: art, Buttons: buttons}).build()
+}
+
+func (p RoomPanel) build() buttonPanel {
+	c, art, buttons := p.Composition, p.Art, p.Buttons
 	n := min(len(buttons), len(c.Plaques))
 	out := make([]pushButton, n)
 	sink := plaqueSink

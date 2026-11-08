@@ -219,7 +219,7 @@ func auditTavernSpeakers(r *figureTownRig, stock map[int]bool) []string {
 			rec, known := f.NPCFaces[int32(npc)]
 			// The dialogue's cast holds the stock units alone, so a hired
 			// squad in the party never answers a speaker.
-			object := resolveTavernTalk(npc, rec, known, nil, s.tavernStockActors())
+			object := resolveTavernTalk(firstInnProfile(), npc, rec, known, nil, s.tavernStockActors())
 			pic, _, found := s.talkFace(npc)
 			who := fmt.Sprintf("chapter %d %s part %d speaker npc%d", r.chapter, cell.Semantic, part, npc)
 			companion := -1

@@ -817,36 +817,6 @@ func (t *Town) chapterOffers(b TownBuilding) []TownOffer {
 	return out
 }
 
-// TavernRoster is the tavern's talk list in the chapter's registry order: every
-// live offer, with a kept speaker in the place of each pair the live arrays no
-// longer hold.
-//
-// A pair leaves both arrays when its mission is accepted (SAV-CAMPAIGN-081) and
-// a talk cell follows its array position (SAV-1112); the speaker is kept so the
-// conversation can be heard again (DIV-1529). A kept speaker's Index is -1 minus
-// its registry position, which Take refuses, so hearing it again queues nothing
-// (DIV-1530).
-//
-// NOTHING IS STORED. The live arrays are what a save holds, so a game the
-// engine played, one it reloaded and one an original save carries all list
-// the same speakers, and the chapter's next advance replaces the registry rows
-// with the next chapter's.
-//
-// A restored chapter's registry is the form its live arrays were written
-// against: a save made without the towns mod that now changes the chapter
-// holds layer 0's arrays, so a LOAD adds no mod row (chapterForms, innRegistry).
-func (t *Town) TavernRoster() []TownOffer {
-	seats := innRoster(chapterInnProfile, t, nil)
-	var out []TownOffer
-	if seats != nil {
-		out = make([]TownOffer, len(seats))
-	}
-	for i, s := range seats {
-		out[i] = s.offer()
-	}
-	return out
-}
-
 // Take accepts one of the live chapter's offers: the mission goes on the
 // available list and the entry is consumed.
 //

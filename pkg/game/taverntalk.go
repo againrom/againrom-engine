@@ -109,17 +109,6 @@ func (t *townScreen) tavernSpeakerCast() speakerCast {
 	return c
 }
 
-// resolveTavernTalk answers which object InnNPC value npc stands for.
-//
-// A record carrying `Platoon` is the mercenary section of type npc. It stands
-// for a carried unit of that type, else for that type's stock unit, as the
-// talk picture does (platoonTalkPicture). The term's predicate is Unknown
-// (TAVERN-TALKSTATS-017); the owner saw the original show the type-2 stock
-// unit's statistics for npc2 (DIV-2778).
-func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.PartyMember, stock []tavernStockActor) tavernTalkObject {
-	return innActor(chapterInnProfile, npc, innActorInput{party: party, stock: stock, record: rec, known: known}).object
-}
-
 // tavernTalkFrames is the sheet a talk cell draws: HeroMage or HeroFighter for
 // a Hero object, else Unit<+0x15b>. An unshipped sheet answers nil; the
 // original aborts there (DIV-1408).
@@ -139,9 +128,18 @@ func tavernTalkFrames(art *ui.TownTavernArt, o tavernTalkObject) []image.Image {
 	return art.UnitFrames[o.sheet]
 }
 
+// tavernTalkObject answers which object InnNPC value npc stands for under
+// the edition's inn profile.
+//
+// A record carrying `Platoon` is the mercenary section of type npc. It stands
+// for a carried unit of that type, else for that type's stock unit, as the
+// talk picture does (platoonTalkPicture). The term's predicate is Unknown
+// (TAVERN-TALKSTATS-017); the owner saw the original show the type-2 stock
+// unit's statistics for npc2 (DIV-2778).
 func (t *townScreen) tavernTalkObject(npc int) tavernTalkObject {
 	rec, known := t.in.NPCFaces[int32(npc)]
-	return resolveTavernTalk(npc, rec, known, t.shopParty(), t.tavernStockActors())
+	in := innActorInput{party: t.shopParty(), stock: t.tavernStockActors(), record: rec, known: known, campaign: t.state(), install: t.in}
+	return innActor(t.innProfile(), npc, in).object
 }
 
 // tavernTalkDetail is the left panel for a selected talk cell

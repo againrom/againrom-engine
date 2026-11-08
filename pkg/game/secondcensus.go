@@ -737,11 +737,13 @@ func secondEngineReach() map[int]bool {
 // Each round visits every available town first, talks to each of its
 // speakers and leaves, then wins the first available mission not yet
 // reached, with every departure gate satisfied, so every stage a departure
-// reaches gets its own town visits.
+// reaches gets its own town visits. The speakers are the talk seats of the
+// inn profile the second game's town host names.
 func secondEngineReachFrom(c *secondCampaign) map[int]bool {
+	p := hostInnProfile(townDescriptions["rom2-town1"].Host.Inn)
 	visit := func() {
-		for _, o := range c.speakers() {
-			c.talkTo(o)
+		for _, s := range innRoster(p, nil, c.innOptions()) {
+			c.talkTo(s.word)
 		}
 		c.leaveTown()
 	}

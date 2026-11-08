@@ -54,7 +54,7 @@ var widgetNotAFrame = map[string]string{
 	"pkg/ui/spellpopup.go:drawAutocastBorder":     "the animated autocast mark around a spell cell",
 	"pkg/ui/sackhighlight.go:drawSackOutline":     "an item contour from the outline texture",
 	"pkg/ui/shopscreen.go:outline":                "the one-pixel selection and focus mark",
-	"pkg/ui/townshell.go:ComposeTownSurface":      "the hired mark inside a control box",
+	"pkg/ui/roompaint.go:drawRoomCells":           "the hired mark inside a control box",
 }
 
 // widgetButtonDebt is every push button painter outside the kit. It may only

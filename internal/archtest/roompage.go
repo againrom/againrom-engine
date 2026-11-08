@@ -79,7 +79,7 @@ func CheckRoomPage(files map[string]string) []Violation {
 var roomShellGeometry = map[string]int{
 	"TownContentRegion": 1, "TownUpperRegion": 1, "TownWideUpperRegion": 1, "TownCharacterRegion": 1,
 	"townButtonLabelRect": 1, "townButtonValueRect": 1, "townSurfaceMessageRect": 1,
-	"drawCharacterPaneBody": 1, "ComposeTownSurface": 4, "shiftedCardBackground": 3,
+	"drawCharacterPaneBody": 1, "shiftedCardBackground": 3,
 }
 
 func roomPageShapes(f *ast.File, name string, at func(ast.Node) string) []Violation {

@@ -6,7 +6,6 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
-	"againrom/pkg/ui"
 )
 
 // innOptions is EnterInn: the inn rows of the campaign's town catalog the
@@ -26,17 +25,6 @@ func (c *secondCampaign) offerRows() []town.OfferRow {
 		return c.offers
 	}
 	return secondBook().offerRows()
-}
-
-// speakers is the inn's talk actors: options of kind 0 and 3, one per NPC
-// key, each answering the first option with that key (R2-ENGINE-220,
-// DIV-2635). Kinds 1 and 2 are hire actors instead.
-func (c *secondCampaign) speakers() []innOffer {
-	var out []innOffer
-	for _, s := range innRoster(bankInnProfile, nil, c.innOptions()) {
-		out = append(out, s.word)
-	}
-	return out
 }
 
 // talkTo is TalkTo (R2-ENGINE-493). Kind 0 has two arms: NPC 5 at any
@@ -98,35 +86,6 @@ func (c *secondCampaign) hires() []innOffer {
 		}
 	}
 	return out
-}
-
-// innSeats is the inn page's seats, the hire actors and then the talk
-// actors (R2-ENGINE-497), and the number of hire actors.
-func (c *secondCampaign) innSeats() ([]innOffer, int) {
-	seats, hires := innSeats(bankInnProfile, nil, c.innOptions(), c.hires())
-	var out []innOffer
-	for _, s := range seats {
-		out = append(out, s.word)
-	}
-	return out, hires
-}
-
-// innRows lists Sleep first, then HIRE or FIRE per hire seat
-// (R2-ENGINE-246) and TALK per speaker. Row i+1 is seat i.
-func (c *secondCampaign) innRows(sleep string) []ui.TownRow {
-	seats, hires := c.innSeats()
-	rows := make([]ui.TownRow, len(seats))
-	for i, o := range seats {
-		verb := "TALK"
-		if i < hires {
-			verb = "HIRE"
-			if c.hired(o.npc) {
-				verb = "FIRE"
-			}
-		}
-		rows[i] = ui.TownRow{Text: fmt.Sprintf("%s %d", verb, o.npc), Choosable: true}
-	}
-	return append([]ui.TownRow{{Text: sleep, Choosable: true}}, rows...)
 }
 
 // enterInn starts a visit of the inn page: the page's copy of the high

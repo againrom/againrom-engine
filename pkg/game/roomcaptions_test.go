@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/ui"
 )
 
@@ -100,5 +101,25 @@ func TestSchoolSurfaceUsesResolvedCaptionsWithoutChangingButtonValues(t *testing
 	after.Buttons[0].Label, after.Buttons[1].Label = before.Buttons[0].Label, before.Buttons[1].Label
 	if !reflect.DeepEqual(after.Buttons, before.Buttons) || f.Town.Gold() != gold {
 		t.Fatal("caption resolution changed button values, enabled state or gold")
+	}
+}
+
+// TestTavernSleepWordIsTheEngineWord: the Sleep word an install resolves
+// is the engine word "tavern.sleep" in the font's code page, for every
+// locale, wherever the font's selector is the install's, as the front end
+// sets it; with authored words and no font both are the English word.
+func TestTavernSleepWordIsTheEngineWord(t *testing.T) {
+	for _, l := range locale.All() {
+		w := (&InstallWords{Language: l.Entry, Selector: l.Selector}).Words()
+		font := missionFont()
+		font.Selector = l.Selector
+		in := InstallResources{Words: w, Font: resolved(font, nil)}
+		if got := in.engineWord("tavern.sleep"); got != w.TavernSleep || got == "" {
+			t.Fatalf("%s: engine word %q, install word %q", l.Entry, got, w.TavernSleep)
+		}
+	}
+	in := InstallResources{Words: ui.AuthoredWords()}
+	if got := in.engineWord("tavern.sleep"); got != in.Words.TavernSleep || got != "Sleep" {
+		t.Fatalf("authored: engine word %q, install word %q", got, in.Words.TavernSleep)
 	}
 }

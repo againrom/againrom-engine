@@ -48,14 +48,14 @@ func TestRoomPersonCardUsesTheGeneratorRow(t *testing.T) {
 
 func TestInnActorFindsATalkPatronInTheUnits(t *testing.T) {
 	input := innTalkPatronInput()
-	got := innActor(bankInnProfile, 681, input)
+	got := innActor(secondInnProfile(), 681, input)
 	if !got.known || got.member.Name != "Druid_Preacher" || got.member.Class != 100 || got.member.FigureFace != 7 {
 		t.Fatalf("NPC 681: known %v, %q class %d face %d", got.known, got.member.Name, got.member.Class, got.member.FigureFace)
 	}
 	if m := got.member; !m.UnitMember() || m.DefinitionRow != 1 {
 		t.Fatalf("NPC 681 reads no Units row for its card: units %v row %d", m.UnitMember(), m.DefinitionRow)
 	}
-	if got := innActor(bankInnProfile, 682, input); got.known {
+	if got := innActor(secondInnProfile(), 682, input); got.known {
 		t.Fatalf("a key no row holds resolved to %q", got.member.Name)
 	}
 }
@@ -72,7 +72,7 @@ func innTalkPatronInput() innActorInput {
 
 func TestTalkPatronCardReadsAsACreature(t *testing.T) {
 	input := innTalkPatronInput()
-	got := innActor(bankInnProfile, 681, input)
+	got := innActor(secondInnProfile(), 681, input)
 	if !got.known {
 		t.Fatal("NPC 681 did not resolve")
 	}

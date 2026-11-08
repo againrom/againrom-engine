@@ -3146,16 +3146,18 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 					return
 				}
 				// The room's character pane precedes its scene.
-				if c, hit := townSquarePaneCorner(v, p); hit {
+				control, hit := v.ControlAt(p)
+				if hit && control.Pane {
 					if s, ok := a.flow.town.(TownSquarePaneScreen); ok {
-						s.TownSquarePane(c)
+						s.TownSquarePane(control.Corner)
 						a.syncViewerLayout()
 					}
 					return
 				}
 				// THE SQUARE'S OWN PICTURE IS HIT-TESTED BY ITS SCENE, which reads
 				// the install's own mask rather than a rectangle this build authored.
-				if c, hit := v.Scene.ControlAt(p); hit {
+				if hit {
+					c := control.Square
 					switch c.Kind {
 					case TownSquareControlDoor:
 						// THE DOOR INDEX FEEDS THE SAME SEAM THE ROW-BUTTON GRID ALWAYS HAS

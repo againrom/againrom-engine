@@ -20,6 +20,15 @@ const (
 	ShopBank    ShopMode = "bank"
 )
 
+// InnMode is which inn profile the town's tavern or inn page lists, talks
+// and hires by.
+type InnMode string
+
+const (
+	InnChapter InnMode = "chapter"
+	InnBank    InnMode = "bank"
+)
+
 // TrackSourceMode is who names the town's music track.
 type TrackSourceMode string
 

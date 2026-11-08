@@ -1,5 +1,5 @@
 {
-  "host": {"rows": "chapter-hints", "header": "chapter", "footer": "party", "talk": "building", "pages": "retained", "art": "pages", "header-prefix": "", "audio-room": "building", "leave": "room-map", "speech": true, "silent-square": true, "click-sounds": true, "dialogue-speech": true, "cache-screen": true, "eager-square": true, "starts-in-town": false, "cite": ["owner"], "shop": "chapter", "track-source": "description", "require-art": false, "current-hook-room": true},
+  "host": {"rows": "chapter-hints", "header": "chapter", "footer": "party", "talk": "building", "pages": "retained", "art": "pages", "header-prefix": "", "audio-room": "building", "leave": "room-map", "speech": true, "silent-square": true, "click-sounds": true, "dialogue-speech": true, "cache-screen": true, "eager-square": true, "starts-in-town": false, "cite": ["owner"], "shop": "chapter", "inn": "chapter", "track-source": "description", "require-art": false, "current-hook-room": true},
   "town": "rom1-square",
   "cite": ["TOWN-489"],
   "view": {"size": [640, 480], "cite": ["TOWN-503", "DIV-1940"]},
@@ -236,9 +236,9 @@
      "music-rule": {"scene": "tavern", "cite": ["owner"]},
      "buttons": [
        {"name": "sleep", "rect": [494, 15, 614, 67], "word": "tavern.sleep", "cite": ["DIV-483", "DIV-1763"]},
-       {"name": "hire", "rect": [483, 67, 623, 113], "cite": ["TOWN-391", "DIV-483"]},
-       {"name": "talk", "rect": [483, 114, 623, 160], "cite": ["TOWN-391", "DIV-483"]},
-       {"name": "exit", "rect": [494, 160, 614, 212], "cite": ["TOWN-391", "DIV-483"]}
+       {"name": "hire", "rect": [483, 67, 623, 113], "caption": 258, "fire-caption": 259, "authored": true, "value": "price", "cite": ["TOWN-391", "DIV-483"]},
+       {"name": "talk", "rect": [483, 114, 623, 160], "caption": 242, "authored": true, "cite": ["TOWN-391", "DIV-483"]},
+       {"name": "exit", "rect": [494, 160, 614, 212], "caption": 232, "authored": true, "value": "gold", "cite": ["TOWN-391", "TOWN-469", "DIV-483"]}
      ],
      "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [

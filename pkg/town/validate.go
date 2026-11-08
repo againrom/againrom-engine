@@ -27,6 +27,7 @@ func (d *Description) Validate() error {
 		}{
 			{"rows", string(h.Rows), modeTexts(RowsChapterHints, RowsHotspots)},
 			{"shop", string(h.Shop), modeTexts(ShopChapter, ShopBank)},
+			{"inn", string(h.Inn), modeTexts(InnChapter, InnBank)},
 			{"track-source", string(h.TrackSource), modeTexts(TrackDescription, TrackCampaign)},
 			{"header", string(h.Header), modeTexts(HeaderChapter, HeaderLocation)},
 			{"footer", string(h.Footer), modeTexts(FooterParty, FooterServices)},
@@ -256,6 +257,15 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		}
 		if b.Caption != nil && b.Word != "" {
 			return fail("%s has both a caption slot and an engine word", where)
+		}
+		if b.Fire != nil && (*b.Fire < 0 || b.Caption == nil) {
+			return fail("%s has fire caption slot %d without a caption slot or below zero", where, *b.Fire)
+		}
+		if b.Authored && b.Caption == nil {
+			return fail("%s reads an authored word without a caption slot", where)
+		}
+		if b.Value != "" && b.Value != ValuePrice && b.Value != ValueGold {
+			return fail("%s has value %q, want %q or %q", where, b.Value, ValuePrice, ValueGold)
 		}
 		for _, name := range []string{b.Off, b.On} {
 			if err := needArt(where, name); err != nil {

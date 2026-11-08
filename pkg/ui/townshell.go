@@ -298,9 +298,12 @@ type RoomScene interface {
 	TipAt(p image.Point) (int, bool)
 }
 
-// TownSurfaceView is a complete tavern or school frame before a modal dialogue
-// is layered over it.
-type TownSurfaceView struct {
+// TownRoomView is one town frame, including its room page and shared overlays.
+type TownSurfaceView = TownRoomView
+type TownSquareView = TownRoomView
+type TownRoomView struct {
+	Pane          bool
+	Dolls         []TownSquareDoll
 	SuppressHover bool // App paints the shared delayed overlay after widening.
 	Kind          TownSurfaceKind
 	Title         string
@@ -390,7 +393,7 @@ func TownCandidateHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) 
 // candidate: the page's figure rectangle, the figure placed in it as the page
 // draws it, and the candidate's worn item text. A view that is not the
 // tavern, or has no candidate or no slot map, describes no doll.
-func (v TownSurfaceView) candidateDollHover() DollHover {
+func (v TownRoomView) candidateDollHover() DollHover {
 	if v.Kind != TownSurfaceTavern || !v.Candidate.HasSubject || v.CandidateSlotMask == nil {
 		return DollHover{}
 	}
@@ -402,7 +405,7 @@ func (v TownSurfaceView) candidateDollHover() DollHover {
 // heroDollHover describes the shown member's figure on the shared character
 // pane, or no doll while the pane shows statistics, has no member or no slot
 // map.
-func (v TownSurfaceView) heroDollHover() DollHover {
+func (v TownRoomView) heroDollHover() DollHover {
 	return townHeroDollHover(v.Hero, v.HeroSlotMask, v.HeroSlotInfo)
 }
 
@@ -557,31 +560,6 @@ func townSurfaceCellState(v TownSurfaceView, i int) (visible, enabled bool) {
 	return true, v.Kind != TownSurfaceSchool || v.Cells[i].Enabled
 }
 
-func schoolControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl, bool) {
-	if v.SchoolArt == nil || !schoolPanelVisible(v) {
-		return TownSurfaceControl{}, false
-	}
-	mask := v.SchoolArt.Masks[v.SchoolClass]
-	r := v.Page.Region("panels", v.SchoolClass)
-	if mask == nil || !p.In(r) {
-		return TownSurfaceControl{}, false
-	}
-	q := p.Sub(r.Min).Add(mask.Bounds().Min)
-	if !q.In(mask.Bounds()) {
-		return TownSurfaceControl{}, false
-	}
-	code := mask.ColorIndexAt(q.X, q.Y)
-	slot, ok := schoolMaskSlot(v.SchoolClass, code)
-	if !ok {
-		return TownSurfaceControl{}, false
-	}
-	i := v.SchoolClass*5 + slot
-	if visible, enabled := townSurfaceCellState(v, i); !visible || !enabled {
-		return TownSurfaceControl{}, false
-	}
-	return TownSurfaceControl{Kind: TownSurfaceControlCell, Index: i}, true
-}
-
 // characterPaneCornerControl is the town pane corner a click at p reaches
 // first among the picker arrows, the mode corner and the book, and whether it
 // acts: an arrow over two members or more, the mode corner over a subject.
@@ -602,45 +580,7 @@ func characterPaneCornerControl(hero TownCharacterView, p image.Point) (Characte
 // TownSurfaceControlAt resolves the extension and character regions before
 // left content, including the school's sixteen-pixel overlap.
 func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl, bool) {
-	if v.BookView != nil && p.In(shopTableRegion) {
-		return TownSurfaceControl{Kind: TownSurfaceControlBookPage}, true
-	}
-	page := v.Page
-	for i := range v.Buttons {
-		if i < len(page.Buttons) && p.In(page.Buttons[i]) {
-			if !v.Buttons[i].Enabled {
-				return TownSurfaceControl{}, false
-			}
-			return TownSurfaceControl{Kind: TownSurfaceControlButton, Index: i}, true
-		}
-	}
-	// Shared character controls precede the room content.
-	if c, hit, acts := characterPaneCornerControl(v.Hero, p); hit {
-		if !acts {
-			return TownSurfaceControl{}, false
-		}
-		kind := map[CharacterPaneCorner]TownSurfaceControlKind{CharacterPanePrev: TownSurfaceControlPrevious,
-			CharacterPaneNext: TownSurfaceControlNext, CharacterPaneMode: TownSurfaceControlMode, CharacterPaneBook: TownSurfaceControlBook}[c]
-		return TownSurfaceControl{Kind: kind}, true
-	}
-	if v.Kind == TownSurfaceSchool && v.SchoolArt != nil {
-		return schoolControlAt(v, p)
-	}
-	if v.Kind == TownSurfaceTavern {
-		if i := page.SeatAt(p); i >= 0 {
-			return TownSurfaceControl{Kind: TownSurfaceControlCell, Index: i}, true
-		}
-		return TownSurfaceControl{}, false
-	}
-	for i := range v.Cells {
-		if p.In(v.Page.Region("cells", i)) {
-			if visible, enabled := townSurfaceCellState(v, i); !visible || !enabled {
-				return TownSurfaceControl{}, false
-			}
-			return TownSurfaceControl{Kind: TownSurfaceControlCell, Index: i}, true
-		}
-	}
-	return TownSurfaceControl{}, false
+	return v.SurfaceControlAt(p)
 }
 
 var (
@@ -942,207 +882,7 @@ func (v TownCharacterView) cardFont() *text.Font {
 // absent by construction here; the fallback furniture and every live control
 // remain visible and hit-testable.
 func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
-	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
-	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: townShellFill}, image.Point{}, draw.Src)
-	artSchool := v.Kind == TownSurfaceSchool && v.SchoolArt != nil
-	artTavern := v.Kind == TownSurfaceTavern && v.TavernArt != nil
-	commandTavern := artTavern && len(v.Buttons) == 4 && v.TavernArt.CommandUpper != nil
-	// The DOLL/STATS toggle swaps only the character pane; the room's art,
-	// title and roster draw as in DOLL mode.
-	if artSchool && v.SchoolArt.Background != nil {
-		draw.Draw(dst, TownContentRegion, v.SchoolArt.Background, v.SchoolArt.Background.Bounds().Min, draw.Src)
-	} else if artTavern && v.TavernArt.Center != nil {
-		DrawRoomPage(dst, v.Page, "backdrop")
-	} else {
-		drawTownShellBox(dst, TownContentRegion, false)
-	}
-	if artSchool && v.Scene != nil {
-		// TOWN-428's own-painter order is background, one selected movie per
-		// side, then the column, skills and diamond below.
-		v.Scene.Paint(dst, "movies")
-	}
-	// The school's and the three-command tavern's 160-wide bodies are copied
-	// at TownUpperRegion with the shipped seam strip closing x:[464,480)
-	// (DIV-166, DIV-168); TOWN-183 issues no border primitive. The
-	// four-command tavern draws the shop's whole 176-wide composition.
-	panel := townSurfacePanel(v, artSchool, artTavern, commandTavern)
-	panel.drawBody(dst)
-	if !artTavern && !artSchool {
-		drawTownShellText(dst, v.Font, v.Title, image.Rect(176, 12, 470, 44), townShellText)
-	}
-	if v.Kind == TownSurfaceTavern {
-		page := v.Page
-		page.Phase = v.AnimationFrame
-		if !artTavern {
-			page.Person = RoomPerson{}
-		}
-		DrawRoomPage(dst, page, "content")
-	}
-	for i, c := range v.Cells {
-		if artSchool || v.Kind == TownSurfaceTavern {
-			continue
-		}
-		r := v.Page.Region("cells", i)
-		ink := townShellText
-		if !c.Enabled {
-			ink = townShellDisabled
-		}
-		drawTownShellBox(dst, r, c.Selected)
-		if c.Picture != nil {
-			b := c.Picture.Bounds()
-			area := r.Inset(2)
-			at := image.Pt(area.Min.X+(area.Dx()-b.Dx())/2, area.Min.Y+(area.Dy()-b.Dy())/2)
-			placed := b.Add(at.Sub(b.Min))
-			clip := placed.Intersect(area)
-			if !clip.Empty() {
-				src := b.Min.Add(clip.Min.Sub(placed.Min))
-				draw.Draw(dst, clip, c.Picture, src, draw.Over)
-			}
-		}
-		drawTownShellText(dst, v.Font, c.Label, image.Rect(r.Min.X+2, r.Min.Y+4, r.Max.X-2, r.Min.Y+34), ink)
-		drawTownShellText(dst, v.Font, c.Detail, image.Rect(r.Min.X+2, r.Min.Y+34, r.Max.X-2, r.Max.Y-4), ink)
-		if c.Hired {
-			outline(dst, r.Inset(3), townShellText)
-		}
-	}
-	if artSchool && v.Scene != nil {
-		v.Scene.Paint(dst, "column")
-	}
-	if artSchool && schoolPanelVisible(v) {
-		class := v.SchoolClass
-		// The shown member's own column face, over whichever face the room
-		// background bakes. It is opaque: the frame covers the same pixels the
-		// background carries there, and a keyed blit would let the baked face
-		// show through the other class's engravings.
-		if face := v.SchoolArt.Faces[class]; face != nil && !v.SchoolColumnSet {
-			b := face.Bounds()
-			draw.Draw(dst, b.Add(SchoolFaceOrigin.Sub(b.Min)), face, b.Min, draw.Src)
-		}
-		for slot := 0; slot < 5; slot++ {
-			i := class*5 + slot
-			if i >= len(v.Cells) || !v.Cells[i].Enabled {
-				continue
-			}
-			state := -1 // the rest state is engraved on the class's own face
-			if v.Cells[i].Selected {
-				state = 0
-			}
-			if v.HoverCell == i {
-				state = 1
-				if v.Cells[i].Selected {
-					state = 2
-				}
-			}
-			if state < 0 || v.SchoolArt.Skills[class][slot][state] == nil {
-				continue
-			}
-			pic := v.SchoolArt.Skills[class][slot][state]
-			r := v.Page.Region([]string{"fighter", "mage"}[class], slot)
-			b := pic.Bounds()
-			at := image.Pt(r.Min.X+(r.Dx()-b.Dx())/2, r.Min.Y+(r.Dy()-b.Dy())/2)
-			draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
-		}
-		// The idle shine paints after every slot's own state: the shine picture
-		// for a slot that is not selected, the shine-on picture for the
-		// selected one (TOWN-500).
-		if v.SchoolIdleShine && v.HoverCell < 0 && v.SchoolIdleSlot >= 0 && v.SchoolIdleSlot < 5 {
-			slot := v.SchoolIdleSlot
-			i := class*5 + slot
-			state := 1
-			if i < len(v.Cells) && v.Cells[i].Selected {
-				state = 2
-			}
-			if i < len(v.Cells) && v.Cells[i].Enabled && v.SchoolArt.Skills[class][slot][state] != nil {
-				pic := v.SchoolArt.Skills[class][slot][state]
-				r := v.Page.Region([]string{"fighter", "mage"}[class], slot)
-				b := pic.Bounds()
-				at := image.Pt(r.Min.X+(r.Dx()-b.Dx())/2, r.Min.Y+(r.Dy()-b.Dy())/2)
-				draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
-			}
-		}
-	}
-	if artSchool && v.Scene != nil {
-		// TOWN-154 paint step 6, independent of the class column.
-		v.Scene.Paint(dst, "diamond")
-	}
-	panel.drawButtons(dst, v.ButtonStyle.font(v.Font))
-	DrawTownCharacterRegion(dst, v.Hero)
-	// The bottom message draws in both modes.
-	drawTownShellText(dst, v.Font, v.Message, townSurfaceMessageRect(), townShellText)
-	if v.BookView != nil {
-		drawTownBook(dst, *v.BookView)
-	}
-	ComposeTipPanel(dst, v.Tip)
-	if v.HasHover && !v.SuppressHover {
-		doll := v.candidateDollHover()
-		if lines, ok := doll.LinesAt(v.Hover); ok {
-			doll.Tip.DrawBeside(dst, v.Font, lines, v.Hover)
-		}
-	}
-	return dst
-}
-
-// townSurfacePanel is a room's command panel. School and the three-plaque
-// tavern draw one of an off/on pair (TOWN-183) on the room's own body; the
-// four-command tavern takes the shop's composition, whose bitmaps draw only
-// while pressed (TOWN-260, DIV-483). The draw and hit rectangles are one
-// (TOWN-182). Captions are the model's install words (TOWN-383/391;
-// DIV-159). v.Press is the pressed control under the cursor.
-func townSurfacePanel(v TownSurfaceView, artSchool, artTavern, commandTavern bool) buttonPanel {
-	comp := panelComposition{Body: TownUpperRegion, Seam: townUpperSeamRegion,
-		MissingBox: townSurfaceUpperRect(v.Kind), Bare: true, Ink: plaqueCommandInk}
-	var art panelArt
-	switch {
-	case artSchool && v.SchoolArt.Upper != nil:
-		art.Body, art.Seam = v.SchoolArt.Upper, v.SchoolArt.UpperSeam
-	case commandTavern:
-		comp = shopPanel
-		comp.Bare = true
-		art.Body = v.TavernArt.CommandUpper
-	case artTavern && v.TavernArt.Upper != nil:
-		art.Body, art.Seam = v.TavernArt.Upper, v.TavernArt.UpperSeam
-	}
-	n := len(v.Buttons)
-	{
-		comp.Plaques = make([]image.Rectangle, n)
-		for i := range comp.Plaques {
-			if i < len(v.Page.Buttons) {
-				comp.Plaques[i] = v.Page.Buttons[i]
-			}
-		}
-	}
-	art.Plaques = make([][2]image.Image, n)
-	buttons := make([]panelButton, n)
-	for i, b := range v.Buttons {
-		pressedOnly := false
-		switch {
-		case artSchool && i < len(v.SchoolArt.Buttons):
-			art.Plaques[i] = wholePair(v.SchoolArt.Buttons[i])
-		case commandTavern && i < len(v.TavernArt.CommandButtons):
-			art.Plaques[i][1], pressedOnly = v.TavernArt.CommandButtons[i], true
-		case artTavern:
-			artIndex := i
-			if n == 4 && i > 0 {
-				artIndex = i - 1
-			}
-			if artIndex < len(v.TavernArt.Buttons) {
-				art.Plaques[i] = wholePair(v.TavernArt.Buttons[artIndex])
-			}
-		}
-		pressed := v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
-		if pressedOnly {
-			pressed = pressed && b.Enabled
-		}
-		r := image.Rectangle{}
-		if i < len(v.Page.Buttons) {
-			r = v.Page.Buttons[i]
-		}
-		buttons[i] = panelButton{Captions: []string{b.Label, b.Value}, Hover: v.HasHover && v.Hover.In(r),
-			Pressed: pressed, Inside: true, Disabled: v.ButtonStyle.disabled(b.Enabled)}
-	}
-	comp.Ink = v.ButtonStyle.plaqueInk(comp.Ink)
-	v.ButtonStyle.shift(&comp)
-	return buildButtonPanel(comp, art, buttons)
+	return ComposeTownRoom(v)
 }
 
 // wholePair is an off/on pair when both pictures are present, else none.
@@ -1151,11 +891,6 @@ func wholePair(pair [2]image.Image) [2]image.Image {
 		return [2]image.Image{}
 	}
 	return pair
-}
-
-func schoolPanelVisible(v TownSurfaceView) bool {
-	return v.SchoolClass >= 0 && v.SchoolClass < 2 &&
-		(!v.SchoolColumnSet || v.SchoolColumnFrame == v.SchoolClass*15)
 }
 
 // cardBoard is the recoloured board bitmap, or nil when the pane has none.

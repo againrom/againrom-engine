@@ -236,6 +236,15 @@ func (c chapterTownCampaign) savePoint() bool     { return c.ready() && c.t.sess
 func (chapterTownCampaign) leave()                {}
 func (chapterTownCampaign) bank() *secondCampaign { return nil }
 
+// innInput is the chapter's inn input: no options, the hire offers of the
+// profile's hire over the session's town.
+func (c chapterTownCampaign) innInput(p innProfile) (options, hires []innOffer) {
+	if c.t.sess.Town == nil {
+		return nil, nil
+	}
+	return nil, innOffers(nil, innState{hire: p.hire, home: c.t.sess.Town, table: c.t.in.Table})
+}
+
 // townShop is the session's town-arrival shop, none while the session holds
 // none.
 func (c chapterTownCampaign) townShop() *Shop {

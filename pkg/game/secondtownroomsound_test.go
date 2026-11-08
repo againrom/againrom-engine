@@ -265,7 +265,7 @@ func TestSecondInnRequestsItsRoomSounds(t *testing.T) {
 		key  string
 	}{{0, "add.wav"}, {0, "noadd.wav"}, {1, "noadd.wav"}, {1, "town/shop/nofit.wav"}} {
 		from := len(rec.requests)
-		screen.innAct(c, step.seat+1)
+		screen.innAct(screen.innRows(false), step.seat+1)
 		if !requested(rec, from, step.key) {
 			t.Errorf("seat %d requested %v, want %s", step.seat, rec.keys(from), step.key)
 		}
@@ -277,7 +277,7 @@ func TestSecondInnRequestsItsRoomSounds(t *testing.T) {
 	}
 	c.room = secondTownInn
 	from = len(rec.requests)
-	screen.innAct(c, 3)
+	screen.innAct(screen.innRows(false), 3)
 	if !requested(rec, from, "talk.wav") {
 		t.Errorf("TALK requested %v, want talk.wav", rec.keys(from))
 	}

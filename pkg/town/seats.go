@@ -105,18 +105,31 @@ func (s *SeatSpec) Seat(i int) image.Rectangle {
 // ButtonSpec is one page button: the action its page binds by Name, its hit
 // rectangle, the page art it shows released and pressed, drawn at the
 // rectangle's corner, and its main text slot or engine word.
+// A button with Fire shows a caption only on a selected hire seat: Fire's
+// slot when that seat is hired, Caption's otherwise. Authored reads a slot
+// as the engine's named word, which keeps its authored text where the
+// install has none. Value names the number drawn beside the caption.
 // A button with If exists only while the host's condition holds: it is not
 // drawn, hit or chosen otherwise.
 type ButtonSpec struct {
-	Name    string   `json:"name"`
-	Rect    Rect     `json:"rect"`
-	Off     string   `json:"off"`
-	On      string   `json:"on"`
-	Caption *int     `json:"caption"`
-	Word    string   `json:"word"`
-	If      string   `json:"if"`
-	Cite    []string `json:"cite"`
+	Name     string   `json:"name"`
+	Rect     Rect     `json:"rect"`
+	Off      string   `json:"off"`
+	On       string   `json:"on"`
+	Caption  *int     `json:"caption"`
+	Fire     *int     `json:"fire-caption"`
+	Authored bool     `json:"authored"`
+	Word     string   `json:"word"`
+	Value    string   `json:"value"`
+	If       string   `json:"if"`
+	Cite     []string `json:"cite"`
 }
+
+// Button values: the selected hire seat's price and the party's gold.
+const (
+	ValuePrice = "price"
+	ValueGold  = "gold"
+)
 
 // ButtonShown reports whether button b exists now: it has no condition, or
 // the host's condition holds.
