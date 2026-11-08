@@ -142,6 +142,7 @@ type pageSeamsFake struct {
 	requests  []SaveRequest
 	overwrite []bool
 	listed    [][]string
+	labels    []string
 	existing  map[string]bool
 }
 
@@ -171,8 +172,9 @@ func testSavePage(p *pageSeamsFake) SavePage {
 		Panel: image.Rect(100, 30, 600, 450), List: image.Rect(140, 177, 536, 177), Rows: 10,
 		Message: image.Rect(140, 372, 560, 406), NameBox: image.Rect(260, 96, 560, 120),
 		EmptySlot: "<<< Empty Slot >>>", Hidden: []string{"game9998.sav", "game9999.sav"},
-		Slot: func(dir string, listed []string) string {
+		Slot: func(dir, label string, listed []string) string {
 			p.listed = append(p.listed, listed)
+			p.labels = append(p.labels, label)
 			return "game0002.sav"
 		},
 	}
@@ -223,6 +225,9 @@ func TestSavePageSlotRowsAndOverwriteWithoutConfirmation(t *testing.T) {
 	}
 	if got := fake.requests[0]; got.Name != "game0002.sav" || got.Label != "Gamma" || got.Directory != "D" {
 		t.Fatalf("empty slot request %+v", got)
+	}
+	if len(fake.labels) == 0 || fake.labels[0] != "Gamma" {
+		t.Fatalf("slot rule saw the name box text %q, want Gamma", fake.labels)
 	}
 	if !reflect.DeepEqual(fake.listed[0], []string{"game0001.sav", "game0000.sav"}) {
 		t.Fatalf("slot rule saw %q", fake.listed[0])

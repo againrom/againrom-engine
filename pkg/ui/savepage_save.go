@@ -161,7 +161,7 @@ func (s *savePageState) target() (string, bool) {
 	for i, e := range s.saves {
 		listed[i] = e.Name
 	}
-	name := s.page.Slot(s.request.Directory, listed)
+	name := s.page.Slot(s.request.Directory, *s.nameField(), listed)
 	return name, name != ""
 }
 

@@ -42,7 +42,7 @@ type SavePage struct {
 	// By default the save role starts with EmptySlot, followed by
 	// the listed saves except the Hidden names. NameBox holds the typed
 	// label, at most NameLimit characters when positive. Ok writes it to the
-	// selected row's file, or to the file Slot names for row 0, with no
+	// selected row's file, or to the file Slot names from the box text for row 0, with no
 	// overwrite confirmation.
 	NameBox   image.Rectangle
 	NameLimit int
@@ -50,7 +50,7 @@ type SavePage struct {
 	// EmptyInk draws the Empty Slot row in this colour; zero keeps the list's.
 	EmptyInk color.RGBA
 	Hidden   []string
-	Slot     func(directory string, listed []string) string
+	Slot     func(directory, label string, listed []string) string
 
 	DirectoryBox image.Rectangle
 	Navigation   [2]PageButton

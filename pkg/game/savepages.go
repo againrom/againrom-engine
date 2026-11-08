@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"againrom/pkg/base"
 	"againrom/pkg/locale"
@@ -137,12 +138,41 @@ func listing(t ui.PageText) ui.PageText {
 	return t
 }
 
-// secondSaveSlot names the Empty Slot's file: gameNNNN.sav with the smallest
-// number from 0 that no listed save carries in name characters 4..7
-// (R2-SESSION-179). A number whose file exists unlisted is skipped too, so the
-// slot never overwrites a file the page does not show (DIV-3080). The
-// numbers 9998 and 9999 are never chosen.
-func secondSaveSlot(dir string, listed []string) string {
+// secondSaveSlot names the Empty Slot's file: the typed label made a valid
+// host file name plus .sav, or gameNNNN.sav (R2-SESSION-179) when the label
+// leaves nothing. A name that any file of dir or any hidden name already
+// carries, compared as the host compares names, takes the smallest free
+// number " 2", " 3" and so on, so the slot never overwrites a file (DIV-4708).
+// The gameNNNN form takes the smallest number from 0 that no listed save
+// carries and whose file does not exist; 9998 and 9999 are never chosen.
+func secondSaveSlot(dir, label string, listed []string) string {
+	if base := saveFileBase(label); base != "" {
+		taken := map[string]bool{}
+		for _, h := range secondSaveHidden() {
+			taken[namefold.Host(h)] = true
+		}
+		if entries, err := os.ReadDir(dir); err == nil {
+			for _, e := range entries {
+				taken[namefold.Host(e.Name())] = true
+			}
+		}
+		for _, name := range listed {
+			taken[namefold.Host(name)] = true
+		}
+		for n := 1; n < 10000; n++ {
+			name := base + originalSaveExt
+			if n > 1 {
+				name = fmt.Sprintf("%s %d%s", base, n, originalSaveExt)
+			}
+			if taken[namefold.Host(name)] {
+				continue
+			}
+			if _, err := os.Lstat(filepath.Join(dir, name)); err == nil {
+				continue
+			}
+			return name
+		}
+	}
 	used := map[int]bool{}
 	for _, name := range listed {
 		if n, ok := saveSlotNumber(name); ok {
@@ -160,6 +190,57 @@ func secondSaveSlot(dir string, listed []string) string {
 		return name
 	}
 	return ""
+}
+
+// saveFileBaseLimit is the longest base name in bytes: hosts admit 255 bytes
+// of a name, and the number and extension follow it.
+const saveFileBaseLimit = 200
+
+// saveFileBase is label as the base of a file name every host admits: a
+// character no host admits or a control character becomes "_", trailing dots
+// and spaces go, a Windows device name gets a "_" suffix and the result is cut
+// on a character boundary. It is empty when nothing is left.
+func saveFileBase(label string) string {
+	var b strings.Builder
+	for _, r := range label {
+		if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) || r == utf8.RuneError || strings.ContainsRune(`<>:"/\|?*`, r) {
+			r = '_'
+		}
+		b.WriteRune(r)
+	}
+	s := b.String()
+	if len(s) > saveFileBaseLimit {
+		cut := saveFileBaseLimit
+		for cut > 0 && !utf8.RuneStart(s[cut]) {
+			cut--
+		}
+		s = s[:cut]
+	}
+	s = strings.TrimRight(s, ". ")
+	if s == "" {
+		return ""
+	}
+	stem := s
+	if i := strings.IndexByte(stem, '.'); i >= 0 {
+		stem = stem[:i]
+	}
+	if isDeviceName(strings.TrimRight(stem, " ")) {
+		s = stem + "_" + s[len(stem):]
+	}
+	return s
+}
+
+// isDeviceName reports a Windows reserved device name in any case.
+func isDeviceName(stem string) bool {
+	switch up := namefold.HostUpper(stem); up {
+	case "CON", "PRN", "AUX", "NUL":
+		return true
+	default:
+		if len(up) == 4 && (strings.HasPrefix(up, "COM") || strings.HasPrefix(up, "LPT")) {
+			return up[3] >= '1' && up[3] <= '9'
+		}
+	}
+	return false
 }
 
 // saveSlotNumber reads name characters 4..7 as four decimal digits.

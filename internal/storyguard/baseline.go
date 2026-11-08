@@ -4404,5 +4404,8 @@ var Committed = Baseline{
 	// It rises for a second-game creature's difficulty rule in pkg/mapload,
 	// its thresholds in the command block, the new
 	// pkg/game/secondcreaturedifficulty_test.go, and this note.
-	CommentBytes: 10702411,
+	// It rises for the Empty Slot file name: secondSaveSlot and saveFileBase in
+	// pkg/game/savepages.go, the new tests in pkg/game/savepages_test.go, and
+	// this note.
+	CommentBytes: 10703384,
 }

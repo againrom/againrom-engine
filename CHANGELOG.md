@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] A weapon with an attack enchantment states its own damage again on its description, above the spell's lines.
 - [ROM2] At the lowest difficulty creatures on the map now have half their health instead of two thirds, as the original's rule gives, and bats and similar creatures back away from a hero who comes close while they are that weak. A mission save now stores each creature's withdrawal and flee points; in a save made earlier by this game they are empty, so creatures in it stay and attack, as the original game plays that same file.
+- [ROM2] A save made on the Empty Slot of the save page is now a file named after the name you type, such as `Camp fire.sav`, instead of `game0003.sav`. A name already in use gets ` 2`, ` 3` and so on, and a name with letters a file cannot hold is adjusted.
 - [ROM2] The mission Forest Madness («Бешенство») no longer ends a moment after it starts: the dying Chief Druid now waits for you to heal him.
 - [BASE] W now remembers the previous weapon after you load one of your own saves, so the swap works straight away. A save from the original game still starts with nothing to swap back to, and a weapon you no longer carry stays gone.
 - [ROM2] A mission save resaved by the original game now opens when one of its units has more health than its maximum.

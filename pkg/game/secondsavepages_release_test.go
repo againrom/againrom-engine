@@ -218,13 +218,13 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	}
 	app.SetSavePages(*pages)
 
-	// Row 0 takes the smallest unused number; a chosen row is overwritten
+	// Row 0 writes the typed name; a chosen row is overwritten
 	// without confirmation under the new label.
 	save("", "Page one")
 	save("", "Page two")
 	save("Page one", "Page three")
 	got := files()
-	want := []string{"game0001.sav=Page three", "game0002.sav=Page two", start[0]}
+	want := []string{"Page one.sav=Page three", "Page two.sav=Page two", start[0]}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("saves %v, want %v", got, want)
 	}
@@ -263,16 +263,16 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 
 	// Loss control: the list follows the last write time.
 	old := time.Now().Add(-time.Hour)
-	if err := os.Chtimes(filepath.Join(dir, "game0001.sav"), old, old); err != nil {
+	if err := os.Chtimes(filepath.Join(dir, "Page one.sav"), old, old); err != nil {
 		t.Fatal(err)
 	}
-	if rows := ownGameSaves(dir, 0, f.savedGame()); rows[0].Name != "game0002.sav" {
-		t.Fatalf("an older game0001.sav still lists first: %v", rows)
+	if rows := ownGameSaves(dir, 0, f.savedGame()); rows[0].Name != "Page two.sav" {
+		t.Fatalf("an older Page one.sav still lists first: %v", rows)
 	}
 
 	// One save: the load page shows one row.
 	one := t.TempDir()
-	raw, err := os.ReadFile(filepath.Join(dir, "game0002.sav"))
+	raw, err := os.ReadFile(filepath.Join(dir, "Page two.sav"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ func TestReleaseSecondGameSavePageOverwritesTheChosenOfTwoEqualLabels(t *testing
 	// Two saves of one label: the chosen lower row is overwritten and the
 	// upper row's file keeps its bytes.
 	save("", "Twin")
-	upper, lower := filepath.Join(dir, "game0002.sav"), filepath.Join(dir, "game0001.sav")
+	upper, lower := filepath.Join(dir, "Twin 2.sav"), filepath.Join(dir, "Twin.sav")
 	// The page cannot name a second save "Twin" (the name selects the first),
 	// so the pair is made as the engine makes its own: a second file with the label.
 	twinRaw, err := os.ReadFile(lower)
