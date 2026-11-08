@@ -15,7 +15,7 @@ func aimedFireBall(t *testing.T, size uint8, aimed bool, speed int32) uint16 {
 	w.entities[1].Transit, w.entities[1].TransitTotal = 4, 8
 	w.entities[1].Stride = NativeStride{Present: true, FromX: 4, FromY: 1, ToX: 5, ToY: 1, StepX: -17}
 	if aimed {
-		if !w.castSpell(0, 2, fireBallSpell, 5, 1, nil) {
+		if !w.castSpell(0, 2, fireBallSpell, nil) {
 			t.Fatal("cast refused")
 		}
 	} else if !w.landArea(w.spells[0], 0, 1, true, 1, 1, 5, 1, nil) {
@@ -59,7 +59,7 @@ func TestFireBallTransportCountdownOfAWideAimSurvivesSaveAndLoad(t *testing.T) {
 	w.spells[0].EffectSpeed = 380
 	w.spells[0].Area, w.spells[0].TargetsUnit, w.spells[0].Distribution, w.spells[0].Radius = true, false, distributionDiamond, 1
 	w.entities[1].TokenSize = 2
-	if !w.castSpell(0, 2, fireBallSpell, 5, 1, nil) || len(w.deliveries) != 1 {
+	if !w.castSpell(0, 2, fireBallSpell, nil) || len(w.deliveries) != 1 {
 		t.Fatal("cast refused")
 	}
 	raw, err := w.MarshalBinary()
@@ -111,7 +111,7 @@ func TestFireBallTransportAimsAtARestoredActorsFinePosition(t *testing.T) {
 		w.entities[1].X = 4
 		w.savedMotion = &savedActorMotionState{Motions: []SavedActorMotion{{Entity: 2, Current: true,
 			Position: SavedActorPosition{Cell: 1<<8 | 4, PackedCell: 1<<8 | 4, FineX: tc.fineX, FineY: 128}}}}
-		if !w.castSpell(0, 2, fireBallSpell, 4, 1, nil) || len(w.deliveries) != 1 {
+		if !w.castSpell(0, 2, fireBallSpell, nil) || len(w.deliveries) != 1 {
 			t.Fatal("cast refused")
 		}
 		if got := w.deliveries[0].Remaining; got != tc.want {

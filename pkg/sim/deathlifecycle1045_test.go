@@ -280,7 +280,7 @@ func TestCadence1045BookApplyWritersRefuseDeadCasters(t *testing.T) {
 		name  string
 		apply func(*World) bool
 	}{
-		{"unit form", func(w *World) bool { return w.castSpell(0, 2, 2, 1, 0, nil) }},
+		{"unit form", func(w *World) bool { return w.castSpell(0, 2, 2, nil) }},
 		{"cell form", func(w *World) bool { return w.castBookAt(0, 1, 0, 2, nil) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

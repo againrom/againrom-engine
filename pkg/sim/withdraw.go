@@ -292,5 +292,6 @@ func (w *World) withdrawFromAny(i int, hostile []int) bool {
 	e.TargetX = tx
 	e.TargetY = ty
 	e.HasTarget = true
+	w.endRetainedCast(i)
 	return true
 }

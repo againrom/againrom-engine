@@ -929,7 +929,7 @@ func SpellCharacteristicsAtPower(r Rules, rule SpellRule, power int32) SpellChar
 	return c
 }
 
-func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY int32, obs *castObs) bool {
+func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs) bool {
 	caster := &w.entities[ci]
 	casterID := caster.ID
 	castFromX, castFromY := caster.X, caster.Y
@@ -966,6 +966,9 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 		return false
 	}
 	target := &w.entities[vi]
+	// An area row cast at an actor lands where the actor stands at the
+	// release, so each repeat follows it (MAGIC-428).
+	aimX, aimY := target.X, target.Y
 	healthBefore := target.HP
 	// The second game revalidates perception at release; the first game's
 	// release has no sight gate (MAGIC-403).
@@ -1893,6 +1896,12 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 				continue
 			}
+			if w.crossingDefersCast(ci) {
+				// A repeat does not cut a step: it begins at the cell centre
+				// (MAGIC-429).
+				i++
+				continue
+			}
 			c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging,
 				castWindupTicks(w.entities[ci]), 0, false
 			rule, _ := w.bookSpell(w.entities[ci], uint32(c.Spell))
@@ -1993,7 +2002,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 		if state.AtCell {
 			applied = w.castBookAt(ci, state.X, state.Y, uint32(state.Spell), obs)
 		} else {
-			applied = w.castSpell(ci, state.Target, uint32(state.Spell), state.X, state.Y, obs)
+			applied = w.castSpell(ci, state.Target, uint32(state.Spell), obs)
 		}
 		if !applied {
 			w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] Enemy dragons' and mages' Fire Ball, Wall of Fire and Poison Cloud now land where the target stands when the spell goes off, a fleeing caster stops casting, and in the first game a caster out of mana attacks instead of standing still.
 - [ROM2] The Talk button on a hire seat now opens that person's description.
 - [ROM2] Our mission saves now also give each creature and person the map places on your own side the number the original game knows it by, as they already did for the other sides.
 - [ROM2] The starter's shop stock multiplier now also fills the second game's shops with more items.

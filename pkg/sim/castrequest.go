@@ -402,6 +402,11 @@ func (w *World) replaceRetainedCast(r castRequest) {
 	w.entities[i].AdmittedBookSpell = uint16(id)
 }
 
+// endRetainedCast is an order written over actor i's retained cast order, as
+// the withdrawal's move is (AI-763): the order ends as a draw of no spell
+// ends it.
+func (w *World) endRetainedCast(i int) { w.replaceRetainedCast(castRequest{caster: i}) }
+
 // The refusals a caller turns into a walk, a wait or a hold: the two of
 // range, the sight refusal a walking caster walks on through, the busy
 // refusal a strike may hold and the mana refusal an order may wait on. Only

@@ -4365,5 +4365,9 @@ var Committed = Baseline{
 	// joinCatalog.byServerID in pkg/game/joincatalog.go, of entitySpeakers and
 	// missionSpeakers in pkg/game/speakeractors.go, the new test's comment in
 	// pkg/game/speakercompanion_test.go, and this note.
-	CommentBytes: 10682000,
+
+	// It rises for the creature-caster rules: the release aim in pkg/sim/spell.go, endRetainedCast
+	// in castrequest.go, the new pkg/sim/castorderrules_test.go and mageemptywalk_test.go's first-game
+	// test, net of the removed emptyWalkEngages field; and this note.
+	CommentBytes: 10683723,
 }

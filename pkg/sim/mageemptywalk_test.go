@@ -121,24 +121,20 @@ func TestASecondGameStaffCasterWithoutABookStrikesAtOnce(t *testing.T) {
 	}
 }
 
-// emptyWalkFirstHash is the first-game run's World hash at its last tick,
-// taken before the second game's miss rule existed: the first game keeps its
-// waiting order tick for tick.
-const emptyWalkFirstHash = 0xc7b70e7d21721c20
-
-// Control: a first-game mage in the same fight keeps today's order: out of
-// mana its retained Fire Arrow stands and waits, no strike starts, and the
-// World over the run hashes as before.
-func TestAFirstGameMageOutOfManaKeepsItsWaitingOrder(t *testing.T) {
-	w := emptyWalkMage(t, false, true)
-	emptyWalkCast(t, w)
-	if k, ok := emptyWalkEngage(w, 4*scriptCycle); ok {
-		t.Fatalf("a first-game mage started a strike at tick %d", k)
-	}
-	if k, ok := w.bookCastIndex(1); !ok || w.bookCasts[k].Spell != 1 || !w.bookCasts[k].Retained {
-		t.Fatalf("the first-game retained order is %+v, want the Fire Arrow waiting", w.bookCasts)
-	}
-	if got := w.Hash(); got != emptyWalkFirstHash {
-		t.Fatalf("first-game hash %#x, want %#x", got, uint64(emptyWalkFirstHash))
+// A first-game computer mage whose book holds no spell it can pay for
+// attacks too: an empty walk with no id 28 returns 0 and the engage writes
+// the attack order over the retained cast order (MAGIC-430). Before, the
+// first game's retained Fire Arrow held the mage standing until its mana came
+// back.
+func TestAFirstGameMageOutOfManaStrikes(t *testing.T) {
+	for _, staff := range []bool{true, false} {
+		w := emptyWalkMage(t, false, staff)
+		emptyWalkCast(t, w)
+		if k, ok := emptyWalkEngage(w, 4*scriptCycle); !ok {
+			t.Fatalf("staff %v: no strike started in %d ticks (last tick %d); casts %+v", staff, 4*scriptCycle, k, w.bookCasts)
+		}
+		if _, cast := w.bookCastIndex(1); cast {
+			t.Fatalf("staff %v: the retained cast order outlived the empty walk: %+v", staff, w.bookCasts)
+		}
 	}
 }

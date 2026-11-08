@@ -151,8 +151,9 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		id = fallback
 	default:
 		// A walk with nothing affordable is a miss: the engage's attack
-		// replaces the retained order, as the hand-back's does.
-		if w.game.emptyWalkEngages && !w.castOwned(r) {
+		// replaces the retained order, as the hand-back's does (MAGIC-430,
+		// R2-ENGINE-902).
+		if !w.castOwned(r) {
 			w.dropCastApproach(i)
 		}
 		return false
