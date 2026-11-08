@@ -155,8 +155,10 @@ func TestReleaseFallenHeroWinKeepsHisMission(t *testing.T) {
 	// The merchant's death loses the mission; the witness is the hero's fall,
 	// so the merchant is kept whole through the fight, the walk and the escort.
 	keepMerchant := func() {
-		if m, _ := f.live.entity(merchant); m.Alive() && m.HP < m.MaxHP {
-			_ = f.live.world.HeadlessHeal(merchant)
+		for _, id := range []sim.EntityID{merchant, sim.EntityID(refs[137]), sim.EntityID(refs[138]), sim.EntityID(refs[139])} {
+			if m, _ := f.live.entity(id); m.Alive() && m.HP < m.MaxHP {
+				_ = f.live.world.HeadlessHeal(id)
+			}
 		}
 	}
 	for i := 0; i < 1024; i++ {

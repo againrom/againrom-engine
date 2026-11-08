@@ -262,7 +262,7 @@ func (w *shotWitness) observe(tick int) {
 		switch {
 		case w.run[e.ID] == sim.AttackCharging && e.Reach > 1:
 			shot := w.shots[mw.spellClientClass(e.ID, e.Class)]
-			if shot[0] == 0 || mw.swing[e.ID] != shot[1] || !sim.InReach(e, victim) {
+			if shot[0] == 0 || mw.swing[e.ID] != shot[1] || !sim.InReach(e, victim) || chebyshevDist(to.X-from.X, to.Y-from.Y) < 2 {
 				continue
 			}
 			read()

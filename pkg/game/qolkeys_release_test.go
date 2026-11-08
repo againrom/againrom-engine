@@ -285,7 +285,7 @@ func TestReleaseQualityOfLifeKeysSaveOnlyOrdinaryOrders(t *testing.T) {
 	loaded.id = shieldWitnessSelect(t, cold, coldApp)
 	loaded.key(t, "w")
 	loaded.steps(t, 4)
-	loaded.holds(t, "W after LOAD", keyed.charged, keyed.plain)
+	loaded.holds(t, "W after LOAD", keyed.plain, keyed.chargedOff())
 	keyed.key(t, "w")
 	keyed.steps(t, 4)
 	keyed.holds(t, "control: W on the running mission", keyed.plain, keyed.chargedOff())

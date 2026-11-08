@@ -66,11 +66,14 @@ func TestReleaseCorpseEntrySAVLoad(t *testing.T) {
 	if len(heard.plays) != 0 {
 		t.Fatal("live entry or startup strikes voiced", heard.plays)
 	}
+	standing := f.live.heroLives()
 	if err := f.live.world.HeadlessDamage(id, body.HP); err != nil {
 		t.Fatal(err)
 	}
 	f.live.push()
 	step()
+	// The wound felled the hero outside the step that takes his dying class.
+	f.live.redressLifeChanges(standing)
 	if len(heard.plays) != 1 || !strings.HasSuffix(heard.plays[0].src, "/die.wav") {
 		t.Fatal("ordinary live fall lost its die cue", heard.plays)
 	}

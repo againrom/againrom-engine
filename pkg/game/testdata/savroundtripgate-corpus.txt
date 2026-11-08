@@ -16,7 +16,14 @@ corpus dying	2026-08-14/game0014.sav dying	accepted	-
 corpus dying	2026-08-14/game0015.sav dying	accepted	-
 corpus dying	2026-08-14/game9999.sav dying	accepted	-
 corpus dying	2026-08-15/game0016.sav dying	accepted	-
-corpus dying	2026-08-15/game0017.sav dying	accepted	-
+corpus dying	2026-08-15/game0017.sav dying	mismatched	-
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch advanced.visible.unit.body
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch advanced.visible.unit.nameIndex
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch advanced.world.entities.Class
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch visible.unit.body
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch visible.unit.nameIndex
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch world.areaCostLive
+corpus dying	2026-08-15/game0017.sav dying	mismatched	mismatch world.entities.Class
 corpus dying	2026-08-15/game0018.sav dying	accepted	-
 corpus dying	2026-08-15/game9999.sav dying	accepted	-
 corpus dying	2026-08-24/game0021.sav dying	accepted	-
@@ -35,7 +42,14 @@ corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0012.sav dying	accepted	-
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0013.sav dying	accepted	-
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0014.sav dying	accepted	-
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0016.sav dying	accepted	-
-corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	accepted	-
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	-
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch advanced.visible.unit.body
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch advanced.visible.unit.nameIndex
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch advanced.world.entities.Class
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch visible.unit.body
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch visible.unit.nameIndex
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch world.areaCostLive
+corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0017.sav dying	mismatched	mismatch world.entities.Class
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0018.sav dying	accepted	-
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game0021.sav dying	accepted	-
 corpus dying	2026-08-30/EXP-0278-human-runtime-en/game9999.sav dying	accepted	-

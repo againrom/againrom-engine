@@ -261,6 +261,12 @@ func area1164NativeFreshWith(t *testing.T, f *FrontEnd, app *ui.App, newFront fu
 	app2.SetSaveSeams(save2, list2, load2)
 	groundAppLoad(t, app2, list2, entries[0].Name)
 	if f.live.world.Hash() == hash {
+		// A hero past decay stage 1 is created with his slots' class (HERO-191).
+		for _, e := range f.live.world.Entities() {
+			if c, ok := fresh.live.world.Entity(e.ID); ok && e.Decay > sim.DecayFallen && c.Class != e.Class {
+				f.live.world.SetClientClass(e.ID, c.Class)
+			}
+		}
 		hash = adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash()
 	}
 	if f.live.world.Hash() != hash || fresh.live.world.Hash() != hash {

@@ -93,27 +93,28 @@ func (w *World) syncCurrentActorCarriers(i int) {
 	// Project that producer even when Issue names why the imported continuation
 	// was invalidated; otherwise SAVE would retain and later resume stale motion.
 	m := w.motionFor(e.ID)
+	held := e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo
 	if m != nil && !m.Current && !e.OffMap && e.Alive() && m.Issue != "native movement continues the imported route" {
 		next, err := ProjectActorMotion(*e, *m, w.Route(e.ID), false)
 		if err == nil {
 			next.Current, next.Active, next.Issue = m.Current, m.Active, m.Issue
 			// An attack held in place carries action 3, the value SAVE writes
 			// for it, so LOAD restores the World this carrier describes.
-			if e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo {
+			if held {
 				next.ActorAction = 3
 			}
 			*m = next
 		}
 	} else if m != nil && (m.ActorAction == 0xd || m.ActorAction == 0xe) && e.Alive() {
 		m.ActorAction = 0
-		if e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo {
+		if held {
 			m.ActorAction = 3
 		}
-	} else if m != nil && !m.Current && e.Alive() && !e.OffMap && !w.motionActive(e.ID) && (m.ActorAction == 0 || m.ActorAction == 3) {
+	} else if m != nil && !m.Current && e.Alive() && !e.OffMap && !w.motionActive(e.ID) && (m.ActorAction == 0 || m.ActorAction == 3 || (m.ActorAction == 1 && held)) {
 		// An imported route that native movement continues keeps its other
 		// words; the held attack is the one action word the entity owns.
 		m.ActorAction = 0
-		if e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo {
+		if held {
 			m.ActorAction = 3
 		}
 	}

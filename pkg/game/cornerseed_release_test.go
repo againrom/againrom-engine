@@ -60,6 +60,10 @@ func cornerSlinger(t *testing.T) (*FrontEnd, *ui.App, sim.EntityID, sim.EntityID
 		if p, _ := live.entity(hero); p.X != c.x+c.dx || p.Y != c.y+c.dy {
 			continue
 		}
+		// A slinger at full health holds its ground; only a wounded one flees.
+		if err := live.world.HeadlessDamage(slinger, 10); err != nil {
+			t.Fatal(err)
+		}
 		live.push()
 		return f, app, slinger, hero, c.x, c.y
 	}

@@ -86,6 +86,10 @@ func TestReleaseOriginalSavedTurnContinues1147(t *testing.T) {
 	if !ok || !e.HasTarget {
 		t.Fatal("completed move turn has no continuation target")
 	}
+	// An actor at full health holds its ground; a wounded one continues away.
+	if err := f.live.world.HeadlessDamage(3, 2); err != nil {
+		t.Fatal(err)
+	}
 	x, y := e.X, e.Y
 	moved := false
 	for range 100 {

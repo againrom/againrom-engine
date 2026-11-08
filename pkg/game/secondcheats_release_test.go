@@ -66,7 +66,7 @@ func secondCheatMission(t *testing.T, mage, chicken bool) (*FrontEnd, *ui.App) {
 func secondCheatReply(t *testing.T, f *FrontEnd, code int, owner uint32) string {
 	t.Helper()
 	row := 221 + 2*(code-5)
-	name := EncodeInstallText(f.live.cheatPlayerName(owner), f.live.view.TextSelector())
+	name := f.live.cheatDisplayPlayerName(owner)
 	table := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	prefix, prefixOK := table.At(row)
 	suffix, suffixOK := table.At(row + 1)
