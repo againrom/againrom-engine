@@ -151,6 +151,8 @@ var nstPinned = []struct {
 		{"autoHealing", "[50]sim.autoHealingPolicy"},
 		{"autoCastSetting", "[50]sim.AutoCastSetting"},
 		{"cellTails", "[]sim.cellTail"},
+		{"buildingCasters", "[]sim.BuildingCaster"},
+		{"authoredBuildingCasters", "[]sim.BuildingCaster"},
 		{"scorchedCells", "[]uint16"},
 		{"structureUses", "[]sim.StructureUse"},
 		{"areaCosts", "[]sim.areaCostEntry"},

@@ -109,6 +109,11 @@ func secondFormKeeps(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error
 		return sav.ProfileKeeps{}, err
 	}
 	keeps := sav.ProfileKeeps{Sees: w.RevealsOwner}
+	casters, err := virtualCasterRecords(&w, doc)
+	if err != nil {
+		return sav.ProfileKeeps{}, err
+	}
+	keeps.Extra = casters
 	source, _, _ := w.SavedStructures()
 	live := w.Structures()
 	for _, st := range source {
@@ -123,7 +128,6 @@ func secondFormKeeps(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error
 			keeps.Pointers[st.SourceKey] = word
 		}
 	}
-	var err error
 	keeps.Commands, err = secondCommandStrikes(&w, doc)
 	return keeps, err
 }

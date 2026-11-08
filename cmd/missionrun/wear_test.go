@@ -131,7 +131,7 @@ func TestDriveTakesWearsAndReDerivesFromASyntheticWorld(t *testing.T) {
 	var buf bytes.Buffer
 	// The tail is the flag's own default (0135-skill-moves T4): this drive
 	// has no waypoint and no blow to outlive, so it changes nothing here.
-	if err := drive(ms, table, nil, nil, nil, []wear{wr}, nil, 100, 64, false, false, &buf); err != nil {
+	if err := drive(ms, table, nil, nil, nil, []wear{wr}, nil, 100, 64, false, false, false, &buf); err != nil {
 		t.Fatalf("drive: %v", err)
 	}
 	out := buf.String()

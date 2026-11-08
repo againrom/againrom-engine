@@ -409,6 +409,7 @@ func run(args []string, out io.Writer) error {
 	fs.Var(&wears, "wear", "REF:X:Y, repeatable: party member REF walks onto (X,Y), takes the sack underfoot and wears "+
 		"what it held, driven in order after the attacks")
 	trace := fs.Bool("trace", false, "print which mission-script arm fires, and on which tick")
+	towers := fs.Bool("towers", false, "print the map's building casters and each cast one queues, by tick")
 	census := fs.Bool("census", false, "report which units moved on their own; with no waypoints, step -ticks ticks and issue nothing")
 	withdrawal := fs.Bool("withdrawal", false, "wound one authored withdrawal actor and print its phase-6 retreat")
 	mage := fs.Bool("mage", false, "start the party's hero as a generated CASTER instead of the fighter (spec FR-14)")
@@ -496,7 +497,7 @@ func run(args []string, out io.Writer) error {
 	if *withdrawal {
 		return driveWithdrawal(ms, table, out)
 	}
-	return drive(ms, table, points, blows, takes, wears, orders, *ticks, *tail, *trace, *census, out)
+	return drive(ms, table, points, blows, takes, wears, orders, *ticks, *tail, *trace, *census, *towers, out)
 }
 
 // A CENSUS OF AUTONOMOUS MOVEMENT.
@@ -643,7 +644,7 @@ func (c *census) report(w *sim.World) {
 // exactly the behaviour and the output they had, and an arm appended after
 // the one before it is the whole of how each new one arrives.
 func drive(ms *game.Mission, table *mapload.Table, points []waypoint, blows []strike, takes []take,
-	wears []wear, orders []standing, ticks, tailTicks int, trace, takeCensus bool, out io.Writer) error {
+	wears []wear, orders []standing, ticks, tailTicks int, trace, takeCensus, towers bool, out io.Writer) error {
 	w := ms.World
 	block := mapload.PassabilityWith(ms.Map, table)
 	width, height := int32(ms.Map.Width), int32(ms.Map.Height)
@@ -651,6 +652,7 @@ func drive(ms *game.Mission, table *mapload.Table, points []waypoint, blows []st
 	tr := newTracer(trace, out, script, w.Script())
 	cen := newCensus(takeCensus, out, script, w)
 	tr.watch(cen)
+	tr.towers = newTowerWatch(towers, out, ms)
 
 	// blocked answers for the GROUND domain, which is bit 0 of the derived
 	// plane. It is the tool's own reading and not the search's: it is used only
@@ -931,6 +933,7 @@ func drive(ms *game.Mission, table *mapload.Table, points []waypoint, blows []st
 	fmt.Fprintf(out, "outcome %s at tick %d\n", outcomeName(w.Outcome()), w.Tick())
 	printPartySkills(out, ms, w, "after")
 	cen.report(w)
+	tr.towers.report()
 	return nil
 }
 

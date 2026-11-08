@@ -310,6 +310,9 @@ func worldCarrierSet() []worldCarrier {
 			decode: map[carrierRecord]func(carrierDecode) error{
 				selectionRecord: func(c carrierDecode) error { return matchCurrentBookSelection(c.state.Document, c.actions) }},
 			writer: func(c carrierSave) error { return finalizeCurrentBookSelection(c.doc) }},
+		{home: "World building casters, carried by the actions leaf of the engine's document",
+			decode: map[carrierRecord]func(carrierDecode) error{
+				actionsRecord: func(c carrierDecode) error { restoreCurrentBuildingCasters(c.ms.World, c.actions); return nil }}},
 		{home: "World session head absence (the actions leaf's AbsentSessionHead)",
 			decode: map[carrierRecord]func(carrierDecode) error{
 				actionsRecord: func(c carrierDecode) error {

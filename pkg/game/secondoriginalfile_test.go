@@ -422,10 +422,13 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 	s.u16(0) // terrain cells
 	s.raw(4 + 10374)
 	s.u32(0) // Sacks
-	s.u32(uint32(extra))
+	s.u32(uint32(extra + len(secondSavedExtraCasters)))
 	for i := range extra {
 		s.obj("Token")
 		s.token(uint32(100+i), 0, 0, 0, 0x0e000001+uint32(i))
+	}
+	for i, c := range secondSavedExtraCasters {
+		s.caster(c, 0x0e100001+uint32(i))
 	}
 	return savedTrailer(s.b)
 }
@@ -741,8 +744,11 @@ func TestSecondMissionFileStateReads(t *testing.T) {
 	if n, err := extra.ExtraTokens(); n != 1 || err != nil {
 		t.Fatalf("extra Tokens %d %v", n, err)
 	}
-	if _, err := fileCampaign(extra).fileState(extra); err == nil || !strings.Contains(err.Error(), "after its Sacks") {
-		t.Fatalf("a Token after the Sacks: %v", err)
+	if _, err := fileCampaign(extra).fileState(extra); err != nil {
+		t.Fatalf("a Token after the Sacks refuses the file: %v", err)
+	}
+	if got, err := extra.VirtualCasters(); err != nil || len(got) != 0 {
+		t.Fatalf("a plain Token read as a caster: %v %v", got, err)
 	}
 	store, present, err := open(secondMissionFile(hero, secondMissionStore(8, 1, 6))).StateData()
 	if err != nil || !present {

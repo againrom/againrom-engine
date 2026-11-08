@@ -27,6 +27,8 @@ type gameProfile struct {
 	// nativeTick: the World keeps its native uint64 tick and no session
 	// clock; the step ends by raising it and runs no session tick arms.
 	nativeTick bool
+	// buildingCasters: the map's type-9 mode-4 records build casters.
+	buildingCasters bool
 	// bankedScript: the second game's script dialect: its checks, instants,
 	// message and outcome rules, and an inert bank without a program.
 	bankedScript bool
@@ -144,6 +146,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		deathRollAt64:              true,
 		deathItemRoll:              true,
 		nativeTick:                 true,
+		buildingCasters:            true,
 		bankedScript:               true,
 		activityMask:               true,
 		cullClearsActionClock:      true,

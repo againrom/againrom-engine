@@ -57,6 +57,7 @@ func init() {
 		{deathItemFormVersion, "DIT1", trailerSpan32, baseOlder, (*World).unmarshalDeathItems},
 		{extendedScriptFormVersion, "XSC1", trailerSpan32, baseOlder, (*World).unmarshalExtendedScript},
 		{rewardMarkFormVersion, "RWM1", trailerSpan32, baseOlder, (*World).unmarshalRewardMarks},
+		{buildingCasterFormVersion, "BCS1", trailerSpan32, baseOlder, (*World).unmarshalBuildingCasters},
 		{summonKeyFormVersion, "SMK1", trailerSpan32, baseOlder, (*World).unmarshalSummonKeys},
 		{tokenRowFormVersion, "TKR1", trailerSpan32, baseOlder, (*World).unmarshalTokenRows},
 		{scriptSlotFormVersion, "SLT1", trailerSpan32, baseOlder, (*World).unmarshalScriptSlots},

@@ -80,15 +80,20 @@ type currentActionData struct {
 	// DepartedBodies are the kept bodies of departed actors without a map
 	// unit or a party entry (sim.PassiveBody.Body), in ID order: nothing
 	// else describes the kind and state their dead records are built from.
-	DepartedBodies       []sim.Entity `json:",omitempty"`
-	Version              uint32
-	WriterCarriers       uint32
-	NativeHistoryVersion uint8              `json:",omitempty"`
-	WorldMapReturn       *SnapshotMapReturn `json:",omitempty"`
-	Bindings             []currentActionBinding
-	Objects              []currentActionObject
-	Actions              sim.ActionContinuations
-	Program              *currentScriptProgram `json:",omitempty"`
+	DepartedBodies []sim.Entity `json:",omitempty"`
+	// BuildingCasters is the World's caster list; the engine's own document has
+	// no list after its Sacks. BuildingCastersWritten says the list was carried:
+	// an older save omits it and takes the list the map rebuild gives.
+	BuildingCastersWritten bool                 `json:",omitempty"`
+	BuildingCasters        []sim.BuildingCaster `json:",omitempty"`
+	Version                uint32
+	WriterCarriers         uint32
+	NativeHistoryVersion   uint8              `json:",omitempty"`
+	WorldMapReturn         *SnapshotMapReturn `json:",omitempty"`
+	Bindings               []currentActionBinding
+	Objects                []currentActionObject
+	Actions                sim.ActionContinuations
+	Program                *currentScriptProgram `json:",omitempty"`
 	// A terminal body is owned by SAV's dead list. Its dormant action residue
 	// remains with that exact root; it never resurrects a ticking Entity.
 	Held             []sim.ActorContinuation
@@ -389,6 +394,7 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err := captureCurrentTerminalValues(w, &a); err != nil {
 		return err
 	}
+	a.BuildingCastersWritten, a.BuildingCasters = w.BuildsCasters(), w.BuildingCasters()
 	var objectErr error
 	a.Inventory, a.Ownership, objectErr = captureCurrentObjects(state, w)
 	if objectErr != nil {

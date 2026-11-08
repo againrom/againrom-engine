@@ -48,6 +48,8 @@ type tracer struct {
 	// which is the one failure a movement count must not have. Nil until
 	// watch is called, and nil-safe.
 	cen *census
+	// towers samples the casters' queued casts after every advance; nil-safe.
+	towers *towerWatch
 }
 
 // watch attaches a census to every advance this tracer makes.
@@ -72,11 +74,13 @@ func (t *tracer) step(w *sim.World, cmds []sim.Command) {
 	if !t.on {
 		sim.Step(w, cmds)
 		t.cen.sample(w)
+		t.towers.sample(w)
 		return
 	}
 	tr := sim.StepTraced(w, cmds)
 	t.report(w, &tr)
 	t.cen.sample(w)
+	t.towers.sample(w)
 }
 
 // preamble is what the compiled script says before a tick has run: the arms this

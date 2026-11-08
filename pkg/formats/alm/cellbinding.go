@@ -37,3 +37,41 @@ func (m *Map) CellBindings() ([]CellBinding, error) {
 	}
 	return out, nil
 }
+
+// BuildingCasterRecord is the mode-4 arm of a type-9 record: a caster bound to
+// the building its Key names (R2-ENGINE-1006, R2-ENGINE-1009).
+type BuildingCasterRecord struct {
+	Key          uint32
+	X, Y         uint8
+	Spell, Power uint8
+	Reach        uint8
+}
+
+// BuildingCasters selects the records of mode mask 4 with a nonzero cell and no
+// sack binding, in file order. A loot element's link to a record is the sack
+// binding (R2-ASSET-230); whether the key names a building is the loader's
+// test, which holds the buildings.
+func (m *Map) BuildingCasters() []BuildingCasterRecord {
+	if m == nil {
+		return nil
+	}
+	bound := map[uint32]bool{}
+	if loot, err := m.Loot(); err == nil {
+		for _, r := range loot.Records {
+			for _, e := range r.Elements {
+				if e.TileMarkerIndex != 0 {
+					bound[e.TileMarkerIndex-1] = true
+				}
+			}
+		}
+	}
+	var out []BuildingCasterRecord
+	for i, r := range m.Enchantments {
+		if r.A&4 == 0 || r.X == 0 && r.Y == 0 || bound[uint32(i)] {
+			continue
+		}
+		out = append(out, BuildingCasterRecord{Key: uint32(r.B) | uint32(r.C)<<16, X: uint8(r.X), Y: uint8(r.Y),
+			Spell: uint8(r.SpellRaw), Power: uint8(r.SpellRaw >> 16), Reach: uint8(r.Tag)})
+	}
+	return out
+}

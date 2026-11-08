@@ -112,6 +112,7 @@ type secondMissionContent struct {
 	humans    map[int]dbEntry
 	creatures map[int]dbEntry
 	spells    map[int]dbEntry
+	casters   []alm.Enchantment
 }
 
 // secondMissionMapOf is secondMissionMap with c's objects, action nodes and
@@ -142,6 +143,7 @@ func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 		le.PutUint32(rec[0x04:], o.Y)
 		le.PutUint32(rec[0x08:], o.Kind)
 		le.PutUint16(rec[0x0c:], o.Field0C)
+		le.PutUint32(rec[0x0e:], o.Field0E)
 		le.PutUint16(rec[0x12:], o.Field12)
 		objects = append(objects, rec...)
 	}
@@ -177,8 +179,14 @@ func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 	for _, r := range c.pointers {
 		pointers = le.AppendUint32(le.AppendUint32(le.AppendUint32(pointers, r.ID), r.Gate), r.Position)
 	}
+	casters := le.AppendUint32(nil, uint32(len(c.casters)))
+	for _, r := range c.casters {
+		casters = le.AppendUint32(le.AppendUint32(le.AppendUint32(casters, r.Tag), r.X), r.Y)
+		casters = le.AppendUint16(le.AppendUint16(le.AppendUint16(casters, r.A), r.B), r.C)
+		casters = le.AppendUint32(le.AppendUint32(casters, r.SpellRaw), 0)
+	}
 	payloads := map[int][]byte{0: meta, 1: make([]byte, 2*w*h), 2: make([]byte, w*h), 3: make([]byte, w*h),
-		4: objects, 5: group, 6: units, 7: script, 8: nil, 9: make([]byte, 4), 11: pointers}
+		4: objects, 5: group, 6: units, 7: script, 8: nil, 9: casters, 11: pointers}
 	order := []int{0, 1, 2, 3, 5, 4, 9, 8, 6, 7}
 	if len(c.pointers) != 0 {
 		order = append(order, 11)

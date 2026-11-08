@@ -78,6 +78,8 @@ type ProfileKeeps struct {
 	// Sees answers whether Player slot viewer sees by the bodies of slot
 	// owner, the World's fog; nil sees nothing.
 	Sees func(viewer, owner uint32) bool
+	// Extra is the records of the profile's list after the Sacks, in order.
+	Extra []DocumentRecordData
 }
 
 // retype writes each record keeps names as the Pointer class with its word.
@@ -263,6 +265,10 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 	if out.World != nil {
 		p.worldForm(out.World)
 		p.form.sight(&out, keeps.Sees)
+		for _, r := range keeps.Extra {
+			out.Objects = append(out.Objects, r)
+			out.World.Extra = append(out.World.Extra, uint16(len(out.Objects)))
+		}
 	}
 	held := map[uint32]bool{}
 	for _, r := range out.Objects {

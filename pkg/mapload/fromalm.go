@@ -386,6 +386,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	if err := bindCellTails(w, m); err != nil {
 		return nil, nil, err
 	}
+	w.DeclareBuildingCasters(BuildingCasters(m, w))
 	// AND THE WEIGHT OF EVERYTHING IT NAMES, off the same t. It is declared
 	// AFTER the constructor rather than through it, because the pass reads the
 	// finished world's own containers, slots and sacks -- the three the

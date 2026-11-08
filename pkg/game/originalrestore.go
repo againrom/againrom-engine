@@ -50,6 +50,7 @@ type originalSource struct {
 	graph             sav.SavedActorGraph
 	buildings         []sav.Building
 	hasBuildings      bool
+	virtualCasters    []sav.VirtualCaster
 	missionDocument   *SnapshotSAVDocument
 	documentOrigins   []sav.DocumentObjectOrigin
 	// heldDocument is the decoded document a partial missionDocument could
@@ -159,6 +160,10 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 			return nil, err
 		}
 		src.buildings, src.hasBuildings, err = sf.Buildings()
+		if err != nil {
+			return nil, err
+		}
+		src.virtualCasters, err = sf.VirtualCasters()
 		if err != nil {
 			return nil, err
 		}
@@ -463,6 +468,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := applyOriginalStructuresCurrent(ms, buildings, hasBuildings, in.table, in.archives.Containers, missionDocument, &r, src.campaign.actions, sf); err != nil {
 				return err
 			}
+			applyOriginalBuildingCasters(ms, src.virtualCasters)
 			if err := applyOriginalCellRecords(ms, cellRecords, hasCellRecords, registry, &r); err != nil {
 				return err
 			}

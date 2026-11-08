@@ -101,6 +101,7 @@ func (w *World) resolveStructureBlow(ai int) {
 	if damage <= 0 {
 		return
 	}
+	w.removeBuildingCastersOn(s, damage)
 	s.Field42 -= uint16(damage)
 	// Keep the existing HP-to-ruin policy and stop before another subtraction
 	// could wrap a ruin back to life. Original whole-world teardown is Unknown.

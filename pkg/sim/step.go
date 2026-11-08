@@ -848,6 +848,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			w.engagementPassTraced(obs, withdrawals)
 			w.actorPass()
 			w.withdrawalPassObserved(withdrawals)
+			w.buildingCasterPass()
 		case worldPassPhase:
 			w.summonCapPass()
 		case scriptReportPhase:

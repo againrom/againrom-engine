@@ -1051,6 +1051,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err
 	}
+	out.DeclareBuildingCasters(BuildingCasters(m, out))
 	// THE WEIGHT TABLE IS REBUILT HERE TOO, on the containers' own reason
 	// below: a rebuild carries only what it names, and the party's own worn and
 	// carried codes are codes no world base ever held. It is not read back off
@@ -1202,6 +1203,8 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err
 	}
+	// The map's casters: this rebuild carries only what it names.
+	out.DeclareBuildingCasters(BuildingCasters(m, out))
 	// AND THE WEIGHT TABLE. This entry point is the one EVERY MISSION comes
 	// through and it is the one that carries the compiled script, so it is also
 	// the only place the script's own item literals reach the pass at all.

@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] The starter no longer says that original saves are refused, that only the first town and mission 10 work, or that the hero's save record is not written; its note for a Rage of Mages II base names the base alone.
 - [ROM1] A creature at full health no longer backs away from a nearby hero. It may back away after it has been wounded.
+- [ROM2] In the mission Lost Caravans («Исчезнувший караван») and every other map that has them, spell towers now fire at your party when it comes near, and a destroyed tower stops firing. Your saves keep which towers still stand.
 - [ROM2] A creature at full health no longer backs away from a hero who comes near: it stands and fights, and may back away only once it has been wounded.
 - [ROM2] A weapon with an attack enchantment states its own damage again on its description, above the spell's lines.
 - [ROM2] At the lowest difficulty creatures on the map now have half their health instead of two thirds, as the original's rule gives. A mission save now stores each creature's withdrawal and flee points; in a save made earlier by this game they are empty, so creatures in it stay and attack, as the original game plays that same file.

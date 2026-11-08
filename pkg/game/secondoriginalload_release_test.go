@@ -121,9 +121,9 @@ func TestReleaseSecondOriginalTownLoadFollowsTheFile(t *testing.T) {
 	}
 }
 
-// A mission-like Bsg& file with a Token after its Sacks is listed; its LOAD
-// refuses before adoption and the front end stays as it was (DIV-4172).
-func TestReleaseSecondOriginalMissionLoadIsRefused(t *testing.T) {
+// A mission-like Bsg& file with a Token after its Sacks is listed, and that
+// Token no longer refuses its LOAD (DIV-4172).
+func TestReleaseSecondOriginalMissionWithAnExtraTokenIsNotRefused(t *testing.T) {
 	out := t.TempDir()
 	hero := secondMissionFixtureHero()
 	raw := labelledContainer(sav.SecondGame.Magic, "Synthetic mission", secondSavedWorld(10, 44, &hero, true, 1),
@@ -140,11 +140,8 @@ func TestReleaseSecondOriginalMissionLoadIsRefused(t *testing.T) {
 	if !listed {
 		t.Fatal("a mission-like Bsg& file is not listed")
 	}
-	if _, _, err := f.RestoreOriginal(raw); err == nil || !strings.Contains(err.Error(), "after its Sacks") {
-		t.Fatalf("a mission-like Bsg& file LOAD: %v, want the extra Token refusal", err)
-	}
-	if f.live != nil || f.liveMission != 0 {
-		t.Fatal("the refused LOAD changed the front end")
+	if _, _, err := f.RestoreOriginal(raw); err != nil && strings.Contains(err.Error(), "after its Sacks") {
+		t.Fatalf("a mission-like Bsg& file LOAD refused its extra Token: %v", err)
 	}
 }
 

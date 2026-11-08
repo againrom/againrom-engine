@@ -297,15 +297,8 @@ func (secondCampaignRules) recordDifficulty(s Snapshot, record *currentSessionDa
 func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) { return 0, false }
 
 // fileState reads a Bsg& file's session from the campaign tail; an empty
-// shortcut array binds no cell (DIV-4153, DIV-4154). A Token in the list
-// after the Sacks has no reader and refuses the file before any state
-// changes (DIV-4172).
+// shortcut array binds no cell (DIV-4153, DIV-4154).
 func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
-	if n, err := sf.ExtraTokens(); err != nil {
-		return originalFileState{}, err
-	} else if n != 0 {
-		return originalFileState{}, fmt.Errorf("this save's world holds %d Tokens after its Sacks, which this version does not read", n)
-	}
 	quick, err := fileQuickSpells(sf, true)
 	if err != nil {
 		return originalFileState{}, err

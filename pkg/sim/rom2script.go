@@ -79,6 +79,7 @@ func (w *World) SetROM2ScenarioState(bank [1024]int32) bool {
 
 func (w *World) initializeROM2Script() {
 	w.rom2, w.game = nil, newGameProfile(w.script.Dialect())
+	w.settleBuildingCasters()
 	if w.script.Dialect() != ScriptROM2 {
 		return
 	}

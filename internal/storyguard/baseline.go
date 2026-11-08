@@ -4411,5 +4411,8 @@ var Committed = Baseline{
 
 	// It rises for the full-health withdrawal field in pkg/sim/gameprofile.go,
 	// its test in pkg/sim/withdraw_test.go, and this note.
-	CommentBytes: 10705104,
+	// It rises for the building casters' docs in pkg/sim, pkg/mapload,
+	// pkg/formats/sav, pkg/game and cmd/missionrun, their tests and the
+	// release test, and this note.
+	CommentBytes: 10713761,
 }

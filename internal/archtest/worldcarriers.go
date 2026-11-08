@@ -56,6 +56,7 @@ var worldCarrierOwners = map[string][]string{
 	"againrom/pkg/game.matchCurrentBookSelection":                              {worldCarrierSet},
 	"againrom/pkg/game.matchCurrentOrderSpellAbsence":                          {worldCarrierSet},
 	"againrom/pkg/game.restoreCurrentWorldEffectTokens":                        {worldCarrierSet},
+	"againrom/pkg/game.restoreCurrentBuildingCasters":                          {worldCarrierSet},
 	"againrom/pkg/game.generatedDocumentBuilder.reserveRetainedDeadEffectKeys": {worldCarrierSet},
 	"againrom/pkg/game.generatedDocumentBuilder.reserveWorldEffectKeys":        {worldCarrierSet},
 	"againrom/pkg/game.generatedDocumentBuilder.currentWorldEffects":           {worldCarrierSet},

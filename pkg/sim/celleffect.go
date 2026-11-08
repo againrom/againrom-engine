@@ -915,6 +915,7 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 	if s.MaxHealth != 0 && spread != 0 {
 		damage = max(int32(base)+w.rng.uniform(int32(spread))-5, 0)
 	}
+	w.removeBuildingCastersOn(s, damage)
 	// Subtract as a word, then clamp a negative signed word. Do not refuse
 	// HP zero: retained aliases still reach the resolver on later visits.
 	s.Field42 -= uint16(damage)
