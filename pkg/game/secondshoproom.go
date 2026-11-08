@@ -303,14 +303,28 @@ var shopItemRows = map[secondshop.Kind]mapload.ItemRowTable{secondshop.Armor: ma
 	secondshop.Shield: mapload.ItemRowShield, secondshop.Weapon: mapload.ItemRowWeapon,
 	secondshop.Magic: mapload.ItemRowMagic, secondshop.Book: mapload.ItemRowBook}
 
+// shopItemRowsOf are the resolver's rows of a shop item.
+func shopItemRowsOf(it secondshop.Item) *mapload.ItemRows {
+	return &mapload.ItemRows{Table: shopItemRows[it.Table],
+		Row: it.Row, Material: it.Material, Class: it.Class, Spell: it.Spell}
+}
+
+// bagItemRows are the rows a second-game bag code reads as, or nil when it
+// names no shop item.
+func bagItemRows(code uint16) *mapload.ItemRows {
+	if it, ok := secondshop.ItemOfID(code); ok {
+		return shopItemRowsOf(it)
+	}
+	return nil
+}
+
 // shopItemName is an item's caption lines, its name first (DIV-3046): the
 // resolver's name for its rows, keyed in the shipped item-name table by the
 // shop's name key; then a castspell effect's spell and level. A book is its
 // name alone.
 func (t *townScreen) shopItemName(it secondshop.Item) []string {
 	tab := t.in.Table
-	s := mapload.ItemSubject{Keyless: true, Rows: &mapload.ItemRows{Table: shopItemRows[it.Table],
-		Row: it.Row, Material: it.Material, Class: it.Class, Spell: it.Spell}}
+	s := mapload.ItemSubject{Keyless: true, Rows: shopItemRowsOf(it)}
 	if tables, ok := secondShopTables(tab); ok {
 		if key, ok := tables.NameKey(it); ok {
 			s.Code, s.Keyless = data.ItemCode(key), false

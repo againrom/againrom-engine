@@ -57,6 +57,9 @@ type gameFiles struct {
 	itemPacket   string
 	// itemNamer names an item with neither a saved nor a shipped name.
 	itemNamer mapload.ItemNamer
+	// itemRows reads a carried item's code as the rows the game's composer
+	// row names it by; nil for a game whose composer row names by code.
+	itemRows func(code uint16) *mapload.ItemRows
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
 	// row: its label and the three levels, or none.
 	// terrainCosts is the address of the installed Terrain cost table every
@@ -325,6 +328,7 @@ var secondGameFiles = gameFiles{
 	itemNameKeys:         worldPrefix + "data/itemname.bin",
 	itemPacket:           worldPrefix + "data/itemname.pkt",
 	itemNamer:            mapload.RowItemNamer,
+	itemRows:             bagItemRows,
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,

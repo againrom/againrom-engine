@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Kaarg's town square now plays background voices, birds and the guard's footsteps.
 - [ROM2] Visiting the inn can now bring back a missing Iglez or Dina at the appropriate point in the campaign, including after loading an older save.
 - [ROM2] A hired companion who dies in a mission no longer comes back for hire at the inn after his rest; a companion who survives still rests one mission and can be hired again.
+- [ROM2] The message line now names a picked-up or received book, magic item or piece of equipment by its name instead of by a number, and the item card shows the same name.
 
 ## 0.149.0
 

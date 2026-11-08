@@ -103,6 +103,10 @@ func idItem(code uint16) (Item, bool) {
 	return it, true
 }
 
+// ItemOfID is the shop item an item ID names, quantity 1 with no price or
+// effect, or false when the ID names none.
+func ItemOfID(code uint16) (Item, bool) { return idItem(code) }
+
 // MagicRow is the magic table row a magic item's ID names, the row an Item
 // holds at +0xc (R2-ENGINE-403), or false when the ID names no magic item.
 func MagicRow(code uint16) (int, bool) {
