@@ -177,6 +177,10 @@ type Shop struct {
 	// decide whether a mod's stocked item is offered again (modStockOffered).
 	drawSeed int64
 
+	// fills counts the second game's fills of this shop, so the multiplier's
+	// further rolls differ from one fill to the next; session-local.
+	fills int
+
 	policy   *shopProfile
 	records  shopRecords
 	location int
@@ -302,6 +306,9 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	}
 	if p.clickEpoch {
 		s.inputEpoch = new(byte)
+	}
+	if p.rawStream {
+		s.fills++
 	}
 	s.table = nil
 	s.tbl = t

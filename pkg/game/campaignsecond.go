@@ -212,6 +212,7 @@ func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 		return
 	}
 	if ok {
+		second.shop.stockMultiplier = f.townInstall().stockMultiplier
 		second.shop.drawStock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
 	}
 }

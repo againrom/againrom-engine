@@ -10,6 +10,7 @@ import (
 
 	"againrom/pkg/formats/itempkt"
 	"againrom/pkg/shopitem"
+	"againrom/pkg/shopstock"
 )
 
 // Collection is the slice of a data.bin collection the rules read.
@@ -30,6 +31,17 @@ type Tables struct {
 	Stocked      []Item
 	ItemRecords  map[uint16]itempkt.Record
 	TemplateCode func(uint16) uint16
+	// Rolls is the launch's count multiplier for a shop fill; its zero value
+	// is off.
+	Rolls Rolls
+}
+
+// Rolls is the count multiplier of a shop fill: each rolled category rolls
+// Factor times, the further rolls drawing on Source's generator. A Factor of
+// zero or one is off.
+type Rolls struct {
+	Factor int
+	Source func() shopstock.Source
 }
 
 // Rand answers one rand() value in 0..32767.

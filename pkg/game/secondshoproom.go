@@ -36,6 +36,7 @@ func secondShopOpen(t *townScreen, _ string) {
 	}
 	stream := t.draws.stream(random.ShopStock)
 	c.adoptLegacyHero(tables)
+	c.shop.stockMultiplier = t.switches.townInstall(t.in).stockMultiplier
 	c.shop.enter(tables, c.current.id, stream.Raw, c.heroBag())
 	t.shopChosen, t.shopShelf, t.shelfBase, t.packBase, t.tableBase, t.shopMember = 0, 0, 0, 0, 0, 0
 }

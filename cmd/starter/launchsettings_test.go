@@ -158,7 +158,7 @@ func TestLaunchSettingsBoundsInCaptions(t *testing.T) {
 	for _, language := range []string{"english", "russian"} {
 		a := rigWithLanguage(t, language).app()
 		openSettings(t, a)
-		want := fmt.Sprintf("(%d..%d, ROM1)", shop.Min, shop.Max)
+		want := fmt.Sprintf("(%d..%d)", shop.Min, shop.Max)
 		found := false
 		for _, it := range a.layout() {
 			found = found || strings.HasSuffix(it.text, want)

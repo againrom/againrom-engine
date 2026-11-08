@@ -4360,5 +4360,5 @@ var Committed = Baseline{
 	// It rises for the hero's Player's map actor key test in
 	// pkg/game/secondactorkey_test.go and secondMapActorKey's doc in
 	// pkg/game/savform.go.
-	CommentBytes: 10679949,
+	CommentBytes: 10681199,
 }

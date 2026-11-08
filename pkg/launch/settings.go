@@ -141,7 +141,7 @@ var (
 		Usage: "train the party's hero in this skill instead of the shipped default (one of: %s)"}
 	ShopStockMultiplier = Setting{Key: "shop-stock-multiplier", Kind: Number, Default: "1", Min: 1, Max: MaxShopStockMultiplier,
 		Read: ReadWhole, Flag: "shop-stock-multiplier",
-		Usage: fmt.Sprintf("roll every ROM1 shop shelf a whole number of times from %d to %d", 1, MaxShopStockMultiplier)}
+		Usage: fmt.Sprintf("roll every shop shelf a whole number of times from %d to %d", 1, MaxShopStockMultiplier)}
 	Extra = Setting{Key: "extra", Kind: Arguments}
 )
 

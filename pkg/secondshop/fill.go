@@ -44,8 +44,11 @@ func (t Tables) Fill(r Record, rnd Rand) Stock {
 // candidate, redrawing a book; an enchanted category enchants its pick and
 // drops a price outside the range. Failures above ten times its draws end
 // it (R2-ENGINE-941); Sort orders it (R2-ENGINE-710). Mods' stocked items then
-// join the stock by placement; they take no draw. The second game has no
-// count multiplier.
+// join the stock by placement; they take no draw. With Rolls above one, each
+// category that took items rolls again that many items Factor-1 times on
+// Rolls' own generator, ends each roll by the same failure bound and joins
+// the further items into its list; the lead items, mods' stocked items and a
+// death's list are not rolled again.
 func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 	p := shopstock.Profile[Item, Item]{Repeat: effectRepeat}
 	for _, cat := range r {
@@ -56,6 +59,17 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 			c := Place(r, it)
 			stock[c] = insert(stock[c], it)
 		}
+	}
+	p.Multiplier = shopstock.Multiplier[Item]{
+		Factor: t.Rolls.Factor,
+		Source: t.Rolls.Source,
+		Join: func(_ int, list, more []Item) []Item {
+			for _, it := range more {
+				list = insert(list, it)
+			}
+			t.sortFill(list)
+			return list
+		},
 	}
 	return p
 }
@@ -68,6 +82,7 @@ func (t Tables) category(cat Category, rnd Rand) shopstock.Category[Item, Item] 
 		Lead:       func(cands []Item, src shopstock.Source) []Item { return t.lead(cat, cands, src) },
 		Count:      func(shopstock.Source) int { return int(cat.Draws) },
 		Bound:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
+		Again:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
 		Redraw:     func(it Item) bool { return it.Table == Book },
 		Redraws:    bookRetries,
 		Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },

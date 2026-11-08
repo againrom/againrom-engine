@@ -191,7 +191,7 @@ var captionRows = []captionRow{
 	row(cMapPicker, "Map picker", "Выбор карты", "dialogs.txt: Select map to play"),
 	row(cChicken, "#Chicken each mission", "#Chicken за миссию", ""),
 	row(cSkill, "Skill", "Навык", "main.txt: Skills"),
-	row(cShopStockMultiplier, "Shop stock multiplier (%d..%d, ROM1)", "Множитель товаров (%d..%d, ROM1)", ""),
+	row(cShopStockMultiplier, "Shop stock multiplier (%d..%d)", "Множитель товаров (%d..%d)", ""),
 	row(cBadShopStockMultiplier, "shop stock multiplier %q must be a whole number from %d to %d", "множитель товаров %q должен быть целым числом от %d до %d", ""),
 	row(cExtraArgs, "Extra arguments", "Доп. аргументы", ""),
 	row(cCloseAfterPlay, "Close after Play", "Закрыть после запуска", "main.txt: Close"),

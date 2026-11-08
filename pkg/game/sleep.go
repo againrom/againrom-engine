@@ -44,6 +44,9 @@ func (t *townScreen) sleep() bool {
 	if shop == nil {
 		return false
 	}
+	if shop.profile().rawStream {
+		shop.stockMultiplier = t.switches.townInstall(t.in).stockMultiplier
+	}
 	return shop.restock(restockInput{table: t.in.Table, town: t.sess.Town, location: t.campaignTown().townID(), draws: t.draws})
 }
 

@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/shopstock"
 	"againrom/pkg/town"
@@ -86,7 +87,11 @@ var bankShopProfile = shopProfile{
 	},
 	join: func(a, b ShopItem) bool { return secondshop.Stacking.Merges(secondItem(a), secondItem(b)) },
 	fill: func(s *Shop, _ *mapload.Table, src shopDrawSource) [shopShelfCount][]ShopItem {
-		return stockOf(s.tables, s.tables.Fill(*s.records[s.location], secondshop.Rand(src.(shopRawDraw))))
+		tables := s.tables
+		tables.Rolls = secondshop.Rolls{Factor: int(s.stockMultiplier), Source: func() shopstock.Source {
+			return random.NewGo(shopExtraRollSeed(s.drawSeed ^ int64(s.location)<<24 ^ int64(s.fills)<<44))
+		}}
+		return stockOf(tables, tables.Fill(*s.records[s.location], secondshop.Rand(src.(shopRawDraw))))
 	},
 	departures: bankShopDepartures(), stages: bankShopStages(),
 	unlocks: []shopRecordPatch{{record: 3, category: 3, field: shopRecordMaskOr, value: secondShopClass4}},
