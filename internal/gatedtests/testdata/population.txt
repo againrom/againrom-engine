@@ -1564,3 +1564,5 @@ pkg/game.TestEditorInstalledItemGroups
 pkg/game.TestEditorInstalledItemChoiceFirstOpenCost
 pkg/game.TestReleaseSecondDeathDropUnitsRows
 pkg/secondshop.TestDeathItemsInstalledOgreFailureBound
+pkg/game.TestReleaseSecondCrownComesHomeFromMissionSeventy
+pkg/game.TestReleaseSecondCrownComesHomeFromMissionEighty

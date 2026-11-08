@@ -212,13 +212,12 @@ func FromInstance(in sim.ItemInstance) (Item, bool) {
 	return it, true
 }
 
-// enchantForm is whether effects are an enchanted equipment unit's, the
-// enchant's forms (R2-ENGINE-711): one castspell at a level above 0, or at
-// most maxEffects other effects of mode 0.
+// enchantForm is whether effects are an equipment unit's in the bag: one
+// castspell at a level above 0, or other effects of mode 0. The enchant gives
+// one to three (R2-ENGINE-711); the bag is the Unit's item list and an Item
+// holds its whole Effect list (R2-ENGINE-402, R2-ENGINE-403), so a unit a map
+// gave more, such as the Gold Crown 0x46c6's five, is a bag unit as well.
 func enchantForm(effects []sim.ItemEffect) bool {
-	if len(effects) > maxEffects {
-		return false
-	}
 	for _, e := range effects {
 		if e.Mode != 0 || e.Kind == 0 || e.Kind == tagTeach || e.Kind == tagCastSpell && (len(effects) != 1 || e.Operand>>16 == 0) {
 			return false
@@ -226,10 +225,6 @@ func enchantForm(effects []sim.ItemEffect) bool {
 	}
 	return true
 }
-
-// maxEffects is the most effects the enchant gives an item: a first pick and
-// two more (R2-ENGINE-711).
-const maxEffects = 3
 
 // Units is it as bag units: Quantity instances of one unit each.
 func (t Tables) Units(it Item) ([]sim.ItemInstance, bool) {

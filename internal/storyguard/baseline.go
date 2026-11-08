@@ -4387,5 +4387,9 @@ var Committed = Baseline{
 	// It rises for the class-14 kind prefixes: magicItemKinds in
 	// pkg/mapload/itemeffects.go, the new pkg/game/scrolluse_test.go and
 	// pkg/game/elvenscrollsav_test.go; and this note.
-	CommentBytes: 10691722,
+
+	// It rises for the Gold Crown's carry tests in the new
+	// pkg/game/secondcrowncarry_test.go and secondcrownvictory_release_test.go,
+	// the bag form's doc comment in pkg/secondshop/bag.go, and this note.
+	CommentBytes: 10695279,
 }

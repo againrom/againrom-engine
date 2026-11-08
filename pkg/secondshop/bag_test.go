@@ -140,6 +140,8 @@ func TestMissionUnitTakesTheDecodersForm(t *testing.T) {
 // its bag form instead of its mission form.
 func TestKeptUnitLosesNothing(t *testing.T) {
 	cast := []sim.ItemEffect{{Kind: 41, Operand: 9 | 2<<16}}
+	// The Gold Crown a map's type-9 record gives five effects.
+	crown := sim.ItemInstance{Code: 0x46c6, Kind: 1, Price: 9999999, Effects: []sim.ItemEffect{{Kind: 25, Operand: 70}, {Kind: 23, Operand: 70}, {Kind: 2, Operand: 10}, {Kind: 16, Operand: 10}, {Kind: 1, Operand: 1000000}}}
 	for _, tc := range []struct {
 		in, want sim.ItemInstance
 	}{
@@ -147,6 +149,7 @@ func TestKeptUnitLosesNothing(t *testing.T) {
 		{sim.ItemInstance{Code: 0x4201, Kind: 1, Price: 15}, sim.ItemInstance{Code: 0x4201, Price: 15}},
 		{sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}, sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}},
 		{sim.ItemInstance{Code: 0x0e01, Kind: 3, Price: 20, Effects: []sim.ItemEffect{{Kind: 6, Operand: 30}}}, sim.ItemInstance{Code: 0x0e01, Price: 20}},
+		{crown, crown},
 	} {
 		if got, ok := KeptUnit(tc.in, bagTestDecode); !ok || !reflect.DeepEqual(got, tc.want) {
 			t.Fatalf("KeptUnit(%+v) = %+v, %v; want %+v", tc.in, got, ok, tc.want)

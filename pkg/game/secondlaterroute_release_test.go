@@ -17,6 +17,14 @@ import (
 // maps no published inn entry admits from a new game (DIV-2392).
 func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32) {
 	t.Helper()
+	secondLaterEntryWith(t, f, app, n, stage, nil)
+}
+
+// secondLaterEntryWith is secondLaterEntry with prepare run on the campaign
+// in town 2 before GATES, so a test can put bank slots and the hero's pack in
+// place for the mission's script.
+func secondLaterEntryWith(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32, prepare func(*secondCampaign)) {
+	t.Helper()
 	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
@@ -33,6 +41,9 @@ func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32
 	c := f.Town.second
 	c.current, c.available, c.room = partyPlace{2, 2}, []partyPlace{{2, 2}, {1, n}}, secondTownSquare
 	c.bank[768] = stage
+	if prepare != nil {
+		prepare(c)
+	}
 	if err := app.HeadlessActivate("GATES"); err != nil {
 		t.Fatal(err)
 	}

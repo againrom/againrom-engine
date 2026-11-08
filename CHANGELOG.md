@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 - [ROM2] The message line now names a picked-up or received book, magic item or piece of equipment by its name instead of by a number, and the item card shows the same name.
 - [ROM2] In the mission "The Astrologer" the granddaughter's lines now show Dina's portrait, not a man mage's.
 - [ROM2] Drain Life's sparks now start moving at once and last as long as Heal's, and the Drain picture no longer stays on the target.
+- [ROM2] The Crown of Yazes from missions 70 and 80 no longer disappears after the victory when it is not worn: in town it is in the bag, or on the strip of the companion who received it in the shop, and a town SAVE and LOAD keeps it.
 
 ## 0.149.0
 

@@ -121,13 +121,20 @@ func secondBagEnterFromMap(t *testing.T, f *FrontEnd, app *ui.App, screen *townS
 // the map.
 func secondBagWin(t *testing.T, f *FrontEnd, n int) {
 	t.Helper()
+	secondBagWinOver(t, f, n, f.live.world)
+}
+
+// secondBagWinOver is secondBagWin over w, a world the mission f.live
+// shows has come to.
+func secondBagWinOver(t *testing.T, f *FrontEnd, n int, w *sim.World) {
+	t.Helper()
 	mw := f.live
 	trigger := sim.ScriptTrigger{Instants: [4]int32{0, sim.ScriptNone, sim.ScriptNone, sim.ScriptNone}, Once: true}
 	program, err := sim.NewROM2Script(nil, []sim.ScriptInstant{{Op: sim.ScriptInstantWin, Args: [10]int32{1}}}, []sim.ScriptTrigger{trigger})
 	if err != nil {
 		t.Fatal(err)
 	}
-	won, err := sim.NewControlledScriptWorld(mw.world, program)
+	won, err := sim.NewControlledScriptWorld(w, program)
 	if err != nil {
 		t.Fatal(err)
 	}
