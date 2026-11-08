@@ -65,9 +65,7 @@ func cheatChat(t *testing.T, a *ui.App, command string) {
 
 func cheatNoticeWant(t *testing.T, f *FrontEnd, code int) {
 	t.Helper()
-	row := 221 + 2*(code-5)
-	name := EncodeInstallText(f.live.cheatPlayerName(sim.SelfSlot), f.live.view.TextSelector())
-	want := rawTextLine(t, f, MainTextPath, row) + name + rawTextLine(t, f, MainTextPath, row+1)
+	want := secondCheatReply(t, f, code, sim.SelfSlot)
 	lines := f.live.view.MessageLines()
 	if len(lines) == 0 || lines[len(lines)-1].Text != want {
 		t.Fatalf("notice %d = %v, want installed %q", code, lines, want)
@@ -1080,12 +1078,15 @@ func TestReleaseCheatOrdinaryChatAndNamesUseInstalledAlphabet(t *testing.T) {
 			cheatChat(t, a, "#Chicken")
 			lines = f.live.view.MessageLines()
 			wantFrame := "Player " + playerBytes + " enable cheating."
-			wantNotice := rawTextLine(t, f, MainTextPath, 221) + playerBytes + rawTextLine(t, f, MainTextPath, 222)
+			if got := f.live.cheatDisplayPlayerName(sim.SelfSlot); got != playerBytes {
+				t.Fatalf("Player name = %q, want installed bytes %q", got, playerBytes)
+			}
+			wantNotice := secondCheatReply(t, f, 5, sim.SelfSlot)
 			if len(lines) != 2 || lines[0].Text != wantFrame || lines[1].Text != wantNotice || f.live.cheats.privilege[sim.SelfSlot] != 255 {
 				t.Fatalf("Chicken name projection=%v, want frame %q and notice %q", lines, wantFrame, wantNotice)
 			}
 			cheatChat(t, a, "#kill "+playerUTF8)
-			wantKillNotice := rawTextLine(t, f, MainTextPath, 225) + playerBytes + rawTextLine(t, f, MainTextPath, 226)
+			wantKillNotice := secondCheatReply(t, f, 7, sim.SelfSlot)
 			lines = f.live.view.MessageLines()
 			if releaseEntity(t, f.live, id).HP != -50 || len(lines) == 0 || lines[len(lines)-1].Text != wantKillNotice {
 				t.Fatal("typed current Player name did not target its hero or project the installed notice")

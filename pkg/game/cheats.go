@@ -92,12 +92,19 @@ func (mw *mapWorld) cheatReply(code int, owner uint32) {
 	if code == 0 || mw.mission == nil || mw.mission.src == nil {
 		return
 	}
-	lines := installText(mw.mission.src, cheatLinesSource.at(), TextCode{}).lines()
+	lines := installText(mw.mission.src, cheatLinesSource.at(), InstallTextCode(mw.mission.src, mw.mission.edition())).lines()
 	index := 221 + 2*(code-5)
 	if index < 0 || index+1 >= len(lines) {
 		return
 	}
-	mw.view.PostMessage(lines[index]+mw.cheatDisplayPlayerName(owner)+lines[index+1], ui.MessageWhite, mw.chatGame().replyTime)
+	prefix, suffix := lines[index], lines[index+1]
+	if !strings.HasSuffix(prefix, " ") {
+		prefix += " "
+	}
+	if !strings.HasPrefix(suffix, " ") {
+		suffix = " " + suffix
+	}
+	mw.view.PostMessage(prefix+mw.cheatDisplayPlayerName(owner)+suffix, ui.MessageWhite, mw.chatGame().replyTime)
 }
 
 func (mw *mapWorld) cheatAllowed() bool {

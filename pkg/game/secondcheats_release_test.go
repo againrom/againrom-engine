@@ -67,7 +67,13 @@ func secondCheatReply(t *testing.T, f *FrontEnd, code int, owner uint32) string 
 	t.Helper()
 	row := 221 + 2*(code-5)
 	name := EncodeInstallText(f.live.cheatPlayerName(owner), f.live.view.TextSelector())
-	return rawTextLine(t, f, MainTextPath, row) + name + rawTextLine(t, f, MainTextPath, row+1)
+	table := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
+	prefix, prefixOK := table.At(row)
+	suffix, suffixOK := table.At(row + 1)
+	if !prefixOK || !suffixOK {
+		t.Fatalf("missing cheat reply lines %d/%d", row, row+1)
+	}
+	return strings.TrimRight(prefix, " ") + " " + name + " " + strings.TrimLeft(suffix, " ")
 }
 
 // secondCheatLines types line through the App chat and returns the message

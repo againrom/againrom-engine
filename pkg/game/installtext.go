@@ -736,7 +736,7 @@ var (
 	creditsRollSource     = &textSource{address: mainPrefix + "text/credits.txt", codec: fontBytes, limit: 256 * 1024, maxLines: 4096, form: lfLines, edge: edgeFinalLF}
 	hallCreditsSource     = &textSource{address: mainPrefix + "text/credits.txt", codec: fontUTF8, form: lfLines, edge: edgeTrimSpace}
 	npcNameLinesSource    = &textSource{address: mainPrefix + "text/npcnames.txt", codec: fontBytes, form: lfLines}
-	cheatLinesSource      = &textSource{address: MainTextPath, form: lfLines}
+	cheatLinesSource      = &textSource{address: MainTextPath, codec: fontBytes, form: lfLines}
 	itemNameTextSource    = &textSource{address: ItemNameTextAddress, codec: fontBytes}
 	heroPictureSource     = &textSource{address: HeroPictureAddress}
 	missionPageDirSource  = &textSource{address: mainPrefix + "text/battle/m%d/", numbered: true}
