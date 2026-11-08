@@ -2306,17 +2306,10 @@ func openMapWorld(m *alm.Map, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// that world's ids the same numbers rather than two derivations that agree.
 	// A nil table resolves no tier, exactly as it resolves no health and no
 	// domain. A plain map places no party, but it still resolves a character
-	// for every placement that resolves to a definition entry: the picker's own
-	// path is the map screen it always was, with each unit's eight numbers, and
-	// now its sheet, added and nothing else. Before this story this line passed
-	// no lookup at all and the picker's every unit stated no character;
-	// placedCharacters below is the map-loading tier's own PlacedSheets,
-	// converted, and does not read ms — there is no mission here to read one
-	// from. NO SCHEDULE — see openMission, where the same removal is
-	// explained. THIS PATH COMPILES NO SCRIPT and advances under the AI alone
-	// — not "its own script", which was never true of it and is corrected
-	// here. A picker row naming a campaign mission does not reach this function
-	// at all; it opens through MissionOpener, which does compile one.
+	// for every placement that resolves to a definition entry. NO SCHEDULE —
+	// see openMission. THIS PATH COMPILES NO SCRIPT and advances under the AI
+	// alone. A picker row naming a campaign mission does not reach this
+	// function; it opens through MissionOpener, which does compile one.
 	mw := newMapWorldWith(w, nil, units, entityTiers(m, t), placedCharacters(m, t, placedEntities(m, nil, nil, nil)), nil, v)
 	mw.figures = entityFigures(m, t)
 	// THE BOOK'S OWN NAMES, off the SAME table t already resolved a spell

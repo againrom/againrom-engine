@@ -782,16 +782,25 @@ func (w *World) motionActorKey(id EntityID) uint32 {
 	if at < 0 {
 		return 0
 	}
-	key := w.entities[at].SourceBinding.Identity
+	var slots []uint32
 	for _, c := range w.cellRecords {
-		for _, slot := range []SavedActorSlot{c.Ground, c.Air} {
+		for _, slot := range [2]SavedActorSlot{c.Ground, c.Air} {
 			if slot.Bound && slot.Entity == id {
-				if key != 0 && key != slot.Key {
-					return 0
-				}
-				key = slot.Key
+				slots = append(slots, slot.Key)
 			}
 		}
+	}
+	return motionKeyAcross(w.entities[at].SourceBinding.Identity, slots)
+}
+
+// motionKeyAcross settles an actor's key from its source identity and the
+// keys of the slots bound to it, in cell order; 0 when they disagree.
+func motionKeyAcross(key uint32, slots []uint32) uint32 {
+	for _, slot := range slots {
+		if key != 0 && key != slot {
+			return 0
+		}
+		key = slot
 	}
 	return key
 }

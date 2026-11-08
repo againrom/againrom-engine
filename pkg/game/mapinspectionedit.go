@@ -372,7 +372,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			if sheets := s.unitViewSheets(); index < len(sheets) {
 				out = append(out, ui.InspectionField{Key: "resolved", ReadOnly: true, Section: "stats", Lines: s.inspector.sheetLines(template.m.Units[index], mapload.Resolve(template.m.Units[index], s.inspector.table), sheets[index])})
 			}
-			if templates, err := templateSheets(template.m, s.inspector.table); err == nil && index < len(templates) {
+			if templates, err := s.unitViewTemplates(template.m); err == nil && index < len(templates) {
 				out = append(out, ui.InspectionField{Key: "overrides", ReadOnly: true, Section: "stats", Lines: s.inspector.overrideLines(s.model, index, templates[index])})
 			}
 			for i := range out {

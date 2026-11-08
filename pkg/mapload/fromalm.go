@@ -277,6 +277,10 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		if err := CheckTileGroups(m, t); err != nil {
 			return nil, nil, err
 		}
+		// One build reads one spell table; each caster would parse it again.
+		built := *t
+		built.builtSpellRules = SpellRules(t)
+		t = &built
 	}
 
 	var units []alm.Unit

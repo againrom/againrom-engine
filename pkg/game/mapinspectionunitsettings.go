@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/mapedit"
+	"bytes"
 	"fmt"
 	"maps"
 	"strconv"
@@ -22,6 +23,17 @@ type inspectionUnitViews struct {
 	// each unit's name without its authored one, in the font's bytes.
 	names     map[uint16]string
 	kindNames map[int]string
+	// source is the model bytes the world and templates were built from.
+	source    []byte
+	world     *mapWorld
+	worldMap  *alm.Map
+	templates []unitSheet
+}
+
+func (c *inspectionUnitViews) forSource(model *mapedit.Editor) {
+	if b := model.Bytes(); !bytes.Equal(c.source, b) {
+		c.source, c.world, c.worldMap, c.templates = b, nil, nil, nil
+	}
 }
 
 func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
@@ -45,9 +57,28 @@ func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	return c.actual
 }
 
+// unitViewTemplates are the model's placements as their templates spawn them.
+func (s *mapInspectionEdits) unitViewTemplates(m *alm.Map) ([]unitSheet, error) {
+	c := s.unitViewCache()
+	c.forSource(s.model)
+	if c.templates == nil {
+		templates, err := templateSheets(m, s.inspector.table)
+		if err != nil {
+			return nil, err
+		}
+		c.templates = templates
+	}
+	return c.templates, nil
+}
+
 // unitWorld opens the model's map as the game would and fills c with each
-// unit's drawn entity under the names page and its name without it.
+// unit's drawn entity under the names page and its name without it, once for
+// each state of the map's bytes.
 func (s *mapInspectionEdits) unitWorld(c *inspectionUnitViews) (*mapWorld, *alm.Map, error) {
+	c.forSource(s.model)
+	if c.world != nil {
+		return c.world, c.worldMap, nil
+	}
 	m, err := s.model.Map()
 	if err != nil {
 		return nil, nil, err
@@ -74,6 +105,7 @@ func (s *mapInspectionEdits) unitWorld(c *inspectionUnitViews) (*mapWorld, *alm.
 	for _, entity := range c.entities {
 		c.kindNames[int(entity.ID)] = mw.shownName(sim.EntityID(entity.ID))
 	}
+	c.world, c.worldMap = mw, m
 	return mw, m, nil
 }
 

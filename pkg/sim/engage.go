@@ -479,19 +479,19 @@ type groupAI struct {
 func groupKeys(ents []Entity) []groupAI {
 	var out []groupAI
 	for i := range ents {
-		e := ents[i]
+		e := &ents[i]
 		if e.Owner == 0 {
 			continue
 		}
 		found := false
 		for k := range out {
-			if out[k].owner == e.Owner && out[k].group == effectiveGroup(&e) {
+			if out[k].owner == e.Owner && out[k].group == effectiveGroup(e) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			out = append(out, groupAI{owner: e.Owner, group: effectiveGroup(&e)})
+			out = append(out, groupAI{owner: e.Owner, group: effectiveGroup(e)})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -518,15 +518,15 @@ func groupKeys(ents []Entity) []groupAI {
 // added now.
 func freezeGroups(ents []Entity) []groupAI {
 	out := groupKeys(ents)
-	for i := range out {
-		var members []int
-		for k := range ents {
-			e := ents[k]
-			if e.Owner == out[i].owner && effectiveGroup(&e) == out[i].group && e.Alive() {
-				members = append(members, k)
-			}
+	members := make(map[[2]uint32][]int, len(out))
+	for k := range ents {
+		if e := &ents[k]; e.Alive() {
+			key := [2]uint32{e.Owner, effectiveGroup(e)}
+			members[key] = append(members[key], k)
 		}
-		out[i].base = centroidNotice(ents, members)
+	}
+	for i := range out {
+		out[i].base = centroidNotice(ents, members[[2]uint32{out[i].owner, out[i].group}])
 		if out[i].owner == SelfSlot {
 			out[i].order = orderStandGround
 		} else {

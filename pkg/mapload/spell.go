@@ -1,6 +1,7 @@
 package mapload
 
 import (
+	"slices"
 	"strings"
 
 	"againrom/pkg/data"
@@ -252,6 +253,9 @@ func spellsFor(t *Table) []sim.SpellRule {
 func SpellRules(t *Table) []sim.SpellRule {
 	if t == nil {
 		return nil
+	}
+	if t.builtSpellRules != nil {
+		return slices.Clone(t.builtSpellRules)
 	}
 	spells, err := data.LoadSpells(t.spells())
 	if err != nil {

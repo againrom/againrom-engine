@@ -3273,7 +3273,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1646,
+		"longcommentgroups":      1645,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4421,5 +4421,5 @@ var Committed = Baseline{
 	// release test, and this note.
 	// Recomputed after merging the inn page and current main's independent changes.
 	// CommentBytes rises for live-input binding in pkg/ui/roomframe.go and this note.
-	CommentBytes: 10719413,
+	CommentBytes: 10719305,
 }

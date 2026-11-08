@@ -486,10 +486,18 @@ func (w *World) moveNativeCellSlots(i int, from, to cell) {
 // occupyMissionStartCells enters every living on-map actor's footprint once,
 // in entity order, by the occupation rule a crossing uses.
 func (w *World) occupyMissionStartCells() {
+	bound := map[EntityID][]uint32{}
+	for _, c := range w.cellRecords {
+		for _, slot := range [2]SavedActorSlot{c.Ground, c.Air} {
+			if slot.Bound {
+				bound[slot.Entity] = append(bound[slot.Entity], slot.Key)
+			}
+		}
+	}
 	for i := range w.entities {
 		e := &w.entities[i]
 		if e.Alive() && !e.OffMap {
-			w.occupyCellSlots(i, cell{x: e.X, y: e.Y}, w.motionActorKey(e.ID), false)
+			w.occupyCellSlots(i, cell{x: e.X, y: e.Y}, motionKeyAcross(e.SourceBinding.Identity, bound[e.ID]), false)
 		}
 	}
 }

@@ -68,6 +68,8 @@ type Table struct {
 	// ClassUnitKeys.
 	UnitKeys UnitKeys
 
+	builtSpellRules []sim.SpellRule
+
 	// SpellArms gives the converted spell table's rows their arms; nil
 	// leaves them as converted.
 	SpellArms func([]sim.SpellRule)
