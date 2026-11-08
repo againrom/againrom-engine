@@ -89,6 +89,9 @@ type gameProfile struct {
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
+	// noWithdrawalAtFullHealth: a creature at or above its maximum takes
+	// neither withdrawal arm (DIV-4714).
+	noWithdrawalAtFullHealth bool
 	// keepsSuppressedAcquirer: the engage refuses no suppressed acquirer
 	// (AI-GUARD-007).
 	keepsSuppressedAcquirer bool
@@ -166,6 +169,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
 		withdrawAnchorCells:        true,
+		noWithdrawalAtFullHealth:   true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
 		noMageGroupSight:           true,

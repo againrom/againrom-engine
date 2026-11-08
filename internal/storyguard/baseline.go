@@ -4408,5 +4408,8 @@ var Committed = Baseline{
 	// pkg/game/savepages.go, the new tests in pkg/game/savepages_test.go, and
 	// this note.
 	// It rises for the second game's cell event docs and this note.
-	CommentBytes: 10704974,
+
+	// It rises for the full-health withdrawal field in pkg/sim/gameprofile.go,
+	// its test in pkg/sim/withdraw_test.go, and this note.
+	CommentBytes: 10705596,
 }

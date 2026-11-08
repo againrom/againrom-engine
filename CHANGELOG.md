@@ -19,8 +19,9 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A creature at full health no longer backs away from a hero who comes near: it stands and fights, and may back away only once it has been wounded.
 - [ROM2] A weapon with an attack enchantment states its own damage again on its description, above the spell's lines.
-- [ROM2] At the lowest difficulty creatures on the map now have half their health instead of two thirds, as the original's rule gives, and bats and similar creatures back away from a hero who comes close while they are that weak. A mission save now stores each creature's withdrawal and flee points; in a save made earlier by this game they are empty, so creatures in it stay and attack, as the original game plays that same file.
+- [ROM2] At the lowest difficulty creatures on the map now have half their health instead of two thirds, as the original's rule gives. A mission save now stores each creature's withdrawal and flee points; in a save made earlier by this game they are empty, so creatures in it stay and attack, as the original game plays that same file.
 - [ROM2] A save made on the Empty Slot of the save page is now a file named after the name you type, such as `Camp fire.sav`, instead of `game0003.sav`. A name already in use gets ` 2`, ` 3` and so on, and a name with letters a file cannot hold is adjusted.
 - [ROM2] The teleport in the mission with the traveller now works: a unit that steps on it appears on the far bank, so the traveller can be brought across and the mission finished, also from a save made after the teleport opened.
 - [BASE] A grave no longer shows a use cursor or a beehive picture when the pointer rests on it: the cursor is the ordinary one and a click just walks there. Wells, switches, shops and the saving place keep theirs.
