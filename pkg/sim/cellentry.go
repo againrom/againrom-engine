@@ -61,6 +61,11 @@ func (w *World) requestCellCast(i int, cx, cy int32) {
 		return
 	}
 	b := w.cellTails[k].Bytes
+	if w.game.cellEventRelocates && b[0] == cellEventRelocate {
+		w.casts = append(w.casts, scriptCast{FromX: uint8(cx), FromY: uint8(cy), ToX: b[4], ToY: b[5],
+			Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
+		return
+	}
 	if b[0] == 0 || b[0] == 26 {
 		return
 	}
@@ -70,6 +75,50 @@ func (w *World) requestCellCast(i int, cx, cy int32) {
 	// Unlike instant 21, zero power is literal here (UNIT-M10CAST-056).
 	w.casts = append(w.casts, scriptCast{FromX: b[2], FromY: b[3],
 		Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
+}
+
+// cellEventRelocate is the second game's cell event that moves the unit on it
+// to the event's target cell (R2-ENGINE-673, R2-ENGINE-557).
+const cellEventRelocate = 0x17
+
+// relocatesOnCellEvent says whether a pending record is that event. A unit
+// cast an instant authors never holds a target cell, so the two cannot meet.
+func (w *World) relocatesOnCellEvent(c scriptCast) bool {
+	return w.game.cellEventRelocates && c.AtUnit && c.Spell == cellEventRelocate && c.ToX|c.ToY != 0
+}
+
+// relocateOnCellEvent moves the unit that entered the event's cell, held in
+// the record's source. A unit refused that cell never stood on it and stays
+// (DIV-4527 still sends it here); a refused target leaves the unit in place
+// (R2-ENGINE-705).
+func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
+	i := indexOfEntity(w.entities, c.Target)
+	if i < 0 || !w.entities[i].Alive() || w.entities[i].OffMap {
+		return
+	}
+	e, n := w.entities[i], footprintSide(w.entities[i].TokenSize)
+	if cx, cy := int32(c.FromX), int32(c.FromY); cx < e.X || cy < e.Y || cx >= e.X+n || cy >= e.Y+n {
+		return
+	}
+	w.relocateActor(i, int32(c.ToX), int32(c.ToY), obs)
+}
+
+// relocateActor puts the actor at index i on another cell at once, ending its
+// walk and its target. It reports false, and changes nothing, when the cell
+// refuses the actor.
+func (w *World) relocateActor(i int, x, y int32, obs *castObs) bool {
+	fromX, fromY := w.entities[i].X, w.entities[i].Y
+	if !w.attachFootprint(i, x, y) {
+		return false
+	}
+	e := &w.entities[i]
+	e.X, e.Y = x, y
+	w.invalidateActorMotion(e.ID, "native teleport supersedes original movement")
+	e.clearStride()
+	e.HasTarget = false
+	w.routes[i] = nil
+	obs.recordRelocation(*e, fromX, fromY)
+	return true
 }
 
 // attachFootprint is the mutating placement counterpart of placementOpen.

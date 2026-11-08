@@ -540,6 +540,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			// Counted last: the document import and the absence policy replace
 			// what applyOriginalDiaries carried.
 			r.Diaries = len(ms.World.SavedDiaries())
+			ms.World.RepairCellEvents()
 			ms.originalSaveReport = &r
 			return nil
 		}

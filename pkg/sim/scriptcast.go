@@ -174,6 +174,10 @@ func (w *World) stepScriptCasts(obs *castObs) {
 // object from the id, and a row the world's table does not hold has no columns
 // to build one from.
 func (w *World) resolveScriptCast(c scriptCast, obs *castObs) {
+	if w.relocatesOnCellEvent(c) {
+		w.relocateOnCellEvent(c, obs)
+		return
+	}
 	// The script's caster is no actor, so its row meets no busy rule.
 	r := castRequest{issuer: castScript, caster: -1, spell: uint32(c.Spell),
 		aim: castAim{target: c.Target, x: int32(c.ToX), y: int32(c.ToY), atCell: !c.AtUnit}}

@@ -110,12 +110,42 @@ func (w *World) ImportOriginalCellTails(tails []CellTail) error {
 // cell of the 256x256 space the key can address. Runtime footprint entry reads
 // only byte-addressable cells inside the world. DeclareCellTails applies the
 // initial installed-data writer's separate block-plane gate.
-func (w *World) setCellTail(spell, power, x, y int32) {
-	key := tailKey(x, y)
-	bytes := [cellTailLen]byte{
-		byte(spell), byte(power), 0, byte(y), 0, byte(y),
+func (w *World) setCellTail(in ScriptInstant) {
+	w.writeCellTail(tailKey(in.Args[2], in.Args[3]), w.cellTailBytes(in.Args))
+}
+
+// cellTailBytes is the six bytes instant 25 stores. The second game's node
+// names a source and a target beside the trigger cell, and its cell event reads
+// them at bytes 2..5 (R2-ENGINE-673); the writer's own arm is unread (DIV-4700).
+func (w *World) cellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
+	if w.game.cellEventRelocates {
+		return [cellTailLen]byte{byte(a[0]), byte(a[1]), byte(a[4]), byte(a[5]), byte(a[6]), byte(a[7])}
 	}
-	w.writeCellTail(key, bytes)
+	return firstGameCellTailBytes(a)
+}
+
+func firstGameCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
+	return [cellTailLen]byte{byte(a[0]), byte(a[1]), 0, byte(a[3]), 0, byte(a[3])}
+}
+
+// RepairCellEvents rewrites a second-game cell event an older build stored in
+// the first game's form, which holds no target (DIV-4701). Only a tail whose
+// bytes are exactly that form of its own script node changes, so a LOAD of any
+// other save, or a second LOAD of a repaired one, changes nothing.
+func (w *World) RepairCellEvents() {
+	if !w.game.cellEventRelocates || w.script == nil {
+		return
+	}
+	for _, in := range w.script.instants {
+		if in.Op != ScriptInstantCellTail {
+			continue
+		}
+		key := tailKey(in.Args[2], in.Args[3])
+		at := sort.Search(len(w.cellTails), func(i int) bool { return w.cellTails[i].Key >= key })
+		if at < len(w.cellTails) && w.cellTails[at].Key == key && w.cellTails[at].Bytes == firstGameCellTailBytes(in.Args) {
+			w.writeCellTail(key, w.cellTailBytes(in.Args))
+		}
+	}
 }
 
 func (w *World) writeCellTail(key uint16, bytes [cellTailLen]byte) {

@@ -122,6 +122,9 @@ type gameProfile struct {
 	// objective into the script; the first game restores its VIP check.
 	noCompanionObjective    bool
 	keepsHealthAboveMaximum bool
+	// cellEventRelocates: instant 25 stores a source and target, and a cell
+	// event of the Teleport kind moves the unit (R2-ENGINE-673, DIV-4700).
+	cellEventRelocates bool
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -146,6 +149,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		cullClearsActionClock:      true,
 		formHoldsConstructedGroups: true,
 		keepsHealthAboveMaximum:    true,
+		cellEventRelocates:         true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,

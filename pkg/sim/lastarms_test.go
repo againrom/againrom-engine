@@ -648,7 +648,7 @@ func TestEveryKindOfStateThisStoryAddsIsCanonical(t *testing.T) {
 		t.Helper()
 		w := engWorld(t, engRel(t), laFighter(1, 2, 7, 5, 5), laFighter(2, 2, 7, 6, 5))
 		w.setFormationMode(2, int32(mode))
-		w.setCellTail(tailSpell, 20, 59, 54)
+		w.setCellTail(ScriptInstant{Args: [scriptParams]int32{tailSpell, 20, 59, 54}})
 		w.markSpellEffect(0, 20)
 		w.entities[0].SpellFX = mark
 		w.cmdGroupOrder(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 7, HasGroup: true,

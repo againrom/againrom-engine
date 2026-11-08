@@ -340,19 +340,9 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		if ci < 0 {
 			return false
 		}
-		to := cell{x: w.entities[ti].X, y: w.entities[ti].Y}
-		fromX, fromY := w.entities[ci].X, w.entities[ci].Y
-		if !w.attachFootprint(ci, to.x, to.y) {
-			// The cast has been admitted and paid. A relocation veto does not
-			// undo that cast or suppress its presentation (MAGIC-TELEPORT-174).
-			return true
-		}
-		w.entities[ci].X, w.entities[ci].Y = to.x, to.y
-		w.invalidateActorMotion(w.entities[ci].ID, "native teleport supersedes original movement")
-		w.entities[ci].clearStride()
-		w.entities[ci].HasTarget = false
-		w.routes[ci] = nil
-		w.castObservation.recordRelocation(w.entities[ci], fromX, fromY)
+		// The cast has been admitted and paid. A relocation veto does not
+		// undo that cast or suppress its presentation (MAGIC-TELEPORT-174).
+		w.relocateActor(ci, w.entities[ti].X, w.entities[ti].Y, w.castObservation)
 		return true
 	case arm.controlSpirit:
 		if ci < 0 || w.corpseRaiseProfile().prefer && !bonesCorpse(w.entities[ti]) || w.controlSpiritCorpseAt(w.entities[ti].X, w.entities[ti].Y, ti) < 0 {
@@ -1141,14 +1131,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 		if !w.presentedAtAdmission(rule) {
 			obs.recordAt(w, ci, rule, x, y)
 		}
-		if fromX, fromY := caster.X, caster.Y; w.attachFootprint(ci, x, y) {
-			caster.X, caster.Y = x, y
-			w.invalidateActorMotion(caster.ID, "native teleport supersedes original movement")
-			caster.clearStride()
-			caster.HasTarget = false
-			w.routes[ci] = nil
-			obs.recordRelocation(*caster, fromX, fromY)
-		}
+		w.relocateActor(ci, x, y, obs)
 	} else {
 		if !w.landArea(rule, uint16(power), caster.ID, true, caster.X, caster.Y, x, y, obs) {
 			return false

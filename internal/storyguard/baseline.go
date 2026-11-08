@@ -4407,5 +4407,6 @@ var Committed = Baseline{
 	// It rises for the Empty Slot file name: secondSaveSlot and saveFileBase in
 	// pkg/game/savepages.go, the new tests in pkg/game/savepages_test.go, and
 	// this note.
-	CommentBytes: 10703384,
+	// It rises for the second game's cell event docs and this note.
+	CommentBytes: 10704974,
 }

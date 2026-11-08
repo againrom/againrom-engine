@@ -1963,9 +1963,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		}
 
 	case ScriptInstantCellTail:
-		// THE CELL TAIL. It names no reference at all: its four plain parameters
-		// are the spell, the power and the cell.
-		w.setCellTail(in.Args[0], in.Args[1], in.Args[2], in.Args[3])
+		// THE CELL TAIL. It names no reference at all: its plain parameters
+		// are the spell, the power and the cell, then the game's own bytes.
+		w.setCellTail(in)
 
 	case ScriptInstantUnitEffectAge:
 		// THE ATTACHED EFFECT'S DURATION (TRIG-EFFECTTIME-034).

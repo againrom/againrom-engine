@@ -142,6 +142,8 @@ func init() {
 	worldWriters = append(worldWriters, "RestoreHeldOrders")
 	worldMethods = append(worldMethods, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RepairNativePackCells")
+	worldMethods = append(worldMethods, "RepairCellEvents")
+	worldWriters = append(worldWriters, "RepairCellEvents")
 	worldMethods = append(worldMethods, "ImportOriginalPointCasts")
 	worldWriters = append(worldWriters, "ImportOriginalPointCasts")
 	worldMethods = append(worldMethods, "ImportLoadedStrikes")
