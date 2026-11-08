@@ -152,14 +152,19 @@ const commandWord = 65500
 // and the Move programme walks a member to (R2-ENGINE-844, AI-MOVE-023),
 // is the engine order's goal; word +0x16 is commandWord; the alarm
 // +0x54 and the notice +0x58..+0x5a are the engine order's (R2-ENGINE-845);
-// the three creature spell slots are the engine order's, in the second
-// game's window; every other byte is zero (DIV-4305, DIV-4490).
-// writeCommandStrikes writes the blow record and the stamp over it.
+// the Withdraw and Wimpy at +0x40 and +0x44 are the engine order's, at the
+// same offsets (R2-ENGINE-1001); the three creature spell slots are the
+// engine order's, in the second game's window; every other byte is zero
+// (DIV-4305, DIV-4490). writeCommandStrikes writes the blow record and the
+// stamp over it.
 func commandFill(engine []byte) []byte {
 	out := make([]byte, secondCreatureSpells.width)
 	copy(out[:2], engine)
 	if len(engine) >= commandGoal+2 {
 		copy(out[commandGoal:commandGoal+2], engine[commandGoal:])
+	}
+	if withdraw, wimpy, ok := OrderWithdrawalThresholds(engine); ok {
+		PutOrderWithdrawalThresholds(out, withdraw, wimpy)
 	}
 	put16(out, 0x16, commandWord)
 	if len(engine) > commandNoticeEnd {

@@ -250,6 +250,7 @@ func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
 	t.UnitKeys, t.SpellArms, t.FreshPlayers = files.unitKeys, files.spellArms, files.freshPlayers
 	t.CarryStockOnly = files.carryStockOnly
 	t.StoredFormMerge, t.CreatureBooks = files.storedFormMerge, files.creatureBooks
+	t.CreatureDifficulty = files.creatureDifficulty
 	t.CarriedWornSpellBuild = files.storedWeaponSpell
 	t.SchoolPoolExperience = files.schoolPoolExperience
 	t.ItemNamer = files.itemNamer

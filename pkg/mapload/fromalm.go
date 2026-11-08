@@ -293,6 +293,10 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	// One template per placement that resolved through a person row — see this
 	// function's own doc. It is nil until the first one, so a map with no
 	// people hands the boundary nothing to look in rather than an empty map.
+	// A map the rule lets keep its creatures places them all at their rows.
+	if m != nil && t.creatureDifficulty().MapKeepsRows && m.Meta.Word70 > 1 {
+		diff = DifficultyNormal
+	}
 	var roster map[sim.EntityID]PartyMember
 	for i, u := range units {
 		x, y := unitCell(u)

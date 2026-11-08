@@ -12,12 +12,16 @@ const (
 )
 
 // WithdrawalThresholds reads Withdraw and Wimpy from the record's Order
-// block. ok is false when the record carries no Order.
+// block, or from the second game's command block at the same offsets
+// (R2-ENGINE-1005). ok is false when the record carries neither.
 func (a ActorRecord) WithdrawalThresholds() (withdraw, wimpy int32, ok bool) {
-	if !a.HasOrder {
-		return 0, 0, false
+	if a.HasOrder {
+		return OrderWithdrawalThresholds(a.Order[:])
 	}
-	return OrderWithdrawalThresholds(a.Order[:])
+	if a.HasCommand {
+		return a.CommandWithdraw, a.CommandWimpy, true
+	}
+	return 0, 0, false
 }
 
 // OrderWithdrawalThresholds reads both thresholds from a raw Order block.

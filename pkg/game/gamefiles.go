@@ -38,6 +38,9 @@ type gameFiles struct {
 	storedFormMerge bool
 	// creatureBooks is the creature book source; nil is the first game's.
 	creatureBooks *mapload.CreatureBooks
+	// creatureDifficulty is the game's arithmetic for a placed creature;
+	// nil is the first game's.
+	creatureDifficulty *mapload.CreatureDifficulty
 	// deathItems builds a table's death item draw; nil, the first game's,
 	// draws no death item.
 	deathItems func(*mapload.Table) sim.DeathItemDraw
@@ -79,8 +82,8 @@ type gameFiles struct {
 	ownSaves        bool
 	boundedSaveView bool
 	// orderThresholds keeps each actor's Withdraw and Wimpy in its SAV Order
-	// block, written on SAVE and read on LOAD (AI-WITHDRAW-027); no
-	// second-game claim places them there.
+	// or command block, written on SAVE and read on LOAD (AI-WITHDRAW-027,
+	// R2-ENGINE-1005).
 	orderThresholds bool
 	// heroSavedType writes a party hero's SAV T0E from the hero, the
 	// player-character constructor's type (HERO-CLASS-013, HERO-191); no
@@ -325,6 +328,8 @@ var secondGameFiles = gameFiles{
 	freshPlayers:         mapload.NoFreshPlayers,
 	storedFormMerge:      true,
 	creatureBooks:        mapload.ClassCellBooks,
+	creatureDifficulty:   mapload.SecondGameCreatureDifficulty,
+	orderThresholds:      true,
 	deathItems:           secondDeathItems,
 	storedOwnWeight:      true,
 	storedWeaponSpell:    true,

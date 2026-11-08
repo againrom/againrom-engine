@@ -32,7 +32,8 @@ func SuppressesCorpseLoot(templateName string) bool {
 type Difficulty int32
 
 const (
-	// DifficultyEasy weakens a placed non-hero: two thirds of its health.
+	// DifficultyEasy weakens a placed non-hero by the game's
+	// CreatureDifficulty.
 	DifficultyEasy Difficulty = 1
 	// DifficultyNormal is what a caller who says nothing gets, and is the
 	// identity.
@@ -83,6 +84,10 @@ type Table struct {
 	// CreatureBooks is the creature book source; nil is
 	// FirstGameCreatureBooks.
 	CreatureBooks *CreatureBooks
+
+	// CreatureDifficulty is the game's arithmetic for a creature a map
+	// places; nil is FirstGameCreatureDifficulty.
+	CreatureDifficulty *CreatureDifficulty
 
 	// CarriedWornSpellBuild builds a missing worn Weapon Spell at mission
 	// start for a member who arrives with carried state too; false is the
@@ -499,10 +504,43 @@ func (serverKeys) resolve(u alm.Unit, t *Table) Resolution {
 	return Resolution{Arm: ArmUnits, Index: data.FindUnitByServerID(t.units(), int32(u.ServerID))}
 }
 
+// CreatureDifficulty is one game's arithmetic for a creature a map places:
+// the fraction of its maximum health the weakening setting leaves, whether
+// that setting also shifts Wimpy right by one, and whether a map may keep
+// every creature at its row. The second game's value is R2-ENGINE-1002's;
+// the product is truncated as the first game's is (DIV-4698).
+type CreatureDifficulty struct {
+	EasyHealthNum, EasyHealthDen int32
+	EasyHalvesWimpy              bool
+	// MapKeepsRows: a map whose Word70 is above 1 sets the session flag
+	// that leaves every creature at its row (R2-ENGINE-509).
+	MapKeepsRows bool
+}
+
+var (
+	// FirstGameCreatureDifficulty is two thirds of the health.
+	FirstGameCreatureDifficulty = &CreatureDifficulty{EasyHealthNum: 66, EasyHealthDen: 100}
+	// SecondGameCreatureDifficulty is half the health and half the Wimpy.
+	SecondGameCreatureDifficulty = &CreatureDifficulty{EasyHealthNum: 1, EasyHealthDen: 2, EasyHalvesWimpy: true, MapKeepsRows: true}
+)
+
+// creatureDifficulty is t's rule; nil is the first game's.
+func (t *Table) creatureDifficulty() *CreatureDifficulty {
+	if t == nil || t.CreatureDifficulty == nil {
+		return FirstGameCreatureDifficulty
+	}
+	return t.CreatureDifficulty
+}
+
+// Adjust applies the first game's difficulty rule to one definition.
+func Adjust(d data.UnitDef, diff Difficulty) (data.UnitDef, error) {
+	return FirstGameCreatureDifficulty.Adjust(d, diff)
+}
+
 // Adjust applies the difficulty setting to one definition and returns the
-// result. It is a function of the definition and the value ALONE: it reads no
-// world, no map and no placement, so two copies of one definition adjusted alike
-// stay equal.
+// result. It is a function of the definition, the rule and the value ALONE:
+// it reads no world, no map and no placement, so two copies of one definition
+// adjusted alike stay equal.
 //
 // The two multiplications are done in INTEGERS. The engine's own constants are
 // two doubles followed by a truncation toward zero, and these forms agree with
@@ -519,11 +557,14 @@ func (serverKeys) resolve(u alm.Unit, t *Table) Resolution {
 // The two additions are done in int32 where the engine stores 16 bits. The wrap
 // is unreachable below a to-hit of 65486, which no column can hold beside its
 // own 16-bit store.
-func Adjust(d data.UnitDef, diff Difficulty) (data.UnitDef, error) {
+func (r *CreatureDifficulty) Adjust(d data.UnitDef, diff Difficulty) (data.UnitDef, error) {
 	switch diff {
 	case DifficultyEasy:
-		d.HealthMax = d.HealthMax * 66 / 100
+		d.HealthMax = d.HealthMax * r.EasyHealthNum / r.EasyHealthDen
 		d.Health = d.HealthMax
+		if r.EasyHalvesWimpy {
+			d.Wimpy >>= 1
+		}
 	case DifficultyNormal:
 		// The identity, by having no arm rather than by an arm that computes
 		// nothing.
@@ -621,7 +662,7 @@ func unitRowDefinition(t *Table, index int, diff Difficulty) (data.UnitDef, [sim
 	general := d.ToHit
 	// Applied ONCE, before anything is built from the definition, so the value
 	// cannot be applied twice by a second caller reading the same entry.
-	d, err = Adjust(d, diff)
+	d, err = t.creatureDifficulty().Adjust(d, diff)
 	if err != nil {
 		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, err
 	}

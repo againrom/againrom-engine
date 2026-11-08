@@ -4401,5 +4401,8 @@ var Committed = Baseline{
 	// pkg/game/secondcursecard_test.go, DurationCeilingTicks in
 	// pkg/sim/spell.go, net of the removed duration text helpers, and this note.
 	// It rises for the alive check's zero-health body docs and this note.
-	CommentBytes: 10699206,
+	// It rises for a second-game creature's difficulty rule in pkg/mapload,
+	// its thresholds in the command block, the new
+	// pkg/game/secondcreaturedifficulty_test.go, and this note.
+	CommentBytes: 10702411,
 }

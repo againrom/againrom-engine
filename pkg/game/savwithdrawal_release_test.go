@@ -104,12 +104,10 @@ func TestReleaseSavedMonstersKeepWithdrawalThresholds(t *testing.T) {
 	check("second SAVE", second, cold.live.world)
 }
 
-// TestReleaseSecondGameSaveKeepsOrderThresholdBytes saves the second game's
-// first mission and reads every actor's Order +0x40..+0x47. No second-game
-// claim places Withdraw or Wimpy there, so the SAVE leaves those bytes as the
-// writer built them before the first-game threshold pass existed: zero for
-// each actor the engine placed, though actors carry thresholds.
-func TestReleaseSecondGameSaveKeepsOrderThresholdBytes(t *testing.T) {
+// TestReleaseSecondGameSaveWritesOrderThresholds saves the second game's
+// first mission and reads every actor's Order +0x40..+0x47: each holds the
+// actor's current Withdraw and Wimpy (R2-ENGINE-1001, DIV-4699).
+func TestReleaseSecondGameSaveWritesOrderThresholds(t *testing.T) {
 	secondGameRoot(t)
 	f, _ := secondMissionSettled(t)
 	snapshot, _, err := f.Snapshot(true)
@@ -128,10 +126,8 @@ func TestReleaseSecondGameSaveKeepsOrderThresholdBytes(t *testing.T) {
 	actors, carrying := 0, 0
 	for _, e := range f.live.world.Entities() {
 		order := savedRecordRawForTest(t, castOrderRecord(t, doc, a, e.ID), "U158")
-		for _, v := range order[0x40:0x48] {
-			if v != 0 {
-				t.Fatalf("actor %d (Withdraw %d, Wimpy %d) Order +0x40..+0x47 = % x, want the zeros the second game's SAVE writes", e.ID, e.Withdraw, e.Wimpy, order[0x40:0x48])
-			}
+		if withdraw, wimpy, ok := sav.OrderWithdrawalThresholds(order); !ok || withdraw != e.Withdraw || wimpy != e.Wimpy {
+			t.Fatalf("actor %d Order +0x40/+0x44 = %d/%d, want the current %d/%d", e.ID, withdraw, wimpy, e.Withdraw, e.Wimpy)
 		}
 		actors++
 		if e.Withdraw != 0 || e.Wimpy != 0 {
@@ -141,5 +137,5 @@ func TestReleaseSecondGameSaveKeepsOrderThresholdBytes(t *testing.T) {
 	if carrying == 0 {
 		t.Fatal("no actor of the second game's first mission carries a threshold; the control proves nothing")
 	}
-	t.Logf("%d actors, %d carry thresholds, every Order +0x40..+0x47 zero", actors, carrying)
+	t.Logf("%d actors, %d carry thresholds, every Order +0x40/+0x44 holds the current values", actors, carrying)
 }

@@ -72,7 +72,9 @@ type ActorRecord struct {
 	CommandStrike CommandStrike
 	CommandNotice [commandNoticeEnd - commandAlarm]byte
 	HasCommand    bool
-	DyingTimer    int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
+	// CommandWithdraw and CommandWimpy are the command's +0x40 and +0x44.
+	CommandWithdraw, CommandWimpy int32
+	DyingTimer                    int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
 	// Byte locators only; consumers can read independent layouts at these
 	// substructure starts without using decoded field values.
 	ControlOff, StateOff int
@@ -308,6 +310,7 @@ func currentActorGraph(players []*Record, current []uint16, dead ...[]*Record) (
 			if strike, ok := readCommandStrike(command); ok {
 				entry.CommandStrike, entry.HasCommand = strike, true
 				copy(entry.CommandNotice[:], command[commandAlarm:commandNoticeEnd])
+				entry.CommandWithdraw, entry.CommandWimpy, _ = OrderWithdrawalThresholds(command)
 			}
 		}
 		if len(record.Raw["U50"]) == 4 {
