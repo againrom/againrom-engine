@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A creature hit by a Darkness its own side casts now keeps fighting its enemy: in mission 10 the troll under its bats' Darkness keeps hitting the hero instead of turning on the bat.
 - [BASE] Enemy dragons' and mages' Fire Ball, Wall of Fire and Poison Cloud now land where the target stands when the spell goes off, a fleeing caster stops casting, and in the first game a caster out of mana attacks instead of standing still.
 - [ROM2] The Talk button on a hire seat now opens that person's description.
 - [ROM2] Our mission saves now also give each creature and person the map places on your own side the number the original game knows it by, as they already did for the other sides.

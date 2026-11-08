@@ -886,16 +886,8 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				w.markSpellEffect(i, rule.ID)
 				// NO CAST AWARD IS PAID HERE (DIV-238): castSpell and castBookAt
 				// pay the cast's own single award.
-				// A first-game Darkness hit runs the blow hook alone: turn
-				// flag, remembered cell and diplomacy flip, and no order. A
-				// pursuit of the caster comes only from a later group pass
-				// that finds it inside the circle (AI-707, MAGIC-LIGHTDARK-044).
 				if areaRow(rule.arm()).blow && ci >= 0 && ci != i {
-					if w.game.blowOrdersAttack {
-						w.orderAttack(i, w.entities[ci].ID)
-					} else {
-						w.flipOnBlow(ci, i)
-					}
+					w.answerAreaBlow(ci, i, w.entities[ci].ID)
 				}
 			}
 		}
@@ -930,6 +922,29 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 		s.Field42 = 0
 	}
 	return true
+}
+
+// answerAreaBlow is a blow row's answer on victim ti from caster ci (an index,
+// or below zero for a caster the world no longer holds), live and in the
+// saved replay. The blow hook runs alone: turn flag, remembered cell and
+// diplomacy flip, and no order; a pursuit of the caster comes only from a
+// later group pass that finds it a candidate (AI-707, MAGIC-LIGHTDARK-044).
+// The second game reads the same for a victim of the caster's own owner and
+// for a side with no owner, where the hook does not run (R2-ENGINE-985,
+// R2-ENGINE-988); a victim of another owner is ordered against the caster
+// (DIV-1600).
+func (w *World) answerAreaBlow(ci, ti int, caster EntityID) {
+	if w.game.blowOrdersAttack && (ci < 0 || w.ownersDiffer(ci, ti)) {
+		w.orderAttack(ti, caster)
+		return
+	}
+	w.flipOnBlow(ci, ti)
+}
+
+// ownersDiffer reports two entities of two different owners, neither none.
+func (w *World) ownersDiffer(ai, ti int) bool {
+	a, t := w.entities[ai].Owner, w.entities[ti].Owner
+	return a != 0 && t != 0 && a != t
 }
 
 func (w *World) areaHitAllowed(ci int, rule SpellRule, target Entity) bool {

@@ -73,8 +73,8 @@ type gameProfile struct {
 	// releaseRevalidates: a release asks the whole admission again: sight,
 	// reach and range (MAGIC-403 states the first game asks none).
 	releaseRevalidates bool
-	// blowOrdersAttack: an area blow orders the victim against the caster;
-	// the first game runs the blow hook (AI-707).
+	// blowOrdersAttack: an area blow orders a victim of another owner against
+	// the caster (DIV-1600); otherwise it runs the blow hook (answerAreaBlow).
 	blowOrdersAttack bool
 	// bookWalkAll: the engage book walk takes every row and has no fallback.
 	bookWalkAll bool

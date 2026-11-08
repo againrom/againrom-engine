@@ -4378,5 +4378,10 @@ var Committed = Baseline{
 	// It rises for the second game's Heal and Drain Life spark tests in the
 	// new pkg/game/secondhealsparks_test.go, the R2-ENGINE-691 citation in
 	// pkg/data/spellpresentation.go, and this note.
-	CommentBytes: 10686443,
+
+	// It rises for the area blow's one answer: answerAreaBlow and ownersDiffer in
+	// pkg/sim/celleffect.go, the new pkg/sim/secondareablow_test.go and
+	// internal/archtest/areablow_test.go, net of the struck-guard witness's
+	// removed same-side admission; and this note.
+	CommentBytes: 10688200,
 }
