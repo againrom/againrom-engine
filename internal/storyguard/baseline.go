@@ -4353,5 +4353,5 @@ var Committed = Baseline{
 	// Mission message record documents the producer-level SAV witness.
 	// Shared mission delivery removes duplicate settle comments and adds guard docs.
 	// Mission message policy now comes from the campaign service.
-	CommentBytes: 10677099,
+	CommentBytes: 10676870,
 }

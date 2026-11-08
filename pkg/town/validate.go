@@ -1028,8 +1028,26 @@ func (n *sceneNames) validateFamilies(a ActorSpec, where string, fail func(strin
 		}
 		longest := n.longest[m.Art]
 		for _, c := range m.FrameCues {
-			if err := n.needSlot(where, c.Slot); err != nil {
-				return err
+			if c.Pick == nil {
+				if len(c.Slots) != 0 {
+					return fail("member %q cue slots need a pick", m.Name)
+				}
+				if err := n.needSlot(where, c.Slot); err != nil {
+					return err
+				}
+			} else {
+				if err := n.checkPick(where, c.Pick); err != nil {
+					return err
+				}
+				lo, hi := pickRange(*c.Pick)
+				if c.Slot != "" || c.Key != "" || c.Pick.N <= 0 || c.Pick.Times > 0 || c.Pick.Divide > 0 || lo < 0 || hi >= len(c.Slots) {
+					return fail("member %q cue picks slots %d to %d of %d", m.Name, lo, hi, len(c.Slots))
+				}
+				for _, slot := range c.Slots {
+					if err := n.needKeyedSlot(where, slot); err != nil {
+						return err
+					}
+				}
 			}
 			if c.Frame < 0 || longest > 0 && c.Frame >= longest || c.Sheet >= 0 && m.Sheets > 0 && c.Sheet >= m.Sheets {
 				return fail("member %q cues frame %d of sheet %d beyond its art", m.Name, c.Frame, c.Sheet)
@@ -1089,6 +1107,9 @@ func (n *sceneNames) checkState(where string, s StateSpec) error {
 		}
 	}
 	for _, c := range s.FrameSounds {
+		if c.Pick != nil || len(c.Slots) != 0 {
+			return n.fail("%s: state %q frame choices need a family member", where, s.Name)
+		}
 		if err := n.needKeyedSlot(where, c.Slot); err != nil {
 			return err
 		}

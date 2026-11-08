@@ -4,6 +4,18 @@
   "cite": ["R2-ENGINE-231", "R2-ENGINE-237"],
   "view": {"size": [640, 480], "cite": ["R2-ENGINE-238"]},
   "clock": {"period-ms": 100, "compare": "greater", "cite": ["R2-ENGINE-235"]},
+  "clocks": [
+    {"name": "kaarg-square-voice", "compare": "greater", "process": true, "unstamped": "stamp",
+     "wait": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 2000, "base": 2000, "cite": ["R2-ENGINE-280"]}, "cite": ["R2-ENGINE-280", "DIV-4659"]},
+    {"name": "kaarg-square-bird", "compare": "greater", "process": true, "unstamped": "stamp",
+     "wait": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 2000, "base": 2000, "cite": ["R2-ENGINE-280"]}, "cite": ["R2-ENGINE-280", "DIV-4659"]},
+    {"name": "kaarg-square-man", "period-ms": 45000, "compare": "greater", "process": true, "unstamped": "stamp", "cite": ["R2-ENGINE-280", "DIV-4659"]}
+  ],
+  "steps": [
+    {"when": "active", "clock": "kaarg-square-voice", "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 3, "cite": ["R2-ENGINE-280"]}, "run": ["sound kvox2", "sound kvox3", "sound kvox4"], "cite": ["R2-ENGINE-280"]},
+    {"when": "active", "clock": "kaarg-square-bird", "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "run": ["sound kbird1", "sound kbird2", "sound kbird3", "sound kbird4"], "cite": ["R2-ENGINE-280"]},
+    {"when": "active", "clock": "kaarg-square-man", "run": ["sound kman1"], "cite": ["R2-ENGINE-280"]}
+  ],
   "random": [
     {"name": "persons", "source": "lcg", "multiplier": 214013, "increment": 2531011, "shift": 16, "mask": 32767,
      "cite": ["R2-ENGINE-235", "DIV-2970"]}
@@ -82,7 +94,21 @@
     "slots": [
       {"name": "shop", "source": "town-exterior", "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]},
       {"name": "inn", "source": "town-exterior", "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]},
-      {"name": "gate", "source": "town-exterior", "cite": ["R2-ENGINE-236"]}
+      {"name": "gate", "source": "town-exterior", "cite": ["R2-ENGINE-236"]},
+      {"name": "kvox2", "source": "town-exterior", "key": "town_kaarg/kvox2.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kvox3", "source": "town-exterior", "key": "town_kaarg/kvox3.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kvox4", "source": "town-exterior", "key": "town_kaarg/kvox4.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kbird1", "source": "town-exterior", "key": "town_kaarg/kbird1.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kbird2", "source": "town-exterior", "key": "town_kaarg/kbird2.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kbird3", "source": "town-exterior", "key": "town_kaarg/kbird3.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kbird4", "source": "town-exterior", "key": "town_kaarg/kbird4.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "kman1", "source": "town-exterior", "key": "town_kaarg/kman1.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps1", "source": "town-exterior", "key": "town_kaarg/ksteps1.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps11", "source": "town-exterior", "key": "town_kaarg/ksteps11.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps2", "source": "town-exterior", "key": "town_kaarg/ksteps2.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps21", "source": "town-exterior", "key": "town_kaarg/ksteps21.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps3", "source": "town-exterior", "key": "town_kaarg/ksteps3.wav", "cite": ["R2-ENGINE-280"]},
+      {"name": "ksteps31", "source": "town-exterior", "key": "town_kaarg/ksteps31.wav", "cite": ["R2-ENGINE-280"]}
     ],
     "loop": "town_kaarg/kvox1.wav",
     "cite": ["R2-ENGINE-280", "DIV-2972"]
@@ -102,6 +128,17 @@
         "sheet-pick": {"draw": "persons", "form": "scaled", "n": 2, "base": 0, "cite": ["R2-ENGINE-235"]},
         "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]},
        {"name": "guard", "art": "guard", "mode": "episode", "positions": [[184, 156]], "stamp": "start", "idle-sheet": 0,
+        "frame-cues": [
+          {"sheet": -1, "frame": 5, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps21", "ksteps2", "ksteps2", "ksteps2"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 9, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps11", "ksteps1", "ksteps1", "ksteps1"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 13, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps21", "ksteps2", "ksteps2", "ksteps2"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 17, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps11", "ksteps1", "ksteps1", "ksteps1"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 21, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps21", "ksteps2", "ksteps2", "ksteps2"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 23, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps11", "ksteps1", "ksteps1", "ksteps1"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 31, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps31", "ksteps3", "ksteps3", "ksteps3"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 47, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps21", "ksteps2", "ksteps2", "ksteps2"], "cite": ["R2-ENGINE-280"]},
+          {"sheet": -1, "frame": 51, "pick": {"draw": "persons", "raw": 32768, "form": "scaled", "n": 4, "cite": ["R2-ENGINE-280"]}, "slots": ["ksteps11", "ksteps1", "ksteps1", "ksteps1"], "cite": ["R2-ENGINE-280"]}
+        ],
         "frame-positions": [{"from": 13, "to": 37, "at": [140, 152], "cite": ["R2-ENGINE-232"]}],
         "later": {"draw": "persons", "base-ms": 7500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]},
         "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]},

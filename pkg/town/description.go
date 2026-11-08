@@ -17,16 +17,15 @@ import (
 	"againrom/pkg/screenart"
 )
 
-// Description is one town as data. Every object in the encoded form carries a
-// cite list naming the claim, divergence row or owner ruling behind its values;
-// the composer ignores it. The top level from View to Layers is the square's
-// scene in its short form, with one paint clock and three step phases;
-// SquareScene answers it as a SceneSpec.
+// Description is a town as data. Cite lists name its claims and rulings.
+// SquareScene combines its paint clock, three step phases and additional
+// clock groups into the shared SceneSpec.
 type Description struct {
 	Town     string        `json:"town"`
 	Cite     []string      `json:"cite"`
 	View     ViewSpec      `json:"view"`
 	Clock    ClockSpec     `json:"clock"`
+	Clocks   []SceneClock  `json:"clocks"`
 	Random   []RandomSpec  `json:"random"`
 	Art      []ArtSpec     `json:"art"`
 	Mask     MaskSpec      `json:"mask"`
@@ -35,6 +34,7 @@ type Description struct {
 	Sounds   SoundSpec     `json:"sounds"`
 	Actors   []ActorSpec   `json:"actors"`
 	Step     StepSpec      `json:"step"`
+	Steps    []StepGroup   `json:"steps"`
 	Layers   []LayerSpec   `json:"layers"`
 	Music    MusicSpec     `json:"music"`
 	Square   SquareSpec    `json:"square"`
@@ -418,14 +418,16 @@ type FramePosition struct {
 	Cite []string `json:"cite"`
 }
 
-// FrameCue requests a sound while a member shows Frame of Sheet; a negative
-// Sheet matches any sheet. The first matching cue wins.
+// FrameCue requests sound at Frame of Sheet; a negative Sheet matches any.
+// A family cue with Pick chooses a slot once per held frame.
 type FrameCue struct {
-	Sheet int      `json:"sheet"`
-	Frame int      `json:"frame"`
-	Slot  string   `json:"slot"`
-	Key   string   `json:"key"`
-	Cite  []string `json:"cite"`
+	Sheet int       `json:"sheet"`
+	Frame int       `json:"frame"`
+	Slot  string    `json:"slot"`
+	Key   string    `json:"key"`
+	Pick  *PickSpec `json:"pick"`
+	Slots []string  `json:"slots"`
+	Cite  []string  `json:"cite"`
 }
 
 // EntryStep is one draw a family group makes when the view is entered: a
@@ -599,25 +601,24 @@ type SaveSpec struct {
 	Cite         []string `json:"cite"`
 }
 
-// SquareScene answers the square's scene: the description's top level, its
-// clock a process clock named by the square, its steps three groups of which
-// the second is bound to that clock, entered each time it is shown, and
-// advanced only while active. The answer shares the description's lists.
+// SquareScene combines the square's paint phases with its additional clocks
+// and groups. The shown scene advances only while active; its main clock is
+// process scoped. Art and actor lists share the description's storage.
 func (d *Description) SquareScene() *SceneSpec {
 	period := d.Clock.PeriodMS
 	clock := d.Square.Name
 	return &SceneSpec{
 		View: d.View, Random: d.Random, Art: d.Art, Mask: d.Mask, Hotspots: d.Hotspots,
 		Pointer: d.Pointer, Sounds: d.Sounds, Actors: d.Actors, Layers: d.Layers,
-		Clocks: []SceneClock{{Name: clock, PeriodMS: &period, Compare: d.Clock.Compare,
-			Process: true, Cite: d.Clock.Cite}},
+		Clocks: append([]SceneClock{{Name: clock, PeriodMS: &period, Compare: d.Clock.Compare,
+			Process: true, Cite: d.Clock.Cite}}, d.Clocks...),
 		Lifecycle:   LifecycleShown,
 		AdvanceWhen: "active",
-		Steps: []StepGroup{
+		Steps: append([]StepGroup{
 			{Run: d.Step.Before, Cite: d.Step.Cite},
 			{Clock: clock, Run: d.Step.Admitted, Cite: d.Step.Cite},
 			{Run: d.Step.After, Cite: d.Step.Cite},
-		},
+		}, d.Steps...),
 		Cite: d.Cite,
 	}
 }

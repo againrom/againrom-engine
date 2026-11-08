@@ -558,6 +558,7 @@ type FamilyMember struct {
 	Active          bool
 	Clock           time.Time
 	Wait            time.Duration
+	cueFrame        int
 }
 
 func (g *Families) members() []string {
@@ -588,7 +589,7 @@ func (g *Families) Member(name string) *FamilyMember {
 func (g *Families) reset(s *Scene) {
 	g.Entered = false
 	for i := range g.Members {
-		g.Members[i] = FamilyMember{}
+		g.Members[i] = FamilyMember{cueFrame: -1}
 	}
 }
 
@@ -740,12 +741,25 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 			if len(spec.FrameCues) == 0 || len(s.frames(g.sheetName(s, i))) == 0 {
 				continue
 			}
-			m := g.Members[i]
+			m := &g.Members[i]
+			matched := false
 			for _, c := range spec.FrameCues {
 				if (c.Sheet < 0 || c.Sheet == m.Sheet) && c.Frame == m.Current {
-					s.sound(c.Slot, c.Key)
+					matched = true
+					slot := c.Slot
+					if c.Pick != nil {
+						if !m.Active || m.cueFrame == m.Current {
+							break
+						}
+						m.cueFrame = m.Current
+						slot = c.Slots[s.amount(*c.Pick)]
+					}
+					s.sound(slot, c.Key)
 					break
 				}
+			}
+			if !matched {
+				m.cueFrame = -1
 			}
 		}
 	}
