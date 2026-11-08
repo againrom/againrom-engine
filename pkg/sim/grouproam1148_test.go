@@ -319,6 +319,7 @@ func TestGroupRoam1148SameSelectorAcrossNativeOwners(t *testing.T) {
 func TestGroupRoam1148WithdrawalKeepsEvaluationAcrossSave(t *testing.T) {
 	a := withdrawalFighter(1, 2, 30, 30, 100)
 	a.Group, a.Withdraw, a.Speed, a.ScanRange = 19, 100, 1, 20
+	a.MaxHP = 101
 	b := withdrawalFighter(2, 3, 31, 30, 100)
 	b.ScanRange = 0
 	w, err := NewRelatedWorld(17, Bounds{80, 80}, ModeCanonical,

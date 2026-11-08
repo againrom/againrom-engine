@@ -4411,5 +4411,5 @@ var Committed = Baseline{
 
 	// It rises for the full-health withdrawal field in pkg/sim/gameprofile.go,
 	// its test in pkg/sim/withdraw_test.go, and this note.
-	CommentBytes: 10705596,
+	CommentBytes: 10705104,
 }

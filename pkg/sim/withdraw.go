@@ -66,7 +66,7 @@ func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 	// ROM1 reads HP as a signed WORD here (`AI-WITHDRAW-026`); this
 	// build compares canonical Entity.HP as int32. The shipped bounds and
 	// the unrepresentable high-health edge are recorded by DIV-352.
-	if w.game.noWithdrawalAtFullHealth && e.MaxHP > 0 && e.HP >= e.MaxHP {
+	if e.MaxHP > 0 && e.HP >= e.MaxHP {
 		return
 	}
 	if e.HP <= e.Wimpy {

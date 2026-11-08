@@ -91,6 +91,7 @@ func TestAWithdrawalEndsTheRetainedCastOrder(t *testing.T) {
 	other.ID = 3
 	w, remaining := mageInRecovery(t, other)
 	w.entities[0].Wimpy = w.entities[0].HP
+	w.entities[0].MaxHP = w.entities[0].HP + 1
 	w.withdrawalActor(0, nil)
 	if _, ok := w.bookCastIndex(1); ok {
 		t.Fatalf("the retained order outlived the withdrawal: %+v", w.bookCasts)

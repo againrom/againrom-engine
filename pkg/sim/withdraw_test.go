@@ -492,41 +492,52 @@ func TestBlockedWithdrawalTargetUsesTheOrdinaryReachableSubstitute(t *testing.T)
 	}
 }
 
-// A second-game creature at its maximum takes neither withdrawal arm, the same
-// creature one point below takes them as before, and a first-game creature's
-// gates do not read its maximum. The numbers are a bat of the second game at
-// difficulty 1: health 12 of 12, Withdraw 15, Wimpy 2. A hero stands near each
-// actor, which is what holds its second-game Group active at full health.
-func TestFullHealthHoldsASecondGameCreatureOutOfBothWithdrawalArms(t *testing.T) {
-	for _, tc := range []struct {
-		name                     string
-		second                   bool
-		hp, maxHP                int32
-		withdraw, wimpy, heroGap int32
-		want                     bool
+func TestFullHealthHoldsACreatureOutOfBothWithdrawalArms(t *testing.T) {
+	for _, game := range []struct {
+		name   string
+		second bool
 	}{
-		{"second game at its maximum under Withdraw", true, 12, 12, 15, 2, 2, false},
-		{"second game at its maximum under Wimpy", true, 12, 12, 0, 12, 4, false},
-		{"second game above its maximum", true, 13, 12, 15, 2, 2, false},
-		{"second game one below under Withdraw", true, 11, 12, 15, 2, 2, true},
-		{"second game one below under Wimpy", true, 11, 12, 0, 11, 4, true},
-		{"second game with no health system", true, 5, 0, 15, 2, 2, true},
-		{"first game at its maximum under Withdraw", false, 12, 12, 15, 2, 2, true},
-		{"first game at its maximum under Wimpy", false, 12, 12, 0, 12, 4, true},
+		{"first game", false},
+		{"second game", true},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			self := withdrawalFighter(1, 2, 20, 20, tc.hp)
-			self.MaxHP, self.Withdraw, self.Wimpy = tc.maxHP, tc.withdraw, tc.wimpy
-			hero := withdrawalFighter(2, SelfSlot, 20+tc.heroGap, 20, 100)
-			w := engWorld(t, engRel(t, [3]uint32{2, SelfSlot, 1}), self, hero)
-			if tc.second {
-				w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
-			}
-			regWithdrawalPass(w, nil)
-			if got := w.entities[0]; got.HasTarget != tc.want {
-				t.Fatalf("backs away = %t, want %t (health %d of %d, Withdraw %d, Wimpy %d)",
-					got.HasTarget, tc.want, tc.hp, tc.maxHP, tc.withdraw, tc.wimpy)
-			}
-		})
+		for _, tc := range []struct {
+			name                     string
+			hp, maxHP                int32
+			withdraw, wimpy, heroGap int32
+			want                     bool
+		}{
+			{"at its maximum under Withdraw", 12, 12, 15, 2, 2, false},
+			{"at its maximum under Wimpy", 12, 12, 0, 12, 4, false},
+			{"above its maximum", 13, 12, 15, 2, 2, false},
+			{"one below under Withdraw", 11, 12, 15, 2, 2, true},
+			{"one below under Wimpy", 11, 12, 0, 12, 4, true},
+			{"with no health system", 5, 0, 15, 2, 2, true},
+		} {
+			t.Run(game.name+"/"+tc.name, func(t *testing.T) {
+				self := withdrawalFighter(1, 2, 20, 20, tc.hp)
+				self.MaxHP, self.Withdraw, self.Wimpy = tc.maxHP, tc.withdraw, tc.wimpy
+				hero := withdrawalFighter(2, SelfSlot, 20+tc.heroGap, 20, 100)
+				w := engWorld(t, engRel(t, [3]uint32{2, SelfSlot, 1}), self, hero)
+				if game.second {
+					w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
+				}
+				before := w.entities[0]
+				regWithdrawalPass(w, nil)
+				got := w.entities[0]
+				if got.HasTarget != tc.want {
+					t.Fatalf("backs away = %t, want %t (health %d of %d, Withdraw %d, Wimpy %d)",
+						got.HasTarget, tc.want, tc.hp, tc.maxHP, tc.withdraw, tc.wimpy)
+				}
+				if !tc.want && !reflect.DeepEqual(got, before) {
+					t.Fatal("full-health gate changed the prior decision")
+				}
+				if tc.want && (got.TargetX != 17 || got.TargetY != 20) {
+					t.Fatalf("withdrawal destination = (%d,%d), want (17,20)", got.TargetX, got.TargetY)
+				}
+				if got.Withdraw != before.Withdraw || got.Wimpy != before.Wimpy {
+					t.Fatal("withdrawal decision changed the stored thresholds")
+				}
+			})
+		}
 	}
 }

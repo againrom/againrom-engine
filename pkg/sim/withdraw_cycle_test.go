@@ -8,7 +8,7 @@ import "testing"
 // health says whether the cycle ever resolved.
 func withdrawalArcher(id EntityID, owner uint32, x, y int32) Entity {
 	e := withdrawalFighter(id, owner, x, y, 30)
-	e.MaxHP, e.Withdraw = 30, 30
+	e.MaxHP, e.Withdraw = 31, 30
 	e.Reach, e.ScanRange, e.DamageBase = 4, 6, 5
 	e.AttackCharge, e.AttackRelax = 40, 30
 	return e
