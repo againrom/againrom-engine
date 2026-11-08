@@ -31,7 +31,7 @@ var flightWitnessDigests = map[string]string{
 	"second/fire-ball":        "d2cc4cda14cf98e4",
 	"second/client-lightning": "c5eeee2b6900278b",
 	"second/client-chain":     "94a2b979b580eb84",
-	"second/teleport-moved":   "46c995c9bcdabeb1",
+	"second/teleport-moved":   "143171720e3dbad1",
 }
 
 // The second game's release clock is profile data: the client's swing clock

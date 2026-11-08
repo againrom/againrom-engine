@@ -506,13 +506,19 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) *ProjectileMark {
 		switch drive.Motion {
 		case rules.EffectFollow:
 			p.X, p.Y, p.Z = p.ActionX, p.ActionY, p.ActionZ
+		case rules.EffectFollowFound:
+			if resolved {
+				p.X, p.Y, p.Z = p.ActionX, p.ActionY, p.ActionZ
+			}
 		case rules.EffectTravel:
 			p.X += (p.ActionX - p.X) / p.ActionSegments
 			p.Y += (p.ActionY - p.Y) / p.ActionSegments
 			p.Z += (p.ActionZ - p.Z) / p.ActionSegments
 		}
-		// ANIM-PHASECLOCK-028, ANIM-149.
-		p.Phase, _ = rules.EffectFrameAt(drive.Frame, p.ActionPhase, d.Phases, resolved)
+		// ANIM-PHASECLOCK-028, ANIM-149, R2-ENGINE-992.
+		if phase, ok := rules.EffectFrameAt(drive.Frame, p.ActionPhase, d.Phases, resolved); ok {
+			p.Phase = phase
+		}
 	}
 	w.castObservation.recordProjectilePhase(w, *p, *d)
 	p.LastAction = p.Action

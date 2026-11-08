@@ -4383,5 +4383,5 @@ var Committed = Baseline{
 	// pkg/sim/celleffect.go, the new pkg/sim/secondareablow_test.go and
 	// internal/archtest/areablow_test.go, net of the struck-guard witness's
 	// removed same-side admission; and this note.
-	CommentBytes: 10688200,
+	CommentBytes: 10688747,
 }

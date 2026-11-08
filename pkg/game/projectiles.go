@@ -359,7 +359,7 @@ func effectClock(game rules.SpellGame, picture int32) terrain.EffectClock {
 	switch rules.EffectDriveOf(game, picture).Frame {
 	case rules.FrameCounterLess1:
 		return terrain.EffectClockDirect
-	case rules.FrameCounter:
+	case rules.FrameCounter, rules.FrameFoundCounter:
 		return terrain.EffectClockRaw
 	}
 	return terrain.EffectClockHalf

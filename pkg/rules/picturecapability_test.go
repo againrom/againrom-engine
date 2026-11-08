@@ -18,7 +18,7 @@ func previousDrive(game SpellGame, id int32) EffectDrive {
 		SpellGameSecond: {
 			{[]int32{28, 30}, EffectDrive{EffectPath, FrameRamp}},
 			{[]int32{16, 20, 24, 34, 44, 46, 48, 50, 62, 64, 66}, EffectDrive{EffectFollow, FrameCounter}},
-			{[]int32{56, 60}, EffectDrive{EffectFollow, FrameHalf}},
+			{[]int32{56, 60}, EffectDrive{EffectFollowFound, FrameFoundCounter}},
 			{[]int32{54}, EffectDrive{EffectStill, FrameCounterLess1}},
 			{[]int32{23}, EffectDrive{EffectStill, FrameCounter}},
 		},

@@ -21,6 +21,9 @@ const (
 	EffectStill
 	// EffectPath writes no position and draws a point list.
 	EffectPath
+	// EffectFollowFound stands at the target's point on an update that finds
+	// its target and writes no position on one that does not.
+	EffectFollowFound
 )
 
 // EffectFrame is which frame an update writes.
@@ -39,6 +42,9 @@ const (
 	// FrameResolvedOne is 1 on an update that resolves its target and
 	// FrameHalf otherwise.
 	FrameResolvedOne
+	// FrameFoundCounter is the counter on an update that resolves its target
+	// and writes no frame otherwise.
+	FrameFoundCounter
 )
 
 // EffectDrive is one identifier's update arm.
@@ -75,11 +81,13 @@ var (
 	followHalf  = EffectDrive{EffectFollow, FrameHalf}
 	followFirst = EffectDrive{EffectFollow, FrameResolvedOne}
 	pathRamp    = EffectDrive{EffectPath, FrameRamp}
+	followFound = EffectDrive{EffectFollowFound, FrameFoundCounter}
 )
 
 // The first game's rows (ANIM-143, ANIM-149, ANIM-PHASECLOCK-028,
 // MAGIC-BOLTSTILL-072, DIV-944, DIV-1814) and the second game's
-// (R2-ENGINE-447, DIV-3101). A picture no row names takes the zero row.
+// (R2-ENGINE-447, R2-ENGINE-992, R2-ENGINE-994). A picture no row names
+// takes the zero row.
 var pictureCapabilities = [...][]PictureCapability{
 	SpellGameFirst: {
 		{Picture: 7, Deformation: true},
@@ -116,8 +124,8 @@ var pictureCapabilities = [...][]PictureCapability{
 		{Picture: 48, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 50, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 54, Drive: EffectDrive{EffectStill, FrameCounterLess1}},
-		{Picture: 56, Mark: TargetMarkHeal, Drive: followHalf},
-		{Picture: 60, Mark: TargetMarkDrainLife, Drive: followHalf},
+		{Picture: 56, Mark: TargetMarkHeal, Drive: followFound},
+		{Picture: 60, Mark: TargetMarkDrainLife, Drive: followFound},
 		{Picture: 62, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 64, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 66, Drive: EffectDrive{EffectFollow, FrameCounter}},
@@ -153,12 +161,14 @@ func RampFrame(counter int32) (int32, bool) {
 }
 
 // EffectFrameAt is the frame drive writes at counter for a sheet of phases
-// frames. It answers false for FrameRamp outside its counters, where the
-// frame stays.
+// frames. It answers false for FrameRamp outside its counters and for
+// FrameFoundCounter on an unresolved update, where the frame stays.
 func EffectFrameAt(frame EffectFrame, counter int32, phases uint16, resolved bool) (int32, bool) {
 	switch frame {
 	case FrameRamp:
 		return RampFrame(counter)
+	case FrameFoundCounter:
+		return counter, resolved
 	case FrameCounter:
 		return counter, true
 	case FrameCounterLess1:

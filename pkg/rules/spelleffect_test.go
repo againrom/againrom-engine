@@ -28,8 +28,8 @@ func TestTheFirstGameKeepsItsDriverArms(t *testing.T) {
 	}
 }
 
-// secondDriveClaims is R2-ENGINE-447's update switch; 56 and 60 take the
-// half clock (DIV-3101).
+// secondDriveClaims is R2-ENGINE-447's update switch, with 56 and 60 from
+// R2-ENGINE-992.
 var secondDriveClaims = map[int32]EffectDrive{
 	23: {EffectStill, FrameCounter},
 	28: {EffectPath, FrameRamp}, 30: {EffectPath, FrameRamp},
@@ -38,7 +38,7 @@ var secondDriveClaims = map[int32]EffectDrive{
 	34: {EffectFollow, FrameCounter}, 44: {EffectFollow, FrameCounter}, 46: {EffectFollow, FrameCounter},
 	48: {EffectFollow, FrameCounter}, 50: {EffectFollow, FrameCounter}, 62: {EffectFollow, FrameCounter},
 	64: {EffectFollow, FrameCounter}, 66: {EffectFollow, FrameCounter},
-	56: {EffectFollow, FrameHalf}, 60: {EffectFollow, FrameHalf},
+	56: {EffectFollowFound, FrameFoundCounter}, 60: {EffectFollowFound, FrameFoundCounter},
 	10: {}, 12: {}, 13: {}, 18: {}, 40: {},
 }
 
@@ -74,6 +74,9 @@ func TestRampAndCounterFrames(t *testing.T) {
 			t.Errorf("ramp counter %d writes a frame", c)
 		}
 	}
+	if _, ok := EffectFrameAt(FrameFoundCounter, 3, 8, false); ok {
+		t.Error("an update that finds no target writes a frame")
+	}
 	for _, tc := range []struct {
 		frame    EffectFrame
 		counter  int32
@@ -84,6 +87,7 @@ func TestRampAndCounterFrames(t *testing.T) {
 		{FrameHalf, 9, 4, false, 0}, {FrameHalf, 7, 4, false, 3}, {FrameHalf, 7, 0, false, 0},
 		{FrameCounter, 9, 9, false, 9}, {FrameCounterLess1, 9, 21, false, 8},
 		{FrameResolvedOne, 7, 4, true, 1}, {FrameResolvedOne, 7, 4, false, 3},
+		{FrameFoundCounter, 7, 4, true, 7},
 	} {
 		if got, _ := EffectFrameAt(tc.frame, tc.counter, tc.phases, tc.resolved); got != tc.want {
 			t.Errorf("%+v: %d", tc, got)

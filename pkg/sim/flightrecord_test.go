@@ -110,6 +110,30 @@ func TestTheTeleportRecordStandsStill(t *testing.T) {
 	}
 }
 
+// R2-ENGINE-992: a second-game 56 or 60 record takes its target's point and
+// frame = counter on an update that finds the target, and writes neither on
+// one that does not; a unit's release object shows frame 1 on its one update.
+func TestASecondGameHealOrDrainRecordWritesOnlyWhenItFindsItsTarget(t *testing.T) {
+	for _, picture := range []int32{56, 60} {
+		w := shotWorld(t, shotPair(4)...)
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
+		if _, ok := w.ReleaseCast(CastRecord{Caster: 1, Picture: picture, Phases: 8, Target: 2, HasTarget: true, X: 300, Y: 400, Segments: 4}); !ok {
+			t.Fatalf("picture %d: no record built", picture)
+		}
+		p, _ := savedProjectileOf(w, 0)
+		if p.Phase != 1 || p.X != p.ActionX || p.Y != p.ActionY {
+			t.Fatalf("picture %d: first update frame %d at %d,%d, want frame 1 at the target %d,%d", picture, p.Phase, p.X, p.Y, p.ActionX, p.ActionY)
+		}
+		w.savedWorldEffects.Projectiles[0].TargetDetached = true
+		w.savedProjectile(0).X, w.savedProjectile(0).Y = 700, 900
+		w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[0])
+		w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[0])
+		if p, _ := savedProjectileOf(w, 0); p.Phase != 1 || p.X != 700 || p.Y != 900 {
+			t.Errorf("picture %d: unfound updates left frame %d at %d,%d, want frame 1 at 700,900", picture, p.Phase, p.X, p.Y)
+		}
+	}
+}
+
 // The driver takes the update arm of the World's game (rules.EffectDriveOf):
 // a first-game 28 or 54 record stands at its aim point, a second-game 28
 // ramps in place and a second-game 54 stands still on the counter-less-one
