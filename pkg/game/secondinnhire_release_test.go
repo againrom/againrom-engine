@@ -1,12 +1,75 @@
 package game
 
 import (
+	"bytes"
 	"image"
 	"strings"
 	"testing"
 
 	"againrom/pkg/ui"
 )
+
+func TestReleaseSecondInnHireSeatAbout(t *testing.T) {
+	f, app, s, now := secondTownTwo(t)
+	c := f.Town.second
+	c.bank[532], c.bank[552] = 1, 2
+	if err := app.HeadlessActivate("TAVERN"); err != nil {
+		t.Fatal(err)
+	}
+	s.TownSquareActive(true)
+	d, room, _ := s.composedRoom()
+	r := d.Room(room)
+	var point image.Point
+	for _, button := range r.Buttons {
+		if button.Name == "talk" {
+			rect := button.Rect.Rectangle()
+			point = rect.Min.Add(rect.Max).Div(2)
+		}
+	}
+	if point == (image.Point{}) {
+		t.Fatal("Talk button absent")
+	}
+	view := roomPageView{t: s, d: d, room: room}
+	s.composed.seat = -1
+	if _, hit := view.ControlAt(point); hit {
+		t.Fatal("Talk acts without a selection")
+	}
+	s.composed.seat = 0
+	for _, hired := range []bool{false, true} {
+		if hired {
+			if err := app.HeadlessActivate("HIRE 1"); err != nil {
+				t.Fatal(err)
+			}
+			secondInnNotice(t, app)
+		}
+		bank := c.bank
+		before, err := exportTownRecord(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, edge := range []string{"hover", "press", "release"} {
+			if err := app.HeadlessPointer(edge, point.X, point.Y); err != nil {
+				t.Fatal(err)
+			}
+		}
+		*now = now.Add(10)
+		if err := app.HeadlessStep(); err != nil {
+			t.Fatal(err)
+		}
+		body, shown := s.dialogueBody()
+		if !shown || strings.TrimSpace(body) == "" || s.talkPage().key != "npc1about" || c.bank != bank || c.talking != nil {
+			t.Fatalf("about hired=%v: key %q shown=%v body bytes=%d", hired, s.talkPage().key, shown, len(body))
+		}
+		secondInnNotice(t, app)
+		after, err := exportTownRecord(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(before, after) {
+			t.Fatal("hire-seat about changed SAV bytes")
+		}
+	}
+}
 
 // secondInnRows is the visible list rows of the current town screen.
 func secondInnRows(s *townScreen) []string {

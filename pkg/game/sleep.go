@@ -17,6 +17,12 @@ func sleepButton(buttons []town.ButtonSpec, i int) bool {
 	return i >= 0 && i < len(buttons) && buttons[i].Name == sleepControl
 }
 
+// sleepControlName reports whether a control name is the Sleep control, for
+// callers that hold a name and no button index.
+func sleepControlName(name string) bool {
+	return name == sleepControl
+}
+
 // restockInput is what a shop state's restock reads: the install's item
 // table, the session's town, the party's town the stock is drawn for and the
 // draws whose shop-stock stream it takes.

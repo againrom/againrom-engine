@@ -131,7 +131,7 @@ func TestTavernVisibilityPreservesOtherGreyAndMainTalkers(t *testing.T) {
 			}
 			offer := f.Town.TavernRoster()[0]
 			grey := control != "live_completed_extra"
-			if s.tavernOfferCanTalk(offer) == grey || control == "absent_not_done" && f.Town.Done(31) ||
+			if innCanTalk(f.Town, offer) == grey || control == "absent_not_done" && f.Town.Done(31) ||
 				control == "completed_main" && !f.Town.Done(20) {
 				t.Fatal("control has the wrong eligibility or completion", offer)
 			}

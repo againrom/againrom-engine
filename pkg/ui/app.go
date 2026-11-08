@@ -3169,6 +3169,11 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						if s, ok := a.flow.town.(TownSquareSelector); ok {
 							s.SelectTownSquare(c.Door)
 						}
+					case TownSquareControlButton:
+						if s, ok := a.flow.town.(TownSquareButtonScreen); ok {
+							a.flow.applyTownAction(s.TownSquareButton(c.Door))
+							a.syncViewerLayout()
+						}
 					case TownSquareControlMenu:
 						// THE STATUE OPENS THE SAME MINI-MENU ESCAPE ALREADY DOES AT THE
 						// SQUARE (flow.go's escape, ScreenTown arm). No new save/load

@@ -117,49 +117,7 @@ func (t *townScreen) tavernSpeakerCast() speakerCast {
 // (TAVERN-TALKSTATS-017); the owner saw the original show the type-2 stock
 // unit's statistics for npc2 (DIV-2778).
 func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.PartyMember, stock []tavernStockActor) tavernTalkObject {
-	if known && rec.Tokens.Has(data.NPCTokenPlatoon) && mapload.TableEdition(nil).TavernType(npc) {
-		return platoonTalkObject(npc, party)
-	}
-	cast := tavernTalkCast(party, stock)
-	if known && !rec.Tokens.Has(data.NPCTokenPlatoon) {
-		if a, ok := cast.resolveNPC(int32(npc), rec); ok {
-			o := tavernTalkObject{live: int(a.id), hero: a.hero, mage: a.fig.Dir.Mage(), human: !a.hero}
-			if i := int(a.id); i < len(party) {
-				o.sheet = int(party[i].TavernType())
-			} else {
-				o.stock = stock[i-len(party)].typ
-				o.sheet = o.stock
-			}
-			return o
-		}
-	}
-	o := tavernTalkObject{live: -1, sheet: npc}
-	if !known {
-		return o
-	}
-	t := rec.Tokens
-	o.hero, o.human = t.Has(data.NPCTokenHero), t.Has(data.NPCTokenHuman)
-	o.mage = t.Has(data.NPCTokenMage)
-	if t.Has(data.NPCTokenMyClass) || t.Has(data.NPCTokenNotMyClass) {
-		if cast.hasPlayer {
-			o.mage = cast.playerDir.Mage() == t.Has(data.NPCTokenMyClass)
-		}
-	}
-	return o
-}
-
-// platoonTalkObject is the object a Platoon record of mercenary type typ
-// stands for: the first carried member of that type, else the stock unit of
-// that type, which counts as live after the party.
-func platoonTalkObject(typ int, party []mapload.PartyMember) tavernTalkObject {
-	o := tavernTalkObject{live: len(party), sheet: typ, stock: typ, human: typ > 0 && !mapload.TableEdition(nil).TavernUnit(typ)}
-	for i, p := range party {
-		if p.Membership().Matches(mapload.TavernMember, typ) {
-			o.live, o.stock = i, 0
-			break
-		}
-	}
-	return o
+	return innActor(chapterInnProfile, npc, innActorInput{party: party, stock: stock, record: rec, known: known}).object
 }
 
 // tavernTalkFrames is the sheet a talk cell draws: HeroMage or HeroFighter for

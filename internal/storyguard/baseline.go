@@ -4353,5 +4353,8 @@ var Committed = Baseline{
 	// Mission message record documents the producer-level SAV witness.
 	// Shared mission delivery removes duplicate settle comments and adds guard docs.
 	// Mission message policy now comes from the campaign service.
-	CommentBytes: 10677757,
+	// New comments in pkg/game/inn.go, internal/archtest/innbuilders.go and the UI button seam.
+	// It rises for the Sleep control name test in pkg/game/sleep.go and its inn caller.
+	// It rises for the tavern row route's tests and guard shape, merged with main's map colour change.
+	CommentBytes: 10679200,
 }

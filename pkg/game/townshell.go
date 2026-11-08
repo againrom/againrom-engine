@@ -49,6 +49,7 @@ type tavernCandidateKey struct {
 }
 
 type tavernCandidate struct {
+	seat  innSeat
 	key   tavernCandidateKey
 	cell  ui.TownSurfaceCell
 	offer TownOffer
@@ -58,31 +59,33 @@ type tavernCandidate struct {
 // tavernCandidates puts mercenary cells before visible talk-only cells.
 // Talkers keep their registry order, including kept speakers (DIV-1529, DIV-2170).
 func (t *townScreen) tavernCandidates() []tavernCandidate {
-	offers := t.tavernVisibleOffers()
-	mercenaries := t.tavernMercenaries()
-	out := make([]tavernCandidate, 0, len(offers)+len(mercenaries))
-	art := t.tavernArt()
-	for _, o := range mercenaries {
-		cell := ui.TownSurfaceCell{Detail: fmt.Sprintf("%d/%d", o.Count, o.Capacity),
-			Price: ui.GroupDigits(int64(o.Price)), Semantic: fmt.Sprintf("Mercenary %d", o.Type),
-			Enabled: o.Affordable, Hired: o.Hired, Portrait: true}
-		if art != nil && o.Type > 0 && o.Type < len(art.Units) {
-			cell.Picture = art.Units[o.Type]
-			cell.Frames = art.UnitFrames[o.Type]
-		}
-		out = append(out, tavernCandidate{key: tavernCandidateKey{kind: tavernCandidateMercenary, id: o.Type}, cell: cell, merc: o})
+	mercenaries := map[int]TavernOffer{}
+	for _, o := range t.tavernMercenaries() {
+		mercenaries[o.Type] = o
 	}
-	for _, o := range offers {
-		cell := ui.TownSurfaceCell{Label: fmt.Sprintf("NPC %d", o.NPC),
-			Semantic: fmt.Sprintf("NPC %d", o.NPC),
-			Enabled:  true, Portrait: true, TalkOnly: true}
-		if frames := tavernTalkFrames(art, t.tavernTalkObject(o.NPC)); len(frames) > 0 {
-			cell.Picture, cell.Frames = frames[0], frames
+	var hi []innOffer
+	if t.sess.Town != nil {
+		hi = innOffers(nil, innState{hire: &tavernHires, home: t.sess.Town, table: t.in.Table})
+	}
+	seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, hi)
+	out := make([]tavernCandidate, 0, len(seats))
+	art := t.tavernArt()
+	for _, seat := range seats {
+		if seat.hire() {
+			o := mercenaries[seat.word.npc]
+			cell := ui.TownSurfaceCell{Detail: fmt.Sprintf("%d/%d", o.Count, o.Capacity), Price: ui.GroupDigits(int64(o.Price)), Semantic: fmt.Sprintf("Mercenary %d", o.Type), Enabled: o.Affordable, Hired: o.Hired, Portrait: true}
+			if art != nil && o.Type > 0 && o.Type < len(art.Units) {
+				cell.Picture, cell.Frames = art.Units[o.Type], art.UnitFrames[o.Type]
+			}
+			out = append(out, tavernCandidate{key: tavernCandidateKey{kind: tavernCandidateMercenary, id: o.Type}, cell: cell, merc: o, seat: seat})
+		} else {
+			o := seat.offer()
+			cell := ui.TownSurfaceCell{Label: fmt.Sprintf("NPC %d", o.NPC), Semantic: fmt.Sprintf("NPC %d", o.NPC), Enabled: true, Portrait: true, TalkOnly: true}
+			if frames := tavernTalkFrames(art, t.tavernTalkObject(o.NPC)); len(frames) > 0 {
+				cell.Picture, cell.Frames = frames[0], frames
+			}
+			out = append(out, tavernCandidate{key: tavernCandidateKey{kind: tavernCandidateOffer, id: o.Index}, offer: o, cell: cell, seat: seat})
 		}
-		out = append(out, tavernCandidate{
-			key: tavernCandidateKey{kind: tavernCandidateOffer, id: o.Index}, offer: o,
-			cell: cell,
-		})
 	}
 	return out
 }
@@ -280,7 +283,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		_, price, ok := t.selectedSchoolSlot()
 		// Two buttons, not three: the school's shipped area picture bakes two
 		// wells and this build no longer draws a Talk box over them (1017;
-		// owner ruling quoted in docs/1017-button-frames/spec.md — a mission
+		// owner ruling quoted in docs/1017-button-frames/spec.md - a mission
 		// offer fires once on entering the room instead).
 		// Train stays pressable with a short purse or no skill: the button
 		// paint reads no sign, purse or price, and the release refuses
@@ -328,11 +331,15 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 			hireLabel = t.in.Words.TavernFire
 		}
 	}
-	talk := hasSelection && (selected.key.kind != tavernCandidateOffer || t.tavernOfferCanTalk(selected.offer))
+	var seat *innSeat
+	if hasSelection {
+		seat = &selected.seat
+	}
+	enabled := innButtons(chapterInnProfile, t.sess.Town, seat, t.sess.Shop != nil && t.in.Table != nil)
 	v.Buttons = []ui.TownSurfaceButton{
-		{Label: t.in.Words.TavernSleep, Enabled: t.sess.Shop != nil && t.in.Table != nil},
-		{Label: hireLabel, Value: value, Enabled: merc && (o.Hired || o.Affordable)},
-		{Label: t.in.Words.TavernTalk, Enabled: talk},
+		{Label: t.in.Words.TavernSleep, Enabled: enabled[innSleep]},
+		{Label: hireLabel, Value: value, Enabled: enabled[innHire]},
+		{Label: t.in.Words.TavernTalk, Enabled: enabled[innTalk]},
 		{Label: t.in.Words.TavernExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
 	}
 	v.Tip = t.roomTipView("tavern")
@@ -411,11 +418,11 @@ func (t *townScreen) TownSurfaceClick(c ui.TownSurfaceControl, double bool) ui.T
 			t.tavernSelection = candidates[c.Index].key
 		}
 		if double && t.room == roomTavern {
-			if o, ok := t.selectedMercenary(); ok {
-				t.pressMercenary(o.Type)
+			candidate, ok := t.selectedTavernCandidate()
+			if !ok {
 				return ui.TownAction{}
 			}
-			return t.townSurfaceButton(tavernButtonTalk)
+			return t.innAction(chapterInnProfile, &candidate.seat, innActivate)
 		}
 		return ui.TownAction{}
 	case ui.TownSurfaceControlButton:
@@ -455,37 +462,16 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 	}
 	if t.room == roomTavern {
 		if sleepButton(t.tavernButtons(), i) {
-			t.sleep()
-			return ui.TownAction{}
+			return t.innAction(chapterInnProfile, nil, innSleep)
 		}
-		switch i {
-		case tavernButtonHire:
-			if o, ok := t.selectedMercenary(); ok {
-				t.pressMercenary(o.Type)
-				return ui.TownAction{}
-			}
-			return ui.TownAction{}
-		case tavernButtonTalk:
-			candidate, ok := t.selectedTavernCandidate()
-			if !ok {
-				return ui.TownAction{}
-			}
-			if candidate.key.kind == tavernCandidateOffer {
-				if !t.tavernOfferCanTalk(candidate.offer) {
-					return ui.TownAction{}
-				}
-				t.composeShopFaces()
-				t.openOfferDialogue(TownTavern, candidate.offer, candidate.offer.NPC)
-				t.raiseRoomEvent(roomTavern, roomEventTalk)
-				return ui.TownAction{}
-			}
-			if candidate.key.kind == tavernCandidateMercenary {
-				t.openMercenaryDialogue(candidate.merc.Type)
-				t.raiseRoomEvent(roomTavern, roomEventTalk)
-				return ui.TownAction{}
-			}
-		case tavernButtonExit:
-			t.Back()
+		candidate, ok := t.selectedTavernCandidate()
+		var seat *innSeat
+		if ok {
+			seat = &candidate.seat
+		}
+		verbs := map[int]innVerb{tavernButtonHire: innHire, tavernButtonTalk: innTalk, tavernButtonExit: innExit}
+		if verb, ok := verbs[i]; ok {
+			return t.innAction(chapterInnProfile, seat, verb)
 		}
 	}
 	return ui.TownAction{}

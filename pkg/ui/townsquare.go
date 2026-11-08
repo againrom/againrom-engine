@@ -24,11 +24,13 @@ const (
 	// TownSquareControlSelect selects row Door without choosing it: a seat
 	// on a composed page, whose own button then acts on the selection.
 	TownSquareControlSelect
+	// TownSquareControlButton invokes the composed room's button by index.
+	TownSquareControlButton
 )
 
 // TownSquareControl is one resolved click. Door is the row index Choose(i)
 // expects; it is valid only when Kind is TownSquareControlDoor or
-// TownSquareControlSelect.
+// TownSquareControlSelect. With TownSquareControlButton it is a button index.
 type TownSquareControl struct {
 	Kind TownSquareControlKind
 	Door int
@@ -38,6 +40,11 @@ type TownSquareControl struct {
 // crosses: SelectTownSquare selects row i and changes no row.
 type TownSquareSelector interface {
 	SelectTownSquare(i int)
+}
+
+// TownSquareButtonScreen handles a room button independent of its row action.
+type TownSquareButtonScreen interface {
+	TownSquareButton(i int) TownAction
 }
 
 // TownSquareView is what the town square draws: the game's composed scene,

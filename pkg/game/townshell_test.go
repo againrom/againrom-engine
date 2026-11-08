@@ -881,3 +881,16 @@ func TestSchoolShortPurseShowsANegativeExitAndTrainRefusesSilently(t *testing.T)
 		t.Fatalf("Exit with a large purse = %q, want grouped 1,000,000", got)
 	}
 }
+
+// TestTavernWithoutTownHasNoCandidates: a tavern page without a town lists no
+// candidate, paints and takes the Exit button without a nil dereference.
+func TestTavernWithoutTownHasNoCandidates(t *testing.T) {
+	f := shellFrontEnd()
+	f.Town = nil
+	s := f.townUI
+	if got := s.tavernCandidates(); len(got) != 0 {
+		t.Fatalf("candidates without a town = %v", got)
+	}
+	_ = s.TownSurface()
+	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: tavernButtonExit}, false)
+}

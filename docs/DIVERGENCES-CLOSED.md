@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 inn hire-seat talk
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-3112 | ROM2 towns 1, 2 and 3 / inn talk button on a hire seat | - | `R2-ENGINE-496` (High): button 1 on a hire seat formats npc<key>about and builds that dialogue; RU skips it while the selection is negative | The shared innAction dispatch opens npc<ID>about through startInnTalk without a hire transaction or TalkTo effect. A negative or absent selection has no action. | FIDELITY-DEBT | Story 1614 routes the hire-seat Talk button through the common inn dispatch and talk start. | Closed by the hire-seat about dialogue and TestSecondInnHireRouting. | CLOSED |
+
 ## ROM2 empty shop and death draw
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

@@ -184,51 +184,15 @@ func (t *townScreen) StartNewGame() error {
 // R2-ENGINE-496; the room events: DIV-4372) or the first row, the town's
 // one Sleep. i is an inn row: row 0 is Sleep and row i+1 is seat i.
 func (t *townScreen) innAct(c *secondCampaign, row int) ui.TownAction {
-	seats, hires := c.innSeats()
-	i := row - 1
 	if row == 0 {
-		t.sleep()
-		return ui.TownAction{}
+		return t.innAction(bankInnProfile, nil, innSleep)
 	}
+	seats, _ := c.innSeats()
+	i := row - 1
 	if i < 0 || i >= len(seats) {
 		return ui.TownAction{}
 	}
-	if i >= hires {
-		t.raiseShownRoomEvent(roomEventTalk)
-		return t.talk(c, seats[i])
-	}
-	npc := seats[i].npc
-	fired := c.hired(npc)
-	key := c.seatHire(npc)
-	switch {
-	case fired:
-		t.raiseShownRoomEvent(roomEventDismiss)
-	case c.hired(npc):
-		t.raiseShownRoomEvent(roomEventHire)
-	case key != "":
-		t.raiseShownRoomEvent(roomEventHireShort)
-	}
-	if key != "" {
-		return t.openTownText(key)
-	}
-	return ui.TownAction{}
-}
-
-// talk opens a speaker's conversation and runs its TalkTo.
-func (t *townScreen) talk(c *secondCampaign, o innOffer) ui.TownAction {
-	key := secondTalkKey(o.npc, o.topic)
-	payload, err := readSecondTownTalk(t.in, key)
-	if err != nil {
-		return ui.TownAction{Msg: err.Error()}
-	}
-	c.talkTo(o)
-	if payload == nil {
-		t.endInnTalk(o)
-		return ui.TownAction{}
-	}
-	c.talking = &o
-	t.setTownDialogue(key, payload)
-	return ui.TownAction{}
+	return t.innAction(bankInnProfile, &innSeat{word: seats[i]}, innActivate)
 }
 
 // endInnTalk is the end of the inn talk o: the party gains each identity
@@ -240,14 +204,7 @@ func (t *townScreen) endInnTalk(o innOffer) {
 
 // setTownDialogue opens section key's conversation and its speaker resolver.
 func (t *townScreen) setTownDialogue(key string, payload []byte) {
-	if t.adapter == nil {
-		t.adapter = destinationTownCampaign{t}
-		t.defaults = townDescriptions["rom2-town1"]
-	}
-	t.talkPage().openSection(key, payload)
-	t.resetTownSpeech()
-	t.resolver = t.townSpeakers()
-	t.openTalk(t, payload, false)
+	t.startInnTalk(bankInnProfile, innTalkRequest{key: key, payload: payload, loaded: true, plain: true})
 }
 
 // townSpeakers resolves a town speaker over the carried party as a mission

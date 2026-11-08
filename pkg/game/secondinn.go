@@ -33,12 +33,8 @@ func (c *secondCampaign) offerRows() []town.OfferRow {
 // DIV-2635). Kinds 1 and 2 are hire actors instead.
 func (c *secondCampaign) speakers() []innOffer {
 	var out []innOffer
-	seen := map[int]bool{}
-	for _, o := range c.innOptions() {
-		if o.speaker() && !seen[o.npc] {
-			seen[o.npc] = true
-			out = append(out, o)
-		}
+	for _, s := range innRoster(bankInnProfile, nil, c.innOptions()) {
+		out = append(out, s.word)
 	}
 	return out
 }
@@ -107,8 +103,12 @@ func (c *secondCampaign) hires() []innOffer {
 // innSeats is the inn page's seats, the hire actors and then the talk
 // actors (R2-ENGINE-497), and the number of hire actors.
 func (c *secondCampaign) innSeats() ([]innOffer, int) {
-	hires := c.hires()
-	return append(hires, c.speakers()...), len(hires)
+	seats, hires := innSeats(bankInnProfile, nil, c.innOptions(), c.hires())
+	var out []innOffer
+	for _, s := range seats {
+		out = append(out, s.word)
+	}
+	return out, hires
 }
 
 // innRows lists Sleep first, then HIRE or FIRE per hire seat

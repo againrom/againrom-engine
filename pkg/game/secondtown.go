@@ -330,14 +330,8 @@ func (t *townScreen) seatFrame(i int) int {
 // openTownText opens a town text section as the town dialogue; a missing
 // section opens nothing.
 func (t *townScreen) openTownText(key string) ui.TownAction {
-	payload, err := readSecondTownTalk(t.in, key)
-	if err != nil {
-		return ui.TownAction{Msg: err.Error()}
-	}
-	if payload != nil {
-		t.setTownDialogue(key, payload)
-	}
-	return ui.TownAction{}
+	action, _ := t.startInnTalk(bankInnProfile, innTalkRequest{key: key, plain: true})
+	return action
 }
 
 // roomPageView is a composed room as ui paints and hit-tests it.
@@ -517,22 +511,7 @@ func (v roomPageView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i + 1}, true
 	}
 	if i := page.ButtonAt(p); i >= 0 {
-		if sleepButton(r.Buttons, i) {
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: 0}, true
-		}
-		seat := v.t.composed.seat
-		switch r.Buttons[i].Name {
-		case "hire":
-			if seat >= 0 && seat < hires {
-				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat + 1}, true
-			}
-		case "talk":
-			if seat >= hires && seat < seats {
-				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat + 1}, true
-			}
-		case "exit":
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats + 1}, true
-		}
+		return innControl(bankInnProfile, v.t.sess.Town, list, v.t.composed.seat, r.Buttons[i].Name, i)
 	}
 	return ui.TownSquareControl{}, false
 }

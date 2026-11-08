@@ -834,73 +834,17 @@ func (t *Town) chapterOffers(b TownBuilding) []TownOffer {
 //
 // A restored chapter's registry is the form its live arrays were written
 // against: a save made without the towns mod that now changes the chapter
-// holds layer 0's arrays, so a LOAD adds no mod row (chapterForms, rosterOn).
+// holds layer 0's arrays, so a LOAD adds no mod row (chapterForms, innRegistry).
 func (t *Town) TavernRoster() []TownOffer {
-	live := t.Offers(TownTavern)
-	if !t.Open() {
-		return live
+	seats := innRoster(chapterInnProfile, t, nil)
+	var out []TownOffer
+	if seats != nil {
+		out = make([]TownOffer, len(seats))
 	}
-	forms := t.camp.chapterForms(t.ChapterData().Mission)
-	if t.progress == nil {
-		forms = forms[:1]
+	for i, s := range seats {
+		out[i] = s.offer()
 	}
-	var first, whole []TownOffer
-	for i, registry := range forms {
-		out, ok := t.rosterOn(registry, live)
-		if len(forms) == 1 || ok && t.keptAccepted(out) {
-			return out
-		}
-		if i == 0 {
-			first = out
-		}
-		if ok && whole == nil {
-			whole = out
-		}
-	}
-	if whole != nil {
-		return whole
-	}
-	return first
-}
-
-// rosterOn is the roster over one registry form, and whether the live arrays
-// are an ordered sub-list of its rows, as arrays written against it are.
-func (t *Town) rosterOn(registry Chapter, live []TownOffer) ([]TownOffer, bool) {
-	rows := min(len(registry.Inn), len(registry.InnNPC))
-	out := make([]TownOffer, 0, max(rows, len(live)))
-	next, sub := 0, true
-	for i := 0; i < rows; i++ {
-		npc, mission := registry.InnNPC[i], registry.Inn[i]
-		if !t.tavernHere(npc, mission) {
-			continue
-		}
-		found := -1
-		for j := next; j < len(live); j++ {
-			if live[j].NPC == npc && live[j].Mission == mission {
-				found = j
-				break
-			}
-		}
-		if found >= 0 {
-			sub = sub && found == next
-			out = append(out, live[next:found+1]...)
-			next = found + 1
-		} else if mission > 0 {
-			out = append(out, TownOffer{Index: -1 - i, Mission: mission, NPC: npc})
-		}
-	}
-	return append(out, live[next:]...), sub && next == len(live)
-}
-
-// keptAccepted reports whether the save shows every kept speaker's mission
-// accepted: a campaign record, the available list or a finished mission.
-func (t *Town) keptAccepted(roster []TownOffer) bool {
-	for _, o := range roster {
-		if o.Index < 0 && t.progress.record(o.Mission) == nil && !t.available[o.Mission] && !t.Done(o.Mission) {
-			return false
-		}
-	}
-	return true
+	return out
 }
 
 // Take accepts one of the live chapter's offers: the mission goes on the

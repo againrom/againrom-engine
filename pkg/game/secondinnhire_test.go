@@ -85,7 +85,7 @@ func TestSecondInnHireTakesFirstWord(t *testing.T) {
 // (R2-SESSION-213, DIV-3110); the hire button runs Hire or Fire on a hire
 // actor and does nothing on a talk actor (R2-ENGINE-496, R2-ENGINE-497).
 func TestSecondInnHireRouting(t *testing.T) {
-	text := synth.File{Path: "text/town.txt", Data: []byte("#npc1accept30\r\n<NPC=1,PART=1>\r\nAccepted.\r\n#other\r\n")}
+	text := synth.File{Path: "text/town.txt", Data: []byte("#npc1accept30\r\n<NPC=1,PART=1>\r\nAccepted.\r\n#npc1about\r\n<NPC=1,PART=1>\r\nAbout this person.\r\n#other\r\n")}
 	f, app, screen := secondCampaignFixtureFiles(t, false, text)
 	c := innAt(2, 30, map[int]int32{532: 1, 552: 2})
 	c.room = secondTownInn
@@ -106,8 +106,15 @@ func TestSecondInnHireRouting(t *testing.T) {
 	if ctl, ok := view.ControlAt(image.Pt(554, 67)); !ok || ctl.Door != 1 {
 		t.Fatalf("hire button on a hire seat %+v %v", ctl, ok)
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 114)); ok {
-		t.Fatalf("talk button on a hire seat %+v", ctl)
+	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Kind != ui.TownSquareControlButton {
+		t.Fatalf("talk button on a hire seat %+v %v", ctl, ok)
+	} else {
+		before := c.bank
+		screen.TownSquareButton(ctl.Door)
+		if screen.talkPage().key != "npc1about" || screen.dialogue.text != "About this person.\r\n" || c.bank != before || c.talking != nil {
+			t.Fatal("hire-seat Talk did not open only the about section")
+		}
+		screen.AdvanceTownDialogue()
 	}
 	if got := view.hireCaption(); got == nil || *got != secondInnHireCaption {
 		t.Fatal("caption on an unhired seat", got)

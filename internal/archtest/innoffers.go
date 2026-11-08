@@ -15,7 +15,8 @@ import (
 // builds a tavern row. An option or row literal elsewhere under pkg/ is a
 // second producer; a type TavernRow or InnRow is a second row type.
 var innOfferBuilders = map[string]bool{"pkg/game/innoffers.go:innOffers": true, "pkg/game/hire.go:hireOffers": true,
-	"pkg/game/tavern.go:tavernMercenaries": true, "pkg/town/inn.go:ChapterOffer": true}
+	"pkg/game/tavern.go:tavernMercenaries": true, "pkg/town/inn.go:ChapterOffer": true,
+	"pkg/game/inn.go:innTalkRows": true, "pkg/game/inn.go:innRegistry": true}
 
 var innOfferTypes = map[string]bool{"innOffer": true, "OfferRow": true, "TavernOffer": true}
 

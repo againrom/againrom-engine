@@ -38,6 +38,12 @@ func TestCheckInnOffersNamesAnOptionTable(t *testing.T) {
 			"package game\nfunc tavernMercenaries() []TavernOffer { return []TavernOffer{{Type: 3}} }\n", ""},
 		{"an empty value", "pkg/game/a.go",
 			"package game\nfunc word() (innOffer, bool) { return innOffer{}, false }\n", ""},
+		{"current roster projection", "pkg/game/inn.go",
+			"package game\nfunc innTalkRows() { _ = innOffer{npc: 9, topic: 30} }\n", ""},
+		{"retained roster projection", "pkg/game/inn.go",
+			"package game\nfunc innRegistry() { _ = innOffer{npc: 9, topic: 30} }\n", ""},
+		{"a roster projection elsewhere", "pkg/game/a.go",
+			"package game\nfunc innTalkRows() { _ = innOffer{npc: 9, topic: 30} }\n", "innTalkRows writes an inn option"},
 		{"a test", "pkg/game/a_test.go",
 			"package game\nvar want = []innOffer{{kind: 3}}\n", ""},
 	}

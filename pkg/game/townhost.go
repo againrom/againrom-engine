@@ -247,12 +247,11 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 			}
 			return t.openBuildingDialogue(TownSchool, i)
 		case "tavern":
-			offers := t.tavernVisibleOffers()
-			if i < 0 || i >= len(offers) || !t.tavernOfferCanTalk(offers[i]) {
+			seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, nil)
+			if i < 0 || i >= len(seats) {
 				return ui.TownAction{}
 			}
-			t.composeShopFaces()
-			t.openOfferDialogue(TownTavern, offers[i], offers[i].NPC)
+			return t.innAction(chapterInnProfile, &seats[i], innTalk)
 		case "inn":
 			rows := t.Rows()
 			if i < 0 || i >= len(rows) || !rows[i].Choosable {
@@ -264,8 +263,7 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 				}
 				return t.innAct(t.state(), i)
 			}
-			t.raiseShownRoomEvent(roomEventLeave)
-			t.squareView().LeaveRoom(room)
+			return t.innAction(bankInnProfile, nil, innExit)
 		}
 		return ui.TownAction{}
 	}

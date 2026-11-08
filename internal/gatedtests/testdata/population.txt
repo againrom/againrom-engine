@@ -1120,6 +1120,7 @@ pkg/game.TestReleaseSecondDinaTalksDrawHerPortrait
 pkg/game.TestReleaseSecondTownAcceptSpeaksTheClaimedRecordings
 pkg/game.TestReleaseSecondInnPatrons
 pkg/game.TestSecondInnPatronNamesInstalled
+pkg/game.TestReleaseSecondInnHireSeatAbout
 pkg/game.TestReleaseSecondMissionTwentyFailureDoesNotLeave
 pkg/game.TestReleaseSecondCampaignCheatCommands
 pkg/game.TestReleaseSecondCampaignCheatLaunchFlag

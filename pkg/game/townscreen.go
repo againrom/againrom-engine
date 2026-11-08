@@ -333,35 +333,15 @@ func (t *townScreen) townPayloadFor(building TownBuilding, offer TownOffer, npc 
 // openTownDialogue retains a constructed panel after a failed first lookup.
 // Missing resources remain outside the constructed-panel route.
 func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, npc int) bool {
-	payload := t.townPayloadFor(building, offer, npc)
-	if payload == nil {
-		return false
-	}
-	wasOpen := t.room == roomTalk
-	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, building, npc, offer
-	t.talkPage().open(payload)
-	t.resetTownSpeech()
-	t.mercenaryTalk, t.talkDiagnostic = 0, ""
-	t.openTalk(t, payload, wasOpen)
-	return true
-}
-
-func (t *townScreen) tavernOfferCanTalk(offer TownOffer) bool {
-	return offer.Index >= 0 || offer.Mission <= 0 || t.sess.Town == nil ||
-		t.sess.Town.progress == nil || t.sess.Town.progress.record(offer.Mission) != nil
+	_, ok := t.startInnTalk(chapterInnProfile, innTalkRequest{building: building, offer: offer, npc: npc, plain: true})
+	return ok
 }
 
 func (t *townScreen) tavernVisibleOffers() []TownOffer {
-	town := t.sess.Town
-	offers := town.TavernRoster()
-	out := make([]TownOffer, 0, len(offers))
-	for _, offer := range offers {
-		if !t.tavernOfferCanTalk(offer) && town.Done(offer.Mission) && offer.Mission > 0 &&
-			!containsMission(town.camp.Main, offer.Mission) &&
-			(containsMission(town.camp.Side, offer.Mission) || containsMission(town.camp.Offered, offer.Mission)) {
-			continue
-		}
-		out = append(out, offer)
+	seats, _ := innSeats(chapterInnProfile, t.sess.Town, nil, nil)
+	out := make([]TownOffer, 0, len(seats))
+	for _, s := range seats {
+		out = append(out, s.offer())
 	}
 	return out
 }
@@ -371,32 +351,8 @@ func (t *townScreen) tavernVisibleOffers() []TownOffer {
 // no accept or decline state: Enter, Escape and the button all turn the page
 // and close it, so what the player pressed decides nothing.
 func (t *townScreen) openOfferDialogue(building TownBuilding, offer TownOffer, npc int) bool {
-	if building == TownTavern && !t.tavernOfferCanTalk(offer) {
-		return false
-	}
-	if building == TownTavern && t.sess.joinAtTalk(t.in.townInstall(), offer.NPC) {
-		// The speaker is a party member from here on: the cast the tavern
-		// resolves its speakers over is rebuilt with her in it.
-		t.composeShopFaces()
-	}
-	if !t.openTownDialogue(building, offer, npc) {
-		return false
-	}
-	if offer.Mission <= 0 || offer.Index < 0 || t.sess.Town == nil {
-		return true
-	}
-	switch {
-	case building != TownTavern:
-		// The shop and the school hand the mission over as their window opens.
-		if mission, ok := t.sess.Town.Take(building, offer.Index); ok {
-			t.sess.Town.registerOfferedMission(mission)
-			t.markWorldSelected(mission)
-		}
-	default:
-		// Every live hearing queues its identity, including repeats.
-		t.innQueue = append(t.innQueue, offer.Mission)
-	}
-	return true
+	_, ok := t.startInnTalk(chapterInnProfile, innTalkRequest{building: building, offer: offer, npc: npc})
+	return ok
 }
 
 // commitInnQueue registers, in the order they were heard, the missions the
@@ -424,19 +380,7 @@ func registerInnMissions(queue []int, register func(int)) {
 // A bad external file remains visible as a concise diagnostic instead of
 // silently substituting prose that no shipped candidate authored.
 func (t *townScreen) openMercenaryDialogue(typ int) {
-	wasOpen := t.room == roomTalk
-	t.resetTownSpeech()
-	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, TownTavern, 0, TownOffer{}
-	t.mercenaryTalk, t.talkDiagnostic = typ, ""
-	t.composeShopFaces()
-	payload := t.townPayload()
-	t.talkPage().open(payload)
-	read := t.openTalk(t, payload, wasOpen)
-	// A candidate's talk takes the portrait shape whatever its text names.
-	t.dialogue.hasPortrait = true
-	if !read {
-		t.talkDiagnostic = fmt.Sprintf("Mercenary dialogue unavailable: npc%02d", typ)
-	}
+	t.startInnTalk(chapterInnProfile, innTalkRequest{building: TownTavern, candidate: typ})
 }
 
 // townLines reads the game's own inn dialogue and pages its numbered parts.
