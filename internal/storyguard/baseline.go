@@ -4400,5 +4400,6 @@ var Committed = Baseline{
 	// It rises for the Stone Curse staff card: the new
 	// pkg/game/secondcursecard_test.go, DurationCeilingTicks in
 	// pkg/sim/spell.go, net of the removed duration text helpers, and this note.
-	CommentBytes: 10698837,
+	// It rises for the alive check's zero-health body docs and this note.
+	CommentBytes: 10699206,
 }

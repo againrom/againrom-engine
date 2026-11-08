@@ -86,6 +86,19 @@ type ScriptRefs struct {
 	Roles        map[uint32]sim.EntityID
 	Roster       bool
 	Structures   map[uint16]sim.StructureID
+	// ZeroHealthBodies are the entities the map places at health exactly 0.
+	ZeroHealthBodies map[sim.EntityID]bool
+}
+
+// ScriptZeroHealthBodies lists the bound placements authored at health 0.
+func ScriptZeroHealthBodies(m *alm.Map, units map[uint16]sim.EntityID) map[sim.EntityID]bool {
+	bodies := make(map[sim.EntityID]bool)
+	for _, u := range m.Units {
+		if id, ok := units[u.UnitID]; ok && u.HasCurrentHP && u.CurrentHP == 0 {
+			bodies[id] = true
+		}
+	}
+	return bodies
 }
 
 // ScriptUnits is the unit-id table over the entity ids FromALM assigns: the type-6
@@ -318,6 +331,7 @@ func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, 
 	if err != nil {
 		return nil, ScriptReport{}, err
 	}
+	refs.ZeroHealthBodies = ScriptZeroHealthBodies(m, refs.Units)
 	return CompileROM2ScriptFrom(src, refs)
 }
 
@@ -400,6 +414,12 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			args[0] = int32(n.Value[0])
 		} else {
 			args, refd = bindScriptParams(n, refs, &rep, true, dialect)
+		}
+		if dialect == sim.ScriptROM2 && int32(n.Opcode) == sim.ScriptCheckAlive {
+			args[sim.ScriptAliveHeldBody] = 0
+			if refd.hasUnit && refs.ZeroHealthBodies[refd.unit] {
+				args[sim.ScriptAliveHeldBody] = 1
+			}
 		}
 		if err := againromNodeNamesUnit(n, true, refd); err != nil {
 			return nil, rep, err

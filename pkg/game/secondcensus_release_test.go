@@ -34,11 +34,11 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 	}
 	got := SecondTotals(census)
 	want := SecondCensusTotals{
-		Maps: 46, Started: 46, Ran: 46, Lost: 1,
+		Maps: 46, Started: 46, Ran: 46,
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 0,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 0, EntryMaps: 46, WinMaps: 46, Ready: 45,
+		FixtureMaps: 0, EntryMaps: 46, WinMaps: 46, Ready: 46,
 		Exits: 15, GatedExits: 6, EngineExits: 15,
 	}
 	// The census party carries identities 21, 22 and 23, which bind every
@@ -80,8 +80,8 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
 			}
 		case 101:
-			if c.Run.Outcome != sim.OutcomeLost || c.Run.Reason != 5 || c.Run.DecidedAt != 32 || c.BornFallen != 1 {
-				t.Errorf("mission 101 run %+v with %d fallen placements, want lost at tick 32 for reason 5 beside one", c.Run, c.BornFallen)
+			if c.Run.Outcome != sim.OutcomeUndecided || c.BornFallen != 1 {
+				t.Errorf("mission 101 run %+v with %d fallen placements, want undecided beside one", c.Run, c.BornFallen)
 			}
 		case 110:
 			if !slices.Contains(c.Spells, 7) || len(c.NoSpellRule) != 0 {

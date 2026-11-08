@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The mission Forest Madness («Бешенство») no longer ends a moment after it starts: the dying Chief Druid now waits for you to heal him.
 - [BASE] W now remembers the previous weapon after you load one of your own saves, so the swap works straight away. A save from the original game still starts with nothing to swap back to, and a weapon you no longer carry stays gone.
 - [ROM2] A mission save resaved by the original game now opens when one of its units has more health than its maximum.
 - [ROM2] Bats and other creatures that backed away from the hero no longer stand idle for the rest of the mission after a load: they pick a target again and attack.

@@ -1389,7 +1389,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 
 	case ScriptCheckAlive:
 		v := int32(1)
-		if scriptDead(e) {
+		if scriptDead(e) && !(c.Args[ScriptAliveHeldBody] != 0 && e.InLife(LifeDowned)) {
 			v = 0
 		}
 		write(v)
@@ -2317,6 +2317,10 @@ func (w *World) departedEntity(id EntityID) (Entity, bool) {
 	}
 	return Entity{}, false
 }
+
+// ScriptAliveHeldBody is the alive check's flag slot: 1 says its unit was
+// placed at health 0 and reads as not dead while that health holds (DIV-4696).
+const ScriptAliveHeldBody = 1
 
 // scriptDead is what "dead" means to a script, in ONE place.
 //
