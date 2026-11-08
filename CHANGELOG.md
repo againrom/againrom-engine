@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.150.0
+
 ### For players
 
 - [ROM2] The starter no longer says that original saves are refused, that only the first town and mission 10 work, or that the hero's save record is not written; its note for a Rage of Mages II base names the base alone.
