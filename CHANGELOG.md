@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Visiting the inn can now bring back a missing Iglez or Dina at the appropriate point in the campaign, including after loading an older save.
+
 ## 0.149.0
 
 ### For players

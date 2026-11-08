@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/render/text"
 	"againrom/pkg/screenart"
 	"againrom/pkg/town"
@@ -243,6 +244,7 @@ func (t *townScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i int) {
 func (t *townScreen) enterSeats() {
 	c := t.state()
 	c.enterInn()
+	t.sess.addOfferIdentities(t.in.townInstall(), base.JoinInnEntry, c.innOptions())
 	t.composed.patrons = nil
 	t.composed.seat = -1
 	if seats, _ := c.innSeats(); len(seats) > 0 {

@@ -149,8 +149,25 @@ func (s *CampaignSession) joinAtTalk(in townInstall, talk int) bool {
 }
 
 func (s *CampaignSession) addTalkIdentities(in townInstall, npc, topic int) {
+	s.addTriggerIdentities(in, base.JoinTalkEnd, func(rowNPC, rowTopic int) bool {
+		return rowNPC == npc && rowTopic == topic
+	})
+}
+
+func (s *CampaignSession) addOfferIdentities(in townInstall, trigger base.JoinTrigger, offers []innOffer) {
+	s.addTriggerIdentities(in, trigger, func(rowNPC, rowTopic int) bool {
+		for _, offer := range offers {
+			if rowNPC == offer.npc && rowTopic == offer.topic {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func (s *CampaignSession) addTriggerIdentities(in townInstall, trigger base.JoinTrigger, match func(npc, topic int) bool) {
 	for _, row := range in.joins() {
-		if row.Trigger == base.JoinTalkEnd && row.TalkNPC != 0 && row.TalkNPC == npc && row.TalkTopic == topic {
+		if row.Trigger == trigger && row.TalkNPC != 0 && match(row.TalkNPC, row.TalkTopic) {
 			s.addPartyIdentity(in, row.Identity)
 		}
 	}

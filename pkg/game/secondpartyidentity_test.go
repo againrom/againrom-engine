@@ -1,6 +1,7 @@
 package game
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -45,6 +46,76 @@ func carriedIdentities(party []mapload.PartyMember, t *mapload.Table) []int {
 		}
 	}
 	return out
+}
+
+func TestSecondInnEntryAddsAbsentCompanions(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		town    int
+		stage   int32
+		slots   map[int]int32
+		present int
+		join    int
+	}{
+		{name: "before the stage thirty talk", town: 2, stage: 30},
+		{name: "before stage forty", town: 2, stage: 39},
+		{name: "stage forty town one", town: 1, stage: 40, join: 22},
+		{name: "stage forty town two", town: 2, stage: 40, join: 22},
+		{name: "stage forty town three", town: 3, stage: 40, join: 22},
+		{name: "before stage fifty", town: 2, stage: 49},
+		{name: "stage fifty town one", town: 1, stage: 50, join: 23},
+		{name: "stage fifty town two", town: 2, stage: 50, join: 23},
+		{name: "stage fifty town three", town: 3, stage: 50, join: 23},
+		{name: "after stage fifty with the departure slot set", town: 2, stage: 51, slots: map[int]int32{773: 23}},
+		{name: "topic sixty two below stage sixty", town: 2, stage: 59, slots: map[int]int32{949: 1}},
+		{name: "topic sixty two at stage sixty", town: 2, stage: 60, slots: map[int]int32{949: 1}, join: 22},
+		{name: "topic sixty two at an unlisted stage", town: 2, stage: 61, slots: map[int]int32{949: -1}, join: 22},
+		{name: "topic sixty two at stage one hundred ten", town: 2, stage: 110, slots: map[int]int32{949: 1}, join: 22},
+		{name: "topic sixty two without its prerequisite", town: 2, stage: 60},
+		{name: "topic sixty two already completed", town: 2, stage: 60, slots: map[int]int32{949: 1, 958: 1}},
+		{name: "topic sixty two in another town", town: 3, stage: 60, slots: map[int]int32{949: 1}},
+		{name: "identity twenty two already carried", town: 2, stage: 40, present: 22},
+		{name: "identity twenty three already carried", town: 2, stage: 50, present: 23},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, _, screen := secondCampaignFixtureFiles(t, false, identityNames())
+			f.Table = identityTable()
+			f.Carried = []mapload.PartyMember{identityHero()}
+			want := []int{21}
+			if tc.present != 0 {
+				f.Carried = append(f.Carried, mapload.PartyMember{ID: "retained", Name: "Retained", CompanionNPC: tc.present, PlayerCharacter: true})
+				want = append(want, tc.present)
+			}
+			if tc.join != 0 {
+				want = append(want, tc.join)
+			}
+			c := innAt(tc.town, tc.stage, tc.slots)
+			f.Town.second = c
+			screen.composed = newTownSceneState(nil)
+			beforeBank := c.bank
+			for visit := 1; visit <= 2; visit++ {
+				screen.enterSeats()
+				if got := carriedIdentities(f.Carried, f.Table); !slices.Equal(got, want) || len(f.Carried) != len(want) {
+					t.Fatalf("inn visit %d: %d members, identities %v; want %v", visit, len(f.Carried), got, want)
+				}
+				if c.bank != beforeBank {
+					t.Fatal("inn entry changed the scenario bank")
+				}
+			}
+			if tc.present != 0 && (f.Carried[1].ID != "retained" || f.Carried[1].Name != "Retained") {
+				t.Fatal("inn entry replaced an existing member")
+			}
+			if tc.join != 0 {
+				row := mapload.PartyHumanRow(f.Carried[1], f.Carried[0], f.Table)
+				if wantRow := 30 + tc.join - 22; row != wantRow {
+					t.Fatalf("joined identity %d uses Humans row %d, want %d", tc.join, row, wantRow)
+				}
+				if wantName := map[int]string{22: "Igles", 23: "Dina"}[tc.join]; f.Carried[1].Name != wantName {
+					t.Fatalf("joined member is named %q, want %q", f.Carried[1].Name, wantName)
+				}
+			}
+		})
+	}
 }
 
 // The end of the stage-30 talk with NPC 22 adds identity 22, built from the

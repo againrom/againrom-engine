@@ -142,6 +142,7 @@ const (
 	JoinTalkOpen
 	JoinTalkEnd
 	JoinLeave
+	JoinInnEntry
 )
 
 // PartyProfile supplies the membership identities and join rows of an edition.
@@ -274,6 +275,9 @@ var secondEdition = Edition{
 			{Identity: 21, FailureReason: 2},
 			{Identity: 22, ServerID: 10220, Trigger: JoinTalkEnd, TalkNPC: 22, TalkTopic: 30, FailureReason: 3},
 			{Identity: 23, ServerID: 10230, Trigger: JoinLeave, BankSlot: 773, FailureReason: 4},
+			{Identity: 22, Trigger: JoinInnEntry, TalkNPC: 22, TalkTopic: 40},
+			{Identity: 22, Trigger: JoinInnEntry, TalkNPC: 22, TalkTopic: 62},
+			{Identity: 23, Trigger: JoinInnEntry, TalkNPC: 23, TalkTopic: 49},
 		},
 	},
 	// The logos, then the intro cutscene, play before the menu
