@@ -44,6 +44,18 @@ func (in townInstall) joins() joinCatalog {
 	return rows
 }
 
+// byServerID maps the server id of each Humans row a companion is built from
+// to the identity that companion carries.
+func (c joinCatalog) byServerID() map[int32]int32 {
+	out := map[int32]int32{}
+	for _, p := range c {
+		if p.ServerID != 0 {
+			out[p.ServerID] = int32(p.Identity)
+		}
+	}
+	return out
+}
+
 func (c joinCatalog) townRow(chapter, id int) (base.PartyIdentity, bool) {
 	for _, row := range c {
 		if row.TownGrant && row.Chapter == chapter && row.Identity == id {

@@ -4360,5 +4360,10 @@ var Committed = Baseline{
 	// It rises for the hero's Player's map actor key test in
 	// pkg/game/secondactorkey_test.go and secondMapActorKey's doc in
 	// pkg/game/savform.go.
-	CommentBytes: 10681199,
+
+	// It rose for the placed companion speaker: the comments of
+	// joinCatalog.byServerID in pkg/game/joincatalog.go, of entitySpeakers and
+	// missionSpeakers in pkg/game/speakeractors.go, the new test's comment in
+	// pkg/game/speakercompanion_test.go, and this note.
+	CommentBytes: 10682000,
 }

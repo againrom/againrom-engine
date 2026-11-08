@@ -85,6 +85,7 @@ func entitySpeakers(m *alm.Map, t *mapload.Table) []speakerActor {
 		return nil
 	}
 	out := make([]speakerActor, 0, len(m.Units))
+	companions := (townInstall{table: t}).joins().byServerID()
 	for i, u := range m.Units {
 		r := mapload.Resolve(u, t)
 		if r.Arm == mapload.ArmUnits || !r.Found() {
@@ -95,11 +96,17 @@ func entitySpeakers(m *alm.Map, t *mapload.Table) []speakerActor {
 			continue
 		}
 		dir, face, _ := mapload.PlacedFigure(u, t)
-		out = append(out, speakerActor{
+		a := speakerActor{
 			id: sim.EntityID(i), hero: r.Arm == mapload.ArmNPC && t.NPC.Hero(int32(u.ClassSubID)),
 			fig:  figureID{Dir: dir, Face: face},
 			face: int32(face), typeID: d.TypeID,
-		})
+		}
+		if key, ok := data.HumanServerID(t.Humans.EntryParams(r.Index)); ok && r.Arm != mapload.ArmNPC {
+			if identity, companion := companions[key]; companion {
+				a.npc, a.hero = identity, true
+			}
+		}
+		out = append(out, a)
 	}
 	return out
 }
@@ -204,11 +211,19 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 			// (ALM-CLS-054), and a person no placement pairs keep the
 			// template's class.
 			class := p.Class
-			if placement, paired := byIndex[pe.index]; paired && !hero {
-				class = placement.typeID
+			npc := int32(p.CompanionID())
+			if placement, paired := byIndex[pe.index]; paired {
+				if !hero {
+					class = placement.typeID
+				}
+				// A placement of the row a companion is built from is that
+				// companion standing in the map.
+				if placement.npc != 0 {
+					npc, hero = placement.npc, true
+				}
 			}
 			out = append(out, speakerActor{
-				id: pe.id, hero: hero, npc: int32(p.CompanionID()),
+				id: pe.id, hero: hero, npc: npc,
 				fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: class,
 			})
 			continue

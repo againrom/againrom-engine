@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -233,6 +234,77 @@ func TestSecondGameMissionLineDrawsDina(t *testing.T) {
 				mission:       &missionNotices{src: companionSheets(), party: party},
 				npcFaces:      faces,
 				speakerActors: missionSpeakers(nil, nil, nil, party, ids, nil),
+			}
+			mw.figurePics = map[figureCacheKey]*image.RGBA{}
+			if _, _, ok := mw.SpeakerFace(tc.speaker); !ok || len(mw.figurePics) != 1 {
+				t.Fatalf("speaker %d: ok %v, %d figures composed", tc.speaker, ok, len(mw.figurePics))
+			}
+			for key := range mw.figurePics {
+				if key.fig != tc.want {
+					t.Errorf("speaker %d drew %+v, want %+v", tc.speaker, key.fig, tc.want)
+				}
+			}
+		})
+	}
+}
+
+// In a second-game mission whose map places the Humans row a companion is built
+// from (Mage_Hero, server id 10230), a line of that companion's identity draws
+// the placed person: Dina stands in the map before she joins. A map that
+// places no such row draws the row at the key, as before; the other speakers
+// keep their faces.
+func TestSecondGameMissionLineDrawsThePlacedCompanion(t *testing.T) {
+	table := dinaSpeakerTable()
+	faces := speakerFaces(table)
+	patron := alm.Unit{ServerID: 2108, Flags: 0x10}
+	dina := alm.Unit{ServerID: 10230, Flags: 0x10}
+	for _, tc := range []struct {
+		name    string
+		units   []alm.Unit
+		roster  bool
+		speaker int
+		want    figureID
+	}{
+		{"Dina placed in the map", []alm.Unit{patron, dina}, false, 23, dinaFigure},
+		{"Dina placed as a roster person", []alm.Unit{patron, dina}, true, 23, dinaFigure},
+		{"no Dina placed", []alm.Unit{patron}, false, 23, manMageFigure},
+		{"Dina placed, the hero's line", []alm.Unit{patron, dina}, true, 21, heroFigure},
+		{"Dina placed, Iglez's line", []alm.Unit{patron, dina}, true, 22, iglezFigure},
+		{"Dina placed, the patron's line", []alm.Unit{patron, dina}, true, 2108, innPatronFigure},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &alm.Map{Units: tc.units}
+			party := dinaParty(true, false)
+			ids := []sim.EntityID{124, 125}
+			var entities []sim.Entity
+			var stocks []sim.Stock
+			for i := range tc.units {
+				entities = append(entities, sim.Entity{ID: sim.EntityID(i), X: int32(3 + 2*i), Y: 9, HP: 10, MaxHP: 10})
+				stocks = append(stocks, sim.Stock{ID: sim.EntityID(i)})
+			}
+			for i, id := range ids {
+				entities = append(entities, sim.Entity{ID: id, X: int32(3 + 2*i), Y: 3, HP: 10, MaxHP: 10})
+				stocks = append(stocks, sim.Stock{ID: id})
+			}
+			w, err := sim.NewStockedWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH},
+				sim.ModeCanonical, sim.Terrain{}, entities, nil, sim.Relations{}, nil, stocks)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var placed []placedEntity
+			for i := range tc.units {
+				placed = append(placed, placedEntity{index: i, id: sim.EntityID(i)})
+			}
+			var roster map[sim.EntityID]mapload.PartyMember
+			if tc.roster {
+				roster = map[sim.EntityID]mapload.PartyMember{1: {PlayerCharacter: true, Class: 23,
+					FigureDir: string(data.FigureDirWomanMage), FigureFace: 20}}
+			}
+			mw := &mapWorld{
+				world:         w,
+				mission:       &missionNotices{src: companionSheets(), party: party},
+				npcFaces:      faces,
+				speakerActors: missionSpeakers(m, table, roster, party, ids, placed),
 			}
 			mw.figurePics = map[figureCacheKey]*image.RGBA{}
 			if _, _, ok := mw.SpeakerFace(tc.speaker); !ok || len(mw.figurePics) != 1 {
