@@ -84,6 +84,25 @@ func TestBaseRowsAndNotesStateTheProfile(t *testing.T) {
 	}
 }
 
+func TestSecondGameNoteHoldsNoRemovedStatement(t *testing.T) {
+	removed := []string{"original saves refused", "оригинальные сохранения не принимаются", "initial town TALK", "mission 10 victory", "later campaign continuation", "SAV record", "item modifiers"}
+	for _, info := range []game.InstallInfo{profileInfo(basepkg.ROM2EN, true), profileInfo(basepkg.ROM2RU, false), {Base: basepkg.Match{Profile: unknownSecond()}}} {
+		a := &app{}
+		note := a.baseNote(info)
+		if note != info.Base.String() {
+			t.Errorf("note = %q, want %q", note, info.Base.String())
+		}
+		for _, r := range removed {
+			if strings.Contains(note, r) {
+				t.Errorf("note %q holds %q", note, r)
+			}
+		}
+		if strings.Contains(a.baseLabel(info), "has limits") {
+			t.Errorf("label %q states limits", a.baseLabel(info))
+		}
+	}
+}
+
 func TestBaseLabelOfAnUnrecognisedBuild(t *testing.T) {
 	if got := (&app{}).baseLabel(profileInfo(basepkg.ROM1EN, false)); got != "rom1-en (unrecognised build)" {
 		t.Fatalf("label = %q", got)
@@ -115,14 +134,12 @@ func TestSecondGameRootIsSelectableAndLaunches(t *testing.T) {
 			rows = append(rows, it.text)
 		}
 	}
-	if len(rows) != 2 || !strings.HasSuffix(rows[1], "OK rom2-ru, has limits") {
+	if len(rows) != 2 || !strings.HasSuffix(rows[1], "OK rom2-ru") {
 		t.Fatalf("rows = %q", rows)
 	}
 	do(t, a, action{aSelectBase, 1})
-	for _, want := range []string{"rom2-ru (Rage of Mages II, Russian; exact build)", a.t(cSavesRefused), "SAV record"} {
-		if !strings.Contains(a.status, want) || a.statusBad {
-			t.Fatalf("status %q lacks %q", a.status, want)
-		}
+	if want := "rom2-ru (Rage of Mages II, Russian; exact build)"; a.status != want || a.statusBad {
+		t.Fatalf("status %q, want %q", a.status, want)
 	}
 	do(t, a, action{kind: aPlay})
 	want := []string{filepath.Join(r.dir, "againrom.exe"), "-assets", second, "-base", "rom2-ru"}

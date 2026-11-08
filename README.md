@@ -1,27 +1,29 @@
 # AgainROM
 
-AgainROM is a new engine for **Rage of Mages** (Allods, 1998). You play the
-original game's campaign with your own copy of the game, on Windows, macOS or
-Linux.
+AgainROM is a new engine for **Rage of Mages** (Allods, 1998) and **Rage of
+Mages II: Necromancer**. You play the original campaign with your own copy of
+the game, on Windows, macOS or Linux.
 
 It ships no game files. It reads the maps, graphics, sounds, music and movies
-from the files of a Rage of Mages copy that you already own. Both the English
-and the Russian releases work.
+from the files of a copy that you already own. The English and the Russian
+releases of both games work.
 
-The game is a work in progress. The campaign, towns, shops, the tavern,
-battles, spells, movies and saving all run. Some details still differ from the
-original. Each known difference is listed in `docs/divergences/`.
+The campaign, towns, shops, the tavern, battles, spells, movies and saving all
+run, but the game is a work in progress. Each known difference from the
+original is listed in `docs/divergences/`.
 
 ## What you need
 
 - 64-bit Windows, macOS on Intel or Apple Silicon, or Linux x86_64. See
   [Install on Linux](#install-on-linux) for its system libraries.
 - The game files of Rage of Mages, English or Russian, from a Windows install
-  or the CD. The game is sold digitally, for example on GOG.
+  or the CD, or of Rage of Mages II (see [Rage of Mages II](#rage-of-mages-ii)).
+  Each game needs its own lawful copy. They are sold digitally, for example on
+  GOG.
 
 AgainROM only reads the game files. It never changes them.
 
-## Game files
+## Game files of Rage of Mages
 
 AgainROM reads these files from one game folder:
 
@@ -49,7 +51,8 @@ example from GOG, already holds that folder.
 
 ### The GOG installer on macOS or Linux
 
-The GOG installer is a Windows program.
+This route was checked only for the first game's installer, not for Rage of
+Mages II's. The GOG installer is a Windows program.
 [innoextract](https://constexpr.org/innoextract/) unpacks it without Windows
 and without running it:
 
@@ -58,9 +61,29 @@ innoextract --include app -d rom setup_rage_of_mages_2.1.0.3.exe
 ```
 
 The folder `rom/app` is then the game folder: it holds every file listed above,
-`Allods` included. Checked with innoextract 1.9 on
-`setup_rage_of_mages_2.1.0.3.exe`: the 11 files equal those of the same
-release installed on Windows.
+`Allods` included. With innoextract 1.9 on that installer, the 11 files equal
+those of the same release installed on Windows.
+
+## Rage of Mages II
+
+Rage of Mages II was released for Windows only. Point the starter at its whole
+install folder, copied from a Windows install if you use macOS or Linux.
+
+The folder must hold `main.res`, `graphics.res`, `scenario.res`, `world.res`
+and `movies.res`, and also `allods2.exe` and `scenario.dll`. AgainROM never
+runs those two, but with the archives alone it takes the folder for the first
+game. `sfx.res`, `speech.res`, `patch.res`, `music.res` and `video.res` lie in
+the same folder, with no `Allods` folder, and a missing one only turns its
+part off.
+
+In the starter the folder shows as `rom2-en` or `rom2-ru`, with the game and
+the language. One starter holds bases of both games; select one and press
+**Play**. New Game opens hero creation, then the first town. The campaign, the
+shops, the inn and saving run.
+
+LOAD lists the saves in the saves folder (see [Saves](#saves)), not those in
+the install folder. To load a save the original made, copy its `game*.sav`
+file into the saves folder. Multiplayer is not available yet.
 
 ## Install on Windows
 
@@ -69,22 +92,24 @@ release installed on Windows.
    Unpack it into its own folder, for example
    `C:\Games\againrom`. Do not unpack it into the original game's folder.
 2. Run `starter.exe`.
-3. Under **Base game**, paste the folder of your Rage of Mages install into
-   **Add path** and press **Add**. The starter checks the folder and shows
-   whether it is the English or the Russian release.
+3. Under **Base game**, paste the folder of your Rage of Mages or Rage of
+   Mages II install into **Add path** and press **Add**. The starter checks the
+   folder and shows which game and which language (English or Russian) it is.
 4. Press **Play**.
 
 The starter remembers your choices in `starter.ini` beside it. You can add
-both the English and the Russian install and switch between them.
+installs of both games and both languages and switch between them.
 The package starts with default settings. It includes no saves, mods or personal
 configuration files.
 
 ## Install on macOS
 
-Rage of Mages was never released for macOS. Copy the files listed under
-[Game files](#game-files) from a Windows install or the CD into one folder on
-the Mac, with `Allods` as a folder inside it, or unpack them from
-[the GOG installer](#the-gog-installer-on-macos-or-linux).
+Neither game was released for macOS. For Rage of Mages, copy the files listed
+under [Game files](#game-files-of-rage-of-mages) from a Windows install or the
+CD into one folder on the Mac, with `Allods` as a folder inside it, or unpack
+them from [the GOG installer](#the-gog-installer-on-macos-or-linux). For
+Rage of Mages II, copy its whole install folder from Windows
+([details](#rage-of-mages-ii)).
 
 1. Download the macOS AMD64 ZIP for an Intel Mac, or the macOS ARM64 ZIP for
    Apple Silicon. Unpack it into a separate folder, not into the game folder.
@@ -101,15 +126,17 @@ the Mac, with `Allods` as a folder inside it, or unpack them from
    path of the game folder, press **Add**, then **Play**. The Mac starter
    currently requires typed paths; clipboard paste and Command+V are pending.
 
-The ZIP preserves executable permissions and contains no game assets or player
-profiles. It holds three command-line-launched executables, without an `.app`
-bundle. Alternatively, run `./againrom -assets "/path/to/game folder"`.
+The ZIP holds three command-line executables, without an `.app` bundle, and no
+game assets or player profiles. Alternatively, run `./againrom -assets "/path/to/game folder"`.
 
 ## Install on Linux
 
-Copy the files listed under [Game files](#game-files) from a Windows install
-or the CD into one folder on Linux, with `Allods` as a folder inside it, or
-unpack them from [the GOG installer](#the-gog-installer-on-macos-or-linux).
+For Rage of Mages, copy the files listed under
+[Game files](#game-files-of-rage-of-mages) from a Windows install or the CD
+into one folder on Linux, with `Allods` as a folder inside it, or unpack them
+from [the GOG installer](#the-gog-installer-on-macos-or-linux). For Rage of
+Mages II, copy its whole install folder from Windows
+([details](#rage-of-mages-ii)).
 File names are found in any letter case, so nothing needs renaming.
 
 1. Download the Linux x86_64 AppImage or tar.gz from
@@ -130,13 +157,12 @@ File names are found in any letter case, so nothing needs renaming.
 
 The AppImage keeps `starter.ini`, `mods/`, game preferences and `saves/` in
 `$XDG_CONFIG_HOME/Againrom`, or `~/.config/Againrom` when that variable is
-unset. Its read-only mount holds no player files. Existing settings are kept;
-explicit paths chosen in the starter still apply. With the tar.gz, settings,
+unset. Existing settings are kept; explicit paths chosen in the starter still
+apply. With the tar.gz, settings,
 mods and the player profile use the same layout beside the programs as on
-Windows and macOS. Neither download contains game assets or player profiles.
-
-Install X11 or XWayland for the display. At run time Ebitengine loads these
-libraries from the system; install the distribution packages for them:
+Windows and macOS.
+Install X11 or XWayland for the display. Ebitengine loads these libraries from
+the system; install their distribution packages:
 
 - OpenGL: `libGL`, `libOpenGL`, `libGLX` or `libEGL`.
 - X11: `libX11`, `libXcursor`, `libXext`, `libXi`, `libXinerama`, `libXrandr`
@@ -148,7 +174,8 @@ libraries from the system; install the distribution packages for them:
 
 The map editor, `mapedit.exe` (`./mapedit` on macOS and Linux), comes in the same
 folder. Select a base in the starter and press **Map editor** (**Редактор карт** on a Russian install). See
-`docs/MODS.md` in the source repository for its keys.
+`docs/MODS.md` in the source repository for its keys. It opens the maps of a
+Rage of Mages II base too; the F5 test play is not available for that game.
 
 ## Starter settings
 
@@ -163,8 +190,10 @@ folder. Select a base in the starter and press **Map editor** (**Редакто�
 
 ## Saves
 
-AgainROM saves in the original game's save format. LOAD also lists the saves
-the original game made in its own install folder, and they load in AgainROM.
+AgainROM saves in the original game's save format. In Rage of Mages, LOAD also
+lists the saves the original game made in its own install folder, and they load
+in AgainROM. In Rage of Mages II, LOAD lists only the saves folder: copy an
+original `game*.sav` into it.
 
 By default, saves go to the `saves` folder beside `againrom.exe`. If the game
 runs from inside an install folder, they go to `Againrom\saves` there instead,
@@ -180,7 +209,8 @@ beside it.
 Mods live in the `mods` folder beside the starter. Each mod is one folder.
 Tick a mod in the starter, set its options under **Mod settings**, and press
 **Play**. **Rescan** picks up a mod folder you added while the starter was
-open.
+open. A mod runs on Rage of Mages II only when its `applies-to` names `common`,
+`rom2-en` or `rom2-ru`; `rom1` does not.
 
 A save made with mods remembers which mods were on. The game refuses to load
 it without the same mods, so the save stays consistent. A save made without
@@ -197,8 +227,8 @@ The full list of known differences is in `docs/divergences/`.
 
 ## Problems
 
-When you report a problem, say which release you use (English or Russian),
-what you did, and attach the save if the problem is in one.
+When you report a problem, say which game and release you use (English or
+Russian), what you did, and attach the save if the problem is in one.
 
 Requests about pirated copies of the game are closed without reply.
 
@@ -218,10 +248,8 @@ go test ./...
 The tests need no game install. `docs/ARCHITECTURE.md` describes the code,
 and `docs/PROVENANCE.md` describes how the original game's behaviour was
 established without copying its code or data.
-The version-tagged Windows packaging workflow is described in
+The release packaging is described in
 [`docs/windows-release.md`](docs/windows-release.md).
-That workflow also builds macOS Intel and Apple Silicon packages through
-`.github/workflows/macos-release.yml` on native macOS runners.
 
 ## Legal
 

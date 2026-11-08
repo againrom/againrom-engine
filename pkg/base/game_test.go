@@ -19,6 +19,8 @@ func TestRootGameComesFromItsFiles(t *testing.T) {
 		{"second game, unknown language", []string{"allods2.exe", "scenario.dll"}, "", ROM2, GameROM2, ROM2},
 		{"first game", nil, "russian", ROM1RU, GameROM1, ROM1RU},
 		{"one marker is not the second game", []string{"allods2.exe"}, "english", ROM1EN, GameROM1, ROM1EN},
+		{"the other marker alone is not the second game", []string{"scenario.dll"}, "russian", ROM1RU, GameROM1, ROM1RU},
+		{"the five archives alone are the first game", nil, "english", ROM1EN, GameROM1, ROM1EN},
 	}
 	for _, c := range cases {
 		root := fixture(t, "unknown-main", c.extra...)
@@ -38,7 +40,7 @@ func TestSecondGameProfilesStateTheirLimits(t *testing.T) {
 		if !ok || p.GameOf() != GameROM2 {
 			t.Fatalf("Find(%s) = %+v, %v", id, p, ok)
 		}
-		if p.Mission() != 10 || p.Limits.NoCharacterGeneration || p.Limits.OriginalSaveRefusal == "" || len(p.Limits.Notes) == 0 {
+		if p.Mission() != 10 || p.Limits.NoCharacterGeneration || p.Limits.OriginalSaveRefusal != "" || len(p.Limits.Notes) != 0 {
 			t.Errorf("%s: limits %+v", id, p.Limits)
 		}
 	}
