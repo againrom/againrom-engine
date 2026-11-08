@@ -764,7 +764,7 @@ func groupDigit() int {
 // depend on the same modifier reading. A split pair such as bare/modified
 // numpad +/- must not drift and leave a press claimed by both arms or neither.
 func ctrlHeld() bool {
-	return heldkey.Pressed(ebiten.KeyControlLeft) || heldkey.Pressed(ebiten.KeyControlRight)
+	return platformCommandModifier()
 }
 
 // altHeld is the Alt modifier: either Alt key.

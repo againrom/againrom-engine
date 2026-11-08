@@ -2822,7 +2822,7 @@ func readInput() Input {
 		// above already has.
 		SecondaryDown: ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight),
 		MiddleDown:    ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle),
-		Ctrl:          heldkey.Pressed(ebiten.KeyControlLeft) || heldkey.Pressed(ebiten.KeyControlRight),
+		Ctrl:          ctrlHeld(),
 		Alt:           heldkey.Pressed(ebiten.KeyAltLeft) || heldkey.Pressed(ebiten.KeyAltRight),
 	}
 }
