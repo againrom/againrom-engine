@@ -51,6 +51,9 @@ type gameFiles struct {
 	// damage from the spell its attack releases, the readout this build kept
 	// before ITEM-211 and HERO-172: no second-game claim states either.
 	releasedSpellReadout bool
+	// shippedPlayerColours draws a shipped mission's owners under the colour
+	// of their map player row; false keeps the owner ordinal (R2-ENGINE-963).
+	shippedPlayerColours bool
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
@@ -247,10 +250,11 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
-	hire:           &bankHires,
-	dollSounds:     dollSoundProfile{on: "put_on.wav", off: "put_off.wav"},
-	hover:          ui.KindRectangleHover,
-	cursorHotspots: secondCursorHotspots,
+	shippedPlayerColours: true,
+	hire:                 &bankHires,
+	dollSounds:           dollSoundProfile{on: "put_on.wav", off: "put_off.wav"},
+	hover:                ui.KindRectangleHover,
+	cursorHotspots:       secondCursorHotspots,
 	portraitWindows: portraitWindowProfile{
 		fallback: ui.AuthoredDialogueLayout().PortraitWindow,
 		byType: map[int32]image.Point{

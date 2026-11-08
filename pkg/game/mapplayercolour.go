@@ -2,6 +2,13 @@ package game
 
 import "againrom/pkg/formats/alm"
 
+// usesAuthoredColours reports whether a mission's owners take the colour of
+// their map player row: a mod's map always, a shipped map where the game's
+// files say so.
+func usesAuthoredColours(id missionIdentity, files *gameFiles) bool {
+	return id.modMap() || files.shippedPlayerColours
+}
+
 func (mw *mapWorld) usePlayerColours(m *alm.Map) {
 	if m == nil {
 		return

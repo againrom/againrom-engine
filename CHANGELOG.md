@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Mission 42 mage hoods and other shipped units now take the colour their map gives their side, so the hoods are brown as in the original.
 - [BASE] Cheat replies now use the install's letters and put spaces around the player's name.
 - [ROM2] Kaarg's town square now plays background voices, birds and the guard's footsteps.
 - [ROM2] Visiting the inn can now bring back a missing Iglez or Dina at the appropriate point in the campaign, including after loading an older save.
