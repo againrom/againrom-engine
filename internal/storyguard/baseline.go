@@ -4356,5 +4356,9 @@ var Committed = Baseline{
 	// New comments in pkg/game/inn.go, internal/archtest/innbuilders.go and the UI button seam.
 	// It rises for the Sleep control name test in pkg/game/sleep.go and its inn caller.
 	// It rises for the tavern row route's tests and guard shape, merged with main's map colour change.
-	CommentBytes: 10679200,
+
+	// It rises for the hero's Player's map actor key test in
+	// pkg/game/secondactorkey_test.go and secondMapActorKey's doc in
+	// pkg/game/savform.go.
+	CommentBytes: 10679949,
 }

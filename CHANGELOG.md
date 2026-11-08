@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] The Talk button on a hire seat now opens that person's description.
+- [ROM2] Our mission saves now also give each creature and person the map places on your own side the number the original game knows it by, as they already did for the other sides.
 - [ROM2] Mission 42 mage hoods and other shipped units now take the colour their map gives their side, so the hoods are brown as in the original.
 - [BASE] Cheat replies now use the install's letters and put spaces around the player's name.
 - [ROM2] Kaarg's town square now plays background voices, birds and the guard's footsteps.

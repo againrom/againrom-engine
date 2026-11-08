@@ -238,10 +238,11 @@ var secondFormHolders = []savedFormHolder{
 	{class: "Outpost", field: "RuntimeID", site: holderValue, value: secondStructureKey},
 	{class: "Tavern", field: "RuntimeID", site: holderValue, value: secondStructureKey},
 	{class: "Shop", field: "RuntimeID", site: holderValue, value: secondStructureKey},
-	// R2-ENGINE-156, R2-ENGINE-513: a mission's map-built creature or person
-	// holds its map id plus 0x6000 at +4, the key the original's client
-	// builds its unit object under from the map (R2-ENGINE-615). The actors
-	// of the hero's Player keep their key (DIV-4592).
+	// R2-ENGINE-156, R2-ENGINE-950: a mission's map-built creature or person
+	// holds its map id plus 0x6000 at +4, whoever owns it, the key the
+	// original's client builds its unit object under from the map
+	// (R2-ENGINE-615). The hero and the members carried into the mission
+	// keep their key (R2-SESSION-360).
 	{class: "Unit", field: "RuntimeID", site: holderValue, value: secondMapActorKey},
 	{class: "Human", field: "RuntimeID", site: holderValue, value: secondMapActorKey},
 	// R2-ENGINE-402: a bag's weight is the sum of its Items' unit weight
@@ -267,16 +268,18 @@ func secondStructureKey(h *formHolding, i int) (uint32, bool) {
 
 // secondMapActorKey is a mission actor's +4: 0x6000 plus its map id, the
 // record's +8, for an actor the map placed (+8 from 1 to 0x9fff, so that
-// the key fits the client's word) that the hero's Player does not own.
+// the key fits the client's word), whoever owns it. The hero and a member
+// carried into the mission, whose map id a file's record gave him, were
+// not built from this map and keep their key.
 func secondMapActorKey(h *formHolding, i int) (uint32, bool) {
-	r := &h.doc.Objects[i]
-	id, err := savedStructureValue(r, "T08")
-	if h.s.Mission == 0 || err != nil || id == 0 || id > 0x9fff {
+	id, err := savedStructureValue(&h.doc.Objects[i], "T08")
+	if h.s.Mission == 0 || err != nil || id == 0 || id > 0x9fff || uint16(i+1) == h.hero {
 		return 0, false
 	}
-	owner, err := savedStructureValue(r, "Reference")
-	if hero, herr := savedStructureValue(&h.doc.Objects[h.hero-1], "Reference"); err != nil || herr != nil || owner == hero {
-		return 0, false
+	for n := range h.s.CurrentPartyIDs {
+		if n < len(h.s.Party) && h.s.Party[n].Saved != nil && uint32(h.s.Party[n].Saved.MapUnitID) == id {
+			return 0, false
+		}
 	}
 	return h.rekeyed(i, 0x6000+id)
 }
