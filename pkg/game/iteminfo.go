@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"slices"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -173,6 +174,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 		if !ok {
 			return nil, false
 		}
+		lines = slices.Insert(lines, 1, weaponBaseLines(code, w, table, words)...)
 		for _, effect := range item.Effects {
 			switch effect.Kind {
 			case 41:
@@ -218,7 +220,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 
 // releasedSpellLines is the second game's spell weapon text: the spell the
 // attack releases at the stored power, its damage, rays and spell range, with
-// no base lines (DIV-1977); the other Effects follow.
+// no base lines (DIV-4702); the other Effects follow.
 func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, weaponRange uint8, words ui.Words) ([]string, bool) {
 	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
 		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
