@@ -26,6 +26,8 @@ func cardColumnsSubjects() map[string]PanelSubject {
 	mage := fighter
 	mage.Name, mage.HP, mage.MaxHP, mage.Mana, mage.MaxMana, mage.Speed = "MAGE", 77, 77, 215, 215, 15
 	mage.Char.Mage, mage.Char.Sight256 = true, 6<<8|0x80
+	mage.Combat.WeaponSpellKnown, mage.Combat.WeaponSpellDamageKnown = true, true
+	mage.Combat.SpellDamageBase, mage.Combat.SpellDamageSpread = 20, 4
 	return map[string]PanelSubject{"fighter": fighter, "mage": mage}
 }
 
@@ -179,6 +181,7 @@ func TestCompactCardArmorAndDefenceAlwaysStandInTheRightColumn(t *testing.T) {
 	l := CompactPanelLayout(cardColumnsBackground())
 	staff := cardColumnsSubjects()["mage"]
 	staff.Combat.WeaponSpellKnown = true
+	staff.Combat.WeaponSpellDamageKnown = false
 	subjects := cardColumnsSubjects()
 	subjects["staff mage"] = staff
 	for name, s := range subjects {

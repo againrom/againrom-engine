@@ -1263,7 +1263,7 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 		// OWNER-AUTHORED UI SEMANTICS: a staff whose attack releases a spell has
 		// no separate physical-damage row. DMG states the spell interval the live
 		// release uses; every other weapon states its physical interval.
-		if s.Combat.WeaponSpellKnown || s.Combat.WeaponSpellDamageKnown {
+		if s.Char.Mage || s.Combat.WeaponSpellKnown || s.Combat.WeaponSpellDamageKnown {
 			if !s.Combat.WeaponSpellDamageKnown {
 				return "", false
 			}
