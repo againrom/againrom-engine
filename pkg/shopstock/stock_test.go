@@ -33,9 +33,9 @@ func TestRollBoundsCountAttemptsOrFailures(t *testing.T) {
 		{"none", Bound{}, []int{1, 1, 1}, 6},
 	} {
 		src := &seq{values: []int{0, 1}}
-		got, done := roll(Category[int, int]{Make: odd}, tc.bound, cands, 3, nil, src)
-		if !reflect.DeepEqual(got, tc.want) || done != len(tc.want) || src.at != tc.draws {
-			t.Errorf("%s: %v took %d after %d draws, want %v after %d", tc.name, got, done, src.at, tc.want, tc.draws)
+		got := roll(Category[int, int]{Make: odd}, tc.bound, cands, 3, src)
+		if !reflect.DeepEqual(got, tc.want) || src.at != tc.draws {
+			t.Errorf("%s: %v after %d draws, want %v after %d", tc.name, got, src.at, tc.want, tc.draws)
 		}
 	}
 }
@@ -47,10 +47,10 @@ func TestRollRedrawsMarkedPick(t *testing.T) {
 		Make:    func(c int, _ Source) (int, bool) { return c, true },
 	}
 	src := &seq{values: []int{0, 0, 1, 0, 0, 0, 1}}
-	got, done := roll(cat, Bound{Failures: func(int) int { return 5 }}, []int{0, 1}, 2, nil, src)
+	got := roll(cat, Bound{Failures: func(int) int { return 5 }}, []int{0, 1}, 2, src)
 	// R2-ENGINE-941: the second pick exhausts its redraws and ends the roll.
-	if !reflect.DeepEqual(got, []int{1}) || done != 1 || src.at != 6 {
-		t.Fatalf("got %v took %d after %d draws", got, done, src.at)
+	if !reflect.DeepEqual(got, []int{1}) || src.at != 6 {
+		t.Fatalf("got %v after %d draws", got, src.at)
 	}
 }
 

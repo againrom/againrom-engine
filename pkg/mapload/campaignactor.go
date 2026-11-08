@@ -14,6 +14,8 @@ type CampaignActorProfile struct {
 	StageDivisor, StageBias               int
 	Temporary, PlayerCharacter            bool
 	RowFigure, RowRotation, RowDefinition bool
+	// UnitPerson: a Units row taken as a person (DIV-4706).
+	UnitPerson bool
 }
 
 type CampaignActorSpec struct {
@@ -119,6 +121,9 @@ func CampaignActor(t *Table, s CampaignActorSpec, party []PartyMember) (PartyMem
 			}
 			p.DefinitionRow = uint16(first)
 		}
+	}
+	if profile.UnitPerson && unit {
+		p.Temporary, p.CampaignUnit, p.DefinitionRow = true, true, uint16(row)
 	}
 	if p.Membership().Is(TavernMember) {
 		p.ID = ""

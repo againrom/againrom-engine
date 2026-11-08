@@ -158,6 +158,10 @@ func (t *townScreen) buildRoomPatron(m mapload.PartyMember, key int, profile roo
 			p.subject.UnitNameIndex, p.subject.Char.UnitNameIndex = h.index, h.index
 		}
 	}
+	if m.UnitMember() && m.Membership().Identity == 0 {
+		// DIV-4706: a creature's card, the row's own sight.
+		p.subject.Char.Sight256, p.subject.Char.Band = 0, ui.CharacterBandCreature
+	}
 	if c := p.subject.Char; profile.fullSight && c.Mind+c.Reaction > 0 {
 		if word, ok := rules.SightWordIn(int32(c.Mind), int32(c.Reaction), int32(c.Sight)); ok {
 			p.subject.Char.Sight256 = word

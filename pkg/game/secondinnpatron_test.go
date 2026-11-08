@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/pkg/base"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
@@ -42,6 +43,44 @@ func TestRoomPersonCardUsesTheGeneratorRow(t *testing.T) {
 				t.Fatal("room card changed its font or figure placement")
 			}
 		})
+	}
+}
+
+func TestInnActorFindsATalkPatronInTheUnits(t *testing.T) {
+	input := innTalkPatronInput()
+	got := innActor(bankInnProfile, 681, input)
+	if !got.known || got.member.Name != "Druid_Preacher" || got.member.Class != 100 || got.member.FigureFace != 7 {
+		t.Fatalf("NPC 681: known %v, %q class %d face %d", got.known, got.member.Name, got.member.Class, got.member.FigureFace)
+	}
+	if m := got.member; !m.UnitMember() || m.DefinitionRow != 1 {
+		t.Fatalf("NPC 681 reads no Units row for its card: units %v row %d", m.UnitMember(), m.DefinitionRow)
+	}
+	if got := innActor(bankInnProfile, 682, input); got.known {
+		t.Fatalf("a key no row holds resolved to %q", got.member.Name)
+	}
+}
+
+func innTalkPatronInput() innActorInput {
+	row := make([]int32, 56)
+	for i := range row {
+		row[i] = -1
+	}
+	row[0], row[4], row[29], row[30], row[31], row[32], row[55] = 40, 200, 100, 7, 1, 1, 681
+	tbl := &mapload.Table{Humans: dbCollection{{}}, Units: dbCollection{{}, {name: "Druid_Preacher", params: row}}}
+	return innActorInput{campaign: innAt(3, 100, nil), install: &InstallResources{Table: tbl}}
+}
+
+func TestTalkPatronCardReadsAsACreature(t *testing.T) {
+	input := innTalkPatronInput()
+	got := innActor(bankInnProfile, 681, input)
+	if !got.known {
+		t.Fatal("NPC 681 did not resolve")
+	}
+	f := shellFrontEnd()
+	f.Table = input.install.Table
+	c := f.townUI.buildRoomPatron(got.member, 681, roomPersonProfiles["campaign"], nil).subject.Char
+	if c.Sight256 != 0 || c.Band != ui.CharacterBandCreature {
+		t.Fatalf("talk patron card: sight word %d, band %v", c.Sight256, c.Band)
 	}
 }
 

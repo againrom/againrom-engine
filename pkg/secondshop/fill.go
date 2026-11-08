@@ -64,9 +64,7 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 		Factor: t.Rolls.Factor,
 		Source: t.Rolls.Source,
 		Join: func(_ int, list, more []Item) []Item {
-			for _, it := range more {
-				list = insert(list, it)
-			}
+			list = insert(list, more...)
 			t.sortFill(list)
 			return list
 		},
@@ -285,5 +283,4 @@ var Stacking = shopstock.Stack[Item, stackKey]{
 	},
 }
 
-// insert files it on list by Stacking.
-func insert(list []Item, it Item) []Item { return shopstock.Insert(list, Stacking, it) }
+func insert(list []Item, items ...Item) []Item { return shopstock.Insert(list, Stacking, items...) }

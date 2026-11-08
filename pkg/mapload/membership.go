@@ -33,6 +33,8 @@ func (p PartyMember) Membership() Membership {
 		m.Units = TableEdition(nil).TavernUnit(m.Identity)
 	case p.Temporary && p.CampaignHire >= 1 && p.CampaignHire <= 20:
 		m.Kind, m.Identity, m.Units = CampaignMember, int(p.CampaignHire), p.CampaignUnit
+	case p.Temporary && p.CampaignHire == 0 && p.CampaignUnit && p.DefinitionRow != 0:
+		m.Kind, m.Units = CampaignMember, true
 	case p.CompanionNPC != 0:
 		m.Kind, m.Identity = CompanionMember, p.CompanionNPC
 	}

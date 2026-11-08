@@ -225,7 +225,7 @@ func innActor(p innProfile, npc int, in innActorInput) innPerson {
 			m, ok := in.install.townInstall().character(mapload.CharacterSpec{NPC: int32(npc)}, in.install.localizedNPCName(npc-1, ""), in.party)
 			return innPerson{member: m, known: ok}
 		}
-		m, ok := mapload.CharacterMember(in.install.Table, mapload.CharacterSpec{Row: data.FindHumanByServerID(in.install.Table.Humans, int32(npc))}, nil)
+		m, ok := mapload.CampaignActor(in.install.Table, mapload.CampaignActorSpec{Profile: mapload.CampaignActorProfile{ServerBase: int32(npc), PlayerCharacter: true, UnitPerson: true}}, nil)
 		return innPerson{member: m, known: ok}
 	}
 	return innPerson{}

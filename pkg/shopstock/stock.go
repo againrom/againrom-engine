@@ -38,8 +38,8 @@ type Category[C, I any] struct {
 	// Make is the item an attempt makes of candidate c; false fails the
 	// attempt.
 	Make func(c C, src Source) (I, bool)
-	// Insert files an item into the list; nil appends.
-	Insert func(list []I, it I) []I
+	// Insert files items; nil appends.
+	Insert func(list []I, items ...I) []I
 	// Finish completes the list after the first roll; it may draw. Nil keeps
 	// the list.
 	Finish func(list []I, src Source) []I
@@ -78,7 +78,9 @@ func Generate[C, I any](p Profile[C, I], src Source) [][]I {
 			if cat.Lead != nil {
 				list = cat.Lead(cands[k], src)
 			}
-			list, took[k] = roll(cat, cat.Bound, cands[k], cat.Count(src), list, src)
+			made := roll(cat, cat.Bound, cands[k], cat.Count(src), src)
+			took[k] = len(made)
+			list = file(cat, list, made)
 		}
 		if cat.Finish != nil {
 			list = cat.Finish(list, src)
@@ -97,18 +99,24 @@ func Generate[C, I any](p Profile[C, I], src Source) [][]I {
 		if len(cands[k]) == 0 || took[k] == 0 {
 			continue
 		}
-		var more []I
+		var made []I
 		for i := 1; i < m.Factor; i++ {
-			more, _ = roll(cat, cat.Again, cands[k], took[k], more, again)
+			made = append(made, roll(cat, cat.Again, cands[k], took[k], again)...)
 		}
-		stock[k] = m.Join(k, stock[k], more)
+		stock[k] = m.Join(k, stock[k], file(cat, nil, made))
 	}
 	return stock
 }
 
-// roll makes up to n items of cands onto list within bound, and answers the
-// list and how many items it took.
-func roll[C, I any](cat Category[C, I], bound Bound, cands []C, n int, list []I, src Source) ([]I, int) {
+func file[C, I any](cat Category[C, I], list, made []I) []I {
+	if cat.Insert != nil {
+		return cat.Insert(list, made...)
+	}
+	return append(list, made...)
+}
+
+// roll makes up to n items of cands within bound and answers them.
+func roll[C, I any](cat Category[C, I], bound Bound, cands []C, n int, src Source) []I {
 	attempts, failures := -1, -1
 	if bound.Attempts != nil {
 		attempts = bound.Attempts(n)
@@ -116,8 +124,9 @@ func roll[C, I any](cat Category[C, I], bound Bound, cands []C, n int, list []I,
 	if bound.Failures != nil {
 		failures = bound.Failures(n)
 	}
-	done, failed := 0, 0
-	for done < n && (attempts < 0 || done+failed < attempts) && (failures < 0 || failed <= failures) {
+	var made []I
+	failed := 0
+	for len(made) < n && (attempts < 0 || len(made)+failed < attempts) && (failures < 0 || failed <= failures) {
 		c := cands[src.Intn(len(cands))]
 		if cat.Redraw != nil {
 			for i := 0; cat.Redraw(c) && i < cat.Redraws; i++ {
@@ -132,12 +141,7 @@ func roll[C, I any](cat Category[C, I], bound Bound, cands []C, n int, list []I,
 			failed++
 			continue
 		}
-		if cat.Insert != nil {
-			list = cat.Insert(list, it)
-		} else {
-			list = append(list, it)
-		}
-		done++
+		made = append(made, it)
 	}
-	return list, done
+	return made
 }

@@ -28,7 +28,7 @@ func Find[I any, K comparable](list []I, s Stack[I, K], it I) int {
 	return -1
 }
 
-// Insert files items onto list in order under s: each joins the first entry
+// Insert files items onto list under s: each joins the first entry
 // it merges with, else opens one. Order runs once, when any entry opened.
 func Insert[I any, K comparable](list []I, s Stack[I, K], items ...I) []I {
 	index := make(map[K][]int, len(list)+len(items))
@@ -41,7 +41,7 @@ next:
 	for _, it := range items {
 		k := s.Key(it)
 		for _, i := range index[k] {
-			if s.Merges(list[i], it) {
+			if (s.Same == nil || s.Same(list[i], it)) && (s.Takes == nil || s.Takes(list[i], it)) {
 				list[i] = s.Add(list[i], it)
 				continue next
 			}

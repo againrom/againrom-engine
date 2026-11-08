@@ -52,6 +52,25 @@ func TestSecondShopMultiplierRollsEveryCategoryAgain(t *testing.T) {
 	}
 }
 
+func TestSecondShopFillKeyingIsLinearInTheFactor(t *testing.T) {
+	tb := enchantTables()
+	count := func(factor int) int {
+		calls := 0
+		key := Stacking.Key
+		Stacking.Key = func(it Item) stackKey { calls++; return key(it) }
+		defer func() { Stacking.Key = key }()
+		g := &random.MSVC{State: 9}
+		tb.Rolls = rollsOf(factor)
+		tb.Fill(multiplierRecord(), func() int { return int(g.Rand()) })
+		return calls
+	}
+	small, large := count(40), count(80)
+	t.Logf("keys asked: %d at factor 40, %d at factor 80", small, large)
+	if large > 5*small/2 {
+		t.Fatalf("keys asked grew from %d at factor 40 to %d at factor 80, want at most 2.5 times", small, large)
+	}
+}
+
 // A factor of one or none is today's stock, and a death's item list is never
 // multiplied.
 func TestSecondShopMultiplierOffAndDeathItems(t *testing.T) {
