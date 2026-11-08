@@ -383,6 +383,14 @@ var residueCarriers = []residueCarrier{
 		restore:  residueRestore{snapshot: restoreMissionLoss, saved: residueNotLoaded},
 		sav:      residueSAVKey{unsaved: "a SAV mission derives its loss from the saved World and script outcome"},
 	},
+	{
+		name:     "weapon swap memory",
+		capture:  captureWeaponMemory,
+		validate: validateWeaponMemory,
+		actors:   residueActors{rows: weaponMemoryActors},
+		restore:  residueRestore{snapshot: restoreWeaponMemorySnapshot, saved: restoreWeaponMemorySaved},
+		sav:      residueSAVKey{keys: []string{"Residue." + weaponMemoryKey}, write: writeWeaponMemory},
+	},
 }
 
 func residueRowActors[T any](rows []T, actor func(T) sim.EntityID) []sim.EntityID {

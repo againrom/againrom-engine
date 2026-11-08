@@ -821,7 +821,7 @@ func bytesOf(n int, v byte) []byte {
 func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 	rides := map[string]bool{"applicationState": true, "world": true, "commanded": true, "swing": true, "phase": true,
 		"groupTag": true, "fog": true, "pending": true, "pendingIgnored": true, "castRun": true, "healBursts": true,
-		"visualIDs": true, "visualNext": true}
+		"visualIDs": true, "visualNext": true, "weaponSwap": true}
 	derivable := map[string]bool{
 		"playerColours":     true,
 		"authoredNames":     true,
@@ -848,7 +848,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"pendingDamage": true, "soundEntities": true,
 		"spellSoundCues": true,
 		"markElements":   true, "shots": true, "flights": true, "drawnMoving": true,
-		"weaponSwap": true, "invDollGesture": true}
+		"invDollGesture": true}
 
 	ft := reflect.TypeOf(mapWorld{})
 	for i := 0; i < ft.NumField(); i++ {

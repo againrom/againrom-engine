@@ -4391,5 +4391,9 @@ var Committed = Baseline{
 	// It rises for the Gold Crown's carry tests in the new
 	// pkg/game/secondcrowncarry_test.go and secondcrownvictory_release_test.go,
 	// the bag form's doc comment in pkg/secondshop/bag.go, and this note.
-	CommentBytes: 10695279,
+
+	// It rises for the weapon swap memory in the SAV supplement: the rows and
+	// their restore in pkg/game/weaponswap.go, the new
+	// pkg/game/weaponswapsave_test.go; and this note.
+	CommentBytes: 10698206,
 }

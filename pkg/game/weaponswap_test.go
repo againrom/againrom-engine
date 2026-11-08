@@ -364,8 +364,8 @@ func TestWeaponSwapWaitsForAQueuedDrop(t *testing.T) {
 	}
 }
 
-// The memory is App state: a mission opened again over the same world, as a
-// LOAD opens one, has no previous weapon to take back.
+// The memory is App state: a mission opened again over the same world with no
+// saved memory, as the next mission opens, has no previous weapon to take back.
 func TestWeaponSwapMemoryIsNotCarriedIntoANewMission(t *testing.T) {
 	table := shieldWearTable(t)
 	var worn [2][sim.EquipSlots]sim.ItemInstance

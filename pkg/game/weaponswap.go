@@ -1,6 +1,10 @@
 package game
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"maps"
 	"slices"
 
 	"againrom/pkg/data"
@@ -16,8 +20,9 @@ type heldPair struct {
 }
 
 // weaponSwapState is the weapon swap's memory and its unfinished swaps. It is
-// App state: it lives on the running mapWorld, is not hashed and is not saved,
-// so a LOAD starts every unit with no previous weapon (DIV-2948).
+// App state on the running mapWorld and is not hashed. The previous pair rides
+// in the SAV supplement as weaponMemoryRow rows; a file with none, as an
+// original's, starts every unit with no previous weapon (DIV-2948).
 type weaponSwapState struct {
 	// seen is the pair each party member held at the last observation;
 	// previous is the pair it held before its weapon last changed.
@@ -78,13 +83,182 @@ func (mw *mapWorld) observeWeapons() {
 		}
 		cur := heldPair{weapon: worn[0], shield: worn[1]}
 		if s.seen == nil {
-			s.seen, s.previous = make(map[sim.EntityID]heldPair), make(map[sim.EntityID]heldPair)
+			s.seen = make(map[sim.EntityID]heldPair)
+		}
+		if s.previous == nil {
+			s.previous = make(map[sim.EntityID]heldPair)
 		}
 		if old, had := s.seen[id]; had && !old.weapon.Empty() && !sim.SameUnit(old.weapon, cur.weapon, sim.UnitWorn) {
 			s.previous[id] = old
 		}
 		s.seen[id] = cur
 	}
+}
+
+// weaponMemoryKey is the memory's entry in the keyed residue of a SAV.
+const weaponMemoryKey = "weaponMemory"
+
+// shieldWornAt is ShieldAt for a previous shield worn in slot 2 at the SAVE.
+const shieldWornAt = -1
+
+// maxWeaponMemoryRows bounds the rows of a file by the SAV's actor population.
+const maxWeaponMemoryRows = 32767
+
+// weaponMemoryRow is one unit's previous pair in a SAV. Each item is its code
+// and where it lies at the SAVE, so a LOAD takes the item the file's own pack
+// holds there, which is the value SameUnit finds again. A previous weapon no
+// longer in the pack writes no row; a previous shield gone writes none, which
+// W treats as a pair with no shield.
+type weaponMemoryRow struct {
+	Unit     sim.EntityID
+	Weapon   uint16
+	WeaponAt int32
+	Shield   uint16 `json:",omitempty"`
+	ShieldAt int32  `json:",omitempty"`
+}
+
+// weaponMemoryRows is the memory as SAV rows, in unit order.
+func (mw *mapWorld) weaponMemoryRows() []weaponMemoryRow {
+	s := &mw.weaponSwap
+	var rows []weaponMemoryRow
+	for _, id := range slices.Sorted(maps.Keys(s.previous)) {
+		want := s.previous[id]
+		at := mw.packIndex(id, want.weapon)
+		if at < 0 || want.weapon.Code == 0 {
+			continue
+		}
+		row := weaponMemoryRow{Unit: id, Weapon: want.weapon.Code, WeaponAt: int32(at)}
+		if want.shield.Code != 0 {
+			worn, ok := mw.world.EquippedItems(id)
+			if ok && sim.SameUnit(worn[1], want.shield, sim.UnitWorn) {
+				row.Shield, row.ShieldAt = want.shield.Code, shieldWornAt
+			} else if at := mw.packIndex(id, want.shield); at >= 0 {
+				row.Shield, row.ShieldAt = want.shield.Code, int32(at)
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+// restoreWeaponMemory fills the memory from rows over the reopened World. unit
+// names a row's actor there; a row whose actor or weapon the World lacks is
+// dropped, and so is a shield the World does not hold where the row says.
+func (mw *mapWorld) restoreWeaponMemory(rows []weaponMemoryRow, unit func(sim.EntityID) (sim.EntityID, bool)) {
+	if mw.world == nil {
+		return
+	}
+	s := &mw.weaponSwap
+	for _, r := range rows {
+		id, ok := unit(r.Unit)
+		if !ok {
+			continue
+		}
+		weapon, ok := mw.packItem(id, r.WeaponAt, r.Weapon)
+		if !ok {
+			continue
+		}
+		pair := heldPair{weapon: weapon}
+		if r.Shield != 0 && r.ShieldAt == shieldWornAt {
+			if worn, ok := mw.world.EquippedItems(id); ok && worn[1].Code == r.Shield {
+				pair.shield = worn[1]
+			}
+		} else if r.Shield != 0 {
+			pair.shield, _ = mw.packItem(id, r.ShieldAt, r.Shield)
+		}
+		if s.previous == nil {
+			s.previous = make(map[sim.EntityID]heldPair)
+		}
+		s.previous[id] = pair
+	}
+}
+
+// packItem is the item at element at of id's pack when it has code.
+func (mw *mapWorld) packItem(id sim.EntityID, at int32, code uint16) (sim.ItemInstance, bool) {
+	stacks, ok := mw.world.CarriedStacks(id)
+	if !ok || at < 0 || int(at) >= len(stacks) || stacks[at].Count == 0 || stacks[at].Code != code {
+		return sim.ItemInstance{}, false
+	}
+	return stacks[at].Instance(), true
+}
+
+func captureWeaponMemory(mw *mapWorld, r *SnapshotResidue) {
+	rows := mw.weaponMemoryRows()
+	if len(rows) == 0 {
+		return
+	}
+	if r.keyed == nil {
+		r.keyed = map[string]any{}
+	}
+	r.keyed[weaponMemoryKey] = rows
+}
+
+func restoreWeaponMemorySnapshot(mw *mapWorld, r SnapshotResidue) {
+	rows, _ := r.keyed[weaponMemoryKey].([]weaponMemoryRow)
+	mw.restoreWeaponMemory(rows, func(id sim.EntityID) (sim.EntityID, bool) { return id, true })
+}
+
+func restoreWeaponMemorySaved(l residueLoad) error {
+	rows, err := decodeWeaponMemory(l.a)
+	if err != nil {
+		return err
+	}
+	l.mw.restoreWeaponMemory(rows, func(id sim.EntityID) (sim.EntityID, bool) {
+		to, ok := l.ids[id]
+		return to, ok
+	})
+	return nil
+}
+
+func writeWeaponMemory(p residueProjection) error {
+	rows, _ := p.r.keyed[weaponMemoryKey].([]weaponMemoryRow)
+	if len(rows) == 0 {
+		return nil
+	}
+	raw, err := json.Marshal(rows)
+	if err != nil {
+		return err
+	}
+	if p.a.Residue == nil {
+		p.a.Residue = map[string]json.RawMessage{}
+	}
+	p.a.Residue[weaponMemoryKey] = raw
+	return nil
+}
+
+func decodeWeaponMemory(a *currentActionData) ([]weaponMemoryRow, error) {
+	raw, ok := a.Residue[weaponMemoryKey]
+	if !ok {
+		return nil, nil
+	}
+	var rows []weaponMemoryRow
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&rows); err != nil {
+		return nil, fmt.Errorf("current weapon memory: %w", err)
+	}
+	return rows, nil
+}
+
+func validateWeaponMemory(a *currentActionData) error {
+	rows, err := decodeWeaponMemory(a)
+	if err != nil {
+		return err
+	}
+	if len(rows) > maxWeaponMemoryRows {
+		return fmt.Errorf("current weapon memory exceeds its bound")
+	}
+	for _, r := range rows {
+		if r.Weapon == 0 || r.WeaponAt < 0 || r.ShieldAt < shieldWornAt || r.Shield == 0 && r.ShieldAt != 0 {
+			return fmt.Errorf("invalid current weapon memory row for actor %d", r.Unit)
+		}
+	}
+	return nil
+}
+
+func weaponMemoryActors(a *currentActionData) []sim.EntityID {
+	rows, _ := decodeWeaponMemory(a)
+	return residueRowActors(rows, func(r weaponMemoryRow) sim.EntityID { return r.Unit })
 }
 
 // swapWeapons is the ui.MapWeaponSwap the loader hands the viewer: each named
