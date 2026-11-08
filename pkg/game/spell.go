@@ -242,9 +242,9 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 			return hero.Class
 		}
 	}
-	look := heroAppearance(mw.world, id, hero, mw.mission.list)
-	// A name no arm matches leaves class 1 (ANIM-107); with no list loaded
-	// nothing can be derived.
+	look := heroAppearance(mw.world, id, hero, mw.mission.list, heroInPlay)
+	// A name no arm matches keeps the stored class (HERO-190); with no list
+	// loaded nothing can be derived.
 	if look.Held && (look.Matched || mw.mission.list.Len() != 0) {
 		return look.Class
 	}

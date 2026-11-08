@@ -413,7 +413,7 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		}
 		out[0].WornItems = wornItems
 	}
-	look := heroAppearance(nil, 0, out[0], in.List)
+	look := heroAppearance(nil, 0, out[0], in.List, heroCreated)
 	out[0].Class, out[0].Body, out[0].BodyDir = look.Class, string(look.Body), look.Dir
 	if in.Documents {
 		// IN THE PACK, NOT WORN. DAT-DOC-021 establishes that the Humans

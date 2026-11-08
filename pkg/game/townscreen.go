@@ -499,7 +499,7 @@ func (in *InstallResources) composeMemberFace(member *mapload.PartyMember, id ui
 	}
 	// MERC-TYPE-001
 	if !m.Hired() && data.ComposesFigure(m.Class) {
-		if look := heroAppearance(nil, 0, m, in.Bodies); look.Matched {
+		if look := heroAppearance(nil, 0, m, in.Bodies, heroCreated); look.Matched {
 			member.Body, member.BodyDir, member.Class = string(look.Body), look.Dir, look.Class
 		}
 	}

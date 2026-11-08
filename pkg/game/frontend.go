@@ -1504,7 +1504,7 @@ func (in *InstallResources) canonicalizeJoinedRoster(ms *Mission) {
 			}
 		}
 		if hero {
-			if look := heroAppearance(ms.World, id, p, in.Bodies); look.Matched {
+			if look := heroAppearance(ms.World, id, p, in.Bodies, heroCreated); look.Matched {
 				p.Body, p.BodyDir, p.Class = string(look.Body), look.Dir, look.Class
 			}
 		}

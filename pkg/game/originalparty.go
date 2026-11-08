@@ -607,7 +607,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 		HiredRotationSpeed: hiredRotationSpeed,
 	}
 	if !hired {
-		look := heroAppearance(nil, 0, member, bodies)
+		look := heroAppearance(nil, 0, member, bodies, heroCreated)
 		member.Class, member.Body, member.BodyDir = look.Class, string(look.Body), look.Dir
 	}
 	member.DefinitionRow = heroRecordRow(member, c.DefRow, t)

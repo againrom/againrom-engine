@@ -42,14 +42,12 @@ const (
 // HeroBodyClass's fallback is what the character is then drawn as.
 const HeroShieldSuffix HeroBody = "_"
 
-// HeroUnmatchedClass is the class key a body name matching no arm leaves
-// standing, and it is the roster's own bare-handed human body.
+// HeroUnmatchedClass is the class key HeroBodyClass answers for a body name
+// matching no arm, and it is the roster's own bare-handed human body.
 //
-// IT IS A REAL BEHAVIOUR AND NOT AN ERROR PATH. The original stores this literal
-// into the frame selector's subscript BEFORE the compare chain runs, and the
-// chain is seventeen compare-and-store arms — so a name none of them matches is
-// not rejected, it is simply never overwritten. A consumer that treats an
-// unmatched name as a failure is describing a state the original does not have.
+// The chain is seventeen compare-and-store arms and nothing else stores, so a
+// name none of them matches leaves the class held before (HERO-190);
+// HeroClassMatched tells that name apart.
 const HeroUnmatchedClass int32 = 1
 
 // heroBodyClass is the seventeen-arm table: seventeen names onto sixteen
@@ -262,7 +260,6 @@ func HeroBodyKey(dir string, b HeroBody) string {
 // shipped, takes the shield suffix only when its form exists.
 func HeroAppearance(l BodyList, e Equipment, mage, dying bool) (HeroBody, string, int32, bool) {
 	base, nameOK := HeroBodyFor(l, e)
-	shipped, _ := shippedBodyFor(l, e)
 	shield, _ := e.Occupied(2) // slot 2 always exists; see HeroArmourFacts.
 	name := HeroBodyName(base, shield, mage, dying)
 	if shield && !dying {
@@ -278,7 +275,21 @@ func HeroAppearance(l BodyList, e Equipment, mage, dying bool) (HeroBody, string
 	material, armoured := HeroArmourFacts(e)
 	dir, dirOK := HeroBodyDir(mage, material, armoured)
 
-	class, _ := HeroBodyClass(HeroBodyName(shipped, shield, mage, dying)) // total; see its own doc.
+	class, _ := HeroBodyClass(heroClassName(l, e, mage, dying)) // total; see its own doc.
 
 	return name, dir, class, nameOK && dirOK
+}
+
+// heroClassName is the name HeroAppearance's class key comes from: the shipped
+// entry for slot 1's row, composed with the shield and the two facts.
+func heroClassName(l BodyList, e Equipment, mage, dying bool) HeroBody {
+	shipped, _ := shippedBodyFor(l, e)
+	shield, _ := e.Occupied(2)
+	return HeroBodyName(shipped, shield, mage, dying)
+}
+
+// HeroClassMatched reports whether that name matches an arm of the chain.
+func HeroClassMatched(l BodyList, e Equipment, mage, dying bool) bool {
+	_, ok := HeroBodyClass(heroClassName(l, e, mage, dying))
+	return ok
 }

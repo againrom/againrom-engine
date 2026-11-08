@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"maps"
 	"reflect"
 	"slices"
 	"time"
@@ -1228,7 +1229,7 @@ func (mw *mapWorld) syncJoinedHeroes() {
 			mw.figures = make(map[sim.EntityID]figureID)
 		}
 		mw.figures[id] = memberFigureID(*member)
-		if body, dir, ok := redressPartyMember(mw.world, id, member, mw.mission.list); ok {
+		if body, dir, ok := redressPartyMember(mw.world, id, member, mw.mission.list, heroInPlay); ok {
 			LoadHeroBody(mw.mission.src, mw.units, dir, body)
 			if mw.units != nil {
 				if art := mw.units.Bodies[data.HeroBodyKey(dir, body)]; art != nil {
@@ -1503,28 +1504,18 @@ func canonicalizePartyAppearance(ms *Mission, units *terrain.UnitSet, src entryS
 		if member.Hired() {
 			continue
 		}
-		// A dead member's record follows his slots, but his actor keeps the
-		// class the World holds, as a SAV restored it: no claim derives a
-		// body's class once his equipment is gone (DIV-4141).
-		if e, held := ms.World.Entity(ms.Start.IDs[i]); held && !e.Alive() {
-			if look := heroAppearance(ms.World, e.ID, member, list); look.Matched {
-				ms.Party[i].Body, ms.Party[i].BodyDir, ms.Party[i].Class = string(look.Body), look.Dir, look.Class
-				LoadHeroBody(src, units, look.Dir, look.Body)
-			}
-			continue
-		}
-		if body, dir, ok := redressPartyMember(ms.World, ms.Start.IDs[i], &ms.Party[i], list); ok {
+		if body, dir, ok := redressPartyMember(ms.World, ms.Start.IDs[i], &ms.Party[i], list, heroCreated); ok {
 			LoadHeroBody(src, units, dir, body)
 		}
 	}
 	redressPlacedHeroes(ms, list)
 }
 
-// redressPlacedHeroes redresses each living map-placed person of the Hero type
-// at mission open: such a placement is drawn and classed from its worn
-// equipment like a party hero (ANIM-106, ANIM-107), so the class the World
-// stores is the class the flight class rule reads. Party members, hires and
-// the dead keep their own rules. Ids are walked in order.
+// redressPlacedHeroes redresses each map-placed person of the Hero type at
+// mission open: such a placement is drawn and classed from its worn equipment
+// like a party hero (ANIM-106, ANIM-107), so the class the World stores is the
+// class the flight class rule reads. Party members and hires keep their own
+// rules. Ids are walked in order.
 func redressPlacedHeroes(ms *Mission, list data.BodyList) {
 	ids := make([]sim.EntityID, 0, len(ms.Start.Roster))
 	for id := range ms.Start.Roster {
@@ -1537,10 +1528,10 @@ func redressPlacedHeroes(ms *Mission, list data.BodyList) {
 			continue
 		}
 		e, held := ms.World.Entity(id)
-		if !held || !data.FigureIsHero(e.TypeID) || !e.Alive() {
+		if !held || !data.FigureIsHero(e.TypeID) {
 			continue
 		}
-		if _, _, ok := redressPartyMember(ms.World, id, &member, list); ok {
+		if _, _, ok := redressPartyMember(ms.World, id, &member, list, heroCreated); ok {
 			ms.Start.Roster[id] = member
 		}
 	}
@@ -1550,10 +1541,10 @@ func redressPlacedHeroes(ms *Mission, list data.BodyList) {
 // answers for member to his record, and the class to his actor, so a SAVE and
 // the next LOAD carry what is drawn. It runs at mission open, when a roster
 // actor joins the party and after every step that changed a member's
-// equipment. An actor the World does not hold, and an unmatched name, write
-// nothing.
-func redressPartyMember(w *sim.World, id sim.EntityID, member *mapload.PartyMember, list data.BodyList) (data.HeroBody, string, bool) {
-	look, ok := redressedLook(w, id, *member, list)
+// equipment or life. An actor the World does not hold, and an unresolved body,
+// write nothing.
+func redressPartyMember(w *sim.World, id sim.EntityID, member *mapload.PartyMember, list data.BodyList, at heroMoment) (data.HeroBody, string, bool) {
+	look, ok := redressedLook(w, id, *member, list, at)
 	if !ok {
 		return "", "", false
 	}
@@ -1564,8 +1555,8 @@ func redressPartyMember(w *sim.World, id sim.EntityID, member *mapload.PartyMemb
 
 // redressedLook is the look redressPartyMember writes for member; false when
 // the World does not hold him or his name is unmatched, and it writes nothing.
-func redressedLook(w *sim.World, id sim.EntityID, member mapload.PartyMember, list data.BodyList) (heroLook, bool) {
-	look := heroAppearance(w, id, member, list)
+func redressedLook(w *sim.World, id sim.EntityID, member mapload.PartyMember, list data.BodyList, at heroMoment) (heroLook, bool) {
+	look := heroAppearance(w, id, member, list, at)
 	return look, look.Held && look.Matched
 }
 
@@ -1587,8 +1578,58 @@ func (mw *mapWorld) redressEquipped(before []wornBefore) {
 		if member == nil {
 			continue
 		}
-		if body, dir, ok := redressPartyMember(mw.world, b.id, member, mw.mission.list); ok {
+		if body, dir, ok := redressPartyMember(mw.world, b.id, member, mw.mission.list, heroInPlay); ok {
 			LoadHeroBody(mw.mission.src, mw.units, dir, body)
+		}
+	}
+}
+
+// heroLives is whether each hero actor the step may fell or raise stands
+// before it: every party member but a hire, then each map-placed person of the
+// Hero type, ids in order.
+func (mw *mapWorld) heroLives() map[sim.EntityID]bool {
+	if mw == nil || mw.mission == nil || mw.mission.state == nil || mw.world == nil {
+		return nil
+	}
+	out := make(map[sim.EntityID]bool)
+	for _, id := range mw.mission.ids {
+		if member := mw.equippedMember(id); member != nil {
+			if e, ok := mw.world.Entity(id); ok {
+				out[id] = e.Decay == sim.DecayNone
+			}
+		}
+	}
+	for id, member := range mw.mission.state.Start.Roster {
+		if slices.Contains(mw.mission.ids, id) || member.Hired() {
+			continue
+		}
+		if e, ok := mw.world.Entity(id); ok && data.FigureIsHero(e.TypeID) {
+			out[id] = e.Decay == sim.DecayNone
+		}
+	}
+	return out
+}
+
+// redressLifeChanges stores, after the step, the class heroAppearance answers
+// for each hero in before who fell or rose in it: the fall takes the dying
+// class, the rise his slots' (HERO-191).
+func (mw *mapWorld) redressLifeChanges(before map[sim.EntityID]bool) {
+	ids := slices.Sorted(maps.Keys(before))
+	for _, id := range ids {
+		e, ok := mw.world.Entity(id)
+		if !ok || (e.Decay == sim.DecayNone) == before[id] {
+			continue
+		}
+		if member := mw.equippedMember(id); member != nil {
+			if body, dir, ok := redressPartyMember(mw.world, id, member, mw.mission.list, heroInPlay); ok {
+				LoadHeroBody(mw.mission.src, mw.units, dir, body)
+			}
+			continue
+		}
+		roster := mw.mission.state.Start.Roster
+		member := roster[id]
+		if _, _, ok := redressPartyMember(mw.world, id, &member, mw.mission.list, heroInPlay); ok {
+			roster[id] = member
 		}
 	}
 }
@@ -1609,7 +1650,7 @@ func (mw *mapWorld) equipmentClassRule(before []wornBefore) sim.EquipmentClassRu
 		if member == nil {
 			return 0, false
 		}
-		look, ok := redressedLook(w, id, *member, mw.mission.list)
+		look, ok := redressedLook(w, id, *member, mw.mission.list, heroInPlay)
 		return look.Class, ok
 	}
 }
@@ -1690,7 +1731,7 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 			}
 			continue
 		}
-		look := heroAppearance(ms.World, id, member, list)
+		look := heroAppearance(ms.World, id, member, list, heroCreated)
 		if !look.Held || !look.Matched {
 			continue
 		}
@@ -3189,7 +3230,7 @@ func (mw *mapWorld) refreshAppearance() {
 	if member := mw.missionPartyMember(id); member != nil {
 		subject = *member
 	}
-	look := heroAppearance(mw.world, id, subject, mw.invParty.list)
+	look := heroAppearance(mw.world, id, subject, mw.invParty.list, heroInPlay)
 	body, dir, class := look.Body, look.Dir, look.Class
 	key := data.HeroBodyKey(dir, body)
 	LoadHeroBody(mw.mission.src, mw.units, dir, body)
@@ -4148,6 +4189,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	}
 	cmds := mw.commands()
 	equipped := mw.queuedEquipActors()
+	lives := mw.heroLives()
 	applied := len(mw.pending)
 	mw.pending = mw.pending[:0]
 	mw.pendingIgnored = mw.pendingIgnored[:0]
@@ -4200,6 +4242,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.refreshAppearance()
 	mw.rearmEquipped(equipped)
 	mw.redressEquipped(equipped)
+	mw.redressLifeChanges(lives)
 	mw.observeWeapons()
 	mw.skillRises()
 	// THE NOTICES ARE SETTLED HERE, once per step and immediately after it.

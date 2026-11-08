@@ -122,7 +122,7 @@ func (in townInstall) character(s mapload.CharacterSpec, name string, party []ma
 	} else if name != "" {
 		member.Name = name
 	}
-	if look := heroAppearance(nil, 0, member, in.bodies); look.Matched {
+	if look := heroAppearance(nil, 0, member, in.bodies, heroCreated); look.Matched {
 		member.Body, member.BodyDir, member.Class = string(look.Body), look.Dir, look.Class
 	}
 	return member, true

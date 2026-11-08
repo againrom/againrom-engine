@@ -115,7 +115,7 @@ func TestReleaseAHeroesWornWeaponDrivesBodyClassSaveAndShot(t *testing.T) {
 		}
 		member := mw.missionPartyMember(id)
 		e, _ := mw.entity(id)
-		look := heroAppearance(mw.world, id, *member, mw.mission.list)
+		look := heroAppearance(mw.world, id, *member, mw.mission.list, heroInPlay)
 		if look.Body != step.body || look.Class != step.class || member.Body != string(step.body) || member.Class != step.class {
 			t.Fatalf("%#x: builder %+v, record body %q class %d; want %q and %d", step.code, look, member.Body, member.Class, step.body, step.class)
 		}
@@ -150,7 +150,7 @@ func TestReleaseAFighterHeroCastsFromTheClassTheWorldStores(t *testing.T) {
 	e, _ := mw.entity(id)
 	slots, _ := mw.world.Equipped(id)
 	old, sourceMage := sourceArmClass(e, slots, mw.mission.list)
-	look := heroAppearance(mw.world, id, *member, mw.mission.list)
+	look := heroAppearance(mw.world, id, *member, mw.mission.list, heroInPlay)
 	t.Logf("hero %d type %d record mage %v source mage %v: builder %d, retired rule %d", id, e.TypeID, member.Mage, sourceMage, look.Class, old)
 	if member.Mage || !sourceMage || old == look.Class {
 		t.Fatalf("the witness state is gone: record mage %v, source mage %v, classes %d and %d", member.Mage, sourceMage, look.Class, old)
@@ -195,7 +195,7 @@ func TestReleasePlacedHeroTypeHumansStoreTheClassTheirEquipmentSelects(t *testin
 		id := placed[0]
 		member := mw.mission.state.Start.Roster[id]
 		e, _ := mw.entity(id)
-		look := heroAppearance(mw.world, id, member, mw.mission.list)
+		look := heroAppearance(mw.world, id, member, mw.mission.list, heroInPlay)
 		got := heroClassInSAV(t, f, id)
 		t.Logf("%s: actor %d type %d: stored %d, builder %d, SAV %d", tc.name, id, e.TypeID, e.Class, look.Class, got)
 		if look.Class != tc.class || e.Class != tc.class || flightClassRule(e) != tc.class || got != tc.class || member.Class != tc.class {

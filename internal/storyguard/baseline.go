@@ -4369,5 +4369,10 @@ var Committed = Baseline{
 	// It rises for the creature-caster rules: the release aim in pkg/sim/spell.go, endRetainedCast
 	// in castrequest.go, the new pkg/sim/castorderrules_test.go and mageemptywalk_test.go's first-game
 	// test, net of the removed emptyWalkEngages field; and this note.
-	CommentBytes: 10683723,
+
+	// It rose for the hero class rules: heroMoment and heroAppearance's doc in
+	// pkg/game/heroappearance.go, heroLives and redressLifeChanges in
+	// pkg/game/world.go, HeroClassMatched in pkg/data/appearance.go, the new
+	// tests' comments in pkg/game/heroappearance_test.go, and this note.
+	CommentBytes: 10685266,
 }
