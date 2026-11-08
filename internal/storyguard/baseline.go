@@ -4374,5 +4374,9 @@ var Committed = Baseline{
 	// pkg/game/heroappearance.go, heroLives and redressLifeChanges in
 	// pkg/game/world.go, HeroClassMatched in pkg/data/appearance.go, the new
 	// tests' comments in pkg/game/heroappearance_test.go, and this note.
-	CommentBytes: 10685266,
+
+	// It rises for the second game's Heal and Drain Life spark tests in the
+	// new pkg/game/secondhealsparks_test.go, the R2-ENGINE-691 citation in
+	// pkg/data/spellpresentation.go, and this note.
+	CommentBytes: 10686443,
 }

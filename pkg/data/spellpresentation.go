@@ -274,7 +274,7 @@ var firstSpellPresentation = SpellPresentation{
 // than the chain's 13 and Blizzard's 16, the trail-free travel of 18 and
 // 40, the overlay join and LastSoundRow's silent slots are chosen:
 // DIV-3102..3104, DIV-3106. Teleport's two records of 21 updates are
-// R2-ENGINE-703's.
+// R2-ENGINE-703's; Heal's and Drain Life's one update R2-ENGINE-691's.
 var secondSpellPresentation = SpellPresentation{
 	Game: rules.SpellGameSecond, LastSoundRow: 29, SoundBase: 500,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
@@ -301,7 +301,7 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 48, LifePhases: true, UnitLifeZero: true},
 		{ID: 54, LifeTicks: 21, SecondRecord: true},
 		{ID: 56, LifeTicks: 1, Hidden: true},
-		{ID: 60, LifePhases: true},
+		{ID: 60, LifeTicks: 1},
 		{ID: 62, LifePhases: true, UnitLifeZero: true},
 		{ID: 64, LifePhases: true},
 	},
