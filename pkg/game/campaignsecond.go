@@ -247,20 +247,7 @@ func (secondCampaignRules) beforeAdvance(f *FrontEnd, n int, ms *Mission, action
 // selects it at acknowledgement.
 func (secondCampaignRules) openMission(v *ui.Viewer) { v.SetCompletionCutscene("") }
 
-func (secondCampaignRules) scriptMessages(mw *mapWorld, messages []int32) {
-	mw.observeSecondGameMessages(messages)
-}
-
-func (secondCampaignRules) settleNotices(mw *mapWorld) bool {
-	mw.settleSecondGameNotices()
-	return true
-}
-
-func (secondCampaignRules) acknowledgeNotice(mw *mapWorld) bool {
-	mw.closeNotice()
-	mw.settleSecondGameNotices()
-	return true
-}
+func (secondCampaignRules) messagePolicy() missionMessagePolicy { return missionMessagePolicies[1] }
 
 func (secondCampaignRules) eventAudience(mw *mapWorld) (EventAudience, bool) {
 	return mw.secondGameAudience(), true

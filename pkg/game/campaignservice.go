@@ -73,13 +73,11 @@ type campaignService interface {
 	// holds, takes the finisher's bank row set.
 	bankWin(f *FrontEnd, seam bool) bool
 	// The mission driver's campaign behaviour: the movie a departure picks,
-	// the script message queue, the notice flow and the speaker audience.
+	// and the speaker audience.
 	// The per-mission text, the outcome text and the objectives panel are
 	// gameFiles.objectives rows.
 	openMission(v *ui.Viewer)
-	scriptMessages(mw *mapWorld, messages []int32)
-	settleNotices(mw *mapWorld) bool
-	acknowledgeNotice(mw *mapWorld) bool
+	messagePolicy() missionMessagePolicy
 	eventAudience(mw *mapWorld) (EventAudience, bool)
 	// The chat command adapter, and whether a mission opened from town runs
 	// in the campaign that adapter admits commands in.

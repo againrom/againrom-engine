@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/base"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -53,10 +55,10 @@ func TestSecondGameObjectiveEventsPlayTheirEntryWhenIdle(t *testing.T) {
 	words := ui.AuthoredWords()
 	words.NewMission = "the new-mission row"
 	v.SetWords(words)
-	mw := &mapWorld{view: v, mission: &missionNotices{}}
+	mw := &mapWorld{view: v, mission: &missionNotices{table: readUnder(base.GameROM2, &mapload.Table{})}}
 	step := func(events ...int32) {
 		t.Helper()
-		mw.observeSecondGameMessages(events)
+		mw.observeScriptMessages(events)
 	}
 	played := func(want ...int) {
 		t.Helper()

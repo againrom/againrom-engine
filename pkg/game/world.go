@@ -1188,7 +1188,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// Present it before a tick can run; NewAnnouncer has independently consumed
 	// the saved message latches, so no old dialogue or reward is replayed.
 	if outcome := mw.world.Outcome(); outcome != sim.OutcomeUndecided {
-		mw.latchOutcome(outcome, lossCause{})
+		mw.recordMissionOutcome(outcome, lossCause{})
 		mw.showOutcome()
 	}
 	mw.seedSkillBaseline()
@@ -1776,106 +1776,6 @@ func rosterBodyArt(units *terrain.UnitSet, src terrain.EntrySource, typeID int32
 	return units.Classes[class]
 }
 
-// settleNotices decides, for the step that has just run, what the player
-// should be looking at.
-//
-// IT IS CALLED ONCE PER sim.Step AND FROM tick() ALONE. Not at the frame
-// seam: one frame advances up to a catch-up bound of whole ticks — some
-// sixteen script passes at the ladder's fast end — and a repeating trigger
-// that fires and then does not inside one such call has its latch cleared
-// before a frame-level sampler could look. That raise would not be merged;
-// it would be lost.
-//
-// THE OUTCOME IS LATCHED FIRST AND SHOWN LAST. A dialogue raised by the same
-// trigger therefore owns the screen until its final page is dismissed; only
-// then does the already-decided outcome appear. A decision with no readable
-// dialogue still appears on the deciding step.
-//
-// THE DISCARD APPLIES TO RAISES AND NOTHING ELSE. An outcome transition is never
-// dropped: it latches in the simulation and would never be offered again, so
-// dropping it would lose the banner permanently and with it the only way out of
-// the mission.
-//
-// Sample is called on EVERY step whatever is open, because it is what advances
-// the announcer's memory: skipping it while a notice was up would leave a rising
-// edge unread and raise it later, which is a deferral and not a discard.
-//
-// NOTHING HERE REACHES THE WORLD. It reads the outcome and the latch array,
-// reads an archive entry, and writes to the viewer — so a run that shows
-// notices and a run that does not have the same ticks and the same digests.
-func (mw *mapWorld) settleNotices() {
-	m := mw.mission
-	if m == nil {
-		return
-	}
-	if !m.announced || m.outcome == sim.OutcomeWon {
-		// THE CHARACTERS ARE TESTED FIRST, AHEAD OF Outcome() ITSELF. The engine's
-		// own reporter tests a loss before a win (see Outcome() below), and this
-		// test placed after it would let a winning trigger latch on the very step
-		// a character died — so this is not a rule beside the engine's two, it
-		// is that same three-test order carried one test further up, ahead of both
-		// counters.
-		//
-		// A FALLEN CHARACTER WHO CAN STILL BE HEALED IS NOT LOST. The guarded
-		// set is the party, and a member's fall defers the loss while his body
-		// dwells or Heal can still raise it. A blow or the corpse walk to -10
-		// ends that window; a body at exactly 0 never decays (HERO-ZERO-070).
-		// The original loses on the primary's fall instead: DIV-219.
-		//
-		// ONE DEAD CHARACTER IS ENOUGH and the walk stops at it. His fall is
-		// the loss's cause, and missionLossReason turns it into the reason.
-		o := sim.OutcomeUndecided
-		var cause lossCause
-		if id, lost := mw.guardedCharacterLost(); lost {
-			o, cause = sim.OutcomeLost, lossCause{fallen: id, fell: true}
-		}
-		// THE OUTCOME COMES FROM Outcome() AND NEVER FROM THE COUNTERS, when the
-		// character test above left the question open. The counters only rise,
-		// nothing clears them inside a mission, and one repeating check drives the
-		// lose counter up without bound — so `> 0` is the wrong predicate and
-		// nothing above pkg/sim re-derives an outcome.
-		if o == sim.OutcomeUndecided {
-			o = mw.world.Outcome()
-		}
-		if o != sim.OutcomeUndecided {
-			if m.outcome != o && m.outcomeShown {
-				mw.closeNotice()
-				m.outcomeShown, m.delayedVictory = false, false
-			}
-			mw.latchOutcome(o, cause)
-		}
-	}
-
-	raised := m.ann.Sample(mw.world)
-	if m.campaign().settleNotices(mw) {
-		return
-	}
-	if m.open {
-		return
-	}
-	for _, e := range raised {
-		// MESSAGE 255 IS RESERVED AND IS NOT AN EVENT TEXT. The original's
-		// mission-lost arm posts the same window message with the same value, and
-		// the handler compares the number against that sentinel before it composes
-		// any address, so a script raising 255 gets the lose panel and no file is
-		// ever opened for it. The shipped campaign raises 0..25, so nothing that
-		// ships reaches this.
-		if e == ReservedMessageNumber {
-			mw.latchOutcome(sim.OutcomeLost, lossCause{})
-			continue
-		}
-		// The FIRST raise that yields text takes the screen and every later one
-		// on the same step meets an open notice — which is the discard rule
-		// applied to a step that raised several, not a second rule beside it.
-		if mw.openDialogue(int(e)) {
-			return
-		}
-	}
-	if m.announced && !m.outcomeShown {
-		mw.showOutcome()
-	}
-}
-
 // guardedCharacterLost reports the first guarded character the mission has
 // lost, by entity.
 func (mw *mapWorld) guardedCharacterLost() (sim.EntityID, bool) {
@@ -2106,14 +2006,7 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 		}
 	}
 	mw.raiseMissionTip()
-	if m.campaign().acknowledgeNotice(mw) {
-		return ui.NoticeStay, "", nil
-	}
-	if m.announced && !m.outcomeShown {
-		mw.showOutcome()
-		return ui.NoticeStay, "", nil
-	}
-	mw.closeNotice()
+	mw.settleNotices(messageAcknowledge)
 	return ui.NoticeStay, "", nil
 }
 
@@ -4310,7 +4203,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// reads the world and writes nothing to it, so a run that shows notices and
 	// a run that does not are the same run, tick for tick and digest for
 	// digest.
-	mw.settleNotices()
+	mw.settleNotices(messageStep)
 	mw.settlePickup()
 	// The odometers advance for the tick that just ran, AFTER the step and
 	// BEFORE the push, so what the viewer receives is selected from the

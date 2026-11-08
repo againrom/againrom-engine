@@ -825,8 +825,8 @@ func secondMissionNoticeBoundary(t *testing.T, mission int) {
 		t.Fatal("ordered notice queue lost")
 	}
 	for _, event := range []int{2, 3} {
-		f.live.settleSecondGameNotices()
-		cold.live.settleSecondGameNotices()
+		f.live.settleNotices(messageDrain)
+		cold.live.settleNotices(messageDrain)
 		if !f.live.mission.open || !cold.live.mission.open || !bytes.Equal(f.live.mission.payload, cold.live.mission.payload) {
 			t.Fatalf("notice%d was not replayed", event)
 		}

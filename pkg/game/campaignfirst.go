@@ -122,11 +122,7 @@ func (firstCampaignRules) bankWin(*FrontEnd, bool) bool { return false }
 
 func (firstCampaignRules) openMission(*ui.Viewer) {}
 
-func (firstCampaignRules) scriptMessages(*mapWorld, []int32) {}
-
-func (firstCampaignRules) settleNotices(*mapWorld) bool { return false }
-
-func (firstCampaignRules) acknowledgeNotice(*mapWorld) bool { return false }
+func (firstCampaignRules) messagePolicy() missionMessagePolicy { return missionMessagePolicies[0] }
 
 func (firstCampaignRules) eventAudience(*mapWorld) (EventAudience, bool) {
 	return EventAudience{}, false

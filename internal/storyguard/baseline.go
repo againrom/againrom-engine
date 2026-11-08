@@ -3273,7 +3273,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1647,
+		"longcommentgroups":      1646,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4350,5 +4350,8 @@ var Committed = Baseline{
 	// It rises for addEndGroups' doc in pkg/game/mapeditadd_test.go.
 	// It rises for runGuardStrike's note on the mage it removes.
 	// It rises for fallenHires' doc in pkg/game/hire.go and its test.
-	CommentBytes: 10678756,
+	// Mission message record documents the producer-level SAV witness.
+	// Shared mission delivery removes duplicate settle comments and adds guard docs.
+	// Mission message policy now comes from the campaign service.
+	CommentBytes: 10677099,
 }
