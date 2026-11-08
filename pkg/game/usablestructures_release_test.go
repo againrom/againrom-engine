@@ -47,7 +47,7 @@ func shippedUsablePlacements(t *testing.T, f *FrontEnd) []usablePlacement {
 		}
 	}
 	var placed []usablePlacement
-	for _, kind := range []uint16{15, 16, 28, 29, 34, 35, 39, 40, 66} {
+	for _, kind := range []uint16{15, 16, 28, 29, 34, 35, 66} {
 		maximum := 0
 		if kind == 15 || kind == 16 {
 			maximum = 3

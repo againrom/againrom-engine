@@ -6,7 +6,7 @@ import (
 )
 
 func TestZeroMaximumStructureApproachAndBoundedUse(t *testing.T) {
-	for _, kind := range []uint16{34, 35, 39, 40, 66} {
+	for _, kind := range []uint16{34, 35, 66} {
 		t.Run(fmt.Sprint(kind), func(t *testing.T) {
 			w := structureUseWorld(t, kind)
 			w.structures[0].Col, w.structures[0].Row = 12, 12
@@ -26,5 +26,18 @@ func TestZeroMaximumStructureApproachAndBoundedUse(t *testing.T) {
 				t.Fatal("non-fountain use applied a potion")
 			}
 		})
+	}
+}
+
+func TestGraveIsNotUsable(t *testing.T) {
+	for _, kind := range []uint16{39, 40} {
+		if (Structure{Kind: kind, Width: 2, Height: 2}).Usable() {
+			t.Fatalf("class %d admits a use", kind)
+		}
+		w := structureUseWorld(t, kind)
+		Step(w, []Command{UseStructure(0, 0)})
+		if len(w.StructureUses()) != 0 {
+			t.Fatalf("class %d retained a use order", kind)
+		}
 	}
 }

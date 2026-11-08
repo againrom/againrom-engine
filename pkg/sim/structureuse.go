@@ -48,7 +48,7 @@ func (s Structure) Usable() bool {
 		return true
 	}
 	switch s.Kind {
-	case 15, 16, 28, 29, 34, 35, 39, 40, 66:
+	case 15, 16, 28, 29, 34, 35, 66:
 		return true
 	}
 	return false

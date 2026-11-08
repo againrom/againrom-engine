@@ -12,7 +12,7 @@ import (
 func TestUsableStructureHoverReadoutAndOrder(t *testing.T) {
 	for _, tc := range []struct {
 		class, current, maximum int
-	}{{15, 2, 3}, {16, 0, 3}, {28, 0, 1}, {29, 1, 1}, {34, 0, 0}, {35, 0, 0}, {39, 0, 0}, {40, 0, 0}, {66, 0, 0}} {
+	}{{15, 2, 3}, {16, 0, 3}, {28, 0, 1}, {29, 1, 1}, {34, 0, 0}, {35, 0, 0}, {66, 0, 0}} {
 		t.Run(fmt.Sprint(tc.class), func(t *testing.T) {
 			a, v := inspectionFixture(t, image.Pt(1024, 768))
 			v.entities[0].PlayerCharacter = true
@@ -124,7 +124,7 @@ func TestUsableStructureAdmissionMatchesSimulation(t *testing.T) {
 }
 
 func TestZeroMaximumStructureCtrlClickUsesGroundOrder(t *testing.T) {
-	for _, kind := range []uint16{34, 35, 39, 40, 66} {
+	for _, kind := range []uint16{34, 35, 66} {
 		for _, health := range []uint16{0, 1} {
 			t.Run(fmt.Sprintf("%d/%d", kind, health), func(t *testing.T) {
 				a, v := inspectionFixture(t, image.Pt(1024, 768))
@@ -188,5 +188,44 @@ func TestUnadmittedStructureKeepsPooledPhysicalHover(t *testing.T) {
 	}
 	if uses != 0 || moves != 0 || len(v.sel) != 0 || v.selStructure.Kind != InspectionNone {
 		t.Fatalf("pooled physical click uses=%d moves=%d units=%v structure=%v", uses, moves, v.sel, v.selStructure)
+	}
+}
+
+func TestGraveHasNoUseCursorOrCard(t *testing.T) {
+	for _, kind := range []uint16{39, 40} {
+		t.Run(fmt.Sprint(kind), func(t *testing.T) {
+			a, v := inspectionFixture(t, image.Pt(1024, 768))
+			v.entities[0].PlayerCharacter = true
+			c := v.structureInfo[7]
+			c.ID, c.Usable, c.Indestructible, c.Picture = int32(kind), true, true, "beeh"
+			ref := InspectionSubject{InspectionStructure, 7}
+			x, y, err := v.InspectionPoint(ref)
+			if err != nil {
+				t.Fatal(err)
+			}
+			v.SetStructures([]MapStructure{{ID: 7, Kind: kind, Size: image.Pt(1, 1), Cell: image.Pt(6, 6), UseAdmission: structureAdmission(kind, image.Pt(1, 1))}})
+			if err := a.HeadlessPointer("hover", x, y); err != nil {
+				t.Fatal(err)
+			}
+			if cursor, ok := v.missionHoverCursor(); !ok || cursor != "move" {
+				t.Fatalf("cursor=%q,%v want move", cursor, ok)
+			}
+			if _, ok := v.inspectionPanel(ref); ok {
+				t.Fatal("grave has a structure card")
+			}
+			if _, _, _, err := a.HeadlessStructureReadout(); err == nil {
+				t.Fatal("grave has a readout and picture")
+			}
+			uses := 0
+			v.SetStructureUseSink(func(_, _ uint32) { uses++ })
+			for _, edge := range []string{"press", "release"} {
+				if err := a.HeadlessPointer(edge, x, y); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if uses != 0 {
+				t.Fatalf("grave click sent %d uses", uses)
+			}
+		})
 	}
 }

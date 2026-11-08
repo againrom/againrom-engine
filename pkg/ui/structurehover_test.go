@@ -48,7 +48,7 @@ func TestStructureHoverKeepsPooledCardsAndEmptyRectangleUses(t *testing.T) {
 		if usable {
 			c.SelectionSet = true
 			v.entities[0].PlayerCharacter = true
-			v.SetStructures([]MapStructure{{ID: 7, Kind: 39, Size: image.Pt(1, 1), Cell: image.Pt(6, 6), UseAdmission: structureAdmission(39, image.Pt(1, 1))}})
+			v.SetStructures([]MapStructure{{ID: 7, Kind: 34, Size: image.Pt(1, 1), Cell: image.Pt(6, 6), UseAdmission: structureAdmission(34, image.Pt(1, 1))}})
 		}
 		ref := InspectionSubject{InspectionStructure, 7}
 		x, y, err := v.InspectionPoint(ref)
