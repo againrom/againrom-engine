@@ -714,9 +714,12 @@ func weaponRiderSpellFor(spells []SpellRule, e Entity) (SpellRule, bool) {
 // the raw weapon-release reach rather than a book cast's power-adjusted range.
 // RayCount is SpellRule.RayLimit; Arm is SpellRule.ArmID.
 type WeaponSpellCharacteristics struct {
-	SpellID, Arm           uint16
-	DamageMin, DamageMax   int64
-	DurationTicks          uint16
+	SpellID, Arm         uint16
+	DamageMin, DamageMax int64
+	DurationTicks        uint16
+	// DurationCeilingTicks is the top of the second game's Stone Curse draw
+	// for an item cast at the stored power, before Earth protection.
+	DurationCeilingTicks   uint16
 	MaxRange               uint8
 	RayCount               uint8
 	HasDamage, HasDuration bool
@@ -744,6 +747,7 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 	if arm.stoneCurse {
 		out.DurationTicks = spellDurationOf(r, rule, power, durationEffect)
 		out.HasDuration = true
+		out.DurationCeilingTicks = secondCurseCeiling(power, 0, true)
 	}
 	if arm.prismatic {
 		out.RayCount = uint8(rule.RayLimit(power))

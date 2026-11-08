@@ -4396,5 +4396,9 @@ var Committed = Baseline{
 	// It rises for the weapon swap memory in the SAV supplement: the rows and
 	// their restore in pkg/game/weaponswap.go, the new
 	// pkg/game/weaponswapsave_test.go; and this note.
-	CommentBytes: 10698379,
+
+	// It rises for the Stone Curse staff card: the new
+	// pkg/game/secondcursecard_test.go, DurationCeilingTicks in
+	// pkg/sim/spell.go, net of the removed duration text helpers, and this note.
+	CommentBytes: 10698837,
 }

@@ -243,8 +243,8 @@ func TestItemSpellLinesFollowTheArm(t *testing.T) {
 		item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{castSpellEffect(uint16(id), power)}}
 		return itemInstanceInfoLines(item, table, words)
 	}
-	if got := lines(18, "Stone Curse", 0, 10, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 6)) ||
-		!slices.Contains(got, "Stone Curse 10 "+words.DurationUnit) {
+	if got := lines(18, "Stone Curse", 0, 10, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 5)) ||
+		!slices.Contains(got, "Duration 0.0 - 0.0") {
 		t.Fatalf("second-game Stone Curse card = %q", got)
 	}
 	if got := lines(11, "Prismatic Spray", 40, 0, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) ||

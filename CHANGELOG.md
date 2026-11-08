@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [BASE] W now remembers the previous weapon after you load one of your own saves, so the swap works straight away. A save from the original game still starts with nothing to swap back to, and a weapon you no longer carry stays gone.
 - [ROM2] A mission save resaved by the original game now opens when one of its units has more health than its maximum.
 - [ROM2] Bats and other creatures that backed away from the hero no longer stand idle for the rest of the mission after a load: they pick a target again and attack.
+- [ROM2] A staff of Stone Curse now shows, as the original does, that the spell lasts for a varying time up to a longest value, for example "Duration 0.0 - 6.8", instead of one fixed time.
 - [BASE] On macOS, Command now works where Control does in a mission: Command+1 assigns the selected units to squad 1, Command+2 to squad 2, and so on. Control still works.
 - [ROM2] An Elven Scroll now works like an ordinary scroll at its own greater power: its description names its spell, and any hero can read it to cast that spell. Before, its description showed only its name and no hero could read it.
 - [ROM2] Drain Life's picture on its target now starts on the same frame as in the original game.

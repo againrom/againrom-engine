@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -170,7 +169,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 		return nil, false
 	}
 	if tableFiles(table).releasedSpellReadout {
-		lines, ok := releasedSpellLines(code, table, spellID, power, words)
+		lines, ok := releasedSpellLines(code, table, spellID, power, uint8(w.Range), words)
 		if !ok {
 			return nil, false
 		}
@@ -220,7 +219,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 // releasedSpellLines is the second game's spell weapon text: the spell the
 // attack releases at the stored power, its damage, rays and spell range, with
 // no base lines (DIV-1977); the other Effects follow.
-func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, words ui.Words) ([]string, bool) {
+func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, weaponRange uint8, words ui.Words) ([]string, bool) {
 	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
 		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
 	}, mapload.SpellRules(table))
@@ -234,9 +233,18 @@ func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16
 	lines := []string{itemName(code, table), words.ItemMagic}
 	switch {
 	case sim.SpellArmStoneCurse(spell.Arm):
+		// The staff's card states the draw 0..ceiling (R2-ENGINE-999).
+		caption, rangeCaption := words.Hover[spellLabelDuration], words.Hover[spellLabelRange]
+		if caption == "" {
+			caption = "Duration"
+		}
+		if rangeCaption == "" {
+			rangeCaption = words.ItemRange
+		}
 		return append(lines,
-			fmt.Sprintf("%s %s", name, spellDurationText(spell.DurationTicks, &words)),
-			fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
+			fmt.Sprintf("%s %s", words.ItemCasts, name),
+			fmt.Sprintf("%s %d", rangeCaption, weaponRange),
+			fmt.Sprintf("%s 0.0 - %.1f", caption, float64(spell.DurationCeilingTicks)/16)), true
 	case sim.SpellArmFiresRays(spell.Arm):
 		lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
 		if spell.HasDamage {
@@ -251,24 +259,6 @@ func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16
 		lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
 	}
 	return append(lines, fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
-}
-
-func spellDurationSeconds(ticks uint16) string {
-	// One nominal game second is sixteen simulation ticks. Round the displayed
-	// fraction to hundredths; the stored countdown retains its exact ticks.
-	hundredths := (uint32(ticks)*100 + 8) / 16
-	if hundredths%100 == 0 {
-		return fmt.Sprintf("%d", hundredths/100)
-	}
-	return strings.TrimRight(fmt.Sprintf("%d.%02d", hundredths/100, hundredths%100), "0")
-}
-
-func spellDurationText(ticks uint16, words *ui.Words) string {
-	unit := words.DurationUnit
-	if unit == "" {
-		unit = ui.AuthoredWords().DurationUnit
-	}
-	return spellDurationSeconds(ticks) + " " + unit
 }
 
 // castWeaponWords fills the install's main.txt captions a castSpell Weapon's
