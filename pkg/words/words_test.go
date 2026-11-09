@@ -218,6 +218,12 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	}
 	var unused []string
 	for _, id := range ids {
+		// itemGroupWord forms these ids from the decoder's row keys; the
+		// pkg/game test TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces
+		// holds them to those keys.
+		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") {
+			continue
+		}
 		if !used[id] {
 			unused = append(unused, id)
 		}

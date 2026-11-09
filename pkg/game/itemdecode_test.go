@@ -1,6 +1,7 @@
 package game
 
 import (
+	"strings"
 	"testing"
 
 	"againrom/pkg/data"
@@ -182,5 +183,37 @@ func TestItemRowKeysResolveAsTheyDidForTheInstalls(t *testing.T) {
 	}
 	if found == 0 {
 		t.Skip("no install root beside the checkout")
+	}
+}
+
+// TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces holds the English ids
+// under editor.item.kind. and editor.item.material., which itemGroupWord forms
+// at run time, to the keys of itemGroupKeysToday: every key has an id and every
+// id has a key. The carried and no-material keys are in the map too.
+func TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces(t *testing.T) {
+	ids, err := words.IDs(words.Engine())
+	if err != nil {
+		t.Fatal(err)
+	}
+	have := map[string]bool{}
+	for _, id := range ids {
+		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") {
+			have[id] = true
+		}
+	}
+	want := map[string]bool{}
+	for k, key := range itemGroupKeysToday {
+		axis, _, _ := strings.Cut(k, ":")
+		want["editor.item."+axis+"."+key] = true
+	}
+	for id := range have {
+		if !want[id] {
+			t.Errorf("English id %q is formed from no decoder key", id)
+		}
+	}
+	for id := range want {
+		if !have[id] {
+			t.Errorf("decoder key forms id %q, which the English table lacks", id)
+		}
 	}
 }
