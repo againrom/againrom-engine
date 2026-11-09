@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
+
 ## 0.150.0
 
 ### For players

@@ -18,4 +18,4 @@ rev=$(git rev-parse HEAD)
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then rev="$rev+dirty"; fi
 mkdir -p "$out"
 go build -trimpath -buildvcs=false \
-	-ldflags "-X againrom/internal/buildinfo.stamp=$rev" -o "$out/" "$@"
+	-ldflags "-s -w -X againrom/internal/buildinfo.stamp=$rev" -o "$out/" "$@"
