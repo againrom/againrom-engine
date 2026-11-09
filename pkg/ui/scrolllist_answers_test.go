@@ -115,7 +115,7 @@ func scrollScenarios() []scrollScenario {
 				}
 		}},
 		{"notice window", []int{0, 1, 7, 30}, func(t *testing.T) (func(int), func(appInput), func() string) {
-			w := &noticeWindow{}
+			w := &dialogRun{}
 			l := newNoticeWindowLayout(gameMenuTestFont(), loadPanel, 1)
 			const lines = 60
 			return func(start int) { w.top = start },

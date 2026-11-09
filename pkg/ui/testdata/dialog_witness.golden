@@ -1,0 +1,2330 @@
+[
+ {
+  "Name": "en/640x480/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "4aa2fafe51df5676",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/640x480/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/640x480/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "237f4b7f46e70dd8",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/640x480/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "4c36594018385fc6",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/640x480/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "87e01378c4ff74a6",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/640x480/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "1d65c0fb5732fba0",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/640x480/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "00b8663a12be22be",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/640x480/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "8fa4628c1bb76d02",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "e9d9673ee4410f79"
+ },
+ {
+  "Name": "en/640x480/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "08306cd69280ee41",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/640x480/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "9eca867b1aeb48eb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/640x480/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=57,153,423,327",
+   "scale=0.7500"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/640x480/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "7a01d174a2c66023",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=105,172,375,267",
+   "scale=0.7500"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/640x480/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "c8b51946bc459a3e",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=57,105,423,375",
+   "scale=0.7500"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/640x480/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "01ba96562939d23a",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/640x480/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "013fbb39a678f48c",
+  "Rects": [
+   "body=22,22,588,428",
+   "title=30,32,580,56",
+   "hint=38,319,572,388",
+   "text=0,0,0,0",
+   "list=38,62,548,311",
+   "rows=13",
+   "pitch=0",
+   "answer=257,392,353,416"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/640x480/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "c68ca0e6184cf3d9",
+  "Rects": [
+   "body=22,22,588,428",
+   "title=30,32,580,56",
+   "hint=38,319,572,388",
+   "text=0,0,0,0",
+   "list=38,62,548,311",
+   "rows=13",
+   "pitch=0",
+   "answer=257,392,353,416"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/640x480/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "e7b0dabc26032efb",
+  "Rects": [
+   "body=161,113,449,337",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=201,170,409,285",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=200,285,282,309",
+   "answer=328,285,410,309"
+  ],
+  "Lines": 2,
+  "LineHash": "d171c30dfbdd60ff"
+ },
+ {
+  "Name": "en/640x480/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "c4954f416a7e3bbc",
+  "Rects": [
+   "body=161,113,449,337",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=201,170,409,285",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=200,285,282,309",
+   "answer=328,285,410,309"
+  ],
+  "Lines": 14,
+  "LineHash": "12ba253ca11baebe"
+ },
+ {
+  "Name": "en/640x480/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "77c421ed9cb78092",
+  "Rects": [
+   "box=100,280,396,448",
+   "edit=116,336,380,364",
+   "action=116,400,236,432",
+   "cancel=260,400,380,432",
+   "at=100,280"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/640x480/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "5eb9d573ecd186b3",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "en/640x480/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "3242e1c88b6229bb",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/640x480/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "en/640x480/popup/editor",
+  "W": 640,
+  "H": 480,
+  "Hash": "8e58921b714d7c84",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1024x768/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "4aa2fafe51df5676",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1024x768/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1024x768/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "237f4b7f46e70dd8",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1024x768/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "4c36594018385fc6",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1024x768/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "87e01378c4ff74a6",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/1024x768/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "1d65c0fb5732fba0",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1024x768/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "00b8663a12be22be",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1024x768/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "8fa4628c1bb76d02",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "e9d9673ee4410f79"
+ },
+ {
+  "Name": "en/1024x768/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "08306cd69280ee41",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1024x768/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "9eca867b1aeb48eb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1024x768/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=188,268,676,500",
+   "scale=1.0000"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1024x768/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "7a01d174a2c66023",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=252,294,612,421",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/1024x768/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "c8b51946bc459a3e",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=188,204,676,564",
+   "scale=1.0000"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1024x768/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "01ba96562939d23a",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1024x768/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "0767d6d3dad64418",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/1024x768/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "6400becd18795824",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/1024x768/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "9e8f873eba0c1606",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 2,
+  "LineHash": "d171c30dfbdd60ff"
+ },
+ {
+  "Name": "en/1024x768/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "3e9d6b8e886540db",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 14,
+  "LineHash": "12ba253ca11baebe"
+ },
+ {
+  "Name": "en/1024x768/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "77c421ed9cb78092",
+  "Rects": [
+   "box=100,568,396,736",
+   "edit=116,624,380,652",
+   "action=116,688,236,720",
+   "cancel=260,688,380,720",
+   "at=100,568"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1024x768/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "5eb9d573ecd186b3",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "en/1024x768/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "3242e1c88b6229bb",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1024x768/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "en/1024x768/popup/editor",
+  "W": 1024,
+  "H": 768,
+  "Hash": "e7cd5bfe37fd8c4e",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1280x800/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "4aa2fafe51df5676",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1280x800/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1280x800/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "237f4b7f46e70dd8",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1280x800/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "4c36594018385fc6",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1280x800/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "87e01378c4ff74a6",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/1280x800/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "1d65c0fb5732fba0",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1280x800/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "00b8663a12be22be",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1280x800/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "8fa4628c1bb76d02",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "e9d9673ee4410f79"
+ },
+ {
+  "Name": "en/1280x800/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "08306cd69280ee41",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "9b74467378839577"
+ },
+ {
+  "Name": "en/1280x800/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "9eca867b1aeb48eb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1280x800/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "ab995c6af943ff38",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=316,284,804,516",
+   "scale=1.0000"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1280x800/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "7a01d174a2c66023",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=380,310,740,437",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "fa05b0459ab4a2cb"
+ },
+ {
+  "Name": "en/1280x800/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "c8b51946bc459a3e",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=316,220,804,580",
+   "scale=1.0000"
+  ],
+  "Lines": 4,
+  "LineHash": "16e7ae5675685535"
+ },
+ {
+  "Name": "en/1280x800/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "01ba96562939d23a",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 4,
+  "LineHash": "088313aba7de2ac3"
+ },
+ {
+  "Name": "en/1280x800/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "0767d6d3dad64418",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/1280x800/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "6400becd18795824",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "4d36f6f6f974bc24"
+ },
+ {
+  "Name": "en/1280x800/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "9e8f873eba0c1606",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 2,
+  "LineHash": "d171c30dfbdd60ff"
+ },
+ {
+  "Name": "en/1280x800/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "3e9d6b8e886540db",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 14,
+  "LineHash": "12ba253ca11baebe"
+ },
+ {
+  "Name": "en/1280x800/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "77c421ed9cb78092",
+  "Rects": [
+   "box=100,600,396,768",
+   "edit=116,656,380,684",
+   "action=116,720,236,752",
+   "cancel=260,720,380,752",
+   "at=100,600"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1280x800/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "5eb9d573ecd186b3",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "en/1280x800/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "3242e1c88b6229bb",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "en/1280x800/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "en/1280x800/popup/editor",
+  "W": 1280,
+  "H": 800,
+  "Hash": "08b4a69ff15bcad7",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/640x480/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "aadb9e867dc96496",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/640x480/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/640x480/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "cf1731404ab39f75",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/640x480/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "97d9a3a98674cfc0",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/640x480/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "bfcab7d68f78132e",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/640x480/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "9654bb003d1c53b9",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/640x480/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "632bc7f58bec2dab",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/640x480/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "3e2e9c5a04d170ef",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "2909b7b298a1a8d5"
+ },
+ {
+  "Name": "ru/640x480/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "023714653dfa4ceb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/640x480/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "181775b48e73bf93",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/640x480/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=57,153,423,327",
+   "scale=0.7500"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/640x480/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "42cff318054be075",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=105,172,375,267",
+   "scale=0.7500"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/640x480/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "5da1476ee7d55dab",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=57,105,423,375",
+   "scale=0.7500"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/640x480/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "21a29a3db5a0da62",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/640x480/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "a1fe04bf3239be6d",
+  "Rects": [
+   "body=22,22,588,428",
+   "title=30,32,580,56",
+   "hint=38,319,572,388",
+   "text=0,0,0,0",
+   "list=38,62,548,311",
+   "rows=13",
+   "pitch=0",
+   "answer=257,392,353,416"
+  ],
+  "Lines": 25,
+  "LineHash": "c2ba96a97025d601"
+ },
+ {
+  "Name": "ru/640x480/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "641f9e1a01063b26",
+  "Rects": [
+   "body=22,22,588,428",
+   "title=30,32,580,56",
+   "hint=38,319,572,388",
+   "text=0,0,0,0",
+   "list=38,62,548,311",
+   "rows=13",
+   "pitch=0",
+   "answer=257,392,353,416"
+  ],
+  "Lines": 25,
+  "LineHash": "c2ba96a97025d601"
+ },
+ {
+  "Name": "ru/640x480/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "0111399810b6cb94",
+  "Rects": [
+   "body=161,113,449,337",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=201,170,409,285",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=200,285,282,309",
+   "answer=328,285,410,309"
+  ],
+  "Lines": 2,
+  "LineHash": "2fcbcdd724822945"
+ },
+ {
+  "Name": "ru/640x480/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "20fe51825a3ec5fe",
+  "Rects": [
+   "body=161,113,449,337",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=201,170,409,285",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=200,285,282,309",
+   "answer=328,285,410,309"
+  ],
+  "Lines": 11,
+  "LineHash": "bb93bac0dd9720b1"
+ },
+ {
+  "Name": "ru/640x480/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "3d141e21a041c081",
+  "Rects": [
+   "box=100,280,396,448",
+   "edit=116,336,380,364",
+   "action=116,400,236,432",
+   "cancel=260,400,380,432",
+   "at=100,280"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/640x480/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "8bac8c310d4ba7d8",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "ru/640x480/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "bc091d101a383e4c",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/640x480/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "ru/640x480/popup/editor",
+  "W": 640,
+  "H": 480,
+  "Hash": "9ea81d5491e3f727",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1024x768/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "aadb9e867dc96496",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1024x768/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1024x768/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "cf1731404ab39f75",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1024x768/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "97d9a3a98674cfc0",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1024x768/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "bfcab7d68f78132e",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1024x768/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "9654bb003d1c53b9",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/1024x768/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "632bc7f58bec2dab",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/1024x768/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "3e2e9c5a04d170ef",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "2909b7b298a1a8d5"
+ },
+ {
+  "Name": "ru/1024x768/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "023714653dfa4ceb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1024x768/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "181775b48e73bf93",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1024x768/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=188,268,676,500",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1024x768/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "42cff318054be075",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=252,294,612,421",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1024x768/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "5da1476ee7d55dab",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=188,204,676,564",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1024x768/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "21a29a3db5a0da62",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1024x768/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "7fd026b7a42ebc1c",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "0ffbe3d434308ece"
+ },
+ {
+  "Name": "ru/1024x768/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "73813c782b50d378",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "0ffbe3d434308ece"
+ },
+ {
+  "Name": "ru/1024x768/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "cbff1cff39ffd008",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 2,
+  "LineHash": "2fcbcdd724822945"
+ },
+ {
+  "Name": "ru/1024x768/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "008951773abbf0ad",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 11,
+  "LineHash": "bb93bac0dd9720b1"
+ },
+ {
+  "Name": "ru/1024x768/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "3d141e21a041c081",
+  "Rects": [
+   "box=100,568,396,736",
+   "edit=116,624,380,652",
+   "action=116,688,236,720",
+   "cancel=260,688,380,720",
+   "at=100,568"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1024x768/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "8bac8c310d4ba7d8",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "ru/1024x768/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "bc091d101a383e4c",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1024x768/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "ru/1024x768/popup/editor",
+  "W": 1024,
+  "H": 768,
+  "Hash": "9459af32a8c766be",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1280x800/notice/dialogue-portrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "aadb9e867dc96496",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1280x800/notice/dialogue-noportrait-art",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1280x800/notice/dialogue-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "cf1731404ab39f75",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1280x800/notice/dialogue-noportrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "97d9a3a98674cfc0",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1280x800/notice/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "bfcab7d68f78132e",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1280x800/notice/success-art",
+  "W": 384,
+  "H": 214,
+  "Hash": "9654bb003d1c53b9",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/1280x800/notice/failure",
+  "W": 384,
+  "H": 214,
+  "Hash": "632bc7f58bec2dab",
+  "Rects": [
+   "box=128,200,512,414",
+   "text=48,40,336,106",
+   "button=48,118,336,142",
+   "second=48,142,336,166",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "4b77036a37fa85d5"
+ },
+ {
+  "Name": "ru/1280x800/notice/outcome-pressed",
+  "W": 360,
+  "H": 110,
+  "Hash": "3e2e9c5a04d170ef",
+  "Rects": [
+   "box=140,150,500,260",
+   "text=24,24,336,58",
+   "button=140,68,220,94",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 2,
+  "LineHash": "2909b7b298a1a8d5"
+ },
+ {
+  "Name": "ru/1280x800/notice/plain-portrait-colours",
+  "W": 488,
+  "H": 232,
+  "Hash": "023714653dfa4ceb",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1280x800/notice/composed-dialogue",
+  "W": 640,
+  "H": 480,
+  "Hash": "181775b48e73bf93",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1280x800/placed/dialogue",
+  "W": 488,
+  "H": 232,
+  "Hash": "60a065e0066665ea",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=48,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "placed=316,284,804,516",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1280x800/placed/outcome",
+  "W": 360,
+  "H": 127,
+  "Hash": "42cff318054be075",
+  "Rects": [
+   "box=140,150,500,277",
+   "text=24,24,336,75",
+   "button=140,85,220,111",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=0,0,0,0",
+   "placed=380,310,740,437",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "a2eed04bbab802b2"
+ },
+ {
+  "Name": "ru/1280x800/placed/help",
+  "W": 488,
+  "H": 360,
+  "Hash": "5da1476ee7d55dab",
+  "Rects": [
+   "box=76,60,564,420",
+   "text=40,56,422,267",
+   "button=196,300,292,324",
+   "second=0,0,0,0",
+   "portrait=0,0,0,0",
+   "beside=0,0,0,0",
+   "bar=422,56,446,267",
+   "placed=316,220,804,580",
+   "scale=1.0000"
+  ],
+  "Lines": 3,
+  "LineHash": "d1bbb04d63fc8b89"
+ },
+ {
+  "Name": "ru/1280x800/towntalk/portrait",
+  "W": 488,
+  "H": 232,
+  "Hash": "21a29a3db5a0da62",
+  "Rects": [
+   "box=76,124,564,356",
+   "text=128,36,428,171",
+   "button=200,172,280,198",
+   "second=0,0,0,0",
+   "portrait=30,54,118,168",
+   "beside=128,36,428,171",
+   "bar=0,0,0,0",
+   "frame=0,0,480,224"
+  ],
+  "Lines": 3,
+  "LineHash": "4f859c6d7cd4d2bc"
+ },
+ {
+  "Name": "ru/1280x800/window/list",
+  "W": 640,
+  "H": 480,
+  "Hash": "7fd026b7a42ebc1c",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "0ffbe3d434308ece"
+ },
+ {
+  "Name": "ru/1280x800/window/list-scrolled-pressed",
+  "W": 640,
+  "H": 480,
+  "Hash": "73813c782b50d378",
+  "Rects": [
+   "body=32,32,608,448",
+   "title=40,42,600,66",
+   "hint=48,348,592,408",
+   "text=0,0,0,0",
+   "list=48,72,568,340",
+   "rows=14",
+   "pitch=0",
+   "answer=272,412,368,436"
+  ],
+  "Lines": 25,
+  "LineHash": "0ffbe3d434308ece"
+ },
+ {
+  "Name": "ru/1280x800/window/question-text",
+  "W": 640,
+  "H": 480,
+  "Hash": "cbff1cff39ffd008",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 2,
+  "LineHash": "2fcbcdd724822945"
+ },
+ {
+  "Name": "ru/1280x800/window/question-clamped",
+  "W": 640,
+  "H": 480,
+  "Hash": "008951773abbf0ad",
+  "Rects": [
+   "body=176,128,464,352",
+   "title=0,0,0,0",
+   "hint=0,0,0,0",
+   "text=216,185,424,300",
+   "list=0,0,0,0",
+   "rows=0",
+   "pitch=17",
+   "answer=215,300,297,324",
+   "answer=343,300,425,324"
+  ],
+  "Lines": 11,
+  "LineHash": "bb93bac0dd9720b1"
+ },
+ {
+  "Name": "ru/1280x800/gold/open",
+  "W": 296,
+  "H": 168,
+  "Hash": "3d141e21a041c081",
+  "Rects": [
+   "box=100,600,396,768",
+   "edit=116,656,380,684",
+   "action=116,720,236,752",
+   "cancel=260,720,380,752",
+   "at=100,600"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1280x800/gamemenu/town",
+  "W": 640,
+  "H": 480,
+  "Hash": "8bac8c310d4ba7d8",
+  "Rects": [
+   "panel=100,100,440,340"
+  ],
+  "Lines": 6,
+  "LineHash": "f1ca22342f227ae0"
+ },
+ {
+  "Name": "ru/1280x800/save/page",
+  "W": 640,
+  "H": 480,
+  "Hash": "bc091d101a383e4c",
+  "Rects": [
+   "panel=24,12,616,468"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ },
+ {
+  "Name": "ru/1280x800/window/mismatch",
+  "W": 640,
+  "H": 480,
+  "Hash": "e16424264291fc1f",
+  "Rects": [
+   "list=104,112,504,285",
+   "visible=9",
+   "lines=10",
+   "top=0"
+  ],
+  "Lines": 9,
+  "LineHash": "c918a9e8c4a7f1b6"
+ },
+ {
+  "Name": "ru/1280x800/popup/editor",
+  "W": 1280,
+  "H": 800,
+  "Hash": "82e9e20f3b31df41",
+  "Rects": [
+   "rect=40,30,360,190",
+   "title=40,30,360,53",
+   "close=337,32,358,51",
+   "button=156,157,252,184",
+   "button=258,157,354,184",
+   "row=46,59,354,82",
+   "row=46,82,354,105",
+   "row=46,105,354,128"
+  ],
+  "Lines": 0,
+  "LineHash": ""
+ }
+]

@@ -36,8 +36,8 @@ func noticeCaptureFont() *text.Font {
 // noticeCaptureLayout is a buttonless notice: its body glyphs are the only
 // text, so the capture counts below are the body's alone. Push-button label
 // capture has its own test beside the painter.
-func noticeCaptureLayout() NoticeLayout {
-	return NoticeLayout{Box: image.Rect(30, 120, 50, 138), Text: image.Rect(3, 2, 17, 8),
+func noticeCaptureLayout() Dialog {
+	return Dialog{Box: image.Rect(30, 120, 50, 138), Text: image.Rect(3, 2, 17, 8),
 		Fill: color.RGBA{40, 50, 60, 255}, Border: color.RGBA{80, 90, 100, 255},
 		TextColor: color.RGBA{255, 255, 255, 255}}
 }

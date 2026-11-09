@@ -34,10 +34,10 @@ type loadWindow struct {
 	completed uint32
 	// mismatch is the open window listing a refusal over the mods; it owns
 	// the page's input until it closes.
-	mismatch *noticeWindow
+	mismatch *dialogRun
 	// question is the delete question of a page that asks in a window; it
 	// owns the page's input while the deletion awaits its answer.
-	question noticeWindow
+	question dialogRun
 }
 
 func (w *loadWindow) resetPointer() {

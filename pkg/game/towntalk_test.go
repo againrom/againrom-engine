@@ -14,13 +14,13 @@ import (
 
 // townDialogueLayout is the first game's open talk layout and the payload it
 // pages, read through the town talk window.
-func (t *townScreen) townDialogueLayout() (ui.NoticeLayout, []byte, bool) {
+func (t *townScreen) townDialogueLayout() (ui.Dialog, []byte, bool) {
 	if t.talkHost == nil {
 		t.bindTalk(t)
 	}
 	v := t.view()
 	if !v.Open {
-		return ui.NoticeLayout{}, nil, false
+		return ui.Dialog{}, nil, false
 	}
 	return t.talkWindow.Layout(v), t.talkPage().payload, true
 }

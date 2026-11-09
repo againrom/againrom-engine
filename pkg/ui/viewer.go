@@ -837,7 +837,7 @@ type Viewer struct {
 	noticeFace           *image.RGBA
 	noticeFaceWindow     image.Rectangle
 	noticeFaceSerial     int
-	noticeLayouts        [4]NoticeLayout
+	noticeLayouts        [4]Dialog
 	dialogFrame          *DialogFrame
 	fogCanvas, fogInk    *ebiten.Image
 	failureLoadCheck     func() bool
@@ -1615,7 +1615,7 @@ func NewViewerWithStatics(title string, g terrain.Grid, set *terrain.Tileset, st
 		// reason. None is OPEN here — closed is the zero value — so a viewer
 		// that is never pushed one draws exactly what it drew before this story,
 		// and the standalone developer viewer never gains a box.
-		noticeLayouts: [4]NoticeLayout{AuthoredDialogueLayout(), AuthoredOutcomeLayout(), AuthoredSuccessLayout(), AuthoredFailureLayout()},
+		noticeLayouts: [4]Dialog{AuthoredDialogueLayout(), AuthoredOutcomeLayout(), AuthoredSuccessLayout(), AuthoredFailureLayout()},
 		// The authored word set, on the layouts' own rule and for their reason.
 		// The layouts above already carry their control words, so a viewer that is
 		// never told an install's words remains self-contained.
@@ -4339,8 +4339,9 @@ func (v *Viewer) paintNotice(screen *ebiten.Image) {
 		return
 	}
 	l := v.noticeLayout()
-	if l.Style == NoticeStyleDialogue {
-		body := image.Rectangle{Max: l.Box.Size().Sub(image.Pt(noticeShadow, noticeShadow))}
+	row := l.styleRow()
+	if row.frameShadows {
+		body := image.Rectangle{Max: l.Box.Size().Sub(image.Pt(row.inset, row.inset))}
 		v.dialogueBackdrop.drawFrameShadows(screen, &v.canvasLog, l.Frame, body, at, scale, text.Captured()[:max(0, noticeCapture)])
 	}
 	if v.noticeFresh {
@@ -4356,7 +4357,7 @@ func (v *Viewer) paintNotice(screen *ebiten.Image) {
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(float64(at.X), float64(at.Y))
 	clip := screen.Bounds()
-	if l.Style == NoticeStyleDialogue {
+	if row.frameShadows {
 		clip = dialoguePolicyClip(v.dialogueBackdrop.policy, clip)
 	}
 	if clip.Empty() {

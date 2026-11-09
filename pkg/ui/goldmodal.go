@@ -383,15 +383,16 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 		return nil, image.Point{}, false
 	}
 	box := v.goldModalBox()
+	size := box.Size()
 	img := image.NewRGBA(image.Rect(0, 0, box.Dx(), box.Dy()))
-	drawFrame(img, panelFrame(image.Rectangle{Max: box.Size()}, goldFill, invBorder))
+	spec := Dialog{Box: image.Rectangle{Max: size}, Frames: []dialogFrame{{Spec: panelFrame(image.Rectangle{Max: size}, goldFill, invBorder)}}}
 	edit, action, cancel := v.goldModalControls()
 	edit, action, cancel = edit.Sub(box.Min), action.Sub(box.Min), cancel.Sub(box.Min)
 	f := v.cardFont()
 	g := v.gold
 	g.clampEdit()
 	e := editField{Rect: edit, Focus: g.focus == goldFocusEdit, Phase: v.blink.on()}
-	label := func(image.Point) {}
+	spec.Edit = &dialogEdit{Field: e}
 	if f != nil {
 		_, e.TextH = f.Measure("0")
 		e.Caret, _ = f.Measure(g.text[:g.caret])
@@ -399,14 +400,13 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 			e.SelFrom, _ = f.Measure(g.text[:g.selStart])
 			e.SelTo, _ = f.Measure(g.text[:g.selEnd])
 		}
-		draw := func(s string, at image.Point) {
-			f.DrawFlat(img, s, at.X+shopPriceShadow, at.Y+shopPriceShadow, messageShadowColor)
-			f.Draw(img, s, at.X, at.Y, shopPriceInk)
+		line := func(s string, at image.Point) dialogLine {
+			return dialogLine{Runs: []inkRun{{Text: s}}, At: at, Ink: shopPriceInk, Shadow: shopPriceShadow}
 		}
-		label = func(at image.Point) { draw(g.text, at) }
-		draw(goldTitleWord, image.Pt(16, 16))
+		spec.Lines = []dialogLine{line(goldTitleWord, image.Pt(16, 16))}
+		text := line(g.text, image.Point{})
+		spec.Edit = &dialogEdit{Field: e, Line: &text}
 	}
-	drawEditField(img, e, label)
 	ok := v.Words().NoticeButton
 	if ok == "" {
 		ok = AuthoredNoticeButton
@@ -417,9 +417,10 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 		s string
 	}{{action, ok}, {cancel, goldCancelWord}} {
 		inside := pointerOK && pointer.In(b.r)
-		drawPushButton(img, f, pushButton{Rect: b.r, Label: b.s, Literal: true, Hover: inside, Inside: inside,
+		spec.Pushes = append(spec.Pushes, pushButton{Rect: b.r, Label: b.s, Literal: true, Hover: inside, Inside: inside,
 			Focus: g.focus == goldFocusAction+goldFocus(i), Pressed: g.press.Pressed(int(goldFocusAction) + i)})
 	}
+	drawDialog(img, f, spec)
 	return img, box.Min, true
 }
 

@@ -131,18 +131,19 @@ func modMismatchRow(word string, r ModMismatchRow) noticeRow {
 // modMismatchWindow builds the notice window of a mismatch from the engine's
 // words: a lead row for a save without a record and for an unreadable record,
 // one row per difference, and the hint for what the player can do.
-func (f *flow) modMismatchWindow(m ModMismatch) *noticeWindow {
-	w := &noticeWindow{Title: f.word("load.mods.title"), Answers: []string{f.word("load.mods.ok")}, Hint: f.word("load.mods.hint")}
+func (f *flow) modMismatchWindow(m ModMismatch) *dialogRun {
+	w := &dialogRun{}
+	w.Title, w.Answers, w.Hint = f.word("load.mods.title"), []string{f.word("load.mods.ok")}, f.word("load.mods.hint")
 	switch m.Reason {
 	case ModMismatchUnmarked:
-		w.Rows = append(w.Rows, modMismatchRow(f.word("load.mods.unmarked"), ModMismatchRow{}))
+		w.Runs = append(w.Runs, modMismatchRow(f.word("load.mods.unmarked"), ModMismatchRow{}))
 		w.Hint = f.word("load.mods.hint_unmarked")
 	case ModMismatchMark:
-		w.Rows = append(w.Rows, modMismatchRow(f.word("load.mods.unreadable"), ModMismatchRow{}))
+		w.Runs = append(w.Runs, modMismatchRow(f.word("load.mods.unreadable"), ModMismatchRow{}))
 	}
 	for _, r := range m.Rows {
 		if word := f.modMismatchWord(r.Kind); word != "" {
-			w.Rows = append(w.Rows, modMismatchRow(word, r))
+			w.Runs = append(w.Runs, modMismatchRow(word, r))
 		}
 	}
 	return w
@@ -190,7 +191,7 @@ func (a *App) HeadlessModMismatch() (HeadlessModMismatch, bool) {
 	}
 	w := a.flow.loadUI.mismatch
 	out := HeadlessModMismatch{Title: w.Title, Hint: w.Hint, Top: w.top}
-	for _, row := range w.Rows {
+	for _, row := range w.Runs {
 		var b strings.Builder
 		for _, r := range row {
 			if r.Alert {

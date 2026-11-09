@@ -17,7 +17,7 @@ func TestTranslucentDialogueKeepsReachedHUDSmoothing(t *testing.T) {
 	v.ShowReadout(true)
 	v.SetTextSmoothing(true)
 	v.DeferPointer(true)
-	layout := NoticeLayout{Box: image.Rect(-200, -200, 1200, 1000), Fill: color.RGBA{A: 48}, Border: color.RGBA{A: 48}}
+	layout := Dialog{Box: image.Rect(-200, -200, 1200, 1000), Fill: color.RGBA{A: 48}, Border: color.RGBA{A: 48}}
 	v.SetNoticeLayouts(layout, layout)
 	v.SetDialogue(Dialogue{})
 	v.SetNoticeBackdrop(color.RGBA{})

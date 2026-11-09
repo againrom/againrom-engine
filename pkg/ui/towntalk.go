@@ -104,7 +104,7 @@ func (w *TownTalk) Shows(v TownTalkView) uint64 {
 
 // Layout is the authored dialogue layout with the game's words and frame,
 // the page's shape and the pointer's state.
-func (w *TownTalk) Layout(v TownTalkView) NoticeLayout {
+func (w *TownTalk) Layout(v TownTalkView) Dialog {
 	l := v.Art.Words.OnLayout(AuthoredDialogueLayout())
 	l.Frame = v.Art.Frame
 	return l.WithPortrait(v.Page.Portrait).WithDialogueButtonState(w.button).WithDialogueBackdrop(w.backdrop)

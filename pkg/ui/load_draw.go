@@ -59,10 +59,10 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	}
 	if window {
 		w := v.ui.mismatch
-		w.compose(pix, font, w.layout(font, v.page.Panel), a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
+		w.compose(pix, font, v.page.Panel, a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
 	} else if v.asking() {
 		w := &v.ui.question
-		w.compose(pix, font, w.layout(font, v.page.Panel), a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
+		w.compose(pix, font, v.page.Panel, a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
 	}
 	return pix, nil
 }

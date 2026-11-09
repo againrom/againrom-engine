@@ -16,7 +16,7 @@ import (
 //
 // Zero means nothing can be drawn at all: no font, a font with no records, or
 // a pitch the area does not hold one line of.
-func NoticeMaxLines(l NoticeLayout, f *text.Font) int {
+func NoticeMaxLines(l Dialog, f *text.Font) int {
 	if f == nil || len(f.Glyphs) == 0 {
 		return 0
 	}
@@ -54,7 +54,7 @@ func NoticeMaxLines(l NoticeLayout, f *text.Font) int {
 // measurable — no font, or an area that draws no line — it returns the whole
 // text as ONE page rather than splitting blindly: a caller with no font draws
 // no notice at all (Viewer.NoticeOpen), so there is nothing to page.
-func NoticePagesOf(l NoticeLayout, f *text.Font, paras []string) []string {
+func NoticePagesOf(l Dialog, f *text.Font, paras []string) []string {
 	var kept []string
 	for _, p := range paras {
 		if strings.TrimSpace(p) != "" {

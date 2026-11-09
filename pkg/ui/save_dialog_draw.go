@@ -203,16 +203,18 @@ func (a *App) savePagePaint() (*savePaint, error) {
 	} else {
 		a.flow.menuPlacement().backdrop.paint(a, s.pix)
 	}
+	frames := []dialogFrame{}
 	if page.fill.A != 0 {
-		drawFrame(s.pix, panelFrame(page.Panel, page.fill, page.border))
+		frames = append(frames, dialogFrame{Spec: panelFrame(page.Panel, page.fill, page.border)})
 	}
 	r := page.frame
 	if r.Empty() {
 		r = page.Panel
 	}
 	if !page.artOnly || a.flow.menuArt != nil {
-		drawFrame(s.pix, windowFrame(r, a.flow.menuArt))
+		frames = append(frames, dialogFrame{Spec: windowFrame(r, a.flow.menuArt)})
 	}
+	drawDialog(s.pix, font, Dialog{Box: s.pix.Bounds(), Frames: frames})
 	ink := townShellText
 	if page.ink != (color.RGBA{}) {
 		ink = page.ink
@@ -249,11 +251,11 @@ func (a *App) savePagePaint() (*savePaint, error) {
 		bstate := pushButton{Rect: r, Label: value, Hover: inside, Inside: inside, Disabled: disabled,
 			Focus: page.keyboardFocus && state.focus == c, Pressed: state.ui.press.Pressed(state.latchID(c, 0))}
 		if font != nil {
-			drawPushButton(s.pix, font, bstate)
+			drawDialog(s.pix, font, Dialog{Box: s.pix.Bounds(), Frames: []dialogFrame{}, Pushes: []pushButton{bstate}})
 			return
 		}
 		bstate.Label = ""
-		drawPushButton(s.pix, nil, bstate)
+		drawDialog(s.pix, nil, Dialog{Box: s.pix.Bounds(), Frames: []dialogFrame{}, Pushes: []pushButton{bstate}})
 		cink := ink
 		if disabled {
 			cink = loadDisabledText
@@ -371,7 +373,7 @@ func (a *App) savePagePaint() (*savePaint, error) {
 	}
 	if v.asking() {
 		w := &state.ui.question
-		w.compose(s.pix, font, w.layout(font, page.Panel), a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
+		w.compose(s.pix, font, page.Panel, a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
 	}
 	return s, nil
 }

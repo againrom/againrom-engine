@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -132,7 +133,7 @@ func TestSecondGamePagesAskDeleteInTheQuestionWindow(t *testing.T) {
 		t.Fatal("no save page")
 	}
 	for name, c := range map[string]ui.PageConfirm{"load": p.Load.Confirm, "save": p.Save.Confirm} {
-		if c.Window != secondPageQuestion || c.Window.Size != image.Pt(288, 224) || c.Yes != "Yes" || c.No != "No" {
+		if !reflect.DeepEqual(c.Window, secondPageQuestion) || c.Window.ShapeSize != image.Pt(288, 224) || c.Yes != "Yes" || c.No != "No" {
 			t.Fatalf("%s page: window %+v, answers %q %q", name, c.Window, c.Yes, c.No)
 		}
 	}

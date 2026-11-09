@@ -53,7 +53,7 @@ func remapDialogueMask(dst, mask *image.RGBA, at image.Point, clip image.Rectang
 }
 
 // ComposeDialogueNotice applies the frame masks to the supplied scene before its image.
-func ComposeDialogueNotice(dst *image.RGBA, layout NoticeLayout, font *text.Font, body string, face *image.RGBA, at image.Point) {
+func ComposeDialogueNotice(dst *image.RGBA, layout Dialog, font *text.Font, body string, face *image.RGBA, at image.Point) {
 	if dst == nil {
 		return
 	}
@@ -61,7 +61,7 @@ func ComposeDialogueNotice(dst *image.RGBA, layout NoticeLayout, font *text.Font
 	if pic == nil {
 		return
 	}
-	if layout.Style == NoticeStyleDialogue {
+	if layout.styleRow().frameShadows {
 		s := layout.Frame.dialogueFrame(image.Rectangle{Max: layout.Box.Size().Sub(image.Pt(noticeShadow, noticeShadow))}.Add(at), layout.DialogueBackdrop)
 		planFrameShadows(s, image.Point{}, 1, dst.Bounds(), shadowOverPicture, s.Policy.shadowTable).paint(dst, nil)
 	}

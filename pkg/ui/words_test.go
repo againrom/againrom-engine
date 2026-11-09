@@ -156,7 +156,7 @@ func TestOutcomeTextFollowsTheWordSet(t *testing.T) {
 // own controls; geometry and paint do not move.
 func TestSetWordsRewritesOnlyTheButtonWord(t *testing.T) {
 	v := &Viewer{
-		noticeLayouts: [4]NoticeLayout{AuthoredDialogueLayout(), AuthoredOutcomeLayout(), AuthoredSuccessLayout(), AuthoredFailureLayout()},
+		noticeLayouts: [4]Dialog{AuthoredDialogueLayout(), AuthoredOutcomeLayout(), AuthoredSuccessLayout(), AuthoredFailureLayout()},
 		words:         AuthoredWords(),
 	}
 	before := v.noticeLayouts
@@ -167,14 +167,14 @@ func TestSetWordsRewritesOnlyTheButtonWord(t *testing.T) {
 		}
 		want := before[i]
 		want.ButtonLabel = "Ok"
-		if v.noticeLayouts[i] != want {
+		if !reflect.DeepEqual(v.noticeLayouts[i], want) {
 			t.Errorf("layout %d changed beyond its button word", i)
 		}
 	}
 	success := before[NoticeSuccess]
 	success.ButtonLabel = "~Victory!"
 	success.SecondaryButtonLabel = "Continue"
-	if v.noticeLayouts[NoticeSuccess] != success {
+	if !reflect.DeepEqual(v.noticeLayouts[NoticeSuccess], success) {
 		t.Errorf("success layout changed beyond its two control words")
 	}
 	if !reflect.DeepEqual(v.Words(), installedWords()) {

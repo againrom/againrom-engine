@@ -78,7 +78,7 @@ func TestDialogueHoverReachesMissionCache(t *testing.T) {
 
 type visualPointerDialogueTown struct {
 	pointerDialogueTown
-	layout NoticeLayout
+	layout Dialog
 	state  DialogueButtonState
 	policy DialogueBackdrop
 }

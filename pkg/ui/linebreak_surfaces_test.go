@@ -160,7 +160,7 @@ func breakSurfaces() []breakSurface {
 				return "-"
 			}
 			var out [][]string
-			for _, lay := range []NoticeLayout{dialogueLayout, plain} {
+			for _, lay := range []Dialog{dialogueLayout, plain} {
 				lay.Text = image.Rect(0, 0, max(c.width, 0), 400)
 				out = append(out, noticeBodyLines(lay, c.font, c.text, 0))
 			}

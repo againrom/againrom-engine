@@ -116,9 +116,9 @@ func (v *Viewer) HelpOpen() bool { return v.help != nil && v.NoticeOpen() }
 // HelpPanel is the layout the open help panel is drawn with and its body, for a
 // witness that composes the panel itself because the map screen draws straight
 // onto the display.
-func (v *Viewer) HelpPanel() (NoticeLayout, string, bool) {
+func (v *Viewer) HelpPanel() (Dialog, string, bool) {
 	if !v.HelpOpen() {
-		return NoticeLayout{}, "", false
+		return Dialog{}, "", false
 	}
 	return v.noticeLayout(), v.help.body, true
 }
@@ -154,7 +154,7 @@ func (v *Viewer) setHelpScrollArt(frames []*image.RGBA) {
 }
 
 // helpApply resolves the dialogue layout for the help panel.
-func (v *Viewer) helpApply(l NoticeLayout) NoticeLayout {
+func (v *Viewer) helpApply(l Dialog) Dialog {
 	g := v.helpGeo()
 	l.Box = image.Rect(helpBoxX, helpBoxY, helpBoxX+helpBoxW, helpBoxY+helpBoxH)
 	l.Text, l.Scrollbar = g.text, g.bar
@@ -324,13 +324,3 @@ var (
 	helpBarTrackInk = color.RGBA{7, 12, 9, 255}
 	helpBarKnobInk  = color.RGBA{24, 41, 36, 255}
 )
-
-func drawHelpScrollbar(dst *image.RGBA, l NoticeLayout, first, total, visible int, topHot, bottomHot bool) {
-	var frames []*image.RGBA
-	if l.Frame != nil {
-		frames = l.Frame.helpScroll
-	}
-	b := helpBar(l.Scrollbar, first, total, visible)
-	b.TopHot, b.BottomHot = topHot, bottomHot
-	drawVScrollBar(dst, frames, b)
-}

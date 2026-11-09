@@ -186,7 +186,7 @@ func TestNoticeLayoutIsPure(t *testing.T) {
 // plainDialogueLayout is the dialogue layout's geometry in the plain style: the
 // generic notice mechanism, which every test below that is not about the
 // dialogue panel's own look measures.
-func plainDialogueLayout() NoticeLayout {
+func plainDialogueLayout() Dialog {
 	l := AuthoredDialogueLayout()
 	l.Style = NoticeStylePlain
 	return l
@@ -199,7 +199,7 @@ func plainDialogueLayout() NoticeLayout {
 // file was written against: the pane is 0079's and its own tests ask for it
 // explicitly, so a shipped wrapping or extent assertion keeps measuring the
 // rectangle it was calibrated on.
-func noticeInkLayout() NoticeLayout {
+func noticeInkLayout() Dialog {
 	l := plainDialogueLayout().WithPortrait(false)
 	black := color.RGBA{A: 0xff}
 	white := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
@@ -647,7 +647,7 @@ func TestTheTwoNoticeShapesDifferInExactlyTwoFields(t *testing.T) {
 	a, b := with, without
 	a.Text, b.Text = image.Rectangle{}, image.Rectangle{}
 	a.Portrait, b.Portrait = image.Rectangle{}, image.Rectangle{}
-	if a != b {
+	if !reflect.DeepEqual(a, b) {
 		t.Errorf("the two shapes differ somewhere other than the pane and the text area:\n with = %+v\n w/o  = %+v", a, b)
 	}
 }
@@ -657,10 +657,10 @@ func TestTheTwoNoticeShapesDifferInExactlyTwoFields(t *testing.T) {
 // carry no portrait fields instead of carrying them switched off.
 func TestWithPortraitOnALayoutThatHasNone(t *testing.T) {
 	o := AuthoredOutcomeLayout()
-	if got := o.WithPortrait(true); got != o {
+	if got := o.WithPortrait(true); !reflect.DeepEqual(got, o) {
 		t.Fatalf("WithPortrait(true) on a paneless layout changed it:\n got  = %+v\n want = %+v", got, o)
 	}
-	if got := o.WithPortrait(false); got != o {
+	if got := o.WithPortrait(false); !reflect.DeepEqual(got, o) {
 		t.Fatalf("WithPortrait(false) on a paneless layout changed it")
 	}
 }
@@ -671,7 +671,7 @@ func TestWithPortraitDoesNotMutate(t *testing.T) {
 	l := AuthoredDialogueLayout()
 	before := l
 	_, _ = l.WithPortrait(true), l.WithPortrait(false)
-	if l != before {
+	if !reflect.DeepEqual(l, before) {
 		t.Fatal("WithPortrait mutated the layout it was asked of")
 	}
 }
@@ -679,7 +679,7 @@ func TestWithPortraitDoesNotMutate(t *testing.T) {
 // noticePaneLayout is the ink layout resolved WITH a pane, and with the pane
 // painted in colours no other part of the window uses so the pane's own pixels
 // are identifiable.
-func noticePaneLayout() NoticeLayout {
+func noticePaneLayout() Dialog {
 	l := noticeInkLayout()
 	l.Portrait = AuthoredDialogueLayout().Portrait
 	l.TextBesidePortrait = AuthoredDialogueLayout().TextBesidePortrait
@@ -800,7 +800,7 @@ func TestASpeakersOwnWindowMovesWhatThePaneShows(t *testing.T) {
 
 	// AND AN EMPTY ONE CHANGES NOTHING: a record stating no origin hands over
 	// the zero rectangle and the layout's own default stands.
-	if base.WithFaceWindow(image.Rectangle{}) != base {
+	if !reflect.DeepEqual(base.WithFaceWindow(image.Rectangle{}), base) {
 		t.Error("an empty window replaced the layout's default")
 	}
 }

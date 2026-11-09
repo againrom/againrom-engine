@@ -217,7 +217,7 @@ func TestDialogueShadowSubmissionLogAndMethodCCapture(t *testing.T) {
 
 type frameDialogueTown struct {
 	fakeShopDialogueTown
-	layout NoticeLayout
+	layout Dialog
 }
 
 func (s *frameDialogueTown) TownDialogue() (*image.RGBA, bool) {
@@ -374,7 +374,7 @@ func TestDialogueShadowMaskNearestDownscaleKeepsSelectedLiteral(t *testing.T) {
 
 type frameRowDialogueTown struct {
 	rowBackdropTown
-	layout NoticeLayout
+	layout Dialog
 }
 
 func (s *frameRowDialogueTown) TownDialogue() (*image.RGBA, bool) {

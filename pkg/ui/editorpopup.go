@@ -408,6 +408,96 @@ type popupSpec struct {
 	// side panel does (popupFlowOf): what the width cannot hold flows onto
 	// more lines instead of past the edge or over other text.
 	Fit bool
+
+	// Box and Panel give the dialog's geometry instead of the rows: Box is
+	// a composed picture of that size at the origin, Panel a notice window
+	// standing over that page rectangle. The frame is by value.
+	Box, Panel image.Rectangle
+	// Frame is the window art a framed dialog draws; Frames are frames by
+	// value drawn instead of it, an empty non-nil list none.
+	Frame  *DialogFrame
+	Frames []dialogFrame
+	// Lines, Pushes and Edit are parts stated as data; Bar is a scroll bar
+	// drawn over the frames argument (or BarFrames from a notice).
+	Lines  []dialogLine
+	Pushes []pushButton
+	Edit   *dialogEdit
+	Bar    *vScrollBar
+
+	// A notice window's words and answer shape. Runs are its rows, each a
+	// run of plain and alert ink; the zero ShapeSize lays out a list window
+	// with a title, list, hint and 96x24 answers; a ShapeSize a text window
+	// of that size, each line centred, its answers AnswerSize, AnswerGap
+	// apart and AnswerBottom above the bottom. Latch holds the answer pressed.
+	Runs                          []noticeRow
+	Hint                          string
+	Answers                       []string
+	ShapeSize, AnswerSize         image.Point
+	TextTop, TextWidth, LinePitch int
+	AnswerGap, AnswerBottom       int
+	Latch                         *buttonLatch
+	// Display turns a word into the bytes the font draws; nil is as given.
+	Display func(string) string
+
+	// An authored notice's look (the rest of the Box form), read by the one
+	// layout and painter. Box is its rectangle in the design space, not in
+	// window pixels: the map screen draws straight to the window, so the
+	// authored 640x480 rectangle would be a quarter-size box in a corner at
+	// the shipped startup scale; the composition happens at the authored
+	// size and the placement scales it. The rectangles below are relative
+	// to Box's origin, as the window's child rectangles are. A new value of
+	// this type replaces a notice's look (Viewer.SetNoticeLayouts).
+	//
+	// Style picks the row of noticeStyles the notice is laid out and painted
+	// by. Body and Face are what one notice shows; RenderNotice sets them.
+	Style              NoticeStyle
+	DialogueBackdrop   DialogueBackdrop
+	DialogueArithmetic DialogueArithmetic
+	ButtonState        DialogueButtonState
+	// Text and Button stand in the box; SecondaryButton is the campaign
+	// outcome panel's second control, empty on dialogue notices, and
+	// SecondaryState its pointer state.
+	Text            image.Rectangle
+	Button          image.Rectangle
+	SecondaryButton image.Rectangle
+	SecondaryState  DialogueButtonState
+	// Portrait is the speaker's pane and TextBesidePortrait the text area
+	// when the pane is there: both shapes of one window in one value, as
+	// the original's one routine holds both text rectangles and picks on a
+	// flag. WithPortrait is that pick; an empty Portrait is a layout with
+	// no pane at all. PortraitAt is the request point on the dialogue
+	// surface, PortraitWindow the picture's crop.
+	Portrait           image.Rectangle
+	TextBesidePortrait image.Rectangle
+	PortraitAt         image.Point
+	PortraitWindow     image.Rectangle
+	// ButtonLabel is the word on the primary button (the success panel's
+	// from dialogs.bin); SecondaryButtonLabel is empty where SecondaryButton
+	// is empty.
+	ButtonLabel, SecondaryButtonLabel string
+	SecondaryDisabled                 bool
+	// FirstLine is the first wrapped line drawn, Scrollbar the scroll bar
+	// beside the text and the two hot flags its endcap states; only the help
+	// panel sets them.
+	FirstLine                           int
+	Scrollbar                           image.Rectangle
+	ScrollbarTopHot, ScrollbarBottomHot bool
+	// Ink is the body text colour when its alpha is nonzero, the style's
+	// ink otherwise; only the help panel sets it. Pitch is added to the
+	// font's height to give the line pitch.
+	Ink   color.RGBA
+	Pitch int
+	// Fill and Border are the colours of a frameless notice, TextColor the
+	// plain style's body ink, ButtonFill, ButtonBorder and ButtonText the
+	// button's colours; none is read when the frame art is present.
+	Fill, Border, TextColor, ButtonFill, ButtonBorder, ButtonText color.RGBA
+	// GrowText makes Text hold every line of its body (WithBody, DIV-4229).
+	GrowText bool
+	// PortraitFill and PortraitBorder paint an empty pane, so a speaker
+	// whose picture was not found and a pane never built read differently.
+	PortraitFill, PortraitBorder color.RGBA
+	Body                         string
+	Face                         *image.RGBA
 }
 
 // popupRowRect is the geometry of one shown row.
@@ -427,6 +517,25 @@ type popupLayout struct {
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
+	// Body, HeadingBox, Hint and Text are a given dialog's rectangles,
+	// Answers its answer buttons and LinePitch a text window's line pitch.
+	Body, HeadingBox, Hint, Text image.Rectangle
+	Answers                      []image.Rectangle
+	LinePitch                    int
+	// TopClamped is the first shown list line after clamping.
+	TopClamped int
+	// Frames, Lines, Pushes, Edit, Bar and BarFrames are the painted parts of
+	// a given dialog; nil Frames frames the rows form with the popup's ink.
+	Frames    []dialogFrame
+	Lines     []dialogLine
+	Pushes    []pushButton
+	Edit      *dialogEdit
+	Bar       *vScrollBar
+	BarFrames []*image.RGBA
+	// BarLive makes the bar answer the pointer as a list window's does.
+	BarLive bool
+	// Portrait is a notice's pane, painted right after the frames.
+	Portrait image.Rectangle
 	// SwitchButton is the button row's SwitchButton, empty for none.
 	SwitchButton image.Rectangle
 	Rows         []popupRowRect
@@ -900,6 +1009,9 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 // with a Size takes that size (no smaller than its content allows) and
 // fits its flexible rows to it.
 func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
+	if dialogGivenForm(s) {
+		return layoutDialogGiven(s, body)
+	}
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := fontHeight(title, 15) + popupRowExtra
 	w := max(160, s.Width)
@@ -1560,7 +1672,20 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		return
 	}
 	held.cover(l.Rect)
-	drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
+	if l.Frames == nil {
+		drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
+	} else {
+		for _, fr := range l.Frames {
+			if fr.Body {
+				drawFrameBody(dst, fr.Spec)
+			} else {
+				drawFrame(dst, fr.Spec)
+			}
+		}
+	}
+	if !l.Portrait.Empty() {
+		s.styleRow().portrait(dst, s, s.Face)
+	}
 	if !l.RowBar.Empty() {
 		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: popupRowCount(s) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
 	}
@@ -1587,17 +1712,19 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			}
 		}
 	}
-	drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
-	drawPopupGrip(dst, l.Rect, ink.Edge)
-	if title != nil {
-		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
-		title.Draw(clip, editorClip(title, s.Title, clip.Bounds().Dx()), l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
+	if !l.Close.Empty() {
+		drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
+		drawPopupGrip(dst, l.Rect, ink.Edge)
+		if title != nil {
+			clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
+			title.Draw(clip, editorClip(title, s.Title, clip.Bounds().Dx()), l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
+		}
+		closeLabel := "x"
+		if s.CloseLabel != "" {
+			closeLabel = s.CloseLabel
+		}
+		drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	}
-	closeLabel := "x"
-	if s.CloseLabel != "" {
-		closeLabel = s.CloseLabel
-	}
-	drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	for i, tab := range l.Tabs {
 		chosen := s.TabSwitch && s.ActiveTab == i
 		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i && !s.TabSwitch, Pressed: chosen, Inside: chosen, Hover: pointerOK && pointer.In(tab)})
@@ -1757,6 +1884,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	if r := l.SwitchButton; !r.Empty() {
 		drawPushButton(dst, body, pushButton{Press: held, Rect: r, Label: s.SwitchButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(r)})
 	}
+	drawDialogParts(dst, body, frames, s, l, pointer, pointerOK)
 	if tip, ok := popupTipAt(dst.Bounds(), title, body, s, l, pointer, pointerOK); ok {
 		drawFrame(dst, panelFrame(tip.Rect, ink.TitleGround, ink.Edge))
 		clip := dst.SubImage(tip.Rect.Inset(2)).(*image.RGBA)

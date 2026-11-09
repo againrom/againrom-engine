@@ -76,29 +76,27 @@ func (a *App) menuPointer() gameMenuPointer {
 func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer, at ...menuPlacer) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
 	panel := gameMenuPanelRectFor(s, rows, at...)
-	drawFrame(dst, windowFrame(panel, art))
-	if list == nil {
-		return dst
-	}
-	top, count := list.Visible()
-	for slot := 0; slot < count && top+slot < len(rows); slot++ {
-		row := rows[top+slot]
-		r := gameMenuRowRect(panel, slot)
-		if !row.Status && !row.Literal {
-			inside := pointer.ok && pointer.at.In(r)
-			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Hover: inside,
-				Focus: top+slot == list.Selection(), Pressed: pointer.press.Pressed(top + slot),
-				Inside: inside, Disabled: !row.Enabled})
-			continue
-		}
-		since := markCapture()
-		label := row.text()
-		x, y := r.Min.X+gameMenuTextX, r.Min.Y+(gameMenuRowPitch-font.Height())/2
-		font.Draw(dst.SubImage(r).(*image.RGBA), label, x, y, gameMenuText)
-		if !row.Enabled && !row.Status {
-			dimDisabledRow(dst, r, since)
+	spec := Dialog{Box: dst.Bounds(), Frames: []dialogFrame{{Spec: windowFrame(panel, art)}}}
+	if list != nil {
+		top, count := list.Visible()
+		for slot := 0; slot < count && top+slot < len(rows); slot++ {
+			row := rows[top+slot]
+			r := gameMenuRowRect(panel, slot)
+			if !row.Status && !row.Literal {
+				inside := pointer.ok && pointer.at.In(r)
+				spec.Pushes = append(spec.Pushes, pushButton{Rect: r, Label: row.Label, Hover: inside,
+					Focus: top+slot == list.Selection(), Pressed: pointer.press.Pressed(top + slot),
+					Inside: inside, Disabled: !row.Enabled})
+				continue
+			}
+			line := dialogLine{Runs: []inkRun{{Text: row.text()}}, At: image.Pt(r.Min.X+gameMenuTextX, r.Min.Y+(gameMenuRowPitch-font.Height())/2), Clip: r, Ink: gameMenuText}
+			if !row.Enabled && !row.Status {
+				line.Dim = r
+			}
+			spec.Lines = append(spec.Lines, line)
 		}
 	}
+	drawDialog(dst, font, spec)
 	return dst
 }
 

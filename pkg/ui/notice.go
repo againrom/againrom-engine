@@ -139,119 +139,12 @@ func noticeBreak(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\r' || b == '\n'
 }
 
-// NoticeLayout is the WHOLE of what a notice looks like: its box in the design
-// space, the rectangles inside it, the words on its controls, its line pitch
-// and its colours. The composition below reads its appearance from this value
-// and from nothing else.
-//
-// THE GEOMETRY IS IN THE DESIGN SPACE and not in window pixels. The map
-// screen draws straight to the window rather than through the menu's
-// letterboxed canvas, so the authored 640x480 rectangle is a DESIGN
-// rectangle: taken as pixels at the shipped startup scale it would be a
-// quarter-size box in a corner instead of the centred panel it is. The
-// composition happens at the authored size and the placement scales it,
-// which is the one place the two spaces meet.
-//
-// It is the substitution point the panel's own layout is: the original's window
-// art is shipped bitmap this project does not read, so the frame painted here is
-// ours and replacing it later is supplying a different value of this type.
-type NoticeLayout struct {
-	Frame *DialogFrame
-	// Style selects how the layout is painted and how its words are laid out.
-	Style              NoticeStyle
-	DialogueBackdrop   DialogueBackdrop
-	DialogueArithmetic DialogueArithmetic
-	ButtonState        DialogueButtonState
-	// Box is the notice's rectangle in the design space.
-	Box image.Rectangle
-
-	// Text and Button are RELATIVE TO Box's origin, which is how the claim
-	// states them: the window's child rectangles are panel-relative.
-	Text   image.Rectangle
-	Button image.Rectangle
-	// SecondaryButton is the second control on the campaign-success panel.
-	// It is empty on dialogue and failure notices.
-	SecondaryButton image.Rectangle
-	// SecondaryState is the second button's pointer state.
-	SecondaryState DialogueButtonState
-
-	// Portrait is the pane the speaker's face stands in, and
-	// TextBesidePortrait is where the words go when it is there — both
-	// panel-relative like the two above.
-	//
-	// BOTH SHAPES OF ONE WINDOW LIVE IN ONE VALUE, which is the original's own
-	// arrangement: one routine holds both text rectangles as literals and picks
-	// between them on one flag. WithPortrait is that pick. A second layout value
-	// beside this one would be a second substitution point carrying its own copy
-	// of the box, the button, the pitch and all six colours — every field the
-	// contract says the two shapes AGREE on — and keeping two values in step on
-	// the fields they must share is a worse job than branching on two they must
-	// not.
-	//
-	// An EMPTY Portrait is a layout that has no pane at all, which is what makes
-	// the outcome notice's value carry no portrait fields rather than carry them
-	// switched off.
-	Portrait           image.Rectangle
-	TextBesidePortrait image.Rectangle
-
-	// PortraitAt selects the request point in the physical dialogue surface.
-	// PortraitWindow selects the engine canvas's top-down crop. The dialogue
-	// adapter converts it to the native source request before descending rows.
-	PortraitAt     image.Point
-	PortraitWindow image.Rectangle
-
-	// ButtonLabel is the word on the primary button. Installed success panels
-	// resolve it from dialogs.bin; other authored layouts supply their own word.
-	ButtonLabel string
-	// SecondaryButtonLabel is empty where SecondaryButton is empty.
-	SecondaryButtonLabel string
-	SecondaryDisabled    bool
-
-	// FirstLine is the index of the first wrapped line drawn, and Scrollbar the
-	// rectangle (panel-relative) of the scroll bar beside the text, empty for a
-	// panel that does not scroll. Only the help panel sets either.
-	FirstLine int
-	Scrollbar image.Rectangle
-	// ScrollbarTopHot and ScrollbarBottomHot are the bar's endcap states.
-	ScrollbarTopHot, ScrollbarBottomHot bool
-
-	// Ink is the body text colour when its alpha is nonzero; the dialogue ink
-	// otherwise. Only the help panel sets it.
-	Ink color.RGBA
-
-	// Pitch is added to the font's height to give the line pitch. The claim's
-	// default is 2.
-	Pitch int
-
-	Fill         color.RGBA
-	Border       color.RGBA
-	TextColor    color.RGBA
-	ButtonFill   color.RGBA
-	ButtonBorder color.RGBA
-	ButtonText   color.RGBA
-
-	// GrowText makes Text hold every line of its body: WithBody grows the
-	// window by the lines that do not fit (DIV-4229). The outcome panels set it.
-	GrowText bool
-
-	// PortraitFill and PortraitBorder are what an EMPTY pane is painted with.
-	// They are OURS, exactly as the frame and the button's colours are; the
-	// installed backdrop (Frame.PortraitBack) covers them under the window.
-	//
-	// The pane is painted rather than left as window fill so that "no picture
-	// could be found for this speaker" and "the pane was never built" look
-	// different on screen. They are the same picture otherwise, and the second
-	// is a defect.
-	PortraitFill   color.RGBA
-	PortraitBorder color.RGBA
-}
-
-func (l NoticeLayout) WithDialogueButtonState(state DialogueButtonState) NoticeLayout {
+func (l Dialog) WithDialogueButtonState(state DialogueButtonState) Dialog {
 	l.ButtonState = state
 	return l
 }
 
-func (l NoticeLayout) WithDialogueBackdrop(policy DialogueBackdrop) NoticeLayout {
+func (l Dialog) WithDialogueBackdrop(policy DialogueBackdrop) Dialog {
 	l.DialogueBackdrop = policy
 	return l
 }
@@ -269,7 +162,7 @@ func (l NoticeLayout) WithDialogueBackdrop(policy DialogueBackdrop) NoticeLayout
 // the layout unchanged rather than a window with an empty text rectangle. That
 // is what makes "this kind of notice has no portrait" a property of its own
 // value instead of a test at every reader.
-func (l NoticeLayout) WithPortrait(on bool) NoticeLayout {
+func (l Dialog) WithPortrait(on bool) Dialog {
 	if !on || l.Portrait.Empty() {
 		l.Portrait = image.Rectangle{}
 		return l
@@ -285,7 +178,7 @@ func (l NoticeLayout) WithPortrait(on bool) NoticeLayout {
 // of every button below the text; a box that then crosses the design space's
 // bottom edge moves up, and the growth stops at the design space's height.
 // A body that fits, and a layout without GrowText, keep l unchanged.
-func (l NoticeLayout) WithBody(f *text.Font, s string) NoticeLayout {
+func (l Dialog) WithBody(f *text.Font, s string) Dialog {
 	if !l.GrowText || f == nil {
 		return l
 	}
@@ -324,7 +217,7 @@ func (l NoticeLayout) WithBody(f *text.Font, s string) NoticeLayout {
 // 105 shipped ones state a window and the rest take the engine's default
 // (`REG-NPC-089`) — so "this speaker states none" arrives here as the zero
 // rectangle and needs no second field to say so.
-func (l NoticeLayout) WithFaceWindow(w image.Rectangle) NoticeLayout {
+func (l Dialog) WithFaceWindow(w image.Rectangle) Dialog {
 	if w.Dx() > 0 && w.Dy() > 0 {
 		l.PortraitWindow = w
 	}
@@ -431,8 +324,8 @@ func SpeakerPortrait(face *image.RGBA, window image.Rectangle) *image.RGBA {
 // the panel layout's own reason: a variable is writable from anywhere, and "two
 // viewers show the same notice" would then be true by mutation rather than by
 // design.
-func AuthoredDialogueLayout() NoticeLayout {
-	return NoticeLayout{
+func AuthoredDialogueLayout() Dialog {
+	return Dialog{
 		Style:              NoticeStyleDialogue,
 		Box:                image.Rect(noticeBoxX, noticeBoxY, noticeBoxX+noticeBoxW, noticeBoxY+noticeBoxH),
 		Text:               image.Rect(noticeTextX, noticeTextY, noticeTextX+noticeTextW, noticeTextY+noticeTextH),
@@ -474,8 +367,8 @@ const (
 )
 
 // AuthoredOutcomeLayout is the outcome notice this project ships.
-func AuthoredOutcomeLayout() NoticeLayout {
-	return NoticeLayout{
+func AuthoredOutcomeLayout() Dialog {
+	return Dialog{
 		Box:         image.Rect(outcomeBoxX, outcomeBoxY, outcomeBoxX+outcomeBoxW, outcomeBoxY+outcomeBoxH),
 		Text:        image.Rect(outcomeTextX, outcomeTextY, outcomeTextX+outcomeTextW, outcomeTextY+outcomeTextH),
 		Button:      image.Rect(outcomeButtonX, outcomeButtonY, outcomeButtonX+outcomeButtonW, outcomeButtonY+outcomeButtonH),
@@ -494,9 +387,9 @@ func AuthoredOutcomeLayout() NoticeLayout {
 
 // AuthoredSuccessLayout carries the compiled campaign-success geometry from
 // MISSION-VICTORY-029. Box is in the 640x480 design space; its controls are
-// panel-relative, as every NoticeLayout child rectangle is. The text rectangle
+// panel-relative, as every Dialog child rectangle is. The text rectangle
 // and paint remain authored because the claim does not establish their pixels.
-func AuthoredSuccessLayout() NoticeLayout {
+func AuthoredSuccessLayout() Dialog {
 	l := AuthoredOutcomeLayout()
 	l.Box = image.Rect(128, 200, 512, 380)
 	l.Text = image.Rect(48, 40, 336, 72)
@@ -509,7 +402,7 @@ func AuthoredSuccessLayout() NoticeLayout {
 
 // AuthoredFailureLayout uses the decoded failure choices. Geometry and paint
 // remain authored; MISSION-DEFEAT-046 establishes labels and dispatch only.
-func AuthoredFailureLayout() NoticeLayout {
+func AuthoredFailureLayout() Dialog {
 	l := AuthoredSuccessLayout()
 	l.ButtonLabel = AuthoredWords().MenuExitMain
 	l.SecondaryButtonLabel = AuthoredWords().MenuLoad
@@ -598,7 +491,7 @@ func noticeFlowLines(f *text.Font, s string, width int) []string {
 // control can scroll and this window is given no scrollbar and no arm answering
 // one, so the lines past the area are simply not drawn: `min(height/pitch, line
 // count)` is the claim's own formula and it is written here once.
-func NoticeLayoutOf(l NoticeLayout, f *text.Font, s string) []string {
+func NoticeLayoutOf(l Dialog, f *text.Font, s string) []string {
 	pitch := f.Height() + l.Pitch
 	if pitch <= 0 {
 		return nil
@@ -614,11 +507,9 @@ func NoticeLayoutOf(l NoticeLayout, f *text.Font, s string) []string {
 // the dialogue style's paragraph wrap, or the plain wrap of NoticeLines. Every
 // consumer that counts lines (the draw, the clamp, the pager) goes through it, so
 // they cannot disagree about where a line ends.
-func noticeBodyLines(l NoticeLayout, f *text.Font, s string, maxLines int) []string {
-	if l.Style != NoticeStyleDialogue {
-		return noticeRule.plain(lineBox{Measure: inkedAdvanceOf(f), Width: l.Text.Dx(), MaxLines: maxLines}, s)
-	}
-	lines := dialogueFlow(f, s, l.Text.Dx())
+func noticeBodyLines(l Dialog, f *text.Font, s string, maxLines int) []string {
+	row := l.styleRow()
+	lines := dialogueLinesOf(row.rule, f, s, l.Text.Dx())
 	if maxLines > 0 && len(lines) > maxLines {
 		lines = lines[:maxLines]
 	}
@@ -627,7 +518,7 @@ func noticeBodyLines(l NoticeLayout, f *text.Font, s string, maxLines int) []str
 	}
 	out := make([]string, len(lines))
 	for i, ln := range lines {
-		out[i] = strings.TrimRight(ln.visible(), " \t")
+		out[i] = strings.TrimRight(ln.visible(), row.trim)
 	}
 	return out
 }
@@ -653,7 +544,7 @@ func noticeBodyLines(l NoticeLayout, f *text.Font, s string, maxLines int) []str
 // that: the destination IS the box, so the font's own bounds test is what drops
 // a line a layout placed outside it, and the pane's own draw is clipped by the
 // destination it is drawn into.
-func RenderNotice(l NoticeLayout, f *text.Font, s string, face *image.RGBA) *image.RGBA {
+func RenderNotice(l Dialog, f *text.Font, s string, face *image.RGBA) *image.RGBA {
 	if f == nil || f.Height() <= 0 {
 		return nil
 	}
@@ -661,37 +552,17 @@ func RenderNotice(l NoticeLayout, f *text.Font, s string, face *image.RGBA) *ima
 	if box.X <= 0 || box.Y <= 0 {
 		return nil
 	}
-	if l.Style == NoticeStyleDialogue {
-		return renderDialogueNotice(l, f, s, face)
-	}
-	img := image.NewRGBA(image.Rect(0, 0, box.X, box.Y))
-	if l.Frame.valid() {
-		drawFrame(img, windowFrame(img.Bounds(), l.Frame))
-	} else {
-		drawFrame(img, panelFrame(image.Rectangle{Max: box}, l.Fill, l.Border))
-	}
-
-	if p := l.Portrait; p.Dx() > 0 && p.Dy() > 0 {
-		drawNoticePortrait(img, l, face)
-		l.Frame.DrawPortrait(img, l.Portrait)
-	}
-
-	if b := l.Button; b.Dx() > 0 && b.Dy() > 0 {
-		s := l.ButtonState
-		drawPushButton(img, f, pushButton{Rect: b, Label: l.ButtonLabel, Hover: s.Hover, Pressed: s.Pressed,
-			Inside: s.Inside, Disabled: s.Disabled, Policy: l.DialogueBackdrop})
-	}
-	if b := l.SecondaryButton; b.Dx() > 0 && b.Dy() > 0 {
-		s := l.SecondaryState
-		drawPushButton(img, f, pushButton{Rect: b, Label: l.SecondaryButtonLabel, Hover: s.Hover, Pressed: s.Pressed,
-			Inside: s.Inside, Disabled: l.SecondaryDisabled, Policy: l.DialogueBackdrop})
-	}
-
-	pitch := f.Height() + l.Pitch
-	for i, ln := range NoticeLayoutOf(l, f, s) {
-		f.Draw(img, ln, l.Text.Min.X, l.Text.Min.Y+i*pitch, l.TextColor)
-	}
+	img := image.NewRGBA(image.Rectangle{Max: box})
+	l.Body, l.Face = s, face
+	drawDialog(img, f, l)
 	return img
+}
+
+// drawPlainPortrait is the plain style's pane: the pane and its picture, then
+// the frame art's border over them.
+func drawPlainPortrait(dst *image.RGBA, l Dialog, face *image.RGBA) {
+	drawNoticePortrait(dst, l, face)
+	l.Frame.DrawPortrait(dst, l.Portrait)
 }
 
 // drawNoticePortrait paints the speaker's pane inside the composed box: the
@@ -730,7 +601,7 @@ func RenderNotice(l NoticeLayout, f *text.Font, s string, face *image.RGBA) *ima
 // drawInventoryPicture's own source-over on premultiplied channels (inventory.go),
 // stated a second time here rather than shared, because that one centres its
 // picture in an area and this one places a window at a point.
-func drawNoticePortrait(dst *image.RGBA, l NoticeLayout, face *image.RGBA) {
+func drawNoticePortrait(dst *image.RGBA, l Dialog, face *image.RGBA) {
 	p := l.Portrait
 	fill := p
 	if l.Frame != nil && l.Frame.Portrait != nil {
@@ -745,18 +616,11 @@ func drawNoticePortrait(dst *image.RGBA, l NoticeLayout, face *image.RGBA) {
 			dst.SetRGBA(x, y, c)
 		}
 	}
+	origin := p.Min.Add(l.PortraitAt)
 	if l.Frame != nil {
-		drawNoticeWindow(dst, l, l.Frame.PortraitBack)
+		blitNoticeWindow(dst, p, origin, l.PortraitWindow, l.Frame.PortraitBack)
 	}
-	drawNoticeWindow(dst, l, face)
-}
-
-// drawNoticeWindow composites the layout's window of pic at the pane's picture
-// point, clipped to the pane; a nil pic draws nothing. The backdrop and the
-// speaker's picture share it, so both are cut at the same window.
-func drawNoticeWindow(dst *image.RGBA, l NoticeLayout, pic *image.RGBA) {
-	p := l.Portrait
-	blitNoticeWindow(dst, p, p.Min.Add(l.PortraitAt), l.PortraitWindow, pic)
+	blitNoticeWindow(dst, p, origin, l.PortraitWindow, face)
 }
 
 // blitNoticeWindow composites win of pic over dst with win's top-left corner at
@@ -995,7 +859,7 @@ func (v *Viewer) NoticeState() (string, NoticeKind, bool) {
 }
 
 // SetNoticeLayouts replaces the dialogue and failure layouts.
-func (v *Viewer) SetNoticeLayouts(dialogue, outcome NoticeLayout) {
+func (v *Viewer) SetNoticeLayouts(dialogue, outcome Dialog) {
 	v.noticeLayouts[NoticeDialogue] = dialogue
 	v.noticeLayouts[NoticeOutcome] = outcome
 	v.noticeSerial++
@@ -1014,7 +878,7 @@ func (v *Viewer) SetDialogFrame(art *DialogFrame) {
 }
 
 // SetSuccessNoticeLayout replaces only the two-button success surface.
-func (v *Viewer) SetSuccessNoticeLayout(success NoticeLayout) {
+func (v *Viewer) SetSuccessNoticeLayout(success Dialog) {
 	v.noticeLayouts[NoticeSuccess] = success
 	v.noticeSerial++
 	v.noticePic = nil
@@ -1029,7 +893,7 @@ func (v *Viewer) SetSuccessNoticeLayout(success NoticeLayout) {
 // layout has no pane at all, so WithPortrait empties the rectangle and the pane
 // is never drawn, whatever window the last speaker left behind. Its window is
 // then resolved for its body (WithBody), so paint and hit tests agree.
-func (v *Viewer) noticeLayout() NoticeLayout {
+func (v *Viewer) noticeLayout() Dialog {
 	index := int(v.noticeKind)
 	if index < 0 || index >= len(v.noticeLayouts) {
 		index = 0
@@ -1205,7 +1069,7 @@ func (v *Viewer) noticeButtonIDAt(x, y int) (int, bool) {
 	fx, fy := v.windowToFrame(x, y)
 	p := image.Pt(int(math.Floor(float64(fx-at.X)/scale)), int(math.Floor(float64(fy-at.Y)/scale)))
 	l := v.noticeLayout()
-	if p.In(l.Button) && !(l.Style == NoticeStyleDialogue && l.ButtonState.Disabled) {
+	if p.In(l.Button) && !(l.styleRow().refuseOff && l.ButtonState.Disabled) {
 		return noticePrimaryButton, true
 	}
 	if !l.SecondaryDisabled && !l.SecondaryButton.Empty() && p.In(l.SecondaryButton) {

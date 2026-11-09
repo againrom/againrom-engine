@@ -23,17 +23,17 @@ import (
 
 // noticePageLayout is the authored dialogue layout resolved for the shape a
 // paged notice opens in: no portrait, which is what openLoadNotice pushes.
-func noticePageLayout() NoticeLayout {
+func noticePageLayout() Dialog {
 	return AuthoredDialogueLayout().WithPortrait(false)
 }
 
 // noticePageLayouts are the two styles the pager has to hold for: the dialogue
 // panel's own wrap, which measures a paragraph's last word without its trailing
 // space, and the plain wrap.
-func noticePageLayouts() map[string]NoticeLayout {
+func noticePageLayouts() map[string]Dialog {
 	plain := noticePageLayout()
 	plain.Style = NoticeStylePlain
-	return map[string]NoticeLayout{"dialogue": noticePageLayout(), "plain": plain}
+	return map[string]Dialog{"dialogue": noticePageLayout(), "plain": plain}
 }
 
 // noticePageParas is a five-paragraph fixture in the shape a load disclosure

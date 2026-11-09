@@ -368,14 +368,6 @@ func drawPlaque(dst *image.RGBA, f *text.Font, b pushButton) {
 	}
 }
 
-// dialogueButton is the dialogue pager's button: the shared painter with
-// the dialogue ramp and the layout's own state and pixel format.
-func dialogueButton(b image.Rectangle, label string, l NoticeLayout) pushButton {
-	s := l.ButtonState
-	return pushButton{Rect: b, Label: label, Ramp: pushButtonDialogue, Hover: s.Hover,
-		Pressed: s.Pressed, Inside: s.Inside, Disabled: s.Disabled, Policy: l.DialogueBackdrop}
-}
-
 // buttonLatch is the one press latch (MENU-116, DIALOGUE-045): every push
 // button latches on the press and activates on a release inside.
 type buttonLatch = latch.Latch

@@ -333,7 +333,7 @@ func companionNativeBody(t *testing.T, source []byte, part int, female bool) str
 	return ""
 }
 
-func companionGenderPixels(t *testing.T, f *FrontEnd, frame *image.RGBA, layout ui.NoticeLayout, source, word, wrong string) {
+func companionGenderPixels(t *testing.T, f *FrontEnd, frame *image.RGBA, layout ui.Dialog, source, word, wrong string) {
 	t.Helper()
 	raw, err := charmap.CodePage866.NewEncoder().String(word)
 	if err != nil {

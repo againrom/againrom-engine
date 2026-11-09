@@ -52,7 +52,7 @@ func dialogueClaimFont() *text.Font {
 // dialogueClaimLayout is the authored dialogue layout resolved for a speaker,
 // with every colour that is not text or the shadow blacked out, so a pixel of
 // full white is text and a pixel of (8,8,8) is its shadow.
-func dialogueClaimLayout() NoticeLayout {
+func dialogueClaimLayout() Dialog {
 	l := AuthoredDialogueLayout().WithPortrait(true)
 	black := color.RGBA{A: 0xff}
 	white := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
@@ -349,7 +349,7 @@ func TestDialoguePortraitSurfaceIsBottomUpOverABlackFill(t *testing.T) {
 	art.PortraitBack = back
 	for _, w := range []struct {
 		name string
-		l    NoticeLayout
+		l    Dialog
 		top  int
 	}{
 		{"96 rows", l.WithFaceWindow(image.Rect(36, 0, 108, 96)), 5},

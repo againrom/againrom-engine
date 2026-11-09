@@ -15,8 +15,8 @@ import (
 func questionConfirm() PageConfirm {
 	return PageConfirm{
 		Before: "Are you sure you want to delete game '", After: "' ?", Yes: "Yes", No: "No",
-		Window: NoticeShape{Size: image.Pt(288, 224), TextTop: 57, TextWidth: 208, Pitch: 17,
-			Answer: image.Pt(82, 24), AnswerGap: 46, AnswerBottom: 28},
+		Window: Dialog{ShapeSize: image.Pt(288, 224), TextTop: 57, TextWidth: 208, LinePitch: 17,
+			AnswerSize: image.Pt(82, 24), AnswerGap: 46, AnswerBottom: 28},
 	}
 }
 

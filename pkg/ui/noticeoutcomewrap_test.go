@@ -14,7 +14,7 @@ import (
 // the text rectangle and the window, and the buttons sit below the last line.
 // The words are this file's own ASCII and the font is panelFont.
 
-func longOutcomeBody(l NoticeLayout) string {
+func longOutcomeBody(l Dialog) string {
 	perLine := l.Text.Dx() / (10*noticeAdvanceOf + noticeSpaceAdvance)
 	lines := l.Text.Dy()/(panelFont().Height()+l.Pitch) + 3
 	return strings.TrimSpace(strings.Repeat("abcdefghij ", lines*(perLine+1)))
@@ -68,7 +68,7 @@ func TestOutcomeBodyDrawsEveryLineInsideTheWindow(t *testing.T) {
 // A body that fits keeps the stored window and composes the same bytes.
 func TestShortOutcomeBodyKeepsTheWindow(t *testing.T) {
 	f := panelFont()
-	for _, stored := range []NoticeLayout{AuthoredFailureLayout(), AuthoredSuccessLayout(), AuthoredOutcomeLayout()} {
+	for _, stored := range []Dialog{AuthoredFailureLayout(), AuthoredSuccessLayout(), AuthoredOutcomeLayout()} {
 		l := stored.WithBody(f, "Mission Failed")
 		if !reflect.DeepEqual(l, stored) {
 			t.Fatalf("short body changed the layout: %+v", l)

@@ -8,7 +8,7 @@ import (
 // Supplied RGBA canvases use top-down physical rows. The background adapter
 // supplies bottom-up rows before the selected suffix reverses them. The final
 // keyed surface copy descends rows; native upstream canvas exposure is Unknown.
-func drawDialoguePortrait(dst *image.RGBA, l NoticeLayout, face *image.RGBA) {
+func drawDialoguePortrait(dst *image.RGBA, l Dialog, face *image.RGBA) {
 	p := l.Portrait
 	pane := image.Rect(p.Min.X, p.Min.Y, p.Min.X+noticeSurfaceW, p.Min.Y+noticeSurfaceH)
 	fill := image.Rect(p.Min.X+noticeFillX, p.Min.Y+noticeFillY, p.Min.X+noticeFillX+noticeFillW, p.Min.Y+noticeFillY+noticeFillH)

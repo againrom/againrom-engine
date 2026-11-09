@@ -391,7 +391,7 @@ func (w Words) OutcomeText(lost bool) string {
 // front end assembled by hand in a test carries, and blanking a button caption
 // because nobody filled a struct in would be a defect that draws as an empty
 // button rather than as an error.
-func (w Words) OnLayout(l NoticeLayout) NoticeLayout {
+func (w Words) OnLayout(l Dialog) Dialog {
 	if w.NoticeButton == "" {
 		return l
 	}

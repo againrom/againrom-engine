@@ -32,6 +32,15 @@ package storyguard
 // docs state that every input it feeds those wrappers is real install or
 // mission data, not a fixture.
 //
+// CommentBytes rose by the doc comments of the dialog description, all new
+// code: pkg/ui/dialog.go, its fields in pkg/ui/editorpopup.go and
+// pkg/ui/dialogwitness_test.go, and this paragraph.
+//
+// CommentBytes rose by the doc comments of the authored notices' move into the
+// one description, all new code: the fields in pkg/ui/editorpopup.go, the style
+// table and notice box layout in pkg/ui/dialog.go, the guard in
+// internal/archtest/dialogdescription.go and its test, and this paragraph.
+//
 // CommentBytes rose by the doc comments of the objectives window layout in
 // pkg/ui/questobjectives.go and its test, and this paragraph.
 //
@@ -3276,7 +3285,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    29,
-		"longcommentgroups":      1645,
+		"longcommentgroups":      1643,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4434,5 +4443,5 @@ var Committed = Baseline{
 	// It rises for the lone map path in cmd/againrom/main.go and its test in
 	// cmd/againrom/editormode_test.go, the program source roots in
 	// internal/archtest/programversion.go, and this note.
-	CommentBytes: 10730519,
+	CommentBytes: 10736463,
 }

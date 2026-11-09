@@ -28,8 +28,8 @@ var (
 	secondPageName    = image.Rect(120, 98, 527, 122)
 	// secondPageQuestion is the delete question's window as the EN original
 	// draws it at 1024x768 (DIV-4176).
-	secondPageQuestion = ui.NoticeShape{Size: image.Pt(288, 224), TextTop: 57, TextWidth: 208, Pitch: 17,
-		Answer: image.Pt(82, 24), AnswerGap: 46, AnswerBottom: 28}
+	secondPageQuestion = ui.Dialog{ShapeSize: image.Pt(288, 224), TextTop: 57, TextWidth: 208, LinePitch: 17,
+		AnswerSize: image.Pt(82, 24), AnswerGap: 46, AnswerBottom: 28}
 	// secondSaveList and secondLoadList are the list arguments: 383 wide,
 	// the 24-pixel bar after them reaches the name box's right edge.
 	secondSaveList = image.Rect(120, 160, 503, 160)

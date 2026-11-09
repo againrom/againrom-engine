@@ -109,18 +109,20 @@ type PageConfirm struct {
 	At      image.Point
 	Label   image.Rectangle
 	After   string
-	Window  NoticeShape
+	Window  Dialog
 	Yes, No string
 }
 
 // windowed reports whether the page asks in a notice window.
-func (c PageConfirm) windowed() bool { return c.Window.Size != (image.Point{}) }
+func (c PageConfirm) windowed() bool { return c.Window.ShapeSize != (image.Point{}) }
 
 // question is the window asking to delete the save whose label the font
 // draws as label.
-func (c PageConfirm) question(label string) noticeWindow {
+func (c PageConfirm) question(label string) dialogRun {
 	s := strings.ReplaceAll(c.Before, "#", " ") + label + strings.ReplaceAll(c.After, "#", " ")
-	return noticeWindow{Rows: []noticeRow{{{Text: s}}}, Answers: []string{c.Yes, c.No}, Shape: c.Window}
+	w := dialogRun{popupSpec: c.Window}
+	w.Runs, w.Answers = []noticeRow{{{Text: s}}}, []string{c.Yes, c.No}
+	return w
 }
 
 // pageSeams holds page descriptions; nil selects the built-in descriptions.
