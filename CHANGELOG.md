@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A save no longer loses the unit type of a monster group: its units keep their kind and name when the game is saved and loaded.
 - [BASE] A unit that dies no longer keeps the glowing rings of a spell such as Protection, Bless, Shield, Poison Cloud or Curse drawn over its body.
 - [BASE] A unit that picks among several targets by itself now favours or avoids one kind of target only when the originals do: in the first game that depends on the target's size and Mind, in the second game on the size and Mind of the unit choosing.
 - [ROM2] A weaker Poison Cloud no longer shortens the poison already on a unit: the unit keeps the longer remaining time. Recasting the same spell still does not make the poison last longer.

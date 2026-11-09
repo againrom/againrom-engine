@@ -72,9 +72,16 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	} else if member.ID == "" {
 		// A creature neither placed nor in the party was raised by Control
 		// Spirit, which constructs it from the Units row named Ghost
-		// (MAGIC-SING-019). SAV names that row, its face and its name.
-		if n, d, ok := ghostRow(t.units()); ok && n <= 255 && d.TypeID == e.TypeID {
-			row, face, body, name = n, uint8(d.Face), d.Body, t.units().EntryName(n)
+		// (MAGIC-SING-019). Any other such creature has lost its placement
+		// and takes its TypeID's face-1 row (DIV-4748). SAV names that row,
+		// its face and its name.
+		units := t.units()
+		n, d, ok := ghostRow(units)
+		if !ok || n > 255 || d.TypeID != e.TypeID {
+			n, d, ok = unitRowDef(units, data.FindUnit(units, e.TypeID, 1))
+		}
+		if ok && n <= 255 {
+			row, face, body, name = n, uint8(d.Face), d.Body, units.EntryName(n)
 		}
 	}
 	class, basis := sim.GeneratedUnitBinding, uint8(1)

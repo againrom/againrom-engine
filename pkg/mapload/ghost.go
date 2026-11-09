@@ -35,7 +35,12 @@ func ghostTemplate(t *Table) sim.GhostTemplate {
 // constructs its actor from (MAGIC-SING-019), and its definition. ok is false
 // when the table ships no such row or the row does not parse.
 func ghostRow(units data.Collection) (int, data.UnitDef, bool) {
-	i := findUnitByName(units, ghostRowName)
+	return unitRowDef(units, findUnitByName(units, ghostRowName))
+}
+
+// unitRowDef is one Units row a search found and its definition. ok is false
+// when the search found none or the row does not parse.
+func unitRowDef(units data.Collection, i int) (int, data.UnitDef, bool) {
 	if i == data.NotFound {
 		return i, data.UnitDef{}, false
 	}
