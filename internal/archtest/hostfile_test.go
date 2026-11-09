@@ -19,7 +19,7 @@ func TestCheckHostFilesNamesEachShape(t *testing.T) {
 		{"move without replace by name", "pkg/game/a_windows.go", "package game\nimport \"syscall\"\nvar p = syscall.NewLazyDLL(\"kernel32.dll\").NewProc(\"MoveFileExW\")\n", "MoveFileEx"},
 		{"move without replace by identifier", "pkg/game/a.go", "package game\nfunc f() { moveFileExW() }\n", "MoveFileEx"},
 		{"hard link", "cmd/starter/a.go", "package main\nimport \"os\"\nfunc f() { _ = os.Link(\"a\", \"b\") }\n", "os.Link"},
-		{"whole-file write", "cmd/mapedit/a.go", "package main\nimport \"os\"\nfunc f() { _ = os.WriteFile(\"a\", nil, 0o600) }\n", "os.WriteFile"},
+		{"whole-file write", "cmd/starter/a.go", "package main\nimport \"os\"\nfunc f() { _ = os.WriteFile(\"a\", nil, 0o600) }\n", "os.WriteFile"},
 		{"create", "cmd/againrom/a.go", "package main\nimport \"os\"\nfunc f() { _, _ = os.Create(\"a\") }\n", "os.Create"},
 		{"open to create", "pkg/ui/a.go", "package ui\nimport \"os\"\nfunc f() { _, _ = os.OpenFile(\"a\", os.O_WRONLY|os.O_CREATE, 0o600) }\n", "os.OpenFile"},
 		{"open with unknown flags", "pkg/ui/a.go", "package ui\nimport \"os\"\nfunc f(flag int) { _, _ = os.OpenFile(\"a\", flag, 0o600) }\n", "os.OpenFile"},

@@ -213,7 +213,7 @@ group that two mods add.
 A mod that adds a group changes game state: a save made with it holds the
 mod in its mark and is refused without it.
 
-With the mod open in the map editor (`mapedit -mod <mod folder>` or the mod
+With the mod open in the map editor (`againrom --editor -mod <mod folder>` or the mod
 chosen in the editor), the terrain list shows each group after the install's
 terrains, by its `name` and with its first frame as the swatch. The brush
 paints whole cells of the group. Its words are every frame of the group's
@@ -276,7 +276,7 @@ In the mods folder:
 - names inside a packed mod match without regard to the case of `A`-`Z`,
   as a folder's names do on Windows.
 
-The map editor saves into a mod folder: `mapedit -mod` refuses a packed
+The map editor saves into a mod folder: `againrom --editor -mod` refuses a packed
 mod. To change a packed mod, change its folder and pack it again.
 
 ## Items
@@ -1637,13 +1637,13 @@ Cell spells appear in the record list as traps, unit spell entries or casting st
 
 The record list's Add button on filter 5 opens the same cell-spell Add window.
 
-The map editor, `mapedit.exe` (`./mapedit` on macOS), ships beside the game
-and the starter. The starter's **Map editor** button (**Редактор карт** on a
+The map editor is the `--editor` mode of the game program, `againrom.exe
+--editor` (`./againrom --editor` on macOS). The starter's **Map editor** button (**Редактор карт** on a
 Russian base) opens it on the selected base. The starter first runs the
 editor's map list on that base; when the editor cannot load it, for example a
 second-game install, the starter shows the editor's error and opens nothing.
-A folder that is not an install and a missing `mapedit` are refused with the
-starter's message. From a terminal, `mapedit -assets <install>` opens the same
+A folder that is not an install and a missing game program are refused with the
+starter's message. From a terminal, `againrom --editor -assets <install>` opens the same
 window. It opens with the install's map list. The editor's own help names its
 keys: PgUp and PgDn page the list; dragging a unit, structure or sack moves
 it and dragging the ground pans; C clones the selected unit, structure or
@@ -1660,11 +1660,11 @@ Enemy and hostile to the first. The Maps button retains the installed-map
 catalogue. U, a click on a cell and a class key add a unit. M edits the map's
 name and description. The other metadata fields are labelled raw: their
 stored bits can be edited, but this does not promise a light or time effect.
-A new map saved with `mapedit -mod` goes to the mod's one mission entry
+A new map saved with `againrom --editor -mod` goes to the mod's one mission entry
 whose map file the folder does not hold yet. The party lands on the drop cell
 of the map's script, so a map the party is to play needs one (the report
 warns when the map has none and its fallback landing cells leave the map).
-`mapedit -new <width>x<height> -out <file>` writes the blank map to a new
+`againrom --editor -new <width>x<height> -out <file>` writes the blank map to a new
 file and prints that report; `-new` alone opens the window on it, with
 `-check` it prints the report.
 
@@ -1873,7 +1873,7 @@ checkpoint. F5 enters character generation for the current map. Acknowledging
 its Victory panel returns the game to the campaign town; the editor stays
 open for further changes.
 
-`mapedit -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
+`againrom --editor -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
 to the path the mod's mission entry for it names (the entry whose `number` is
 the opened installed map's mission, or whose `map` is the opened file), and
 refuses a map no entry names.
@@ -1886,7 +1886,7 @@ save the working mod or clear its dirty state.
 
 Without an open project, the editor writes the map into its own test mod,
 `testplay`, in the editor's player profile (the
-`testplay` folder beside `mapedit`, or `Againrom/testplay` when the editor runs
+`testplay` folder beside the game program, or `Againrom/testplay` when the editor runs
 from inside an install), and starts the game beside the editor on the same
 base with `-mods testplay -mods-dir <that folder> -mission <n>`: character
 generation, then the map as guest mission `n`. The test mod declares the map

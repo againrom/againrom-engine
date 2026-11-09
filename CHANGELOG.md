@@ -21,6 +21,8 @@ modder or developer can notice gets no entry.
 
 - [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
 - [Starter] The starter is a much smaller file.
+- [Editor] The map editor now opens from the game program; the separate mapedit program is gone.
+- [Editor] To open maps from Windows, associate .alm files with againrom.exe again; opening a map starts the map editor.
 
 ## 0.150.0
 

@@ -24,7 +24,7 @@ PUBLIC_FILES = (
     "LICENSES/LGPL-2.1.txt", "LICENSES/lz4-BSD-3-Clause.txt",
     "LICENSES/starlark-BSD-3-Clause.txt", "LICENSES/ebiten-NOTICE.md",
 )
-PROGRAMS = ("againrom", "starter", "mapedit")
+PROGRAMS = ("againrom", "starter")
 COMMON_FILES = (*PUBLIC_FILES, *PROGRAMS, "BUILD-INFO.json")
 APPIMAGE_FILES = ("AppRun", "againrom.desktop", "againrom.png", ".DirIcon", "LICENSES/AppImage-runtime.txt")
 INSTALL_ARCHIVES = {"main.res", "graphics.res", "scenario.res", "world.res", "movies.res"}
@@ -193,7 +193,7 @@ def package(arguments):
     pins = tool_pins()
     for name, pin in pins.items():
         verify_tool(tools / name, pin)
-    versions = {"againrom": version, "starter": starter_version, "mapedit": version}
+    versions = {"againrom": version, "starter": starter_version}
     go_versions = {binary_identity(binaries / name, name, value, head) for name, value in versions.items()}
     if len(go_versions) != 1:
         raise ValueError("Programs use different Go toolchains.")

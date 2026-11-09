@@ -32,7 +32,7 @@ var CaseFoldAllowed = map[string]string{
 	"cmd/buttonframecheck/main.go#driveRooms":                                 "matches a dialog row's text in a witness",
 	"cmd/divcensus/main.go#main":                                              "reads a ledger row's status text",
 	"cmd/divcensus/main.go#visible":                                           "reads a ledger row's subsystem text",
-	"cmd/mapedit/main.go#runAs":                                               "matches a record kind typed on the command line",
+	"pkg/editorapp/run.go#runAs":                                              "matches a record kind typed on the command line",
 	"cmd/savtool/document.go#sameLeaves":                                      "folds the record paths of a save's state tree, which are not file names",
 	"cmd/schoolcheck/main.go#driveSchoolRoom":                                 "matches a dialog row's text in a witness",
 	"cmd/screenshot/town.go#captureSelectedTavern":                            "matches a button label in a witness",

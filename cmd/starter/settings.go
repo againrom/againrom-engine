@@ -323,10 +323,10 @@ func (s settings) gameExecutable(self, goos string) string {
 	return launch.Beside(self, "againrom", goos)
 }
 
-// editorExecutable is the map editor the starter opens: the one beside this
-// program.
+// editorExecutable is the program that holds the map editor the starter opens:
+// the game beside this program, on every platform, run in its editor mode.
 func editorExecutable(self, goos string) string {
-	return launch.Beside(self, "mapedit", goos)
+	return launch.Beside(self, "againrom", goos)
 }
 
 func fileExists(path string) bool {

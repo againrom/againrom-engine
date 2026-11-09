@@ -22,7 +22,7 @@ import (
 )
 
 // The editor frame-time probe. It runs the shipped editor, built by
-// cmd/mapedit's opener, inside an offscreen unfocused window at 1920x1080
+// pkg/editorapp's opener, inside an offscreen unfocused window at 1920x1080
 // and times Update and Draw per frame, feeding input only through its
 // input seam. Gate: AGAINROM_FRAME_PROBE=1.
 //
@@ -264,7 +264,7 @@ func TestEditorFrameProbe(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := x.Editor()
-	e.SetPanelProfile(nil, os.ErrNotExist, nil) // a fresh profile, as cmd/mapedit passes one without a panel file
+	e.SetPanelProfile(nil, os.ErrNotExist, nil) // a fresh profile, as pkg/editorapp passes one without a panel file
 	e.Layout(probeW, probeH)
 
 	// The campaign maps: cells and records of each.

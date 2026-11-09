@@ -73,12 +73,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          go test -trimpath -count=1 ./pkg/pathdialog ./internal/buildinfo ./internal/versionres ./cmd/starter ./cmd/mapedit
-          go test -trimpath -count=1 ./cmd/againrom ./pkg/game -run 'Test(RuntimeProfile|LaunchProfile)'
+          go test -trimpath -count=1 ./pkg/pathdialog ./internal/buildinfo ./internal/versionres ./cmd/starter ./pkg/editorapp
+          go test -trimpath -count=1 ./cmd/againrom ./pkg/game -run 'Test(RuntimeProfile|LaunchProfile|EditorMode)'
           python3 scripts/test-linux-package.py --unit --evidence-directory "$RUNNER_TEMP/package-unit"
       - name: Build Linux programs
         shell: bash
-        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter ./cmd/mapedit
+        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter
       - name: Fetch checksum-pinned AppImage tools
         shell: bash
         run: python3 scripts/package-linux.py fetch-tools --output-directory "$RUNNER_TEMP/appimage-tools"

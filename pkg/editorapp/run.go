@@ -1,8 +1,9 @@
-// Command mapedit inspects authored ALM content and saves explicit edited
+// Package editorapp is the map editor program, run as the --editor mode of the
+// game program. It inspects authored ALM content and saves explicit edited
 // copies outside installations, without simulation. Its test play key (F5)
 // writes the map as it stands into a test mod in the player profile and starts
 // the game beside this program in that mission.
-package main
+package editorapp
 
 import (
 	"flag"
@@ -41,12 +42,16 @@ func openWindow(e *ui.MapEditor) error {
 // newInspector opens the install at a root for the editor. A test replaces it.
 var newInspector = game.NewMapInspector
 
-func main() {
-	if err := run(os.Args[1:], os.Stdout); err != nil {
+// Run is the map editor over its own arguments, carrying the game program's
+// version, and returns the process exit status.
+func Run(version string, args []string, stdout, stderr io.Writer) int {
+	program.Source = version
+	if err := run(args, stdout); err != nil {
 		userConfigDir, _ := os.UserConfigDir()
-		reportFailure(os.Stderr, userConfigDir, err)
-		os.Exit(1)
+		reportFailure(stderr, userConfigDir, err)
+		return 1
 	}
+	return 0
 }
 
 // errorLogName is the file beside the player profile that holds the error of a

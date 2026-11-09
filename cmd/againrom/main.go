@@ -100,14 +100,16 @@ import (
 	"againrom/internal/buildinfo"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
+	"againrom/pkg/editorapp"
 	"againrom/pkg/game"
 	launchset "againrom/pkg/launch"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
-var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       againrom --editor <map editor arguments>\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // chargenUsage is the -chargen flag's own help text, named because parse
 // discards the flag set's output, so a second copy of this string could drift
@@ -316,6 +318,10 @@ func launchSource() string {
 
 // options is this command's parsed command line.
 type options struct {
+	// editor runs the map editor over editorArgs, the arguments after the
+	// -editor flag or a lone map path, instead of the game.
+	editor              bool
+	editorArgs          []string
 	assets              string
 	check               bool
 	markers             bool
@@ -394,6 +400,10 @@ type options struct {
 	packReplace bool
 }
 
+// editorMapExtension is the extension of a lone argument parse opens in the
+// map editor.
+const editorMapExtension = ".alm"
+
 // parse reads the command line. Split out of run so a test can read the
 // flags and their defaults — the marker default in particular, which is
 // contract and not a convenience — without opening a window.
@@ -432,8 +442,32 @@ func parse(args []string) (options, error) {
 	fs.BoolVar(&o.mediaCheck, "media-check", false, "check movie events and town speech without writing files or loading the native decoder")
 	fs.StringVar(&o.soundCheck, "sound-options-check", "", "check installed sound controls and active players; write only to this existing private profile directory")
 	fs.StringVar(&o.fidelityCheck, "owner-fidelity-check", "", "check installed HUD, pathfinding preference and LOAD; write only to this existing private profile directory")
+	// The -editor flag ends the game's flags: the arguments after it are the map
+	// editor's. An error from its Set is the flag package's one way to stop
+	// parsing here, leaving those arguments in fs.Args().
+	fs.BoolFunc(launchset.EditorMode.Flag, launchset.EditorMode.Usage, func(v string) error {
+		on, err := strconv.ParseBool(v)
+		if err != nil || !on {
+			return err
+		}
+		o.editor = true
+		return errors.New("the map editor's arguments follow")
+	})
 	if err := fs.Parse(args); err != nil {
-		return o, err
+		if !o.editor {
+			return o, err
+		}
+		if fs.NFlag() != 0 {
+			return o, errors.New("--editor must come first: the map editor's arguments follow it")
+		}
+		o.editorArgs = fs.Args()
+		return o, nil
+	}
+	// A map opened from the desktop arrives as the only argument; the shell
+	// cannot add the flag.
+	if len(args) == 1 && fs.NArg() == 1 && namefold.HostEqual(filepath.Ext(args[0]), editorMapExtension) {
+		o.editor, o.editorArgs = true, fs.Args()
+		return o, nil
 	}
 	given := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
@@ -647,6 +681,9 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	if err != nil {
 		fmt.Fprintf(stderr, "againrom: %v\n%s\n", err, usage)
 		return 2
+	}
+	if o.editor {
+		return editorapp.Run(program.Source, o.editorArgs, stdout, stderr)
 	}
 	if o.version {
 		fmt.Fprintln(stdout, versionLine())

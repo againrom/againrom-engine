@@ -43,10 +43,10 @@ func TestMapSourceScanNamesEachSpeller(t *testing.T) {
 	got := mapSourcePrefixSpellers(t, map[string]string{
 		mapSourceFile:          "package ui\nvar p = \"loose/\"\n",
 		"pkg/ui/x.go":          "package ui\nvar b = strings.HasPrefix(s, \"scenario/\")\nvar c = \"scenario\"\n",
-		"cmd/mapedit/x.go":     "package main\nvar p = \"loose/\" + s\n",
+		"pkg/editorapp/x.go":   "package editorapp\nvar p = \"loose/\" + s\n",
 		"pkg/game/mapcheck.go": "package game\nvar p = \"new\"\n",
 	})
-	if len(got) != 2 || got[0] != `cmd/mapedit/x.go:"loose/"` || got[1] != `pkg/ui/x.go:"scenario/"` {
+	if len(got) != 2 || got[0] != `pkg/editorapp/x.go:"loose/"` || got[1] != `pkg/ui/x.go:"scenario/"` {
 		t.Fatalf("mapSourcePrefixSpellers = %v", got)
 	}
 }

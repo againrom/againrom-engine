@@ -1,15 +1,26 @@
-package main
+package editorapp
 
 import (
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"againrom/pkg/game"
+	"againrom/pkg/launch"
 )
+
+// Test play starts the program beside the editor, which is the running game
+// program's own file, as a new process through the one launch.
+func TestTestPlayStartsTheProgramBesideTheEditor(t *testing.T) {
+	self := launch.Beside(filepath.Join(t.TempDir(), "x"), "againrom", runtime.GOOS)
+	if got := testPlayHost(self, "", "").Game; got != self {
+		t.Fatalf("test play starts %q, want %q", got, self)
+	}
+}
 
 func TestMapEditor1092ArgumentFailuresDoNotOpenWindow(t *testing.T) {
 	for _, c := range []struct {

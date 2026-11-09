@@ -23,7 +23,7 @@ SPEC.loader.exec_module(PACKAGE)
 EXPECTED = (
     "BUILD-INFO.json", "LICENSE", "LICENSES/Apache-2.0.txt", "LICENSES/BSD-3-Clause.txt",
     "LICENSES/LGPL-2.1.txt", "LICENSES/ebiten-NOTICE.md", "LICENSES/lz4-BSD-3-Clause.txt",
-    "LICENSES/starlark-BSD-3-Clause.txt", "README.md", "THIRD_PARTY_NOTICES.md", "againrom", "mapedit", "starter",
+    "LICENSES/starlark-BSD-3-Clause.txt", "README.md", "THIRD_PARTY_NOTICES.md", "againrom", "starter",
 )
 IMAGE_EXTRA = (".DirIcon", "AppRun", "LICENSES/AppImage-runtime.txt", "againrom.desktop", "againrom.png")
 
@@ -81,7 +81,7 @@ def check_tar(path, epoch):
         check(archive.getnames() == [f"againrom/{name}" for name in EXPECTED], "Tar members differ from the public allowlist.")
         for entry in archive.getmembers():
             name = entry.name.removeprefix("againrom/")
-            mode = 0o755 if name in ("againrom", "starter", "mapedit") else 0o644
+            mode = 0o755 if name in ("againrom", "starter") else 0o644
             check(entry.isfile() and entry.mode == mode, f"Tar type or executable bits differ: {entry.name}")
             check(entry.uid == entry.gid == 0 and entry.uname == entry.gname == "", "Tar leaks an owner identity.")
             check(entry.mtime == epoch, "Tar timestamps differ from the commit.")

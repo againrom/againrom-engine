@@ -12,7 +12,7 @@ import (
 
 // The starter builds the map editor's arguments from launch.Editor's rows;
 // no starter file spells an editor flag.
-var editorFlagLiterals = map[string]bool{`"-assets"`: true, `"-list"`: true}
+var editorFlagLiterals = map[string]bool{`"-assets"`: true, `"-list"`: true, `"-editor"`: true, `"--editor"`: true}
 
 // editorFlagSpellers are the cmd/starter files that spell an editor flag as a
 // string literal.
@@ -40,9 +40,9 @@ func editorFlagSpellers(t *testing.T, files map[string]string) []string {
 
 func TestEditorFlagScanNamesEachSpeller(t *testing.T) {
 	got := editorFlagSpellers(t, map[string]string{
-		"cmd/starter/app.go":  "package main\nvar a = []string{\"-assets\", root}\n",
-		"cmd/starter/x.go":    "package main\nvar b = \"-assetsx\"\n",
-		"cmd/mapedit/main.go": "package main\nvar c = \"-assets\"\n",
+		"cmd/starter/app.go":   "package main\nvar a = []string{\"-assets\", root}\n",
+		"cmd/starter/x.go":     "package main\nvar b = \"-assetsx\"\n",
+		"pkg/editorapp/run.go": "package editorapp\nvar c = \"-assets\"\n",
 	})
 	if len(got) != 1 || got[0] != `cmd/starter/app.go:"-assets"` {
 		t.Fatalf("editorFlagSpellers = %v", got)

@@ -24,7 +24,7 @@ var hostFileOwners = map[string]bool{
 }
 
 // hostFileCommands are the commands the scan reads besides pkg.
-var hostFileCommands = []string{"cmd/againrom/", "cmd/mapedit/", "cmd/starter/"}
+var hostFileCommands = []string{"cmd/againrom/", "cmd/starter/"}
 
 // HostFileEntries are the allowed shapes outside the transaction, by file and
 // shape, each with its reason. An entry that matches nothing is stale.
@@ -38,7 +38,7 @@ var HostFileEntries = map[string]string{
 	"pkg/game/routewitness.go os.WriteFile":            "developer output: the route witness's route.tsv in the folder the developer names",
 	"pkg/ui/framelog.go os.OpenFile":                   "developer output: the frame timing log appended where the developer's flag names",
 	"pkg/video/audioprobe_windows_386.go os.WriteFile": "developer output: the audio probe's decoded samples at the path the developer names",
-	"cmd/mapedit/main.go os.WriteFile":                 "failure report: the editor's last error line in the profile folder when it has no console, overwritten on each failure",
+	"pkg/editorapp/run.go os.WriteFile":                "failure report: the editor's last error line in the profile folder when it has no console, overwritten on each failure",
 	"cmd/starter/main.go os.Create":                    "developer output: the starter's -shot picture at the path the developer names",
 }
 

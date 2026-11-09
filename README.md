@@ -118,7 +118,7 @@ Rage of Mages II, copy its whole install folder from Windows
    quarantine attributes:
 
    ```sh
-   xattr -d com.apple.quarantine againrom starter mapedit
+   xattr -d com.apple.quarantine againrom starter
    ```
 
    An attribute-not-found message means that executable is already unquarantined.
@@ -172,8 +172,8 @@ the system; install their distribution packages:
 
 ## Map editor
 
-The map editor, `mapedit.exe` (`./mapedit` on macOS and Linux), comes in the same
-folder. Select a base in the starter and press **Map editor** (**Редактор карт** on a Russian install). See
+The map editor is part of the game program: `againrom.exe --editor`
+(`./againrom --editor` on macOS and Linux). Select a base in the starter and press **Map editor** (**Редактор карт** on a Russian install). See
 `docs/MODS.md` in the source repository for its keys. It opens the maps of a
 Rage of Mages II base too; the F5 test play is not available for that game.
 

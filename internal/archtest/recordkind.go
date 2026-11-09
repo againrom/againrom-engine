@@ -32,7 +32,7 @@ var RecordKindRoots = []struct{ Dir, Prefix string }{
 	{"pkg/ui", ""},
 	{"pkg/game", "map"},
 	{"pkg/mapedit", ""},
-	{"cmd/mapedit", ""},
+	{"pkg/editorapp", ""},
 }
 
 // recordKindFile holds the constants that name the kinds.

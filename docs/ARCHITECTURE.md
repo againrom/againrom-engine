@@ -79,6 +79,7 @@ allow-map; the two must stay identical.
 | `pkg/intmath` | — | **stdlib only**: the one generic `Abs`; `pkg/sim` (tests too), `pkg/mapedit`, `pkg/render/terrain`, `pkg/audio`, `pkg/ui` and the check tools name it |
 | `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim`, `pkg/random` | |
 | `pkg/mapedit` | `pkg/formats/alm`, `pkg/scriptprofile` | stdlib and those leaves only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
+| `pkg/editorapp` | `pkg/game`, `pkg/ui`, `pkg/launch`, `pkg/hostfile`, `pkg/pathdialog` | the map editor program: the `--editor` mode of `cmd/againrom` |
 | `pkg/render` | `pkg/sim` (read-only), `pkg/vfs` | |
 | `pkg/render/terrain` | `pkg/formats/bmp` | the mapping and composite pieces take decoded images and integers; tile bitmaps decode through the bitmap leaf |
 | `pkg/render/camera` | — | **stdlib only**: the camera arithmetic is engine-free and unit-testable without a window |

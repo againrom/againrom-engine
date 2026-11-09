@@ -6,9 +6,11 @@ import (
 )
 
 func TestCheckProgramVersionNamesTheFunc(t *testing.T) {
-	bad := map[string]string{"cmd/tool/version.go": "package main\nfunc programVersion() string { return \"\" }\n"}
-	if vs := CheckProgramVersion(bad); len(vs) != 1 {
-		t.Fatalf("CheckProgramVersion = %v, want one violation", vs)
+	for _, name := range []string{"cmd/tool/version.go", "pkg/editorapp/version.go"} {
+		bad := map[string]string{name: "package main\nfunc programVersion() string { return \"\" }\n"}
+		if vs := CheckProgramVersion(bad); len(vs) != 1 {
+			t.Fatalf("CheckProgramVersion(%s) = %v, want one violation", name, vs)
+		}
 	}
 	ok := map[string]string{
 		"cmd/tool/version.go": "package main\nvar program = 1\nfunc versionLine() string { return \"\" }\n",
@@ -32,12 +34,14 @@ func TestEachProgramAsksBuildinfoForItsVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := LoadCmdSources(root)
+	files, err := LoadProgramSources(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := files["cmd/againrom/version.go"]; !ok {
-		t.Fatal("cmd/againrom/version.go is missing; the scan guards nothing")
+	for _, name := range []string{"cmd/againrom/version.go", "pkg/editorapp/version.go"} {
+		if _, ok := files[name]; !ok {
+			t.Fatalf("%s is missing; the scan guards nothing there", name)
+		}
 	}
 	for _, v := range CheckProgramVersion(files) {
 		t.Errorf("%s", v)

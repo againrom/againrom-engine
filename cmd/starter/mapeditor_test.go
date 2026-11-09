@@ -13,7 +13,7 @@ import (
 
 func writeEditor(t *testing.T, r *rig) string {
 	t.Helper()
-	exe := filepath.Join(r.dir, "mapedit.exe")
+	exe := filepath.Join(r.dir, "againrom.exe")
 	if err := os.WriteFile(exe, []byte("x"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -38,19 +38,19 @@ func TestMapEditorChecksTheBaseThenStartsBesideTheStarter(t *testing.T) {
 	a := r.app()
 	r.fakes.ran = nil
 	do(t, a, action{kind: aMapEditor})
-	if len(r.fakes.started) != 0 || a.status != "checking mapedit.exe on en ..." {
+	if len(r.fakes.started) != 0 || a.status != "checking againrom.exe on en ..." {
 		t.Fatalf("started before the check: %q %q", r.fakes.started, a.status)
 	}
 	a.poll()
-	wantCheck := []string{exe, "-assets", r.root, "-list"}
+	wantCheck := []string{exe, "-editor", "-assets", r.root, "-list"}
 	if len(r.fakes.ran) != 1 || !reflect.DeepEqual(r.fakes.ran[0], wantCheck) {
 		t.Fatalf("ran %q\nwant %q", r.fakes.ran, wantCheck)
 	}
-	want := []string{exe, "-assets", r.root}
+	want := []string{exe, "-editor", "-assets", r.root}
 	if len(r.fakes.started) != 1 || !reflect.DeepEqual(r.fakes.started[0], want) {
 		t.Fatalf("started %q\nwant %q", r.fakes.started, want)
 	}
-	if a.statusBad || a.status != "started mapedit.exe" || a.closing {
+	if a.statusBad || a.status != "started againrom.exe" || a.closing {
 		t.Fatalf("status %q bad=%v closing=%v", a.status, a.statusBad, a.closing)
 	}
 	// Close after Play belongs to Play.
@@ -108,11 +108,14 @@ func TestMapEditorRefusalsStartNothing(t *testing.T) {
 	}
 
 	r2 := newRig(t, "[starter]\nlast-base = en\n[bases]\nen = {root}\n")
+	missing := filepath.Join(r2.dir, "againrom.exe")
+	if err := os.Remove(missing); err != nil {
+		t.Fatal(err)
+	}
 	a2 := r2.app()
 	r2.fakes.ran = nil
 	do(t, a2, action{kind: aMapEditor})
 	a2.poll()
-	missing := filepath.Join(r2.dir, "mapedit.exe")
 	if len(r2.fakes.started) != 0 || len(r2.fakes.ran) != 0 || !a2.statusBad || a2.status != "cannot open the map editor: map editor not found: "+missing {
 		t.Fatalf("%v %v %q", r2.fakes.started, r2.fakes.ran, a2.status)
 	}
@@ -134,10 +137,10 @@ func TestMapEditorCaptionFollowsTheBaseLanguage(t *testing.T) {
 
 func TestEditorExecutableIsBesideTheStarter(t *testing.T) {
 	dir := filepath.Join("games", "againrom")
-	if got := editorExecutable(filepath.Join(dir, "starter.exe"), "windows"); got != filepath.Join(dir, "mapedit.exe") {
+	if got := editorExecutable(filepath.Join(dir, "starter.exe"), "windows"); got != filepath.Join(dir, "againrom.exe") {
 		t.Fatal(got)
 	}
-	if got := editorExecutable(filepath.Join(dir, "starter"), "darwin"); got != filepath.Join(dir, "mapedit") {
+	if got := editorExecutable(filepath.Join(dir, "starter"), "darwin"); got != filepath.Join(dir, "againrom") {
 		t.Fatal(got)
 	}
 }

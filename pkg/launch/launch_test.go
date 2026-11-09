@@ -43,7 +43,6 @@ func attrText(cmd *exec.Cmd) string {
 func TestTheStarterLaunchesBuildTheRecordedProcess(t *testing.T) {
 	dir := t.TempDir()
 	game := filepath.Join(dir, "againrom.exe")
-	editor := filepath.Join(dir, "mapedit.exe")
 	for _, c := range []struct {
 		exe  string
 		args []string
@@ -51,8 +50,8 @@ func TestTheStarterLaunchesBuildTheRecordedProcess(t *testing.T) {
 		{game, []string{"-assets", `C:\Games\en`, "-base", "rom1-en", "-mods", "alpha", "-mods-dir", filepath.Join(dir, "mods")}},
 		{game, []string{"-assets", `C:\Games\en`, "-check"}},
 		{game, []string{"-version"}},
-		{editor, []string{"-assets", `C:\Games\ru`}},
-		{editor, []string{"-assets", `C:\Games\ru`, "-list"}},
+		{game, []string{"-editor", "-assets", `C:\Games\ru`}},
+		{game, []string{"-editor", "-assets", `C:\Games\ru`, "-list"}},
 	} {
 		want := process(mainRecipe(c.exe, c.args))
 		got := process(For(c.exe, c.args).Command(context.Background()))
@@ -84,10 +83,10 @@ func TestForCopiesTheArguments(t *testing.T) {
 
 func TestBesideNamesTheProgramInTheSameFolder(t *testing.T) {
 	dir := t.TempDir()
-	if got := Beside(filepath.Join(dir, "mapedit.exe"), "againrom", "windows"); got != filepath.Join(dir, "againrom.exe") {
+	if got := Beside(filepath.Join(dir, "starter.exe"), "againrom", "windows"); got != filepath.Join(dir, "againrom.exe") {
 		t.Fatalf("windows: %s", got)
 	}
-	if got := Beside(filepath.Join(dir, "mapedit"), "againrom", "darwin"); got != filepath.Join(dir, "againrom") {
+	if got := Beside(filepath.Join(dir, "starter"), "againrom", "darwin"); got != filepath.Join(dir, "againrom") {
 		t.Fatalf("darwin: %s", got)
 	}
 }

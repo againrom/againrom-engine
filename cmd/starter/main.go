@@ -2,7 +2,7 @@
 // mods to load and the game's parameters, keeps them in an ini file, and starts
 // againrom.exe with the resulting command line. It reads game folders only to
 // look at them and writes only its own ini file. Its map editor button starts
-// mapedit, beside the starter, on the selected base.
+// the game beside the starter in its editor mode, on the selected base.
 //
 //	starter [-ini <path>] [-screenshot <png>] [-version]
 //

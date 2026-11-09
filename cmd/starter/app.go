@@ -1062,6 +1062,8 @@ func (a *app) mapEditorPlan() (exe string, start, check []string, err error) {
 func editorArgs(root string, list bool) ([]string, error) {
 	return launch.Editor.Build(launch.One(func(st launch.Setting) string {
 		switch st.Key {
+		case launch.EditorMode.Key:
+			return launch.FormatBool(true)
 		case launch.EditorAssets.Key:
 			return root
 		case launch.EditorList.Key:

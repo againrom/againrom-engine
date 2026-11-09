@@ -4424,5 +4424,12 @@ var Committed = Baseline{
 
 	// It rises for the widget kit and install inspection packages the starter
 	// links instead of the game, the starter closure guard and this note.
-	CommentBytes: 10727053,
+	// It rises for the map editor as a mode of the game program: the doc
+	// comments of parse and Run, the mode's launch row, the tests' comments in
+	// cmd/againrom/editormode_test.go and pkg/editorapp/version_test.go, and
+	// this note.
+	// It rises for the lone map path in cmd/againrom/main.go and its test in
+	// cmd/againrom/editormode_test.go, the program source roots in
+	// internal/archtest/programversion.go, and this note.
+	CommentBytes: 10729220,
 }

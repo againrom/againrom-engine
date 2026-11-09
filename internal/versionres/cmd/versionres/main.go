@@ -29,7 +29,7 @@ func main() {
 	}
 	for _, p := range versionres.Programs {
 		dir := filepath.Join(root, filepath.FromSlash(p.Dir))
-		version, err := versionres.ReadVersion(filepath.Join(root, filepath.FromSlash(p.VersionSource())))
+		version, err := versionres.ReadVersion(dir)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "versionres:", p.Describe()+":", err)
 			os.Exit(1)

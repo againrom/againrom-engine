@@ -155,15 +155,20 @@ var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, Mod
 // arguments pass them.
 type Rows []Setting
 
-// The map editor's rows. The starter passes the editor the asset root alone,
-// and the map list when it checks the base before the window opens.
+// The map editor's rows. EditorMode is the game program's switch that runs the
+// editor; every argument after it is the editor's own. The starter passes the
+// editor the asset root alone, and the map list when it checks the base before
+// the window opens.
 var (
+	EditorMode   = Setting{Key: "editor", Kind: Switch, Default: "false", Flag: "editor", Usage: "run the map editor; the arguments after this flag are the map editor's own"}
 	EditorAssets = Setting{Key: "assets", Kind: Verbatim, Flag: "assets", Usage: "read-only installed asset root"}
 	EditorList   = Setting{Key: "list", Kind: Switch, Default: "false", Flag: "list", Usage: "list installed map keys and exit"}
 )
 
-// Editor is the map editor's launch table.
-var Editor = Rows{EditorAssets, EditorList}
+// Editor is the map editor's launch table, in the order its arguments pass
+// them: the mode switch first, because the game hands what follows it to the
+// editor.
+var Editor = Rows{EditorMode, EditorAssets, EditorList}
 
 // ByKey returns the row with key.
 func ByKey(key string) (Setting, bool) { return Rows(Table).byKey(key) }

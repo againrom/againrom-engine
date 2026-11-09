@@ -55,7 +55,7 @@ def verify(arguments):
     inputs = evidence / "inputs"
     inputs.mkdir()
     binaries = Path(os.path.abspath(arguments.binaries_directory))
-    for name in ("againrom", "starter", "mapedit"):
+    for name in ("againrom", "starter"):
         shutil.copy2(binaries / name, inputs / name)
     for name in ("starter.ini", "options.txt", "famehall.dat", "credential.txt", "saves/private.sav", "mods/private/mod.toml", "main.res"):
         sentinel = inputs / name
@@ -88,7 +88,7 @@ def verify(arguments):
     assert_true(inventory(inputs) == input_before, "Package version inspection wrote into the input directory.")
     assert_true(inventory(Path(environment["HOME"])) == home_before, "Package version inspection wrote into the user profile.")
     expected = sorted((
-        "againrom/againrom", "againrom/starter", "againrom/mapedit", "againrom/BUILD-INFO.json",
+        "againrom/againrom", "againrom/starter", "againrom/BUILD-INFO.json",
         "againrom/README.md", "againrom/LICENSE", "againrom/THIRD_PARTY_NOTICES.md",
         "againrom/LICENSES/Apache-2.0.txt", "againrom/LICENSES/BSD-3-Clause.txt",
         "againrom/LICENSES/LGPL-2.1.txt", "againrom/LICENSES/lz4-BSD-3-Clause.txt",
@@ -98,7 +98,7 @@ def verify(arguments):
         assert_true(archive.namelist() == expected, "ZIP contents differ from the exact public allowlist.")
         for entry in archive.infolist():
             mode = entry.external_attr >> 16
-            executable = entry.filename in ("againrom/againrom", "againrom/starter", "againrom/mapedit")
+            executable = entry.filename in ("againrom/againrom", "againrom/starter")
             assert_true(entry.create_system == 3 and stat.S_ISREG(mode), "ZIP entry is not a regular Unix file.")
             assert_true(stat.S_IMODE(mode) == (0o755 if executable else 0o644), "ZIP entry permissions differ.")
             assert_true(entry.date_time == (1980, 1, 1, 0, 0, 0), "ZIP timestamps are not fixed.")
@@ -110,7 +110,7 @@ def verify(arguments):
     run(["/usr/bin/ditto", "-x", "-k", package["zip"], str(extracted)], repository, environment)
     runtime = extracted / "againrom"
     runtime_before = inventory(runtime)
-    for name, program_version in (("againrom", version), ("starter", starter_version), ("mapedit", version)):
+    for name, program_version in (("againrom", version), ("starter", starter_version)):
         executable = runtime / name
         assert_true(stat.S_IMODE(executable.stat().st_mode) == 0o755, "Extraction lost executable permissions.")
         actual = run([str(executable), "-version"], runtime, environment)
@@ -139,16 +139,15 @@ def verify(arguments):
         output = evidence / f"wrong-revision-{index}"
         invoke(output, source_revision=bad_revision, refused=True)
         assert_true(not os.path.lexists(output), "Invalid revision wrote output.")
-    no_editor = evidence / "inputs-without-mapedit"
-    no_editor.mkdir()
-    for name in ("againrom", "starter"):
-        shutil.copy2(inputs / name, no_editor / name)
-    command = [sys.executable, str(packager), "--binaries-directory", str(no_editor),
-               "--output-directory", str(evidence / "without-mapedit"), "--revision", revision,
+    no_starter = evidence / "inputs-without-starter"
+    no_starter.mkdir()
+    shutil.copy2(inputs / "againrom", no_starter / "againrom")
+    command = [sys.executable, str(packager), "--binaries-directory", str(no_starter),
+               "--output-directory", str(evidence / "without-starter"), "--revision", revision,
                "--tag", f"v{version}", "--arch", arguments.arch]
     result = subprocess.run(command, cwd=repository, env=environment, text=True, capture_output=True, check=False)
-    assert_true(result.returncode != 0, "A package without mapedit was accepted.")
-    assert_true(not os.path.lexists(evidence / "without-mapedit"), "The refusal without mapedit wrote output.")
+    assert_true(result.returncode != 0, "A package without starter was accepted.")
+    assert_true(not os.path.lexists(evidence / "without-starter"), "The refusal without starter wrote output.")
     missing_parent = evidence / "missing-parent/package"
     invoke(missing_parent, refused=True)
     assert_true(not missing_parent.parent.exists(), "Missing output parent was created.")
@@ -175,7 +174,7 @@ def verify(arguments):
     assert_true(not (evidence / "missing-target").exists(), "Dangling output symbolic link was followed.")
     print(f"macos-package {arguments.arch}: 12 entries; private sentinels excluded; native versions, stamps, manifest, "
           f"Unix extraction permissions, no profile writes, returned digest, no checksum file and repeated ZIP bytes verified; "
-          f"existing output, missing mapedit, four invalid tags, two invalid revisions, missing parent, two install-contained outputs "
+          f"existing output, missing starter, four invalid tags, two invalid revisions, missing parent, two install-contained outputs "
           f"and three symbolic-link outputs refused. SHA256={digest}")
 
 

@@ -32,7 +32,7 @@ func TestCommittedObjectsMatchTheirVersionFiles(t *testing.T) {
 	root := moduleRoot(t)
 	for _, p := range Programs {
 		dir := filepath.Join(root, filepath.FromSlash(p.Dir))
-		version, err := ReadVersion(filepath.Join(root, filepath.FromSlash(p.VersionSource())))
+		version, err := ReadVersion(dir)
 		if err != nil {
 			t.Fatalf("%s: %v", p.Describe(), err)
 		}
@@ -65,16 +65,12 @@ func TestFileVersionReadsTheFixedInformation(t *testing.T) {
 	}
 }
 
-func TestMapEditorCarriesTheGameVersion(t *testing.T) {
-	for _, p := range Programs {
-		if p.Exe == "mapedit.exe" {
-			if p.VersionSource() != "cmd/againrom" || p.Dir != "cmd/mapedit" {
-				t.Fatalf("%+v", p)
-			}
-			return
-		}
+// The map editor is a mode of the game program, so the game and the starter are
+// the only programs with a resource.
+func TestProgramsAreTheGameAndTheStarter(t *testing.T) {
+	if len(Programs) != 2 || Programs[0].Exe != "againrom.exe" || Programs[1].Exe != "starter.exe" {
+		t.Fatalf("%+v", Programs)
 	}
-	t.Fatal("no mapedit.exe row")
 }
 
 func TestSysoIsDeterministicAndFollowsTheVersion(t *testing.T) {

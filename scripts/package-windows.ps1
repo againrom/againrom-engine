@@ -33,8 +33,7 @@ for ($directory = $parent; $null -ne $directory; $directory = $directory.Parent)
 }
 $binaries = [IO.Path]::GetFullPath($BinariesDirectory)
 $goVersion = ''
-# The map editor is part of the game and carries the game's version.
-$programs = @(@{ Name = 'againrom'; Version = $version }, @{ Name = 'starter'; Version = $starterVersion }, @{ Name = 'mapedit'; Version = $version })
+$programs = @(@{ Name = 'againrom'; Version = $version }, @{ Name = 'starter'; Version = $starterVersion })
 foreach ($program in $programs) {
     $exe = Join-Path $binaries ($program.Name + '.exe')
     $line = (& $exe -version | Out-String).Trim()

@@ -13,7 +13,7 @@ Start the editor with HTTP enabled. Use the installed executable and an asset
 root from a lawful installation. These commands are for the owner to run:
 
 ```powershell
-& 'C:\Games\Againrom\mapedit.exe' -assets 'C:\Games\ROM' -mcp http -mcp-address 127.0.0.1:8765 -mcp-pace 300ms
+& 'C:\Games\Againrom\againrom.exe' --editor -assets 'C:\Games\ROM' -mcp http -mcp-address 127.0.0.1:8765 -mcp-pace 300ms
 ```
 
 The status strip shows the URL. A connection report in the window shows that
@@ -60,7 +60,7 @@ match that same address and port. There is no OAuth or browser login flow.
 Stdio uses no network listener. All stdout is MCP JSON; diagnostics use stderr.
 
 ```powershell
-claude mcp add --transport stdio againrom-editor -- 'C:\Games\Againrom\mapedit.exe' -assets 'C:\Games\ROM' -mcp stdio -mcp-pace 300ms
+claude mcp add --transport stdio againrom-editor -- 'C:\Games\Againrom\againrom.exe' --editor -assets 'C:\Games\ROM' -mcp stdio -mcp-pace 300ms
 ```
 
 The client starts the executable and its window when it connects. Keep the
@@ -85,8 +85,8 @@ A desktop MCP client with local stdio support can use this JSON configuration:
 {
   "mcpServers": {
     "againrom-editor": {
-      "command": "C:\\Games\\Againrom\\mapedit.exe",
-      "args": ["-assets", "C:\\Games\\ROM", "-mcp", "stdio", "-mcp-pace", "300ms"]
+      "command": "C:\\Games\\Againrom\\againrom.exe",
+      "args": ["--editor", "-assets", "C:\\Games\\ROM", "-mcp", "stdio", "-mcp-pace", "300ms"]
     }
   }
 }
