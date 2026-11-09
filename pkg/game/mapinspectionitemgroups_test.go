@@ -45,7 +45,7 @@ func TestEditorItemGroupsPartitionCodesByTableRowAndMaterial(t *testing.T) {
 				t.Fatalf("code %d grouped %d times", c.Value, seen[c.Value])
 			}
 		}
-		if offer.Groups[0].Block != x.itemGroupWord("kind", "Two Handed Sword") || offer.Groups[3].Head != x.itemGroupWord("material", "Meteoric") {
+		if offer.Groups[0].Block != x.itemGroupWord("kind", "Two Handed Sword", "twohandedsword") || offer.Groups[3].Head != x.itemGroupWord("material", "Meteoric", "meteoric") {
 			t.Fatal("kind or material caption did not follow the table")
 		}
 		if lang == "russian" && (offer.Groups[0].Block != x.inspectionUTF8("Двуручные мечи") || offer.Groups[3].Head != x.inspectionUTF8("Метеорит")) {

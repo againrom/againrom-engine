@@ -303,16 +303,9 @@ func WeaponFromCode(c ItemCode, shapes, materials ScaleTable, weapons Collection
 	if shapes != nil && c.C() < shapes.Len() {
 		shapeName = shapes.EntryName(c.C())
 	}
-	materialName := ""
-	if materials != nil && c.A() < materials.Len() {
-		materialName = materials.EntryName(c.A())
-	}
-	weaponName := ""
-	if weapons != nil && c.D() < weapons.Len() {
-		weaponName = weapons.EntryName(c.D())
-	}
+	rows := ItemRows(c, weapons, nil, nil, materials)
 	var parts []string
-	for _, name := range []string{shapeName, materialName, weaponName} {
+	for _, name := range []string{shapeName, rows.Material, rows.Kind} {
 		if name != "" {
 			parts = append(parts, name)
 		}
