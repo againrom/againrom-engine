@@ -35,6 +35,35 @@ func (d *dataValue) Attr(name string) (starlark.Value, error) {
 	return nil, nil
 }
 
+// readBesideManifest reads the file of each kind no script loads, beside the
+// manifest of the mod that holds it.
+func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) error {
+	id := m.Manifest.ID
+	t, err := mod.OpenTree(m.Dir)
+	if err != nil {
+		return fmt.Errorf("mod %q: %w", id, err)
+	}
+	r := mod.DataReader{Mod: id, Dir: m.Dir, Lang: sh.lang, Settings: values}
+	for _, k := range mod.DataKinds() {
+		if k.Script || !k.Validates() {
+			continue
+		}
+		for _, rel := range k.Files {
+			if st, err := t.Stat(rel); err != nil || st.IsDir() {
+				continue
+			}
+			src, _, err := t.ReadInside(rel)
+			if err != nil {
+				return fmt.Errorf("mod %q: %s: %w", id, rel, err)
+			}
+			if err := k.Read(r, &sh.data, rel, src); err != nil {
+				return fmt.Errorf("mod %q: %w", id, err)
+			}
+		}
+	}
+	return nil
+}
+
 // add is game.data.add(path): it reads a data file of the mod folder and adds
 // what it describes to the game. A file is loaded once, during init.
 func (d *dataValue) add(_ *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

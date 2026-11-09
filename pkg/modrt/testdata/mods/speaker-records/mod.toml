@@ -1,0 +1,8 @@
+id          = "speaker-records"
+title       = "Speaker records"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Holds a speaker record of its own."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

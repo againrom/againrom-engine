@@ -125,7 +125,9 @@ func (f *FrontEnd) setModCharacters(chars mod.CharacterData) ([]mod.Override, er
 func installCharacters(t *mapload.Table) []mod.Character {
 	var npcs []int32
 	for _, e := range t.NPCCatalog.Records() {
-		npcs = append(npcs, e.ID)
+		if e.Mod == "" {
+			npcs = append(npcs, e.ID)
+		}
 	}
 	return mod.InstallCharacters(npcs)
 }

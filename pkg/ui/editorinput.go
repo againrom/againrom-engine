@@ -115,7 +115,7 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 	}
 	if e.prompt.open() {
 		switch e.prompt.kind {
-		case promptOpen, promptSave, promptRectangle, promptForestShare, promptSeed, promptNewMode, promptField, promptItemRecipe, promptWorkspace, promptAdd:
+		case promptOpen, promptSave, promptRectangle, promptForestShare, promptSeed, promptNewMode, promptField, promptItemRecipe, promptWorkspace, promptAdd, promptSpeaker:
 		default:
 			return nil, p, key
 		}

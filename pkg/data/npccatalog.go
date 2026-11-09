@@ -29,6 +29,20 @@ type NPCEntry struct {
 	// Name is the record's own Name string; empty when it states none, as
 	// every shipped record does.
 	Name string
+	// Mod is the id of the mod that holds the record; empty for a record of
+	// the registry.
+	Mod string
+	// Map and Unit are the one unit of one map the record is bound to, when
+	// Bound: the map's path in the mod and the unit's script number.
+	Map   string
+	Unit  int32
+	Bound bool
+}
+
+// NPCLayerRecord is one record of a mod's layer over the catalog.
+type NPCLayerRecord struct {
+	NPCEntry
+	Face NPCFace
 }
 
 // npcNameKey is the key a record may name its speaker with.
@@ -78,6 +92,28 @@ func (c *NPCCatalog) Placement() *NPCDefs {
 		return nil
 	}
 	return c.Defs
+}
+
+// WithLayer is the catalog with records as its mods' layer: every record a
+// mod held before is gone and records are added, the registry's own records
+// left as they are. A record is seen by every reader of the catalog (Entry,
+// Records, Portraits).
+func (c *NPCCatalog) WithLayer(records []NPCLayerRecord) *NPCCatalog {
+	out := &NPCCatalog{Faces: map[int32]NPCFace{}}
+	if c != nil {
+		out.Defs = c.Defs
+		for _, e := range c.Entries {
+			if e.Mod == "" {
+				out.Entries = append(out.Entries, e)
+				out.Faces[e.ID] = c.Faces[e.ID]
+			}
+		}
+	}
+	for _, r := range records {
+		out.Entries = append(out.Entries, r.NPCEntry)
+		out.Faces[r.ID] = r.Face
+	}
+	return out
 }
 
 // Portraits is the catalog's portrait half; nil for a nil catalog.

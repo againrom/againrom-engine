@@ -25,6 +25,9 @@ func missionPackageFiles(title, description string, m mod.Mission, lang string, 
 	for name, b := range m.TextFiles {
 		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
 	}
+	for name, b := range m.Carried {
+		files[name] = bytes.Clone(b)
+	}
 	if len(trees) != 0 {
 		for name := range files {
 			if strings.HasPrefix(name, testPlayTexts+"/") {

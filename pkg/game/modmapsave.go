@@ -105,6 +105,9 @@ func (x *MapInspector) SetMod(dir string) error {
 		if err := x.useModTerrain(result); err != nil {
 			x.mod.contextIssue = err.Error()
 		}
+		if err := x.useModSpeakers(result.Data.Speakers); err != nil {
+			x.mod.contextIssue = err.Error()
+		}
 	} else {
 		x.mod.contextIssue = e.Error()
 	}
@@ -292,6 +295,13 @@ func writeModMap(root, dir, rel string, data []byte) (string, error) {
 	if err := extendedName(data, rel); err != nil {
 		return "", err
 	}
+	return writeModFile(root, dir, rel, data)
+}
+
+// writeModFile writes data to the slash path rel inside the mod folder dir,
+// replacing the file there. The file stays inside the folder and outside the
+// install at root.
+func writeModFile(root, dir, rel string, data []byte) (string, error) {
 	full := filepath.Join(dir, filepath.FromSlash(rel))
 	if err := checkModMapDirectory(root, dir, filepath.Dir(full), rel); err != nil {
 		return "", err

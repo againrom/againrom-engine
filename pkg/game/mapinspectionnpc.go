@@ -24,7 +24,7 @@ func (x *MapInspector) npcChoices(maxID int64, roles bool) []ui.InspectionChoice
 	}
 	for _, e := range x.table.NPCCatalog.Records() {
 		id := int64(e.ID)
-		if id < 0 || id > maxID {
+		if id < 0 || id > maxID && e.Mod == "" {
 			continue
 		}
 		choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.npcName(e, roles)))})
@@ -169,6 +169,9 @@ func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, ui.SpeakerMiss) {
 	}
 	if sp.placed[unit] < 0 {
 		return 0, ui.SpeakerMiss{Cause: ui.SpeakerBorder}
+	}
+	if id, ok := s.boundSpeaker(unit); ok {
+		return id, ui.SpeakerMiss{}
 	}
 	unit = sp.placed[unit]
 	var ids []int64

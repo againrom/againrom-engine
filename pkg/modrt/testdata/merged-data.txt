@@ -84,6 +84,10 @@ snow-field rom1-en rules skill_cap=100
 snow-field rom1-en mark a1bfdb2b8960146689281ed08995a4ba65edc6e9f46145b55e8fe98714d851c9
 snow-field-packed rom1-en rules skill_cap=100
 snow-field-packed rom1-en mark a1bfdb2b8960146689281ed08995a4ba65edc6e9f46145b55e8fe98714d851c9
+speaker-records rom1-en rules skill_cap=100
+speaker-records rom1-en mark d72a9b2e1de6a0d86dab7f0af15fdfb45fdc98bb6bfadac81f6dfa640d8dd653
+speaker-records-packed rom1-en rules skill_cap=100
+speaker-records-packed rom1-en mark d72a9b2e1de6a0d86dab7f0af15fdfb45fdc98bb6bfadac81f6dfa640d8dd653
 tavern-rows rom1-en rules skill_cap=100
 tavern-rows rom1-en towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-en files 35546ef4212704cd494e0dd72fb070f46b1577d69ddb19daf55a817eb008643e
@@ -205,6 +209,10 @@ snow-field rom1-ru rules skill_cap=100
 snow-field rom1-ru mark 417b2d5d408115dafb03d485e37629a6c65da9a890f759418ee908fed63cbeb2
 snow-field-packed rom1-ru rules skill_cap=100
 snow-field-packed rom1-ru mark 417b2d5d408115dafb03d485e37629a6c65da9a890f759418ee908fed63cbeb2
+speaker-records rom1-ru rules skill_cap=100
+speaker-records rom1-ru mark 70ee834bd586b0e7c92f3f286610d9ededf85434db3dbdb804d8fc41f6a1efa1
+speaker-records-packed rom1-ru rules skill_cap=100
+speaker-records-packed rom1-ru mark 70ee834bd586b0e7c92f3f286610d9ededf85434db3dbdb804d8fc41f6a1efa1
 tavern-rows rom1-ru rules skill_cap=100
 tavern-rows rom1-ru towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-ru files b9b0738f17ed295a6f11c48294a9bc4eafcb21601dafe945d89cbddf79163b1d

@@ -49,6 +49,9 @@ const (
 	promptRectangle
 	promptWorkspace
 	promptAdd // the Add window; its text is the current step's
+	// promptSpeaker takes a new speaker record's name; the picture's window
+	// follows it.
+	promptSpeaker
 	// promptLeave asks what to do with unsaved changes before a step runs.
 	promptLeave
 	// promptNotice warns before test play or a save into a mod and lets
@@ -93,6 +96,8 @@ type editorPrompt struct {
 	group *groupPrompt
 	// form is what the script form question holds.
 	form *formPrompt
+	// speaker is what the add-a-speaker prompt holds.
+	speaker *speakerPrompt
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

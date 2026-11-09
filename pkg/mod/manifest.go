@@ -32,6 +32,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -239,6 +240,28 @@ func onlyComment(rest string) error {
 	return nil
 }
 
+// stringEscapes are the escapes a basic string holds: the byte after the
+// backslash and the byte it stands for.
+var stringEscapes = [...][2]byte{{'"', '"'}, {'\\', '\\'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}}
+
+// writeString is s as a basic string readString reads back: the bytes
+// stringEscapes names escaped, every other byte as it stands.
+func writeString(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for i := 0; i < len(s); i++ {
+		k := slices.IndexFunc(stringEscapes[:], func(e [2]byte) bool { return e[1] == s[i] })
+		if k >= 0 {
+			b.WriteByte('\\')
+			b.WriteByte(stringEscapes[k][0])
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
 // readString reads a basic or literal string at the start of v.
 func readString(v string) (value, rest string, err error) {
 	if v == "" {
@@ -262,18 +285,11 @@ func readString(v string) (value, rest string, err error) {
 				if i >= len(v) {
 					return "", "", errors.New("unterminated string")
 				}
-				switch v[i] {
-				case '"', '\\':
-					b.WriteByte(v[i])
-				case 'n':
-					b.WriteByte('\n')
-				case 'r':
-					b.WriteByte('\r')
-				case 't':
-					b.WriteByte('\t')
-				default:
+				k := slices.IndexFunc(stringEscapes[:], func(e [2]byte) bool { return e[0] == v[i] })
+				if k < 0 {
 					return "", "", fmt.Errorf("unsupported escape \\%c", v[i])
 				}
+				b.WriteByte(stringEscapes[k][1])
 			default:
 				b.WriteByte(c)
 			}

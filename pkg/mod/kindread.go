@@ -66,6 +66,44 @@ func readScreens(r DataReader, d *Data, rel string, src []byte) error {
 	return d.Screens.CheckSlots()
 }
 
+// readSpeakers reads the mod's speaker records. A picture the record names is
+// read here, so a missing one refuses the launch at its line.
+func readSpeakers(r DataReader, d *Data, rel string, src []byte) error {
+	speakers, err := ReadSpeakers(r.Mod, r.Dir, rel, src, nil)
+	if err != nil {
+		return err
+	}
+	d.Speakers.Speakers = append(d.Speakers.Speakers, speakers.Speakers...)
+	return nil
+}
+
+// ReadSpeakers parses a speakers file of the mod at dir and reads the picture
+// each record names, refusing a missing one at its line. A picture named in
+// pending is taken from there and not from the mod, for a file not written yet.
+func ReadSpeakers(id, dir, rel string, src []byte, pending map[string][]byte) (SpeakerData, error) {
+	speakers, err := ParseSpeakers(id, rel, src)
+	if err != nil {
+		return SpeakerData{}, err
+	}
+	for i := range speakers.Speakers {
+		s := &speakers.Speakers[i]
+		s.Dir = dir
+		if s.Picture == "" {
+			continue
+		}
+		if b, ok := pending[s.Picture]; ok {
+			s.PictureBytes = b
+			continue
+		}
+		data, _, err := ReadInside(dir, s.Picture)
+		if err != nil {
+			return SpeakerData{}, &ItemFileError{File: rel, Line: s.fieldLine("picture"), Msg: fmt.Sprintf("picture %q: %v", s.Picture, err)}
+		}
+		s.PictureBytes = data
+	}
+	return speakers, nil
+}
+
 func readCompanions(r DataReader, d *Data, rel string, src []byte) error {
 	joins, err := ParseCompanions(r.Mod, rel, src)
 	if err != nil {

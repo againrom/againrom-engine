@@ -21,6 +21,7 @@ var kindFixtures = map[string]string{
 	"weapon bodies": "war-hammer-mace",
 	"missions":      "reniesta",
 	"towns":         "east-town",
+	"speakers":      "speaker-records",
 	"terrain":       "snow-field",
 	"settings":      "skill-cap",
 }

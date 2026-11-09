@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A mod can hold its own speakers: in the map editor, clicking a unit no speaker shows on a map in a mod offers to add one with your own name and picture.
 - [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
 - [Starter] The starter is a much smaller file.
 - [Editor] The map editor now opens from the game program; the separate mapedit program is gone.

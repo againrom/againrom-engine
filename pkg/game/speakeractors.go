@@ -395,6 +395,9 @@ func (c speakerCast) resolveNPC(npc int32, rec data.NPCFace) (speakerActor, bool
 // `Platoon` IS NOT EVALUATED and states no constraint (0160 spec SC-3).
 // Nothing in this tree holds a platoon to compare.
 func (c speakerCast) matches(rec data.NPCFace, a speakerActor) bool {
+	if rec.Kind == data.NPCModPicture {
+		return false // a mod's record is its picture, no live actor's
+	}
 	t := rec.Tokens
 	if t.Has(data.NPCTokenHero) && !a.hero {
 		return false

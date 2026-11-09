@@ -1,6 +1,7 @@
 package data
 
 import (
+	"image"
 	"strings"
 
 	"againrom/pkg/formats/reg"
@@ -179,6 +180,9 @@ const (
 	// NPCPortrait is a `!Human` record: load the flat portrait of the unit
 	// class Class names.
 	NPCPortrait
+	// NPCModPicture is a record a mod holds: Picture is its face, drawn as it
+	// stands whichever unit speaks.
+	NPCModPicture
 )
 
 // NPCFace is one speaker record resolved to a picture request.
@@ -229,6 +233,9 @@ type NPCFace struct {
 	// Archetype records. The event audience opens the speaker arms on either
 	// (DIV-3149).
 	Start bool
+
+	// Picture is the face of an NPCModPicture record; nil on every other kind.
+	Picture *image.RGBA
 
 	// Worn is what a synthesised NPCFigure speaker wears; a registry record
 	// leaves it empty, so its speaker is bare (DLG-SPEAKER-022).

@@ -33,6 +33,7 @@ with `game.data.add`.
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
 | towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
+| speakers | `data/speakers.toml` | `id`, a record number from 20000 to 99999 | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a record off | Speakers, `docs/1624/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
 
 The base dump writes layer 0 of towns only; the other catalog kinds have no
@@ -1293,6 +1294,39 @@ Refused, naming the mod, the file and the line:
 
 A save written with a towns mod carries the mod mark. A LOAD without the mod
 refuses with the mod named.
+
+## Speakers
+
+`data/speakers.toml` holds a mod's own speaker records. The game reads the file beside `mod.toml`;
+the entry script names it nowhere. A message tag `<npc=N>` names a record by its `id`.
+
+```toml
+[[speaker]]
+id = 20000                     # 20000 to 99999; the numbers below are the game's records
+name = "Karl"                  # shown in the editor's speaker lists
+picture = "speakers/karl.png"  # a PNG of 72x96 pixels, the message window's face
+map = "mission/en/map.alm"     # by choice, with unit: the map's path in the mod
+unit = 12                      # the unit's script number on that map, 1 to 65535
+```
+
+A record with `map` and `unit` is the speaker the map editor names for that unit. `unit` is the
+number a script names the unit by, not its place in the map's unit list, so the record stays with
+the unit when other units are added, moved or deleted. A number held by more than one unit of the
+map names none of them. In the game a message that names the record's number draws its picture. A
+save holds that number in the map's message text and no other field. In the map editor, on a map
+that lives in a mod, clicking a unit no speaker record shows with the speaker pick asks for a name
+and opens the file window for a PNG, copies the picture to `speakers/<id>.png` and writes the
+record. A unit with script number 0, or one another unit shares, is refused with a message that
+says so. A map outside a mod keeps the refusal text. While the mod's records did not load (a bad
+picture, a failing script) the editor adds no record and states why.
+
+The highest number is 99999: a message tag in the second game is read for five digits after `npc=`.
+The editor gives a new record a number the mod's id decides: a stable hash of the id into the band
+20000 to 99999 is the first number tried, and the search walks up from there, round to 20000 at the
+top, past every number held by this mod's file, by the records the editor has loaded, and by the
+`data/speakers.toml` of every other mod in the same mods folder. So two mods made apart do not get
+one number by accident. A mod that names a number by hand keeps the merge rule above: the number is
+one record and `load-after` decides which mod's record stands.
 
 ## Base dump
 

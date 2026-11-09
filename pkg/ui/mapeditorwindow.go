@@ -1568,6 +1568,8 @@ func (e *MapEditor) promptTitle() string {
 		return e.word("editor.prompt.save")
 	case e.prompt.kind == promptRectangle:
 		return e.word("editor.prompt.newmap")
+	case e.prompt.kind == promptSpeaker:
+		return e.word("editor.speaker.add.name")
 	case e.prompt.kind == promptForestShare:
 		return e.word("editor.prompt.share")
 	case e.prompt.kind == promptSeed:

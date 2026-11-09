@@ -98,6 +98,10 @@ type Mission struct {
 	// textsTemplate is the declared texts path before langToken was replaced.
 	textsTemplate string
 
+	// Carried are other files of the mod a test play writes beside the mission,
+	// keyed by their path in the mod.
+	Carried map[string][]byte `json:",omitempty"`
+
 	// MapBytes and TextFiles are the map and the text files as read from the
 	// mod folder when the mod loaded. TextFiles is keyed by file name.
 	MapBytes  []byte

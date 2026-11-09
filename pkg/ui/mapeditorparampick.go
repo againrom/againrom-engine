@@ -50,6 +50,10 @@ type pickedValue struct {
 	// why, on a pick that found nothing, says why in whole sentences: the
 	// speaker pick fills it.
 	why string
+	// addUnit, when add, is the placement the speaker pick offers a new
+	// record for.
+	addUnit int
+	add     bool
 }
 
 // nodeFieldTarget is what field f of a node popup stores of a map pick.
@@ -201,6 +205,13 @@ func (e *MapEditor) paramAt(kind pickKind, p image.Point) {
 	} else {
 		v, ok = e.unitValueAt(p, target)
 	}
+	if !ok && v.add {
+		// The checkpoint holds the armed pick, so a cancelled prompt or
+		// file window goes back to the speaker pick.
+		e.keepPick(kind)
+		e.askSpeaker(v.addUnit, "", e.cancelCheckpoint())
+		return
+	}
 	if !ok {
 		e.keepPick(kind)
 		e.pickNote, e.pickWhy = e.word(paramPickTexts[target].missWord), v.why
@@ -236,6 +247,17 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 				}
 				if !refused {
 					miss.why, refused = e.speakerWhy(&why), true
+					if adder, ok := e.speakerAddHost(); ok {
+						if refusal := adder.SpeakerAddRefusal(why); refusal != "" {
+							miss.why = refusal
+						} else if adder.CanAddSpeaker(r.Index, why) {
+							if err := adder.SpeakerBindRefusal(r.Index); err != nil {
+								miss.why = err.Error()
+							} else {
+								miss.addUnit, miss.add = r.Index, true
+							}
+						}
+					}
 				}
 			}
 			continue

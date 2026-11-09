@@ -1,0 +1,5 @@
+# Proves the declaration of the kind only: the record names no picture, so
+# applying this mod's records to a game would refuse it.
+[[speaker]]
+id = 20000
+name = "Fixture speaker"

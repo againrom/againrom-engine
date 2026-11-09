@@ -124,6 +124,8 @@ func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle
 	}
 	if !live {
 		switch rec.Kind {
+		case data.NPCModPicture:
+			pic = rec.Picture
 		case data.NPCPortrait:
 			if r.units != nil {
 				pic = classPortrait(r.src, r.units.Classes[rec.Class], rec.Face, r.portraits)

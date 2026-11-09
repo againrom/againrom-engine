@@ -221,9 +221,18 @@ func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool)
 	return town.Mission, ok && town.Town
 }
 
+// modContextRefusal is the read-only line of a mod whose records did not load,
+// empty for any other mod and with no mod open.
+func (x *MapInspector) modContextRefusal() string {
+	if x.mod == nil || x.mod.contextIssue == "" {
+		return ""
+	}
+	return x.word("editor.mod.readonly") + " " + x.mod.contextIssue
+}
+
 func (s *mapInspectionEdits) ModSummary() string {
-	if m := s.inspector.mod; m != nil && m.contextIssue != "" {
-		return s.inspector.word("editor.mod.readonly") + " " + m.contextIssue
+	if refusal := s.inspector.modContextRefusal(); refusal != "" {
+		return refusal
 	}
 	w := s.workspace
 	if w == nil || w.Project == nil {

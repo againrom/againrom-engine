@@ -110,6 +110,9 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 		}
 	}
 	if plan == nil {
+		if err := x.carryModSpeakers(&m); err != nil {
+			return "", fmt.Errorf("Test play: %w", err)
+		}
 		if err := x.checkMissionRoute(m); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}

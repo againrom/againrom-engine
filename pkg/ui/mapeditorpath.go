@@ -14,13 +14,23 @@ type editorPathReply struct {
 	err    error
 }
 
+// pathChoice is one choice of a path through the host's dialog: what the
+// window lists and what the editor does with its answer. failed takes the
+// reason the host could not answer.
+type pathChoice struct {
+	request   pathdialog.Request
+	chosen    func(path string)
+	cancelled func()
+	failed    func(err error)
+}
+
 type editorPathDialog struct {
 	ask     pathdialog.Func
 	baseDir string
 	// mapsFolder answers the profile folder the editor saves maps in, where
 	// the Open window starts; nil or an empty answer keeps the usual start.
 	mapsFolder func() string
-	kind       pathdialog.Kind
+	choice     pathChoice
 	pending    <-chan editorPathReply
 	rearm      bool
 }
@@ -86,19 +96,54 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 	return r
 }
 
+// hasPathDialog reports that the host can show a dialog now.
+func (e *MapEditor) hasPathDialog() bool {
+	return e.pathDialog.ask != nil && e.mcp.call == nil
+}
+
+// mapChoice is the choice of a map to open or save: Open and Save As are
+// built by pathRequest and end in Open or saveAs.
+func (e *MapEditor) mapChoice(kind pathdialog.Kind) pathChoice {
+	return pathChoice{
+		request: e.pathRequest(kind),
+		chosen: func(path string) {
+			e.leave(leaveDrag | leaveReport | leavePick)
+			var err error
+			if kind == pathdialog.SaveFile {
+				err = e.saveAs(path)
+			} else {
+				err = e.Open(path)
+			}
+			// A save that asks to fold the script keeps its question.
+			if err != nil && e.prompt.kind != promptScriptForm {
+				message := e.message
+				e.cancelPopup(popPrompt)
+				e.message = message
+			}
+		},
+		cancelled: func() { e.cancelPopup() },
+		failed:    func(err error) { e.pathFallback(kind, err) },
+	}
+}
+
 func (e *MapEditor) askPath(kind pathdialog.Kind) {
 	e.rememberCancel()
-	if e.pathDialog.ask == nil || e.mcp.call != nil {
+	if !e.hasPathDialog() {
 		e.pathFallback(kind, nil)
 		return
 	}
-	r := e.pathRequest(kind)
+	e.askChoice(e.mapChoice(kind))
+}
+
+// askChoice shows choice's window on a worker; PollPathDialog applies the
+// answer. The caller has checked hasPathDialog.
+func (e *MapEditor) askChoice(c pathChoice) {
 	e.cancelRecordDrag()
 	e.brush.endStroke()
 	e.down, e.moved, e.cancelledDrag = false, false, false
 	done := make(chan editorPathReply, 1)
-	e.pathDialog.kind, e.pathDialog.pending = kind, done
-	ask := e.pathDialog.ask
+	e.pathDialog.choice, e.pathDialog.pending = c, done
+	ask, r := e.pathDialog.ask, c.request
 	go func() {
 		result, err := ask(r)
 		done <- editorPathReply{result, err}
@@ -124,29 +169,18 @@ func (e *MapEditor) PollPathDialog() bool {
 	}
 	select {
 	case reply := <-e.pathDialog.pending:
-		kind := e.pathDialog.kind
+		choice := e.pathDialog.choice
 		e.pathDialog.pending, e.pathDialog.rearm = nil, true
+		e.pathDialog.choice = pathChoice{}
 		switch {
 		case reply.err != nil:
-			e.pathFallback(kind, reply.err)
+			choice.failed(reply.err)
 		case reply.result.Cancelled:
-			e.cancelPopup()
+			choice.cancelled()
 		case reply.result.Path == "":
-			e.pathFallback(kind, fmt.Errorf("no path returned"))
+			choice.failed(fmt.Errorf("no path returned"))
 		default:
-			e.leave(leaveDrag | leaveReport | leavePick)
-			var err error
-			if kind == pathdialog.SaveFile {
-				err = e.saveAs(reply.result.Path)
-			} else {
-				err = e.Open(reply.result.Path)
-			}
-			// A save that asks to fold the script keeps its question.
-			if err != nil && e.prompt.kind != promptScriptForm {
-				message := e.message
-				e.cancelPopup(popPrompt)
-				e.message = message
-			}
+			choice.chosen(reply.result.Path)
 		}
 	default:
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,8 +19,14 @@ const editorModManifest = "id = \"ambush\"\ntitle = \"Ambush\"\nversion = \"1.0.
 // data/missions.toml; an empty missions writes none.
 func writeEditorMod(t *testing.T, parent, missions string) string {
 	t.Helper()
-	dir := filepath.Join(parent, "ambush")
-	files := map[string]string{"mod.toml": editorModManifest,
+	return writeNamedEditorMod(t, parent, "ambush", missions)
+}
+
+// writeNamedEditorMod is writeEditorMod for the mod folder and id given.
+func writeNamedEditorMod(t *testing.T, parent, id, missions string) string {
+	t.Helper()
+	dir := filepath.Join(parent, id)
+	files := map[string]string{"mod.toml": strings.Replace(editorModManifest, `"ambush"`, strconv.Quote(id), 1),
 		"main.star": "def init(game, settings):\n    game.data.add(\"data/missions.toml\")\n"}
 	if missions != "" {
 		files["data/missions.toml"] = missions

@@ -426,6 +426,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.brush.endStroke()
 	case e.recordDrag != nil:
 		e.leave(leaveDrag)
+	case e.prompt.kind == promptSpeaker:
+		e.cancelPopup()
 	case e.pick != pickNone:
 		e.leave(leavePick)
 		e.message = ""
@@ -552,6 +554,8 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptForestShare:
 		e.setForestShare(e.prompt.path)
 		return nil
+	case promptSpeaker:
+		return e.speakerPromptStep(e.prompt.path)
 	case promptSeed:
 		return e.applyRandom(e.prompt.path)
 	case promptSave:

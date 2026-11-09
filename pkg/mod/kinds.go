@@ -234,6 +234,21 @@ var dataKinds = []DataKind{
 			return fmt.Sprintf("town records=%d", len(d.Towns.Records))
 		},
 	},
+	// The speaker records apply after the characters: layer 0 of the
+	// character catalog is the install's records alone.
+	{
+		Name: "speakers", Files: []string{SpeakersFile}, Key: "`id`, a record number from 20000 to 99999",
+		Class: CatalogData, Layer: LayerMerged,
+		Base:   "empty: the install's records stand below the band of numbers a mod's record takes",
+		Shared: mergedShared + "; `off` switches a record off",
+		read:   readSpeakers,
+		summary: func(d Data) string {
+			if d.Speakers.Empty() {
+				return ""
+			}
+			return fmt.Sprintf("speakers=%d", len(d.Speakers.Speakers))
+		},
+	},
 	{
 		Name: "settings", Files: []string{SettingsName}, Key: "the table name",
 		Class: ConfigurationData, Layer: LayerOwn,
@@ -328,6 +343,7 @@ type Data struct {
 	Missions MissionData
 	Towns    TownData
 	Terrain  TerrainData
+	Speakers SpeakerData
 
 	// spellGlobals and spellFields name the mod that set each spell global
 	// and each field of a spell.
@@ -355,5 +371,8 @@ func (d *Data) SetOrder(order Precedence) {
 	}
 	if !d.Missions.Empty() {
 		d.Missions.Order = order
+	}
+	if !d.Speakers.Empty() {
+		d.Speakers.Order = order
 	}
 }

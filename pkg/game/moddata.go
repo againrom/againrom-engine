@@ -60,6 +60,11 @@ var modDataAppliers = map[string]modDataApply{
 		r.Overrides = append(r.Overrides, overrides...)
 		return err
 	},
+	"speakers": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
+		overrides, err := f.setModSpeakers(d.Speakers)
+		r.override(overrides)
+		return err
+	},
 	"terrain":  func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.setModTerrain(d.Terrain) },
 	"settings": func(*FrontEnd, mod.Data, *ModDataReport) error { return nil },
 }

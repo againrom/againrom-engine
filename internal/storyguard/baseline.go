@@ -36,6 +36,9 @@ package storyguard
 // code: pkg/ui/dialog.go, its fields in pkg/ui/editorpopup.go and
 // pkg/ui/dialogwitness_test.go, and this paragraph.
 //
+// CommentBytes rose by the doc comments of a mod's speaker records, all new
+// code in pkg/mod, pkg/data, pkg/game and pkg/ui, and this paragraph.
+//
 // CommentBytes rose by the doc comments of the authored notices' move into the
 // one description, all new code: the fields in pkg/ui/editorpopup.go, the style
 // table and notice box layout in pkg/ui/dialog.go, the guard in
@@ -4456,5 +4459,5 @@ var Committed = Baseline{
 	// It rises for the once-per-process writer round trip: the memo, the
 	// recorder and their tests in pkg/game/milestone2_writer_admission_test.go,
 	// and this note.
-	CommentBytes: 10751615,
+	CommentBytes: 10768629,
 }

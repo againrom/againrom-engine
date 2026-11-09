@@ -118,6 +118,9 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		if err != nil {
 			return Result{}, err
 		}
+		if err := readBesideManifest(m, values, sh); err != nil {
+			return Result{}, err
+		}
 		state = state || mod.FilesChangeState(files)
 		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state})
 	}

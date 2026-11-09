@@ -64,6 +64,10 @@ func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 		e.message = ""
 		return
 	}
+	if p := e.prompt.speaker; p != nil && p.back != nil && (len(target) == 0 || target[0] == popPrompt) {
+		p.back()
+		return
+	}
 	if len(target) > 0 && target[0] == popList {
 		e.closeList()
 		if restore := e.listRestore; restore != nil {
