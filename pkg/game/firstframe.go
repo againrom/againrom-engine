@@ -18,66 +18,6 @@ type firstFrameSource struct {
 	animation bool
 }
 
-// fileStoreFirstFrame is a mission file without a complete document: the
-// state store's application leaves, read at LOAD with the actor IDs of the
-// import's source bindings (readFileApplication). The store holds no engine
-// action leaf, so it supplies no current view and no animation; its fog
-// plane is the opener's, and the first frame adds none.
-func fileStoreFirstFrame() *firstFrameSource {
-	return &firstFrameSource{
-		application: func(mw *mapWorld) (*fileApplication, []uint16, error) {
-			return mw.mission.state.fileApplication, mw.spells().BookRows, nil
-		},
-	}
-}
-
-// documentFirstFrame is an original save's decoded document: its
-// application leaves with the actor IDs of the document's actor table, its
-// current view and animation, and its fog plane over the opener's.
-func documentFirstFrame() *firstFrameSource {
-	return &firstFrameSource{
-		application: documentApplication,
-		current: func(mw *mapWorld) (*currentActionData, error) {
-			return readCurrentActions(mw.mission.state.savedDocument.Document)
-		},
-		fog: func(mw *mapWorld, cells int) ([]byte, error) {
-			return originalFogPlane(mw.mission.state.savedDocument.Document, cells)
-		},
-		animation: true,
-	}
-}
-
-func documentApplication(mw *mapWorld) (*fileApplication, []uint16, error) {
-	document := mw.mission.state.savedDocument
-	if document == nil || document.Document == nil {
-		return nil, nil, nil
-	}
-	raw, err := readOriginalApplicationState(document.Document)
-	if err != nil {
-		return nil, nil, err
-	}
-	ids, err := applicationActorIDs(document.Document, document.Actors, mw.world)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &fileApplication{raw: raw, ids: ids, structures: applicationStructureIDs(mw.world)}, originalBookIDs, nil
-}
-
-// firstFrameSourceOf is the source of a mission's first frame: the decoded
-// document of an original save, else a mission file's state store; nil
-// where the mission has neither.
-func firstFrameSourceOf(ms *Mission, original bool) *firstFrameSource {
-	switch {
-	case ms == nil:
-		return nil
-	case original:
-		return documentFirstFrame()
-	case ms.fileApplication != nil:
-		return fileStoreFirstFrame()
-	}
-	return nil
-}
-
 // firstFrame is the source's application state over the viewer's current
 // state; nil where the source holds none.
 func (src *firstFrameSource) firstFrame(mw *mapWorld) (*SnapshotApplicationState, error) {

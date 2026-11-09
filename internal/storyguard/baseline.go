@@ -36,6 +36,10 @@ package storyguard
 // code: pkg/ui/dialog.go, its fields in pkg/ui/editorpopup.go and
 // pkg/ui/dialogwitness_test.go, and this paragraph.
 //
+// CommentBytes rose by the doc comments of the original-file source table, all
+// new code: pkg/game/originalfilesource.go, internal/archtest/originalfilesource.go,
+// pkg/game/originalsourcewitness_test.go and this paragraph.
+//
 // CommentBytes rose by the doc comments of a mod's speaker records, all new
 // code in pkg/mod, pkg/data, pkg/game and pkg/ui, and this paragraph.
 //
@@ -4466,5 +4470,5 @@ var Committed = Baseline{
 
 	// It rises for the doc comment of the liveness read in pkg/sim/world.go
 	// and this note.
-	CommentBytes: 10774490,
+	CommentBytes: 10780098,
 }

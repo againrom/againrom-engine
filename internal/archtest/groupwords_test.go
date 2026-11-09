@@ -46,11 +46,11 @@ func TestGroupWordWritesNameAPlantedWrite(t *testing.T) {
 	reads := head + "_ = g.AI[0x20] == 1\n_ = binary.LittleEndian.Uint32(g.AI[0x48:])\nb = append(b, g.AI[:]...)\ncopy(raw[:], g.AI[:76])\n}\n"
 	whole := head + "copy(g.AI[:], raw[:])\nget(&g.AI)\n_ = Data{Raw: g.AI[:]}\n}\n"
 	got, err := GroupWordWrites(map[string]string{
-		"pkg/sim/reads.go":             reads,
-		GroupWordsSetter:               head + "g.AI[0x20] = 1\n}\n",
-		"pkg/sim/savedgroupsbinary.go": whole,
-		"pkg/game/citygroupcarry.go":   whole,
-		"pkg/sim/planted_test.go":      head + "g.AI[0] = 1\n}\n",
+		"pkg/sim/reads.go":               reads,
+		GroupWordsSetter:                 head + "g.AI[0x20] = 1\n}\n",
+		"pkg/sim/savedgroupsbinary.go":   whole,
+		"pkg/game/originalfilesource.go": whole,
+		"pkg/sim/planted_test.go":        head + "g.AI[0] = 1\n}\n",
 	})
 	if err != nil {
 		t.Fatal(err)

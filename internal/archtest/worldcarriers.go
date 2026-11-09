@@ -188,7 +188,7 @@ var worldCarrierNilDocumentOwners = []string{
 	"againrom/pkg/game.importSavedPlayerParticipants",
 	"againrom/pkg/game.loadedDeadRoot",
 	"againrom/pkg/game.mapWorld.restoreOriginalActionView",
-	"againrom/pkg/game.originalSource.prepareMission",
+	"againrom/pkg/game.originalFileSources",
 	"againrom/pkg/game.projectApplicationState",
 	"againrom/pkg/game.projectCurrentUnboundSackRoots",
 	"againrom/pkg/game.projectDeadActorOrders",

@@ -7,7 +7,6 @@ import (
 	"math"
 	"slices"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
@@ -108,52 +107,6 @@ func readStateLeaf(state sav.DocumentStateData, path string, kind uint32) (sav.C
 	return value, nil
 }
 
-func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, error) {
-	if doc == nil {
-		return OriginalStateData{}, fmt.Errorf("original application document is absent")
-	}
-	return originalApplicationStateOf(doc.State, originalBookIDs)
-}
-
-// originalApplicationStateOf reads the application leaves of a state store;
-// rows is the book slot table the Pressed index names.
-func originalApplicationStateOf(store sav.DocumentStateData, rows []uint16) (OriginalStateData, error) {
-	var state OriginalStateData
-	for _, leaf := range []struct {
-		path string
-		dst  *int32
-	}{
-		{"/GameOptions/Wimpy", &state.Wimpy}, {"/GameOptions/ShowHP", &state.ShowHP},
-		{"/GameOptions/FlyingHP", &state.FlyingHP}, {"/GameOptions/Formation", &state.Formation},
-		{"/GameOptions/Speed", &state.Speed}, {"/GameOptions/ShowTimeFlow", &state.ShowTimeFlow},
-		{"/Inventory/IsOpen", &state.InventoryOpen}, {"/SpellBook/IsOpen", &state.BookOpen},
-		{"/SpellBook/Pressed", &state.Pressed}, {"/View/X", &state.ViewX}, {"/View/Y", &state.ViewY},
-	} {
-		value, err := readStateLeaf(store, leaf.path, 2)
-		if err != nil {
-			return state, err
-		}
-		*leaf.dst = value.Int32
-	}
-	selection, err := readStateLeaf(store, "/Objects/Selection", 6)
-	if err != nil {
-		return state, err
-	}
-	if len(selection.Bytes)/4 > 1<<16 {
-		return state, fmt.Errorf("original application selection exceeds 65536 actors")
-	}
-	state.Selection = make([]uint32, len(selection.Bytes)/4)
-	// A repeated id is checked against the actors that carry it when the
-	// selection is bound (applicationSelection).
-	for i := range state.Selection {
-		state.Selection[i] = binary.LittleEndian.Uint32(selection.Bytes[4*i:])
-	}
-	if _, err := pressedSpellID(rows, state.Pressed); err != nil {
-		return state, err
-	}
-	return state, nil
-}
-
 func originalPressedSpellID(index int32) (uint32, error) {
 	return pressedSpellID(originalBookIDs, index)
 }
@@ -190,26 +143,6 @@ func applicationStructureIDs(w *sim.World) map[uint32]uint32 {
 		out[uint32(row.ID)] = row.RuntimeID
 	}
 	return out
-}
-
-// readFileApplication reads a mission file's application state for a world
-// whose actors the file's import has bound.
-func readFileApplication(sf *sav.File, w *sim.World) (*fileApplication, error) {
-	store, present, err := sf.StateData()
-	if err != nil || !present {
-		return nil, err
-	}
-	raw, err := originalApplicationStateOf(store, data.SpellPresentationOf(w.SpellGame()).BookRows)
-	if err != nil {
-		return nil, err
-	}
-	ids := map[uint32]uint32{}
-	for _, e := range w.Entities() {
-		if e.Alive() && e.SourceBinding.Class >= 1 && e.SourceBinding.Class <= 3 {
-			ids[uint32(e.ID)] = e.SourceBinding.RuntimeID
-		}
-	}
-	return &fileApplication{raw: raw, ids: ids, structures: applicationStructureIDs(w)}, nil
 }
 
 // view is the file's first frame over the viewer's current state: camera,
@@ -287,72 +220,6 @@ func validateOriginalApplicationSource(doc *sav.DocumentData) error {
 	}
 	_, err := originalFogPlane(doc, -1)
 	return err
-}
-
-// Actor bindings keep runtime IDs distinct from saved addresses and object
-// indices. DIV-1184 records the selection policy.
-func applicationActorIDs(doc *sav.DocumentData, bindings []SnapshotSAVActor, world *sim.World) (map[uint32]uint32, error) {
-	if doc == nil || world == nil {
-		return nil, fmt.Errorf("application selection needs a document and World")
-	}
-	entities := make(map[sim.EntityID]sim.Entity)
-	for _, e := range world.Entities() {
-		entities[e.ID] = e
-	}
-	actions, err := readCurrentActions(doc)
-	if err != nil {
-		return nil, err
-	}
-	coordinates := map[uint16]struct {
-		Entity sim.EntityID
-		Value  sim.ActorRuntimeCoordinate
-	}{}
-	if actions != nil {
-		for _, binding := range actions.Bindings {
-			value, present := actions.Values[binding.ID]
-			if binding.Structure || binding.Missing || !present || !value.SourceBound || value.RuntimeID == nil {
-				continue
-			}
-			if _, duplicate := coordinates[binding.Object]; duplicate {
-				return nil, fmt.Errorf("application selection repeats a current runtime coordinate")
-			}
-			coordinates[binding.Object] = struct {
-				Entity sim.EntityID
-				Value  sim.ActorRuntimeCoordinate
-			}{binding.ID, *value.RuntimeID}
-		}
-	}
-	byEntity := make(map[uint32]uint32, len(bindings))
-	seenObjects := make(map[uint16]bool, len(bindings))
-	for _, binding := range bindings {
-		if binding.Retired {
-			continue
-		}
-		if binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(doc.Objects) || seenObjects[binding.ObjectIndex] {
-			return nil, fmt.Errorf("application selection has an invalid or repeated actor object binding")
-		}
-		e, exists := entities[binding.EntityID]
-		record := &doc.Objects[binding.ObjectIndex-1]
-		if !exists || !currentActorRecordMatches(world, e, *record) {
-			return nil, fmt.Errorf("application selection actor %d has no exact live binding", binding.EntityID)
-		}
-		id, err := savedStructureValue(record, "RuntimeID")
-		if err != nil {
-			return nil, fmt.Errorf("application selection actor %d has no runtime ID: %w", binding.EntityID, err)
-		}
-		if e.SourceBinding.Class != 0 && id != e.SourceBinding.RuntimeID {
-			coordinate, ok := coordinates[binding.ObjectIndex]
-			if !ok || coordinate.Entity != binding.EntityID || coordinate.Value.Wire != id || coordinate.Value.Value != e.SourceBinding.RuntimeID || coordinate.Value.Wire > 65535 {
-				return nil, fmt.Errorf("application selection actor %d disagrees with its source runtime ID", binding.EntityID)
-			}
-		}
-		if _, duplicate := byEntity[uint32(binding.EntityID)]; duplicate {
-			return nil, fmt.Errorf("application selection repeats native actor %d", binding.EntityID)
-		}
-		byEntity[uint32(binding.EntityID)] = id
-		seenObjects[binding.ObjectIndex] = true
-	}
-	return byEntity, nil
 }
 
 // applicationSelection names the actors a saved selection holds. LOAD keeps
@@ -664,42 +531,6 @@ func (f *FrontEnd) clampOriginalView(doc *sav.DocumentData) error {
 		}
 	}
 	return nil
-}
-
-func applicationCurrentRaw(app *SnapshotApplicationState) (OriginalStateData, error) {
-	if app == nil {
-		return OriginalStateData{}, worldSaveUnsupportedf("current application state is absent")
-	}
-	if err := validateApplicationState(app); err != nil {
-		return OriginalStateData{}, err
-	}
-	out, now, base := app.Original, app.View, app.Baseline
-	// Preserve full source domains while their native interpretation is unchanged.
-	if now.ShowHealth != base.ShowHealth {
-		out.ShowHP = boolToInt32(now.ShowHealth)
-	}
-	if now.FlyingHP != base.FlyingHP {
-		out.FlyingHP = boolToInt32(now.FlyingHP)
-	}
-	if now.TimeFlow != base.TimeFlow {
-		out.ShowTimeFlow = boolToInt32(now.TimeFlow)
-	}
-	if now.InventoryOpen != base.InventoryOpen {
-		out.InventoryOpen = boolToInt32(now.InventoryOpen)
-	}
-	if now.SpellBookOpen != base.SpellBookOpen {
-		out.BookOpen = boolToInt32(now.SpellBookOpen)
-	}
-	if now.PeriodUS != terrain.SpeedIndexPeriod(int(out.Speed)) {
-		out.Speed = int32(nearestOriginalSpeed(now.PeriodUS))
-	}
-	out.ViewX, out.ViewY = originalViewOrigin(now.ViewX, now.ViewY)
-	pressed, err := quickSpellsToOriginalIndices([4]uint32{now.PressedSpell})
-	if err != nil {
-		return out, worldSaveUnsupportedf("current spell %d has no original book index", now.PressedSpell)
-	}
-	out.Pressed = pressed[0]
-	return out, nil
 }
 
 func nearestOriginalSpeed(period int) int {

@@ -6,10 +6,10 @@ package archtest
 // decoded document or its mission file's state store; a direct read of
 // either elsewhere is a second restore.
 var firstFrameOwners = map[string][]string{
-	"againrom/pkg/game.readFileApplication":              {"againrom/pkg/game.originalSource.prepareMission"},
+	"againrom/pkg/game.readFileApplication":              {originalFileSourceTable},
 	"againrom/pkg/game.documentApplication":              {"againrom/pkg/game.documentFirstFrame"},
-	"againrom/pkg/game.documentFirstFrame":               {"againrom/pkg/game.firstFrameSourceOf"},
-	"againrom/pkg/game.fileStoreFirstFrame":              {"againrom/pkg/game.firstFrameSourceOf"},
+	"againrom/pkg/game.documentFirstFrame":               {originalFileSourceTable},
+	"againrom/pkg/game.fileStoreFirstFrame":              {originalFileSourceTable},
 	"againrom/pkg/game.firstFrameSourceOf":               {firstFrameRestore},
 	"againrom/pkg/game.firstFrameSource.firstFrame":      {firstFrameRestore},
 	"againrom/pkg/game.fileApplication.view":             {"againrom/pkg/game.firstFrameSource.firstFrame"},

@@ -22,7 +22,7 @@ var GroupWordsSeams = []string{
 	"pkg/formats/sav/actorgraph.go",
 	"pkg/game/originalgroups.go",
 	"pkg/game/savgroupfields.go",
-	"pkg/game/citygroupcarry.go",
+	"pkg/game/originalfilesource.go",
 }
 
 // GroupWordWrites names each write into an AI block outside the setter in

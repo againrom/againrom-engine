@@ -294,19 +294,9 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	}
 	// A current SAV binds its group actors through its document, an
 	// original file through its provenance.
-	s.Town.cityGroups, s.Town.cityGroupsLoaded = nil, true
-	if hasCurrent && cityErr == nil {
-		if p, ok := cityDocument.(interface{ Data() sav.CityData }); ok {
-			s.Town.cityGroups = cityGroupsFromCurrent(p.Data(), currentActions)
-		}
-	} else if src.campaign.fileSession != nil {
-		graph, err := sf.ActorGraph()
-		if err != nil {
-			return report, fmt.Errorf("original between-mission save: %w", err)
-		}
-		s.Town.cityGroups = cityGroupsFromGraph(graph, s.Carried, cityCharacters)
-	} else if !hasCurrent {
-		s.Town.cityGroups = cityGroupsFromLoaded(s.Carried, s.originalCity.snapshot())
+	if err := s.adoptTownGroups(originalTownInputs{src: src, session: s, hasCurrent: hasCurrent, cityDocument: cityDocument,
+		cityErr: cityErr, actions: currentActions, party: s.Carried, chars: cityCharacters}); err != nil {
+		return report, err
 	}
 	if err := s.restoreHiredMercenaries(in.table); err != nil {
 		return report, fmt.Errorf("original between-mission save: %w", err)
@@ -530,12 +520,8 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 				return err
 			}
 			restoreLoadedRuntimeIDs(ms, missionDocument, documentOrigins)
-			if src.fileView && missionDocument.Document == nil {
-				app, err := readFileApplication(sf, ms.World)
-				if err != nil {
-					return err
-				}
-				ms.fileApplication = app
+			if err := src.readMissionApplication(ms); err != nil {
+				return err
 			}
 			ms.resumeBookWalk = true
 			if err := decodeWorldCarriersFrom(entryRecord, carrierDecode{w: ms.World, ms: ms}); err != nil {

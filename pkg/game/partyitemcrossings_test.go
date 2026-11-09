@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -77,6 +78,8 @@ func partyCrossingNumbers(out *[]string, v reflect.Value) {
 		*out = append(*out, fmt.Sprint(v.Int()))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		*out = append(*out, fmt.Sprint(v.Uint()))
+	case reflect.Float32, reflect.Float64:
+		*out = append(*out, fmt.Sprint(math.Float64bits(v.Float())))
 	case reflect.Bool:
 		n := 0
 		if v.Bool() {
