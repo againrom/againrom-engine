@@ -65,6 +65,7 @@ func TestSecondGameInactiveUnitStillExecutesExplicitMove(t *testing.T) {
 
 func TestSecondGameActivityClearStopsAnExistingOrdinaryAttack(t *testing.T) {
 	w := secondGameActivityWorld(t, 1, 1)
+	w.entities[indexOfEntity(w.entities, 2)].Facing = 64
 	scriptTicks(w, 7, nil)
 	victim, _ := w.Entity(3)
 	if victim.HP == 20 {

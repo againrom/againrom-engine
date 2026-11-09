@@ -136,6 +136,7 @@ type gameProfile struct {
 	// memberScoreGate: the score's preference modifiers test the scoring
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
 	memberScoreGate bool
+	orders          orderProfile
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -193,6 +194,13 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		residueOverBookCasts:       true,
 		savesMissionFog:            true,
 		noCompanionObjective:       true,
+		orders: orderProfile{
+			idleRanking:              targetIdleDistance,
+			liveAdmission:            true,
+			mageAcquisitionException: true,
+			stopEmptyWalk:            true,
+			standGroundScore:         true,
+		},
 	}
 }
 

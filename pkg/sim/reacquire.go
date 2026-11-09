@@ -50,16 +50,7 @@ func (w *World) reacquisitionVictim(i int) int {
 	if len(living) == 0 {
 		living = bodies
 	}
-	winner, best := -1, int32(129)
-	for _, ci := range living {
-		candidate := w.entities[ci]
-		direction := w.headingBetween(self, candidate)
-		cost := facingArc(self.Facing, direction)
-		if cost <= best {
-			winner, best = ci, cost
-		}
-	}
-	return winner
+	return w.chooseTarget(i, living, orderStandGround, targetTurn)
 }
 
 // suppressedAcquirer reports whether e is a human participant's spellcaster of
@@ -69,17 +60,20 @@ func (w *World) suppressedAcquirer(e Entity) bool {
 	return e.Owner != 0 && w.humanParticipantUnit(e) && isMage(e) && e.Reach < 2
 }
 
-// engageRefused reports whether the engage routine refuses actor i outright:
-// a first-game suppressed acquirer. The second game keeps its engage; no
-// second-game claim reads this test (AI-GUARD-007).
-func (w *World) engageRefused(i int) bool {
+// engageRefused applies the profile's engage or acquisition exception.
+// AI-GUARD-007, R2-ENGINE-1106.
+func (w *World) engageRefused(i int, acquisition bool) bool {
+	if acquisition && w.game.orders.mageAcquisitionException {
+		e := w.entities[i]
+		return w.humanParticipantUnit(e) && isMage(e) && w.attackRange(i) < 2
+	}
 	return !w.game.keepsSuppressedAcquirer && w.suppressedAcquirer(w.entities[i])
 }
 
 // AI-673: row 6 rechecks suppression before a progress-zero gate or turn.
 func (w *World) suppressAcquisition(i int) bool {
 	e := &w.entities[i]
-	if e.AttackPhase != AttackReady || !e.AcquirePursuit || !w.engageRefused(i) {
+	if e.AttackPhase != AttackReady || !e.AcquirePursuit || !w.engageRefused(i, true) {
 		return false
 	}
 	e.AcquirePursuit, e.PursuitIdle = false, true

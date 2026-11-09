@@ -34,7 +34,7 @@ func (w *World) armDefend(i int) {
 	w.coverEngage(i, ti)
 	// A pursuit means the defender is busy this tick; an idled pick leaves
 	// the order at 0, which falls to the crowding check (AI-FOLLOWTAB-113).
-	if e := w.entities[i]; e.HasAttackTarget && !(e.PursuitIdle && w.engageRefused(i)) {
+	if e := w.entities[i]; e.HasAttackTarget && !(e.PursuitIdle && w.engageRefused(i, true)) {
 		return
 	}
 	if dist < escortCrowd {
@@ -208,7 +208,7 @@ func (w *World) coverEngage(i, ti int) {
 		w.acquireStanding(i)
 		return
 	}
-	if w.engageRefused(i) {
+	if w.engageRefused(i, false) {
 		return
 	}
 	at := -1
@@ -241,13 +241,16 @@ func (w *World) acquireStanding(i int) {
 	if p := w.entities[i].PendingOrder.Kind; p != PendingNone && p != PendingRelease {
 		return
 	}
-	best, at := scoreSeed, -1
-	for _, ci := range w.actorCandidates(i) {
-		if ci == i {
-			continue
-		}
-		if cost := w.candidateCost(i, ci, orderStandGround); cost < best {
-			best, at = cost, ci
+	live, dead := w.actorCandidates(i)
+	populations := [][]int{live}
+	if len(live) == 0 || w.game.orders.idleRanking == targetIdleDistance {
+		populations = append(populations, dead)
+	}
+	at := -1
+	for _, candidates := range populations {
+		at = w.chooseTarget(i, candidates, orderStandGround, w.game.orders.idleRanking)
+		if at >= 0 {
+			break
 		}
 	}
 	if at < 0 {
@@ -258,7 +261,7 @@ func (w *World) acquireStanding(i int) {
 		}
 		return
 	}
-	if w.engageRefused(i) {
+	if w.engageRefused(i, true) {
 		// The acquisition pursuit arm leaves a suppressed acquirer this way
 		// (AI-PURSUE-040).
 		w.idlePick(i, w.entities[at].ID)
@@ -282,7 +285,7 @@ func (w *World) idlePick(i int, victim EntityID) {
 	}
 }
 
-func (w *World) actorCandidates(i int) []int {
+func (w *World) actorCandidates(i int) ([]int, []int) {
 	decider := w.entities[i]
 	stamp := w.groupSight(aiSight, []int{i})
 	var live, dead []int
@@ -294,16 +297,13 @@ func (w *World) actorCandidates(i int) []int {
 		if !c.OrdinaryTargetable() {
 			continue
 		}
-		if c.InLife(LifeDecaying) {
+		if c.InLife(LifeDecaying) || w.game.orders.idleRanking == targetIdleDistance && !c.Living() {
 			dead = append(dead, ci)
 			continue
 		}
 		live = append(live, ci)
 	}
-	if len(live) == 0 {
-		return dead
-	}
-	return live
+	return live, dead
 }
 
 func (w *World) escortStepAway(i, ti int, stop int64) {

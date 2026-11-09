@@ -23,23 +23,22 @@ func (r gameProfileRow) String() string {
 		r.second, r.native, r.route, r.aim, r.spell, r.built, r.stepped)
 }
 
-// gameProfileRows are the answers each build path gives a fixture World of
-// each game, recorded before the game was a profile chosen once.
+// gameProfileRows pin construction and stepped state for every build path.
 var gameProfileRows = map[string]gameProfileRow{
 	"first decoded":                 {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
 	"first loaded":                  {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
 	"first loaded decoded":          {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
 	"first loaded script copy":      {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
 	"first script copy":             {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
-	"first script copy other game":  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0xf2c5d89bc50bfef7},
+	"first script copy other game":  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0x617b3bd7bd0d21d},
 	"first start":                   {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
-	"second decoded":                {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0xf2c5d89bc50bfef7},
-	"second loaded":                 {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xfca3dff7a64b58a},
-	"second loaded decoded":         {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xfca3dff7a64b58a},
-	"second loaded script copy":     {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xfca3dff7a64b58a},
-	"second script copy":            {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0xf2c5d89bc50bfef7},
+	"second decoded":                {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0x617b3bd7bd0d21d},
+	"second loaded":                 {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0x77f00c6fe9c24cef},
+	"second loaded decoded":         {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0x77f00c6fe9c24cef},
+	"second loaded script copy":     {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0x77f00c6fe9c24cef},
+	"second script copy":            {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0x617b3bd7bd0d21d},
 	"second script copy other game": {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
-	"second start":                  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0xf2c5d89bc50bfef7},
+	"second start":                  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0xb2e30ca9d6830599, stepped: 0x617b3bd7bd0d21d},
 }
 
 // gameProfileFixture is a hero and a hostile fighter two cells apart, each in

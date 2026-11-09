@@ -600,19 +600,7 @@ func lawDomain(d Domain) int {
 	return 1
 }
 
-// turnCost is the second term of a candidate's cost: how far the member would
-// have to turn to face it.
-//
-// IT IS A TERM THIS TREE DOES NOT HAVE. It is written as a function
-// returning zero rather than dropped from the expression, because the
-// expression is the law's and only its second term is missing; a later story
-// fills this body and nothing else.
-//
-// WHAT ITS ABSENCE COSTS is bounded and small, which is why the story could be
-// built over it at all: it occupies the low byte under a distance term shifted
-// eight bits left, so it can only ever reorder candidates that are EQUALLY FAR
-// AWAY. Under a zero the tie falls to the list order the strict comparison
-// already gives it — ascending entity id (0086 D-2).
+// turnCost keeps the first game's existing zero turn term.
 func turnCost(member, candidate Entity) int32 { return 0 }
 
 // groupScorerReach is the second target scorer's own distance ceiling: 1, the
@@ -652,7 +640,7 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 	// map this tree can load is wide enough for the narrowing to bite.
 	d := int32(uint8(cellOf(&m).chebyshevTo(cellOf(&c))))
 
-	if order == orderStandGround && m.Owner == SelfSlot && (footprintSide(m.TokenSize) > 1 || footprintSide(c.TokenSize) > 1) {
+	if order == orderStandGround && !w.game.orders.standGroundScore && m.Owner == SelfSlot && (footprintSide(m.TokenSize) > 1 || footprintSide(c.TokenSize) > 1) {
 		d = min(d, strikeDistance(m, c))
 	}
 
@@ -674,7 +662,7 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 	// without a test noticing, since a symmetric pair of reach-4 ground
 	// entities scores identically either way.
 	col := lawDomain(c.Domain)
-	if c.Reach > 1 && (col == 1 || order == orderStandGround) {
+	if c.Reach > 1 && (col == 1 || order == orderStandGround && !w.game.orders.standGroundScore) {
 		col = 0
 	}
 
@@ -740,6 +728,9 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 	}
 
 	cost := d<<8 + turnCost(m, c)
+	if w.game.orders.standGroundScore {
+		cost += facingArc(m.Facing, w.headingBetween(m, c))
+	}
 	if w.preferenceWithheld(&m, &c, order) {
 		return cost
 	}
@@ -764,9 +755,13 @@ const scoreMindFloor = 15
 
 // preferenceWithheld reports whether a pair's preference modifiers do not
 // apply. The first game's ordinary scorer tests the candidate's size and Mind
-// and its stand-ground scorer tests nothing (AI-COST-071, AI-REACH-072); the
-// second game tests the scoring actor's own (R2-ENGINE-503).
+// and its stand-ground scorer tests nothing (AI-COST-071, AI-REACH-072).
+// The second game's ordinary scorer tests the member; its stand-ground
+// scorer has no gate (R2-ENGINE-503, R2-ENGINE-1111).
 func (w *World) preferenceWithheld(m, c *Entity, order uint8) bool {
+	if order == orderStandGround && w.game.orders.standGroundScore {
+		return false
+	}
 	gate := c
 	switch {
 	case w.game.memberScoreGate:

@@ -62,7 +62,7 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 	e := &w.entities[i]
 	phase, countdown := e.AttackPhase, e.AttackCountdown
 	victim := w.reacquisitionVictim(i)
-	if victim >= 0 && w.engageRefused(i) {
+	if victim >= 0 && w.engageRefused(i, true) {
 		// The pick is written before the suppression idles the order, and
 		// the strike setter is not reached (AI-542).
 		w.idlePick(i, w.entities[victim].ID)

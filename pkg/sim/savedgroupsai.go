@@ -156,10 +156,13 @@ func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 	}
 	e := w.entities[i]
 	switch {
-	case w.engageRefused(i) && e.PursuitIdle:
+	case w.engageRefused(i, true) && e.PursuitIdle:
 		o.Raw[8] = 0
 	case e.HasAttackTarget:
 		o.Raw[8] = 5
+		if e.AcquirePursuit && w.game.orders.idleRanking == targetIdleDistance {
+			o.Raw[8] = 6
+		}
 	case !w.game.groupRoute.noHumanHealArm && e.Owner != 0 && w.humanParticipantUnit(e):
 		o.Raw[8] = 0
 	default:
@@ -210,10 +213,8 @@ func (w *World) savedGroupMove(i int, o *SavedActorOrder, move bool) {
 		w.savedAcquire(i, o)
 		return
 	}
-	if e.X == int32(o.Raw[10]) && e.Y == int32(o.Raw[11]) && e.Transit == 0 && binary.LittleEndian.Uint32(o.Raw[0x50:]) == 0 {
-		o.Raw[0x14] = uint8(e.Reach)
-		binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
-		w.clearOrder(i)
+	if e.X == int32(o.Raw[10]) && e.Y == int32(o.Raw[11]) && e.Transit == 0 && (!w.game.orders.liveAdmission || !w.motionActive(e.ID)) && binary.LittleEndian.Uint32(o.Raw[0x50:]) == 0 {
+		w.stopWalkOrder(i, true)
 	} else {
 		w.claimLatch(i, o)
 	}
@@ -318,18 +319,11 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			w.holdStrikeWindow(i, o, human)
 			return
 		}
-		best, at := scoreSeed, -1
+		at := -1
 		if uint8(len(cands)) != 0 && uint8(len(members)) != 0 {
-			for _, ci := range cands {
-				if ci == i {
-					continue
-				}
-				if cost := w.candidateCost(i, ci, order); cost < best {
-					best, at = cost, ci
-				}
-			}
+			at = w.chooseTarget(i, cands, order, targetGroupScore)
 		}
-		if at >= 0 && w.engageRefused(i) {
+		if at >= 0 && w.engageRefused(i, false) {
 			// The engage refuses outright and writes nothing (AI-GUARD-007).
 		} else if at >= 0 {
 			w.orderAttack(i, w.entities[at].ID)

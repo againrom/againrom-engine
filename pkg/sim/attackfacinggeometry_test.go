@@ -145,8 +145,8 @@ func TestAttackFacingSecondGameKeepsAimAndAcquisition(t *testing.T) {
 	w.entities[0].MaxMana = 10
 	installAcquireControl(t, w, acquireControlCase{owner: 2, present: true, word: 0})
 	w.orderAcquire(0, 2)
-	if w.suppressAcquisition(0) || !w.entities[0].AcquirePursuit {
-		t.Fatal("second-game acquisition changed")
+	if !w.suppressAcquisition(0) || w.entities[0].AcquirePursuit || !w.entities[0].PursuitIdle {
+		t.Fatal("short-range player acquisition did not take the range exception")
 	}
 	pair := shotPair(4)
 	pair[1].TokenSize = 3

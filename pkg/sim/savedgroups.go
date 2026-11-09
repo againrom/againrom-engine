@@ -407,7 +407,7 @@ func (w *World) savedMove(i int, o *SavedActorOrder) {
 		return
 	}
 	e := &w.entities[i]
-	if e.X == x && e.Y == y {
+	if e.X == x && e.Y == y && (!w.game.orders.liveAdmission || e.Transit == 0 && !w.motionActive(e.ID)) {
 		w.clearOrder(i)
 		o.Raw[8] = 0xb
 		w.acquireStanding(i)

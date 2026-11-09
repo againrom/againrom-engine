@@ -157,7 +157,7 @@ func TestTheMoveSettersClearTheStandDown(t *testing.T) {
 	t.Parallel()
 	w := refusedMove(t, 3)
 	i := indexOfEntity(w.entities, 1)
-	w.standDownRefusedWalk(i)
+	w.stopWalkOrder(i, false)
 	if w.refusedWalkArm(i) != walkArmPick {
 		t.Fatal("a stood-down Move member does not take the pick")
 	}
@@ -166,7 +166,7 @@ func TestTheMoveSettersClearTheStandDown(t *testing.T) {
 	if w.refusedWalkArm(i) != walkArmStandDown {
 		t.Fatal("a new Move left the stand-down")
 	}
-	w.standDownRefusedWalk(i)
+	w.stopWalkOrder(i, false)
 	w.cmdSavedGroupOrder(ScriptInstant{HasGroup: true, Group: w.savedGroupFor(1).Selector, Args: [scriptParams]int32{4, 20, 4}})
 	if g := w.savedGroupFor(1); g.AI[0x20] != orderMove {
 		t.Fatalf("fixture: the script Move left order %d", g.AI[0x20])
@@ -179,7 +179,7 @@ func TestTheMoveSettersClearTheStandDown(t *testing.T) {
 	if w.refusedWalkArm(i) != walkArmStandDown {
 		t.Fatal("a Swarm 2 member does not stand down")
 	}
-	w.standDownRefusedWalk(i)
+	w.stopWalkOrder(i, false)
 	if w.refusedWalkArm(i) != walkArmPick {
 		t.Fatal("a stood-down Swarm 2 member does not take the pick")
 	}

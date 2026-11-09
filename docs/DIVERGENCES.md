@@ -174,6 +174,7 @@ copying those counts.
 | `docs/divergences/rom2-menu-and-save-pages.md` |
 | `docs/divergences/rom2-music.md` |
 | `docs/divergences/rom2-names.md` |
+| `docs/divergences/rom2-orders.md` |
 | `docs/divergences/rom2-saves.md` |
 | `docs/divergences/rom2-saves-actors.md` |
 | `docs/divergences/rom2-saves-structures.md` |

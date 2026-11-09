@@ -97,7 +97,7 @@ func TestAnIdledPickOfARefusedWithdrawalSurvivesTheWorldForm(t *testing.T) {
 }
 
 // Controls: a mage of reach 2 and a unit with no mana pool take the pick as
-// an acquisition; the second game keeps its refusal rows.
+// an acquisition; the second game's range exception idles the selected target.
 func TestARefusedRouteAnswerOutsideTheSuppressionIsUnchanged(t *testing.T) {
 	t.Parallel()
 	for _, tc := range refusedRouteEntries {
@@ -116,15 +116,14 @@ func TestARefusedRouteAnswerOutsideTheSuppressionIsUnchanged(t *testing.T) {
 		w, i := mrWalker(t, tc.name, 1, 10, true)
 		tc.call(w, i)
 		got := w.entities[i]
-		switch tc.name {
-		case "pursuit":
-			if !got.PursuitIdle || got.AttackTarget != 4 {
-				t.Errorf("second game %s: idle %v victim %d; want the old victim 4 idle", tc.name, got.PursuitIdle, got.AttackTarget)
-			}
-		default:
+		if tc.name == "walk" {
 			if got.HasAttackTarget {
-				t.Errorf("second game %s: victim %d; want none", tc.name, got.AttackTarget)
+				t.Fatal("unsupported second-game walk tail acquired a target")
 			}
+			continue
+		}
+		if !got.PursuitIdle || !got.HasAttackTarget || got.AttackTarget != 3 || got.AcquirePursuit {
+			t.Errorf("second game %s: idle %v victim %v/%d acquisition %v; want pick 3 idle", tc.name, got.PursuitIdle, got.HasAttackTarget, got.AttackTarget, got.AcquirePursuit)
 		}
 	}
 }

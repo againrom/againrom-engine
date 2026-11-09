@@ -110,7 +110,7 @@ func (w *World) claimLatch(i int, o *SavedActorOrder) bool {
 		return false
 	}
 	w.clearOrder(i)
-	w.standDownRefusedWalk(i)
+	w.stopWalkOrder(i, false)
 	binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
 	c.Arrived = false
 	w.setWalkClaim(e.ID, c)

@@ -351,7 +351,7 @@ func (w *World) approach(s *routeScratch, i int) int {
 	latched := w.entities[i].AttackPhase != AttackReady
 	// An armed approach closes to closedOn's own distance (MAGIC-239).
 	if w.closedOn(i, ti) && !w.orderStateAt(i).approaching() {
-		if !latched {
+		if !latched && !w.game.orders.liveAdmission {
 			w.turnToActor(i, ti)
 		}
 		w.restAt(s, i)
@@ -473,7 +473,7 @@ func (w *World) answerRefusedWalk(i int, by routeSearch) {
 	if e.PendingOrder.Kind != PendingPickup {
 		switch w.refusedWalkArm(i) {
 		case walkArmStandDown:
-			w.standDownRefusedWalk(i)
+			w.stopWalkOrder(i, false)
 			return
 		case walkArmNone:
 			return
@@ -504,7 +504,7 @@ const (
 // another pending order keep their own answers.
 func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
-	if w.game.nativeWalkRefusal || e.PendingOrder.Kind != PendingNone {
+	if e.PendingOrder.Kind != PendingNone || w.game.nativeWalkRefusal && !(w.game.orders.stopEmptyWalk && w.walksAtStateOne(i)) {
 		return walkArmNone
 	}
 	if e.ActorState == actorStateRetreat {
@@ -537,18 +537,26 @@ func (w *World) walksAtStateOne(i int) bool {
 	return g != nil && (g.AI[0x20] == orderMove || g.AI[0x20] == orderSwarm2)
 }
 
-// standDownRefusedWalk is the tail's state 1 arm (AI-541, AI-649): the
-// member stands down to state 0xc with its post on its current cell, the
-// pending kind 0, the arrival latch 0 and its reach in ord+0x14. The Group's
-// next pass sends it again at 0xc, so a later refusal takes the pick.
-func (w *World) standDownRefusedWalk(i int) {
+// stopWalkOrder writes a walk's arrival latch or empty-route stop.
+func (w *World) stopWalkOrder(i int, arrival bool) {
 	e := &w.entities[i]
-	e.ActorState, e.PostX, e.PostY = actorStateAcquire, e.X, e.Y
+	if arrival {
+		w.clearOrder(i)
+	}
 	o := w.ensureSavedOrder(i)
-	o.State, o.stoodDown = uint32(actorStateAcquire), true
-	binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.X)|uint16(e.Y)<<8)
-	o.Raw[8], o.Raw[0x14] = 0, uint8(e.Reach)
+	if !arrival || w.game.orders.stopEmptyWalk {
+		e.ActorState, e.PostX, e.PostY = actorStateAcquire, e.X, e.Y
+		o.State = uint32(actorStateAcquire)
+		binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.X)|uint16(e.Y)<<8)
+		o.Raw[8] = 0
+	}
+	o.Raw[0x14] = uint8(e.Reach)
 	binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
+	if arrival {
+		binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
+	} else {
+		o.stoodDown = true
+	}
 }
 
 // closedOn reports whether attacker i has walked close enough to victim ti
@@ -567,6 +575,9 @@ func (w *World) closedOn(i, ti int) bool {
 	if rule, ok := w.weaponSpell(a); ok {
 		d := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y})
 		return w.weaponCastInRange(a, t, rule) && (d <= 1 || w.actorSeesEntity(i, ti))
+	}
+	if w.game.orders.liveAdmission {
+		return int64(w.targetEdgeDistance(a, t)) <= w.attackRange(i)
 	}
 	return inReach(a, t)
 }
@@ -729,8 +740,11 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 			if s, ok := w.attackStructure(*e); ok && w.turnToStructure(i, s) {
 				return
 			}
-		} else if w.turnToActor(i, ti) {
-			return
+		} else {
+			aligned := e.Facing == w.headingBetween(*e, position)
+			if w.turnToActor(i, ti) || w.game.orders.liveAdmission && !aligned {
+				return
+			}
 		}
 		_, weaponSpellEligible := w.weaponSpell(*e)
 		weaponSpellEligible = weaponSpellEligible && !structure

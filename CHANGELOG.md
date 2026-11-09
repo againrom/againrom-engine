@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Standing units choose nearby enemies by distance and facing. Units finish their last step before switching from a move to an attack.
 - [ROM2] A save from an earlier version that the English game refused to open with an error about a unit definition now opens and plays on.
 - [ROM2] A save no longer loses the unit type of a monster group: its units keep their kind and name when the game is saved and loaded.
 - [ROM2] Winning the campaign's last mission now ends the game: after the closing movie come the credits and the Hall of Fame, then the main menu, instead of the world map and more play.

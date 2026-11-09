@@ -15,6 +15,10 @@ func sgPair(t *testing.T, second bool, member, candidate Entity) *World {
 func sgMember(tokenSize uint8, mind int32) Entity {
 	e := engReachFighter(1, 2, 10, 10, DomainGround, 1)
 	e.TokenSize, e.Mind = tokenSize, mind
+	e.Facing = 64
+	if tokenSize == 2 {
+		e.Facing = 32
+	}
 	return e
 }
 
@@ -54,7 +58,7 @@ func TestPreferenceModifiersReadTheProfileGate(t *testing.T) {
 		{name: "second actor Mind 14 withholds", second: true, mSize: 1, cSize: 1, mMind: 14, cMind: 20, order: orderGuard, want: plain},
 		{name: "second actor Mind 15 admits", second: true, mSize: 1, cSize: 1, mMind: 15, cMind: 20, order: orderGuard, prefFour: true, want: four},
 		{name: "second candidate size is not read", second: true, mSize: 1, cSize: 2, mMind: 20, cMind: 3, order: orderGuard, want: one},
-		{name: "second stand ground reads the actor", second: true, mSize: 1, cSize: 1, mMind: 14, cMind: 20, order: orderStandGround, want: plain},
+		{name: "second stand ground has no gate", second: true, mSize: 1, cSize: 1, mMind: 14, cMind: 20, order: orderStandGround, want: 512},
 	}
 	for _, c := range cases {
 		c := c

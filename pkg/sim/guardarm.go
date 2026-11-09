@@ -78,7 +78,7 @@ func (w *World) postCandidates(i int, post cell) []int {
 // postRefused reports whether the block scan names a candidate the engage
 // then refuses outright (engageRefused): the arm writes nothing past it.
 func (w *World) postRefused(i int, post cell) bool {
-	return w.engageRefused(i) && len(w.postCandidates(i, post)) > 0
+	return w.engageRefused(i, false) && len(w.postCandidates(i, post)) > 0
 }
 
 // postLeashed is the sight test before the block scan: the actor stands at
