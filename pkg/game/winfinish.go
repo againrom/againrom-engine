@@ -154,7 +154,11 @@ func bankComplete(f *FrontEnd, in winInput, _ *winState) string {
 		}
 		live.view.SetCompletionCutscene(movie)
 	}
+	firstCompletion := !town.won[in.n]
 	town.won[in.n] = true
+	if firstCompletion {
+		f.CampaignSession.completeFame(f.Campaign.Value(), in.n, in.party, in.w, in.ids, in.roster)
+	}
 	f.Offered = 0
 	for _, l := range town.second.available {
 		if l.kind == placeMission {
@@ -169,14 +173,11 @@ func bankPlace(f *FrontEnd, _ winInput, _ *winState) (int, string) {
 	return f.Town.second.enteredWithoutMap(), ""
 }
 
-// bankRoute: a refused win stays, a positive successor opens, and zero
-// travels to the town.
-func bankRoute(_ *FrontEnd, _, successor int) winRoute {
-	if successor < 0 {
-		return winStay
-	}
-	if successor > 0 {
-		return winMission
+// bankRoute is the chapter route, one terminal test included, with the map in
+// the list's place: a win that names no successor travels on.
+func bankRoute(f *FrontEnd, n, successor int) winRoute {
+	if route := chapterRoute(f, n, successor); route != winList {
+		return route
 	}
 	return winTown
 }

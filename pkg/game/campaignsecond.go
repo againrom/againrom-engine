@@ -88,9 +88,14 @@ func (secondCampaignRules) exportable(s Snapshot) error {
 	return s.second.validate()
 }
 
-// refuseCompleted admits every save exportable admitted: the second campaign
-// has no chapter record to complete.
-func (secondCampaignRules) refuseCompleted(*FrontEnd, Snapshot) error { return nil }
+// refuseCompleted refuses a town save at the bank's end stage, the campaign
+// the ending leaves no save point after (DIV-906).
+func (secondCampaignRules) refuseCompleted(f *FrontEnd, s Snapshot) error {
+	if s.Mission == 0 && s.second != nil && f.Campaign.Value().endedAt(s.second.Bank[768]) {
+		return secondRefusals.refuse(refusedCompleted)
+	}
+	return nil
+}
 
 // recordProfile: the bank states the record of a session that holds the
 // destinations campaign; its town record carries its own home word, and a
@@ -500,6 +505,14 @@ func (t *Town) SecondState() (SecondCampaignState, bool) {
 		}
 	}
 	return out, true
+}
+
+// campaignStage is the bank's stage, zero on a town without a bank.
+func (t *Town) campaignStage() int32 {
+	if t == nil || t.second == nil {
+		return 0
+	}
+	return t.second.bank[768]
 }
 
 // saveForm writes doc in the second game's saved form of its kind.

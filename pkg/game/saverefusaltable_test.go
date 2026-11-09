@@ -33,7 +33,7 @@ func TestSaveRefusalTablesGiveTodaysAnswers(t *testing.T) {
 		rows  []refusalCondition
 	}{
 		{"first", firstRefusals, []refusalCondition{refusedNoGame, refusedCompleted, refusedWorldMapReturn, refusedListMap}},
-		{"second", secondRefusals, []refusalCondition{refusedWorldMapReturn, refusedListMap, refusedTalk, refusedNotice, refusedWorldMap, refusedLost, refusedHere}},
+		{"second", secondRefusals, []refusalCondition{refusedCompleted, refusedWorldMapReturn, refusedListMap, refusedTalk, refusedNotice, refusedWorldMap, refusedLost, refusedHere}},
 	}
 	for _, tc := range tables {
 		held := map[refusalCondition]bool{}

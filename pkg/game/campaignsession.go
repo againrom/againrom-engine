@@ -167,7 +167,7 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 	// Nothing is completed or paid and the town is not reached (DIV-3799).
 	// The campaign's ending is checked first (SAV-1336), by the won mission's
 	// declared LastMission rather than the carried word (DIV-3800).
-	if main, ok := s.Town.missionEndTravel(campaign.TerminalMission(n)); ok {
+	if main, ok := s.Town.missionEndTravel(campaign.TerminalMission(n, s.Town.campaignStage())); ok {
 		s.Offered = 0
 		if _, addressable := MissionMap(main); addressable {
 			return main, fmt.Sprintf("mission %d won - the party goes back to mission %d's map point; mission %d opens again", n, main, main)

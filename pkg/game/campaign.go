@@ -160,6 +160,10 @@ type Campaign struct {
 	// install's edition names it; nil holds town 1 alone.
 	Towns *townBook
 
+	// EndStage is the edition's bank stage that ends the campaign; 0 where
+	// the registry's LastMission does.
+	EndStage int32
+
 	// worldMap is the world-map catalog LoadCampaign read beside the
 	// scenario; the world-map assets take it. Nil for a campaign read
 	// from a registry alone.

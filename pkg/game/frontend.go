@@ -667,6 +667,7 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 	// nothing, and a front end that went looking for an archive after a win
 	// would answer differently depending on when it was asked.
 	campaign, campaignErr := LoadCampaign(archives.Containers)
+	campaign.EndStage = archives.Base.Profile.Edition().CampaignEndStage
 	if campaignErr == nil {
 		campaign = WithDefaultTransitionRewards(campaign)
 		campaign.Towns = townBookOf(archives.Base.Profile)

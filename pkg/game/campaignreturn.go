@@ -286,7 +286,7 @@ func (s *CampaignSession) routeAfterWin(campaign Campaign, n, successor int) win
 	if successor < 0 {
 		return winStay
 	}
-	if campaign.TerminalMission(n) && s.Town.Done(n) {
+	if campaign.TerminalMission(n, s.Town.campaignStage()) && s.Town.Done(n) {
 		s.endLive()
 		return winEnding
 	}

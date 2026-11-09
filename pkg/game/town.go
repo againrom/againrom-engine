@@ -717,7 +717,7 @@ func (t *Town) currentMain() int {
 // Completing the final main leaves no further chapter.
 func (t *Town) Chapter() int {
 	main := t.currentMain()
-	if t != nil && t.won[main] && (t.progress == nil || t.camp.TerminalMission(main)) {
+	if t != nil && t.won[main] && (t.progress == nil || t.camp.TerminalMission(main, t.campaignStage())) {
 		return 0
 	}
 	return main

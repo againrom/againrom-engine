@@ -62,6 +62,7 @@ var (
 		saveRefusal{condition: refusedListMap, text: "a map opened from the list is not a game and cannot be saved"},
 	)
 	secondRefusals = refusals(
+		firstRefusals[refusedCompleted],
 		firstRefusals[refusedWorldMapReturn],
 		firstRefusals[refusedListMap],
 		saveRefusal{condition: refusedTalk, reasonWord: "save.refused.talk", text: errSavingUnavailable.Error()},

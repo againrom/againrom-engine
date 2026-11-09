@@ -8,11 +8,14 @@ import (
 	"againrom/pkg/vfs"
 )
 
-// TerminalMission is the installed flag plus the original main-mission gate,
-// not the absence of a successor (REG-SCN-063, SAV-890).
-func (c Campaign) TerminalMission(n int) bool {
-	return n > 0 && n%10 == 0 && c.Last[n]
+// TerminalMission is the one end-of-campaign test: the installed flag plus the
+// original main-mission gate, not the absence of a successor (REG-SCN-063,
+// SAV-890), or the edition's end stage reached by the bank (R2-ENGINE-422).
+func (c Campaign) TerminalMission(n int, stage int32) bool {
+	return c.endedAt(stage) || n > 0 && n%10 == 0 && c.Last[n]
 }
+
+func (c Campaign) endedAt(stage int32) bool { return c.EndStage > 0 && stage >= c.EndStage }
 
 // A finished campaign is neither a city nor a mission, so no SAV holds it.
 var errCompletedCampaignFile = errors.New("this save holds a completed campaign; the game has no save point after the campaign ends, so it cannot be loaded")
@@ -21,8 +24,12 @@ func (c Campaign) completedBy(t *Town) bool {
 	if t == nil {
 		return false
 	}
+	stage := t.campaignStage()
+	if c.endedAt(stage) {
+		return true
+	}
 	for _, n := range c.Main {
-		if c.TerminalMission(n) && t.Done(n) {
+		if c.TerminalMission(n, stage) && t.Done(n) {
 			return true
 		}
 	}

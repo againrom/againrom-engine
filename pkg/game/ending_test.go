@@ -17,7 +17,7 @@ func TestEndingRequiresInstalledFlagAndMainMission(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := ReadCampaign(r)
-	if !c.Last[31] || c.TerminalMission(31) || c.TerminalMission(20) || !c.TerminalMission(30) || c.TerminalMission(150) {
+	if !c.Last[31] || c.TerminalMission(31, 0) || c.TerminalMission(20, 0) || !c.TerminalMission(30, 0) || c.TerminalMission(150, 0) {
 		t.Fatal("ending predicate", c.Last)
 	}
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: NewTown(c)}}

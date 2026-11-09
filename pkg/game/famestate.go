@@ -65,7 +65,7 @@ func (s *CampaignSession) completeFame(campaign Campaign, n int, party []mapload
 		return
 	}
 	s.fame.Time += uint32(int32(uint32(w.Tick())) / 16)
-	if !s.fame.Known || s.fame.Result != nil || !campaign.TerminalMission(n) {
+	if !s.fame.Known || s.fame.Result != nil || !campaign.TerminalMission(n, s.Town.campaignStage()) {
 		return
 	}
 	// Party order and the selected actor are not the primary hero's identity.

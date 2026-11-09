@@ -22,6 +22,11 @@ type Edition struct {
 	// service from.
 	Campaign Campaign
 
+	// CampaignEndStage is the scenario bank's stage at which a won mission
+	// ends the campaign (R2-ENGINE-422); 0 means the campaign's own registry
+	// states its end.
+	CampaignEndStage int32
+
 	// Towns names the game's town catalog: every town the game offers, each
 	// with its description, hook set, offer source and world-map point.
 	Towns string
@@ -242,9 +247,12 @@ var firstEdition = Edition{
 }
 
 var secondEdition = Edition{
-	Game:         GameROM2,
-	SaveTag:      GameROM2,
-	Campaign:     CampaignDestinations,
+	Game:     GameROM2,
+	SaveTag:  GameROM2,
+	Campaign: CampaignDestinations,
+
+	CampaignEndStage: 120,
+
 	Towns:        "rom2",
 	Generator:    "rom2",
 	Music:        "rom2",
