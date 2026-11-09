@@ -502,7 +502,7 @@ func savGateBrief(s string) string {
 }
 
 // savGateOpen builds one front end and opens a case's mission on it.
-func savGateOpen(t *testing.T, assets, title string, c savGateCase, raw []byte) (*FrontEnd, *ui.App, string, bool) {
+func savGateOpen(t testing.TB, assets, title string, c savGateCase, raw []byte) (*FrontEnd, *ui.App, string, bool) {
 	t.Helper()
 	f, err := decodedInstallFront(assets)
 	if err != nil {
@@ -627,7 +627,7 @@ func savGateDrop(t *testing.T, f *FrontEnd, c savGateCase) {
 
 // savGateSave writes f through the player's SAVE dialog route, on or off the
 // map, and returns the written bytes.
-func savGateSave(t *testing.T, f *FrontEnd, onMap bool) ([]byte, string) {
+func savGateSave(t testing.TB, f *FrontEnd, onMap bool) ([]byte, string) {
 	dir := t.TempDir()
 	seams := f.SaveDialogSeams(SaveStore{Dir: dir}, OriginalStore{})
 	prepared, err := seams.Prepare(ui.SaveRequest{OnMap: onMap, Directory: dir, Name: "gate", Format: ui.SaveSAV})
@@ -863,7 +863,7 @@ func savGateOriginalView(t *testing.T, c savGateCase, written []byte) {
 
 // savGateSaveLoad saves f through the player's SAVE dialog route and restores
 // the written file into a second front end.
-func savGateSaveLoad(t *testing.T, assets string, c savGateCase, f *FrontEnd) (*FrontEnd, *ui.App, []byte, string) {
+func savGateSaveLoad(t testing.TB, assets string, c savGateCase, f *FrontEnd) (*FrontEnd, *ui.App, []byte, string) {
 	written, refusal := savGateSave(t, f, true)
 	if refusal != "" {
 		return nil, nil, nil, refusal

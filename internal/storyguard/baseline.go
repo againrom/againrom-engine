@@ -4452,5 +4452,9 @@ var Committed = Baseline{
 
 	// It rises for the headless picture witness, the request's and the finder's
 	// doc comments, the headless request guard, and this note.
-	CommentBytes: 10749842,
+
+	// It rises for the once-per-process writer round trip: the memo, the
+	// recorder and their tests in pkg/game/milestone2_writer_admission_test.go,
+	// and this note.
+	CommentBytes: 10751615,
 }

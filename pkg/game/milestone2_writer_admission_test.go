@@ -10,7 +10,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"againrom/internal/cityfixture"
@@ -82,7 +85,7 @@ func milestone2CarrierApplies(t *testing.T, mf milestone2File, carrier uint32) b
 	return false
 }
 
-func milestone2DocumentBytes(t *testing.T, raw []byte) []byte {
+func milestone2DocumentBytes(t testing.TB, raw []byte) []byte {
 	t.Helper()
 	f, err := sav.Open(raw)
 	if err != nil {
@@ -111,8 +114,231 @@ func milestone2DocumentBytes(t *testing.T, raw []byte) []byte {
 	return out.Bytes()
 }
 
-func milestone2WriterRoundTrip(t *testing.T, assets string, mf milestone2File, changed bool) []string {
+// milestone2WriterRoundTrip takes one file through Againrom SAVE and cold LOAD.
+// The same assets root, file name, bytes, world presence and mode compute once
+// per process, and every caller replays the recorded outcome, a failure with
+// its message included. An outcome is text and the unchanged mode returns no
+// changes, so a caller receives nothing it could write. A changed call plays
+// the world on and returns what the census tallies; it is not memoized.
+func milestone2WriterRoundTrip(t testing.TB, assets string, mf milestone2File, changed bool) []string {
 	t.Helper()
+	if changed {
+		return milestone2WriterRoundTripRun(t, assets, mf, changed)
+	}
+	key := writerRoundTripKey{assets: assets, rel: mf.rel, raw: sha256.Sum256(mf.raw), present: mf.present, changed: changed}
+	writerRoundTrips.Lock()
+	if writerRoundTrips.slots == nil {
+		writerRoundTrips.slots = map[writerRoundTripKey]*writerRoundTripSlot{}
+	}
+	slot := writerRoundTrips.slots[key]
+	if slot == nil {
+		slot = &writerRoundTripSlot{}
+		writerRoundTrips.slots[key] = slot
+	}
+	writerRoundTrips.Unlock()
+	slot.once.Do(func() {
+		slot.outcome = recordWriterRoundTrip(t, func(rec testing.TB) {
+			milestone2WriterRoundTripRun(rec, assets, mf, changed)
+		})
+	})
+	slot.outcome.replay(t)
+	return nil
+}
+
+type writerRoundTripKey struct {
+	assets  string
+	rel     string
+	raw     [sha256.Size]byte
+	present bool
+	changed bool
+}
+
+type writerRoundTripSlot struct {
+	once    sync.Once
+	outcome writerRoundTripOutcome
+}
+
+var writerRoundTrips struct {
+	sync.Mutex
+	slots map[writerRoundTripKey]*writerRoundTripSlot
+}
+
+// writerRoundTripRuns counts the round trips actually computed in this process.
+var writerRoundTripRuns atomic.Int64
+
+// writerRoundTripOutcome is what one round trip reported, in order.
+type writerRoundTripOutcome struct {
+	lines   []writerRoundTripLine
+	failed  bool
+	stopped bool
+}
+
+type writerRoundTripLine struct {
+	text   string
+	failed bool
+}
+
+// replay reports o to t as the round trip reported it.
+func (o writerRoundTripOutcome) replay(t testing.TB) {
+	t.Helper()
+	for _, line := range o.lines {
+		if line.failed {
+			t.Error(line.text)
+		} else {
+			t.Log(line.text)
+		}
+	}
+	if o.failed {
+		t.Fail()
+	}
+	if o.stopped {
+		t.FailNow()
+	}
+}
+
+// writerRoundTripRecorder is the testing.TB one round trip runs against. Only
+// TempDir reaches the owner, whose test outlives the round trip; the embedded
+// TB stays nil, so a call this type does not state panics.
+type writerRoundTripRecorder struct {
+	testing.TB
+	owner    testing.TB
+	outcome  writerRoundTripOutcome
+	cleanups []func()
+}
+
+// recordWriterRoundTrip runs round on its own goroutine, so a Fatal ends only
+// round, and returns its outcome after its cleanups, so a failure a cleanup
+// reports is part of what every caller replays.
+func recordWriterRoundTrip(owner testing.TB, round func(testing.TB)) writerRoundTripOutcome {
+	rec := &writerRoundTripRecorder{owner: owner}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer rec.runCleanups()
+		round(rec)
+	}()
+	<-done
+	return rec.outcome
+}
+
+// runCleanups runs the cleanups last first; the defer carries on past a
+// cleanup that stops its goroutine.
+func (r *writerRoundTripRecorder) runCleanups() {
+	if n := len(r.cleanups); n > 0 {
+		cleanup := r.cleanups[n-1]
+		r.cleanups = r.cleanups[:n-1]
+		defer r.runCleanups()
+		cleanup()
+	}
+}
+
+func (r *writerRoundTripRecorder) add(failed bool, text string) {
+	r.outcome.lines = append(r.outcome.lines, writerRoundTripLine{text: text, failed: failed})
+	r.outcome.failed = r.outcome.failed || failed
+}
+
+func writerRoundTripText(args ...any) string {
+	return strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+}
+
+func (r *writerRoundTripRecorder) Helper()                   {}
+func (r *writerRoundTripRecorder) Log(args ...any)           { r.add(false, writerRoundTripText(args...)) }
+func (r *writerRoundTripRecorder) Logf(f string, a ...any)   { r.add(false, fmt.Sprintf(f, a...)) }
+func (r *writerRoundTripRecorder) Error(args ...any)         { r.add(true, writerRoundTripText(args...)) }
+func (r *writerRoundTripRecorder) Errorf(f string, a ...any) { r.add(true, fmt.Sprintf(f, a...)) }
+func (r *writerRoundTripRecorder) Fail()                     { r.outcome.failed = true }
+func (r *writerRoundTripRecorder) Failed() bool              { return r.outcome.failed }
+func (r *writerRoundTripRecorder) Cleanup(cleanup func())    { r.cleanups = append(r.cleanups, cleanup) }
+func (r *writerRoundTripRecorder) TempDir() string           { return r.owner.TempDir() }
+
+func (r *writerRoundTripRecorder) FailNow() {
+	r.outcome.failed, r.outcome.stopped = true, true
+	runtime.Goexit()
+}
+
+func (r *writerRoundTripRecorder) Fatal(args ...any) {
+	r.Error(args...)
+	r.FailNow()
+}
+
+func (r *writerRoundTripRecorder) Fatalf(f string, a ...any) {
+	r.Errorf(f, a...)
+	r.FailNow()
+}
+
+// TestWriterRoundTripMemoFailsEveryCaller faults the round trip itself: a
+// missing install refuses its first LOAD on the world and the town route. The
+// first caller and a memoized one fail with one computation and one message;
+// a changed call computes each time.
+func TestWriterRoundTripMemoFailsEveryCaller(t *testing.T) {
+	raw, err := cityfixture.Original(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(t.TempDir(), "no-such-install")
+	for _, present := range []bool{true, false} {
+		mf := milestone2File{rel: fmt.Sprint("fault-", present), raw: raw, f: mustMilestone2Open(t, raw), present: present}
+		call := func(changed bool) writerRoundTripOutcome {
+			return recordWriterRoundTrip(t, func(tb testing.TB) {
+				milestone2WriterRoundTrip(tb, root, mf, changed)
+			})
+		}
+		before := writerRoundTripRuns.Load()
+		first, memoized := call(false), call(false)
+		if got := writerRoundTripRuns.Load() - before; got != 1 {
+			t.Errorf("present=%t: two callers computed %d times, want 1", present, got)
+		}
+		if !first.failed || !first.stopped || len(first.lines) != 1 || !strings.Contains(first.lines[0].text, "no-such-install") {
+			t.Errorf("present=%t: first caller's outcome %+v", present, first)
+		}
+		if !reflect.DeepEqual(memoized, first) {
+			t.Errorf("present=%t: memoized caller's outcome %+v, first %+v", present, memoized, first)
+		}
+		before = writerRoundTripRuns.Load()
+		changedFirst, changedSecond := call(true), call(true)
+		if got := writerRoundTripRuns.Load() - before; got != 2 {
+			t.Errorf("present=%t: two changed calls computed %d times, want 2", present, got)
+		}
+		if !changedFirst.failed || !changedSecond.failed {
+			t.Errorf("present=%t: changed outcomes %+v and %+v", present, changedFirst, changedSecond)
+		}
+	}
+}
+
+// TestWriterRoundTripRecorderReplaysTheOutcome pins the order of the lines, a
+// Fatal ending the round trip, and a cleanup's failure entering the outcome.
+func TestWriterRoundTripRecorderReplaysTheOutcome(t *testing.T) {
+	logged, failed, stopped, ranOn, cleanup := writerRoundTripLine{text: "logged 1"}, writerRoundTripLine{text: "failed 3", failed: true},
+		writerRoundTripLine{text: "stopped 4", failed: true}, writerRoundTripLine{text: "ran on"}, writerRoundTripLine{text: "cleanup 2", failed: true}
+	for _, tc := range []struct {
+		stop bool
+		want []writerRoundTripLine
+	}{
+		{false, []writerRoundTripLine{logged, failed, ranOn, cleanup}},
+		{true, []writerRoundTripLine{logged, failed, stopped, cleanup}},
+	} {
+		got := recordWriterRoundTrip(t, func(tb testing.TB) {
+			tb.Helper()
+			tb.Logf("logged %d", 1)
+			tb.Cleanup(func() { tb.Error("cleanup", 2) })
+			tb.Errorf("failed %d", 3)
+			if tc.stop {
+				tb.Fatal("stopped", 4)
+			}
+			tb.Log("ran on")
+		})
+		if want := (writerRoundTripOutcome{lines: tc.want, failed: true, stopped: tc.stop}); !reflect.DeepEqual(got, want) {
+			t.Errorf("stop=%t: outcome %+v, want %+v", tc.stop, got, want)
+		}
+		if replayed := recordWriterRoundTrip(t, got.replay); !reflect.DeepEqual(replayed, got) {
+			t.Errorf("stop=%t: replayed %+v, recorded %+v", tc.stop, replayed, got)
+		}
+	}
+}
+
+func milestone2WriterRoundTripRun(t testing.TB, assets string, mf milestone2File, changed bool) []string {
+	t.Helper()
+	writerRoundTripRuns.Add(1)
 	if !mf.present {
 		milestone2WriterTownRoundTrip(t, assets, mf)
 		return nil
@@ -174,7 +400,7 @@ func milestone2WriterRoundTrip(t *testing.T, assets string, mf milestone2File, c
 	return changes
 }
 
-func milestone2WriterTownRoundTrip(t *testing.T, assets string, mf milestone2File) {
+func milestone2WriterTownRoundTrip(t testing.TB, assets string, mf milestone2File) {
 	t.Helper()
 	open := func(raw []byte) *FrontEnd {
 		f, err := decodedInstallFront(assets)
@@ -220,7 +446,7 @@ func milestone2WriterTownRoundTrip(t *testing.T, assets string, mf milestone2Fil
 	t.Log("M2-WRITER town: no World; town state and owned document bytes survived SAVE/cold LOAD")
 }
 
-func mustMilestone2Open(t *testing.T, raw []byte) *sav.File {
+func mustMilestone2Open(t testing.TB, raw []byte) *sav.File {
 	t.Helper()
 	f, err := sav.Open(raw)
 	if err != nil {

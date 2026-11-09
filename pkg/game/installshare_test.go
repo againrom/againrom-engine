@@ -33,7 +33,7 @@ func (p *censusMusicDevice) Ended() bool {
 	return false
 }
 
-func headlessCensusMusic(t *testing.T, f *FrontEnd) {
+func headlessCensusMusic(t testing.TB, f *FrontEnd) {
 	t.Helper()
 	device := &censusMusicDevice{}
 	f.MusicPlayer = device
@@ -47,7 +47,7 @@ func headlessCensusMusic(t *testing.T, f *FrontEnd) {
 	})
 }
 
-func cleanupFrontAudio(t *testing.T, f *FrontEnd) {
+func cleanupFrontAudio(t testing.TB, f *FrontEnd) {
 	t.Helper()
 	devices := []interface{ Stop() }{f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer}
 	owner := ui.DeliveryOwner(f.SoundPlayer)

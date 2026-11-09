@@ -15,7 +15,7 @@ import (
 // up a Sack since its own LOAD holds a bit the next LOAD does not. Every other
 // field of w stays, so a comparison against loaded still covers every carried
 // id, and play continued from w allocates as play continued from loaded.
-func adoptLoadedAllocator(t *testing.T, w, loaded *sim.World) *sim.World {
+func adoptLoadedAllocator(t testing.TB, w, loaded *sim.World) *sim.World {
 	t.Helper()
 	marks := loaded.RuntimeIDMarks()
 	records := make([]sim.RuntimeIDLoad, len(marks))
