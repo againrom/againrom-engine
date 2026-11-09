@@ -2887,28 +2887,11 @@ func itemStateEqual(a, b sim.ItemInstance) bool {
 	return true
 }
 
-// playDollChange plays the profile's put-on member when a slot gained or
-// changed an item between before and after, else its take-off member when a
-// slot lost one. The sound is presentation only and enters no state.
+// playDollChange plays the profile's sound for what the gesture did to the
+// figure's slots. The sound is presentation only and enters no state.
 func (mw *mapWorld) playDollChange(before, after [sim.EquipSlots]sim.ItemInstance) {
-	sounds := mw.files().dollSounds
-	var on, off bool
-	for i := range before {
-		if itemStateEqual(before[i], after[i]) {
-			continue
-		}
-		if after[i].Empty() {
-			off = true
-		} else {
-			on = true
-		}
-	}
-	switch {
-	case on:
-		mw.view.PlayNamedUISound(sounds.on)
-	case off:
-		mw.view.PlayNamedUISound(sounds.off)
-	}
+	p := mw.files().dollSounds
+	p.play(decideDollChange(before, after, p.mixed), func(string) {}, mw.view.PlayNamedUISound)
 }
 
 // weaponFallbackSpent is a PRESENT-STATE OBSERVATION with exactly one term:

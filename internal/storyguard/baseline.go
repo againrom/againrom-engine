@@ -4421,5 +4421,5 @@ var Committed = Baseline{
 	// release test, and this note.
 	// Recomputed after merging the inn page and current main's independent changes.
 	// CommentBytes rises for live-input binding in pkg/ui/roomframe.go and this note.
-	CommentBytes: 10719305,
+	CommentBytes: 10720383,
 }

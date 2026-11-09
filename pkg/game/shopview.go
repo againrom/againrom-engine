@@ -303,12 +303,7 @@ func (t *shopController) shopTableSounds(pick, onFigure bool, act func() ui.Town
 		t.play("table-drop")
 	}
 	if wornAfter := t.shopWornSnapshot(); t.shopMemberIndex() == member {
-		switch had, has := wornCount(wornBefore), wornCount(wornAfter); {
-		case has < had:
-			t.play("doll-off")
-		case has > had || wornAfter != wornBefore:
-			t.play("doll-on")
-		}
+		shopDollSounds.play(decideDollChange(wornBefore, wornAfter, shopDollSounds.mixed), t.play, func(string) {})
 	}
 	if t.shopTablePlaces() > places {
 		// A new place shows: the strip turns to the last one.
@@ -318,26 +313,17 @@ func (t *shopController) shopTableSounds(pick, onFigure bool, act func() ui.Town
 }
 
 // shopWornSnapshot is what the shown member wears now, as the figure shows it.
-func (t *shopController) shopWornSnapshot() (out [sim.EquipSlots]string) {
+func (t *shopController) shopWornSnapshot() (out [sim.EquipSlots]sim.ItemInstance) {
 	if !t.shownRoom() || t.sess == nil {
 		return out
 	}
 	i := t.shopMemberIndex()
 	for n := 1; n <= sim.EquipSlots; n++ {
 		if item, ok := t.shopEquippedItem(i, n); ok && !item.Empty() {
-			out[n-1] = fmt.Sprintf("%#v", item)
+			out[n-1] = item
 		}
 	}
 	return out
-}
-
-func wornCount(w [sim.EquipSlots]string) (n int) {
-	for _, s := range w {
-		if s != "" {
-			n++
-		}
-	}
-	return n
 }
 
 func (t *shopController) shopTablePlaces() int {

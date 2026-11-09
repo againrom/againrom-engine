@@ -19,8 +19,8 @@ import (
 // the definition table for the placement decoder.
 type gameFiles struct {
 	hover ui.HoverProfile
-	// dollSounds name the sfx.res members the mission inventory plays when an
-	// item goes on the figure and when one comes off; empty names stay silent.
+	// dollSounds state how the mission inventory decides a figure change and
+	// the sfx.res members it plays; empty sources stay silent.
 	dollSounds     dollSoundProfile
 	cursorHotspots [28]image.Point
 	table          databin.Layout
@@ -199,9 +199,6 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 // terrainCostsAddress is the installed Terrain cost table's address.
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
-// dollSoundProfile is the pair of members a figure's put-on and take-off play.
-type dollSoundProfile struct{ on, off string }
-
 var firstGameFiles = gameFiles{
 	hire:              &tavernHires,
 	hover:             ui.KindRectangleHover,
@@ -255,9 +252,10 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 var secondGameFiles = gameFiles{
 	shippedPlayerColours: true,
 	hire:                 &bankHires,
-	dollSounds:           dollSoundProfile{on: "put_on.wav", off: "put_off.wav"},
-	hover:                ui.KindRectangleHover,
-	cursorHotspots:       secondCursorHotspots,
+	dollSounds: dollSoundProfile{mixed: dollAnyGain,
+		on: dollSoundSource{member: "put_on.wav"}, off: dollSoundSource{member: "put_off.wav"}},
+	hover:          ui.KindRectangleHover,
+	cursorHotspots: secondCursorHotspots,
 	portraitWindows: portraitWindowProfile{
 		fallback: ui.AuthoredDialogueLayout().PortraitWindow,
 		byType: map[int32]image.Point{
