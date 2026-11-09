@@ -56,7 +56,7 @@ func selectUsedByObject(t *testing.T, e *ui.MapEditor, kind string) {
 	e.Select(trigRecord(t, e, "Action", 0), false)
 	for i, text := range e.PopupLines() {
 		if text == "Open Group" {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			trigClick(t, e, r, ok, "Open Group")
 			return
 		}
@@ -125,10 +125,10 @@ func TestScriptUsedByKinds(t *testing.T) {
 			}
 			for _, row := range []int{second, first} {
 				selectUsedByObject(t, e, tc.kind)
-				r, ok := e.PopupRowRect(row)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 				for k := 0; !ok && k < 30; k++ {
 					e.ScrollDetails(1)
-					r, ok = e.PopupRowRect(row)
+					r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 				}
 				trigClick(t, e, r, ok, "Used by trigger")
 				want := m.Triggers[0].Record
@@ -176,7 +176,7 @@ func TestScriptUsedByBackPreservesDraft(t *testing.T) {
 	if field < 0 {
 		t.Fatal("no numeric unit field")
 	}
-	r, ok := e.FieldRect(field)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	trigClick(t, e, r, ok, "unit field")
 	for k := 0; k < 12; k++ {
 		_ = e.Key("backspace")
@@ -194,10 +194,10 @@ func TestScriptUsedByBackPreservesDraft(t *testing.T) {
 	}
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, "Trigger 1  First:") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			for k := 0; !ok && k < 30; k++ {
 				e.ScrollDetails(1)
-				r, ok = e.PopupRowRect(i)
+				r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			}
 			trigClick(t, e, r, ok, "Used by")
 			break
@@ -206,7 +206,7 @@ func TestScriptUsedByBackPreservesDraft(t *testing.T) {
 	if e.Selected() != e.Document().Script.Triggers[0].Record {
 		t.Fatal("draft prevented navigation", e.PopupLines())
 	}
-	r, ok = e.PopupButtonRect(5) // after the wizard's Apply, Cancel, New, Delete and Details
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 5}) // after the wizard's Apply, Cancel, New, Delete and Details
 	trigClick(t, e, r, ok, "Back")
 	if e.Document().Records[e.Selected()].Kind != "Unit" || !strings.Contains(trigLines(e), draft) {
 		t.Fatal("draft lost", draft, e.PopupLines())
@@ -220,7 +220,7 @@ func TestScriptUsedByRebuildAfterApplyUndoRedo(t *testing.T) {
 	e := usedByEditor(t)
 	e.Select(trigRecord(t, e, "Action", 0), false)
 	trigChoose(t, e, 2, "unit 11 at")
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	check := func(old, next int) {
 		t.Helper()

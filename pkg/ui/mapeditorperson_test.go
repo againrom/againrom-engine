@@ -76,7 +76,7 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 									at = i
 								}
 							}
-							r, ok := e.FieldRect(at)
+							r, ok := e.FindControl(ControlQuery{Role: ControlField, N: at})
 							if !ok || r.Empty() {
 								t.Fatal("wide setup hides slot", slot)
 							}
@@ -178,7 +178,7 @@ func TestEditorPersonTabKeepsFocusVisibleAcrossSections(t *testing.T) {
 		}
 		f := e.obj.fields[e.obj.focus]
 		seen[f.Section] = true
-		if _, ok := e.FieldRect(e.obj.focus); !ok {
+		if _, ok := e.FindControl(ControlQuery{Role: ControlField, N: e.obj.focus}); !ok {
 			t.Fatal("Tab focused a scrolled-out field", f.Key)
 		}
 	}

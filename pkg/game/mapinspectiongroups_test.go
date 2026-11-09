@@ -65,7 +65,7 @@ func TestMapEditorGroupKeyAndButtonUndoInOneStep(t *testing.T) {
 	}
 	selectArea(e, image.Pt(11, 11), image.Pt(21, 21))
 	c := &editorClicker{t: t}
-	r, ok := e.SelectionButtonRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlSelectionButton, N: 1})
 	c.click(e, r, ok, "Remove from group")
 	if bytes.Equal(e.Document().SourceBytes, grouped) {
 		t.Fatal("Remove from group wrote nothing")

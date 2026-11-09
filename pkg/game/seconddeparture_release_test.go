@@ -543,7 +543,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						t.Fatal("town2 reused the first-town talk")
 					}
 					sample := secondTownSampleNow(t, f, app)
-					frame, _, err := app.HeadlessFrame()
+					frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 					if err != nil {
 						t.Fatal(err)
 					}

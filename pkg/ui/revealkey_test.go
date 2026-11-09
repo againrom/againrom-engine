@@ -37,7 +37,7 @@ func TestShiftF4HeadlessRevealsMinimapWithoutSaving(t *testing.T) {
 	beforeApp, world := h.v.SaveApplication(), h.w.world
 	picture := func() *image.RGBA {
 		t.Helper()
-		pic, err := h.a.HeadlessMinimap()
+		pic, _, err := h.a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartMinimap})
 		if err != nil {
 			t.Fatal(err)
 		}

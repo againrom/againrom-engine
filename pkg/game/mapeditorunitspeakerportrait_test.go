@@ -56,7 +56,7 @@ func TestUnitWindowWithAFaceKeepsInsideTheEditor(t *testing.T) {
 	c := &editorClicker{t: t}
 	for _, view := range []string{"first", "switched"} {
 		if view == "switched" {
-			r, ok := e.ViewSwitchRect()
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlViewSwitch})
 			c.click(e, r, ok, "view switch")
 		}
 		e.ScrollDetails(-100)

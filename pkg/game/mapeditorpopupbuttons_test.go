@@ -46,7 +46,7 @@ func promptSign(e *ui.MapEditor) string {
 // changed the window or its state.
 func pressPromptButton(t *testing.T, e *ui.MapEditor, n int) bool {
 	t.Helper()
-	r, ok := e.PromptButtonRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: n})
 	if !ok {
 		t.Fatalf("no drawn button %d", n)
 	}
@@ -61,7 +61,7 @@ func pressPromptButton(t *testing.T, e *ui.MapEditor, n int) bool {
 func promptButtonCount(e *ui.MapEditor) int {
 	n := 0
 	for {
-		if _, ok := e.PromptButtonRect(n); !ok {
+		if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: n}); !ok {
 			return n
 		}
 		n++

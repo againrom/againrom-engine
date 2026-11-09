@@ -18,7 +18,7 @@ func TestSpeakerPickedOnTheMapWearsTheInfoWindowLook(t *testing.T) {
 	e, s := speakerPickEditor(t)
 	openPageOne(t, e)
 	press := func() {
-		r, ok := e.RowButtonRect(1, 0, false)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 1, K: 0, Flag: false})
 		messageClick(t, e, r, ok)
 	}
 	click := func(cell image.Point) {

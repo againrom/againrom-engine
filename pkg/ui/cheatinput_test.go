@@ -29,7 +29,7 @@ func TestCheatChatRoutesEveryCommandThroughAppInput(t *testing.T) {
 			if line, open := a.HeadlessChatState(); !open || line != command || len(got) != 0 {
 				t.Fatalf("draft=(%q,%v), submissions=%v", line, open, got)
 			}
-			if pic, err := a.HeadlessChatFrame(); err != nil || pic == nil {
+			if pic, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartChat}); err != nil || pic == nil {
 				t.Fatalf("chat picture=%v error=%v", pic, err)
 			}
 			if err := a.HeadlessKey("numpad-enter"); err != nil {
@@ -193,7 +193,7 @@ func TestCheatChatUsesMissionFontAndInstallEncoder(t *testing.T) {
 			if err := a.HeadlessType(line, false); err != nil {
 				t.Fatal(err)
 			}
-			pic, err := a.HeadlessChatFrame()
+			pic, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartChat})
 			if err != nil || pic.Bounds().Empty() || !slices.Equal(runes, []rune(line)) {
 				t.Fatalf("chat picture=%v encoder runes=%v error=%v", pic, runes, err)
 			}

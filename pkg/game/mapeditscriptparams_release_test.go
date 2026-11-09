@@ -37,10 +37,10 @@ func parameterTag(tag uint32) bool {
 
 func chooseParameterValue(t *testing.T, e *ui.MapEditor, field int, value uint32, targets []ui.InspectionScriptTarget) {
 	t.Helper()
-	r, ok := e.FieldRect(field)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	for k := 0; !ok && k < 30; k++ {
 		e.ScrollDetails(1)
-		r, ok = e.FieldRect(field)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	}
 	trigClick(t, e, r, ok, "parameter")
 	e.ScrollDropdown(-len(e.DropdownChoices()))
@@ -63,7 +63,7 @@ func chooseParameterValue(t *testing.T, e *ui.MapEditor, field int, value uint32
 		t.Fatalf("no value %d in field %d choices %q", value, field, e.DropdownChoices())
 	}
 	for k := 0; k < 800; k++ {
-		if r, ok := e.DropdownRowRect(row); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 			trigClick(t, e, r, ok, "parameter value")
 			return
 		}
@@ -157,7 +157,7 @@ func TestReleaseMapEditorParameterCurrentPicksPreserveBytes(t *testing.T) {
 					}
 					e.Select(n.Record, false)
 					chooseParameterValue(t, e, parameterField(n, p), n.Values[p], sc.Targets[tag])
-					r, ok := e.PopupButtonRect(0)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 					trigClick(t, e, r, ok, "Apply current")
 					if !bytes.Equal(before, e.Document().SourceBytes) || e.Dirty() {
 						t.Fatalf("%s record %d Par%d current pick changed bytes", key, n.Record, p)
@@ -224,7 +224,7 @@ func TestReleaseMapEditorParameterChangedPicksSaveReopenCompile(t *testing.T) {
 						}
 						e.Select(n.Record, false)
 						chooseParameterValue(t, e, parameterField(n, p), target.Value, sc.Targets[tag])
-						r, ok := e.PopupButtonRect(0)
+						r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 						trigClick(t, e, r, ok, "Apply different")
 						if bytes.Equal(e.Document().SourceBytes, objectEdits(t, e).saved) {
 							t.Fatal("changed pick did not apply", tag, trigLines(e))
@@ -354,7 +354,7 @@ func TestReleaseMapEditorParameterFrames(t *testing.T) {
 						continue
 					}
 					e.Select(n.Record, false)
-					r, ok := e.FieldRect(parameterField(n, p))
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: parameterField(n, p)})
 					trigClick(t, e, r, ok, "dropdown")
 					editorShot(t, e, dir, fmt.Sprintf("parameter-%d-dropdown", tag), image.Rect(r.Min.X, r.Max.Y, 1280, 800))
 					_ = e.Key("escape")
@@ -363,10 +363,10 @@ func TestReleaseMapEditorParameterFrames(t *testing.T) {
 							if !strings.HasPrefix(line, x.inspectionUTF8(x.word("editor.param.open"))) {
 								continue
 							}
-							r, ok := e.PopupRowRect(row)
+							r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 							trigClick(t, e, r, ok, "Open")
 							editorShot(t, e, dir, "parameter-open", image.Rectangle{})
-							r, ok = e.PopupButtonRect(2)
+							r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 							trigClick(t, e, r, ok, "Back")
 							editorShot(t, e, dir, "parameter-back", image.Rectangle{})
 							break

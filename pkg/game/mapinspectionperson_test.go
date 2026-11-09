@@ -42,14 +42,14 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 					field(f.Parent)
 					_ = e.Key("escape")
 				}
-				if tab, ok := e.ObjectSectionRect(f.Section); ok {
+				if tab, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: f.Section}); ok {
 					c.click(e, tab, true, "section")
 				}
 				e.ScrollDetails(-1000)
-				r, ok := e.FieldRect(i)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: i})
 				for n := 0; !ok && n < 60; n++ {
 					e.ScrollDetails(1)
-					r, ok = e.FieldRect(i)
+					r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: i})
 				}
 				c.click(e, r, ok, key)
 				return f
@@ -66,7 +66,7 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 					return
 				}
 				i := slices.IndexFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == value })
-				r, ok := e.DropdownRowRect(i)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: i})
 				if !ok && i >= 0 {
 					e.TextInput(f.Choices[i].Label)
 					_ = e.Key("enter")
@@ -87,7 +87,7 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 			}
 			choose("face", 7)
 			choose("wear1", 0x102)
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			c.click(e, r, ok, "Cancel")
 			if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
 				t.Fatal("Cancel wrote the native draft")
@@ -111,7 +111,7 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 			if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
 				t.Fatal("draft wrote the map")
 			}
-			r, ok = e.PopupButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			c.click(e, r, ok, "Apply")
 			after := s.model.Bytes()
 			if bytes.Equal(raw, after) {

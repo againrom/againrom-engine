@@ -151,14 +151,14 @@ func driveSession(f *game.FrontEnd, root string) map[string]capturedFrame {
 	return out
 }
 
-// paneSnap captures the mission character pane through HeadlessCharacterPane,
+// paneSnap captures the mission character pane through HeadlessPicture,
 // which composes it by the same call Viewer.Draw makes. It records the mode the
 // pane reported rather than the mode this tool asked for, so a Tab that did not
 // arrive shows up as two identical notes instead of two identical pictures
 // under different names.
 // cardSnap photographs the mission column's own fourth box.
 func cardSnap(a *ui.App, subject string) capturedFrame {
-	pix, err := a.HeadlessMissionCard()
+	pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		return capturedFrame{err: err, tried: true}
 	}
@@ -170,9 +170,9 @@ func cardSnap(a *ui.App, subject string) capturedFrame {
 }
 
 func paneSnap(a *ui.App, subject string) capturedFrame {
-	pix, statistics, err := a.HeadlessCharacterPane()
+	pix, statistics, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 	mode := "figure mode"
-	if statistics {
+	if statistics.Statistics {
 		mode = "statistics mode"
 	}
 	if err != nil {
@@ -185,11 +185,11 @@ func paneSnap(a *ui.App, subject string) capturedFrame {
 	return capturedFrame{pix: pix, note: note, tried: true}
 }
 
-// snap captures a's current screen through HeadlessFrame, the one seam this
+// snap captures a's current screen through HeadlessPicture, the one seam this
 // tool and pkg/ui/app.go's Draw both go through (see main.go's own header).
 func snap(a *ui.App) capturedFrame {
-	pix, note, err := a.HeadlessFrame()
-	return capturedFrame{pix: pix, note: note, err: err, tried: true}
+	pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	return capturedFrame{pix: pix, note: note.Note, err: err, tried: true}
 }
 
 // chargenPress walks the generation screen's focus to the control named by

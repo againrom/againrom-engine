@@ -289,7 +289,7 @@ func openPageOne(t *testing.T, e *ui.MapEditor) {
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, "Open Message") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			return
 		}
@@ -305,7 +305,7 @@ func TestPickedSpeakerWritesTheListsMarkup(t *testing.T) {
 		e, s := speakerPickEditor(t)
 		openPageOne(t, e)
 		if how == "pick" {
-			r, ok := e.RowButtonRect(1, 0, false)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 1, K: 0, Flag: false})
 			if !ok {
 				t.Fatalf("no button on the speaker row:\n%s", trigLines(e))
 			}

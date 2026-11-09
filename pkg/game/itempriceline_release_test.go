@@ -113,13 +113,13 @@ func TestReleaseItemInformationHasNoPriceLine(t *testing.T) {
 		if err := app.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := app.HeadlessTooltip()
+		pic, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 		if pic != nil {
 			tooltipReleasePNG(t, "item-price-"+name, pic)
 		}
 		want, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480), f.HoverBall(), f.HoverHelp())
-		if !state.Visible || pic == nil || !ok || pic.Bounds().Size() != want.Bounds().Size() || !bytes.Equal(pic.Pix, want.Pix) {
-			t.Fatalf("%s popup (visible %v) is not the drawn lines %q", name, state.Visible, lines)
+		if !state.Tooltip.Visible || pic == nil || !ok || pic.Bounds().Size() != want.Bounds().Size() || !bytes.Equal(pic.Pix, want.Pix) {
+			t.Fatalf("%s popup (visible %v) is not the drawn lines %q", name, state.Tooltip.Visible, lines)
 		}
 	}
 
@@ -315,13 +315,13 @@ func TestReleaseShopItemInformationHasNoPriceLine(t *testing.T) {
 		if err := app.HeadlessPointer("hover", p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := app.HeadlessTooltip()
+		pic, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 		if pic != nil {
 			tooltipReleasePNG(t, "shop-price-"+surface, pic)
 		}
 		drawn, _, ok := ui.ComposeTooltipHint(want, f.tipFont(), p, bounds, f.HoverBall(), f.HoverHelp())
-		if !state.Visible || pic == nil || !ok || pic.Bounds().Size() != drawn.Bounds().Size() || !bytes.Equal(pic.Pix, drawn.Pix) {
-			t.Fatalf("%s popup (visible %v) is not the drawn lines %q", surface, state.Visible, want)
+		if !state.Tooltip.Visible || pic == nil || !ok || pic.Bounds().Size() != drawn.Bounds().Size() || !bytes.Equal(pic.Pix, drawn.Pix) {
+			t.Fatalf("%s popup (visible %v) is not the drawn lines %q", surface, state.Tooltip.Visible, want)
 		}
 	}
 	found := map[string]image.Point{}

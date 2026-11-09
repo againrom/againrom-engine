@@ -25,7 +25,7 @@ func TestPlayersWindowAndWizardNameARelationByTheSameWord(t *testing.T) {
 			if len(choices) != 3 {
 				t.Fatalf("the wizard lists %d relation choices, want 3: %+v", len(choices), choices)
 			}
-			cell, ok := players.PlaceGridCellRect(1)
+			cell, ok := players.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 1})
 			if !ok {
 				t.Fatal("matrix cell 0,1 is not shown")
 			}

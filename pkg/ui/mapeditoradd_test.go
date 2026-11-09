@@ -82,7 +82,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		s, ok := e.listSpec()
-		_, add := e.ListButtonKeyRect("add")
+		_, add := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
 		if !ok || !add {
 			t.Errorf("list %d shows no Add button: %v", f, s.Buttons)
 		}
@@ -127,7 +127,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 		}
 		e.leave(leavePrompt)
 		e.places[popObject].at = image.Pt(0, e.window.Y) // the selected player's popup stands clear of the list
-		button, ok := e.ListButtonKeyRect("add")
+		button, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
 		if !ok {
 			t.Fatalf("list %d has no Add button", f)
 		}

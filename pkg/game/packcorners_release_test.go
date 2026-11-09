@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"fmt"
 	"image"
 	"os"
@@ -29,7 +30,7 @@ func missionPackLayerAt(t *testing.T, w, h int) *image.RGBA {
 	if err := app.HeadlessSelectEntity(uint32(id)); err != nil {
 		t.Fatal(err)
 	}
-	pack, err := app.HeadlessInventoryPack()
+	pack, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack})
 	if err != nil {
 		t.Fatal(err)
 	}

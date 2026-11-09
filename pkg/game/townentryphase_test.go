@@ -97,9 +97,9 @@ func (x *entryPaintFixture) enter(t *testing.T) {
 
 func (x *entryPaintFixture) paint(t *testing.T) {
 	t.Helper()
-	pix, note, err := x.app.HeadlessFrame()
-	if err != nil || note != "" || pix == nil {
-		t.Fatalf("CPU production composition: %q, %v, image nil=%v", note, err, pix == nil)
+	pix, note, err := x.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" || pix == nil {
+		t.Fatalf("CPU production composition: %q, %v, image nil=%v", note.Note, err, pix == nil)
 	}
 }
 

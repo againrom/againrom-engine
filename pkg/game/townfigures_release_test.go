@@ -250,9 +250,9 @@ func (r *townFiguresRig) paint(dt time.Duration) *image.RGBA {
 // frame is a copy of the frame App composes now, at the unchanged clock.
 func (r *townFiguresRig) frame() *image.RGBA {
 	r.t.Helper()
-	pix, note, err := r.app.HeadlessFrame()
-	if err != nil || note != "" {
-		r.t.Fatalf("frame %q: %v", note, err)
+	pix, note, err := r.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		r.t.Fatalf("frame %q: %v", note.Note, err)
 	}
 	out := image.NewRGBA(pix.Rect)
 	copy(out.Pix, pix.Pix)

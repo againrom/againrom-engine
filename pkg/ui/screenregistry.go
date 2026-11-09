@@ -170,7 +170,7 @@ var screenRegistry = map[Screen]screenEntry{
 		// frame too, computed rather than duplicated by hand.
 		//
 		// The in-game menu's own dim and panel ARE NOT in that frame
-		// (HeadlessFrame's note branch, headless.go:149): they draw through
+		// (HeadlessPicture's note branch, headless.go:149): they draw through
 		// ebiten's vector package (Draw's own ScreenGameMenu case, app.go),
 		// which composeScreen cannot witness. But the panel and row
 		// rectangles themselves (gameMenuPanelRect, gameMenuRowRect,

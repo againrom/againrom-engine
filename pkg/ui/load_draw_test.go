@@ -125,8 +125,8 @@ func TestComposeScreenSelectsLoadComposer(t *testing.T) {
 	if !bytes.Equal(pix.Pix, want.Pix) {
 		t.Fatal("LOAD dispatch selected another composer")
 	}
-	if _, note, err := a.HeadlessFrame(); err != nil || note != "" {
-		t.Fatalf("headless LOAD: %q / %v", note, err)
+	if _, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil || note.Note != "" {
+		t.Fatalf("headless LOAD: %q / %v", note.Note, err)
 	}
 }
 
@@ -174,9 +174,9 @@ func loadScrollTestApp(t *testing.T, frames []*image.RGBA, loaded *[]string) *Ap
 
 func loadScrollTestFrame(t *testing.T, a *App) *image.RGBA {
 	t.Helper()
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("LOAD frame: %q / %v", note, err)
+	pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("LOAD frame: %q / %v", note.Note, err)
 	}
 	if pix.Bounds() != image.Rect(0, 0, 640, 480) {
 		t.Fatalf("LOAD frame bounds = %v", pix.Bounds())

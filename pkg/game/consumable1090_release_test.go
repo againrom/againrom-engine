@@ -385,7 +385,7 @@ func TestReleaseConsumable1090AppInstantPotionAndNative(t *testing.T) {
 		items, _ := live.world.CarriedItems(id)
 		t.Fatalf("installed potion icon/quantity absent from production pack: pack=%v count=%v items=%+v", live.invSubject.Pack, live.invSubject.PackCount, items)
 	}
-	pack, err := app.HeadlessInventoryPack()
+	pack, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -445,7 +445,7 @@ func TestReleaseConsumable1090AppInstantPotionAndNative(t *testing.T) {
 			t.Fatalf("remaining=%d hp=%d->%d items=%+v pending=%+v", remaining, before.HP, after.HP, stacks, live.pending)
 		}
 		potionNative1090(t, f, "after-use")
-		pack, err := app.HeadlessInventoryPack()
+		pack, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack})
 		if err != nil {
 			t.Fatal(err)
 		}

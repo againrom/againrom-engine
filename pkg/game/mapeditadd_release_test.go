@@ -176,7 +176,7 @@ var newTriggerRoutes = []struct {
 			t.Fatal("the map holds no trigger whose wizard offers New")
 		}
 		e.Select(sc.Triggers[0].Record, true)
-		r, ok := e.PopupButtonRect(2)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 		trigClick(t, e, r, ok, "New")
 	}},
 }
@@ -189,7 +189,7 @@ func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.Map
 	clicker := &editorClicker{t: t}
 	for _, k := range c.keys {
 		if k == "groups" {
-			r, ok := e.BarRect(k)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: k})
 			clicker.click(e, r, ok, "the Groups entry")
 			continue
 		}
@@ -250,7 +250,7 @@ func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
 				if !addStepsN(t, e, c.values, at) {
 					break
 				}
-				r, ok := e.PromptButtonRect(2)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
 				trigClick(t, e, r, ok, "Cancel Add")
 				if _, _, open := e.AddStep(); open || e.Dirty() || !bytes.Equal(objectEdits(t, e).model.Bytes(), source) {
 					t.Fatalf("Cancel at step %d left the window open or changed the map", at)
@@ -301,7 +301,7 @@ func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
 				t.Fatalf("%s: wizard %v, dirty %v", route.name, e.WizardShown(), e.Dirty())
 			}
 			lines = append(lines, fmt.Sprintf("trigger-%s %x %d", route.name, sha256.Sum256(got), len(got)))
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			if !bytes.Equal(objectEdits(t, e).model.Bytes(), got) {
 				t.Fatalf("%s: Cancel took the new trigger out", route.name)
@@ -364,7 +364,7 @@ func TestReleaseMapEditorAddWindowFrames(t *testing.T) {
 			t.Fatal(err)
 		}
 		closeMapPanel(t, e)
-		r, ok := e.BarRect(bar)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: bar})
 		clicker.click(e, r, ok, "the "+bar+" entry")
 		shot(e, "list-"+bar)
 	}

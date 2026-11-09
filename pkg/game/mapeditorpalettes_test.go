@@ -202,7 +202,7 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 	if n := e.PlaceGridLen(); n != 1 {
 		t.Fatalf("the Objects grid holds %d kinds, want the fence", n)
 	}
-	r, ok := e.PlaceGridCellRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 	c.click(e, r, ok, "the Objects grid's fence")
 	clickMapCell(c, e, paletteMapCell)
 	_ = e.Key("escape")
@@ -228,11 +228,11 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 
 	f, fc := paletteEditorOn(t, raw)
 	_ = f.Key("objects")
-	r, ok = f.ListButtonRect(2, 1)
+	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
 	fc.click(f, r, ok, "the Forest button")
-	r, ok = f.PlaceGridCellRect(0)
+	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 	fc.click(f, r, ok, "the oak's Forest cell")
-	r, ok = f.ListButtonRect(4, 4)
+	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 4})
 	fc.click(f, r, ok, "Solid")
 	for range 20 {
 		_ = f.Key("radiusdown")
@@ -261,7 +261,7 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	r, ok = n.ListButtonRect(2, 1)
+	r, ok = n.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
 	nc.click(n, r, ok, "the Forest button")
 	if n.Dirty() {
 		t.Fatal("opening the palettes edited the map")

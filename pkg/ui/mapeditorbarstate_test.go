@@ -34,7 +34,7 @@ func barWindowEditor(t *testing.T) (*MapEditor, *modesCalls) {
 
 func barWindowPressed(t *testing.T, e *MapEditor, key string) bool {
 	t.Helper()
-	r, ok := e.BarRect(key)
+	r, ok := e.FindControl(ControlQuery{Role: ControlBar, Key: key})
 	if !ok {
 		t.Fatalf("missing bar entry %s", key)
 	}
@@ -110,7 +110,7 @@ func TestMapEditorBarClosesPlacingWindows(t *testing.T) {
 			t.Run(key+"/"+next, func(t *testing.T) {
 				e, calls := barWindowEditor(t)
 				chromeClick(e, barPoint(t, e, key))
-				r, ok := e.PlaceGridCellRect(0)
+				r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 				if !ok {
 					t.Fatal("no placement cell")
 				}
@@ -185,7 +185,7 @@ func TestMapEditorBarCloseKeepsPlacedCopies(t *testing.T) {
 			t.Run(key+"/"+next, func(t *testing.T) {
 				e, calls := barWindowEditor(t)
 				chromeClick(e, barPoint(t, e, key))
-				r, ok := e.PlaceGridCellRect(0)
+				r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 				if !ok {
 					t.Fatal("no placement cell")
 				}
@@ -331,7 +331,7 @@ func TestMapEditorBarPressedFrames(t *testing.T) {
 			e, _ := barWindowEditor(t)
 			e.SetWords(words.For(lang))
 			e.Layout(1920, 1080)
-			r, _ := e.BarRect("units")
+			r, _ := e.FindControl(ControlQuery{Role: ControlBar, Key: "units"})
 			rest := e.ChromeImage().RGBAAt(r.Min.X+2, r.Min.Y)
 			chromeClick(e, barPoint(t, e, "units"))
 			e.pointerOK = false

@@ -130,9 +130,9 @@ func mismatchWindow(t *testing.T, app *ui.App, target string) (ui.HeadlessModMis
 	if app.HeadlessMessage() != "" {
 		t.Fatalf("the refusal also reached the message line: %q", app.HeadlessMessage())
 	}
-	pix, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal(note, err)
+	pix, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal(note.Note, err)
 	}
 	if n := alertPixels(pix, w.List); n == 0 {
 		t.Fatalf("the window's list draws no red: rows %q", w.Rows)
@@ -221,7 +221,7 @@ func TestReleaseLoadPageListsEveryModMismatch(t *testing.T) {
 			if got, _ := app.HeadlessModMismatch(); got.Top != got.Lines-got.Visible || got.Top == 0 {
 				t.Errorf("many: End scrolled to line %d of %d", got.Top, got.Lines)
 			}
-			scrolled, _, err := app.HeadlessFrame()
+			scrolled, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}

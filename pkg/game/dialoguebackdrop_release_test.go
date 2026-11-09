@@ -40,7 +40,7 @@ func TestReleaseDialoguePortraitBackdrop(t *testing.T) {
 	f := releaseFront(t)
 	app, s := openFirstTownShopDialogue(t, f, "dialogue portrait backdrop")
 	window := checkDialogueBackdrop(t, f, app, s, "main/text/shop/npc31m31.txt")
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func checkDialogueBackdrop(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen
 	if s.room != roomTalk || path != wantPath {
 		t.Fatalf("room %d text %q; want the dialogue %s", s.room, path, wantPath)
 	}
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -109,13 +109,13 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 	}
 	capture := func(stage, input string, x, y, selection, top int) {
 		t.Helper()
-		pic, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal(note, err)
+		pic, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal(note.Note, err)
 		}
-		want, note, err := oracle.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal(note, err)
+		want, note, err := oracle.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal(note.Note, err)
 		}
 		checked := 0
 		for yy := 152; yy < 366; yy++ {

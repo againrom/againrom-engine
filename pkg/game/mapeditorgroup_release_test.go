@@ -54,10 +54,10 @@ func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
 	if len(e.Document().Records) != records-1 {
 		t.Fatal("the deletion did not remove record 0")
 	}
-	r, ok := e.BarRect("groups")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	clickRect(e, r, ok, &now)
 	showTree(e)
-	r, ok = e.GroupsRowRect(2, 2, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsRow, N: 2, K: 2, Flag: false})
 	if !clickRect(e, r, ok, &now) {
 		t.Fatal("the Groups window shows no row of player 2's group 2 after the deletion")
 	}
@@ -71,7 +71,7 @@ func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
 			if rec := e.Document().Records[id]; rec.Player != 2 || rec.Group != 2 {
 				t.Fatalf("%s: member %d is %s #%d of player %d group %d", step, id, rec.Kind, rec.Index, rec.Player, rec.Group)
 			}
-			if _, ok := e.GroupMemberRect(n); !ok {
+			if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGroupMember, N: n}); !ok {
 				t.Fatalf("%s: member row %d is not shown", step, n)
 			}
 		}
@@ -86,7 +86,7 @@ func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
 	if len(members) == 0 {
 		t.Fatal("the group has no member")
 	}
-	r, ok = e.GroupMemberRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupMember, N: 0})
 	if !clickRect(e, r, ok, &now) || e.Selected() != members[0] {
 		t.Fatalf("the member row opened record %d, want %d", e.Selected(), members[0])
 	}

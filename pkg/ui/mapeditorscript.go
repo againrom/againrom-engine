@@ -113,8 +113,8 @@ func (e *MapEditor) drawGoalLinks(pic *image.RGBA, s popupSpec) {
 	}
 }
 
-// GoalOpenRect is the visible arm or drop row's Open button.
-func (e *MapEditor) GoalOpenRect(row int) (image.Rectangle, bool) {
+// controlGoalOpenRect is the visible arm or drop row's Open button.
+func (e *MapEditor) controlGoalOpenRect(row int) (image.Rectangle, bool) {
 	if e.listKind() != "report" || len(e.report.goals) == 0 {
 		return image.Rectangle{}, false
 	}

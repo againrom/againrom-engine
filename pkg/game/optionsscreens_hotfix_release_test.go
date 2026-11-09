@@ -58,9 +58,9 @@ func TestReleaseQuestObjectivesAndMainMenuHall(t *testing.T) {
 				t.Fatal("hall reordered or changed", i, row, parsed[i])
 			}
 		}
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal(err, note)
+		pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal(err, note.Note)
 		}
 		capture("hall", pix)
 		if visit == 0 {

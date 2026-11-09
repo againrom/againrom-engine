@@ -143,7 +143,7 @@ func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
 		t.Fatalf("delete: %v", err)
 	}
 	if len(e.PromptNotes()) > 0 {
-		r, ok := e.PromptButtonRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 		(&editorClicker{t: t}).click(e, r, ok, "Empty it")
 	}
 	if !e.Dirty() {

@@ -11,7 +11,7 @@ type HeadlessTooltipState struct {
 	Bounds  image.Rectangle `json:"bounds"`
 }
 
-func (a *App) HeadlessTooltip() (HeadlessTooltipState, *image.RGBA) {
+func (a *App) headlessTooltip() (HeadlessTooltipState, *image.RGBA) {
 	state := HeadlessTooltipState{DelayMS: a.TooltipDelay(), Target: a.tooltipTarget().id}
 	var pic *image.RGBA
 	var at image.Point

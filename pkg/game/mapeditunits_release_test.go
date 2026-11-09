@@ -102,9 +102,9 @@ func saveEditedGuestMap(t *testing.T, x *MapInspector, dir string, edit func(*ui
 	if _, open := e.PromptRect(); open {
 		_ = e.Key("escape")
 	}
-	r, ok := e.BarRect("file")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "file"})
 	pressRect(t, e, r, ok, "the Map entry")
-	r, ok = e.MenuRowRect(n)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 	pressRect(t, e, r, ok, "the Save As row")
 	e.TextInput(target)
 	if err := e.Key("enter"); err != nil || e.Dirty() {

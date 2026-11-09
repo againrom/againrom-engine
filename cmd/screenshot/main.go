@@ -15,11 +15,11 @@
 // screen by hand, one call site per tool, so a later change to
 // pkg/ui/app.go's own Draw could stop matching what those six produced and
 // nothing would say so. This tool selects a composer nowhere in its own code:
-// every screen goes through ui.App.HeadlessFrame or ui.ComposeTownScreen.
+// every screen goes through ui.App.HeadlessPicture or ui.ComposeTownScreen.
 //
 // Draw does not call either of those two. It reaches the same composition
 // through its own siblings — (*App).composeTownScreen and (*App)
-// .composeTownRoom — and the convergence is one level down: HeadlessFrame
+// .composeTownRoom — and the convergence is one level down: HeadlessPicture
 // and Draw both call composeScreen's single switch, and ComposeTownScreen
 // and (*App).composeTownRoom both call the package-level composeTownRoom.
 // That shared floor is what makes a change to Draw's own selection change
@@ -34,7 +34,7 @@
 // detailed pages (the first offered picture, then Forward); the mission
 // screen once Play is pressed; and the in-game menu raised over it with
 // Escape. A screen this build cannot compose on the CPU is refused, never
-// rendered by a second, tool-local decision — see HeadlessFrame's own
+// rendered by a second, tool-local decision — see HeadlessPicture's own
 // header in pkg/ui/headless.go for the exact boundary.
 //
 // TWO SCREENS ARE REACHED WITH NO ui.App, through the FrontEnd-level path
@@ -64,6 +64,7 @@ import (
 	"strings"
 
 	"againrom/pkg/game"
+	"againrom/pkg/ui"
 )
 
 func main() {
@@ -137,8 +138,8 @@ func run(args []string) int {
 	}
 
 	if *route {
-		var size image.Point
-		if n, err := fmt.Sscanf(*window, "%dx%d", &size.X, &size.Y); n != 2 || err != nil || size.X <= 0 || size.Y <= 0 {
+		size, err := ui.ParseWindowSize(*window, image.Point{})
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "screenshot: -window %q is not WIDTHxHEIGHT\n", *window)
 			return 2
 		}
@@ -265,7 +266,7 @@ func capture(f *game.FrontEnd, root, outDir string, requested []screen) []result
 
 // capturedFrame is one screen's own outcome before it is matched against
 // what the caller requested. tried is true once the drive actually asked
-// HeadlessFrame or ComposeTownScreen for this screen; it is false when an
+// HeadlessPicture or ComposeTownScreen for this screen; it is false when an
 // earlier stage the drive needed never produced the state this screen
 // depends on, or when this screen's own precondition (a shop door on the
 // square, for town-shop) was absent before any compose was attempted. pix

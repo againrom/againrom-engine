@@ -83,9 +83,9 @@ func TestDemoBaseMainMenuFrame(t *testing.T) {
 	if app.Screen() != ui.ScreenMenu {
 		t.Fatalf("screen = %v, want the menu", app.Screen())
 	}
-	pix, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("frame: note %q err %v", note, err)
+	pix, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("frame: note %q err %v", note.Note, err)
 	}
 	if pix.Bounds().Dx() != 640 || pix.Bounds().Dy() != 480 {
 		t.Fatalf("frame is %v, want 640x480", pix.Bounds())

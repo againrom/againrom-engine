@@ -59,7 +59,7 @@ func TestDialoguePageButtonsArePainted(t *testing.T) {
 	pic := e.ChromeImage()
 	for part := -1; part < 3; part++ {
 		for button := range 1 {
-			r, ok := e.RowButtonRect(2*part+1, button, false)
+			r, ok := e.FindControl(ControlQuery{Role: ControlRowButton, N: 2*part + 1, K: button, Flag: false})
 			if !ok {
 				t.Fatal("card button has no pointer target", part, button)
 			}

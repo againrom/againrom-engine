@@ -87,10 +87,10 @@ func TestReleaseMission81PlacedScrollKeepsDescriptionAcrossSAV(t *testing.T) {
 		quest81OK(t, err)
 		a.SetTooltipDelayPreference(0, nil)
 		quest81OK(t, a.HeadlessPointer("hover", x, y))
-		state, pic := a.HeadlessTooltip()
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 		drawn, _, ok := ui.ComposeTooltipHint(lines, g.tipFont(), image.Pt(x, y), image.Rect(0, 0, 1024, 768), g.HoverBall(), g.HoverHelp())
-		if !state.Visible || pic == nil || !ok || !bytes.Equal(pic.Pix, drawn.Pix) {
-			t.Fatal("mission pack hover did not draw the scroll characteristics", state, lines)
+		if !state.Tooltip.Visible || pic == nil || !ok || !bytes.Equal(pic.Pix, drawn.Pix) {
+			t.Fatal("mission pack hover did not draw the scroll characteristics", state.Tooltip, lines)
 		}
 		return lines
 	}

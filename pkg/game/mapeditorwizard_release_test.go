@@ -40,7 +40,7 @@ func TestReleaseTriggerWizardOpensShippedTriggers(t *testing.T) {
 			if !e.WizardShown() {
 				t.Fatalf("%s trigger %d does not open the wizard", key, i+1)
 			}
-			if _, ok := e.PopupButtonRect(4); !ok {
+			if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 4}); !ok {
 				t.Fatalf("%s trigger %d offers no Details", key, i+1)
 			}
 			rows, kept := e.WizardRowCounts()
@@ -134,10 +134,10 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	e.Pointer(ui.Input{CursorX: to.X, CursorY: to.Y}, now)
 	wizPress(t, e, "+action", 0)
 	wizPress(t, e, "+action", 0)
-	r, ok := e.FieldRect(wizField(t, e, "a1.item"))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: wizField(t, e, "a1.item")})
 	trigClick(t, e, r, ok, "the second action's item")
 	e.ScrollDropdown(-len(e.DropdownChoices()))
-	r, ok = e.DropdownRowRect(1) // win the mission, in either language
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1}) // win the mission, in either language
 	trigClick(t, e, r, ok, "the win item")
 	if !strings.Contains(strings.Join(e.PopupLines(), "\n"), "60,60,70,66") {
 		t.Fatalf("the drawn area is not in the row:\n%s", trigLines(e))
@@ -222,10 +222,10 @@ func TestReleaseTriggerWizardMapPlaysTheTrigger(t *testing.T) {
 			wizType(t, e, "c0.p1", fmt.Sprintf("%d,%d,%d,%d", c.box.Min.X, c.box.Min.Y, c.box.Max.X, c.box.Max.Y))
 			wizPress(t, e, "+action", 0)
 			wizPress(t, e, "+action", 0)
-			r, ok := e.FieldRect(wizField(t, e, "a1.item"))
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: wizField(t, e, "a1.item")})
 			trigClick(t, e, r, ok, "the second action's item")
 			e.ScrollDropdown(-len(e.DropdownChoices()))
-			r, ok = e.DropdownRowRect(1)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 			trigClick(t, e, r, ok, "the win item")
 			wizApply(t, e)
 			w, got, purse := walk(e.Document().SourceBytes)

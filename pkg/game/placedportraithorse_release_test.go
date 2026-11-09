@@ -164,9 +164,9 @@ func lancerPortraits(t *testing.T, f *FrontEnd, a *ui.App, live *mapWorld, when 
 		if got, ok := live.view.SelectedUnit(); !ok || got != uint32(id) {
 			t.Fatalf("%s: selection is %d/%t", what, got, ok)
 		}
-		pic, statistics, err := a.HeadlessCharacterPane()
-		if err != nil || statistics {
-			t.Fatalf("%s: figure pane unavailable: statistics=%t err=%v", what, statistics, err)
+		pic, statistics, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+		if err != nil || statistics.Statistics {
+			t.Fatalf("%s: figure pane unavailable: statistics=%t err=%v", what, statistics.Statistics, err)
 		}
 		checkInspectionFigure(t, pic, mounted, what+" selected")
 

@@ -60,9 +60,9 @@ func TestReleaseMissionHoverRectangleReaders(t *testing.T) {
 			if !ok || name != "attack" {
 				t.Fatalf("edge %v: cursor=%q/%v", point, name, ok)
 			}
-			_, at, err := a.HeadlessMissionCursor()
-			if err != nil || at.Add(image.Pt(3, 3)) != point {
-				t.Fatalf("edge %v: hotspot at %v: %v", point, at, err)
+			_, at, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCursor})
+			if err != nil || at.At.Add(image.Pt(3, 3)) != point {
+				t.Fatalf("edge %v: hotspot at %v: %v", point, at.At, err)
 			}
 			return true
 		}

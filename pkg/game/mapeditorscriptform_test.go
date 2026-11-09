@@ -281,12 +281,12 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			before := bytes.Clone(s.model.Bytes())
 			e.Select(trigRecord(t, e, "Trigger", 1), true)
 			trigDetails(t, e)
-			r, ok := e.RowButtonRect(-1, 0, false)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 			trigClick(t, e, r, ok, "Add condition pair")
 			trigChoose(t, e, 11, "#3 ")
 			trigChoose(t, e, 13, "#4 ")
 			apply := func() {
-				r, ok := e.PopupButtonRect(0)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 				trigClick(t, e, r, ok, "Apply")
 			}
 			apply()
@@ -297,7 +297,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 				}
 			}
 			asked()
-			r, ok = e.PromptButtonRect(1)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			if slices.Contains(e.OpenWindows(), "prompt") || !bytes.Equal(s.model.Bytes(), before) || s.CanUndo() || e.Document().Script.Extended {
 				t.Fatalf("Cancel changed the map: %q", e.OpenWindows())
@@ -307,7 +307,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			}
 			apply()
 			asked()
-			r, ok = e.PromptButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 			trigClick(t, e, r, ok, "Extend")
 			sc := e.Document().Script
 			if !sc.Extended || !slices.Equal(sc.Triggers[1].Left, []uint32{1, 2, 2, 3}) || !slices.Equal(sc.Triggers[1].Right, []uint32{2, 2, 2, 4}) {
@@ -315,7 +315,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			}
 
 			// An OR group and a fifth action, asked nothing.
-			r, ok = e.RowButtonRect(-1, 1, false)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 1, Flag: false})
 			if !ok {
 				t.Fatalf("no Add OR group (wizard %v):\n%s", e.WizardShown(), trigLines(e))
 			}
@@ -323,7 +323,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			trigChoose(t, e, 14, "#1 ")
 			trigChoose(t, e, 16, "#4 ")
 			e.ScrollDetails(100) // the action rows, past the window's height
-			r, ok = e.RowButtonRect(-1, 0, true)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: true})
 			trigClick(t, e, r, ok, "Add action")
 			e.ScrollDetails(100)
 			trigChoose(t, e, 21, "#15 ")
@@ -397,15 +397,15 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 			dir := t.TempDir()
 			e.Select(trigRecord(t, e, "Trigger", 1), true)
 			trigDetails(t, e)
-			r, ok := e.RowButtonRect(-1, 0, true)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: true})
 			trigClick(t, e, r, ok, "Add action")
 			trigChoose(t, e, 15, "#15 ")
 			apply := func() {
-				r, ok := e.PopupButtonRect(0)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 				trigClick(t, e, r, ok, "Apply")
 			}
 			apply()
-			r, ok = e.PromptButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 			trigClick(t, e, r, ok, "Extend")
 			if sc := e.Document().Script; !sc.Extended || len(sc.Triggers[1].Acts) != 5 {
 				t.Fatalf("the fifth action did not extend the map:\n%s", trigLines(e))
@@ -419,7 +419,7 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 			}
 
 			// The fifth action removed: the script fits again.
-			r, ok = e.RowButtonRect(15, 1, false)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 15, K: 1, Flag: false})
 			if !ok {
 				t.Fatalf("no Remove action 5 (wizard %v):\n%s", e.WizardShown(), trigLines(e))
 			}
@@ -446,16 +446,16 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 			if !ok {
 				t.Fatal("the Map menu has no Save As row")
 			}
-			r, ok = e.BarRect("file")
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "file"})
 			trigClick(t, e, r, ok, "the Map entry")
-			r, ok = e.MenuRowRect(n)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 			trigClick(t, e, r, ok, "the Save As row")
 			e.TextInput(plain)
 			_ = e.Key("enter")
 			if !sameWords(e.PromptNotes(), w("editor.scriptform.foldtext")) {
 				t.Fatalf("Save As to .alm asked %q", e.PromptNotes())
 			}
-			r, ok = e.PromptButtonRect(1)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			if _, err := os.Stat(plain); !os.IsNotExist(err) || !e.Document().Script.Extended {
 				t.Fatal("Cancel wrote or folded", err)
@@ -469,7 +469,7 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 			if err := e.Key("saveas"); !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.foldtext")) {
 				t.Fatalf("Save over the .alm asked %q (%v)", e.PromptNotes(), err)
 			}
-			r, ok = e.PromptButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 			trigClick(t, e, r, ok, "Save as .alm")
 			got, err := os.ReadFile(own)
 			if err != nil {
@@ -508,18 +508,18 @@ func TestTriggerWizardOrGroupAsksToExtendTheMap(t *testing.T) {
 	if !e.WizardShown() {
 		t.Fatalf("the trigger opens no wizard:\n%s", trigLines(e))
 	}
-	r, ok := e.RowButtonRect(-1, 1, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 1, Flag: false})
 	trigClick(t, e, r, ok, "Add OR group")
 	if !slices.Contains(e.PopupLines(), w("editor.wizard.orwhen")) {
 		t.Fatalf("no Or when group:\n%s", trigLines(e))
 	}
 	trigChoose(t, e, wizField(t, e, "c3.item"), w("editor.wizard.c.always"))
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) {
 		t.Fatalf("no question to extend the map: %q\n%s", e.PromptNotes(), trigLines(e))
 	}
-	r, ok = e.PromptButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	trigClick(t, e, r, ok, "Extend")
 	sc := e.Document().Script
 	if tr := sc.Triggers[1]; !sc.Extended || len(tr.Left) != 4 || !slices.Equal(tr.Group, []uint32{0, 0, 0, 1}) {

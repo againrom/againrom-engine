@@ -99,7 +99,7 @@ func TestDialoguePointerStatesReachTownPixelsAndCapture(t *testing.T) {
 	a.SetTown(town)
 	a.flow.showTown("")
 	a.SetTextSmoothing(false)
-	before, _, err := a.HeadlessFrame()
+	before, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestDialoguePointerStatesReachTownPixelsAndCapture(t *testing.T) {
 		if town.state != tc.want {
 			t.Fatalf("%s state=%+v want%+v", tc.action, town.state, tc.want)
 		}
-		picture, _, err := a.HeadlessFrame()
+		picture, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

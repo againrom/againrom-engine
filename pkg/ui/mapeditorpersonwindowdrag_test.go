@@ -23,7 +23,7 @@ func TestEditorPersonWindowDragPastEveryEdgeStillDraws(t *testing.T) {
 					t.Fatal("no picture")
 				}
 			}
-			if r, ok := e.TitleRect(); !ok || !r.Overlaps(e.popupBounds()) {
+			if r, ok := e.FindControl(ControlQuery{Role: ControlTitle}); !ok || !r.Overlaps(e.popupBounds()) {
 				t.Fatalf("title row %v left the editor %v", r, e.popupBounds())
 			}
 		})

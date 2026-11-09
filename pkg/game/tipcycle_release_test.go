@@ -66,7 +66,7 @@ func tipCycleFrames(t *testing.T, app *ui.App, steps int, watch image.Rectangle,
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
-		frame, _, err := app.HeadlessFrame()
+		frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -226,7 +226,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	if frames, at := tipCycleFrames(t, app, 60, detailedSkillColumn); len(frames) != 0 {
 		t.Fatalf("the skill cycle still ran after the first skill click, frames at %v", at)
 	}
-	frame, _, err := app.HeadlessFrame()
+	frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,17 +241,17 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	if err := app.HeadlessPointer("hover", 300, 470); err != nil {
 		t.Fatal(err)
 	}
-	floor, _, _ := app.HeadlessFrame()
+	floor, _, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	writeTipRender(t, dir, "detailed-minus-disabled-at-floor", floor)
 	if err := app.HeadlessPointer("hover", 117, 64); err != nil {
 		t.Fatal(err)
 	}
-	hovered, _, _ := app.HeadlessFrame()
+	hovered, _, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	writeTipRender(t, dir, "detailed-plus-hovered", hovered)
 	if err := app.HeadlessPointer("press", 117, 64); err != nil {
 		t.Fatal(err)
 	}
-	held, _, _ := app.HeadlessFrame()
+	held, _, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	writeTipRender(t, dir, "detailed-plus-held", held)
 	if err := app.HeadlessPointer("release", 117, 64); err != nil {
 		t.Fatal(err)
@@ -266,7 +266,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	if err := app.HeadlessPointer("press", 552, 160); err != nil {
 		t.Fatal(err)
 	}
-	frame, _, _ = app.HeadlessFrame()
+	frame, _, _ = app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	writeTipRender(t, dir, "detailed-back-pressed", frame)
 }
 

@@ -103,7 +103,7 @@ func pressSpeakerPick(t *testing.T, e *MapEditor, c int) {
 	if k < 0 {
 		t.Fatalf("card %d's speaker row offers %q, no pick on the map", c, e.obj.rowActs[row])
 	}
-	r, ok := e.RowButtonRect(2*c+1, k, false)
+	r, ok := e.FindControl(ControlQuery{Role: ControlRowButton, N: 2*c + 1, K: k, Flag: false})
 	if !ok {
 		t.Fatalf("card %d's pick button is not shown", c)
 	}
@@ -172,13 +172,13 @@ func TestPickedSpeakerAppliesAsTheListsChoice(t *testing.T) {
 	picked.applyMessage()
 
 	chosen, listed := speakerPickEditor(t, "en")
-	field, ok := chosen.FieldRect(1)
+	field, ok := chosen.FindControl(ControlQuery{Role: ControlField, N: 1})
 	if !ok {
 		t.Fatal("the first card's speaker field is not shown")
 	}
 	modesClick(chosen, center(field))
 	row := slices.Index(chosen.DropdownChoices(), "5: Anna")
-	r, ok := chosen.DropdownRowRect(row)
+	r, ok := chosen.FindControl(ControlQuery{Role: ControlDropdownRow, N: row})
 	if row < 0 || !ok {
 		t.Fatalf("the speaker list shows %q", chosen.DropdownChoices())
 	}
@@ -201,9 +201,9 @@ func TestCardRowButtonCoversItsCaption(t *testing.T) {
 		t.Run(lang, func(t *testing.T) {
 			e, _ := speakerPickEditor(t, lang)
 			caption := e.actWord(actPickParam)
-			cross, okX := e.RowButtonRect(1, 0, false)
-			pick, okP := e.RowButtonRect(1, 1, false)
-			field, okF := e.FieldRect(1)
+			cross, okX := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 0, Flag: false})
+			pick, okP := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 1, Flag: false})
+			field, okF := e.FindControl(ControlQuery{Role: ControlField, N: 1})
 			if !okX || !okP || !okF {
 				t.Fatalf("the title row shows cross %v, button %v, field %v", okX, okP, okF)
 			}
@@ -255,21 +255,21 @@ func TestSpeakerPickEndsWithItsTarget(t *testing.T) {
 	}{
 		{"apply", func(t *testing.T, e *MapEditor) {
 			e.obj.buf[2] = "Changed"
-			r, ok := e.PopupButtonRect(0)
+			r, ok := e.FindControl(ControlQuery{Role: ControlPopupButton, N: 0})
 			if !ok {
 				t.Fatal("no Apply button")
 			}
 			modesClick(e, center(r))
 		}},
 		{"cancel", func(t *testing.T, e *MapEditor) {
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ControlQuery{Role: ControlPopupButton, N: 1})
 			if !ok {
 				t.Fatal("no Cancel button")
 			}
 			modesClick(e, center(r))
 		}},
 		{"cross", func(t *testing.T, e *MapEditor) {
-			r, ok := e.RowButtonRect(1, 0, false)
+			r, ok := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 0, Flag: false})
 			if !ok {
 				t.Fatal("no cross")
 			}

@@ -33,7 +33,7 @@ func TestEditorCardInputsKeepClearOfLabelsAndEdges(t *testing.T) {
 						}
 					}
 					if !plain {
-						r, ok := e.ViewSwitchRect()
+						r, ok := e.FindControl(ControlQuery{Role: ControlViewSwitch})
 						viewsClick(t, e, r, ok, "detailed view")
 					}
 					s, _, ok := e.objectSpec()

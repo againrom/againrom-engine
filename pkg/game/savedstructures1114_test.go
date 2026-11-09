@@ -267,7 +267,7 @@ func TestSavedStructures1114BothDoorsAndFreshNativeAction(t *testing.T) {
 		if !ok || panel.ID != id {
 			t.Fatalf("saved hover %+v", panel)
 		}
-		if card, err := app.HeadlessMissionCard(); err != nil || len(card.Pix) == 0 {
+		if card, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard}); err != nil || len(card.Pix) == 0 {
 			t.Fatalf("saved card %v", err)
 		}
 	}

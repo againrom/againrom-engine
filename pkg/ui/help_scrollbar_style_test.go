@@ -547,17 +547,17 @@ func TestHelpScrollbarSkinKeepsNilFrameSaveConfirmationPixels(t *testing.T) {
 	if a.flow.menuArt != nil || a.flow.saveScreen.prepared == nil || len(spy.requests) != 1 || len(spy.commits) != 0 {
 		t.Fatal("nil-frame Save confirmation fixture did not prepare without writing")
 	}
-	before, note, err := a.HeadlessFrame()
-	if err != nil || note != "" || before == nil {
-		t.Fatal("nil-frame Save confirmation did not compose", note, err)
+	before, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" || before == nil {
+		t.Fatal("nil-frame Save confirmation did not compose", note.Note, err)
 	}
 	bounds, pixels := before.Bounds(), append([]byte(nil), before.Pix...)
 	state, _ := a.HeadlessSaveState()
 	for _, frames := range [][]*image.RGBA{loadScrollTestFrames(), loadScrollTestFrames()[:20], nil} {
 		a.SetCutsceneScrollArt(frames)
-		after, note, err := a.HeadlessFrame()
-		if err != nil || note != "" || after == nil || after.Bounds() != bounds || !bytes.Equal(after.Pix, pixels) {
-			t.Fatal("Help scroll resource changed nil-frame Save confirmation pixels", note, err)
+		after, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+		if err != nil || note.Note != "" || after == nil || after.Bounds() != bounds || !bytes.Equal(after.Pix, pixels) {
+			t.Fatal("Help scroll resource changed nil-frame Save confirmation pixels", note.Note, err)
 		}
 		got, _ := a.HeadlessSaveState()
 		if a.flow.menuArt != nil || !reflect.DeepEqual(got, state) || len(spy.requests) != 1 || len(spy.commits) != 0 {

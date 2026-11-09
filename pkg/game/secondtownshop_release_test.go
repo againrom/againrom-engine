@@ -191,9 +191,9 @@ func secondShopWitness(t *testing.T, app *ui.App, name string) {
 	if dir == "" {
 		return
 	}
-	picture, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal("shop frame", err, note)
+	picture, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal("shop frame", err, note.Note)
 	}
 	witness.PNG(t, filepath.Join(dir, name+".png"), picture)
 }

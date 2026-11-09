@@ -259,7 +259,7 @@ func TestReleaseModAbandonReturnsToTheTownAsEntered(t *testing.T) {
 		t.Fatal("the party never reached the town square")
 	}
 	requireAbandonTown(t, "at the town square", f, entry)
-	if pix, _, err := a.HeadlessFrame(); err != nil {
+	if pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 		t.Fatal(err)
 	} else {
 		writeModShot(t, "town-after-abandon", pix)

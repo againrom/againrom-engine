@@ -109,7 +109,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 	}
 	check := func(what string) {
 		t.Helper()
-		pic, at, lines, err := a.HeadlessStructureReadout()
+		pic, extras, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartStructureReadout})
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}
@@ -118,14 +118,14 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 			w, _ := f.InstallResources.missionCardFont().Measure(line)
 			width = max(width, w)
 		}
-		if wantAt := image.Pt(1024-88-width/2, 526+28); at != wantAt {
-			t.Errorf("%s: readout at %v, want %v", what, at, wantAt)
+		if wantAt := image.Pt(1024-88-width/2, 526+28); extras.At != wantAt {
+			t.Errorf("%s: readout at %v, want %v", what, extras.At, wantAt)
 		}
-		if lines != [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)} {
-			t.Errorf("%s: lines %q, want building.txt[%d] %q, main.txt[19] %q and %d/%d", what, lines, kind-1, name, health, hp, maxHP)
+		if extras.Lines != [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)} {
+			t.Errorf("%s: lines %q, want building.txt[%d] %q, main.txt[19] %q and %d/%d", what, extras.Lines, kind-1, name, health, hp, maxHP)
 		}
 		got := image.NewRGBA(want.Bounds())
-		rect := pic.Bounds().Add(at.Sub(image.Pt(1024-160, 526)))
+		rect := pic.Bounds().Add(extras.At.Sub(image.Pt(1024-160, 526)))
 		if !rect.In(got.Bounds()) {
 			t.Fatalf("%s: readout %v lies outside the card", what, rect)
 		}
@@ -140,14 +140,14 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 		checkLayers(what, true)
 		// The card's body art stays under the readout: no readout pixel
 		// stands on black.
-		card, cardAt, err := a.HeadlessDrawnMissionCard()
+		card, cardAt, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartDrawnMissionCard})
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}
 		black, total := 0, 0
 		for y := 0; y < pic.Bounds().Dy(); y++ {
 			for x := 0; x < pic.Bounds().Dx(); x++ {
-				p := image.Pt(at.X-cardAt.X+x, at.Y-cardAt.Y+y)
+				p := image.Pt(extras.At.X-cardAt.At.X+x, extras.At.Y-cardAt.At.Y+y)
 				if !p.In(card.Bounds()) {
 					continue
 				}
@@ -164,7 +164,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 		if dir := os.Getenv("AGAINROM_HOVER_PANEL_DIR"); dir != "" {
 			shot := image.NewRGBA(card.Bounds())
 			draw.Draw(shot, shot.Bounds(), card, card.Bounds().Min, draw.Src)
-			draw.Draw(shot, pic.Bounds().Add(at.Sub(cardAt)), pic, pic.Bounds().Min, draw.Over)
+			draw.Draw(shot, pic.Bounds().Add(extras.At.Sub(cardAt.At)), pic, pic.Bounds().Min, draw.Over)
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -222,7 +222,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 	if err := a.HeadlessPointer("hover", gx, gy); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := a.HeadlessStructureReadout(); err == nil {
+	if _, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartStructureReadout}); err == nil {
 		t.Error("a readout is drawn with a unit selected and nothing hovered")
 	}
 	checkLayers("restored selected unit", false)

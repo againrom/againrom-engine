@@ -211,7 +211,7 @@ func wideEditor(t *testing.T, lang string, width int, view string, set map[strin
 // wideSections are the window's states a map maker steps through for a
 // record: the person window's four tabs, or the one window.
 func wideSections(e *MapEditor) []string {
-	if _, ok := e.ObjectSectionRect("identity"); ok {
+	if _, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: "identity"}); ok {
 		return []string{"identity", "equipment", "inventory", "stats"}
 	}
 	return []string{""}
@@ -223,7 +223,7 @@ func openSection(t *testing.T, e *MapEditor, section string) {
 	if section == "" {
 		return
 	}
-	r, ok := e.ObjectSectionRect(section)
+	r, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: section})
 	if !ok {
 		t.Fatalf("no tab %s", section)
 	}

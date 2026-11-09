@@ -252,7 +252,7 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 	message := func(t *testing.T, _ string) *ui.MapEditor { e, _ := messagePopupFixture(t, 77); return e }
 	newPage := func(t *testing.T, e *ui.MapEditor) {
 		messageField(t, e, 2)
-		r, ok := e.DropdownRowRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 		messageClick(t, e, r, ok)
 		messageField(t, e, 0)
 		e.TextInput("First")
@@ -352,7 +352,7 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 			opened := false
 			for i, line := range e.PopupLines() {
 				if len(line) >= 12 && line[:12] == "Open Message" {
-					r, ok := e.PopupRowRect(i)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 					messageClick(t, e, r, ok)
 					opened = true
 					break

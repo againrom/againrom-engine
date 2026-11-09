@@ -18,7 +18,7 @@ func personLines(t *testing.T, e *ui.MapEditor, c *editorClicker) []string {
 	t.Helper()
 	var out []string
 	for _, section := range []string{"identity", "equipment", "inventory", "stats"} {
-		if tab, ok := e.ObjectSectionRect(section); ok {
+		if tab, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: section}); ok {
 			c.click(e, tab, true, "section "+section)
 		}
 		e.ScrollDetails(-1000)
@@ -146,8 +146,8 @@ func TestEditorViewSwitchStandsInTheButtonRow(t *testing.T) {
 			if e.PlainView() != plain {
 				t.Fatalf("%s: plain %v, want %v", kind, e.PlainView(), plain)
 			}
-			sw, ok := e.ViewSwitchRect()
-			apply, applied := e.PopupButtonRect(0)
+			sw, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlViewSwitch})
+			apply, applied := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			if !ok || !applied {
 				t.Fatalf("%s plain %v: switch %v button %v", kind, plain, ok, applied)
 			}
@@ -155,7 +155,7 @@ func TestEditorViewSwitchStandsInTheButtonRow(t *testing.T) {
 				t.Errorf("%s plain %v: the switch %v is not on Apply's line %v", kind, plain, sw, apply)
 			}
 			for n := 0; ; n++ {
-				b, ok := e.PopupButtonRect(n)
+				b, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n})
 				if !ok {
 					break
 				}

@@ -334,7 +334,7 @@ func TestReleaseDifficultyLevelsInstalledArtAndPointer(t *testing.T) {
 		if err := app.HeadlessPointer("move", 630, 470); err != nil {
 			t.Fatal(err)
 		}
-		frame, _, err := app.HeadlessFrame()
+		frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

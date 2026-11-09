@@ -163,7 +163,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	apply := func(what string, want func() *ui.InspectionDocument) {
 		t.Helper()
 		before := e.Document().SourceBytes
-		r, ok := e.PopupButtonRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		check(what, before, want())
 	}
@@ -178,7 +178,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	value := func(key string, v int64) ui.InspectionFieldValue { return ui.InspectionFieldValue{Key: key, Value: v} }
 	chooseRow := func(field, row int) string {
 		t.Helper()
-		r, ok := e.FieldRect(field)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 		trigClick(t, e, r, ok, fmt.Sprintf("field %d", field))
 		choices := e.DropdownChoices()
 		if row < 0 {
@@ -188,7 +188,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 			t.Fatalf("field %d offers %d choices, not row %d", field, len(choices), row)
 		}
 		for k := 0; k < 200; k++ {
-			if r, ok := e.DropdownRowRect(row); ok {
+			if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 				trigClick(t, e, r, ok, "a choice")
 				return choices[row]
 			}
@@ -208,7 +208,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	}
 	typeInto := func(field int, text string) {
 		t.Helper()
-		r, ok := e.FieldRect(field)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 		trigClick(t, e, r, ok, fmt.Sprintf("field %d", field))
 		for k := 0; k < 16; k++ {
 			_ = e.Key("backspace")
@@ -221,7 +221,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		t.Helper()
 		n, _ := scriptNodeOf(e.Document().Script, condition, id)
 		field, s, _ := editableSlot(condition, n)
-		r, ok := e.RowButtonRect(row, 0, false)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: row, K: 0, Flag: false})
 		trigClick(t, e, r, ok, "Edit "+what)
 		kind := "Action"
 		if condition {
@@ -262,7 +262,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		if want != nil {
 			apply(what, func() *ui.InspectionDocument { return fields(kind, index, want...) })
 		}
-		r, ok = e.PopupButtonRect(2)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 		trigClick(t, e, r, ok, "Back")
 		if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" {
 			t.Fatalf("Back after %s selected %+v", what, v)
@@ -294,7 +294,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	if trigger().Once > 1 {
 		once = 1
 	}
-	r, ok := e.FieldRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	trigClick(t, e, r, ok, "Fire once")
 	apply("fire once", func() *ui.InspectionDocument { return fields("Trigger", trigIndex, value("once", once)) })
 
@@ -303,7 +303,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	if trigger().Left[1] != 0 {
 		p = 2
 	}
-	r, ok = e.RowButtonRect(-1, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Add condition pair")
 	left := nodeID(chooseRow(trigPairField(p, 0), 0))
 	right := nodeID(chooseRow(trigPairField(p, 2), 0))
@@ -314,7 +314,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	// The first pair removed: the later pairs move up and the last used one
 	// empties.
 	tr := trigger()
-	r, ok = e.RowButtonRect(trigPairField(0, 1), 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: trigPairField(0, 1), K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Remove pair 1")
 	var want []ui.InspectionFieldValue
 	for q := 0; q < p; q++ {
@@ -328,7 +328,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	for trigger().Acts[a] == 0 {
 		a++
 	}
-	r, ok = e.RowButtonRect(11+a, 1, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11 + a, K: 1, Flag: false})
 	trigClick(t, e, r, ok, "Remove an action")
 	apply("remove action", func() *ui.InspectionDocument {
 		return fields("Trigger", trigIndex, value(fmt.Sprintf("action%d", a), 0))
@@ -337,7 +337,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	for trigger().Acts[free] != 0 {
 		free++
 	}
-	r, ok = e.RowButtonRect(-1, 0, true)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: true})
 	trigClick(t, e, r, ok, "Add action")
 	chooseRow(11+free, -1)
 	apply("add action", func() *ui.InspectionDocument {
@@ -352,9 +352,9 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	// A new trigger in one click, its wizard cancelled, then its deletion.
 	before := e.Document().SourceBytes
 	n := len(e.Document().Script.Triggers)
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "New")
-	r, ok = e.PopupButtonRect(1)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 	trigClick(t, e, r, ok, "Cancel")
 	d, err := author.AddScript("Trigger")
 	if err != nil {
@@ -366,7 +366,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	}
 	e.Select(e.Document().Script.Triggers[n].Record, true)
 	before = e.Document().SourceBytes
-	r, ok = e.PopupButtonRect(3)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 3})
 	trigClick(t, e, r, ok, "Delete")
 	d, err = c.Document().Edits.Delete("Trigger", n)
 	if err != nil {
@@ -526,7 +526,7 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	}
 
 	e := open(key)
-	r, ok := e.BarRect("scripts")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "scripts"})
 	trigClick(t, e, r, ok, "the Scripts entry")
 	shot(e, "trigger-list", image.Rectangle{})
 
@@ -537,7 +537,7 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	if err := e.Key("escape"); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := e.AreaLabelRect(ti); !ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaLabel, N: ti}); !ok {
 		t.Fatal("the highlighted trigger has no label on the map")
 	}
 	shot(e, "trigger-areas", image.Rectangle{})
@@ -545,9 +545,9 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	e = open(key)
 	e.Select(e.Document().Script.Triggers[ti].Record, true)
 	trigDetails(t, e)
-	r, ok = e.RowButtonRect(11+cellAct, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11 + cellAct, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit the action")
-	r, ok = e.FieldRect(1)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	trigClick(t, e, r, ok, "the operation")
 	shot(e, "action-dropdown", image.Rect(r.Min.X, r.Max.Y, 1280, 800))
 	for _, c := range e.DropdownChoices() {
@@ -559,11 +559,11 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	e = open(key)
 	e.Select(e.Document().Script.Triggers[ti].Record, true)
 	trigDetails(t, e)
-	r, ok = e.RowButtonRect(11+cellAct, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11 + cellAct, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit the action")
 	n, _ := scriptNodeOf(e.Document().Script, false, e.Document().Script.Triggers[ti].Acts[cellAct])
 	field, _, _ := editableSlot(false, n)
-	r, ok = e.RowButtonRect(field, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: field, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "On map")
 	shot(e, "cell-pick", image.Rectangle{})
 }

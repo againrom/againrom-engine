@@ -5,11 +5,11 @@
 //	tooltipshot [-assets DIR] -out DIR [-mission-limit N]
 //
 // IT EXISTS BECAUSE NEITHER HINT'S OWN SCREEN HAS A CPU COMPOSITE cmd/screenshot
-// or ui.App.HeadlessFrame can reach. composeScreen refuses ScreenPicker
+// or ui.App.HeadlessPicture can reach. composeScreen refuses ScreenPicker
 // outright — its own doc says it draws only through ebitenutil.DebugPrintAt —
-// and ui.App.paintTooltip runs only inside HeadlessFrame, which refuses the
+// and ui.App.paintTooltip runs only inside HeadlessPicture, which refuses the
 // whole mission screen the monster-spell hint's card belongs to
-// (HeadlessFrame's own doc names the mission screen as one of the states it
+// (HeadlessPicture's own doc names the mission screen as one of the states it
 // cannot compose on the CPU at all). Neither refusal is this story's to lift:
 // each is a screen-composition boundary stated in its own package, not a
 // tooltip defect. This tool therefore composes each hint's OWN box —

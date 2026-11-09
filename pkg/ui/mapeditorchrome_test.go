@@ -31,7 +31,7 @@ func barPoint(t *testing.T, e *MapEditor, key string) image.Point {
 // toolPoint is the centre of the toolbar button key.
 func toolPoint(t *testing.T, e *MapEditor, key string) image.Point {
 	t.Helper()
-	r, ok := e.ToolbarRect(key)
+	r, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: key})
 	if !ok {
 		t.Fatalf("no toolbar button %q", key)
 	}
@@ -85,7 +85,7 @@ func treeMemberPoint(t *testing.T, e *MapEditor, key string, n int) image.Point 
 	t.Helper()
 	e.showPanel(panelLeft, true) // a category entry leaves the panel as it is
 	row := e.TreeMemberRow(key, n)
-	r, ok := e.TreeRowRect(row)
+	r, ok := e.FindControl(ControlQuery{Role: ControlTreeRow, N: row})
 	if row < 0 || !ok {
 		t.Fatalf("member %d of the %s branch is not in the tree", n, key)
 	}

@@ -73,7 +73,7 @@ func TestEditorPersonSectionButtonsSelectTheirRows(t *testing.T) {
 				updateEditorKeys(t, e, ebiten.KeyTab)
 				if e.obj.focus < 0 {
 					t.Errorf("Tab after section button %d did not focus a field", section)
-				} else if _, ok := e.FieldRect(e.obj.focus); !ok {
+				} else if _, ok := e.FindControl(ControlQuery{Role: ControlField, N: e.obj.focus}); !ok {
 					t.Errorf("Tab after section button %d hid its field", section)
 				}
 			}
@@ -101,7 +101,7 @@ func TestEditorPersonNativeTabFromEveryField(t *testing.T) {
 				updateEditorKeys(t, e, ebiten.KeyTab)
 				if e.obj.focus == i || e.obj.focus < 0 {
 					t.Errorf("native Tab from %s did nothing", field.Key)
-				} else if _, ok := e.FieldRect(e.obj.focus); !ok {
+				} else if _, ok := e.FindControl(ControlQuery{Role: ControlField, N: e.obj.focus}); !ok {
 					t.Errorf("native Tab from %s hid its destination", field.Key)
 				}
 			}

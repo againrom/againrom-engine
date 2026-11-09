@@ -193,11 +193,11 @@ func TestMapEditorIdentityGridPressesChooseEachBlocksEdges(t *testing.T) {
 			if c.state != 0 {
 				identityGridSwitch(t, e, c.state)
 			}
-			if _, ok := e.PlaceGridCellRect(c.hidden); ok {
+			if _, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: c.hidden}); ok {
 				t.Fatalf("cell %d of the other block is shown", c.hidden)
 			}
 			n := c.n
-			r, ok := e.PlaceGridCellRect(n)
+			r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: n})
 			if !ok {
 				t.Fatal("cell is not visible", n)
 			}

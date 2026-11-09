@@ -78,7 +78,7 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 	before := missionAutosaveSampleNow(t, f)
 	visible, explored := bytes.Clone(f.live.fog.visible), bytes.Clone(f.live.fog.explored)
 	files := mapRevealFiles(t, store.Dir)
-	off, err := app.HeadlessMinimap()
+	off, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 	if err != nil || viewer.FogRevealed() {
 		t.Fatal("initial production minimap", err)
 	}
@@ -94,14 +94,14 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 			t.Fatal("display chord changed World, fog, view, SAV or ownership sidecars")
 		}
 		if !viewer.FogRevealed() {
-			restored, err := app.HeadlessMinimap()
+			restored, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 			if err != nil || restored.Bounds() != off.Bounds() || !bytes.Equal(restored.Pix, off.Pix) {
 				t.Fatal("second edge did not restore the exact minimap", err)
 			}
 			mapRevealPNG(t, filepath.Join(dir, "off-restored.png"), restored)
 			continue
 		}
-		on, err := app.HeadlessMinimap()
+		on, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 		if err != nil || bytes.Equal(off.Pix, on.Pix) {
 			t.Fatal("first edge did not visibly reveal a qualified map", err)
 		}

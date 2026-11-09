@@ -169,9 +169,9 @@ func TestReleaseSpellbookPopupStatesTheCastAtTheActorsPower(t *testing.T) {
 		if err := a.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if state.Target != "spell/6" || !state.Visible || pic == nil {
-			t.Fatalf("heal hover = %+v", state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if state.Tooltip.Target != "spell/6" || !state.Tooltip.Visible || pic == nil {
+			t.Fatalf("heal hover = %+v", state.Tooltip)
 		}
 		entity, ok := f.live.entity(id)
 		if !ok {

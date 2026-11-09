@@ -70,9 +70,9 @@ func TestReleaseCutsceneFinalBlitStopsAudioWithPictureRetained(t *testing.T) {
 					if rec.stops != before.stops || !rec.live {
 						t.Fatal("movie audio stopped before the final picture")
 					}
-					pix, note, err := a.HeadlessFrame()
-					if err != nil || note != "" {
-						t.Fatal("installed movie composition", note, err)
+					pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+					if err != nil || note.Note != "" {
+						t.Fatal("installed movie composition", note.Note, err)
 					}
 					if n == 40 {
 						for i := 0; i < len(pix.Pix); i += 4 {
@@ -97,7 +97,7 @@ func TestReleaseCutsceneFinalBlitStopsAudioWithPictureRetained(t *testing.T) {
 					t.Fatal("installed final fade/picture was lost", i)
 				}
 			}
-			pix, _, err := a.HeadlessFrame()
+			pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 			if err != nil || !bytes.Equal(pix.Pix, final) || rec.stops != before.stops+1 {
 				t.Fatal("duplicate final composition changed picture or stopped twice", err)
 			}

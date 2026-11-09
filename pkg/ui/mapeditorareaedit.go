@@ -721,8 +721,8 @@ func (e *MapEditor) AreaCornerPoint(c image.Point) image.Point {
 	return image.Pt(int(math.Round(float64(x)+ox)), int(math.Round(float64(y)+oy)))
 }
 
-// AreaTriggerRect is the window rectangle of the trigger choice's box.
-func (e *MapEditor) AreaTriggerRect() (image.Rectangle, bool) {
+// controlAreaTriggerRect is the window rectangle of the trigger choice's box.
+func (e *MapEditor) controlAreaTriggerRect() (image.Rectangle, bool) {
 	d, ok := e.areaDropdown()
 	return d.Rect, ok
 }

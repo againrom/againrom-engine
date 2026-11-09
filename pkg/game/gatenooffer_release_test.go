@@ -141,7 +141,7 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 		}
 		beforeFrame, beforeClock, beforeRolls := s.sqFrames(), s.sqPaintLast(), rolls
 		now = now.Add(68 * time.Millisecond)
-		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
+		if pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || pix == nil {
 			t.Fatalf("press %d: the town with the line open does not compose: %v", press+1, err)
 		}
 		if s.sqFrames() != beforeFrame || s.sqPaintLast() != beforeClock || rolls != beforeRolls || voices.voices[press].stops != 0 {
@@ -152,7 +152,7 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 		}
 		checkInstalledDialoguePointer(t, app, "gate line", image.Rect(276, 296, 356, 322), image.Pt(640, 480), func() *image.RGBA {
 			t.Helper()
-			pix, _, err := app.HeadlessFrame()
+			pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -169,13 +169,13 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 			t.Fatalf("pager close changed the blocked timestamp: %v=>%v, now=%v", beforeClock, s.sqPaintLast(), now)
 		}
 		beforeComposeRolls := rolls
-		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
+		if pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || pix == nil {
 			t.Fatal("post-pager square composition", err)
 		}
 		if rolls != beforeComposeRolls+2 || s.sqPaintLast() != now {
 			t.Fatalf("post-pager pure frame: rolls %d=>%d want +2; clock %v=>%v want %v", beforeComposeRolls, rolls, beforeClock, s.sqPaintLast(), now)
 		}
-		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
+		if pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || pix == nil {
 			t.Fatal("same-clock square composition", err)
 		}
 		if rolls != beforeComposeRolls+2 || s.sqPaintLast() != now {

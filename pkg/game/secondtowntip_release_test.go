@@ -21,7 +21,7 @@ func secondTipStep(t *testing.T, app *ui.App) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := app.HeadlessFrame(); err != nil {
+	if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 		t.Fatal(err)
 	}
 }

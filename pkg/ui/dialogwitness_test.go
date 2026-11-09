@@ -273,7 +273,7 @@ func dialogWitness(t *testing.T, loc dialogWitnessLocale, win image.Point) []dia
 	if !open {
 		t.Fatal("no mismatch window")
 	}
-	mmPix, _, err := mismatch.HeadlessFrame()
+	mmPix, _, err := mismatch.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -71,7 +71,7 @@ func usableHoverProof(t *testing.T, f *FrontEnd, a *ui.App, kind uint16, id uint
 	if cursor, ok := a.HeadlessMapCursor(); !ok || cursor != "town" {
 		t.Fatalf("class%d cursor=%q,%v", kind, cursor, ok)
 	}
-	pic, _, lines, err := a.HeadlessStructureReadout()
+	pic, extras, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartStructureReadout})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,10 +80,10 @@ func usableHoverProof(t *testing.T, f *FrontEnd, a *ui.App, kind uint16, id uint
 	if maximum == 0 {
 		current, maximum = 1000, 1000
 	}
-	if lines[2] != fmt.Sprintf("%d/%d", current, maximum) {
-		t.Fatalf("class%d readout=%q", kind, lines)
+	if extras.Lines[2] != fmt.Sprintf("%d/%d", current, maximum) {
+		t.Fatalf("class%d readout=%q", kind, extras.Lines)
 	}
-	t.Logf("hover class%d structure%d tick%d cursor=town readout=%q", kind, id, f.live.world.Tick(), lines)
+	t.Logf("hover class%d structure%d tick%d cursor=town readout=%q", kind, id, f.live.world.Tick(), extras.Lines)
 	if dir := os.Getenv("AGAINROM_USABLE_STRUCTURE_WITNESS_DIR"); dir != "" {
 		dir, err = effectRimOutputPath(os.Getenv("AGAINROM_ASSETS"), dir)
 		if err != nil {
@@ -92,7 +92,7 @@ func usableHoverProof(t *testing.T, f *FrontEnd, a *ui.App, kind uint16, id uint
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			t.Fatal(err)
 		}
-		cursor, _, err := a.HeadlessMissionCursor()
+		cursor, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCursor})
 		if err != nil {
 			t.Fatal(err)
 		}

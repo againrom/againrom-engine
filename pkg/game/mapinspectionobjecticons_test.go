@@ -31,7 +31,7 @@ func TestMapEditorObjectGridPaintsMapSpritesWithoutPortraits(t *testing.T) {
 			if err := e.Key("objects"); err != nil {
 				t.Fatal(err)
 			}
-			cell, ok := e.PlaceGridCellRect(0)
+			cell, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 			if !ok || e.PlaceGridLen() != 1 {
 				t.Fatalf("Objects grid has %d cells, first visible: %v", e.PlaceGridLen(), ok)
 			}

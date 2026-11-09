@@ -51,7 +51,7 @@ func TestReleaseTownPickersSkipAHiredSquadAndTheMissionCarriesIt(t *testing.T) {
 		t.Helper()
 		for i := 0; i < 600 && s.schoolTrainingBusy(); i++ {
 			now = now.Add(84 * time.Millisecond)
-			if _, _, err := app.HeadlessFrame(); err != nil {
+			if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 				t.Fatal(err)
 			}
 		}

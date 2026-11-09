@@ -531,7 +531,7 @@ func TestMapEditorBoxCopyOnAListTabTakesEveryKind(t *testing.T) {
 	for _, tab := range []string{"units", "groups", "structures", "sacks"} {
 		t.Run(tab, func(t *testing.T) {
 			e := groupEditor(t, raw)
-			r, ok := e.BarRect(tab)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: tab})
 			if !ok {
 				t.Fatalf("no %s tab", tab)
 			}

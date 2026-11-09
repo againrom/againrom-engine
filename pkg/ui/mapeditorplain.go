@@ -297,9 +297,9 @@ func (e *MapEditor) viewSwitchButton(s *popupSpec) {
 	}
 }
 
-// ViewSwitchRect is the window rectangle of the object window's view
+// controlViewSwitchRect is the window rectangle of the object window's view
 // switch, when the window shows one.
-func (e *MapEditor) ViewSwitchRect() (image.Rectangle, bool) {
+func (e *MapEditor) controlViewSwitchRect() (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok || s.SwitchButton == "" {
 		return image.Rectangle{}, false

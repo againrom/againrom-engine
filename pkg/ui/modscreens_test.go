@@ -109,7 +109,7 @@ func TestMainMenuEntryOpensTheScreenAndBackReturns(t *testing.T) {
 	if a.Screen() != ScreenMod || a.flow.modUI.open != 1 {
 		t.Fatalf("screen %v open %d after clicking the second entry", a.Screen(), a.flow.modUI.open)
 	}
-	if _, _, err := a.HeadlessFrame(); err != nil {
+	if _, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil {
 		t.Fatalf("the mod screen has no frame: %v", err)
 	}
 	click(a, midOf(modBackButton))

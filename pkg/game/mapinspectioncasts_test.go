@@ -128,7 +128,7 @@ func TestEditorCellSpellsKeyPointerBytesAndClear(t *testing.T) {
 				t.Fatal(err)
 			}
 		} else {
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			if ok {
 				messageClick(t, e, r, ok)
 			}
@@ -187,7 +187,7 @@ func TestEditorCellSpellsAddReusesCastingStructure(t *testing.T) {
 	if e.Selected() != recordIndex(t, e, "Enchantment", 2) {
 		t.Fatal("popup did not open on the existing casting structure")
 	}
-	if _, ok := e.FieldRect(0); !ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 0}); !ok {
 		t.Fatal("casting structure popup is closed")
 	}
 	if err := e.Key("undo"); err != nil || !bytes.Equal(s.model.Bytes(), before) {
@@ -217,11 +217,11 @@ func TestEditorCellSpellsNoneDeletesAndRefusesAdd(t *testing.T) {
 			}
 			before := s.model.Bytes()
 			e.Select(recordIndex(t, e, "Enchantment", template), false)
-			r, ok := e.FieldRect(0)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 0})
 			messageClick(t, e, r, ok)
 			_ = e.Key("selectall")
 			e.TextInput("0")
-			r, ok = e.PopupButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			messageClick(t, e, r, ok)
 			if s.model.Count(mapedit.KindEnchantment) != 3 {
 				t.Fatal("None kept a cell spell record")
@@ -256,11 +256,11 @@ func TestEditorCellSpellsPointerApplyKeepsOtherBytes(t *testing.T) {
 	s := e.Document().Edits.(*mapInspectionEdits)
 	e.Select(recordIndex(t, e, "Enchantment", 0), false)
 	before, _ := s.model.Record(mapedit.KindEnchantment, 0)
-	r, ok := e.FieldRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	messageClick(t, e, r, ok)
 	_ = e.Key("selectall")
 	e.TextInput("99")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	messageClick(t, e, r, ok)
 	want := bytes.Clone(before)
 	binary.LittleEndian.PutUint16(want[20:], 99)

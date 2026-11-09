@@ -116,7 +116,7 @@ func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
 					if e.Selected() != id {
 						t.Fatalf("row %d selected %d, want %d", row, e.Selected(), id)
 					}
-					if _, ok := e.PopupButtonRect(0); !ok {
+					if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0}); !ok {
 						t.Fatalf("row %d did not open its popup", row)
 					}
 					_ = e.Key("escape")
@@ -189,17 +189,17 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 		trigClick(t, e, r, true, "trigger row")
 		shot("scripts-trigger")
 		_ = e.Key("escape")
-		r, ok := e.ListButtonKeyRect("newtrigger")
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "newtrigger"})
 		if !ok {
 			scenarioOpen(t, e)
-			r, ok = e.ListButtonKeyRect("newtrigger")
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "newtrigger"})
 		}
 		trigClick(t, e, r, ok, "New trigger")
 		if !e.WizardShown() {
 			t.Fatal("New trigger opened no wizard")
 		}
 		shot("scripts-newtrigger")
-		r, ok = e.PopupButtonRect(1)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 		trigClick(t, e, r, ok, "Cancel")
 		if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, source) {
 			t.Fatalf("frames changed the map: %v", err)

@@ -26,7 +26,7 @@ type popupTranscript struct {
 
 func (r *popupTranscript) rec(e *MapEditor, label string) {
 	rects := e.popupRects()
-	title, _ := e.TitleRect()
+	title, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 	front, _ := e.PopupRect()
 	fmt.Fprintf(&r.out, "%s front=%v title=%v all=%v\n", label, front, title, rects)
 }
@@ -131,7 +131,7 @@ func popupTranscriptText(t *testing.T) string {
 			}
 			e := fresh()
 			r.rec(e, prefix+" open")
-			if title, ok := e.TitleRect(); ok {
+			if title, ok := e.FindControl(ControlQuery{Role: ControlTitle}); ok {
 				r.path(e, prefix+" title", title.Min.Add(image.Pt(10, 4)), popupTranscriptSteps)
 			}
 			for _, p := range pickers {
@@ -139,7 +139,7 @@ func popupTranscriptText(t *testing.T) string {
 				if front, ok := e.PopupRect(); ok {
 					r.path(e, prefix+" "+p.name, p.pick(front), resizeSteps)
 					r.path(e, prefix+" "+p.name+" again", p.pick(func() image.Rectangle { f, _ := e.PopupRect(); return f }()), resizeSteps[:2])
-					if title, ok := e.TitleRect(); ok {
+					if title, ok := e.FindControl(ControlQuery{Role: ControlTitle}); ok {
 						r.path(e, prefix+" "+p.name+" title", title.Min.Add(image.Pt(10, 4)), popupTranscriptSteps[:3])
 					}
 					sc.reopen(e)

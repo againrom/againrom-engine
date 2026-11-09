@@ -12,7 +12,7 @@ func openMessagePopup(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, "Open Message") || strings.HasPrefix(line, "Открыть сообщение") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			return
 		}
@@ -24,7 +24,7 @@ func dialogueField(t *testing.T, e *ui.MapEditor, field int) {
 	t.Helper()
 	e.ScrollDetails(-100)
 	for range 30 {
-		if r, ok := e.FieldRect(field); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field}); ok {
 			messageClick(t, e, r, ok)
 			return
 		}
@@ -37,7 +37,7 @@ func dialogueButton(t *testing.T, e *ui.MapEditor, part, button int) {
 	t.Helper()
 	e.ScrollDetails(-100)
 	for range 30 {
-		if r, ok := e.RowButtonRect(2*part+1, button, false); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*part + 1, K: button, Flag: false}); ok {
 			messageClick(t, e, r, ok)
 			return
 		}
@@ -161,7 +161,7 @@ func TestDialogueMessageOverlapWarningIncludesRepeatedActionSlots(t *testing.T) 
 	if len(hits) != 1 || hits[0].Error || hits[0].Kind != "Trigger" || hits[0].Index != 0 || !strings.Contains(hits[0].Text, "will not see the second") {
 		t.Fatal("missing plain warning", hits)
 	}
-	r, ok := e.BarRect("panel")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "panel"})
 	messageClick(t, e, r, ok)
 	if lines := e.PanelLines(); len(lines) == 0 || !strings.Contains(strings.Join(lines, " "), "second") {
 		t.Fatal("Map panel hides message warning", e.PanelLines())

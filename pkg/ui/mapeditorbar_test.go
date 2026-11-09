@@ -88,7 +88,7 @@ func TestMapEditorFileCommands(t *testing.T) {
 
 func TestMapEditorSearchFromFile(t *testing.T) {
 	e, _, _ := menuEditor(t, "en")
-	if _, ok := e.BarRect("search"); ok {
+	if _, ok := e.FindControl(ControlQuery{Role: ControlBar, Key: "search"}); ok {
 		t.Fatal("owner item 6: Search still occupies the bar")
 	}
 	openMenuRow(t, e, "file", "search")
@@ -112,11 +112,11 @@ func TestMapEditorHeldButtonLook(t *testing.T) {
 			var r image.Rectangle
 			switch kind {
 			case "bar":
-				r, _ = e.BarRect("units")
+				r, _ = e.FindControl(ControlQuery{Role: ControlBar, Key: "units"})
 			case "file":
-				r, _ = e.BarRect("file")
+				r, _ = e.FindControl(ControlQuery{Role: ControlBar, Key: "file"})
 			case "toolbar":
-				r, _ = e.ToolbarRect("fit")
+				r, _ = e.FindControl(ControlQuery{Role: ControlToolbar, Key: "fit"})
 			case "popup":
 				e.showRecords(editorScriptsFilter)
 				r = listLayout(t, e).Buttons[0]
@@ -126,7 +126,7 @@ func TestMapEditorHeldButtonLook(t *testing.T) {
 				r = l.Close
 			case "menu":
 				chromeClick(e, barPoint(t, e, "view"))
-				r, _ = e.MenuRowRect(menuKeyRow(t, e, "view", "grid"))
+				r, _ = e.FindControl(ControlQuery{Role: ControlMenuRow, N: menuKeyRow(t, e, "view", "grid")})
 			}
 			at := center(r)
 			var edge color.RGBA

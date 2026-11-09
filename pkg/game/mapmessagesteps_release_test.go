@@ -85,7 +85,7 @@ func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
 	e.TextInput(body)
 	fields := s.MessageFields(ui.NewMessagePage)
 	messageField(t, e, 1)
-	r, ok := e.DropdownRowRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	want := fmt.Sprintf("<part=1,npc=%d>\n%s", fields[1].Choices[1].Value, body)

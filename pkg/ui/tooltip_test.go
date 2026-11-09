@@ -138,7 +138,7 @@ func TestTooltipAppShopPaintWaitsAndInvalidatesOnDialogue(t *testing.T) {
 	in := appInput{CursorX: p.X, CursorY: p.Y}
 	start := time.Unix(100, 0)
 	a.step(in, start)
-	before, _, err := a.HeadlessFrame()
+	before, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestTooltipAppShopPaintWaitsAndInvalidatesOnDialogue(t *testing.T) {
 		t.Fatal("fixture has no tooltip target")
 	}
 	a.step(in, start.Add(499*time.Millisecond))
-	early, _, err := a.HeadlessFrame()
+	early, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestTooltipAppShopPaintWaitsAndInvalidatesOnDialogue(t *testing.T) {
 		t.Fatal("tooltip painted before delay")
 	}
 	a.step(in, start.Add(500*time.Millisecond))
-	after, _, err := a.HeadlessFrame()
+	after, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -182,13 +182,13 @@ func TestHeadlessFrameNoteNamesTheGameMenuOverlay(t *testing.T) {
 	const wantNote = "the in-game menu's dim and panel are not in this frame: paintGameMenu draws with ebiten's vector package, no CPU composite"
 
 	a.flow.screen = ScreenTown
-	if _, note, err := a.HeadlessFrame(); err != nil || note != "" {
-		t.Errorf("HeadlessFrame() on ScreenTown: note = %q, err = %v; want empty note, no error", note, err)
+	if _, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil || note.Note != "" {
+		t.Errorf("HeadlessFrame() on ScreenTown: note = %q, err = %v; want empty note, no error", note.Note, err)
 	}
 
 	a.flow.screen = ScreenGameMenu
-	if _, note, err := a.HeadlessFrame(); err != nil || note != wantNote {
-		t.Errorf("HeadlessFrame() on ScreenGameMenu: note = %q, err = %v; want %q, no error", note, err, wantNote)
+	if _, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil || note.Note != wantNote {
+		t.Errorf("HeadlessFrame() on ScreenGameMenu: note = %q, err = %v; want %q, no error", note.Note, err, wantNote)
 	}
 }
 

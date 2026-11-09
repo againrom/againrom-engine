@@ -108,7 +108,7 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	if legend != 3 {
 		t.Fatalf("the matrix's legend names %d of the 3 values: %+v", legend, s.Rows)
 	}
-	cell, ok := e.PlaceGridCellRect(1)
+	cell, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 1})
 	if !ok {
 		t.Fatal("matrix cell 0,1 is not shown")
 	}
@@ -122,7 +122,7 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 			t.Fatalf("cell 0,1 does not show %d after the click", want)
 		}
 	}
-	diagonal, _ := e.PlaceGridCellRect(3)
+	diagonal, _ := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 3})
 	before := len(calls.lines)
 	chromeClick(e, center(diagonal))
 	if len(calls.lines) != before {
@@ -133,7 +133,7 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	if s, _ := e.listSpec(); s.Grid.Cells[2].Icon != nil || s.Grid.Cells[2].Label != "5" {
 		t.Fatalf("an unnamed value shows as %+v", s.Grid.Cells[2])
 	}
-	other, _ := e.PlaceGridCellRect(2)
+	other, _ := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 2})
 	chromeClick(e, center(other))
 	if calls.lines[len(calls.lines)-1] != "SetField Player 1 relation:0 0" {
 		t.Fatal("a click on an unnamed value did not set 0", calls.lines)

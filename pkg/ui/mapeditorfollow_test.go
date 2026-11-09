@@ -20,7 +20,7 @@ func TestMapEditorTreeFollowsALaterSelectionOfTheEntrysRecord(t *testing.T) {
 		if e.selected != -1 || !e.tree.closed["scripts"] {
 			t.Fatalf("the Scripts entry selected %d, branch closed %v", e.selected, e.tree.closed["scripts"])
 		}
-		r, ok := e.AreaLabelRect(0)
+		r, ok := e.FindControl(ControlQuery{Role: ControlAreaLabel, N: 0})
 		if !ok {
 			t.Fatal("the trigger's area label is not on the map")
 		}

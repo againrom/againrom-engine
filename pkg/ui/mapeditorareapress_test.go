@@ -26,7 +26,7 @@ func TestTriggerAreaSelectsOnlyByItsLabel(t *testing.T) {
 	}
 	inside, outside := image.Pt(19, 13), image.Pt(24, 20)
 	label := func() image.Point {
-		r, ok := e.AreaLabelRect(0)
+		r, ok := e.FindControl(ControlQuery{Role: ControlAreaLabel, N: 0})
 		if !ok {
 			t.Fatal("the trigger's label is not on the map")
 		}

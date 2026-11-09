@@ -174,7 +174,7 @@ func TestReleasePreCreateNameThroughAppInput(t *testing.T) {
 	capture := 0
 	frame := func() *image.RGBA {
 		t.Helper()
-		pix, _, err := app.HeadlessFrame()
+		pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -907,7 +907,8 @@ func headlessWorn(slots [sim.EquipSlots]uint16, table *mapload.Table,
 
 func headlessAppSnapshot(front *FrontEnd, app *ui.App) HeadlessState {
 	state := front.HeadlessSnapshot(app.HeadlessGameplayScreen())
-	state.Tooltip, _ = app.HeadlessTooltip()
+	_, tip, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+	state.Tooltip = tip.Tooltip
 	state.QuickSpells = front.quickSpells
 	if app.HeadlessGameplayScreen() == ui.ScreenMap && front.live != nil && front.live.view != nil {
 		_, state.CurrentSpell, state.SpellArmed = front.live.view.QuickSpellState()

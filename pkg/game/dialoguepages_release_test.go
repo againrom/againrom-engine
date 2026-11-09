@@ -105,7 +105,7 @@ func TestReleaseDialogueShippedPagePopup(t *testing.T) {
 		e.Select(recordIndex(t, e, "Action", i), false)
 		for row, line := range e.PopupLines() {
 			if strings.HasPrefix(line, x.inspectionUTF8(x.word("editor.param.open"))) {
-				r, ok := e.PopupRowRect(row)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 				messageClick(t, e, r, ok)
 				break
 			}
@@ -162,7 +162,7 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 	messageField(t, e, 2)
 	e.ScrollDropdown(1000)
 	row := len(e.DropdownChoices()) - 1
-	r, ok := e.DropdownRowRect(row)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	messageClick(t, e, r, ok)
 	number := freeMessage(s.workspace.Pages)
 	for part := 0; part < 3; part++ {
@@ -183,7 +183,7 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 		}
 		e.ScrollDropdown(-1000)
 		for {
-			if r, ok := e.DropdownRowRect(chosen); ok {
+			if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: chosen}); ok {
 				messageClick(t, e, r, ok)
 				break
 			}

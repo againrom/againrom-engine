@@ -53,9 +53,9 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	const sliderKnob, barThumb = 10, 22
 	shot := func(t *testing.T, app *ui.App, name string) *image.RGBA {
 		t.Helper()
-		pic, note, err := app.HeadlessFrame()
-		if err != nil || note != "" || pic.Bounds() != image.Rect(0, 0, 640, 480) {
-			t.Fatal(name, note, err)
+		pic, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" || pic.Bounds() != image.Rect(0, 0, 640, 480) {
+			t.Fatal(name, note.Note, err)
 		}
 		writeWidgetKitPNG(t, filepath.Join(out, fmt.Sprintf("%s-%s.png", lang, name)), pic)
 		return pic

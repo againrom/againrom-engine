@@ -119,7 +119,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				if at < 0 {
 					t.Fatalf("%s: the popup offers %q", name, buttons)
 				}
-				r, ok := e.PopupButtonRect(at)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: at})
 				trigClick(t, e, r, ok, "Add to trigger")
 				if key, _, ok := e.AddStep(); !ok || key != "trigger" {
 					t.Fatalf("%s: Add to trigger asked %q %v", name, key, ok)
@@ -131,7 +131,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 					if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) || !bytes.Equal(e.Document().SourceBytes, b) {
 						t.Fatalf("%s: a full trigger did not ask to extend the map: %q", name, e.PromptNotes())
 					}
-					r, ok := e.PromptButtonRect(0)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 					trigClick(t, e, r, ok, "Extend")
 					sc := e.Document().Script
 					tr, old := sc.Triggers[0], before.Triggers[0]
@@ -212,7 +212,7 @@ func newVariable(t *testing.T, e *ui.MapEditor, w func(string, ...any) string, l
 	trigChoose(t, e, wizField(t, e, fmt.Sprintf("a%d.p0", last)), w("editor.param.newvariable"))
 	wizApply(t, e)
 	openVariable(t, e, w("editor.scripts.variable", r0))
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Label...")
 	if keys := addWalk(t, e, map[string]string{"label": label}, ""); !slices.Equal(keys, []string{"label"}) {
 		t.Fatalf("Label... asked %q", keys)
@@ -296,7 +296,7 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 			}
 		}
 		e.Select(node.Record, false)
-		r, ok := e.FieldRect(parameterField(node, 0))
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: parameterField(node, 0)})
 		trigClick(t, e, r, ok, "variable field")
 		if got := e.DropdownChoices(); !slices.ContainsFunc(got, func(c string) bool { return strings.Contains(c, "Gold") }) {
 			t.Fatalf("%s: Details' variable choices are %q", l.name, got)
@@ -322,7 +322,7 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 		if slices.Contains(e.PopupLines(), w("editor.labels.unused")) {
 			t.Fatalf("%s: an addressed variable says no trigger uses it", l.name)
 		}
-		r, ok = e.PopupButtonRect(0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Label...")
 		if keys := addWalk(t, e, map[string]string{"label": "Treasury"}, ""); !slices.Equal(keys, []string{"label"}) {
 			t.Fatalf("%s: Label... asked %q", l.name, keys)
@@ -332,7 +332,7 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 		}
 		renamed := w("editor.scripts.variable", r0) + "  Treasury"
 		openVariable(t, e, renamed)
-		r, ok = e.PopupButtonRect(1)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 		trigClick(t, e, r, ok, "Clear label")
 		if _, labelled := e.Document().Script.Labels[r0]; labelled || !treeHas(e, w("editor.scripts.variable", r0)) {
 			t.Fatalf("%s: Clear label left %q: %q", l.name, e.Document().Script.Labels[r0], e.TreeLines())

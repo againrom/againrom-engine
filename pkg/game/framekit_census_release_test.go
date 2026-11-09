@@ -53,9 +53,9 @@ func TestReleaseFrameAndButtonCensus(t *testing.T) {
 	}
 	frameOf := func(t *testing.T, app *ui.App, name string) {
 		t.Helper()
-		pic, note, err := app.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal(name, note, err)
+		pic, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal(name, note.Note, err)
 		}
 		record(t, name, pic)
 	}
@@ -150,21 +150,21 @@ func TestReleaseFrameAndButtonCensus(t *testing.T) {
 	before := f.live.world.Hash()
 	for _, part := range []struct {
 		name string
-		get  func() (*image.RGBA, error)
+		part ui.HeadlessPart
 	}{
-		{"mission-command-panel", app.HeadlessCommandPanel},
-		{"mission-bottom-hud", app.HeadlessBottomHUD},
-		{"mission-minimap", app.HeadlessMinimap},
-		{"mission-inventory-pack", app.HeadlessInventoryPack},
-		{"mission-card", app.HeadlessMissionCard},
+		{"mission-command-panel", ui.HeadlessPartCommandPanel},
+		{"mission-bottom-hud", ui.HeadlessPartBottomHUD},
+		{"mission-minimap", ui.HeadlessPartMinimap},
+		{"mission-inventory-pack", ui.HeadlessPartInventoryPack},
+		{"mission-card", ui.HeadlessPartMissionCard},
 	} {
-		pic, err := part.get()
+		pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: part.part})
 		if err != nil {
 			t.Fatal(part.name, err)
 		}
 		record(t, part.name, pic)
 	}
-	pane, _, err := app.HeadlessCharacterPane()
+	pane, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 	if err != nil {
 		t.Fatal(err)
 	}

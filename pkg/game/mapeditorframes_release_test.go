@@ -27,7 +27,7 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 	screen.Dispose()
 	var menu image.Rectangle
 	for n := 0; ; n++ {
-		r, ok := e.MenuRowRect(n)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 		if !ok {
 			break
 		}
@@ -126,7 +126,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	shot(fresh(), "map-picker", image.Rectangle{})
 
 	e := opened()
-	r, ok := e.BarRect("file")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "file"})
 	click(e, r, ok, "the File entry")
 	shot(e, "file-menu", image.Rectangle{})
 
@@ -144,7 +144,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	if choice < 0 {
 		t.Fatal("the unit has no choice field")
 	}
-	r, ok = e.FieldRect(choice)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: choice})
 	click(e, r, ok, "the unit's choice field")
 	shot(e, "unit-dropdown", image.Rect(r.Min.X, r.Max.Y, 1280, 800)) // the list lies below the field
 
@@ -156,9 +156,9 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	// leaves the panels as they are and its palette opens beside them.
 	e = opened()
 	showTree(e)
-	r, ok = e.BarRect("groups")
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	click(e, r, ok, "the Groups entry")
-	r, ok = e.GroupsRowRect(2, 15, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsRow, N: 2, K: 15, Flag: false})
 	click(e, r, ok, "the second group")
 	if len(e.GroupMembers()) == 0 {
 		t.Fatal("the second group has no members")
@@ -167,7 +167,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 
 	e = opened()
 	showTree(e)
-	r, ok = e.BarRect("scripts")
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "scripts"})
 	click(e, r, ok, "the Scripts entry")
 	r, ok = treeMemberRect(e, "scripts", 0)
 	click(e, r, ok, "the first trigger")

@@ -16,7 +16,7 @@ import (
 func scenarioButtonClick(t *testing.T, e *ui.MapEditor, key string) {
 	t.Helper()
 	scenarioOpen(t, e)
-	r, ok := e.ListButtonKeyRect(key)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: key})
 	trigClick(t, e, r, ok, "palette button "+key)
 }
 
@@ -51,7 +51,7 @@ func TestMapEditorScenarioPaletteListsOnlyTheRecordRows(t *testing.T) {
 				t.Fatalf("the palette lists\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 			}
 			for n := range want {
-				if r, ok := e.ListRowRect(n); !ok || !r.In(window) {
+				if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: n}); !ok || !r.In(window) {
 					t.Fatalf("palette row %d shows %v at %v", n, ok, r)
 				}
 			}
@@ -65,11 +65,11 @@ func TestMapEditorScenarioPaletteListsOnlyTheRecordRows(t *testing.T) {
 				}
 				members++
 				branch := x.TreeBranchRow("scripts")
-				r, ok := x.TreeRowRect(row)
+				r, ok := x.FindControl(ui.ControlQuery{Role: ui.ControlTreeRow, N: row})
 				trigClick(t, x, r, ok, "tree row")
 				y, _, _ := scriptAddEditor(t, l, b)
 				scenarioOpen(t, y)
-				r, ok = y.ListRowRect(row - branch - 1)
+				r, ok = y.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: row - branch - 1})
 				trigClick(t, y, r, ok, "palette row")
 				if y.Selected() != x.Selected() || y.Selected() < 0 || y.WizardShown() != x.WizardShown() || trigLines(y) != trigLines(x) {
 					t.Fatalf("palette row %d opens %d\n%s\nthe tree row opens %d\n%s", row-branch-1, y.Selected(), trigLines(y), x.Selected(), trigLines(x))
@@ -92,16 +92,16 @@ func TestMapEditorScenarioPaletteButtonKeys(t *testing.T) {
 		scenarioOpen(t, e)
 		var rects []image.Rectangle
 		for _, k := range []string{"drop", "newtrigger"} {
-			r, ok := e.ListButtonKeyRect(k)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: k})
 			if !ok || !r.In(window) {
 				t.Fatalf("%s: button %s shows %v at %v", l.name, k, ok, r)
 			}
 			rects = append(rects, r)
 		}
-		if _, ok := e.ListButtonKeyRect("add"); ok {
+		if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "add"}); ok {
 			t.Fatalf("%s: the palette still has Add", l.name)
 		}
-		if _, ok := e.ListButtonKeyRect("newvariable"); ok {
+		if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "newvariable"}); ok {
 			t.Fatalf("%s: the palette still has New variable", l.name)
 		}
 		for i := 1; i < len(rects); i++ {
@@ -132,7 +132,7 @@ func TestMapEditorScenarioNewTriggerButtonAddsInOneClick(t *testing.T) {
 			if _, _, open := e.AddStep(); open {
 				t.Fatal("the button opened an Add window")
 			}
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, b) {
 				t.Fatalf("one undo left the trigger: %v", err)
@@ -154,7 +154,7 @@ func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
 			t.Fatalf("%s: the A key opened the Add window", l.name)
 		}
 		e.Select(trigRecord(t, e, "Trigger", 0), true)
-		r, ok := e.PopupButtonRect(2)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 		trigClick(t, e, r, ok, "New")
 		if _, _, open := e.AddStep(); open {
 			t.Fatalf("%s: the wizard's New opened the Add window", l.name)
@@ -175,9 +175,9 @@ func TestMapEditorScenarioWindowsReturnAfterSwitch(t *testing.T) {
 			scenarioButtonClick(t, e, "newtrigger")
 			before := slices.Clone(e.Document().SourceBytes)
 			e.TextInput("discard me")
-			r, ok := e.BarRect("units")
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "units"})
 			trigClick(t, e, r, ok, "Units")
-			r, ok = e.BarRect("scripts")
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "scripts"})
 			trigClick(t, e, r, ok, "Scenario")
 			if !bytes.Equal(e.Document().SourceBytes, before) || len(e.ListLines()) == 0 || strings.Contains(trigLines(e), "discard me") {
 				t.Fatal("return lost the palette, kept a draft or wrote the map")

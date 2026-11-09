@@ -149,7 +149,7 @@ func (tr *townTrace) room() string {
 }
 
 func (tr *townTrace) frame() string {
-	pix, _, err := tr.a.HeadlessFrame()
+	pix, _, err := tr.a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		tr.t.Fatalf("tick %d frame: %v", tr.tick, err)
 	}

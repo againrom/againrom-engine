@@ -59,7 +59,7 @@ func TestReleaseSavedEnemyHumanPortraitsAndBooks(t *testing.T) {
 			inspectionCentre(mw, int(e.X), int(e.Y))
 			mw.push()
 			releaseHoverInspection(t, a, mw, ui.InspectionSubject{Kind: ui.InspectionUnit, ID: uint32(tc.id)})
-			pic, _, err := a.HeadlessCharacterPane()
+			pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -84,7 +84,7 @@ func TestReleaseSavedEnemyHumanPortraitsAndBooks(t *testing.T) {
 			if err := a.HeadlessPointer("hover", 0, 0); err != nil {
 				t.Fatal(err)
 			}
-			pic, _, err = a.HeadlessCharacterPane()
+			pic, _, err = a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 			if err != nil {
 				t.Fatal(err)
 			}

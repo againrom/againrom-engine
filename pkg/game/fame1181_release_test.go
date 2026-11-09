@@ -115,9 +115,9 @@ func TestReleaseFame1181TerminalResultColdHallAndSAV(t *testing.T) {
 		t.Fatal("stored row", rows)
 	}
 	capture := func(name string) {
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal(err, note)
+		pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal(err, note.Note)
 		}
 		witness.PNG(t, filepath.Join(artifact, name+".png"), pix)
 	}

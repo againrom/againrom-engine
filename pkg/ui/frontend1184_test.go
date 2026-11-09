@@ -100,7 +100,7 @@ func TestCutsceneLibraryEncounterReplayAndInput1184(t *testing.T) {
 	if !reflect.DeepEqual(recorded, []string{"intro", "m20"}) {
 		t.Fatal(recorded)
 	}
-	if _, _, err := a.HeadlessFrame(); err != nil {
+	if _, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -157,7 +157,7 @@ func TestCreditsScrollLogoPauseClose1184(t *testing.T) {
 	for i := 0; i <= 130; i++ {
 		a.step(appInput{}, now.Add(time.Duration(i)*100*time.Millisecond))
 	}
-	before, _, err := a.HeadlessFrame()
+	before, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestTooltipAroundOpenTips1184(t *testing.T) {
 	start := time.Unix(100, 0)
 	a.step(in, start)
 	a.step(in, start.Add(500*time.Millisecond))
-	if state, _ := a.HeadlessTooltip(); !state.Visible {
+	if _, state, _ := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartTooltip}); !state.Tooltip.Visible {
 		t.Fatal("tip outside item still suppresses hover")
 	}
 	shop.view.TipPanel.Rect = ShopShelfCellRect(0)

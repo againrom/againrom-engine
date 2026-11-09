@@ -271,7 +271,7 @@ func savGateVisible(a *ui.App, mw *mapWorld) map[string]string {
 		out["camera.y"] = fmt.Sprint(cam.Y)
 		out["camera.zoom"] = fmt.Sprint(cam.Zoom)
 	}
-	if pix, _, err := a.HeadlessCharacterPane(); err != nil {
+	if pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane}); err != nil {
 		out["frame.pane"] = "refused: " + err.Error()
 	} else {
 		out["frame.pane"] = savGateImageHash(pix)

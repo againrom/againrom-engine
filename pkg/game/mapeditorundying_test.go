@@ -18,30 +18,30 @@ func authorUndying(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
 	trigDetails(t, e)
-	r, ok := e.RowButtonRect(2, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit pair 1 left")
 	trigChoose(t, e, 1, "Health below (Againrom)")
-	r, ok = e.FieldRect(3)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 3})
 	trigClick(t, e, r, ok, "health")
 	for range 4 {
 		_ = e.Key("backspace")
 	}
 	e.TextInput("-25")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply condition")
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back")
-	r, ok = e.RowButtonRect(11, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit action 1")
 	trigChoose(t, e, 1, "Set undying (Againrom)")
 	trigChoose(t, e, 2, "10")
-	r, ok = e.FieldRect(3)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 3})
 	trigClick(t, e, r, ok, "undying")
 	for range 4 {
 		_ = e.Key("backspace")
 	}
 	e.TextInput("1")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply action")
 }
 
@@ -92,7 +92,7 @@ func TestEditorAuthorsTheUndyingNodesAndMarksTheMap(t *testing.T) {
 			t.Fatalf("the reopened trigger lacks %q:\n%s", want, lines)
 		}
 	}
-	r, ok := re.RowButtonRect(2, 0, false)
+	r, ok := re.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false})
 	trigClick(t, re, r, ok, "Edit pair 1 left")
 	if lines := trigLines(re); !strings.Contains(lines, "Againrom operation: the original game does nothing with it.") ||
 		!strings.Contains(lines, "Health below -25") {

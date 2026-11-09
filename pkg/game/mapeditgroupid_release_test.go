@@ -154,18 +154,18 @@ func TestReleaseMapEditorNewGroupNumberIsMapWide(t *testing.T) {
 		t.Fatal("Ctrl+2 put player 3's units in player 2's group")
 	}
 	c := &editorClicker{t: t, now: time.Unix(10, 0)}
-	r, ok := e.BarRect("groups")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	c.click(e, r, ok, "the Groups entry")
-	r, ok = e.GroupsButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsButton, N: 0})
 	c.click(e, r, ok, "To group...")
-	r, ok = e.PromptButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "OK on New")
 	// Both units are the whole of group 1, which the script names: the
 	// window asks first and names the triggers, and nothing is written yet.
 	if notes := strings.Join(e.PromptNotes(), " "); e.Dirty() || !strings.Contains(notes, "1") || len(notes) < 20 {
 		t.Fatalf("emptying the script's group 1 did not ask first: dirty %v, notes %q", e.Dirty(), notes)
 	}
-	r, ok = e.PromptButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "Empty it")
 	after, err := objectEdits(t, e).model.Map()
 	if err != nil {

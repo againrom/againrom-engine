@@ -82,9 +82,9 @@ func TestReleaseSaveDialogUsesInstalledFontWithoutClipping(t *testing.T) {
 	t.Run("load-unicode", func(t *testing.T) {
 		loaded := ""
 		a := unicodeLoadApp(t, font, &loaded)
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatalf("Unicode LOAD frame: %q / %v", note, err)
+		pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatalf("Unicode LOAD frame: %q / %v", note.Note, err)
 		}
 		assertUnicodeLoadRow(t, a, font, pix)
 		writeSaveDialogCapture(t, "load-unicode", pix)
@@ -156,9 +156,9 @@ func TestReleaseSaveDialogUsesInstalledFontWithoutClipping(t *testing.T) {
 					}
 				}
 			}
-			pix, note, err := a.HeadlessFrame()
-			if err != nil || note != "" {
-				t.Fatalf("save frame: %q / %v", note, err)
+			pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+			if err != nil || note.Note != "" {
+				t.Fatalf("save frame: %q / %v", note.Note, err)
 			}
 			writeSaveDialogCapture(t, tc.name, pix)
 		})

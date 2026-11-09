@@ -102,7 +102,7 @@ func TestReleaseWorldMapScrollTitlesAreSmoothedWhereverAnyOfThemShows(t *testing
 					}
 				}
 				a.Draw(ebiten.NewImage(1920, 1080))
-				pix, _, err := a.HeadlessFrame()
+				pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 				if err != nil {
 					t.Fatal(err)
 				}

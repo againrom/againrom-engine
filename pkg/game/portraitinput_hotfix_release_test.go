@@ -121,11 +121,11 @@ func TestReleasePortraitInputHotfix(t *testing.T) {
 			before := mw.world.Hash()
 			pending := len(mw.pending)
 			inventory := mw.invSubject
-			pane, stats, err := a.HeadlessCharacterPane()
-			if err != nil || stats {
+			pane, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+			if err != nil || stats.Statistics {
 				t.Fatal("initial figure", err)
 			}
-			card, err := a.HeadlessMissionCard()
+			card, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -133,11 +133,11 @@ func TestReleasePortraitInputHotfix(t *testing.T) {
 				if err = a.HeadlessKey(key); err != nil {
 					t.Fatal(err)
 				}
-				got, stats, err := a.HeadlessCharacterPane()
-				if err != nil || stats || !bytes.Equal(got.Pix, pane.Pix) {
+				got, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+				if err != nil || stats.Statistics || !bytes.Equal(got.Pix, pane.Pix) {
 					t.Fatal("mission Tab changed figure", err)
 				}
-				gotCard, err := a.HeadlessMissionCard()
+				gotCard, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 				if err != nil || !bytes.Equal(gotCard.Pix, card.Pix) {
 					t.Fatal("mission Tab changed lower stats", err)
 				}
@@ -154,12 +154,12 @@ func TestReleasePortraitInputHotfix(t *testing.T) {
 				if !ok || s.Kind != ref.Kind || s.ID != ref.ID || s.HP != hp || s.MaxHP != maxHP {
 					t.Fatalf("incorrect live card %+v for %+v", s, ref)
 				}
-				pic, stats, err := a.HeadlessCharacterPane()
-				if err != nil || stats {
+				pic, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+				if err != nil || stats.Statistics {
 					t.Fatal("hover lost figure", err)
 				}
 				checkInspectionFigure(t, pic, want, fmt.Sprint(ref))
-				if _, err = a.HeadlessMissionCard(); err != nil {
+				if _, _, err = a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard}); err != nil {
 					t.Fatal("hover lost lower stats", err)
 				}
 				if selected, ok := mw.view.SelectedUnit(); !ok || selected != uint32(hero) {

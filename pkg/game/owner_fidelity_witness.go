@@ -93,7 +93,7 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 		return err
 	}
 	f.live.push()
-	warriorCard, err := a.HeadlessMissionCard()
+	warriorCard, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		return err
 	}
@@ -122,19 +122,19 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 		return err
 	}
 	f.live.push()
-	minimap, err := a.HeadlessMinimap()
+	minimap, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 	if err != nil || minimap.Bounds().Size() != image.Pt(176, 158) {
 		return fmt.Errorf("fidelity witness: full crystal absent: %v", err)
 	}
-	card, err := a.HeadlessMissionCard()
+	card, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		return err
 	}
-	doll, _, err := a.HeadlessCharacterPane()
+	doll, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 	if err != nil {
 		return err
 	}
-	bottom, err := a.HeadlessBottomHUD()
+	bottom, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 	if err != nil {
 		return err
 	}
@@ -375,7 +375,7 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	if err := a.HeadlessKey("ctrl-f5"); err != nil {
 		return err
 	}
-	pic, err := a.HeadlessBottomHUD()
+	pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 	if err != nil || pic.Bounds().Size() != image.Pt(864, 175) {
 		return fmt.Errorf("fidelity witness: bottom HUD dimensions: %v", err)
 	}
@@ -386,7 +386,7 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	if err := a.HeadlessKey("inventory"); err != nil {
 		return err
 	}
-	wide, err := a.HeadlessBottomHUD()
+	wide, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 	if err != nil || wide.Bounds().Size() != image.Pt(1206, 85) {
 		return fmt.Errorf("fidelity witness: widescreen book geometry: %v", err)
 	}

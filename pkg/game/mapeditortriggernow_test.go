@@ -113,7 +113,7 @@ func TestMapEditorOneClickTriggerUndoesInOneStep(t *testing.T) {
 			c, _, _ := scriptAddEditor(t, l, b)
 			newTriggerClick(t, c)
 			added := slices.Clone(c.Document().SourceBytes)
-			r, ok := c.PopupButtonRect(1)
+			r, ok := c.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			trigClick(t, c, r, ok, "Cancel")
 			if !slices.Equal(c.OpenWindows(), []string{"list"}) || !bytes.Equal(c.Document().SourceBytes, added) {
 				t.Fatalf("Cancel left windows %q, the trigger kept %v", c.OpenWindows(), bytes.Equal(c.Document().SourceBytes, added))
@@ -194,13 +194,13 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 			e, _, _ := scriptAddEditor(t, l, b)
 			newTriggerClick(t, e)
 			added := slices.Clone(e.Document().SourceBytes)
-			sr, sok := e.BarRect("file")
+			sr, sok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "file"})
 			trigClick(t, e, sr, sok, "File")
 			n, ok := e.MenuRow("file", "saveas")
 			if !ok {
 				t.Fatal("owner item 4: File has no Save row")
 			}
-			sr, sok = e.MenuRowRect(n)
+			sr, sok = e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 			trigClick(t, e, sr, sok, "Save")
 			if e.Dirty() {
 				t.Fatalf("Save left the map dirty (%s)", e.Message())
@@ -224,7 +224,7 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 			newTriggerClick(t, c)
 			added = slices.Clone(c.Document().SourceBytes)
 			sel := c.Selected()
-			r, ok := c.PopupButtonRect(1)
+			r, ok := c.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			trigClick(t, c, r, ok, "Cancel")
 			if !slices.Equal(c.OpenWindows(), []string{"list"}) {
 				t.Fatalf("Cancel left windows %q", c.OpenWindows())
@@ -232,7 +232,7 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 			shown := false
 			for row := 0; row < 64 && !shown; row++ {
 				scenarioOpen(t, c)
-				r, ok = c.ListRowRect(row)
+				r, ok = c.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: row})
 				if !ok {
 					break
 				}

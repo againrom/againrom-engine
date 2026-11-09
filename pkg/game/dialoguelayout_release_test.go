@@ -333,7 +333,7 @@ func shopRoomUnderMerchantDialogue(t *testing.T, app *ui.App, s *townScreen) *im
 // dialogueFrame is a copy of the frame the App presents at 640x480.
 func dialogueFrame(t *testing.T, app *ui.App) *image.RGBA {
 	t.Helper()
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

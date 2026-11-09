@@ -84,7 +84,7 @@ func roomTipSteps(t *testing.T, app *ui.App, n int) {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := app.HeadlessFrame(); err != nil {
+		if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -95,7 +95,7 @@ func roomTipRender(t *testing.T, app *ui.App, dir, name string) {
 	if dir == "" {
 		return
 	}
-	pic, _, err := app.HeadlessFrame()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -68,7 +68,7 @@ func treeMemberRect(e *ui.MapEditor, key string, n int) (image.Rectangle, bool) 
 	if row < 0 {
 		return image.Rectangle{}, false
 	}
-	return e.TreeRowRect(row)
+	return e.FindControl(ui.ControlQuery{Role: ui.ControlTreeRow, N: row})
 }
 
 // treeMemberCount is the number of member rows of category key's branch,
@@ -98,7 +98,7 @@ func trigClick(t *testing.T, e *ui.MapEditor, r image.Rectangle, ok bool, what s
 // tests below drive.
 func trigDetails(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	r, ok := e.PopupButtonRect(4)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 4})
 	trigClick(t, e, r, ok, "Details")
 	if e.WizardShown() {
 		t.Fatal("Details did not open the pair view")
@@ -119,7 +119,7 @@ func trigRecord(t *testing.T, e *ui.MapEditor, kind string, index int) int {
 // want.
 func trigChoose(t *testing.T, e *ui.MapEditor, n int, want string) {
 	t.Helper()
-	r, ok := e.FieldRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	trigClick(t, e, r, ok, "field")
 	choices := e.DropdownChoices()
 	e.ScrollDropdown(-len(choices))
@@ -129,7 +129,7 @@ func trigChoose(t *testing.T, e *ui.MapEditor, n int, want string) {
 		}
 		if strings.Contains(c, want) {
 			for k := 0; k < len(choices)+10; k++ {
-				if r, ok := e.DropdownRowRect(row); ok {
+				if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 					trigClick(t, e, r, ok, "choice "+want)
 					return
 				}
@@ -176,7 +176,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	apply := func(want func() *ui.InspectionDocument) {
 		t.Helper()
 		before := e.Document().SourceBytes
-		r, ok := e.PopupButtonRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		got := e.Document().SourceBytes
 		w := want()
@@ -205,30 +205,30 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	apply(fields(ui.InspectionFieldValue{Key: "cmp0", Value: 5}))
 
 	// The once switch.
-	r, ok := e.FieldRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	trigClick(t, e, r, ok, "once")
 	apply(fields(ui.InspectionFieldValue{Key: "once", Value: 0}))
 
 	// An action removed.
-	r, ok = e.RowButtonRect(11, 1, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 1, Flag: false})
 	trigClick(t, e, r, ok, "Remove action 1")
 	apply(fields(ui.InspectionFieldValue{Key: "action0", Value: 0}))
 
 	// A pair added from existing conditions.
-	r, ok = e.RowButtonRect(-1, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Add condition pair")
 	trigChoose(t, e, 5, "#1 Unit near cell")
 	trigChoose(t, e, 7, "#2 Number")
 	apply(fields(ui.InspectionFieldValue{Key: "left1", Value: 1}, ui.InspectionFieldValue{Key: "right1", Value: 2}))
 
 	// The first pair removed: the second moves up.
-	r, ok = e.RowButtonRect(3, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Remove pair 1")
 	apply(fields(ui.InspectionFieldValue{Key: "left0", Value: 1}, ui.InspectionFieldValue{Key: "cmp0", Value: 0}, ui.InspectionFieldValue{Key: "right0", Value: 2},
 		ui.InspectionFieldValue{Key: "left1", Value: 0}, ui.InspectionFieldValue{Key: "right1", Value: 0}))
 
 	// An action added as a new node.
-	r, ok = e.RowButtonRect(-1, 0, true)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: true})
 	trigClick(t, e, r, ok, "Add action")
 	trigChoose(t, e, 11, "New action")
 	apply(func() *ui.InspectionDocument {
@@ -240,7 +240,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 
 	// A new trigger, then its deletion.
 	before := e.Document().SourceBytes
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "New")
 	addSteps(t, e, nil)
 	d, err := author.AddScript("Trigger")
@@ -250,7 +250,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	if !strings.Contains(trigLines(e), "Name Trigger") || !e.WizardShown() {
 		t.Fatalf("the new trigger's popup:\n%s", trigLines(e))
 	}
-	r, ok = e.PopupButtonRect(3)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 3})
 	trigClick(t, e, r, ok, "Delete")
 	d, err = c.Document().Edits.Delete("Trigger", 2)
 	if err != nil || !bytes.Equal(e.Document().SourceBytes, d.SourceBytes) || !bytes.Equal(d.SourceBytes, before) {
@@ -263,15 +263,15 @@ func TestTriggerPopupRefusesAHalfPairWithItsReason(t *testing.T) {
 	e, _ := openGoalMap(t, b)
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
 	trigDetails(t, e)
-	r, ok := e.RowButtonRect(-1, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Add condition pair")
 	trigChoose(t, e, 5, "#3 Distance")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	if !strings.Contains(trigLines(e), "Pair 2 needs a condition on both sides.") || !bytes.Equal(e.Document().SourceBytes, b) || e.Document().Edits.CanUndo() {
 		t.Fatalf("a half pair was not refused:\n%s", trigLines(e))
 	}
-	r, ok = e.PopupButtonRect(1)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 	trigClick(t, e, r, ok, "Cancel")
 	if strings.Contains(trigLines(e), "Pair 2") {
 		t.Fatalf("Cancel kept the added pair:\n%s", trigLines(e))
@@ -286,7 +286,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	c, _ := openGoalMap(t, b)
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
 	trigDetails(t, e)
-	r, ok := e.RowButtonRect(2, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit pair 1 left")
 	got := trigLines(e)
 	for _, want := range []string{"Operation", "Unit near cell", "Parameters", "unit 10 at 12,14", "Cell 5,6", "Radius 2"} {
@@ -297,15 +297,15 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	// The unit through its drop-down, the cell by a pick on the map and the
 	// radius by typing.
 	trigChoose(t, e, 2, "13")
-	r, ok = e.RowButtonRect(3, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "On map")
 	cell := e.CellPoint(image.Pt(8, 9))
 	trigClick(t, e, image.Rect(cell.X-1, cell.Y-1, cell.X+1, cell.Y+1), true, "cell 8,9")
-	r, ok = e.FieldRect(4)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 4})
 	trigClick(t, e, r, ok, "radius")
 	_ = e.Key("backspace")
 	e.TextInput("6")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	want, err := c.Document().Edits.(ui.InspectionFieldSet).SetFields("Condition", 0, []ui.InspectionFieldValue{
 		{Key: "value0", Value: 13}, {Key: "value1", Value: 8}, {Key: "value2", Value: 9}, {Key: "value3", Value: 6}})
@@ -318,7 +318,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	if got := trigLines(e); strings.Contains(got, "Radius") || !strings.Contains(got, "unit 13 at 21,14") {
 		t.Fatalf("the operation's parameters:\n%s", got)
 	}
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	want, err = c.Document().Edits.(ui.InspectionFieldSet).SetFields("Condition", 0, []ui.InspectionFieldValue{
 		{Key: "type1"}, {Key: "type2"}, {Key: "type3"}, {Key: "opcode", Value: 5}})
@@ -330,7 +330,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	if n := sc.Conditions[0]; n.Opcode != 5 || n.Type != [10]uint32{4} || n.Value[0] != 13 {
 		t.Fatalf("condition 0 reads %+v", n)
 	}
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back")
 	if !strings.Contains(trigLines(e), "Name Near") || !strings.Contains(trigLines(e), "#1 Unit alive") {
 		t.Fatalf("Back did not return to the trigger:\n%s", trigLines(e))
@@ -348,7 +348,7 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 		t.Fatalf("trigger 1 areas %+v", far)
 	}
 	e.Fit()
-	r, ok := e.AreaLabelRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaLabel, N: 1})
 	trigClick(t, e, r, ok, "the Far label")
 	if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" || v.Index != 1 {
 		t.Fatalf("the label selected %+v", v)
@@ -358,15 +358,15 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 	if n := e.Selected(); n != -1 {
 		t.Fatalf("a click in Near's area left %+v selected", e.Document().Records[n])
 	}
-	r, ok = e.AreaLabelRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlAreaLabel, N: 0})
 	trigClick(t, e, r, ok, "the Near label")
 	if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" || v.Index != 0 {
 		t.Fatalf("the Near label selected %+v", v)
 	}
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
-	r, ok = e.ToolbarRect("areas")
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "areas"})
 	trigClick(t, e, r, ok, "Trigger areas")
-	if _, ok := e.AreaLabelRect(1); ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaLabel, N: 1}); ok {
 		t.Fatal("the Layers switch did not hide the areas")
 	}
 }
@@ -388,7 +388,7 @@ func TestNodePopupWritesFollowInTheShippedLayout(t *testing.T) {
 	e, c, b := newFollowEditor(t)
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
 	trigDetails(t, e)
-	r, ok := e.RowButtonRect(11, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit action 1")
 	trigChoose(t, e, 1, "Group command")
 	trigChoose(t, e, 2, "Follow")
@@ -398,11 +398,11 @@ func TestNodePopupWritesFollowInTheShippedLayout(t *testing.T) {
 	}
 	trigChoose(t, e, 3, "20")
 	trigChoose(t, e, 4, "10")
-	r, ok = e.FieldRect(5)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 5})
 	trigClick(t, e, r, ok, "distance")
 	_ = e.Key("backspace")
 	e.TextInput("4")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	if bytes.Equal(e.Document().SourceBytes, b) {
 		t.Fatalf("Apply wrote nothing:\n%s", trigLines(e))
@@ -443,10 +443,10 @@ func TestNodePopupRefusesAnUnsetReferenceInTheEditorsWords(t *testing.T) {
 		e.SetHostTextEncoder(func(s string) string { return s })
 		e.Select(trigRecord(t, e, "Trigger", 0), true)
 		trigDetails(t, e)
-		r, ok := e.RowButtonRect(11, 0, false)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 		trigClick(t, e, r, ok, "Edit action 1")
 		trigChoose(t, e, 1, book.Text("editor.action.op23"))
-		r, ok = e.PopupButtonRect(0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		lines := trigLines(e)
 		if !strings.Contains(lines, tc.want) || strings.Contains(lines, "mapedit:") || !bytes.Equal(e.Document().SourceBytes, b) || e.Document().Edits.CanUndo() {

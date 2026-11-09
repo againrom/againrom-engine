@@ -172,7 +172,7 @@ func TestBridgeToolPointerPaintsErasesAndRefreshesView(t *testing.T) {
 		c.Frames = append(c.Frames, structurePreviewFrame(color.RGBA{R: uint8(20*i + 40), G: 80, A: 255}))
 	}
 	x.structures.Classes[33] = c
-	button, ok := e.ToolbarRect("brush.bridge")
+	button, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "brush.bridge"})
 	if !ok {
 		t.Fatal("Bridge tool is missing from the brush toolbar")
 	}

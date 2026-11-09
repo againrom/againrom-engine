@@ -188,7 +188,7 @@ func TestReleaseEditorNewTrapOnANewMapCastsInTestPlay(t *testing.T) {
 	e.Layout(1280, 800)
 	_ = e.Key("new")
 	_ = e.Key("enter")
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "the mode button")
 	s := e.Document().Edits.(*mapInspectionEdits)
 	if n := s.model.Count(mapedit.KindEnchantment); n != 0 {

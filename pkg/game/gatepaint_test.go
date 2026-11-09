@@ -22,9 +22,9 @@ func gatePaintApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time, *i
 
 func gatePaintFrame(t *testing.T, a *ui.App) *image.RGBA {
 	t.Helper()
-	p, note, err := a.HeadlessFrame()
-	if err != nil || p == nil || note != "" {
-		t.Fatalf("frame: %q %v", note, err)
+	p, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || p == nil || note.Note != "" {
+		t.Fatalf("frame: %q %v", note.Note, err)
 	}
 	return p
 }

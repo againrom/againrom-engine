@@ -364,7 +364,7 @@ func modesAct(e *MapEditor, name string) string {
 		// unit choice whatever the window's height.
 		p := cell(10, 10)
 		if r, ok := e.PromptRect(); ok && p.In(r) && modesTitle(e) == "Add unit" && !modesOnListRow(e, p) {
-			if row, ok := e.PromptListRowRect(1); ok {
+			if row, ok := e.FindControl(ControlQuery{Role: ControlPromptListRow, N: 1}); ok {
 				p = center(row)
 			}
 		}
@@ -390,7 +390,7 @@ func modesAct(e *MapEditor, name string) string {
 		n, _ := e.MenuRow("file", "open")
 		menu("file", n)
 	case "ui:tool-fit":
-		if r, ok := e.ToolbarRect("fit"); ok {
+		if r, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "fit"}); ok {
 			modesClick(e, center(r))
 		}
 	case "ui:file-undo":
@@ -744,7 +744,7 @@ func modesOnListRow(e *MapEditor, p image.Point) bool {
 	}
 	top, count := s.List.Visible()
 	for n := top; n < top+count; n++ {
-		if r, ok := e.PromptListRowRect(n); ok && p.In(r) {
+		if r, ok := e.FindControl(ControlQuery{Role: ControlPromptListRow, N: n}); ok && p.In(r) {
 			return true
 		}
 	}

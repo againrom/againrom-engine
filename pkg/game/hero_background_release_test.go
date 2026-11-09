@@ -104,8 +104,8 @@ func TestReleaseHeroBackground(t *testing.T) {
 				if err := a.HeadlessPointer("hover", -1, -1); err != nil {
 					t.Fatal(err)
 				}
-				pane, stats, err := a.HeadlessCharacterPane()
-				if err != nil || stats {
+				pane, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+				if err != nil || stats.Statistics {
 					t.Fatal("large equipment pane unavailable", err)
 				}
 				checkInspectionFigure(t, pane, want, p.Name)

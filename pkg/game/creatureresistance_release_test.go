@@ -195,7 +195,7 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 			if row.At.X != 6 || row.Width <= 0 || width > row.Width || row.At.X+width >= row.At.X+row.RightX {
 				t.Fatalf("heading does not fit styled column: row=%+v raw width=%d", row, width)
 			}
-			pic, err := app.HeadlessMissionCard()
+			pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 			if err != nil || pic == nil {
 				t.Fatal("the shipped mission card did not render", err)
 			}
@@ -243,12 +243,12 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 				if err := app.HeadlessSelectEntity(uint32(control.id)); err != nil {
 					t.Fatal(err)
 				}
-				_, cardAt, err := app.HeadlessDrawnMissionCard()
+				_, cardAt, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartDrawnMissionCard})
 				if err != nil {
 					t.Fatal(err)
 				}
 				for _, dy := range []int{0, font.Height() - 1} {
-					point := cardAt.Add(image.Pt(16+row.At.X+1, row.At.Y+dy))
+					point := cardAt.At.Add(image.Pt(16+row.At.X+1, row.At.Y+dy))
 					if err := app.HeadlessPointer("hover", point.X, point.Y); err != nil {
 						t.Fatal(err)
 					}
@@ -256,9 +256,9 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 					if !shown || selected.ID != subject.ID {
 						t.Fatalf("moving onto the card lost its selected creature subject: %d/%v, want %d", selected.ID, shown, subject.ID)
 					}
-					state, popup := app.HeadlessTooltip()
-					if state.Target != fmt.Sprintf("stat/%d/%d", subject.ID, ui.PanelFieldSkillsHeading) || !state.Visible || popup == nil {
-						t.Fatalf("live heading row %d has no visible heading tooltip: %+v", dy, state)
+					popup, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+					if state.Tooltip.Target != fmt.Sprintf("stat/%d/%d", subject.ID, ui.PanelFieldSkillsHeading) || !state.Tooltip.Visible || popup == nil {
+						t.Fatalf("live heading row %d has no visible heading tooltip: %+v", dy, state.Tooltip)
 					}
 					bounds := image.Rect(0, 0, 1024, 768)
 					want, _, ok := ui.ComposeTooltipHint(strings.Split(subject.Words.Hover[188], "#"), font, point, bounds, f.HoverBall(), f.HoverHelp())

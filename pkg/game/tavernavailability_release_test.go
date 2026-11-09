@@ -185,7 +185,7 @@ func checkTurtleTavernApp(t *testing.T, f *FrontEnd, app *ui.App, current bool) 
 			len(s.innQueue) != 0 || f.Town.Gold() != gold || !reflect.DeepEqual(before, f.Town.progress.projection()) {
 			t.Fatal("explicit completed turtle quest still exposes a talker or activation changes state")
 		}
-		if _, _, err := app.HeadlessFrame(); err != nil {
+		if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatal("completed turtle tavern paint", err)
 		}
 		t.Logf("explicit Done51: no NPC32 cell, unchanged chapter%d campaign", f.Town.Chapter())
@@ -248,7 +248,7 @@ func checkTurtleTavernApp(t *testing.T, f *FrontEnd, app *ui.App, current bool) 
 	if !v.Cells[index].Selected || v.CandidatePixels == nil || !bytes.Equal(body, v.CandidatePixels.Pix) || f.Town.Gold() != gold || !reflect.DeepEqual(before, f.Town.progress.projection()) {
 		t.Fatal("hearing availability changed NPC32's body, purse or campaign")
 	}
-	if _, _, err := app.HeadlessFrame(); err != nil {
+	if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 		t.Fatal("actual App town paint", err)
 	}
 	t.Logf("NPC32 index%d offerIndex%d current51=%v Done51=%v Talk=%v, body %x", index, offer.Index, current, f.Town.Done(51), v.Buttons[tavernButtonTalk].Enabled, sha256.Sum256(body))

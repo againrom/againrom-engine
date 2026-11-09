@@ -32,7 +32,7 @@ func secondPageWitness(t *testing.T, name string, pix *image.RGBA) {
 
 func secondFrame(t *testing.T, app *ui.App) *image.RGBA {
 	t.Helper()
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -45,7 +45,7 @@ func toolState(e *MapEditor, calls *modesCalls) string {
 func openMenuRow(t *testing.T, e *MapEditor, menu, key string) {
 	t.Helper()
 	if e.menu != menu {
-		if _, ok := e.ToolbarRect(menu); ok {
+		if _, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: menu}); ok {
 			modesClick(e, toolPoint(t, e, menu))
 		} else {
 			modesClick(e, barPoint(t, e, menu))
@@ -63,7 +63,7 @@ func scriptsNewTrigger(t *testing.T, e *MapEditor) {
 	t.Helper()
 	modesClick(e, barPoint(t, e, "scripts"))
 	e.places[popObject].at = image.Pt(0, e.window.Y) // the selected script's popup stands clear of the list
-	r, ok := e.ListButtonKeyRect("newtrigger")
+	r, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "newtrigger"})
 	if !ok {
 		t.Fatal("the Scenario palette has no New trigger button")
 	}
@@ -174,9 +174,9 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 					}
 					prev[b.group] = r
 				}
-				first, _ := e.ToolbarRect("select")
+				first, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"})
 				last := prev[toolRight]
-				layers, _ := e.ToolbarRect("border")
+				layers, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "border"})
 				// The left group stands after the grip, 4 + 8 + 2 pixels in.
 				if first.Min.X != 14 || last.Max.X != size.X-4 || layers.Min.X < prev[toolLeft].Max.X+toolGroupGap {
 					t.Errorf("groups at %v..%v and %v..%v", first, prev[toolLeft], layers, last)
@@ -322,7 +322,7 @@ func TestMapEditorToolbarTipsAndIcons(t *testing.T) {
 			if !b.onToolbar() {
 				continue
 			}
-			rect, _ := e.ToolbarRect(b.key)
+			rect, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: b.key})
 			if tip, at, ok := e.toolTip(center(rect)); !ok || tip != want || at != rect.Min {
 				t.Errorf("%s tip %q at %v, want %q", b.key, tip, at, want)
 			}
@@ -523,7 +523,7 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 	_ = e.Key("reportpanel")
 	check("F8 again", false, strip)
 	for _, want := range []bool{true, false} {
-		r, ok := e.PanelButtonRect(panelBottom)
+		r, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: panelBottom})
 		if !ok {
 			t.Fatal("the bottom panel has no button")
 		}

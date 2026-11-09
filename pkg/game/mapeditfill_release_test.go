@@ -24,7 +24,7 @@ const (
 func pressFill(t *testing.T, e *ui.MapEditor, k, n int) {
 	t.Helper()
 	for range n {
-		r, ok := e.ListButtonRect(2, k)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: k})
 		pressRect(t, e, r, ok, "a fill button")
 	}
 }

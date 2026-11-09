@@ -9,7 +9,7 @@ import (
 // dragTitle drags the front popup's title bar by d.
 func dragTitle(t *testing.T, e *MapEditor, d image.Point) (image.Rectangle, image.Rectangle) {
 	t.Helper()
-	before, ok := e.TitleRect()
+	before, ok := e.FindControl(ControlQuery{Role: ControlTitle})
 	if !ok {
 		t.Fatal("no popup")
 	}
@@ -18,7 +18,7 @@ func dragTitle(t *testing.T, e *MapEditor, d image.Point) (image.Rectangle, imag
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(Input{CursorX: q.X, CursorY: q.Y}, time.Time{})
-	after, _ := e.TitleRect()
+	after, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 	return before, after
 }
 
@@ -59,7 +59,7 @@ func TestEditorPanelNoticeAndGroupMoveByTitle(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			e := c.open(t)
 			d := image.Pt(-40, 30)
-			if r, _ := e.TitleRect(); r.Min.X < 100 {
+			if r, _ := e.FindControl(ControlQuery{Role: ControlTitle}); r.Min.X < 100 {
 				d.X = 40
 			}
 			before, after := dragTitle(t, e, d)

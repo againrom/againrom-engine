@@ -27,7 +27,7 @@ func TestArmOpenAndBackPreservePanel(t *testing.T) {
 			e.listSpec()
 			e.model.Scroll(100)
 			top, _ := e.model.Visible()
-			r, ok := e.GoalOpenRect(25)
+			r, ok := e.FindControl(ControlQuery{Role: ControlGoalOpen, N: 25})
 			if !ok {
 				t.Fatal("Open link missing")
 			}
@@ -103,14 +103,14 @@ func TestArmBackRestoresManualScrollAfterPanelRebuild(t *testing.T) {
 	e.listSpec()
 	top, _ := e.model.Visible()
 	e.model.Scroll(25 - top)
-	before, ok := e.GoalOpenRect(25)
+	before, ok := e.FindControl(ControlQuery{Role: ControlGoalOpen, N: 25})
 	if !ok {
 		t.Fatal("selected row must remain visible")
 	}
 	e.openGoal(25)
 	e.leave(leaveReport)
 	e.backObject()
-	after, ok := e.GoalOpenRect(25)
+	after, ok := e.FindControl(ControlQuery{Role: ControlGoalOpen, N: 25})
 	if top, _ := e.model.Visible(); !ok || before != after || top != 25 || e.ReportSelected() != 25 {
 		t.Fatalf("Back lost manual scroll: before=%v after=%v top=%d sel=%d", before, after, top, e.ReportSelected())
 	}

@@ -26,7 +26,7 @@ func dialogFixture(t *testing.T) (*ui.MapEditor, *mapInspectionEdits) {
 // configure presses Configure on the wizard's action row key.
 func configure(t *testing.T, e *ui.MapEditor, key string) {
 	t.Helper()
-	r, ok := e.RowButtonRect(wizField(t, e, key), 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: wizField(t, e, key), K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Configure of "+key)
 	if e.WizardShown() {
 		t.Fatalf("Configure did not open the dialog editor:\n%s", trigLines(e))
@@ -116,7 +116,7 @@ func TestStartDialogIsOnePerTrigger(t *testing.T) {
 	e.Select(recordIndex(t, e, "Trigger", 0), false)
 	wizPress(t, e, "+action", 0)
 	field := wizField(t, e, "a1.item")
-	r, ok := e.FieldRect(field)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	trigClick(t, e, r, ok, "a1.item")
 	choices := e.DropdownChoices()
 	_ = e.Key("escape")
@@ -134,7 +134,7 @@ func TestStartDialogIsOnePerTrigger(t *testing.T) {
 	}
 	wizPress(t, e, "+action", 0)
 	field = wizField(t, e, "a1.item")
-	r, ok = e.FieldRect(field)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	trigClick(t, e, r, ok, "a1.item")
 	if choices := e.DropdownChoices(); !slices.Contains(choices, "Start dialog") {
 		t.Fatalf("a trigger without a Start dialog does not offer it: %q", choices)
@@ -215,7 +215,7 @@ func TestDialogEditorCrossRestoreAndApply(t *testing.T) {
 			e, s := dialogFixture(t)
 			openDialog(t, e)
 			model, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-			r, ok := e.RowButtonRect(3, 0, false) // card 2's cross
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false}) // card 2's cross
 			trigClick(t, e, r, ok, "cross")
 			if !strings.Contains(trigLines(e), "Message removed") || strings.Contains(trigLines(e), "Two") {
 				t.Fatalf("the cross did not strike card 2:\n%s", trigLines(e))
@@ -223,7 +223,7 @@ func TestDialogEditorCrossRestoreAndApply(t *testing.T) {
 			unchanged(t, s, model, pages, steps, "the cross")
 			switch end {
 			case "restore":
-				r, ok = e.RowButtonRect(3, 0, false)
+				r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false})
 				trigClick(t, e, r, ok, "Restore")
 				if strings.Contains(trigLines(e), "Message removed") || !strings.Contains(trigLines(e), "Two") {
 					t.Fatalf("Restore did not bring card 2 back:\n%s", trigLines(e))
@@ -251,7 +251,7 @@ func TestDialogEditorPlusAddsACardAtTheEnd(t *testing.T) {
 			e, s := dialogFixture(t)
 			openDialog(t, e)
 			model, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-			r, ok := e.RowButtonRect(-1, 0, false)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 			trigClick(t, e, r, ok, "+")
 			e.TextInput("Four")
 			unchanged(t, s, model, pages, steps, "the +")

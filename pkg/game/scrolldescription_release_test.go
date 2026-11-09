@@ -180,10 +180,10 @@ func scrollDescriptionCheckPack(t *testing.T, f *FrontEnd, app *ui.App, screen *
 		x, y, err := app.HeadlessShopPoint("pack", cell)
 		quest81OK(t, err)
 		quest81OK(t, app.HeadlessPointer("hover", x, y))
-		state, pic := app.HeadlessTooltip()
+		pic, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 		wantPic, _, drawable := ui.ComposeTooltipHint(want, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 1024, 768), f.HoverBall(), f.HoverHelp())
-		if !state.Visible || pic == nil || !drawable || pic.Bounds() != wantPic.Bounds() || !bytes.Equal(pic.Pix, wantPic.Pix) {
-			t.Fatal("pack hover did not draw the independent expected description", spell, state)
+		if !state.Tooltip.Visible || pic == nil || !drawable || pic.Bounds() != wantPic.Bounds() || !bytes.Equal(pic.Pix, wantPic.Pix) {
+			t.Fatal("pack hover did not draw the independent expected description", spell, state.Tooltip)
 		}
 	}
 }

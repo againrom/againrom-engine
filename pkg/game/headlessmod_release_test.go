@@ -211,9 +211,9 @@ func TestReleaseHeadlessExampleNamesAndPicturesTheModTown(t *testing.T) {
 	// and asking the renderer directly.
 	mapPNG := readPNG(t, filepath.Join(dir, "east-map.png"))
 	squarePNG := readPNG(t, filepath.Join(dir, "east-square.png"))
-	final, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("renderer frame: %q %v", note, err)
+	final, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("renderer frame: %q %v", note.Note, err)
 	}
 	if box := differingBox(mapPNG, final); !box.Empty() {
 		t.Fatalf("east-map.png differs from the renderer's frame inside %v", box)
@@ -223,9 +223,9 @@ func TestReleaseHeadlessExampleNamesAndPicturesTheModTown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	squareFrame, note, err := app2.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("renderer square frame: %q %v", note, err)
+	squareFrame, note, err := app2.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("renderer square frame: %q %v", note.Note, err)
 	}
 	if box := differingBox(squarePNG, squareFrame); !box.Empty() {
 		t.Fatalf("east-square.png differs from the renderer's frame inside %v", box)
@@ -457,7 +457,7 @@ func TestReleaseHeadlessFrameDoesNotDependOnWallClock(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		pix, _, err := app.HeadlessFrame()
+		pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -466,7 +466,7 @@ func TestReleaseHeadlessFrameDoesNotDependOnWallClock(t *testing.T) {
 	app, first := frameAfter()
 	for _, wait := range []time.Duration{300 * time.Millisecond, 700 * time.Millisecond, 1500 * time.Millisecond} {
 		time.Sleep(wait)
-		again, _, err := app.HeadlessFrame()
+		again, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

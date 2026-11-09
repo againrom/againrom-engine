@@ -25,14 +25,14 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 		func(name string) (ui.MapOpener, bool, error) { return nil, name == "1072-town", nil },
 	)
 	app.Layout(640, 480)
-	nativeMenu, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("native installed menu: bounds unavailable: note=%q err=%v", note, err)
+	nativeMenu, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("native installed menu: bounds unavailable: note=%q err=%v", note.Note, err)
 	}
 	app.Layout(1920, 1080)
-	menu, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("wide installed menu: bounds unavailable: note=%q err=%v", note, err)
+	menu, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("wide installed menu: bounds unavailable: note=%q err=%v", note.Note, err)
 	}
 	if got, want := menu.Bounds(), image.Rect(0, 0, 640, 480); got != want {
 		t.Fatalf("wide-window installed menu bounds = %v, want %v", got, want)
@@ -57,12 +57,12 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 		t.Fatalf("enter installed tavern: %v", err)
 	}
 	app.Layout(640, 480)
-	nativeTown, _, err := app.HeadlessFrame()
+	nativeTown, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatalf("native installed tavern: %v", err)
 	}
 	app.Layout(1920, 1080)
-	wideTown, _, err := app.HeadlessFrame()
+	wideTown, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatalf("wide installed tavern: %v", err)
 	}

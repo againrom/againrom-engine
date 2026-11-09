@@ -32,7 +32,7 @@ func wizField(t *testing.T, e *ui.MapEditor, key string) int {
 // wizType replaces the text of wizard field key with s.
 func wizType(t *testing.T, e *ui.MapEditor, key, s string) {
 	t.Helper()
-	r, ok := e.FieldRect(wizField(t, e, key))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: wizField(t, e, key)})
 	// A click puts the caret where it lands; at the field's right end it
 	// follows the text, which the backspaces then remove.
 	r.Min.X = max(r.Min.X, r.Max.X-4)
@@ -52,11 +52,11 @@ func wizPress(t *testing.T, e *ui.MapEditor, key string, k int) {
 	var ok bool
 	switch key {
 	case "":
-		r, ok = e.RowButtonRect(-1, 0, false)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: false})
 	case "+action":
-		r, ok = e.RowButtonRect(-1, 0, true)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: -1, K: 0, Flag: true})
 	default:
-		r, ok = e.RowButtonRect(wizField(t, e, key), k, false)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: wizField(t, e, key), K: k, Flag: false})
 	}
 	trigClick(t, e, r, ok, "row button of "+key)
 }
@@ -64,7 +64,7 @@ func wizPress(t *testing.T, e *ui.MapEditor, key string, k int) {
 // wizApply presses Apply.
 func wizApply(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	if strings.Contains(trigLines(e), "Apply or cancel") {
 		t.Fatalf("Apply was refused:\n%s", trigLines(e))
@@ -104,14 +104,14 @@ func wizNewTrigger(t *testing.T, e *ui.MapEditor, name string) {
 	// The Scenario entry is pressed only while its palette is closed. An
 	// open trigger window is the entry's own window: a press would close
 	// it and the next bring it back, so Esc closes it first.
-	if _, ok := e.ListButtonKeyRect("newtrigger"); !ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "newtrigger"}); !ok {
 		if len(e.PopupLines()) != 0 {
 			_ = e.Key("escape")
 		}
-		r, ok := e.BarRect("scripts")
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "scripts"})
 		trigClick(t, e, r, ok, "Scenario")
 	}
-	r, ok := e.ListButtonKeyRect("newtrigger")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButtonKey, Key: "newtrigger"})
 	trigClick(t, e, r, ok, "New trigger")
 	e.TextInput(name)
 	if !e.WizardShown() {
@@ -177,7 +177,7 @@ func TestTriggerWizardBuildsTheHeroAreaExample(t *testing.T) {
 	if gold.Opcode != 23 || gold.Type != [10]uint32{3, 1} || gold.Value != [10]uint32{1, 500} || win.Opcode != 4 || win.Type != [10]uint32{} {
 		t.Fatalf("the actions read %+v and %+v", gold, win)
 	}
-	r, ok := e.PopupButtonRect(4)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 4})
 	trigClick(t, e, r, ok, "Details")
 	got := trigLines(e)
 	for _, want := range []string{"Pair 1", "Unit Hero 1: Main hero, Corner 10,12, Opposite corner 14,15", "Compared with", "Value 1", "Action 1", "Action 2", "#" + strconv.Itoa(int(win.ID)) + " Win"} {

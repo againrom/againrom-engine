@@ -5,9 +5,9 @@ import (
 	"image"
 )
 
-// HeadlessCommandPanel is the same CPU composite the mission draw paints.
+// headlessCommandPanel is the same CPU composite the mission draw paints.
 // It deliberately does not claim to render the whole mission screen.
-func (a *App) HeadlessCommandPanel() (*image.RGBA, error) {
+func (a *App) headlessCommandPanel() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, err

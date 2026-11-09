@@ -54,7 +54,7 @@ func TestMapEditorRelationMatrixWritesOneRelationWord(t *testing.T) {
 	}
 	_ = e.Key("players")
 	click := func(n int) {
-		r, ok := e.PlaceGridCellRect(n)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: n})
 		if !ok {
 			t.Fatalf("matrix cell %d is not shown", n)
 		}

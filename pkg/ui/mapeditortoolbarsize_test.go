@@ -160,7 +160,7 @@ func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 		}
 		for _, c := range []struct{ width, side int }{{781, 22}, {782, 36}} {
 			e.Layout(c.width, 600)
-			if r, _ := e.ToolbarRect("select"); r.Dx() != c.side || e.toolbarRect().Dy() != dockedToolbarHigh(c.width) {
+			if r, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); r.Dx() != c.side || e.toolbarRect().Dy() != dockedToolbarHigh(c.width) {
 				t.Errorf("%q: at %d wide select is %v in a row %d high, want side %d", lang, c.width, r, e.toolbarRect().Dy(), c.side)
 			}
 		}
@@ -216,7 +216,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 			}
 			entries := toolbarButtons(e)
 			side := entries[0].rect.Dx()
-			origin, _ := e.ToolbarRect("border")
+			origin, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "border"})
 			pic := e.ChromeImage()
 			for _, b := range entries {
 				cell, ok := toolbarFloatGrid[b.key]
@@ -246,8 +246,8 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 				rf.drag(toolbarGripPoint(f), d)
 				g, _, _ := panelsEditor(t, size.X, size.Y, lang)
 				rg := &undockRig{t: t, e: g}
-				fr, _ := f.ToolbarRect(key)
-				dr, _ := g.ToolbarRect(key)
+				fr, _ := f.FindControl(ControlQuery{Role: ControlToolbar, Key: key})
+				dr, _ := g.FindControl(ControlQuery{Role: ControlToolbar, Key: key})
 				rf.click(center(fr))
 				rg.click(center(dr))
 				if got, want := toolEffect(f), toolEffect(g); got != want {
@@ -291,7 +291,7 @@ func TestMapEditorFloatingToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *test
 		t.Logf("%q: the floating window takes 36-pixel buttons from %d pixels high", lang, need)
 		for _, c := range []struct{ high, side int }{{need - 1, 22}, {need, 36}} {
 			e.Layout(1024, c.high)
-			if b, _ := e.ToolbarRect("select"); b.Dx() != c.side {
+			if b, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); b.Dx() != c.side {
 				t.Errorf("%q: %d high, the floating select is %v, want side %d", lang, c.high, b, c.side)
 			}
 		}

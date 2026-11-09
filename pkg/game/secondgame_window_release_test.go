@@ -81,7 +81,7 @@ func TestReleaseSecondGameMenuDrawsInstalledArt(t *testing.T) {
 	}
 	app := f.App("second")
 	app.Layout(1024, 768)
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil || pix == nil {
 		t.Fatalf("menu frame: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestReleaseSecondGameMenuButtonsDoNotCrash(t *testing.T) {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatalf("%s: step: %v", name, err)
 		}
-		if _, _, err := app.HeadlessFrame(); err != nil {
+		if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatalf("%s: frame: %v", name, err)
 		}
 		if err := app.HeadlessKey("escape"); err != nil {

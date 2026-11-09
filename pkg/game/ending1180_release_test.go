@@ -49,9 +49,9 @@ func TestReleaseCampaign1180EndingCreditsHallSaveAndReset(t *testing.T) {
 		}
 	}
 	capture := func(name string) {
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatal("ending composite", err, note)
+		pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatal("ending composite", err, note.Note)
 		}
 		witness.PNG(t, filepath.Join(artifact, name+".png"), pix)
 	}

@@ -96,7 +96,7 @@ func TestReleaseSavedStructures1114MovedSourceOnlyAndNoGhost(t *testing.T) {
 			if entries, ruins := live.view.StructureRuinFrames(uint32(st.ID)); entries == 0 || ruins != 0 {
 				t.Fatal("saved installed art absent or wrong ruin", entries, ruins)
 			}
-			if card, err := app.HeadlessMissionCard(); err != nil || len(card.Pix) == 0 {
+			if card, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard}); err != nil || len(card.Pix) == 0 {
 				t.Fatal("saved installed card", err)
 			}
 		}

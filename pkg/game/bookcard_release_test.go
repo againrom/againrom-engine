@@ -145,10 +145,10 @@ func TestReleaseShopBookShelfPopupShowsTheBookCard(t *testing.T) {
 		if err := app.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := app.HeadlessTooltip()
+		pic, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 		drawn, _, ok := ui.ComposeTooltipHint(view.Shelf[c].Info, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480), f.HoverBall(), f.HoverHelp())
-		if !state.Visible || pic == nil || !ok || !bytes.Equal(pic.Pix, drawn.Pix) {
-			t.Fatalf("popup (visible %v) is not the drawn card %q", state.Visible, view.Shelf[c].Info)
+		if !state.Tooltip.Visible || pic == nil || !ok || !bytes.Equal(pic.Pix, drawn.Pix) {
+			t.Fatalf("popup (visible %v) is not the drawn card %q", state.Tooltip.Visible, view.Shelf[c].Info)
 		}
 		tooltipReleasePNG(t, fmt.Sprintf("book-card-%d", shown), pic)
 	}

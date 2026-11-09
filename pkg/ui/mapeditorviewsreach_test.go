@@ -264,7 +264,7 @@ func TestMapEditorPlainWordsShowWhole(t *testing.T) {
 				s, _, _ := e.objectSpec()
 				l := layoutPopup(s, e.font, e.bodyFont())
 				caption := e.viewCaption()
-				r, ok := e.ViewSwitchRect()
+				r, ok := e.FindControl(ControlQuery{Role: ControlViewSwitch})
 				if !ok || !r.In(l.Rect) || e.bodyFont().Advance(caption)+8 > r.Dx() {
 					t.Errorf("%s: the switch %q in %v does not fit the window %v", where, caption, r, l.Rect)
 				}

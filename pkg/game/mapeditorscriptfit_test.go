@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
 
@@ -79,7 +80,7 @@ func TestScriptsPopupButtonsFitTheirCaptions(t *testing.T) {
 				if at < 0 {
 					t.Fatalf("%s %s: the popup offers %q, not %q", c.name, what, buttons, w(id))
 				}
-				r, ok := e.PopupButtonRect(at)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: at})
 				if !ok {
 					t.Fatalf("%s %s: button %q has no rectangle", c.name, what, w(id))
 				}

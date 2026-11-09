@@ -326,7 +326,7 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 	}
 	tool := func(e *ui.MapEditor, key string) {
 		t.Helper()
-		r, ok := e.ToolbarRect(key)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: key})
 		click(e, r, ok, "the "+key+" button")
 	}
 	shot := func(e *ui.MapEditor, name string) {
@@ -425,7 +425,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	r, ok := e.ToolbarRect("passview")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "passview"})
 	trigClick(t, e, r, ok, "Passability")
 	line := check("keys, view on", false)
 	_, _, full, limit := e.StatusFit()

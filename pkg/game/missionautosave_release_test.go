@@ -190,7 +190,7 @@ func missionAutosaveCold(t *testing.T, path string) {
 	if len(rows) != 1 || rows[0].Text != wantRow {
 		t.Fatalf("ordinary chooser row = %v, want %q", rows, wantRow)
 	}
-	frame, _, err := app.HeadlessFrame()
+	frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

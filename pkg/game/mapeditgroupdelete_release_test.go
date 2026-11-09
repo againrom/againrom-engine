@@ -6,6 +6,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/ui"
 )
 
 // TestReleaseMapEditorDeleteUsedGroupAsksFirst deletes both members of
@@ -41,20 +42,20 @@ func TestReleaseMapEditorDeleteUsedGroupAsksFirst(t *testing.T) {
 					}
 					return
 				}
-				r, ok := e.SelectionButtonRect(2)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlSelectionButton, N: 2})
 				c.click(e, r, ok, "Delete")
 			}
 			press()
 			if len(e.PromptNotes()) == 0 || !bytes.Equal(e.Document().SourceBytes, original) {
 				t.Fatalf("Delete did not ask first: notes %v", e.PromptNotes())
 			}
-			r, ok := e.PromptButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 1})
 			c.click(e, r, ok, "Cancel")
 			if len(e.PromptNotes()) != 0 || !bytes.Equal(e.Document().SourceBytes, original) {
 				t.Fatal("Cancel changed the map or left the question")
 			}
 			press()
-			r, ok = e.PromptButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 			c.click(e, r, ok, "Empty it")
 			deleted := bytes.Clone(e.Document().SourceBytes)
 			after, err := alm.Open(deleted)

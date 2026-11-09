@@ -13,17 +13,17 @@ import (
 // first pixel whose hover target begins with prefix.
 func monsterHoverScan(t *testing.T, app *ui.App, step int, prefix string) (image.Point, bool) {
 	t.Helper()
-	card, at, err := app.HeadlessDrawnMissionCard()
+	card, at, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartDrawnMissionCard})
 	if err != nil {
 		t.Fatal(err)
 	}
-	bounds := card.Bounds().Add(at)
+	bounds := card.Bounds().Add(at.At)
 	for y := (bounds.Min.Y + step - 1) / step * step; y < bounds.Max.Y; y += step {
 		for x := (bounds.Min.X + step - 1) / step * step; x < bounds.Max.X; x += step {
 			if err := app.HeadlessPointer("hover", x, y); err != nil {
 				t.Fatal(err)
 			}
-			if state, _ := app.HeadlessTooltip(); strings.HasPrefix(state.Target, prefix) {
+			if _, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); strings.HasPrefix(state.Tooltip.Target, prefix) {
 				return image.Pt(x, y), true
 			}
 		}
@@ -54,18 +54,18 @@ func TestReleaseTooltipMonsterSpellListOnCreatureCard(t *testing.T) {
 	if err := app.HeadlessPointer("hover", at.X, at.Y); err != nil {
 		t.Fatal(err)
 	}
-	state, _ := app.HeadlessTooltip()
-	if state.Visible {
+	_, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+	if state.Tooltip.Visible {
 		t.Fatal("hint visible before the delay elapsed")
 	}
-	for tick := 0; tick < 40 && !state.Visible; tick++ {
+	for tick := 0; tick < 40 && !state.Tooltip.Visible; tick++ {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
-		state, _ = app.HeadlessTooltip()
+		_, state, _ = app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 	}
-	if !state.Visible || !state.Bounds.In(image.Rect(0, 0, w, h)) {
-		t.Fatalf("hint not shown inside the frame after the delay: %+v", state)
+	if !state.Tooltip.Visible || !state.Tooltip.Bounds.In(image.Rect(0, 0, w, h)) {
+		t.Fatalf("hint not shown inside the frame after the delay: %+v", state.Tooltip)
 	}
 	subject, _ := f.live.view.InspectionPanel()
 	lines, ok := ui.MonsterSpellHint(f.Words, subject.KnownSpells)
@@ -83,8 +83,8 @@ func TestReleaseTooltipMonsterSpellListOnCreatureCard(t *testing.T) {
 	if err := app.HeadlessPointer("hover", 2, 2); err != nil {
 		t.Fatal(err)
 	}
-	if state, _ = app.HeadlessTooltip(); state.Visible {
-		t.Fatalf("hint survived moving off the row: %+v", state)
+	if _, state, _ = app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); state.Tooltip.Visible {
+		t.Fatalf("hint survived moving off the row: %+v", state.Tooltip)
 	}
 
 	if magicWitnessCaption(t, f, app, plain) {

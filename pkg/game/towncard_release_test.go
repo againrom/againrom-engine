@@ -261,12 +261,12 @@ func TestReleaseStatisticsCardFitsAtTheProductionFont(t *testing.T) {
 		if state.Stage != ui.ChargenStageDetailed {
 			t.Fatalf("forward left stage %q, want the detailed page", state.Stage)
 		}
-		frame, note, err := app.HeadlessFrame()
+		frame, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if note != "" {
-			t.Fatalf("the detailed page composed incompletely: %s", note)
+		if note.Note != "" {
+			t.Fatalf("the detailed page composed incompletely: %s", note.Note)
 		}
 		if cf.ChargenAssets == nil || cf.ChargenAssets.Presentation == nil {
 			t.Fatal("the production generator resolved no presentation")

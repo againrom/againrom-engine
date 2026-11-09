@@ -103,16 +103,16 @@ func undyingFrames(t *testing.T, e *ui.MapEditor, n undyingNodes, lang, dir stri
 	trigDetails(t, e)
 	lines := trigLines(e)
 	editorShot(t, e, dir, lang+"-undying-trigger", image.Rectangle{})
-	r, ok := e.RowButtonRect(2, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit pair 1 left")
 	editorShot(t, e, dir, lang+"-undying-health-below", image.Rectangle{})
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back")
 	e.Select(recordIndex(t, e, "Trigger", n.triggers), true)
 	if e.WizardShown() {
 		trigDetails(t, e)
 	}
-	r, ok = e.RowButtonRect(11, 0, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit action 1")
 	editorShot(t, e, dir, lang+"-undying-set", image.Rectangle{})
 	for range 4 {

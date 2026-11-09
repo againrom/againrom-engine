@@ -115,7 +115,7 @@ func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string) (HeadlessFrame, 
 	if err := f.checkHeadlessFramePath(abs); err != nil {
 		return HeadlessFrame{}, "", err
 	}
-	pix, note, err := app.HeadlessFrame()
+	pix, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		return HeadlessFrame{}, "", err
 	}
@@ -136,7 +136,7 @@ func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string) (HeadlessFrame, 
 		return HeadlessFrame{}, "", err
 	}
 	b := pix.Bounds()
-	return HeadlessFrame{Path: abs, Width: b.Dx(), Height: b.Dy()}, note, nil
+	return HeadlessFrame{Path: abs, Width: b.Dx(), Height: b.Dy()}, note.Note, nil
 }
 
 // checkHeadlessFramePaths refuses, before the first step runs, a scenario

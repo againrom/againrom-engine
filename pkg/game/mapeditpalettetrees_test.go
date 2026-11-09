@@ -84,9 +84,9 @@ func TestEditorTreesOneKindStrokeWritesTheObjectBrushBytes(t *testing.T) {
 	}
 	for _, c := range treeStrokeCells {
 		e, ck := paletteEditorOn(t, raw)
-		r, ok := e.BarRect("trees")
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "trees"})
 		ck.click(e, r, ok, "the Trees entry")
-		r, ok = e.ListButtonRect(2, 0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 0})
 		ck.click(e, r, ok, "the One kind button")
 		if err := e.Key("down"); err != nil {
 			t.Fatal(err)

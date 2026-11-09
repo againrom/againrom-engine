@@ -47,9 +47,9 @@ func saveChooserStyleApp(t *testing.T, count int) (*App, *saveDialogSpy, []*imag
 
 func saveChooserStyleFrame(t *testing.T, a *App) *image.RGBA {
 	t.Helper()
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" || pix.Bounds() != image.Rect(0, 0, 640, 480) {
-		t.Fatal("Save style frame", note, err)
+	pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" || pix.Bounds() != image.Rect(0, 0, 640, 480) {
+		t.Fatal("Save style frame", note.Note, err)
 	}
 	return pix
 }
@@ -462,8 +462,8 @@ func TestComposeScreenSelectsSaveDialogComposer(t *testing.T) {
 	if !bytes.Equal(got.Pix, want.Pix) {
 		t.Fatal("save screen dispatch selected another composer")
 	}
-	if _, note, err := a.HeadlessFrame(); err != nil || note != "" {
-		t.Fatalf("headless save frame: %q / %v", note, err)
+	if _, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil || note.Note != "" {
+		t.Fatalf("headless save frame: %q / %v", note.Note, err)
 	}
 }
 

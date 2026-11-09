@@ -367,10 +367,10 @@ func variablesMap(t *testing.T, count int, withVariable bool) []byte {
 func fieldChoices(t *testing.T, e *ui.MapEditor, key string) []string {
 	t.Helper()
 	n := wizField(t, e, key)
-	r, ok := e.FieldRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	trigClick(t, e, r, ok, key)
 	choices := e.DropdownChoices()
-	r, ok = e.FieldRect(n)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	trigClick(t, e, r, ok, key)
 	return choices
 }
@@ -443,7 +443,7 @@ func TestTriggerWizardRefusesAConditionOnTheLastRegisterInTheEditorsWords(t *tes
 		before := e.Document().SourceBytes
 		e.Select(trigRecord(t, e, "Trigger", 0), true)
 		wizPress(t, e, "", 0)
-		r, ok := e.PopupButtonRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		want := x.inspectionUTF8(fmt.Sprintf(book.Text("editor.wizard.registers"), 99))
 		if lines := trigLines(e); !strings.Contains(lines, want) || strings.Contains(lines, "would share") || !bytes.Equal(before, e.Document().SourceBytes) {
@@ -463,7 +463,7 @@ func TestTriggerWizardItemListsOpenWholeOnTheSmallestScreen(t *testing.T) {
 		wizPress(t, e, "+action", 0)
 		for _, key := range []string{"c0.item", "a1.item"} {
 			n := wizField(t, e, key)
-			r, ok := e.FieldRect(n)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 			trigClick(t, e, r, ok, key)
 			choices := e.DropdownChoices()
 			book := words.For(lang)
@@ -471,13 +471,13 @@ func TestTriggerWizardItemListsOpenWholeOnTheSmallestScreen(t *testing.T) {
 				t.Fatalf("%q %s: the list has no Units heading: %q", lang, key, choices)
 			}
 			for row := range choices {
-				rr, ok := e.DropdownRowRect(row)
+				rr, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 				if !ok || rr.Max.Y > 1080 || rr.Min.Y < 0 {
-					r0, _ := e.DropdownRowRect(0)
+					r0, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 					t.Fatalf("%q %s: row %d of %d (%q) does not show at once: %v %v; field %v, first row %v", lang, key, row, len(choices), choices[row], rr, ok, r, r0)
 				}
 			}
-			r, ok = e.FieldRect(n)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 			trigClick(t, e, r, ok, key)
 		}
 	}

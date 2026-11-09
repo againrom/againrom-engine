@@ -21,6 +21,7 @@ import (
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/random"
+	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
 
@@ -220,9 +221,9 @@ func modFilesSession(t *testing.T, res *modrt.Result, slot int) modFilesRun {
 	frame := func() []byte {
 		t.Helper()
 		a.Draw(ebiten.NewImage(640, 480))
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatalf("frame %q: %v", note, err)
+		pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatalf("frame %q: %v", note.Note, err)
 		}
 		return pix.Pix
 	}

@@ -73,9 +73,9 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 			e.Layout(1280, 800)
 			e.Document().Viewer.SetFlat(true)
 			c := &editorClicker{t: t, now: time.Unix(50, 0)}
-			r, ok := e.BarRect("units")
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "units"})
 			c.click(e, r, ok, "Units")
-			r, ok = e.PlaceGridSwitchRect(switched)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridSwitch, N: switched})
 			c.click(e, r, ok, "block switch")
 			index := -1
 			for _, choice := range step.Choices {
@@ -88,7 +88,7 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 				}
 			}
 			for tries := 0; tries < len(values)+16; tries++ {
-				if r, ok = e.PlaceGridCellRect(index); ok {
+				if r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: index}); ok {
 					break
 				}
 				popup, open := e.PopupRect()

@@ -130,7 +130,7 @@ func openUnitBag(t *testing.T, e *MapEditor, view string) {
 		clickSwitch(t, e)
 	}
 	{
-		r, ok := e.ObjectSectionRect("inventory")
+		r, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: "inventory"})
 		if !ok {
 			t.Fatal("the person window shows no Bag tab")
 		}

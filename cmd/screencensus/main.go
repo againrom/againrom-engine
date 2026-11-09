@@ -46,7 +46,7 @@
 // surface that reaches here is the town") — and even then composes only the
 // town frame beneath the menu, not the menu's own dim/panel, which paint
 // through ebiten's vector package with no CPU composite either way
-// (HeadlessFrame's note branch, pkg/ui/headless.go). Both statements are
+// (HeadlessPicture's note branch, pkg/ui/headless.go). Both statements are
 // true of the case each names; section 2's own printed output states the
 // frame each row answers for, so the two tables do not have to be read
 // side by side to reconcile them.

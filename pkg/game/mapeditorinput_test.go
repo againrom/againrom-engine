@@ -21,13 +21,13 @@ func TestEditorMessageStartsTypingWithoutFocusClick(t *testing.T) {
 	s.inspector.table = &mapload.Table{NPCCatalog: &data.NPCCatalog{Entries: []data.NPCEntry{{ID: 21, Name: "hero"}}}}
 	before := bytes.Clone(s.model.Bytes())
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
 	e.TextInput("Привет")
 	_ = e.Key("enter")
 	e.TextInput("World")
 	messageField(t, e, 1)
-	r, ok = e.DropdownRowRect(1)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	if got := string(s.workspace.Pages["event01.txt"]); got != "<part=1,npc=21>\nПривет\nWorld" {
@@ -117,10 +117,10 @@ func TestEditorTextInstalledFrames(t *testing.T) {
 			row = i
 		}
 	}
-	r, ok := e.DropdownRowRect(row)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	for attempt := 0; !ok && attempt <= row; attempt++ {
 		_ = e.Key("pagedown")
-		r, ok = e.DropdownRowRect(row)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	}
 	messageClick(t, e, r, ok)
 	body := "Write this dialogue here"

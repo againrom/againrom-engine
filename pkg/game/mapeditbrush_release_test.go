@@ -67,21 +67,21 @@ func setBrush(t *testing.T, e *ui.MapEditor, class uint8, size, shape int) {
 		_ = e.Key("down")
 	}
 	for range mapedit.MaxRadius {
-		r, ok := e.ListButtonRect(0, 0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 0, K: 0})
 		pressRect(t, e, r, ok, "the size's minus")
 	}
 	for range size {
-		r, ok := e.ListButtonRect(0, 1)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 0, K: 1})
 		pressRect(t, e, r, ok, "the size's plus")
 	}
-	r, ok := e.ListButtonRect(1, shape)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 1, K: shape})
 	pressRect(t, e, r, ok, "a shape button")
 }
 
 // toggleBorder presses the toolbar's border switch.
 func toggleBorder(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	r, ok := e.ToolbarRect("border")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "border"})
 	pressRect(t, e, r, ok, "the border switch")
 }
 

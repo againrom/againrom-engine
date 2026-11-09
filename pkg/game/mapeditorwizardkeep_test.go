@@ -63,7 +63,7 @@ func TestTriggerWizardRefusesANumberOutsideThirtyTwoBits(t *testing.T) {
 		wizPress(t, e, "+action", 0)
 		wizType(t, e, "a0.p1", typed)
 		before := append([]byte(nil), e.Document().SourceBytes...)
-		r, ok := e.PopupButtonRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		if !bytes.Equal(before, e.Document().SourceBytes) {
 			t.Fatalf("%s: the map changed", typed)

@@ -100,7 +100,7 @@ func TestReleaseTownFidelity1192(t *testing.T) {
 			r := ui.ShopButtonRect(index)
 			p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 			frame := func() *image.RGBA {
-				pic, _, err := a.HeadlessFrame()
+				pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -212,7 +212,7 @@ func checkPlaquePointer1192(t *testing.T, a *ui.App, name string, r image.Rectan
 	t.Helper()
 	p := r.Min.Add(r.Max).Div(2)
 	frame := func() *image.RGBA {
-		pic, _, err := a.HeadlessFrame()
+		pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -465,60 +465,73 @@ func (w *routeWitness) state() string {
 	return s
 }
 
-// frame captures the mission through App.Draw when a window is allowed.
-// Headless runs keep their partial mission frames and all other CPU frames.
-func (w *routeWitness) frame(control string) (*image.RGBA, string) {
-	if w.app.HeadlessGameplayScreen() != ui.ScreenMap {
-		pix, _, err := w.app.HeadlessFrame()
-		if err != nil {
-			w.t.Errorf("%s: frame: %v", w.stage, err)
+// routeFrameRow is one way the route asks for a frame. The first row whose
+// when holds and whose accept takes the result answers: compose, or the App
+// when compose is nil, supplies the picture of the row's part, a non-empty
+// report names a composition error, and refuse reports a screen with no frame.
+type routeFrameRow struct {
+	when    func(w *routeWitness, control string) bool
+	part    ui.HeadlessPart
+	compose func(w *routeWitness) (*image.RGBA, ui.HeadlessExtras, error)
+	suffix  string
+	report  string
+	accept  func(pix *image.RGBA, extras ui.HeadlessExtras, err error) bool
+	refuse  string
+}
+
+func routeMissionPlay(w *routeWitness, _ string) bool {
+	return w.app.HeadlessGameplayScreen() == ui.ScreenMap
+}
+
+func routeOverMission(w *routeWitness, control string) bool {
+	return routeMissionPlay(w, control) && w.app.Screen() != ui.ScreenMap
+}
+
+func routeMissionFrame(w *routeWitness, control string) bool {
+	return routeMissionPlay(w, control) && w.app.Screen() == ui.ScreenMap
+}
+
+func routeComposed(pix *image.RGBA, _ ui.HeadlessExtras, err error) bool {
+	return err == nil && pix != nil
+}
+
+// routeFrameRows selects the frame of a route step. A mission reads through
+// App.Draw when a window is allowed, and every other screen through the CPU
+// composite; a menu or a page over the mission is its own composite where one
+// exists, else the menu's panel.
+var routeFrameRows = []routeFrameRow{
+	{when: func(w *routeWitness, _ string) bool { return w.app.HeadlessGameplayScreen() != ui.ScreenMap }, part: ui.HeadlessPartFrame, report: "frame"},
+	{when: func(w *routeWitness, control string) bool { return w.render != nil && routeMissionPlay(w, control) }, compose: func(w *routeWitness) (*image.RGBA, ui.HeadlessExtras, error) {
+		return w.render(w.app, w.size), ui.HeadlessExtras{}, nil
+	}, suffix: "-mission"},
+	{when: routeOverMission, part: ui.HeadlessPartFrame, accept: func(_ *image.RGBA, _ ui.HeadlessExtras, err error) bool { return err == nil }},
+	{when: routeOverMission, part: ui.HeadlessPartGameMenuPanel, suffix: "-menu", accept: routeComposed},
+	{when: routeOverMission, refuse: "over the mission composes no frame"},
+	{when: func(w *routeWitness, control string) bool {
+		return routeMissionFrame(w, control) && w.screen() == "map/notice"
+	}, part: ui.HeadlessPartNotice, suffix: "-notice", report: "notice frame"},
+	{when: func(w *routeWitness, control string) bool {
+		return routeMissionFrame(w, control) && control == "mission spellbook icon"
+	}, part: ui.HeadlessPartBottomHUD, suffix: "-hud", report: "spellbook frame", accept: func(pix *image.RGBA, _ ui.HeadlessExtras, _ error) bool {
+		return pix != nil && !pix.Bounds().Empty()
+	}},
+	{when: routeMissionFrame, part: ui.HeadlessPartTooltip, suffix: "-tooltip", accept: func(pix *image.RGBA, extras ui.HeadlessExtras, _ error) bool {
+		return extras.Tooltip.Visible && pix != nil
+	}},
+	{when: func(w *routeWitness, control string) bool {
+		return routeMissionFrame(w, control) && strings.HasPrefix(control, "inventory")
+	}, part: ui.HeadlessPartInventoryPack, suffix: "-pack", accept: routeComposed},
+	{when: func(w *routeWitness, control string) bool {
+		if !routeMissionFrame(w, control) {
+			return false
 		}
-		return pix, ""
-	}
-	if w.render != nil {
-		return w.render(w.app, w.size), "-mission"
-	}
-	// A menu or a page over the mission: its own composite where one
-	// exists, else the menu's panel.
-	if w.app.Screen() != ui.ScreenMap {
-		if pix, _, err := w.app.HeadlessFrame(); err == nil {
-			return pix, ""
-		}
-		if pix := w.app.GameMenuPanel(); pix != nil {
-			return pix, "-menu"
-		}
-		w.t.Errorf("%s: %s over the mission composes no frame", w.stage, w.screen())
-		return nil, ""
-	}
-	if w.screen() == "map/notice" {
-		pix, err := w.app.HeadlessNoticeFrame()
-		if err != nil {
-			w.t.Errorf("%s: notice frame: %v", w.stage, err)
-		}
-		return pix, "-notice"
-	}
-	if control == "mission spellbook icon" {
-		pix, err := w.app.HeadlessBottomHUD()
-		if err != nil {
-			w.t.Errorf("%s: spellbook frame: %v", w.stage, err)
-		}
-		if pix != nil && !pix.Bounds().Empty() {
-			return pix, "-hud"
-		}
-	}
-	if st, pix := w.app.HeadlessTooltip(); st.Visible && pix != nil {
-		return pix, "-tooltip"
-	}
-	if strings.HasPrefix(control, "inventory") {
-		if pix, err := w.app.HeadlessInventoryPack(); err == nil && pix != nil {
-			return pix, "-pack"
-		}
-	}
-	if strings.HasPrefix(control, "corner/") || strings.HasPrefix(control, "stat/") || control == "hero and party" || strings.HasPrefix(control, "hero pane") {
-		if pix, _, err := w.app.HeadlessCharacterPane(); err == nil && pix != nil {
-			return pix, "-pane"
-		}
-	}
+		return strings.HasPrefix(control, "corner/") || strings.HasPrefix(control, "stat/") || control == "hero and party" || strings.HasPrefix(control, "hero pane")
+	}, part: ui.HeadlessPartCharacterPane, suffix: "-pane", accept: routeComposed},
+	{when: routeMissionFrame, compose: routeMapFrame, suffix: "-map", report: "map frame"},
+}
+
+// routeMapFrame composes the mission around the first unit of the mission.
+func routeMapFrame(w *routeWitness) (*image.RGBA, ui.HeadlessExtras, error) {
 	at := image.Point{}
 	if len(w.f.live.mission.ids) > 0 {
 		if e, ok := w.f.live.world.Entity(w.f.live.mission.ids[0]); ok {
@@ -526,23 +539,34 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 		}
 	}
 	pix, _, err := w.f.live.view.HeadlessMapFrame(at, w.size.X, w.size.Y)
-	if err != nil {
-		w.t.Errorf("%s: map frame: %v", w.stage, err)
-	}
-	return pix, "-map"
+	return pix, ui.HeadlessExtras{}, err
 }
 
-func routeWindowSize(value string) (image.Point, error) {
-	if value == "" {
-		return image.Pt(ui.DefaultWindowW, ui.DefaultWindowH), nil
+// frame captures the route step's frame through the first row that answers.
+func (w *routeWitness) frame(control string) (*image.RGBA, string) {
+	for _, row := range routeFrameRows {
+		if !row.when(w, control) {
+			continue
+		}
+		if row.refuse != "" {
+			w.t.Errorf("%s: %s %s", w.stage, w.screen(), row.refuse)
+			return nil, ""
+		}
+		compose := row.compose
+		if compose == nil {
+			compose = func(w *routeWitness) (*image.RGBA, ui.HeadlessExtras, error) {
+				return w.app.HeadlessPicture(ui.HeadlessRequest{Part: row.part})
+			}
+		}
+		pix, extras, err := compose(w)
+		if err != nil && row.report != "" {
+			w.t.Errorf("%s: %s: %v", w.stage, row.report, err)
+		}
+		if row.accept == nil || row.accept(pix, extras, err) {
+			return pix, row.suffix
+		}
 	}
-	x, y, ok := strings.Cut(value, "x")
-	width, errX := strconv.Atoi(x)
-	height, errY := strconv.Atoi(y)
-	if !ok || errX != nil || errY != nil || width <= 0 || height <= 0 || width > 8192 || height > 8192 {
-		return image.Point{}, fmt.Errorf("AGAINROM_ROUTE_WINDOW=%q: want WxH, dimensions 1..8192", value)
-	}
-	return image.Pt(width, height), nil
+	return nil, ""
 }
 
 func (w *routeWitness) fitFrame(src *image.RGBA) *image.RGBA {
@@ -661,7 +685,7 @@ func (w *routeWitness) click(control string, rect image.Rectangle, p image.Point
 	before := w.screen()
 	for _, edge := range []string{"hover", "press", "release"} {
 		w.pointer(edge, p)
-		if _, _, err := w.app.HeadlessFrame(); err != nil && w.app.HeadlessGameplayScreen() != ui.ScreenMap {
+		if _, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil && w.app.HeadlessGameplayScreen() != ui.ScreenMap {
 			w.t.Errorf("%s %s: frame after %s: %v", w.stage, control, edge, err)
 		}
 	}
@@ -682,7 +706,7 @@ func (w *routeWitness) drag(control string, rect image.Rectangle, from, to image
 	w.pointer("press", from)
 	for i := 1; i <= 4; i++ {
 		w.pointer("move", from.Add(to.Sub(from).Mul(i).Div(4)))
-		if _, _, err := w.app.HeadlessFrame(); err != nil {
+		if _, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			w.t.Errorf("%s %s: frame during drag: %v", w.stage, control, err)
 		}
 	}
@@ -914,7 +938,7 @@ func (w *routeWitness) startupMovies(launch routeLaunch) {
 		for w.app.Screen() == ui.ScreenCutscene && !shown() && time.Now().Before(deadline) {
 			// A movie's last frame waits for its presentation, which a
 			// composition makes.
-			if _, _, err := w.app.HeadlessFrame(); err != nil {
+			if _, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 				w.t.Fatalf("menu: startup movie frame: %v", err)
 			}
 			w.run(1)
@@ -1868,19 +1892,19 @@ func (w *routeWitness) missionTargets(step int) []routeRegion {
 				continue
 			}
 			w.pointer("hover", image.Pt(wx, wy))
-			st, _ := w.app.HeadlessTooltip()
-			if st.Target == "" {
+			_, st, _ := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+			if st.Tooltip.Target == "" {
 				continue
 			}
 			cell := image.Rect(x-step/2, y-step/2, x+step/2, y+step/2)
-			key := st.Target
+			key := st.Tooltip.Target
 			if strings.HasPrefix(key, "item/") {
 				w.run(w.app.TooltipDelay()/20 + 5)
 				key += "\x00" + strings.Join(w.app.HeadlessTooltipLines(), "\x00")
 			}
 			r, seen := regions[key]
 			if !seen {
-				r = routeRegion{key: st.Target, rect: cell, at: image.Pt(wx, wy)}
+				r = routeRegion{key: st.Tooltip.Target, rect: cell, at: image.Pt(wx, wy)}
 				order = append(order, key)
 			}
 			r.rect = r.rect.Union(cell)
@@ -1987,13 +2011,13 @@ func (w *routeWitness) missionScreen(d routeData) {
 		if !ok {
 			w.t.Fatal("mission: no spellbook icon")
 		}
-		before, err := w.app.HeadlessBottomHUD()
+		before, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 		if err != nil {
 			w.t.Fatal(err)
 		}
 		for i := range 2 {
 			w.click("mission spellbook icon", book.rect, book.at, w.app.TooltipDelay()/20+5, func() string {
-				after, err := w.app.HeadlessBottomHUD()
+				after, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 				if err != nil {
 					w.t.Fatal(err)
 				}
@@ -2144,11 +2168,11 @@ func (w *routeWitness) missionMenu(routeData) {
 // bars names the bottom bars the mission shows: the pack and the band the
 // spellbook and the pack take.
 func (w *routeWitness) bars() string {
-	hud, err := w.app.HeadlessBottomHUD()
+	hud, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 	if err != nil {
 		return "bars: " + err.Error()
 	}
-	_, packErr := w.app.HeadlessInventoryPack()
+	_, _, packErr := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack})
 	return fmt.Sprintf("pack=%v band=%d", packErr == nil, hud.Bounds().Dy())
 }
 
@@ -2166,7 +2190,7 @@ func (w *routeWitness) missionPack(routeData) {
 	}
 	settle := w.app.TooltipDelay()/20 + 5
 	w.click("open inventory (m2.10)", pack.rect, pack.at, settle, w.bars)
-	if _, err := w.app.HeadlessInventoryPack(); err != nil {
+	if _, _, err := w.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack}); err != nil {
 		w.t.Errorf("mission: the pack corner opens no pack: %v", err)
 	}
 	w.packHovers(map[string]string{})

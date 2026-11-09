@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui"
 )
 
 // missionPackLayer is the mission pack bar the production App draws while the
@@ -55,7 +56,7 @@ func missionPackReadout(t *testing.T, count int) (*image.RGBA, []text.DrawCall) 
 	}
 	var pack *image.RGBA
 	var err error
-	calls := text.Record(func() { pack, err = app.HeadlessInventoryPack() })
+	calls := text.Record(func() { pack, _, err = app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartInventoryPack}) })
 	if err != nil {
 		t.Fatal(err)
 	}

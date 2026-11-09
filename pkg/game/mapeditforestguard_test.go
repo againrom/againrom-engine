@@ -95,7 +95,7 @@ func TestForestGridOffersOnlyClassesWithArt(t *testing.T) {
 	x.statics = forestStatics(forestOakish, 9, forestOther)
 	d.button(2, 1, "the Forest button")
 	for i, want := range []bool{true, true, true, false} {
-		if _, ok := d.e.PlaceGridCellRect(i); ok != want {
+		if _, ok := d.e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: i}); ok != want {
 			t.Fatalf("grid cell %d present = %v, want %v", i, ok, want)
 		}
 	}

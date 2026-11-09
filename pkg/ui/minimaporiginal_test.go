@@ -473,16 +473,16 @@ func TestHeadlessMinimapComposedBypassesRepaintGate(t *testing.T) {
 	v.SetLocalOwner(1)
 	v.SetEntities([]MapEntity{{ID: 1, Cell: image.Pt(12, 12), Owner: 1, Life: LifeAlive}})
 	a := &App{flow: &flow{viewer: v, screen: ScreenMap}}
-	first, err := a.HeadlessMinimap()
+	first, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartMinimap})
 	if err != nil {
 		t.Fatal(err)
 	}
 	v.SetEntities([]MapEntity{{ID: 1, Cell: image.Pt(15, 15), Owner: 1, Life: LifeAlive}})
-	gated, _ := a.HeadlessMinimap()
+	gated, _, _ := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartMinimap})
 	if string(gated.Pix) != string(first.Pix) {
 		t.Fatal("loss control: the gate repainted within its steps")
 	}
-	composed, err := a.HeadlessMinimapComposed()
+	composed, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartMinimapComposed})
 	if err != nil {
 		t.Fatal(err)
 	}

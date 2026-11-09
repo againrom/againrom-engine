@@ -1167,7 +1167,7 @@ func (e *MapEditor) PopupRecordLinks() []int {
 	return out
 }
 
-func (e *MapEditor) PopupRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPopupRowRect(n int) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -1217,9 +1217,9 @@ func (e *MapEditor) PopupTipRects() []image.Rectangle {
 	return out
 }
 
-// PopupButtonRect is the window rectangle of button n of the object popup's
+// controlPopupButtonRect is the window rectangle of button n of the object popup's
 // button row.
-func (e *MapEditor) PopupButtonRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPopupButtonRect(n int) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -1240,11 +1240,11 @@ func (e *MapEditor) PopupButtons() []string {
 	return s.Buttons
 }
 
-// RowButtonRect is the window rectangle of button k of the shown row that
+// controlRowButtonRect is the window rectangle of button k of the shown row that
 // edits field n; n -1 with actions false is the add-pair row's button (k 1
 // adds an OR group), with actions true the add-action row's. In the dialog editor n 2c+1 is card
 // c's cross or Restore and n -1 the "+".
-func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool) {
+func (e *MapEditor) controlRowButtonRect(n, k int, actions bool) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -1267,9 +1267,9 @@ func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool
 	return image.Rectangle{}, false
 }
 
-// DropdownRowRect is the window rectangle of row n of the open drop-down,
+// controlDropdownRowRect is the window rectangle of row n of the open drop-down,
 // the object popup's or the trigger choice's, when that row is shown.
-func (e *MapEditor) DropdownRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlDropdownRowRect(n int) (image.Rectangle, bool) {
 	d, ok := e.openDropdown()
 	if !ok {
 		d, ok = e.openAreaDropdown()

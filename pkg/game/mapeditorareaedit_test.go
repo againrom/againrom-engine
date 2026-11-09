@@ -274,14 +274,14 @@ func TestAreaSharedNodeAsksBeforeTheChange(t *testing.T) {
 			if !strings.Contains(notes, c.names) || !bytes.Equal(e.Document().SourceBytes, b) {
 				t.Fatalf("no notice naming %s before the write: %q", c.names, notes)
 			}
-			r, ok := e.PromptButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			if _, open := e.PromptRect(); open || !bytes.Equal(e.Document().SourceBytes, b) || e.Dirty() {
 				t.Fatalf("Cancel left the notice open (%v) or wrote the map", open)
 			}
 			areaSelect(t, e, c.trigger)
 			areaPress(e, c.from(e, a), e.CellPoint(c.to), true)
-			r, ok = e.PromptButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 			trigClick(t, e, r, ok, "Change all")
 			want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields(ui.RecordKind(c.kind), c.index, c.values)
 			if err != nil || !bytes.Equal(e.Document().SourceBytes, want.SourceBytes) {
@@ -357,7 +357,7 @@ func areaDraw(t *testing.T, e *ui.MapEditor, a, b image.Point) {
 	if e.AreaDrawArmed() {
 		t.Fatal("the draw tool stayed armed after the box")
 	}
-	if _, ok := e.AreaTriggerRect(); !ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaTrigger}); !ok {
 		t.Fatalf("no trigger choice after drawing; message %q", e.Message())
 	}
 }
@@ -373,7 +373,7 @@ func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 	if notes := strings.Join(e.PromptNotes(), ""); !strings.Contains(notes, "2,30 to 6,33") {
 		t.Fatalf("the choice does not name the box: %q", notes)
 	}
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	trigClick(t, e, r, ok, "Create")
 	if want := boxAreaBytes(t, b, 2, 30, 6, 33, -1, 0, 2, false); !bytes.Equal(e.Document().SourceBytes, want) {
 		t.Fatalf("a new trigger: other bytes than the box check and its trigger placed directly; message %q", e.Message())
@@ -391,15 +391,15 @@ func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 
 	// Attach to T2 through the drop-down: its third pair.
 	areaDraw(t, e, image.Pt(2, 30), image.Pt(3, 31))
-	r, ok = e.AreaTriggerRect()
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlAreaTrigger})
 	trigClick(t, e, r, ok, "the trigger choice")
 	choices := e.DropdownChoices()
 	if len(choices) != 4 || choices[0] != "New trigger" || choices[2] != "T2 Near" {
 		t.Fatalf("the choices %q", choices)
 	}
-	r, ok = e.DropdownRowRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 2})
 	trigClick(t, e, r, ok, "T2 Near")
-	r, ok = e.PromptButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	trigClick(t, e, r, ok, "Create")
 	after := e.Document().SourceBytes
 	if want := boxAreaBytes(t, b, 2, 30, 3, 31, 1, 2, 2, false); !bytes.Equal(after, want) {
@@ -425,7 +425,7 @@ func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 			}
 			continue
 		}
-		r, ok = e.PromptButtonRect(0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 		trigClick(t, e, r, ok, "Extend")
 	}
 	sc = e.Document().Script
@@ -493,7 +493,7 @@ func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
 				if route == "key" {
 					_ = e.Key("drawarea")
 				} else {
-					r, ok := e.ToolbarRect("drawarea")
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "drawarea"})
 					trigClick(t, e, r, ok, "Draw trigger area")
 				}
 				if e.AreaDrawArmed() != c.armed {

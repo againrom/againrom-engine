@@ -74,11 +74,11 @@ func unnamedPair(t *testing.T, x *MapInspector, m *alm.Map, owner uint32) (int, 
 func groupThroughWindow(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	c := &editorClicker{t: t, now: time.Unix(20, 0)}
-	r, ok := e.BarRect("groups")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	c.click(e, r, ok, "the Groups entry")
-	r, ok = e.GroupsButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsButton, N: 0})
 	c.click(e, r, ok, "To group...")
-	r, ok = e.PromptButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "OK on New")
 }
 
@@ -258,13 +258,13 @@ func TestReleaseMapEditorPlacingAndGroupsWithoutAnEditSaveUnchanged(t *testing.T
 		}
 		e.Layout(1280, 800)
 		c := &editorClicker{t: t, now: time.Unix(30, 0)}
-		r, ok := e.BarRect("units")
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "units"})
 		c.click(e, r, ok, "the Units entry")
 		if e.PlaceGridLen() == 0 {
 			t.Fatalf("%s: the Units tab shows no picture grid", key)
 		}
 		for i := 0; i < 2; i++ { // choose a class, then press it again to stop
-			r, ok = e.PlaceGridCellRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 			c.click(e, r, ok, "grid cell 0")
 		}
 		from := bareCell(t, e.Document(), image.Pt(e.Document().Width/2, e.Document().Height/2))
@@ -273,7 +273,7 @@ func TestReleaseMapEditorPlacingAndGroupsWithoutAnEditSaveUnchanged(t *testing.T
 		if e.Dirty() {
 			t.Fatalf("%s: the box from %v edited the map", key, from)
 		}
-		r, ok = e.BarRect("groups")
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 		c.click(e, r, ok, "the Groups entry")
 		_ = e.Key("group1")
 		target := filepath.Join(dir, fmt.Sprintf("m%d.alm", n))
@@ -340,12 +340,12 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 	// leaves the panels as they are and its palette opens beside them.
 	showTree(e)
 	c := &editorClicker{t: t, now: time.Unix(40, 0)}
-	r, ok := e.BarRect("units")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "units"})
 	c.click(e, r, ok, "the Units entry")
-	r, ok = e.PlaceGridCellRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 	c.click(e, r, ok, "grid cell 0")
 	frame(e, "grid")
-	r, ok = e.PlaceGridCellRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 	c.click(e, r, ok, "grid cell 0 again")
 
 	// A box held over the unit with the most units within three
@@ -385,9 +385,9 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 	at(unit.Cell.Add(image.Pt(4, 3)), false)
 	_ = e.Key("undo")
 
-	r, ok = e.BarRect("groups")
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	c.click(e, r, ok, "the Groups entry")
-	r, ok = e.GroupsRowRect(2, 2, false)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsRow, N: 2, K: 2, Flag: false})
 	c.click(e, r, ok, "group 2's row")
 	if e.GroupBadges() == 0 || len(e.SelectedRecords()) == 0 {
 		t.Fatalf("group 2 shows %d badges over %d selected units", e.GroupBadges(), len(e.SelectedRecords()))

@@ -152,7 +152,7 @@ func TestMapEditorFloatingPanelClosesToItsStrip(t *testing.T) {
 				e := r.e
 				width := e.sidePanelRect(i).Dx()
 				r.pullOut(i, image.Pt(30, 30))
-				btn, ok := e.PanelButtonRect(i)
+				btn, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
 				if !ok || !e.panelFloats(i) {
 					t.Fatalf("%s: no button on the floating window", name)
 				}
@@ -163,7 +163,7 @@ func TestMapEditorFloatingPanelClosesToItsStrip(t *testing.T) {
 				if _, ok := e.stripSpec(i); !ok || e.sidePanelRect(i).Dx() != e.panelStrip(i) {
 					t.Fatalf("%s: the closed panel shows no strip", name)
 				}
-				strip, ok := e.PanelButtonRect(i)
+				strip, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
 				if !ok {
 					t.Fatalf("%s: the strip has no restore button", name)
 				}
@@ -299,7 +299,7 @@ func TestMapEditorFloatingRightPanelStandsWhereTheWindowHasNoRoom(t *testing.T) 
 			if m := layoutPopup(s, e.font, e.bodyFont()); m.Rect.Min != l.Rect.Min.Add(image.Pt(15, 10)) {
 				t.Errorf("%s: the hint window moved to %v from %v", name, m.Rect.Min, l.Rect.Min)
 			}
-			btn, _ := e.PanelButtonRect(panelRight)
+			btn, _ := e.FindControl(ControlQuery{Role: ControlPanelButton, N: panelRight})
 			r.click(center(btn))
 			if e.panelFloats(panelRight) || e.panelOpen(panelRight) {
 				t.Fatalf("%s: the close button left the panel on", name)

@@ -15,7 +15,7 @@ import (
 
 func retreatPanel1089(t *testing.T, f *FrontEnd, app *ui.App) {
 	t.Helper()
-	pic, err := app.HeadlessCommandPanel()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCommandPanel})
 	if err != nil {
 		t.Fatal(err)
 	}

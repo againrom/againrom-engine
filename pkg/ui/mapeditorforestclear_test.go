@@ -14,13 +14,13 @@ func TestForestClearMarksUnticksEveryKind(t *testing.T) {
 	if err := e.Key("objects"); err != nil {
 		t.Fatal(err)
 	}
-	r, ok := e.ListButtonRect(2, 1)
+	r, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 2, K: 1})
 	if !ok {
 		t.Fatal("no Forest button")
 	}
 	chromeClick(e, center(r))
-	clear, ok := e.ListButtonRect(4, 0)
-	sparse, ok2 := e.ListButtonRect(4, 1)
+	clear, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 4, K: 0})
+	sparse, ok2 := e.FindControl(ControlQuery{Role: ControlListButton, N: 4, K: 1})
 	if !ok || !ok2 || clear.Max.X > sparse.Min.X || clear.Min.Y != sparse.Min.Y {
 		t.Fatalf("the clear button %v does not stand left of the density buttons %v", clear, sparse)
 	}
@@ -32,7 +32,7 @@ func TestForestClearMarksUnticksEveryKind(t *testing.T) {
 	if !off() {
 		t.Fatal("the clear button is on with no kind marked")
 	}
-	cell, ok := e.PlaceGridCellRect(0)
+	cell, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 	if !ok {
 		t.Fatal("no forest grid cell")
 	}
@@ -40,7 +40,7 @@ func TestForestClearMarksUnticksEveryKind(t *testing.T) {
 	if len(e.forestTicked()) != 1 || off() || !strings.Contains(e.brushStatus(), "1") {
 		t.Fatalf("a grid press marked %v; the button is off %v; status %q", e.forestTicked(), off(), e.brushStatus())
 	}
-	clear, _ = e.ListButtonRect(4, 0)
+	clear, _ = e.FindControl(ControlQuery{Role: ControlListButton, N: 4, K: 0})
 	chromeClick(e, center(clear))
 	s, _ := e.listSpec()
 	listed := false

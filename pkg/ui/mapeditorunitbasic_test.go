@@ -238,7 +238,7 @@ func cardFieldIndex(t *testing.T, e *MapEditor, key string) int {
 // typeCardField clicks the field key's input and types value over it.
 func typeCardField(t *testing.T, e *MapEditor, key, value string) {
 	t.Helper()
-	r, ok := e.FieldRect(cardFieldIndex(t, e, key))
+	r, ok := e.FindControl(ControlQuery{Role: ControlField, N: cardFieldIndex(t, e, key)})
 	viewsClick(t, e, r, ok, "the "+key+" input")
 	for range 6 {
 		_ = e.Key("backspace")
@@ -272,7 +272,7 @@ func TestMapEditorUnitBasicViewTypedValueRedrawsTheCard(t *testing.T) {
 		if after == before || again != card {
 			t.Fatalf("%s: card pixels %x then %x, card %v then %v", lang, before, after, card, again)
 		}
-		r, _ := e.FieldRect(cardFieldIndex(t, e, "body"))
+		r, _ := e.FindControl(ControlQuery{Role: ControlField, N: cardFieldIndex(t, e, "body")})
 		for _, c := range drawnCells(e, s) {
 			if c.field == PanelFieldBody && (r.Min.Y != 2*c.box.Min.Y+card.Min.Y+1 || r.Max.Y != 2*c.box.Max.Y+card.Min.Y-1 || c.value != "77") {
 				t.Fatalf("%s: the body input %v, the card's value %q at %v", lang, r, c.value, c.box)

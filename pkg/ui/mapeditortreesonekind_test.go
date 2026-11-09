@@ -18,7 +18,7 @@ func TestMapEditorTreesWindowShowsItsOneKindRows(t *testing.T) {
 		if !e.forestOn() {
 			t.Fatalf("%s: the Trees entry did not open Forest mode", lang)
 		}
-		r, ok := e.ListButtonRect(2, 0)
+		r, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 2, K: 0})
 		if !ok {
 			t.Fatalf("%s: the tool row has no One kind button", lang)
 		}
@@ -41,7 +41,7 @@ func TestMapEditorTreesWindowShowsItsOneKindRows(t *testing.T) {
 			t.Errorf("%s: the Trees window %v leaves the map area %v", lang, l.Rect, room)
 		}
 		for k := 0; k < 2; k++ {
-			if b, ok := e.ListButtonRect(2, k); !ok || !b.In(room) {
+			if b, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 2, K: k}); !ok || !b.In(room) {
 				t.Errorf("%s: tool button %d at %v (%v) leaves the map area %v", lang, k, b, ok, room)
 			}
 		}

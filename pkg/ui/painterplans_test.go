@@ -256,9 +256,9 @@ func TestPainterPlansKeepEveryPixel(t *testing.T) {
 		for _, g := range gameMenuProfiles {
 			for _, state := range []string{"menu", "load", "mod", "town", "map"} {
 				a := placementOpsApp(t, g.profile, state, size)
-				pix, note, err := a.HeadlessFrame()
+				pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 				name := fmt.Sprintf("app %v %s %s", size, g.game, state)
-				d.add(name+" headless", painterPix(pix), []byte(note), []byte(fmt.Sprint(err != nil)))
+				d.add(name+" headless", painterPix(pix), []byte(note.Note), []byte(fmt.Sprint(err != nil)))
 				a.Draw(ebiten.NewImage(size.X, size.Y))
 				d.add(name+" draw", painterLog(&a.menuLog, image.Rect(0, 0, 640, 480)), painterLog(&a.presentLog, a.presentLog.bounds))
 			}
@@ -275,7 +275,7 @@ func TestPainterPlansKeepEveryPixel(t *testing.T) {
 			a.flow.showTown("")
 			a.Layout(width, 480)
 			a.SetTextSmoothing(smooth)
-			pix, _, err := a.HeadlessFrame()
+			pix, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}

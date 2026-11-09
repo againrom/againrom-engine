@@ -90,7 +90,7 @@ func TestReleaseScriptSpellCurrentPicksPreserveEveryMap(t *testing.T) {
 				}
 				e.Select(n.Record, false)
 				chooseParameterValue(t, e, parameterField(n, slot), v, sc.Targets[kind])
-				r, ok := e.PopupButtonRect(0)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 				trigClick(t, e, r, ok, "Apply current spell")
 				if e.Dirty() || !bytes.Equal(before, e.Document().SourceBytes) {
 					t.Fatal(key, n.Opcode, "current pick wrote bytes")
@@ -145,11 +145,11 @@ func TestReleaseScriptSpellPickerFrames(t *testing.T) {
 				continue
 			}
 			e.Select(n.Record, false)
-			r, ok := e.FieldRect(parameterField(n, 4))
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: parameterField(n, 4)})
 			trigClick(t, e, r, ok, "spell dropdown")
 			cover := image.Rectangle{}
 			for row := range e.DropdownChoices() {
-				if rr, ok := e.DropdownRowRect(row); ok {
+				if rr, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 					cover = cover.Union(rr)
 				}
 			}

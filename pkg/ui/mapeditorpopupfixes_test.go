@@ -16,7 +16,7 @@ func openGroup(t *testing.T, e *MapEditor) {
 		chromeClick(e, barPoint(t, e, "groups"))
 	}
 	e.listSpec()
-	r, ok := e.GroupsRowRect(1, 1, false) // player 1, group 1: units 0 and 2
+	r, ok := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: false}) // player 1, group 1: units 0 and 2
 	if !ok {
 		t.Fatal("the Groups window shows no row of player 1's group 1")
 	}
@@ -71,10 +71,10 @@ func TestGroupMemberRectOpensItsMember(t *testing.T) {
 	if len(members) != 2 {
 		t.Fatalf("group members %v", members)
 	}
-	if _, ok := e.GroupMemberRect(len(members)); ok {
+	if _, ok := e.FindControl(ControlQuery{Role: ControlGroupMember, N: len(members)}); ok {
 		t.Fatal("a member row past the last member is shown")
 	}
-	r, ok := e.GroupMemberRect(1)
+	r, ok := e.FindControl(ControlQuery{Role: ControlGroupMember, N: 1})
 	if !ok {
 		t.Fatal("member row 1 is not shown")
 	}
@@ -128,7 +128,7 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 		t.Fatal("the group popup stayed open with no member")
 	}
 	// The Groups window is rebuilt from the document: group 1 is gone.
-	if _, ok := e.GroupsRowRect(1, 1, false); ok || !e.groupsShown() {
+	if _, ok := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: false}); ok || !e.groupsShown() {
 		t.Fatalf("the Groups window still shows group 1: %q", e.GroupsText())
 	}
 }

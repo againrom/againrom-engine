@@ -281,9 +281,9 @@ func (e *MapEditor) stripSpec(i int) (popupSpec, bool) {
 	return s, true
 }
 
-// PanelButtonRect is the window rectangle of panel i's title row button:
+// controlPanelButtonRect is the window rectangle of panel i's title row button:
 // minimize while the panel shows restored, restore on its strip.
-func (e *MapEditor) PanelButtonRect(i int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPanelButtonRect(i int) (image.Rectangle, bool) {
 	s, ok := e.stripSpec(i)
 	switch {
 	case ok:
@@ -1052,7 +1052,7 @@ func (e *MapEditor) panelRects() []image.Rectangle {
 // panelButtonPress takes a press on panel i's title row button: it
 // minimizes a restored panel and restores a minimized one.
 func (e *MapEditor) panelButtonPress(i int, p image.Point) bool {
-	if r, ok := e.PanelButtonRect(i); ok && p.In(r) {
+	if r, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i}); ok && p.In(r) {
 		e.togglePanel(i)
 		return true
 	}
@@ -1377,9 +1377,9 @@ func (e *MapEditor) treeRowsNow() []treeRow {
 	return e.tree.rows
 }
 
-// TreeRowRect is the window rectangle of tree row n, the tree scrolled to
+// controlTreeRowRect is the window rectangle of tree row n, the tree scrolled to
 // show it: a headless driver presses it.
-func (e *MapEditor) TreeRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlTreeRowRect(n int) (image.Rectangle, bool) {
 	s, ok := e.treeSpec()
 	if !ok || n < 0 || n >= s.List.Len() {
 		return image.Rectangle{}, false
@@ -1452,9 +1452,9 @@ func rowLines(rows []PickerRow) []string {
 	return out
 }
 
-// GroupDeleteRect is the window rectangle of the chosen group's Delete group
+// controlGroupDeleteRect is the window rectangle of the chosen group's Delete group
 // button.
-func (e *MapEditor) GroupDeleteRect() (image.Rectangle, bool) {
+func (e *MapEditor) controlGroupDeleteRect() (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok || !e.groupSel.set || e.selected >= 0 {
 		return image.Rectangle{}, false

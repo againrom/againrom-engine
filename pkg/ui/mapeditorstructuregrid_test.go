@@ -11,7 +11,7 @@ func TestMapEditorStructureGridDrawsLargeCells(t *testing.T) {
 	e.places[popList].at = image.Pt(8, e.barHeight()+8)
 
 	chromeClick(e, barPoint(t, e, "units"))
-	units, ok := e.PlaceGridCellRect(0)
+	units, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 	if !ok {
 		t.Fatal("the Units grid shows no cell")
 	}
@@ -20,7 +20,7 @@ func TestMapEditorStructureGridDrawsLargeCells(t *testing.T) {
 	}
 
 	chromeClick(e, barPoint(t, e, "structures"))
-	cell, ok := e.PlaceGridCellRect(0)
+	cell, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 	if !ok {
 		t.Fatal("the Structures grid shows no cell")
 	}

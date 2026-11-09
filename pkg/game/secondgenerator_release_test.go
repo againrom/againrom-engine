@@ -22,7 +22,7 @@ func secondGeneratorClick(t *testing.T, app *ui.App, p image.Point) {
 		if err := app.HeadlessPointer(action, p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := app.HeadlessFrame(); err != nil {
+		if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatalf("%s at %v: %v", action, p, err)
 		}
 	}

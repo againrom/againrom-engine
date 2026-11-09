@@ -39,7 +39,7 @@ func townTalkOK(t *testing.T, app *ui.App, d townTalkScreen, pressed func()) {
 		if err := app.HeadlessPointer(edge, p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := app.HeadlessFrame(); err != nil {
+		if _, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatalf("%s at %v: %v", edge, p, err)
 		}
 	}

@@ -42,7 +42,7 @@ func cardCaptionMission(t *testing.T, f *FrontEnd, mission ui.MapOpener) *ui.App
 
 func cardCaptionRender(t *testing.T, f *FrontEnd, app *ui.App, typeID int32, stage string) {
 	t.Helper()
-	pic, err := app.HeadlessMissionCard()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil || pic == nil || pic.Bounds().Empty() {
 		t.Fatal("installed mission card did not render", stage, typeID, err)
 	}

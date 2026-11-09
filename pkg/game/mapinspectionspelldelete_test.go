@@ -95,7 +95,7 @@ func TestEditorObjectDeleteTakesItsCellSpells(t *testing.T) {
 	e.Document().Viewer.SetFlat(true)
 	e.ShowCell(image.Pt(4, 5))
 	selectArea(e, image.Pt(2, 3), image.Pt(5, 6))
-	r, ok := e.SelectionButtonRect(2)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlSelectionButton, N: 2})
 	messageClick(t, e, r, ok)
 	if s.model.Count(mapedit.KindStructure) != structures-1 || s.model.Count(mapedit.KindUnit) != units-1 {
 		t.Fatalf("selection delete left %d structures, %d units (%s)", s.model.Count(mapedit.KindStructure), s.model.Count(mapedit.KindUnit), e.StatusLine())

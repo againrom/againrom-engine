@@ -95,7 +95,7 @@ func passClick(e *MapEditor, r image.Rectangle) {
 // toolRect is the rectangle of toolbar button key.
 func toolRect(t *testing.T, e *MapEditor, key string) image.Rectangle {
 	t.Helper()
-	r, ok := e.ToolbarRect(key)
+	r, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: key})
 	if !ok {
 		t.Fatalf("no %s button", key)
 	}
@@ -109,13 +109,13 @@ func toolRect(t *testing.T, e *MapEditor, key string) image.Rectangle {
 func TestMapEditorToolsMenuEntersEachBrush(t *testing.T) {
 	e, _ := passEditor(t)
 	for _, want := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
-		r, _ := e.ToolbarRect(brushMenuKeys[want])
+		r, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: brushMenuKeys[want]})
 		passClick(e, r)
 		if e.brush.mode != want || e.menu != "" {
 			t.Fatalf("%s: mode %d menu %q, want mode %d", brushMenuKeys[want], e.brush.mode, e.menu, want)
 		}
 	}
-	height, _ := e.ToolbarRect("brush.height")
+	height, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "brush.height"})
 	passClick(e, height)
 	passClick(e, height)
 	if e.brush.mode != brushHeight {
@@ -139,7 +139,7 @@ func TestMapEditorToolsMenuEntersEachBrush(t *testing.T) {
 				t.Fatalf("the %s entry is live on a read-only document", key)
 			}
 		}
-		r, _ := ro.BarRect(key)
+		r, _ := ro.FindControl(ControlQuery{Role: ControlBar, Key: key})
 		passClick(ro, r)
 		if ro.menu != "" || ro.brush.mode != brushOff {
 			t.Fatalf("a disabled %s entry turned on brush %d", key, ro.brush.mode)
@@ -292,7 +292,7 @@ func TestMapEditorTerrainListShowsSwatches(t *testing.T) {
 	}
 	_ = e.Key("terrain")
 	pic := e.ChromeImage()
-	r, ok := e.ListRowRect(0)
+	r, ok := e.FindControl(ControlQuery{Role: ControlListRow, N: 0})
 	if !ok {
 		t.Fatal("the first row is not shown")
 	}
@@ -300,7 +300,7 @@ func TestMapEditorTerrainListShowsSwatches(t *testing.T) {
 	if got := pic.RGBAAt(at.X, at.Y); got != (color.RGBA{0xff, 0xff, 0xff, 0xff}) {
 		t.Fatalf("the swatch pixel reads %v", got)
 	}
-	r1, _ := e.ListRowRect(1)
+	r1, _ := e.FindControl(ControlQuery{Role: ControlListRow, N: 1})
 	at1 := image.Pt(r1.Min.X+listTextX+r1.Dy()/2, r1.Min.Y+r1.Dy()/2)
 	if got := pic.RGBAAt(at1.X, at1.Y); got == (color.RGBA{0xff, 0xff, 0xff, 0xff}) {
 		t.Fatal("a row with no swatch draws one")

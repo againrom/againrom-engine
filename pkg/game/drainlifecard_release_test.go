@@ -128,7 +128,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 	if err := app.HeadlessPointer("hover", x, y); err != nil {
 		t.Fatal(err)
 	}
-	state, actual := app.HeadlessTooltip()
+	actual, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
 	compose := func(lines []string) *image.RGBA {
 		pic, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480), f.HoverBall(), f.HoverHelp())
 		if !ok || pic == nil {
@@ -203,7 +203,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 		WantedSpellNameUTF8: nameUTF8, InstalledSpellNameHex: hex.EncodeToString([]byte(nameInput)),
 		WantedMin: minimum, WantedMax: maximum, ExpectedLinesHex: linesHex(want), ActualLinesHex: linesHex(view.Shelf[0].Info),
 		RawNameMatches: nameInput == rawNameBytes, BookCaptionOnly: bookControl, TeachCaptionOnly: teachControl,
-		DrainFlagsUnchanged: flagControl, Visible: state.Visible,
+		DrainFlagsUnchanged: flagControl, Visible: state.Tooltip.Visible,
 		PixelsMatch: samePicture(actual, expected), CompleteItemUnchanged: bytes.Equal(beforeItem, afterItem), LossControls: losses}
 	report, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

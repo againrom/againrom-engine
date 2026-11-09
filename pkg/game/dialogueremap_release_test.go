@@ -37,7 +37,7 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 	page := s.talkPage().part
 	checkInstalledDialoguePointer(t, a, route, image.Rect(276, 296, 356, 322), image.Pt(640, 480), func() *image.RGBA {
 		t.Helper()
-		out, _, err := a.HeadlessFrame()
+		out, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -49,12 +49,12 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 	if err := a.SetDialogueBackdrop(ui.DialogueBackdrop{Clipped: true}); err != nil {
 		t.Fatal(err)
 	}
-	base, _, err := a.HeadlessFrame()
+	base, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
 	a.SetDialogueBackdrop(ui.DialogueBackdrop{})
-	first, _, err := a.HeadlessFrame()
+	first, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 		}
 	}
 	a.Layout(1920, 1080)
-	wide, _, err := a.HeadlessFrame()
+	wide, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil || !bytes.Equal(wide.Pix, first.Pix) {
 		t.Fatal("wide-window placement changed native town remap", route, err)
 	}
@@ -109,12 +109,12 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 	if s.room == roomTalk || s.TownDialogueShows() != 0 {
 		t.Fatal("close retained backdrop", route)
 	}
-	closed, _, err := a.HeadlessFrame()
+	closed, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
 	a.SetDialogueBackdrop(ui.DialogueBackdrop{Clipped: true})
-	clear, _, err := a.HeadlessFrame()
+	clear, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil || !bytes.Equal(clear.Pix, closed.Pix) {
 		t.Fatal("closed room has stale dim", route, err)
 	}

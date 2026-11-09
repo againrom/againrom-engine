@@ -210,7 +210,7 @@ func TestHeadlessFrameKeepsNativeTownAndShopGeometryInWideWindow(t *testing.T) {
 				t.Fatal(err)
 			}
 			a.Layout(1920, 1080)
-			letterboxed, _, err := a.HeadlessFrame()
+			letterboxed, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -236,7 +236,7 @@ func TestNativeShopDialogueStaysIntactInWideWindow(t *testing.T) {
 	}
 	a.Layout(1920, 1080)
 
-	letterboxed, _, err := a.HeadlessFrame()
+	letterboxed, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

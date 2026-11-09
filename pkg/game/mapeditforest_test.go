@@ -114,7 +114,7 @@ func (d *forestDriver) key(k string) {
 // button presses button k of brush popup row row.
 func (d *forestDriver) button(row, k int, what string) {
 	d.t.Helper()
-	r, ok := d.e.ListButtonRect(row, k)
+	r, ok := d.e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: row, K: k})
 	d.c.click(d.e, r, ok, what)
 }
 
@@ -124,7 +124,7 @@ func (d *forestDriver) forest(n, r int) {
 	d.t.Helper()
 	d.button(2, 1, "the Forest button")
 	for i := 0; i < n; i++ {
-		rect, ok := d.e.PlaceGridCellRect(i)
+		rect, ok := d.e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: i})
 		d.c.click(d.e, rect, ok, "a forest grid cell")
 	}
 	d.button(1, 1, "the Square button")

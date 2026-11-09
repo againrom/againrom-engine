@@ -36,9 +36,9 @@ type secondTownSample struct {
 func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSample {
 	t.Helper()
 	screen := f.TownScreen()
-	picture, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal("composed first-town frame", err, note)
+	picture, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal("composed first-town frame", err, note.Note)
 	}
 	sample := secondTownSample{Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Offered: f.Offered,
 		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: slices.Clone(screen.Rows()), Frame: sha256.Sum256(picture.Pix)}

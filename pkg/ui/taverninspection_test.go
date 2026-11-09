@@ -203,12 +203,12 @@ func TestAppCandidateDollHoverClickAndDragAreReadOnly(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	occupied := image.Pt(87, 359)
 	a.step(appInput{CursorX: occupied.X, CursorY: occupied.Y}, now)
-	hover, _, err := a.HeadlessFrame()
+	hover, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
 	a.step(appInput{CursorX: -1, CursorY: -1}, now)
-	bare, _, err := a.HeadlessFrame()
+	bare, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -33,7 +33,7 @@ func actorWitnessReceipt(t *testing.T, name string, v any) {
 
 func actorWitnessFrame(t *testing.T, app *ui.App, name string) {
 	t.Helper()
-	p, _, err := app.HeadlessFrame()
+	p, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

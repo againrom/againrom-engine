@@ -369,7 +369,7 @@ func smoothingViews() []smoothingRun {
 	}
 	tooltipShows := func(what string) func(*testing.T, *FrontEnd, *ui.App) {
 		return func(t *testing.T, _ *FrontEnd, a *ui.App) {
-			if st, _ := a.HeadlessTooltip(); !st.Visible {
+			if _, st, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); !st.Tooltip.Visible {
 				t.Fatalf("%s raised no tooltip", what)
 			}
 		}
@@ -754,7 +754,7 @@ func checkSmoothing(t *testing.T, run smoothingRun) smoothingResult {
 	var cpu *image.RGBA
 	if !run.onMap {
 		var err error
-		if cpu, _, err = a.HeadlessFrame(); err != nil {
+		if cpu, _, err = a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatalf("no CPU composite of the %s screen: %v", a.Screen(), err)
 		}
 	}

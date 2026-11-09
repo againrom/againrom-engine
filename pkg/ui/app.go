@@ -4073,7 +4073,7 @@ func (a *App) syncViewerLayout() {
 // hand before this function existed, one Compose* call site per tool, so a
 // later change to Draw's own selection had six other places it could
 // silently stop matching. drawMenu, drawChargen and drawTown call this
-// function for every state it can compose; HeadlessFrame (headless.go),
+// function for every state it can compose; HeadlessPicture (headless.go),
 // cmd/screenshot's own seam, calls nothing else. A screen this function
 // refuses is refused identically by both callers, and a screen this
 // function composes is composed identically by both.
@@ -4091,7 +4091,7 @@ func (a *App) syncViewerLayout() {
 // that state never reaches a.flow.screen inside Draw's own switch, because
 // Draw returns from its mapShowing() branch first. A caller that needs to
 // tell "gameplay" apart from "this build cannot compose the current state"
-// checks mapShowing (HeadlessFrame does, through a.Screen() and its own
+// checks mapShowing (HeadlessPicture does, through a.Screen() and its own
 // early check) before calling this function, not after.
 func (a *App) composeScreen() (*image.RGBA, error) {
 	if h, ok := screenHandlers[a.flow.screen]; ok && h.Compose != nil {
@@ -4482,7 +4482,7 @@ func (a *App) drawMenu() {
 	state := a.sel.State()
 	if !a.hasMenu || state != a.composed {
 		// composeScreen, not a.assets.Compose(state) directly: ScreenMenu is
-		// one of its cases, and HeadlessFrame reads the same case for a
+		// one of its cases, and HeadlessPicture reads the same case for a
 		// headless capture of this screen (cmd/screenshot). The error return
 		// is unreachable here — composeScreen never refuses ScreenMenu — so
 		// it is discarded rather than threaded through Draw's own signature.
@@ -4986,7 +4986,7 @@ func chargenDerivedFit(rows int) int {
 
 // composeChargenScreen returns the CPU composite for the chargen screen's
 // current stage, or an error naming why there is none. drawChargen and
-// HeadlessFrame both reach the composed page only through this function.
+// HeadlessPicture both reach the composed page only through this function.
 //
 // It refuses a nil model (a.flow.chargen unset — reachable only from a test
 // that sets a.flow.screen without arming the model, same caveat drawChargen

@@ -34,7 +34,7 @@ func openMessageLink(t *testing.T, e *ui.MapEditor, book words.Book) {
 	link := e.Document().Edits.(*mapInspectionEdits).inspector.inspectionUTF8(book.Text("editor.param.open") + " ")
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, link) {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			return
 		}
@@ -61,7 +61,7 @@ var speakerRoutes = []struct {
 	{"Details, the action row, Open Message", false, func(t *testing.T, e *ui.MapEditor, book words.Book) {
 		e.Select(recordIndex(t, e, "Trigger", 0), false)
 		messageButton(t, e, 4)
-		r, ok := e.RowButtonRect(11, 0, false)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 		trigClick(t, e, r, ok, "the action row's button")
 		openMessageLink(t, e, book)
 	}},
@@ -91,7 +91,7 @@ func TestEverySpeakerPlaceOffersTheOnePick(t *testing.T) {
 				if !slices.ContainsFunc(e.PopupLines(), func(l string) bool { return strings.HasPrefix(l, "1 ") }) {
 					t.Fatalf("the route shows no message popup:\n%s", trigLines(e))
 				}
-				r, ok := e.RowButtonRect(1, 0, false)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 1, K: 0, Flag: false})
 				if !ok {
 					t.Fatalf("the speaker row offers no pick:\n%s", trigLines(e))
 				}

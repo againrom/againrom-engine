@@ -259,17 +259,17 @@ func TestMapEditorPaletteOverTheSearchFieldMovesByItsTitle(t *testing.T) {
 		t.Fatalf("the Units branch shows %q, selected %d", e.listKind(), e.selected)
 	}
 	drag := func(d image.Point) image.Rectangle {
-		before, _ := e.TitleRect()
+		before, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 		p := before.Min.Add(image.Pt(10, 4))
 		q := p.Add(d)
 		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 		e.Pointer(Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
 		e.Pointer(Input{CursorX: q.X, CursorY: q.Y}, time.Time{})
-		after, _ := e.TitleRect()
+		after, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 		return after
 	}
 	box := e.treeSearchBox()
-	title, _ := e.TitleRect()
+	title, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 	over := drag(center(box).Sub(title.Min.Add(image.Pt(10, 4))))
 	if p := over.Min.Add(image.Pt(10, 4)); !p.In(box) {
 		t.Fatalf("the palette's title %v does not lie over the search field %v", over, box)
@@ -300,7 +300,7 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 			if !ok || s.CloseLabel != e.word(sidePanels[i].minimizeWord) {
 				t.Fatalf("panel %d title button reads %q", i, s.CloseLabel)
 			}
-			r, ok := e.PanelButtonRect(i)
+			r, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
 			if !ok || !r.In(e.sidePanelRect(i)) {
 				t.Fatalf("panel %d minimize button %v", i, r)
 			}
@@ -312,7 +312,7 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 			if !ok || st.CloseLabel != e.word(sidePanels[i].restoreWord) || st.Title != "" {
 				t.Fatalf("panel %d strip %+v", i, st)
 			}
-			r, ok = e.PanelButtonRect(i)
+			r, ok = e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
 			if !ok || !r.In(e.sidePanelRect(i)) {
 				t.Fatalf("panel %d restore button %v in strip %v", i, r, e.sidePanelRect(i))
 			}
@@ -376,7 +376,7 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 	if !used {
 		t.Fatalf("the group window names no trigger that uses it: %+v", s.Rows)
 	}
-	r, ok := e.GroupDeleteRect()
+	r, ok := e.FindControl(ControlQuery{Role: ControlGroupDelete})
 	if !ok || !r.In(e.sidePanelRect(panelRight)) {
 		t.Fatalf("Delete group at %v", r)
 	}
@@ -386,7 +386,7 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 	if e.prompt.kind != promptGroupWarn || len(p.calls.lines) != 0 {
 		t.Fatalf("Delete group of a used group asked %d and called %q", e.prompt.kind, p.calls.lines)
 	}
-	goOn, _ := e.PromptButtonRect(0)
+	goOn, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 	chromeClick(e, center(goOn))
 	if got := strings.Join(p.calls.lines, "|"); got != "SetUnitsGroup [{Unit 0} {Unit 1}] 0" {
 		t.Fatalf("Delete group called %q", got)
@@ -403,7 +403,7 @@ func TestMapEditorPaletteCellTooltipWaitsForTheDelay(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.places[popList].at = image.Pt(8, e.barHeight()+8)
 	chromeClick(e, barPoint(t, e, "units"))
-	cell, ok := e.PlaceGridCellRect(1)
+	cell, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 1})
 	g, _, _ := e.placeGridSpec()
 	if !ok || g == nil || g.Cells[1].Tip == "" {
 		t.Fatal("the Units palette has no named cell 1")

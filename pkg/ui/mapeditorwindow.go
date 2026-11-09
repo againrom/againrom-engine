@@ -290,8 +290,8 @@ func (e *MapEditor) barRows() []barEntry {
 	return entries
 }
 
-// BarRect is the window rectangle of a bar entry, such as file or panel.
-func (e *MapEditor) BarRect(key string) (image.Rectangle, bool) {
+// controlBarRect is the window rectangle of a bar entry, such as file or panel.
+func (e *MapEditor) controlBarRect(key string) (image.Rectangle, bool) {
 	for _, b := range e.barEntries() {
 		if b.key == key {
 			return b.rect, true
@@ -300,8 +300,8 @@ func (e *MapEditor) BarRect(key string) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// MenuRowRect is the window rectangle of row n of the open menu.
-func (e *MapEditor) MenuRowRect(n int) (image.Rectangle, bool) {
+// controlMenuRowRect is the window rectangle of row n of the open menu.
+func (e *MapEditor) controlMenuRowRect(n int) (image.Rectangle, bool) {
 	b, ok := e.openMenuEntry()
 	if !ok || n < 0 || n >= len(e.menuItems(b.key)) {
 		return image.Rectangle{}, false
@@ -310,9 +310,9 @@ func (e *MapEditor) MenuRowRect(n int) (image.Rectangle, bool) {
 	return d.listBox(e.font).Row(n), true
 }
 
-// ListRowRect is the window rectangle of row n of the open list popup, when
+// controlListRowRect is the window rectangle of row n of the open list popup, when
 // that row is shown.
-func (e *MapEditor) ListRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlListRowRect(n int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok || e.model == nil || s.List == nil {
 		return image.Rectangle{}, false
@@ -324,9 +324,9 @@ func (e *MapEditor) ListRowRect(n int) (image.Rectangle, bool) {
 	return layoutPopup(s, e.font, e.bodyFont()).List.Row(n - top), true
 }
 
-// ListButtonRect is the window rectangle of button k of row n above the open
+// controlListButtonRect is the window rectangle of button k of row n above the open
 // list popup's list: the brush list's size and shape buttons.
-func (e *MapEditor) ListButtonRect(n, k int) (image.Rectangle, bool) {
+func (e *MapEditor) controlListButtonRect(n, k int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -366,13 +366,13 @@ func (e *MapEditor) ListRowCount() int {
 	return 0
 }
 
-// FieldRect is the window rectangle of the control of field n of the object
+// controlFieldRect is the window rectangle of the control of field n of the object
 // popup, when that row is shown.
-func (e *MapEditor) FieldRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlFieldRect(n int) (image.Rectangle, bool) {
 	return e.fieldControlRect(n, -1)
 }
 
-func (e *MapEditor) FieldChoiceRect(n, choice int) (image.Rectangle, bool) {
+func (e *MapEditor) controlFieldChoiceRect(n, choice int) (image.Rectangle, bool) {
 	return e.fieldControlRect(n, choice)
 }
 
@@ -395,7 +395,7 @@ func (e *MapEditor) fieldControlRect(n, choice int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-func (e *MapEditor) ObjectSectionRect(section string) (image.Rectangle, bool) {
+func (e *MapEditor) controlObjectSectionRect(section string) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	i := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[section]
 	if !ok || len(s.Tabs) != 4 {
@@ -404,9 +404,9 @@ func (e *MapEditor) ObjectSectionRect(section string) (image.Rectangle, bool) {
 	return layoutPopup(s, e.font, e.bodyFont()).Tabs[i], true
 }
 
-// GroupMemberRect is the window rectangle of member row n of the group
+// controlGroupMemberRect is the window rectangle of member row n of the group
 // popup, when that row is shown.
-func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlGroupMemberRect(n int) (image.Rectangle, bool) {
 	s, links, ok := e.groupSpec()
 	if !ok || n < 0 || n >= len(e.groupSel.members) {
 		return image.Rectangle{}, false
@@ -1127,9 +1127,9 @@ var scenarioNew = []struct {
 	{"newtrigger", "editor.tool.newtrigger", KindTrigger},
 }
 
-// ListButtonKeyRect is the window rectangle of the records list's button
+// controlListButtonKeyRect is the window rectangle of the records list's button
 // key ("drop", "add"): a headless driver presses it.
-func (e *MapEditor) ListButtonKeyRect(key string) (image.Rectangle, bool) {
+func (e *MapEditor) controlListButtonKeyRect(key string) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -1527,9 +1527,9 @@ func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 	return popupSpec{}, false
 }
 
-// TitleRect is the title bar of the front popup: the prompt, the object or
+// controlTitleRect is the title bar of the front popup: the prompt, the object or
 // the list popup.
-func (e *MapEditor) TitleRect() (image.Rectangle, bool) {
+func (e *MapEditor) controlTitleRect() (image.Rectangle, bool) {
 	for _, id := range []editorPopupID{popPrompt, popObject, popList} {
 		if s, ok := e.movableSpec(id); ok {
 			return layoutPopup(s, e.font, e.bodyFont()).Title, true

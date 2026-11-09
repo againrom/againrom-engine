@@ -182,7 +182,7 @@ func authoredRecordsMod(t *testing.T, arm string) (string, uint16) {
 	if !strings.Contains(ring, "border ring") {
 		t.Fatalf("the Add window took a unit on the ring cell 25,20: %q", ring)
 	}
-	cancel, shown := e.PromptButtonRect(2)
+	cancel, shown := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
 	trigClick(t, e, cancel, shown, "Cancel Add")
 	if _, _, open := e.AddStep(); open || !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("Cancel after the ring refusal left the window open or changed the map")

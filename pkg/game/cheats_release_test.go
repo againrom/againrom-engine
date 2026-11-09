@@ -52,7 +52,7 @@ func cheatChat(t *testing.T, a *ui.App, command string) {
 	if line, open := a.HeadlessChatState(); !open || line != command {
 		t.Fatalf("chat draft=(%q,%v), want (%q,true)", line, open, command)
 	}
-	if pic, err := a.HeadlessChatFrame(); err != nil || pic == nil {
+	if pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartChat}); err != nil || pic == nil {
 		t.Fatalf("installed chat frame: %v", err)
 	}
 	if err := a.HeadlessKey("enter"); err != nil {
@@ -455,9 +455,9 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 				if livePicture == nil || want == nil || !imagesEqual(livePicture, want) {
 					t.Fatal("live summoned Human lost its source/equipment inspection picture")
 				}
-				frame, statistics, err := a.HeadlessCharacterPane()
-				if err != nil || statistics || frame == nil {
-					t.Fatalf("live summoned Human figure pane: statistics=%t error=%v", statistics, err)
+				frame, statistics, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+				if err != nil || statistics.Statistics || frame == nil {
+					t.Fatalf("live summoned Human figure pane: statistics=%t error=%v", statistics.Statistics, err)
 				}
 				checkInspectionFigure(t, frame, want, "live summoned Human")
 			}
@@ -507,9 +507,9 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 				if picture == nil || !imagesEqual(picture, livePicture) || cold.live.figures[loaded.ID] != f.live.figures[spawn.ID] {
 					t.Fatal("cold LOAD changed the summoned Human source/equipment picture")
 				}
-				frame, statistics, err := coldApp.HeadlessCharacterPane()
-				if err != nil || statistics || frame == nil {
-					t.Fatalf("cold summoned Human figure pane: statistics=%t error=%v", statistics, err)
+				frame, statistics, err := coldApp.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+				if err != nil || statistics.Statistics || frame == nil {
+					t.Fatalf("cold summoned Human figure pane: statistics=%t error=%v", statistics.Statistics, err)
 				}
 				checkInspectionFigure(t, frame, livePicture, "cold summoned Human")
 			}
@@ -818,7 +818,7 @@ func TestReleaseCheatClientCommandsAndChickenColdReset(t *testing.T) {
 					t.Fatal("victory command did not present the success panel")
 				}
 			}
-			if pic, err := a.HeadlessNoticeFrame(); err != nil || pic == nil {
+			if pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartNotice}); err != nil || pic == nil {
 				t.Fatalf("installed command panel: %v", err)
 			}
 		})

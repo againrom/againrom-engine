@@ -73,7 +73,7 @@ func TestReleaseSecondShopLiftedItemLeavesNoName(t *testing.T) {
 	secondShopActivate(t, f, app, "SHELF 1", "ITEM 1", "BUY")
 
 	frame := func() *image.RGBA {
-		pic, _, err := app.HeadlessFrame()
+		pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -143,7 +143,7 @@ func TestReleaseFirstShopLiftedItemKeepsItsPriceFigure(t *testing.T) {
 		t.Fatalf("pack cell %d has icon %v, name %q, count %d; want a single item with a picture and no name", index, cell.Icon != nil, cell.Text, cell.Count)
 	}
 	frame := func() *image.RGBA {
-		pic, _, err := r.app.HeadlessFrame()
+		pic, _, err := r.app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

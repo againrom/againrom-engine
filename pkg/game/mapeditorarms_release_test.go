@@ -77,7 +77,7 @@ func expectedArmLinks(sc alm.Script) []expectedArmLink {
 func armOpenButton(t *testing.T, e *ui.MapEditor, row int) image.Rectangle {
 	t.Helper()
 	for i := 0; i < 200; i++ {
-		if r, ok := e.GoalOpenRect(row); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: row}); ok {
 			return r
 		}
 		_ = e.Key("pagedown")
@@ -89,12 +89,12 @@ func armOpenButton(t *testing.T, e *ui.MapEditor, row int) image.Rectangle {
 func backFromArm(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	for n := 0; n < 8; n++ {
-		r, ok := e.PopupButtonRect(n)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n})
 		if !ok {
 			if n == 0 {
 				t.Fatal("popup missing")
 			}
-			r, ok = e.PopupButtonRect(n - 1)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n - 1})
 			trigClick(t, e, r, ok, "Back")
 			return
 		}

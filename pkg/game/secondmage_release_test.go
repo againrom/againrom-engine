@@ -149,7 +149,7 @@ func secondMageBookVisible(t *testing.T, f *FrontEnd, app *ui.App, stage string)
 		if err := app.HeadlessPointer("hover", -1, -1); err != nil {
 			t.Fatal(err)
 		}
-		pix, err := app.HeadlessBottomHUD()
+		pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 		if err != nil {
 			t.Fatal(err)
 		}

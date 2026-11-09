@@ -69,7 +69,7 @@ func TestMapEditorUnitBasicViewInputCoversTheCardValue(t *testing.T) {
 			interior := func(shift int) *image.RGBA {
 				e := derivedEditor(t, lang, panel, shift, false)
 				typeCardField(t, e, "body", "15")
-				r, ok := e.FieldRect(cardFieldIndex(t, e, "body"))
+				r, ok := e.FindControl(ControlQuery{Role: ControlField, N: cardFieldIndex(t, e, "body")})
 				if !ok {
 					t.Fatalf("%s: no body input", lang)
 				}

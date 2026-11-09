@@ -81,7 +81,7 @@ func TestReleaseTooltipShopAndChargenUseInstalledTextAndSharedDelay(t *testing.T
 	if err = a.HeadlessPointer("hover", x, y); err != nil {
 		t.Fatal(err)
 	}
-	before, _, err := a.HeadlessFrame()
+	before, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,18 +91,18 @@ func TestReleaseTooltipShopAndChargenUseInstalledTextAndSharedDelay(t *testing.T
 				t.Fatal(err)
 			}
 		}
-		state, pic := a.HeadlessTooltip()
-		if state.Visible != (tick == 25) || state.Target == "" {
-			t.Fatal("shop delay boundary", tick, state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if state.Tooltip.Visible != (tick == 25) || state.Tooltip.Target == "" {
+			t.Fatal("shop delay boundary", tick, state.Tooltip)
 		}
-		if state.Visible && (pic == nil || !state.Bounds.In(image.Rect(0, 0, 640, 480))) {
-			t.Fatal("installed item popup escaped frame", state)
+		if state.Tooltip.Visible && (pic == nil || !state.Tooltip.Bounds.In(image.Rect(0, 0, 640, 480))) {
+			t.Fatal("installed item popup escaped frame", state.Tooltip)
 		}
-		if state.Visible && (state.Bounds.Min.Y != max(0, y-pic.Bounds().Dy()) || state.Bounds.Min.X != x) {
-			t.Fatal("installed shelf tooltip lost its lower-left anchor or top-edge clamp", x, y, state)
+		if state.Tooltip.Visible && (state.Tooltip.Bounds.Min.Y != max(0, y-pic.Bounds().Dy()) || state.Tooltip.Bounds.Min.X != x) {
+			t.Fatal("installed shelf tooltip lost its lower-left anchor or top-edge clamp", x, y, state.Tooltip)
 		}
 	}
-	after, _, err := a.HeadlessFrame()
+	after, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil || bytes.Equal(before.Pix, after.Pix) {
 		t.Fatal("shop did not paint delayed installed popup", err)
 	}
@@ -129,16 +129,16 @@ func TestReleaseTooltipShopAndChargenUseInstalledTextAndSharedDelay(t *testing.T
 				if err = g.HeadlessPointer("hover", px, py); err != nil {
 					t.Fatal(err)
 				}
-				h, pic := g.HeadlessTooltip()
-				if h.Target == "" || seen[h.Target] {
+				pic, h, _ := g.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+				if h.Tooltip.Target == "" || seen[h.Tooltip.Target] {
 					continue
 				}
-				if !h.Visible || pic == nil || !h.Bounds.In(image.Rect(0, 0, 640, 480)) {
-					t.Fatal("installed description escaped frame or missed zero delay", h)
+				if !h.Tooltip.Visible || pic == nil || !h.Tooltip.Bounds.In(image.Rect(0, 0, 640, 480)) {
+					t.Fatal("installed description escaped frame or missed zero delay", h.Tooltip)
 				}
-				seen[h.Target] = true
+				seen[h.Tooltip.Target] = true
 				if len(seen) <= 35 {
-					frame, _, e := g.HeadlessFrame()
+					frame, _, e := g.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 					if e != nil {
 						t.Fatal(e)
 					}

@@ -92,7 +92,7 @@ func TestArmPopupAndScriptsEditHaveSameBytesAndUndo(t *testing.T) {
 	e, _ := openGoalMap(t, b)
 	e.Layout(1280, 800)
 	_ = e.Key("goals")
-	r, ok := e.GoalOpenRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: 0})
 	if !ok {
 		t.Fatal("arm Open missing")
 	}
@@ -100,9 +100,9 @@ func TestArmPopupAndScriptsEditHaveSameBytesAndUndo(t *testing.T) {
 	if e.Selected() != recordOf(e.Document(), "Trigger", 0) {
 		t.Fatal("wrong trigger")
 	}
-	r, ok = e.FieldRect(1)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	trigClick(t, e, r, ok, "Fire once")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	after := append([]byte(nil), e.Document().SourceBytes...)
 	other, _ := openGoalMap(t, b)
@@ -111,9 +111,9 @@ func TestArmPopupAndScriptsEditHaveSameBytesAndUndo(t *testing.T) {
 	closePalette(other)
 	r, ok = treeMemberRect(other, "scripts", 0)
 	trigClick(t, other, r, ok, "Scripts trigger")
-	r, ok = other.FieldRect(1)
+	r, ok = other.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 1})
 	trigClick(t, other, r, ok, "Fire once")
-	r, ok = other.PopupButtonRect(0)
+	r, ok = other.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, other, r, ok, "Apply")
 	if bytes.Equal(after, b) || !bytes.Equal(after, other.Document().SourceBytes) {
 		t.Fatal("different popup edit bytes")
@@ -183,7 +183,7 @@ func TestArmOpenBackDeleteMatchesRow(t *testing.T) {
 				}
 				selected, lines := e.Selected(), e.PopupLines()
 				if opened {
-					r, ok := e.GoalOpenRect(row)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: row})
 					trigClick(t, e, r, ok, "arm Open")
 					backFromArm(t, e)
 					if e.Selected() != selected || !reflect.DeepEqual(e.PopupLines(), lines) {

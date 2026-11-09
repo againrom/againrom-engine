@@ -15,7 +15,7 @@ import (
 
 func defendPanel1087(t *testing.T, f *FrontEnd, a *ui.App, selected bool) {
 	t.Helper()
-	pic, err := a.HeadlessCommandPanel()
+	pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCommandPanel})
 	if err != nil {
 		t.Fatal(err)
 	}

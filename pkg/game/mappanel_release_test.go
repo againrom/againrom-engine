@@ -264,7 +264,7 @@ func TestReleaseMapPanelNewMapAsksTheModeAndWritesItsBytes(t *testing.T) {
 		_ = e.Key("clear")
 		e.TextInput("64x64")
 		_ = e.Key("enter")
-		r, ok := e.PromptButtonRect(mode.button)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: mode.button})
 		c.click(e, r, ok, "the mode button")
 		d := e.Document()
 		if d == nil || d.Width != 64 || e.Dirty() {
@@ -347,7 +347,7 @@ func TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap(t *testing.T) {
 	cover, _ := e.PromptRect()
 	writeEditorFrame(t, e, filepath.Join(os.Getenv("AGAINROM_EDITOR_FRAMES"), "notice-modsave-"+installLanguage(x)+".png"), os.Getenv("AGAINROM_EDITOR_FRAMES") != "", cover)
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "Continue")
 	saved, err := os.ReadFile(target)
 	if err != nil || !bytes.Equal(saved, s.model.Bytes()) || e.Dirty() {
@@ -444,7 +444,7 @@ func TestReleaseMapPanelFrames(t *testing.T) {
 	n := slices.IndexFunc(e.PanelLines(), func(l string) bool {
 		return strings.HasPrefix(l, x.inspectionUTF8(x.word("editor.panel.mode"))+" ")
 	})
-	r, ok := e.PanelRowRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPanelRow, N: n})
 	c.click(e, r, ok, "the Mode line")
 	shot(e, "mode-field")
 	e = opened(newMapSource(80, 80))

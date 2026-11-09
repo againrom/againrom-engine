@@ -9,13 +9,13 @@ import (
 
 func TestMenuLabelStaysInItsCornerAndOffEveryButton(t *testing.T) {
 	a := newTestApp(t, appRows(1), okLoader(t))
-	plain, _, err := a.HeadlessFrame()
+	plain, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
 	label := "Againrom 12.34.56 (abcdef1+dirty)"
 	a.SetMenuLabel(label)
-	labelled, _, err := a.HeadlessFrame()
+	labelled, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestMenuLabelStaysInItsCornerAndOffEveryButton(t *testing.T) {
 		t.Fatal("the label painted nothing")
 	}
 	a.SetMenuLabel("")
-	again, _, _ := a.HeadlessFrame()
+	again, _, _ := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if string(again.Pix) != string(plain.Pix) {
 		t.Fatal("clearing the label did not restore the plain menu")
 	}

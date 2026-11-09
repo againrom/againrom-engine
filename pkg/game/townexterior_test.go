@@ -129,8 +129,8 @@ func exteriorPointer(t *testing.T, a *ui.App, x int) {
 func exteriorAdvanceWithoutBlit(t *testing.T, a *ui.App, now *time.Time, dt time.Duration) {
 	t.Helper()
 	*now = now.Add(dt)
-	if _, note, err := a.HeadlessFrame(); err != nil || note != "" {
-		t.Fatalf("frame %q: %v", note, err)
+	if _, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || note.Note != "" {
+		t.Fatalf("frame %q: %v", note.Note, err)
 	}
 }
 
@@ -140,9 +140,9 @@ func exteriorPaint(t *testing.T, a *ui.App, now *time.Time, dt time.Duration) *i
 	// Real Draw dispatch advances the controller. CPU capture calls that same
 	// composer at the unchanged clock and must not advance it a second time.
 	a.Draw(ebiten.NewImage(640, 480))
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("frame %q: %v", note, err)
+	pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("frame %q: %v", note.Note, err)
 	}
 	return pix
 }

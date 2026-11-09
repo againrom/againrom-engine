@@ -34,7 +34,7 @@ func TestEditorFailedPathDialogDropsCancelCheckpoint(t *testing.T) {
 					t.Error("failed path dialog retained Cancel checkpoint")
 				}
 				if dismiss {
-					if r, ok := e.PromptButtonRect(0); ok {
+					if r, ok := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0}); ok {
 						chromeClick(e, center(r))
 					} else {
 						t.Fatal("missing error OK")
@@ -77,7 +77,7 @@ func TestEditorMessageOKUsesCancelPath(t *testing.T) {
 	}
 	e.rememberCancel()
 	e.message = "failed operation"
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 	if !ok {
 		t.Fatal("missing error OK")
 	}

@@ -13,9 +13,9 @@ func TestTownListColdFrameUsesOrdinaryRowsAndDisabledGates(t *testing.T) {
 	if !a.flow.showTown("") {
 		t.Fatal("row-list town unavailable")
 	}
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal("ordinary row-list frame", err, note)
+	pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal("ordinary row-list frame", err, note.Note)
 	}
 	for _, c := range []struct {
 		x, y int
@@ -35,7 +35,7 @@ func TestTownListColdFrameUsesOrdinaryRowsAndDisabledGates(t *testing.T) {
 	if err := a.HeadlessActivate("another door"); err != nil {
 		t.Fatal(err)
 	}
-	after, _, err := a.HeadlessFrame()
+	after, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil || bytes.Equal(pix.Pix, after.Pix) || town.Header() != "inside" {
 		t.Fatal("ordinary row selection did not change room/frame", err)
 	}
@@ -44,7 +44,7 @@ func TestTownListColdFrameUsesOrdinaryRowsAndDisabledGates(t *testing.T) {
 	if !cold.flow.showTown("") {
 		t.Fatal("cold room unavailable")
 	}
-	again, _, err := cold.HeadlessFrame()
+	again, _, err := cold.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil || !bytes.Equal(after.Pix, again.Pix) {
 		t.Fatal("cold room composed different header/rows", err)
 	}

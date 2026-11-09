@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/ui"
 )
 
 // f5Inspector is the installed inspector with a recording test-play host.
@@ -49,7 +50,7 @@ func TestReleaseTestPlayOfANewMapStartsAtOnce(t *testing.T) {
 	e.Layout(1280, 800)
 	_ = e.Key("new")
 	_ = e.Key("enter")
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "the mode button")
 	endless := strings.Join(strings.Fields(x.inspectionUTF8(x.word("editor.panel.victory")+" "+x.word("editor.panel.victory.none"))), " ")
 	check := func(when string) {
@@ -107,7 +108,7 @@ func TestReleaseTestPlayOfAMapWithAnotherWarningStillAsks(t *testing.T) {
 		t.Fatal("Cancel left the notice open or started the game")
 	}
 	_ = e.Key("testplay")
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "Continue")
 	if e.NoticeOpen() || len(*started) != 1 {
 		t.Fatalf("Continue: notice %v, launches %d, message %q", e.NoticeOpen(), len(*started), e.Message())

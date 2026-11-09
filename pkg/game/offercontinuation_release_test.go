@@ -211,9 +211,9 @@ func assertOfferAppPanel(t *testing.T, f *FrontEnd, app *ui.App, body string) {
 	layout.Frame = f.gameMenuArt()
 	want := ui.RenderNotice(layout, f.Font.Value(), body, nil)
 	wrong := ui.RenderNotice(layout, f.Font.Value(), "Different words", nil)
-	actual, note, err := app.HeadlessFrame()
-	if err != nil || note != "" || actual == nil || want == nil || wrong == nil {
-		t.Fatal("actual App frame did not compose the installed panel", note, err)
+	actual, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" || actual == nil || want == nil || wrong == nil {
+		t.Fatal("actual App frame did not compose the installed panel", note.Note, err)
 	}
 	x0, y0 := (actual.Bounds().Dx()-want.Bounds().Dx())/2, (actual.Bounds().Dy()-want.Bounds().Dy())/2
 	different := 0

@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 
+	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -143,9 +144,9 @@ func baseDumpSession(t *testing.T, mods, id string, launcher bool) baseDumpRun {
 	frame := func(name string) []byte {
 		t.Helper()
 		a.Draw(ebiten.NewImage(640, 480))
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatalf("frame %q: %v", note, err)
+		pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatalf("frame %q: %v", note.Note, err)
 		}
 		if dir := townModFramesDir(t, f); dir != "" {
 			writeTownModPNG(t, filepath.Join(dir, "base-dump-"+cmp.Or(id, "none")+map[bool]string{true: "-launcher"}[launcher]+"-"+name+".png"), pix)

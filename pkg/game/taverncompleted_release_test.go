@@ -157,7 +157,7 @@ func checkCompletedTavernApp(t *testing.T, f *FrontEnd, app *ui.App, want []stri
 
 func completedTavernFrame(t *testing.T, app *ui.App, path string) {
 	t.Helper()
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

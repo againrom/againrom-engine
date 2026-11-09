@@ -64,13 +64,13 @@ func variableTableEditor(t *testing.T, l scriptAddLang, b []byte) (*ui.MapEditor
 // variableTableToggle presses the Window menu's Variables table row.
 func variableTableToggle(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	r, ok := e.BarRect("window")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "window"})
 	trigClick(t, e, r, ok, "the Window menu")
 	n, ok := e.MenuRow("window", "variables")
 	if !ok {
 		t.Fatal("the Window menu has no Variables table row")
 	}
-	r, ok = e.MenuRowRect(n)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 	trigClick(t, e, r, ok, "the Variables table row")
 }
 
@@ -154,7 +154,7 @@ func TestVariablesTableListsEachUseAndFollowsEdits(t *testing.T) {
 				row    int
 				record int
 			}{{3, trigRecord(t, e, "Trigger", 1)}, {0, trigRecord(t, e, "Trigger", 0)}, {5, -5}} {
-				r, ok := e.ListRowRect(c.row)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: c.row})
 				trigClick(t, e, r, ok, "table row "+strconv.Itoa(c.row))
 				if e.Selected() != c.record {
 					t.Fatalf("row %d selected %d, want %d", c.row, e.Selected(), c.record)

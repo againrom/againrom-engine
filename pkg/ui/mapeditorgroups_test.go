@@ -120,7 +120,7 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	if n := e.PlaceGridLen(); n != 2 {
 		t.Fatalf("the Units grid holds %d cells, want the host's 2 classes", n)
 	}
-	r, ok := e.PlaceGridCellRect(1)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 1})
 	if !ok {
 		t.Fatal("grid cell 1 is not shown")
 	}
@@ -155,7 +155,7 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	if run, _ := e.addRunning(); run.placed != 4 {
 		t.Fatalf("the window counts %d copies", run.placed)
 	}
-	r, _ = e.PlaceGridCellRect(1)
+	r, _ = e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 1})
 	chromeClick(e, center(r))
 	if _, ok := e.addRunning(); ok || e.pick != pickNone {
 		t.Fatal("a press on the pressed cell did not end the placing")
@@ -247,7 +247,7 @@ func TestMapEditorSelectionPopupDeletesTheSelection(t *testing.T) {
 	e.places[popObject].at = image.Pt(400, 100)
 	e.Fit()
 	dragOnMap(e, image.Pt(5, 5), image.Pt(35, 35))
-	r, ok := e.SelectionButtonRect(2)
+	r, ok := e.FindControl(ControlQuery{Role: ControlSelectionButton, N: 2})
 	if !ok {
 		t.Fatal("no selection popup")
 	}
@@ -274,7 +274,7 @@ func TestMapEditorGroupsWindowRows(t *testing.T) {
 	if s, _ := e.listSpec(); s.List != nil || len(s.Rows) != 0 {
 		t.Fatalf("the Groups palette lists rows: %v", s.Rows)
 	}
-	r, ok := e.GroupsRowRect(1, 1, false)
+	r, ok := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: false})
 	if !ok {
 		t.Fatal("no tree row of group 1")
 	}
@@ -292,7 +292,7 @@ func TestMapEditorGroupsRowChoosesAndFramesTheGroup(t *testing.T) {
 	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
 	camX, camY := e.doc.Viewer.cam.X, e.doc.Viewer.cam.Y
-	r, ok := e.GroupsRowRect(1, 1, false)
+	r, ok := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: false})
 	if !ok {
 		t.Fatal("no row of group 1")
 	}
@@ -328,7 +328,7 @@ func TestMapEditorToGroupNewAndExistingSkipsOtherPlayers(t *testing.T) {
 	e, p := groupsEditor(t)
 	chromeClick(e, barPoint(t, e, "groups"))
 	e.setSelection([]RecordRef{{"Unit", 2}, {"Unit", 4}})
-	b, ok := e.GroupsButtonRect(0)
+	b, ok := e.FindControl(ControlQuery{Role: ControlGroupsButton, N: 0})
 	if !ok {
 		t.Fatal("no To group button")
 	}
@@ -341,7 +341,7 @@ func TestMapEditorToGroupNewAndExistingSkipsOtherPlayers(t *testing.T) {
 	if len(rows) != 2 || rows[0].Text != "New (group 3)" || rows[1].Text != "Group 1: 2 units" || !strings.Contains(strings.Join(s.Notes, " "), "1 units of other players skipped") {
 		t.Fatalf("the question offers %v, notes %q", rows, s.Notes)
 	}
-	ok2, _ := e.PromptButtonRect(0)
+	ok2, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 	chromeClick(e, center(ok2))
 	if got := strings.Join(p.calls.lines, "|"); got != "SetUnitsGroup [{Unit 2}] 3" {
 		t.Fatalf("New wrote %q", got)
@@ -352,12 +352,12 @@ func TestMapEditorToGroupNewAndExistingSkipsOtherPlayers(t *testing.T) {
 	// An existing group: the second row.
 	e.setSelection([]RecordRef{{"Unit", 2}})
 	e.toGroupAsk()
-	row, ok := e.PromptListRowRect(1)
+	row, ok := e.FindControl(ControlQuery{Role: ControlPromptListRow, N: 1})
 	if !ok {
 		t.Fatal("no row 1 in the question")
 	}
 	chromeClick(e, center(row))
-	ok2, _ = e.PromptButtonRect(0)
+	ok2, _ = e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 	chromeClick(e, center(ok2))
 	if got := p.calls.lines[len(p.calls.lines)-1]; got != "SetUnitsGroup [{Unit 2}] 1" {
 		t.Fatalf("the existing group wrote %q", got)
@@ -393,9 +393,9 @@ func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 	e, p := groupsEditor(t)
 	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
-	row, _ := e.GroupsRowRect(2, 2, false)
+	row, _ := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 2, K: 2, Flag: false})
 	chromeClick(e, center(row))
-	cross, ok := e.GroupsRowRect(2, 2, true)
+	cross, ok := e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 2, K: 2, Flag: true})
 	if !ok {
 		t.Fatal("no Delete group on group 2")
 	}
@@ -405,15 +405,15 @@ func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 	}
 	// Taking one of two members out leaves group 1 a member: no question.
 	e.setSelection([]RecordRef{{"Unit", 0}})
-	b, _ := e.GroupsButtonRect(1)
+	b, _ := e.FindControl(ControlQuery{Role: ControlGroupsButton, N: 1})
 	chromeClick(e, center(b))
 	if len(p.calls.lines) != 2 || p.calls.lines[1] != "SetUnitsGroup [{Unit 0}] 0" || e.prompt.open() {
 		t.Fatalf("Remove wrote %v (prompt %v)", p.calls.lines, e.prompt.open())
 	}
 	// The last member: the question names the trigger.
-	row, _ = e.GroupsRowRect(1, 1, false)
+	row, _ = e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: false})
 	chromeClick(e, center(row))
-	cross, _ = e.GroupsRowRect(1, 1, true)
+	cross, _ = e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: true})
 	chromeClick(e, center(cross))
 	if e.prompt.kind != promptGroupWarn || len(p.calls.lines) != 2 {
 		t.Fatalf("emptying a used group asked nothing: prompt %d, calls %v", e.prompt.kind, p.calls.lines)
@@ -422,14 +422,14 @@ func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 	if text := strings.Join(s.Notes, " "); !strings.Contains(text, "Group 1 will have no units") || !strings.Contains(text, "Hide them") {
 		t.Fatalf("the warning reads %q", text)
 	}
-	cancel, _ := e.PromptButtonRect(1)
+	cancel, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 1})
 	chromeClick(e, center(cancel))
 	if e.prompt.open() || len(p.calls.lines) != 2 {
 		t.Fatal("Cancel wrote or stayed", p.calls.lines)
 	}
-	cross, _ = e.GroupsRowRect(1, 1, true)
+	cross, _ = e.FindControl(ControlQuery{Role: ControlGroupsRow, N: 1, K: 1, Flag: true})
 	chromeClick(e, center(cross))
-	goOn, _ := e.PromptButtonRect(0)
+	goOn, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 	chromeClick(e, center(goOn))
 	if got := p.calls.lines[len(p.calls.lines)-1]; got != "SetUnitsGroup [{Unit 1}] 0" || len(p.calls.lines) != 3 {
 		t.Fatalf("Empty it wrote %v", p.calls.lines)
@@ -466,7 +466,7 @@ func TestMapEditorDeleteAsksBeforeEmptyingAUsedGroup(t *testing.T) {
 			press := func() {
 				switch route {
 				case "button":
-					r, ok := e.SelectionButtonRect(2)
+					r, ok := e.FindControl(ControlQuery{Role: ControlSelectionButton, N: 2})
 					if !ok {
 						t.Fatal("missing Delete button")
 					}
@@ -485,13 +485,13 @@ func TestMapEditorDeleteAsksBeforeEmptyingAUsedGroup(t *testing.T) {
 			if text := strings.Join(s.Notes, " "); !strings.Contains(text, "Group 1 will have no units") || !strings.Contains(text, "Hide them") {
 				t.Fatalf("the warning reads %q", text)
 			}
-			cancel, _ := e.PromptButtonRect(1)
+			cancel, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 1})
 			chromeClick(e, center(cancel))
 			if e.prompt.open() || len(p.calls.lines) != 0 {
 				t.Fatalf("Cancel wrote or stayed: %v", p.calls.lines)
 			}
 			press()
-			goOn, _ := e.PromptButtonRect(0)
+			goOn, _ := e.FindControl(ControlQuery{Role: ControlPromptButton, N: 0})
 			chromeClick(e, center(goOn))
 			if len(p.calls.lines) != 1 || p.calls.lines[0] != want {
 				t.Fatalf("Empty it wrote %v, want %q", p.calls.lines, want)
@@ -513,7 +513,7 @@ func TestMapEditorShiftClickedSelectionShowsItsDeleteButton(t *testing.T) {
 	if got := fmt.Sprint(e.selection.refs); got != "[{Unit 0} {Unit 1}]" {
 		t.Fatalf("the Shift click selected %s", got)
 	}
-	r, ok := e.SelectionButtonRect(2)
+	r, ok := e.FindControl(ControlQuery{Role: ControlSelectionButton, N: 2})
 	if !ok {
 		t.Fatal("the selection window shows no Delete")
 	}

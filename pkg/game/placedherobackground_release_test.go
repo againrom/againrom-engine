@@ -50,9 +50,9 @@ func TestReleasePlacedPersonPortraitDrawsNoHeroBackground(t *testing.T) {
 	}
 	pane := func(a *ui.App, what string) *image.RGBA {
 		t.Helper()
-		pic, stats, err := a.HeadlessCharacterPane()
-		if err != nil || stats {
-			t.Fatalf("%s: figure pane unavailable: stats=%v err=%v", what, stats, err)
+		pic, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+		if err != nil || stats.Statistics {
+			t.Fatalf("%s: figure pane unavailable: stats=%v err=%v", what, stats.Statistics, err)
 		}
 		return pic
 	}

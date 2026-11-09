@@ -117,11 +117,11 @@ func TestMapEditorDialogOpenLoadsChosenBytes(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				bar, _ := e.BarRect("file")
+				bar, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "file"})
 				for _, r := range []image.Rectangle{bar, {}} {
 					if r.Empty() {
 						n, _ := e.MenuRow("file", "open")
-						r, _ = e.MenuRowRect(n)
+						r, _ = e.FindControl(ui.ControlQuery{Role: ui.ControlMenuRow, N: n})
 					}
 					in := ui.Input{CursorX: (r.Min.X + r.Max.X) / 2, CursorY: (r.Min.Y + r.Max.Y) / 2, PrimaryDown: true}
 					e.Pointer(in, time.Unix(1, 0))

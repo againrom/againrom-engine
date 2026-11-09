@@ -84,7 +84,7 @@ func objectBrushOn(t *testing.T, e *MapEditor, forest bool) {
 	if forest {
 		k = 1
 	}
-	r, ok := e.ListButtonRect(2, k)
+	r, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 2, K: k})
 	if !ok {
 		t.Fatal("the object brush shows no Forest row")
 	}
@@ -223,7 +223,7 @@ func TestMapEditorObjectsGridPlacesTheAddWindowsRecord(t *testing.T) {
 	for _, copies := range []int{0, 1} {
 		e, calls := placeableHostEditor(t, paletteKinds, paletteObjects...)
 		objectBrushOn(t, e, false)
-		r, ok := e.PlaceGridCellRect(0)
+		r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 		if !ok {
 			t.Fatal("the Objects grid shows no cell")
 		}

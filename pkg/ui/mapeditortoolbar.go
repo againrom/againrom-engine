@@ -313,10 +313,10 @@ func (e *MapEditor) toolbarEntries() []toolEntry {
 	return out
 }
 
-// ToolbarRect is the window rectangle of the toolbar button key ("select",
+// controlToolbarRect is the window rectangle of the toolbar button key ("select",
 // "brush.terrain", "border", "grid" and the rest): a headless driver presses
 // it. A menu-only row and a hidden toolbar have none.
-func (e *MapEditor) ToolbarRect(key string) (image.Rectangle, bool) {
+func (e *MapEditor) controlToolbarRect(key string) (image.Rectangle, bool) {
 	for _, t := range e.toolbarEntries() {
 		if t.key == key && !t.rect.Empty() {
 			return t.rect, true

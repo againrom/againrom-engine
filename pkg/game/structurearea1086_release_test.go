@@ -72,7 +72,7 @@ func TestReleaseMultiCellStructureAreaSpell(t *testing.T) {
 	inspectionCentre(live, 34, 50)
 	ref := ui.InspectionSubject{Kind: ui.InspectionStructure, ID: sid}
 	releaseHoverInspection(t, a, live, ref)
-	card, err := a.HeadlessMissionCard()
+	card, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestReleaseMultiCellStructureAreaSpell(t *testing.T) {
 	if !ok || panel.HP != 0 || panel.MaxHP != 1000 {
 		t.Fatalf("ruined HP panel=%+v", panel)
 	}
-	card, err = a.HeadlessMissionCard()
+	card, _, err = a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		t.Fatal(err)
 	}

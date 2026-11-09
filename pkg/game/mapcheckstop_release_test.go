@@ -12,7 +12,7 @@ import (
 // counts from the end.
 func chooseRow(t *testing.T, e *ui.MapEditor, n, row int) {
 	t.Helper()
-	r, ok := e.FieldRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	messageClick(t, e, r, ok)
 	choices := e.DropdownChoices()
 	if row < 0 {
@@ -23,7 +23,7 @@ func chooseRow(t *testing.T, e *ui.MapEditor, n, row int) {
 	}
 	e.ScrollDropdown(-len(choices))
 	for range len(choices) + 10 {
-		if r, ok := e.DropdownRowRect(row); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 			messageClick(t, e, r, ok)
 			return
 		}

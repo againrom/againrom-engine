@@ -269,11 +269,11 @@ func TestReleaseMissionPaneAndCardStateTheSelectedCount(t *testing.T) {
 	// state's own lines, and returns copies for a later comparison.
 	look := func(what string, count int) (pane, card []byte) {
 		t.Helper()
-		upper, _, err := app.HeadlessCharacterPane()
+		upper, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}
-		lower, err := app.HeadlessMissionCard()
+		lower, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}

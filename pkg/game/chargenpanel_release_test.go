@@ -103,7 +103,7 @@ func TestReleaseChargenCommandPanelIsTheShopComposition(t *testing.T) {
 		mid := r.Min.Add(r.Size().Div(2))
 		chargenPanelPointer(t, a, "hover", mid)
 		chargenPanelPointer(t, a, "press", mid)
-		held, _, err := a.HeadlessFrame()
+		held, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -192,7 +192,7 @@ func chargenPanelPointer(t *testing.T, a *ui.App, action string, p image.Point) 
 		t.Fatal(err)
 	}
 	if a.Screen() == ui.ScreenChargen {
-		if _, _, err := a.HeadlessFrame(); err != nil {
+		if _, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatal(err)
 		}
 	}

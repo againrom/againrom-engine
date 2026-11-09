@@ -56,7 +56,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 		if err := a.HeadlessActivate("new game"); err != nil {
 			t.Fatal(err)
 		}
-		before, _, err := a.HeadlessFrame()
+		before, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,7 +65,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		after, _, err := a.HeadlessFrame()
+		after, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,8 +92,8 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 		for i := 0; i < 40; i++ {
 			a.HeadlessStep()
 		}
-		if state, _ := a.HeadlessTooltip(); !state.Visible {
-			t.Fatal("tips suppress generator hover", state)
+		if _, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); !state.Tooltip.Visible {
+			t.Fatal("tips suppress generator hover", state.Tooltip)
 		}
 		// The scenario driver must refund the full preset before buying a
 		// different legal spread, using the real keyboard controls.
@@ -250,7 +250,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 		if len(rows) != 1 || rows[0].Text != catalog[1].Title {
 			t.Fatal(rows)
 		}
-		if _, _, err := cold.HeadlessFrame(); err != nil {
+		if _, _, err := cold.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 			t.Fatal(err)
 		}
 		if err := cold.HeadlessActivate(rows[0].Text); err != nil {
@@ -268,7 +268,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 		for i := 0; i < 720; i++ {
 			cold.HeadlessStep()
 		}
-		p, _, err := cold.HeadlessFrame()
+		p, _, err := cold.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

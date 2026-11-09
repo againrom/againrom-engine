@@ -255,9 +255,9 @@ func panelLineRow(s popupSpec, n int) int {
 	return -1
 }
 
-// PanelRowRect is the window rectangle of the first row of the shown panel's
+// controlPanelRowRect is the window rectangle of the first row of the shown panel's
 // line n.
-func (e *MapEditor) PanelRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPanelRowRect(n int) (image.Rectangle, bool) {
 	if !e.PanelOpen() {
 		return image.Rectangle{}, false
 	}
@@ -393,9 +393,9 @@ func (e *MapEditor) askNotice(step noticeStep) bool {
 	return true
 }
 
-// PromptButtonRect is the window rectangle of button n of the open prompt or
+// controlPromptButtonRect is the window rectangle of button n of the open prompt or
 // question.
-func (e *MapEditor) PromptButtonRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPromptButtonRect(n int) (image.Rectangle, bool) {
 	s, ok := e.promptSpec()
 	if !ok {
 		return image.Rectangle{}, false

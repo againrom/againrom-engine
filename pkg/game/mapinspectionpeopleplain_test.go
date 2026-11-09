@@ -101,7 +101,7 @@ func TestEditorPlainUnitWindowOffersTheMercenaryLevel(t *testing.T) {
 		e.SetPanelProfile(nil, os.ErrNotExist, nil)
 		e.Select(recordOf(doc, "Unit", 0), false)
 		if !plain {
-			r, ok := e.ViewSwitchRect()
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlViewSwitch})
 			c.click(e, r, ok, "view switch")
 		}
 		if e.PlainView() != plain {

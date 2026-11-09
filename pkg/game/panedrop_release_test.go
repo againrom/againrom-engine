@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // A pack item dragged onto the character pane is worn while the pane shows the
@@ -41,11 +42,11 @@ func TestReleasePackItemDraggedOntoThePaneIsWornInBothModes(t *testing.T) {
 	}
 	statistics := func() bool {
 		t.Helper()
-		_, on, err := app.HeadlessCharacterPane()
+		_, on, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 		if err != nil {
 			t.Fatal(err)
 		}
-		return on
+		return on.Statistics
 	}
 	showStatistics := func(want bool) {
 		t.Helper()

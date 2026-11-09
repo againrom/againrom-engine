@@ -37,9 +37,9 @@ func (c *plaqueCensus) record(t *testing.T, name string, pic *image.RGBA) {
 
 func (c *plaqueCensus) frame(t *testing.T, app *ui.App, name string) {
 	t.Helper()
-	pic, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal(name, note, err)
+	pic, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal(name, note.Note, err)
 	}
 	c.record(t, name, pic)
 }

@@ -63,7 +63,7 @@ func TestMapEditorBarSearchTakesCtrlF(t *testing.T) {
 		t.Run(c.lang, func(t *testing.T) {
 			e, _, _ := menuEditor(t, c.lang)
 			// Owner item 6: the field opens below File, not in the bar.
-			if _, ok := e.BarRect("search"); ok {
+			if _, ok := e.FindControl(ControlQuery{Role: ControlBar, Key: "search"}); ok {
 				t.Fatal("Search remains in the bar")
 			}
 			box := e.searchEntry().rect

@@ -29,7 +29,7 @@ func TestEditorTrapMapSelectionMovementAndFields(t *testing.T) {
 	if e.Selected() != i {
 		t.Fatal("cell click never selected trap")
 	}
-	if _, ok := e.FieldRect(0); !ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 0}); !ok {
 		t.Fatal("cell click did not open spell popup")
 	}
 	e.Select(i, true)

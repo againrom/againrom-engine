@@ -136,7 +136,7 @@ func splitButton(t *testing.T, e *ui.MapEditor, label string, c int, id string) 
 	if k < 0 {
 		t.Fatalf("card %s offers %q, no %q", label, e.PopupRowButtons(head), variantWord(id))
 	}
-	r, ok := e.RowButtonRect(2*c+1, k, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*c + 1, K: k, Flag: false})
 	trigClick(t, e, r, ok, id)
 }
 
@@ -229,7 +229,7 @@ func TestDialogVariantsNeverShownAndEnding(t *testing.T) {
 	}
 	// The never-shown tag is the third cell of the page: the woman's, the
 	// man's ending, then it; its row answers for its speaker field 5.
-	cross, ok := e.RowButtonRect(5, k, false)
+	cross, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 5, K: k, Flag: false})
 	trigClick(t, e, cross, ok, "never-shown cross")
 	messageButton(t, e, 0)
 	if got := string(s.workspace.Pages["event07.txt"]); got != "<part=1,iamfemale>\r\nShe\r\n<part=2>\r\nAll" {
@@ -413,10 +413,10 @@ func TestDialogVariantGroupsStackInOneFrame(t *testing.T) {
 			t.Fatalf("card %s shows cells %q:\n%s", c.label, labels, trigLines(e))
 		}
 		rows := cardRows(t, e, c.label)
-		head, _ := e.PopupRowRect(rows[0])
+		head, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: rows[0]})
 		below := head.Max.Y
 		for _, r := range rows[1:] {
-			rr, ok := e.PopupRowRect(r)
+			rr, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: r})
 			switch {
 			case !ok:
 				t.Fatalf("card %s's row %d is not shown", c.label, r)

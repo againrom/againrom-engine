@@ -102,11 +102,11 @@ func TestEditorCastingStructureFieldsStopAt255(t *testing.T) {
 	}
 	pointer := func(field int, text string) {
 		t.Helper()
-		r, ok := e.FieldRect(field)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 		messageClick(t, e, r, ok)
 		_ = e.Key("selectall")
 		e.TextInput(text)
-		r, ok = e.PopupButtonRect(0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		messageClick(t, e, r, ok)
 	}
 	for _, route := range []string{"key", "pointer"} {

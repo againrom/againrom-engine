@@ -196,7 +196,7 @@ func TestReleaseMapEditorAreaDragsSaveAndReopen(t *testing.T) {
 	triggers := len(sc.Triggers)
 	c := areaLimit(e) / 2
 	areaDraw(t, e, image.Pt(c, c), image.Pt(c+3, c+2))
-	r, ok := e.PromptButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	trigClick(t, e, r, ok, "Create")
 	m, sc, _ = areaSaveAs(t, e, "drawn.alm")
 	if len(sc.Triggers) != triggers+1 {
@@ -317,7 +317,7 @@ func TestReleaseMapEditorAreaFrames(t *testing.T) {
 	c := areaLimit(e) / 2
 	areaDraw(t, e, image.Pt(c, c), image.Pt(c+3, c+2))
 	shot(e, "area-trigger", image.Rectangle{})
-	r, ok := e.AreaTriggerRect()
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaTrigger})
 	trigClick(t, e, r, ok, "the trigger choice")
 	if len(e.DropdownChoices()) < 2 {
 		t.Fatalf("the trigger choice lists %q", e.DropdownChoices())
@@ -384,7 +384,7 @@ func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
 			if route == "key" {
 				_ = e.Key("drawarea")
 			} else {
-				r, ok := e.ToolbarRect("drawarea")
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "drawarea"})
 				trigClick(t, e, r, ok, "Draw trigger area")
 			}
 			if e.AreaDrawArmed() || e.Message() == "" || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, before) {

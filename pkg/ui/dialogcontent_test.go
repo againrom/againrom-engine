@@ -50,9 +50,9 @@ func dialogContentArt() *DialogFrame {
 
 func dialogContentHeadlessFrame(t *testing.T, a *App) *image.RGBA {
 	t.Helper()
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" || pix.Bounds() != image.Rect(0, 0, 640, 480) {
-		t.Fatalf("dialog frame: note=%q error=%v", note, err)
+	pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" || pix.Bounds() != image.Rect(0, 0, 640, 480) {
+		t.Fatalf("dialog frame: note=%q error=%v", note.Note, err)
 	}
 	return pix
 }
@@ -218,7 +218,7 @@ func TestGameOptionsContentHasEqualMarginsAndClearsItsFrame(t *testing.T) {
 	var calls []widgetCall
 	glyphs := text.Record(func() {
 		calls = recordWidgets(t, func() {
-			if pix, err := a.HeadlessGameOptionsFrame(); err != nil || pix == nil {
+			if pix, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartGameOptions}); err != nil || pix == nil {
 				t.Fatalf("options frame: %v", err)
 			}
 		})

@@ -185,7 +185,7 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 			// The one-click add and the rename in a later wizard session are two
 			// history entries, as the commands add_record and write_trigger are.
 			wizNewTrigger(t, e, "")
-			r, ok := e.PopupButtonRect(1)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 			trigClick(t, e, r, ok, "Cancel")
 			e.Select(recordOf(e.Document(), "Trigger", len(e.Document().Script.Triggers)-1), true)
 			wizType(t, e, "name", "Treasure")
@@ -570,7 +570,7 @@ func TestMapEditorTypedUndoLeavesTheWindowAsItsUndo(t *testing.T) {
 		e, s := messagePopupFixture(t, 77)
 		before := bytes.Clone(s.model.Bytes())
 		messageField(t, e, 2)
-		r, ok := e.DropdownRowRect(0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 		messageClick(t, e, r, ok)
 		messageField(t, e, 0)
 		e.TextInput("First")

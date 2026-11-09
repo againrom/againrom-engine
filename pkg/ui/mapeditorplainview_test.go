@@ -71,14 +71,14 @@ func clickRow(t *testing.T, e *MapEditor, label string) {
 	t.Helper()
 	s, _, _ := e.objectSpec()
 	n := slices.IndexFunc(s.Rows, func(r popupRow) bool { return markedLabel(r) == label })
-	r, ok := e.PopupRowRect(n)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPopupRow, N: n})
 	viewsClick(t, e, r, n >= 0 && ok, fmt.Sprintf("row %q among %q", label, plainRowsText(e)))
 }
 
 // clickSwitch presses the view switch.
 func clickSwitch(t *testing.T, e *MapEditor) {
 	t.Helper()
-	r, ok := e.ViewSwitchRect()
+	r, ok := e.FindControl(ControlQuery{Role: ControlViewSwitch})
 	viewsClick(t, e, r, ok, "the view switch")
 }
 
@@ -265,11 +265,11 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 			if hiddenField(e.doc.Records[record], f) {
 				continue
 			}
-			if tab, ok := e.ObjectSectionRect(f.Section); ok {
+			if tab, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: f.Section}); ok {
 				viewsClick(t, e, tab, ok, "section "+f.Section)
 			}
 			e.obj.detail = f.Parent
-			_, ok := e.FieldRect(i)
+			_, ok := e.FindControl(ControlQuery{Role: ControlField, N: i})
 			if f.ReadOnly {
 				ok = len(f.Lines) > 0 && slices.Contains(e.PopupLines(), f.Lines[0].Text)
 			}
@@ -290,7 +290,7 @@ func TestMapEditorBothViewsWriteTheSameEdit(t *testing.T) {
 		e, h, _ := plainEditor(t, "en", minimizedPanels, viewsStructure)
 		fields := e.ObjectFields()
 		i := slices.IndexFunc(fields, func(f InspectionField) bool { return f.Key == "width" })
-		r, ok := e.FieldRect(i)
+		r, ok := e.FindControl(ControlQuery{Role: ControlField, N: i})
 		viewsClick(t, e, r, ok, "the plain width row")
 		for range 4 {
 			_ = e.Key("backspace")
@@ -304,7 +304,7 @@ func TestMapEditorBothViewsWriteTheSameEdit(t *testing.T) {
 				t.Fatalf("the switch changed the draft: plain %v, width %q, writes %q", e.PlainView(), e.obj.buf[i], h.writes)
 			}
 		}
-		r, ok = e.PopupButtonRect(0)
+		r, ok = e.FindControl(ControlQuery{Role: ControlPopupButton, N: 0})
 		viewsClick(t, e, r, ok, "Apply")
 		writes = append(writes, h.writes)
 	}

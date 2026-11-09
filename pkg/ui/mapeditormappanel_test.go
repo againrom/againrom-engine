@@ -109,7 +109,7 @@ func mapPanelEditor(t *testing.T, p *mapPanelEdits, maps []EditorMap) (*MapEdito
 
 func clickPanelRow(t *testing.T, e *MapEditor, n int) {
 	t.Helper()
-	r, ok := e.PanelRowRect(n)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPanelRow, N: n})
 	if !ok {
 		t.Fatalf("panel row %d is not shown", n)
 	}

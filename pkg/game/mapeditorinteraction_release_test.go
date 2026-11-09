@@ -47,7 +47,7 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				seen[string(r.Kind)] = true
 				e.Select(i, false)
 				mark, selected := s.model.Mark(), e.Selected()
-				if rect, ok := e.PopupButtonRect(1); ok {
+				if rect, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1}); ok {
 					trigClick(t, e, rect, true, "Cancel")
 				} else {
 					_ = e.Key("escape")
@@ -65,7 +65,7 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				// Since W opens the mod window instead of a prompt, its Close
 				// button, the fifth, is the Cancel there.
 				if e.ModWindowOpen() {
-					r, ok := e.PopupButtonRect(4)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 4})
 					trigClick(t, e, r, ok, "Close mod window")
 					if e.ModWindowOpen() {
 						t.Fatal("Close left the mod window open")
@@ -77,7 +77,7 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 					if command == "unit" || command == "structure" || command == "sack" {
 						button = 2
 					}
-					r, ok := e.PromptButtonRect(button)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: button})
 					if ok {
 						trigClick(t, e, r, true, "Cancel")
 					} else {
@@ -88,12 +88,12 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				check(selected, mark)
 			}
 			for _, bar := range []string{"players", "scripts"} {
-				r, ok := e.BarRect(bar)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: bar})
 				trigClick(t, e, r, ok, bar)
 				selected, mark := e.Selected(), s.model.Mark()
 				if bar == "players" {
 					_ = e.Key("player")
-					r, ok = e.PromptButtonRect(2)
+					r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
 					trigClick(t, e, r, ok, "Cancel Add "+bar)
 					check(selected, mark)
 					popups++
@@ -109,14 +109,14 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				opened := false
 				for row, line := range e.PopupLines() {
 					if strings.HasPrefix(line, openMessage) {
-						r, ok := e.PopupRowRect(row)
+						r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 						trigClick(t, e, r, ok, "Open message")
 						opened = true
 						break
 					}
 				}
 				if opened {
-					r, ok := e.PopupButtonRect(1)
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 					trigClick(t, e, r, ok, "Cancel message")
 					check(i, messageMark)
 					popups++
@@ -233,7 +233,7 @@ func TestReleaseEditorInteractionFrames(t *testing.T) {
 		witness.PNG(t, path, pic)
 		t.Log(path)
 	}
-	r, ok := e.BarRect("units")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "units"})
 	trigClick(t, e, r, ok, "Units")
 	// The Units branch of the tree scrolled to its last unit.
 	if n := treeMemberCount(e, "units"); n > 0 {
@@ -246,7 +246,7 @@ func TestReleaseEditorInteractionFrames(t *testing.T) {
 	p := image.Pt(1000, 600)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
 	write("armed-placement")
-	if r, ok := e.PromptButtonRect(2); ok {
+	if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2}); ok {
 		trigClick(t, e, r, true, "Cancel")
 	}
 	e.Select(recordOf(e.Document(), "Unit", 0), false)

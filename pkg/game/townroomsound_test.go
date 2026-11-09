@@ -374,7 +374,7 @@ func TestShopRoomRequestsInShopAgainAfterEachPause(t *testing.T) {
 			if err := a.HeadlessStep(); err != nil {
 				t.Fatal(err)
 			}
-			if _, _, err := a.HeadlessFrame(); err != nil {
+			if _, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil {
 				t.Fatal(err)
 			}
 		}

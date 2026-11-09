@@ -226,14 +226,14 @@ func TestReleaseTownHeroDollHoverThroughAppFrame(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		state, _ := app.HeadlessTooltip()
-		if !state.Visible || !strings.HasPrefix(state.Target, "hero-item/") {
-			t.Errorf("slot %d at %v: hover visible %v target %q", slot, p, state.Visible, state.Target)
+		_, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if !state.Tooltip.Visible || !strings.HasPrefix(state.Tooltip.Target, "hero-item/") {
+			t.Errorf("slot %d at %v: hover visible %v target %q", slot, p, state.Tooltip.Visible, state.Tooltip.Target)
 			continue
 		}
 		shown++
 		if shown == 1 {
-			frame, _, err := app.HeadlessFrame()
+			frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}

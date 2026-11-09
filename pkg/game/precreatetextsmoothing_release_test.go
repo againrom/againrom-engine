@@ -104,12 +104,12 @@ func TestReleasePreCreateTextIsSmoothedWhereverAnyOfItShows(t *testing.T) {
 							t.Fatal(err)
 						}
 					}
-					if st, _ := a.HeadlessTooltip(); !st.Visible {
+					if _, st, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); !st.Tooltip.Visible {
 						t.Fatal("the name field raised no tooltip")
 					}
 				}
 				a.Draw(ebiten.NewImage(size.X, size.Y))
-				pix, _, err := a.HeadlessFrame()
+				pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -183,7 +183,7 @@ func (a *App) HeadlessChatState() (string, bool) {
 	return a.cheatInput.line, a.cheatInput.open
 }
 
-func (a *App) HeadlessChatFrame() (*image.RGBA, error) {
+func (a *App) headlessChatFrame() (*image.RGBA, error) {
 	var pic *image.RGBA
 	text.Record(func() { pic, _ = a.cheatChatPicture() })
 	if pic == nil {

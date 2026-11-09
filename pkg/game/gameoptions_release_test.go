@@ -264,7 +264,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 		if !control.point.In(control.target) {
 			t.Fatal("pointer outside independent rendered target", control.name)
 		}
-		previous, err := a.HeadlessGameOptionsFrame()
+		previous, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartGameOptions})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -274,7 +274,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		current, err := a.HeadlessGameOptionsFrame()
+		current, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartGameOptions})
 		if err != nil {
 			t.Fatal(err)
 		}

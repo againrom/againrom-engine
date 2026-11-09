@@ -52,13 +52,13 @@ func installedForest(t *testing.T, x *MapInspector, key string, r int) (*ui.MapE
 	if err := e.Key("objects"); err != nil {
 		t.Fatal(err)
 	}
-	rect, ok := e.ListButtonRect(2, 1)
+	rect, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
 	c.click(e, rect, ok, "the Forest button")
 	for _, code := range forestTrees {
-		rect, ok = e.PlaceGridCellRect(forestGridIndex(t, x, code))
+		rect, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: forestGridIndex(t, x, code)})
 		c.click(e, rect, ok, fmt.Sprintf("the grid cell of class %d", code))
 	}
-	rect, ok = e.ListButtonRect(1, 1)
+	rect, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 1, K: 1})
 	c.click(e, rect, ok, "the Square button")
 	for i := 0; i < 20; i++ {
 		_ = e.Key("radiusdown")
@@ -145,7 +145,7 @@ func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, before, x.table, radius)
 	e, _ := installedForest(t, x, forestScenario, radius)
-	r, ok := e.ListButtonRect(4, 3)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 3})
 	(&editorClicker{t: t, now: time.Unix(55, 0)}).click(e, r, ok, "Dense")
 	forestPress(e, centre, false)
 	if !e.Dirty() {
@@ -226,10 +226,10 @@ func TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged(t *testing.T) {
 		}
 		e, c := installedForest(t, x, key, 4)
 		for k := 1; k <= 4; k++ {
-			r, ok := e.ListButtonRect(4, k)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: k})
 			c.click(e, r, ok, "a density button")
 		}
-		r, ok := e.ListButtonRect(3, 0)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 3, K: 0})
 		c.click(e, r, ok, "the per cent button")
 		_ = e.Key("clear")
 		e.TextInput("40")
@@ -279,7 +279,7 @@ func TestReleaseMapEditorForestFrames(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, m, x.table, radius)
 	e, c := installedForest(t, x, forestScenario, radius)
-	r, ok := e.ListButtonRect(4, 3)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 3})
 	c.click(e, r, ok, "Dense")
 	e.ShowCell(centre.Sub(image.Pt(8, 0)))
 	frame(e, "grid")

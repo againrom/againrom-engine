@@ -132,8 +132,8 @@ func (f *FrontEnd) witnessMedia(root, helper, output string, report io.Writer) e
 		}
 		if strings.HasPrefix(a.CutsceneName(), "start/") {
 			preludeFrames = a.CutsceneFrameNumber()
-			if _, note, err := a.HeadlessFrame(); err != nil || note != "" {
-				return fmt.Errorf("video witness: prelude composition: %s %v", note, err)
+			if _, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || note.Note != "" {
+				return fmt.Errorf("video witness: prelude composition: %s %v", note.Note, err)
 			}
 		}
 		time.Sleep(time.Millisecond)
@@ -164,9 +164,9 @@ func (f *FrontEnd) witnessMedia(root, helper, output string, report io.Writer) e
 				return fmt.Errorf("video witness: frame sequence %d -> %d", last, n)
 			}
 			last = n
-			pix, note, err := a.HeadlessFrame()
-			if err != nil || note != "" {
-				return fmt.Errorf("video witness: composition: %s %v", note, err)
+			pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+			if err != nil || note.Note != "" {
+				return fmt.Errorf("video witness: composition: %s %v", note.Note, err)
 			}
 			composed++
 			if n <= 6 && len(refs) > 0 {
@@ -323,9 +323,9 @@ func witnessMovieEntry(a *ui.App, route string, destination ui.Screen, output st
 	if a.CutsceneName() != name || a.CutsceneFrameNumber() < 6 {
 		return fmt.Errorf("video witness: %s produced fewer than six frames", route)
 	}
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		return fmt.Errorf("video witness: %s composition: %s %v", route, note, err)
+	pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		return fmt.Errorf("video witness: %s composition: %s %v", route, note.Note, err)
 	}
 	if err := writeMediaFrame(output, route, pix); err != nil {
 		return err

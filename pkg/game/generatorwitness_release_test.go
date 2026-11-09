@@ -32,12 +32,12 @@ func generatorWitnessHover(t *testing.T, app *ui.App, p image.Point) (*image.RGB
 			t.Fatal(err)
 		}
 	}
-	frame, _, err := app.HeadlessFrame()
+	frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, _ := app.HeadlessTooltip()
-	return frame, state
+	_, state, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+	return frame, state.Tooltip
 }
 
 // generatorWitnessFrames drives the install's generator through one live

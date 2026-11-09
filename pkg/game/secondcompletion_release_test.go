@@ -120,7 +120,7 @@ func TestReleaseSecondGameFirstSuccessPresentation(t *testing.T) {
 			t.Fatalf("report table %s[%d] = %x, want %x", row.path, row.index, row.got, want)
 		}
 	}
-	report, err := a.HeadlessNoticeFrame()
+	report, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartNotice})
 	if err != nil || report == nil {
 		t.Fatal("report rendering", err)
 	}
@@ -167,9 +167,9 @@ func TestReleaseSecondGameFirstSuccessPresentation(t *testing.T) {
 				t.Fatalf("frame order %d -> %d", last, n)
 			}
 			last = n
-			pix, note, err := a.HeadlessFrame()
-			if err != nil || note != "" {
-				t.Fatal("movie composition", note, err)
+			pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+			if err != nil || note.Note != "" {
+				t.Fatal("movie composition", note.Note, err)
 			}
 			composed++
 			if ref, ok := refs[n]; ok {

@@ -147,9 +147,9 @@ func TestSecondTownTalkProbeReadsTheBoundScreen(t *testing.T) {
 		if !imagesEqual(pic, want) {
 			t.Fatalf("page %d: the bound dialogue did not draw %q", page+1, words)
 		}
-		frame, note, err := app.HeadlessFrame()
-		if err != nil || note != "" || frame == nil {
-			t.Fatalf("App town frame: %v %q", err, note)
+		frame, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" || frame == nil {
+			t.Fatalf("App town frame: %v %q", err, note.Note)
 		}
 		at := image.Pt((640-pic.Bounds().Dx())/2, (480-pic.Bounds().Dy())/2)
 		for y := range pic.Bounds().Dy() {

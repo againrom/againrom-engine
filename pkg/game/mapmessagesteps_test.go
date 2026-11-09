@@ -38,7 +38,7 @@ func messageChoiceClick(t *testing.T, e *ui.MapEditor, want string) {
 			continue
 		}
 		for range len(choices) + 1 {
-			if r, ok := e.DropdownRowRect(row); ok {
+			if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok {
 				messageClick(t, e, r, ok)
 				return
 			}
@@ -112,7 +112,7 @@ func TestTriggerWizardNewMessageUsesFourClicksAndOneUndo(t *testing.T) {
 			clicks := 0
 			if route.details {
 				messageButton(t, e, 4)
-				r, ok := e.RowButtonRect(11, 0, false)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 				messageClick(t, e, r, ok)
 				clicks += 2
 				messageField(t, e, 2)

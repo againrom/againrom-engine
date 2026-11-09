@@ -181,9 +181,9 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 			t.Fatal(err)
 		}
 	}()
-	if _, stats, err := a.HeadlessCharacterPane(); err != nil {
+	if _, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane}); err != nil {
 		t.Fatalf("%s: %v", when, err)
-	} else if !stats {
+	} else if !stats.Statistics {
 		if err := a.HeadlessKey("j"); err != nil {
 			t.Fatal(err)
 		}
@@ -207,9 +207,9 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 				}
 			}
 			releaseHoverInspection(t, a, live, ui.InspectionSubject{Kind: ui.InspectionUnit, ID: uint32(e.ID)})
-			pic, stats, err := a.HeadlessCharacterPane()
-			if err != nil || !stats {
-				t.Fatalf("%s: entity %d: statistics card unavailable: stats=%t err=%v", when, e.ID, stats, err)
+			pic, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+			if err != nil || !stats.Statistics {
+				t.Fatalf("%s: entity %d: statistics card unavailable: stats=%t err=%v", when, e.ID, stats.Statistics, err)
 			}
 			read.card = image.NewRGBA(pic.Bounds())
 			copy(read.card.Pix, pic.Pix)

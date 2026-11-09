@@ -191,7 +191,7 @@ func typeText(t *testing.T, e *ui.MapEditor, c *editorClicker, key, text string)
 	if !showField(t, e, c, key) {
 		t.Fatalf("%s does not show", key)
 	}
-	r, ok := e.FieldRect(fieldIndex(t, e.ObjectFields(), key))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, e.ObjectFields(), key)})
 	c.click(e, r, ok, key)
 	for range 16 {
 		_ = e.Key("end")
@@ -200,7 +200,7 @@ func typeText(t *testing.T, e *ui.MapEditor, c *editorClicker, key, text string)
 	if text != "" {
 		e.TextInput(text)
 	}
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	c.click(e, r, ok, "Apply")
 }
 

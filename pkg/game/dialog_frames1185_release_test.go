@@ -43,9 +43,9 @@ func TestReleaseSharedDialogFrames1185(t *testing.T) {
 	if err := a.HeadlessKey("load"); err != nil {
 		t.Fatal(err)
 	}
-	pic, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal(note, err)
+	pic, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal(note.Note, err)
 	}
 	checkCorner := func(pic *image.RGBA, at image.Point) {
 		checked := 0
@@ -120,9 +120,9 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 	manifest := map[string]any{"asset_root_sha256": rootHash, "scroll_sha256": fmt.Sprintf("%x", sha256.Sum256(raw))}
 	frame := func(t *testing.T, app *ui.App, name string) *image.RGBA {
 		t.Helper()
-		pic, note, err := app.HeadlessFrame()
-		if err != nil || note != "" || pic.Bounds() != image.Rect(0, 0, 640, 480) {
-			t.Fatal("ordinary App chooser frame", note, err)
+		pic, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+		if err != nil || note.Note != "" || pic.Bounds() != image.Rect(0, 0, 640, 480) {
+			t.Fatal("ordinary App chooser frame", note.Note, err)
 		}
 		witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 		manifest[name+"_pixels_sha256"] = fmt.Sprintf("%x", sha256.Sum256(pic.Pix))
@@ -392,9 +392,9 @@ func assertChooserClipping(t *testing.T, app *ui.App, skin *image.RGBA, bar imag
 	// Each bar part casts its shadow 4 pixels right and down (MENU-117).
 	strip := image.Rect(bar.Min.X, bar.Min.Y, bar.Max.X+4, bar.Max.Y+4)
 	app.SetCutsceneScrollArt(nil)
-	fallback, note, err := app.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal("missing-art control", note, err)
+	fallback, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal("missing-art control", note.Note, err)
 	}
 	for y := 0; y < 480; y++ {
 		for x := 0; x < 640; x++ {

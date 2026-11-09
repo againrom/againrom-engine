@@ -31,7 +31,7 @@ type overrideTyper struct {
 
 func (o overrideTyper) section(section string) {
 	o.t.Helper()
-	if tab, ok := o.e.ObjectSectionRect(section); ok {
+	if tab, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: section}); ok {
 		o.c.click(o.e, tab, true, "the field section")
 	}
 }
@@ -57,10 +57,10 @@ func (o overrideTyper) field(key string) int {
 	n := fieldIndex(o.t, fields, key)
 	o.section(fields[n].Section)
 	o.e.ScrollDetails(-1000)
-	r, ok := o.e.FieldRect(n)
+	r, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	for k := 0; !ok && k < 60; k++ {
 		o.e.ScrollDetails(1)
-		r, ok = o.e.FieldRect(n)
+		r, ok = o.e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	}
 	o.c.click(o.e, r, ok, "the "+key+" field")
 	return n
@@ -75,7 +75,7 @@ func (o overrideTyper) text(key, s string) {
 	_ = o.e.Key("selectall")
 	_ = o.e.Key("backspace")
 	o.e.TextInput(s)
-	r, ok := o.e.PopupButtonRect(0)
+	r, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	o.c.click(o.e, r, ok, "Apply")
 }
 
@@ -87,7 +87,7 @@ func (o overrideTyper) choose(key string, v int64) {
 	f := fields[fieldIndex(o.t, fields, key)]
 	o.field(key)
 	row := slices.IndexFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == v })
-	if r, ok := o.e.DropdownRowRect(row); ok || row < 0 {
+	if r, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row}); ok || row < 0 {
 		o.c.click(o.e, r, ok, fmt.Sprintf("%s choice %d", key, v))
 	} else {
 		label := f.Choices[row].Label
@@ -97,7 +97,7 @@ func (o overrideTyper) choose(key string, v int64) {
 		o.e.TextInput(label)
 		_ = o.e.Key("enter")
 	}
-	r, ok := o.e.PopupButtonRect(0)
+	r, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	o.c.click(o.e, r, ok, "Apply")
 }
 
@@ -105,9 +105,9 @@ func (o overrideTyper) choose(key string, v int64) {
 func (o overrideTyper) clear(key string) {
 	o.t.Helper()
 	n := o.field(key)
-	r, ok := o.e.RowButtonRect(n, 0, false)
+	r, ok := o.e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: n, K: 0, Flag: false})
 	o.c.click(o.e, r, ok, "the "+key+" Inherit button")
-	r, ok = o.e.PopupButtonRect(0)
+	r, ok = o.e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	o.c.click(o.e, r, ok, "Apply")
 }
 
@@ -335,7 +335,7 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		overrideTyper{t: t, c: c, e: e, i: i}.section(fields[n].Section)
 		e.ScrollDetails(-1000)
 		for k := 0; k < 60; k++ {
-			if _, ok := e.FieldRect(n); ok {
+			if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n}); ok {
 				break
 			}
 			e.ScrollDetails(1)

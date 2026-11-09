@@ -70,7 +70,7 @@ func TestReleaseSecondGameGeneratorCommandPanelIsTheFourPlaquePanel(t *testing.T
 		if err := app.HeadlessPointer(action, p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		frame, _, err := app.HeadlessFrame()
+		frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

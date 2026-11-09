@@ -247,7 +247,7 @@ func TestDialogueFrameReachedNativeAndDetachedTownCPUAndSubmission(t *testing.T)
 			a.flow.showTown("")
 			a.Layout(width, 480)
 			a.SetTextSmoothing(false)
-			cpu, _, err := a.HeadlessFrame()
+			cpu, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -256,7 +256,7 @@ func TestDialogueFrameReachedNativeAndDetachedTownCPUAndSubmission(t *testing.T)
 			for _, p := range []int{3, 5, 6, 7, 8} {
 				clear(art.Pieces[p].Pix)
 			}
-			without, _, err := a.HeadlessFrame()
+			without, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 			if err != nil {
 				t.Fatal(err)
 			}

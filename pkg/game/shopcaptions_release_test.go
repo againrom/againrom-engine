@@ -87,7 +87,7 @@ func TestReleaseShopBuyAndSellTotalsDrawBelowCaptions(t *testing.T) {
 		if err := app.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		pic, _, err := app.HeadlessFrame()
+		pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

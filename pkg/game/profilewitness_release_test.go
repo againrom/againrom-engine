@@ -79,7 +79,7 @@ func TestProfileWitnessSaveDirectoryMaskPreservesOtherPixels(t *testing.T) {
 		if !open || state.Request.Directory != directory || state.Focus != "name" {
 			t.Fatalf("SAVE state = %+v, open=%t", state, open)
 		}
-		pix, _, err := a.HeadlessFrame()
+		pix, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -165,7 +165,7 @@ func newProfileWitness(t *testing.T, f *FrontEnd, saves string, maskSaveDirector
 }
 
 func (w *profileWitness) record(name string) {
-	pix, _, err := w.a.HeadlessFrame()
+	pix, _, err := w.a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil && w.a.Screen() == ui.ScreenMap && w.f.live != nil && w.f.live.view != nil {
 		pix, err = w.mapFrame()
 	}

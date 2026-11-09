@@ -30,7 +30,7 @@ func completeEventMovies(t *testing.T, a *App) {
 	for a.Screen() == ScreenCutscene && time.Now().Before(deadline) {
 		a.step(appInput{}, time.Now())
 		if a.Screen() == ScreenCutscene {
-			if _, _, err := a.HeadlessFrame(); err != nil {
+			if _, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil {
 				t.Fatal(err)
 			}
 		}

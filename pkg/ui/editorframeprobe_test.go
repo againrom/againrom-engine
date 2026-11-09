@@ -443,7 +443,7 @@ func TestEditorFrameProbe(t *testing.T) {
 				input: func(i int) ui.ProbeInput {
 					in := idle()
 					for _, k := range []string{"open", "new", "saveas", "catalog", "testplay", "terrain", "unit", "help"} {
-						if r, ok := e.ToolbarRect(k); ok {
+						if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: k}); ok {
 							in.Canvas.CursorX, in.Canvas.CursorY = (r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2
 							break
 						}
@@ -479,7 +479,7 @@ func TestEditorFrameProbe(t *testing.T) {
 			}, tail: 3,
 				input: func(i int) ui.ProbeInput {
 					in := idle()
-					if r, ok := e.TreeRowRect(0); ok {
+					if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlTreeRow, N: 0}); ok {
 						in.Canvas.CursorX, in.Canvas.CursorY = (r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2
 					}
 					if i >= 5 && i < 8 {

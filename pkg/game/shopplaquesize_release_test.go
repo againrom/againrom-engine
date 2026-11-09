@@ -235,10 +235,10 @@ func TestReleaseShopPlaqueIsChosenFromTheStoredPrice(t *testing.T) {
 		if err := app.HeadlessPointer("hover", ix, iy); err != nil {
 			t.Fatal(err)
 		}
-		if tip, _ := app.HeadlessTooltip(); tip.Visible {
+		if _, tip, _ := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip}); tip.Tooltip.Visible {
 			t.Fatal("a tooltip stands over the screen")
 		}
-		got, _, err := app.HeadlessFrame()
+		got, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

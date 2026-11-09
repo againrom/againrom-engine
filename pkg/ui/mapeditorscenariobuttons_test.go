@@ -44,14 +44,14 @@ func TestMapEditorScenarioPaletteButtonsAndHint(t *testing.T) {
 				}
 			}
 			for _, key := range []string{"drop", "newtrigger"} {
-				if _, ok := e.ListButtonKeyRect(key); !ok {
+				if _, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: key}); !ok {
 					t.Fatalf("no button key %s", key)
 				}
 			}
-			if _, ok := e.ListButtonKeyRect("newvariable"); ok {
+			if _, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "newvariable"}); ok {
 				t.Fatal("the palette keeps New variable")
 			}
-			if _, ok := e.ListButtonKeyRect("add"); ok {
+			if _, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"}); ok {
 				t.Fatal("the palette keeps Add")
 			}
 		})

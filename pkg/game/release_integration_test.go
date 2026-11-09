@@ -758,10 +758,10 @@ func TestReleaseJoinedHeroHandoverTickComposesExactPanePopulation(t *testing.T) 
 			if exactFigure == nil {
 				t.Fatalf("same-tick npc%d exact joined figure did not compose", tc.npc)
 			}
-			pane, statistics, err := app.HeadlessCharacterPane()
-			if err != nil || pane == nil || statistics {
+			pane, statistics, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+			if err != nil || pane == nil || statistics.Statistics {
 				t.Fatalf("same-tick npc%d character pane = %v statistics %v err %v",
-					tc.npc, pane != nil, statistics, err)
+					tc.npc, pane != nil, statistics.Statistics, err)
 			}
 			wantPane := releaseMissionFigurePane(f, exactFigure)
 			if pane.Bounds() != wantPane.Bounds() || !bytes.Equal(pane.Pix, wantPane.Pix) {
@@ -964,10 +964,10 @@ func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testin
 				t.Fatalf("same-tick npc%d doll = ok %v drawn %v equipment %v digest %x; want %v/%x",
 					tc.npc, ok, doll.FullDrawn, doll.Equipment, doll.Full, liveSlots, sha256.Sum256(composed.Pix))
 			}
-			pane, statistics, err := app.HeadlessCharacterPane()
-			if err != nil || pane == nil || statistics {
+			pane, statistics, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+			if err != nil || pane == nil || statistics.Statistics {
 				t.Fatalf("same-tick npc%d composed character pane = %v statistics %v err %v",
-					tc.npc, pane != nil, statistics, err)
+					tc.npc, pane != nil, statistics.Statistics, err)
 			}
 
 			// The next ordinary application frame performs the production

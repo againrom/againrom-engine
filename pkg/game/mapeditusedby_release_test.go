@@ -71,7 +71,7 @@ func popupUseLinks(e *ui.MapEditor) []int {
 
 func openUsedByGroup(t *testing.T, e *ui.MapEditor, row int) {
 	t.Helper()
-	r, ok := e.BarRect("groups")
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 	trigClick(t, e, r, ok, "Groups")
 	r, ok = treeMemberRect(e, "groups", row)
 	trigClick(t, e, r, ok, "group")
@@ -140,7 +140,7 @@ func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
 			popupLinks[map[string]uint32{"Unit": 4, "Structure": 9, "Player": 3}[string(record.Kind)]] += len(got)
 			popups++
 		}
-		r, ok := e.BarRect("groups")
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "groups"})
 		trigClick(t, e, r, ok, "Groups")
 		groups := treeMemberCount(e, "groups")
 		_ = e.Key("escape")
@@ -214,16 +214,16 @@ func TestReleaseMapEditorUsedByFrames(t *testing.T) {
 			if row < 0 {
 				t.Fatal("missing Used by link")
 			}
-			r, ok := e.PopupRowRect(row)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 			for k := 0; !ok && k < 50; k++ {
 				e.ScrollDetails(1)
-				r, ok = e.PopupRowRect(row)
+				r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 			}
 			if !ok {
 				t.Fatal("Used by row never visible")
 			}
 			e.ScrollDetails(3)
-			r, ok = e.PopupRowRect(row)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 			if !ok {
 				t.Fatal("Used by link scrolled out of view")
 			}

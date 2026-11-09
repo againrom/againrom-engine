@@ -21,7 +21,7 @@ func TestMapEditorStructureListButtonsHoldTheirCaptions(t *testing.T) {
 			t.Fatal("the editor has no body font to measure captions with")
 		}
 		for _, b := range e.listButtons() {
-			r, ok := e.ListButtonKeyRect(b.key)
+			r, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: b.key})
 			if !ok {
 				t.Fatalf("%s: no %s button", lang, b.key)
 			}
@@ -38,11 +38,11 @@ func TestMapEditorStructureGridRuinedSwitchOnlyChangesCopies(t *testing.T) {
 		e.SetWords(words.For(lang))
 		e.Layout(640, 480)
 		chromeClick(e, barPoint(t, e, "structures"))
-		button, ok := e.ListButtonKeyRect("ruined")
+		button, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "ruined"})
 		if !ok {
 			t.Fatalf("%s: Structures has no ruined switch beside Add", lang)
 		}
-		add, _ := e.ListButtonKeyRect("add")
+		add, _ := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
 		if button.Min.X < add.Max.X || button.Min.Y != add.Min.Y {
 			t.Fatalf("%s: Add %v and ruined %v are not adjacent", lang, add, button)
 		}

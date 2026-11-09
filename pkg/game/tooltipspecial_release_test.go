@@ -193,9 +193,9 @@ func TestReleaseSpellbookCaptionHoverIsBuiltFromTheClaim(t *testing.T) {
 		if err := a.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if state.Target != fmt.Sprintf("spell/%d", spell) || !state.Visible || pic == nil {
-			t.Fatalf("spell %d hover = %+v", spell, state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if state.Tooltip.Target != fmt.Sprintf("spell/%d", spell) || !state.Tooltip.Visible || pic == nil {
+			t.Fatalf("spell %d hover = %+v", spell, state.Tooltip)
 		}
 		if !samePicture(pic, compose(lines)) {
 			t.Fatalf("spell %d: hover differs from the claim-built lines %q", spell, lines)
@@ -258,9 +258,9 @@ func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 		if err := a.HeadlessPointer("hover", p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if !state.Visible || pic == nil {
-			t.Fatalf("no popup at %v: %+v", p, state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if !state.Tooltip.Visible || pic == nil {
+			t.Fatalf("no popup at %v: %+v", p, state.Tooltip)
 		}
 		return pic
 	}
@@ -345,9 +345,9 @@ func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
 		if err := a.HeadlessPointer("hover", p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if !state.Visible || pic == nil {
-			t.Fatalf("no popup at %v: %+v", p, state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if !state.Tooltip.Visible || pic == nil {
+			t.Fatalf("no popup at %v: %+v", p, state.Tooltip)
 		}
 		return pic
 	}
@@ -445,9 +445,9 @@ func TestReleaseMapListHoverReadsTheWholeDescriptionBlock(t *testing.T) {
 	if err := a.HeadlessPointer("hover", p.X, p.Y); err != nil {
 		t.Fatal(err)
 	}
-	state, pic := a.HeadlessTooltip()
-	if !state.Visible || pic == nil {
-		t.Fatalf("no popup over the patched row: %+v", state)
+	pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+	if !state.Tooltip.Visible || pic == nil {
+		t.Fatalf("no popup over the patched row: %+v", state.Tooltip)
 	}
 	one := EncodeInstallText(base.Description, selector)
 	var lines []string

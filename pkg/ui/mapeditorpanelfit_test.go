@@ -252,7 +252,7 @@ func TestMapEditorEveryGroupOpensAndDeletesAtNarrowWindows(t *testing.T) {
 			if g.group != 30 {
 				continue
 			}
-			r, ok := e.GroupDeleteRect()
+			r, ok := e.FindControl(ControlQuery{Role: ControlGroupDelete})
 			if !ok || !r.In(image.Rectangle{Max: image.Pt(w, 480)}) || e.chromeHit(center(r)) != popObject {
 				t.Fatalf("width %d: Delete group at %v reaches %d", w, r, e.chromeHit(center(r)))
 			}

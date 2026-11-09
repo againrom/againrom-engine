@@ -23,13 +23,13 @@ func messageClick(t *testing.T, e *ui.MapEditor, r image.Rectangle, ok bool) {
 
 func messageField(t *testing.T, e *ui.MapEditor, field int) {
 	t.Helper()
-	r, ok := e.FieldRect(field)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
 	messageClick(t, e, r, ok)
 }
 
 func messageButton(t *testing.T, e *ui.MapEditor, button int) {
 	t.Helper()
-	r, ok := e.PopupButtonRect(button)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: button})
 	messageClick(t, e, r, ok)
 }
 
@@ -51,7 +51,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 		}
 	}
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
 	if len(e.PopupLines()) != 3 {
 		t.Fatal("New did not open the text", e.PopupLines())
@@ -67,7 +67,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 		t.Fatal("Cancel did not return to the action", e.PopupLines())
 	}
 	messageField(t, e, 2)
-	r, ok = e.DropdownRowRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
 	messageField(t, e, 0)
 	e.TextInput("First")
@@ -88,7 +88,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	opened := false
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, "Open Message") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			opened = true
 			break
@@ -107,13 +107,13 @@ func TestMessagePopupMissingValueAndEPrompt(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	before := bytes.Clone(s.model.Bytes())
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	if !bytes.Equal(before, s.model.Bytes()) || s.CanUndo() {
 		t.Fatal("missing page changed value/history")
 	}
-	if _, ok := e.RowButtonRect(2, 0, false); ok {
+	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false}); ok {
 		t.Fatal("missing page has Open")
 	}
 	if strings.Contains(strings.Join(e.PopupLines(), "\n"), "Open Message") {
@@ -147,7 +147,7 @@ func TestMessageChoiceKeepsNegativeValue(t *testing.T) {
 	e, s := messagePopupFixture(t, ^uint32(0))
 	before := bytes.Clone(s.model.Bytes())
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	if !bytes.Equal(before, s.model.Bytes()) || len(s.workspace.Pages) != 0 || s.CanUndo() {
@@ -159,7 +159,7 @@ func TestMessagePopupRemovedPageReturnsToNode(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	before := bytes.Clone(s.model.Bytes())
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	if len(s.workspace.Pages) != 1 {
@@ -184,7 +184,7 @@ func TestMessagePopupOpenMapDropsPage(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	source := e.Document().Source
 	messageField(t, e, 2)
-	r, ok := e.DropdownRowRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
 	if _, err := s.SaveAs(t.TempDir() + "/saved.alm"); err != nil {
 		t.Fatal(err)

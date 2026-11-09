@@ -118,7 +118,7 @@ func TestEditorGroupedItemPicksWriteTheFlatChoicesBytes(t *testing.T) {
 					} else {
 						e = viewsWindow(t, s, plain, ui.KindUnit)
 						e.Layout(1920, 1080)
-						r, ok := e.ObjectSectionRect("inventory")
+						r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: "inventory"})
 						if ok {
 							c.click(e, r, true, "Inventory")
 						}

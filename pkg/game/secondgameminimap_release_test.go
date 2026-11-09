@@ -61,18 +61,18 @@ func TestReleaseSecondGameMinimapMarks(t *testing.T) {
 	// pixel extent.
 	mark := func(cells image.Rectangle, want color.RGBA) (bool, image.Point) {
 		t.Helper()
-		pic, r, err := app.HeadlessMinimapCells(cells)
+		pic, r, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimapCells, Cells: cells})
 		if err != nil {
 			t.Fatal(err)
 		}
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
+		for y := r.Cells.Min.Y; y < r.Cells.Max.Y; y++ {
+			for x := r.Cells.Min.X; x < r.Cells.Max.X; x++ {
 				if pic.RGBAAt(x, y) != want {
-					return false, r.Size()
+					return false, r.Cells.Size()
 				}
 			}
 		}
-		return true, r.Size()
+		return true, r.Cells.Size()
 	}
 	cell := func(e sim.Entity) image.Rectangle { return image.Rect(int(e.X), int(e.Y), int(e.X)+1, int(e.Y)+1) }
 

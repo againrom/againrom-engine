@@ -14,12 +14,12 @@ func lastButton(t *testing.T, e *ui.MapEditor, c *editorClicker) {
 	t.Helper()
 	n := 0
 	for {
-		if _, ok := e.PopupButtonRect(n + 1); !ok {
+		if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n + 1}); !ok {
 			break
 		}
 		n++
 	}
-	r, ok := e.PopupButtonRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n})
 	c.click(e, r, ok, "the last button")
 }
 

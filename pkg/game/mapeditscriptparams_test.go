@@ -110,7 +110,7 @@ func TestScriptParameterChoicesAndTypedBytes(t *testing.T) {
 			if !bytes.Equal(before, e.Document().SourceBytes) {
 				t.Fatal("pick committed before Apply")
 			}
-			r, ok := e.PopupButtonRect(0)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			trigClick(t, e, r, ok, "Apply")
 			picked := bytes.Clone(e.Document().SourceBytes)
 			if bytes.Equal(before, picked) {
@@ -178,7 +178,7 @@ func TestScriptParameterOpenBackStack(t *testing.T) {
 	e := parameterEditor(t)
 	e.Select(trigRecord(t, e, "Trigger", 0), false)
 	trigDetails(t, e)
-	r, ok := e.RowButtonRect(11, 0, false)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})
 	trigClick(t, e, r, ok, "Edit")
 	if e.Document().Records[e.Selected()].Kind != "Action" {
 		t.Fatal("Edit did not open node")
@@ -194,17 +194,17 @@ func TestScriptParameterOpenBackStack(t *testing.T) {
 	if at < 0 {
 		t.Fatal("no Open Unit link", lines)
 	}
-	r, ok = e.PopupRowRect(at)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: at})
 	trigClick(t, e, r, ok, "Open unit")
 	if e.Document().Records[e.Selected()].Kind != "Unit" {
 		t.Fatal("no unit")
 	}
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back to node")
 	if e.Document().Records[e.Selected()].Kind != "Action" {
 		t.Fatal("no node after Back")
 	}
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back to trigger")
 	if e.Document().Records[e.Selected()].Kind != "Trigger" {
 		t.Fatal("no trigger after Back")
@@ -232,7 +232,7 @@ func TestScriptParameterOpenKindsAndCancel(t *testing.T) {
 			if row < 0 {
 				t.Fatal("missing Open", tc.label, e.PopupLines())
 			}
-			r, ok := e.PopupRowRect(row)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
 			trigClick(t, e, r, ok, "Open")
 			if tc.kind == "" {
 				if e.Selected() >= 0 || len(e.GroupMembers()) != 1 {
@@ -245,7 +245,7 @@ func TestScriptParameterOpenKindsAndCancel(t *testing.T) {
 			if tc.kind == "" {
 				back = 1 // after Delete group
 			}
-			r, ok = e.PopupButtonRect(back)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: back})
 			trigClick(t, e, r, ok, "Back")
 			if e.Document().Records[e.Selected()].Kind != "Action" || !bytes.Equal(before, e.Document().SourceBytes) {
 				t.Fatal("Back changed map or lost node")
@@ -293,7 +293,7 @@ func TestScriptParameterUnknownValueAndHeroHaveNoOpen(t *testing.T) {
 	e.Select(trigRecord(t, e, "Action", 0), false)
 	before := bytes.Clone(e.Document().SourceBytes)
 	chooseParameterValue(t, e, 6, 11, nil)
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("unknown current value was rewritten")
@@ -306,7 +306,7 @@ func TestScriptParameterPickCancelAndDirtyNavigation(t *testing.T) {
 	trigChoose(t, e, 2, "unit 11 at")
 	for i, line := range e.PopupLines() {
 		if line == "Open Unit" {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			trigClick(t, e, r, ok, "Open with dirty node")
 			break
 		}
@@ -314,7 +314,7 @@ func TestScriptParameterPickCancelAndDirtyNavigation(t *testing.T) {
 	if e.Document().Records[e.Selected()].Kind != "Action" || !strings.Contains(trigLines(e), "Apply") {
 		t.Fatal("dirty navigation lost node", trigLines(e))
 	}
-	r, ok := e.PopupButtonRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 	trigClick(t, e, r, ok, "Cancel")
 	if !bytes.Equal(before, e.Document().SourceBytes) || e.Dirty() {
 		t.Fatal("Cancel wrote bytes")
@@ -352,7 +352,7 @@ func TestScriptVariableChoicesAndTypedBytes(t *testing.T) {
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("pick wrote before Apply")
 	}
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply variable")
 	picked := bytes.Clone(e.Document().SourceBytes)
 	if bytes.Equal(picked, before) {
@@ -375,18 +375,18 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("New variable wrote before Apply")
 	}
-	r, ok := e.PopupButtonRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 	trigClick(t, e, r, ok, "Cancel new variable")
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("Cancel new variable wrote")
 	}
 	e.Select(trigRecord(t, e, "Action", 1), false)
 	trigChoose(t, e, 2, "Funds")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply variable")
 	for i, line := range e.PopupLines() {
 		if line == "Open Variable" {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			trigClick(t, e, r, ok, "Open variable")
 			break
 		}
@@ -396,7 +396,7 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	}
 	for i, line := range e.PopupLines() {
 		if strings.Contains(line, "Funds") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			trigClick(t, e, r, ok, "Open Constant")
 			break
 		}
@@ -404,18 +404,18 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	if e.Selected() < 0 || e.Document().Records[e.Selected()].Kind != "Condition" {
 		t.Fatal("no Constant node")
 	}
-	r, ok = e.PopupButtonRect(2)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Back to variable")
 	if e.Selected() >= -1 {
 		t.Fatal("lost variable on Back")
 	}
-	r, ok = e.PopupButtonRect(3) // after Label..., Clear label and Cancel
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 3}) // after Label..., Clear label and Cancel
 	trigClick(t, e, r, ok, "Back to action")
 	if e.Selected() != trigRecord(t, e, "Action", 1) {
 		t.Fatal("lost action on Back")
 	}
 	trigChoose(t, e, 2, "New variable")
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply new variable")
 	if e.Document().Script.Actions[1].Values[0] != 99 {
 		t.Fatal("wrong new register")
@@ -446,7 +446,7 @@ func TestScriptVariablePickerUsesHostRegisterSlot(t *testing.T) {
 	}
 	e.Select(trigRecord(t, e, "Action", 1), false)
 	trigChoose(t, e, 3, "Funds")
-	r, ok := e.PopupButtonRect(0)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply register slot")
 	n := e.Document().Script.Actions[1]
 	if n.VariableRegister != 0 || n.Values[0] != 10 || n.Values[1] != 0 {
@@ -465,7 +465,7 @@ func TestScriptUnknownTagDoesNotBecomeVariable(t *testing.T) {
 				e.Document().Script.Catalog.ParameterKind = nil
 			}
 			e.Select(trigRecord(t, e, "Action", 0), false)
-			r, ok := e.FieldRect(2)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 2})
 			trigClick(t, e, r, ok, "unknown parameter")
 			if choices := e.DropdownChoices(); len(choices) != 0 {
 				t.Fatal("unknown ALM tag became a variable picker", choices)
@@ -475,7 +475,7 @@ func TestScriptUnknownTagDoesNotBecomeVariable(t *testing.T) {
 					t.Fatal("unknown ALM tag has a variable link")
 				}
 			}
-			r, ok = e.PopupButtonRect(0)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			trigClick(t, e, r, ok, "unchanged Apply")
 			if !bytes.Equal(b, e.Document().SourceBytes) {
 				t.Fatal("unknown tag bytes changed")

@@ -504,27 +504,27 @@ func (e *MapEditor) groupsPress(p image.Point) {
 	}
 }
 
-// GroupsRowRect is the window rectangle of player's group number's row in
+// controlGroupsRowRect is the window rectangle of player's group number's row in
 // the tree, when it shows; with cross set, of the Delete group button of
 // that group's window, while the group is chosen.
-func (e *MapEditor) GroupsRowRect(player, group int, cross bool) (image.Rectangle, bool) {
+func (e *MapEditor) controlGroupsRowRect(player, group int, cross bool) (image.Rectangle, bool) {
 	if cross {
 		if !e.groupSel.set || e.selected >= 0 || e.groupSel.player != player || e.groupSel.group != group {
 			return image.Rectangle{}, false
 		}
-		return e.GroupDeleteRect()
+		return e.FindControl(ControlQuery{Role: ControlGroupDelete})
 	}
 	for n, row := range e.treeRowsNow() {
 		if row.group.set && row.group.player == player && row.group.group == group {
-			return e.TreeRowRect(n)
+			return e.FindControl(ControlQuery{Role: ControlTreeRow, N: n})
 		}
 	}
 	return image.Rectangle{}, false
 }
 
-// GroupsButtonRect is the window rectangle of button n of the Groups
+// controlGroupsButtonRect is the window rectangle of button n of the Groups
 // palette: 0 To group, 1 Remove from group.
-func (e *MapEditor) GroupsButtonRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlGroupsButtonRect(n int) (image.Rectangle, bool) {
 	if !e.groupsShown() {
 		return image.Rectangle{}, false
 	}
@@ -551,9 +551,9 @@ func (e *MapEditor) GroupsText() []string {
 	return append(out, s.Notes...)
 }
 
-// PromptListRowRect is the window rectangle of row n of the open question's
+// controlPromptListRowRect is the window rectangle of row n of the open question's
 // list, when it is shown.
-func (e *MapEditor) PromptListRowRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPromptListRowRect(n int) (image.Rectangle, bool) {
 	s, ok := e.promptSpec()
 	if !ok || s.List == nil {
 		return image.Rectangle{}, false
@@ -637,9 +637,9 @@ func (e *MapEditor) selectionPress(p image.Point) {
 	}
 }
 
-// SelectionButtonRect is the window rectangle of button n of the selection's
+// controlSelectionButtonRect is the window rectangle of button n of the selection's
 // popup: 0 To group, 1 Remove from group, 2 Delete.
-func (e *MapEditor) SelectionButtonRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlSelectionButtonRect(n int) (image.Rectangle, bool) {
 	s, ok := e.selectionSpec()
 	if !ok {
 		return image.Rectangle{}, false

@@ -195,7 +195,7 @@ func TestReleaseTownMageGlovesAreDrawnUnderTheBraceletsOnReniesta(t *testing.T) 
 			t.Fatal(err)
 		}
 	}
-	pic, _, err := app.HeadlessFrame()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

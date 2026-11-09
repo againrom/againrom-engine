@@ -190,8 +190,8 @@ func (e *MapEditor) areaLabelAt(p image.Point) (int, bool) {
 	return 0, false
 }
 
-// AreaLabelRect is the window rectangle of trigger t's label on the map.
-func (e *MapEditor) AreaLabelRect(t int) (image.Rectangle, bool) {
+// controlAreaLabelRect is the window rectangle of trigger t's label on the map.
+func (e *MapEditor) controlAreaLabelRect(t int) (image.Rectangle, bool) {
 	for _, l := range e.mapLabelsOf(labelTrigger) {
 		if l.index == t {
 			return l.rect, true

@@ -130,7 +130,7 @@ func TestReleaseMinimapLootDotsFollowTheOption(t *testing.T) {
 		if err := f.setGameOption(true, ui.GameOptionLootDots, v); err != nil {
 			t.Fatal(err)
 		}
-		pic, err := app.HeadlessMinimap()
+		pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +211,7 @@ func TestReleaseSecondGameLootDotsLeaveTheSaveUntouched(t *testing.T) {
 		if err := f.setGameOption(true, ui.GameOptionLootDots, v); err != nil {
 			t.Fatal(err)
 		}
-		pic, err := app.HeadlessMinimap()
+		pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 		if err != nil {
 			t.Fatal(err)
 		}

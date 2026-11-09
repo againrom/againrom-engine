@@ -107,8 +107,8 @@ func TestPlacementOperationsAnswerAsTheBaseBranches(t *testing.T) {
 					}
 					add("toWindow", p, " ", x, " ", y, " ", ok)
 				}
-				pix, note, err := a.HeadlessFrame()
-				add("headless", pixHash(pix), " ", note, " ", err != nil)
+				pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+				add("headless", pixHash(pix), " ", note.Note, " ", err != nil)
 				add("tipOnPanel", pl.tipOnPanel == tipOnWindowPanel)
 				mods := append(append([]gameMenuRow(nil), f.menuRows()...), gameMenuRow{Mod: 1}, gameMenuRow{Mod: 2}, gameMenuRow{Mod: 3})
 				for _, s := range []gameMenuSurface{gameMenuMission, gameMenuTown} {

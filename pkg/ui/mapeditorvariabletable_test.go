@@ -147,10 +147,10 @@ func TestVariablesTableRowSelectsItsTriggerDockedAndFloating(t *testing.T) {
 			}
 			openMenuRow(t, e, "window", "variables")
 			openMenuRow(t, e, "window", "variables")
-			if again, _ := e.TitleRect(); again.Min != after.Min {
+			if again, _ := e.FindControl(ControlQuery{Role: ControlTitle}); again.Min != after.Min {
 				t.Fatalf("the reopened table stands at %v, was %v", again, after)
 			}
-			r, ok := e.ListRowRect(1)
+			r, ok := e.FindControl(ControlQuery{Role: ControlListRow, N: 1})
 			if !ok {
 				t.Fatal("row 1 is not shown")
 			}
@@ -169,7 +169,7 @@ func TestVariablesTableRowSelectsItsTriggerDockedAndFloating(t *testing.T) {
 			if got, want := e.PopupLines(), f.PopupLines(); len(got) == 0 || !slices.Equal(got, want) || e.objectInPanel() != f.objectInPanel() {
 				t.Fatalf("the row shows\n%q\nthe Scripts route\n%q", got, want)
 			}
-			r, _ = e.ListRowRect(2)
+			r, _ = e.FindControl(ControlQuery{Role: ControlListRow, N: 2})
 			modesClick(e, center(r))
 			if v, ok := e.scriptVariableRow(e.selected); !ok || v.register != 32 {
 				t.Fatalf("the Spare row selected %d", e.selected)

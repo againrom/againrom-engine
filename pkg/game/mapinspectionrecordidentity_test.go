@@ -109,7 +109,10 @@ func TestInspectionRememberedRecordEditSequences(t *testing.T) {
 			t.Run(tc.name+"/"+target.token, func(t *testing.T) {
 				e := recordIdentityEditor(t)
 				c := &editorClicker{t: t, now: time.Unix(1, 0)}
-				bar := func(tab string) { r, ok := e.BarRect(tab); c.click(e, r, ok, tab) }
+				bar := func(tab string) {
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: tab})
+					c.click(e, r, ok, tab)
+				}
 				bar(target.tab)
 				at := slices.IndexFunc(e.Document().Records, func(r ui.InspectionRecord) bool {
 					return r.Kind != ui.KindSection && (r.Kind == ui.KindUnit || r.Kind == ui.KindSack || r.Kind == ui.KindStock || r.Kind == ui.KindEnchantment) && recordIdentityToken(t, e, r) == target.token

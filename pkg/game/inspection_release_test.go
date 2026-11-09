@@ -88,7 +88,7 @@ func TestReleaseInspectionLivePanels(t *testing.T) {
 			}
 			addr := "graphics/infowindow/" + c.Picture + ".bmp"
 			b, readErr := f.Archives.Containers.ReadFile(addr)
-			pic, _, err := a.HeadlessCharacterPane()
+			pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -97,7 +97,7 @@ func TestReleaseInspectionLivePanels(t *testing.T) {
 			}
 			checkInspectionFigure(t, pic, inspectionPortraitBMP(t, b), addr)
 			t.Logf("%v structure %d class=%d HP=%d/%d picture=%s", size, sid, kind, s.HP, s.MaxHP, addr)
-			card, err := a.HeadlessMissionCard()
+			card, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -140,7 +140,7 @@ func TestReleaseInspectionLivePanels(t *testing.T) {
 		if changed < 20 {
 			t.Fatal("weapon source did not discriminate equipped figure")
 		}
-		pic, _, err := a.HeadlessCharacterPane()
+		pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -173,7 +173,7 @@ func TestReleaseInspectionLivePanels(t *testing.T) {
 		t.Fatal("fixture unequip did not run")
 	}
 	bare := inspectionSprite(t, f, "graphics/equipment/mfighter/17.256")
-	pic, _, err := a.HeadlessCharacterPane()
+	pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 	if err != nil {
 		t.Fatal(err)
 	}

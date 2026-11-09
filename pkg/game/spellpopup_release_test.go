@@ -125,9 +125,9 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 		if err := a.HeadlessPointer("hover", x, y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if state.Target != "spell/23" || !state.Visible || pic == nil {
-			t.Fatalf("mission cell 5 hover = %+v", state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if state.Tooltip.Target != "spell/23" || !state.Tooltip.Visible || pic == nil {
+			t.Fatalf("mission cell 5 hover = %+v", state.Tooltip)
 		}
 		entity, ok := f.live.entity(id)
 		if !ok {
@@ -215,9 +215,9 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 		if err := a.HeadlessPointer("hover", p.X, p.Y); err != nil {
 			t.Fatal(err)
 		}
-		state, pic := a.HeadlessTooltip()
-		if !state.Visible || pic == nil || !strings.HasPrefix(state.Target, "shop-item/") {
-			t.Fatalf("town hover route = %+v", state)
+		pic, state, _ := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartTooltip})
+		if !state.Tooltip.Visible || pic == nil || !strings.HasPrefix(state.Tooltip.Target, "shop-item/") {
+			t.Fatalf("town hover route = %+v", state.Tooltip)
 		}
 		wantPic, _, ok := ui.ComposeTooltipHint(lines, f.Font.Value(), p, image.Rect(0, 0, 640, 480), f.HoverBall(), f.HoverHelp())
 		if !ok || !bytes.Equal(pic.Pix, wantPic.Pix) || pic.Bounds() != wantPic.Bounds() {

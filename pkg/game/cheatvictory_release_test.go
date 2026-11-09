@@ -54,7 +54,7 @@ func TestReleaseCheatVictoryUsesCampaignCompletion(t *testing.T) {
 			if _, kind, open := f.LiveNotice(); !open || kind != ui.NoticeSuccess {
 				t.Fatal("campaign cheat victory did not open the success panel")
 			}
-			if pic, err := a.HeadlessNoticeFrame(); err != nil || pic == nil {
+			if pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartNotice}); err != nil || pic == nil {
 				t.Fatal("installed success panel", err)
 			}
 			if w.Outcome() != sim.OutcomeUndecided || w.Hash() != hash || f.Town.Done(tc.mission) {

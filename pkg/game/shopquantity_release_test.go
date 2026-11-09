@@ -159,7 +159,7 @@ func TestReleaseShopGridQuantityAndPurseAreRampedWithAShadow(t *testing.T) {
 		if err := app.HeadlessPointer("hover", ix, iy); err != nil {
 			t.Fatal(err)
 		}
-		frame, _, err := app.HeadlessFrame()
+		frame, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}

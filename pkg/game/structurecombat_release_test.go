@@ -136,7 +136,7 @@ func TestReleaseStructurePhysicalAttack(t *testing.T) {
 			if live.world.Hash() != before || len(live.pending) != 0 {
 				t.Fatal("hover mutated world")
 			}
-			cardBefore, err := a.HeadlessMissionCard()
+			cardBefore, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -198,7 +198,7 @@ func TestReleaseStructurePhysicalAttack(t *testing.T) {
 			if !ok || panel.HP != int(int16(lastHP)) || panel.MaxHP != 1000 {
 				t.Fatalf("live HP panel=%+v", panel)
 			}
-			cardAfter, err := a.HeadlessMissionCard()
+			cardAfter, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 			if err != nil {
 				t.Fatal(err)
 			}

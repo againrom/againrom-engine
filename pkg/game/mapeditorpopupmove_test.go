@@ -13,7 +13,7 @@ import (
 // lets go; it returns the title bar before and after.
 func titleDrag(t *testing.T, e *ui.MapEditor, d image.Point) (image.Rectangle, image.Rectangle) {
 	t.Helper()
-	before, ok := e.TitleRect()
+	before, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle})
 	if !ok {
 		t.Fatal("no popup")
 	}
@@ -22,7 +22,7 @@ func titleDrag(t *testing.T, e *ui.MapEditor, d image.Point) (image.Rectangle, i
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: q.X, CursorY: q.Y}, time.Time{})
-	after, _ := e.TitleRect()
+	after, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle})
 	return before, after
 }
 
@@ -61,7 +61,7 @@ func popupCases() []popupCase {
 		{"message popup", func(t *testing.T) *ui.MapEditor {
 			e := scriptMap(t)
 			messageField(t, e, 2)
-			r, ok := e.DropdownRowRect(0)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 			messageClick(t, e, r, ok)
 			return e
 		}},
@@ -129,7 +129,7 @@ func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			e := c.open(t)
 			d := image.Pt(-40, 30)
-			if r, _ := e.TitleRect(); r.Min.X < 100 {
+			if r, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle}); r.Min.X < 100 {
 				d.X = 40
 			}
 			before, after := titleDrag(t, e, d)
@@ -154,13 +154,13 @@ func TestEditorPopupDragNeedsTheTitle(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	detachSource(t, s.source)
 	_ = e.Key("saveas")
-	home, _ := e.TitleRect()
+	home, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle})
 	body, _ := e.PromptRect()
 	p := image.Pt(body.Min.X+12, body.Max.Y-12)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: p.X - 60, CursorY: p.Y + 40, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: p.X - 60, CursorY: p.Y + 40}, time.Time{})
-	if r, ok := e.TitleRect(); !ok || r != home {
+	if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle}); !ok || r != home {
 		t.Fatalf("a press below the title moved the prompt from %v to %v", home, r)
 	}
 	_, moved := titleDrag(t, e, image.Pt(-60, 40))
@@ -169,7 +169,7 @@ func TestEditorPopupDragNeedsTheTitle(t *testing.T) {
 	}
 	_ = e.Key("escape")
 	_ = e.Key("saveas")
-	if r, _ := e.TitleRect(); r != home {
+	if r, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle}); r != home {
 		t.Fatalf("the next prompt opened at %v, not its own place %v", r, home)
 	}
 }

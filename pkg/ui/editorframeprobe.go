@@ -65,7 +65,7 @@ func ProbeSpeakerPickButton(e *MapEditor, c int) (x, y int, ok bool) {
 	row := e.fieldRow(2*c + 1)
 	for k, a := range e.obj.rowActs[row] {
 		if a == actPickParam {
-			if r, found := e.RowButtonRect(2*c+1, k, false); found {
+			if r, found := e.FindControl(ControlQuery{Role: ControlRowButton, N: 2*c + 1, K: k, Flag: false}); found {
 				return (r.Min.X + r.Max.X) / 2, (r.Min.Y + r.Max.Y) / 2, true
 			}
 		}

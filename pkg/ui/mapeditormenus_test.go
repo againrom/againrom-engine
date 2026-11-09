@@ -119,7 +119,7 @@ func TestMapEditorToolsViewAndWindowMenusListTheToolbarRows(t *testing.T) {
 					if row.Text != it.label || row.Heading != (it.key == "") || row.Choosable != (it.key != "" && !it.off) {
 						t.Errorf("%s drop-down row %d is %+v for %+v", menu, i, row, it)
 					}
-					if r, ok := e.ToolbarRect(it.key); ok {
+					if r, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: it.key}); ok {
 						tip, _, _ := e.toolTip(center(r))
 						if !strings.HasSuffix(it.label, tip) {
 							t.Errorf("%s row %s reads %q, its tip %q", menu, it.key, it.label, tip)
@@ -307,7 +307,7 @@ func TestMapEditorWindowMenuTogglesEachPanelAndTheToolbar(t *testing.T) {
 			}
 			bar, mapDocked := e.toolbarRect(), e.mapArea()
 			panels := [2]image.Rectangle{e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight)}
-			button, _ := e.ToolbarRect("select")
+			button, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"})
 			openMenuRow(t, e, "window", "toolbar")
 			top := e.barHeight()
 			mapHidden := e.mapArea()
@@ -319,14 +319,14 @@ func TestMapEditorWindowMenuTogglesEachPanelAndTheToolbar(t *testing.T) {
 					t.Errorf("hidden, panel %d stands at %v, want its top at %d", i, r, top)
 				}
 			}
-			if _, ok := e.ToolbarRect("select"); ok {
+			if _, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); ok {
 				t.Error("a hidden toolbar keeps a button")
 			}
 			if _, _, ok := e.toolTip(center(button)); ok {
 				t.Error("a hidden toolbar shows a tip")
 			}
 			openMenuRow(t, e, "window", "toolbar")
-			if again, _ := e.ToolbarRect("select"); !e.toolbarOn() || e.toolbarRect() != bar || e.mapArea() != mapDocked || again != button ||
+			if again, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); !e.toolbarOn() || e.toolbarRect() != bar || e.mapArea() != mapDocked || again != button ||
 				e.sidePanelRect(panelLeft) != panels[0] || e.sidePanelRect(panelRight) != panels[1] {
 				t.Fatalf("shown again, the toolbar is %v and the map %v, was %v and %v", e.toolbarRect(), e.mapArea(), bar, mapDocked)
 			}

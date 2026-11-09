@@ -321,10 +321,10 @@ func (e *MapEditor) placeChoose(n int) {
 	e.armPick(pickAddCell)
 }
 
-// PlaceGridCellRect is the window rectangle of cell n of the list popup's
+// controlPlaceGridCellRect is the window rectangle of cell n of the list popup's
 // grid, the tab's or the forest's, when it is shown: a headless driver
 // presses it.
-func (e *MapEditor) PlaceGridCellRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPlaceGridCellRect(n int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok || s.Grid == nil {
 		return image.Rectangle{}, false
@@ -338,9 +338,9 @@ func (e *MapEditor) PlaceGridCellRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// PlaceGridSwitchRect is the window rectangle of tab n of the list popup
+// controlPlaceGridSwitchRect is the window rectangle of tab n of the list popup
 // grid's switch, when the grid has one: a headless driver presses it.
-func (e *MapEditor) PlaceGridSwitchRect(n int) (image.Rectangle, bool) {
+func (e *MapEditor) controlPlaceGridSwitchRect(n int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok || !s.TabSwitch || n < 0 || n >= len(s.Tabs) {
 		return image.Rectangle{}, false

@@ -88,10 +88,10 @@ func openBlocks(t *testing.T, e *ui.MapEditor, c *editorClicker) {
 			return
 		}
 		e.ScrollDetails(-1000)
-		r, ok := e.PopupRowRect(n)
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: n})
 		for step := 0; !ok && step < 80; step++ {
 			e.ScrollDetails(1)
-			r, ok = e.PopupRowRect(n)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: n})
 		}
 		c.click(e, r, ok, e.PopupLines()[n])
 	}
@@ -111,11 +111,11 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 		if !showField(t, e, c, f.Parent) {
 			return false
 		}
-		r, ok := e.FieldRect(fieldIndex(t, e.ObjectFields(), f.Parent))
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, e.ObjectFields(), f.Parent)})
 		c.click(e, r, ok, f.Parent)
 		_ = e.Key("escape")
 	}
-	if tab, ok := e.ObjectSectionRect(f.Section); ok {
+	if tab, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: f.Section}); ok {
 		c.click(e, tab, true, "section "+f.Section)
 	}
 	// An editor with the host's encoder holds its rows in the font's code
@@ -133,7 +133,7 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 			if f.Link.Kind != "" && slices.ContainsFunc(e.PopupLines(), func(line string) bool { return strings.Contains(line, label) || strings.Contains(line, f.Label) }) {
 				return true
 			}
-		} else if _, ok := e.FieldRect(i); ok {
+		} else if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: i}); ok {
 			return true
 		}
 		e.ScrollDetails(1)
@@ -244,14 +244,14 @@ func typeField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, valu
 	if !showField(t, e, c, key) {
 		t.Fatalf("%s does not show", key)
 	}
-	r, ok := e.FieldRect(fieldIndex(t, e.ObjectFields(), key))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, e.ObjectFields(), key)})
 	c.click(e, r, ok, key)
 	for range 16 {
 		_ = e.Key("end")
 		_ = e.Key("backspace")
 	}
 	e.TextInput(strconv.FormatInt(value, 10))
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	c.click(e, r, ok, "Apply")
 }
 
@@ -268,13 +268,13 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 	if at < 0 {
 		t.Fatalf("%s offers no choice %d", key, value)
 	}
-	if r, ok := e.FieldChoiceRect(n, at); ok {
+	if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlFieldChoice, N: n, K: at}); ok {
 		c.click(e, r, true, key)
-		r, ok = e.PopupButtonRect(0)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		c.click(e, r, ok, "Apply")
 		return
 	}
-	r, ok := e.FieldRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	c.click(e, r, ok, key)
 	for _, group := range f.Groups {
 		if !slices.Contains(group.Values, value) {
@@ -286,10 +286,10 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 				t.Fatalf("%s's list has no group %q: %q", key, label, e.DropdownChoices())
 			}
 			e.ScrollDropdown(-len(f.Choices))
-			r, ok = e.DropdownRowRect(row)
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 			for step := 0; !ok && step < len(f.Choices)+10; step++ {
 				e.ScrollDropdown(1)
-				r, ok = e.DropdownRowRect(row)
+				r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 			}
 			c.click(e, r, ok, label)
 		}
@@ -300,13 +300,13 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 		t.Fatalf("%s's open list has no row %q: %q", key, f.Choices[at].Label, e.DropdownChoices())
 	}
 	e.ScrollDropdown(-len(f.Choices))
-	r, ok = e.DropdownRowRect(row)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	for step := 0; !ok && step < len(f.Choices)+10; step++ {
 		e.ScrollDropdown(1)
-		r, ok = e.DropdownRowRect(row)
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	}
 	c.click(e, r, ok, fmt.Sprintf("%s's row %d", key, row))
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	c.click(e, r, ok, "Apply")
 }
 
@@ -333,7 +333,7 @@ func TestEditorViewsWriteTheSameBytes(t *testing.T) {
 				}
 			}
 			if mode == "switched" {
-				r, ok := e.ViewSwitchRect()
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlViewSwitch})
 				c.click(e, r, ok, "view switch")
 				if e.PlainView() || !bytes.Equal(raw, s.model.Bytes()) {
 					t.Fatalf("the switch wrote the map or kept the plain view")
@@ -376,7 +376,7 @@ func TestEditorViewsKeepUnknownBytes(t *testing.T) {
 	c := &editorClicker{t: t}
 	host := e.Document().Edits.(*mapInspectionEdits)
 	for range 3 {
-		r, ok := e.ViewSwitchRect()
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlViewSwitch})
 		c.click(e, r, ok, "view switch")
 	}
 	if !bytes.Equal(b, host.model.Bytes()) {

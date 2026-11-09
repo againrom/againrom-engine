@@ -24,13 +24,13 @@ func TestUsableStructureHoverReadoutAndOrder(t *testing.T) {
 			if cursor, ok := v.missionHoverCursor(); !ok || cursor != "town" {
 				t.Fatalf("cursor=%q,%v", cursor, ok)
 			}
-			_, _, lines, err := a.HeadlessStructureReadout()
+			_, extras, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartStructureReadout})
 			current, maximum := tc.current, tc.maximum
 			if maximum == 0 {
 				current, maximum = 1000, 1000
 			}
-			if err != nil || lines[2] != fmt.Sprintf("%d/%d", current, maximum) {
-				t.Fatalf("readout=%q err=%v", lines, err)
+			if err != nil || extras.Lines[2] != fmt.Sprintf("%d/%d", current, maximum) {
+				t.Fatalf("readout=%q err=%v", extras.Lines, err)
 			}
 			var calls int
 			v.SetStructureUseSink(func(actor, structure uint32) {
@@ -170,9 +170,9 @@ func TestUnadmittedStructureKeepsPooledPhysicalHover(t *testing.T) {
 	if cursor, ok := v.missionHoverCursor(); !ok || cursor != "select" {
 		t.Fatalf("pooled physical cursor=%q,%v", cursor, ok)
 	}
-	_, _, lines, err := a.HeadlessStructureReadout()
-	if err != nil || len(lines) != 3 || lines[2] != "1/1" {
-		t.Fatalf("pooled physical readout=%q err=%v", lines, err)
+	_, extras, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartStructureReadout})
+	if err != nil || len(extras.Lines) != 3 || extras.Lines[2] != "1/1" {
+		t.Fatalf("pooled physical readout=%q err=%v", extras.Lines, err)
 	}
 	uses, moves := 0, 0
 	v.SetStructureUseSink(func(_, _ uint32) { uses++ })
@@ -213,7 +213,7 @@ func TestGraveHasNoUseCursorOrCard(t *testing.T) {
 			if _, ok := v.inspectionPanel(ref); ok {
 				t.Fatal("grave has a structure card")
 			}
-			if _, _, _, err := a.HeadlessStructureReadout(); err == nil {
+			if _, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartStructureReadout}); err == nil {
 				t.Fatal("grave has a readout and picture")
 			}
 			uses := 0

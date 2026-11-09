@@ -128,7 +128,7 @@ func TestReleaseOriginalStructures1098HealthRuinAndNativeSave(t *testing.T) {
 				s := live.world.Structures()[ids[0]]
 				inspectionCentre(live, int(s.Col), int(s.Row))
 				releaseHoverInspection(t, app, live, ui.InspectionSubject{Kind: ui.InspectionStructure, ID: uint32(ids[0])})
-				card, err := app.HeadlessMissionCard()
+				card, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 				if err != nil || len(card.Pix) == 0 {
 					t.Fatalf("card: %v", err)
 				}

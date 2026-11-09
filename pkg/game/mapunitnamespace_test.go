@@ -30,7 +30,7 @@ func TestEditorUnitNameKeepsASpaceTypedKeyByKey(t *testing.T) {
 				if !showField(t, e, c, unitNameField) {
 					t.Fatal("the name does not show")
 				}
-				r, ok := e.FieldRect(fieldIndex(t, e.ObjectFields(), unitNameField))
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, e.ObjectFields(), unitNameField)})
 				c.click(e, r, ok, unitNameField)
 				// The window rebuilds the draft whenever a typed field rests;
 				// the pause after each word is where a space used to go.
@@ -42,7 +42,7 @@ func TestEditorUnitNameKeepsASpaceTypedKeyByKey(t *testing.T) {
 					time.Sleep(350 * time.Millisecond)
 					e.UnitCharacterSubject()
 				}
-				r, ok = e.PopupButtonRect(0)
+				r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 				c.click(e, r, ok, "Apply")
 				want := fmt.Sprintf("%d=%s\r\n", id, name)
 				if got := string(s.workspace.Pages[unitNamesPage]); got != want {

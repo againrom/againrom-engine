@@ -97,9 +97,9 @@ func advanceMovieTo(t *testing.T, a *App, n uint32) {
 
 func assertMoviePicture(t *testing.T, a *App, left, right color.RGBA) []byte {
 	t.Helper()
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatal("movie composition", note, err)
+	pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatal("movie composition", note.Note, err)
 	}
 	if pix.RGBAAt(159, 240) != left || pix.RGBAAt(480, 240) != right {
 		t.Fatal("movie lost independently authored final pixels")

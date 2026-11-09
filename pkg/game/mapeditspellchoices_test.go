@@ -87,7 +87,7 @@ func TestScriptSpellChoicesRowsAndExclusions(t *testing.T) {
 				t.Fatalf("spell rows = %v, want %v", got, want)
 			}
 			n := e.Document().Script.Actions[0]
-			r, ok := e.FieldRect(parameterField(n, slot))
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: parameterField(n, slot)})
 			trigClick(t, e, r, ok, "spell field")
 			var labels []string
 			for _, row := range want {
@@ -144,7 +144,7 @@ func TestScriptSpellUnknownNumberPreserved(t *testing.T) {
 				} else {
 					chooseParameterValue(t, e, parameterField(n, slot), current, e.Document().Script.Targets[kind])
 				}
-				r, ok := e.PopupButtonRect(0)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 				trigClick(t, e, r, ok, "Apply unchanged")
 				if !bytes.Equal(before, e.Document().SourceBytes) || e.Dirty() {
 					t.Fatal("current value changed bytes")
@@ -169,7 +169,7 @@ func TestScriptSpellPickWritesOnlyValueAndUndo(t *testing.T) {
 			if !bytes.Equal(before, e.Document().SourceBytes) {
 				t.Fatal("pick wrote before Apply")
 			}
-			r, ok := e.PopupButtonRect(0)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			trigClick(t, e, r, ok, "Apply")
 			after := bytes.Clone(e.Document().SourceBytes)
 			if len(before) != len(after) || bytes.Equal(before, after) {

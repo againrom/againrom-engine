@@ -92,7 +92,7 @@ func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
 					t.Fatal("installed timed caption does not fit", row.Text)
 				}
 			}
-			pix, err := app.HeadlessGameOptionsFrame()
+			pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartGameOptions})
 			if err != nil {
 				t.Fatal("installed options frame", err)
 			}

@@ -215,9 +215,9 @@ func sarindarPanes(t *testing.T, f *FrontEnd, a *ui.App, live *mapWorld, id sim.
 	inspectionCentre(live, int(e.X), int(e.Y))
 	live.push()
 	releaseHoverInspection(t, a, live, ui.InspectionSubject{Kind: ui.InspectionUnit, ID: uint32(id)})
-	pic, stats, err := a.HeadlessCharacterPane()
-	if err != nil || stats {
-		t.Fatalf("%s hovered: figure pane unavailable: stats=%t err=%v", when, stats, err)
+	pic, stats, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+	if err != nil || stats.Statistics {
+		t.Fatalf("%s hovered: figure pane unavailable: stats=%t err=%v", when, stats.Statistics, err)
 	}
 	checkInspectionFigure(t, pic, worn, when+" hovered")
 	if err := a.HeadlessPointer("hover", -1, -1); err != nil {
@@ -232,9 +232,9 @@ func sarindarPanes(t *testing.T, f *FrontEnd, a *ui.App, live *mapWorld, id sim.
 	if got, ok := live.view.SelectedUnit(); !ok || got != uint32(id) {
 		t.Fatalf("%s: selection = %d/%t", when, got, ok)
 	}
-	pic, stats, err = a.HeadlessCharacterPane()
-	if err != nil || stats {
-		t.Fatalf("%s selected: figure pane unavailable: stats=%t err=%v", when, stats, err)
+	pic, stats, err = a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
+	if err != nil || stats.Statistics {
+		t.Fatalf("%s selected: figure pane unavailable: stats=%t err=%v", when, stats.Statistics, err)
 	}
 	checkInspectionFigure(t, pic, worn, when+" selected")
 	if live.world.Hash() != before {

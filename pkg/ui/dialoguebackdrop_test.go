@@ -49,17 +49,17 @@ func TestTownBackdropShowPageCloseAndSubmission(t *testing.T) {
 	a.flow.showTown("")
 	a.Layout(1920, 1080)
 	a.SetTextSmoothing(false)
-	first, _, err := a.HeadlessFrame()
+	first, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}
-	page, _, err := a.HeadlessFrame()
+	page, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil || !bytes.Equal(first.Pix, page.Pix) {
 		t.Fatal("ordinary repaint compounded")
 	}
 	for _, depth := range []uint64{1, 2} {
 		town.shows = depth
-		cpu, _, err := a.HeadlessFrame()
+		cpu, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,7 +77,7 @@ func TestTownBackdropShowPageCloseAndSubmission(t *testing.T) {
 		}
 	}
 	town.pic = nil
-	closed, _, err := a.HeadlessFrame()
+	closed, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

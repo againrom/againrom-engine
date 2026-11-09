@@ -169,7 +169,7 @@ func minimapColdLoad(t *testing.T, dir, name string) (*FrontEnd, *ui.App) {
 
 func minimapVisibleInstalled(t *testing.T, f *FrontEnd, a *ui.App, stage string) {
 	t.Helper()
-	pic, err := a.HeadlessMinimap()
+	pic, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 	if err != nil {
 		t.Fatal(stage, err)
 	}

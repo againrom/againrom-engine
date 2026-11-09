@@ -9,7 +9,7 @@ import (
 // pressDrawn presses the middle of the prompt's drawn button n.
 func pressDrawn(t *testing.T, e *MapEditor, n int) {
 	t.Helper()
-	r, ok := e.PromptButtonRect(n)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPromptButton, N: n})
 	if !ok {
 		t.Fatalf("no drawn button %d", n)
 	}
@@ -98,7 +98,7 @@ func TestResizedMapPanelLinkRowsFollowTheDrawnRow(t *testing.T) {
 		t.Fatalf("the panel did not widen: %v -> %v", before, after)
 	}
 	n := panelRow(t, e, "Name")
-	r, ok := e.PanelRowRect(n)
+	r, ok := e.FindControl(ControlQuery{Role: ControlPanelRow, N: n})
 	if !ok {
 		t.Fatal("no name row")
 	}
@@ -109,7 +109,7 @@ func TestResizedMapPanelLinkRowsFollowTheDrawnRow(t *testing.T) {
 		t.Fatalf("a press at the last pixel %v of the drawn Name row %v opened nothing", p, r)
 	}
 	_ = e.Key("escape")
-	title, _ := e.TitleRect()
+	title, _ := e.FindControl(ControlQuery{Role: ControlTitle})
 	c := image.Pt(title.Max.X-12, (title.Min.Y+title.Max.Y)/2)
 	e.Pointer(Input{CursorX: c.X, CursorY: c.Y, PrimaryDown: true}, time.Unix(1, 0))
 	e.Pointer(Input{CursorX: c.X, CursorY: c.Y}, time.Unix(1, 0))

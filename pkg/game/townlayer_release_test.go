@@ -154,9 +154,9 @@ func writeTownModFrame(t *testing.T, f *FrontEnd, a *ui.App, name string) {
 		return
 	}
 	a.Draw(ebiten.NewImage(640, 480))
-	pix, note, err := a.HeadlessFrame()
-	if err != nil || note != "" {
-		t.Fatalf("frame %s %q: %v", name, note, err)
+	pix, note, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	if err != nil || note.Note != "" {
+		t.Fatalf("frame %s %q: %v", name, note.Note, err)
 	}
 	writeTownModPNG(t, filepath.Join(dir, name+".png"), pix)
 }

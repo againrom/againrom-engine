@@ -25,7 +25,7 @@ func (a *App) HeadlessStep() error {
 	return nil
 }
 
-func (a *App) HeadlessGameOptionsFrame() (*image.RGBA, error) {
+func (a *App) headlessGameOptionsFrame() (*image.RGBA, error) {
 	if a == nil || a.flow == nil || a.flow.screen != ScreenGameMenu || a.flow.menuPage != gameMenuGameOptionsPage || a.flow.gameOptions.draft == nil {
 		return nil, fmt.Errorf("headless game options: page is not open")
 	}
@@ -324,12 +324,12 @@ func (a *App) HeadlessMessage() string {
 	return a.flow.msg
 }
 
-// HeadlessFrame returns the current CPU composition through composeScreen.
+// headlessFrame returns the current CPU composition through composeScreen.
 // A native mission menu returns its placed layer with a note naming the absent
 // mission backdrop. Full mission frames require App.Draw and GPU readback.
 // Other screens that cannot compose on the CPU return an error and no image.
 // This method reads no ebiten-owned image.
-func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
+func (a *App) headlessFrame() (pix *image.RGBA, note string, err error) {
 	if a == nil || a.flow == nil {
 		return nil, "", fmt.Errorf("headless frame: nil application")
 	}
@@ -383,7 +383,7 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 	return wide, note, nil
 }
 
-func (a *App) HeadlessNoticeFrame() (*image.RGBA, error) {
+func (a *App) headlessNoticeFrame() (*image.RGBA, error) {
 	if a == nil || a.flow == nil || a.cutscene != nil || a.flow.viewer == nil {
 		return nil, fmt.Errorf("headless notice: no visible map notice")
 	}
@@ -394,10 +394,10 @@ func (a *App) HeadlessNoticeFrame() (*image.RGBA, error) {
 	return pic, nil
 }
 
-// HeadlessCharacterPane composes the MISSION screen's character pane on its
+// headlessCharacterPane composes the MISSION screen's character pane on its
 // own, and reports which of its two presentation modes it is in.
 //
-// IT EXISTS BECAUSE HeadlessFrame REFUSES THE WHOLE MISSION SCREEN. Viewer.Draw
+// IT EXISTS BECAUSE HeadlessPicture REFUSES THE WHOLE MISSION SCREEN. Viewer.Draw
 // paints the ebiten canvas directly, so no committed command can render the
 // mission at all; the pane is the one part of it that is composed on the CPU as
 // an *image.RGBA (panel.go's panelPresent), by the same call Draw itself makes,
@@ -408,7 +408,7 @@ func (a *App) HeadlessNoticeFrame() (*image.RGBA, error) {
 //
 // It composes through panelPresent and selects nothing of its own. A viewer
 // that is not on the mission screen, or that has no font, answers false.
-func (a *App) HeadlessCharacterPane() (pix *image.RGBA, statistics bool, err error) {
+func (a *App) headlessCharacterPane() (pix *image.RGBA, statistics bool, err error) {
 	if a == nil || a.flow == nil || a.flow.viewer == nil {
 		return nil, false, fmt.Errorf("headless character pane: nil application")
 	}
@@ -423,9 +423,9 @@ func (a *App) HeadlessCharacterPane() (pix *image.RGBA, statistics bool, err err
 	return pic, v.characterPaneStatistics(), nil
 }
 
-// HeadlessInventoryPack returns the same CPU pack composite used by Draw.
+// headlessInventoryPack returns the same CPU pack composite used by Draw.
 // It neither issues input nor changes the selected inventory subject.
-func (a *App) HeadlessInventoryPack() (*image.RGBA, error) {
+func (a *App) headlessInventoryPack() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, err
@@ -437,10 +437,10 @@ func (a *App) HeadlessInventoryPack() (*image.RGBA, error) {
 	return pic, nil
 }
 
-// HeadlessBottomHUD joins the same book and inventory layers uploaded by
+// headlessBottomHUD joins the same book and inventory layers uploaded by
 // Viewer.Draw. It preserves their native origins and crops to the map band;
 // with both bars hidden the band is empty and the picture has no rows.
-func (a *App) HeadlessBottomHUD() (*image.RGBA, error) {
+func (a *App) headlessBottomHUD() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, err
@@ -464,8 +464,8 @@ func (a *App) HeadlessBottomHUD() (*image.RGBA, error) {
 	return pic, nil
 }
 
-// HeadlessMinimap returns the exact framed minimap uploaded by Viewer.Draw.
-func (a *App) HeadlessMinimap() (*image.RGBA, error) {
+// headlessMinimap returns the exact framed minimap uploaded by Viewer.Draw.
+func (a *App) headlessMinimap() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, err
@@ -477,9 +477,9 @@ func (a *App) HeadlessMinimap() (*image.RGBA, error) {
 	return pic, nil
 }
 
-// HeadlessMinimapComposed returns the framed minimap composed from the state
-// now, where HeadlessMinimap returns the picture the repaint gate still shows.
-func (a *App) HeadlessMinimapComposed() (*image.RGBA, error) {
+// headlessMinimapComposed returns the framed minimap composed from the state
+// now, where the minimap part returns the picture the repaint gate still shows.
+func (a *App) headlessMinimapComposed() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, err
@@ -565,10 +565,10 @@ func (a *App) HeadlessMinimapLootAt(col, row int) (bool, error) {
 	return false, nil
 }
 
-// HeadlessMinimapCells returns the framed minimap the next repaint draws and
+// headlessMinimapCells returns the framed minimap the next repaint draws and
 // the pixels of it that the cells in r cover, so a test reads a mark's colour
 // and extent from the picture itself.
-func (a *App) HeadlessMinimapCells(r image.Rectangle) (*image.RGBA, image.Rectangle, error) {
+func (a *App) headlessMinimapCells(r image.Rectangle) (*image.RGBA, image.Rectangle, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, image.Rectangle{}, err
@@ -589,10 +589,10 @@ func (a *App) HeadlessMinimapCells(r image.Rectangle) (*image.RGBA, image.Rectan
 	return pic, px.Add(g.Content.Min.Sub(at)), nil
 }
 
-// HeadlessStructureReadout is widget 8's readout as this frame draws it: the
+// headlessStructureReadout is widget 8's readout as this frame draws it: the
 // composed picture, the frame pixel its top-left corner stands on and the
 // three lines, or an error for a frame with no readout.
-func (a *App) HeadlessStructureReadout() (pix *image.RGBA, at image.Point, lines [3]string, err error) {
+func (a *App) headlessStructureReadout() (pix *image.RGBA, at image.Point, lines [3]string, err error) {
 	if a == nil || a.flow == nil || a.flow.viewer == nil {
 		return nil, image.Point{}, lines, fmt.Errorf("headless structure readout: nil application")
 	}
@@ -607,8 +607,8 @@ func (a *App) HeadlessStructureReadout() (pix *image.RGBA, at image.Point, lines
 	return pic, at, v.structKey.lines, nil
 }
 
-// HeadlessMissionCursor returns the cursor picture and position used by Viewer.Draw.
-func (a *App) HeadlessMissionCursor() (*image.RGBA, image.Point, error) {
+// headlessMissionCursor returns the cursor picture and position used by Viewer.Draw.
+func (a *App) headlessMissionCursor() (*image.RGBA, image.Point, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return nil, image.Point{}, err
@@ -647,7 +647,7 @@ func (a *App) HeadlessMissionColumnLayers() ([]string, error) {
 	return layers, nil
 }
 
-func (a *App) HeadlessMissionCard() (pix *image.RGBA, err error) {
+func (a *App) headlessMissionCard() (pix *image.RGBA, err error) {
 	if a == nil || a.flow == nil || a.flow.viewer == nil {
 		return nil, fmt.Errorf("headless mission card: nil application")
 	}
@@ -665,10 +665,10 @@ func (a *App) HeadlessMissionCard() (pix *image.RGBA, err error) {
 	return pic, nil
 }
 
-// HeadlessDrawnMissionCard is the lower card box exactly as Draw composes it
+// headlessDrawnMissionCard is the lower card box exactly as Draw composes it
 // this frame, with the box's frame position: the rows stay off while a
 // structure readout is drawn over it.
-func (a *App) HeadlessDrawnMissionCard() (*image.RGBA, image.Point, error) {
+func (a *App) headlessDrawnMissionCard() (*image.RGBA, image.Point, error) {
 	if a == nil || a.flow == nil || a.flow.viewer == nil || !a.flow.mapShowing() {
 		return nil, image.Point{}, fmt.Errorf("headless drawn mission card: no mission column")
 	}

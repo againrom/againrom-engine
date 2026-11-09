@@ -48,9 +48,9 @@ func TestCutsceneComposesAuthoredColoursAndReturnsAfterEOF(t *testing.T) {
 		if a.Screen() != ScreenCutscene {
 			break
 		}
-		pix, note, err := a.HeadlessFrame()
-		if err != nil || note != "" {
-			t.Fatalf("composition %s %v", note, err)
+		pix, note, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
+		if err != nil || note.Note != "" {
+			t.Fatalf("composition %s %v", note.Note, err)
 		}
 		if pix.RGBAAt(0, 0) != (color.RGBA{0, 0, 0, 255}) {
 			t.Fatal("letterbox is not opaque black")
@@ -181,7 +181,7 @@ func TestCutsceneNumberedScanContinuesMissFailureCompletionButSkipStops(t *testi
 	for len(s.names) < 4 && time.Now().Before(deadline) {
 		a.step(appInput{}, time.Now())
 		if a.Screen() == ScreenCutscene {
-			if _, _, err := a.HeadlessFrame(); err != nil {
+			if _, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame}); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -287,7 +287,7 @@ func TestCutsceneFitMatchesLiteralColoredRectangles(t *testing.T) {
 	if a.CutsceneFrameNumber() != 1 {
 		t.Fatal("missing literal fixture frame")
 	}
-	got, _, err := a.HeadlessFrame()
+	got, _, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartFrame})
 	if err != nil {
 		t.Fatal(err)
 	}

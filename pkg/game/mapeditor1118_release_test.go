@@ -118,7 +118,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 		hasReference := refs[id] && idCount[id] == 1
 		t.Run(key, func(t *testing.T) {
 			closeSettings := func(editor *ui.MapEditor) {
-				if r, ok := editor.PopupButtonRect(1); ok {
+				if r, ok := editor.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1}); ok {
 					trigClick(t, editor, r, true, "Cancel settings")
 				}
 			}

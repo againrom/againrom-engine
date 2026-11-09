@@ -153,8 +153,8 @@ func TestAPlainClickSelectsAStructureAndARectangleDoesNot(t *testing.T) {
 	if err := a.HeadlessPointer("hover", gx, gy); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, lines, err := a.HeadlessStructureReadout(); err != nil || lines[2] != "456/789" {
-		t.Errorf("selected-structure readout %q, %v", lines, err)
+	if _, extras, err := a.HeadlessPicture(HeadlessRequest{Part: HeadlessPartStructureReadout}); err != nil || extras.Lines[2] != "456/789" {
+		t.Errorf("selected-structure readout %q, %v", extras.Lines, err)
 	}
 
 	// A right click clears it.

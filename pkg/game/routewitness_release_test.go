@@ -144,7 +144,7 @@ var routeFronts = map[base.Game]func(*testing.T) *FrontEnd{
 // AGAINROM_HEADLESS_ONLY a mission frame is the App's own Draw on the GPU.
 func newRouteWitness(t *testing.T, game base.Game, originals string) (*routeWitness, []routeStage) {
 	f := routeFronts[game](t)
-	size, err := routeWindowSize(os.Getenv("AGAINROM_ROUTE_WINDOW"))
+	size, err := ui.ParseWindowSize(os.Getenv("AGAINROM_ROUTE_WINDOW"), image.Pt(ui.DefaultWindowW, ui.DefaultWindowH))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func newRouteWitness(t *testing.T, game base.Game, originals string) (*routeWitn
 func TestRouteWitnessWindowGeometry(t *testing.T) {
 	for _, value := range []string{"", "640x480", "1024x768", "1280x720"} {
 		t.Run(value, func(t *testing.T) {
-			size, err := routeWindowSize(value)
+			size, err := ui.ParseWindowSize(value, image.Pt(ui.DefaultWindowW, ui.DefaultWindowH))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -195,7 +195,7 @@ func TestRouteWitnessWindowGeometry(t *testing.T) {
 		})
 	}
 	for _, value := range []string{"640", "0x480", "640x-1", "640x480x2", "oops", "99999999999999999999x1", "8193x1"} {
-		if _, err := routeWindowSize(value); err == nil {
+		if _, err := ui.ParseWindowSize(value, image.Pt(ui.DefaultWindowW, ui.DefaultWindowH)); err == nil {
 			t.Errorf("accepted invalid window %q", value)
 		}
 	}

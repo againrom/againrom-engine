@@ -105,7 +105,7 @@ func TestReleaseMessagePickerPopulation(t *testing.T) {
 				row = len(e.Document().Script.Targets[ui.ScriptMessageParameter])
 				missing++
 			}
-			r, ok := e.DropdownRowRect(row)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 			messageClick(t, e, r, ok)
 			messageButton(t, e, 0)
 			if !bytes.Equal(before, s.model.Bytes()) || s.Dirty() || !reflect.DeepEqual(originalPages, s.workspace.Pages) {
@@ -174,7 +174,7 @@ func TestReleaseMessagePickerCampaignPage(t *testing.T) {
 	messageField(t, e, 0)
 	e.TextInput(body)
 	messageField(t, e, 1)
-	r, ok := e.DropdownRowRect(1)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 1})
 	messageClick(t, e, r, ok)
 	messageButton(t, e, 0)
 	speaker := fields[1].Choices[1].Value

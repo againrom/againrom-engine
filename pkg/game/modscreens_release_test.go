@@ -58,7 +58,7 @@ func modScreenApp(t *testing.T, withMod bool) (*FrontEnd, *ui.App, mod.ScreenDat
 
 func modFrame(t *testing.T, app *ui.App) *image.RGBA {
 	t.Helper()
-	pix, _, err := app.HeadlessFrame()
+	pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil {
 		t.Fatalf("frame of the %s screen: %v", app.Screen(), err)
 	}

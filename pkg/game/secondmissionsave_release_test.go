@@ -257,7 +257,7 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 	s.ViewportPNG = witness.Bytes(t, viewport)
 	s.Animation = f.live.view.SaveAnimation()
 	s.Sun = fmt.Sprintf("%+v", f.live.view.Sun())
-	hud, err := app.HeadlessBottomHUD()
+	hud, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +267,7 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 	// composed now: the shown one is kept up to ten presentation steps, a count
 	// no SAV carries.
 	f.live.view.ReleaseMinimapContent()
-	mini, err := app.HeadlessMinimapComposed()
+	mini, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimapComposed})
 	if err != nil {
 		t.Fatal(err)
 	}

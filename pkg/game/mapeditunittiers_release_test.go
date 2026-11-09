@@ -75,7 +75,7 @@ func (c *editorClicker) click(e *ui.MapEditor, r image.Rectangle, ok bool, what 
 func chooseIdentity(t *testing.T, c *editorClicker, e *ui.MapEditor, fields []ui.InspectionField, value int64) {
 	t.Helper()
 	n := fieldIndex(t, fields, "identity")
-	r, ok := e.FieldRect(n)
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 	c.click(e, r, ok, "the identity field")
 	if got := len(e.DropdownChoices()); got != len(fields[n].Choices) {
 		t.Fatalf("the open identity list has %d rows, the field %d choices", got, len(fields[n].Choices))
@@ -84,13 +84,13 @@ func chooseIdentity(t *testing.T, c *editorClicker, e *ui.MapEditor, fields []ui
 	if k < 0 {
 		t.Fatalf("the identity field offers no choice %d", value)
 	}
-	if r, ok = e.DropdownRowRect(k); ok {
+	if r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: k}); ok {
 		c.click(e, r, ok, "the identity row")
 	} else {
 		e.TextInput(fields[n].Choices[k].Label)
 		_ = e.Key("enter")
 	}
-	r, ok = e.PopupButtonRect(0)
+	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	c.click(e, r, ok, "Apply")
 }
 
@@ -538,7 +538,7 @@ func sectionTo(t *testing.T, c *editorClicker, e *ui.MapEditor, heading string) 
 		if slices.Contains(e.PopupLines(), heading) {
 			break
 		}
-		if r, ok := e.ObjectSectionRect(section); ok {
+		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlObjectSection, Key: section}); ok {
 			c.click(e, r, true, "the "+section+" section")
 		}
 	}
@@ -598,7 +598,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	rec := recordOf(e.Document(), "Unit", i)
 	e.Select(rec, true)
 	fields := objectEdits(t, e).Fields("Unit", i)
-	r, ok := e.FieldRect(fieldIndex(t, fields, "identity"))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, fields, "identity")})
 	c.click(e, r, ok, "the identity field")
 	shot(e, "creature-tier-dropdown", image.Rect(r.Min.X, r.Max.Y, 1280, 800))
 

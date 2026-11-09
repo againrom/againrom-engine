@@ -43,7 +43,7 @@ func TestReleaseMissionMinimapPaintsTheInstalledPicture(t *testing.T) {
 	if app.HeadlessNoticeOpen() || app.Screen() != ui.ScreenMap || f.live == nil {
 		t.Fatal("mission did not settle on the map")
 	}
-	opened, err := app.HeadlessMinimap()
+	opened, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestReleaseMissionMinimapPaintsTheInstalledPicture(t *testing.T) {
 		if err := advance(); err != nil {
 			t.Fatal(err)
 		}
-		now, err := app.HeadlessMinimap()
+		now, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,7 +116,7 @@ func TestReleaseMissionMinimapPaintsTheInstalledPicture(t *testing.T) {
 	// Loss control: the same census of the picture drawn without the
 	// installed paint.
 	f.live.view.SetMinimapPaint(nil)
-	symbolic, err := app.HeadlessMinimap()
+	symbolic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMinimap})
 	f.live.view.SetMinimapPaint(missionMinimapPaint(&f.InstallResources))
 	if err != nil {
 		t.Fatal(err)

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"bytes"
 	"strings"
 	"testing"
@@ -90,7 +91,7 @@ func TestMessageOutOfOrderPopupCancel(t *testing.T) {
 	opened := false
 	for i, line := range e.PopupLines() {
 		if strings.HasPrefix(line, "Open Message") {
-			r, ok := e.PopupRowRect(i)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			opened = true
 			break

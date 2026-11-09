@@ -85,9 +85,9 @@ func cardLoadShot(t *testing.T, app *ui.App, name string) {
 		t.Fatal(err)
 	}
 	var pic *image.RGBA
-	pic, err := app.HeadlessMissionCard()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
-		pic, _, err = app.HeadlessCharacterPane()
+		pic, _, err = app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartCharacterPane})
 		if err != nil {
 			t.Fatal(err)
 		}

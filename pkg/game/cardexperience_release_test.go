@@ -39,7 +39,7 @@ func cardExperienceWitness(t *testing.T, f *FrontEnd, app *ui.App, e sim.Entity,
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	pic, err := app.HeadlessMissionCard()
+	pic, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartMissionCard})
 	if err != nil {
 		t.Fatal(err)
 	}
