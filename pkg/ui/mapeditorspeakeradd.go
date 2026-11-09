@@ -71,7 +71,7 @@ func (e *MapEditor) speakerPromptStep(value string) error {
 	p := e.prompt.speaker
 	host, ok := e.speakerAddHost()
 	if p == nil || !ok {
-		e.prompt = editorPrompt{}
+		e.dropPrompt()
 		return errors.New("this map cannot hold a speaker record")
 	}
 	name := strings.TrimSpace(value)
@@ -79,7 +79,7 @@ func (e *MapEditor) speakerPromptStep(value string) error {
 		return errors.New("the speaker needs a name")
 	}
 	unit, back := p.unit, p.back
-	e.prompt = editorPrompt{}
+	e.dropPrompt()
 	if !e.hasPathDialog() {
 		e.speakerPictureFailed(back, nil)
 		return nil
@@ -103,7 +103,7 @@ func (e *MapEditor) speakerPictureChosen(host InspectionSpeakerRecords, unit int
 		e.message = err.Error()
 		return
 	}
-	e.pick, e.pickNote, e.pickWhy = pickNone, "", ""
+	e.leave(leavePick)
 	e.refreshSpeakerChoices()
 	e.paramPicked(targetSpeaker, pickedValue{number: id})
 }

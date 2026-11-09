@@ -4463,5 +4463,5 @@ var Committed = Baseline{
 	// It rises for the once-per-process writer round trip: the memo, the
 	// recorder and their tests in pkg/game/milestone2_writer_admission_test.go,
 	// and this note.
-	CommentBytes: 10774187,
+	CommentBytes: 10774310,
 }

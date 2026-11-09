@@ -298,6 +298,10 @@ func (e *MapEditor) openPrompt(p editorPrompt) {
 	e.popupOpened(popPrompt)
 }
 
+// dropPrompt closes the prompt and keeps the popup's cancel point, for a step
+// that hands the popup on to another answer.
+func (e *MapEditor) dropPrompt() { e.prompt = editorPrompt{} }
+
 // toggleBrush switches the brush mode on, or off when it already is mode.
 func (e *MapEditor) toggleBrush(mode brushMode) {
 	if !e.catalog {
