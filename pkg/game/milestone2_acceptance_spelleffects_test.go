@@ -36,7 +36,7 @@ func TestMilestone2SpellEffects(t *testing.T) {
 		for class, count := range c {
 			classes[class] += count
 		}
-		ms, _, err := loadOriginalMission(fe, mf.raw)
+		ms, _, err := sharedOriginalMission(t, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

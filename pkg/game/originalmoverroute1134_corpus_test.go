@@ -78,7 +78,7 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 				dyingFiles++
 			}
 
-			loaded, err := loadOriginalFront(f, raw)
+			loaded, err := sharedOriginalFront(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

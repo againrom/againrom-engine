@@ -56,7 +56,7 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 				t.Fatalf("writer carriers: %v", err)
 			}
 
-			loaded, err := loadOriginalFront(f, raw)
+			loaded, err := sharedOriginalFront(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

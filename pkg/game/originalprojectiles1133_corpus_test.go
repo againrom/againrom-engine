@@ -54,7 +54,7 @@ func TestProjectileCorpusAudit1133(t *testing.T) {
 				nonEmpty++
 			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			ms, report, err := sharedOriginalMission(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

@@ -56,7 +56,7 @@ func TestMilestone2DyingOwnerActors(t *testing.T) {
 		if len(wants) == 0 {
 			return
 		}
-		ms, _, err := loadOriginalMission(fe, mf.raw)
+		ms, _, err := sharedOriginalMission(t, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

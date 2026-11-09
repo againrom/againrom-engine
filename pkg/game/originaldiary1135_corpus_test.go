@@ -96,7 +96,7 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				droppedFiles++
 			}
 
-			loaded, err := loadOriginalFront(f, raw)
+			loaded, err := sharedOriginalFront(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

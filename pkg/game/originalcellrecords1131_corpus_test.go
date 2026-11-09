@@ -98,7 +98,7 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 				}
 			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			ms, report, err := sharedOriginalMission(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

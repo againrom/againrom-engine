@@ -185,6 +185,35 @@ for pkg in $listed; do
 done
 [ "${#tests[@]}" -gt 0 ] || fail "no acceptance instrument matches $pattern"
 
+# These instruments only read a resumed save (sharedOriginalFront in pkg/game
+# resumes each corpus file once per process), so per root they run in one
+# process instead of one process each. The rest keep a process of their own.
+readers=(
+	TestMilestone2ActorRoots TestMilestone2Buildings TestMilestone2CellRecords
+	TestMilestone2DeadRoots TestMilestone2DyingOwnerActors TestMilestone2Groups
+	TestMilestone2MapReopen TestMilestone2MoverRoutes TestMilestone2Players
+	TestMilestone2Projectiles TestMilestone2Sacks TestMilestone2SessionBlock
+	TestMilestone2SpellEffects TestMilestone2TerrainBlockPlane TestMilestone2Trailer
+	TestMilestone2UnitCombat TestMilestone2UnitScalars TestSessionCorpusAudit1130
+	TestCellRecordCorpusAudit1131 TestSpellEffectCorpusAudit1132
+	TestProjectileCorpusAudit1133 TestMoverRouteCorpusAudit1134 TestDiaryCorpusAudit1135
+	TestGroundContainerCorpusAudit1136 TestUnitResidualCorpusAudit1138
+	TestNativeResumeCorpusCycle1139
+)
+declare -A is_reader=()
+for name in "${readers[@]}"; do
+	is_reader[$name]=1
+done
+group=()
+for t in "${!tests[@]}"; do
+	[ -z "${is_reader[${tests[$t]}]:-}" ] || group+=("$t")
+done
+if [ "${#group[@]}" -gt 0 ]; then
+	for t in "${group[@]}"; do
+		[ "${owners[$t]}" = "${owners[${group[0]}]}" ] || fail "reader instruments span packages"
+	done
+fi
+
 timings="$cache.m2-timings${AGAINROM_M2_SAVGATE:+-$AGAINROM_M2_SAVGATE}"
 declare -A seconds=()
 if [ -f "$timings" ]; then
@@ -221,8 +250,47 @@ for r in "${!roots[@]}"; do
 	shares[$r]="$(mktemp -d "$work/share-$r.XXXXXX")" || fail "cannot create a part share directory"
 done
 
+# group_block prints one instrument's part of the shared process's -v output:
+# from its top-level RUN line to the next top-level RUN line.
+group_block() {
+	awk -v run="=== RUN   $2" '
+		$0 == run { on = 1; print; next }
+		/^=== RUN   / && index($0, "/") == 0 { on = 0 }
+		on { print }
+	' "$1"
+}
+
 run() {
-	local r="$1" t="$2" started=$SECONDS
+	local r="$1" t="$2" started=$SECONDS name
+	if [ "$t" = g ]; then
+		local members="" sep="" m
+		for m in "${group[@]}"; do
+			members+="$sep${tests[$m]}"
+			sep="|"
+		done
+		echo "check-milestone2-acceptance: start $(basename "${roots[$r]}") reader group at ${SECONDS}s" >&2
+		(cd "${dirs[${owners[${group[0]}]}]}" &&
+			env -u AGAINROM_CENSUS_ONLY -u AGAINROM_SAV_ROUNDTRIP_ONLY -u AGAINROM_SAV_ROUNDTRIP_WORKERS \
+				AGAINROM_SESSION_CORPUS_AUDIT=1 AGAINROM_ASSETS="${roots[$r]}" AGAINROM_M2_SHARE="$(winpath "${shares[$r]}")" AGAINROM_SAVE_CORPUS="$corpus" AGAINROM_CONVERTED_CORPUS="$(convdir "${roots[$r]}")" AGAINROM_SAV_ROUNDTRIP_KITS="$kits" \
+				"$work/p${owners[${group[0]}]}.test.exe" -test.count=1 -test.v -test.timeout=30m -test.run "^($members)\$") \
+			>"$work/$r-g.out" 2>&1
+		local rc=$?
+		echo "$rc $((SECONDS - started))" >"$work/$r-g.rc"
+		for m in "${group[@]}"; do
+			name="${tests[$m]}"
+			group_block "$work/$r-g.out" "$name" >"$work/$r-$m.out"
+			local mrc elapsed
+			if grep -qE "^--- (PASS|SKIP): $name " "$work/$r-$m.out"; then
+				mrc=0
+			else
+				mrc=$((rc ? rc : 1))
+			fi
+			elapsed="$(sed -n "s/^--- [A-Z]*: $name (\([0-9]*\)\..*/\1/p" "$work/$r-$m.out")"
+			echo "$mrc ${elapsed:-$((SECONDS - started))}" >"$work/$r-$m.rc"
+		done
+		echo "check-milestone2-acceptance: end $(basename "${roots[$r]}") reader group exit $rc after $((SECONDS - started))s at ${SECONDS}s" >&2
+		return
+	fi
 	echo "check-milestone2-acceptance: start $(basename "${roots[$r]}") ${tests[$t]} at ${SECONDS}s" >&2
 	# AGAINROM_CENSUS_ONLY and AGAINROM_SAV_ROUNDTRIP_ONLY narrow a census
 	# and AGAINROM_SAV_ROUNDTRIP_WORKERS sizes one, so a caller's value never
@@ -243,9 +311,15 @@ while read -r _ r t; do
 	order+=("$r $t")
 done < <(for r in "${!roots[@]}"; do
 	[ -d "${roots[$r]}" ] || continue
+	total=0
 	for t in "${!tests[@]}"; do
+		if [ -n "${is_reader[${tests[$t]}]:-}" ]; then
+			total=$((total + ${seconds[${tests[$t]}]:-0}))
+			continue
+		fi
 		echo "${seconds[${tests[$t]}]:-999999} $r $t"
 	done
+	[ "${#group[@]}" -eq 0 ] || echo "$total $r g"
 done | sort -k1,1nr -k3,3n -k2,2n)
 running=0
 for job in "${order[@]}"; do
@@ -270,13 +344,20 @@ done
 # last in the next run's queue.
 declare -A took=()
 for job in "${order[@]}"; do
-	read -r r t <<<"$job"
-	read -r code elapsed <"$work/$r-$t.rc"
-	if [ "$code" -ne 0 ]; then
-		[ -z "${seconds[${tests[$t]}]:-}" ] || took[${tests[$t]}]="${seconds[${tests[$t]}]}"
-		continue
+	read -r r unit <<<"$job"
+	if [ "$unit" = g ]; then
+		members=("${group[@]}")
+	else
+		members=("$unit")
 	fi
-	[ "${took[${tests[$t]}]:-0}" -ge "$elapsed" ] || took[${tests[$t]}]="$elapsed"
+	for t in "${members[@]}"; do
+		read -r code elapsed <"$work/$r-$t.rc"
+		if [ "$code" -ne 0 ]; then
+			[ -z "${seconds[${tests[$t]}]:-}" ] || took[${tests[$t]}]="${seconds[${tests[$t]}]}"
+			continue
+		fi
+		[ "${took[${tests[$t]}]:-0}" -ge "$elapsed" ] || took[${tests[$t]}]="$elapsed"
+	done
 done
 for name in "${!took[@]}"; do
 	echo "$name ${took[$name]}"

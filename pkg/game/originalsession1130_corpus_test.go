@@ -69,7 +69,7 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 				t.Log("session head marked absent by its writer: LOAD keeps none")
 			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			ms, report, err := sharedOriginalMission(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

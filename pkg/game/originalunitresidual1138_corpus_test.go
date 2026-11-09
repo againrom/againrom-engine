@@ -80,7 +80,7 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 			byArchive := archiveActorsForAudit(graph)
 			byMapUnit := unitResidualMapUnitsForAudit(byArchive)
 
-			loaded, err := loadOriginalFront(f, raw)
+			loaded, err := sharedOriginalFront(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

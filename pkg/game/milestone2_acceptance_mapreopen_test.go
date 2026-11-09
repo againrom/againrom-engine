@@ -77,7 +77,7 @@ func TestMilestone2MapReopen(t *testing.T) {
 		if !mf.present {
 			return
 		}
-		ms, _, err := loadOriginalMission(fe, mf.raw)
+		ms, _, err := sharedOriginalMission(t, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

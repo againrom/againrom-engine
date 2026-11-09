@@ -35,7 +35,7 @@ func TestMilestone2Projectiles(t *testing.T) {
 			nonempty = append(nonempty, fmt.Sprintf("%s: allocator=%d IDs=%v items=%d", mf.rel, want.free, want.ids, len(want.items)))
 		}
 		// Source counts precede LOAD, so a refusal cannot shrink the oracle.
-		ms, report, err := loadOriginalMission(fe, mf.raw)
+		ms, report, err := sharedOriginalMission(t, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

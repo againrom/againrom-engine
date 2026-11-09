@@ -41,6 +41,9 @@ package storyguard
 //
 // CommentBytes rose by the doc comments of the dead-flyer SAV fix and its tests.
 //
+// CommentBytes rose by the doc comments of the shared resume of corpus
+// instruments, all new test code, and this paragraph.
+//
 // CommentBytes rose by the doc comments of the map editor's test play, all new
 // code: pkg/launch, pkg/game/mapedittestplay.go and its tests,
 // pkg/ui/editortestplay.go, the release test in cmd/againrom, and this
@@ -4431,5 +4434,5 @@ var Committed = Baseline{
 	// It rises for the lone map path in cmd/againrom/main.go and its test in
 	// cmd/againrom/editormode_test.go, the program source roots in
 	// internal/archtest/programversion.go, and this note.
-	CommentBytes: 10729220,
+	CommentBytes: 10730048,
 }

@@ -71,7 +71,7 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 				nativeRoots += len(native)
 			}
 
-			loaded, err := loadOriginalFront(f, raw)
+			loaded, err := sharedOriginalFront(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

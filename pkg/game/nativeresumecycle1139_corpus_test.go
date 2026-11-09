@@ -80,7 +80,7 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 				nativeAreaRows = len(actions.NativeAreas)
 			}
 
-			ms, _, err := loadOriginalMission(f, raw)
+			ms, _, err := sharedOriginalMission(t, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}

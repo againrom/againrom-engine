@@ -55,7 +55,7 @@ func milestone2TerrainFile(t *testing.T, mf milestone2File, fe *FrontEnd) (miles
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, _, err := loadOriginalMission(fe, mf.raw)
+	ms, _, err := sharedOriginalMission(t, mf.raw)
 	if err != nil {
 		return milestone2CarrierFileResult{}, err
 	}
