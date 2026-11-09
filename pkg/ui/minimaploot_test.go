@@ -39,8 +39,7 @@ func lootPixel(t *testing.T, v *Viewer, cell image.Point) bool {
 	if !ok {
 		t.Fatal("no minimap geometry")
 	}
-	colours, fog, marks, view := v.minimapWindowed(g)
-	img := composeMinimap(colours, g.Cols, g.Rows, fog, marks, view, g.extent)
+	img := composeMinimapPlan(v.minimapProducePlan(g), g.extent)
 	r := minimapMarkRect(minimapMark{Cell: cell.Sub(g.Origin)}, g.Cols, g.Rows, g.Num, g.Den, img.Bounds())
 	if r.Empty() {
 		t.Fatalf("cell %v has no pixel", cell)
@@ -122,7 +121,7 @@ func TestMinimapLootDotsMatchTheMapsSacks(t *testing.T) {
 func TestMinimapLootDotOptionOff(t *testing.T) {
 	v := lootViewer(t, allFog(FogVisible))
 	v.SetGraphicsOptions(GraphicsOptions{HideLootDots: true})
-	if lootPixel(t, v, image.Pt(1, 1)) || len(v.minimapMarks()) != 0 {
+	if lootPixel(t, v, image.Pt(1, 1)) || len(symbolicPlanMarks(v)) != 0 {
 		t.Fatal("a loot dot is drawn with the option off")
 	}
 	v.SetGraphicsOptions(GraphicsOptions{})

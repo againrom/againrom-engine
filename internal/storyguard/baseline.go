@@ -4445,5 +4445,9 @@ var Committed = Baseline{
 	// internal/archtest/programversion.go, and this note.
 	// It rises for the witness of the control rows and tip placement, their
 	// builders' doc comments, the tip placement guard, and this note.
-	CommentBytes: 10739866,
+
+	// It rises for the minimap plan witness, the one producer's rule values,
+	// the mod groups' colours on a viewer with no paint, the producer guard,
+	// their doc comments, and this note.
+	CommentBytes: 10746109,
 }

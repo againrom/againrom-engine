@@ -59,12 +59,25 @@ type minimapRepaintKey struct {
 // keeps its last minimap picture (MISSION-087).
 const minimapRepaintSteps = 11
 
-// SetMinimapPaint gives the viewer the first game's minimap data. Nil keeps
-// the symbolic minimap.
+// SetMinimapPaint gives the viewer the minimap data. Nil keeps the symbolic
+// minimap. A paint without the lookup carries the mod groups' colours alone
+// and also keeps the symbolic minimap; a change of those colours rebuilds its
+// terrain.
 func (v *Viewer) SetMinimapPaint(p *MinimapPaint) {
 	if v.minimapOriginal.paint != p {
+		if minimapPaintGroups(p) != minimapPaintGroups(v.minimapOriginal.paint) {
+			v.minimapColours = nil
+		}
 		v.minimapOriginal = minimapOriginalState{paint: p, playerColours: v.minimapOriginal.playerColours}
 	}
+}
+
+// minimapPaintGroups is a paint's mod group colours; none for no paint.
+func minimapPaintGroups(p *MinimapPaint) [32]color.RGBA {
+	if p == nil {
+		return [32]color.RGBA{}
+	}
+	return p.GroupColours
 }
 
 // SetPlayerColours gives authored maps their roster's colour slots.
@@ -99,29 +112,23 @@ func (v *Viewer) minimapOriginalTerrain() []color.RGBA {
 		return st.terrain
 	}
 	cols, rows := v.grid.Width, v.grid.Height
-	out := make([]color.RGBA, cols*rows)
 	lookup := st.paint.Colours
 	lb := lookup.Bounds()
-	for row := 0; row < rows; row++ {
-		for col := 0; col < cols; col++ {
-			t := int(v.tileWord(col, row) & terrain.TileGroupBits)
-			x, y := t>>4, t&15
-			c := terrain.PlaceholderColor
-			if g := t >> 6; g < len(st.paint.GroupColours) && st.paint.GroupColours[g].A != 0 {
-				c = st.paint.GroupColours[g]
-			} else if x < lb.Dx() && y < lb.Dy() {
-				c = lookup.RGBAAt(lb.Min.X+x, lb.Min.Y+y)
-			}
-			factor := 32
-			if len(v.levels) >= cols*rows {
-				lv := terrain.CornerLevels(v.levels, cols, rows, col, row)
-				factor = 96 - (int(lv[0])+int(lv[1])+int(lv[2])+int(lv[3]))/4
-			}
-			out[row*cols+col] = color.RGBA{
-				R: minimapGain(c.R, factor), G: minimapGain(c.G, factor), B: minimapGain(c.B, factor), A: 0xff,
-			}
+	out := v.minimapTerrain(func(word uint16, _, _ int) color.RGBA {
+		t := int(word & terrain.TileGroupBits)
+		x, y := t>>4, t&15
+		if x < lb.Dx() && y < lb.Dy() {
+			return lookup.RGBAAt(lb.Min.X+x, lb.Min.Y+y)
 		}
-	}
+		return terrain.PlaceholderColor
+	}, func(c color.RGBA, col, row int) color.RGBA {
+		factor := 32
+		if len(v.levels) >= cols*rows {
+			lv := terrain.CornerLevels(v.levels, cols, rows, col, row)
+			factor = 96 - (int(lv[0])+int(lv[1])+int(lv[2])+int(lv[3]))/4
+		}
+		return color.RGBA{R: minimapGain(c.R, factor), G: minimapGain(c.G, factor), B: minimapGain(c.B, factor), A: 0xff}
+	})
 	st.terrain, st.terrainLevels, st.terrainBuilt = out, key, true
 	return out
 }
@@ -188,71 +195,20 @@ func (v *Viewer) minimapOwnerColour(owner uint32) (color.RGBA, bool) {
 	}, true
 }
 
-// minimapOriginalMarks is the first game's marks in grid cells: loot dots
-// (DIV-2954), structures drawn under them, and units (MISSION-085). A structure's extents
-// are its class's TileWidth and TileHeight, or its own Size for a
-// VariableSize class (the wooden bridges). A unit or air unit is one cell and
-// needs a corpse stage of at most 1. Every mark needs its quad's fog OR to be
-// 0xc000 and an owner with a colour; another owner's unit also needs its own
-// cell visible, the owner's fog rule for every unit indicator (DIV-2997).
-func (v *Viewer) minimapOriginalMarks() []minimapMark {
-	if v.minimapHeld {
-		return nil
-	}
-	out := v.minimapLootMarks()
-	for _, s := range v.structureStates {
-		c, ok := v.minimapOwnerColour(s.Owner)
-		if !ok || v.minimapMarkFog(s.Cell.X, s.Cell.Y) != 0xc000 {
-			continue
-		}
-		var size image.Point
-		if v.structureSet != nil && int(s.Kind) < len(v.structureSet.Classes) {
-			if cls := v.structureSet.Classes[s.Kind]; cls != nil {
-				size = image.Pt(cls.TileWidth, cls.TileHeight)
-				if cls.VariableSize {
-					size = s.Size
-				}
-			}
-		}
-		if size.X <= 0 || size.Y <= 0 {
-			continue
-		}
-		out = append(out, minimapMark{Cell: s.Cell, Size: size, Colour: c, Local: s.Owner == v.localOwner, Under: true})
-	}
-	for _, e := range v.entities {
-		c, ok := v.minimapOwnerColour(e.Owner)
-		if !ok || e.CorpseStage > 1 || v.minimapMarkFog(e.Cell.X, e.Cell.Y) != 0xc000 || !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
-			continue
-		}
-		out = append(out, minimapMark{Cell: e.Cell, Size: image.Pt(1, 1), Colour: c, Local: e.Owner == v.localOwner})
-	}
-	return out
-}
-
-// minimapOriginalPlan is the first game's picture for geometry g. Each pixel
-// shows its cell's terrain where the block fog OR has bit 14, the average of
-// terrain and the CrystalR background pixel under it where the OR is exactly
-// 0x8000, and the background pixel where it is zero (MISSION-084). The marks
-// follow, then the white outline of the camera's cells (MISSION-086).
-func (v *Viewer) minimapOriginalPlan(g minimapGeom) minimapPlan {
-	colours := v.minimapOriginalTerrain()
+// minimapInstalledRules is the first game's picture for geometry g. Each
+// pixel shows its cell's terrain where the block fog OR has bit 14, the
+// average of terrain and the CrystalR background pixel under it where the OR
+// is exactly 0x8000, and the background pixel where it is zero (MISSION-084).
+// Every mark needs its quad's fog OR to be 0xc000 and an owner with a colour;
+// a unit is one cell and needs a corpse stage of at most 1 (MISSION-085). The
+// outline is the camera's cells, unclipped (MISSION-086).
+func (v *Viewer) minimapInstalledRules(g minimapGeom) minimapRules {
 	back := v.dialogFrame.Minimap
 	offset := g.Content.Min.Sub(g.Box.Min)
-	cols := v.grid.Width
-	var marks []minimapMark
-	for _, m := range v.minimapOriginalMarks() {
-		m.Cell = m.Cell.Sub(g.Origin)
-		if m.Size == (image.Point{}) && !m.Cell.In(image.Rect(0, 0, g.Cols, g.Rows)) {
-			continue
-		}
-		marks = append(marks, m)
-	}
-	return minimapPlan{
-		cols: g.Cols, rows: g.Rows,
-		pixel: func(col, row int, at image.Point) color.RGBA {
-			gc, gr := col+g.Origin.X, row+g.Origin.Y
-			t := colours[gr*cols+gc]
-			fog := v.minimapBlockFog(gc, gr)
+	return minimapRules{
+		colours: v.minimapOriginalTerrain,
+		fog: func(t color.RGBA, col, row int, at image.Point) color.RGBA {
+			fog := v.minimapBlockFog(col, row)
 			if fog&0x4000 != 0 {
 				return t
 			}
@@ -267,9 +223,15 @@ func (v *Viewer) minimapOriginalPlan(g minimapGeom) minimapPlan {
 			}
 			return color.RGBA{R: bg.R>>1 + t.R>>1, G: bg.G>>1 + t.G>>1, B: bg.B>>1 + t.B>>1, A: 0xff}
 		},
-		marks:           marks,
-		view:            v.minimapViewCells().Sub(g.Origin),
-		viewColour:      color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		marks: minimapMarkRules{
+			colour: v.minimapOwnerColour,
+			unit: func(e MapEntity) bool {
+				return e.CorpseStage <= 1 && v.minimapMarkFog(e.Cell.X, e.Cell.Y) == 0xc000
+			},
+			structure: func(s MapStructure) bool { return v.minimapMarkFog(s.Cell.X, s.Cell.Y) == 0xc000 },
+			unitSize:  image.Pt(1, 1),
+		},
+		outline:         func(view, _ image.Rectangle) image.Rectangle { return view },
 		separateOutline: true,
 	}
 }

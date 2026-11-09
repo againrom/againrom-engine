@@ -145,7 +145,7 @@ func originalTerrainOnly(t *testing.T, v *Viewer) *image.RGBA {
 	if !ok {
 		t.Fatal("no minimap geometry")
 	}
-	p := v.minimapOriginalPlan(g)
+	p := v.minimapProducePlan(g)
 	p.marks, p.view = nil, image.Rectangle{}
 	return composeMinimapPlan(p, g.extent)
 }

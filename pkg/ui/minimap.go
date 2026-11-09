@@ -57,9 +57,9 @@ type minimapMark struct {
 }
 
 // minimapPlan is the data one minimap picture is composed from: the cell
-// grid, the colour of each output pixel, the marks and the camera outline. The
-// symbolic picture and the first game's picture (minimaporiginal.go) are both
-// plans; composeMinimapPlan is the one builder.
+// grid, the colour of each output pixel, the marks and the camera outline.
+// minimapProducePlan is its one producer, composeMinimapPlan the one builder
+// of its picture.
 type minimapPlan struct {
 	cols, rows int
 	// pixel is the colour of output pixel at, which shows cell (col, row).
@@ -74,21 +74,126 @@ type minimapPlan struct {
 	separateOutline bool
 }
 
-func composeMinimap(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point) *image.RGBA {
-	return composeMinimapLayer(colours, cols, rows, fog, marks, view, box, false)
+// minimapRules is everything that differs between the minimap pictures a
+// viewer can draw. minimapProducePlan reads it for every picture; a rule is a
+// value called for every instance, so neither picture has a path of its own.
+type minimapRules struct {
+	// colours is the terrain colour of every grid cell, row-major.
+	colours func() []color.RGBA
+	// fog is the colour output pixel at shows for grid cell (col, row), whose
+	// terrain colour is t.
+	fog func(t color.RGBA, col, row int, at image.Point) color.RGBA
+	// marks is which marks the picture shows and in which colours.
+	marks minimapMarkRules
+	// outline is the outlined cell range from the camera's cells and the
+	// window; separateOutline is the composer's outline mode.
+	outline         func(view, win image.Rectangle) image.Rectangle
+	separateOutline bool
 }
 
-func composeMinimapLayer(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point, crystal bool) *image.RGBA {
-	return composeMinimapPlan(minimapPlan{
-		cols: cols, rows: rows,
-		pixel: func(col, row int, _ image.Point) color.RGBA {
-			if crystal && fog != nil && fog(col, row) == FogUnseen {
-				return color.RGBA{}
-			}
-			return minimapCellColor(colours, cols, col, row, fog)
+// minimapMarkRules is the gates and colours one mark walk reads.
+type minimapMarkRules struct {
+	// colour is an owner's mark colour, false for an owner with no mark. A
+	// zero colour takes the composer's own local or other colour.
+	colour func(owner uint32) (color.RGBA, bool)
+	// unit and structure report whether one gets a mark.
+	unit      func(e MapEntity) bool
+	structure func(s MapStructure) bool
+	// unitSize is the extent a unit mark asks for; zero is the mark's own cell.
+	unitSize image.Point
+}
+
+// minimapRulesFor is the rule value of the picture the viewer draws for g.
+func (v *Viewer) minimapRulesFor(g minimapGeom) minimapRules {
+	if v.minimapOriginalActive() {
+		return v.minimapInstalledRules(g)
+	}
+	return v.minimapSymbolicRules()
+}
+
+// minimapProducePlan is the one producer of a minimap plan: the rule value's
+// colours, fog, marks and outline, moved to g's window. A one-cell mark
+// outside the window is dropped; a mark with its own Size is kept and clipped
+// by the composer. Windowing, mark translation and the outline are written
+// here once.
+func (v *Viewer) minimapProducePlan(g minimapGeom) minimapPlan {
+	r := v.minimapRulesFor(g)
+	colours := r.colours()
+	cols := v.grid.Width
+	win := image.Rectangle{Min: g.Origin, Max: g.Origin.Add(image.Pt(g.Cols, g.Rows))}
+	var marks []minimapMark
+	for _, m := range v.minimapPlanMarks(r.marks) {
+		if m.Size == (image.Point{}) && !m.Cell.In(win) {
+			continue
+		}
+		m.Cell = m.Cell.Sub(g.Origin)
+		marks = append(marks, m)
+	}
+	return minimapPlan{
+		cols: g.Cols, rows: g.Rows,
+		pixel: func(col, row int, at image.Point) color.RGBA {
+			gc, gr := col+g.Origin.X, row+g.Origin.Y
+			return r.fog(colours[gr*cols+gc], gc, gr, at)
 		},
-		marks: marks, view: view, viewColour: minimapViewColor,
-	}, box)
+		marks:           marks,
+		view:            r.outline(v.minimapViewCells(), win).Sub(g.Origin),
+		viewColour:      minimapViewColor,
+		separateOutline: r.separateOutline,
+	}
+}
+
+// minimapSymbolicRules is the picture of a viewer with no paint data: the
+// sampled tile colours with each cell's own fog, the crystal showing through
+// an unseen cell, one mark per living or restorable unit. A whole-map window
+// keeps the camera's cells unclipped.
+func (v *Viewer) minimapSymbolicRules() minimapRules {
+	crystal := v.dialogFrame != nil && v.dialogFrame.Minimap != nil
+	whole := image.Rect(0, 0, v.grid.Width, v.grid.Height)
+	return minimapRules{
+		colours: v.minimapTerrainColours,
+		fog: func(t color.RGBA, col, row int, _ image.Point) color.RGBA {
+			state := v.fogAt(col, row)
+			if v.minimapHeld {
+				state = FogUnseen
+			}
+			return minimapSymbolicPixel(t, state, crystal)
+		},
+		marks: minimapMarkRules{
+			colour: func(owner uint32) (color.RGBA, bool) {
+				if owner == v.localOwner {
+					return v.missionScreen.MinimapLocal, true
+				}
+				return color.RGBA{}, true
+			},
+			unit: func(e MapEntity) bool {
+				inGrid := e.Cell.X >= 0 && e.Cell.Y >= 0 && e.Cell.X < v.grid.Width && e.Cell.Y < v.grid.Height
+				return inGrid && (e.Life == LifeAlive || e.Restorable)
+			},
+			structure: func(MapStructure) bool { return false },
+		},
+		outline: func(view, win image.Rectangle) image.Rectangle {
+			if win == whole {
+				return view
+			}
+			return view.Intersect(win)
+		},
+	}
+}
+
+// minimapSymbolicPixel is one cell's colour under its fog state. An unseen
+// cell over the crystal background is transparent, so the crystal shows.
+func minimapSymbolicPixel(t color.RGBA, state uint8, crystal bool) color.RGBA {
+	if crystal && state == FogUnseen {
+		return color.RGBA{}
+	}
+	switch state {
+	case FogVisible:
+		return t
+	case FogExplored:
+		return color.RGBA{R: t.R / 2, G: t.G / 2, B: t.B / 2, A: t.A}
+	default: // FogUnseen, and any value none of the plane's writers can produce
+		return minimapUnseenColor
+	}
 }
 
 func composeMinimapPlan(p minimapPlan, box image.Point) *image.RGBA {
@@ -271,21 +376,6 @@ func minimapCellPixel(at, num, den int) int {
 	return at * num / den
 }
 
-func minimapCellColor(colours []color.RGBA, cols, col, row int, fog func(col, row int) uint8) color.RGBA {
-	var base color.RGBA
-	if i := row*cols + col; i >= 0 && i < len(colours) {
-		base = colours[i]
-	}
-	switch fog(col, row) {
-	case FogVisible:
-		return base
-	case FogExplored:
-		return color.RGBA{R: base.R / 2, G: base.G / 2, B: base.B / 2, A: base.A}
-	default: // FogUnseen, and any value none of the plane's writers can produce
-		return minimapUnseenColor
-	}
-}
-
 // fillBlock paints a w x h solid rectangle at (x,y), clipped to img's own
 // bounds — the terrain fill and the mark fill in composeMinimap share it
 // rather than each writing its own nested loop.
@@ -341,47 +431,91 @@ func (v *Viewer) minimapTerrainColours() []color.RGBA {
 	if v.minimapColours != nil {
 		return v.minimapColours
 	}
+	v.minimapColours = v.minimapTerrain(func(word uint16, col, row int) color.RGBA {
+		ref := v.resolveCell(word, col, row)
+		img := v.set.Slot(ref.Slot).SubCell(ref.Sub)
+		if img == nil {
+			return terrain.PlaceholderColor
+		}
+		b := img.Bounds()
+		return paletteRGBA(img, b.Min.X+b.Dx()/2, b.Min.Y+b.Dy()/2)
+	}, func(c color.RGBA, _, _ int) color.RGBA { return c })
+	return v.minimapColours
+}
+
+// minimapTerrain is one colour per grid cell, row-major: a mod group's own
+// colour where the cell's tile word names one (MinimapPaint.GroupColours), the
+// colour source's sample otherwise, each through the shade rule.
+func (v *Viewer) minimapTerrain(sample func(word uint16, col, row int) color.RGBA, shade func(c color.RGBA, col, row int) color.RGBA) []color.RGBA {
 	cols, rows := v.grid.Width, v.grid.Height
 	out := make([]color.RGBA, cols*rows)
 	for row := 0; row < rows; row++ {
 		for col := 0; col < cols; col++ {
-			ref := v.resolveCell(v.tileWord(col, row), col, row)
-			img := v.set.Slot(ref.Slot).SubCell(ref.Sub)
-			c := terrain.PlaceholderColor
-			if img != nil {
-				b := img.Bounds()
-				c = paletteRGBA(img, b.Min.X+b.Dx()/2, b.Min.Y+b.Dy()/2)
+			word := v.tileWord(col, row)
+			c, ok := v.minimapGroupColour(word)
+			if !ok {
+				c = sample(word, col, row)
 			}
-			out[row*cols+col] = c
+			out[row*cols+col] = shade(c, col, row)
 		}
 	}
-	v.minimapColours = out
 	return out
 }
 
-// minimapMarks is one mark per unit the symbolic minimap shows. A fallen unit
-// keeps its owner's mark only while Heal can still raise it (DIV-1455); a body
-// past that floor is not marked, so a local one does not stay green under fog
-// until the world removes it. The first game's marks are minimapOriginalMarks.
-func (v *Viewer) minimapMarks() []minimapMark {
-	var out []minimapMark
-	for _, e := range v.entities {
-		if e.Cell.X < 0 || e.Cell.Y < 0 || e.Cell.X >= v.grid.Width || e.Cell.Y >= v.grid.Height {
-			continue
-		}
-		if e.Life != LifeAlive && !e.Restorable {
-			continue
-		}
-		if !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
-			continue
-		}
-		mark := minimapMark{Cell: e.Cell, Local: e.Owner == v.localOwner}
-		if mark.Local {
-			mark.Colour = v.missionScreen.MinimapLocal
-		}
-		out = append(out, mark)
+// minimapGroupColour is the colour of a mod tile group the word names; false
+// for a word of no mod group and a viewer with no paint.
+func (v *Viewer) minimapGroupColour(word uint16) (color.RGBA, bool) {
+	p := v.minimapOriginal.paint
+	if p == nil {
+		return color.RGBA{}, false
 	}
-	return append(out, v.minimapLootMarks()...)
+	g := int(word&terrain.TileGroupBits) >> 6
+	if g >= len(p.GroupColours) || p.GroupColours[g].A == 0 {
+		return color.RGBA{}, false
+	}
+	return p.GroupColours[g], true
+}
+
+// minimapPlanMarks is the one mark walk, in grid cells: nothing while the
+// content is held, loot dots (DIV-2954), the structures the rule admits, drawn
+// under them, and the units it admits (MISSION-085). A structure's extents are
+// its class's TileWidth and TileHeight, or its own Size for a VariableSize
+// class (the wooden bridges). A unit is also subject to the fog walk gate: a
+// unit of another owner needs its own cell visible (DIV-2997). The symbolic
+// rule keeps a fallen unit's mark only while Heal can still raise it
+// (DIV-1455), so a body past that floor does not stay green under fog.
+func (v *Viewer) minimapPlanMarks(r minimapMarkRules) []minimapMark {
+	if v.minimapHeld {
+		return nil
+	}
+	out := v.minimapLootMarks()
+	for _, s := range v.structureStates {
+		c, ok := r.colour(s.Owner)
+		if !ok || !r.structure(s) {
+			continue
+		}
+		var size image.Point
+		if v.structureSet != nil && int(s.Kind) < len(v.structureSet.Classes) {
+			if cls := v.structureSet.Classes[s.Kind]; cls != nil {
+				size = image.Pt(cls.TileWidth, cls.TileHeight)
+				if cls.VariableSize {
+					size = s.Size
+				}
+			}
+		}
+		if size.X <= 0 || size.Y <= 0 {
+			continue
+		}
+		out = append(out, minimapMark{Cell: s.Cell, Size: size, Colour: c, Local: s.Owner == v.localOwner, Under: true})
+	}
+	for _, e := range v.entities {
+		c, ok := r.colour(e.Owner)
+		if !ok || !r.unit(e) || !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
+			continue
+		}
+		out = append(out, minimapMark{Cell: e.Cell, Size: r.unitSize, Colour: c, Local: e.Owner == v.localOwner})
+	}
+	return out
 }
 
 // minimapLootMarks is one loot mark per ground sack the mission map draws now:
@@ -460,20 +594,9 @@ func (v *Viewer) minimapPresent() (*image.RGBA, image.Point, bool) {
 	return v.minimapCompose(g)
 }
 
-// minimapCompose composes the framed minimap for g now, with no repaint gate:
-// the first game's plan when its paint data is present, else the symbolic one.
+// minimapCompose composes the framed minimap for g now, with no repaint gate.
 func (v *Viewer) minimapCompose(g minimapGeom) (*image.RGBA, image.Point, bool) {
-	var content *image.RGBA
-	if v.minimapOriginalActive() {
-		content = composeMinimapPlan(v.minimapOriginalPlan(g), g.extent)
-	} else {
-		colours, fog, marks, view := v.minimapWindowed(g)
-		if v.minimapHeld {
-			fog, marks = func(int, int) uint8 { return FogUnseen }, nil
-		}
-		content = composeMinimapLayer(colours, g.Cols, g.Rows, fog, marks,
-			view, g.extent, v.dialogFrame != nil && v.dialogFrame.Minimap != nil)
-	}
+	content := composeMinimapPlan(v.minimapProducePlan(g), g.extent)
 	cb := content.Bounds()
 	if cb.Empty() {
 		return nil, image.Point{}, false
@@ -515,28 +638,6 @@ func (v *Viewer) minimapWindow() image.Rectangle {
 		return r
 	}
 	return image.Rect(0, 0, v.grid.Width, v.grid.Height)
-}
-
-// minimapWindowed is what the composer takes for g's window: terrain colours,
-// fog, marks and the camera outline, all moved to the window's own origin.
-func (v *Viewer) minimapWindowed(g minimapGeom) ([]color.RGBA, func(col, row int) uint8, []minimapMark, image.Rectangle) {
-	colours := v.minimapTerrainColours()
-	win := image.Rectangle{Min: g.Origin, Max: g.Origin.Add(image.Pt(g.Cols, g.Rows))}
-	if win.Min == (image.Point{}) && g.Cols == v.grid.Width && g.Rows == v.grid.Height {
-		return colours, v.fogAt, v.minimapMarks(), v.minimapViewCells()
-	}
-	cut := make([]color.RGBA, 0, g.Cols*g.Rows)
-	for row := win.Min.Y; row < win.Max.Y; row++ {
-		cut = append(cut, colours[row*v.grid.Width+win.Min.X:row*v.grid.Width+win.Max.X]...)
-	}
-	fog := func(col, row int) uint8 { return v.fogAt(col+win.Min.X, row+win.Min.Y) }
-	var marks []minimapMark
-	for _, m := range v.minimapMarks() {
-		if m.Cell.In(win) {
-			marks = append(marks, minimapMark{Cell: m.Cell.Sub(win.Min), Local: m.Local, Loot: m.Loot, Colour: m.Colour})
-		}
-	}
-	return cut, fog, marks, v.minimapViewCells().Intersect(win).Sub(win.Min)
 }
 
 // minimapViewCells is the cell range of the minimap's view frame, Min

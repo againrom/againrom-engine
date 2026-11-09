@@ -28,6 +28,27 @@ func mapFog(m map[image.Point]uint8, otherwise uint8) func(int, int) uint8 {
 	}
 }
 
+// composeMinimap composes a symbolic plan from explicit colours, fog, marks
+// and outline: the composer and the one symbolic fog rule, with no viewer.
+func composeMinimap(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point) *image.RGBA {
+	return composeMinimapPlan(minimapPlan{
+		cols: cols, rows: rows,
+		pixel: func(col, row int, _ image.Point) color.RGBA {
+			var c color.RGBA
+			if i := row*cols + col; i >= 0 && i < len(colours) {
+				c = colours[i]
+			}
+			return minimapSymbolicPixel(c, fog(col, row), false)
+		},
+		marks: marks, view: view, viewColour: minimapViewColor,
+	}, box)
+}
+
+// symbolicPlanMarks is the mark walk under the symbolic rules, in grid cells.
+func symbolicPlanMarks(v *Viewer) []minimapMark {
+	return v.minimapPlanMarks(v.minimapSymbolicRules().marks)
+}
+
 // TestComposeMinimapIsPureAndTakesNoWindow is spec AC-10: the same
 // arguments, called twice with nothing else running, produce byte-identical
 // pixels. Nothing here opens a window, builds a Viewer or touches the GPU —
@@ -261,7 +282,7 @@ func TestMinimapMarksDropsWhatTheFogGateWouldDrop(t *testing.T) {
 		{ID: 3, Cell: image.Pt(1, 1), Owner: 1}, // local, unseen: must be marked anyway, local
 	})
 
-	marks := v.minimapMarks()
+	marks := symbolicPlanMarks(v)
 	byCell := make(map[image.Point]minimapMark, len(marks))
 	for _, m := range marks {
 		byCell[m.Cell] = m
@@ -312,7 +333,7 @@ func TestMinimapMarksRetireAFallenUnitPastHeal(t *testing.T) {
 			v.SetFog([]byte{FogVisible, FogVisible, FogUnseen, FogUnseen}, 2, 2)
 			c.e.ID = 7
 			v.SetEntities([]MapEntity{c.e})
-			marks := v.minimapMarks()
+			marks := symbolicPlanMarks(v)
 			if got := len(marks) == 1; got != c.want {
 				t.Fatalf("minimapMarks() = %+v, want a mark: %t", marks, c.want)
 			}
@@ -375,10 +396,15 @@ func TestMinimapFunctionsTakeNoCursorPosition(t *testing.T) {
 	// image.Rectangle of cells is not a cursor position, and the composer still
 	// cannot be handed one.
 	rectT := reflect.TypeOf(image.Rectangle{})
+	planT := reflect.TypeOf(minimapPlan{})
+	markRulesT := reflect.TypeOf(minimapMarkRules{})
+	geomT := reflect.TypeOf(minimapGeom{})
 
 	check("composeMinimap", composeMinimap, []reflect.Type{colourSliceT, intT, intT, fogFuncT, marksT, rectT, pointT})
+	check("composeMinimapPlan", composeMinimapPlan, []reflect.Type{planT, pointT})
+	check("(*Viewer).minimapProducePlan", (*Viewer).minimapProducePlan, []reflect.Type{viewerPtr, geomT})
 	check("(*Viewer).minimapTerrainColours", (*Viewer).minimapTerrainColours, []reflect.Type{viewerPtr})
-	check("(*Viewer).minimapMarks", (*Viewer).minimapMarks, []reflect.Type{viewerPtr})
+	check("(*Viewer).minimapPlanMarks", (*Viewer).minimapPlanMarks, []reflect.Type{viewerPtr, markRulesT})
 	check("(*Viewer).minimapPresent", (*Viewer).minimapPresent, []reflect.Type{viewerPtr})
 }
 

@@ -100,7 +100,7 @@ func TestMinimapFrameIsWhiteAndLocalDotIsProfileData(t *testing.T) {
 		v.SetLocalOwner(1)
 		v.SetEntities([]MapEntity{{ID: 1, Owner: 1, Cell: image.Pt(2, 2), Life: LifeAlive}})
 		v.SetFog(nil, 0, 0)
-		marks := v.minimapMarks()
+		marks := symbolicPlanMarks(v)
 		if len(marks) != 1 || !marks[0].Local || marks[0].Colour != tc.want {
 			t.Errorf("profile %+v: marks %+v, want one local mark of colour %v", tc.screen, marks, tc.want)
 		}

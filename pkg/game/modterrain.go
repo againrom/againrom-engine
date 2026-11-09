@@ -138,15 +138,19 @@ func modBrushTerrains(t *mapload.Table, tiles *terrain.Tileset) []ui.BrushTerrai
 }
 
 // minimapGroupColours are the minimap colours of the mod groups: the row's
-// own colour, else the lookup's colour of its land kind's base word.
+// own colour, else the lookup's colour of its land kind's base word. With no
+// lookup such a row is left out and keeps the sampled tile colour.
 func minimapGroupColours(p *ui.MinimapPaint, t *mapload.Table) {
 	groups := t.ModTerrain()
-	if p == nil || p.Colours == nil || groups == nil {
+	if p == nil || groups == nil {
 		return
 	}
 	for _, r := range groups.Groups {
 		c := r.Minimap
 		if !r.HasMinimap {
+			if p.Colours == nil {
+				continue
+			}
 			for _, e := range mapedit.Palette {
 				if e.Class == r.Class {
 					lb := p.Colours.Bounds()

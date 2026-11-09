@@ -117,6 +117,7 @@ type pickerArt struct {
 	paneCorners                   *ui.CharacterPaneCornerArt
 	sackFrames                    []*terrain.StaticFrame
 	sackBoundaries                []*terrain.StaticFrame
+	minimapPaint                  *ui.MinimapPaint
 }
 
 // pickerArtSource resolves a picker map's art.
@@ -136,6 +137,7 @@ func (s pickerArtSource) resolve() pickerArt {
 	art.paneFigure, art.paneStats = panes.Figure, panes.Stats
 	art.paneCorners = s.pr.characterPaneCorners(s.in)
 	art.sackFrames, art.sackBoundaries = s.in.SackFrames, s.in.SackBoundaries
+	art.minimapPaint = pickerMinimapPaint(s.in)
 	return art
 }
 
@@ -150,6 +152,7 @@ func (a pickerArt) apply(v *ui.Viewer) {
 	v.SetCharacterPaneArt(a.paneFigure, a.paneStats, a.paneCorners)
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
+	v.SetMinimapPaint(a.minimapPaint)
 	v.SetPreserveCreatureSkillsHeading(a.preserveCreatureSkillsHeading)
 	v.SetCastNeedsSight(a.castNeedsSight)
 }
@@ -160,12 +163,31 @@ func (a pickerArt) apply(v *ui.Viewer) {
 // TERR-LIGHT-018, TERR-LIGHT-060).
 const minimapShadeEntry = 164
 
-// missionMinimapPaint reads the minimap data the edition's mission-minimap
+// missionMinimapPaint is the minimap data a viewer is dressed with: the
+// edition's lookup and owner shades when its install has them, and the mod
+// groups' colours. Nil when there is neither; a paint without the lookup
+// keeps the symbolic picture and still colours the mod groups.
+func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
+	if in == nil {
+		return nil
+	}
+	p := missionMinimapLookup(in)
+	if p == nil {
+		p = &ui.MinimapPaint{}
+	}
+	minimapGroupColours(p, in.Table)
+	if p.Colours == nil && p.GroupColours == ([32]color.RGBA{}) {
+		return nil
+	}
+	return p
+}
+
+// missionMinimapLookup reads the minimap data the edition's mission-minimap
 // manifest names, or nil when the description names none, the lookup does not
 // read, or the install has no owner palettes. A manifest without colours
 // keeps the symbolic picture.
-func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
-	if in == nil || in.Archives == nil || in.Units == nil || !in.Units.HasOwnerPalettes {
+func missionMinimapLookup(in *InstallResources) *ui.MinimapPaint {
+	if in.Archives == nil || in.Units == nil || !in.Units.HasOwnerPalettes {
 		return nil
 	}
 	d := ScreensDescription(in.profile())
@@ -187,6 +209,17 @@ func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
 		c := in.Units.OwnerPalettes[k][minimapShadeEntry]
 		p.OwnerShades[k] = color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xff}
 	}
-	minimapGroupColours(p, in.Table)
 	return p
+}
+
+// pickerMinimapPaint is a picker map's minimap data: only the mod groups'
+// colours, from the same paint a mission viewer takes. The flow gives a picker
+// map the crystal, so a paint with the lookup would turn its picture into the
+// installed one.
+func pickerMinimapPaint(in *InstallResources) *ui.MinimapPaint {
+	p := missionMinimapPaint(in)
+	if p == nil || p.GroupColours == ([32]color.RGBA{}) {
+		return nil
+	}
+	return &ui.MinimapPaint{GroupColours: p.GroupColours}
 }

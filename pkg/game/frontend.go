@@ -1291,10 +1291,10 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	// one path and in the order they were made.
 	//
 	// The picker map is dressed with its own art port: the font, card font,
-	// attack pointer, command panel, bottom HUD, character panes and sack
-	// sheets, in that order, and none of the words, dialog frame or pane filler
-	// a mission viewer receives. The readout is off in the game; F1 brings it
-	// back.
+	// attack pointer, command panel, bottom HUD, character panes, sack sheets
+	// and the mod groups' minimap colours, in that order, and none of the
+	// words, dialog frame or pane filler a mission viewer receives. The readout
+	// is off in the game; F1 brings it back.
 	pickerArtSource{in: &f.InstallResources, pr: &f.Presentation}.resolve().apply(mv.Viewer)
 	// A nil SoundBank is lawful: the viewer then plays nothing.
 	audio := f.runtimeAudio()

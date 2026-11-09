@@ -274,7 +274,8 @@ func TestTheMinimapMarksAndOutlineStayInsideTheWalkableArea(t *testing.T) {
 		{ID: 5, Cell: image.Pt(40, 40), Owner: v.localOwner},
 	})
 	g, _ := v.minimapGeometry()
-	_, _, marks, view := v.minimapWindowed(g)
+	p := v.minimapProducePlan(g)
+	marks, view := p.marks, p.view
 	if len(marks) != 1 || marks[0].Cell != image.Pt(32, 32) {
 		t.Fatalf("marks = %+v, want the one unit at window cell (32,32)", marks)
 	}
