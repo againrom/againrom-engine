@@ -2466,6 +2466,14 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 	return w.autoCastTargetWithin(ci, rule, spellRangeOf(w.rules, rule, power, rangeCast), power)
 }
 
+// computerHealRefuses reports a target outside a computer mage's automatic heal
+// under the profile's rule: any owner but the caster's that is not allied, or
+// that is hostile (DIV-4756).
+func (w *World) computerHealRefuses(caster, t Entity) bool {
+	return w.game.computerHealOwnSide && !w.humanParticipantUnit(caster) && t.Owner != caster.Owner &&
+		(!w.relations.Locked(caster.Owner, t.Owner) || w.hostileTo(&caster, &t))
+}
+
 func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power int32) (EntityID, bool) {
 	caster := w.entities[ci]
 	var visible []byte
@@ -2522,7 +2530,8 @@ func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power 
 			// Nearest wins, so the key ascends with the distance.
 			key = distance
 		} else {
-			if t.Owner != caster.Owner && w.hostileTo(&caster, &t) && !rule.HealHostile || t.MaxHP <= 0 || t.HP >= t.MaxHP {
+			if t.Owner != caster.Owner && w.hostileTo(&caster, &t) && !rule.HealHostile || t.MaxHP <= 0 || t.HP >= t.MaxHP ||
+				w.computerHealRefuses(caster, t) {
 				continue
 			}
 			// Owner priority for idle healing is own team, then declared allies,

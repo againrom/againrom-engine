@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 - [Editor] The map editor now opens from the game program; the separate mapedit program is gone.
 - [Editor] To open maps from Windows, associate .alm files with againrom.exe again; opening a map starts the map editor.
 - [ROM2] Winning the campaign after loading a save now adds your hero to the Hall of Fame with a score.
+- [ROM2] A computer-controlled mage no longer heals neutral monsters, such as an ogre attacking your party. It heals itself, its own side and its allies.
 
 ## 0.150.0
 

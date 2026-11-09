@@ -72,7 +72,7 @@ const (
 // AI-FOLLOWHEAL-118, HERO-MP-006
 func (w *World) escortHeal(i, ti int) bool {
 	e, target := w.entities[i], w.entities[ti]
-	if !e.Book.WirePresent(e.KnownSpells) {
+	if !e.Book.WirePresent(e.KnownSpells) || w.computerHealRefuses(e, target) {
 		return false
 	}
 	floor := e.MaxMana / 4
