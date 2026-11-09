@@ -16,6 +16,51 @@ func unplacedCreatureRow(name string, body, typeID, face int32) ghostResistanceE
 	return ghostResistanceEntry{name: name, params: params}
 }
 
+// TestSourceActorSeedRowZeroRow pins DIV-4748's reader.
+func TestSourceActorSeedRowZeroRow(t *testing.T) {
+	row := func(name string, body, typeID, face, rotation int32) ghostResistanceEntry {
+		e := unplacedCreatureRow(name, body, typeID, face)
+		e.params[9] = rotation
+		return e
+	}
+	table := &Table{Units: ghostResistanceCollection{
+		{},
+		row(ghostRowName, 11, 61, 3, 31),
+		row("F_Skeleton.2", 9, 92, 2, 32),
+		row("F_Skeleton.4", 47, 92, 1, 33),
+		row("Faceless", 8, 200, 2, 34),
+	}}
+	for _, tc := range []struct {
+		name     string
+		typeID   uint16
+		face     uint8
+		rotation int32
+		refused  bool
+	}{
+		{name: "saved face names no row: face-1 row", typeID: 92, rotation: 33},
+		{name: "saved face names its row", typeID: 92, face: 2, rotation: 32},
+		{name: "Ghost keeps its row", typeID: 61, rotation: 31},
+		{name: "no face-1 row refuses", typeID: 200, refused: true},
+		{name: "no row at all refuses", typeID: 77, refused: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := SourceActorSeed(sim.SourceBinding{Class: sim.GeneratedUnitBinding, TypeID: tc.typeID, Face: tc.face}, table)
+			if tc.refused {
+				if err == nil {
+					t.Fatal("the seed took a row, want the refusal")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.RotationSpeed != tc.rotation {
+				t.Fatalf("rotation = %d, want %d", got.RotationSpeed, tc.rotation)
+			}
+		})
+	}
+}
+
 // TestConstructActorBasisUnplacedCreatureRow pins DIV-4748 and its controls.
 func TestConstructActorBasisUnplacedCreatureRow(t *testing.T) {
 	table := &Table{Units: ghostResistanceCollection{

@@ -23,14 +23,12 @@ func SourceActorSeed(s sim.SourceBinding, t *Table) (sim.Entity, error) {
 			// An installed Units collection holds no definition at row 0. A
 			// hired Catapult or Ballista carries that row through an original
 			// resave, which restores it literally (SAV-ACTORCTOR-546); its
-			// TypeID and Face are the spawn key a placement resolves. The
+			// TypeID and Face are the spawn key a placement resolves; a face
+			// that names no row is a creature no placement names. The
 			// binding keeps the saved row.
 			n := data.FindUnit(t.Units, int32(uint8(s.TypeID)), int32(s.Face))
-			if g, gd, ok := ghostRow(t.Units); n == data.NotFound && ok && gd.TypeID == int32(uint8(s.TypeID)) {
-				// A Control Spirit Ghost saved with row 0 and face 0 matches
-				// no key; the cast constructs it from the row named Ghost
-				// (MAGIC-SING-019).
-				n = g
+			if n == data.NotFound {
+				n, _, _ = unplacedUnitRow(t.Units, int32(uint8(s.TypeID)))
 			}
 			if n != data.NotFound {
 				d, err = data.NewUnitDef(t.Units.EntryName(n), t.Units.EntryParams(n))

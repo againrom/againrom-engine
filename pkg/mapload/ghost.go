@@ -38,6 +38,15 @@ func ghostRow(units data.Collection) (int, data.UnitDef, bool) {
 	return unitRowDef(units, findUnitByName(units, ghostRowName))
 }
 
+// unplacedUnitRow is the Units row of a creature no placement names: the row
+// named Ghost for its TypeID, else the TypeID's first face-1 row (DIV-4748).
+func unplacedUnitRow(units data.Collection, typeID int32) (int, data.UnitDef, bool) {
+	if n, d, ok := ghostRow(units); ok && n <= 255 && d.TypeID == typeID {
+		return n, d, true
+	}
+	return unitRowDef(units, data.FindUnit(units, typeID, 1))
+}
+
 // unitRowDef is one Units row a search found and its definition. ok is false
 // when the search found none or the row does not parse.
 func unitRowDef(units data.Collection, i int) (int, data.UnitDef, bool) {
