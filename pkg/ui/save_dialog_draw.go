@@ -90,8 +90,6 @@ func (s *savePaint) label(value string, x, y int, c color.RGBA) {
 	s.texts = append(s.texts, savePaintText{text: value, at: image.Pt(x, y), color: c})
 }
 
-func (a *App) saveListBox() listBox { return a.pageListBox(a.flow.saveScreen.view()) }
-
 func (a *App) saveTextWidth(value string) int {
 	if font := a.flow.menuFont; font != nil {
 		w, _ := font.Measure(a.flow.menuDisplayText(value))

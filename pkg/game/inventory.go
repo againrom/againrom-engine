@@ -397,10 +397,6 @@ func tagFigureLayer(mask *ui.SlotMask, layer *image.RGBA, slot int, coverage *fi
 	}
 }
 
-func paintFigureLayer(dst, layer *image.RGBA) {
-	paintFigureLayerMasked(dst, layer, nil, 0)
-}
-
 // paintFigureLayerMasked is paintFigureLayer's own body, widened to record
 // WHICH SLOT painted each pixel it touches (1005, "the interactive doll";
 // contract DIV-085) — built BESIDE the composition, from the identical

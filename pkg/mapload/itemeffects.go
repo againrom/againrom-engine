@@ -333,17 +333,6 @@ func SpellBookCost(spell uint16, table *Table) (int32, bool) {
 	return params[21], true
 }
 
-func exactSpellBook(item sim.ItemInstance) (uint16, bool) {
-	if item.Kind != 5 || len(item.Effects) != 1 {
-		return 0, false
-	}
-	effect := item.Effects[0]
-	if effect.Kind != 42 || effect.Mode != 0 || effect.Operand == 0 || effect.Operand >= 32 {
-		return 0, false
-	}
-	return uint16(effect.Operand), true
-}
-
 // RepriceItemInstance recomputes an item's stored value from its live base row
 // and complete ordered effect list. An incomplete table preserves the stored
 // value instead of replacing it with a guessed zero.

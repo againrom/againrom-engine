@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"image/draw"
 	"time"
 
 	"againrom/pkg/base"
@@ -454,15 +453,6 @@ func (v roomPageView) hireSeat() (hire, hired bool) {
 		return false, false
 	}
 	return true, v.t.state().hired(list[seat].word.npc)
-}
-
-// drawAt draws pic with its top-left corner at at.
-func drawAt(dst *image.RGBA, pic image.Image, at image.Point, op draw.Op) {
-	if pic == nil {
-		return
-	}
-	b := pic.Bounds()
-	draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, op)
 }
 
 // ControlAt answers what a click at p reaches: on the square a hotspot's row

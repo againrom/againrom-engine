@@ -36,27 +36,6 @@ func cloneCityReturn(r *SnapshotCityReturn) *SnapshotCityReturn {
 	return &n
 }
 
-// returnDerived drops the member fields that follow from what he wears, so
-// no comparison of two members decides on them. The written return carries
-// the current worn set, and every reader derives these fields again from it.
-//
-// Weapon is slot 1's weapon record, and the starting-weapon latch only
-// decides whether an empty slot 1 is drawn holding Weapon; the latch is set
-// through its one writer so both sides carry the same value.
-//
-// Body, BodyDir and Class of a composed member are data.HeroAppearance of
-// the figure equipment and Mage, which the mission build, the town faces and
-// a SAV restore each recompute. The retained party still holds the values
-// computed when the mission opened. A hired member's Class is his row.
-func returnDerived(p mapload.PartyMember) mapload.PartyMember {
-	p.Weapon = nil
-	materializeStartingWeapon(&p)
-	if !p.Hired() {
-		p.Body, p.BodyDir, p.Class = "", "", 0
-	}
-	return p
-}
-
 func returnItems(items []sim.ItemInstance) []sim.ItemInstance {
 	if len(items) == 0 {
 		return nil

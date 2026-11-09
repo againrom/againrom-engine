@@ -19,10 +19,6 @@ type rng struct {
 // consuming a draw. It is not the original engine's RNG or a SAV field.
 func (w *World) RandomState() uint64 { return w.rng.state }
 
-// RestoreRandomState installs the complete native stream during a cold LOAD.
-// It consumes no draw and changes no other simulation state.
-func (w *World) RestoreRandomState(state uint64) { w.rng.state = state }
-
 // RandomMode answers which generator the world's stream runs on.
 func (w *World) RandomMode() random.Mode {
 	if w.rng.original {

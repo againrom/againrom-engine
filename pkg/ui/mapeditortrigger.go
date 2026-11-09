@@ -1180,21 +1180,6 @@ func (e *MapEditor) controlPopupRowRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// PopupRowFullText is the whole text of the object popup's row n and whether
-// the row cuts it, so that the hover line over the row shows it whole.
-func (e *MapEditor) PopupRowFullText(n int) (string, bool) {
-	s, _, ok := e.objectSpec()
-	if !ok {
-		return "", false
-	}
-	for _, row := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if row.Index == n {
-			return rowFull(e.font, e.bodyFont(), s.Rows[n], row)
-		}
-	}
-	return "", false
-}
-
 // PopupTipRects are the boxes of the hover lines ChromeImage draws now.
 func (e *MapEditor) PopupTipRects() []image.Rectangle {
 	var specs []popupSpec

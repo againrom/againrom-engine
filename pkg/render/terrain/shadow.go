@@ -2,7 +2,6 @@ package terrain
 
 import (
 	"image"
-	"image/color"
 	"math"
 )
 
@@ -123,18 +122,6 @@ func ShadowLevel(lt Light, kind ShadowKind) int {
 
 func ShadowChannel(in uint8, level int) uint8 {
 	return uint8((int(in) * (16 - level)) >> 4)
-}
-
-// ShadowRGBA is ShadowChannel run over the three colour channels, alpha
-// carried unchanged: a shadow recolours what is already at a pixel and never
-// adds or removes coverage of its own.
-func ShadowRGBA(c color.RGBA, level int) color.RGBA {
-	return color.RGBA{
-		R: ShadowChannel(c.R, level),
-		G: ShadowChannel(c.G, level),
-		B: ShadowChannel(c.B, level),
-		A: c.A,
-	}
 }
 
 func ShadowAlpha(level int) uint8 {

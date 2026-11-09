@@ -461,13 +461,6 @@ type TownSurfaceControl struct {
 	Index int
 }
 
-func townSurfaceUpperRect(kind TownSurfaceKind) image.Rectangle {
-	if kind == TownSurfaceSchool {
-		return TownWideUpperRegion
-	}
-	return TownUpperRegion
-}
-
 // townButtonLabelRect and townButtonValueRect are a surface button's own two
 // text bands within its well r: the label on the first line, the button's
 // current value on the second. Both are named producers rather than inline

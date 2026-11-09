@@ -54,9 +54,6 @@ var weaponLatchSites = map[string]string{
 	"mapload.PartyLoadout": "reads it as ResolveEquipmentLoadout's own everEquipped: a raised latch means " +
 		"mission construction treats an empty slot 1 as taken off, not as not-yet-materialized (C3, round-2 " +
 		"seventh pass, 2026-08-17)",
-	"game.nativeCityHiredEquipmentMismatch": "reads it: a hired mercenary's own latch must match the fresh " +
-		"tavern template restoreHiredMercenaries would rebuild him from, or the native SAV refuses rather than " +
-		"silently reverting it on the next load (story 1127 correction, R-2)",
 }
 
 func TestWeaponMaterializedHasOneWriter(t *testing.T) {

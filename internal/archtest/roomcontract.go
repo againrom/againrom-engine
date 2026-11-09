@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,23 +95,6 @@ func CheckRoomContract(files map[string]string) []Violation {
 						report(x, x.Name.Name+" must alias TownRoomView")
 					}
 				}
-			case *ast.CompositeLit:
-				typ := ""
-				switch t := x.Type.(type) {
-				case *ast.Ident:
-					typ = t.Name
-				case *ast.SelectorExpr:
-					typ = t.Sel.Name
-				}
-				if len(x.Elts) == 0 {
-					break
-				}
-				if (typ == "RoomLayer" || typ == "RoomSchool" || typ == "RoomHit") && name != roomPageBuilder && name != roomPagePainter {
-					report(x, "second room data builder constructs "+typ+"; use buildRoomPage")
-				}
-				if typ == "RoomPanel" && name != roomPageBuilder && name != "pkg/ui/roompanel.go" && name != "pkg/ui/widgetpanel.go" {
-					report(x, "second room data builder constructs RoomPanel; use buildRoomPage")
-				}
 			case *ast.IfStmt, *ast.SwitchStmt:
 				if name != roomPageBuilder && !strings.HasPrefix(name, "pkg/ui/room") {
 					break
@@ -134,6 +119,57 @@ func CheckRoomContract(files map[string]string) []Violation {
 			return true
 		})
 	}
+	return vs
+}
+
+// roomDataTypes are the pkg/ui room data types and the production files that
+// may write one with a literal.
+var roomDataTypes = map[string][]string{
+	"RoomLayer":  {roomPageBuilder, roomPagePainter},
+	"RoomSchool": {roomPageBuilder, roomPagePainter},
+	"RoomHit":    {roomPageBuilder, roomPagePainter},
+	"RoomPanel":  {roomPageBuilder, "pkg/ui/roompanel.go", "pkg/ui/widgetpanel.go"},
+}
+
+// CheckRoomLiterals reports each production composite literal with elements
+// of a room data type outside the files that build room data. It reads the
+// literal's own type, so an elided element type (`[]ui.RoomHit{{...}}`), an
+// alias and a pointer literal are the type they stand for.
+func CheckRoomLiterals(m *TypeCheckedModule) []Violation {
+	var vs []Violation
+	for path, p := range m.Packages {
+		if !strings.HasPrefix(path, "againrom/pkg/") {
+			continue
+		}
+		for i, file := range p.Files[:p.NumProd] {
+			rel := p.RelPaths[i]
+			ast.Inspect(file, func(n ast.Node) bool {
+				lit, ok := n.(*ast.CompositeLit)
+				if !ok || len(lit.Elts) == 0 {
+					return true
+				}
+				t := p.Info.Types[lit].Type
+				if t == nil {
+					return true
+				}
+				t = types.Unalias(t)
+				if ptr, ok := t.(*types.Pointer); ok {
+					t = types.Unalias(ptr.Elem())
+				}
+				named, ok := t.(*types.Named)
+				if !ok || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "againrom/pkg/ui" {
+					return true
+				}
+				allowed, isRoomData := roomDataTypes[named.Obj().Name()]
+				if isRoomData && !slices.Contains(allowed, rel) {
+					vs = append(vs, Violation{From: rel + ":" + strconv.Itoa(m.Fset.Position(lit.Pos()).Line),
+						Reason: "second room data builder constructs " + named.Obj().Name() + "; use buildRoomPage"})
+				}
+				return true
+			})
+		}
+	}
+	sort.Slice(vs, func(i, j int) bool { return vs[i].From < vs[j].From })
 	return vs
 }
 

@@ -81,12 +81,6 @@ func (v *Viewer) replySelection(now time.Time) {
 	}
 }
 
-// PlaySpeechSample uses the map listener and fog policy with a distinct speech
-// player. The sample was resolved by the game layer from its installed bank.
-func (v *Viewer) PlaySpeechSample(player audio.Player, sample audio.Sample, owner uint32, cell image.Point) {
-	v.PlayReplySample(player, sample, "unit-reply", "provided-speech-sample", owner, cell, cell.Mul(256).Add(image.Pt(128, 128)))
-}
-
 func (v *Viewer) PlayReplySample(player audio.Player, sample audio.Sample, source, selector string, owner uint32, cell, fine image.Point) {
 	if DeliveryOwner(player) != nil && DeliveryOwner(player) == DeliveryOwner(v.speechPlayer) {
 		player = v.speechPlayer

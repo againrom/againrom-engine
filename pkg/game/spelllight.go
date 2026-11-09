@@ -65,12 +65,6 @@ func pointLightStamps(out []ui.LightStamp, cell image.Point, radius int, level u
 	return out
 }
 
-// lightCell is the cell holding a cell-relative ShotScale point.
-func lightCell(p image.Point) image.Point {
-	half := ui.ShotScale / 2
-	return image.Pt(floorDiv(p.X+half, ui.ShotScale), floorDiv(p.Y+half, ui.ShotScale))
-}
-
 func floorDiv(a, b int) int {
 	q := a / b
 	if a%b != 0 && (a < 0) != (b < 0) {

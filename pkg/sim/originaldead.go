@@ -49,20 +49,6 @@ type originalDeadRecord struct {
 	terminal DeadActorState // Stage 0: current state comes only from the entity
 }
 
-// deadStateFault admits the decay ladder's pre-terminal stages 2/3/4 and the
-// terminal stage 5 (SAV-DEADLOAD-128's decay ladder and spell-family route);
-// stage 0/1 (constructor, mission-end reset, revive, first dying tick) are
-// not evidenced in any saved dead record and stay refused. Timer 0 is kept
-// unconditionally: SAV-DEADLOAD-131 (High) shows its eight writers all sit in
-// the live dying/order tick, never the dead-load or decay routes, and all 101
-// archival records carry zero. Stage/HP/RuntimeID pairing and the cell-bounds
-// checks are unchanged; SAV-DEADLOAD-126 (High) is why they are read directly
-// rather than derived. Source-backed actors keep FineX/FineY through removal;
-// virtual records require the canonical center.
-func deadStateFault(s DeadActorState, b Bounds) error {
-	return deadStateFaultWithPosition(s, b, false)
-}
-
 func deadStateFaultWithPosition(s DeadActorState, b Bounds, allowFinePosition bool) error {
 	hp := int64(s.HP)
 	if s.Stage < 2 || s.Stage > 5 || s.Timer != 0 || !LifeBones.Holds(hp, 0, false) ||

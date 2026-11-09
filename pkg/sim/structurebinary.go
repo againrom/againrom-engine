@@ -35,29 +35,6 @@ func (w *World) structureSectionLen() int {
 	return structureCountLen + structureRecordLen*len(w.structures)
 }
 
-// WithoutStructureAndItemStateSections returns the form-57 whole-section
-// shape used by migration fixtures. Version 61 places item state immediately
-// after structures, so both later sections must be removed before a caller
-// labels the bytes as an older form.
-func (w *World) WithoutStructureAndItemStateSections() ([]byte, error) {
-	full, err := w.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	// Migration fixture output predates imported dead records entirely.
-	suffixLen := len(full) - w.binaryBodyLen()
-	end := len(full) - relationLen - suffixLen
-	full = append(full[:end-w.originalDeadSectionLen()-w.instanceWeightSectionLen()-w.actorLoadSectionLen()], full[end:]...)
-	tailLen := w.scriptSectionLen() + relationLen + suffixLen
-	removed := w.structureSectionLen() + w.itemStateSectionLen() + w.scrollSectionLen()
-	head := full[:len(full)-removed-tailLen]
-	tail := full[len(full)-tailLen:]
-	out := make([]byte, 0, len(head)+len(tail))
-	out = append(out, head...)
-	out = append(out, tail...)
-	return out, nil
-}
-
 // encodeStructures writes the section into b at off and returns the offset
 // past it.
 //

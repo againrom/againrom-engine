@@ -185,16 +185,6 @@ func (t *shopController) shopOffTable(i int, whole bool) ui.TownAction {
 	return ui.TownInfo("back in your pack")
 }
 
-// shopFindHisPlace finds a matching merchant item and price from the same
-// shelf. Unlike a player place, its From value determines the return shelf.
-func shopFindHisPlace(table []ShopPlace, code data.ItemCode, price int32, from ShopShelf) (int, bool) {
-	return shopFindHisItemPlace(table, ShopItem{Code: code, Price: price}, from)
-}
-
-func shopFindHisItemPlace(table []ShopPlace, item ShopItem, from ShopShelf) (int, bool) {
-	return shopFindJoinPlace(table, item, false, from, shopItemEqual)
-}
-
 // shopFindJoinPlace finds the place of one side a lot joins by join; a
 // merchant place must also have come off the lot's shelf.
 func shopFindJoinPlace(table []ShopPlace, item ShopItem, mine bool, from ShopShelf, join func(held, lot ShopItem) bool) (int, bool) {
@@ -492,19 +482,6 @@ func (t *shopController) shopWeaponFallbackCode(i int) (code uint16, ok bool) {
 		return 0, false
 	}
 	return uint16(member.Weapon.Code), true
-}
-
-// shopSlot1Code prefers real worn equipment, then the unmaterialized starting
-// weapon used by the doll and drag views. viaFallback tells a consumer to
-// materialize the weapon instead of clearing an already-empty array slot.
-func (t *shopController) shopSlot1Code(i int, worn *[sim.EquipSlots]uint16) (code uint16, viaFallback bool) {
-	if worn[0] != 0 {
-		return worn[0], false
-	}
-	if code, ok := t.shopWeaponFallbackCode(i); ok {
-		return code, true
-	}
-	return 0, false
 }
 
 // shopWearInto fills the selected equipment slot and returns displaced items

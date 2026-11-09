@@ -230,10 +230,6 @@ func sourceAllowsShield(item ItemInstance) bool {
 	return item.SourceEquipment.Class == SourceWeapon && d.Present && d.AttackType < 10 && d.Hands != 2
 }
 
-func (w *World) sourcePrepareWeapon(item *ItemInstance) bool {
-	return w.sourcePrepareWeaponTraced(item, nil, 0)
-}
-
 func (w *World) sourcePrepareWeaponTraced(item *ItemInstance, trace *sourceEquipmentTrace, ticket uint32) bool {
 	for _, effect := range item.Effects {
 		if effect.Kind != 41 {
@@ -343,11 +339,6 @@ func (w *World) sourceRemoveEquipmentTraced(i, slot int, trace *sourceEquipmentT
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}
 	return item, true
-}
-
-func (w *World) sourceAttachEquipment(i int, item ItemInstance) (ItemInstance, bool) {
-	old, _, ok := w.sourceAttachEquipmentTraced(i, item, nil, 0)
-	return old, ok
 }
 
 func (w *World) sourceAttachEquipmentTraced(i int, item ItemInstance, trace *sourceEquipmentTrace, ticket uint32) (ItemInstance, uint32, bool) {

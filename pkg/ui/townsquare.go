@@ -66,12 +66,6 @@ type TownSquarePaneScreen interface {
 	TownSquarePane(c CharacterPaneCorner)
 }
 
-// townSquarePaneCorner is the pane corner a click at p acts on.
-func townSquarePaneCorner(v TownSquareView, p image.Point) (CharacterPaneCorner, bool) {
-	c, hit := v.ControlAt(p)
-	return c.Corner, hit && c.Pane
-}
-
 // ComposeTownSquare paints the scene, its character pane, then the message
 // line and the tip panel over it. A view with no scene answers a blank
 // canvas; app.go never calls this without a scene (see townSquareView).

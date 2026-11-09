@@ -81,14 +81,6 @@ const RiderSpeedBonus int32 = 10
 // RiderTypeID reports a rider type id.
 func RiderTypeID(typeID int32) bool { return typeID == 0x13 || typeID == 0x15 }
 
-// SpeedBonus is p's rider speed term.
-func (p Profile) SpeedBonus() int32 {
-	if p.Rider {
-		return RiderSpeedBonus
-	}
-	return 0
-}
-
 // EquipMod is the additive contribution every equipped item OTHER than the
 // weapon in hand folds into: a to-hit term, a damage base and a damage
 // spread term, a defence and an absorption term, and the five elemental

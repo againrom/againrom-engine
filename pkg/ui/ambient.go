@@ -213,18 +213,6 @@ func ambientBirdWins(draws *random.Stream, total, birds int) bool {
 	return draws.Raw()/divisor < birds
 }
 
-func ambientCentroid(cells []image.Point) image.Point {
-	if len(cells) == 0 {
-		return image.Point{}
-	}
-	x, y := 0, 0
-	for _, cell := range cells {
-		x += cell.X
-		y += cell.Y
-	}
-	return image.Pt(x/len(cells), y/len(cells))
-}
-
 func ambientStaticCells(g terrain.Grid, set *terrain.StaticSet) []ambientStaticCell {
 	if set == nil || g.Width <= 0 || g.Height <= 0 || len(g.Overlay) != g.Width*g.Height {
 		return nil

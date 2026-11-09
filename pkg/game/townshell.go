@@ -142,14 +142,6 @@ func (t *townScreen) tavernSurfaceCells() []ui.TownSurfaceCell {
 	return cells
 }
 
-func (t *townScreen) selectedMercenary() (TavernOffer, bool) {
-	c, ok := t.selectedTavernCandidate()
-	if !ok || c.key.kind != tavernCandidateMercenary {
-		return TavernOffer{}, false
-	}
-	return c.merc, true
-}
-
 // tavernCandidateDetail builds one real generated candidate through the same
 // subject, equipment, doll compositor and item-popup producers used by the
 // character pane and inventory. It has no mutation handle back to the member.

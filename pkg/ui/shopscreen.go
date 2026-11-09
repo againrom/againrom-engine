@@ -808,14 +808,6 @@ func blit(dst, src *image.RGBA, x, y int) {
 	draw.Draw(dst, image.Rect(x, y, x+b.Dx(), y+b.Dy()), src, b.Min, draw.Over)
 }
 
-func blitPicture(dst *image.RGBA, src image.Image, x, y int) {
-	if dst == nil || src == nil {
-		return
-	}
-	b := src.Bounds()
-	draw.Draw(dst, image.Rect(x, y, x+b.Dx(), y+b.Dy()), src, b.Min, draw.Over)
-}
-
 // shopPlaqueIndex is which of the seven plaques a stored unit price takes: its
 // decimal digit count minus one, clamped to the seventh (SHOP-SCREEN-037).
 //

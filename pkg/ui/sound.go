@@ -127,41 +127,11 @@ func classSlot(sounds []int, idx int) int {
 	return sounds[idx]
 }
 
-func (v *Viewer) listenerCell() (image.Point, bool) {
-	if v.cam == nil {
-		return image.Point{}, false
-	}
-	r := v.cam.VisibleTiles()
-	if r.Empty() {
-		return image.Point{}, false
-	}
-	return image.Pt((r.Col0+r.Col1)/2, (r.Row0+r.Row1)/2), true
-}
-
 func (v *Viewer) playSlotAt(slot int, owner uint32, cell image.Point) {
 	if slot <= 0 || v.soundBank == nil {
 		return
 	}
 	v.PlayEffectAtFine("map-effect", slot, owner, cell, cell.Mul(256).Add(image.Pt(128, 128)))
-}
-
-// playSpeechSlotAt is playSlotAt on the speech device (ANIM-128).
-func (v *Viewer) playSpeechSlotAt(slot int, owner uint32, cell image.Point) {
-	if slot <= 0 || v.soundBank == nil {
-		return
-	}
-	v.placeAndPlay(v.speechPlayer, owner, cell, cell.Mul(256).Add(image.Pt(128, 128)), "unit-hurt", "registry:"+strconv.Itoa(slot), audio.SpeechChannel, func() (audio.Sample, bool) { return v.soundBank.Sample(slot) })
-}
-
-// playVoiceAt plays one recording of a human voice bank, named inside the
-// sound archive, from cell on the speech device, under playSlotAt's gate and
-// placement.
-func (v *Viewer) playVoiceAt(name string, owner uint32, cell image.Point) {
-	bank, ok := v.soundBank.(VoiceBank)
-	if !ok {
-		return
-	}
-	v.placeAndPlay(v.speechPlayer, owner, cell, cell.Mul(256).Add(image.Pt(128, 128)), "unit-hurt", "voice:"+name, audio.SpeechChannel, func() (audio.Sample, bool) { return bank.VoiceSample(name) })
 }
 
 // placeAndPlay plays the sample resolve answers at cell, placed against the

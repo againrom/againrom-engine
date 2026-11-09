@@ -125,20 +125,6 @@ const (
 	NoticeToEnding NoticeDest = 6
 )
 
-// noticeBreak reports whether b ends a word for the wrap.
-//
-// SPACE IS THE CLAIM AND THE REST IS OURS. `DLG-WRAP-009` fixes the rect, the
-// pitch and the clamp; the break policy is this project's (provenance, "Ours by
-// choice"). Authored text carries its own line breaks and this atlas has no
-// record for one — every byte below 0x20 selects the space glyph through the
-// subscript rule — so a byte that DRAWS as a space and does not BREAK as one
-// would turn a two-line authored paragraph into a single unbreakable word.
-// Treating the four ASCII layout bytes as the break class is the smallest rule
-// that avoids it, and it is ours and disclosed rather than claimed.
-func noticeBreak(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\r' || b == '\n'
-}
-
 func (l Dialog) WithDialogueButtonState(state DialogueButtonState) Dialog {
 	l.ButtonState = state
 	return l
@@ -875,13 +861,6 @@ func (v *Viewer) SetDialogFrame(art *DialogFrame) {
 		v.noticeLayouts[i].Frame = art
 	}
 	v.dialogFrame = art
-}
-
-// SetSuccessNoticeLayout replaces only the two-button success surface.
-func (v *Viewer) SetSuccessNoticeLayout(success Dialog) {
-	v.noticeLayouts[NoticeSuccess] = success
-	v.noticeSerial++
-	v.noticePic = nil
 }
 
 // noticeLayout is the layout the open notice is drawn with: the stored value

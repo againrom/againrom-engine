@@ -1156,14 +1156,6 @@ func StartMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	return startMissionScripted(m, t, diff, party, 0, s, nil)
 }
 
-// StartCampaignMissionScripted is StartMissionScripted with campaign-tier NPC
-// composition. It is the campaign door; the plain form remains available to
-// map tools which deliberately have no mission number.
-func StartCampaignMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
-	mission int, s *sim.Script) (*sim.World, Start, error) {
-	return startMissionScripted(m, t, diff, party, mission, s, nil)
-}
-
 // StartCampaignMissionScriptedWith is StartCampaignMissionScripted placing
 // the party with draws; nil is the sequence at StartSeed.
 func StartCampaignMissionScriptedWith(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
@@ -1227,14 +1219,4 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	}
 	out.ConstructMissionMovers(st.IDs)
 	return out, st, nil
-}
-
-// worldExtent is the map's own cell extent, and zero for a nil map — the same
-// answer FromALMWith gives such a map, so the two cannot disagree about where the
-// grid ends.
-func worldExtent(m *alm.Map) (w, h int32) {
-	if m == nil {
-		return 0, 0
-	}
-	return int32(m.Width), int32(m.Height)
 }

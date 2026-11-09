@@ -9,7 +9,6 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/text"
-	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -593,20 +592,6 @@ func (t *townScreen) platoonTalkPicture(speaker int) (*image.RGBA, bool) {
 		}
 	}
 	return t.mercenaryTalkPicture(speaker)
-}
-
-func townItemStacks(items []uint16) []sim.ItemStack {
-	var stacks []sim.ItemStack
-	positions := make(map[uint16]int)
-	for _, code := range items {
-		if i, ok := positions[code]; ok {
-			stacks[i].Count++
-			continue
-		}
-		positions[code] = len(stacks)
-		stacks = append(stacks, sim.ItemStack{Code: code, Count: 1})
-	}
-	return stacks
 }
 
 func (t *townScreen) atSquare() {

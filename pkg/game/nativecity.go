@@ -2,13 +2,11 @@ package game
 
 import (
 	"encoding/binary"
-	"reflect"
 	"slices"
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/namefold"
-	"againrom/pkg/sim"
 )
 
 // This file builds an original-compatible city SAV for a campaign that never
@@ -698,162 +696,6 @@ func filterOfferedPaired(t *Town, chapter int, building TownBuilding, mission, n
 		out.npc = append(out.npc, npc[i])
 	}
 	return out
-}
-
-// A pending native grant whose member is absent would change the current
-// party during SAV LOAD. Consumed grants are written empty and no longer
-// require this refusal, even if the granted member has since left or died.
-// The historical function name is retained for the existing refusal seam.
-func nativeCityDismissedCompanion(t *Town, party []mapload.PartyMember) int {
-	if t == nil {
-		return 0
-	}
-	for _, npc := range t.pendingNativeHeroGrants(t.Chapter()) {
-		if npc == 0 {
-			continue
-		}
-		present := false
-		for _, member := range party {
-			if member.Membership().Matches(mapload.CompanionMember, npc) {
-				present = true
-				break
-			}
-		}
-		if !present {
-			return npc
-		}
-	}
-	return 0
-}
-
-// nativeCityEqualUint16s and nativeCityEqualItemInstance(s) compare by
-// content, treating a nil slice and an allocated zero-length slice as equal.
-// hireMembers (hire.go) always allocates Carried via
-// make([]uint16, len(carriedItems)) — non-nil even for a type whose row
-// carries nothing — while a live PartyMember's own zero value leaves the same
-// field nil; reflect.DeepEqual treats the two as different. Measured: a first
-// version of nativeCityHiredEquipmentMismatch built on reflect.DeepEqual
-// refused every single hire of a type whose row carries nothing, including
-// one the player never touched, because "carried item codes" mismatched
-// nil-vs-empty on both sides of that one comparison alone.
-func nativeCityEqualUint16s(a, b []uint16) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func nativeCityEqualItemInstance(a, b sim.ItemInstance) bool {
-	if a.ObjectID != b.ObjectID || a.Code != b.Code || a.Kind != b.Kind || a.Price != b.Price ||
-		a.Weight != b.Weight || a.WeightPresent != b.WeightPresent || a.SourceEquipment != b.SourceEquipment {
-		return false
-	}
-	if len(a.Effects) != len(b.Effects) {
-		return false
-	}
-	for i := range a.Effects {
-		if a.Effects[i] != b.Effects[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func nativeCityEqualItemInstances(a, b []sim.ItemInstance) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if !nativeCityEqualItemInstance(a[i], b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func nativeCityEqualWornItems(a, b [sim.EquipSlots]sim.ItemInstance) bool {
-	for i := range a {
-		if !nativeCityEqualItemInstance(a[i], b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func nativeCityHiredEquipmentMismatch(live, template mapload.PartyMember) string {
-	switch {
-	case live.Worn != template.Worn:
-		return "worn item codes"
-	case !nativeCityEqualWornItems(live.WornItems, template.WornItems):
-		return "worn item instances"
-	case !nativeCityEqualUint16s(live.Carried, template.Carried):
-		return "carried item codes"
-	case !nativeCityEqualItemInstances(live.CarriedItems, template.CarriedItems):
-		return "carried item instances"
-	case !reflect.DeepEqual(live.Weapon, template.Weapon):
-		return "weapon"
-	case live.WeaponMaterialized != template.WeaponMaterialized:
-		return "weapon materialization"
-	case live.KnownSpells != template.KnownSpells:
-		return "known spells"
-	case live.Book != template.Book:
-		return "spellbook"
-	case live.SpellbookRestored != template.SpellbookRestored:
-		return "spellbook-restored flag"
-	case live.SpellbookPresent != template.SpellbookPresent:
-		return "spellbook-present flag"
-	case live.Hero != template.Hero:
-		return "tracked stats"
-	}
-	return ""
-}
-
-// nativeCitySiegeHireOrderMismatch reports the first siege type (tavern type
-// 1 Catapult or 2 Ballista; nativeCitySiegeMember) whose live party position
-// restoreHiredMercenaries (nativecityrestore.go) could not reproduce, or 0
-// when none is hired or every one already sits where a reload would place
-// it. A siege engine is written as its own Unit actor (nativecitysiege.go) and
-// read back from it on a LOAD of an original file; a file without that actor
-// is rebuilt by restoreHiredMercenaries from the campaign record's hire flag.
-// Neither carries where the engine stood in the party (DIV-907's own gap, still
-// open).
-func nativeCitySiegeHireOrderMismatch(party []mapload.PartyMember) int {
-	lastSiegeType := 0
-	sawHumanHire := false
-	for _, member := range party {
-		if nativeCitySiegeMember(member) {
-			typ := int(member.TavernType())
-			if sawHumanHire {
-				return typ
-			}
-			if typ < lastSiegeType {
-				return typ
-			}
-			lastSiegeType = typ
-			continue
-		}
-		if member.Membership().Is(mapload.TavernMember) {
-			sawHumanHire = true
-		}
-	}
-	return 0
-}
-
-func nativeCityRefuseUnbindable(members []mapload.PartyMember, hero mapload.PartyMember, table *mapload.Table) error {
-	for _, member := range members {
-		if member.ID == "" {
-			return originalCityUnsupportedf("native city save contains a party member without a stable ID")
-		}
-		if nativeCityDefRow(member, hero, table) == 0 {
-			return originalCityUnsupportedf("native city save has no Humans definition row to bind %s's figure, profile and mage flag; that identity requires lossless .ags", member.Name)
-		}
-	}
-	return nil
 }
 
 // ExportNativeCitySave retains the established API name. Provenance does not

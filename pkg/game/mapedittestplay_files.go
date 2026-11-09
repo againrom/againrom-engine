@@ -45,10 +45,6 @@ type packageGuard struct {
 	walked    bool
 }
 
-func testPlayOwnership(folder string, protected []packageGuard) ([]string, error) {
-	return missionPackageOwnership(folder, testPlayRecord, protected)
-}
-
 func missionPackageOwnership(folder, recordName string, protected []packageGuard) ([]string, error) {
 	noun := "the mod package folder"
 	if recordName == testPlayRecord {

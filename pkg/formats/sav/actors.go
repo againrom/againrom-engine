@@ -38,13 +38,6 @@ func (a Actor) Row() int     { return int(a.Cell >> 8) }
 func (a Actor) Col() int     { return int(a.Cell & 0xff) }
 func (a Actor) AtRest() bool { return a.FineX == restFine && a.FineY == restFine }
 
-// actorRecords traverses graph roots once. First-stage dying records detached
-// from a native Group retain the complete Unit/Human graph in the dead list;
-// later corpses keep the separately bounded dead-manager import.
-func actorRecords(players []*Record, dead ...[]*Record) []*Record {
-	return currentActorRecords(players, nil, dead...)
-}
-
 func currentActorRecords(players []*Record, current []uint16, dead ...[]*Record) []*Record {
 	var out []*Record
 	seen := map[*Record]bool{}

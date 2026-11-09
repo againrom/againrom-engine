@@ -214,20 +214,6 @@ func (l wideFrameLayout) nativeToWide(p image.Point) (image.Point, bool) {
 	return image.Pt((l.width-frame.W)/2+p.X, p.Y), true
 }
 
-func townHasAnchoredRightColumn(t TownScreen) bool {
-	if t == nil {
-		return false
-	}
-	if world, ok := t.(TownWorldMapScreen); ok && world.AtWorldMap() {
-		return false
-	}
-	if surface, ok := t.(TownSurfaceScreen); ok && surface.AtTownSurface() {
-		return true
-	}
-	shop, ok := t.(TownShopScreen)
-	return ok && shop.AtTownShop()
-}
-
 func (a *App) wideFrameWidth() int {
 	if a != nil {
 		if size := a.place.FrameSize(); size.X >= frame.W && size.Y == frame.H {

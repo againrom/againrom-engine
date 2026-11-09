@@ -226,14 +226,6 @@ func resolveStartingWeapon(f *databin.File, slot int32) (*data.Weapon, error) {
 	return resolveWeaponForSlot(false, false, f.Collection(databin.Shapes), f.Collection(databin.Materials), f.Collection(databin.Weapons), slot)
 }
 
-func partyBody(w *data.Weapon, list data.BodyList) (data.HeroBody, bool) {
-	var eq data.Equipment
-	if w != nil {
-		eq.SetCode(1, w.Code)
-	}
-	return data.HeroBodyFor(list, eq)
-}
-
 // chargenProfile is the profile, the figure face, the book and the resolved
 // base row's own ten equipment cell strings a data.ChargenBase answer
 // states. It is the one place MissionParty and ChargenParty (chargen.go) read

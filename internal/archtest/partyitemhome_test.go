@@ -7,27 +7,38 @@ import (
 )
 
 // TestCheckPartyItemHomeNamesEachShape plants each conversion and pack
-// replacement outside the home and a second graph follower inside it.
+// replacement outside the home, in every spelling that reaches the function,
+// and a second graph follower inside it.
 func TestCheckPartyItemHomeNamesEachShape(t *testing.T) {
-	home := "package game\nfunc followHeroPack() {}\nfunc a() { followHeroPack() }\n"
+	const shop = "package secondshop\nfunc KeptUnit(a, b int) int { return a }\nfunc MissionUnit(a int) int { return a }\n" +
+		"func ownImplementation() int { return MissionUnit(1) }\n"
+	const homeHead = "package game\nimport \"againrom/pkg/secondshop\"\ntype CampaignSession struct{}\n" +
+		"func memberWithPack(m int) int { return m }\n" +
+		"func (s *CampaignSession) followHeroPack() {}\n" +
+		"var kept = secondshop.KeptUnit\n"
+	const homeCall = "func (s *CampaignSession) a() { s.followHeroPack() }\n"
 	cases := []struct {
 		name  string
-		files map[string]string
+		other string
+		home  string
 		want  string
 	}{
-		{"a clean tree", map[string]string{PartyItemHomeFile: home, "pkg/game/x.go": "package game\n"}, ""},
-		{"a kept conversion outside", map[string]string{PartyItemHomeFile: home,
-			"pkg/game/x.go": "package game\nfunc a() { secondshop.KeptUnit(x, y) }\n"}, "secondshop.KeptUnit outside"},
-		{"a mission conversion passed as a value", map[string]string{PartyItemHomeFile: home,
-			"pkg/game/x.go": "package game\nvar f = secondshop.MissionUnit\n"}, "secondshop.MissionUnit outside"},
-		{"a pack replacement outside", map[string]string{PartyItemHomeFile: home,
-			"pkg/game/x.go": "package game\nfunc a() { memberWithPack(m, nil, nil, true) }\n"}, "memberWithPack( outside"},
-		{"a graph follower outside", map[string]string{PartyItemHomeFile: home,
-			"pkg/game/x.go": "package game\nfunc a() { s.followHeroPack(b, p, 0, nil) }\n"}, "followHeroPack( outside"},
-		{"a second graph call in the home", map[string]string{PartyItemHomeFile: home + "func b() { followHeroPack() }\n"}, "3 times"},
+		{"a clean tree", "package game\n", homeCall, ""},
+		{"a kept conversion outside", "package game\nimport \"againrom/pkg/secondshop\"\nfunc a() { secondshop.KeptUnit(1, 2) }\n", homeCall, "secondshop.KeptUnit outside"},
+		{"a conversion through an import alias", "package game\nimport ss \"againrom/pkg/secondshop\"\nfunc a() { ss.KeptUnit(1, 2) }\n", homeCall, "secondshop.KeptUnit outside"},
+		{"a mission conversion passed as a value", "package game\nimport \"againrom/pkg/secondshop\"\nvar f = secondshop.MissionUnit\n", homeCall, "secondshop.MissionUnit outside"},
+		{"a pack replacement outside", "package game\nfunc a() { memberWithPack(1) }\n", homeCall, "memberWithPack outside"},
+		{"a pack replacement as a function value", "package game\nvar g = memberWithPack\n", homeCall, "memberWithPack outside"},
+		{"a graph follower outside", "package game\nfunc (s *CampaignSession) b() { s.followHeroPack() }\n", homeCall, "followHeroPack outside"},
+		{"a graph follower as a method value", "package game\nfunc (s *CampaignSession) b() { f := s.followHeroPack; f() }\n", homeCall, "followHeroPack outside"},
+		{"a second graph call in the home", "package game\n", homeCall + "func (s *CampaignSession) b() { s.followHeroPack() }\n", "2 times"},
+		{"no graph call in the home", "package game\n", "", "0 times"},
 	}
 	for _, c := range cases {
-		got := strings.Join(CheckPartyItemHome(c.files), "\n")
+		module := checkedFixture(t,
+			fixturePackage{path: "againrom/pkg/secondshop", files: map[string]string{"pkg/secondshop/shop.go": shop}},
+			fixturePackage{path: "againrom/pkg/game", files: map[string]string{PartyItemHomeFile: homeHead + c.home, "pkg/game/x.go": c.other}})
+		got := strings.Join(CheckPartyItemHome(module), "\n")
 		if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: findings %q, want %q", c.name, got, c.want)
 		}
@@ -43,14 +54,11 @@ func TestPartyItemHomeHoldsEveryCrossing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := LoadSackPickupSources(root)
+	module, err := loadTypeCheckedModule(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := files[PartyItemHomeFile]; !ok {
-		t.Fatalf("the party item home %s is missing", PartyItemHomeFile)
-	}
-	for _, finding := range CheckPartyItemHome(files) {
+	for _, finding := range CheckPartyItemHome(module) {
 		t.Error(finding)
 	}
 }

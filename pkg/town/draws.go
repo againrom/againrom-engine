@@ -179,8 +179,5 @@ func (p *Process) WaitLatch(name string) *Wait {
 // EndCount answers a held episode's process-scoped end counter.
 func (s *Scene) EndCount(name string) int { return s.proc.ends[name] }
 
-// SetEndCount sets a held episode's end counter.
-func (s *Scene) SetEndCount(name string, n int) { s.proc.ends[name] = n }
-
 // ResetDraw returns a generator to unseeded; its next draw seeds it again.
 func (s *Scene) ResetDraw(source string) { delete(s.proc.lcg, source) }

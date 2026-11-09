@@ -16,11 +16,6 @@ func (art *DialogFrame) dialogueFrame(body image.Rectangle, policy DialogueBackd
 	return s
 }
 
-// DIALOGUE-063: mask remaps precede every normal replacement.
-func (art *DialogFrame) drawDialogueBody(dst *image.RGBA, body image.Rectangle) {
-	art.drawDialogueBodyWithPolicy(dst, body, DialogueBackdrop{})
-}
-
 func (art *DialogFrame) drawDialogueBodyWithPolicy(dst *image.RGBA, body image.Rectangle, policy DialogueBackdrop) {
 	drawFrame(dst, art.dialogueFrame(body, policy))
 }
@@ -66,10 +61,6 @@ func ComposeDialogueNotice(dst *image.RGBA, layout Dialog, font *text.Font, body
 		planFrameShadows(s, image.Point{}, 1, dst.Bounds(), shadowOverPicture, s.Policy.shadowTable).paint(dst, nil)
 	}
 	composeDialogueImageWithPolicy(dst, pic, at, layout.DialogueBackdrop)
-}
-
-func composeDialogueImage(dst, pic *image.RGBA, at image.Point) {
-	composeDialogueImageWithPolicy(dst, pic, at, DialogueBackdrop{})
 }
 
 func composeDialogueImageWithPolicy(dst, pic *image.RGBA, at image.Point, policy DialogueBackdrop) {

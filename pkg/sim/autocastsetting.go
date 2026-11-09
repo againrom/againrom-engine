@@ -128,12 +128,6 @@ func (w *World) AutoCastLevelOfSpell(id uint16) AutoCastSetting {
 	return AutoCastLevelOfArm(w.spellArm(id))
 }
 
-// AutoCastCasts reports whether the setting's level lists the row id.
-func (w *World) AutoCastCasts(s AutoCastSetting, id uint16) bool {
-	l := w.AutoCastLevelOfSpell(id)
-	return l != 0 && s.Level()&l == l
-}
-
 type supportCastPolicy struct {
 	minimumMana  int32
 	requiresHeal bool

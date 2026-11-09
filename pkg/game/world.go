@@ -3859,20 +3859,6 @@ func (mw *mapWorld) sackAt(x, y int32) (sim.Sack, bool) {
 	return sim.Sack{}, false
 }
 
-// sackItemsAt is the item codes the ground sack at (x, y) carries, or nil for
-// a cell holding none — grab's OWN READ, taken BEFORE TakeSack consumes the
-// sack (plan R-4), over (*sim.World).Sacks' own fresh copy, so nothing here
-// can reach back into the world it read from.
-//
-// IT IS HANDED THE SAME (x, y) TakeSack IS THEN CALLED WITH, both taken from
-// one read in the caller, which is the whole of R-4's "the two lookups must
-// agree": one sack per cell (sim/sack.go's own construction-time fold) means
-// naming that cell twice can only ever find the one sack standing on it.
-func (mw *mapWorld) sackItemsAt(x, y int32) []uint16 {
-	s, _ := mw.sackAt(x, y)
-	return s.Items
-}
-
 // itemName is the player's name for code: mapload.ItemDisplayName's.
 func itemName(code data.ItemCode, table *mapload.Table) string {
 	s := mapload.ItemSubject{Code: code}

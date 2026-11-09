@@ -50,22 +50,6 @@ func (w *World) FormationMode(player uint32) uint8 {
 	return w.formations[player]
 }
 
-// groupInFormation is `MOVE-GATE-035`'s three behaviours, for the group
-// whose members are given and whose owner is owner.
-//
-// Mode 0 is NEVER in formation and the spread test is not run at all. Mode 2 is
-// in formation exactly when the spread test passes. Any OTHER nonzero mode is in
-// formation unconditionally, again without running the spread test — 254 of the
-// 256 values reach that arm, which is why it is written as the fall-through and
-// not as an enumeration.
-//
-// It is one function rather than three lines inside issueGroupDestination so
-// that the mode's three arms sit together and are read together. The spread test
-// itself is unchanged and is still the only thing that decides a mode-2 group.
-func (w *World) groupInFormation(owner uint32, members []int, cx, cy int32) bool {
-	return w.modeInFormation(w.FormationMode(owner), members, cx, cy)
-}
-
 func (w *World) modeInFormation(mode uint8, members []int, cx, cy int32) bool {
 	switch mode {
 	case 0:

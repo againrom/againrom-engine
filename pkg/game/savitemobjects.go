@@ -285,13 +285,6 @@ func savedItemOwnershipIncoming(doc *sav.DocumentData) map[uint16]uint32 {
 	return incoming
 }
 
-// The source owner and ordinal choose the object. Native equality is only a
-// consistency check after that choice. Original actor stock with LoadState
-// preserves these ordered stacks; native LOAD never calls this importer.
-func importSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, registry *sim.SavedObjects) ([]sim.SavedObjectBinding, error) {
-	return attachSavedItemObjects(state, world, registry, sim.SavedObjectOriginal)
-}
-
 func attachSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, registry *sim.SavedObjects, origin sim.SavedObjectOriginKind) ([]sim.SavedObjectBinding, error) {
 	metadata, doc := state.Objects, state.Document
 	incoming := savedDocumentIncoming(doc)

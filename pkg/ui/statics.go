@@ -433,33 +433,6 @@ func (v *Viewer) drawStructuresFlat(target imageTarget) {
 	}
 }
 
-// drawSprite paints one frame at its world rectangle, culled and transformed by
-// the package's one cull, nearest-sampled and scaled by the camera's zoom.
-//
-// A frameless entry and a culled one both paint NOTHING and build no texture:
-// there is nothing to paint, and ebiten refuses an empty image. The texture comes
-// through staticImage, so object and structure art share one cache keyed on frame
-// identity and one palette walk.
-func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.Rectangle, tint spriteTint) {
-	if f == nil {
-		return
-	}
-	s, ok := spriteScreenRect(r, v.cam)
-	if !ok {
-		return
-	}
-	zoom := v.cam.Zoom
-	var op ebiten.DrawImageOptions
-	op.Filter = ebiten.FilterNearest
-	op.GeoM.Scale(zoom, zoom)
-	op.GeoM.Translate(s.X, s.Y)
-	if tint.On {
-		target.DrawImage(v.tintedImage(f, false, tint.Color, tint.Focus), &op)
-		return
-	}
-	target.DrawImage(v.staticImage(f), &op)
-}
-
 // staticImage is the frame's GPU texture, built on its FIRST draw and cached
 // under the frame's own pointer identity from then on.
 //
@@ -598,38 +571,4 @@ func (v *Viewer) spritePixels(f *terrain.StaticFrame, rows ...int) *image.RGBA {
 type structureScreenRect struct {
 	screenRect
 	Frame *terrain.StaticFrame
-}
-
-// structureScreenRects is the structure layer's visibility test and camera
-// transform in one pure pass: every entry whose frame meets the view, in the
-// order the builder produced them.
-//
-// It is a pure function of THE ENTRY LIST AND THE CAMERA and of nothing
-// else, so the whole of it is reachable in a test with no graphics context
-// at all.
-//
-// THE CULL IS ON THE EXACT WORLD RECTANGLE, and for a structure that matters more
-// than it does for an object: the overhang stacks whole cells ABOVE the back row,
-// so a building whose rectangle is below the view can still have its roof inside
-// it. Each entry is one tile-sized frame with its own top-left, so culling entry
-// by entry keeps exactly the rows that are visible and drops the rest — which is
-// what makes a 3x2 building with a five-row grid cost five draws at the top of the
-// view instead of fifteen.
-//
-// AN ENTRY WITH NO FRAME IS SKIPPED HERE. The builder places one for a grid index
-// its sheet does not hold: the entry is real and the census counts it, but there
-// is nothing to draw and nothing to build a texture from.
-func structureScreenRects(places []terrain.StructurePlacement, cam *camera.Camera) []structureScreenRect {
-	var out []structureScreenRect
-	for _, p := range places {
-		if p.Frame == nil {
-			continue
-		}
-		r, ok := spriteScreenRect(p.Rect(), cam)
-		if !ok {
-			continue
-		}
-		out = append(out, structureScreenRect{screenRect: r, Frame: p.Frame})
-	}
-	return out
 }

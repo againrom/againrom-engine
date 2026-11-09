@@ -5,19 +5,10 @@ import (
 	"image"
 	"math"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"againrom/pkg/render/text"
 )
-
-func editorParagraphs(f *text.Font, s string, width int) []string {
-	var out []string
-	for _, paragraph := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n") {
-		out = append(out, editorTextLines(f, paragraph, width)...)
-	}
-	return out
-}
 
 func (e *MapEditor) editable() bool { return e.doc != nil && e.doc.Edits != nil }
 func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty() }

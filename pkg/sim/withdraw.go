@@ -22,19 +22,6 @@ func (o *withdrawalObs) record(before, after Entity) {
 	o.decisions = append(o.decisions, WithdrawalDecision{Before: before, After: after})
 }
 
-// withdrawalPass is the post-dispatch tail of the full AI tick. Every living,
-// owned, on-map actor reaches the two gates after its group and actor decisions
-// have run. Stone Curse keeps its existing promise to freeze the exact movement
-// state, so a cursed actor is not re-ordered while the effect holds.
-//
-// The gates are absolute signed-health comparisons, Wimpy first and Withdraw
-// second. A non-empty Wimpy collection consumes the tail even when every entry
-// is a corpse: withdrawFrom then runs the ordinary acquisition fallback and the
-// fixed-radius Withdraw arm is not tried.
-func (w *World) withdrawalPass() {
-	w.withdrawalPassObserved(nil)
-}
-
 func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {

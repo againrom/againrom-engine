@@ -15,10 +15,6 @@ func TestCheckRoomContractNamesEachShape(t *testing.T) {
 		{"retired panel", "pkg/ui/a.go", `package ui; func townSurfacePanel(v V) P { return p }`, "retired townSurfacePanel"},
 		{"parallel view", "pkg/ui/a.go", `package ui; type TownSurfaceView struct { Page P }`, "TownSurfaceView must alias"},
 		{"parallel square view", "pkg/ui/a.go", `package ui; type TownSquareView struct { Scene S }`, "TownSquareView must alias"},
-		{"room layer", "pkg/game/a.go", `package game; var x=ui.RoomLayer{Kind:0}`, "second room data builder constructs RoomLayer"},
-		{"school layer", "pkg/game/a.go", `package game; var x=ui.RoomSchool{Class:0}`, "second room data builder constructs RoomSchool"},
-		{"control area", "pkg/game/a.go", `package game; var x=ui.RoomHit{Enabled:true}`, "second room data builder constructs RoomHit"},
-		{"room panel", "pkg/game/a.go", `package game; var x=ui.RoomPanel{TrackPointer:true}`, "second room data builder constructs RoomPanel"},
 		{"second frame composer", "pkg/ui/a.go", `package ui; func ComposeOther(v V) { DrawRoomPage(dst,v.Page) }`, "second room frame composer"},
 		{"adapter hit test", "pkg/game/secondtown.go", `package game; func (v roomPageView) ControlAt(p P) { p.In(r) }`, "hit-tests room geometry outside"},
 		{"game fork", roomPageBuilder, `package game; func f() { if g==GameROM1 {} }`, "game identity chooses"},
@@ -34,6 +30,70 @@ func TestCheckRoomContractNamesEachShape(t *testing.T) {
 				t.Fatalf("got %v, want one naming %q", vs, tc.want)
 			}
 		})
+	}
+}
+
+// A room data literal is the type the compiler gives it, whatever its spelling.
+func TestCheckRoomLiteralsNamesEachShape(t *testing.T) {
+	const uiSource = `package ui
+type RoomLayer struct{ Kind int }
+type RoomSchool struct{ Class int }
+type RoomHit struct{ Enabled bool }
+type RoomPanel struct{ TrackPointer bool }
+type Other struct{ Enabled bool }
+type HitAlias = RoomHit
+`
+	for _, tc := range []struct {
+		name, file, src, want string
+	}{
+		{"room layer", "pkg/game/a.go", `var x = ui.RoomLayer{Kind: 0}`, "constructs RoomLayer"},
+		{"school layer", "pkg/game/a.go", `var x = ui.RoomSchool{Class: 0}`, "constructs RoomSchool"},
+		{"control area", "pkg/game/a.go", `var x = ui.RoomHit{Enabled: true}`, "constructs RoomHit"},
+		{"room panel", "pkg/game/a.go", `var x = ui.RoomPanel{TrackPointer: true}`, "constructs RoomPanel"},
+		{"an elided element type", "pkg/game/a.go", `var x = []ui.RoomHit{{Enabled: true}}`, "constructs RoomHit"},
+		{"an elided map value", "pkg/game/a.go", `var x = map[string]ui.RoomLayer{"a": {Kind: 1}}`, "constructs RoomLayer"},
+		{"a pointer element", "pkg/game/a.go", `var x = []*ui.RoomHit{{Enabled: true}}`, "constructs RoomHit"},
+		{"an alias", "pkg/game/a.go", `var x = ui.HitAlias{Enabled: true}`, "constructs RoomHit"},
+		{"the builder", roomPageBuilder, `var x = []ui.RoomHit{{Enabled: true}}`, ""},
+		{"the painter", roomPagePainter, `var x = []ui.RoomHit{{Enabled: true}}`, ""},
+		{"an empty literal", "pkg/game/a.go", `var x = ui.RoomHit{}`, ""},
+		{"another type with the same field", "pkg/game/a.go", `var x = []ui.Other{{Enabled: true}}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pkgs := []fixturePackage{{path: "againrom/pkg/ui", files: map[string]string{"pkg/ui/types.go": uiSource}}}
+			if tc.file == roomPagePainter {
+				pkgs[0].files[tc.file] = "package ui\n" + strings.ReplaceAll(tc.src, "ui.", "") + "\n"
+			} else {
+				pkgs = append(pkgs, fixturePackage{path: "againrom/pkg/game", files: map[string]string{
+					tc.file: "package game\nimport \"againrom/pkg/ui\"\n" + tc.src + "\n"}})
+			}
+			vs := CheckRoomLiterals(checkedFixture(t, pkgs...))
+			if tc.want == "" {
+				if len(vs) != 0 {
+					t.Fatalf("unexpected: %v", vs)
+				}
+			} else if len(vs) != 1 || !strings.Contains(vs[0].Reason, tc.want) {
+				t.Fatalf("got %v, want one naming %q", vs, tc.want)
+			}
+		})
+	}
+}
+
+func TestRoomLiteralsLiveTree(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	module, err := loadTypeCheckedModule(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range CheckRoomLiterals(module) {
+		t.Error(v)
 	}
 }
 

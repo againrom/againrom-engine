@@ -42,9 +42,6 @@ func (e *Editor) DeleteUnit(i int) error { return e.Delete(KindUnit, i) }
 // UnitFields returns a copy of the settable type-6 fields in window order.
 func UnitFields() []UnitField { return append([]UnitField(nil), unitFields...) }
 
-// UnitFieldByKey returns the type-6 field named key.
-func UnitFieldByKey(key string) (UnitField, bool) { return fieldByKey(unitFields, key) }
-
 // UnitFieldValue reads the field named key from unit i.
 func (e *Editor) UnitFieldValue(i int, key string) (int64, error) {
 	return e.FieldValue(KindUnit, i, key)

@@ -252,17 +252,6 @@ const (
 	PicturePathSecond = 36
 )
 
-// CastTravels reports whether picture's object changes position over its life.
-// It is a narrower question than CastFlies: a picture may have a length and
-// still stand still.
-func CastTravels(picture int) bool { return firstSpellPresentation.Travels(int32(picture)) }
-
-// CastDrawsPath reports whether picture draws a generated point list instead of
-// one sprite at its own position (`MAGIC-BOLTGATE-069`). Exactly two do.
-func CastDrawsPath(picture int) bool {
-	return firstSpellPresentation.DrawsPath(int32(picture))
-}
-
 // CastTrailSlot is which of the two trail sheets picture leaves behind it, or -1
 // for a picture that leaves none (`MAGIC-TRAIL-073`). Exactly two do, and they
 // are the same two that travel.

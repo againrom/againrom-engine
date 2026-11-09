@@ -8,8 +8,3 @@ func fameFromTown(t *Town) SnapshotFame {
 	}
 	return SnapshotFame{}
 }
-
-// Fame history completeness does not gate writing its observed counters.
-func fameForOriginal(s Snapshot) (SnapshotFame, error) {
-	return fameFromSnapshot(s), nil
-}

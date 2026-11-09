@@ -15,9 +15,6 @@ func splitStatePath(path string) (root, leaf string) {
 func stateRootMatches(kind uint32, stored, root string) bool {
 	return sav.StateRootMatches(kind, stored, root)
 }
-func stateRecordIs(kind uint32, dirs []sav.CityStateDirectoryData, stored, path string) bool {
-	return sav.StateRecordIs(kind, dirs, stored, path)
-}
 func stateLeafRecords(kind uint32, dirs []sav.CityStateDirectoryData, values []sav.CityStateRecordData, path string) []int {
 	return sav.StateLeafRecords(kind, dirs, values, path)
 }

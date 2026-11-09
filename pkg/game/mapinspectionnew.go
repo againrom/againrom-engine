@@ -149,10 +149,6 @@ func (x *MapInspector) secondaryKey(class int16) (uint16, error) {
 	return face, nil
 }
 
-// isNewSource reports a source that names a map built from nothing and not
-// yet saved.
-func isNewSource(source string) bool { return ui.ParseMapSource(source).Kind == ui.SourceNew }
-
 // unwrittenEntry is the mission of the mod whose map file the mod folder does
 // not hold yet: the entry a new map is saved under. It answers only when
 // exactly one entry is unwritten, so a new map never chooses between two

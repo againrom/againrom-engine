@@ -3,9 +3,7 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/color"
 
-	"againrom/pkg/formats/spr16"
 	"againrom/pkg/render/terrain"
 )
 
@@ -64,7 +62,3 @@ func attackPointer(frames []*image.RGBA, err error) (*image.RGBA, error) {
 	}
 	return frames[attackFrame0], nil
 }
-
-// cursorPixel is spr16.Resolve under its former name, kept only for the
-// world-map loader until the town composer moves it onto the frame converter.
-func cursorPixel(palette []spr16.Color, p spr16.PixelA) color.RGBA { return spr16.Resolve(palette, p) }

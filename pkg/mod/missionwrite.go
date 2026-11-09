@@ -3,7 +3,6 @@ package mod
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -239,8 +238,4 @@ func CloneMission(m Mission) Mission {
 		m.TextFiles = files
 	}
 	return m
-}
-
-func SameMissionDeclaration(a, b Mission) bool {
-	return reflect.DeepEqual(missionPairs(a), missionPairs(b))
 }

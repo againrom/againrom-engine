@@ -714,30 +714,6 @@ func wornFromWeaponItem(item sim.ItemInstance) [sim.EquipSlots]sim.ItemInstance 
 	return worn
 }
 
-// wornFromWeapon places w's own resolved code into its own slot — always
-// slot 1, because weaponItemClass is a class constant and not a per-row
-// value (weapon.go's own doc on that constant) — or leaves every slot
-// empty for no weapon at all (0128 plan D-2).
-//
-// IT IS fromalm.go's OWN CONVERSION, MOVED HERE: spawnBlock now carries the
-// WHOLE worn array rather than a bare code for a caller in that file to
-// convert, so the conversion has to happen wherever the array is built —
-// which for the units arm is here, because THE UNITS ARM RESOLVES ONE
-// WEAPON AND NOTHING ELSE and this is the whole of what it contributes to a
-// worn set, unlike wearRow's ten cells for a person.
-//
-// THE SLOT IS READ OFF THE CODE, NOT WRITTEN AS A LITERAL: data.EquipSlotFor
-// is asked exactly as wearRow asks it of a shield's or an armour's own
-// code, so this is not a second place that decides where a weapon goes.
-func wornFromWeapon(w *data.Weapon) [sim.EquipSlots]uint16 {
-	var worn [sim.EquipSlots]uint16
-	code := weaponCode(w)
-	if slot, ok := data.EquipSlotFor(data.ItemCode(code)); ok {
-		worn[slot-1] = code
-	}
-	return worn
-}
-
 // startingLoadout retains the prior Human-row policy. Units use their held
 // weapon directly; a zero Suitable value suppresses its death drop instead.
 func startingLoadout(_ string, w *data.Weapon, t *Table, worn [sim.EquipSlots]uint16) [sim.EquipSlots]uint16 {
@@ -1136,38 +1112,6 @@ func unitReach(names []string, t *Table) int32 {
 		}
 	}
 	return 1
-}
-
-// unitWeapon is a class row's own equipment resolved as a WEAPON, off the
-// SAME trailing strings unitReach reads — the same three-collection guard,
-// the same skip of an empty cell, the same "first cell that resolves under
-// ResolveWeapon wins" the UNITS band has always searched by, because a
-// creature's row names its equipment as two candidate cells tried in turn
-// rather than wearRow's ten cells fixed by POSITION, and this is the same
-// search over it, only for a caller that means to fold what it finds rather
-// than read one column off it.
-//
-// A NIL RESULT IS NOT "THIS ROW IS BARE": it is "ResolveWeapon could not
-// take any cell", which is true of a genuinely empty row and of one this
-// build's name resolution still cannot parse alike. definitionFor does not
-// have to tell the two apart — its own fallback to unitReach answers both
-// the same way a definition already did before this story.
-func unitWeapon(names []string, t *Table) *data.Weapon {
-	shapes, materials, weapons, ok := t.items()
-	if !ok {
-		return nil
-	}
-	for _, n := range names {
-		if n == "" {
-			continue
-		}
-		w, err := data.ResolveWeapon(n, shapes, materials, weapons)
-		if err != nil {
-			continue
-		}
-		return &w
-	}
-	return nil
 }
 
 func unitWeaponItem(names []string, t *Table) (*data.Weapon, sim.ItemInstance, error) {

@@ -107,14 +107,6 @@ func (mw *mapWorld) cheatReply(code int, owner uint32) {
 	mw.view.PostMessage(prefix+mw.cheatDisplayPlayerName(owner)+suffix, ui.MessageWhite, mw.chatGame().replyTime)
 }
 
-func (mw *mapWorld) cheatAllowed() bool {
-	if mw.cheats.privilege[sim.SelfSlot] > 50 {
-		return true
-	}
-	mw.cheatNotice(6)
-	return false
-}
-
 func cheatInteger(s string) int32 {
 	s = strings.TrimLeft(s, " \t\r\n")
 	end := 0

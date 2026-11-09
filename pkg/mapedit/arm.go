@@ -71,12 +71,6 @@ var armTable = map[ArmKind]Arm{
 		Check: checkAlive, CheckLabel: "Lose unit alive?", Target: paramUnit, Compare: cmpEqual},
 }
 
-// ArmFor returns the row of kind.
-func ArmFor(kind ArmKind) (Arm, bool) {
-	a, ok := armTable[kind]
-	return a, ok
-}
-
 // ArmConditions is how many condition nodes, and so binder registers, AddArm
 // appends: the check and the constant it is compared with.
 const ArmConditions = 2

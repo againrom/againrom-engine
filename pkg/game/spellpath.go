@@ -41,22 +41,6 @@ func castOrigin(from, launch image.Point) image.Point {
 	return from.Mul(ui.ShotScale).Add(launch)
 }
 
-// castShotPoint interpolates a cast object from its launch point toward the
-// target cell, so a flying picture, its trail and a path figure leave one
-// point. A same-cell object (a burst, an area-paint cell, a Teleport object)
-// stands at its launch point.
-func castShotPoint(from, to image.Point, num, den int, launch image.Point) image.Point {
-	origin := castOrigin(from, launch)
-	if from == to {
-		return origin
-	}
-	toPt := image.Point{X: to.X * ui.ShotScale, Y: to.Y * ui.ShotScale}
-	return image.Point{
-		X: origin.X + (toPt.X-origin.X)*num/den,
-		Y: origin.Y + (toPt.Y-origin.Y)*num/den,
-	}
-}
-
 // boltSeed is one driver call's stream seed: the observation's seed and the
 // object's age. Each call reseeds, so the figure changes every tick and a
 // replay repeats it (owner: the random source is ours, DIV-2681).

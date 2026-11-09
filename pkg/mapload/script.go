@@ -677,47 +677,6 @@ type bound struct {
 // code is class 14 and none of them is zero.
 const scriptItemCodeBase uint32 = 0x0e18
 
-// bindParams splits one node's ten parameter slots into the compiled record's two
-// halves: the plain integers, PACKED IN ENCOUNTER ORDER, and the resolved unit
-// references.
-//
-// A slot carrying no parameter is skipped by both halves — the nine type codes
-// start at 1, so a zero is an unset slot and not a tenth kind.
-//
-// A node's Target_Unit parameters are resolved into a PAIR, not a single
-// value: the first one encountered becomes b.unit/hasUnit and the second
-// becomes b.unit2/hasUnit2, for every node this function binds — a
-// condition and an action alike. bindParams takes no side on which of them a
-// caller keeps: that is CompileScriptFrom's own choice, made once per pass,
-// and since 0129 both passes keep the whole pair — the check literal has
-// carried it from the start, and the instant literal now carries it too.
-//
-// Only the UNIT references are RESOLVED, and the group and player references are
-// CARRIED — a different thing rather than a lesser one. A Target_Unit value names
-// one of three id spaces and only the caller knows which entity any of them
-// became; a Target_Group value names exactly one thing, the placed record's own
-// group word, and a Target_Player value names exactly one thing too, the SAME
-// 1-based roster slot space a placed record's owner field is in. Neither has
-// anything to be looked up in and neither can fail.
-//
-// That the two are one id space is measured rather than assumed, and the rival
-// reading was live: over every Target_Player parameter of both installed roots,
-// 170/170 and 168/168 fall inside the type-5 roster's slot range, while reading
-// them as a roster record's own id word fails 26 times on each. So an arm that
-// hands a unit to a player ASSIGNS the word rather than translating it.
-//
-// An ITEM reference is carried too, and it is the one reference that is
-// TRANSFORMED rather than copied: scriptItemCodeBase's own note.
-//
-// A STRUCTURE reference is resolved since 1033 B3, on the unit reference's
-// own terms (only the first slot; no arm of the vocabulary names two): a
-// Target_Structure value is looked up in refs.Structures, and a miss is
-// reported through rep.Unresolved exactly as a miss on a Target_Unit value
-// is.
-func bindParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool) ([10]int32, bound) {
-	return bindParamsDialect(n, refs, rep, cond, sim.ScriptROM1)
-}
-
 func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, dialect sim.ScriptDialect) ([10]int32, bound) {
 	var args [10]int32
 	var b bound

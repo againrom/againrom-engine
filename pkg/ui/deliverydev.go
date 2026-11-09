@@ -258,12 +258,6 @@ func NewAudioScope(player audio.Player) *AudioScope {
 	return nil
 }
 
-func DestroyAudioScope(player audio.Player) {
-	if p, ok := player.(*deliveryPlayer); ok && p != nil {
-		p.scope.Destroy()
-	}
-}
-
 func (v *Viewer) SetScopedAudio(effects, speech audio.Player, bank SoundBank, ambient AmbientDevice, draws *random.Stream) {
 	v.DestroyAudio()
 	v.audioScope = NewAudioScope(effects)
