@@ -77,7 +77,8 @@ func (v TownRoomView) page() RoomPage {
 		page.Panel.Style, page.Panel.Values = v.ButtonStyle, v.Buttons
 	}
 	if v.Pane || page.ViewInputs {
-		page.Pane = &v.Hero
+		hero := v.Hero
+		page.Pane = &hero
 	}
 	page.Book = v.BookView != nil
 	if page.Layers == nil {

@@ -366,16 +366,21 @@ func (w *World) marchCell(reader sightReader, stamp []byte, acc *[sightArea]int3
 // relying on: every offset's predecessor is strictly closer to the centre
 // (AI-LOS-088), so it lies in a ring already finished, and no cell of a ring
 // ever reads another cell of the same ring.
-func sightRing(r int32) [][2]int32 {
-	out := make([][2]int32, 0, 8*r)
-	for dx := -r; dx <= r; dx++ {
-		out = append(out, [2]int32{dx, -r}, [2]int32{dx, r})
+func sightRing(r int32) [][2]int32 { return sightRingOffsets[r] }
+
+var sightRingOffsets = func() (rings [sightRings + 1][][2]int32) {
+	for r := int32(1); r <= sightRings; r++ {
+		out := make([][2]int32, 0, 8*r)
+		for dx := -r; dx <= r; dx++ {
+			out = append(out, [2]int32{dx, -r}, [2]int32{dx, r})
+		}
+		for dy := -r + 1; dy <= r-1; dy++ {
+			out = append(out, [2]int32{-r, dy}, [2]int32{r, dy})
+		}
+		rings[r] = out
 	}
-	for dy := -r + 1; dy <= r-1; dy++ {
-		out = append(out, [2]int32{-r, dy}, [2]int32{r, dy})
-	}
-	return out
-}
+	return rings
+}()
 
 // sightRelight is the margin between the cheapest step and the largest rise the
 // recurrence can be handed, and it is THE CUSTOMISATION LIMIT of this file.
