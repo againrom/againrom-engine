@@ -4443,5 +4443,7 @@ var Committed = Baseline{
 	// It rises for the lone map path in cmd/againrom/main.go and its test in
 	// cmd/againrom/editormode_test.go, the program source roots in
 	// internal/archtest/programversion.go, and this note.
-	CommentBytes: 10736463,
+	// It rises for the witness of the control rows and tip placement, their
+	// builders' doc comments, the tip placement guard, and this note.
+	CommentBytes: 10739866,
 }

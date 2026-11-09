@@ -64,22 +64,31 @@ const (
 // list child itself (MENU-137).
 func TipPanelTextRect(r image.Rectangle) image.Rectangle { return TipPanelListRect(r) }
 
+// tipPanelLayout is a panel's two controls, placed from its rectangle r.
+func tipPanelLayout(r image.Rectangle) controlLayout {
+	return controlLayout{
+		{int(TipControlClose), image.Rect(r.Max.X-120, r.Max.Y-40, r.Max.X-40, r.Max.Y-22)},
+		{int(TipControlToggle), image.Rect(r.Min.X+40, r.Max.Y-40, r.Max.X-124, r.Max.Y-24)},
+	}
+}
+
 func TipPanelCloseRect(r image.Rectangle) image.Rectangle {
-	return image.Rect(r.Max.X-120, r.Max.Y-40, r.Max.X-40, r.Max.Y-22)
+	return tipPanelLayout(r).rect(int(TipControlClose))
 }
 
 func TipPanelToggleRect(r image.Rectangle) image.Rectangle {
-	return image.Rect(r.Min.X+40, r.Max.Y-40, r.Max.X-124, r.Max.Y-24)
+	return tipPanelLayout(r).rect(int(TipControlToggle))
 }
 
 func TipPanelControlAt(v TipPanelView, p image.Point) (TipControlKind, bool) {
 	if !v.Showing() || !p.In(v.Rect) {
 		return TipControlNone, false
 	}
-	if p.In(TipPanelCloseRect(v.Rect)) {
+	l := tipPanelLayout(v.Rect)
+	if l.holds(int(TipControlClose), p) {
 		return TipControlClose, true
 	}
-	if p.In(TipPanelToggleRect(v.Rect)) {
+	if l.holds(int(TipControlToggle), p) {
 		return TipControlToggle, true
 	}
 	return TipControlNone, true
@@ -98,10 +107,11 @@ func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, 
 	if !down && p.In(v.textRect()) {
 		return TipControlNone, true
 	}
-	if p.In(TipPanelCloseRect(v.Rect)) {
+	l := tipPanelLayout(v.Rect)
+	if l.holds(int(TipControlClose), p) {
 		return TipControlClose, true
 	}
-	if p.In(TipPanelToggleRect(v.Rect)) {
+	if l.holds(int(TipControlToggle), p) {
 		return TipControlToggle, down
 	}
 	return TipControlNone, false

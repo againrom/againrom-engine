@@ -168,28 +168,57 @@ func placeHover(d hoverDescription, ball image.Image) (*image.RGBA, image.Point,
 		return nil, image.Point{}, false
 	}
 	size, a := pic.Bounds().Size(), d.anchor
+	box := image.Rectangle{Max: size}
 	switch a.kind {
 	case hoverBeside:
-		at := a.at.Add(image.Pt(hoverBesideGap, hoverBesideGap))
-		if at.X+size.X > a.bounds.Max.X {
-			at.X = a.bounds.Max.X - size.X
-		}
-		if at.Y+size.Y > a.bounds.Max.Y {
-			at.Y = a.bounds.Max.Y - size.Y
-		}
-		return pic, at, true
+		box = box.Add(a.at.Add(image.Pt(hoverBesideGap, hoverBesideGap)))
+		return pic, placeTip(tipPlace{Box: box, PullRight: true, PullBottom: true}, a.bounds).Min, true
 	}
 	// The cursor anchors the lower-left corner (TEXT-HOVERPAINT-053).
 	// Growing text moves the top upward, leaving the hovered item visible.
-	at := image.Pt(a.at.X, a.at.Y-size.Y)
-	if at.X+size.X > a.bounds.Max.X {
-		at.X = a.bounds.Max.X - size.X
+	box = box.Add(image.Pt(a.at.X, a.at.Y-size.Y))
+	return pic, placeTip(tipPlace{Box: box, PullRight: true, PullBottom: true, PushTopLeft: true}, a.bounds).Min, true
+}
+
+// tipPlace is one tip box to stand in a page: where it wants to be and what
+// it does at the page's edges.
+type tipPlace struct {
+	Box image.Rectangle
+	// PullRight moves a box past the right edge back to it.
+	PullRight bool
+	// PullBottom moves a box past the bottom edge back to it.
+	PullBottom bool
+	// FlipBy moves a box past the bottom edge up by this much instead,
+	// over its anchor; zero for none.
+	FlipBy int
+	// PushTopLeft moves a box past the left or top edge back to it.
+	PushTopLeft bool
+	// Clip cuts what still stands outside the page.
+	Clip bool
+}
+
+// placeTip is the one placement of a tip in its page: every tip box takes its
+// position from here, right and bottom edges first, then left and top.
+func placeTip(t tipPlace, bounds image.Rectangle) image.Rectangle {
+	r := t.Box
+	if t.PullRight && r.Max.X > bounds.Max.X {
+		r = r.Sub(image.Pt(r.Max.X-bounds.Max.X, 0))
 	}
-	if at.Y+size.Y > a.bounds.Max.Y {
-		at.Y = a.bounds.Max.Y - size.Y
+	if r.Max.Y > bounds.Max.Y {
+		switch {
+		case t.FlipBy != 0:
+			r = r.Sub(image.Pt(0, t.FlipBy))
+		case t.PullBottom:
+			r = r.Sub(image.Pt(0, r.Max.Y-bounds.Max.Y))
+		}
 	}
-	at.X, at.Y = max(a.bounds.Min.X, at.X), max(a.bounds.Min.Y, at.Y)
-	return pic, at, true
+	if t.PushTopLeft {
+		r = r.Add(image.Pt(max(0, bounds.Min.X-r.Min.X), max(0, bounds.Min.Y-r.Min.Y)))
+	}
+	if t.Clip {
+		r = r.Intersect(bounds)
+	}
+	return r
 }
 
 // drawHover paints description d onto dst, as a picture over dst, with the

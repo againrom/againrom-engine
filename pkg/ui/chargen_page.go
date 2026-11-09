@@ -370,39 +370,52 @@ func detailedControlAt(c *Chargen, p image.Point) chargenControl {
 	return chargenNone
 }
 
-func preControlRect(c *Chargen, id chargenControl) image.Rectangle {
+// preControlLayout is the pre-create page's controls, built from its layout
+// and art: a level, a hero and the forward arrow are their pictures' extents,
+// every other control its layout region. A picture a setup lacks leaves an
+// empty row.
+func preControlLayout(c *Chargen) controlLayout {
 	l, p := c.layout(), c.art()
 	if l == nil || p == nil {
-		return image.Rectangle{}
+		return nil
 	}
-	switch {
-	case id >= chargenLevel0 && id <= chargenLevel2:
-		i := int(id - chargenLevel0)
-		if pic := p.Levels[i][0]; pic != nil {
-			return pic.Bounds().Add(l.PreCreate.Levels[i].Art[0].At.Pt())
+	rows := make(controlLayout, 0, int(chargenRestore))
+	for id := chargenName; id <= chargenRestore; id++ {
+		var r image.Rectangle
+		switch {
+		case id >= chargenLevel0 && id <= chargenLevel2:
+			i := int(id - chargenLevel0)
+			if pic := p.Levels[i][0]; pic != nil {
+				r = pic.Bounds().Add(l.PreCreate.Levels[i].Art[0].At.Pt())
+			}
+		case id >= chargenChoice0 && id <= chargenChoice3:
+			i := int(id - chargenChoice0)
+			if pic := p.Choices[i][0]; pic != nil {
+				r = pic.Bounds().Add(l.PreCreate.Heroes[i].Art[0].At.Pt())
+			}
+		case id == chargenForward:
+			if p.Forward != nil {
+				r = p.Forward.Bounds().Add(l.PreCreate.Forward.Art.At.Pt()).Intersect(preControlRegion(l, id))
+			}
+		default:
+			r = preControlRegion(l, id)
 		}
-		return image.Rectangle{}
-	case id >= chargenChoice0 && id <= chargenChoice3:
-		i := int(id - chargenChoice0)
-		if pic := p.Choices[i][0]; pic != nil {
-			return pic.Bounds().Add(l.PreCreate.Heroes[i].Art[0].At.Pt())
-		}
-		return image.Rectangle{}
-	case id == chargenForward:
-		if p.Forward == nil {
-			return image.Rectangle{}
-		}
-		return p.Forward.Bounds().Add(l.PreCreate.Forward.Art.At.Pt()).Intersect(preControlRegion(l, id))
+		rows = append(rows, controlRow{int(id), r})
 	}
-	return preControlRegion(l, id)
+	return rows
+}
+
+// preControlRect is control id's row of the page.
+func preControlRect(c *Chargen, id chargenControl) image.Rectangle {
+	return preControlLayout(c).rect(int(id))
 }
 
 // preControlAt is the pre-create hit-test. The name field is its own child;
 // every other control is the mask byte under the point. A setup without a
 // mask falls back to the art rectangles.
 func preControlAt(c *Chargen, p image.Point) chargenControl {
-	l := c.layout()
-	if p.In(preControlRegion(l, chargenName)) {
+	l, rows := c.layout(), preControlLayout(c)
+	if rows.holds(int(chargenName), p) {
 		return chargenName
 	}
 	if art := c.art(); art != nil && art.PreMask != nil {
@@ -412,12 +425,12 @@ func preControlAt(c *Chargen, p image.Point) chargenControl {
 		return preMaskControl(l, art.PreMask.ColorIndexAt(p.X, p.Y))
 	}
 	for id := chargenLevel0; id <= chargenLevel2; id++ {
-		if p.In(preControlRect(c, id)) {
+		if rows.holds(int(id), p) {
 			return id
 		}
 	}
 	for id := chargenChoice0; id <= chargenForward; id++ {
-		if p.In(preControlRect(c, id)) {
+		if rows.holds(int(id), p) {
 			return id
 		}
 	}

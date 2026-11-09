@@ -24,11 +24,18 @@ import (
 // docSheetRect is the sheet's own extent: the whole frame.
 var docSheetRect = image.Rect(0, 0, frame.W, frame.H)
 
-// The three hit rectangles, in frame pixels (MENU-DOC-009).
+// docControls are the panel's three controls, in frame pixels (MENU-DOC-009).
+var docControls = controlLayout{
+	{docControlLeft, image.Rect(0, 200, 56, 240)},
+	{docControlRight, image.Rect(576, 200, 636, 240)},
+	{docControlOK, image.Rect(560, 416, 604, 448)},
+}
+
+// The rows' rectangles, where the composer blits each control's art.
 var (
-	docLeftRect  = image.Rect(0, 200, 56, 240)
-	docRightRect = image.Rect(576, 200, 636, 240)
-	docOKRect    = image.Rect(560, 416, 604, 448)
+	docLeftRect  = docControls.rect(docControlLeft)
+	docRightRect = docControls.rect(docControlRight)
+	docOKRect    = docControls.rect(docControlOK)
 )
 
 // docContentAt is the document rectangle's top-left corner (92, 72): where a
@@ -350,30 +357,17 @@ func (p *documentPanel) picture() *image.RGBA {
 // docControlRect is one control's own rectangle, the single table
 // documentControlAt and the composer both read. A control with no rectangle is
 // the empty one, which no pixel is in.
-func docControlRect(control int) image.Rectangle {
-	switch control {
-	case docControlLeft:
-		return docLeftRect
-	case docControlRight:
-		return docRightRect
-	case docControlOK:
-		return docOKRect
-	}
-	return image.Rectangle{}
-}
+func docControlRect(control int) image.Rectangle { return docControls.rect(control) }
 
 // documentControlAt reports which control stands under frame pixel (x, y), and
 // whether any does. The three rectangles do not overlap, so the order of the
 // tests is not observable.
 func documentControlAt(x, y int) (int, bool) {
 	p := image.Pt(x, y)
-	switch {
-	case p.In(docLeftRect):
-		return docControlLeft, true
-	case p.In(docRightRect):
-		return docControlRight, true
-	case p.In(docOKRect):
-		return docControlOK, true
+	for _, r := range docControls {
+		if docControls.holds(r.id, p) {
+			return r.id, true
+		}
 	}
 	return docNoControl, false
 }

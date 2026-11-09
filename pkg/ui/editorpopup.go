@@ -1978,10 +1978,7 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 			lines := editorTextLines(body, full, width-8)
 			h := len(lines)*fontHeight(body, 15) + 8
 			box := image.Rect(rr.Rect.Min.X, rr.Rect.Max.Y, rr.Rect.Min.X+width, rr.Rect.Max.Y+h)
-			if box.Max.Y > bounds.Max.Y {
-				box = box.Sub(image.Pt(0, h+rr.Rect.Dy()))
-			}
-			return popupTip{Rect: box, Lines: lines}, true
+			return popupTip{Rect: placeTip(tipPlace{Box: box, FlipBy: h + rr.Rect.Dy()}, bounds), Lines: lines}, true
 		}
 		if row.Tip != "" && row.Edit == nil {
 			// A row's own tip reads whole in a box at least popupTipW wide.
@@ -1993,16 +1990,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 		lines := editorTextLines(body, full, width-8)
 		h := len(lines)*fontHeight(body, 15) + 8
 		box := image.Rect(rr.Rect.Min.X, rr.Rect.Max.Y, rr.Rect.Min.X+width, rr.Rect.Max.Y+h)
-		if row.Tip != "" && box.Max.X > bounds.Max.X {
-			box = box.Sub(image.Pt(box.Max.X-bounds.Max.X, 0))
-		}
-		if box.Max.Y > bounds.Max.Y {
-			box = box.Sub(image.Pt(0, h+rr.Rect.Dy()))
-		}
-		if row.Kind == popupDirection {
-			box = box.Add(image.Pt(max(0, bounds.Min.X-box.Min.X), max(0, bounds.Min.Y-box.Min.Y))).Intersect(bounds)
-		}
-		return popupTip{Rect: box, Lines: lines}, true
+		direction := row.Kind == popupDirection
+		place := tipPlace{Box: box, PullRight: row.Tip != "", FlipBy: h + rr.Rect.Dy(), PushTopLeft: direction, Clip: direction}
+		return popupTip{Rect: placeTip(place, bounds), Lines: lines}, true
 	}
 	g := s.Grid
 	if g == nil {
@@ -2023,13 +2013,7 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 	}
 	h := len(lines)*fontHeight(body, 15) + 8
 	box := image.Rect(at.Min.X, at.Max.Y, at.Min.X+w+8, at.Max.Y+h)
-	if box.Max.X > bounds.Max.X {
-		box = box.Sub(image.Pt(box.Max.X-bounds.Max.X, 0))
-	}
-	if box.Max.Y > bounds.Max.Y {
-		box = box.Sub(image.Pt(0, h+at.Dy()))
-	}
-	return popupTip{Rect: box, Lines: lines}, true
+	return popupTip{Rect: placeTip(tipPlace{Box: box, PullRight: true, FlipBy: h + at.Dy()}, bounds), Lines: lines}, true
 }
 
 // drawRowIcons draws a row's pictures after its value, each square at the

@@ -240,23 +240,27 @@ func (v *Viewer) goldModalBox() image.Rectangle {
 	return image.Rect(100, v.frameH-200, 396, v.frameH-32)
 }
 
-func (v *Viewer) goldModalControls() (edit, action, cancel image.Rectangle) {
+// goldModalLayout is the dialog's controls in the frame, placed from its box.
+func (v *Viewer) goldModalLayout() controlLayout {
 	box := v.goldModalBox()
-	edit = image.Rect(box.Min.X+16, box.Min.Y+56, box.Max.X-16, box.Min.Y+84)
-	action = image.Rect(box.Min.X+16, box.Max.Y-48, box.Min.X+16+120, box.Max.Y-16)
-	cancel = image.Rect(box.Max.X-16-120, box.Max.Y-48, box.Max.X-16, box.Max.Y-16)
-	return edit, action, cancel
+	return controlLayout{
+		{int(goldFocusEdit), image.Rect(box.Min.X+16, box.Min.Y+56, box.Max.X-16, box.Min.Y+84)},
+		{int(goldFocusAction), image.Rect(box.Min.X+16, box.Max.Y-48, box.Min.X+16+120, box.Max.Y-16)},
+		{int(goldFocusCancel), image.Rect(box.Max.X-16-120, box.Max.Y-48, box.Max.X-16, box.Max.Y-16)},
+	}
+}
+
+func (v *Viewer) goldModalControls() (edit, action, cancel image.Rectangle) {
+	l := v.goldModalLayout()
+	return l.rect(int(goldFocusEdit)), l.rect(int(goldFocusAction)), l.rect(int(goldFocusCancel))
 }
 
 func (v *Viewer) goldControlAt(p image.Point) (goldFocus, bool) {
-	edit, action, cancel := v.goldModalControls()
-	switch {
-	case p.In(edit):
-		return goldFocusEdit, true
-	case p.In(action):
-		return goldFocusAction, true
-	case p.In(cancel):
-		return goldFocusCancel, true
+	l := v.goldModalLayout()
+	for _, c := range []goldFocus{goldFocusEdit, goldFocusAction, goldFocusCancel} {
+		if l.holds(int(c), p) {
+			return c, true
+		}
 	}
 	return 0, false
 }

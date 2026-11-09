@@ -25,7 +25,20 @@ func controlLayoutSurface(name string) bool {
 	}
 	base := strings.TrimPrefix(name, "pkg/ui/")
 	return strings.HasPrefix(base, "save_dialog") || strings.HasPrefix(base, "savepage") ||
-		base == "load_window.go" || base == "load_draw.go" || base == "controllayout.go"
+		base == "load_window.go" || base == "load_draw.go" || base == "controllayout.go" ||
+		base == "tippanel.go" || base == "goldmodal.go" || base == "documents.go" || base == "chargen_page.go"
+}
+
+// controlHitFuncsRemaining ratchets the functions in pkg/ui and pkg/game that
+// hold a hit test outside the surfaces above. It may only fall: a surface
+// that moves to controlLayout lowers it in the same commit.
+const controlHitFuncsRemaining = 162
+
+// tipPlacers are the functions that place a tip box in its page; each asks
+// placeTip and holds no page edge test of its own.
+var tipPlacers = map[string]bool{
+	"pkg/ui/widgethover.go:placeHover": true,
+	"pkg/ui/editorpopup.go:popupTipAt": true,
 }
 
 // controlSwitchProducers are the functions that still return a rectangle
@@ -33,7 +46,6 @@ func controlLayoutSurface(name string) bool {
 // may only shrink.
 var controlSwitchProducers = map[string]string{
 	"pkg/ui/characterpane.go:characterPaneArtRect":          "remaining producer: the character pane corner art's blit rectangles",
-	"pkg/ui/chargen_page.go:preControlRect":                 "remaining producer: the character creation controls",
 	"pkg/ui/mapeditorsidepanels.go:MapEditor.sidePanelRect": "the side panel's builder, unchanged by decision",
 }
 
@@ -47,18 +59,21 @@ var controlSurfaceRects = map[string]string{
 	"pkg/ui/load_window.go:loadPanel":             "the first game's load page panel",
 	"pkg/ui/load_window.go:loadListArg":           "the first game's load list argument",
 	"pkg/ui/load_window.go:loadMessageBox":        "the first game's load message line",
+	"pkg/ui/documents.go:docControls":             "the documents panel's descriptor rows",
+	"pkg/ui/documents.go:docSheetRect":            "the documents panel's sheet, not a control",
 }
 
 // controlSurfaceTypes names the struct types on the save surfaces that hold a
 // rectangle: the descriptor row, and the page data whose button and name box
 // rectangles the descriptor reads.
 var controlSurfaceTypes = map[string]string{
-	"controlRow":  "the descriptor row",
-	"SavePage":    "page data: the layout reads its button and name box rectangles",
-	"PageText":    "a caption box, not a control",
-	"PageButton":  "page data: a button row of the page",
-	"PageConfirm": "the confirmation's label box, not a control",
-	"pageView":    "no rectangle field of its own",
+	"controlRow":   "the descriptor row",
+	"SavePage":     "page data: the layout reads its button and name box rectangles",
+	"PageText":     "a caption box, not a control",
+	"PageButton":   "page data: a button row of the page",
+	"PageConfirm":  "the confirmation's label box, not a control",
+	"pageView":     "no rectangle field of its own",
+	"TipPanelView": "the panel's own rectangle; its controls are rows placed from it",
 }
 
 // CheckControlLayout reports every control rectangle shape outside the
@@ -75,6 +90,8 @@ func CheckControlLayout(files map[string]string) []Violation {
 	var vs []Violation
 	usedProducer := map[string]bool{}
 	usedRect := map[string]bool{}
+	usedPlacer := map[string]bool{}
+	hitFuncs := 0
 	for _, name := range names {
 		if !(strings.HasPrefix(name, "pkg/ui/") || strings.HasPrefix(name, "pkg/game/")) || strings.HasSuffix(name, "_test.go") {
 			continue
@@ -94,6 +111,15 @@ func CheckControlLayout(files map[string]string) []Violation {
 					continue
 				}
 				fn := cadenceFuncName(d)
+				if !surface && holdsHitTest(d.Body) {
+					hitFuncs++
+				}
+				if tipPlacers[name+":"+fn] {
+					usedPlacer[name+":"+fn] = true
+					if what := tipPlacerFault(d.Body); what != "" {
+						vs = append(vs, Violation{From: at(d.Pos()), Reason: fn + " " + what + "; a tip takes its place from placeTip"})
+					}
+				}
 				if returnsRect(d) && switchReturnsRects(d.Body) {
 					if controlSwitchProducers[name+":"+fn] != "" {
 						usedProducer[name+":"+fn] = true
@@ -144,6 +170,19 @@ func CheckControlLayout(files map[string]string) []Violation {
 			}
 		}
 	}
+	if _, whole := files["pkg/ui/controllayout.go"]; whole {
+		for k := range tipPlacers {
+			if !usedPlacer[k] {
+				vs = append(vs, Violation{From: "internal/archtest/controllayout.go", Reason: k + " is listed as a tip placer but nothing there needs it; remove the entry"})
+			}
+		}
+		if hitFuncs > controlHitFuncsRemaining {
+			vs = append(vs, Violation{From: "internal/archtest/controllayout.go", Reason: "functions with a hit test outside the controlLayout surfaces rose to " + strconv.Itoa(hitFuncs) + " from " + strconv.Itoa(controlHitFuncsRemaining) + "; read a controlLayout row"})
+		}
+		if hitFuncs < controlHitFuncsRemaining {
+			vs = append(vs, Violation{From: "internal/archtest/controllayout.go", Reason: "functions with a hit test outside the controlLayout surfaces fell to " + strconv.Itoa(hitFuncs) + "; lower controlHitFuncsRemaining from " + strconv.Itoa(controlHitFuncsRemaining)})
+		}
+	}
 	for _, k := range sortedKeys(controlSwitchProducers) {
 		if !usedProducer[k] {
 			vs = append(vs, Violation{From: "internal/archtest/controllayout.go", Reason: k + " is listed as a remaining producer but nothing there needs it; remove the entry"})
@@ -164,6 +203,51 @@ func sortedKeys(m map[string]string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// holdsHitTest reports a one-argument .In or .Overlaps call in body.
+func holdsHitTest(body *ast.BlockStmt) bool {
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if call, ok := n.(*ast.CallExpr); ok && len(call.Args) == 1 {
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok && (sel.Sel.Name == "In" || sel.Sel.Name == "Overlaps") {
+				found = true
+			}
+		}
+		return true
+	})
+	return found
+}
+
+// tipPlacerFault names what keeps a tip placer from placeTip: no call to it,
+// or a bound's Max read that an edge test would need.
+func tipPlacerFault(body *ast.BlockStmt) string {
+	calls, edge := false, false
+	ast.Inspect(body, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.CallExpr:
+			if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "placeTip" {
+				calls = true
+			}
+		case *ast.SelectorExpr:
+			if n.Sel.Name == "Max" {
+				switch x := n.X.(type) {
+				case *ast.Ident:
+					edge = edge || x.Name == "bounds"
+				case *ast.SelectorExpr:
+					edge = edge || x.Sel.Name == "bounds"
+				}
+			}
+		}
+		return true
+	})
+	switch {
+	case !calls:
+		return "does not call placeTip"
+	case edge:
+		return "tests a page edge itself"
+	}
+	return ""
 }
 
 func returnsRect(fn *ast.FuncDecl) bool {

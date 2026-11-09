@@ -1,6 +1,7 @@
 package archtest
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -36,6 +37,15 @@ func TestCheckControlLayoutNamesEachShape(t *testing.T) {
 		{"a second descriptor shape", "pkg/ui/savepage.go",
 			"package ui\ntype saveControlGeometry struct {\nID int\nRect image.Rectangle\n}\n",
 			"second descriptor shape"},
+		{"a hit test with a rectangle literal on the tip panel", "pkg/ui/tippanel.go",
+			"package ui\nfunc hit(p image.Point) bool { return p.In(image.Rect(1, 2, 3, 4)) }\n",
+			"a rectangle literal"},
+		{"a tip placer that does not ask placeTip", "pkg/ui/widgethover.go",
+			"package ui\nfunc placeHover(p image.Point) image.Point { return p }\n",
+			"does not call placeTip"},
+		{"a tip placer that tests a page edge", "pkg/ui/editorpopup.go",
+			"package ui\nfunc popupTipAt(bounds, r image.Rectangle) image.Rectangle {\nif r.Max.X > bounds.Max.X {\nr = placeTip(r)\n}\nreturn r\n}\n",
+			"tests a page edge itself"},
 		{"a layout read", "pkg/ui/load_window.go",
 			"package ui\nfunc hit(v pageView, p image.Point) bool { return v.page.layout().holds(pageNameControl, p) }\n", ""},
 		{"a hover test on a local", "pkg/ui/load_draw.go",
@@ -68,6 +78,32 @@ func TestCheckControlLayoutNamesEachShape(t *testing.T) {
 	}
 	if vs := CheckControlLayout(nil); len(vs) != 1 {
 		t.Fatalf("CheckControlLayout(nil) = %v, want one violation", vs)
+	}
+}
+
+// TestControlHitFuncsRatchet plants one function more and one fewer than the
+// baseline.
+func TestControlHitFuncsRatchet(t *testing.T) {
+	src := func(n int) map[string]string {
+		var b strings.Builder
+		b.WriteString("package ui\n")
+		for i := range n {
+			fmt.Fprintf(&b, "func hit%d(p image.Point, r image.Rectangle) bool { return p.In(r) }\n", i)
+		}
+		return map[string]string{"pkg/ui/controllayout.go": "package ui\n", "pkg/ui/a.go": b.String()}
+	}
+	cases := []struct {
+		n    int
+		want string
+	}{{controlHitFuncsRemaining + 1, "rose to"}, {controlHitFuncsRemaining - 1, "fell to"}}
+	for _, tc := range cases {
+		found := false
+		for _, v := range CheckControlLayout(src(tc.n)) {
+			found = found || strings.Contains(v.Reason, tc.want)
+		}
+		if !found {
+			t.Fatalf("%d hit functions: no violation naming %q", tc.n, tc.want)
+		}
 	}
 }
 
