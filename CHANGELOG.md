@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 - [Starter] The starter is a much smaller file.
 - [Editor] The map editor now opens from the game program; the separate mapedit program is gone.
 - [Editor] To open maps from Windows, associate .alm files with againrom.exe again; opening a map starts the map editor.
+- [ROM2] Winning the campaign after loading a save now adds your hero to the Hall of Fame with a score.
 
 ## 0.150.0
 

@@ -227,6 +227,10 @@ func campaignVerb(out io.Writer, path string, f *sav.File) error {
 		return fmt.Errorf("%s: %w", path, err)
 	}
 	if !ok {
+		if tail, err := f.SecondTail(); err == nil {
+			fmt.Fprintf(out, "%s hall+4=%d hall+8=%d\n", path, tail.PairTail[0], tail.PairTail[1])
+			return nil
+		}
 		fmt.Fprintf(out, "%s no campaign (tail did not frame an embedded state store)\n", path)
 		return nil
 	}

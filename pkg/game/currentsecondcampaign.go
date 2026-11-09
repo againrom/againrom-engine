@@ -24,11 +24,11 @@ type currentSecondCampaign struct {
 	Kept      *secondTailKept      `json:",omitempty"`
 }
 
-// secondTailKept is what a loaded campaign tail held that no current state
-// and no claim produces: the pair list, the two words after it
-// (R2-SESSION-035) and each location record's 16 raw bytes
-// (R2-SESSION-032). A town SAVE writes them back; a campaign that loaded no
-// tail has none (DIV-4306).
+// secondTailKept is what a loaded campaign tail held: the pair list and each
+// location record's 16 raw bytes (R2-SESSION-032), which no current state
+// and no claim produces and a SAVE writes back (DIV-4306), and the two Hall
+// words after the pair list (R2-SESSION-384), which a SAVE takes from the
+// session's counters.
 type secondTailKept struct {
 	Pairs     [][2]uint32
 	PairTail  [2]uint32
@@ -45,6 +45,33 @@ func (k *secondTailKept) clone() *secondTailKept {
 		return nil
 	}
 	return &secondTailKept{Pairs: slices.Clone(k.Pairs), PairTail: k.PairTail, Locations: slices.Clone(k.Locations)}
+}
+
+// secondNewPairs is the pair list every original town holds, written when no
+// tail was loaded.
+var secondNewPairs = [][2]uint32{{1, 1}}
+
+// hall is the Hall's two words (R2-SESSION-384): the mission-time and event
+// counters, zero when no tail was loaded.
+func (k *secondTailKept) hall() [2]uint32 {
+	if k == nil {
+		return [2]uint32{}
+	}
+	return k.PairTail
+}
+
+// withHall is the kept tail with the campaign's current Hall words: what a
+// SAVE writes, so a LOAD gets the session's counters back.
+func (k *secondTailKept) withHall(time, events uint32) *secondTailKept {
+	if k == nil && time == 0 && events == 0 {
+		return nil
+	}
+	out := k.clone()
+	if out == nil {
+		out = &secondTailKept{Pairs: slices.Clone(secondNewPairs)}
+	}
+	out.PairTail = [2]uint32{time, events}
+	return out
 }
 
 // raw is the 16 bytes the loaded tail held for the location, zero for one it

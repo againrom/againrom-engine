@@ -46,6 +46,9 @@ type campaignService interface {
 	// undecodedSave is the refusal of a save whose engine document does not
 	// decode; nil admits it as an original save.
 	undecodedSave(err error) error
+	// carryHall gives the campaign state a save is written from the
+	// snapshot's Hall words, where the game's SAV keeps them.
+	carryHall(s *Snapshot)
 	// statesCampaign reports whether a decoded session record states the
 	// campaign itself rather than through the save's chapter record.
 	statesCampaign(s *currentSessionData) bool

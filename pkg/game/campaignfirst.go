@@ -82,6 +82,8 @@ func (firstCampaignRules) undecodedSave(error) error { return nil }
 
 func (firstCampaignRules) statesCampaign(*currentSessionData) bool { return false }
 
+func (firstCampaignRules) carryHall(*Snapshot) {}
+
 func (firstCampaignRules) canEnter(*Town, int) bool { return true }
 
 // place: the party stands in its live mission while one is open, and

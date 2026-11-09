@@ -156,6 +156,12 @@ func (secondCampaignRules) statesCampaign(s *currentSessionData) bool {
 	return s != nil && s.Second != nil
 }
 
+func (secondCampaignRules) carryHall(s *Snapshot) {
+	if s.second != nil && s.Fame != nil && s.Fame.Known {
+		s.second.Kept = s.second.Kept.withHall(s.Fame.Time, s.Fame.Events)
+	}
+}
+
 // place is the destinations campaign's current place; a session that holds
 // no such campaign yet answers as the first game.
 func (r secondCampaignRules) place(s *CampaignSession) partyPlace {

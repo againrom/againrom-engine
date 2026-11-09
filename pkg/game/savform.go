@@ -609,12 +609,13 @@ func secondTemplateHero(r *sav.DocumentRecordData, table *mapload.Table) (data.H
 // scenario bank, the shop records, the availability list and the current
 // location's ordinal (R2-SESSION-021, R2-SESSION-155); a mission's bank is
 // its World's live one (R2-SESSION-031). No current state and
-// no claim gives the pair list, the two words after it or a location's 16
-// raw bytes: they are the loaded tail's, else the [[1,1]] every original
-// town holds and zero. The nine client buffers are empty (DIV-4306).
+// no claim gives the pair list or a location's 16 raw bytes: they are the
+// loaded tail's, else the [[1,1]] every original town holds and zero. The
+// two words after the pair list are the snapshot's Hall words
+// (R2-SESSION-384). The nine client buffers are empty (DIV-4306).
 func secondCampaignTail(s Snapshot) (*sav.SecondTail, error) {
 	c := s.second
-	t := &sav.SecondTail{Bank: c.Bank, Pairs: [][2]uint32{{1, 1}}}
+	t := &sav.SecondTail{Bank: c.Bank, Pairs: slices.Clone(secondNewPairs)}
 	if s.liveBank != nil {
 		t.Bank = *s.liveBank
 	}

@@ -219,6 +219,11 @@ func fameFromCurrentTown(t *Town, s *currentSessionData) SnapshotFame {
 			fame.Result = &FameResult{string(r.Name), r.Score, r.Recorded}
 		}
 	}
+	if sessionCampaign(s).statesCampaign(s) {
+		// The tail states the Hall words: every campaign end writes a row (DIV-4752).
+		hall := s.Second.Kept.hall()
+		fame.Known, fame.Time, fame.Events = true, hall[0], hall[1]
+	}
 	return fame
 }
 
