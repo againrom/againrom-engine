@@ -632,13 +632,7 @@ const groupScorerReach = 1
 // group's own stored byte (0096); decide never calls this with a value this
 // task has no arm for.
 //
-// The two modifiers are applied UNGATED under both orders, and under Guard
-// that is a narrowing of the input domain rather than a missing arm. The law
-// gates them on the candidate's token size being 1 and its Mind being at least
-// 15; every entity in this package occupies exactly one cell, and the actor
-// constructor defaults Mind to 20 with no `Data.bin` column to move it, so both
-// terms are satisfied by construction wherever this build can ask. Neither is a
-// field here, and the story that gives an entity a footprint inherits the gate.
+// The two modifiers apply unless preferenceWithheld answers true.
 //
 // Not applied at all: the flat 127 a candidate carrying one active spell id
 // costs. This tree has no spells (0086 D-6).
@@ -746,6 +740,9 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 	}
 
 	cost := d<<8 + turnCost(m, c)
+	if w.preferenceWithheld(&m, &c, order) {
+		return cost
+	}
 	// THE SECOND DIFFERENCE: the second scorer's modifiers are coarser — a
 	// doubling and a halving where the first has a half and a quarter.
 	switch {
@@ -759,6 +756,25 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 		cost -= cost / 4
 	}
 	return cost
+}
+
+// scoreMindFloor is the Mind the preference modifiers need (AI-COST-071,
+// R2-ENGINE-503).
+const scoreMindFloor = 15
+
+// preferenceWithheld reports whether a pair's preference modifiers do not
+// apply. The first game's ordinary scorer tests the candidate's size and Mind
+// and its stand-ground scorer tests nothing (AI-COST-071, AI-REACH-072); the
+// second game tests the scoring actor's own (R2-ENGINE-503).
+func (w *World) preferenceWithheld(m, c *Entity, order uint8) bool {
+	gate := c
+	switch {
+	case w.game.memberScoreGate:
+		gate = m
+	case order == orderStandGround:
+		return false
+	}
+	return footprintSide(gate.TokenSize) >= 2 || gate.Mind < scoreMindFloor
 }
 
 // cellOf is e's cell. It is one function so that "where is this unit" cannot come

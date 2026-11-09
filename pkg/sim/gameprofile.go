@@ -130,6 +130,9 @@ type gameProfile struct {
 	// bookListsScrolls: the book shows a carried scroll at its spell's cell
 	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).
 	bookListsScrolls bool
+	// memberScoreGate: the score's preference modifiers test the scoring
+	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
+	memberScoreGate bool
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -157,6 +160,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		keepsHealthAboveMaximum:    true,
 		cellEventRelocates:         true,
 		bookListsScrolls:           true,
+		memberScoreGate:            true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,

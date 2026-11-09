@@ -7,7 +7,7 @@ import "testing"
 // every other test in this package that calls it is silent on both.
 func engReachFighter(id EntityID, owner uint32, x, y int32, domain Domain, reach uint8) Entity {
 	e := engFighter(id, owner, x, y)
-	e.Domain, e.Reach = domain, reach
+	e.Domain, e.Reach, e.Mind = domain, reach, 20
 	return e
 }
 

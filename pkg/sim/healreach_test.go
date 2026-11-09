@@ -12,7 +12,7 @@ func hrWorld(t *testing.T, mageOwner uint32, mageHP int32, auto uint16) *World {
 	mage := acCaster(1, 2, 2, 50, 1<<6, auto)
 	mage.Owner, mage.Reach, mage.HP = mageOwner, 1, mageHP
 	ally := spEnt(2, 3, 2)
-	ally.Owner, ally.HP = mageOwner, 40
+	ally.Owner, ally.HP, ally.Mind = mageOwner, 40, 20
 	archer := spEnt(3, 2, 9)
 	archer.Owner, archer.Reach = other, 8
 	archer.DamageBase, archer.AlwaysHits, archer.ScanRange = 3, true, 10
