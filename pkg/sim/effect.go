@@ -389,6 +389,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	}
 	i, exists := effectIndex(w.attached, target, rule.ID)
 	if exists && keepsLargerOnRepeat(rule) {
+		w.attached[i].Magnitude = max(w.attached[i].Magnitude, magnitude)
 		w.attached[i].Remaining = max(w.attached[i].Remaining, duration)
 		return true
 	}

@@ -75,7 +75,7 @@ var spellArmRecord = map[string]armAnswers{
 	"light":            bothGames(map[uint16]int{12: recordLightBright, 17: recordLightDark}),
 	"drawnDuration":    secondOnly(armSet(20)),
 	"blankCurse":       secondOnly(armSet(20)),
-	"keepsLarger":      secondOnly(armSet(20)),
+	"keepsLarger":      secondOnly(armSet(8, 20)),
 	"powerDuration":    secondOnly(armSet(15)),
 }
 

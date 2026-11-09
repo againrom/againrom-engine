@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A weaker Poison Cloud no longer shortens the poison already on a unit: the unit keeps the longer remaining time. Recasting the same spell still does not make the poison last longer.
 - [BASE] A mod can hold its own speakers: in the map editor, clicking a unit no speaker shows on a map in a mod offers to add one with your own name and picture.
 - [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
 - [Starter] The starter is a much smaller file.

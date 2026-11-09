@@ -98,6 +98,43 @@ func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 	}
 }
 
+func TestSecondPoisonCloudRepeatKeepsTheLargerRemainderAndMagnitude(t *testing.T) {
+	poison := secondRow(SpellRule{ID: 6, School: 2, Area: true, Distribution: 3, SpellDuration: 5,
+		EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 8})
+	caster, target := spEnt(1, 0, 0), spEnt(2, 1, 0)
+	w := spWorld(t, 1, []SpellRule{poison}, caster, target)
+	if !w.ordinaryAreaEffect(0, 1, poison, 90) {
+		t.Fatal("first Poison Cloud did not land")
+	}
+	strong := w.ActiveEffects()[0]
+	if !w.ordinaryAreaEffect(0, 1, poison, 30) {
+		t.Fatal("repeat Poison Cloud did not land")
+	}
+	got := w.ActiveEffects()
+	if len(got) != 1 || got[0].Remaining != strong.Remaining || got[0].Magnitude != -3 {
+		t.Fatalf("after the weaker repeat %+v, want one record of remainder %d and larger magnitude -3 (first %+v)", got, strong.Remaining, strong)
+	}
+}
+
+func TestPoisonCloudRepeatControls(t *testing.T) {
+	first := SpellRule{ID: 8, School: 2, Area: true, Distribution: 3, EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -4, EffectDuration: 128}
+	w := spWorld(t, 1, []SpellRule{first}, spEnt(1, 0, 0), spEnt(2, 1, 0))
+	w.attachEffect(2, 1, first, EffectHealth, -8, 128, EffectContinuous)
+	w.attachEffect(2, 1, first, EffectHealth, -4, 64, EffectContinuous)
+	if got := w.ActiveEffects(); len(got) != 1 || got[0].Remaining != 64 || got[0].Magnitude != -8 {
+		t.Fatalf("first-game Poison repeat left %+v, want remainder 64 and magnitude -8", got)
+	}
+
+	protection := secondRow(SpellRule{ID: 4, School: 1, MaxRange: 8, TargetsUnit: true, Defensive: true,
+		EffectKind: EffectProtectionFire, EffectMode: EffectDuration, EffectMagnitude: 10, SpellDuration: 5})
+	w = spWorld(t, 1, []SpellRule{protection}, spEnt(1, 0, 0), spEnt(2, 1, 0))
+	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 500, EffectDuration)
+	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 100, EffectDuration)
+	if got := w.ActiveEffects(); len(got) != 1 || got[0].Remaining != 100 {
+		t.Fatalf("second-game Protection repeat left %+v, want the replacing record with remainder 100", got)
+	}
+}
+
 func TestSecondStoneCurseWithNoEffectKindAttachesABlankHold(t *testing.T) {
 	curse := secondRow(SpellRule{ID: 18, School: 4, TargetsUnit: true, SpellDuration: 10})
 	w := spWorld(t, 3, []SpellRule{curse}, spEnt(1, 0, 0), spEnt(2, 1, 0))
