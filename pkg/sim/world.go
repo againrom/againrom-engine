@@ -2772,6 +2772,12 @@ func (w *World) Entity(id EntityID) (Entity, bool) {
 	return Entity{}, false
 }
 
+// EntityAlive reports that the world holds id and it is alive, without copying the entity.
+func (w *World) EntityAlive(id EntityID) bool {
+	i := indexOfEntity(w.entities, id)
+	return i >= 0 && w.entities[i].Alive()
+}
+
 // Structures returns the world's structures in ascending id order, as a fresh
 // slice a caller may mutate without reaching the world it came from — the
 // entity list's own rule (1033 B3).

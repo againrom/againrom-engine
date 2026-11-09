@@ -150,6 +150,7 @@ func init() {
 	worldWriters = append(worldWriters, "ImportLoadedStrikes")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
+	worldMethods = append(worldMethods, "EntityAlive")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")
@@ -167,6 +168,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"SackPickupArrived":    {reflect.ValueOf(EntityID(7))},
 	"SackValue":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
 	"Entity":               {reflect.ValueOf(EntityID(7))},
+	"EntityAlive":          {reflect.ValueOf(EntityID(7))},
 	"KnowledgeLevel":       {reflect.ValueOf(Entity{})},
 	"AutoHealing":          {reflect.ValueOf(uint32(SelfSlot))},
 	"AutoCast":             {reflect.ValueOf(uint32(SelfSlot))},

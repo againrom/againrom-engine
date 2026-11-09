@@ -198,8 +198,7 @@ func (mw *mapWorld) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle, bool
 // world no longer holds is not alive, which is the same answer a corpse gets
 // and the one a dialogue needs.
 func (mw *mapWorld) entityAlive(id sim.EntityID) bool {
-	e, held := mw.entity(id)
-	return held && e.Alive()
+	return mw.world.EntityAlive(id)
 }
 
 // playerFigureDir is the player's own figure directory, for the `MySex` and

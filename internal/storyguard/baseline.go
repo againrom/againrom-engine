@@ -4463,5 +4463,8 @@ var Committed = Baseline{
 	// It rises for the once-per-process writer round trip: the memo, the
 	// recorder and their tests in pkg/game/milestone2_writer_admission_test.go,
 	// and this note.
-	CommentBytes: 10774310,
+
+	// It rises for the doc comment of the liveness read in pkg/sim/world.go
+	// and this note.
+	CommentBytes: 10774490,
 }
