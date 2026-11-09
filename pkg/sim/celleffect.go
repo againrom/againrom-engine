@@ -933,10 +933,13 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 // The second game reads the same for a victim of the caster's own owner and
 // for a side with no owner, where the hook does not run (R2-ENGINE-985,
 // R2-ENGINE-988); a victim of another owner is ordered against the caster
-// (DIV-1600).
+// (DIV-1600), except a human participant's unit: the blow writes it no order
+// and a click stands (R2-ENGINE-987, owner direction in DIV-1600).
 func (w *World) answerAreaBlow(ci, ti int, caster EntityID) {
 	if w.game.blowOrdersAttack && (ci < 0 || w.ownersDiffer(ci, ti)) {
-		w.orderAttack(ti, caster)
+		if e := w.entities[ti]; e.Owner == 0 || !w.humanParticipantUnit(e) {
+			w.orderAttack(ti, caster)
+		}
 		return
 	}
 	w.flipOnBlow(ci, ti)

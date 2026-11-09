@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] A weaker Poison Cloud no longer shortens the poison already on a unit: the unit keeps the longer remaining time. Recasting the same spell still does not make the poison last longer.
+- [ROM2] A hero caught in an enemy Darkness keeps following your orders and no longer runs at the enemy mage by himself.
 - [BASE] A mod can hold its own speakers: in the map editor, clicking a unit no speaker shows on a map in a mod offers to add one with your own name and picture.
 - [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
 - [Starter] The starter is a much smaller file.
