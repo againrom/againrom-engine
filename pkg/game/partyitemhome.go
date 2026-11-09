@@ -27,7 +27,8 @@ type partyItemHome struct {
 // counting the hero's bag and his table (DIV-3043); zero is a game with no
 // bag, whose members' packs are the whole home and where nothing crosses.
 type partyItemProfile struct {
-	bagUnits int
+	bagUnits  int
+	shopGraph bool
 	// kept is a pack unit in its bag form, false when the bag would lose it.
 	kept func(sim.ItemInstance, func(uint16) sim.ItemInstance) (sim.ItemInstance, bool)
 	// mission is a bag unit in the form a mission holds it.
@@ -40,7 +41,7 @@ type partyItemProfile struct {
 
 var (
 	// firstPartyItems is the first game: a pack per member and no bag.
-	firstPartyItems = partyItemProfile{}
+	firstPartyItems = partyItemProfile{shopGraph: true}
 	// secondPartyItems is the second game's shared bag, the units' forms
 	// that of its shop and mission tables, bounded by the save's bound.
 	secondPartyItems = partyItemProfile{bagUnits: maxSecondBagUnits, kept: secondshop.KeptUnit,
@@ -237,20 +238,38 @@ func (h partyItemHome) writePack(party []mapload.PartyMember, i int, items []sim
 	return true
 }
 
+func (h partyItemHome) writeShopStacks(index int, stacks []sim.ItemStack, refresh bool) error {
+	before := mapload.CloneParty([]mapload.PartyMember{h.sess.Carried[index]})[0]
+	next := mapload.CloneParty([]mapload.PartyMember{before})[0]
+	next = mapload.MaterializePartyCarry(next, h.table)
+	next.RetireOriginalHuman()
+	if err := mapload.UpdatePartyLoadOrdered(before, &next, h.table, refresh, false, stacks); err != nil {
+		return err
+	}
+	return h.commitPack(index, next)
+}
+
 // commitPack makes next member i, the town's item graph following his pack,
 // the one point where a crossing's pack replaces the party's. When the graph
 // cannot follow, nothing changes.
 func (h partyItemHome) commitPack(i int, next mapload.PartyMember) error {
 	s := h.sess
-	party := slices.Clone(s.Carried)
-	party[i] = next
-	graph, err := s.followHeroPack(s.Carried[i], party, i, h.table)
-	if err != nil {
-		return err
+	var graph *cityObjectTopology
+	if !h.profile.shopGraph {
+		party := slices.Clone(s.Carried)
+		party[i] = next
+		var err error
+		graph, err = s.followHeroPack(s.Carried[i], party, i, h.table)
+		if err != nil {
+			return err
+		}
 	}
 	s.Carried[i] = next
 	if graph != nil {
 		s.Town.cityObjects = graph
+	}
+	if h.profile.shopGraph && s.originalCity != nil {
+		s.originalCity.trade = nil
 	}
 	return nil
 }

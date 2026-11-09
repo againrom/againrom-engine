@@ -288,21 +288,6 @@ func (t *shopController) cityShopBind(item ShopItem) (ShopItem, error) {
 	return item, nil
 }
 
-func (t *shopController) cityShopSetPack(index int, stacks []sim.ItemStack, refresh bool) error {
-	before := mapload.CloneParty([]mapload.PartyMember{t.sess.Carried[index]})[0]
-	next := mapload.CloneParty([]mapload.PartyMember{before})[0]
-	next = mapload.MaterializePartyCarry(next, t.in.Table)
-	next.RetireOriginalHuman()
-	if err := mapload.UpdatePartyLoadOrdered(before, &next, t.in.Table, refresh, false, stacks); err != nil {
-		return err
-	}
-	t.sess.Carried[index] = next
-	if t.sess.originalCity != nil {
-		t.sess.originalCity.trade = nil
-	}
-	return nil
-}
-
 func (t *shopController) cityShopSetNode(id sim.SavedObjectID, value sim.ItemInstance, count uint32, refresh bool) error {
 	if id == 0 || value.Empty() || count == 0 || count > sim.MaxOriginalHoldingValues {
 		return fmt.Errorf("city node update has invalid current operands")
@@ -409,7 +394,7 @@ func (t *shopController) cityShopTakePack(index int, whole, refresh bool) (ShopI
 	if !whole && stack.Count > 1 {
 		item, err = t.cityShopSplit(item, selected.Location)
 		if err == nil && refresh {
-			err = t.cityShopSetPack(t.shopMemberIndex(), cityMemberStacks(t.sess.Carried[t.shopMemberIndex()], t.in.Table), true)
+			err = t.sess.partyItems(t.in.Table).writeShopStacks(t.shopMemberIndex(), cityMemberStacks(t.sess.Carried[t.shopMemberIndex()], t.in.Table), true)
 		}
 		return item, err
 	}
@@ -419,7 +404,7 @@ func (t *shopController) cityShopTakePack(index int, whole, refresh bool) (ShopI
 	}
 	stacks := slices.Clone(cityMemberStacks(t.sess.Carried[t.shopMemberIndex()], t.in.Table))
 	stacks = slices.Delete(stacks, index, index+1)
-	if err := t.cityShopSetPack(t.shopMemberIndex(), stacks, refresh); err != nil {
+	if err := t.sess.partyItems(t.in.Table).writeShopStacks(t.shopMemberIndex(), stacks, refresh); err != nil {
 		return ShopItem{}, err
 	}
 	if load := t.sess.Carried[t.shopMemberIndex()].Carry.LiveLoad; load != nil {
@@ -737,7 +722,7 @@ func (t *shopController) cityShopSell() (ui.TownAction, error) {
 	}
 	for i, member := range t.sess.Carried {
 		if owners[member.ID] {
-			if err := t.cityShopSetPack(i, cityMemberStacks(member, t.in.Table), true); err != nil {
+			if err := t.sess.partyItems(t.in.Table).writeShopStacks(i, cityMemberStacks(member, t.in.Table), true); err != nil {
 				return ui.TownAction{}, err
 			}
 		}
@@ -1341,7 +1326,7 @@ func (t *shopController) cityShopPutPack(item ShopItem, refresh bool) error {
 			return err
 		}
 		if refresh {
-			return t.cityShopSetPack(memberIndex, cityMemberStacks(t.sess.Carried[memberIndex], t.in.Table), true)
+			return t.sess.partyItems(t.in.Table).writeShopStacks(memberIndex, cityMemberStacks(t.sess.Carried[memberIndex], t.in.Table), true)
 		}
 		return nil
 	}
@@ -1354,7 +1339,7 @@ func (t *shopController) cityShopPutPack(item ShopItem, refresh bool) error {
 		return err
 	}
 	stacks = slices.Insert(stacks, at, sim.StackItem(item.Instance(), uint32(item.Count)))
-	if err := t.cityShopSetPack(memberIndex, stacks, refresh); err != nil {
+	if err := t.sess.partyItems(t.in.Table).writeShopStacks(memberIndex, stacks, refresh); err != nil {
 		return err
 	}
 	t.sess.Town.cityObjects = graph

@@ -43,7 +43,7 @@ func (t *shopController) cityShopMovePack(source, target int, whole bool) error 
 		}
 		stacks[source], stacks[target] = stacks[target], stacks[source]
 		root.Pack[source], root.Pack[target] = root.Pack[target], root.Pack[source]
-		return t.cityShopSetPack(memberIndex, stacks, true)
+		return t.sess.partyItems(t.in.Table).writeShopStacks(memberIndex, stacks, true)
 	}
 	item, err := t.cityShopTakePack(source, plan.Count == incoming.Count, false)
 	if err != nil {
@@ -61,5 +61,5 @@ func (t *shopController) cityShopMovePack(source, target int, whole bool) error 
 	if _, err := t.cityShopMerge(destination, item); err != nil {
 		return err
 	}
-	return t.cityShopSetPack(memberIndex, cityMemberStacks(t.sess.Carried[memberIndex], t.in.Table), true)
+	return t.sess.partyItems(t.in.Table).writeShopStacks(memberIndex, cityMemberStacks(t.sess.Carried[memberIndex], t.in.Table), true)
 }

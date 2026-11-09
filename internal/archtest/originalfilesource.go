@@ -6,23 +6,27 @@ package archtest
 // read moment and each group source have one production site, its row. A read
 // reached any other way is a second builder of the source.
 var originalFileSourceOwners = map[string][]string{
-	"againrom/pkg/game.readFileApplication":   {originalFileSourceTable},
-	"againrom/pkg/game.cityGroupsFromLoaded":  {originalFileSourceTable},
-	"againrom/pkg/game.cityGroupsFromGraph":   {originalFileSourceTable},
-	"againrom/pkg/game.cityGroupsFromCurrent": {originalFileSourceTable},
-	"againrom/pkg/game.loadedPlayerGroups":    {"againrom/pkg/game.cityGroupsFromLoaded", "againrom/pkg/game.cityGroupsFromCurrent"},
+	"againrom/pkg/game.readFileApplication":          {originalFileSourceTable},
+	"againrom/pkg/game.applyOriginalBuildingCasters": {originalFileSourceTable},
+	"againrom/pkg/game.cityGroupsFromLoaded":         {originalFileSourceTable},
+	"againrom/pkg/game.cityGroupsFromGraph":          {originalFileSourceTable},
+	"againrom/pkg/game.cityGroupsFromCurrent":        {originalFileSourceTable},
+	"againrom/pkg/game.loadedPlayerGroups":           {"againrom/pkg/game.cityGroupsFromLoaded", "againrom/pkg/game.cityGroupsFromCurrent"},
 	"againrom/pkg/game.originalFileSources": {
 		"againrom/pkg/game.originalTownSource",
 		"againrom/pkg/game.originalSource.readMissionApplication",
 		"againrom/pkg/game.firstFrameSourceOf",
+		"againrom/pkg/game.FrontEnd.captureApplicationState",
+		"againrom/pkg/game.originalSource.adoptMissionState",
 	},
 	"againrom/pkg/game.originalTownSource":                    {"againrom/pkg/game.CampaignSession.adoptTownGroups"},
 	"againrom/pkg/game.CampaignSession.adoptTownGroups":       {"againrom/pkg/game.CampaignSession.restoreOriginalTown"},
 	"againrom/pkg/game.originalSource.readMissionApplication": {"againrom/pkg/game.originalSource.prepareMission"},
+	"againrom/pkg/game.originalSource.adoptMissionState":      {"againrom/pkg/game.originalSource.prepareMission"},
 	"againrom/pkg/game.readOriginalApplicationState": {
 		"againrom/pkg/game.documentApplication",
 		"againrom/pkg/game.validateOriginalApplicationSource",
-		"againrom/pkg/game.FrontEnd.captureApplicationState",
+		originalFileSourceTable,
 		"againrom/pkg/game.projectApplicationState",
 	},
 	"againrom/pkg/game.originalApplicationStateOf": {

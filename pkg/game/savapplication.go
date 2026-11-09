@@ -380,8 +380,11 @@ func (f *FrontEnd) captureApplicationState(mw *mapWorld) (*SnapshotApplicationSt
 		return nil, nil
 	}
 	out := cloneApplicationState(mw.applicationState)
-	if (out == nil || out.LocalOnly) && mw.mission != nil && mw.mission.state != nil && mw.mission.state.savedDocument != nil && mw.mission.state.savedDocument.Document != nil {
-		raw, err := readOriginalApplicationState(mw.mission.state.savedDocument.Document)
+	for _, row := range originalFileSources() {
+		if row.captureHolds == nil || !row.captureHolds(mw) {
+			continue
+		}
+		raw, err := row.captureApplication(mw)
 		if err != nil {
 			return nil, err
 		}
@@ -395,6 +398,7 @@ func (f *FrontEnd) captureApplicationState(mw *mapWorld) (*SnapshotApplicationSt
 		out.Original, out.LocalOnly = raw, false
 		out.Baseline.ShowHealth, out.Baseline.FlyingHP, out.Baseline.TimeFlow = raw.ShowHP != 0, raw.FlyingHP != 0, raw.ShowTimeFlow != 0
 		out.Baseline.InventoryOpen, out.Baseline.SpellBookOpen = raw.InventoryOpen != 0, raw.BookOpen != 0
+		break
 	}
 	if out == nil {
 		out = &SnapshotApplicationState{Version: applicationStateVersion, WimpyBaseline: f.wimpyMode,

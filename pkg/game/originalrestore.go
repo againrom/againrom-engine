@@ -458,7 +458,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := applyOriginalStructuresCurrent(ms, buildings, hasBuildings, in.table, in.archives.Containers, missionDocument, &r, src.campaign.actions, sf); err != nil {
 				return err
 			}
-			applyOriginalBuildingCasters(ms, src.virtualCasters)
+			src.adoptMissionState(ms)
 			if err := applyOriginalCellRecords(ms, cellRecords, hasCellRecords, registry, &r); err != nil {
 				return err
 			}

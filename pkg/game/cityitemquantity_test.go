@@ -35,7 +35,7 @@ func TestCurrentCitySharedWornQuantitySurvivesTwoSAVLoads(t *testing.T) {
 							stocks, ids = append(stocks, stack), append(ids, root.Pack[at])
 						}
 					}
-					if err := screen.cityShopSetPack(i, stocks, false); err != nil {
+					if err := f.CampaignSession.partyItems(f.Table).writeShopStacks(i, stocks, false); err != nil {
 						t.Fatal(err)
 					}
 					root.Pack = ids

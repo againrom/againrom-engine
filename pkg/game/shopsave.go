@@ -126,7 +126,7 @@ func (t *shopController) restoreShopOwner(item ShopItem, owner shopOwnerQuantity
 		return err
 	}
 	stacks = slices.Insert(stacks, at, sim.StackItem(item.Instance(), uint32(item.Count)))
-	if err := t.cityShopSetPack(index, stacks, false); err != nil {
+	if err := t.sess.partyItems(t.in.Table).writeShopStacks(index, stacks, false); err != nil {
 		return err
 	}
 	t.sess.Town.cityObjects = graph

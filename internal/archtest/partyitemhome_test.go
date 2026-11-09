@@ -45,6 +45,39 @@ func TestCheckPartyItemHomeNamesEachShape(t *testing.T) {
 	}
 }
 
+func TestCheckPartyItemHomeRejectsShopPackWriters(t *testing.T) {
+	const head = `package game
+type CampaignSession struct{}
+type shopController struct{}
+type partyItemHome struct{}
+func (s *CampaignSession) followHeroPack() {}
+func (s *CampaignSession) cross() { s.followHeroPack() }
+func (h partyItemHome) commitPack() {}
+`
+	const write = "func (h partyItemHome) writeShopStacks() { h.commitPack() }\n"
+	for _, tc := range []struct {
+		name, home, other, want string
+	}{
+		{"one home", write, "", ""},
+		{"retired writer", write, "func (t *shopController) cityShopSetPack() {}", "cityShopSetPack"},
+		{"retired writer in the home", write + "func (t *shopController) cityShopSetPack() {}", "", "cityShopSetPack"},
+		{"writer outside the home", "", write, "writeShopStacks outside"},
+		{"commit outside the home", write, "func (h partyItemHome) another() { h.commitPack() }", "commitPack outside"},
+		{"commit method value", write, "func (h partyItemHome) another() { f := h.commitPack; f() }", "commitPack outside"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			module := checkedFixture(t, fixturePackage{path: "againrom/pkg/game", files: map[string]string{
+				PartyItemHomeFile: head + tc.home,
+				"pkg/game/x.go":   "package game\n" + tc.other,
+			}})
+			got := strings.Join(CheckPartyItemHome(module), "\n")
+			if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
+				t.Fatalf("findings %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestPartyItemHomeHoldsEveryCrossing(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

@@ -390,12 +390,12 @@ func TestTownSourceTableChoosesOneRowPerFile(t *testing.T) {
 			t.Errorf("row %q is unnamed or repeated", row.name)
 		}
 		names[row.name] = true
-		if (row.townHolds == nil) != (row.townGroups == nil) || (row.missionHolds == nil) != (row.readApplication == nil) || (row.frameHolds == nil) != (row.frame == nil) {
+		if (row.townHolds == nil) != (row.townGroups == nil) || (row.missionHolds == nil) != (row.readApplication == nil) || (row.frameHolds == nil) != (row.frame == nil) || (row.captureHolds == nil) != (row.captureApplication == nil) {
 			t.Errorf("row %q holds a test without its reader", row.name)
 		}
 	}
-	if len(rows) != 5 {
-		t.Errorf("%d rows, want the three town sources, the state store and the document", len(rows))
+	if len(rows) != 7 {
+		t.Errorf("%d rows, want the three town sources, the state store, the document, capture and casters", len(rows))
 	}
 }
 

@@ -20,6 +20,7 @@ var partyItemHomeOnly = []string{
 	"againrom/pkg/secondshop.KeptUnit",
 	"againrom/pkg/secondshop.MissionUnit",
 	"againrom/pkg/game.memberWithPack",
+	"againrom/pkg/game.partyItemHome.commitPack",
 }
 
 // partyItemOwnPackage are the functions their own package may reference
@@ -53,6 +54,15 @@ func CheckPartyItemHome(m *TypeCheckedModule) []string {
 				id, ok := node.(*ast.Ident)
 				if !ok {
 					return true
+				}
+				if defined, _ := p.Info.Defs[id].(*types.Func); defined != nil {
+					key := saveCaptureKey(defined)
+					if key == "againrom/pkg/game.shopController.cityShopSetPack" {
+						findings = append(findings, fmt.Sprintf("%s:%s declares retired %s", rel, line(m, id), key))
+					}
+					if key == "againrom/pkg/game.partyItemHome.writeShopStacks" && rel != PartyItemHomeFile {
+						findings = append(findings, fmt.Sprintf("%s:%s declares %s outside the party item home", rel, line(m, id), key))
+					}
 				}
 				used, _ := p.Info.Uses[id].(*types.Func)
 				if used == nil {

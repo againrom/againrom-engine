@@ -34,7 +34,10 @@ type originalFileSource struct {
 	// frameHolds is this row's test of a mission's first frame.
 	frameHolds func(ms *Mission, original bool) bool
 	// frame is what the row restores on the first frame.
-	frame *firstFrameSource
+	frame              *firstFrameSource
+	captureHolds       func(*mapWorld) bool
+	captureApplication func(*mapWorld) (OriginalStateData, error)
+	adoptMission       func(*originalSource, *Mission)
 }
 
 // originalTownInputs is what a between-mission LOAD states about its file
@@ -96,6 +99,21 @@ func originalFileSources() []originalFileSource {
 			frameHolds: func(ms *Mission, _ bool) bool { return ms.fileApplication != nil },
 			frame:      fileStoreFirstFrame(),
 		},
+		{
+			name: "captured mission document",
+			captureHolds: func(mw *mapWorld) bool {
+				return (mw.applicationState == nil || mw.applicationState.LocalOnly) && mw.mission != nil && mw.mission.state != nil && mw.mission.state.savedDocument != nil && mw.mission.state.savedDocument.Document != nil
+			},
+			captureApplication: func(mw *mapWorld) (OriginalStateData, error) {
+				return readOriginalApplicationState(mw.mission.state.savedDocument.Document)
+			},
+		},
+		{
+			name: "building caster list",
+			adoptMission: func(src *originalSource, ms *Mission) {
+				applyOriginalBuildingCasters(ms, src.virtualCasters)
+			},
+		},
 	}
 }
 
@@ -141,6 +159,14 @@ func (src *originalSource) readMissionApplication(ms *Mission) error {
 		return nil
 	}
 	return nil
+}
+
+func (src *originalSource) adoptMissionState(ms *Mission) {
+	for _, row := range originalFileSources() {
+		if row.adoptMission != nil {
+			row.adoptMission(src, ms)
+		}
+	}
 }
 
 func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, error) {
