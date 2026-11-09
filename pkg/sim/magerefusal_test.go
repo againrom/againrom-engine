@@ -116,12 +116,6 @@ func TestARefusedRouteAnswerOutsideTheSuppressionIsUnchanged(t *testing.T) {
 		w, i := mrWalker(t, tc.name, 1, 10, true)
 		tc.call(w, i)
 		got := w.entities[i]
-		if tc.name == "walk" {
-			if got.HasAttackTarget {
-				t.Fatal("unsupported second-game walk tail acquired a target")
-			}
-			continue
-		}
 		if !got.PursuitIdle || !got.HasAttackTarget || got.AttackTarget != 3 || got.AcquirePursuit {
 			t.Errorf("second game %s: idle %v victim %v/%d acquisition %v; want pick 3 idle", tc.name, got.PursuitIdle, got.HasAttackTarget, got.AttackTarget, got.AcquirePursuit)
 		}

@@ -809,6 +809,12 @@ func (w *World) orderAcquire(i int, victim EntityID) bool {
 	// acquire.
 	if w.entities[i].HasAttackTarget {
 		w.entities[i].AcquirePursuit = true
+		if o := w.savedOrder(w.entities[i].ID); o != nil && w.game.orders.idleRanking == targetIdleDistance {
+			o.Raw[8] = 5
+			o.Raw[0x14] = uint8(w.attackRange(i))
+			*o = ProjectActorAcquireOrder(w.entities[i], *o)
+			w.syncCurrentActorOrder(i)
+		}
 	}
 	return true
 }

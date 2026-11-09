@@ -1,6 +1,99 @@
 package sim
 
-import "testing"
+import (
+	"encoding/binary"
+	"testing"
+)
+
+func TestSecondGameEmptyRouteScenario(t *testing.T) {
+	t.Parallel()
+	// R2-ENGINE-1108/1019: an empty non-move route reaches activity 6.
+	self := asFighter(asHero, SelfSlot, 30, 40)
+	self.Reach, self.Facing = 2, 64
+	grid := make([]byte, 64*64)
+	for dy := int32(-1); dy <= 1; dy++ {
+		for dx := int32(-1); dx <= 1; dx++ {
+			if dx == 0 && dy == 0 {
+				continue
+			}
+			grid[(40+dy)*64+30+dx] = blockGround
+		}
+	}
+	w, err := NewStockedSpelledWorld(1, Bounds{Width: 64, Height: 64}, ModeCanonical, Terrain{Block: grid},
+		[]Entity{self, asFoe(asFoeA, 32, 40)}, secondGameScript(t, nil, nil, nil),
+		engRel(t, [3]uint32{SelfSlot, asSide, 1}, [3]uint32{asSide, SelfSlot, 1}), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.commandGroup([]int{0}, orderNone, cell{})
+	w.entities[0].ActorState = actorStateGuard
+	w.entities[0].PostX, w.entities[0].PostY = 45, 40
+	o := w.syncSavedActorCommand(0)
+	binary.LittleEndian.PutUint16(o.Raw[:], 45|40<<8)
+	w.walkToCell(0, 45, 40, false)
+	w.syncSavedDestination(0)
+	cold := worldRoundTripForTest(t, w)
+	for range 160 {
+		Step(w, nil)
+		Step(cold, nil)
+		if w.Hash() != cold.Hash() {
+			t.Fatal("blocked-route continuation diverged after synthetic LOAD")
+		}
+		if e := w.entities[0]; e.AcquirePursuit {
+			if !e.HasAttackTarget || e.AttackTarget != asFoeA || e.HasTarget || w.savedOrder(asHero).Raw[8] != 6 {
+				t.Fatal("empty route did not become the shared idle-attack activity")
+			}
+			return
+		}
+	}
+	t.Fatal("blocked guard route never reached re-pick")
+}
+
+func TestSecondGameComputerLookAroundScenario(t *testing.T) {
+	t.Parallel()
+	// R2-ENGINE-504: support turns in place and retains an unfinished heading.
+	self := asFighter(asHero, asSide, 30, 40)
+	self.RotationSpeed = 1
+	w := asWorld(t, true, self)
+	w.commandGroup([]int{0}, orderNone, cell{})
+	o := w.savedOrder(asHero)
+	o.Raw[8], o.Raw[0x54] = 0xb, 1
+	wakeGroups(w)
+	Step(w, nil)
+	if o.Raw[0x54] != 0 || !w.entities[0].Turning() {
+		t.Fatal("computer support did not consume its alarm and start a turn")
+	}
+	state, desired := w.RandomState(), w.entities[0].DesiredFacing
+	cold := worldRoundTripForTest(t, w)
+	for range 10 {
+		Step(w, nil)
+		Step(cold, nil)
+		e := w.entities[0]
+		if w.Hash() != cold.Hash() || w.RandomState() != state || e.DesiredFacing != desired || e.X != 30 || e.Y != 40 {
+			t.Fatal("look-around changed heading, moved or diverged after synthetic LOAD")
+		}
+	}
+}
+
+func TestSecondGameIdleBodyScenario(t *testing.T) {
+	t.Parallel()
+	// R2-ENGINE-502: body promotion reaches the normal activity-6 producer.
+	self := asFighter(asHero, SelfSlot, 30, 40)
+	self.Facing, self.DamageBase = 64, 0
+	a, b := asFoe(asFoeA, 31, 40), asFoe(asFoeB, 30, 41)
+	a.HP, a.Domain, b.HP = -1, DomainAir, -1
+	w := asWorld(t, true, self, a, b)
+	w.commandDefend([]int{0}, asHero)
+	for range 7 {
+		Step(w, nil)
+	}
+	if e := w.entities[0]; !e.HasAttackTarget || e.AttackTarget != asFoeB || e.X != 30 || e.Y != 40 {
+		t.Fatalf("standing body choice did not survive Step: target=%v/%d cell=%d,%d", e.HasAttackTarget, e.AttackTarget, e.X, e.Y)
+	}
+	if o := w.savedOrder(asHero); o.State != 12 || o.Raw[8] != 6 {
+		t.Fatalf("standing order/activity=%d/%d, want 12/6", o.State, o.Raw[8])
+	}
+}
 
 func TestSecondGamePlayerOrderScenario(t *testing.T) {
 	t.Parallel()

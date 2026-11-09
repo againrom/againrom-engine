@@ -8,15 +8,15 @@ func (w *World) reacquireWithinReach(i int) {
 	w.answerRefusedRoute(i, refusedFlee)
 }
 
-// reacquisitionVictim is the index of the hostile actor the reacquisition
-// names for actor i, or -1. Its candidates are the on-map actors other than i
-// itself within i's reach, kept by diplomacy and visibility; the previous victim
-// is not excluded. A body is a candidate only when no living actor is, the
-// corpse fallback the selection shares with ordinary acquisition (AI-327,
-// AI-FILTER-001).
+// reacquisitionVictim filters by range and running distance before relation,
+// visibility, veto and living/body fallback. The shared chooser ranks by turn.
+// AI-327, AI-FILTER-001, R2-ENGINE-1019.
 func (w *World) reacquisitionVictim(i int) int {
 	self := w.entities[i]
 	reach := int64(self.Reach)
+	if w.game.orders.repickEmptyRoute {
+		reach = w.attackRange(i)
+	}
 	nearest := reach
 	var admitted []int
 	for _, id := range w.actorTraversalIDs() {

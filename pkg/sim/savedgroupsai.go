@@ -161,7 +161,7 @@ func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 	case e.HasAttackTarget:
 		o.Raw[8] = 5
 		if e.AcquirePursuit && w.game.orders.idleRanking == targetIdleDistance {
-			o.Raw[8] = 6
+			*o = ProjectActorAcquireOrder(e, *o)
 		}
 	case !w.game.groupRoute.noHumanHealArm && e.Owner != 0 && w.humanParticipantUnit(e):
 		o.Raw[8] = 0

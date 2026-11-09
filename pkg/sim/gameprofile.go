@@ -66,8 +66,8 @@ type gameProfile struct {
 	// recorded shop use.
 	nativeShopUse bool
 
-	// nativeWalkRefusal: a refused walk keeps the stall count; no walk is
-	// refused at once, at the stall limit, by its Group's arm or claimed.
+	// nativeWalkRefusal keeps near-search give-up separate from a known
+	// empty-route result (R2-ENGINE-1108).
 	nativeWalkRefusal bool
 	// cellCastReach: cast and weapon-spell reach compare whole Chebyshev
 	// cells (R2-ENGINE-348), not the footprint gap or weapon reach.
@@ -200,6 +200,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			mageAcquisitionException: true,
 			stopEmptyWalk:            true,
 			standGroundScore:         true,
+			lookAround:               true,
+			repickEmptyRoute:         true,
 		},
 	}
 }

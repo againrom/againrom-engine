@@ -196,12 +196,7 @@ func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle,
 		if !w.joinsFight(mi) || held != nil && held(mi) {
 			continue
 		}
-		best, at := scoreSeed, -1
-		for _, fi := range foes {
-			if cost := w.candidateCost(mi, fi, orderSwarm); cost < best {
-				best, at = cost, fi
-			}
-		}
+		at := w.chooseTarget(mi, foes, orderSwarm, targetGroupScore)
 		if at >= 0 {
 			w.orderAttack(mi, w.entities[at].ID)
 			if joined != nil {

@@ -11,11 +11,10 @@ import (
 
 // The heading scan: outside pkg/sim/heading.go, production pkg/sim code
 // converts no value to heading, calls neither headingOf nor facingToward, and
-// calls requestFacing only in the turn core (facing.go) and the idle turn's
-// random byte (escort.go).
+// calls requestFacing only in the turn core (facing.go).
 const headingRuleFile = "pkg/sim/heading.go"
 
-var headingRequestFiles = map[string]bool{"pkg/sim/facing.go": true, "pkg/sim/escort.go": true}
+var headingRequestFiles = map[string]bool{"pkg/sim/facing.go": true}
 
 // CheckHeadingLaws reports every heading computed or requested outside its law.
 func CheckHeadingLaws(files map[string]string) []Violation {

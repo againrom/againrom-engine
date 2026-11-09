@@ -30,10 +30,8 @@ func ProjectActorOrderTargets(e Entity, o SavedActorOrder, attack, escort uint32
 	return o
 }
 
-// ProjectActorAcquireOrder writes an acquisition pursuit as order inner 6,
-// the byte the original's acquisition writers store; pursuit 5 paths and 6
-// turns (AI-PURSUE-040). The World keeps 5 with AcquirePursuit, which the
-// action supplement carries, so only the written order changes.
+// ProjectActorAcquireOrder owns the activity-6 byte for current acquisition
+// and SAV projection. First-game worlds retain activity 5 until projection.
 func ProjectActorAcquireOrder(e Entity, o SavedActorOrder) SavedActorOrder {
 	if e.AcquirePursuit && e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && o.Raw[8] == 5 {
 		o.Raw[8] = 6

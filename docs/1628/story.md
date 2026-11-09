@@ -1,0 +1,53 @@
+# Order-machine debt
+
+## Intent
+
+Complete coherent remaining second-game order stages from the composed table. Preserve first-game orders, bytes and hashes. Keep unread cells as named debt.
+
+## Authority
+
+Owner direction and `knowledge/formats/rom2-ai/orders.md` at k452 (`45c1ee8ef818ac942dba95deafa8965e43770e70`). The owner artifact `TABLE.md` maps all 21 owed rows at base `e036d55bd5b7c4d611085922ccc4ff02d1f5be27`. Grades remain clause-local.
+
+Stages are grouped by production ownership rather than owner identity. A covers idle population and activity projection. B covers shared ranking and computer look-around. C covers empty-route re-pick. D covers raw selector/primary admission and the remaining outer-machine debt. Raw admission must be one complete stage across movement, strike, cast and pending orders, because those producers share a body.
+
+## As-built behaviour
+
+The shared target chooser now owns `joinEngagedGroup` and `coverEngage` as well as the three existing callers. Cover preference is a ranking value; its population, veto, nearest distance and first full tie are preserved. Group joining retains ordinary scoring and first full tie. No behaviour change is intended in this consolidation.
+
+Stage A is complete. T07 now promotes bodies into an initially empty live list before applying the main idle veto and flier distance adjustment (R2-ENGINE-502, High local list clause). A nonempty live list that yields no in-range target still tries the reserve body population with its separate ranking (R2-ENGINE-501, bounded helper composition). `ProjectActorAcquireOrder` is the sole activity-6 writer for current acquisition and SAV projection. Actor acquisition and Group acquisition call it; first-game current activity remains 5.
+
+Stage B is complete. T14's non-escort prepared support byte reaches `stepIdleTurn`, the extracted escort executor. The profile keeps an unfinished heading before another random choice; a completed heading can choose a new one and consumes the hit alarm. First-game escort behaviour is unchanged. R2-ENGINE-504 is High for RU local flow and Medium for EN/helper meanings; R2-ENGINE-844's support writer is High with Medium helper mapping. R2-ENGINE-651 reads the random/range arithmetic at High, with the range helper dividing by an object dword. Binding that divisor to 0x8000 through the existing `aiRange(190)` and using the existing seed/turn cadence remain bounded, DIV-4781. T29's no-target re-pick connection belongs to C. T39's complete programme/population obligation remains open despite merging its ranking callers.
+
+Stage C is complete for the existing route-failure entries. T23/T28/T48 now re-pick on a known empty non-move walk instead of bypassing the shared answer. The tail selects by member order, not Group programme. T29's no-result branch prepares 0 for a human participant or 11 and shared look-around for a computer. A selected target prepares 6 through the sole writer, preserves member order and assigned-target bytes, and writes the prepared endpoint through `syncCurrentActorOrder`. The player-mage exception stores the selected endpoint before idling. Re-pick uses `attackRange`; its inherited cell-distance/population binding remains Medium. R2-ENGINE-1108 and R2-ENGINE-1019 establish local branches/stores; their full route/kind composition remains bounded. Near-search give-up, occupied-goal outcomes and ordinary arrival are not equated with a known empty route.
+
+Kinds and builders: target choice uses `chooseTarget` and `candidateCost`; candidate population uses `actorCandidates`, `groupCandidates` and the existing `reacquisitionVictim` prefilter; look-around uses `stepIdleTurn` in the existing `facing.go` turn core, called by `stepEscortOrder`; route-failure answers use `refusedWalkArm` and `answerRefusedRoute`/`answerRefusedNone`; current target bytes use `syncCurrentActorOrder`/`ProjectActorOrderTargets`; game differences use `gameProfile.orders`; acquisition activity uses `ProjectActorAcquireOrder` for World and the existing SAV producer. Approach and strike still use `approach`/`closedOn`/`advanceAttack`; walk stop uses `stopWalkOrder`; range uses `attackRange`. The chooser guard covers five callers, and heading requests are confined to the turn core and heading laws. No new persisted field, save reader, save producer or sidecar is added.
+
+The inherited T45 binding is Medium: `isMage` means `MaxMana > 0`, while R2-ENGINE-1043 reads a kind predicate. The inherited T52 binding is Medium: the scorer uses member/candidate `Reach`, while R2-ENGINE-1111 reads `L2.01728`, modelled elsewhere as `attackRange`; an armed mage can distinguish them. Neither binding is established as a second-game fact by the engine.
+
+## Proof
+
+`TestFirstGameOrderCellsKeepTheirBytes` gains six scenes measured before production changes: promoted-body veto, promoted-body flier, reserve body, saved acquisition, engaged-group scoring and cover preference. The four existing scenes retain their constants. The focused group-home, notice-circle and defender controls remain required.
+
+Stage A: `TestIdleBodyPromotionUsesTheMainFilter` and `TestIdleBodyPromotionKeepsTheFlierAdjustment` failed before the change. `TestIdleReserveBodyKeepsItsSeparateRank` preserves the reserve control. `TestAcquisitionActivityUsesTheSaveProjection` checks the current and saved byte and untouched residue. `TestSecondGameIdleBodyScenario` drives the player's defend-self setter and seven production steps to standing acquisition. Its synthetic body population is not install proof. `TestAcquireActivityHasOneWriter` guards the literal writer.
+
+Stage B: the computer support and unfinished-heading tests failed before the change. Primary progress and immediate player replacement are controls. `TestSecondGameComputerLookAroundScenario` starts a computer turn through `Step`, then compares ten subsequent steps with a synthetic binary round trip. The hit alarm is consumed once, and an unfinished turn consumes no additional random draw. Two more frozen first-game scenes cover the existing escort executor and the previously inactive non-escort support byte. `TestLookAroundGateHasOneBuilder` guards the shared random gate.
+
+Stage C: the non-move, owner-split and mage re-pick tests failed before the change. They check prepared and assigned endpoints separately. `TestRePickUsesTheCurrentAttackRange` first failed for the armed range beyond physical reach. `TestSecondGameEmptyRouteScenario` encloses the mover with synthetic blocked terrain, drives production search to the re-pick and compares every step with a synthetic binary round trip. It proves this engine route, not the original's occupied-neighbour classification. Four additional first-game hash scenes cover guard walk, pursuit, no-result and the range query. All sixteen frozen first-game scenes remain unchanged. The old second-game walk-suppression test is updated to expect the now-supported idled pick.
+
+Only second-game rows change in `gameprofile_test.go` and `testdata/castrequest.txt`; first-game recordings and constructor hashes are unchanged. The new activity bytes, current endpoint/range projection and computer idle turns change second-game state hashes and random draws as expected. Fixture recordings are continuation controls, not ROM2 evidence.
+
+Lane final gates are the focused sim set, `go test ./internal/archtest/` as explicitly required by the brief, the focused storyguard scan after its counters fall, and `check-div-claims.sh`. The fast gate is seat-owned outside this sandbox. No release test, whole sim package, scenario set, chain, original runtime or install write runs here.
+
+Next release, ROM1 EN/RU: `TestReleaseAttackFacingMissionTrace`, `TestReleaseAWarriorKeepsItsOrderedVictim`, `TestReleaseAMageKeepsItsOrderedEnemyAndResumesAfterASelfCast`, `TestReleaseALoadedAttackCycleFinishesBeforeAMoveOrder`, `TestReleaseResavedAttackBoundaryKeepsItsCurrentAction`. ROM2 EN/RU: `TestReleaseSecondMissionNamedSaveContinuation`, `TestReleaseSecondMissionTwentyNamedSaveContinuation`, `TestReleaseSecondMissionSaveEntryPoints`. Run through the release gate only. Installed SAV and native order-stage comparison remain separate from the synthetic binary checks.
+
+## Open debt
+
+Stage D is not started. T02/T15/T20/T21/T22 require a common primary/prepared admission owner before any raw-cell support can be complete. `stepWorld` advances book/scroll casts before movement and strike loops, `pendingLogicalProgress` retains imported primary bytes, and `savedActorDispatch` admits only a reduced member-order population. A new raw-byte dispatcher beside them would be a second executor and would not prevent an earlier action. Completing the stage requires consolidating those existing owners and their persisted continuation first; no partial raw executor is added under the brief's complete-or-not-started rule. DIV-4765 and DIV-4766 retain this known implementation debt, including raw order-0x18 primary 255 and common-tail admission after every primary arm.
+
+Unchanged outer cells: T03/T05/T31/T33/T37/T47/T53/T54/T56. Their Unknowns remain in DIV-4758, DIV-4760..4764 and DIV-4766..4768: bit-8 event/kind binding and safe null-target policy; complete writer and programme census; posted-hit readers; application coordinates and virtual predicates; sight/world producers; complete native input cells; delivered EN/RU cadence. These are not closed by first-game evidence. T36's universal pursuit endings remain Unknown under DIV-4760. T39 still owes complete programme and eligibility composition.
+
+T23/T28/T48 remain partial at the outer boundary: general imported-primary tail execution, order-0xa/0x18 lifecycle and occupied-goal/arrival classification are not closed. T28 retains the first-game distance prefilter and current domain/invisibility correspondence under DIV-4764. T14 retains unread support/mage helpers under DIV-4766. DIV-4780 closes the formerly unnamed known non-move route re-pick branch only. DIV-4778/4779 name the inherited Medium bindings; DIV-4781 names look-around helper/cadence uncertainty. DIV-4782..4797 are unused. No complete 56-row machine or installed acceptance is claimed.
+
+## Correction after review
+
+A Move-group member stood down to order 0xc by an earlier refusal stands down again on an empty route, so a player's click move to an unreachable place stops as on the base (`refusedWalkArm` uses `walksAtStateOne` and the stand-down test). The computer look-around of `stepEscortOrder` applies only to a unit that is not a human participant and holds no attack target. Tests: `TestAPlayersClickMoveWithAnEmptyRouteStandsDown`, `TestAPlayersIdleHeroDoesNotLookAround`, `TestAComputerUnitHoldingAnAttackTargetDoesNotLookAround`.

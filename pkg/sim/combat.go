@@ -424,17 +424,9 @@ func (w *World) refusesWalkAtOnce(i int, sub cell) bool {
 	return !w.game.nativeWalkRefusal && !e.HasAttackTarget && !w.humanParticipantUnit(e) && w.aimsAtDestination(i, sub)
 }
 
-// answerRefusedPursuit is the order machine's answer to a refused route for a
-// unit attacker. The walk is already ended. The pick is the hostile nearest
-// within the attacker's reach, the previous victim not excluded, which becomes
-// its acquisition order (AI-ROUTE-045, AI-327); a first-game human
-// participant's short-reach mage holds the pick with the order idle
-// (AI-GUARD-007). With none in reach the order goes idle and the victim field
-// is left as it was, since the failure exit never writes it (AI-328): nothing
-// walks, turns or strikes until another order is written, including a group's
-// reissue at the same victim.
-// Acquisition turns, structure victims and a cycle in progress are not a
-// refused pursuit and keep their own handling.
+// answerRefusedPursuit sends a between-cycle unit pursuit to the shared
+// re-pick answer. Other failures retain their walk-state dispatch.
+// AI-ROUTE-045, AI-327, R2-ENGINE-1019.
 func (w *World) answerRefusedPursuit(i int, by routeSearch) {
 	if !w.attackerRefusable(i) {
 		w.answerRefusedWalk(i, by)
@@ -453,15 +445,8 @@ const (
 	searchStatic
 )
 
-// answerRefusedWalk answers a refused walk with no victim by its walk state
-// (AI-649): a walk to a sack and, in the first game, each state the tail
-// sends to the reach pick (a guard's walk to its post, an escort closing, a
-// stood-down member) take the hostile nearest within reach (AI-648). With
-// none the actor stays. A walk at state 1 stands down instead. A static
-// search's refusal also claims the member's cell (claimRefusedCell), which
-// the order 4 arm's next pass latches (claimLatch). A withdrawal takes the
-// pick through the retreat failure tail, the answer a loaded route-failure
-// flag takes, which also writes its progress (AI-365).
+// answerRefusedWalk dispatches a no-victim route failure through the shared
+// walk-state answer. AI-649, AI-365, R2-ENGINE-1108.
 func (w *World) answerRefusedWalk(i int, by routeSearch) {
 	e := &w.entities[i]
 	if e.HasAttackTarget || e.OffMap {
@@ -497,13 +482,25 @@ const (
 	walkArmPick
 )
 
-// refusedWalkArm reports the tail's arm for actor i's refused walk. A
-// withdrawal takes the pick, whatever its Group (AI-365, AI-649). A walk at
-// state 1 stands down (walksAtStateOne); every other state takes the pick,
-// a member of a Swarm (order 2) or Roam Group included (AI-685). A patrol and
-// another pending order keep their own answers.
+// refusedWalkArm selects the profile's empty-route answer from member order.
+// First-game Group fallbacks retain their existing precedence.
 func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
+	if w.game.orders.repickEmptyRoute && e.PendingOrder.Kind == PendingNone {
+		state := uint32(e.ActorState)
+		if o := w.savedOrder(e.ID); o != nil {
+			state = o.State
+		}
+		switch state {
+		case 0xa, 0x18:
+			return walkArmNone
+		default:
+			if o := w.savedOrder(e.ID); state == 1 || w.walksAtStateOne(i) || o != nil && w.savedGroups.atStandDown(o) {
+				return walkArmStandDown
+			}
+			return walkArmPick
+		}
+	}
 	if e.PendingOrder.Kind != PendingNone || w.game.nativeWalkRefusal && !(w.game.orders.stopEmptyWalk && w.walksAtStateOne(i)) {
 		return walkArmNone
 	}

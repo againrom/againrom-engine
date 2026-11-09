@@ -19,6 +19,9 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Standing units keep the normal target restrictions when only fallen enemies remain nearby.
+- [ROM2] Computer units look around while waiting at their posts and finish turning before choosing another direction.
+- [ROM2] Units whose route ends without a step can turn to a nearby enemy; computer units with no enemy look around instead of keeping a stale movement order.
 - [ROM2] Standing units choose nearby enemies by distance and facing. Units finish their last step before switching from a move to an attack.
 - [ROM2] A save from an earlier version that the English game refused to open with an error about a unit definition now opens and plays on.
 - [ROM2] A save no longer loses the unit type of a monster group: its units keep their kind and name when the game is saved and loaded.

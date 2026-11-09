@@ -103,6 +103,12 @@ func (w *World) escortHeal(i, ti int) bool {
 func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 	e := &w.entities[i]
 	if !escortState(e.ActorState) || !e.HasEscortTarget {
+		if o := w.savedOrder(e.ID); w.game.orders.lookAround && o != nil && o.Raw[8] == 0xb &&
+			!w.humanParticipantUnit(*e) && !e.HasAttackTarget &&
+			e.PendingOrder.Kind == PendingNone && w.pendingLogicalProgress(i) == 0 {
+			w.stepIdleTurn(i)
+			return true
+		}
 		return false
 	}
 	switch e.EscortOrder {
@@ -125,28 +131,7 @@ func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 			w.walkTo(s, i, target.X, target.Y)
 		}
 	case escortOrderIdle:
-		pending := e.EscortTurnPending
-		if o := w.savedOrder(e.ID); o != nil {
-			pending = pending || o.Raw[0x54] != 0
-		}
-		if !pending && w.rng.raw() >= 0xcd {
-			return true
-		}
-		e.EscortTurnPending = false
-		if o := w.savedOrder(e.ID); o != nil {
-			o.Raw[0x54] = 0
-		}
-		desired := e.Facing + 0x21 + uint8(w.rng.aiRange(190))
-		oldRemaining, oldDesired := e.TurnRemaining, e.DesiredFacing
-		already := w.turnAlreadyStepped(e.ID)
-		if e.requestFacing(desired, already) {
-			if !already {
-				w.markTurnStepped(e.ID)
-			}
-			if oldRemaining == 0 || oldDesired != desired {
-				e.startAction(w.tick, int64(e.TurnRemaining))
-			}
-		}
+		w.stepIdleTurn(i)
 		return true
 	}
 	return false
@@ -211,23 +196,7 @@ func (w *World) coverEngage(i, ti int) {
 	if w.engageRefused(i, false) {
 		return
 	}
-	at := -1
-	best := int64(-1)
-	for _, ci := range live {
-		if w.targetVetoed(i, ci) {
-			continue
-		}
-		d := cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ci]))
-		switch {
-		case at < 0:
-		case coverPreferred(w.entities[at]) && !coverPreferred(w.entities[ci]):
-			continue
-		case coverPreferred(w.entities[ci]) && !coverPreferred(w.entities[at]):
-		case d >= best:
-			continue
-		}
-		at, best = ci, d
-	}
+	at := w.chooseTarget(i, live, orderNone, targetCover)
 	if at < 0 {
 		w.acquireStanding(i)
 		return
@@ -242,13 +211,20 @@ func (w *World) acquireStanding(i int) {
 		return
 	}
 	live, dead := w.actorCandidates(i)
+	if len(live) == 0 && w.game.orders.idleRanking == targetIdleDistance {
+		live, dead = dead, nil
+	}
 	populations := [][]int{live}
 	if len(live) == 0 || w.game.orders.idleRanking == targetIdleDistance {
 		populations = append(populations, dead)
 	}
 	at := -1
-	for _, candidates := range populations {
-		at = w.chooseTarget(i, candidates, orderStandGround, w.game.orders.idleRanking)
+	for p, candidates := range populations {
+		ranking := w.game.orders.idleRanking
+		if p != 0 && ranking == targetIdleDistance {
+			ranking = targetIdleReserve
+		}
+		at = w.chooseTarget(i, candidates, orderStandGround, ranking)
 		if at >= 0 {
 			break
 		}
@@ -282,6 +258,10 @@ func (w *World) idlePick(i int, victim EntityID) {
 	e.PursuitIdle = true
 	if o := w.savedOrder(e.ID); o != nil {
 		o.Raw[8] = 0
+		if w.game.orders.repickEmptyRoute {
+			o.Raw[0x14] = uint8(w.attackRange(i))
+			w.syncCurrentActorOrder(i)
+		}
 	}
 }
 

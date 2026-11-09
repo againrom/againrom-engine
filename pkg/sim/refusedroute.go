@@ -61,6 +61,9 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 	a := refusedAnswers[r]
 	e := &w.entities[i]
 	phase, countdown := e.AttackPhase, e.AttackCountdown
+	if o := w.savedOrder(e.ID); o != nil && w.game.orders.repickEmptyRoute {
+		o.Raw[8] = 0
+	}
 	victim := w.reacquisitionVictim(i)
 	if victim >= 0 && w.engageRefused(i, true) {
 		// The pick is written before the suppression idles the order, and
@@ -71,8 +74,7 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 		}
 		return
 	}
-	// The second game keeps its refusal row; no second-game claim reads it.
-	if victim < 0 || w.suppressedAcquirer(*e) {
+	if victim < 0 || !w.game.orders.repickEmptyRoute && w.suppressedAcquirer(*e) {
 		w.answerRefusedNone(i, a.none)
 		return
 	}
@@ -93,6 +95,19 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 
 func (w *World) answerRefusedNone(i int, none refusedNone) {
 	e := &w.entities[i]
+	if w.game.orders.repickEmptyRoute {
+		w.clearOrder(i)
+		e.AcquirePursuit = false
+		e.PursuitIdle = e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
+		if o := w.savedOrder(e.ID); o != nil {
+			o.Raw[8] = 0
+			if !w.humanParticipantUnit(*e) {
+				o.Raw[8] = 0xb
+				w.stepIdleTurn(i)
+			}
+		}
+		return
+	}
 	switch none {
 	case noneIdle:
 		e.PursuitIdle = true

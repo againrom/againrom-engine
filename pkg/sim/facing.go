@@ -212,6 +212,35 @@ func (w *World) turnTo(i int, h heading) bool {
 	return wait
 }
 
+func (w *World) stepIdleTurn(i int) {
+	e := &w.entities[i]
+	if w.game.orders.lookAround && e.Turning() {
+		return
+	}
+	pending := e.EscortTurnPending
+	if o := w.savedOrder(e.ID); o != nil {
+		pending = pending || o.Raw[0x54] != 0
+	}
+	if !pending && w.rng.raw() >= 0xcd {
+		return
+	}
+	e.EscortTurnPending = false
+	if o := w.savedOrder(e.ID); o != nil {
+		o.Raw[0x54] = 0
+	}
+	desired := e.Facing + 0x21 + uint8(w.rng.aiRange(190))
+	oldRemaining, oldDesired := e.TurnRemaining, e.DesiredFacing
+	already := w.turnAlreadyStepped(e.ID)
+	if e.requestFacing(desired, already) {
+		if !already {
+			w.markTurnStepped(e.ID)
+		}
+		if oldRemaining == 0 || oldDesired != desired {
+			e.startAction(w.tick, int64(e.TurnRemaining))
+		}
+	}
+}
+
 // cancelTurnForTargetChange ends movement-owned progress when a destination is
 // actually replaced. Reissuing the same destination preserves it. A pending
 // book cast owns its admitted facing even when a move is attached during the
