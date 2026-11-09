@@ -31,51 +31,89 @@ var objectsKinds = map[int32]bool{27: true}
 
 var structureGridMapPalettes = map[ui.Palette]bool{ui.PaletteObjects: true}
 
-// structurePalette is the palette structure kind c lists in, given
-// whether the Buildings table has an entry for it, and when the data does
-// not settle it, the field that fails.
-func structurePalette(c *terrain.StructureClass, inTable bool) (ui.Palette, string) {
+// paletteInput is the one input of the palette decision: the facts a record
+// family's decoder reads from a class. A family sets the fields its class
+// carries and leaves the rest false; the decision names no family.
+type paletteInput struct {
+	// Owner: the owner placed the kind in Objects (objectsKinds).
+	Owner bool
+	// Unplaceable: a record of it loads and saves unchanged, and no palette
+	// offers it.
+	Unplaceable bool
+	// Bridge: a variable-size class the renderer lays out.
+	Bridge bool
+	// Use: a hover hit and the target of the use order.
+	Use bool
+	// Select: a plain click selects it.
+	Select bool
+	// Tree: a tree or bush, standing or dead.
+	Tree bool
+	// Unsettled names the field that fails when the data does not settle
+	// the record; it lists in Structures.
+	Unsettled string
+}
+
+// editorPalette is the one decision: the palette the row lists in, and when
+// the data does not settle it, the field that fails. A third record family
+// adds a decoder and no branch here.
+func editorPalette(r paletteInput) (ui.Palette, string) {
 	switch {
-	case c == nil:
-		return ui.PaletteStructures, "structures.reg: no class"
-	case objectsKinds[c.ID]:
+	case r.Owner:
 		return ui.PaletteObjects, ""
-	case c.VariableSize && c.VariableLayout != terrain.VariableStructureVerticalNinePatch:
-		// A variable-size class the map format gives no extension and the
-		// renderer no layout (TERR-STRUCT-105): the Horizontal Wooden Bridge.
-		// A placed record of it still loads and
-		// saves unchanged; only the palettes stop offering it.
+	case r.Unplaceable:
 		return ui.PaletteNone, ""
-	case c.VariableSize:
+	case r.Bridge, r.Use, r.Select:
 		return ui.PaletteStructures, ""
-	case c.Usable:
-		// A hover hit and the target of the use order (UNIT-153,
-		// UNIT-STRUCTHIT-138).
-		return ui.PaletteStructures, ""
-	case !c.Indestructible:
-		// A plain click selects it (MISSION-065, AI-SELECT-122).
-		return ui.PaletteStructures, ""
-	case c.Flat:
-		// VariableSize is the only bridge field: a flat class may be a
-		// fixed bridge, which the data cannot tell from a floor mark.
-		return ui.PaletteStructures, "Flat: no field marks a fixed bridge"
-	case !inTable:
-		return ui.PaletteStructures, "Buildings: no maximum health"
+	case r.Unsettled != "":
+		return ui.PaletteStructures, r.Unsettled
+	case r.Tree:
+		return ui.PaletteTrees, ""
 	}
 	// Indestructible, not usable, not flat: it draws no change and takes no
 	// click (TERR-STRUCT-210), whatever its maximum health.
 	return ui.PaletteObjects, ""
 }
 
-// objectPalette is the palette object class c lists in: a still-standing
-// destructible class names the class it leaves (DeadObject, REG-OBJ-047),
-// and each class left carries FireObject -2. On shipped data these are the
-// trees and bushes, standing and dead; every other class is decoration.
-func objectPalette(c *data.ObjectClass) ui.Palette {
-	if c != nil && (c.DeadObject >= 0 || c.FireObject == -2) {
-		return ui.PaletteTrees
+// structurePaletteInput decodes structure class c, given whether the Buildings table
+// has an entry for it.
+func structurePaletteInput(c *terrain.StructureClass, inTable bool) paletteInput {
+	switch {
+	case c == nil:
+		return paletteInput{Unsettled: "structures.reg: no class"}
+	case objectsKinds[c.ID]:
+		return paletteInput{Owner: true}
+	case c.VariableSize && c.VariableLayout != terrain.VariableStructureVerticalNinePatch:
+		// A variable-size class the map format gives no extension and the
+		// renderer no layout (TERR-STRUCT-105): the Horizontal Wooden Bridge.
+		// A placed record of it still loads and
+		// saves unchanged; only the palettes stop offering it.
+		return paletteInput{Unplaceable: true}
 	}
-	return ui.PaletteObjects
+	r := paletteInput{
+		Bridge: c.VariableSize,
+		// A hover hit and the target of the use order (UNIT-153,
+		// UNIT-STRUCTHIT-138).
+		Use: c.Usable,
+		// A plain click selects it (MISSION-065, AI-SELECT-122).
+		Select: !c.Indestructible,
+	}
+	switch {
+	case c.Flat:
+		// VariableSize is the only bridge field: a flat class may be a
+		// fixed bridge, which the data cannot tell from a floor mark.
+		r.Unsettled = "Flat: no field marks a fixed bridge"
+	case !inTable:
+		r.Unsettled = "Buildings: no maximum health"
+	}
+	return r
+}
+
+// objectPaletteInput decodes object class c: a still-standing destructible class
+// names the class it leaves (DeadObject, REG-OBJ-047), and each class left
+// carries FireObject -2. On shipped data these are the trees and bushes,
+// standing and dead; every other class is decoration.
+func objectPaletteInput(c *data.ObjectClass) paletteInput {
+	return paletteInput{Tree: c != nil && (c.DeadObject >= 0 || c.FireObject == -2)}
 }
 
 // structurePalettes is the palette of every structure kind of set by value,
@@ -90,7 +128,7 @@ func structurePalettes(set *terrain.StructureSet, table *mapload.Table) (map[int
 			continue
 		}
 		_, ok := mapload.StructureMaxHealth(table, byte(id))
-		p, why := structurePalette(c, ok)
+		p, why := editorPalette(structurePaletteInput(c, ok))
 		palettes[int64(id)] = p
 		if why != "" {
 			unsettled[int64(id)] = why

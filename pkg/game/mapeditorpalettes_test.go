@@ -41,7 +41,7 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 		{"Teleport Pad or Campfire: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
 		{"a fence", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},
 	} {
-		if p, why := structurePalette(c.class, c.hpKnown); p != c.want || why != c.why {
+		if p, why := editorPalette(structurePaletteInput(c.class, c.hpKnown)); p != c.want || why != c.why {
 			t.Errorf("%s: palette %d (%q), want %d (%q)", c.name, p, why, c.want, c.why)
 		}
 	}
@@ -55,7 +55,7 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 		{"a standing tree", &data.ObjectClass{DeadObject: 4, FireObject: -1}, ui.PaletteTrees},
 		{"a dead tree", &data.ObjectClass{DeadObject: -1, FireObject: -2}, ui.PaletteTrees},
 	} {
-		if p := objectPalette(c.class); p != c.want {
+		if p, _ := editorPalette(objectPaletteInput(c.class)); p != c.want {
 			t.Errorf("%s: palette %d, want %d", c.name, p, c.want)
 		}
 	}
@@ -84,6 +84,30 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 	}
 	if got["Oak"] != ui.PaletteTrees || got["Rock"] != ui.PaletteObjects || len(got) != 3 {
 		t.Fatalf("the object list's palettes are %v", got)
+	}
+}
+
+// The one decision gives each input row a palette and a reason, whatever
+// the family that decoded it.
+func TestEditorPaletteDecisionOverEachInputRow(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		in   paletteInput
+		want ui.Palette
+		why  string
+	}{
+		{"empty row", paletteInput{}, ui.PaletteObjects, ""},
+		{"owner", paletteInput{Owner: true, Unsettled: "x"}, ui.PaletteObjects, ""},
+		{"unplaceable", paletteInput{Unplaceable: true, Select: true}, ui.PaletteNone, ""},
+		{"bridge", paletteInput{Bridge: true, Unsettled: "x"}, ui.PaletteStructures, ""},
+		{"use", paletteInput{Use: true, Unsettled: "x"}, ui.PaletteStructures, ""},
+		{"select", paletteInput{Select: true, Unsettled: "x"}, ui.PaletteStructures, ""},
+		{"unsettled", paletteInput{Unsettled: "x"}, ui.PaletteStructures, "x"},
+		{"tree", paletteInput{Tree: true}, ui.PaletteTrees, ""},
+	} {
+		if p, why := editorPalette(c.in); p != c.want || why != c.why {
+			t.Errorf("%s: palette %d (%q), want %d (%q)", c.name, p, why, c.want, c.why)
+		}
 	}
 }
 

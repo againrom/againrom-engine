@@ -480,7 +480,7 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 		}
 		if c := x.structures.Classes[value]; c != nil {
 			_, inTable := mapload.StructureMaxHealth(x.table, byte(value))
-			palette, _ := structurePalette(c, inTable)
+			palette, _ := editorPalette(structurePaletteInput(c, inTable))
 			if key == "kind-grid" && (structureGridMapPalettes[palette] || c.Picture == sharedStructurePicture) {
 				w, h := max(3, c.TileWidth), max(2, c.TileHeight)
 				g := terrain.Grid{Width: w, Height: h, Structures: []terrain.StructureRecord{{Key: uint32(value), VariableWidth: w, VariableHeight: h}}}
