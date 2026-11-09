@@ -1381,23 +1381,27 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		}
 		if in.PrimaryPressed {
 			if idx, ok := v.spellbookEntryAt(in.CursorX, in.CursorY); ok {
-				if v.spellbook[idx].Unavailable {
-					return nil, false
-				}
-				// A SECOND CLICK ON THE SAME ONE CLEARS IT; any other press on the strip
-				// — a different row, or the first press since a unit change already
-				// cleared it — selects the row it named.
-				v.itemCast = nil
-				if id := v.spellbook[idx].ID; v.selectedSpell == id {
-					v.selectedSpell = 0
-					v.spellArmed = false
+				if scroll := v.spellbook[idx].ItemCast; scroll != nil {
+					v.pressBookScroll(v.spellbook[idx].ID, *scroll)
 				} else {
-					v.selectedSpell = id
-					v.armBookSpell()
-					// The panel's own Cast cell reflects this selection
-					// (commandpanel.go's pressCommandPanelCell); armAttack's
-					// own reason for clearing the hidden overlay here too.
-					v.cmdOverlayHidden = false
+					if v.spellbook[idx].Unavailable {
+						return nil, false
+					}
+					// A SECOND CLICK ON THE SAME ONE CLEARS IT; any other press on the strip
+					// — a different row, or the first press since a unit change already
+					// cleared it — selects the row it named.
+					v.itemCast = nil
+					if id := v.spellbook[idx].ID; v.selectedSpell == id {
+						v.selectedSpell = 0
+						v.spellArmed = false
+					} else {
+						v.selectedSpell = id
+						v.armBookSpell()
+						// The panel's own Cast cell reflects this selection
+						// (commandpanel.go's pressCommandPanelCell); armAttack's
+						// own reason for clearing the hidden overlay here too.
+						v.cmdOverlayHidden = false
+					}
 				}
 			}
 		}

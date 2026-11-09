@@ -23,6 +23,10 @@ type SpellEntry struct {
 	// Unavailable keeps a catalog cell hoverable/bindable without authorizing
 	// a cast. Zero preserves the existing custom/compact SetSpellbook seam.
 	Unavailable bool
+	// ItemCast on an Unavailable cell is a carried scroll of this spell: the
+	// cell shows, and a press arms the scroll's item cast. Every book cast,
+	// bind and autocast test still reads the cell as Unavailable.
+	ItemCast *BookItemCast
 	// PointTarget keeps ground spells aimed at the clicked cell even when a
 	// creature covers that pixel. False preserves custom unit-target entries.
 	PointTarget bool
@@ -59,6 +63,16 @@ type SpellEntry struct {
 	// flag.
 	Autocast bool
 }
+
+// BookItemCast is the pack cell and item identity ArmItemCast takes for a
+// scroll a book cell shows.
+type BookItemCast struct {
+	Index int
+	Key   string
+}
+
+// covered reports a cell drawn as unavailable: no spell and no scroll.
+func (e SpellEntry) covered() bool { return e.Unavailable && e.ItemCast == nil }
 
 // The bar's own authored palette. None of it is decoded — nothing published
 // draws this bar at all — so every colour here is a choice, and every one of
@@ -239,7 +253,7 @@ func composeSpellBar(f *text.Font, entries []SpellEntry, selected uint32, cols i
 		}
 		e := entries[i]
 		border, ink := invCellBorder, spellbookText
-		if e.Unavailable {
+		if e.covered() {
 			ink = invCellBorder
 		}
 		if e.ID == selected {
@@ -248,7 +262,7 @@ func composeSpellBar(f *text.Font, entries []SpellEntry, selected uint32, cols i
 		// Icons keep their native size; missing art falls back to a label.
 		drawInventoryCell(img, box, nil, border)
 		drawInventoryPicture(img, box, e.Icon)
-		if e.Unavailable && e.Icon != nil {
+		if e.covered() && e.Icon != nil {
 			// Darken only the icon interior. Current and binding marks remain
 			// legible and separate from availability.
 			for y := box.Min.Y + 1; y < box.Max.Y-1; y++ {
@@ -297,9 +311,9 @@ func (v *Viewer) spellbookPresent() (*image.RGBA, image.Point, bool) {
 		return img, bar.Min, true
 	}
 	if original {
-		img = composeOriginalSpellBar(v.bottomHUDArt, v.spellbook, v.selectedSpell, bar, int(v.anim.Count()))
+		img = composeOriginalSpellBar(v.bottomHUDArt, v.spellbook, v.bookLitSpell(), bar, int(v.anim.Count()))
 	} else {
-		img = composeSpellBar(v.font, v.spellbook, v.selectedSpell, cols, bar, int(v.anim.Count()))
+		img = composeSpellBar(v.font, v.spellbook, v.bookLitSpell(), cols, bar, int(v.anim.Count()))
 	}
 	if v.quickSpells != nil {
 		for i, cell := range bookCellRects(bar, cols) {
@@ -364,7 +378,7 @@ func composeOriginalSpellBar(art *BottomHUDArt, entries []SpellEntry, selected u
 	drawBookGround(img, art)
 	for i, box := range bookCellRects(bar, bookColumns) {
 		box = box.Sub(bar.Min)
-		if i >= len(entries) || entries[i].ID == 0 || entries[i].Unavailable {
+		if i >= len(entries) || entries[i].ID == 0 || entries[i].covered() {
 			blit(img, art.UnknownSpell, box.Min.X, box.Min.Y)
 			continue
 		}

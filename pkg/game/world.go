@@ -2569,7 +2569,7 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 	}
 	item := stacks[idx].Instance()
 	if spell, _, scroll := sim.ScrollSpell(item); scroll {
-		mw.view.ArmItemCast(uint32(id), idx, uint32(spell), fmt.Sprintf("%#v", item))
+		mw.view.ArmItemCast(uint32(id), idx, uint32(spell), itemCastKey(item))
 		return
 	}
 	if item.Kind == 3 {

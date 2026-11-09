@@ -128,7 +128,9 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 // selectedSpellbook uses the supplied cell order when every row exists.
 // Custom tables keep their row order. Availability is the selected books'
 // union; information comes from the first knower, or the primary otherwise.
-func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA, rows []uint16) ([]ui.SpellEntry, bool) {
+// A scroll fills the cell of a spell no selected actor knows; a known spell's
+// cell stays the book's own (DIV-4732).
+func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA, rows []uint16, scrolls ...sim.BookScroll) ([]ui.SpellEntry, bool) {
 	if len(selected) == 0 {
 		return nil, false
 	}
@@ -171,12 +173,24 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 		// Autocast remains the existing primary-unit gesture, not a new
 		// group policy inferred from the book-command population claim.
 		entry.Autocast = known && selected[0].AutoSpell != 0 && uint32(selected[0].AutoSpell) == entry.ID
+		if i := slices.IndexFunc(scrolls, func(s sim.BookScroll) bool { return s.Spell == rule.ID }); !known && i >= 0 {
+			entry.ItemCast = &ui.BookItemCast{Index: scrolls[i].Index, Key: itemCastKey(scrolls[i].Item)}
+		}
 		if icon != nil {
 			entry.Icon = icon(rule.ID)
 		}
 		book = append(book, entry)
 	}
 	return book, fixed
+}
+
+// bookScrolls is what the book lists from the pack: the item cast arms one
+// owned unit alone, so a group lists none.
+func (mw *mapWorld) bookScrolls(selected []sim.Entity) []sim.BookScroll {
+	if len(selected) != 1 || selected[0].Owner != sim.SelfSlot {
+		return nil
+	}
+	return mw.world.BookScrolls(selected[0].ID)
 }
 
 // Refresh on ordinary frames too: a paused selection changes without a sim
@@ -197,7 +211,7 @@ func (mw *mapWorld) pushSpellbook() {
 		}
 	}
 	if len(selected) != 0 {
-		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows)
+		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows, mw.bookScrolls(selected)...)
 		if fixed {
 			mw.view.SetSpellbookCatalog(uint32(selected[0].ID), book)
 		} else {

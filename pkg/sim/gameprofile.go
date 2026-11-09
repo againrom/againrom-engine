@@ -127,6 +127,9 @@ type gameProfile struct {
 	// cellEventRelocates: instant 25 stores a source and target, and a cell
 	// event of the Teleport kind moves the unit (R2-ENGINE-673, DIV-4700).
 	cellEventRelocates bool
+	// bookListsScrolls: the book shows a carried scroll at its spell's cell
+	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).
+	bookListsScrolls bool
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -153,6 +156,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		formHoldsConstructedGroups: true,
 		keepsHealthAboveMaximum:    true,
 		cellEventRelocates:         true,
+		bookListsScrolls:           true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,

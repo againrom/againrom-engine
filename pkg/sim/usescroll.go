@@ -1,6 +1,9 @@
 package sim
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // ScrollCast owns a detached single item from admission until release or refund.
 // Armed UI state owns no item. The original slot and complete instance survive
@@ -19,6 +22,36 @@ func (w *World) ScrollCasts() []ScrollCast {
 	out := append([]ScrollCast(nil), w.scrollCasts...)
 	for i := range out {
 		out[i].Item = out[i].Item.Clone()
+	}
+	return out
+}
+
+// BookScroll is one carried scroll as the book lists it: its spell, its pack
+// cell and the item.
+type BookScroll struct {
+	Spell uint16
+	Index int
+	Item  ItemInstance
+}
+
+// BookScrolls is the first carried scroll of each spell, in pack order, for a
+// World whose book lists scrolls; otherwise nothing. The cell a scroll fills
+// is its spell's.
+func (w *World) BookScrolls(id EntityID) []BookScroll {
+	i := indexOfEntity(w.entities, id)
+	if !w.game.bookListsScrolls || i < 0 {
+		return nil
+	}
+	var out []BookScroll
+	for index, st := range w.carried[i] {
+		if st.Kind != 4 {
+			continue
+		}
+		item := st.Instance()
+		spell, _, ok := ScrollSpell(item)
+		if ok && !slices.ContainsFunc(out, func(b BookScroll) bool { return b.Spell == spell }) {
+			out = append(out, BookScroll{Spell: spell, Index: index, Item: item})
+		}
 	}
 	return out
 }

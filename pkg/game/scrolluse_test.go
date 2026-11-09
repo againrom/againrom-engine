@@ -86,8 +86,8 @@ func TestAnElvenScrollRowBuildsAScrollWhoseCardNamesItsSpell(t *testing.T) {
 }
 
 // scrollUseMission is a mission of either game whose party is one fighter
-// (7, no mana, no book) carrying item, beside an enemy (8) four cells off.
-func scrollUseMission(t *testing.T, second bool, item sim.ItemInstance) *mapWorld {
+// (7, no mana, no book) carrying items, beside an enemy (8) four cells off.
+func scrollUseMission(t *testing.T, second bool, items ...sim.ItemInstance) *mapWorld {
 	t.Helper()
 	spells := []sim.SpellRule{{ID: 1, ManaCost: 5, School: 1, MaxRange: 5, DamageMin: 10, DamageMax: 10, TargetsUnit: true, Damaging: true}}
 	var script *sim.Script
@@ -103,7 +103,7 @@ func scrollUseMission(t *testing.T, second bool, item sim.ItemInstance) *mapWorl
 	enemy := sim.Entity{ID: 8, Owner: 2, X: 7, Y: 3, HP: 100, MaxHP: 100, TokenSize: 1}
 	w, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical,
 		sim.Terrain{}, []sim.Entity{fighter, enemy}, script, sim.Relations{}, nil,
-		[]sim.Stock{{ID: 7, ItemInstances: []sim.ItemInstance{item}}}, spells)
+		[]sim.Stock{{ID: 7, ItemInstances: items}}, spells)
 	if err != nil {
 		t.Fatal(err)
 	}
