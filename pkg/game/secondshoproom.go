@@ -98,10 +98,10 @@ func (t *townScreen) bankShopRow() shopBinding {
 		},
 		bagUnit: secondshop.Unit,
 		packRead: func(s *CampaignSession, member int) []sim.ItemInstance {
-			return s.memberUnits(member, t.in.Table)
+			return secondPartyItems.over(s, t.in.Table).shopView(member)
 		},
 		packWrite: func(s *CampaignSession, member int, items []sim.ItemInstance, refresh bool) bool {
-			return s.setMemberUnits(member, items, t.in.Table, refresh)
+			return secondPartyItems.over(s, t.in.Table).writeShopView(member, items, refresh)
 		},
 		racks: t.shopRacks,
 		rackLabel: func(i int) string {
@@ -124,7 +124,7 @@ func (t *townScreen) bankShopRow() shopBinding {
 		// scroll with its spell, a potion with its payload (R2-ENGINE-711,
 		// R2-ENGINE-712).
 		described: func(in sim.ItemInstance) sim.ItemInstance {
-			return secondshop.MissionUnit(in, secondMissionItem(t.in.Table))
+			return secondPartyItems.missionForm(in, t.in.Table)
 		},
 		settle: func(act func() ui.TownAction) ui.TownAction { return act() },
 		label: func(in sim.ItemInstance) []string {

@@ -258,7 +258,7 @@ func TestSecondBagArrivalKeepsWhatTheBagWouldLose(t *testing.T) {
 		t.Fatal("the hero's pack refused the units")
 	}
 	f.Carried[0] = hero
-	if err := screen.sess.enteredTown(screen.in.townInstall()); err != nil {
+	if err := screen.sess.partyItems(screen.in.townInstall().table).arriveTown(); err != nil {
 		t.Fatal(err)
 	}
 	if got, want := bagLabels(*f.Town.second.heroBag()), bagLabels([]sim.ItemInstance{secondBagPotion, secondBagWeapon}); !slices.Equal(got, want) {
@@ -295,7 +295,7 @@ func TestSecondBagArrivalDropsTheRecordOfADepartedEffect(t *testing.T) {
 		t.Fatal("the town graph holds no Effect")
 	}
 	f.Town.cityObjects = g
-	if err := screen.sess.enteredTown(screen.in.townInstall()); err != nil {
+	if err := screen.sess.partyItems(screen.in.townInstall().table).arriveTown(); err != nil {
 		t.Fatal(err)
 	}
 	if got := bagLabels(*f.Town.second.heroBag()); !slices.Equal(got, bagLabels([]sim.ItemInstance{enchanted})) {
@@ -326,7 +326,7 @@ func TestSecondBagArrivalRefusesAGraphThatCannotFollow(t *testing.T) {
 	broken := &cityObjectTopology{}
 	f.Town.cityObjects = broken
 	bag := bagLabels(*f.Town.second.heroBag())
-	if err := screen.sess.enteredTown(screen.in.townInstall()); err == nil {
+	if err := screen.sess.partyItems(screen.in.townInstall().table).arriveTown(); err == nil {
 		t.Fatal("the arrival accepted a town item graph with no header")
 	}
 	if got := bagLabels(*f.Town.second.heroBag()); !slices.Equal(got, bag) {

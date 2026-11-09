@@ -765,7 +765,7 @@ func TestLeaveBagToCampaignEmptiesTheHerosPack(t *testing.T) {
 		ID: "hero", Carried: []uint16{0x0205}, CarriedItems: []sim.ItemInstance{{Code: 0x0205}},
 		Carry: &mapload.Carry{Items: []uint16{0x0205}},
 	}}
-	if err := leaveBagToCampaign(party, nil); err != nil {
+	if err := secondPartyItems.takeLoadedPack(party, nil); err != nil {
 		t.Fatal(err)
 	}
 	m := party[0]
@@ -775,7 +775,7 @@ func TestLeaveBagToCampaignEmptiesTheHerosPack(t *testing.T) {
 	magic := sim.ItemInstance{Code: 0x0e4d, Price: -1}
 	party = []mapload.PartyMember{{ID: "hero", StartingHero: true, Carried: []uint16{0x0205, 0x0e4d},
 		CarriedItems: []sim.ItemInstance{{Code: 0x0205}, magic}}}
-	if err := leaveBagToCampaign(party, nil); err != nil {
+	if err := secondPartyItems.takeLoadedPack(party, nil); err != nil {
 		t.Fatal(err)
 	}
 	if m := party[0]; len(m.CarriedItems) != 1 || m.CarriedItems[0].Code != magic.Code || m.CarriedItems[0].Price != -1 || !slices.Equal(m.Carried, []uint16{0x0e4d}) {

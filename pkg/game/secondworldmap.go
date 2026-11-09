@@ -49,14 +49,14 @@ func (t *townScreen) enterLocation(l partyPlace) ui.TownAction {
 		// Every location entry clears its slots; a mission's entry clears
 		// them as it seats.
 		enterLocation(&c.bank)
-		if err := t.sess.enteredTown(t.in.townInstall()); err != nil {
+		if err := t.sess.partyItems(t.in.Table).arriveTown(); err != nil {
 			return ui.TownAction{Msg: err.Error()}
 		}
 		return ui.TownAction{}
 	}
 	// A bag the map still holds, as after a LOAD at the map, goes with the
 	// hero (DIV-4191).
-	t.sess.packBag(c, t.in.townInstall().table)
+	t.sess.partyItems(t.in.Table).leaveLocation()
 	return ui.TownAction{Open: t.openMission(l.id)}
 }
 

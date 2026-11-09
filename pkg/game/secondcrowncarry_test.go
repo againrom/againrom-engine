@@ -49,7 +49,7 @@ func secondCrownWhere(t *testing.T, stage string, f *FrontEnd, member int) (stri
 	if n != 1 {
 		t.Fatalf("%s: member %d holds %d Gold Crowns", stage, member, n)
 	}
-	if where == "pack" && slices.ContainsFunc(f.memberUnits(member, f.Table), func(it sim.ItemInstance) bool { return it.Code == secondGoldCrown }) {
+	if where == "pack" && slices.ContainsFunc(f.partyItems(f.Table).shopView(member), func(it sim.ItemInstance) bool { return it.Code == secondGoldCrown }) {
 		where = "shown"
 	}
 	return where, unit

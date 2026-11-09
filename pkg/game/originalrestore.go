@@ -245,7 +245,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 		// party, as a new campaign's is, and the hero's bag is the
 		// session's (secondFileSession).
 		if src.campaign.fileSession != nil {
-			if err := leaveBagToCampaign(restored, in.table); err != nil {
+			if err := secondPartyItems.takeLoadedPack(restored, in.table); err != nil {
 				return report, err
 			}
 			keepLoadedTownActors(restored, cityCharacters)

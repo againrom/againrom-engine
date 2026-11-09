@@ -475,13 +475,7 @@ func secondMainSkillHeld(h *formHolding, i int) (uint32, bool) {
 // secondCampaignBag writes the items the campaign's party carries as the
 // hero's bag.
 func secondCampaignBag(h *formHolding) error {
-	var bag mapload.PartyMember
-	bag.ID = "bag"
-	for _, m := range h.s.second.Party {
-		if m.Member != nil {
-			bag.CarriedItems = append(bag.CarriedItems, m.Member.CarriedItems...)
-		}
-	}
+	bag := savedBagView(h.s.second.Party)
 	if len(bag.CarriedItems) == 0 {
 		return nil
 	}
