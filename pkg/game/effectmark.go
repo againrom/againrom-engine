@@ -148,10 +148,14 @@ func (mw *mapWorld) refreshProjectileMark(m sim.ProjectileMark) {
 }
 
 // markDraws sends every kind through its shared builder and actor mark passes.
+// A held mark is not drawn over a unit that is not alive: the attached effect
+// keeps counting down on the body, but its picture stands only on a living
+// actor. A target flash is a one-shot and plays out.
 func (mw *mapWorld) markDraws(id sim.EntityID, tileSize int) []ui.UnitMark {
 	var out []ui.UnitMark
+	alive := mw.world.EntityAlive(id)
 	for _, el := range mw.markElements {
-		if el.Entity != id {
+		if el.Entity != id || (!el.Transient && !alive) {
 			continue
 		}
 		sheet := mw.projectiles.Sheet(el.Picture)

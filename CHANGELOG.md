@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A unit that dies no longer keeps the glowing rings of a spell such as Protection, Bless, Shield, Poison Cloud or Curse drawn over its body.
 - [ROM2] A weaker Poison Cloud no longer shortens the poison already on a unit: the unit keeps the longer remaining time. Recasting the same spell still does not make the poison last longer.
 - [ROM2] A hero caught in an enemy Darkness keeps following your orders and no longer runs at the enemy mage by himself.
 - [ROM2] A scroll in the pack shows in the spell book at its spell's cell: pick it there and cast it as from the pack, on the hero himself too. A hero with no spells of his own reads scrolls from his book.
