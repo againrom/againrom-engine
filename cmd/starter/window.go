@@ -5,8 +5,8 @@ import (
 
 	"againrom/internal/appicon"
 	"againrom/pkg/pathdialog"
-	"againrom/pkg/ui"
 	"againrom/pkg/ui/heldkey"
+	"againrom/pkg/ui/widgetkit"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -25,17 +25,17 @@ type window struct {
 var desktop = struct {
 	setIcon func([]image.Image)
 	run     func(ebiten.Game) error
-}{ui.SetWindowIcon, ebiten.RunGame}
+}{widgetkit.SetWindowIcon, ebiten.RunGame}
 
 // starterWindow is the size the starter's layout is drawn for, fixed.
-var starterWindow = ui.WindowRow{W: winW, H: winH}
+var starterWindow = widgetkit.WindowRow{W: winW, H: winH}
 
 func runWindow(a *app) error {
 	if a.deps.pathDialog == nil {
 		a.deps.pathDialog = pathdialog.Show
 	}
 	ebiten.SetWindowTitle(a.t(cWindowTitle, a.starterVersion))
-	ui.ApplyWindowRow(starterWindow)
+	widgetkit.ApplyWindowRow(starterWindow)
 	ebiten.SetTPS(30)
 	ebiten.SetRunnableOnUnfocused(true)
 	desktop.setIcon(appicon.Images(appicon.Starter))
@@ -63,7 +63,7 @@ func (w *window) Update() error {
 	}
 	if _, dy := ebiten.Wheel(); dy != 0 {
 		x, y := ebiten.CursorPosition()
-		a.wheel(image.Pt(x, y), ui.ListWheelLines(dy))
+		a.wheel(image.Pt(x, y), widgetkit.ListWheelLines(dy))
 	}
 	ctrl := heldkey.Pressed(ebiten.KeyControl)
 	switch {

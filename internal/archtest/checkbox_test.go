@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const checkSpecFile = "pkg/ui/checkspec.go"
+const checkSpecFile = "pkg/ui/widgetkit/checkspec.go"
 
 var checkMarkLiterals = map[string]bool{`"[x] "`: true, `"[ ] "`: true, `"(*) "`: true, `"( ) "`: true}
 

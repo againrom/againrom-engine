@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"slices"
 	"testing"
 )
@@ -9,14 +10,14 @@ import (
 // what the clipboard then holds.
 func reportCopied(t *testing.T, e *MapEditor) string {
 	t.Helper()
-	UseMemoryTextClipboard()
-	if err := textClipboard.write("untouched"); err != nil {
+	widgetkit.UseMemoryTextClipboard()
+	if err := widgetkit.TextClipboard.Write("untouched"); err != nil {
 		t.Fatal(err)
 	}
 	if err := e.Key("copy"); err != nil {
 		t.Fatal(err)
 	}
-	got, err := ReadTextClipboard()
+	got, err := widgetkit.ReadTextClipboard()
 	if err != nil {
 		t.Fatal(err)
 	}

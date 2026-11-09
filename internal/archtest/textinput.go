@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const textModelFile = "pkg/ui/editortextmodel.go"
+const textModelFile = "pkg/ui/widgetkit/editortextmodel.go"
 
 var textInputRoutes = map[string]string{
 	"pkg/ui/chargen.go:Chargen.EditName":              "EditText",
@@ -23,8 +23,8 @@ var textInputRoutes = map[string]string{
 	"cmd/starter/app.go:app.typed":                    "EditText",
 	"cmd/starter/app.go:app.backspace":                "EditText",
 	"pkg/ui/mapeditormove.go:MapEditor.TextInput":     "insertText",
-	"pkg/ui/editorinput.go:MapEditor.insertText":      "typeText",
-	"pkg/ui/mapeditorworkspace.go:MapEditor.keyClear": "replace",
+	"pkg/ui/editorinput.go:MapEditor.insertText":      "TypeText",
+	"pkg/ui/mapeditorworkspace.go:MapEditor.keyClear": "Replace",
 }
 
 // CheckTextInputRoutes pins the known field adapters to the one editing model.

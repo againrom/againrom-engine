@@ -1,4 +1,4 @@
-package ui
+package widgetkit
 
 // CheckStyle is how a check box shows its state; CheckArt has no text mark.
 type CheckStyle uint8

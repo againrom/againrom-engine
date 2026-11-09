@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"strings"
 	"testing"
 )
@@ -77,7 +78,7 @@ func TestGameFieldsUseSharedTextModel(t *testing.T) {
 }
 
 func TestAppendOnlyPolicyRefusesEditorKeys(t *testing.T) {
-	state := EditText(TextInputState{Text: "abc", Caret: 1, SelectedAll: true},
+	state := widgetkit.EditText(TextInputState{Text: "abc", Caret: 1, SelectedAll: true},
 		TextInputKeys{Home: true, Left: true, Delete: true, SelectAll: true, Typed: "Q"},
 		TextInputRules{AppendOnly: true, Limit: 4})
 	if state.Text != "abcQ" || state.Caret != 4 || state.SelectedAll {
@@ -87,11 +88,11 @@ func TestAppendOnlyPolicyRefusesEditorKeys(t *testing.T) {
 
 func TestSharedTextStateKeepsKeyboardSelection(t *testing.T) {
 	state := TextInputState{Text: "ab", Caret: 2, Anchor: 2}
-	state = EditText(state, TextInputKeys{Left: true, Shift: true}, TextInputRules{})
+	state = widgetkit.EditText(state, TextInputKeys{Left: true, Shift: true}, TextInputRules{})
 	if state.Caret != 1 || state.Anchor != 2 {
 		t.Fatal(state)
 	}
-	state = EditText(state, TextInputKeys{Typed: "Q"}, TextInputRules{})
+	state = widgetkit.EditText(state, TextInputKeys{Typed: "Q"}, TextInputRules{})
 	if state.Text != "aQ" || state.Caret != 2 || state.Anchor != 2 {
 		t.Fatal(state)
 	}
@@ -99,8 +100,8 @@ func TestSharedTextStateKeepsKeyboardSelection(t *testing.T) {
 
 func TestGameArrowPolicyKeepsWordKeysLiteral(t *testing.T) {
 	state := TextInputState{Text: "one two", Caret: 7, Anchor: 7}
-	game := EditText(state, TextInputKeys{Left: true, Ctrl: true}, TextInputRules{LiteralArrows: true})
-	editor := EditText(state, TextInputKeys{Left: true, Ctrl: true}, TextInputRules{})
+	game := widgetkit.EditText(state, TextInputKeys{Left: true, Ctrl: true}, TextInputRules{LiteralArrows: true})
+	editor := widgetkit.EditText(state, TextInputKeys{Left: true, Ctrl: true}, TextInputRules{})
 	if game.Caret != 6 || editor.Caret != 4 {
 		t.Fatal(game.Caret, editor.Caret)
 	}

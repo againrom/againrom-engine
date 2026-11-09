@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/installinfo"
 	"fmt"
 
 	"againrom/pkg/formats/spr16"
@@ -44,41 +45,10 @@ func FontAdvancePath(base string) string { return graphicsPrefix + base + "/" + 
 func FontAtlasPathA(base string) string { return graphicsPrefix + base + "/" + base + ".16a" }
 
 // LanguagePath is the entry an install names its own language in.
-var LanguagePath = mainPrefix + "id"
+var LanguagePath = installinfo.LanguagePath
 
-// LanguageSelector is the install's own language selector: the TRAILING ASCII
-// DIGIT of LanguagePath's payload, taken as a number. The shipped roots hold
-// "english 0" and "russian 1", so the two releases select 0 and 1 and the
-// executable behind them is the same bytes — which is the whole reason a
-// consumer that ships one program and two data sets is doing what the engine
-// does.
-//
-// EVERY FAILURE IS SELECTOR 0, and none of them is an error. No source, no
-// entry, an empty payload and a payload ending in something that is not a digit
-// all answer 0, which is the identity conversion. That is deliberate and it is
-// the only safe direction: a selector this function got wrong by guessing would
-// silently redraw every string in the game, whereas 0 can only ever leave
-// drawing exactly as it was. An install that fails to say which language it is
-// is therefore treated as the one whose rule changes nothing.
-//
-// It reads the LAST byte and not the last RUNE. The payload is the game's own
-// byte string and the value it carries is a single decimal digit; a multi-digit
-// selector is not something either shipped root has, and inventing a parse for
-// one would be inventing a fact.
-func LanguageSelector(src terrain.EntrySource) int {
-	if src == nil {
-		return 0
-	}
-	b, err := src.ReadFile(LanguagePath)
-	if err != nil || len(b) == 0 {
-		return 0
-	}
-	c := b[len(b)-1]
-	if c < '0' || c > '9' {
-		return 0
-	}
-	return int(c - '0')
-}
+// LanguageSelector forwards to the one language selector.
+func LanguageSelector(src terrain.EntrySource) int { return installinfo.LanguageSelector(src) }
 
 // textSelector is the running FrontEnd's own install selector, the same value
 // frontend.go's SAVE/LOAD wiring already reads off f.Font.Selector — pulled

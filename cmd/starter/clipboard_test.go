@@ -1,5 +1,5 @@
 package main
 
-import "againrom/pkg/ui"
+import "againrom/pkg/ui/widgetkit"
 
-func init() { ui.UseMemoryTextClipboard() }
+func init() { widgetkit.UseMemoryTextClipboard() }

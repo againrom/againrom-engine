@@ -1,4 +1,4 @@
-package ui
+package widgetkit
 
 import (
 	"fmt"
@@ -84,7 +84,7 @@ func putClipboardBytes(format uintptr, b []byte) error {
 	return nil
 }
 
-func (systemEditorClipboard) read() (s string, err error) {
+func (systemEditorClipboard) Read() (s string, err error) {
 	err = withEditorClipboard(func() error {
 		var readErr error
 		s, readErr = readEditorClipboardText()
@@ -113,7 +113,7 @@ func readEditorClipboardText() (string, error) {
 	return string(utf16.Decode(words)), nil
 }
 
-func (systemEditorClipboard) write(s string) error {
+func (systemEditorClipboard) Write(s string) error {
 	return withEditorClipboard(func() error { return writeEditorClipboardText(s) })
 }
 

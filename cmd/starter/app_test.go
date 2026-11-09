@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"againrom/internal/witness"
-	"againrom/pkg/game"
+	basepkg "againrom/pkg/base"
+	"againrom/pkg/installinfo"
 )
 
 type fakes struct {
@@ -20,7 +21,7 @@ type fakes struct {
 	runOut     map[string]string // by first argument
 	runErr     error
 	clipboard  string
-	validRoots map[string]game.InstallInfo
+	validRoots map[string]installinfo.Info
 }
 
 func (f *fakes) deps() deps {
@@ -34,11 +35,11 @@ func (f *fakes) deps() deps {
 			return f.startErr
 		},
 		paste: func() string { return f.clipboard },
-		inspect: func(root string) game.InstallInfo {
+		inspect: func(root string) installinfo.Info {
 			if info, ok := f.validRoots[root]; ok {
 				return info
 			}
-			return game.InstallInfo{Missing: game.RequiredArchives()}
+			return installinfo.Info{Missing: basepkg.RequiredArchives()}
 		},
 		async: func(fn func()) { fn() },
 	}
@@ -67,7 +68,7 @@ func newRig(t *testing.T, iniText string) *rig {
 	}
 	r.fakes = &fakes{
 		runOut:     map[string]string{"-version": "againrom 0.9.0 abcdef123456\n", "-check": "line one\r\nline two\r\n"},
-		validRoots: map[string]game.InstallInfo{r.root: {Language: "english"}},
+		validRoots: map[string]installinfo.Info{r.root: {Language: "english"}},
 	}
 	if iniText != "" {
 		if err := os.WriteFile(r.ini, []byte(strings.ReplaceAll(iniText, "{root}", r.root)), 0o644); err != nil {

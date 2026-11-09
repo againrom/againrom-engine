@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const windowApplyFile = "pkg/ui/windowmode.go"
+const windowApplyFile = "pkg/ui/widgetkit/windowform.go"
 
 func windowSizeSetters(t *testing.T, files map[string]string) []string {
 	t.Helper()
@@ -40,16 +40,16 @@ func windowSizeSetters(t *testing.T, files map[string]string) []string {
 
 func TestWindowSizeScanNamesEachCaller(t *testing.T) {
 	got := windowSizeSetters(t, map[string]string{
-		windowApplyFile:     "package ui\nfunc applyWindow() { ebiten.SetWindowSize(1, 2) }\n",
+		windowApplyFile:     "package ui\nfunc ApplyWindow() { ebiten.SetWindowSize(1, 2) }\n",
 		"cmd/x/main.go":     "package main\nfunc run() { ebiten.SetWindowSize(1, 2); ebiten.SetWindowSizeLimits(1, 2, -1, -1) }\n",
 		"pkg/ui/another.go": "package ui\nfunc f() { ebiten.SetWindowTitle(\"\") }\n",
 	})
-	if len(got) != 2 || got[0] != "cmd/x/main.go:run" || got[1] != windowApplyFile+":applyWindow" {
+	if len(got) != 2 || got[0] != "cmd/x/main.go:run" || got[1] != windowApplyFile+":ApplyWindow" {
 		t.Fatalf("windowSizeSetters = %v", got)
 	}
 }
 
-// SetWindowSize has applyWindow as its only production caller.
+// SetWindowSize has ApplyWindow as its only production caller.
 func TestProgramWindowFormHasOneApplyFunction(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -67,7 +67,7 @@ func TestProgramWindowFormHasOneApplyFunction(t *testing.T) {
 		t.Fatalf("%s is missing; the scan guards nothing", windowApplyFile)
 	}
 	got := windowSizeSetters(t, files)
-	if len(got) != 1 || got[0] != windowApplyFile+":applyWindow" {
-		t.Fatalf("SetWindowSize callers = %v, want only %s:applyWindow", got, windowApplyFile)
+	if len(got) != 1 || got[0] != windowApplyFile+":ApplyWindow" {
+		t.Fatalf("SetWindowSize callers = %v, want only %s:ApplyWindow", got, windowApplyFile)
 	}
 }

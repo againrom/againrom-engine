@@ -52,7 +52,7 @@ func TestEditorWordDeletion(t *testing.T) {
 			e := NewMapEditor(nil, nil, nil)
 			e.openPrompt(editorPrompt{kind: promptWorkspace, scope: "pages", path: value})
 			m, _ := e.inputModel()
-			m.drag(caret, false)
+			m.Drag(caret, false)
 			if err := e.Key("ctrl+" + tc.key); err != nil {
 				t.Fatal(err)
 			}
@@ -93,7 +93,7 @@ func TestEditorWordDeletionUpdate(t *testing.T) {
 			m, _ := e.inputModel()
 			want := "one "
 			if key == ebiten.KeyDelete {
-				m.drag(0, false)
+				m.Drag(0, false)
 				want = " два"
 			}
 			updateEditorKeys(t, e, ebiten.KeyControl, key)
@@ -182,7 +182,7 @@ func TestEditorWordDeletionNativeInputs(t *testing.T) {
 				if key == ebiten.KeyDelete {
 					caret, want = 3, "one три"
 				}
-				m.drag(caret, false)
+				m.Drag(caret, false)
 				pressed := func(k ebiten.Key) bool { return k == ebiten.KeyControl || k == key }
 				now := time.Unix(100, 0)
 				in := editorNativeInput{pressed: pressed, justPressed: pressed}

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"errors"
 	"fmt"
 	"image"
@@ -302,7 +303,7 @@ func (e *MapEditor) keyCopy(key string) error {
 	if e.listKind() != "report" || e.selectionShown() || e.report.sel >= len(e.report.rows) {
 		return e.selectionKey(key)
 	}
-	if err := textClipboard.write(e.reportCopyText(e.report.sel)); err != nil {
+	if err := widgetkit.TextClipboard.Write(e.reportCopyText(e.report.sel)); err != nil {
 		e.message = err.Error()
 		return err
 	}

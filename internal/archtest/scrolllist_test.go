@@ -86,7 +86,7 @@ func f(l *Picker, in appInput) { l.Move(pickerList.wheelStep(in)) }`, ""},
 		{"the brush reads its accessor", "pkg/ui/mapeditorbrush.go", `package ui
 func (e *MapEditor) brushWheel(s wheelSource) { _ = s.wheelNotches() }`, ""},
 		{"the launcher takes the model's lines", "cmd/starter/window.go", `package main
-func f() { if _, dy := ebiten.Wheel(); dy != 0 { a.wheel(p, ui.ListWheelLines(dy)) } }`, ""},
+func f() { if _, dy := ebiten.Wheel(); dy != 0 { a.wheel(p, widgetkit.ListWheelLines(dy)) } }`, ""},
 		{"the chargen focus moves by a number", "pkg/ui/app.go", `package ui
 func (a *App) stepChargen(c *Chargen) { c.Move(-1) }`, ""},
 	} {

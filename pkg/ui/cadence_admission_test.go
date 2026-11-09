@@ -73,7 +73,7 @@ func admissionTrace() string {
 	var t TextInputState
 	for i, ms := range admissionClock {
 		held := map[string]bool{"left": i < 20}
-		line("repeat", ms, "%v", t.repeat(admissionAt(ms), held))
+		line("repeat", ms, "%v", t.Repeat(admissionAt(ms), held, gateAtLeast.reached))
 	}
 	return b.String()
 }

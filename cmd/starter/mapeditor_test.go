@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"againrom/pkg/game"
+	"againrom/pkg/installinfo"
 )
 
 func writeEditor(t *testing.T, r *rig) string {
@@ -123,7 +123,7 @@ func TestMapEditorCaptionFollowsTheBaseLanguage(t *testing.T) {
 	if got := editorCaption(t, r.app()); got != "Map editor" {
 		t.Fatalf("english base: %q", got)
 	}
-	r.fakes.validRoots[r.root] = game.InstallInfo{Language: "russian"}
+	r.fakes.validRoots[r.root] = installinfo.Info{Language: "russian"}
 	if got := editorCaption(t, r.app()); got != "Редактор карт" {
 		t.Fatalf("russian base: %q", got)
 	}

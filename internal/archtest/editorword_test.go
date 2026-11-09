@@ -12,7 +12,7 @@ func TestEditorWordClassNamesSecondClassifier(t *testing.T) {
 	for _, row := range []struct {
 		name, source, want string
 	}{
-		{"clean", "package ui\nfunc (m *TextInputState) deleteWordEdge(back bool) int { return editorWordClass('a') }", ""},
+		{"clean", "package ui\nfunc (m *TextInputState) DeleteWordEdge(back bool) int { return editorWordClass('a') }", ""},
 		{"letter", "package ui\nimport \"unicode\"\nfunc secondWord(r rune) bool { return unicode.IsLetter(r) }", "secondWord classifies a word rune"},
 		{"digit", "package ui\nimport \"unicode\"\nfunc secondWord(r rune) bool { return unicode.IsDigit(r) }", "secondWord classifies a word rune"},
 		{"number", "package ui\nimport \"unicode\"\nfunc secondWord(r rune) bool { return unicode.IsNumber(r) }", "secondWord classifies a word rune"},
@@ -32,8 +32,8 @@ func TestEditorWordClassNamesSecondClassifier(t *testing.T) {
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			vs := checkEditorWordClasses(map[string]string{
-				"pkg/ui/editortextmodel.go": builder,
-				"pkg/ui/planted.go":         row.source,
+				"pkg/ui/widgetkit/editortextmodel.go": builder,
+				"pkg/ui/planted.go":                   row.source,
 			})
 			if row.want == "" {
 				if len(vs) != 0 {
@@ -63,21 +63,23 @@ func TestEditorWordClassHasOneBuilder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := filepath.Join(root, "pkg", "ui")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
 	files := map[string]string{}
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+	for _, rel := range []string{"pkg/ui", "pkg/ui/widgetkit"} {
+		dir := filepath.Join(root, filepath.FromSlash(rel))
+		entries, err := os.ReadDir(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		files["pkg/ui/"+entry.Name()] = string(data)
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+				continue
+			}
+			data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			files[rel+"/"+entry.Name()] = string(data)
+		}
 	}
 	for _, v := range checkEditorWordClasses(files) {
 		t.Error(v)

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"image"
 	"image/color"
@@ -186,7 +187,7 @@ func (g *goldState) insert(s string) {
 }
 
 func (g *goldState) edit(keys TextInputKeys) TextInputState {
-	state := EditText(TextInputState{Text: g.text, Caret: g.caret, Start: g.selStart, End: g.selEnd}, keys,
+	state := widgetkit.EditText(TextInputState{Text: g.text, Caret: g.caret, Start: g.selStart, End: g.selEnd}, keys,
 		TextInputRules{ByteUnits: true, Limit: goldTextLimit, Selection: TextDetachedSelection,
 			Accept: func(r rune) bool { return r >= 0x20 && r <= 0x7e }})
 	g.text, g.caret, g.selStart, g.selEnd = state.Text, state.Caret, state.Start, state.End

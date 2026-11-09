@@ -1,6 +1,10 @@
 package ui
 
-import "math"
+import (
+	"math"
+
+	"againrom/pkg/ui/widgetkit"
+)
 
 // This file is the one list model: every scrolling list, picker, save page,
 // notice window, help text, mod screen and editor popup steps through a
@@ -77,15 +81,6 @@ var (
 	notesList = scrollSpec{unit: scrollLines, wheel: 1, whole: true, key: 1}
 )
 
-// starterList is the launcher window's lists, one line a notch.
-var starterList = scrollSpec{unit: scrollLines, wheel: 1, key: 1}
-
-// ListWheelLines is the lines a wheel reading moves the launcher window's
-// lists: negative towards the first line, zero for no turn.
-func ListWheelLines(wheel float64) int {
-	return starterList.wheelStep(Input{WheelY: wheel})
-}
-
 // wheelSource is an input that carries a wheel reading.
 type wheelSource interface {
 	wheelNotches() float64
@@ -112,17 +107,7 @@ func wheelSign(in wheelSource) int {
 // wheelStep is the signed step the wheel asks of the list, positive towards
 // the end: a turn away from the user goes towards the first unit.
 func (s scrollSpec) wheelStep(in wheelSource) int {
-	w := in.wheelNotches()
-	if s.whole {
-		return -int(w) * s.wheel
-	}
-	switch {
-	case w > 0:
-		return -s.wheel
-	case w < 0:
-		return s.wheel
-	}
-	return 0
+	return widgetkit.WheelStep(in.wheelNotches(), s.wheel, s.whole)
 }
 
 // wheelAccumulated is wheelStep for a high-resolution wheel: the fraction left

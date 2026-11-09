@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	basepkg "againrom/pkg/base"
-	"againrom/pkg/game"
+	"againrom/pkg/installinfo"
 )
 
-func profileInfo(id string, exact bool) game.InstallInfo {
+func profileInfo(id string, exact bool) installinfo.Info {
 	p, ok := basepkg.Find(id)
 	if !ok {
 		panic("unknown profile " + id)
 	}
-	return game.InstallInfo{Language: p.Language, Base: basepkg.Match{Profile: p, Exact: exact}}
+	return installinfo.Info{Language: p.Language, Base: basepkg.Match{Profile: p, Exact: exact}}
 }
 
 // Play passes the detected profile to the game, so the game refuses a root that
@@ -23,17 +23,17 @@ func profileInfo(id string, exact bool) game.InstallInfo {
 func TestPlayNamesTheDetectedBase(t *testing.T) {
 	cases := []struct {
 		name string
-		info game.InstallInfo
+		info installinfo.Info
 		want []string
 	}{
 		{"exact release", profileInfo(basepkg.ROM1EN, true), []string{"-assets", "ROOT", "-base", "rom1-en"}},
 		{"release by language", profileInfo(basepkg.ROM1RU, false), []string{"-assets", "ROOT", "-base", "rom1-ru"}},
 		{"second game, exact", profileInfo(basepkg.ROM2RU, true), []string{"-assets", "ROOT", "-base", "rom2-ru"}},
 		{"second game, by language", profileInfo(basepkg.ROM2EN, false), []string{"-assets", "ROOT", "-base", "rom2-en"}},
-		{"second game, unknown language", game.InstallInfo{Base: basepkg.Match{Profile: unknownSecond()}}, []string{"-assets", "ROOT", "-base", "rom2"}},
+		{"second game, unknown language", installinfo.Info{Base: basepkg.Match{Profile: unknownSecond()}}, []string{"-assets", "ROOT", "-base", "rom2"}},
 		{"demo", profileInfo(basepkg.ROM1Demo, true), []string{"-assets", "ROOT", "-base", "rom1-demo"}},
-		{"no profile named", game.InstallInfo{Language: "english"}, []string{"-assets", "ROOT"}},
-		{"generic profile", game.InstallInfo{Base: basepkg.Match{Profile: basepkg.Profile{ID: basepkg.ROM1}}}, []string{"-assets", "ROOT"}},
+		{"no profile named", installinfo.Info{Language: "english"}, []string{"-assets", "ROOT"}},
+		{"generic profile", installinfo.Info{Base: basepkg.Match{Profile: basepkg.Profile{ID: basepkg.ROM1}}}, []string{"-assets", "ROOT"}},
 	}
 	for _, c := range cases {
 		r := newRig(t, "[starter]\nlast-base = en\n[bases]\nen = {root}\n")
@@ -86,7 +86,7 @@ func TestBaseRowsAndNotesStateTheProfile(t *testing.T) {
 
 func TestSecondGameNoteHoldsNoRemovedStatement(t *testing.T) {
 	removed := []string{"original saves refused", "оригинальные сохранения не принимаются", "initial town TALK", "mission 10 victory", "later campaign continuation", "SAV record", "item modifiers"}
-	for _, info := range []game.InstallInfo{profileInfo(basepkg.ROM2EN, true), profileInfo(basepkg.ROM2RU, false), {Base: basepkg.Match{Profile: unknownSecond()}}} {
+	for _, info := range []installinfo.Info{profileInfo(basepkg.ROM2EN, true), profileInfo(basepkg.ROM2RU, false), {Base: basepkg.Match{Profile: unknownSecond()}}} {
 		a := &app{}
 		note := a.baseNote(info)
 		if note != info.Base.String() {
@@ -107,7 +107,7 @@ func TestBaseLabelOfAnUnrecognisedBuild(t *testing.T) {
 	if got := (&app{}).baseLabel(profileInfo(basepkg.ROM1EN, false)); got != "rom1-en (unrecognised build)" {
 		t.Fatalf("label = %q", got)
 	}
-	if got := (&app{}).baseLabel(game.InstallInfo{Language: "russian"}); got != "russian" {
+	if got := (&app{}).baseLabel(installinfo.Info{Language: "russian"}); got != "russian" {
 		t.Fatalf("label = %q", got)
 	}
 }

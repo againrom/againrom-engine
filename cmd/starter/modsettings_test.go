@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"againrom/pkg/game"
+	"againrom/pkg/installinfo"
 )
 
 const panelSettings = `[skill_cap]
@@ -74,7 +74,7 @@ func TestThePanelReadsTheBasesLanguage(t *testing.T) {
 	if a.lang() != "en" {
 		t.Fatalf("lang %q", a.lang())
 	}
-	r.fakes.validRoots[r.root] = game.InstallInfo{Language: "russian"}
+	r.fakes.validRoots[r.root] = installinfo.Info{Language: "russian"}
 	a2 := r.app()
 	if a2.lang() != "ru" || !containsText(a2, "Предел навыка (100..150)") {
 		t.Fatalf("lang %q; the panel shows %q", a2.lang(), texts(a2))

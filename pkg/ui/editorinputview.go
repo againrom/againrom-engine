@@ -286,7 +286,7 @@ func (e *MapEditor) inputPointer(in Input) bool {
 			return true
 		}
 		if v, box := e.inputAt(p, false); v != nil {
-			e.input.model.drag(v.hit(p, box, e.bodyFont()), true)
+			e.input.model.Drag(v.hit(p, box, e.bodyFont()), true)
 		}
 		e.down = true
 		return true
@@ -303,7 +303,7 @@ func (e *MapEditor) inputPointer(in Input) bool {
 		}
 	}
 	if v, box := at(p, true); v != nil {
-		e.input.model.drag(v.hit(p, box, e.bodyFont()), in.Shift)
+		e.input.model.Drag(v.hit(p, box, e.bodyFont()), in.Shift)
 		e.input.drag = true
 		e.down, e.uiDown = true, false
 		return true

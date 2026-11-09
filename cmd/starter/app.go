@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	basepkg "againrom/pkg/base"
-	"againrom/pkg/game"
 	"againrom/pkg/hostfile"
 	"againrom/pkg/ini"
+	"againrom/pkg/installinfo"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/pathdialog"
-	"againrom/pkg/ui"
+	"againrom/pkg/ui/widgetkit"
 )
 
 // Window size in pixels. panelH is the height of the mod settings panel that
@@ -151,7 +151,7 @@ type deps struct {
 	start func(exe string, args []string) error
 	paste func() string
 	// inspect looks at a base root.
-	inspect func(root string) game.InstallInfo
+	inspect func(root string) installinfo.Info
 	// async runs f off the interface thread.
 	async      func(f func())
 	pathDialog pathdialog.Func
@@ -170,7 +170,7 @@ type app struct {
 	problems []ini.Problem
 	s        settings
 
-	infos     map[string]game.InstallInfo // by base path
+	infos     map[string]installinfo.Info // by base path
 	scan      []mod.Entry
 	scanErr   error
 	selMod    string                   // mod whose settings the panel shows
@@ -204,7 +204,7 @@ type result struct {
 func newApp(iniPath, selfPath, goos, starterVersion string, d deps) *app {
 	a := &app{
 		deps: d, selfPath: selfPath, goos: goos, iniPath: iniPath,
-		infos:          map[string]game.InstallInfo{},
+		infos:          map[string]installinfo.Info{},
 		starterVersion: starterVersion,
 		gameVersion:    versionUnknown,
 		results:        make(chan result, 8),
@@ -860,8 +860,8 @@ func (a *app) typed(s string) {
 		return
 	}
 	before := *f
-	*f = ui.EditText(ui.TextInputState{Text: *f}, ui.TextInputKeys{Typed: s},
-		ui.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
+	*f = widgetkit.EditText(widgetkit.TextInputState{Text: *f}, widgetkit.TextInputKeys{Typed: s},
+		widgetkit.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
 	a.dirty = a.dirty || *f != before
 }
 
@@ -871,8 +871,8 @@ func (a *app) backspace() {
 		return
 	}
 	if f := a.field(a.focus); f != nil && *f != "" {
-		*f = ui.EditText(ui.TextInputState{Text: *f}, ui.TextInputKeys{Backspace: true},
-			ui.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
+		*f = widgetkit.EditText(widgetkit.TextInputState{Text: *f}, widgetkit.TextInputKeys{Backspace: true},
+			widgetkit.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
 		a.dirty = true
 	}
 }
@@ -1171,7 +1171,7 @@ func (a *app) takeDirty() bool {
 // baseLabel is what a base row says of an install: its profile id, whether the
 // build is one the profile knows, and whether the profile states limits. An
 // install with no profile says its language.
-func (a *app) baseLabel(info game.InstallInfo) string {
+func (a *app) baseLabel(info installinfo.Info) string {
 	m := info.Base
 	if !m.Profile.Known() {
 		return info.Language
@@ -1193,7 +1193,7 @@ func hasLimits(p basepkg.Profile) bool {
 
 // baseNote is the status line a selected or added base gets: the profile and
 // each limit the profile states.
-func (a *app) baseNote(info game.InstallInfo) string {
+func (a *app) baseNote(info installinfo.Info) string {
 	m := info.Base
 	if !m.Profile.Known() {
 		return a.t(cInstallOf, info.Language)

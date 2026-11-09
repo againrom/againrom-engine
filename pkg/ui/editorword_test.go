@@ -62,7 +62,7 @@ func TestEditorWordKeyTable(t *testing.T) {
 					e := NewMapEditor(nil, nil, nil)
 					e.openPrompt(editorPrompt{kind: promptWorkspace, scope: "pages", path: row.text})
 					m, _ := e.inputModel()
-					m.drag(at, false)
+					m.Drag(at, false)
 					if err := e.Key(key.name); err != nil {
 						t.Fatal(err)
 					}
@@ -73,9 +73,9 @@ func TestEditorWordKeyTable(t *testing.T) {
 					} else if key.shift {
 						anchor, selected = at, string(runes[lo:hi])
 					}
-					if e.prompt.path != text || m.Caret != caret || m.Anchor != anchor || m.selected() != selected {
+					if e.prompt.path != text || m.Caret != caret || m.Anchor != anchor || m.Selected() != selected {
 						t.Fatalf("text %q caret %d anchor %d selected %q; want %q caret %d anchor %d selected %q",
-							e.prompt.path, m.Caret, m.Anchor, m.selected(), text, caret, anchor, selected)
+							e.prompt.path, m.Caret, m.Anchor, m.Selected(), text, caret, anchor, selected)
 					}
 				})
 			}

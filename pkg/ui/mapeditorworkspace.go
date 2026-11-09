@@ -91,8 +91,8 @@ func (e *MapEditor) keyNewline(string) error {
 func (e *MapEditor) keyClear(string) error {
 	if e.prompt.open() || (e.messagePage != 0 || e.modWindow) && e.objectTyping() {
 		if m, _ := e.inputModel(); m != nil {
-			m.selectAll()
-			m.replace("")
+			m.SelectAll()
+			m.Replace("")
 			e.input.edited()
 			*e.input.target = m.Text
 		}

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"hash/fnv"
 	"image"
@@ -521,9 +522,9 @@ var modesConts = []modesCont{
 }
 
 func modesFullProbe(t *testing.T, host string, path []string, action string) string {
-	saved := textClipboard
-	textClipboard = newTextClipboard(true)
-	defer func() { textClipboard = saved }()
+	saved := widgetkit.TextClipboard
+	widgetkit.TextClipboard = widgetkit.NewTextClipboard(true)
+	defer func() { widgetkit.TextClipboard = saved }()
 	var out strings.Builder
 	for _, c := range modesConts {
 		e, calls := newModesEditor(t, host)

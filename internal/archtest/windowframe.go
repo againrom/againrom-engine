@@ -17,7 +17,11 @@ import (
 
 // windowFrameHome is the one file that paints a window, dialog or panel frame:
 // a frameSpec is drawn there by drawFrame, and its shadow by frameShadowPlan.
-const windowFrameHome = "pkg/ui/widgetframe.go"
+// windowFrameFlatHome holds the flat panel painter drawFrame calls.
+const (
+	windowFrameHome     = "pkg/ui/widgetframe.go"
+	windowFrameFlatHome = "pkg/ui/widgetkit/widgetpanel.go"
+)
 
 // windowFrameRoots are the trees the guard reads.
 var windowFrameRoots = []string{"pkg/ui", "cmd/starter"}
@@ -60,7 +64,7 @@ func WindowFrameSites(root string) (sites, stale []string, err error) {
 				return rerr
 			}
 			rel = filepath.ToSlash(rel)
-			if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || rel == windowFrameHome {
+			if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || rel == windowFrameHome || rel == windowFrameFlatHome {
 				return nil
 			}
 			src, rerr := os.ReadFile(path)

@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] The download is smaller: the game, the starter and the map editor no longer carry debugging data.
+- [Starter] The starter is a much smaller file.
 
 ## 0.150.0
 

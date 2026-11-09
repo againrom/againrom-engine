@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"strings"
 	"unicode"
@@ -228,17 +229,17 @@ func (e *MapEditor) inputModel() (*TextInputState, editorInputPolicy) {
 	}
 	if e.input.target != target || e.input.key != key {
 		e.input = editorInputState{target: target, key: key}
-		e.input.model.reset(*target)
+		e.input.model.Reset(*target)
 	} else if e.input.model.Text != *target {
-		repeating := e.input.model.repeating
-		e.input.model.reset(*target)
-		e.input.model.repeating = repeating
+		repeating := e.input.model.Repeating
+		e.input.model.Reset(*target)
+		e.input.model.Repeating = repeating
 		e.input.undo, e.input.redo = nil, nil
 	}
 	e.input.before = stepOf(&e.input.model)
-	e.input.model.rules = TextInputRules{Accept: func(rune) bool { return true }}
+	e.input.model.Rules = TextInputRules{Accept: func(rune) bool { return true }}
 	if e.objectTyping() && len(e.obj.fields[e.obj.focus].Choices) > 0 {
-		e.input.model.rules.AcceptBatch = func(s string) bool { return strings.TrimLeft(s, "-0123456789") == "" }
+		e.input.model.Rules.AcceptBatch = func(s string) bool { return strings.TrimLeft(s, "-0123456789") == "" }
 	}
 	return &e.input.model, p
 }
@@ -265,14 +266,14 @@ func (e *MapEditor) insertText(s string) {
 		return
 	}
 	if m, _ := e.inputModel(); m != nil && s != "" {
-		if m.typeText(s) {
+		if m.TypeText(s) {
 			e.inputChanged()
 		}
 	}
 }
 
 func editorPaste(m *TextInputState, p editorInputPolicy, s string) string {
-	lo, hi := m.selection()
+	lo, hi := m.Selection()
 	r := []rune(m.Text)
 	used := 0
 	for i, c := range r {
@@ -340,30 +341,30 @@ func (e *MapEditor) textKey(key string) bool {
 	var err error
 	switch key {
 	case "left", "right", "home", "end", "up", "down":
-		m.move(key, ctrl, shift)
+		m.Move(key, ctrl, shift)
 	case "selectall":
-		m.selectAll()
+		m.SelectAll()
 	case "backspace", "delete":
-		if lo, hi := m.selection(); ctrl && lo == hi {
-			m.Anchor = m.deleteWordEdge(key == "backspace")
+		if lo, hi := m.Selection(); ctrl && lo == hi {
+			m.Anchor = m.DeleteWordEdge(key == "backspace")
 		}
-		m.erase(key == "backspace")
+		m.Erase(key == "backspace")
 		e.inputChanged()
 	case "copy", "cut":
 		if m.Caret != m.Anchor {
-			err = textClipboard.write(m.selected())
+			err = widgetkit.TextClipboard.Write(m.Selected())
 			if err == nil && key == "cut" {
-				m.replace("")
+				m.Replace("")
 				e.inputChanged()
 			}
 		}
 	case "paste":
 		var s string
-		s, err = textClipboard.read()
+		s, err = widgetkit.TextClipboard.Read()
 		if err == nil {
 			filtered := editorPaste(m, policy, s)
 			if filtered != "" {
-				m.replace(filtered)
+				m.Replace(filtered)
 				e.inputChanged()
 			}
 		}

@@ -971,7 +971,7 @@ func (e *MapEditor) addNow(kind RecordKind) {
 	e.fresh = freshTrigger{doc: e.doc, index: ch.doc.AddedRecord.Index, wiz: e.obj.wiz}
 	e.focusObjectField(trigName)
 	if m, _ := e.inputModel(); m != nil {
-		m.selectAll()
+		m.SelectAll()
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"againrom/pkg/base"
+	"againrom/pkg/installinfo"
 	"againrom/pkg/installpath"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
@@ -49,7 +50,7 @@ const graphicsPrefix = "graphics/"
 // beside that archive's name for the reason graphicsPrefix is spelt beside its
 // own: one spelling, so a renamed container moves every address it owns together
 // instead of leaving half of them naming an identity nothing answers.
-const mainPrefix = "main/"
+const mainPrefix = installinfo.MainPrefix
 
 // worldPrefix is the address prefix of everything this package reads out of
 // WorldArchive, spelt beside that archive's name for the same reason

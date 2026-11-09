@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode"
 
-	"againrom/pkg/game"
+	"againrom/pkg/installinfo"
 )
 
 // sameInBothLanguages are the rows whose Russian text is the English text: a
@@ -117,7 +117,7 @@ func windowTexts(a *app) []string {
 
 func rigWithLanguage(t *testing.T, language string) *rig {
 	r := newRig(t, "[starter]\nlast-base = en\n[bases]\nen = {root}\n")
-	r.fakes.validRoots[r.root] = game.InstallInfo{Language: language}
+	r.fakes.validRoots[r.root] = installinfo.Info{Language: language}
 	return r
 }
 
@@ -209,7 +209,7 @@ func TestStatusAndErrorLinesFollowTheBaseLanguage(t *testing.T) {
 
 func TestFirstProblemIsWordedInTheBaseLanguage(t *testing.T) {
 	r := newRig(t, "[starter]\nlast-base = en\nnot a pair\n[bases]\nen = {root}\n")
-	r.fakes.validRoots[r.root] = game.InstallInfo{Language: "russian"}
+	r.fakes.validRoots[r.root] = installinfo.Info{Language: "russian"}
 	a := r.app()
 	if !a.statusBad || !strings.HasPrefix(a.status, "установки ") {
 		t.Fatalf("status %q", a.status)

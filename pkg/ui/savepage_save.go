@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"image"
 )
@@ -247,7 +248,7 @@ func (s *savePageState) edit(in appInput) {
 	if selection == TextCaretSelection {
 		selection = TextStickyAllSelection
 	}
-	state := EditText(TextInputState{Text: *field, Caret: s.caret, SelectedAll: s.selectedText}, textInputKeys(in),
+	state := widgetkit.EditText(TextInputState{Text: *field, Caret: s.caret, SelectedAll: s.selectedText}, textInputKeys(in),
 		TextInputRules{Limit: s.page.NameLimit, Selection: selection, SplitLineBreaks: true, LiteralArrows: true})
 	*field, s.caret, s.selectedText = state.Text, state.Caret, state.SelectedAll
 }

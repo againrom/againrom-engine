@@ -1,4 +1,4 @@
-package ui
+package widgetkit
 
 import (
 	"os/exec"
@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func (systemEditorClipboard) read() (string, error) {
+func (systemEditorClipboard) Read() (string, error) {
 	b, err := exec.Command("/usr/bin/osascript", "-e", "get the clipboard as text").Output()
 	return strings.TrimSuffix(string(b), "\n"), err
 }
 
-func (systemEditorClipboard) write(s string) error {
+func (systemEditorClipboard) Write(s string) error {
 	return exec.Command("/usr/bin/osascript", "-e", "set the clipboard to "+strconv.Quote(s)).Run()
 }

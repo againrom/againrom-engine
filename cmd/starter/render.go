@@ -6,7 +6,7 @@ import (
 	"image/draw"
 
 	"againrom/pkg/render/textfit"
-	"againrom/pkg/ui"
+	"againrom/pkg/ui/widgetkit"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
@@ -70,7 +70,7 @@ func (a *app) render() *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, winW, winH))
 	fill(img, img.Bounds(), colBackground)
 	fill(img, image.Rect(0, 440+panelH, winW, winH), colPanel)
-	ui.DrawPanel(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBackground, colBorder)
+	widgetkit.DrawPanel(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBackground, colBorder)
 	for _, it := range a.layout() {
 		r := it.rect
 		switch it.kind {
@@ -79,30 +79,30 @@ func (a *app) render() *image.RGBA {
 		case iHeading:
 			drawText(img, it.text, r.Min.X, r.Min.Y, colAccent)
 		case iButton:
-			ui.DrawPanel(img, r, colButton, colBorder)
+			widgetkit.DrawPanel(img, r, colButton, colBorder)
 			s := fitHead(it.text, r.Dx()-8)
 			drawText(img, s, r.Min.X+(r.Dx()-textWidth(s))/2, r.Min.Y+(r.Dy()-16)/2, colText)
 		case iToggle:
-			ui.DrawPanel(img, r, colButton, colBorder)
-			mark := ui.CheckSpec{On: it.checked, Style: ui.CheckText}.Mark()
+			widgetkit.DrawPanel(img, r, colButton, colBorder)
+			mark := widgetkit.CheckSpec{On: it.checked, Style: widgetkit.CheckText}.Mark()
 			drawText(img, mark+it.text, r.Min.X+6, r.Min.Y+3, colText)
 		case iField:
 			edge := colBorder
 			if it.focused {
 				edge = colFocus
 			}
-			ui.DrawPanel(img, r, colPanel, edge)
+			widgetkit.DrawPanel(img, r, colPanel, edge)
 			s := it.text
 			if it.focused {
 				s += "|"
 			}
 			drawText(img, fitTail(s, r.Dx()-10), r.Min.X+5, r.Min.Y+3, colText)
 		case iBaseRow, iModRow:
-			style := ui.CheckRadioText
+			style := widgetkit.CheckRadioText
 			if it.kind == iModRow {
-				style = ui.CheckText
+				style = widgetkit.CheckText
 			}
-			mark := ui.CheckSpec{On: it.checked, Style: style}.Mark()
+			mark := widgetkit.CheckSpec{On: it.checked, Style: style}.Mark()
 			drawText(img, fitHead(mark+it.text, r.Dx()-4), r.Min.X+2, r.Min.Y+1, it.tone.color())
 		}
 	}

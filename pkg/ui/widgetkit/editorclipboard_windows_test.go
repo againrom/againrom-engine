@@ -1,6 +1,6 @@
 //go:build systemclipboard
 
-package ui
+package widgetkit
 
 import "testing"
 

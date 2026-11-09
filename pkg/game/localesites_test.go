@@ -13,16 +13,10 @@ import (
 func TestGameLanguageSitesReadTheLocaleRecord(t *testing.T) {
 	var codes []string
 	for _, l := range locale.All() {
-		if got := languageEntry(l.Selector); got != l.Entry {
-			t.Errorf("languageEntry(%d) = %q, want %q", l.Selector, got, l.Entry)
-		}
 		if got := BaseID(InstallInfo{Language: l.Entry}); got != l.BaseID {
 			t.Errorf("BaseID(%q) = %q, want %q", l.Entry, got, l.BaseID)
 		}
 		codes = append(codes, l.Code)
-	}
-	if got := languageEntry(7); got != "language selector 7" {
-		t.Errorf("unknown selector entry = %q", got)
 	}
 	if got := BaseID(InstallInfo{Language: "klingon"}); got != "rom1" {
 		t.Errorf("unknown language base = %q", got)

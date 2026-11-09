@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"image"
 	"image/color"
@@ -879,7 +880,7 @@ func (e *MapEditor) Run() error {
 	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowClosingHandled(true)
 	ebiten.SetWindowTitle("Againrom Map Editor")
-	ApplyWindowRow(EditorWindow)
+	widgetkit.ApplyWindowRow(EditorWindow)
 	return ebiten.RunGame(&frameGuard{game: e})
 }
 

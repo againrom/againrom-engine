@@ -2,6 +2,7 @@ package ui
 
 import (
 	"againrom/pkg/random"
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"image"
 	"math"
@@ -684,7 +685,7 @@ func (c *Chargen) EditName(typed string, backspace bool) {
 	if c == nil {
 		return
 	}
-	state := EditText(TextInputState{Text: c.name}, TextInputKeys{Typed: typed, Backspace: backspace},
+	state := widgetkit.EditText(TextInputState{Text: c.name}, TextInputKeys{Typed: typed, Backspace: backspace},
 		TextInputRules{ByteUnits: true, AppendOnly: true, SplitLineBreaks: true, Limit: c.nameCap(), Encode: c.encodeName})
 	c.name = state.Text
 	c.caret.restart = c.caret.restart || state.TypedBelowLimit

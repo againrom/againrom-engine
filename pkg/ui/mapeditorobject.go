@@ -845,7 +845,7 @@ func (e *MapEditor) FieldFocus() (field, from, to int) {
 	if m == nil {
 		return e.obj.focus, 0, 0
 	}
-	from, to = m.selection()
+	from, to = m.Selection()
 	return e.obj.focus, from, to
 }
 

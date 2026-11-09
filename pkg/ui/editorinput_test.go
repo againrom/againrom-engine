@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"errors"
 	"image"
 	"reflect"
@@ -60,32 +61,32 @@ func TestEditorCRLFMultilineSelectionMatchesLF(t *testing.T) {
 
 func TestEditorCRLFNavigationAndDeletion(t *testing.T) {
 	var m TextInputState
-	m.reset("ab\r\nя")
-	m.drag(4, false)
-	m.move("left", false, false)
+	m.Reset("ab\r\nя")
+	m.Drag(4, false)
+	m.Move("left", false, false)
 	if m.Caret != 2 {
 		t.Fatal("Left entered CRLF", m.Caret)
 	}
-	m.move("right", false, false)
+	m.Move("right", false, false)
 	if m.Caret != 4 {
 		t.Fatal("Right entered CRLF", m.Caret)
 	}
-	m.erase(true)
+	m.Erase(true)
 	if m.Text != "abя" {
 		t.Fatal("Backspace split CRLF", m.Text)
 	}
-	m.reset("ab\r\nя")
-	m.drag(2, false)
-	m.erase(false)
+	m.Reset("ab\r\nя")
+	m.Drag(2, false)
+	m.Erase(false)
 	if m.Text != "abя" {
 		t.Fatal("Delete split CRLF", m.Text)
 	}
-	m.reset("a\r\nlong")
-	m.move("up", false, false)
+	m.Reset("a\r\nlong")
+	m.Move("up", false, false)
 	if m.Caret != 1 {
 		t.Fatal("Up entered CRLF", m.Caret)
 	}
-	m.move("down", false, false)
+	m.Move("down", false, false)
 	if m.Caret != 4 {
 		t.Fatal("Down lost the logical column", m.Caret)
 	}
@@ -101,13 +102,13 @@ func TestEditorRepeatClock(t *testing.T) {
 				ms   int
 				want bool
 			}{{0, true}, {399, false}, {400, true}, {439, false}, {440, true}, {800, true}, {801, false}} {
-				got := m.repeat(clock.Add(time.Duration(c.ms)*time.Millisecond), held)
+				got := m.Repeat(clock.Add(time.Duration(c.ms)*time.Millisecond), held, gateAtLeast.reached)
 				if (len(got) == 1) != c.want {
 					t.Fatalf("%d ms: %v, want fire=%v", c.ms, got, c.want)
 				}
 			}
-			m.repeat(clock.Add(time.Second), nil)
-			if got := m.repeat(clock.Add(time.Second), held); !reflect.DeepEqual(got, []string{key}) {
+			m.Repeat(clock.Add(time.Second), nil, gateAtLeast.reached)
+			if got := m.Repeat(clock.Add(time.Second), held, gateAtLeast.reached); !reflect.DeepEqual(got, []string{key}) {
 				t.Fatal("release did not rearm", got)
 			}
 		})
@@ -119,37 +120,37 @@ func TestEditorRepeatKeepsDelayWhenChoiceChangesText(t *testing.T) {
 	e.openPrompt(editorPrompt{kind: promptOpen, path: "1"})
 	m, _ := e.inputModel()
 	now := time.Unix(100, 0)
-	m.repeat(now, map[string]bool{"down": true})
+	m.Repeat(now, map[string]bool{"down": true}, gateAtLeast.reached)
 	e.prompt.path = "2"
 	m, _ = e.inputModel()
-	if keys := m.repeat(now.Add(399*time.Millisecond), map[string]bool{"down": true}); len(keys) != 0 {
+	if keys := m.Repeat(now.Add(399*time.Millisecond), map[string]bool{"down": true}, gateAtLeast.reached); len(keys) != 0 {
 		t.Fatal("choice restarted repeat immediately", keys)
 	}
-	if keys := m.repeat(now.Add(400*time.Millisecond), map[string]bool{"down": true}); len(keys) != 1 {
+	if keys := m.Repeat(now.Add(400*time.Millisecond), map[string]bool{"down": true}, gateAtLeast.reached); len(keys) != 1 {
 		t.Fatal("choice lost repeat deadline", keys)
 	}
 }
 
 func TestEditorWordJumps(t *testing.T) {
 	var m TextInputState
-	m.reset("Latin, два_3! four")
+	m.Reset("Latin, два_3! four")
 	for _, want := range []string{"Latin, два_3! ", "Latin, два_3", "Latin, два_", "Latin, два", "Latin, ", "Latin", ""} {
-		m.move("left", true, false)
+		m.Move("left", true, false)
 		if got := string([]rune(m.Text)[:m.Caret]); got != want {
 			t.Fatalf("Ctrl+Left: %q, want %q", got, want)
 		}
 	}
 	for _, want := range []string{"Latin", "Latin,", "Latin, два", "Latin, два_", "Latin, два_3", "Latin, два_3!", "Latin, два_3! four"} {
-		m.move("right", true, false)
+		m.Move("right", true, false)
 		if got := string([]rune(m.Text)[:m.Caret]); got != want {
 			t.Fatalf("Ctrl+Right: %q, want %q", got, want)
 		}
 	}
-	m.move("left", true, true)
-	if m.selected() != "four" {
-		t.Fatal("Ctrl+Shift+Left selection", m.selected())
+	m.Move("left", true, true)
+	if m.Selected() != "four" {
+		t.Fatal("Ctrl+Shift+Left selection", m.Selected())
 	}
-	m.replace("три")
+	m.Replace("три")
 	if m.Text != "Latin, два_3! три" {
 		t.Fatal("typing over selection", m.Text)
 	}
@@ -157,64 +158,64 @@ func TestEditorWordJumps(t *testing.T) {
 
 func TestEditorSelectionAndErase(t *testing.T) {
 	var m TextInputState
-	m.reset("abcd\nязык")
-	m.move("home", false, true)
-	if m.selected() != "язык" {
-		t.Fatal("Shift+Home", m.selected())
+	m.Reset("abcd\nязык")
+	m.Move("home", false, true)
+	if m.Selected() != "язык" {
+		t.Fatal("Shift+Home", m.Selected())
 	}
-	m.erase(false)
+	m.Erase(false)
 	if m.Text != "abcd\n" {
 		t.Fatal(m.Text)
 	}
-	m.move("home", true, false)
-	m.move("end", false, true)
-	if m.selected() != "abcd" {
-		t.Fatal("Shift+End", m.selected())
+	m.Move("home", true, false)
+	m.Move("end", false, true)
+	if m.Selected() != "abcd" {
+		t.Fatal("Shift+End", m.Selected())
 	}
-	m.erase(true)
+	m.Erase(true)
 	if m.Text != "\n" {
 		t.Fatal(m.Text)
 	}
-	m.reset("one\nдва\nthree")
-	m.move("up", false, true)
-	if m.selected() != "\nthree" {
-		t.Fatal("Shift+Up", m.selected())
+	m.Reset("one\nдва\nthree")
+	m.Move("up", false, true)
+	if m.Selected() != "\nthree" {
+		t.Fatal("Shift+Up", m.Selected())
 	}
-	m.drag(0, false)
-	m.drag(3, true)
-	if m.selected() != "one" {
-		t.Fatal("drag", m.selected())
+	m.Drag(0, false)
+	m.Drag(3, true)
+	if m.Selected() != "one" {
+		t.Fatal("drag", m.Selected())
 	}
-	m.replace("два")
+	m.Replace("два")
 	if m.Text != "два\nдва\nthree" {
 		t.Fatal(m.Text)
 	}
 }
 
 type fakeEditorClipboard struct {
-	memoryEditorClipboard
+	widgetkit.MemoryClipboard
 	err error
 }
 
-func (c *fakeEditorClipboard) read() (string, error) {
+func (c *fakeEditorClipboard) Read() (string, error) {
 	if c.err != nil {
 		return "", c.err
 	}
-	return c.memoryEditorClipboard.read()
+	return c.MemoryClipboard.Read()
 }
-func (c *fakeEditorClipboard) write(s string) error {
+func (c *fakeEditorClipboard) Write(s string) error {
 	if c.err != nil {
 		return c.err
 	}
-	return c.memoryEditorClipboard.write(s)
+	return c.MemoryClipboard.Write(s)
 }
 
 func fakeTextClipboard(t *testing.T) *fakeEditorClipboard {
 	t.Helper()
-	saved := textClipboard
+	saved := widgetkit.TextClipboard
 	c := &fakeEditorClipboard{}
-	textClipboard = c
-	t.Cleanup(func() { textClipboard = saved })
+	widgetkit.TextClipboard = c
+	t.Cleanup(func() { widgetkit.TextClipboard = saved })
 	return c
 }
 
@@ -227,8 +228,8 @@ func TestEditorClipboardSelection(t *testing.T) {
 		t.Fatal("Ctrl+A erased text")
 	}
 	_ = e.Key("copy")
-	if c.value != "Путь" {
-		t.Fatal("copy", c.value)
+	if c.Value != "Путь" {
+		t.Fatal("copy", c.Value)
 	}
 	_ = e.Key("cut")
 	if e.prompt.path != "" {
@@ -252,7 +253,7 @@ func TestEditorClipboardSelection(t *testing.T) {
 
 func TestEditorPasteFilteringAndLimit(t *testing.T) {
 	var m TextInputState
-	m.reset("AB")
+	m.Reset("AB")
 	p := editorInputPolicy{limit: 5, bytes: func(r rune) int {
 		if r == '🙂' || r == 0 {
 			return 0
@@ -274,7 +275,7 @@ func TestEditorPasteFilteringAndLimit(t *testing.T) {
 	if got := editorPaste(&m, p, "0xFF\x01"); got != "0xFF" {
 		t.Fatal("hex/control filtering", got)
 	}
-	m.reset("x\r\n")
+	m.Reset("x\r\n")
 	p = editorInputPolicy{multiline: true, limit: 4, bytes: func(r rune) int {
 		if r == '\r' || r == '\n' {
 			return 0
@@ -319,11 +320,11 @@ func TestEditorInputsUseOneModel(t *testing.T) {
 			}
 			_ = e.Key("selectall")
 			_ = e.Key("copy")
-			if clip.value != "one три" {
-				t.Fatal("text copy route", clip.value)
+			if clip.Value != "one три" {
+				t.Fatal("text copy route", clip.Value)
 			}
 			_ = e.Key("cut")
-			clip.value = "12"
+			clip.Value = "12"
 			_ = e.Key("paste")
 			if e.prompt.path != "12" {
 				t.Fatal("text paste route", e.prompt.path)
@@ -344,8 +345,8 @@ func TestEditorInputsUseOneModel(t *testing.T) {
 			}
 			_ = e.Key("selectall")
 			_ = e.Key("copy")
-			if c.value != "one три" {
-				t.Fatal("object clipboard route", c.value)
+			if c.Value != "one три" {
+				t.Fatal("object clipboard route", c.Value)
 			}
 		})
 	}
@@ -363,7 +364,7 @@ func TestEditorInputPointerSelectionAndDraw(t *testing.T) {
 	e.Pointer(Input{CursorX: start.X, CursorY: start.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(Input{CursorX: end.X, CursorY: end.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(Input{CursorX: end.X, CursorY: end.Y}, time.Time{})
-	if got := e.input.model.selected(); got != "abc" {
+	if got := e.input.model.Selected(); got != "abc" {
 		t.Fatal("native pointer route", got)
 	}
 	selected := e.ChromeImage()
@@ -389,7 +390,7 @@ func TestEditorNoInputKeepsMapClipboard(t *testing.T) {
 			t.Fatal("text consumed map key", key)
 		}
 	}
-	if c.value != "" {
+	if c.Value != "" {
 		t.Fatal("map keys reached system clipboard")
 	}
 }

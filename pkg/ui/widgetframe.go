@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui/widgetkit"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -87,16 +88,6 @@ var frameRows = [...]frameRow{
 // no picture yet, as on a menu panel composed apart from the scene behind
 // it (DIV-2725).
 var frameShadowTone = color.RGBA{0, 0, 0, 96}
-
-// frameSides is a set of a border's edges.
-type frameSides uint8
-
-const (
-	edgeTopBit frameSides = 1 << iota
-	edgeBottomBit
-	edgeLeftBit
-	edgeRightBit
-)
 
 // frameSpec is one frame: its kind, its rectangle and its art or colours.
 type frameSpec struct {
@@ -240,44 +231,9 @@ func drawFrameBody(dst *image.RGBA, s frameSpec) {
 			drawFrameCorners(dst, body, s.Art.Portrait, row.corner.X, row.corner.Y)
 		}
 	default:
-		r := body.Intersect(dst.Bounds())
-		if r.Empty() {
-			return
-		}
-		if row.fill {
-			op := draw.Src
-			if row.blend {
-				op = draw.Over
-			}
-			draw.Draw(dst, r, &image.Uniform{C: s.Fill}, image.Point{}, op)
-		}
-		if row.border {
-			w, sides := max(s.Width, 1), s.Sides
-			if sides == 0 {
-				sides = edgeTopBit | edgeBottomBit | edgeLeftBit | edgeRightBit
-			}
-			ink := &image.Uniform{C: s.Border}
-			for _, e := range [...]struct {
-				side frameSides
-				at   image.Rectangle
-			}{
-				{edgeTopBit, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+w)},
-				{edgeBottomBit, image.Rect(r.Min.X, r.Max.Y-w, r.Max.X, r.Max.Y)},
-				{edgeLeftBit, image.Rect(r.Min.X, r.Min.Y, r.Min.X+w, r.Max.Y)},
-				{edgeRightBit, image.Rect(r.Max.X-w, r.Min.Y, r.Max.X, r.Max.Y)},
-			} {
-				if sides&e.side != 0 {
-					draw.Draw(dst, e.at, ink, image.Point{}, draw.Src)
-				}
-			}
-		}
+		widgetkit.DrawFlatFrame(dst, body, widgetkit.FlatFrame{Fill: s.Fill, Border: s.Border, Width: s.Width,
+			Sides: s.Sides, PaintFill: row.fill, PaintBorder: row.border, Blend: row.blend})
 	}
-}
-
-// DrawPanel draws the flat panel over r: the one frame builder for programs
-// outside this package.
-func DrawPanel(dst *image.RGBA, r image.Rectangle, fill, border color.RGBA) {
-	drawFrame(dst, panelFrame(r, fill, border))
 }
 
 // frameStrokeRect is the GPU stroke a frame's border is drawn with.

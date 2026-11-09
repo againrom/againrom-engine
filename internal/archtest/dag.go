@@ -163,12 +163,16 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
 		"pkg/scriptprofile"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
 	"pkg/ui/systemclick": {},
+	// widgetkit is the widgets the game and the launcher share; it knows no screen.
+	"pkg/ui/widgetkit": {},
+	// installinfo is the cheap look at a directory as an install.
+	"pkg/installinfo": {"pkg/base", "pkg/locale", "pkg/vfs"},
 	// heldkey reads held keyboard keys for the game and the launcher.
 	"pkg/ui/heldkey":     {},
 	"cmd/cutscenehelper": {"pkg/video"},
@@ -441,7 +445,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/hostfile", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/installinfo", "pkg/hostfile", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui/widgetkit", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports only the pkg/ini leaf, to read the
 	// starter's selected base for the editor.

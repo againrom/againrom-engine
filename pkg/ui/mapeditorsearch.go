@@ -87,7 +87,7 @@ func (e *MapEditor) keySearch(string) error {
 	e.tree.typing = false
 	e.search.typing = true
 	if m, _ := e.inputModel(); m != nil {
-		m.selectAll()
+		m.SelectAll()
 	}
 	e.searchFollow()
 	return nil

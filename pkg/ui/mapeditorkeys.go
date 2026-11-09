@@ -2,6 +2,7 @@ package ui
 
 import (
 	"againrom/pkg/pathdialog"
+	"againrom/pkg/ui/widgetkit"
 	"againrom/pkg/words"
 	"strings"
 
@@ -671,7 +672,7 @@ func (e *MapEditor) keyHistory(key string) error {
 
 func (e *MapEditor) keyBackspace(string) error {
 	if !e.prompt.open() && !e.objectHidden && e.searchableObjectChoices() && e.dropdownOpen() {
-		state := EditText(TextInputState{Text: e.obj.search}, TextInputKeys{Backspace: true}, TextInputRules{AppendOnly: true})
+		state := widgetkit.EditText(TextInputState{Text: e.obj.search}, TextInputKeys{Backspace: true}, TextInputRules{AppendOnly: true})
 		if state.Text != e.obj.search {
 			e.obj.search = state.Text
 			e.obj.choice.Find(e.obj.search, e.editorSearchText)

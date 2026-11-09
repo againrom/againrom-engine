@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"image"
 	"image/color"
@@ -103,7 +104,7 @@ func (a *App) stepCheatChat(in appInput) appInput {
 			}
 		default:
 			if !in.Viewer.Alt {
-				c.line = EditText(TextInputState{Text: c.line}, textInputKeys(in),
+				c.line = widgetkit.EditText(TextInputState{Text: c.line}, textInputKeys(in),
 					TextInputRules{AppendOnly: true, SplitLineBreaks: true, ByteLimit: cheatChatLimit}).Text
 			}
 		}

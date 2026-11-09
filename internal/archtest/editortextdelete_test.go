@@ -19,7 +19,7 @@ func TestEditorTextDeletionUsesSharedModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, row := range []struct{ file, function, builder string }{
-		{"editorinput.go", "textKey", "erase"},
+		{"editorinput.go", "textKey", "Erase"},
 		{"mapeditorkeys.go", "keyBackspace", "EditText"},
 	} {
 		file := filepath.Join(root, "pkg", "ui", row.file)

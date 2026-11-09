@@ -39,7 +39,7 @@ func checkEditorWordClasses(files map[string]string) []Violation {
 			classFunction := false
 			if fn, ok := decl.(*ast.FuncDecl); ok {
 				function = fn.Name.Name
-				if name == "pkg/ui/editortextmodel.go" && function == "editorWordClass" && fn.Recv == nil {
+				if name == "pkg/ui/widgetkit/editortextmodel.go" && function == "editorWordClass" && fn.Recv == nil {
 					builders++
 					continue
 				}
@@ -68,8 +68,8 @@ func checkEditorWordClasses(files map[string]string) []Violation {
 						report(x, "classifies a word rune outside editorWordClass: "+x.Sel.Name)
 					}
 				case *ast.Ident:
-					if x.Name == "editorWordClass" && function != "deleteWordEdge" {
-						report(x, "uses editorWordClass outside the shared deleteWordEdge step")
+					if x.Name == "editorWordClass" && function != "DeleteWordEdge" {
+						report(x, "uses editorWordClass outside the shared DeleteWordEdge step")
 					}
 				case *ast.BinaryExpr:
 					if wordRunes && (x.Op == token.EQL || x.Op == token.NEQ || x.Op == token.LSS || x.Op == token.LEQ || x.Op == token.GTR || x.Op == token.GEQ) &&
@@ -90,7 +90,7 @@ func checkEditorWordClasses(files map[string]string) []Violation {
 		}
 	}
 	if builders != 1 {
-		vs = append(vs, Violation{From: "pkg/ui/editortextmodel.go", Reason: "found " + strconv.Itoa(builders) + " editorWordClass builders, want one"})
+		vs = append(vs, Violation{From: "pkg/ui/widgetkit/editortextmodel.go", Reason: "found " + strconv.Itoa(builders) + " editorWordClass builders, want one"})
 	}
 	return vs
 }

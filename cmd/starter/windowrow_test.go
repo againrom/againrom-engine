@@ -5,11 +5,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"againrom/pkg/ui"
+	"againrom/pkg/ui/widgetkit"
 )
 
 func TestStarterWindowRowHoldsItsForm(t *testing.T) {
-	if want := (ui.WindowRow{W: 760, H: 760}); starterWindow != want {
+	if want := (widgetkit.WindowRow{W: 760, H: 760}); starterWindow != want {
 		t.Fatalf("starterWindow = %+v, want %+v", starterWindow, want)
 	}
 	w, h := ebiten.WindowSize()
@@ -18,7 +18,7 @@ func TestStarterWindowRowHoldsItsForm(t *testing.T) {
 		ebiten.SetWindowSize(w, h)
 		ebiten.SetWindowResizingMode(resizing)
 	})
-	ui.ApplyWindowRow(starterWindow)
+	widgetkit.ApplyWindowRow(starterWindow)
 	if gw, gh := ebiten.WindowSize(); gw != 760 || gh != 760 {
 		t.Errorf("window %dx%d, want 760x760", gw, gh)
 	}

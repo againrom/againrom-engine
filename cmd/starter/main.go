@@ -62,7 +62,7 @@ import (
 	"runtime"
 	"time"
 
-	"againrom/pkg/game"
+	"againrom/pkg/installinfo"
 	"againrom/pkg/launch"
 )
 
@@ -79,7 +79,7 @@ func realDeps() deps {
 			return launch.For(exe, args).Start()
 		},
 		paste:   clipboardText,
-		inspect: game.InspectInstall,
+		inspect: installinfo.Inspect,
 		async:   func(f func()) { go f() },
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"againrom/pkg/ui/widgetkit"
 )
 
 func TestWindowRowsHoldEachProgramsForm(t *testing.T) {
@@ -39,7 +41,7 @@ func TestApplyWindowRowSetsSizeLimitsAndResizing(t *testing.T) {
 		{"editor", EditorWindow, ebiten.WindowResizingModeEnabled},
 		{"fixed", WindowRow{W: 700, H: 500}, ebiten.WindowResizingModeDisabled},
 	} {
-		ApplyWindowRow(tc.row)
+		widgetkit.ApplyWindowRow(tc.row)
 		if gw, gh := ebiten.WindowSize(); gw != tc.row.W || gh != tc.row.H {
 			t.Errorf("%s: window %dx%d, want %dx%d", tc.name, gw, gh, tc.row.W, tc.row.H)
 		}
@@ -47,7 +49,7 @@ func TestApplyWindowRowSetsSizeLimitsAndResizing(t *testing.T) {
 			t.Errorf("%s: resizing mode %v, want %v", tc.name, got, tc.mode)
 		}
 	}
-	ApplyWindowRow(EditorWindow)
+	widgetkit.ApplyWindowRow(EditorWindow)
 	if a, b, c, d := ebiten.WindowSizeLimits(); a != 640 || b != 480 || c != -1 || d != -1 {
 		t.Errorf("editor limits = %d,%d,%d,%d, want 640,480,-1,-1", a, b, c, d)
 	}

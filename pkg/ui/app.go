@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/ui/widgetkit"
 	"errors"
 	"fmt"
 	"image"
@@ -56,7 +57,7 @@ func startupWindow(monW, monH int) (w, h int, whole bool) {
 }
 
 func configureStartupWindow(monW, monH int, goos string, windowed bool) {
-	applyWindow(GameWindow, windowPlan(monW, monH, goos, windowed))
+	widgetkit.ApplyWindow(GameWindow, windowPlan(monW, monH, goos, windowed))
 }
 
 // monitorSize reports the current monitor's size in the device-independent
@@ -5078,11 +5079,8 @@ func (a *App) drawChargen() {
 	}
 }
 
-// SetWindowIcon gives the game window its icon. Windows picks the taskbar,
-// task-switcher and title-bar pictures from images by size. It is called before
-// Run and takes effect with the window's first frame; no images leave the
-// platform's default icon.
-func SetWindowIcon(images []image.Image) { ebiten.SetWindowIcon(images) }
+// SetWindowIcon forwards to the kit's one window icon setter.
+func SetWindowIcon(images []image.Image) { widgetkit.SetWindowIcon(images) }
 
 // Run opens the window and blocks until the front-end exits. Esc at the menu and
 // the brooch's EXIT button are the two ways out, and both arrive here as the same

@@ -1,12 +1,12 @@
 package main
 
-import "againrom/pkg/ui"
+import "againrom/pkg/ui/widgetkit"
 
 func clipboardText() string {
 	if !starterClipboardEnabled {
 		return ""
 	}
-	s, err := ui.ReadTextClipboard()
+	s, err := widgetkit.ReadTextClipboard()
 	if err != nil {
 		return ""
 	}

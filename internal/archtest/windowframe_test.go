@@ -19,6 +19,9 @@ func TestEveryFrameIsDrawnByTheFrameBuilder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("module root not found from %s: %v", wd, err)
 	}
+	if _, err := os.Stat(root + "/" + windowFrameFlatHome); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := os.Stat(root + "/" + windowFrameHome); err != nil {
 		t.Fatalf("the frame builder's home is gone: %v", err)
 	}

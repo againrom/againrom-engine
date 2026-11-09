@@ -120,7 +120,7 @@ func TestCheckNamesOffendingEdge(t *testing.T) {
 			name: "the launcher may draw with the bundled font and Ebitengine",
 			imports: map[string][]string{"cmd/starter": {
 				"github.com/hajimehoshi/bitmapfont/v4", "golang.org/x/image/font", "golang.org/x/image/math/fixed",
-				"github.com/hajimehoshi/ebiten/v2", "againrom/pkg/game", "againrom/pkg/ini", "againrom/pkg/mod",
+				"github.com/hajimehoshi/ebiten/v2", "againrom/pkg/installinfo", "againrom/pkg/ini", "againrom/pkg/mod",
 			}},
 			wantEdge: "",
 		},
@@ -348,12 +348,12 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// drawing tier names; pkg/words holds the engine's own word tables; pkg/locale
 	// is the stdlib-only table of install languages; pkg/ui/systemclick is the
 	// UI tier's own leaf that reads the system's double-click setting;
-	// pkg/ui/heldkey is its leaf that reads held keyboard keys.
+	// pkg/ui/heldkey and pkg/ui/widgetkit are its leaves: held keys, shared widgets.
 	// pkg/pathdialog is the shared system path service; it imports no game state.
 	// pkg/herokind is the shared selector and order leaf; pkg/scriptprofile
 	// the stdlib-only table of the map script's limits.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
 		"pkg/scriptprofile"}
 
 	got, registered := allow["pkg/ui"]
