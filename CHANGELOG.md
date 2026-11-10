@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.151.0
+
 ### For players
 
 - [BASE] The starter lists the enabled mods in the order the game loads them, and a mod's row says why the game would refuse it, such as a mod made for the other game, a missing required mod or two mods that conflict, before you press Play.
