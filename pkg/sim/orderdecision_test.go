@@ -146,6 +146,15 @@ func TestEmptyWalkStopAndArrivalKeepDifferentLatches(t *testing.T) {
 
 func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 	t.Parallel()
+	for primary, want := range map[uint8]uint64{4: 5639754465014353473, 7: 14881767044725322728, 255: 2175796466901727936} {
+		w := primaryCellScene(t, false, primary)
+		for range 20 {
+			Step(w, nil)
+		}
+		if got := w.Hash(); got != want {
+			t.Errorf("first-game imported primary %d hash=%d, want pre-change %d", primary, got, want)
+		}
+	}
 	for _, kind := range []string{"body veto", "body flier", "body reserve", "saved acquisition", "joined score", "cover preference", "idle escort", "computer support", "empty guard", "empty pursuit", "empty none", "repick range"} {
 		t.Run(kind, func(t *testing.T) {
 			w := orderFallbackScene(t, false, kind)

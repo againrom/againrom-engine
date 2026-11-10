@@ -882,8 +882,16 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// the moment it was asked. Walk this loop backwards and the convoy stops
 	// advancing as a body.
 	activity := w.rom2ActivityMask()
+	var cellHeld []bool
 	for i := range w.entities {
 		e := &w.entities[i]
+		if e.Alive() && !e.OffMap && w.runPrimaryCell(i) {
+			if cellHeld == nil {
+				cellHeld = make([]bool, len(w.entities))
+			}
+			cellHeld[i] = true
+			continue
+		}
 		if !activity.actorActive(e) {
 			continue
 		}
@@ -915,8 +923,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 		// The imported progress3 arm owns its physical step independently of
 		// coarse transit, body facing and replacement native orders.
-		if w.motionActive(e.ID) {
-			if !w.stoneCursed(i) {
+		adm := w.admission(i)
+		if adm.motion {
+			if !adm.waits(executeMove) {
 				w.advanceSavedMotion(i, scratch)
 			}
 			continue
@@ -924,7 +933,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// Stone Curse freezes the body in the exact movement state it held:
 		// transit, destination, route and attack approach all resume only after
 		// the canonical attached effect expires.
-		if w.stoneCursed(i) {
+		if adm.waits(executeMove) {
 			continue
 		}
 		if e.Transit == 0 && !w.castHolds(i, waitCastAction) && e.AttackPhase == AttackReady && e.AttackCountdown == 0 && w.stepEscortOrder(scratch, i) {
@@ -1222,7 +1231,10 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 			continue
 		}
-		if e.OffMap || w.stoneCursed(i) || !e.HasAttackTarget || e.PendingOrder.Kind != PendingNone && w.pendingLogicalProgress(i) == 0 || e.PendingOrder.RowAdmitted || i < len(retreatHolds) && retreatHolds[i] {
+		if e.OffMap || !e.HasAttackTarget || e.PendingOrder.RowAdmitted || i < len(retreatHolds) && retreatHolds[i] || i < len(cellHeld) && cellHeld[i] {
+			continue
+		}
+		if adm := w.admission(i); adm.waits(executeStrike) || e.PendingOrder.Kind != PendingNone && adm.progress == 0 {
 			continue
 		}
 		// A loaded strike runs on under an armed cast order (AI-356).

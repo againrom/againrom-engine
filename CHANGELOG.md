@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] In a city shop, double-clicking a wearable or usable item that came from an original save now uses it; before, the second click was refused.
+- [ROM2] A unit loaded from an original save with an unfinished leftover action no longer refuses queued spells and pickups for the rest of the mission.
 - [ROM2] Standing units keep the normal target restrictions when only fallen enemies remain nearby.
 - [ROM2] Computer units look around while waiting at their posts and finish turning before choosing another direction.
 - [ROM2] Units whose route ends without a step can turn to a nearby enemy; computer units with no enemy look around instead of keeping a stale movement order.

@@ -253,7 +253,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 				k++
 				continue
 			}
-			if w.stoneCursed(ci) || w.motionActive(e.ID) {
+			if w.admission(ci).waits(executeCast) {
 				k++
 				continue
 			}
@@ -261,7 +261,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			e.PendingOrder = PendingOrder{}
 			e.Retreat = RetreatContinuation{}
 		}
-		if w.stoneCursed(ci) || w.motionActive(e.ID) {
+		if w.admission(ci).waits(executeCast) {
 			k++
 			continue
 		}

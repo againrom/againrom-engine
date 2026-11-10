@@ -70,28 +70,7 @@ func (e *Entity) releaseBetweenCycles(kind uint8) {
 }
 
 func (w *World) pendingLogicalProgress(i int) uint8 {
-	e := w.entities[i]
-	if e.Retreat.Known {
-		return e.Retreat.Progress
-	}
-	if o := w.savedOrder(e.ID); o != nil {
-		if o.Raw[9] == 1 && e.AttackPhase == AttackReady && e.AttackCountdown == 0 {
-			return 0
-		}
-		// A cycle the World loaded after the order's progress byte was last
-		// written is in progress until it is ready again.
-		if o.Raw[9] == 0 && e.cycleLoaded() {
-			return 1
-		}
-		return o.Raw[9]
-	}
-	if e.Transit != 0 || w.motionActive(e.ID) {
-		return 3
-	}
-	if e.AttackPhase != AttackReady || e.AttackCountdown != 0 {
-		return 1
-	}
-	return 0
+	return w.admission(i).progress
 }
 
 func (w *World) ActorOrderProgress(id EntityID) uint8 {
@@ -132,7 +111,7 @@ func (w *World) takePendingOrders() {
 			e.AdmittedBookSpell = p.Spell
 			continue
 		}
-		if p.RowAdmitted && (e.Transit != 0 || w.motionActive(e.ID) || w.stoneCursed(i)) {
+		if p.RowAdmitted && w.admission(i).waits(executePending) {
 			continue
 		}
 		if p.Kind != PendingActorCast || !holdsOrderedVictim(*e) {

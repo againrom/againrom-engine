@@ -202,6 +202,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			standGroundScore:         true,
 			lookAround:               true,
 			repickEmptyRoute:         true,
+			primaryCells:             true,
 		},
 	}
 }

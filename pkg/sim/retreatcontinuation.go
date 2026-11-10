@@ -8,18 +8,7 @@ type RetreatContinuation struct {
 }
 
 func (w *World) executorProgress(i int) uint8 {
-	e := w.entities[i]
-	switch {
-	case w.stoneCursed(i):
-		return 4
-	case e.Transit != 0 || w.motionActive(e.ID):
-		return 3
-	case w.castHolds(i, waitCastAction):
-		return 2
-	case e.AttackPhase != AttackReady:
-		return 1
-	}
-	return 0
+	return uint8(w.admission(i).arm)
 }
 
 func (w *World) ensureRetreatContinuation(i int) {

@@ -1842,7 +1842,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 			continue
 		}
-		if w.stoneCursed(ci) || w.motionActive(w.entities[ci].ID) {
+		if w.admission(ci).waits(executeCast) {
 			i++
 			continue
 		}

@@ -18,6 +18,7 @@ type orderProfile struct {
 	standGroundScore         bool
 	lookAround               bool
 	repickEmptyRoute         bool
+	primaryCells             bool
 }
 
 // chooseTarget ranks an ordered candidate population without changing it.
