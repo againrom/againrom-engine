@@ -753,7 +753,7 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 	shown := t.shownShopPrice(instance)
 	useKey := ""
 	if place.Mine && t.shopDollTakes(instance) {
-		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.ShopItem.CityID, place.From, instance)
+		useKey = fmt.Sprintf("city:%d/from:%d/%s", place.ShopItem.CityID, place.From, itemCastKey(instance))
 	}
 	return ui.ShopCell{
 		UseItemKey:  useKey,
@@ -774,7 +774,7 @@ func (t *shopController) shopPackCell(st sim.ItemStack) ui.ShopCell {
 	instance := st.Instance()
 	useKey := ""
 	if t.shopDollTakes(instance) {
-		useKey = fmt.Sprintf("%#v", instance)
+		useKey = itemCastKey(instance)
 	}
 	stored := t.shopItemValue(instance)
 	shown := t.shownShopPrice(instance)
