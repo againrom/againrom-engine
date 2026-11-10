@@ -773,6 +773,37 @@ texts  = "mission/{lang}/text"
 title  = "ambush.title"
 ```
 
+A map file named by its mission number replaces that mission with no table
+and no script line: a mod of `mod.toml` and `10.alm` replaces the map of
+campaign mission 10. For the game it is the replacement a `kind = "replace"`
+table makes, with only `number` and `map`: the same build, the same map
+rules, the same mod mark, the same rule of one mission number per mod and the
+same order between two mods. The mission's title, briefing and texts stay the
+install's; a page folder beside the map (`10.text/`) is read as for any map.
+The rules:
+
+1. Only the mod's top folder and its `maps/` folder are read, and only a name
+   that is a mission number with no leading zero followed by `.alm` or
+   `.almx`, in any case (`10.alm`, `maps/20.ALMX`; not `010.alm`).
+2. A file that a table of `data/missions.toml` names as its `map` is that
+   table's map and nothing else: a `replace` table of mission 10 with
+   `map = "10.alm"` or `map = "maps/10.alm"` is one replacement and takes the
+   table's `texts`, `title` and `briefing`; a guest mission whose map is
+   `maps/10.alm` stays a guest mission and replaces nothing.
+3. A `replace` table of mission 10 whose `map` is another file, while an
+   unnamed `10.alm` lies in the top folder or `maps/`, is refused when the mod
+   loads, naming both files. So are two files of one number: one in the top
+   folder and one in `maps/`, or `.alm` and `.almx`.
+4. A numbered file whose number is no campaign mission whose map the install
+   holds replaces nothing and refuses nothing; the launch and `againrom -check`
+   print one `warning:` line naming the file. The mod still enters a save's
+   mod mark.
+5. One file serves the English and the Russian install. A mod that needs a map
+   per language uses a `replace` table with `{lang}` in `map`.
+6. `againrom -check` prints one line per replaced mission, of either form:
+   `againrom: mission 10 replaced by mod "m": map 10.alm, named by its file
+   name`, or `..., declared at data/missions.toml:4` for a table.
+
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
 <mod folder>` copies an installed map and its event, tip, title, briefing and
 briefmap texts into `mission/<lang>/` of a mod folder, the texts as UTF-8, and

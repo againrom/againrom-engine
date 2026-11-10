@@ -97,6 +97,9 @@ type Mission struct {
 	language string
 	// textsTemplate is the declared texts path before langToken was replaced.
 	textsTemplate string
+	// byName marks a replacing mission the file form declares: a map whose
+	// file name is the mission number (readMissionMaps).
+	byName bool
 
 	// Carried are other files of the mod a test play writes beside the mission,
 	// keyed by their path in the mod.
@@ -130,10 +133,14 @@ type GuestMember struct {
 type MissionData struct {
 	Missions []Mission
 	Order    Precedence
+
+	// maps are the file form's replacing missions, in load order, until
+	// AdmitMaps keeps those whose campaign map the install holds.
+	maps []missionMap
 }
 
 // Empty reports that no mod declares a mission.
-func (d MissionData) Empty() bool { return len(d.Missions) == 0 }
+func (d MissionData) Empty() bool { return len(d.Missions) == 0 && len(d.maps) == 0 }
 
 // Heroes is the set of starting heroes the mission plays for.
 func (m Mission) Heroes() herokind.Set { return herokind.Named(m.Class, m.Sex) }
@@ -311,7 +318,8 @@ func cycleText(numbers []int) string {
 // chapter, gold, carry, party, class, sex and off. A replacing mission takes
 // no key of the guest. title and briefing are text keys of the mod read through look;
 // "{lang}" in map or texts becomes lang. A refusal names the file and the
-// line.
+// line. The missions kind adds the file form's declarations of the same mod
+// after its rows (readMissionMaps).
 func ParseMissions(id, file string, data []byte, look func(string) (string, bool), lang string) (MissionData, error) {
 	tables, err := parseTOMLWith(data, tomlOptions{arrays: true})
 	if err != nil {

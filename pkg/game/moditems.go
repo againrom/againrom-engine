@@ -46,7 +46,14 @@ type modItemFileError struct {
 	msg  string
 }
 
-func (e *modItemFileError) Error() string { return fmt.Sprintf("%s:%d: %s", e.file, e.line, e.msg) }
+// Error names the file and the line; a declaration a file's name makes has
+// no line, and only the file is named.
+func (e *modItemFileError) Error() string {
+	if e.line == 0 {
+		return fmt.Sprintf("%s: %s", e.file, e.msg)
+	}
+	return fmt.Sprintf("%s:%d: %s", e.file, e.line, e.msg)
+}
 
 // counterpartDir is the figure directory of the same sex and the other class.
 func counterpartDir(dir data.FigureDir) data.FigureDir {

@@ -817,12 +817,14 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 1
 	}
+	var applied []string
 	if len(mods) > 0 {
 		if err := front.SetMods(modRun.Rules, modRun.Set, o.modsAcceptUnmarked); err != nil {
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 1
 		}
 		report, err := front.SetModData(modRun.Data)
+		applied = report.Applied
 		for _, w := range report.Warnings {
 			fmt.Fprintln(stderr, "againrom: warning:", w)
 		}
@@ -888,6 +890,9 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		if len(mods) > 0 {
 			for _, l := range modLines(modRun) {
 				fmt.Fprintln(stdout, l)
+			}
+			for _, l := range applied {
+				fmt.Fprintln(stdout, "againrom:", l)
 			}
 		}
 		// THE CHECK MODE ACCEPTS -mission TOO and reports the same outcome without

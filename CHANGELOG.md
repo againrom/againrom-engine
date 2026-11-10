@@ -42,6 +42,10 @@ modder or developer can notice gets no entry.
 - [ROM2] Winning the campaign after loading a save now adds your hero to the Hall of Fame with a score.
 - [ROM2] A computer-controlled mage no longer heals neutral monsters, such as an ogre attacking your party. It heals itself, its own side and its allies.
 
+### For map makers and modders
+
+- [ROM1] A mod can replace a campaign mission's map just by holding the map under the mission's number, such as 10.alm, in the mod's folder or in its maps folder; no mission list and no script are needed. The mission's title and briefing stay the game's own.
+
 ## 0.150.0
 
 ### For players

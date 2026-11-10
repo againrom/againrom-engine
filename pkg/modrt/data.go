@@ -36,15 +36,21 @@ func (d *dataValue) Attr(name string) (starlark.Value, error) {
 }
 
 // readBesideManifest reads the file of each kind no script loads, beside the
-// manifest of the mod that holds it.
-func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) error {
+// manifest of the mod that holds it, and the files whose names declare
+// records of a kind. It reports whether the mod holds a file of the latter.
+func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) (named bool, err error) {
 	id := m.Manifest.ID
 	t, err := mod.OpenTree(m.Dir)
 	if err != nil {
-		return fmt.Errorf("mod %q: %w", id, err)
+		return false, fmt.Errorf("mod %q: %w", id, err)
 	}
 	r := mod.DataReader{Mod: id, Dir: m.Dir, Lang: sh.lang, Settings: values}
 	for _, k := range mod.DataKinds() {
+		held, err := k.ReadNamed(r, &sh.data, t)
+		if err != nil {
+			return false, fmt.Errorf("mod %q: %w", id, err)
+		}
+		named = named || held
 		if k.Script || !k.Validates() {
 			continue
 		}
@@ -54,14 +60,14 @@ func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) erro
 			}
 			src, _, err := t.ReadInside(rel)
 			if err != nil {
-				return fmt.Errorf("mod %q: %s: %w", id, rel, err)
+				return false, fmt.Errorf("mod %q: %s: %w", id, rel, err)
 			}
 			if err := k.Read(r, &sh.data, rel, src); err != nil {
-				return fmt.Errorf("mod %q: %w", id, err)
+				return false, fmt.Errorf("mod %q: %w", id, err)
 			}
 		}
 	}
-	return nil
+	return named, nil
 }
 
 // add is game.data.add(path): it reads a data file of the mod folder and adds

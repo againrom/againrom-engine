@@ -115,7 +115,8 @@ func mapHasUnit(m *alm.Map, id uint16) bool {
 // mission entry; the ordinary route from mission 10 then builds mission 20
 // from the mod's map, a SAVE and cold LOAD under the mod keep it, and a LOAD
 // without the mod refuses. The same route without the mod builds the
-// installed map.
+// installed map. A mod of a manifest and the same map named 20.alm, the file
+// form, plays the same route.
 func TestReleaseModReplacesACampaignMission(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	dir := replaceMod(t)
@@ -156,7 +157,45 @@ func TestReleaseModReplacesACampaignMission(t *testing.T) {
 	}
 	unmarked := guestMissionSave(t, plain)
 
-	f := guestFront(t, dir, replaceModID)
+	// The row form is the mod the editor saved into; the file form is a mod
+	// of its manifest and the saved map named 20.alm, with no row and no
+	// script. Both play the same route.
+	for _, form := range []struct{ name, dir string }{{"row", dir}, {"file", replaceFileMod(t, dir)}} {
+		t.Run(form.name, func(t *testing.T) { replacedMissionPlays(t, form.dir, plain, unmarked, id) })
+	}
+}
+
+// replaceFileMod writes, in a fresh mods folder, the mod ambush of the
+// manifest of the mod in mods and its saved map of mission 20 as 20.alm, and
+// returns the mods folder.
+func replaceFileMod(t *testing.T, mods string) string {
+	t.Helper()
+	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
+	saved, err := os.ReadFile(filepath.Join(mods, replaceModID, "mission", lang, "map.alm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	manifest := "id = \"" + replaceModID + "\"\ntitle = \"Ambush\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\n" +
+		"description = \"Mission 20 on an edited map, named by its file.\"\napi = 1\napplies-to = [\"rom1\"]\n"
+	for name, body := range map[string][]byte{"mod.toml": []byte(manifest), "20.alm": saved} {
+		p := filepath.Join(root, replaceModID, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, body, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+// replacedMissionPlays plays mission 20 under the mod ambush of mods, whose
+// map lacks unit id of the installed map plain plays, and proves SAVE, cold
+// LOAD and the mod mark; unmarked is a save of the installed mission 20.
+func replacedMissionPlays(t *testing.T, mods string, plain *FrontEnd, unmarked []byte, id uint16) {
+	t.Helper()
+	f := guestFront(t, mods, replaceModID)
 	replaceRoute(t, f)
 	built := f.live.mission.state
 	if built.Address != "scenario/20.alm" || mapHasUnit(built.Map, id) || liveUnitCount(f, id) != 0 {
@@ -168,7 +207,7 @@ func TestReleaseModReplacesACampaignMission(t *testing.T) {
 
 	// SAVE and cold LOAD under the mod keep the mod's map and world.
 	saved := guestMissionSave(t, f)
-	h := guestFront(t, dir, replaceModID)
+	h := guestFront(t, mods, replaceModID)
 	open, town, err := h.RestoreOriginal(saved)
 	if err != nil || town {
 		t.Fatalf("cold LOAD of the replaced mission: town %v %v", town, err)
@@ -189,7 +228,7 @@ func TestReleaseModReplacesACampaignMission(t *testing.T) {
 	}
 	// An unmarked save of the installed mission 20 is refused under the mod
 	// even where unmarked saves are accepted.
-	k := guestFront(t, dir, replaceModID)
+	k := guestFront(t, mods, replaceModID)
 	k.Table.Mods.AcceptUnmarked = true
 	if _, _, err := k.RestoreOriginal(unmarked); !errors.Is(err, ErrModMark) || !strings.Contains(err.Error(), "replaces that mission's map") {
 		t.Fatalf("unmarked LOAD under the mod: %v", err)

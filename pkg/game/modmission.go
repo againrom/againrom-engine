@@ -138,13 +138,22 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) (warnings []string, err err
 }
 
 // setModMissions is SetModMissions answering the missions a later mod
-// replaced: the records merge through mod.MergeMissions first.
+// replaced. The file form's maps are admitted first by the counterpart test
+// campaignMap, a file without a counterpart coming back as a warning; then
+// the records merge through mod.MergeMissions.
 func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []string, error) {
 	if declared.Empty() {
 		return nil, nil, nil
 	}
 	if f == nil || f.Table == nil || f.Archives == nil || f.Archives.Containers == nil {
 		return nil, nil, errors.New("the front end has no definition table or archives to carry the mods' missions")
+	}
+	declared, unmatched, err := declared.AdmitMaps(f.campaignMap)
+	if err != nil {
+		return nil, nil, err
+	}
+	if declared.Empty() {
+		return nil, unmatched, nil
 	}
 	d, overrides, err := mod.MergeMissions(declared)
 	if err != nil {
@@ -175,6 +184,7 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 	if err != nil {
 		return nil, nil, err
 	}
+	warnings = append(unmatched, warnings...)
 	files := f.modFileLayer()
 	selector := LanguageSelector(src)
 	for _, m := range d.Missions {
@@ -520,7 +530,7 @@ func (f *FrontEnd) checkModMaps(d mod.MissionData) ([]string, error) {
 				refusals = append(refusals, finding.Line())
 				continue
 			}
-			warnings = append(warnings, fmt.Sprintf("mod %q: %s:%d: map %s: %s", m.Mod, m.File, m.Line, m.Map, finding.Line()))
+			warnings = append(warnings, itemFileError(m.Mod, m.File, m.Line, "map %s: %s", m.Map, finding.Line()).Error())
 		}
 		if len(refusals) > 0 {
 			return nil, itemFileError(m.Mod, m.File, m.Line, "map %s: %s", m.Map, strings.Join(refusals, "; "))
@@ -532,15 +542,35 @@ func (f *FrontEnd) checkModMaps(d mod.MissionData) ([]string, error) {
 // checkReplacing refuses a replacing mission whose number is no mission of
 // this install's campaign or whose map the mission build refuses.
 func (f *FrontEnd) checkReplacing(m mod.Mission, address string) error {
-	c := f.Campaign.Value()
-	if !slices.Contains(c.Main, m.Number) && !slices.Contains(c.Side, m.Number) && !slices.Contains(c.Offered, m.Number) {
-		return fmt.Errorf("number %d is no mission of this install's campaign", m.Number)
-	}
-	if _, err := f.Archives.Containers.ReadFile(address); err != nil {
-		return fmt.Errorf("the install holds no map for mission %d (%s)", m.Number, address)
+	if err := f.installedCampaignMap(m.Number, address); err != nil {
+		return err
 	}
 	if _, err := MapOpener(f.Archives.Game())(m.MapBytes); err != nil {
 		return fmt.Errorf("map %s: %v", m.Map, err)
+	}
+	return nil
+}
+
+// campaignMap is the counterpart test of a mod's map: nil when mission n is
+// a mission of this install's campaign whose map the install holds at
+// MissionMap(n), and the reason otherwise.
+func (f *FrontEnd) campaignMap(n int) error {
+	address, ok := MissionMap(n)
+	if !ok {
+		return fmt.Errorf("number %d is no mission number", n)
+	}
+	return f.installedCampaignMap(n, address)
+}
+
+// installedCampaignMap refuses a number that is no mission of this install's
+// campaign, or whose map at address the install does not hold.
+func (f *FrontEnd) installedCampaignMap(n int, address string) error {
+	c := f.Campaign.Value()
+	if !slices.Contains(c.Main, n) && !slices.Contains(c.Side, n) && !slices.Contains(c.Offered, n) {
+		return fmt.Errorf("number %d is no mission of this install's campaign", n)
+	}
+	if _, err := f.Archives.Containers.ReadFile(address); err != nil {
+		return fmt.Errorf("the install holds no map for mission %d (%s)", n, address)
 	}
 	return nil
 }

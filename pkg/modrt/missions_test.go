@@ -70,6 +70,40 @@ func TestReniestaFixtureNeedsItsAssembledMap(t *testing.T) {
 	}
 }
 
+// A mod of a manifest and one numbered map is a valid mod: the map waits as
+// a replacement of its mission with no row and no script, and the mod is in
+// a save's mod mark. A mod beside it whose script loads its rows reads both.
+func TestAModOfAManifestAndANumberedMapReplacesThatMission(t *testing.T) {
+	mods := makeMods(t, map[string]map[string]string{
+		"only": {"10.alm": "TEN"},
+		"rows": {"maps/30.alm": "THIRTY", "main.star": missionsMain, "data/missions.toml": replacingSrc, "m/en/map.alm": "TWENTY"},
+	})
+	res, err := Load(mods, "rom1-en", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range res.Set.Mods {
+		if m.StateFree {
+			t.Errorf("mod %s is state-free; its map changes the game", m.ID)
+		}
+	}
+	if _, ok := res.Missions.Replacing(10); ok || len(res.Missions.Missions) != 1 {
+		t.Fatalf("the file form was declared before the install was asked: %+v", res.Missions.Missions)
+	}
+	admitted, warnings, err := res.Missions.AdmitMaps(func(int) error { return nil })
+	if err != nil || len(warnings) != 0 {
+		t.Fatal(warnings, err)
+	}
+	for n, want := range map[int]string{10: "TEN", 20: "TWENTY", 30: "THIRTY"} {
+		if m, ok := admitted.Replacing(n); !ok || string(m.MapBytes) != want {
+			t.Errorf("mission %d: %+v", n, m)
+		}
+	}
+	if _, _, err := mod.MergeMissions(admitted); err != nil {
+		t.Fatal(err)
+	}
+}
+
 const replacingSrc = "[[mission]]\nkind = \"replace\"\nkey = \"r\"\nnumber = 20\nmap = \"m/{lang}/map.alm\"\n"
 
 func TestTwoModsCannotReplaceOneMission(t *testing.T) {

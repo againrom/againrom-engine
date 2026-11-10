@@ -86,6 +86,9 @@ type DataKind struct {
 	// read parses one file of the kind from one mod, refusing a value at
 	// its file and line, and adds the records to d.
 	read func(r DataReader, d *Data, rel string, src []byte) error
+	// named reads the files of a mod whose names declare records of the
+	// kind, after the mod's script ran, and reports whether it holds one.
+	named func(r DataReader, d *Data, t Tree) (bool, error)
 	// summary is the check's line on the kind's records; "" when none.
 	summary func(d Data) string
 }
@@ -212,7 +215,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the campaign's missions are the campaign decoder's; a mod mission adds a guest mission or replaces a campaign mission's map, by number",
 		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
-		Script: true, read: readMissions,
+		Script: true, read: readMissions, named: readMissionMaps,
 	},
 	{
 		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc`",
@@ -288,6 +291,16 @@ func ScriptDataFiles() string {
 // its file and line, and adds its records to d.
 func (k DataKind) Read(r DataReader, d *Data, rel string, src []byte) error {
 	return k.read(r, d, rel, src)
+}
+
+// ReadNamed reads the files of the mod t whose names declare records of the
+// kind, after the mod's script ran, and reports whether the mod holds one.
+// A kind no file name declares reads nothing.
+func (k DataKind) ReadNamed(r DataReader, d *Data, t Tree) (bool, error) {
+	if k.named == nil {
+		return false, nil
+	}
+	return k.named(r, d, t)
 }
 
 // Validates reports that the kind declares how its files are read.

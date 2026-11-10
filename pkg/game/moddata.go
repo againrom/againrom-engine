@@ -7,11 +7,12 @@ import (
 )
 
 // ModDataReport is what applying the mods' data reports: the fields a later
-// mod sets over an earlier one, and the warnings of the rules that refuse
-// nothing.
+// mod sets over an earlier one, the warnings of the rules that refuse
+// nothing, and the lines the check prints on what was applied.
 type ModDataReport struct {
 	Overrides []string
 	Warnings  []string
+	Applied   []string
 }
 
 // modDataApply applies one declared kind of the mods' data to the front end.
@@ -53,6 +54,7 @@ var modDataAppliers = map[string]modDataApply{
 			return err
 		}
 		r.Warnings = append(r.Warnings, warnings...)
+		r.Applied = append(r.Applied, tableMissions(f.Table).Replacements()...)
 		return nil
 	},
 	"towns": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
