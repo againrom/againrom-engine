@@ -118,6 +118,37 @@ func TestTheSecondGameStaffCastStartsAtTheWeaponRangeFromTheNearestCell(t *testi
 	}
 }
 
+// TestAStaffReleasesAtItsRangeOnAVictimItDoesNotSee: a staff mage whose own
+// sight reaches one cell is ordered to attack a victim of one, two and three
+// cells and releases at edge distance equal to its range, without walking on
+// to see it: no read body on the route tests sight (R2-ENGINE-1136,
+// R2-ENGINE-1138, R2-ENGINE-1139; first game MAGIC-403, MAGIC-410).
+func TestAStaffReleasesAtItsRangeOnAVictimItDoesNotSee(t *testing.T) {
+	t.Parallel()
+	blind := func(e *Entity) { e.ScanRange = 1 }
+	for _, game := range []struct {
+		name   string
+		second bool
+		reach  uint8
+	}{{"first game", false, 5}, {"second game", true, 6}} {
+		for _, tc := range []struct {
+			name                      string
+			casterX, victimX, victimY int32
+			size                      uint8
+		}{
+			{"one cell", 2, 14, 8, 1},
+			{"two wide, from the anchor side", 1, 13, 8, 2},
+			{"three wide, from the far side", 15, 2, 7, 3},
+		} {
+			got := staffRunAt(t, staffFireArrow(), game.reach, true, game.second, blind, tc.casterX, tc.victimX, tc.victimY, tc.size)
+			if !got.released || got.edge != game.reach {
+				t.Errorf("%s, %s: released %v at edge distance %d (anchor cells %d), want a release at edge distance %d",
+					game.name, tc.name, got.released, got.edge, got.cells, game.reach)
+			}
+		}
+	}
+}
+
 // TestASpellWeaponReachAboveTheSpellRangeStillCasts: Drain Life (Max Range 3)
 // on a Staff (reach 5) casts at 5. A minimum of the two would stop at 3
 // (MAGIC-409 excludes it); in the second game too (R2-ENGINE-1106).

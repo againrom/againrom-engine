@@ -90,40 +90,36 @@ func TestAGroupWalkingHomeAnswersTheFightItIsDrawnInto(t *testing.T) {
 	}
 }
 
-// TestACasterWalksInUntilItSeesItsVictimThenCasts orders a weapon-spell carrier
-// against a victim inside the spell's range and outside the carrier's own
-// sight. The release refuses a victim the carrier cannot see, so before the fix
-// the carrier stopped at the spell's range and stood there without casting.
-func TestACasterWalksInUntilItSeesItsVictimThenCasts(t *testing.T) {
+// TestACasterStopsAtItsReachOutsideItsSightThenCasts orders a weapon-spell
+// carrier of reach 5 and sight 2 against a victim 7 cells away. It walks to
+// its reach, stops there and casts without walking on into sight.
+func TestACasterStopsAtItsReachOutsideItsSightThenCasts(t *testing.T) {
 	t.Parallel()
 
 	caster := wpnCaster(1, 0, 0, 1, 30, 1, 0)
-	caster.ScanRange = 5
+	caster.ScanRange, caster.Reach = 2, 5
 	caster.Speed = 40
 	victim := spEnt(2, 7, 0)
 	w := spWorld(t, 1, []SpellRule{wpnRule(6, 6, 7)}, caster, victim)
 
 	Step(w, []Command{cbOrder(1, 2)})
-	for i := 0; i < 240; i++ {
+	for i := 0; i < 240 && spAt(t, w, 2).HP == 100; i++ {
 		Step(w, nil)
 	}
 
 	a := spAt(t, w, 1)
-	dist := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: 7, y: 0})
-	if dist > 5 {
-		t.Errorf("the caster stands %d cells from a victim it cannot see from beyond 5, want it walked into sight", dist)
+	if dist := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: 7, y: 0}); dist != 5 {
+		t.Errorf("the caster cast from %d cells, want its reach 5", dist)
 	}
 	if hp := spAt(t, w, 2).HP; hp == 100 {
-		t.Error("the caster never cast at a victim inside the spell's range")
+		t.Error("the caster never cast at a victim inside its reach")
 	}
 }
 
-// TestACasterBesideAHiddenVictimWaitsForSight orders a weapon-spell carrier
+// TestACasterBesideAHiddenVictimCastsAtIt orders a weapon-spell carrier
 // against a victim standing next to it on ground that hides it. The carrier
-// cannot come closer, so it stays on its cell, loads no wind-up and casts
-// nothing, as it did before a carrier that cannot see its victim began to walk
-// in.
-func TestACasterBesideAHiddenVictimWaitsForSight(t *testing.T) {
+// stays on its cell and casts at it.
+func TestACasterBesideAHiddenVictimCastsAtIt(t *testing.T) {
 	t.Parallel()
 
 	caster := wpnCaster(1, 10, 10, 1, 30, 2, 1)
@@ -135,13 +131,12 @@ func TestACasterBesideAHiddenVictimWaitsForSight(t *testing.T) {
 	Step(w, []Command{cbOrder(1, 2)})
 	for i := 0; i < 24; i++ {
 		Step(w, nil)
-		if a := spAt(t, w, 1); a.X != 10 || a.Y != 10 || a.AttackPhase != AttackReady {
-			t.Fatalf("tick %d: the caster beside its hidden victim is at %d,%d in phase %d, want it standing on 10,10 and ready",
-				i, a.X, a.Y, a.AttackPhase)
+		if a := spAt(t, w, 1); a.X != 10 || a.Y != 10 {
+			t.Fatalf("tick %d: the caster beside its hidden victim is at %d,%d, want it standing on 10,10", i, a.X, a.Y)
 		}
 	}
-	if hp := spAt(t, w, 2).HP; hp != 100 {
-		t.Errorf("the victim's health is %d, want 100: a hidden victim is not cast at", hp)
+	if hp := spAt(t, w, 2).HP; hp == 100 {
+		t.Error("the caster never cast at the hidden victim beside it")
 	}
 }
 

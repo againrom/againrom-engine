@@ -156,132 +156,72 @@ func TestPointCastDoesNotBorrowAutomaticHealVisibility(t *testing.T) {
 	})
 }
 
-// TestTargetDirectedWeaponSpellUsesVisibilityAtItsRelease asks the perception
-// seam where spec.md puts it — at the cast's release — and asks the attack
-// ORDER to be free of it.
-//
-// The order is an attack order and a weapon-spell carrier takes it exactly as a
-// plain fighter does, victim written and approach begun. What the carrier does
-// not do is land the spell on a target its own sight march cannot reach: the
-// release refuses, the cycle turns over, and nothing is spent. Gating the order
-// itself made a staff-armed hero ignore a click on any enemy the player can see
-// through another unit, while a sword-armed one walked to it.
-func TestTargetDirectedWeaponSpellUsesVisibilityAtItsRelease(t *testing.T) {
+// TestAWeaponSpellWindsUpAndLandsOnAHiddenTarget: a weapon-spell carrier
+// ordered to attack a victim inside its reach that its own sight does not
+// reach loads the wind-up and the release lands. No body on the route tests
+// sight (R2-ENGINE-1136, R2-ENGINE-1138; first game MAGIC-403, MAGIC-410).
+func TestAWeaponSpellWindsUpAndLandsOnAHiddenTarget(t *testing.T) {
 	t.Parallel()
-
-	rule := wpnRule(6, 6, 5)
-	caster := wpnCaster(1, 10, 10, 1, 30, 2, 1)
-	caster.Owner, caster.ScanRange, caster.Facing = 1, 1, 64
-	target := spEnt(2, 11, 10)
-	target.Owner = 2
-	w := visibilityWorld(t, heightCell(11, 10, 127), rule, caster, target)
-
-	Step(w, []Command{cbOrder(1, 2)})
-	if a := w.entities[0]; !a.HasAttackTarget || a.AttackTarget != 2 {
-		t.Fatalf("a weapon-spell carrier refused an attack order on a hidden target: %+v", a)
-	}
-	for n := 0; n < 24; n++ {
-		Step(w, nil)
-	}
-	if w.entities[1].HP != 100 {
-		t.Fatalf("a hidden weapon-spell release landed: targetHP=%d", w.entities[1].HP)
-	}
-
-	// The same action releases once its target becomes currently visible.
-	// Moving the target changes neither diplomacy nor range.
-	w.entities[1].X, w.entities[1].Y, w.entities[1].PostX, w.entities[1].PostY = 10, 11, 10, 11
-	Step(w, []Command{cbOrder(1, 2)})
-	if a := w.entities[0]; !a.HasAttackTarget || a.AttackTarget != 2 {
-		t.Fatalf("the action was lost when its target became visible: %+v", a)
-	}
-	for n := 0; n < 8 && w.entities[1].HP == 100; n++ {
-		Step(w, nil)
-	}
-	if w.entities[1].HP >= 100 {
-		t.Fatal("visible weapon cast never released")
-	}
-}
-
-// TestWeaponSpellDoesNotLoadAWindUpTowardAHiddenTarget is the owner's own
-// report: a mage sometimes visibly casts Lightning or Rainbow Lightning and
-// no damage lands. The mechanism is not selection and not the delivery
-// countdown: advanceAttack's top validity gate only drops an order for
-// Invisibility (invisibleToActor), never for ordinary terrain sight loss, so
-// a weapon-spell carrier's attack order stays admitted and READY loaded a
-// full AttackCasting wind-up toward a target it could not currently see —
-// releaseWeaponSpell's own release-time actorSeesEntity check then refused
-// silently, spending a full charge-and-relax cycle on an application already
-// excluded, and the order re-armed the same wind-up on its very next turn.
-// This is DIV-1311's fix: an admitted order still stands (HasAttackTarget is
-// untouched, on TestTargetDirectedWeaponSpellUsesVisibilityAtItsRelease's
-// own ground above) and still waits for sight to return, but it no longer
-// spends a cycle finding that out.
-func TestWeaponSpellDoesNotLoadAWindUpTowardAHiddenTarget(t *testing.T) {
-	t.Parallel()
-
-	rule := wpnRule(6, 6, 5)
-	caster := wpnCaster(1, 10, 10, 1, 30, 2, 1)
-	caster.Owner, caster.ScanRange, caster.Facing = 1, 1, 64
-	target := spEnt(2, 11, 10)
-	target.Owner = 2
-	w := visibilityWorld(t, heightCell(11, 10, 127), rule, caster, target)
-
-	Step(w, []Command{cbOrder(1, 2)})
-	if a := w.entities[0]; !a.HasAttackTarget || a.AttackTarget != 2 {
-		t.Fatalf("a weapon-spell carrier refused an attack order on a hidden target: %+v", a)
-	}
-	for n := 0; n < 16; n++ {
-		Step(w, nil)
-		if p := w.entities[0].AttackPhase; p != AttackReady {
-			t.Fatalf("loaded a wind-up (phase %v) toward a target still hidden", p)
+	for _, second := range []bool{false, true} {
+		rule := wpnRule(6, 6, 5)
+		caster := wpnCaster(1, 10, 10, 1, 30, 2, 1)
+		caster.Owner, caster.ScanRange, caster.Facing = 1, 1, 64
+		target := spEnt(2, 11, 10)
+		target.Owner = 2
+		w := visibilityWorld(t, heightCell(11, 10, 127), rule, caster, target)
+		if second {
+			w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
+		}
+		if w.actorSeesEntity(0, 1) {
+			t.Fatal("fixture: the caster sees its victim")
+		}
+		Step(w, []Command{cbOrder(1, 2)})
+		if a := w.entities[0]; !a.HasAttackTarget || a.AttackTarget != 2 {
+			t.Fatalf("second game %v: a weapon-spell carrier refused an attack order on a hidden target: %+v", second, a)
+		}
+		wound := w.entities[0].AttackPhase == AttackCasting
+		for n := 0; n < 24 && w.entities[1].HP == 100; n++ {
+			Step(w, nil)
+			wound = wound || w.entities[0].AttackPhase == AttackCasting
+		}
+		if !wound || w.entities[1].HP >= 100 {
+			t.Errorf("second game %v: wind-up loaded %v, target HP %d, want a landed release on the hidden target",
+				second, wound, w.entities[1].HP)
 		}
 	}
-	if w.entities[1].HP != 100 {
-		t.Fatal("a hidden weapon-spell release landed")
-	}
-
-	// Sight returning still releases, unchanged from the case above.
-	w.entities[1].X, w.entities[1].Y, w.entities[1].PostX, w.entities[1].PostY = 10, 11, 10, 11
-	for n := 0; n < 8 && w.entities[1].HP == 100; n++ {
-		Step(w, nil)
-	}
-	if w.entities[1].HP >= 100 {
-		t.Fatal("visible weapon cast never released once the target came into view")
-	}
 }
 
-// TestWeaponSpellDivertsWhenSightIsLostDuringTheWindUp covers the companion
-// case: sight is present when the wind-up loads and is lost before its count
-// reaches zero. Without the fix the wind-up still completed and
-// releaseWeaponSpell's own check silently refused, spending the full
-// recovery; the fix folds this into the wind-up's own FR-3a re-ask (0139) and
-// diverts straight back to READY, exactly as a weapon that stopped carrying a
-// spell mid-charge already does.
-func TestWeaponSpellDivertsWhenSightIsLostDuringTheWindUp(t *testing.T) {
+// TestAWeaponSpellWindUpLandsWhenSightIsLostInsideTheReach: sight lost
+// during the wind-up does not stop the release while the victim stays inside
+// the reach; a victim moved past the reach is not hit.
+func TestAWeaponSpellWindUpLandsWhenSightIsLostInsideTheReach(t *testing.T) {
 	t.Parallel()
+	for _, tc := range []struct {
+		at  int32
+		hit bool
+	}{{14, true}, {16, false}} {
+		rule := wpnRule(6, 6, 5)
+		caster := wpnCaster(1, 10, 10, 1, 30, 6, 1)
+		caster.Owner, caster.ScanRange, caster.Facing, caster.Reach = 1, 3, 64, 5
+		target := spEnt(2, 11, 10)
+		target.Owner = 2
+		w := visibilityWorld(t, Terrain{}, rule, caster, target)
 
-	rule := wpnRule(6, 6, 5)
-	caster := wpnCaster(1, 10, 10, 1, 30, 6, 1)
-	caster.Owner, caster.ScanRange, caster.Facing = 1, 3, 64
-	target := spEnt(2, 11, 10)
-	target.Owner = 2
-	w := visibilityWorld(t, Terrain{}, rule, caster, target)
-
-	Step(w, []Command{cbOrder(1, 2)})
-	if w.entities[0].AttackPhase != AttackCasting {
-		t.Fatalf("wind-up did not load with sight available: %+v", w.entities[0])
-	}
-	// Hide the target for the rest of the charge (out of the caster's scan
-	// range, still within the row's own 5-cell MaxRange).
-	w.entities[1].X, w.entities[1].PostX = 14, 14
-	w.entities[1].Y, w.entities[1].PostY = 14, 14
-	for n := 0; n < 8 && w.entities[0].AttackPhase != AttackReady; n++ {
-		Step(w, nil)
-	}
-	if w.entities[0].AttackPhase != AttackReady || w.entities[0].AttackCountdown != 0 {
-		t.Fatalf("did not divert cleanly to READY: %+v", w.entities[0])
-	}
-	if w.entities[1].HP != 100 {
-		t.Fatal("a sight-lost-mid-charge release still landed")
+		Step(w, []Command{cbOrder(1, 2)})
+		if w.entities[0].AttackPhase != AttackCasting {
+			t.Fatalf("wind-up did not load: %+v", w.entities[0].AttackPhase)
+		}
+		// Out of the caster's scan range 3; inside the reach 5 at 14,14.
+		w.entities[1].X, w.entities[1].PostX = tc.at, tc.at
+		w.entities[1].Y, w.entities[1].PostY = tc.at, tc.at
+		if w.actorSeesEntity(0, 1) {
+			t.Fatal("fixture: the caster still sees its victim")
+		}
+		for n := 0; n < 8 && w.entities[0].AttackPhase == AttackCasting; n++ {
+			Step(w, nil)
+		}
+		if hit := w.entities[1].HP < 100; hit != tc.hit {
+			t.Errorf("victim at %d,%d: hit %v, want %v", tc.at, tc.at, hit, tc.hit)
+		}
 	}
 }

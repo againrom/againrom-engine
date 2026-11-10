@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] A staff's card states the staff's own range (6 for a Staff, 5 for a Shaman Staff) instead of its spell's, and a mage attacking with a spell staff starts casting at that range, counted from the nearest cell of a large target.
+- [BASE] A mage attacking with a spell staff casts as soon as the target is within the staff's range, even when the mage does not see it, instead of walking closer until it does.
 
 ## 0.151.1
 

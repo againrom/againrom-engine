@@ -1249,13 +1249,8 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 	if t.ID == a.ID {
 		return
 	}
-	// A staff/weapon spell is still one actor-directed release. It uses the
-	// same live perception predicate as a book cast and does not fall back to a
-	// physical strike when the spell-bearing action loses sight before release.
-	if !w.actorSeesEntity(ai, ti) {
-		return
-	}
-	// 3. within weaponCastInRange, the distance closedOn stops at.
+	// 3. within weaponCastInRange, the distance closedOn stops at. Sight is
+	// not tested (R2-ENGINE-1138; first game MAGIC-403).
 	if !w.weaponCastInRange(ai, ti) {
 		return
 	}
