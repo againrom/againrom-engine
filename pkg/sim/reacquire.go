@@ -57,7 +57,7 @@ func (w *World) reacquisitionVictim(i int) int {
 // reach below two, the unit the reacquisition and the engage routine refuse to
 // send at a victim on their own (AI-GUARD-007).
 func (w *World) suppressedAcquirer(e Entity) bool {
-	return e.Owner != 0 && w.humanParticipantUnit(e) && isMage(e) && e.Reach < 2
+	return w.playerControlledUnit(e) && isMage(e) && e.Reach < 2
 }
 
 // engageRefused applies the profile's engage or acquisition exception.
@@ -65,7 +65,7 @@ func (w *World) suppressedAcquirer(e Entity) bool {
 func (w *World) engageRefused(i int, acquisition bool) bool {
 	if acquisition && w.game.orders.mageAcquisitionException {
 		e := w.entities[i]
-		return w.humanParticipantUnit(e) && isMage(e) && w.attackRange(i) < 2
+		return !w.computerControlledUnit(e) && isMage(e) && w.attackRange(i) < 2
 	}
 	return !w.game.keepsSuppressedAcquirer && w.suppressedAcquirer(w.entities[i])
 }

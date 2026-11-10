@@ -989,7 +989,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// AI-364). The owner-zero and participant populations keep their own
 		// behaviour (DIV-351); the second game's actors take its activity
 		// mask above.
-		if !w.game.activityMask && e.Owner != 0 && !w.humanParticipantUnit(*e) && w.executorProgress(i) == 0 && !w.executorActive(i, true) {
+		if !w.game.activityMask && w.computerControlledUnit(*e) && w.executorProgress(i) == 0 && !w.executorActive(i, true) {
 			continue
 		}
 		// AN ATTACKER IS AIMED BEFORE IT IS ADVANCED. An attack order carries a

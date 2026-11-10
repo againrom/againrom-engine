@@ -168,7 +168,7 @@ const skillSlots = 6
 //   - THE FAR-SEARCH BUDGET'S OWNER TERM is read: a one-cell unit seated on
 //     SelfSlot takes the flat form and every other owner's one-cell unit the
 //     computed one, and a unit larger than one cell takes the n x n arm whoever
-//     owns it (humanParticipantUnit, DIV-1569, DIV-1570).
+//     owns it (farBudgetFor, DIV-1569, DIV-1570).
 //
 // A FELLED ENTITY KEEPS IT, exactly as it keeps its group: the dead stay on their
 // roster, so this is not residue of a state the unit has left and the constructor's

@@ -191,7 +191,7 @@ func (w *World) manualCastContinues(c Command) bool {
 // casts once the caster sees the target in reach.
 func (w *World) manualCastApproach(c Command) bool {
 	i := indexOfEntity(w.entities, c.Entity)
-	if i < 0 || !w.humanParticipantUnit(w.entities[i]) {
+	if i < 0 || w.computerControlledUnit(w.entities[i]) {
 		return false
 	}
 	refusal := w.manualCastRefusal(c)

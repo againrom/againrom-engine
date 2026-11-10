@@ -937,7 +937,7 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 // and a click stands (R2-ENGINE-987, owner direction in DIV-1600).
 func (w *World) answerAreaBlow(ci, ti int, caster EntityID) {
 	if w.game.blowOrdersAttack && (ci < 0 || w.ownersDiffer(ci, ti)) {
-		if e := w.entities[ti]; e.Owner == 0 || !w.humanParticipantUnit(e) {
+		if !w.playerControlledUnit(w.entities[ti]) {
 			w.orderAttack(ti, caster)
 		}
 		return

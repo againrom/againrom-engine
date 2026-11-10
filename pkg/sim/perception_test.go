@@ -44,7 +44,7 @@ func todayGroupDetectsInvisible(w *World, members []int, candidate cell) bool {
 
 func todayComputerMageGroupSees(w *World, ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if playsSecondGame(w) || w.humanParticipantUnit(caster) || !isMage(caster) {
+	if playsSecondGame(w) || !w.computerControlledUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))

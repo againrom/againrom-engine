@@ -355,7 +355,7 @@ func (w *World) retainedCastBusy(i int) bool {
 // its drawn cast waits for the strike's end (AI-554, MAGIC-239, AI-356).
 func (w *World) strikeHoldsCast(i int, refusal string) bool {
 	e := w.entities[i]
-	return refusal == refusalCasterBusy && !w.humanParticipantUnit(e) &&
+	return refusal == refusalCasterBusy && w.computerControlledUnit(e) &&
 		!w.motionActive(e.ID) && !w.stoneCursed(i) && !w.actorCastBusy(i) &&
 		(e.AttackPhase != AttackReady || e.AttackCountdown != 0)
 }

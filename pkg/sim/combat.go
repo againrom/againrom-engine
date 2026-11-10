@@ -421,7 +421,7 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 // participant's walk and a search aimed at a waypoint keep the stall count.
 func (w *World) refusesWalkAtOnce(i int, sub cell) bool {
 	e := w.entities[i]
-	return !w.game.nativeWalkRefusal && !e.HasAttackTarget && !w.humanParticipantUnit(e) && w.aimsAtDestination(i, sub)
+	return !w.game.nativeWalkRefusal && !e.HasAttackTarget && w.computerControlledUnit(e) && w.aimsAtDestination(i, sub)
 }
 
 // answerRefusedPursuit sends a between-cycle unit pursuit to the shared

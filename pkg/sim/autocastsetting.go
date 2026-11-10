@@ -141,7 +141,7 @@ func (w *World) supportCast(ci int) {
 	caster := w.entities[ci]
 	s := w.AutoCast(caster.Owner)
 	policy := supportCastPolicy{minimumMana: autoCastTiers[0].mana}
-	if computer := w.game.computerSupport; computer.minimumMana != 0 && !w.humanParticipantUnit(caster) {
+	if computer := w.game.computerSupport; computer.minimumMana != 0 && w.computerControlledUnit(caster) {
 		policy, s = computer, AutoCastMinimum
 	} else if caster.Owner != SelfSlot {
 		return

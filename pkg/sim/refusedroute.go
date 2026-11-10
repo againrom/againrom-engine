@@ -101,7 +101,7 @@ func (w *World) answerRefusedNone(i int, none refusedNone) {
 		e.PursuitIdle = e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
 		if o := w.savedOrder(e.ID); o != nil {
 			o.Raw[8] = 0
-			if !w.humanParticipantUnit(*e) {
+			if w.computerControlledUnit(*e) {
 				o.Raw[8] = 0xb
 				w.stepIdleTurn(i)
 			}

@@ -75,7 +75,7 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 		Step(w, []Command{GroupStance(leashHero, int32(orderGuard), 1)})
 		leashRun(w, 2)
 		g := w.savedGroupFor(leashHero)
-		if g == nil || g.AI[0x20] != 1 || w.savedRoute(g) != orderGuard || !w.humanParticipantUnit(*leashAt(w, leashHero)) {
+		if g == nil || g.AI[0x20] != 1 || w.savedRoute(g) != orderGuard || w.computerControlledUnit(*leashAt(w, leashHero)) {
 			t.Fatalf("hero's Guard Group: %+v", g)
 		}
 		for range 10 {

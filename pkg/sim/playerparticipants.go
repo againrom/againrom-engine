@@ -77,32 +77,42 @@ func (w *World) PlayerParticipants() ([]PlayerParticipant, bool) {
 	return slices.Clone(w.currentPlayers.Participants), true
 }
 
-// MOVE-TERM-003, AI-ROUTE-045, ALM-140: test the complete control word.
-// A missing or ambiguous owner retains the legacy slot policy (DIV-1569).
-func (w *World) humanParticipantUnit(e Entity) bool {
-	return w.humanParticipantSlot(e.Owner)
+// The player-unit test. Owner slot 0 is the neutral side, neither a player's
+// nor a computer's: both predicates answer false for it, and a rule that
+// counts a neutral unit with one side asks "not the other side's".
+func (w *World) playerControlledUnit(e Entity) bool { return w.playerControlledSlot(e.Owner) }
+
+func (w *World) computerControlledUnit(e Entity) bool {
+	owned, human := w.slotControl(e.Owner)
+	return owned && !human
 }
 
-// humanParticipantSlot is humanParticipantUnit for an owner slot.
-func (w *World) humanParticipantSlot(slot uint32) bool {
+func (w *World) playerControlledSlot(slot uint32) bool {
+	owned, human := w.slotControl(slot)
+	return owned && human
+}
+
+// MOVE-TERM-003, AI-ROUTE-045, ALM-140: test the complete control word.
+// A missing or ambiguous owner retains the legacy slot policy (DIV-1569).
+func (w *World) slotControl(slot uint32) (owned, human bool) {
 	if slot == 0 {
-		return true
+		return false, false
 	}
 	if s := w.currentPlayers; s != nil && s.ParticipantsPresent {
 		at := -1
 		for i, p := range s.Players {
 			if p.Slot == slot {
 				if at >= 0 {
-					return slot == SelfSlot
+					return true, slot == SelfSlot
 				}
 				at = i
 			}
 		}
 		if at >= 0 {
-			return s.Participants[at].Value == 0
+			return true, s.Participants[at].Value == 0
 		}
 	}
-	return slot == SelfSlot
+	return true, slot == SelfSlot
 }
 
 // RestorePlayerParticipants replaces the complete exact-ID carrier atomically.

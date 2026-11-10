@@ -118,7 +118,7 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
 	r := castRequest{issuer: castEngage, caster: i, aim: castAim{target: victim, victim: victim}}
-	if w.humanParticipantUnit(e) || !isMage(e) || w.castRecoveryRefuses(r) {
+	if !w.computerControlledUnit(e) || !isMage(e) || w.castRecoveryRefuses(r) {
 		return false
 	}
 	if e.Mind > 59 && w.rng.aiRange(100) < 30 {

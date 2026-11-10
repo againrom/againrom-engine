@@ -7,7 +7,7 @@ import "encoding/binary"
 func (w *World) refreshSavedGroupActivity() {
 	var covered [32][32]bool
 	for _, e := range w.entities {
-		if e.Owner == 0 || !w.humanParticipantUnit(e) || !e.Alive() || e.OffMap {
+		if !w.playerControlledUnit(e) || !e.Alive() || e.OffMap {
 			continue
 		}
 		x, y := int(e.X)>>3, int(e.Y)>>3
@@ -42,7 +42,7 @@ func (w *World) refreshSavedGroupActivity() {
 				continue
 			}
 			e := w.entities[i]
-			if e.Owner != 0 && w.humanParticipantUnit(e) || !e.Alive() || e.OffMap {
+			if w.playerControlledUnit(e) || !e.Alive() || e.OffMap {
 				continue
 			}
 			represented = true

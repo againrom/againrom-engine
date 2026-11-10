@@ -163,7 +163,7 @@ func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 		if e.AcquirePursuit && w.game.orders.idleRanking == targetIdleDistance {
 			*o = ProjectActorAcquireOrder(e, *o)
 		}
-	case !w.game.groupRoute.noHumanHealArm && e.Owner != 0 && w.humanParticipantUnit(e):
+	case !w.game.groupRoute.noHumanHealArm && w.playerControlledUnit(e):
 		o.Raw[8] = 0
 	default:
 		o.Raw[8] = 0xb
@@ -313,7 +313,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			w.savedGroupMove(i, o, order == orderMove)
 			return
 		}
-		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
+		human := w.playerControlledUnit(w.entities[i])
 		if guard && stamps && o != nil && w.strikeWindow(i, o) {
 			// Guard B's cases 1 and 2 precede the target case (R2-ENGINE-844).
 			w.holdStrikeWindow(i, o, human)

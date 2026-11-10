@@ -408,7 +408,7 @@ func (w *World) farBudgetFor(i int) budgetRule {
 	switch {
 	case footprintSide(e.TokenSize) > 1:
 		return largeBudget
-	case w.humanParticipantUnit(*e):
+	case !w.computerControlledUnit(*e):
 		return flatBudget
 	}
 	return staticBudget

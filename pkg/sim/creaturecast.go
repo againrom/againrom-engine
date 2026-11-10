@@ -260,7 +260,7 @@ func (w *World) dropCastApproach(i int) {
 // The human participant's book order walks to the cell: the cast's cell, or
 // its target's cell.
 func (w *World) castApproachPursues(e Entity) bool {
-	return !w.humanParticipantUnit(e) || e.hasCreatureSpells() && e.HasAttackTarget
+	return w.computerControlledUnit(e) || e.hasCreatureSpells() && e.HasAttackTarget
 }
 
 // armCastApproach is the one builder of an armed approach (the original's

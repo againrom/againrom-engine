@@ -179,7 +179,7 @@ func (w *World) awardSpellDamage(ai, ti int, rule SpellRule, amount int64) {
 		return
 	}
 	t := &w.entities[ti]
-	if t.Owner == 0 || w.humanParticipantUnit(*t) || t.MaxHP <= 0 {
+	if !w.computerControlledUnit(*t) || t.MaxHP <= 0 {
 		return
 	}
 	named := int32(0)

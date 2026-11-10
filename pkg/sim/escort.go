@@ -104,7 +104,7 @@ func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 	e := &w.entities[i]
 	if !escortState(e.ActorState) || !e.HasEscortTarget {
 		if o := w.savedOrder(e.ID); w.game.orders.lookAround && o != nil && o.Raw[8] == 0xb &&
-			!w.humanParticipantUnit(*e) && !e.HasAttackTarget &&
+			w.computerControlledUnit(*e) && !e.HasAttackTarget &&
 			e.PendingOrder.Kind == PendingNone && w.pendingLogicalProgress(i) == 0 {
 			w.stepIdleTurn(i)
 			return true
@@ -232,7 +232,7 @@ func (w *World) acquireStanding(i int) {
 	if at < 0 {
 		w.clearOrder(i)
 		w.entities[i].releaseBetweenCycles(PendingRelease)
-		if escortState(w.entities[i].ActorState) && !w.humanParticipantUnit(w.entities[i]) {
+		if escortState(w.entities[i].ActorState) && w.computerControlledUnit(w.entities[i]) {
 			w.entities[i].EscortOrder = escortOrderIdle
 		}
 		return

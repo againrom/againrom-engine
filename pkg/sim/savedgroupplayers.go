@@ -320,7 +320,7 @@ func (w *World) savedGroupParticipant(g *SavedGroup) (uint32, bool) {
 	if slot == 0 {
 		return 0, false
 	}
-	if w.humanParticipantSlot(slot) {
+	if w.playerControlledSlot(slot) {
 		return 0, true
 	}
 	return 1, true

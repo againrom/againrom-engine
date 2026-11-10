@@ -1611,7 +1611,7 @@ func (w *World) RestoreOneShotPlayerCasts() int {
 	for _, cast := range w.bookCasts {
 		ci := indexOfEntity(w.entities, cast.Caster)
 		if !cast.Retained || ci < 0 || w.entities[ci].Owner != SelfSlot ||
-			!w.humanParticipantUnit(w.entities[ci]) || w.entities[ci].hasCreatureSpells() ||
+			w.computerControlledUnit(w.entities[ci]) || w.entities[ci].hasCreatureSpells() ||
 			cast.Phase == bookApproach && w.approachHeld(ci, cast) {
 			out = append(out, cast)
 			continue
@@ -1787,7 +1787,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 
 func (w *World) computerMageGroupSees(ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if w.game.noMageGroupSight || w.humanParticipantUnit(caster) || !isMage(caster) {
+	if w.game.noMageGroupSight || !w.computerControlledUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
@@ -2207,7 +2207,7 @@ func (w *World) engaged(ci int) bool {
 // healArmRules reports whether e takes the heal arm's reach condition: a
 // first-game unit of a human participant (MAGIC-320, MAGIC-322).
 func (w *World) healArmRules(e Entity) bool {
-	return !w.game.noHealArmReach && e.Owner != 0 && w.humanParticipantUnit(e)
+	return !w.game.noHealArmReach && w.playerControlledUnit(e)
 }
 
 // victimInReach reports whether e holds a unit victim it can strike from
@@ -2470,7 +2470,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 // under the profile's rule: any owner but the caster's that is not allied, or
 // that is hostile (DIV-4756).
 func (w *World) computerHealRefuses(caster, t Entity) bool {
-	return w.game.computerHealOwnSide && !w.humanParticipantUnit(caster) && t.Owner != caster.Owner &&
+	return w.game.computerHealOwnSide && w.computerControlledUnit(caster) && t.Owner != caster.Owner &&
 		(!w.relations.Locked(caster.Owner, t.Owner) || w.hostileTo(&caster, &t))
 }
 
