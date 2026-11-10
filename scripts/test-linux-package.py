@@ -363,15 +363,17 @@ def native(arguments, evidence):
         output = evidence / f"invalid-native-{index}"
         refused(lambda: PACKAGE.package(argparse.Namespace(**invalid, output_directory=str(output))))
         check(not output.exists(), "Invalid identity wrote native output.")
-    missing = evidence / "without-editor"
-    missing.mkdir()
-    for name in ("againrom", "starter"):
-        shutil.copy2(inputs / name, missing / name)
-    invalid = dict(defaults, binaries_directory=str(missing))
-    output = evidence / "missing-editor-package"
-    refused(lambda: PACKAGE.package(argparse.Namespace(**invalid, output_directory=str(output))))
-    check(not output.exists(), "Missing-editor refusal wrote native output.")
-    print("linux-package native: 13 tar files, 18 AppImage files; notices, stamps, no-display versions, executable bits, "
+    for index, absent in enumerate(PACKAGE.PROGRAMS):
+        missing = evidence / f"without-{absent}"
+        missing.mkdir()
+        for name in PACKAGE.PROGRAMS:
+            if name != absent:
+                shutil.copy2(inputs / name, missing / name)
+        invalid = dict(defaults, binaries_directory=str(missing))
+        output = evidence / f"missing-program-package-{index}"
+        refused(lambda: PACKAGE.package(argparse.Namespace(**invalid, output_directory=str(output))))
+        check(not output.exists(), f"Missing-program refusal wrote native output: {absent}")
+    print(f"linux-package native: {len(EXPECTED)} tar files, {len(EXPECTED) + len(IMAGE_EXTRA)} AppImage files; notices, stamps, no-display versions, executable bits, "
           "embedded runtime, read-only launcher, user settings retention, symlink refusals and repeated artifact bytes PASS")
     print(json.dumps({tar.name: PACKAGE.digest(tar), image.name: PACKAGE.digest(image)}, sort_keys=True))
 
