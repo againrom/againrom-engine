@@ -47,7 +47,7 @@ func TestDrainLifeWeaponProjectionKeepsTransferFlagsAndState(t *testing.T) {
 	}
 }
 
-func TestDrainLifeWeaponReleaseKeepsTransferResistanceAndRawRange(t *testing.T) {
+func TestDrainLifeWeaponReleaseKeepsTransferResistanceAndTheWeaponRange(t *testing.T) {
 	rule := SpellRule{ID: 11, School: 1, MaxRange: 7, DamageMin: 3, DamageMax: 3, TargetsUnit: true}
 	caster := wpnCaster(1, 0, 0, 11, 30, 1, 0)
 	caster.HP = 50
@@ -67,12 +67,13 @@ func TestDrainLifeWeaponReleaseKeepsTransferResistanceAndRawRange(t *testing.T) 
 	for _, tc := range []struct {
 		x      int32
 		closed bool
-	}{{7, true}, {8, false}} {
+	}{{5, true}, {6, false}} {
 		victim.X = tc.x
+		caster.Reach = 5
 		world := spWorld(t, 1, []SpellRule{rule}, caster, victim)
-		world.rom2, world.game = &rom2ScriptState{}, newGameProfile(ScriptROM2) // the first game stops at the weapon reach instead
+		world.rom2, world.game = &rom2ScriptState{}, newGameProfile(ScriptROM2) // weapon range, not Max Range 7 (R2-ENGINE-1106)
 		if got := world.closedOn(indexOfEntity(world.entities, 1), indexOfEntity(world.entities, 2)); got != tc.closed {
-			t.Fatalf("raw range7 at distance%d admission = %v, want %v", tc.x, got, tc.closed)
+			t.Fatalf("weapon range 5 at distance %d admission = %v, want %v", tc.x, got, tc.closed)
 		}
 		if !tc.closed {
 			Step(world, []Command{cbOrder(1, 2)})

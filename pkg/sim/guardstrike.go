@@ -70,14 +70,14 @@ func roundedQuotient(n, d int32) int32 {
 // stampMissedApproach writes +0x16 for attacker i whose approach search
 // missed goal and settled for sub, the zero cell for none: a member of a
 // Group running the stamp window, with cmd +8 = 5, when the gap from sub
-// to goal exceeds its approach range (R2-ENGINE-873, R2-ENGINE-878).
+// to goal exceeds its attack range (R2-ENGINE-873, R2-ENGINE-878).
 func (w *World) stampMissedApproach(i int, sub, goal cell) {
 	e := w.entities[i]
 	o, g := w.savedOrder(e.ID), w.savedGroupFor(e.ID)
 	if o == nil || g == nil || o.Raw[8] != 5 || !w.game.groupRoute.runsStampWindow(g.AI[0x20]) {
 		return
 	}
-	if approachGap(sub, goal, footprintSide(e.TokenSize)) > w.approachRange(e) {
+	if approachGap(sub, goal, footprintSide(e.TokenSize)) > w.attackRange(i) {
 		o.Strike.Stamp, o.Strike.Stamped = w.groupClock(), true
 	}
 }
@@ -93,16 +93,6 @@ func approachGap(a, b cell, size int32) int64 {
 		return int64(a) - int64(b)
 	}
 	return max(axis(a.x, b.x), axis(a.y, b.y))
-}
-
-// approachRange is the range the stamp compares with: the weapon spell's
-// range where the approach closes on it in cells, else the reach
-// (R2-ENGINE-873, Medium; closedOn).
-func (w *World) approachRange(e Entity) int64 {
-	if rule, ok := w.weaponSpell(e); ok && w.game.cellCastReach {
-		return int64(rule.MaxRange)
-	}
-	return int64(e.Reach)
 }
 
 // strikeWindow is guard B's cases 1 and 2: |+0x16 - server word +0| below

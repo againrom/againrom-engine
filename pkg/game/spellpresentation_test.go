@@ -230,8 +230,9 @@ func TestEachGameNamesItsSpellsFromItsOwnTables(t *testing.T) {
 
 // The second game's item card keeps the spell its attack releases: the
 // duration and ray lines follow the row's arm, its Stone Curse row 18 and its
-// Prismatic Spray row 11, and the range is the spell's (DIV-1977). The first
-// game's table, the loss control, composes the Weapon's stream instead.
+// Prismatic Spray row 11, and the range is the weapon's column 11
+// (R2-ENGINE-998). The first game's table, the loss control, composes the
+// Weapon's stream instead.
 func TestItemSpellLinesFollowTheArm(t *testing.T) {
 	second := base.GameROM2.Edition()
 	words := ui.AuthoredWords()
@@ -248,12 +249,34 @@ func TestItemSpellLinesFollowTheArm(t *testing.T) {
 		t.Fatalf("second-game Stone Curse card = %q", got)
 	}
 	if got := lines(11, "Prismatic Spray", 40, 0, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) ||
-		!slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 6)) {
+		!slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 5)) {
 		t.Fatalf("second-game Prismatic Spray card = %q", got)
 	}
 	if got := lines(11, "Prismatic Spray", 40, 0, nil); slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) ||
 		!slices.Contains(got, words.ItemRange+": 5") {
 		t.Fatalf("first-game row 11 card = %q", got)
+	}
+}
+
+// TestTheSecondGameStaffCardStatesTheWeaponRange: a second-game Staff (column
+// 11 is 6) or Shaman Staff (5) carrying Fire Arrow (Max Range 7) at power 20
+// states the weapon's range, not the spell's (R2-ENGINE-998, R2-ASSET-111,
+// R2-ASSET-107).
+func TestTheSecondGameStaffCardStatesTheWeaponRange(t *testing.T) {
+	second := base.GameROM2.Edition()
+	words := ui.AuthoredWords()
+	for _, tc := range []struct {
+		name        string
+		weaponRange int32
+	}{{"Staff", 6}, {"Shaman Staff", 5}} {
+		table, weapon := spellWeaponTable(t, tc.name, tc.weaponRange, 2, 1, "Fire Arrow", 20, 7, 5, 10, 0)
+		table.Edition, table.SpellArms = &second, mapload.SecondGameSpellArms
+		item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{castSpellEffect(1, 20)}}
+		got := itemInstanceInfoLines(item, table, words)
+		if !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, tc.weaponRange)) ||
+			slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 7)) {
+			t.Errorf("second-game %s card = %q, want the range line %d", tc.name, got, tc.weaponRange)
+		}
 	}
 }
 

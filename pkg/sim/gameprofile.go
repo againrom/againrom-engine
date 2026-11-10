@@ -69,8 +69,8 @@ type gameProfile struct {
 	// nativeWalkRefusal keeps near-search give-up separate from a known
 	// empty-route result (R2-ENGINE-1108).
 	nativeWalkRefusal bool
-	// cellCastReach: cast and weapon-spell reach compare whole Chebyshev
-	// cells (R2-ENGINE-348), not the footprint gap or weapon reach.
+	// cellCastReach: a book or scroll cast's reach compares whole Chebyshev
+	// cells (R2-ENGINE-348), not the footprint gap.
 	cellCastReach bool
 	// releaseRevalidates: a release asks the whole admission again: sight,
 	// reach and range (MAGIC-403 states the first game asks none).

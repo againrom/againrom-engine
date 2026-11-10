@@ -1256,7 +1256,7 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 		return
 	}
 	// 3. within weaponCastInRange, the distance closedOn stops at.
-	if !w.weaponCastInRange(*a, *t, rule) {
+	if !w.weaponCastInRange(ai, ti) {
 		return
 	}
 	// 4. and the row must actually land: weaponSpellApply's own refusals.

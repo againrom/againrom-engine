@@ -569,25 +569,34 @@ func (w *World) stopWalkOrder(i int, arrival bool) {
 // beside the victim, where it waits for sight (DIV-1524).
 func (w *World) closedOn(i, ti int) bool {
 	a, t := w.entities[i], w.entities[ti]
-	if rule, ok := w.weaponSpell(a); ok {
+	if _, ok := w.weaponSpell(a); ok {
 		d := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y})
-		return w.weaponCastInRange(a, t, rule) && (d <= 1 || w.actorSeesEntity(i, ti))
+		return w.weaponCastInRange(i, ti) && (d <= 1 || w.actorSeesEntity(i, ti))
 	}
 	if w.game.orders.liveAdmission {
-		return int64(w.targetEdgeDistance(a, t)) <= w.attackRange(i)
+		return w.withinAttackRange(i, ti)
 	}
 	return inReach(a, t)
 }
 
-// weaponCastInRange reports whether caster a stands close enough to t to
-// begin and to release its weapon spell. The first game compares the edge
-// distance with the weapon reach, the operand of both the approach stop and
-// the act gate; the spell's range is neither (MAGIC-409, MAGIC-410). The
-// second game keeps the spell row's MaxRange in whole Chebyshev cells.
-func (w *World) weaponCastInRange(a, t Entity, rule SpellRule) bool {
-	if w.game.cellCastReach {
-		return (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y}) <= int64(rule.MaxRange)
+// withinAttackRange is the second game's attack admission: the edge distance
+// of the two bodies at their current positions is at most the attack range
+// (R2-ENGINE-1106, R2-ENGINE-397).
+func (w *World) withinAttackRange(i, ti int) bool {
+	return int64(w.targetEdgeDistance(w.entities[i], w.entities[ti])) <= w.attackRange(i)
+}
+
+// weaponCastInRange reports whether caster ai stands close enough to victim
+// ti to begin and to release its weapon spell. The first game compares the
+// edge distance with the weapon reach, the operand of both the approach stop
+// and the act gate; the spell's range is neither (MAGIC-409, MAGIC-410). The
+// second game admits a spell weapon's attack as any attack and turns it into
+// the cast at the strike's phase 5 (R2-ENGINE-1106, R2-ENGINE-543).
+func (w *World) weaponCastInRange(ai, ti int) bool {
+	if w.game.orders.liveAdmission {
+		return w.withinAttackRange(ai, ti)
 	}
+	a, t := w.entities[ai], w.entities[ti]
 	return edgeDistance(&a, &t) <= a.Reach
 }
 

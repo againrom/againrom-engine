@@ -27,10 +27,18 @@ type staffStop struct {
 // it the caster is a computer unit that finds the victim itself.
 func staffRun(t *testing.T, rule SpellRule, reach uint8, ordered, second bool, edit func(*Entity)) staffStop {
 	t.Helper()
-	caster := wpnCaster(1, 2, 8, rule.ID, 30, 1, 0)
+	return staffRunAt(t, rule, reach, ordered, second, edit, 2, 14, 8, 1)
+}
+
+// staffRunAt places the caster at (casterX, 8), a size victim at (victimX, victimY).
+func staffRunAt(t *testing.T, rule SpellRule, reach uint8, ordered, second bool, edit func(*Entity),
+	casterX, victimX, victimY int32, size uint8) staffStop {
+	t.Helper()
+	caster := wpnCaster(1, casterX, 8, rule.ID, 30, 1, 0)
 	caster.Reach, caster.Speed = reach, 40
 	caster.TypeID = HeroTypeID(true, false)
-	victim := spEnt(2, 14, 8)
+	victim := spEnt(2, victimX, victimY)
+	victim.TokenSize = size
 	caster.Owner, victim.Owner = 2, 1
 	if ordered {
 		caster.Owner, victim.Owner = SelfSlot, 2
@@ -62,8 +70,8 @@ func staffRun(t *testing.T, rule SpellRule, reach uint8, ordered, second bool, e
 
 // TestASpellWeaponMageCastsAtTheWeaponReach: a first-game Staff (reach 5) or
 // Shaman Staff (reach 4) caster stops and casts at its weapon reach, not at
-// the spell's Max Range (MAGIC-409, MAGIC-411). The second game is the loss
-// control: the same fixture there stops at the spell's Max Range.
+// the spell's Max Range (MAGIC-409, MAGIC-411); in the second game too
+// (R2-ENGINE-1106, R2-ENGINE-397).
 func TestASpellWeaponMageCastsAtTheWeaponReach(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -79,26 +87,49 @@ func TestASpellWeaponMageCastsAtTheWeaponReach(t *testing.T) {
 			t.Errorf("%s: released %v at edge distance %d, want a release at the weapon reach %d",
 				tc.name, got.released, got.edge, tc.reach)
 		}
-		control := staffRun(t, tc.rule, tc.reach, true, true, nil)
-		if !control.released || control.cells != int64(tc.rule.MaxRange) {
-			t.Errorf("%s, second game: released %v at %d cells, want a release at Max Range %d",
-				tc.name, control.released, control.cells, tc.rule.MaxRange)
+		second := staffRun(t, tc.rule, tc.reach, true, true, nil)
+		if !second.released || second.edge != tc.reach {
+			t.Errorf("%s, second game: released %v at edge distance %d, want a release at the weapon reach %d",
+				tc.name, second.released, second.edge, tc.reach)
+		}
+	}
+}
+
+// TestTheSecondGameStaffCastStartsAtTheWeaponRangeFromTheNearestCell: a
+// second-game Staff (range 6) with a Max Range 7 spell first casts at edge
+// distance 6, counted from the nearest cell of a wide victim on either side
+// (R2-ENGINE-1106, R2-ENGINE-397).
+func TestTheSecondGameStaffCastStartsAtTheWeaponRangeFromTheNearestCell(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name                      string
+		casterX, victimX, victimY int32
+		size                      uint8
+	}{
+		{"one cell", 2, 14, 8, 1},
+		{"two wide, from the anchor side", 1, 13, 8, 2},
+		{"three wide, from the far side", 15, 2, 7, 3},
+	} {
+		got := staffRunAt(t, staffFireArrow(), 6, true, true, nil, tc.casterX, tc.victimX, tc.victimY, tc.size)
+		if !got.released || got.edge != 6 {
+			t.Errorf("%s: released %v at edge distance %d (anchor cells %d), want a release at edge distance 6",
+				tc.name, got.released, got.edge, got.cells)
 		}
 	}
 }
 
 // TestASpellWeaponReachAboveTheSpellRangeStillCasts: Drain Life (Max Range 3)
 // on a Staff (reach 5) casts at 5. A minimum of the two would stop at 3
-// (MAGIC-409 excludes it); the second game keeps 3.
+// (MAGIC-409 excludes it); in the second game too (R2-ENGINE-1106).
 func TestASpellWeaponReachAboveTheSpellRangeStillCasts(t *testing.T) {
 	t.Parallel()
 	got := staffRun(t, staffDrain(), 5, true, false, nil)
 	if !got.released || got.edge != 5 {
 		t.Errorf("released %v at edge distance %d, want a release at the weapon reach 5", got.released, got.edge)
 	}
-	control := staffRun(t, staffDrain(), 5, true, true, nil)
-	if !control.released || control.cells != 3 {
-		t.Errorf("second game: released %v at %d cells, want a release at Max Range 3", control.released, control.cells)
+	second := staffRun(t, staffDrain(), 5, true, true, nil)
+	if !second.released || second.edge != 5 {
+		t.Errorf("second game: released %v at edge distance %d, want a release at the weapon reach 5", second.released, second.edge)
 	}
 }
 
@@ -110,9 +141,9 @@ func TestAComputerSpellWeaponMageCastsAtTheWeaponReach(t *testing.T) {
 	if !got.released || got.edge != 5 {
 		t.Errorf("released %v at edge distance %d, want a release at the weapon reach 5", got.released, got.edge)
 	}
-	control := staffRun(t, staffFireArrow(), 5, false, true, nil)
-	if !control.released || control.cells != 7 {
-		t.Errorf("second game: released %v at %d cells, want a release at Max Range 7", control.released, control.cells)
+	second := staffRun(t, staffFireArrow(), 5, false, true, nil)
+	if !second.released || second.edge != 5 {
+		t.Errorf("second game: released %v at edge distance %d, want a release at the weapon reach 5", second.released, second.edge)
 	}
 }
 
@@ -128,8 +159,7 @@ func TestAFemaleAndAMaleSpellWeaponMageStopAlike(t *testing.T) {
 
 // TestTheWeaponCastReleaseTestsTheWeaponReach: a first-game wind-up ending
 // with the victim one cell past the reach releases nothing, though the spell's
-// Max Range of 7 covers it; at the reach it releases. The second game's
-// release at Max Range is TestASpellWeaponMageCastsAtTheWeaponReach's control.
+// Max Range of 7 covers it; at the reach it releases.
 func TestTheWeaponCastReleaseTestsTheWeaponReach(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

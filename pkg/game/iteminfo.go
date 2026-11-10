@@ -219,8 +219,9 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 }
 
 // releasedSpellLines is the second game's spell weapon text: the spell the
-// attack releases at the stored power, its damage, rays and spell range, with
-// no base lines (DIV-4702); the other Effects follow.
+// attack releases at the stored power, its damage and rays, and the weapon's
+// range column, not the spell's (R2-ENGINE-998), with no base lines
+// (DIV-4702); the other Effects follow.
 func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, weaponRange uint8, words ui.Words) ([]string, bool) {
 	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
 		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
@@ -254,13 +255,13 @@ func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16
 		}
 		return append(lines,
 			fmt.Sprintf("%s %d", words.ItemRays, spell.RayCount),
-			fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
+			fmt.Sprintf("%s %d", words.ItemRange, weaponRange)), true
 	}
 	lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
 	if spell.HasDamage {
 		lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
 	}
-	return append(lines, fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
+	return append(lines, fmt.Sprintf("%s %d", words.ItemRange, weaponRange)), true
 }
 
 // castWeaponWords fills the install's main.txt captions a castSpell Weapon's
