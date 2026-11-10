@@ -41,6 +41,21 @@ type Info struct {
 // Valid reports whether the directory is an install of a detected profile.
 func (i Info) Valid() bool { return len(i.Missing) == 0 && i.BaseErr == nil }
 
+// BaseID names the base game an install is, as mods name it in applies-to and
+// the game orders them for: the id of the detected profile ("rom1-en",
+// "rom2-ru", "rom1-demo"), else "rom1-en" or "rom1-ru" by the language entry of
+// the install, and else the id of the profile pkg/base gives an install it did
+// not identify.
+func (i Info) BaseID() string {
+	if id := i.Base.ID(); id != "" {
+		return id
+	}
+	if l, ok := locale.ByEntry(i.Language); ok {
+		return l.BaseID
+	}
+	return base.Undetected().ID
+}
+
 // EntrySource is what the language selector reads: an entry by its address.
 type EntrySource interface {
 	ReadFile(name string) ([]byte, error)

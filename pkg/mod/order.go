@@ -1,6 +1,7 @@
 package mod
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -130,13 +131,112 @@ func (d Dep) satisfiedBy(version string) (bool, error) {
 	return c == 0, nil
 }
 
-// Order checks a set of resolved mods against the active base and returns it in
+// RefusalKind names why Order refuses a mod.
+type RefusalKind int
+
+const (
+	// RefusedAPI: the mod's api is not the one this build runs.
+	RefusedAPI RefusalKind = iota + 1
+	// RefusedBase: the mod's applies-to does not name the active base.
+	RefusedBase
+	// RefusedConflict: the mod's conflicts names an enabled mod.
+	RefusedConflict
+	// RefusedRequirementUnreadable: a requires entry, or the version of the
+	// enabled mod it names, cannot be read.
+	RefusedRequirementUnreadable
+	// RefusedRequirementMissing: a mod the mod requires is not enabled.
+	RefusedRequirementMissing
+	// RefusedRequirementVersion: the enabled required mod's version does not
+	// meet the entry.
+	RefusedRequirementVersion
+	// RefusedCycle: the mods require or load after each other in a cycle.
+	RefusedCycle
+)
+
+// Refusal is one reason Order refuses a mod set, as data: the mod it stands on
+// and what it names. Error is the game's text for it.
+type Refusal struct {
+	Kind RefusalKind
+	// Mod is the refused mod; for a cycle the first of Cycle.
+	Mod string
+	// Other is the mod a conflict or a requirement names.
+	Other string
+	// Requirement is the requires entry as the manifest writes it.
+	Requirement string
+	// Version is the enabled version of Other when it misses Requirement.
+	Version string
+	// API is the refused mod's api.
+	API int
+	// Base is the active base and AppliesTo the refused mod's list.
+	Base      string
+	AppliesTo []string
+	// Cycle lists by id every mod a cycle leaves unplaced; the refusal
+	// stands on each of them.
+	Cycle []string
+	err   error
+}
+
+func (r Refusal) Error() string { return r.err.Error() }
+
+// Unwrap is the reading error of an unreadable requirement, else nil.
+func (r Refusal) Unwrap() error { return errors.Unwrap(r.err) }
+
+// Names reports whether the refusal stands on mod id: the refused mod, or any
+// mod of a cycle.
+func (r Refusal) Names(id string) bool {
+	return r.Mod == id || r.Kind == RefusedCycle && slices.Contains(r.Cycle, id)
+}
+
+// Ordering is what Order makes of a set of mods on a base: the mods in load
+// order and every refusal, in the order Order checks them.
+type Ordering struct {
+	Mods     []Entry
+	Refusals []Refusal
+}
+
+// Err is the first refusal, nil when the set loads.
+func (o Ordering) Err() error {
+	if len(o.Refusals) == 0 {
+		return nil
+	}
+	return o.Refusals[0]
+}
+
+// Of lists the refusals that stand on mod id.
+func (o Ordering) Of(id string) []Refusal {
+	var out []Refusal
+	for _, r := range o.Refusals {
+		if r.Names(id) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// Fit lists the refusals a mod raises on base by itself, whatever else is
+// enabled: an api this build does not run, then an applies-to that does not
+// name the base. Order raises them first for each mod.
+func Fit(m Manifest, base string) []Refusal {
+	var out []Refusal
+	if m.API != SupportedAPI {
+		out = append(out, Refusal{Kind: RefusedAPI, Mod: m.ID, API: m.API,
+			err: fmt.Errorf("mod %q: api %d is not supported (this game runs api %d)", m.ID, m.API, SupportedAPI)})
+	}
+	if !Applies(m.AppliesTo, base) {
+		out = append(out, Refusal{Kind: RefusedBase, Mod: m.ID, Base: base, AppliesTo: m.AppliesTo,
+			err: fmt.Errorf("mod %q: applies-to %s does not include the active base %s", m.ID, strings.Join(m.AppliesTo, ","), base)})
+	}
+	return out
+}
+
+// Order checks a set of resolved mods against the active base and puts it in
 // load order: mods whose applies-to is "common" first, then the others, each
 // group by id, except that a mod always follows the mods it requires and the
-// enabled mods it names in load-after. Every refusal names the mods involved:
-// an api this build does not run, a mod that does not apply to the base, a
-// conflict, a missing or too old requirement, and a cycle in the order.
-func Order(mods []Entry, base string) ([]Entry, error) {
+// enabled mods it names in load-after. It checks every mod by id: Fit, then
+// each conflict, then each requirement; a cycle comes last, and its mods
+// follow the others by group and id. Every refusal names the mods involved,
+// and the set loads only when there is none.
+func Order(mods []Entry, base string) Ordering {
 	byID := map[string]Entry{}
 	for _, m := range mods {
 		byID[m.Manifest.ID] = m
@@ -146,37 +246,40 @@ func Order(mods []Entry, base string) ([]Entry, error) {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
+	var refused []Refusal
 	after := map[string][]string{}
 	for _, id := range ids {
 		m := byID[id].Manifest
-		if m.API != SupportedAPI {
-			return nil, fmt.Errorf("mod %q: api %d is not supported (this game runs api %d)", id, m.API, SupportedAPI)
-		}
-		if !Applies(m.AppliesTo, base) {
-			return nil, fmt.Errorf("mod %q: applies-to %s does not include the active base %s", id, strings.Join(m.AppliesTo, ","), base)
-		}
+		refused = append(refused, Fit(m, base)...)
 		for _, c := range m.Conflicts {
 			if _, ok := byID[c]; ok {
-				return nil, fmt.Errorf("mod %q conflicts with the enabled mod %q", id, c)
+				refused = append(refused, Refusal{Kind: RefusedConflict, Mod: id, Other: c,
+					err: fmt.Errorf("mod %q conflicts with the enabled mod %q", id, c)})
 			}
 		}
 		for _, r := range m.Requires {
 			d, err := ParseDep(r)
 			if err != nil {
-				return nil, fmt.Errorf("mod %q: requires: %w", id, err)
+				refused = append(refused, Refusal{Kind: RefusedRequirementUnreadable, Mod: id, Requirement: r,
+					err: fmt.Errorf("mod %q: requires: %w", id, err)})
+				continue
 			}
 			dep, ok := byID[d.ID]
 			if !ok {
-				return nil, fmt.Errorf("mod %q requires %q, which is not enabled", id, r)
-			}
-			ok, err = d.satisfiedBy(dep.Manifest.Version)
-			if err != nil {
-				return nil, fmt.Errorf("mod %q: requires %q: %w", id, r, err)
-			}
-			if !ok {
-				return nil, fmt.Errorf("mod %q requires %q but %q %s is enabled", id, r, d.ID, dep.Manifest.Version)
+				refused = append(refused, Refusal{Kind: RefusedRequirementMissing, Mod: id, Other: d.ID, Requirement: r,
+					err: fmt.Errorf("mod %q requires %q, which is not enabled", id, r)})
+				continue
 			}
 			after[id] = append(after[id], d.ID)
+			ok, err = d.satisfiedBy(dep.Manifest.Version)
+			switch {
+			case err != nil:
+				refused = append(refused, Refusal{Kind: RefusedRequirementUnreadable, Mod: id, Other: d.ID, Requirement: r,
+					err: fmt.Errorf("mod %q: requires %q: %w", id, r, err)})
+			case !ok:
+				refused = append(refused, Refusal{Kind: RefusedRequirementVersion, Mod: id, Other: d.ID, Requirement: r, Version: dep.Manifest.Version,
+					err: fmt.Errorf("mod %q requires %q but %q %s is enabled", id, r, d.ID, dep.Manifest.Version)})
+			}
 		}
 		for _, l := range m.LoadAfter {
 			if _, ok := byID[l]; ok {
@@ -191,6 +294,7 @@ func Order(mods []Entry, base string) ([]Entry, error) {
 		return 1
 	}
 	placed := map[string]bool{}
+	cycle := false
 	out := make([]Entry, 0, len(ids))
 	for len(out) < len(ids) {
 		best := ""
@@ -200,7 +304,7 @@ func Order(mods []Entry, base string) ([]Entry, error) {
 			}
 			ready := true
 			for _, d := range after[id] {
-				if !placed[d] {
+				if !placed[d] && !cycle {
 					ready = false
 					break
 				}
@@ -219,12 +323,15 @@ func Order(mods []Entry, base string) ([]Entry, error) {
 					left = append(left, id)
 				}
 			}
-			return nil, fmt.Errorf("mods %s require or load after each other in a cycle", strings.Join(left, ", "))
+			refused = append(refused, Refusal{Kind: RefusedCycle, Mod: left[0], Cycle: left,
+				err: fmt.Errorf("mods %s require or load after each other in a cycle", strings.Join(left, ", "))})
+			cycle = true
+			continue
 		}
 		placed[best] = true
 		out = append(out, byID[best])
 	}
-	return out, nil
+	return Ordering{Mods: out, Refusals: refused}
 }
 
 func containsString(list []string, s string) bool {

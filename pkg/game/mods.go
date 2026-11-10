@@ -3,26 +3,13 @@ package game
 import (
 	"errors"
 
-	"againrom/pkg/base"
-	"againrom/pkg/locale"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
-// BaseID names the base game an install is, as mods name it in applies-to: the
-// id of the detected profile ("rom1-en", "rom1-ru", "rom1-demo"), else
-// "rom1-en" or "rom1-ru" by the language entry of the install, and else the id
-// of the profile pkg/base gives an install it did not identify.
-func BaseID(info InstallInfo) string {
-	if id := info.Base.ID(); id != "" {
-		return id
-	}
-	if l, ok := locale.ByEntry(info.Language); ok {
-		return l.BaseID
-	}
-	return base.Undetected().ID
-}
+// BaseID forwards to the one naming of an install's base for mods.
+func BaseID(info InstallInfo) string { return info.BaseID() }
 
 // SetMods applies the rules the mods set and records the mod set. Games the
 // front end opens afterwards run under those rules, and a save written under a

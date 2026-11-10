@@ -41,7 +41,7 @@ type settings struct {
 	LastBase       string // key of the selected base
 	Bases          []base
 	ModsDir        string   // empty means the profile default
-	Enabled        []string // mod ids in load order
+	Enabled        []string // the set of enabled mod ids; mod.Order decides their load order
 	AcceptUnmarked bool     // pass -mods-accept-unmarked: load saves written without a mod mark
 	ModSettings    []modSetting
 
@@ -205,7 +205,7 @@ func (s *settings) removeBase(key string) {
 	s.Bases = kept
 }
 
-// toggleMod enables id at the end of the load order, or disables it.
+// toggleMod enables id, or disables it.
 func (s *settings) toggleMod(id string) {
 	for i, e := range s.Enabled {
 		if e == id {

@@ -69,6 +69,27 @@ requires    = ["base-art>=1.0"]
 load-after  = ["other-mod"]
 ```
 
+### Load order and the starter's list
+
+The game loads the enabled mods in one order: mods whose `applies-to` is
+`common` first, then the others, each group by id, except that a mod always
+follows the mods it `requires` and the enabled mods it names in `load-after`.
+The order the mods were ticked in and the order of `-mods` do not count. The
+launch and `againrom -check` refuse a set holding an `api` this build does not
+run, an `applies-to` that does not name the base, an enabled mod a `conflicts`
+names, a `requires` that is not enabled, cannot be used or is too old, or a cycle of `requires`
+and `load-after`; they print the first refusal.
+
+The starter's mod list shows, for the selected base, the enabled mods in that
+load order, numbered from 1; then any enabled mod whose folder is missing or
+whose `mod.toml` cannot be read; then the mods that are not enabled, by folder
+name. Every refusal stands in red on the row of the mod it names, worded in
+the language of the selected base, and Play and Check are refused while an
+enabled mod carries one. A mod that is not enabled and does not fit the
+selected base (its `applies-to` or its `api`) says so on its row and can still
+be ticked. Selecting another base or ticking a mod refreshes the rows. Without
+a selected base the enabled mods are listed by name, unnumbered.
+
 The script's `print` output is discarded, in `againrom -check` and in play.
 A script reports a problem with `fail("text")`; the refusal names the mod,
 the file and the line (`mod "m": main.star:3: fail: text`), and it stops the

@@ -31,10 +31,7 @@ func TestOrderPutsCommonModsFirstThenTheBaseModsByID(t *testing.T) {
 		entry("alpha", "1", func(m *Manifest) { m.AppliesTo = []string{"rom1"} }),
 		entry("omega", "1", nil),
 	}
-	got, err := Order(mods, "rom1-en")
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := loads(t, mods, "rom1-en")
 	if want := []string{"beta", "omega", "alpha", "zeta"}; !reflect.DeepEqual(ids(got), want) {
 		t.Fatalf("got %v, want %v", ids(got), want)
 	}
@@ -46,10 +43,7 @@ func TestOrderFollowsRequiresAndLoadAfterOverTheGroups(t *testing.T) {
 		entry("z-base", "2.1", func(m *Manifest) { m.AppliesTo = []string{"rom1-ru"} }),
 		entry("m-mid", "1", func(m *Manifest) { m.Requires = []string{"z-base>=2.0"} }),
 	}
-	got, err := Order(mods, "rom1-ru")
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := loads(t, mods, "rom1-ru")
 	if want := []string{"z-base", "a-common", "m-mid"}; !reflect.DeepEqual(ids(got), want) {
 		t.Fatalf("got %v, want %v", ids(got), want)
 	}
@@ -58,8 +52,8 @@ func TestOrderFollowsRequiresAndLoadAfterOverTheGroups(t *testing.T) {
 func TestOrderIgnoresTheOrderTheModsWereNamedIn(t *testing.T) {
 	a := []Entry{entry("a", "1", nil), entry("b", "1", nil), entry("c", "1", nil)}
 	b := []Entry{a[2], a[0], a[1]}
-	x, _ := Order(a, "rom1-en")
-	y, _ := Order(b, "rom1-en")
+	x := loads(t, a, "rom1-en")
+	y := loads(t, b, "rom1-en")
 	if !reflect.DeepEqual(ids(x), ids(y)) {
 		t.Fatalf("%v %v", ids(x), ids(y))
 	}
@@ -82,10 +76,95 @@ func TestOrderRefusalsNameTheMods(t *testing.T) {
 		{"cycle", []Entry{entry("a", "1", func(m *Manifest) { m.LoadAfter = []string{"b"} }), entry("b", "1", func(m *Manifest) { m.LoadAfter = []string{"a"} })}, "rom1-en", "a, b require or load after each other in a cycle"},
 	}
 	for _, c := range cases {
-		_, err := Order(c.mods, c.base)
+		err := Order(c.mods, c.base).Err()
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: got %v, want %q", c.name, err, c.want)
 		}
+	}
+}
+
+// loads is the load order of a set Order accepts.
+func loads(t *testing.T, mods []Entry, base string) []Entry {
+	t.Helper()
+	o := Order(mods, base)
+	if err := o.Err(); err != nil {
+		t.Fatal(err)
+	}
+	return o.Mods
+}
+
+// texts lists the game's text of each refusal.
+func texts(rs []Refusal) []string {
+	var out []string
+	for _, r := range rs {
+		out = append(out, r.Error())
+	}
+	return out
+}
+
+// A set with several refusals names each one on its mod as data, keeps the
+// first in the order the launch printed it, and is still put in load order.
+func TestOrderNamesEveryRefusalAndKeepsTheFirstText(t *testing.T) {
+	mods := []Entry{
+		entry("api", "1", func(m *Manifest) { m.API = 2; m.AppliesTo = []string{"rom2"} }),
+		entry("clash", "1", func(m *Manifest) { m.Conflicts = []string{"core", "absent"} }),
+		entry("core", "1.1", nil),
+		entry("loop-a", "1", func(m *Manifest) { m.LoadAfter = []string{"loop-b"} }),
+		entry("loop-b", "1", func(m *Manifest) { m.Requires = []string{"loop-a"} }),
+		entry("needs", "1", func(m *Manifest) { m.Requires = []string{"core>=1.2", "ghost", "core>=x"} }),
+		entry("tail", "1", func(m *Manifest) { m.LoadAfter = []string{"loop-a"} }),
+	}
+	o := Order(mods, "rom1-en")
+	want := []string{
+		`mod "api": api 2 is not supported (this game runs api 1)`,
+		`mod "api": applies-to rom2 does not include the active base rom1-en`,
+		`mod "clash" conflicts with the enabled mod "core"`,
+		`mod "needs" requires "core>=1.2" but "core" 1.1 is enabled`,
+		`mod "needs" requires "ghost", which is not enabled`,
+		`mod "needs": requires: "core>=x": version "x" is not dotted numbers`,
+		"mods loop-a, loop-b, tail require or load after each other in a cycle",
+	}
+	if got := texts(o.Refusals); !reflect.DeepEqual(got, want) {
+		t.Fatalf("refusals\n%q\nwant\n%q", got, want)
+	}
+	if o.Err() == nil || o.Err().Error() != want[0] {
+		t.Fatalf("first refusal %v", o.Err())
+	}
+	kinds := []RefusalKind{RefusedAPI, RefusedBase, RefusedConflict, RefusedRequirementVersion, RefusedRequirementMissing, RefusedRequirementUnreadable, RefusedCycle}
+	for i, r := range o.Refusals {
+		if r.Kind != kinds[i] {
+			t.Errorf("refusal %d kind %d, want %d", i, r.Kind, kinds[i])
+		}
+	}
+	if r := o.Refusals[3]; r.Mod != "needs" || r.Other != "core" || r.Requirement != "core>=1.2" || r.Version != "1.1" {
+		t.Errorf("version refusal data %+v", r)
+	}
+	if r := o.Refusals[1]; r.Base != "rom1-en" || !reflect.DeepEqual(r.AppliesTo, []string{"rom2"}) || o.Refusals[0].API != 2 {
+		t.Errorf("fit refusal data %+v %+v", o.Refusals[0], r)
+	}
+	if r := o.Refusals[2]; r.Other != "core" {
+		t.Errorf("conflict names %q", r.Other)
+	}
+	for id, n := range map[string]int{"api": 2, "clash": 1, "core": 0, "needs": 3, "loop-a": 1, "loop-b": 1, "tail": 1} {
+		if got := len(o.Of(id)); got != n {
+			t.Errorf("%s stands under %d refusals, want %d", id, got, n)
+		}
+	}
+	if want := []string{"clash", "core", "needs", "api", "loop-a", "loop-b", "tail"}; !reflect.DeepEqual(ids(o.Mods), want) {
+		t.Fatalf("order under refusals %v, want %v", ids(o.Mods), want)
+	}
+}
+
+// Fit is the part of Order a mod raises alone: the api and the base, never
+// what other mods decide.
+func TestFitIsTheModsOwnRefusalsOnTheBase(t *testing.T) {
+	alone := entry("a", "1", func(m *Manifest) { m.AppliesTo = []string{"rom1"}; m.Requires = []string{"ghost"} }).Manifest
+	if got := Fit(alone, "rom1-ru"); len(got) != 0 {
+		t.Fatalf("a first-game mod on rom1-ru: %v", got)
+	}
+	got := Fit(alone, "rom2-en")
+	if len(got) != 1 || got[0].Kind != RefusedBase || got[0].Mod != "a" || got[0].Error() != texts(Order([]Entry{{Manifest: alone}}, "rom2-en").Refusals)[0] {
+		t.Fatalf("a first-game mod on rom2-en: %v", got)
 	}
 }
 

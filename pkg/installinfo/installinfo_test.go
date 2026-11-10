@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/locale"
 )
 
@@ -28,6 +29,24 @@ func TestLanguageEntryReadsTheLocaleRecord(t *testing.T) {
 	}
 	if got := languageEntry(7); got != "language selector 7" {
 		t.Errorf("unknown selector entry = %q", got)
+	}
+}
+
+func TestBaseIDPrefersTheDetectedProfile(t *testing.T) {
+	cases := []struct {
+		info Info
+		want string
+	}{
+		{Info{Language: "english"}, "rom1-en"},
+		{Info{Language: "russian"}, "rom1-ru"},
+		{Info{Language: "language selector 4"}, "rom1"},
+		{Info{Language: "english", Base: base.Match{Profile: base.Profile{ID: base.ROM1Demo}}}, base.ROM1Demo},
+		{Info{Language: "russian", Base: base.Match{Profile: base.Profile{ID: base.ROM2RU}}}, base.ROM2RU},
+	}
+	for _, c := range cases {
+		if got := c.info.BaseID(); got != c.want {
+			t.Errorf("%+v.BaseID() = %q, want %q", c.info, got, c.want)
+		}
 	}
 }
 

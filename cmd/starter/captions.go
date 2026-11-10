@@ -42,7 +42,16 @@ const (
 	cModsReadError      captionID = "mods-read-error"
 	cNoMods             captionID = "no-mods"
 	cTickHint           captionID = "tick-hint"
+	cTickHintPlain      captionID = "tick-hint-plain"
 	cModsFound          captionID = "mods-found"
+	cRefusedAPI         captionID = "refused-api"
+	cRefusedBase        captionID = "refused-base"
+	cRefusedConflict    captionID = "refused-conflict"
+	cRefusedMissing     captionID = "refused-missing"
+	cRefusedVersion     captionID = "refused-version"
+	cRefusedUnreadable  captionID = "refused-unreadable"
+	cRefusedCycle       captionID = "refused-cycle"
+	cRefusedUnusable    captionID = "refused-unusable"
 
 	cSound                  captionID = "sound"
 	cVolume                 captionID = "volume"
@@ -176,9 +185,18 @@ var captionRows = []captionRow{
 	row(cModsDefault, "(empty: %s)", "(пусто: %s)", ""),
 	row(cModsReadError, "cannot read the mods folder: %s", "не удалось прочитать папку модов: %s", ""),
 	row(cNoMods, "No mods found.", "Модов не найдено.", ""),
-	row(cTickHint, "Tick to enable. Load order is the order shown.", "Отметьте мод, чтобы включить. Порядок загрузки - как в списке.", ""),
+	row(cTickHintPlain, "Tick to enable.", "Отметьте мод, чтобы включить.", ""),
+	row(cTickHint, "Tick to enable. Enabled mods load in the order shown.", "Отметьте мод, чтобы включить. Включенные моды загружаются в показанном порядке.", ""),
 
 	row(cModsFound, "%d mod folder(s) found in %s", "Найдено папок с модами: %d, в %s", ""),
+	row(cRefusedAPI, "written for mod api %d, this game runs api %d", "написан для api модов %d, игра поддерживает api %d", ""),
+	row(cRefusedBase, "does not fit the base %s", "не подходит к игре %s", ""),
+	row(cRefusedConflict, "conflicts with %s", "несовместим с %s", ""),
+	row(cRefusedMissing, "needs %s, which is not enabled", "нужен %s, он не включен", ""),
+	row(cRefusedVersion, "needs %s, version %s is enabled", "нужен %s, включена версия %s", ""),
+	row(cRefusedUnreadable, "cannot check the requirement %q", "не удалось проверить требование %q", ""),
+	row(cRefusedUnusable, "needs %s, which cannot be used", "нужен %s, он непригоден", ""),
+	row(cRefusedCycle, "in a load order cycle with %s", "в цикле порядка загрузки с %s", ""),
 
 	row(cSound, "Sound", "Звук", ""),
 	row(cVolume, "Volume 0-100", "Громкость 0-100", "dialogs.txt: Music volume"),

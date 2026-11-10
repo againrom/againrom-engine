@@ -74,23 +74,6 @@ func TestInspectInstallNamesTheGenericProfile(t *testing.T) {
 	}
 }
 
-func TestBaseIDPrefersTheDetectedProfile(t *testing.T) {
-	cases := []struct {
-		info InstallInfo
-		want string
-	}{
-		{InstallInfo{Language: "english"}, "rom1-en"},
-		{InstallInfo{Language: "russian"}, "rom1-ru"},
-		{InstallInfo{Language: "language selector 4"}, "rom1"},
-		{InstallInfo{Language: "english", Base: base.Match{Profile: base.Profile{ID: base.ROM1Demo}}}, base.ROM1Demo},
-	}
-	for _, c := range cases {
-		if got := BaseID(c.info); got != c.want {
-			t.Errorf("BaseID(%+v) = %q, want %q", c.info, got, c.want)
-		}
-	}
-}
-
 // A known build that lacks a file of its profile is not valid and names the
 // file; with the file present it is the profile, exactly.
 func TestInspectInstallRefusesAPartialProfile(t *testing.T) {

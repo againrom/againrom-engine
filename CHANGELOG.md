@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] The starter lists the enabled mods in the order the game loads them, and a mod's row says why the game would refuse it, such as a mod made for the other game, a missing required mod or two mods that conflict, before you press Play.
 - [BASE] In a city shop, double-clicking a wearable or usable item that came from an original save now uses it; before, the second click was refused.
 - [ROM2] A unit loaded from an original save with an unfinished leftover action no longer refuses queued spells and pickups for the rest of the mission.
 - [ROM2] Standing units keep the normal target restrictions when only fallen enemies remain nearby.

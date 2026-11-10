@@ -72,10 +72,11 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		}
 		return Result{Rules: rules.Default(), Set: mod.Set{Base: base}}, nil
 	}
-	ordered, err := mod.Order(mods, base)
-	if err != nil {
+	order := mod.Order(mods, base)
+	if err := order.Err(); err != nil {
 		return Result{}, err
 	}
+	ordered := order.Mods
 	byMod := map[string]map[string]string{}
 	enabled := map[string]bool{}
 	for _, m := range ordered {

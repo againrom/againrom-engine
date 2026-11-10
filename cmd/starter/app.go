@@ -6,6 +6,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	basepkg "againrom/pkg/base"
@@ -139,6 +140,8 @@ type modRow struct {
 	id      string
 	label   string
 	problem string // non-empty: cannot be ticked
+	refusal string // non-empty: the game refuses the mod on the selected base
+	order   int    // place in the load order from 1; 0 when not ordered
 	enabled bool
 }
 
@@ -306,15 +309,16 @@ func (a *app) settingsOf(id string) ([]mod.Setting, error) {
 }
 
 // panelMod is the mod whose settings the panel shows: the selected one while it
-// is listed, else the first enabled mod.
+// is listed, else the first enabled mod of the list.
 func (a *app) panelMod() (string, bool) {
-	for _, r := range a.modRows() {
+	rows := a.modRows()
+	for _, r := range rows {
 		if r.id == a.selMod {
 			return r.id, true
 		}
 	}
-	if len(a.s.Enabled) > 0 {
-		return a.s.Enabled[0], true
+	if len(rows) > 0 && rows[0].enabled {
+		return rows[0].id, true
 	}
 	return "", false
 }
@@ -404,38 +408,118 @@ func (a *app) settingField(i int) *string {
 	return a.s.modValuePtr(id, decl[i].Key, decl[i].Default.String())
 }
 
-// modRows lists the enabled mods in load order, then the others by name.
+// modBase is the base the game orders mods for on the selected base, and
+// whether a base is selected.
+func (a *app) modBase() (string, bool) {
+	root, ok := a.selectedRoot()
+	if !ok {
+		return "", false
+	}
+	return a.infos[root].BaseID(), true
+}
+
+// modRows lists the enabled mods in the load order mod.Order gives them on the
+// selected base, each numbered and with the refusals that stand on it; then
+// the enabled mods that cannot be read, by name; then the others by name, each
+// with the refusals mod.Fit raises for it on the base. Without a selected base
+// nothing is ordered or refused.
 func (a *app) modRows() []modRow {
 	byID := map[string]mod.Entry{}
 	for _, e := range a.scan {
 		byID[e.Folder] = e
 	}
-	describe := func(e mod.Entry) modRow {
+	baseID, haveBase := a.modBase()
+	var unusable []string
+	for _, id := range slices.Sorted(slices.Values(a.s.Enabled)) {
+		if e, ok := byID[id]; !ok || e.Err != nil {
+			unusable = append(unusable, id)
+		}
+	}
+	describe := func(e mod.Entry, refused []mod.Refusal) modRow {
 		if e.Err != nil {
 			return modRow{id: e.Folder, label: e.Folder + ": " + e.Err.Error(), problem: e.Err.Error()}
 		}
 		m := e.Manifest
-		return modRow{id: e.Folder, label: fmt.Sprintf("%s %s  %s  (%s)", m.ID, m.Version, m.Title, strings.Join(m.AppliesTo, ","))}
+		r := modRow{id: e.Folder, label: fmt.Sprintf("%s %s  %s  (%s)", m.ID, m.Version, m.Title, strings.Join(m.AppliesTo, ","))}
+		if len(refused) > 0 {
+			var why []string
+			for _, f := range refused {
+				why = append(why, a.refusalText(e.Folder, f, unusable))
+			}
+			r.refusal = strings.Join(why, "; ")
+			r.label = fmt.Sprintf("%s %s: %s  %s  (%s)", m.ID, m.Version, r.refusal, m.Title, strings.Join(m.AppliesTo, ","))
+		}
+		return r
+	}
+	var usable []mod.Entry
+	for _, id := range slices.Sorted(slices.Values(a.s.Enabled)) {
+		if e, ok := byID[id]; ok && e.Err == nil {
+			usable = append(usable, e)
+		}
+	}
+	order := mod.Ordering{Mods: usable}
+	if haveBase {
+		order = mod.Order(usable, baseID)
 	}
 	var rows []modRow
-	listed := map[string]bool{}
-	for _, id := range a.s.Enabled {
-		listed[id] = true
-		var r modRow
+	for i, e := range order.Mods {
+		r := describe(e, order.Of(e.Folder))
+		r.enabled = true
+		if haveBase {
+			r.order = i + 1
+		}
+		rows = append(rows, r)
+	}
+	for _, id := range unusable {
+		r := modRow{id: id, label: a.t(cModFolderMissing, id), problem: a.t(cProblemMissing)}
 		if e, ok := byID[id]; ok {
-			r = describe(e)
-		} else {
-			r = modRow{id: id, label: a.t(cModFolderMissing, id), problem: a.t(cProblemMissing)}
+			r = describe(e, nil)
 		}
 		r.enabled = true
 		rows = append(rows, r)
 	}
 	for _, e := range a.scan {
-		if !listed[e.Folder] {
-			rows = append(rows, describe(e))
+		if a.s.modEnabled(e.Folder) {
+			continue
 		}
+		var refused []mod.Refusal
+		if haveBase && e.Err == nil {
+			refused = mod.Fit(e.Manifest, baseID)
+		}
+		rows = append(rows, describe(e, refused))
 	}
 	return rows
+}
+
+// refusalText is a refusal as the row of mod id shows it, in the language of
+// the selected base, with the mods and values it names as data. unusable lists
+// the enabled mods that cannot be read or are missing: a requirement on one of
+// them is worded as such, not as a mod that is not enabled.
+func (a *app) refusalText(id string, r mod.Refusal, unusable []string) string {
+	switch r.Kind {
+	case mod.RefusedAPI:
+		return a.t(cRefusedAPI, r.API, mod.SupportedAPI)
+	case mod.RefusedBase:
+		return a.t(cRefusedBase, r.Base)
+	case mod.RefusedConflict:
+		return a.t(cRefusedConflict, r.Other)
+	case mod.RefusedRequirementMissing:
+		if slices.Contains(unusable, r.Other) {
+			return a.t(cRefusedUnusable, r.Other)
+		}
+		return a.t(cRefusedMissing, r.Other)
+	case mod.RefusedRequirementVersion:
+		return a.t(cRefusedVersion, r.Requirement, r.Version)
+	case mod.RefusedCycle:
+		var others []string
+		for _, c := range r.Cycle {
+			if c != id {
+				others = append(others, c)
+			}
+		}
+		return a.t(cRefusedCycle, strings.Join(others, ", "))
+	}
+	return a.t(cRefusedUnreadable, r.Requirement)
 }
 
 // layout is the window's content.
@@ -532,17 +616,10 @@ func (a *app) layout() []item {
 			m := rows[top+k]
 			label := m.label
 			tn := toneNormal
-			if m.enabled {
-				n := 0
-				for _, e := range a.s.Enabled {
-					n++
-					if e == m.id {
-						break
-					}
-				}
-				label = fmt.Sprintf("%d. %s", n, label)
+			if m.order > 0 {
+				label = fmt.Sprintf("%d. %s", m.order, label)
 			}
-			if m.problem != "" {
+			if m.problem != "" || m.refusal != "" {
 				tn = toneBad
 			}
 			it = append(it, item{kind: iModRow, rect: rect(10, 250+18*k, lw, 18), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
@@ -552,7 +629,11 @@ func (a *app) layout() []item {
 		} else if len(rows) == 0 {
 			textW(10, 250, lw, a.t(cNoMods), toneDim)
 		}
-		textW(10, 362, lw, a.t(cTickHint), toneDim)
+		hint := cTickHintPlain
+		if _, ok := a.modBase(); ok {
+			hint = cTickHint
+		}
+		textW(10, 362, lw, a.t(hint), toneDim)
 
 		// Mod settings.
 		heading(10, panelTop, a.t(cHeadModSettings))
@@ -974,9 +1055,15 @@ func (a *app) launchPlan(check bool) (string, []string, error) {
 	if info := a.infos[root]; !info.Valid() {
 		return "", nil, captionErr(cBaseNotInstall, a.s.LastBase, strings.Join(info.Missing, ", "))
 	}
-	for _, m := range a.modRows() {
+	rows := a.modRows()
+	for _, m := range rows {
 		if m.enabled && m.problem != "" {
 			return "", nil, captionErr(cModUnusable, m.id, m.problem)
+		}
+	}
+	for _, m := range rows {
+		if m.enabled && m.refusal != "" {
+			return "", nil, captionErr(cModUnusable, m.id, m.refusal)
 		}
 	}
 	args, err := a.gameArgs(root, check)

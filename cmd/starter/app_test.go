@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -95,7 +96,7 @@ func writeModFolder(t *testing.T, dir, id, manifest string) {
 }
 
 func goodMod(id string) string {
-	return "id = \"" + id + "\"\ntitle = \"T " + id + "\"\nversion = \"1.0\"\napplies-to = [\"en\"]\n"
+	return "id = \"" + id + "\"\ntitle = \"T " + id + "\"\nversion = \"1.0\"\napplies-to = [\"common\"]\n"
 }
 
 // do clicks the first item that carries act.
@@ -229,7 +230,7 @@ func TestAddingABaseByTypingOrPasting(t *testing.T) {
 	}
 }
 
-func TestModListTickOrderAndBrokenFolders(t *testing.T) {
+func TestModListOrderAndBrokenFolders(t *testing.T) {
 	r := newRig(t, "")
 	mods := filepath.Join(r.dir, "mods")
 	writeModFolder(t, mods, "alpha", goodMod("alpha"))
@@ -245,16 +246,28 @@ func TestModListTickOrderAndBrokenFolders(t *testing.T) {
 	if !reflect.DeepEqual(a.s.Enabled, []string{"beta", "alpha"}) {
 		t.Fatalf("enabled %v", a.s.Enabled)
 	}
-	if rows := a.modRows(); rows[0].id != "beta" || rows[1].id != "alpha" || !rows[0].enabled {
-		t.Fatalf("enabled mods are not listed first in load order: %+v", rows)
+	// without a base nothing is ordered: the enabled mods stand first, unnumbered
+	if rows := a.modRows(); rows[0].id != "alpha" || rows[1].id != "beta" || !rows[0].enabled || rows[0].order != 0 {
+		t.Fatalf("enabled mods are not listed first: %+v", rows)
 	}
+	// and the hint does not say the mods load in the order shown
+	if texts := windowTexts(a); !slices.Contains(texts, a.t(cTickHintPlain)) || slices.Contains(texts, a.t(cTickHint)) {
+		t.Fatalf("hint without a base: %q", texts)
+	}
+	a.s.LastBase = "en"
+	a.s.Bases = []base{{Key: "en", Path: r.root}}
+	a.inspectBase(r.root)
 	labels := []string{}
 	for _, it := range a.layout() {
 		if it.kind == iModRow {
 			labels = append(labels, it.text)
 		}
 	}
-	if !strings.HasPrefix(labels[0], "1. beta") || !strings.HasPrefix(labels[1], "2. alpha") {
+	// on a base the load order is mod.Order's, not the order of the ticks
+	if texts := windowTexts(a); !slices.Contains(texts, a.t(cTickHint)) || slices.Contains(texts, a.t(cTickHintPlain)) {
+		t.Fatalf("hint on a base: %q", texts)
+	}
+	if !strings.HasPrefix(labels[0], "1. alpha") || !strings.HasPrefix(labels[1], "2. beta") {
 		t.Fatalf("order not shown: %q", labels)
 	}
 	do(t, a, action{aToggleMod, 2}) // the broken one
@@ -263,12 +276,9 @@ func TestModListTickOrderAndBrokenFolders(t *testing.T) {
 	}
 	// an enabled mod that vanished stays listed, can be unticked, and blocks Play
 	a.s.Enabled = append(a.s.Enabled, "ghost")
-	if rows := a.modRows(); rows[2].id != "ghost" || rows[2].problem == "" {
+	if rows := a.modRows(); rows[2].id != "ghost" || rows[2].problem == "" || rows[2].order != 0 {
 		t.Fatalf("%+v", rows)
 	}
-	a.s.LastBase = "en"
-	a.s.Bases = []base{{Key: "en", Path: r.root}}
-	a.inspectBase(r.root)
 	a.play()
 	if len(r.fakes.started) != 0 || !a.statusBad || !strings.Contains(a.status, "ghost") {
 		t.Fatalf("started %v status %q", r.fakes.started, a.status)
