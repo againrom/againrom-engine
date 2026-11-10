@@ -167,10 +167,12 @@ func (f *FrontEnd) startSecondCampaign() error {
 }
 
 // startSecondCampaignWith drops the session and starts a new campaign at its
-// first town with party.
+// first town with party; its Hall history begins as a first-game New Game's
+// does (DIV-4752).
 func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 	releaseWorldAudio(f.runtimeAudio(), f.endLive())
 	f.CampaignSession.clear(Campaign{})
+	f.fame = begunFame()
 	f.Town.second = newSecondCampaign()
 	f.Carried = party
 }

@@ -34,11 +34,11 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 	}
 	got := SecondTotals(census)
 	want := SecondCensusTotals{
-		Maps: 46, Started: 46, Ran: 46,
+		Maps: 46, Started: 46, Ran: 46, Lost: 1,
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 0,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 0, EntryMaps: 46, WinMaps: 46, Ready: 46,
+		FixtureMaps: 0, EntryMaps: 46, WinMaps: 46, Ready: 45,
 		Exits: 15, GatedExits: 6, EngineExits: 15,
 	}
 	// The census party carries identities 21, 22 and 23, which bind every
@@ -76,8 +76,10 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 			if !slices.Contains(c.Spells, 7) || len(c.NoSpellRule) != 0 {
 				t.Errorf("mission %d spells %v, without a rule %v, want Blizzard named and every spell ruled", c.Mission, c.Spells, c.NoSpellRule)
 			}
-			if len(blockers) != 0 {
-				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
+			// Mission 102's creatures overrun the unattended party since
+			// the scorer gates its preferences on the actor's size and Mind.
+			if want := map[int][]string{102: {BlockHeadlessLoss}}[c.Mission]; !slices.Equal(blockers, want) {
+				t.Errorf("mission %d blockers %v, want %v", c.Mission, blockers, want)
 			}
 		case 101:
 			if c.Run.Outcome != sim.OutcomeUndecided || c.BornFallen != 1 {

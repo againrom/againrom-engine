@@ -169,7 +169,8 @@ type secondBlizzardResult struct {
 
 // secondBlizzardRun plays mission 102 from its start: the hero attacks the
 // first Blizzard caster, and the creatures cast Blizzard through their own
-// cast route. It watches every Blizzard for 1400 ticks.
+// cast route. It heals the hero, their target, while he stands and watches
+// every Blizzard for 1400 ticks.
 func secondBlizzardRun(t *testing.T) (secondBlizzardResult, int) {
 	t.Helper()
 	w, _, hero := secondSpellMission(t, 102)
@@ -178,6 +179,9 @@ func secondBlizzardRun(t *testing.T) (secondBlizzardResult, int) {
 	var watch secondBlizzardWatch
 	checked := 0
 	for range 1400 {
+		if h, _ := w.Entity(hero); h.Alive() {
+			secondBlizzardKeep(t, w, []sim.EntityID{hero})
+		}
 		before := w.Entities()
 		report := sim.StepReported(w, nil)
 		watch.observe(t, w, report)

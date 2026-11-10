@@ -74,6 +74,16 @@ func (k *secondTailKept) withHall(time, events uint32) *secondTailKept {
 	return out
 }
 
+// held is the kept tail a LOAD seats in the campaign: none when it is the
+// new game's tail that withHall builds from the Hall words alone, so a loaded
+// new game holds the state the saved one did and a SAVE builds it again.
+func (k *secondTailKept) held() *secondTailKept {
+	if k != nil && len(k.Locations) == 0 && slices.Equal(k.Pairs, secondNewPairs) && k.PairTail != [2]uint32{} {
+		return nil
+	}
+	return k.clone()
+}
+
 // raw is the 16 bytes the loaded tail held for the location, zero for one it
 // did not list.
 func (k *secondTailKept) raw(l currentSecondLocation) [16]byte {
@@ -265,7 +275,7 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	}
 	out := newSecondCampaign()
 	out.bank, out.current, out.shop = c.Bank, partyPlace{c.Current.Kind, c.Current.ID}, c.Shop.restore()
-	out.party, out.kept, out.available = restoreSecondParty(c.Party), c.Kept.clone(), nil
+	out.party, out.kept, out.available = restoreSecondParty(c.Party), c.Kept.held(), nil
 	if c.Shop != nil {
 		out.legacyHero = slices.Clone(c.Shop.Hero)
 	}

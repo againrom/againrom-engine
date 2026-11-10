@@ -30,6 +30,12 @@ func cloneFame(s SnapshotFame) SnapshotFame {
 	return s
 }
 
+// begunFame is the history a new game starts with: complete from its first
+// mission, so its campaign end earns a result.
+func begunFame() SnapshotFame {
+	return SnapshotFame{Known: true}
+}
+
 func fameFromSnapshot(s Snapshot) SnapshotFame {
 	if s.Fame != nil {
 		return cloneFame(*s.Fame)

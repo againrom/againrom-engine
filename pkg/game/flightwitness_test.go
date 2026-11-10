@@ -24,14 +24,14 @@ var flightWitnessDigests = map[string]string{
 	"first/client-lightning":  "d5fc23b3b3c0a1cf",
 	"first/client-chain":      "0c9de92bd9ba1ec4",
 	"first/teleport-moved":    "2bb7fd4ab8154a58",
-	"second/shot":             "39cb281289aa406a",
-	"second/book":             "23aa0eeb2381aca8",
-	"second/staff":            "6d27117ce4b5d37e",
-	"second/staged":           "e5c5dec2cfe13c2b",
-	"second/fire-ball":        "d2cc4cda14cf98e4",
-	"second/client-lightning": "c5eeee2b6900278b",
-	"second/client-chain":     "94a2b979b580eb84",
-	"second/teleport-moved":   "143171720e3dbad1",
+	"second/shot":             "a646bbaf3f2b2e41",
+	"second/book":             "924693aef5a6706a",
+	"second/staff":            "9a568063c39d75cd",
+	"second/staged":           "1dc91eff9c81881a",
+	"second/fire-ball":        "4dcf55e238bb1355",
+	"second/client-lightning": "8a95ef14bee042ac",
+	"second/client-chain":     "3ae521974a626714",
+	"second/teleport-moved":   "c8046438436093e2",
 }
 
 // The second game's release clock is profile data: the client's swing clock

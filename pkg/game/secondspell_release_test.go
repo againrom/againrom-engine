@@ -96,42 +96,54 @@ func TestReleaseSecondGameSpellTableLoads(t *testing.T) {
 	}
 }
 
-// TestReleaseSecondGameMissionTenMageHealsTheHero: the hero walks to mission
-// 10's mage, who heals him with the second game's Heal (row 24) through the
-// ordinary engage, paying the row's mana cost.
-func TestReleaseSecondGameMissionTenMageHealsTheHero(t *testing.T) {
+// TestReleaseSecondGameMissionTenMageHealsHimselfNotTheHero: mission 10's
+// mage is neutral to the player, so his automatic Heal (row 24) passes over
+// the wounded hero beside him (DIV-4756); wounded himself, he heals himself
+// through the same cast, paying the row's mana cost.
+func TestReleaseSecondGameMissionTenMageHealsHimselfNotTheHero(t *testing.T) {
 	w, _, hero := secondSpellMission(t, 10)
 	mage := secondSpellCaster(t, w, hero, 24)
 	heal := secondSpellRule(t, w, 24)
 	if heal.ArmID() != 6 || !heal.Restorative {
 		t.Fatalf("row 24 runs arm %d restorative=%v, want the Heal arm", heal.ArmID(), heal.Restorative)
 	}
+	if h, _ := w.Entity(hero); w.Relations().Locked(mage.Owner, h.Owner) || w.Relations().Hostile(mage.Owner, h.Owner) {
+		t.Fatalf("mission 10's mage (owner %d) is not neutral to the hero (owner %d)", mage.Owner, h.Owner)
+	}
 	sim.Step(w, []sim.Command{sim.MoveTo(hero, sim.CellPoint{X: mage.X - 2, Y: mage.Y})})
-	paid := int32(-1)
+	paid, woundedAt := int32(-1), -1
 	for tick := 0; tick < 2000; tick++ {
 		secondSpellWoundNear(t, w, hero, mage.ID, 3)
-		before, _ := w.Entity(hero)
-		caster, _ := w.Entity(mage.ID)
+		if h, _ := w.Entity(hero); woundedAt < 0 && h.HP < h.MaxHP {
+			woundedAt = tick
+		}
+		if woundedAt >= 0 && tick == woundedAt+300 {
+			secondSpellWoundSelf(t, w, mage.ID)
+		}
+		before, _ := w.Entity(mage.ID)
 		events := sim.StepObserved(w, nil)
-		if now, _ := w.Entity(mage.ID); paid < 0 && now.Mana < caster.Mana {
-			paid = caster.Mana - now.Mana
+		if now, _ := w.Entity(mage.ID); paid < 0 && now.Mana < before.Mana {
+			paid = before.Mana - now.Mana
 		}
 		for _, ev := range events {
-			if ev.Caster != mage.ID || ev.Target != hero || ev.Spell != 24 {
+			if ev.Caster != mage.ID || ev.Spell != 24 {
 				continue
 			}
-			after, _ := w.Entity(hero)
-			if ev.HealthRestored <= 0 || after.HP <= before.HP {
-				t.Fatalf("Heal restored %d; hero health %d -> %d", ev.HealthRestored, before.HP, after.HP)
+			if ev.Target == hero {
+				t.Fatalf("tick %d: the neutral mage healed the hero", w.Tick())
+			}
+			after, _ := w.Entity(mage.ID)
+			if ev.Target != mage.ID || ev.HealthRestored <= 0 || after.HP <= before.HP {
+				t.Fatalf("Heal at %d restored %d; mage health %d -> %d", ev.Target, ev.HealthRestored, before.HP, after.HP)
 			}
 			if paid != heal.ManaCost {
 				t.Fatalf("caster paid %d mana, want the row's %d", paid, heal.ManaCost)
 			}
-			t.Logf("tick %d: mage %d healed the hero by %d (%d -> %d) for %d mana", w.Tick(), mage.ID, ev.HealthRestored, before.HP, after.HP, paid)
+			t.Logf("tick %d: mage %d passed over the hero wounded at step %d and healed himself by %d (%d -> %d) for %d mana", w.Tick(), mage.ID, woundedAt, ev.HealthRestored, before.HP, after.HP, paid)
 			return
 		}
 	}
-	t.Fatal("the mage never healed the hero")
+	t.Fatalf("the mage never healed himself; hero wounded at step %d", woundedAt)
 }
 
 // TestReleaseSecondGameMissionTwentyOneMageCastsIceMissile: the hero attacks
@@ -176,7 +188,7 @@ func TestReleaseSecondGameMissionTwentyOneMageCastsIceMissile(t *testing.T) {
 }
 
 // TestReleaseSecondMissionTenHealSaveContinuation: after mission 10's mage
-// has healed the hero, an ordinary named SAV and a cold LOAD keep the mage's
+// has healed himself, an ordinary named SAV and a cold LOAD keep the mage's
 // spent mana, his book and the table's arms, and both worlds continue alike.
 func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 	secondGameRoot(t)
@@ -195,7 +207,9 @@ func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 			f.live.enqueue(uint32(hero), int(mage.X)-7, int(mage.Y))
 			walked = true
 		}
-		secondSpellWoundNear(t, f.live.world, hero, mage.ID, 8)
+		if walked {
+			secondSpellWoundSelf(t, f.live.world, mage.ID)
+		}
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
@@ -254,6 +268,17 @@ func secondSpellWoundNear(t *testing.T, w *sim.World, hero, mage sim.EntityID, r
 	}
 	if err := w.HeadlessDamage(hero, h.MaxHP/4); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// secondSpellWoundSelf wounds an unhurt mage, so his own Heal has a wound
+// to restore.
+func secondSpellWoundSelf(t *testing.T, w *sim.World, mage sim.EntityID) {
+	t.Helper()
+	if m, _ := w.Entity(mage); m.HP == m.MaxHP {
+		if err := w.HeadlessDamage(mage, m.MaxHP/4); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

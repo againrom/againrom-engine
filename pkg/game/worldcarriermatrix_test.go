@@ -85,15 +85,15 @@ var carrierMatrix = map[string][]string{
 	},
 	"second original mission": {
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
-		"save 3c2ad4e3bc5beedd",
+		"save c99a766ee4818e61",
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
-		"resave 3c2ad4e3bc5beedd",
+		"resave c99a766ee4818e61",
 	},
 	"second town Diary": {
 		"knowledge 378644cc182d8ae5 gold 500",
-		"save 64167438e24952d9",
+		"save f201b9287196ee02",
 		"knowledge 378644cc182d8ae5 gold 500",
-		"resave 64167438e24952d9",
+		"resave f201b9287196ee02",
 	},
 	"first loaded Player name": {
 		"planted 6dcab427302e0a73",
@@ -130,10 +130,10 @@ var carrierMatrix = map[string][]string{
 	// The second game's LOAD of its own SAVE with planted Player names and
 	// tails writes the hero's name and no tail again.
 	"second loaded Player name and unknown spans": {
-		"planted 416f05e2f4b84ced",
+		"planted f4da81e161f7938a",
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
 		`records Player "Gildarius" ; Human ff00001 U40 0 U5C 0 T0E 0`,
-		"resave 3c2ad4e3bc5beedd",
+		"resave c99a766ee4818e61",
 	},
 }
 
@@ -215,10 +215,10 @@ func carrierMatrixRows(t *testing.T) map[string][]string {
 	run("second town Diary", func(t *testing.T) []string {
 		f, _, _ := secondCampaignFixtureFiles(t, false, identityNames())
 		f.Table = identityDollTable()
-		f.Carried = []mapload.PartyMember{{ID: "hero", Name: "Aldor", PlayerCharacter: true, StartingHero: true}}
-		c := newSecondCampaign()
+		f.startSecondCampaignWith([]mapload.PartyMember{{ID: "hero", Name: "Aldor", PlayerCharacter: true, StartingHero: true}})
+		c := f.Town.second
 		c.current, c.available = partyPlace{2, 2}, []partyPlace{{2, 2}, {1, 30}, {1, 31}}
-		f.Town.second, f.Town.gold = c, 500
+		f.Town.gold = 500
 		f.Town.settleCityGroups(f.Carried)
 		f.Town.knowledge = carrierMatrixKnowledge
 		first := exportTown(t, f)

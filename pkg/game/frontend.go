@@ -840,7 +840,7 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 			CutsceneAudioPlayer: cutsceneAudioPlayer,
 		},
 		CampaignSession: CampaignSession{
-			fame: SnapshotFame{Known: true},
+			fame: begunFame(),
 			// Built over the campaign just read, on the same statement, so there is no
 			// window in which a front end holds a campaign and no town for it. A zero
 			// campaign yields a town with no chapter, which is what an install

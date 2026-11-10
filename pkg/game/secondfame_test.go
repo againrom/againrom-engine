@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"reflect"
 	"testing"
 
 	"againrom/pkg/base"
@@ -164,6 +165,32 @@ func TestSecondFameSaveWritesTheCurrentWords(t *testing.T) {
 	}
 	if tail.PairTail != [2]uint32{7, 8} || len(tail.Pairs) != 1 || tail.Pairs[0] != [2]uint32{1, 1} {
 		t.Fatalf("new game tail pairs %v words %v", tail.Pairs, tail.PairTail)
+	}
+}
+
+// A second-game New Game begins its Hall history, as the first game's does:
+// a town SAVE carries the clock and the event count it holds, and a LOAD
+// gives the same history and campaign back, so a resave writes the save's own
+// bytes.
+func TestSecondCampaignStartBeginsItsHallHistory(t *testing.T) {
+	f, _, _ := secondCampaignFixtureFiles(t, false, identityNames())
+	f.Table = identityDollTable()
+	f.startSecondCampaignWith([]mapload.PartyMember{{ID: "hero", Name: "Aldor", PlayerCharacter: true, StartingHero: true}})
+	if !f.fame.Known || f.fame.Time != 0 || f.fame.Events != 0 || f.fame.Result != nil {
+		t.Fatalf("new campaign fame %+v", f.fame)
+	}
+	f.Town.settleCityGroups(f.Carried)
+	f.fame.Time, f.fame.Events = 8, 3
+	first := exportTown(t, f)
+	cold := coldIdentityTown(t, first)
+	if cold.fame.Known != f.fame.Known || cold.fame.Time != f.fame.Time || cold.fame.Events != f.fame.Events || cold.fame.Result != nil {
+		t.Fatalf("loaded fame %+v, live %+v", cold.fame, f.fame)
+	}
+	if live, loaded := captureSecondCampaign(f.Town.second), captureSecondCampaign(cold.Town.second); !reflect.DeepEqual(live.Kept, loaded.Kept) {
+		t.Fatalf("loaded campaign keeps tail %+v, live %+v", loaded.Kept, live.Kept)
+	}
+	if second := exportTown(t, cold); string(second) != string(first) {
+		t.Fatal("the loaded town resaves to other bytes")
 	}
 }
 

@@ -29,7 +29,7 @@ func newCampaignCandidate(campaign Campaign, units *terrain.UnitSet, level int64
 		town:       NewTown(campaign),
 		difficulty: difficulty,
 		units:      cloneCandidateUnits(units),
-		fame:       SnapshotFame{Known: true},
+		fame:       begunFame(),
 	}, nil
 }
 
