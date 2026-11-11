@@ -461,7 +461,7 @@ func (t *townScreen) AtTownSurface() bool {
 // map a town pane shows. fallback is his slot-1 code while slot 1 is empty;
 // a matched hero appearance is written back to member, and the figure is
 // composed from member as it stood.
-func (in *InstallResources) composeMemberFace(member *mapload.PartyMember, id uint32, fallback func() (uint16, bool)) ui.InventorySubject {
+func (in *InstallResources) composeMemberFace(member *mapload.PartyMember, id uint32, fallback func() (uint16, bool), lifted int) ui.InventorySubject {
 	var src entrySource
 	if in.Archives != nil {
 		src = in.Archives.Containers
@@ -486,6 +486,9 @@ func (in *InstallResources) composeMemberFace(member *mapload.PartyMember, id ui
 		if code, ok := fallback(); ok {
 			eq.SetCode(1, data.ItemCode(code))
 		}
+	}
+	if lifted != 0 {
+		eq.SetCode(lifted, 0)
 	}
 	// MERC-TYPE-001
 	if !m.Hired() && data.ComposesFigure(m.Class) {
@@ -517,7 +520,7 @@ func (t *shopController) composeShopFaces() {
 	t.shopFigures = make([]*image.RGBA, len(party))
 	t.shopFigureMasks = make([]*ui.SlotMask, len(party))
 	for i, member := range party {
-		subject := t.in.composeMemberFace(&party[i], uint32(i+1), func() (uint16, bool) { return t.shopWeaponFallbackCode(i) })
+		subject := t.in.composeMemberFace(&party[i], uint32(i+1), func() (uint16, bool) { return t.shopWeaponFallbackCode(i) }, 0)
 		t.shopFigures[i] = subject.Figure
 		t.shopFigureMasks[i] = subject.SlotMask
 		if i == 0 {

@@ -202,13 +202,17 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 		// TestShopScreenNeverSubstitutesAnotherMembersSuppressedFigure
 		// (shopdrag_test.go) exercises it directly and mutation-witnesses the
 		// guard rather than merely asserting it is unreachable.
-		if i == t.shopSuppressMember && t.shopSuppressSlot != 0 && t.shopSuppressFigure != nil {
-			v.Figure = t.shopSuppressFigure
-			v.SlotMask = t.shopSuppressMask
-		}
+		//
+		// It is applied after the room's dress step below, which may set the
+		// figure and mask from the room's own pane (the second game's rooms
+		// do) and would otherwise draw the lifted item back.
 	}
 	if t.shop.dress != nil {
 		t.shop.dress(&v)
+	}
+	if i := t.shopMemberIndex(); i < len(party) && i == t.shopSuppressMember && t.shopSuppressSlot != 0 && t.shopSuppressFigure != nil {
+		v.Figure = t.shopSuppressFigure
+		v.SlotMask = t.shopSuppressMask
 	}
 	// The drag preview changes only the picture. heroPane resolves
 	// canonical statistics and equipment, so copying the suppressed figure
@@ -458,38 +462,11 @@ func (t *shopController) refreshShopDrag(want int) {
 		return
 	}
 	t.shopSuppressMember = i
-	// eq IS mapload.EquipmentFromParty, NOT THE TWO-LINE Carry-over-Worn IDIOM
-	// THIS FILE USED TO STATE INLINE (round-2 adversarial review, twelfth pass,
-	// C1 addendum): the mission doll restated the same rule a fourth time and
-	// forgot the Carry half, so the two remaining inline copies are collapsed
-	// onto the one named reader they were always supposed to agree with, rather
-	// than left as a second place the rule could still be half-copied from.
-	// party[i] is read by VALUE here (EquipmentFromParty takes a PartyMember,
-	// not a pointer), which changes nothing: this call only extracts eq and
-	// never writes back through party[i] the way shopWornSlots' own pointer
-	// result does.
-	eq := mapload.EquipmentFromParty(party[i])
-	// SLOT 1'S FALLBACK GOES THROUGH shopWeaponFallbackCode, composeShopFaces'
-	// own line restated (round-2 adversarial review, third pass, counterexample
-	// 2's own duplication finding applied here too): the unconditional
-	// member.Weapon != nil test this replaced disagreed with shopSlot1Code's
-	// own discriminator (shoproom.go) for a member who had already unequipped
-	// his starting weapon for real and finished the mission — the code sits
-	// in his own pack, and drawing it again on the suppressed doll would have
-	// shown a weapon shopUnequipDoll and its siblings no longer treat as
-	// fallback-backed.
-	if occupied, _ := eq.Occupied(1); !occupied {
-		if code, ok := t.shopWeaponFallbackCode(i); ok {
-			eq.SetCode(1, data.ItemCode(code))
-		}
-	}
-	eq.SetCode(want, 0)
-	var src entrySource
-	if t.in.Archives != nil {
-		src = t.in.Archives.Containers
-	}
-	composed, _ := composeInventoryPortraitLayered(src, uint32(i+1), eq,
-		figureLayersFor(mapload.MemberLayers(party[i], t.in.Table), t.in.Table), memberFigureID(party[i]))
+	// The lifted figure is composed by the builder that composes the ordinary
+	// one, with the slot cleared, so the two cannot disagree on fallback weapon,
+	// layers or body.
+	member := party[i]
+	composed := t.in.composeMemberFace(&member, uint32(i+1), func() (uint16, bool) { return t.shopWeaponFallbackCode(i) }, want)
 	t.shopSuppressFigure, t.shopSuppressMask = composed.Figure, composed.SlotMask
 }
 

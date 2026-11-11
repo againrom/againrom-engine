@@ -35,7 +35,7 @@ func (t *townScreen) heroFace() *secondHeroFace {
 		return f
 	}
 	member := party[i]
-	f := &secondHeroFace{member: i, subject: t.in.composeMemberFace(&member, uint32(i+1), nil)}
+	f := &secondHeroFace{member: i, subject: t.in.composeMemberFace(&member, uint32(i+1), nil, 0)}
 	f.info = t.in.wornItemLines(member, nil)
 	t.composed.hero = f
 	return f
