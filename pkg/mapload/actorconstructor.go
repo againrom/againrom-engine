@@ -33,13 +33,11 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 		}
 		row = r.Index
 		if !e.Humanoid {
-			face = uint8(placement.ClassSubID)
-		}
-		if !e.Humanoid {
 			d, err := data.NewUnitDef(t.Units.EntryName(row), t.Units.EntryParams(row))
 			if err != nil {
 				return e, "", err
 			}
+			face = t.unitKeys().placedCreatureFace(*placement, d)
 			body, name = d.Body, t.Units.EntryName(row)
 		} else if name == "" {
 			name = t.Humans.EntryName(row)

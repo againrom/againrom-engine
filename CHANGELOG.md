@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A staff's card states the staff's own range (6 for a Staff, 5 for a Shaman Staff) instead of its spell's, and a mage attacking with a spell staff starts casting at that range, counted from the nearest cell of a large target.
 - [BASE] A mage attacking with a spell staff casts as soon as the target is within the staff's range, even when the mage does not see it, instead of walking closer until it does.
 - [BASE] A quick click on the Close button of a room's tip panel (the shop's, the tavern's, the school's and the town square's) closes it at the first click; before, a click fast enough to press and release within one frame left the tip open until the next click.
+- [ROM2] A hired druid or troll shows its own portrait and colours in a mission, and the druids and necromancers of a mission keep theirs after a save is loaded, instead of the first picture (for a druid, the young woman in a dress of leaves).
 
 ## 0.151.1
 

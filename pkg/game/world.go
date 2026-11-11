@@ -965,7 +965,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// keys the bundle off PartyMember.Body and PartyMember.BodyDir.
 	list, _ := ReadBodyList(src)
 	canonicalizePartyAppearance(ms, units, src, list)
-	tiers := savedActorTiers(ms.Map, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument)
+	tiers := partyTiers(savedActorTiers(ms.Map, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument), ms.Party, ms.Start.IDs)
 	heroes := placedClientHeroes(ms, t)
 	mw := newMapWorldWith(ms.World, nil, units,
 		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src, heroes), v)

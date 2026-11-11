@@ -422,6 +422,9 @@ type UnitKeys interface {
 	// placedFaceByte is the face byte the spawner writes for a person
 	// placement from its keys, and false where it writes none.
 	placedFaceByte(u alm.Unit, arm Arm) (uint8, bool)
+	// placedCreatureFace is the face byte of a creature placed from its
+	// Units row d.
+	placedCreatureFace(u alm.Unit, d data.UnitDef) uint8
 	// clientHero reports whether the client draws a person placement with
 	// the hero class while the server keeps the row's type id.
 	clientHero(u alm.Unit, r Resolution) bool
