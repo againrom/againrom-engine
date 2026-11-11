@@ -1,10 +1,12 @@
 package mod
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,10 +19,9 @@ import (
 // that start with a dot, which no mod reader takes. Two paths equal without
 // case (namefold.ModTree: ASCII and CP866 Cyrillic), which a packed mod could not tell
 // apart, are refused naming both. A link or another
-// non-regular file, a file over MaxInstallFileBytes, and a name the RES
-// cannot hold (over res.MaxNameBytes bytes, or a character CP866 has no byte
-// for) are refused naming the file. The packed tree is read back and its
-// digest must equal the folder's.
+// non-regular file, a file over MaxInstallFileBytes, or an invalid component
+// is refused naming the file. Names the RES cannot hold use a name table.
+// The packed tree is read back and its digest must equal the folder's.
 func Pack(dir string) (Manifest, []byte, error) {
 	t, err := OpenTree(dir)
 	if err != nil {
@@ -77,6 +78,46 @@ func Pack(dir string) (Manifest, []byte, error) {
 	}
 	if err := refuseFoldTwins(id, entries); err != nil {
 		return Manifest{}, nil, err
+	}
+	used := map[string]bool{}
+	for _, e := range entries {
+		used[namefold.ModTree(e.Path)] = true
+	}
+	names := packedNames{Version: 1}
+	encoded := map[string]string{".": ""}
+	serial := 0
+	for i := range entries {
+		e := &entries[i]
+		original := e.Path
+		parent, name := path.Dir(original), path.Base(original)
+		if err := checkPackedComponent(name); err != nil {
+			return Manifest{}, nil, Source{Mod: id, File: original}.Errorf("cannot be packed: %v", err)
+		}
+		short := name
+		if _, err := res.EncodeName(name); len(name) > res.MaxNameBytes || err != nil {
+			for {
+				serial++
+				short = fmt.Sprintf("~%014x", serial)
+				key := namefold.ModTree(path.Join(parent, short))
+				if !used[key] {
+					used[key] = true
+					break
+				}
+			}
+			names.Entries = append(names.Entries, packedName{Path: path.Join(encoded[parent], short), Name: name})
+		}
+		e.Path = path.Join(encoded[parent], short)
+		encoded[original] = e.Path
+	}
+	if len(names.Entries) > 0 {
+		data, err := json.Marshal(names)
+		if err != nil {
+			return Manifest{}, nil, err
+		}
+		if len(data) > MaxInstallFileBytes {
+			return Manifest{}, nil, Source{Mod: id, File: packedNamesFile}.Errorf("name table is larger than %d bytes", MaxInstallFileBytes)
+		}
+		entries = append(entries, res.WriteEntry{Path: packedNamesFile, Data: data})
 	}
 	b, err := res.Write(entries)
 	var name *res.NameError

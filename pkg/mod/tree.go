@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"againrom/pkg/formats/res"
 	"againrom/pkg/namefold"
@@ -50,8 +52,8 @@ func looksPacked(name string) bool {
 // packed into. Every reader of a mod's files reads through a Tree, so a
 // packed mod is the same tree under the same checks as its folder. Paths are
 // slash-separated and relative to the mod's top. In a packed mod a name
-// matches without case (ASCII and CP866 Cyrillic), as a folder's name does on
-// Windows. A path with a component starting with a dot is refused by every
+// matches without case (ASCII and CP866 Cyrillic, namefold.ModTree), and a
+// folder's name matches the same way, not as the host file system folds it. A path with a component starting with a dot is refused by every
 // reader, in a folder and in a packed mod.
 type Tree struct {
 	path   string
@@ -96,7 +98,45 @@ func (t Tree) Path() string { return t.path }
 // Packed reports whether the mod is a RES file.
 func (t Tree) Packed() bool { return t.packed != nil }
 
-func (t Tree) host(name string) string { return filepath.Join(t.path, filepath.FromSlash(name)) }
+// host is the file system path of name in a folder, found by the mod tree's
+// own name rule: each component is looked up in the folder's listing, an exact
+// name first, then a name equal under namefold.ModTree. A name the listing
+// does not hold under that rule is not found, whatever the host's own folding
+// would open, so a folder and its pack answer one way.
+func (t Tree) host(name string) (string, error) {
+	cur := t.path
+	if name == "." || name == "" {
+		return cur, nil
+	}
+	for _, c := range strings.Split(filepath.ToSlash(name), "/") {
+		if c == "" || c == "." {
+			continue
+		}
+		entries, err := os.ReadDir(cur)
+		if err != nil {
+			return "", &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+		}
+		found, fold := "", ""
+		key := namefold.ModTree(c)
+		for _, e := range entries {
+			if e.Name() == c {
+				found = c
+				break
+			}
+			if fold == "" && namefold.ModTree(e.Name()) == key {
+				fold = e.Name()
+			}
+		}
+		if found == "" {
+			found = fold
+		}
+		if found == "" {
+			return "", &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+		}
+		cur = filepath.Join(cur, found)
+	}
+	return cur, nil
+}
 
 // ReadFile reads the file name, unbounded and without ReadInside's checks;
 // the manifest and the settings are read so.
@@ -105,7 +145,11 @@ func (t Tree) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	if t.packed == nil {
-		return os.ReadFile(t.host(name))
+		h, err := t.host(name)
+		if err != nil {
+			return nil, err
+		}
+		return os.ReadFile(h)
 	}
 	return t.packed.readFile(name)
 }
@@ -116,7 +160,11 @@ func (t Tree) Stat(name string) (fs.FileInfo, error) {
 		return nil, err
 	}
 	if t.packed == nil {
-		return os.Stat(t.host(name))
+		h, err := t.host(name)
+		if err != nil {
+			return nil, err
+		}
+		return os.Stat(h)
 	}
 	return t.packed.stat(name)
 }
@@ -127,7 +175,11 @@ func (t Tree) Lstat(name string) (fs.FileInfo, error) {
 		return nil, err
 	}
 	if t.packed == nil {
-		return os.Lstat(t.host(name))
+		h, err := t.host(name)
+		if err != nil {
+			return nil, err
+		}
+		return os.Lstat(h)
 	}
 	return t.packed.stat(name)
 }
@@ -138,7 +190,11 @@ func (t Tree) ReadDir(name string) ([]fs.DirEntry, error) {
 		return nil, err
 	}
 	if t.packed == nil {
-		return os.ReadDir(t.host(name))
+		h, err := t.host(name)
+		if err != nil {
+			return nil, err
+		}
+		return os.ReadDir(h)
 	}
 	return t.packed.readDir(name)
 }
@@ -193,7 +249,10 @@ func (t Tree) ReadInside(name string) ([]byte, string, error) {
 		data, err := t.packed.read(n)
 		return data, rel, err
 	}
-	full := t.host(rel)
+	full, err := t.host(rel)
+	if err != nil {
+		return nil, "", fmt.Errorf("%s: no such file in the mod folder", rel)
+	}
 	root, err := resolvedPath(t.path)
 	if err != nil {
 		return nil, "", err
@@ -246,13 +305,65 @@ type packedTree struct {
 // case (namefold.ModTree) are refused: no folder can hold them.
 func newPackedTree(a packedArchive) (*packedTree, error) {
 	nodes, roots := a.Tree()
+	table := -1
+	aliases := map[string]string{}
+	for _, i := range roots {
+		n := nodes[i]
+		if namefold.ModTree(n.Name) != packedNamesFile {
+			continue
+		}
+		bad := func(reason any) error {
+			return fmt.Errorf("%s: reserved for the packed mod name table: %v", packedNamesFile, reason)
+		}
+		if table >= 0 || n.Dir || n.Size > MaxInstallFileBytes {
+			return nil, bad("expected one file of at most 16 MiB")
+		}
+		table = i
+		data, err := a.ReadNode(i)
+		if err != nil {
+			return nil, bad(err)
+		}
+		var names packedNames
+		if !utf8.Valid(data) {
+			return nil, bad("the table is not UTF-8 text")
+		}
+		if err := json.Unmarshal(data, &names); err != nil {
+			return nil, bad(err)
+		}
+		if names.Version != 1 || len(names.Entries) == 0 || len(names.Entries) > len(nodes)-1 {
+			return nil, bad("expected version 1 and one entry per renamed node")
+		}
+		for _, entry := range names.Entries {
+			if !fs.ValidPath(entry.Path) || entry.Path == "." || strings.Contains(entry.Path, `\`) {
+				return nil, bad(fmt.Sprintf("%q is not an archive path", entry.Path))
+			}
+			if err := checkPackedComponent(entry.Name); err != nil {
+				return nil, bad(err)
+			}
+			if _, dup := aliases[entry.Path]; dup {
+				return nil, bad(fmt.Sprintf("%s is given twice", entry.Path))
+			}
+			aliases[entry.Path] = entry.Name
+		}
+	}
 	t := &packedTree{a: a, root: &packedNode{index: -1, name: ".", path: ".", Dir: true}, byKey: map[string]*packedNode{}}
-	var add func(parent *packedNode, kids []int) error
-	add = func(parent *packedNode, kids []int) error {
+	var add func(parent *packedNode, rawParent string, kids []int) error
+	add = func(parent *packedNode, rawParent string, kids []int) error {
 		for _, i := range kids {
+			if i == table {
+				continue
+			}
 			n := nodes[i]
 			if n.Name == "" || n.Name == "." || n.Name == ".." || strings.ContainsAny(n.Name, `/\`) {
 				return fmt.Errorf("the archive holds the name %q, which no mod folder can hold", n.Name)
+			}
+			rawPath := path.Join(rawParent, n.Name)
+			if name, ok := aliases[rawPath]; ok {
+				n.Name = name
+				delete(aliases, rawPath)
+			}
+			if parent == t.root && namefold.ModTree(n.Name) == packedNamesFile {
+				return fmt.Errorf("%s is reserved for the packed mod name table", n.Name)
 			}
 			p := n.Name
 			if parent.path != "." {
@@ -266,7 +377,7 @@ func newPackedTree(a packedArchive) (*packedTree, error) {
 			t.byKey[key] = c
 			parent.children = append(parent.children, c)
 			if n.Dir {
-				if err := add(c, n.Children); err != nil {
+				if err := add(c, rawPath, n.Children); err != nil {
 					return err
 				}
 			}
@@ -274,8 +385,11 @@ func newPackedTree(a packedArchive) (*packedTree, error) {
 		sort.Slice(parent.children, func(i, j int) bool { return parent.children[i].name < parent.children[j].name })
 		return nil
 	}
-	if err := add(t.root, roots); err != nil {
+	if err := add(t.root, "", roots); err != nil {
 		return nil, err
+	}
+	if len(aliases) != 0 {
+		return nil, fmt.Errorf("%s: a name table entry names no archive node", packedNamesFile)
 	}
 	return t, nil
 }

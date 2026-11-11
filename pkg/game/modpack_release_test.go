@@ -30,6 +30,17 @@ func TestReleasePackedModPlaysAsItsFolder(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(folders, id, mod.SettingsName), []byte(settings), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	moduleDir := filepath.Join(folders, id, "modules")
+	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(moduleDir, "настройки-для-мода.star"), []byte("def cap(value):\n    return value\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	entry := "load(\"modules/настройки-для-мода.star\", \"cap\")\ndef init(game, settings):\n    game.rules.skill_cap = cap(settings.cap)\n"
+	if err := os.WriteFile(filepath.Join(folders, id, "main.star"), []byte(entry), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	m, packed, err := mod.Pack(filepath.Join(folders, id))
 	if err != nil {
 		t.Fatal(err)

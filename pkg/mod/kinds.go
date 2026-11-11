@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/town"
 )
 
@@ -318,6 +319,15 @@ func (k DataKind) Summary(d Data) string {
 // checkKindNames refuses a mod that holds one kind's file under two of its
 // names, naming both.
 func checkKindNames(t Tree) error {
+	entries, err := t.ReadDir(".")
+	if err != nil {
+		return err
+	}
+	for _, d := range entries {
+		if namefold.ModTree(d.Name()) == packedNamesFile {
+			return fmt.Errorf("%s is reserved for the packed mod name table", d.Name())
+		}
+	}
 	for _, k := range dataKinds {
 		var held []string
 		for _, n := range k.Files {

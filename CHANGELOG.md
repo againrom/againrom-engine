@@ -32,6 +32,10 @@ modder or developer can notice gets no entry.
 - [BASE] A quick click on the Close button of a room's tip panel (the shop's, the tavern's, the school's and the town square's) closes it at the first click; before, a click fast enough to press and release within one frame left the tip open until the next click.
 - [ROM2] A hired druid or troll shows its own portrait and colours in a mission, and the druids and necromancers of a mission keep theirs after a save is loaded, instead of the first picture (for a druid, the young woman in a dress of leaves).
 
+### For map makers and modders
+
+- [BASE] Publishing a mod keeps long map, folder and data file names, including Cyrillic names, up to 255 UTF-8 bytes per name. A packed mod keeps the same files and save compatibility as its working folder.
+
 ## 0.151.1
 
 ### For players

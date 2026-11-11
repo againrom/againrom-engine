@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"againrom/pkg/mod"
 )
 
 func TestPackModFlagsGoTogetherAndExcludeOtherModes(t *testing.T) {
@@ -45,6 +47,8 @@ func TestCheckReportsAPackedModAsItsFolder(t *testing.T) {
 	root := defaultInstall(t)
 	src, mods := t.TempDir(), t.TempDir()
 	writePackFixture(t, src)
+	writeModFile(t, src, "fix", "main.star", []byte("load(\"modules/long-helper-name.star\", \"cap\")\ndef init(game, settings):\n    game.rules.skill_cap = cap(settings.cap)\n"))
+	writeModFile(t, src, "fix", "modules/long-helper-name.star", []byte("def cap(value):\n    return value\n"))
 	folder := filepath.Join(src, "fix")
 	code, out, stderr := checkRun(t, []string{"-pack-mod", folder, "-pack-out", mods}, "")
 	packed := filepath.Join(mods, "mod-fix.res")
@@ -70,8 +74,8 @@ func TestCheckReportsAPackedModAsItsFolder(t *testing.T) {
 }
 
 // -pack-mod writes over an existing file only with -pack-replace, never into
-// an install, and refuses a name the RES cannot hold naming the file; a
-// refused run leaves no file.
+// an install. Long names read back from the published file; a refused run
+// leaves no file.
 func TestPackModWritesOnlyWhereAskedAndNamesARefusedFile(t *testing.T) {
 	src, out := t.TempDir(), t.TempDir()
 	writePackFixture(t, src)
@@ -110,14 +114,15 @@ func TestPackModWritesOnlyWhereAskedAndNamesARefusedFile(t *testing.T) {
 	}
 
 	writeModFile(t, src, "fix", "data/weapon-bodies.toml", []byte("x"))
-	empty := t.TempDir()
-	code, _, stderr = checkRun(t, []string{"-pack-mod", folder, "-pack-out", empty}, "")
-	if code != 1 || !strings.Contains(stderr, `mod "fix": data/weapon-bodies.toml: cannot be packed: the name "weapon-bodies.toml" is 18 bytes`) {
+	longOut := t.TempDir()
+	code, _, stderr = checkRun(t, []string{"-pack-mod", folder, "-pack-out", longOut}, "")
+	if code != 0 || stderr != "" {
 		t.Fatalf("long name: exit %d %q", code, stderr)
 	}
-	for _, dir := range []string{inside, empty} {
-		if left, _ := os.ReadDir(dir); len(left) != 0 {
-			t.Errorf("a refused pack left %v in %s", left, dir)
-		}
+	if b, _, err := mod.ReadInside(filepath.Join(longOut, "mod-fix.res"), "data/weapon-bodies.toml"); err != nil || string(b) != "x" {
+		t.Fatalf("published long name: %q, %v", b, err)
+	}
+	if left, _ := os.ReadDir(inside); len(left) != 0 {
+		t.Errorf("a refused pack left %v in %s", left, inside)
 	}
 }

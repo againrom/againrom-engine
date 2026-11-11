@@ -178,20 +178,14 @@ func TestPackedModIsHeldToTheFolderRules(t *testing.T) {
 	}
 }
 
-// Pack refuses a name the RES cannot hold, naming the file: a name over 15
-// bytes and a character CP866 has no byte for. A Cyrillic name is stored in
-// CP866 and reads back by its own name.
-func TestPackRefusesANameTheResCannotHoldNamingTheFile(t *testing.T) {
-	for _, c := range []struct{ file, want string }{
-		{"data/weapon-bodies.toml", `mod "names": data/weapon-bodies.toml: cannot be packed: the name "weapon-bodies.toml" is 18 bytes; a node name is at most 15`},
-		{"pictures-of-the-east/a.png", `mod "names": pictures-of-the-east: cannot be packed: the name "pictures-of-the-east" is 20 bytes`},
-		{"text/日本.txt", `mod "names": text/日本.txt: cannot be packed: the name holds '日', which the archive's code page (CP866) has no byte for`},
-	} {
+func TestPackNamesOutsideTheResAlphabetReadBack(t *testing.T) {
+	for _, file := range []string{"data/weapon-bodies.toml", "pictures-of-the-east/a.png", "text/日本.txt"} {
 		dir := filepath.Join(t.TempDir(), "names")
 		writeTreeFile(t, dir, "mod.toml", good("names"))
-		writeTreeFile(t, dir, c.file, "x")
-		if _, _, err := Pack(dir); err == nil || !strings.HasPrefix(err.Error(), c.want) {
-			t.Errorf("%s: %v\nwant %s", c.file, err, c.want)
+		writeTreeFile(t, dir, file, "x")
+		packed := packInto(t, dir, t.TempDir())
+		if b, _, err := ReadInside(packed, file); err != nil || string(b) != "x" {
+			t.Errorf("%s: %q, %v", file, b, err)
 		}
 	}
 	dir := filepath.Join(t.TempDir(), "names")

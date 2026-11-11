@@ -105,7 +105,9 @@ war-glaive-packed rom1-en mark ac90a8936768835335b92c0e603255fee2760c40aa01c1697
 war-hammer-body rom1-en rules skill_cap=100
 war-hammer-body rom1-en bodies 143d74ef2a273b7785f183db11c1e3c537ce5024f816a741e0163f5e7a647342
 war-hammer-body rom1-en mark 1ca229771f66fca2cdc1ca2f276f110adc43097e686d282bb256efd5ad413599
-war-hammer-body-packed rom1-en refused mod "war-hammer-body": data/weapon-bodies.toml: cannot be packed: the name "weapon-bodies.toml" is 18 bytes; a node name is at most 15
+war-hammer-body-packed rom1-en rules skill_cap=100
+war-hammer-body-packed rom1-en bodies 143d74ef2a273b7785f183db11c1e3c537ce5024f816a741e0163f5e7a647342
+war-hammer-body-packed rom1-en mark 1ca229771f66fca2cdc1ca2f276f110adc43097e686d282bb256efd5ad413599
 war-hammer-mace rom1-en rules skill_cap=100
 war-hammer-mace rom1-en bodies 39b87a5a69cdc4e34c5aca3de1001072776be40655bbdaf9804b3747b47b8ebf
 war-hammer-mace rom1-en mark 1171ec585a23dac33ed2c6e53fddcf816fcbb49a9021e79ba1268412d2095033
@@ -230,7 +232,9 @@ war-glaive-packed rom1-ru mark 9024885004d6b15682e01fbc2a30ab18be8f5d3f3e0118579
 war-hammer-body rom1-ru rules skill_cap=100
 war-hammer-body rom1-ru bodies 143d74ef2a273b7785f183db11c1e3c537ce5024f816a741e0163f5e7a647342
 war-hammer-body rom1-ru mark 274fafce29919f2660ab2631ed9c72017989fb24def8ed4828e0ebc5bc6a77ed
-war-hammer-body-packed rom1-ru refused mod "war-hammer-body": data/weapon-bodies.toml: cannot be packed: the name "weapon-bodies.toml" is 18 bytes; a node name is at most 15
+war-hammer-body-packed rom1-ru rules skill_cap=100
+war-hammer-body-packed rom1-ru bodies 143d74ef2a273b7785f183db11c1e3c537ce5024f816a741e0163f5e7a647342
+war-hammer-body-packed rom1-ru mark 274fafce29919f2660ab2631ed9c72017989fb24def8ed4828e0ebc5bc6a77ed
 war-hammer-mace rom1-ru rules skill_cap=100
 war-hammer-mace rom1-ru bodies 39b87a5a69cdc4e34c5aca3de1001072776be40655bbdaf9804b3747b47b8ebf
 war-hammer-mace rom1-ru mark 91f8462ef02f0e7459529b0f54cfd1d7915e423fe29bb83fc0d360898312cbf5

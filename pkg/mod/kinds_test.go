@@ -95,7 +95,7 @@ func docsKindRow(k DataKind) string {
 		for _, f := range k.Files[1:] {
 			also = append(also, "`"+f+"`")
 		}
-		file += " (a mod folder may also use " + strings.Join(also, ", ") + ")"
+		file += " (also " + strings.Join(also, ", ") + ")"
 	}
 	layer := "configuration"
 	switch k.Layer {

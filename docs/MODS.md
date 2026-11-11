@@ -29,7 +29,7 @@ with `game.data.add`.
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
 | spells | `data/spells.toml` | `target` and the field; `[global]` keys | catalog, kept until an unscheduled spell catalog story | no: one field of one spell, and one global key, is set by one mod | Spell damage columns, `docs/1341/story.md`, `DIV-2364` |
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
-| weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
+| weapon bodies | `data/wpnbodies.toml` (also `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
 | towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
@@ -271,18 +271,19 @@ againrom.exe -pack-mod C:\Mods\east-town -pack-out C:\Games\Againrom\mods
 exits. It needs no install and opens no window. Every folder and file of
 the mod is packed except names that start with a dot (`.git`), which no mod
 reader takes: a script or data path with a dotted component is refused naming the path, for a
-folder and for the packed file alike. Names match without case, as on Windows: ASCII and
-Cyrillic letters (`Ё` too) of another case name the same file, and a pack holding two names equal
-that way is refused naming both. The pack is refused, writing nothing, and the refusal names
+folder and for the packed file alike. Names match without case by one rule, for a folder and a pack alike
+and on every host: ASCII `A`-`Z` and the Cyrillic letters of CP866 (`Ё`, `Є`, `Ї`, `Ў` too) of another case name the same file. The case of any other
+letter does not fold: `éclair.star` does not name `Éclair.star`, in a folder on Windows as in a pack. A pack holding two names equal under the rule is refused naming both. The pack is refused, writing nothing, and the refusal names
 the reason and, for a file, the file:
 
 - the file exists; `-pack-replace` writes over it;
 - the `-pack-out` folder is a game folder or lies inside one (a folder
   holding the game's archives);
-- a file or folder name is longer than 15 bytes, the longest name a RES
-  holds;
-- a name holds a character the RES's code page, CP866, has no byte for.
-  Latin and Cyrillic letters, digits and `. _ -` are one byte each;
+- a file or folder component exceeds 255 UTF-8 bytes, is invalid UTF-8,
+  or holds a control character; Cyrillic letters usually take two UTF-8 bytes;
+- the root holds `mod-names.json`, a name reserved without case for the
+  packed mod's name table, as either a file or a folder; folder mods refuse
+  that name too;
 - a link or another non-regular file, or a file larger than 16 MiB;
 - the folder is not a mod `-check` would take: no `mod.toml`, or an `id`
   other than the folder's name.
@@ -295,8 +296,38 @@ In the mods folder:
   packed file whose `mod.toml` names another `id`, and a file the game
   cannot read as a RES are refused naming the file; other `.res` files are
   not mods and are left alone;
-- names inside a packed mod match without regard to the case of `A`-`Z`,
-  as a folder's names do on Windows.
+- names inside a packed mod and inside a folder match without regard to the
+  case of `A`-`Z` and the Cyrillic letters of CP866 (`Ё`, `Є`, `Ї`, `Ў`
+  too), and of no other letter, whatever the host file system folds.
+
+### Name table
+
+The RES container and the install's RES reader keep their format. A mod
+component over 15 UTF-8 bytes, or one CP866 cannot encode, is stored under a
+short name. Other components keep their names. The packer chooses short
+names in tree order: `~` and a 14-digit lowercase hexadecimal counter,
+starting at 1 and skipping a name already held by that folder, without case.
+
+When at least one component needs a short name, the root RES file
+`mod-names.json` holds UTF-8 JSON of this form:
+
+```json
+{"version":1,"entries":[{"path":"data/~00000000000001","name":"weapon-bodies.toml"}]}
+```
+
+Each entry names one renamed file or directory. `path` is its full path in
+the RES, including short names of its parents; `name` is its original UTF-8
+component. The table is at most 16 MiB. The packed tree reader restores
+components before indexing and sorting the tree. Every mod reader sees the
+original paths; the table itself is absent from that tree and its digest.
+Duplicate entries, missing target nodes, invalid components, restored names
+equal without case and an unsupported version are refused. A root entry
+with the reserved name must be a valid table, never author content.
+
+Without a table, an existing pack reads by its stored names as before.
+When no component needs renaming, packing emits no table and keeps the
+previous pack bytes. The digest and save mark always use the original
+folder names and contents.
 
 The map editor saves into a mod folder: `againrom --editor -mod` refuses a packed
 mod. To change a packed mod, change its folder and pack it again.
@@ -434,9 +465,8 @@ cold LOAD applies those saved bytes (`DIV-3002`, `DIV-2224`, `DIV-2327`).
 
 `data/wpnbodies.toml` holds `[[weapon]]` tables. Each draws one weapon row
 with another body. The first name of this file, `data/weapon-bodies.toml`, is
-still read in a mod folder, but it is 18 bytes and a packed mod holds names of
-at most 15, so use the short name. A mod that holds both names is refused,
-naming both files.
+also read in both a mod folder and a packed mod. A mod that holds both names
+is refused, naming both files.
 
 | key | value |
 |---|---|

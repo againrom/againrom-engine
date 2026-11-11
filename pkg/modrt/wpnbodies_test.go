@@ -17,8 +17,7 @@ func weaponNameMod(file string) map[string]map[string]string {
 }
 
 // A mod with data/wpnbodies.toml packs, and its packed file gives the game the
-// weapon bodies its folder gives. The long name still reads from a folder and
-// is refused in a pack.
+// weapon bodies its folder gives. The long name reads the same in both forms.
 func TestShortWeaponBodiesNamePacksAndReadsAsItsFolder(t *testing.T) {
 	folder := makeMods(t, weaponNameMod(mod.WeaponBodiesFile))
 	_, b, err := mod.Pack(folder[0].Dir)
@@ -53,7 +52,20 @@ func TestShortWeaponBodiesNamePacksAndReadsAsItsFolder(t *testing.T) {
 	if err != nil || len(res.Bodies.Weapons) != 1 || res.Bodies.Weapons[0].File != mod.WeaponBodiesLongFile {
 		t.Fatalf("the long name in a folder: %v %+v", err, res.Bodies.Weapons)
 	}
-	if _, _, err := mod.Pack(long[0].Dir); err == nil {
-		t.Fatal("the long name was packed")
+	_, b, err = mod.Pack(long[0].Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir = t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, mod.PackedName("wb")), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	packed, err = mod.Resolve(dir, []string{"wb"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = Load(packed, "rom1-en", nil, Options{})
+	if err != nil || !reflect.DeepEqual(res.Bodies.Weapons, got.Bodies.Weapons) || res.Set.Canonical() != got.Set.Canonical() {
+		t.Fatalf("the packed long name: %v %+v", err, got.Bodies.Weapons)
 	}
 }
