@@ -11,7 +11,6 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 		return false
 	}
 	n := w.sourceMutationCopy(ti)
-	id := n.entities[ti].ID
 	unapply := func(index int) bool {
 		e := n.attached[index]
 		if e.Mode&EffectContinuous == 0 {
@@ -28,53 +27,25 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 		n.attached = append(n.attached[:index], n.attached[index+1:]...)
 		return true
 	}
-	if opposite := spellArmOf(rule.arm()).opposite; opposite != 0 {
-		if index, ok := effectIndex(n.attached, id, w.armSpellID(opposite)); ok {
-			if !remove(index) {
-				return false
-			}
+	return n.attachEffectTransaction(ti, caster, rule, kind, magnitude, duration, mode, effectAttachmentAdapter{
+		unapply: unapply,
+		remove:  remove,
+		apply: func(index int) bool {
+			// attachEffect's renewal on the source operands (R2-ENGINE-986).
+			e := n.attached[index]
+			_, ok := n.sourceEffectOnCandidate(ti, e.Kind, e.Magnitude)
+			return ok
+		},
+		applyBeforeInsert: func(kind EffectKind, magnitude int32) bool {
+			_, ok := n.sourceEffectOnCandidate(ti, kind, magnitude)
+			return ok
+		},
+		commit: func(clearFelled bool) *World {
 			*w = n
-			w.clearFelled(ti)
-			return true
-		}
-	}
-	if index, ok := effectIndex(n.attached, id, rule.ID); ok && keepsLargerOnRepeat(rule) && mode&(EffectDuration|EffectContinuous) != 0 {
-		// attachEffect's renewal on the source operands (R2-ENGINE-986).
-		if !unapply(index) {
-			return false
-		}
-		e := &n.attached[index]
-		e.Magnitude = max(e.Magnitude, magnitude)
-		e.Remaining = max(e.Remaining, duration)
-		if !areaRow(rule.arm()).poison {
-			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, e.Magnitude); !ok {
-				return false
+			if clearFelled {
+				w.clearFelled(ti)
 			}
-		}
-		*w = n
-		w.clearFelled(ti)
-		return true
-	}
-	if index, ok := effectIndex(n.attached, id, rule.ID); ok {
-		if mode&EffectContinuous != 0 {
-			n.attached[index].Remaining = duration
-			*w = n
-			return true
-		}
-		if !remove(index) {
-			return false
-		}
-	}
-	if _, ok := n.sourceEffectOnCandidate(ti, kind, magnitude); !ok {
-		return false
-	}
-	index, _ := effectIndex(n.attached, id, rule.ID)
-	n.attached = append(n.attached, attachedEffect{})
-	copy(n.attached[index+1:], n.attached[index:])
-	n.attached[index] = attachedEffect{Target: id, Caster: caster, HasCaster: indexOfEntity(n.entities, caster) >= 0, Spell: rule.ID, Kind: kind, Mode: mode, Magnitude: magnitude, Remaining: duration}
-	*w = n
-	w.clearFelled(ti)
-	w.markSpellEffect(ti, rule.ID)
-	w.entities[ti].SpellFX = duration
-	return true
+			return w
+		},
+	})
 }

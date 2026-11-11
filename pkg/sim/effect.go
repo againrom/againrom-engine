@@ -390,9 +390,54 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if w.entities[ti].ActorLoad.Source.Class != 0 && !poison {
 		return w.attachSourceEffect(ti, caster, rule, kind, magnitude, duration, mode)
 	}
+	return w.attachEffectTransaction(ti, caster, rule, kind, magnitude, duration, mode, effectAttachmentAdapter{
+		unapply: func(i int) bool {
+			w.unapplyAttachedAt(i, ti)
+			return true
+		},
+		remove: func(i int) bool {
+			w.removeAttachedAt(i)
+			return true
+		},
+		apply: func(i int) bool {
+			// Every effect is applied at attachment time. Continuous means the same
+			// ordinary apply is repeated each eighth tick; it does not postpone the
+			// first application until the countdown happens to reach a multiple of 8.
+			//
+			// THE STORED MAGNITUDE BECOMES WHAT LANDED, for every kind whose magnitude
+			// IS a state delta and every mode whose expiry reverses it. That is what
+			// makes apply and expire exact inverses under the clamps. A CONTINUOUS
+			// effect is excluded because its stored magnitude is re-applied on every
+			// eighth tick rather than reversed: a continuous heal that clamped at full
+			// health once would otherwise be re-applied as zero for the rest of its
+			// life.
+			w.applyAttachedAt(i, ti, poison)
+			return true
+		},
+		setPresent:       func() { w.setNativeAttachedEffectMask(target, rule.ID, true) },
+		commit:           func(bool) *World { return w },
+		zeroAbsentCaster: true,
+	})
+}
+
+type effectAttachmentAdapter struct {
+	unapply           func(int) bool
+	remove            func(int) bool
+	apply             func(int) bool
+	applyBeforeInsert func(EffectKind, int32) bool
+	setPresent        func()
+	commit            func(clearFelled bool) *World
+	zeroAbsentCaster  bool
+}
+
+func (w *World) attachEffectTransaction(ti int, caster EntityID, rule SpellRule, kind EffectKind, magnitude int32, duration uint16, mode EffectMode, backing effectAttachmentAdapter) bool {
+	target := w.entities[ti].ID
 	if opposite := spellArmOf(rule.arm()).opposite; opposite != 0 {
 		if oi, ok := effectIndex(w.attached, target, w.armSpellID(opposite)); ok {
-			w.removeAttachedAt(oi)
+			if !backing.remove(oi) {
+				return false
+			}
+			backing.commit(true)
 			return true
 		}
 	}
@@ -401,26 +446,39 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 		// The standing record is kept: its delta comes off, it takes the
 		// larger signed magnitude and the larger duration, and the kept
 		// magnitude goes on again, except for Poison Cloud (R2-ENGINE-986).
-		w.unapplyAttachedAt(i, ti)
+		if !backing.unapply(i) {
+			return false
+		}
 		e := &w.attached[i]
 		e.Magnitude = max(e.Magnitude, magnitude)
 		e.Remaining = max(e.Remaining, duration)
 		if !areaRow(rule.arm()).poison {
-			w.applyAttachedAt(i, ti, false)
+			if !backing.apply(i) {
+				return false
+			}
 		}
+		backing.commit(true)
 		return true
 	}
 	if exists {
 		if mode&EffectContinuous != 0 {
 			w.attached[i].Remaining = duration
-			w.setNativeAttachedEffectMask(target, rule.ID, true)
+			if backing.setPresent != nil {
+				backing.setPresent()
+			}
+			backing.commit(false)
 			return true
 		}
-		w.removeAttachedAt(i)
-		i, _ = effectIndex(w.attached, target, rule.ID)
+		if !backing.remove(i) {
+			return false
+		}
 	}
+	if backing.applyBeforeInsert != nil && !backing.applyBeforeInsert(kind, magnitude) {
+		return false
+	}
+	i, _ = effectIndex(w.attached, target, rule.ID)
 	e := attachedEffect{Target: target, Caster: caster, HasCaster: indexOfEntity(w.entities, caster) >= 0, Spell: rule.ID, Kind: kind, Mode: mode, Magnitude: magnitude, Remaining: duration}
-	if !e.HasCaster {
+	if !e.HasCaster && backing.zeroAbsentCaster {
 		// An absent source is not an entity reference. Keep the same canonical
 		// zero payload used by imported attachments and detached casters.
 		e.Caster = 0
@@ -428,21 +486,15 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	w.attached = append(w.attached, attachedEffect{})
 	copy(w.attached[i+1:], w.attached[i:])
 	w.attached[i] = e
-	w.setNativeAttachedEffectMask(target, rule.ID, true)
-	// Every effect is applied at attachment time. Continuous means the same
-	// ordinary apply is repeated each eighth tick; it does not postpone the
-	// first application until the countdown happens to reach a multiple of 8.
-	//
-	// THE STORED MAGNITUDE BECOMES WHAT LANDED, for every kind whose magnitude
-	// IS a state delta and every mode whose expiry reverses it. That is what
-	// makes apply and expire exact inverses under the clamps. A CONTINUOUS
-	// effect is excluded because its stored magnitude is re-applied on every
-	// eighth tick rather than reversed: a continuous heal that clamped at full
-	// health once would otherwise be re-applied as zero for the rest of its
-	// life.
-	w.applyAttachedAt(i, ti, poison)
-	w.markSpellEffect(ti, rule.ID)
-	w.entities[ti].SpellFX = duration
+	if backing.setPresent != nil {
+		backing.setPresent()
+	}
+	if backing.applyBeforeInsert == nil && !backing.apply(i) {
+		return false
+	}
+	committed := backing.commit(true)
+	committed.markSpellEffect(ti, rule.ID)
+	committed.entities[ti].SpellFX = duration
 	return true
 }
 
