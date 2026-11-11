@@ -104,12 +104,14 @@ func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, 
 	if !v.Showing() || !p.In(v.Rect) {
 		return TipControlNone, false
 	}
-	if !down && p.In(v.textRect()) {
-		return TipControlNone, true
-	}
 	l := tipPanelLayout(v.Rect)
+	// Close is the painted button on top of the list child: its top rows lie
+	// inside the list's rectangle and still take the click.
 	if l.holds(int(TipControlClose), p) {
 		return TipControlClose, true
+	}
+	if !down && p.In(v.textRect()) {
+		return TipControlNone, true
 	}
 	if l.holds(int(TipControlToggle), p) {
 		return TipControlToggle, down
