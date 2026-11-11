@@ -865,7 +865,8 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 //  7. a present second physical pair draws and is reduced by signed Water
 //     protection, then clamped at zero. One secondary triple admitted by step 4 draws its
 //     spread, selects one Fire-through-Astral protection and adds the reduced
-//     component;
+//     component; the second game adds it only on a hit by to-hit plus the
+//     roll or an empty pair, and discards a drawn one (R2-ENGINE-478);
 //  8. and what is left, if it is positive, comes off the victim's health,
 //     pays the attacker experience — payExperience's own
 //     five refusals, not this routine's, gate whether that payment is
@@ -914,12 +915,14 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		dmg = int64(a.DamageBase)
 	}
 	roll := int64(w.rng.uniform(hitRollSpan)) + hitRollFloor
-	physicalHit := a.AlwaysHits || int64(a.ToHit)+roll > int64(t.Defence) || roll >= autoHitRoll
+	rollHit := int64(a.ToHit)+roll > int64(t.Defence)
+	physicalHit := a.AlwaysHits || rollHit || roll >= autoHitRoll
 	physicalEmpty := a.DamageBase == 0 && a.DamageSpread == 0
 	secondary := a.SecondaryDamage
 	secondaryPresent := secondary.Base != 0 || secondary.Spread != 0
 	secondPresent := a.SecondBase != 0 || a.SecondSpread != 0
 	primaryAdmitted := physicalHit || physicalEmpty && secondaryPresent
+	secondaryAdded := !w.game.magicPartNeedsRollHit || rollHit || physicalEmpty
 	if !primaryAdmitted && !secondPresent {
 		w.reportPhysicalBlow(*t, ti)
 		w.weaponRiderApply(ai, ti, false, obs)
@@ -974,7 +977,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 			}
 		}
 		component = (component*(100-p) + 75) / 100
-		if component > 0 {
+		if component > 0 && secondaryAdded {
 			dmg += component
 		}
 	}

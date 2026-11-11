@@ -136,7 +136,11 @@ type gameProfile struct {
 	// memberScoreGate: the score's preference modifiers test the scoring
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
 	memberScoreGate bool
-	orders          orderProfile
+	// magicPartNeedsRollHit: a blow's third component is added only when
+	// to-hit plus the roll beats defence or the physical pair is empty; a
+	// hit by the band or by AlwaysHits does not add it (R2-ENGINE-478).
+	magicPartNeedsRollHit bool
+	orders                orderProfile
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -165,6 +169,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		cellEventRelocates:         true,
 		bookListsScrolls:           true,
 		memberScoreGate:            true,
+		magicPartNeedsRollHit:      true,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,
