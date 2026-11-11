@@ -96,15 +96,23 @@ func (w *World) creatureScanCell(caster, victim Entity) (int32, int32, bool) {
 	return 0, 0, false
 }
 
-// creatureKeepsPick is the planner's distance gate: a pick aimed by the scan
-// is dropped at or within the profile's distance, and the attack follows.
+// creatureKeepsPick is the planner's pick gate: a pick aimed by the scan is
+// dropped at or within the profile's distance, and a pick aimed at a caster
+// its arm spares (autoCastArmAdmits) is dropped. The engage follows a drop
+// as it follows a draw that selects nothing.
 func (w *World) creatureKeepsPick(i int, victim EntityID, id uint32) bool {
 	vi := indexOfEntity(w.entities, victim)
-	if id == 0 || vi < 0 || w.creatureAim(id) != creatureAimScanCell {
+	if id == 0 || vi < 0 {
 		return id != 0
 	}
 	c, v := w.entities[i], w.entities[vi]
-	return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.game.creatureAim.scanBeyond
+	switch w.creatureAim(id) {
+	case creatureAimScanCell:
+		return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.game.creatureAim.scanBeyond
+	case creatureAimCaster:
+		return id > 0xffff || autoCastArmAdmits(w.spellArm(uint16(id)), c)
+	}
+	return true
 }
 
 // creatureStepCell is the cell one step from the caster toward the victim,

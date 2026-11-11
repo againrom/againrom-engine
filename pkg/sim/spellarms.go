@@ -25,6 +25,7 @@ type spellArm struct {
 	invisibility     bool // hides its target
 	attachAward      bool // an attached effect awards 3% of the victim's health
 	selfAimed        bool // the cast cursor's self kind by arm
+	sparesMages      bool // an unbidden cast never chooses a mage (owner, DIV-4830, DIV-4831)
 	own              ownEffect
 	opposite         uint16                                       // the arm an attach removes instead (Bless, Curse)
 	magnitude        func(rule SpellRule, mag, power int32) int32 // MAGIC-EFFECT-015
@@ -166,7 +167,7 @@ var spellArms = [...]spellArm{
 	{arm: 21, creatureAim: creatureAimVictimCell, second: secondArmRow{firstStageDelay: 1}},
 	{arm: 22, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 1, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
-	{arm: 23, applies: true, atActor: true, own: ownEffect{EffectBless, true}, opposite: 27, formulaMagnitude: true, lastingDuration: true,
+	{arm: 23, applies: true, atActor: true, sparesMages: true, own: ownEffect{EffectBless, true}, opposite: 27, formulaMagnitude: true, lastingDuration: true,
 		autoCast: autoCastPlace{2, 0, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionBless}},
 	{arm: 24, applies: true, atActor: true, magnitude: hasteMagnitude, formulaMagnitude: true, lastingDuration: true,
 		autoCast: autoCastPlace{2, 1, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionSpeed}},

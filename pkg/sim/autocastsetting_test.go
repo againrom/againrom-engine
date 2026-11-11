@@ -83,7 +83,7 @@ func TestAutoCastLevelsCastTheirLists(t *testing.T) {
 		{"minimum heals the wounded companion", AutoCastMinimum | AutoCastOwn, acsMask(6, 23), true, 6, 2, true},
 		{"minimum shields itself first", AutoCastMinimum | AutoCastOwn, all, true, 18, 1, true},
 		{"minimum leaves Bless alone", AutoCastMinimum | AutoCastOwn, acsMask(23, 24, 5), false, 0, 0, false},
-		{"average blesses itself first", AutoCastAverage | AutoCastOwn, acsMask(23, 24, 5), false, 23, 1, true},
+		{"average blesses the warrior first", AutoCastAverage | AutoCastOwn, acsMask(23, 5), false, 23, 2, true},
 		{"average leaves the protections alone", AutoCastAverage | AutoCastOwn, acsMask(5, 15), false, 0, 0, false},
 		{"maximum protects from air first", AutoCastMaximum | AutoCastOwn, acsMask(5, 16, 22), false, 16, 1, true},
 		{"maximum hides the companion, not itself, first", AutoCastMaximum | AutoCastOwn, acsMask(15), false, 15, 2, true},
@@ -135,7 +135,7 @@ func TestAutoCastOffCastsNothingByLevel(t *testing.T) {
 	if spell, _, cast := acsFirst(w); cast {
 		t.Fatalf("Off cast %d", spell)
 	}
-	w = acsWorld(t, Relations{}, AutoCastAverage|AutoCastOwn, acsMask(23), 0)
+	w = acsWorld(t, Relations{}, AutoCastAverage|AutoCastOwn, acsMask(23), 0, acsUnit(2, SelfSlot, 4, 100))
 	if spell, _, cast := acsFirst(w); !cast || spell != 23 {
 		t.Fatalf("unarmed Bless under Average: cast %v spell %d", cast, spell)
 	}

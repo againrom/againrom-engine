@@ -72,6 +72,7 @@ var spellArmRecord = map[string]armAnswers{
 	"autoCastOrder":    bothGames(map[uint16]int{6: 0, 18: 1, 23: 0, 24: 1, 16: 0, 22: 1, 5: 2, 10: 3, 15: 4}),
 	"autoCastRole":     bothGames(map[uint16]int{6: recordRoleHeal, 18: recordRoleShield, 15: recordRoleHide}),
 	"selfAimed":        bothGames(armSet(4)),
+	"sparesMages":      bothGames(armSet(23)),
 	"light":            bothGames(map[uint16]int{12: recordLightBright, 17: recordLightDark}),
 	"drawnDuration":    secondOnly(armSet(20)),
 	"blankCurse":       secondOnly(armSet(20)),

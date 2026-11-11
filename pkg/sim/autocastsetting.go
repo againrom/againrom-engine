@@ -200,6 +200,9 @@ func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
 	if !ok || !rule.runsArm(arm) || !knowsSpell(w.entities[ci], uint32(id)) || w.entities[ci].Mana < int32(rule.ManaCost) {
 		return false
 	}
+	if !autoCastArmAdmits(arm, w.entities[ti]) {
+		return false
+	}
 	if _, standing := effectIndex(w.attached, w.entities[ti].ID, id); buff && standing {
 		return false
 	}
