@@ -2478,7 +2478,7 @@ func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power 
 	var bestDeficit int64
 	found := false
 	for i := range w.entities {
-		if !autoCastTargetAdmitted(w.entities[i]) || !autoCastArmAdmits(rule.arm(), w.entities[i]) {
+		if !autoCastTargetAdmitted(w.entities[i]) || !w.autoCastArmAdmits(rule.arm(), w.entities[i]) {
 			continue
 		}
 		// Legacy policy applies the spell's reach, health and primary-target rules.

@@ -110,7 +110,7 @@ func (w *World) creatureKeepsPick(i int, victim EntityID, id uint32) bool {
 	case creatureAimScanCell:
 		return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.game.creatureAim.scanBeyond
 	case creatureAimCaster:
-		return id > 0xffff || autoCastArmAdmits(w.spellArm(uint16(id)), c)
+		return id > 0xffff || w.autoCastArmAdmits(w.spellArm(uint16(id)), c)
 	}
 	return true
 }

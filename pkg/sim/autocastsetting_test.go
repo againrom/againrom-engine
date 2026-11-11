@@ -30,7 +30,7 @@ func acsMask(ids ...uint16) uint32 {
 func acsWorld(t *testing.T, rel Relations, setting AutoCastSetting, known uint32, armed uint16, targets ...Entity) *World {
 	t.Helper()
 	caster := spMage(1, 2, 2, 30, 60, 60, known)
-	caster.Owner, caster.AutoSpell = SelfSlot, armed
+	caster.Owner, caster.AutoSpell, caster.Humanoid = SelfSlot, armed, true
 	w := hlWorld(t, 23, rel, acsSpells(), append([]Entity{caster}, targets...)...)
 	if setting != 0 && !w.SetAutoCast(SelfSlot, setting) {
 		t.Fatalf("setting %#x refused", setting)

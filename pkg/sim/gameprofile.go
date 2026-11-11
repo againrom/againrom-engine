@@ -109,6 +109,9 @@ type gameProfile struct {
 	// computerHealOwnSide: a computer mage's automatic heal reaches its own
 	// owner and allied owners alone (DIV-4756).
 	computerHealOwnSide bool
+	// spareMageTypes: the creature type ids an arm that spares mages spares
+	// beside a human with a mana pool (sparedMage).
+	spareMageTypes []int32
 	// nativeRegen: regeneration runs as a pass of the step.
 	nativeRegen bool
 	// nativeDecay: the decay ladder walks held dead and decaying health on
@@ -193,6 +196,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		autoCastFullDefault:        true,
 		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, selfOnly: true, idleOnly: true},
 		computerHealOwnSide:        true,
+		spareMageTypes:             secondGameSpareMageTypes,
 		nativeRegen:                true,
 		nativeDecay:                true,
 		keepsCastRetain:            true,
