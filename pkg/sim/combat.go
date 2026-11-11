@@ -792,8 +792,8 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		// DRAWN ON EVERY STRIKE TURN's own rule above — and DISCARDS it
 		// rather than skip the draw: skipping would make the generator's
 		// stream depend on whether the actor is a caster, which is exactly
-		// the value a draw must never be skipped on (resolveBlow's own "both
-		// draws are taken or neither is", one level down). The discard is
+		// the value a draw must never be skipped on (resolveBlow draws its roll
+		// on every blow, one level down). The discard is
 		// written as a discard and not hidden behind a variable nothing
 		// reads.
 		//
@@ -848,7 +848,8 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 //     reach or has no health system. Both are tests on state the caller already
 //     holds, so putting them here costs nothing and keeps the draw count a
 //     function of the two units' cells and health;
-//  2. the damage is base + U[0, spread];
+//  2. the damage is base + U[0, spread], or under Bless or Curse its top or
+//     base (blowValue);
 //  3. the roll is U[-100, 100], and the physical pair LANDS when the attacker
 //     always hits, when to-hit plus the roll beats the victim's defence, or when
 //     the roll alone is at or above the auto-hit band. There is no band at the
@@ -865,22 +866,19 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 //  7. a present second physical pair draws and is reduced by signed Water
 //     protection, then clamped at zero. One secondary triple admitted by step 4 draws its
 //     spread, selects one Fire-through-Astral protection and adds the reduced
-//     component; the second game adds it only on a hit by to-hit plus the
-//     roll or an empty pair, and discards a drawn one (R2-ENGINE-478);
+//     component; the second game draws and adds it only on a hit by to-hit
+//     plus the roll or an empty pair (R2-ENGINE-1148);
 //  8. and what is left, if it is positive, comes off the victim's health,
 //     pays the attacker experience — payExperience's own
 //     five refusals, not this routine's, gate whether that payment is
 //     anything but a no-op — and fires the fighter's own weapon-spell rider
 //     (R3-B3, MAGIC-ITEM-007).
 //
-// THE FIRST TWO DRAWS ARE TAKEN OR NEITHER IS. Step 2 draws at a physical
-// spread of zero and step 3 draws for an attacker that cannot miss, because a
-// draw skipped on either value makes the stream's position depend on that
-// value. Step 7 draws once for a present second pair, even at zero spread,
-// independently of hit, absorption and weapon resistance. It draws again when
-// the secondary triple is nonzero AND the physical pair hit or was empty,
-// including when the secondary spread itself is zero. A physical miss with a
-// nonempty pair skips the third draw, never a present second pair's draw.
+// THE DRAWS ARE THE GAME'S (blowRule). The first game draws the spread even
+// at zero, and step 7 draws a present second pair and an admitted triple even
+// at zero spread. The second game draws no part whose spread is zero, and a
+// triple only when it is added. The roll is drawn on every blow in both, a
+// miss included; a miss never skips a present second pair's draw.
 //
 // EVERY SUM AND COMPARISON IS IN int64. The seven numbers are carried whole, so
 // to-hit plus a roll, base plus a spread and damage less absorption are each a
@@ -907,13 +905,8 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		return
 	}
 
-	damageDraw := w.rng.uniform(a.DamageSpread)
-	dmg := int64(a.DamageBase) + int64(damageDraw)
-	if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok && w.rng.uniform(100) < chance {
-		dmg = int64(a.DamageBase) + int64(a.DamageSpread)
-	} else if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok && w.rng.uniform(100) < chance {
-		dmg = int64(a.DamageBase)
-	}
+	rule := w.game.blow
+	dmg := w.blowValue(*a, rule)
 	roll := int64(w.rng.uniform(hitRollSpan)) + hitRollFloor
 	rollHit := int64(a.ToHit)+roll > int64(t.Defence)
 	physicalHit := a.AlwaysHits || rollHit || roll >= autoHitRoll
@@ -922,7 +915,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	secondaryPresent := secondary.Base != 0 || secondary.Spread != 0
 	secondPresent := a.SecondBase != 0 || a.SecondSpread != 0
 	primaryAdmitted := physicalHit || physicalEmpty && secondaryPresent
-	secondaryAdded := !w.game.magicPartNeedsRollHit || rollHit || physicalEmpty
+	secondaryAdded := !rule.magicPartNeedsRollHit || rollHit || physicalEmpty
 	if !primaryAdmitted && !secondPresent {
 		w.reportPhysicalBlow(*t, ti)
 		w.weaponRiderApply(ai, ti, false, obs)
@@ -933,7 +926,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	if !primaryAdmitted {
 		dmg = 0
 	} else {
-		if !a.AlwaysHits {
+		if !a.AlwaysHits && (dmg > 0 || !rule.absorbsPositiveOnly) {
 			dmg -= int64(t.Absorption)
 		}
 		if dmg < 0 {
@@ -954,7 +947,10 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		}
 	}
 	if secondPresent {
-		component := int64(a.SecondBase) + int64(w.rng.uniform(int32(a.SecondSpread)))
+		component := int64(a.SecondBase)
+		if a.SecondSpread != 0 || !rule.zeroSpreadNoDraw {
+			component += int64(w.rng.uniform(int32(a.SecondSpread)))
+		}
 		// target+0xc6 is signed Water protection, not the third selector.
 		// Do not pre-clamp it: a negative word amplifies this component.
 		component = (component*(100-int64(t.Protection[1])) + 75) / 100
@@ -962,8 +958,11 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 			dmg += component
 		}
 	}
-	if secondaryPresent && primaryAdmitted {
-		component := int64(secondary.Base) + int64(w.rng.uniform(int32(secondary.Spread)))
+	if secondaryPresent && primaryAdmitted && secondaryAdded {
+		component := int64(secondary.Base)
+		if secondary.Spread != 0 || !rule.zeroSpreadNoDraw {
+			component += int64(w.rng.uniform(int32(secondary.Spread)))
+		}
 		p := int64(t.Protection[secondary.Selector])
 		// HERO-CLAMP-030 reads source-current protection signed and clamps
 		// only the resulting component. Negative protection amplifies it.
@@ -977,7 +976,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 			}
 		}
 		component = (component*(100-p) + 75) / 100
-		if component > 0 && secondaryAdded {
+		if component > 0 {
 			dmg += component
 		}
 	}
@@ -1009,6 +1008,56 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	if !w.entities[ti].InLife(LifeBones) {
 		w.payExperience(ai, ti, dmg, aliveBeforeBlow)
 	}
+}
+
+// blowRule is a game's draws and gates in resolveBlow; the zero value is the
+// first game's.
+type blowRule struct {
+	// effectsFirst: Bless draws, then Curse whatever Bless gave, then the
+	// spread when neither took effect (R2-ENGINE-1149).
+	effectsFirst bool
+	// zeroSpreadNoDraw: a part whose spread is 0 makes no draw (R2-ENGINE-1152).
+	zeroSpreadNoDraw bool
+	// magicPartNeedsRollHit: the triple is drawn and added only on a hit by
+	// to-hit plus the roll or an empty physical pair (R2-ENGINE-1148).
+	magicPartNeedsRollHit bool
+	// absorbsPositiveOnly: absorption comes off a physical part above 0 only
+	// (R2-ENGINE-1148).
+	absorbsPositiveOnly bool
+}
+
+var secondGameBlow = blowRule{effectsFirst: true, zeroSpreadNoDraw: true,
+	magicPartNeedsRollHit: true, absorbsPositiveOnly: true}
+
+// blowValue is the physical pair's value and makes its draws. Bless that
+// takes effect gives base plus spread, Curse the base. The first game draws
+// the spread first, then Bless, then Curse only when Bless failed.
+func (w *World) blowValue(a Entity, rule blowRule) int64 {
+	base, top := int64(a.DamageBase), int64(a.DamageBase)+int64(a.DamageSpread)
+	if !rule.effectsFirst {
+		v := base + int64(w.rng.uniform(a.DamageSpread))
+		if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok && w.rng.uniform(100) < chance {
+			return top
+		}
+		if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok && w.rng.uniform(100) < chance {
+			return base
+		}
+		return v
+	}
+	blessed, cursed := false, false
+	if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok {
+		blessed = w.rng.uniform(100) < chance
+	}
+	if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok {
+		cursed = w.rng.uniform(100) < chance
+	}
+	switch {
+	case blessed:
+		return top
+	case cursed, a.DamageSpread == 0 && rule.zeroSpreadNoDraw:
+		return base
+	}
+	return base + int64(w.rng.uniform(a.DamageSpread))
 }
 
 // resistPhysicalDamage is HERO-DAMAGE-022's

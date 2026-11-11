@@ -13,7 +13,14 @@ type rng struct {
 	// original runs the stream on the original's MSVC recurrence over the low
 	// 32 bits of state, with the original's range wrapper as uniform.
 	original bool
+	// scripted, when set, answers every bounded draw in place of the stream.
+	// Only tests set it, to state a rule's draws call by call; no byte form or
+	// digest carries it.
+	scripted drawScript
 }
+
+// drawScript answers one bounded draw of width n, a value in [0, n].
+type drawScript interface{ draw(n int32) int32 }
 
 // RandomState returns the complete current native generator state without
 // consuming a draw. It is not the original engine's RNG or a SAV field.
@@ -74,6 +81,9 @@ func (r *rng) next() uint64 {
 // stream is the original's range wrapper, which draws nothing at n = 0
 // (MAGIC-284).
 func (r *rng) uniform(n int32) int32 {
+	if r.scripted != nil {
+		return r.scripted.draw(n)
+	}
 	if r.original {
 		m := random.MSVC{State: uint32(r.state)}
 		v := m.Range(n)

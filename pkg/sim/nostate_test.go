@@ -367,6 +367,8 @@ var nstPinned = []struct {
 	{"rng", reflect.TypeOf(rng{}), []nstField{
 		{"state", "uint64"},
 		{"original", "bool"},
+		// A test's scripted answers; play never sets it.
+		{"scripted", "sim.drawScript"},
 	}},
 	{"groupAI", reflect.TypeOf(groupAI{}), []nstField{
 		{"owner", "uint32"},

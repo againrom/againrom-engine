@@ -139,10 +139,8 @@ type gameProfile struct {
 	// memberScoreGate: the score's preference modifiers test the scoring
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
 	memberScoreGate bool
-	// magicPartNeedsRollHit: a blow's third component is added only when
-	// to-hit plus the roll beats defence or the physical pair is empty; a
-	// hit by the band or by AlwaysHits does not add it (R2-ENGINE-478).
-	magicPartNeedsRollHit bool
+	// blow: the blow's draws and gates (resolveBlow).
+	blow blowRule
 	// skillAward: the skill award's steps (R2-ENGINE-480, R2-ENGINE-486).
 	skillAward skillAwardProfile
 	orders     orderProfile
@@ -174,7 +172,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		cellEventRelocates:         true,
 		bookListsScrolls:           true,
 		memberScoreGate:            true,
-		magicPartNeedsRollHit:      true,
+		blow:                       secondGameBlow,
 		skillAward:                 secondGameSkillAward,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
