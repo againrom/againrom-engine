@@ -285,7 +285,7 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		}
 	}
 	if state.Native && c.Class != "Unit" {
-		if repairNativeSkills(&out.Hero.Skill, state.SkillXP, mapload.TableRules(t)) && base != nil {
+		if repairNativeSkills(&out.Hero.Skill, state.SkillXP, t) && base != nil {
 			base.LegacyTraining = false
 		}
 	}

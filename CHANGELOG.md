@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Loading a save keeps every skill of your heroes at the level it had when saved; before, with the new skill growth, a skill whose experience had not yet reached the next level rose by one level when the save was loaded.
 - [BASE] A room tip, the character generator tip and the mission tip now close on a click anywhere on the painted Close button; before, a click on the top few rows of the button did nothing, however often it was repeated.
 - [ROM2] Experience falls off for a kind of enemy your hero keeps killing, as in the original: from his third kill of the same kind, each kill and each blow against that kind pays less (about a tenth less at the third kill, a little less with each kill after), a kind that is not among the last five he killed pays in full again, and the count starts over in each new mission and after a save is loaded.
 - [BASE] Automatic casting puts Bless (Luck in Battle) on a creature with mana again, such as a dragon or an orc shaman, and such a computer creature that draws Bless for itself casts it on itself; human mages, necromancers and druids are still skipped.

@@ -4,9 +4,55 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
+
+// TestALoadedNativeSkillHoldsItsGamesLevel: a loaded native skill keeps the
+// level the live award left it at. The second game raises at the next
+// level's mark, so level 10 with 1619 experience (marks 1593 and 1853) stays
+// 10 and one experience in an untrained skill stays 0; the first game raises
+// past its own mark, so the same slots rise to 11 and 1, as before.
+func TestALoadedNativeSkillHoldsItsGamesLevel(t *testing.T) {
+	r := sim.Rules{}
+	second := base.GameROM2.Edition()
+	for _, c := range []struct {
+		what   string
+		table  *mapload.Table
+		level  int32
+		xp     int32
+		want   int32
+		raised bool
+	}{
+		{"second, between the marks", &mapload.Table{Edition: &second}, 10, r.SkillXP(10) + 26, 10, false},
+		{"second, at the next mark", &mapload.Table{Edition: &second}, 10, r.SkillXP(11), 11, true},
+		{"second, untrained", &mapload.Table{Edition: &second}, 0, 1, 0, false},
+		{"second, two marks behind", &mapload.Table{Edition: &second}, 9, r.SkillXP(11) + 1, 11, true},
+		{"first, between the marks", nil, 10, r.SkillXP(10) + 26, 11, true},
+		{"first, at its own mark", nil, 10, r.SkillXP(10), 10, false},
+		{"first, untrained", nil, 0, 1, 1, true},
+	} {
+		var skill, xp [data.SkillSlots]int32
+		skill[1], xp[1] = c.level, c.xp
+		raised := repairNativeSkills(&skill, xp, c.table)
+		if skill[1] != c.want || raised != c.raised {
+			t.Errorf("%s: level %d at %d experience loads as %d (raised %v), want %d (%v)", c.what, c.level, c.xp, skill[1], raised, c.want, c.raised)
+		}
+	}
+}
+
+// TestTheFirstGameHeldSkillLevelIsItsOldRepair: the first game's held level
+// is the repair it had, the level above the last mark below the experience.
+func TestTheFirstGameHeldSkillLevelIsItsOldRepair(t *testing.T) {
+	r := sim.Rules{}
+	for xp := int32(1); xp <= r.SkillXP(r.SkillCap())+3; xp += 1 + xp/64 {
+		if got, want := sim.HeldSkillLevel(sim.ScriptROM1, r, xp), r.ClampSkill(r.SkillLevelFor(xp-1)+1); got != want {
+			t.Fatalf("experience %d holds %d, want %d", xp, got, want)
+		}
+	}
+}
 
 // TestRepairSourceSkillsKeepsAStoredLowerLevel: a live level below a trained
 // level its experience agrees with is a placement's skill store and stays; a

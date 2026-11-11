@@ -26,6 +26,9 @@ type gameFiles struct {
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
 	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
+	// scriptDialect is the dialect compileScript gives the game's Worlds; a
+	// load outside a World asks sim's rules of the game by it.
+	scriptDialect  sim.ScriptDialect
 	menuLayout     menu.Layout
 	briefing       func(src entrySource, e base.Edition, mission int) string
 	eventText      func(src entrySource, e base.Edition, mission, event int) ([]byte, bool)
@@ -312,6 +315,7 @@ var secondGameFiles = gameFiles{
 	table:               databin.ROM2Layout,
 	openMap:             alm.OpenROM2,
 	compileScript:       mapload.CompileROM2Script,
+	scriptDialect:       sim.ScriptROM2,
 	menuLayout:          menu.SecondLayout,
 	briefing:            secondGameBriefing,
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {

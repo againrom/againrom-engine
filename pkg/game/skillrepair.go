@@ -4,11 +4,15 @@ import (
 	"encoding/binary"
 
 	"againrom/pkg/data"
+	"againrom/pkg/mapload"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
-func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32, r sim.Rules) bool {
+// repairNativeSkills raises each stored level below the level its experience
+// holds in the table's game (sim.HeldSkillLevel).
+func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32, t *mapload.Table) bool {
+	r, dialect := mapload.TableRules(t), tableFiles(t).scriptDialect
 	repaired := false
 	for i := 1; i < data.SkillSlots; i++ {
 		if xp[i] <= 0 {
@@ -18,7 +22,7 @@ func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32
 		if bought, err := rules.SchoolTrainedXP(skill[i]); skill[i] > 0 && err == nil && xp[i] == bought {
 			continue
 		}
-		level := r.ClampSkill(r.SkillLevelFor(xp[i]-1) + 1)
+		level := sim.HeldSkillLevel(dialect, r, xp[i])
 		if skill[i] < level {
 			skill[i], repaired = level, true
 		}

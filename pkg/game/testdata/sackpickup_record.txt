@@ -2563,24 +2563,22 @@ t1 tick=1 hash=a7f4ba33dc190ec8 form=753fec0bbe3ed777
 t2 tick=2 hash=e4ec31330305a066 form=91836718ef5a01af
 t3 tick=3 hash=617cb46b43933698 form=a637a75668849560
 t4 tick=4 hash=a574ade54e46a362 form=7954f85255c9733a
-t5 tick=5 hash=b907459d42b78a00 form=604fa7dcc6664fa1
+t5 tick=5 hash=3aff1bb530fd2c84 form=52fa582fb7628cf8
   actor 7 at=(5,3) transit=0 state=0xb pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=true(5,3) attack=true/2 phase=2 post=(5,3) pack=[]
-t6 tick=6 hash=87d3e9fac6c7c974 form=9fb47d2bf1c0f244
-t7 tick=7 hash=4085b7f91e8381b8 form=3237cc3a1c0b5c10
-  actor 7 at=(5,3) transit=0 state=0xc pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=2 post=(5,3) pack=[]
-t8 tick=8 hash=363ac0ecd58f3f66 form=548f37a3d77a69a0
+t6 tick=6 hash=134f47e37d544026 form=5fb392eaee64aafd
+t7 tick=7 hash=aeef18a3d40bb8e6 form=74adce9287c01955
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=4 post=(5,3) pack=[]
-t9 tick=9 hash=c5aff5cada7c2952 form=905f924ce39172c5
+t8 tick=8 hash=9d8b1af7855ea320 form=81adadc7c3d0efd4
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:2 RowAdmitted:false Target:0 Spell:0 X:5 Y:3} target=false(0,0) attack=true/2 phase=5 post=(5,3) pack=[]
-t10 tick=10 hash=33c40f47233c2d57 form=f285af07c091be6d
+t9 tick=9 hash=14ac6f4cc7d718a7 form=51313a24a7726bd8
   actor 7 at=(5,3) transit=0 state=0x2 pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
   purse=17 sacks=[]
   lines=["Picked up 17 gold" "Picked up Sword"]
-t11 tick=11 hash=270ddfab64be89f4 form=052ab368e7b854b8
+t10 tick=10 hash=4980bc6cef29f73e form=da2eaa5da9ac6f88
   actor 7 at=(5,3) transit=0 state=0xc pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(5,3) pack=[0x101:1/0]
-t12 tick=12 hash=db538a17217be1d5 form=2d8ddf1a815d1a60
-t13 tick=13 hash=c24fceb6ff977f16 form=1679a285067a7e8a
-t14 tick=14 hash=5d2c26a8ecab1627 form=c89b32057704651a
+t11 tick=11 hash=55d4ff919c62edf5 form=f10028933de21623
+t12 tick=12 hash=72258e2b83800c18 form=e4e2c15661259ee8
+t13 tick=13 hash=54d3fd7d6561db77 form=e45007fde8637717
 == second key-crossing
 open tick=0 hash=e4bad220e85a9410 form=f2b47cec45e0bc72
   actor 7 at=(3,3) transit=0 state=0xb pending={Kind:0 RowAdmitted:false Target:0 Spell:0 X:0 Y:0} target=false(0,0) attack=false/0 phase=0 post=(3,3) pack=[]

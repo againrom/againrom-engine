@@ -16,6 +16,13 @@ import (
 // ticks stay equal.
 func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testing.T) {
 	f, app := secondGeneratedMage(t, false)
+	// Summon needs 100 mana; the generated mage holds 99 at Astral 10, and a
+	// skill rises only at the next level's mark (R2-ENGINE-480), so the hero
+	// enters at Astral 11, which gives him 100.
+	if f.Carried[0].Carry != nil || f.Carried[0].Hero.Skill[5] != 10 {
+		t.Fatalf("generated mage carries %v at Astral %d, want no carried state at 10", f.Carried[0].Carry, f.Carried[0].Hero.Skill[5])
+	}
+	f.Carried[0].Hero.Skill[5] = 11
 	for _, target := range []string{"TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)

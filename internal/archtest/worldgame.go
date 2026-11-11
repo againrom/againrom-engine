@@ -96,6 +96,7 @@ var WorldGameAllowed = map[string]map[string]string{
 		"pkg/sim/rom2script.go#initializeROM2Script":          "the build path of mission start and the controlled script copy",
 		"pkg/sim/binary.go#unmarshalBinary":                   "the decoder's base form",
 		"pkg/sim/rom2statebinary.go#unmarshalROM2ScriptState": "the decoder's second-game wrapper",
+		"pkg/sim/skill.go#HeldSkillLevel":                     "a party load outside a World reads the skill award of the chooser's profile",
 	},
 }
 

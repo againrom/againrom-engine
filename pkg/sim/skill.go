@@ -130,10 +130,26 @@ func (w *World) mainSkill(ai int) int32 {
 // raisesSkill reports whether experience xp raises a skill whose trained
 // level is level.
 func (w *World) raisesSkill(xp, level int32) bool {
-	if w.game.skillAward.raiseAtNext {
-		return xp >= w.rules.SkillXP(level+1)
+	return w.game.skillAward.raises(w.rules, xp, level)
+}
+
+func (p skillAwardProfile) raises(r Rules, xp, level int32) bool {
+	if p.raiseAtNext {
+		return xp >= r.SkillXP(level+1)
 	}
-	return xp > w.rules.SkillXP(level)
+	return xp > r.SkillXP(level)
+}
+
+// HeldSkillLevel is the trained level experience xp holds in the game of
+// dialect d: the lowest level the award's raise test does not raise, at most
+// the cap. A load repairs a stored level below it.
+func HeldSkillLevel(d ScriptDialect, r Rules, xp int32) int32 {
+	award := newGameProfile(d).skillAward
+	level := int32(0)
+	for level < r.SkillCap() && award.raises(r, xp, level) {
+		level++
+	}
+	return level
 }
 
 func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
