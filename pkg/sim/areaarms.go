@@ -28,9 +28,13 @@ type areaArm struct {
 	blow          bool // MAGIC-LIGHTDARK-044
 	poison        bool
 	secondLasting bool // R2-ENGINE-024
-	scorches      bool
-	ambient       bool
-	overlay       areaOverlay // MAGIC-OVERLAYART-051
+	// heldToNextPulse: the effect a cloud pulse lands lasts at least until
+	// the next pulse renews it, so a body standing in the cloud keeps it
+	// between pulses (DIV-4834, DIV-4835).
+	heldToNextPulse bool
+	scorches        bool
+	ambient         bool
+	overlay         areaOverlay // MAGIC-OVERLAYART-051
 }
 
 type areaOverlay struct {
@@ -50,8 +54,8 @@ var areaArms = [...]areaArm{
 	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3, poison: true, secondLasting: true,
 		overlay: areaOverlay{drawn: true, slot: 3, secondPass: true}},
 	{arm: 9, layer: noAreaLayer, stages: 6, stage: acidStreamStage},
-	{arm: 12, layer: 4, clears: []uint16{12, 17}, unattributed: true},
-	{arm: 17, layer: 5, clears: []uint16{12, 17}, blow: true},
+	{arm: 12, layer: 4, clears: []uint16{12, 17}, unattributed: true, heldToNextPulse: true},
+	{arm: 17, layer: 5, clears: []uint16{12, 17}, blow: true, heldToNextPulse: true},
 	{arm: 19, layer: 3, blocks: true, clears: []uint16{19}, inert: true, unattributed: true,
 		overlay: areaOverlay{drawn: true, slot: 1}},
 	{arm: 21, layer: noAreaLayer, stages: 32, stage: meteorStormStage, draws: true},

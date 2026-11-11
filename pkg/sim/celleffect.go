@@ -181,7 +181,7 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 		switch e.Mode {
 		case areaModeCloud:
 			e.Phase++
-			if e.Remaining%16 == 0 {
+			if e.Remaining%cloudPulseTicks == 0 {
 				w.applyAreaCells(e, rule, w.cloudPulseCells(e.Key, w.spellArm(e.Spell), int32(rule.Radius)))
 			}
 		case areaModeRing:
@@ -203,6 +203,9 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 	w.effects[index] = e
 	return true
 }
+
+// cloudPulseTicks is the period of a cloud's pulse, in ticks.
+const cloudPulseTicks = 16
 
 const (
 	areaModeBlast uint8 = iota + 1

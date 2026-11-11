@@ -224,6 +224,9 @@ func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 	if rule.Second && areaRow(rule.arm()).secondLasting {
 		return spellLastingTicksUnder(r, rule, power)
 	}
+	if rule.Area && areaRow(rule.arm()).heldToNextPulse {
+		return max(rule.EffectDuration, cloudPulseTicks+1)
+	}
 	return rule.EffectDuration
 }
 
