@@ -29,7 +29,7 @@ func TestSavedActorTiersFollowRestoredIDs(t *testing.T) {
 	state := &SnapshotSAVDocument{Document: &sav.DocumentData{Objects: []sav.DocumentRecordData{
 		savedTierRecord(1098, 70, 4),
 	}}, Actors: []SnapshotSAVActor{{EntityID: 9, ObjectIndex: 1}}}
-	tiers := savedActorTiers(m, placed, entities, state)
+	tiers := savedActorTiers(m, nil, placed, entities, state)
 	if _, stale := tiers[1]; stale {
 		t.Fatal("removed ALM index coloured a different restored actor")
 	}
@@ -58,7 +58,7 @@ func TestSavedActorTiersRejectAmbiguousOrMismatchedSources(t *testing.T) {
 	state := &SnapshotSAVDocument{Document: &sav.DocumentData{Objects: []sav.DocumentRecordData{
 		savedTierRecord(60, 71, 4), // type does not match actor 9
 	}}, Actors: []SnapshotSAVActor{{EntityID: 9, ObjectIndex: 1}}}
-	tiers := savedActorTiers(m, placed, entities, state)
+	tiers := savedActorTiers(m, nil, placed, entities, state)
 	if len(tiers) != 1 || tiers[9] != 3 {
 		t.Fatalf("tiers=%v, want only actor 9 from the unique matching ALM placement", tiers)
 	}

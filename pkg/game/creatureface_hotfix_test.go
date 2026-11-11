@@ -108,7 +108,7 @@ func TestFirstGameCreatureFaceIsItsSecondaryKey(t *testing.T) {
 	state := &SnapshotSAVDocument{Document: &sav.DocumentData{Objects: []sav.DocumentRecordData{
 		savedTierRecord(7, unitsArmKey, 3),
 	}}, Actors: []SnapshotSAVActor{{EntityID: 0, ObjectIndex: 1}}}
-	if got := savedActorTiers(m, entityTiers(m, table), []sim.Entity{e}, state)[0]; got != 3 {
+	if got := savedActorTiers(m, table, entityTiers(m, table), []sim.Entity{e}, state)[0]; got != 3 {
 		t.Errorf("first-game loaded tier %d, want 3", got)
 	}
 }

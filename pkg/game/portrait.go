@@ -249,6 +249,15 @@ func (mw *mapWorld) archive() entrySource {
 	return mw.mission.src
 }
 
+func (mw *mapWorld) unitPictureClass(id sim.EntityID, class int32) int32 {
+	if mw.files().creatureRowPictures {
+		if e, ok := mw.entity(id); ok && !e.Humanoid && e.SourceBinding.ActorClass() == 1 {
+			return drawnTypeID(e, nil)
+		}
+	}
+	return class
+}
+
 // unitPicture is the whole DECISION behind the push: which of the two kinds of
 // picture an actor has, and which one of that kind. It is split out from
 // pushPortrait because that method reads a selection this package cannot set
@@ -275,6 +284,7 @@ func (mw *mapWorld) archive() entrySource {
 // overwritten type id (gender + 0x21 or + 0x23, DAT-HUMANS-008), which is
 // above the compose limit although the actor still has a doll in mw.figures.
 func (mw *mapWorld) unitPicture(id sim.EntityID, class int32) *image.RGBA {
+	class = mw.unitPictureClass(id, class)
 	_, composed := mw.figures[id]
 	if composed || data.ComposesFigure(class) {
 		if mw.invSubjectSet && uint32(id) == mw.invSubject.ID {
@@ -307,8 +317,9 @@ func (mw *mapWorld) inspectionUnitPicture(id uint32) *image.RGBA {
 	if !ok {
 		return nil
 	}
-	if _, composed := mw.figures[e.ID]; composed || data.ComposesFigure(e.Class) {
+	class := mw.unitPictureClass(e.ID, e.Class)
+	if _, composed := mw.figures[e.ID]; composed || data.ComposesFigure(class) {
 		return mw.unitFigure(e.ID)
 	}
-	return mw.unitPicture(e.ID, e.Class)
+	return mw.unitPicture(e.ID, class)
 }

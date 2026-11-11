@@ -123,9 +123,10 @@ type gameFiles struct {
 	schoolPoolExperience bool
 	// fallbackSpeakers adds data.FallbackSpeakerFace for every key that has
 	// no other record.
-	fallbackSpeakers bool
-	unitSpeakers     bool
-	portraitWindows  portraitWindowProfile
+	fallbackSpeakers    bool
+	unitSpeakers        bool
+	creatureRowPictures bool
+	portraitWindows     portraitWindowProfile
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
 	manaSpellcaster bool
@@ -321,6 +322,7 @@ var secondGameFiles = gameFiles{
 		return []byte(body), body != ""
 	},
 	unitKeys:             mapload.ServerUnitKeys,
+	creatureRowPictures:  true,
 	carryStockOnly:       true,
 	spellArms:            mapload.SecondGameSpellArms,
 	freshPlayers:         mapload.NoFreshPlayers,

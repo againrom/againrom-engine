@@ -34,8 +34,29 @@ func placementTier(u alm.Unit, t *mapload.Table) (int, bool) {
 	if r.Arm != mapload.ArmUnits || !r.Found() {
 		return 0, false
 	}
-	d, err := data.NewUnitDef(t.Units.EntryName(r.Index), t.Units.EntryParams(r.Index))
-	return int(d.Face), err == nil
+	return unitRowTier(r.Index, t, 0)
+}
+
+func unitRowTier(row int, t *mapload.Table, typeID int32) (int, bool) {
+	if t == nil || t.Units == nil || row < 0 || row >= t.Units.Len() {
+		return 0, false
+	}
+	d, err := data.NewUnitDef(t.Units.EntryName(row), t.Units.EntryParams(row))
+	return int(d.Face), err == nil && (typeID == 0 || d.TypeID == typeID)
+}
+
+func sourceActorTier(e sim.Entity, t *mapload.Table) (int, bool) {
+	if e.SourceBinding.ActorClass() != 1 {
+		return 0, false
+	}
+	face := int(e.SourceBinding.Face)
+	if face == 0 && tableFiles(t).creatureRowPictures && int32(e.SourceBinding.TypeID) == e.TypeID {
+		row := int(e.SourceBinding.DefinitionRow())
+		if tier, ok := unitRowTier(row, t, e.TypeID); row > 0 && ok {
+			face = tier
+		}
+	}
+	return face, true
 }
 
 // savedActorTiers restates a loaded creature's tier from its record's face
@@ -44,7 +65,7 @@ func placementTier(u alm.Unit, t *mapload.Table) (int, bool) {
 // another face is the key an older save stored for a second-game creature, and
 // the row's face is read instead. A first-game key selects the row by that
 // face, so the two never differ there.
-func savedActorTiers(m *alm.Map, placed map[sim.EntityID]int, entities []sim.Entity, state *SnapshotSAVDocument) map[sim.EntityID]int {
+func savedActorTiers(m *alm.Map, t *mapload.Table, placed map[sim.EntityID]int, entities []sim.Entity, state *SnapshotSAVDocument) map[sim.EntityID]int {
 	if state == nil || state.Document == nil || len(state.Actors) == 0 {
 		return placed
 	}
@@ -87,8 +108,8 @@ func savedActorTiers(m *alm.Map, placed map[sim.EntityID]int, entities []sim.Ent
 		tiers[e.ID] = int(face)
 	}
 	for _, e := range entities {
-		if e.SourceBinding.ActorClass() == 1 && e.SourceBinding.Face != 0 {
-			tiers[e.ID] = int(e.SourceBinding.Face)
+		if tier, ok := sourceActorTier(e, t); ok && tier != 0 {
+			tiers[e.ID] = tier
 		}
 	}
 	for _, e := range entities {

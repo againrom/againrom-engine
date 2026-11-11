@@ -51,7 +51,8 @@ func TestEditorIdentityPictureAndPlacementShareTierBuilders(t *testing.T) {
 		file, function, builder string
 	}{
 		{"pkg/game/tiers.go", "entityTiers", "placementTier"},
-		{"pkg/game/tiers.go", "placementTier", "NewUnitDef"},
+		{"pkg/game/tiers.go", "placementTier", "unitRowTier"},
+		{"pkg/game/tiers.go", "unitRowTier", "NewUnitDef"},
 		{"pkg/game/mapinspectionidentity.go", "identityFigure", "placementTier"},
 		{"pkg/game/mapinspectionidentity.go", "identityFigure", "unitPreview"},
 		{"pkg/game/mapinspectionadd.go", "NewRecordPreview", "unitPreview"},

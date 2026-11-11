@@ -147,7 +147,7 @@ func (mw *mapWorld) rememberCreatedActor(id sim.EntityID, name string) {
 	manifest.NativeNamesOnly = false
 	manifest.Actors = append(manifest.Actors, SnapshotActor{ID: id, Name: name, Constructed: true})
 	mw.mission.state.ActorManifest = manifest
-	mw.installActorManifest(manifest)
+	mw.installActorManifest(manifest, mw.mission.table)
 	mw.rememberCheatCharacter(id, name)
 }
 

@@ -34,7 +34,7 @@ func actorManifestDriver1111(t *testing.T, w *sim.World, manifest *SnapshotActor
 	art := worldFixtureArt(16, 16, 8, 16, 3, 3, 1)
 	art.Name = "definition name"
 	mw := newMapWorld(w, nil, &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{35: art}}, worldFixtureViewer(t, m))
-	mw.installActorManifest(manifest)
+	mw.installActorManifest(manifest, nil)
 	return mw
 }
 

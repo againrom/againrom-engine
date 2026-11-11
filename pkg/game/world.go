@@ -965,11 +965,11 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// keys the bundle off PartyMember.Body and PartyMember.BodyDir.
 	list, _ := ReadBodyList(src)
 	canonicalizePartyAppearance(ms, units, src, list)
-	tiers := partyTiers(savedActorTiers(ms.Map, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument), ms.Party, ms.Start.IDs)
+	tiers := partyTiers(savedActorTiers(ms.Map, t, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument), ms.Party, ms.Start.IDs)
 	heroes := placedClientHeroes(ms, t)
 	mw := newMapWorldWith(ms.World, nil, units,
 		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src, heroes), v)
-	mw.installActorManifest(ms.ActorManifest)
+	mw.installActorManifest(ms.ActorManifest, t)
 	mw.installCharacterDerivations(ms, t)
 	v.SetItemCastSink(mw.useScroll)
 	v.SetMusicAreas(missionMusicAreas(ms.Map), mw.musicHero)

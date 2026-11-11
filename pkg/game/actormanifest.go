@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -131,7 +132,7 @@ func snapshotActorManifest(in *SnapshotActorManifest, world *sim.World) (*Snapsh
 	return out, nil
 }
 
-func (mw *mapWorld) installActorManifest(in *SnapshotActorManifest) {
+func (mw *mapWorld) installActorManifest(in *SnapshotActorManifest, t *mapload.Table) {
 	if in == nil {
 		return
 	}
@@ -141,8 +142,10 @@ func (mw *mapWorld) installActorManifest(in *SnapshotActorManifest) {
 	}
 	for _, actor := range in.Actors {
 		mw.actorNames[actor.ID] = actor.Name
-		if e, ok := mw.entity(actor.ID); ok && e.SourceBinding.ActorClass() == 1 {
-			mw.tiers[actor.ID] = int(e.SourceBinding.Face)
+		if e, ok := mw.entity(actor.ID); ok {
+			if tier, ok := sourceActorTier(e, t); ok {
+				mw.tiers[actor.ID] = tier
+			}
 		}
 	}
 	// newMapWorldWith made the initial projection before these metadata existed.
