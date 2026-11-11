@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.152.0
+
 ### For players
 
 - [ROM2] Loading a save keeps every skill of your heroes at the level it had when saved; before, with the new skill growth, a skill whose experience had not yet reached the next level rose by one level when the save was loaded.
