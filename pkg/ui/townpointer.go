@@ -112,6 +112,7 @@ func (a *App) stepTownTipPointer(in appInput, v TipPanelView, p image.Point, ins
 		return false
 	}
 	_, owner := a.currentTownTip()
+	pressed := false
 	if in.PrimaryPressed {
 		a.clearTownTip()
 		if inside {
@@ -127,7 +128,12 @@ func (a *App) stepTownTipPointer(in appInput, v TipPanelView, p image.Point, ins
 				}
 				a.latchTownTip(owner)
 			}
-			return consumed
+			// A click whose press and release arrive in one frame goes on to
+			// the release below, so its Close still acts.
+			if !in.PrimaryReleased {
+				return consumed
+			}
+			pressed = consumed
 		}
 	}
 	if in.PrimaryReleased {
@@ -139,9 +145,9 @@ func (a *App) stepTownTipPointer(in appInput, v TipPanelView, p image.Point, ins
 				if armed {
 					a.flow.closeTip()
 				}
-				return armed
+				return armed || pressed
 			}
-			return consumed || armed
+			return consumed || armed || pressed
 		}
 		return armed
 	}
