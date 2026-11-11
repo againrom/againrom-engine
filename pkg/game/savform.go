@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 )
@@ -574,13 +575,7 @@ func secondTownHeroRecord(doc sav.DocumentData) (uint16, error) {
 // `Start_` template: the school whose skill is largest, the first of equal
 // ones (R2-ENGINE-319, R2-ENGINE-320; DIV-4305).
 func secondMainSkill(h data.Hero) uint32 {
-	best := data.SkillBlade
-	for i := data.SkillBlade + 1; i < data.SkillSlots; i++ {
-		if h.Skill[i] > h.Skill[best] {
-			best = i
-		}
-	}
-	return uint32(best)
+	return uint32(rules.MainSkill(h.Skill))
 }
 
 // secondTemplateHero is the skill levels of a Human record whose Humans row

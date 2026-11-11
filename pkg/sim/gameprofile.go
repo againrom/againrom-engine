@@ -143,7 +143,9 @@ type gameProfile struct {
 	// to-hit plus the roll beats defence or the physical pair is empty; a
 	// hit by the band or by AlwaysHits does not add it (R2-ENGINE-478).
 	magicPartNeedsRollHit bool
-	orders                orderProfile
+	// skillAward: the skill award's steps (R2-ENGINE-480, R2-ENGINE-486).
+	skillAward skillAwardProfile
+	orders     orderProfile
 }
 
 // newGameProfile chooses the profile of a World running the script dialect
@@ -173,6 +175,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		bookListsScrolls:           true,
 		memberScoreGate:            true,
 		magicPartNeedsRollHit:      true,
+		skillAward:                 secondGameSkillAward,
 		nativeEffectDriver:         true,
 		nativeMovers:               true,
 		nativeCellPlanes:           true,

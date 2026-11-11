@@ -2,13 +2,14 @@ package sim
 
 import "testing"
 
-// summonedKill is a second-game World where the caster's Summon built one
-// creature and a human attacker (the caster, moved to another owner) is about
-// to kill it. The creature is given the gold row a death rolls.
+// summonedKill is a second-game World where Summon built one creature, given
+// to a computer player and the gold row a death rolls; a human attacker (the
+// caster, moved to another owner) is about to kill it.
 func summonedKill(t *testing.T) *World {
 	t.Helper()
 	w := summonedWorld(t, 0x25, 1)
 	w.entities[1].GoldChance, w.entities[1].TreasureMin, w.entities[1].TreasureMax = 100, 8, 8
+	w.entities[1].Owner = 2
 	w.entities[1].TypeID = 0x41
 	w.carried[1] = []ItemStack{StackItem(ItemInstance{Code: 0x101, Kind: 1, Price: 27}, 1)}
 	a := &w.entities[0]

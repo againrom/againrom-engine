@@ -222,7 +222,7 @@ func (w *World) sourceSkillAward(i int, slot int32, gain int32) bool {
 	base := int32(int16(binary.LittleEndian.Uint16(s.Base[2+2*slot:])))
 	s.SkillXP[slot] += uint32(gain)
 	s.Experience += uint32(gain)
-	raised := int32(s.SkillXP[slot]) > w.rules.SkillXP(base)
+	raised := w.raisesSkill(int32(s.SkillXP[slot]), base)
 	if raised {
 		binary.LittleEndian.PutUint16(s.Base[2+2*slot:], uint16(base+1))
 		n, err := w.sourceDerive(s, e.ActorLoad.Accumulator, w.rules)

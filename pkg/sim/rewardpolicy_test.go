@@ -20,9 +20,9 @@ func TestRewardOutputsAreRecorded(t *testing.T) {
 		{"first/plain/human", ScriptROM1, false, true, output{8, true, true, 100}},
 		{"first/marked/creature", ScriptROM1, true, false, output{8, true, true, 100}},
 		{"first/marked/human", ScriptROM1, true, true, output{8, true, true, 100}},
-		{"second/plain/creature", ScriptROM2, false, false, output{8, true, true, 100}},
-		{"second/plain/human", ScriptROM2, false, true, output{8, true, true, 100}},
-		{"second/marked/creature", ScriptROM2, true, false, output{0, false, true, 100}},
+		{"second/plain/creature", ScriptROM2, false, false, output{8, true, true, 29}},
+		{"second/plain/human", ScriptROM2, false, true, output{8, true, true, 29}},
+		{"second/marked/creature", ScriptROM2, true, false, output{0, false, true, 29}},
 		{"second/marked/human", ScriptROM2, true, true, output{}},
 	}
 	for _, tc := range cases {

@@ -986,7 +986,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		w.weaponRiderApply(ai, ti, false, obs)
 		return
 	}
-	aliveBeforeBlow := !t.Dead()
+	aliveBeforeBlow := w.paidBeforeBlow(*t)
 	before := *t
 	t.loseHealth(dmg)
 	w.reportPhysicalBlow(before, ti)
@@ -1042,14 +1042,25 @@ func xpGain(raw int64, mind int32) int64 {
 	return raw * (xpMindSlope*int64(mind) + xpMindOffset) / xpMindDivisor
 }
 
+// paidBeforeBlow reports whether a blow's victim, as it stood before the blow,
+// can pay its award: not dead, and above zero health under the second game's
+// rule (R2-ENGINE-480).
+func (w *World) paidBeforeBlow(t Entity) bool {
+	return !t.Dead() && (!w.game.skillAward.standingVictim || t.InLife(LifeStanding))
+}
+
+// payExperience pays a blow that removed health from a victim that could pay
+// before it (paidBeforeBlow).
 func (w *World) payExperience(ai, ti int, removed int64, aliveBefore bool) {
+	t := &w.entities[ti]
 	switch {
 	case removed <= 0:
 		return
 	case !aliveBefore:
 		return
+	case w.game.skillAward.computerVictim && !w.computerControlledUnit(*t):
+		return
 	}
-	t := &w.entities[ti]
 	w.awardSkill(ai, 0, xpRaw(t.ExperienceValue(), removed, t.MaxHP), ti)
 }
 

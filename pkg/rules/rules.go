@@ -235,6 +235,19 @@ func (r Rules) StoredPoolExperience(word int32, xp [6]int32) int32 {
 	return r.PoolExperience(xp)
 }
 
+// MainSkill is the main skill of the second game held for six skill levels:
+// the first of the school skills 1 to 5 whose level is largest
+// (R2-ENGINE-319; DIV-4305, DIV-4839).
+func MainSkill(levels [6]int32) int32 {
+	best := int32(1)
+	for s := int32(2); s < int32(len(levels)); s++ {
+		if levels[s] > levels[best] {
+			best = s
+		}
+	}
+	return best
+}
+
 // IsDefault reports whether the rules are the original game's.
 func (r Rules) IsDefault() bool { return r.SkillCap() == ROM1SkillCap && r.spell == nil }
 

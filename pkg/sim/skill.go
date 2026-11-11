@@ -88,11 +88,56 @@ func (w *World) trainedSkill(ai int, slot int32) int32 {
 	return a.TrainedSkills(w.nativeSkillBonuses(ai))[slot]
 }
 
+// skillAwardProfile is the steps of the skill award that differ by game. The
+// zero value is the first game's award.
+type skillAwardProfile struct {
+	// offMainDivisor, when positive, pays ceil(X / offMainDivisor) into a
+	// skill that is neither the actor's main skill nor freeSkill.
+	offMainDivisor int64
+	freeSkill      int32
+	// raiseAtNext raises a skill when its experience reaches the next
+	// level's threshold; otherwise when it passes its own level's.
+	raiseAtNext bool
+	// standingVictim: a blow pays only for a victim whose health was above
+	// zero before it; computerVictim: only for a computer player's victim.
+	standingVictim, computerVictim bool
+	// ownedAttacker: an attacker with no owner is paid nothing for a victim
+	// whose health is not below zero.
+	ownedAttacker bool
+	// spellNeedsMage: spell damage pays a mage alone.
+	spellNeedsMage bool
+}
+
+// secondGameSkillAward is the second game's award (R2-ENGINE-480,
+// R2-ENGINE-486, R2-ENGINE-488).
+var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raiseAtNext: true,
+	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true}
+
+// mainSkill is the skill the off-main cut spares besides freeSkill: the
+// main skill of the actor's trained levels (rules.MainSkill, DIV-4839).
+func (w *World) mainSkill(ai int) int32 {
+	var levels [skillSlots]int32
+	for s := int32(1); s < skillSlots; s++ {
+		levels[s] = w.trainedSkill(ai, s)
+	}
+	return rules.MainSkill(levels)
+}
+
+// raisesSkill reports whether experience xp raises a skill whose trained
+// level is level.
+func (w *World) raisesSkill(xp, level int32) bool {
+	if w.game.skillAward.raiseAtNext {
+		return xp >= w.rules.SkillXP(level+1)
+	}
+	return xp > w.rules.SkillXP(level)
+}
+
 func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	a := &w.entities[ai]
 	if !a.GainsXP || !InPersistBand(a.TypeID) {
 		return false
 	}
+	award := w.game.skillAward
 	if srcIdx >= 0 {
 		s := &w.entities[srcIdx]
 		if w.paysNoReward(*s) && a.Humanoid {
@@ -102,7 +147,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 		// after the source has fallen below zero. A downed source at exactly zero
 		// still takes both refusals.
 		if !s.Dead() {
-			if a.Owner == s.Owner {
+			if a.Owner == s.Owner || award.ownedAttacker && a.Owner == 0 {
 				return false
 			}
 			if w.relations.Locked(a.Owner, s.Owner) {
@@ -139,6 +184,9 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	}
 
 	gain := xpGain(amount, a.Mind)
+	if d := award.offMainDivisor; d > 0 && slot != award.freeSkill && slot != w.mainSkill(ai) {
+		gain = (gain + d - 1) / d
+	}
 	if cap := int64(w.rules.SkillXP(level+1) - w.rules.SkillXP(level)); gain > cap {
 		gain = cap
 	}
@@ -151,7 +199,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	if a.NativeBasis.ScalarIsKnown(ScalarU130) {
 		a.NativeBasis.Scalars[ScalarU130] += uint32(gain)
 	}
-	if a.SkillXP[slot] <= w.rules.SkillXP(before) {
+	if !w.raisesSkill(a.SkillXP[slot], before) {
 		return false
 	}
 	if !a.NativeTraining.Present {
@@ -185,6 +233,8 @@ func (w *World) awardSpellDamage(ai, ti int, rule SpellRule, amount int64) {
 	named := int32(0)
 	if skillMage(w.entities[ai]) {
 		named = int32(rule.School)
+	} else if w.game.skillAward.spellNeedsMage {
+		return
 	}
 	w.awardSkill(ai, named, xpRaw(t.ExperienceValue(), amount, t.MaxHP), ti)
 }
