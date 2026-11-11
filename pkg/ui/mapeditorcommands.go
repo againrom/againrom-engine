@@ -666,15 +666,24 @@ func (e *MapEditor) commandRandomize(w wholeMap) (editorChange, error) {
 // page on a page the map still holds.
 func (e *MapEditor) commandHistory(redo bool) (editorChange, error) {
 	e.leave(leaveDrag | leavePick)
-	if !e.editable() || !redo && !e.doc.Edits.CanUndo() || redo && !e.doc.Edits.CanRedo() {
+	var host InspectionEdits
+	if e.editable() {
+		host = e.doc.Edits
+	} else if e.modOverCatalog() {
+		host, _ = e.modEdits().(InspectionEdits)
+	}
+	if host == nil || !redo && !host.CanUndo() || redo && !host.CanRedo() {
 		return editorChange{}, nil
 	}
 	var next *InspectionDocument
 	var err error
 	if redo {
-		next, err = e.doc.Edits.Redo()
+		next, err = host.Redo()
 	} else {
-		next, err = e.doc.Edits.Undo()
+		next, err = host.Undo()
+	}
+	if e.doc == nil {
+		return editorChange{}, err
 	}
 	if err != nil {
 		return editorChange{}, err

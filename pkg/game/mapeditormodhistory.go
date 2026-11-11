@@ -11,8 +11,8 @@ import (
 	"againrom/pkg/mod"
 )
 
-func modPackageSpec(m mod.Mission, id, title string) editorPackageSpec {
-	return editorPackageSpec{ID: id, Title: title, Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: mod.CloneMission(m).Party}
+func modPackageSpec(m mod.Mission, previous editorPackageSpec) editorPackageSpec {
+	return editorPackageSpec{ID: previous.ID, Title: previous.Title, Manifest: mod.CloneManifest(previous.Manifest), Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: mod.CloneMission(m).Party}
 }
 
 func sameWorkspace(a, b []byte) bool {
@@ -27,7 +27,7 @@ func sameWorkspace(a, b []byte) bool {
 	}
 	for _, w := range []*editorWorkspaceState{&left, &right} {
 		w.Pages = nil
-		w.Package = editorPackageSpec{ID: w.Package.ID, Title: w.Package.Title}
+		w.Package = editorPackageSpec{ID: w.Package.ID, Title: w.Package.Title, Manifest: w.Package.Manifest}
 		w.Project.Selected = 0
 	}
 	x, _ := json.Marshal(left)

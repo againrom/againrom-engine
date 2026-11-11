@@ -1342,3 +1342,11 @@
 "editor.mod.overview.issues" = "Отказы"
 "editor.mod.overview.none" = "нет"
 "editor.mod.overview.refused" = "Игра не принимает его миссии:"
+
+"editor.mod.version" = "Версия"
+"editor.mod.author" = "Автор"
+"editor.mod.description" = "Описание"
+"editor.mod.applies-to" = "Подходит для"
+"editor.mod.requires" = "Требует (ID, ограничения)"
+"editor.mod.conflicts" = "Несовместим (ID)"
+"editor.mod.load-after" = "После модов (ID)"

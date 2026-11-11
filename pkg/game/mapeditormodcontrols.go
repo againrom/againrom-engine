@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,7 +25,11 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	if len(pages) > 0 {
 		m.Texts = testPlayTexts + "/{lang}"
 	}
-	files := missionPackageFiles(w.Package.Title, "Map editor mission package", m, s.inspector.pageLanguage(), pages)
+	files := missionPackageFiles(w.Package.Title, w.Package.Manifest.Description, m, s.inspector.pageLanguage(), pages)
+	files[mod.ManifestName], err = w.Package.manifestBytes(nil)
+	if err != nil {
+		return err
+	}
 	w.Project = &editorModDocument{Source: bytes.Clone(files[mod.MissionsFile]), Manifest: bytes.Clone(files[mod.ManifestName]), Original: []mod.Mission{mod.CloneMission(m)}, Missions: []mod.Mission{m}, Files: files}
 	return nil
 }
@@ -46,9 +49,9 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 		if s.inspector.mod == nil {
 			return nil, true, fmt.Errorf("choose a working mod folder first")
 		}
-		file, err := s.SaveIntoMod()
+		_, err := s.SaveIntoMod()
 		if err == nil {
-			s.saveNote = s.inspector.word("editor.mod.saved") + " " + filepath.Dir(file)
+			s.saveNote = s.inspector.word("editor.mod.saved") + " " + s.inspector.mod.dir
 		}
 		return nil, true, err
 	}
@@ -139,7 +142,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 			for d.Missions[d.Selected].Off {
 				d.Selected = (d.Selected + 1) % len(d.Missions)
 			}
-			w.Package = modPackageSpec(d.Missions[d.Selected], p.ID, p.Title)
+			w.Package = modPackageSpec(d.Missions[d.Selected], *p)
 		case "add":
 			if w.Project == nil {
 				return s.newModDocument(w)
@@ -190,7 +193,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 			d.Missions = append(d.Missions, m)
 			d.Selected = len(d.Missions) - 1
 			d.Files[m.Map] = s.model.Bytes()
-			w.Package = modPackageSpec(m, p.ID, p.Title)
+			w.Package = modPackageSpec(m, *p)
 		default:
 			parts := strings.Split(key, ".")
 			if len(parts) != 3 {

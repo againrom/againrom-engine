@@ -131,7 +131,7 @@ func TestTestPlayRefusesAnOwnedDestinationOverlappingTheSelectedModFolder(t *tes
 			if relation != "equal" {
 				manifest := strings.Replace(editorModManifest, `id = "ambush"`, `id = "`+filepath.Base(selected)+`"`, 1)
 				writeTestPlayInput(t, filepath.Join(selected, mod.ManifestName), []byte(manifest))
-				writeTestPlayInput(t, filepath.Join(selected, "main.star"), []byte(testPlayEntry))
+				writeTestPlayInput(t, filepath.Join(selected, "main.star"), []byte("def init(game, settings):\n    pass\n"))
 				writeTestPlayInput(t, filepath.Join(selected, filepath.FromSlash(mod.MissionsFile)), []byte(editorModMissions))
 			}
 			if err := f.x.SetMod(selected); err != nil {

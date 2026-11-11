@@ -13,7 +13,6 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -62,24 +61,27 @@ type mapInspectionEdits struct {
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
-	return !bytes.Equal(s.saved, s.model.Bytes()) || !sameWorkspace(s.savedWorkspace, s.workspaceImage)
+	return s.model != nil && !bytes.Equal(s.saved, s.model.Bytes()) || !sameWorkspace(s.savedWorkspace, s.workspaceImage)
 }
 func (s *mapInspectionEdits) CanUndo() bool {
 	if s.workspaceHistory {
 		return len(s.undoWorkspace) > 0
 	}
-	return s.model.CanUndo()
+	return s.model != nil && s.model.CanUndo()
 }
 func (s *mapInspectionEdits) CanRedo() bool {
 	if s.workspaceHistory {
 		return len(s.redoWorkspace) > 0
 	}
-	return s.model.CanRedo()
+	return s.model != nil && s.model.CanRedo()
 }
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
+	}
+	if m == nil {
+		return nil, nil
 	}
 	d, err := s.inspector.inspectModel(m, s.source, s.workspace)
 	if err == nil {
@@ -951,26 +953,6 @@ func mapOutputDirectory(abs string) (string, error) {
 	return parent, nil
 }
 
-// writeEditedMap writes a host file, never an input or a preserved install,
-// even through an alias.
-func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
-	if err := extendedName(data, path); err != nil {
-		return "", err
-	}
-	parent, target, err := editedMapTarget(root, source, path, overwrite, grants...)
-	if err != nil {
-		return "", err
-	}
-	set, err := editedMapSet(parent, target, data, overwrite)
-	if err != nil {
-		return "", err
-	}
-	if _, err := hostfile.Commit(set); err != nil {
-		return "", err
-	}
-	return target, nil
-}
-
 // editedMapTarget validates an edited map's path against its fences and its
 // source and returns the resolved folder and file it is written to.
 func editedMapTarget(root, source, path string, overwrite bool, grants ...*runtimeProfileAccess) (parent, target string, err error) {
@@ -1017,48 +999,6 @@ func editedMapTarget(root, source, path string, overwrite bool, grants ...*runti
 		}
 	}
 	return parent, target, nil
-}
-
-// editedMapSet is the Set that writes data at target in folder parent. A new
-// map is created exclusively and synchronized; a failed write removes it.
-// With overwrite the bytes go to a temporary file beside target, keep the
-// mode of the file they replace and are renamed over it, so a crash leaves
-// the old or the new file whole. An existing target must be an ordinary
-// file, not a link or a directory.
-func editedMapSet(parent, target string, data []byte, overwrite bool) (hostfile.Set, error) {
-	if !overwrite {
-		return hostfile.Set{
-			Files: []hostfile.File{{Path: target, Data: data, Perm: 0600, Staging: hostfile.Direct, Overwrite: hostfile.Refuse}},
-			Sync:  true,
-			Words: hostfile.Words{Create: "create new map: %w"},
-		}, nil
-	}
-	perm := os.FileMode(0600)
-	if fi, err := os.Lstat(target); err == nil {
-		if !fi.Mode().IsRegular() {
-			return hostfile.Set{}, fmt.Errorf("Save cannot replace %s: not an ordinary file", filepath.Base(target))
-		}
-		perm = fi.Mode().Perm()
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return hostfile.Set{}, err
-	}
-	return hostfile.Set{
-		Files: []hostfile.File{{Path: target, Data: data, Perm: perm, Overwrite: hostfile.Replace}},
-		Dir:   parent,
-		Temp:  ".map-save-",
-		Sync:  true,
-		Words: hostfile.Words{Create: "create temporary map: %w"},
-	}, nil
-}
-
-// replaceMapFile writes data over target through its replacing Set.
-func replaceMapFile(parent, target string, data []byte) error {
-	set, err := editedMapSet(parent, target, data, true)
-	if err != nil {
-		return err
-	}
-	_, err = hostfile.Commit(set)
-	return err
 }
 
 // fenceEditorWrite refuses a map write into the resolved directory parent

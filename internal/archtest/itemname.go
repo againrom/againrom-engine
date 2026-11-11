@@ -81,17 +81,27 @@ func scanItemName(files map[string]string) ([]Violation, map[string]bool) {
 	var vs []Violation
 	for _, name := range names {
 		fset := token.NewFileSet()
-		f, err := parser.ParseFile(fset, name, files[name], parser.SkipObjectResolution)
+		f, err := parser.ParseFile(fset, name, files[name], 0)
 		if err != nil {
 			vs = append(vs, Violation{From: name, Reason: "source does not parse: " + err.Error()})
 			continue
+		}
+		modImports := map[string]bool{}
+		for _, im := range f.Imports {
+			if path, _ := strconv.Unquote(im.Path.Value); path == "againrom/pkg/mod" {
+				alias := "mod"
+				if im.Name != nil {
+					alias = im.Name.Name
+				}
+				modImports[alias] = true
+			}
 		}
 		for _, decl := range f.Decls {
 			fn := ""
 			if d, ok := decl.(*ast.FuncDecl); ok {
 				fn = itemNameFuncName(d)
 			}
-			for _, h := range itemNameHits(decl) {
+			for _, h := range itemNameHits(decl, modImports) {
 				if key := name + " " + fn + " " + h.shape; itemNameAllowed[key] != "" {
 					met[key] = true
 					continue
@@ -146,7 +156,7 @@ func itemNameLast(x ast.Expr) string {
 func itemNameCallName(c *ast.CallExpr) string { return itemNameLast(c.Fun) }
 
 // itemNameHits are the shapes one declaration holds.
-func itemNameHits(decl ast.Decl) []itemNameHit {
+func itemNameHits(decl ast.Decl, modImports map[string]bool) []itemNameHit {
 	var hits []itemNameHit
 	hit := func(n ast.Node, shape, what string) { hits = append(hits, itemNameHit{n.Pos(), shape, what}) }
 	called := map[ast.Expr]bool{}
@@ -214,6 +224,9 @@ func itemNameHits(decl ast.Decl) []itemNameHit {
 				hit(e, itemNameNamesTable, "makes an item-name table")
 			}
 		case *ast.SelectorExpr:
+			if id, ok := e.X.(*ast.Ident); ok && id.Obj == nil && modImports[id.Name] && e.Sel.Name == "EntryName" {
+				return true
+			}
 			switch {
 			case e.Sel.Name == "EntryName" && !called[e]:
 				hit(e, itemNameRowNameValue, "EntryName passed as a value names rows beside the resolver")

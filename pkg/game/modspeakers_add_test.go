@@ -107,6 +107,9 @@ func TestModSpeakerNameWithANoBreakSpaceRoundTrips(t *testing.T) {
 	if _, err := s.AddSpeaker(speakerLady, name, facePNG(t)); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
 	src, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(mod.SpeakersFile)))
 	if err != nil {
 		t.Fatal(err)
@@ -132,7 +135,12 @@ func TestModSpeakerFailedFileWriteLeavesNothing(t *testing.T) {
 	}
 	before := modFolderBytes(t, dir)
 	if _, err := s.AddSpeaker(speakerLady, "Lady", facePNG(t)); err == nil {
-		t.Fatal("the add went through a speakers file that cannot be written")
+		if _, err := s.SaveIntoMod(); err == nil {
+			t.Fatal("save went through a speakers file that cannot be written")
+		}
+		if _, err := s.Undo(); err != nil {
+			t.Fatal(err)
+		}
 	}
 	checkAddWroteNothing(t, s, dir, before)
 	if _, err := os.Stat(filepath.Join(dir, "speakers")); !os.IsNotExist(err) {
@@ -157,7 +165,12 @@ func TestModSpeakerFailedFileWriteRestoresAnOldPicture(t *testing.T) {
 	}
 	before := modFolderBytes(t, dir)
 	if _, err := s.AddSpeaker(speakerLady, "Lady", facePNG(t)); err == nil {
-		t.Fatal("the add went through a speakers file that cannot be written")
+		if _, err := s.SaveIntoMod(); err == nil {
+			t.Fatal("save went through a speakers file that cannot be written")
+		}
+		if _, err := s.Undo(); err != nil {
+			t.Fatal(err)
+		}
 	}
 	checkAddWroteNothing(t, s, dir, before)
 }
@@ -343,10 +356,17 @@ func TestModSpeakerNumberAfterARecordWasRemoved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Remove(filepath.Join(dir, filepath.FromSlash(mod.SpeakersFile))); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.inspector.SetMod(dir); err != nil {
+		t.Fatal(err)
+	}
+	s.workspace = nil
+	if err := s.prepareWorkspace(); err != nil {
 		t.Fatal(err)
 	}
 	again, err := s.AddSpeaker(speakerLady, "Lady", facePNG(t))

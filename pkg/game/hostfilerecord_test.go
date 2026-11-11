@@ -498,20 +498,6 @@ func (r *hostRecord) editorFiles(t *testing.T) {
 	r.err("save over without pages or labels "+got, err)
 	r.tree(dir)
 
-	r.line("## map saved into a mod")
-	moddir := r.root(t)
-	plantFile(t, filepath.Join(moddir, "mod.toml"), "id = \"m\"\n")
-	got, err = writeModMap("", moddir, "maps/a.alm", []byte("mod-map-one"))
-	r.err("new "+got, err)
-	got, err = writeModMap("", moddir, "maps/a.alm", []byte("mod-map-two"))
-	r.err("over "+got, err)
-	_, err = writeModMap("", moddir, "../out.alm", []byte("x"))
-	r.err("outside", err)
-	r.tree(moddir)
-	instMod := filepath.Join(inst, "mods", "m")
-	plantFile(t, filepath.Join(instMod, "mod.toml"), "id = \"m\"\n")
-	_, err = writeModMap(inst, instMod, "maps/a.alm", []byte("x"))
-	r.err("mod under the install", err)
 }
 
 func (r *hostRecord) testPlayFiles(t *testing.T) {

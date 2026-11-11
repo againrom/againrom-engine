@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -191,12 +190,7 @@ func (s *mapInspectionEdits) SpeakerAddRefusal(miss ui.SpeakerMiss) string {
 	return s.inspector.modContextRefusal()
 }
 
-// AddSpeaker writes a speaker record bound by script number to placement unit
-// into the mod that holds the open map: the PNG at the host path picture is
-// copied into the mod, the record added to its speakers file, and the mod's
-// context built again so the editor's catalog holds the record. It answers
-// the record's number. A write that fails, or a context the written folder
-// does not open in, puts back what the add changed.
+// AddSpeaker adds a bound record and its face to the project draft in one undo.
 func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, error) {
 	x := s.inspector
 	key, ok := s.speakerMapKey()
@@ -231,7 +225,10 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	if _, err := decodeSpeakerPicture(pic); err != nil {
 		return 0, err
 	}
-	before, err := modSpeakersFile(m.dir)
+	if err := s.prepareWorkspace(); err != nil {
+		return 0, err
+	}
+	before, err := s.draftSpeakersFile()
 	if err != nil {
 		return 0, err
 	}
@@ -241,82 +238,46 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	}
 	rec := mod.Speaker{ID: id, Name: name, Picture: speakerPictureFile(id), Map: key, Unit: int32(unitID), Bound: true}
 	src := mod.AppendSpeaker(before, rec)
-	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, map[string][]byte{rec.Picture: pic}); err != nil {
+	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, rec.Picture, pic)); err != nil {
 		return 0, err
 	}
-	root := ""
-	if x.archives != nil {
-		root = x.archives.Root
-	}
-	undo, err := writeSpeakerFiles(root, m.dir, []modFileWrite{{rec.Picture, pic}, {mod.SpeakersFile, src}})
+	_, err = s.changeWorkspace(func(w *editorWorkspaceState) error {
+		if w.Project == nil {
+			w.Project = m.document()
+		}
+		w.Project.Files[mod.SpeakersFile] = src
+		w.Project.Files[rec.Picture] = bytes.Clone(pic)
+		return nil
+	})
 	if err != nil {
-		return 0, fmt.Errorf("mod %q: %w", m.id, err)
-	}
-	// The record is in the mod folder now. A package build and a test play
-	// copy that folder whole; the project's pending files are what is still
-	// to be written, and naming these would make a save into an owned folder
-	// refuse them as unrecorded.
-	digest, err := mod.ContentDigest(m.dir)
-	if err != nil {
-		undo()
 		return 0, err
 	}
-	if err := x.reopenModContext(); err != nil {
-		undo()
-		return 0, fmt.Errorf("mod %q: %w", m.id, err)
-	}
-	x.mod.digest = digest
-	s.speakers = nil
 	return int64(id), nil
+}
+
+func speakerDraftFiles(w *editorWorkspaceState, picture string, data []byte) map[string][]byte {
+	files := map[string][]byte{}
+	if w != nil && w.Project != nil {
+		for name, b := range w.Project.Files {
+			files[name] = b
+		}
+	}
+	files[picture] = data
+	return files
+}
+
+func (s *mapInspectionEdits) draftSpeakersFile() ([]byte, error) {
+	if w := s.workspace; w != nil && w.Project != nil {
+		if b, ok := w.Project.Files[mod.SpeakersFile]; ok {
+			return b, nil
+		}
+	}
+	return s.inspector.mod.speakersFile()
 }
 
 // speakerPictureFile is the path in the mod of the picture record id's add
 // writes.
 func speakerPictureFile(id int32) string { return fmt.Sprintf("speakers/%d.png", id) }
-
-// modFileWrite is one file of an add: its path in the mod and its new bytes.
-type modFileWrite struct {
-	rel  string
-	data []byte
-}
-
-// writeSpeakerFiles writes the files in order through writeModFile. When a
-// write fails it puts back every file already written, and a folder a write
-// created, and answers the error. On success it answers the function that
-// puts them all back.
-func writeSpeakerFiles(root, dir string, files []modFileWrite) (func(), error) {
-	var undo []func()
-	putBack := func() {
-		for i := len(undo) - 1; i >= 0; i-- {
-			undo[i]()
-		}
-	}
-	for _, f := range files {
-		full := filepath.Join(dir, filepath.FromSlash(f.rel))
-		prior, err := os.ReadFile(full)
-		existed := err == nil
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			putBack()
-			return nil, err
-		}
-		_, statErr := os.Stat(filepath.Dir(full))
-		if _, err := writeModFile(root, dir, f.rel, f.data); err != nil {
-			putBack()
-			return nil, err
-		}
-		undo = append(undo, func() {
-			if existed {
-				_, _ = writeModFile(root, dir, f.rel, prior)
-				return
-			}
-			_ = os.Remove(full)
-			if errors.Is(statErr, fs.ErrNotExist) {
-				_ = os.Remove(filepath.Dir(full))
-			}
-		})
-	}
-	return putBack, nil
-}
 
 // speakersFile is the text of the mod's speakers file, nil when it holds none.
 func (m *editorMod) speakersFile() ([]byte, error) { return modSpeakersFile(m.dir) }
@@ -394,15 +355,16 @@ func (x *MapInspector) freeSpeakerNumber(src []byte) (int32, error) {
 
 // carryModSpeakers puts the speaker records of the mod the open map lives in
 // on the test mission, so a test play shows them.
-func (x *MapInspector) carryModSpeakers(m *mod.Mission) error {
+func (s *mapInspectionEdits) carryModSpeakers(m *mod.Mission) error {
+	x := s.inspector
 	if x.mod == nil {
 		return nil
 	}
-	src, err := x.mod.speakersFile()
+	src, err := s.draftSpeakersFile()
 	if err != nil || src == nil {
 		return err
 	}
-	d, err := mod.ReadSpeakers(x.mod.id, x.mod.dir, mod.SpeakersFile, src, nil)
+	d, err := mod.ReadSpeakers(x.mod.id, x.mod.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, "", nil))
 	if err != nil {
 		return err
 	}

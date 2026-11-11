@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"againrom/pkg/hostfile"
 	"againrom/pkg/mod"
 )
 
 // A base dump is a mod folder holding layer 0 of every layered catalog of
-// the install, in the format a mod reads: the manifest, an entry script that
-// adds each layer file the base reads, and the layer files. A modder copies
+// the install, in the format a mod reads: the manifest and the layer files. A modder copies
 // it, keeps the records to change and deletes the rest.
 
 // The refusals of a base dump's folder. Each is wrapped with the path it
@@ -27,7 +25,7 @@ var (
 
 // baseDumpLayer is one layered catalog's layer 0 as the file a mod carries.
 // read is false when the base takes no layer of the kind: the file is
-// written for reading, the entry script does not add it, and note says so.
+// written for reading, and note says so.
 type baseDumpLayer struct {
 	file string
 	data []byte
@@ -76,7 +74,6 @@ func (f *FrontEnd) WriteBaseDump(dir string) (BaseDumpReport, error) {
 	if !mod.ValidID(id) {
 		return BaseDumpReport{}, fmt.Errorf("%s: %w", abs, ErrBaseDumpName)
 	}
-	var read, unread []string
 	files := map[string][]byte{}
 	var order []string
 	for _, k := range mod.DataKinds() {
@@ -92,16 +89,15 @@ func (f *FrontEnd) WriteBaseDump(dir string) (BaseDumpReport, error) {
 			return BaseDumpReport{}, fmt.Errorf("base dump: %w", err)
 		}
 		files[l.file], order = l.data, append(order, l.file)
-		if l.read {
-			read = append(read, l.file)
-		} else {
-			unread = append(unread, l.file)
+		if !l.read {
 			report.Notes = append(report.Notes, l.note)
 		}
 	}
-	files[mod.ManifestName] = baseDumpManifest(id, report.Base)
-	files["main.star"] = baseDumpEntry(read, unread)
-	order = append([]string{mod.ManifestName, "main.star"}, order...)
+	files[mod.ManifestName], err = baseDumpManifest(id, report.Base)
+	if err != nil {
+		return BaseDumpReport{}, err
+	}
+	order = append([]string{mod.ManifestName}, order...)
 	if err := writeNewFiles(abs, created, order, files); err != nil {
 		return BaseDumpReport{}, err
 	}
@@ -189,33 +185,13 @@ func writeNewFiles(dir string, missing bool, order []string, files map[string][]
 	return err
 }
 
-// baseDumpManifest is the dump mod's mod.toml.
-func baseDumpManifest(id, baseID string) []byte {
-	return []byte(fmt.Sprintf(`# The base dump of %[2]s: layer 0 of each layered catalog of this install,
+const baseDumpPreamble = `# The base dump of %s: layer 0 of each layered catalog of this install,
 # in the format a mod reads. To make a mod, copy this folder under a new
 # name, set id to that name, keep the records you change and delete the rest.
-id         = %[1]q
-title      = "Base dump of %[2]s"
-version    = "1.0.0"
-api        = 1
-applies-to = [%[2]q]
-entry      = "main.star"
-`, id, baseID))
-}
+`
 
-// baseDumpEntry is the dump mod's entry script: it adds each file of read;
-// the files of unread are named in a comment.
-func baseDumpEntry(read, unread []string) []byte {
-	var b strings.Builder
-	b.WriteString("# Adds each layer file of this mod.\ndef init(game, settings):\n")
-	for _, file := range unread {
-		fmt.Fprintf(&b, "    # %s is for reading: this game reads no such layer.\n", file)
-	}
-	for _, file := range read {
-		fmt.Fprintf(&b, "    game.data.add(%q)\n", file)
-	}
-	if len(read) == 0 {
-		b.WriteString("    pass\n")
-	}
-	return []byte(b.String())
+func baseDumpManifest(id, baseID string) ([]byte, error) {
+	return mod.WriteManifest([]byte(fmt.Sprintf(baseDumpPreamble, baseID)), map[string]any{
+		"id": id, "title": "Base dump of " + baseID, "version": "1.0.0", "api": 1, "applies-to": []string{baseID},
+	})
 }

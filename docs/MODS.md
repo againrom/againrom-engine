@@ -108,14 +108,20 @@ file and line. A list may span lines.
 | `id` | required string; the mod's name, equal to its folder name (a packed mod: the `<id>` of `mod-<id>.res`), 1 to 64 characters of `a-z 0-9 . _ -` starting with a letter or digit |
 | `title` | required string; the name shown to the player |
 | `version` | required string, not empty |
-| `author` | optional string for people; the game does not read it |
-| `description` | optional string for people; the game does not read it |
+| `author` | optional string for people; shown and edited in W |
+| `description` | optional string for people; shown and edited in W |
 | `api` | integer, default 1; this build runs api 1 and refuses any other |
 | `applies-to` | a string or list; default `["common"]`. Entries are `common` (every install), an install id such as `rom1-en`, or the family word `rom1` (every first-game install). The mod is refused on an install none of them names |
 | `entry` | the Starlark file; default `main.star` when the folder holds one |
 | `requires` | ids the mod needs, each with an optional constraint such as `"base>=1.0"` (operators `>=`, `<=`, `>`, `<`, `=`, dotted numbers). The required mod must be enabled and loads before this one |
 | `conflicts` | ids that must not be enabled together with this mod |
 | `load-after` | ids this mod loads after when they are enabled; it orders and does not require |
+
+For compatibility, ordinary loading ignores non-string documentary `author`
+and `description` values and non-ID names in `conflicts` and `load-after`.
+W's authoring reader requires strings and valid dependency syntax when editing
+or saving. Re-selecting a displayed target list outside its six choices keeps
+that list unchanged.
 
 ```toml
 id          = "second-town"
@@ -1024,9 +1030,14 @@ Any other mod, and every packed mod, opens over the map in the editor and
 shows W's Overview page first: the kinds whose files the mod holds, the lines
 `againrom -check` prints for it, its files, the overrides and warnings its data
 gave, and what refuses it. The Missions and Overview tabs at the top of W, or
-W again, turn the page. A packed mod refuses every change in W and every save
-into it, naming the packed file; opening another mod is allowed. The editor
-writes no `main.star` and no packed file.
+W again, turn the page. The fields page also edits the manifest's version,
+author, description, target base, requirements, conflicts and load order hints.
+The target is a choice of `common`, `rom1`, `rom1-en`, `rom1-ru`, `rom2-en`
+and `rom2-ru`. Dependency fields take comma-separated IDs; a requirement may
+include a version constraint. Invalid values show the manifest reader's error.
+ID stays fixed after opening. Edits share the project draft and Undo/Redo;
+Ctrl+S writes them. API is written as 1 and is not a field. A packed mod refuses every change in W and every save
+into it, naming the packed file; opening another mod is allowed. New packages contain no generated entry script. An opened packed file stays read-only.
 
 ## Towns
 
@@ -1473,8 +1484,9 @@ the unit when other units are added, moved or deleted. A number held by more tha
 map names none of them. In the game a message that names the record's number draws its picture. A
 save holds that number in the map's message text and no other field. In the map editor, on a map
 that lives in a mod, clicking a unit no speaker record shows with the speaker pick asks for a name
-and opens the file window for a PNG, copies the picture to `speakers/<id>.png` and writes the
-record. A unit with script number 0, or one another unit shares, is refused with a message that
+and opens the file window for a PNG. The record and picture at `speakers/<id>.png` enter the
+project draft together, as one undo step. The speaker is available at once; Ctrl+S writes the
+record and picture with the project. No file is written by the add. A unit with script number 0, or one another unit shares, is refused with a message that
 says so. A map outside a mod keeps the refusal text. While the mod's records did not load (a bad
 picture, a failing script) the editor adds no record and states why.
 
@@ -1506,8 +1518,7 @@ The folder is a mod. Its name is the mod's `id`, so it may hold only `a-z`,
 
 | file | what it holds |
 |---|---|
-| `mod.toml` | the manifest: `id` (the folder's name), a title, version `1.0.0`, `applies-to` naming the install it was taken from, and `entry = "main.star"` |
-| `main.star` | the entry script: `game.data.add("data/towns.toml")` |
+| `mod.toml` | the manifest: `id` (the folder's name), a title, version `1.0.0`, `applies-to` naming the install it was taken from; no `entry` key is written |
 | `data/towns.toml` | every town of the install as a `[[town]]` table with every key of the Towns section: `id`, `description`, `hooks`, `offers`, `map-point`, `name`, `opens-after`, `missions`, `cite`, and `off = false`; on the first game, then every tavern row of the scenario as a `[[tavern]]` table: `town`, `chapter`, `npc`, `mission` and `off = false` |
 
 Values are the game's own. `description` names the installed description
@@ -1533,11 +1544,11 @@ To make a mod from the dump:
 
 The second game reads no towns layer of `[[town]]` tables. Its dump still
 lists its three towns in `data/towns.toml`, for reading, and says so in the
-file and in the printed lines; its `main.star` adds no file. A second-game
+file and in the printed lines. A second-game
 town has no `name` key: the second game draws no name from its catalog. The
 dump writes no `[[inn]]` table; a second-game mod that changes an inn row
 writes its own `data/towns.toml` holding only `[[inn]]` tables (see "Inn
-rows") and adds it in `main.star`.
+rows"); the held file loads without a script.
 
 The dump refuses, writes nothing and names the reason when the folder:
 
@@ -2023,8 +2034,9 @@ refused with the entered text retained. Map, page and route changes share
 Undo/Redo. Saving only an ALM refuses unsaved page or route changes.
 
 W opens the mod window. Its left column holds the working folder, ID, name,
-mission list and Publish folder. Its right column edits the selected mission's
-route, After win, companion or party, and purse. Enter accepts a value; Tab and
+mission list and Publish folder. Its scrolling right column edits the manifest's
+version, author, description, target base, requirements, conflicts and load order
+hints, followed by the selected mission's route, After win, companion or party, and purse. Enter accepts a value; Tab and
 Shift+Tab move focus. Choice lists search by name as text is typed. Select a
 member's detail button to edit level and equipment. Template retains the
 character's equipment; Empty removes it. Override all armour replaces every
@@ -2044,9 +2056,12 @@ replacement/disabled declarations and unexposed fields are retained. Disabled
 declarations are marked read-only. Changes to source files outside the editor
 require a reopen. Ctrl+S stages all drafts, checks every mission and party
 through the normal loader, and replaces the working folder only after admission.
-Custom scripts must load every edited mission under their default settings.
-Dependency sets that cannot load in the single-project context refuse with
-their loader error; their source stays unchanged.
+The source-preserving manifest writer retains comments, order, unedited fields
+and an existing `entry`. New packages and base dumps need no entry script.
+Project admission checks the data in the editor's context; the target base and
+companion requirements are checked when the mod is activated by the normal
+loader. F5 and Publish retain activation checks. Custom scripts still run during
+admission and must load every edited mission under their default settings.
 
 Publish uses the same packer as `-pack-mod`. Type an existing output folder
 outside installs and the working mod; it stays selected for the session.
@@ -2065,10 +2080,16 @@ checkpoint. F5 enters character generation for the current map. Acknowledging
 its Victory panel returns the game to the campaign town; the editor stays
 open for further changes.
 
-`againrom --editor -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
-to the path the mod's mission entry for it names (the entry whose `number` is
+`againrom --editor -mod <mod folder>` saves into that mod through the same staged
+project writer. The edited map keeps the path its mission entry names (the entry whose `number` is
 the opened installed map's mission, or whose `map` is the opened file), and
 refuses a map no entry names.
+An existing mod save replaces only changed files, through temporary files
+beside their targets. An external change conflicts only when the editor would
+write that file. Unwritten files keep their attributes and modification times.
+Saving into a handwritten mod leaves it handwritten; W's explicit new working
+copy receives the editor ownership record. That record names editor-written
+paths. Save As into a mod uses the same admitted writer.
 
 F5 plays the map as it stands, unsaved edits included. For an open mod project
 it copies the complete tree and drafts under the original ID inside the private

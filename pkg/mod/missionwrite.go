@@ -188,27 +188,11 @@ func rewritePair(line, value string) (string, error) {
 }
 
 func WriteManifestTitle(source []byte, title string) ([]byte, error) {
-	m, err := ParseManifest(source)
-	if err != nil {
-		return nil, err
+	out, err := WriteManifest(source, map[string]any{"title": title})
+	if err == nil {
+		_, err = ParseManifest(out)
 	}
-	if m.Title == title {
-		return bytes.Clone(source), nil
-	}
-	lines := strings.SplitAfter(string(source), "\n")
-	for i, line := range lines {
-		eq := strings.IndexByte(line, '=')
-		if eq >= 0 && strings.TrimSpace(strings.TrimPrefix(line[:eq], string(utf8BOM))) == "title" {
-			lines[i], err = rewritePair(line, strconv.Quote(title))
-			if err != nil {
-				return nil, err
-			}
-			out := []byte(strings.Join(lines, ""))
-			_, err = ParseManifest(out)
-			return out, err
-		}
-	}
-	return nil, fmt.Errorf("manifest has no title")
+	return out, err
 }
 
 func CloneMission(m Mission) Mission {

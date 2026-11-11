@@ -41,6 +41,9 @@ const MaxSteps = 20_000_000
 
 // Options configures a run.
 type Options struct {
+	// Authoring reads one project's data in the editor's base context without
+	// requiring its target base or companion mods to be active in that editor.
+	Authoring bool
 	// Print receives the output of the script's print function. Nil discards it.
 	Print func(modID, msg string)
 }
@@ -73,11 +76,30 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		}
 		return Result{Rules: rules.Default(), Set: mod.Set{Base: base}}, nil
 	}
-	order := mod.Order(mods, base)
+	ordering := mods
+	if opt.Authoring {
+		if len(mods) != 1 {
+			return Result{}, fmt.Errorf("authoring loads one project")
+		}
+		src, _, err := mod.ReadInside(mods[0].Dir, mod.ManifestName)
+		if err != nil {
+			return Result{}, err
+		}
+		if _, err := mod.ParseManifest(src, true); err != nil {
+			return Result{}, err
+		}
+		ordering = append([]mod.Entry(nil), mods...)
+		m := &ordering[0].Manifest
+		m.AppliesTo, m.Requires, m.Conflicts, m.LoadAfter = []string{"common"}, nil, nil, nil
+	}
+	order := mod.Order(ordering, base)
 	if err := order.Err(); err != nil {
 		return Result{}, err
 	}
 	ordered := order.Mods
+	if opt.Authoring {
+		ordered = mods
+	}
 	byMod := map[string]map[string]string{}
 	enabled := map[string]bool{}
 	for _, m := range ordered {

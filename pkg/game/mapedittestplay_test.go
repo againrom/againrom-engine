@@ -142,7 +142,7 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 	if got[testPlayMap] != string(edited) || bytes.Equal(edited, original) {
 		t.Fatal("the test mod does not hold the edited map with its unsaved edit")
 	}
-	if got["mission/text/en/event01.txt"] != "Page one" || got["mission/text/en/event02.txt"] != "Page two" || len(got) != 7 || got[testPlayRecord] == "" {
+	if got["mission/text/en/event01.txt"] != "Page one" || got["mission/text/en/event02.txt"] != "Page two" || len(got) != 6 || got[testPlayRecord] == "" {
 		t.Fatalf("the test mod holds %v", keys(got))
 	}
 	// The declaration is a guest mission the game's own mod load and

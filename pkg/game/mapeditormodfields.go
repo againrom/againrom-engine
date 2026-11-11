@@ -30,6 +30,9 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 			}
 			f.Choices = []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.mod.guestmode"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.mod.replace"))}}
 		case "after":
+			if x.archives == nil || x.archives.Containers == nil {
+				break
+			}
 			c, e := LoadCampaign(x.archives.Containers)
 			if e == nil {
 				for _, n := range c.Main {
@@ -49,6 +52,9 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 			}
 		case "guest":
 			for _, choice := range x.npcChoices(65535, false) {
+				if x.archives == nil || x.archives.Containers == nil {
+					break
+				}
 				c, e := LoadCampaign(x.archives.Containers)
 				if e == nil {
 					if chapter, ok := c.Chapters[p.Chapter]; ok {
@@ -191,7 +197,10 @@ func (x *MapInspector) modFieldLabel(key string) string {
 		"up": x.word("editor.mod.up"), "down": x.word("editor.mod.down"),
 		"remove": x.word("editor.mod.remove"),
 	}
-	return labels[key]
+	if label, ok := labels[key]; ok {
+		return label
+	}
+	return x.word("editor.mod." + key)
 }
 
 func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool) {

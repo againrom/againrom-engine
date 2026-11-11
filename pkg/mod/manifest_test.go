@@ -14,7 +14,7 @@ func TestParseManifestReadsTheFourFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Manifest{ID: "dark-rules", Title: `Dark "rules"`, Version: "1.2.0", AppliesTo: []string{"en", "ru"}, API: 1, Requires: []string{"base", "other"}}
+	want := Manifest{ID: "dark-rules", Title: `Dark "rules"`, Version: "1.2.0", Author: "A", AppliesTo: []string{"en", "ru"}, API: 1, Requires: []string{"base", "other"}}
 	if !reflect.DeepEqual(m, want) {
 		t.Fatalf("got %+v", m)
 	}

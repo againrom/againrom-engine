@@ -125,7 +125,7 @@ func TestEditorRefusesAModThatNamesNoEntryForTheMap(t *testing.T) {
 	}
 }
 
-func TestWriteModMapRefusesATargetOutsideTheModFolderWithoutCreatingADirectory(t *testing.T) {
+func TestProjectWriterRefusesATargetOutsideTheModFolderWithoutCreatingADirectory(t *testing.T) {
 	base := t.TempDir()
 	dir := filepath.Join(base, "mod")
 	if err := os.Mkdir(dir, 0o755); err != nil {
@@ -133,7 +133,7 @@ func TestWriteModMapRefusesATargetOutsideTheModFolderWithoutCreatingADirectory(t
 	}
 	outside := filepath.Join(base, "elsewhere")
 	for _, rel := range []string{"../elsewhere/deep/map.alm", "../elsewhere/map.alm"} {
-		if _, err := writeModMap("", dir, rel, []byte("x")); err == nil || !strings.Contains(err.Error(), "outside the mod folder") {
+		if _, err := stagedMapForTest(dir, rel, []byte("x")); err == nil || !strings.Contains(err.Error(), "outside the mod folder") {
 			t.Errorf("%s: %v", rel, err)
 		}
 	}

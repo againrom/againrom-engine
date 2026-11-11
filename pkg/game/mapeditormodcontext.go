@@ -5,6 +5,8 @@ import (
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/render/terrain"
+	"fmt"
+	"slices"
 )
 
 // editorContext is the definition table and the tileset the editor reads a
@@ -105,10 +107,20 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // A mod the game refuses for its missions still opens: the missions are the
 // document the editor edits, and Save admits them again. The refusal is kept
 // for the overview and the context holds every other kind.
-func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string) string {
+func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, drafts ...map[string][]byte) string {
 	result, err := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
+	}
+	if len(drafts) > 0 {
+		files := drafts[0]
+		if src, ok := files[mod.SpeakersFile]; ok {
+			result.Speakers, err = mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, files)
+			if err != nil {
+				return err.Error()
+			}
+		}
+
 	}
 	m.checkLines = ModCheckLines(result)
 	issue := ""
@@ -134,4 +146,35 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string) st
 	m.catalog = characterCatalog(f.Table)
 	m.fileOverrides = f.ModFileOverrides()
 	return issue
+}
+
+func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
+	x := s.inspector
+	if x.mod == nil {
+		return nil
+	}
+	next := *x.mod
+	next.context, next.report, next.fileOverrides, next.refusal, next.checkLines = nil, ModDataReport{}, nil, "", nil
+	next.files = slices.Clone(x.mod.files)
+	tree, err := mod.OpenTree(next.dir)
+	if err != nil {
+		return err
+	}
+	files := map[string][]byte(nil)
+	if w != nil && w.Project != nil {
+		files = w.Project.Files
+	}
+	if err := next.readInventory(tree, files); err != nil {
+		return err
+	}
+	root := ""
+	if x.archives != nil {
+		root = x.archives.Root
+	}
+	if issue := x.openModContext(&next, mod.Load(next.dir), root, files); issue != "" {
+		return fmt.Errorf("mod %q: %s", next.id, issue)
+	}
+	x.setEditorMod(&next)
+	s.speakers = nil
+	return nil
 }

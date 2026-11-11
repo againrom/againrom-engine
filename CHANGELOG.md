@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] W edits a mod’s version, author, description, target base and dependencies. Adding a speaker can be undone and is saved with the project; new packages and base dumps need no script. Saving keeps files the editor did not change and leaves a handwritten mod handwritten.
+
 - [BASE] A mod loads its held data files without a script. Check warns about files outside the fixed tree and old paths; publishing leaves unread files out of the pack and save mark while keeping every file its rows read. Old row paths and scripts still work. Speaker data now enters the save mark even without a script call.
 
 ## 0.152.0

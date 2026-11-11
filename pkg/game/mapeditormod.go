@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"againrom/pkg/mod"
 )
@@ -22,6 +23,16 @@ func (m *editorMod) document() *editorModDocument {
 		d.Missions = append(d.Missions, mod.CloneMission(mission))
 		if mission.Key == m.selected {
 			d.Selected = i
+		}
+	}
+	if src, err := m.speakersFile(); err == nil {
+		if records, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, nil); err == nil {
+			d.Files[mod.SpeakersFile] = bytes.Clone(src)
+			for _, r := range records.Speakers {
+				if r.Picture != "" {
+					d.Files[r.Picture] = bytes.Clone(r.PictureBytes)
+				}
+			}
 		}
 	}
 	return d
@@ -70,6 +81,33 @@ func (d *editorModDocument) selected(p editorPackageSpec) (mod.Mission, error) {
 
 func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, []mod.Mission, mod.Mission, error) {
 	d := s.workspace.Project.clone()
+	var saved editorWorkspaceState
+	decodeWorkspace(s.savedWorkspace, &saved)
+	if saved.Project != nil {
+		if src, ok := saved.Project.Files[mod.SpeakersFile]; ok {
+			names := []string{mod.SpeakersFile}
+			if data, err := mod.ParseSpeakers(saved.Package.ID, mod.SpeakersFile, src); err == nil {
+				for _, row := range data.Speakers {
+					if row.Picture != "" {
+						names = append(names, row.Picture)
+					}
+				}
+			}
+			for _, name := range names {
+				if _, ok := d.Files[name]; !ok {
+					d.Files[name] = nil
+				}
+			}
+		}
+	}
+	if d.Selected < 0 {
+		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels)) {
+			return nil, nil, mod.Mission{}, errors.New("no mission of this mod names the edited map; choose a new map destination before saving")
+		}
+		var err error
+		d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
+		return d.Files, d.Missions, mod.Mission{}, err
+	}
 	m, err := d.selected(s.workspace.Package)
 	if err != nil {
 		return nil, nil, m, err
@@ -87,7 +125,7 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 		return nil, nil, m, err
 	}
 	d.Files[mod.MissionsFile] = data
-	d.Files[mod.ManifestName], err = mod.WriteManifestTitle(d.Manifest, s.workspace.Package.Title)
+	d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
 	if err != nil {
 		return nil, nil, m, err
 	}

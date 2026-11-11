@@ -369,7 +369,7 @@ func TestEditorRemovingOnlyGuestMissionsReconnectsSuccessors(t *testing.T) {
 				s.workspace.Project.Missions[0].Off = true
 				s.workspace.Project.Missions[0].Kind = mod.MissionGuest
 				s.workspace.Project.Selected = 0
-				s.workspace.Package = modPackageSpec(s.workspace.Project.Missions[0], "ambush", s.workspace.Package.Title)
+				s.workspace.Package = modPackageSpec(s.workspace.Project.Missions[0], s.workspace.Package)
 			}
 			_, err := s.SetWorkspaceField("package", "remove", "")
 			if kind == "guest" {
@@ -444,10 +444,10 @@ func TestEditorCopiesTheWholeHandwrittenModWithoutChangingAnySourceFile(t *testi
 	}
 	writeTestPlayInput(t, filepath.Join(copyDir, "notes.txt"), []byte("external edit"))
 	unchanged := tree(t, copyDir)
-	if _, err := e.Document().Edits.(*mapInspectionEdits).SaveIntoMod(); err == nil || !strings.Contains(err.Error(), "outside") {
-		t.Fatalf("stale input: %v", err)
+	if _, err := e.Document().Edits.(*mapInspectionEdits).SaveIntoMod(); err != nil {
+		t.Fatalf("unwritten external edit: %v", err)
 	}
 	if !reflect.DeepEqual(unchanged, tree(t, copyDir)) {
-		t.Fatal("stale save wrote files")
+		t.Fatal("no-op save wrote files")
 	}
 }

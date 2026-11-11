@@ -50,7 +50,7 @@ func TestEditorOpensAModWithNoMapOpen(t *testing.T) {
 	}
 	_ = e.ChromeImage()
 	// What edits a map's own data refuses with no map.
-	if err := e.Key("saveas"); err == nil || !strings.Contains(err.Error(), x.word("editor.mod.nomap")) {
+	if err := e.Key("saveas"); err == nil || !strings.Contains(err.Error(), "read-only") {
 		t.Fatalf("Save with no map: %v", err)
 	}
 	if e.Document() != nil || !e.ModWindowOpen() {

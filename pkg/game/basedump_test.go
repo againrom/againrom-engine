@@ -36,16 +36,15 @@ func TestBaseDumpLayersOverTheShippedCatalogUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"mod.toml", "main.star", "data/towns.toml"}; !slices.Equal(report.Files, want) || len(report.Notes) != 0 {
+	if want := []string{"mod.toml", "data/towns.toml"}; !slices.Equal(report.Files, want) || len(report.Notes) != 0 {
 		t.Fatalf("report %+v, want files %v and no note", report, want)
 	}
 	towns, err := os.ReadFile(filepath.Join(mods, "base-dump", "data", "towns.toml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	script, _ := os.ReadFile(filepath.Join(mods, "base-dump", "main.star"))
-	if !strings.Contains(string(script), `game.data.add("data/towns.toml")`) {
-		t.Fatalf("main.star:\n%s", script)
+	if _, err := os.Stat(filepath.Join(mods, "base-dump", mod.EntryName)); !os.IsNotExist(err) {
+		t.Fatalf("entry: %v", err)
 	}
 	shipped := townBooks["rom1"].catalog.Towns
 	view := func(g *FrontEnd) (town.Entry, string) {
@@ -191,8 +190,7 @@ func treeOf(t *testing.T, dir string) []string {
 }
 
 // The second game's dump lists its three towns with every key but name,
-// says that the second game reads no towns layer, and its entry script adds
-// no file.
+// says that the second game reads no towns layer and names no entry script.
 func TestBaseDumpOfTheSecondGame(t *testing.T) {
 	f := dumpFront(t)
 	f.Archives.Base.Profile.Game = "rom2"
@@ -208,12 +206,9 @@ func TestBaseDumpOfTheSecondGame(t *testing.T) {
 	for _, r := range records {
 		ids = append(ids, r.Entry.ID)
 	}
-	if layer.read || !slices.Equal(ids, []int{1, 2, 3}) || !strings.Contains(layer.note, "the second game reads no towns layer") ||
+	if layer.read || !slices.Equal(ids, []int{1, 2, 3}) || !strings.Contains(layer.note, "the second game reads no towns layer") || strings.Contains(layer.note, "main.star") ||
 		!strings.Contains(string(layer.data), "# "+layer.note) {
 		t.Fatalf("read %v towns %v note %q:\n%s", layer.read, ids, layer.note, layer.data)
-	}
-	if script := string(baseDumpEntry(nil, []string{mod.TownsFile})); strings.Contains(script, "game.data.add") || !strings.Contains(script, "pass") {
-		t.Fatalf("main.star:\n%s", script)
 	}
 }
 

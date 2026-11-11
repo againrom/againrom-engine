@@ -2,18 +2,18 @@ package game
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"slices"
 
-	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
-	"againrom/pkg/words"
 )
 
 // editorMod is the mod folder the map editor's Save writes into, with the
@@ -24,6 +24,8 @@ import (
 type editorMod struct {
 	source, manifest []byte
 	digest           string
+	snapshot         map[string][32]byte
+	ownershipRecord  []byte
 	catalog          []mod.Character
 	context          *editorContext
 	report           ModDataReport
@@ -111,6 +113,21 @@ func (x *MapInspector) SetMod(dir string) error {
 		x.setEditorMod(nil)
 		return err
 	}
+	m.snapshot = map[string][32]byte{}
+	for _, name := range m.files {
+		data, err := tree.ReadFile(name)
+		if err != nil {
+			return err
+		}
+		m.snapshot[namefold.ModTree(name)] = sha256.Sum256(data)
+	}
+	if owned {
+		m.ownershipRecord, err = os.ReadFile(filepath.Join(dir, editorPackageRecord))
+		if err != nil {
+			return err
+		}
+		m.snapshot[editorPackageRecord] = sha256.Sum256(m.ownershipRecord)
+	}
 	m.contextIssue = x.openModContext(m, e, root)
 	x.setEditorMod(m)
 	return nil
@@ -118,44 +135,31 @@ func (x *MapInspector) SetMod(dir string) error {
 
 // readInventory lists the files of the mod's tree and the data kinds whose
 // files it holds: what the overview shows.
-func (m *editorMod) readInventory(tree mod.Tree) error {
+func (m *editorMod) readInventory(tree mod.Tree, drafts ...map[string][]byte) error {
 	files, err := tree.Files()
 	if err != nil {
 		return err
 	}
+	if len(drafts) > 0 {
+		for name, data := range drafts[0] {
+			if data == nil {
+				files = slices.DeleteFunc(files, func(path string) bool { return path == name })
+				continue
+			}
+			if !slices.Contains(files, name) {
+				files = append(files, name)
+			}
+		}
+		slices.Sort(files)
+	}
 	m.files, m.kinds = files, nil
 	for _, k := range mod.DataKinds() {
 		for _, name := range k.Files {
-			if _, err := tree.Stat(name); err == nil {
+			if slices.Contains(files, name) {
 				m.kinds = append(m.kinds, k.Name+": "+name)
 			}
 		}
 	}
-	return nil
-}
-
-// reopenModContext builds the context of the mod the editor works in again
-// from its folder, keeping the one in use when the mod no longer opens.
-func (x *MapInspector) reopenModContext() error {
-	m := x.mod
-	root := ""
-	if x.archives != nil {
-		root = x.archives.Root
-	}
-	next := *m
-	next.context, next.report, next.fileOverrides, next.refusal, next.checkLines = nil, ModDataReport{}, nil, "", nil
-	tree, err := mod.OpenTree(m.dir)
-	if err != nil {
-		return err
-	}
-	if err := next.readInventory(tree); err != nil {
-		return err
-	}
-	if issue := x.openModContext(&next, mod.Load(m.dir), root); issue != "" {
-		return errors.New(issue)
-	}
-	*m = next
-	x.setEditorMod(m)
 	return nil
 }
 
@@ -222,186 +226,92 @@ func (s *mapInspectionEdits) ModTarget() string {
 	return s.inspector.mod.id
 }
 
-// SaveIntoMod writes the edited map over the file the mod's mission entry for
-// this map names, and refuses when no entry names it.
+// SaveIntoMod saves the current project through the staged package writer.
 func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	defer func() { s.errorsAllowed = false }()
 	s.saveNote = ""
-	m := s.inspector.mod
+	x, m := s.inspector, s.inspector.mod
 	if m == nil {
 		return "", errors.New("no mod folder is named")
 	}
-	if err := s.inspector.modReadOnly(); err != nil {
+	if err := x.modReadOnly(); err != nil {
 		return "", err
 	}
 	if m.copyOnly {
 		return "", errors.New("this imported mod is read-only; choose a folder with the same ID under another parent with W to save a complete copy")
 	}
+	if s.model == nil {
+		return s.saveWorkspacePackage(m.dir)
+	}
+	if err := s.prepareWorkspace(); err != nil {
+		return "", err
+	}
+	if s.workspace.Project != nil && s.workspace.Project.Selected < 0 && bytes.Equal(s.saved, s.model.Bytes()) {
+		return s.saveWorkspacePackage(m.dir)
+	}
+	fullPackage := !s.errorsAllowed && x.archives != nil && x.archives.Containers != nil
 	if m.owned {
-		return s.saveIntoOwnedMod(m)
-	}
-	if !bytes.Equal(s.savedWorkspace, s.workspaceImage) {
-		return "", errors.New("authored pages need an editor-owned mod package; choose a new folder with W")
-	}
-	e, ok := m.entryFor(s.source)
-	if !ok {
-		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
-	}
-	if err := s.gate(true); err != nil {
-		return "", err
-	}
-	b, err := s.encodeForSave()
-	if err != nil {
-		return "", fmt.Errorf("mod %q: %w", m.id, err)
-	}
-	root := ""
-	if s.inspector.archives != nil {
-		root = s.inspector.archives.Root
-	}
-	target, err := writeModMap(root, m.dir, e.Map, b)
-	if err != nil {
-		return "", fmt.Errorf("mod %q: %w", m.id, err)
-	}
-	s.saved, s.source = s.model.Bytes(), target
-	return target, nil
-}
-
-// saveIntoOwnedMod saves into an editor-owned package. A map the report holds
-// no error for is written as the whole package. A map with errors is asked
-// for first; once confirmed, only the map file of the package's entry is
-// written, since the loader would refuse the package, and SaveNote says the
-// rest was not written.
-func (s *mapInspectionEdits) saveIntoOwnedMod(m *editorMod) (string, error) {
-	if err := s.gate(true); err != nil {
-		return "", err
-	}
-	if !s.errorsAllowed {
-		target, err := s.saveWorkspacePackage(m.dir)
-		var refused *ui.ReportRefusal
-		if !errors.As(err, &refused) {
+		if err := s.gate(true); err != nil {
+			return "", err
+		}
+		if fullPackage {
+			target, err := s.saveWorkspacePackage(m.dir)
+			var refused *ui.ReportRefusal
+			if errors.As(err, &refused) {
+				refused.Ask = true
+				return "", refused
+			}
 			return target, err
 		}
-		refused.Ask = true
-		return "", refused
 	}
 	e, ok := m.entryFor(s.source)
+	if d := s.workspace.Project; d != nil && d.Selected >= 0 {
+		var err error
+		e, err = d.selected(s.workspace.Package)
+		if err != nil {
+			return "", err
+		}
+		ok = !e.Off
+	}
 	if !ok {
 		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
 	}
+	if !m.owned {
+		if err := s.gate(true); err != nil {
+			return "", err
+		}
+	}
+	if fullPackage {
+		return s.saveWorkspacePackage(m.dir)
+	}
+	// A confirmed map with report errors retains the other pending edits.
 	b, err := s.encodeForSave()
 	if err != nil {
 		return "", fmt.Errorf("mod %q: %w", m.id, err)
 	}
-	root := ""
-	if s.inspector.archives != nil {
-		root = s.inspector.archives.Root
+	if len(b) > mod.MaxFileBytes {
+		return "", fmt.Errorf("the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
 	}
-	target, err := writeModMap(root, m.dir, e.Map, b)
-	if err != nil {
+	if err := extendedName(b, e.Map); err != nil {
+		return "", err
+	}
+	old := []string(nil)
+	if m.owned {
+		old, err = missionPackageOwnership(m.dir, editorPackageRecord, nil)
+		if err != nil {
+			return "", err
+		}
+	}
+	plan := missionPackagePlan{Source: m.dir}
+	if err := x.writeEditorProject(m.dir, m.id, old, map[string][]byte{e.Map: b}, plan, true); err != nil {
 		return "", fmt.Errorf("mod %q: %w", m.id, err)
 	}
-	s.saved, s.source = s.model.Bytes(), target
-	s.saveNote = words.For(s.inspector.pageLanguage()).Text("editor.save.package")
-	return target, nil
-}
-
-// checkModMapDirectory refuses, before any directory is created, a target
-// directory whose deepest existing ancestor resolves outside the mod folder or
-// inside the install at root.
-func checkModMapDirectory(root, dir, target, rel string) error {
-	folder, err := editorPhysicalDirectory(dir)
-	if err != nil {
-		return fmt.Errorf("resolve mod folder: %w", err)
-	}
-	lexical, err := filepath.Rel(dir, target)
-	if err != nil || lexical == ".." || strings.HasPrefix(lexical, ".."+string(filepath.Separator)) || filepath.IsAbs(lexical) {
-		return fmt.Errorf("%s leads outside the mod folder", rel)
-	}
-	existing := target
-	for {
-		_, err := os.Lstat(existing)
-		if err == nil {
-			break
-		}
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("inspect map output directory: %w", err)
-		}
-		next := filepath.Dir(existing)
-		if next == existing {
-			return fmt.Errorf("%s leads outside the mod folder", rel)
-		}
-		existing = next
-	}
-	physical, err := editorPhysicalDirectory(existing)
-	if err != nil {
-		return fmt.Errorf("resolve map output directory: %w", err)
-	}
-	inside, err := pathWithin(folder, physical)
-	if err != nil {
-		return fmt.Errorf("resolve map output boundary: %w", err)
-	}
-	if !inside {
-		return fmt.Errorf("%s leads outside the mod folder", rel)
-	}
-	return fenceEditorWrite(root, physical, "Save")
-}
-
-// writeModMap writes data to the slash path rel inside the mod folder dir,
-// replacing the file there. The file stays inside the folder and outside the
-// install at root; a map larger than a mod may load is refused.
-func writeModMap(root, dir, rel string, data []byte) (string, error) {
-	if len(data) > mod.MaxFileBytes {
-		return "", fmt.Errorf("the map is %d bytes; a mod map holds at most %d", len(data), mod.MaxFileBytes)
-	}
-	if err := extendedName(data, rel); err != nil {
+	if err := x.SetMod(m.dir); err != nil {
 		return "", err
 	}
-	return writeModFile(root, dir, rel, data)
-}
-
-// writeModFile writes data to the slash path rel inside the mod folder dir,
-// replacing the file there. The file stays inside the folder and outside the
-// install at root.
-func writeModFile(root, dir, rel string, data []byte) (string, error) {
-	full := filepath.Join(dir, filepath.FromSlash(rel))
-	if err := checkModMapDirectory(root, dir, filepath.Dir(full), rel); err != nil {
-		return "", err
+	s.saved, s.source = s.model.Bytes(), filepath.Join(m.dir, filepath.FromSlash(e.Map))
+	if s.errorsAllowed {
+		s.saveNote = x.word("editor.save.package")
 	}
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-		return "", err
-	}
-	parent, err := editorPhysicalDirectory(filepath.Dir(full))
-	if err != nil {
-		return "", fmt.Errorf("resolve map output directory: %w", err)
-	}
-	folder, err := editorPhysicalDirectory(dir)
-	if err != nil {
-		return "", fmt.Errorf("resolve mod folder: %w", err)
-	}
-	inside, err := pathWithin(folder, parent)
-	if err != nil {
-		return "", fmt.Errorf("resolve map output boundary: %w", err)
-	}
-	if !inside {
-		return "", fmt.Errorf("%s leads outside the mod folder", rel)
-	}
-	if err := fenceEditorWrite(root, parent, "Save"); err != nil {
-		return "", err
-	}
-	target := filepath.Join(parent, filepath.Base(full))
-	if st, err := os.Lstat(target); err == nil && !st.Mode().IsRegular() {
-		return "", fmt.Errorf("%s is not a file", rel)
-	}
-	// The new map is written beside the old one and moved over it, so a failed
-	// write leaves the old map whole. A leading dot keeps it out of the mod's
-	// content digest.
-	if _, err := hostfile.Commit(hostfile.Set{
-		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},
-		Dir:   parent,
-		Temp:  ".mapedit-*.alm",
-		Sync:  true,
-	}); err != nil {
-		return "", err
-	}
-	return target, nil
+	return s.source, nil
 }

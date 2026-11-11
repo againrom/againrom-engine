@@ -273,7 +273,7 @@ func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 	}
 	entries := slices.Clone(book.catalog.Towns)
 	if !layer.read {
-		layer.note = mod.TownsFile + ": the second game reads no towns layer; the file is for reading, and main.star does not add it"
+		layer.note = mod.TownsFile + ": the second game reads no towns layer; the file is for reading only"
 		head = append(head, layer.note+".")
 	} else if name, ok := decodeSaveLabel(f.Words.WorldHomeTitle, f.textSelector()); ok && strings.TrimSpace(name) != "" {
 		for i := range entries {

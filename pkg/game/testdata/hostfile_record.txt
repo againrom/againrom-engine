@@ -104,7 +104,7 @@ new hall publish fails: error fence=false planted publish failure
 pack replace=false $T/mod-rec.res: ok
 pack replace=false : error fence=false $T/mod-rec.res exists: a packed mod is written over an existing file only when asked
 pack replace=true $T/mod-rec.res: ok
-  mod-rec.res 178 -rw------- "&YA1/x00/x00/x00/x00/x02/x00/x00/x00/x01/x00/x00/x00R/x00/x00/x00/x03/x00/x00/x00..."
+  mod-rec.res 145 -rw------- "&YA1/x00/x00/x00/x00/x02/x00/x00/x00/x01/x00/x00/x00Q/x00/x00/x00/x02/x00/x00/x00..."
 pack exists is ErrPackExists=true
 pack into an install: error fence=false $T/inst is inside the install $T/inst: a packed mod is never written into an install
 pack into an install is ErrPackInstall=true
@@ -158,14 +158,6 @@ save over without pages or labels $T/p.alm: ok
   p.text/
   p.text/en/
   p.text/en/briefing.txt 9 -rw------- "brief-two"
-## map saved into a mod
-new $T/maps/a.alm: ok
-over $T/maps/a.alm: ok
-outside: error fence=false ../out.alm leads outside the mod folder
-  maps/
-  maps/a.alm 11 -rw------- "mod-map-two"
-  mod.toml 9 -rw------- "id = /"m/"/n"
-mod under the install: error fence=true Save: refusing to write original-format save under read-only game install $T/inst
 ## test play files
 write: ok
 write durable over: ok

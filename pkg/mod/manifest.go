@@ -20,7 +20,7 @@
 //     line after it is ignored.
 //
 // A top-level key that is not one of manifestKeys is an error. author and
-// description are for people and are not read. id, title and version are
+// description are for people. id, title and version are
 // required strings; applies-to is a string or an
 // array of strings and defaults to ["common"]. A key given twice is an error.
 package mod
@@ -51,10 +51,11 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 
 // Manifest is the part of mod.toml this package reads.
 type Manifest struct {
-	ID        string
-	Title     string
-	Version   string
-	AppliesTo []string
+	ID                  string
+	Title               string
+	Version             string
+	Author, Description string
+	AppliesTo           []string
 
 	// API is the mod interface version the mod was written for; 1 when absent.
 	API int
@@ -69,8 +70,9 @@ type Manifest struct {
 	Entry string
 }
 
-// ParseManifest reads a manifest. The error names the offending line.
-func ParseManifest(data []byte) (Manifest, error) {
+// ParseManifest reads a manifest; authoring also checks metadata and IDs.
+func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
+	strict := len(authoring) != 0 && authoring[0]
 	if len(data) > maxManifest {
 		return Manifest{}, fmt.Errorf("manifest is larger than %d bytes", maxManifest)
 	}
@@ -99,9 +101,12 @@ func ParseManifest(data []byte) (Manifest, error) {
 		seen[key] = true
 		val := strings.TrimSpace(t[eq+1:])
 		switch key {
-		case "id", "title", "version":
+		case "id", "title", "version", "author", "description":
 			s, err := parseString(val)
 			if err != nil {
+				if !strict && (key == "author" || key == "description") {
+					continue
+				}
 				return Manifest{}, fmt.Errorf("line %d: %s: %w", n+1, key, err)
 			}
 			switch key {
@@ -109,6 +114,10 @@ func ParseManifest(data []byte) (Manifest, error) {
 				m.ID = s
 			case "title":
 				m.Title = s
+			case "author":
+				m.Author = s
+			case "description":
+				m.Description = s
 			default:
 				m.Version = s
 			}
@@ -148,8 +157,6 @@ func ParseManifest(data []byte) (Manifest, error) {
 				return Manifest{}, fmt.Errorf("line %d: api: %w", n+1, err)
 			}
 			m.API = v
-		case "author", "description":
-			// Read by people, not by the game.
 		default:
 			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", n+1, key, strings.Join(manifestKeys, ", "))
 		}
@@ -170,6 +177,24 @@ func ParseManifest(data []byte) (Manifest, error) {
 	}
 	if len(m.AppliesTo) == 0 {
 		return Manifest{}, errors.New("applies-to is empty")
+	}
+	if !strict {
+		return m, nil
+	}
+	for _, value := range m.Requires {
+		if _, err := ParseDep(value); err != nil {
+			return Manifest{}, fmt.Errorf("requires: %w", err)
+		}
+	}
+	for _, list := range []struct {
+		key string
+		ids []string
+	}{{"conflicts", m.Conflicts}, {"load-after", m.LoadAfter}} {
+		for _, id := range list.ids {
+			if !ValidID(id) {
+				return Manifest{}, fmt.Errorf("%s: %q is not a mod id", list.key, id)
+			}
+		}
 	}
 	return m, nil
 }

@@ -18,6 +18,9 @@ func TestEditorOverviewListsTheSpeakerJustAdded(t *testing.T) {
 	if _, err := s.AddSpeaker(speakerLady, "Lady", pngFile); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
 	_, cold := speakerPickEditor(t)
 	if err := cold.inspector.SetMod(dir); err != nil {
 		t.Fatal(err)

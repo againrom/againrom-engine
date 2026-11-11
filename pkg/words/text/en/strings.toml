@@ -1345,3 +1345,11 @@
 "editor.mod.overview.issues" = "Refusals"
 "editor.mod.overview.none" = "none"
 "editor.mod.overview.refused" = "The game refuses its missions:"
+
+"editor.mod.version" = "Version"
+"editor.mod.author" = "Author"
+"editor.mod.description" = "Description"
+"editor.mod.applies-to" = "Applies to"
+"editor.mod.requires" = "Requires (IDs, constraints)"
+"editor.mod.conflicts" = "Conflicts (IDs)"
+"editor.mod.load-after" = "Load after (IDs)"

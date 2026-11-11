@@ -41,8 +41,11 @@ func releaseBaseDump(t *testing.T, f *FrontEnd, mods string) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"mod.toml", "main.star", mod.TownsFile}; !slices.Equal(report.Files, want) || len(report.Notes) != 0 {
+	if want := []string{mod.ManifestName, mod.TownsFile}; !slices.Equal(report.Files, want) || len(report.Notes) != 0 {
 		t.Fatalf("report %+v, want files %v and no note", report, want)
+	}
+	if _, err := os.Stat(filepath.Join(mods, "base-dump", mod.EntryName)); !os.IsNotExist(err) {
+		t.Fatalf("unnecessary entry: %v", err)
 	}
 	towns, err := os.ReadFile(filepath.Join(mods, "base-dump", filepath.FromSlash(mod.TownsFile)))
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"image"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -436,6 +437,13 @@ func modesAct(e *MapEditor, name string) string {
 				}
 			}
 		}
+	case "ui:mod-manifest":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			for _, key := range []string{"version", "author", "description", "requires", "conflicts", "load-after"} {
+				p.fields = append(p.fields, InspectionField{Key: key, Label: key, Text: true, TextValue: "value", Column: 1})
+			}
+			p.fields = append(p.fields, InspectionField{Key: "applies-to", Label: "Applies to", Value: 1, Column: 1, Choices: []InspectionChoice{{Value: 0, Label: "common"}, {Value: 1, Label: "rom1"}, {Value: 2, Label: "rom1-en"}, {Value: 3, Label: "rom1-ru"}, {Value: 4, Label: "rom2-en"}, {Value: 5, Label: "rom2-ru"}}})
+		}
 	case "ui:mod-overview":
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
 			p.overview = modesOverview
@@ -449,6 +457,10 @@ func modesAct(e *MapEditor, name string) string {
 			}
 		}
 	default:
+		if key, ok := strings.CutPrefix(name, "ui:mod-focus-"); ok {
+			e.FocusModField(key)
+			return ""
+		}
 		if err := e.Key(name); err != nil {
 			return err.Error()
 		}
@@ -639,6 +651,13 @@ var modesPaths = []modesPath{
 	{"height-level", []string{"height", "ui:height-mode1", "ui:press-cell"}},
 	{"height-smooth", []string{"height", "ui:height-mode2", "ui:press-cell"}},
 	{"height-strength", []string{"height", "ui:strength-plus", "ui:strength-plus"}},
+	{"mod-manifest-version", []string{"ui:mod-manifest", "package", "ui:mod-focus-version", "ui:text-plain"}},
+	{"mod-manifest-author", []string{"ui:mod-manifest", "package", "ui:mod-focus-author", "ui:text-plain"}},
+	{"mod-manifest-description", []string{"ui:mod-manifest", "package", "ui:mod-focus-description", "ui:text-plain"}},
+	{"mod-manifest-applies-to", []string{"ui:mod-manifest", "package", "ui:mod-focus-applies-to", "enter"}},
+	{"mod-manifest-requires", []string{"ui:mod-manifest", "package", "ui:mod-focus-requires", "ui:text-plain"}},
+	{"mod-manifest-conflicts", []string{"ui:mod-manifest", "package", "ui:mod-focus-conflicts", "ui:text-plain"}},
+	{"mod-manifest-load-after", []string{"ui:mod-manifest", "package", "ui:mod-focus-load-after", "ui:text-plain"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the
@@ -867,6 +886,36 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		}
 		if help := lines[0]; help != r.help || e.Message() != r.message || modesTitle(e) != r.title || report != r.report || e.brushActive() != r.brush {
 			t.Errorf("%s %s then %s: help %q message %q title %q report %v brush %v; recorded %q %q %q %v %v", r.host, r.path, r.action, help, e.Message(), modesTitle(e), report, e.brushActive(), r.help, r.message, r.title, r.report, r.brush)
+		}
+	}
+}
+
+func TestMapEditorModesHoldTheManifestFields(t *testing.T) {
+	raw, err := os.ReadFile(modesGoldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSuffix(string(raw), "\n"), "\n")
+	write := os.Getenv("MAPEDITOR_MANIFEST_ROWS_WRITE") == "1"
+	for _, p := range modesPaths {
+		if !strings.HasPrefix(p.name, "mod-manifest-") {
+			continue
+		}
+		got := modesGoldenRow(t, "workspace", p)
+		index := slices.IndexFunc(lines, func(line string) bool { return strings.HasPrefix(line, "workspace/"+p.name+" ") })
+		if write {
+			if index < 0 {
+				lines = append(lines, got)
+			} else {
+				lines[index] = got
+			}
+		} else if index < 0 || lines[index] != got {
+			t.Errorf("row differs from table:\n%s", got)
+		}
+	}
+	if write {
+		if err := os.WriteFile(modesGoldenPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
 }

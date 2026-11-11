@@ -21,8 +21,10 @@ func missionPackageFiles(title, description string, m mod.Mission, lang string, 
 	if m.Texts != "" {
 		m.Texts = testPlayTexts + "/{lang}"
 	}
-	manifest := fmt.Sprintf("id = %q\ntitle = %q\nversion = \"1.0.0\"\nauthor = \"Againrom\"\ndescription = %q\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n", m.Mod, title, description)
-	files := map[string][]byte{mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry), mod.MissionsFile: testPlayMissions(m), cmp.Or(m.Map, testPlayMap): bytes.Clone(m.MapBytes)}
+	p := editorPackageSpec{ID: m.Mod, Title: title, Manifest: defaultPackageManifest()}
+	p.Manifest.Description = description
+	manifest, _ := p.manifestBytes(nil)
+	files := map[string][]byte{mod.ManifestName: manifest, mod.MissionsFile: testPlayMissions(m), cmp.Or(m.Map, testPlayMap): bytes.Clone(m.MapBytes)}
 	for name, b := range m.TextFiles {
 		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
 	}
@@ -101,6 +103,7 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 	} else if s.model == nil {
 		// No map is open to show it over; the window shows the mod.
 		s.workspace = nil
+		s.undoWorkspace, s.redoWorkspace, s.workspaceHistory = nil, nil, false
 	} else {
 		d, err = x.inspect(bytes.Clone(s.saved), s.source)
 	}
@@ -161,7 +164,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	}
 	next := candidate.Edits.(*mapInspectionEdits)
 	w.Project.Selected = index - 1
-	w.Package = modPackageSpec(entry, s.workspace.Package.ID, s.workspace.Package.Title)
+	w.Package = modPackageSpec(entry, s.workspace.Package)
 	w.Pages = next.workspace.Pages
 	w.Labels = next.workspace.Labels
 	for _, folder := range []string{strings.ReplaceAll(entry.Texts, "{lang}", x.pageLanguage()), filepath.ToSlash(filepath.Join(mapTextFolder(entry.Map), x.pageLanguage()))} {
@@ -183,12 +186,16 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", err
 	}
-	if err := s.gate(false); err != nil {
-		return "", err
-	}
-	b, err := s.model.SaveBytes()
-	if err != nil {
-		return "", err
+	var b []byte
+	var err error
+	if s.model != nil && (s.workspace.Project == nil || s.workspace.Project.Selected >= 0) {
+		if err := s.gate(false); err != nil {
+			return "", err
+		}
+		b, err = s.model.SaveBytes()
+		if err != nil {
+			return "", err
+		}
 	}
 	x := s.inspector
 	if x.archives == nil || x.archives.Containers == nil {
@@ -198,9 +205,6 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	p := s.workspace.Package
-	if err := s.unchangedModSource(); err != nil {
-		return "", err
-	}
 	if !mod.ValidID(p.ID) || p.ID == TestPlayModID || !editorOrdinaryFilename(p.ID) {
 		return "", fmt.Errorf("invalid author mod ID %q", p.ID)
 	}
@@ -209,6 +213,9 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	if !namefold.HostEqual(filepath.Base(abs), p.ID) {
+		if err := checkMissionPackageOverlap(abs, editorPackageRecord, s.packageProtected()); err != nil {
+			return "", err
+		}
 		return "", fmt.Errorf("folder must be named %s, the mod ID", p.ID)
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
@@ -221,12 +228,15 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	protected := s.packageProtected()
-	if x.mod != nil && x.mod.owned && sameSaveName(x.mod.dir, folder) {
+	if x.mod != nil && !x.mod.copyOnly && sameSaveName(x.mod.dir, folder) {
 		protected = nil
 	} else if _, err := os.Lstat(folder); err == nil {
 		return "", fmt.Errorf("%s already exists; open it before saving", folder)
 	}
-	old, err := missionPackageOwnership(folder, editorPackageRecord, protected)
+	var old []string
+	if x.mod == nil || x.mod.owned || !sameSaveName(x.mod.dir, folder) {
+		old, err = missionPackageOwnership(folder, editorPackageRecord, protected)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -239,14 +249,20 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", err
 		}
 	} else {
-		files = missionPackageFiles(p.Title, "Map editor mission package", m, x.pageLanguage())
+		files = missionPackageFiles(p.Title, p.Manifest.Description, m, x.pageLanguage())
+		files[mod.ManifestName], err = p.manifestBytes(nil)
+		if err != nil {
+			return "", err
+		}
 	}
 	if err := x.checkMissionSet(missions); err != nil {
 		return "", err
 	}
 	address, _ := MissionMap(m.Number)
-	if rows := x.CheckModMap(m, address); hasError(rows) {
-		return "", s.loaderRefusal(rows)
+	if m.Map != "" {
+		if rows := x.CheckModMap(m, address); hasError(rows) {
+			return "", s.loaderRefusal(rows)
+		}
 	}
 	if s.workspace.Project == nil {
 		pages, err := s.exportPageTree(folder, old)
@@ -277,18 +293,14 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			delete(files, name)
 		}
 	}
-	if err := testPlayTargets(folder, old, files); err != nil {
+	if err := testPlayTargets(folder, old, files); err != nil && !(x.mod != nil && !x.mod.copyOnly && sameSaveName(x.mod.dir, folder)) {
 		return "", err
 	}
 	plan := missionPackagePlan{Check: x.admitMissionPackage, Expected: missions}
 	if s.workspace.Project != nil {
 		plan.Source = s.retainedSource(folder)
 	}
-	stage, err := stageMissionPackage(parent, folder, x.archives.Root, p.ID, editorPackageRecord, old, files, guard, plan)
-	if err != nil {
-		return "", err
-	}
-	if err := installMissionPackage(stage, folder, p.ID, len(old) > 0); err != nil {
+	if err := x.writeEditorProject(folder, p.ID, old, files, plan, plan.Source == folder || len(old) > 0); err != nil {
 		return "", err
 	}
 	if err := x.SetMod(folder); err != nil {
@@ -296,8 +308,23 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	x.mod.selected = m.Key
 	s.workspace.Project = x.mod.document()
-	s.source = filepath.Join(folder, filepath.FromSlash(m.Map))
+	s.workspace.Package.ID, s.workspace.Package.Title = x.mod.id, x.mod.title
+	s.workspace.Package.Manifest, _ = mod.ParseManifest(x.mod.manifest)
+	s.workspace.Project.Selected = -1
+	for i, entry := range x.mod.missions.Missions {
+		if m.Map != "" && entry.Key == m.Key {
+			s.workspace.Project.Selected = i
+			s.workspace.Package = modPackageSpec(entry, s.workspace.Package)
+			break
+		}
+	}
+	if m.Map != "" {
+		s.source = filepath.Join(folder, filepath.FromSlash(m.Map))
+	}
 	s.workspaceImage = workspaceBytes(s.workspace)
-	s.saved, s.savedWorkspace = s.model.Bytes(), s.workspaceImage
+	if s.model != nil {
+		s.saved = s.model.Bytes()
+	}
+	s.savedWorkspace = s.workspaceImage
 	return s.source, nil
 }

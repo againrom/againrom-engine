@@ -23,6 +23,7 @@ import (
 
 type editorPackageSpec struct {
 	ID, Title, Kind                     string
+	Manifest                            mod.Manifest
 	Number, After, Guest, Chapter, Gold int
 	Party                               []mod.GuestMember
 }
@@ -50,6 +51,7 @@ func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
 	next.Project = w.Project.clone()
 	party := mod.CloneMission(mod.Mission{Party: w.Package.Party})
 	next.Package.Party = party.Party
+	next.Package.Manifest = mod.CloneManifest(w.Package.Manifest)
 	next.Pages = make(map[string][]byte, len(w.Pages))
 	for name, b := range w.Pages {
 		next.Pages[name] = bytes.Clone(b)
@@ -77,18 +79,34 @@ func (s *mapInspectionEdits) checkpointPages() {
 }
 
 func (s *mapInspectionEdits) prepareWorkspace() error {
+	x := s.inspector
 	if s.workspace != nil {
+		if s.workspace.Project == nil && x.mod != nil {
+			s.workspace = cloneWorkspace(s.workspace)
+			s.bindWorkspaceMod(s.workspace, s.source)
+			var saved editorWorkspaceState
+			decodeWorkspace(s.savedWorkspace, &saved)
+			s.bindWorkspaceMod(&saved, s.source)
+			s.savedWorkspace = workspaceBytes(&saved)
+			s.syncModDocument(s.workspace, saved.Pages, false)
+			s.workspaceImage = workspaceBytes(s.workspace)
+			for _, history := range [][]editorWorkspaceSnapshot{s.undoWorkspace, s.redoWorkspace} {
+				for i := range history {
+					if history[i].workspace != nil && history[i].workspace.Project == nil {
+						history[i].workspace = cloneWorkspace(history[i].workspace)
+						s.bindWorkspaceMod(history[i].workspace, history[i].source)
+						s.syncModDocument(history[i].workspace, saved.Pages, false)
+					}
+				}
+			}
+		}
 		return nil
 	}
-	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest}}
-	x := s.inspector
+	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest, Manifest: defaultPackageManifest()}}
 	if s.model == nil {
 		// No map is open: the workspace is the opened mod's alone.
-		if x.mod != nil {
-			w.Project = x.mod.document()
-			w.Project.Selected = -1
-			w.Package.ID, w.Package.Title = x.mod.id, x.mod.title
-		}
+		s.bindWorkspaceMod(w, "")
+		w.Package.Manifest.ID, w.Package.Manifest.Title = w.Package.ID, w.Package.Title
 		s.workspace, s.workspaceImage = w, workspaceBytes(w)
 		s.savedWorkspace = s.workspaceImage
 		return nil
@@ -102,19 +120,8 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 				w.Pages[name] = bytes.Clone(b)
 			}
 		}
-		if x.mod != nil {
-			if m, ok := x.mod.entryFor(s.source); ok {
-				w.Package = editorPackageSpec{ID: m.Mod, Title: x.mod.title, Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold}
-				w.Package.Party = mod.CloneMission(m).Party
-				w.Project = x.mod.document()
-			}
-		}
 	}
-	if x.mod != nil && w.Project == nil {
-		w.Project = x.mod.document()
-		w.Project.Selected = -1
-		w.Package.ID, w.Package.Title = x.mod.id, x.mod.title
-	}
+	s.bindWorkspaceMod(w, s.source)
 	if w.Package.Number == 0 && x.archives != nil && x.archives.Containers != nil {
 		if c, err := LoadCampaign(x.archives.Containers); err == nil {
 			if m, err := testPlayGuest(c, x.archives.Containers); err == nil {
@@ -128,9 +135,32 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 	} else if _, sc, err := wizardScript(s.model); err == nil {
 		w.Labels = liveLabels(sc, labels)
 	}
+	w.Package.Manifest.ID, w.Package.Manifest.Title = w.Package.ID, w.Package.Title
 	s.workspace, s.workspaceImage = w, workspaceBytes(w)
 	s.savedWorkspace = s.workspaceImage
 	return nil
+}
+
+func (s *mapInspectionEdits) bindWorkspaceMod(w *editorWorkspaceState, source string) {
+	m := s.inspector.mod
+	if m == nil || w.Project != nil {
+		return
+	}
+	w.Project = m.document()
+	w.Project.Selected = -1
+	w.Package.ID, w.Package.Title = m.id, m.title
+	w.Package.Manifest, _ = mod.ParseManifest(m.manifest)
+	if s.model != nil {
+		if entry, ok := m.entryFor(source); ok {
+			w.Package = modPackageSpec(entry, w.Package)
+			for i, mission := range w.Project.Missions {
+				if mission.Key == entry.Key {
+					w.Project.Selected = i
+					break
+				}
+			}
+		}
+	}
 }
 
 // liveLabels is the labels whose registers are still variables: a register a
@@ -178,17 +208,26 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 	last := (*from)[len(*from)-1]
 	trial := *s
 	trial.workspace, trial.model, trial.source = last.workspace, last.model, last.source
+	oldMod := s.inspector.mod
+	if !bytes.Equal(s.workspace.speakerDraft(), last.workspace.speakerDraft()) {
+		if err := s.draftModContext(last.workspace); err != nil {
+			return nil, err
+		}
+	}
 	d, err := trial.project(last.model)
 	if err != nil {
+		s.inspector.setEditorMod(oldMod)
 		return nil, err
 	}
 	*to = append(*to, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source})
 	*from = (*from)[:len(*from)-1]
 	s.model, s.workspace, s.source = last.model, last.workspace, last.source
-	d.Edits = s
+	if d != nil {
+		d.Edits = s
+	}
 	s.refreshModSelection()
 	s.workspaceImage = workspaceBytes(s.workspace)
-	if d.Script != nil {
+	if d != nil && d.Script != nil {
 		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
 	}
 	return d, nil
@@ -225,17 +264,24 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	if bytes.Equal(image, s.workspaceImage) {
 		return nil, nil
 	}
+	oldMod := s.inspector.mod
+	if !bytes.Equal(s.workspace.speakerDraft(), next.speakerDraft()) {
+		if err := s.draftModContext(next); err != nil {
+			return nil, err
+		}
+	}
 	old := s.workspace
 	s.workspace = next
 	d, err := s.project(s.model)
 	s.workspace = old
 	if err != nil {
+		s.inspector.setEditorMod(oldMod)
 		return nil, err
 	}
 	s.rememberWorkspace(false)
 	s.workspace = next
 	s.workspaceImage = image
-	if d.Script != nil {
+	if d != nil && d.Script != nil {
 		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
 	}
 	return d, nil
@@ -310,6 +356,7 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 			}
 			out = append(out, field)
 		}
+		out = append(out[:3], append(s.manifestFields(), out[3:]...)...)
 		return s.modFields(out)
 	}
 	return nil
@@ -329,8 +376,7 @@ func opensMod(scope, key, value string) bool {
 }
 
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
-	if s.model == nil {
-		// With no map open W opens a mod and changes nothing else.
+	if s.model == nil && (scope != "package" || !isManifestField(key) && key != "save" && key != "output" && key != "folder") {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}
@@ -394,25 +440,15 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		}
 		return s.selectWorkspaceMission(index)
 	}
+	if isManifestField(key) {
+		return s.setManifestField(key, value)
+	}
 	if next, handled, err := s.setModControl(key, value); handled {
 		return next, err
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
 		p := &w.Package
 		switch key {
-		case "id":
-			if !mod.ValidID(value) || value == TestPlayModID || !editorOrdinaryFilename(value) {
-				return fmt.Errorf("use an ordinary mod ID other than %s", TestPlayModID)
-			}
-			if s.inspector.mod != nil && s.inspector.mod.id != value {
-				return fmt.Errorf("an opened package keeps its ID; create another package in a new folder")
-			}
-			p.ID = value
-		case "title":
-			if strings.TrimSpace(value) == "" || len(value) > 1024 || !utf8.ValidString(value) {
-				return fmt.Errorf("mod title must be 1 to 1024 UTF-8 bytes")
-			}
-			p.Title = value
 		case "kind":
 			if value == "0" {
 				value = mod.MissionGuest
@@ -542,4 +578,11 @@ func (s *mapInspectionEdits) packageProtected() []packageGuard {
 		out = append(out, packageGuard{dir: s.inspector.mod.dir, name: "the selected mod folder", walked: true})
 	}
 	return out
+}
+
+func (w *editorWorkspaceState) speakerDraft() []byte {
+	if w == nil || w.Project == nil {
+		return nil
+	}
+	return w.Project.Files[mod.SpeakersFile]
 }

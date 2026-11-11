@@ -7,10 +7,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
-	"strings"
 
 	"againrom/pkg/base"
-	"againrom/pkg/hostfile"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
@@ -46,11 +44,6 @@ type TestPlayHost struct {
 
 // SetTestPlay names the host of the editor's test play.
 func (x *MapInspector) SetTestPlay(h TestPlayHost) { x.testPlay = &h }
-
-// testPlayEntry is the test mod's entry script.
-const testPlayEntry = `def init(game, settings):
-    game.data.add("` + mod.MissionsFile + `")
-`
 
 // TestPlay writes the map as it now stands into the editor's test mod and
 // starts the game in that mission. Nothing is written and nothing starts when
@@ -112,7 +105,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 		}
 	}
 	if plan == nil {
-		if err := x.carryModSpeakers(&m); err != nil {
+		if err := s.carryModSpeakers(&m); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}
 		if err := x.checkMissionRoute(m); err != nil {
@@ -392,60 +385,6 @@ func admittedOnce(check func(string) error) (guard func(string) error, forget fu
 		return nil
 	}
 	return guard, func() { clear(passed) }
-}
-
-// writeTestModFile writes data to the slash path rel in folder, creating the
-// directories below top one by one, each checked by guard, and replacing the
-// file through a dot-named file moved over it. Only a durable file is flushed
-// before the move: the ownership record, written last. Every other file is
-// rewritten by the next test play or lives in a staging folder removed after
-// validation.
-func writeTestModFile(guard func(string) error, top, folder, rel string, data []byte, durable bool) error {
-	full := filepath.Join(folder, filepath.FromSlash(rel))
-	lexical, err := filepath.Rel(top, filepath.Dir(full))
-	if err != nil || !filepath.IsLocal(lexical) && lexical != "." {
-		return fmt.Errorf("%s leads outside the test mod", rel)
-	}
-	dir := top
-	if err := guard(dir); err != nil {
-		return err
-	}
-	if lexical != "." {
-		for _, part := range strings.Split(lexical, string(filepath.Separator)) {
-			dir = filepath.Join(dir, part)
-			st, err := os.Lstat(dir)
-			if errors.Is(err, os.ErrNotExist) {
-				err = os.Mkdir(dir, 0o755)
-				if err == nil {
-					st, err = os.Lstat(dir)
-				}
-			}
-			if err != nil {
-				return err
-			}
-			if !st.IsDir() || st.Mode()&os.ModeSymlink != 0 {
-				return fmt.Errorf("%s is not a folder of the test mod", dir)
-			}
-			physical, err := editorPhysicalDirectory(dir)
-			if err != nil || !sameSaveName(physical, dir) {
-				return fmt.Errorf("%s redirects out of the test mod", dir)
-			}
-			if err := guard(dir); err != nil {
-				return err
-			}
-		}
-	}
-	target := filepath.Join(dir, filepath.Base(full))
-	if st, err := os.Lstat(target); err == nil && !st.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a file", target)
-	}
-	_, err = hostfile.Commit(hostfile.Set{
-		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},
-		Dir:   dir,
-		Temp:  ".testplay-*",
-		Sync:  durable,
-	})
-	return err
 }
 
 // TestPlayRefusal is the campaign's refusal of every test play, nil when the

@@ -35,7 +35,7 @@ func TestTestPlayRefusesAnAuthoredDestination(t *testing.T) {
 			opened := filepath.Join(folder, filepath.FromSlash(testPlayMap))
 			original := synth.ALM(synth.ALMOptions{Width: 4, Height: 4, Name: "authored"})
 			for name, b := range map[string][]byte{
-				mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry),
+				mod.ManifestName: []byte(manifest), "main.star": []byte("def init(game, settings):\n    pass\n"),
 				mod.MissionsFile: []byte(declaration), testPlayMap: original,
 				"mission/text/event01.txt": []byte("Author page"),
 			} {
@@ -183,7 +183,7 @@ func TestTestPlayInstallProfileWritesOnlyThePrivateFolderAndReplacesIt(t *testin
 			}
 		}
 		got := tree(t, filepath.Join(profile.Directory, TestPlayModID, TestPlayModID))
-		if len(got) != 6 || got[testPlayRecord] == "" || got[testPlayMap] != string(m.MapBytes) {
+		if len(got) != 5 || got[testPlayRecord] == "" || got[testPlayMap] != string(m.MapBytes) {
 			t.Fatalf("private test mod: %v", keys(got))
 		}
 	}

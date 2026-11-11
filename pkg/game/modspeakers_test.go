@@ -120,7 +120,10 @@ func TestModSpeakerWriteReadAndResolve(t *testing.T) {
 		t.Fatal("the info window's face is not the message window's face")
 	}
 
-	// A cold read: another inspector opens the same mod.
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
+	// A cold read: another inspector opens the saved mod.
 	_, cold := speakerPickEditor(t)
 	if err := cold.inspector.SetMod(dir); err != nil {
 		t.Fatal(err)
@@ -167,7 +170,7 @@ func TestModSpeakerSurvivesSavingTheOwnedPackage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.saveIntoOwnedMod(s.inspector.mod); err != nil {
+	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatalf("the save after a new speaker record: %v", err)
 	}
 	files := tree(t, owned)
@@ -210,6 +213,12 @@ func TestModSpeakerClickChoosesThePictureAndWritesTheRecord(t *testing.T) {
 	request := finishInspectionDialog(t, e, called, pathdialog.OpenFile)
 	if request.StartDir != dir || len(request.Filters) != 1 || request.Filters[0].Extensions[0] != "png" {
 		t.Fatalf("request %+v", request)
+	}
+	if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(mod.SpeakersFile))); !os.IsNotExist(err) {
+		t.Fatalf("draft wrote a file: %v", err)
+	}
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
 	}
 	if b, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(mod.SpeakersFile))); err != nil || !strings.Contains(string(b), "Lady") {
 		t.Fatalf("the record is not on disk: %v %q", err, b)
@@ -442,7 +451,7 @@ func TestModSpeakerSurvivesATestPlay(t *testing.T) {
 func TestCarryModSpeakersPutsTheFilesOnTheMission(t *testing.T) {
 	_, s, _ := modSpeakerEditor(t)
 	var empty mod.Mission
-	if err := s.inspector.carryModSpeakers(&empty); err != nil || empty.Carried != nil {
+	if err := s.carryModSpeakers(&empty); err != nil || empty.Carried != nil {
 		t.Fatalf("no speakers file carried %v, %v", empty.Carried, err)
 	}
 	pngFile := filepath.Join(t.TempDir(), "face.png")
@@ -452,7 +461,7 @@ func TestCarryModSpeakersPutsTheFilesOnTheMission(t *testing.T) {
 		t.Fatal(err)
 	}
 	var m mod.Mission
-	if err := s.inspector.carryModSpeakers(&m); err != nil {
+	if err := s.carryModSpeakers(&m); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(m.Carried[mod.SpeakersFile]), "Lady") || !bytes.Equal(m.Carried[fmt.Sprintf("speakers/%d.png", id)], face) {
