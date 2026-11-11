@@ -106,12 +106,16 @@ type skillAwardProfile struct {
 	ownedAttacker bool
 	// spellNeedsMage: spell damage pays a mage alone.
 	spellNeedsMage bool
+	// victimKinds, when positive, is how many victim kinds the kill route
+	// counts per attacker; an award for a counted kind pays 10X / (n + 10).
+	victimKinds int
 }
 
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
-// R2-ENGINE-486, R2-ENGINE-488).
+// R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157).
 var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raiseAtNext: true,
-	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true}
+	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true,
+	victimKinds: maxVictimKinds}
 
 // mainSkill is the skill the off-main cut spares besides freeSkill: the
 // main skill of the actor's trained levels (rules.MainSkill, DIV-4839).
@@ -184,6 +188,11 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	}
 
 	gain := xpGain(amount, a.Mind)
+	if srcIdx >= 0 && award.victimKinds > 0 {
+		if n, held := a.victimKinds.find(victimKind(w.entities[srcIdx])); held {
+			gain = victimKindCut(gain, n)
+		}
+	}
 	if d := award.offMainDivisor; d > 0 && slot != award.freeSkill && slot != w.mainSkill(ai) {
 		gain = (gain + d - 1) / d
 	}

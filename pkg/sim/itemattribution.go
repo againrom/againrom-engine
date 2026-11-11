@@ -110,11 +110,11 @@ func (w *World) processKillCredit(ti int) {
 	if ci < 0 {
 		return
 	}
+	// A mage's kill with spell 0 names no skill, so the award refuses it; the
+	// call still counts the victim's kind (R2-ENGINE-1158, R2-ENGINE-1157,
+	// DIV-4845).
 	named := int32(0)
-	if skillMage(w.entities[ci]) {
-		if target.KillCreditSpell == 0 {
-			return
-		}
+	if skillMage(w.entities[ci]) && target.KillCreditSpell != 0 {
 		id := int32(target.KillCreditSpell)
 		if id <= 0 {
 			return
@@ -126,4 +126,5 @@ func (w *World) processKillCredit(ti int) {
 		named = int32(rule.School)
 	}
 	w.awardSkill(ci, named, int64(target.ExperienceValue())/2, ti)
+	w.countVictimKind(ci, ti)
 }

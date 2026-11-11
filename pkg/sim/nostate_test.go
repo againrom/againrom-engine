@@ -351,6 +351,9 @@ var nstPinned = []struct {
 		// The second game's summoned caster key, carried by its own byte
 		// form section.
 		{"summonKey", "sim.EntityID"},
+		// The second game's repeated-victim list, carried by its own byte
+		// form section.
+		{"victimKinds", "sim.victimKindList"},
 	}},
 	{"RetreatContinuation", reflect.TypeOf(RetreatContinuation{}), []nstField{
 		{"Known", "bool"}, {"Pending", "bool"}, {"Failure", "bool"}, {"Complete", "bool"},

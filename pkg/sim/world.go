@@ -768,6 +768,11 @@ type Entity struct {
 	// (R2-ENGINE-776). It is unexported because no SAV record carries it
 	// (R2-SESSION-326): only the byte form's summoned key section does.
 	summonKey EntityID
+
+	// victimKinds is the second game's repeated-victim list the skill award
+	// cuts by (R2-ENGINE-1157); empty for every other actor. It is unexported
+	// for summonKey's reason: only the byte form's victim kind section holds it.
+	victimKinds victimKindList
 }
 
 // Guard is the constructor/felled default. Patrol, Defend, Follow and
