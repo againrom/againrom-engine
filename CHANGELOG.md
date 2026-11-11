@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] A mod loads its held data files without a script. Check warns about files outside the fixed tree and old paths; publishing leaves unread files out of the pack and save mark while keeping every file its rows read. Old row paths and scripts still work. Speaker data now enters the save mark even without a script call.
+
 ## 0.152.0
 
 ### For players

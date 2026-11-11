@@ -13,13 +13,6 @@ import (
 	"unicode/utf8"
 )
 
-// ItemsFile is the data file that adds items and edits existing ones. A mod
-// loads it from its entry script with game.data.load.
-const ItemsFile = "data/items.toml"
-
-// StringsFile returns the text file of a language, relative to the mod folder.
-func StringsFile(lang string) string { return "text/" + lang + "/strings.toml" }
-
 var itemKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
 // ItemSlots names the equipment slots a mod item can occupy and the slot

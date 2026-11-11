@@ -2,18 +2,57 @@ package mod
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/namefold"
 	"againrom/pkg/town"
 )
 
-// Every kind of data a mod carries is declared once, in dataKinds: its file
-// names, its record key, how a file's records are read and validated, and
-// how the records of several mods combine. The script's game.data.add, the
-// mod check, the game's one apply step, the base dump and docs/MODS.md all
-// walk this list; a kind that is not declared here is not read.
+const (
+	CharactersFile       = "data/characters.toml"
+	CompanionsFile       = "data/companions.toml"
+	FilesDir             = "files"
+	CommonFiles          = "common"
+	ItemsFile            = "data/items.toml"
+	ManifestName         = "mod.toml"
+	MapsFolder           = "maps"
+	MissionsFile         = "data/missions.toml"
+	ScreensFile          = "data/screens.toml"
+	SettingsName         = "settings.toml"
+	SpeakersFile         = "data/speakers.toml"
+	SpellsFile           = "data/spells.toml"
+	TerrainFile          = "data/terrain.toml"
+	TownsFile            = "data/towns.toml"
+	WeaponBodiesFile     = "data/wpnbodies.toml"
+	WeaponBodiesLongFile = "data/weapon-bodies.toml"
+	BodiesFile           = "data/bodies.toml"
+	EntryName            = "main.star"
+	ReadmeName           = "README.md"
+	stringsPattern       = "text/{lang}/strings.toml"
+	mapTextSuffix        = ".text"
+	mapVariablesSuffix   = ".variables"
+	pagePattern          = "**/*.txt"
+)
+
+var WeaponBodiesFiles = []string{WeaponBodiesFile, WeaponBodiesLongFile}
+
+func StringsFile(lang string) string { return strings.ReplaceAll(stringsPattern, "{lang}", lang) }
+
+// MapLabelFile names the editor's variable labels beside a map.
+func MapLabelFile(mapPath string) string {
+	return strings.TrimSuffix(mapPath, filepath.Ext(mapPath)) + mapVariablesSuffix
+}
+
+func treeLanguages(separator string) string {
+	var codes []string
+	for _, l := range locale.All() {
+		codes = append(codes, l.Code)
+	}
+	return strings.Join(codes, separator)
+}
 
 // DataClass is whether a kind of mod data is a catalog of game data the base
 // fills, or configuration the mod brings with no base catalog.
@@ -79,16 +118,20 @@ type DataKind struct {
 	// Owner is the story that migrates a kept kind onto Merge.
 	Owner string
 	// Dump reports that the base dump writes the kind's layer 0.
-	Dump bool
-	// Script reports that the entry script loads the file with
-	// game.data.add; the file of any other kind is read beside the
-	// manifest of every mod that holds it.
-	Script bool
+	Dump       bool
+	Paths      []string
+	Format     string
+	Language   string
+	Found      string
+	State      bool
+	NoDigest   bool
+	install    FileKind
+	references []treeReference
 	// read parses one file of the kind from one mod, refusing a value at
 	// its file and line, and adds the records to d.
 	read func(r DataReader, d *Data, rel string, src []byte) error
 	// named reads the files of a mod whose names declare records of the
-	// kind, after the mod's script ran, and reports whether it holds one.
+	// kind, after its table file, and reports whether it holds one.
 	named func(r DataReader, d *Data, t Tree) (bool, error)
 	// summary is the check's line on the kind's records; "" when none.
 	summary func(d Data) string
@@ -99,11 +142,13 @@ const mergedShared = "yes, when `load-after` orders the mods: the later wins and
 
 var dataKinds = []DataKind{
 	{
+		Format: "TOML subset; PNG", Language: "shared", Found: "held file; row sprite", State: true,
+		Paths: []string{"assets/items/**/*.png"}, references: []treeReference{{"item", "sprite", referenceFile}, {"change", "sprite", referenceFile}, {"weapon", "sprite", referenceFile}, {"material", "sprite", referenceFile}},
 		Name: "items", Files: []string{ItemsFile}, Key: "the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
 		Shared: mergedShared + "; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too",
-		Script: true, read: readItems,
+		read:   readItems,
 		summary: func(d Data) string {
 			if d.Items.Empty() {
 				return ""
@@ -113,11 +158,13 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
+
 		Name: "characters", Files: []string{CharactersFile}, Key: "`key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows)",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the install's npc.reg records, read once, keyed `npc<n>`; `target` edits existing definition rows",
 		Shared: "catalog keys: " + mergedShared + "; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after",
-		Script: true, read: readCharacters,
+		read:   readCharacters,
 		summary: func(d Data) string {
 			if d.Characters.Empty() {
 				return ""
@@ -137,11 +184,13 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
+
 		Name: "screens", Files: []string{ScreensFile}, Key: "`key`, within the mod",
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a mod's information screens and menu actions are additions to the menus; the base has no screen of this kind to change",
 		Shared: "no: a screen is its mod's own; one action is added by one mod",
-		Script: true, read: readScreens,
+		read:   readScreens,
 		summary: func(d Data) string {
 			if d.Screens.Empty() {
 				return ""
@@ -151,11 +200,13 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
+
 		Name: "companions", Files: []string{CompanionsFile}, Key: "`chapter` and `companion`",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the base grants every town companion on arrival, with no join condition",
 		Shared: mergedShared + "; `off` switches a condition off",
-		Script: true, read: readCompanions,
+		read:   readCompanions,
 		summary: func(d Data) string {
 			if d.Companions.Empty() {
 				return ""
@@ -164,11 +215,13 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
+
 		Name: "spells", Files: []string{SpellsFile}, Key: "`target` and the field; `[global]` keys",
 		Class: CatalogData, Layer: LayerKept, Owner: "an unscheduled spell catalog story",
 		Base:   "the spell rows, names, rules and formulas of several derived reads of the definition table: no one list",
 		Shared: "no: one field of one spell, and one global key, is set by one mod",
-		Script: true, read: readSpells,
+		read:   readSpells,
 		summary: func(d Data) string {
 			if d.Spells.Empty() {
 				return ""
@@ -177,18 +230,22 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset; PNG sheets", Language: "shared", Found: "held file; row heroes and heroes_l", State: true,
+		Paths: []string{"assets/bodies/**/*.png"}, references: []treeReference{{"body", "heroes", referenceFile}, {"body", "heroes_l", referenceFile}},
 		Name: "body sheets", Files: []string{BodiesFile}, Key: "`name`",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: a shipped body is a registry class and its sheets, not a body sheet; a sheet may not take a shipped name",
 		Shared: mergedShared + "; a later sheet replaces the whole sheet; `off` switches a sheet off",
-		Script: true, read: readBodies,
+		read:   readBodies,
 	},
 	{
+		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
+
 		Name: "weapon bodies", Files: WeaponBodiesFiles, Key: "the weapon row, by `weapon`, `row` or both",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the shipped body list: the body of each weapon row",
 		Shared: mergedShared + "; a weapon row is never switched off",
-		Script: true, read: readWeaponBodies,
+		read:   readWeaponBodies,
 		summary: func(d Data) string {
 			if d.Bodies.Empty() {
 				return ""
@@ -199,11 +256,13 @@ var dataKinds = []DataKind{
 	// The terrain rows apply before the missions: a mission's map check reads
 	// the land kinds of the mod groups its map uses.
 	{
+		Format: "TOML subset; 8-bit BMP strips", Language: "shared", Found: "held file; strip group via install path", State: true,
+
 		Name: "terrain", Files: []string{TerrainFile}, Key: "`group`",
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a mod's terrain groups are additions, groups 13 to 31 with their strips; the install's groups 0 to 12 take no row",
 		Shared: "no: a group is one mod's",
-		Script: true, read: readTerrain,
+		read:   readTerrain,
 		summary: func(d Data) string {
 			if d.Terrain.Empty() {
 				return ""
@@ -212,18 +271,22 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
-		Name: "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
+		Format: "TOML subset", Language: "shared; {lang} in map", Found: "held file; row map and texts", State: true,
+		references: []treeReference{{"mission", "map", referenceMap}, {"mission", "texts", referencePages}},
+		Name:       "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the campaign's missions are the campaign decoder's; a mod mission adds a guest mission or replaces a campaign mission's map, by number",
 		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
-		Script: true, read: readMissions, named: readMissionMaps,
+		read:   readMissions, named: readMissionMaps,
 	},
 	{
+		Format: "TOML subset; JSON; BMP; UTF-8 TXT", Language: "shared; talk texts per language", Found: "held file; description; mod: art; talk install path", State: true,
+		Paths: []string{"assets/towns/**/*.json", "assets/towns/**/*.bmp"}, references: []treeReference{{"town", "description", referenceTown}},
 		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc`",
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
 		Base:   "the install's town catalog; its tavern rows are the scenario's, its inn rows the catalog's",
 		Shared: mergedShared + "; `off` switches a town, a tavern row or an inn row off",
-		Script: true, read: readTowns,
+		read:   readTowns,
 		summary: func(d Data) string {
 			if d.Towns.Empty() {
 				return ""
@@ -241,6 +304,8 @@ var dataKinds = []DataKind{
 	// The speaker records apply after the characters: layer 0 of the
 	// character catalog is the install's records alone.
 	{
+		Format: "TOML subset; PNG faces", Language: "shared", Found: "held file; row picture", State: true,
+		Paths: []string{"assets/speakers/*.png"}, references: []treeReference{{"speaker", "picture", referenceFile}},
 		Name: "speakers", Files: []string{SpeakersFile}, Key: "`id`, a record number from 20000 to 99999",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the install's records stand below the band of numbers a mod's record takes",
@@ -254,23 +319,51 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
+		Format: "TOML subset", Language: "shared; labels per language", Found: "held file", State: false,
+
 		Name: "settings", Files: []string{SettingsName}, Key: "the table name",
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a setting is a knob of its mod, chosen per launch and kept in the save's mod mark; the base has none",
 		Shared: "no: a setting is its mod's own",
 		read:   readSettings,
 	},
+	{Name: "manifest", Files: []string{ManifestName}, Format: "TOML subset", Language: "shared", Found: "required fixed path"},
+	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
+	{Name: "script modules", Paths: []string{"**/*.star"}, Format: "Starlark", Language: "shared", Found: "script load"},
+	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language"},
+	{Name: "mission maps", Paths: []string{"maps/*.alm", "maps/*.almx", "maps/{lang}/*.alm", "maps/{lang}/*.almx"}, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
+	{Name: "mission pages", Paths: []string{"maps/*.text/*.txt", "maps/*.text/{lang}/*.txt", "maps/{lang}/*.text/*.txt", "maps/{lang}/*.text/{lang}/*.txt", "<N>.text/*.txt", "<N>.text/{lang}/*.txt"}, Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
+	{Name: "map variable labels", Paths: []string{MapsFolder + "/*" + mapVariablesSuffix, MapsFolder + "/{lang}/*" + mapVariablesSuffix}, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
+	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture},
+	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound},
+	{Name: "install texts", Paths: []string{"files/{layer}/**/*.txt"}, Format: "UTF-8 TXT", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileText},
+	{Name: "map by number", Paths: []string{"<N>.alm", "<N>.almx", "maps/<N>.alm", "maps/<N>.almx"}, Format: "ALM or ALMX", Language: "shared", Found: "campaign mission number"},
+	{Name: "read-me", Files: []string{ReadmeName}, Format: "Markdown", Language: "shared", Found: "fixed path; for people", NoDigest: true},
 }
 
 // DataKinds lists the declared kinds of mod data, in the order the game
 // applies them.
-func DataKinds() []DataKind { return slices.Clone(dataKinds) }
+func DataKinds() []DataKind {
+	var out []DataKind
+	for _, k := range dataKinds {
+		if k.Validates() {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+func TreeKinds() []DataKind { return slices.Clone(dataKinds) }
 
 // ScriptDataKind is the kind whose file game.data.add reads under rel.
 func ScriptDataKind(rel string) (DataKind, bool) {
 	for _, k := range dataKinds {
-		if k.Script && slices.Contains(k.Files, rel) {
-			return k, true
+		if k.Validates() {
+			for _, file := range k.Files {
+				if namefold.ModTree(file) == namefold.ModTree(rel) {
+					return k, true
+				}
+			}
 		}
 	}
 	return DataKind{}, false
@@ -280,7 +373,7 @@ func ScriptDataKind(rel string) (DataKind, bool) {
 func ScriptDataFiles() string {
 	var names []string
 	for _, k := range dataKinds {
-		if k.Script {
+		if k.Validates() {
 			names = append(names, k.Files...)
 		}
 	}
@@ -295,7 +388,7 @@ func (k DataKind) Read(r DataReader, d *Data, rel string, src []byte) error {
 }
 
 // ReadNamed reads the files of the mod t whose names declare records of the
-// kind, after the mod's script ran, and reports whether the mod holds one.
+// kind, after its table file, and reports whether the mod holds one.
 // A kind no file name declares reads nothing.
 func (k DataKind) ReadNamed(r DataReader, d *Data, t Tree) (bool, error) {
 	if k.named == nil {

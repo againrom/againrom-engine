@@ -9,11 +9,6 @@ import (
 	"againrom/pkg/locale"
 )
 
-// CharactersFile is the data file that edits named characters and adds
-// characters to the character catalog. A mod loads it from its entry script
-// with game.data.add.
-const CharactersFile = "data/characters.toml"
-
 // Equipment groups the strip key names. A person's definition row carries ten
 // equipment cells: the weapon, the shield, and eight armour and jewellery
 // cells.

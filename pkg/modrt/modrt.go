@@ -34,7 +34,7 @@ import (
 )
 
 // EntryName is the entry file of a mod that does not name one.
-const EntryName = "main.star"
+const EntryName = mod.EntryName
 
 // MaxSteps bounds the work one mod's script may do.
 const MaxSteps = 20_000_000
@@ -59,7 +59,8 @@ type Result struct {
 	mod.Data
 	// Files are the install files the mods carry for the base's language, in
 	// load order, with the order the mods state.
-	Files mod.FileData
+	Files    mod.FileData
+	Warnings []string
 }
 
 // Load orders mods for the base, resolves their settings from given and runs
@@ -96,6 +97,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	}
 	sh := &shared{params: rules.Defaults(), lang: LanguageFor(base)}
 	set := mod.Set{Base: base}
+	var warnings []string
 	for _, m := range ordered {
 		id := m.Manifest.ID
 		decl, err := mod.LoadSettings(m.Dir)
@@ -115,15 +117,26 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 			return Result{}, err
 		}
 		sh.files.Files = append(sh.files.Files, files...)
-		state, err := runMod(m, values, sh, opt)
+		data, err := readBesideManifest(m, values, sh)
 		if err != nil {
 			return Result{}, err
 		}
-		named, err := readBesideManifest(m, values, sh)
+		state, err := runMod(m, values, sh, opt, data)
 		if err != nil {
 			return Result{}, err
 		}
-		state = state || named || mod.FilesChangeState(files)
+		state = state || data.state || mod.FilesChangeState(files)
+		tree, err := mod.OpenTree(m.Dir)
+		if err != nil {
+			return Result{}, err
+		}
+		description, err := tree.Describe()
+		if err != nil {
+			return Result{}, fmt.Errorf("mod %q: %w", id, err)
+		}
+		for _, w := range description.Warnings {
+			warnings = append(warnings, fmt.Sprintf("mod %q: %s", id, w))
+		}
 		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state})
 	}
 	r, err := rules.New(sh.params)
@@ -134,7 +147,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	if !sh.files.Empty() {
 		sh.files.Order = mod.PrecedenceOf(ordered)
 	}
-	return Result{Rules: r, Set: set, Ordered: ordered, Data: sh.data, Files: sh.files}, nil
+	return Result{Rules: r, Set: set, Ordered: ordered, Data: sh.data, Files: sh.files, Warnings: warnings}, nil
 }
 
 // LanguageFor is the language a mod's text is read in on a base: the locale
@@ -267,8 +280,8 @@ func (r *rulesValue) SetField(name string, val starlark.Value) error {
 var fileOptions = &syntax.FileOptions{}
 
 // runMod executes one mod's entry file and its init, and reports whether the
-// script changed game state: set a rule or added a data file.
-func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) (state bool, err error) {
+// script set a rule. Held data determines its own state mark.
+func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options, data *dataValue) (state bool, err error) {
 	id := m.Manifest.ID
 	entry := m.Manifest.Entry
 	if entry == "" {
@@ -307,7 +320,8 @@ func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) (st
 		}
 	}
 	settings := starlarkstruct.FromStringDict(starlarkstruct.Default, dict)
-	game := &gameValue{rules: &rulesValue{sh: sh, state: &state}, data: &dataValue{sh: sh, id: id, dir: m.Dir, loader: l, loaded: map[string]bool{}, settings: values, state: &state}}
+	data.loader = l
+	game := &gameValue{rules: &rulesValue{sh: sh, state: &state}, data: data}
 	if _, err := starlark.Call(thread, initFn, starlark.Tuple{game, settings}, nil); err != nil {
 		game.Freeze()
 		return false, describe(id, err)

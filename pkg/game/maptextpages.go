@@ -214,12 +214,6 @@ func (x *MapInspector) editorPages(source string) *mod.MissionPages {
 	return p
 }
 
-// mapLabelFile is the variable labels file beside the map at path: the map's
-// stem with .variables. Only the editor reads it; the game never does.
-func mapLabelFile(path string) string {
-	return strings.TrimSuffix(path, filepath.Ext(path)) + ".variables"
-}
-
 // mapLabelsFile is the labels file: one entry per labelled register, in
 // register order.
 type mapLabelsFile struct {
@@ -252,7 +246,7 @@ func (x *MapInspector) mapLabels(source string) (map[uint32]string, error) {
 	if !ok {
 		return nil, nil
 	}
-	name := mapLabelFile(path)
+	name := mod.MapLabelFile(path)
 	fi, err := os.Lstat(name)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -320,7 +314,7 @@ func placeMapLabels(target string, labels []byte, overwrite bool, lang string) e
 	if labels != nil && len(labels) == 0 {
 		return nil
 	}
-	path := mapLabelFile(target)
+	path := mod.MapLabelFile(target)
 	fi, err := os.Lstat(path)
 	switch {
 	case err != nil && !errors.Is(err, os.ErrNotExist):

@@ -14,16 +14,6 @@ import (
 	"againrom/pkg/namefold"
 )
 
-// FilesDir is the folder of a mod that carries install files. Below it stand
-// language folders: CommonFiles, whose files apply on every install, and one
-// folder per language code, whose files apply on an install of that language.
-// Below a language folder a file stands at its install path: the archive's
-// name, then the path inside the archive.
-const FilesDir = "files"
-
-// CommonFiles is the language folder whose files apply on every install.
-const CommonFiles = "common"
-
 // MaxInstallFileBytes bounds one install file a mod carries.
 const MaxInstallFileBytes = 16 << 20
 
@@ -37,8 +27,19 @@ const (
 	FileText    FileKind = "text"
 )
 
-// fileKinds are the extensions a mod's install file may have.
-var fileKinds = map[string]FileKind{".bmp": FilePicture, ".wav": FileSound, ".txt": FileText}
+// installFileKind reads extension admission from the tree table.
+func installFileKind(ext string) (FileKind, bool) {
+	for _, k := range dataKinds {
+		if k.install != "" {
+			for _, p := range k.Paths {
+				if path.Ext(p) == ext {
+					return k.install, true
+				}
+			}
+		}
+	}
+	return "", false
+}
 
 // ChangesState reports whether a file of this kind can change game state.
 // A text feeds the definitions the game builds its World from (the body list,
@@ -167,7 +168,7 @@ func readInstallFiles(id string, fsys fs.FS, langs []string, lang string) ([]Ins
 		if len(parts) == 2 {
 			return bad("names no archive: a file stands at its install path, the archive's name and the path inside it")
 		}
-		kind, ok := fileKinds[namefold.Host(path.Ext(rel))]
+		kind, ok := installFileKind(namefold.Host(path.Ext(rel)))
 		if !ok {
 			return bad("the game takes no install file of this kind; a mod carries .bmp pictures, .wav sounds and .txt texts")
 		}

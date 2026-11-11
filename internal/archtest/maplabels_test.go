@@ -8,17 +8,12 @@ import (
 	"testing"
 )
 
-// labelFileHome is the one file that names, reads and writes the variable
-// labels file beside a map, beside the map's texts folder it extends.
-const labelFileHome = "pkg/game/maptextpages.go"
+// The tree table owns the name; the editor owns the JSON reader and writer.
+const labelFileHome = "pkg/mod/kinds.go"
+const labelCodecHome = "pkg/game/maptextpages.go"
 
-// labelFileNames are the label file's name builder and its JSON form; only
-// labelFileHome may use them.
-var labelFileNames = map[string]bool{"mapLabelFile": true, "mapLabelsFile": true, "mapLabelEntry": true}
+var labelFileNames = map[string]bool{"mapLabelsFile": true, "mapLabelEntry": true}
 
-// checkMapLabels reports, in one file, the label file's suffix or its name
-// builder and form used outside labelFileHome; found counts the suffix
-// literals labelFileHome holds.
 func checkMapLabels(name, src string) (found int, vs []string) {
 	f, err := parser.ParseFile(token.NewFileSet(), name, src, parser.SkipObjectResolution)
 	if err != nil {
@@ -32,12 +27,19 @@ func checkMapLabels(name, src string) (found int, vs []string) {
 				if home {
 					found++
 				} else {
-					vs = append(vs, name+": names the variable labels file; mapLabelFile in "+labelFileHome+" names it")
+					vs = append(vs, name+": names the variable labels file; MapLabelFile in "+labelFileHome+" names it")
 				}
 			}
+		case *ast.FuncDecl:
+			if n.Name.Name == "MapLabelFile" && !home {
+				vs = append(vs, name+": builds the variable labels file name outside "+labelFileHome)
+			}
 		case *ast.Ident:
-			if labelFileNames[n.Name] && !home {
-				vs = append(vs, name+": uses "+n.Name+"; the labels file is read and written in "+labelFileHome+" alone")
+			if n.Name == "mapLabelFile" {
+				vs = append(vs, name+": uses the former mapLabelFile builder; read mod.MapLabelFile instead")
+			}
+			if labelFileNames[n.Name] && name != labelCodecHome {
+				vs = append(vs, name+": uses "+n.Name+"; the labels file is read and written in "+labelCodecHome+" alone")
 			}
 		}
 		return true
@@ -50,9 +52,13 @@ func TestCheckMapLabels(t *testing.T) {
 		name, src string
 		bad       bool
 	}{
-		{labelFileHome, "package game\nfunc mapLabelFile(p string) string { return p + \".variables\" }\n", false},
+		{labelFileHome, "package mod\nfunc MapLabelFile(p string) string { return p + \".variables\" }\n", false},
+		{labelCodecHome, "package game\ntype mapLabelsFile struct {}\nvar f mapLabelEntry\nfunc labels(p string) string { return mod.MapLabelFile(p) }\n", false},
 		{"pkg/game/other.go", "package game\nfunc labels(p string) string { return p + \".variables\" }\n", true},
 		{"pkg/game/other.go", "package game\nfunc labels(p string) string { return mapLabelFile(p) }\n", true},
+		{labelCodecHome, "package game\nfunc mapLabelFile(p string) string { return mod.MapLabelFile(p) }\n", true},
+		{labelCodecHome, "package game\nfunc MapLabelFile(p string) string { return p }\n", true},
+		{"pkg/mod/other.go", "package mod\nfunc labels(p string) string { return MapLabelFile(p) }\n", false},
 		{"pkg/ui/other.go", "package ui\nvar f mapLabelsFile\n", true},
 		{"pkg/game/other.go", "package game\nfunc texts(p string) string { return p + \".text\" }\n", false},
 	}
@@ -64,7 +70,6 @@ func TestCheckMapLabels(t *testing.T) {
 	}
 }
 
-// The variable labels file is named, read and written in one file.
 func TestMapLabelFileHasOneHome(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

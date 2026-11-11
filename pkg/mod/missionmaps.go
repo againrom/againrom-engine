@@ -9,10 +9,6 @@ import (
 	"againrom/pkg/namefold"
 )
 
-// MapsFolder is the folder beside a mod's top whose numbered maps the file
-// form reads, as it reads the top's.
-const MapsFolder = "maps"
-
 // missionMapName is a file name the file form reads: a mission number with
 // no leading zero, then .alm or .almx, matched without case.
 var missionMapName = regexp.MustCompile(`(?i)^([1-9][0-9]{0,4})\.almx?$`)

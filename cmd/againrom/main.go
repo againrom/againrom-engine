@@ -867,7 +867,11 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		}
 		if len(mods) > 0 {
 			for _, l := range modLines(modRun) {
-				fmt.Fprintln(stdout, l)
+				if strings.HasPrefix(l, "againrom: warning:") {
+					fmt.Fprintln(stderr, l)
+				} else {
+					fmt.Fprintln(stdout, l)
+				}
 			}
 			for _, l := range applied {
 				fmt.Fprintln(stdout, "againrom:", l)

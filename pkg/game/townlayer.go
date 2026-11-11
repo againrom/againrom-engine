@@ -311,38 +311,21 @@ func shippedTownHooks() map[string]string {
 	return hooks
 }
 
-// townArtEntries are every art entry of description d: the square's, and
-// each room's scene and page.
-func townArtEntries(d *town.Description) []town.ArtSpec {
-	out := slices.Clone(d.Art)
-	for _, r := range d.Rooms {
-		if r.Scene != nil {
-			out = append(out, r.Scene.Art...)
-		}
-		out = append(out, r.Art...)
-	}
-	return out
-}
-
 // readModTownArt reads every file a mod's description names by a "mod:"
 // key, by that key. A missing file, or a bound entry naming one, is an
 // error.
 func readModTownArt(d *town.Description, file *mod.TownDescriptionFile) (map[string][]byte, error) {
+	files, err := mod.TownArtFiles(d)
+	if err != nil {
+		return nil, err
+	}
 	out := map[string][]byte{}
-	for _, e := range townArtEntries(d) {
-		if e.Bound && strings.HasPrefix(e.Key, mod.ModArtPrefix) {
-			return nil, fmt.Errorf("art %q is bound at run time and cannot name a file of the mod", e.Name)
+	for _, f := range files {
+		b, _, err := mod.ReadInside(file.Dir, f.Path)
+		if err != nil {
+			return nil, fmt.Errorf("art %q: %v", f.Key, err)
 		}
-		for _, key := range e.Keys() {
-			if !strings.HasPrefix(key, mod.ModArtPrefix) || out[key] != nil {
-				continue
-			}
-			b, _, err := mod.ReadInside(file.Dir, strings.TrimPrefix(key, mod.ModArtPrefix))
-			if err != nil {
-				return nil, fmt.Errorf("art %q: %v", key, err)
-			}
-			out[key] = b
-		}
+		out[f.Key] = b
 	}
 	return out, nil
 }
@@ -396,7 +379,7 @@ type modTownInstall struct {
 // key names a file of the mod and is read separately.
 func (in modTownInstall) check(d *town.Description) error {
 	if in.Entry != nil {
-		for _, e := range townArtEntries(d) {
+		for _, e := range d.ArtEntries() {
 			for _, key := range e.Keys() {
 				if !strings.HasPrefix(key, mod.ModArtPrefix) && !in.Entry(key) {
 					return fmt.Errorf("art %q: key %q is not an entry of the install; use %q for a file of the mod", e.Name, key, mod.ModArtPrefix+"path")

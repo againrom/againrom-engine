@@ -40,5 +40,8 @@ func ModCheckLines(res modrt.Result) []string {
 		}
 		lines = append(lines, fmt.Sprintf("install files=%d state-free=%s (a mod with no rule, no data file and no text file; the others are in a save's mod mark)", len(res.Files.Files), strings.Join(free, ",")))
 	}
+	for _, w := range res.Warnings {
+		lines = append(lines, "warning: "+w)
+	}
 	return lines
 }

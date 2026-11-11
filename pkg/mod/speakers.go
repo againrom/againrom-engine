@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-// SpeakersFile is the file that holds a mod's speaker records.
-const SpeakersFile = "data/speakers.toml"
-
 // FirstModSpeaker and LastModSpeaker bound the record numbers a mod's speaker
 // record takes. A message tag names a record by this number, the game's own
 // records stand below the band and a row's server id never reaches it. The

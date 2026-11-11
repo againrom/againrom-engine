@@ -38,9 +38,6 @@ import (
 	"strings"
 )
 
-// ManifestName is the file that makes a folder a mod.
-const ManifestName = "mod.toml"
-
 // utf8BOM is the byte order mark some editors put at the start of a file.
 var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
 

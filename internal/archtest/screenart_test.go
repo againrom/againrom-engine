@@ -34,6 +34,39 @@ func TestLiveScreensReadArtThroughTheOneLoader(t *testing.T) {
 			t.Errorf("%s is listed as another kind of picture reader and no longer exists", name)
 		}
 	}
+	for name := range screenArtPathTables {
+		if _, ok := files[name]; !ok {
+			t.Errorf("%s is listed as a picture path table and no longer exists", name)
+		}
+	}
+}
+
+func TestScreenArtPathTablesOnlyAdmitGlobs(t *testing.T) {
+	found, err := ScreenArtFindings(map[string]string{
+		"pkg/mod/kinds.go": `package mod
+import raster "againrom/pkg/formats/bmp"
+const admitted = "files/{layer}/**/*.bmp"
+const concrete = "graphics/panel.bmp"
+func load() { raster.DecodeRGBA(nil) }
+`,
+		"pkg/game/panel.go": `package game
+const pattern = "graphics/*.bmp"
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var shapes []string
+	for _, f := range found {
+		shapes = append(shapes, f.Shape)
+	}
+	want := []string{`names an install picture "graphics/*.bmp"`, `names an install picture "graphics/panel.bmp"`, "opens a picture through bmp.DecodeRGBA"}
+	if strings.Join(shapes, "|") != strings.Join(want, "|") {
+		t.Fatalf("findings = %q, want %q", shapes, want)
+	}
+	if got := CheckScreenArt(found, ScreenArtDebt); len(got) != len(want) {
+		t.Fatalf("violations = %v, want %d", got, len(want))
+	}
 }
 
 func TestScreenArtDebtIsZero(t *testing.T) {

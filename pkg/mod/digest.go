@@ -9,8 +9,8 @@ import (
 )
 
 // ContentDigest fingerprints the files of the mod at dir, its folder or its
-// RES file: every regular file under it by slash-separated path and content,
-// in path order, except README.md and names that start with a dot. Text
+// RES file: admitted regular files by slash-separated path and content,
+// in path order, except the read-me and dotted names. Text
 // files (.toml, .star, .txt, .md) are hashed with line ends read as LF so a
 // checkout's line-end setting does not change the digest. A mod and its
 // packed RES give one digest. The result is lowercase hex SHA-256.
@@ -31,8 +31,8 @@ type SetEntry struct {
 	Version  string
 	Digest   string // ContentDigest of the mod folder
 	Settings []SettingValue
-	// StateFree reports that the mod changes no game state: its script sets
-	// no rule and adds no data file, and it serves no text file, so it
+	// StateFree reports that the mod holds no state kind, sets no rule
+	// and serves no install text file, so it
 	// carries pictures and sounds at most. It
 	// is not part of the set's canonical form.
 	StateFree bool

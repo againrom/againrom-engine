@@ -14,10 +14,6 @@ import (
 	"againrom/pkg/locale"
 )
 
-// MissionsFile is the data file that declares the missions a mod adds. A mod
-// loads it from its entry script with game.data.add.
-const MissionsFile = "data/missions.toml"
-
 // The kinds of a mission declaration. A guest mission is a new mission a
 // guest party plays between a win and the town it opens; a replacing mission
 // is a campaign mission of the install played on the mod's map. A Mission
@@ -367,7 +363,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				if err != nil {
 					return err
 				}
-				s = strings.ReplaceAll(s, langToken, lang)
+				s = missionPath(s, lang)
 				if !insidePath(s) {
 					return bad(p.line, "%s %q is not a path inside the mod folder", p.key, s)
 				}
@@ -626,6 +622,8 @@ func insidePath(p string) bool {
 	return c != "." && c != ".." && !strings.HasPrefix(c, "../")
 }
 
+func missionPath(p, lang string) string { return strings.ReplaceAll(p, langToken, lang) }
+
 // ReadFiles reads the map and the text files of m from the mod folder dir.
 // Every file stays inside the folder; a refusal names the file and the line
 // of the declaration.
@@ -660,7 +658,7 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 	foldersOther := []string{folder + "/" + otherLang}
 	fallback := ""
 	if m.Texts != "" {
-		declared := strings.ReplaceAll(m.Texts, "{lang}", lang)
+		declared := missionPath(m.Texts, lang)
 		folders = append(folders, declared)
 		if tail := path.Base(declared); locale.Known(tail) {
 			fallback = path.Dir(declared)
@@ -669,7 +667,7 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 		if template == "" {
 			template = m.Texts
 		}
-		if declaredOther := path.Clean(strings.ReplaceAll(template, langToken, otherLang)); declaredOther != declared {
+		if declaredOther := path.Clean(missionPath(template, otherLang)); declaredOther != declared {
 			foldersOther = append(foldersOther, declaredOther)
 		}
 	}

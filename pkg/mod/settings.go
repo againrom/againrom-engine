@@ -11,9 +11,6 @@ import (
 	"strings"
 )
 
-// SettingsName is the optional file that declares a mod's knobs.
-const SettingsName = "settings.toml"
-
 var settingKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
 // ValidSettingKey reports whether key can name a setting.

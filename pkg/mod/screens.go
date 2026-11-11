@@ -8,10 +8,6 @@ import (
 	"againrom/pkg/locale"
 )
 
-// ScreensFile is the data file that declares screens. A mod loads it from its
-// entry script with game.data.add.
-const ScreensFile = "data/screens.toml"
-
 // Screen kinds, as the "kind" key spells them. Each is a page the engine draws
 // from data; a mod cannot ship screen code.
 const (

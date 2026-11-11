@@ -15,8 +15,8 @@ import (
 )
 
 // Pack is the mod folder dir packed into one RES file, and its manifest.
-// Every folder and regular file of the mod goes in at its path, except names
-// that start with a dot, which no mod reader takes. Two paths equal without
+// Table-admitted regular files go in at their paths; dotted names are ignored.
+// Two paths equal without
 // case (namefold.ModTree: ASCII and CP866 Cyrillic), which a packed mod could not tell
 // apart, are refused naming both. A link or another
 // non-regular file, a file over MaxInstallFileBytes, or an invalid component
@@ -35,6 +35,13 @@ func Pack(dir string) (Manifest, []byte, error) {
 		return Manifest{}, nil, fmt.Errorf("mod folder %s: %v", dir, e.Err)
 	}
 	id := e.Manifest.ID
+	if _, err := ReadInstallFiles(id, dir, CommonFiles); err != nil {
+		return Manifest{}, nil, err
+	}
+	description, err := t.Describe()
+	if err != nil {
+		return Manifest{}, nil, err
+	}
 	var entries []res.WriteEntry
 	err = t.WalkDir(func(rel string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -58,6 +65,9 @@ func Pack(dir string) (Manifest, []byte, error) {
 			return nil
 		case !d.Type().IsRegular():
 			return bad("is a link or another non-regular file; a packed mod holds folders and files")
+		}
+		if !description.Admits(rel) {
+			return nil
 		}
 		info, err := d.Info()
 		if err != nil {

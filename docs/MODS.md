@@ -1,7 +1,7 @@
 # Mod data files
 
-A mod is one folder with `mod.toml` and a Starlark entry script. The script's
-`init(game, settings)` loads each data file once with `game.data.add(path)`.
+A mod is one folder with `mod.toml` and optional data, assets and Starlark logic.
+Every held data file loads automatically; an optional script runs `init(game, settings)`.
 Every refusal stops the launch and names the mod, the file and the line.
 `againrom -dump-base <folder>` writes the install's own records in this
 format (section Base dump). `againrom --headless <scenario.json>` runs the
@@ -9,6 +9,65 @@ game with no window and writes the frame of a town (section Headless runs).
 A mod's `files` folder replaces install pictures, sounds and texts (section
 Install files). A mod folder packs into one file, `mod-<id>.res`, that the
 game reads as the folder (section Packed mods).
+
+## Fixed tree
+
+This table is normative. `pkg/mod/kinds.go` defines it; `TestModsDocListsFixedTree`
+checks these rows. `*` matches one path component, `**` any number of folders,
+`{lang}` is `en` or `ru`, `{layer}` also admits `common`, and `<N>` is a campaign
+mission number. Only the manifest is required.
+
+<!-- fixed-tree:start -->
+| kind | paths | formats | found by | language |
+|---|---|---|---|---|
+| items | `data/items.toml`, `assets/items/**/*.png` | TOML subset; PNG | held file; row sprite | shared |
+| characters | `data/characters.toml` | TOML subset | held file | shared |
+| screens | `data/screens.toml` | TOML subset | held file | shared |
+| companions | `data/companions.toml` | TOML subset | held file | shared |
+| spells | `data/spells.toml` | TOML subset | held file | shared |
+| body sheets | `data/bodies.toml`, `assets/bodies/**/*.png` | TOML subset; PNG sheets | held file; row heroes and heroes_l | shared |
+| weapon bodies | `data/wpnbodies.toml`, `data/weapon-bodies.toml` | TOML subset | held file | shared |
+| terrain | `data/terrain.toml` | TOML subset; 8-bit BMP strips | held file; strip group via install path | shared |
+| missions | `data/missions.toml` | TOML subset | held file; row map and texts | shared; {lang} in map |
+| towns | `data/towns.toml`, `assets/towns/**/*.json`, `assets/towns/**/*.bmp` | TOML subset; JSON; BMP; UTF-8 TXT | held file; description; mod: art; talk install path | shared; talk texts per language |
+| speakers | `data/speakers.toml`, `assets/speakers/*.png` | TOML subset; PNG faces | held file; row picture | shared |
+| settings | `settings.toml` | TOML subset | held file | shared; labels per language |
+| manifest | `mod.toml` | TOML subset | required fixed path | shared |
+| entry script | `main.star` | Starlark | optional fixed path; existing manifest entry | shared |
+| script modules | `**/*.star` | Starlark | script load | shared |
+| strings | `text/{lang}/strings.toml` | TOML subset | fixed path per language | en or ru |
+| mission maps | `maps/*.alm`, `maps/*.almx`, `maps/{lang}/*.alm`, `maps/{lang}/*.almx` | ALM or ALMX | mission row | shared or en/ru |
+| mission pages | `maps/*.text/*.txt`, `maps/*.text/{lang}/*.txt`, `maps/{lang}/*.text/*.txt`, `maps/{lang}/*.text/{lang}/*.txt`, `<N>.text/*.txt`, `<N>.text/{lang}/*.txt` | UTF-8 TXT | beside map; row texts as lower layer | shared or en/ru |
+| map variable labels | `maps/*.variables`, `maps/{lang}/*.variables` | JSON | beside map; editor only | shared |
+| install pictures | `files/{layer}/**/*.bmp` | BMP | install path | common or en/ru |
+| install sounds | `files/{layer}/**/*.wav` | PCM or Microsoft ADPCM WAV | install path | common or en/ru |
+| install texts | `files/{layer}/**/*.txt` | UTF-8 TXT | install path | common or en/ru |
+| map by number | `<N>.alm`, `<N>.almx`, `maps/<N>.alm`, `maps/<N>.almx` | ALM or ALMX | campaign mission number | shared |
+| read-me | `README.md` | Markdown | fixed path; for people | shared |
+<!-- fixed-tree:end -->
+
+Every held catalog or configuration file loads without a script. Holding any of
+those files except settings marks the mod as changing state, including empty data
+files and speaker-only mods. Settings alone do not mark it. A script is optional;
+an existing manifest `entry` remains supported. One explicit `game.data.add` of a
+held file is accepted without adding records again; a second explicit call refuses.
+Settings resolve before the files load, so a conditional script does not prevent a
+held file loading.
+
+Old paths named by rows remain readable and packed. Old mission map and page paths,
+and the second weapon bodies name, produce check warnings naming the fixed place.
+Rows' old asset paths remain supported; asset-reference warnings belong to the
+asset-import work. A title or briefing key with a page produces a warning because
+the key wins. Maps not used by any mission and missing map declarations are left
+to the map-list work. The packed name table supports components through 255 UTF-8
+bytes, so names over 15 bytes need no warning.
+
+Files outside this table and outside paths named by rows are warned about and
+excluded from packing and the digest. Dotted names are ignored. The top-level
+read-me is packed but excluded from the digest. Removing an unread file from an
+old mod's digest changes its save mark once: a save made with the old digest will
+report different files. A previously state-free speaker-only mod now enters the
+save mark and can likewise make an older save report a different active mod set.
 
 ## Data kinds
 
@@ -18,8 +77,7 @@ the base holds as layer 0; each mod is a layer over it, keyed by the record
 key. A merged kind combines the mods through one layer step: a record adds,
 changes the fields it names, or switches a record off. A kept kind keeps its
 own rules until the story named migrates it. A configuration kind has no base
-catalog. Data files other than `settings.toml` are loaded by the entry script
-with `game.data.add`.
+catalog. Every held data file is read automatically before the optional entry script.
 
 | kind | file | key | layer | two mods on one record | see |
 |---|---|---|---|---|---|
@@ -151,7 +209,7 @@ or `load-after`). The later mod's file is read and the check prints
 `againrom: override: install file <path>: mod "b" (<file>) overrides mod "a"
 (<file>)`. Without an order the launch is refused naming both mods.
 
-A mod that sets no rule, adds no data file and serves no text file
+A mod that sets no rule, holds no state data file and serves no text file
 (`.txt`) changes no game state: it is listed after `state-free=`. A text
 feeds the definitions the game builds its state from (the body list, item
 names, class and spell tables), so a mod that serves any text is marked even
@@ -268,9 +326,9 @@ againrom.exe -pack-mod C:\Mods\east-town -pack-out C:\Games\Againrom\mods
 
 `-pack-out` names an existing folder; the game writes
 `mod-<id>.res` there, prints `againrom: packed <folder> into <file>`, and
-exits. It needs no install and opens no window. Every folder and file of
-the mod is packed except names that start with a dot (`.git`), which no mod
-reader takes: a script or data path with a dotted component is refused naming the path, for a
+exits. It needs no install and opens no window. The fixed-tree files and old paths
+named by rows are packed; unread files outside that description are left out.
+Dotted names (`.git`) are ignored, which no mod reader takes: a script or data path with a dotted component is refused naming the path, for a
 folder and for the packed file alike. Names match without case by one rule, for a folder and a pack alike
 and on every host: ASCII `A`-`Z` and the Cyrillic letters of CP866 (`Ё`, `Є`, `Ї`, `Ў` too) of another case name the same file. The case of any other
 letter does not fold: `éclair.star` does not name `Éclair.star`, in a folder on Windows as in a pack. A pack holding two names equal under the rule is refused naming both. The pack is refused, writing nothing, and the refusal names

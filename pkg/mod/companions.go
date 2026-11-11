@@ -5,10 +5,6 @@ import (
 	"slices"
 )
 
-// CompanionsFile is the data file that holds companion join conditions. A mod
-// loads it from its entry script with game.data.add.
-const CompanionsFile = "data/companions.toml"
-
 // Buildings a join condition can name. A condition fires when the conversation
 // of that building's list opens; only the tavern is wired.
 const (

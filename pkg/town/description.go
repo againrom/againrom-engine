@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"slices"
 
 	"againrom/pkg/screenart"
 )
@@ -693,10 +694,8 @@ func (v Vocabulary) has(list []string, name string) bool {
 	return false
 }
 
-// Decode reads a description strictly: an unknown field, any data after the
-// description, a hook or condition outside vocab, or a description that fails
-// Validate is a named error.
-func Decode(data []byte, vocab Vocabulary) (*Description, error) {
+// Parse reads the description structure, refusing unknown fields and trailing data.
+func Parse(data []byte) (*Description, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var d Description
@@ -706,13 +705,22 @@ func Decode(data []byte, vocab Vocabulary) (*Description, error) {
 	if rest := bytes.TrimSpace(data[dec.InputOffset():]); len(rest) > 0 {
 		return nil, fmt.Errorf("town description: trailing data %q", firstBytes(rest))
 	}
+	return &d, nil
+}
+
+// Decode parses and validates the description and its vocabulary.
+func Decode(data []byte, vocab Vocabulary) (*Description, error) {
+	d, err := Parse(data)
+	if err != nil {
+		return nil, err
+	}
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
 	if err := d.checkVocabulary(vocab); err != nil {
 		return nil, err
 	}
-	return &d, nil
+	return d, nil
 }
 
 func firstBytes(b []byte) []byte {
@@ -720,4 +728,16 @@ func firstBytes(b []byte) []byte {
 		return b[:16]
 	}
 	return b
+}
+
+// ArtEntries lists the square, room scenes and room pages in their load order.
+func (d *Description) ArtEntries() []ArtSpec {
+	out := slices.Clone(d.Art)
+	for _, r := range d.Rooms {
+		if r.Scene != nil {
+			out = append(out, r.Scene.Art...)
+		}
+		out = append(out, r.Art...)
+	}
+	return out
 }

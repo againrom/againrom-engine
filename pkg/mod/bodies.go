@@ -5,21 +5,6 @@ import (
 	"regexp"
 )
 
-// WeaponBodiesFile is the data file that chooses the hero body a weapon is
-// drawn with, and BodiesFile the one that supplies a body sheet of the mod's
-// own. A mod loads each from its entry script with game.data.add.
-// WeaponBodiesLongFile is the first name of the weapon bodies file; it is 18
-// bytes, too long for a packed mod, and a mod folder may still use it. A mod
-// holds one of the two names, never both.
-const (
-	WeaponBodiesFile     = "data/wpnbodies.toml"
-	WeaponBodiesLongFile = "data/weapon-bodies.toml"
-	BodiesFile           = "data/bodies.toml"
-)
-
-// WeaponBodiesFiles lists every name the weapon bodies file is read under.
-var WeaponBodiesFiles = []string{WeaponBodiesFile, WeaponBodiesLongFile}
-
 var bodyNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
 // Bounds of a body sheet's geometry.

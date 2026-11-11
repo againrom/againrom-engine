@@ -227,8 +227,12 @@ func TestContentDigestCoversFilesAndIgnoresReadmeAndLineEnds(t *testing.T) {
 		t.Fatal("a changed script kept the digest")
 	}
 	writeTree(t, b, map[string]string{"scripts/a.star": "x = 1\n", "data/new.toml": ""})
+	if dd, _ := ContentDigest(b); dd != da {
+		t.Fatal("a file outside the tree moved the digest")
+	}
+	writeTree(t, b, map[string]string{ItemsFile: "# empty\n"})
 	if dd, _ := ContentDigest(b); dd == da {
-		t.Fatal("an added file kept the digest")
+		t.Fatal("an added data kind kept the digest")
 	}
 }
 

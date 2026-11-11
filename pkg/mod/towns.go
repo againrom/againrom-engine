@@ -12,13 +12,37 @@ import (
 	"againrom/pkg/town"
 )
 
-// TownsFile is the data file whose records are a layer over the town
-// catalog. A mod loads it from its entry script with game.data.add.
-const TownsFile = "data/towns.toml"
-
 // ModArtPrefix starts an art key of a mod's own town description that names
 // a file inside the mod folder; every other key names an installed entry.
 const ModArtPrefix = "mod:"
+
+type TownArtFile struct {
+	Key, Path string
+}
+
+// TownArtFiles resolves the literal files read by a town's mod art entries.
+func TownArtFiles(d *town.Description) ([]TownArtFile, error) {
+	var out []TownArtFile
+	seen := map[string]bool{}
+	for _, e := range d.ArtEntries() {
+		if e.Bound && strings.HasPrefix(e.Key, ModArtPrefix) {
+			return nil, fmt.Errorf("art %q is bound at run time and cannot name a file of the mod", e.Name)
+		}
+		for _, key := range e.Keys() {
+			name, ok := strings.CutPrefix(key, ModArtPrefix)
+			if !ok || seen[key] {
+				continue
+			}
+			rel, err := modFilePath(name)
+			if err != nil {
+				return nil, fmt.Errorf("art %q: %v", key, err)
+			}
+			out = append(out, TownArtFile{Key: key, Path: rel})
+			seen[key] = true
+		}
+	}
+	return out, nil
+}
 
 // townKey is one key of a [[town]] table besides id and off: how the
 // decoder reads it into an entry, how a record copies it into a catalog

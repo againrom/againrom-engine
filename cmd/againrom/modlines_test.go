@@ -49,6 +49,19 @@ func frozenModLines(res modrt.Result) []string {
 // loads together, on both bases. A mod that declares missions gets the map
 // and texts folder cmd/modmission would copy out of an install.
 func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
+	warnings := map[string][]string{
+		"guest-chain": {
+			`mod "guest-chain": data/missions.toml:11: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
+			`mod "guest-chain": data/missions.toml:12: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
+			`mod "guest-chain": data/missions.toml:21: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
+			`mod "guest-chain": data/missions.toml:22: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
+		},
+		"reniesta": {
+			`mod "reniesta": data/missions.toml:8: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
+			`mod "reniesta": data/missions.toml:9: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
+		},
+		"war-hammer-body": {`mod "war-hammer-body": data/weapon-bodies.toml: use data/wpnbodies.toml for weapon bodies`},
+	}
 	entries, err := os.ReadDir(exampleModsDir)
 	if err != nil {
 		t.Fatal(err)
@@ -97,7 +110,18 @@ func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 				refused = append(refused, base+" "+strings.Join(set, ","))
 				continue
 			}
-			if got, want := modLines(res), frozenModLines(res); !slices.Equal(got, want) {
+			var unchanged []string
+			if want := warnings[strings.Join(set, ",")]; !slices.Equal(res.Warnings, want) {
+				t.Errorf("%s %v warnings %q, want %q", base, set, res.Warnings, want)
+			}
+			for _, line := range modLines(res) {
+				if strings.HasPrefix(line, "againrom: warning:") {
+					t.Logf("%s %s %s", base, strings.Join(set, ","), line)
+					continue
+				}
+				unchanged = append(unchanged, line)
+			}
+			if got, want := unchanged, frozenModLines(res); !slices.Equal(got, want) {
 				t.Errorf("%s %v:\n%q\nwant\n%q", base, set, got, want)
 			}
 		}

@@ -222,18 +222,26 @@ func (t Tree) WalkDir(fn fs.WalkDirFunc) error {
 	})
 }
 
+func modFilePath(name string) (string, error) {
+	if name == "" || strings.ContainsAny(name, "\\:\x00") || path.IsAbs(name) || strings.HasPrefix(name, "/") {
+		return "", fmt.Errorf("%q is not a path inside the mod folder", name)
+	}
+	rel := path.Clean(name)
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, "../") {
+		return "", fmt.Errorf("%q is not a path inside the mod folder", name)
+	}
+	if err := refuseDotted(rel); err != nil {
+		return "", err
+	}
+	return rel, nil
+}
+
 // ReadInside reads a regular file within the mod, returning its relative
 // slash path. Absolute paths, backslashes and paths that resolve outside the
 // mod are refused, and so is a file over MaxFileBytes.
 func (t Tree) ReadInside(name string) ([]byte, string, error) {
-	if name == "" || strings.ContainsAny(name, "\\:\x00") || path.IsAbs(name) || strings.HasPrefix(name, "/") {
-		return nil, "", fmt.Errorf("%q is not a path inside the mod folder", name)
-	}
-	rel := path.Clean(name)
-	if rel == "." || rel == ".." || strings.HasPrefix(rel, "../") {
-		return nil, "", fmt.Errorf("%q is not a path inside the mod folder", name)
-	}
-	if err := refuseDotted(rel); err != nil {
+	rel, err := modFilePath(name)
+	if err != nil {
 		return nil, "", err
 	}
 	if t.packed != nil {
@@ -566,29 +574,24 @@ func (t Tree) Digest() (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// Files is the mod's files the digest covers, as sorted slash paths: every
-// regular file outside a dotted name, but the top README.md.
+// Files lists the description's digest-covered regular files in path order.
 func (t Tree) Files() ([]string, error) {
-	var paths []string
-	err := t.WalkDir(func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		name := d.Name()
-		if p != "." && strings.HasPrefix(name, ".") {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		if d.IsDir() || !d.Type().IsRegular() || namefold.HostEqual(name, "README.md") && path.Dir(p) == "." {
-			return nil
-		}
-		paths = append(paths, p)
-		return nil
-	})
+	description, err := t.Describe()
 	if err != nil {
 		return nil, err
+	}
+	var paths []string
+	for _, f := range description.Files {
+		if !f.Digest {
+			continue
+		}
+		st, err := t.Lstat(f.Path)
+		if err != nil {
+			return nil, err
+		}
+		if st.Mode().IsRegular() {
+			paths = append(paths, f.Path)
+		}
 	}
 	sort.Strings(paths)
 	return paths, nil

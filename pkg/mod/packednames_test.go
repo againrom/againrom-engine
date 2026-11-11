@@ -50,12 +50,16 @@ func TestPackLongNamesReadAsTheirFolder(t *testing.T) {
 	for _, parent := range []string{"", "maps/", "data/"} {
 		for n := 16; n <= 64; n++ {
 			for _, name := range []string{strings.Repeat("a", n), strings.Repeat("я", n/2) + strings.Repeat("x", n%2)} {
-				writeTreeFile(t, dir, parent+name, parent+name)
+				writeTreeFile(t, dir, parent+name+".star", parent+name+".star")
 			}
 		}
 	}
-	for _, name := range []string{"maps/pictures-of-the-east/日本.txt", "maps/длинное-имя-карты.text/ru/briefing.txt", "data/weapon-bodies.toml", "~00000000000001", "maps/~00000000000002"} {
-		writeTreeFile(t, dir, name, name)
+	for _, name := range []string{"assets/items/pictures-of-the-east/日本.png", "maps/длинное-имя-карты.text/ru/briefing.txt", "data/weapon-bodies.toml", "~00000000000001.star", "maps/~00000000000002.star"} {
+		body := name
+		if name == WeaponBodiesLongFile {
+			body = "# empty"
+		}
+		writeTreeFile(t, dir, name, body)
 	}
 	folder, err := OpenTree(dir)
 	if err != nil {
@@ -90,7 +94,7 @@ func TestPackLongNamesReadAsTheirFolder(t *testing.T) {
 }
 
 func TestPackedLegacyLayoutAndShortPackBytesStayUnchanged(t *testing.T) {
-	files := []struct{ name, body string }{{"a.txt", "old\n"}, {"mod.toml", "id = \"legacy\"\ntitle = \"Legacy\"\nversion = \"1\"\n"}}
+	files := []struct{ name, body string }{{"a.star", "old\n"}, {"mod.toml", "id = \"legacy\"\ntitle = \"Legacy\"\nversion = \"1\"\n"}}
 	b := make([]byte, 24)
 	var entries []res.WriteEntry
 	for _, f := range files {
@@ -140,7 +144,7 @@ func TestPackedLegacyLayoutAndShortPackBytesStayUnchanged(t *testing.T) {
 }
 
 func TestPackNameBoundCountsUTF8Bytes(t *testing.T) {
-	for _, name := range []string{strings.Repeat("a", 255), strings.Repeat("я", 127) + "x", strings.Repeat("я", 128)} {
+	for _, name := range []string{strings.Repeat("a", 250) + ".star", strings.Repeat("я", 125) + ".star", strings.Repeat("я", 125) + "x.star"} {
 		dir := filepath.Join(t.TempDir(), "names")
 		writeTreeFile(t, dir, "mod.toml", good("names"))
 		writeTreeFile(t, dir, name, "bounded")

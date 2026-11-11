@@ -3,23 +3,21 @@ package modrt
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 
 	"go.starlark.net/starlark"
 
 	"againrom/pkg/mod"
 )
 
-// dataValue is game.data: the data files a mod may load.
 type dataValue struct {
-	sh       *shared
-	id       string
-	dir      string
-	loader   *loader
-	loaded   map[string]bool
-	frozen   bool
-	settings []mod.SettingValue
-	// state is set when the script adds a data file.
-	state *bool
+	sh               *shared
+	id, dir          string
+	loader           *loader
+	loaded, explicit map[string]bool
+	frozen           bool
+	settings         []mod.SettingValue
+	state            bool
 }
 
 func (d *dataValue) String() string        { return "<game.data>" }
@@ -35,68 +33,78 @@ func (d *dataValue) Attr(name string) (starlark.Value, error) {
 	return nil, nil
 }
 
-// readBesideManifest reads the file of each kind no script loads, beside the
-// manifest of the mod that holds it, and the files whose names declare
-// records of a kind. It reports whether the mod holds a file of the latter.
-func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) (named bool, err error) {
-	id := m.Manifest.ID
+func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) (*dataValue, error) {
+	d := &dataValue{sh: sh, id: m.Manifest.ID, dir: m.Dir, loaded: map[string]bool{}, explicit: map[string]bool{}, settings: values}
 	t, err := mod.OpenTree(m.Dir)
 	if err != nil {
-		return false, fmt.Errorf("mod %q: %w", id, err)
+		return nil, err
 	}
-	r := mod.DataReader{Mod: id, Dir: m.Dir, Lang: sh.lang, Settings: values}
+	r := mod.DataReader{Mod: d.id, Dir: d.dir, Lang: sh.lang, Settings: values}
 	for _, k := range mod.DataKinds() {
-		held, err := k.ReadNamed(r, &sh.data, t)
-		if err != nil {
-			return false, fmt.Errorf("mod %q: %w", id, err)
-		}
-		named = named || held
-		if k.Script || !k.Validates() {
-			continue
-		}
 		for _, rel := range k.Files {
-			if st, err := t.Stat(rel); err != nil || st.IsDir() {
+			st, err := t.Stat(rel)
+			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
-			src, _, err := t.ReadInside(rel)
 			if err != nil {
-				return false, fmt.Errorf("mod %q: %s: %w", id, rel, err)
+				return nil, fmt.Errorf("mod %q: %s: %w", d.id, rel, err)
 			}
-			if err := k.Read(r, &sh.data, rel, src); err != nil {
-				return false, fmt.Errorf("mod %q: %w", id, err)
+			if st.IsDir() {
+				continue
+			}
+			if err := d.read(k, rel); err != nil {
+				return nil, fmt.Errorf("mod %q: %w", d.id, err)
 			}
 		}
+		held, err := k.ReadNamed(r, &sh.data, t)
+		if err != nil {
+			return nil, fmt.Errorf("mod %q: %w", d.id, err)
+		}
+		d.state = d.state || held
 	}
-	return named, nil
+	return d, nil
 }
 
-// add is game.data.add(path): it reads a data file of the mod folder and adds
-// what it describes to the game. A file is loaded once, during init.
+func (d *dataValue) read(k mod.DataKind, rel string) error {
+	key := k.Name
+	if d.loaded[key] {
+		return nil
+	}
+	src, _, err := mod.ReadInside(d.dir, rel)
+	if err != nil {
+		return err
+	}
+	r := mod.DataReader{Mod: d.id, Dir: d.dir, Lang: d.sh.lang, Settings: d.settings}
+	if err := k.Read(r, &d.sh.data, rel, src); err != nil {
+		return err
+	}
+	d.loaded[key] = true
+	d.state = d.state || k.State
+	return nil
+}
+
 func (d *dataValue) add(_ *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var path string
-	if err := starlark.UnpackArgs(fn.Name(), args, kwargs, "path", &path); err != nil {
+	var file string
+	if err := starlark.UnpackArgs(fn.Name(), args, kwargs, "path", &file); err != nil {
 		return nil, err
 	}
 	if d.frozen {
 		return nil, errors.New("game.data.add: data is loaded during init only")
 	}
-	src, rel, err := d.loader.read(path)
+	_, rel, err := d.loader.read(file)
 	if err != nil {
-		return nil, fmt.Errorf("game.data.add(%q): %w", path, err)
+		return nil, fmt.Errorf("game.data.add(%q): %w", file, err)
 	}
 	kind, ok := mod.ScriptDataKind(rel)
 	if !ok {
-		return nil, fmt.Errorf("game.data.add(%q): no data file of that name is loaded (loadable: %s)", path, mod.ScriptDataFiles())
+		return nil, fmt.Errorf("game.data.add(%q): no data file of that name is loaded (loadable: %s)", file, mod.ScriptDataFiles())
 	}
-	if d.loaded[rel] {
-		return nil, fmt.Errorf("game.data.add(%q): the file is already loaded", path)
+	key := kind.Name
+	if d.explicit[key] {
+		return nil, fmt.Errorf("game.data.add(%q): the file is already loaded", file)
 	}
-	d.loaded[rel] = true
-	if d.state != nil {
-		*d.state = true
-	}
-	r := mod.DataReader{Mod: d.id, Dir: d.dir, Lang: d.sh.lang, Settings: d.settings}
-	if err := kind.Read(r, &d.sh.data, rel, src); err != nil {
+	d.explicit[key] = true
+	if err := d.read(kind, rel); err != nil {
 		return nil, err
 	}
 	return starlark.None, nil

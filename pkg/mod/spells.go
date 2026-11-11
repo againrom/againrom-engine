@@ -7,8 +7,6 @@ import (
 	"againrom/pkg/rules"
 )
 
-const SpellsFile = "data/spells.toml"
-
 const (
 	SpellMaxMana      = 32767
 	SpellMaxRange     = 255

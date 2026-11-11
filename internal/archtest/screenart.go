@@ -17,8 +17,8 @@ import (
 // pkg/formats and are not scanned; the loader is pkg/screenart and its
 // install source pkg/game/screenart.go.
 //
-// Files that read non-screen pictures are listed with their kind. Every
-// screen reads its pictures through the loader; ScreenArtDebt stays empty.
+// Files that read non-screen pictures are listed with their kind. A path table
+// may declare admission globs, but may not open pictures. ScreenArtDebt stays empty.
 
 // screenArtLoader are the files of the one loader.
 var screenArtLoader = []string{"pkg/screenart/", "pkg/game/screenart.go", "pkg/formats/"}
@@ -44,6 +44,10 @@ var screenArtOtherKinds = map[string]string{
 	"pkg/game/sackboundaries.go":    "sack object sheets",
 	"pkg/game/statics.go":           "static object sheets",
 	"pkg/render/terrain/tileset.go": "terrain tiles",
+}
+
+var screenArtPathTables = map[string]string{
+	"pkg/mod/kinds.go": "fixed mod tree admission globs; no picture is read here",
 }
 
 // ScreenArtDebt stays empty: every screen uses the one loader.
@@ -128,6 +132,9 @@ func ScreenArtFindings(files map[string]string) ([]ScreenArtFinding, error) {
 			case *ast.BasicLit:
 				if x.Kind == token.STRING {
 					if s, err := strconv.Unquote(x.Value); err == nil && pictureLiteral(s) {
+						if screenArtPathTables[name] != "" && strings.Contains(s, "*") {
+							return true
+						}
 						add(x, "names an install picture "+strconv.Quote(s))
 					}
 				}

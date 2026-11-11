@@ -8,10 +8,6 @@ import (
 	"strings"
 )
 
-// TerrainFile is the data file that holds the terrain groups a mod adds. A
-// mod loads it from its entry script with game.data.add.
-const TerrainFile = "data/terrain.toml"
-
 // The tile groups a mod may add. A tile word names its group in 13 bits, but
 // the tile loader holds groups 0 to 31 (TERR-TILE-291), and the installs use
 // groups 0 to 12 (ALM-TILE-336); the groups between are free.

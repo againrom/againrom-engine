@@ -192,7 +192,7 @@ func layerFront(t *testing.T) *FrontEnd {
 // shippedTownArtKeys are every install key description d reads.
 func shippedTownArtKeys(d *town.Description) []string {
 	var keys []string
-	for _, e := range townArtEntries(d) {
+	for _, e := range d.ArtEntries() {
 		keys = append(keys, e.Keys()...)
 	}
 	return keys

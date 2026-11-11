@@ -161,17 +161,29 @@ func writeTreeFile(t *testing.T, dir, rel, body string) {
 	}
 }
 
-// A folder the install-file rules refuse is refused in the same words when
-// packed: an empty folder under files/ that names no language is kept in
-// the RES.
+// Invalid install folders are refused by packing and by a pre-existing RES.
 func TestPackedModIsHeldToTheFolderRules(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "rules")
 	writeTreeFile(t, dir, "mod.toml", good("rules"))
 	if err := os.MkdirAll(filepath.Join(dir, "files", "de"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packed := packInto(t, dir, t.TempDir())
 	_, want := ReadInstallFiles("rules", dir, "en")
+	_, _, refused := Pack(dir)
+	if want == nil || refused == nil || want.Error() != refused.Error() {
+		t.Fatalf("folder %v, packing %v", want, refused)
+	}
+	data, err := res.Write([]res.WriteEntry{
+		{Path: ManifestName, Data: []byte(good("rules"))},
+		{Path: FilesDir, Dir: true}, {Path: FilesDir + "/de", Dir: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	packed := filepath.Join(t.TempDir(), PackedName("rules"))
+	if err := os.WriteFile(packed, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	_, got := ReadInstallFiles("rules", packed, "en")
 	if want == nil || got == nil || want.Error() != got.Error() {
 		t.Fatalf("folder %v, packed %v", want, got)
@@ -179,7 +191,7 @@ func TestPackedModIsHeldToTheFolderRules(t *testing.T) {
 }
 
 func TestPackNamesOutsideTheResAlphabetReadBack(t *testing.T) {
-	for _, file := range []string{"data/weapon-bodies.toml", "pictures-of-the-east/a.png", "text/日本.txt"} {
+	for _, file := range []string{"data/weapon-bodies.toml", "assets/items/pictures-of-the-east/a.png", "text/日本.star"} {
 		dir := filepath.Join(t.TempDir(), "names")
 		writeTreeFile(t, dir, "mod.toml", good("names"))
 		writeTreeFile(t, dir, file, "x")
@@ -190,9 +202,9 @@ func TestPackNamesOutsideTheResAlphabetReadBack(t *testing.T) {
 	}
 	dir := filepath.Join(t.TempDir(), "names")
 	writeTreeFile(t, dir, "mod.toml", good("names"))
-	writeTreeFile(t, dir, "text/карта.txt", "map")
+	writeTreeFile(t, dir, "text/карта.star", "map")
 	packed := packInto(t, dir, t.TempDir())
-	if b, rel, err := ReadInside(packed, "text/карта.txt"); err != nil || string(b) != "map" || rel != "text/карта.txt" {
+	if b, rel, err := ReadInside(packed, "text/карта.star"); err != nil || string(b) != "map" || rel != "text/карта.star" {
 		t.Errorf("Cyrillic name: %q %q %v", b, rel, err)
 	}
 	if _, _, err := Pack(packed); err == nil || !strings.Contains(err.Error(), "is a packed mod already") {
@@ -270,19 +282,19 @@ func TestFolderAndPackedFileOfOneIdAreRefusedNamingBoth(t *testing.T) {
 func TestDigestIsTheDocumentedFormForFolderAndPackedFile(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "digest")
 	for rel, body := range map[string]string{
-		"mod.toml":       good("digest") + "\r\n",
-		"README.md":      "people\r\n",
-		"a/B.txt":        "l1\r\nl2",
-		"pic.bmp":        "\r\n",
-		".hidden/x.star": "y",
+		"mod.toml":             good("digest") + "\r\n",
+		"README.md":            "people\r\n",
+		"files/en/main/B.txt":  "l1\r\nl2",
+		"assets/towns/pic.bmp": "\r\n",
+		".hidden/x.star":       "y",
 	} {
 		writeTreeFile(t, dir, rel, body)
 	}
 	h := sha256.New()
 	for _, f := range []struct{ path, data string }{
-		{"a/B.txt", "l1\nl2"},
+		{"assets/towns/pic.bmp", "\r\n"},
+		{"files/en/main/B.txt", "l1\nl2"},
 		{"mod.toml", good("digest") + "\n"},
-		{"pic.bmp", "\r\n"},
 	} {
 		fmt.Fprintf(h, "%s\x00%d\x00%s", f.path, len(f.data), f.data)
 	}
