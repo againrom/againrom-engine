@@ -126,6 +126,7 @@ type gameFiles struct {
 	fallbackSpeakers    bool
 	unitSpeakers        bool
 	creatureRowPictures bool
+	creaturePortraits   creaturePortraitProfile
 	portraitWindows     portraitWindowProfile
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
@@ -323,6 +324,7 @@ var secondGameFiles = gameFiles{
 	},
 	unitKeys:             mapload.ServerUnitKeys,
 	creatureRowPictures:  true,
+	creaturePortraits:    creaturePortraitProfile{bindingRow: true},
 	carryStockOnly:       true,
 	spellArms:            mapload.SecondGameSpellArms,
 	freshPlayers:         mapload.NoFreshPlayers,

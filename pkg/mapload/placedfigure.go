@@ -55,12 +55,17 @@ func (classKeys) placedFaceByte(u alm.Unit, arm Arm) (uint8, bool) { return spaw
 // with the gender in bit 7 (R2-ASSET-172, R2-ENGINE-681).
 func (serverKeys) placedFaceByte(alm.Unit, Arm) (uint8, bool) { return 0, false }
 
-// A first-game creature carries its secondary key, the face its key matched.
-func (classKeys) placedCreatureFace(u alm.Unit, _ data.UnitDef) uint8 { return uint8(u.ClassSubID) }
+type creatureFaceField uint8
 
-// A second-game creature carries the face column of the Units row its server
-// id selected; the secondary key is not its face (R2-ENGINE-777, R2-ENGINE-964).
-func (serverKeys) placedCreatureFace(_ alm.Unit, d data.UnitDef) uint8 { return uint8(d.Face) }
+const (
+	creatureKeyField creatureFaceField = iota
+	creatureRowField
+)
+
+// placedCreatureFace decodes the format's face field, without fallback.
+func (field creatureFaceField) placedCreatureFace(u alm.Unit, d data.UnitDef) uint8 {
+	return [2]uint8{uint8(u.ClassSubID), uint8(d.Face)}[field]
+}
 
 func (classKeys) clientHero(alm.Unit, Resolution) bool { return false }
 

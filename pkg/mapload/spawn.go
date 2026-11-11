@@ -441,9 +441,9 @@ func (serverKeys) humanPlacement(id int32) alm.Unit {
 	return alm.Unit{ServerID: uint32(id), Flags: rom2PersonFlag}
 }
 
-type classKeys struct{}
+type classKeys struct{ creatureFaceField }
 
-type serverKeys struct{}
+type serverKeys struct{ creatureFaceField }
 
 func (classKeys) classPlacementFields() bool  { return true }
 func (serverKeys) classPlacementFields() bool { return false }
@@ -458,10 +458,10 @@ func (t *Table) ClassPlacementFields() bool {
 var (
 	// ClassUnitKeys select a definition by the placement's class and
 	// secondary keys, its npc flag and its definition id.
-	ClassUnitKeys UnitKeys = classKeys{}
+	ClassUnitKeys UnitKeys = classKeys{creatureKeyField}
 	// ServerUnitKeys select a creature or, under the person flag, a human by
 	// the placement's server id.
-	ServerUnitKeys UnitKeys = serverKeys{}
+	ServerUnitKeys UnitKeys = serverKeys{creatureRowField}
 )
 
 func (t *Table) unitKeys() UnitKeys {

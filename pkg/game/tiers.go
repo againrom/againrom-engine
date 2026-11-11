@@ -34,7 +34,8 @@ func placementTier(u alm.Unit, t *mapload.Table) (int, bool) {
 	if r.Arm != mapload.ArmUnits || !r.Found() {
 		return 0, false
 	}
-	return unitRowTier(r.Index, t, 0)
+	tier, found := unitRowTier(r.Index, t, 0)
+	return resolveCreaturePortrait(creaturePortraitInput{placed: creaturePortraitTier{tier, found}}, t)
 }
 
 func unitRowTier(row int, t *mapload.Table, typeID int32) (int, bool) {
@@ -46,17 +47,9 @@ func unitRowTier(row int, t *mapload.Table, typeID int32) (int, bool) {
 }
 
 func sourceActorTier(e sim.Entity, t *mapload.Table) (int, bool) {
-	if e.SourceBinding.ActorClass() != 1 {
-		return 0, false
-	}
-	face := int(e.SourceBinding.Face)
-	if face == 0 && tableFiles(t).creatureRowPictures && int32(e.SourceBinding.TypeID) == e.TypeID {
-		row := int(e.SourceBinding.DefinitionRow())
-		if tier, ok := unitRowTier(row, t, e.TypeID); row > 0 && ok {
-			face = tier
-		}
-	}
-	return face, true
+	return resolveCreaturePortrait(creaturePortraitInput{
+		binding: e.SourceBinding, typeID: e.TypeID, keepSourceZero: true,
+	}, t)
 }
 
 // savedActorTiers restates a loaded creature's tier from its record's face
@@ -70,7 +63,7 @@ func savedActorTiers(m *alm.Map, t *mapload.Table, placed map[sim.EntityID]int, 
 		return placed
 	}
 	byID := make(map[sim.EntityID]sim.Entity, len(entities))
-	tiers := make(map[sim.EntityID]int, len(placed))
+	saved := make(map[sim.EntityID]int, len(state.Actors))
 	for _, e := range entities {
 		byID[e.ID] = e
 	}
@@ -87,7 +80,7 @@ func savedActorTiers(m *alm.Map, t *mapload.Table, placed map[sim.EntityID]int, 
 			continue
 		}
 		e, found := byID[binding.EntityID]
-		if !found || e.Humanoid || e.SourceBinding.ActorClass() == 1 {
+		if !found {
 			continue
 		}
 		record := &state.Document.Objects[binding.ObjectIndex-1]
@@ -100,26 +93,19 @@ func savedActorTiers(m *alm.Map, t *mapload.Table, placed map[sim.EntityID]int, 
 		if mapErr != nil || typeErr != nil || faceErr != nil || mapID != uint32(e.MapUnitID) || typeID != uint32(e.TypeID) || face == 0 {
 			continue
 		}
-		if i, found := placementOf(e); found && face == uint32(uint8(m.Units[i].ClassSubID)) {
-			if row, found := placed[sim.EntityID(i)]; found && row > 0 {
-				face = uint32(row)
-			}
-		}
-		tiers[e.ID] = int(face)
+		saved[e.ID] = int(face)
 	}
+	tiers := make(map[sim.EntityID]int, len(placed))
 	for _, e := range entities {
-		if tier, ok := sourceActorTier(e, t); ok && tier != 0 {
-			tiers[e.ID] = tier
-		}
-	}
-	for _, e := range entities {
-		if _, found := tiers[e.ID]; found || e.Humanoid {
-			continue
-		}
+		face, found := saved[e.ID]
+		in := creaturePortraitInput{saved: creaturePortraitTier{face, found}, binding: e.SourceBinding, typeID: e.TypeID, humanoid: e.Humanoid}
 		if i, found := placementOf(e); found {
-			if tier, found := placed[sim.EntityID(i)]; found {
-				tiers[e.ID] = tier
-			}
+			in.placement = &m.Units[i]
+			tier, found := placed[sim.EntityID(i)]
+			in.placed = creaturePortraitTier{tier, found}
+		}
+		if tier, ok := resolveCreaturePortrait(in, t); ok {
+			tiers[e.ID] = tier
 		}
 	}
 	return tiers
@@ -151,16 +137,17 @@ func uniquePlacements(m *alm.Map) map[uint16]int {
 func partyTiers(out map[sim.EntityID]int, party []mapload.PartyMember, ids []sim.EntityID) map[sim.EntityID]int {
 	n := min(len(party), len(ids))
 	for i := 0; i < n; i++ {
-		if data.ComposesFigure(party[i].Class) || party[i].FigureFace <= 0 {
-			continue
-		}
-		if _, found := out[ids[i]]; found {
+		existing, found := out[ids[i]]
+		tier, ok := resolveCreaturePortrait(creaturePortraitInput{
+			existing: creaturePortraitTier{existing, found}, partyClass: party[i].Class, partyFace: party[i].FigureFace,
+		}, nil)
+		if !ok {
 			continue
 		}
 		if out == nil {
 			out = make(map[sim.EntityID]int, n)
 		}
-		out[ids[i]] = party[i].FigureFace
+		out[ids[i]] = tier
 	}
 	return out
 }
