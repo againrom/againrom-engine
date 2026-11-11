@@ -18,18 +18,65 @@ type victimKindEntry struct {
 }
 
 // victimKindList is the repeated-victim list of an attacker (R2-ENGINE-1157).
-// No SAV record carries it: only the byte form's victim kind section does, so
-// a loaded actor starts with an empty list (DIV-4840).
+// The byte form carries it in its victim kind section and SAV in the actor's
+// current values (ActorValues.VictimKinds, DIV-4840).
 type victimKindList struct {
 	n       uint8
 	entries [maxVictimKinds]victimKindEntry
 }
 
+// VictimKindCount is one entry of an attacker's repeated-victim list as SAV
+// carries it: the victim kind and its count.
+type VictimKindCount struct {
+	Kind  uint32
+	Count uint16
+}
+
+// counts is the list as SAV carries it; nil when empty.
+func (l victimKindList) counts() []VictimKindCount {
+	if l.n == 0 {
+		return nil
+	}
+	out := make([]VictimKindCount, l.n)
+	for i, e := range l.entries[:l.n] {
+		out[i] = VictimKindCount{Kind: e.kind, Count: e.count}
+	}
+	return out
+}
+
+// victimKindListOf is the list SAV carried: at most five entries, no kind
+// twice.
+func victimKindListOf(counts []VictimKindCount) (victimKindList, error) {
+	var l victimKindList
+	if len(counts) > maxVictimKinds {
+		return l, fmt.Errorf("sim: a victim kind list holds %d entries", len(counts))
+	}
+	for _, c := range counts {
+		if _, held := l.find(c.Kind); held {
+			return l, fmt.Errorf("sim: a victim kind list holds kind %d twice", c.Kind)
+		}
+		l.entries[l.n] = victimKindEntry{kind: c.Kind, count: c.Count}
+		l.n++
+	}
+	return l, nil
+}
+
 // victimKind is the key a victim is counted under: its definition table and
 // row, the partition of the original's kind word +0x14c except for the rows
-// DIV-4844 names.
-func victimKind(e Entity) uint32 {
-	return uint32(e.SourceBinding.ActorClass())<<16 | uint32(e.SourceBinding.TokenRow)
+// DIV-4844 names. A source binding states them; an actor without one states
+// the row its map placement resolved to, in the table SAVE writes it under.
+func (w *World) victimKind(e Entity) uint32 {
+	b := e.SourceBinding
+	if b.Class == 0 {
+		if u, ok := w.diary.units[e.MapUnitID]; ok {
+			class := uint32(1)
+			if e.Humanoid {
+				class = 2
+			}
+			return class<<16 | uint32(u.Row)
+		}
+	}
+	return uint32(b.ActorClass())<<16 | uint32(b.TokenRow)
 }
 
 // find returns the count of the first entry holding kind.
@@ -70,7 +117,7 @@ func (w *World) countVictimKind(ai, ti int) {
 	if limit <= 0 || !a.GainsXP || !InPersistBand(a.TypeID) {
 		return
 	}
-	a.victimKinds.count(victimKind(w.entities[ti]), limit)
+	a.victimKinds.count(w.victimKind(w.entities[ti]), limit)
 }
 
 // victimKindCut is the repeated-victim cut X = 10X / (n + 10), computed as the

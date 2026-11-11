@@ -1,6 +1,9 @@
 package sim
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // The second game's repeated-victim cut (R2-ENGINE-1156 step 4,
 // R2-ENGINE-1157): the kill route counts the victim's kind after its award
@@ -47,7 +50,7 @@ func TestSecondGameKillsOfOneKindPayFullTwiceThenTheCut(t *testing.T) {
 		}
 	}
 	l := w.entities[0].victimKinds
-	if l.n != 1 || l.entries[0] != (victimKindEntry{kind: victimKind(w.entities[1]), count: 4}) {
+	if l.n != 1 || l.entries[0] != (victimKindEntry{kind: w.victimKind(w.entities[1]), count: 4}) {
 		t.Errorf("list %+v, want one entry of count 4", l)
 	}
 }
@@ -64,6 +67,65 @@ func TestSecondGameTwoKindsAreCountedApart(t *testing.T) {
 	}
 }
 
+// A mission's placed actors carry no source binding: each is counted under
+// the row its map placement resolved to, a row past 255 included, so two
+// placement rows count apart. The Diary keeps reading rows up to 255.
+func TestSecondGameUnboundVictimsOfTwoPlacementRowsCountApart(t *testing.T) {
+	w := vkWorld(t, ScriptROM2, vkFighter(), 0, 0)
+	for i, id := range []uint16{21, 22} {
+		w.entities[1+i].SourceBinding = SourceBinding{}
+		w.entities[1+i].MapUnitID = id
+	}
+	w.SetDiaryUnits(180, map[uint16]DiaryUnit{21: {Row: 10, Face: 1}, 22: {Row: 300, Face: 1}})
+	for call, c := range []struct {
+		ti   int
+		want int32
+	}{{1, 52}, {1, 52}, {2, 52}, {2, 52}, {1, 47}, {2, 47}} {
+		if got := vkKill(w, c.ti, 1); got != c.want {
+			t.Errorf("call %d on creature %d paid %d, want %d", call+1, c.ti, got, c.want)
+		}
+	}
+	if got, want := w.entities[0].victimKinds.counts(), []VictimKindCount{{1<<16 | 10, 2}, {1<<16 | 300, 2}}; !slices.Equal(got, want) {
+		t.Errorf("list %+v, want %+v", got, want)
+	}
+	if _, ok := w.diaryUnitOf(w.entities[2]); ok {
+		t.Error("the Diary reads a row past 255")
+	}
+	if u, ok := w.diaryUnitOf(w.entities[1]); !ok || u.Row != 10 {
+		t.Errorf("the Diary reads %+v %v for row 10", u, ok)
+	}
+}
+
+// SAV's current values carry the list and give it back; a list of six
+// entries or a kind held twice is refused.
+func TestSecondGameVictimListRidesTheCurrentValues(t *testing.T) {
+	w := vkWorld(t, ScriptROM2, vkFighter(), 10, 11)
+	for _, ti := range []int{1, 1, 2} {
+		vkKill(w, ti, 1)
+	}
+	v := w.entities[0].Values()
+	if want := []VictimKindCount{{1<<16 | 10, 1}, {1<<16 | 11, 0}}; !slices.Equal(v.VictimKinds, want) {
+		t.Fatalf("values carry %+v, want %+v", v.VictimKinds, want)
+	}
+	loaded := w.entities[0]
+	loaded.victimKinds = victimKindList{}
+	if err := loaded.restoreValues(v); err != nil || loaded.victimKinds != w.entities[0].victimKinds {
+		t.Fatalf("restored %+v (%v), want %+v", loaded.victimKinds, err, w.entities[0].victimKinds)
+	}
+	if empty := w.entities[1].Values(); empty.VictimKinds != nil {
+		t.Errorf("an empty list writes %+v", empty.VictimKinds)
+	}
+	for name, bad := range map[string][]VictimKindCount{
+		"six entries": {{1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0}},
+		"kind twice":  {{1, 0}, {1, 3}},
+	} {
+		v.VictimKinds = bad
+		if err := loaded.restoreValues(v); err == nil {
+			t.Errorf("%s: restored", name)
+		}
+	}
+}
+
 func TestSecondGameASixthKindDropsTheOldest(t *testing.T) {
 	// Kind 1 is counted twice (count 1), kinds 2..5 once, kind 6 drops kind 1:
 	// kind 1 then pays in full again, where a held count of 1 would cut it to 47.
@@ -72,13 +134,13 @@ func TestSecondGameASixthKindDropsTheOldest(t *testing.T) {
 		vkKill(w, ti, 1)
 	}
 	l := w.entities[0].victimKinds
-	if l.n != maxVictimKinds || l.entries[0].kind != victimKind(w.entities[2]) || l.entries[4].kind != victimKind(w.entities[6]) {
+	if l.n != maxVictimKinds || l.entries[0].kind != w.victimKind(w.entities[2]) || l.entries[4].kind != w.victimKind(w.entities[6]) {
 		t.Fatalf("list %+v, want kinds 2..6", l)
 	}
 	if got := vkKill(w, 1, 1); got != 52 {
 		t.Errorf("the dropped kind paid %d, want 52", got)
 	}
-	if l := w.entities[0].victimKinds; l.n != maxVictimKinds || l.entries[0].kind != victimKind(w.entities[3]) || l.entries[4] != (victimKindEntry{kind: victimKind(w.entities[1])}) {
+	if l := w.entities[0].victimKinds; l.n != maxVictimKinds || l.entries[0].kind != w.victimKind(w.entities[3]) || l.entries[4] != (victimKindEntry{kind: w.victimKind(w.entities[1])}) {
 		t.Errorf("list %+v, want kinds 3..6 and kind 1 at count 0", l)
 	}
 }

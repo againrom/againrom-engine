@@ -205,7 +205,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 
 	gain := xpGain(amount, a.Mind)
 	if srcIdx >= 0 && award.victimKinds > 0 {
-		if n, held := a.victimKinds.find(victimKind(w.entities[srcIdx])); held {
+		if n, held := a.victimKinds.find(w.victimKind(w.entities[srcIdx])); held {
 			gain = victimKindCut(gain, n)
 		}
 	}

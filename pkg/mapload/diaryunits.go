@@ -18,12 +18,17 @@ func diaryRows(t *Table) int {
 // by the map unit id the placement carries.
 func diaryUnits(units []alm.Unit, t *Table) map[uint16]sim.DiaryUnit {
 	out := make(map[uint16]sim.DiaryUnit, len(units))
+	// The Diary reads the first placement of an id whose row fits its byte; a
+	// wider row stands for the id until such a placement follows.
 	for _, u := range units {
 		r := Resolve(u, t)
-		if _, taken := out[u.UnitID]; u.UnitID == 0 || taken || !r.Found() || r.Index > 255 {
+		if u.UnitID == 0 || !r.Found() || r.Index > maxTokenRow {
 			continue
 		}
-		out[u.UnitID] = sim.DiaryUnit{Row: uint8(r.Index), Face: uint8(u.ClassSubID)}
+		if held, taken := out[u.UnitID]; taken && (held.Row <= 255 || r.Index > 255) {
+			continue
+		}
+		out[u.UnitID] = sim.DiaryUnit{Row: uint16(r.Index), Face: uint8(u.ClassSubID)}
 	}
 	return out
 }

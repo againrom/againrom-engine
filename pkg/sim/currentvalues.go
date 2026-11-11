@@ -90,6 +90,10 @@ type ActorValues struct {
 	EffectWidths                                             []EffectNumericResidue `json:"-"`
 	Decay                                                    DecayStage             `json:"-"`
 	Dwell                                                    uint16                 `json:"-"`
+
+	// VictimKinds is the second game's repeated-victim list (DIV-4840); an
+	// actor with an empty list writes none.
+	VictimKinds []VictimKindCount `json:",omitempty"`
 }
 
 type actorNumericField struct {
@@ -120,7 +124,8 @@ func (e Entity) Values() ActorValues {
 		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SuppressRewards: e.SuppressRewards, SeeInvisible: e.SeeInvisible,
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^uint32(0x1ffffffe),
-		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell}
+		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell,
+		VictimKinds: e.victimKinds.counts()}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {
 		xp := e.SkillXP
 		v.UnitXP = &xp
@@ -329,6 +334,11 @@ func (e *Entity) restoreValues(v ActorValues) error {
 			e.deriveNativeHumanSpeed()
 		}
 	}
+	kinds, err := victimKindListOf(v.VictimKinds)
+	if err != nil {
+		return err
+	}
+	e.victimKinds = kinds
 	return nil
 }
 

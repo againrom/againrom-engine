@@ -770,8 +770,9 @@ type Entity struct {
 	summonKey EntityID
 
 	// victimKinds is the second game's repeated-victim list the skill award
-	// cuts by (R2-ENGINE-1157); empty for every other actor. It is unexported
-	// for summonKey's reason: only the byte form's victim kind section holds it.
+	// cuts by (R2-ENGINE-1157); empty for every other actor. It is unexported:
+	// the byte form's victim kind section and SAV's current values
+	// (ActorValues.VictimKinds) hold it.
 	victimKinds victimKindList
 }
 

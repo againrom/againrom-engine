@@ -24,10 +24,12 @@ const (
 	diaryDefaultRemaining = 1024
 )
 
-// DiaryUnit is the Units row and face a creature was built from. The row keys
-// the Diary; the face selects the nibble the card reads.
+// DiaryUnit is the definition row and face a placed actor was built from. A
+// row up to 255 keys the Diary and the face selects the nibble the card reads;
+// every row keys the victim kind of an actor without a source binding.
 type DiaryUnit struct {
-	Row, Face uint8
+	Row  uint16
+	Face uint8
 }
 
 // diaryRuntime is install-derived input to the Diary rules, carried across a
@@ -72,10 +74,10 @@ func (w *World) playerDiary() (SavedDiary, bool) {
 func (w *World) diaryUnitOf(e Entity) (DiaryUnit, bool) {
 	if e.SourceBinding.Class != 0 {
 		// A Diary row is one byte; the second game's records hold no Diary.
-		return DiaryUnit{Row: uint8(e.SourceBinding.TokenRow), Face: e.SourceBinding.Face}, true
+		return DiaryUnit{Row: uint16(uint8(e.SourceBinding.TokenRow)), Face: e.SourceBinding.Face}, true
 	}
 	u, ok := w.diary.units[e.MapUnitID]
-	return u, ok
+	return u, ok && u.Row <= 255
 }
 
 func diaryCount(d SavedDiary, row int) uint32 {
