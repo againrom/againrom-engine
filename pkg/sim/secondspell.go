@@ -65,8 +65,9 @@ func secondCurseCeiling(power, earth int32, item bool) uint16 {
 }
 
 // keepsLargerOnRepeat is a row whose repeat cast keeps the effect already on
-// its target and takes the larger magnitude and the larger duration
-// (R2-ENGINE-986). Every other row replaces the record.
+// its target and takes the larger signed magnitude and the larger duration:
+// every second-game arm (R2-ENGINE-986). A first-game row replaces the
+// record (MAGIC-ATTACH-016).
 func keepsLargerOnRepeat(rule SpellRule) bool {
 	return rule.secondArm().keepsLarger
 }

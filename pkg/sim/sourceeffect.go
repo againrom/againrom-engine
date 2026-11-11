@@ -12,12 +12,18 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 	}
 	n := w.sourceMutationCopy(ti)
 	id := n.entities[ti].ID
-	remove := func(index int) bool {
+	unapply := func(index int) bool {
 		e := n.attached[index]
 		if e.Mode&EffectContinuous == 0 {
 			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, -e.Magnitude); !ok {
 				return false
 			}
+		}
+		return true
+	}
+	remove := func(index int) bool {
+		if !unapply(index) {
+			return false
 		}
 		n.attached = append(n.attached[:index], n.attached[index+1:]...)
 		return true
@@ -32,16 +38,21 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 			return true
 		}
 	}
-	if index, ok := effectIndex(n.attached, id, rule.ID); ok && keepsLargerOnRepeat(rule) {
-		if kind == EffectNone {
-			for range 2 {
-				if _, ok := n.sourceEffectOnCandidate(ti, kind, 0); !ok {
-					return false
-				}
+	if index, ok := effectIndex(n.attached, id, rule.ID); ok && keepsLargerOnRepeat(rule) && mode&(EffectDuration|EffectContinuous) != 0 {
+		// attachEffect's renewal on the source operands (R2-ENGINE-986).
+		if !unapply(index) {
+			return false
+		}
+		e := &n.attached[index]
+		e.Magnitude = max(e.Magnitude, magnitude)
+		e.Remaining = max(e.Remaining, duration)
+		if !areaRow(rule.arm()).poison {
+			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, e.Magnitude); !ok {
+				return false
 			}
 		}
-		n.attached[index].Remaining = max(n.attached[index].Remaining, duration)
 		*w = n
+		w.clearFelled(ti)
 		return true
 	}
 	if index, ok := effectIndex(n.attached, id, rule.ID); ok {

@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] A weapon's magic damage (fire, water, air, earth or astral) is now dealt only by a blow that hits on the attacker's skill and the roll; a lucky blow that lands only because the roll was very high, or a blow by a creature that always hits, deals its ordinary damage without the magic part, as in the original.
+- [ROM2] Casting an effect spell again on a unit that already holds it keeps the larger strength and the longer remaining time of the two casts, so a weaker Haste, Shield, Protection, Bless, Curse or Light no longer replaces a stronger one. For Slow and Darkness the effect nearer zero is kept: a weaker repeat eases a stronger one and a stronger repeat does not deepen a weaker one.
 - [ROM2] Lifting a worn item off the shop's doll now redraws the doll without it at once, and it returns if the lift is cancelled; the first game already did.
 - [BASE] Automatic casting no longer casts Bless (Luck in Battle) on a mage, the caster included: your mages bless a warrior instead or cast their next spell, and a computer mage that drew Bless for itself casts another spell or attacks. Your own order still casts Bless on any mage.
 - [ROM2] A staff's card states the staff's own range (6 for a Staff, 5 for a Shaman Staff) instead of its spell's, and a mage attacking with a spell staff starts casting at that range, counted from the nearest cell of a large target.

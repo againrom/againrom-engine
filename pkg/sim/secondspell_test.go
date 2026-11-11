@@ -130,8 +130,8 @@ func TestPoisonCloudRepeatControls(t *testing.T) {
 	w = spWorld(t, 1, []SpellRule{protection}, spEnt(1, 0, 0), spEnt(2, 1, 0))
 	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 500, EffectDuration)
 	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 100, EffectDuration)
-	if got := w.ActiveEffects(); len(got) != 1 || got[0].Remaining != 100 {
-		t.Fatalf("second-game Protection repeat left %+v, want the replacing record with remainder 100", got)
+	if got := w.ActiveEffects(); len(got) != 1 || got[0].Remaining != 500 {
+		t.Fatalf("second-game Protection repeat left %+v, want the kept record with the larger remainder 500", got)
 	}
 }
 

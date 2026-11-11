@@ -119,8 +119,9 @@ const (
 )
 
 // secondArmRow is an arm's second-game difference: Stone Curse's drawn
-// duration, blank effect and larger-on-repeat hold (R2-ENGINE-025,
-// R2-ENGINE-453, R2-ENGINE-454); Invisibility's P << 4 (R2-ENGINE-022).
+// duration and blank effect (R2-ENGINE-025, R2-ENGINE-453); Invisibility's
+// P << 4 (R2-ENGINE-022); on every arm, the Effect renewal that keeps the
+// larger magnitude and duration (R2-ENGINE-986, R2-ENGINE-454).
 type secondArmRow struct {
 	drawnDuration, blankCurse, keepsLarger, powerDuration bool
 	firstStageDelay                                       uint8
@@ -135,51 +136,57 @@ const armSummon uint16 = 0xfffe
 const PrismaticSpellID = 14
 
 var spellArms = [...]spellArm{
-	{arm: 1, creatureAim: creatureAimVictim},
-	{arm: 2, creatureAim: creatureAimVictimCell, burst: true, speedFlight: true},
-	{arm: 3, creatureAim: creatureAimVictimCell},
-	{arm: 4, selfAimed: true},
+	{arm: 1, creatureAim: creatureAimVictim, second: renews},
+	{arm: 2, creatureAim: creatureAimVictimCell, burst: true, speedFlight: true, second: renews},
+	{arm: 3, creatureAim: creatureAimVictimCell, second: renews},
+	{arm: 4, selfAimed: true, second: renews},
 	{arm: 5, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 2, autoCastNoRole},
-		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
-	{arm: 6, heals: true, autoCast: autoCastPlace{1, 0, autoCastHealer}, creatureAim: creatureAimCaster},
-	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed}},
-	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true}},
-	{arm: 9, creatureAim: creatureAimStepCell},
+		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
+	{arm: 6, heals: true, autoCast: autoCastPlace{1, 0, autoCastHealer}, creatureAim: creatureAimCaster, second: renews},
+	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed},
+		second: renews},
+	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: renews},
+	{arm: 9, creatureAim: creatureAimStepCell, second: renews},
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
-		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
-	{arm: 11, applies: true, drain: true, creatureAim: creatureAimVictim},
+		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
+	{arm: 11, applies: true, drain: true, creatureAim: creatureAimVictim, second: renews},
 	{arm: 12, magnitude: lightMagnitude, formulaMagnitude: true, light: SpellLightBright, creatureAim: creatureAimVictimCell,
-		caption: captionRow{kind: SpellCaptionLight, negate: true}},
-	{arm: 13, form: formBolt, creatureAim: creatureAimVictim},
-	{arm: 14, applies: true, prismatic: true, form: formFan, creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionRays}},
+		caption: captionRow{kind: SpellCaptionLight, negate: true}, second: renews},
+	{arm: 13, form: formBolt, creatureAim: creatureAimVictim, second: renews},
+	{arm: 14, applies: true, prismatic: true, form: formFan, creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionRays},
+		second: renews},
 	{arm: 15, applies: true, atActor: true, invisibility: true, own: ownEffect{EffectInvisible, false}, lastingDuration: true,
-		durationLaw: lawFastThree, autoCast: autoCastPlace{3, 4, autoCastHider}, second: secondArmRow{powerDuration: true},
+		durationLaw: lawFastThree, autoCast: autoCastPlace{3, 4, autoCastHider}, second: secondArmRow{keepsLarger: true, powerDuration: true},
 		creatureAim: creatureAimCaster},
 	{arm: 16, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 0, autoCastNoRole},
-		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
+		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 17, magnitude: darknessMagnitude, formulaMagnitude: true, light: SpellLightDark, creatureAim: creatureAimVictimCell,
-		caption: captionRow{kind: SpellCaptionLight}},
+		caption: captionRow{kind: SpellCaptionLight}, second: renews},
 	{arm: 18, applies: true, atActor: true, magnitude: shieldMagnitude, formulaMagnitude: true, lastingDuration: true,
-		autoCast: autoCastPlace{1, 1, autoCastShielder}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionShield}},
-	{arm: 19, creatureAim: creatureAimVictimCell},
+		autoCast: autoCastPlace{1, 1, autoCastShielder}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionShield}, second: renews},
+	{arm: 19, creatureAim: creatureAimVictimCell, second: renews},
 	{arm: 20, applies: true, atActor: true, stoneCurse: true, attachAward: true, lastingDuration: true, durationLaw: lawSegmented,
 		second: secondArmRow{drawnDuration: true, blankCurse: true, keepsLarger: true}, creatureAim: creatureAimVictim},
-	{arm: 21, creatureAim: creatureAimVictimCell, second: secondArmRow{firstStageDelay: 1}},
+	{arm: 21, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, firstStageDelay: 1}},
 	{arm: 22, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 1, autoCastNoRole},
-		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
+		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 23, applies: true, atActor: true, sparesMages: true, own: ownEffect{EffectBless, true}, opposite: 27, formulaMagnitude: true, lastingDuration: true,
-		autoCast: autoCastPlace{2, 0, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionBless}},
+		autoCast: autoCastPlace{2, 0, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionBless}, second: renews},
 	{arm: 24, applies: true, atActor: true, magnitude: hasteMagnitude, formulaMagnitude: true, lastingDuration: true,
-		autoCast: autoCastPlace{2, 1, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionSpeed}},
-	{arm: 25, applies: true, atActor: true, controlSpirit: true, second: secondArmRow{raise: &secondCorpseRaise}},
+		autoCast: autoCastPlace{2, 1, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionSpeed}, second: renews},
+	{arm: 25, applies: true, atActor: true, controlSpirit: true, second: secondArmRow{keepsLarger: true, raise: &secondCorpseRaise}},
 	{arm: 26, applies: true, atActor: true, teleport: true, pointTarget: true, fastRange: true, manualOnly: true,
-		creatureAim: creatureAimStepCell},
+		creatureAim: creatureAimStepCell, second: renews},
 	{arm: 27, applies: true, atActor: true, own: ownEffect{EffectCurse, true}, opposite: 23, attachAward: true, formulaMagnitude: true,
-		lastingDuration: true, creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionCurse}},
+		lastingDuration: true, creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionCurse}, second: renews},
 	{arm: 28, applies: true, atActor: true, attachAward: true, magnitude: slowMagnitude, formulaMagnitude: true, lastingDuration: true,
-		creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionSpeed}},
-	{arm: armSummon, applies: true, atActor: true, summon: true},
+		creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionSpeed}, second: renews},
+	{arm: armSummon, applies: true, atActor: true, summon: true, second: renews},
 }
+
+// renews is the second-game row of an arm with no other second-game
+// difference: its Effect renewal keeps the larger magnitude and duration.
+var renews = secondArmRow{keepsLarger: true}
 
 func halfPower(_ SpellRule, _, power int32) int32 { return power / 2 }
 

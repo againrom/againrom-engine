@@ -76,8 +76,9 @@ var spellArmRecord = map[string]armAnswers{
 	"light":            bothGames(map[uint16]int{12: recordLightBright, 17: recordLightDark}),
 	"drawnDuration":    secondOnly(armSet(20)),
 	"blankCurse":       secondOnly(armSet(20)),
-	"keepsLarger":      secondOnly(armSet(8, 20)),
-	"powerDuration":    secondOnly(armSet(15)),
+	"keepsLarger": secondOnly(armSet(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+		26, 27, 28, armSummon)),
+	"powerDuration": secondOnly(armSet(15)),
 }
 
 func probeRule(arm uint16, second bool) SpellRule {

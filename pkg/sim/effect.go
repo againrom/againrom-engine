@@ -258,7 +258,19 @@ func (w *World) removeAttachedAt(i int) bool {
 		w.clearFelled(ti)
 		return true
 	}
-	if ti := indexOfEntity(w.entities, e.Target); ti >= 0 && e.Mode&EffectContinuous == 0 {
+	if ti := indexOfEntity(w.entities, e.Target); ti >= 0 {
+		w.unapplyAttachedAt(i, ti)
+	}
+	w.attached = append(w.attached[:i], w.attached[i+1:]...)
+	w.setNativeAttachedEffectMask(e.Target, e.Spell, false)
+	return true
+}
+
+// unapplyAttachedAt takes record i's delta off entity ti, the reversal of an
+// expiry, a replacement and a renewal. A continuous record has none.
+func (w *World) unapplyAttachedAt(i, ti int) {
+	e := w.attached[i]
+	if e.Mode&EffectContinuous == 0 {
 		landed, moved := w.applyEffectDelta(ti, e.Kind, -e.Magnitude)
 		// A SECOND clamp, engaged by whatever ELSE is still active on the
 		// target, can deliver less reversal than this record's own landing
@@ -285,9 +297,6 @@ func (w *World) removeAttachedAt(i int) bool {
 		// "the five refusals are the states a tick cannot produce".
 		w.clearFelled(ti)
 	}
-	w.attached = append(w.attached[:i], w.attached[i+1:]...)
-	w.setNativeAttachedEffectMask(e.Target, e.Spell, false)
-	return true
 }
 
 // redistributeShortfall keeps a derived value's invariant intact when a clamp
@@ -388,9 +397,17 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 		}
 	}
 	i, exists := effectIndex(w.attached, target, rule.ID)
-	if exists && keepsLargerOnRepeat(rule) {
-		w.attached[i].Magnitude = max(w.attached[i].Magnitude, magnitude)
-		w.attached[i].Remaining = max(w.attached[i].Remaining, duration)
+	if exists && keepsLargerOnRepeat(rule) && mode&(EffectDuration|EffectContinuous) != 0 {
+		// The standing record is kept: its delta comes off, it takes the
+		// larger signed magnitude and the larger duration, and the kept
+		// magnitude goes on again, except for Poison Cloud (R2-ENGINE-986).
+		w.unapplyAttachedAt(i, ti)
+		e := &w.attached[i]
+		e.Magnitude = max(e.Magnitude, magnitude)
+		e.Remaining = max(e.Remaining, duration)
+		if !areaRow(rule.arm()).poison {
+			w.applyAttachedAt(i, ti, false)
+		}
 		return true
 	}
 	if exists {
@@ -423,15 +440,23 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	// eighth tick rather than reversed: a continuous heal that clamped at full
 	// health once would otherwise be re-applied as zero for the rest of its
 	// life.
-	if poison {
-		w.applyPoisonAttachment(i, ti)
-	} else if applied, moved := w.applyEffectDelta(ti, kind, magnitude); moved && mode&EffectContinuous == 0 {
-		w.attached[i].Magnitude = applied
-	}
-	w.clearFelled(ti)
+	w.applyAttachedAt(i, ti, poison)
 	w.markSpellEffect(ti, rule.ID)
 	w.entities[ti].SpellFX = duration
 	return true
+}
+
+// applyAttachedAt puts record i's stored magnitude on entity ti, the apply
+// of a new attach and of a renewal. A duration record then stores what
+// landed; poison applies its own health change.
+func (w *World) applyAttachedAt(i, ti int, poison bool) {
+	e := w.attached[i]
+	if poison {
+		w.applyPoisonAttachment(i, ti)
+	} else if applied, moved := w.applyEffectDelta(ti, e.Kind, e.Magnitude); moved && e.Mode&EffectContinuous == 0 {
+		w.attached[i].Magnitude = applied
+	}
+	w.clearFelled(ti)
 }
 
 func (w *World) awardPoisonTick(effectIndex, targetIndex int, damage int64) {
