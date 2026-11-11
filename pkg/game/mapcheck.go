@@ -82,6 +82,10 @@ var mapRules = []mapRule{
 		Authority: "ALM-CLS-036, ALM-CLS-053",
 		Meaning:   "a structure has a kind the installed structures.reg does not hold",
 		run:       (*mapCheck).structureKind},
+	{ID: ruleExtendedName, Error: false,
+		Authority: "ALM-REQ-055; the .almx name gate",
+		Meaning:   "the map carries the extended script record under a name other than .almx: it plays here with the record, and the original game does not run its triggers",
+		run:       (*mapCheck).extendedName},
 	{ID: "unit-terrain", Error: false,
 		Authority: "mapload.Passability; the unit's movement domain",
 		Meaning:   "a unit stands on a cell its movement class cannot enter",
@@ -126,6 +130,8 @@ const (
 	ruleMapDecode   = "map-decode"
 )
 
+const ruleExtendedName = "extended-name"
+
 // mapStop is the error of a check that stopped before the rules ran: Rule is
 // the table row that names the cause.
 type mapStop struct {
@@ -166,6 +172,7 @@ type mapCheck struct {
 	model  *mapedit.Editor
 	m      *alm.Map
 	source string
+	name   string
 	pages  *mod.MissionPages
 
 	script    alm.Script
@@ -205,18 +212,18 @@ func (x *MapInspector) CheckModMap(m mod.Mission, source string) []ui.Inspection
 	if err != nil {
 		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: err.Error()}}
 	}
-	// A map carrying the extended script record is named .almx, so an .alm
-	// loads exactly as the original loads it (DIV-4603).
-	if mp, err := model.Map(); err == nil && mp.HasScriptRecord() && !namefold.HostEqual(filepath.Ext(m.Map), extendedMapExt) {
-		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: "the map carries the extended script record; name it " + extendedMapExt}}
-	}
-	return x.report(model, source, m.HeldPages())
+	return x.reportNamed(model, source, m.Map, m.HeldPages())
 }
 
 // report answers the findings for the map the model holds, a failed check being
 // one error of the rule that names where it stopped.
 func (x *MapInspector) report(model *mapedit.Editor, source string, pages *mod.MissionPages) []ui.InspectionFinding {
-	rows, err := x.checkMapPages(model, source, pages)
+	return x.reportNamed(model, source, "", pages)
+}
+
+// reportNamed is report with the mission's map name; empty skips extended-name.
+func (x *MapInspector) reportNamed(model *mapedit.Editor, source, name string, pages *mod.MissionPages) []ui.InspectionFinding {
+	rows, err := x.checkNamedMap(model, source, name, pages)
 	if err != nil {
 		rule := "mission-build"
 		if stop := (*mapStop)(nil); errors.As(err, &stop) {
@@ -231,6 +238,10 @@ func (x *MapInspector) report(model *mapedit.Editor, source string, pages *mod.M
 }
 
 func (x *MapInspector) checkMapPages(model *mapedit.Editor, source string, pages *mod.MissionPages) ([]ui.InspectionFinding, error) {
+	return x.checkNamedMap(model, source, "", pages)
+}
+
+func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string, pages *mod.MissionPages) ([]ui.InspectionFinding, error) {
 	if pages != nil && pages.Err != nil {
 		return nil, &mapStop{Rule: ruleTextsFolder, Err: pages.Err}
 	}
@@ -238,7 +249,7 @@ func (x *MapInspector) checkMapPages(model *mapedit.Editor, source string, pages
 	if err != nil {
 		return nil, &mapStop{Rule: ruleMapDecode, Err: err}
 	}
-	c := &mapCheck{x: x, model: model, m: m, source: source, pages: pages}
+	c := &mapCheck{x: x, model: model, m: m, source: source, name: name, pages: pages}
 	c.script, c.scriptErr = m.Script()
 	c.loot, c.lootErr = m.Loot()
 	var errs, warnings []ui.InspectionFinding
@@ -262,6 +273,14 @@ func (x *MapInspector) ruleTable() []mapRule {
 		return x.rules
 	}
 	return mapRules
+}
+
+// extendedName: DIV-4603.
+func (c *mapCheck) extendedName() []mapHit {
+	if c.name == "" || !c.m.HasScriptRecord() || namefold.HostEqual(filepath.Ext(c.name), extendedMapExt) {
+		return nil
+	}
+	return []mapHit{{Text: c.x.word("editor.message.almxname")}}
 }
 
 func (c *mapCheck) width() int  { return c.m.Width }

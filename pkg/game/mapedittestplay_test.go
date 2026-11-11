@@ -272,3 +272,47 @@ func TestTestPlayWritesNothingIntoTheInstall(t *testing.T) {
 		t.Fatalf("wrote %d entries inside the install", len(entries))
 	}
 }
+
+func TestTestPlayOfAnExtendedMapStartsWithoutTheNameWarning(t *testing.T) {
+	f := newTestPlayFixture(t)
+	b := extendedScriptMap(t, nil, 1)
+	model, err := mapedit.New(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &mapInspectionEdits{inspector: f.x, model: model, source: "scenario/20.alm"}
+	m, err := f.x.testPlayMission(s.source, b, nil)
+	if err != nil || m.Map != testPlayMapExtended {
+		t.Fatalf("test play map name %q: %v", m.Map, err)
+	}
+	if _, err := s.TestPlay(); err != nil || len(f.started) != 1 {
+		t.Fatalf("the test play of an extended map: %v, started %d", err, len(f.started))
+	}
+	if got := tree(t, f.profile); got[TestPlayModID+"/"+TestPlayModID+"/"+testPlayMapExtended] != string(b) {
+		t.Fatalf("the extended map is not written as %s: %v", testPlayMapExtended, keys(got))
+	}
+	for _, r := range f.x.CheckModMap(m, "mod/x") {
+		if r.Rule == ruleExtendedName {
+			t.Fatalf("warned: %+v", r)
+		}
+	}
+	if m, err := f.x.testPlayMission(s.source, synth.ALM(synth.ALMOptions{Width: 4, Height: 4}), nil); err != nil || m.Map != testPlayMap {
+		t.Fatalf("plain map named %q: %v", m.Map, err)
+	}
+}
+
+func TestCheckModMapWarnsOfAnExtendedMapNamedAlm(t *testing.T) {
+	x := &MapInspector{}
+	b := extendedScriptMap(t, nil, 1)
+	rows := x.CheckModMap(mod.Mission{Map: "extended.alm", MapBytes: b}, "mod/x")
+	if len(rows) < 2 || rows[0].Rule != ruleExtendedName || rows[0].Error {
+		t.Fatalf("want the warning first and the other findings after it: %+v", rows)
+	}
+	for _, name := range []string{"extended.almx", "EXTENDED.ALMX"} {
+		for _, r := range x.CheckModMap(mod.Mission{Map: name, MapBytes: b}, "mod/x") {
+			if r.Rule == ruleExtendedName {
+				t.Fatalf("%s: warned", name)
+			}
+		}
+	}
+}

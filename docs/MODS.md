@@ -852,7 +852,9 @@ over every record of typeId 10 or above, and the second game reads typeIds
 10 to 12, so 100 stays clear of both. An `.almx` lists in the game's map list
 beside the `.alm` files, and a mission's `map` in `data/missions.toml` may
 name one (`map = "mission/{lang}/map.almx"`). A mod mission's map that carries
-the record but is named `.alm` is refused at load (DIV-4603). A loose map in
+the record but is named `.alm` loads and plays with the record, and the
+map report warns that the original game does not run its triggers under that
+name (DIV-4603). A loose map in
 the game's map list is read by its bytes, not its name: a loose `.alm` that
 carries the record lists and plays as an `.almx`, and the original game would
 run its nodes with no trigger. No Againrom writer makes such a file. A mission

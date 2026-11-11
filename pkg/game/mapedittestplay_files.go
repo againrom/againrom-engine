@@ -105,7 +105,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 		if lang, rest, ok := strings.Cut(page, "/"); ok && locale.Known(lang) {
 			page = rest
 		}
-		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap
+		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap || rel == testPlayMapExtended
 		projectPath := recordName == editorPackageRecord && rel != "." && filepath.IsLocal(filepath.FromSlash(rel)) && !strings.Contains(rel, "\\")
 		if seen[rel] || !projectPath && !fixed && (page == rel || !missionPageName(page)) {
 			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)
@@ -116,7 +116,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 		if recordName == editorPackageRecord && (rel == "main.star" || rel == testPlayMap) {
 			continue
 		}
-		if !seen[rel] {
+		if !seen[rel] && !(rel == testPlayMap && seen[testPlayMapExtended]) {
 			return nil, fmt.Errorf("%s has an incomplete test play ownership record", folder)
 		}
 	}

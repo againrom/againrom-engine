@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +22,7 @@ func missionPackageFiles(title, description string, m mod.Mission, lang string, 
 		m.Texts = testPlayTexts + "/{lang}"
 	}
 	manifest := fmt.Sprintf("id = %q\ntitle = %q\nversion = \"1.0.0\"\nauthor = \"Againrom\"\ndescription = %q\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n", m.Mod, title, description)
-	files := map[string][]byte{mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry), mod.MissionsFile: testPlayMissions(m), testPlayMap: bytes.Clone(m.MapBytes)}
+	files := map[string][]byte{mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry), mod.MissionsFile: testPlayMissions(m), cmp.Or(m.Map, testPlayMap): bytes.Clone(m.MapBytes)}
 	for name, b := range m.TextFiles {
 		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
 	}

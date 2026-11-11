@@ -300,15 +300,12 @@ func TestModMissionManifestNamesAnAlmxMap(t *testing.T) {
 			}
 		}
 		f := guestFixtureFront(t)
-		_, err = f.SetModMissions(d)
-		if strings.HasSuffix(name, ".alm") {
-			if err == nil || !strings.Contains(err.Error(), "name it .almx") {
-				t.Fatalf("%s: %v", name, err)
-			}
-			continue
-		}
+		warnings, err := f.SetModMissions(d)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
+		}
+		if got := strings.Contains(strings.Join(warnings, " "), "extended script record"); got != strings.HasSuffix(name, ".alm") {
+			t.Fatalf("%s: extended-name warning present %v in %q", name, got, warnings)
 		}
 		if got, err := f.Archives.Containers.ReadFile("scenario/25.alm"); err != nil || !bytes.Equal(got, m) {
 			t.Fatalf("%s is not served as mission 25: %v", name, err)

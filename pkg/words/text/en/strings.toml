@@ -649,6 +649,7 @@
 "editor.message.badspeaker" = "Choose a speaker from npc.reg."
 "editor.message.full" = "A mission holds at most %d pages."
 "editor.message.overlap" = "This trigger sends more than one message. The player will not see the second while the first is open. Put the conversation's pages in one message."
+"editor.message.almxname" = "The map carries the extended script record. It plays here with the record; the original game does not run its triggers under an .alm name. Name the map .almx."
 "editor.keys.dialogue" = "Dialogue: a card per page"
 "editor.keys.dialogue.add" = "+: add a card at the end"
 "editor.keys.dialogue.remove" = "x: remove a card"

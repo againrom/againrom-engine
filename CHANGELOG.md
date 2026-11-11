@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor's test play and a mod load no longer refuse a map that carries the extended script record under an .alm name; they start and show a warning that the original game does not run its triggers under that name. Name the map .almx to remove the warning.
 - [BASE] Publishing a mod keeps long map, folder and data file names, including Cyrillic names, up to 255 UTF-8 bytes per name. A packed mod keeps the same files and save compatibility as its working folder.
 - [ROM1] The map editor's mod window (W) now opens any mod, also one with no missions or a packed mod file, which opens read-only, also with no map open; an Overview page lists what the mod holds, what the game reports for it, its files and its warnings, and the mod's terrain, characters and items are in the editor's lists.
 

@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/hostfile"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -26,8 +27,9 @@ const TestPlayModID = "testplay"
 // testPlayMap and testPlayTexts are where the test mod holds the map and the
 // mission's text pages.
 const (
-	testPlayMap   = "mission/map.alm"
-	testPlayTexts = "mission/text"
+	testPlayMap         = "mission/map.alm"
+	testPlayMapExtended = "mission/map" + extendedMapExt
+	testPlayTexts       = "mission/text"
 )
 
 // TestPlayHost is what the map editor's test play takes from its program: the
@@ -205,13 +207,22 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 	if pkg != nil {
 		m = pkg.mission(b, pages)
 		m.Mod = TestPlayModID
+		m.Map = testPlayMapName(b)
 		return m, nil
 	}
 	m.MapBytes, m.TextFiles = b, pages
+	m.Map = testPlayMapName(b)
 	if len(pages) > 0 {
 		m.Texts = testPlayTexts
 	}
 	return m, nil
+}
+
+func testPlayMapName(b []byte) string {
+	if model, err := mapedit.New(b); err == nil && model.Extended() {
+		return testPlayMapExtended
+	}
+	return testPlayMap
 }
 
 // testPlayGuestMission is testPlayGuest of the install's campaign.
