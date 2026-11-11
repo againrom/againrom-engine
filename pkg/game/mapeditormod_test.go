@@ -64,9 +64,14 @@ func TestEditorTestPlayRetainsTheWholeProjectAndUsesItsID(t *testing.T) {
 func TestEditorPartyRowsPreserveTemplateAndEmptyOnSaveAndReopen(t *testing.T) {
 	f, e := workspaceFixture(t)
 	dir := writeEditorProjectFixture(t, e)
+	// The mod's characters reach the catalog through the context the mod's
+	// admitted fork builds over an install table; the save below runs the
+	// fixture's table-less admission again.
+	f.x.table = characterFront().Table
 	if err := workspaceField(e, "package", 0, dir); err != nil {
 		t.Fatal(err)
 	}
+	f.x.table = nil
 	s := e.Document().Edits.(*mapInspectionEdits)
 	f.x.mod.catalog = append(f.x.mod.catalog, mod.Character{Key: "npc22", Name: "Companion"})
 	var named bool

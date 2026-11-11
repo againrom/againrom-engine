@@ -224,6 +224,7 @@ type MapEditor struct {
 	font                        *text.Font
 	maps                        []EditorMap
 	open                        InspectionOpener
+	modHost                     func() ModWindowHost
 	hostText                    func(string) string
 	hostDecode                  func(string) string
 	heroRoles                   map[int64]string // hero N's role in host text; empty: the label is a number
@@ -318,13 +319,28 @@ func (e *MapEditor) openMap(source string) error {
 		return fmt.Errorf("%s", e.message)
 	}
 	next, err := e.open(source)
-	if err == nil && (next == nil || next.Viewer == nil) {
-		err = fmt.Errorf("map opener returned no view")
+	if err == nil {
+		err = checkOpened(next)
 	}
 	if err != nil {
 		e.message = err.Error()
 		return err
 	}
+	e.showOpened(next)
+	return nil
+}
+
+// checkOpened refuses a document the window cannot show.
+func checkOpened(next *InspectionDocument) error {
+	if next == nil || next.Viewer == nil {
+		return fmt.Errorf("map opener returned no view")
+	}
+	return nil
+}
+
+// showOpened makes the document next the map the window edits, the
+// catalogue and every popup left.
+func (e *MapEditor) showOpened(next *InspectionDocument) {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.barSets, e.barOwner = nil, ""
@@ -350,7 +366,6 @@ func (e *MapEditor) openMap(source string) error {
 	if _, ok := e.mapPanel(); ok {
 		e.openPanel()
 	}
-	return nil
 }
 
 func (e *MapEditor) Fit() {

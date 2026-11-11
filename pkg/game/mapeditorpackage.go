@@ -88,28 +88,35 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 	if err := x.SetMod(dir); err != nil {
 		return nil, err
 	}
-	if len(x.mod.missions.Missions) == 0 {
-		x.mod = old
-		return nil, fmt.Errorf("%s declares no mission", dir)
-	}
 	x.mod.copyOnly = !x.mod.owned
-	entry := x.mod.missions.Missions[0]
-	for _, candidate := range x.mod.missions.Missions {
-		if !candidate.Off {
-			entry = candidate
-			break
-		}
+	// The mission list is one view of the opened mod: its first enabled
+	// mission's map opens. A mod with none, or a packed one, opens over the
+	// map in the editor as last saved.
+	var d *ui.InspectionDocument
+	var err error
+	if entry, ok := x.mod.firstEnabled(); ok && !x.mod.packed {
+		x.mod.selected = entry.Key
+		d, err = x.Open(filepath.Join(dir, filepath.FromSlash(entry.Map)))
+	} else if s.model == nil {
+		// No map is open to show it over; the window shows the mod.
+		s.workspace = nil
+	} else {
+		d, err = x.inspect(bytes.Clone(s.saved), s.source)
 	}
-	if entry.Off {
-		x.mod = old
-		return nil, errors.New("mod has no enabled mission")
-	}
-	x.mod.selected = entry.Key
-	d, err := x.Open(filepath.Join(dir, filepath.FromSlash(entry.Map)))
 	if err != nil {
-		x.mod = old
+		x.setEditorMod(old)
 	}
 	return d, err
+}
+
+// firstEnabled is the mod's first mission that is not switched off.
+func (m *editorMod) firstEnabled() (mod.Mission, bool) {
+	for _, candidate := range m.missions.Missions {
+		if !candidate.Off {
+			return candidate, true
+		}
+	}
+	return mod.Mission{}, false
 }
 
 func (s *mapInspectionEdits) selectWorkspaceMission(index int) (*ui.InspectionDocument, error) {

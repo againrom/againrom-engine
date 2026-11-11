@@ -3,12 +3,10 @@ package game
 import (
 	"image/color"
 	"slices"
-	"strings"
 
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
-	"againrom/pkg/modrt"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -88,39 +86,6 @@ func groupWords(r mod.TerrainGroup) []uint16 {
 		}
 	}
 	return out
-}
-
-// useModTerrain gives the editor the working mod's terrain: the tileset with
-// the mod's terrain strips served over the install, and the mod's groups on
-// the table the editor classifies and lists by.
-func (x *MapInspector) useModTerrain(result modrt.Result) error {
-	if x.archives == nil {
-		return nil
-	}
-	fs := x.archives.Containers.Fork()
-	b := &modFiles{fs: fs, order: result.Files.Order, owners: map[string]modFileEntry{}}
-	a := *x.archives
-	a.Containers, a.mods = fs, b
-	var strips []mod.InstallFile
-	for _, file := range result.Files.Files {
-		if strings.HasPrefix(mod.FoldAddress(file.Address), terrain.TilePathPrefix) {
-			strips = append(strips, file)
-		}
-	}
-	if err := b.serveInstallFiles(&a, strips); err != nil {
-		return err
-	}
-	rows, err := modTerrain(result.Terrain, b.owners, fs)
-	if err != nil {
-		return err
-	}
-	x.tiles, x.swatches = terrain.LoadTileset(fs), nil
-	if x.table != nil {
-		t := *x.table
-		t.Mods.Terrain = rows
-		x.table = &t
-	}
-	return nil
 }
 
 // modBrushTerrains are the terrain list's rows of the mod groups t's mods

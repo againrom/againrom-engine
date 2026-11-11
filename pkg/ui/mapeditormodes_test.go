@@ -436,6 +436,10 @@ func modesAct(e *MapEditor, name string) string {
 				}
 			}
 		}
+	case "ui:mod-overview":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			p.overview = modesOverview
+		}
 	case "ui:pick-move":
 		if s, _, ok := e.objectSpec(); ok && e.obj.cell >= 0 {
 			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
@@ -559,6 +563,8 @@ var modesPaths = []modesPath{
 	{"mod-window", []string{"package"}},
 	{"mod-choice", []string{"package", "tab", "tab", "enter"}},
 	{"mod-edit", []string{"package", "ui:text-plain"}},
+	{"mod-overview", []string{"ui:mod-overview", "package"}},
+	{"mod-overview-fields", []string{"ui:mod-overview", "package", "package"}},
 	{"list", nil},
 	{"selected", []string{"ui:select0"}},
 	{"structure", []string{"ui:select2"}},
@@ -644,7 +650,6 @@ var modesSmallPaths = map[string]bool{"list": true, "selected": true, "catalog":
 const modesSampleEvery = 4
 
 func modesGoldenLines(t *testing.T, every int) []string {
-	actions := append(append([]string(nil), modesKeys...), modesGestures...)
 	var lines []string
 	for _, host := range []string{"full", "plain", "mod", "workspace"} {
 		for _, p := range modesPaths {
@@ -658,16 +663,44 @@ func modesGoldenLines(t *testing.T, every int) []string {
 				lines = append(lines, host+"/"+p.name)
 				continue
 			}
-			var hashes []string
-			for _, a := range actions {
-				h := fnv.New32a()
-				h.Write([]byte(modesFullProbe(t, host, p.steps, a)))
-				hashes = append(hashes, fmt.Sprintf("%08x", h.Sum32()))
-			}
-			lines = append(lines, host+"/"+p.name+" "+strings.Join(hashes, " "))
+			lines = append(lines, modesGoldenRow(t, host, p))
 		}
 	}
 	return lines
+}
+
+// modesGoldenRow is the table row of path p on host: its name and the hash
+// of the window after each action.
+func modesGoldenRow(t *testing.T, host string, p modesPath) string {
+	actions := append(append([]string(nil), modesKeys...), modesGestures...)
+	var hashes []string
+	for _, a := range actions {
+		h := fnv.New32a()
+		h.Write([]byte(modesFullProbe(t, host, p.steps, a)))
+		hashes = append(hashes, fmt.Sprintf("%08x", h.Sum32()))
+	}
+	return host + "/" + p.name + " " + strings.Join(hashes, " ")
+}
+
+// TestMapEditorModesHoldTheModOverviewRows compares the rows of the paths
+// that open W on a mod's overview with the recorded table.
+func TestMapEditorModesHoldTheModOverviewRows(t *testing.T) {
+	raw, err := os.ReadFile(modesGoldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recorded := map[string]string{}
+	for _, l := range strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n") {
+		recorded[strings.SplitN(l, " ", 2)[0]] = l
+	}
+	for _, p := range modesPaths {
+		if !strings.HasPrefix(p.name, "mod-overview") {
+			continue
+		}
+		if got := modesGoldenRow(t, "workspace", p); got != recorded["workspace/"+p.name] {
+			t.Errorf("row differs from the table:\n%s", got)
+		}
+	}
 }
 
 const modesGoldenPath = "testdata/mapeditor_modes.golden"

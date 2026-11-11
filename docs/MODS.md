@@ -329,8 +329,10 @@ When no component needs renaming, packing emits no table and keeps the
 previous pack bytes. The digest and save mark always use the original
 folder names and contents.
 
-The map editor saves into a mod folder: `againrom --editor -mod` refuses a packed
-mod. To change a packed mod, change its folder and pack it again.
+The map editor saves into a mod folder only. It opens a packed mod read-only
+(see The map editor): every change and every save into it is refused, and the
+packed file stays as it was. To change a packed mod, change its folder and
+pack it again.
 
 ## Items
 
@@ -951,6 +953,20 @@ Save or Save As to an `.alm` name asks whether to save it as an original map;
 Yes writes the triggers back into 184-byte records, Cancel writes nothing.
 Save As to an `.alm` name of a map that does not fit is refused (DIV-4616).
 An original map with no extended edit saves byte for byte as before.
+
+The mod window (W) opens any mod of the first game, whatever kinds it holds:
+a mod folder, or a packed `mod-<id>.res` read-only, chosen in W's folder field
+or with `againrom --editor -mod <folder or file>`. The editor builds the mod's
+data the way the game applies it, so its terrain groups are on the terrain
+list, its characters and speakers in W's pickers, and its items in the party's
+equipment. A mod with an enabled mission opens that mission's map, as before.
+Any other mod, and every packed mod, opens over the map in the editor and
+shows W's Overview page first: the kinds whose files the mod holds, the lines
+`againrom -check` prints for it, its files, the overrides and warnings its data
+gave, and what refuses it. The Missions and Overview tabs at the top of W, or
+W again, turn the page. A packed mod refuses every change in W and every save
+into it, naming the packed file; opening another mod is allowed. The editor
+writes no `main.star` and no packed file.
 
 ## Towns
 

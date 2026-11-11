@@ -3,9 +3,11 @@ package game
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"math"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -80,6 +82,17 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 	}
 	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest}}
 	x := s.inspector
+	if s.model == nil {
+		// No map is open: the workspace is the opened mod's alone.
+		if x.mod != nil {
+			w.Project = x.mod.document()
+			w.Project.Selected = -1
+			w.Package.ID, w.Package.Title = x.mod.id, x.mod.title
+		}
+		s.workspace, s.workspaceImage = w, workspaceBytes(w)
+		s.savedWorkspace = s.workspaceImage
+		return nil
+	}
 	if p := x.editorPages(s.source); p != nil {
 		if p.Err != nil {
 			return p.Err
@@ -233,6 +246,9 @@ func workspaceText(key, label, value string) ui.InspectionField {
 }
 
 func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField {
+	if s.model == nil && scope != "package" {
+		return nil
+	}
 	if err := s.prepareWorkspace(); err != nil {
 		return nil
 	}
@@ -299,8 +315,31 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	return nil
 }
 
+// opensMod reports whether a W field change opens another mod rather than
+// writing: a folder named to open, or one that exists.
+func opensMod(scope, key, value string) bool {
+	if scope != "package" {
+		return false
+	}
+	if key == "folder-open" {
+		return true
+	}
+	_, err := os.Lstat(strings.TrimSpace(value))
+	return key == "folder" && strings.TrimSpace(value) != "" && err == nil
+}
+
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
+	if s.model == nil {
+		// With no map open W opens a mod and changes nothing else.
+		if scope != "package" || !opensMod(scope, key, value) {
+			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
+		}
+		return s.openWorkspace(strings.TrimSpace(value))
+	}
 	if err := s.prepareWorkspace(); err != nil {
+		return nil, err
+	}
+	if err := s.inspector.modReadOnly(); err != nil && !opensMod(scope, key, value) {
 		return nil, err
 	}
 	if scope == "metadata" {

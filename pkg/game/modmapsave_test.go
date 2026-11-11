@@ -105,8 +105,12 @@ func TestEditorRefusesAModThatNamesNoEntryForTheMap(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "mission")); err == nil {
 		t.Fatal("a refused save wrote into the mod")
 	}
-	// A mod that declares no missions is refused when it is named.
-	if err := (&MapInspector{}).SetMod(writeEditorMod(t, t.TempDir(), "")); err == nil || !strings.Contains(err.Error(), `mod "ambush" declares no missions`) {
+	// A mod that declares no missions opens, and Save finds no entry in it.
+	none := &MapInspector{}
+	if err := none.SetMod(writeEditorMod(t, t.TempDir(), "")); err != nil {
+		t.Fatalf("no missions: %v", err)
+	}
+	if _, err := editorEdits(t, none, "scenario/20.alm").SaveIntoMod(); err == nil || !strings.Contains(err.Error(), `no mission of mod "ambush" names this map`) {
 		t.Fatalf("no missions: %v", err)
 	}
 	// A mod folder inside the install is refused.

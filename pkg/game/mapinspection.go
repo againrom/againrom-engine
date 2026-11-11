@@ -39,6 +39,7 @@ type MapInspector struct {
 	body           *text.Font // the documents font: rows, labels, values and report text
 	Maps           []MapEntry
 	mod            *editorMod       // the mod folder Save writes into; nil for Save As
+	laid           *laidContext     // the mod context table and tiles hold, over the context beneath; nil: none laid
 	installKeep    installPagesKeep // the install pages of the last mission asked for
 	testPlay       *TestPlayHost    // the game the test play key starts; nil: no test play
 	rules          []mapRule        // the map report's rule table; nil is mapRules
@@ -55,6 +56,8 @@ type MapInspector struct {
 	identityDraws   map[int64]personDraw
 	// placedArts is the last map's placed people's sheets (placedArt).
 	placedArts *placedArtCache
+	// noMap is the host W works through with no map open.
+	noMap *mapInspectionEdits
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.
@@ -123,6 +126,15 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	return x, nil
 }
 
+// modHost is the host W works through with no map open: the same host a
+// map has, holding no map.
+func (x *MapInspector) modHost() ui.ModWindowHost {
+	if x.noMap == nil {
+		x.noMap = &mapInspectionEdits{inspector: x}
+	}
+	return x.noMap
+}
+
 func (x *MapInspector) Editor() *ui.MapEditor {
 	rows := newMapRows()
 	// Archive maps by mission number, loose maps by title.
@@ -143,6 +155,7 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text()), Multiplayer: !e.FromArchive})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
+	e.SetModHost(x.modHost)
 	e.SetBodyFont(x.body)
 	e.SetCardFont(x.cardFont)
 	if x.archives != nil {

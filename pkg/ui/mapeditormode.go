@@ -108,6 +108,7 @@ func (p editorPrompt) fields() bool {
 // editorMode is every layer the window can be in.
 type editorMode struct {
 	modWindow       bool
+	modPage         int // W's page shown: 0 the mod's fields, 1 its overview
 	modConfirm      string
 	modConfirmLabel string
 	modStatus       string
@@ -357,5 +358,5 @@ func (m *editorMode) blocksCanvas() bool {
 func (m *editorMode) addPicking() bool { return m.prompt.kind == promptAdd && m.pick == pickAddCell }
 
 func (e *MapEditor) objectBlocked() bool {
-	return e.catalog || e.objectHidden || e.pick != pickNone && !e.addPicking()
+	return e.catalog && !e.modOverCatalog() || e.objectHidden || e.pick != pickNone && !e.addPicking()
 }

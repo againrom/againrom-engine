@@ -132,18 +132,23 @@ func installCharacters(t *mapload.Table) []mod.Character {
 	return mod.InstallCharacters(npcs)
 }
 
-// catalogCharacter is the character key names in the catalog the session
-// runs under: the mods' merged catalog when a mod's characters file made one,
-// else the install's npc.reg records.
-func catalogCharacter(t *mapload.Table, key string) (mod.Character, bool) {
+// characterCatalog is the character catalog the session runs under: the
+// mods' merged catalog when a mod's characters file made one, else the
+// install's npc.reg records; nil with no table.
+func characterCatalog(t *mapload.Table) []mod.Character {
 	if t == nil {
-		return mod.Character{}, false
+		return nil
 	}
-	list := t.Mods.Catalog
-	if list == nil {
-		list = installCharacters(t)
+	if t.Mods.Catalog != nil {
+		return t.Mods.Catalog
 	}
-	for _, c := range list {
+	return installCharacters(t)
+}
+
+// catalogCharacter is the character key names in the catalog the session
+// runs under.
+func catalogCharacter(t *mapload.Table, key string) (mod.Character, bool) {
+	for _, c := range characterCatalog(t) {
 		if c.Key == key {
 			return c, true
 		}

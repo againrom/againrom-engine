@@ -264,7 +264,7 @@ func (s *mapInspectionEdits) ModSummary() string {
 }
 
 func (s *mapInspectionEdits) ModOutput() string {
-	if s.inspector.modOutput == "" {
+	if s.inspector.modOutput == "" || s.workspace == nil {
 		return ""
 	}
 	return filepath.Join(s.inspector.modOutput, mod.PackedName(s.workspace.Package.ID))

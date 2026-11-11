@@ -83,34 +83,6 @@ func (f *FrontEnd) setModSpeakers(d mod.SpeakerData) ([]mod.Override, error) {
 	return overrides, nil
 }
 
-// useModSpeakers lays the mod's speaker records over the editor's table. The
-// table is a copy when the catalog changes, so the editor's map starts are
-// built again and a table another inspector holds keeps its own records.
-func (x *MapInspector) useModSpeakers(d mod.SpeakerData) error {
-	if x.table == nil {
-		return nil
-	}
-	records, _, err := mod.MergeSpeakers(d)
-	if err != nil {
-		return err
-	}
-	layer, err := speakerLayer(records, x.speakerSelector())
-	if err != nil {
-		return err
-	}
-	held := false
-	for _, e := range x.table.NPCCatalog.Records() {
-		held = held || e.Mod != ""
-	}
-	if len(layer) == 0 && !held {
-		return nil
-	}
-	t := *x.table
-	t.NPCCatalog = t.NPCCatalog.WithLayer(layer)
-	x.table = &t
-	return nil
-}
-
 // speakerSelector is the install's text selector, 0 with no install open.
 func (x *MapInspector) speakerSelector() int {
 	if x.archives == nil || x.archives.Containers == nil {
@@ -221,10 +193,10 @@ func (s *mapInspectionEdits) SpeakerAddRefusal(miss ui.SpeakerMiss) string {
 
 // AddSpeaker writes a speaker record bound by script number to placement unit
 // into the mod that holds the open map: the PNG at the host path picture is
-// copied into the mod, the record added to its speakers file, and the record
-// laid over the editor's catalog. It answers the record's number. Everything
-// that can refuse runs before the first write, and a write that fails puts
-// back what the add changed.
+// copied into the mod, the record added to its speakers file, and the mod's
+// context built again so the editor's catalog holds the record. It answers
+// the record's number. A write that fails, or a context the written folder
+// does not open in, puts back what the add changed.
 func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, error) {
 	x := s.inspector
 	key, ok := s.speakerMapKey()
@@ -269,12 +241,7 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	}
 	rec := mod.Speaker{ID: id, Name: name, Picture: speakerPictureFile(id), Map: key, Unit: int32(unitID), Bound: true}
 	src := mod.AppendSpeaker(before, rec)
-	d, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, map[string][]byte{rec.Picture: pic})
-	if err != nil {
-		return 0, err
-	}
-	table := x.table
-	if err := x.useModSpeakers(d); err != nil {
+	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, map[string][]byte{rec.Picture: pic}); err != nil {
 		return 0, err
 	}
 	root := ""
@@ -283,7 +250,6 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	}
 	undo, err := writeSpeakerFiles(root, m.dir, []modFileWrite{{rec.Picture, pic}, {mod.SpeakersFile, src}})
 	if err != nil {
-		x.table = table
 		return 0, fmt.Errorf("mod %q: %w", m.id, err)
 	}
 	// The record is in the mod folder now. A package build and a test play
@@ -293,10 +259,13 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	digest, err := mod.ContentDigest(m.dir)
 	if err != nil {
 		undo()
-		x.table = table
 		return 0, err
 	}
-	m.digest = digest
+	if err := x.reopenModContext(); err != nil {
+		undo()
+		return 0, fmt.Errorf("mod %q: %w", m.id, err)
+	}
+	x.mod.digest = digest
 	s.speakers = nil
 	return int64(id), nil
 }

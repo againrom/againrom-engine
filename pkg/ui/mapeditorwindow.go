@@ -1267,7 +1267,7 @@ func (e *MapEditor) markArmedPick(s *popupSpec) {
 func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.panels.hostable = false
 	e.obj.viewOffer = false
-	if e.modWindow && !e.prompt.open() && !e.catalog {
+	if e.modWindow && !e.prompt.open() && (!e.catalog || e.modOverCatalog()) {
 		return e.modSpec()
 	}
 	if e.messagePage != 0 && (!e.objectBlocked() || !e.catalog && !e.objectHidden && e.speakerPicking()) {

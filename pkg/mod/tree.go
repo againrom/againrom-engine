@@ -546,6 +546,29 @@ func (d *packedDir) ReadDir(n int) ([]fs.DirEntry, error) {
 
 // Digest is ContentDigest of the tree.
 func (t Tree) Digest() (string, error) {
+	paths, err := t.Files()
+	if err != nil {
+		return "", err
+	}
+	h := sha256.New()
+	for _, p := range paths {
+		data, err := t.ReadFile(p)
+		if err != nil {
+			return "", err
+		}
+		switch namefold.Host(path.Ext(p)) {
+		case ".toml", ".star", ".txt", ".md":
+			data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+		}
+		fmt.Fprintf(h, "%s\x00%d\x00", p, len(data))
+		h.Write(data)
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// Files is the mod's files the digest covers, as sorted slash paths: every
+// regular file outside a dotted name, but the top README.md.
+func (t Tree) Files() ([]string, error) {
 	var paths []string
 	err := t.WalkDir(func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -565,21 +588,8 @@ func (t Tree) Digest() (string, error) {
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	sort.Strings(paths)
-	h := sha256.New()
-	for _, p := range paths {
-		data, err := t.ReadFile(p)
-		if err != nil {
-			return "", err
-		}
-		switch namefold.Host(path.Ext(p)) {
-		case ".toml", ".star", ".txt", ".md":
-			data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
-		}
-		fmt.Fprintf(h, "%s\x00%d\x00", p, len(data))
-		h.Write(data)
-	}
-	return hex.EncodeToString(h.Sum(nil)), nil
+	return paths, nil
 }

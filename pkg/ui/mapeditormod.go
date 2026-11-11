@@ -21,6 +21,7 @@ func (e *MapEditor) FocusModField(key string) bool {
 	}
 	for i, f := range e.obj.fields {
 		if f.Key == key && !f.ReadOnly {
+			e.modPage = 0
 			e.obj.detail = f.Parent
 			e.objectSpec()
 			e.focusObjectField(i)
@@ -83,7 +84,7 @@ func (e *MapEditor) modAction(key, value string) error {
 	e.message = ""
 	e.modWindow = true
 	e.objectHidden = false
-	e.obj.doc = nil
+	e.dropObject()
 	e.loadObject()
 	e.obj.detail = detail
 	e.obj.focus = 0
@@ -97,7 +98,10 @@ func (e *MapEditor) modAction(key, value string) error {
 			}
 		}
 	}
-	if status, ok := e.doc.Edits.(interface{ SaveNote() string }); ok {
+	if key == "folder" || key == "folder-open" {
+		e.openModPage()
+	}
+	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {
 		e.modStatus = status.SaveNote()
 	}
 	e.objectSpec()
@@ -140,11 +144,27 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		}
 		return true, nil
 	}
+	if e.modPage == 1 && (key == "tab" || key == "backtab") {
+		n, step := e.modButtonCount(), 1
+		if key == "backtab" {
+			step = n - 1
+		}
+		o.focus = len(o.fields) + (max(0, o.focus-len(o.fields))+step)%n
+		return true, nil
+	}
 	switch key {
 	case "close":
 		e.closeObject()
 		return true, e.keyClose(key)
 	case "package":
+		// With an overview, the window's key turns its page.
+		if _, ok := e.modOverview(); ok {
+			if e.modPage == 0 && e.applyModField() != nil {
+				return true, nil
+			}
+			e.showModPage(1 - e.modPage)
+			return true, nil
+		}
 		return true, e.keyWorkspace(key)
 	case "saveas":
 		return true, e.modButton(2)
@@ -316,9 +336,19 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	o.rowActs = map[int][]string{}
 	s := popupSpec{Title: e.word("editor.mod.window"), Width: min(620, e.window.X-16), At: e.homeCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
-	e.objectFieldRows(&s, &links)
+	page, overview := e.modOverview()
+	if !overview {
+		e.modPage = 0
+	} else {
+		s.Tabs, s.ActiveTab, s.TabSwitch = []string{e.word("editor.mod.missions"), e.word("editor.mod.overview")}, e.modPage, true
+	}
+	if e.modPage == 1 {
+		e.modOverviewRows(&s, &links, page)
+	} else {
+		e.objectFieldRows(&s, &links)
+	}
 	for _, f := range o.fields {
-		if f.Key != "source" {
+		if f.Key != "source" || e.modPage == 1 {
 			continue
 		}
 		start := max(0, int(f.Value)-2)
@@ -354,10 +384,10 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		status = e.word("editor.mod.keys")
 	}
 	s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(status), s.Width-20)
-	if host, ok := e.doc.Edits.(interface{ ModSummary() string }); ok {
+	if host, ok := e.modEdits().(interface{ ModSummary() string }); ok {
 		s.Notes = append([]string{editorClip(e.bodyFont(), e.editorHostText(host.ModSummary()), s.Width-20)}, s.Notes...)
 	}
-	if host, ok := e.doc.Edits.(interface{ ModOutput() string }); ok {
+	if host, ok := e.modEdits().(interface{ ModOutput() string }); ok {
 		if output := host.ModOutput(); output != "" {
 			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(output), s.Width-20)...)
 		}
@@ -367,6 +397,23 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	s.Top = e.objectTop
 	s.ColumnTops = []int{0, e.objectTop}
 	return s, links, true
+}
+
+// modOverviewRows lays W's overview page: a heading per section and its
+// lines, broken to the window's width.
+func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverviewPage) {
+	o := &e.obj
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
+	o.first, o.rowField = len(s.Rows), map[int]int{}
+	s.Columns = 1
+	for _, section := range page.Sections {
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(section.Heading)}), append(*links, 0)
+		for _, line := range section.Lines {
+			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(line), s.Width-40) {
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
+			}
+		}
+	}
 }
 
 func (e *MapEditor) modPress(p image.Point) bool {
@@ -385,6 +432,13 @@ func (e *MapEditor) modPress(p image.Point) bool {
 		return true
 	}
 	if e.modConfirm != "" {
+		return true
+	}
+	if part == popupTab {
+		if e.modPage == 0 && e.applyModField() != nil {
+			return true
+		}
+		e.showModPage(n)
 		return true
 	}
 	if part == popupRowButton || part == popupRowControl || part == popupRowLine {

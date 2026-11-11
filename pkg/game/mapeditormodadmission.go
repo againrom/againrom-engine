@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 )
@@ -29,8 +28,11 @@ func checkMissionProjection(expected []mod.Mission, actual mod.MissionData) erro
 	return nil
 }
 
+// admitMissionPackage refuses a staged package the game would refuse: through
+// the admitted fork when an install table is open, else by the mission set
+// and map checks alone.
 func (x *MapInspector) admitMissionPackage(result modrt.Result) error {
-	if x.table == nil {
+	if x.contextBase().table == nil {
 		if err := x.checkMissionSet(result.Missions.Missions); err != nil {
 			return err
 		}
@@ -42,29 +44,6 @@ func (x *MapInspector) admitMissionPackage(result modrt.Result) error {
 		}
 		return nil
 	}
-	c, err := LoadCampaign(x.archives.Containers)
-	if err != nil {
-		return err
-	}
-	table, archives := *x.table, *x.archives
-	table.Mods = mapload.ModContext{}
-	archives.Containers, archives.mods = archives.Containers.Fork(), nil
-	f := &FrontEnd{InstallResources: InstallResources{Table: &table, Archives: &archives, Campaign: resolved(c, nil), Humans: table.Humans}}
-	if !result.Files.Empty() {
-		layer := f.modFileLayer()
-		layer.order = result.Files.Order
-		if err := layer.serveInstallFiles(f.Archives, result.Files.Files); err != nil {
-			return err
-		}
-		t, err := LoadTable(f.Archives.Containers)
-		if err != nil {
-			return err
-		}
-		f.Table, f.Humans = t, t.Humans
-	}
-	if err := f.SetMods(result.Rules, result.Set, false); err != nil {
-		return err
-	}
-	_, err = f.SetModData(result.Data)
+	_, _, err := x.admittedFork(result)
 	return err
 }

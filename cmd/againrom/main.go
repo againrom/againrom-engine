@@ -204,34 +204,12 @@ func dumpBase(front *game.FrontEnd, dir string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// modLines is the -check report of the active mods: one line for the set, one
-// per mod in load order with its settings, and the rules the mods set.
+// modLines is the -check report of the active mods, game.ModCheckLines
+// printed as the command's own lines.
 func modLines(res modrt.Result) []string {
-	lines := []string{fmt.Sprintf("againrom: %d mod(s) active on %s, mod-set %s", len(res.Ordered), res.Set.Base, res.Set.Digest())}
-	for i, m := range res.Ordered {
-		entry := res.Set.Mods[i]
-		var settings []string
-		for _, v := range entry.Settings {
-			settings = append(settings, v.Key+"="+v.Value.String())
-		}
-		lines = append(lines, fmt.Sprintf("againrom: mod %d: %s %s %q applies-to=%s settings=%s dir=%s", i+1,
-			m.Manifest.ID, m.Manifest.Version, m.Manifest.Title, strings.Join(m.Manifest.AppliesTo, ","),
-			strings.Join(settings, ","), m.Dir))
-	}
-	lines = append(lines, fmt.Sprintf("againrom: rules skill_cap=%d", res.Rules.SkillCap()))
-	for _, k := range mod.DataKinds() {
-		if line := k.Summary(res.Data); line != "" {
-			lines = append(lines, "againrom: "+line)
-		}
-	}
-	if !res.Files.Empty() {
-		var free []string
-		for _, m := range res.Set.Mods {
-			if m.StateFree {
-				free = append(free, m.ID)
-			}
-		}
-		lines = append(lines, fmt.Sprintf("againrom: install files=%d state-free=%s (a mod with no rule, no data file and no text file; the others are in a save's mod mark)", len(res.Files.Files), strings.Join(free, ",")))
+	lines := game.ModCheckLines(res)
+	for i, l := range lines {
+		lines[i] = "againrom: " + l
 	}
 	return lines
 }

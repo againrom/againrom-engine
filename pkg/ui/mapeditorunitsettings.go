@@ -64,6 +64,9 @@ func (e *MapEditor) unitTextTyping() bool {
 // field is typed in, the draft is built once it has stayed unchanged for
 // unitTypingPause; commit builds it at once.
 func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionField) {
+	if e.doc == nil {
+		return nil, nil
+	}
 	kind, index := e.selectedRecord()
 	host, ok := e.doc.Edits.(InspectionUnitSettings)
 	if kind != KindUnit || !ok {

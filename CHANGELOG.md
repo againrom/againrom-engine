@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] Publishing a mod keeps long map, folder and data file names, including Cyrillic names, up to 255 UTF-8 bytes per name. A packed mod keeps the same files and save compatibility as its working folder.
+- [ROM1] The map editor's mod window (W) now opens any mod, also one with no missions or a packed mod file, which opens read-only, also with no map open; an Overview page lists what the mod holds, what the game reports for it, its files and its warnings, and the mod's terrain, characters and items are in the editor's lists.
 
 ## 0.151.1
 

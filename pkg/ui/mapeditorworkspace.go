@@ -15,7 +15,87 @@ type InspectionWorkspace interface {
 	SetWorkspaceField(scope, key, value string) (*InspectionDocument, error)
 }
 
+// ModOverviewSection is one heading of the overview page of the mod W has
+// open, with its lines.
+type ModOverviewSection struct {
+	Heading string
+	Lines   []string
+}
+
+// ModOverviewPage is that page: its sections, and whether W shows it first,
+// for a mod no mission of which opens.
+type ModOverviewPage struct {
+	Sections []ModOverviewSection
+	First    bool
+}
+
+// ModOverview is a document host that gives W the overview page of the mod
+// open in it; a page with no section is none.
+type ModOverview interface {
+	ModOverview() ModOverviewPage
+}
+
+// ModWindowHost is what W works through with no map open: the mod's fields
+// and overview, and the open of a mod. A map's own host answers the same.
+type ModWindowHost interface {
+	InspectionWorkspace
+	ModOverview
+}
+
+// SetModHost gives the editor the host W works through with no map open.
+func (e *MapEditor) SetModHost(host func() ModWindowHost) { e.modHost = host }
+
+// modEdits is the host W works through: the open map's, else with no map
+// the mod host's.
+func (e *MapEditor) modEdits() any {
+	if e.doc != nil {
+		return e.doc.Edits
+	}
+	if e.modHost != nil {
+		return e.modHost()
+	}
+	return nil
+}
+
+// modOverCatalog reports the mod window open over the map list, the state
+// of W with no map open.
+func (e *MapEditor) modOverCatalog() bool { return e.modWindow && e.catalog && e.doc == nil }
+
+// modOverview is the overview page of the mod W has open, false with none.
+func (e *MapEditor) modOverview() (ModOverviewPage, bool) {
+	host, ok := e.modEdits().(ModOverview)
+	if !ok {
+		return ModOverviewPage{}, false
+	}
+	p := host.ModOverview()
+	return p, len(p.Sections) > 0
+}
+
+// showModPage shows W's page n, 1 the overview: its rows from the top, the
+// keyboard on its first control.
+func (e *MapEditor) showModPage(n int) {
+	e.modPage, e.objectTop = n, 0
+	e.obj.focus = 0
+	if n == 1 {
+		e.obj.focus = len(e.obj.fields)
+	}
+}
+
+// openModPage shows the page W opens a mod on: the overview when the host
+// says so, else the mod's fields.
+func (e *MapEditor) openModPage() {
+	if p, ok := e.modOverview(); ok && p.First {
+		e.showModPage(1)
+		return
+	}
+	e.modPage = 0
+}
+
 func (e *MapEditor) workspace() (InspectionWorkspace, bool) {
+	if e.doc == nil && e.modWindow {
+		host, ok := e.modEdits().(InspectionWorkspace)
+		return host, ok
+	}
 	if !e.editable() {
 		return nil, false
 	}
@@ -25,7 +105,11 @@ func (e *MapEditor) workspace() (InspectionWorkspace, bool) {
 
 func (e *MapEditor) keyWorkspace(key string) error {
 	host, ok := e.workspace()
-	if !ok || e.catalog {
+	noMap := e.doc == nil && key == "package"
+	if noMap {
+		host, ok = e.modEdits().(InspectionWorkspace)
+	}
+	if !ok || e.catalog && !noMap {
 		e.message = "Open a map to edit its metadata, pages or mod package."
 		return nil
 	}
@@ -40,10 +124,11 @@ func (e *MapEditor) keyWorkspace(key string) error {
 		e.modWindow = true
 		e.modConfirm = ""
 		e.objectHidden = false
-		e.obj.doc = nil
+		e.dropObject()
 		e.loadObject()
 		e.objectSpec()
 		e.FocusModField("folder")
+		e.openModPage()
 		return nil
 	}
 	e.openPrompt(editorPrompt{kind: promptWorkspace, scope: key, path: fieldInput(fields[0])})

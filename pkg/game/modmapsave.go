@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,43 +12,55 @@ import (
 	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
-	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
 
 // editorMod is the mod folder the map editor's Save writes into, with the
-// missions its data/missions.toml declares in the install's language.
+// missions its data/missions.toml declares in the install's language, and
+// the context its admitted fork gives the editor: the table and tileset, the
+// character catalog, and what applying the mod's data reported. Its files,
+// the kinds whose files it holds and its check report make its overview.
 type editorMod struct {
 	source, manifest []byte
 	digest           string
 	catalog          []mod.Character
+	context          *editorContext
+	report           ModDataReport
+	fileOverrides    []string
+	files, kinds     []string
+	checkLines       []string
+	refusal          string // why the game refuses the mod's missions; empty when it admits them
 	contextIssue     string
 	dir              string
 	id               string
 	missions         mod.MissionData
 	owned            bool
+	packed           bool
 	copyOnly         bool
 	selected         string
 	title            string
 }
 
-// SetMod names the mod folder dir the editor's Save writes into: Save writes
-// the edited map to the path the mod's mission entry for that map names. dir
-// must be a mod folder outside the install whose data/missions.toml reads.
+// SetMod is the editor's one open route: it opens the mod at dir, a folder or
+// a packed file holding any kinds, runs it and makes it the mod the editor
+// works in. Save writes the edited map to the path the mod's mission entry
+// for that map names. A folder must lie outside the install; a packed mod
+// opens read-only.
 func (x *MapInspector) SetMod(dir string) error {
-	if t, err := mod.OpenTree(dir); err == nil && t.Packed() {
-		return fmt.Errorf("%s is a packed mod; the editor saves into a mod folder", dir)
-	}
 	e := mod.Load(dir)
 	if e.Err != nil {
 		return fmt.Errorf("mod folder %s: %v", dir, e.Err)
+	}
+	tree, err := mod.OpenTree(dir)
+	if err != nil {
+		return fmt.Errorf("mod folder %s: %v", dir, err)
 	}
 	root := ""
 	if x.archives != nil {
 		root = x.archives.Root
 	}
-	if root != "" {
+	if root != "" && !tree.Packed() {
 		inside, err := pathWithin(root, dir)
 		if err != nil {
 			return err
@@ -62,55 +75,87 @@ func (x *MapInspector) SetMod(dir string) error {
 			lang = l.Code
 		}
 	}
-	src, _, err := mod.ReadInside(dir, mod.MissionsFile)
-	if err != nil {
-		return fmt.Errorf("mod %q declares no missions: %v", e.Manifest.ID, err)
-	}
-	look, err := mod.TextLookup(dir, lang)
-	if err != nil {
-		return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
-	}
-	d, err := mod.ParseMissions(e.Manifest.ID, mod.MissionsFile, src, look, lang)
-	if err != nil {
-		return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+	var src []byte
+	var d mod.MissionData
+	if _, err := tree.Lstat(mod.MissionsFile); !errors.Is(err, fs.ErrNotExist) {
+		if src, _, err = tree.ReadInside(mod.MissionsFile); err != nil {
+			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+		}
+		look, err := mod.TextLookup(dir, lang)
+		if err != nil {
+			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+		}
+		if d, err = mod.ParseMissions(e.Manifest.ID, mod.MissionsFile, src, look, lang); err != nil {
+			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+		}
 	}
 	owned := false
-	if _, err := os.Lstat(filepath.Join(dir, editorPackageRecord)); err == nil {
+	if _, err := os.Lstat(filepath.Join(dir, editorPackageRecord)); err == nil && !tree.Packed() {
 		if _, err := missionPackageOwnership(dir, editorPackageRecord, nil); err != nil {
 			return err
 		}
 		owned = true
 	}
-	x.mod = &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, title: e.Manifest.Title}
-	x.mod.source = bytes.Clone(src)
-	x.mod.manifest, _, err = mod.ReadInside(dir, mod.ManifestName)
+	m := &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, packed: tree.Packed(), title: e.Manifest.Title}
+	if err := m.readInventory(tree); err != nil {
+		return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+	}
+	m.source = bytes.Clone(src)
+	m.manifest, _, err = mod.ReadInside(dir, mod.ManifestName)
 	if err != nil {
-		x.mod = nil
+		x.setEditorMod(nil)
 		return err
 	}
-	x.mod.digest, err = mod.ContentDigest(dir)
+	m.digest, err = mod.ContentDigest(dir)
 	if err != nil {
-		x.mod = nil
+		x.setEditorMod(nil)
 		return err
 	}
-	if result, e := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{}); e == nil {
-		var installed []mod.Character
-		if x.table != nil {
-			installed = installCharacters(x.table)
-		}
-		_, x.mod.catalog, _, _ = mod.MergeCharacters(result.Characters, installed)
-		if err := checkMissionProjection(d.Missions, result.Missions); err != nil {
-			x.mod.contextIssue = err.Error()
-		}
-		if err := x.useModTerrain(result); err != nil {
-			x.mod.contextIssue = err.Error()
-		}
-		if err := x.useModSpeakers(result.Data.Speakers); err != nil {
-			x.mod.contextIssue = err.Error()
-		}
-	} else {
-		x.mod.contextIssue = e.Error()
+	m.contextIssue = x.openModContext(m, e, root)
+	x.setEditorMod(m)
+	return nil
+}
+
+// readInventory lists the files of the mod's tree and the data kinds whose
+// files it holds: what the overview shows.
+func (m *editorMod) readInventory(tree mod.Tree) error {
+	files, err := tree.Files()
+	if err != nil {
+		return err
 	}
+	m.files, m.kinds = files, nil
+	for _, k := range mod.DataKinds() {
+		for _, name := range k.Files {
+			if _, err := tree.Stat(name); err == nil {
+				m.kinds = append(m.kinds, k.Name+": "+name)
+			}
+		}
+	}
+	return nil
+}
+
+// reopenModContext builds the context of the mod the editor works in again
+// from its folder, keeping the one in use when the mod no longer opens.
+func (x *MapInspector) reopenModContext() error {
+	m := x.mod
+	root := ""
+	if x.archives != nil {
+		root = x.archives.Root
+	}
+	next := *m
+	next.context, next.report, next.fileOverrides, next.refusal, next.checkLines = nil, ModDataReport{}, nil, "", nil
+	tree, err := mod.OpenTree(m.dir)
+	if err != nil {
+		return err
+	}
+	if err := next.readInventory(tree); err != nil {
+		return err
+	}
+	if issue := x.openModContext(&next, mod.Load(m.dir), root); issue != "" {
+		return errors.New(issue)
+	}
+	*m = next
+	x.setEditorMod(m)
 	return nil
 }
 
@@ -153,10 +198,23 @@ func (m *editorMod) entryFor(source string) (mod.Mission, bool) {
 	return mod.Mission{}, false
 }
 
+// modReadOnly is the one test at the write boundary of the mod the editor
+// works in: every edit W makes and every Save into the mod passes it. A
+// packed mod refuses them all; it answers nil for any other mod and none.
+func (x *MapInspector) modReadOnly() error {
+	if x.mod == nil || !x.mod.packed {
+		return nil
+	}
+	return fmt.Errorf("%s %s", x.word("editor.mod.packed"), x.mod.dir)
+}
+
 // ModTarget names the mod Save writes into; empty when none is named.
 func (s *mapInspectionEdits) ModTarget() string {
 	if s.inspector == nil || s.inspector.mod == nil {
 		return ""
+	}
+	if s.inspector.mod.packed {
+		return s.inspector.mod.id + " (" + s.inspector.word("editor.mod.packedtarget") + ")"
 	}
 	if s.inspector.mod.copyOnly {
 		return s.inspector.mod.id + " (read-only; W: copy)"
@@ -172,6 +230,9 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	m := s.inspector.mod
 	if m == nil {
 		return "", errors.New("no mod folder is named")
+	}
+	if err := s.inspector.modReadOnly(); err != nil {
+		return "", err
 	}
 	if m.copyOnly {
 		return "", errors.New("this imported mod is read-only; choose a folder with the same ID under another parent with W to save a complete copy")

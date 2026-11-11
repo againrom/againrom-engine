@@ -87,6 +87,10 @@ type objectEdit struct {
 
 // loadObject reads the selected record's fields when the record or the
 // document changed since they were read.
+// dropObject makes loadObject read the object window's fields again, with
+// no map open as with one.
+func (e *MapEditor) dropObject() { e.obj.doc, e.obj.record = nil, -2 }
+
 func (e *MapEditor) loadObject() {
 	o := &e.obj
 	if o.doc == e.doc && o.record == e.selected {

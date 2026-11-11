@@ -625,6 +625,17 @@ func (e *MapEditor) commandSetMapField(f mapField) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
+	if e.doc == nil {
+		// With no map open, a mod that names a mission opens its map.
+		if next == nil {
+			return editorChange{}, nil
+		}
+		if err := checkOpened(next); err != nil {
+			return editorChange{}, err
+		}
+		e.showOpened(next)
+		return editorChange{doc: next}, nil
+	}
 	return e.adopted(next, nil)
 }
 

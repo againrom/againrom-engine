@@ -1,10 +1,13 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"againrom/pkg/words"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,7 +18,19 @@ type modesWorkspace struct {
 	fields  []InspectionField
 	confirm *WorkspaceConfirmation
 	leave   *WorkspaceLeave
+	// overview is the mod's overview page; empty, W has none.
+	overview ModOverviewPage
 }
+
+// modesOverview is the overview of a mod no mission of which opens.
+var modesOverview = ModOverviewPage{First: true, Sections: []ModOverviewSection{
+	{Heading: "Kinds the mod holds", Lines: []string{"terrain: data/terrain.toml"}},
+	{Heading: "Report (againrom -check)", Lines: []string{"1 mod(s) active on rom1-en", "mod snow-field 1.0.0"}},
+	{Heading: "Files", Lines: []string{"data/terrain.toml", "mod.toml"}},
+	{Heading: "Refusals", Lines: []string{"none"}},
+}}
+
+func (p *modesWorkspace) ModOverview() ModOverviewPage { return p.overview }
 
 func newModesWorkspace() *modesWorkspace {
 	return &modesWorkspace{fields: []InspectionField{
@@ -228,5 +243,99 @@ func TestModWindowNativeKeysReachSaveHistoryAndReverseFocus(t *testing.T) {
 	updateEditorKeys(t, e, ebiten.KeyShift, ebiten.KeyTab)
 	if e.obj.fields[e.obj.focus].Key != "folder" {
 		t.Fatal("Shift+Tab did not move backward")
+	}
+}
+
+// W opens a mod whose host says so on its overview page: its sections are
+// the window's rows, the Missions tab turns to the mod's fields and the
+// window's key turns back. With no overview W keeps its fields alone.
+func TestModWindowOpensOnTheOverviewAndItsTabsTurnPages(t *testing.T) {
+	e, _ := newModesEditor(t, "workspace")
+	e.doc.Edits.(*modesWorkspace).overview = modesOverview
+	_ = e.Key("package")
+	s, _, ok := e.modSpec()
+	if !ok || e.modPage != 1 || len(s.Tabs) != 2 || s.ActiveTab != 1 {
+		t.Fatalf("page %d tabs %v active %d", e.modPage, s.Tabs, s.ActiveTab)
+	}
+	lines := strings.Join(e.PopupLines(), "\n")
+	for _, want := range []string{"Kinds the mod holds", "terrain: data/terrain.toml", "1 mod(s) active on rom1-en", "mod.toml"} {
+		if !strings.Contains(lines, want) {
+			t.Fatalf("overview lacks %q:\n%s", want, lines)
+		}
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	modesClick(e, center(l.Tabs[0]))
+	if e.modPage != 0 || !e.modWindow {
+		t.Fatalf("the Missions tab left page %d", e.modPage)
+	}
+	if !strings.Contains(strings.Join(e.PopupLines(), "\n"), "River") {
+		t.Fatal("the fields page lacks the mod's name")
+	}
+	_ = e.Key("package")
+	if e.modPage != 1 || !e.modWindow {
+		t.Fatalf("the window's key left page %d, open %v", e.modPage, e.modWindow)
+	}
+	plain, _ := newModesEditor(t, "workspace")
+	_ = plain.Key("package")
+	if s, _, _ := plain.modSpec(); plain.modPage != 0 || len(s.Tabs) != 0 {
+		t.Fatalf("without an overview: page %d tabs %v", plain.modPage, s.Tabs)
+	}
+}
+
+// noMapHost is a mod host that changes nothing with no map open.
+type noMapHost struct{ *modesWorkspace }
+
+func (noMapHost) SetWorkspaceField(scope, key, value string) (*InspectionDocument, error) {
+	return nil, errors.New("open a map first")
+}
+
+// With no map open W opens the mod window over the map list through the
+// mod host, on the mod's overview; its tabs and buttons answer, and what
+// edits a map's own data keeps its message.
+func TestModWindowOpensWithNoMapOpen(t *testing.T) {
+	e, _ := newModesEditor(t, "workspace")
+	host := e.doc.Edits.(*modesWorkspace)
+	host.overview = modesOverview
+	e.doc, e.catalog = nil, true
+	e.SetModHost(func() ModWindowHost { return noMapHost{host} })
+	if err := e.Key("pages"); err != nil || e.modWindow || e.message == "" {
+		t.Fatalf("pages with no map: %v window %v message %q", err, e.modWindow, e.message)
+	}
+	if err := e.Key("package"); err != nil || !e.modWindow {
+		t.Fatalf("W with no map: %v window %v", err, e.modWindow)
+	}
+	s, _, ok := e.modSpec()
+	if !ok || e.modPage != 1 || len(s.Tabs) != 2 {
+		t.Fatalf("page %d tabs %v", e.modPage, s.Tabs)
+	}
+	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "terrain: data/terrain.toml") {
+		t.Fatalf("overview lacks its lines:\n%s", lines)
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	_ = e.ChromeImage()
+	for _, p := range []image.Point{center(l.Tabs[0]), {X: 2, Y: 2}, {X: 900, Y: 500}} {
+		e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+		_ = e.ChromeImage()
+	}
+	modesClick(e, center(l.Tabs[0]))
+	if e.modPage != 0 || !e.modWindow {
+		t.Fatalf("the Missions tab left page %d", e.modPage)
+	}
+	for _, key := range []string{"tab", "backtab", "package", "package"} {
+		if err := e.Key(key); err != nil {
+			t.Fatalf("%s: %v", key, err)
+		}
+	}
+	s, _, _ = e.modSpec()
+	l = layoutPopup(s, e.font, e.bodyFont())
+	for n := range 4 {
+		modesClick(e, center(l.Buttons[n]))
+	}
+	if !e.modWindow || e.doc != nil {
+		t.Fatalf("a button left window %v map %v", e.modWindow, e.doc != nil)
+	}
+	modesClick(e, center(l.Buttons[4]))
+	if e.modWindow || !e.catalog {
+		t.Fatalf("Close left window %v catalog %v", e.modWindow, e.catalog)
 	}
 }
