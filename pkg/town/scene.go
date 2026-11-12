@@ -365,10 +365,12 @@ func (s *Scene) enter(now time.Time) {
 // SetActive is the scene's lifecycle. shown says whether the scene is the
 // screen shown; active is ignored when it is not. A scene asked to run that
 // is not ready is made ready: a shown scene prepares its actors, any other
-// is entered. A shown scene that is hidden is left and its room's audio
-// released; shown again it is entered. A pause clears the hover and stops
-// every slot and the entry loop; a resume restamps the clocks the scene
-// rebases, lets each actor rebase its own and starts the entry loop.
+// is entered. A shown scene that is hidden is left once and its room's audio
+// released; a hidden scene that was not present releases nothing, so a held
+// scene of another town never stops the shown room's sound. Shown again it
+// is entered. A pause clears the hover and stops every slot and the entry
+// loop; a resume restamps the clocks the scene rebases, lets each actor
+// rebase its own and starts the entry loop.
 func (s *Scene) SetActive(active, shown bool) {
 	active = active && shown
 	followsShow := s.spec.Lifecycle == LifecycleShown
@@ -384,7 +386,7 @@ func (s *Scene) SetActive(active, shown bool) {
 			s.Enter()
 		}
 	}
-	if followsShow && !shown {
+	if followsShow && !shown && s.present {
 		s.host.Leave(s.name)
 		s.present = false
 		for _, a := range s.actors {
