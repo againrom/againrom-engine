@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 - [BASE] A shop sells every scroll in a stack of 51 to 100 at the same price per scroll; before, a shop held only one or a few of a scroll.
 - [ROM2] A mage casting by himself also picks a target that a unit of an allied player sees, not only one your own units see.
 - [ROM2] Town sound and speech no longer go silent after you have visited another town in the same run: the square, the inn and its talk, and the shop keep their sound in the later town, and in a town you load after another.
+- [ROM2] The mission menu shows the whole "Abandon, return to town" line in English and Russian, and the window widens for it; before, the line was cut to "Abandon, return to to...".
 
 ### For map makers and modders
 
@@ -38,6 +39,9 @@ modder or developer can notice gets no entry.
 - [ROM1] Mods can choose the next mission, insert missions for the main party, and give a campaign mission to a guest hero or party. Saving and loading keeps the route and the waiting main party.
 
 - [BASE] A mod loads its held data files without a script. Check warns about files outside the fixed tree and old paths; publishing leaves unread files out of the pack and save mark while keeping every file its rows read. Old row paths and scripts still work. Speaker data now enters the save mark even without a script call.
+- [ROM1] A mod mission whose next mission is an earlier campaign mission no longer sends the campaign back to that chapter, so the town offers the same missions before and after you save and load it.
+- [ROM1] In the map editor, after Add open map, saving the mod into a folder that does not exist yet creates the folder and saves; before, the save failed with "cannot find the file".
+- [ROM2] The base dump of the second game loads back as a mod that changes nothing: its three towns are listed as comments for reading. Before, loading the dump as a mod was refused.
 
 ## 0.152.0
 

@@ -189,8 +189,8 @@ func treeOf(t *testing.T, dir string) []string {
 	return out
 }
 
-// The second game's dump lists its three towns with every key but name,
-// says that the second game reads no towns layer and names no entry script.
+// The second game's dump comments out its three towns with every key but
+// name, says that the second game reads no towns layer, names no script.
 func TestBaseDumpOfTheSecondGame(t *testing.T) {
 	f := dumpFront(t)
 	f.Archives.Base.Profile.Game = "rom2"
@@ -198,16 +198,26 @@ func TestBaseDumpOfTheSecondGame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	records, _, err := mod.ParseTowns("dump", mod.TownsFile, layer.data)
+	records, rows, err := mod.ParseTowns("dump", mod.TownsFile, layer.data)
+	if err != nil || len(records) != 0 || len(rows) != 0 {
+		t.Fatalf("the loader reads %d towns and %d rows (%v):\n%s", len(records), len(rows), err, layer.data)
+	}
+	var shown []string
+	for _, line := range strings.Split(string(layer.data), "\n") {
+		if text, ok := strings.CutPrefix(line, "# "); ok && !strings.HasPrefix(text, "Layer 0") && !strings.Contains(text, layer.note) {
+			shown = append(shown, text)
+		}
+	}
+	commented, _, err := mod.ParseTowns("dump", mod.TownsFile, []byte(strings.Join(shown, "\n")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var ids []int
-	for _, r := range records {
+	for _, r := range commented {
 		ids = append(ids, r.Entry.ID)
 	}
 	if layer.read || !slices.Equal(ids, []int{1, 2, 3}) || !strings.Contains(layer.note, "the second game reads no towns layer") || strings.Contains(layer.note, "main.star") ||
-		!strings.Contains(string(layer.data), "# "+layer.note) {
+		!strings.Contains(string(layer.data), "# "+layer.note) || strings.Contains(string(layer.data), "Keep the [[town]]") {
 		t.Fatalf("read %v towns %v note %q:\n%s", layer.read, ids, layer.note, layer.data)
 	}
 }

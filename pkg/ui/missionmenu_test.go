@@ -274,14 +274,45 @@ func TestNativeMissionMenuModRowsFitAndClick(t *testing.T) {
 		a.flow.rebuildGameMenu(gameMenuRoot, 0)
 		rows := a.flow.menuRows()
 		got := rows[len(rows)-1].Label
-		if want := menuFit(a.flow.menuFont).Fit(label, 200-gameMenuTextX); got != want || !strings.HasSuffix(got, textfit.Mark) {
+		widest := 6*dialogSnapTileW - gameMenuRowLeft - gameMenuRowInsetR
+		if want := menuFit(a.flow.menuFont).Fit(label, widest-gameMenuTextX); got != want || !strings.HasSuffix(got, textfit.Mark) {
 			t.Fatalf("native label %q, want %q", got, want)
 		}
-		if w, _ := a.flow.menuFont.Measure(got); w > 200-gameMenuTextX {
+		if w, _ := a.flow.menuFont.Measure(got); w > widest-gameMenuTextX {
 			t.Fatalf("native label width %d", w)
+		}
+		if p := gameMenuPanelRectFor(gameMenuMission, rows, a.flow.menuGeometryProfile()); p.Dx() != 6*dialogSnapTileW {
+			t.Fatalf("native panel %v, want %d wide", p, 6*dialogSnapTileW)
 		}
 		if pic := a.GameMenuPanel(); pic == nil {
 			t.Fatal("label did not compose")
+		}
+	})
+	t.Run("confirm", func(t *testing.T) {
+		a := nativeMenuApp(t, image.Pt(1024, 768))
+		title := "Abandon"
+		for w, _ := a.flow.menuFont.Measure(title); w <= 3*dialogSnapTileW-gameMenuRowLeft-gameMenuRowInsetR; w, _ = a.flow.menuFont.Measure(title) {
+			title += " and go"
+		}
+		if w, _ := a.flow.menuFont.Measure(title); w > 4*dialogSnapTileW-gameMenuRowLeft-gameMenuRowInsetR-gameMenuTextX {
+			t.Fatalf("fixture title is %d wide", w)
+		}
+		a.flow.modUI.screens = []ModScreen{{Kind: ModActionAbandon, Game: true, MenuLabel: "Abandon mission", Title: title}}
+		a.flow.modUI.pending = 1
+		a.flow.rebuildGameMenu(gameMenuModActionConfirmation, 0)
+		rows := a.flow.menuRows()
+		if len(rows) != 2 || rows[0].Label != title {
+			t.Fatalf("confirming rows %+v, want the whole %q", rows, title)
+		}
+		p := gameMenuPanelRectFor(a.flow.menuPanelSurface(), rows, a.flow.menuGeometryProfile())
+		box := windowFrame(p, nil).rect()
+		if p.Dx() != 4*dialogSnapTileW || box.Min.X != (640-box.Dx())/2 {
+			t.Fatalf("confirming panel %v frame %v, want %d wide and centred", p, box, 4*dialogSnapTileW)
+		}
+		r := gameMenuRowRect(p, 0)
+		x, y, ok := a.nativeFrameToWindow(image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
+		if hit, hitOK := a.gameMenuButtonAt(appInput{CursorX: x, CursorY: y}); !ok || !hitOK || hit != 0 {
+			t.Fatalf("the confirming row's centre hits %d %v", hit, hitOK)
 		}
 	})
 }

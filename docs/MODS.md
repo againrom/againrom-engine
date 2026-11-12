@@ -1648,8 +1648,9 @@ To make a mod from the dump:
    refusal names the file and the line.
 
 The second game reads no towns layer of `[[town]]` tables. Its dump still
-lists its three towns in `data/towns.toml`, for reading, and says so in the
-file and in the printed lines. A second-game
+lists its three towns in `data/towns.toml`, as comment lines for reading, and
+says so in the file and in the printed lines; the dump loads as a mod that
+changes nothing. A second-game
 town has no `name` key: the second game draws no name from its catalog. The
 dump writes no `[[inn]]` table; a second-game mod that changes an inn row
 writes its own `data/towns.toml` holding only `[[inn]]` tables (see "Inn

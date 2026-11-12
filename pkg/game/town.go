@@ -524,8 +524,9 @@ func (t *Town) Won(n int) (side bool, accepted bool) {
 	t.applyMercenaryUnlocks(n)
 	side = t.records.removeChild(n)
 	routed := n == t.main
+	taken := false
 	if next, ok := t.camp.AutoAdvance(n); ok {
-		t.records.follow(t.camp, next)
+		taken = t.records.follow(t.camp, next)
 		t.main, t.selected = t.records.main.mission, next
 	} else if t.camp.TownAfter[n] {
 		if offer, ok := t.camp.NextMission(t.main); ok {
@@ -541,7 +542,7 @@ func (t *Town) Won(n int) (side bool, accepted bool) {
 		t.announceMission(next)
 	}
 	t.refreshAvailable()
-	if _, ok := t.camp.AutoAdvance(n); !ok {
+	if !taken {
 		t.selected = t.main
 	}
 	return side, true

@@ -444,7 +444,9 @@ func (p *campaignProgress) complete(c Campaign, mission int) (side bool, ok bool
 
 func (p *campaignProgress) follow(c Campaign, mission int) {
 	if containsMission(c.Main, mission) {
-		p.loadMain(c, mission, true)
+		if mission >= p.main.mission {
+			p.loadMain(c, mission, true)
+		}
 	} else {
 		p.campaignRecords.follow(c, mission)
 		p.selected = mission

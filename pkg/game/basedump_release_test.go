@@ -300,20 +300,21 @@ func TestReleaseSecondTownBaseDumpListsItsThreeTowns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	records, _, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
-	if err != nil {
-		t.Fatal(err)
+	var ids []string
+	for _, line := range strings.Split(string(towns), "\n") {
+		if id, ok := strings.CutPrefix(line, "# id"); ok {
+			ids = append(ids, strings.TrimSpace(strings.TrimLeft(id, " =")))
+		}
 	}
-	var ids []int
-	for _, r := range records {
-		ids = append(ids, r.Entry.ID)
-	}
-	if !slices.Equal(ids, []int{1, 2, 3}) || !strings.Contains(string(towns), "# "+report.Notes[0]) {
+	if !slices.Equal(ids, []string{"1", "2", "3"}) || !strings.Contains(string(towns), "# "+report.Notes[0]) {
 		t.Fatalf("towns %v:\n%s", ids, towns)
 	}
 	res := runTownModsFor(t, report.Base, mods, "base-dump")
 	if !res.Towns.Empty() {
 		t.Fatalf("the second game's dump layers %d towns", len(res.Towns.Records))
+	}
+	if _, err := f.SetModTowns(res.Towns); err != nil {
+		t.Fatalf("the second game refuses its own dump: %v", err)
 	}
 	t.Logf("%s", towns)
 }

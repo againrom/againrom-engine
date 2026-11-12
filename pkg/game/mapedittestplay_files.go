@@ -427,7 +427,11 @@ func (x *MapInspector) writeEditorProject(folder, id string, old []string, files
 	if err := guard(parent); err != nil {
 		return err
 	}
-	if _, err := os.Lstat(folder); err == nil {
+	_, err = os.Lstat(folder)
+	if errors.Is(err, os.ErrNotExist) {
+		replace = false
+	}
+	if err == nil {
 		for rel := range files {
 			full := filepath.Join(folder, filepath.FromSlash(rel))
 			if err := checkModMapDirectory(root, folder, filepath.Dir(full), rel); err != nil {

@@ -116,6 +116,19 @@ func (pl menuWindowPlacement) grow(p image.Rectangle, need int) image.Rectangle 
 	return p
 }
 
+// widen gives a centred panel whole dialog tiles of width until it is need
+// wide or the next tile would leave the native canvas, and centres it again.
+func (pl menuWindowPlacement) widen(p image.Rectangle, need int) image.Rectangle {
+	if !pl.centred {
+		return p
+	}
+	for p.Dx() < need && p.Dx()+dialogSnapTileW+dialogShadowBand <= frame.W {
+		p.Max.X += dialogSnapTileW
+	}
+	box := windowFrame(p, nil).rect()
+	return p.Add(image.Pt((frame.W-box.Dx())/2-box.Min.X, 0))
+}
+
 // hold runs the map's held step under a window over the mission.
 func (u menuUnderlay) hold(a *App, in appInput, now time.Time) {
 	if u == mapUnderlay {

@@ -260,20 +260,20 @@ func townCatalogTakesLayer(c *town.Catalog) bool {
 // town with no name of its own is drawn with the install's home title, so
 // its name is that title as UTF-8 that encodes back to the same bytes; a
 // title that does not is left out with a note. The second game's catalog
-// takes no layer: its file is for reading.
+// takes no layer: its towns are comments.
 func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 	book := townBookOf(f.Base().Profile)
 	if book == nil {
 		return baseDumpLayer{}, fmt.Errorf("%s has no town catalog", baseID)
 	}
 	layer := baseDumpLayer{file: mod.TownsFile, read: townCatalogTakesLayer(book.catalog)}
-	head := []string{
-		fmt.Sprintf("Layer 0 of the town catalog of %s: every town with every key, at its value.", baseID),
-		"Keep the [[town]] tables you change and, in each, id and the keys you change.",
+	head := []string{fmt.Sprintf("Layer 0 of the town catalog of %s: every town with every key, at its value.", baseID)}
+	if layer.read {
+		head = append(head, "Keep the [[town]] tables you change and, in each, id and the keys you change.")
 	}
 	entries := slices.Clone(book.catalog.Towns)
 	if !layer.read {
-		layer.note = mod.TownsFile + ": the second game reads no towns layer; the file is for reading only"
+		layer.note = mod.TownsFile + ": the second game reads no towns layer; its towns stand below as comments, for reading"
 		head = append(head, layer.note+".")
 	} else if name, ok := decodeSaveLabel(f.Words.WorldHomeTitle, f.textSelector()); ok && strings.TrimSpace(name) != "" {
 		for i := range entries {
@@ -289,6 +289,14 @@ func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 	if c := f.Campaign.Value(); layer.read && f.Campaign.Err() == nil {
 		rows = scenarioTavern(c, book.chapterTowns())
 		head = append(head, "Each [[tavern]] table is a tavern row of the scenario; keep town, chapter and npc of a row you change.")
+	}
+	if !layer.read {
+		tables, err := mod.WriteTowns(nil, entries)
+		if err != nil {
+			return baseDumpLayer{}, err
+		}
+		head = append(append(head, ""), strings.Split(strings.TrimSuffix(string(tables), "\n"), "\n")...)
+		entries = nil
 	}
 	data, err := mod.WriteTowns(head, entries, rows...)
 	if err != nil {

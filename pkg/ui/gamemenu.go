@@ -129,6 +129,8 @@ type gameMenuRow struct {
 	// Mod is the 1-based index of the mod screen a gameMenuModScreen row opens,
 	// and zero for every other row.
 	Mod int
+	// Width is a mod row's label width in pixels.
+	Width int
 }
 
 func (r gameMenuRow) text() string {
@@ -195,6 +197,11 @@ func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, at ...menuPlace
 		if need > p.Dy() {
 			p = pl.grow(p, need)
 		}
+		width := 0
+		for _, r := range rows {
+			width = max(width, r.Width)
+		}
+		p = pl.widen(p, gameMenuRowLeft+gameMenuTextX+width+gameMenuRowInsetR)
 	}
 	return p
 }

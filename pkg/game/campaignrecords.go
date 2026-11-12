@@ -41,8 +41,11 @@ func (r *campaignRecords) loadMain(c Campaign, main int, announced bool) {
 	}
 }
 
-func (r *campaignRecords) follow(c Campaign, mission int) {
+func (r *campaignRecords) follow(c Campaign, mission int) bool {
 	if containsMission(c.Main, mission) {
+		if mission < r.main.mission {
+			return false
+		}
 		r.loadMain(c, mission, true)
 	} else {
 		if r.record(mission) == nil {
@@ -50,6 +53,7 @@ func (r *campaignRecords) follow(c Campaign, mission int) {
 		}
 		r.record(mission).announced = true
 	}
+	return true
 }
 
 func (r *campaignRecords) removeChild(mission int) bool {

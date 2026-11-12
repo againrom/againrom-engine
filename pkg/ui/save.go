@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"strings"
 
+	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textfit"
 )
@@ -119,8 +120,9 @@ func (f *flow) menuRows() []gameMenuRow {
 		if i < 0 || i >= len(f.modUI.screens) {
 			return []gameMenuRow{{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true}}
 		}
+		label, width := f.fitMenuRowLabel(f.menuDisplayText(f.modUI.screens[i].Title))
 		return []gameMenuRow{
-			{Label: f.fitMenuRowLabel(f.menuDisplayText(f.modUI.screens[i].Title)), Action: gameMenuModActionConfirm, Enabled: true, Literal: true, Mod: i + 1},
+			{Label: label, Action: gameMenuModActionConfirm, Enabled: true, Literal: true, Mod: i + 1, Width: width},
 			{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true},
 		}
 	}
@@ -141,27 +143,33 @@ func (f *flow) withModRows(rows []gameMenuRow) []gameMenuRow {
 			}
 			action = gameMenuModAction
 		}
+		label, width := f.fitMenuRowLabel(f.menuDisplayText(f.modUI.screens[i].MenuLabel))
 		rows = append(rows, gameMenuRow{
-			Label:   f.fitMenuRowLabel(f.menuDisplayText(f.modUI.screens[i].MenuLabel)),
+			Label:   label,
 			Action:  action,
 			Enabled: true,
 			Literal: true,
 			Mod:     i + 1,
+			Width:   width,
 		})
 	}
 	return rows
 }
 
-// fitMenuRowLabel clips a label already in the install's code page to the room a
-// row has for text, marking the cut, so a long mod label cannot run off its row.
-func (f *flow) fitMenuRowLabel(label string) string {
-	panel := gameMenuPanelRect(f.menuPanelSurface(), f.menuGeometryProfile())
+// fitMenuRowLabel clips a label in the install's code page to a row of the
+// widest panel, marking the cut, and answers the label and its width.
+func (f *flow) fitMenuRowLabel(label string) (string, int) {
+	pl := f.menuGeometryProfile()
+	panel := pl.widen(gameMenuPanelRect(f.menuPanelSurface(), pl), frame.W)
 	room := gameMenuRowRect(panel, 0).Dx() - gameMenuTextX
 	if f.menuFont == nil {
 		count := func(s string) int { return len(s) }
-		return textfit.Spec{Measure: count, Unit: textfit.Byte, Side: textfit.End}.Fit(label, room/pickerAdvance)
+		label = textfit.Spec{Measure: count, Unit: textfit.Byte, Side: textfit.End}.Fit(label, room/pickerAdvance)
+		return label, len(label) * pickerAdvance
 	}
-	return menuFit(f.menuFont).Fit(label, room)
+	label = menuFit(f.menuFont).Fit(label, room)
+	w, _ := f.menuFont.Measure(label)
+	return label, w
 }
 
 // menuFit is how the game menu fits text in the install's code page: one byte

@@ -124,6 +124,24 @@ func TestAChapterKeepsTheThreeListsApartAndTheSentinelInPlace(t *testing.T) {
 	}
 }
 
+func TestAnEarlierWinNeverMovesTheMainRecordBack(t *testing.T) {
+	town := newTownFixture(t)
+	want := town.Offers(TownTavern)
+	if _, ok := town.Won(10); !ok || len(want) == 0 {
+		t.Fatalf("Won(10) accepted %v, offers before %v", ok, want)
+	}
+	if got := town.Offers(TownTavern); town.Chapter() != 30 || !reflect.DeepEqual(got, want) {
+		t.Fatalf("after Won(10): chapter %d, tavern %v, want 30 and %v", town.Chapter(), got, want)
+	}
+	c := Campaign{Main: []int{10, 20, 30, 40}, Auto: map[int]int{35: 30}}
+	p := &campaignProgress{}
+	p.loadMain(c, 40, false)
+	p.children = append(p.children, progressRecordFromCampaign(c, 35))
+	if _, ok := p.complete(c, 35); !ok || p.main.mission != 40 || p.selected != 40 {
+		t.Fatalf("restored win of 35: accepted %v, main %d, selected %d, want 40", ok, p.main.mission, p.selected)
+	}
+}
+
 func TestTheCurrentChapterAdvancesOnlyOnMainCompletion(t *testing.T) {
 	town := newTownFixture(t)
 
