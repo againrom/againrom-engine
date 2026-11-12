@@ -83,6 +83,9 @@ func (s *CampaignSession) adopt(c *restoreCandidate) {
 	s.Shop = nil
 	s.Town = c.town
 	s.Carried = c.carried
+	if second := secondOf(s); second != nil {
+		second.entryParty, second.entryBag = nil, nil
+	}
 	s.Offered = c.offered
 	// Only a fully validated candidate may supply provenance. Old native and
 	// mission candidates supply nil, never the previous session's document.

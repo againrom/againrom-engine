@@ -419,10 +419,9 @@ func TestReleaseSecondBaseAbandonReturnsTheEntryItems(t *testing.T) {
 	}
 	pack, worn := secondBagTown(f)
 	bag := secondBagForm(*f.Town.second.heroBag())
-	held, entryHeld := slices.Concat(bag, pack), slices.Concat(entryBag, entryPack)
 	if a.Screen() != ui.ScreenTown || f.Town.second.current != secondTown(1) ||
 		f.Town.Gold() != gold || f.Town.Done(10) || !f.Town.second.has(secondMission(10)) ||
-		!secondBagHolds(bag, entryBag) || len(held) != len(entryHeld) || !secondBagHolds(held, entryHeld) ||
+		!slices.Equal(bag, entryBag) || !slices.Equal(pack, entryPack) ||
 		!slices.Equal(worn, entryWorn) {
 		t.Fatalf("abandon changed the entry town, offer, purse or items: %s %v gold %d of %d done %v offered %v bag %v of %v pack %v of %v worn %v of %v",
 			a.Screen(), f.Town.second.current, f.Town.Gold(), gold, f.Town.Done(10), f.Town.second.has(secondMission(10)),

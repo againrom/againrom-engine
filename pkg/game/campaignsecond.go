@@ -474,6 +474,7 @@ func (c destinationTownCampaign) savePoint() bool {
 func (c destinationTownCampaign) leave() {
 	if s := c.bank(); s != nil {
 		if s.leaveTown() {
+			s.entryParty, s.entryBag = mapload.CloneParty(c.t.sess.Carried), mapload.CloneParty(s.party)
 			c.t.sess.leftLocation(c.t.in.townInstall())
 		}
 		s.room = secondTownSquare

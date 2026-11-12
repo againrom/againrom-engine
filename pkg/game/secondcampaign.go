@@ -26,12 +26,14 @@ const (
 type secondAux [8][5]int32
 
 type secondCampaign struct {
-	bank      [1024]int32
-	available []partyPlace
-	current   partyPlace
-	entryTown partyPlace
-	room      secondTownRoom
-	shop      Shop
+	bank       [1024]int32
+	available  []partyPlace
+	current    partyPlace
+	entryTown  partyPlace
+	entryParty []mapload.PartyMember
+	entryBag   []mapload.PartyMember
+	room       secondTownRoom
+	shop       Shop
 	// party is the hero alone; his bag is the shop's customer.
 	party []mapload.PartyMember
 	// legacyHero is an older document's hero list waiting for the
@@ -161,6 +163,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32, fallen ...int) int {
 	c.openMap(c.current)
 	c.current, c.room = partyPlace{}, secondTownSquare
 	c.entryTown = partyPlace{}
+	c.entryParty, c.entryBag = nil, nil
 	return output
 }
 

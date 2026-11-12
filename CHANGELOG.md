@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] Abandoning a mission restores the backpack and town bag exactly as they were before entering it, with every item in its original place.
+
 - [ROM2] Use Ctrl+F4 through Ctrl+F12 to bind nine spell shortcuts, and F4 through F12 to recall them. The first game keeps its existing keys.
 - [ROM2] Quick save is Shift+F4 and quick load is Shift+F9, because F4 through F12 now recall spell shortcuts.
 - [ROM2] Holding Ctrl with G, D, C, S, T, R or M no longer also issues that letter's ordinary order.

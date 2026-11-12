@@ -326,7 +326,10 @@ func (s *CampaignSession) leaveLive(in townInstall, n int, ms *Mission, restart 
 			if !c.has(c.current) {
 				c.available = append([]partyPlace{c.current}, c.available...)
 			}
-			if err := s.partyItems(in.table).arriveTown(); err != nil {
+			if c.entryParty != nil {
+				copy(s.Carried, mapload.CloneParty(c.entryParty))
+				c.party = mapload.CloneParty(c.entryBag)
+			} else if err := s.partyItems(in.table).arriveTown(); err != nil {
 				return err.Error()
 			}
 		}
