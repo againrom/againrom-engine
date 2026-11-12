@@ -43,6 +43,14 @@ func (f *FrontEnd) chatCommand(line string) {
 	}
 }
 
+func (f *FrontEnd) cheatsUnlocked() bool {
+	return f != nil && f.live != nil && f.live.cheatsUnlocked()
+}
+
+func (mw *mapWorld) cheatsUnlocked() bool {
+	return mw != nil && mw.cheats.privilege[sim.SelfSlot] > 50
+}
+
 func (f *FrontEnd) debugLetter(letter byte) {
 	if f != nil && f.live != nil {
 		f.live.debugLetter(letter)

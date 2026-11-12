@@ -692,7 +692,7 @@ func TestAFigureOverAnAbsentUnitPlacesNothingAndSurvives(t *testing.T) {
 	}
 }
 
-// The toggle (AC-11). Ctrl+L is the decoded key; bare L stays the chip.
+// The toggle (AC-11). Ctrl+L is the decoded key; the chip is a separate chord.
 
 func TestCtrlLFlipsTheDisplayAndBareLDoesNot(t *testing.T) {
 	a, v, seam := affOnMap(t)
@@ -700,14 +700,14 @@ func TestCtrlLFlipsTheDisplayAndBareLDoesNot(t *testing.T) {
 		t.Fatalf("a map screen opened with the display off")
 	}
 
-	// Bare L is still the chip and touches the display not at all.
+	// The chip chord touches the display not at all.
 	affSelect(t, a, v, affLoCol, affLoRow, selection{affLoID})
 	a.step(appInput{Chip: true}, affAt)
 	if on, _ := v.DamageNumerals(); !on {
-		t.Errorf("bare L flipped the display")
+		t.Errorf("the chip flipped the display")
 	}
 	if len(seam.blows) == 0 {
-		t.Errorf("bare L no longer chips")
+		t.Errorf("the chip no longer chips")
 	}
 
 	// Ctrl+L flips the display and chips nothing.

@@ -55,7 +55,7 @@ func TestShiftF4HeadlessRevealsMinimapWithoutSaving(t *testing.T) {
 	off := picture()
 	checkPixel(off, 130, color.RGBA{A: 255})
 	checkPixel(off, 106, color.RGBA{R: 100, G: 50, B: 20, A: 255})
-	if err := h.a.HeadlessKey("shift-f4"); err != nil {
+	if err := h.a.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	if !h.v.FogRevealed() {
@@ -73,7 +73,7 @@ func TestShiftF4HeadlessRevealsMinimapWithoutSaving(t *testing.T) {
 		}
 	}
 	h.a.headlessClock = haltAt(h.n)
-	if err := h.a.HeadlessKey("shift-f4"); err != nil {
+	if err := h.a.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	restored := picture()
@@ -176,7 +176,7 @@ func TestShiftF4CutsceneSkipAndHeldDrainOwnTheKey(t *testing.T) {
 		t.Fatal("draining release reached the map")
 	}
 	h.a.headlessClock = haltAt(h.n)
-	if err := h.a.HeadlessKey("shift-f4"); err != nil || !h.v.FogRevealed() || calls != 0 {
+	if err := h.a.HeadlessKey("ctrl-shift-f4"); err != nil || !h.v.FogRevealed() || calls != 0 {
 		t.Fatalf("fresh edge after drain: reveal=%v calls=%d err=%v", h.v.FogRevealed(), calls, err)
 	}
 }

@@ -46,7 +46,8 @@ func magicWitnessOpen(t *testing.T) (*FrontEnd, *ui.App, sim.Entity) {
 		}
 	}
 	// Enemy cards draw the exactly-7 captions only at full knowledge.
-	if err := app.HeadlessKey("shift-f4"); err != nil {
+	unlockCheats(f.live)
+	if err := app.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	var holders []sim.Entity
@@ -252,7 +253,8 @@ func TestReleaseMission51OgreTurtleKeepsItsMagic(t *testing.T) {
 			loaded.XPValue, turtle.CreatureSpells, turtle.KnownSpells, turtle.XPValue)
 	}
 	// Enemy cards draw the exactly-7 captions only at full knowledge.
-	if err := gapp.HeadlessKey("shift-f4"); err != nil {
+	unlockCheats(g.live)
+	if err := gapp.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	if !magicWitnessCaption(t, g, gapp, turtle.ID) || magicWitnessCaption(t, g, gapp, magicWitnessPlain(t, g)) {

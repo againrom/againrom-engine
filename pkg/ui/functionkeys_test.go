@@ -41,7 +41,7 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 			t.Errorf("binding %s = %q, want %q", field, bindings[field], want)
 		}
 	}
-	for field, suffix := range map[string]string{"QuickSave": " && !shiftHeld", "Reveal": " && shiftHeld"} {
+	for field, suffix := range map[string]string{"QuickSave": " && !shiftHeld", "Reveal": " && shiftHeld && ctrlHeld()"} {
 		want := "inpututil.IsKeyJustPressed(ebiten.KeyF4)" + suffix
 		if bindings[field] != want {
 			t.Errorf("binding %s = %q, want %q", field, bindings[field], want)

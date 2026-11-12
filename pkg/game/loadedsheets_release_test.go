@@ -173,11 +173,12 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 	}
 	// The cards are read at full knowledge: the kills that reach the loaded
 	// state raise the Diary, and a card at a lower level draws fewer groups.
-	if err := a.HeadlessKey("shift-f4"); err != nil {
+	unlockCheats(live)
+	if err := a.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := a.HeadlessKey("shift-f4"); err != nil {
+		if err := a.HeadlessKey("ctrl-shift-f4"); err != nil {
 			t.Fatal(err)
 		}
 	}()

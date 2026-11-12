@@ -351,7 +351,7 @@ func (mw *mapWorld) launchUnlock(fresh bool) {
 // debugLetter is Alt plus a letter: the adapter's key table, for an unlocked
 // Player only.
 func (mw *mapWorld) debugLetter(letter byte) {
-	if mw == nil || mw.world == nil || mw.mission == nil || mw.cheats.privilege[sim.SelfSlot] <= 50 {
+	if mw == nil || mw.world == nil || mw.mission == nil || !mw.cheatsUnlocked() {
 		return
 	}
 	g := mw.chatGame()

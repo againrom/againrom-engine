@@ -1758,7 +1758,7 @@ the rows on the screen.
 `target` of `open_menu`: `game` or `load`.
 
 `key` takes a name from this list, not case-sensitive: `enter`, `numpad-enter`,
-`escape`, `esc`, `load`, `l`, `f1` to `f9`, `f11`, `f12`, `shift-f4`, `ctrl-f5`
+`escape`, `esc`, `load`, `l`, `f1` to `f9`, `f11`, `f12`, `ctrl-shift-f4`, `ctrl-f5`
 to `ctrl-f8`, `help`, `readout`, `fps`, `alt-enter`, `alt-backspace`,
 `alt-f12`, `numpad-plus`, `numpad-minus`, `ctrl-numpad-plus`,
 `ctrl-numpad-minus`, `c`, `cast`, `pageup`, `pagedown`, `up`, `down`, `left`,

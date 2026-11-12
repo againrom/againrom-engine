@@ -128,7 +128,8 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 	app := cardCaptionMission(t, f, f.DirectNewGame(10))
 	app.SetTooltipDelayPreference(0, nil)
 	before := f.live.world.Hash()
-	if err := app.HeadlessKey("shift-f4"); err != nil {
+	unlockCheats(f.live)
+	if err := app.HeadlessKey("ctrl-shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	var creature, human sim.EntityID

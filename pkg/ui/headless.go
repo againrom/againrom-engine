@@ -102,8 +102,8 @@ func (a *App) HeadlessKey(name string) error {
 		in.LoadGame = true
 	case "f4":
 		in.QuickSave = true
-	case "shift-f4":
-		in.Reveal, in.ShiftHeld, in.Viewer.Shift = true, true, true
+	case "ctrl-shift-f4":
+		in.Reveal, in.ShiftHeld, in.Viewer.Shift, in.Viewer.Ctrl = true, true, true, true
 	case "f9":
 		in.QuickLoad = true
 	case "f11", "readout":
@@ -233,7 +233,7 @@ func (a *App) HeadlessKey(name string) error {
 // headlessKeyNames are the names HeadlessKey accepts, besides alt- followed
 // by one letter, a to z.
 var headlessKeyNames = []string{
-	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "shift-f4", "f9", "f11", "readout",
+	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "ctrl-shift-f4", "f9", "f11", "readout",
 	"f12", "fps", "alt-enter", "alt-backspace", "alt-f12", "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6",
 	"ctrl-f7", "ctrl-f8", "numpad-plus", "numpad-minus", "ctrl-numpad-plus", "ctrl-numpad-minus", "f1", "help",
 	"c", "cast", "pageup", "pagedown", "up", "down", "left", "right", "shift-left", "shift-right", "shift-home",

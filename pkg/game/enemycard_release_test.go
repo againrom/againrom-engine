@@ -270,7 +270,8 @@ func TestReleaseEnemyCardShiftF4ShowsEveryGroupForDisplayOnly(t *testing.T) {
 	hash, diaries := w.Hash(), w.SavedDiaries()
 	state := missionAutosaveSampleNow(t, f).State
 	for edge := range 2 {
-		if err := app.HeadlessKey("shift-f4"); err != nil {
+		unlockCheats(f.live)
+		if err := app.HeadlessKey("ctrl-shift-f4"); err != nil {
 			t.Fatal(err)
 		}
 		s, statement := enemyCardSubject(t, app, live, ids[0])

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] The debug keys K, L and Shift+F4 no longer act in a mission by accident. Kill, chip and map reveal moved to Ctrl+Shift+K, Ctrl+Shift+; and Ctrl+Shift+F4, and work only after the cheats are unlocked.
+
 ### For map makers and modders
 
 - [ROM1] W edits a mod’s version, author, description, target base and dependencies. Adding a speaker can be undone and is saved with the project; new packages and base dumps need no script. Saving keeps files the editor did not change and leaves a handwritten mod handwritten.

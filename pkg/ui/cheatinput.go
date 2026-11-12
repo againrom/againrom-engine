@@ -15,13 +15,14 @@ import (
 const cheatChatLimit = 256
 
 type cheatInputState struct {
-	chat    func(string)
-	alt     func(byte)
-	viewer  *Viewer
-	open    bool
-	line    string
-	image   *ebiten.Image
-	overlay textOverlay
+	chat     func(string)
+	alt      func(byte)
+	unlocked func() bool
+	viewer   *Viewer
+	open     bool
+	line     string
+	image    *ebiten.Image
+	overlay  textOverlay
 }
 
 var altLetterKeys = [...]ebiten.Key{
@@ -49,6 +50,13 @@ func (a *App) SetCheatCommands(chat func(string), alt func(byte)) {
 	if chat == nil {
 		a.cheatInput.open, a.cheatInput.line = false, ""
 	}
+}
+
+// SetCheatPrivilege installs the cheat-privilege test; nil means locked.
+func (a *App) SetCheatPrivilege(unlocked func() bool) { a.cheatInput.unlocked = unlocked }
+
+func (a *App) cheatsUnlocked() bool {
+	return a.cheatInput.unlocked != nil && a.cheatInput.unlocked()
 }
 
 func (a *App) dispatchCheatAlt(letter byte) {

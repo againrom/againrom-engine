@@ -155,7 +155,8 @@ type appInput struct {
 	Unpaced bool
 	Paced   bool
 
-	// Kill and Chip are the map screen's two DEBUG BLOW keys. They are press
+	// Kill and Chip are the map screen's two DEBUG BLOW chords (Ctrl+Shift+K and
+	// Ctrl+Shift+;), live only while the cheats are unlocked. They are press
 	// edges like the three above and unlike Viewer.Input's levels: a held key
 	// acts once, where a level would empty a company in a quarter of a second.
 	//
@@ -169,9 +170,8 @@ type appInput struct {
 	Chip bool
 
 	// Load is the MAIN MENU's own key for the LOAD GAME window. It is the same
-	// physical key Chip reads and there is no conflict: Chip is read on the map
-	// arm alone and this is read on the menu arm alone, so neither screen can
-	// reach the other's meaning. Its zero value is "not pressed", so every
+	// letter the map's Ctrl+L numerals read, on the menu arm alone, so neither
+	// screen can reach the other's meaning. Its zero value is "not pressed", so every
 	// existing literal that does not name it means what it always meant.
 	Load bool
 
@@ -196,16 +196,8 @@ type appInput struct {
 	// by scanning the original's own vkey-to-arm byte table for every key
 	// reaching the flip, 1 of 161 (ANIM-NUM-020, AI-KEYMOD-059, MENU-057).
 	//
-	// IT SHARES ITS LETTER WITH Chip ABOVE AND THE TWO ARE EXCLUSIVE. L was
-	// bound to the chip on this project's own authority, before anything was
-	// decoded about the letter; the decoded key needs the same letter under a
-	// modifier. So the split is made at the binding, by the same Ctrl read
-	// AttackHeld below already makes: a press of L reaches exactly one of them,
-	// and Ctrl+L no longer chips.
-	//
-	// Split at the CONSUMER instead, this snapshot would carry a Chip that is
-	// true on a frame that did not chip, and every existing literal that builds
-	// it by hand would be asserting something false.
+	// IT SHARES ITS LETTER WITH Load: bare L is the menu's, Ctrl+L this one,
+	// split at the binding by the same Ctrl read AttackHeld below makes.
 	//
 	// It is a press edge and is read on the MAP ARM ALONE, beside the two above
 	// and for their reasons. Its zero value is "not pressed", which is NOT the
@@ -580,12 +572,14 @@ func readAppInput(keys missionKeyAction) appInput {
 		// press edge; a held frame does not invent a frame-rate repeat cadence.
 		Unpaced: inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) && ctrlHeld(),
 		Paced:   inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) && ctrlHeld(),
-		Kill:    inpututil.IsKeyJustPressed(ebiten.KeyK),
-		// L IS SPLIT BY THE MODIFIER. Bare L chips; Ctrl+L flips the damage
-		// numerals, which is the decoded binding. The same Ctrl read AttackHeld
-		// below makes decides both, so the two cannot come to overlap or to leave
-		// a press unclaimed.
-		Chip: inpututil.IsKeyJustPressed(ebiten.KeyL) && !ctrlHeld(),
+		// Debug chords; the handlers also ask cheatsUnlocked. Ctrl+Shift+L is
+		// still the numerals', so the chip takes the key right of L.
+		Kill: inpututil.IsKeyJustPressed(ebiten.KeyK) && ctrlHeld() && shiftHeld,
+		// L IS SPLIT BY THE MODIFIER. Bare L is the menu's Load; Ctrl+L flips the
+		// damage numerals, which is the decoded binding. The same Ctrl read
+		// AttackHeld below makes decides both, so the two cannot come to overlap
+		// or to leave a press unclaimed.
+		Chip: inpututil.IsKeyJustPressed(ebiten.KeySemicolon) && ctrlHeld() && shiftHeld,
 		Load: inpututil.IsKeyJustPressed(ebiten.KeyL) && !ctrlHeld(),
 		// CTRL+L IS FLYING DAMAGE and Ctrl+O is smoothing (`MENU-057`,
 		// `ANIM-NUM-020`); the earlier keyboard table named them the other way
@@ -613,7 +607,7 @@ func readAppInput(keys missionKeyAction) appInput {
 		SaveGame:  inpututil.IsKeyJustPressed(ebiten.KeyF2),
 		LoadGame:  inpututil.IsKeyJustPressed(ebiten.KeyF3),
 		QuickSave: inpututil.IsKeyJustPressed(ebiten.KeyF4) && !shiftHeld,
-		Reveal:    inpututil.IsKeyJustPressed(ebiten.KeyF4) && shiftHeld,
+		Reveal:    inpututil.IsKeyJustPressed(ebiten.KeyF4) && shiftHeld && ctrlHeld(),
 		QuickLoad: inpututil.IsKeyJustPressed(ebiten.KeyF9),
 		QuickSpell: [4]bool{
 			inpututil.IsKeyJustPressed(ebiten.KeyF5),
@@ -2067,7 +2061,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			//
 			// It is the ONLY call to it and it is on THIS ARM, which is the
 			// whole of "on every other screen it does nothing".
-			if in.Reveal && !quickBlocked {
+			if in.Reveal && !quickBlocked && a.cheatsUnlocked() {
 				v.ToggleFogReveal()
 			}
 
@@ -2335,7 +2329,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			//
 			// A nil seam is the ordinary case for a loader that put nothing under
 			// the map, exactly as a nil tick is, and the keys then reach nothing.
-			if in.Kill || in.Chip {
+			if (in.Kill || in.Chip) && a.cheatsUnlocked() {
 				if affect := a.flow.affect; affect != nil {
 					marked := v.marked()
 					// Each key's own emission is ascending id, which is what makes

@@ -991,6 +991,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	}
 	a := ui.NewApp(title, f.Assets, rows, f.loadMap)
 	a.SetCheatCommands(f.chatCommand, f.debugLetter)
+	a.SetCheatPrivilege(f.cheatsUnlocked)
 	tooltipDelay, _ := f.Options.TooltipDelay()
 	a.SetTooltipDelayPreference(tooltipDelay, f.Options.SetTooltipDelay)
 	a.SetTooltipFont(f.tipFont())

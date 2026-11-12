@@ -95,6 +95,7 @@ func appRows(n int) []PickerRow {
 func newTestApp(t *testing.T, rows []PickerRow, load MapLoader) *App {
 	t.Helper()
 	a := NewApp("t", appAssets(t), rows, load)
+	a.SetCheatPrivilege(func() bool { return true })
 	a.Layout(frame.W, frame.H) // scale 1: window coordinates are frame coordinates
 	return a
 }

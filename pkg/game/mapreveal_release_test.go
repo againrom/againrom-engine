@@ -83,7 +83,8 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 		t.Fatal("initial production minimap", err)
 	}
 	for edge := range 2 {
-		if err := app.HeadlessKey("shift-f4"); err != nil {
+		unlockCheats(f.live)
+		if err := app.HeadlessKey("ctrl-shift-f4"); err != nil {
 			t.Fatal("ordinary App map chord", err)
 		}
 		if viewer.FogRevealed() != (edge == 0) {

@@ -59,7 +59,8 @@ func TestReleaseInformationCardStatesExperienceOnlyForHeroes(t *testing.T) {
 		if err := app.OpenMission(f.MissionOpener(40)); err != nil {
 			t.Fatal(err)
 		}
-		for _, key := range []string{"0", "shift-f4"} {
+		unlockCheats(f.live)
+		for _, key := range []string{"0", "ctrl-shift-f4"} {
 			if err := app.HeadlessKey(key); err != nil {
 				t.Fatal(err)
 			}
