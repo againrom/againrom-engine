@@ -41,7 +41,7 @@ func pickupLineWorld(t *testing.T, stock []uint16, gold uint32, items []uint16) 
 	}
 	mw := grabWorld(t, w, 7, missionSource{})
 	mw.invParty.table = eqDefsTable(t)
-	mw.grab(7, 4, 3, true)
+	mw.grab(7, 4, 3, ui.GrabAtCell)
 	for n := 0; n < 64 && len(w.Sacks()) != 0; n++ {
 		mw.tick()
 	}

@@ -25,7 +25,7 @@ func (a *App) SetMissionKeys(name string) { a.missionKeys = missionKeyProfiles[n
 func missionBindings(p missionKeyAction) [2]missionKeyBinding {
 	return [2]missionKeyBinding{
 		{"f", ebiten.KeyF, missionKeyGrab, true},
-		{"p", ebiten.KeyP, p, false},
+		{"p", ebiten.KeyP, p, p == missionKeyPickup},
 	}
 }
 

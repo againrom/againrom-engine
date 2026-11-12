@@ -3707,15 +3707,23 @@ func (mw *mapWorld) affect(entity uint32, kill bool) {
 	mw.pending = append(mw.pending, cmd)
 }
 
-func (mw *mapWorld) grab(entity uint32, col, row int, aimed bool) {
-	if !aimed {
+func (mw *mapWorld) grab(entity uint32, col, row int, action ui.GrabAction) {
+	switch action {
+	case ui.GrabUnderfoot:
 		if !mw.invSubjectSet {
 			return
 		}
 		mw.pickUpUnderfoot(sim.EntityID(mw.invSubject.ID))
-		return
+	case ui.GrabCollect:
+		if order, ok := mw.world.OrderSackCollect(sim.EntityID(entity)); ok {
+			mw.queueGroup(func(tag uint32) sim.Command {
+				order.Group = tag
+				return order
+			})
+		}
+	case ui.GrabAtCell:
+		mw.orderPickup(sim.EntityID(entity), int32(col), int32(row))
 	}
-	mw.orderPickup(sim.EntityID(entity), int32(col), int32(row))
 }
 
 // orderPickup queues the World's pickup order for the sack at (x, y) when the

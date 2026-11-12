@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"crypto/sha256"
 	"fmt"
 	"os"
@@ -247,7 +248,7 @@ func (r *sackRecord) run() {
 func (r *sackRecord) click() {
 	r.open("click", []sim.Entity{sackRecordHero(7, 3, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 500, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
 }
@@ -255,7 +256,7 @@ func (r *sackRecord) click() {
 func (r *sackRecord) clickDocuments() {
 	r.open("click-documents", []sim.Entity{sackRecordHero(7, 3, 3), sackRecordHero(8, 3, 6)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{eqSwordCode, sackRecordDocument}}}, []sim.EntityID{7, 8}, 1)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
 }
@@ -263,10 +264,10 @@ func (r *sackRecord) clickDocuments() {
 func (r *sackRecord) clickRefusedDocument() {
 	r.open("click-refused-document", []sim.Entity{sackRecordHero(7, 3, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{sackRecordDocument}}}, []sim.EntityID{7}, -1)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
-	r.mw.grab(0, 0, 0, false)
+	r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	r.snap("key")
 }
 
@@ -275,7 +276,7 @@ func (r *sackRecord) clickRefusedOwner() {
 	hero.Owner = 50
 	r.open("click-refused-owner", []sim.Entity{hero},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
 }
@@ -283,9 +284,9 @@ func (r *sackRecord) clickRefusedOwner() {
 func (r *sackRecord) clickNoSack() {
 	r.open("click-no-sack", []sim.Entity{sackRecordHero(7, 3, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 20, 20, true)
+	r.mw.grab(7, 20, 20, ui.GrabAtCell)
 	r.snap("grab")
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab-gold")
 	r.tick()
 }
@@ -293,7 +294,7 @@ func (r *sackRecord) clickNoSack() {
 func (r *sackRecord) sackGone() {
 	r.open("sack-gone", []sim.Entity{sackRecordHero(7, 3, 3), sackRecordHero(9, 5, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.tick()
 	if err := r.w.TakeSack(9, 5, 3); err != nil {
@@ -307,7 +308,7 @@ func (r *sackRecord) sackGone() {
 func (r *sackRecord) laterOrder() {
 	r.open("later-order", []sim.Entity{sackRecordHero(7, 3, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	r.tick()
 	r.tick()
@@ -319,7 +320,7 @@ func (r *sackRecord) laterOrder() {
 func (r *sackRecord) load() {
 	r.open("load", []sim.Entity{sackRecordHero(7, 3, 3)},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 20, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.snap("grab")
 	for range 3 {
 		r.tick()
@@ -340,8 +341,8 @@ func (r *sackRecord) load() {
 func (r *sackRecord) twoPending() {
 	r.open("two-pending", []sim.Entity{sackRecordHero(7, 3, 3), sackRecordHero(8, 3, 5)},
 		[]sim.Sack{{X: 5, Y: 3, Items: []uint16{eqSwordCode}}, {X: 5, Y: 5, Gold: 30}}, []sim.EntityID{7, 8}, 0)
-	r.mw.grab(7, 5, 3, true)
-	r.mw.grab(8, 5, 5, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
+	r.mw.grab(8, 5, 5, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
 }
@@ -349,8 +350,8 @@ func (r *sackRecord) twoPending() {
 func (r *sackRecord) twoPendingBlocked() {
 	r.open("two-pending-blocked", []sim.Entity{sackRecordHero(7, 3, 3), sackRecordHero(8, 3, 5)},
 		[]sim.Sack{{X: 7, Y: 3, Items: []uint16{eqSwordCode}}, {X: 4, Y: 5, Gold: 30}}, []sim.EntityID{7, 8}, 0)
-	r.mw.grab(7, 7, 3, true)
-	r.mw.grab(8, 4, 5, true)
+	r.mw.grab(7, 7, 3, ui.GrabAtCell)
+	r.mw.grab(8, 4, 5, ui.GrabAtCell)
 	r.snap("grab")
 	r.run()
 }
@@ -360,7 +361,7 @@ func (r *sackRecord) keyUnderfoot() {
 	hero.HasTarget, hero.TargetX, hero.TargetY = true, 20, 20
 	r.open("key-underfoot", []sim.Entity{hero},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 17, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(0, 0, 0, false)
+	r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	r.snap("key")
 	r.run()
 }
@@ -368,10 +369,10 @@ func (r *sackRecord) keyUnderfoot() {
 func (r *sackRecord) keyPredecessors() {
 	r.open("key-predecessors", []sim.Entity{sackRecordHero(7, 3, 3), sackRecordHero(99, 20, 20)},
 		[]sim.Sack{{X: 5, Y: 3, Items: []uint16{eqSwordCode}}, {X: 3, Y: 3, Gold: 17}}, []sim.EntityID{7}, 0)
-	r.mw.grab(7, 5, 3, true)
+	r.mw.grab(7, 5, 3, ui.GrabAtCell)
 	r.mw.pending = append(r.mw.pending, sim.Equip(7, 999, 1), sim.MoveTo(99, sim.CellPoint{X: 21, Y: 20}))
 	r.snap("queued")
-	r.mw.grab(0, 0, 0, false)
+	r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	r.snap("key")
 	r.run()
 }
@@ -383,7 +384,7 @@ func (r *sackRecord) keyMidAttack() {
 	victim := sim.Entity{ID: 2, X: 6, Y: 3, Owner: 1, HP: 100, MaxHP: 100}
 	r.open("key-mid-attack", []sim.Entity{victim, hero},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 17, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(0, 0, 0, false)
+	r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	r.snap("key")
 	r.run()
 }
@@ -394,7 +395,7 @@ func (r *sackRecord) keyCrossing() {
 	r.mw.enqueue(7, 4, 3)
 	for n := 0; n < 40 && len(r.w.Sacks()) != 0; n++ {
 		r.tick()
-		r.mw.grab(0, 0, 0, false)
+		r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 		r.snap("key")
 	}
 	r.run()
@@ -405,7 +406,7 @@ func (r *sackRecord) keyRefusedOwner() {
 	hero.Owner = 50
 	r.open("key-refused-owner", []sim.Entity{hero},
 		[]sim.Sack{{X: 5, Y: 3, Gold: 17, Items: []uint16{eqSwordCode}}}, []sim.EntityID{7}, 0)
-	r.mw.grab(0, 0, 0, false)
+	r.mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	r.snap("key")
 	r.run()
 }

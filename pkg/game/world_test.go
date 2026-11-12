@@ -3632,7 +3632,7 @@ func TestACompanionPickupCreditsThePrimaryPurseAndDocumentSurface(t *testing.T) 
 		Start: mapload.Start{IDs: []sim.EntityID{7, 8}}}
 	mw := openMission(ms, nil, nil, worldFixtureViewer(t, m), missionSource{}, nil, nil)
 	mw.switchInventorySubject(8)
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	mw.refreshPack()
 
 	if got := w.Purse(sim.SelfSlot); got != 40 {
@@ -3679,7 +3679,7 @@ func TestDocumentPickupWithoutAPrimaryHeroIsAtomic(t *testing.T) {
 		t.Fatalf("MarshalBinary before pickup: %v", err)
 	}
 
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 	after, err := w.MarshalBinary()
 	if err != nil {
 		t.Fatalf("MarshalBinary after pickup: %v", err)
@@ -3704,7 +3704,7 @@ func TestMapWorldGrabTakesTheSackUnderTheSubjectEntity(t *testing.T) {
 	}
 	mw := grabWorld(t, w, 7, missionSource{})
 
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 
 	codes, ok := w.Carried(7)
 	if !ok || len(codes) != 2 || codes[0] != 9 || codes[1] != 5 {
@@ -3726,7 +3726,7 @@ func TestMapWorldGrabIsInertWhenTheSubjectStandsOnNoSack(t *testing.T) {
 	before := w.Hash()
 
 	mw := grabWorld(t, w, 7, missionSource{})
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 
 	if got := w.Hash(); got != before {
 		t.Errorf("World.Hash() changed from %d to %d — grab must be a no-op with no sack under the subject",
@@ -3755,7 +3755,7 @@ func TestMapWorldGrabIsInertWithNoPartyEvenWhenEntityZeroStandsOnASack(t *testin
 	ms := &Mission{Number: 1, Map: m, World: w} // no Party, no Start.IDs
 	mw := openMission(ms, nil, nil, v, missionSource{}, nil, nil)
 
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 
 	if got := w.Hash(); got != before {
 		t.Errorf("World.Hash() changed from %d to %d — a party-less mission must not grab through entity 0",

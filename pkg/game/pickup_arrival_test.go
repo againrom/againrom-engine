@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"encoding/binary"
 	"reflect"
 	"testing"
@@ -40,7 +41,7 @@ func requirePickupArrivalTaken(t *testing.T, w *sim.World) {
 
 func TestPickupArrivalWaitsForRatedStride(t *testing.T) {
 	w, mw := pickupArrivalWorld(t)
-	mw.grab(7, 4, 3, true)
+	mw.grab(7, 4, 3, ui.GrabAtCell)
 	requirePickupArrivalGround(t, w, mw)
 	for paid := 1; paid <= 15; paid++ {
 		mw.tick()
@@ -81,7 +82,7 @@ func TestPickupArrivalUnderfootCannotInterruptStride(t *testing.T) {
 			mission := &Mission{World: w}
 			attempt := func() bool {
 				if route == "key" {
-					mw.grab(0, 0, 0, false)
+					mw.grab(0, 0, 0, ui.GrabUnderfoot)
 					return len(w.Sacks()) == 0
 				}
 				_, taken := mission.PickUpUnderfoot(7)

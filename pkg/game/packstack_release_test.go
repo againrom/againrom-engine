@@ -57,7 +57,7 @@ func TestReleaseEqualBowsShareOnePackCell(t *testing.T) {
 	if !sackAt() {
 		t.Fatal("mission 20 has no Sack at (15,11)")
 	}
-	f.live.grab(uint32(hero), 15, 11, true)
+	f.live.grab(uint32(hero), 15, 11, ui.GrabAtCell)
 	for tick := 0; tick < 20000 && sackAt(); tick++ {
 		f.live.tick()
 	}

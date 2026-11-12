@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -103,7 +104,7 @@ func poRun(mw *mapWorld, w *sim.World) int {
 func TestThePickupOrderWalksTheOrderedUnitToTheSackAndTakesItOnArrival(t *testing.T) {
 	w, mw := poWorld(t)
 
-	mw.grab(poHeroID, poSackX, poSackY, true)
+	mw.grab(poHeroID, poSackX, poSackY, ui.GrabAtCell)
 
 	// NOTHING HAS MOVED YET. The order is a standing order, not an immediate
 	// transfer: the sack is still on the ground and the container is empty
@@ -142,7 +143,7 @@ func TestThePickupOrderWalksTheOrderedUnitToTheSackAndTakesItOnArrival(t *testin
 func TestThePickupOrderRefusesACellWithNoSackOnIt(t *testing.T) {
 	w, mw := poWorld(t)
 
-	mw.grab(poHeroID, poEmptyX, poEmptyY, true)
+	mw.grab(poHeroID, poEmptyX, poEmptyY, ui.GrabAtCell)
 
 	if standingPickup(mw).set {
 		t.Error("a pick-up order naming a cell with no sack armed a standing order")
@@ -169,7 +170,7 @@ func TestThePickupOrderRefusesACellWithNoSackOnIt(t *testing.T) {
 func TestALaterOrderCancelsAStandingPickup(t *testing.T) {
 	w, mw := poWorld(t)
 
-	mw.grab(poHeroID, poSackX, poSackY, true)
+	mw.grab(poHeroID, poSackX, poSackY, ui.GrabAtCell)
 	if !standingPickup(mw).set {
 		t.Fatal("setup: the standing order did not arm")
 	}
@@ -205,7 +206,7 @@ func vanishedSackRun(t *testing.T, taken bool) (*sim.World, *mapWorld, sim.Entit
 		t.Fatalf("NewLootWorld: %v", err)
 	}
 	mw := grabWorld(t, w, poHeroID, missionSource{})
-	mw.grab(poHeroID, poSackX, poSackY, true)
+	mw.grab(poHeroID, poSackX, poSackY, ui.GrabAtCell)
 	mw.tick()
 	if e, _ := mw.entity(poHeroID); !standingPickup(mw).set || e.PendingOrder.Kind != sim.PendingPickup {
 		t.Fatal("setup: the standing order did not arm")
@@ -297,7 +298,7 @@ func TestThePickupOrderTakesForTheORDEREDUnitAndNotTheInventorySubject(t *testin
 			mw.invSubject.ID, mw.invSubjectSet, subjectID)
 	}
 
-	mw.grab(orderedID, poSackX, poSackY, true)
+	mw.grab(orderedID, poSackX, poSackY, ui.GrabAtCell)
 	arrived := -1
 	for i := 1; i <= 400; i++ {
 		mw.tick()

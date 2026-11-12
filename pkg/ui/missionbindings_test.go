@@ -2,6 +2,7 @@ package ui
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -23,8 +24,8 @@ func TestMissionBindingsReadTheSamePhysicalAndNamedKeys(t *testing.T) {
 					t.Fatalf("%q %s Ctrl %v: physical %+v, named %+v", profile, key.name, ctrl, physical, named)
 				}
 				wantPatrol := key.name == "p" && profile == ""
-				wantGrab := key.name == "f" && !ctrl || key.name == "p" && profile == "pickup-p"
-				wantReply := key.name == "p" && profile == "pickup-p"
+				wantGrab := key.name == "f" && !ctrl || key.name == "p" && profile == "pickup-p" && !ctrl
+				wantReply := key.name == "p" && profile == "pickup-p" && !ctrl
 				if physical.Patrol != wantPatrol || physical.Grab != wantGrab || physical.GrabReply != wantReply {
 					t.Fatalf("%q %s Ctrl %v: patrol/grab/reply %v/%v/%v, want %v/%v/%v", profile, key.name, ctrl,
 						physical.Patrol, physical.Grab, physical.GrabReply, wantPatrol, wantGrab, wantReply)
@@ -46,9 +47,9 @@ func TestMissionPickupBindingsDispatchThroughApp(t *testing.T) {
 		grabs, replies     int
 		patrol             bool
 	}{
-		{"second P", "pickup-p", "p", selection{4, 9}, 1, 1, false},
-		{"second P empty", "pickup-p", "p", nil, 1, 0, false},
-		{"second P foreign", "pickup-p", "p", selection{7}, 1, 0, false},
+		{"second P", "pickup-p", "p", selection{4, 9}, 2, 1, false},
+		{"second P empty", "pickup-p", "p", nil, 0, 0, false},
+		{"second P foreign", "pickup-p", "p", selection{7}, 0, 0, false},
 		{"second F", "pickup-p", "f", selection{4}, 1, 0, false},
 		{"first P", "", "p", selection{4}, 0, 0, true},
 		{"first F", "", "f", selection{4}, 1, 0, false},
@@ -61,10 +62,14 @@ func TestMissionPickupBindingsDispatchThroughApp(t *testing.T) {
 			a.SetMissionKeys(tc.profile)
 			v.sel = tc.selected
 			grabs := 0
-			a.flow.grab = func(id uint32, x, y int, aimed bool) {
+			a.flow.grab = func(id uint32, x, y int, action GrabAction) {
 				grabs++
-				if id != 0 || x != 0 || y != 0 || aimed {
-					t.Errorf("key changed the F payload: %d %d %d %v", id, x, y, aimed)
+				if tc.key == "p" {
+					if action != GrabCollect || !slices.Contains(tc.selected, id) {
+						t.Errorf("collect payload: %d %d %d %v", id, x, y, action)
+					}
+				} else if id != 0 || x != 0 || y != 0 || action != GrabUnderfoot {
+					t.Errorf("key changed the F payload: %d %d %d %v", id, x, y, action)
 				}
 			}
 			var got []gestureReply
@@ -91,7 +96,7 @@ func TestMissionPickupReplyObeysTheExistingInputGates(t *testing.T) {
 			a.SetMissionKeys("pickup-p")
 			v.sel = selection{4}
 			grabs, replies := 0, 0
-			a.flow.grab = func(uint32, int, int, bool) { grabs++ }
+			a.flow.grab = func(uint32, int, int, GrabAction) { grabs++ }
 			v.SetCommandAcknowledgment(func(VoiceGesture, []uint32, time.Time) { replies++ })
 			in := a.headlessIdleInput()
 			in.missionKeyNamed(a.missionKeys, "p")
@@ -107,7 +112,7 @@ func TestMissionPickupReplyObeysTheExistingInputGates(t *testing.T) {
 			}
 			a.step(in, atAt)
 			wantGrabs := 0
-			if gate == "control" || gate == "no reply" {
+			if gate == "no reply" {
 				wantGrabs = 1
 			}
 			if grabs != wantGrabs || replies != 0 || v.aimed == commandPatrol {

@@ -185,7 +185,7 @@ func TestSackObjects1115ProductionGrabAndUnboundPour(t *testing.T) {
 		f, _, _ := sackObjectsOpen(t, nil)
 		e := newGroupActors1115(t, f.live.world)[newGroupA]
 		purse := f.live.world.Purse(e.Owner)
-		f.live.grab(uint32(e.ID), 15, 16, true)
+		f.live.grab(uint32(e.ID), 15, 16, ui.GrabAtCell)
 		for tick := 0; tick < 100 && len(f.live.world.Sacks()) != 0; tick++ {
 			f.live.tick()
 		}

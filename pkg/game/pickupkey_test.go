@@ -22,7 +22,7 @@ func TestMissionPickupKeyUsesTheProfileAndSpeaker(t *testing.T) {
 		voices   []int16
 	}{
 		{"second P selected", base.GameROM2, "p", true, 1, []int16{1}},
-		{"second P empty", base.GameROM2, "p", false, 1, nil},
+		{"second P empty", base.GameROM2, "p", false, 0, nil},
 		{"second F selected", base.GameROM2, "f", true, 1, nil},
 		{"first P selected", base.GameROM1, "p", true, 0, nil},
 		{"first F selected", base.GameROM1, "f", true, 1, nil},
@@ -47,10 +47,14 @@ func TestMissionPickupKeyUsesTheProfileAndSpeaker(t *testing.T) {
 			mw.view.SetEntities([]ui.MapEntity{{ID: 1, Cell: image.Pt(0, 0), Owner: sim.SelfSlot,
 				Life: ui.LifeAlive, HP: 10, MaxHP: 10, PlayerCharacter: true}})
 			grabs := 0
-			grab := func(id uint32, x, y int, aimed bool) {
+			grab := func(id uint32, x, y int, action ui.GrabAction) {
 				grabs++
-				if id != 0 || x != 0 || y != 0 || aimed {
-					t.Errorf("key grab = (%d,%d,%d,%v), want existing F payload", id, x, y, aimed)
+				wantID, wantAction := uint32(0), ui.GrabUnderfoot
+				if tc.key == "p" {
+					wantID, wantAction = 1, ui.GrabCollect
+				}
+				if id != wantID || x != 0 || y != 0 || action != wantAction {
+					t.Errorf("key grab = (%d,%d,%d,%v), want (%d,0,0,%v)", id, x, y, action, wantID, wantAction)
 				}
 			}
 			if err := a.OpenMission(func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {

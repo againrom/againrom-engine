@@ -151,7 +151,7 @@ func (k kargallasFix) pickUpItem(t *testing.T, id sim.EntityID) {
 	if err := k.mw.world.HeadlessPlace(id, 22, 108); err != nil {
 		t.Fatal(err)
 	}
-	k.mw.grab(uint32(id), 22, 109, true)
+	k.mw.grab(uint32(id), 22, 109, ui.GrabAtCell)
 	for i := 0; i < 300 && !k.holdsItem(id); i++ {
 		k.mw.tick()
 	}

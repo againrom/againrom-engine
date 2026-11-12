@@ -61,6 +61,36 @@ func (w *World) OrderSackPickup(taker EntityID, at CellPoint) (order Command, ok
 	return PickUp(taker, at), true
 }
 
+// OrderSackCollect plans one hero's collect key through the pickup admission.
+// DIV-4882, DIV-4883, DIV-4884.
+func (w *World) OrderSackCollect(taker EntityID) (order Command, ok bool) {
+	i := indexOfEntity(w.entities, taker)
+	if !w.game.orders.collectSacks || i < 0 {
+		return order, false
+	}
+	e := w.entities[i]
+	if !e.Alive() || e.OffMap || e.Owner != SelfSlot || !InPersistBand(e.TypeID) {
+		return order, false
+	}
+	if order, ok = w.OrderSackPickup(taker, CellPoint{X: e.X, Y: e.Y}); ok {
+		return order, true
+	}
+	probe := func(x, y int64) bool {
+		if x < 0 || y < 0 || x >= int64(w.bounds.Width) || y >= int64(w.bounds.Height) {
+			return false
+		}
+		candidate, accepted := w.OrderSackPickup(taker, CellPoint{X: int32(x), Y: int32(y)})
+		if accepted {
+			order = candidate
+		}
+		return accepted
+	}
+	if walkCellRings(cellOf(&e), int64(e.SightWord(e.Humanoid)>>8), cellRingWalk{firstStep: true}, probe) {
+		return order, true
+	}
+	return GroupStance(taker, OrderStandGround, 0), true
+}
+
 // PickUpSackUnderfoot is the pickup key and the headless take: the taker takes
 // the sack on its own cell once it has arrived there. A taker mid-strike gets
 // the pickup order for its cell instead, so the take waits for the strike.

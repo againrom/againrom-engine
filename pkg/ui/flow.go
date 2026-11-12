@@ -248,43 +248,17 @@ type MapAffect func(entity uint32, kill bool)
 // With a spell, it retains the existing cell-cast meaning. No mere hover calls it.
 type MapAttack func(entity, victim, spell uint32, x, y int, cell bool)
 
-// MapGrab performs one PICK-UP into whatever the loader put under the open
-// map screen — the container transfer alone, with no walk, no path and no
-// order behind it. The map screen calls it at most once per press of the key
-// it is bound to — never on any other screen — and nothing else calls it
-// at all.
-//
-// IT TAKES NO PAYLOAD, which is MapTick's own shape and for a related but
-// different reason. Like every seam here, this package may import the render
-// tier and no other, so it must not be able to name a simulation type — a
-// parameterless function names none, exactly as MapTick's own doc says. But
-// there is a SECOND reason this one never had a choice about: WHICH
-// CHARACTER the key acts for is the WIRING TIER's own question, and that
-// tier already answers it once, for the inventory window's own subject. A
-// seam carrying an entity id would let this key act on a character the
-// window does not show — a second answer to a question one tier already
-// settled. A seam that cannot name one is what keeps the key acting on
-// exactly the character the open window is about, whatever this package is
-// ever handed.
-//
-// It is a FOURTH seam beside MapOrder, MapAffect and MapAttack rather than a
-// widening of any of them, for the same reason those three are not one
-// another: an all-or-nothing container transfer with no distance test, no
-// ownership test and no capacity test is neither a move, a blow nor an
-// attack order, and widening any of the three would give it a payload it
-// never means.
-//
-//   - aimed FALSE is the KEY. entity, col and row are unread. The far side acts
-//     for the inventory window's subject at that subject's own cell.
-//   - aimed TRUE is the CLICK. entity is the unit `AI-CURSOR-242`'s gate named,
-//     col and row are the sack's cell, and the far side issues the standing
-//     order rather than transferring anything now.
-//
-// A BOOL RATHER THAN A SECOND SEAM keeps MapOpener's tuple at eleven values.
-// Adding a twelfth reaches MapOpener, flow.enter, seven production call sites
-// and the headless harness, for a distinction the far side answers in one
-// branch.
-type MapGrab func(entity uint32, col, row int, aimed bool)
+type GrabAction uint8
+
+const (
+	GrabUnderfoot GrabAction = iota
+	GrabAtCell
+	GrabCollect
+)
+
+// MapGrab carries the silent underfoot key, the clicked sack's actor and cell,
+// or the collect key's selected actor. The wiring tier owns pickup planning.
+type MapGrab func(entity uint32, col, row int, action GrabAction)
 
 // MapStance issues one CELL-FREE STANDING ORDER into whatever the loader put
 // under the open map screen: the entity ordered, and which of the two the

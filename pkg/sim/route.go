@@ -1114,33 +1114,50 @@ func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, t
 
 	var best cell
 	var bestLabel uint64
-	for r := int64(1); ; r++ {
-		found := false
-		probe := func(x, y int64) {
-			if x < minCoord || x > maxCoord || y < minCoord || y > maxCoord {
-				return
-			}
-			l, ok := w.label(s, start, int32(x), int32(y))
-			if !ok || !w.restFree(s, self, int32(x), int32(y)) {
-				return
-			}
-			if found && l >= bestLabel {
-				return
-			}
-			best, bestLabel, found = cell{x: int32(x), y: int32(y)}, l, true
+	found := false
+	probe := func(x, y int64) bool {
+		if x < minCoord || x > maxCoord || y < minCoord || y > maxCoord {
+			return false
 		}
-		tx, ty := int64(target.x), int64(target.y)
-		for i := -r; i <= r; i++ {
-			probe(tx+i, ty+r)
-			probe(tx+i, ty-r)
-			probe(tx+r, ty+i)
-			probe(tx-r, ty+i)
+		l, ok := w.label(s, start, int32(x), int32(y))
+		if !ok || !w.restFree(s, self, int32(x), int32(y)) {
+			return false
+		}
+		if found && l >= bestLabel {
+			return false
+		}
+		best, bestLabel, found = cell{x: int32(x), y: int32(y)}, l, true
+		return true
+	}
+	if walkCellRings(target, max(int64(1), limit-1), cellRingWalk{repeatCorners: true}, probe) {
+		return best, true
+	}
+	return cell{}, false
+}
+
+type cellRingWalk struct {
+	repeatCorners bool
+	firstStep     bool
+}
+
+func walkCellRings(centre cell, radius int64, policy cellRingWalk, probe func(int64, int64) bool) bool {
+	x, y := int64(centre.x), int64(centre.y)
+	for r := int64(1); r <= radius; r++ {
+		found := false
+		for j := -r; j <= r; j++ {
+			found = probe(x+j, y+r) || found
+			found = probe(x+j, y-r) || found
+			if policy.repeatCorners || j != -r && j != r {
+				found = probe(x+r, y+j) || found
+				found = probe(x-r, y+j) || found
+			}
+			if policy.firstStep && found {
+				return true
+			}
 		}
 		if found {
-			return best, true
-		}
-		if r+1 >= limit {
-			return cell{}, false
+			return true
 		}
 	}
+	return false
 }

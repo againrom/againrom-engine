@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Press P to send your selected heroes to pick up a nearby sack, even when they are not standing on it.
 - [BASE] The debug keys K, L and Shift+F4 no longer act in a mission by accident. Kill, chip and map reveal moved to Ctrl+Shift+K, Ctrl+Shift+; and Ctrl+Shift+F4, and work only after the cheats are unlocked.
 - [ROM2] The shop of a town has new goods each time your party comes back to the town from the world map, as in the original; before, the goods stayed the same until you slept at the inn or loaded a save.
 - [ROM2] A mage casts at a unit from as far as the spell reaches (7 cells for Fire Arrow or Drain Life, 6 for Heal, 5 for Curse), not only as far as he sees himself; before, an order onto a target 6 or 7 cells away was ignored.

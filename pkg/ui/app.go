@@ -2301,7 +2301,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 						// on a sack the selected hero was not already standing
 						// on did nothing at all.
 						if pick != nil {
-							pick(ord.entity, ord.x, ord.y, true)
+							pick(ord.entity, ord.x, ord.y, GrabAtCell)
 							speak(VoicePickup, ord.entity)
 						}
 					case orderKindMove:
@@ -2347,16 +2347,19 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 				}
 			}
 
-			// THE PICK-UP KEY, beside the two blow keys and under the same rule: a
-			// nil seam is the ordinary case for a loader that put nothing under the
-			// map, exactly as a nil tick is, and the key then reaches nothing. It
-			// carries no id — MapGrab's own doc says why — so there is no marked
-			// set to walk here: the far side already knows which character it acts
-			// for. THE FOUR ARGUMENTS ARE THE SEAM'S CURSOR ARM'S and the key reads
-			// none of them, which `aimed` false is what says.
-			if in.Grab {
+			// Collect addresses the current selection; the silent underfoot key
+			// leaves the inventory subject to the wiring tier.
+			if in.Grab && (!in.GrabReply || !in.Viewer.Ctrl) {
 				if grab := a.flow.grab; grab != nil {
-					grab(0, 0, 0, false)
+					if in.GrabReply {
+						if v.selectionSummary()&selSummaryNeutral == 0 {
+							for _, id := range v.marked() {
+								grab(id, 0, 0, GrabCollect)
+							}
+						}
+					} else {
+						grab(0, 0, 0, GrabUnderfoot)
+					}
 					if in.GrabReply && !in.Viewer.Ctrl && v.selectionSummary()&selSummaryNeutral == 0 {
 						v.replyOrder(VoicePickup, v.marked(), now)
 					}

@@ -51,7 +51,7 @@ func helpStyleApp(t *testing.T, frames []*image.RGBA, width, height int) (*App, 
 		affect := func(uint32, bool) { calls.affects++ }
 		advance := func(...NoticeAction) (NoticeDest, string, MapOpener) { calls.advances++; return NoticeStay, "", nil }
 		attack := func(uint32, uint32, uint32, int, int, bool) { calls.attacks++ }
-		grab := func(uint32, int, int, bool) { calls.grabs++ }
+		grab := func(uint32, int, int, GrabAction) { calls.grabs++ }
 		stance := func(uint32, bool) { calls.stances++ }
 		march := func(uint32, bool, int, int) { calls.marches++ }
 		return v, tick, order, cadence, affect, advance, attack, grab, stance, march, nil

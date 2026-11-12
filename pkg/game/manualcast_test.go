@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -18,7 +19,7 @@ func TestManualCellCastCancelsPickupApproach(t *testing.T) {
 		t.Fatal(err)
 	}
 	mw := grabWorld(t, w, poHeroID, missionSource{})
-	mw.grab(poHeroID, poSackX, poSackY, true)
+	mw.grab(poHeroID, poSackX, poSackY, ui.GrabAtCell)
 	mw.attackOrCast(poHeroID, 0, 26, 6, 5, true)
 	for tick := 0; tick < 64; tick++ {
 		mw.tick()

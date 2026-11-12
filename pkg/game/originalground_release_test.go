@@ -263,7 +263,7 @@ func TestReleaseOriginalGround1076ProductionAppReplacesFreshLootAndSavesPickup(t
 	// Exercise the production walk-then-pickup command, not a replacement of
 	// the inventory.
 	id := f.live.mission.ids[0]
-	f.live.grab(uint32(id), 20, 65, true)
+	f.live.grab(uint32(id), 20, 65, ui.GrabAtCell)
 	for i := 0; i < 400 && groundAt(w.Sacks(), 20, 65) != nil; i++ {
 		f.live.tick()
 	}

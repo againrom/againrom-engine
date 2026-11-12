@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"bytes"
 	"reflect"
 	"testing"
@@ -35,7 +36,7 @@ func TestPickup1117UnderfootSupersedesOlderQueuedOrdersOnlyAfterSuccess(t *testi
 		mw.pending = append(mw.pending, kept...)
 		queued := append([]sim.Command(nil), mw.pending...)
 		before := pickupForm1117(t, w)
-		mw.grab(0, 0, 0, false)
+		mw.grab(0, 0, 0, ui.GrabUnderfoot)
 		if !succeeds {
 			if !bytes.Equal(before, pickupForm1117(t, w)) || !reflect.DeepEqual(queued, mw.pending) || !standingPickup(mw).set {
 				t.Fatal("failed underfoot key changed earlier order")
@@ -97,7 +98,7 @@ func TestPickup1117ClickAndUnderfootCompleteOnNextStep(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			w, mw := poWorld(t)
 			if click {
-				mw.grab(poHeroID, poSackX, poSackY, true)
+				mw.grab(poHeroID, poSackX, poSackY, ui.GrabAtCell)
 			} else {
 				var err error
 				w, err = sim.NewLootWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, sim.Terrain{},
@@ -112,7 +113,7 @@ func TestPickup1117ClickAndUnderfootCompleteOnNextStep(t *testing.T) {
 				t.Fatal("hero never reached sack")
 			}
 			if !click {
-				mw.grab(0, 0, 0, false)
+				mw.grab(0, 0, 0, ui.GrabUnderfoot)
 			}
 			if len(w.Sacks()) != 0 {
 				t.Fatal("successful pickup left sack")

@@ -67,7 +67,7 @@ func newDialoguePointerFixture(t *testing.T, surface string) dialoguePointerFixt
 	commands := 0
 	a.flow.order = func(uint32, int, int) { commands++ }
 	a.flow.attack = func(uint32, uint32, uint32, int, int, bool) { commands++ }
-	a.flow.grab = func(uint32, int, int, bool) { commands++ }
+	a.flow.grab = func(uint32, int, int, GrabAction) { commands++ }
 	l := AuthoredDialogueLayout()
 	return dialoguePointerFixture{
 		app: a, button: l.Button.Add(l.Box.Min), body: l.Box.Min.Add(image.Pt(4, 4)),

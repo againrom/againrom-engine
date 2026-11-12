@@ -158,8 +158,8 @@ func seamLoader(t *testing.T, seams *[]*mapSeam) MapLoader {
 			func(entity, victim, spell uint32, x, y int, cell bool) {
 				s.attacks = append(s.attacks, aimed{entity: entity, victim: victim, spell: spell})
 			},
-			func(entity uint32, x, y int, aimedGrab bool) {
-				s.grabs = append(s.grabs, grabbed{entity: entity, x: x, y: y, aimed: aimedGrab})
+			func(entity uint32, x, y int, action GrabAction) {
+				s.grabs = append(s.grabs, grabbed{entity: entity, x: x, y: y, aimed: action == GrabAtCell})
 			},
 			func(entity uint32, guard bool) {
 				s.stances = append(s.stances, stood{entity: entity, guard: guard})

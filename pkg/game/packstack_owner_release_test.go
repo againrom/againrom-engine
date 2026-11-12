@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/ui"
 	"fmt"
 	"os"
 	"slices"
@@ -20,7 +21,7 @@ func packStackPickUp(t *testing.T, f *FrontEnd, hero sim.EntityID, x, y int32) {
 	if !lying() {
 		t.Fatalf("no Sack lies on (%d,%d)", x, y)
 	}
-	f.live.grab(uint32(hero), int(x), int(y), true)
+	f.live.grab(uint32(hero), int(x), int(y), ui.GrabAtCell)
 	for tick := 0; tick < 20000 && lying(); tick++ {
 		f.live.tick()
 	}

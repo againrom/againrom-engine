@@ -157,7 +157,7 @@ func TestMapWorldGrabLeavesTheWorldUntouchedWhenTakeSackRefuses(t *testing.T) {
 	before := w.Hash()
 
 	mw := grabWorld(t, w, 7, missionSource{})
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 
 	if got := w.Hash(); got != before {
 		t.Errorf("World.Hash() changed from %d to %d — an invalid owner must refuse the whole transfer",
@@ -183,7 +183,7 @@ func TestMapWorldGrabsLinesMatchWhatTheContainerReceived(t *testing.T) {
 	}
 	mw := grabWorld(t, w, 7, missionSource{})
 
-	mw.grab(0, 0, 0, false)
+	mw.grab(0, 0, 0, ui.GrabUnderfoot)
 
 	stacks, ok := w.CarriedStacks(7)
 	if !ok || len(stacks) != 2 {
