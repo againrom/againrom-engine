@@ -1789,9 +1789,7 @@ func (w *World) computerMageGroupSees(ci, vi int) bool {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
-	stamp := w.groupSight(aiSight, members)
-	w.stampAttackNotices(stamp, members, false)
-	return w.sightShows(stamp, cellOf(&target)) && w.perceives(perception{purpose: perceiveGroup, members: members, target: vi})
+	return w.sightShows(w.membersSight(members, false), cellOf(&target)) && w.perceives(perception{purpose: perceiveGroup, members: members, target: vi})
 }
 
 func (w *World) beginBookSpellAt(ci int, x, y int32, spellID uint32) bool {
@@ -2474,7 +2472,7 @@ func (w *World) computerHealRefuses(caster, t Entity) bool {
 
 func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power int32) (EntityID, bool) {
 	caster := w.entities[ci]
-	var visible []byte
+	var sight autoChoiceSight
 	var best EntityID
 	var bestTier int
 	var bestDistance int64
@@ -2549,11 +2547,7 @@ func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power 
 			}
 			key = int64(t.HP) - int64(t.MaxHP)
 		}
-		// Legacy policy requires sight even for self.
-		if visible == nil {
-			visible = w.actorSight(ci)
-		}
-		if !w.sightShows(visible, cell{x: t.X, y: t.Y}) {
+		if !w.autoChoiceSees(ci, i, &sight) {
 			continue
 		}
 		better := !found

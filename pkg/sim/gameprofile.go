@@ -102,6 +102,10 @@ type gameProfile struct {
 	// a computer mage's Group, at the admission or the release; the spell's
 	// range alone bounds it (R2-ENGINE-1136, R2-ENGINE-1143).
 	castsUnseen bool
+	// autoCastSideSight: the automatic choice takes an actor a living unit of
+	// the caster's player sees (ownerSees), not the caster's own sight; its
+	// cast's admission and release ask none (owner, DIV-4872).
+	autoCastSideSight bool
 	// keepsWeaponSpell: a worn Weapon always holds its spell, and an
 	// unequip keeps it (MAGIC-379).
 	keepsWeaponSpell bool
@@ -196,6 +200,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
 		castsUnseen:                true,
+		autoCastSideSight:          true,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
 		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, selfOnly: true, idleOnly: true},

@@ -522,13 +522,17 @@ func containsEntityID(ids []EntityID, id EntityID) bool {
 // state. Unit casts use this map, with a ROM1 computer-mage group exception at
 // admission. This hashed-state projection is not persisted.
 func (w *World) actorSight(i int) []byte {
-	stamp := make([]byte, len(w.grid))
 	if i < 0 || i >= len(w.entities) || !w.entities[i].Alive() {
-		return stamp
+		return make([]byte, len(w.grid))
 	}
-	e := w.entities[i]
-	w.marchSight(aiSight, stamp, cellOf(&e), int32(e.ScanRange))
-	w.stampAttackNotices(stamp, []int{i}, false)
+	return w.membersSight([]int{i}, false)
+}
+
+// membersSight is the members' perception stamp: the union of their marches
+// and their attack notices, consumed or only read.
+func (w *World) membersSight(members []int, consume bool) []byte {
+	stamp := w.groupSight(aiSight, members)
+	w.stampAttackNotices(stamp, members, consume)
 	return stamp
 }
 

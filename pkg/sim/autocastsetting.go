@@ -217,12 +217,12 @@ func (w *World) autoCastNeutral(ci, ti int) bool {
 	return c.Owner != t.Owner && !w.relations.Locked(c.Owner, t.Owner) && !w.hostileTo(&c, &t)
 }
 
-// autoCastCandidates lists living or raisable, non-hostile actors the caster sees and the
-// target bits admit, in entity order. The caster is always admitted
+// autoCastCandidates lists living or raisable, non-hostile actors the
+// automatic choice sees (autoChoiceSees) and the target bits admit, in entity order. The caster is always admitted
 // (R2-ENGINE-360). Range is the cast's own admission.
 func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
 	caster := w.entities[ci]
-	var visible []byte
+	var sight autoChoiceSight
 	var out []int
 	for i := range w.entities {
 		t := w.entities[i]
@@ -249,10 +249,7 @@ func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
 			case s&AutoCastNeutral == 0:
 				continue
 			}
-			if visible == nil {
-				visible = w.actorSight(ci)
-			}
-			if !w.sightShows(visible, cell{x: t.X, y: t.Y}) {
+			if !w.autoChoiceSees(ci, i, &sight) {
 				continue
 			}
 		}

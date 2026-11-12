@@ -119,8 +119,8 @@ func TestASecondGameMageCastsFromTheSpellRangeNotItsSight(t *testing.T) {
 }
 
 // TestTheSecondGameAutomaticCastKeepsSightAndAnchorCells: the candidate test
-// keeps the caster's sight (R2-ENGINE-502) and the anchor cells
-// (R2-ENGINE-348).
+// keeps a sight term, the side's (DIV-4872), which for a lone mage is its own,
+// and the anchor cells (R2-ENGINE-348).
 func TestTheSecondGameAutomaticCastKeepsSightAndAnchorCells(t *testing.T) {
 	t.Parallel()
 

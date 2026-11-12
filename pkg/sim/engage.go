@@ -339,8 +339,7 @@ func (w *World) candidates(g aiGroup) []int { return w.groupCandidates(g, true) 
 // without ageing them, for a test that decides nothing.
 func (w *World) groupCandidates(g aiGroup, consume bool) []int {
 	decider := w.entities[g.members[0]]
-	stamp := w.groupSight(aiSight, g.members)
-	w.stampAttackNotices(stamp, g.members, consume)
+	stamp := w.membersSight(g.members, consume)
 	var live, dead []int
 	for i := range w.entities {
 		c := &w.entities[i]
