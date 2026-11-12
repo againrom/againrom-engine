@@ -114,7 +114,7 @@ func quickCitySource1119(t *testing.T, indices []int32) []byte {
 
 func TestQuickSpellsOriginalPopulatedMappingAndCurrentSave(t *testing.T) {
 	indices := []int32{5, 7, 22, -1}
-	want := [4]uint32{23, 16, 19, 0}
+	want := [9]uint32{23, 16, 19, 0}
 	f, _ := city1095Front(t)
 	raw := quickCitySource1119(t, indices)
 	if _, town, err := f.RestoreOriginal(raw); err != nil || !town || f.quickSpells != want {
@@ -139,7 +139,7 @@ func TestQuickSpellsOriginalPopulatedMappingAndCurrentSave(t *testing.T) {
 	}
 	// Native provenance reconstructs its source baseline; it cannot silently
 	// treat the changed live bindings as the original values on fresh LOAD.
-	s.QuickSpells = [4]uint32{1, 65535}
+	s.QuickSpells = [9]uint32{1, 65535}
 	current, err := f.ExportCurrentSave(s, "changed")
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestQuickSpellsOriginalPopulatedMappingAndCurrentSave(t *testing.T) {
 
 func TestQuickSpellsMalformedOriginalAndNativeProvenanceAreAtomic(t *testing.T) {
 	f, _ := city1095Front(t)
-	f.quickSpells = [4]uint32{16, 1}
+	f.quickSpells = [9]uint32{16, 1}
 	for _, indices := range [][]int32{{-2, -1, -1, -1}, {24, -1, -1, -1}, {2147483647, -1, -1, -1}, {5, 5, -1, -1}} {
 		raw := quickCitySource1119(t, indices)
 		before := *f

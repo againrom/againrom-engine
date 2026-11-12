@@ -55,7 +55,7 @@ func TestSessionAdoptThenClear(t *testing.T) {
 	}
 	c.carried = []mapload.PartyMember{{Name: "a"}}
 	c.offered = 40
-	c.quickSpells = [4]uint32{1, 2, 3, 4}
+	c.quickSpells = [9]uint32{1, 2, 3, 4}
 	s.Shop = &Shop{}
 	s.adopt(c)
 	if s.Town != c.town || s.Difficulty != 3 || s.Offered != 40 || len(s.Carried) != 1 ||
@@ -65,7 +65,7 @@ func TestSessionAdoptThenClear(t *testing.T) {
 	s.live, s.liveMission = &mapWorld{}, 7
 	s.clear(Campaign{})
 	if s.Town == c.town || s.Carried != nil || s.Offered != 0 || s.Difficulty != 0 ||
-		s.live != nil || s.liveMission != 0 || s.fame.Known || s.quickSpells != ([4]uint32{}) {
+		s.live != nil || s.liveMission != 0 || s.fame.Known || s.quickSpells != ([9]uint32{}) {
 		t.Fatalf("clear left %+v", s)
 	}
 }

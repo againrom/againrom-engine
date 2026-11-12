@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type spySaveSeams struct {
@@ -34,17 +36,28 @@ func (s *spySaveSeams) install(a *App) {
 func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 	bindings := bindingSource(t)
 	for field, key := range map[string]string{
-		"SaveGame": "F2", "LoadGame": "F3", "QuickLoad": "F9", "Grid": "F10", "Readout": "F11",
+		"SaveGame": "F2", "LoadGame": "F3",
 	} {
 		want := "inpututil.IsKeyJustPressed(ebiten.Key" + key + ")"
 		if bindings[field] != want {
 			t.Errorf("binding %s = %q, want %q", field, bindings[field], want)
 		}
 	}
-	for field, suffix := range map[string]string{"QuickSave": " && !shiftHeld", "Reveal": " && shiftHeld && ctrlHeld()"} {
-		want := "inpututil.IsKeyJustPressed(ebiten.KeyF4)" + suffix
-		if bindings[field] != want {
-			t.Errorf("binding %s = %q, want %q", field, bindings[field], want)
+	for _, tc := range []struct {
+		key         ebiten.Key
+		shift, ctrl bool
+		want        func(appInput) bool
+	}{
+		{ebiten.KeyF4, false, false, func(in appInput) bool { return in.QuickSave && !in.Reveal }},
+		{ebiten.KeyF4, true, true, func(in appInput) bool { return in.Reveal && !in.QuickSave }},
+		{ebiten.KeyF9, false, false, func(in appInput) bool { return in.QuickLoad }},
+		{ebiten.KeyF10, false, false, func(in appInput) bool { return in.Grid }},
+		{ebiten.KeyF11, false, false, func(in appInput) bool { return in.Readout }},
+	} {
+		in := appInput{Viewer: Input{Shift: tc.shift, Ctrl: tc.ctrl}}
+		in.readMissionKeys(missionKeyPatrol, onlyKey(tc.key), tc.ctrl)
+		if !tc.want(in) {
+			t.Errorf("first-game key %v Shift %v Ctrl %v changed", tc.key, tc.shift, tc.ctrl)
 		}
 	}
 	if bindings["ShiftHeld"] != "shiftHeld" {

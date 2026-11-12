@@ -3,9 +3,10 @@ package ui
 import (
 	"bytes"
 	"image"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestQuickSpellFeedbackDoesNotConflateCurrentArmOrSlot(t *testing.T) {
@@ -14,7 +15,7 @@ func TestQuickSpellFeedbackDoesNotConflateCurrentArmOrSlot(t *testing.T) {
 	if !ok {
 		t.Fatal("no composed book")
 	}
-	*slots = [4]uint32{89}
+	*slots = [9]uint32{89}
 	marked, sameAt, ok := v.spellbookPresent()
 	if !ok || at != sameAt || bytes.Equal(base.Pix, marked.Pix) {
 		t.Fatal("F5 binding mark is absent or moves book")
@@ -59,7 +60,7 @@ func TestQuickSpellFeedbackDoesNotConflateCurrentArmOrSlot(t *testing.T) {
 		t.Fatal("closed invocation does not mark Cast")
 	}
 	v.cancelMapCommand()
-	*slots = [4]uint32{3}
+	*slots = [9]uint32{3}
 	v.quickSpell(0, false, -1, -1)
 	if v.selectedSpell != 3 || v.spellArmed || v.missionMode() != modeNone {
 		t.Fatal("unavailable current was hidden or armed")
@@ -128,7 +129,7 @@ func TestQuickSpellCtrlClosedBookStillRequestsCapabilityGatedCast(t *testing.T) 
 	}
 }
 
-func quickSpellApp(t *testing.T) (*App, *Viewer, *[4]uint32) {
+func quickSpellApp(t *testing.T) (*App, *Viewer, *[9]uint32) {
 	t.Helper()
 	a := spellbookTestApp(t)
 	mapAtScaleOne(a)
@@ -137,22 +138,19 @@ func quickSpellApp(t *testing.T) (*App, *Viewer, *[4]uint32) {
 	v.SetEntities([]MapEntity{{ID: sbUnitID, Owner: 1, Life: LifeAlive, MaxMana: 100}})
 	v.sel = selection{sbUnitID}
 	v.SetSpellbook(sbUnitID, []SpellEntry{{ID: 17, Name: "First"}, {ID: 89, Name: "Second"}, {ID: 3, Name: "Unavailable", Unavailable: true}})
-	slots := new([4]uint32)
+	slots := new([9]uint32)
 	v.SetQuickSpells(slots)
 	return a, v, slots
 }
 
 func TestQuickSpellPhysicalEdges(t *testing.T) {
-	bindings := bindingSource(t)
-	for _, key := range []string{"F5", "F6", "F7", "F8"} {
-		want := "inpututil.IsKeyJustPressed(ebiten.Key" + key + ")"
-		if !strings.Contains(bindings["QuickSpell"], want) {
-			t.Errorf("missing %s edge: %s", key, bindings["QuickSpell"])
-		}
-		for field, expr := range bindings {
-			if field != "QuickSpell" && strings.Contains(expr, "ebiten.Key"+key+")") {
-				t.Errorf("duplicate physical key %s in %s", key, field)
-			}
+	for slot := 0; slot < 4; slot++ {
+		var in appInput
+		in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.Key(int(ebiten.KeyF5)+slot)), false)
+		want := [9]bool{}
+		want[slot] = true
+		if in.QuickSpell != want || in.QuickSave || in.QuickLoad || in.Grid || in.Readout || in.FPS {
+			t.Fatalf("first-game slot %d: %+v", slot, in)
 		}
 	}
 }
@@ -160,22 +158,22 @@ func TestQuickSpellPhysicalEdges(t *testing.T) {
 func TestQuickSpellAssignCurrentHoverDuplicateAndEmpty(t *testing.T) {
 	a, v, slots := quickSpellApp(t)
 	x, y := sbEntryPoint(t, v, v.spellbook, 1)
-	a.step(appInput{QuickSpell: [4]bool{true}, Viewer: Input{Ctrl: true}, CursorX: x, CursorY: y}, time.Unix(10, 0))
-	if *slots != [4]uint32{89} || v.selectedSpell != 0 || v.spellArmed {
+	a.step(appInput{QuickSpell: [9]bool{true}, Viewer: Input{Ctrl: true}, CursorX: x, CursorY: y}, time.Unix(10, 0))
+	if *slots != [9]uint32{89} || v.selectedSpell != 0 || v.spellArmed {
 		t.Fatalf("hover assignment=%v current=%d armed=%v", *slots, v.selectedSpell, v.spellArmed)
 	}
 	v.selectedSpell = 17
 	v.quickSpell(1, true, x, y)
-	if *slots != [4]uint32{89, 17} {
+	if *slots != [9]uint32{89, 17} {
 		t.Fatalf("current did not outrank hovered real ID: %v", *slots)
 	}
 	v.quickSpell(0, true, -1, -1)
-	if *slots != [4]uint32{17} {
+	if *slots != [9]uint32{17} {
 		t.Fatalf("duplicate did not move/replace rather than swap: %v", *slots)
 	}
 	v.selectedSpell = 0
 	v.quickSpell(2, true, -1, -1)
-	if *slots != [4]uint32{17} {
+	if *slots != [9]uint32{17} {
 		t.Fatal("empty source changed slots")
 	}
 	x, y = sbEntryPoint(t, v, v.spellbook, 2)
@@ -187,7 +185,7 @@ func TestQuickSpellAssignCurrentHoverDuplicateAndEmpty(t *testing.T) {
 
 func TestQuickSpellInvokeCurrentAndArmedAreSeparate(t *testing.T) {
 	_, v, slots := quickSpellApp(t)
-	*slots = [4]uint32{89, 3}
+	*slots = [9]uint32{89, 3}
 	v.quickSpell(0, false, -1, -1)
 	if v.selectedSpell != 89 || v.missionMode() != modeNone {
 		t.Fatal("open-book invocation must select only")
@@ -221,7 +219,7 @@ func TestQuickSpellInvokeCurrentAndArmedAreSeparate(t *testing.T) {
 		}
 	}
 	v.SetSpellbook(sbOtherID, nil)
-	if v.selectedSpell != 0 || v.spellArmed || *slots != [4]uint32{89, 3} {
+	if v.selectedSpell != 0 || v.spellArmed || *slots != [9]uint32{89, 3} {
 		t.Fatal("selection change lost session slots or kept current mode")
 	}
 }
@@ -231,7 +229,7 @@ func TestQuickSpellMapFocusAndModalOwnership(t *testing.T) {
 		t.Run(gate, func(t *testing.T) {
 			a, v, slots := quickSpellApp(t)
 			v.selectedSpell = 17
-			in := appInput{QuickSpell: [4]bool{true}, Viewer: Input{Ctrl: true}}
+			in := appInput{QuickSpell: [9]bool{true}, Viewer: Input{Ctrl: true}}
 			switch gate {
 			case "unfocused":
 				in.Unfocused = true
@@ -250,7 +248,7 @@ func TestQuickSpellMapFocusAndModalOwnership(t *testing.T) {
 				a.cutsceneDrain = true
 			}
 			a.step(in, time.Unix(11, 0))
-			if *slots != [4]uint32{} {
+			if *slots != [9]uint32{} {
 				t.Fatalf("%s assigned %v", gate, *slots)
 			}
 		})

@@ -702,7 +702,7 @@ func TestValidateOriginalGameNamesABsgFileTheSecondGames(t *testing.T) {
 // refusal in a first-game file (DIV-4154).
 func TestOriginalQuickSpellsEmptyArrayIsTheSecondGamesOnly(t *testing.T) {
 	second := secondSavedFile(t, 0, [2]uint32{1, placeTown})
-	if got, err := fileCampaign(second).fileState(second); err != nil || got.quickSpells != ([4]uint32{}) {
+	if got, err := fileCampaign(second).fileState(second); err != nil || got.quickSpells != ([9]uint32{}) {
 		t.Fatalf("second game: %v %v", got, err)
 	}
 	first, err := sav.Open(originalContainer(sav.Magic, savedTrailer(append(savedBody(0, tenActors()), 0)), shortcutsStore()))

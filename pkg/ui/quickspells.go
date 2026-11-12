@@ -1,13 +1,13 @@
 package ui
 
-// SetQuickSpells attaches the session's four real spell IDs, in F5–F8 order.
+// SetQuickSpells attaches the session's real spell IDs in shortcut order.
 // Zero means unbound. The owner outlives this viewer; no actor owns these slots.
 // A standalone viewer without this seam cannot change session bindings.
-func (v *Viewer) SetQuickSpells(slots *[4]uint32) { v.quickSpells = slots }
+func (v *Viewer) SetQuickSpells(slots *[9]uint32) { v.quickSpells = slots }
 
 // QuickSpellState reports a value snapshot for diagnostics and headless
 // witnesses. It does not expose the session's writable storage.
-func (v *Viewer) QuickSpellState() (slots [4]uint32, current uint32, armed bool) {
+func (v *Viewer) QuickSpellState() (slots [9]uint32, current uint32, armed bool) {
 	if v.quickSpells != nil {
 		slots = *v.quickSpells
 	}

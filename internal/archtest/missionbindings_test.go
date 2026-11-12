@@ -19,14 +19,15 @@ func pickupBindingBypass(src string) bool {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.KeyValueExpr:
-			if field, ok := n.Key.(*ast.Ident); ok && (field.Name == "Grab" || field.Name == "Patrol") {
+			if field, ok := n.Key.(*ast.Ident); ok && missionBindingField(field.Name) {
 				bypass = true
 			}
 		case *ast.CaseClause:
 			physical := false
 			for _, label := range n.List {
-				if lit, ok := label.(*ast.BasicLit); ok && (lit.Value == `"p"` || lit.Value == `"f"` || lit.Value == "'p'" || lit.Value == "'f'") {
-					physical = true
+				if lit, ok := label.(*ast.BasicLit); ok {
+					name := strings.Trim(lit.Value, "\"'")
+					physical = physical || strings.Contains(" p f g d c s t r m f4 f5 f6 f7 f8 f9 f10 f11 f12 ", " "+name+" ")
 				}
 			}
 			if physical {
@@ -34,7 +35,7 @@ func pickupBindingBypass(src string) bool {
 					ast.Inspect(stmt, func(node ast.Node) bool {
 						if assign, ok := node.(*ast.AssignStmt); ok {
 							for _, lhs := range assign.Lhs {
-								if field, ok := lhs.(*ast.SelectorExpr); ok && (field.Sel.Name == "Grab" || field.Sel.Name == "Patrol") {
+								if field, ok := lhs.(*ast.SelectorExpr); ok && missionBindingField(field.Sel.Name) {
 									bypass = true
 								}
 							}
@@ -49,6 +50,10 @@ func pickupBindingBypass(src string) bool {
 	return bypass
 }
 
+func missionBindingField(name string) bool {
+	return strings.Contains(" Grab Patrol Guard Defend Cast March StandGround PlayerRetreat Move QuickSpell QuickSave QuickLoad Grid Readout FPS Reveal ", " "+name+" ")
+}
+
 func TestPickupAndPatrolKeysUseOneBindingTable(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -58,7 +63,7 @@ func TestPickupAndPatrolKeysUseOneBindingTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for file, call := range map[string]string{"app.go": "in.readMissionKeys(keys,", "headless.go": "in.missionKeyNamed(a.missionKeys,"} {
+	for file, call := range map[string]string{"app.go": "in.readMissionKeys(keys,", "headless.go": "in.missionKeyNamed(a.activeMissionKeys(),"} {
 		src, err := os.ReadFile(filepath.Join(root, "pkg", "ui", file))
 		if err != nil {
 			t.Fatal(err)
@@ -76,6 +81,8 @@ func TestPickupBindingGuardRejectsDirectAssignments(t *testing.T) {
 	}{
 		{`package ui; var in = appInput{Grab: pressed()}`, true},
 		{`package ui; var in = appInput{Patrol: pressed()}`, true},
+		{`package ui; var in = appInput{QuickSpell: pressed()}`, true},
+		{`package ui; func f() { switch key { case "d": in.Defend = true } }`, true},
 		{`package ui; func f() { switch key { case "p", "patrol": in.Patrol = true } }`, true},
 		{`package ui; func f() { switch key { case 'f': in.Grab = true } }`, true},
 		{`package ui; func f() { switch key { case "p", "f": in.missionKeyNamed(keys, key) } }`, false},

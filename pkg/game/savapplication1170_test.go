@@ -102,7 +102,7 @@ func TestApplication1170ProjectsCurrentFogAndExactMultipleSelection(t *testing.T
 	}
 	app.View.Selection = []uint32{uint32(s.SavedDocument.Actors[0].EntityID), uint32(s.SavedDocument.Actors[1].EntityID)}
 	app.View.ViewX, app.View.ViewY = 12, 13
-	s.QuickSpells = [4]uint32{23, 1, 0, 18}
+	s.QuickSpells = [9]uint32{23, 1, 0, 18}
 	s.Residue.FogExplored = make([]byte, 1600)
 	s.Residue.FogVisible = make([]byte, 1600)
 	s.Residue.FogExplored[0], s.Residue.FogExplored[1], s.Residue.FogExplored[1599] = 1, 1, 1

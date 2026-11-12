@@ -241,7 +241,7 @@ type HeadlessMemberAssertion struct {
 }
 
 type HeadlessStateAssertion struct {
-	QuickSpells  *[4]uint32 `json:"quick_spells,omitempty"`
+	QuickSpells  *[9]uint32 `json:"quick_spells,omitempty"`
 	CurrentSpell *uint32    `json:"current_spell,omitempty"`
 	SpellArmed   *bool      `json:"spell_armed,omitempty"`
 	Difficulty   *int       `json:"difficulty,omitempty"`
@@ -291,7 +291,7 @@ type HeadlessState struct {
 	Tooltip        ui.HeadlessTooltipState  `json:"tooltip"`
 	ScorchedGround int                      `json:"scorched_ground,omitempty"`
 	BurnedObjects  int                      `json:"burned_objects,omitempty"`
-	QuickSpells    [4]uint32                `json:"quick_spells"`
+	QuickSpells    [9]uint32                `json:"quick_spells"`
 	CurrentSpell   uint32                   `json:"current_spell,omitempty"`
 	SpellArmed     bool                     `json:"spell_armed,omitempty"`
 	Difficulty     int                      `json:"difficulty"`

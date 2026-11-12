@@ -23,7 +23,7 @@ type originalSource struct {
 	saved       []byte
 	modLayers   []modMarkLayer
 	sf          *sav.File
-	quickSpells [4]uint32
+	quickSpells [9]uint32
 	campaign    *originalCampaignDecode
 
 	tails             []sim.CellTail

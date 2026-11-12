@@ -51,7 +51,7 @@ func TestSpellbookFallbackLabelsAndBindingsAreCapturedByTheDrawnFrame(t *testing
 	v.SetEntities(sbEntities())
 	v.sel = selection{sbUnitID}
 	v.SetSpellbook(sbUnitID, sbBook())
-	v.SetQuickSpells(&[4]uint32{1})
+	v.SetQuickSpells(&[9]uint32{1})
 	if _, _, ok := v.spellbookBar(); !ok {
 		if err := a.HeadlessKey("book"); err != nil {
 			t.Fatal(err)

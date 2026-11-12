@@ -156,7 +156,7 @@ func TestStateLeafReadQuickSpells(t *testing.T) {
 			if (err != nil) != wantErr {
 				t.Fatal(err)
 			}
-			if !wantErr && got != ([4]uint32{1, 2, 3, 0}) {
+			if !wantErr && got != ([9]uint32{1, 2, 3, 0}) {
 				t.Fatal(got)
 			}
 		})
@@ -172,7 +172,7 @@ func TestStateLeafReadQuickSpells(t *testing.T) {
 			t.Fatal(err)
 		}
 		got, err := originalCityQuickSpells(city)
-		if err != nil || got != ([4]uint32{1, 2, 3, 0}) {
+		if err != nil || got != ([9]uint32{1, 2, 3, 0}) {
 			t.Fatal(got, err)
 		}
 		update := sav.CityUpdate{Money: 123}
@@ -188,7 +188,7 @@ func TestStateLeafReadQuickSpells(t *testing.T) {
 			t.Fatal(err)
 		}
 		got, err = originalQuickSpells(file)
-		if err != nil || got != ([4]uint32{1, 2, 3, 0}) {
+		if err != nil || got != ([9]uint32{1, 2, 3, 0}) {
 			t.Fatal(got, err)
 		}
 	}
@@ -265,12 +265,12 @@ func TestStateLeafReadRawQuickSpells(t *testing.T) {
 				t.Fatal(err)
 			}
 			if variant == "exact" || variant == "case" {
-				if got != ([4]uint32{1, 2, 3, 0}) {
+				if got != ([9]uint32{1, 2, 3, 0}) {
 					t.Fatal(got)
 				}
 			}
 			if variant == "missing" || variant == "sorted_case" || variant == "root_case" {
-				if got != ([4]uint32{}) {
+				if got != ([9]uint32{}) {
 					t.Fatal(got)
 				}
 			}

@@ -102,7 +102,7 @@ func TestRightClickStillAbsorbedByAttackAimedAndItemCast(t *testing.T) {
 func quickArmedViewer(t *testing.T) *Viewer {
 	t.Helper()
 	_, v, slots := quickSpellApp(t)
-	*slots = [4]uint32{17}
+	*slots = [9]uint32{17}
 	if v.hudShown(hudPanelBook) {
 		v.toggleHudPanel(hudPanelBook)
 	}

@@ -130,7 +130,7 @@ type campaignService interface {
 // session in its campaign tail rather than in an engine document, that
 // session.
 type originalFileState struct {
-	quickSpells [4]uint32
+	quickSpells [9]uint32
 	session     *currentSessionData
 	// fileView is that a mission file without a complete document gives the
 	// first frame from its own state store.

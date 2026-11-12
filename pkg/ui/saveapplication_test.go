@@ -32,7 +32,7 @@ func TestSaveApplication1170CurrentControlsAndColdRestore(t *testing.T) {
 	v.selectAllOwnedUnits()
 	book := []SpellEntry{{ID: 1, Name: "First"}, {ID: 23, Name: "Second"}}
 	v.SetSpellbook(7, book)
-	var slots [4]uint32
+	var slots [9]uint32
 	v.SetQuickSpells(&slots)
 	x, y := sbEntryPoint(t, v, book, 1)
 	sbClick(v, x, y)
@@ -46,7 +46,7 @@ func TestSaveApplication1170CurrentControlsAndColdRestore(t *testing.T) {
 	want := SaveApplicationState{Selection: []uint32{7, 41}, ViewX: 12, ViewY: 14, Zoom: 1,
 		InventoryOpen: false, SpellBookOpen: true, DollOpen: true, WornOpen: true, MinimapOpen: true,
 		ShowHealth: false, FlyingHP: true, TimeFlow: false, PressedSpell: 23, PeriodUS: 41000}
-	if slots != [4]uint32{0, 0, 23, 0} {
+	if slots != [9]uint32{0, 0, 23, 0} {
 		t.Fatalf("current F7 = %v", slots)
 	}
 	got := v.SaveApplication()

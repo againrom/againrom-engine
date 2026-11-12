@@ -224,7 +224,7 @@ func guestDigest(t *testing.T, f *FrontEnd) string {
 		Gold, Main, Selected, Offered, Documented int
 		Won, Available, PendingGrants             []int
 		Difficulty                                mapload.Difficulty
-		QuickSpells                               [4]uint32
+		QuickSpells                               [9]uint32
 		Fame                                      *SnapshotFame
 		Pool                                      [16]int
 		Enabled, Hired                            [16]bool

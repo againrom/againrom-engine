@@ -303,7 +303,7 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 	}
 	key("ctrl-f5")
 	key("f5")
-	if slots, current, _ := f.live.view.QuickSpellState(); slots != [4]uint32{23} || current != 23 {
+	if slots, current, _ := f.live.view.QuickSpellState(); slots != [9]uint32{23} || current != 23 {
 		t.Fatalf("actual quick binding/current = %v/%d", slots, current)
 	}
 	if err := app.HeadlessPointer("hover", 400, 300); err != nil {

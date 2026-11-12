@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestDebugChordsAreBoundOnlyToTheirChords(t *testing.T) {
@@ -14,7 +16,6 @@ func TestDebugChordsAreBoundOnlyToTheirChords(t *testing.T) {
 	}{
 		{"Kill", "ebiten.KeyK"},
 		{"Chip", "ebiten.KeySemicolon"},
-		{"Reveal", "ebiten.KeyF4"},
 	} {
 		expr, ok := got[tc.field]
 		if !ok {
@@ -26,6 +27,15 @@ func TestDebugChordsAreBoundOnlyToTheirChords(t *testing.T) {
 		}
 		if tc.field != "Reveal" && strings.Contains(expr, "ebiten.KeyL") {
 			t.Errorf("%s still reads L: %q", tc.field, expr)
+		}
+	}
+	for _, ctrl := range []bool{false, true} {
+		for _, shift := range []bool{false, true} {
+			in := appInput{Viewer: Input{Ctrl: ctrl, Shift: shift}}
+			in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.KeyF4), ctrl)
+			if in.Reveal != (ctrl && shift) {
+				t.Fatalf("reveal Ctrl %v Shift %v = %v", ctrl, shift, in.Reveal)
+			}
 		}
 	}
 	if load := got["Load"]; !strings.Contains(load, "ebiten.KeyL") || strings.Contains(load, "Semicolon") {

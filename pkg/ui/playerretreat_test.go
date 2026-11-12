@@ -3,13 +3,16 @@ package ui
 import (
 	"image"
 	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestPlayerRetreat1089RAndPanelIssueImmediatelyAndSpendArmedMode(t *testing.T) {
-	if expr := bindingSource(t)["PlayerRetreat"]; !strings.Contains(expr, "inpututil.IsKeyJustPressed(ebiten.KeyR)") {
-		t.Fatal("R binding", expr)
+	var in appInput
+	in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.KeyR), false)
+	if !in.PlayerRetreat {
+		t.Fatal("R binding is absent")
 	}
 	for _, panel := range []bool{false, true} {
 		a, v, _ := atOnMap(t)

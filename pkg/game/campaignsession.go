@@ -62,7 +62,7 @@ func (s *CampaignSession) clear(campaign Campaign) {
 	s.detachProjectileCounter()
 	s.detachFameObserver()
 	s.fame = SnapshotFame{}
-	s.quickSpells = [4]uint32{}
+	s.quickSpells = [9]uint32{}
 	s.Carried = nil
 	s.Difficulty = 0 // Normal, as on a zero-value FrontEnd.
 	s.Offered = 0

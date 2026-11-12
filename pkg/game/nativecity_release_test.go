@@ -886,7 +886,7 @@ func TestReleaseNativeTownSaveShopBaredSessionRoundTripsAsSAV(t *testing.T) {
 	if marked == 0 {
 		t.Fatal("fixture assumption broke: no candidate mission recorded a world-map marker on this root")
 	}
-	f.quickSpells = [4]uint32{1, 0, 5, 0}
+	f.quickSpells = [9]uint32{1, 0, 5, 0}
 	f.Offered = 999
 	f.Town.gold = 500
 

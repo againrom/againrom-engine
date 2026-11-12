@@ -20,11 +20,18 @@ func (w *World) armDefend(i int) {
 	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
+	if e := w.entities[i]; w.game.orders.defendFineStep && e.HasTarget && !e.HasAttackTarget && e.EscortOrder == escortOrderNone {
+		return
+	}
 	ti, stop, dist, ok := w.escortSubject(i)
 	if !ok {
 		return
 	}
-	if dist > stop {
+	rangeLimit := stop
+	if w.game.orders.defendFineStep {
+		rangeLimit = int64(w.entities[i].EscortRange)
+	}
+	if dist > rangeLimit {
 		w.escortClose(i, ti)
 		return
 	}
@@ -306,6 +313,22 @@ func (w *World) escortStepAway(i, ti int, stop int64) {
 		py = int64(t.Y)*subCell + sign64(dy)*major
 		px = int64(t.X)*subCell + sign64(dx)*roundDiv(major*adx, ady)
 	}
+	if w.game.orders.defendFineStep && e.ActorState == actorStateDefend {
+		x, y := w.moverFinePoint(e)
+		dx, dy = x-int64(t.X)*subCell, y-int64(t.Y)*subCell
+		if dx == 0 {
+			dx = 1
+		}
+		if dy == 0 {
+			dy = 1
+		}
+		major = int64(e.EscortRange) * subCell
+		if intmath.Abs(dx) >= intmath.Abs(dy) {
+			px, py = x+sign64(dx)*major, y+sign64(dx)*major*dy/dx
+		} else {
+			px, py = x+sign64(dy)*major*dx/dy, y+sign64(dy)*major
+		}
+	}
 	targetX := clampPlayable(px>>8, int64(w.bounds.Width))
 	targetY := clampPlayable(py>>8, int64(w.bounds.Height))
 	w.cancelTurnForTargetChange(i, targetX, targetY)
@@ -316,6 +339,9 @@ func (w *World) escortStepAway(i, ti int, stop int64) {
 	self.TargetX = targetX
 	self.TargetY = targetY
 	self.HasTarget = true
+	if w.game.orders.defendFineStep && self.ActorState == actorStateDefend {
+		self.EscortOrder = escortOrderNone
+	}
 }
 
 func clampPlayable(v, dim int64) int32 {

@@ -3,13 +3,16 @@ package ui
 import (
 	"image"
 	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestPlayerDefendDPanelMapAndCancel1087(t *testing.T) {
-	if expr := bindingSource(t)["Defend"]; !strings.Contains(expr, "inpututil.IsKeyJustPressed(ebiten.KeyD)") {
-		t.Fatalf("D binding = %s", expr)
+	var in appInput
+	in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.KeyD), false)
+	if !in.Defend {
+		t.Fatal("D binding is absent")
 	}
 	for _, panel := range []bool{false, true} {
 		a, v, _ := atOnMap(t)

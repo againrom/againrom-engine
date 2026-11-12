@@ -3,7 +3,7 @@ package game
 import "testing"
 
 func TestQuickSpellsScenarioVocabularyKeepsOlderVersionsUnchanged(t *testing.T) {
-	spell, armed, slots := uint32(16), false, [4]uint32{16}
+	spell, armed, slots := uint32(16), false, [9]uint32{16}
 	for _, step := range []HeadlessStep{
 		{Command: "pointer", Action: "hover", At: &HeadlessPoint{Ground: true}},
 		{Command: "pointer", Action: "move", At: &HeadlessPoint{Spell: &spell}},
@@ -36,7 +36,7 @@ func TestQuickSpellsHeadlessPointAndAssertions(t *testing.T) {
 			t.Fatal("invalid spell ID accepted")
 		}
 	}
-	ids, current, armed := [4]uint32{16, 1, 6, 19}, uint32(16), true
+	ids, current, armed := [9]uint32{16, 1, 6, 19}, uint32(16), true
 	want := HeadlessStateAssertion{QuickSpells: &ids, CurrentSpell: &current, SpellArmed: &armed}
 	good := HeadlessState{QuickSpells: ids, CurrentSpell: current, SpellArmed: armed}
 	if err := assertHeadlessState(good, want, nil); err != nil {

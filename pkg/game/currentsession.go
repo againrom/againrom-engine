@@ -82,7 +82,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 		return err
 	}
 	for slot, id := range s.QuickSpells {
-		if id != 0 && shortcuts[slot] == -1 {
+		if id != 0 && (slot >= len(shortcuts) || shortcuts[slot] == -1) {
 			a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{uint8(slot), id})
 		}
 	}
@@ -130,13 +130,13 @@ func validateCurrentSession(s *currentSessionData) error {
 	if err := campaignOf(s.Game).validateSession(s); err != nil {
 		return err
 	}
-	var ids [4]uint32
+	var ids [9]uint32
 	for _, row := range s.QuickSpells {
-		if int(row.Slot) >= len(ids) || row.ID == 0 || ids[row.Slot] != 0 {
+		if int(row.Slot) >= ui.MissionShortcutCount(s.Game.Edition().MissionKeys) || row.ID == 0 || ids[row.Slot] != 0 {
 			return fmt.Errorf("invalid current quick-spell slot")
 		}
-		indices, err := quickSpellsToOriginalIndices([4]uint32{row.ID})
-		if err != nil || indices[0] != -1 {
+		indices, err := quickSpellsToOriginalIndices([9]uint32{row.ID})
+		if err != nil || row.Slot < 4 && indices[0] != -1 {
 			return fmt.Errorf("invalid current custom quick-spell binding")
 		}
 		ids[row.Slot] = row.ID
@@ -200,7 +200,7 @@ func validateCurrentSession(s *currentSessionData) error {
 			}
 		}
 		if v.PressedSpell != 0 {
-			indices, err := quickSpellsToOriginalIndices([4]uint32{v.PressedSpell})
+			indices, err := quickSpellsToOriginalIndices([9]uint32{v.PressedSpell})
 			if err != nil || indices[0] != -1 {
 				return fmt.Errorf("invalid current custom pressed spell")
 			}
@@ -249,7 +249,7 @@ func applyCurrentView(v *ui.SaveApplicationState, raw OriginalStateData, a *curr
 	}
 }
 
-func currentQuickSpells(ordinary [4]uint32, session *currentSessionData) ([4]uint32, error) {
+func currentQuickSpells(ordinary [9]uint32, session *currentSessionData) ([9]uint32, error) {
 	if session != nil {
 		for _, row := range session.QuickSpells {
 			if ordinary[row.Slot] == 0 {

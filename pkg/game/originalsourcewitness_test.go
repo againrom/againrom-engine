@@ -270,7 +270,7 @@ func originalSourceWitness(t *testing.T) string {
 	view.ViewX, view.ViewY = 12, 13
 	selected.ApplicationState = cloneApplicationState(selected.ApplicationState)
 	selected.ApplicationState.View = view
-	selected.QuickSpells = [4]uint32{23, 1, 0, 18}
+	selected.QuickSpells = [9]uint32{23, 1, 0, 18}
 	project(sourceRowProjectCurrent, selected)
 
 	absent := snapshot

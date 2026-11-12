@@ -476,7 +476,7 @@ func applicationCurrentRaw(app *SnapshotApplicationState) (OriginalStateData, er
 		out.Speed = int32(nearestOriginalSpeed(now.PeriodUS))
 	}
 	out.ViewX, out.ViewY = originalViewOrigin(now.ViewX, now.ViewY)
-	pressed, err := quickSpellsToOriginalIndices([4]uint32{now.PressedSpell})
+	pressed, err := quickSpellsToOriginalIndices([9]uint32{now.PressedSpell})
 	if err != nil {
 		return out, worldSaveUnsupportedf("current spell %d has no original book index", now.PressedSpell)
 	}

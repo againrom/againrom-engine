@@ -18,7 +18,7 @@ func TestQuickSpellPopulationCapabilityAndCastFiltering(t *testing.T) {
 	v.SetSpellbook(5, []SpellEntry{{ID: 16}})
 	v.Camera().X, v.Camera().Y = 0, 0
 	v.Camera().Clamp()
-	*slots = [4]uint32{16}
+	*slots = [9]uint32{16}
 	v.toggleHudPanel(hudPanelBook)
 	v.quickSpell(0, false, -1, -1)
 	if !v.spellArmed || !v.commandCastActive() {
@@ -76,7 +76,7 @@ func TestQuickSpellDoesNotReplaceItemOperand(t *testing.T) {
 	if !v.ArmItemCast(5, 7, 6, "item-key") {
 		t.Fatal("item fixture did not arm")
 	}
-	*slots = [4]uint32{89}
+	*slots = [9]uint32{89}
 	v.toggleHudPanel(hudPanelBook)
 	v.quickSpell(0, false, -1, -1)
 	if v.itemCast == nil || v.selectedSpell != 89 {

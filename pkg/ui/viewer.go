@@ -1096,19 +1096,20 @@ type Viewer struct {
 	gold    goldState
 	goldImg *ebiten.Image
 
-	spellbook      []SpellEntry
-	spellbookOwner uint32
-	spellbookHeld  bool // a unit is selected; entity id 0 is a real owner
-	selectedSpell  uint32
-	spellTakesBody func(id uint32) bool
-	spellbookFixed bool       // the installed 24-cell catalog, rather than a custom compact book
-	spellArmed     bool       // current spell and armed Cast mode are independent
-	spellNeedsBook bool       // book-chosen: live only while the book is shown
-	castOnce       bool       // armed by C or the Cast cell over a closed book: one cast, then the book closes
-	quickSpells    *[4]uint32 // session-owned; never retained by an actor
-	itemCast       *itemCastSelection
-	itemCastSink   MapItemCast
-	castNeedsSight bool // SetCastNeedsSight: a cast takes only ground in current sight
+	spellbook        []SpellEntry
+	spellbookOwner   uint32
+	spellbookHeld    bool // a unit is selected; entity id 0 is a real owner
+	selectedSpell    uint32
+	spellTakesBody   func(id uint32) bool
+	spellbookFixed   bool       // the installed 24-cell catalog, rather than a custom compact book
+	spellArmed       bool       // current spell and armed Cast mode are independent
+	spellNeedsBook   bool       // book-chosen: live only while the book is shown
+	castOnce         bool       // armed by C or the Cast cell over a closed book: one cast, then the book closes
+	quickSpells      *[9]uint32 // session-owned; never retained by an actor
+	quickSpellOffset int
+	itemCast         *itemCastSelection
+	itemCastSink     MapItemCast
+	castNeedsSight   bool // SetCastNeedsSight: a cast takes only ground in current sight
 
 	// autocastSink is SetAutocastSink's own value (spellbook.go): where the
 	// autocast toggle leaves this package, nil for a viewer never given one.

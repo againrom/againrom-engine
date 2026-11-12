@@ -26,7 +26,7 @@ type secondTownSample struct {
 	Party         [][]byte
 	Gold, Offered int
 	Difficulty    mapload.Difficulty
-	Quick         [4]uint32
+	Quick         [9]uint32
 	Fame          SnapshotFame
 	Header        string
 	Rows          []ui.TownRow
@@ -150,7 +150,7 @@ func secondTownMutate(f *FrontEnd) {
 		f.Carried[0].CarriedItems = append(f.Carried[0].CarriedItems, equipment[0])
 	}
 	f.Town.gold, f.Difficulty = 777, mapload.DifficultyHard
-	f.quickSpells = [4]uint32{2, 0, 4, 0}
+	f.quickSpells = [9]uint32{2, 0, 4, 0}
 	f.Town.second.bank[0], f.Town.second.bank[997], f.Town.second.bank[754] = -27, 34567, 91
 }
 

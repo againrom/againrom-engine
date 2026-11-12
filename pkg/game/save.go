@@ -108,9 +108,9 @@ type Snapshot struct {
 	// constructor default. Coordinates use cells, as in SaveApplicationState.
 	CameraSet                    bool
 	CameraX, CameraY, CameraZoom float64
-	// QuickSpells holds spell IDs in F5-F8 order. Current spell, mode and book
+	// QuickSpells holds real IDs in shortcut order. Current spell, mode and book
 	// visibility are captured by their own application fields.
-	QuickSpells [4]uint32
+	QuickSpells [9]uint32
 	// Difficulty is campaign state. World is already scaled and is never
 	// adjusted during restore (UNIT-GATE-013).
 	Difficulty mapload.Difficulty

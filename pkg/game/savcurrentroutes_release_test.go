@@ -93,7 +93,7 @@ func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
 	f.live.mission.party[0].Name = "Captured current hero"
 	f.live.recomputeRaisedSkills()
 	f.Difficulty = mapload.DifficultyHard
-	f.quickSpells = [4]uint32{1, 16, 89, 0}
+	f.quickSpells = [9]uint32{1, 16, 89, 0}
 	f.fame = SnapshotFame{Known: true, Time: 0x1020304, Events: 0x5060708}
 	if view := f.live.view.SaveApplication(); !view.DollOpen || !view.WornOpen {
 		t.Fatal("route fixture must start with visible panels")
@@ -185,7 +185,7 @@ func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
 	if err := app.HeadlessKey("f9"); err != nil {
 		t.Fatal(err)
 	}
-	if f.live.mission.party[0].Name != "Captured current hero" || f.quickSpells != ([4]uint32{1, 16, 89, 0}) {
+	if f.live.mission.party[0].Name != "Captured current hero" || f.quickSpells != ([9]uint32{1, 16, 89, 0}) {
 		t.Fatal("F9 did not restore captured fields")
 	}
 	f.LiveAdvance(2)
@@ -211,7 +211,7 @@ func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
 	}
 	f.Carried[0].Name = "Captured current hero"
 	f.Difficulty = mapload.DifficultyHard
-	f.quickSpells = [4]uint32{1, 16, 89, 0}
+	f.quickSpells = [9]uint32{1, 16, 89, 0}
 	f.fame = SnapshotFame{Known: true, Time: 0x1020304, Events: 0x5060708}
 	assert("town-f2", cityRosterF2Save(t, app, store, "town-current"))
 	if err := app.OpenMission(f.MissionOpener(90)); err != nil {
@@ -367,7 +367,7 @@ func TestReleaseSaveRoutesWriteIdenticalStateExceptName(t *testing.T) {
 	if app.Screen() != ui.ScreenMap || app.HeadlessNoticeOpen() {
 		t.Fatal("same-state mission is not ready", app.Screen())
 	}
-	f.quickSpells = [4]uint32{1, 16, 89, 0}
+	f.quickSpells = [9]uint32{1, 16, 89, 0}
 	f.fame = SnapshotFame{Known: true, Time: 0x1020304, Events: 0x5060708}
 	if err := app.HeadlessKey("0"); err != nil {
 		t.Fatal(err)

@@ -494,7 +494,10 @@ func (w *World) savedActorDispatch(i int) {
 		// The branch compares the stored byte, including zero. Its stop
 		// operand alone falls back to ScanRange (AI-DEFEND-111/FOLLOW-112).
 		closing := cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ti])) > int64(o.Raw[0x70])
-		if closing {
+		if o.State == 8 && w.game.orders.defendFineStep {
+			w.armDefend(i)
+			closing = w.entities[i].HasTarget && w.entities[i].EscortOrder == escortOrderClose
+		} else if closing {
 			w.escortClose(i, ti)
 		} else if o.State == 8 {
 			w.armDefend(i)

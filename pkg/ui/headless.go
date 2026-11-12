@@ -100,15 +100,11 @@ func (a *App) HeadlessKey(name string) error {
 		in.SaveGame = true
 	case "f3":
 		in.LoadGame = true
-	case "f4":
-		in.QuickSave = true
-	case "ctrl-shift-f4":
-		in.Reveal, in.ShiftHeld, in.Viewer.Shift, in.Viewer.Ctrl = true, true, true, true
-	case "f9":
-		in.QuickLoad = true
-	case "f11", "readout":
+	case "f4", "f9", "f10", "f11", "f12", "ctrl-shift-f4":
+		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
+	case "readout":
 		in.Readout = true
-	case "f12", "fps":
+	case "fps":
 		in.FPS = true
 	case "alt-enter":
 		in.Viewer.Alt, in.WindowToggle = true, true
@@ -117,10 +113,7 @@ func (a *App) HeadlessKey(name string) error {
 	case "alt-f12":
 		in.Viewer.Alt, in.FPS = true, true
 	case "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6", "ctrl-f7", "ctrl-f8":
-		key := strings.ToLower(strings.TrimSpace(name))
-		in.Viewer.Ctrl = strings.HasPrefix(key, "ctrl-")
-		in.AttackHeld = in.Viewer.Ctrl
-		in.QuickSpell[int(key[len(key)-1]-'5')] = true
+		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
 	case "numpad-plus":
 		in.Faster = true
 	case "numpad-minus":
@@ -131,7 +124,9 @@ func (a *App) HeadlessKey(name string) error {
 		in.Paced = true
 	case "f1", "help":
 		in.Help = true
-	case "c", "cast":
+	case "c":
+		in.missionKeyNamed(a.activeMissionKeys(), "c")
+	case "cast":
 		in.Cast = true
 	case "pageup":
 		in.PageUp = true
@@ -173,12 +168,16 @@ func (a *App) HeadlessKey(name string) error {
 		in.Retreat, in.Viewer.Ctrl = true, true
 	case "a", "attack":
 		in.Attack = true
-	case "r", "retreat":
+	case "r":
+		in.missionKeyNamed(a.activeMissionKeys(), "r")
+	case "retreat":
 		in.PlayerRetreat = true
-	case "d", "defend":
+	case "d":
+		in.missionKeyNamed(a.activeMissionKeys(), "d")
+	case "defend":
 		in.Defend = true
 	case "p", "f":
-		in.missionKeyNamed(a.missionKeys, strings.ToLower(strings.TrimSpace(name)))
+		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
 	case "patrol":
 		in.Patrol = true
 	case "grab":
@@ -216,13 +215,16 @@ func (a *App) HeadlessKey(name string) error {
 		in.Doll = true
 	default:
 		key := strings.ToLower(strings.TrimSpace(name))
+		if in.missionKeyNamed(a.activeMissionKeys(), key) {
+			break
+		}
 		if len(key) != 5 || key[:4] != "alt-" || key[4] < 'a' || key[4] > 'z' {
-			return fmt.Errorf("headless key: unknown key %q; accepted keys: %s, and alt- followed by a letter a to z",
+			return fmt.Errorf("headless key: unknown key %q; accepted keys: %s, mission binding names with ctrl- or shift-, and alt- followed by a letter a to z",
 				name, strings.Join(headlessKeyNames, ", "))
 		}
 		in.Viewer.Alt = true
 		in.AltLetter = readAltLetter(true, onlyKey(altLetterKeys[key[4]-'a']))
-		in.setAltLetter(key[4], a.missionKeys)
+		in.setAltLetter(key[4], a.activeMissionKeys())
 	}
 	if a.step(in, a.headlessAt()) {
 		return fmt.Errorf("headless key %q requested application exit", name)
@@ -233,7 +235,7 @@ func (a *App) HeadlessKey(name string) error {
 // headlessKeyNames are the names HeadlessKey accepts, besides alt- followed
 // by one letter, a to z.
 var headlessKeyNames = []string{
-	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "ctrl-shift-f4", "f9", "f11", "readout",
+	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "ctrl-shift-f4", "f9", "f10", "f11", "readout",
 	"f12", "fps", "alt-enter", "alt-backspace", "alt-f12", "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6",
 	"ctrl-f7", "ctrl-f8", "numpad-plus", "numpad-minus", "ctrl-numpad-plus", "ctrl-numpad-minus", "f1", "help",
 	"c", "cast", "pageup", "pagedown", "up", "down", "left", "right", "shift-left", "shift-right", "shift-home",
@@ -1305,10 +1307,6 @@ func (in *appInput) setAltLetter(letter byte, keys missionKeyAction) {
 	switch letter {
 	case 'b', 'q':
 		in.Book = true
-	case 'c':
-		in.Cast = true
-	case 'd':
-		in.Defend = true
 	case 'e':
 		in.SelectAll = true
 	case 'i':

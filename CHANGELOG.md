@@ -19,6 +19,11 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Use Ctrl+F4 through Ctrl+F12 to bind nine spell shortcuts, and F4 through F12 to recall them. The first game keeps its existing keys.
+- [ROM2] Quick save is Shift+F4 and quick load is Shift+F9, because F4 through F12 now recall spell shortcuts.
+- [ROM2] Holding Ctrl with G, D, C, S, T, R or M no longer also issues that letter's ordinary order.
+- [ROM2] A defender standing too close steps away along the line between the two characters, with the destination kept inside the map.
+- [ROM2] After unlocking cheats, use Ctrl+Shift+F10 for the grid and Ctrl+Shift+F11 for the debug readout.
 - [ROM2] Press P to send your selected heroes to pick up a nearby sack, even when they are not standing on it.
 - [BASE] With Smoothing on (Ctrl+O), the mission map is drawn smooth when you zoom it with the wheel, without blocky pixels or flicker while it scrolls, and each turn of the wheel shows the zoom in percent; before, a zoomed map looked blocky and nothing showed the zoom.
 - [BASE] The debug keys K, L and Shift+F4 no longer act in a mission by accident. Kill, chip and map reveal moved to Ctrl+Shift+K, Ctrl+Shift+; and Ctrl+Shift+F4, and work only after the cheats are unlocked.

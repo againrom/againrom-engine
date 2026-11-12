@@ -35,7 +35,7 @@ type originalCitySaveState struct {
 	baselineOffered                int
 	baselineDifficulty             mapload.Difficulty
 	baselineCampaignMarkerSelected bool
-	baselineQuickSpells            [4]uint32
+	baselineQuickSpells            [9]uint32
 	unavailable                    error
 	loadedState                    sav.DocumentStateData
 	trade                          *originalCityTrade
@@ -813,7 +813,7 @@ type originalCampaignDecode struct {
 	session     *currentSessionData
 	actions     *currentActionData
 	document    *sav.DocumentData
-	quickSpells [4]uint32
+	quickSpells [9]uint32
 	// fileSession is the session the file states in its own tail, nil when
 	// an engine document or nothing states it.
 	fileSession *currentSessionData

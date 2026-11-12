@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"strconv"
 
 	"againrom/pkg/render/text"
 )
@@ -324,10 +325,10 @@ func (v *Viewer) spellbookPresent() (*image.RGBA, image.Point, bool) {
 				if id == v.spellbook[i].ID {
 					if original {
 						if !v.spellbook[i].Unavailable {
-							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), slot, id == v.selectedSpell)
+							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), slot+v.quickSpellOffset, id == v.selectedSpell)
 						}
 					} else {
-						drawQuickSpellMark(img, v.font, cell.Sub(bar.Min), slot)
+						drawQuickSpellMark(img, v.font, cell.Sub(bar.Min), slot+v.quickSpellOffset)
 					}
 				}
 			}
@@ -357,7 +358,7 @@ func drawNoHeroText(img *image.RGBA, line string, cardFont, font *text.Font, ori
 }
 
 func drawQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rectangle, slot int) {
-	label := string([]byte{'F', byte('5' + slot)})
+	label := "F" + strconv.Itoa(5+slot)
 	w, h := font.Measure(label)
 	if w <= 0 || h <= 0 || w+4 > cell.Dx() || h+4 > cell.Dy() {
 		return
@@ -421,7 +422,7 @@ func drawOriginalQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rec
 	if selected {
 		pad = 2
 	}
-	label := string(rune('5' + slot))
+	label := strconv.Itoa(5 + slot)
 	font.Draw(dst, label, cell.Min.X+pad+1, cell.Min.Y+pad+1, DamageNumeralShadowColor)
 	font.Draw(dst, label, cell.Min.X+pad, cell.Min.Y+pad, quickSpellMarkInk)
 }

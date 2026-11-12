@@ -134,7 +134,7 @@ type appInput struct {
 	LoadGame   bool
 	QuickSave  bool
 	QuickLoad  bool
-	QuickSpell [4]bool // physical F5–F8 press edges; Ctrl comes from Viewer.Ctrl
+	QuickSpell [9]bool // slot press edges; modifiers come from Viewer
 
 	// Pause, Faster and Slower are the map screen's three paced-cadence keys.
 	// Unpaced and Paced select the original's separate owner-loop arm
@@ -606,19 +606,6 @@ func readAppInput(keys missionKeyAction) appInput {
 		Unfocused: !ebiten.IsFocused(),
 		SaveGame:  inpututil.IsKeyJustPressed(ebiten.KeyF2),
 		LoadGame:  inpututil.IsKeyJustPressed(ebiten.KeyF3),
-		QuickSave: inpututil.IsKeyJustPressed(ebiten.KeyF4) && !shiftHeld,
-		Reveal:    inpututil.IsKeyJustPressed(ebiten.KeyF4) && shiftHeld && ctrlHeld(),
-		QuickLoad: inpututil.IsKeyJustPressed(ebiten.KeyF9),
-		QuickSpell: [4]bool{
-			inpututil.IsKeyJustPressed(ebiten.KeyF5),
-			inpututil.IsKeyJustPressed(ebiten.KeyF6),
-			inpututil.IsKeyJustPressed(ebiten.KeyF7),
-			inpututil.IsKeyJustPressed(ebiten.KeyF8),
-		},
-		// Gated by cheatsUnlocked.
-		Grid:    inpututil.IsKeyJustPressed(ebiten.KeyF10),
-		Readout: inpututil.IsKeyJustPressed(ebiten.KeyF11),
-		FPS:     inpututil.IsKeyJustPressed(ebiten.KeyF12),
 		// CTRL+N, NOT BARE N (round 3). `keyboard.tsv` row 50 gives "Ctrl+N | map
 		// | Ctrl held | toggle day/night changes | main.txt[104..105]" and no row
 		// of the file names a bare `N` on the mission map. The old comment here
@@ -671,28 +658,6 @@ func readAppInput(keys missionKeyAction) appInput {
 		// E IS THE ORIGINAL'S OWN ARMY SELECTION (`AI-KEY-125`,
 		// `AI-SELECT-122`): every owned unit, replacing the selection.
 		SelectAll: inpututil.IsKeyJustPressed(ebiten.KeyE),
-		// THE ORDER VOCABULARY'S KEYS (spec A-2, docs/1028- command-panel contract
-		// B3/B4 for Move). `MENU-COMBAT-019` names the original's eight cells and
-		// accelerators — Attack/A, Move/M, Guard/G, Defend/D, Cast/C, Swarm/S,
-		// Stand Ground/T, Retreat/R — and Guard, Stand Ground and Move take
-		// exactly those three letters. The edition supplies pickup and Patrol.
-		//
-		// DIV-237
-		Guard:         inpututil.IsKeyJustPressed(ebiten.KeyG),
-		PlayerRetreat: inpututil.IsKeyJustPressed(ebiten.KeyR),
-		StandGround:   inpututil.IsKeyJustPressed(ebiten.KeyT),
-		// S, NOT H. `keyboard.tsv` gives S "arm Swarm | mode 6" and `AI-PANEL-123`
-		// gives the panel's Swarm cell the same mode and click opcode `0x1a`;
-		// `commandSwarm` -- which this field raises -- IS that order, so S is not
-		// a free letter this project is taking but the original's own binding
-		// arriving at the order it names. The field keeps the name March, which is
-		// what this project called the order before the row was read; the order
-		// itself is unchanged.
-		March:  inpututil.IsKeyJustPressed(ebiten.KeyS),
-		Defend: inpututil.IsKeyJustPressed(ebiten.KeyD),
-		Move:   inpututil.IsKeyJustPressed(ebiten.KeyM),
-		// Reserved and inert at this story — see the Cast field's own doc.
-		Cast: inpututil.IsKeyJustPressed(ebiten.KeyC),
 		// B OR Q, NOT S: `keyboard.tsv` gives "B or Q | map or spellbook state |
 		// toggle/close spellbook | 0x40f", so the spellbook switch lands on the
 		// original's own two keys and S goes to the Swarm arm above.
@@ -1284,7 +1249,7 @@ func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Update gathers one tick of input and hands it to step. It holds no logic, so
 // nothing the front-end decides is out of a test's reach.
 func (a *App) Update() error {
-	if a.step(readAppInput(a.missionKeys), time.Now()) {
+	if a.step(readAppInput(a.activeMissionKeys()), time.Now()) {
 		return ebiten.Termination
 	}
 	return nil
@@ -1859,6 +1824,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			if in.FPS {
 				v.ToggleFPS()
 			}
+			v.quickSpellOffset = missionKeyPolicies[a.activeMissionKeys()].shortcutFirst - 5
 			if !quickBlocked {
 				for slot, pressed := range in.QuickSpell {
 					if pressed {

@@ -222,7 +222,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 					cityQuickKey1167(t, app, fmt.Sprintf("ctrl-f%d", binding[0]))
 				}
 			})
-			firstIDs, firstCells := [4]uint32{23, 18, 0, 16}, [4]int32{5, 23, -1, 7}
+			firstIDs, firstCells := [9]uint32{23, 18, 0, 16}, [4]int32{5, 23, -1, 7}
 			if f.quickSpells != firstIDs {
 				t.Fatal("real binding input", f.quickSpells)
 			}
@@ -273,7 +273,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			cityQuickProbe1167(t, fresh, func(app *ui.App, id sim.EntityID) {
 				cityQuickKey1167(t, app, "f5")
 				cityQuickKey1167(t, app, "ctrl-f7") // Move23, clearing F5 to -1.
-				if fresh.quickSpells != ([4]uint32{0, 18, 23, 16}) {
+				if fresh.quickSpells != ([9]uint32{0, 18, 23, 16}) {
 					t.Fatal("duplicate move did not clear the old key", fresh.quickSpells)
 				}
 				cityQuickCast1167(t, fresh, app, id)
@@ -289,12 +289,12 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			cityQuickRaw1167(t, raw2, [4]int32{-1, 23, 5, 7})
 			third := releaseFront(t)
 			_, _, load3 := third.SaveSeams(store, OriginalStore{}, nil)
-			if _, town, err := load3(localOriginalSaveToken(name2)); err != nil || !town || third.quickSpells != ([4]uint32{0, 18, 23, 16}) {
+			if _, town, err := load3(localOriginalSaveToken(name2)); err != nil || !town || third.quickSpells != ([9]uint32{0, 18, 23, 16}) {
 				t.Fatal("second SAV LOAD lost cleared/current bindings", third.quickSpells, town, err)
 			}
 			cityQuickProbe1167(t, third, func(app *ui.App, id sim.EntityID) { cityQuickCast1167(t, third, app, id) })
 			// Empty is an explicit current update, distinct from nil/preserve.
-			third.quickSpells = [4]uint32{}
+			third.quickSpells = [9]uint32{}
 			empty, _, err := third.Snapshot(false)
 			if err != nil {
 				t.Fatal(err)

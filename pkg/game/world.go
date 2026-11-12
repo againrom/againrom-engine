@@ -787,7 +787,7 @@ type missionNotices struct {
 	// entryQuickSpells are the front end's quick-spell bindings at the moment
 	// this driver became the live one; leaving the mission without completing
 	// it puts them back.
-	entryQuickSpells [4]uint32
+	entryQuickSpells [9]uint32
 	// resumed is set when the driver was restored from a SAV, which holds the
 	// mission's party and no town party.
 	resumed bool

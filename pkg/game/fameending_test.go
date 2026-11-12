@@ -106,7 +106,7 @@ func TestTerminalResetDropsTheNewGameSessionFields(t *testing.T) {
 		Carried     []mapload.PartyMember
 		Offered     int
 		Difficulty  mapload.Difficulty
-		QuickSpells [4]uint32
+		QuickSpells [9]uint32
 		Fame        SnapshotFame
 		Live        bool
 		LiveMission int

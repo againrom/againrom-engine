@@ -214,6 +214,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		savesMissionFog:            true,
 		noCompanionObjective:       true,
 		orders: orderProfile{
+			defendFineStep:           true,
 			collectSacks:             true,
 			idleRanking:              targetIdleDistance,
 			liveAdmission:            true,

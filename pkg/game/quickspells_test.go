@@ -16,7 +16,7 @@ import (
 // Snapshot, so old/malformed tests cannot pass by sharing the production writer.
 
 func TestQuickSpellsNativeIndependentOldNewAndMalformed(t *testing.T) {
-	want := [4]uint32{89, 17, 3, 65535}
+	want := [9]uint32{89, 17, 3, 65535}
 	f, _ := city1095Front(t)
 	f.quickSpells = want
 	snapshot, label, err := f.Snapshot(false)
@@ -60,7 +60,7 @@ func TestQuickSpellsNativeIndependentOldNewAndMalformed(t *testing.T) {
 	if _, town, err := g.RestoreOriginal(raw); err != nil || !town || g.quickSpells != want {
 		t.Fatalf("fresh current SAV slots=%v town%v err%v", g.quickSpells, town, err)
 	}
-	for _, bad := range [][4]uint32{{65536}, {17, 17}} {
+	for _, bad := range [][9]uint32{{65536}, {17, 17}} {
 		t.Run("malformed", func(t *testing.T) {
 			before := *f
 			invalid := snapshot
@@ -106,7 +106,7 @@ func TestQuickSpellsNativeIndependentOldNewAndMalformed(t *testing.T) {
 func TestQuickSpellsCandidateAndMissionLifetime(t *testing.T) {
 	f := missionFrontEnd(t)
 	f.Town = NewTown(Campaign{})
-	want := [4]uint32{17, 3, 6, 89}
+	want := [9]uint32{17, 3, 6, 89}
 	f.quickSpells = want
 	open := f.MissionOpener(10)
 	_, _, _, _, _, _, _, _, _, _, err := open()
@@ -139,7 +139,7 @@ func TestQuickSpellsCandidateAndMissionLifetime(t *testing.T) {
 		t.Fatal("candidate did not own bindings")
 	}
 	f.resetSessionForNewGame()
-	if f.quickSpells != [4]uint32{} {
+	if f.quickSpells != [9]uint32{} {
 		t.Fatal("new campaign did not reset bindings")
 	}
 }
@@ -148,7 +148,7 @@ func TestQuickSpellsNewGameCommitsResetOnlyAfterPreparation(t *testing.T) {
 	f := missionFrontEnd(t)
 	f.Table, f.Humans = &mapload.Table{}, fourBaseHumans()
 	f.Bodies, f.Town = data.NewBodyList("unarmed", "mage"), NewTown(Campaign{})
-	want := [4]uint32{16, 1, 6, 19}
+	want := [9]uint32{16, 1, 6, 19}
 	f.quickSpells = want
 	res := ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{30, 20, 18, 16}}
 	if _, err := f.prepareNewGame(20, res); err == nil {
@@ -168,7 +168,7 @@ func TestQuickSpellsNewGameCommitsResetOnlyAfterPreparation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if slots, current, armed := v.QuickSpellState(); f.quickSpells != [4]uint32{} || slots != [4]uint32{} || current != 0 || armed {
+	if slots, current, armed := v.QuickSpellState(); f.quickSpells != [9]uint32{} || slots != [9]uint32{} || current != 0 || armed {
 		t.Fatal("NEW GAME commit did not reset only the adopted session")
 	}
 }
@@ -176,7 +176,7 @@ func TestQuickSpellsNewGameCommitsResetOnlyAfterPreparation(t *testing.T) {
 func TestQuickSpellsCustomTownUsesCurrentSAV(t *testing.T) {
 	f, document := originalCityRouteFixture(t)
 	document.err = errors.New("retained writer must not select SAVE")
-	f.quickSpells = [4]uint32{17, 89}
+	f.quickSpells = [9]uint32{17, 89}
 	want := f.quickSpells
 	store := SaveStore{Dir: t.TempDir()}
 	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
@@ -188,7 +188,7 @@ func TestQuickSpellsCustomTownUsesCurrentSAV(t *testing.T) {
 	if len(rows) != 1 || rows[0].Name != localOriginalSaveToken(name) {
 		t.Fatal("custom quick-spell list", rows)
 	}
-	f.quickSpells = [4]uint32{}
+	f.quickSpells = [9]uint32{}
 	if _, town, err := load(rows[0].Name); err != nil || !town || f.quickSpells != want {
 		t.Fatal("custom quick-spell LOAD", f.quickSpells, town, err)
 	}

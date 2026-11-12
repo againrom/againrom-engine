@@ -20,6 +20,7 @@ type orderProfile struct {
 	repickEmptyRoute         bool
 	primaryCells             bool
 	collectSacks             bool
+	defendFineStep           bool
 }
 
 // chooseTarget ranks an ordered candidate population without changing it.
