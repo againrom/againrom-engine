@@ -81,10 +81,8 @@ type ModScreen struct {
 	Rows       [][2]string
 }
 
-// SetModScreens registers the screens mods declare. The main menu and the
-// in-game menu each gain one entry per screen placed in them. It is called once,
-// before Run, and refuses a screen no kind draws or a menu with more entries
-// than slots.
+// SetModScreens registers menu data. A mod action replaces the same base action;
+// base actions do not consume mod slots.
 func (a *App) SetModScreens(screens []ModScreen) error {
 	main, game := 0, 0
 	for _, s := range screens {
@@ -103,6 +101,9 @@ func (a *App) SetModScreens(screens []ModScreen) error {
 		if !s.Main && !s.Game {
 			return fmt.Errorf("mod %q screen %q: placed in no menu", s.Mod, s.Key)
 		}
+		if s.Mod == "" && s.Kind.isAction() {
+			continue
+		}
 		if s.Main {
 			main++
 		}
@@ -114,7 +115,19 @@ func (a *App) SetModScreens(screens []ModScreen) error {
 		return fmt.Errorf("mod screens: %d main menu and %d game menu entries; the menus have %d and %d slots",
 			main, game, MaxModMainEntries, MaxModGameEntries)
 	}
-	a.flow.modUI.screens = append([]ModScreen(nil), screens...)
+	registered := make([]ModScreen, 0, len(screens))
+	for _, row := range screens {
+		replaced := false
+		if row.Mod == "" && row.Kind.isAction() {
+			for _, s := range screens {
+				replaced = replaced || s.Mod != "" && s.Kind == row.Kind
+			}
+		}
+		if !replaced {
+			registered = append(registered, row)
+		}
+	}
+	a.flow.modUI.screens = registered
 	a.flow.modUI.open = -1
 	a.hasMenu = false
 	return nil

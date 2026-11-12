@@ -6,15 +6,15 @@ import (
 )
 
 // canLeaveMission reports whether mission n, running in world w, was entered
-// from the town and is still undecided: the one state in which a mod's menu
+// from the town and is still undecided: the one state in which a menu
 // entry may abandon or restart it. A mission that has been won or lost is
 // finished through its own panel, and a map opened from the list has no town to
 // return to.
 func (s *CampaignSession) canLeaveMission(n int, w *sim.World) bool {
-	return s != nil && s.Town.Open() && n > 0 && w != nil && w.Outcome() == sim.OutcomeUndecided
+	return s != nil && s.Town != nil && (s.Town.Open() || secondOf(s) != nil && secondOf(s).entryTown.kind == placeTown) && n > 0 && w != nil && w.Outcome() == sim.OutcomeUndecided
 }
 
-// leaveMission answers a mod menu entry's request to leave mission ms without
+// leaveMission answers a menu entry's request to leave mission ms without
 // completing it.
 //
 // A mission the front end opened from the town leaves the town as it was
@@ -39,16 +39,12 @@ func (f *FrontEnd) leaveMission(n int, ms *Mission, action ui.NoticeAction) (ui.
 	if f.missionIdentity(n).guest && action != ui.NoticeRestart {
 		return ui.NoticeStay, "a guest's mission ends in victory or defeat; it cannot be abandoned", nil
 	}
-	screen, ok := f.TownScreen().(*townScreen)
-	if !ok {
-		return ui.NoticeStay, "", nil
-	}
-	if refused := f.CampaignSession.leaveLive(f.townInstall(), n, ms); refused != "" {
+	if refused := f.CampaignSession.leaveLive(f.townInstall(), n, ms, action == ui.NoticeRestart); refused != "" {
 		return ui.NoticeStay, refused, nil
 	}
 	if action == ui.NoticeRestart {
 		return ui.NoticeToMission, "", f.MissionOpener(n)
 	}
-	screen.beginWorldMapReturn(n)
+	f.winRows(true).home(f, n)
 	return ui.NoticeToTown, "", nil
 }

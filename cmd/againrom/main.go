@@ -945,7 +945,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	app := front.App(fmt.Sprintf("againrom [%s %s]", filepath.Base(source), stamp))
 	app.SetMenuLabel(menuLabel())
 	app.SetWindowed(o.window)
-	if err := app.SetModScreens(game.ModScreens(modRun.Screens)); err != nil {
+	if err := app.SetModScreens(game.ModScreens(modRun.Screens, modRun.Rules, front.Words.Engine)); err != nil {
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 2
 	}

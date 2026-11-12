@@ -29,6 +29,7 @@ type secondCampaign struct {
 	bank      [1024]int32
 	available []partyPlace
 	current   partyPlace
+	entryTown partyPlace
 	room      secondTownRoom
 	shop      Shop
 	// party is the hero alone; his bag is the shop's customer.
@@ -72,6 +73,7 @@ func (c *secondCampaign) leaveTown() bool {
 	if c.current.kind != placeTown || !c.gateOpen() {
 		return false
 	}
+	c.entryTown = c.current
 	if c.current.id == 1 {
 		remaining := c.available[:0]
 		for _, l := range c.available {
@@ -158,6 +160,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32, fallen ...int) int {
 	c.shop.stage(c.bank[768])
 	c.openMap(c.current)
 	c.current, c.room = partyPlace{}, secondTownSquare
+	c.entryTown = partyPlace{}
 	return output
 }
 

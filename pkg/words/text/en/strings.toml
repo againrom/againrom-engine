@@ -3,6 +3,8 @@
 # an id it lacks. A value keeps its spaces; "~" marks a menu accelerator.
 
 # Campaign ending, Hall of Fame and credits.
+"mission.abandon" = "Abandon mission"
+"mission.abandon.confirm" = "Abandon, return to town"
 "editor.person.identity" = "Identity and look"
 "editor.person.equipment" = "Equipment"
 "editor.person.inventory" = "Bag and loot"

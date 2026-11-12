@@ -50,7 +50,7 @@ func modScreenApp(t *testing.T, withMod bool) (*FrontEnd, *ui.App, mod.ScreenDat
 	}
 	app := f.App("mod screens")
 	app.Layout(frame.W, frame.H)
-	if err := app.SetModScreens(ModScreens(screens)); err != nil {
+	if err := app.SetModScreens(ModScreens(screens, f.Table.Rules, f.Words.Engine)); err != nil {
 		t.Fatal(err)
 	}
 	return f, app, screens

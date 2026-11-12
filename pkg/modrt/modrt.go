@@ -205,6 +205,11 @@ var ruleFields = []ruleField{
 		get: func(p rules.Params) int64 { return int64(p.SkillCap) },
 		set: func(p *rules.Params, v int64) { p.SkillCap = int32(v) },
 	},
+	{
+		name: "abandon", min: 0, max: 1,
+		get: func(p rules.Params) int64 { return int64(p.Abandon) },
+		set: func(p *rules.Params, v int64) { p.Abandon = int32(v) },
+	},
 }
 
 // FieldNames lists the parameters game.rules declares, in order.

@@ -159,6 +159,28 @@ A script reports a problem with `fail("text")`; the refusal names the mod,
 the file and the line (`mod "m": main.star:3: fail: text`), and it stops the
 check or the launch.
 
+## Mission abandon
+
+Both base games offer Abandon mission over an undecided mission entered from
+a town. Confirming returns the party, money and items held at entry; it records
+no victory or payment, and the mission stays offered. The first game's loaded
+mission uses its current party as DIV-1907 states. A loaded second-game mission
+has no retained entry town and shows no abandon entry.
+
+`game.rules.abandon` is an integer rule, default `1` (on), with values `0` and
+`1`. A mod that does not set it keeps the default. To remove the base action:
+
+```python
+def init(game, settings):
+    game.rules.abandon = 0
+```
+
+A mod's `[[action]]` with `action = "abandon"` replaces the base action with its
+own labels and confirmation; it does not add another abandon row. The switch
+controls the base action, so an explicit mod action remains available even with
+the switch off. Base actions take no mod menu slot. The `mission-abandon`
+example remains the first-game fixture for this replacement.
+
 ## Install files
 
 A mod replaces an install's picture, sound or text by carrying a file at the

@@ -166,14 +166,14 @@ func TestLeaveLiveRestoresTheEntryQuickSpells(t *testing.T) {
 	ms := continuityMission(t, 10, 0)
 	s := CampaignSession{Town: NewTown(Campaign{}), quickSpells: [4]uint32{9, 9, 9, 9},
 		live: &mapWorld{mission: &missionNotices{entryQuickSpells: [4]uint32{1, 2, 3, 4}}}}
-	if refused := s.leaveLive(townInstall{}, 10, ms); refused != "" {
+	if refused := s.leaveLive(townInstall{}, 10, ms, false); refused != "" {
 		t.Fatalf("leaveLive refused: %s", refused)
 	}
 	if s.quickSpells != [4]uint32{1, 2, 3, 4} {
 		t.Fatalf("quick spells = %v, want the bindings the mission was opened with", s.quickSpells)
 	}
 	var bare CampaignSession
-	if refused := bare.leaveLive(townInstall{}, 10, ms); refused != "" || bare.quickSpells != [4]uint32{} {
+	if refused := bare.leaveLive(townInstall{}, 10, ms, false); refused != "" || bare.quickSpells != [4]uint32{} {
 		t.Fatalf("a session with no live map changed: %q %v", refused, bare.quickSpells)
 	}
 }

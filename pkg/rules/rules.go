@@ -1,11 +1,11 @@
 // Package rules holds the game parameters a mod may change, as one immutable
-// value with the original game's numbers as defaults.
+// value with the engine's defaults.
 //
 // A Rules value is built once, before any world exists, and handed to every
 // reader (the simulation, the derived-statistics graph, the save writer). It
 // has no setters, owns its tables privately and returns only copies, so a
 // reader cannot change what another reader sees. The zero Rules is the
-// original game's rules, which keeps every constructor that never names a
+// engine's default rules, which keeps every constructor that never names a
 // Rules on the unmodded path.
 //
 // The package imports nothing of this module: the simulation and the data
@@ -63,25 +63,27 @@ var rom1SkillXP = [101]int32{
 }
 
 // Params are the parameters a mod can set. Their zero values are not valid
-// settings; Defaults returns the original game's.
+// settings; Defaults returns the engine's.
 type Params struct {
 	// SkillCap is the highest skill level, within [MinSkillCap, MaxSkillCap].
 	SkillCap int32
+	Abandon  int32
 }
 
-// Defaults are the original game's parameters.
-func Defaults() Params { return Params{SkillCap: ROM1SkillCap} }
+// Defaults are the engine's parameters.
+func Defaults() Params { return Params{SkillCap: ROM1SkillCap, Abandon: 1} }
 
 // Rules is the immutable value built from Params.
 type Rules struct {
-	skillCap int32
-	skillXP  []int32 // S(0)..S(skillCap); nil in the zero value
-	spell    *spellTables
+	skillCap   int32
+	abandonOff bool
+	skillXP    []int32 // S(0)..S(skillCap); nil in the zero value
+	spell      *spellTables
 	// schoolPools leaves skill slot 0 out of the pools' experience.
 	schoolPools bool
 }
 
-// Default returns the original game's rules.
+// Default returns the engine's rules.
 func Default() Rules {
 	r, err := New(Defaults())
 	if err != nil {
@@ -96,11 +98,14 @@ func New(p Params) (Rules, error) {
 	if p.SkillCap < MinSkillCap || p.SkillCap > MaxSkillCap {
 		return Rules{}, fmt.Errorf("skill_cap %d is outside the declared range %d..%d", p.SkillCap, MinSkillCap, MaxSkillCap)
 	}
+	if p.Abandon < 0 || p.Abandon > 1 {
+		return Rules{}, fmt.Errorf("abandon %d is outside the declared range 0..1", p.Abandon)
+	}
 	table := make([]int32, p.SkillCap+1)
 	for n := range table {
 		table[n] = skillXPAt(int32(n))
 	}
-	return Rules{skillCap: p.SkillCap, skillXP: table}, nil
+	return Rules{skillCap: p.SkillCap, skillXP: table, abandonOff: p.Abandon == 0}, nil
 }
 
 // skillXPAt is the curve at one level: the original table where it has one,
@@ -125,7 +130,16 @@ func skillXPAt(level int32) int32 {
 }
 
 // Params returns the parameters the rules were built from.
-func (r Rules) Params() Params { return Params{SkillCap: r.SkillCap()} }
+func (r Rules) Params() Params {
+	p := Defaults()
+	p.SkillCap = r.SkillCap()
+	if !r.Abandon() {
+		p.Abandon = 0
+	}
+	return p
+}
+
+func (r Rules) Abandon() bool { return !r.abandonOff }
 
 // SkillCap is the highest trained skill level: the level the experience award
 // stops at and the highest base a hero holds.
@@ -248,8 +262,8 @@ func MainSkill(levels [6]int32) int32 {
 	return best
 }
 
-// IsDefault reports whether the rules are the original game's.
-func (r Rules) IsDefault() bool { return r.SkillCap() == ROM1SkillCap && r.spell == nil }
+// IsDefault reports whether the rules use the engine's defaults.
+func (r Rules) IsDefault() bool { return r.SkillCap() == ROM1SkillCap && r.spell == nil && r.Abandon() }
 
 // Equal reports whether two rules are the same parameters.
 func (r Rules) Equal(o Rules) bool {

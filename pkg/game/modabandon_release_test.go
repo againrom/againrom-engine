@@ -51,7 +51,7 @@ func abandonFront(t *testing.T, dir string, ids ...string) (*FrontEnd, *ui.App, 
 	}
 	app := f.App("mission leave")
 	app.Layout(1024, 768)
-	if err := app.SetModScreens(ModScreens(screens)); err != nil {
+	if err := app.SetModScreens(ModScreens(screens, f.Table.Rules, f.Words.Engine)); err != nil {
 		t.Fatal(err)
 	}
 	return f, app, screens
@@ -341,10 +341,9 @@ func abandonReload(t *testing.T, raw []byte, plain bool) *FrontEnd {
 	return g
 }
 
-// Without the mod the menu has the shipped seven rows and none of the entry's
-// words; with the mod over a mission that was not entered from a town the menu
-// is the same seven rows, frame for frame.
-func TestReleaseUnmoddedMissionMenuHasNoAbandonEntry(t *testing.T) {
+// Base and mod actions need a town. With a town, the base action uses the same
+// menu and confirmation as the example mod.
+func TestReleaseBaseMissionAbandonEntryFollowsTheTown(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	var panels [2]*image.RGBA
 	for i, withMod := range []bool{false, true} {
@@ -377,6 +376,61 @@ func TestReleaseUnmoddedMissionMenuHasNoAbandonEntry(t *testing.T) {
 	if !bytes.Equal(panels[0].Pix, panels[1].Pix) {
 		box, _ := diffBounds(panels[0], panels[1])
 		t.Fatalf("the modded menu over a mission with no town differs from the shipped one inside %v", box)
+	}
+	f, a, _, s := abandonTown(t, abandonModDir)
+	abandonEnter(t, f, a, s, 30)
+	if err := a.HeadlessKey("escape"); err != nil {
+		t.Fatal(err)
+	}
+	label := abandonLabel(f, f.Words.Engine.Text("mission.abandon"))
+	if rows := a.HeadlessRows(); len(rows) != 8 || rows[7].Text != label {
+		t.Fatalf("the base town mission has no abandon row: %+v", rows)
+	}
+	if err := a.HeadlessActivate(label); err != nil {
+		t.Fatal(err)
+	}
+	rows := a.HeadlessRows()
+	if len(rows) != 2 || rows[0].Text != abandonLabel(f, f.Words.Engine.Text("mission.abandon.confirm")) {
+		t.Fatalf("base confirmation: %+v", rows)
+	}
+}
+
+func TestReleaseSecondBaseAbandonReturnsTheEntryItems(t *testing.T) {
+	var entryBag, entryPack, entryWorn []string
+	f, a, _ := secondBagBuyAndEnter(t, func(stage string, bag, pack, worn []string) {
+		if stage == "town 1 after BUY" {
+			entryBag, entryPack, entryWorn = slices.Clone(bag), slices.Clone(pack), slices.Clone(worn)
+		}
+	})
+	gold := f.Town.Gold()
+	party := mapload.CloneParty(f.Carried)
+	w := f.live.world
+	w.SetPurse(sim.SelfSlot, uint32(gold+777))
+	if err := w.HeadlessDamage(f.live.mission.ids[0], 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.HeadlessKey("escape"); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"mission.abandon", "mission.abandon.confirm"} {
+		if err := a.HeadlessActivate(abandonLabel(f, f.Words.Engine.Text(key))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pack, worn := secondBagTown(f)
+	if a.Screen() != ui.ScreenTown || f.Town.second.current != secondTown(1) ||
+		f.Town.Gold() != gold || f.Town.Done(10) || !f.Town.second.has(secondMission(10)) ||
+		!slices.Equal(secondBagForm(*f.Town.second.heroBag()), entryBag) ||
+		!slices.Equal(pack, entryPack) || !slices.Equal(worn, entryWorn) {
+		t.Fatalf("abandon changed the entry town, offer, purse or items: %s %v %v %v", a.Screen(), f.Town.second.current, pack, worn)
+	}
+	if len(f.Carried) != len(party) {
+		t.Fatal("abandon changed the entry party")
+	}
+	for i := range party {
+		if f.Carried[i].ID != party[i].ID || !reflect.DeepEqual(f.Carried[i].Hero, party[i].Hero) {
+			t.Fatal("abandon changed an entry member")
+		}
 	}
 }
 

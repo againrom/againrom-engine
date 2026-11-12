@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] The shop of a town has new goods each time your party comes back to the town from the world map, as in the original; before, the goods stayed the same until you slept at the inn or loaded a save.
 - [ROM2] A mage casts at a unit from as far as the spell reaches (7 cells for Fire Arrow or Drain Life, 6 for Heal, 5 for Curse), not only as far as he sees himself; before, an order onto a target 6 or 7 cells away was ignored.
 - [BASE] The cell grid (F10) and the debug readout (F11) now work in a mission only after the cheats are unlocked; before, any press toggled them.
+- [BASE] The mission menu now lets you abandon an unfinished mission and return to its town without keeping the mission's gains or losses.
 
 ### For map makers and modders
 

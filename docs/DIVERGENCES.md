@@ -193,6 +193,7 @@ copying those counts.
 | `docs/divergences/tavern.md` |
 | `docs/divergences/town.md` |
 | `docs/divergences/ui-and-settings.md` |
+| `docs/divergences/ui-mission-menu.md` |
 | `docs/divergences/ui-map-editor.md` |
 | `docs/divergences/ui-map-editor-areas.md` |
 | `docs/divergences/ui-map-editor-bridge.md` |

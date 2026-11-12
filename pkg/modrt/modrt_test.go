@@ -133,7 +133,7 @@ func TestScriptErrorsNameTheModFileAndLine(t *testing.T) {
 		{"undefined name", "def init(game, settings):\n    pass\nx = nosuch\n", `mod "m": main.star:3: undefined: nosuch`},
 		{"runtime", "def init(game, settings):\n    y = 1 // 0\n", `mod "m": main.star:2:`},
 		{"no init", "x = 1\n", `mod "m": main.star defines no init(game, settings)`},
-		{"unknown parameter", "def init(game, settings):\n    game.rules.hp_cap = 5\n", `main.star:2: game.rules has no parameter "hp_cap" (declared: skill_cap)`},
+		{"unknown parameter", "def init(game, settings):\n    game.rules.hp_cap = 5\n", `main.star:2: game.rules has no parameter "hp_cap" (declared: skill_cap, abandon)`},
 		{"read unknown parameter", "def init(game, settings):\n    x = game.rules.hp_cap\n", `main.star:2: game.rules has no parameter "hp_cap"`},
 		{"out of range", "def init(game, settings):\n    game.rules.skill_cap = 5000\n", `main.star:2: game.rules.skill_cap: 5000 is outside the declared range 1..150`},
 		{"huge", "def init(game, settings):\n    game.rules.skill_cap = 1 << 100\n", `outside the declared range`},
@@ -315,7 +315,7 @@ func TestPrintGoesToTheCallerOnly(t *testing.T) {
 }
 
 func TestRulesDeclareTheirFields(t *testing.T) {
-	if !reflect.DeepEqual(FieldNames(), []string{"skill_cap"}) {
+	if !reflect.DeepEqual(FieldNames(), []string{"skill_cap", "abandon"}) {
 		t.Fatalf("%v", FieldNames())
 	}
 	f := fieldByName("skill_cap")

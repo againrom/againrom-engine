@@ -1068,6 +1068,13 @@ func (f *FrontEnd) App(title string) *ui.App {
 	f.wireGameOptions(a)
 	f.wireSoundOptions(a)
 	a.SetMusic(GameMusic(f.Base().Profile), f.MusicBank, f.MusicPlayer, f.randomService().Stream(random.Music))
+	var menuRules sim.Rules
+	if f.Table != nil {
+		menuRules = f.Table.Rules
+	}
+	if err := a.SetModScreens(ModScreens(mod.ScreenData{}, menuRules, f.Words.Engine)); err != nil {
+		panic(err)
+	}
 	return a
 }
 

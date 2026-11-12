@@ -308,7 +308,7 @@ func (s *CampaignSession) routeAfterWin(campaign Campaign, n, successor int) win
 // as it stands, goes home through the carry a won mission uses, with no win,
 // payment or fame recorded, and a refusal of that carry is returned. The
 // quick-spell bindings go back to those the mission was opened with.
-func (s *CampaignSession) leaveLive(in townInstall, n int, ms *Mission) (refused string) {
+func (s *CampaignSession) leaveLive(in townInstall, n int, ms *Mission, restart bool) (refused string) {
 	if s.live != nil && s.live.mission != nil && s.live.mission.resumed {
 		if refused := s.carryMissionHome(in, n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster); refused != "" {
 			return refused
@@ -317,6 +317,19 @@ func (s *CampaignSession) leaveLive(in townInstall, n int, ms *Mission) (refused
 	}
 	if s.live != nil && s.live.mission != nil {
 		s.quickSpells = s.live.mission.entryQuickSpells
+	}
+	if c := secondOf(s); c != nil {
+		c.openMap(partyPlace{kind: placeMission, id: n})
+		c.current = partyPlace{}
+		if !restart && c.entryTown.kind == placeTown {
+			c.current, c.room = c.entryTown, secondTownSquare
+			if !c.has(c.current) {
+				c.available = append([]partyPlace{c.current}, c.available...)
+			}
+			if err := s.partyItems(in.table).arriveTown(); err != nil {
+				return err.Error()
+			}
+		}
 	}
 	return ""
 }

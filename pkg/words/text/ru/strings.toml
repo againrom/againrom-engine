@@ -1350,3 +1350,5 @@
 "editor.mod.requires" = "Требует (ID, ограничения)"
 "editor.mod.conflicts" = "Несовместим (ID)"
 "editor.mod.load-after" = "После модов (ID)"
+"mission.abandon" = "Отказаться от миссии"
+"mission.abandon.confirm" = "Отказаться и уйти в город"
