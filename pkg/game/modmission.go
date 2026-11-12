@@ -47,7 +47,8 @@ type guestMission struct {
 	// hero is the waiting party's starting hero, which chooses a later link
 	// and which its npc records resolve against; nil when no link follows the
 	// first for any hero.
-	hero *guestHero
+	hero     *guestHero
+	previous *guestMission
 }
 
 // guestHero is the class and figure of the waiting party's starting hero.
@@ -55,6 +56,8 @@ type guestHero struct {
 	Mage      bool
 	FigureDir string
 }
+
+const maxWaitingGuests = 64
 
 // links are the chain's links from the first through the current one.
 func (g *guestMission) links() []mod.Mission {
@@ -83,11 +86,11 @@ func (g *guestMission) party() []mapload.PartyMember {
 // joining is the guest the town of chapter grants as companion npc, as she
 // ended her mission, when one is waiting.
 func (g *guestMission) joining(chapter, npc int) (mapload.PartyMember, bool) {
-	if g == nil || g.member == nil {
+	if g == nil {
 		return mapload.PartyMember{}, false
 	}
-	if j, ok := g.joiner(); !ok || j.Chapter != chapter || j.Guest != npc {
-		return mapload.PartyMember{}, false
+	if j, ok := g.joiner(); g.member == nil || !ok || j.Chapter != chapter || j.Guest != npc {
+		return g.previous.joining(chapter, npc)
 	}
 	m := mapload.CloneParty([]mapload.PartyMember{*g.member})[0]
 	m.StartingHero = false
@@ -108,6 +111,7 @@ func (g *guestMission) clone() *guestMission {
 		return nil
 	}
 	c := *g
+	c.previous = g.previous.clone()
 	c.stash = slices.Clone(g.stash)
 	c.start = mapload.CloneParty([]mapload.PartyMember{g.start})[0]
 	c.rest = mapload.CloneParty(g.rest)
@@ -159,15 +163,24 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 	if err != nil {
 		return nil, nil, err
 	}
-	c := f.Campaign.Value()
+	c, err := f.Campaign.Value().withModMissions(d)
+	if err != nil {
+		return nil, nil, err
+	}
 	src := f.Archives.Containers
 	for _, m := range d.Missions {
 		bad := func(format string, args ...any) error {
 			return itemFileError(m.Mod, m.File, m.Line, format, args...)
 		}
 		address, _ := MissionMap(m.Number)
-		if m.Kind == mod.MissionReplace {
+		if m.Campaign() {
 			if err := f.checkReplacing(m, address); err != nil {
+				return nil, nil, bad("%v", err)
+			}
+			if err := checkGuest(c, src, d, m); err != nil {
+				return nil, nil, bad("%v", err)
+			}
+			if err := f.checkGuestParty(m, m.Number); err != nil {
 				return nil, nil, bad("%v", err)
 			}
 			continue
@@ -192,8 +205,10 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 			return files.serveBytes(m.Mod, m.File, address, b)
 		}
 		address, _ := MissionMap(m.Number)
-		if err := serve(address, m.MapBytes); err != nil {
-			return nil, nil, err
+		if m.Map != "" || len(m.MapBytes) != 0 {
+			if err := serve(address, m.MapBytes); err != nil {
+				return nil, nil, err
+			}
 		}
 		dir := missionPageDirSource.at(m.Number).path
 		// A page of the other language gives way to the install's page.
@@ -225,16 +240,31 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 		}
 	}
 	f.Table.Mods.Missions = d
+	f.Campaign = resolved(c, nil)
+	if f.Town != nil {
+		f.Town.camp = c
+	}
 	return overrides, warnings, nil
 }
 
-// checkGuest refuses a guest mission the campaign c, the install src or the
-// merged missions d do not bear out: its number is a main-mission number, a
-// campaign mission or an installed map; its after is neither a won main
-// mission whose win opens a town nor a guest mission; its chain holds two
-// guests who join; or its guest and chapter are not a companion the chain's
-// town grants and that town.
+// checkGuest validates the mission and chain, then checks the joining guest
+// against the campaign's town and companion grant.
 func checkGuest(c Campaign, src *vfs.FS, d mod.MissionData, m mod.Mission) error {
+	if m.Campaign() {
+		if m.Guest == 0 {
+			return nil
+		}
+		towns := c.missionTowns[m.Number]
+		if len(towns) == 0 {
+			return fmt.Errorf("the win of mission %d opens no town for companion %d", m.Number, m.Guest)
+		}
+		for _, town := range towns {
+			if err := checkGuestTown(c, m, m.Number, town); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 	address, _ := MissionMap(m.Number)
 	switch {
 	case m.Number%mainMissionStride == 0:
@@ -266,11 +296,15 @@ func checkGuest(c Campaign, src *vfs.FS, d mod.MissionData, m mod.Mission) error
 	if joiners > 1 {
 		return fmt.Errorf("the chain of missions %s holds %d guests who join; one guest of a chain joins the town", chainText(chain), joiners)
 	}
+	return checkGuestTown(c, m, root.After, offer.Mission)
+}
+
+func checkGuestTown(c Campaign, m mod.Mission, won, town int) error {
 	if m.Guest == 0 {
 		return nil
 	}
-	if offer.Mission != m.Chapter {
-		return fmt.Errorf("the win of mission %d opens the town of chapter %d, not chapter %d", root.After, offer.Mission, m.Chapter)
+	if town != m.Chapter {
+		return fmt.Errorf("the win of mission %d opens the town of chapter %d, not chapter %d", won, town, m.Chapter)
 	}
 	if !slices.Contains(c.Chapters[m.Chapter].AddHero, m.Guest) {
 		return fmt.Errorf("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
@@ -523,6 +557,9 @@ func (f *FrontEnd) checkModMaps(d mod.MissionData) ([]string, error) {
 	}
 	var warnings []string
 	for _, m := range d.Missions {
+		if m.Campaign() && m.Map == "" {
+			continue
+		}
 		address, _ := MissionMap(m.Number)
 		var refusals []string
 		for _, finding := range x.CheckModMap(m, address) {
@@ -542,8 +579,16 @@ func (f *FrontEnd) checkModMaps(d mod.MissionData) ([]string, error) {
 // checkReplacing refuses a replacing mission whose number is no mission of
 // this install's campaign or whose map the mission build refuses.
 func (f *FrontEnd) checkReplacing(m mod.Mission, address string) error {
-	if err := f.installedCampaignMap(m.Number, address); err != nil {
-		return err
+	c := f.Campaign.Value()
+	if m.Kind == mod.MissionReplace || m.Map == "" || containsMission(c.Main, m.Number) || containsMission(c.Side, m.Number) || containsMission(c.Offered, m.Number) {
+		if err := f.installedCampaignMap(m.Number, address); err != nil {
+			return err
+		}
+	} else if _, err := f.Archives.Containers.ReadFile(address); err == nil {
+		return fmt.Errorf("number %d is a map of this install (%s)", m.Number, address)
+	}
+	if m.Map == "" {
+		return nil
 	}
 	if _, err := MapOpener(f.Archives.Game())(m.MapBytes); err != nil {
 		return fmt.Errorf("map %s: %v", m.Map, err)
@@ -579,18 +624,37 @@ func (f *FrontEnd) installedCampaignMap(n int, address string) error {
 // mission plays after it, the campaign is written as the town SAV of this
 // moment and the guest party is built as the town would grant its members.
 // It answers the mission to open, or zero and the reason none opens.
-func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
+func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission, waiting []mapload.PartyMember, candidate *restoreCandidate) (int, string) {
+	if candidate != nil {
+		draft := *f
+		draft.CampaignSession = CampaignSession{}
+		draft.CampaignSession.adopt(candidate)
+		f = &draft
+	}
 	if f.Table == nil {
 		return 0, ""
 	}
 	missions := f.Table.Mods.Missions
 	m, ok := missions.AfterWin(n, mapload.StartingHeroKind(mapload.HeroHold{Party: f.Carried}))
+	if assigned != nil {
+		m, ok = *assigned, true
+	}
 	if !ok {
 		return 0, ""
 	}
+	for pending, count := f.missionIdentity(n).record, 0; pending != nil; pending, count = pending.previous, count+1 {
+		if count >= maxWaitingGuests-1 {
+			return 0, fmt.Sprintf("mod %q: the waiting guest limit is %d", m.Mod, maxWaitingGuests)
+		}
+	}
 	in := f.townInstall()
 	town, _ := in.campaign.NextMission(n)
-	party, err := f.guestParty(m, town.Mission, f.Carried, nil)
+	if assigned == nil {
+		waiting = f.Carried
+	} else {
+		town.Mission = m.Number
+	}
+	party, err := f.guestParty(m, town.Mission, waiting, nil)
 	if err != nil {
 		return 0, fmt.Sprintf("mod %q: %v", m.Mod, err)
 	}
@@ -599,16 +663,33 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 		p := mapload.StartingHero(f.Carried)
 		g.hero = &guestHero{Mage: p.Mage, FigureDir: p.FigureDir}
 	}
-	f.Town.Arrive()
-	f.retainReturnCity(in, n, w)
+	if assigned == nil {
+		f.Town.Arrive()
+		f.retainReturnCity(in, n, w)
+	}
+	draft := *f
+	t := *f.Town
+	draft.Town, draft.Carried = &t, waiting
+	t.open = true
 	var s Snapshot
-	err = f.captureSave(captureTimer, false, func(c Snapshot, _ string) error {
+	mode := captureTimer
+	if candidate != nil {
+		mode = captureNewGameGuest
+	}
+	err = draft.captureSave(mode, false, func(c Snapshot, _ string) error {
 		s = c
+		if assigned != nil {
+			s.Open = f.Town.Open()
+		}
+		s.guestWaiting = assigned != nil
 		return nil
 	})
 	if err == nil {
-		if g.stash, err = f.ExportCurrentSave(s, "guest"); err == nil {
+		if g.stash, err = draft.ExportCurrentSave(s, "guest"); err == nil {
 			f.Town.guest = g
+			if candidate != nil {
+				candidate.guest = g
+			}
 			return m.Number, ""
 		}
 	}
@@ -622,14 +703,15 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 // first for some hero. A save of a chain of one link writes neither Party
 // nor Hero.
 type currentGuest struct {
-	Mod    string
-	Key    string
-	Number int
-	Stash  []byte               `json:",omitempty"`
-	Start  *currentPartyMember  `json:",omitempty"`
-	Member *currentPartyMember  `json:",omitempty"`
-	Party  []currentPartyMember `json:",omitempty"`
-	Hero   *guestHero           `json:",omitempty"`
+	Mod      string
+	Key      string
+	Number   int
+	Stash    []byte               `json:",omitempty"`
+	Start    *currentPartyMember  `json:",omitempty"`
+	Member   *currentPartyMember  `json:",omitempty"`
+	Party    []currentPartyMember `json:",omitempty"`
+	Hero     *guestHero           `json:",omitempty"`
+	Previous *currentGuest        `json:",omitempty"`
 }
 
 func (g *guestMission) record() *currentGuest {
@@ -638,6 +720,7 @@ func (g *guestMission) record() *currentGuest {
 	}
 	start := captureCurrentParty(0, g.start)
 	r := &currentGuest{Mod: g.mission.Mod, Key: g.mission.Key, Number: g.mission.Number, Stash: slices.Clone(g.stash), Start: &start}
+	r.Previous = g.previous.record()
 	if g.member != nil {
 		m := captureCurrentParty(0, *g.member)
 		r.Member = &m
@@ -661,6 +744,11 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 		return nil, nil
 	}
 	r := s.Guest
+	for p, depth := r, 0; p != nil; p, depth = p.Previous, depth+1 {
+		if depth >= maxWaitingGuests {
+			return nil, fmt.Errorf("too many waiting guests")
+		}
+	}
 	m, ok := mods.Missions.Find(r.Mod, r.Key)
 	if !ok {
 		return nil, modMarkRefusal("this save plays mission %q of mod %q, which no active mod declares; start with that mod to load it", r.Key, r.Mod)
@@ -669,6 +757,13 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 		return nil, modMarkRefusal("this save plays mission %q of mod %q as mission %d; the active mod declares mission %d", r.Key, r.Mod, r.Number, m.Number)
 	}
 	g := &guestMission{mission: m, chain: mods.Missions.Chain(m)}
+	if r.Previous != nil {
+		var err error
+		g.previous, err = restoreGuest(&currentSessionData{Guest: r.Previous}, mods)
+		if err != nil {
+			return nil, err
+		}
+	}
 	joiner, joins := g.joiner()
 	switch {
 	case r.Start == nil || r.Stash == nil && r.Member == nil,

@@ -783,6 +783,7 @@ func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.M
 		return nil, false, err
 	}
 	if guest != nil {
+		guest.previous = src.guest
 		src.guest = guest
 	}
 	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
@@ -924,6 +925,9 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, state
 	// A guest's mission is no record of the waiting campaign; the guest record
 	// is checked against the active mods after this decode (restoreGuest).
 	location := n
+	if n == 0 && restoredProgress != nil && currentSession != nil && currentSession.GuestWaiting {
+		location = restoredProgress.selected
+	}
 	if restoredProgress != nil && currentSession != nil && currentSession.Guest != nil && currentSession.Guest.Number == n && n != 0 {
 		location = restoredProgress.selected
 	}
@@ -953,7 +957,7 @@ func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, 
 	f.installCandidate(&restoreCandidate{fame: draft.fame, quickSpells: src.quickSpells, offered: src.offered(),
 		difficulty: src.campaign.difficulty, town: draft.Town, carried: draft.Carried,
 		originalCity: draft.originalCity, townOnly: true, worldSelectedOnce: selectedMarkers, worldMapReturn: src.worldMapReturn(),
-		randomSession: &src.currentRandom, guest: src.guest})
+		randomSession: &src.currentRandom, guest: src.guest, guestWaiting: src.campaign.session != nil && src.campaign.session.GuestWaiting})
 	f.CampaignSession.reportTown(src, report)
 	return nil, true, nil
 }

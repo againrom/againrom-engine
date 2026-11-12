@@ -15,6 +15,7 @@ const (
 	// captureTimer captures for a file no player asked for: the autosaves,
 	// the mod route's stash and the witnesses.
 	captureTimer
+	captureNewGameGuest
 )
 
 // saveCaptureTransform is one mode's row. pruneGroups removes from the live
@@ -23,6 +24,7 @@ const (
 type saveCaptureTransform struct {
 	pruneGroups bool
 	restore     bool
+	newSession  bool
 }
 
 // saveCaptureTransforms is the one table of which mode applies which
@@ -30,9 +32,10 @@ type saveCaptureTransform struct {
 // tentative capture builds from the pruned lists and leaves the live game as
 // it was.
 var saveCaptureTransforms = map[saveCaptureMode]saveCaptureTransform{
-	captureTentative: {pruneGroups: true, restore: true},
-	captureCommitted: {pruneGroups: true},
-	captureTimer:     {},
+	captureTentative:    {pruneGroups: true, restore: true},
+	captureCommitted:    {pruneGroups: true},
+	captureTimer:        {},
+	captureNewGameGuest: {newSession: true},
 }
 
 // captureSave is the one SAVE capture: every route that captures the running
@@ -54,11 +57,20 @@ func (f *FrontEnd) captureSave(mode saveCaptureMode, onMap bool, build func(Snap
 	if build == nil {
 		return nil
 	}
-	s, label, err := f.Snapshot(onMap)
+	s, label, err := captureSource(f, row.newSession).Snapshot(onMap)
 	if err != nil {
 		return err
 	}
 	return build(s, label)
+}
+
+func captureSource(f *FrontEnd, newSession bool) *FrontEnd {
+	if !newSession {
+		return f
+	}
+	draft := *f
+	draft.Presentation = Presentation{}
+	return &draft
 }
 
 // pruneGroupsForSave removes the Groups the original's SAVE removes from the

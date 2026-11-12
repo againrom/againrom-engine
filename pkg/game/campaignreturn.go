@@ -170,8 +170,12 @@ func (s *CampaignSession) finishMission(in townInstall, n int, party []mapload.P
 			s.retainReturnCity(in, n, w)
 		}
 	}()
-	if refused := s.carryMissionHome(in, n, party, w, ids, roster); refused != "" {
-		return -1, refused
+	if !arrival.carried {
+		if refused := s.carryMissionHome(in, n, party, w, ids, roster); refused != "" {
+			return -1, refused
+		}
+	} else if address, ok := MissionMap(n); ok && s.Town != nil {
+		s.Town.lastMap = originalMapName(address)
 	}
 	return s.recordWin(in.campaign, n, party, w, ids, roster, arrival)
 }

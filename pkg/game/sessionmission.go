@@ -22,6 +22,7 @@ type missionIdentity struct {
 	guest    bool
 	own      *mod.Mission
 	replaced *mod.Mission
+	campaign *mod.Mission
 	back     int
 }
 
@@ -34,6 +35,9 @@ func newMissionIdentity(n int, g *guestMission, missions mod.MissionData) missio
 	}
 	if m, ok := missions.Replacing(n); ok {
 		id.replaced = &m
+	}
+	if m, ok := missions.CampaignMission(n); ok {
+		id.campaign = &m
 	}
 	return id
 }
@@ -79,6 +83,9 @@ func restoreMissionIdentity(saved []byte, n int, s *currentSessionData, mods map
 		return missionIdentity{}, err
 	}
 	id := newMissionIdentity(n, guest, mods.Missions)
+	if m := id.campaign; m != nil && m.GuestParty() && (guest == nil || !guest.playing(n)) {
+		return missionIdentity{}, fmt.Errorf("this save is guest-played campaign mission %d of mod %q and carries no playing guest record", n, m.Mod)
+	}
 	if id.own != nil && guest == nil {
 		return missionIdentity{}, fmt.Errorf("this save is mission %d of mod %q and carries no guest record; it cannot be loaded", n, id.own.Mod)
 	}
@@ -133,7 +140,15 @@ func (t *Town) snapshotGuest() *guestMission { return t.guestMission().clone() }
 func (t *Town) takeGuestJoining(chapter, npc int) (mapload.PartyMember, bool) {
 	member, ok := t.guestMission().joining(chapter, npc)
 	if ok {
-		t.guest = nil
+		link := &t.guest
+		for *link != nil {
+			g := *link
+			if j, joins := g.joiner(); joins && g.member != nil && j.Chapter == chapter && j.Guest == npc {
+				*link = g.previous
+				break
+			}
+			link = &g.previous
+		}
 	}
 	return member, ok
 }
@@ -146,6 +161,9 @@ func (g *guestMission) playing(n int) bool {
 // returnMission is the mission whose return the world map shows after mission
 // n: for a link of the guest's chain, the win that started the chain.
 func (g *guestMission) returnMission(n int) int {
+	if g != nil && g.mission.Campaign() {
+		return n
+	}
 	if g != nil && slices.ContainsFunc(g.links(), func(m mod.Mission) bool { return m.Number == n }) {
 		return g.links()[0].After
 	}

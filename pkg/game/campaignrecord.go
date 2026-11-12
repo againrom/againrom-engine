@@ -165,6 +165,9 @@ func (f *FrontEnd) campaignRecord(s Snapshot, kind campaignRecordKind) (sav.Camp
 func (f *FrontEnd) overlayCampaignRecord(record sav.CampaignProjection, s Snapshot, o campaignRecordOverlays, home campaignHome) sav.CampaignProjection {
 	mission := s.Mission
 	campaign := f.Campaign.Value()
+	if m := newMissionIdentity(mission, s.guest, tableMissions(f.Table)).campaign; m != nil && m.AutoGetMission != nil {
+		record.AutoGetMission = autoGetMissionValue(campaign, mission)
+	}
 	if o.playedChild && mission != 0 && !containsMission(campaign.Main, mission) &&
 		(containsMission(campaign.Side, mission) || containsMission(campaign.Offered, mission)) &&
 		!slices.ContainsFunc(record.Children, func(child sav.CampaignRecord) bool { return int(child.Mission) == mission }) {

@@ -275,7 +275,7 @@ var dataKinds = []DataKind{
 		references: []treeReference{{"mission", "map", referenceMap}, {"mission", "texts", referencePages}},
 		Name:       "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
 		Class: CatalogData, Layer: LayerMerged,
-		Base:   "empty: the campaign's missions are the campaign decoder's; a mod mission adds a guest mission or replaces a campaign mission's map, by number",
+		Base:   "empty: the campaign decoder's missions; rows add guest or campaign missions, replace maps, set AutoGetMission, Payment and parties",
 		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
 		read:   readMissions, named: readMissionMaps,
 	},

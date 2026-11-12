@@ -19,8 +19,9 @@ import (
 // is a campaign mission of the install played on the mod's map. A Mission
 // whose Kind is empty is a guest mission.
 const (
-	MissionGuest   = "guest"
-	MissionReplace = "replace"
+	MissionGuest    = "guest"
+	MissionReplace  = "replace"
+	MissionCampaign = "campaign"
 )
 
 // CarryJoin is the one carry rule: the guest member joins the party through
@@ -75,6 +76,11 @@ type Mission struct {
 	Chapter int
 	Gold    int
 	Carry   string
+	// Campaign rows may replace routing and payment without replacing a map.
+	AutoGetMission *int `json:",omitempty"`
+	AutoLine       int  `json:",omitempty"`
+	Payment        *int `json:",omitempty"`
+	MainParty      bool `json:",omitempty"`
 
 	// Class and Sex name the starting heroes a guest mission plays for, as
 	// herokind.Parse reads them; both empty is every hero. Missions after one
@@ -141,12 +147,16 @@ func (d MissionData) Empty() bool { return len(d.Missions) == 0 && len(d.maps) =
 // Heroes is the set of starting heroes the mission plays for.
 func (m Mission) Heroes() herokind.Set { return herokind.Named(m.Class, m.Sex) }
 
+func (m Mission) Campaign() bool { return m.Kind == MissionReplace || m.Kind == MissionCampaign }
+
+func (m Mission) GuestParty() bool { return m.Guest != 0 || len(m.Party) != 0 }
+
 // after is the guest missions that play after mission n is won, for any
 // starting hero.
 func (d MissionData) after(n int) []Mission {
 	var out []Mission
 	for _, m := range d.Missions {
-		if m.Kind != MissionReplace && !m.Off && m.After == n {
+		if !m.Campaign() && !m.Off && m.After == n {
 			out = append(out, m)
 		}
 	}
@@ -176,7 +186,7 @@ func (d MissionData) Follows(n int) bool { return len(d.after(n)) > 0 }
 // ByNumber returns the guest mission that runs as mission n.
 func (d MissionData) ByNumber(n int) (Mission, bool) {
 	for _, m := range d.Missions {
-		if m.Kind != MissionReplace && !m.Off && m.Number == n {
+		if !m.Campaign() && !m.Off && m.Number == n {
 			return m, true
 		}
 	}
@@ -201,7 +211,16 @@ func (d MissionData) Chain(m Mission) []Mission {
 // Replacing returns the mission that replaces the map of campaign mission n.
 func (d MissionData) Replacing(n int) (Mission, bool) {
 	for _, m := range d.Missions {
-		if m.Kind == MissionReplace && !m.Off && m.Number == n {
+		if m.Campaign() && m.Map != "" && !m.Off && m.Number == n {
+			return m, true
+		}
+	}
+	return Mission{}, false
+}
+
+func (d MissionData) CampaignMission(n int) (Mission, bool) {
+	for _, m := range d.Missions {
+		if m.Campaign() && !m.Off && m.Number == n {
 			return m, true
 		}
 	}
@@ -261,18 +280,18 @@ func MergeMissions(d MissionData) (MissionData, []Override, error) {
 func (d MissionData) checkChains() error {
 	at := func(m Mission) Source { return Source{Mod: m.Mod, File: m.File, Line: m.Line} }
 	for i, m := range d.Missions {
-		if m.Kind == MissionReplace {
+		if m.Campaign() {
 			continue
 		}
 		for _, first := range d.Missions[:i] {
-			if first.Kind != MissionReplace && first.After == m.After && first.Heroes().Overlaps(m.Heroes()) {
+			if !first.Campaign() && first.After == m.After && first.Heroes().Overlaps(m.Heroes()) {
 				return at(m).Errorf("mod %q already plays a mission after mission %d%s (mission %d, %s:%d); one mission follows one win",
 					first.Mod, m.After, forHeroes(first.Heroes()&m.Heroes()), first.Number, first.File, first.Line)
 			}
 		}
 	}
 	for _, m := range d.Missions {
-		if m.Kind == MissionReplace {
+		if m.Campaign() {
 			continue
 		}
 		seen := []int{m.Number}
@@ -385,8 +404,8 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			var err error
 			switch p.key {
 			case "kind":
-				if m.Kind, err = str(); err == nil && m.Kind != MissionGuest && m.Kind != MissionReplace {
-					err = bad(p.line, "kind is %q; use %q or %q", m.Kind, MissionGuest, MissionReplace)
+				if m.Kind, err = str(); err == nil && m.Kind != MissionGuest && !m.Campaign() {
+					err = bad(p.line, "kind is %q; use %q or %q or %q", m.Kind, MissionGuest, MissionReplace, MissionCampaign)
 				}
 			case "key":
 				if m.Key, err = str(); err == nil && !itemKeyPattern.MatchString(m.Key) {
@@ -402,6 +421,18 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				err = number(&m.Chapter, 1, maxMissionNumber)
 			case "gold":
 				err = number(&m.Gold, 0, maxMissionGold)
+			case "AutoGetMission", "Payment":
+				v, lo, hi := 0, int64(-1), int64(maxMissionNumber)
+				if p.key == "Payment" {
+					lo, hi = 0, maxMissionGold
+				}
+				if err = number(&v, lo, hi); err == nil {
+					if p.key == "AutoGetMission" {
+						m.AutoGetMission, m.AutoLine = &v, p.line
+					} else {
+						m.Payment = &v
+					}
+				}
 			case "map":
 				err = pathIn(&m.Map)
 			case "texts":
@@ -418,7 +449,11 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				}
 			case "party":
 				m.PartyLine = p.line
-				m.Party, err = parseGuestParty(file, p)
+				if p.val.kind == tomlString && p.val.str == "main" {
+					m.MainParty = true
+				} else {
+					m.Party, err = parseGuestParty(file, p)
+				}
 			case "class", "sex":
 				var word string
 				if word, err = str(); err == nil {
@@ -465,18 +500,37 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			continue
 		}
 		need := []string{"key", "number", "map", "after", "guest", "chapter"}
-		if m.Kind == MissionReplace {
+		if m.Campaign() {
 			need = need[:3]
+			if m.Kind == MissionCampaign {
+				need = need[:2]
+			}
 			for _, p := range t.pairs {
 				if p.key == "class" || p.key == "sex" {
 					return MissionData{}, bad(p.line, "%s belongs to a guest mission; a replacing mission plays for every starting hero", p.key)
 				}
-				if slices.Contains(guestOnly, p.key) {
+				if p.key == "after" {
 					return MissionData{}, bad(p.line, "%s belongs to a guest mission; a replacing mission takes the campaign's", p.key)
 				}
 			}
-			m.Carry = ""
+			if m.Guest == 0 {
+				if have["chapter"] || have["carry"] {
+					return MissionData{}, bad(t.line, "chapter and carry require guest")
+				}
+				m.Carry = ""
+			} else if !have["chapter"] {
+				return MissionData{}, bad(t.line, "guest requires chapter")
+			}
+			if m.MainParty && m.GuestParty() || m.Guest != 0 && len(m.Party) != 0 {
+				return MissionData{}, bad(t.line, "choose party = main, guest with chapter, or a party array")
+			}
+			if !m.GuestParty() && have["gold"] {
+				return MissionData{}, bad(t.line, "gold belongs to a guest mission party")
+			}
 		} else if have["party"] {
+			if m.MainParty {
+				return MissionData{}, bad(m.PartyLine, "party = main requires kind = campaign or replace")
+			}
 			need = need[:4]
 			for _, p := range t.pairs {
 				if slices.Contains(guestFormOnly, p.key) {
@@ -484,6 +538,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				}
 			}
 			m.Carry = ""
+		}
+		if !m.Campaign() && (m.AutoGetMission != nil || m.Payment != nil) {
+			return MissionData{}, bad(t.line, "AutoGetMission and Payment require kind = campaign or replace")
 		}
 		for _, k := range need {
 			if !have[k] {
@@ -501,7 +558,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			return MissionData{}, bad(t.line, "mission number %d is already used at line %d", m.Number, first)
 		}
 		numbers[m.Number] = t.line
-		if m.Kind == MissionReplace {
+		if m.Campaign() {
 			out.Missions = append(out.Missions, m)
 			continue
 		}
@@ -518,9 +575,6 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 	}
 	return out, nil
 }
-
-// guestOnly are the keys only a guest mission takes.
-var guestOnly = []string{"after", "guest", "chapter", "gold", "carry", "party", "class", "sex"}
 
 // guestFormOnly are the keys of the guest form a mission with a party does
 // not take.
@@ -631,11 +685,16 @@ func (m *Mission) ReadFiles(dir string) error {
 	bad := func(format string, args ...any) error {
 		return &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf(format, args...)}
 	}
-	b, _, err := ReadInside(dir, m.Map)
-	if err != nil {
-		return bad("map: %v", err)
+	if m.Map != "" {
+		b, _, err := ReadInside(dir, m.Map)
+		if err != nil {
+			return bad("map: %v", err)
+		}
+		m.MapBytes = b
 	}
-	m.MapBytes = b
+	if m.Map == "" && m.Texts == "" {
+		return nil
+	}
 	layer, err := m.ReadPageLayer(PageMod, dir, m.language)
 	m.TextFiles, m.OtherLanguageTexts = layer.Files, layer.Other
 	if err != nil {

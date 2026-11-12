@@ -76,6 +76,8 @@ func winRowSets() []winRowSet {
 			route: bankRoute, home: bankHome},
 		{
 			rows: []winRow{
+				{guard: func(id missionIdentity) bool { return id.guest && id.record.mission.Campaign() },
+					writes: []winWrite{carryWin, guestJoiner}, exits: []winExit{{place: guestHome}}},
 				{guard: func(id missionIdentity) bool { return id.guest },
 					writes: []winWrite{carryWin, guestJoiner},
 					exits:  []winExit{{gate: guestFollows, place: guestNext}, {place: guestHome}}},
@@ -232,7 +234,11 @@ func guestNext(f *FrontEnd, in winInput, s *winState) (int, string) {
 // takes her as she is now; nothing else of the chain carries back.
 func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 	g, member := s.id.record, s.member
+	campaign := g.mission.Campaign()
 	var back *guestMission
+	if campaign {
+		back = &guestMission{mission: g.mission, start: g.start, member: member}
+	}
 	if member != nil {
 		start := *member
 		if s.joiner.Number == g.mission.Number {
@@ -243,6 +249,13 @@ func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 	if _, _, err := f.restoreOriginal(g.stash, back); err != nil {
 		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", in.n, err)
 	}
+	if campaign {
+		if member == nil {
+			f.Town.guest = f.Town.guest.previous
+		}
+		in.party, in.w, in.ids, in.roster = f.Carried, nil, nil, nil
+		return chapterPlace(f, in, s)
+	}
 	if member == nil {
 		return 0, fmt.Sprintf("mission %d won - the party goes on to the town", in.n)
 	}
@@ -252,11 +265,11 @@ func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 // chapterPlace is the campaign registry's answer to a won chapter mission:
 // the party carried home, the win and its payment recorded, the successor,
 // the AutoGetMission travel, or the town, where a guest chain may start.
-func chapterPlace(f *FrontEnd, in winInput, _ *winState) (int, string) {
+func chapterPlace(f *FrontEnd, in winInput, s *winState) (int, string) {
 	w := in.w
 	return f.CampaignSession.finishMission(f.townInstall(), in.n, in.party, w, in.ids, in.roster,
-		townArrival{arrive: f.arriveInTown, welcome: f.addChapterCompanions,
-			guest: func(won int) (int, string) { return f.startGuestMission(won, w) }})
+		townArrival{carried: s.id.guest, arrive: f.arriveInTown, welcome: f.addChapterCompanions,
+			guest: func(won int) (int, string) { return f.startGuestMission(won, w, nil, nil, nil) }})
 }
 
 func chapterRoute(f *FrontEnd, n, successor int) winRoute {

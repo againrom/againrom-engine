@@ -1482,8 +1482,25 @@ func (f *FrontEnd) missionOpenerMode(n int, party []mapload.PartyMember, snap *S
 	req := missionRequest{n: n, party: party, snap: snap, initialPurse: initialPurse, prepare: prepare,
 		activate: activate, units: units, difficulty: difficulty, town: town}
 	return func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
-		p, err := enterMission(req, f.missionPorts())
+		request := req
+		previousGuest := f.missionIdentity(n).record
+		if request.fresh() {
+			id := request.town.missionIdentity(n, tableMissions(f.Table))
+			if m := id.campaign; m != nil && m.GuestParty() {
+				if !id.guest {
+					if _, refused := f.startGuestMission(n, nil, m, request.party, nil); refused != "" {
+						return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("%s", refused)
+					}
+				}
+				guestParty, purse, _ := request.town.missionIdentity(n, tableMissions(f.Table)).entry()
+				request.party, request.initialPurse = guestParty, &purse
+			}
+		}
+		p, err := enterMission(request, f.missionPorts())
 		if err != nil {
+			if f.Town != nil {
+				f.Town.guest = previousGuest
+			}
 			return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 		}
 		return p.viewer, p.tick, p.order, p.cadence, p.affect, p.advance, p.attack, p.grab, p.stance, p.march, nil

@@ -412,6 +412,14 @@ func (p *campaignProgress) complete(c Campaign, mission int) (side bool, ok bool
 		copy(p.children[i:], p.children[i+1:])
 		p.children = p.children[:len(p.children)-1]
 		p.selected = p.main.mission
+		if next, ok := c.AutoAdvance(mission); ok {
+			p.follow(c, next)
+		}
+		if c.TownAfter[mission] {
+			if offer, ok := c.NextMission(p.main.mission); ok {
+				p.follow(c, offer.Mission)
+			}
+		}
 		return true, true
 	}
 	if mission == p.main.mission {
@@ -421,10 +429,27 @@ func (p *campaignProgress) complete(c Campaign, mission int) (side bool, ok bool
 			}
 		}
 		p.main.enableMercenary = nil
-		p.advanceMain(c, mission)
+		if next, ok := c.AutoAdvance(mission); ok {
+			p.follow(c, next)
+		} else {
+			p.advanceMain(c, mission)
+			if c.TownAfter[mission] {
+				p.main.announced = true
+			}
+		}
 		return false, true
 	}
 	return false, false
+}
+
+func (p *campaignProgress) follow(c Campaign, mission int) {
+	if containsMission(c.Main, mission) {
+		p.loadMain(c, mission, true)
+	} else {
+		p.campaignRecords.follow(c, mission)
+		p.selected = mission
+		p.autoGet = autoGetMissionValue(c, mission)
+	}
 }
 
 func (p *campaignProgress) takeAddHeroes(chapter int) []int {

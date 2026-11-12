@@ -21,12 +21,13 @@ const (
 // winRouteIdentityCalls are the method calls that decide a mission's
 // identity, each with the arity the identity's own calls have.
 var winRouteIdentityCalls = map[string]int{
-	"guestMission":  0,
-	"playing":       1,
-	"returnMission": 1,
-	"guestEntry":    1,
-	"ByNumber":      1,
-	"Replacing":     1,
+	"guestMission":    0,
+	"playing":         1,
+	"returnMission":   1,
+	"guestEntry":      1,
+	"ByNumber":        1,
+	"Replacing":       1,
+	"CampaignMission": 1,
 }
 
 // winRouteServiceSteps are the win steps the campaign service no longer

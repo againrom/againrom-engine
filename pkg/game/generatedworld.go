@@ -284,5 +284,5 @@ func (f *FrontEnd) generatedCampaignChapter(s Snapshot) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return t.Chapter(), nil
+	return t.currentMain(), nil
 }

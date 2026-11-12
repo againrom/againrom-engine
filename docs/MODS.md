@@ -625,27 +625,30 @@ A mod that loads on both games lists `"rom1"`, `"rom2-en"` and `"rom2-ru"` in
 
 ## Missions
 
-`data/missions.toml` holds `[[mission]]` tables of two kinds. A guest mission
+`data/missions.toml` holds `[[mission]]` tables. A guest mission
 (`kind = "guest"`, the default) adds one mission that a guest party plays
 after a campaign mission is won and before the town that win opens, or after
 another guest mission is won (see Chains). The party waits: it is kept as the
 town SAV of that moment and comes back through the town LOAD when the guest
 party wins the last mission of the chain. A replacing mission
 (`kind = "replace"`) plays a campaign mission of the install on the mod's
-map; see below.
+map. A campaign row (`kind = "campaign"`) sets its successor or party and may
+add a mission; see Campaign flow below.
 
 | key | value |
 |---|---|
-| `kind` | optional; `"guest"` (default) or `"replace"` |
+| `kind` | optional; `"guest"` (default), `"replace"` or `"campaign"` |
 | `key` | required; 1 to 32 of a-z, 0-9 and `_`, starting with a letter |
 | `number` | required; the mission number the mission runs as, 1..65535; a `guest` row may not use a campaign number or one of the install's `scenario` container; a `replace` row must (see Replacing a campaign mission) |
-| `map` | required; the map file inside the mod folder (at most 1 MiB) |
+| `map` | the map file inside the mod folder (at most 1 MiB); optional for a campaign row of an installed mission |
 | `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files: `eventNN.txt`, `tipsNN.txt`, `briefmap.txt`, the world map's mission text, and `units.txt`, the names of the map's placed units. Write them in UTF-8; the game encodes each into the running install's bytes, so one folder reads right on the English and the Russian base. Typographic quotes, dashes, the ellipsis and the no-break space are written as their plain forms (`"`, `'`, `-`, `...`, a space); any other character the install has no byte for is dropped, and the map check names it when the editor saves into the mod. A file that is not valid UTF-8 is served byte for byte, as mods written before UTF-8 were. A short install-encoded Russian file whose high bytes happen to form valid UTF-8 (CP866 `e2 a0 ac`) is read as UTF-8; whole sentences are not |
 | `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
-| `after` | required; the mission whose win starts this mission: a campaign mission whose successor is a town, or a guest mission of the active mods |
+| `after` | guest rows only, required; the mission whose win starts this mission: a campaign mission whose successor is a town, or a guest mission of the active mods |
 | `guest` | the guest form: the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
 | `chapter` | the guest form: the town the chain ends in, whose `AddHero` grants `guest` |
 | `party` | instead of `guest`, `chapter` and `carry`: 1 to 8 members, an array of `{ character = "...", level = 1..4, weapon = "...", shield = "...", armour = ["...", ...] }` (see Guest parties) |
+| `AutoGetMission` | campaign and replace rows only; the successor mission number; `-1` removes the automatic link |
+| `Payment` | campaign and replace rows only; optional payment to the main party on completion, 0..1000000 |
 | `gold` | optional, 0..1000000, default 0; the guest party's purse |
 | `carry` | optional; only `"join"`: the guest joins in the town of `chapter` through its own grant, as he or she ended the chain |
 | `class` | optional, guest missions only; `"fighter"` or `"mage"`: the mission plays only when the starting hero is of that class (see Missions by starting hero) |
@@ -696,6 +699,86 @@ after    = 20
 guest    = 22
 chapter  = 30
 ```
+
+### Campaign flow
+
+A campaign row takes `key` and `number`. Without `map` it uses the install's
+map. With `map` it replaces that map, or adds a side-numbered mission when
+the install declares no such number. An added number must not be a multiple
+of ten, must not occupy an installed map and must be reached by an automatic
+link. It has no payment unless `Payment` sets one.
+
+`AutoGetMission` uses the scenario registry's spelling. Winning the source
+opens that mission without a town between. The target must be an installed
+main mission above the current main mission, or a mission the mod adds
+above it. Installed side missions are refused, even with their own row;
+supporting them as automatic targets is open debt. The load checks the whole chain and the
+retention of installed side missions; cycles, missing targets and backward
+requests refuse launch with the file and line. The install's links remain
+where no row overrides them. Removing a link (`AutoGetMission = -1`) runs
+the normal completion and returns to the town with the next main mission
+available. An added mission without a link does the same.
+
+For example, the main party plays 10, then the added 11, then the install's
+20. Winning 20 takes the install's normal route:
+
+```toml
+[[mission]]
+kind = "campaign"
+key = "first"
+number = 10
+AutoGetMission = 11
+
+[[mission]]
+kind = "campaign"
+key = "detour"
+number = 11
+map = "maps/detour.alm"
+texts = "maps/detour.text/{lang}"
+AutoGetMission = 20
+party = "main"
+Payment = 75
+```
+
+Campaign and replace rows default to the main party; `party = "main"` states
+that explicitly. Either may instead set `guest` with `chapter`, or the same
+`party` array a guest row takes. `gold` is that guest party's purse. A guest
+plays while the main party waits in a SAV. Only the joining guest's state
+comes back. Up to 64 guests may await their separate town grants; entering
+another guest mission at that limit is refused. Other members, purse and loot
+stay behind. The campaign win then
+completes for the waiting main party, including its payment, town, documents
+and mercenary unlocks. The main party in an added mission keeps its loot,
+experience and inventory through the ordinary campaign carry.
+A joining guest's chapter must be the town reached after the mission and
+its automatic successors, and that town must grant the companion. A chapter
+already passed, or a chain ending in another town, refuses the mod with its
+file and line.
+
+Campaign rows merge as whole missions by number, under the same `load-after`
+rule as replacements. Combine a map, flow and party in one row of a mod.
+The existing numbered-map form still replaces maps; use a row that names that
+file to add flow or party data. `againrom -check` and the starter check print
+one line for every campaign row, including payment-only and party-only rows.
+For example: `mission 10 AutoGetMission = 11, party = main by mod "m",
+declared at data/missions.toml:5` and `mission 20 Payment = 999, party = main
+by mod "m", declared at data/missions.toml:1`.
+
+SAVE and LOAD inside these missions use SAV and the same mod mark as other
+mod state. An added mission occupies a selected child record beside the
+current main record. Its successor is written through the campaign's
+`autoGetMissionValue`. Guest state uses the existing guest record; the
+internal waiting-party SAV may precede the first town. Existing `after`
+chains keep their saved representation. No SAVX extension is needed for
+these fields. Original-runtime compatibility of a side mission in an
+automatic chain is Unknown (`DIV-4854`, `DIV-4856`).
+The early town after removing the prologue link is also authored behaviour
+(`DIV-4857`).
+
+The map editor does not author these flow and party fields yet. Edit the
+missions file directly. The second game's bank-driven campaign routing is
+also outside this implementation: the shared scenario value receives the
+override, but the bank does not route by it.
 
 ### Chains
 
@@ -830,13 +913,13 @@ name = "character.sellsword"
 ### Replacing a campaign mission
 
 A `kind = "replace"` table takes `key`, `number`, `map` and the optional
-`texts`, `title` and `briefing`, with the meanings above; `after`, `guest`,
-`chapter`, `gold` and `carry` are refused. When the campaign reaches mission
+texts, flow, payment and party fields above; `after`, `class` and `sex` are
+refused. When the campaign reaches mission
 `number` by ordinary play, the mission is built from the mod's map; the files
 of `texts` and the `title` and `briefing` replace the installed mission's files
 of those names, and the others stay the install's. Everything else stays the
 install's: the scenario rows, the world map, the payment and the town that
-follows. The rules:
+follows, unless the row overrides them. The rules:
 
 - `number` must be a mission of the install's campaign whose map the install
   holds; another number is refused. The replaced mission is built and proven
@@ -849,8 +932,8 @@ follows. The rules:
   nothing; its finding prints as a `warning:` line on standard error, which the
   starter's check shows. The rule for message texts reads the mission's own
   `texts` folder.
-- One mission number belongs to one mod: a second mod that replaces the same
-  mission, or uses its number in any way, is refused when it loads. A guest
+- A later mod may replace a whole mission row when `load-after` orders the
+  two mods. Without that order a second use of one number is refused. A guest
   mission never uses a campaign number, so the two kinds cannot collide; a
   guest after a replaced mission plays after its win.
 - A SAVE inside a replaced mission carries the mod mark, whose content digest

@@ -14,6 +14,18 @@ func missionPairs(m Mission) []missionPair {
 	if m.Kind == MissionReplace {
 		p = append([]missionPair{{"kind", strconv.Quote(m.Kind)}}, p...)
 	}
+	if m.Kind == MissionCampaign {
+		p = append([]missionPair{{"kind", strconv.Quote(m.Kind)}}, p...)
+		if m.Map == "" {
+			p = p[:len(p)-1]
+		}
+	}
+	if m.AutoGetMission != nil {
+		p = append(p, missionPair{"AutoGetMission", strconv.Itoa(*m.AutoGetMission)})
+	}
+	if m.Payment != nil {
+		p = append(p, missionPair{"Payment", strconv.Itoa(*m.Payment)})
+	}
 	if m.Off {
 		return []missionPair{{"number", strconv.Itoa(m.Number)}, {"off", "true"}, {"kind", strconv.Quote(m.Kind)}}
 	}
@@ -22,14 +34,18 @@ func missionPairs(m Mission) []missionPair {
 			p = append(p, missionPair{v.key, strconv.Quote(v.value)})
 		}
 	}
-	if m.Kind != MissionReplace {
-		p = append(p, missionPair{"after", strconv.Itoa(m.After)})
+	if !m.Campaign() || m.GuestParty() || m.MainParty {
+		if !m.Campaign() {
+			p = append(p, missionPair{"after", strconv.Itoa(m.After)})
+		}
 		for _, v := range []missionPair{{"class", m.Class}, {"sex", m.Sex}} {
 			if v.value != "" {
 				p = append(p, missionPair{v.key, strconv.Quote(v.value)})
 			}
 		}
-		if len(m.Party) != 0 {
+		if m.MainParty {
+			p = append(p, missionPair{"party", strconv.Quote("main")})
+		} else if len(m.Party) != 0 {
 			var members []string
 			for _, g := range m.Party {
 				fields := []string{"character = " + strconv.Quote(g.Character)}
@@ -196,6 +212,14 @@ func WriteManifestTitle(source []byte, title string) ([]byte, error) {
 }
 
 func CloneMission(m Mission) Mission {
+	if m.AutoGetMission != nil {
+		v := *m.AutoGetMission
+		m.AutoGetMission = &v
+	}
+	if m.Payment != nil {
+		v := *m.Payment
+		m.Payment = &v
+	}
 	if m.Party != nil {
 		m.Party = append([]GuestMember{}, m.Party...)
 		for i := range m.Party {

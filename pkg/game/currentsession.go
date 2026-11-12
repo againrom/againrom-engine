@@ -27,6 +27,7 @@ type currentSessionData struct {
 	Taken              []SnapshotOffer     `json:",omitempty"`
 	OfferLabels        *currentOfferLabels `json:",omitempty"`
 	Guest              *currentGuest       `json:",omitempty"`
+	GuestWaiting       bool                `json:",omitempty"`
 	Towns              *currentTowns       `json:",omitempty"`
 }
 
@@ -74,6 +75,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 	campaignOf(s.game).recordDifficulty(s, a.Session)
 	a.Session.Taken, a.Session.OfferLabels = slices.Clone(s.Taken), cloneOfferLabels(s.OfferLabels)
 	a.Session.Guest = s.guest.record()
+	a.Session.GuestWaiting = s.guestWaiting
 	a.Session.Towns = s.towns.clone()
 	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
 	if err != nil {

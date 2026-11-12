@@ -270,6 +270,7 @@ type restoreCandidate struct {
 	carried           []mapload.PartyMember
 	offered           int
 	townOnly          bool
+	guestWaiting      bool
 	worldSelectedOnce map[int]bool
 	worldMapReturn    *SnapshotMapReturn
 	originalCity      *originalCitySaveState
@@ -292,6 +293,9 @@ func (f *FrontEnd) installCandidate(c *restoreCandidate) {
 	f.resetTownSurface(c)
 	if c.townOnly {
 		releaseWorldAudio(f.runtimeAudio(), f.endLive())
+		if c.guestWaiting {
+			return
+		}
 		f.campaign().arriveLoaded(f, c)
 		return
 	}

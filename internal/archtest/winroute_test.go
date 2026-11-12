@@ -35,6 +35,8 @@ func TestCheckWinRoute(t *testing.T) {
 			"package game\nfunc f(m mapload.ModContext, n int) bool { _, ok := m.Missions.ByNumber(n); return ok }\n", "ByNumber call outside the session mission identity"},
 		{"a replaced map lookup", "pkg/game/missionports.go",
 			"package game\nfunc f(m mod.MissionData, n int) bool { _, ok := m.Replacing(n); return ok }\n", "Replacing call outside the session mission identity"},
+		{"a campaign mission lookup", "pkg/game/missionports.go",
+			"package game\nfunc f(m mod.MissionData, n int) bool { _, ok := m.CampaignMission(n); return ok }\n", "CampaignMission call outside the session mission identity"},
 		{"a per-game finishWon", "pkg/game/campaignsecond.go",
 			"package game\nfunc (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, string) { return 0, \"\" }\n", "finishWon on secondCampaignRules"},
 		{"a second finishWon", "pkg/game/campaignfirst.go",

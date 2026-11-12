@@ -5,6 +5,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"againrom/pkg/namefold"
 )
@@ -126,13 +127,47 @@ func (d MissionData) AdmitMaps(held func(n int) error) (MissionData, []string, e
 	return out, warnings, nil
 }
 
-// Replacements names each campaign mission a mod's map replaces, one line
-// each: the mission, the mod, the map and the row or the file name that
-// declares it.
+// Replacements reports campaign rows and replaced maps with their source.
 func (d MissionData) Replacements() []string {
 	var out []string
 	for _, m := range d.Missions {
-		if m.Kind != MissionReplace || m.Off {
+		if m.Off {
+			continue
+		}
+		if m.Kind == MissionCampaign {
+			var fields []string
+			line := m.Line
+			if m.AutoGetMission != nil {
+				fields = append(fields, fmt.Sprintf("AutoGetMission = %d", *m.AutoGetMission))
+				if m.AutoLine > 0 {
+					line = m.AutoLine
+				}
+			}
+			if m.Payment != nil {
+				fields = append(fields, fmt.Sprintf("Payment = %d", *m.Payment))
+			}
+			if m.Map != "" {
+				fields = append(fields, "map "+m.Map)
+			}
+			switch {
+			case m.Guest != 0:
+				fields = append(fields, fmt.Sprintf("guest = %d, chapter = %d", m.Guest, m.Chapter))
+			case len(m.Party) != 0:
+				var members []string
+				for _, member := range m.Party {
+					members = append(members, strconv.Quote(member.Character))
+				}
+				fields = append(fields, "party = ["+strings.Join(members, ", ")+"]")
+			default:
+				fields = append(fields, "party = main")
+			}
+			out = append(out, fmt.Sprintf("mission %d %s by mod %q, declared at %s:%d", m.Number, strings.Join(fields, ", "), m.Mod, m.File, line))
+			continue
+		}
+		if m.AutoGetMission != nil {
+			out = append(out, fmt.Sprintf("mission %d AutoGetMission = %d by mod %q, declared at %s:%d", m.Number, *m.AutoGetMission, m.Mod, m.File, m.AutoLine))
+		}
+		if m.Kind != MissionReplace {
 			continue
 		}
 		by := "named by its file name"

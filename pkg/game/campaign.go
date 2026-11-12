@@ -2,11 +2,14 @@ package game
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/mod"
 	"againrom/pkg/vfs"
 )
 
@@ -124,7 +127,10 @@ type Campaign struct {
 	// AutoGetMission key, keyed by the mission that declares it.
 	//
 	// AutoAdvance is how this is read.
-	Auto map[int]int
+	Auto         map[int]int
+	TownAfter    map[int]bool
+	TownBoundary int
+	missionTowns map[int][]int
 
 	// MapObjects is each mission record's campaign-map object. It is kept
 	// apart from Chapters because a section may carry only this record field
@@ -355,6 +361,9 @@ func (c Campaign) offers(n int) bool {
 // stock scenario, and they are the answer because no building names them —
 // not because this function knows their numbers.
 func (c Campaign) TownBegins() (int, bool) {
+	if c.TownBoundary > 0 && (len(c.Offered) == 0 || c.TownBoundary < c.Offered[0]) {
+		return c.TownBoundary, true
+	}
 	if len(c.Offered) == 0 {
 		return 0, false
 	}
@@ -493,6 +502,88 @@ func ReadCampaign(r *reg.Reg) Campaign {
 	sort.Ints(c.Side)
 	sort.Ints(c.Offered)
 	return c
+}
+
+func (c Campaign) withModMissions(d mod.MissionData) (Campaign, error) {
+	retained := map[int]int{}
+	for i, main := range c.Main {
+		last := main
+		if i+1 < len(c.Main) {
+			last = c.Main[i+1]
+		}
+		for _, side := range candidateSides(c.chapter(main)) {
+			retained[side] = max(retained[side], last)
+		}
+	}
+	if err := d.ValidateCampaign(c.Main, c.Side, c.Offered, c.Auto, retained); err != nil {
+		return Campaign{}, err
+	}
+	c.Auto, c.Chapters, c.Side = maps.Clone(c.Auto), maps.Clone(c.Chapters), slices.Clone(c.Side)
+	c.TownAfter = maps.Clone(c.TownAfter)
+	if c.TownAfter == nil {
+		c.TownAfter = map[int]bool{}
+	}
+	if c.Auto == nil {
+		c.Auto = map[int]int{}
+	}
+	if c.Chapters == nil {
+		c.Chapters = map[int]Chapter{}
+	}
+	for _, m := range d.Missions {
+		if !m.Campaign() {
+			continue
+		}
+		added := !slices.Contains(c.Main, m.Number) && !slices.Contains(c.Side, m.Number) && !slices.Contains(c.Offered, m.Number)
+		if added {
+			c.Side = append(c.Side, m.Number)
+		}
+		if m.AutoGetMission != nil {
+			delete(c.TownAfter, m.Number)
+			delete(c.Auto, m.Number)
+			if *m.AutoGetMission != -1 {
+				c.Auto[m.Number] = *m.AutoGetMission
+			}
+		}
+		if m.Payment != nil {
+			ch := c.Chapters[m.Number]
+			ch.Mission, ch.Payment = m.Number, *m.Payment
+			c.Chapters[m.Number] = ch
+		}
+		if _, automatic := c.AutoAdvance(m.Number); (added || m.AutoGetMission != nil) && !automatic {
+			c.TownAfter[m.Number] = true
+		}
+	}
+	c.missionTowns = map[int][]int{}
+	for _, root := range c.Main {
+		current := root
+		var path []int
+		for n, steps := root, 0; steps <= len(c.Main)+len(c.Side); steps++ {
+			path = append(path, n)
+			next, automatic := c.AutoAdvance(n)
+			if !automatic {
+				offer, ok := c.NextMission(current)
+				if ok && (offer.Town || c.TownAfter[n]) {
+					for _, mission := range path {
+						if !slices.Contains(c.missionTowns[mission], offer.Mission) {
+							c.missionTowns[mission] = append(c.missionTowns[mission], offer.Mission)
+						}
+					}
+				}
+				if c.TownAfter[n] {
+					if ok && (c.TownBoundary == 0 || offer.Mission < c.TownBoundary) {
+						c.TownBoundary = offer.Mission
+					}
+				}
+				break
+			}
+			if containsMission(c.Main, next) {
+				current = next
+			}
+			n = next
+		}
+	}
+	slices.Sort(c.Side)
+	return c, nil
 }
 
 // readChapter is one section's town data, and whether the section carries

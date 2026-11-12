@@ -41,7 +41,8 @@ const maxSaveGobDepth = 128
 type Snapshot struct {
 	game base.Game
 	// guest is the session's mod mission or waiting guest.
-	guest *guestMission
+	guest        *guestMission
+	guestWaiting bool
 	// randomSession is the random session at capture; the SAV records it.
 	randomSession random.Session
 	second        *currentSecondCampaign

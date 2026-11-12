@@ -59,8 +59,8 @@ func TestParseMissionsReplacingRefusals(t *testing.T) {
 	cases := []struct{ name, src, want string }{
 		{"unknown kind", strings.Replace(replacingMission, `"replace"`, `"swap"`, 1), `data/missions.toml:2: kind is "swap"; use "guest" or "replace"`},
 		{"after", replacingMission + "after = 10\n", "data/missions.toml:7: after belongs to a guest mission"},
-		{"guest", replacingMission + "guest = 22\n", "data/missions.toml:7: guest belongs to a guest mission"},
-		{"gold", replacingMission + "gold = 5\n", "data/missions.toml:7: gold belongs to a guest mission"},
+		{"guest", replacingMission + "guest = 22\n", "data/missions.toml:1: guest requires chapter"},
+		{"gold", replacingMission + "gold = 5\n", "data/missions.toml:1: gold belongs to a guest mission party"},
 		{"no map", strings.Replace(replacingMission, "map      = \"mission/{lang}/map.alm\"\n", "", 1), "data/missions.toml:1: [[mission]] has no map"},
 		{"one number twice", replacingMission + strings.Replace(replacingMission, `"ambush"`, `"b"`, 1), "data/missions.toml:7: mission number 20 is already used at line 1"},
 		// Loss control: the same table without kind is a guest and needs its keys.

@@ -149,6 +149,7 @@ func (s *CampaignSession) nextParty(fallback func() []mapload.PartyMember) []map
 // mission that plays after won mission n before the town: it answers the
 // mission to open, or zero and why it could not start.
 type townArrival struct {
+	carried bool
 	arrive  func()
 	welcome func(chapter int)
 	guest   func(n int) (next int, refused string)
@@ -202,7 +203,8 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 			s.Offered = s.Town.selectedMission()
 			return 0, fmt.Sprintf("mission %d is below restored main progress %d", n, s.Town.Chapter())
 		}
-		if restoredSide {
+		_, automatic := campaign.AutoAdvance(n)
+		if restoredSide && !automatic && !campaign.TownAfter[n] {
 			s.Offered = s.Town.selectedMission()
 			if s.Town.Open() {
 				if s.Town.progress != nil {
@@ -228,6 +230,9 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 	}
 
 	offer, ok := campaign.NextMission(n)
+	if campaign.TownAfter[n] {
+		offer, ok = Offer{Mission: s.Town.currentMain(), Town: true}, true
+	}
 	if !ok {
 		s.Offered = 0
 		if len(campaign.Main) == 0 {
