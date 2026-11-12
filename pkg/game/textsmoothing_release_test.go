@@ -546,6 +546,7 @@ func smoothingViews() []smoothingRun {
 		{name: "mission, debug readout", steps: 1, onMap: true,
 			open: func(t *testing.T) (*FrontEnd, *ui.App) {
 				f, a := smoothingMission(t)
+				unlockCheats(f.live)
 				if err := a.HeadlessKey("f11"); err != nil {
 					t.Fatal(err)
 				}

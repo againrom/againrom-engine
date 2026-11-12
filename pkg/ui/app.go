@@ -615,7 +615,7 @@ func readAppInput(keys missionKeyAction) appInput {
 			inpututil.IsKeyJustPressed(ebiten.KeyF7),
 			inpututil.IsKeyJustPressed(ebiten.KeyF8),
 		},
-		// Diagnostics retain F10/F11.
+		// Gated by cheatsUnlocked.
 		Grid:    inpututil.IsKeyJustPressed(ebiten.KeyF10),
 		Readout: inpututil.IsKeyJustPressed(ebiten.KeyF11),
 		FPS:     inpututil.IsKeyJustPressed(ebiten.KeyF12),
@@ -1905,7 +1905,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// It is the ONLY call to it and it is on THIS ARM, which is the
 			// whole of "on every other screen it does nothing": the menu and
 			// picker arms have no statement to reach a viewer through.
-			if in.Grid {
+			if in.Grid && a.cheatsUnlocked() {
 				v.ToggleGrid()
 			}
 
@@ -1922,7 +1922,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// opens — a readout that had to be switched on could not report the
 			// key that switched it on — so this key exists for the frame the
 			// owner wants clean.
-			if in.Readout {
+			if in.Readout && a.cheatsUnlocked() {
 				v.ToggleReadout()
 			}
 

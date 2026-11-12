@@ -67,6 +67,36 @@ func TestDebugChordsActOnlyAfterTheUnlock(t *testing.T) {
 	}
 }
 
+func TestGridAndReadoutActOnlyAfterTheUnlock(t *testing.T) {
+	for _, profile := range []string{"", "pickup-p"} {
+		t.Run("profile "+profile, func(t *testing.T) {
+			a, v, _ := affOnMap(t)
+			a.SetMissionKeys(profile)
+			x, y := cellPoint(v, affEmptyCol, affEmptyRow)
+			press := func() {
+				in := affFrame(x, y)
+				in.Grid, in.Readout = true, true
+				a.step(in, affAt)
+			}
+			grid0, readout0 := v.GridOverlay(), v.ReadoutShown()
+
+			for _, unlock := range []func() bool{nil, func() bool { return false }} {
+				a.SetCheatPrivilege(unlock)
+				press()
+				if v.GridOverlay() != grid0 || v.ReadoutShown() != readout0 {
+					t.Fatalf("locked: grid %v readout %v, want %v and %v", v.GridOverlay(), v.ReadoutShown(), grid0, readout0)
+				}
+			}
+
+			a.SetCheatPrivilege(func() bool { return true })
+			press()
+			if v.GridOverlay() == grid0 || v.ReadoutShown() == readout0 {
+				t.Fatalf("unlocked: grid %v readout %v, want both flipped from %v and %v", v.GridOverlay(), v.ReadoutShown(), grid0, readout0)
+			}
+		})
+	}
+}
+
 func TestBareLStillOpensLoadOnTheMenu(t *testing.T) {
 	a := newTestApp(t, appRows(1), nil)
 	a.SetCheatPrivilege(nil)

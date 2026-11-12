@@ -1769,7 +1769,8 @@ to `ctrl-f8`, `help`, `readout`, `fps`, `alt-enter`, `alt-backspace`,
 `delete`, `home`, `end`, `autocast`, `w`, `weapon-swap`, `zoom-reset`,
 `speed-reset`, `book`, `b`, `q`, `inventory`, `i`, `backquote`, `` ` ``,
 `doll`, `j`, and `alt-` followed by a letter `a` to `z`. The refusal of
-another name lists them.
+another name lists them. In a mission, `readout` (`f11`) and `ctrl-shift-f4`
+act only while the cheats are unlocked.
 
 `action` of `pointer`: `hover`, `press`, `move`, `release`, `right-press`,
 `right-move`, `right-release`, `middle-press`, `middle-move`,
