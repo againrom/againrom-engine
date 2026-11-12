@@ -457,7 +457,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 				value = mod.MissionReplace
 			}
 			if value != mod.MissionGuest && value != mod.MissionReplace {
-				return fmt.Errorf("route must be guest or replace")
+				return errors.New(s.inspector.word("editor.mod.err.routekind"))
 			}
 			p.Kind = value
 		default:
@@ -467,7 +467,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 				maxValue, minValue = 1_000_000, 0
 			}
 			if err != nil || n < minValue || n > maxValue {
-				return fmt.Errorf("%s must be %d to %d", key, minValue, maxValue)
+				return fmt.Errorf(s.inspector.word("editor.mod.err.range"), s.inspector.modFieldLabel(key), minValue, maxValue)
 			}
 			switch key {
 			case "number":
@@ -486,7 +486,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 			case "gold":
 				p.Gold = int(n)
 			default:
-				return fmt.Errorf("unknown package field %q", key)
+				return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
 			}
 		}
 		return nil

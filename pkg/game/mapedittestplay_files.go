@@ -33,6 +33,7 @@ type missionPackagePlan struct {
 	Files              map[string][]byte
 	Check              func(modrt.Result) error
 	Expected           []mod.Mission
+	Word               func(string) string
 	Authoring          bool
 	Original           map[string][32]byte
 	Receipt            []byte
@@ -263,7 +264,7 @@ func stageMissionPackage(profileDir, folder, root, id, record string, old []stri
 	}
 	result, err := modrt.Load(entries, BaseID(InspectInstall(root)), nil, modrt.Options{Authoring: len(plans) != 0 && plans[0].Authoring})
 	if err == nil && len(plans) != 0 && plans[0].Expected != nil {
-		err = checkMissionProjection(plans[0].Expected, result.Missions)
+		err = checkMissionProjection(plans[0].Word, plans[0].Expected, result.Missions)
 	}
 	if err == nil && len(plans) != 0 && plans[0].Check != nil {
 		err = plans[0].Check(result)

@@ -92,7 +92,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 			return "", fmt.Errorf("Test play: %w", e)
 		}
 		m = current
-		plan = &missionPackagePlan{ID: s.workspace.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions}
+		plan = &missionPackagePlan{ID: s.workspace.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions, Word: x.word}
 		if x.mod != nil {
 			plan.Source = x.mod.dir
 		}

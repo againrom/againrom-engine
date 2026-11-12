@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -8,7 +9,7 @@ import (
 	"againrom/pkg/modrt"
 )
 
-func checkMissionProjection(expected []mod.Mission, actual mod.MissionData) error {
+func checkMissionProjection(word func(string) string, expected []mod.Mission, actual mod.MissionData) error {
 	want, _, err := mod.MergeMissions(mod.MissionData{Missions: expected})
 	if err != nil {
 		return err
@@ -18,11 +19,11 @@ func checkMissionProjection(expected []mod.Mission, actual mod.MissionData) erro
 		return err
 	}
 	if len(want.Missions) != len(got.Missions) {
-		return fmt.Errorf("the mod entry script does not load every edited mission; reopen it in a supported script/settings context")
+		return errors.New(word("editor.mod.err.entryall"))
 	}
 	for _, m := range want.Missions {
 		if !slices.ContainsFunc(got.Missions, func(v mod.Mission) bool { return v.Key == m.Key && v.Number == m.Number && v.Kind == m.Kind }) {
-			return fmt.Errorf("the mod entry script does not load edited mission %s (%d)", m.Key, m.Number)
+			return fmt.Errorf(word("editor.mod.err.entryone"), m.Key, m.Number)
 		}
 	}
 	return nil
@@ -39,7 +40,7 @@ func (x *MapInspector) admitMissionPackage(result modrt.Result) error {
 		for _, m := range result.Missions.Missions {
 			address, _ := MissionMap(m.Number)
 			if rows := x.CheckModMap(m, address); hasError(rows) {
-				return fmt.Errorf("mission %s: %s", m.Key, rows[0].Line())
+				return fmt.Errorf(x.word("editor.mod.err.mission"), m.Key, rows[0].Line())
 			}
 		}
 		return nil

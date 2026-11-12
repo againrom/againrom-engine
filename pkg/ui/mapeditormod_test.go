@@ -18,6 +18,8 @@ type modesWorkspace struct {
 	fields  []InspectionField
 	confirm *WorkspaceConfirmation
 	leave   *WorkspaceLeave
+	// dirtyOnEdit makes any field edit leave unsaved changes behind.
+	dirtyOnEdit bool
 	// overview is the mod's overview page; empty, W has none.
 	overview ModOverviewPage
 }
@@ -69,6 +71,9 @@ func (p *modesWorkspace) SetWorkspaceField(scope, key, value string) (*Inspectio
 				p.fields[i].Value = n
 			}
 		}
+	}
+	if p.dirtyOnEdit && key != "folder" {
+		p.leave = &WorkspaceLeave{Folder: "other-mod"}
 	}
 	return p.next("Workspace %s %s %q", scope, key, value)
 }
@@ -170,7 +175,7 @@ func TestModWindowUsesSharedRowsAndBlocksCanvasInBothLanguages(t *testing.T) {
 		}
 		s, _, ok := e.objectSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
-		if !ok || s.Columns != 2 || !l.Rect.In(image.Rect(0, e.barHeight(), 640, 480)) || len(l.Buttons) != 5 {
+		if !ok || s.Columns != 2 || !l.Rect.In(image.Rect(0, e.barHeight(), 640, 480)) || len(l.Buttons) != len(modButtons) {
 			t.Fatalf("%s mod window layout: %v", lang, l.Rect)
 		}
 		before := len(calls.lines)
@@ -328,13 +333,13 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 	}
 	s, _, _ = e.modSpec()
 	l = layoutPopup(s, e.font, e.bodyFont())
-	for n := range 4 {
+	for n := range modButtonIndex("close") {
 		modesClick(e, center(l.Buttons[n]))
 	}
 	if !e.modWindow || e.doc != nil {
 		t.Fatalf("a button left window %v map %v", e.modWindow, e.doc != nil)
 	}
-	modesClick(e, center(l.Buttons[4]))
+	modesClick(e, center(l.Buttons[modButtonIndex("close")]))
 	if e.modWindow || !e.catalog {
 		t.Fatalf("Close left window %v catalog %v", e.modWindow, e.catalog)
 	}

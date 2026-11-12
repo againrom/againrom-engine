@@ -124,7 +124,7 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 	}
 	m.checkLines = ModCheckLines(result)
 	issue := ""
-	if err := checkMissionProjection(m.missions.Missions, result.Missions); err != nil {
+	if err := checkMissionProjection(x.word, m.missions.Missions, result.Missions); err != nil {
 		issue = err.Error()
 	}
 	f, report, err := x.admittedFork(result)
@@ -172,7 +172,7 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 		root = x.archives.Root
 	}
 	if issue := x.openModContext(&next, mod.Load(next.dir), root, files); issue != "" {
-		return fmt.Errorf("mod %q: %s", next.id, issue)
+		return fmt.Errorf("%s: %s", fmt.Sprintf(x.word("editor.mod.err.mod"), next.id), issue)
 	}
 	x.setEditorMod(&next)
 	s.speakers = nil

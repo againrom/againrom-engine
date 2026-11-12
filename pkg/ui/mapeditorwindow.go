@@ -1002,11 +1002,8 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 				s.Notes = append(s.Notes, e.doc.ScriptNotice)
 			}
 		}
-		s.ButtonFit = e.filter == editorScriptsFilter
 		for _, b := range e.listButtons() {
 			s.Buttons, s.Disabled = append(s.Buttons, b.label), append(s.Disabled, b.off)
-			// A switch's caption carries its mark beside its word.
-			s.ButtonFit = s.ButtonFit || b.key != "add"
 		}
 		if e.filter == editorScriptsFilter {
 			// The palette is as wide as its three buttons need.

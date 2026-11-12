@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] The mod window (W) has an Open mod button that opens a mod folder, or a packed mod read-only, after asking about unsaved changes. Its buttons and labels show their whole words in English and Russian, its messages are in the game's language, and it moves by its title bar and resizes like the editor's other windows. Buttons in the other editor windows also widen to their words.
 - [ROM1] W edits a mod’s version, author, description, target base and dependencies. Adding a speaker can be undone and is saved with the project; new packages and base dumps need no script. Saving keeps files the editor did not change and leaves a handwritten mod handwritten.
 - [ROM1] Mods can choose the next mission, insert missions for the main party, and give a campaign mission to a guest hero or party. Saving and loading keeps the route and the waiting main party.
 

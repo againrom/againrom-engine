@@ -2,22 +2,45 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"image"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/pathdialog"
 )
+
+// modButtons is W's button row in its order: the action each button runs and
+// the word of its caption.
+var modButtons = []struct{ action, word string }{
+	{action: "open", word: "editor.mod.openmod"},
+	{action: "add", word: "editor.mod.addshort"},
+	{action: "remove", word: "editor.mod.remove"},
+	{action: "save", word: "editor.mod.save"},
+	{action: "publish", word: "editor.mod.publish"},
+	{action: "close", word: "editor.mod.close"},
+}
+
+// modButtonIndex is the place of action's button in W's row.
+func modButtonIndex(action string) int {
+	for n, b := range modButtons {
+		if b.action == action {
+			return n
+		}
+	}
+	return -1
+}
 
 func (e *MapEditor) FocusModField(key string) bool {
 	if !e.modWindow {
 		return false
 	}
 	e.loadObject()
-	for n, action := range []string{"add", "remove", "save", "publish", "close"} {
-		if key == action {
-			e.obj.focus = len(e.obj.fields) + n
-			return true
-		}
+	if n := modButtonIndex(key); n >= 0 {
+		e.obj.focus = len(e.obj.fields) + n
+		return true
 	}
 	for i, f := range e.obj.fields {
 		if f.Key == key && !f.ReadOnly {
@@ -119,15 +142,69 @@ func (e *MapEditor) modButton(n int) error {
 		}
 		return nil
 	}
-	if n == 4 {
-		e.closeObject()
+	if n < 0 || n >= len(modButtons) {
 		return nil
 	}
-	if err := e.applyModField(); err != nil {
-		return err
+	switch key := modButtons[n].action; key {
+	case "close":
+		e.closeObject()
+		return nil
+	case "open":
+		// A typed field edit is applied first, as the other buttons do, so the
+		// route asks about unsaved changes with it; the folder field holds a
+		// path, not a mod edit, and stays as typed.
+		if o := e.obj; o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Key != "folder" {
+			if err := e.applyModField(); err != nil {
+				return err
+			}
+		}
+		e.openModChoice()
+		return nil
+	default:
+		if err := e.applyModField(); err != nil {
+			return err
+		}
+		return e.modAction(key, "")
 	}
-	key := []string{"add", "remove", "save", "publish"}[n]
-	return e.modAction(key, "")
+}
+
+// openModChoice asks the host's path window for a mod to open: its mod.toml
+// or a packed mod-<id>.res. The answer goes the folder field's own route,
+// which asks about unsaved changes before it opens the mod. With no window
+// the folder field takes the path.
+func (e *MapEditor) openModChoice() {
+	if !e.hasPathDialog() {
+		e.modOpenTyped(nil)
+		return
+	}
+	r := pathdialog.Request{Kind: pathdialog.OpenFile, Title: e.plainWord("editor.mod.openmod"), StartDir: e.pathDialog.baseDir,
+		Filters: []pathdialog.Filter{{Name: e.plainWord("editor.mod.openfilter"), Extensions: []string{"toml", "res"}}}}
+	if e.pathDialog.mapsFolder != nil {
+		if dir := e.pathDialog.mapsFolder(); dir != "" {
+			r.StartDir = dir
+		}
+	}
+	for _, f := range e.obj.fields {
+		if folder := strings.TrimSpace(fieldInput(f)); f.Key == "folder" && filepath.IsAbs(folder) {
+			r.StartDir = filepath.Dir(filepath.Clean(folder))
+		}
+	}
+	e.askChoice(pathChoice{
+		request:   r,
+		chosen:    func(path string) { _ = e.modAction("folder", path) },
+		cancelled: func() {},
+		failed:    e.modOpenTyped,
+	})
+}
+
+// modOpenTyped focuses W's folder field and says to type the mod's path
+// there; err is why the host showed no window, nil when it has none.
+func (e *MapEditor) modOpenTyped(err error) {
+	if err == nil {
+		err = pathdialog.ErrUnavailable
+	}
+	e.FocusModField("folder")
+	e.modStatus = fmt.Sprintf(e.plainWord("editor.mod.typepath"), err)
 }
 
 func (e *MapEditor) modKey(key string) (bool, error) {
@@ -167,7 +244,7 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		}
 		return true, e.keyWorkspace(key)
 	case "saveas":
-		return true, e.modButton(2)
+		return true, e.modButton(modButtonIndex("save"))
 	case "testplay":
 		if err := e.applyModField(); err != nil {
 			return true, err
@@ -334,7 +411,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
 	o.rowActs = map[int][]string{}
-	s := popupSpec{Title: e.word("editor.mod.window"), Width: min(620, e.window.X-16), At: e.homeCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
+	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(620, e.window.X-16)), At: e.personCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
 	page, overview := e.modOverview()
 	if !overview {
@@ -365,15 +442,16 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 			o.rowActs[index] = []string{strconv.FormatInt(f.Choices[n].Value, 10)}
 		}
 	}
-	s.Buttons = []string{e.word("editor.mod.addshort"), e.word("editor.mod.remove"), e.word("editor.mod.save"), e.word("editor.mod.publish"), e.word("editor.mod.close")}
-	s.ButtonW = min(104, (s.Width-24)/5)
+	s.Buttons = nil
+	for _, b := range modButtons {
+		s.Buttons = append(s.Buttons, e.word(b.word))
+	}
 	s.Disabled = nil
 	if e.modConfirm != "" {
 		s.Buttons = []string{e.word("editor.mod.confirm"), e.word("editor.button.cancel")}
 		if e.modConfirmLabel != "" {
 			s.Buttons[0] = e.modConfirmLabel
 		}
-		s.ButtonW = min(210, (s.Width-24)/2)
 	}
 	if o.focus >= len(o.fields) {
 		n := o.focus - len(o.fields)
@@ -381,7 +459,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	}
 	status := e.modStatus
 	if status == "" {
-		status = e.word("editor.mod.keys")
+		status = e.plainWord("editor.mod.keys")
 	}
 	s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(status), s.Width-20)
 	if host, ok := e.modEdits().(interface{ ModSummary() string }); ok {
@@ -473,5 +551,5 @@ func (e *MapEditor) modButtonCount() int {
 	if e.modConfirm != "" {
 		return 2
 	}
-	return 5
+	return len(modButtons)
 }

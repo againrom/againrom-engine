@@ -212,7 +212,6 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 	if _, ok := e.variableLabels(); ok {
 		s.Buttons = []string{e.word("editor.labels.edit"), e.word("editor.labels.clear"), e.word("editor.button.cancel")}
 		s.Disabled = []bool{false, v.label == "", false}
-		s.ButtonFit = true
 		fitButtons(&s, e.bodyFont())
 	}
 	var links []int

@@ -658,6 +658,7 @@ var modesPaths = []modesPath{
 	{"mod-manifest-requires", []string{"ui:mod-manifest", "package", "ui:mod-focus-requires", "ui:text-plain"}},
 	{"mod-manifest-conflicts", []string{"ui:mod-manifest", "package", "ui:mod-focus-conflicts", "ui:text-plain"}},
 	{"mod-manifest-load-after", []string{"ui:mod-manifest", "package", "ui:mod-focus-load-after", "ui:text-plain"}},
+	{"mod-open", []string{"package", "ui:mod-focus-open", "enter"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the

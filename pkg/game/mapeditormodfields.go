@@ -211,7 +211,7 @@ func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool)
 	m := w.Package.mission(nil, nil)
 	d := mod.MissionData{Missions: []mod.Mission{m}}
 	if p := w.Project; p != nil && p.Selected >= 0 {
-		m, err = p.selected(w.Package)
+		m, err = p.selected(w.Package, s.inspector.word)
 		if err != nil {
 			return 0, false
 		}

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -95,7 +96,7 @@ func (s *mapInspectionEdits) setManifestField(key, text string) (*ui.InspectionD
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
 		if key == "id" && s.inspector.mod != nil && text != w.Package.ID {
-			return fmt.Errorf("an opened package keeps its ID; create another package in a new folder")
+			return errors.New(s.inspector.word("editor.mod.err.keepid"))
 		}
 		source := []byte(nil)
 		if w.Project != nil {
@@ -112,7 +113,7 @@ func (s *mapInspectionEdits) setManifestField(key, text string) (*ui.InspectionD
 				text = manifestBases[n]
 			}
 			if !slices.Contains(manifestBases, text) {
-				return fmt.Errorf("choose an applies-to option")
+				return errors.New(s.inspector.word("editor.mod.err.appliesto"))
 			}
 			value = []string{text}
 		case "requires", "conflicts", "load-after":
@@ -133,7 +134,7 @@ func (s *mapInspectionEdits) setManifestField(key, text string) (*ui.InspectionD
 			return err
 		}
 		if key == "id" && (m.ID == TestPlayModID || !editorOrdinaryFilename(m.ID)) {
-			return fmt.Errorf("use an ordinary mod ID other than %s", TestPlayModID)
+			return fmt.Errorf(s.inspector.word("editor.mod.err.reservedid"), TestPlayModID)
 		}
 		w.Package.ID, w.Package.Title, w.Package.Manifest = m.ID, m.Title, m
 		return nil

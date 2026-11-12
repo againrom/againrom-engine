@@ -20,10 +20,10 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 		}
 	}()
 	if x.mod == nil || !x.mod.owned || x.mod.copyOnly {
-		return errors.New("choose a working mod copy with W before publishing")
+		return errors.New(x.word("editor.mod.err.nocopy"))
 	}
 	if x.modOutput == "" {
-		return errors.New("choose an explicit Publish folder")
+		return errors.New(x.word("editor.mod.err.nooutput"))
 	}
 	out, err := editorPhysicalDirectory(x.modOutput)
 	if err != nil {
@@ -35,10 +35,10 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 	if inside, err := sameOrDescendantPhysical(x.mod.dir, out); err != nil {
 		return err
 	} else if inside {
-		return errors.New("the Publish folder must be outside the working mod")
+		return errors.New(x.word("editor.mod.err.outputinside"))
 	}
 	if _, err := os.Lstat(filepath.Join(out, x.mod.id)); err == nil {
-		return fmt.Errorf("%s already contains a folder with mod ID %s; choose another Publish folder", out, x.mod.id)
+		return fmt.Errorf(x.word("editor.mod.err.outputtaken"), out, x.mod.id)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -46,7 +46,7 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 		return err
 	}
 	if s.workspace.Project == nil || s.workspace.Project.Selected < 0 {
-		return errors.New("add the open map to the mod before publishing")
+		return errors.New(x.word("editor.mod.err.addmap"))
 	}
 	if s.Dirty() {
 		if action != "publish-save" || value != "confirmed" {
@@ -65,7 +65,7 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 	if err != nil {
 		return err
 	}
-	if err := checkMissionProjection(s.workspace.Project.Missions, result.Missions); err != nil {
+	if err := checkMissionProjection(x.word, s.workspace.Project.Missions, result.Missions); err != nil {
 		return err
 	}
 	if err := x.admitMissionPackage(result); err != nil {

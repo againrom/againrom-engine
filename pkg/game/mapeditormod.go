@@ -58,9 +58,9 @@ func (d *editorModDocument) clone() *editorModDocument {
 	return &n
 }
 
-func (d *editorModDocument) selected(p editorPackageSpec) (mod.Mission, error) {
+func (d *editorModDocument) selected(p editorPackageSpec, word func(string) string) (mod.Mission, error) {
 	if d.Selected < 0 || d.Selected >= len(d.Missions) {
-		return mod.Mission{}, fmt.Errorf("select a mission")
+		return mod.Mission{}, errors.New(word("editor.mod.err.nomission"))
 	}
 	m := mod.CloneMission(d.Missions[d.Selected])
 	if m.Off {
@@ -102,18 +102,18 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 	}
 	if d.Selected < 0 {
 		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels)) {
-			return nil, nil, mod.Mission{}, errors.New("no mission of this mod names the edited map; choose a new map destination before saving")
+			return nil, nil, mod.Mission{}, errors.New(s.inspector.word("editor.mod.err.unnamed"))
 		}
 		var err error
 		d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
 		return d.Files, d.Missions, mod.Mission{}, err
 	}
-	m, err := d.selected(s.workspace.Package)
+	m, err := d.selected(s.workspace.Package, s.inspector.word)
 	if err != nil {
 		return nil, nil, m, err
 	}
 	if m.Off {
-		return nil, nil, m, fmt.Errorf("disabled declaration has no open map")
+		return nil, nil, m, errors.New(s.inspector.word("editor.mod.err.disabledmap"))
 	}
 	d.Missions[d.Selected] = m
 	m.MapBytes = bytes.Clone(b)
@@ -176,7 +176,7 @@ func (s *mapInspectionEdits) unchangedModSource() error {
 			return err
 		}
 		if stamp != m.digest {
-			return errors.New("mod files changed outside the editor; reopen the mod before saving")
+			return errors.New(s.inspector.word("editor.mod.err.changed"))
 		}
 	}
 	return nil

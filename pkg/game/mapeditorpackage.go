@@ -60,16 +60,20 @@ func (x *MapInspector) checkMissionRoute(m mod.Mission) error {
 	case mod.MissionGuest:
 		return checkGuest(c, x.archives.Containers, mod.MissionData{Missions: []mod.Mission{m}}, m)
 	}
-	return fmt.Errorf("unknown mission route %q", m.Kind)
+	return fmt.Errorf(x.word("editor.mod.err.route"), m.Kind)
 }
 
 func (s *mapInspectionEdits) openOrCreateWorkspace(dir string) (*ui.InspectionDocument, error) {
 	if dir == "" {
-		return nil, errors.New("choose an explicit new mod folder or an editor-owned package")
+		return nil, errors.New(s.inspector.word("editor.mod.err.nonew"))
 	}
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
+	}
+	// A chosen mod.toml names the mod folder that holds it.
+	if fi, err := os.Lstat(abs); err == nil && fi.Mode().IsRegular() && namefold.HostEqual(filepath.Base(abs), mod.ManifestName) {
+		abs = filepath.Dir(abs)
 	}
 	if _, err := os.Lstat(abs); err == nil {
 		if s.Dirty() {
@@ -130,7 +134,7 @@ func (s *mapInspectionEdits) selectWorkspaceMission(index int) (*ui.InspectionDo
 func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*ui.InspectionDocument, error) {
 	x := s.inspector
 	if s.workspace.Project == nil || index < 1 || index > len(s.workspace.Project.Missions) {
-		return nil, errors.New("source mission selection is outside the package")
+		return nil, errors.New(x.word("editor.mod.err.outside"))
 	}
 	w := cloneWorkspace(s.workspace)
 	if flush {
@@ -138,7 +142,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	}
 	entry := w.Project.Missions[index-1]
 	if entry.Off {
-		return nil, errors.New("disabled declaration has no map to open")
+		return nil, errors.New(x.word("editor.mod.err.disabledopen"))
 	}
 	source := entry.Map
 	if x.mod != nil {
@@ -199,14 +203,14 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	x := s.inspector
 	if x.archives == nil || x.archives.Containers == nil {
-		return "", errors.New("a mod package needs an open ROM1 install")
+		return "", errors.New(x.word("editor.mod.err.noinstall"))
 	}
 	if err := campaignOf(x.archives.Game()).testPlayRefusal(); err != nil {
 		return "", err
 	}
 	p := s.workspace.Package
 	if !mod.ValidID(p.ID) || p.ID == TestPlayModID || !editorOrdinaryFilename(p.ID) {
-		return "", fmt.Errorf("invalid author mod ID %q", p.ID)
+		return "", fmt.Errorf(x.word("editor.mod.err.badid"), p.ID)
 	}
 	abs, err := filepath.Abs(dir)
 	if err != nil {
@@ -216,7 +220,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		if err := checkMissionPackageOverlap(abs, editorPackageRecord, s.packageProtected()); err != nil {
 			return "", err
 		}
-		return "", fmt.Errorf("folder must be named %s, the mod ID", p.ID)
+		return "", fmt.Errorf(x.word("editor.mod.err.foldername"), p.ID)
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
 	if err != nil {
@@ -231,7 +235,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if x.mod != nil && !x.mod.copyOnly && sameSaveName(x.mod.dir, folder) {
 		protected = nil
 	} else if _, err := os.Lstat(folder); err == nil {
-		return "", fmt.Errorf("%s already exists; open it before saving", folder)
+		return "", fmt.Errorf(x.word("editor.mod.err.exists"), folder)
 	}
 	var old []string
 	if x.mod == nil || x.mod.owned || !sameSaveName(x.mod.dir, folder) {
@@ -296,7 +300,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := testPlayTargets(folder, old, files); err != nil && !(x.mod != nil && !x.mod.copyOnly && sameSaveName(x.mod.dir, folder)) {
 		return "", err
 	}
-	plan := missionPackagePlan{Check: x.admitMissionPackage, Expected: missions}
+	plan := missionPackagePlan{Check: x.admitMissionPackage, Expected: missions, Word: x.word}
 	if s.workspace.Project != nil {
 		plan.Source = s.retainedSource(folder)
 	}

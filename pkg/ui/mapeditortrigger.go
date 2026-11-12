@@ -694,7 +694,6 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		s.Disabled = []bool{!e.objectDirty(), false}
 		if e.listedCondition(v) {
 			s.Buttons, s.Disabled = append(s.Buttons, e.word("editor.scripts.totrigger")), append(s.Disabled, false)
-			s.ButtonFit = true
 			fitButtons(&s, e.bodyFont())
 		}
 

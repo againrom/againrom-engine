@@ -268,7 +268,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if label == "" {
 			label = e.editorHostText(f.Label)
 		}
-		if !native && !plainShown {
+		// A window of several columns gives each label its column or a line
+		// of its own (popupFlowOf), so its labels stay whole.
+		if !native && !plainShown && s.Columns < 2 {
 			label = editorClip(e.bodyFont(), label, 150)
 		}
 		row := popupRow{Kind: popupEdit, Label: label, Value: o.buf[i], Focus: i == o.focus}
@@ -1096,7 +1098,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		{Kind: popupText, Label: fmt.Sprintf(e.word("editor.group.number"), g.group), Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members)), Icons: e.memberIcons(g)},
 		{Kind: popupHeading, Label: e.word("editor.group.members")},
 	}
-	s.Buttons, s.Disabled, s.ButtonFit = []string{e.word("editor.group.delete")}, []bool{false}, true
+	s.Buttons, s.Disabled = []string{e.word("editor.group.delete")}, []bool{false}
 	fitButtons(&s, e.bodyFont())
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {

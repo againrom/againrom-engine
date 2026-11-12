@@ -184,11 +184,14 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					}
 				case *ast.CallExpr:
 					sel, ok := n.Fun.(*ast.SelectorExpr)
-					if ok && len(n.Args) == 1 && (sel.Sel.Name == "Text" || sel.Sel.Name == "word" || sel.Sel.Name == "menuWord") {
+					if ok && len(n.Args) == 1 && (sel.Sel.Name == "Text" || sel.Sel.Name == "word" || sel.Sel.Name == "plainWord" || sel.Sel.Name == "menuWord") {
 						args = append(args, n.Args[0])
 					}
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordChoices" {
 						args = append(args, n.Args...)
+					}
+					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "word" && len(n.Args) == 1 {
+						args = append(args, n.Args[0])
 					}
 				case *ast.ValueSpec:
 					for i, v := range n.Values {

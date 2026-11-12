@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -47,7 +48,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 	}
 	if key == "save" {
 		if s.inspector.mod == nil {
-			return nil, true, fmt.Errorf("choose a working mod folder first")
+			return nil, true, errors.New(s.inspector.word("editor.mod.err.nofolder"))
 		}
 		_, err := s.SaveIntoMod()
 		if err == nil {
@@ -95,7 +96,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 					p.Chapter = town
 				}
 			} else {
-				return fmt.Errorf("choose Companion or Party")
+				return errors.New(s.inspector.word("editor.mod.err.landing"))
 			}
 		case "up", "down":
 			if err := s.newModDocument(w); err != nil {
@@ -119,10 +120,10 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 			d := w.Project
 			i := d.Selected
 			if i < 0 || i >= len(d.Missions) {
-				return fmt.Errorf("select a mission")
+				return errors.New(s.inspector.word("editor.mod.err.nomission"))
 			}
 			if !slices.ContainsFunc(append(slices.Clone(d.Missions[:i]), d.Missions[i+1:]...), func(m mod.Mission) bool { return !m.Off }) {
-				return fmt.Errorf("a mod needs an enabled mission")
+				return errors.New(s.inspector.word("editor.mod.err.lastmission"))
 			}
 			m := d.Missions[i]
 			if !m.Off && m.Kind != mod.MissionReplace {
@@ -166,7 +167,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 				}
 			}
 			if m.Number > 65535 {
-				return fmt.Errorf("no unused mission number")
+				return errors.New(s.inspector.word("editor.mod.err.nonumber"))
 			}
 			m.Mod = p.ID
 			m.Key = fmt.Sprintf("map%d", m.Number)
@@ -197,7 +198,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 		default:
 			parts := strings.Split(key, ".")
 			if len(parts) != 3 {
-				return fmt.Errorf("invalid party field")
+				return errors.New(s.inspector.word("editor.mod.err.partyfield"))
 			}
 			at, e := strconv.Atoi(parts[1])
 			if e != nil {
@@ -205,7 +206,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 			}
 			if parts[2] == "add" {
 				if len(p.Party) >= mod.MaxGuestParty {
-					return fmt.Errorf("a party has at most %d members", mod.MaxGuestParty)
+					return fmt.Errorf(s.inspector.word("editor.mod.err.partyfull"), mod.MaxGuestParty)
 				}
 				characters := s.modCharacters()
 				for _, c := range characters {
@@ -214,10 +215,10 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 						return nil
 					}
 				}
-				return fmt.Errorf("choose an unused character")
+				return errors.New(s.inspector.word("editor.mod.err.nocharacter"))
 			}
 			if at < 0 || at >= len(p.Party) {
-				return fmt.Errorf("select a party member")
+				return errors.New(s.inspector.word("editor.mod.err.nomember"))
 			}
 			g := &p.Party[at]
 			switch parts[2] {
@@ -226,25 +227,25 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 				if e == nil {
 					cs := s.modCharacters()
 					if n < 0 || n >= len(cs) {
-						return fmt.Errorf("unknown character")
+						return errors.New(s.inspector.word("editor.mod.err.character"))
 					}
 					value = cs[n].Key
 				}
 				for i, c := range p.Party {
 					if i != at && c.Character == value {
-						return fmt.Errorf("party already names %s", value)
+						return fmt.Errorf(s.inspector.word("editor.mod.err.named"), value)
 					}
 				}
 				g.Character = value
 			case "level":
 				n, e := strconv.Atoi(value)
 				if e != nil || n < 0 || n > mod.MaxGuestLevel {
-					return fmt.Errorf("level must be Default or 1..4")
+					return errors.New(s.inspector.word("editor.mod.err.level"))
 				}
 				g.Level = n
 			case "remove":
 				if len(p.Party) == 1 {
-					return fmt.Errorf("a party needs at least one member")
+					return errors.New(s.inspector.word("editor.mod.err.lastmember"))
 				}
 				p.Party = append(p.Party[:at], p.Party[at+1:]...)
 			case "up", "down":
@@ -263,12 +264,12 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 						g.Armour = []string{}
 					}
 				} else {
-					return fmt.Errorf("choose Template or Override all armour")
+					return errors.New(s.inspector.word("editor.mod.err.armour"))
 				}
 			default:
 				kind := parts[2]
 				if kind != "weapon" && kind != "shield" && !strings.HasPrefix(kind, "armour") {
-					return fmt.Errorf("unknown party field %q", kind)
+					return fmt.Errorf(s.inspector.word("editor.mod.err.partykey"), kind)
 				}
 				cell := data.HumanCellWeapon
 				if kind == "shield" {
@@ -277,7 +278,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 				if strings.HasPrefix(kind, "armour") {
 					n, e := strconv.Atoi(strings.TrimPrefix(kind, "armour"))
 					if e != nil || n < 0 || n >= 8 {
-						return fmt.Errorf("invalid armour cell")
+						return errors.New(s.inspector.word("editor.mod.err.armourcell"))
 					}
 					cell = data.HumanCellArmour + n
 					kind = "armour"
@@ -298,7 +299,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 						var ok bool
 						name, ok = s.partyItemName(kind, n)
 						if !ok {
-							return fmt.Errorf("unknown %s item", kind)
+							return fmt.Errorf(s.inspector.word("editor.mod.err.item"), kind)
 						}
 					}
 				}

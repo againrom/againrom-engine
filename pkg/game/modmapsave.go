@@ -52,11 +52,11 @@ type editorMod struct {
 func (x *MapInspector) SetMod(dir string) error {
 	e := mod.Load(dir)
 	if e.Err != nil {
-		return fmt.Errorf("mod folder %s: %v", dir, e.Err)
+		return fmt.Errorf(x.word("editor.mod.err.folder"), dir, e.Err)
 	}
 	tree, err := mod.OpenTree(dir)
 	if err != nil {
-		return fmt.Errorf("mod folder %s: %v", dir, err)
+		return fmt.Errorf(x.word("editor.mod.err.folder"), dir, err)
 	}
 	root := ""
 	if x.archives != nil {
@@ -68,7 +68,7 @@ func (x *MapInspector) SetMod(dir string) error {
 			return err
 		}
 		if inside {
-			return fmt.Errorf("mod folder %s is inside the install %s; the editor never writes into an install", dir, root)
+			return fmt.Errorf(x.word("editor.mod.err.ininstall"), dir, root)
 		}
 	}
 	lang := locale.Fallback
@@ -81,14 +81,14 @@ func (x *MapInspector) SetMod(dir string) error {
 	var d mod.MissionData
 	if _, err := tree.Lstat(mod.MissionsFile); !errors.Is(err, fs.ErrNotExist) {
 		if src, _, err = tree.ReadInside(mod.MissionsFile); err != nil {
-			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 		}
 		look, err := mod.TextLookup(dir, lang)
 		if err != nil {
-			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 		}
 		if d, err = mod.ParseMissions(e.Manifest.ID, mod.MissionsFile, src, look, lang); err != nil {
-			return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 		}
 	}
 	owned := false
@@ -100,7 +100,7 @@ func (x *MapInspector) SetMod(dir string) error {
 	}
 	m := &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, packed: tree.Packed(), title: e.Manifest.Title}
 	if err := m.readInventory(tree); err != nil {
-		return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
+		return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 	}
 	m.source = bytes.Clone(src)
 	m.manifest, _, err = mod.ReadInside(dir, mod.ManifestName)
@@ -232,13 +232,13 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	s.saveNote = ""
 	x, m := s.inspector, s.inspector.mod
 	if m == nil {
-		return "", errors.New("no mod folder is named")
+		return "", errors.New(x.word("editor.mod.err.nofoldername"))
 	}
 	if err := x.modReadOnly(); err != nil {
 		return "", err
 	}
 	if m.copyOnly {
-		return "", errors.New("this imported mod is read-only; choose a folder with the same ID under another parent with W to save a complete copy")
+		return "", errors.New(x.word("editor.mod.err.imported"))
 	}
 	if s.model == nil {
 		return s.saveWorkspacePackage(m.dir)
@@ -267,14 +267,14 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	e, ok := m.entryFor(s.source)
 	if d := s.workspace.Project; d != nil && d.Selected >= 0 {
 		var err error
-		e, err = d.selected(s.workspace.Package)
+		e, err = d.selected(s.workspace.Package, x.word)
 		if err != nil {
 			return "", err
 		}
 		ok = !e.Off
 	}
 	if !ok {
-		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
+		return "", fmt.Errorf(x.word("editor.mod.err.noentry"), m.id, s.source, mod.MissionsFile)
 	}
 	if !m.owned {
 		if err := s.gate(true); err != nil {
@@ -287,10 +287,10 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	// A confirmed map with report errors retains the other pending edits.
 	b, err := s.encodeForSave()
 	if err != nil {
-		return "", fmt.Errorf("mod %q: %w", m.id, err)
+		return "", fmt.Errorf("%s: %w", fmt.Sprintf(x.word("editor.mod.err.mod"), m.id), err)
 	}
 	if len(b) > mod.MaxFileBytes {
-		return "", fmt.Errorf("the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
+		return "", fmt.Errorf(x.word("editor.mod.err.mapsize"), len(b), mod.MaxFileBytes)
 	}
 	if err := extendedName(b, e.Map); err != nil {
 		return "", err
@@ -304,7 +304,7 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	}
 	plan := missionPackagePlan{Source: m.dir}
 	if err := x.writeEditorProject(m.dir, m.id, old, map[string][]byte{e.Map: b}, plan, true); err != nil {
-		return "", fmt.Errorf("mod %q: %w", m.id, err)
+		return "", fmt.Errorf("%s: %w", fmt.Sprintf(x.word("editor.mod.err.mod"), m.id), err)
 	}
 	if err := x.SetMod(m.dir); err != nil {
 		return "", err

@@ -40,7 +40,7 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 	if d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) {
 		return
 	}
-	m, err := d.selected(w.Package)
+	m, err := d.selected(w.Package, s.inspector.word)
 	if err != nil || m.Off {
 		return
 	}

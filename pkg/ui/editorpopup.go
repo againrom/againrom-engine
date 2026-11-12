@@ -380,11 +380,9 @@ type popupSpec struct {
 	NoteInk     color.RGBA
 	Buttons     []string
 	Disabled    []bool
-	// ButtonW is the button row's button width; zero is the default.
+	// ButtonW is the button row's least button width; zero is the default.
+	// A caption that needs more widens its button (popupButtonWidths).
 	ButtonW int
-	// ButtonFit widens each button of the row to its caption where the
-	// caption needs more than the button width.
-	ButtonFit bool
 	// PickLabel is the pick-on-map button's caption.
 	PickLabel string
 	PickArmed bool
@@ -596,7 +594,7 @@ const (
 // each line and their lines, each button's line of the button row and the
 // lines, each row's lines added for its label and its own buttons, the label
 // column (0 for the default) and whether the card stands above the rows. A
-// popup without Fit keeps one line of each, as it always had.
+// one-column popup without Fit keeps one line of each but the button row's.
 type popupFlow struct {
 	tabsPerLine, tabLines int
 	buttonLine            []int
@@ -604,7 +602,9 @@ type popupFlow struct {
 	rowExtra              []int
 	labelOver             []bool
 	labelW                int
-	cardTop               bool
+	// columnLabelW is each column's label column in a popup of several.
+	columnLabelW []int
+	cardTop      bool
 	// cardH is the card's drawn height; cardBelow stands its band under
 	// the rows instead of above them.
 	cardH     int
@@ -726,15 +726,18 @@ func rowHasControl(row popupRow) bool {
 	return true
 }
 
-// popupFlowOf is popup s's flow at outer width w. With Fit set:
-//   - the tabs take as many lines as keep every caption whole;
-//   - the button row takes as many lines as keep every button inside;
+// popupFlowOf is popup s's flow at outer width w. Every popup's button row
+// takes as many lines as keep every button inside. With Fit set, and in
+// every popup of several columns for its rows:
 //   - the label column widens to the longest label, up to half the row, and
 //     a set label column wider than two fifths of a narrow row gives way;
+//     in a popup of several columns each column has its own;
 //   - a label longer than its column takes a line of its own over its field;
 //   - a row whose own buttons do not fit beside its label and a field of
-//     popupFitField puts them on lines of their own under it;
-//   - the card stands above the rows when cardOnTop says so.
+//     popupFitField puts them on lines of their own under it.
+//
+// With Fit set also the tabs take as many lines as keep every caption
+// whole, and the card stands above the rows when cardOnTop says so.
 func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	f := popupFlow{tabsPerLine: len(s.Tabs), rowExtra: make([]int, len(s.Rows)), labelOver: make([]bool, len(s.Rows))}
 	if len(s.Tabs) > 0 {
@@ -748,62 +751,73 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	f.cardH, f.cardBelow = cardSize(s).Y, s.Card != nil && s.CardBelow
 	f.cardTop = f.cardBelow
 	f.listHeads, f.listHeadH = listHeadLines(s, body, w)
-	if !s.Fit {
-		return f
-	}
-	aside := cardAside(s)
-	f.cardTop = s.Card != nil && (s.CardBelow || cardOnTop(w, aside))
 	inner := w - 2*popupPad
-	if body != nil {
-		for f.tabsPerLine > 1 {
-			share, whole := inner/f.tabsPerLine, true
-			for _, t := range s.Tabs {
-				whole = whole && body.Advance(t)+16 <= share
-			}
-			if whole {
-				break
-			}
-			f.tabsPerLine--
-		}
-	}
-	if f.tabsPerLine > 0 {
-		f.tabLines = (len(s.Tabs) + f.tabsPerLine - 1) / f.tabsPerLine
-	}
 	// The switch button leads the first line, left of the buttons.
 	if sw := switchButtonWidth(s, body); sw > 0 {
 		lines, n := flowLines(append([]int{sw}, ws...), popupPad, inner, 0)
 		f.buttonLine, f.buttonLines = lines[1:], n
-	} else {
+	} else if len(ws) > 0 {
 		f.buttonLine, f.buttonLines = flowLines(ws, popupPad, inner, 0)
 	}
-	if s.Columns > 1 {
+	columns := max(1, s.Columns)
+	if !s.Fit && columns == 1 {
 		return f
 	}
+	aside := cardAside(s)
+	if s.Fit {
+		f.cardTop = s.Card != nil && (s.CardBelow || cardOnTop(w, aside))
+		if body != nil {
+			for f.tabsPerLine > 1 {
+				share, whole := inner/f.tabsPerLine, true
+				for _, t := range s.Tabs {
+					whole = whole && body.Advance(t)+16 <= share
+				}
+				if whole {
+					break
+				}
+				f.tabsPerLine--
+			}
+		}
+		if f.tabsPerLine > 0 {
+			f.tabLines = (len(s.Tabs) + f.tabsPerLine - 1) / f.tabsPerLine
+		}
+	}
 	rowW := inner
-	if s.MaxRows > 0 {
+	if s.MaxRows > 0 && (columns == 1 || popupRowCount(s) > s.MaxRows) {
 		rowW -= widgetSpriteSize + 2
 	}
 	if s.Card != nil && !f.cardTop {
 		rowW -= aside + popupPad
 	}
+	if columns > 1 {
+		// layoutPopup's column: its share of the rows' width less the gap.
+		rowW = rowW/columns - popupPad
+	}
 	base := s.LabelWidth
 	if base <= 0 {
 		base = rowW * 2 / 5
 	}
-	need := 0
+	need := make([]int, columns)
 	if body != nil {
-		for _, row := range s.Rows {
+		for i, row := range s.Rows {
 			if rowHasControl(row) && !row.placed() {
-				need = max(need, body.Advance(row.Label)+8)
+				c, _ := popupRowPosition(s, i)
+				need[c] = max(need[c], body.Advance(row.Label)+8)
 			}
 		}
 	}
-	f.labelW = max(min(base, rowW*2/5), min(need, rowW/2))
+	f.columnLabelW = make([]int, columns)
+	for c := range f.columnLabelW {
+		f.columnLabelW[c] = max(min(base, rowW*2/5), min(need[c], rowW/2))
+	}
+	f.labelW = f.columnLabelW[0]
 	for i, row := range s.Rows {
 		if row.Kind == popupHeading || row.Kind == popupCard || row.placed() {
 			continue
 		}
-		if rowHasControl(row) && row.Label != "" && body != nil && body.Advance(row.Label)+8 > f.labelW {
+		c, _ := popupRowPosition(s, i)
+		labelW := f.columnLabelW[c]
+		if rowHasControl(row) && row.Label != "" && body != nil && body.Advance(row.Label)+8 > labelW {
 			f.labelOver[i], f.rowExtra[i] = true, 1
 		}
 		bws := rowButtonWidths(s, row, body, pitch)
@@ -815,7 +829,7 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 		case f.labelOver[i]:
 			left = popupFitField
 		case rowHasControl(row):
-			left = f.labelW + 4 + popupFitField
+			left = labelW + 4 + popupFitField
 		case row.Label != "" && body != nil:
 			left = body.Advance(row.Label) + 8
 		}
@@ -1020,7 +1034,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	}
 	sized := popupResizeEnabled && s.Size.X > 0 && s.Size.Y > 0
 	if !sized {
-		w = gridWidth(s, w)
+		// A popup at its own size is as wide as its button row; the row
+		// wraps only where the bounds hold less.
+		w = max(gridWidth(s, w), buttonRowWidth(s, body))
 	}
 	if sized {
 		least := popupMinWidth(s, body)
@@ -1189,7 +1205,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		rr := popupRowRect{Index: index, Rect: image.Rect(left, y, right, y+rowH)}
 		rowLabelW := labelW
 		if s.Columns > 1 {
-			rowLabelW = rr.Rect.Dx() * 2 / 5
+			column, _ := popupRowPosition(s, index)
+			rowLabelW = flow.columnLabelW[column]
 		}
 		// top is the control's line: under the label when the label takes a
 		// line of its own.
@@ -1451,7 +1468,8 @@ func layoutCards(s popupSpec, l *popupLayout) {
 }
 
 // popupButtonWidths are the widths of the button row's buttons: the spec's
-// button width, or the default, each widened to its caption under ButtonFit.
+// button width, or the default, each widened to its caption where the
+// caption needs more, so no caption paints past its button.
 func popupButtonWidths(s popupSpec, body *text.Font) []int {
 	bw := popupButtonW
 	if s.ButtonW > 0 {
@@ -1460,7 +1478,7 @@ func popupButtonWidths(s popupSpec, body *text.Font) []int {
 	ws := make([]int, len(s.Buttons))
 	for i, c := range s.Buttons {
 		ws[i] = bw
-		if s.ButtonFit && body != nil {
+		if body != nil {
 			ws[i] = max(bw, body.Advance(c)+16)
 		}
 	}
@@ -1473,7 +1491,7 @@ func switchButtonWidth(s popupSpec, body *text.Font) int {
 	if s.SwitchButton == "" {
 		return 0
 	}
-	return popupButtonWidths(popupSpec{Buttons: []string{s.SwitchButton}, ButtonW: 48, ButtonFit: true}, body)[0]
+	return popupButtonWidths(popupSpec{Buttons: []string{s.SwitchButton}, ButtonW: 48}, body)[0]
 }
 
 // rowButtons are the captions of row's buttons.
