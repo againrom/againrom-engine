@@ -1178,7 +1178,10 @@ type Viewer struct {
 	hasCursor        bool
 
 	// hover is the frame's paired object/ID hit, shared by every reader.
-	hover        hoverCache
+	hover hoverCache
+	// pinnedHover is the hover decision made under the real camera, read by
+	// the world draw while underCamera swaps the camera.
+	pinnedHover  pinnedHover
 	hoverProfile HoverProfile
 
 	// winCursorX/winCursorY is the SAME observation one door earlier: the
@@ -1515,6 +1518,10 @@ type Viewer struct {
 	ambient         *ambientController
 	ambientStatics  []ambientStaticCell
 	ambientWallFire []image.Point
+
+	// smoothMap is the retained zoom-1 composition of the map that drawMap
+	// scales when smoothMapPlacement answers.
+	smoothMap *ebiten.Image
 
 	quit bool
 }
@@ -3045,7 +3052,11 @@ func (v *Viewer) step(in Input, now time.Time) {
 		if v.editorView {
 			sx, sy = float64(in.CursorX), float64(in.CursorY)
 		}
+		zoom := v.cam.Zoom
 		v.cam.ZoomAbout(sx, sy, factor)
+		if v.cam.Zoom != zoom {
+			v.postSettingNotice(noticeSlotZoom, v.cam.ZoomPercent())
+		}
 	}
 	v.stepAmbient(now)
 }
@@ -3359,23 +3370,11 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 
 	v.refreshHoverLighting()
 
-	if v.Mode() == ModeDisplaced {
-		v.drawDisplaced(mapSurface)
-	} else {
-		v.drawFlat(mapSurface)
-	}
-
-	// drawArt owns the complete retained-overlay/shadow/projectile/body order
-	// (ANIM-047). Its existing static-object depth merge stays inside the body
-	// pass; all of this content remains below diagnostic glyphs and shroud.
-	v.drawArt(mapSurface)
+	v.drawMap(mapSurface)
 	if v.editorView {
 		return
 	}
 
-	// The separate Heal/Drain shower retains its existing pass.
-	v.drawHealArt(mapSurface)
-	v.drawShroud(mapSurface)
 	if v.playerPaused {
 		r := image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
 		wash := color.RGBA{A: 32}

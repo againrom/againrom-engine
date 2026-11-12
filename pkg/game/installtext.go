@@ -513,6 +513,7 @@ func (w *InstallWords) Words() ui.Words {
 		out.ItemRays = encode(book.Text("item.rays"))
 		out.TavernSleep = encode(book.Text("tavern.sleep"))
 		out.Received = encode(book.Text("item.received"))
+		out.ZoomNotice = encode(book.Text("map.zoom"))
 		// An install in any language but the engine's reference one states
 		// these three words in its own stats.txt; the reference language keeps
 		// the engine's.

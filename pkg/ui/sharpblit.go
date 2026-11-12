@@ -74,8 +74,9 @@ func drawSharpBilinear(dst, src *ebiten.Image, op *ebiten.DrawImageOptions, buf 
 // The final blits sharp-bilinear method B replaces each keep their own
 // retained intermediate canvas: reusing one buffer across differently-sized
 // draws (the town composite, the cursor, a paused menu over the map, the
-// mission frame, the mission pointer) would thrash-reallocate it every site
-// every frame instead of ever settling at a steady size.
+// mission frame, the mission pointer, the smooth zoomed map) would
+// thrash-reallocate it every site every frame instead of ever settling at a
+// steady size.
 var (
 	townCompositeSharpBuf *ebiten.Image
 	cursorSharpBuf        *ebiten.Image
@@ -83,4 +84,5 @@ var (
 	menuOverMapSharpBuf   *ebiten.Image
 	missionFrameSharpBuf  *ebiten.Image
 	pointerSharpBuf       *ebiten.Image
+	smoothMapSharpBuf     *ebiten.Image
 )

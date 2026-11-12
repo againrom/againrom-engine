@@ -7,7 +7,8 @@ import (
 )
 
 // drawFinalFrame is the one dispatch the six final blits of a native frame to
-// the window share. op is a uniform Scale then Translate, the contract
+// the window share, and the scaler of the smooth zoomed map (blitSmoothMap,
+// which always asks for the shader). op is a uniform Scale then Translate, the contract
 // drawSharpBilinear states. With FrameSmoothing on, the default, the source
 // is drawn through the Catmull-Rom shader (pkg/render/catmullrom) at every
 // scale except exactly 1, where it stays the single FilterNearest draw. With

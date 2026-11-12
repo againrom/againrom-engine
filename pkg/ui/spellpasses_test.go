@@ -159,15 +159,22 @@ func TestSpellPassesComposeLiteralSameCellAlphaInProductionOrder(t *testing.T) {
 	}
 }
 
+// The mission frame's world layers, drawFrame and the drawMapLayers it reaches
+// through drawMap, call the unified art composition once and the old separate
+// spell pass never.
 func TestMissionFrameUsesTheUnifiedSpellCompositionExactlyOnce(t *testing.T) {
-	source, err := parser.ParseFile(token.NewFileSet(), "viewer.go", nil, 0)
-	if err != nil {
-		t.Fatal(err)
+	var decls []ast.Decl
+	for _, file := range []string{"viewer.go", "mapzoom.go"} {
+		source, err := parser.ParseFile(token.NewFileSet(), file, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		decls = append(decls, source.Decls...)
 	}
 	artCalls, oldSpellCalls := 0, 0
-	for _, decl := range source.Decls {
+	for _, decl := range decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Name.Name != "drawFrame" {
+		if !ok || fn.Name.Name != "drawFrame" && fn.Name.Name != "drawMapLayers" {
 			continue
 		}
 		ast.Inspect(fn.Body, func(n ast.Node) bool {

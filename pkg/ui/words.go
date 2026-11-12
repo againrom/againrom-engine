@@ -186,6 +186,10 @@ type Words struct {
 	// mission script or the cheat states, in the install's language
 	// (DIV-3766, DIV-3767).
 	Received string
+	// ZoomNotice is the engine's own format of the line a wheel notch posts
+	// when it changes the map zoom, in the install's language; its one %d is
+	// the zoom in percent (DIV-4877).
+	ZoomNotice string
 
 	// SettingNotice is main.txt global slots 94..116 and 218..220 at their own
 	// subscripts: the line a settings key posts for its new state (retreat
@@ -335,6 +339,7 @@ func AuthoredWords() Words {
 		PickedUpGold:     "Picked up",
 		PickedUpGoldUnit: "gold",
 		Received:         english.Text("item.received"),
+		ZoomNotice:       english.Text("map.zoom"),
 	}
 	for i, s := range map[int]string{
 		15: "BODY", 16: "AGILITY", 17: "MIND", 18: "SPIRIT",

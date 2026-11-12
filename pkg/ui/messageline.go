@@ -55,6 +55,9 @@ type MessageLine struct {
 	Text string
 	Ink  MessageInk
 	Life time.Duration
+	// slot is the setting notice slot whose later post replaces this line,
+	// zero for a line nothing replaces.
+	slot int
 }
 
 // messageList is the message line's state: its lines oldest first, the time of
@@ -71,13 +74,22 @@ type messageList struct {
 // post appends pieces, each with the post's ink and life. When the list then
 // holds one line, the clock restarts at the latest reading. While the list
 // holds more than capacity it drops its oldest line and leaves the time
-// counted unchanged (MISSION-MSGLINE-057).
-func (m *messageList) post(pieces []string, ink MessageInk, life time.Duration, capacity int) {
+// counted unchanged (MISSION-MSGLINE-057). A non-zero slot first removes the
+// lines that slot posted before; when that removes the oldest line, the time
+// counted against it restarts with the new oldest.
+func (m *messageList) post(pieces []string, ink MessageInk, life time.Duration, capacity, slot int) {
 	if len(pieces) == 0 {
 		return
 	}
+	if slot != 0 {
+		oldest := len(m.lines) > 0 && m.lines[0].slot == slot
+		m.lines = slices.DeleteFunc(m.lines, func(l MessageLine) bool { return l.slot == slot })
+		if oldest {
+			m.stamp, m.elapsed = m.clock, 0
+		}
+	}
 	for _, p := range pieces {
-		m.lines = append(m.lines, MessageLine{Text: p, Ink: ink, Life: life})
+		m.lines = append(m.lines, MessageLine{Text: p, Ink: ink, Life: life, slot: slot})
 	}
 	if len(m.lines) == 1 {
 		m.stamp, m.elapsed = m.clock, 0
@@ -139,9 +151,15 @@ func messageTextLines(f *text.Font, s string, width int) []string {
 // wraps against the view's width and every piece takes the post's ink and life.
 // A carriage return becomes a space (MISSION-MSGLINE-056).
 func (v *Viewer) PostMessage(s string, ink MessageInk, life time.Duration) {
+	v.postMessageSlot(s, ink, life, 0)
+}
+
+// postMessageSlot is PostMessage whose lines a later post of the same
+// non-zero slot replaces.
+func (v *Viewer) postMessageSlot(s string, ink MessageInk, life time.Duration, slot int) {
 	view := v.viewportSize()
 	pieces := messageTextLines(v.font, strings.ReplaceAll(s, "\r", " "), view.X)
-	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y))
+	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y), slot)
 }
 
 // PostMessageUnlessNewest is PostMessage that drops a one-piece post equal to
@@ -152,7 +170,7 @@ func (v *Viewer) PostMessageUnlessNewest(s string, ink MessageInk, life time.Dur
 	if n := len(v.messages.lines); len(pieces) == 1 && n > 0 && v.messages.lines[n-1].Text == pieces[0] {
 		return false
 	}
-	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y))
+	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y), 0)
 	return len(pieces) > 0
 }
 

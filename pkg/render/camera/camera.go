@@ -205,6 +205,17 @@ func (c *Camera) zoomFloor() float64 {
 	return ZoomMin
 }
 
+// DrawnZoom is the zoom every transform of this camera applies: Zoom
+// clamped into the camera's range, native for a zero or non-finite Zoom.
+func (c *Camera) DrawnZoom() float64 { return c.zoom() }
+
+// ZoomPercent is DrawnZoom in whole percent of native scale, rounded half
+// away from zero: 100 at native, 800 at ZoomMax. It is the one place the
+// percent a player is shown is derived.
+func (c *Camera) ZoomPercent() int {
+	return int(math.Round(c.zoom() * 100))
+}
+
 // SetMinimumZoom changes this camera's floor only. The map inspector can fit
 // large authored maps into its narrow canvas without changing game/mapview
 // defaults. Invalid values restore ZoomMin; the maximum stays ZoomMax.

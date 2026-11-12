@@ -175,6 +175,10 @@ func (v *Viewer) hoverSpriteFactor(id uint32) (float32, bool) {
 	if v.graphics.DisableLighting || v.unshaded {
 		return 1, false
 	}
+	if v.pinnedHover.set {
+		ref, ok := v.pinnedHover.ref, v.pinnedHover.ok
+		return 1, ok && ref.Kind == InspectionUnit && ref.ID == id
+	}
 	ref, ok := v.hoverInspection()
 	return 1, ok && ref.Kind == InspectionUnit && ref.ID == id
 }

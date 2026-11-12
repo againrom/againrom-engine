@@ -146,6 +146,9 @@
 "help.autocast" = "Ctrl+A - autocast on or off for every selected caster"
 "help.zoom" = "Home - default zoom"
 "help.speed" = "End - default game speed"
+# The message line a wheel notch posts when it changes the map zoom; %d is the
+# zoom in percent of native scale.
+"map.zoom" = "Zoom: %d%%"
 
 # The map editor's own words.
 "editor.bar.file" = "File"
