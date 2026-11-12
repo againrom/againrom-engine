@@ -101,7 +101,7 @@ func TestEditorPublishUsesThePackerAndRequiresSaveAndReplaceSeparately(t *testin
 }
 
 func TestEditorPublishRefusesBrokenOrAmbiguousInputsWithoutReplacingRES(t *testing.T) {
-	for _, kind := range []string{"broken-chain", "missing-map", "duplicate-id", "install-output", "script-omission"} {
+	for _, kind := range []string{"broken-chain", "missing-map", "duplicate-id", "install-output", "script-failure"} {
 		t.Run(kind, func(t *testing.T) {
 			f, e := workspaceFixture(t)
 			source := writeEditorProjectFixture(t, e)
@@ -135,8 +135,8 @@ func TestEditorPublishRefusesBrokenOrAmbiguousInputsWithoutReplacingRES(t *testi
 				}
 			case "install-output":
 				s.inspector.modOutput = f.root
-			case "script-omission":
-				writeTestPlayInput(t, filepath.Join(working, "main.star"), []byte("def init(game, settings):\n    pass\n"))
+			case "script-failure":
+				writeTestPlayInput(t, filepath.Join(working, "main.star"), []byte("def init(game, settings):\n    fail(\"broken\")\n"))
 				if err := workspaceField(e, "package", 0, working); err != nil {
 					t.Fatal(err)
 				}
@@ -158,7 +158,7 @@ func TestEditorPublishRefusesBrokenOrAmbiguousInputsWithoutReplacingRES(t *testi
 func TestEditorUnsupportedScriptContextIsShownAndCannotBeCopied(t *testing.T) {
 	_, e := workspaceFixture(t)
 	source := writeEditorProjectFixture(t, e)
-	writeTestPlayInput(t, filepath.Join(source, "main.star"), []byte("def init(game, settings):\n    pass\n"))
+	writeTestPlayInput(t, filepath.Join(source, "main.star"), []byte("def init(game, settings):\n    fail(\"broken\")\n"))
 	before := tree(t, source)
 	if err := workspaceField(e, "package", 0, source); err != nil {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestEditorUnsupportedScriptContextIsShownAndCannotBeCopied(t *testing.T) {
 	}
 	parent := t.TempDir()
 	if _, err := s.saveWorkspacePackage(filepath.Join(parent, "ambush")); err == nil {
-		t.Fatal("unsupported context copied with an omitted mission")
+		t.Fatal("unsupported context copied with a failing script")
 	}
 	if len(tree(t, parent)) != 0 || !reflect.DeepEqual(before, tree(t, source)) {
 		t.Fatal("unsupported context changed source or output")

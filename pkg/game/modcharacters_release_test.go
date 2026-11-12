@@ -76,11 +76,7 @@ func characterTown(t *testing.T, f *FrontEnd) *townScreen {
 	t.Helper()
 	c := f.Campaign.Value()
 	town := NewTown(c)
-	for mission := range c.Chapters {
-		if mission < girlChapter {
-			town.Won(mission)
-		}
-	}
+	winMissionsBelow(town, c, girlChapter)
 	town.gold = 1_000_000
 	f.Town = town
 	f.Carried = f.NextParty()

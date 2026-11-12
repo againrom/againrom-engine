@@ -52,7 +52,9 @@ func assertShopRolledTimes(t *testing.T, base, got *Shop, n int64) {
 		if shelf == ShelfBooks {
 			extra := shopShelfUnits(g) - shopShelfUnits(b)
 			picked := slices.ContainsFunc(b, func(item ShopItem) bool { return !shopIsPotion(item) })
-			if picked && (extra%(n-1) != 0 || extra/(n-1) < 1 || extra/(n-1) > 8) || !picked && extra != 0 {
+			// A roll takes 1..8 picks; a pick adds at most one scroll row of
+			// 100 (DIV-4870), and a repeated scroll adds nothing.
+			if picked && (extra < 0 || extra > 8*100*(n-1)) || !picked && extra != 0 {
 				t.Fatalf("books shelf gained %d units over %d further rolls", extra, n-1)
 			}
 			var bp, gp []ShopItem

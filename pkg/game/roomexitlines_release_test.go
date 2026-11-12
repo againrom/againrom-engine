@@ -57,11 +57,7 @@ func roomExitApp(t *testing.T, f *FrontEnd, chapter int) (*ui.App, *townScreen) 
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil
 	if chapter != 0 {
 		town := NewTown(f.Campaign.Value())
-		for mission := range f.Campaign.Value().Chapters {
-			if mission < chapter {
-				town.Won(mission)
-			}
-		}
+		winMissionsBelow(town, f.Campaign.Value(), chapter)
 		if got := town.Chapter(); got != chapter {
 			t.Fatalf("prepared chapter = %d, want %d", got, chapter)
 		}
@@ -295,11 +291,7 @@ func TestReleaseTownRoomExitsAndConversationEndsPostNoLine(t *testing.T) {
 		chapter := 0
 		for _, target := range c.Main {
 			candidate := NewTown(c)
-			for mission := range c.Chapters {
-				if mission < target {
-					candidate.Won(mission)
-				}
-			}
+			winMissionsBelow(candidate, c, target)
 			candidate.Arrive()
 			if candidate.Chapter() == target && len(candidate.Offers(TownSchool)) > 0 {
 				chapter = target

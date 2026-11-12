@@ -36,7 +36,7 @@ func TestDumpBaseWritesAModFolderAndRefuses(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr)
 	}
-	for _, file := range []string{"mod.toml", "main.star", "data/towns.toml"} {
+	for _, file := range []string{"mod.toml", "data/towns.toml"} {
 		if !strings.Contains(out, "againrom: wrote "+file+"\n") {
 			t.Errorf("the report does not name %s:\n%s", file, out)
 		}

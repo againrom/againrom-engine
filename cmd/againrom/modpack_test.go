@@ -88,7 +88,7 @@ func TestPackModWritesOnlyWhereAskedAndNamesARefusedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeModFile(t, src, "fix", "notes.txt", []byte("more"))
+	writeModFile(t, src, "fix", "data/weapon-bodies.toml", []byte("more"))
 	code, _, stderr := checkRun(t, []string{"-pack-mod", folder, "-pack-out", out}, "")
 	if code != 1 || !strings.Contains(stderr, packed+" exists: a packed mod is written over an existing file only when asked") {
 		t.Fatalf("second pack: exit %d %q", code, stderr)
@@ -101,6 +101,14 @@ func TestPackModWritesOnlyWhereAskedAndNamesARefusedFile(t *testing.T) {
 	}
 	if now, _ := os.ReadFile(packed); string(now) == string(before) {
 		t.Fatal("-pack-replace left the old file")
+	}
+	// A file the tree table does not admit is not packed.
+	writeModFile(t, src, "fix", "notes.txt", []byte("outside the table"))
+	if code, _, stderr := checkRun(t, []string{"-pack-mod", folder, "-pack-out", out, "-pack-replace"}, ""); code != 0 {
+		t.Fatalf("replace with a stray file: %s", stderr)
+	}
+	if b, _, err := mod.ReadInside(packed, "notes.txt"); err == nil {
+		t.Fatalf("a file outside the tree table was packed: %q", b)
 	}
 
 	root := defaultInstall(t)

@@ -155,6 +155,9 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 		table[id] = true
 	}
 	used := map[string]bool{}
+	// Ids built as a literal prefix plus a key (`"editor.mod." + key`) are
+	// read by prefix; the scan cannot see which keys reach them.
+	var prefixes []string
 	for _, dir := range []string{"../ui", "../game", "../mapload"} {
 		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 		if err != nil {
@@ -202,6 +205,13 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					}
 				}
 				for _, arg := range args {
+					if sum, ok := arg.(*ast.BinaryExpr); ok && sum.Op == token.ADD {
+						if head, ok := sum.X.(*ast.BasicLit); ok && head.Kind == token.STRING {
+							if prefix, err := strconv.Unquote(head.Value); err == nil {
+								prefixes = append(prefixes, prefix)
+							}
+						}
+					}
 					lit, ok := arg.(*ast.BasicLit)
 					if !ok || lit.Kind != token.STRING {
 						continue
@@ -225,6 +235,18 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 		// pkg/game test TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces
 		// holds them to those keys.
 		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") {
+			continue
+		}
+		// The base menu action table holds these two as positional struct
+		// fields, which the scan above does not read.
+		if id == "mission.abandon" || id == "mission.abandon.confirm" {
+			continue
+		}
+		prefixed := false
+		for _, prefix := range prefixes {
+			prefixed = prefixed || strings.HasPrefix(id, prefix)
+		}
+		if prefixed {
 			continue
 		}
 		if !used[id] {

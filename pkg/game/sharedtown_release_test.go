@@ -154,11 +154,7 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	}
 	target := releaseMercenaryChapter(t, f.Campaign.Value())
 	town := NewTown(f.Campaign.Value())
-	for mission := range f.Campaign.Value().Chapters {
-		if mission < target {
-			town.Won(mission)
-		}
-	}
+	winMissionsBelow(town, f.Campaign.Value(), target)
 	if got := town.Chapter(); got != target {
 		t.Fatalf("prepared chapter = %d, want %d", got, target)
 	}
@@ -348,11 +344,7 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	dialogueSeen := false
 	for _, target := range f.Campaign.Value().Main {
 		candidate := NewTown(f.Campaign.Value())
-		for mission := range f.Campaign.Value().Chapters {
-			if mission < target {
-				candidate.Won(mission)
-			}
-		}
+		winMissionsBelow(candidate, f.Campaign.Value(), target)
 		candidate.Arrive()
 		if candidate.Chapter() != target || len(candidate.Offers(TownSchool)) == 0 {
 			continue

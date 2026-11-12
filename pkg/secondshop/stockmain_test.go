@@ -14,8 +14,9 @@ import (
 // The frozen digest checks stock contents and draws through the old stable
 // server-order projection. CRT permutations are checked on planted lists.
 func TestReleaseSecondShopStockMatchesMain(t *testing.T) {
-	// R2-ENGINE-941 corrects the shared town/death draw's exits.
-	const mainDigest = "e9a2db22218792f3fcb4e94fffc9167736dbe8bafdb92d41ca7736f8d2c99861"
+	// R2-ENGINE-941 corrects the shared town/death draw's exits; every
+	// scroll row holds 51..100 (DIV-4870).
+	const mainDigest = "3793e94c31bd9d3e1d0649f172950eee24428e50fad4835cea81f8a51fcdb24d"
 	if got := stockDigest(t, installTables(t)); got != mainDigest {
 		t.Fatalf("stock digest %s, want main %s", got, mainDigest)
 	}

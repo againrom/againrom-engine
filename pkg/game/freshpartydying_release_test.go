@@ -21,11 +21,7 @@ func TestReleaseFreshPartyBodyKeepsItsRowDwell(t *testing.T) {
 	c := f.Campaign.Value()
 	target := hurtVoiceHealerChapter(t, c, healer)
 	town := NewTown(c)
-	for mission := range c.Chapters {
-		if mission < target {
-			town.Won(mission)
-		}
-	}
+	winMissionsBelow(town, c, target)
 	town.gold = 1_000_000
 	f.Town = town
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Dwell", Choices: []int{0, 0, 4}, Stats: []int{31, 27, 24, 29}})

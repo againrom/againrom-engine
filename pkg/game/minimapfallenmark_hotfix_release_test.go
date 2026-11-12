@@ -29,11 +29,7 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	town := NewTown(f.Campaign.Value())
-	for m := range f.Campaign.Value().Chapters {
-		if m < mission {
-			town.Won(m)
-		}
-	}
+	winMissionsBelow(town, f.Campaign.Value(), mission)
 	town.gold = 1_000_000
 	f.Town = town
 	f.Carried = f.NextParty()

@@ -16,11 +16,7 @@ func schoolOfferChapter(t *testing.T, f *FrontEnd) int {
 	c := f.Campaign.Value()
 	for _, target := range c.Main {
 		candidate := NewTown(c)
-		for mission := range c.Chapters {
-			if mission < target {
-				candidate.Won(mission)
-			}
-		}
+		winMissionsBelow(candidate, c, target)
 		candidate.Arrive()
 		if candidate.Chapter() == target && len(candidate.Offers(TownSchool)) > 0 {
 			return target
