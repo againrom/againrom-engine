@@ -12,6 +12,34 @@ var shopPotionNames = [...]string{
 	"Potion Mana Regeneration", "Potion Medium Mana", "Potion Big Mana",
 }
 
+// shopStack is the quantity range least..most a books-shelf stack is drawn
+// in; a stack drawn once for its row takes nothing from an equal pick of the
+// fill. Each potion is drawn at 51..100 (SHOP-GEN-005); a scroll row holds
+// 51..100, drawn once (owner, DIV-4870).
+type shopStack struct {
+	least, most int
+	once        bool
+}
+
+var (
+	shopPotionStack = shopStack{51, 100, false}
+	shopScrollStack = shopStack{51, 100, true}
+)
+
+// shopItemStack is the stack a picked item of the books shelf is drawn at: a
+// scroll's, or none, when its quantity is the one unit it was built with.
+func shopItemStack(i ShopItem) (shopStack, bool) {
+	if _, _, ok := sim.ScrollSpell(i.Instance()); ok {
+		return shopScrollStack, true
+	}
+	return shopStack{}, false
+}
+
+func (q shopStack) draw(r shopDrawSource) int {
+	n, _ := shopDrawInclusive(r, q.least, q.most)
+	return n
+}
+
 // SHOP-CONSUME-073: the random value is spell power, not stack quantity.
 // Base price admission precedes scaling; the scaled price is not re-filtered.
 func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopItem {
@@ -64,8 +92,7 @@ func shopPotionStock(t *mapload.Table, r shopDrawSource) []ShopItem {
 			}
 			item := mapload.ItemInstanceFromCode(uint16(0x0e00|row), t)
 			if len(item.Effects) != 0 && item.Price >= 0 {
-				count, _ := shopDrawInclusive(r, 51, 100)
-				out = append(out, shopItemFromInstance(item, int32(count)))
+				out = append(out, shopItemFromInstance(item, int32(shopPotionStack.draw(r))))
 			}
 			break
 		}

@@ -25,6 +25,13 @@ func TestSecondShopStockMultiplierReachesTheShop(t *testing.T) {
 			f, s := sleepTown(id)
 			one, ones := sleepTown(id)
 			s.switches, ones.switches = &f.runtime, &one.runtime
+			// Ten scrolls, so a further roll brings a scroll the first did
+			// not; a repeated scroll adds nothing (DIV-4870).
+			for _, rows := range []sleepCollection{f.Table.MagicItems.(sleepCollection), one.Table.MagicItems.(sleepCollection)} {
+				for i := 2; i <= 10; i++ {
+					rows.secondShopTestCollection[i+5], rows.secondShopTestCollection[i+34] = []int32{10}, []int32{10}
+				}
+			}
 			f.runtime.shopStockMultiplier = 3
 			one.runtime.shopStockMultiplier = 1
 			chooseSleep(t, s)

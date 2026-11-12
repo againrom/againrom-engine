@@ -330,6 +330,12 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 	return out
 }
 
+// scroll is whether it is a scroll: a MagicItems row i+5 or i+34 of a spell
+// i in 1..29.
+func scroll(it Item) bool {
+	return it.Table == Magic && it.Row > scrollOffset && it.Row <= superOffset+bookSpells
+}
+
 func excluded(class, material, row int) bool {
 	for _, x := range armorExcluded {
 		if x == [3]int{class, material, row} {

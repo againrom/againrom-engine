@@ -15,14 +15,53 @@ type Stock [4][]Item
 var castSpells = [2][]uint16{{1, 10, 11, 18, 26, 5, 16}, {18, 26}}
 
 // R2-ENGINE-941: stop above ten failures per draw or at a book timeout.
-// Potions enter at 51..100 and books at quantity 2 (R2-ENGINE-265).
+// Books enter at quantity 2 (R2-ENGINE-265).
 const (
 	bookRetries    = 1000
 	failuresFactor = 10
-	potionLeast    = 51
-	potionSpan     = 50
 	bookQuantity   = 2
 )
+
+// stack is the quantity range least..least+span-1 a stack is drawn in, on
+// one number; a stack drawn once for its row takes nothing from an equal
+// pick of the fill. Potions enter at 51..100 (R2-ENGINE-265); a scroll row
+// holds 51..100, drawn once (owner, DIV-4870); any other kept unit that
+// stacks adds 1..Bound+1 per pick (R2-ENGINE-941).
+type stack struct {
+	least, span int
+	once        bool
+}
+
+var (
+	potionStack = stack{51, 50, false}
+	scrollStack = stack{51, 50, true}
+)
+
+func (q stack) draw(src shopstock.Source) int32 { return int32(q.least + src.Intn(q.span)) }
+
+// stackOf is the range a kept unit of it stacks at in category cat.
+func stackOf(it Item, cat Category) stack {
+	if scroll(it) {
+		return scrollStack
+	}
+	return stack{1, int(cat.Bound + 1), false}
+}
+
+// filling is Stacking as a fill joins a pick to an equal entry: a pick whose
+// stack is drawn once for its row adds nothing; its quantity number was
+// drawn all the same. A sale and a mod's stocked item join by Stacking.
+var filling = func() shopstock.Stack[Item, stackKey] {
+	s := Stacking
+	s.Add = func(entry, it Item) Item {
+		if stackOf(it, Category{}).once {
+			return entry
+		}
+		return Stacking.Add(entry, it)
+	}
+	return s
+}()
+
+func fill(list []Item, items ...Item) []Item { return shopstock.Insert(list, filling, items...) }
 
 // picks is rnd as the generator's draw source: Intn is (rand()*n)>>15, the
 // draw's index over n candidates.
@@ -64,7 +103,7 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 		Factor: t.Rolls.Factor,
 		Source: t.Rolls.Source,
 		Join: func(_ int, list, more []Item) []Item {
-			list = insert(list, more...)
+			list = fill(list, more...)
 			t.sortFill(list)
 			return list
 		},
@@ -84,7 +123,7 @@ func (t Tables) category(cat Category, rnd Rand) shopstock.Category[Item, Item] 
 		Redraw:     func(it Item) bool { return it.Table == Book },
 		Redraws:    bookRetries,
 		Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
-		Insert:     insert,
+		Insert:     fill,
 		Finish: func(list []Item, _ shopstock.Source) []Item {
 			t.sortFill(list)
 			return list
@@ -128,7 +167,7 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 		}
 	}
 	for row := potionFirst; row <= potionLast; row++ {
-		it := Item{Table: Magic, Row: row, Count: int32(potionLeast + src.Intn(potionSpan))}
+		it := Item{Table: Magic, Row: row, Count: potionStack.draw(src)}
 		it.Price = int32(t.Price(it))
 		list = append(list, it)
 	}
@@ -138,7 +177,7 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 // make is one drawn unit of it (R2-ENGINE-941). An enchanted category
 // enchants it, with bit 28 too only on a rand(100) above 50, and refuses a
 // price outside the range, a unit left plain too. A kept unit that stacks
-// draws a quantity of 1..Bound+1.
+// draws its quantity in stackOf's range.
 func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 	checked := cat.Mask&bitEnchanted != 0
 	enchant := checked
@@ -159,7 +198,7 @@ func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 		return it, false
 	}
 	if stackable(it) {
-		it.Count = int32(1 + src.Intn(int(cat.Bound+1)))
+		it.Count = stackOf(it, cat).draw(src)
 	}
 	return it, true
 }

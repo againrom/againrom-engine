@@ -99,11 +99,16 @@ func TestSecondShopMultiplierOffAndDeathItems(t *testing.T) {
 func TestSecondShopMultiplierKeepsTheLeadOnce(t *testing.T) {
 	tb := enchantTables()
 	tb.MagicItems = fixtureRows{n: 80, params: map[int][]int32{69: {10}, 70: {10}, 71: {10}, 72: {10}, 73: {10}, 74: {10}, 60: {10}}}
+	// Ten scrolls, so a further roll brings a scroll the first did not; a
+	// repeated scroll adds nothing (DIV-4870).
+	for row := scrollOffset + 1; row <= scrollOffset+10; row++ {
+		tb.MagicItems.(fixtureRows).params[row] = []int32{10}
+	}
 	rec := Record{{Min: 0, Max: 100000, Draws: 4, Bound: 1, Mask: kindMagic}}
 	count := func(s Stock) (lead, all int) {
 		for _, it := range s[0] {
 			all += int(it.Count)
-			if it.Row >= potionFirst && it.Row <= potionLast && it.Count >= potionLeast {
+			if it.Row >= potionFirst && it.Row <= potionLast && int(it.Count) >= potionStack.least {
 				lead++
 			}
 		}

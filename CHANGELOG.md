@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 - [BASE] The cell grid (F10) and the debug readout (F11) now work in a mission only after the cheats are unlocked; before, any press toggled them.
 - [BASE] The mission menu now lets you abandon an unfinished mission and return to its town without keeping the mission's gains or losses.
 - [ROM2] A mage casting by himself picks a target any of your units sees, not only one he sees himself, and casts at it from as far as the spell reaches; a target none of your units sees is not picked. A cast you order is not changed.
+- [BASE] A shop sells every scroll in a stack of 51 to 100 at the same price per scroll; before, a shop held only one or a few of a scroll.
 
 ### For map makers and modders
 

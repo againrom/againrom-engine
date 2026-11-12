@@ -49,8 +49,9 @@ func shopFixedBound(n int) shopstock.Bound {
 // shelf draws 1..8 picks from the books and scrolls, then takes the
 // guaranteed books (DIV-1025) and the potions. Each shelf is stacked and
 // sorted. The mods' stocked items join the armour shelf without a draw
-// (DIV-1862). The stock multiplier (DIV-3960) rolls on its own generator
-// from the shop's seed. A nil draw source stocks no books shelf.
+// (DIV-1862). The stock multiplier (DIV-3960) and each scroll pick's
+// quantity (DIV-4870) draw on own generators. A nil draw source stocks no
+// books shelf.
 func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profile[shopStockCandidate, ShopItem] {
 	record := *s.records[s.location]
 	ceiling := record[ShelfArmour].Max
@@ -60,6 +61,15 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	weapons := shopPlainShelfPool(allWeapons)
 	magic := append(append([]data.ShopCandidate{}, allArmour...), allWeapons...)
 	stack := shopShelfStack(t)
+	// A fill's pick of a stack drawn once for its row adds nothing to an
+	// equal entry (DIV-4870); every other pick adds as a sale does.
+	add := stack.Add
+	stack.Add = func(entry, i ShopItem) ShopItem {
+		if q, ok := shopItemStack(i); ok && q.once {
+			return entry
+		}
+		return add(entry, i)
+	}
 	order := func(items []ShopItem) []ShopItem {
 		if len(items) < 2 {
 			return items
@@ -93,6 +103,7 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	}
 	if r != nil {
 		var books []ShopItem
+		quantities := s.ownRolls()
 		p.Categories = append(p.Categories, shopstock.Category[shopStockCandidate, ShopItem]{
 			Candidates: func(src shopstock.Source) []shopStockCandidate {
 				books = shopBookPool(t, ceiling)
@@ -102,7 +113,13 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 				n, _ := shopDrawInclusive(src, 1, 8)
 				return n
 			},
-			Make: func(c shopStockCandidate, _ shopstock.Source) (ShopItem, bool) { return c.item.Clone(), true },
+			Make: func(c shopStockCandidate, _ shopstock.Source) (ShopItem, bool) {
+				it := c.item.Clone()
+				if q, ok := shopItemStack(it); ok {
+					it.Count = int32(q.draw(quantities))
+				}
+				return it, true
+			},
 			Finish: func(items []ShopItem, src shopstock.Source) []ShopItem {
 				items = shopGuaranteedBooks(items, books, spellGame(t))
 				return order(append(items, shopPotionStock(t, src)...))
@@ -122,13 +139,17 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	}
 	p.Multiplier = shopstock.Multiplier[ShopItem]{
 		Factor: int(s.stockMultiplier),
-		Source: func() shopstock.Source { return random.NewGo(shopExtraRollSeed(s.drawSeed)) },
+		Source: s.ownRolls,
 		Join: func(_ int, list, more []ShopItem) []ShopItem {
 			return order(append(list[:len(list):len(list)], more...))
 		},
 	}
 	return p
 }
+
+// ownRolls is a fresh generator at the shop's seed apart from the shop
+// stream: what it gives moves no number of the stream.
+func (s *Shop) ownRolls() shopstock.Source { return random.NewGo(shopExtraRollSeed(s.drawSeed)) }
 
 // shopShelfStack is the first game's stack-key rule (DIV-322, DIV-4164):
 // shopItemEqual, effect list included, over shopStackKey; an equal entry
