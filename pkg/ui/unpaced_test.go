@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"againrom/pkg/render/terrain"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func ownerCadenceInput(unpaced, paced bool) appInput {
@@ -17,36 +17,24 @@ func ownerCadenceInput(unpaced, paced bool) appInput {
 }
 
 func TestUnpacedBindingUsesOnlyTheCtrlNumpadPair(t *testing.T) {
-	got := bindingSource(t)
 	for _, tc := range []struct {
-		field string
-		key   string
+		action missionKeyAction
+		key    ebiten.Key
 	}{
-		{field: "Unpaced", key: "ebiten.KeyNumpadAdd"},
-		{field: "Paced", key: "ebiten.KeyNumpadSubtract"},
+		{action: missionKeyUnpaced, key: ebiten.KeyNumpadAdd},
+		{action: missionKeyPaced, key: ebiten.KeyNumpadSubtract},
 	} {
-		expr, ok := got[tc.field]
-		if !ok {
-			t.Fatalf("readAppInput has no %s binding", tc.field)
-		}
-		if !strings.Contains(expr, "inpututil.IsKeyJustPressed("+tc.key+")") {
-			t.Errorf("%s binding = %q, want a %s press edge", tc.field, expr, tc.key)
-		}
-		if !strings.Contains(expr, "ctrlHeld()") || strings.Contains(expr, "!ctrlHeld()") {
-			t.Errorf("%s binding = %q, want Ctrl held", tc.field, expr)
-		}
-		if strings.Contains(expr, "ebiten.KeyEqual") || strings.Contains(expr, "ebiten.KeyMinus)") {
-			t.Errorf("%s binding = %q, want the numpad key alone", tc.field, expr)
+		requireMissionRow(t, tc.action, tc.key, modHeld)
+		for _, p := range missionKeyGameProfiles {
+			if rows := missionRowsFor(p, tc.action); len(rows) != 1 {
+				t.Errorf("profile %d: %s binding = %+v, want the numpad key alone", p, missionKeyActionNames[tc.action], rows)
+			}
 		}
 	}
 
 	// The original ordinary pair stays disjoint from the modified pair.
-	if expr := got["Faster"]; !strings.Contains(expr, "!ctrlHeld()") {
-		t.Errorf("Faster binding = %q, want bare numpad + guarded from Ctrl", expr)
-	}
-	if expr := got["Slower"]; !strings.Contains(expr, "!ctrlHeld()") {
-		t.Errorf("Slower binding = %q, want bare numpad - guarded from Ctrl", expr)
-	}
+	requireMissionRow(t, missionKeyFaster, ebiten.KeyNumpadAdd, modFree)
+	requireMissionRow(t, missionKeySlower, ebiten.KeyNumpadSubtract, modFree)
 }
 
 func TestUnpacedMapFramesAdvanceOnceWithoutADeadlineAndRestoreCleanly(t *testing.T) {

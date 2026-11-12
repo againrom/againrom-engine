@@ -35,12 +35,13 @@ func (s *spySaveSeams) install(a *App) {
 
 func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 	bindings := bindingSource(t)
-	for field, key := range map[string]string{
-		"SaveGame": "F2", "LoadGame": "F3",
+	for action, key := range map[missionKeyAction]ebiten.Key{
+		missionKeySaveGame: ebiten.KeyF2, missionKeyLoadGame: ebiten.KeyF3,
 	} {
-		want := "inpututil.IsKeyJustPressed(ebiten.Key" + key + ")"
-		if bindings[field] != want {
-			t.Errorf("binding %s = %q, want %q", field, bindings[field], want)
+		for _, p := range missionKeyGameProfiles {
+			if b := missionRow(t, p, action, key); b.ctrl != modAny || b.shift != modAny || b.alt != modAny || b.hold {
+				t.Errorf("binding %v = %+v, want a bare press edge", key, b)
+			}
 		}
 	}
 	for _, tc := range []struct {
@@ -72,6 +73,14 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 			strings.Contains(expr, "ebiten.KeyF4)") && field != "QuickSave" && field != "Reveal" ||
 			strings.Contains(expr, "ebiten.KeyF9)") && field != "QuickLoad" {
 			t.Errorf("duplicate original key binding: %s = %s", field, expr)
+		}
+	}
+	for _, p := range missionKeyGameProfiles {
+		for _, b := range missionBindings(p) {
+			if b.key == ebiten.KeyF2 && b.action != missionKeySaveGame ||
+				b.key == ebiten.KeyF3 && b.action != missionKeyLoadGame {
+				t.Errorf("profile %d: duplicate original key binding: %s = %s", p, b.name, missionKeyActionNames[b.action])
+			}
 		}
 	}
 }

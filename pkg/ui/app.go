@@ -452,6 +452,8 @@ type appInput struct {
 	ZoomReset  bool
 	SpeedReset bool
 
+	ClearMessages bool
+
 	Guard         bool
 	PlayerRetreat bool
 	StandGround   bool
@@ -525,6 +527,8 @@ func readAppInput(keys missionKeyAction) appInput {
 	cx, cy := ebiten.CursorPosition()
 	_, wy := ebiten.Wheel()
 	shiftHeld := heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)
+	// The keys of other kinds: text fields, lists, dialogues, the menu and the
+	// window. Every mission key is a row of missionBindings.
 	in := appInput{
 		AnyKey:            len(inpututil.AppendJustPressedKeys(nil)) != 0,
 		AnyHeld:           len(heldkey.AppendPressed(nil)) != 0,
@@ -548,50 +552,10 @@ func readAppInput(keys missionKeyAction) appInput {
 		Home:              inpututil.IsKeyJustPressed(ebiten.KeyHome),
 		End:               inpututil.IsKeyJustPressed(ebiten.KeyEnd),
 		SelectText:        inpututil.IsKeyJustPressed(ebiten.KeyA) && ctrlHeld(),
-		// Left and Right are the chargen screen's own adjust keys, read here
-		// beside Up/Down/Enter for the same reason those three are: every screen's
-		// keys are gathered in one snapshot regardless of which arm ever reads
-		// them.
-		Left:  inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft),
-		Right: inpututil.IsKeyJustPressed(ebiten.KeyArrowRight),
-		// SPACE IS THE ORIGINAL'S PANEL-SET TOGGLE (`AI-KEY-125`); the clock
-		// pause is the bare zero key (DIV-2263).
-		Panels: inpututil.IsKeyJustPressed(ebiten.KeySpace) && !altHeld() &&
-			!heldkey.Pressed(ebiten.KeyShiftLeft) && !heldkey.Pressed(ebiten.KeyShiftRight),
-		Pause: barePauseKey(),
-		// CTRL IS GUARDED OFF BOTH (round 3). `keyboard.tsv` rows 21 and 22 give
-		// the speed step "Ctrl NOT held", and rows 23 and 24 give `Ctrl`+numpad
-		// plus and minus a different mechanism entirely: the unpaced/max-speed
-		// owner idle loop, and its restore with a phase/epoch reset.
-		Faster: inpututil.IsKeyJustPressed(ebiten.KeyEqual) ||
-			(inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) && !ctrlHeld()),
-		Slower: inpututil.IsKeyJustPressed(ebiten.KeyMinus) ||
-			(inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) && !ctrlHeld()),
-		// The modified NUMPAD pair selects and clears a separate loop; it does
-		// not name the main keyboard's =/- keys and it is not an alias for the
-		// ladder ceiling. Repeated Windows keydown messages are not exposed by
-		// Ebitengine's snapshot. Clear's phase reset therefore runs once on the
-		// press edge; a held frame does not invent a frame-rate repeat cadence.
-		Unpaced: inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) && ctrlHeld(),
-		Paced:   inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) && ctrlHeld(),
-		// Debug chords; the handlers also ask cheatsUnlocked. Ctrl+Shift+L is
-		// still the numerals', so the chip takes the key right of L.
-		Kill: inpututil.IsKeyJustPressed(ebiten.KeyK) && ctrlHeld() && shiftHeld,
-		// L IS SPLIT BY THE MODIFIER. Bare L is the menu's Load; Ctrl+L flips the
-		// damage numerals, which is the decoded binding. The same Ctrl read
-		// AttackHeld below makes decides both, so the two cannot come to overlap
-		// or to leave a press unclaimed.
-		Chip: inpututil.IsKeyJustPressed(ebiten.KeySemicolon) && ctrlHeld() && shiftHeld,
+		Left:              inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft),
+		Right:             inpututil.IsKeyJustPressed(ebiten.KeyArrowRight),
+		// Bare L is the main menu's Load; the map's Ctrl+L is a row.
 		Load: inpututil.IsKeyJustPressed(ebiten.KeyL) && !ctrlHeld(),
-		// CTRL+L IS FLYING DAMAGE and Ctrl+O is smoothing (`MENU-057`,
-		// `ANIM-NUM-020`); the earlier keyboard table named them the other way
-		// round. Bare L stays the chip, split by the Ctrl read.
-		Numerals: inpututil.IsKeyJustPressed(ebiten.KeyL) && ctrlHeld(),
-		// A, THE ORIGINAL'S OWN BINDING (`MENU-COMBAT-019` cell 0, Attack/A): this
-		// line used to bind F, on the premise that nothing decoded names the
-		// panel's own accelerators, which was an absence claim about the corpus
-		// written without reading it (`DIV-201`).
-		Attack: inpututil.IsKeyJustPressed(ebiten.KeyA) && !ctrlHeld(),
 		// THE MODIFIER, and Ctrl is a BINDING rather than a reading. What is
 		// decoded is the latch and which of three globals gates the attack cursor;
 		// naming that global's virtual key Ctrl is the Windows platform contract,
@@ -601,122 +565,21 @@ func readAppInput(keys missionKeyAction) appInput {
 		//
 		// EITHER Ctrl key, the two being one modifier and not two — the same
 		// reading Viewer.Input already gives Shift.
-		AttackHeld:    ctrlHeld(),
-		HighlightHeld: ebiten.IsKeyPressed(ebiten.KeyZ) && !ctrlHeld() && !altHeld(),
+		AttackHeld: ctrlHeld(),
 		// Negated at the binding, so the field's zero value is a focused tick.
 		// This is the one read of the engine's focus in the front-end.
 		Unfocused: !ebiten.IsFocused(),
-		SaveGame:  inpututil.IsKeyJustPressed(ebiten.KeyF2),
-		LoadGame:  inpututil.IsKeyJustPressed(ebiten.KeyF3),
-		// CTRL+N, NOT BARE N (round 3). `keyboard.tsv` row 50 gives "Ctrl+N | map
-		// | Ctrl held | toggle day/night changes | main.txt[104..105]" and no row
-		// of the file names a bare `N` on the mission map. The old comment here
-		// called bare `N` the original's own decoded binding, which was true of
-		// the ACTION and wrong about the KEY. It is Ctrl+O's and Ctrl+A's own
-		// precedent in this file: the modifier is part of the binding.
-		TimeFlow:    inpututil.IsKeyJustPressed(ebiten.KeyN) && ctrlHeld(),
-		Smoothing:   inpututil.IsKeyJustPressed(ebiten.KeyO) && ctrlHeld(),
-		AutoHealing: inpututil.IsKeyJustPressed(ebiten.KeyU) && ctrlHeld(),
-		// CTRL+H, THE SHOW-HEALTH SETTING (round 3). `keyboard.tsv` row 48 gives
-		// "Ctrl+H | map | Ctrl held | toggle show-health setting |
-		// main.txt[100..101]", and those two lines read "Show Health Off" / "Show
-		// Health On" on the EN root. What this build draws under that name is the
-		// per-unit health bar, so the switch is this build's reading of the
-		// caption and the reading is disclosed (`DIV-333`). Bare `H` stays
-		// unbound.
-		ShowHealth: inpututil.IsKeyJustPressed(ebiten.KeyH) && ctrlHeld(),
-		// CTRL+F, THE FORMATION PLAYER COMMAND (`AI-KEY-125`, `MENU-057`,
-		// `AI-FORM-037`). The negated guard on Grab above leaves plain F's
-		// pick-up meaning intact and prevents one chord from issuing both. The
-		// press-edge read keeps a held physical key from cycling at the
-		// render-frame rate while Ctrl remains a level latch.
-		Formation: inpututil.IsKeyJustPressed(ebiten.KeyF) && ctrlHeld(),
-		// CTRL+W, THE RETREAT PLAYER COMMAND (`AI-KEY-125`, `MENU-057`,
-		// `SESS-PARAM-017`). W alone remains inert.
-		Retreat: inpututil.IsKeyJustPressed(ebiten.KeyW) && ctrlHeld(),
-		// THE PAUSE KEY'S OWN MODAL TEXT (round 3). `keyboard.tsv` row 20 gives
-		// "Pause | map | campaign phase 2 | show modal text main.txt[119] | repeat
-		// blocked by modal state", and line 119 reads "Game paused. Click OK to
-		// continue." on the EN root. It carries NO modifier and no Ctrl guard,
-		// because the file names no modified form of this key.
-		PauseText: inpututil.IsKeyJustPressed(ebiten.KeyPause),
-		Help:      inpututil.IsKeyJustPressed(ebiten.KeyF1),
 		PageUp:    inpututil.IsKeyJustPressed(ebiten.KeyPageUp),
 		PageDown:  inpututil.IsKeyJustPressed(ebiten.KeyPageDown),
-		// I is the letter this project authors for the inventory (0110 plan
-		// D-10); since 0140 it switches the PACK BAR rather than opening the
-		// doll window — the field's own doc says what moved.
-		// I OR THE OEM BACKTICK, which are the original's own two keys for this
-		// one toggle (`keyboard.tsv`: "I or OEM backtick | map | toggle
-		// inventory"). The backtick was unbound here.
-		Inventory: inpututil.IsKeyJustPressed(ebiten.KeyI) ||
-			inpututil.IsKeyJustPressed(ebiten.KeyBackquote),
-		// X, NOT E. `keyboard.tsv` gives E the whole-army selection and
-		// `AI-SELECT-122` states the same clause, so E is the original's and
-		// SelectAll below takes it. The worn-set switch is this project's own and
-		// moves to X, which the original names in no form -- plain or Ctrl -- on
-		// the mission map. Recorded as `DIV-296`.
-		Worn: inpututil.IsKeyJustPressed(ebiten.KeyX),
-		// E IS THE ORIGINAL'S OWN ARMY SELECTION (`AI-KEY-125`,
-		// `AI-SELECT-122`): every owned unit, replacing the selection.
-		SelectAll: inpututil.IsKeyJustPressed(ebiten.KeyE),
-		// B OR Q, NOT S: `keyboard.tsv` gives "B or Q | map or spellbook state |
-		// toggle/close spellbook | 0x40f", so the spellbook switch lands on the
-		// original's own two keys and S goes to the Swarm arm above.
-		Book: inpututil.IsKeyJustPressed(ebiten.KeyB) ||
-			inpututil.IsKeyJustPressed(ebiten.KeyQ),
-		// J is the authored paperdoll key (DIV-296); D arms Defend above.
-		Doll: inpututil.IsKeyJustPressed(ebiten.KeyJ),
 		// Tab, the character pane's own mode key — see the PaneMode field.
 		PaneMode: inpututil.IsKeyJustPressed(ebiten.KeyTab),
-		// Ctrl+A, on Ctrl+L's own precedent above (Numerals): the modifier
-		// changes what the letter means rather than the letter being spent on
-		// one of the two.
-		Autocast: inpututil.IsKeyJustPressed(ebiten.KeyA) && ctrlHeld(),
-		// BARE W, HOME AND END. The original's W arm acts only with Ctrl held
-		// (MENU-057), as its F and L arms do under Grab and Chip above;
-		// AI-KEY-125 names neither Home nor End on the mission map, and inside
-		// the help text both do nothing (MENU-078).
-		WeaponSwap: inpututil.IsKeyJustPressed(ebiten.KeyW) && !ctrlHeld(),
-		ZoomReset:  inpututil.IsKeyJustPressed(ebiten.KeyHome) && !ctrlHeld() && !shiftHeld,
-		SpeedReset: inpututil.IsKeyJustPressed(ebiten.KeyEnd) && !ctrlHeld() && !shiftHeld,
 		// EITHER Shift key, the two being one modifier and not two — the same
 		// reading Viewer.Input already gives Shift (readInput, viewer.go).
 		ShiftHeld: shiftHeld,
-		// THE DIGIT ROW AND THE NUMPAD'S OWN DIGITS, which `keyboard.tsv`
-		// treats as one input ("0..9 or Numpad 0..9"). GroupDigit is -1 for a
-		// frame with no digit pressed, which is every frame but the press.
-		GroupKey:   groupDigit() >= 0 && !barePauseKey(),
-		GroupDigit: max(groupDigit(), 0),
 	}
-	in.readMissionKeys(keys, inpututil.IsKeyJustPressed, ctrlHeld())
+	in.readMissionKeyRows(keys, inpututil.IsKeyJustPressed, heldkey.Pressed, ctrlHeld())
 	in.Enter, in.WindowToggle = splitAltEnter(altHeld(), in.Enter)
 	return in
-}
-
-// barePauseKey is the clock pause: the digit row's or the numpad's zero with
-// no Ctrl, Alt or Shift held. A modified zero stays group 0's recall and
-// assignment (DIV-2263).
-func barePauseKey() bool {
-	return (inpututil.IsKeyJustPressed(ebiten.KeyDigit0) || inpututil.IsKeyJustPressed(ebiten.KeyNumpad0)) &&
-		!ctrlHeld() && !altHeld() &&
-		!heldkey.Pressed(ebiten.KeyShiftLeft) && !heldkey.Pressed(ebiten.KeyShiftRight)
-}
-
-// groupDigit is which of the ten group keys was pressed this frame, or -1.
-//
-// THE TWO ROWS ARE ONE INPUT (`keyboard.tsv`: "0..9 or Numpad 0..9"), so the
-// numpad digit answers the same number as the top row's. The lowest pressed
-// digit wins a frame carrying two, which no player produces and which keeps the
-// answer a single number rather than a set.
-func groupDigit() int {
-	for n := 0; n <= 9; n++ {
-		if inpututil.IsKeyJustPressed(ebiten.Key(int(ebiten.KeyDigit0)+n)) ||
-			inpututil.IsKeyJustPressed(ebiten.Key(int(ebiten.KeyNumpad0)+n)) {
-			return n
-		}
-	}
-	return -1
 }
 
 // ctrlHeld is the Ctrl modifier: EITHER Ctrl key, the two being one modifier and
@@ -1820,13 +1683,13 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			}
 			in.suppressAltLetters()
 			// Backspace empties the message line and does nothing else (MENU-061).
-			if in.Backspace {
+			if in.ClearMessages {
 				v.ClearMessages()
 			}
 			if in.FPS {
 				v.ToggleFPS()
 			}
-			v.quickSpellOffset = missionKeyPolicies[a.activeMissionKeys()].shortcutFirst - 5
+			v.quickSpellOffset = missionShortcutOffset(a.activeMissionKeys())
 			if !quickBlocked {
 				for slot, pressed := range in.QuickSpell {
 					if pressed {

@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"os"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -151,28 +149,28 @@ func TestActivePauseDimsWorldBeforeReadableHUDAndResumesExactly(t *testing.T) {
 }
 
 func TestActivePauseNativeBindingIsBareZeroAndSpaceIsPanels(t *testing.T) {
-	bindings := bindingSource(t)
-	panels, pause, group := bindings["Panels"], bindings["Pause"], bindings["GroupKey"]
-	if !strings.Contains(panels, "inpututil.IsKeyJustPressed(ebiten.KeySpace)") || !strings.Contains(panels, "!altHeld()") || !strings.Contains(panels, "!heldkey.Pressed(ebiten.KeyShiftLeft)") || !strings.Contains(panels, "!heldkey.Pressed(ebiten.KeyShiftRight)") {
-		t.Fatal("physical Space binding is not the panel-set toggle", panels)
-	}
-	if pause != "barePauseKey()" || !strings.Contains(group, "!barePauseKey()") {
-		t.Fatal("pause is not the one bare-zero reading shared with the group key", pause, group)
-	}
-	src, err := os.ReadFile("app.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(src)
-	body = body[strings.Index(body, "func barePauseKey()"):]
-	body = body[:strings.Index(body, "\n}\n")]
-	for _, want := range []string{"ebiten.KeyDigit0", "ebiten.KeyNumpad0", "!ctrlHeld()", "!altHeld()", "ebiten.KeyShiftLeft", "ebiten.KeyShiftRight"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("bare zero pause binding lacks %s", want)
+	for _, p := range missionKeyGameProfiles {
+		panels := missionRow(t, p, missionKeyPanels, ebiten.KeySpace)
+		if panels.alt != modFree || panels.shift != modFree || panels.hold {
+			t.Fatal("physical Space binding is not the panel-set toggle", panels)
 		}
-	}
-	if strings.Contains(body, "KeySpace") {
-		t.Fatal("Space still pauses")
+		for _, key := range []ebiten.Key{ebiten.KeyDigit0, ebiten.KeyNumpad0} {
+			pause := missionRow(t, p, missionKeyPause, key)
+			if pause.ctrl != modFree || pause.alt != modFree || pause.shift != modFree || pause.hold {
+				t.Fatalf("bare zero pause binding %v is %+v", key, pause)
+			}
+			missionRow(t, p, missionKeyGroup, key)
+			var in appInput
+			in.readMissionKeys(p, onlyKey(key), false)
+			if !in.Pause || in.GroupKey {
+				t.Fatal("pause is not the one bare-zero reading shared with the group key", key, in.Pause, in.GroupKey)
+			}
+		}
+		for _, b := range missionRowsFor(p, missionKeyPause) {
+			if b.key == ebiten.KeySpace {
+				t.Fatal("Space still pauses")
+			}
+		}
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // purseApp is an open map with entity 5 selected and a two-cell pack: one item
@@ -369,7 +371,7 @@ func TestPurseEditorBlocksMessageClearAndMapKeys(t *testing.T) {
 		t.Fatalf("selection moved to %v", v.sel)
 	}
 	g.key(appInput{Escape: true})
-	g.key(appInput{Backspace: true})
+	g.key(appInput{ClearMessages: true})
 	if len(v.MessageLines()) != 0 {
 		t.Fatal("Backspace no longer clears the message line once the editor is closed")
 	}
@@ -503,5 +505,29 @@ func TestPurseEditorIgnoresAltBackspace(t *testing.T) {
 	}
 	if got, _ := a.HeadlessGold(); got.Text != "10" || got.Caret != 1 {
 		t.Fatalf("control: Backspace left %+v, want text 10 caret 1", got)
+	}
+}
+
+func TestPurseEditorBackspaceThroughTheReader(t *testing.T) {
+	_, v, g := openPurseEditor(t)
+	v.PostMessage("keep me", MessageWhite, time.Hour)
+	press := func() appInput {
+		var in appInput
+		in.Backspace = true
+		in.readMissionKeyRows(missionKeyPatrol, func(k ebiten.Key) bool { return k == ebiten.KeyBackspace },
+			func(k ebiten.Key) bool { return k == ebiten.KeyBackspace }, false)
+		if !in.ClearMessages {
+			t.Fatal("the reader did not set the map's message clear from Backspace")
+		}
+		return in
+	}
+	g.key(press())
+	if len(v.MessageLines()) == 0 {
+		t.Fatal("a Backspace read through the reader cleared the message line under the purse editor")
+	}
+	g.key(appInput{Escape: true})
+	g.key(press())
+	if len(v.MessageLines()) != 0 {
+		t.Fatal("a Backspace read through the reader no longer clears the message line once the editor is closed")
 	}
 }

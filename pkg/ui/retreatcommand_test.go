@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -10,15 +9,7 @@ import (
 )
 
 func TestRetreatBindingIsCtrlWAndPlainFStaysGrab(t *testing.T) {
-	bindings := bindingSource(t)
-	retreat, ok := bindings["Retreat"]
-	if !ok {
-		t.Fatal("readAppInput has no Retreat binding")
-	}
-	if !strings.Contains(retreat, "inpututil.IsKeyJustPressed(ebiten.KeyW)") ||
-		!strings.Contains(retreat, "ctrlHeld()") || strings.Contains(retreat, "!ctrlHeld()") {
-		t.Errorf("Retreat binding = %q, want Ctrl+W press edge", retreat)
-	}
+	requireMissionRow(t, missionKeyRetreatSetting, ebiten.KeyW, modHeld)
 	for _, ctrl := range []bool{false, true} {
 		var in appInput
 		in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.KeyF), ctrl)

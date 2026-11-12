@@ -14,5 +14,5 @@ func (in *appInput) suppressAltLetters() {
 	in.Book, in.Doll, in.WeaponSwap = false, false, false
 	// Alt+Backspace and Alt+F12 arrive as system key messages and reach
 	// neither the Backspace nor the F12 arm (MENU-082).
-	in.Backspace, in.FPS = false, false
+	in.Backspace, in.ClearMessages, in.FPS = false, false, false
 }

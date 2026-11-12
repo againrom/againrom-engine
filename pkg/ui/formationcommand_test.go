@@ -1,24 +1,15 @@
 package ui
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"againrom/pkg/render/frame"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestFormationBindingIsCtrlFOnAPressEdge(t *testing.T) {
-	expr, ok := bindingSource(t)["Formation"]
-	if !ok {
-		t.Fatal("readAppInput has no Formation binding")
-	}
-	if !strings.Contains(expr, "inpututil.IsKeyJustPressed(ebiten.KeyF)") {
-		t.Errorf("Formation binding = %q, want an F press edge", expr)
-	}
-	if !strings.Contains(expr, "ctrlHeld()") || strings.Contains(expr, "!ctrlHeld()") {
-		t.Errorf("Formation binding = %q, want Ctrl held", expr)
-	}
+	requireMissionRow(t, missionKeyFormation, ebiten.KeyF, modHeld)
 }
 
 func TestFormationPressLeavesTheMapOnceAndAHeldFrameDoesNotRepeatIt(t *testing.T) {

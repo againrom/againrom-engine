@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/render/camera"
 	"againrom/pkg/render/terrain"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const qolOwner = 3
@@ -221,11 +222,7 @@ func TestHelpBodyListsTheAddedKeys(t *testing.T) {
 
 // The three keys are bound as the story names them, each without Ctrl.
 func TestQualityOfLifeKeyBindings(t *testing.T) {
-	got := bindingSource(t)
-	for field, key := range map[string]string{"WeaponSwap": "ebiten.KeyW)", "ZoomReset": "ebiten.KeyHome)", "SpeedReset": "ebiten.KeyEnd)"} {
-		expr := got[field]
-		if !strings.Contains(expr, key) || !strings.Contains(expr, "!ctrlHeld()") {
-			t.Errorf("%s is bound to %q, want %s without Ctrl", field, expr, key)
-		}
+	for action, key := range map[missionKeyAction]ebiten.Key{missionKeyWeaponSwap: ebiten.KeyW, missionKeyZoomReset: ebiten.KeyHome, missionKeySpeedReset: ebiten.KeyEnd} {
+		requireMissionRow(t, action, key, modFree)
 	}
 }

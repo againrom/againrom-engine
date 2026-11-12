@@ -10,7 +10,7 @@ package ui
 // original spends on something else.
 //
 // THE BINDING AND THE ARM ARE WITNESSED SEPARATELY, because no test may open a
-// window: the binding is an Ebitengine call and is read from the SOURCE, and
+// window: the binding is a row of the mission key table, read as data, and
 // the arm is driven through a.step with an appInput literal. Neither half alone
 // says the key works — a binding with no arm sets a field nothing reads, and an
 // arm with no binding is reachable only from a test.
@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"againrom/pkg/render/frame"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // bindingSource is the source text of each field of readAppInput's returned
@@ -90,50 +91,28 @@ func bindingSource(t *testing.T) map[string]string {
 // `Faster` and `Slower` must carry the NEGATED read and the three settings the
 // plain one, and swapping either way is what the two sub-cases separate.
 func TestTheSettingsKeysCarryTheirModifier(t *testing.T) {
-	got := bindingSource(t)
 	for _, tc := range []struct {
-		field   string
-		key     string
-		ctrl    bool // the plain read must be present
-		notCtrl bool // the negated read must be present
-		row     string
+		field  string
+		action missionKeyAction
+		key    ebiten.Key
+		ctrl   keyMod
+		row    string
 	}{
-		{"Retreat", "ebiten.KeyW", true, false, "MENU-057, Ctrl+W cycle retreat mode"},
-		{"Formation", "ebiten.KeyF", true, false, "MENU-057, Ctrl+F cycle formation"},
-		{"Smoothing", "ebiten.KeyO", true, false, "MENU-057, Ctrl+O toggle smoothing"},
-		{"AutoHealing", "ebiten.KeyU", true, false, "MENU-057, Ctrl+U cycle autohealing"},
-		{"TimeFlow", "ebiten.KeyN", true, false, "row 50, Ctrl+N toggle day/night changes"},
-		{"ShowHealth", "ebiten.KeyH", true, false, "row 48, Ctrl+H toggle show-health setting"},
-		{"Numerals", "ebiten.KeyL", true, false, "MENU-057, Ctrl+L toggle flying damage"},
-		{"PauseText", "ebiten.KeyPause", false, false, "row 20, Pause shows main.txt[119]"},
-		{"Faster", "ebiten.KeyNumpadAdd", false, true, "row 21, numpad + with Ctrl NOT held"},
-		{"Slower", "ebiten.KeyNumpadSubtract", false, true, "row 22, numpad - with Ctrl NOT held"},
+		{"Retreat", missionKeyRetreatSetting, ebiten.KeyW, modHeld, "MENU-057, Ctrl+W cycle retreat mode"},
+		{"Formation", missionKeyFormation, ebiten.KeyF, modHeld, "MENU-057, Ctrl+F cycle formation"},
+		{"Smoothing", missionKeySmoothing, ebiten.KeyO, modHeld, "MENU-057, Ctrl+O toggle smoothing"},
+		{"AutoHealing", missionKeyAutoHealing, ebiten.KeyU, modHeld, "MENU-057, Ctrl+U cycle autohealing"},
+		{"TimeFlow", missionKeyTimeFlow, ebiten.KeyN, modHeld, "row 50, Ctrl+N toggle day/night changes"},
+		{"ShowHealth", missionKeyShowHealth, ebiten.KeyH, modHeld, "row 48, Ctrl+H toggle show-health setting"},
+		{"Numerals", missionKeyNumerals, ebiten.KeyL, modHeld, "MENU-057, Ctrl+L toggle flying damage"},
+		{"PauseText", missionKeyPauseText, ebiten.KeyPause, modAny, "row 20, Pause shows main.txt[119]"},
+		{"Faster", missionKeyFaster, ebiten.KeyNumpadAdd, modFree, "row 21, numpad + with Ctrl NOT held"},
+		{"Slower", missionKeySlower, ebiten.KeyNumpadSubtract, modFree, "row 22, numpad - with Ctrl NOT held"},
 	} {
 		t.Run(tc.field, func(t *testing.T) {
-			expr, ok := got[tc.field]
-			if !ok {
-				t.Fatalf("readAppInput names no field %s — the binding is gone, "+
-					"so %s reaches nothing", tc.field, tc.row)
-			}
-			if !strings.Contains(expr, tc.key) {
-				t.Errorf("%s is bound to %q, which does not name %s (%s)",
-					tc.field, expr, tc.key, tc.row)
-			}
-			plain := strings.Contains(expr, "ctrlHeld()") &&
-				!strings.Contains(expr, "!ctrlHeld()")
-			negated := strings.Contains(expr, "!ctrlHeld()")
-			if tc.ctrl && !plain {
-				t.Errorf("%s is bound to %q with no unnegated ctrlHeld() — "+
-					"a bare press reaches it, and %s requires Ctrl held", tc.field, expr, tc.row)
-			}
-			if tc.notCtrl && !negated {
-				t.Errorf("%s is bound to %q with no !ctrlHeld() — "+
-					"a Ctrl-held press reaches it, and %s requires Ctrl NOT held",
-					tc.field, expr, tc.row)
-			}
-			if !tc.ctrl && !tc.notCtrl && strings.Contains(expr, "ctrlHeld()") {
-				t.Errorf("%s is bound to %q, which reads Ctrl — %s names no modifier",
-					tc.field, expr, tc.row)
+			requireMissionRow(t, tc.action, tc.key, tc.ctrl)
+			if t.Failed() {
+				t.Logf("%s: %s", tc.field, tc.row)
 			}
 		})
 	}
@@ -147,16 +126,22 @@ func TestTheSettingsKeysCarryTheirModifier(t *testing.T) {
 // named exactly once, by TimeFlow, and that one naming must carry Ctrl — which
 // is the case above. Together the two say bare `N` does nothing.
 func TestBareNIsNoLongerBound(t *testing.T) {
-	got := bindingSource(t)
-	naming := []string{}
-	for field, expr := range got {
+	for field, expr := range bindingSource(t) {
 		if strings.Contains(expr, "ebiten.KeyN)") {
-			naming = append(naming, field)
+			t.Errorf("readAppInput's %s names ebiten.KeyN outside the mission key table", field)
 		}
 	}
-	if len(naming) != 1 || naming[0] != "TimeFlow" {
-		t.Errorf("ebiten.KeyN is named by %v, want exactly [TimeFlow] — "+
-			"a second naming is a bare-N binding this build no longer has", naming)
+	for _, p := range missionKeyGameProfiles {
+		naming := []missionKeyAction{}
+		for _, b := range missionBindings(p) {
+			if b.key == ebiten.KeyN {
+				naming = append(naming, b.action)
+			}
+		}
+		if len(naming) != 1 || naming[0] != missionKeyTimeFlow {
+			t.Errorf("profile %d: ebiten.KeyN is bound to %v, want exactly [TimeFlow] — "+
+				"a second naming is a bare-N binding this build no longer has", p, naming)
+		}
 	}
 }
 

@@ -80,14 +80,17 @@ func (a *App) HeadlessMapCursor() (string, bool) {
 
 // HeadlessKey dispatches one key edge through App.step.  The names are part of
 // the scenario vocabulary rather than a second set of game commands. enter and
-// numpad-enter are read through the Enter binding a windowed tick asks.
+// numpad-enter are read through the Enter binding a windowed tick asks. A
+// mission key is named by its row of the mission key table, with ctrl- or
+// shift- for a held modifier; an action name presses the action itself.
 func (a *App) HeadlessKey(name string) error {
 	if a == nil || a.flow == nil {
 		return fmt.Errorf("headless key: nil application")
 	}
 	in := a.headlessIdleInput()
 	in.AnyKey = true
-	switch strings.ToLower(strings.TrimSpace(name)) {
+	keys := a.activeMissionKeys()
+	switch key := strings.ToLower(strings.TrimSpace(name)); key {
 	case "enter":
 		in.Enter = enterPressed(onlyKey(ebiten.KeyEnter))
 	case "numpad-enter":
@@ -98,13 +101,7 @@ func (a *App) HeadlessKey(name string) error {
 		in.Load = true
 	case "l":
 		in.Load = true
-		in.missionKeyNamed(a.activeMissionKeys(), "l")
-	case "f2":
-		in.SaveGame = true
-	case "f3":
-		in.LoadGame = true
-	case "f4", "f9", "f10", "f11", "f12", "ctrl-shift-f4":
-		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
+		in.missionKeyNamed(keys, "l")
 	case "readout":
 		in.Readout = true
 	case "fps":
@@ -114,21 +111,21 @@ func (a *App) HeadlessKey(name string) error {
 	case "alt-backspace":
 		in.Viewer.Alt, in.Backspace = true, true
 	case "alt-f12":
-		in.Viewer.Alt, in.FPS = true, true
-	case "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6", "ctrl-f7", "ctrl-f8":
-		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
-	case "numpad-plus":
-		in.Faster = true
-	case "numpad-minus":
-		in.Slower = true
-	case "ctrl-numpad-plus":
-		in.Unpaced = true
-	case "ctrl-numpad-minus":
-		in.Paced = true
-	case "f1", "help":
+		in.Viewer.Alt = true
+		in.missionKeyNamed(keys, "f12")
+	case "ctrl-numpad-plus", "ctrl-numpad-minus":
+		// The chord without the Ctrl level, as these names always gave it.
+		if pressed, ok := namedMissionKey(keys, strings.TrimPrefix(key, "ctrl-")); ok {
+			in.readMissionKeys(keys, pressed, true)
+		}
+	case "ctrl-n", "ctrl-o", "ctrl-u", "ctrl-h", "ctrl-l", "ctrl-f", "ctrl-w":
+		// The Ctrl level without the attack modifier, as these names always gave it.
+		in.Viewer.Ctrl = true
+		if pressed, ok := namedMissionKey(keys, strings.TrimPrefix(key, "ctrl-")); ok {
+			in.readMissionKeys(keys, pressed, true)
+		}
+	case "help":
 		in.Help = true
-	case "c":
-		in.missionKeyNamed(a.activeMissionKeys(), "c")
 	case "cast":
 		in.Cast = true
 	case "pageup":
@@ -151,41 +148,17 @@ func (a *App) HeadlessKey(name string) error {
 		in.Home, in.ShiftHeld, in.Viewer.Shift = true, true, true
 	case "shift-end":
 		in.End, in.ShiftHeld, in.Viewer.Shift = true, true, true
-	case "space":
-		in.Panels = true
-	case "0", "numpad-0":
-		in.Pause = true
-	case "ctrl-n":
-		in.TimeFlow, in.Viewer.Ctrl = true, true
-	case "ctrl-o":
-		in.Smoothing, in.Viewer.Ctrl = true, true
-	case "ctrl-u":
-		in.AutoHealing, in.Viewer.Ctrl = true, true
-	case "ctrl-h":
-		in.ShowHealth, in.Viewer.Ctrl = true, true
-	case "ctrl-l":
-		in.Numerals, in.Viewer.Ctrl = true, true
-	case "ctrl-f":
-		in.Formation, in.Viewer.Ctrl = true, true
-	case "ctrl-w":
-		in.Retreat, in.Viewer.Ctrl = true, true
-	case "a", "attack":
+	case "attack":
 		in.Attack = true
-	case "r":
-		in.missionKeyNamed(a.activeMissionKeys(), "r")
 	case "retreat":
 		in.PlayerRetreat = true
-	case "d":
-		in.missionKeyNamed(a.activeMissionKeys(), "d")
 	case "defend":
 		in.Defend = true
-	case "p", "f":
-		in.missionKeyNamed(a.activeMissionKeys(), strings.ToLower(strings.TrimSpace(name)))
 	case "patrol":
 		in.Patrol = true
 	case "grab":
 		in.Grab = true
-	case "e", "select-all":
+	case "select-all":
 		in.SelectAll = true
 	case "tab":
 		// App dispatches Tab by screen: town pane mode or dialog focus.
@@ -194,6 +167,7 @@ func (a *App) HeadlessKey(name string) error {
 		in.PaneMode, in.ShiftHeld = true, true
 	case "backspace":
 		in.Backspace = true
+		in.missionKeyNamed(keys, "backspace")
 	case "delete":
 		in.Delete = true
 	case "home":
@@ -204,30 +178,32 @@ func (a *App) HeadlessKey(name string) error {
 		in.SelectText = true
 	case "autocast":
 		in.Autocast, in.SelectText, in.Viewer.Ctrl = true, true, true
-	case "w", "weapon-swap":
+	case "weapon-swap":
 		in.WeaponSwap = true
 	case "zoom-reset":
 		in.ZoomReset = true
 	case "speed-reset":
 		in.SpeedReset = true
-	case "book", "b", "q":
+	case "book":
 		in.Book = true
-	case "inventory", "i", "backquote", "`":
+	case "inventory":
 		in.Inventory = true
-	case "doll", "j":
+	case "`":
+		in.missionKeyNamed(keys, "backquote")
+	case "doll":
 		in.Doll = true
 	default:
-		key := strings.ToLower(strings.TrimSpace(name))
-		if in.missionKeyNamed(a.activeMissionKeys(), key) {
+		if in.missionKeyNamed(keys, key) {
 			break
 		}
 		if len(key) != 5 || key[:4] != "alt-" || key[4] < 'a' || key[4] > 'z' {
 			return fmt.Errorf("headless key: unknown key %q; accepted keys: %s, mission binding names with ctrl- or shift-, and alt- followed by a letter a to z",
 				name, strings.Join(headlessKeyNames, ", "))
 		}
+		// The console letter and the plain letter's rows, as the chord reads.
 		in.Viewer.Alt = true
 		in.AltLetter = readAltLetter(true, onlyKey(altLetterKeys[key[4]-'a']))
-		in.setAltLetter(key[4], a.activeMissionKeys())
+		in.missionKeyNamed(keys, key[4:])
 	}
 	if a.step(in, a.headlessAt()) {
 		return fmt.Errorf("headless key %q requested application exit", name)
@@ -235,17 +211,16 @@ func (a *App) HeadlessKey(name string) error {
 	return nil
 }
 
-// headlessKeyNames are the names HeadlessKey accepts, besides alt- followed
-// by one letter, a to z.
+// headlessKeyNames are the names HeadlessKey's cases accept; the names of
+// the mission key table's rows and alt- followed by one letter, a to z, are
+// accepted besides.
 var headlessKeyNames = []string{
-	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "ctrl-shift-f4", "f9", "f10", "f11", "readout",
-	"f12", "fps", "alt-enter", "alt-backspace", "alt-f12", "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6",
-	"ctrl-f7", "ctrl-f8", "numpad-plus", "numpad-minus", "ctrl-numpad-plus", "ctrl-numpad-minus", "f1", "help",
-	"c", "cast", "pageup", "pagedown", "up", "down", "left", "right", "shift-left", "shift-right", "shift-home",
-	"shift-end", "space", "0", "numpad-0", "ctrl-n", "ctrl-o", "ctrl-u", "ctrl-h", "ctrl-l", "ctrl-f", "ctrl-w",
-	"a", "attack", "r", "retreat", "d", "defend", "p", "patrol", "f", "grab", "e", "select-all", "tab",
-	"shift-tab", "backspace", "delete", "home", "end", "ctrl-a", "autocast", "w", "weapon-swap", "zoom-reset",
-	"speed-reset", "book", "b", "q", "inventory", "i", "backquote", "`", "doll", "j",
+	"enter", "numpad-enter", "escape", "esc", "load", "l", "readout", "fps", "alt-enter", "alt-backspace",
+	"alt-f12", "ctrl-numpad-plus", "ctrl-numpad-minus", "ctrl-n", "ctrl-o", "ctrl-u", "ctrl-h", "ctrl-l",
+	"ctrl-f", "ctrl-w", "help", "cast", "pageup", "pagedown", "up", "down", "left", "right", "shift-left",
+	"shift-right", "shift-home", "shift-end", "attack", "retreat", "defend", "patrol", "grab", "select-all",
+	"tab", "shift-tab", "backspace", "delete", "home", "end", "ctrl-a", "autocast", "weapon-swap",
+	"zoom-reset", "speed-reset", "book", "inventory", "`", "doll",
 }
 
 // HeadlessSelection reports the map controller's current selection without
@@ -1302,19 +1277,4 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 		return fmt.Errorf("headless select entity %d: production controller selected %d (present=%v)", id, got, ok)
 	}
 	return nil
-}
-
-// setAltLetter raises the plain-letter field of a headless Alt chord's key.
-func (in *appInput) setAltLetter(letter byte, keys missionKeyAction) {
-	in.missionKeyNamed(keys, string(letter))
-	switch letter {
-	case 'b', 'q':
-		in.Book = true
-	case 'e':
-		in.SelectAll = true
-	case 'i':
-		in.Inventory = true
-	case 'j':
-		in.Doll = true
-	}
 }

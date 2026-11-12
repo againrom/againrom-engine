@@ -11,22 +11,17 @@ import (
 func TestDebugChordsAreBoundOnlyToTheirChords(t *testing.T) {
 	got := bindingSource(t)
 	for _, tc := range []struct {
-		field string
-		key   string
+		action missionKeyAction
+		key    ebiten.Key
 	}{
-		{"Kill", "ebiten.KeyK"},
-		{"Chip", "ebiten.KeySemicolon"},
+		{missionKeyKill, ebiten.KeyK},
+		{missionKeyChip, ebiten.KeySemicolon},
 	} {
-		expr, ok := got[tc.field]
-		if !ok {
-			t.Fatalf("readAppInput names no %s binding", tc.field)
-		}
-		if !strings.Contains(expr, tc.key) || !strings.Contains(expr, "shiftHeld") ||
-			!strings.Contains(expr, "ctrlHeld()") || strings.Contains(expr, "!ctrlHeld()") {
-			t.Errorf("%s is bound to %q, want %s with Ctrl and Shift held", tc.field, expr, tc.key)
-		}
-		if tc.field != "Reveal" && strings.Contains(expr, "ebiten.KeyL") {
-			t.Errorf("%s still reads L: %q", tc.field, expr)
+		for _, p := range missionKeyGameProfiles {
+			rows := missionRowsFor(p, tc.action)
+			if len(rows) != 1 || rows[0].key != tc.key || rows[0].ctrl != modHeld || rows[0].shift != modHeld || rows[0].hold {
+				t.Errorf("profile %d: %s is bound to %+v, want %v with Ctrl and Shift held", p, missionKeyActionNames[tc.action], rows, tc.key)
+			}
 		}
 	}
 	for _, ctrl := range []bool{false, true} {
