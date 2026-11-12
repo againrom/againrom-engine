@@ -278,7 +278,7 @@ func (s *Shop) GenerateWith(t *mapload.Table, seed int64, stock *random.Stream) 
 }
 
 func (s *Shop) RestockWith(t *mapload.Table, seed int64, stock *random.Stream) bool {
-	if s == nil || t == nil || s.profile().blockRestock && len(s.table) != 0 {
+	if s == nil || t == nil || s.dealHolds() {
 		return false
 	}
 	if s.profile().rawStream {
@@ -295,6 +295,10 @@ func (s *Shop) RestockWith(t *mapload.Table, seed int64, stock *random.Stream) b
 	s.GenerateWith(t, seed, stock)
 	return true
 }
+
+// dealHolds reports an open deal that keeps the stock: a place remains on
+// the table and the profile refuses a restock under it (owner ruling).
+func (s *Shop) dealHolds() bool { return s.profile().blockRestock && len(s.table) != 0 }
 
 func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	if s == nil {

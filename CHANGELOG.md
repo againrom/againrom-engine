@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] The debug keys K, L and Shift+F4 no longer act in a mission by accident. Kill, chip and map reveal moved to Ctrl+Shift+K, Ctrl+Shift+; and Ctrl+Shift+F4, and work only after the cheats are unlocked.
+- [ROM2] The shop of a town has new goods each time your party comes back to the town from the world map, as in the original; before, the goods stayed the same until you slept at the inn or loaded a save.
 
 ### For map makers and modders
 

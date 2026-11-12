@@ -254,12 +254,46 @@ func (s *Shop) leave(bag *[]sim.ItemInstance) {
 	s.dropEmptied(s.rules())
 }
 
-// drawStock draws the stock of location anew from its record: the draw a
-// LOAD of a save made in a town makes before the shop can be entered, and the
-// draw a Sleep makes. A SAV carries no stock.
+// drawStock draws the stock of location anew from its record. A SAV carries
+// no stock.
 func (s *Shop) drawStock(tables secondshop.Tables, location int, rnd secondshop.Rand) {
 	s.category, s.tables, s.location = 0, tables, location
 	s.generate(nil, shopRawDraw(rnd))
+}
+
+// shopArrival is what a town arrival's refill reads: the install's shop
+// tables, the launch's stock multiplier, the town arrived at and the shop
+// stock stream.
+type shopArrival struct {
+	tables     secondshop.Tables
+	multiplier int32
+	location   int
+	rnd        secondshop.Rand
+}
+
+// refill is the second game's arrival refill (R2-ENGINE-470,
+// R2-ENGINE-471): every category is emptied and drawn anew from the record
+// of the town arrived at; an open deal keeps the stock.
+func (s *Shop) refill(a shopArrival) bool {
+	if s.dealHolds() {
+		return false
+	}
+	s.stockMultiplier = a.multiplier
+	s.drawStock(a.tables, a.location, a.rnd)
+	return true
+}
+
+// refillShop sends a town arrival's refill to the campaign's shop: the
+// travel's end at a town and a LOAD in a town, before the shop can be
+// entered. An arrival at a mission sends none. The refill is read from the
+// shop's own policy, whose bindings reach the world map that calls this.
+func (c *secondCampaign) refillShop(a shopArrival) bool {
+	p := c.shop.policy
+	if c.current.kind != placeTown || p == nil || p.arrivalRefill == nil {
+		return false
+	}
+	a.location = c.current.id
+	return p.arrivalRefill(&c.shop, a)
 }
 
 // currentSecondShop is the shop as the SAV writes it: the records. The

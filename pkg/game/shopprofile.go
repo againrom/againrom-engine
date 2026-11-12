@@ -12,6 +12,7 @@ type shopProfile struct {
 	shown                                              func(*townScreen) bool
 	missionVisits                                      bool
 	fillOnArrival                                      bool
+	arrivalRefill                                      func(*Shop, shopArrival) bool
 	resetCategoryOnFill                                bool
 	binding                                            func(*townScreen) shopBinding
 	wholeBasket, unpricedBack, keepEmptied             bool
@@ -57,8 +58,9 @@ var chapterShopProfile = shopProfile{
 }
 
 var bankShopProfile = shopProfile{
-	shown:        (*townScreen).bankShopShown,
-	blockRestock: true, resetCategoryOnFill: true,
+	shown:         (*townScreen).bankShopShown,
+	arrivalRefill: (*Shop).refill,
+	blockRestock:  true, resetCategoryOnFill: true,
 	binding:      (*townScreen).bankShopRow,
 	wholeBasket:  true,
 	unpricedBack: true, keepEmptied: true, fallback: ShelfBooks,

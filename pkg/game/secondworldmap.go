@@ -1,6 +1,9 @@
 package game
 
-import "againrom/pkg/ui"
+import (
+	"againrom/pkg/random"
+	"againrom/pkg/ui"
+)
 
 // The second game's campaign is a world-map campaign: the map opens whenever
 // the party stands at no location, after leaving a town or after a victory
@@ -49,6 +52,9 @@ func (t *townScreen) enterLocation(l partyPlace) ui.TownAction {
 		// Every location entry clears its slots; a mission's entry clears
 		// them as it seats.
 		enterLocation(&c.bank)
+		if tables, ok := secondShopTables(t.in.Table); ok && t.draws != nil {
+			c.refillShop(shopArrival{tables: tables, multiplier: t.switches.townInstall(t.in).stockMultiplier, rnd: t.draws.stream(random.ShopStock).Raw})
+		}
 		if err := t.sess.partyItems(t.in.Table).arriveTown(); err != nil {
 			return ui.TownAction{Msg: err.Error()}
 		}

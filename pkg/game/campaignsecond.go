@@ -215,16 +215,9 @@ func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 		r.firstCampaignRules.arriveLoaded(f, c)
 		return
 	}
-	tables, ok := secondShopTables(f.Table)
-	if ok {
+	if tables, ok := secondShopTables(f.Table); ok {
 		second.adoptLegacyHero(tables)
-	}
-	if second.current.kind != placeTown {
-		return
-	}
-	if ok {
-		second.shop.stockMultiplier = f.townInstall().stockMultiplier
-		second.shop.drawStock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
+		second.refillShop(shopArrival{tables: tables, multiplier: f.townInstall().stockMultiplier, rnd: f.randomService().Stream(random.ShopStock).Raw})
 	}
 }
 

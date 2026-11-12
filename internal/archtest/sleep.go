@@ -11,7 +11,7 @@ import (
 // SleepFile is the town's one Sleep: the runner that asks the town's shop to
 // restock and the lookup of the town description's Sleep control row.
 // Outside it, no production pkg/ code calls a shop's restock or names the
-// Sleep control, and only the LOAD arrival draws a second-game stock.
+// Sleep control, and only a town arrival's refill draws a second-game stock.
 const SleepFile = "pkg/game/sleep.go"
 
 // The shapes SleepSites names.
@@ -30,7 +30,7 @@ var SleepAllowList = map[string]struct {
 	Count  int
 	Reason string
 }{
-	"pkg/game/campaignsecond.go " + ShapeStockDraw: {1, "a LOAD of a second-game town draws its stock anew before the shop is entered (DIV-3045); it is no Sleep"},
+	"pkg/game/secondtownshop.go " + ShapeStockDraw: {1, "a second-game town arrival, the travel's end or a LOAD, draws its stock anew before the shop is entered (R2-ENGINE-470); it is no Sleep"},
 }
 
 // SleepSites reports every restock call, second-game stock draw and Sleep
