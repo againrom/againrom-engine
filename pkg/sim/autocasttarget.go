@@ -7,20 +7,21 @@ import "slices"
 func autoCastTargetAdmitted(target Entity) bool { return !target.OffMap }
 
 // autoChoiceSight is the sight one automatic choice asks of its candidates,
-// built on first use: the caster's own stamp, or the caster's side under
-// autoCastSideSight (owner, DIV-4872).
+// built on first use: the caster's own stamp, or the side of the caster's
+// player and its allies (ownOrAllied) under autoCastSideSight (owner, DIV-4872).
 type autoChoiceSight struct {
 	own  []byte
 	side *sideSight
 }
 
 // autoChoiceSees reports whether the automatic choice of caster ci may take
-// the actor at ti by sight. A living unit of the side, the caster included,
-// sees itself.
+// the actor at ti by sight. A living unit of the caster's player, the caster
+// included, sees itself.
 func (w *World) autoChoiceSees(ci, ti int, s *autoChoiceSight) bool {
 	if w.game.autoCastSideSight {
 		if s.side == nil {
-			side := w.sightOfSide(w.entities[ci].Owner)
+			c := w.entities[ci]
+			side := w.sightOfSide(c.Owner, func(e *Entity) bool { return w.ownOrAllied(&c, e) })
 			s.side = &side
 		}
 		return w.sideSees(*s.side, ti)

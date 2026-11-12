@@ -103,8 +103,9 @@ type gameProfile struct {
 	// range alone bounds it (R2-ENGINE-1136, R2-ENGINE-1143).
 	castsUnseen bool
 	// autoCastSideSight: the automatic choice takes an actor a living unit of
-	// the caster's player sees (ownerSees), not the caster's own sight; its
-	// cast's admission and release ask none (owner, DIV-4872).
+	// the caster's player or of a player allied to it sees (sightOfSide), not
+	// the caster's own sight; its cast's admission and release ask none
+	// (owner, DIV-4872).
 	autoCastSideSight bool
 	// keepsWeaponSpell: a worn Weapon always holds its spell, and an
 	// unequip keeps it (MAGIC-379).

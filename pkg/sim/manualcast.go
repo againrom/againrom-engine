@@ -209,10 +209,10 @@ func (w *World) manualCastApproach(c Command) bool {
 
 // ownerSees reports whether a living unit of owner sees the entity id.
 func (w *World) ownerSees(owner uint32, id EntityID) bool {
-	return w.sideSees(w.sightOfSide(owner), indexOfEntity(w.entities, id))
+	return w.sideSees(w.sightOfSide(owner, nil), indexOfEntity(w.entities, id))
 }
 
-// sideSight is one player's living units and the union of their actorSight
+// sideSight is one side's living units and the union of their actorSight
 // stamps: each unit's march and its attack notice.
 type sideSight struct {
 	owner   uint32
@@ -220,10 +220,13 @@ type sideSight struct {
 	stamp   []byte
 }
 
-func (w *World) sightOfSide(owner uint32) sideSight {
+// sightOfSide is the sight of the living units of owner and of the living
+// units allied admits; a nil allied admits none.
+func (w *World) sightOfSide(owner uint32, allied func(*Entity) bool) sideSight {
 	s := sideSight{owner: owner}
 	for j := range w.entities {
-		if w.entities[j].Owner == owner && w.entities[j].Alive() {
+		e := &w.entities[j]
+		if e.Alive() && (e.Owner == owner || allied != nil && allied(e)) {
 			s.members = append(s.members, j)
 		}
 	}
@@ -232,8 +235,9 @@ func (w *World) sightOfSide(owner uint32) sideSight {
 }
 
 // sideSees reports whether a unit of the side sees the actor at vi by
-// castSeesEntity. A member sees itself; any other actor needs a lit cell, and
-// an invisible one is asked of each member.
+// castSeesEntity. A living unit of the side's owner sees itself; any other
+// actor, an allied member included, needs a lit cell, and an invisible one is
+// asked of each member.
 func (w *World) sideSees(s sideSight, vi int) bool {
 	if vi < 0 || vi >= len(w.entities) {
 		return false

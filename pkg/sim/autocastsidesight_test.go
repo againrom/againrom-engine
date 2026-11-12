@@ -70,9 +70,8 @@ func TestTheSecondGameAutomaticCastTakesWhatItsSideSees(t *testing.T) {
 }
 
 // TestTheSecondGameSupportCandidatesTakeWhatTheSideSees: the support levels'
-// candidate list asks the same sight as the automatic cast: an allied unit
-// only another unit of the caster's player sees is a candidate in the second
-// game and not in the first; an own unit sees itself.
+// candidate list asks the same sight as the automatic cast: a living ally
+// lights its own cell in the second game; an own unit sees itself.
 func TestTheSecondGameSupportCandidatesTakeWhatTheSideSees(t *testing.T) {
 	t.Parallel()
 
@@ -108,7 +107,7 @@ func TestTheSecondGameSupportCandidatesTakeWhatTheSideSees(t *testing.T) {
 		second, scout bool
 		ally, own     bool
 	}{
-		{name: "second game, no scout", second: true, own: true},
+		{name: "second game, no scout", second: true, ally: true, own: true},
 		{name: "second game, a scout sees the ally", second: true, scout: true, ally: true, own: true},
 		{name: "first game, a scout sees the ally", scout: true},
 	} {
