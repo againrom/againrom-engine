@@ -12,7 +12,8 @@ func TestComputerMageCastsWithGroupSightOnlyInsideSpellRange(t *testing.T) {
 	}{
 		{name: "computer", x: 9, want: true},
 		{name: "player", human: true, x: 9},
-		{name: "second game", second: true, x: 9},
+		{name: "second game: no sight asked", second: true, x: 9, want: true},
+		{name: "second game unseen by group", second: true, unseen: true, x: 9, want: true},
 		{name: "outside spell range", x: 13, approach: true},
 		{name: "outside spell range unseen by group", unseen: true, x: 13},
 		{name: "unseen by group", unseen: true, x: 9},

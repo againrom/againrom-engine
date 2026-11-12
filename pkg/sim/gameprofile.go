@@ -69,11 +69,13 @@ type gameProfile struct {
 	// nativeWalkRefusal keeps near-search give-up separate from a known
 	// empty-route result (R2-ENGINE-1108).
 	nativeWalkRefusal bool
-	// cellCastReach: a book or scroll cast's reach compares whole Chebyshev
-	// cells (R2-ENGINE-348), not the footprint gap.
+	// cellCastReach: the automatic cast's candidate test and a scroll cast
+	// at a unit compare whole Chebyshev cells (R2-ENGINE-348), not the
+	// footprint gap. A book order at a unit keeps the footprint gap
+	// (R2-ENGINE-1143).
 	cellCastReach bool
-	// releaseRevalidates: a release asks the whole admission again: sight,
-	// reach and range (MAGIC-403 states the first game asks none).
+	// releaseRevalidates: a release asks the whole admission again: reach
+	// and range (MAGIC-403 states the first game asks none).
 	releaseRevalidates bool
 	// blowOrdersAttack: an area blow orders a victim of another owner against
 	// the caster (DIV-1600); otherwise it runs the blow hook (answerAreaBlow).
@@ -96,9 +98,10 @@ type gameProfile struct {
 	keepsSuppressedAcquirer bool
 	// noHealArmReach: no unit takes the heal arm's reach rule (MAGIC-320).
 	noHealArmReach bool
-	// noMageGroupSight: a computer mage casts on its own sight, not its
-	// Group's.
-	noMageGroupSight bool
+	// castsUnseen: a book cast at a unit asks no sight of its caster or of
+	// a computer mage's Group, at the admission or the release; the spell's
+	// range alone bounds it (R2-ENGINE-1136, R2-ENGINE-1143).
+	castsUnseen bool
 	// keepsWeaponSpell: a worn Weapon always holds its spell, and an
 	// unequip keeps it (MAGIC-379).
 	keepsWeaponSpell bool
@@ -192,7 +195,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		withdrawAnchorCells:        true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
-		noMageGroupSight:           true,
+		castsUnseen:                true,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
 		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, selfOnly: true, idleOnly: true},

@@ -41,8 +41,10 @@ func TestActorDirectedCastRefusesACurrentlyHiddenTargetWithoutSideEffects(t *tes
 	}
 }
 
-// The first game's release has no sight gate (castrelease_test.go).
-func TestTheSecondGameRechecksVisibilityBeforeReleaseButNotAfterCommit(t *testing.T) {
+// TestTheSecondGameReleasesAtATargetThatLeftSight: neither game's release
+// asks the caster's sight (castrelease_test.go; R2-ENGINE-1136,
+// R2-ENGINE-1138). The automatic cast still waits for sight.
+func TestTheSecondGameReleasesAtATargetThatLeftSight(t *testing.T) {
 	t.Parallel()
 
 	rule := hlArrow()
@@ -68,25 +70,15 @@ func TestTheSecondGameRechecksVisibilityBeforeReleaseButNotAfterCommit(t *testin
 	// Still in spell range, but outside the caster's current perception.
 	w.entities[1].X, w.entities[1].PostX = 13, 13
 	w.syncSavedPost(1)
-	for range castPeriod {
-		if events := StepObserved(w, nil); len(events) != 0 {
-			t.Fatalf("pre-release sight loss emitted %+v", events)
-		}
-	}
-	if w.entities[0].Mana != 50 || w.entities[1].HP != 100 {
-		t.Fatalf("pre-release cancellation paid/applied: mana=%d hp=%d", w.entities[0].Mana, w.entities[1].HP)
-	}
-
-	// Restore sight, release one cast, then hide the target again. Application
-	// is committed at release and is never rolled back; hidden follow-up auto
+	// The ordered cast releases at the unseen target. Application is
+	// committed at release and is never rolled back; hidden follow-up auto
 	// candidates are filtered until sight returns.
-	w.entities[1].X, w.entities[1].PostX = 11, 11
 	var released []CastEvent
-	for n := 0; n < 32 && len(released) == 0; n++ {
+	for n := 0; n < castPeriod+32 && len(released) == 0; n++ {
 		released = StepObserved(w, nil)
 	}
-	if len(released) != 1 {
-		t.Fatalf("restored visibility released %d casts, want one", len(released))
+	if len(released) != 1 || released[0].Target != 2 {
+		t.Fatalf("the cast at a target in range out of sight released %+v, want one", released)
 	}
 	hp, mana := w.entities[1].HP, w.entities[0].Mana
 	w.entities[1].X, w.entities[1].PostX = 13, 13

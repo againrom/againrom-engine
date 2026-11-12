@@ -961,11 +961,6 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 	// release, so each repeat follows it (MAGIC-428).
 	aimX, aimY := target.X, target.Y
 	healthBefore := target.HP
-	// The second game revalidates perception at release; the first game's
-	// release has no sight gate (MAGIC-403).
-	if w.game.releaseRevalidates && !w.castSeesEntity(ci, vi) {
-		return false
-	}
 	// A target without a health system spends nothing. A commanded heal on a
 	// target at its maximum is cast: the cost is paid and the apply tail clamps
 	// health at the maximum. Only the unbidden target choice skips full targets.
@@ -977,10 +972,8 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	// 6. within the decoded power-scaled range, in whole cells, by the same Chebyshev
-	// distance the rest of this package measures a separation with —
-	// cell.chebyshevTo (route.go), reused rather than restated.
-	if w.game.releaseRevalidates && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
+	// 6. within the decoded power-scaled range, by the order's reach test.
+	if w.game.releaseRevalidates && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast), reachOrder) {
 		return false
 	}
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
@@ -1454,15 +1447,25 @@ func (w *World) bookCastIndex(caster EntityID) (int, bool) {
 	return i, i < len(w.bookCasts) && w.bookCasts[i].Caster == caster
 }
 
-// withinCastReach is the unit-target cast gate. In the first game the caster
-// itself is always in reach and any other target is within the cast's reach
-// when the footprint-gap distance of the two bodies does not exceed it
-// (MAGIC-REACH-179). The second game keeps the whole-cell maximum axis between
-// the two anchor cells, the compare its own claim states (R2-ENGINE-348). A
-// cast at a cell measures the whole-cell maximum axis in both games
-// (MAGIC-REACH-180).
-func (w *World) withinCastReach(caster, target *Entity, reach int64) bool {
-	if w.game.cellCastReach {
+// castReachTest names who asks the unit-target cast gate.
+type castReachTest uint8
+
+const (
+	// reachOrder: a book order's admission and release.
+	reachOrder castReachTest = iota
+	// reachChoice: the automatic cast's candidate test and a scroll cast.
+	reachChoice
+)
+
+// withinCastReach is the unit-target cast gate. The caster itself is always
+// in reach and any other target is within the cast's reach when the
+// footprint-gap distance of the two bodies does not exceed it (MAGIC-REACH-179;
+// R2-ENGINE-1143 for the second game's order). The second game's candidate
+// test keeps the whole-cell maximum axis between the two anchor cells
+// (R2-ENGINE-348). A cast at a cell measures the whole-cell maximum axis in
+// both games (MAGIC-REACH-180).
+func (w *World) withinCastReach(caster, target *Entity, reach int64, test castReachTest) bool {
+	if test == reachChoice && w.game.cellCastReach {
 		return (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) <= reach
 	}
 	return caster.ID == target.ID || int64(edgeDistance(caster, target)) <= reach
@@ -1753,10 +1756,10 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if rule.School < skillSlots {
 		level = caster.Skill[rule.School]
 	}
-	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast))
+	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast), reachOrder)
 	// A target the computer mage's Group sees is refused for range alone, so
 	// out of range the mage walks into range with the cast armed (AI-760).
-	if !skipRange && !w.castSeesEntity(ci, vi) && !w.computerMageGroupSees(ci, vi) {
+	if !skipRange && !w.game.castsUnseen && !w.castSeesEntity(ci, vi) && !w.computerMageGroupSees(ci, vi) {
 		return refusalTargetNotVisible
 	}
 	if !skipRange && !inReach {
@@ -1782,7 +1785,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 
 func (w *World) computerMageGroupSees(ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if w.game.noMageGroupSight || !w.computerControlledUnit(caster) || !isMage(caster) {
+	if w.game.castsUnseen || !w.computerControlledUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
@@ -2482,7 +2485,7 @@ func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power 
 			continue
 		}
 		// Legacy policy applies the spell's reach, health and primary-target rules.
-		if !w.withinCastReach(&caster, &w.entities[i], reach) {
+		if !w.withinCastReach(&caster, &w.entities[i], reach, reachChoice) {
 			continue
 		}
 		t := w.entities[i]

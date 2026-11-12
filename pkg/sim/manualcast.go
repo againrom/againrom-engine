@@ -187,8 +187,9 @@ func (w *World) manualCastContinues(c Command) bool {
 // manualCastApproach reports a player's book cast refused for reach alone, or
 // at a unit the caster cannot see but a unit of its player can. The original's
 // setter parks it, its executor walks the caster into reach and its admission
-// tests no sight (MAGIC-340, MAGIC-239, MAGIC-348); here the order walks and
-// casts once the caster sees the target in reach.
+// tests no sight (MAGIC-340, MAGIC-239, MAGIC-348); here the first game's
+// order walks and casts once the caster sees the target in reach. The second
+// game's admission asks no sight (castsUnseen), so only reach refuses it.
 func (w *World) manualCastApproach(c Command) bool {
 	i := indexOfEntity(w.entities, c.Entity)
 	if i < 0 || w.computerControlledUnit(w.entities[i]) {

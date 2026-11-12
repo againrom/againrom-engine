@@ -49,11 +49,11 @@ func TestACasterAlwaysReachesItself(t *testing.T) {
 	t.Parallel()
 
 	a := Entity{ID: 1, X: 3, Y: 3, TokenSize: 1}
-	if !(&World{}).withinCastReach(&a, &a, 0) {
+	if !(&World{}).withinCastReach(&a, &a, 0, reachOrder) {
 		t.Fatal("the caster is out of reach of itself at reach 0")
 	}
 	b := Entity{ID: 2, X: 3, Y: 3, TokenSize: 1}
-	if (&World{}).withinCastReach(&a, &b, 0) {
+	if (&World{}).withinCastReach(&a, &b, 0, reachOrder) {
 		t.Fatal("another body in the caster's cell is within reach 0")
 	}
 }
@@ -88,10 +88,11 @@ func TestAScrollCastAtAWideTargetStartsAcrossTheFootprintGap(t *testing.T) {
 	}
 }
 
-// TestTheSecondGameCastReachStaysTheAnchorCells: in the second game a cast at a
-// wide target is admitted, released and gated at the anchor-cell distance, as
-// before the footprint gap reached the first game (R2-ENGINE-348).
-func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
+// TestTheSecondGameOrderReachIsTheFootprintGap: in the second game a book
+// order at a wide target is admitted and released at the footprint gap
+// (R2-ENGINE-1143); the candidate test and the scroll route keep the anchor
+// cells (R2-ENGINE-348).
+func TestTheSecondGameOrderReachIsTheFootprintGap(t *testing.T) {
 	t.Parallel()
 
 	second := func(tx int32, size uint8) *World {
@@ -99,27 +100,27 @@ func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
 		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		return w
 	}
-	// Anchor distance 8, gap distance 7: out of reach here, in reach in the first game.
+	// Anchor distance 8, gap distance 7: in reach, as in the first game.
 	wide := second(2, 2)
-	if got := wide.BookSpellRefusal(1, 2, 1); got != refusalTargetOutOfRange {
-		t.Fatalf("second game, a two-wide target at anchor distance 8: refusal %q, want %q", got, refusalTargetOutOfRange)
+	if got := wide.BookSpellRefusal(1, 2, 1); got != "" {
+		t.Fatalf("second game, a two-wide target at gap distance 7: refusal %q, want none", got)
 	}
-	if events := StepObserved(wide, []Command{spCast(1, 2, 1)}); len(events) != 0 || !wide.orderStateAt(0).approaching() {
-		t.Fatalf("second game: the cast at anchor distance 8 produced %d events or armed no approach", len(events))
-	}
-	// Anchor distance 7: admitted and released, wide or not.
-	near := second(3, 2)
-	if got := near.BookSpellRefusal(1, 2, 1); got != "" {
-		t.Fatalf("second game, a two-wide target at anchor distance 7: refusal %q, want none", got)
-	}
-	if events := spRunCast(near, spCast(1, 2, 1)); len(events) != 1 {
+	if events := spRunCast(wide, spCast(1, 2, 1)); len(events) != 1 {
 		t.Fatalf("second game: the admitted cast released %d events, want 1", len(events))
 	}
-	if got := spAt(t, near, 2).HP; got >= 100 {
+	if got := spAt(t, wide, 2).HP; got >= 100 {
 		t.Fatalf("second game: the wide target holds %d health after the release, want a hit", got)
 	}
-	// The gate agrees for the scroll route.
-	if (&World{rom2: &rom2ScriptState{}, game: newGameProfile(ScriptROM2)}).withinCastReach(&Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, &Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7) {
-		t.Fatal("second game: the gate admits anchor distance 8 at reach 7")
+	// Gap distance 8: out of reach, and the order walks.
+	far := second(1, 2)
+	if got := far.BookSpellRefusal(1, 2, 1); got != refusalTargetOutOfRange {
+		t.Fatalf("second game, a two-wide target at gap distance 8: refusal %q, want %q", got, refusalTargetOutOfRange)
+	}
+	if events := StepObserved(far, []Command{spCast(1, 2, 1)}); len(events) != 0 || !far.orderStateAt(0).approaching() {
+		t.Fatalf("second game: the cast at gap distance 8 produced %d events or armed no approach", len(events))
+	}
+	// The candidate and scroll gate still measures the anchor cells.
+	if (&World{rom2: &rom2ScriptState{}, game: newGameProfile(ScriptROM2)}).withinCastReach(&Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, &Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7, reachChoice) {
+		t.Fatal("second game: the candidate gate admits anchor distance 8 at reach 7")
 	}
 }

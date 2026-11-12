@@ -104,22 +104,28 @@ func TestAFirstGameCellCastReleasesWithoutAReachTest(t *testing.T) {
 	}
 }
 
-func TestAFirstGameCastReleasesAtATargetThatLeftSight(t *testing.T) {
+// TestACastReleasesAtATargetThatLeftSight: neither game's release asks the
+// caster's sight (MAGIC-403; R2-ENGINE-1136, R2-ENGINE-1138). The second
+// game's admission asks none either, so only the first game refuses anew.
+func TestACastReleasesAtATargetThatLeftSight(t *testing.T) {
 	for _, second := range []bool{false, true} {
 		w := releaseWorld(t, second, hlArrow())
 		w.entities[0].ScanRange = 1
 		relocate(t, w, 2, 2, 8)
 		admitCharging(t, w, 1, Cast(1, 2, 1))
 		relocate(t, w, 2, 4, 8)
-		if r := w.BookSpellRefusal(1, 2, 1); r != refusalTargetNotVisible {
-			t.Fatalf("second=%v fixture: refusal %q, want %q", second, r, refusalTargetNotVisible)
+		want := refusalTargetNotVisible
+		if second {
+			want = ""
 		}
-		events := releaseEvents(w, 1)
-		if second != (len(events) == 0) {
-			t.Fatalf("second=%v: the cast at a hidden target released %d events", second, len(events))
+		if r := w.BookSpellRefusal(1, 2, 1); r != want {
+			t.Fatalf("second=%v fixture: refusal %q, want %q", second, r, want)
 		}
-		if !second && spAt(t, w, 2).HP >= 500 {
-			t.Fatal("first game: the release at the hidden target did not hit")
+		if events := releaseEvents(w, 1); len(events) == 0 {
+			t.Fatalf("second=%v: the cast at a hidden target released no event", second)
+		}
+		if spAt(t, w, 2).HP >= 500 {
+			t.Fatalf("second=%v: the release at the hidden target did not hit", second)
 		}
 	}
 }
