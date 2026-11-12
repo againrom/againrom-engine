@@ -69,7 +69,7 @@ func TestMissionLetterActionsKeepTheFirstGameAndGateControlInTheSecond(t *testin
 					a.SetMissionKeys(profile)
 					v.selectedSpell = 89
 					calls := 0
-					a.flow.stance = func(uint32, bool) { calls++ }
+					a.flow.stance = func(uint32, StanceOrder) { calls++ }
 					v.SetPlayerRetreatSink(func([]uint32) { calls++ })
 					name := key
 					if ctrl {

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // vocSeams is the driver with a stance and a march already issued, and the
@@ -30,18 +31,19 @@ func TestTheStanceSeamConvertsTheBoolToAnOrderByte(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		name  string
-		guard bool
-		want  int32
+		name   string
+		stance ui.StanceOrder
+		want   int32
 	}{
-		{"guard", true, sim.OrderGuard},
-		{"stand ground", false, sim.OrderStandGround},
+		{"guard", ui.StanceGuard, sim.OrderGuard},
+		{"stand ground", ui.StanceStandGround, sim.OrderStandGround},
+		{"support", ui.StanceSupport, sim.OrderSupport},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := vocPending(t, func(mw *mapWorld) {
-				mw.stance(uint32(groupIDs[0]), tc.guard)
-				mw.stance(uint32(groupIDs[1]), tc.guard)
+				mw.stance(uint32(groupIDs[0]), tc.stance)
+				mw.stance(uint32(groupIDs[1]), tc.stance)
 			})
 			if len(got) != 2 {
 				t.Fatalf("the queue holds %d commands, want 2", len(got))
@@ -105,8 +107,8 @@ func TestTwoDifferentOrdersNeverShareATag(t *testing.T) {
 	t.Parallel()
 
 	got := vocPending(t, func(mw *mapWorld) {
-		mw.stance(uint32(groupIDs[0]), true)
-		mw.stance(uint32(groupIDs[1]), true)
+		mw.stance(uint32(groupIDs[0]), ui.StanceGuard)
+		mw.stance(uint32(groupIDs[1]), ui.StanceGuard)
 		mw.enqueue(uint32(groupIDs[2]), 6, 3)
 		mw.march(uint32(groupIDs[3]), false, 6, 3)
 	})
@@ -131,7 +133,7 @@ func TestEveryVocabularySeamMarksItsEntityCommanded(t *testing.T) {
 	t.Parallel()
 
 	mw := groupDriver(t)
-	mw.stance(uint32(groupIDs[0]), true)
+	mw.stance(uint32(groupIDs[0]), ui.StanceGuard)
 	mw.march(uint32(groupIDs[1]), true, 6, 3)
 	for _, id := range groupIDs[:2] {
 		if !mw.commanded[sim.EntityID(id)] {

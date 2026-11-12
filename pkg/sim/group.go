@@ -142,7 +142,7 @@ func (w *World) groupOrder(cmds []Command, first int, consumed []bool) {
 		}
 	}
 	ordered := cell{x: cmds[first].X, y: cmds[first].Y}
-	if kind == KindGroupStance && ordered.x != int32(orderGuard) && ordered.x != int32(orderStandGround) {
+	if kind == KindGroupStance && !w.stanceAdmitted(ordered.x) {
 		return
 	}
 	if kind == KindGroupDefend {
@@ -184,8 +184,14 @@ func isGroupKind(kind uint8) bool {
 	return false
 }
 
+// stanceAdmitted reports a stance order this World's game has: Guard and Stand
+// Ground in both games, L's order in the second.
+func (w *World) stanceAdmitted(order int32) bool {
+	return order == OrderGuard || order == OrderStandGround || order == OrderSupport && w.game.orders.supportOrder
+}
+
 func (w *World) commandStance(members []int, order int32) {
-	if order != int32(orderGuard) && order != int32(orderStandGround) {
+	if !w.stanceAdmitted(order) {
 		return
 	}
 	defer func() {
@@ -197,8 +203,11 @@ func (w *World) commandStance(members []int, order int32) {
 	for _, mi := range members {
 		w.entities[mi].PostX, w.entities[mi].PostY = w.entities[mi].X, w.entities[mi].Y
 	}
-	if order == int32(orderStandGround) {
+	switch order {
+	case OrderStandGround:
 		w.commandStandGround(members)
+	case OrderSupport:
+		w.commandSupport(members)
 	}
 }
 

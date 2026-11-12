@@ -459,6 +459,8 @@ type appInput struct {
 	GrabReply     bool
 	March         bool
 	Defend        bool
+	// Support is the second game's L order key (R2-ENGINE-1179).
+	Support bool
 	// Move is the command panel's own Move cell and its keyboard mirror
 	// (docs/1028-command-panel contract B3/B4). It arms `commandMove`
 	// exactly the way Patrol arms `commandPatrol` and March arms
@@ -2361,20 +2363,27 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 				v.issuePlayerRetreat()
 			}
 			v.replyRetreat(now)
-			if in.Guard || in.StandGround || pendingGuard || pendingStandGround {
+			if in.Guard || in.StandGround || in.Support || pendingGuard || pendingStandGround {
 				if stance := a.flow.stance; stance != nil {
 					marked := v.marked()
 					if in.Guard || pendingGuard {
 						for _, id := range marked {
-							stance(id, true)
+							stance(id, StanceGuard)
 						}
 						v.replyOrder(VoiceGuard, marked, now)
 					}
 					if in.StandGround || pendingStandGround {
 						for _, id := range marked {
-							stance(id, false)
+							stance(id, StanceStandGround)
 						}
 						v.replyOrder(VoiceStandGround, marked, now)
+					}
+					if in.Support {
+						for _, id := range marked {
+							stance(id, StanceSupport)
+						}
+						// L calls the defend gesture (R2-ENGINE-1179).
+						v.replyOrder(VoiceDefend, marked, now)
 					}
 				}
 			}

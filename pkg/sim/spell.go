@@ -2328,7 +2328,12 @@ func (w *World) autoCast(ci int) {
 	if _, using := w.structureUseIndex(w.entities[ci].ID); using {
 		return
 	}
-	for _, rule := range w.autoCastOrder(ci) {
+	order := w.autoCastOrder(ci)
+	if w.entities[ci].ActorState == actorStateSupport {
+		// Under L's order the caster runs the support routine alone (DIV-4894).
+		order = nil
+	}
+	for _, rule := range order {
 		target, found := w.autoCastTarget(ci, rule)
 		if !found {
 			continue

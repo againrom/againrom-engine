@@ -266,23 +266,29 @@ type MapGrab func(entity uint32, col, row int, action GrabAction)
 // of the key it is bound to — never on any other screen — and nothing
 // else calls it at all.
 //
-// A uint32 AND A BOOL ARE THE WHOLE PAYLOAD, for the same reason MapTick takes
-// none: this package may import the render tier and no other, so it must not be
-// able to name a simulation type. The id was minted on the far side and arrived
-// in a MapEntity, so this package still cannot CONSTRUCT one.
-//
-// THE BOOL IS THE WHOLE CHOICE, and it is a bool rather than a kind byte for
-// MapAffect's own reason: this side names the two things it can ask for, not the
-// command stream that answers them. TRUE is "hold this ground, and you may leave
-// it to meet what you notice — and come back to it afterwards"; FALSE is "hold
-// exactly this cell". Which of the law's own order bytes each becomes is decided
-// wholly on the far side, and neither number appears anywhere in this package.
+// A uint32 AND A StanceOrder ARE THE WHOLE PAYLOAD, for the same reason
+// MapTick takes none: this package may import the render tier and no other, so
+// it must not be able to name a simulation type. The id was minted on the far
+// side and arrived in a MapEntity, so this package still cannot CONSTRUCT one.
+// Which order byte each StanceOrder becomes is decided wholly on the far side.
 //
 // IT IS A FIFTH SEAM beside MapOrder, MapAffect, MapAttack and MapGrab rather
-// than a widening of any of them. Widened onto MapOrder, every existing call
-// site would have to say it is not a stance, and every move would carry a flag
-// it never means; widened onto MapAttack, a standing order would carry a victim.
-type MapStance func(entity uint32, guard bool)
+// than a widening of any of them: a standing order carries no cell and no victim.
+type MapStance func(entity uint32, order StanceOrder)
+
+// StanceOrder names the cell-free standing order a MapStance call asks for.
+type StanceOrder uint8
+
+const (
+	// StanceStandGround holds exactly this cell.
+	StanceStandGround StanceOrder = iota
+	// StanceGuard holds this ground and may leave it to meet what the unit
+	// notices, coming back afterwards.
+	StanceGuard
+	// StanceSupport is the second game's L order: stand, and a caster
+	// supports its side.
+	StanceSupport
+)
 
 // MapMarch issues one AIMED STANDING ORDER into whatever the loader put
 // under the open map screen: the entity ordered, which of the two the order

@@ -224,6 +224,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			lookAround:               true,
 			repickEmptyRoute:         true,
 			primaryCells:             true,
+			supportOrder:             true,
 		},
 	}
 }

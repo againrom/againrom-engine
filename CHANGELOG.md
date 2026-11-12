@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A defender standing too close steps away along the line between the two characters, with the destination kept inside the map.
 - [ROM2] After unlocking cheats, use Ctrl+Shift+F10 for the grid and Ctrl+Shift+F11 for the debug readout.
 - [ROM2] Press P to send your selected heroes to pick up a nearby sack, even when they are not standing on it.
+- [ROM2] Press L in a mission to make your selected units stand still: fighters do not attack or strike back, and mages heal and protect your side from where they stand. Any other order ends it. The first game keeps its L key as before.
 - [BASE] With Smoothing on (Ctrl+O), the mission map is drawn smooth when you zoom it with the wheel, without blocky pixels or flicker while it scrolls, and each turn of the wheel shows the zoom in percent; before, a zoomed map looked blocky and nothing showed the zoom.
 - [BASE] The debug keys K, L and Shift+F4 no longer act in a mission by accident. Kill, chip and map reveal moved to Ctrl+Shift+K, Ctrl+Shift+; and Ctrl+Shift+F4, and work only after the cheats are unlocked.
 - [ROM2] The shop of a town has new goods each time your party comes back to the town from the world map, as in the original; before, the goods stayed the same until you slept at the inn or loaded a save.

@@ -810,6 +810,8 @@ const (
 	actorStateAcquire        uint8 = 0xc
 	actorStateFollow         uint8 = 0x11
 	actorStateRetreat        uint8 = 0x16
+	// actorStateSupport is the second game's L order (R2-ENGINE-1199).
+	actorStateSupport uint8 = 0x17
 )
 
 // escortState reports whether s is one of the two states that carry an escort
@@ -835,7 +837,7 @@ func LivingOnlyActorState(s uint32) bool { return s <= 0xff && livingOnlyState(u
 func actorStateDefined(s uint8) bool {
 	switch s {
 	case actorStateGuard, actorStatePatrol, actorStatePickupComplete, actorStateEngage,
-		actorStateDefend, actorStateAcquire, actorStateFollow, actorStateRetreat:
+		actorStateDefend, actorStateAcquire, actorStateFollow, actorStateRetreat, actorStateSupport:
 		return true
 	}
 	return false
@@ -895,10 +897,10 @@ func patrolFault(e Entity) error {
 	switch {
 	case !actorStateDefined(e.ActorState):
 		return fmt.Errorf("actor state is %d, which is not one of guard (%d), patrol (%d), "+
-			"defend (%d), acquire (%d), follow (%d), retreat (%d), engage (%d) or pickup completion (%d)",
+			"defend (%d), acquire (%d), follow (%d), retreat (%d), engage (%d), pickup completion (%d) or support (%d)",
 			e.ActorState, actorStateGuard, actorStatePatrol,
 			actorStateDefend, actorStateAcquire, actorStateFollow, actorStateRetreat,
-			actorStateEngage, actorStatePickupComplete)
+			actorStateEngage, actorStatePickupComplete, actorStateSupport)
 	case e.PatrolLeg != patrolLegHead && e.PatrolLeg != patrolLegTail:
 		return fmt.Errorf("patrol leg is %d, which is neither head (%d) nor tail (%d)",
 			e.PatrolLeg, patrolLegHead, patrolLegTail)

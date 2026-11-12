@@ -55,6 +55,11 @@ func (w *World) ImportOriginalActorActions(actions []OriginalActorAction) error 
 				e.EscortTurnPending = o.Raw[0x54] != 0
 			}
 		}
+		if state == actorStateSupport && !staged.supportState(uint32(state)) {
+			// Only the second game has L's order; elsewhere the raw state
+			// stays unforwarded, as before it was named.
+			state = 0
+		}
 		if !e.Alive() && livingOnlyState(state) {
 			// A body holds no order a living actor holds: the state is
 			// residue, dropped as the World constructor drops it (DIV-1433).

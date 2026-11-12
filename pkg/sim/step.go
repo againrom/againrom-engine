@@ -194,19 +194,14 @@ const (
 	KindPlayerParameter uint8 = 0x46
 )
 
-// OrderGuard and OrderStandGround are the two values KindGroupStance's X may
-// carry: the group order bytes for Guard and Stand Ground.
-//
-// They are exported because a caller of Step has to be able to name which of
-// the two it is asking for, and X is where the arm reads it. They ALIAS the
-// constants the engagement pass itself forks on rather than re-spelling the
-// numbers, so a caller and the arm cannot come to disagree about a value; and
-// they are the only two of the six that are exported, because they are the only
-// two this command carries — everything else about the vocabulary stays behind
-// its own command kind.
+// OrderGuard, OrderStandGround and OrderSupport are the values KindGroupStance's
+// X may carry: the programme bytes of Guard, Stand Ground and the second game's
+// L order. They alias the constants the group pass forks on, so a caller and
+// the arm cannot disagree about a value.
 const (
 	OrderGuard       = int32(orderGuard)
 	OrderStandGround = int32(orderStandGround)
+	OrderSupport     = int32(programmeSupport)
 )
 
 // killHP is the shallow dead value the historic debug kill leaves behind. It
@@ -574,6 +569,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		case KindUseStructure:
 			if w.beginStructureUse(i, StructureID(uint32(c.X))) {
 				w.dropCastApproach(i)
+				w.leaveSupport(i)
 				claim(e.ID)
 			}
 		case KindMoveTo, KindPickUp:
@@ -620,6 +616,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// hit; it fires only when the order actually changes the target,
 			// so a re-issued identical destination keeps its route.
 			w.attachMoveOrder(i, c.X, c.Y, c.Kind == KindPickUp)
+			w.leaveSupport(i)
 			// A MOVEMENT ORDER IN FORCE KEEPS THE AUTOMATIC CAST AWAY: the
 			// sweep acts only at the moment a player's cast would act at once
 			// (autoCastMoment), so no unit casts on the move (owner).
@@ -724,7 +721,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 			if w.attachAttack(i, victim, kind, true) {
 				w.cancelStructureUse(w.entities[i].ID)
-				if escortState(e.ActorState) || e.ActorState == actorStateAcquire || e.ActorState == actorStateRetreat || e.ActorState == actorStatePickupComplete || w.savedMoveGroup(e.ID) {
+				if escortState(e.ActorState) || e.ActorState == actorStateAcquire || e.ActorState == actorStateRetreat || e.ActorState == actorStatePickupComplete || e.ActorState == actorStateSupport || w.savedMoveGroup(e.ID) {
 					w.commandGroup([]int{i}, orderNone, cell{})
 				}
 				// THE ORDER CARRIES THE ENGAGE STATE (1141). `AI-CMD-054`
@@ -762,6 +759,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 		case KindCast, KindCastAt:
 			if w.beginManualCast(i, c) {
+				w.leaveSupport(i)
 				claim(c.Entity)
 			}
 		case KindDropCarried:
@@ -783,6 +781,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		case KindUseScroll, KindUseScrollAt:
 			if w.beginScroll(i, int(c.Spell), EntityID(uint32(c.X)), c.X, c.Y, c.Kind == KindUseScrollAt) {
 				w.dropCastApproach(i)
+				w.leaveSupport(i)
 				claim(e.ID)
 			}
 		}

@@ -27,7 +27,7 @@ func pickupBindingBypass(src string) bool {
 			for _, label := range n.List {
 				if lit, ok := label.(*ast.BasicLit); ok {
 					name := strings.Trim(lit.Value, "\"'")
-					physical = physical || strings.Contains(" p f g d c s t r m f4 f5 f6 f7 f8 f9 f10 f11 f12 ", " "+name+" ")
+					physical = physical || strings.Contains(" p f g d c s t r m l f4 f5 f6 f7 f8 f9 f10 f11 f12 ", " "+name+" ")
 				}
 			}
 			if physical {
@@ -51,7 +51,7 @@ func pickupBindingBypass(src string) bool {
 }
 
 func missionBindingField(name string) bool {
-	return strings.Contains(" Grab Patrol Guard Defend Cast March StandGround PlayerRetreat Move QuickSpell QuickSave QuickLoad Grid Readout FPS Reveal ", " "+name+" ")
+	return strings.Contains(" Grab Patrol Guard Defend Cast March StandGround PlayerRetreat Move Support QuickSpell QuickSave QuickLoad Grid Readout FPS Reveal ", " "+name+" ")
 }
 
 func TestPickupAndPatrolKeysUseOneBindingTable(t *testing.T) {

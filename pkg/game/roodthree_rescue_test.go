@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 func ownerRoodRecord(t *testing.T, doc sav.DocumentData) *sav.DocumentRecordData {
@@ -284,7 +285,7 @@ func roodFallAndHeal(t *testing.T, input []byte, fallenHP int32) {
 	if moved.X != at.X || moved.Y != at.Y || !moved.Alive() || moved.Defence != roodHealedDefence {
 		t.Fatalf("recovered Rood did not walk: %+v", moved)
 	}
-	cold.live.stance(uint32(moved.ID), true)
+	cold.live.stance(uint32(moved.ID), ui.StanceGuard)
 	cold.live.tick()
 	guard := ownerRoodPartyEntity(t, cold)
 	checkTraining("cold next Guard", guard)
@@ -386,7 +387,7 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 			if moved.X != at.X || moved.Y != at.Y || moved.HP <= 0 || moved.Decay != sim.DecayNone {
 				t.Fatalf("restored Rood did not walk: before=%+v after=%+v", rood, moved)
 			}
-			f.live.stance(uint32(rood.ID), true)
+			f.live.stance(uint32(rood.ID), ui.StanceGuard)
 			f.live.tick()
 			guarding := ownerRoodPartyEntity(t, f)
 			order, group, ok := holdGroupOrder(f.live.world, guarding)
@@ -413,7 +414,7 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 				resumed.Decay != sim.DecayNone || resumed.X != guarding.X || resumed.Y != guarding.Y {
 				t.Fatalf("Rood party identity or lifecycle changed across cold LOAD: before=%+v after=%+v", guarding, resumed)
 			}
-			cold.live.stance(uint32(resumed.ID), false)
+			cold.live.stance(uint32(resumed.ID), ui.StanceStandGround)
 			cold.live.tick()
 			next := ownerRoodPartyEntity(t, cold)
 			order, _, ok = holdGroupOrder(cold.live.world, next)

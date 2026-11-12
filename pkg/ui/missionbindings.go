@@ -29,6 +29,7 @@ const (
 	missionKeyReveal
 	missionKeyNone
 	missionKeyShortcut
+	missionKeySupport
 )
 
 type missionKeyBinding struct {
@@ -42,7 +43,9 @@ type missionKeyBinding struct {
 }
 
 type missionKeyPolicy struct {
-	noCtrl        bool
+	noCtrl bool
+	// supportKey binds bare L to the second game's L order (R2-ENGINE-1179).
+	supportKey    bool
 	shortcutFirst int
 	functionKeys  [9]missionKeyAction
 	shiftKeys     [9]missionKeyAction
@@ -50,7 +53,7 @@ type missionKeyPolicy struct {
 
 var missionKeyPolicies = map[missionKeyAction]missionKeyPolicy{
 	missionKeyPatrol: {shortcutFirst: 5, functionKeys: [9]missionKeyAction{missionKeyQuickSave, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyQuickLoad, missionKeyGrid, missionKeyReadout, missionKeyFPS}, shiftKeys: [9]missionKeyAction{missionKeyNone, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyQuickLoad, missionKeyGrid, missionKeyReadout, missionKeyFPS}},
-	missionKeyPickup: {noCtrl: true, shortcutFirst: 4, functionKeys: [9]missionKeyAction{missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut}, shiftKeys: [9]missionKeyAction{missionKeyQuickSave, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyQuickLoad, missionKeyGrid, missionKeyReadout, missionKeyFPS}},
+	missionKeyPickup: {noCtrl: true, supportKey: true, shortcutFirst: 4, functionKeys: [9]missionKeyAction{missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut}, shiftKeys: [9]missionKeyAction{missionKeyQuickSave, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyShortcut, missionKeyQuickLoad, missionKeyGrid, missionKeyReadout, missionKeyFPS}},
 }
 
 var missionKeyProfiles = map[string]missionKeyAction{"pickup-p": missionKeyPickup}
@@ -88,6 +91,9 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "t", key: ebiten.KeyT, action: missionKeyStandGround, noCtrl: policy.noCtrl},
 		{name: "r", key: ebiten.KeyR, action: missionKeyRetreat, noCtrl: policy.noCtrl},
 		{name: "m", key: ebiten.KeyM, action: missionKeyMove, noCtrl: policy.noCtrl},
+	}
+	if policy.supportKey {
+		rows = append(rows, missionKeyBinding{name: "l", key: ebiten.KeyL, action: missionKeySupport, noCtrl: true})
 	}
 	for i, action := range policy.functionKeys {
 		rows = append(rows, missionKeyBinding{name: "f" + strconv.Itoa(i+4), key: ebiten.Key(int(ebiten.KeyF4) + i), action: action, noShift: true})
@@ -132,6 +138,8 @@ func (in *appInput) readMissionKeys(p missionKeyAction, pressed func(ebiten.Key)
 			in.PlayerRetreat = true
 		case missionKeyMove:
 			in.Move = true
+		case missionKeySupport:
+			in.Support = true
 		case missionKeyQuickSave:
 			in.QuickSave = true
 		case missionKeyQuickLoad:

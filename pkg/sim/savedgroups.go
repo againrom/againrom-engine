@@ -308,7 +308,7 @@ func (w *World) SavedGroupIssues() []string {
 		}
 	}
 	for _, o := range w.savedGroups.Orders {
-		if !savedActorOrderSupported(o) {
+		if !savedActorOrderSupported(o) && !w.supportState(o.State) {
 			out = append(out, fmt.Sprintf("actor %d: saved state %d continuation unsupported", o.Entity, o.State))
 		}
 		if o.State == 0xa && !slices.Contains(o.Patrol, binary.LittleEndian.Uint16(o.Raw[2:])) {
@@ -563,6 +563,8 @@ func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 				order = orderSwarm2
 			}
 			w.savedDecision(g, order, obs)
+		} else if order == programmeSupport && w.game.orders.supportOrder {
+			w.supportPass(g)
 		}
 		// Every byte reaches a fresh current-head withdrawal stage.
 		w.savedWithdrawalTail(w.savedGroupByID(id), withdrawals)

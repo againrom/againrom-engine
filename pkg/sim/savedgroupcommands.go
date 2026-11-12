@@ -165,8 +165,9 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 		}
 		e.clearPatrol()
 		w.clearEscort(i)
-		if order == orderStandGround {
-			// The Stand Ground setter stores state 0xc for every member (AI-351).
+		if order == orderStandGround || e.ActorState == actorStateSupport {
+			// The Stand Ground setter stores state 0xc for every member (AI-351);
+			// a new command Group ends L's order the same way (DIV-4895).
 			e.ActorState = actorStateAcquire
 		}
 		o := w.ensureSavedOrder(i)

@@ -21,6 +21,8 @@ type orderProfile struct {
 	primaryCells             bool
 	collectSacks             bool
 	defendFineStep           bool
+	// supportOrder admits L's order: programme 0x13 over member order 0x17.
+	supportOrder bool
 }
 
 // chooseTarget ranks an ordered candidate population without changing it.

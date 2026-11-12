@@ -410,7 +410,7 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 			return err
 		}
 		switch v := binary.LittleEndian.Uint32(stateRaw); v {
-		case 3, 8, 0xa, 0xb, 0xc, 0x11:
+		case 3, 8, 0xa, 0xb, 0xc, 0x11, 0x17:
 			// savedActorStateSupported's own raw order-state set (1, 3, 8, 0xa,
 			// 0xb, 0xc; savedgroupsai.go) is a DIFFERENT enum from sim's own
 			// Entity.ActorState (world.go): the two agree at engage(3),

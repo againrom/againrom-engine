@@ -218,7 +218,7 @@ func TestInspectionUsesRegisteredRectanglesRegardlessOfPixels(t *testing.T) {
 func TestInspectionLeavesCommandHotkeysOnActualSelection(t *testing.T) {
 	a, v := inspectionFixture(t, image.Pt(1024, 768))
 	var actors []uint32
-	a.flow.stance = func(id uint32, guard bool) { actors = append(actors, id) }
+	a.flow.stance = func(id uint32, _ StanceOrder) { actors = append(actors, id) }
 	for _, ref := range []InspectionSubject{{InspectionUnit, 7}, {InspectionStructure, 7}} {
 		inspectionHover(t, a, v, ref)
 		if !v.inventoryEligible() || !v.dollInventoryActive() {

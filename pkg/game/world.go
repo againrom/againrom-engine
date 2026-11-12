@@ -3483,10 +3483,9 @@ func (mw *mapWorld) enqueue(entity uint32, x, y int) {
 // the SAME QUEUE the orders, the attacks and the blows use, and marks its
 // entity commanded — and it does NOTHING ELSE.
 //
-// THIS IS WHERE THE BOOL BECOMES A NUMBER, and it is the only place in this
-// tree that it does. The seam names two things the player can ask for; which of
-// the law's own order bytes each is, is decided here, on the world's side of the
-// tier boundary, exactly as MapAffect's own "what a chip takes off" is.
+// THIS IS WHERE THE StanceOrder BECOMES A NUMBER, and the only place it does:
+// which order byte each is, is decided here, on the world's side of the tier
+// boundary.
 //
 // The order rides in the command's X because that is where the simulation's
 // stance arm reads it — the same 32 bits under another name KindAttack's victim
@@ -3497,10 +3496,13 @@ func (mw *mapWorld) enqueue(entity uint32, x, y int) {
 // something to do, exactly as one told where to walk has, so the placeholder
 // script must not overwrite it. And it steps no world — sim.Step is reached
 // from tick and from nowhere else in this package.
-func (mw *mapWorld) stance(entity uint32, guard bool) {
+func (mw *mapWorld) stance(entity uint32, stance ui.StanceOrder) {
 	order := sim.OrderStandGround
-	if guard {
+	switch stance {
+	case ui.StanceGuard:
 		order = sim.OrderGuard
+	case ui.StanceSupport:
+		order = sim.OrderSupport
 	}
 	mw.queueGroup(func(tag uint32) sim.Command { return sim.GroupStance(sim.EntityID(entity), order, tag) })
 }

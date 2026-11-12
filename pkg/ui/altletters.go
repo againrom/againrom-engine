@@ -10,7 +10,7 @@ func (in *appInput) suppressAltLetters() {
 	in.TimeFlow, in.Smoothing, in.AutoHealing = false, false, false
 	in.Inventory, in.Worn, in.SelectAll = false, false, false
 	in.Guard, in.PlayerRetreat, in.StandGround, in.Patrol = false, false, false, false
-	in.March, in.Defend, in.Move, in.Cast = false, false, false, false
+	in.March, in.Defend, in.Move, in.Cast, in.Support = false, false, false, false, false
 	in.Book, in.Doll, in.WeaponSwap = false, false, false
 	// Alt+Backspace and Alt+F12 arrive as system key messages and reach
 	// neither the Backspace nor the F12 arm (MENU-082).

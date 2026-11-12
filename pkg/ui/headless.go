@@ -94,8 +94,11 @@ func (a *App) HeadlessKey(name string) error {
 		in.Enter = enterPressed(onlyKey(ebiten.KeyNumpadEnter))
 	case "escape", "esc":
 		in.Escape = true
-	case "load", "l":
+	case "load":
 		in.Load = true
+	case "l":
+		in.Load = true
+		in.missionKeyNamed(a.activeMissionKeys(), "l")
 	case "f2":
 		in.SaveGame = true
 	case "f3":

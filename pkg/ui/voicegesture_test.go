@@ -60,7 +60,7 @@ func TestEachGestureAsksItsVoiceOnce(t *testing.T) {
 			a.flow.order = func(uint32, int, int) {}
 			a.flow.attack = func(uint32, uint32, uint32, int, int, bool) {}
 			a.flow.march = func(uint32, bool, int, int) {}
-			a.flow.stance = func(uint32, bool) {}
+			a.flow.stance = func(uint32, StanceOrder) {}
 			v.defendSink = func(uint32, uint32) {}
 			v.playerRetreatSink = func([]uint32) {}
 			var got []gestureReply
