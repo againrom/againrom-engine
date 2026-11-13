@@ -100,6 +100,7 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 	if err := x.SetMod(dir); err != nil {
 		return nil, err
 	}
+	s.modDir = x.mod.dir
 	x.mod.copyOnly = !x.mod.owned
 	// The mission list is one view of the opened mod: its first enabled
 	// mission's map opens. A mod with none, or a packed one, opens over the
@@ -135,10 +136,6 @@ func (m *editorMod) firstEnabled() (mod.Mission, bool) {
 		}
 	}
 	return mod.Mission{}, false
-}
-
-func (s *mapInspectionEdits) selectWorkspaceMission(index int) (*ui.InspectionDocument, error) {
-	return s.activateWorkspaceMission(index, true)
 }
 
 func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*ui.InspectionDocument, error) {
@@ -268,7 +265,17 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	missions := []mod.Mission{m}
 	files := map[string][]byte{}
 	var layout mod.LayoutChange
+	var held map[string][]byte
+	var whole *editorWorkspaceState
 	if s.workspace.Project != nil {
+		// The other open maps' drafts stay out of this save and in the project.
+		drafts, was := s.heldDrafts()
+		held, whole = drafts, was
+		defer func() {
+			if whole != nil {
+				s.workspace = whole
+			}
+		}()
 		files, missions, m, layout, err = s.retainedPackageFiles(b)
 		if err != nil {
 			return "", err
@@ -330,6 +337,8 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := x.SetMod(folder); err != nil {
 		return "", err
 	}
+	s.joinMod()
+	whole = nil
 	x.mod.selected = m.RowID()
 	s.workspace.Project = x.mod.document()
 	// The files imported under assets stay in the project, so an undo past
@@ -358,5 +367,6 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		s.saved, s.savedInside = s.model.Bytes(), s.TextsInside()
 	}
 	s.savedWorkspace = s.workspaceImage
+	s.returnDrafts(held, layout, from, folder)
 	return s.source, nil
 }

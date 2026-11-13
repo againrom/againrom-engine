@@ -44,6 +44,8 @@ type editorWorkspaceSnapshot struct {
 	workspace *editorWorkspaceState
 	model     *mapedit.Editor
 	source    string
+	// carried is the edits' carry count the step was recorded under.
+	carried int
 }
 
 func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
@@ -198,7 +200,7 @@ func (s *mapInspectionEdits) labelsForSave() []byte {
 }
 
 func (s *mapInspectionEdits) rememberWorkspace(mapEdit bool) {
-	s.undoWorkspace = append(s.undoWorkspace, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source})
+	s.undoWorkspace = append(s.undoWorkspace, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source, carried: s.carried})
 	s.redoWorkspace = nil
 	s.workspaceHistory = true
 }
@@ -209,6 +211,15 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 		from, to = to, from
 	}
 	last := (*from)[len(*from)-1]
+	if last.carried != s.carried {
+		// A step that changes which map these edits hold comes back whole:
+		// its own map's part is no part of the map held now.
+		if sameSaveName(last.source, s.source) {
+			last.workspace = s.carriedOver(last.workspace)
+		} else {
+			last.workspace = s.wholeStep(last.workspace)
+		}
+	}
 	trial := *s
 	trial.workspace, trial.model, trial.source = last.workspace, last.model, last.source
 	oldMod := s.inspector.mod
@@ -222,7 +233,7 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 		s.inspector.setEditorMod(oldMod)
 		return nil, err
 	}
-	*to = append(*to, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source})
+	*to = append(*to, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source, carried: s.carried})
 	*from = (*from)[:len(*from)-1]
 	s.model, s.workspace, s.source = last.model, last.workspace, last.source
 	if d != nil {
@@ -441,7 +452,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		if err != nil {
 			return nil, err
 		}
-		return s.selectWorkspaceMission(index)
+		return s.openMissionMap(index)
 	}
 	if isManifestField(key) {
 		return s.setManifestField(key, value)

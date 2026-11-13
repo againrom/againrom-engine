@@ -77,7 +77,7 @@ func TestEditorModUnitNameTravelsAsAPageEdit(t *testing.T) {
 			t.Errorf("test play folder %s holds %q", p, b)
 		}
 	}
-	if _, err := s.selectWorkspaceMission(1); err != nil {
+	if _, err := s.activateWorkspaceMission(1, true); err != nil {
 		t.Fatal(err)
 	}
 	if got := string(s.workspace.Pages[unitNamesPage]); got != line {

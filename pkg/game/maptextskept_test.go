@@ -297,7 +297,7 @@ func TestModDraftNeverLosesTheMapsTexts(t *testing.T) {
 		if _, err := s.withTexts(s.model.Bytes()); err == nil {
 			t.Fatal("the fixture's record fits")
 		}
-		if _, err := s.selectWorkspaceMission(2); err != nil {
+		if _, err := s.activateWorkspaceMission(2, true); err != nil {
 			t.Fatal(err)
 		}
 		if b, drafted := s.workspace.Project.Files["maps/first.almx"]; drafted {
@@ -312,7 +312,7 @@ func TestModDraftNeverLosesTheMapsTexts(t *testing.T) {
 		if err := s.SetTextsInside(false); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.selectWorkspaceMission(2); err != nil {
+		if _, err := s.activateWorkspaceMission(2, true); err != nil {
 			t.Fatal(err)
 		}
 		files := s.workspace.Project.Files
@@ -331,13 +331,13 @@ func TestModDraftNeverLosesTheMapsTexts(t *testing.T) {
 		if err := s.SetTextsInside(true); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.selectWorkspaceMission(2); err != nil {
+		if _, err := s.activateWorkspaceMission(2, true); err != nil {
 			t.Fatal(err)
 		}
 		if _, held, _ := alm.TextsOf(s.workspace.Project.Files["maps/first.almx"]); !held {
 			t.Fatal("the switch alone did not reach the mod's draft")
 		}
-		if _, err := s.selectWorkspaceMission(1); err != nil || !s.TextsInside() {
+		if _, err := s.activateWorkspaceMission(1, true); err != nil || !s.TextsInside() {
 			t.Fatalf("back on the map the switch is %v: %v", s.TextsInside(), err)
 		}
 	})

@@ -312,6 +312,7 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if err := x.SetMod(m.dir); err != nil {
 		return "", err
 	}
+	s.joinMod()
 	s.saved, s.source, s.savedInside = s.model.Bytes(), filepath.Join(m.dir, filepath.FromSlash(e.Map)), s.TextsInside()
 	if s.errorsAllowed {
 		s.saveNote = x.word("editor.save.package")

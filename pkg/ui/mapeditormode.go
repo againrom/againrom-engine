@@ -122,6 +122,19 @@ type editorMode struct {
 	panel           bool // the Map panel stands in the list popup under any list
 }
 
+// keptMode is the part of the mode an open map keeps while another map is
+// shown: its brush.
+type keptMode struct{ brush brushState }
+
+// keepMode is the mode the shown map is left in.
+func (e *MapEditor) keepMode() keptMode { return keptMode{brush: e.brush} }
+
+// returnMode puts back the mode an open map was left in.
+func (e *MapEditor) returnMode(m keptMode) {
+	e.brush = m.brush
+	e.brush.endStroke()
+}
+
 // free reports that no layer takes the canvas: the catalogue, a prompt and an
 // armed pick each do.
 func (m *editorMode) free() bool {

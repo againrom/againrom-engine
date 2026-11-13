@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui/widgetkit"
 	"againrom/pkg/words"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -411,6 +412,12 @@ func (e *MapEditor) Key(key string) error {
 
 func (e *MapEditor) keyClose(string) error {
 	if e.prompt.kind == promptLeave {
+		if e.prompt.then != (leaveStep{}) {
+			// The question was about another step: the close asks about
+			// every other map with unsaved changes.
+			e.queueLeave()
+			e.leaveQueue = slices.DeleteFunc(e.leaveQueue, func(d *InspectionDocument) bool { return d == e.doc })
+		}
 		return e.runLeave(leaveStep{})
 	}
 	if e.Dirty() {

@@ -24,7 +24,15 @@ type modesWorkspace struct {
 	overview ModOverviewPage
 	// graph is the campaign graph; empty, W has no graph page.
 	graph CampaignGraphPage
+	// inMod makes another map open beside the open one, as in an open mod.
+	inMod bool
 }
+
+func (p *modesWorkspace) InMod() bool                                    { return p.inMod }
+func (p *modesWorkspace) MissionNumber() int                             { return 25 }
+func (p *modesWorkspace) MapDirty() bool                                 { return p.dirty }
+func (p *modesWorkspace) MapSource() string                              { return "" }
+func (p *modesWorkspace) Shown(InspectionEdits, []InspectionEdits) error { return nil }
 
 // modesOverview is the overview of a mod no mission of which opens.
 var modesOverview = ModOverviewPage{First: true, Sections: []ModOverviewSection{

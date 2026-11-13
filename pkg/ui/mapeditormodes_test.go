@@ -452,6 +452,11 @@ func modesAct(e *MapEditor, name string) string {
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
 			p.graph = modesGraph()
 		}
+	case "ui:mod-second-map":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			p.inMod = true
+			_ = e.Open("map1")
+		}
 	case "ui:graph-node":
 		if s, _, ok := e.objectSpec(); ok && s.Canvas != nil {
 			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).CanvasBoxes.rect(modesGraphFirst)))
@@ -508,6 +513,9 @@ func modesProbe(e *MapEditor, calls *modesCalls, errText string, pixels bool) st
 	}
 	if e.doc != nil {
 		fmt.Fprintf(&b, "source=%q\n", e.doc.Source)
+	}
+	if rows := e.OpenMapRows(); len(rows) > 1 {
+		fmt.Fprintf(&b, "tabs=%v\n", rows)
 	}
 	fmt.Fprintf(&b, "calls=%q\n", calls.lines)
 	if pixels {
@@ -675,6 +683,7 @@ var modesPaths = []modesPath{
 	{"mod-graph", []string{"ui:mod-graph", "package", "package"}},
 	{"mod-graph-pan", []string{"ui:mod-graph", "package", "package", "pagedown"}},
 	{"mod-graph-node", []string{"ui:mod-graph", "package", "package", "ui:graph-node"}},
+	{"mod-tabs", []string{"ui:mod-second-map"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the
@@ -729,6 +738,12 @@ func TestMapEditorModesHoldTheModOverviewRows(t *testing.T) {
 // with the recorded table.
 func TestMapEditorModesHoldTheGraphRows(t *testing.T) {
 	modesHoldRows(t, "mod-graph")
+}
+
+// TestMapEditorModesHoldTheTabsRows compares the row of the path that opens
+// a second map of the mod beside the first with the recorded table.
+func TestMapEditorModesHoldTheTabsRows(t *testing.T) {
+	modesHoldRows(t, "mod-tabs")
 }
 
 // modesHoldRows compares the workspace rows of the paths named with prefix

@@ -2320,11 +2320,34 @@ armour cell. The first member leads; a party has one to eight distinct members.
 Existing declared characters are choices. Creating character definitions and
 adding new tiles are outside this window.
 
-Open an unregistered map and choose Add map to append it. The mission choice
-and Open buttons switch maps with pending drafts retained. Move up/down or
+Open an unregistered map and choose Add map to append it. Move up/down or
 Alt+Up/Down changes list order; After win changes the chain. Removing a chain
-link asks before reconnecting its successors. Ctrl+Z and Ctrl+Y retain history
-across map switches. Undo after Save makes the project dirty again.
+link asks before reconnecting its successors. Undo after Save makes the
+project dirty again.
+
+With a mod open, several of its maps stay open at once. The mission choice,
+a mission of the campaign graph, the map list and File > Open each open the
+map beside the ones already open; a map that is already open is shown, never
+opened twice. From the second open map on, a strip of tabs stands under the
+menu bar: one tab per open map, with its mission number and name, and a star
+while the map has unsaved changes of its own. A click on a tab shows its
+map. The x at the right end of the strip closes the map shown, and asks the
+unsaved-changes question first when that map has changes. The tabs have no
+keys. At most 8 maps are open at once; opening a ninth is refused with a
+message that says to close one first. With one map open, or no mod, there is
+no strip.
+
+Each open map keeps its own view, selection, brush, unsaved changes and
+Ctrl+Z/Ctrl+Y history; the history of one map never undoes a change of
+another. The mod itself is one: W, the campaign graph and
+test play read the manifest, the mission rows and the unsaved draft of every
+open map, whichever map is shown. A step of a map's history made before
+another tab was shown restores that map's own cells, pages, labels and
+mission row, and leaves the rest of the mod as it stands. Ctrl+S saves the
+map shown and the mod's rows and manifest; the files of the other open maps
+stay as they are until their own tab is saved. Closing the editor or opening
+another mod asks about each open map with unsaved changes in turn, showing
+the map it asks about.
 
 A mission the mod replaces by a map file named as its number is a row of the
 mission list too, after the rows of `data/missions.toml` and named by its file

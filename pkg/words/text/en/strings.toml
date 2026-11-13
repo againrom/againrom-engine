@@ -709,6 +709,8 @@
 "editor.menu.textsinside" = "Texts inside the map"
 "editor.leave.title.close" = "Close the editor"
 "editor.leave.title.open" = "Open another map"
+"editor.leave.title.map" = "Close the map"
+"editor.tabs.limit" = "At most %d maps are open at once. Close one with the x at the right of the tabs, then open this one."
 "editor.leave.text" = "%s has unsaved changes."
 "editor.leave.saveas" = "Save As"
 "editor.leave.close" = "Close without saving"

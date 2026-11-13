@@ -61,6 +61,14 @@ type mapInspectionEdits struct {
 	// stage is the workspace the change in progress writes a unit's name
 	// or a copied trigger's page into; nil outside a change.
 	stage *workspaceStage
+
+	// carried counts the times the mod's project came to these edits from
+	// another open map (Shown).
+	carried   int
+	dirtyKeep mapDirtyKeep
+	// modDir is the folder of the mod these edits belong to: the mod open
+	// when the map was opened or last saved into, empty for none.
+	modDir string
 }
 
 func (s *mapInspectionEdits) Dirty() bool {

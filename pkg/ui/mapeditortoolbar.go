@@ -154,7 +154,7 @@ func (e *MapEditor) toggleToolbar() {
 // as high as its buttons and padding; no height while the toolbar floats or
 // is hidden.
 func (e *MapEditor) toolbarRect() image.Rectangle {
-	top, high := e.barHeight(), 0
+	top, high := e.mapTabsRect().Max.Y, 0
 	if !e.toolbarFloats() && e.toolbarOn() {
 		high = e.toolSizeNow().side + 2*toolbarPad
 	}

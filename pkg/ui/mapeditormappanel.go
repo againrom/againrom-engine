@@ -425,6 +425,12 @@ func (e *MapEditor) PromptNotes() []string {
 	return s.Notes
 }
 
+// PromptTitle is the title of the open prompt or question.
+func (e *MapEditor) PromptTitle() string {
+	s, _ := e.promptSpec()
+	return e.mcpDisplay(s.Title)
+}
+
 // NoticeOpen reports whether the notice before test play or a save into the
 // mod is open.
 func (e *MapEditor) NoticeOpen() bool { return e.prompt.kind == promptNotice }

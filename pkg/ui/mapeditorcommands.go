@@ -625,9 +625,33 @@ func (e *MapEditor) commandSetMapField(f mapField) (editorChange, error) {
 		return editorChange{}, errNoEditHost
 	}
 	next, err := host.SetWorkspaceField(f.Scope, f.Key, f.Value)
+	var open *MapOpen
+	if errors.As(err, &open) && e.showOpenEdits(open.Edits) {
+		// The map is open: its tab is shown, and the field is set there.
+		if host, ok = e.workspace(); !ok {
+			return editorChange{}, nil
+		}
+		next, err = host.SetWorkspaceField(f.Scope, f.Key, f.Value)
+	}
 	if err != nil {
 		return editorChange{}, err
 	}
+	if next != nil && e.doc != nil && next.Edits != e.doc.Edits {
+		if err := checkOpened(next); err != nil {
+			return editorChange{}, err
+		}
+		if _, ok := e.mapSet(); ok && f.Scope == "package" && f.Key == "source" {
+			// Another mission's map opens beside the open maps.
+			if err := e.addOpenMap(next); err != nil {
+				return editorChange{}, err
+			}
+			return editorChange{doc: next}, nil
+		}
+		// Another mod opened: its map is the one map open.
+		e.openMaps, e.shownMap, e.leaveQueue = nil, 0, nil
+		defer e.nameOpenMaps(nil)
+	}
+	defer e.mergeOpenMaps()
 	if e.doc == nil {
 		// With no map open, a mod that names a mission opens its map.
 		if next == nil {
@@ -693,6 +717,7 @@ func (e *MapEditor) commandHistory(redo bool) (editorChange, error) {
 	}
 	ch, _ := e.adopted(next, nil)
 	e.refreshMessagePage()
+	e.mergeOpenMaps()
 	return ch, nil
 }
 

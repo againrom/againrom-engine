@@ -40,6 +40,7 @@ const (
 	popProps   // the right side panel while it hosts no window
 	popReport  // the bottom panel while it shows no report, or its strip
 	popToolbar // the toolbar over the map
+	popMapTabs // the strip of the open maps' tabs
 	popCount
 )
 
@@ -1613,6 +1614,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 		}
 		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Pressed: b.on, Inside: b.on, Hover: e.pointerOK && e.pointer.In(b.rect), Press: &e.buttonPress})
 	}
+	e.drawMapTabs(pic)
 	e.drawToolbar(pic, false)
 	status := e.statusRect()
 	drawFrame(pic, stripFrame(status, edgeTopBit))
@@ -2040,6 +2042,9 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if p.Y < e.barHeight() {
 		return popBar
 	}
+	if p.In(e.mapTabsRect()) {
+		return popMapTabs
+	}
 	if p.In(e.toolbarRect()) {
 		return popToolbar
 	}
@@ -2243,6 +2248,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				e.barAct(b.key)
 			}
 		}
+	case popMapTabs:
+		e.mapTabsPress(p)
 	case popPrompt:
 		if e.prompt.kind == promptAdd {
 			e.addPress(p, double)

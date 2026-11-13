@@ -13,6 +13,7 @@ type leaveStep struct {
 	open      bool
 	source    string
 	workspace bool
+	closeMap  bool // close the open map shown, the other open maps stay
 }
 
 // The question's buttons, in order.
@@ -23,7 +24,16 @@ const (
 )
 
 // askLeave asks what to do with the unsaved changes before step runs.
+// A step that leaves every open map asks about each one with unsaved
+// changes of its own, one after another, showing the map it asks about.
 func (e *MapEditor) askLeave(step leaveStep) {
+	e.leaveQueue = nil
+	if !step.closeMap {
+		e.queueLeave()
+		if e.askNextLeave(step) {
+			return
+		}
+	}
 	e.leave(leaveDrag | leavePick)
 	e.openPrompt(editorPrompt{kind: promptLeave, then: step})
 }
@@ -33,6 +43,13 @@ func (e *MapEditor) askLeave(step leaveStep) {
 func (e *MapEditor) runLeave(step leaveStep) error {
 	e.leave(leavePrompt)
 	e.saveThen = nil
+	if step.closeMap {
+		e.dropOpenMap()
+		return nil
+	}
+	if e.askNextLeave(step) {
+		return nil
+	}
 	if step.workspace {
 		return e.modAction("folder-open", step.source)
 	}
@@ -74,6 +91,9 @@ func (e *MapEditor) leaveSpec() popupSpec {
 	title, proceed := e.word("editor.leave.title.close"), e.word("editor.leave.close")
 	if e.prompt.then.open {
 		title, proceed = e.word("editor.leave.title.open"), e.word("editor.leave.open")
+	}
+	if e.prompt.then.closeMap {
+		title = e.word("editor.leave.title.map")
 	}
 	name := ""
 	if e.doc != nil {

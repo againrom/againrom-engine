@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 - [ROM1] The map editor's File menu and its save window have the switch "Texts inside the map", off by default: on, the briefing and message pages are saved inside the map, which becomes an `.almx`, and the game, the mod check and a packed mod read them from there. A save that would leave such a map's pages in neither the map nor its folder, or write a map too large for the game to read its pages from, is refused and writes nothing.
 - [BASE] In the map editor, a copied trigger that shows a message now gets its own text page with the same text, so changing the copy's text no longer changes the original's. A trigger with a drop zone is not copied; the editor says why.
 - [BASE] In the map editor a picture or a town description can be added to a mod by picking a file: the editor puts it into the mod's folder, checks it at once and writes it on Ctrl+S; the mod check now warns about files the game does not read and about files kept outside their place.
+- [BASE] Map editor: with a mod open, several of its maps stay open at once as tabs under the menu bar; each keeps its own view, selection, unsaved changes and undo history.
 
 ## 0.153.0
 

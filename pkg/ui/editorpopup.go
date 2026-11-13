@@ -600,6 +600,45 @@ const (
 	popupTipW = 300
 )
 
+// tabStrip is one strip of tabs: the captions, the tab shown and whether the
+// strip switches (the tab shown stays pressed) or only names where the
+// keyboard is. PerLine tabs share a line's width; 0: all of them.
+type tabStrip struct {
+	Captions []string
+	Active   int
+	Switch   bool
+	PerLine  int
+}
+
+// rects is the strip's tabs from origin over width, each line pitch high.
+func (t tabStrip) rects(origin image.Point, width, pitch int) []image.Rectangle {
+	per := t.PerLine
+	if per <= 0 {
+		per = len(t.Captions)
+	}
+	var out []image.Rectangle
+	for i := range t.Captions {
+		left := origin.X + i%per*width/per
+		right := origin.X + (i%per+1)*width/per
+		top := origin.Y + i/per*pitch
+		out = append(out, image.Rect(left, top, right, top+pitch))
+	}
+	return out
+}
+
+// draw draws the strip's tabs in rects and, where closeAt has area, the close
+// button the strip ends in. part and at are what the pointer is over, as the
+// layout's hit reports it: that tab, or the close button, is lit.
+func (t tabStrip) draw(dst *image.RGBA, body *text.Font, rects []image.Rectangle, closeAt image.Rectangle, held *buttonPress, part popupPart, at int) {
+	for i, tab := range rects {
+		chosen := t.Switch && t.Active == i
+		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: t.Captions[i], Literal: true, LabelRaise: labelRaise(body), Focus: t.Active == i && !t.Switch, Pressed: chosen, Inside: chosen, Hover: part == popupTab && at == i})
+	}
+	if !closeAt.Empty() {
+		drawPushButton(dst, body, pushButton{Press: held, Rect: closeAt, Label: "x", Literal: true, LabelRaise: labelRaise(body), Hover: part == popupClose})
+	}
+}
+
 // popupFlow is how a popup lays out what its width cannot hold: the tabs on
 // each line and their lines, each button's line of the button row and the
 // lines, each row's lines added for its label and its own buttons, the label
@@ -1156,13 +1195,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
 	if len(s.Tabs) > 0 {
 		l.Title.Max.Y -= flow.tabLines * pitch
-		per := flow.tabsPerLine
-		for i := range s.Tabs {
-			left := r.Min.X + popupPad + i%per*(w-2*popupPad)/per
-			right := r.Min.X + popupPad + (i%per+1)*(w-2*popupPad)/per
-			top := l.Title.Max.Y + i/per*pitch
-			l.Tabs = append(l.Tabs, image.Rect(left, top, right, top+pitch))
-		}
+		l.Tabs = tabStrip{Captions: s.Tabs, PerLine: flow.tabsPerLine}.rects(image.Pt(r.Min.X+popupPad, l.Title.Max.Y), w-2*popupPad, pitch)
 	}
 	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
 	contentRight := r.Max.X - popupPad
@@ -1772,9 +1805,12 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 		drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	}
-	for i, tab := range l.Tabs {
-		chosen := s.TabSwitch && s.ActiveTab == i
-		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i && !s.TabSwitch, Pressed: chosen, Inside: chosen, Hover: pointerOK && pointer.In(tab)})
+	if len(l.Tabs) > 0 {
+		over, at := popupMiss, 0
+		if pointerOK {
+			over, at = l.hit(pointer)
+		}
+		tabStrip{Captions: s.Tabs, Active: s.ActiveTab, Switch: s.TabSwitch}.draw(dst, body, l.Tabs, image.Rectangle{}, held, over, at)
 	}
 	bodyText := func(r image.Rectangle, s string, c color.RGBA) {
 		if body == nil || s == "" {

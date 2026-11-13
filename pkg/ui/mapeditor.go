@@ -269,6 +269,9 @@ type MapEditor struct {
 	props                       propertyView           // the object window's plain or technical view
 	tree                        editorTree
 	search                      barSearch
+	openMaps                    []*openMap            // the open maps in tab order, while a second one was opened; the shown one's entry is filled when it is left
+	shownMap                    int                   // the place of the map shown in openMaps
+	leaveQueue                  []*InspectionDocument // the maps the unsaved-changes question still asks about
 	editorChrome
 }
 
@@ -304,8 +307,16 @@ func (e *MapEditor) SetHostTextEncoder(encode func(string) string, decode ...fun
 // hero N with a role reads "Hero N: role" (HeroLabels).
 func (e *MapEditor) SetHeroRoles(roles map[int64]string) { e.heroRoles = roles }
 
-// Open opens the map named source. With unsaved changes it asks first.
+// Open opens the map named source. With unsaved changes it asks first. In
+// a mod the map opens beside the open maps, and a map already open is shown.
 func (e *MapEditor) Open(source string) error {
+	if i := e.openMapOf(source); i >= 0 {
+		e.ShowOpenMap(i)
+		return nil
+	}
+	if _, ok := e.mapSet(); ok && e.doc != nil && !sameMapSource(e.doc.Source, source) && ParseMapSource(source).Kind != SourceNew {
+		return e.openMap(source)
+	}
 	if e.Dirty() {
 		e.askLeave(leaveStep{open: true, source: source})
 		return nil
@@ -326,6 +337,11 @@ func (e *MapEditor) openMap(source string) error {
 		e.message = err.Error()
 		return err
 	}
+	if _, ok := e.mapSet(); ok && ParseMapSource(source).Kind != SourceNew {
+		if set, ok := next.Edits.(InspectionMapSet); ok && set.InMod() {
+			return e.addOpenMap(next)
+		}
+	}
 	e.showOpened(next)
 	return nil
 }
@@ -338,9 +354,19 @@ func checkOpened(next *InspectionDocument) error {
 	return nil
 }
 
-// showOpened makes the document next the map the window edits, the
+// showOpened makes the document next the one map the window has open, the
 // catalogue and every popup left.
 func (e *MapEditor) showOpened(next *InspectionDocument) {
+	e.openMaps, e.shownMap, e.leaveQueue = nil, 0, nil
+	e.showDoc(next, nil)
+	e.nameOpenMaps(nil)
+}
+
+// showDoc makes the document next the map the window shows, the catalogue
+// and every popup left. kept is the open map it was left as, which comes
+// back with its view, its selection, its list and its brush; nil: the map
+// is newly opened and is fitted to the window.
+func (e *MapEditor) showDoc(next *InspectionDocument, kept *openMap) {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.barSets, e.barOwner = nil, ""
@@ -359,9 +385,22 @@ func (e *MapEditor) showOpened(next *InspectionDocument) {
 	e.objectBack = nil
 	e.messagePage = 0
 	e.listWheel, e.objectWheel = 0, 0
-	e.message = next.OpenNote
+	e.placementKey, e.placementDoc, e.placementView, e.placementErr = "", nil, nil, nil
+	e.dragCheckKey, e.dragCheckDoc, e.dragCheck = "", nil, nil
 	e.brush.endStroke()
 	e.clearSelection()
+	if kept != nil {
+		e.message = ""
+		e.returnMode(kept.mode)
+		e.filter, e.listShown = kept.filter, kept.listShown
+		if len(kept.refs) > 1 {
+			e.setSelection(kept.refs)
+		} else if kept.selected >= 0 {
+			e.Select(kept.selected, false)
+		}
+		return
+	}
+	e.message = next.OpenNote
 	e.Fit()
 	if _, ok := e.mapPanel(); ok {
 		e.openPanel()

@@ -25,7 +25,7 @@ func TestEditorMissionSwitchKeepsEachMapsOwnLabels(t *testing.T) {
 	want := map[int]map[uint32]string{1: {99: "FirstOnly"}, 2: {98: "SecondOnly"}}
 	for step, index := range []int{1, 2, 1, 2} {
 		if step > 0 {
-			if _, err := s.selectWorkspaceMission(index); err != nil {
+			if _, err := s.activateWorkspaceMission(index, true); err != nil {
 				t.Fatal(err)
 			}
 		}

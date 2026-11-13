@@ -199,8 +199,13 @@ func TestEditorModMissionOrderAndHistorySurviveMapSwitches(t *testing.T) {
 	if s.workspace.Project.Missions[1].Number != second.Number {
 		t.Fatal("undo did not restore order")
 	}
+	// The first mission's map opens beside the second; each keeps its history.
 	if err := workspaceField(e, "package", 9, "1"); err != nil {
 		t.Fatal(err)
+	}
+	first := e.Document().Edits.(*mapInspectionEdits)
+	if first == s || e.OpenMapCount() != 2 || first.workspace.Project.Selected != 0 {
+		t.Fatal("the first mission did not open beside the second")
 	}
 	if err := workspaceField(e, "package", 8, "73"); err != nil {
 		t.Fatal(err)
@@ -208,22 +213,31 @@ func TestEditorModMissionOrderAndHistorySurviveMapSwitches(t *testing.T) {
 	if err := workspaceField(e, "package", 9, "2"); err != nil {
 		t.Fatal(err)
 	}
-	if !e.Dirty() {
+	if e.Document().Edits != s || e.OpenMapCount() != 2 {
+		t.Fatal("the second mission opened a second tab of its map")
+	}
+	if !e.Dirty() || s.workspace.Project.Missions[0].Gold != 73 {
 		t.Fatal("switch hid a pending edit")
+	}
+	if err := workspaceField(e, "package", 9, "1"); err != nil {
+		t.Fatal(err)
+	}
+	if e.Document().Edits != first {
+		t.Fatal("the first mission's tab was not shown again")
 	}
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}
-	if s.workspace.Package.Gold != 0 || s.workspace.Project.Selected != 0 {
+	if first.workspace.Package.Gold != 0 || first.workspace.Project.Selected != 0 {
 		t.Fatal("undo did not restore the edited mission")
 	}
 	if err := e.Key("redo"); err != nil {
 		t.Fatal(err)
 	}
-	if s.workspace.Project.Missions[0].Gold != 73 {
+	if first.workspace.Project.Missions[0].Gold != 73 {
 		t.Fatal("redo lost the edit")
 	}
-	if _, err := s.SaveIntoMod(); err != nil {
+	if _, err := first.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
 	if err := e.Key("undo"); err != nil {
@@ -369,13 +383,13 @@ func TestEditorMissionSelectionResolvesPagesForDeclarationsSharingAMap(t *testin
 		t.Fatal(err)
 	}
 	s := e.Document().Edits.(*mapInspectionEdits)
-	if _, err := s.selectWorkspaceMission(2); err != nil {
+	if _, err := s.activateWorkspaceMission(2, true); err != nil {
 		t.Fatal(err)
 	}
 	if string(s.workspace.Pages["title.txt"]) != "Two" {
 		t.Fatal("shared map selected the other declaration's pages")
 	}
-	if _, err := s.selectWorkspaceMission(1); err != nil {
+	if _, err := s.activateWorkspaceMission(1, true); err != nil {
 		t.Fatal(err)
 	}
 	if string(s.workspace.Pages["title.txt"]) != "One" {

@@ -11,7 +11,19 @@ import (
 )
 
 func (e *MapEditor) editable() bool { return e.doc != nil && e.doc.Edits != nil }
-func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty() }
+
+// Dirty reports unsaved changes in the map shown or in any other open map.
+func (e *MapEditor) Dirty() bool {
+	if e.editable() && e.doc.Edits.Dirty() {
+		return true
+	}
+	for _, m := range e.openMaps {
+		if m.doc != e.doc && mapDirty(m.doc) {
+			return true
+		}
+	}
+	return false
+}
 
 // TextInput is shared by the native path field and deterministic input drives.
 func (e *MapEditor) TextInput(s string) {

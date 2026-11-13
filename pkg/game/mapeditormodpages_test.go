@@ -95,7 +95,7 @@ func testEditorModPageEdit(t *testing.T, route string) {
 			if len(f.started) != 1 || !s.Dirty() {
 				t.Fatal("F5 did not use the recording launch or changed the checkpoint")
 			}
-			if _, err := s.selectWorkspaceMission(1); err != nil {
+			if _, err := s.activateWorkspaceMission(1, true); err != nil {
 				t.Fatal(err)
 			}
 			if got := string(s.workspace.Pages["event01.txt"]); got != "edited "+lang {

@@ -58,6 +58,9 @@ type MapInspector struct {
 	placedArts *placedArtCache
 	// noMap is the host W works through with no map open.
 	noMap *mapInspectionEdits
+	// openMaps is the edits of the maps the window has open, as it last
+	// named them (Shown).
+	openMaps []*mapInspectionEdits
 	// flow is the install's campaign for W's graph, nil until first asked.
 	flow *campaignFlow
 	// identityMission is the mission number the identity choices were
@@ -246,7 +249,7 @@ func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument,
 	if err != nil {
 		return nil, err
 	}
-	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), textsInside: inside}
+	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), textsInside: inside, modDir: x.modFolder()}
 	s.savedInside = s.TextsInside()
 	d, err := s.project(model)
 	if err == nil {

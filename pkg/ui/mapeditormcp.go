@@ -105,6 +105,8 @@ type editorToolArgs struct {
 	Shift  bool    `json:"shift"`
 	Ctrl   bool    `json:"ctrl"`
 	Alt    bool    `json:"alt"`
+	// Map is the place of an open map among the tabs, from 0.
+	Map int `json:"map"`
 	// Discard drops unsaved changes on open, as the unsaved-changes
 	// question's open button does.
 	Discard bool `json:"discard"`
@@ -191,7 +193,14 @@ func editorTools() []editorTool {
 		{Tool: editormcp.Tool{Name: "state", Description: "Read window status, panels, popups, prompts, selection, fields, path, dirty flag and help", InputSchema: empty}, read: func(e *MapEditor, _ editorToolArgs) (any, error) { return e.mcpState(), nil }},
 		{Tool: editormcp.Tool{Name: "frame", Description: "PNG of the window's drawn frame, including the agent pointer", InputSchema: empty}},
 		{Tool: editormcp.Tool{Name: "map", Description: "Read map size, the playable area inside the 8-cell border ring (x0,y0..x1,y1) and authored records plus one cell's terrain, height, objects and passability", InputSchema: editorToolSchema(map[string]string{"x": "integer", "y": "integer"}, "x", "y")}, read: (*MapEditor).mcpMap},
-		{Tool: editormcp.Tool{Name: "open", Description: "Open a path using the window's path prompt; unsaved changes still ask unless discard is true", InputSchema: editorToolSchema(map[string]string{"path": "string", "discard": "boolean"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error {
+		{Tool: editormcp.Tool{Name: "open_maps", Description: "List the open maps in tab order: caption, path, mission number, the map's own unsaved changes, and which one is shown. Every other tool reads and edits the map shown", InputSchema: empty}, read: func(e *MapEditor, _ editorToolArgs) (any, error) { return e.OpenMapRows(), nil }},
+		{Tool: editormcp.Tool{Name: "show_map", Description: "Show open map map (its place in open_maps, from 0), as a click on its tab does; the map left stays open with its view, selection, changes and history", InputSchema: editorToolSchema(map[string]string{"map": "integer"}, "map")}, brief: windowResult, apply: func(e *MapEditor, a editorToolArgs) error {
+			if !e.ShowOpenMap(a.Map) {
+				return fmt.Errorf("no open map %d; open_maps lists %d", a.Map, e.OpenMapCount())
+			}
+			return nil
+		}},
+		{Tool: editormcp.Tool{Name: "open", Description: "Open a path using the window's path prompt; unsaved changes still ask unless discard is true. In a mod the map opens beside the open maps", InputSchema: editorToolSchema(map[string]string{"path": "string", "discard": "boolean"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error {
 			if err := e.mcpPath(pathdialog.OpenFile, a.Path); err != nil || !a.Discard {
 				return err
 			}

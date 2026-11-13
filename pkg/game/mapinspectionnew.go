@@ -96,7 +96,7 @@ func (x *MapInspector) openNew(source string) (*ui.InspectionDocument, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes()}
+	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), modDir: x.modFolder()}
 	return s.project(model)
 }
 
