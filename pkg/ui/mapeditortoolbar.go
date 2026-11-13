@@ -84,6 +84,7 @@ func init() {
 		{key: "open", word: "editor.menu.open", kind: toolAction, menu: "file"},
 		{key: "saveas", word: "editor.menu.save", kind: toolAction, off: noEdit, menu: "file"},
 		{key: "saveto", word: "editor.menu.saveas", kind: toolAction, off: noEdit, menu: "file"},
+		{key: textsInsideKey, word: "editor.menu.textsinside", kind: toolSwitch, on: (*MapEditor).textsInsideOn, off: func(e *MapEditor) bool { _, ok := e.textsInsideHost(); return !ok }, menu: "file"},
 		{key: "catalog", word: "editor.menu.builtin", kind: toolAction, menu: "file"},
 		{key: "testplay", word: "editor.menu.testplay", kind: toolAction, off: noEdit, menu: "file"},
 		{key: "undo", word: "editor.bar.undo", keyRow: "undo", kind: toolAction, off: func(e *MapEditor) bool { return !e.editable() || !e.doc.Edits.CanUndo() }, menu: "file"},

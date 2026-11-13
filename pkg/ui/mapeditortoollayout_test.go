@@ -22,19 +22,19 @@ func menuKeys(e *MapEditor, menu string) []string {
 // Owner items 1, 3, 4, 6: File keeps its file rows before the moved rows.
 func TestMapEditorMapMenuNamesItsRowsAndPutsTheBuiltInMapsBelow(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	if got, want := menuKeys(e, "file"), []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}; !slices.Equal(got, want) {
+	if got, want := menuKeys(e, "file"), []string{"new", "open", "saveas", "saveto", "textsinside", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}; !slices.Equal(got, want) {
 		t.Fatalf("the Map menu's rows are %v, want %v", got, want)
 	}
 	for _, c := range []struct {
 		lang string
 		want []string
 	}{
-		{"", []string{"Create new map", "Open...", "Save", "Save as...", "Built-in maps..."}},
-		{"russian", []string{"Создать новую карту", "Открыть...", "Сохранить", "Сохранить как...", "Встроенные карты..."}},
+		{"", []string{"Create new map", "Open...", "Save", "Save as...", markWord(false, "Texts inside the map"), "Built-in maps..."}},
+		{"russian", []string{"Создать новую карту", "Открыть...", "Сохранить", "Сохранить как...", markWord(false, "Тексты внутри карты"), "Встроенные карты..."}},
 	} {
 		e.SetWords(words.For(c.lang))
 		var got []string
-		for _, it := range e.menuItems("file")[:5] {
+		for _, it := range e.menuItems("file")[:6] {
 			got = append(got, it.label)
 		}
 		if !slices.Equal(got, c.want) {

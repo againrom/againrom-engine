@@ -357,6 +357,8 @@ type Map struct {
 	// scriptRecords how many the file carried; Script decodes it.
 	scriptRecord  []byte
 	scriptRecords int
+	// textsRecords is how many Againrom texts records the file carried.
+	textsRecords int
 }
 
 // Present reports whether the accepted stream actually carried a record with
@@ -423,6 +425,7 @@ func open(data []byte, d dialect) (*Map, error) {
 		present:        f.present,
 		scriptRecord:   f.scriptRecord,
 		scriptRecords:  f.scriptRecords,
+		textsRecords:   f.textsRecords,
 	}
 
 	if err := m.decodeMeta(f.payloads[TypeMeta], d); err != nil {
@@ -537,6 +540,8 @@ type recordFrame struct {
 
 	scriptRecord  []byte
 	scriptRecords int
+	textsRecord   []byte
+	textsRecords  int
 }
 
 // walkRecords validates the file header and walks the recordCount
@@ -638,6 +643,10 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 		if d == dialectROM1 && typeID == ScriptRecordTypeID {
 			f.scriptRecords++
 			f.scriptRecord = data[payloadStart:payloadEnd]
+		}
+		if d == dialectROM1 && typeID == TextsRecordTypeID {
+			f.textsRecords++
+			f.textsRecord = data[payloadStart:payloadEnd]
 		}
 		if typeID < TypeIDCount {
 			f.present[typeID] = true

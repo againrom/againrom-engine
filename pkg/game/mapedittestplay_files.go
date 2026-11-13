@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
@@ -733,7 +734,8 @@ func placeMapLabels(target string, labels []byte, overwrite bool, lang string) e
 }
 
 // writeEditedMapPages writes the map and what the editor keeps beside it: the
-// texts folder of pages and the labels file of labels.
+// texts folder of pages, unless the map holds its pages inside, and the
+// labels file of labels.
 func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if err := extendedName(data, path); err != nil {
 		return "", err
@@ -751,13 +753,19 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	}
 	folder := mapTextFolder(filepath.Join(parent, filepath.Base(abs)))
 	existing, err := os.Lstat(folder)
-	if overwrite {
+	_, inside, _ := alm.TextsOf(data)
+	switch {
+	case inside:
+		// The pages ride in the map's texts record: no folder is written, and
+		// one already beside the map is left as it is.
+		pages = nil
+	case overwrite:
 		// The folder beside the map is the map's own; anything there other
 		// than a plain directory is not rewritten.
 		if len(pages) > 0 && (err == nil && !existing.IsDir() || err != nil && !errors.Is(err, os.ErrNotExist)) {
 			return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	case !errors.Is(err, os.ErrNotExist):
 		return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 	}
 	if len(pages) == 0 {
@@ -815,6 +823,13 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	set, err := editedMapSet(mapParent, target, data, overwrite)
 	if err != nil {
 		return "", err
+	}
+	// A replaced map that held its pages inside returns with them when the
+	// swap fails: the pages are then in neither the new map nor the folder.
+	if prior, err := os.ReadFile(target); overwrite && err == nil {
+		if _, held, _ := alm.TextsOf(prior); held {
+			set.Files[0].Overwrite, set.Files[0].Seen, set.Files[0].Prior = hostfile.Backup, hostfile.SeenPresent, prior
+		}
 	}
 	pagesRow := hostfile.File{Path: folder, Folder: stage}
 	if overwrite && existing != nil {

@@ -1149,6 +1149,61 @@ codes are 0 `==`, 1 `!=`, 2 `>`, 3 `<`, 4 `>=`, 5 `<=`, applied as
 left `op` right. `almtool script <file>` prints the record's head and each
 trigger's conditions with their groups.
 
+### Texts inside the map
+
+An `.almx` may also hold the map's text pages in one more record, the texts
+record, of typeId 101. It holds the pages a text folder beside the map holds,
+under the same names: `name.txt` for a page of every language and
+`<lang>/name.txt` for one language's page. A mission reads the record's pages
+first, then the text folder beside the map, then the mission's declared
+`texts` folder: a page the record holds wins, and a page only a folder holds
+is still read. For a name the language lacks, the record's pages of the other
+language fill in before the folders' do. A map that holds the record needs no
+text folder, also when its mission declares one. A packed mod reads the record
+as its folder does. A map with the record, in a mod or loose, stays within the
+mod reader's 1 MiB per file: the game reads no page from a larger one, and the
+map editor refuses to save one.
+
+The map editor's File menu has the switch "Texts inside the map", off by
+default, and the in-game save window shows the same switch. Switching it marks
+the map changed. Saved with it on, the pages go into the record and no text
+folder is written; a folder already beside the map is left as it is, and it
+still supplies a page the record lacks. The record is the switch's state: a map
+that holds it opens with the switch on. Saved with the switch off, the map and
+its folder are written as before, and the pages a record held go into the
+folder. A map whose file holds the record is saved with its pages or not at
+all: when the switch is off and the pages cannot be read or the folder cannot
+be written, the save is refused and neither the map nor the folder changes. In
+a mod's mission list the same holds for a map that is not the one shown: its
+draft keeps the record when the record cannot be made, and with the switch off
+the record's pages go into the map's folder with it.
+Switching it on for an original map asks whether to make the map extended, as
+an edit the original record cannot hold does; Yes makes it extended and the
+map saves as `.almx`. An `.alm` never holds the record: with the switch on,
+Save As to an `.alm` name is refused, and Save over an own `.alm` writes
+`<name>.almx` beside it. A mod mission's map that holds the record under an
+`.alm` name gets the report warning of the script record. The mod package
+save (W) writes the pages into the record and, as before, as files.
+
+The record header is 7, 20, the payload size, 101 and 0; the record is
+appended after the script record and the record count rises by 1.
+
+| offset | payload field |
+|---|---|
+| +0x00 | version, 1 |
+| +0x04 | page count N, 0..1024 |
+| +0x08 | N pages, back to back, in byte order of their names |
+
+| offset in a page | field |
+|---|---|
+| +0x00 | name length L, 1..128 |
+| +0x04 | name, L bytes of UTF-8 with `/`, one or two parts, no `\`, `:`, control character, empty, `.` or `..` part |
+| +0x04 + L | text length T, 0..1048576 |
+| +0x08 + L | text, T bytes, as the page file holds them |
+
+The payload ends after the last page's text. A name out of order or twice,
+a byte after the last page, or two texts records is refused.
+
 ### Saves of an extended map
 
 A SAV of an extended map holds the first 100 variables and the first 1000

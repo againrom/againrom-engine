@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
 )
 
@@ -49,7 +50,22 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 		return
 	}
 	if mapChanged {
-		d.Files[m.Map] = s.model.Bytes()
+		// A map whose record cannot be made keeps its draft as it was: a
+		// draft without the record would lose the pages the map holds inside.
+		// With the switch off those pages go into the map's folder drafts.
+		b, err := s.withTexts(s.model.Bytes())
+		if err == nil && !s.TextsInside() {
+			var inside map[string][]byte
+			inside, _, err = s.sourceTexts()
+			for name, page := range inside {
+				if rel := path.Join(mapTextFolder(m.Map), name); d.Files[rel] == nil {
+					d.Files[rel] = bytes.Clone(page)
+				}
+			}
+		}
+		if err == nil {
+			d.Files[m.Map] = b
+		}
 	}
 	if !maps.Equal(w.Labels, oldLabels) {
 		var labels map[uint32]string
@@ -96,6 +112,6 @@ func (s *mapInspectionEdits) refreshModSelection() {
 	m := d.Missions[d.Selected]
 	s.inspector.mod.selected = m.RowID()
 	if b, err := os.ReadFile(filepath.Join(s.inspector.mod.dir, filepath.FromSlash(m.Map))); err == nil {
-		s.saved = b
+		s.saved, _ = alm.WithoutTextsRecord(b)
 	}
 }

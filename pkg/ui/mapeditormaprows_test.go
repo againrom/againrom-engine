@@ -6,7 +6,7 @@ import (
 )
 
 // Owner items 1, 3, 4, 6 move the panel and generation out, history and search in.
-var mapRowKeys = []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}
+var mapRowKeys = []string{"new", "open", "saveas", "saveto", "textsinside", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}
 
 // Owner items 1, 3, 4, 6: File reads the command table, including history
 // with its keys and Search, without the Map panel or Generate group.
@@ -17,7 +17,7 @@ func TestMapEditorMapMenuRowsAreRowsOfTheTable(t *testing.T) {
 		if got := menuKeys(e, "file"); !slices.Equal(got, mapRowKeys) {
 			t.Fatalf("%q: the Map menu holds %v, want %v", lang, got, mapRowKeys)
 		}
-		words := []string{"editor.menu.new", "editor.menu.open", "editor.menu.save", "editor.menu.saveas", "editor.menu.builtin", "editor.menu.testplay", "editor.bar.undo", "editor.bar.redo", "editor.bar.search", "editor.view.records", "", "editor.menu.exit"}
+		words := []string{"editor.menu.new", "editor.menu.open", "editor.menu.save", "editor.menu.saveas", "editor.menu.textsinside", "editor.menu.builtin", "editor.menu.testplay", "editor.bar.undo", "editor.bar.redo", "editor.bar.search", "editor.view.records", "", "editor.menu.exit"}
 		for i, w := range words {
 			want := ""
 			if w != "" {
@@ -28,6 +28,9 @@ func TestMapEditorMapMenuRowsAreRowsOfTheTable(t *testing.T) {
 			}
 			if items[i].key == "redo" {
 				want += " (Ctrl+Y / Ctrl+Shift+Z)"
+			}
+			if items[i].key == textsInsideKey {
+				want = markWord(false, want)
 			}
 			if items[i].label != want {
 				t.Errorf("%q: Map row %d reads %q, want %q", lang, i, items[i].label, want)
@@ -63,7 +66,7 @@ func TestMapEditorMapRowIsDisabledWhenItsActionDoesNothing(t *testing.T) {
 	always := []string{"new", "open", "catalog", "close"}
 	e, _, _ := menuEditor(t, "")
 	for k, o := range off(e) {
-		if o && k != "undo" && k != "redo" {
+		if o && k != "undo" && k != "redo" && k != textsInsideKey {
 			t.Errorf("an editable map shows %s disabled", k)
 		}
 	}

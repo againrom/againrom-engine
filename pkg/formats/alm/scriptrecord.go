@@ -291,15 +291,22 @@ func AppendScriptRecord(stream []byte, r ScriptRecord) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	return appendRecord(stream, m, framed), nil
+}
+
+// appendRecord is the one writer that adds a framed Againrom record to
+// stream, opened as m: after its last record, before any trailer, with the
+// file header's record count raised by one.
+func appendRecord(stream []byte, m *Map, framed []byte) []byte {
 	end := FileHeaderSize
 	for _, rec := range m.Records {
 		end += RecordHeaderSize + int(rec.PayloadSize)
 	}
-	out := make([]byte, 0, end+len(framed))
+	out := make([]byte, 0, len(stream)+len(framed))
 	out = append(out, stream[:end]...)
 	binary.LittleEndian.PutUint32(out[FileRecordCount:], m.RecordCount+1)
 	out = append(out, framed...)
-	return append(out, stream[end:]...), nil
+	return append(out, stream[end:]...)
 }
 
 // FrameScriptRecord is r as one record of the stream: its 20-byte record
@@ -310,13 +317,19 @@ func FrameScriptRecord(r ScriptRecord) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	return frameRecord(ScriptRecordTypeID, payload), nil
+}
+
+// frameRecord is the one framer of the Againrom record family: the 20-byte
+// record header of typeID, then payload.
+func frameRecord(typeID uint32, payload []byte) []byte {
 	le := binary.LittleEndian
 	out := make([]byte, RecordHeaderSize, RecordHeaderSize+len(payload))
 	le.PutUint32(out[RecordTag:], recordTag)
 	le.PutUint32(out[RecordHeaderLength:], recordHdrLen)
 	le.PutUint32(out[RecordPayloadSize:], uint32(len(payload)))
-	le.PutUint32(out[RecordTypeID:], ScriptRecordTypeID)
-	return append(out, payload...), nil
+	le.PutUint32(out[RecordTypeID:], typeID)
+	return append(out, payload...)
 }
 
 // HasScriptRecord reports whether the map carries the Againrom script record.

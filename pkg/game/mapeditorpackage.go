@@ -114,7 +114,12 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 		s.workspace = nil
 		s.undoWorkspace, s.redoWorkspace, s.workspaceHistory = nil, nil, false
 	} else {
-		d, err = x.inspect(bytes.Clone(s.saved), s.source)
+		// The saved bytes hold no texts record; the switch stays as it is.
+		if d, err = x.inspect(bytes.Clone(s.saved), s.source); err == nil {
+			if next, ok := d.Edits.(*mapInspectionEdits); ok {
+				next.textsInside, next.savedInside = s.textsInside, s.savedInside
+			}
+		}
 	}
 	if err != nil {
 		x.setEditorMod(old)
@@ -143,7 +148,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	}
 	w := cloneWorkspace(s.workspace)
 	if flush {
-		s.syncModDocument(w, w.Pages, w.Labels, !bytes.Equal(s.saved, s.model.Bytes()))
+		s.syncModDocument(w, w.Pages, w.Labels, !bytes.Equal(s.saved, s.model.Bytes()) || s.TextsInside() != s.savedInside)
 	}
 	entry := w.Project.Missions[index-1]
 	if entry.Off {
@@ -190,7 +195,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 			}
 		}
 	}
-	s.model, s.source, s.workspace = next.model, source, w
+	s.model, s.source, s.workspace, s.textsInside, s.savedInside = next.model, source, w, next.textsInside, next.savedInside
 	s.saved = next.saved
 	s.workspaceImage = workspaceBytes(w)
 	s.refreshModSelection()
@@ -209,6 +214,9 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", err
 		}
 		b, err = s.model.SaveBytes()
+		if err == nil {
+			b, err = s.withTexts(b)
+		}
 		if err != nil {
 			return "", err
 		}
@@ -340,7 +348,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	s.rebaseHistory(layout, from, folder)
 	s.workspaceImage = workspaceBytes(s.workspace)
 	if s.model != nil {
-		s.saved = s.model.Bytes()
+		s.saved, s.savedInside = s.model.Bytes(), s.TextsInside()
 	}
 	s.savedWorkspace = s.workspaceImage
 	return s.source, nil

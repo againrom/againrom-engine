@@ -51,7 +51,7 @@ func TestMapEditorBarLayout(t *testing.T) {
 func TestMapEditorFileCommands(t *testing.T) {
 	e, h := popupEditor(t)
 	_ = e.Open("popups")
-	want := []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}
+	want := []string{"new", "open", "saveas", "saveto", "textsinside", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}
 	if got := menuKeys(e, "file"); !slices.Equal(got, want) {
 		t.Fatalf("owner items 1, 3, 4, 6: File %v, want %v", got, want)
 	}

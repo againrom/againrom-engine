@@ -611,6 +611,8 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.hideAreas = !e.view.hideAreas
 	case "toolbar":
 		e.toggleToolbar()
+	case textsInsideKey:
+		e.switchTextsInside()
 	case "select":
 		if e.pick == pickArea || e.pick == pickTrapArea {
 			e.leave(leavePick)
@@ -1479,6 +1481,9 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	if e.prompt.open() {
 		s.Title = e.promptTitle()
 		s.Rows = e.promptInputRows(text)
+		if row, ok := e.textsInsideRow(); ok {
+			s.Rows = append(s.Rows, row)
+		}
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
 		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
 			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
@@ -2272,6 +2277,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		s, _ := e.promptSpec()
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 		switch {
+		case (part == popupRowControl || part == popupRowLine) && s.Rows[n].Kind == popupSwitch:
+			e.switchTextsInside()
 		case part == popupClose || part == popupButton && n == 1:
 			e.cancelPopup()
 		case part == popupButton && n == 0:

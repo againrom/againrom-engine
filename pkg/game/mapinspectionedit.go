@@ -45,6 +45,8 @@ type mapInspectionEdits struct {
 	reportedTexts string // the texts folder stamp the report was made under
 	stamp         textsStampKeep
 	clock         func() time.Time // nil: the wall clock; a test sets it
+	textsInside   bool             // the switch: the pages go in the map's texts record
+	savedInside   bool             // the switch as the map's file last had it
 
 	facts    *ui.InspectionMapFacts // the Map panel's facts of the bytes in factsFor
 	factsFor []byte
@@ -61,7 +63,7 @@ type mapInspectionEdits struct {
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
-	return s.model != nil && !bytes.Equal(s.saved, s.model.Bytes()) || !sameWorkspace(s.savedWorkspace, s.workspaceImage)
+	return s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || s.TextsInside() != s.savedInside) || !sameWorkspace(s.savedWorkspace, s.workspaceImage)
 }
 func (s *mapInspectionEdits) CanUndo() bool {
 	if s.workspaceHistory {
@@ -882,9 +884,19 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
 	}
-	pages, err := s.pagesForSave()
-	if err != nil {
-		s.noteUnwritten(err)
+	// A map whose own file holds its pages inside is saved with them or not
+	// at all: the pages go into the record or into the folder, and a save
+	// that can do neither writes nothing.
+	var pages map[string][]byte
+	kept := false
+	if !s.TextsInside() {
+		_, kept, _ = s.sourceTexts()
+		if pages, err = s.pagesForSave(); err != nil {
+			if kept {
+				return "", s.textsKept(err)
+			}
+			s.noteUnwritten(err)
+		}
 	}
 	maps, grant := s.inspector.mapsFolder()
 	labels := s.labelsForSave()
@@ -893,13 +905,16 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		s.noteUnwritten(err)
 		err = nil
 	} else if err != nil && len(pages) > 0 {
+		if kept {
+			return "", s.textsKept(s.inspector.fenceRefusal(err, maps))
+		}
 		s.noteUnwritten(err)
 		target, err = writeEditedMap(root, s.source, path, b, overwrite, grant)
 	}
 	if err != nil {
 		return "", s.inspector.fenceRefusal(err, maps)
 	}
-	s.saved, s.source = s.model.Bytes(), target
+	s.saved, s.source, s.savedInside = s.model.Bytes(), target, s.TextsInside()
 	s.labelsUnread = s.labelsUnread && overwrite && labels != nil && len(labels) == 0
 	if s.saveNote == "" {
 		s.checkpointPages()
@@ -907,10 +922,15 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	return target, nil
 }
 
-// encodeForSave is the model's map bytes. When the model cannot encode the
-// map, the answer says so and that the edits are kept; nothing is changed.
+// encodeForSave is the model's map bytes, with the pages in the texts record
+// when the switch is on. When the model cannot encode the map or the pages
+// cannot be read, the answer says so and that the edits are kept; nothing is
+// changed.
 func (s *mapInspectionEdits) encodeForSave() ([]byte, error) {
 	b, err := s.model.SaveBytes()
+	if err == nil {
+		b, err = s.withTexts(b)
+	}
 	if err != nil {
 		return nil, fmt.Errorf(words.For(s.inspector.pageLanguage()).Text("editor.save.noencode"), err)
 	}

@@ -3,6 +3,7 @@ package mod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/herokind"
 	"againrom/pkg/locale"
 )
@@ -706,15 +708,32 @@ func (m *Mission) ReadFiles(dir string) error {
 	return nil
 }
 
-// ReadTexts reads a map's pages before its declared mission text folder. A
-// name no folder of lang supplies is read from the other language's folders;
-// other names those.
+// ReadTexts reads the pages the map carries in its texts record first, then
+// the map's text folders, then its declared mission text folder. A name none
+// of lang supplies is read from the other language's pages, the record's
+// before the folders'; other names those.
 func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map[string]bool, err error) {
 	lang = m.pageLang(lang)
 	if !locale.Known(lang) {
 		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}
 	otherLang := locale.Other(lang)
+	inside, held, err := m.mapTexts(dir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", m.Map, err)
+	}
+	record := insidePages{held: held, own: [2]map[string][]byte{{}, {}}, other: map[string][]byte{}}
+	for name, b := range inside {
+		folder, page := path.Split(name)
+		switch folder {
+		case lang + "/":
+			record.own[0][page] = b
+		case "":
+			record.own[1][page] = b
+		case otherLang + "/":
+			record.other[page] = b
+		}
+	}
 	place := MissionPlace{Map: m.Map}
 	folders := []string{place.Pages(lang), place.Pages("")}
 	foldersOther := []string{place.Pages(otherLang)}
@@ -733,24 +752,80 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 			foldersOther = append(foldersOther, declaredOther)
 		}
 	}
-	files, other, err = readMissionTexts(dir, fallback, folders, foldersOther)
+	files, other, err = readMissionTexts(dir, fallback, folders, foldersOther, record)
 	if errors.Is(err, os.ErrNotExist) && m.Texts == "" {
 		return map[string][]byte{}, nil, nil
 	}
 	return files, other, err
 }
 
-// readMissionTexts reads folders in order, then the parent fallback, then
-// foldersOther for the names left. In foldersOther a bad path or file name is
-// passed over.
-func readMissionTexts(dir, fallback string, folders, foldersOther []string) (map[string][]byte, map[string]bool, error) {
-	t, err := OpenTree(dir)
-	if err != nil {
-		return nil, nil, err
+// mapTexts is the page tree the map's texts record holds, keyed as in its
+// text folder, and whether the map carries the record: from MapBytes, else
+// from the map file in dir. A map that cannot be read or framed carries none.
+func (m Mission) mapTexts(dir string) (map[string][]byte, bool, error) {
+	b := m.MapBytes
+	if b == nil {
+		if m.Map == "" {
+			return nil, false, nil
+		}
+		var err error
+		if b, _, err = ReadInside(dir, m.Map); err != nil {
+			return nil, false, nil
+		}
 	}
+	return alm.TextsOf(b)
+}
+
+// insidePages is a map's texts record split for one language: own holds the
+// language's pages, then the shared ones; other the other language's.
+type insidePages struct {
+	held  bool
+	own   [2]map[string][]byte
+	other map[string][]byte
+}
+
+// readMissionTexts reads the record's own pages, folders in order, then the
+// parent fallback, then the record's other-language pages and foldersOther
+// for the names left. In foldersOther and the record's other-language pages
+// a bad path or file name is passed over.
+func readMissionTexts(dir, fallback string, folders, foldersOther []string, record insidePages) (map[string][]byte, map[string]bool, error) {
 	files := map[string][]byte{}
 	other := map[string]bool{}
-	found := false
+	found := record.held
+	take := func(pages map[string][]byte, otherLanguage bool) error {
+		for _, name := range slices.Sorted(maps.Keys(pages)) {
+			if !missionTextName.MatchString(name) {
+				if otherLanguage {
+					continue
+				}
+				return fmt.Errorf("the map's texts record holds %s, which is not a mission text file name (a-z, 0-9 and '_', then .txt)", name)
+			}
+			if _, exists := files[name]; exists {
+				continue
+			}
+			if len(files) >= MaxMissionTexts {
+				return fmt.Errorf("at most %d files", MaxMissionTexts)
+			}
+			files[name] = pages[name]
+			if otherLanguage {
+				other[name] = true
+			}
+		}
+		return nil
+	}
+	for _, pages := range record.own {
+		if err := take(pages, false); err != nil {
+			return nil, nil, err
+		}
+	}
+	t, err := OpenTree(dir)
+	if err != nil {
+		if record.held {
+			err = take(record.other, true)
+			return files, other, err
+		}
+		return nil, nil, err
+	}
 	if fallback != "" {
 		folders = append(folders, fallback)
 	}
@@ -800,6 +875,9 @@ func readMissionTexts(dir, fallback string, folders, foldersOther []string) (map
 		if err := read(folder, false); err != nil {
 			return nil, nil, err
 		}
+	}
+	if err := take(record.other, true); err != nil {
+		return nil, nil, err
 	}
 	for _, folder := range foldersOther {
 		if err := read(folder, true); err != nil {

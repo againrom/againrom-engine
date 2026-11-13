@@ -278,7 +278,7 @@ func (x *MapInspector) ruleTable() []mapRule {
 
 // extendedName: DIV-4603.
 func (c *mapCheck) extendedName() []mapHit {
-	if c.name == "" || !c.m.HasScriptRecord() || namefold.HostEqual(filepath.Ext(c.name), extendedMapExt) {
+	if c.name == "" || !c.m.HasScriptRecord() && !c.m.HasTextsRecord() || namefold.HostEqual(filepath.Ext(c.name), extendedMapExt) {
 		return nil
 	}
 	return []mapHit{{Text: c.x.word("editor.message.almxname")}}

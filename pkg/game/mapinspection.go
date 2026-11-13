@@ -241,11 +241,13 @@ func mapHostPath(src ui.MapSource, a *Archives) (string, bool) {
 }
 
 func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument, error) {
+	b, inside := alm.WithoutTextsRecord(b)
 	model, err := mapedit.New(b)
 	if err != nil {
 		return nil, err
 	}
-	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes()}
+	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), textsInside: inside}
+	s.savedInside = s.TextsInside()
 	d, err := s.project(model)
 	if err == nil {
 		d.OpenNote = s.openNote

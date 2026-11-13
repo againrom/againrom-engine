@@ -292,13 +292,16 @@ func packTrigger(t alm.ScriptTrigger, extended bool) alm.ScriptTrigger {
 
 // scriptSaveForm is the form question or refusal of a save of the model to
 // path: an extended map saves under an .almx name; under an .alm name it is
-// refused, unless the original records hold its script again, when the
-// save asks to fold it first.
+// refused, unless the original records hold its script again and its texts
+// are not inside, when the save asks to fold it first.
 func (s *mapInspectionEdits) scriptSaveForm(path string) error {
 	if !s.model.Extended() || namefold.HostEqual(filepath.Ext(path), extendedMapExt) {
 		return nil
 	}
 	t := words.For(s.inspector.pageLanguage())
+	if s.TextsInside() {
+		return errors.New(t.Text("editor.save.textsinside.almx"))
+	}
 	trial := s.model.Clone()
 	if err := foldScript(trial); err != nil {
 		return fmt.Errorf(t.Text("editor.scriptform.almx"), err)
@@ -306,11 +309,11 @@ func (s *mapInspectionEdits) scriptSaveForm(path string) error {
 	return &ui.ScriptFormNeeded{Fold: true, Why: t.Text("editor.scriptform.fits")}
 }
 
-// extendedName refuses map bytes that carry the extended script record
-// under a name that is not .almx.
+// extendedName refuses map bytes that carry the extended script record or
+// the texts record under a name that is not .almx.
 func extendedName(data []byte, name string) error {
 	m, err := alm.Open(data)
-	if err != nil || !m.HasScriptRecord() || namefold.HostEqual(filepath.Ext(name), extendedMapExt) {
+	if err != nil || !m.HasScriptRecord() && !m.HasTextsRecord() || namefold.HostEqual(filepath.Ext(name), extendedMapExt) {
 		return nil
 	}
 	return fmt.Errorf("%s: an extended map is saved under an %s name; the original game does not open it", filepath.Base(name), extendedMapExt)

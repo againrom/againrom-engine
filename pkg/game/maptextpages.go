@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -78,6 +79,13 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 			return nil, err
 		}
 	}
+	// The pages the map's own file holds inside come before its folder's, as
+	// mod.Mission.ReadTexts reads them.
+	inside, _, err := s.sourceTexts()
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(files, inside)
 	var saved editorWorkspaceState
 	_ = json.Unmarshal(s.savedWorkspace, &saved)
 	lang := x.pageLanguage()
