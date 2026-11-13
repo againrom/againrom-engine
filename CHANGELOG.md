@@ -20,7 +20,6 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] Abandoning a mission restores the backpack and town bag exactly as they were before entering it, with every item in its original place.
-
 - [ROM2] Use Ctrl+F4 through Ctrl+F12 to bind nine spell shortcuts, and F4 through F12 to recall them. The first game keeps its existing keys.
 - [ROM2] Quick save is Shift+F4 and quick load is Shift+F9, because F4 through F12 now recall spell shortcuts.
 - [ROM2] Holding Ctrl with G, D, C, S, T, R or M no longer also issues that letter's ordinary order.
@@ -40,13 +39,13 @@ modder or developer can notice gets no entry.
 - [ROM2] Town sound and speech no longer go silent after you have visited another town in the same run: the square, the inn and its talk, and the shop keep their sound in the later town, and in a town you load after another.
 - [ROM2] The mission menu shows the whole "Abandon, return to town" line in English and Russian, and the window widens for it; before, the line was cut to "Abandon, return to to...".
 - [Starter] The mod settings panel shows every setting of a mod: turn the mouse wheel over it to reach the sixth and later ones. Numbers get - and + buttons that stay within the allowed range, and a value the game would refuse is marked with the reason; before, only the first five settings could be set.
+- [BASE] At the fastest game speeds large maps stay smooth instead of dropping to a few frames a second.
 
 ### For map makers and modders
 
 - [ROM1] The mod window (W) has an Open mod button that opens a mod folder, or a packed mod read-only, after asking about unsaved changes. Its buttons and labels show their whole words in English and Russian, its messages are in the game's language, and it moves by its title bar and resizes like the editor's other windows. Buttons in the other editor windows also widen to their words.
 - [ROM1] W edits a mod’s version, author, description, target base and dependencies. Adding a speaker can be undone and is saved with the project; new packages and base dumps need no script. Saving keeps files the editor did not change and leaves a handwritten mod handwritten.
 - [ROM1] Mods can choose the next mission, insert missions for the main party, and give a campaign mission to a guest hero or party. Saving and loading keeps the route and the waiting main party.
-
 - [BASE] A mod loads its held data files without a script. Check warns about files outside the fixed tree and old paths; publishing leaves unread files out of the pack and save mark while keeping every file its rows read. Old row paths and scripts still work. Speaker data now enters the save mark even without a script call.
 - [ROM1] A mod mission whose next mission is an earlier campaign mission no longer sends the campaign back to that chapter, so the town offers the same missions before and after you save and load it.
 - [ROM1] In the map editor, after Add open map, saving the mod into a folder that does not exist yet creates the folder and saves; before, the save failed with "cannot find the file".

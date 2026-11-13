@@ -165,6 +165,9 @@ type mapWorld struct {
 	// (ANIM-125), beside blows and on the same terms.
 	strikes map[sim.EntityID]uint32
 
+	// heard is in the world's entity order (noteHeard).
+	heard []heardEntity
+
 	// drawnMoving is whether each entity's last pushed frame drew the move
 	// action, the draw state a move or swarm reply tests on its speaker
 	// (VIDEO-067). It is presentation only and reaches no world field, save or
@@ -3921,44 +3924,29 @@ func (mw *mapWorld) entity(id sim.EntityID) (sim.Entity, bool) {
 // monotonic reading makes it unreachable in production anyway.
 //
 // STOPPED, IT TAKES THE BASELINE AND RETURNS ZERO. The elapsed span is
-// consumed by that write — the same write the running path makes, on the
-// same line — so nothing is owed when the stop clears and the resume
-// cannot burst: the first advance after it runs ONE tick, not a backlog,
-// whether the stop was held for a frame or for an hour. The elapsed never
-// reaches the accumulator, which is what makes that a property of where the
-// return stands rather than of how large the catch-up bound happens to be.
+// consumed by the running path's own write and never reaches the
+// accumulator, so the first advance after the stop runs ONE tick, not a
+// backlog, however long the stop was held.
 //
 // The stop gates the TICK LOOP alone. It changes no rate, empties no queue and
 // reaches nothing inside tick(): what a tick does is unopened here, so orders
 // issued while stopped are simply orders no tick has drained yet.
 //
-// The tick count is bounded by maxCatchUp at the period in force and then
-// run as that many tick() calls — the ONE advance, unedited. Wall-clock
-// decides when a tick fires; a tick is the same integer step whatever paced
-// it, which is why k paced ticks reach the state and the digest of k direct
-// ones.
+// The tick count, bounded by maxCatchUp, runs through advanceTicks. A tick is
+// the same step whatever paced it, so k paced ticks reach the digest of k
+// direct ones.
 //
-// AFTER THE TICK LOOP IT PUSHES THE PHASE: the clock's own remainder and
-// period, from THIS clock — the pacing accumulator that decided how many
-// ticks just fired — and never from the viewer's water instance, which is
-// a second instance of the same type re-rated through its own call site and
-// carrying its own remainder. It is pushed on every call that reaches this
-// line, ticks or none, because a frame that fired no tick is exactly the
-// frame that has advanced within one. Every earlier return — the baseline,
-// a non-positive elapsed, the stop — is BEFORE the elapsed reaches the
-// accumulator, so the pair last pushed is still the one in force and a
-// stopped world's picture holds still without a rule of its own.
+// AFTER THE TICK LOOP IT PUSHES THE PHASE: the remainder and period of THIS
+// clock, which decided how many ticks fired, never of the viewer's water
+// instance. It is pushed on every call that reaches the line, ticks or none,
+// since a frame that fired no tick has advanced within one. Every earlier
+// return comes before the elapsed reaches the accumulator, so the pair last
+// pushed stays in force and a stopped world's picture holds still.
 func (mw *mapWorld) paceTo(now time.Time) (ticks, applied int) {
-	// THE READOUT PUSH, deferred so that it happens on EVERY exit. Three of the
-	// four returns below are early — the baseline call, a non-positive
-	// elapsed, and the stop — and the stop is exactly the state the readout
-	// most needs to report: a push placed after the tick loop would never fire
-	// for a stopped world, so the box would never learn about Space. Deferred,
-	// "the readout reports every frame" is a property of one statement rather
-	// than of four returns being kept in step.
-	//
-	// It runs AFTER this call's ticks, so what is pushed is the state the frame
-	// about to be drawn will be drawn from.
+	// THE READOUT PUSH is deferred so that EVERY exit makes it, the early
+	// returns included: the stop is the state the readout most needs to
+	// report. It runs AFTER this call's ticks, so it pushes the state the next
+	// frame is drawn from.
 	defer mw.pushReadout()
 
 	if mw.unpaced {
@@ -3993,11 +3981,19 @@ func (mw *mapWorld) paceTo(now time.Time) (ticks, applied int) {
 	if bound := maxCatchUp(mw.clock.Period()); n > bound {
 		n = bound
 	}
-	for i := 0; i < n; i++ {
-		applied += mw.tick()
-	}
+	applied = mw.advanceTicks(n, nil)
 	mw.view.SetPhase(mw.clock.Remainder(), mw.clock.Period())
 	return n, applied
+}
+
+// advanceTicks runs n driver ticks and projects only the last, the one a
+// frame draws; the others keep the held state (pushHeldState). sink sees
+// each tick's applied casts.
+func (mw *mapWorld) advanceTicks(n int, sink func([]sim.CastEvent)) (applied int) {
+	for i := 0; i < n; i++ {
+		applied += mw.tickStep(sink, i == n-1)
+	}
+	return applied
 }
 
 // setCadence is the ordinary-paced convenience used by cadence-focused tests.
@@ -4271,6 +4267,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 		mw.push()
 	} else {
 		mw.pushHeldState()
+		mw.noteHeard(report.Damages, true)
 	}
 	return applied
 }
@@ -4625,6 +4622,50 @@ func (mw *mapWorld) pushHeldState() {
 	mw.view.SetLightClock(mw.world.Tick())
 }
 
+// heardEntity is one entity as the sound step last received it; known is
+// false until recorded.
+type heardEntity struct {
+	id           sim.EntityID
+	hp           int32
+	life         uint8
+	drawn, known bool
+}
+
+// noteHeard records each entity's health, life and drawn state. On a tick
+// without projection (queue) a drawn entity that is new, changed, or named by
+// a damage event of the tick joins the pending damage stream as the update
+// that tick's projection would have queued, so the sound step compares the
+// next wound with the health and life a projection would have sent it.
+func (mw *mapWorld) noteHeard(damages []sim.DamageEvent, queue bool) {
+	ents := mw.world.EntityView()
+	heard := mw.heard
+	same := len(heard) == len(ents)
+	for i := 0; same && i < len(ents); i++ {
+		same = heard[i].id == ents[i].ID
+	}
+	if !same {
+		byID := make(map[sim.EntityID]heardEntity, len(heard))
+		for _, h := range heard {
+			byID[h.id] = h
+		}
+		heard = make([]heardEntity, len(ents))
+		for i := range ents {
+			heard[i] = byID[ents[i].ID]
+		}
+	}
+	tick := mw.world.Tick()
+	for i := range ents {
+		e := &ents[i]
+		now := heardEntity{id: e.ID, hp: e.HP, life: lifeOf(e), drawn: mw.drawable(e), known: true}
+		if queue && now.drawn && (now != heard[i] || slices.ContainsFunc(damages, func(d sim.DamageEvent) bool { return d.Target == e.ID })) {
+			mw.pendingDamage = append(mw.pendingDamage, damageTickEvent{DamageEvent: sim.DamageEvent{Target: e.ID, AfterHP: e.HP},
+				Tick: tick, update: true, life: now.life})
+		}
+		heard[i] = now
+	}
+	mw.heard = heard
+}
+
 // push hands the viewer this world's entities as they stand now: one
 // ui.MapEntity per entity, cell beside art, in the order the world hands
 // them back.
@@ -4647,10 +4688,8 @@ func (mw *mapWorld) pushHeldState() {
 // raw is what keeps this seam carrying one number rather than a conversion two
 // sides could disagree about.
 //
-// And it rides the PER-TICK push, not a per-frame one, for a reason rather than
-// for symmetry: a paced call runs up to maxCatchUp whole ticks in one frame, so
-// a frame-level push of only the last tick's clock would step straight over a
-// relight instant and hold the sun still for a whole period.
+// pushHeldState carries the clock on the ticks a paced call does not
+// project, so no relight instant is stepped over.
 //
 // It is a pure read of the world and writes nothing to it, so a run that draws
 // and a run that does not are the same run, tick for tick and digest for digest.
@@ -4667,7 +4706,13 @@ func (mw *mapWorld) push() {
 		}
 		messages := make([]ui.DamageMessage, 0, len(mw.pendingDamage))
 		for _, event := range mw.pendingDamage {
-			if draw, ok := byID[uint32(event.Target)]; ok {
+			draw, ok := byID[uint32(event.Target)]
+			switch {
+			case !ok:
+			case event.update:
+				draw.HP, draw.Life = int(event.AfterHP), event.life
+				messages = append(messages, ui.DamageMessage{Tick: event.Tick, Entity: draw, Update: true})
+			default:
 				draw.HP = int(event.BeforeHP)
 				messages = append(messages, ui.DamageMessage{Tick: event.Tick, Entity: draw, AfterHP: int(event.AfterHP)})
 			}
@@ -4677,6 +4722,7 @@ func (mw *mapWorld) push() {
 	}
 	mw.view.SetEntities(draws)
 	mw.soundEntities = draws
+	mw.noteHeard(nil, false)
 	mw.view.SetUnitInspectionPictureSource(mw.inspectionUnitPicture)
 	mw.view.SetStructures(mw.structureDraws())
 	mw.view.SetScorchedCellsAt(mw.world.ScorchedCells(), uint64(mw.world.Tick()))
@@ -5149,7 +5195,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			CastCapable: (clientClass == 0x17 || clientClass == 0x18) && e.KnownSpells != 0,
 			AutoSpell:   mw.autocastShown(e.ID, e.AutoSpell),
 			Cell:        cell, Step: step, Route: mw.routeOf(e.ID),
-			Name: name, Life: lifeOf(e), HP: int(e.HP), MaxHP: int(e.MaxHP),
+			Name: name, Life: lifeOf(&e), HP: int(e.HP), MaxHP: int(e.MaxHP),
 			Untargetable: !e.OrdinaryTargetable(),
 			// Life keeps the corpse rendering/depth answer for negative HP.
 			// Selectable is the independent owner-authored exception through -9;
@@ -5318,13 +5364,9 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 	// after the loop because the loop writes draws[i] by entity index; it is
 	// stable, and virtualDeadDraws' entries trail it.
 	kept := draws[:0]
-	for i, e := range ents {
-		if e.OffMap {
-			continue
-		}
-		// An invisible actor the local participant does not detect is not
-		// drawn and cannot be picked (MAGIC-ACTOR-066).
-		if mw.world.InvisibleTo(e.ID, sim.SelfSlot) {
+	for i := range ents {
+		e := &ents[i]
+		if !mw.drawable(e) {
 			continue
 		}
 		draw := draws[i]
@@ -5340,7 +5382,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			if draw.Art != nil {
 				frames := draw.Art.TierFrames(mw.tiers[e.ID])
 				if len(frames) > 0 {
-					frame, mirror := terrain.SelectStandingFrame(draw.Art.Anim, len(frames), drawnFacing(e))
+					frame, mirror := terrain.SelectStandingFrame(draw.Art.Anim, len(frames), drawnFacing(*e))
 					draw.Frame, draw.Mirror = frames[frame], mirror
 				}
 			}
@@ -5563,6 +5605,15 @@ var fallenDamageJolt = [...]image.Point{
 type damageTickEvent struct {
 	sim.DamageEvent
 	Tick uint64
+	// An update (noteHeard) carries the health in AfterHP.
+	update bool
+	life   uint8
+}
+
+// drawable excludes an off-map unit and an invisible actor the local
+// participant does not detect (MAGIC-ACTOR-066).
+func (mw *mapWorld) drawable(e *sim.Entity) bool {
+	return !e.OffMap && !mw.world.InvisibleTo(e.ID, sim.SelfSlot)
 }
 
 // observeDamage retains application order and the raw tick for delivery.
@@ -5630,7 +5681,7 @@ func (mw *mapWorld) damageJolt(id sim.EntityID) image.Point {
 // unreachable rather than a default anything falls into. It is written as the
 // alive arm because a state that somehow satisfied none of the three would be a
 // unit with no wound to report, which is the answer that changes least.
-func lifeOf(e sim.Entity) uint8 {
+func lifeOf(e *sim.Entity) uint8 {
 	switch {
 	case e.Dead():
 		return ui.LifeDead

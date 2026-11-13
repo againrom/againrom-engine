@@ -801,10 +801,8 @@ func (f *FrontEnd) LiveHealFeedback() (bursts, sprites int) {
 	return bursts, sprites
 }
 
-// LiveAdvance runs the open map screen's own logic tick n times, unpaced. Only
-// the last tick projects to the viewer: a projection replaces the previous one,
-// and the state a projection keeps across ticks runs on every tick
-// (pushHeldState).
+// LiveAdvance runs the open map screen's own logic tick n times, unpaced,
+// through advanceTicks.
 //
 // IT IS THE DRIVER'S TICK AND NOT THE FRAME'S. mw.paced is gated on a wall
 // clock, so a tool calling it in a loop advances nothing at all — which is
@@ -814,9 +812,7 @@ func (f *FrontEnd) LiveAdvance(n int) {
 	if f.live == nil {
 		return
 	}
-	for i := 0; i < n; i++ {
-		f.live.tickStep(nil, i == n-1)
-	}
+	f.live.advanceTicks(n, nil)
 }
 
 // LiveAdvanceCasts is LiveAdvance with the applied-cast observations returned
@@ -827,11 +823,9 @@ func (f *FrontEnd) LiveAdvanceCasts(n int) []sim.CastEvent {
 		return nil
 	}
 	var out []sim.CastEvent
-	for i := 0; i < n; i++ {
-		f.live.tickStep(func(events []sim.CastEvent) {
-			out = append(out, events...)
-		}, i == n-1)
-	}
+	f.live.advanceTicks(n, func(events []sim.CastEvent) {
+		out = append(out, events...)
+	})
 	return out
 }
 

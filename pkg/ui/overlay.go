@@ -727,7 +727,7 @@ const (
 // REPLACES 0020's SetEntityCells and keeps that setter's whole contract,
 // with art beside each cell.
 //
-// It is called EVERY TICK the map screen runs, where the two overlay setters are
+// It is called EVERY TICK the map screen projects, where the two overlay setters are
 // called once when a map opens, and the difference is why it deliberately calls
 // no syncWorld: the camera's world extent is a property of the terrain's own
 // geometry, and which cells happen to hold entities cannot move it. Re-clamping

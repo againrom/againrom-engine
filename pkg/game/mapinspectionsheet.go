@@ -78,7 +78,7 @@ func unitSheets(m *alm.Map, t *mapload.Table) ([]unitSheet, error) {
 		if !ok {
 			return nil, fmt.Errorf("the world holds no actor for placement %d", i)
 		}
-		s := unitSheet{Values: valuesOf(e), Suppressed: e.SuppressCorpseLoot, Life: lifeOf(e), Decay: int(e.Decay), Facing: drawnFacing(e)}
+		s := unitSheet{Values: valuesOf(e), Suppressed: e.SuppressCorpseLoot, Life: lifeOf(&e), Decay: int(e.Decay), Facing: drawnFacing(e)}
 		s.Worn, _ = w.EquippedItems(id)
 		s.Carried, _ = w.CarriedItems(id)
 		out[i] = s

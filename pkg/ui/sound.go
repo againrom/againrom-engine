@@ -308,10 +308,12 @@ func (v *Viewer) beginSoundEntry() {
 
 // DamageMessage carries a causal health application with its drawable context.
 // Entity.HP is server context; the receiver compares AfterHP to client memory.
+// Update marks an unprojected tick's entity entry, read as SetEntities' own.
 type DamageMessage struct {
 	Tick    uint64
 	Entity  MapEntity
 	AfterHP int
+	Update  bool
 }
 
 type soundMessage struct {
@@ -323,7 +325,7 @@ type soundMessage struct {
 
 // soundEntity is the part of a drawable the sound step reads. The queue holds
 // it rather than the whole drawable, because ticks run without a frame between
-// them queue one message per entity per tick.
+// them queue messages for one entity on several ticks.
 type soundEntity struct {
 	ID, Owner    uint32
 	HP, MaxHP    int
@@ -345,7 +347,7 @@ func soundEntityOf(e MapEntity) soundEntity {
 // replacement cannot overwrite them; stepSound consumes the stream once.
 func (v *Viewer) AppendDamageMessages(messages []DamageMessage) {
 	for _, message := range messages {
-		v.soundMessages = append(v.soundMessages, soundMessage{tick: message.Tick, entity: soundEntityOf(message.Entity), damage: true, afterHP: message.AfterHP})
+		v.soundMessages = append(v.soundMessages, soundMessage{tick: message.Tick, entity: soundEntityOf(message.Entity), damage: !message.Update, afterHP: message.AfterHP})
 	}
 }
 
