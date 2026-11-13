@@ -36,6 +36,9 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 	if key == "publish" || key == "publish-save" || key == "publish-replace" {
 		return nil, true, s.publishEditorMod(key, value)
 	}
+	if isModAssetKey(key) {
+		return s.setModAsset(key, value)
+	}
 	if key == "output" {
 		dir, err := editorPhysicalDirectory(strings.TrimSpace(value))
 		if err == nil {

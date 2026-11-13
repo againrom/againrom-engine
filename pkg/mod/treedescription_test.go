@@ -170,6 +170,12 @@ func TestFixedTreeWarnings(t *testing.T) {
 }
 
 func TestFixedTreeEveryKindPacksAndKeepsBytesAndDigest(t *testing.T) {
+	rows := map[string]string{
+		ItemsFile:    "[[material]]\nsprite = \"assets/items/a.png\"\n",
+		BodiesFile:   "[[body]]\nheroes = \"assets/bodies/a.png\"\n",
+		SpeakersFile: "[[speaker]]\npicture = \"assets/speakers/20000.png\"\n",
+		TownsFile:    "[[town]]\ndescription = \"assets/towns/a.json\"\n",
+	}
 	files := map[string]string{
 		ManifestName: good("whole"), EntryName: "def init(game, settings):\n    pass\n", "lib/a.star": "x = 1\n",
 		SettingsName: "# no settings\n", "text/en/strings.toml": "\"a\" = \"A\"\n",
@@ -179,7 +185,7 @@ func TestFixedTreeEveryKindPacksAndKeepsBytesAndDigest(t *testing.T) {
 		"10.alm": "map", ReadmeName: "people\r\n",
 	}
 	for _, k := range DataKinds() {
-		files[k.Files[0]] = "# no records\n"
+		files[k.Files[0]] = "# no records\n" + rows[k.Files[0]]
 	}
 	dir := filepath.Join(t.TempDir(), "whole")
 	for p, b := range files {

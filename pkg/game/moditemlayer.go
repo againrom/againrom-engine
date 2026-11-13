@@ -373,7 +373,7 @@ func rowName(rec itemRecord) string {
 // modItemSprite is the inventory picture a mod's PNG gives, in the game's
 // icon format.
 func modItemSprite(modID, file string, line int, dir, rel string) ([]byte, error) {
-	png, _, err := mod.ReadInside(dir, rel)
+	png, _, err := mod.ItemSprite.ReadIn(dir, rel)
 	if err != nil {
 		return nil, itemFileError(modID, file, line, "sprite %q: %v", rel, err)
 	}

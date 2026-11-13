@@ -2,11 +2,9 @@ package mod
 
 import (
 	"againrom/pkg/locale"
-	"againrom/pkg/namefold"
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -380,7 +378,7 @@ func itemRowFrom(id, file string, t tomlTable, text func(string) (string, bool),
 		case "sprite":
 			r.SpriteLine = p.line
 			if r.Sprite, err = str(); err == nil {
-				err = checkModPath(file, p.line, "sprite", r.Sprite, ".png")
+				_, err = ItemSprite.Check(file, p.line, "sprite", r.Sprite)
 			}
 		case "stand-in":
 			r.StandInLine = p.line
@@ -503,23 +501,4 @@ func itemChangeFrom(id, file string, t tomlTable) (ItemChange, error) {
 		return ItemChange{}, bad(t.line, "[[change]] of %q changes nothing", c.Item)
 	}
 	return c, nil
-}
-
-// checkModPath refuses a path that is not a relative slash path inside the mod
-// folder with the extension ext.
-func checkModPath(file string, line int, what, p, ext string) error {
-	bad := func(format string, args ...any) error {
-		return &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf(format, args...)}
-	}
-	if p == "" || strings.ContainsAny(p, "\\:\x00") || strings.HasPrefix(p, "/") {
-		return bad("%s %q is not a path inside the mod folder", what, p)
-	}
-	clean := path.Clean(p)
-	if clean != p || clean == ".." || strings.HasPrefix(clean, "../") {
-		return bad("%s %q is not a clean path inside the mod folder", what, p)
-	}
-	if !namefold.HostEqual(path.Ext(p), ext) {
-		return bad("%s %q is not a %s file", what, p, ext)
-	}
-	return nil
 }

@@ -63,7 +63,7 @@ map-point = { object = 3 }
 	if e.ID != 3 || e.MapPoint.Object != 3 || e.Name != "" {
 		t.Fatalf("applied %+v", e)
 	}
-	if !IsTownDescriptionFile("towns/East.JSON") || IsTownDescriptionFile("rom1") || ModDescriptionName("east", "towns/east.json") != "east:towns/east.json" {
+	if !TownDescription.Names("towns/East.JSON") || TownDescription.Names("rom1") || ModDescriptionName("east", "towns/east.json") != "east:towns/east.json" {
 		t.Fatal("description file names")
 	}
 }

@@ -50,7 +50,13 @@ func frozenModLines(res modrt.Result) []string {
 // and pages folder cmd/modmission would copy out of an install.
 func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 	warnings := map[string][]string{
-		"war-hammer-body": {`mod "war-hammer-body": data/weapon-bodies.toml: use data/wpnbodies.toml for weapon bodies`},
+		"bone-pike":   {`mod "bone-pike": data/items.toml:7: sprite assets/sprites/bone-pike.png uses an old path; use assets/items/<name>.png`},
+		"heavy-armor": {`mod "heavy-armor": data/items.toml:19: sprite assets/sprites/gambeson.png uses an old path; use assets/items/<name>.png`},
+		"war-hammer-body": {
+			`mod "war-hammer-body": data/bodies.toml:5: heroes bodies/hammer2h-heroes.png uses an old path; use assets/bodies/<name>.png`,
+			`mod "war-hammer-body": data/bodies.toml:6: heroes_l bodies/hammer2h-heroes_l.png uses an old path; use assets/bodies/<name>.png`,
+			`mod "war-hammer-body": data/weapon-bodies.toml: use data/wpnbodies.toml for weapon bodies`,
+		},
 	}
 	entries, err := os.ReadDir(exampleModsDir)
 	if err != nil {

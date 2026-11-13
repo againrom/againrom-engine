@@ -38,6 +38,7 @@ type mapInspectionEdits struct {
 
 	errorsAllowed bool                   // the user confirmed the next save with the report's errors
 	saveNote      string                 // what the last save did not write
+	assetAsk      *modAssetRequest       // the import that asked whether to replace a file
 	openNote      string                 // what the open could not read beside the map
 	labelsUnread  bool                   // the labels file beside the map could not be read
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor

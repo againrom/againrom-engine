@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
@@ -115,6 +116,13 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 				if _, ok := d.Files[name]; !ok {
 					d.Files[name] = nil
 				}
+			}
+		}
+		// An imported file the last save wrote and an undo since took out
+		// of the project leaves the folder with this save.
+		for name := range saved.Project.Files {
+			if _, ok := d.Files[name]; !ok && strings.HasPrefix(name, mod.AssetsFolder+"/") {
+				d.Files[name] = nil
 			}
 		}
 	}

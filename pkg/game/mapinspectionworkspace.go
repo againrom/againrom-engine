@@ -379,7 +379,7 @@ func opensMod(scope, key, value string) bool {
 }
 
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
-	if s.model == nil && (scope != "package" || !isManifestField(key) && key != "save" && key != "output" && key != "folder") {
+	if s.model == nil && (scope != "package" || !isManifestField(key) && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}

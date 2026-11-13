@@ -95,7 +95,7 @@ func ReadSpeakers(id, dir, rel string, src []byte, pending map[string][]byte) (S
 			s.PictureBytes = b
 			continue
 		}
-		data, _, err := ReadInside(dir, s.Picture)
+		data, _, err := SpeakerPicture.ReadIn(dir, s.Picture)
 		if err != nil {
 			return SpeakerData{}, &ItemFileError{File: rel, Line: s.fieldLine("picture"), Msg: fmt.Sprintf("picture %q: %v", s.Picture, err)}
 		}
@@ -168,10 +168,10 @@ func readTowns(r DataReader, d *Data, rel string, src []byte) error {
 		t := &records[i]
 		t.Dir = r.Dir
 		if !slices.ContainsFunc(t.Fields, func(f PatchField) bool { return f.Name == "description" }) ||
-			!IsTownDescriptionFile(t.Entry.Description) {
+			!TownDescription.Names(t.Entry.Description) {
 			continue
 		}
-		data, path, err := ReadInside(r.Dir, t.Entry.Description)
+		data, path, err := TownDescription.ReadIn(r.Dir, t.Entry.Description)
 		if err != nil {
 			return &ItemFileError{File: rel, Line: t.LineOf("description"), Msg: fmt.Sprintf("description %q: %v", t.Entry.Description, err)}
 		}

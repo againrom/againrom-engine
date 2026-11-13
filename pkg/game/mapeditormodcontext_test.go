@@ -94,7 +94,7 @@ func TestEditorModContextReadsTheKindsTheGameApplies(t *testing.T) {
 		writeMissionMap(t, dir)
 		start := speakerNumberStart("ambush")
 		writeModText(t, dir, mod.SpeakersFile, speakerRecordText(start, speakerPictureFile(start)))
-		if err := os.MkdirAll(filepath.Join(dir, "speakers"), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(dir, "assets", "speakers"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		speakerPNG(t, filepath.Join(dir, filepath.FromSlash(speakerPictureFile(start))), color.RGBA{R: 10, G: 200, B: 30, A: 255})

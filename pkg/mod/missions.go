@@ -380,17 +380,13 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				}
 				return p.val.str, nil
 			}
-			pathIn := func(dst *string) error {
+			pathIn := func(ref Reference, dst *string) error {
 				s, err := str()
 				if err != nil {
 					return err
 				}
-				s = missionPath(s, lang)
-				if !insidePath(s) {
-					return bad(p.line, "%s %q is not a path inside the mod folder", p.key, s)
-				}
-				*dst = path.Clean(s)
-				return nil
+				*dst, err = ref.Check(file, p.line, p.key, missionPath(s, lang))
+				return err
 			}
 			text := func(dst *string) error {
 				k, err := str()
@@ -437,11 +433,11 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 					}
 				}
 			case "map":
-				if err = pathIn(&m.Map); err == nil && strings.Contains(p.val.str, langToken) {
+				if err = pathIn(MissionMap, &m.Map); err == nil && strings.Contains(p.val.str, langToken) {
 					m.mapTemplate = p.val.str
 				}
 			case "texts":
-				if err = pathIn(&m.Texts); err == nil && p.val.kind == tomlString {
+				if err = pathIn(MissionTexts, &m.Texts); err == nil && p.val.kind == tomlString {
 					m.textsTemplate = p.val.str
 				}
 			case "title":
@@ -671,16 +667,6 @@ func parseGuestParty(file string, p tomlPair) ([]GuestMember, error) {
 	return out, nil
 }
 
-// insidePath reports that p is a relative slash path that stays inside the
-// folder it is read from.
-func insidePath(p string) bool {
-	if p == "" || strings.ContainsAny(p, "\\:\x00") || strings.HasPrefix(p, "/") {
-		return false
-	}
-	c := path.Clean(p)
-	return c != "." && c != ".." && !strings.HasPrefix(c, "../")
-}
-
 func missionPath(p, lang string) string { return strings.ReplaceAll(p, langToken, lang) }
 
 // ReadFiles reads the map and the text files of m from the mod folder dir.
@@ -691,7 +677,7 @@ func (m *Mission) ReadFiles(dir string) error {
 		return &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf(format, args...)}
 	}
 	if m.Map != "" {
-		b, _, err := ReadInside(dir, m.Map)
+		b, _, err := MissionMap.ReadIn(dir, m.Map)
 		if err != nil {
 			return bad("map: %v", err)
 		}
@@ -737,9 +723,9 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 	place := MissionPlace{Map: m.Map}
 	folders := []string{place.Pages(lang), place.Pages("")}
 	foldersOther := []string{place.Pages(otherLang)}
-	fallback := ""
+	fallback, declared := "", ""
 	if m.Texts != "" {
-		declared := missionPath(m.Texts, lang)
+		declared = missionPath(m.Texts, lang)
 		folders = append(folders, declared)
 		if tail := path.Base(declared); locale.Known(tail) {
 			fallback = path.Dir(declared)
@@ -752,7 +738,7 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 			foldersOther = append(foldersOther, declaredOther)
 		}
 	}
-	files, other, err = readMissionTexts(dir, fallback, folders, foldersOther, record)
+	files, other, err = readMissionTexts(dir, fallback, declared, folders, foldersOther, record)
 	if errors.Is(err, os.ErrNotExist) && m.Texts == "" {
 		return map[string][]byte{}, nil, nil
 	}
@@ -769,7 +755,7 @@ func (m Mission) mapTexts(dir string) (map[string][]byte, bool, error) {
 			return nil, false, nil
 		}
 		var err error
-		if b, _, err = ReadInside(dir, m.Map); err != nil {
+		if b, _, err = MissionMap.ReadIn(dir, m.Map); err != nil {
 			return nil, false, nil
 		}
 	}
@@ -788,7 +774,7 @@ type insidePages struct {
 // parent fallback, then the record's other-language pages and foldersOther
 // for the names left. In foldersOther and the record's other-language pages
 // a bad path or file name is passed over.
-func readMissionTexts(dir, fallback string, folders, foldersOther []string, record insidePages) (map[string][]byte, map[string]bool, error) {
+func readMissionTexts(dir, fallback, declared string, folders, foldersOther []string, record insidePages) (map[string][]byte, map[string]bool, error) {
 	files := map[string][]byte{}
 	other := map[string]bool{}
 	found := record.held
@@ -830,8 +816,11 @@ func readMissionTexts(dir, fallback string, folders, foldersOther []string, reco
 		folders = append(folders, fallback)
 	}
 	read := func(folder string, otherLanguage bool) error {
-		if !insidePath(folder) && !(folder == "." && folder == fallback) {
-			if otherLanguage {
+		if _, err := MissionTexts.Path(folder); err != nil && !(folder == "." && folder == fallback) {
+			// A folder derived from the map's name is one byte longer than
+			// the name, so the rule can refuse it for a name it admits. No
+			// mod holds such a folder: only the declared one keeps the rule.
+			if otherLanguage || folder != declared && folder != fallback {
 				return nil
 			}
 			return fmt.Errorf("texts %q is not a path inside its folder", folder)

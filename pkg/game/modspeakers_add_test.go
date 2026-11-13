@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -184,8 +185,8 @@ func TestModSpeakerRefusesWhileTheRecordsDidNotLoad(t *testing.T) {
 		damage func(t *testing.T, dir string)
 	}{
 		{"a bad picture on one record", func(t *testing.T, dir string) {
-			witness.PNG(t, filepath.Join(dir, "speakers", "small.png"), image.NewRGBA(image.Rect(0, 0, 10, 10)))
-			writeModText(t, dir, mod.SpeakersFile, speakerRecordText(start, speakerPictureFile(start))+speakerRecordText(start+1, "speakers/small.png"))
+			witness.PNG(t, filepath.Join(dir, "assets", "speakers", "small.png"), image.NewRGBA(image.Rect(0, 0, 10, 10)))
+			writeModText(t, dir, mod.SpeakersFile, speakerRecordText(start, speakerPictureFile(start))+speakerRecordText(start+1, "assets/speakers/small.png"))
 		}},
 		{"a failing script", func(t *testing.T, dir string) {
 			writeModText(t, dir, mod.SpeakersFile, speakerRecordText(start, speakerPictureFile(start)))
@@ -195,7 +196,7 @@ func TestModSpeakerRefusesWhileTheRecordsDidNotLoad(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			e, s, dir := modSpeakerEditor(t)
-			if err := os.MkdirAll(filepath.Join(dir, "speakers"), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Join(dir, filepath.FromSlash(path.Dir(speakerPictureFile(start)))), 0o755); err != nil {
 				t.Fatal(err)
 			}
 			speakerPNG(t, filepath.Join(dir, filepath.FromSlash(speakerPictureFile(start))), color.RGBA{R: 200, A: 255})

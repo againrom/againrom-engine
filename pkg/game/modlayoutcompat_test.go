@@ -201,8 +201,11 @@ func TestAnOlderLayoutModPlaysAndItsNextSaveWritesTheTree(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(dir, "mission")); !os.IsNotExist(err) {
 				t.Errorf("the emptied mission folder stays: %v", err)
 			}
+			// The save moves the missions' files; a picture a row names stays
+			// where the author put it, with its own warning.
 			saved, warnings := layoutView(t, mod.Load(dir))
-			if !reflect.DeepEqual(saved, view) || len(oldPaths(warnings)) != 0 {
+			moved := slices.DeleteFunc(oldPaths(warnings), func(w string) bool { return strings.Contains(w, ": picture speakers/karl.png uses") })
+			if !reflect.DeepEqual(saved, view) || len(moved) != 0 {
 				t.Fatalf("after the save the mod reads\n%q\nwant\n%q\nwarnings %q", saved, view, warnings)
 			}
 		})

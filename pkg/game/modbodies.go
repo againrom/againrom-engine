@@ -232,6 +232,15 @@ func modWeaponRow(weapons data.Collection, w mod.WeaponBody) (int, error) {
 	return row, nil
 }
 
+// decodeBodySheet decodes the picture of a body sheet.
+func decodeBodySheet(raw []byte) (image.Image, error) {
+	img, err := png.Decode(bytes.NewReader(raw))
+	if err != nil {
+		return nil, fmt.Errorf("not a readable PNG: %v", err)
+	}
+	return img, nil
+}
+
 // modBodyClass builds one supplied body under one directory: its sheet cut
 // into frames in the order the shipped block arithmetic reads them
 // (data.UnitClass.Anim), on the geometry the mod states, through the same
@@ -251,13 +260,13 @@ func modBodyClass(src entrySource, units *terrain.UnitSet, b mod.BodySheet, dir 
 	if base == nil {
 		return nil, bad("the install's unit registry has no class %d to take the body's other fields from", data.HeroUnmatchedClass)
 	}
-	raw, _, err := mod.ReadInside(b.Dir, path)
+	raw, _, err := mod.BodySheetPicture.ReadIn(b.Dir, path)
 	if err != nil {
 		return nil, bad("%v", err)
 	}
-	img, err := png.Decode(bytes.NewReader(raw))
+	img, err := decodeBodySheet(raw)
 	if err != nil {
-		return nil, bad("not a readable PNG: %v", err)
+		return nil, bad("%v", err)
 	}
 	frames, err := cutBodySheet(img, b)
 	if err != nil {

@@ -107,7 +107,7 @@ func TestModRowReferencesUseReaderResolvers(t *testing.T) {
 	}{
 		{"pkg/mod/treedescription.go", []string{"modFilePath", "missionPath", "TownArtFiles"}, []string{"Keys", "ReplaceAll", "MustCompile"}},
 		{"pkg/mod/tree.go", []string{"modFilePath"}, nil},
-		{"pkg/mod/towns.go", []string{"Keys", "modFilePath"}, nil},
+		{"pkg/mod/towns.go", []string{"Keys", "Path"}, []string{"modFilePath"}},
 		{"pkg/game/townlayer.go", []string{"TownArtFiles"}, nil},
 		{"pkg/mod/missions.go", []string{"missionPath"}, nil},
 	} {

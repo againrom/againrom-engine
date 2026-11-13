@@ -14,13 +14,15 @@ import (
 func TestRowReferencesKeepFolderAndPackEquivalent(t *testing.T) {
 	for _, tc := range []struct {
 		name, data, row, read, held string
+		// old counts the warnings of the old paths the row and its art name.
+		old int
 	}{
-		{"town dot", mod.TownsFile, "[[town]]\nid = 9\ndescription = \"towns/t.json\"\n", "./art/x.bmp", "art/x.bmp"},
-		{"town brackets", mod.TownsFile, "[[town]]\nid = 9\ndescription = \"towns/t.json\"\n", "art/y[1].bmp", "art/y[1].bmp"},
-		{"sprite language token", mod.ItemsFile, "[[material]]\nitem = \"Pike\"\ntier = \"Common\"\nmaterial = \"Bone\"\nallow = true\nsprite = \"art/{lang}.png\"\n", "art/{lang}.png", "art/{lang}.png"},
-		{"body language token", mod.BodiesFile, bodyReferenceRows("art/{lang}.png", "assets/bodies/light.png"), "art/{lang}.png", "art/{lang}.png"},
-		{"light body language token", mod.BodiesFile, bodyReferenceRows("assets/bodies/heroes.png", "art/{lang}.png"), "art/{lang}.png", "art/{lang}.png"},
-		{"portrait language token", mod.SpeakersFile, "[[speaker]]\nid = 20000\nname = \"Speaker\"\npicture = \"art/{lang}.png\"\n", "art/{lang}.png", "art/{lang}.png"},
+		{"town dot", mod.TownsFile, "[[town]]\nid = 9\ndescription = \"towns/t.json\"\n", "./art/x.bmp", "art/x.bmp", 2},
+		{"town brackets", mod.TownsFile, "[[town]]\nid = 9\ndescription = \"towns/t.json\"\n", "art/y[1].bmp", "art/y[1].bmp", 2},
+		{"sprite language token", mod.ItemsFile, "[[material]]\nitem = \"Pike\"\ntier = \"Common\"\nmaterial = \"Bone\"\nallow = true\nsprite = \"art/{lang}.png\"\n", "art/{lang}.png", "art/{lang}.png", 1},
+		{"body language token", mod.BodiesFile, bodyReferenceRows("art/{lang}.png", "assets/bodies/light.png"), "art/{lang}.png", "art/{lang}.png", 1},
+		{"light body language token", mod.BodiesFile, bodyReferenceRows("assets/bodies/heroes.png", "art/{lang}.png"), "art/{lang}.png", "art/{lang}.png", 1},
+		{"portrait language token", mod.SpeakersFile, "[[speaker]]\nid = 20000\nname = \"Speaker\"\npicture = \"art/{lang}.png\"\n", "art/{lang}.png", "art/{lang}.png", 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := map[string]string{tc.data: tc.row, tc.held: "synthetic image bytes"}
@@ -28,8 +30,11 @@ func TestRowReferencesKeepFolderAndPackEquivalent(t *testing.T) {
 				files["towns/t.json"] = fmt.Sprintf(`{"art":[{"name":"a","format":"picture","key":%q}]}`, mod.ModArtPrefix+tc.read)
 			}
 			if tc.data == mod.BodiesFile {
-				files["assets/bodies/heroes.png"] = "heroes"
-				files["assets/bodies/light.png"] = "light"
+				for _, sheet := range []string{"assets/bodies/heroes.png", "assets/bodies/light.png"} {
+					if strings.Contains(tc.row, sheet) {
+						files[sheet] = "sheet"
+					}
+				}
 			}
 			entries := makeMods(t, map[string]map[string]string{"references": files})
 			dir := entries[0].Dir
@@ -41,8 +46,8 @@ func TestRowReferencesKeepFolderAndPackEquivalent(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !want.Admits(tc.held) || len(want.Warnings) != 0 {
-				t.Errorf("reader's file is excluded or warned: %+v", want)
+			if !want.Admits(tc.held) || !oldPathWarnings(want.Warnings, tc.old) {
+				t.Errorf("reader's file is excluded, or the warnings are not the %d of its old paths: %+v", tc.old, want)
 			}
 			_, packedBytes, err := mod.Pack(dir)
 			if err != nil {
@@ -84,7 +89,7 @@ func TestRowReferencesKeepFolderAndPackEquivalent(t *testing.T) {
 				}
 				for _, base := range []string{"rom1-en", "rom1-ru"} {
 					res, err := Load([]mod.Entry{mod.Load(tree.Path())}, base, nil, Options{})
-					if err != nil || len(res.Warnings) != 0 {
+					if err != nil || !oldPathWarnings(res.Warnings, tc.old) {
 						t.Errorf("%s %s check warnings: %v: %v", tree.Path(), base, res.Warnings, err)
 					}
 				}
@@ -97,6 +102,16 @@ func TestRowReferencesKeepFolderAndPackEquivalent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// oldPathWarnings reports that warnings are n, each of an old path.
+func oldPathWarnings(warnings []string, n int) bool {
+	for _, w := range warnings {
+		if !strings.Contains(w, "uses an old path; use assets/") && !strings.Contains(w, "uses an old path; use mod:assets/") {
+			return false
+		}
+	}
+	return len(warnings) == n
 }
 
 func bodyReferenceRows(heroes, light string) string {

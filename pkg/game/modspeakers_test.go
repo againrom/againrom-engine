@@ -174,8 +174,8 @@ func TestModSpeakerSurvivesSavingTheOwnedPackage(t *testing.T) {
 		t.Fatalf("the save after a new speaker record: %v", err)
 	}
 	files := tree(t, owned)
-	if !strings.Contains(files[mod.SpeakersFile], "Lady") || files[fmt.Sprintf("speakers/%d.png", id)] != string(face) {
-		t.Fatalf("the saved package holds %q and %d picture bytes", files[mod.SpeakersFile], len(files[fmt.Sprintf("speakers/%d.png", id)]))
+	if !strings.Contains(files[mod.SpeakersFile], "Lady") || files[speakerPictureFile(int32(id))] != string(face) {
+		t.Fatalf("the saved package holds %q and %d picture bytes", files[mod.SpeakersFile], len(files[speakerPictureFile(int32(id))]))
 	}
 	// A package built into another folder carries them too.
 	other := filepath.Join(t.TempDir(), "ambush")
@@ -183,8 +183,8 @@ func TestModSpeakerSurvivesSavingTheOwnedPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 	files = tree(t, other)
-	if !strings.Contains(files[mod.SpeakersFile], "Lady") || files[fmt.Sprintf("speakers/%d.png", id)] != string(face) {
-		t.Fatalf("the copied package holds %q and %d picture bytes", files[mod.SpeakersFile], len(files[fmt.Sprintf("speakers/%d.png", id)]))
+	if !strings.Contains(files[mod.SpeakersFile], "Lady") || files[speakerPictureFile(int32(id))] != string(face) {
+		t.Fatalf("the copied package holds %q and %d picture bytes", files[mod.SpeakersFile], len(files[speakerPictureFile(int32(id))]))
 	}
 }
 
@@ -439,7 +439,7 @@ func TestModSpeakerSurvivesATestPlay(t *testing.T) {
 			if body, ok := speakerFileUnder(t, profile, mod.SpeakersFile); !ok || !strings.Contains(body, "Lady") {
 				t.Fatalf("the test mod holds no record: %q %v\n%v", body, ok, tree(t, profile))
 			}
-			if body, ok := speakerFileUnder(t, profile, fmt.Sprintf("speakers/%d.png", id)); !ok || body != string(face) {
+			if body, ok := speakerFileUnder(t, profile, speakerPictureFile(int32(id))); !ok || body != string(face) {
 				t.Fatalf("the test mod's picture: %d bytes, held %v", len(body), ok)
 			}
 		})
@@ -464,7 +464,7 @@ func TestCarryModSpeakersPutsTheFilesOnTheMission(t *testing.T) {
 	if err := s.carryModSpeakers(&m); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(m.Carried[mod.SpeakersFile]), "Lady") || !bytes.Equal(m.Carried[fmt.Sprintf("speakers/%d.png", id)], face) {
+	if !strings.Contains(string(m.Carried[mod.SpeakersFile]), "Lady") || !bytes.Equal(m.Carried[speakerPictureFile(int32(id))], face) {
 		t.Fatalf("carried %d files: %q", len(m.Carried), m.Carried[mod.SpeakersFile])
 	}
 }

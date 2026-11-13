@@ -126,7 +126,7 @@ func itemMaterialFrom(id, file string, t tomlTable, text func(string) (string, b
 		case "sprite":
 			m.SpriteLine = p.line
 			if m.Sprite, err = str(); err == nil {
-				err = checkModPath(file, p.line, "sprite", m.Sprite, ".png")
+				_, err = ItemSprite.Check(file, p.line, "sprite", m.Sprite)
 			}
 		case "name":
 			m.NameLine = p.line
@@ -185,7 +185,7 @@ func weaponRowFrom(id, file string, t tomlTable, text func(string) (string, bool
 		case "sprite":
 			w.SpriteLine = p.line
 			if w.Sprite, err = str(); err == nil {
-				err = checkModPath(file, p.line, "sprite", w.Sprite, ".png")
+				_, err = ItemSprite.Check(file, p.line, "sprite", w.Sprite)
 			}
 		default:
 			i := weaponParamIndex(p.key)

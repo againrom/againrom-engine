@@ -56,8 +56,7 @@ held file loading.
 
 Old paths named by rows remain readable and packed. Old mission map and page paths,
 and the second weapon bodies name, produce check warnings naming the fixed place.
-Rows' old asset paths remain supported; asset-reference warnings belong to the
-asset-import work. A title or briefing key with a page produces a warning because
+A title or briefing key with a page produces a warning because
 the key wins. Maps not used by any mission and missing map declarations are left
 to the map-list work. The packed name table supports components through 255 UTF-8
 bytes, so names over 15 bytes need no warning.
@@ -68,6 +67,63 @@ read-me is packed but excluded from the digest. Removing an unread file from an
 old mod's digest changes its save mark once: a save made with the old digest will
 report different files. A previously state-free speaker-only mod now enters the
 save mark and can likewise make an older save report a different active mod set.
+
+## Files a row names
+
+A row that names a file of the mod (an item's `sprite`, a body's `heroes` and
+`heroes_l`, a speaker's `picture`, a town's `description`, a mission's `map` and
+`texts`) and a `mod:` art key of a town description all pass one rule:
+
+- the value is a relative path inside the mod folder, written with `/`;
+- no `\`, no `:`, no leading `/`, no `..` that leaves the folder;
+- no component starts with a dot;
+- each component holds at most 255 bytes and no control character;
+- the value is UTF-8; a name that is not UTF-8 is refused;
+- an item's sprite and a body's sheets end in `.png`, and a town's description of
+  the mod ends in `.json`; case does not matter;
+- the mod holds the file. A missing file is refused at the row's line.
+
+An item's sprite and a body's sheets must be written clean (`assets/items/a.png`,
+not `./assets/items/a.png`); the other values are read as their clean path.
+
+A mod's own pictures and descriptions belong under `assets/<kind>/`:
+`assets/items/`, `assets/bodies/`, `assets/speakers/`, `assets/towns/`. A file a row
+names from another place still loads, plays and packs. `againrom -check` and the map
+editor's overview of the mod print two warnings about these files:
+
+```text
+warning: mod "east": data/items.toml:7: sprite art/pike.png uses an old path; use assets/items/<name>.png
+warning: mod "east": assets/items/lost.png: no row names this file of items; the game does not read it
+```
+
+The first names a file a row reads from outside `assets/`; a `mod:` art key outside
+`assets/towns/` gets the same warning at its description file. The second names a
+file under `assets/` that no row and no art key names. Neither stops the mod.
+
+### Importing a file in the map editor
+
+The map editor copies a picked file into the open mod at `assets/<kind>/<name>`.
+`<name>` is the picked file's own name in lower case, cut to 255 bytes with its
+extension kept. The file is checked at once by the reader the game uses for that
+kind, and a file the game would refuse is refused there, with the same message:
+
+| kind | file | checked as |
+|---|---|---|
+| items | `.png` | an item picture, 1 to 80 pixels a side |
+| bodies | `.png` | a readable PNG sheet |
+| speakers | `.png` | a face of the message window's size |
+| towns | `.json` | a town description |
+| towns | `.bmp` | a 24-bit or 8-bit BMP the game decodes |
+
+The import is one undo step and writes nothing: the file is a draft of the project,
+and Ctrl+S writes it with the rest of the mod. Undo takes the draft away; after a
+save, undo and another Ctrl+S remove the file from the folder. When the mod already
+holds a file of that name, the editor asks before it replaces it. A packed mod and
+an imported read-only mod take no import.
+
+Adding a speaker in the editor is this import: the face is copied to
+`assets/speakers/<id>.png`. The other kinds have no page in the mod window yet; the
+import of their files exists and is waiting for those pages.
 
 ## Data kinds
 
@@ -481,7 +537,7 @@ item     = "Pike"
 tier     = "Common"
 material = "Bone"
 allow    = true
-sprite   = "assets/sprites/bone-pike.png"
+sprite   = "assets/items/bone-pike.png"
 name     = "item.bone_pike"
 ```
 
@@ -644,8 +700,8 @@ second body named with the `_` suffix.
 # per direction for each of move, attack and idle (25 rows of 64x80 cells).
 [[body]]
 name        = "hammer2h"
-heroes      = "bodies/hammer2h.png"
-heroes_l    = "bodies/hammer2h_l.png"
+heroes      = "assets/bodies/hammer2h.png"
+heroes_l    = "assets/bodies/hammer2h_l.png"
 frame       = [64, 80]
 origin      = [32, 70]
 directions  = 8
@@ -1295,7 +1351,7 @@ A town that lists the mission it opens after, or whose mission only such a
 town offers, never opens and is refused.
 
 A description file of the mod names its pictures by art key. A key that
-starts with `mod:` reads a file inside the mod folder (`mod:art/east.bmp`);
+starts with `mod:` reads a file inside the mod folder (`mod:assets/towns/east.bmp`);
 every other key reads the install. A picture is a 24-bit BMP and a mask an
 8-bit BMP, as in the install. A run-time-bound art entry cannot name a mod
 file.
@@ -1308,7 +1364,7 @@ name = "West"
 
 [[town]]
 id          = 2
-description = "towns/east.json"
+description = "assets/towns/east.json"
 hooks       = "chapters"
 offers      = "chapter-keys"
 map-point   = { point = [430, 230], rect = [410, 205, 40, 30] }
@@ -1690,7 +1746,7 @@ the entry script names it nowhere. A message tag `<npc=N>` names a record by its
 [[speaker]]
 id = 20000                     # 20000 to 99999; the numbers below are the game's records
 name = "Karl"                  # shown in the editor's speaker lists
-picture = "speakers/karl.png"  # a PNG of 72x96 pixels, the message window's face
+picture = "assets/speakers/karl.png"  # a PNG of 72x96 pixels, the message window's face
 map = "maps/en/ambush.alm"     # by choice, with unit: the map's path in the mod
 unit = 12                      # the unit's script number on that map, 1 to 65535
 ```
@@ -1701,7 +1757,7 @@ the unit when other units are added, moved or deleted. A number held by more tha
 map names none of them. In the game a message that names the record's number draws its picture. A
 save holds that number in the map's message text and no other field. In the map editor, on a map
 that lives in a mod, clicking a unit no speaker record shows with the speaker pick asks for a name
-and opens the file window for a PNG. The record and picture at `speakers/<id>.png` enter the
+and opens the file window for a PNG. The record and picture at `assets/speakers/<id>.png` enter the
 project draft together, as one undo step. The speaker is available at once; Ctrl+S writes the
 record and picture with the project. No file is written by the add. A unit with script number 0, or one another unit shares, is refused with a message that
 says so. A map outside a mod keeps the refusal text. While the mod's records did not load (a bad

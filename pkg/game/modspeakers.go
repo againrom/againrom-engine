@@ -8,7 +8,7 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"os"
+	"path"
 	"path/filepath"
 
 	"againrom/pkg/data"
@@ -211,20 +211,6 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	if err != nil {
 		return 0, err
 	}
-	st, err := os.Stat(picture)
-	if err != nil {
-		return 0, err
-	}
-	if st.Size() > mod.MaxFileBytes {
-		return 0, fmt.Errorf("the picture is larger than %d bytes, the most a mod's file may hold", mod.MaxFileBytes)
-	}
-	pic, err := os.ReadFile(picture)
-	if err != nil {
-		return 0, err
-	}
-	if _, err := decodeSpeakerPicture(pic); err != nil {
-		return 0, err
-	}
 	if err := s.prepareWorkspace(); err != nil {
 		return 0, err
 	}
@@ -236,7 +222,11 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	if err != nil {
 		return 0, err
 	}
-	rec := mod.Speaker{ID: id, Name: name, Picture: speakerPictureFile(id), Map: key, Unit: int32(unitID), Bound: true}
+	face, pic, err := s.modAssetDraft(speakerAssets, picture, path.Base(speakerPictureFile(id)))
+	if err != nil {
+		return 0, err
+	}
+	rec := mod.Speaker{ID: id, Name: name, Picture: face, Map: key, Unit: int32(unitID), Bound: true}
 	src := mod.AppendSpeaker(before, rec)
 	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, rec.Picture, pic)); err != nil {
 		return 0, err
@@ -275,9 +265,14 @@ func (s *mapInspectionEdits) draftSpeakersFile() ([]byte, error) {
 	return s.inspector.mod.speakersFile()
 }
 
+// speakerAssets is the folder under assets that holds the speakers' faces.
+const speakerAssets = "speakers"
+
 // speakerPictureFile is the path in the mod of the picture record id's add
-// writes.
-func speakerPictureFile(id int32) string { return fmt.Sprintf("speakers/%d.png", id) }
+// imports.
+func speakerPictureFile(id int32) string {
+	return fmt.Sprintf("%s/%s/%d.png", mod.AssetsFolder, speakerAssets, id)
+}
 
 // speakersFile is the text of the mod's speakers file, nil when it holds none.
 func (m *editorMod) speakersFile() ([]byte, error) { return modSpeakersFile(m.dir) }

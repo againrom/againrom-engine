@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"againrom/pkg/namefold"
 	"againrom/pkg/town"
 )
 
@@ -33,7 +32,7 @@ func TownArtFiles(d *town.Description) ([]TownArtFile, error) {
 			if !ok || seen[key] {
 				continue
 			}
-			rel, err := modFilePath(name)
+			rel, err := TownArt.Path(name)
 			if err != nil {
 				return nil, fmt.Errorf("art %q: %v", key, err)
 			}
@@ -310,10 +309,6 @@ func (d TownData) OfferRows(table town.OfferTable) int {
 // ModDescriptionName is the name of a description file of mod id in a
 // merged catalog.
 func ModDescriptionName(id, path string) string { return id + ":" + path }
-
-// IsTownDescriptionFile reports whether a description value names a file of
-// the mod rather than an installed description.
-func IsTownDescriptionFile(v string) bool { return strings.HasSuffix(namefold.Host(v), ".json") }
 
 // ParseTowns reads data/towns.toml of the mod id: its [[town]] tables and
 // its offer rows, [[tavern]] and [[inn]] tables. A refusal names the file

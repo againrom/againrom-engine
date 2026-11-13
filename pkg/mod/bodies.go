@@ -248,7 +248,7 @@ func ParseBodies(id, file string, data []byte) ([]BodySheet, error) {
 				if p.val.kind != tomlString {
 					err = bad(p.line, "%s must be a string, not %s", p.key, p.val.kind)
 				} else {
-					err = checkModPath(file, p.line, p.key, path, ".png")
+					_, err = BodySheetPicture.Check(file, p.line, p.key, path)
 				}
 				if p.key == "heroes" {
 					b.Heroes, b.HeroesLine = path, p.line

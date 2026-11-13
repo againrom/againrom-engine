@@ -329,7 +329,7 @@ func readModTownArt(d *town.Description, file *mod.TownDescriptionFile) (map[str
 	}
 	out := map[string][]byte{}
 	for _, f := range files {
-		b, _, err := mod.ReadInside(file.Dir, f.Path)
+		b, _, err := mod.TownArt.ReadIn(file.Dir, f.Path)
 		if err != nil {
 			return nil, fmt.Errorf("art %q: %v", f.Key, err)
 		}

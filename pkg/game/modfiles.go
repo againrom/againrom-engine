@@ -189,40 +189,46 @@ func shadowedArchives() []string {
 	return out
 }
 
+// bmpDepth is the bits per pixel a BMP's header states, 0 for bytes too
+// short to hold one.
+func bmpDepth(b []byte) int {
+	if len(b) < 30 {
+		return 0
+	}
+	return int(binary.LittleEndian.Uint16(b[28:]))
+}
+
+// decodeModPicture decodes a BMP as the game's decoder for bits per pixel
+// reads it and answers its bounds.
+func decodeModPicture(b []byte, bits int) (image.Rectangle, error) {
+	switch bits {
+	case bmp.BitsPerPixel:
+		pic, err := bmp.DecodeRGBA(b)
+		if err != nil {
+			return image.Rectangle{}, err
+		}
+		return pic.Bounds(), nil
+	case bmp.IndexedBitsPerPixel:
+		pic, err := bmp.DecodePaletted(b)
+		if err != nil {
+			return image.Rectangle{}, err
+		}
+		return pic.Bounds(), nil
+	}
+	return image.Rectangle{}, fmt.Errorf("bmp: %d bits per pixel; the game reads %d or %d", bits, bmp.IndexedBitsPerPixel, bmp.BitsPerPixel)
+}
+
 // checkModPicture refuses a picture the game cannot draw in place of the
 // install's: one the install's own decoder for that file does not read, or of
 // another size, which the screens that draw the picture at fixed places
 // cannot take.
 func checkModPicture(installed, modded []byte) error {
-	depth := func(b []byte) int {
-		if len(b) < 30 {
-			return 0
-		}
-		return int(binary.LittleEndian.Uint16(b[28:]))
-	}
-	decode := func(b []byte, bits int) (image.Rectangle, error) {
-		switch bits {
-		case bmp.BitsPerPixel:
-			pic, err := bmp.DecodeRGBA(b)
-			if err != nil {
-				return image.Rectangle{}, err
-			}
-			return pic.Bounds(), nil
-		case bmp.IndexedBitsPerPixel:
-			pic, err := bmp.DecodePaletted(b)
-			if err != nil {
-				return image.Rectangle{}, err
-			}
-			return pic.Bounds(), nil
-		}
-		return image.Rectangle{}, fmt.Errorf("bmp: %d bits per pixel; the game reads %d or %d", bits, bmp.IndexedBitsPerPixel, bmp.BitsPerPixel)
-	}
-	bits := depth(installed)
-	want, err := decode(installed, bits)
+	bits := bmpDepth(installed)
+	want, err := decodeModPicture(installed, bits)
 	if err != nil {
 		return fmt.Errorf("the install's picture at this path is not one the game decodes (%v)", err)
 	}
-	got, err := decode(modded, bits)
+	got, err := decodeModPicture(modded, bits)
 	if err != nil {
 		return fmt.Errorf("the game cannot decode this picture as the install's %d-bit picture: %v", bits, err)
 	}

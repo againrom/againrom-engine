@@ -13,21 +13,7 @@ import (
 	"againrom/pkg/town"
 )
 
-type referenceRole uint8
-
-const (
-	referenceFile referenceRole = iota
-	referenceMap
-	referencePages
-	referenceTown
-)
-
-type treeReference struct {
-	table, field string
-	role         referenceRole
-}
-
-func (r treeReference) paths(value string) []string {
+func (r Reference) paths(value string) []string {
 	if r.role != referenceMap && r.role != referencePages {
 		return []string{value}
 	}
@@ -148,17 +134,20 @@ func (t Tree) Describe() (TreeDescription, error) {
 			}
 			for _, row := range tables {
 				for _, ref := range k.references {
-					if row.name != ref.table {
+					if !slices.Contains(ref.tables, row.name) {
 						continue
 					}
 					for _, pair := range row.pairs {
-						if pair.key != ref.field || pair.val.kind != tomlString {
+						if !slices.Contains(ref.fields, pair.key) || pair.val.kind != tomlString {
 							continue
 						}
 						for _, name := range ref.paths(pair.val.str) {
-							rel, err := modFilePath(name)
+							rel, err := ref.Path(name)
 							if err != nil {
 								continue
+							}
+							if (ref.role == referenceFile || ref.role == referenceTown) && !k.inPlace(rel) {
+								warn(file, pair.line, "%s %s uses an old path; use %s", pair.key, rel, k.placeAdvice(rel))
 							}
 							switch ref.role {
 							case referenceMap:
@@ -172,11 +161,8 @@ func (t Tree) Describe() (TreeDescription, error) {
 									patterns[namefold.ModTree(path.Join(path.Dir(rel), path.Base(pagePattern)))] = missionPagesKind
 								}
 							case referenceTown:
-								if !IsTownDescriptionFile(rel) {
-									continue
-								}
 								add(rel, k.Name)
-								if err := t.describeTownArt(rel, add); err != nil {
+								if err := t.describeTownArt(k, rel, add, warn); err != nil {
 									return out, err
 								}
 							default:
@@ -215,9 +201,13 @@ func (t Tree) Describe() (TreeDescription, error) {
 			return nil
 		}
 		kind, digest := references[namefold.ModTree(rel)], true
+		named := kind != ""
 		for _, k := range dataKinds {
 			if k.takes(rel) {
 				kind, digest = k.Name, !k.NoDigest
+				if place, _ := k.AssetPlace(); place != "" && !named && !slices.Contains(k.Files, rel) {
+					warn(rel, 0, "no row names this file of %s; the game does not read it", k.Name)
+				}
 				break
 			}
 		}
@@ -246,7 +236,7 @@ func (t Tree) Describe() (TreeDescription, error) {
 
 func fsNotExist(err error) bool { return errors.Is(err, fs.ErrNotExist) }
 
-func (t Tree) describeTownArt(rel string, add func(string, string)) error {
+func (t Tree) describeTownArt(k DataKind, rel string, add func(string, string), warn func(string, int, string, ...any)) error {
 	if _, err := t.Stat(rel); fsNotExist(err) {
 		return nil
 	} else if err != nil {
@@ -268,9 +258,11 @@ func (t Tree) describeTownArt(rel string, add func(string, string)) error {
 		return err
 	}
 	for _, f := range files {
-		add(f.Path, "towns")
+		add(f.Path, k.Name)
+		if !k.inFolder(f.Path) {
+			warn(rel, 0, "art %s uses an old path; use %s%s", f.Key, ModArtPrefix, k.folderAdvice(f.Path))
+		}
 	}
-
 	return nil
 }
 

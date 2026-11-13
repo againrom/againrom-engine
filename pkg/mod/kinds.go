@@ -126,7 +126,7 @@ type DataKind struct {
 	State      bool
 	NoDigest   bool
 	install    FileKind
-	references []treeReference
+	references []Reference
 	// read parses one file of the kind from one mod, refusing a value at
 	// its file and line, and adds the records to d.
 	read func(r DataReader, d *Data, rel string, src []byte) error
@@ -152,7 +152,7 @@ var missionMapPaths, missionPagePaths, mapLabelPaths = missionTreeRows()
 var dataKinds = []DataKind{
 	{
 		Format: "TOML subset; PNG", Language: "shared", Found: "held file; row sprite", State: true,
-		Paths: []string{"assets/items/**/*.png"}, references: []treeReference{{"item", "sprite", referenceFile}, {"change", "sprite", referenceFile}, {"weapon", "sprite", referenceFile}, {"material", "sprite", referenceFile}},
+		Paths: []string{"assets/items/**/*.png"}, references: []Reference{ItemSprite},
 		Name: "items", Files: []string{ItemsFile}, Key: "the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
@@ -240,7 +240,7 @@ var dataKinds = []DataKind{
 	},
 	{
 		Format: "TOML subset; PNG sheets", Language: "shared", Found: "held file; row heroes and heroes_l", State: true,
-		Paths: []string{"assets/bodies/**/*.png"}, references: []treeReference{{"body", "heroes", referenceFile}, {"body", "heroes_l", referenceFile}},
+		Paths: []string{"assets/bodies/**/*.png"}, references: []Reference{BodySheetPicture},
 		Name: "body sheets", Files: []string{BodiesFile}, Key: "`name`",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: a shipped body is a registry class and its sheets, not a body sheet; a sheet may not take a shipped name",
@@ -281,7 +281,7 @@ var dataKinds = []DataKind{
 	},
 	{
 		Format: "TOML subset", Language: "shared; {lang} in map", Found: "held file; row map and texts", State: true,
-		references: []treeReference{{"mission", "map", referenceMap}, {"mission", "texts", referencePages}},
+		references: []Reference{MissionMap, MissionTexts},
 		Name:       "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the campaign decoder's missions; rows add guest or campaign missions, replace maps, set AutoGetMission, Payment and parties",
@@ -290,7 +290,7 @@ var dataKinds = []DataKind{
 	},
 	{
 		Format: "TOML subset; JSON; BMP; UTF-8 TXT", Language: "shared; talk texts per language", Found: "held file; description; mod: art; talk install path", State: true,
-		Paths: []string{"assets/towns/**/*.json", "assets/towns/**/*.bmp"}, references: []treeReference{{"town", "description", referenceTown}},
+		Paths: []string{"assets/towns/**/*.json", "assets/towns/**/*.bmp"}, references: []Reference{TownDescription},
 		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc`",
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
 		Base:   "the install's town catalog; its tavern rows are the scenario's, its inn rows the catalog's",
@@ -314,7 +314,7 @@ var dataKinds = []DataKind{
 	// character catalog is the install's records alone.
 	{
 		Format: "TOML subset; PNG faces", Language: "shared", Found: "held file; row picture", State: true,
-		Paths: []string{"assets/speakers/*.png"}, references: []treeReference{{"speaker", "picture", referenceFile}},
+		Paths: []string{"assets/speakers/*.png"}, references: []Reference{SpeakerPicture},
 		Name: "speakers", Files: []string{SpeakersFile}, Key: "`id`, a record number from 20000 to 99999",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the install's records stand below the band of numbers a mod's record takes",

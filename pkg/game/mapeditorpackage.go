@@ -332,6 +332,13 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	x.mod.selected = m.RowID()
 	s.workspace.Project = x.mod.document()
+	// The files imported under assets stay in the project, so an undo past
+	// this save takes them out of the folder at the next one.
+	for name, b := range files {
+		if _, ok := s.workspace.Project.Files[name]; !ok && b != nil && strings.HasPrefix(name, mod.AssetsFolder+"/") {
+			s.workspace.Project.Files[name] = b
+		}
+	}
 	s.workspace.Package.ID, s.workspace.Package.Title = x.mod.id, x.mod.title
 	s.workspace.Package.Manifest, _ = mod.ParseManifest(x.mod.manifest)
 	s.workspace.Project.Selected = -1
