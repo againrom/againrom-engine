@@ -456,12 +456,16 @@ func (e *MapEditor) noticeSpec() popupSpec {
 	if e.prompt.notice == noticeModSave {
 		title = e.word("editor.notice.modsave")
 	}
-	var notes []string
-	notes = append(notes, e.word("editor.notice.text"))
+	return e.questionSpec(title, e.noticeNotes(), []string{e.word("editor.notice.continue"), e.word("editor.button.cancel")})
+}
+
+// noticeNotes are the notice's lines: its opening words, then each warning.
+func (e *MapEditor) noticeNotes() []string {
+	notes := []string{e.word("editor.notice.text")}
 	for _, l := range e.panelWarnings() {
 		notes = append(notes, l.label+": "+l.value)
 	}
-	return e.questionSpec(title, notes, []string{e.word("editor.notice.continue"), e.word("editor.button.cancel")})
+	return notes
 }
 
 // noticePress is a press on the notice.

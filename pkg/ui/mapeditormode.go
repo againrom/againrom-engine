@@ -76,6 +76,8 @@ const (
 	// promptSeed asks for the seed of a whole-map command; scope is the
 	// command's key.
 	promptSeed
+	// promptTestParty asks who plays the map before a test play.
+	promptTestParty
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -98,6 +100,8 @@ type editorPrompt struct {
 	form *formPrompt
 	// speaker is what the add-a-speaker prompt holds.
 	speaker *speakerPrompt
+	// party is what the party window before a test play holds.
+	party *testPartyPrompt
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

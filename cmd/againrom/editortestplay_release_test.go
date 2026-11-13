@@ -70,6 +70,9 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	if err := e.Key("testplay"); err != nil {
 		t.Fatal(err)
 	}
+	if e.TestPartyOpen() {
+		_ = e.Key("enter")
+	}
 	if len(started) == 0 || !e.Dirty() || !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("F5 did not retain the editor's unsaved document")
 	}

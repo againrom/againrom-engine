@@ -1051,10 +1051,45 @@ else its catalog key. This default does not create a playable creature.
   chain's town grants and a family takes the band of that town's chapter.
   An `npc.reg` record with one row, or a mod character with one row that is
   no tier of a family, takes no `level`.
+- A member's name follows his record. A composed record (`npc22` to `npc24`
+  of the first game) is the archetype row its flags choose for the starting
+  hero's class and sex, and plays under that archetype's name: beside a male
+  fighter `npc22` is Reniesta, beside a female fighter Fergard. A record
+  that is one definition row is one person and plays under the record's own
+  name, its `Name`, else its installed NPC name: `npc25` is Brian and
+  `npc26` Rood Glaen beside every hero, not the archetype of their class
+  and sex.
 - `weapon` and `shield` replace the row's weapon and shield cell; `armour`
   replaces all eight armour cells, those it does not name left empty. An
   empty string empties the cell. A name no item of the cell's kind has is
   refused at load.
+- `hero = true` in place of `character` is the player's own hero as he
+  stands: the hero character generation made, or the hero the link before
+  brought. The hero takes no `level`, `weapon`, `shield` or `armour`, and a
+  party names him once. A mission after another in a chain names the hero
+  only when the mission before it does.
+- `skills = 100` opens the mission with every skill of the member at the
+  rules' skill cap, with the experience the school asks for that level. No
+  other value is taken. A cap below 100 gives the cap.
+- `spells = "all"` opens the mission with every spell the member can learn
+  in his book: each spell goes through the game's one read of a spell book,
+  so a fighter, or a spell no book of the game teaches, gains nothing. No
+  other value is taken.
+
+```toml
+party = [
+    { hero = true, skills = 100, spells = "all" },
+    { character = "npc22", spells = "all" },
+    { character = "npc23", level = 2 },
+]
+```
+
+A mod's own mission with a `party` array also starts by its number
+(`-mission <n>`) with no won mission before it: character generation makes
+the hero, the array builds the party, and its win ends as a campaign
+mission's does. A mission that names `class` or `sex` starts this way only
+for a hero of that kind; for another hero the start is refused in a line
+that names both.
 
 A `[[character]]` table with `key` adds a character to the catalog. Its keys
 are `key` (1 to 32 of a-z, 0-9 and `_`, starting with a letter; not `npc<n>`), `row` (a definition
@@ -2465,3 +2500,39 @@ included: F5 refuses only when the test folder is or contains the opened
 map's folder, or is, contains or lies inside the selected mod folder. A
 missing or failed game program is named on the message line. The second game
 has no test play.
+
+On the first game F5 first opens one window that asks who plays the map. It
+holds six cards in a row: the hero character generation makes, then the
+campaign's five companions, `npc22` to `npc26` of the character catalog (the
+second and third at levels 2 and 3). A click on a card's top box puts the
+character in the party or takes him out; the hero alone is in at first.
+Under each card, Skills 100 writes `skills = 100` and All spells writes
+`spells = "all"` for that member; a character who casts nothing has no All
+spells box. Start, or Enter, plays the map with exactly the chosen party: the
+test mod's mission declares it as its `party` array and no guest. Start takes
+no press while nobody is chosen. Cancel, or Esc, plays nothing and writes
+nothing. The window opens with the last choice until the editor closes. The
+warnings the notice before a test play listed stand in this window, and no
+separate notice follows.
+
+The game composes `npc22` to `npc24` by the hero's class and sex, and the
+hero is made only after the game starts. So the window names the kind of hero
+its cards stand beside on the button between Start and Cancel: man fighter at
+first, and a press takes the next of the four kinds. Each companion's card is
+the member the game builds beside that hero: his name, his portrait and
+whether he has an All spells box. The hero's card has that box when the hero
+is a mage. The test mission is written with that kind's `class` and `sex`, so
+the game plays it for that hero alone: when character generation makes
+another, the start is refused in a line and the map maker picks the kind the
+window showed. A name wider than its card stands on two lines.
+
+The window stands for a map with no open project and for a project's own
+mission that declares a guest and no `party` array; such a mission keeps its
+number and `gold` in the test copy, and the working mod is not changed. It
+keeps its `after` too, unless `after` names another mission of the project:
+the test copy then plays it as a first link, after the first main mission
+whose win opens a town and that no other mission of the project follows, so
+the hero alone can start it. A mission that names `class` or `sex` offers the
+kinds it plays for. A mission that replaces a campaign mission, declares its
+own `party` array or is selected by its map file plays as declared, with the
+notice alone.

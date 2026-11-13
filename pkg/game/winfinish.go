@@ -76,7 +76,7 @@ func winRowSets() []winRowSet {
 			route: bankRoute, home: bankHome},
 		{
 			rows: []winRow{
-				{guard: func(id missionIdentity) bool { return id.guest && id.record.mission.Campaign() },
+				{guard: func(id missionIdentity) bool { return id.guest && id.record.assigned() },
 					writes: []winWrite{carryWin, guestJoiner}, exits: []winExit{{place: guestHome}}},
 				{guard: func(id missionIdentity) bool { return id.guest },
 					writes: []winWrite{carryWin, guestJoiner},
@@ -234,7 +234,7 @@ func guestNext(f *FrontEnd, in winInput, s *winState) (int, string) {
 // takes her as she is now; nothing else of the chain carries back.
 func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 	g, member := s.id.record, s.member
-	campaign := g.mission.Campaign()
+	campaign := g.assigned()
 	var back *guestMission
 	if campaign {
 		back = &guestMission{mission: g.mission, start: g.start, member: member}

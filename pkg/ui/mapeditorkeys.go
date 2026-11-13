@@ -532,6 +532,8 @@ func (e *MapEditor) keyEnter(string) error {
 		return e.leaveSaveAs()
 	case promptNotice:
 		return e.noticeContinue()
+	case promptTestParty:
+		return e.testPartyGo()
 	case promptNewMode:
 		return e.newModeOpen(false)
 	case promptAreaTrigger:

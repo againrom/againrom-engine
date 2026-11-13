@@ -49,7 +49,14 @@ type guestMission struct {
 	// first for any hero.
 	hero     *guestHero
 	previous *guestMission
+	// direct marks a mod's own mission started by its number: no win opened
+	// it, so its win ends as a campaign mission's does, with no link after.
+	direct bool
 }
+
+// assigned reports that the party was given to the mission at its start
+// instead of by the win before it: a campaign mission, or a direct start.
+func (g *guestMission) assigned() bool { return g.mission.Campaign() || g.direct }
 
 // guestHero is the class and figure of the waiting party's starting hero.
 type guestHero struct {
@@ -328,6 +335,9 @@ func chainText(chain []mod.Mission) string {
 func (f *FrontEnd) checkGuestParty(m mod.Mission, town int) error {
 	ref := []mapload.PartyMember{{StartingHero: true, PlayerCharacter: true}}
 	for _, g := range m.Party {
+		if g.Hero {
+			continue
+		}
 		if _, err := f.guestMember(g, town, ref); err != nil {
 			return err
 		}
@@ -353,7 +363,13 @@ func guestMemberID(c mod.Character) string {
 // of chapter town, resolved against ref, through the one builder of a
 // persistent party member (DIV-4002).
 func (f *FrontEnd) guestMember(g mod.GuestMember, town int, ref []mapload.PartyMember) (mapload.PartyMember, error) {
-	t := f.Table
+	return f.townInstall().guestMember(g, town, ref, f.textSelector())
+}
+
+// guestMember is the member g of the install's definitions; selector is the
+// font a mod character's own name is encoded for.
+func (in townInstall) guestMember(g mod.GuestMember, town int, ref []mapload.PartyMember, selector int) (mapload.PartyMember, error) {
+	t := in.table
 	c, ok := catalogCharacter(t, g.Character)
 	if !ok {
 		return mapload.PartyMember{}, fmt.Errorf("character %q is not in the character catalog (npc<n> of npc.reg, or the key of a mod's [[character]])", g.Character)
@@ -364,18 +380,20 @@ func (f *FrontEnd) guestMember(g mod.GuestMember, town int, ref []mapload.PartyM
 	}
 	name := ""
 	if c.NPC == 0 && c.Name != "" {
-		if name, err = encodeSaveLabel(c.Name, f.textSelector()); err != nil {
+		if name, err = encodeSaveLabel(c.Name, selector); err != nil {
 			return mapload.PartyMember{}, fmt.Errorf("character %q: the name %q cannot be drawn by this install: %v", g.Character, c.Name, err)
 		}
 	}
-	if c.NPC != 0 && s.Row > 0 {
+	// A record that is one definition row is one named person; the town's
+	// companion line names only the composed archetypes.
+	if _, direct := t.NPC.ServerID(c.NPC); c.NPC != 0 && (s.Row > 0 || direct) {
 		e, _ := t.NPCCatalog.Entry(c.NPC)
 		name = e.Name
 		if name == "" {
-			name = f.townInstall().localizedNPC(int(c.NPC)-1, c.Key)
+			name = in.localizedNPC(int(c.NPC)-1, c.Key)
 		}
 	}
-	member, ok := f.townInstall().character(s, name, ref)
+	member, ok := in.character(s, name, ref)
 	if !ok {
 		return mapload.PartyMember{}, fmt.Errorf("character %q has no valid Humans definition with a unique server id and resolvable equipment", g.Character)
 	}
@@ -517,14 +535,29 @@ func (f *FrontEnd) guestParty(m mod.Mission, town int, ref, continuing []mapload
 		party = append(party, member)
 	}
 	for _, g := range m.Party {
-		c, _ := catalogCharacter(f.Table, g.Character)
-		member, ok := again(guestMemberID(c))
-		if !ok {
-			var err error
-			if member, err = f.guestMember(g, town, ref); err != nil {
-				return nil, err
+		var member mapload.PartyMember
+		if g.Hero {
+			// The waiting party of a later link is only its hero's kind,
+			// which has no body: the hero then comes from the link before.
+			hero := mapload.StartingHero(mapload.OwnParty(ref))
+			ok := false
+			if member, ok = again(hero.ID); !ok {
+				if hero.Hero == (data.Hero{}) {
+					return nil, fmt.Errorf("the party has no hero to play mission %d", m.Number)
+				}
+				member = hero
+			}
+		} else {
+			c, _ := catalogCharacter(f.Table, g.Character)
+			ok := false
+			if member, ok = again(guestMemberID(c)); !ok {
+				var err error
+				if member, err = f.guestMember(g, town, ref); err != nil {
+					return nil, err
+				}
 			}
 		}
+		grantGuestMember(&member, g, f.Table)
 		party = append(party, member)
 	}
 	for i := range party {
@@ -532,6 +565,40 @@ func (f *FrontEnd) guestParty(m mod.Mission, town int, ref, continuing []mapload
 		party[i].PlayerCharacter = true
 	}
 	return party, nil
+}
+
+// grantGuestMember gives member p what its row g asks beyond the character:
+// every skill at the rules' cap through the school's own writes, and every
+// spell through the one read of a book, which admits only a spell a living
+// mage does not know and a book of the game teaches. A member who cannot
+// learn a spell keeps the book he has; a skill the school refuses to train
+// stays where the school left it.
+func grantGuestMember(p *mapload.PartyMember, g mod.GuestMember, table *mapload.Table) {
+	if g.Skills != 0 {
+		r := mapload.TableRules(table)
+		level := min(int32(g.Skills), r.SkillCap())
+		for slot := 1; slot < data.SkillSlots; slot++ {
+			// A member who keeps the state of an original save trains as
+			// the school trains him, a level at a time.
+			for mapload.HasSourceActor(*p) && p.Hero.Skill[slot] < level {
+				next, _, err := mapload.TrainSourceParty(*p, slot, r)
+				if err != nil || next.Hero.Skill[slot] <= p.Hero.Skill[slot] {
+					break
+				}
+				*p = next
+			}
+			if mapload.HasSourceActor(*p) {
+				refreshDerivedPartyBook(p, table)
+			} else if p.Hero.Skill[slot] < level {
+				setPartySkill(p, slot, level, r.SkillXP(level), table)
+			}
+		}
+	}
+	if g.Spells != "" {
+		for _, s := range mapload.SpellRules(table) {
+			readPartyBook(p, s.ID, table, func() bool { return true })
+		}
+	}
 }
 
 // modMapInspector is the map editor's inspector over this front end's tables,
@@ -642,6 +709,10 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission,
 	if !ok {
 		return 0, ""
 	}
+	// A mission started by its number plays for the heroes it names.
+	if hero := mapload.StartingHeroKind(mapload.HeroHold{Party: waiting}); assigned != nil && !m.Campaign() && !m.Heroes().Holds(hero) {
+		return 0, fmt.Sprintf("mod %q: mission %d plays for %s, and this hero is a %s", m.Mod, m.Number, m.Heroes(), hero)
+	}
 	for pending, count := f.missionIdentity(n).record, 0; pending != nil; pending, count = pending.previous, count+1 {
 		if count >= maxWaitingGuests-1 {
 			return 0, fmt.Sprintf("mod %q: the waiting guest limit is %d", m.Mod, maxWaitingGuests)
@@ -658,7 +729,8 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission,
 	if err != nil {
 		return 0, fmt.Sprintf("mod %q: %v", m.Mod, err)
 	}
-	g := &guestMission{mission: m, start: party[0], rest: party[1:], chain: missions.Chain(m)}
+	g := &guestMission{mission: m, start: party[0], rest: party[1:], chain: missions.Chain(m),
+		direct: assigned != nil && !m.Campaign()}
 	if missions.Follows(m.Number) {
 		p := mapload.StartingHero(f.Carried)
 		g.hero = &guestHero{Mage: p.Mage, FigureDir: p.FigureDir}
@@ -712,6 +784,9 @@ type currentGuest struct {
 	Party    []currentPartyMember `json:",omitempty"`
 	Hero     *guestHero           `json:",omitempty"`
 	Previous *currentGuest        `json:",omitempty"`
+	// Direct is absent from a save written before a mission could start by
+	// its number with a party, which reads as a mission a win opened.
+	Direct bool `json:",omitempty"`
 }
 
 func (g *guestMission) record() *currentGuest {
@@ -720,7 +795,7 @@ func (g *guestMission) record() *currentGuest {
 	}
 	start := captureCurrentParty(0, g.start)
 	r := &currentGuest{Mod: g.mission.Mod, Key: g.mission.Key, Number: g.mission.Number, Stash: slices.Clone(g.stash), Start: &start}
-	r.Previous = g.previous.record()
+	r.Previous, r.Direct = g.previous.record(), g.direct
 	if g.member != nil {
 		m := captureCurrentParty(0, *g.member)
 		r.Member = &m
@@ -756,7 +831,7 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 	if m.Number != r.Number {
 		return nil, modMarkRefusal("this save plays mission %q of mod %q as mission %d; the active mod declares mission %d", r.Key, r.Mod, r.Number, m.Number)
 	}
-	g := &guestMission{mission: m, chain: mods.Missions.Chain(m)}
+	g := &guestMission{mission: m, chain: mods.Missions.Chain(m), direct: r.Direct && !m.Campaign()}
 	if r.Previous != nil {
 		var err error
 		g.previous, err = restoreGuest(&currentSessionData{Guest: r.Previous}, mods)

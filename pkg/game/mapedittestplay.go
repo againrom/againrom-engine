@@ -3,15 +3,19 @@ package game
 import (
 	"errors"
 	"fmt"
+	"image"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 
 	"againrom/pkg/base"
+	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -53,7 +57,13 @@ func (x *MapInspector) SetTestPlay(h TestPlayHost) { x.testPlay = &h }
 // starts the game in that mission. Nothing is written and nothing starts when
 // the report holds an error, the install is not the first game's, or the game
 // program is missing. It answers the line the window shows.
-func (s *mapInspectionEdits) TestPlay() (string, error) {
+func (s *mapInspectionEdits) TestPlay() (string, error) { return s.testPlayWith(nil, 0) }
+
+// testPlayWith is TestPlay with the party the test mission declares: party,
+// or the open package's own when party is nil. A chosen party plays for the
+// hero of kind hero alone and enters its chain as a first link. All of it is
+// written into the test mod alone; the open package keeps its own.
+func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind.Kind) (string, error) {
 	x := s.inspector
 	h := x.testPlay
 	if h == nil {
@@ -78,10 +88,20 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	var pkg *editorPackageSpec
 	if s.workspace != nil {
 		pkg = &s.workspace.Package
+		if party != nil {
+			own := *pkg
+			defer func() { *pkg = own }()
+			pkg.Party, pkg.After = party, s.testPlayFirstLink(pkg.After)
+			pkg.Class, pkg.Sex = heroWords(hero)
+		}
 	}
 	m, err := x.testPlayMission(s.source, b, pkg)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
+	}
+	if pkg == nil && party != nil {
+		m.Party, m.Guest, m.Chapter, m.Carry = party, 0, 0, ""
+		m.Class, m.Sex = heroWords(hero)
 	}
 	var plan *missionPackagePlan
 	if s.workspace != nil && s.workspace.Project != nil {
@@ -375,6 +395,187 @@ func admittedOnce(check func(string) error) (guard func(string) error, forget fu
 		return nil
 	}
 	return guard, func() { clear(passed) }
+}
+
+// testPlayCompanion is a companion the party window before a test play
+// offers: his npc.reg record and the level of the composed row he takes, 0
+// for the first.
+type testPlayCompanion struct {
+	npc   int32
+	level int
+}
+
+// heroWords are the class and sex words a mission names hero by.
+func heroWords(hero herokind.Kind) (class, sex string) {
+	class, sex = herokind.Fighter, herokind.Male
+	if hero.Mage() {
+		class = herokind.Mage
+	}
+	if hero.Female() {
+		sex = herokind.Female
+	}
+	return class, sex
+}
+
+// testPlayHeroes are the heroes the open map's test mission plays for: the
+// open package's class and sex, every hero when it names none.
+func (s *mapInspectionEdits) testPlayHeroes() herokind.Set {
+	if s.workspace == nil {
+		return herokind.Every
+	}
+	return herokind.Named(s.workspace.Package.Class, s.workspace.Package.Sex)
+}
+
+// testPlayFirstLink is the mission a chosen party's test mission plays
+// after. A mission that follows another mission of the open project starts
+// as a first link instead: after the first main mission whose win opens a
+// town and that no other mission of the project follows. Any other after
+// stands.
+func (s *mapInspectionEdits) testPlayFirstLink(after int) int {
+	x, w := s.inspector, s.workspace
+	if w == nil || w.Project == nil {
+		return after
+	}
+	follows := func(n int) bool {
+		for i, m := range w.Project.Missions {
+			if i != w.Project.Selected && !m.Off && !m.Campaign() && m.After == n {
+				return true
+			}
+		}
+		return false
+	}
+	if !slices.ContainsFunc(w.Project.Missions, func(m mod.Mission) bool { return !m.Off && m.Number == after }) {
+		return after
+	}
+	c, err := LoadCampaign(x.archives.Containers)
+	if err != nil {
+		return after
+	}
+	for _, main := range c.Main {
+		_, auto := c.AutoAdvance(main)
+		if offer, ok := c.NextMission(main); ok && offer.Town && !auto && !follows(main) {
+			return main
+		}
+	}
+	return after
+}
+
+// testPlayTakesParty reports that the open map's test mission takes a party
+// the window chooses: a guest mission that declares none of its own. A
+// mission of the open package that replaces a campaign mission, declares its
+// party or is declared by its map file plays as the package says.
+func (s *mapInspectionEdits) testPlayTakesParty() bool {
+	w := s.workspace
+	if w == nil {
+		return true
+	}
+	if (mod.Mission{Kind: w.Package.Kind}).Campaign() || len(w.Package.Party) != 0 {
+		return false
+	}
+	if d := w.Project; d != nil {
+		if d.Selected < 0 || d.Selected >= len(d.Missions) {
+			return false
+		}
+		return !d.Missions[d.Selected].Off && !d.Missions[d.Selected].ByFileName()
+	}
+	return true
+}
+
+// townInstall is the install's definitions as the game's member builder
+// reads them: the editor's table, body list and name lines.
+func (x *MapInspector) townInstall() townInstall {
+	in := townInstall{table: x.table, npcName: func(index int, fallback string) string {
+		if index < 0 || index >= len(x.table.NPCNames) || x.table.NPCNames[index] == "" {
+			return fallback
+		}
+		return x.table.NPCNames[index]
+	}}
+	if x.archives != nil {
+		in.bodies, _ = ReadBodyList(x.archives.artSource())
+	}
+	return in
+}
+
+// testPlayOffer are the party window's cards for a hero of kind hero and the
+// party member each one stands for: the hero, then the campaign's companions
+// the install builds. A companion's card is the member the game's builder
+// builds beside that hero: his name, whether he casts, and his face as a
+// dialogue cuts it. None when test play is closed to the map, its mission
+// takes no chosen party or does not play for that hero.
+func (s *mapInspectionEdits) testPlayOffer(hero herokind.Kind) ([]ui.TestPlayCard, []mod.GuestMember) {
+	x := s.inspector
+	if x.testPlay == nil || x.archives == nil || x.table == nil || s.TestPlayRefusal() != nil || !s.testPlayTakesParty() || !s.testPlayHeroes().Holds(hero) {
+		return nil, nil
+	}
+	rows := campaignOf(x.archives.Game()).testPlayParty()
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	in, catalog, town, selector := x.townInstall(), installCharacters(x.table), x.testPlayNumber(s.workspace), 0
+	if x.font != nil {
+		selector = x.font.Selector
+	}
+	ref := []mapload.PartyMember{{StartingHero: true, PlayerCharacter: true, Mage: hero.Mage(),
+		FigureDir: string(data.FigureDirFor(hero.Mage(), hero.Female()))}}
+	cards, members := []ui.TestPlayCard{{Hero: true, Caster: hero.Mage()}}, []mod.GuestMember{{Hero: true}}
+	for _, r := range rows {
+		at := slices.IndexFunc(catalog, func(c mod.Character) bool { return c.NPC == r.npc })
+		if at < 0 {
+			continue
+		}
+		g := mod.GuestMember{Character: catalog[at].Key, Level: r.level}
+		p, err := in.guestMember(g, town, ref, selector)
+		if err != nil {
+			continue
+		}
+		face := composeMemberPortrait(x.archives.artSource(), x.units, 0, mapload.EquipmentFromParty(p), p).Figure
+		cards = append(cards, ui.TestPlayCard{Name: x.inspectionUTF8(x.messageUTF8([]byte(p.Name))),
+			Portrait: ui.SpeakerPortrait(face, image.Rectangle{}), Caster: p.Mage})
+		members = append(members, g)
+	}
+	return cards, members
+}
+
+// TestPlayCards are the characters the party window offers for the hero of
+// kind hero, in herokind's order.
+func (s *mapInspectionEdits) TestPlayCards(hero int) []ui.TestPlayCard {
+	if hero < 0 || hero >= ui.TestPlayHeroes {
+		return nil
+	}
+	cards, _ := s.testPlayOffer(herokind.Kind(hero))
+	return cards
+}
+
+// TestPlayParty is TestPlay for the hero of kind hero with the cards
+// chosen: each card that is on is a member of the test mission's party, with
+// the skills and spells keys its boxes set. A card whose character does not
+// cast takes no spells key.
+func (s *mapInspectionEdits) TestPlayParty(hero int, choice []ui.TestPlayMember) (string, error) {
+	if hero < 0 || hero >= ui.TestPlayHeroes {
+		return "", errors.New("Test play: the party window names no hero; press F5 again")
+	}
+	cards, members := s.testPlayOffer(herokind.Kind(hero))
+	if len(cards) == 0 || len(choice) != len(cards) {
+		return "", errors.New("Test play: the party window does not match this map; press F5 again")
+	}
+	var party []mod.GuestMember
+	for i, c := range choice {
+		if !c.On {
+			continue
+		}
+		g := members[i]
+		if c.Skills {
+			g.Skills = mod.GuestSkills
+		}
+		if c.Spells && cards[i].Caster {
+			g.Spells = mod.GuestSpellsAll
+		}
+		party = append(party, g)
+	}
+	if len(party) == 0 {
+		return "", errors.New("Test play: nobody is chosen to play the map")
+	}
+	return s.testPlayWith(party, herokind.Kind(hero))
 }
 
 // TestPlayRefusal is the campaign's refusal of every test play, nil when the

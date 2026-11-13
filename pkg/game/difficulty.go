@@ -60,7 +60,7 @@ func (f *FrontEnd) prepareNewGameWith(n int, level int64, party []mapload.PartyM
 	c.randomSession = &fresh
 	f.randomService().Prepare(fresh)
 	defer f.randomService().Cancel()
-	if m := newMissionIdentity(n, nil, tableMissions(f.Table)).campaign; m != nil && m.GuestParty() {
+	if m := newMissionIdentity(n, nil, tableMissions(f.Table)).declared(); m != nil {
 		if _, refused := f.startGuestMission(n, nil, m, party, c); refused != "" {
 			return nil, fmt.Errorf("%s", refused)
 		}

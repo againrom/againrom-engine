@@ -42,6 +42,20 @@ func newMissionIdentity(n int, g *guestMission, missions mod.MissionData) missio
 	return id
 }
 
+// declared is the mission whose party a start of the mission builds before
+// any win: a campaign mission a mod gives a guest party, or a mod's own
+// mission with a party array, which a start by its number opens with no won
+// mission before it.
+func (id missionIdentity) declared() *mod.Mission {
+	if m := id.campaign; m != nil && m.GuestParty() {
+		return m
+	}
+	if m := id.own; m != nil && len(m.Party) != 0 {
+		return m
+	}
+	return nil
+}
+
 // tableMissions are the missions the active mods of table add.
 func tableMissions(table *mapload.Table) mod.MissionData {
 	if table == nil {

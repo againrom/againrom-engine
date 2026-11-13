@@ -101,6 +101,9 @@ type campaignService interface {
 	// testPlayRefusal refuses the map editor's test play, which plays a map
 	// as a guest mission after a won chapter mission.
 	testPlayRefusal() error
+	// testPlayParty are the companions the party window before a test play
+	// offers beside the hero, in the window's order.
+	testPlayParty() []testPlayCompanion
 	// eventTags is how the game's event text tag bodies are read.
 	eventTags() eventTags
 

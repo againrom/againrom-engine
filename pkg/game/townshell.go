@@ -540,9 +540,18 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 	if !t.sess.Town.spend(price) {
 		return fmt.Sprintf("training costs %d", price)
 	}
+	setPartySkill(m, slot, m.Hero.Skill[slot]+1, xp, t.in.Table)
+	t.composeShopFaces()
+	return fmt.Sprintf("trained %s to %d for %d", schoolSkillName(m.Mage, slot), m.Hero.Skill[slot], price)
+}
+
+// setPartySkill writes level and its experience xp into slot of member m: the
+// member takes a carry of what he holds when he has none, since the carry is
+// where a member's experience stands, and his load and book follow the level.
+func setPartySkill(m *mapload.PartyMember, slot int, level, xp int32, table *mapload.Table) {
 	if m.Carry == nil {
-		carried := mapload.MemberCarriedItems(*m, t.in.Table)
-		worn := mapload.MemberItemEquipment(*m, t.in.Table)
+		carried := mapload.MemberCarriedItems(*m, table)
+		worn := mapload.MemberItemEquipment(*m, table)
 		var carriedCodes []uint16
 		if len(carried) != 0 {
 			carriedCodes = make([]uint16, len(carried))
@@ -561,13 +570,11 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 			Items: carriedCodes, ItemInstances: carried,
 			Equipped: wornCodes, EquippedItems: worn}
 	}
-	m.Hero.Skill[slot]++
+	m.Hero.Skill[slot] = level
 	m.Carry.SkillXP[slot] = xp
 	m.RetireOriginalHuman()
-	mapload.UpdatePartyLoad(mapload.CloneParty([]mapload.PartyMember{*m})[0], m, t.in.Table, true, true)
-	refreshDerivedPartyBook(m, t.in.Table)
-	t.composeShopFaces()
-	return fmt.Sprintf("trained %s to %d for %d", schoolSkillName(m.Mage, slot), m.Hero.Skill[slot], price)
+	mapload.UpdatePartyLoad(mapload.CloneParty([]mapload.PartyMember{*m})[0], m, table, true, true)
+	refreshDerivedPartyBook(m, table)
 }
 
 func schoolSkillName(mage bool, slot int) string {

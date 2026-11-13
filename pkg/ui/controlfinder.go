@@ -37,6 +37,7 @@ const (
 	ControlGroupDelete
 	ControlPlaceGridSwitch
 	ControlFieldChoice
+	ControlPromptGridCell
 	// ControlMapTab is tab N of the open maps' strip; with Flag, the
 	// strip's close button.
 	ControlMapTab
@@ -94,7 +95,10 @@ func init() {
 		ControlGroupDelete:     func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlGroupDeleteRect() },
 		ControlPlaceGridSwitch: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlPlaceGridSwitchRect(q.N) },
 		ControlFieldChoice:     func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlFieldChoiceRect(q.N, q.K) },
-		ControlMapTab:          func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlMapTabRect(q.N, q.Flag) },
+		ControlPromptGridCell: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) {
+			return e.controlPromptGridCellRect(q.N, q.K)
+		},
+		ControlMapTab: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlMapTabRect(q.N, q.Flag) },
 	}
 }
 

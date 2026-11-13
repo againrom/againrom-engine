@@ -1494,7 +1494,7 @@ func (f *FrontEnd) missionOpenerMode(n int, party []mapload.PartyMember, snap *S
 		previousGuest := f.missionIdentity(n).record
 		if request.fresh() {
 			id := request.town.missionIdentity(n, tableMissions(f.Table))
-			if m := id.campaign; m != nil && m.GuestParty() {
+			if m := id.declared(); m != nil {
 				if !id.guest {
 					if _, refused := f.startGuestMission(n, nil, m, request.party, nil); refused != "" {
 						return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("%s", refused)

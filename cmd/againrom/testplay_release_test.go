@@ -82,6 +82,9 @@ func testPlayEntities(t *testing.T, root string, remove bool) ([]string, string,
 	if err := e.Key("testplay"); err != nil {
 		t.Fatalf("test play: %v", err)
 	}
+	if e.TestPartyOpen() {
+		_ = e.Key("enter")
+	}
 	if len(started) != 1 {
 		t.Fatalf("the test play started %d programs", len(started))
 	}
@@ -213,6 +216,9 @@ func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *test
 	sourceBefore := testPlayFileSnapshot(t, folder)
 	if err := e.Key("testplay"); err != nil {
 		t.Fatal(err)
+	}
+	if e.TestPartyOpen() {
+		_ = e.Key("enter")
 	}
 	if len(started) != 1 {
 		t.Fatalf("in-bound page: starts=%d message=%q", len(started), e.Message())

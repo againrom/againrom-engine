@@ -1463,6 +1463,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return e.leaveSpec(), true
 	case promptNotice:
 		return e.noticeSpec(), true
+	case promptTestParty:
+		return e.testPartySpec(), true
 	case promptNewMode:
 		return e.newModeSpec(), true
 	case promptAreaTrigger:
@@ -2261,6 +2263,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			return
 		case promptNotice:
 			e.noticePress(p)
+			return
+		case promptTestParty:
+			e.testPartyPress(p)
 			return
 		case promptNewMode:
 			e.newModePress(p)

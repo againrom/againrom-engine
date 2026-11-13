@@ -20,7 +20,8 @@ type InspectionTestPlayGate interface {
 
 // keyTestPlay plays the open map in the game. The editor stays open; the map,
 // its saved file and its history are unchanged. A host refusal comes before
-// any notice.
+// any window; where the host offers characters the party window asks who
+// plays and holds the notice's lines, else the notice asks on its own.
 func (e *MapEditor) keyTestPlay(string) error {
 	if !e.editable() {
 		return nil
@@ -29,7 +30,7 @@ func (e *MapEditor) keyTestPlay(string) error {
 	if g, ok := e.doc.Edits.(InspectionTestPlayGate); ok && g.TestPlayRefusal() != nil {
 		return e.testPlay()
 	}
-	if e.askNotice(noticeTestPlay) {
+	if e.askTestParty() || e.askNotice(noticeTestPlay) {
 		return nil
 	}
 	return e.testPlay()
@@ -42,7 +43,13 @@ func (e *MapEditor) testPlay() error {
 		e.message = "Test play is not available for this map"
 		return nil
 	}
-	line, err := p.TestPlay()
+	return e.testPlayBy(p.TestPlay)
+}
+
+// testPlayBy runs the host's test play and shows its line, or the report
+// when it refuses.
+func (e *MapEditor) testPlayBy(play func() (string, error)) error {
+	line, err := play()
 	if err != nil {
 		if r, ok := refusal(err); ok {
 			errs, warnings := CountFindings(r.Findings)

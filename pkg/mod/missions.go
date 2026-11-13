@@ -126,11 +126,36 @@ type GuestMember struct {
 	// Character is the catalog key: npc<n> for a record of the install's
 	// npc.reg, or the key of a mod's [[character]].
 	Character string
+	// Hero is the member that is the waiting party's own starting hero as
+	// he stands; it names no character and takes no level or cell.
+	Hero bool
 	// Level is the tier, 1 to MaxGuestLevel; 0 keeps the character's own.
 	Level  int
 	Weapon *string
 	Shield *string
 	Armour []string
+	// Skills, when GuestSkills, opens the mission with every skill of the
+	// member at the rules' cap; 0 keeps the member's own.
+	Skills int
+	// Spells, when GuestSpellsAll, opens the mission with every spell the
+	// member can learn in his book; empty keeps the member's own.
+	Spells string
+}
+
+const (
+	// GuestSkills is the one value the skills key of a party member takes.
+	GuestSkills = 100
+	// GuestSpellsAll is the one value the spells key of a party member takes.
+	GuestSpellsAll = "all"
+)
+
+// ID is the member's name in a party: the character's key, or the hero's
+// word.
+func (g GuestMember) ID() string {
+	if g.Hero {
+		return "hero"
+	}
+	return g.Character
 }
 
 // MissionData is the missions the mods of a set declare, in load order, with
@@ -296,6 +321,11 @@ func (d MissionData) checkChains() error {
 	for _, m := range d.Missions {
 		if m.Campaign() {
 			continue
+		}
+		hero := func(m Mission) bool { return slices.ContainsFunc(m.Party, func(g GuestMember) bool { return g.Hero }) }
+		if prev, ok := d.ByNumber(m.After); ok && hero(m) && !hero(prev) {
+			return Source{Mod: m.Mod, File: m.File, Line: m.PartyLine}.Errorf("mission %d names the hero, and mission %d before it in the chain does not; the hero enters a chain at its first link",
+				m.Number, prev.Number)
 		}
 		seen := []int{m.Number}
 		for cur := m; ; {
@@ -582,7 +612,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 var guestFormOnly = []string{"guest", "chapter", "carry"}
 
 // parseGuestParty reads party, an array of inline tables with the keys
-// character, level, weapon, shield and armour.
+// character or hero, level, weapon, shield, armour, skills and spells.
 func parseGuestParty(file string, p tomlPair) ([]GuestMember, error) {
 	bad := func(format string, args ...any) error {
 		return &ItemFileError{File: file, Line: p.line, Msg: fmt.Sprintf(format, args...)}
@@ -649,17 +679,41 @@ func parseGuestParty(file string, p tomlPair) ([]GuestMember, error) {
 					}
 					g.Armour = append(g.Armour, a.str)
 				}
+			case "hero":
+				if f.val.kind != tomlBool || !f.val.flag {
+					err = bad("party member %d: hero must be true; a member that is not the hero names a character", i+1)
+				}
+				g.Hero = true
+			case "skills":
+				if f.val.kind != tomlInt || f.val.num != GuestSkills {
+					err = bad("party member %d: skills must be %d (every skill at the rules' cap); leave the key out to keep the member's own", i+1, GuestSkills)
+				}
+				g.Skills = GuestSkills
+			case "spells":
+				if f.val.kind != tomlString || f.val.str != GuestSpellsAll {
+					err = bad("party member %d: spells must be %q (every spell the member can learn); leave the key out to keep the member's own", i+1, GuestSpellsAll)
+				}
+				g.Spells = GuestSpellsAll
 			default:
-				err = bad("party member %d: unknown key %q (character, level, weapon, shield, armour)", i+1, f.key)
+				err = bad("party member %d: unknown key %q (character, hero, level, weapon, shield, armour, skills, spells)", i+1, f.key)
 			}
 			if err != nil {
 				return nil, err
 			}
 		}
-		if !has["character"] {
+		if g.Hero {
+			for _, key := range []string{"character", "level", "weapon", "shield", "armour"} {
+				if has[key] {
+					return nil, bad("party member %d is the hero and takes no %s; the hero comes as he stands", i+1, key)
+				}
+			}
+		} else if !has["character"] {
 			return nil, bad("party member %d has no character", i+1)
 		}
-		if slices.ContainsFunc(out, func(o GuestMember) bool { return o.Character == g.Character }) {
+		if slices.ContainsFunc(out, func(o GuestMember) bool { return o.ID() == g.ID() && o.Hero == g.Hero }) {
+			if g.Hero {
+				return nil, bad("party names the hero twice")
+			}
 			return nil, bad("party names character %q twice", g.Character)
 		}
 		out = append(out, g)

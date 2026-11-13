@@ -117,7 +117,10 @@ func (in townInstall) character(s mapload.CharacterSpec, name string, party []ma
 		return mapload.PartyMember{}, false
 	}
 	_, controlled := tableEdition(in.table).PartyIdentity(int(s.NPC))
-	if s.NPC != 0 && s.Row == 0 && !controlled {
+	// A record that is one definition row is one named person: the town's
+	// companion line names only the composed archetypes.
+	_, direct := in.table.NPC.ServerID(s.NPC)
+	if s.NPC != 0 && s.Row == 0 && !controlled && !(direct && name != "") {
 		member.Name = in.companionName(member)
 	} else if name != "" {
 		member.Name = name

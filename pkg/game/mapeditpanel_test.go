@@ -27,9 +27,10 @@ func closeMapPanel(t *testing.T, e *ui.MapEditor) {
 }
 
 // pastNotice presses key and continues past the notice a map with no start
-// point or no win gets before test play and a save into a mod.
+// point or no win gets before test play and a save into a mod, and past the
+// window that asks who plays the map, with the party it offers.
 func pastNotice(e *ui.MapEditor, key string) error {
-	if err := e.Key(key); err != nil || !e.NoticeOpen() {
+	if err := e.Key(key); err != nil || !(e.NoticeOpen() || e.TestPartyOpen()) {
 		return err
 	}
 	return e.Key("enter")

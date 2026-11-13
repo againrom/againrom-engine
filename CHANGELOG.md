@@ -40,6 +40,9 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor a picture or a town description can be added to a mod by picking a file: the editor puts it into the mod's folder, checks it at once and writes it on Ctrl+S; the mod check now warns about files the game does not read and about files kept outside their place.
 - [BASE] Map editor: with a mod open, several of its maps stay open at once as tabs under the menu bar; each keeps its own view, selection, unsaved changes and undo history.
 - [BASE] Map editor: the mod window's mission rows now show their text in Russian instead of question marks, and while the mod window is open you can still zoom, scroll, select and paint on the map beside it; click the map to give it the keyboard.
+- [ROM1] Map editor: F5 asks who plays the map: the hero and the five companions of the campaign, with "Skills 100" and "All spells"; the window names the hero's kind, and the cards show the companions as the game builds them beside that hero.
+- [ROM1] Mods: a party member from an npc.reg record with a one-row definition (npc25 Brian, npc26 Rood Glaen and others) plays under the record's own name, not under the name of its class and sex archetype.
+- [ROM1] Mods: a mission that names class or sex, started by its number, refuses a hero of another kind.
 
 ## 0.153.0
 

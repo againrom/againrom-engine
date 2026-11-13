@@ -173,6 +173,14 @@ func (firstCampaignRules) ownsGame(g base.Game) error {
 
 func (firstCampaignRules) testPlayRefusal() error { return nil }
 
+// testPlayParty are the campaign's companions in the order they join: the
+// three the towns grant, each at the level of the town that grants him and
+// composed by the hero's class and sex, then the two the last missions hand
+// over.
+func (firstCampaignRules) testPlayParty() []testPlayCompanion {
+	return []testPlayCompanion{{npc: 22}, {npc: 23, level: 2}, {npc: 24, level: 3}, {npc: 25}, {npc: 26}}
+}
+
 func (firstCampaignRules) censusRefusal() error {
 	return errors.New("the census needs a second-game root")
 }

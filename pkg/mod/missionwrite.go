@@ -50,6 +50,9 @@ func missionPairs(m Mission) []missionPair {
 			var members []string
 			for _, g := range m.Party {
 				fields := []string{"character = " + strconv.Quote(g.Character)}
+				if g.Hero {
+					fields = []string{"hero = true"}
+				}
 				if g.Level != 0 {
 					fields = append(fields, "level = "+strconv.Itoa(g.Level))
 				}
@@ -67,6 +70,12 @@ func missionPairs(m Mission) []missionPair {
 						a = append(a, strconv.Quote(item))
 					}
 					fields = append(fields, "armour = ["+strings.Join(a, ", ")+"]")
+				}
+				if g.Skills != 0 {
+					fields = append(fields, "skills = "+strconv.Itoa(g.Skills))
+				}
+				if g.Spells != "" {
+					fields = append(fields, "spells = "+strconv.Quote(g.Spells))
 				}
 				members = append(members, "{ "+strings.Join(fields, ", ")+" }")
 			}

@@ -213,6 +213,16 @@ func (p *modesFull) SetTextField(k RecordKind, i int, key, value string) (*Inspe
 }
 func (p *modesFull) Report() []InspectionFinding { return modesFindings }
 
+// The full host offers three characters for a test play, so F5 opens the
+// window that asks who plays the map.
+func (p *modesFull) TestPlayCards(hero int) []TestPlayCard {
+	return []TestPlayCard{{Hero: true, Caster: hero >= 2}, {Name: "Mage", Caster: true}, {Name: "Monk"}}
+}
+func (p *modesFull) TestPlayParty(hero int, choice []TestPlayMember) (string, error) {
+	p.calls.add("TestPlayParty(%d, %v)", hero, choice)
+	return "Test play: the game opens the map", nil
+}
+
 // modesClip is the full host's copied group.
 type modesClip []RecordRef
 
@@ -443,6 +453,15 @@ func modesAct(e *MapEditor, name string) string {
 				p.fields = append(p.fields, InspectionField{Key: key, Label: key, Text: true, TextValue: "value", Column: 1})
 			}
 			p.fields = append(p.fields, InspectionField{Key: "applies-to", Label: "Applies to", Value: 1, Column: 1, Choices: []InspectionChoice{{Value: 0, Label: "common"}, {Value: 1, Label: "rom1"}, {Value: 2, Label: "rom1-en"}, {Value: 3, Label: "rom1-ru"}, {Value: 4, Label: "rom2-en"}, {Value: 5, Label: "rom2-ru"}}})
+		}
+	case "ui:party-hero", "ui:party-card", "ui:party-box":
+		at := map[string][2]int{"ui:party-hero": {testPartyRowPlays, 0}, "ui:party-card": {testPartyRowPlays, 1}, "ui:party-box": {testPartyRowSkills, 0}}[name]
+		if r, ok := e.FindControl(ControlQuery{Role: ControlPromptGridCell, N: at[0], K: at[1]}); ok {
+			modesClick(e, center(r))
+		}
+	case "ui:party-kind":
+		if r, ok := e.FindControl(ControlQuery{Role: ControlPromptButton, N: testPartyKind}); ok {
+			modesClick(e, center(r))
 		}
 	case "ui:mod-overview":
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
@@ -684,6 +703,11 @@ var modesPaths = []modesPath{
 	{"mod-graph-pan", []string{"ui:mod-graph", "package", "package", "pagedown"}},
 	{"mod-graph-node", []string{"ui:mod-graph", "package", "package", "ui:graph-node"}},
 	{"mod-tabs", []string{"ui:mod-second-map"}},
+	// Four party rows keep the plain and mod hosts' sampled rows in place.
+	{"testplay-party", []string{"testplay"}},
+	{"testplay-party-card", []string{"testplay", "ui:party-card"}},
+	{"testplay-party-box", []string{"testplay", "ui:party-box", "ui:party-kind"}},
+	{"testplay-party-empty", []string{"testplay", "ui:party-hero"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the
