@@ -146,6 +146,11 @@ commit and pull-request attribution.
    each kind the change touches with the builder it used, evidence and
    remaining Unknowns.
 
+A story writes one `docs/<NNNN>/story.md` in the form `docs/STORY-FORMAT.md`
+states (owner): a plain Result, numbered Rules each named by a Proof row, at
+most 6144 bytes. Long evidence goes to the review report. `internal/storydoc`
+checks it.
+
 Read `docs/HARNESS-CASEBOOK.md` only when a rule appears inapplicable, a review
 repeats the same failure shape, or a new rule is proposed.
 
