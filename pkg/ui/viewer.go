@@ -166,6 +166,13 @@ type Viewer struct {
 	canvas           *ebiten.Image
 	statusBarScratch *ebiten.Image
 
+	// windowMap is drawMap's answer to Draw for the frame being drawn, and
+	// marksComposed says the map marks went into the zoom-1 composition.
+	windowMap     windowMap
+	marksComposed bool
+	// composedFrom is the player's zoom while the camera is swapped for the
+	// zoom-1 composition, and 0 otherwise.
+	composedFrom float64
 	// textSmoothingEnabled is owner decision method C's own on/off switch
 	// (DIV-1385), mirrored from the App by SetTextSmoothing. textOverlay
 	// smooths the mission character panel, mission card and mission tooltip
@@ -3316,7 +3323,10 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 		// and native-size notice. ResetCapture clears the previous frame.
 		text.ResetCapture()
 	}
+	v.windowMap = windowMap{deferred: !v.canvasRemapsMap()}
 	v.drawFrame(v.canvas)
+	placed := v.windowMap
+	v.windowMap = windowMap{}
 	v.canvasLog.end()
 	var capturedText []text.DrawCall
 	if v.textSmoothingEnabled {
@@ -3333,11 +3343,92 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 	frameCanvas, capturedText := settleText(v.canvas, &v.canvasLog, capturedText, &v.textEraser,
 		&v.settledBuf, &v.settledTex, &v.textSettleFallbacks)
 	v.textKept = len(capturedText)
-	frameSmoothingOff = v.frameSmoothingOff
+	finalFrameFilter = v.canvasFilter()
+	if placed.composed {
+		v.blitMapToWindow(screen, placed.op)
+	}
 	blitFrameCanvas(screen, frameCanvas, &op)
 	if len(capturedText) > 0 {
 		v.textOverlay.draw(screen, capturedText, v.place.Scale(), ox, oy)
 	}
+}
+
+// drawMapMarks draws what lies on the map under the camera: the pause wash,
+// the grid, the overlay passes with the status bars, and the shot markers.
+// part selects the marks by their coordinate space.
+func (v *Viewer) drawMapMarks(screen *ebiten.Image, part marksPart) {
+	if v.playerPaused && part != marksFrame {
+		r := image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
+		wash := color.RGBA{A: 32}
+		vector.DrawFilledRect(screen, 0, 0, float32(r.Dx()), float32(r.Dy()), wash, false)
+		if part == marksAll {
+			v.canvasLog.overSolid(r, wash)
+		}
+	}
+
+	if part != marksFrame {
+		for _, s := range v.gridScreenSegments() {
+			vector.StrokeLine(screen, float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1),
+				float32(gridLineWidth)*float32(v.cam.Zoom), terrain.CellGridColor, false)
+		}
+	}
+
+	// The pass slice: the entity layer's square half, then the diagnostics —
+	// placed objects (0008), placed units (0009), the static-object cells
+	// (0017). overlayPasses returns them already in draw order and omits any
+	// pass with nothing to draw, so this costs nothing and draws nothing by
+	// default. Iterating that slice rather than writing one loop per pass is
+	// deliberate: it makes the squares -> objects -> units -> statics order a
+	// value a test can read.
+	//
+	// EVERY PASS IS RECTANGLES NOW. The entity layer's SPRITE half was the one
+	// pass here that carried textures, and it has moved into the content band
+	// drawArt paints above — where a unit takes its place in the same
+	// back-to-front order the structure and object planes already share,
+	// instead of standing in front of every building on the map. THE LATTICE
+	// MOVED OUT OF THIS SLICE (item-2 hotfix) for the same reason: it is
+	// strokes, not filled rectangles, and is drawn immediately above instead.
+	//
+	// The coordinates are passed through as computed — the only rounding is the
+	// float32 the drawer takes, never a pixel snap of our own.
+	for _, pass := range v.overlayPasses() {
+		if !part.holds(pass) {
+			continue
+		}
+		for _, rect := range pass.Rects {
+			if pass.HalfAdd {
+				v.drawStatusBarHalfRect(screen, rect, pass.Color)
+				continue
+			}
+			vector.DrawFilledRect(screen, float32(rect.X), float32(rect.Y), float32(rect.W), float32(rect.H),
+				pass.Color, false)
+		}
+	}
+
+	if part == marksFrame {
+		return
+	}
+	for _, r := range v.shotScreenRects() {
+		vector.DrawFilledRect(screen, float32(r.X), float32(r.Y), float32(r.W), float32(r.H),
+			ShotMarkerColor, false)
+	}
+}
+
+// marksPart selects which map marks one drawMapMarks call draws. marksAll is
+// every mark, on the canvas under the player's camera. marksMap is the marks
+// in map coordinates, for the zoom-1 composition. marksFrame is the marks in
+// frame pixels, which stay on the canvas when the rest is composed.
+type marksPart uint8
+
+const (
+	marksAll marksPart = iota
+	marksMap
+	marksFrame
+)
+
+// holds reports whether the part draws the pass.
+func (p marksPart) holds(pass overlayPass) bool {
+	return p == marksAll || (p == marksFrame) == pass.Frame
 }
 
 // blitFrameCanvas places the composed frame canvas on the window screen.
@@ -3352,7 +3443,7 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 // origin Draw always computed — the geometry test above still observes
 // exactly that request — and the owner's FrameSmoothing scaler realizes it.
 var blitFrameCanvas = func(screen, canvas *ebiten.Image, op *ebiten.DrawImageOptions) {
-	drawFinalFrame(screen, canvas, op, &missionFrameSharpBuf, frameSmoothingOff)
+	drawFinalFrame(screen, canvas, op, &missionFrameSharpBuf, finalFrameFilter)
 }
 
 // disposeFrameCanvas releases the old GPU backing when Layout changes the
@@ -3376,51 +3467,11 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		return
 	}
 
-	if v.playerPaused {
-		r := image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
-		wash := color.RGBA{A: 32}
-		vector.DrawFilledRect(screen, 0, 0, float32(r.Dx()), float32(r.Dy()), wash, false)
-		v.canvasLog.overSolid(r, wash)
+	marks := marksAll
+	if v.marksComposed {
+		marks = marksFrame
 	}
-
-	for _, s := range v.gridScreenSegments() {
-		vector.StrokeLine(screen, float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1),
-			float32(gridLineWidth)*float32(v.cam.Zoom), terrain.CellGridColor, false)
-	}
-
-	// The pass slice: the entity layer's square half, then the diagnostics —
-	// placed objects (0008), placed units (0009), the static-object cells
-	// (0017). overlayPasses returns them already in draw order and omits any
-	// pass with nothing to draw, so this costs nothing and draws nothing by
-	// default. Iterating that slice rather than writing one loop per pass is
-	// deliberate: it makes the squares -> objects -> units -> statics order a
-	// value a test can read.
-	//
-	// EVERY PASS IS RECTANGLES NOW. The entity layer's SPRITE half was the one
-	// pass here that carried textures, and it has moved into the content band
-	// drawArt paints above — where a unit takes its place in the same
-	// back-to-front order the structure and object planes already share,
-	// instead of standing in front of every building on the map. THE LATTICE
-	// MOVED OUT OF THIS SLICE (item-2 hotfix) for the same reason: it is
-	// strokes, not filled rectangles, and is drawn immediately above instead.
-	//
-	// The coordinates are passed through as computed — the only rounding is the
-	// float32 the drawer takes, never a pixel snap of our own.
-	for _, pass := range v.overlayPasses() {
-		for _, rect := range pass.Rects {
-			if pass.HalfAdd {
-				v.drawStatusBarHalfRect(screen, rect, pass.Color)
-				continue
-			}
-			vector.DrawFilledRect(screen, float32(rect.X), float32(rect.Y), float32(rect.W), float32(rect.H),
-				pass.Color, false)
-		}
-	}
-
-	for _, r := range v.shotScreenRects() {
-		vector.DrawFilledRect(screen, float32(r.X), float32(r.Y), float32(r.W), float32(r.H),
-			ShotMarkerColor, false)
-	}
+	v.drawMapMarks(screen, marks)
 
 	// The path overlay, last of all. It is over every glyph rather than in the
 	// pass slice because it is the one instrument drawn as STROKES and not as
@@ -3878,11 +3929,11 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 // stands over, so it shares that frame's scaler. The frame's own internal
 // pointer pass (drawFrame, scale 1) takes the single FilterNearest draw.
 var blitPointerLayer = func(dst, img *ebiten.Image, op *ebiten.DrawImageOptions, layer string) {
-	drawFinalFrame(dst, img, op, &pointerSharpBuf, frameSmoothingOff)
+	drawFinalFrame(dst, img, op, &pointerSharpBuf, finalFrameFilter)
 }
 
 func (v *Viewer) drawPointer(dst *ebiten.Image, scale, originX, originY float64) {
-	frameSmoothingOff = v.frameSmoothingOff
+	finalFrameFilter = v.canvasFilter()
 	place := func(at image.Point) (float64, float64) {
 		return originX + float64(at.X)*scale, originY + float64(at.Y)*scale
 	}

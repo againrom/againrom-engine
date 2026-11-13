@@ -23,26 +23,14 @@ func (v *Viewer) HeadlessMapFrame(cell image.Point, w, h int) (*image.RGBA, []He
 	v.cam.SetZoom(1)
 	v.cam.CenterOn(v.cellWorldCentre(cell))
 	v.refreshHoverLighting()
-	r := &headlessTerrainTarget{v: v, pix: image.NewRGBA(image.Rect(0, 0, w, h)), sources: map[*ebiten.Image]*image.RGBA{}}
-	if v.Mode() == ModeDisplaced {
-		v.drawDisplaced(r)
-	} else {
-		v.drawFlat(r)
-	}
-	if r.err != nil {
-		return nil, nil, r.err
-	}
-	draws, err := v.HeadlessArtDraws()
+	pix, draws, err := v.headlessMapLayers()
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, d := range draws {
-		compositeHeadlessArt(r.pix, d)
-	}
 	for _, p := range v.numeralPlacements() {
-		draw.Draw(r.pix, p.Pic.Bounds().Add(p.At), p.Pic, p.Pic.Bounds().Min, draw.Over)
+		draw.Draw(pix, p.Pic.Bounds().Add(p.At), p.Pic, p.Pic.Bounds().Min, draw.Over)
 	}
-	return r.pix, draws, nil
+	return pix, draws, nil
 }
 
 type headlessTerrainTarget struct {

@@ -287,7 +287,7 @@ func (a *App) drawCutscene(screen *ebiten.Image) {
 		op.Filter = ebiten.FilterNearest
 		// The cutscene frame shares a.place with the town composite
 		// (app.go), so it shares its scaler (owner direction).
-		drawFinalFrame(screen, a.cutsceneCanvas, &op, &cutsceneSharpBuf, a.frameSmoothingOff)
+		drawFinalFrame(screen, a.cutsceneCanvas, &op, &cutsceneSharpBuf, filterOf(a.frameSmoothingOff))
 		a.finishCutscenePresentation()
 	}
 }

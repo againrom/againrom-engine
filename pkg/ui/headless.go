@@ -172,6 +172,7 @@ func (a *App) HeadlessKey(name string) error {
 		in.Delete = true
 	case "home":
 		in.Home = true
+		in.missionKeyNamed(keys, "home")
 	case "end":
 		in.End = true
 	case "ctrl-a":
@@ -309,9 +310,12 @@ func (a *App) HeadlessMessage() string {
 // mission backdrop. Full mission frames require App.Draw and GPU readback.
 // Other screens that cannot compose on the CPU return an error and no image.
 // This method reads no ebiten-owned image.
-func (a *App) headlessFrame() (pix *image.RGBA, note string, err error) {
+func (a *App) headlessFrame(scaled bool) (pix *image.RGBA, note string, err error) {
 	if a == nil || a.flow == nil {
 		return nil, "", fmt.Errorf("headless frame: nil application")
+	}
+	if scaled {
+		return a.headlessWindowFrame()
 	}
 	if a.cutscene != nil {
 		pix := a.composeCutscene()

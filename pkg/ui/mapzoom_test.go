@@ -90,7 +90,11 @@ func zoomViewer(t *testing.T, uniform, smoothing bool, z float64) *Viewer {
 	v.SetGraphicsOptions(GraphicsOptions{Smoothing: smoothing, HideShadows: true})
 	v.cam.ViewW, v.cam.ViewH = 320, 240
 	v.cam.X, v.cam.Y, v.cam.Zoom = 100.3, 120.6, z
+	// With Smoothing off only the map editor still draws each sprite at the
+	// zoom; the fixture stands for it there.
+	v.editorView = !smoothing
 	return v
+
 }
 
 // cpuMapLayers composes the map's terrain and art under the viewer's camera
@@ -191,7 +195,7 @@ func TestDrawBlitsTheSmoothMapOnlyWhereTheRuleAnswers(t *testing.T) {
 	var got []blit
 	saved := blitSmoothMap
 	t.Cleanup(func() { blitSmoothMap = saved })
-	blitSmoothMap = func(_, src *ebiten.Image, op *ebiten.DrawImageOptions) {
+	blitSmoothMap = func(_, src *ebiten.Image, op *ebiten.DrawImageOptions, _ frameFilter) {
 		got = append(got, blit{src.Bounds().Size(), op.GeoM})
 	}
 	for _, tc := range []struct {
@@ -200,7 +204,7 @@ func TestDrawBlitsTheSmoothMapOnlyWhereTheRuleAnswers(t *testing.T) {
 		z         float64
 		blits     bool
 	}{
-		{"off zoomed", false, 1.2, false},
+		{"off zoomed", false, 1.2, true},
 		{"on native", true, 1, false},
 		{"off native", false, 1, false},
 		{"on zoomed in", true, 1.2, true},
@@ -227,6 +231,9 @@ func TestDrawBlitsTheSmoothMapOnlyWhereTheRuleAnswers(t *testing.T) {
 			if !ok || len(got) != 1 {
 				t.Fatalf("rule ok %v, %d smooth blits; want one", ok, len(got))
 			}
+			ox, oy := v.place.Origin()
+			op.GeoM.Scale(v.place.Scale(), v.place.Scale())
+			op.GeoM.Translate(ox, oy)
 			if got[0].size != image.Pt(unit.ViewW, unit.ViewH) || got[0].op != op.GeoM {
 				t.Fatalf("blit %v at %v, want %dx%d at %v", got[0].size, got[0].op.String(), unit.ViewW, unit.ViewH, op.GeoM.String())
 			}

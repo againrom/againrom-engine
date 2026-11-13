@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A unit at zero health or below no longer restores health or mana, even one a map made undying.
 - [BASE] The starter, the game and the map editor share one mods folder: the editor publishes a mod there with no path typed, and the starter lists a ticked mod's missions and starts the chosen one.
 - [BASE] Map editor: opening the mod window leaves the keyboard with the map, and mission rows show their text and Open action without an empty drop-down.
+- [BASE] A mission map zoomed with the wheel is scaled once, with no double smoothing; health bars and selection frames grow with the map and are even. With Smoothing (Ctrl+O) off the mission picture is drawn in hard pixels.
 
 ### For map makers and modders
 

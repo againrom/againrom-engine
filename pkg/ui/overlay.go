@@ -40,8 +40,11 @@ type screenRect struct {
 // and Color applies to everything a pass can hold.
 type overlayPass struct {
 	HalfAdd bool
-	Color   color.RGBA
-	Rects   []screenRect
+	// Frame says the rectangles are frame pixels, not map cells under the
+	// camera: the pass never enters the zoom-1 map composition.
+	Frame bool
+	Color color.RGBA
+	Rects []screenRect
 }
 
 // SetObjects configures the placed-objects diagnostic overlay: whether to draw
@@ -248,7 +251,7 @@ func (v *Viewer) gridScreenSegments() []gridSegment {
 	if !v.showGrid {
 		return nil
 	}
-	if !(float64(terrain.CellSize)*v.cam.Zoom >= GridMinCellPixels) {
+	if !(float64(terrain.CellSize)*v.playerZoom() >= GridMinCellPixels) {
 		return nil
 	}
 	strokePx := float64(gridLineWidth) * v.cam.Zoom
@@ -1433,7 +1436,7 @@ func (v *Viewer) overlayPasses() []overlayPass {
 		}
 	}
 	if rects := v.marqueeScreenRects(); len(rects) > 0 {
-		passes = append(passes, overlayPass{Color: MarqueeColor, Rects: rects})
+		passes = append(passes, overlayPass{Color: MarqueeColor, Rects: rects, Frame: true})
 	}
 	return passes
 }

@@ -7,15 +7,21 @@ import (
 )
 
 // drawFinalFrame is the one dispatch the six final blits of a native frame to
-// the window share, and the scaler of the smooth zoomed map (blitSmoothMap,
-// which always asks for the shader). op is a uniform Scale then Translate, the contract
-// drawSharpBilinear states. With FrameSmoothing on, the default, the source
-// is drawn through the Catmull-Rom shader (pkg/render/catmullrom) at every
-// scale except exactly 1, where it stays the single FilterNearest draw. With
-// it off, or when the shader did not compile, method B (drawSharpBilinear)
-// runs unchanged. The destination rectangle is op's in every branch.
-func drawFinalFrame(dst, src *ebiten.Image, op *ebiten.DrawImageOptions, buf **ebiten.Image, smoothingOff bool) {
-	if smoothingOff {
+// the window share, and the scaler of the zoomed map (blitSmoothMap). op is a
+// uniform Scale then Translate, the contract drawSharpBilinear states.
+// filterSmooth draws through the Catmull-Rom shader (pkg/render/catmullrom)
+// at every scale except exactly 1, where it stays the single FilterNearest
+// draw. filterSharp, or a shader that did not compile, runs method B
+// (drawSharpBilinear) unchanged. filterPixel is FilterNearest below a scale
+// of 2 and method B from 2 up. The destination rectangle is op's in every branch.
+func drawFinalFrame(dst, src *ebiten.Image, op *ebiten.DrawImageOptions, buf **ebiten.Image, filter frameFilter) {
+	if filter == filterPixel && dst != nil && src != nil && op != nil {
+		if s := op.GeoM.Element(0, 0); s > 0 && s < 2 {
+			nearestBlit(dst, src, op)
+			return
+		}
+	}
+	if filter != filterSmooth {
 		sharpBilinearBlit(dst, src, op, buf)
 		return
 	}
@@ -48,11 +54,31 @@ var (
 	}
 )
 
-// frameSmoothingOff carries the drawing App's or Viewer's FrameSmoothing
-// switch into blitFrameCanvas, blitPointerLayer and blitMenuOverMap, whose
-// signatures the op-recording tests replace them by. Each caller sets it from
-// its own instance immediately before the call.
-var frameSmoothingOff bool
+// frameFilter is what drawFinalFrame does at a scale other than 1.
+// filterSmooth is the Catmull-Rom kernel. filterSharp is method B.
+// filterPixel is the mission's Smoothing off: nearest neighbour below a
+// scale of 2, method B from 2 up.
+type frameFilter uint8
+
+const (
+	filterSmooth frameFilter = iota
+	filterSharp
+	filterPixel
+)
+
+// filterOf is the filter of a FrameSmoothing switch.
+func filterOf(smoothingOff bool) frameFilter {
+	if smoothingOff {
+		return filterSharp
+	}
+	return filterSmooth
+}
+
+// finalFrameFilter carries the drawing App's or Viewer's filter into
+// blitFrameCanvas, blitPointerLayer and blitMenuOverMap, whose signatures
+// the op-recording tests replace them by. Each caller sets it from its own
+// instance immediately before the call.
+var finalFrameFilter frameFilter
 
 // catmullRomShader is compiled once, on first use. A compile error leaves it
 // nil for the process, and every draw then falls back to method B.

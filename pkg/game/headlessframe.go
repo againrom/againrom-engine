@@ -107,7 +107,7 @@ func (f *FrontEnd) checkHeadlessFramePath(path string) error {
 // app's current state to a new file at path as a PNG. A refusal or a failure
 // leaves no file behind. It returns the renderer's note about a frame that is
 // correct but incomplete.
-func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string) (HeadlessFrame, string, error) {
+func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string, scaled bool) (HeadlessFrame, string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return HeadlessFrame{}, "", err
@@ -115,7 +115,7 @@ func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string) (HeadlessFrame, 
 	if err := f.checkHeadlessFramePath(abs); err != nil {
 		return HeadlessFrame{}, "", err
 	}
-	pix, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
+	pix, note, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame, Scaled: scaled})
 	if err != nil {
 		return HeadlessFrame{}, "", err
 	}

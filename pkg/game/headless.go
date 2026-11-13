@@ -145,6 +145,9 @@ type HeadlessStep struct {
 	// Path is the file the frame command writes, relative to the scenario
 	// file unless absolute.
 	Path string `json:"path,omitempty"`
+	// Scaled asks the frame command for the frame as the scenario's window
+	// shows it, placed by the final-frame scaler's reference.
+	Scaled bool `json:"scaled,omitempty"`
 
 	// Unit is a mission-stage unit reference: uNN for the identifier the map's
 	// script uses, pN for the party's Nth member, eNN for a raw entity id.
@@ -462,7 +465,7 @@ var headlessCommands = map[string]headlessCommandSpec{
 	"select_control": {stages: frontEndAt(1), params: []string{"target"}, required: []string{"target"}},
 	"open_menu":      {stages: frontEndAt(1), params: []string{"target"}, required: []string{"target"}},
 	"capture":        {stages: frontEndAt(1), params: []string{"name"}, required: []string{"name"}},
-	"frame":          {stages: frontEndAt(10), params: []string{"path"}, required: []string{"path"}},
+	"frame":          {stages: frontEndAt(10), params: []string{"path", "scaled"}, required: []string{"path"}},
 	"select_member":  {stages: frontEndAt(1), params: []string{"id"}, required: []string{"id"}},
 	"save":           {stages: frontEndAt(1)},
 	"save_open":      {stages: frontEndAt(9)},
@@ -643,6 +646,7 @@ func (s HeadlessStep) present() map[string]bool {
 	add("id", s.ID != "")
 	add("directory", s.Directory != "")
 	add("path", s.Path != "")
+	add("scaled", s.Scaled)
 	add("unit", s.Unit != "")
 	add("order", s.Order != "")
 	add("x", s.X != nil)
@@ -1143,7 +1147,7 @@ func RunHeadlessScenario(front *FrontEnd, app *ui.App, scenario HeadlessScenario
 		command := strings.ToLower(strings.TrimSpace(step.Command))
 		var frame *HeadlessFrame
 		if command == "frame" {
-			written, note, err := front.writeHeadlessFrame(app, step.Path)
+			written, note, err := front.writeHeadlessFrame(app, step.Path, step.Scaled)
 			if err != nil {
 				return fmt.Errorf("step %d (%s): %w", i+1, step.Command, err)
 			}
@@ -1326,7 +1330,7 @@ func runHeadlessStep(front *FrontEnd, app *ui.App, step HeadlessStep, captures m
 	case "assert_shop":
 		return assertHeadlessShop(front.headlessShop(), *step.Shop)
 	case "frame":
-		_, _, err := front.writeHeadlessFrame(app, step.Path)
+		_, _, err := front.writeHeadlessFrame(app, step.Path, step.Scaled)
 		return err
 	}
 	return fmt.Errorf("unknown command %q", step.Command)

@@ -71,6 +71,7 @@ func drawSites(t *testing.T, s float64, on bool) map[string][2]any {
 
 	// The mission frame and its deferred pointer, at the viewer's placement.
 	a, v, _ := atOnMap(t)
+	v.SetGraphicsOptions(GraphicsOptions{Smoothing: true})
 	a.SetFrameSmoothing(on)
 	a.SetCursorRegistry(mcRegistry())
 	a.Layout(int(1024*s), int(768*s))
@@ -160,7 +161,7 @@ func TestDrawAtWindowScaleRuns(t *testing.T) {
 	var buf *ebiten.Image
 	var op ebiten.DrawImageOptions
 	op.GeoM.Scale(1.875, 1.875)
-	drawFinalFrame(ebiten.NewImage(64, 64), ebiten.NewImage(8, 8), &op, &buf, false)
+	drawFinalFrame(ebiten.NewImage(64, 64), ebiten.NewImage(8, 8), &op, &buf, filterSmooth)
 	if buf == nil {
 		t.Fatal("with no shader the draw did not fall back to method B")
 	}

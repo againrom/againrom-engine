@@ -31,10 +31,14 @@ const (
 )
 
 // HeadlessRequest asks the App for one picture. Cells is the cell rectangle
-// of a HeadlessPartMinimapCells request and is ignored otherwise.
+// of a HeadlessPartMinimapCells request and is ignored otherwise. Scaled asks
+// a HeadlessPartFrame request for the frame as the window shows it: the
+// native composition placed in the laid-out window by the final-frame
+// scaler's reference, with the stages it passed in the note.
 type HeadlessRequest struct {
-	Part  HeadlessPart
-	Cells image.Rectangle
+	Part   HeadlessPart
+	Cells  image.Rectangle
+	Scaled bool
 }
 
 // HeadlessExtras holds what a part returns beside its picture; a part leaves
@@ -61,8 +65,8 @@ func pictureAt(pix *image.RGBA, at image.Point, err error) (*image.RGBA, Headles
 
 // headlessPartRows is the one table from a part to its composer.
 var headlessPartRows = [headlessPartCount]headlessPartRow{
-	HeadlessPartFrame: func(a *App, _ HeadlessRequest) (*image.RGBA, HeadlessExtras, error) {
-		pix, note, err := a.headlessFrame()
+	HeadlessPartFrame: func(a *App, req HeadlessRequest) (*image.RGBA, HeadlessExtras, error) {
+		pix, note, err := a.headlessFrame(req.Scaled)
 		return pix, HeadlessExtras{Note: note}, err
 	},
 	HeadlessPartChat: func(a *App, _ HeadlessRequest) (*image.RGBA, HeadlessExtras, error) {

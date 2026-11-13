@@ -4047,7 +4047,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 		present, capturedText = settleText(present, &a.presentLog, capturedText, &a.textEraser,
 			&a.settledBuf, &a.settledTex, &a.textSettleFallbacks)
 		a.textKept = len(capturedText)
-		drawFinalFrame(screen, present, &op, &townCompositeSharpBuf, a.frameSmoothingOff)
+		drawFinalFrame(screen, present, &op, &townCompositeSharpBuf, filterOf(a.frameSmoothingOff))
 		if len(capturedText) > 0 {
 			a.textOverlay.draw(screen, capturedText, a.place.Scale(), ox, oy)
 		}
@@ -4253,7 +4253,7 @@ func (a *App) drawCursor(screen *ebiten.Image) {
 	op.GeoM.Translate(c.X, c.Y)
 	// The cursor is scaled by the same a.place.Scale() as the composite it
 	// is drawn over, so it shares that composite's scaler (owner direction).
-	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, a.frameSmoothingOff)
+	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, filterOf(a.frameSmoothingOff))
 }
 
 // drawGameMenuOverMap places the shared menu layer over the mission when the
@@ -4297,7 +4297,7 @@ func (a *App) drawMenuLayerOverMap(screen *ebiten.Image) {
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)
 	op.Filter = ebiten.FilterNearest
-	frameSmoothingOff = a.frameSmoothingOff
+	finalFrameFilter = filterOf(a.frameSmoothingOff)
 	blitMenuOverMap(screen, menuCanvas, &op)
 	if len(kept) > 0 {
 		a.menuOverlay.draw(screen, kept, scale, ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)
@@ -4307,7 +4307,7 @@ func (a *App) drawMenuLayerOverMap(screen *ebiten.Image) {
 // blitMenuOverMap draws the menu through the common final-frame scaler.
 // Its transform comes from the host placement shared with the input mapping.
 var blitMenuOverMap = func(dst, img *ebiten.Image, op *ebiten.DrawImageOptions) {
-	drawFinalFrame(dst, img, op, &menuOverMapSharpBuf, frameSmoothingOff)
+	drawFinalFrame(dst, img, op, &menuOverMapSharpBuf, finalFrameFilter)
 }
 
 // drawMenu refreshes the frame from the menu assets, but only when the selection

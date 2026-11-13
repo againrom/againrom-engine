@@ -247,7 +247,7 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 	}
 	over := sites[0]
 	// The backdrop darkens every mission layer, the tooltip last.
-	for _, under := range []string{"overlayPasses", "displayedPathSegments", "panelPresent", "readoutPresent", "columnFillerPresent", "missionCardPresentWith", "wornPresent", "packBarPresent",
+	for _, under := range []string{"drawMapMarks", "displayedPathSegments", "panelPresent", "readoutPresent", "columnFillerPresent", "missionCardPresentWith", "wornPresent", "packBarPresent",
 		"commandPanelPresent", "goldModalPresent", "messagePresent", "tooltipPresent"} {
 		if i := at(under); i >= over {
 			t.Errorf("the whole-frame backdrop at statement %d stands before %q at %d", over, under, i)
