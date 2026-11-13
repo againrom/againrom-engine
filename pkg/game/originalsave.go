@@ -756,13 +756,20 @@ func clearRestoredMissionPosition(party []mapload.PartyMember) {
 // Bind the imported baseline before hired-roster growth can replace its slices.
 // SAV-608 excludes rebuilt hired members from bound-record counts; SAV-609's
 // application map flags come from current state rather than a lazy UI cache.
+// A town save loaded under changed mods answers the list of what they took
+// as a *ui.ModLoadNotice; the load is complete.
 func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, err error) {
-	return f.restoreOriginal(saved, nil)
+	open, town, lost, err := f.restoreOriginal(saved, nil)
+	if err == nil && len(lost) != 0 {
+		err = &ui.ModLoadNotice{Changes: ui.ModMismatch{Reason: ui.ModMismatchChanged, Rows: lost}}
+	}
+	return open, town, err
 }
 
 // restoreOriginal is RestoreOriginal; a non-nil guest replaces the guest
 // record the save carries, as a guest's win brings her back to the stash.
-func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.MapOpener, town bool, err error) {
+// lost lists what a town save loaded under changed mods no longer holds.
+func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.MapOpener, town bool, lost []ui.ModMismatchRow, err error) {
 	defer func() {
 		var inn innArrayError
 		if note := f.Base().Profile.Limits.OriginalSaveRefusal; err != nil && note != "" && errors.As(err, &inn) {
@@ -772,15 +779,19 @@ func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.M
 	// A town file in the second game's records carries the engine's own
 	// document, which the LOAD reads (DIV-4304).
 	if saved, err = sav.EngineDocument(saved); err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	saved = repairLoadedEquipmentRows(saved)
 	if err := validateOriginalGame(saved, f.Base().Profile.GameOf()); err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
-	src, err := decodeOriginalSource(saved, f.modContext(), f.Campaign.Value())
+	var skills sim.Rules
+	if f.Table != nil {
+		skills = f.Table.Rules
+	}
+	src, err := decodeOriginalSource(saved, f.modContext(), skills, f.Campaign.Value())
 	if err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	if guest != nil {
 		guest.previous = src.guest
@@ -788,7 +799,7 @@ func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.M
 	}
 	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
 	if err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	in := f.originalInstall()
 	// The LOAD's random session: the recorded seed in the launch mode, its
@@ -797,9 +808,11 @@ func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.M
 	src.currentRandom, cancel = f.prepareLoadRandom(src.campaign.randomSession)
 	defer cancel()
 	if src.campaign.mission == 0 {
-		return f.restoreOriginalTown(src, in, selectedMarkers)
+		lost, err = f.restoreOriginalTown(src, in, selectedMarkers)
+		return nil, err == nil, lost, err
 	}
-	return f.restoreOriginalMission(src, in, selectedMarkers)
+	open, town, err = f.restoreOriginalMission(src, in, selectedMarkers)
+	return open, town, nil, err
 }
 
 // originalCampaignDecode is what an original SAV says about the campaign: the
@@ -820,6 +833,9 @@ type originalCampaignDecode struct {
 	// randomSession is the random session the file recorded, or one seeded
 	// from the file's own bytes when it recorded none.
 	randomSession random.Session
+	// dropped are the campaign missions a town save under changed mods named
+	// and the active campaign no longer declares (pruneUndeclaredMissions).
+	dropped []int
 }
 
 // decodeOriginalCampaign decodes and validates the complete campaign
@@ -827,8 +843,9 @@ type originalCampaignDecode struct {
 // values. It changes nothing: a malformed campaign tail cannot install a
 // party, purse, town or partial progress record. stated is what the file
 // states in its own records: the ordinary bindings the supplement may
-// replace, and a session a file without an engine document states.
-func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, stated originalFileState) (*originalCampaignDecode, error) {
+// replace, and a session a file without an engine document states. changed
+// is a save admitted under changed mods.
+func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, stated originalFileState, changed bool) (*originalCampaignDecode, error) {
 	quickSpells := stated.quickSpells
 	difficulty, err := campaignDifficulty(int64(sf.Head.Difficulty))
 	if err != nil {
@@ -870,6 +887,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, state
 	}
 	restoredTown := NewTown(campaign)
 	var restoredProgress *campaignProgress
+	var dropped []int
 	if projection, ok, err := sf.Campaign(); err != nil {
 		return nil, err
 	} else if ok && sessionCampaign(currentSession).statesCampaign(currentSession) {
@@ -878,6 +896,9 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, state
 			return nil, fmt.Errorf("current second campaign document does not match its mission")
 		}
 	} else if ok {
+		if changed && n == 0 {
+			dropped = pruneUndeclaredMissions(campaign, &projection)
+		}
 		progress, err := campaignProgressFromSAV(campaign, projection)
 		if err != nil {
 			return nil, err
@@ -939,19 +960,24 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, state
 	}
 	return &originalCampaignDecode{difficulty: difficulty, mission: n, town: restoredTown, progress: restoredProgress,
 		session: currentSession, actions: currentActions, document: currentDocument, quickSpells: quickSpells,
-		fileSession: stated.session, randomSession: savedRandom}, nil
+		fileSession: stated.session, randomSession: savedRandom, dropped: dropped}, nil
 }
 
 // restoreOriginalTown installs the between-mission game an original SAV
 // describes. The city is completed on a detached session: a hired-roster
-// refusal must not replace the running campaign, counters or observer.
-func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, selectedMarkers map[int]bool) (ui.MapOpener, bool, error) {
+// refusal must not replace the running campaign, counters or observer. Under
+// changed mods the town takes away what they no longer hold before the
+// install, and the list of it is returned.
+func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, selectedMarkers map[int]bool) ([]ui.ModMismatchRow, error) {
 	draftAudio := ui.NewAudioScope(f.SoundPlayer)
 	defer draftAudio.Destroy()
 	var draft CampaignSession
-	report, err := draft.restoreOriginalTown(src, in, f.Campaign.Value())
+	report, loss, err := draft.restoreOriginalTown(src, in, f.Campaign.Value())
 	if err != nil {
-		return nil, false, err
+		return nil, err
+	}
+	if err := f.takeModLoss(&draft, loss); err != nil {
+		return nil, fmt.Errorf("original between-mission save: %w", err)
 	}
 	f.Units = cloneCandidateUnits(f.Units)
 	f.installCandidate(&restoreCandidate{fame: draft.fame, quickSpells: src.quickSpells, offered: src.offered(),
@@ -959,7 +985,7 @@ func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, 
 		originalCity: draft.originalCity, townOnly: true, worldSelectedOnce: selectedMarkers, worldMapReturn: src.worldMapReturn(),
 		randomSession: &src.currentRandom, guest: src.guest, guestWaiting: src.campaign.session != nil && src.campaign.session.GuestWaiting})
 	f.CampaignSession.reportTown(src, report)
-	return nil, true, nil
+	return loss.rows, nil
 }
 
 // restoreOriginalMission prepares the mission an original SAV was saved in and

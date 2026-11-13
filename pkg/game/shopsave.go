@@ -133,6 +133,15 @@ func (t *shopController) restoreShopOwner(item ShopItem, owner shopOwnerQuantity
 	return nil
 }
 
+// detachedShop is a shop room over session n that no screen shows, so the
+// room's own item code can run outside play.
+func detachedShop(n *CampaignSession, in *InstallResources) *townScreen {
+	t := &townScreen{shopController: shopController{sess: n, in: in}, pc: &PersistenceContext{}, room: roomShop}
+	t.bindServices(&RuntimeServices{}, in, &Presentation{})
+	t.bindShop(t.hostShopRow())
+	return t
+}
+
 // DIV-1443: only the detached SAV capture settles the table, by the one
 // open-deal policy (shopDeal.settle): a customer place goes back to its
 // owners' packs through the city graph. Live trade, payment and selection
@@ -147,9 +156,7 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 	n := &CampaignSession{Town: restored, Carried: mapload.CloneParty(s.Party), Shop: cloneShopMutation(s.shop)}
-	t := &townScreen{shopController: shopController{sess: n, in: &in}, pc: &PersistenceContext{}, room: roomShop}
-	t.bindServices(&RuntimeServices{}, &in, &Presentation{})
-	t.bindShop(t.hostShopRow())
+	t := detachedShop(n, &in)
 	p, err := newCityObjectProjection(n.Town.cityObjects, n.Carried, in.Table)
 	if err != nil {
 		return Snapshot{}, err

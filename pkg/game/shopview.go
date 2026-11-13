@@ -474,9 +474,13 @@ func (t *shopController) refreshShopDrag(want int) {
 // the bottom strip is bound to. It is clamped to the roster on every read, so a
 // party that shrank between two frames cannot leave it pointing past the end,
 // and it never rests on a tavern hire while the party holds anyone else
-// (townPickerIndex).
+// (townPickerIndex). A detached holder is the stored member as it is.
 func (t *shopController) shopMemberIndex() int {
-	return townPickerIndex(t.shopParty(), t.shopMember)
+	party := t.shopParty()
+	if t.detachedHolder && t.shopMember >= 0 && t.shopMember < len(party) {
+		return t.shopMember
+	}
+	return townPickerIndex(party, t.shopMember)
 }
 
 // clampTownMember keeps the one town-wide character selection valid after a

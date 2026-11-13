@@ -246,7 +246,7 @@ func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 		}
 		back = &guestMission{mission: s.joiner, start: start, member: member}
 	}
-	if _, _, err := f.restoreOriginal(g.stash, back); err != nil {
+	if _, _, _, err := f.restoreOriginal(g.stash, back); err != nil {
 		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", in.n, err)
 	}
 	if campaign {

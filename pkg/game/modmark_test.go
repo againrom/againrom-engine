@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -115,11 +116,11 @@ func TestTheModMarkProjectsAndRestoresTrueSkillState(t *testing.T) {
 	if !sav.MayCarryNativeMods(encoded) {
 		t.Fatal("the leaf name is not visible in the bytes the fast path searches")
 	}
-	loaded, _, err := applyModMark(encoded, mapload.ModContext{Set: set})
+	loaded, err := applyModMark(encoded, mapload.ModContext{Set: set}, rules.Rules{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cold, err := sav.DecodeDocumentData(loaded)
+	cold, err := sav.DecodeDocumentData(loaded.saved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func TestTheModMarkProjectsAndRestoresTrueSkillState(t *testing.T) {
 		t.Fatalf("restored %+v, want %+v", got, want)
 	}
 	// Saving the restored document again yields the same projection and mark.
-	again, err := sav.DecodeDocumentData(loaded)
+	again, err := sav.DecodeDocumentData(loaded.saved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,8 +164,8 @@ func TestAMarkedSaveThatNeedsNoRestoreLoadsAsWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, _, err := applyModMark(encoded, mapload.ModContext{Set: set})
-	if err != nil || !bytes.Equal(loaded, encoded) {
+	loaded, err := applyModMark(encoded, mapload.ModContext{Set: set}, rules.Rules{})
+	if err != nil || !bytes.Equal(loaded.saved, encoded) {
 		t.Fatal(err)
 	}
 }
@@ -186,10 +187,25 @@ func TestWithoutModsTheDocumentIsLeftExactlyAsItIs(t *testing.T) {
 	if err != nil || !bytes.Equal(before, after) || sav.MayCarryNativeMods(after) {
 		t.Fatal("an unmodded save changed", err)
 	}
-	loaded, _, err := applyModMark(after, mapload.ModContext{})
-	if err != nil || &loaded[0] != &after[0] {
+	loaded, err := applyModMark(after, mapload.ModContext{}, rules.Rules{})
+	if err != nil || &loaded.saved[0] != &after[0] {
 		t.Fatal("an unmodded load touched the bytes", err)
 	}
+}
+
+// modInMission is saved with its head set inside a mission.
+func modInMission(t *testing.T, saved []byte) []byte {
+	t.Helper()
+	d, err := sav.DecodeDocumentData(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.Head.Mission = 3
+	b, err := sav.EncodeDocumentData(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func TestLoadRefusalsNameTheMods(t *testing.T) {
@@ -217,12 +233,12 @@ func TestLoadRefusalsNameTheMods(t *testing.T) {
 		want  string
 	}{
 		{"marked save, no mods", mark(modTestSet(150)), mapload.ModContext{}, "skill-cap 1.0.0"},
-		{"marked save, other setting", mark(modTestSet(150)), mapload.ModContext{Set: modTestSet(140)}, `mod "skill-cap" setting skill_cap is 140, the saved game used 150`},
+		{"marked mission save, other setting", modInMission(t, mark(modTestSet(150))), mapload.ModContext{Set: modTestSet(140)}, `mod "skill-cap" setting skill_cap is 140, the saved game used 150`},
 		{"marked save, extra mod", mark(modTestSet(150)), mapload.ModContext{Set: other}, `mod "extra" is active but the saved game did not use it`},
 		{"marked save, one mod fewer", mark(other), mapload.ModContext{Set: modTestSet(150)}, `mod "extra" 2 is missing`},
 		{"unmarked save, mods", plain, mapload.ModContext{Set: modTestSet(150)}, "-mods-accept-unmarked"},
 	} {
-		_, _, err := applyModMark(c.saved, c.ctx)
+		_, err := applyModMark(c.saved, c.ctx, rules.Rules{})
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want a refusal naming %q", c.name, err, c.want)
 		}
@@ -230,8 +246,8 @@ func TestLoadRefusalsNameTheMods(t *testing.T) {
 			t.Errorf("%s: the refusal is not an ErrModMark: %v", c.name, err)
 		}
 	}
-	got, _, err := applyModMark(plain, mapload.ModContext{Set: modTestSet(150), AcceptUnmarked: true})
-	if err != nil || !bytes.Equal(got, plain) {
+	got, err := applyModMark(plain, mapload.ModContext{Set: modTestSet(150), AcceptUnmarked: true}, rules.Rules{})
+	if err != nil || !bytes.Equal(got.saved, plain) {
 		t.Fatal("-mods-accept-unmarked did not load the unmarked save as it is", err)
 	}
 }
@@ -257,7 +273,7 @@ func TestAMarkThatDoesNotBelongToTheSaveIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := applyModMark(encoded, mapload.ModContext{Set: set}); err == nil || !strings.Contains(err.Error(), "does not match the save's actor") {
+	if _, err := applyModMark(encoded, mapload.ModContext{Set: set}, rules.Rules{}); err == nil || !strings.Contains(err.Error(), "does not match the save's actor") {
 		t.Fatalf("%v", err)
 	}
 }
@@ -276,7 +292,7 @@ func TestAMarkWithAnUnreadableOrUnknownPayloadIsRefused(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, ctx := range []mapload.ModContext{{}, {Set: modTestSet(150)}, {Set: modTestSet(150), AcceptUnmarked: true}} {
-			if _, _, err := applyModMark(encoded, ctx); err == nil {
+			if _, err := applyModMark(encoded, ctx, rules.Rules{}); err == nil {
 				t.Errorf("%q accepted with mods active %v", payload, !ctx.Set.Empty())
 			}
 		}
@@ -345,13 +361,13 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 		t.Fatal("marking changed the record it was given")
 	}
 	mark, present, err := readModMark(doc)
-	if err != nil || !present || len(mark.Items) != 1 || mark.Items[0] != (modMarkItem{Object: k, Code: item.Code, Row: item.Row}) {
+	if err != nil || !present || len(mark.Items) != 1 || mark.Items[0] != (modMarkItem{Object: k, Code: item.Code, Row: item.Row, Mod: "skill-cap", Key: "x"}) {
 		t.Fatalf("the mark holds %+v %v %v", mark.Items, present, err)
 	}
 	items := []mapload.ModItem{item}
 	cold := doc
 	cold.Objects = append([]sav.DocumentRecordData(nil), doc.Objects...)
-	if err := restoreModItems(&cold, mark.Items, items); err != nil {
+	if _, err := restoreModItems(&cold, mark.Items, items, false); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := savedStructureValue(&cold.Objects[k], "F40"); got != trueCode {
@@ -372,21 +388,40 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 	}
 	// The mark is refused where the item is not the active mods' or the
 	// object is not the stand-in.
-	if err := restoreModItems(&doc, mark.Items, nil); err == nil || !strings.Contains(err.Error(), "no active mod adds") {
+	if _, err := restoreModItems(&doc, mark.Items, nil, false); err == nil || !strings.Contains(err.Error(), "no active mod adds") {
 		t.Fatalf("a mark of an item no mod adds: %v", err)
 	}
 	other := item
 	other.StandInCode = 0x0a08
-	if err := restoreModItems(&doc, mark.Items, []mapload.ModItem{other}); err == nil || !strings.Contains(err.Error(), "does not match the save's item object") {
+	if _, err := restoreModItems(&doc, mark.Items, []mapload.ModItem{other}, false); err == nil || !strings.Contains(err.Error(), "does not match the save's item object") {
 		t.Fatalf("a mark whose stand-in differs: %v", err)
 	}
-	if err := restoreModItems(&doc, []modMarkItem{{Object: 9999, Code: item.Code}}, items); err == nil || !strings.Contains(err.Error(), "item object 9999") {
+	if _, err := restoreModItems(&doc, []modMarkItem{{Object: 9999, Code: item.Code}}, items, false); err == nil || !strings.Contains(err.Error(), "item object 9999") {
 		t.Fatalf("a mark of an object the save lacks: %v", err)
 	}
-	if err := restoreModItems(&doc, []modMarkItem{mark.Items[0], mark.Items[0]}, items); err == nil {
+	if _, err := restoreModItems(&doc, []modMarkItem{mark.Items[0], mark.Items[0]}, items, false); err == nil {
 		t.Fatal("an object named twice was accepted")
 	}
-	if err := restoreModItems(&doc, []modMarkItem{{Object: bystander, Code: item.Code}}, items); err == nil {
+	// Under changed mods an item no mod declares under its key is gone and
+	// keeps what its object holds; one whose stand-in changed is still its
+	// item, matched by its key.
+	held, _ := savedStructureValue(&doc.Objects[k], "F40")
+	gone, err := restoreModItems(&doc, mark.Items, nil, true)
+	if err != nil || !slices.Equal(gone, mark.Items) {
+		t.Fatalf("changed mods without the item: gone %v, %v", gone, err)
+	}
+	if got, _ := savedStructureValue(&doc.Objects[k], "F40"); got != held {
+		t.Fatal("a gone item's object changed")
+	}
+	moved := doc
+	moved.Objects = append([]sav.DocumentRecordData(nil), doc.Objects...)
+	if gone, err := restoreModItems(&moved, mark.Items, []mapload.ModItem{other}, true); err != nil || len(gone) != 0 {
+		t.Fatalf("changed mods with another stand-in: gone %v, %v", gone, err)
+	}
+	if got, _ := savedStructureValue(&moved.Objects[k], "F40"); got != trueCode {
+		t.Fatalf("the item with another stand-in restored %#x, want %#x", got, trueCode)
+	}
+	if _, err := restoreModItems(&doc, []modMarkItem{{Object: bystander, Code: item.Code}}, items, false); err == nil {
 		t.Fatal("a mark of an object that holds another item was accepted")
 	}
 	// Without items the mark records none, and the document keeps its codes.
@@ -429,6 +464,7 @@ func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
 		}
 		return b
 	}
+	// Only a mission save is refused over another version or setting.
 	newer := modTestSet(150)
 	newer.Mods[0].Version, newer.Mods[0].Digest = "1.1.0", "abd"
 	other := modTestSet(150)
@@ -441,9 +477,9 @@ func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
 	}{
 		{"no mods", mark(modTestSet(150)), mapload.ModContext{},
 			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchMissing, Mod: "skill-cap", Saved: "1.0.0"}}}},
-		{"other version", mark(modTestSet(150)), mapload.ModContext{Set: newer},
+		{"other version", modInMission(t, mark(modTestSet(150))), mapload.ModContext{Set: newer},
 			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchVersion, Mod: "skill-cap", Saved: "1.0.0", Current: "1.1.0"}}}},
-		{"other setting", mark(modTestSet(150)), mapload.ModContext{Set: modTestSet(140)},
+		{"other setting", modInMission(t, mark(modTestSet(150))), mapload.ModContext{Set: modTestSet(140)},
 			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchSetting, Mod: "skill-cap", Setting: "skill_cap", Saved: "150", Current: "140"}}}},
 		{"extra mod", mark(modTestSet(150)), mapload.ModContext{Set: other},
 			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchAdded, Mod: "extra", Current: "2"}}}},
@@ -452,7 +488,7 @@ func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
 		{"unmarked", plain, mapload.ModContext{Set: modTestSet(150)},
 			ui.ModMismatch{Reason: ui.ModMismatchUnmarked, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchAdded, Mod: "skill-cap", Current: "1.0.0"}}}},
 	} {
-		_, _, err := applyModMark(c.saved, c.ctx)
+		_, err := applyModMark(c.saved, c.ctx, rules.Rules{})
 		var refusal interface{ ModMismatch() ui.ModMismatch }
 		if !errors.As(err, &refusal) || !errors.Is(err, ErrModMark) {
 			t.Fatalf("%s: %v carries no mismatch", c.name, err)
@@ -477,7 +513,7 @@ func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = applyModMark(broken, mapload.ModContext{Set: modTestSet(150)})
+	_, err = applyModMark(broken, mapload.ModContext{Set: modTestSet(150)}, rules.Rules{})
 	var refusal interface{ ModMismatch() ui.ModMismatch }
 	if !errors.As(err, &refusal) || refusal.ModMismatch().Reason != ui.ModMismatchMark || len(refusal.ModMismatch().Rows) != 0 {
 		t.Fatalf("an unreadable mark: %v", err)

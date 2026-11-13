@@ -50,6 +50,7 @@ func nonZeroTownScreen() *townScreen {
 		ts.talkWindow.Open(true)
 	}
 	ts.speechTableRelease = true
+	ts.detachedHolder = true
 	ts.adapter = chapterTownCampaign{ts}
 	ts.defaults = ROM1TownDescription()
 	ts.composed = newTownSceneState(nil)

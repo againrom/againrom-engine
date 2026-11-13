@@ -1195,27 +1195,8 @@ func (t *shopController) cityShopEquipTable(index int) (ui.TownAction, error) {
 }
 
 func (t *shopController) cityShopUnequip(slot int, table bool) (ui.TownAction, error) {
-	memberIndex := t.shopMemberIndex()
-	if memberIndex < 0 || memberIndex >= len(t.sess.Carried) || slot < 1 || slot > sim.EquipSlots {
-		return ui.TownAction{}, fmt.Errorf("invalid equipment selection")
-	}
-	worn := mapload.MemberItemEquipment(t.sess.Carried[memberIndex], t.in.Table)
-	if worn[slot-1].Empty() {
-		if slot != 1 {
-			return ui.TownAction{}, nil
-		}
-		if _, ok := t.shopWeaponFallbackCode(memberIndex); !ok {
-			return ui.TownAction{}, nil
-		}
-	}
-	var item ShopItem
-	var err error
-	if mapload.HasSourceActor(t.sess.Carried[memberIndex]) {
-		item, err = t.cityShopSourceEquipment(-1, slot, ShopItem{}, !table)
-	} else {
-		item, err = t.cityShopNativeUnequip(slot, !table)
-	}
-	if err != nil {
+	item, worn, err := t.cityShopTakeWorn(slot, !table)
+	if err != nil || !worn {
 		return ui.TownAction{}, err
 	}
 	if table {
@@ -1227,6 +1208,30 @@ func (t *shopController) cityShopUnequip(slot int, table bool) (ui.TownAction, e
 		return ui.TownInfo("on the table"), nil
 	}
 	return ui.TownInfo("off, into the pack"), nil
+}
+
+// cityShopTakeWorn takes the shown member's item off slot (1-based), into the
+// pack or out of the party; worn is false for an empty slot.
+func (t *shopController) cityShopTakeWorn(slot int, toPack bool) (item ShopItem, worn bool, err error) {
+	memberIndex := t.shopMemberIndex()
+	if memberIndex < 0 || memberIndex >= len(t.sess.Carried) || slot < 1 || slot > sim.EquipSlots {
+		return ShopItem{}, false, fmt.Errorf("invalid equipment selection")
+	}
+	slots := mapload.MemberItemEquipment(t.sess.Carried[memberIndex], t.in.Table)
+	if slots[slot-1].Empty() {
+		if slot != 1 {
+			return ShopItem{}, false, nil
+		}
+		if _, ok := t.shopWeaponFallbackCode(memberIndex); !ok {
+			return ShopItem{}, false, nil
+		}
+	}
+	if mapload.HasSourceActor(t.sess.Carried[memberIndex]) {
+		item, err = t.cityShopSourceEquipment(-1, slot, ShopItem{}, toPack)
+	} else {
+		item, err = t.cityShopNativeUnequip(slot, toPack)
+	}
+	return item, err == nil, err
 }
 
 func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem, error) {

@@ -45,8 +45,16 @@ func (a *App) stepQuickSave(save bool) {
 			var open MapOpener
 			var town bool
 			open, town, err = f.loadUI.quick.Load()
+			var notice *ModMismatch
+			if notice, err = loadNoticeOf(err); err == nil && f.openLoadNotice(notice, town) {
+				a.syncViewerLayout()
+				return
+			}
 			if err == nil {
 				err = f.loadPrepared(open, town)
+			}
+			if err == nil && notice != nil {
+				message = f.word("load.mods.quick_done") + ": " + f.modMismatchWindow(*notice).modMismatchText()
 			}
 		}
 	}

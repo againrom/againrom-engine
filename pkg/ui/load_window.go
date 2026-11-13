@@ -35,6 +35,9 @@ type loadWindow struct {
 	// mismatch is the open window listing a refusal over the mods; it owns
 	// the page's input until it closes.
 	mismatch *dialogRun
+	// mismatchTown: the window lists what a completed town load lost, and
+	// closing it enters that town (closeModMismatch).
+	mismatchTown bool
 	// question is the delete question of a page that asks in a window; it
 	// owns the page's input while the deletion awaits its answer.
 	question dialogRun

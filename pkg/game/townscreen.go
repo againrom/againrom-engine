@@ -221,7 +221,7 @@ func (t *townScreen) resetForNewGame() {
 	t.talkWindow.Reset()
 	t.innQueue = nil
 	t.shopChosen, t.shopShelf = shopNoShelf, ShelfArmour
-	t.speechTableRelease = false
+	t.speechTableRelease, t.detachedHolder = false, false
 	t.shelfBase, t.packBase, t.tableBase = 0, 0, 0
 	t.shopMember, t.tavernSelection, t.schoolCell = 0, tavernCandidateKey{}, schoolNoSelection
 	t.tavernSlotRequests = nil

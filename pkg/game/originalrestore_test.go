@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -14,7 +15,7 @@ import (
 
 func TestDecodeOriginalSourceReadsABetweenMissionSaveFromPlainValues(t *testing.T) {
 	c, projection := restoredCampaignFixture()
-	src, err := decodeOriginalSource(originalSaveWithCampaign(t, 0, projection), mapload.ModContext{}, c)
+	src, err := decodeOriginalSource(originalSaveWithCampaign(t, 0, projection), mapload.ModContext{}, sim.Rules{}, c)
 	if err != nil {
 		t.Fatalf("decodeOriginalSource: %v", err)
 	}
@@ -30,7 +31,7 @@ func TestDecodeOriginalSourceReadsABetweenMissionSaveFromPlainValues(t *testing.
 }
 
 func TestDecodeOriginalSourceRefusesBytesThatAreNotASave(t *testing.T) {
-	if _, err := decodeOriginalSource([]byte("not a save"), mapload.ModContext{}, Campaign{}); err == nil {
+	if _, err := decodeOriginalSource([]byte("not a save"), mapload.ModContext{}, sim.Rules{}, Campaign{}); err == nil {
 		t.Fatal("decodeOriginalSource accepted bytes that are not a SAV")
 	}
 }
@@ -39,12 +40,12 @@ func TestDecodeOriginalSourceRefusesBytesThatAreNotASave(t *testing.T) {
 // the party it restored; the install it reads is plain values.
 func TestRestoreOriginalTownOnASessionAloneBuildsTheTown(t *testing.T) {
 	c, projection := restoredCampaignFixture()
-	src, err := decodeOriginalSource(originalSaveWithCampaign(t, 0, projection), mapload.ModContext{}, c)
+	src, err := decodeOriginalSource(originalSaveWithCampaign(t, 0, projection), mapload.ModContext{}, sim.Rules{}, c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var s CampaignSession
-	if _, err := s.restoreOriginalTown(src, originalInstall{}, c); err != nil {
+	if _, _, err := s.restoreOriginalTown(src, originalInstall{}, c); err != nil {
 		t.Fatalf("restoreOriginalTown: %v", err)
 	}
 	if s.Town != src.campaign.town || s.Difficulty != src.campaign.difficulty || s.quickSpells != src.quickSpells {

@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
+	"againrom/pkg/rules"
 	"againrom/pkg/vfs"
 )
 
@@ -133,8 +134,8 @@ func TestStateFreeModsDoNotCountAgainstTheModMark(t *testing.T) {
 	plain := modTestSAV(t)
 	picture := mod.SetEntry{ID: "picture", Version: "1", Digest: "p", StateFree: true}
 	pictureOnly := mod.Set{Base: "rom1-en", Mods: []mod.SetEntry{picture}}
-	got, _, err := applyModMark(plain, mapload.ModContext{Set: pictureOnly})
-	if err != nil || !bytes.Equal(got, plain) {
+	got, err := applyModMark(plain, mapload.ModContext{Set: pictureOnly}, rules.Rules{})
+	if err != nil || !bytes.Equal(got.saved, plain) {
 		t.Fatalf("an unmarked save under a picture mod: %v", err)
 	}
 	doc, err := sav.DecodeDocumentData(plain)
@@ -156,10 +157,10 @@ func TestStateFreeModsDoNotCountAgainstTheModMark(t *testing.T) {
 	}
 	both := modTestSet(150)
 	both.Mods = append(both.Mods, picture)
-	if _, _, err := applyModMark(marked, mapload.ModContext{Set: both}); err != nil {
+	if _, err := applyModMark(marked, mapload.ModContext{Set: both}, rules.Rules{}); err != nil {
 		t.Fatalf("a marked save under its mod and a picture mod: %v", err)
 	}
-	if _, _, err := applyModMark(marked, mapload.ModContext{Set: pictureOnly}); err == nil || !strings.Contains(err.Error(), "skill-cap 1.0.0") {
+	if _, err := applyModMark(marked, mapload.ModContext{Set: pictureOnly}, rules.Rules{}); err == nil || !strings.Contains(err.Error(), "skill-cap 1.0.0") {
 		t.Fatalf("a marked save under a picture mod alone: %v", err)
 	}
 }
@@ -185,14 +186,14 @@ func TestMarkNamingAStateFreeModLoadsWhileItIsActive(t *testing.T) {
 		m.StateFree = true
 		now.Mods = append(now.Mods, m)
 	}
-	if _, _, err := applyModMark(marked, mapload.ModContext{Set: now}); err != nil {
+	if _, err := applyModMark(marked, mapload.ModContext{Set: now}, rules.Rules{}); err != nil {
 		t.Fatalf("a save marked under a mod that is state-free now, with it active: %v", err)
 	}
 	other := mod.Set{Base: set.Base, Mods: []mod.SetEntry{{ID: "elsewhere", Version: "1", Digest: "e", StateFree: true}}}
-	if _, _, err := applyModMark(marked, mapload.ModContext{Set: other}); err == nil || !strings.Contains(err.Error(), "skill-cap 1.0.0") {
+	if _, err := applyModMark(marked, mapload.ModContext{Set: other}, rules.Rules{}); err == nil || !strings.Contains(err.Error(), "skill-cap 1.0.0") {
 		t.Fatalf("a marked save with its mod not active: %v", err)
 	}
-	if _, _, err := applyModMark(marked, mapload.ModContext{Set: mod.Set{Base: set.Base}}); err == nil {
+	if _, err := applyModMark(marked, mapload.ModContext{Set: mod.Set{Base: set.Base}}, rules.Rules{}); err == nil {
 		t.Fatal("a marked save with no mod active loaded")
 	}
 }

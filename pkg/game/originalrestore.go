@@ -20,8 +20,10 @@ import (
 // changes no game state. The mission members are zero for a between-mission
 // save.
 type originalSource struct {
-	saved       []byte
-	modLayers   []modMarkLayer
+	saved []byte
+	// mods is what the mod mark gave the LOAD: the worn layers and, under
+	// changed mods, what they no longer hold.
+	mods        modMarkLoad
 	sf          *sav.File
 	quickSpells [9]uint32
 	campaign    *originalCampaignDecode
@@ -66,14 +68,15 @@ type originalSource struct {
 }
 
 // decodeOriginalSource decodes the complete original SAV in saved over the
-// install's mod context and campaign. A mission number of zero is a
-// between-mission save.
-func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campaign) (*originalSource, error) {
+// install's mod context, its active rules and its campaign. A mission number
+// of zero is a between-mission save.
+func decodeOriginalSource(saved []byte, mods mapload.ModContext, skills sim.Rules, campaign Campaign) (*originalSource, error) {
 	raw := saved
-	saved, modLayers, err := applyModMark(saved, mods)
+	marked, err := applyModMark(saved, mods, skills)
 	if err != nil {
 		return nil, err
 	}
+	saved = marked.saved
 	sf, err := sav.Open(saved)
 	if err != nil {
 		return nil, err
@@ -106,9 +109,12 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	// Diary owners require the raw PartyWalk records. Ordinary walk failures
 	// remain tolerated; malformed books have already been refused.
 	diaryChars, diaryPlayerRec, _ := sf.PartyWalk()
-	decoded, err := decodeOriginalCampaign(sf, saved, campaign, stated)
+	decoded, err := decodeOriginalCampaign(sf, saved, campaign, stated, marked.changed)
 	if err != nil {
 		return nil, err
+	}
+	if marked.changed && decoded.mission == 0 {
+		marked.dropped = append(droppedMissionRows(decoded.dropped), adoptChangedGuests(decoded.session, mods)...)
 	}
 	identity, err := restoreMissionIdentity(raw, decoded.mission, decoded.session, mods)
 	if err != nil {
@@ -120,7 +126,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	if err != nil {
 		return nil, err
 	}
-	src := &originalSource{saved: saved, modLayers: modLayers, sf: sf, quickSpells: quickSpells, campaign: decoded,
+	src := &originalSource{saved: saved, mods: marked, sf: sf, quickSpells: quickSpells, campaign: decoded,
 		tails: tails, hasTails: hasTails, cellRecords: cellRecords, hasCellRecords: hasCellRecords,
 		spellEffects: spellEffects, hasSpellEffects: hasSpellEffects, projectiles: projectiles,
 		hasProjectiles: hasProjectiles, diaryChars: diaryChars, diaryPlayerRec: diaryPlayerRec,
@@ -197,8 +203,8 @@ func (in *InstallResources) originalInstall() originalInstall {
 // describes on this session, which it first clears. A hired-roster refusal
 // returns with the error and nothing else changed, because the caller hands in
 // a session that is not the running one.
-func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalInstall, campaign Campaign) (RestoredParty, error) {
-	sf, saved, modLayers := src.sf, src.saved, src.modLayers
+func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalInstall, campaign Campaign) (RestoredParty, modTownLoss, error) {
+	sf, saved := src.sf, src.saved
 	quickSpells, difficulty, restoredTown := src.quickSpells, src.campaign.difficulty, src.campaign.town
 	currentSession, currentActions, currentDocument := src.campaign.session, src.campaign.actions, src.campaign.document
 	var cityDocument originalCityDocument
@@ -232,7 +238,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	var cityObjects *cityObjectTopology
 	current, currentChars, hasCurrent, err := restoreCurrentCityParty(currentDocument, currentActions, in.table, &cityObjects)
 	if err != nil {
-		return report, err
+		return report, modTownLoss{}, err
 	}
 	if hasCurrent {
 		restored, cityCharacters = current, currentChars
@@ -246,25 +252,30 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 		// session's (secondFileSession).
 		if src.campaign.fileSession != nil {
 			if err := secondPartyItems.takeLoadedPack(restored, in.table); err != nil {
-				return report, err
+				return report, modTownLoss{}, err
 			}
 			keepLoadedTownActors(restored, cityCharacters)
 		} else if !report.Fallback {
 			doc, err := sav.DecodeDocumentData(saved)
 			if err != nil {
-				return report, err
+				return report, modTownLoss{}, err
 			}
 			cityObjects, err = captureOriginalCityTopology(&doc, restored, cityCharacters)
 			if err != nil {
-				return report, err
+				return report, modTownLoss{}, err
 			}
 			keepLoadedTownActors(restored, cityCharacters)
 		}
 	}
 	cityObjects.publishSessionEntry()
 	s.Town.cityObjects = cityObjects
-	if err := applyModLayers(restored, modLayers, tableModContext(in.table).Items); err != nil {
-		return report, err
+	layersOff, err := applyModLayers(restored, src.mods.layers, tableModContext(in.table).Items, src.mods.changed)
+	if err != nil {
+		return report, modTownLoss{}, err
+	}
+	loss, err := src.mods.townLoss(saved, restored, cityCharacters, cityObjects, layersOff)
+	if err != nil {
+		return report, modTownLoss{}, err
 	}
 	s.Carried = restored
 	// Bind before rebuilding hires: the overlay mutates this party slice,
@@ -290,19 +301,19 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 		}
 	}
 	if err := seatTownCarriers(townArchive, carrierTown{t: s.Town, player: src.diaryPlayerRec}); err != nil {
-		return report, err
+		return report, modTownLoss{}, err
 	}
 	// A current SAV binds its group actors through its document, an
 	// original file through its provenance.
 	if err := s.adoptTownGroups(originalTownInputs{src: src, session: s, hasCurrent: hasCurrent, cityDocument: cityDocument,
 		cityErr: cityErr, actions: currentActions, party: s.Carried, chars: cityCharacters}); err != nil {
-		return report, err
+		return report, modTownLoss{}, err
 	}
 	if err := s.restoreHiredMercenaries(in.table); err != nil {
-		return report, fmt.Errorf("original between-mission save: %w", err)
+		return report, modTownLoss{}, fmt.Errorf("original between-mission save: %w", err)
 	}
 	s.Town.settleCityGroups(s.Carried)
-	return report, nil
+	return report, loss, nil
 }
 
 // restoredTownOffer is the number of missions the saved session had offered.
@@ -369,7 +380,7 @@ func (src *originalSource) planMission(in originalInstall, units *terrain.UnitSe
 		fresh = nil
 	}
 	restored, report := RestoreParty(sf, fresh, in.bodies, in.table)
-	if err := applyModLayers(restored, src.modLayers, tableModContext(in.table).Items); err != nil {
+	if _, err := applyModLayers(restored, src.mods.layers, tableModContext(in.table).Items, false); err != nil {
 		return nil, err
 	}
 	// Until the mission ends the campaign's party is the file's, the

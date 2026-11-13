@@ -630,7 +630,7 @@ func (f *flow) takeMenuExit() bool {
 func (f *flow) openLoad(back Screen) {
 	f.loadUI.resetPointer()
 	f.loadUI.confirm = false
-	f.loadUI.mismatch = nil
+	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
 	f.loadUI.remove = nil
 	f.saves = nil
 	if f.saveList != nil {
@@ -697,8 +697,15 @@ func (f *flow) chooseLoad() {
 		return
 	}
 	open, town, err := f.loadGame(f.saves[i].Name)
+	notice, err := loadNoticeOf(err)
+	if err == nil && f.openLoadNotice(notice, town) {
+		return
+	}
 	if err == nil {
 		err = f.loadPrepared(open, town)
+	}
+	if err == nil && notice != nil {
+		f.msg = f.modMismatchWindow(*notice).modMismatchText()
 	}
 	// A refusal over the mods opens the window that lists every difference;
 	// a build without the installed font keeps the message line.
@@ -710,6 +717,22 @@ func (f *flow) chooseLoad() {
 	if err != nil {
 		f.msg = loadFailure(f.saves[i].Name, err)
 	}
+}
+
+// openLoadNotice opens the Load page, as the Load key does, with the mod window
+// over a town load completed under changed mods; the town opens when it closes.
+// False leaves the load to its caller: no notice, a map, or no installed font.
+func (f *flow) openLoadNotice(notice *ModMismatch, town bool) bool {
+	if notice == nil || !town || f.menuFont == nil {
+		return false
+	}
+	if f.screen != ScreenLoad {
+		f.openGameMenu(f.screen)
+		f.applyGameMenuAction(gameMenuLoad)
+	}
+	f.loadUI.resetPointer()
+	f.loadUI.mismatch, f.loadUI.mismatchTown = f.modMismatchWindow(*notice), true
+	return true
 }
 
 func (f *flow) loadPrepared(open MapOpener, town bool) error {

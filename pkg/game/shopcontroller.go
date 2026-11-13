@@ -42,7 +42,10 @@ type shopController struct {
 	// container the bottom strip is bound to (SHOP-PICKER-043's view+0x130).
 	// It is presentation for the same reason the four above are.
 	shopMember int
-	shopBook   bool
+	// detachedHolder: a controller no screen shows acts on shopMember as it
+	// is, a tavern hire included, as a load takes a removed item from him.
+	detachedHolder bool
+	shopBook       bool
 	// shopFigures is every party member composed in his own equipment, in
 	// roster order, filled by composeShopFaces when a room is entered. It is
 	// the composition cache SHOP-LIMIT-049 names as the borrowed panel's own

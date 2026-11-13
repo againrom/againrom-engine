@@ -204,7 +204,7 @@ func TestReleaseModSkillCapRaisesAHeroPastTheOriginalCapAndTheSaveCarriesIt(t *t
 	if _, _, err := plain.RestoreOriginal(raw); err == nil || !strings.Contains(err.Error(), "skill-cap") {
 		t.Fatalf("a load without the mod: %v", err)
 	}
-	// A LOAD under a different setting refuses and names the setting.
+	// A mission LOAD under a different setting refuses and names the setting.
 	if _, _, err := modSkillCapFront(t, 140).RestoreOriginal(raw); err == nil || !strings.Contains(err.Error(), "skill_cap") {
 		t.Fatalf("a load under another setting: %v", err)
 	}

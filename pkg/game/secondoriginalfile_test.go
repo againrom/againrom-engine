@@ -805,7 +805,7 @@ func TestBsgTownShopRecordsAreTheGrids(t *testing.T) {
 	grid := replayRecords(bank)
 	grid[3][0].Max = 7777 // a value only the grid holds
 	b, _ := laterTownFile(grid)
-	src, err := decodeOriginalSource(b, mapload.ModContext{}, Campaign{})
+	src, err := decodeOriginalSource(b, mapload.ModContext{}, sim.Rules{}, Campaign{})
 	if err != nil {
 		t.Fatalf("decodeOriginalSource: %v", err)
 	}
@@ -847,7 +847,7 @@ func TestBsgTownShopGridIsBounded(t *testing.T) {
 		if _, err := fileCampaign(sf).fileState(sf); err == nil || !strings.Contains(err.Error(), "shop record") {
 			t.Fatalf("cell %+v: %v", bad, err)
 		}
-		if _, err := decodeOriginalSource(b, mapload.ModContext{}, Campaign{}); err == nil {
+		if _, err := decodeOriginalSource(b, mapload.ModContext{}, sim.Rules{}, Campaign{}); err == nil {
 			t.Fatalf("cell %+v decodes", bad)
 		}
 	}

@@ -123,7 +123,7 @@ func TestTheModMarkCarriesLayersAndRefusesBadOnes(t *testing.T) {
 		{Code: 0x0720},
 	}
 	party := []mapload.PartyMember{{ID: "hero"}, {ID: "player:ann"}}
-	if err := applyModLayers(party, layers, items); err != nil {
+	if _, err := applyModLayers(party, layers, items, false); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(party[0].Layers, []uint16{0x071f, 0x0210}) || len(party[1].Layers) != 0 {
@@ -138,13 +138,26 @@ func TestTheModMarkCarriesLayersAndRefusesBadOnes(t *testing.T) {
 		{"an item no mod adds", []modMarkLayer{{Member: "hero", Code: 0x0a0f}}, "no active mod adds as a layer"},
 		{"a member the save lacks", []modMarkLayer{{Member: "ghost", Code: 0x071f}}, `"ghost"`},
 	} {
-		err := applyModLayers([]mapload.PartyMember{{ID: "hero"}}, c.layers, items)
+		_, err := applyModLayers([]mapload.PartyMember{{ID: "hero"}}, c.layers, items, false)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v", c.name, err)
 		}
 	}
-	if err := applyModLayers(nil, nil, nil); err != nil {
+	if _, err := applyModLayers(nil, nil, nil, false); err != nil {
 		t.Fatalf("no layers: %v", err)
+	}
+	// Under changed mods a layer takes the code its mod and key have now, one
+	// no mod declares is left off and returned, and a member the save lacks is
+	// still refused.
+	now := []mapload.ModItem{{Mod: "m", Key: "slip", Code: 0x0720, Layer: mapload.LayerUnder, Anchor: 7}}
+	gone := []modMarkLayer{{Member: "hero", Code: 0x071f, Mod: "m", Key: "slip"}, {Member: "hero", Code: 0x0a0f, Mod: "m", Key: "cape"}}
+	hero := []mapload.PartyMember{{ID: "hero"}}
+	off, err := applyModLayers(hero, gone, now, true)
+	if err != nil || len(off) != 1 || off[0].Key != "cape" || !slices.Equal(hero[0].Layers, []uint16{0x0720}) {
+		t.Fatalf("changed mods: off %+v, worn %v, %v", off, hero[0].Layers, err)
+	}
+	if _, err := applyModLayers(hero, []modMarkLayer{{Member: "ghost", Code: 0x0a0f, Mod: "m", Key: "cape"}}, now, true); err == nil {
+		t.Fatal("a layer of a member the save lacks was dropped instead of refused")
 	}
 }
 
@@ -155,7 +168,7 @@ func TestModMarkLayersListsEveryWornLayer(t *testing.T) {
 		{ID: "b"},
 		{ID: "c", Layers: []uint16{3, 4}, Carried: []uint16{3}},
 	}, tab)
-	want := []modMarkLayer{{"hero", 1}, {"hero", 2}, {"c", 3}}
+	want := []modMarkLayer{{Member: "hero", Code: 1}, {Member: "hero", Code: 2}, {Member: "c", Code: 3}}
 	if !slices.Equal(got, want) {
 		t.Fatalf("%+v", got)
 	}

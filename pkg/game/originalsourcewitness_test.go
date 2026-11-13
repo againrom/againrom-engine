@@ -14,6 +14,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -162,7 +163,7 @@ func originalSourceWitness(t *testing.T) string {
 
 	// Town arm: a current SAV whose provenance cannot be read holds no group
 	// source at all, so the groups are the party's.
-	src, err := decodeOriginalSource(current, mapload.ModContext{}, cold.Campaign.Value())
+	src, err := decodeOriginalSource(current, mapload.ModContext{}, sim.Rules{}, cold.Campaign.Value())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +176,7 @@ func originalSourceWitness(t *testing.T) string {
 	}
 	src.sf = unreadable
 	var session CampaignSession
-	if _, err := session.restoreOriginalTown(src, cold.originalInstall(), cold.Campaign.Value()); err != nil {
+	if _, _, err := session.restoreOriginalTown(src, cold.originalInstall(), cold.Campaign.Value()); err != nil {
 		w.refusal(sourceRowTownNoSource, sourceStepRefusal, err)
 	} else {
 		w.groups(sourceRowTownNoSource, session.Town.cityGroups)

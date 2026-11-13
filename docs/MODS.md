@@ -248,6 +248,29 @@ game state is marked, and its save is refused without it. A save whose mark
 names a mod loads while every mod it names is active, whether or not that
 mod is state-free now.
 
+A save made in town also loads when the active mods are the mods its mark
+names, in the same order, and only their files, versions or settings changed.
+A changed setting takes the same load as changed files. What the
+active mods no longer hold is taken away on the load: an item they no longer
+define leaves its holder's pack or worn slot, a tavern hire's included (the
+slot stays empty), a skill above their cap falls to the cap, a clothing layer
+they no longer define comes off, a waiting guest whose mission they no longer
+declare is dropped (one whose mission moved takes its new number), and a
+campaign mission they no longer declare leaves the town's lists. The Load
+page lists each of these in the mod window, titled "The save was loaded under
+changed mods", naming a removed item by its key and mod, and the town opens
+when it closes; a quick load opens the same window. The next save carries the
+active mods' mark. A save made inside a mission, another mod, another order
+or another base is refused as below.
+
+The mark names each mod item and clothing layer the save holds by its mod's
+id and its key (`"mod"` and `"key"`). Item codes are handed out in load order,
+so adding or removing an item moves the codes of the items after it; under
+changed mods each held item keeps the item its key names, at whatever code
+that item has now. A save written before marks named their items, under
+changed mods, loads only if it holds no mod item or layer; otherwise the
+window says it was written before saves stored the names of mod items.
+
 A LOAD the mark refuses opens a window on the Load page of either game that
 lists every difference, one row each: a mod the save used that is not active,
 an active mod the save did not use, another version (both shown), the same
