@@ -145,7 +145,7 @@ func TestSecondMissionSavePointsWriteTheSecondGameFile(t *testing.T) {
 		t.Fatal("the hero did not move")
 	}
 	want := secondMissionPositionOf(t, f)
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	now = now.Add(5 * time.Minute)

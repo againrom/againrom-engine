@@ -462,7 +462,7 @@ func secondMissionSaveEntries(t *testing.T, mission int) {
 		}
 	}
 	captured := secondSaveSampleNow(t, f, app)
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	quick := string(quickSaveBase(0)) + ".sav"
@@ -473,7 +473,7 @@ func secondMissionSaveEntries(t *testing.T, mission int) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessKey("f9"); err != nil {
+	if err := app.HeadlessKey("shift-f9"); err != nil {
 		t.Fatal(err)
 	}
 	secondAssertSample(t, captured, secondSaveSampleNow(t, f, app))
@@ -805,7 +805,7 @@ func secondMissionNoticeBoundary(t *testing.T, mission int) {
 	if !f.live.openDialogue(1) {
 		t.Fatal("installed dialogue unavailable")
 	}
-	for _, key := range []string{"f2", "f4"} {
+	for _, key := range []string{"f2", "shift-f4"} {
 		if err := app.HeadlessKey(key); err != nil {
 			t.Fatal(err)
 		}

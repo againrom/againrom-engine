@@ -188,7 +188,7 @@ func secondMissionPresentationControls(t *testing.T, f *FrontEnd, app *ui.App, o
 		t.Fatal(err)
 	}
 	f.ConfigureSaveSeams(app, SaveStore{Dir: fractionalOut}, OriginalStore{}, nil)
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("shift-f4"); err != nil {
 		t.Fatal(err)
 	}
 	loaded, loadedApp := secondMissionColdAt(t, fractionalOut, string(quickSaveBase(0))+".sav", mission)
@@ -239,7 +239,7 @@ func secondMissionTerminalRefusals(t *testing.T, f *FrontEnd, app *ui.App, out s
 		original := f.live.world
 		f.live.world = world
 		f.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, nil)
-		if err := app.HeadlessKey("f4"); err != nil {
+		if err := app.HeadlessKey("shift-f4"); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := os.Stat(filepath.Join(out, string(quickSaveBase(0))+".sav")); !os.IsNotExist(err) {
