@@ -42,7 +42,7 @@ func recordScaledBlits(t *testing.T) *[]scaledBlit {
 // Every picture of the mission frame is scaled at most once, straight onto
 // the window: the zoom-1 map composition by the zoom times the window scale,
 // the canvas by the window scale. Smoothing on scales with the Catmull-Rom
-// kernel and never by another filter; Smoothing off scales everything for
+// kernel and never by another filter; Smoothing off scales only the map for
 // the pixel look. The map marks are part of the zoom-1 composition.
 func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 	got := recordScaledBlits(t)
@@ -81,7 +81,7 @@ func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 					}
 					delete(want, b.src)
 					wantKind := "catmull-rom"
-					if !smoothing {
+					if !smoothing && b.src == v.smoothMap {
 						wantKind = "sharp bilinear"
 						if f < 2 {
 							wantKind = "nearest"
@@ -92,6 +92,39 @@ func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// Smoothing off at scale 1.4: the map is nearest, the canvas the starter's.
+func TestSmoothingOffKeepsTheStartersFilterOnTheInterface(t *testing.T) {
+	got := recordScaledBlits(t)
+	for _, starterOff := range []bool{false, true} {
+		*got = nil
+		v, err := NewViewer("zoom", grid(60, 60), zoomTileset(false))
+		if err != nil {
+			t.Fatal(err)
+		}
+		v.SetGraphicsOptions(GraphicsOptions{Smoothing: false})
+		v.SetFrameSmoothing(!starterOff)
+		v.Layout(1920, 1080)
+		v.cam.SetZoom(1.2)
+		screen := ebiten.NewImage(1920, 1080)
+		v.Draw(screen)
+		if s := v.place.Scale(); math.Abs(s-1.4) > 0.01 {
+			t.Fatalf("window scale %v, want about 1.4", s)
+		}
+		canvasWant := "catmull-rom"
+		if starterOff {
+			canvasWant = "sharp bilinear"
+		}
+		kinds := map[*ebiten.Image]string{}
+		for _, b := range *got {
+			kinds[b.src] = b.kind
+		}
+		if kinds[v.smoothMap] != "nearest" || kinds[v.canvas] != canvasWant {
+			t.Errorf("starter switch off %v: map %q, interface %q; want map nearest, interface %s",
+				starterOff, kinds[v.smoothMap], kinds[v.canvas], canvasWant)
 		}
 	}
 }

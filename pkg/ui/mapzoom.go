@@ -105,12 +105,8 @@ func (v *Viewer) mapFilter() frameFilter {
 	return filterSmooth
 }
 
-// canvasFilter is the filter of the frame canvas and the pointer: the map's
-// pixel filter with Smoothing off, the starter's switch otherwise.
+// canvasFilter is the canvas and pointer filter: the starter's.
 func (v *Viewer) canvasFilter() frameFilter {
-	if f := v.mapFilter(); f == filterPixel {
-		return f
-	}
 	return filterOf(v.frameSmoothingOff)
 }
 

@@ -174,8 +174,8 @@ func TestPixelFilterIsNearestBelowTwo(t *testing.T) {
 	}{
 		{true, false, false, filterSmooth, filterSmooth},
 		{true, true, false, filterSmooth, filterSharp},
-		{false, false, false, filterPixel, filterPixel},
-		{false, true, false, filterPixel, filterPixel},
+		{false, false, false, filterPixel, filterSmooth},
+		{false, true, false, filterPixel, filterSharp},
 		{false, false, true, filterSmooth, filterSmooth},
 		{false, true, true, filterSmooth, filterSharp},
 	} {
