@@ -29,6 +29,11 @@ type partyItemHome struct {
 type partyItemProfile struct {
 	bagUnits  int
 	shopGraph bool
+	// departs is a party that leaves its town for a map of places before a
+	// mission, the bag joining the hero's pack: the departure keeps the
+	// state at the mission's entry for a return without completion. False
+	// is a game whose missions open from a town that stands, moving nothing.
+	departs bool
 	// kept is a pack unit in its bag form, false when the bag would lose it.
 	kept func(sim.ItemInstance, func(uint16) sim.ItemInstance) (sim.ItemInstance, bool)
 	// mission is a bag unit in the form a mission holds it.
@@ -44,7 +49,7 @@ var (
 	firstPartyItems = partyItemProfile{shopGraph: true}
 	// secondPartyItems is the second game's shared bag, the units' forms
 	// that of its shop and mission tables, bounded by the save's bound.
-	secondPartyItems = partyItemProfile{bagUnits: maxSecondBagUnits, kept: secondshop.KeptUnit,
+	secondPartyItems = partyItemProfile{bagUnits: maxSecondBagUnits, departs: true, kept: secondshop.KeptUnit,
 		mission: secondshop.MissionUnit, shopUnit: secondshop.Unit, bagForm: secondBagUnitForm}
 )
 
@@ -61,6 +66,52 @@ func (s *CampaignSession) partyItems(table *mapload.Table) partyItemHome {
 // over is profile p's home over session s.
 func (p partyItemProfile) over(s *CampaignSession, table *mapload.Table) partyItemHome {
 	return partyItemHome{sess: s, table: table, profile: p}
+}
+
+// departure is the session's record of the party's departure from its town,
+// which keeps the state at a mission's entry; nil where the row's game does
+// not depart.
+func (h partyItemHome) departure() *secondCampaign {
+	if !h.profile.departs {
+		return nil
+	}
+	return secondOf(h.sess)
+}
+
+// departedTown reports whether the departure record holds the town the
+// running mission was entered from.
+func (h partyItemHome) departedTown() bool {
+	c := h.departure()
+	return c != nil && c.entryTown.kind == placeTown
+}
+
+// keepEntry keeps the party and the bag as they stand at a departure from
+// town, before leaveLocation joins the bag to the hero's pack.
+func (h partyItemHome) keepEntry() {
+	if c := h.departure(); c != nil {
+		c.entryParty, c.entryBag = mapload.CloneParty(h.sess.Carried), mapload.CloneParty(c.party)
+	}
+}
+
+// dropEntry forgets the kept entry, as when the session adopts another party.
+func (h partyItemHome) dropEntry() {
+	if c := h.departure(); c != nil {
+		c.entryParty, c.entryBag = nil, nil
+	}
+}
+
+// returnEntry brings the party and the bag home as they stood at the
+// mission's entry: the copies the departure kept, member by member in place
+// so a companion the departure appended stays; without copies, as for a
+// mission loaded from a SAV or a game that does not depart, the arrival walk.
+func (h partyItemHome) returnEntry() error {
+	c := h.departure()
+	if c == nil || c.entryParty == nil {
+		return h.arriveTown()
+	}
+	copy(h.sess.Carried, mapload.CloneParty(c.entryParty))
+	c.party = mapload.CloneParty(c.entryBag)
+	return nil
 }
 
 // secondMissionItem is the engine's one item decoder over table, the base

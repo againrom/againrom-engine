@@ -90,6 +90,24 @@ func (c *secondCampaign) leaveTown() bool {
 	return true
 }
 
+// returnFrom undoes the departure when mission n is left without completion:
+// the map opens at the mission and the party stands nowhere; unless it
+// restarts, it stands again on the square of the town it departed, which is
+// offered again. It reports whether the party is home: false for a restart
+// and for a mission entered without a departure town.
+func (c *secondCampaign) returnFrom(n int, restart bool) bool {
+	c.openMap(partyPlace{kind: placeMission, id: n})
+	c.current = partyPlace{}
+	if restart || c.entryTown.kind != placeTown {
+		return false
+	}
+	c.current, c.room = c.entryTown, secondTownSquare
+	if !c.has(c.current) {
+		c.available = append([]partyPlace{c.current}, c.available...)
+	}
+	return true
+}
+
 // gateOpen is town 1's gate rule: open once bank 769 is not zero
 // (R2-SESSION-128); every later town's gate is open.
 func (c *secondCampaign) gateOpen() bool {

@@ -41,5 +41,5 @@ var Committed = Baseline{
 		"stringliterals.test":    28,
 		"longcommentgroups":      1633,
 	},
-	CommentBytes: 10581767,
+	CommentBytes: 10584950,
 }

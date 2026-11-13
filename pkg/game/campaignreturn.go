@@ -318,21 +318,27 @@ func (s *CampaignSession) leaveLive(in townInstall, n int, ms *Mission, restart 
 	if s.live != nil && s.live.mission != nil {
 		s.quickSpells = s.live.mission.entryQuickSpells
 	}
-	if c := secondOf(s); c != nil {
-		c.openMap(partyPlace{kind: placeMission, id: n})
-		c.current = partyPlace{}
-		if !restart && c.entryTown.kind == placeTown {
-			c.current, c.room = c.entryTown, secondTownSquare
-			if !c.has(c.current) {
-				c.available = append([]partyPlace{c.current}, c.available...)
-			}
-			if c.entryParty != nil {
-				copy(s.Carried, mapload.CloneParty(c.entryParty))
-				c.party = mapload.CloneParty(c.entryBag)
-			} else if err := s.partyItems(in.table).arriveTown(); err != nil {
-				return err.Error()
-			}
-		}
+	if err := s.returnToEntry(in.table, n, restart); err != nil {
+		return err.Error()
 	}
 	return ""
+}
+
+// returnToEntry is the one return of mission n, left without completion, to
+// the state at its entry, in every game. The entry is data the session's
+// item-home row keeps: where the row's game departs its town onto a map of
+// places (partyItemProfile.departs), the departure record undoes its places
+// and answers whether the party is home; with no departure the party never
+// left its town and is home unless the mission restarts. At home the party
+// and the bag are those the departure kept, else the arrival walk's.
+func (s *CampaignSession) returnToEntry(table *mapload.Table, n int, restart bool) error {
+	h := s.partyItems(table)
+	home := !restart
+	if c := h.departure(); c != nil {
+		home = c.returnFrom(n, restart)
+	}
+	if !home {
+		return nil
+	}
+	return h.returnEntry()
 }

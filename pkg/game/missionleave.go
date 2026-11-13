@@ -11,7 +11,7 @@ import (
 // finished through its own panel, and a map opened from the list has no town to
 // return to.
 func (s *CampaignSession) canLeaveMission(n int, w *sim.World) bool {
-	return s != nil && s.Town != nil && (s.Town.Open() || secondOf(s) != nil && secondOf(s).entryTown.kind == placeTown) && n > 0 && w != nil && w.Outcome() == sim.OutcomeUndecided
+	return s != nil && s.Town != nil && (s.Town.Open() || s.partyItems(nil).departedTown()) && n > 0 && w != nil && w.Outcome() == sim.OutcomeUndecided
 }
 
 // leaveMission answers a menu entry's request to leave mission ms without
