@@ -700,21 +700,53 @@ the install's own page of that name still beats it.
 The map editor's Save As copies every language folder and unlanguaged page
 beside the new ALM into `<stem>.text/`. Changed workspace pages go into
 `<stem>.text/<lang>/`. Both destinations must be new and outside the install,
-even when the source has no pages. A new W package copies the same tree to `mission/text/` and declares
-`texts = "mission/text/{lang}"`. An older package with only `mission/text/`
-continues to load. Saving an editor-owned package keeps its recorded
+even when the source has no pages. Saving an editor-owned package keeps its recorded
 unlanguaged and other-language pages. Unchanged unlanguaged pages stay
 unlanguaged. A page that exists only in the other language's folder shows in
 the editor and in the game, and Save As and W keep it in that folder: only a
 page changed in the workspace is written under the install's language.
 Page storage does not change ALM or SAV layout.
 
+One place rule puts a mission's files into a mod. The map lies at
+`maps/<stem>.alm`, or `maps/<stem>.almx` when it holds the extended record;
+`<stem>` is the source map's file name without its extension, `m<N>` for a
+numbered name, `map` for a new map, with `-2`, `-3` and on added when the
+name is taken. The pages lie beside it in `maps/<stem>.text/` and
+`maps/<stem>.text/<lang>/`, the editor's variable labels in
+`maps/<stem>.variables`. The row names `map` and no `texts`. W's package
+save, Add open map and F5 test play write by this rule; `cmd/modmission`
+writes its per-language form, `maps/<lang>/m<N>.alm` with the pages in
+`maps/<lang>/m<N>.text/<lang>/`.
+
+A mod written in an older layout opens, checks, plays and packs as it
+stands; `againrom -check` prints a warning for each old path. The older
+layouts are `mission/map.alm` with `mission/text/`, Add's
+`mission/map<N>/map.alm` with `mission/map<N>/text/`, and
+`mission/{lang}/map.alm` with `mission/{lang}/text`. Its next save through W
+moves each such row's map, labels and pages under the place rule and
+rewrites the row's `map` and `texts` keys in place:
+
+- The moved files keep their bytes and names. The pages of the old `texts`
+  folder, and of its parent when the folder ends in a language, join the
+  pages beside the map unless a page read before them holds the name.
+- A per-language map keeps its language folder, `maps/{lang}/<stem>.alm`,
+  and its `texts` key names the new pages folder.
+- A map that holds the extended record but is named `.alm` is renamed `.almx`.
+- A speaker record bound to a moved map names the map's new path.
+- Old folders the move empties are removed. Every other file and key stays as
+  written. Each language reads the same map and pages before and after.
+- A row whose new file a held file already takes, and rows that share a map
+  but not a `texts` folder, stay where they are.
+
+A mod already in the tree, opened and saved without an edit, keeps its bytes.
+F5 writes the moved layout only into its private copy. The move changes the
+mod's content digest, as any edit does.
+
 ```toml
 [[mission]]
 key      = "prologue"
 number   = 25
-map      = "mission/{lang}/map.alm"
-texts    = "mission/{lang}/text"
+map      = "maps/{lang}/prologue.alm"
 title    = "prologue.title"
 briefing = "prologue.briefing"
 after    = 20
@@ -822,7 +854,7 @@ mission began with and the waiting party; a LOAD continues the chain.
 [[mission]]
 key     = "first"
 number  = 25
-map     = "mission/{lang}/map.alm"
+map     = "maps/first.alm"
 after   = 20
 guest   = 22
 chapter = 30
@@ -830,7 +862,7 @@ chapter = 30
 [[mission]]
 key    = "second"
 number = 26
-map    = "mission/{lang}/map.alm"
+map    = "maps/second.alm"
 after  = 25
 gold   = 100
 party  = [{ character = "npc22" }, { character = "sellsword", level = 2, weapon = "Iron Short Sword", armour = ["Hard Leather Mail"] }]
@@ -969,8 +1001,7 @@ follows, unless the row overrides them. The rules:
 kind   = "replace"
 key    = "ambush"
 number = 20
-map    = "mission/{lang}/map.alm"
-texts  = "mission/{lang}/text"
+map    = "maps/{lang}/ambush.alm"
 title  = "ambush.title"
 ```
 
@@ -1006,9 +1037,10 @@ The rules:
    name`, or `..., declared at data/missions.toml:4` for a table.
 
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
-<mod folder>` copies an installed map and its event, tip, title, briefing and
-briefmap texts into `mission/<lang>/` of a mod folder, the texts as UTF-8, and
-writes nothing else. When the map editor saves into a mod, its map report warns
+<mod folder>` copies an installed map to `maps/<lang>/m<n>.alm` of a mod
+folder and its event, tip, title, briefing and briefmap texts beside it into
+`maps/<lang>/m<n>.text/<lang>/`, the texts as UTF-8, and writes nothing else;
+a row `map = "maps/{lang}/m<n>.alm"` names them. When the map editor saves into a mod, its map report warns
 about a message the map's script sends for which neither the mod's `texts`
 folder nor, for a replacing mission, the install holds an `eventNN.txt`.
 
@@ -1020,7 +1052,9 @@ script record, of typeId 100 (DIV-4599). The original game's loader steps
 over every record of typeId 10 or above, and the second game reads typeIds
 10 to 12, so 100 stays clear of both. An `.almx` lists in the game's map list
 beside the `.alm` files, and a mission's `map` in `data/missions.toml` may
-name one (`map = "mission/{lang}/map.almx"`). A mod mission's map that carries
+name one (`map = "maps/{lang}/ambush.almx"`). W saves an extended map into a
+mod as `maps/<stem>.almx`; F5 plays it, Publish packs it, and the packed mod
+reads it as its folder does. A mod mission's map that carries
 the record but is named `.alm` loads and plays with the record, and the
 map report warns that the original game does not run its triggers under that
 name (DIV-4603). A loose map in
@@ -1579,7 +1613,7 @@ the entry script names it nowhere. A message tag `<npc=N>` names a record by its
 id = 20000                     # 20000 to 99999; the numbers below are the game's records
 name = "Karl"                  # shown in the editor's speaker lists
 picture = "speakers/karl.png"  # a PNG of 72x96 pixels, the message window's face
-map = "mission/en/map.alm"     # by choice, with unit: the map's path in the mod
+map = "maps/en/ambush.alm"     # by choice, with unit: the map's path in the mod
 unit = 12                      # the unit's script number on that map, 1 to 65535
 ```
 
@@ -2143,7 +2177,8 @@ Undo/Redo. Saving only an ALM refuses unsaved page or route changes.
 W opens the mod window. Its left column holds the working folder, ID, name,
 mission list and Publish folder. Its scrolling right column edits the manifest's
 version, author, description, target base, requirements, conflicts and load order
-hints, followed by the selected mission's route, After win, companion or party, and purse. Enter accepts a value; Tab and
+hints, followed by the selected mission's route, After win, companion or party, purse, the starting hero's
+class and sex (Any writes no key), and read-only lines for carry and off. Enter accepts a value; Tab and
 Shift+Tab move focus. Choice lists search by name as text is typed. Select a
 member's detail button to edit level and equipment. Template retains the
 character's equipment; Empty removes it. Override all armour replaces every

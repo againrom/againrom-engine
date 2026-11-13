@@ -140,6 +140,15 @@ type DataKind struct {
 // mergedShared is the rule a merged kind's records follow.
 const mergedShared = "yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused"
 
+// The tree rows of a mission's files, named by the place rule (MissionPlace).
+const (
+	missionMapsKind  = "mission maps"
+	missionPagesKind = "mission pages"
+	mapLabelsKind    = "map variable labels"
+)
+
+var missionMapPaths, missionPagePaths, mapLabelPaths = missionTreeRows()
+
 var dataKinds = []DataKind{
 	{
 		Format: "TOML subset; PNG", Language: "shared", Found: "held file; row sprite", State: true,
@@ -331,9 +340,9 @@ var dataKinds = []DataKind{
 	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
 	{Name: "script modules", Paths: []string{"**/*.star"}, Format: "Starlark", Language: "shared", Found: "script load"},
 	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language"},
-	{Name: "mission maps", Paths: []string{"maps/*.alm", "maps/*.almx", "maps/{lang}/*.alm", "maps/{lang}/*.almx"}, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
-	{Name: "mission pages", Paths: []string{"maps/*.text/*.txt", "maps/*.text/{lang}/*.txt", "maps/{lang}/*.text/*.txt", "maps/{lang}/*.text/{lang}/*.txt", "<N>.text/*.txt", "<N>.text/{lang}/*.txt"}, Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
-	{Name: "map variable labels", Paths: []string{MapsFolder + "/*" + mapVariablesSuffix, MapsFolder + "/{lang}/*" + mapVariablesSuffix}, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
+	{Name: missionMapsKind, Paths: missionMapPaths, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
+	{Name: missionPagesKind, Paths: append(slices.Clone(missionPagePaths), "<N>.text/*.txt", "<N>.text/{lang}/*.txt"), Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
+	{Name: mapLabelsKind, Paths: mapLabelPaths, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
 	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture},
 	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound},
 	{Name: "install texts", Paths: []string{"files/{layer}/**/*.txt"}, Format: "UTF-8 TXT", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileText},

@@ -97,8 +97,9 @@ type Mission struct {
 	OffLine int
 
 	language string
-	// textsTemplate is the declared texts path before langToken was replaced.
-	textsTemplate string
+	// mapTemplate is the declared map path that holds langToken, and
+	// textsTemplate the declared texts path, before langToken was replaced.
+	mapTemplate, textsTemplate string
 	// byName marks a replacing mission the file form declares: a map whose
 	// file name is the mission number (readMissionMaps).
 	byName bool
@@ -434,7 +435,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 					}
 				}
 			case "map":
-				err = pathIn(&m.Map)
+				if err = pathIn(&m.Map); err == nil && strings.Contains(p.val.str, langToken) {
+					m.mapTemplate = p.val.str
+				}
 			case "texts":
 				if err = pathIn(&m.Texts); err == nil && p.val.kind == tomlString {
 					m.textsTemplate = p.val.str
@@ -712,9 +715,9 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}
 	otherLang := locale.Other(lang)
-	folder := strings.TrimSuffix(m.Map, path.Ext(m.Map)) + ".text"
-	folders := []string{folder + "/" + lang, folder}
-	foldersOther := []string{folder + "/" + otherLang}
+	place := MissionPlace{Map: m.Map}
+	folders := []string{place.Pages(lang), place.Pages("")}
+	foldersOther := []string{place.Pages(otherLang)}
 	fallback := ""
 	if m.Texts != "" {
 		declared := missionPath(m.Texts, lang)

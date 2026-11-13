@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/namefold"
 )
 
 // FirstModSpeaker and LastModSpeaker bound the record numbers a mod's speaker
@@ -185,6 +187,29 @@ func MergeSpeakers(d SpeakerData) ([]Speaker, []Override, error) {
 	}
 	slices.SortFunc(l.Records, func(a, b Speaker) int { return int(a.ID - b.ID) })
 	return l.Records, l.Overrides, nil
+}
+
+// MoveSpeakerMaps is the speakers file src with each record's map that a
+// move takes From, compared folded, written as its To; the file's other text
+// stands. moved is false when no record names a moved map.
+func MoveSpeakerMaps(src []byte, moves []FileMove) (out []byte, moved bool, err error) {
+	d, err := ParseSpeakers("", SpeakersFile, src)
+	if err != nil {
+		return nil, false, err
+	}
+	lines := strings.SplitAfter(string(src), "\n")
+	for _, s := range d.Speakers {
+		i := slices.IndexFunc(moves, func(m FileMove) bool { return s.Bound && namefold.ModTree(m.From) == namefold.ModTree(s.Map) })
+		if i < 0 {
+			continue
+		}
+		line := s.fieldLine("map") - 1
+		if lines[line], err = rewritePair(lines[line], writeString(moves[i].To)); err != nil {
+			return nil, false, err
+		}
+		moved = true
+	}
+	return []byte(strings.Join(lines, "")), moved, nil
 }
 
 // AppendSpeaker is the speakers file src with the record s added at its end.

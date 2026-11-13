@@ -151,7 +151,7 @@ func TestEditorImportedPartySurvivesWorkspaceProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := e.Document().Edits.(*mapInspectionEdits)
-	m := s.workspace.Package.mission(s.model.Bytes(), s.workspace.Pages)
+	m := s.workspace.Package.mission(s.model.Bytes(), s.workspace.Pages, s.place())
 	if len(m.Party) != 1 || m.Party[0].Weapon == nil || m.Party[0].Armour == nil {
 		t.Fatalf("workspace discarded party: members=%d guest=%d", len(m.Party), m.Guest)
 	}
@@ -234,6 +234,85 @@ func TestEditorModMissionOrderAndHistorySurviveMapSwitches(t *testing.T) {
 	}
 }
 
+// heroFields are the mission page's class, sex, carry and off fields by key.
+func heroFields(s *mapInspectionEdits) map[string]ui.InspectionField {
+	out := map[string]ui.InspectionField{}
+	for _, f := range s.WorkspaceFields("package") {
+		switch f.Key {
+		case "class", "sex", "carry", "off":
+			out[f.Key] = f
+		}
+	}
+	return out
+}
+
+// The mission page shows the row's class, sex, carry and off keys; class and
+// sex are draft edits with undo that the project writer saves, and a key the
+// row does not set stays out of the table.
+func TestEditorMissionPageEditsClassAndSexAndShowsCarryAndOff(t *testing.T) {
+	f, e := workspaceFixture(t)
+	decl := "[[mission]]\nkey = 'first'\nnumber = 25\nmap = 'maps/first.alm'\nafter = 20\nclass = 'mage'\nparty = [{character = 'npc22'}]\n"
+	dir := writeEditorMod(t, t.TempDir(), decl)
+	writeTestPlayInput(t, filepath.Join(dir, "maps", "first.alm"), e.Document().SourceBytes)
+	s := selectProject(t, f, e, dir, "maps/first.alm")
+	fields := heroFields(s)
+	if fields["class"].Value != 2 || fields["sex"].Value != 0 || fields["off"].TextValue != "No" || !fields["off"].ReadOnly {
+		t.Fatalf("mission page fields %+v", fields)
+	}
+	if _, carried := fields["carry"]; carried {
+		t.Fatal("a party row shows a carry line")
+	}
+	if _, err := s.SetWorkspaceField("package", "sex", "2"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SetWorkspaceField("package", "class", "0"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SetWorkspaceField("package", "class", "rogue"); err == nil {
+		t.Fatal("an unknown class was accepted")
+	}
+	if err := e.Key("undo"); err != nil {
+		t.Fatal(err)
+	}
+	if p := s.workspace.Package; p.Class != "mage" || p.Sex != "female" {
+		t.Fatalf("undo left class %q sex %q", p.Class, p.Sex)
+	}
+	if err := e.Key("redo"); err != nil {
+		t.Fatal(err)
+	}
+	edited := heroFields(s)
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
+	table, err := os.ReadFile(filepath.Join(dir, "data", "missions.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(table, []byte(`sex = "female"`)) || bytes.Contains(table, []byte("class")) || bytes.Contains(table, []byte("carry")) || bytes.Contains(table, []byte("off")) {
+		t.Fatalf("saved table:\n%s", table)
+	}
+	if m := loadWorkspaceMod(t, f.root, dir, 0); m.Class != "" || m.Sex != "female" {
+		t.Fatalf("reloaded class %q sex %q", m.Class, m.Sex)
+	}
+	g, reopened := workspaceFixture(t)
+	if got := heroFields(selectProject(t, g, reopened, dir, "maps/first.alm")); !reflect.DeepEqual(got, edited) {
+		t.Fatalf("reopened fields %+v, want %+v", got, edited)
+	}
+}
+
+// A new guest mission joins its companion at the next town: the page shows
+// that carry line, and its class and sex choices name no word.
+func TestEditorNewGuestMissionShowsItsCarryLine(t *testing.T) {
+	_, e := workspaceFixture(t)
+	if err := workspaceField(e, "package", 0, filepath.Join(t.TempDir(), "authored-map")); err != nil {
+		t.Fatal(err)
+	}
+	fields := heroFields(e.Document().Edits.(*mapInspectionEdits))
+	if c := fields["carry"]; !c.ReadOnly || c.TextValue != "joins at the next town" || fields["class"].Value != 0 || fields["sex"].Value != 0 {
+		t.Fatalf("new guest mission fields %+v", fields)
+	}
+}
+
 func TestEditorAddOpenMapRetainsBothLanguageTreesAndItsPendingPage(t *testing.T) {
 	for _, attached := range []bool{false, true} {
 		t.Run(fmt.Sprintf("attached=%t", attached), func(t *testing.T) {
@@ -272,7 +351,7 @@ func TestEditorAddOpenMapRetainsBothLanguageTreesAndItsPendingPage(t *testing.T)
 			if string(m.TextFiles["event01.txt"]) != "Pending English" || string(m.TextFiles["title.txt"]) != "Common" {
 				t.Fatal("Add lost open-map pages", m.TextFiles)
 			}
-			root := strings.TrimSuffix(m.Texts, "/en")
+			root := mod.MissionPlace{Map: m.Map}.Pages("")
 			if tree(t, working)[root+"/ru/event01.txt"] != "Russian" || !reflect.DeepEqual(before, tree(t, filepath.Dir(loose))) {
 				t.Fatal("Add lost the other language or changed source")
 			}
@@ -412,10 +491,25 @@ func TestEditorCopiesTheWholeHandwrittenModWithoutChangingAnySourceFile(t *testi
 	if err := workspaceField(e, "package", 0, copyDir); err != nil {
 		t.Fatal(err)
 	}
+	// The copy writes the tree's layout: each map moves from mission/ to maps/
+	// and only its map line changes; every other file keeps its name and bytes.
+	migrated := strings.ReplaceAll(declarations, "map = 'mission/{lang}/", "map = \"maps/{lang}/")
+	migrated = strings.ReplaceAll(migrated, ".alm'\r\n", ".alm\"\r\n")
+	copied := tree(t, copyDir)
 	for name, want := range before {
-		if got := tree(t, copyDir)[name]; got != want {
+		at := name
+		if strings.HasSuffix(name, ".alm") {
+			at = "maps/" + strings.TrimPrefix(name, "mission/")
+		}
+		if name == mod.MissionsFile {
+			want = migrated
+		}
+		if got, ok := copied[at]; !ok || got != want {
 			t.Errorf("copy changed %s", name)
 		}
+	}
+	if _, owned := copied[editorPackageRecord]; len(copied) != len(before)+1 || !owned {
+		t.Errorf("the copy holds %d files, the source %d", len(copied), len(before))
 	}
 	if !reflect.DeepEqual(before, tree(t, dir)) {
 		t.Fatal("copy changed source")
@@ -430,7 +524,7 @@ func TestEditorCopiesTheWholeHandwrittenModWithoutChangingAnySourceFile(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := strings.Replace(declarations, "party = [{character = 'sellsword'}]", "party = [{character = 'sellsword'}]", 1)
+	want := migrated
 	if !bytes.Contains(written, []byte("gold = 73")) || !bytes.Contains(written, []byte(want[strings.Index(want, "[[mission]]\r\nkey = 'second'"):])) {
 		t.Fatal("save lost unselected declarations")
 	}

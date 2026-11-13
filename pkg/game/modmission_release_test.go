@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -69,10 +70,21 @@ func assembledMods(t *testing.T, into string, ids ...string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(written, "mission/"+lang+"/map.alm") || len(written) < 2 {
+	if !slices.Contains(written, assembledMission(lang, 10).Map) || len(written) < 2 {
 		t.Fatalf("assembled %v", written)
 	}
 	return root
+}
+
+// assembledMission is where AssembleModMission puts campaign mission number
+// of the language lang inside a mod folder.
+func assembledMission(lang string, number int) mod.MissionPlace {
+	return mod.PlaceLanguageMission(lang, mod.MissionStem(strconv.Itoa(number)), false)
+}
+
+// assembledMap is the map file of assembledMission in the mod folder dir.
+func assembledMap(dir, lang string, number int) string {
+	return filepath.Join(dir, filepath.FromSlash(assembledMission(lang, number).Map))
 }
 
 // guestFront is a front end on the install under the mods ids of the folder
@@ -405,7 +417,7 @@ func TestReleaseModMissionReadsTheMapFromTheMod(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	path := filepath.Join(dir, guestModID, "mission", lang, "map.alm")
+	path := assembledMap(filepath.Join(dir, guestModID), lang, 10)
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

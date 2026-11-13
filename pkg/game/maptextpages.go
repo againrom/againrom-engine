@@ -23,12 +23,20 @@ import (
 
 func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (map[string][]byte, error) {
 	files := map[string][]byte{}
+	// Recorded pages lie under the old test play root or beside a recorded map.
 	readRecorded := func(dir string, names []string) error {
+		roots := []string{testPlayTexts + "/"}
 		for _, name := range names {
-			if !strings.HasPrefix(name, testPlayTexts+"/") {
+			if ext := filepath.Ext(name); mod.IsMissionFile(name) && (ext == mod.MapExt || ext == mod.ExtendedMapExt) {
+				roots = append(roots, mod.MissionPlace{Map: name}.Pages("")+"/")
+			}
+		}
+		for _, name := range names {
+			i := slices.IndexFunc(roots, func(root string) bool { return strings.HasPrefix(name, root) })
+			if i < 0 {
 				continue
 			}
-			rel := strings.TrimPrefix(name, testPlayTexts+"/")
+			rel := strings.TrimPrefix(name, roots[i])
 			if !pageTreeName(rel) {
 				continue
 			}
@@ -151,9 +159,7 @@ func (x *MapInspector) pageLanguage() string {
 	return words.Language(x.archives.Base.Profile.Language)
 }
 
-func mapTextFolder(path string) string {
-	return strings.TrimSuffix(path, filepath.Ext(path)) + ".text"
-}
+func mapTextFolder(path string) string { return mod.MissionPlace{Map: path}.Pages("") }
 
 // editorPages is the pages the editor shows for the map at source: the
 // install's pages of its mission, then the mod entry's, then the map's own
@@ -207,8 +213,8 @@ func (x *MapInspector) editorPages(source string) *mod.MissionPages {
 		layers = append(layers, layer)
 	}
 	p.Pages = mod.ResolvePages(missionPageName, layers...)
-	if len(p.Pages) > 0 {
-		p.Entry.Texts = testPlayTexts
+	if len(p.Pages) > 0 && p.Entry.Map == "" {
+		p.Entry.Map = missionPlace(source, false).Map
 	}
 	return p
 }
@@ -260,6 +266,11 @@ func (x *MapInspector) mapLabels(source string) (map[uint32]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	return decodeMapLabels(name, b)
+}
+
+// decodeMapLabels reads the labels file name holding b.
+func decodeMapLabels(name string, b []byte) (map[uint32]string, error) {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	var f mapLabelsFile

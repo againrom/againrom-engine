@@ -280,7 +280,7 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 	if _, err := s.saveWorkspacePackage(export); err != nil {
 		t.Fatal(err)
 	}
-	saved, err := os.ReadFile(filepath.Join(export, "mission", "text", x.pageLanguage(), messageFilename(number)))
+	saved, err := os.ReadFile(filepath.Join(export, filepath.FromSlash(s.place().Pages(x.pageLanguage())), messageFilename(number)))
 	if err != nil || !bytes.Equal(saved, s.workspace.Pages[messageFilename(number)]) {
 		t.Fatal("mod export changed dialogue", err)
 	}

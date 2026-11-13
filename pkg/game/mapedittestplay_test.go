@@ -139,10 +139,11 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 	modsDir := filepath.Join(f.profile, TestPlayModID)
 	folder := filepath.Join(modsDir, TestPlayModID)
 	got := tree(t, folder)
-	if got[testPlayMap] != string(edited) || bytes.Equal(edited, original) {
+	// The test mod holds the map under the opened map's stem, its pages beside it.
+	if got["maps/map.alm"] != string(edited) || bytes.Equal(edited, original) {
 		t.Fatal("the test mod does not hold the edited map with its unsaved edit")
 	}
-	if got["mission/text/en/event01.txt"] != "Page one" || got["mission/text/en/event02.txt"] != "Page two" || len(got) != 6 || got[testPlayRecord] == "" {
+	if got["maps/map.text/en/event01.txt"] != "Page one" || got["maps/map.text/en/event02.txt"] != "Page two" || len(got) != 6 || got[testPlayRecord] == "" {
 		t.Fatalf("the test mod holds %v", keys(got))
 	}
 	// The declaration is a guest mission the game's own mod load and
@@ -187,13 +188,13 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 		t.Fatal(err)
 	}
 	got = tree(t, folder)
-	if got[testPlayMap] != string(mustSaveBytes(t, s2)) || got["mission/text/en/event02.txt"] != "Page two" {
+	if got["maps/m20.alm"] != string(mustSaveBytes(t, s2)) || got["maps/m20.text/en/event02.txt"] != "Page two" {
 		t.Fatalf("the second test play holds %v", keys(got))
 	}
-	if _, ok := got["mission/text/en/event01.txt"]; ok {
+	if _, ok := got["maps/map.text/en/event01.txt"]; ok {
 		t.Fatal("a page of the earlier test play is still served")
 	}
-	if _, ok := got["mission/text/en/notes.txt"]; ok {
+	if _, ok := got["maps/m20.text/en/notes.txt"]; ok {
 		t.Fatal("a file the mission does not read was copied")
 	}
 	if entries, _ := os.ReadDir(f.profile); len(entries) != 1 {
@@ -282,21 +283,21 @@ func TestTestPlayOfAnExtendedMapStartsWithoutTheNameWarning(t *testing.T) {
 	}
 	s := &mapInspectionEdits{inspector: f.x, model: model, source: "scenario/20.alm"}
 	m, err := f.x.testPlayMission(s.source, b, nil)
-	if err != nil || m.Map != testPlayMapExtended {
+	if err != nil || m.Map != "maps/m20.almx" {
 		t.Fatalf("test play map name %q: %v", m.Map, err)
 	}
 	if _, err := s.TestPlay(); err != nil || len(f.started) != 1 {
 		t.Fatalf("the test play of an extended map: %v, started %d", err, len(f.started))
 	}
-	if got := tree(t, f.profile); got[TestPlayModID+"/"+TestPlayModID+"/"+testPlayMapExtended] != string(b) {
-		t.Fatalf("the extended map is not written as %s: %v", testPlayMapExtended, keys(got))
+	if got := tree(t, f.profile); got[TestPlayModID+"/"+TestPlayModID+"/maps/m20.almx"] != string(b) {
+		t.Fatalf("the extended map is not written as maps/m20.almx: %v", keys(got))
 	}
 	for _, r := range f.x.CheckModMap(m, "mod/x") {
 		if r.Rule == ruleExtendedName {
 			t.Fatalf("warned: %+v", r)
 		}
 	}
-	if m, err := f.x.testPlayMission(s.source, synth.ALM(synth.ALMOptions{Width: 4, Height: 4}), nil); err != nil || m.Map != testPlayMap {
+	if m, err := f.x.testPlayMission(s.source, synth.ALM(synth.ALMOptions{Width: 4, Height: 4}), nil); err != nil || m.Map != "maps/m20.alm" {
 		t.Fatalf("plain map named %q: %v", m.Map, err)
 	}
 }

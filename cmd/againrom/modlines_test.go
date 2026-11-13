@@ -47,19 +47,9 @@ func frozenModLines(res modrt.Result) []string {
 
 // -check prints the same bytes for every fixture mod, alone and a set that
 // loads together, on both bases. A mod that declares missions gets the map
-// and texts folder cmd/modmission would copy out of an install.
+// and pages folder cmd/modmission would copy out of an install.
 func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 	warnings := map[string][]string{
-		"guest-chain": {
-			`mod "guest-chain": data/missions.toml:11: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
-			`mod "guest-chain": data/missions.toml:12: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
-			`mod "guest-chain": data/missions.toml:21: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
-			`mod "guest-chain": data/missions.toml:22: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
-		},
-		"reniesta": {
-			`mod "reniesta": data/missions.toml:8: map mission/{lang}/map.alm uses an old path; use maps/{lang}/<stem>.alm`,
-			`mod "reniesta": data/missions.toml:9: texts mission/{lang}/text uses an old path; use maps/{lang}/map.text or its language folder`,
-		},
 		"war-hammer-body": {`mod "war-hammer-body": data/weapon-bodies.toml: use data/wpnbodies.toml for weapon bodies`},
 	}
 	entries, err := os.ReadDir(exampleModsDir)
@@ -80,11 +70,12 @@ func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 			continue
 		}
 		for _, lang := range []string{"en", "ru"} {
-			at := filepath.Join(modsDir, e.Name(), "mission", lang)
-			if err := os.MkdirAll(filepath.Join(at, "text"), 0o755); err != nil {
+			place := mod.PlaceLanguageMission(lang, mod.MissionStem("10"), false)
+			at := filepath.Join(modsDir, e.Name(), filepath.FromSlash(place.Map))
+			if err := os.MkdirAll(filepath.Join(modsDir, e.Name(), filepath.FromSlash(place.Pages(lang))), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(at, "map.alm"), synth.ALM(synth.ALMOptions{Width: 8, Height: 8, Name: "mission"}), 0o644); err != nil {
+			if err := os.WriteFile(at, synth.ALM(synth.ALMOptions{Width: 8, Height: 8, Name: "mission"}), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}

@@ -195,7 +195,7 @@ func TestReleaseMapEditorLooseMapPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exported, err := os.ReadFile(filepath.Join(folder, "mission", "text", lang, "event01.txt"))
+	exported, err := os.ReadFile(filepath.Join(folder, filepath.FromSlash(s.place().Pages(lang)), "event01.txt"))
 	if err != nil || !bytes.Equal(exported, savedPage) {
 		t.Fatalf("W page is not a byte copy: %v", err)
 	}

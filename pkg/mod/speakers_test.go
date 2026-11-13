@@ -35,6 +35,22 @@ func TestAppendSpeakerKeepsTheFile(t *testing.T) {
 	}
 }
 
+// MoveSpeakerMaps rewrites only the map value of a record a move takes,
+// matching the path folded, and keeps every other byte.
+func TestMoveSpeakerMapsRewritesOnlyAMovedMap(t *testing.T) {
+	src := "# speakers\r\n[[speaker]]\r\nid = 20000\r\nname = 'Karl'\r\npicture = 'a.png'\r\nmap   = 'Mission/EN/Map.alm'  # bound\r\nunit = 3\r\n" +
+		"[[speaker]]\r\nid = 20001\r\nname = 'Ann'\r\npicture = 'b.png'\r\nmap = 'maps/other.alm'\r\nunit = 4\r\n"
+	moves := []FileMove{{From: "mission/text/en/event01.txt", To: "maps/map.text/en/event01.txt"}, {From: "mission/en/map.alm", To: "maps/en/map.alm"}}
+	out, moved, err := MoveSpeakerMaps([]byte(src), moves)
+	want := strings.Replace(src, "'Mission/EN/Map.alm'", `"maps/en/map.alm"`, 1)
+	if err != nil || !moved || string(out) != want {
+		t.Fatalf("%v %v\n%q\nwant\n%q", err, moved, out, want)
+	}
+	if out, moved, err := MoveSpeakerMaps([]byte(src), moves[:1]); err != nil || moved || string(out) != src {
+		t.Fatalf("an unmoved map changed the file: %v %v %q", err, moved, out)
+	}
+}
+
 // A pending picture is read from memory, and a record whose picture is
 // neither pending nor in the mod is still refused at its line.
 func TestReadSpeakersTakesAPendingPicture(t *testing.T) {

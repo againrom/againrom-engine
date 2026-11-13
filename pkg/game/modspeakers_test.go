@@ -54,7 +54,7 @@ func modSpeakerEditorIn(t *testing.T, parent, id string) (*ui.MapEditor, *mapIns
 			t.Fatal(err)
 		}
 	}
-	dir := writeNamedEditorMod(t, parent, id, editorModMissions)
+	dir := writeNamedEditorMod(t, parent, id, treeModMissions)
 	if err := s.inspector.SetMod(dir); err != nil {
 		t.Fatal(err)
 	}

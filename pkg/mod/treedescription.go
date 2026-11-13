@@ -162,14 +162,14 @@ func (t Tree) Describe() (TreeDescription, error) {
 							}
 							switch ref.role {
 							case referenceMap:
-								add(rel, "mission maps")
-								stem := strings.TrimSuffix(rel, path.Ext(rel))
-								patterns[namefold.ModTree(stem+mapTextSuffix+"/"+pagePattern)] = "mission pages"
-								add(MapLabelFile(rel), "map variable labels")
+								place := MissionPlace{Map: rel}
+								add(rel, missionMapsKind)
+								patterns[namefold.ModTree(place.Pages("")+"/"+pagePattern)] = missionPagesKind
+								add(place.Labels(), mapLabelsKind)
 							case referencePages:
-								patterns[namefold.ModTree(path.Join(rel, pagePattern))] = "mission pages"
+								patterns[namefold.ModTree(path.Join(rel, pagePattern))] = missionPagesKind
 								if locale.Known(path.Base(rel)) {
-									patterns[namefold.ModTree(path.Join(path.Dir(rel), path.Base(pagePattern)))] = "mission pages"
+									patterns[namefold.ModTree(path.Join(path.Dir(rel), path.Base(pagePattern)))] = missionPagesKind
 								}
 							case referenceTown:
 								if !IsTownDescriptionFile(rel) {
@@ -183,7 +183,7 @@ func (t Tree) Describe() (TreeDescription, error) {
 								add(rel, k.Name)
 							}
 						}
-						if ref.role == referenceMap && !strings.HasPrefix(namefold.ModTree(path.Clean(pair.val.str)), MapsFolder+"/") {
+						if ref.role == referenceMap && !(MissionPlace{Map: pair.val.str}).InTree() {
 							folder := MapsFolder
 							if strings.Contains(pair.val.str, langToken) {
 								folder = path.Join(folder, langToken)
@@ -283,17 +283,17 @@ func (t Tree) describeMissionPages(file string, row tomlTable, warn func(string,
 	if texts != "" {
 		texts = path.Clean(texts)
 	}
-	stem := strings.TrimSuffix(mapPath, path.Ext(mapPath))
-	if texts != "" && texts != stem+mapTextSuffix && !strings.HasPrefix(texts, stem+mapTextSuffix+"/") {
+	place := MissionPlace{Map: mapPath}
+	if texts != "" && !place.holdsPages(texts) {
 		p := values["texts"]
-		preferred := stem
-		if !strings.HasPrefix(namefold.ModTree(stem), MapsFolder+"/") {
-			preferred = path.Join(MapsFolder, path.Base(stem))
+		preferred := place
+		if !place.InTree() {
+			preferred = PlaceMission(MissionStem(mapPath), false)
 			if strings.Contains(mapPath, langToken) {
-				preferred = path.Join(MapsFolder, langToken, path.Base(stem))
+				preferred = PlaceLanguageMission(langToken, MissionStem(mapPath), false)
 			}
 		}
-		warn(file, p.line, "texts %s uses an old path; use %s%s or its language folder", texts, preferred, mapTextSuffix)
+		warn(file, p.line, "texts %s uses an old path; use %s or its language folder", texts, preferred.Pages(""))
 	}
 	for _, key := range []string{"title", "briefing"} {
 		p := values[key]

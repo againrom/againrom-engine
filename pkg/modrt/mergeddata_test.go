@@ -177,10 +177,10 @@ func canonicalMergedData(v any, entries []mod.Entry, drop []string) any {
 // description and a guest mission's maps.
 var fixtureCompletions = map[string]map[string]string{
 	"east-town": {"towns/east.json": `{"town": "east"}`},
-	"guest-chain": {"mission/en/map.alm": "map en", "mission/ru/map.alm": "map ru",
-		"mission/en/text/event01.txt": "event en", "mission/ru/text/event01.txt": "event ru"},
-	"reniesta": {"mission/en/map.alm": "map en", "mission/ru/map.alm": "map ru",
-		"mission/en/text/event01.txt": "event en", "mission/ru/text/event01.txt": "event ru"},
+	"guest-chain": {"maps/en/m10.alm": "map en", "maps/ru/m10.alm": "map ru",
+		"maps/en/m10.text/en/event01.txt": "event en", "maps/ru/m10.text/ru/event01.txt": "event ru"},
+	"reniesta": {"maps/en/m10.alm": "map en", "maps/ru/m10.alm": "map ru",
+		"maps/en/m10.text/en/event01.txt": "event en", "maps/ru/m10.text/ru/event01.txt": "event ru"},
 }
 
 // TestFixtureModsGiveTheRecordedMergedData reads every fixture mod alone,

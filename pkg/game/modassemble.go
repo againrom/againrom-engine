@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"againrom/pkg/hostfile"
+	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
@@ -39,9 +40,10 @@ func missionPageName(name string) bool {
 }
 
 // AssembleModMission copies the installed map of mission and its event and
-// tip texts out of the install at root into mission/<lang>/map.alm and
-// mission/<lang>/text/ of the mod folder out, where a data/missions.toml
-// names them. The texts are written as UTF-8 (DecodeInstallTextFile). out
+// tip texts out of the install at root into maps/<lang>/m<N>.alm and the
+// pages beside it, maps/<lang>/m<N>.text/<lang>/, of the mod folder out (the
+// place rule, mod.MissionPlace), where a data/missions.toml row names
+// map = "maps/{lang}/m<N>.alm". The texts are written as UTF-8 (DecodeInstallTextFile). out
 // must be a mod folder (it holds mod.toml) outside the install; nothing is written anywhere else. It returns the files written,
 // relative to out.
 func AssembleModMission(root, lang string, mission int, out string) ([]string, error) {
@@ -70,13 +72,15 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 	if err != nil {
 		return nil, fmt.Errorf("the install holds no map for mission %d: %w", mission, err)
 	}
-	files := map[string][]byte{"mission/" + lang + "/map.alm": m}
+	// An installed map holds no extended record.
+	place := mod.PlaceLanguageMission(lang, mod.MissionStem(address), false)
+	files := map[string][]byte{place.Map: m}
 	pages, err := installedPages(a.Containers, mission)
 	if err != nil {
 		return nil, err
 	}
 	for name, b := range pages {
-		files["mission/"+lang+"/text/"+name] = b
+		files[place.Pages(lang)+"/"+name] = b
 	}
 	// Each file is written in place over what the mod folder holds, its
 	// folders made and kept; the files written before a failure stay.

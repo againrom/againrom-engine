@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/herokind"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 )
@@ -78,7 +79,16 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	}
 	if p.Kind != mod.MissionReplace {
 		out = append(out, ui.InspectionField{Key: "landing", Label: x.word("editor.mod.landing"), Value: landing, Column: 1, Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.mod.companion"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.mod.party"))}}})
+		out = append(out, x.heroField("class", p.Class), x.heroField("sex", p.Sex))
+		if len(p.Party) == 0 {
+			out = append(out, x.modLine("carry", x.word("editor.mod.carryjoin")))
+		}
 	}
+	off := "editor.mod.offno"
+	if d := s.workspace.Project; d != nil && d.Selected >= 0 && d.Selected < len(d.Missions) && d.Missions[d.Selected].Off {
+		off = "editor.mod.offyes"
+	}
+	out = append(out, x.modLine("off", x.word(off)))
 	for n, g := range p.Party {
 		prefix := fmt.Sprintf("party.%d.", n)
 		characters := s.modCharacters()
@@ -185,6 +195,43 @@ func (s *mapInspectionEdits) partyItemField(prefix, key, kind string, current *s
 	return f
 }
 
+// heroChoices are the class and sex fields' choices in order: the word the
+// mission table holds and the word book key of its label. Choice 0 names no
+// word, so the row leaves that axis open and the table holds no key.
+var heroChoices = map[string][3][2]string{
+	"class": {{"", "editor.mod.anyhero"}, {herokind.Fighter, "editor.message.hero.fighter"}, {herokind.Mage, "editor.message.hero.mage"}},
+	"sex":   {{"", "editor.mod.anyhero"}, {herokind.Male, "editor.unit.look.male"}, {herokind.Female, "editor.unit.look.female"}},
+}
+
+func (x *MapInspector) heroField(key, word string) ui.InspectionField {
+	f := ui.InspectionField{Key: key, Label: x.modFieldLabel(key), Column: 1}
+	for i, c := range heroChoices[key] {
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i), Label: x.inspectionUTF8(x.word(c[1]))})
+		if c[0] == word {
+			f.Value = int64(i)
+		}
+	}
+	return f
+}
+
+// heroWord is the mission table word of key's choice value: the choice
+// index, or the word itself.
+func heroWord(key, value string) (string, bool) {
+	value = strings.TrimSpace(value)
+	for i, c := range heroChoices[key] {
+		if value == strconv.Itoa(i) || value != "" && value == c[0] {
+			return c[0], true
+		}
+	}
+	return "", false
+}
+
+// modLine is a read-only line of the mission page: key's label and text.
+func (x *MapInspector) modLine(key, text string) ui.InspectionField {
+	label := x.modFieldLabel(key)
+	return ui.InspectionField{Key: key, Label: label, Column: 1, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(label + ": " + text)}}}
+}
+
 func (x *MapInspector) modFieldLabel(key string) string {
 	labels := map[string]string{
 		"folder": x.word("editor.mod.folder"), "id": x.word("editor.mod.id"),
@@ -208,7 +255,7 @@ func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool)
 	if err != nil {
 		return 0, false
 	}
-	m := w.Package.mission(nil, nil)
+	m := w.Package.mission(nil, nil, mod.MissionPlace{})
 	d := mod.MissionData{Missions: []mod.Mission{m}}
 	if p := w.Project; p != nil && p.Selected >= 0 {
 		m, err = p.selected(w.Package, s.inspector.word)

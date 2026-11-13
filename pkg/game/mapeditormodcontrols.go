@@ -18,15 +18,12 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	if w.Project != nil {
 		return nil
 	}
-	m := w.Package.mission(s.model.Bytes(), w.Pages)
+	m := w.Package.mission(s.model.Bytes(), w.Pages, s.place())
 	pages, err := s.exportPageTree("", nil)
 	if err != nil {
 		return err
 	}
-	if len(pages) > 0 {
-		m.Texts = testPlayTexts + "/{lang}"
-	}
-	files := missionPackageFiles(w.Package.Title, w.Package.Manifest.Description, m, s.inspector.pageLanguage(), pages)
+	files := missionPackageFiles(w.Package.Title, w.Package.Manifest.Description, m, s.inspector.pageLanguage(), s.labelsForSave(), pages)
 	files[mod.ManifestName], err = w.Package.manifestBytes(nil)
 	if err != nil {
 		return err
@@ -171,19 +168,19 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 			}
 			m.Mod = p.ID
 			m.Key = fmt.Sprintf("map%d", m.Number)
-			m.Map = "mission/" + m.Key + "/map.alm"
+			place := s.place().Free(s.projectFiles(d))
+			m.Map = place.Map
 			m.Party = []mod.GuestMember{{Character: mod.InstallCharacterKey(int32(m.Guest))}}
 			m.Guest, m.Chapter, m.Carry = 0, 0, ""
 			pages, err := s.exportPageTree("", nil)
 			if err != nil {
 				return err
 			}
-			if len(pages) > 0 {
-				root := "mission/" + m.Key + "/text"
-				m.Texts = root + "/{lang}"
-				for name, b := range pages {
-					d.Files[root+"/"+name] = bytes.Clone(b)
-				}
+			for name, b := range pages {
+				d.Files[place.Pages("")+"/"+name] = bytes.Clone(b)
+			}
+			if labels := s.labelsForSave(); len(labels) > 0 {
+				d.Files[place.Labels()] = labels
 			}
 			for i := len(d.Missions) - 1; i >= 0; i-- {
 				if d.Missions[i].Kind == mod.MissionGuest && !d.Missions[i].Off {

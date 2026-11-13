@@ -313,7 +313,7 @@ func TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap(t *testing.T) {
 	if err := x.SetMod(modDir); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(modDir, "mission", "map.alm")
+	target := newMapModTarget(root)
 	e := x.Editor()
 	e.Layout(1280, 800)
 	if err := e.Open(newMapSource(32, 32)); err != nil {

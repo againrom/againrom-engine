@@ -1,6 +1,7 @@
 // Command modmission assembles a mod mission: it copies an installed map and
-// its event and tip texts into mission/<lang>/ of a mod folder, where the
-// mod's data/missions.toml names them. It reads the install and writes only
+// its event and tip texts into maps/<lang>/m<N>.alm and
+// maps/<lang>/m<N>.text/<lang>/ of a mod folder, where the mod's
+// data/missions.toml names them as map = "maps/{lang}/m<N>.alm". It reads the install and writes only
 // into the mod folder; both are explicit arguments.
 //
 //	modmission -install <install root> -map <mission> -out <mod folder>

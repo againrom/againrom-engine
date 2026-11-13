@@ -225,7 +225,7 @@ func TestManifestDraftWithoutAMapSharesHistory(t *testing.T) {
 
 func TestNewPackageUsesManifestDefaultsWithoutAnEntry(t *testing.T) {
 	p := editorPackageSpec{ID: "example", Title: "Example", Manifest: defaultPackageManifest()}
-	files := missionPackageFiles(p.Title, p.Manifest.Description, p.mission([]byte("map bytes"), nil), "en")
+	files := missionPackageFiles(p.Title, p.Manifest.Description, p.mission([]byte("map bytes"), nil, missionPlace("", false)), "en", nil)
 	want := "id = \"example\"\ntitle = \"Example\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\ndescription = \"Map editor mission package\"\napi = 1\napplies-to = [\"rom1\"]\n"
 	if string(files[mod.ManifestName]) != want {
 		t.Fatalf("manifest:\n%s", files[mod.ManifestName])

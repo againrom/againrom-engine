@@ -280,7 +280,7 @@ func TestReleaseMessagePickerCampaignPage(t *testing.T) {
 	if _, err := s.saveWorkspacePackage(export); err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(filepath.Join(export, "mission", "text", lang, messageFilename(number)))
+	got, err := os.ReadFile(filepath.Join(export, filepath.FromSlash(s.place().Pages(lang)), messageFilename(number)))
 	if err != nil || !bytes.Equal(got, want) {
 		t.Fatal("W page bytes", err)
 	}

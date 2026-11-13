@@ -22,7 +22,7 @@ func TestReleaseModMissionAfterAWinIsTheStartingHerosMap(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	raw, err := os.ReadFile(filepath.Join(dir, guestModID, "mission", lang, "map.alm"))
+	raw, err := os.ReadFile(assembledMap(filepath.Join(dir, guestModID), lang, 10))
 	if err != nil {
 		t.Fatal(err)
 	}

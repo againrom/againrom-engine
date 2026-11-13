@@ -18,6 +18,14 @@ import (
 
 const newMapModID = "newmap"
 
+// newMapModMap is the map newMapMod declares, in the tree's layout.
+const newMapModMap = "maps/map.alm"
+
+// newMapModTarget is the map file of newMapMod in the mods folder root.
+func newMapModTarget(root string) string {
+	return filepath.Join(root, newMapModID, filepath.FromSlash(newMapModMap))
+}
+
 // newMapMod writes, in a fresh mods folder, a mod that replaces campaign
 // mission 20 with a map file it does not hold yet. It returns the mods folder.
 func newMapMod(t *testing.T) string {
@@ -27,7 +35,7 @@ func newMapMod(t *testing.T) string {
 		"mod.toml": "id = \"" + newMapModID + "\"\ntitle = \"New map\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\n" +
 			"description = \"Mission 20 on a new map.\"\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n",
 		"main.star":          "def init(game, settings):\n    game.data.add(\"data/missions.toml\")\n",
-		"data/missions.toml": "[[mission]]\nkind = \"replace\"\nkey = \"fresh\"\nnumber = 20\nmap = \"mission/map.alm\"\n",
+		"data/missions.toml": "[[mission]]\nkind = \"replace\"\nkey = \"fresh\"\nnumber = 20\nmap = \"" + newMapModMap + "\"\n",
 	}
 	for name, body := range files {
 		p := filepath.Join(root, newMapModID, filepath.FromSlash(name))
@@ -112,7 +120,7 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 		t.Fatal(err)
 	}
 	class := creatureClass(t, x)
-	target := filepath.Join(modDir, "mission", "map.alm")
+	target := newMapModTarget(root)
 	const side = 32
 	drop, foe := image.Pt(16, 16), image.Pt(22, 22)
 

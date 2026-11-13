@@ -67,7 +67,7 @@ func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
 			if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 				t.Fatalf("save into mod: %v", err)
 			}
-			path := filepath.Join(root, newMapModID, "mission", "map.alm")
+			path := newMapModTarget(root)
 			mapBytes, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)

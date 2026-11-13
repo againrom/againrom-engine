@@ -2,9 +2,11 @@ package game
 
 import (
 	"bytes"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -38,10 +40,10 @@ func TestMapPagesSaveAsCarriesPages(t *testing.T) {
 	if !reflect.DeepEqual(loaded.workspace.Pages, s.workspace.Pages) {
 		t.Fatal("cold editor reopen lost pages")
 	}
-	m := s.workspace.Package.mission(b, s.workspace.Pages)
-	files := missionPackageFiles("Map", "Map", m, "en")
-	if !bytes.Equal(files["mission/text/en/event01.txt"], page) || !strings.Contains(string(files[mod.MissionsFile]), "mission/text/{lang}") {
-		t.Fatal("package did not copy the saved page bytes or declare the language folder")
+	m := s.workspace.Package.mission(b, s.workspace.Pages, s.place())
+	files := missionPackageFiles("Map", "Map", m, "en", nil)
+	if !bytes.Equal(files["maps/saved.text/en/event01.txt"], page) || !strings.Contains(string(files[mod.MissionsFile]), `= "maps/saved.alm"`) || strings.Contains(string(files[mod.MissionsFile]), "texts") {
+		t.Fatalf("package did not copy the saved page bytes beside its map: %v\n%s", slices.Sorted(maps.Keys(files)), files[mod.MissionsFile])
 	}
 	t.Logf("ALM=%d bytes identical; page=%d bytes identical in SaveAs, cold Open and W builder", len(b), len(page))
 }
@@ -139,7 +141,8 @@ func TestMapPagesPackagePreservesOtherLanguage(t *testing.T) {
 	if _, err := s.saveWorkspacePackage(folder); err != nil {
 		t.Fatal(err)
 	}
-	other := "mission/text/ru/event01.txt"
+	pages := s.place().Pages("")
+	other := pages + "/ru/event01.txt"
 	page := []byte("<part=1>Русская страница")
 	writeTestPlayInput(t, filepath.Join(folder, filepath.FromSlash(other)), page)
 	old, err := missionPackageOwnership(folder, editorPackageRecord, nil)
@@ -159,7 +162,7 @@ func TestMapPagesPackagePreservesOtherLanguage(t *testing.T) {
 	if err != nil || !bytes.Equal(got, page) {
 		t.Fatalf("W lost the other language: %q: %v", got, err)
 	}
-	got, err = os.ReadFile(filepath.Join(folder, "mission", "text", "en", "event01.txt"))
+	got, err = os.ReadFile(filepath.Join(folder, filepath.FromSlash(pages), "en", "event01.txt"))
 	if err != nil || string(got) != "Changed English page" {
 		t.Fatalf("W lost the active edit: %q: %v", got, err)
 	}
@@ -282,20 +285,19 @@ func TestMapPagesLegacyPackagePreservesCommon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The page moves to the common folder beside the map, which each language
+	// reads after its own folder.
+	pages := s.place().Pages("")
+	common := pages + "/event01.txt"
 	for i, n := range old {
-		if n == "mission/text/en/event01.txt" {
-			old[i] = "mission/text/event01.txt"
+		if n == pages+"/en/event01.txt" {
+			old[i] = common
 		}
 	}
-	legacy := filepath.Join(folder, "mission", "text", "event01.txt")
-	if err := os.Rename(filepath.Join(folder, "mission", "text", "en", "event01.txt"), legacy); err != nil {
+	legacy := filepath.Join(folder, filepath.FromSlash(common))
+	if err := os.Rename(filepath.Join(folder, filepath.FromSlash(pages), "en", "event01.txt"), legacy); err != nil {
 		t.Fatal(err)
 	}
-	mb, err := os.ReadFile(filepath.Join(folder, mod.MissionsFile))
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeTestPlayInput(t, filepath.Join(folder, mod.MissionsFile), []byte(strings.ReplaceAll(string(mb), "mission/text/{lang}", "mission/text")))
 	writeTestPlayInput(t, filepath.Join(folder, editorPackageRecord), testPlayRecordBytes(old))
 	if err := workspaceField(e, "package", 0, folder); err != nil {
 		t.Fatal(err)
@@ -328,7 +330,7 @@ func TestMapPagesLegacyPackagePreservesCommon(t *testing.T) {
 	}
 	found := false
 	for _, n := range owned {
-		found = found || n == "mission/text/event01.txt"
+		found = found || n == common
 	}
 	if !found {
 		t.Fatal("common fallback lost ownership record")
@@ -367,7 +369,7 @@ func TestMapPagesPackageCopiesLooseTreeAndEdits(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{"en/event01.txt": "Changed EN", "ru/event01.txt": "Russian", "event02.txt": "Plain", "en/event02.txt": "Changed common on EN"}
-	got := tree(t, filepath.Join(folder, "mission", "text"))
+	got := tree(t, filepath.Join(folder, "maps", "a.text"))
 	if len(got) != len(want) {
 		t.Fatalf("tree=%q", got)
 	}

@@ -32,16 +32,16 @@ fire-ball-tune rom1-en mark 654ffe230137c4406fc09a13d1b7b91ef7197e23f78cf11c3ff7
 fire-ball-tune-packed rom1-en rules skill_cap=100
 fire-ball-tune-packed rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 fire-ball-tune-packed rom1-en mark 654ffe230137c4406fc09a13d1b7b91ef7197e23f78cf11c3ff72270ad4a4a48
-guest-chain rom1-en refused mod "guest-chain": data/missions.toml:8: map: mission/en/map.alm: no such file in the mod folder
-guest-chain-packed rom1-en refused mod "guest-chain": data/missions.toml:8: map: mission/en/map.alm: no such file in the mod folder
+guest-chain rom1-en refused mod "guest-chain": data/missions.toml:8: map: maps/en/m10.alm: no such file in the mod folder
+guest-chain-packed rom1-en refused mod "guest-chain": data/missions.toml:8: map: maps/en/m10.alm: no such file in the mod folder
 guest-chain-complete rom1-en rules skill_cap=100
 guest-chain-complete rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
-guest-chain-complete rom1-en missions 4a0bd92b8b49e5064a5bbf6e698c5fe9528ce0e25821dc8002335a56266a83e8
-guest-chain-complete rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
+guest-chain-complete rom1-en missions e27b0b54b384f9b725e7930593b849efb0ad8d9719f822541b9cb4829b7340db
+guest-chain-complete rom1-en mark 3d0a33df837ef3b72c901c7a0d6d97e214b0e3ad822fe778bfee634ace5d073d
 guest-chain-complete-packed rom1-en rules skill_cap=100
 guest-chain-complete-packed rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
-guest-chain-complete-packed rom1-en missions 4a0bd92b8b49e5064a5bbf6e698c5fe9528ce0e25821dc8002335a56266a83e8
-guest-chain-complete-packed rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
+guest-chain-complete-packed rom1-en missions e27b0b54b384f9b725e7930593b849efb0ad8d9719f822541b9cb4829b7340db
+guest-chain-complete-packed rom1-en mark 3d0a33df837ef3b72c901c7a0d6d97e214b0e3ad822fe778bfee634ace5d073d
 heavy-armor rom1-en rules skill_cap=100
 heavy-armor rom1-en items 8f35c81b26545f3503bf0b60a71ade859ea15d8fc1d73fc3d4b3fccb211d7d04
 heavy-armor rom1-en screens 0b2d7f90376870595df92084f8f446087b37763eb6524c25d88150370e85aa9c
@@ -62,14 +62,14 @@ no-iron-pike rom1-en mark 83d9e10de3f48c2b48fbafddd8c327379f4521212ae0409a64f00a
 no-iron-pike-packed rom1-en rules skill_cap=100
 no-iron-pike-packed rom1-en items 48420b9143ecc2b4aa4343637833634b42a6e10420e9b879d97e3179ca72503e
 no-iron-pike-packed rom1-en mark 83d9e10de3f48c2b48fbafddd8c327379f4521212ae0409a64f00a200740f101
-reniesta rom1-en refused mod "reniesta": data/missions.toml:5: map: mission/en/map.alm: no such file in the mod folder
-reniesta-packed rom1-en refused mod "reniesta": data/missions.toml:5: map: mission/en/map.alm: no such file in the mod folder
+reniesta rom1-en refused mod "reniesta": data/missions.toml:5: map: maps/en/m10.alm: no such file in the mod folder
+reniesta-packed rom1-en refused mod "reniesta": data/missions.toml:5: map: maps/en/m10.alm: no such file in the mod folder
 reniesta-complete rom1-en rules skill_cap=100
-reniesta-complete rom1-en missions 05d433f61f22c788be3e56cb5d322edc85394f848a7246a872a6d0458b103085
-reniesta-complete rom1-en mark fffe50fcc6eefca2cea58d8dc533e0bc00fb9141b4e1e389e363dda0763aa732
+reniesta-complete rom1-en missions 10b922b2d5bf961ca2373688f8e46e30dd7547ae9b88a1adbd3eb99e6f67175d
+reniesta-complete rom1-en mark 40db6566ab899606fbff8c4aba3095f07dae43d402957dc0355f77efa3b74bc7
 reniesta-complete-packed rom1-en rules skill_cap=100
-reniesta-complete-packed rom1-en missions 05d433f61f22c788be3e56cb5d322edc85394f848a7246a872a6d0458b103085
-reniesta-complete-packed rom1-en mark fffe50fcc6eefca2cea58d8dc533e0bc00fb9141b4e1e389e363dda0763aa732
+reniesta-complete-packed rom1-en missions 10b922b2d5bf961ca2373688f8e46e30dd7547ae9b88a1adbd3eb99e6f67175d
+reniesta-complete-packed rom1-en mark 40db6566ab899606fbff8c4aba3095f07dae43d402957dc0355f77efa3b74bc7
 reniesta-joins-on-talk rom1-en rules skill_cap=100
 reniesta-joins-on-talk rom1-en companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 reniesta-joins-on-talk rom1-en mark 154665fc828277f10363fddaf220dfa662edc1dfeb0739da0846854a2a0872cf
@@ -121,10 +121,10 @@ all rom1-en screens 40c21fb4d8e2289151fe527d3f73800c26d1cd12b8d746c6d237d702a5ba
 all rom1-en companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-en bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-en missions ec48cca8d923f385b986d86230a21c50d9c5d5e00c8bfdeef3ac743d3171b37e
+all rom1-en missions 9f86ab7d738e036a8b3ecb76891a3344796a09b0f937fd3941c3352af2a65b63
 all rom1-en towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-en files 1a4824018884859e1046ab8d8fb3ce048f461d8b9299893bc8d9aa92681905e3
-all rom1-en mark 5b8ff710ebd5ff6339b15fcc0c96abf67ca0dca79b141efc88c1e6031a11667c
+all rom1-en mark 5ef3341293b7a896bb72c1310ea44b423ac552db082339db8982199bbc7a0d58
 archer-girl rom1-ru rules skill_cap=100
 archer-girl rom1-ru characters 09b57c207fafbf8e137c626666c4bb5dd950fc67f0c48863ee14d3c83d332532
 archer-girl rom1-ru mark ac4df27391cce95455e7fc57ea68087bd9657eccf717cb7972fdf8c271093ddc
@@ -159,16 +159,16 @@ fire-ball-tune rom1-ru mark 0b1b8d3364aa0a1fbaeabf5144a8782658fd36220831a4394d09
 fire-ball-tune-packed rom1-ru rules skill_cap=100
 fire-ball-tune-packed rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 fire-ball-tune-packed rom1-ru mark 0b1b8d3364aa0a1fbaeabf5144a8782658fd36220831a4394d09d0f7c3eb35cc
-guest-chain rom1-ru refused mod "guest-chain": data/missions.toml:8: map: mission/ru/map.alm: no such file in the mod folder
-guest-chain-packed rom1-ru refused mod "guest-chain": data/missions.toml:8: map: mission/ru/map.alm: no such file in the mod folder
+guest-chain rom1-ru refused mod "guest-chain": data/missions.toml:8: map: maps/ru/m10.alm: no such file in the mod folder
+guest-chain-packed rom1-ru refused mod "guest-chain": data/missions.toml:8: map: maps/ru/m10.alm: no such file in the mod folder
 guest-chain-complete rom1-ru rules skill_cap=100
 guest-chain-complete rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
-guest-chain-complete rom1-ru missions e8d668a35a43bb26b47acf985859ef64b9daef5413955104325c25d54a5463f8
-guest-chain-complete rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
+guest-chain-complete rom1-ru missions 172c843fa9a8273f7f12044ba395122d18cbd7275ff25973e6d375547c03e867
+guest-chain-complete rom1-ru mark 8706196009da676d8669f9661bd7f49ccdd622c9443787d175a8c9a3ed5b99d9
 guest-chain-complete-packed rom1-ru rules skill_cap=100
 guest-chain-complete-packed rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
-guest-chain-complete-packed rom1-ru missions e8d668a35a43bb26b47acf985859ef64b9daef5413955104325c25d54a5463f8
-guest-chain-complete-packed rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
+guest-chain-complete-packed rom1-ru missions 172c843fa9a8273f7f12044ba395122d18cbd7275ff25973e6d375547c03e867
+guest-chain-complete-packed rom1-ru mark 8706196009da676d8669f9661bd7f49ccdd622c9443787d175a8c9a3ed5b99d9
 heavy-armor rom1-ru rules skill_cap=100
 heavy-armor rom1-ru items bf686dbcc7a826ef7173c7f02ba7313ef5a0d8c5807eeb1ab10621728d4edb8e
 heavy-armor rom1-ru screens 1187771ad486c604f6dd2f95ee75b848a98dc383cf63d91634e1ea5c61bcef04
@@ -189,14 +189,14 @@ no-iron-pike rom1-ru mark c4549c8330dbcca649987cd7506e818d6e1afe458443c951b8a864
 no-iron-pike-packed rom1-ru rules skill_cap=100
 no-iron-pike-packed rom1-ru items 48420b9143ecc2b4aa4343637833634b42a6e10420e9b879d97e3179ca72503e
 no-iron-pike-packed rom1-ru mark c4549c8330dbcca649987cd7506e818d6e1afe458443c951b8a864175c983264
-reniesta rom1-ru refused mod "reniesta": data/missions.toml:5: map: mission/ru/map.alm: no such file in the mod folder
-reniesta-packed rom1-ru refused mod "reniesta": data/missions.toml:5: map: mission/ru/map.alm: no such file in the mod folder
+reniesta rom1-ru refused mod "reniesta": data/missions.toml:5: map: maps/ru/m10.alm: no such file in the mod folder
+reniesta-packed rom1-ru refused mod "reniesta": data/missions.toml:5: map: maps/ru/m10.alm: no such file in the mod folder
 reniesta-complete rom1-ru rules skill_cap=100
-reniesta-complete rom1-ru missions 84f7caee658ae90a78a5c070a2356025165eaad441a0effac100d29420cb9e49
-reniesta-complete rom1-ru mark 5e800b7230841962a6876af25d49c89b1d7a12d8d3ae3ea6d1453378ac112e93
+reniesta-complete rom1-ru missions 1545a8f6bc38b22a35a07ceb4a1b90a63cfea2a2cbd9e9128576645de0a20ae2
+reniesta-complete rom1-ru mark 3c81990e1bbe51f031f8c1569a3d91eb15aee5e3e1a1dbf936fe2ec117bb287b
 reniesta-complete-packed rom1-ru rules skill_cap=100
-reniesta-complete-packed rom1-ru missions 84f7caee658ae90a78a5c070a2356025165eaad441a0effac100d29420cb9e49
-reniesta-complete-packed rom1-ru mark 5e800b7230841962a6876af25d49c89b1d7a12d8d3ae3ea6d1453378ac112e93
+reniesta-complete-packed rom1-ru missions 1545a8f6bc38b22a35a07ceb4a1b90a63cfea2a2cbd9e9128576645de0a20ae2
+reniesta-complete-packed rom1-ru mark 3c81990e1bbe51f031f8c1569a3d91eb15aee5e3e1a1dbf936fe2ec117bb287b
 reniesta-joins-on-talk rom1-ru rules skill_cap=100
 reniesta-joins-on-talk rom1-ru companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 reniesta-joins-on-talk rom1-ru mark 2fb1038126a29938d80b337cfe6cd3a11cfebf7a81712b468222ea3662b7c283
@@ -248,7 +248,7 @@ all rom1-ru screens 7836d4df4c18b1e265bfcfa38a94d03408ca9aa19aa2249a13ecebf7496a
 all rom1-ru companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-ru bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-ru missions 5af8aab0c17ce48813a5504a607ecbcaed9260f3c83f8d0c18ab9bf6b5fa82ca
+all rom1-ru missions a2e24d26972b503bcf5d9a711494bb20dde449214cab9b62ca31d72e9b50bc28
 all rom1-ru towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-ru files 5d93396c71ee006011cdd12f7f718260c4e29b3b85f63e7d690a36c70137817e
-all rom1-ru mark 1079620421174194a6342dd26bde131f75cc35ca659665e8d28d8e87a0b1967e
+all rom1-ru mark a7cc3bf9e2d78d65bc9d84fe27e3b48561b44fa40c2244095db74ec3283179ae

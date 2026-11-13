@@ -22,8 +22,9 @@ import (
 // the same name inside it.
 const TestPlayModID = "testplay"
 
-// testPlayMap and testPlayTexts are where the test mod holds the map and the
-// mission's text pages.
+// testPlayMap and testPlayTexts are where a package or test mod written
+// before the place rule (mod.MissionPlace) held the map and the mission's
+// text pages; the ownership record still admits them, and Save moves them.
 const (
 	testPlayMap         = "mission/map.alm"
 	testPlayMapExtended = "mission/map" + extendedMapExt
@@ -84,7 +85,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 		if err := s.unchangedModSource(); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}
-		files, missions, current, e := s.retainedPackageFiles(b)
+		files, missions, current, _, e := s.retainedPackageFiles(b)
 		if e != nil {
 			return "", fmt.Errorf("Test play: %w", e)
 		}
@@ -98,11 +99,6 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 		}
 	} else if s.workspace != nil {
 		m.TextFiles = cloneWorkspace(s.workspace).Pages
-		if len(m.TextFiles) > 0 {
-			m.Texts = testPlayTexts
-		} else {
-			m.Texts = ""
-		}
 	}
 	if plan == nil {
 		if err := s.carryModSpeakers(&m); err != nil {
@@ -197,25 +193,16 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 			}
 		}
 	}
+	model, err := mapedit.New(b)
+	place := missionPlace(source, err == nil && model.Extended())
 	if pkg != nil {
-		m = pkg.mission(b, pages)
+		m = pkg.mission(b, pages, place)
 		m.Mod = TestPlayModID
-		m.Map = testPlayMapName(b)
 		return m, nil
 	}
 	m.MapBytes, m.TextFiles = b, pages
-	m.Map = testPlayMapName(b)
-	if len(pages) > 0 {
-		m.Texts = testPlayTexts
-	}
+	m.Map = place.Map
 	return m, nil
-}
-
-func testPlayMapName(b []byte) string {
-	if model, err := mapedit.New(b); err == nil && model.Extended() {
-		return testPlayMapExtended
-	}
-	return testPlayMap
 }
 
 // testPlayGuestMission is testPlayGuest of the install's campaign.
@@ -236,7 +223,7 @@ func (x *MapInspector) testPlayGuestMission() (mod.Mission, error) {
 // The guest number is read once.
 func (x *MapInspector) testPlayNumber(w *editorWorkspaceState) int {
 	if w != nil {
-		return w.Package.mission(nil, nil).Number
+		return w.Package.Number
 	}
 	if x.guestNumber == nil {
 		n := 0
@@ -259,7 +246,7 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 		}
 		for _, guest := range c.Chapters[offer.Mission].AddHero {
 			m := mod.Mission{Mod: TestPlayModID, File: mod.MissionsFile, Kind: mod.MissionGuest, Key: "map",
-				Map: testPlayMap, After: after, Guest: guest, Chapter: offer.Mission, Carry: mod.CarryJoin}
+				After: after, Guest: guest, Chapter: offer.Mission, Carry: mod.CarryJoin}
 			for n := after + 1; n < after+mainMissionStride; n++ {
 				m.Number = n
 				if checkGuest(c, src, mod.MissionData{Missions: []mod.Mission{m}}, m) == nil {
@@ -318,7 +305,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *miss
 	if l, ok := locale.ByBaseSuffix(BaseID(InspectInstall(root))); ok {
 		lang = l.Code
 	}
-	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, lang)
+	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, lang, nil)
 	options := missionPackagePlan{}
 	if plan != nil {
 		files, options = plan.Files, *plan

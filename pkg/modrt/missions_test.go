@@ -65,7 +65,7 @@ func TestReniestaFixtureNeedsItsAssembledMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = Load(entries, "rom1-en", nil, Options{})
-	if err == nil || !strings.Contains(err.Error(), `mod "reniesta": data/missions.toml:5: map: mission/en/map.alm: no such file in the mod folder`) {
+	if err == nil || !strings.Contains(err.Error(), `mod "reniesta": data/missions.toml:5: map: maps/en/m10.alm: no such file in the mod folder`) {
 		t.Fatalf("%v", err)
 	}
 }

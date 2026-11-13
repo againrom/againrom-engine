@@ -122,18 +122,22 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 		if lang, rest, ok := strings.Cut(page, "/"); ok && locale.Known(lang) {
 			page = rest
 		}
-		fixed := rel == mod.ManifestName || rel == mod.EntryName || rel == mod.MissionsFile || rel == testPlayMap || rel == testPlayMapExtended
+		fixed := rel == mod.ManifestName || rel == mod.EntryName || rel == mod.MissionsFile || rel == testPlayMap || rel == testPlayMapExtended || mod.IsMissionFile(rel)
 		projectPath := recordName == editorPackageRecord && rel != "." && filepath.IsLocal(filepath.FromSlash(rel)) && !strings.Contains(rel, "\\")
 		if seen[rel] || !projectPath && !fixed && (page == rel || !missionPageName(page)) {
 			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)
 		}
 		seen[rel] = true
 	}
+	// A test mod holds a map: the old fixed name, or one of the tree's.
+	hasMap := seen[testPlayMap] || seen[testPlayMapExtended] || slices.ContainsFunc(record.Files, func(rel string) bool {
+		return mod.IsMissionFile(rel) && (strings.HasSuffix(rel, mod.MapExt) || strings.HasSuffix(rel, mod.ExtendedMapExt))
+	})
 	for _, rel := range []string{mod.ManifestName, mod.MissionsFile, testPlayMap} {
 		if recordName == editorPackageRecord && rel != mod.ManifestName {
 			continue
 		}
-		if !seen[rel] && !(rel == testPlayMap && seen[testPlayMapExtended]) {
+		if !seen[rel] && !(rel == testPlayMap && hasMap) {
 			return nil, fmt.Errorf("%s has an incomplete test play ownership record", folder)
 		}
 	}
@@ -295,9 +299,15 @@ func installMissionPackage(stage, folder, id string, owned bool, plans ...missio
 		defer cleanup()
 		_, err = hostfile.Commit(set)
 		if err == nil {
+			// A removed file takes the folders it leaves empty, up to the mod folder.
 			for rel, data := range files {
-				if data == nil {
-					_ = os.Remove(filepath.Dir(filepath.Join(folder, filepath.FromSlash(rel))))
+				if data != nil {
+					continue
+				}
+				for at := filepath.Dir(filepath.Join(folder, filepath.FromSlash(rel))); !sameSaveName(at, folder) && len(at) > len(folder); at = filepath.Dir(at) {
+					if os.Remove(at) != nil {
+						break
+					}
 				}
 			}
 		}

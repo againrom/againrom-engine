@@ -3,6 +3,7 @@ package mod
 import (
 	"bytes"
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -10,7 +11,7 @@ import (
 type missionPair struct{ key, value string }
 
 func missionPairs(m Mission) []missionPair {
-	p := []missionPair{{"key", strconv.Quote(m.Key)}, {"number", strconv.Itoa(m.Number)}, {"map", strconv.Quote(m.Map)}}
+	p := []missionPair{{"key", strconv.Quote(m.Key)}, {"number", strconv.Itoa(m.Number)}, {"map", strconv.Quote(m.declared(m.Map, m.mapTemplate))}}
 	if m.Kind == MissionReplace {
 		p = append([]missionPair{{"kind", strconv.Quote(m.Kind)}}, p...)
 	}
@@ -29,7 +30,7 @@ func missionPairs(m Mission) []missionPair {
 	if m.Off {
 		return []missionPair{{"number", strconv.Itoa(m.Number)}, {"off", "true"}, {"kind", strconv.Quote(m.Kind)}}
 	}
-	for _, v := range []missionPair{{"texts", m.Texts}, {"title", m.Title}, {"briefing", m.Brief}} {
+	for _, v := range []missionPair{{"texts", m.declared(m.Texts, m.textsTemplate)}, {"title", m.Title}, {"briefing", m.Brief}} {
 		if v.value != "" {
 			p = append(p, missionPair{v.key, strconv.Quote(v.value)})
 		}
@@ -81,6 +82,15 @@ func missionPairs(m Mission) []missionPair {
 		}
 	}
 	return p
+}
+
+// declared is the path a row writes for value: its declared template when
+// the template still reads as value in the row's language, else value.
+func (m Mission) declared(value, template string) string {
+	if template != "" && path.Clean(missionPath(template, m.language)) == value {
+		return template
+	}
+	return value
 }
 
 func missionIdentity(m Mission) string {

@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
@@ -824,10 +825,12 @@ func (c *mapCheck) modDroppedCharacters(p *mod.MissionPages) []mapHit {
 		names = append(names, name)
 	}
 	slices.Sort(names)
+	// A row with no texts folder holds its pages beside its map.
+	folder := cmp.Or(p.Entry.Texts, mod.MissionPlace{Map: p.Entry.Map}.Pages(""))
 	var out []mapHit
 	for _, name := range names {
 		if r, dropped := ModTextDropped(p.Pages[name].Bytes, selector); dropped {
-			out = append(out, mapHit{Text: fmt.Sprintf("mod %q: %s/%s holds the character %q (U+%04X), which this base cannot show; it is dropped from the page", p.ID, p.Entry.Texts, name, r, r)})
+			out = append(out, mapHit{Text: fmt.Sprintf("mod %q: %s/%s holds the character %q (U+%04X), which this base cannot show; it is dropped from the page", p.ID, folder, name, r, r)})
 		}
 	}
 	return out

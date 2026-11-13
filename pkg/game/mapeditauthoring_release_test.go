@@ -194,7 +194,7 @@ func authoredRecordsMod(t *testing.T, arm string) (string, uint16) {
 	if err := e.Key("saveas"); err != nil || e.Dirty() {
 		t.Fatalf("save authored records: %v (%s)", err, e.Message())
 	}
-	target := filepath.Join(root, newMapModID, "mission", "map.alm")
+	target := newMapModTarget(root)
 	saved, err := os.ReadFile(target)
 	if err != nil || !bytes.Equal(wantSaved, saved) {
 		t.Fatalf("save differs from the accepted ALM save form: %v", err)
@@ -357,7 +357,7 @@ func TestReleaseMapEditorUnitStockCloneHasIndependentInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := x.Editor()
-	if err := e.Open(filepath.Join(root, newMapModID, "mission", "map.alm")); err != nil {
+	if err := e.Open(newMapModTarget(root)); err != nil {
 		t.Fatal(err)
 	}
 	e.Layout(1280, 800)

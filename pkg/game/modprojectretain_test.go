@@ -116,7 +116,7 @@ func TestProjectSaveWithTheFolderHeld(t *testing.T) {
 }
 
 func TestProjectSaveRefusesOnlyAnExternallyChangedTarget(t *testing.T) {
-	for _, rel := range []string{mod.ManifestName, mod.MissionsFile, "mission/en/map.alm"} {
+	for _, rel := range []string{mod.ManifestName, mod.MissionsFile, "maps/en/map.alm"} {
 		t.Run(rel, func(t *testing.T) {
 			s, dir := modSpeakerProject(t)
 			switch rel {
@@ -172,7 +172,7 @@ func TestProjectSaveDoesNotRecordTheAuthorsTree(t *testing.T) {
 				t.Fatal("handwritten mod became owned")
 			}
 			for name, data := range before {
-				if name != "mission/en/map.alm" && after[name] != data {
+				if name != "maps/en/map.alm" && after[name] != data {
 					t.Fatalf("changed %s", name)
 				}
 			}
@@ -329,7 +329,7 @@ func TestMapSaveAsIntoAModUsesProjectAdmission(t *testing.T) {
 				writeTestPlayInput(t, filepath.Join(dir, mod.EntryName), []byte("def init(game, settings):\n    fail('synthetic refusal')\n"))
 			}
 			before := tree(t, dir)
-			target := filepath.Join(dir, "mission", "en", "copy.alm")
+			target := filepath.Join(dir, "maps", "en", "copy.alm")
 			_, err := s.SaveAs(target)
 			if broken {
 				if err == nil || !strings.Contains(err.Error(), "synthetic refusal") || !reflect.DeepEqual(before, tree(t, dir)) {

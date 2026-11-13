@@ -35,7 +35,7 @@ func replaceModNumber(t *testing.T, number int) string {
 			"description = \"Mission 20 on an edited map.\"\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n",
 		"main.star": "def init(game, settings):\n    game.data.add(\"data/missions.toml\")\n",
 		"data/missions.toml": "[[mission]]\nkind = \"replace\"\nkey = \"ambush\"\nnumber = " + strconv.Itoa(number) + "\n" +
-			"map = \"mission/{lang}/map.alm\"\ntexts = \"mission/{lang}/text\"\ntitle = \"ambush.title\"\n",
+			"map = \"" + assembledMission("{lang}", number).Map + "\"\ntitle = \"ambush.title\"\n",
 		"text/en/strings.toml": "\"ambush.title\" = \"Ambush\"\n",
 	}
 	for name, body := range files {
@@ -171,7 +171,7 @@ func TestReleaseModReplacesACampaignMission(t *testing.T) {
 func replaceFileMod(t *testing.T, mods string) string {
 	t.Helper()
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	saved, err := os.ReadFile(filepath.Join(mods, replaceModID, "mission", lang, "map.alm"))
+	saved, err := os.ReadFile(assembledMap(filepath.Join(mods, replaceModID), lang, 20))
 	if err != nil {
 		t.Fatal(err)
 	}

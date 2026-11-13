@@ -45,6 +45,10 @@ func writeNamedEditorMod(t *testing.T, parent, id, missions string) string {
 
 const editorModMissions = "[[mission]]\nkind = \"replace\"\nkey = \"ambush\"\nnumber = 20\nmap = \"mission/{lang}/map.alm\"\n"
 
+// treeModMissions is editorModMissions with its map in the tree's layout, so
+// a save writes no layout change.
+var treeModMissions = strings.Replace(editorModMissions, "mission/{lang}/", "maps/{lang}/", 1)
+
 // editorEdits is an opened map of source, as the editor holds it.
 func editorEdits(t *testing.T, x *MapInspector, source string) *mapInspectionEdits {
 	t.Helper()

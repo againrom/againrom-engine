@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 )
 
 func modPackageSpec(m mod.Mission, previous editorPackageSpec) editorPackageSpec {
-	return editorPackageSpec{ID: previous.ID, Title: previous.Title, Manifest: mod.CloneManifest(previous.Manifest), Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: mod.CloneMission(m).Party}
+	return editorPackageSpec{ID: previous.ID, Title: previous.Title, Manifest: mod.CloneManifest(previous.Manifest), Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: mod.CloneMission(m).Party, Class: m.Class, Sex: m.Sex}
 }
 
 func sameWorkspace(a, b []byte) bool {
@@ -35,7 +36,10 @@ func sameWorkspace(a, b []byte) bool {
 	return bytes.Equal(x, y)
 }
 
-func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages map[string][]byte, mapChanged bool) {
+// syncModDocument writes the selected row's edits into the project's
+// drafts: the map when mapChanged, each page that differs from oldPages,
+// and the labels file beside the map when the labels differ from oldLabels.
+func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages map[string][]byte, oldLabels map[uint32]string, mapChanged bool) {
 	d := w.Project
 	if d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) {
 		return
@@ -46,6 +50,13 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 	}
 	if mapChanged {
 		d.Files[m.Map] = s.model.Bytes()
+	}
+	if !maps.Equal(w.Labels, oldLabels) {
+		var labels map[uint32]string
+		if _, sc, err := wizardScript(s.model); err == nil {
+			labels = liveLabels(sc, w.Labels)
+		}
+		d.Files[mod.MapLabelFile(m.Map)] = encodeMapLabels(labels)
 	}
 	for name, b := range w.Pages {
 		if bytes.Equal(b, oldPages[name]) {

@@ -85,7 +85,7 @@ func pickUnits(t *testing.T, m *alm.Map, table *mapload.Table) unitPicks {
 func saveEditedGuestMap(t *testing.T, x *MapInspector, dir string, edit func(*ui.MapEditor)) {
 	t.Helper()
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	target := filepath.Join(dir, guestModID, "mission", lang, "map.alm")
+	target := assembledMap(filepath.Join(dir, guestModID), lang, 10)
 	if err := os.Remove(target); err != nil {
 		t.Fatal(err)
 	}

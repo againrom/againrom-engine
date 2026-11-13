@@ -5,8 +5,7 @@
 [[mission]]
 key      = "prologue"
 number   = 25
-map      = "mission/{lang}/map.alm"
-texts    = "mission/{lang}/text"
+map      = "maps/{lang}/m10.alm"
 title    = "prologue.title"
 briefing = "prologue.briefing"
 after    = 20

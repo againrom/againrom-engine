@@ -117,7 +117,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	// owned mod's document follows it as it follows a page edit.
 	old := s.workspace
 	if named {
-		s.syncModDocument(stage.next, old.Pages, false)
+		s.syncModDocument(stage.next, old.Pages, old.Labels, false)
 		s.workspace = stage.next
 	}
 	d, err := s.project(next)

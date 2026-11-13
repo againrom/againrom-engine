@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/internal/synth"
@@ -52,6 +53,10 @@ func testEditorModPageEdit(t *testing.T, route string) {
 					writeTestPlayInput(t, filepath.Join(dir, "mission", l, "text", "title.txt"), []byte("title "+l))
 				}
 			}
+			// A save writes the tree's layout: the map moves under maps/ and a
+			// declared texts folder moves beside it, so its key goes.
+			migrated := strings.Replace(declarations, "map = 'first.alm'", `map = "maps/first.alm"`, 1)
+			migrated = strings.Replace(migrated, "texts = 'mission/{lang}/text' # keep template\n", "", 1)
 			before := tree(t, dir)
 			if err := workspaceField(e, "package", 0, dir); err != nil {
 				t.Fatal(err)
@@ -79,7 +84,7 @@ func testEditorModPageEdit(t *testing.T, route string) {
 					}
 				}
 				written, err := os.ReadFile(filepath.Join(folder, mod.MissionsFile))
-				if err != nil || !bytes.Equal(written, []byte(declarations)) {
+				if err != nil || !bytes.Equal(written, []byte(migrated)) {
 					t.Errorf("page edit changed declaration: %v\n%s", err, written)
 				}
 			}

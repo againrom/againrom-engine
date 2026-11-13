@@ -68,7 +68,7 @@ func TestEditorModUnitNameTravelsAsAPageEdit(t *testing.T) {
 	if _, err := s.TestPlay(); err != nil {
 		t.Fatal(err)
 	}
-	played, err := filepath.Glob(filepath.Join(f.profile, TestPlayModID, "ambush", "first.text", "*", unitNamesPage))
+	played, err := filepath.Glob(filepath.Join(f.profile, TestPlayModID, "ambush", "maps", "first.text", "*", unitNamesPage))
 	if err != nil || len(played) == 0 {
 		t.Fatalf("test play wrote no names page: %v", err)
 	}

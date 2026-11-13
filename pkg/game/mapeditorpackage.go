@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -17,29 +16,35 @@ import (
 
 const editorPackageRecord = ".editor-files.json"
 
-func missionPackageFiles(title, description string, m mod.Mission, lang string, trees ...map[string][]byte) map[string][]byte {
-	if m.Texts != "" {
-		m.Texts = testPlayTexts + "/{lang}"
-	}
+// missionPackageFiles is the files of a package of mission m, whose map
+// path is its place: the manifest, the mission table, the map, the pages
+// beside it in lang's folder (or the page tree, keyed below the pages
+// folder), the labels when there are any, and the files m carries.
+func missionPackageFiles(title, description string, m mod.Mission, lang string, labels []byte, trees ...map[string][]byte) map[string][]byte {
+	place := mod.MissionPlace{Map: m.Map}
+	m.Texts = ""
 	p := editorPackageSpec{ID: m.Mod, Title: title, Manifest: defaultPackageManifest()}
 	p.Manifest.Description = description
 	manifest, _ := p.manifestBytes(nil)
-	files := map[string][]byte{mod.ManifestName: manifest, mod.MissionsFile: testPlayMissions(m), cmp.Or(m.Map, testPlayMap): bytes.Clone(m.MapBytes)}
+	files := map[string][]byte{mod.ManifestName: manifest, mod.MissionsFile: testPlayMissions(m), m.Map: bytes.Clone(m.MapBytes)}
 	for name, b := range m.TextFiles {
-		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
-	}
-	for name, b := range m.Carried {
-		files[name] = bytes.Clone(b)
+		files[place.Pages(lang)+"/"+name] = bytes.Clone(b)
 	}
 	if len(trees) != 0 {
 		for name := range files {
-			if strings.HasPrefix(name, testPlayTexts+"/") {
+			if strings.HasPrefix(name, place.Pages("")+"/") {
 				delete(files, name)
 			}
 		}
 		for name, b := range trees[0] {
-			files[testPlayTexts+"/"+name] = bytes.Clone(b)
+			files[place.Pages("")+"/"+name] = bytes.Clone(b)
 		}
+	}
+	if len(labels) > 0 {
+		files[place.Labels()] = bytes.Clone(labels)
+	}
+	for name, b := range m.Carried {
+		files[name] = bytes.Clone(b)
 	}
 	return files
 }
@@ -138,7 +143,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	}
 	w := cloneWorkspace(s.workspace)
 	if flush {
-		s.syncModDocument(w, w.Pages, !bytes.Equal(s.saved, s.model.Bytes()))
+		s.syncModDocument(w, w.Pages, w.Labels, !bytes.Equal(s.saved, s.model.Bytes()))
 	}
 	entry := w.Project.Missions[index-1]
 	if entry.Off {
@@ -171,6 +176,13 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	w.Package = modPackageSpec(entry, s.workspace.Package)
 	w.Pages = next.workspace.Pages
 	w.Labels = next.workspace.Labels
+	if b, drafted := w.Project.Files[mod.MapLabelFile(entry.Map)]; drafted {
+		if labels, err := decodeMapLabels(mod.MapLabelFile(entry.Map), b); err == nil && len(b) > 0 {
+			w.Labels = labels
+		} else {
+			w.Labels = nil
+		}
+	}
 	for _, folder := range []string{strings.ReplaceAll(entry.Texts, "{lang}", x.pageLanguage()), filepath.ToSlash(filepath.Join(mapTextFolder(entry.Map), x.pageLanguage()))} {
 		for name, b := range w.Project.Files {
 			if folder != "" && filepath.ToSlash(filepath.Dir(name)) == folder {
@@ -244,16 +256,17 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	m := p.mission(b, s.workspace.Pages)
+	m := p.mission(b, s.workspace.Pages, s.place())
 	missions := []mod.Mission{m}
 	files := map[string][]byte{}
+	var layout mod.LayoutChange
 	if s.workspace.Project != nil {
-		files, missions, m, err = s.retainedPackageFiles(b)
+		files, missions, m, layout, err = s.retainedPackageFiles(b)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		files = missionPackageFiles(p.Title, p.Manifest.Description, m, x.pageLanguage())
+		files = missionPackageFiles(p.Title, p.Manifest.Description, m, x.pageLanguage(), s.labelsForSave())
 		files[mod.ManifestName], err = p.manifestBytes(nil)
 		if err != nil {
 			return "", err
@@ -268,28 +281,23 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", s.loaderRefusal(rows)
 		}
 	}
+	pagesRoot := mod.MissionPlace{Map: m.Map}.Pages("") + "/"
 	if s.workspace.Project == nil {
 		pages, err := s.exportPageTree(folder, old)
 		if err != nil {
 			return "", err
 		}
 		for name := range files {
-			if strings.HasPrefix(name, testPlayTexts+"/") {
+			if strings.HasPrefix(name, pagesRoot) {
 				delete(files, name)
 			}
 		}
 		for name, b := range pages {
-			files[testPlayTexts+"/"+name] = b
+			files[pagesRoot+name] = b
 		}
-		if len(pages) > 0 {
-			m.Texts = testPlayTexts + "/{lang}"
-		} else {
-			m.Texts = ""
-		}
-		files[mod.MissionsFile] = testPlayMissions(m)
 	}
 	for name, b := range files {
-		if !strings.HasPrefix(name, testPlayTexts+"/") || slices.Contains(old, name) {
+		if !strings.HasPrefix(name, pagesRoot) || slices.Contains(old, name) {
 			continue
 		}
 		original, err := os.ReadFile(filepath.Join(folder, filepath.FromSlash(name)))
@@ -303,6 +311,10 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	plan := missionPackagePlan{Check: x.admitMissionPackage, Expected: missions, Word: x.word}
 	if s.workspace.Project != nil {
 		plan.Source = s.retainedSource(folder)
+	}
+	from := folder
+	if x.mod != nil {
+		from = x.mod.dir
 	}
 	if err := x.writeEditorProject(folder, p.ID, old, files, plan, plan.Source == folder || len(old) > 0); err != nil {
 		return "", err
@@ -325,6 +337,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if m.Map != "" {
 		s.source = filepath.Join(folder, filepath.FromSlash(m.Map))
 	}
+	s.rebaseHistory(layout, from, folder)
 	s.workspaceImage = workspaceBytes(s.workspace)
 	if s.model != nil {
 		s.saved = s.model.Bytes()

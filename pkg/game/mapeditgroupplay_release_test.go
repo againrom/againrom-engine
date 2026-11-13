@@ -143,7 +143,7 @@ func groupedGuestMap(t *testing.T, x *MapInspector, dir string, units ...int) (u
 		actOnGroup(t, e, group)
 	})
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	return group, filepath.Join(dir, guestModID, "mission", lang, "map.alm")
+	return group, assembledMap(filepath.Join(dir, guestModID), lang, 10)
 }
 
 // offMapAfterStart runs the guest mission until the start trigger has run and

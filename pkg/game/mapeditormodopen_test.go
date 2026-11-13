@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/synth"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
@@ -49,8 +50,8 @@ func copyFixture(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(mod.MissionsFile))); err == nil {
-		writeMissionMap(t, dir)
-		if err := os.MkdirAll(filepath.Join(dir, "mission", "en", "text"), 0o755); err != nil {
+		writeTestPlayInput(t, assembledMap(dir, "en", 10), synth.ALM(synth.ALMOptions{Width: 8, Height: 8, Name: "mission"}))
+		if err := os.MkdirAll(filepath.Join(dir, filepath.FromSlash(assembledMission("en", 10).Pages("en"))), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}

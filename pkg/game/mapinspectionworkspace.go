@@ -26,6 +26,9 @@ type editorPackageSpec struct {
 	Manifest                            mod.Manifest
 	Number, After, Guest, Chapter, Gold int
 	Party                               []mod.GuestMember
+	// Class and Sex are the guest row's hero words, empty when the row
+	// names none.
+	Class, Sex string `json:",omitempty"`
 }
 
 type editorWorkspaceState struct {
@@ -88,14 +91,14 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 			decodeWorkspace(s.savedWorkspace, &saved)
 			s.bindWorkspaceMod(&saved, s.source)
 			s.savedWorkspace = workspaceBytes(&saved)
-			s.syncModDocument(s.workspace, saved.Pages, false)
+			s.syncModDocument(s.workspace, saved.Pages, saved.Labels, false)
 			s.workspaceImage = workspaceBytes(s.workspace)
 			for _, history := range [][]editorWorkspaceSnapshot{s.undoWorkspace, s.redoWorkspace} {
 				for i := range history {
 					if history[i].workspace != nil && history[i].workspace.Project == nil {
 						history[i].workspace = cloneWorkspace(history[i].workspace)
 						s.bindWorkspaceMod(history[i].workspace, history[i].source)
-						s.syncModDocument(history[i].workspace, saved.Pages, false)
+						s.syncModDocument(history[i].workspace, saved.Pages, saved.Labels, false)
 					}
 				}
 			}
@@ -259,7 +262,7 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	if err := apply(next); err != nil {
 		return nil, err
 	}
-	s.syncModDocument(next, s.workspace.Pages, false)
+	s.syncModDocument(next, s.workspace.Pages, s.workspace.Labels, false)
 	image := workspaceBytes(next)
 	if bytes.Equal(image, s.workspaceImage) {
 		return nil, nil
@@ -460,6 +463,16 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 				return errors.New(s.inspector.word("editor.mod.err.routekind"))
 			}
 			p.Kind = value
+		case "class", "sex":
+			word, ok := heroWord(key, value)
+			if !ok {
+				return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
+			}
+			if key == "class" {
+				p.Class = word
+			} else {
+				p.Sex = word
+			}
 		default:
 			n, err := strconv.ParseInt(strings.TrimSpace(value), 0, 32)
 			maxValue, minValue := int64(65535), int64(1)
@@ -546,25 +559,40 @@ func (s *mapInspectionEdits) currentPages() *mod.MissionPages {
 			p.Put(name, b, s.inspector.pageLanguage())
 		}
 	}
-	m := s.workspace.Package.mission(s.model.Bytes(), p.Files())
+	m := s.workspace.Package.mission(s.model.Bytes(), p.Files(), s.place())
 	m.Mod = p.Entry.Mod
 	p.Entry = m
 	return p
 }
 
-func (p editorPackageSpec) mission(b []byte, pages map[string][]byte) mod.Mission {
-	m := mod.Mission{Mod: p.ID, File: mod.MissionsFile, Kind: p.Kind, Key: "map", Number: p.Number, Map: testPlayMap, MapBytes: bytes.Clone(b), TextFiles: pages}
+// mission is the package's mission row for map b and its pages, the map at
+// place; the pages lie beside it, so the row names no texts folder.
+func (p editorPackageSpec) mission(b []byte, pages map[string][]byte, place mod.MissionPlace) mod.Mission {
+	m := mod.Mission{Mod: p.ID, File: mod.MissionsFile, Kind: p.Kind, Key: "map", Number: p.Number, Map: place.Map, MapBytes: bytes.Clone(b), TextFiles: pages}
 	if p.Kind != mod.MissionReplace {
 		m.After, m.Guest, m.Chapter, m.Gold, m.Carry = p.After, p.Guest, p.Chapter, p.Gold, mod.CarryJoin
+		m.Class, m.Sex = p.Class, p.Sex
 		m.Party = mod.CloneMission(mod.Mission{Party: p.Party}).Party
 		if len(m.Party) != 0 {
 			m.Guest, m.Chapter, m.Carry = 0, 0, ""
 		}
 	}
-	if len(pages) > 0 {
-		m.Texts = testPlayTexts
-	}
 	return m
+}
+
+// missionPlace is where the map from source goes in a mod: the place rule
+// under the stem of the source map's file name, a new map's stem "map", with
+// .almx when the map holds the extended record.
+func missionPlace(source string, extended bool) mod.MissionPlace {
+	if ui.ParseMapSource(source).Kind == ui.SourceNew {
+		source = ""
+	}
+	return mod.PlaceMission(mod.MissionStem(source), extended)
+}
+
+// place is missionPlace of the open map.
+func (s *mapInspectionEdits) place() mod.MissionPlace {
+	return missionPlace(s.source, s.model != nil && s.model.Extended())
 }
 
 // packageProtected is what test play and Save mod package must not overlap.

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [ROM1] W saves a mod mission's map to `maps/<name>.alm`, or `.almx` for an extended map, with its pages and labels beside it, moves a mod in an older layout there on its next save, and edits the starting hero's class and sex; before, an extended map saved into a mod was named `.alm`.
+
 ## 0.153.0
 
 ### For players

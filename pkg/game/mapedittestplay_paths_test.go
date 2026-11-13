@@ -155,7 +155,7 @@ func TestTestPlayRefusesAnOwnedDestinationOverlappingTheSelectedModFolder(t *tes
 
 func TestTestPlayRefusesAnUnrecordedPageCollisionInAnOwnedDestination(t *testing.T) {
 	f, folder := ownedTestPlayFixture(t)
-	writeTestPlayInput(t, filepath.Join(folder, "mission", "text", "en", "event01.txt"), []byte("Author page never written by test play"))
+	writeTestPlayInput(t, filepath.Join(folder, "maps", "map.text", "en", "event01.txt"), []byte("Author page never written by test play"))
 	modDir := writeEditorMod(t, t.TempDir(), editorModMissions+"texts = \"mission/{lang}/text\"\n")
 	opened := filepath.Join(modDir, "mission", "en", "map.alm")
 	writeTestPlayInput(t, opened, synth.ALM(synth.ALMOptions{Width: 4, Height: 4, Name: "authored"}))
@@ -209,7 +209,7 @@ func TestTestPlayPlaysAMapLyingInTheFolderThatHoldsTheProfile(t *testing.T) {
 		t.Fatalf("the game did not start on the test mod in %s: %q", modsDir, f.started[0])
 	}
 	got := tree(t, filepath.Join(modsDir, TestPlayModID))
-	if got[testPlayRecord] == "" || got[testPlayMap] == "" || got[mod.ManifestName] == "" {
+	if got[testPlayRecord] == "" || got["maps/authored.alm"] == "" || got[mod.ManifestName] == "" {
 		t.Fatalf("test mod not written: %v", keys(got))
 	}
 	if after := withoutTestPlayFolder(testPlayPathSnapshot(t, f.root), rel); !reflect.DeepEqual(before, after) {

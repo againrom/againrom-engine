@@ -108,6 +108,30 @@ func TestMissionPathWarningsUseResolvedPaths(t *testing.T) {
 	}
 }
 
+// The old texts warning names the pages folder the place rule gives the map:
+// a numbered map's stem is m<N>.
+func TestOldTextsWarningNamesThePlaceRulePages(t *testing.T) {
+	for mapPath, want := range map[string]string{
+		"mission/10.alm":        "texts mission/text/{lang} uses an old path; use maps/m10.text or its language folder",
+		"mission/{lang}/10.alm": "texts mission/text/{lang} uses an old path; use maps/{lang}/m10.text or its language folder",
+		"maps/a.alm":            "texts mission/text/{lang} uses an old path; use maps/a.text or its language folder",
+	} {
+		dir := writeFiles(t, map[string]string{ManifestName: good("paths"),
+			MissionsFile: fmt.Sprintf("[[mission]]\nmap = %q\ntexts = \"mission/text/{lang}\"\n", mapPath)})
+		tree, err := OpenTree(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := tree.Describe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.ContainsFunc(d.Warnings, func(w string) bool { return strings.HasSuffix(w, want) }) {
+			t.Errorf("%s: warnings %q, want %s", mapPath, d.Warnings, want)
+		}
+	}
+}
+
 func TestFixedTreeWarnings(t *testing.T) {
 	for _, tc := range []struct {
 		name  string

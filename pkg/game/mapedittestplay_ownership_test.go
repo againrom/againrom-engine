@@ -93,10 +93,10 @@ func TestTestPlayPreservesUnownedPagesAndRemovesOnlyRecordedPages(t *testing.T) 
 			t.Fatal(err)
 		}
 		got := tree(t, folder)
-		if got[testPlayMap] != string(mustSaveBytes(t, s)) || got["mission/text/event01.txt"] != "Author page added after test play" {
+		if got["maps/new.alm"] != string(mustSaveBytes(t, s)) || got["mission/text/event01.txt"] != "Author page added after test play" {
 			t.Fatal("owned replacement lost the edited map or unowned page")
 		}
-		if _, exists := got["mission/text/event02.txt"]; exists || len(f.started) != 2 {
+		if _, exists := got["maps/m20.text/en/event02.txt"]; exists || len(f.started) != 2 {
 			t.Fatal("the recorded stale page remained or the replacement did not start")
 		}
 	})
@@ -137,11 +137,11 @@ func TestTestPlayRefusesAModLoadBeforeReplacingTheDestination(t *testing.T) {
 
 func TestTestPlayLoadsRetainedUnrecordedPagesBeforePublishing(t *testing.T) {
 	f, folder := ownedTestPlayFixture(t)
-	page := filepath.Join(folder, "mission", "text", "event01.txt")
+	page := filepath.Join(folder, "maps", "m20.text", "event01.txt")
 	writeTestPlayInput(t, page, bytes.Repeat([]byte("A"), mod.MaxFileBytes+1))
 	before := testPlayPathSnapshot(t, f.profile)
 	_, err := editorEdits(t, f.x, "scenario/20.alm").TestPlay()
-	if err == nil || !strings.Contains(err.Error(), "mission/text/event01.txt is larger than 1048576 bytes") {
+	if err == nil || !strings.Contains(err.Error(), "maps/m20.text/event01.txt is larger than 1048576 bytes") {
 		t.Fatalf("retained-page loader refusal: %v", err)
 	}
 	if len(f.started) != 0 || !reflect.DeepEqual(before, testPlayPathSnapshot(t, f.profile)) {
@@ -183,7 +183,7 @@ func TestTestPlayInstallProfileWritesOnlyThePrivateFolderAndReplacesIt(t *testin
 			}
 		}
 		got := tree(t, filepath.Join(profile.Directory, TestPlayModID, TestPlayModID))
-		if len(got) != 5 || got[testPlayRecord] == "" || got[testPlayMap] != string(m.MapBytes) {
+		if len(got) != 5 || got[testPlayRecord] == "" || got["maps/m20.alm"] != string(m.MapBytes) {
 			t.Fatalf("private test mod: %v", keys(got))
 		}
 	}

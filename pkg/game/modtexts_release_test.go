@@ -110,7 +110,7 @@ var modTextBytes = map[int][]byte{
 func writeModTexts(t *testing.T, root string, event int) string {
 	t.Helper()
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
-	dir := filepath.Join(root, replaceModID, "mission", lang, "text")
+	dir := filepath.Join(root, replaceModID, filepath.FromSlash(assembledMission(lang, 20).Pages(lang)))
 	for name, body := range map[string]string{
 		fmt.Sprintf("event%02d.txt", event): modTextUTF8,
 		"briefmap.txt":                      "Ambush ahead: Засада\r\n",
@@ -259,7 +259,7 @@ func TestReleaseMapReportNamesAMessageTheModGivesNoPage(t *testing.T) {
 	install := os.Getenv("AGAINROM_ASSETS")
 	lang := modrt.LanguageFor(BaseID(InspectInstall(install)))
 	dir := filepath.Join(root, guestModID)
-	host := filepath.Join(dir, "mission", lang, "map.alm")
+	host := assembledMap(dir, lang, 10)
 	raw, err := os.ReadFile(host)
 	if err != nil {
 		t.Fatal(err)
@@ -285,7 +285,7 @@ func TestReleaseMapReportNamesAMessageTheModGivesNoPage(t *testing.T) {
 	if rows := rule(); len(rows) != 0 {
 		t.Fatalf("the copied texts leave %d messages without a page: %+v", len(rows), rows)
 	}
-	pages, _ := filepath.Glob(filepath.Join(dir, "mission", lang, "text", "event*.txt"))
+	pages, _ := filepath.Glob(filepath.Join(dir, filepath.FromSlash(assembledMission(lang, 10).Pages(lang)), "event*.txt"))
 	if len(pages) == 0 {
 		t.Fatal("the copy holds no event page")
 	}

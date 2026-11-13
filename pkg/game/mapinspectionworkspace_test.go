@@ -346,7 +346,7 @@ func TestMapEditorWorkspaceRefusesBeforeChangingFiles(t *testing.T) {
 	if !reflect.DeepEqual(before, tree(t, folder)) || string(s.workspace.Pages["title.txt"]) != "Changed" {
 		t.Fatal("refused reopen lost a draft")
 	}
-	writeTestPlayInput(t, filepath.Join(folder, "mission/map.text/event99.txt"), bytes.Repeat([]byte{'A'}, mod.MaxFileBytes+1))
+	writeTestPlayInput(t, filepath.Join(folder, filepath.FromSlash(s.place().Pages("")), "event99.txt"), bytes.Repeat([]byte{'A'}, mod.MaxFileBytes+1))
 	before = tree(t, folder)
 	if _, err := s.SaveIntoMod(); err == nil {
 		t.Fatal("published a package the normal loader refuses")

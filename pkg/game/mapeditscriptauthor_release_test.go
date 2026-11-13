@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"image"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,15 +15,7 @@ func newScriptAuthorMod(t *testing.T) (string, *ui.MapEditor, *MapInspector) {
 	t.Helper()
 	root := newMapMod(t)
 	folder := filepath.Join(root, newMapModID)
-	declaration := filepath.Join(folder, "data", "missions.toml")
-	b, err := os.ReadFile(declaration)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(declaration, append(b, []byte("texts = \"mission/text\"\n")...), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	writeTestPlayInput(t, filepath.Join(folder, "mission", "text", "event01.txt"), []byte("Stage one"))
+	writeTestPlayInput(t, filepath.Join(folder, "maps", "map.text", "event01.txt"), []byte("Stage one"))
 	x := installedInspector(t)
 	if err := x.SetMod(folder); err != nil {
 		t.Fatal(err)
@@ -56,7 +47,7 @@ func TestReleaseScriptWindowScenarioContinuesFromSAVColdLOAD(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	root, e, x := newScriptAuthorMod(t)
 	reopened := x.Editor()
-	if err := reopened.Open(filepath.Join(root, newMapModID, "mission", "map.alm")); err != nil {
+	if err := reopened.Open(newMapModTarget(root)); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(reopened.Document().SourceBytes, e.Document().SourceBytes) {

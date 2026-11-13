@@ -116,7 +116,11 @@ func TestReleaseEditorPlacedTrapCastsInTestPlay(t *testing.T) {
 				}
 			}
 		}
-		out, err := os.ReadFile(filepath.Join(modsDir, TestPlayModID, testPlayMap))
+		played, _ := filepath.Glob(filepath.Join(modsDir, TestPlayModID, "maps", "*.alm"))
+		if len(played) != 1 {
+			t.Fatalf("the test mod holds %d maps, want 1", len(played))
+		}
+		out, err := os.ReadFile(played[0])
 		if err != nil {
 			t.Fatal(err)
 		}

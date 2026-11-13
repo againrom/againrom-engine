@@ -8,8 +8,7 @@
 [[mission]]
 key      = "first"
 number   = 25
-map      = "mission/{lang}/map.alm"
-texts    = "mission/{lang}/text"
+map      = "maps/{lang}/m10.alm"
 title    = "first.title"
 after    = 20
 guest    = 22
@@ -18,8 +17,7 @@ chapter  = 30
 [[mission]]
 key      = "second"
 number   = 26
-map      = "mission/{lang}/map.alm"
-texts    = "mission/{lang}/text"
+map      = "maps/{lang}/m10.alm"
 title    = "second.title"
 after    = 25
 gold     = 100

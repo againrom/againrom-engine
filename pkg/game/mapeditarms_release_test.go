@@ -206,7 +206,7 @@ func armsCopyMod(t *testing.T, c armsCopy, add func(s ui.InspectionScript)) stri
 	t.Helper()
 	root := newMapMod(t)
 	modDir := filepath.Join(root, newMapModID)
-	target := filepath.Join(modDir, "mission", "map.alm")
+	target := newMapModTarget(root)
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
