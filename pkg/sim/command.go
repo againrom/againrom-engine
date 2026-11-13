@@ -56,6 +56,12 @@ func PickUp(entity EntityID, at CellPoint) Command {
 	return Command{Kind: KindPickUp, Entity: entity, X: at.X, Y: at.Y}
 }
 
+// CollectPickUp is the collect key's pickup order: PickUp whose pending
+// pickup searches again after its take.
+func CollectPickUp(entity EntityID, at CellPoint) Command {
+	return Command{Kind: KindPickUp, Entity: entity, X: at.X, Y: at.Y, Spell: pickupCollects}
+}
+
 // Kill is the debug kill: it leaves the historic shallow dead value behind.
 func Kill(entity EntityID) Command {
 	return Command{Kind: KindKill, Entity: entity}

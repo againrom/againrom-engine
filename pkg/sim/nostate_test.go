@@ -361,7 +361,7 @@ var nstPinned = []struct {
 	}},
 	{"PendingOrder", reflect.TypeOf(PendingOrder{}), []nstField{
 		{"Kind", "uint8"}, {"RowAdmitted", "bool"}, {"Target", "sim.EntityID"}, {"Spell", "uint16"},
-		{"X", "int32"}, {"Y", "int32"},
+		{"X", "int32"}, {"Y", "int32"}, {"Collect", "bool"},
 	}},
 	{"Bounds", reflect.TypeOf(Bounds{}), []nstField{
 		{"Width", "int32"},

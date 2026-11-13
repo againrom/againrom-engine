@@ -257,7 +257,8 @@ const (
 )
 
 // MapGrab carries the silent underfoot key, the clicked sack's actor and cell,
-// or the collect key's selected actor. The wiring tier owns pickup planning.
+// or the collect key's selected actor with its place in the press in col, 0
+// for the first. The wiring tier owns pickup planning.
 type MapGrab func(entity uint32, col, row int, action GrabAction)
 
 // MapStance issues one CELL-FREE STANDING ORDER into whatever the loader put

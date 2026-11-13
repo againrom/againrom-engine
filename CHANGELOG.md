@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] Change one saved Smoothing setting in Game Options or with Ctrl+O across game screens.
+- [ROM2] P now sends the first selected hero who sees a sack to collect sacks one after another, and he holds his ground when none is left in reach; heroes sent to the same sack no longer wait for each other.
 
 ### For map makers and modders
 

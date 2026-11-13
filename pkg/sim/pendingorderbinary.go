@@ -7,6 +7,11 @@ import (
 
 const pendingOrderFormVersion byte = 102
 
+// pendingCollectBit marks PendingOrder.Collect in a row's state byte, above
+// the actor state (at most 0x18) and below RowAdmitted's 0x80. Forms written
+// before it hold the bit clear.
+const pendingCollectBit byte = 0x40
+
 func (w *World) appendPendingOrders(b []byte) []byte {
 	count := 0
 	for _, e := range w.entities {
@@ -31,6 +36,9 @@ func (w *World) appendPendingOrders(b []byte) []byte {
 		}
 		if p.RowAdmitted {
 			state |= 0x80
+		}
+		if p.Collect {
+			state |= pendingCollectBit
 		}
 		b = append(b, p.Kind, state)
 		b = binary.LittleEndian.AppendUint16(b, p.Spell)
@@ -66,9 +74,9 @@ func (w *World) unmarshalPendingOrders(data []byte, proof formProof) error {
 			return fail()
 		}
 		prior = id
-		p := PendingOrder{Kind: data[o+4], RowAdmitted: data[o+5]&0x80 != 0, Spell: binary.LittleEndian.Uint16(data[o+6:]), Target: EntityID(binary.LittleEndian.Uint32(data[o+8:])), X: int32(binary.LittleEndian.Uint32(data[o+12:])), Y: int32(binary.LittleEndian.Uint32(data[o+16:]))}
+		p := PendingOrder{Kind: data[o+4], RowAdmitted: data[o+5]&0x80 != 0, Collect: data[o+5]&pendingCollectBit != 0, Spell: binary.LittleEndian.Uint16(data[o+6:]), Target: EntityID(binary.LittleEndian.Uint32(data[o+8:])), X: int32(binary.LittleEndian.Uint32(data[o+12:])), Y: int32(binary.LittleEndian.Uint32(data[o+16:]))}
 		next.entities[i].PendingOrder = p
-		if state := data[o+5] & 0x7f; state != 0 {
+		if state := data[o+5] &^ (0x80 | pendingCollectBit); state != 0 {
 			if !next.entities[i].Retreat.Known || !actorStateDefined(state-1) {
 				return fail()
 			}

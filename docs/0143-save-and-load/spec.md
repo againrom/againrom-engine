@@ -86,6 +86,7 @@ no state), or **rides**.
 | `visualLocalNext` | derivable | rebuilt from the restored World's NextEntityID after actor bindings are remapped; it is the local allocator watermark used to advance the persisted visual allocator, never an independent saved identity source |
 | `swing`, `phase` | **rides** | the pair is one memory: `phase` is what a transition is detected against, and a zero `phase` over a mid-swing world restarts the run and re-fires its sound |
 | `groupTag` | **rides** | the next group order's tag; reset to zero it reuses tags the world already carries |
+| `collectOrdered` | derivable | whether the collect key press being dispatched has ordered a member; the press's first member resets it, so no saved value is read |
 | `fog.explored` | **rides** | what has ever been seen is the player's own map memory and its loss is permanent and visible; `fog.visible` is NOT carried — it is recomputed from the world at open |
 | `sched` | derivable | the map's own schedule, indexed by ABSOLUTE tick, so a resume at tick T reads the same row it would have |
 | `units`, `view`, `clock`, `last`, `sounds`, `swingSound`, `spellSound` | derivable | install assets and the running viewer, handed in at open |

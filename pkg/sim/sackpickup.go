@@ -22,14 +22,19 @@ type SackDocuments struct {
 // taker, the sack, each holder's pack before and after the take (the taker,
 // then the documents' holder when he is another actor), and the local
 // player's purse before and after, the pairs a script grant reports too.
-// Order is the command a driver queues for SackPickupOrder.
+// Order is the command a driver queues for SackPickupOrder, and for any
+// outcome when Next is set: the collect order's next search.
 type SackPickup struct {
 	Taker   EntityID
 	Sack    Sack
 	Holders []ItemGrant
 	Purse   PurseCredit
 	Order   Command
+	Next    bool
 }
+
+// pickupCollects is the Spell operand of CollectPickUp.
+const pickupCollects uint16 = 1
 
 // SackPickupOutcome is how one pickup call ended.
 type SackPickupOutcome uint8
@@ -61,34 +66,44 @@ func (w *World) OrderSackPickup(taker EntityID, at CellPoint) (order Command, ok
 	return PickUp(taker, at), true
 }
 
-// OrderSackCollect plans one hero's collect key through the pickup admission.
+// OrderSackCollect plans one hero's collect key through the pickup admission:
+// the collect pickup of the found sack; refused when the search finds none.
+// SettleSackPickup calls it again after each collect take.
 // DIV-4882, DIV-4883, DIV-4884.
 func (w *World) OrderSackCollect(taker EntityID) (order Command, ok bool) {
-	i := indexOfEntity(w.entities, taker)
-	if !w.game.orders.collectSacks || i < 0 {
+	e, ok := w.collectTaker(taker)
+	if !ok {
 		return order, false
 	}
-	e := w.entities[i]
-	if !e.Alive() || e.OffMap || e.Owner != SelfSlot || !InPersistBand(e.TypeID) {
-		return order, false
-	}
-	if order, ok = w.OrderSackPickup(taker, CellPoint{X: e.X, Y: e.Y}); ok {
-		return order, true
+	if _, ok = w.OrderSackPickup(taker, CellPoint{X: e.X, Y: e.Y}); ok {
+		return CollectPickUp(taker, CellPoint{X: e.X, Y: e.Y}), true
 	}
 	probe := func(x, y int64) bool {
 		if x < 0 || y < 0 || x >= int64(w.bounds.Width) || y >= int64(w.bounds.Height) {
 			return false
 		}
-		candidate, accepted := w.OrderSackPickup(taker, CellPoint{X: int32(x), Y: int32(y)})
+		at := CellPoint{X: int32(x), Y: int32(y)}
+		_, accepted := w.OrderSackPickup(taker, at)
 		if accepted {
-			order = candidate
+			order = CollectPickUp(taker, at)
 		}
 		return accepted
 	}
 	if walkCellRings(cellOf(&e), int64(e.SightWord(e.Humanoid)>>8), cellRingWalk{firstStep: true}, probe) {
 		return order, true
 	}
-	return GroupStance(taker, OrderStandGround, 0), true
+	return order, false
+}
+
+// collectTaker is the collect key's member test: a living hero of the local
+// player on the map, in a game whose pickup key collects.
+func (w *World) collectTaker(taker EntityID) (Entity, bool) {
+	i := indexOfEntity(w.entities, taker)
+	if !w.game.orders.collectSacks || i < 0 {
+		return Entity{}, false
+	}
+	e := w.entities[i]
+	return e, e.Alive() && !e.OffMap && e.Owner == SelfSlot && InPersistBand(e.TypeID)
 }
 
 // PickUpSackUnderfoot is the pickup key and the headless take: the taker takes
@@ -120,38 +135,65 @@ func (w *World) PickUpSackUnderfoot(taker EntityID, docs SackDocuments) (SackPic
 	return w.pickUpSack(taker, sack, docs)
 }
 
-// SettleSackPickup is the after-Step settle of a pending pickup order, run by
-// the driver once after each Step: the first actor holding one, in entity
-// order. A dead or off-map taker's order is cancelled. On arrival a sack gone
-// from the cell completes the pickup without a transfer (AI-645); otherwise
-// the sack is taken, and a refused take ends the order, so it never loops.
-func (w *World) SettleSackPickup(docs SackDocuments) (SackPickup, SackPickupOutcome) {
-	i := -1
-	for k := range w.entities {
-		if w.entities[k].PendingOrder.Kind == PendingPickup {
-			i = k
-			break
+// SackPickupSettled is one pending pickup the settle ended, and how.
+type SackPickupSettled struct {
+	SackPickup
+	Outcome SackPickupOutcome
+}
+
+// SettleSackPickup is the after-Step settle of the pending pickup orders, run
+// by the driver once after each Step over every actor holding one, in entity
+// order. A dead or off-map taker's order is cancelled. A sack gone from the
+// order's cell completes the pickup without a transfer (AI-645) once the
+// taker stands at rest on the cell, or off it with his walk ended, as when
+// another actor holds the cell, so he never waits for ever. An arrived taker
+// takes the sack; a refused take ends the order, so it never loops. After a
+// take, or a sack gone, a collect pickup answers its next search in Order
+// with Next set: the next pickup, or Stand Ground.
+func (w *World) SettleSackPickup(docs SackDocuments) []SackPickupSettled {
+	var settled []SackPickupSettled
+	for i := range w.entities {
+		e := w.entities[i]
+		if e.PendingOrder.Kind != PendingPickup {
+			continue
+		}
+		if !e.Alive() || e.OffMap {
+			w.cancelSackPickup(e.ID)
+			continue
+		}
+		collect := e.PendingOrder.Collect
+		sack, ok := w.groundSackAt(e.PendingOrder.X, e.PendingOrder.Y)
+		there := e.X == e.PendingOrder.X && e.Y == e.PendingOrder.Y
+		if !w.sackPickupArrived(i) || !there && (ok || e.HasTarget) {
+			continue
+		}
+		if !ok {
+			w.CompleteSackPickup(e.ID)
+			settled = append(settled, SackPickupSettled{w.collectNext(SackPickup{Taker: e.ID}, collect), SackPickupNone})
+			continue
+		}
+		taken, outcome := w.pickUpSack(e.ID, sack, docs)
+		w.cancelSackPickup(e.ID)
+		if outcome == SackPickupTaken {
+			taken = w.collectNext(taken, collect)
+		}
+		settled = append(settled, SackPickupSettled{taken, outcome})
+	}
+	return settled
+}
+
+// collectNext answers a collect pickup's next search from the taker's cell;
+// a failed search ends the collecting at Stand Ground (DIV-4884).
+func (w *World) collectNext(taken SackPickup, collect bool) SackPickup {
+	if !collect {
+		return taken
+	}
+	if taken.Order, taken.Next = w.OrderSackCollect(taken.Taker); !taken.Next {
+		if _, ok := w.collectTaker(taken.Taker); ok {
+			taken.Order, taken.Next = GroupStance(taken.Taker, OrderStandGround, 0), true
 		}
 	}
-	if i < 0 {
-		return SackPickup{}, SackPickupNone
-	}
-	e := w.entities[i]
-	if !e.Alive() || e.OffMap {
-		w.cancelSackPickup(e.ID)
-		return SackPickup{}, SackPickupNone
-	}
-	if e.X != e.PendingOrder.X || e.Y != e.PendingOrder.Y || !w.sackPickupArrived(i) {
-		return SackPickup{}, SackPickupWaiting
-	}
-	sack, ok := w.groundSackAt(e.X, e.Y)
-	if !ok {
-		w.CompleteSackPickup(e.ID)
-		return SackPickup{}, SackPickupNone
-	}
-	taken, outcome := w.pickUpSack(e.ID, sack, docs)
-	w.cancelSackPickup(e.ID)
-	return taken, outcome
+	return taken
 }
 
 // CheatPickupAll is #pickup all: every ground sack, first to last, is the

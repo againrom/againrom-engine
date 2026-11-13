@@ -214,6 +214,11 @@ type mapWorld struct {
 	// world resumed from its bytes needs nothing of it.
 	groupTag uint32
 
+	// collectOrdered is whether the collect key press being dispatched has
+	// ordered a member (grab). The press's calls are one synchronous walk, so
+	// nothing saved or hashed reads it.
+	collectOrdered bool
+
 	// tiers is which TIER each entity's art is drawn in, keyed by entity id. It
 	// lives here for the sixth time for the reason every memory above it does
 	// — born with the map, dropped with it, read by nothing canonical — and
@@ -3720,7 +3725,17 @@ func (mw *mapWorld) grab(entity uint32, col, row int, action ui.GrabAction) {
 		}
 		mw.pickUpUnderfoot(sim.EntityID(mw.invSubject.ID))
 	case ui.GrabCollect:
+		// One press orders the first member, in the selection's order, whose
+		// search finds a sack; col is the member's place in the press
+		// (DIV-4882).
+		if col == 0 {
+			mw.collectOrdered = false
+		}
+		if mw.collectOrdered {
+			return
+		}
 		if order, ok := mw.world.OrderSackCollect(sim.EntityID(entity)); ok {
+			mw.collectOrdered = true
 			mw.queueGroup(func(tag uint32) sim.Command {
 				order.Group = tag
 				return order
@@ -3741,11 +3756,21 @@ func (mw *mapWorld) orderPickup(id sim.EntityID, x, y int32) {
 	}
 }
 
-// settlePickup is the World's after-Step settle of a pending pickup order,
-// once per Step, and the pickup lines when it took the sack.
+// settlePickup is the World's after-Step settle of the pending pickup orders,
+// once per Step: the pickup lines for each sack taken, and each collect
+// order's next search queued as its taker's order.
 func (mw *mapWorld) settlePickup() {
-	if taken, outcome := mw.world.SettleSackPickup(mw.questDocuments()); outcome == sim.SackPickupTaken {
-		mw.tookSack(taken)
+	for _, taken := range mw.world.SettleSackPickup(mw.questDocuments()) {
+		if taken.Outcome == sim.SackPickupTaken {
+			mw.tookSack(taken.SackPickup)
+		}
+		if taken.Next {
+			mw.queueGroup(func(tag uint32) sim.Command {
+				order := taken.Order
+				order.Group = tag
+				return order
+			})
+		}
 	}
 }
 

@@ -182,9 +182,11 @@ const (
 	KindUsePotion uint8 = 20
 	// Scroll unit orders carry target in X and carried index in Spell; point
 	// orders carry the cell in X/Y and the same carried index in Spell.
-	KindUseScroll        uint8 = 21
-	KindUseScrollAt      uint8 = 22
-	KindUseStructure     uint8 = 23
+	KindUseScroll    uint8 = 21
+	KindUseScrollAt  uint8 = 22
+	KindUseStructure uint8 = 23
+	// KindPickUp walks to the sack at (X, Y) and holds a pending pickup there;
+	// Spell pickupCollects marks the collect key's repeating pickup.
 	KindPickUp           uint8 = 24
 	KindRearrangeCarried uint8 = 25
 	// KindPlayerParameter is ROM1 player-command opcode 0x46. Player is the
@@ -616,6 +618,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// hit; it fires only when the order actually changes the target,
 			// so a re-issued identical destination keeps its route.
 			w.attachMoveOrder(i, c.X, c.Y, c.Kind == KindPickUp)
+			if c.Kind == KindPickUp && c.Spell == pickupCollects {
+				e.PendingOrder.Collect = true
+			}
 			w.leaveSupport(i)
 			// A MOVEMENT ORDER IN FORCE KEEPS THE AUTOMATIC CAST AWAY: the
 			// sweep acts only at the moment a player's cast would act at once

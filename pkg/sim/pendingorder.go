@@ -18,6 +18,9 @@ type PendingOrder struct {
 	Target      EntityID
 	Spell       uint16
 	X, Y        int32
+	// Collect marks a pickup the collect key gave: after the take the taker
+	// searches again from its cell (SettleSackPickup). DIV-4884.
+	Collect bool `json:",omitempty"`
 }
 
 // IsCastRow reports a queued manual cast, at an actor or at a cell.
@@ -159,7 +162,7 @@ func (w *World) pendingOrderFault() error {
 			}
 			continue
 		}
-		if p.Kind > PendingScroll || !e.Alive() && !e.Dying() || e.HasPendingAttackTarget {
+		if p.Kind > PendingScroll || p.Collect && p.Kind != PendingPickup || !e.Alive() && !e.Dying() || e.HasPendingAttackTarget {
 			return fmt.Errorf("sim: pending order conflicts with actor state")
 		}
 		progress := w.pendingLogicalProgress(indexOfEntity(w.entities, e.ID))

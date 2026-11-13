@@ -2184,8 +2184,8 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 				if grab := a.flow.grab; grab != nil {
 					if in.GrabReply {
 						if v.selectionSummary()&selSummaryNeutral == 0 {
-							for _, id := range v.marked() {
-								grab(id, 0, 0, GrabCollect)
+							for k, id := range v.marked() {
+								grab(id, k, 0, GrabCollect)
 							}
 						}
 					} else {
