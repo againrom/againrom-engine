@@ -241,7 +241,9 @@ type MapEditor struct {
 	down, moved                 bool
 	press                       image.Point
 	window                      image.Point
-	focusedReference            int // 1-based on the selected record; 0 means none
+	deviceScale                 float64       // device pixels per point; 0 and 1 draw on the window itself
+	pointsFrame                 *ebiten.Image // the frame in points at another device scale
+	focusedReference            int           // 1-based on the selected record; 0 means none
 	recordDrag                  *editorRecordDrag
 	cancelledDrag               bool // consume the remainder of a cancelled press
 	textSmoothingEnabled        bool
@@ -614,11 +616,7 @@ func (e *MapEditor) Update() error {
 	if e.PollPathDialog() {
 		return nil
 	}
-	in := readEditorInput
-	if e.nativeInput != nil {
-		in = e.nativeInput
-	}
-	native := in()
+	native := e.readNative()
 	if e.pathDialog.rearm {
 		if !native.keysDown && !native.canvas.PrimaryDown && !native.canvas.SecondaryDown && !native.canvas.MiddleDown {
 			e.pathDialog.rearm = false
@@ -770,7 +768,7 @@ func (e *MapEditor) Layout(w, h int) (int, int) {
 	return w, h
 }
 
-func (e *MapEditor) Draw(screen *ebiten.Image) {
+func (e *MapEditor) drawPoints(screen *ebiten.Image) {
 	screen.Fill(editorInk)
 	e.textCaptured, e.textKept = 0, 0
 	e.textLayers = e.textLayers[:0]
@@ -992,4 +990,19 @@ func (g *frameGuard) Layout(w, h int) (int, int) {
 	}
 	defer func() { g.catch(recover()) }()
 	return g.game.Layout(w, h)
+}
+
+// LayoutF passes the library's layout to the game's own LayoutF, which the
+// guard would otherwise hide.
+func (g *frameGuard) LayoutF(w, h float64) (lw, lh float64) {
+	lw, lh = max(w, 1), max(h, 1)
+	if g.failure != nil {
+		return lw, lh
+	}
+	defer func() { g.catch(recover()) }()
+	if l, ok := g.game.(ebiten.LayoutFer); ok {
+		return l.LayoutF(w, h)
+	}
+	iw, ih := g.game.Layout(int(lw), int(lh))
+	return float64(iw), float64(ih)
 }

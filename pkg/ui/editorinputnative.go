@@ -15,6 +15,8 @@ type editorNativeInput struct {
 	keysDown, closing    bool
 }
 
+// readEditorInput samples the engine's input; the pointer is in the window's
+// device pixels.
 func readEditorInput() editorNativeInput {
 	return editorNativeInput{
 		pressed: heldkey.Pressed, justPressed: inpututil.IsKeyJustPressed,

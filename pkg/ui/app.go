@@ -1098,7 +1098,8 @@ func (a *App) SetCursorRegistry(reg *CursorRegistry) {
 // a.place is the TOWN FAMILY's native 640x480 frame: the main menu, picker,
 // chargen pages, town, shop, tavern, school and in-game menu. It remains 4:3
 // and is fitted uniformly. The map screen alone uses Viewer's height-768 frame
-// and expands horizontally to the window aspect.
+// and expands horizontally to the window aspect. The window size is in device
+// pixels (LayoutF).
 func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
 	if outsideWidth != a.winW || outsideHeight != a.winH {
 		a.tooltip.reset()

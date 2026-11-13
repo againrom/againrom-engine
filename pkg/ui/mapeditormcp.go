@@ -60,11 +60,7 @@ func (e *MapEditor) mcpTrackNative() {
 	if m.queue == nil || m.mcpHeld() {
 		return
 	}
-	in := readEditorInput
-	if e.nativeInput != nil {
-		in = e.nativeInput
-	}
-	c := in().canvas
+	c := e.readNative().canvas
 	m.nativeAt, m.nativeKnown = image.Pt(c.CursorX, c.CursorY), true
 }
 
