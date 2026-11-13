@@ -58,6 +58,9 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 		return nil, false, nil
 	}
 	d, err := s.changeWorkspace(func(w *editorWorkspaceState) error {
+		if err := s.fileMissionFixed(w); err != nil && key != "add" {
+			return err
+		}
 		p := &w.Package
 		switch key {
 		case "landing":

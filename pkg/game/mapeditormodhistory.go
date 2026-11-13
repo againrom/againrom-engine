@@ -94,7 +94,7 @@ func (s *mapInspectionEdits) refreshModSelection() {
 		return
 	}
 	m := d.Missions[d.Selected]
-	s.inspector.mod.selected = m.Key
+	s.inspector.mod.selected = m.RowID()
 	if b, err := os.ReadFile(filepath.Join(s.inspector.mod.dir, filepath.FromSlash(m.Map))); err == nil {
 		s.saved = b
 	}

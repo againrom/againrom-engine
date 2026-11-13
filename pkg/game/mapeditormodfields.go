@@ -16,6 +16,7 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	if p.Kind == mod.MissionReplace {
 		p.Party = nil
 	}
+	fixed := s.fileMissionFixed(s.workspace) != nil
 	for i := range out {
 		f := &out[i]
 		f.Label = x.modFieldLabel(f.Key)
@@ -68,7 +69,7 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 				}
 			}
 		}
-		if f.Key == "chapter" || f.Key == "id" && x.mod != nil || p.Kind == mod.MissionReplace && (f.Key == "after" || f.Key == "guest" || f.Key == "gold") || len(p.Party) > 0 && (f.Key == "guest" || f.Key == "chapter") {
+		if f.Key == "chapter" || f.Key == "id" && x.mod != nil || fixed && (f.Key == "kind" || f.Key == "number") || p.Kind == mod.MissionReplace && (f.Key == "after" || f.Key == "guest" || f.Key == "gold") || len(p.Party) > 0 && (f.Key == "guest" || f.Key == "chapter") {
 			f.ReadOnly = true
 			f.Lines = []ui.InspectionLine{{Text: x.inspectionUTF8(f.Label+": ") + fieldLabel(*f)}}
 		}

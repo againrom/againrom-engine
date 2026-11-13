@@ -1434,6 +1434,7 @@
 "editor.mod.err.landing" = "choose Companion or Party"
 "editor.mod.err.nomission" = "select a mission"
 "editor.mod.err.lastmission" = "a mod needs an enabled mission"
+"editor.mod.err.filemission" = "the map file %s names this mission by its file name; rename or remove the file in the mod folder to change that"
 "editor.mod.err.nonumber" = "no unused mission number"
 "editor.mod.err.partyfield" = "invalid party field"
 "editor.mod.err.partyfull" = "a party has at most %d members"

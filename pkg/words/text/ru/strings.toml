@@ -1428,6 +1428,7 @@
 "editor.mod.err.landing" = "выберите Спутник или Отряд"
 "editor.mod.err.nomission" = "выберите миссию"
 "editor.mod.err.lastmission" = "в моде должна остаться включенная миссия"
+"editor.mod.err.filemission" = "файл карты %s задает эту миссию своим именем; чтобы это изменить, переименуйте или удалите файл в папке мода"
 "editor.mod.err.nonumber" = "нет свободного номера миссии"
 "editor.mod.err.partyfield" = "неверное поле отряда"
 "editor.mod.err.partyfull" = "в отряде не больше %d участников"

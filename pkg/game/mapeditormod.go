@@ -25,7 +25,7 @@ func (m *editorMod) document() *editorModDocument {
 	for i, mission := range m.missions.Missions {
 		d.Original = append(d.Original, mod.CloneMission(mission))
 		d.Missions = append(d.Missions, mod.CloneMission(mission))
-		if mission.Key == m.selected {
+		if mission.RowID() == m.selected {
 			d.Selected = i
 		}
 	}
@@ -67,7 +67,8 @@ func (d *editorModDocument) selected(p editorPackageSpec, word func(string) stri
 		return mod.Mission{}, errors.New(word("editor.mod.err.nomission"))
 	}
 	m := mod.CloneMission(d.Missions[d.Selected])
-	if m.Off {
+	// A mission its map file declares takes its route from the file's name.
+	if m.Off || m.ByFileName() {
 		return m, nil
 	}
 	m.Kind, m.Number = p.Kind, p.Number
@@ -82,6 +83,15 @@ func (d *editorModDocument) selected(p editorPackageSpec, word func(string) stri
 		m.Guest, m.Chapter, m.Carry = 0, 0, ""
 	}
 	return m, nil
+}
+
+// fileMissionFixed refuses a change of the selected mission's route or place
+// in the list when its map file declares it: the file's name is the route.
+func (s *mapInspectionEdits) fileMissionFixed(w *editorWorkspaceState) error {
+	if d := w.Project; d != nil && d.Selected >= 0 && d.Selected < len(d.Missions) && d.Missions[d.Selected].ByFileName() {
+		return fmt.Errorf(s.inspector.word("editor.mod.err.filemission"), d.Missions[d.Selected].Map)
+	}
+	return nil
 }
 
 // retainedPackageFiles is the project's files and rows as the save of map b
@@ -123,6 +133,12 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 	if m.Off {
 		return nil, nil, m, none, errors.New(s.inspector.word("editor.mod.err.disabledmap"))
 	}
+	if m.ByFileName() {
+		// The layout does not rename a map file that is its own declaration.
+		if err := extendedName(b, m.Map); err != nil {
+			return nil, nil, m, none, err
+		}
+	}
 	d.Files[m.Map] = bytes.Clone(b)
 	d.Missions[d.Selected] = m
 	extended := map[string]bool{m.Key: s.model != nil && s.model.Extended()}
@@ -138,7 +154,10 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 	if err != nil {
 		return nil, nil, m, none, err
 	}
-	d.Files[mod.MissionsFile] = data
+	// A mod with no missions file and no row to write keeps none.
+	if len(data) != 0 || len(d.Source) != 0 {
+		d.Files[mod.MissionsFile] = data
+	}
 	d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
 	if err != nil {
 		return nil, nil, m, none, err

@@ -191,7 +191,7 @@ func (m *editorMod) entryFor(source string) (mod.Mission, bool) {
 	if m.selected != "" {
 		entries = append([]mod.Mission(nil), entries...)
 		for n, e := range entries {
-			if e.Key == m.selected {
+			if e.RowID() == m.selected {
 				entries[0], entries[n] = entries[n], entries[0]
 				break
 			}

@@ -2215,6 +2215,14 @@ Alt+Up/Down changes list order; After win changes the chain. Removing a chain
 link asks before reconnecting its successors. Ctrl+Z and Ctrl+Y retain history
 across map switches. Undo after Save makes the project dirty again.
 
+A mission the mod replaces by a map file named as its number is a row of the
+mission list too, after the rows of `data/missions.toml` and named by its file
+(`10.alm`). The list and the campaign graph open its map as they open any
+row's. The file's name is its route: Route and Mission number are read-only,
+Move and Remove are refused, and Save writes the map and its pages and no row
+for it. An extended map saved under such an `.alm` name is refused; rename the
+file to `.almx` in the mod folder.
+
 A handwritten mod's first Save makes a complete copy under another parent
 with the same ID. ID stays fixed. Its scripts, translations, hidden files,
 replacement/disabled declarations and unexposed fields are retained. Disabled

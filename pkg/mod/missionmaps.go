@@ -34,6 +34,32 @@ func missionMapNumber(name string) (int, bool) {
 	return n, err == nil && n <= maxMissionNumber
 }
 
+// ByFileName reports a replacing mission the file form declares: its map
+// file is the declaration, and no row of the missions file holds it.
+func (m Mission) ByFileName() bool { return m.byName }
+
+// RowID names m among its mod's declarations: the key of a row, or the map
+// file of a file-form mission, which has no key. A key holds no dot, so the
+// two never meet.
+func (m Mission) RowID() string {
+	if m.byName {
+		return m.Map
+	}
+	return m.Key
+}
+
+// rows are the missions the missions file holds: missions without those the
+// file form declares.
+func rows(missions []Mission) []Mission {
+	out := make([]Mission, 0, len(missions))
+	for _, m := range missions {
+		if !m.byName {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // readMissionMaps is the file form of the missions kind. A file in the mod's
 // top or in its maps folder whose name is a mission number, and that no
 // mission row of the mod names as its map, is a replacing mission of that

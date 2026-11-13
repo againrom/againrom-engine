@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 - [ROM1] The mod window (W) has a Campaign graph page: the start, every mission, every town and what its tavern, shop and school hand out, with arrows for what follows what. With a mod open it marks the missions and arrows the mod changes, and a click on a mission opens its map. The page only shows the campaign and changes nothing.
 - [BASE] In the map editor, the trigger window's Copy (also Tools, Copy trigger) makes a copy of the selected trigger right after it, named with "(copy)", which you then change like any other trigger; Undo removes it.
 - [ROM1] A save made in town loads after you edit or update one of its mods or change a mod setting. Items, skill levels, clothing layers, guests and campaign missions the changed mods no longer hold are taken away, and the Load page lists them; items the mods still define stay yours. A save made inside a mission, or under other mods, is still refused.
+- [BASE] Map editor: missions that a mod replaces with a map file named by the mission number (for example 10.alm) now appear in the mod's mission list and open from the campaign graph with a click.
 
 ## 0.153.0
 

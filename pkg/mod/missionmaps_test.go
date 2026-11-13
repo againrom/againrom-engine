@@ -274,3 +274,25 @@ func TestAFileAndALaterModsRowOfOneMissionMergeInLoadOrder(t *testing.T) {
 		t.Fatalf("%+v", m)
 	}
 }
+
+// The writer of the missions file writes no row for a mission a map file
+// declares: with one among the missions the source stays byte for byte, and
+// a mod of map files alone has no missions file to write.
+func TestTheMissionsWriterWritesNoRowForAMapFile(t *testing.T) {
+	const src = "# kept\n[[mission]]\nkind = \"replace\"\nkey = \"row\"\nnumber = 20\nmap = \"maps/twenty.alm\"\n"
+	d, err := ParseMissions("m", MissionsFile, []byte(src), func(string) (string, bool) { return "", false }, "en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	named := Mission{Mod: "m", File: "10.alm", Kind: MissionReplace, Number: 10, Map: "10.alm", byName: true}
+	if !named.ByFileName() || named.RowID() != "10.alm" || d.Missions[0].ByFileName() || d.Missions[0].RowID() != "row" {
+		t.Fatalf("row ids %q and %q", named.RowID(), d.Missions[0].RowID())
+	}
+	all := []Mission{named, d.Missions[0]}
+	if out, err := WriteMissions([]byte(src), all, []Mission{d.Missions[0], named}); err != nil || string(out) != src {
+		t.Fatalf("%q, %v", out, err)
+	}
+	if out, err := WriteMissions(nil, []Mission{named}, []Mission{named}); err != nil || len(out) != 0 {
+		t.Fatalf("%q, %v", out, err)
+	}
+}

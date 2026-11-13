@@ -100,7 +100,12 @@ func missionIdentity(m Mission) string {
 	return m.Key
 }
 
+// WriteMissions is the missions file source with the rows before made the
+// rows after: a kept row keeps its lines but for the changed pairs, a new
+// row is appended. A mission the file form declares is its map file and
+// takes no row, so it is left out of both.
 func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
+	before, after = rows(before), rows(after)
 	tables, err := parseTOMLWith(source, tomlOptions{arrays: true})
 	if err != nil {
 		return nil, err

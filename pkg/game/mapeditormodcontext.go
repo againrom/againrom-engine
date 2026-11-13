@@ -107,7 +107,11 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // A mod the game refuses for its missions still opens: the missions are the
 // document the editor edits, and Save admits them again. The refusal is kept
 // for the overview and the context holds every other kind.
+//
+// The mod's mission list is the rows of its missions file and, from the
+// fork, the missions its map files replace by their names.
 func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, drafts ...map[string][]byte) string {
+	m.missions.Missions = slices.DeleteFunc(slices.Clone(m.missions.Missions), mod.Mission.ByFileName)
 	result, err := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
@@ -146,6 +150,14 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 	m.catalog = characterCatalog(f.Table)
 	m.fileOverrides = f.ModFileOverrides()
 	m.flow = &campaignFlow{campaign: f.Campaign.Value(), missions: tableMissions(f.Table)}
+	// A mission the mod replaces by a map file's name is a row of the mission
+	// list too, as the fork admitted it: after the rows of the missions file.
+	for _, named := range m.flow.missions.Missions {
+		if named.Mod == m.id && named.ByFileName() {
+			named.MapBytes, named.TextFiles, named.OtherLanguageTexts = nil, nil, nil
+			m.missions.Missions = append(m.missions.Missions, named)
+		}
+	}
 	return issue
 }
 

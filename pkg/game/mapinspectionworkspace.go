@@ -157,7 +157,7 @@ func (s *mapInspectionEdits) bindWorkspaceMod(w *editorWorkspaceState, source st
 		if entry, ok := m.entryFor(source); ok {
 			w.Package = modPackageSpec(entry, w.Package)
 			for i, mission := range w.Project.Missions {
-				if mission.Key == entry.Key {
+				if mission.RowID() == entry.RowID() {
 					w.Project.Selected = i
 					break
 				}
@@ -342,9 +342,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		if m := s.workspace.Project; m != nil {
 			field := ui.InspectionField{Key: "source", Label: "Source mission / Up, Down"}
 			for n, entry := range m.Missions {
-				name := entry.Key
+				name := entry.RowID()
 				if entry.Title != "" {
-					name = entry.Title + " (" + entry.Key + ")"
+					name = entry.Title + " (" + entry.RowID() + ")"
 				}
 				if entry.Off {
 					name = s.inspector.word("editor.mod.disabled")
@@ -450,6 +450,9 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		return next, err
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
+		if err := s.fileMissionFixed(w); err != nil {
+			return err
+		}
 		p := &w.Package
 		switch key {
 		case "kind":

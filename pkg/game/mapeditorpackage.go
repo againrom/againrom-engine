@@ -107,7 +107,7 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 	var d *ui.InspectionDocument
 	var err error
 	if entry, ok := x.mod.firstEnabled(); ok && !x.mod.packed {
-		x.mod.selected = entry.Key
+		x.mod.selected = entry.RowID()
 		d, err = x.Open(filepath.Join(dir, filepath.FromSlash(entry.Map)))
 	} else if s.model == nil {
 		// No map is open to show it over; the window shows the mod.
@@ -156,7 +156,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	previous := ""
 	if x.mod != nil {
 		previous = x.mod.selected
-		x.mod.selected = entry.Key
+		x.mod.selected = entry.RowID()
 	}
 	var candidate *ui.InspectionDocument
 	var err error
@@ -322,13 +322,13 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := x.SetMod(folder); err != nil {
 		return "", err
 	}
-	x.mod.selected = m.Key
+	x.mod.selected = m.RowID()
 	s.workspace.Project = x.mod.document()
 	s.workspace.Package.ID, s.workspace.Package.Title = x.mod.id, x.mod.title
 	s.workspace.Package.Manifest, _ = mod.ParseManifest(x.mod.manifest)
 	s.workspace.Project.Selected = -1
 	for i, entry := range x.mod.missions.Missions {
-		if m.Map != "" && entry.Key == m.Key {
+		if m.Map != "" && entry.RowID() == m.RowID() {
 			s.workspace.Project.Selected = i
 			s.workspace.Package = modPackageSpec(entry, s.workspace.Package)
 			break
