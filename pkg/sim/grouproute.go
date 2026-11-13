@@ -23,6 +23,23 @@ type groupRouteProfile struct {
 	recentBlow bool
 	// endsTargetlessEngage (DIV-4691).
 	endsTargetlessEngage bool
+	// belowFloorAt18: the radius the mode-18 setter with no range argument
+	// writes for a widest sum below MinimalGuardRange (R2-ENGINE-843); zero
+	// raises the sum to MinimalGuardRange.
+	belowFloorAt18 uint8
+}
+
+// spreadRadius is radiusSpread for a Group at programme byte b: the widest
+// sum, or for a sum below MinimalGuardRange the floor, or belowFloorAt18 at
+// programme 18.
+func (p *groupRouteProfile) spreadRadius(sum, b uint8) uint8 {
+	switch {
+	case sum >= minimalGuardRange:
+		return sum
+	case b == secondGuardRoute && p.belowFloorAt18 != 0:
+		return p.belowFloorAt18
+	}
+	return minimalGuardRange
 }
 
 // runsStampWindow reports whether a Group at programme byte b runs guard
@@ -64,6 +81,7 @@ var secondGameGroupRoute = groupRouteProfile{
 	stampWindow:                true,
 	recentBlow:                 false,
 	endsTargetlessEngage:       true,
+	belowFloorAt18:             20,
 }
 
 func (w *World) savedRoute(g *SavedGroup) uint8 {

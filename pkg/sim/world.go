@@ -2617,6 +2617,7 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	// silently take every group in every world out of formation.
 	w.resetFormations()
 	w.initializeROM2Script()
+	w.classThresholds()
 	w.constructCarriers(false)
 	w.fitScriptState()
 	w.presetRegisters()

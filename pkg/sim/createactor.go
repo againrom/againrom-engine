@@ -13,6 +13,9 @@ type actorCreationProfile struct {
 	// transient skips the whole-World check; no cast-tail check replaces it.
 	transient       bool
 	suppressRewards bool
+	// guards: the new Group then takes the guard setter at programme 1
+	// (rowGuardSetter); otherwise it keeps its order-none issue.
+	guards bool
 }
 
 // createActor is the one runtime builder of an actor and its group: the cheat
@@ -115,6 +118,9 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		}
 		if owner.Class == 1 {
 			n.savedGroupFor(id).Owner = owner
+		}
+		if p.guards {
+			setGroupWords(&n, n.savedGroupFor(id), []int{i}, rowGuardSetter, groupValues{order: orderGuard})
 		}
 		n.syncSavedActorCommand(i)
 	}

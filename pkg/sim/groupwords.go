@@ -91,9 +91,14 @@ var (
 	rowStanceStand = groupOrder{words: wordOrder, programme: true}
 	// rowStanceGuard is the load-time guard setter with no range argument
 	// (AI-450): the members' fine centroid at +0x24 and its cell at +0x28 and
-	// +0x00, their spread at +0x2a..+0x2c, +0x2d = +0x38 = +0x2c raised to
-	// MinimalGuardRange and +0x39 zero. An empty Group keeps the centroid.
+	// +0x00, their spread at +0x2a..+0x2c, +0x2d = +0x38 = +0x2c by the
+	// radius rule (spreadRadius) and +0x39 zero. An empty Group keeps the
+	// centroid.
 	rowStanceGuard = groupOrder{words: wordOrder | wordGeometry | wordPost | wordRadius | wordNotice, programme: true,
+		centroid: fineSubCells, radius: radiusSpread, notice: noticeFromRadius}
+	// rowGuardSetter is that setter at its own programme byte 1, with no
+	// +0x00 store: the second game's Summon Group (R2-ENGINE-788).
+	rowGuardSetter = groupOrder{words: wordOrder | wordGeometry | wordRadius | wordNotice,
 		centroid: fineSubCells, radius: radiusSpread, notice: noticeFromRadius}
 	// rowNativeRecord carries a native group record into a constructed
 	// Group: its order, base, roam counter and commanded cell.
@@ -187,7 +192,7 @@ func setGroupWords(w *World, g *SavedGroup, members []int, o groupOrder, v group
 		case radiusNotice:
 			g.AI[0x2d] = g.AI[0x38]
 		case radiusSpread:
-			g.AI[0x2d] = max(g.AI[0x2c], minimalGuardRange)
+			g.AI[0x2d] = w.game.groupRoute.spreadRadius(g.AI[0x2c], g.AI[0x20])
 		case radiusLatch:
 			w.latchWords(g)
 		}

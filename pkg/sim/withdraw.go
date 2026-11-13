@@ -36,6 +36,30 @@ func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 	}
 }
 
+// classThresholds gives each Human no player controls the Withdraw and Wimpy
+// of its class (R2-ENGINE-506): a spellbook HPmax and HPmax/4; else an attack
+// range above 1 on a unit not of movement type 3 (the air domain) HPmax/2 and
+// 0; else 0 and 0. The second game runs it at mission start.
+func (w *World) classThresholds() {
+	if !w.game.classThresholds {
+		return
+	}
+	for i := range w.entities {
+		e := &w.entities[i]
+		if !e.Humanoid || w.playerControlledUnit(*e) {
+			continue
+		}
+		switch {
+		case isMage(*e):
+			e.Withdraw, e.Wimpy = e.MaxHP, e.MaxHP/4
+		case w.attackRange(i) > 1 && e.Domain != DomainAir:
+			e.Withdraw, e.Wimpy = e.MaxHP/2, 0
+		default:
+			e.Withdraw, e.Wimpy = 0, 0
+		}
+	}
+}
+
 func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 	if _, using := w.structureUseIndex(w.entities[i].ID); using {
 		return

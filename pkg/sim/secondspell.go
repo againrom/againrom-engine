@@ -118,8 +118,9 @@ var SummonCreatureNames = [...]string{"Squirrel", "Turtle", "Foot_Animated"}
 // summonSkill is the Astral skill slot the Summon level reads.
 const summonSkill = 5
 
-// summonCreation is how Summon's creature is built: with the summoned mark.
-var summonCreation = actorCreationProfile{suppressRewards: true}
+// summonCreation is how Summon's creature is built: with the summoned mark,
+// in a Group under the guard setter (R2-ENGINE-788).
+var summonCreation = actorCreationProfile{suppressRewards: true, guards: true}
 
 // summonRadius is the radius of the placement search around the caster.
 const summonRadius = 6

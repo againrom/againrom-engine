@@ -93,6 +93,9 @@ type gameProfile struct {
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
+	// classThresholds: a computer Human's Withdraw and Wimpy come from its
+	// class at mission start (classThresholds).
+	classThresholds bool
 	// keepsSuppressedAcquirer: the engage refuses no suppressed acquirer
 	// (AI-GUARD-007).
 	keepsSuppressedAcquirer bool
@@ -198,6 +201,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
 		withdrawAnchorCells:        true,
+		classThresholds:            true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
 		castsUnseen:                true,

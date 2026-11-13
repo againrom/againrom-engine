@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Enemy people with a spellbook back away when hurt with a foe beside them and flee at a quarter of their health, and enemy archers back away below half; a small enemy guard group that sees little chases from farther away, and a summoned creature guards the place where it appeared.
+
 ### For map makers and modders
 
 - [ROM1] W saves a mod mission's map to `maps/<name>.alm`, or `.almx` for an extended map, with its pages and labels beside it, moves a mod in an older layout there on its next save, and edits the starting hero's class and sex; before, an extended map saved into a mod was named `.alm`.
