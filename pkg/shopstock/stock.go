@@ -4,7 +4,7 @@
 // picked candidate (the enchant is part of making it). Items that take no
 // draw are placed after every category, and the count multiplier's further
 // rolls come last. Each game states its rules as a Profile; this package
-// holds no game's rule.
+// holds no game's rule but the stack table both games' shops read.
 package shopstock
 
 // Source answers one draw over n choices, 0..n-1.

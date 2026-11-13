@@ -60,16 +60,7 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	armour := shopPlainShelfPool(allArmour)
 	weapons := shopPlainShelfPool(allWeapons)
 	magic := append(append([]data.ShopCandidate{}, allArmour...), allWeapons...)
-	stack := shopShelfStack(t)
-	// A fill's pick of a stack drawn once for its row adds nothing to an
-	// equal entry (DIV-4870); every other pick adds as a sale does.
-	add := stack.Add
-	stack.Add = func(entry, i ShopItem) ShopItem {
-		if q, ok := shopItemStack(i); ok && q.once {
-			return entry
-		}
-		return add(entry, i)
-	}
+	stack := shopstock.Filling(shopShelfStack(t), shopItemStack)
 	order := func(items []ShopItem) []ShopItem {
 		if len(items) < 2 {
 			return items
@@ -115,8 +106,8 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 			},
 			Make: func(c shopStockCandidate, _ shopstock.Source) (ShopItem, bool) {
 				it := c.item.Clone()
-				if q, ok := shopItemStack(it); ok {
-					it.Count = int32(q.draw(quantities))
+				if k, ok := shopItemStack(it); ok {
+					it.Count = k.Draw(quantities, 0)
 				}
 				return it, true
 			},

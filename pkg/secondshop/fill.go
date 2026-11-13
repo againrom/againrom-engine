@@ -22,44 +22,18 @@ const (
 	bookQuantity   = 2
 )
 
-// stack is the quantity range least..least+span-1 a stack is drawn in, on
-// one number; a stack drawn once for its row takes nothing from an equal
-// pick of the fill. Potions enter at 51..100 (R2-ENGINE-265); a scroll row
-// holds 51..100, drawn once (owner, DIV-4870); any other kept unit that
-// stacks adds 1..Bound+1 per pick (R2-ENGINE-941).
-type stack struct {
-	least, span int
-	once        bool
-}
-
-var (
-	potionStack = stack{51, 50, false}
-	scrollStack = stack{51, 50, true}
-)
-
-func (q stack) draw(src shopstock.Source) int32 { return int32(q.least + src.Intn(q.span)) }
-
-// stackOf is the range a kept unit of it stacks at in category cat.
-func stackOf(it Item, cat Category) stack {
+// stackOf is the stack-table row a kept unit of it is drawn at: a scroll's,
+// or any other stacking unit's; none for a unit that does not stack.
+func stackOf(it Item) (shopstock.StackKind, bool) {
 	if scroll(it) {
-		return scrollStack
+		return shopstock.ScrollStack, true
 	}
-	return stack{1, int(cat.Bound + 1), false}
+	return shopstock.UnitStack, stackable(it)
 }
 
-// filling is Stacking as a fill joins a pick to an equal entry: a pick whose
-// stack is drawn once for its row adds nothing; its quantity number was
-// drawn all the same. A sale and a mod's stocked item join by Stacking.
-var filling = func() shopstock.Stack[Item, stackKey] {
-	s := Stacking
-	s.Add = func(entry, it Item) Item {
-		if stackOf(it, Category{}).once {
-			return entry
-		}
-		return Stacking.Add(entry, it)
-	}
-	return s
-}()
+// filling is Stacking as a fill joins a pick to an equal entry. A sale and a
+// mod's stocked item join by Stacking.
+var filling = shopstock.Filling(Stacking, stackOf)
 
 func fill(list []Item, items ...Item) []Item { return shopstock.Insert(list, filling, items...) }
 
@@ -167,7 +141,7 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 		}
 	}
 	for row := potionFirst; row <= potionLast; row++ {
-		it := Item{Table: Magic, Row: row, Count: potionStack.draw(src)}
+		it := Item{Table: Magic, Row: row, Count: shopstock.PotionStack.Draw(src, 0)}
 		it.Price = int32(t.Price(it))
 		list = append(list, it)
 	}
@@ -197,8 +171,8 @@ func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 	if checked && (p < int64(cat.Min) || p > int64(cat.Max)) {
 		return it, false
 	}
-	if stackable(it) {
-		it.Count = stackOf(it, cat).draw(src)
+	if k, ok := stackOf(it); ok {
+		it.Count = k.Draw(src, cat.Bound)
 	}
 	return it, true
 }

@@ -108,7 +108,7 @@ func TestSecondShopMultiplierKeepsTheLeadOnce(t *testing.T) {
 	count := func(s Stock) (lead, all int) {
 		for _, it := range s[0] {
 			all += int(it.Count)
-			if it.Row >= potionFirst && it.Row <= potionLast && int(it.Count) >= potionStack.least {
+			if it.Row >= potionFirst && it.Row <= potionLast && it.Count >= shopstock.PotionStack.Row().Least {
 				lead++
 			}
 		}
