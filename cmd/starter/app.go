@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	basepkg "againrom/pkg/base"
@@ -28,7 +29,8 @@ const (
 	winH   = 620 + panelH
 )
 
-// Row capacities of the two scrolling lists and of the settings panel.
+// Rows in view of the three scrolling lists: the bases, the mods and the
+// selected mod's settings.
 const (
 	baseRows    = 5
 	modRows     = 6
@@ -51,7 +53,7 @@ const (
 	fShopStockMultiplier
 	fExtra
 	fAgainrom
-	fSetting0 // fSetting0..fSetting0+settingRows-1 edit the panel's integer settings
+	fSetting0 // fSetting0+k edits the integer setting in the panel's row k in view
 	_
 	_
 	_
@@ -80,7 +82,9 @@ const (
 	aCheck
 	aSave
 	aFocus
-	aSettingCycle // flip or step the panel's bool or choice setting, i is its row
+	aSettingCycle // flip or step the panel's bool or choice setting, i is its declaration index
+	aSettingDown  // lower the panel's integer setting by one within its bounds, i as above
+	aSettingUp    // raise it by one within its bounds
 	aSettingReset
 	aMapEditor
 	aChooseBase
@@ -181,7 +185,7 @@ type app struct {
 	addText   string
 	focus     fieldID
 	view      viewKind
-	scroll    [2]int // base list, mod list
+	scroll    [listCount]int // offset of each scrolling list
 	status    string
 	statusBad bool
 	output    []string
@@ -394,18 +398,48 @@ func (a *app) field(id fieldID) *string {
 	return nil
 }
 
-// settingField returns the text of the panel's integer setting in row i, or nil
-// when that row is not an integer setting.
-func (a *app) settingField(i int) *string {
+// panelSettings is the panel's mod and its declared settings, when the panel
+// shows any.
+func (a *app) panelSettings() (string, []mod.Setting, bool) {
 	id, ok := a.panelMod()
 	if !ok {
-		return nil
+		return "", nil, false
 	}
 	decl, err := a.settingsOf(id)
-	if err != nil || i >= len(decl) || i >= settingRows || decl[i].Kind != mod.KindInt {
+	return id, decl, err == nil && len(decl) > 0
+}
+
+// settingInView is the setting in the panel's row k in view, with its mod.
+func (a *app) settingInView(k int) (string, mod.Setting, bool) {
+	id, decl, ok := a.panelSettings()
+	if !ok {
+		return "", mod.Setting{}, false
+	}
+	top, shown := a.window(listSettings, len(decl))
+	if k < 0 || k >= shown {
+		return "", mod.Setting{}, false
+	}
+	return id, decl[top+k], true
+}
+
+// settingField returns the text of the integer setting in the panel's row k in
+// view for editing, or nil when that row is not an integer setting.
+func (a *app) settingField(k int) *string {
+	id, st, ok := a.settingInView(k)
+	if !ok || st.Kind != mod.KindInt {
 		return nil
 	}
-	return a.s.modValuePtr(id, decl[i].Key, decl[i].Default.String())
+	return a.s.modValuePtr(id, st.Key, st.Default.String())
+}
+
+// hasField reports whether field id exists, without storing the default of a
+// setting row as settingField does.
+func (a *app) hasField(id fieldID) bool {
+	if id >= fSetting0 && id < fSetting0+settingRows {
+		_, st, ok := a.settingInView(int(id - fSetting0))
+		return ok && st.Kind == mod.KindInt
+	}
+	return a.field(id) != nil
 }
 
 // modBase is the base the game orders mods for on the selected base, and
@@ -579,11 +613,11 @@ func (a *app) layout() []item {
 		// Base games.
 		heading(10, 48, a.t(cHeadBase))
 		bases := a.s.Bases
-		top := clampScroll(&a.scroll[0], len(bases), baseRows)
-		for k := 0; k < baseRows && top+k < len(bases); k++ {
+		top, shown := a.window(listBases, len(bases))
+		for k := 0; k < shown; k++ {
 			b := bases[top+k]
 			info := a.infos[b.Path]
-			r := item{kind: iBaseRow, rect: rect(10, 66+18*k, lw, 18), checked: strings.EqualFold(b.Key, a.s.LastBase), act: action{aSelectBase, top + k}}
+			r := item{kind: iBaseRow, rect: scrollLists[listBases].row(k), checked: strings.EqualFold(b.Key, a.s.LastBase), act: action{aSelectBase, top + k}}
 			if info.Valid() {
 				r.tone = toneGood
 				r.text = a.t(cBaseOK, b.Key, b.Path, a.baseLabel(info))
@@ -611,8 +645,8 @@ func (a *app) layout() []item {
 			textW(76, 234, lw-66, a.t(cModsDefault, mod.DefaultDir(a.selfDir())), toneDim)
 		}
 		rows := a.modRows()
-		top = clampScroll(&a.scroll[1], len(rows), modRows)
-		for k := 0; k < modRows && top+k < len(rows); k++ {
+		top, shown = a.window(listMods, len(rows))
+		for k := 0; k < shown; k++ {
 			m := rows[top+k]
 			label := m.label
 			tn := toneNormal
@@ -622,7 +656,7 @@ func (a *app) layout() []item {
 			if m.problem != "" || m.refusal != "" {
 				tn = toneBad
 			}
-			it = append(it, item{kind: iModRow, rect: rect(10, 250+18*k, lw, 18), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
+			it = append(it, item{kind: iModRow, rect: scrollLists[listMods].row(k), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
 		}
 		if a.scanErr != nil {
 			textW(10, 382, lw, a.t(cModsReadError, a.scanErr.Error()), toneBad)
@@ -653,26 +687,35 @@ func (a *app) layout() []item {
 				textW(10, panelTop+22, lw, a.t(cNoModSettings), toneDim)
 			default:
 				button(rect(winW-85, panelTop-3, 75, 22), a.t(cDefaults), action{kind: aSettingReset})
-				for i := 0; i < settingRows && i < len(decl); i++ {
-					st, y := decl[i], panelTop+24+24*i
+				top, shown := a.window(listSettings, len(decl))
+				if shown < len(decl) {
+					textW(430, panelTop, winW-525, a.t(cSettingsInView, top+1, top+shown, len(decl)), toneDim)
+				}
+				for k := 0; k < shown; k++ {
+					i := top + k
+					st, y := decl[i], scrollLists[listSettings].row(k).Min.Y
 					label := st.Label(a.lang())
 					if st.Kind == mod.KindInt {
 						label = fmt.Sprintf("%s (%d..%d)", label, st.Min, st.Max)
 					}
 					textW(10, y+3, 310, label, toneNormal)
-					ctl, val := rect(330, y, winW-340, 22), a.settingText(id, st)
+					ctl, val := rect(330, y, 204, 22), a.settingText(id, st)
+					v, perr := st.Parse(val)
 					switch st.Kind {
 					case mod.KindInt:
-						it = append(it, item{kind: iField, rect: ctl, text: val, focused: a.focus == fSetting0+fieldID(i), act: action{aFocus, int(fSetting0) + i}})
+						it = append(it, item{kind: iField, rect: rect(330, y, 150, 22), text: val, focused: a.focus == fSetting0+fieldID(k), act: action{aFocus, int(fSetting0) + k}})
+						button(rect(486, y, 22, 22), "-", action{aSettingDown, i})
+						button(rect(512, y, 22, 22), "+", action{aSettingUp, i})
 					case mod.KindBool:
-						v, perr := st.Parse(val)
 						it = append(it, item{kind: iToggle, rect: ctl, text: a.onOff(perr == nil && v.Bool), checked: perr == nil && v.Bool, act: action{aSettingCycle, i}})
 					default:
 						button(ctl, val, action{aSettingCycle, i})
 					}
-				}
-				if len(decl) > settingRows {
-					textW(10, panelTop+24+24*settingRows, lw, a.t(cMoreSettings, len(decl)-settingRows), toneDim)
+					// An empty value is the default; any other the loader refuses
+					// shows the loader's own words.
+					if perr != nil && strings.TrimSpace(val) != "" {
+						textW(542, y+3, winW-552, perr.Error(), toneBad)
+					}
 				}
 			}
 		}
@@ -731,6 +774,42 @@ func (a *app) valueText(st launch.Setting, v optionView, s string) string {
 		return a.t(v.values[i])
 	}
 	return s
+}
+
+// scrollList is one scrolling list of the main view: rows of rowH pixels down
+// from the top of area, at most rows of them in view, moved one row a wheel
+// notch over area. Its offset is the app's scroll entry of the same index.
+type scrollList struct {
+	area       image.Rectangle
+	rowH, rows int
+}
+
+// The scrolling lists, as indices of scrollLists and app.scroll.
+const (
+	listBases = iota
+	listMods
+	listSettings
+	listCount
+)
+
+var scrollLists = [listCount]scrollList{
+	listBases:    {area: image.Rect(10, 66, winW-10, 156), rowH: 18, rows: baseRows},
+	listMods:     {area: image.Rect(10, 250, winW-10, 360), rowH: 18, rows: modRows},
+	listSettings: {area: image.Rect(10, panelTop+24, winW-10, panelTop+24+24*settingRows), rowH: 24, rows: settingRows},
+}
+
+// row is the rectangle of the list's row k in view.
+func (l scrollList) row(k int) image.Rectangle {
+	y := l.area.Min.Y + l.rowH*k
+	return image.Rect(l.area.Min.X, y, l.area.Max.X, y+l.rowH)
+}
+
+// window clamps list's offset to n rows and returns the first row in view and
+// how many rows are in view.
+func (a *app) window(list, n int) (top, shown int) {
+	rows := scrollLists[list].rows
+	top = clampScroll(&a.scroll[list], n, rows)
+	return top, min(rows, n-top)
 }
 
 func clampScroll(offset *int, n, capacity int) int {
@@ -812,6 +891,9 @@ func (a *app) apply(act action) {
 	case aToggleMod:
 		rows := a.modRows()
 		if act.i < len(rows) {
+			if rows[act.i].id != a.selMod {
+				a.scroll[listSettings] = 0
+			}
 			a.selMod = rows[act.i].id
 			if r := rows[act.i]; r.enabled || r.problem == "" {
 				a.s.toggleMod(r.id)
@@ -821,6 +903,10 @@ func (a *app) apply(act action) {
 		}
 	case aSettingCycle:
 		a.cycleSetting(act.i)
+	case aSettingDown:
+		a.stepSetting(act.i, -1)
+	case aSettingUp:
+		a.stepSetting(act.i, 1)
 	case aSettingReset:
 		if id, ok := a.panelMod(); ok {
 			a.s.resetMod(id)
@@ -879,15 +965,11 @@ func (a *app) fieldShown(id fieldID) bool {
 	return a.view == viewMain
 }
 
-// cycleSetting flips the bool setting in panel row i, or steps the choice
-// setting to its next choice.
+// cycleSetting flips the panel's bool setting i, an index into its mod's
+// declarations, or steps the choice setting to its next choice.
 func (a *app) cycleSetting(i int) {
-	id, ok := a.panelMod()
-	if !ok {
-		return
-	}
-	decl, err := a.settingsOf(id)
-	if err != nil || i >= len(decl) || i >= settingRows {
+	id, decl, ok := a.panelSettings()
+	if !ok || i < 0 || i >= len(decl) {
 		return
 	}
 	st := decl[i]
@@ -908,6 +990,29 @@ func (a *app) cycleSetting(i int) {
 		return
 	}
 	*a.s.modValuePtr(id, st.Key, st.Default.String()) = next
+}
+
+// stepSetting moves the panel's integer setting i by one in the direction of
+// by and keeps it within its bounds; a value that is not an integer steps from
+// the default.
+func (a *app) stepSetting(i, by int) {
+	id, decl, ok := a.panelSettings()
+	if !ok || i < 0 || i >= len(decl) || decl[i].Kind != mod.KindInt {
+		return
+	}
+	st := decl[i]
+	n, err := strconv.ParseInt(strings.TrimSpace(a.settingText(id, st)), 10, 64)
+	if err != nil {
+		n = st.Default.Int
+	}
+	switch {
+	case by < 0 && n > st.Min:
+		n--
+	case by > 0 && n < st.Max:
+		n++
+	}
+	n = max(st.Min, min(st.Max, n))
+	*a.s.modValuePtr(id, st.Key, st.Default.String()) = strconv.FormatInt(n, 10)
 }
 
 func (a *app) addBase() {
@@ -933,7 +1038,7 @@ func (a *app) addBase() {
 
 // types appends typed text to the focused field.
 func (a *app) typed(s string) {
-	if a.folderDialogResults != nil {
+	if a.folderDialogResults != nil || s == "" {
 		return
 	}
 	f := a.field(a.focus)
@@ -990,7 +1095,7 @@ func (a *app) tab() {
 	}
 	for n := 0; n < int(fieldCount); n++ {
 		a.focus = a.focus%(fieldCount-1) + 1
-		if a.field(a.focus) != nil && a.fieldShown(a.focus) {
+		if a.hasField(a.focus) && a.fieldShown(a.focus) {
 			break
 		}
 	}
@@ -1017,15 +1122,18 @@ func (a *app) wheel(p image.Point, lines int) {
 	if a.view != viewMain {
 		return
 	}
-	switch {
-	case p.In(image.Rect(10, 66, winW-10, 156)):
-		a.scroll[0] += lines
-	case p.In(image.Rect(10, 250, winW-10, 360)):
-		a.scroll[1] += lines
-	default:
-		return
+	for i, l := range scrollLists {
+		if p.In(l.area) {
+			a.scroll[i] += lines
+			a.dirty = true
+			// A setting field is a row in view; scrolled, it would edit
+			// another setting.
+			if i == listSettings && a.focus >= fSetting0 && a.focus < fSetting0+settingRows {
+				a.focus = fNone
+			}
+			return
+		}
 	}
-	a.dirty = true
 }
 
 func (a *app) save() {

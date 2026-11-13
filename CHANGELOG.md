@@ -39,6 +39,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A mage casting by himself also picks a target that a unit of an allied player sees, not only one your own units see.
 - [ROM2] Town sound and speech no longer go silent after you have visited another town in the same run: the square, the inn and its talk, and the shop keep their sound in the later town, and in a town you load after another.
 - [ROM2] The mission menu shows the whole "Abandon, return to town" line in English and Russian, and the window widens for it; before, the line was cut to "Abandon, return to to...".
+- [Starter] The mod settings panel shows every setting of a mod: turn the mouse wheel over it to reach the sixth and later ones. Numbers get - and + buttons that stay within the allowed range, and a value the game would refuse is marked with the reason; before, only the first five settings could be set.
 
 ### For map makers and modders
 

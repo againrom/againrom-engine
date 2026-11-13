@@ -75,14 +75,14 @@ const (
 	cValueDefault           captionID = "value-default"
 	cValueNormal            captionID = "value-normal"
 
-	cSelectMod     captionID = "select-mod"
-	cModState      captionID = "mod-state"
-	cModNotEnabled captionID = "mod-not-enabled"
-	cModEnabled    captionID = "mod-enabled"
-	cSettingsToml  captionID = "settings-toml"
-	cNoModSettings captionID = "no-mod-settings"
-	cDefaults      captionID = "defaults"
-	cMoreSettings  captionID = "more-settings"
+	cSelectMod      captionID = "select-mod"
+	cModState       captionID = "mod-state"
+	cModNotEnabled  captionID = "mod-not-enabled"
+	cModEnabled     captionID = "mod-enabled"
+	cSettingsToml   captionID = "settings-toml"
+	cNoModSettings  captionID = "no-mod-settings"
+	cDefaults       captionID = "defaults"
+	cSettingsInView captionID = "settings-in-view"
 
 	cPlay         captionID = "play"
 	cCheck        captionID = "check"
@@ -227,7 +227,7 @@ var captionRows = []captionRow{
 	row(cSettingsToml, "settings.toml: %s", "settings.toml: %s", ""),
 	row(cNoModSettings, "This mod has no settings.", "У этого мода нет установок.", ""),
 	row(cDefaults, "Defaults", "Сбросить", "dialogs.txt: Reset settings"),
-	row(cMoreSettings, "%d more setting(s) are not shown.", "Не показано установок: %d.", ""),
+	row(cSettingsInView, "%d-%d of %d, the wheel scrolls", "%d-%d из %d, листает колесо", ""),
 
 	row(cPlay, "Play", "Играть", ""),
 	row(cCheck, "Check", "Проверить", ""),
