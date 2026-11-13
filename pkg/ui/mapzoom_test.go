@@ -206,7 +206,7 @@ func TestDrawBlitsTheSmoothMapOnlyWhereTheRuleAnswers(t *testing.T) {
 	}{
 		{"off zoomed", false, 1.2, true},
 		{"on native", true, 1, false},
-		{"off native", false, 1, false},
+		{"off native", false, 1, true},
 		{"on zoomed in", true, 1.2, true},
 		{"on zoomed out", true, 1 / 1.2, true},
 	} {

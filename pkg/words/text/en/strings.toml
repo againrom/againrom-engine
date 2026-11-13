@@ -1521,3 +1521,5 @@
 "editor.mod.err.entryall" = "the mod entry script does not load every edited mission; reopen it in a supported script/settings context"
 "editor.mod.err.entryone" = "the mod entry script does not load edited mission %s (%d)"
 "editor.mod.err.mission" = "mission %s: %s"
+
+"options.smoothing" = "Smoothing (Ctrl+O)"

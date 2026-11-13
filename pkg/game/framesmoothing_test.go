@@ -7,9 +7,7 @@ import (
 	"testing"
 )
 
-// The FrameSmoothing preference: absent, malformed or any value but "0"
-// selects the Catmull-Rom scaler, "0" selects method B, and the setter keeps
-// every other key in the file.
+// The compatibility accessor uses the shared Smoothing row and preserves unrelated keys.
 func TestFrameSmoothingPreference(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "options.txt")
 	s := OptionsStore{Path: path}
@@ -19,7 +17,7 @@ func TestFrameSmoothingPreference(t *testing.T) {
 	for _, c := range []struct {
 		stored string
 		want   bool
-	}{{"TipsMode=0\n", true}, {"FrameSmoothing=0\n", false}, {"FrameSmoothing=1\n", true}, {"FrameSmoothing=x\n", true}} {
+	}{{"TipsMode=0\n", true}, {"FrameSmoothing=0\n", true}, {"Smoothing=0\n", false}, {"FrameSmoothing=1\n", true}, {"FrameSmoothing=x\n", true}} {
 		if err := os.WriteFile(path, []byte(c.stored), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -35,7 +33,7 @@ func TestFrameSmoothingPreference(t *testing.T) {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(path)
-	for _, want := range []string{"TipsMode=0", "TextSmoothing=0", "FrameSmoothing=0"} {
+	for _, want := range []string{"TipsMode=0", "TextSmoothing=0", "Smoothing=0"} {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("after SetFrameSmoothing(false) the file %q lacks %q", b, want)
 		}
@@ -45,20 +43,20 @@ func TestFrameSmoothingPreference(t *testing.T) {
 	}
 }
 
-// A FrontEnd that never loads options hands the App the Catmull-Rom scaler;
-// one that loads FrameSmoothing=0 hands it method B.
+// Loaded Smoothing reaches the App, regardless of the obsolete frame key.
 func TestFrontEndPlumbsFrameSmoothingToTheApp(t *testing.T) {
 	var f FrontEnd
+	f.LoadOptions()
 	if a := f.App("t"); !a.FrameSmoothing() {
-		t.Fatal("an App from a FrontEnd that never loaded options has FrameSmoothing off")
+		t.Fatal("an App from a FrontEnd that loaded defaults has FrameSmoothing off")
 	}
 	path := filepath.Join(t.TempDir(), "options.txt")
-	if err := os.WriteFile(path, []byte("FrameSmoothing=0\n"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("Smoothing=0\nFrameSmoothing=1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	f.Options = OptionsStore{Path: path}
 	f.LoadOptions()
 	if a := f.App("t"); a.FrameSmoothing() {
-		t.Fatal("an App from a FrontEnd that loaded FrameSmoothing=0 has FrameSmoothing on")
+		t.Fatal("an App from a FrontEnd that loaded Smoothing=0 has Smoothing on")
 	}
 }

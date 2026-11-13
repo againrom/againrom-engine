@@ -82,7 +82,6 @@ func (f *FrontEnd) missionPorts() missionPorts {
 			pathfinding:        f.showPathfinding,
 			graphics:           f.graphics,
 			textSmoothing:      !f.smoothingOff.text,
-			frameSmoothing:     !f.smoothingOff.frame,
 			deterministicFrame: f.runtime.deterministicFrames,
 			chicken:            f.runtime.chicken,
 		},

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/video"
 	"image"
 	"testing"
 
@@ -65,6 +66,7 @@ func drawSites(t *testing.T, s float64, on bool) map[string][2]any {
 	p, sc = pathOf(*calls, isTiny)
 	put("cursor", p, sc)
 	*calls = nil
+	a.cutscene = &video.Player{}
 	a.drawCutscene(ebiten.NewImage(a.winW, a.winH))
 	p, sc = pathOf(*calls, func(c finalBlit) bool { return c.src == a.cutsceneCanvas })
 	put("cutscene", p, sc)
@@ -105,7 +107,7 @@ var frameSites = []string{"townComposite", "cursor", "cutscene", "missionFrame",
 
 // With FrameSmoothing on, the default, every site reaches the Catmull-Rom
 // path at the shipped non-unit scales, the integer 3.0 included, and the
-// single nearest draw at exactly 1. With it off every site reaches method B.
+// single nearest draw at exactly 1. Off keeps text safe and film pixels hard.
 func TestFrameSmoothingDispatchAtEverySite(t *testing.T) {
 	for _, s := range []float64{1, 1.40625, 1.875, 2.25, 3} {
 		for _, on := range []bool{true, false} {
@@ -118,22 +120,26 @@ func TestFrameSmoothingDispatchAtEverySite(t *testing.T) {
 				want = "nearest"
 			}
 			for _, site := range frameSites {
-				if g := got[site]; g[0] != want || g[1] != s {
-					t.Errorf("scale %v smoothing %v: %s reached %v at scale %v, want %s at %v", s, on, site, g[0], g[1], want, s)
+				path := want
+				if !on && site == "cutscene" && s < 2 {
+					path = "nearest"
+				}
+				if g := got[site]; g[0] != path || g[1] != s {
+					t.Errorf("scale %v smoothing %v: %s reached %v at scale %v, want %s at %v", s, on, site, g[0], g[1], path, s)
 				}
 			}
 		}
 	}
 }
 
-// A new App and a new Viewer use the Catmull-Rom scaler until told otherwise.
+// A new App defaults on; a standalone Viewer retains its map preference default.
 func TestFrameSmoothingDefaultsOn(t *testing.T) {
 	a := newTestApp(t, appRows(1), okLoader(t))
 	if !a.FrameSmoothing() {
 		t.Fatal("NewApp: FrameSmoothing off")
 	}
-	if v := geometryViewer(t); v.frameSmoothingOff {
-		t.Fatal("NewViewer: FrameSmoothing off")
+	if v := geometryViewer(t); v.graphics.Smoothing {
+		t.Fatal("standalone Viewer lost its existing map preference default")
 	}
 }
 

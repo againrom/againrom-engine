@@ -1517,3 +1517,5 @@
 "editor.mod.err.mission" = "миссия %s: %s"
 "mission.abandon" = "Отказаться от миссии"
 "mission.abandon.confirm" = "Отказаться и уйти в город"
+
+"options.smoothing" = "Сглаживание (Ctrl+O)"

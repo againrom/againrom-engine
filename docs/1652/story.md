@@ -77,5 +77,4 @@ Release tests at the release: none. EN and RU witnesses owed: an installed missi
 - Past the 4096-pixel composition cap (deep zoom out) sprites are drawn at the zoom, then the canvas is scaled.
 - With Smoothing off and a dialogue open the map is on the canvas, so the window scale gives it the starter's
   filter, not hard pixels.
-- Towns, menus over the map, cutscenes and the map editor follow the starter's switch, not Smoothing.
 - Home's zoom reset posts no zoom line.

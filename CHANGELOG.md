@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] Change one saved Smoothing setting in Game Options or with Ctrl+O across game screens.
+
 ### For map makers and modders
 
 - [BASE] Opening a mod now uses the system's file window everywhere: in the map editor's mod window a click on Working folder, Enter in it, Ctrl+O and Open mod all open it, and it no longer fails before the first mod is saved; the starter's mods folder has a Browse button.

@@ -265,6 +265,14 @@ func (s OptionsStore) gameOptions() (ui.GameOptionValues, [len(gameOptionKeys)]b
 	return values, present, nil
 }
 
+func (s OptionsStore) gameOptionValue(o ui.GameOption) (int, error) {
+	values, present, err := s.gameOptions()
+	if !present[o] {
+		return gameOptionRows[o].initial(""), err
+	}
+	return values[o], err
+}
+
 func (s OptionsStore) setGameOption(o ui.GameOption, value int) error {
 	if value < 0 || value >= o.Choices() {
 		return fmt.Errorf("invalid game option %d value %d", o, value)
@@ -493,7 +501,8 @@ func (f *FrontEnd) gameOptionWords() ui.GameOptionWords {
 }
 
 func (f *FrontEnd) wireGameOptions(a *ui.App) {
-	c := ui.GameOptionControls{Column: f.optionColumn(), Read: f.gameOptionValues, Write: f.setGameOption, Words: f.gameOptionWords()}
+	c := ui.GameOptionControls{Column: f.optionColumn(), Read: f.gameOptionValues, Write: f.setGameOption, Words: f.gameOptionWords(),
+		Current: func(o ui.GameOption) int { return gameOptionRows[o].sessionValue(f, f.optionColumn()) }}
 	if f.Archives != nil {
 		set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "game-options")
 		for i := range c.Checks {

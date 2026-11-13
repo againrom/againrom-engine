@@ -515,11 +515,7 @@ type PersistenceContext struct {
 	// asked for.
 	tipsOff bool
 
-	// smoothingOff mirrors Options.TextSmoothing() (DIV-1385) and
-	// Options.FrameSmoothing() the same way, negated: the zero value leaves
-	// method C's text overlay and the Catmull-Rom frame scaler ON, matching
-	// every profile that predates either control, the same reasoning
-	// tipsOff's own comment gives for tips.
+	// smoothingOff keeps the glyph-overlay preference (DIV-1385), negated.
 	smoothingOff smoothingSwitches
 
 	// wimpyMode is the current process preference label for Ctrl+W's next
@@ -997,7 +993,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	a.SetTooltipFont(f.tipFont())
 	a.SetHoverStyle(f.InstallResources.hoverStyle())
 	a.SetTextSmoothing(!f.smoothingOff.text)
-	a.SetFrameSmoothing(!f.smoothingOff.frame)
+	a.SetFrameSmoothing(f.graphics.Smoothing)
 	edition := f.Base().Profile.Edition()
 	a.SetMissionKeys(edition.MissionKeys)
 	if f.Cutscenes != nil {
@@ -1326,7 +1322,6 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	mw.view.SetPathfinding(f.showPathfinding)
 	mw.view.SetGraphicsOptions(f.graphics)
 	mw.view.SetTextSmoothing(!f.smoothingOff.text)
-	mw.view.SetFrameSmoothing(!f.smoothingOff.frame)
 	if err := f.applyFreshGameOptions(mw, nil); err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 	}

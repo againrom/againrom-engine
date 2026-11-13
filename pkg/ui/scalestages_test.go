@@ -65,10 +65,10 @@ func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 				if s != 1 {
 					want[v.canvas] = s
 				}
-				if z != 1 {
+				if (z != 1 || !smoothing) && z*s != 1 {
 					want[v.smoothMap] = z * s
 				}
-				if v.marksComposed != (z != 1) {
+				if v.marksComposed != (z != 1 || !smoothing) {
 					t.Fatalf("%v zoom %v: marks composed at zoom 1 = %v", win, z, v.marksComposed)
 				}
 				if len(*got) != len(want) {
@@ -81,10 +81,13 @@ func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 					}
 					delete(want, b.src)
 					wantKind := "catmull-rom"
-					if !smoothing && b.src == v.smoothMap {
+					if !smoothing {
 						wantKind = "sharp bilinear"
-						if f < 2 {
-							wantKind = "nearest"
+						if b.src == v.smoothMap {
+							wantKind = "sharp bilinear"
+							if f < 2 {
+								wantKind = "nearest"
+							}
 						}
 					}
 					if b.kind != wantKind {
@@ -96,36 +99,23 @@ func TestMissionFrameIsResampledOnceOntoTheWindow(t *testing.T) {
 	}
 }
 
-// Smoothing off at scale 1.4: the map is nearest, the canvas the starter's.
-func TestSmoothingOffKeepsTheStartersFilterOnTheInterface(t *testing.T) {
+// Smoothing off keeps the map hard and the interface text evenly scaled.
+func TestSmoothingOffKeepsTextSafeOnTheInterface(t *testing.T) {
 	got := recordScaledBlits(t)
-	for _, starterOff := range []bool{false, true} {
-		*got = nil
-		v, err := NewViewer("zoom", grid(60, 60), zoomTileset(false))
-		if err != nil {
-			t.Fatal(err)
-		}
-		v.SetGraphicsOptions(GraphicsOptions{Smoothing: false})
-		v.SetFrameSmoothing(!starterOff)
-		v.Layout(1920, 1080)
-		v.cam.SetZoom(1.2)
-		screen := ebiten.NewImage(1920, 1080)
-		v.Draw(screen)
-		if s := v.place.Scale(); math.Abs(s-1.4) > 0.01 {
-			t.Fatalf("window scale %v, want about 1.4", s)
-		}
-		canvasWant := "catmull-rom"
-		if starterOff {
-			canvasWant = "sharp bilinear"
-		}
-		kinds := map[*ebiten.Image]string{}
-		for _, b := range *got {
-			kinds[b.src] = b.kind
-		}
-		if kinds[v.smoothMap] != "nearest" || kinds[v.canvas] != canvasWant {
-			t.Errorf("starter switch off %v: map %q, interface %q; want map nearest, interface %s",
-				starterOff, kinds[v.smoothMap], kinds[v.canvas], canvasWant)
-		}
+	v, err := NewViewer("zoom", grid(60, 60), zoomTileset(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.SetFrameSmoothing(false)
+	v.Layout(1920, 1080)
+	v.cam.SetZoom(1.2)
+	v.Draw(ebiten.NewImage(1920, 1080))
+	kinds := map[*ebiten.Image]string{}
+	for _, b := range *got {
+		kinds[b.src] = b.kind
+	}
+	if kinds[v.smoothMap] != "nearest" || kinds[v.canvas] != "sharp bilinear" {
+		t.Fatalf("map %q, interface %q", kinds[v.smoothMap], kinds[v.canvas])
 	}
 }
 

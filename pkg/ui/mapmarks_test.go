@@ -169,19 +169,14 @@ func TestPixelFilterIsNearestBelowTwo(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct {
-		smoothing, starterOff, editor bool
-		mapWant, canvasWant           frameFilter
+		smoothing           bool
+		mapWant, canvasWant frameFilter
 	}{
-		{true, false, false, filterSmooth, filterSmooth},
-		{true, true, false, filterSmooth, filterSharp},
-		{false, false, false, filterPixel, filterSmooth},
-		{false, true, false, filterPixel, filterSharp},
-		{false, false, true, filterSmooth, filterSmooth},
-		{false, true, true, filterSmooth, filterSharp},
+		{true, filterSmooth, filterSmooth},
+		{false, filterPixel, filterSharp},
 	} {
 		v := markViewer(t, 1.2)
 		v.SetGraphicsOptions(GraphicsOptions{Smoothing: tc.smoothing})
-		v.frameSmoothingOff, v.editorView = tc.starterOff, tc.editor
 		if v.mapFilter() != tc.mapWant || v.canvasFilter() != tc.canvasWant {
 			t.Errorf("%+v: map filter %d, canvas filter %d", tc, v.mapFilter(), v.canvasFilter())
 		}

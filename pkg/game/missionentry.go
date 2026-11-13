@@ -101,7 +101,6 @@ type missionDisplay struct {
 	pathfinding        bool
 	graphics           ui.GraphicsOptions
 	textSmoothing      bool
-	frameSmoothing     bool
 	deterministicFrame bool
 	chicken            bool
 }
@@ -174,7 +173,6 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	mw.view.SetPathfinding(ports.display.pathfinding)
 	mw.view.SetGraphicsOptions(ports.display.graphics)
 	mw.view.SetTextSmoothing(ports.display.textSmoothing)
-	mw.view.SetFrameSmoothing(ports.display.frameSmoothing)
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		ctx := gameMenuContext(mw, true, ports.install.missionBriefing(r.n))
 		ctx.LeaveToTown = ports.session.canLeaveMission(r.n, mw.world)

@@ -144,7 +144,7 @@ func newEntryFixture(t *testing.T, audio missionAudio) entryFixture {
 		session:  &CampaignSession{},
 		art:      func() viewerArt { return viewerArt{} },
 		advance:  func(_ int, _ *Mission, advance ui.MapAdvance) ui.MapAdvance { return advance },
-		display:  missionDisplay{textSmoothing: true, frameSmoothing: true},
+		display:  missionDisplay{textSmoothing: true},
 		cityBase: nil,
 	}}
 }

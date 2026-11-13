@@ -84,7 +84,7 @@ func (v *Viewer) headlessMissionFrame(win image.Point) (*image.RGBA, []string, e
 	if _, _, _, visible := v.noticePresent(); visible {
 		stages = append(stages, "a notice is open and is not composed")
 		if v.canvasRemapsMap() {
-			stages = append(stages, "the window draws the map on the canvas under the dialogue backdrop; this frame does not")
+			stages = append(stages, "the map follows the canvas route; the dialogue backdrop is not composed")
 		}
 	}
 	canvas := image.NewRGBA(image.Rect(0, 0, v.frameW, v.frameH))
@@ -104,8 +104,14 @@ func (v *Viewer) headlessMissionFrame(win image.Point) (*image.RGBA, []string, e
 		if err != nil {
 			return nil, nil, err
 		}
-		f := op.GeoM.Element(0, 0) * s
-		filter := referenceFinalFrame(out, comp, f, op.GeoM.Element(0, 2)*s+ox, op.GeoM.Element(1, 2)*s+oy, v.mapFilter())
+		target, targetName := out, "window"
+		placement, x, y := s, ox, oy
+		if v.canvasRemapsMap() {
+			target, targetName = canvas.SubImage(mapRect).(*image.RGBA), "canvas"
+			placement, x, y = 1, 0, 0
+		}
+		f := op.GeoM.Element(0, 0) * placement
+		filter := referenceFinalFrame(target, comp, f, op.GeoM.Element(0, 2)*placement+x, op.GeoM.Element(1, 2)*placement+y, v.mapFilter())
 		v.headlessOverlayRects(canvas.SubImage(mapRect).(*image.RGBA), marksFrame)
 		frame := image.Rect(int(math.Ceil(ox-0.5)), int(math.Ceil(oy-0.5)),
 			int(math.Ceil(ox+s*float64(v.frameW)-0.5)), int(math.Ceil(oy+s*float64(v.frameH)-0.5)))
@@ -116,7 +122,7 @@ func (v *Viewer) headlessMissionFrame(win image.Point) (*image.RGBA, []string, e
 		} {
 			draw.Draw(out, strip, black, image.Point{}, draw.Src)
 		}
-		stages = append(stages, fmt.Sprintf("map with status bars and marks %dx%d at zoom 1 -> window: %s x%.4f", comp.Rect.Dx(), comp.Rect.Dy(), filter, f))
+		stages = append(stages, fmt.Sprintf("map with status bars and marks %dx%d at zoom 1 -> %s: %s x%.4f", comp.Rect.Dx(), comp.Rect.Dy(), targetName, filter, f))
 	} else {
 		layers, _, err := v.headlessMapLayers()
 		if err != nil {
@@ -193,7 +199,7 @@ func (a *App) headlessWindowFrame() (*image.RGBA, string, error) {
 	draw.Draw(out, out.Rect, image.NewUniform(color.RGBA{A: 0xff}), image.Point{}, draw.Src)
 	ox := (float64(win.X) - s*float64(native.Rect.Dx())) / 2
 	oy := (float64(win.Y) - s*float64(native.Rect.Dy())) / 2
-	filter := referenceFinalFrame(out, native, s, ox, oy, filterOf(a.frameSmoothingOff))
+	filter := referenceFinalFrame(out, native, s, ox, oy, a.frameFilter())
 	stage := fmt.Sprintf("stages: native %dx%d -> window %dx%d: %s x%.4f", native.Rect.Dx(), native.Rect.Dy(), win.X, win.Y, filter, s)
 	if note != "" {
 		stage = note + "; " + stage

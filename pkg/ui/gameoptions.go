@@ -74,7 +74,7 @@ var gameOptionTable = [gameOptionCount]gameOptionDefinition{
 	GameOptionRetreat:   {key: "WimpyMode", name: "retreat-mode", choices: 3, rect: image.Rect(240, 248, 408, 338), focus: 120, commit: 9},
 	GameOptionPathfinding: {key: "ShowPathfinding", name: "pathfinding", choices: 2, rect: image.Rect(240, 224, 456, 248), focus: 100, commit: 7,
 		word: "options.pathfinding", wordWins: true},
-	GameOptionSmoothing: {key: "Smoothing", name: "smoothing", choices: 2, rect: image.Rect(24, 128, 234, 152), focus: 20, commit: 1},
+	GameOptionSmoothing: {key: "Smoothing", name: "smoothing", choices: 2, rect: image.Rect(24, 128, 234, 152), focus: 20, commit: 1, word: "options.smoothing", wordWins: true},
 	// The three graphics captions come from the install when it supplies
 	// them; the engine's words stand in only for an absent one.
 	GameOptionShadows: {key: "Shadows", name: "shadows", choices: 2, rect: image.Rect(24, 152, 234, 176), focus: 30, commit: 2,
@@ -211,6 +211,7 @@ type GameOptionControls struct {
 	Column   string
 	Autosave TimedAutosaveControls
 	Read     func(onMap bool) GameOptionValues
+	Current  func(option GameOption) int
 	Write    func(onMap bool, option GameOption, value int) error
 	Words    GameOptionWords
 	Checks   [2]image.Image
@@ -252,6 +253,13 @@ func (f *flow) gameOptionsOnMap() bool {
 }
 
 func (f *flow) readGameOptions() GameOptionValues { return f.gameOptions.Read(f.gameOptionsOnMap()) }
+
+func (f *flow) gameOptionValue(o GameOption) int {
+	if f.gameOptions.Current != nil {
+		return f.gameOptions.Current(o)
+	}
+	return f.readGameOptions()[o]
+}
 
 func (f *flow) setGameOption(o GameOption, value int) {
 	if f.gameOptions.Write == nil || !o.Offered(f.gameOptions.Column, value) {

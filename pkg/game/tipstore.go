@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/ui"
 )
 
 // Local persisted game preferences (1018 spec behaviour 4).
@@ -70,6 +71,7 @@ func (s OptionsStore) writeAll(m map[string]string) error {
 	if s.Path == "" {
 		return errors.New("no options path configured")
 	}
+	delete(m, frameSmoothingKey)
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -115,14 +117,13 @@ func (s OptionsStore) writeAll(m map[string]string) error {
 const tipsModeKey = "TipsMode"
 const textSmoothingKey = "TextSmoothing"
 
-// frameSmoothingKey stores the final-frame scaler choice: absent, malformed
-// or any value but "0" is the Catmull-Rom scaler, "0" is method B.
+// frameSmoothingKey is obsolete. The mission preference wins, including its
+// default when absent; the next ordinary options write drops the old key.
 const frameSmoothingKey = "FrameSmoothing"
 
-// smoothingSwitches holds the two presentation smoothing switches, each
-// negated so the zero value leaves both on.
+// smoothingSwitches keeps the separate glyph-overlay preference, negated.
 type smoothingSwitches struct {
-	text, frame bool
+	text bool
 }
 
 // gameSpeedKey is TOWN-186's own registry value name, unchanged. The local
@@ -190,23 +191,16 @@ func (s OptionsStore) SetTextSmoothing(on bool) error {
 	return s.setSwitch(textSmoothingKey, on)
 }
 
-// FrameSmoothing reads the final-frame scaler choice the way TextSmoothing
-// is read: true, the Catmull-Rom scaler, unless the stored value is "0".
+// FrameSmoothing reads the shared Smoothing preference. The obsolete frame
+// key has no influence on it.
 func (s OptionsStore) FrameSmoothing() (bool, error) {
-	if s.Path == "" {
-		return true, nil
-	}
-	m, err := s.readAll()
-	if err != nil {
-		return true, err
-	}
-	v, ok := m[frameSmoothingKey]
-	return !ok || v != "0", nil
+	value, err := s.gameOptionValue(ui.GameOptionSmoothing)
+	return value != 0, err
 }
 
 // SetFrameSmoothing writes the choice, keeping every other key in the file.
 func (s OptionsStore) SetFrameSmoothing(on bool) error {
-	return s.setSwitch(frameSmoothingKey, on)
+	return s.setGameOption(ui.GameOptionSmoothing, boolOption(on))
 }
 
 func (s OptionsStore) setSwitch(key string, on bool) error {
@@ -347,8 +341,6 @@ func (f *FrontEnd) LoadOptions() {
 	f.tipsOff = !on
 	smoothing, _ := f.Options.TextSmoothing()
 	f.smoothingOff.text = !smoothing
-	frame, _ := f.Options.FrameSmoothing()
-	f.smoothingOff.frame = !frame
 	acknowledgments, _ := f.Options.Acknowledgments()
 	f.speech.acknowledgmentsOff = !acknowledgments
 	f.loadGameOptions()

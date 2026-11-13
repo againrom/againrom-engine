@@ -56,7 +56,7 @@ var (
 
 // frameFilter is what drawFinalFrame does at a scale other than 1.
 // filterSmooth is the Catmull-Rom kernel. filterSharp is method B.
-// filterPixel is the mission's Smoothing off: nearest neighbour below a
+// filterPixel keeps game pixels hard: nearest neighbour below a
 // scale of 2, method B from 2 up.
 type frameFilter uint8
 
@@ -66,12 +66,19 @@ const (
 	filterPixel
 )
 
-// filterOf is the filter of a FrameSmoothing switch.
-func filterOf(smoothingOff bool) frameFilter {
-	if smoothingOff {
-		return filterSharp
+// filterOf chooses the filter from Smoothing and the content's text-safe or pixel policy.
+func filterOf(smoothingOff, pixels bool) frameFilter {
+	if !smoothingOff {
+		return filterSmooth
 	}
-	return filterSmooth
+	if pixels {
+		return filterPixel
+	}
+	return filterSharp
+}
+
+func (a *App) frameFilter() frameFilter {
+	return filterOf(!a.FrameSmoothing(), a.cutscene != nil)
 }
 
 // finalFrameFilter carries the drawing App's or Viewer's filter into
@@ -127,10 +134,18 @@ func drawCatmullRom(dst, src *ebiten.Image, op *ebiten.DrawImageOptions) bool {
 	return true
 }
 
-// SetFrameSmoothing selects the final-frame scaler: on, the default, is the
-// Catmull-Rom path; off is method B. It mirrors into the current Viewer.
+// SetFrameSmoothing sets the shared Smoothing preference, or the local value
+// when no preference store is connected.
 func (a *App) SetFrameSmoothing(enabled bool) {
 	if a == nil {
+		return
+	}
+	if a.flow != nil && a.flow.gameOptions.Write != nil {
+		value := 0
+		if enabled {
+			value = 1
+		}
+		a.flow.setGameOption(GameOptionSmoothing, value)
 		return
 	}
 	a.frameSmoothingOff = !enabled
@@ -140,13 +155,25 @@ func (a *App) SetFrameSmoothing(enabled bool) {
 }
 
 // FrameSmoothing reports the current switch.
-func (a *App) FrameSmoothing() bool { return a != nil && !a.frameSmoothingOff }
+func (a *App) FrameSmoothing() bool {
+	if a == nil {
+		return false
+	}
+	if a.flow != nil {
+		if a.flow.gameOptions.Read != nil || a.flow.gameOptions.Current != nil {
+			return a.flow.gameOptionValue(GameOptionSmoothing) != 0
+		}
+		if v := a.flow.viewer; v != nil {
+			return v.graphics.Smoothing
+		}
+	}
+	return !a.frameSmoothingOff
+}
 
-// SetFrameSmoothing selects the mission frame's final scaler, mirroring
-// App.SetFrameSmoothing.
+// SetFrameSmoothing sets the viewer's Smoothing preference.
 func (v *Viewer) SetFrameSmoothing(enabled bool) {
 	if v == nil {
 		return
 	}
-	v.frameSmoothingOff = !enabled
+	v.graphics.Smoothing = enabled
 }

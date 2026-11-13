@@ -55,7 +55,7 @@ func TestGraphicsDefaultsAreHighestQualityAndStoredChoiceWins(t *testing.T) {
 	if on, _ := fresh.Options.TextSmoothing(); !on || fresh.smoothingOff.text {
 		t.Fatal("text smoothing default is not on")
 	}
-	if on, _ := fresh.Options.FrameSmoothing(); !on || fresh.smoothingOff.frame {
+	if on, _ := fresh.Options.FrameSmoothing(); !on || !fresh.graphics.Smoothing {
 		t.Fatal("frame smoothing default is not on")
 	}
 	var shown ui.GameOptionValues = fresh.gameOptionValues(false)
@@ -82,7 +82,7 @@ func TestGraphicsDefaultsAreHighestQualityAndStoredChoiceWins(t *testing.T) {
 	if want := (ui.GraphicsOptions{HideShadows: true, DisableLighting: true, StaticObjects: true, HideLootDots: true}); saved.graphics != want {
 		t.Fatal("stored lower graphics choice was overridden", saved.graphics)
 	}
-	if !saved.smoothingOff.text || !saved.smoothingOff.frame {
+	if !saved.smoothingOff.text || saved.graphics.Smoothing {
 		t.Fatal("stored lower smoothing choice was overridden", saved.smoothingOff)
 	}
 }

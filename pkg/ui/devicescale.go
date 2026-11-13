@@ -130,10 +130,9 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 	drawFinalFrame(screen, e.pointsFrame, &op, &editorPointsSharpBuf, e.frameFilter())
 }
 
-// frameFilter is the filter of the editor's points frame: the open map's
-// FrameSmoothing switch, smooth when no map is open.
+// frameFilter keeps the editor's combined art and text smooth at device scale.
 func (e *MapEditor) frameFilter() frameFilter {
-	return filterOf(e.doc != nil && e.doc.Viewer != nil && e.doc.Viewer.frameSmoothingOff)
+	return filterOf(false, false)
 }
 
 // engineEditorInput is the engine's input reader. It is a variable so a test

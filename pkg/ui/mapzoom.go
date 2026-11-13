@@ -20,7 +20,7 @@ const smoothMapApron = 2
 const smoothMapMaxSide = 4096
 
 // smoothMapPlacement is the one rule of the smooth zoomed map (DIV-4876).
-// With the game's Smoothing option on and a drawn zoom other than exactly 1,
+// At a drawn zoom other than 1, or unit zoom with Smoothing off,
 // it answers the camera the map's world layers are composed under (zoom 1,
 // its origin the view's floored to a whole world pixel less the apron, its
 // size the view's at zoom 1 plus the apron) and the blit that places that
@@ -32,7 +32,7 @@ func (v *Viewer) smoothMapPlacement() (unit camera.Camera, op ebiten.DrawImageOp
 		return unit, op, false
 	}
 	z := c.DrawnZoom()
-	if z == 1 {
+	if z == 1 && (v.graphics.Smoothing || v.editorView) {
 		return unit, op, false
 	}
 	w := int(math.Ceil(float64(c.ViewW)/z)) + 2*smoothMapApron + 1
@@ -99,15 +99,12 @@ type windowMap struct {
 // the game's Smoothing option off, the Catmull-Rom kernel otherwise. The map
 // editor has no Smoothing option.
 func (v *Viewer) mapFilter() frameFilter {
-	if !v.graphics.Smoothing && !v.editorView {
-		return filterPixel
-	}
-	return filterSmooth
+	return filterOf(!v.graphics.Smoothing, true)
 }
 
-// canvasFilter is the canvas and pointer filter: the starter's.
+// canvasFilter keeps interface text evenly scaled when Smoothing is off.
 func (v *Viewer) canvasFilter() frameFilter {
-	return filterOf(v.frameSmoothingOff)
+	return filterOf(!v.graphics.Smoothing, false)
 }
 
 // playerZoom is the zoom the player set, also while the map is composed

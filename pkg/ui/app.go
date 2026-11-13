@@ -696,8 +696,7 @@ type App struct {
 	// (DIV-1385): NewApp sets it true, so the presentation-layer overlay is
 	// the default, and SetTextSmoothing is the only way to turn it off.
 	textSmoothingEnabled bool
-	// frameSmoothingOff is the FrameSmoothing switch negated, so an App that
-	// never receives it uses the Catmull-Rom scaler (drawFinalFrame).
+	// frameSmoothingOff keeps Smoothing for an App with no preference controls or viewer.
 	frameSmoothingOff bool
 	textOverlay       textOverlay
 	textEraser        textEraser
@@ -1387,6 +1386,15 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	defer a.paintChargenCaret(now)
 	defer a.updateMusic()
 	defer a.startPendingCutscene()
+	if in.Smoothing && !in.Unfocused && !in.Close && !in.Viewer.Alt {
+		if !a.flow.cycleGameOption(GameOptionSmoothing) {
+			a.SetFrameSmoothing(!a.FrameSmoothing())
+		}
+		if v := a.flow.viewer; v != nil && a.flow.screen == ScreenMap {
+			v.postSettingNotice(noticeSlotSmoothing, noticeState(a.FrameSmoothing()))
+		}
+		in.Smoothing, in.AnyKey = false, false
+	}
 	if a.cutscene != nil {
 		a.stepCutscene(in, now)
 		return false
@@ -1802,16 +1810,6 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 					v.postSettingNotice(noticeSlotDayNight, noticeState(v.TimeFlow()))
 				} else {
 					a.postOptionNotice(v, GameOptionDayNight, noticeSlotDayNight)
-				}
-			}
-			if in.Smoothing {
-				if !a.flow.cycleGameOption(GameOptionSmoothing) {
-					options := v.GraphicsOptions()
-					options.Smoothing = !options.Smoothing
-					v.SetGraphicsOptions(options)
-					v.postSettingNotice(noticeSlotSmoothing, noticeState(options.Smoothing))
-				} else {
-					a.postOptionNotice(v, GameOptionSmoothing, noticeSlotSmoothing)
 				}
 			}
 			if in.AutoHealing && a.flow.cycleGameOption(GameOptionAutoHealing) {
@@ -4050,7 +4048,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 		present, capturedText = settleText(present, &a.presentLog, capturedText, &a.textEraser,
 			&a.settledBuf, &a.settledTex, &a.textSettleFallbacks)
 		a.textKept = len(capturedText)
-		drawFinalFrame(screen, present, &op, &townCompositeSharpBuf, filterOf(a.frameSmoothingOff))
+		drawFinalFrame(screen, present, &op, &townCompositeSharpBuf, a.frameFilter())
 		if len(capturedText) > 0 {
 			a.textOverlay.draw(screen, capturedText, a.place.Scale(), ox, oy)
 		}
@@ -4256,7 +4254,7 @@ func (a *App) drawCursor(screen *ebiten.Image) {
 	op.GeoM.Translate(c.X, c.Y)
 	// The cursor is scaled by the same a.place.Scale() as the composite it
 	// is drawn over, so it shares that composite's scaler (owner direction).
-	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, filterOf(a.frameSmoothingOff))
+	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, a.frameFilter())
 }
 
 // drawGameMenuOverMap places the shared menu layer over the mission when the
@@ -4300,7 +4298,7 @@ func (a *App) drawMenuLayerOverMap(screen *ebiten.Image) {
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)
 	op.Filter = ebiten.FilterNearest
-	finalFrameFilter = filterOf(a.frameSmoothingOff)
+	finalFrameFilter = a.frameFilter()
 	blitMenuOverMap(screen, menuCanvas, &op)
 	if len(kept) > 0 {
 		a.menuOverlay.draw(screen, kept, scale, ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)

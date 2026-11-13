@@ -181,9 +181,6 @@ type Viewer struct {
 	// in-mission notices, damage numerals) still bakes text at native
 	// resolution, unaudited debt named in the story record.
 	textSmoothingEnabled bool
-	// frameSmoothingOff is the FrameSmoothing switch negated, so a Viewer
-	// that never receives it uses the Catmull-Rom scaler.
-	frameSmoothingOff bool
 	// deviceScale is the device pixels per point of the layout; 0 is 1.
 	deviceScale float64
 	textOverlay textOverlay

@@ -49,7 +49,7 @@ func (f *FrontEnd) setGraphicsOption(onMap bool, option ui.GameOption, value int
 		}
 	}
 	f.graphics = graphicsValues(v)
-	if onMap && f.live != nil {
+	if f.live != nil {
 		f.live.view.SetGraphicsOptions(f.graphics)
 	}
 	return nil

@@ -69,11 +69,10 @@ func TestTablesEqualTheReplacedWords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The map editor's ids are words written for the editor, not words a
-	// replaced screen drew, so the dump of replaced code holds none of them.
+	// Editor words and the shared smoothing caption are authored here.
 	fresh := 0
 	for _, id := range ids {
-		if strings.HasPrefix(id, editorPrefix) {
+		if strings.HasPrefix(id, editorPrefix) || id == "options.smoothing" {
 			fresh++
 			continue
 		}

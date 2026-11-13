@@ -91,6 +91,7 @@ func TestActivePauseKeepsSoundDeliveryAndEntityRetirementLive(t *testing.T) {
 
 func TestActivePauseDimsWorldBeforeReadableHUDAndResumesExactly(t *testing.T) {
 	h := newHaltFix(t, haltOpts{})
+	h.v.SetFrameSmoothing(true)
 	h.v.SetTextSmoothing(false)
 	h.v.ShowReadout(true)
 	h.v.DeferPointer(true)
