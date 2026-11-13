@@ -597,6 +597,10 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		_ = e.modAction(o.fields[i].Key, "")
 		return
 	}
+	if e.modFolderShown() {
+		e.openModChoice()
+		return
+	}
 	if e.modWindow && part == popupRowButton && strings.HasSuffix(o.fields[i].Key, ".character") {
 		o.detail = strings.TrimSuffix(o.fields[i].Key, "character")
 		e.focusObjectField(min(i+1, len(o.fields)-1))

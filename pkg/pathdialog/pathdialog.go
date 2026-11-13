@@ -4,6 +4,8 @@ package pathdialog
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -47,9 +49,29 @@ func Show(request Request) (Result, error) {
 	if err := validate(request); err != nil {
 		return Result{}, err
 	}
+	request.StartDir = startFolder(request.StartDir)
 	dialogMu.Lock()
 	defer dialogMu.Unlock()
 	return show(request)
+}
+
+// startFolder is the nearest folder at or above dir that exists, or "" when
+// none does: a start folder not yet made opens the window one level up, not
+// a failure.
+func startFolder(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	for {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir || parent == "." {
+			return ""
+		}
+		dir = parent
+	}
 }
 
 func unavailable(Request) (Result, error) {

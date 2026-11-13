@@ -2,6 +2,8 @@ package pathdialog
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -26,6 +28,27 @@ func TestValidate(t *testing.T) {
 	} {
 		if err := validate(request); err == nil {
 			t.Errorf("accepted invalid request %+v", request)
+		}
+	}
+}
+
+// A start folder not yet made starts the window in its nearest existing
+// folder; a file starts it in its folder; nothing existing leaves no start.
+func TestStartFolderIsTheNearestExistingFolder(t *testing.T) {
+	root := t.TempDir()
+	file := filepath.Join(root, "mod.toml")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ dir, want string }{
+		{"", ""},
+		{root, root},
+		{filepath.Join(root, "workbench", "river"), root},
+		{file, root},
+		{"relative-missing", ""},
+	} {
+		if got := startFolder(test.dir); got != test.want {
+			t.Errorf("startFolder(%q) = %q, want %q", test.dir, got, test.want)
 		}
 	}
 }

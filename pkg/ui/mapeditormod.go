@@ -256,13 +256,25 @@ func (e *MapEditor) openModChoice() {
 	})
 }
 
+// modFolderShown reports that W's folder field holds the focus as shown: a
+// press on it or Enter opens the path window; a typed folder is edited.
+func (e *MapEditor) modFolderShown() bool {
+	o := &e.obj
+	if !e.modWindow || e.prompt.open() || o.focus < 0 || o.focus >= len(o.fields) || o.focus >= len(o.buf) {
+		return false
+	}
+	f := o.fields[o.focus]
+	return f.Key == "folder" && !f.ReadOnly && o.buf[o.focus] == fieldInput(f)
+}
+
 // modOpenTyped focuses W's folder field and says to type the mod's path
 // there; err is why the host showed no window, nil when it has none.
 func (e *MapEditor) modOpenTyped(err error) {
-	if err == nil {
-		err = pathdialog.ErrUnavailable
-	}
 	e.FocusModField("folder")
+	if err == nil || errors.Is(err, pathdialog.ErrUnavailable) {
+		e.modStatus = e.plainWord("editor.mod.nodialog")
+		return
+	}
 	e.modStatus = fmt.Sprintf(e.plainWord("editor.mod.typepath"), err)
 }
 
@@ -380,6 +392,10 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Action {
 			return true, e.modAction(o.fields[o.focus].Key, "")
 		}
+		if e.modFolderShown() {
+			e.openModChoice()
+			return true, nil
+		}
 		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Key == "folder" {
 			return true, e.modAction("folder", o.buf[o.focus])
 		}
@@ -467,6 +483,13 @@ func (e *MapEditor) modNativeKeys(in editorNativeInput) (bool, error) {
 	}
 	if in.justPressed(ebiten.KeyS) {
 		return true, e.Key("saveas")
+	}
+	// Ctrl+O is W's Open mod; the File menu's Open still opens a map.
+	if in.justPressed(ebiten.KeyO) {
+		if e.pathDialog.pending == nil && e.modConfirm == "" {
+			return true, e.modButton(modButtonIndex("open"))
+		}
+		return true, nil
 	}
 	pending := false
 	o := &e.obj

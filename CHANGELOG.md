@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] Opening a mod now uses the system's file window everywhere: in the map editor's mod window a click on Working folder, Enter in it, Ctrl+O and Open mod all open it, and it no longer fails before the first mod is saved; the starter's mods folder has a Browse button.
+
 ## 0.154.0
 
 ### For players

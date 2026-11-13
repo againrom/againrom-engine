@@ -302,7 +302,7 @@ func (e *MapEditor) inputPointer(in Input) bool {
 			return v, box
 		}
 	}
-	if v, box := at(p, true); v != nil {
+	if v, box := at(p, true); v != nil && !e.modFolderShown() {
 		e.input.model.Drag(v.hit(p, box, e.bodyFont()), in.Shift)
 		e.input.drag = true
 		e.down, e.uiDown = true, false

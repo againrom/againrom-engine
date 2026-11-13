@@ -3,6 +3,9 @@
 package pathdialog
 
 import (
+	"errors"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"golang.org/x/sys/windows"
@@ -34,6 +37,44 @@ func TestHRESULT(t *testing.T) {
 	}
 	if err := hresult("COM", 0x80004005); err == nil {
 		t.Fatal("failed HRESULT accepted")
+	}
+}
+
+// A failed lookup of the program's window opens the dialog without an owner
+// instead of failing it.
+func TestDialogOwnerFailureOpensWithoutOwner(t *testing.T) {
+	if got := dialogOwner(func() (windows.HWND, error) { return 0, errors.New("no visible program window") }); got != 0 {
+		t.Fatalf("failed lookup gave owner %#x", got)
+	}
+	if got := dialogOwner(func() (windows.HWND, error) { return 0x1234, nil }); got != 0x1234 {
+		t.Fatalf("found owner %#x was dropped", got)
+	}
+}
+
+// A start folder the shell cannot resolve leaves the dialog's own start and
+// configures the rest; an existing one is set.
+func TestConfigureWindowsStartFolder(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err == nil {
+		defer windows.CoUninitialize()
+	}
+	var slots [29]uintptr
+	var title string
+	folders := 0
+	for _, n := range []int{9, 15, 4, 5} {
+		slots[n] = windows.NewCallback(func(*comObject, uintptr, uintptr) uintptr { return 0 })
+	}
+	slots[17] = windows.NewCallback(func(_ *comObject, text *uint16) uintptr { title = windows.UTF16PtrToString(text); return 0 })
+	slots[12] = windows.NewCallback(func(*comObject, uintptr) uintptr { folders++; return 0 })
+	dialog := comObject{vtable: &slots}
+	request := Request{Kind: OpenFile, Title: "Open mod", StartDir: filepath.Join(t.TempDir(), "missing", "workbench"), Filters: []Filter{{Name: "Mod", Extensions: []string{"toml", "res"}}}}
+	if err := configureWindows(&dialog, request); err != nil || folders != 0 || title != request.Title {
+		t.Fatalf("missing start folder: %v, %d folders set, title %q", err, folders, title)
+	}
+	request.StartDir = t.TempDir()
+	if err := configureWindows(&dialog, request); err != nil || folders != 1 {
+		t.Fatalf("existing start folder: %v, %d folders set", err, folders)
 	}
 }
 

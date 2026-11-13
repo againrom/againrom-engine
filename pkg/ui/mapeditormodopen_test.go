@@ -1,12 +1,15 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
 
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/pathdialog"
@@ -63,13 +66,75 @@ func TestModWindowOpenButtonSendsTheChosenModDownTheFolderRoute(t *testing.T) {
 	}
 }
 
-// Without a path window, or when it fails, Open mod focuses the folder field
-// and says to type the mod's path there.
+// A click on W's folder field, Enter in it as shown and Ctrl+O each ask the
+// path window for a mod.toml or a packed .res, starting in the editor's
+// folder, and the chosen mod opens down the folder route. A typed folder and
+// Enter still opens the typed path.
+func TestModWindowFolderFieldAndCtrlOAskThePathWindow(t *testing.T) {
+	chosen := filepath.Join(t.TempDir(), "other-mod", "mod.toml")
+	for _, door := range []string{"click", "click-focused", "enter", "ctrl+o", "typed"} {
+		e, calls, requests := modOpenEditor(t, chosen, nil)
+		folder := slices.IndexFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == "folder" })
+		focus := "folder"
+		if door == "click" {
+			focus = "title"
+		}
+		if folder < 0 || !e.FocusModField(focus) {
+			t.Fatal("W has no folder field")
+		}
+		switch door {
+		case "click", "click-focused":
+			r, ok := e.FindControl(ControlQuery{Role: ControlField, N: folder})
+			if !ok {
+				t.Fatal("the folder field is not shown")
+			}
+			modesClick(e, center(r))
+		case "enter":
+			_ = e.Key("enter")
+		case "ctrl+o":
+			updateEditorKeys(t, e, ebiten.KeyControl, ebiten.KeyO)
+		case "typed":
+			_ = e.Key("clear")
+			e.TextInput("typed-mod")
+			_ = e.Key("enter")
+		}
+		finishEditorDialog(t, e)
+		if door == "typed" {
+			if len(requests) != 0 || !slices.Contains(calls.lines, `Workspace package folder "typed-mod"`) {
+				t.Fatalf("typed: the typed folder did not open: %d requests, %v", len(requests), calls.lines)
+			}
+			continue
+		}
+		if len(requests) != 1 {
+			t.Fatalf("%s: %d path window requests", door, len(requests))
+		}
+		r := <-requests
+		if r.Kind != pathdialog.OpenFile || r.StartDir != e.pathDialog.baseDir || len(r.Filters) != 1 || !slices.Equal(r.Filters[0].Extensions, []string{"toml", "res"}) {
+			t.Fatalf("%s: request %+v", door, r)
+		}
+		if want := fmt.Sprintf("Workspace package folder %q", chosen); !slices.Contains(calls.lines, want) || !e.ModWindowOpen() {
+			t.Fatalf("%s: the chosen mod did not open: %v", door, calls.lines)
+		}
+	}
+	e, _, requests := modOpenEditor(t, "", errors.New("closed"))
+	_ = e.Key("open")
+	finishEditorDialog(t, e)
+	if r := <-requests; !slices.Equal(r.Filters[0].Extensions, []string{"alm", "almx"}) {
+		t.Fatalf("File > Open with W open asked %+v, not for a map", r)
+	}
+}
+
+// Without a path window Open mod focuses the folder field and says the system
+// has none; a window that fails says why. Both say to type the mod's path.
 func TestModWindowOpenWithoutAPathWindowAsksForTheTypedPath(t *testing.T) {
-	for _, bound := range []bool{false, true} {
+	failed := errors.New("test dialog failure")
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{{"none", nil}, {"unavailable", pathdialog.ErrUnavailable}, {"failed", failed}} {
 		var e *MapEditor
-		if bound {
-			e, _, _ = modOpenEditor(t, "", pathdialog.ErrUnavailable)
+		if tc.name != "none" {
+			e, _, _ = modOpenEditor(t, "", tc.err)
 		} else {
 			e, _ = newModesEditor(t, "workspace")
 			_ = e.Key("package")
@@ -79,10 +144,14 @@ func TestModWindowOpenWithoutAPathWindowAsksForTheTypedPath(t *testing.T) {
 		}
 		finishEditorDialog(t, e)
 		if e.obj.focus >= len(e.obj.fields) || e.obj.fields[e.obj.focus].Key != "folder" {
-			t.Fatalf("bound %v: focus %d is not the folder field", bound, e.obj.focus)
+			t.Fatalf("%s: focus %d is not the folder field", tc.name, e.obj.focus)
 		}
-		if want := fmt.Sprintf(e.plainWord("editor.mod.typepath"), pathdialog.ErrUnavailable); e.modStatus != want {
-			t.Fatalf("bound %v: W says %q, not %q", bound, e.modStatus, want)
+		want := e.plainWord("editor.mod.nodialog")
+		if tc.err == failed {
+			want = fmt.Sprintf(e.plainWord("editor.mod.typepath"), failed)
+		}
+		if e.modStatus != want {
+			t.Fatalf("%s: W says %q, not %q", tc.name, e.modStatus, want)
 		}
 	}
 }

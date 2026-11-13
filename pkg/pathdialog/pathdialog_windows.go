@@ -62,16 +62,26 @@ func findOwnerWindow(window windows.HWND, parameter unsafe.Pointer) uintptr {
 	return 1
 }
 
-func dialogOwner() (windows.HWND, error) {
+// dialogOwner is the program's visible window; with none found the window
+// opens without an owner.
+func dialogOwner(find func() (windows.HWND, error)) windows.HWND {
+	owner, err := find()
+	if err != nil {
+		return 0
+	}
+	return owner
+}
+
+func programWindow() (windows.HWND, error) {
 	search := ownerSearch{process: windows.GetCurrentProcessId()}
 	err := windows.EnumWindows(findOwnerCallback, unsafe.Pointer(&search))
 	if search.window != 0 {
 		return search.window, nil
 	}
 	if err != nil {
-		return 0, fmt.Errorf("%w: find program window: %v", ErrUnavailable, err)
+		return 0, fmt.Errorf("find program window: %v", err)
 	}
-	return 0, fmt.Errorf("%w: no visible program window", ErrUnavailable)
+	return 0, fmt.Errorf("no visible program window")
 }
 
 func windowsOptions(kind Kind) uint32 {
@@ -158,11 +168,9 @@ func configureWindows(dialog *comObject, request Request) error {
 		var folder *comObject
 		hr, _, _ := createShellItem.Call(uintptr(unsafe.Pointer(path)), 0, uintptr(unsafe.Pointer(&shellItemID)), uintptr(unsafe.Pointer(&folder)))
 		runtime.KeepAlive(path)
-		if err := hresult("resolve start folder", hr); err != nil {
-			return err
-		}
-		if folder == nil {
-			return fmt.Errorf("system path dialog returned no start folder")
+		// A start folder the shell cannot resolve leaves the window's own start.
+		if hresult("resolve start folder", hr) != nil || folder == nil {
+			return nil
 		}
 		defer folder.call(2)
 		if err := hresult("set start folder", dialog.call(12, uintptr(unsafe.Pointer(folder)))); err != nil {
@@ -186,10 +194,7 @@ func show(request Request) (Result, error) {
 		return Result{}, err
 	}
 	defer windows.CoUninitialize()
-	owner, err := dialogOwner()
-	if err != nil {
-		return Result{}, err
-	}
+	owner := dialogOwner(programWindow)
 	class := &openDialogClass
 	if request.Kind == SaveFile {
 		class = &saveDialogClass

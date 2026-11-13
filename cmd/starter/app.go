@@ -97,6 +97,7 @@ const (
 	aSettingReset
 	aMapEditor
 	aChooseBase
+	aChooseMods
 	aSettingsOpen
 	aSettingsClose
 	aWindowed
@@ -744,7 +745,8 @@ func (a *app) layout() []item {
 		// Mods.
 		heading(10, 190, a.t(cHeadMods))
 		text(10, 214, a.t(cFolder), toneDim)
-		field(rect(76, 210, 224, 22), fModsDir)
+		field(rect(76, 210, 150, 22), fModsDir)
+		button(rect(232, 210, 68, 22), a.t(cBrowse), action{kind: aChooseMods})
 		button(rect(306, 210, 69, 22), a.t(cRescan), action{kind: aRescan})
 		if a.s.ModsDir == "" {
 			textW(76, 234, lw-66, a.t(cModsDefault, launch.ModsFolder("", a.selfDir())), toneDim)
@@ -989,7 +991,11 @@ func (a *app) click(p image.Point) {
 			break
 		}
 	}
-	if act.kind != aChooseBase {
+	// A click on the mods folder field opens the path window.
+	if act == (action{aFocus, int(fModsDir)}) {
+		act = action{kind: aChooseMods}
+	}
+	if act.kind != aChooseBase && act.kind != aChooseMods {
 		a.focus = fNone
 	}
 	if act.kind != aNone {
@@ -1006,6 +1012,10 @@ func (a *app) apply(act action) {
 	}
 	if act.kind == aChooseBase {
 		a.chooseBase()
+		return
+	}
+	if act.kind == aChooseMods {
+		a.chooseFolder(modsFolderChoice)
 		return
 	}
 	a.dirty = true

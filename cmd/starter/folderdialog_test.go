@@ -69,6 +69,60 @@ func TestFolderDialogButtonRequestAndLocalization(t *testing.T) {
 	a.pollFolderDialog()
 }
 
+// The mods folder's Browse button and a click on its field ask the path window
+// for a folder, starting in the folder mods are read from; the chosen folder
+// is the mods folder and its mods are listed. A failed window focuses the
+// field and says to type the folder there.
+func TestModsFolderBrowseAndFieldClickAskThePathWindow(t *testing.T) {
+	for _, tc := range []struct{ language, caption, title string }{
+		{"english", "Browse", "Choose the mods folder"},
+		{"russian", "Обзор", "Выберите папку модов"},
+	} {
+		for _, door := range []action{{kind: aChooseMods}, {aFocus, int(fModsDir)}} {
+			r := rigWithLanguage(t, tc.language)
+			chosen := t.TempDir()
+			writeModFolder(t, chosen, "picked", manifest("picked"))
+			a := r.app()
+			start := a.s.modsDir(a.selfDir())
+			var got []pathdialog.Request
+			a.deps.pathDialog = func(req pathdialog.Request) (pathdialog.Result, error) {
+				got = append(got, req)
+				return pathdialog.Result{Path: chosen}, nil
+			}
+			if door.kind == aChooseMods {
+				found := false
+				for _, it := range a.layout() {
+					if it.act == door {
+						found = it.kind == iButton && it.text == tc.caption && it.rect.Min.Y == 210
+					}
+				}
+				if !found {
+					t.Fatalf("%s: no Browse button beside the mods folder", tc.language)
+				}
+			}
+			do(t, a, door)
+			if !a.pollFolderDialog() {
+				t.Fatalf("%s %+v: no dialog result", tc.language, door)
+			}
+			want := pathdialog.Request{Kind: pathdialog.ChooseFolder, Title: tc.title, StartDir: start}
+			if len(got) != 1 || !reflect.DeepEqual(got[0], want) {
+				t.Fatalf("%s %+v: requests %+v, want %+v", tc.language, door, got, want)
+			}
+			if a.s.ModsDir != chosen || len(a.scan) != 1 || a.focus != fNone || a.statusBad {
+				t.Fatalf("%s %+v: mods folder %q, %d mods, focus %d, status %q", tc.language, door, a.s.ModsDir, len(a.scan), a.focus, a.status)
+			}
+		}
+		a := rigWithLanguage(t, tc.language).app()
+		failure := errors.New("test dialog failure")
+		a.deps.pathDialog = func(pathdialog.Request) (pathdialog.Result, error) { return pathdialog.Result{}, failure }
+		do(t, a, action{kind: aChooseMods})
+		a.pollFolderDialog()
+		if a.focus != fModsDir || !a.statusBad || a.status != a.t(cModsDialogFailed, failure) {
+			t.Fatalf("%s: failed window left focus %d, status %q", tc.language, a.focus, a.status)
+		}
+	}
+}
+
 func TestFolderDialogSelectionMatchesTypedAdd(t *testing.T) {
 	for _, name := range []string{"valid", "not-install", "missing", "file", "duplicate"} {
 		t.Run(name, func(t *testing.T) {

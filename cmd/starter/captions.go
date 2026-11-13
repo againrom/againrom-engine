@@ -35,6 +35,8 @@ const (
 	cBrowse             captionID = "browse"
 	cChooseBaseFolder   captionID = "choose-base-folder"
 	cFolderDialogFailed captionID = "folder-dialog-failed"
+	cChooseModsFolder   captionID = "choose-mods-folder"
+	cModsDialogFailed   captionID = "mods-dialog-failed"
 	cRemove             captionID = "remove"
 	cFolder             captionID = "folder"
 	cRescan             captionID = "rescan"
@@ -186,6 +188,8 @@ var captionRows = []captionRow{
 	row(cBrowse, "Browse", "Обзор", ""),
 	row(cChooseBaseFolder, "Choose the base game folder", "Выберите папку основной игры", ""),
 	row(cFolderDialogFailed, "folder dialog unavailable: %v; type or paste the folder in Add path", "выбор папки недоступен: %v; введите или вставьте папку в поле пути", ""),
+	row(cChooseModsFolder, "Choose the mods folder", "Выберите папку модов", ""),
+	row(cModsDialogFailed, "folder dialog unavailable: %v; type or paste the mods folder in Folder and press Enter", "выбор папки недоступен: %v; введите или вставьте папку модов в поле Папка и нажмите Enter", ""),
 	row(cRemove, "Remove", "Удалить", "dialogs.txt: Delete"),
 	row(cFolder, "Folder:", "Папка:", ""),
 	row(cRescan, "Rescan", "Обновить", ""),
