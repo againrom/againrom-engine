@@ -545,14 +545,16 @@ const (
 	perceiveCast
 	perceiveContinue
 	perceiveGroup
+	perceiveLit
 )
 
 // perception is one question to the target perception query. A cell target
 // (atCell) is terrain sight alone. The group purpose reads members, or every
-// actor of owner when byOwner; the others read observer.
+// actor of owner when byOwner; the others read set, or observer when set is nil.
 type perception struct {
 	purpose  perceptionPurpose
 	observer int
+	set      *observerSet
 	members  []int
 	owner    uint32
 	byOwner  bool
@@ -568,6 +570,7 @@ type perceptionRow struct {
 	onlyHidden   bool // continue: only an invisible target can be dropped
 	alliedSight  bool // cast: own or allied target needs terrain only (DIV-3996)
 	group        bool // the members' detectors; callers established terrain
+	litOnly      bool // the target's cell lit: no self-sight, no invisibility
 }
 
 var perceptionRows = [...]perceptionRow{
@@ -575,24 +578,52 @@ var perceptionRows = [...]perceptionRow{
 	perceiveCast:     {alliedSight: true},
 	perceiveContinue: {noTargetSeen: true, onlyHidden: true},
 	perceiveGroup:    {noTargetSeen: true, group: true},
+	perceiveLit:      {litOnly: true},
+}
+
+// observerSet is observers asked as one: the members, the union of their
+// perception stamps, and the owner whose living units it sees without sight.
+type observerSet struct {
+	owner   uint32
+	members []int
+	stamp   []byte
+}
+
+// observersOf is the observer set of owner: the living actors admits takes,
+// in entity order.
+func (w *World) observersOf(owner uint32, admits func(j int, e *Entity) bool) observerSet {
+	s := observerSet{owner: owner}
+	for j := range w.entities {
+		if e := &w.entities[j]; e.Alive() && admits(j, e) {
+			s.members = append(s.members, j)
+		}
+	}
+	s.stamp = w.membersSight(s.members, false)
+	return s
 }
 
 // perceives is the one target perception query.
 func (w *World) perceives(q perception) bool {
 	row := perceptionRows[q.purpose]
 	if q.atCell {
-		return w.sightShows(w.actorSight(q.observer), q.at)
+		return w.sightShows(w.observersStamp(q), q.at)
 	}
 	t := q.target
 	if t < 0 || t >= len(w.entities) {
 		return row.noTargetSeen
 	}
 	at := cellOf(&w.entities[t])
+	if row.litOnly {
+		return w.sightShows(w.observersStamp(q), at)
+	}
 	if row.onlyHidden && !w.invisible(t) {
 		return true
 	}
 	if row.group {
 		return !w.invisible(t) || w.groupDetects(q, t, at)
+	}
+	if q.set != nil {
+		return w.setPerceives(q, t, at)
 	}
 	i := q.observer
 	if i < 0 || i >= len(w.entities) {
@@ -608,6 +639,36 @@ func (w *World) perceives(q perception) bool {
 		return false
 	}
 	return !w.invisible(t) || w.detectsInvisible(i, at)
+}
+
+// observersStamp is the perception stamp of the question's observers.
+func (w *World) observersStamp(q perception) []byte {
+	if q.set != nil {
+		return q.set.stamp
+	}
+	return w.actorSight(q.observer)
+}
+
+// setPerceives: a living unit of the set's owner is seen; any other target
+// needs a cell the set lights, and an invisible one a member that perceives
+// it alone.
+func (w *World) setPerceives(q perception, t int, at cell) bool {
+	e := &w.entities[t]
+	if e.Owner == q.set.owner && e.Alive() {
+		return true
+	}
+	if !w.sightShows(q.set.stamp, at) {
+		return false
+	}
+	if !w.invisible(t) {
+		return true
+	}
+	for _, j := range q.set.members {
+		if w.perceives(perception{purpose: q.purpose, observer: j, target: t}) {
+			return true
+		}
+	}
+	return false
 }
 
 // groupDetects reports a member that is the target or detects it.

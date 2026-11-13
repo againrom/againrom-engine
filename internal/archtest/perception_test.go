@@ -82,4 +82,57 @@ func TestTargetPerceptionHasOneQuery(t *testing.T) {
 	if got := seeInvisibleTests(t, files); len(got) != 0 {
 		t.Fatalf("SeeInvisible radius tests outside the perception query: %v", got)
 	}
+	for _, name := range castChoiceFiles {
+		if _, ok := files[name]; !ok {
+			t.Fatalf("%s is gone; the cast choice scan guards nothing", name)
+		}
+	}
+	if got := sightPartCalls(t, files); len(got) != 0 {
+		t.Fatalf("the cast choice asks sight outside the perception query: %v", got)
+	}
+}
+
+// castChoiceFiles hold the cast choices that ask the perception query.
+var castChoiceFiles = []string{"pkg/sim/autocasttarget.go", "pkg/sim/autocastsetting.go", "pkg/sim/manualcast.go"}
+
+// sightPartCalls names each call in castChoiceFiles of a part the
+// perception query composes: a stamp, a lit cell or an invisibility test.
+func sightPartCalls(t *testing.T, files map[string]string) []string {
+	t.Helper()
+	parts := map[string]bool{"actorSight": true, "membersSight": true, "groupSight": true,
+		"sightShows": true, "invisible": true, "detectsInvisible": true}
+	var out []string
+	for _, name := range castChoiceFiles {
+		source, ok := files[name]
+		if !ok {
+			continue
+		}
+		f, err := parser.ParseFile(token.NewFileSet(), name, source, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok && parts[sel.Sel.Name] {
+					out = append(out, name+": "+sel.Sel.Name)
+				}
+			}
+			return true
+		})
+	}
+	sort.Strings(out)
+	return out
+}
+
+func TestSightPartScanNamesEachCall(t *testing.T) {
+	got := sightPartCalls(t, map[string]string{
+		"pkg/sim/autocasttarget.go": "package sim\nfunc f(w *W) bool { return w.sightShows(w.actorSight(0), c) }\n",
+		"pkg/sim/manualcast.go":     "package sim\nfunc g(w *W) bool { return w.perceives(q) && w.invisible(1) }\n",
+		"pkg/sim/sight.go":          "package sim\nfunc h(w *W) bool { return w.sightShows(nil, c) }\n",
+	})
+	want := []string{"pkg/sim/autocasttarget.go: actorSight", "pkg/sim/autocasttarget.go: sightShows",
+		"pkg/sim/manualcast.go: invisible"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("sightPartCalls = %v", got)
+	}
 }

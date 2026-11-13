@@ -209,55 +209,8 @@ func (w *World) manualCastApproach(c Command) bool {
 
 // ownerSees reports whether a living unit of owner sees the entity id.
 func (w *World) ownerSees(owner uint32, id EntityID) bool {
-	return w.sideSees(w.sightOfSide(owner, nil), indexOfEntity(w.entities, id))
-}
-
-// sideSight is one side's living units and the union of their actorSight
-// stamps: each unit's march and its attack notice.
-type sideSight struct {
-	owner   uint32
-	members []int
-	stamp   []byte
-}
-
-// sightOfSide is the sight of the living units of owner and of the living
-// units allied admits; a nil allied admits none.
-func (w *World) sightOfSide(owner uint32, allied func(*Entity) bool) sideSight {
-	s := sideSight{owner: owner}
-	for j := range w.entities {
-		e := &w.entities[j]
-		if e.Alive() && (e.Owner == owner || allied != nil && allied(e)) {
-			s.members = append(s.members, j)
-		}
-	}
-	s.stamp = w.membersSight(s.members, false)
-	return s
-}
-
-// sideSees reports whether a unit of the side sees the actor at vi by
-// castSeesEntity. A living unit of the side's owner sees itself; any other
-// actor, an allied member included, needs a lit cell, and an invisible one is
-// asked of each member.
-func (w *World) sideSees(s sideSight, vi int) bool {
-	if vi < 0 || vi >= len(w.entities) {
-		return false
-	}
-	t := &w.entities[vi]
-	if t.Owner == s.owner && t.Alive() {
-		return true
-	}
-	if !w.sightShows(s.stamp, cellOf(t)) {
-		return false
-	}
-	if !w.invisible(vi) {
-		return true
-	}
-	for _, j := range s.members {
-		if w.castSeesEntity(j, vi) {
-			return true
-		}
-	}
-	return false
+	side := w.observersOf(owner, func(_ int, e *Entity) bool { return e.Owner == owner })
+	return w.perceives(perception{purpose: perceiveCast, set: &side, target: indexOfEntity(w.entities, id)})
 }
 
 // beginCastApproach replaces the caster's order with a walk into reach and

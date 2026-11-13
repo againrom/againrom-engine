@@ -6,30 +6,33 @@ import "slices"
 // of spell or support setting (TRIG-OFFMAP-041, AI-LIST-003).
 func autoCastTargetAdmitted(target Entity) bool { return !target.OffMap }
 
-// autoChoiceSight is the sight one automatic choice asks of its candidates,
-// built on first use: the caster's own stamp, or the side of the caster's
-// player and its allies (ownOrAllied) under autoCastSideSight (owner, DIV-4872).
+// autoChoiceSight is the perception question one automatic choice asks of
+// its candidates, built on first use (autoCastObservers).
 type autoChoiceSight struct {
-	own  []byte
-	side *sideSight
+	set     *observerSet
+	purpose perceptionPurpose
 }
 
 // autoChoiceSees reports whether the automatic choice of caster ci may take
-// the actor at ti by sight. A living unit of the caster's player, the caster
-// included, sees itself.
+// the actor at ti by sight.
 func (w *World) autoChoiceSees(ci, ti int, s *autoChoiceSight) bool {
-	if w.game.autoCastSideSight {
-		if s.side == nil {
-			c := w.entities[ci]
-			side := w.sightOfSide(c.Owner, func(e *Entity) bool { return w.ownOrAllied(&c, e) })
-			s.side = &side
-		}
-		return w.sideSees(*s.side, ti)
+	if s.set == nil {
+		set, purpose := w.autoCastObservers(ci)
+		s.set, s.purpose = &set, purpose
 	}
-	if s.own == nil {
-		s.own = w.actorSight(ci)
+	return w.perceives(perception{purpose: s.purpose, set: s.set, target: ti})
+}
+
+// autoCastObservers is the observers and purpose of caster ci's automatic
+// choice: the cells the caster lights, or under autoCastSideSight the cast
+// sight of the side of its player and its allies (ownOrAllied, DIV-4872).
+func (w *World) autoCastObservers(ci int) (observerSet, perceptionPurpose) {
+	c := w.entities[ci]
+	if !w.game.autoCastSideSight {
+		return w.observersOf(c.Owner, func(j int, _ *Entity) bool { return j == ci }), perceiveLit
 	}
-	return w.sightShows(s.own, cell{x: w.entities[ti].X, y: w.entities[ti].Y})
+	side := func(_ int, e *Entity) bool { return e.Owner == c.Owner || w.ownOrAllied(&c, e) }
+	return w.observersOf(c.Owner, side), perceiveCast
 }
 
 // secondGameSpareMageTypes are the second game's Necromancer (99) and Druid
