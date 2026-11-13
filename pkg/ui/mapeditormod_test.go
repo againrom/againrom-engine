@@ -96,6 +96,9 @@ func TestModWindowUsesTheSharedSaveDiscardCancelQuestion(t *testing.T) {
 		p := e.doc.Edits.(*modesWorkspace)
 		p.leave = &WorkspaceLeave{Folder: "other-mod"}
 		_ = e.Key("package")
+		if !e.FocusModField("folder") {
+			t.Fatal("missing folder field")
+		}
 		_ = e.Key("clear")
 		e.TextInput("other-mod")
 		_ = e.Key("enter")
@@ -177,7 +180,45 @@ func TestModWindowMouseMissionSwitchAcceptsTheFocusedField(t *testing.T) {
 	}
 }
 
-func TestModWindowUsesSharedRowsAndBlocksCanvasInBothLanguages(t *testing.T) {
+func TestModWindowMissionRowsHaveNoDropdownInBothLanguages(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		for _, size := range []image.Point{{1024, 768}, {640, 480}} {
+			t.Run(fmt.Sprintf("%s/%dx%d", lang, size.X, size.Y), func(t *testing.T) {
+				e := modesWordsEditor(t, "workspace", lang, size)
+				host := e.doc.Edits.(*modesWorkspace)
+				host.overview, host.graph = modesOverview, modesGraph()
+				if err := e.Key("package"); err != nil {
+					t.Fatal(err)
+				}
+				for tab, page := range e.modPages() {
+					e.turnModPage(tab)
+					s, _, _ := e.modSpec()
+					l := layoutPopup(s, e.font, e.bodyFont())
+					rows := 0
+					for _, rr := range l.Rows {
+						if len(e.obj.rowActs[rr.Index]) == 0 {
+							continue
+						}
+						rows++
+						row := s.Rows[rr.Index]
+						if !rr.Control.Empty() || row.Label == "" || len(rr.Buttons) != 1 || len(row.Buttons) != 1 || row.Buttons[0] != e.word("editor.mod.open") {
+							t.Errorf("page %d mission %q: control %v, buttons %v / %q", page, row.Label, rr.Control, rr.Buttons, row.Buttons)
+						}
+					}
+					want := 0
+					if page == modPageFields {
+						want = len(host.fields[3].Choices)
+					}
+					if rows != want {
+						t.Errorf("page %d: laid out %d mission rows, want %d", page, rows, want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestModWindowUsesSharedRowsAndFocusedFieldsBlockCanvasInBothLanguages(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		e, calls := newModesEditor(t, "workspace")
 		e.SetWords(words.For(lang))
@@ -189,6 +230,9 @@ func TestModWindowUsesSharedRowsAndBlocksCanvasInBothLanguages(t *testing.T) {
 		l := layoutPopup(s, e.font, e.bodyFont())
 		if !ok || s.Columns != 2 || !l.Rect.In(image.Rect(0, e.barHeight(), 640, 480)) || len(l.Buttons) != len(modButtons) {
 			t.Fatalf("%s mod window layout: %v", lang, l.Rect)
+		}
+		if !e.FocusModField("folder") {
+			t.Fatal("missing folder field")
 		}
 		before := len(calls.lines)
 		for _, key := range []string{"unit", "clone", "delete", "drop", "field", "new"} {
@@ -320,6 +364,9 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 	}
 	if err := e.Key("package"); err != nil || !e.modWindow {
 		t.Fatalf("W with no map: %v window %v", err, e.modWindow)
+	}
+	if field, _, _ := e.FieldFocus(); field != -1 || e.obj.focus != -1 {
+		t.Fatalf("W with no map: field %d, control %d", field, e.obj.focus)
 	}
 	s, _, ok := e.modSpec()
 	if !ok || e.modPage != 1 || len(s.Tabs) != 2 {

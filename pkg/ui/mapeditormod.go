@@ -451,7 +451,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		for n := start; n < end; n++ {
 			// A choice's label is already in the font's bytes, as the
 			// Mission drop-down draws it.
-			row := popupRow{Kind: popupChoice, Label: editorClip(e.bodyFont(), f.Choices[n].Label, s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
+			row := popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), f.Choices[n].Label, s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
 			index := len(s.Rows)
 			s.Rows = append(s.Rows, row)
 			links = append(links, 0)

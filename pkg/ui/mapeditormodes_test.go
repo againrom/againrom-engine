@@ -608,8 +608,8 @@ type modesPath struct {
 
 var modesPaths = []modesPath{
 	{"mod-window", []string{"package"}},
-	{"mod-choice", []string{"package", "tab", "tab", "enter"}},
-	{"mod-edit", []string{"package", "ui:text-plain"}},
+	{"mod-choice", []string{"package", "tab", "tab", "tab", "enter"}},
+	{"mod-edit", []string{"package", "ui:mod-focus-folder", "ui:text-plain"}},
 	{"mod-overview", []string{"ui:mod-overview", "package"}},
 	{"mod-overview-fields", []string{"ui:mod-overview", "package", "package"}},
 	{"list", nil},

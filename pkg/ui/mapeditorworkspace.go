@@ -148,9 +148,10 @@ func (e *MapEditor) showModPage(n int) {
 func (e *MapEditor) openModPage() {
 	if p, ok := e.modOverview(); ok && p.First {
 		e.showModPage(modPageOverview)
-		return
+	} else {
+		e.modPage = modPageFields
 	}
-	e.modPage = modPageFields
+	e.obj.focus = -1
 }
 
 func (e *MapEditor) workspace() (InspectionWorkspace, bool) {
@@ -189,7 +190,6 @@ func (e *MapEditor) keyWorkspace(key string) error {
 		e.dropObject()
 		e.loadObject()
 		e.objectSpec()
-		e.FocusModField("folder")
 		e.openModPage()
 		return nil
 	}

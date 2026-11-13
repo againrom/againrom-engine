@@ -195,6 +195,9 @@ func TestRussianModWindowLeavesTheMapItsInput(t *testing.T) {
 	all := mapHearing{true, true, true, true}
 	t.Run("open", func(t *testing.T) {
 		_, e := russianModWindow(t)
+		if field, _, _ := e.FieldFocus(); field != -1 {
+			t.Fatalf("the opening window focused field %d", field)
+		}
 		m := &mapProbe{t: t, e: e, now: time.Unix(100, 0)}
 		before := e.PopupLines()
 		if got := m.hears(); got != all {
