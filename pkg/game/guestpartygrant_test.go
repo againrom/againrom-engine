@@ -134,8 +134,16 @@ func TestMissionStartedByNumberPlaysItsDeclaredParty(t *testing.T) {
 	}
 	check(g, "after LOAD")
 	winMissionFlow(t, g, 0)
-	if len(g.Carried) != 1 || g.Carried[0].ID != hero.ID || g.Carried[0].Hero.Skill != hero.Hero.Skill || g.Town.guest != nil {
+	// The hero comes to the town as he waited. No declared member comes with
+	// him: the companion there is the town's own grant, without the row's skills.
+	if len(g.Carried) == 0 || g.Carried[0].ID != hero.ID || g.Carried[0].Hero.Skill != hero.Hero.Skill || g.Town.guest != nil {
 		t.Fatalf("after the win the town holds %v", grantedPartyIDs(g.Carried))
+	}
+	limit := mapload.TableRules(g.Table).SkillCap()
+	for _, p := range g.Carried[1:] {
+		if p.ID != "npc:22" || p.Hero.Skill[1] >= limit {
+			t.Fatalf("after the win the town holds %v, %s with skill %d", grantedPartyIDs(g.Carried), p.ID, p.Hero.Skill[1])
+		}
 	}
 }
 
@@ -174,5 +182,19 @@ func TestMissionStartedByNumberRefusesAHeroItDoesNotPlayFor(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), want) || f.liveMission == grantedPartyMission {
 			t.Fatalf("a mission for the other class: %v, want %q", err, want)
 		}
+	}
+}
+
+// The win of a mission started by its number brings the hero to the town.
+func TestMissionStartedByNumberEndsInTheTown(t *testing.T) {
+	f := grantedPartyFront(t, `[{ hero = true }]`)
+	grantedPartyStart(t, f)
+	ms := f.live.mission.state
+	next, line := f.FinishMissionWithRoster(f.liveMission, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
+	if next != 0 || !f.Town.Open() || f.Town.guest != nil || !strings.Contains(line, "goes on to the town") {
+		t.Fatalf("the win: next %d, town open %t, guest %v: %s", next, f.Town.Open(), f.Town.guest != nil, line)
+	}
+	if first, ok := f.Campaign.Value().TownBegins(); !ok || f.Town.Chapter() != first {
+		t.Fatalf("the town stands in chapter %d, want the first town chapter %d", f.Town.Chapter(), first)
 	}
 }

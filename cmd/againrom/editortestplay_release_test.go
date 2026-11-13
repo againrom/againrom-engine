@@ -150,8 +150,15 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	}
 	state := f.HeadlessSnapshot(a.Screen())
 	t.Logf("F5 mission %d -> chargen -> authored Victory -> acknowledgement -> %s/%s chapter%d members%d", o.mission, state.Screen, state.TownPlace, f.Town.Chapter(), len(state.Members))
-	if a.Screen() != ui.ScreenTown || state.TownPlace != "square" || f.Town.Chapter() != res.Missions.Missions[0].Chapter {
-		t.Fatalf("F5 victory did not return through the campaign route: screen=%s", a.Screen())
+	// The party window's mission declares its party and no guest, so it names
+	// no chapter: the hero waits in the campaign's first town.
+	first, ok := f.Campaign.Value().TownBegins()
+	if m := res.Missions.Missions[0]; !ok || len(m.Party) != 1 || !m.Party[0].Hero || m.Guest != 0 || m.Chapter != 0 {
+		t.Fatalf("the test mission is not the party window's: first town %d %t, mission %+v", first, ok, m)
+	}
+	if a.Screen() != ui.ScreenTown || state.TownPlace != "square" || f.Town.Chapter() != first {
+		t.Fatalf("F5 victory did not return to the campaign town: screen=%s place=%s chapter=%d, want chapter %d",
+			a.Screen(), state.TownPlace, f.Town.Chapter(), first)
 	}
 	if !e.Dirty() || !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("test play changed the editor")

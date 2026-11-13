@@ -178,12 +178,24 @@ func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *test
 	}
 	write(mod.ManifestName, []byte("id = \"authored\"\ntitle = \"Author map\"\nversion = \"1.0.0\"\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n"))
 	write("main.star", []byte("def init(game, settings):\n    game.data.add(\"data/missions.toml\")\n"))
-	write(mod.MissionsFile, []byte("[[mission]]\nkind = \"replace\"\nkey = \"authored\"\nnumber = 20\nmap = \"mission/{lang}/map.alm\"\ntexts = \"mission/{lang}/text\"\n"))
+	// The place rule names the map and its pages.
+	stem := mod.MissionStem(strconv.Itoa(20))
+	write(mod.MissionsFile, []byte("[[mission]]\nkind = \"replace\"\nkey = \"authored\"\nnumber = 20\nmap = \""+mod.PlaceLanguageMission("{lang}", stem, false).Map+"\"\n"))
 	lang := modrt.LanguageFor(game.BaseID(game.InspectInstall(root)))
-	if _, err := game.AssembleModMission(root, lang, 20, folder); err != nil {
+	place := mod.PlaceLanguageMission(lang, stem, false)
+	written, err := game.AssembleModMission(root, lang, 20, folder)
+	if err != nil {
 		t.Fatal(err)
 	}
-	page := "mission/" + lang + "/text/event01.txt"
+	page := place.Pages(lang) + "/event01.txt"
+	// The page the test grows is one the assembler wrote.
+	assembled := false
+	for _, name := range written {
+		assembled = assembled || filepath.ToSlash(name) == page
+	}
+	if !assembled {
+		t.Fatalf("the assembler wrote no %s: %q", page, written)
+	}
 	bound := bytes.Repeat([]byte("A"), mod.MaxFileBytes)
 	write(page, bound)
 	if err := x.SetMod(folder); err != nil {
@@ -208,7 +220,7 @@ func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *test
 		},
 	})
 	e := x.Editor()
-	opened := filepath.Join(folder, "mission", lang, "map.alm")
+	opened := filepath.Join(folder, filepath.FromSlash(place.Map))
 	if err := e.Open(opened); err != nil {
 		t.Fatal(err)
 	}

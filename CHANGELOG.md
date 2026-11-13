@@ -51,6 +51,7 @@ modder or developer can notice gets no entry.
 - [ROM1] Mods: a mission that names class or sex, started by its number, refuses a hero of another kind.
 - [BASE] Map editor: with a mod open, the Campaign graph page of the mod window now edits the campaign. Pick a mission to set which mission follows it at once, choose its party, or insert a new mission that uses a map already in the mod. Each change shows in the graph right away, is one Undo step, and is written when you press Ctrl+S.
 - [BASE] With the programs inside the game folder, the map editor saves a mod into Againrom\workbench and publishes it into the mods folder beside the programs.
+- [BASE] Map editor: winning a map started with F5 brings the hero to the campaign town again instead of the map list, and the key help shows Ctrl+Tab and Ctrl+Shift+Tab on two lines that fit.
 
 ## 0.153.0
 

@@ -1090,8 +1090,8 @@ party = [
 
 A mod's own mission with a `party` array also starts by its number
 (`-mission <n>`) with no won mission before it: character generation makes
-the hero, the array builds the party, and its win ends as a campaign
-mission's does. A mission that names `class` or `sex` starts this way only
+the hero, the array builds the party, and its win brings the hero alone to
+the campaign's first town. A mission that names `class` or `sex` starts this way only
 for a hero of that kind; for another hero the start is refused in a line
 that names both.
 

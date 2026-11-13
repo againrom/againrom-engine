@@ -231,10 +231,11 @@ func guestNext(f *FrontEnd, in winInput, s *winState) (int, string) {
 
 // guestHome brings the waiting party back through the one town LOAD of the
 // stash, which records the guest who joins beside it so the town's grant
-// takes her as she is now; nothing else of the chain carries back.
+// takes her as she is now; nothing else of the chain carries back. Only a
+// campaign mission's win is then the campaign's.
 func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 	g, member := s.id.record, s.member
-	campaign := g.assigned()
+	campaign := g.mission.Campaign()
 	var back *guestMission
 	if campaign {
 		back = &guestMission{mission: g.mission, start: g.start, member: member}

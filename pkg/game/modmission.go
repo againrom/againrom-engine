@@ -50,7 +50,7 @@ type guestMission struct {
 	hero     *guestHero
 	previous *guestMission
 	// direct marks a mod's own mission started by its number: no win opened
-	// it, so its win ends as a campaign mission's does, with no link after.
+	// it, so its win brings the waiting party to the town with no link after.
 	direct bool
 }
 
@@ -735,6 +735,8 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission,
 		p := mapload.StartingHero(f.Carried)
 		g.hero = &guestHero{Mage: p.Mage, FigureDir: p.FigureDir}
 	}
+	// Only a campaign mission's party waits where the campaign stands.
+	waits := assigned != nil && m.Campaign()
 	if assigned == nil {
 		f.Town.Arrive()
 		f.retainReturnCity(in, n, w)
@@ -742,6 +744,11 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission,
 	draft := *f
 	t := *f.Town
 	draft.Town, draft.Carried = &t, waiting
+	if g.direct {
+		// Only the stash arrives: the mission starts over the town as it is.
+		t.records.children = slices.Clone(t.records.children)
+		t.Arrive()
+	}
 	t.open = true
 	var s Snapshot
 	mode := captureTimer
@@ -750,10 +757,10 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World, assigned *mod.Mission,
 	}
 	err = draft.captureSave(mode, false, func(c Snapshot, _ string) error {
 		s = c
-		if assigned != nil {
+		if waits {
 			s.Open = f.Town.Open()
 		}
-		s.guestWaiting = assigned != nil
+		s.guestWaiting = waits
 		return nil
 	})
 	if err == nil {

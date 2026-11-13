@@ -92,6 +92,7 @@ var (
 	linePlayers       = helpLine{Word: "editor.keys.players"}
 	lineMap           = helpLine{Word: "editor.keys.map"}
 	lineMapTabs       = helpLine{Word: "editor.keys.maptabs"}
+	lineMapTabsBack   = helpLine{Word: "editor.keys.maptabsback"}
 	lineStructure     = helpLine{Word: "editor.keys.structure"}
 	lineHelp          = helpLine{Word: "editor.keys.help"}
 	lineArea          = helpLine{Word: "editor.keys.area"}
@@ -177,7 +178,7 @@ func init() {
 		{key: "pages", label: "X", live: promptHears, act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "nextmap", label: "Ctrl+Tab", act: (*MapEditor).keyMapStep, help: keys(lineMapTabs)},
-		{key: "prevmap", label: "Ctrl+Shift+Tab", act: (*MapEditor).keyMapStep, help: keys(lineMapTabs)},
+		{key: "prevmap", label: "Ctrl+Shift+Tab", act: (*MapEditor).keyMapStep, help: keys(lineMapTabsBack)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
 		{key: "newtrigger", label: "F4", act: (*MapEditor).menuKey, help: keys(helpLine{Word: "editor.keys.newtrigger"})},

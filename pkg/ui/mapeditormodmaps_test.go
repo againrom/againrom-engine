@@ -143,3 +143,24 @@ func TestModWindowCtrlTabIsNotTheFieldTab(t *testing.T) {
 		}
 	}
 }
+
+// The two keys of the open maps have a help line each, in each language: one
+// line naming both is wider than the help rail.
+func TestOpenMapKeysHaveAHelpLineEach(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		next, back := 0, 0
+		for _, l := range EditorHelpLinesIn(lang) {
+			switch {
+			case strings.HasPrefix(l, "Ctrl+Tab:") && !strings.Contains(l, "Ctrl+Shift+Tab"):
+				next++
+			case strings.HasPrefix(l, "Ctrl+Shift+Tab:") && !strings.Contains(l, "Ctrl+Tab"):
+				back++
+			case strings.Contains(l, "Ctrl+Tab") || strings.Contains(l, "Ctrl+Shift+Tab"):
+				t.Errorf("%q: the help line %q names both keys", lang, l)
+			}
+		}
+		if next != 1 || back != 1 {
+			t.Errorf("%q: %d lines of Ctrl+Tab and %d of Ctrl+Shift+Tab, want one each", lang, next, back)
+		}
+	}
+}
