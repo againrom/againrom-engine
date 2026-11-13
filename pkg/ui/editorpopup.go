@@ -948,20 +948,25 @@ func popupRowsHeight(s popupSpec, flow popupFlow, pitch, shown int) int {
 func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int) (listRows, rowsFit, extraLines, minH int) {
 	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad + s.Grid.height() + flow.cardBand()
 	fixed += flow.buttonLines * (pitch + 4 + popupPad)
+	// A card beside the rows stays clear of the note and button lines.
+	cardLeast := 0
+	if s.Card != nil && !flow.cardTop {
+		cardLeast = titleH + popupPad + flow.cardH + popupPad + len(s.Notes)*pitch + flow.buttonLines*(pitch+4+popupPad)
+	}
 	minRows := popupMinRows
 	if slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Kind == popupDirection }) {
 		minRows = 1
 	}
 	if s.Columns > 1 && s.MaxRows > 0 {
 		if minRows == 1 {
-			minH = fixed + popupRowsHeight(s, flow, pitch, 1)
+			minH = max(fixed+popupRowsHeight(s, flow, pitch, 1), cardLeast)
 			rowsFit = min(popupRowCount(s)-s.Top, max(1, (max(h, minH)-fixed)/pitch))
 			for rowsFit > 1 && fixed+popupRowsHeight(s, flow, pitch, rowsFit) > max(h, minH) {
 				rowsFit--
 			}
 			return 0, rowsFit, 0, minH
 		}
-		minH = fixed + popupMinRows*pitch
+		minH = max(fixed+popupMinRows*pitch, cardLeast)
 		return 0, min(popupRowCount(s)-s.Top, max(popupMinRows, (h-fixed)/pitch)), 0, minH
 	}
 	top := max(0, min(s.Top, len(s.Rows)))
@@ -993,7 +998,7 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 			least += rowH(i)
 		}
 	}
-	minH = least
+	minH = max(least, cardLeast)
 	h = max(h, minH)
 	avail := h - fixed
 	switch {

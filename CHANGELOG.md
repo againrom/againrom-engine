@@ -50,6 +50,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A mod mission whose next mission is an earlier campaign mission no longer sends the campaign back to that chapter, so the town offers the same missions before and after you save and load it.
 - [ROM1] In the map editor, after Add open map, saving the mod into a folder that does not exist yet creates the folder and saves; before, the save failed with "cannot find the file".
 - [ROM2] The base dump of the second game loads back as a mod that changes nothing: its three towns are listed as comments for reading. Before, loading the dump as a mod was refused.
+- [ROM1] In the Russian map editor at 640x480, the mod window's Close button is on the screen again, and the person window's buttons no longer cover the last lines of the character's stats.
 
 ## 0.152.0
 

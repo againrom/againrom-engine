@@ -198,7 +198,8 @@ func TestReleaseQuickSpellsSaveFreshLoadAndCast(t *testing.T) {
 	}
 	key(a, "book")
 	want := [9]uint32{16, 1, 6, 19}
-	for slot, spell := range want {
+	// The first game binds four: Ctrl+F5..F8.
+	for slot, spell := range want[:4] {
 		x, y, err := a.HeadlessSpellPoint(spell)
 		if err != nil {
 			t.Fatal(err)

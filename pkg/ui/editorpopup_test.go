@@ -88,6 +88,50 @@ func TestPopupLayoutIsThePaintAndTheHitTest(t *testing.T) {
 	}
 }
 
+// A sized popup with its card beside the rows, narrowed until its button row
+// wraps, grows to keep every button line clear of the card.
+func TestPopupCardBesideTheRowsClearsAWrappedButtonRow(t *testing.T) {
+	f := solidFont15()
+	subject := cardColumnsSubjects()["fighter"]
+	s := popupSpec{Title: "Unit #0", Card: &subject, MaxRows: 3, Size: image.Pt(200, 60),
+		Rows:    []popupRow{{Kind: popupEdit, Label: "Group", Value: "2"}, {Kind: popupEdit, Label: "Player", Value: "1"}},
+		Buttons: []string{"Apply the changes", "Cancel the changes", "Reset the overrides"}}
+	s.Bounds = image.Rect(0, 0, cardAside(s)+200, 600)
+	l := layoutPopup(s, f, f)
+	lines := map[int]bool{}
+	for i, b := range l.Buttons {
+		lines[b.Min.Y] = true
+		if b.Overlaps(l.Card) || !b.In(l.Rect) {
+			t.Errorf("button %q at %v; card %v, window %v", s.Buttons[i], b, l.Card, l.Rect)
+		}
+	}
+	if len(lines) < 2 {
+		t.Fatalf("the button row did not wrap: %v", l.Buttons)
+	}
+}
+
+// W at 640x480 in Russian, whose button row wraps onto a second line, keeps
+// every button inside the editor window.
+func TestModWindowWrappedButtonsStayInsideTheEditor(t *testing.T) {
+	e := modesWordsEditor(t, "workspace", "ru", image.Pt(640, 480))
+	e.doc.Edits.(*modesWorkspace).fields = modWordFields("ru")
+	if err := e.Key("package"); err != nil {
+		t.Fatal(err)
+	}
+	s, _, _ := e.modSpec()
+	l := layoutPopup(s, e.font, e.bodyFont())
+	lines := map[int]bool{}
+	for i, b := range l.Buttons {
+		lines[b.Min.Y] = true
+		if !b.In(e.popupBounds()) {
+			t.Errorf("button %q at %v lies outside %v", s.Buttons[i], b, e.popupBounds())
+		}
+	}
+	if len(lines) < 2 {
+		t.Fatalf("the button row did not wrap: %v", l.Buttons)
+	}
+}
+
 func TestPopupRowsScrollAndTheListSits(t *testing.T) {
 	f := panelFont()
 	s := popupFixture()
