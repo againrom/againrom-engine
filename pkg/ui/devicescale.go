@@ -62,6 +62,7 @@ func pointOfDevice(x, y int, scale float64) (int, int) {
 // then places its frame in them through its own placement.
 func (a *App) LayoutF(outsideW, outsideH float64) (float64, float64) {
 	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
+	a.deviceScale = w.scale
 	a.Layout(w.device.X, w.device.Y)
 	return w.layoutF()
 }
@@ -69,8 +70,24 @@ func (a *App) LayoutF(outsideW, outsideH float64) (float64, float64) {
 // LayoutF lays a viewer run on its own out in the window's device pixels.
 func (v *Viewer) LayoutF(outsideW, outsideH float64) (float64, float64) {
 	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
+	v.deviceScale = w.scale
 	v.Layout(w.device.X, w.device.Y)
 	return w.layoutF()
+}
+
+// edgeMargin is the edge-scroll strip in the layout's pixels: EdgeMargin
+// points times the device scale. It is the one reader of EdgeMargin.
+func (v *Viewer) edgeMargin() int {
+	if s := v.deviceScale; s > 0 && !math.IsInf(s, 0) {
+		return max(1, int(math.Round(EdgeMargin*s)))
+	}
+	return EdgeMargin
+}
+
+// inEdgeMargin reports a position in the strip of a window of size win.
+func (v *Viewer) inEdgeMargin(x, y int, win image.Point) bool {
+	m := v.edgeMargin()
+	return x < m || y < m || x >= win.X-m || y >= win.Y-m
 }
 
 // LayoutF lays the map editor out in whole points, the unit its panels and

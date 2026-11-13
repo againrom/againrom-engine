@@ -130,6 +130,7 @@ func TestDisplayScaleMeasurement(t *testing.T) {
 			game ebiten.Game
 		}{
 			{"front end", NewApp("scale", nil, nil, nil)},
+			{"frame log", &frameLog{app: NewApp("scale", nil, nil, nil)}},
 			{"viewer", v},
 			{"map editor", &frameGuard{game: NewMapEditor(nil, nil, nil)}},
 		}
@@ -328,5 +329,43 @@ func TestMapEditorFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 			}
 		}
 		engineEditorInput = old
+	}
+}
+
+// The edge-scroll strip is EdgeMargin points wide at every device scale.
+func TestEdgeScrollStripKeepsItsWidthAtEveryDeviceScale(t *testing.T) {
+	const fromEdge = 30
+	lone := func(s float64) *Viewer {
+		v, err := NewViewer("scale", grid(60, 60), zoomTileset(false))
+		if err != nil {
+			t.Fatal(err)
+		}
+		v.LayoutF(float64(pointsWindow.X), float64(pointsWindow.Y))
+		return v
+	}
+	inApp := func(s float64) *Viewer {
+		a, v, _ := atOnMap(t)
+		a.LayoutF(float64(pointsWindow.X), float64(pointsWindow.Y))
+		return v
+	}
+	for name, build := range map[string]func(float64) *Viewer{"viewer": lone, "front end": inApp} {
+		for _, s := range deviceScales {
+			atDeviceScale(t, s)
+			v := build(s)
+			if want := int(math.Round(EdgeMargin * s)); v.edgeMargin() != want {
+				t.Fatalf("%s scale %v: the strip is %d device pixels, want %d", name, s, v.edgeMargin(), want)
+			}
+			v.cam.X, v.cam.Y = 300, 300
+			v.cam.Clamp()
+			x0 := v.cam.X
+			if x0 < PanSpeed {
+				t.Fatalf("%s scale %v: setup: the camera at %v has no room to scroll left", name, s, x0)
+			}
+			v.step(Input{CursorX: fromEdge, CursorY: v.place.WindowSize().Y / 2}, atAt)
+			scrolled, want := v.cam.X != x0, float64(EdgeMargin)*s > fromEdge
+			if scrolled != want {
+				t.Errorf("%s scale %v: pointer %d device pixels from the edge scrolled=%v, want %v", name, s, fromEdge, scrolled, want)
+			}
+		}
 	}
 }

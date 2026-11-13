@@ -184,8 +184,10 @@ type Viewer struct {
 	// frameSmoothingOff is the FrameSmoothing switch negated, so a Viewer
 	// that never receives it uses the Catmull-Rom scaler.
 	frameSmoothingOff bool
-	textOverlay       textOverlay
-	textEraser        textEraser
+	// deviceScale is the device pixels per point of the layout; 0 is 1.
+	deviceScale float64
+	textOverlay textOverlay
+	textEraser  textEraser
 	// canvasLog records the HUD drawn over canvas after the first captured
 	// box (pixelLog).
 	canvasLog pixelLog

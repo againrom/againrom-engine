@@ -29,35 +29,22 @@ func missionEdgeBands(x, y, w, h, margin int) (left, right, top, bottom bool) {
 	return x < margin, x >= w-margin, y < margin, y >= h-margin
 }
 
-// edgeScrollBands is missionEdgeBands over THIS TICK'S pointer position,
-// plus the two conditions that decide whether the edge-scroll term runs at
-// all: a held primary button suppresses it (0014 SC-15 — a tick that pans
-// by drag must not also edge-scroll), and a viewer that has never observed a
-// cursor has no position to test.
-//
-// BOTH READERS ASK THIS ONE FUNCTION, and that is the whole of what adversarial
-// pass 1's second finding cost: missionEdgeArrow read the band and no drag
-// state, so a pointer resting in the band during a drag drew a directional
-// arrow on every tick while the camera did not move. The claim the doc below
-// makes about this build — an arrow shows exactly on the ticks the edge-scroll
-// term runs — is now a property of there being one function rather than of two
-// call sites agreeing.
-//
-// primaryDown is a parameter rather than a field read because panIntent is
-// handed the tick's own Input and mapCursorName is not: step stores
-// v.primaryDown in the same block it stores the cursor position, and the
-// cursor path passes that.
-//
-// IT DOES NOT ASK WHETHER THE CAMERA CAN STILL MOVE. A camera already clamped
-// at the world's edge pans nothing while the term runs, and the arrow still
-// shows there. That is the original's own shape too: AI-CURSOR-190's routine
-// tests the screen edge and nothing about the camera's limits.
+// edgeScrollBands is missionEdgeBands over this tick's pointer position and
+// the strip's width in the layout's pixels. A held primary button suppresses
+// it, so a tick that pans by drag does not also edge-scroll, and a viewer
+// that has never observed a cursor has no position to test. The camera pan
+// and the edge arrow both ask this one function, so an arrow shows exactly
+// on the ticks the edge-scroll term runs. primaryDown is a parameter because
+// panIntent holds the tick's own Input and the cursor path holds the stored
+// v.primaryDown. It does not ask whether the camera can still move: at the
+// world's edge the arrow still shows, as AI-CURSOR-190's routine tests the
+// screen edge and nothing about the camera's limits.
 func (v *Viewer) edgeScrollBands(primaryDown bool) (left, right, top, bottom bool) {
 	if primaryDown || !v.hasWinCursor {
 		return false, false, false, false
 	}
 	win := v.place.WindowSize()
-	return missionEdgeBands(v.winCursorX, v.winCursorY, win.X, win.Y, EdgeMargin)
+	return missionEdgeBands(v.winCursorX, v.winCursorY, win.X, win.Y, v.edgeMargin())
 }
 
 func missionEdgeArrow(left, right, top, bottom bool) (string, bool) {

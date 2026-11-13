@@ -207,6 +207,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenAddCell:     {"unit", "enter", "enter", "ui:add-pick"},
 		screenSelection:   {"ui:group"},
 	}
+	inMod := map[string]bool{"nextmap": true, "prevmap": true}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)
 		if len(rows) == 0 {
@@ -216,9 +217,16 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 			if r.key == "" {
 				continue
 			}
-			e, calls := newModesEditor(t, "full")
-			for _, s := range entry[screen] {
+			host, path := "full", entry[screen]
+			if inMod[r.key] {
+				host, path = "workspace", append([]string{"ui:mod-second-map"}, path...)
+			}
+			e, calls := newModesEditor(t, host)
+			for _, s := range path {
 				modesAct(e, s)
+			}
+			if inMod[r.key] && len(e.OpenMapRows()) != 2 {
+				t.Fatalf("setup: %d maps open, want 2", len(e.OpenMapRows()))
 			}
 			if got := e.helpScreen(); got != screen {
 				t.Fatalf("path %v reached help screen %d, want %d", entry[screen], got, screen)

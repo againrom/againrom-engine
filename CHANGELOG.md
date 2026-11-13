@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 - [BASE] A mission map zoomed with the wheel is scaled once, with no double smoothing; health bars and selection frames grow with the map and are even. With Smoothing (Ctrl+O) off the mission picture is drawn in hard pixels.
 - [BASE] With Smoothing off in a mission only the map keeps hard pixels; the interface and its text are scaled by the starter's filter again, so letters no longer get uneven strokes.
 - [BASE] At a Windows display scale of 125, 150 or 200 percent the game draws its picture directly in screen pixels and scales it once: no second blur, a click lands where it is drawn; the map editor keeps the size of its panels.
+- [BASE] At a Windows display scale above 100 percent, the strip at the screen edge that scrolls the map is as wide as it was before.
 
 ### For map makers and modders
 

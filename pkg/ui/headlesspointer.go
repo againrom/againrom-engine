@@ -284,7 +284,7 @@ func (a *App) HeadlessGroundPoint(cells ...image.Point) (int, int, error) {
 				continue
 			}
 			win := v.place.WindowSize()
-			left, right, top, bottom := missionEdgeBands(wx, wy, win.X, win.Y, EdgeMargin)
+			left, right, top, bottom := missionEdgeBands(wx, wy, win.X, win.Y, v.edgeMargin())
 			if left || right || top || bottom {
 				continue
 			}

@@ -735,10 +735,11 @@ type App struct {
 	// coordinates over a map needs a frame of its own to be placed from. It is
 	// allocated on the first frame the menu opens over a map and never
 	// otherwise.
-	menuCanvas *ebiten.Image
-	winW       int
-	winH       int
-	place      frame.Placement
+	menuCanvas  *ebiten.Image
+	winW        int
+	winH        int
+	deviceScale float64
+	place       frame.Placement
 
 	// composed is the menu state the canvas currently holds, so the CPU
 	// composite runs only when the selection actually changes rather than every
@@ -3890,6 +3891,7 @@ func (a *App) syncViewerLayout() {
 			v.SetDialogueBackdrop(a.dialogueBackdrop.policy)
 			a.dialogueBackdrop.appliedViewer = v
 		}
+		v.deviceScale = a.deviceScale
 		v.Layout(a.winW, a.winH)
 		if a.flow.screen == ScreenMap && a.mapEntry != nil && a.mapEntryViewer != v {
 			a.mapEntryViewer = v

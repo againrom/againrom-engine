@@ -35,7 +35,7 @@ func (v *Viewer) InspectionPoint(ref InspectionSubject) (int, int, error) {
 					continue
 				}
 				win := v.place.WindowSize()
-				if wx < EdgeMargin || wy < EdgeMargin || wx >= win.X-EdgeMargin || wy >= win.Y-EdgeMargin {
+				if v.inEdgeMargin(wx, wy, win) {
 					continue
 				}
 				// Downscaling can map adjacent frame pixels to the same window
