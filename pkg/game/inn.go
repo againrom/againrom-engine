@@ -304,17 +304,15 @@ func innActor(p innProfile, npc int, in innActorInput) innPerson {
 			}
 		}
 	}
-	if p.keyedActors {
-		for _, o := range in.campaign.hires() {
-			if o.npc == npc {
-				s := in.campaign.hireState()
-				s.table = in.install.Table
-				members, ok := hireMembers(p.hire, s, npc, 1)
-				if !ok {
-					return innPerson{}
-				}
-				return innPerson{member: members[0], known: true}
+	if p.keyedActors && p.hire != nil {
+		if _, hire := p.hire.row(npc); hire {
+			s := in.campaign.hireState()
+			s.table = in.install.Table
+			members, ok := hireMembers(p.hire, s, npc, 1)
+			if !ok {
+				return innPerson{}
 			}
+			return innPerson{member: members[0], known: true}
 		}
 	}
 	if p.tokenActors {
