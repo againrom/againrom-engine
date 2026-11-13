@@ -15,6 +15,7 @@ import (
 // also carries its size, capacity and price and whether the purse affords it.
 type innOffer struct {
 	kind, topic, npc       int
+	place                  string
 	high                   bool
 	count, capacity, price int
 	affordable             bool
@@ -27,11 +28,13 @@ func (o innOffer) speaker() bool { return o.kind == town.OfferTalk || o.kind == 
 // bank the rows' gates read, nil reading zero, the starting hero a row's
 // class and sex are chosen by, and the hire the hire options come from,
 // absent when hire is nil, read over the bank, the town's pools in home and
-// the actor table.
+// the actor table. won answers whether a mission is won; nil admits every
+// row whatever is won, which is the census of a stage's rows.
 type innState struct {
 	town  int
 	every bool
 	stage int
+	won   func(mission int) bool
 	bank  *[innBankSlots]int32
 	hero  herokind.Kind
 	hire  *hireProfile
@@ -47,14 +50,21 @@ func (s innState) slot(i int) int32 {
 }
 
 // admits is the rows' predicates over s: the town, the stage, the stage
-// floor, the starting hero and every bank gate.
+// floors, the won missions, the starting hero and every bank gate. A row
+// that stands from a stage on is offered until its own mission is won.
 func (s innState) admits(r town.OfferRow) bool {
 	switch {
 	case r.Town != 0 && !s.every && r.Town != s.town,
 		len(r.Stages) > 0 && !slices.Contains(r.Stages, s.stage),
 		r.After > 0 && s.stage <= r.After,
+		r.From > 0 && s.stage < r.From,
 		!herokind.Named(r.Class, r.Sex).Holds(s.hero):
 		return false
+	}
+	if s.won != nil {
+		if r.From > 0 && r.Topic > 0 && s.won(r.Topic) || slices.ContainsFunc(r.Won, func(m int) bool { return !s.won(m) }) {
+			return false
+		}
 	}
 	for _, i := range r.Zero {
 		if s.slot(i) != 0 {
@@ -81,7 +91,7 @@ func innOffers(rows []town.OfferRow, s innState) []innOffer {
 	var out []innOffer
 	for _, r := range rows {
 		if s.admits(r) {
-			out = append(out, innOffer{kind: r.Kind, topic: r.Topic, npc: r.NPC})
+			out = append(out, innOffer{kind: r.Kind, topic: r.Topic, npc: r.NPC, place: r.Place})
 		}
 	}
 	if s.hire != nil {

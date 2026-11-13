@@ -291,7 +291,7 @@ var dataKinds = []DataKind{
 	{
 		Format: "TOML subset; JSON; BMP; UTF-8 TXT", Language: "shared; talk texts per language", Found: "held file; description; mod: art; talk install path", State: true,
 		Paths: []string{"assets/towns/**/*.json", "assets/towns/**/*.bmp"}, references: []Reference{TownDescription},
-		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc`",
+		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; a shop or school row by `town`, `chapter` and `mission`; an inn row by `topic` and `npc`",
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
 		Base:   "the install's town catalog; its tavern rows are the scenario's, its inn rows the catalog's",
 		Shared: mergedShared + "; `off` switches a town, a tavern row or an inn row off",

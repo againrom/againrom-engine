@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -115,6 +116,35 @@ func missionIdentity(m Mission) string {
 // takes no row, so it is left out of both.
 func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 	before, after = rows(before), rows(after)
+	sourced := func(list []Mission) []sourceRow {
+		out := make([]sourceRow, len(list))
+		for i, m := range list {
+			out[i] = sourceRow{table: "mission", identity: missionIdentity(m), pairs: missionPairs(m)}
+		}
+		return out
+	}
+	return writeRows(source, sourced(before), sourced(after), func(key string) string {
+		if strings.Contains("|key|number|map|texts|after|guest|chapter|", "|"+key+"|") {
+			key += strings.Repeat(" ", 7-len(key))
+		}
+		return key
+	})
+}
+
+// sourceRow is one table of a row file as the row writer sees it: its
+// table name, the identity that names it across an edit and the pairs it
+// writes, in order.
+type sourceRow struct {
+	table, identity string
+	pairs           []missionPair
+}
+
+// writeRows is the one row writer of the data files: source with the rows
+// before made the rows after. A kept row keeps its lines but for the
+// changed pairs, a row after does not hold leaves with its own lines, and a new
+// row is appended with its keys as pad writes them. Every table of source
+// is a row of before, in order.
+func writeRows(source []byte, before, after []sourceRow, pad func(string) string) ([]byte, error) {
 	tables, err := parseTOMLWith(source, tomlOptions{arrays: true})
 	if err != nil {
 		return nil, err
@@ -126,44 +156,75 @@ func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 		}
 	}
 	if len(records) != len(before) {
-		return nil, fmt.Errorf("mission source has %d records, expected %d", len(records), len(before))
+		return nil, fmt.Errorf("row source has %d records, expected %d", len(records), len(before))
 	}
 	lines := strings.SplitAfter(string(source), "\n")
 	prefix := string(source)
 	if len(records) != 0 {
 		prefix = strings.Join(lines[:records[0].line-1], "")
 	}
+	// A record owns its header to its last line that is neither blank nor
+	// a comment; the blank and comment lines after it head the next record
+	// and stay when the record leaves.
+	own, tails := make([]int, len(records)), make([]string, len(records))
+	for i, t := range records {
+		end := len(lines)
+		if i+1 < len(records) {
+			end = records[i+1].line - 1
+		}
+		own[i] = end
+		for own[i] > t.line {
+			s := strings.TrimSpace(lines[own[i]-1])
+			if s != "" && !strings.HasPrefix(s, "#") {
+				break
+			}
+			own[i]--
+		}
+		tails[i] = strings.Join(lines[own[i]:end], "")
+	}
+	kept, lastKept := make([]bool, len(before)), -1
+	for j, m := range after {
+		if i := slices.IndexFunc(before, func(old sourceRow) bool { return old.identity == m.identity }); i >= 0 {
+			kept[i], lastKept = true, j
+		}
+	}
 	var out strings.Builder
 	out.WriteString(prefix)
-	for _, m := range after {
+	tailed := make([]bool, len(before))
+	leftTails := func(upTo int) {
+		for i := 0; i < upTo; i++ {
+			if !kept[i] && !tailed[i] {
+				tailed[i] = true
+				out.WriteString(tails[i])
+			}
+		}
+	}
+	for j, m := range after {
 		index := -1
 		for i, old := range before {
-			if missionIdentity(old) == missionIdentity(m) {
+			if old.identity == m.identity {
 				index = i
 				break
 			}
 		}
 		if index < 0 {
+			if j > lastKept {
+				leftTails(len(before))
+			}
 			if out.Len() != 0 && !strings.HasSuffix(out.String(), "\n") {
 				out.WriteByte('\n')
 			}
-			out.WriteString("[[mission]]\n")
-			for _, p := range missionPairs(m) {
-				key := p.key
-				if strings.Contains("|key|number|map|texts|after|guest|chapter|", "|"+key+"|") {
-					key += strings.Repeat(" ", 7-len(key))
-				}
-				fmt.Fprintf(&out, "%s = %s\n", key, p.value)
+			fmt.Fprintf(&out, "[[%s]]\n", m.table)
+			for _, p := range m.pairs {
+				fmt.Fprintf(&out, "%s = %s\n", pad(p.key), p.value)
 			}
 			continue
 		}
+		leftTails(index)
 		t := records[index]
-		end := len(lines)
-		if index+1 < len(records) {
-			end = records[index+1].line - 1
-		}
-		block := append([]string(nil), lines[t.line-1:end]...)
-		oldPairs, newPairs := missionPairs(before[index]), missionPairs(m)
+		tailed[index] = true
+		block := append([]string(nil), lines[t.line-1:own[index]]...)
+		oldPairs, newPairs := before[index].pairs, m.pairs
 		oldValues, newValues := map[string]string{}, map[string]string{}
 		for _, p := range oldPairs {
 			oldValues[p.key] = p.value
@@ -187,7 +248,7 @@ func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 				return nil, err
 			}
 		}
-		text := strings.Join(block, "")
+		text := strings.Join(block, "") + tails[index]
 		for _, p := range newPairs {
 			if !seen[p.key] && oldValues[p.key] != p.value {
 				if !strings.HasSuffix(text, "\n") {
@@ -201,6 +262,7 @@ func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 			out.WriteByte('\n')
 		}
 	}
+	leftTails(len(before))
 	return []byte(out.String()), nil
 }
 

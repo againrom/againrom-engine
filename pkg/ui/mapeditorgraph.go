@@ -54,6 +54,10 @@ type CampaignGraphNode struct {
 	Empty      bool
 	Source     string
 	ModMission int
+	// Pick, when set, is what the host selects a town or a hand-out by
+	// while missions are edited; Selected marks the one it holds selected.
+	Pick     string
+	Selected bool
 }
 
 // CampaignGraphEdge is an arrow from node From to node To, by their indices.
@@ -149,7 +153,7 @@ func (e *MapEditor) modGraphRows(s *popupSpec, links *[]int, page CampaignGraphP
 		if !page.Refused && !page.Unbuilt {
 			if e.graphEdit {
 				text(e.word("editor.graph.select"))
-				if e.graphMission > 0 {
+				if e.graphMission > 0 && !e.graphPicked {
 					text(fmt.Sprintf(e.plainWord("editor.graph.mission"), e.graphMission))
 				}
 				if e.graphLink {
@@ -269,9 +273,9 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	widths, marks := make([]int, cols), make([]int, len(page.Nodes))
 	for i, n := range page.Nodes {
 		b := e.graphBox(n)
-		if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && n.Kind == GraphMission {
+		if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && (n.Kind == GraphMission || n.Pick != "") {
 			b.Inert = false
-			if n.Number == e.graphMission {
+			if n.Kind == GraphMission && n.Number == e.graphMission || n.Kind != GraphMission && e.graphPicked && n.Selected {
 				b.Edge = editorWarning
 			}
 		}
@@ -486,11 +490,26 @@ func (e *MapEditor) graphPress(part popupPart, n int, p image.Point) {
 	if n < 0 || n >= len(page.Nodes) {
 		return
 	}
+	if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && page.Nodes[n].Kind != GraphMission && page.Nodes[n].Pick != "" && !e.graphLink {
+		if err := e.applyModField(); err != nil {
+			return
+		}
+		if _, err := e.commandSetMapField(mapField{Scope: graphPickScope, Key: "select", Value: page.Nodes[n].Pick}); err != nil {
+			e.modStatus = err.Error()
+			return
+		}
+		e.graphMission, e.graphPicked = 0, true
+		e.dropObject()
+		e.loadObject()
+		e.obj.focus = len(e.obj.fields)
+		return
+	}
 	if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && page.Nodes[n].Kind == GraphMission {
 		if err := e.applyModField(); err != nil {
 			return
 		}
 		number := page.Nodes[n].Number
+		e.graphPicked = false
 		if e.graphLink {
 			if err := e.modAction("AutoGetMission", strconv.Itoa(number)); err != nil {
 				return
@@ -507,8 +526,15 @@ func (e *MapEditor) graphPress(part popupPart, n int, p image.Point) {
 	e.openGraphNode(page.Nodes[n])
 }
 
+// graphPickScope is the workspace scope of the town or hand-out the graph
+// has selected; its "select" key names a node's Pick and is no edit.
+const graphPickScope = "handout"
+
 func (e *MapEditor) modFieldScope() string {
 	if e.modPage == modPageGraph {
+		if e.graphEdit && e.graphPicked {
+			return graphPickScope
+		}
 		if e.graphEdit {
 			return "campaign." + strconv.Itoa(e.graphMission)
 		}

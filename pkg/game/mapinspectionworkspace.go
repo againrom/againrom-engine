@@ -348,6 +348,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	if strings.HasPrefix(scope, "campaign.") {
 		return s.campaignFields(scope)
 	}
+	if scope == "handout" {
+		return s.handoutFields()
+	}
 	if s.model == nil && scope != "package" {
 		return nil
 	}
@@ -435,6 +438,9 @@ func opensMod(scope, key, value string) bool {
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
 	if strings.HasPrefix(scope, "campaign.") {
 		return s.setCampaignField(scope, key, value)
+	}
+	if scope == "handout" {
+		return s.setHandoutField(key, value)
 	}
 	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {

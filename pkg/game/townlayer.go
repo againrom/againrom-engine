@@ -288,7 +288,8 @@ func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 	var rows []town.OfferRow
 	if c := f.Campaign.Value(); layer.read && f.Campaign.Err() == nil {
 		rows = scenarioTavern(c, book.chapterTowns())
-		head = append(head, "Each [[tavern]] table is a tavern row of the scenario; keep town, chapter and npc of a row you change.")
+		head = append(head, "Each [[tavern]] table is a tavern row of the scenario; keep town, chapter and npc of a row you change.",
+			"Each [[shop]] and [[school]] table is a mission the building hands out; keep town, chapter and mission.")
 	}
 	if !layer.read {
 		tables, err := mod.WriteTowns(nil, entries)

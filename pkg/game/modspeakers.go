@@ -279,15 +279,19 @@ func (m *editorMod) speakersFile() ([]byte, error) { return modSpeakersFile(m.di
 
 // modSpeakersFile is the text of the speakers file of the mod at dir, a
 // folder or a packed file, nil when it holds none.
-func modSpeakersFile(dir string) ([]byte, error) {
+func modSpeakersFile(dir string) ([]byte, error) { return modDataFile(dir, mod.SpeakersFile) }
+
+// modDataFile is the text of data file name of the mod at dir, a folder or
+// a packed file, nil when it holds none.
+func modDataFile(dir, name string) ([]byte, error) {
 	t, err := mod.OpenTree(dir)
 	if err != nil {
 		return nil, err
 	}
-	if st, err := t.Stat(mod.SpeakersFile); err != nil || st.IsDir() {
+	if st, err := t.Stat(name); err != nil || st.IsDir() {
 		return nil, nil
 	}
-	b, _, err := t.ReadInside(mod.SpeakersFile)
+	b, _, err := t.ReadInside(name)
 	return b, err
 }
 

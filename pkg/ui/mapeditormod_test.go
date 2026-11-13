@@ -24,9 +24,10 @@ type modesWorkspace struct {
 	// overview is the mod's overview page; empty, W has none.
 	overview ModOverviewPage
 	// graph is the campaign graph; empty, W has no graph page.
-	graph        CampaignGraphPage
-	graphFields  []InspectionField
-	graphRefusal error
+	graph         CampaignGraphPage
+	graphFields   []InspectionField
+	handoutFields []InspectionField
+	graphRefusal  error
 	// inMod makes another map open beside the open one, as in an open mod.
 	inMod bool
 }
@@ -70,6 +71,9 @@ func (p *modesWorkspace) WorkspaceFields(scope string) []InspectionField {
 	if strings.HasPrefix(scope, "campaign.") && scope != "campaign.0" {
 		return p.graphFields
 	}
+	if scope == graphPickScope {
+		return p.handoutFields
+	}
 	if scope == "package" {
 		return p.fields
 	}
@@ -82,6 +86,9 @@ func (p *modesWorkspace) SetWorkspaceField(scope, key, value string) (*Inspectio
 			return nil, p.graphRefusal
 		}
 		fields = p.graphFields
+	}
+	if scope == graphPickScope {
+		fields = p.handoutFields
 	}
 	if key == "folder" && p.leave != nil {
 		return nil, p.leave

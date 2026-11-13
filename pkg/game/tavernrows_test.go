@@ -129,6 +129,7 @@ func TestTavernLayerLeavesTheScenarioChapters(t *testing.T) {
 		}
 	}
 	rows, _ := c.Towns.tavernRows()
+	rows = slices.DeleteFunc(slices.Clone(rows), func(r town.OfferRow) bool { return r.Place != "" })
 	if want := town.ChapterOffer(1, 30, 22, 30); len(rows) != 3 || !rows[0].Equal(want) {
 		t.Fatalf("rows %+v, want layer 0 first", rows)
 	}

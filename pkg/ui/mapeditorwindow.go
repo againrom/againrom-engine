@@ -85,6 +85,7 @@ type editorChrome struct {
 	graphHeld              bool        // a drag holds the graph's sheet
 	graphEdit, graphLink   bool
 	graphMission           int
+	graphPicked            bool // the fields are the host's selected town or hand-out
 	objectWheel, listWheel float64
 	clicks                 doubleClick
 	lastRow                int

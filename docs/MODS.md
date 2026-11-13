@@ -150,7 +150,7 @@ catalog. Every held data file is read automatically before the optional entry sc
 | weapon bodies | `data/wpnbodies.toml` (also `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
-| towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
+| towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; a shop or school row by `town`, `chapter` and `mission`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
 | speakers | `data/speakers.toml` | `id`, a record number from 20000 to 99999 | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a record off | Speakers, `docs/1624/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
 
@@ -1456,9 +1456,16 @@ or switches the row off with `off = true`.
 |---|---|
 | `town` | part of the key; the town whose tavern shows the row |
 | `chapter` | part of the key; the main mission whose chapter the row belongs to (30, 40, ...) |
+| `from` | written instead of `chapter`: the row stands in that chapter and every later one, until its own mission is won. It names the row as `chapter` does, and over a row of one chapter it replaces the chapter |
 | `npc` | part of the key; the NPC record that speaks; a chapter names a record once over every town |
 | `mission` | the mission the talk offers; 0 is a talk with nothing to give (REG-SCN-064). A heard mission is queued and registered on leaving the tavern (TAVERN-023, TAVERN-024) |
+| `won` | missions that must all be won before the tavern shows the row, for example `won = [31]`; absent, the row shows at once |
 | `off` | `true` switches the row off and stands alone in its table |
+
+A row with `won` waits: the tavern does not seat its talker until the
+campaign has won every mission of the list. A SAVE holds the wins, so a SAVE
+and LOAD in the town keeps the answer. `won` must not name the row's own
+mission, and names each mission once.
 
 No other key is read; `text`, a speaker name or a picture is refused as an
 unknown key. The talk speaks the install's text at
@@ -1466,13 +1473,17 @@ unknown key. The talk speaks the install's text at
 talk with nothing to give, as M. A row a mod adds or changes is refused at
 launch, naming the mod, the file, the line and the row, when:
 
-- its chapter is not a main mission of the campaign;
+- its chapter, or the chapter `from` names, is not a main mission of the
+  campaign;
+- `won` names a mission that is not a mission section of the campaign;
+- its NPC record speaks in another row of a chapter the row stands in;
 - its mission is not a mission section of the campaign, or its town does not
   offer the mission (see the rule above: a town that lists `missions`
   offers those, a town that lists none offers every other mission);
 - its NPC record is not in the install's NPC table;
 - its talk text is in neither the install nor a loaded mod. A mod carries a
-  new talk text as an install file (see "Install files").
+  new talk text as an install file (see "Install files"). A `from` row with
+  nothing to give needs the text of each chapter it stands in.
 
 A row switched off is refused at launch when a companion join of a loaded
 mod (`data/companions.toml`) waits for that talk in that chapter; the
@@ -1519,6 +1530,62 @@ The mod carries `files/en/main/text/inn/npc/npc41m50.txt` and
 `files/en/main/text/inn/npc/npc32m31.txt` (and the `ru` ones for a Russian
 install), each in the part form of the install's talk texts
 (`<part=1 npc=41>` and the words).
+
+### Shop and school rows
+
+The same file holds `[[shop]]` and `[[school]]` tables: the missions a
+town's shop and school hand out. They are the tavern row's type, read by the
+same parser and judged by the same validator, with no NPC record. Layer 0 is
+the scenario's: one row for each mission of a `[Mission<n>]` section's
+`ShopMission` and `TCMission` (REG-SCN-064), in the first town that offers
+the mission. The building hands out its first row that shows.
+
+| key | value |
+|---|---|
+| `town` | part of the key; the town whose building hands the mission out |
+| `chapter` | part of the key; the main mission whose chapter the row belongs to |
+| `from` | written instead of `chapter`, as in a tavern row |
+| `mission` | part of the key; the mission handed out, 1 or more |
+| `won` | missions that must all be won before the building hands this one out |
+| `off` | `true` switches the row off and stands alone in its table |
+
+A table with only its key adds the row. To move a hand-out, switch the
+install's row off and add another. The refusals are the tavern row's, without
+the NPC record and the talk text: the building speaks the install's text of
+the mission.
+A shop or school row is also refused when its building would hand out the
+same mission twice in one chapter of the same town, as a `from` row would
+over a row of a later chapter.
+
+```toml
+# The shop no longer hands out mission 31 in chapter 30.
+[[shop]]
+town    = 1
+chapter = 30
+mission = 31
+off     = true
+
+# The school hands it out instead, from chapter 30 on, until it is won.
+[[school]]
+town    = 1
+from    = 30
+mission = 31
+
+# NPC record 41 gives main mission 30 once side mission 31 is won.
+[[tavern]]
+town    = 1
+chapter = 30
+npc     = 41
+mission = 30
+won     = [31]
+```
+
+`againrom -check` refuses a row whose `won` names a mission the campaign with
+the mod does not hold, for example `mod "m": data/towns.toml:1: tavern row
+town 1 chapter 30 npc 22: won names mission 77, which is not a mission
+section of the campaign`. The original has no condition on a hand-out
+(`DIV-4925`, `DIV-4926`). The second game's `[[inn]]` rows take neither
+`from` nor `won`.
 
 ### Inn rows
 
@@ -2401,8 +2468,30 @@ the map-opening clicks.
 The selected mission uses the Missions page's party fields: Main party,
 Guest companion with its town grant, or a Party of one to eight named
 members, with the same level and equipment controls. These write only the
-existing `party`, `guest`, `chapter` and `gold` keys. No guest `after` chain,
-town hand-out or talk condition is edited from this graph.
+existing `party`, `guest`, `chapter` and `gold` keys. No guest `after` chain
+is edited from this graph.
+
+With Edit missions on, a click on a town or a hand-out selects it. A town
+offers Add a tavern talk (an NPC record and a mission, `22 31`), Add a shop
+hand-out and Add a school hand-out (a mission); the new row stands in that
+chapter, in the town of the chapter's first row. A hand-out shows Hands out
+(tavern talk, shop or school), NPC record for a talk, Town, Chapter, Stands
+(in this chapter only, or from it on: `from`), Mission and After wins of
+(`won`, numbers separated by commas). A talk also states which text file it
+speaks and whether the mod or the install holds it; talk text is written
+as an install file, not from the graph. Switch off writes `off = true` for a
+row the install holds; Remove the mod's row drops the mod's row, so an
+install row returns as the install has it. Changing a row's town, chapter,
+NPC, building or a shop's or school's mission switches the install row off
+and adds the new one. A hand-out the mod adds is marked new; an install
+hand-out the mod changes is marked flow.
+
+Each hand-out edit is one Undo step, shown in the graph at once and checked
+as the game checks `data/towns.toml`: a refused edit leaves the draft as it
+was and shows the check's words with the file and line. Ctrl+S writes
+`data/towns.toml` with the one row writer of `data/missions.toml`: comments,
+order and untouched rows stay as written, a changed value is rewritten in
+its line, and a new row is appended.
 
 Insert mission takes a new number, a space and the path of a map already
 held by the mod, for example `11 maps/detour.alm`. Enter inserts it after

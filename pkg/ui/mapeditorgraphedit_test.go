@@ -18,6 +18,88 @@ func modesCampaignFields() []InspectionField {
 	}
 }
 
+// modesHandoutFields are a hand-out's fields as a host gives them.
+func modesHandoutFields() []InspectionField {
+	return []InspectionField{
+		{Key: "building", Label: "Hands out", Value: 0, Choices: []InspectionChoice{{Value: 0, Label: "Tavern talk"}, {Value: 1, Label: "Shop"}, {Value: 2, Label: "School"}}},
+		{Key: "mission", Label: "Mission", Text: true, TextValue: "30"},
+		{Key: "won", Label: "After wins of", Text: true},
+		{Key: "off", Label: "Switch off", Action: true},
+	}
+}
+
+// modesHandoutGraph is modesGraph of a mod whose towns and hand-outs the
+// host picks by their numbers.
+func modesHandoutGraph() CampaignGraphPage {
+	page := modesGraph()
+	page.Mod = true
+	for i := range page.Nodes {
+		if n := &page.Nodes[i]; n.Kind == GraphTown || n.Kind == GraphHandout {
+			n.Pick = fmt.Sprintf("node %d", i)
+		}
+	}
+	return page
+}
+
+// firstHandout is the node of modesGraph's first hand-out.
+func firstHandout(page CampaignGraphPage) int {
+	return slices.IndexFunc(page.Nodes, func(n CampaignGraphNode) bool { return n.Kind == GraphHandout })
+}
+
+// With missions edited, a click on a town or a hand-out the host picks
+// selects it through the host's one field route, its fields are the host's
+// and each edit names the selection's scope; a click on a mission returns
+// to the mission's fields. With missions not edited the click opens
+// nothing and selects nothing.
+func TestCampaignGraphHandoutNodesSelectThroughTheHost(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		t.Run(lang, func(t *testing.T) {
+			page := modesHandoutGraph()
+			e, calls := graphEditor(t, page)
+			e.Layout(1280, 1080)
+			e.SetWords(words.For(lang))
+			e.dropObject()
+			host := e.doc.Edits.(*modesWorkspace)
+			host.graphFields, host.handoutFields = modesCampaignFields(), modesHandoutFields()
+			at := firstHandout(page)
+			_, l := graphLayout(t, e)
+			count := len(calls.lines)
+			modesClick(e, center(l.CanvasBoxes.rect(at)))
+			if len(calls.lines) != count || e.graphPicked {
+				t.Fatalf("a click outside Edit missions selected: %q", calls.lines[count:])
+			}
+			graphEditAction(t, e, "graph.edit")
+			_, l = graphLayout(t, e)
+			modesClick(e, center(l.CanvasBoxes.rect(at)))
+			if got, want := calls.lines[len(calls.lines)-1], fmt.Sprintf("Workspace handout select %q", page.Nodes[at].Pick); got != want {
+				t.Fatalf("select: %s, want %s", got, want)
+			}
+			if !slices.ContainsFunc(e.ObjectFields(), func(f InspectionField) bool { return f.Key == "won" }) {
+				t.Fatalf("the hand-out's fields are not the host's: %v", e.ObjectFields())
+			}
+			if !e.FocusModField("won") {
+				t.Fatal("no won field")
+			}
+			_ = e.Key("clear")
+			e.TextInput("31")
+			if err := e.Key("enter"); err != nil {
+				t.Fatal(err)
+			}
+			if got := calls.lines[len(calls.lines)-1]; got != `Workspace handout won "31"` {
+				t.Fatalf("won: %s", got)
+			}
+			graphEditAction(t, e, "off")
+			if got := calls.lines[len(calls.lines)-1]; !strings.HasPrefix(got, "Workspace handout off") {
+				t.Fatalf("off: %s", got)
+			}
+			graphEditClick(t, e, 10)
+			if e.graphPicked || e.modFieldScope() != "campaign.10" {
+				t.Fatalf("a mission click kept the hand-out selected: %s", e.modFieldScope())
+			}
+		})
+	}
+}
+
 func graphEditAction(t *testing.T, e *MapEditor, key string) {
 	t.Helper()
 	if !e.FocusModField(key) {

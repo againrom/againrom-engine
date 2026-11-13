@@ -58,6 +58,45 @@ func TestMissionWriterPartyOptionalsAndReorder(t *testing.T) {
 	}
 }
 
+// A removed middle row leaves with its header and pairs alone: the blank
+// line and the comment that head the next row stay, in the missions file
+// and in the towns file the same writer serves.
+func TestRowWriterRemovingAMiddleRowKeepsTheNextRowsComment(t *testing.T) {
+	a := Mission{Kind: MissionGuest, Key: "first", Number: 25, Map: "a.alm", After: 20, Party: []GuestMember{{Character: "npc22"}}}
+	b := Mission{Kind: MissionGuest, Key: "second", Number: 26, Map: "b.alm", After: 25, Party: []GuestMember{{Character: "npc23"}}}
+	c := Mission{Kind: MissionGuest, Key: "third", Number: 27, Map: "c.alm", After: 26, Party: []GuestMember{{Character: "npc24"}}}
+	plain, err := WriteMissions(nil, nil, []Mission{a, b, c})
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := strings.Split(string(plain), "[[mission]]\n")
+	if len(parts) != 4 || parts[0] != "" {
+		t.Fatalf("three tables expected:\n%s", plain)
+	}
+	middle := "[[mission]]\n" + parts[2]
+	src := "# head\n[[mission]]\n" + parts[1] + "\n# The second.\n" + middle + "\n# The third.\n[[mission]]\n" + parts[3]
+	d, err := ParseMissions("m", MissionsFile, []byte(src), nil, "en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := WriteMissions([]byte(src), d.Missions, []Mission{d.Missions[0], d.Missions[2]})
+	want := strings.Replace(src, middle, "", 1)
+	if err != nil || string(got) != want {
+		t.Fatalf("missions: %v\n%s\nwant\n%s", err, got, want)
+	}
+
+	const towns = "# The tavern.\n[[tavern]]\ntown = 1\nchapter = 30\nnpc = 8\nmission = 32\n\n# The shop.\n[[shop]]\ntown = 1\nchapter = 30\nmission = 31\n\n# keep me: the school row\n[[school]]\ntown = 1\nchapter = 30\nmission = 32\n"
+	_, before, err := ParseTowns("m", TownsFile, []byte(towns))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = WriteOfferRows([]byte(towns), before, []OfferRecord{before[0], before[2]})
+	want = strings.Replace(towns, "[[shop]]\ntown = 1\nchapter = 30\nmission = 31\n", "", 1)
+	if err != nil || string(got) != want {
+		t.Fatalf("towns: %v\n%s\nwant\n%s", err, got, want)
+	}
+}
+
 func TestManifestTitleWriterKeepsCommentsAndMetadata(t *testing.T) {
 	src := []byte("id = 'm'\r\ntitle = 'Old' # keep\r\nversion = '7'\r\nauthor = 'Owner'\r\nentry = 'custom.star'\r\n")
 	got, err := WriteManifestTitle(src, "Новый")

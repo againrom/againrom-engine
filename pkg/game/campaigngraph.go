@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/herokind"
 	"againrom/pkg/mod"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -45,6 +46,8 @@ type campaignGraph struct {
 	told     map[int]bool // the chapters whose town offers its mission itself
 	queue    []int        // the chapters reached and not laid, in that order
 	row      int
+	base     map[town.OfferKey]town.OfferRow // the install's offer rows, layer 0
+	rows     []town.OfferRow                 // the campaign's offer rows: the merged ones, else layer 0
 }
 
 // campaignGraphOf is campaign c with the mod missions it runs with as a
@@ -54,7 +57,16 @@ type campaignGraph struct {
 // after it (AfterWin) and each chapter's building lists.
 func campaignGraphOf(stock, c Campaign, missions mod.MissionData) ui.CampaignGraphPage {
 	g := &campaignGraph{stock: stock, c: c, missions: missions, mission: map[int]int{}, town: map[int]int{},
-		edges: map[[2]int]int{}, walked: map[[3]int]bool{}, laid: map[int]bool{}, told: map[int]bool{}}
+		edges: map[[2]int]int{}, walked: map[[3]int]bool{}, laid: map[int]bool{}, told: map[int]bool{},
+		base: map[town.OfferKey]town.OfferRow{}}
+	base := stock.Towns.baseOffers(stock)
+	for _, r := range base {
+		g.base[town.TavernTable.Key(r)] = r
+	}
+	if rows, ok := c.Towns.tavernRows(); ok {
+		base = rows
+	}
+	g.rows = base
 	if first, ok := c.FirstMission(); ok {
 		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart, Column: graphTownColumn, Row: g.nextRow()})
 		at, _ := g.missionNode(first, g.page.Nodes[start].Row)
@@ -255,6 +267,9 @@ type graphHandout struct {
 	mission int
 }
 
+// graphBuildings are the town buildings of the graph's hand-out places.
+var graphBuildings = map[ui.GraphPlace]TownBuilding{ui.GraphInn: TownTavern, ui.GraphShop: TownShop, ui.GraphSchool: TownSchool}
+
 // graphHandouts is a chapter's hand-outs in the scenario's order: the
 // tavern's pairs over the shorter of its two lists, the shop's missions,
 // the school's.
@@ -281,17 +296,27 @@ func (g *campaignGraph) layTowns() {
 		chapter := g.queue[0]
 		g.queue = g.queue[1:]
 		g.laid[chapter] = true
-		town := g.town[chapter]
-		g.page.Nodes[town].Row = g.row
+		home := g.town[chapter]
+		g.page.Nodes[home].Row = g.row
 		handouts := graphHandouts(g.c.chapter(chapter))
 		if !g.offered(chapter) && len(handouts) == 0 {
 			g.nextRow()
 		}
+		g.page.Nodes[home].Pick = townPick(chapter)
 		for _, h := range handouts {
 			row := g.nextRow()
-			at := g.node(ui.CampaignGraphNode{Kind: ui.GraphHandout, Place: h.place, Number: h.npc,
-				Column: graphHandoutColumn, Row: row, Empty: h.mission == 0})
-			g.edge(town, at, ui.EveryHero)
+			node := ui.CampaignGraphNode{Kind: ui.GraphHandout, Place: h.place, Number: h.npc,
+				Column: graphHandoutColumn, Row: row, Empty: h.mission == 0}
+			// A row is picked by its key; one the install does not hold is
+			// the mod's, one it holds otherwise the mod changed.
+			if r, ok := chapterRowIn(g.rows, chapter, graphBuildings[h.place], h.npc, h.mission); ok {
+				key := town.TavernTable.Key(r)
+				node.Pick = rowPick(key)
+				prior, held := g.base[key]
+				node.AddedMark, node.FlowMark = !held, held && !prior.Equal(r)
+			}
+			at := g.node(node)
+			g.edge(home, at, ui.EveryHero)
 			if h.mission == 0 {
 				continue
 			}
@@ -398,6 +423,11 @@ func (s *mapInspectionEdits) CampaignGraph() ui.CampaignGraphPage {
 	for i := range page.Nodes {
 		if n := &page.Nodes[i]; n.ModMission < 0 {
 			n.ModMission = s.modMissionRow(n.Number)
+		}
+		n := &page.Nodes[i]
+		n.Selected = n.Pick != "" && n.Pick == s.handout
+		if !page.Mod || page.Refused || page.Unbuilt {
+			n.Pick = ""
 		}
 	}
 	return page

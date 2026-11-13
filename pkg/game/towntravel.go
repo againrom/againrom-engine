@@ -200,11 +200,16 @@ func townOffersMission(e town.Entry, towns []town.Entry, m int) bool {
 // tavernHere reports whether the party's town's tavern shows NPC record
 // npc's row offering mission m: a row a mod added shows in its own town,
 // every other row in the town that offers its mission.
-func (t *Town) tavernHere(npc, m int) bool {
+func (t *Town) tavernHere(npc, m int) bool { return t.handedHere(TownTavern, npc, m) }
+
+// handedHere reports whether building b of the party's town holds the
+// live chapter's element of NPC record npc and mission m: a row a mod added
+// stands in its own town, every other in the town that offers its mission.
+func (t *Town) handedHere(b TownBuilding, npc, m int) bool {
 	if !t.manyTowns() {
 		return true
 	}
-	if r, added := t.camp.Towns.addedTavernRow(t.ChapterData().Mission, npc); added {
+	if r, ok := t.camp.chapterRow(t.ChapterData().Mission, b, npc, m); ok && t.camp.Towns.addedOffers[town.TavernTable.Key(r)] {
 		return r.Town == t.townID()
 	}
 	return t.offeredHere(m)

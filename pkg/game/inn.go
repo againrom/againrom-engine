@@ -225,7 +225,7 @@ func innRegistry(home *Town, registry Chapter, live []innSeat) ([]innSeat, bool)
 	next, sub := 0, true
 	for i := 0; i < rows; i++ {
 		npc, mission := registry.InnNPC[i], registry.Inn[i]
-		if !home.tavernHere(npc, mission) {
+		if !home.tavernHere(npc, mission) || !home.shows(TownTavern, npc, mission) {
 			continue
 		}
 		found := -1

@@ -177,7 +177,7 @@ func (e *MapEditor) modAction(key, value string) error {
 		}
 	}
 	if key == "folder" || key == "folder-open" {
-		e.graphMission, e.graphLink = 0, false
+		e.graphMission, e.graphLink, e.graphPicked = 0, false, false
 		e.openModPage()
 	}
 	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {

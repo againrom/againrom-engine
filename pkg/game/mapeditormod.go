@@ -19,6 +19,11 @@ type editorModDocument struct {
 	Original, Missions []mod.Mission
 	Files              map[string][]byte
 	Selected           int
+	// TownsSource is the mod's towns file as opened or saved and
+	// TownsOriginal its offer records; Towns are the draft's records, which
+	// the one row writer writes over the source.
+	TownsSource          []byte
+	TownsOriginal, Towns []mod.OfferRecord
 	// Loose is the path in the mod of the map the edits hold when no row
 	// names it; Selected is then -1.
 	Loose string `json:",omitempty"`
@@ -42,6 +47,11 @@ func (m *editorMod) document() *editorModDocument {
 		d.Missions = append(d.Missions, mod.CloneMission(mission))
 		if mission.RowID() == m.selected {
 			d.Selected = i
+		}
+	}
+	if src, err := modDataFile(m.dir, mod.TownsFile); err == nil && src != nil {
+		if _, offers, err := mod.ParseTowns(m.id, mod.TownsFile, src); err == nil {
+			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
 		}
 	}
 	if src, err := m.speakersFile(); err == nil {
@@ -74,7 +84,15 @@ func (d *editorModDocument) clone() *editorModDocument {
 	for k, v := range d.Files {
 		n.Files[k] = bytes.Clone(v)
 	}
+	n.TownsSource, n.TownsOriginal, n.Towns = bytes.Clone(d.TownsSource), cloneOffers(d.TownsOriginal), cloneOffers(d.Towns)
 	return &n
+}
+
+// townsDraft is the towns file the draft's offer records make of the
+// source, and whether it differs from the source.
+func (d *editorModDocument) townsDraft() ([]byte, bool, error) {
+	src, err := mod.WriteOfferRows(d.TownsSource, d.TownsOriginal, d.Towns)
+	return src, err == nil && !bytes.Equal(src, d.TownsSource), err
 }
 
 func (d *editorModDocument) selected(p editorPackageSpec, word func(string) string) (mod.Mission, error) {
@@ -148,6 +166,13 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 		// A mod with no missions file and no row to write keeps none.
 		if len(data) != 0 || len(d.Source) != 0 {
 			d.Files[mod.MissionsFile] = data
+		}
+		towns, changed, err := d.townsDraft()
+		if err != nil {
+			return nil, nil, m, none, err
+		}
+		if changed {
+			d.Files[mod.TownsFile] = towns
 		}
 		d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
 		if err != nil {

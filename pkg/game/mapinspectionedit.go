@@ -35,6 +35,7 @@ type mapInspectionEdits struct {
 	workspaceHistory             bool
 	flowImage                    []byte
 	draftFlow                    *campaignFlow
+	handout                      string // the pick of the graph's selected town or hand-out
 	page                         string
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 

@@ -163,9 +163,9 @@ type TownDescriptionFile struct {
 	Dir string
 }
 
-// OfferRecord is one [[tavern]] or [[inn]] table: the offer table it is
-// written in, the row key it names and the row fields it sets. Row holds
-// the key and the values of the fields named in Fields.
+// OfferRecord is one [[tavern]], [[shop]], [[school]] or [[inn]] table: the
+// offer table it is written in, the row key it names and the row fields it
+// sets. Row holds the key and the values of the fields named in Fields.
 type OfferRecord struct {
 	Source
 	Table  town.OfferTable
@@ -179,13 +179,17 @@ func (r OfferRecord) Key() town.OfferKey { return r.Table.Key(r.Row) }
 
 // offerKey is one key of an offer table: its name, whether it names the
 // row, how the decoder reads it into a row, how a record copies it into a
-// row and how a dump writes a row's value.
+// row and how a dump writes a row's value. stands names the row key this
+// key is written instead of; has, when set, answers whether a row holds a
+// value the key writes.
 type offerKey struct {
-	name  string
-	key   bool
-	read  func(file string, p tomlPair, r *town.OfferRow) error
-	copy  func(dst *town.OfferRow, src town.OfferRow)
-	write func(r town.OfferRow) string
+	name   string
+	key    bool
+	stands string
+	read   func(file string, p tomlPair, r *town.OfferRow) error
+	copy   func(dst *town.OfferRow, src town.OfferRow)
+	write  func(r town.OfferRow) string
+	has    func(r town.OfferRow) bool
 }
 
 // offerInt is a key holding an integer field of the row, from min.
@@ -207,34 +211,77 @@ func offerList(name string, min int64, field func(*town.OfferRow) *[]int) offerK
 			*field(r), err = townInts(file, p, min)
 			return err
 		},
-		copy: func(dst *town.OfferRow, src town.OfferRow) { *field(dst) = slices.Clone(*field(&src)) },
+		copy:  func(dst *town.OfferRow, src town.OfferRow) { *field(dst) = slices.Clone(*field(&src)) },
+		write: func(r town.OfferRow) string { return writeIntList(*field(&r)) },
+		has:   func(r town.OfferRow) bool { return len(*field(&r)) > 0 },
 	}
+}
+
+// copyOfferChapters copies when a chapter row stands: its one chapter or
+// its floor.
+func copyOfferChapters(dst *town.OfferRow, src town.OfferRow) {
+	dst.Stages, dst.From = slices.Clone(src.Stages), src.From
+}
+
+// offerChapter is a chapter row's one chapter, part of its key.
+var offerChapter = offerKey{name: "chapter", key: true,
+	read: func(file string, p tomlPair, r *town.OfferRow) error {
+		n, err := townInt(file, p, 1)
+		r.Stages = []int{n}
+		return err
+	},
+	copy:  copyOfferChapters,
+	write: func(r town.OfferRow) string { return strconv.Itoa(r.Chapter()) },
+	has:   func(r town.OfferRow) bool { return len(r.Stages) > 0 }}
+
+// offerFrom is a chapter row's floor, written instead of its chapter.
+var offerFrom = offerKey{name: "from", stands: "chapter",
+	read: func(file string, p tomlPair, r *town.OfferRow) (err error) {
+		r.From, err = townInt(file, p, 1)
+		return err
+	},
+	copy:  copyOfferChapters,
+	write: func(r town.OfferRow) string { return strconv.Itoa(r.From) },
+	has:   func(r town.OfferRow) bool { return len(r.Stages) == 0 && r.From > 0 }}
+
+// offerMission is the mission a chapter row gives, from min; key says that
+// it names the row.
+func offerMission(key bool, min int64) offerKey {
+	return offerKey{name: "mission", key: key,
+		read: func(file string, p tomlPair, r *town.OfferRow) (err error) {
+			r.Topic, err = townInt(file, p, min)
+			r.Kind = town.MissionKind(r.Topic)
+			return err
+		},
+		copy:  func(dst *town.OfferRow, src town.OfferRow) { dst.Topic, dst.Kind = src.Topic, src.Kind },
+		write: func(r town.OfferRow) string { return strconv.Itoa(r.Topic) }}
+}
+
+// buildingOffers are the keys of a shop's or a school's table: the town,
+// the chapter or the floor, the mission it hands out and the won missions.
+var buildingOffers = []offerKey{
+	offerInt("town", true, 1, func(r *town.OfferRow) *int { return &r.Town }),
+	offerChapter,
+	offerFrom,
+	offerMission(true, 1),
+	offerList("won", 1, func(r *town.OfferRow) *[]int { return &r.Won }),
 }
 
 // offerTables are the keys of each offer table, in the order a dump writes
 // them. A tavern table's chapter is the row's one stage and its mission the
-// topic, which also gives the kind; an inn table names every field.
+// topic, which also gives the kind; a shop and a school table are a tavern
+// catalog's rows with no NPC record; an inn table names every other field.
 var offerTables = map[town.OfferTable][]offerKey{
 	town.TavernTable: {
 		offerInt("town", true, 1, func(r *town.OfferRow) *int { return &r.Town }),
-		{name: "chapter", key: true,
-			read: func(file string, p tomlPair, r *town.OfferRow) error {
-				n, err := townInt(file, p, 1)
-				r.Stages = []int{n}
-				return err
-			},
-			copy:  func(dst *town.OfferRow, src town.OfferRow) { dst.Stages = slices.Clone(src.Stages) },
-			write: func(r town.OfferRow) string { return strconv.Itoa(r.Chapter()) }},
+		offerChapter,
+		offerFrom,
 		offerInt("npc", true, 0, func(r *town.OfferRow) *int { return &r.NPC }),
-		{name: "mission",
-			read: func(file string, p tomlPair, r *town.OfferRow) (err error) {
-				r.Topic, err = townInt(file, p, 0)
-				r.Kind = town.MissionKind(r.Topic)
-				return err
-			},
-			copy:  func(dst *town.OfferRow, src town.OfferRow) { dst.Topic, dst.Kind = src.Topic, src.Kind },
-			write: func(r town.OfferRow) string { return strconv.Itoa(r.Topic) }},
+		offerMission(false, 0),
+		offerList("won", 1, func(r *town.OfferRow) *[]int { return &r.Won }),
 	},
+	town.ShopTable:   buildingOffers,
+	town.SchoolTable: buildingOffers,
 	town.InnTable: {
 		offerInt("topic", true, 0, func(r *town.OfferRow) *int { return &r.Topic }),
 		offerInt("npc", true, 1, func(r *town.OfferRow) *int { return &r.NPC }),
@@ -266,6 +313,7 @@ func offerKeyNames(table town.OfferTable, keysOnly bool) []string {
 
 // Apply writes the row's key and the fields the record sets into row.
 func (r OfferRecord) Apply(row *town.OfferRow) {
+	row.Place = r.Table.Place()
 	for _, k := range offerTables[r.Table] {
 		if k.key || slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == k.name }) {
 			k.copy(row, r.Row)
@@ -343,7 +391,7 @@ func ParseTowns(id, file string, data []byte) ([]TownRecord, []OfferRecord, erro
 			continue
 		}
 		if t.name != "town" || !t.array {
-			return nil, nil, bad(t.line, "unknown table %q (this file holds [[town]], [[tavern]] and [[inn]])", t.name)
+			return nil, nil, bad(t.line, "unknown table %q (this file holds [[town]], [[tavern]], [[shop]], [[school]] and [[inn]])", t.name)
 		}
 		r, err := townRecordFrom(id, file, t)
 		if err != nil {
@@ -366,12 +414,17 @@ func offerRecordFrom(id, file string, table town.OfferTable, t tomlTable) (Offer
 		return &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf(format, args...)}
 	}
 	r := OfferRecord{Source: Source{Mod: id, File: file, Line: t.line}, Table: table}
+	r.Row.Place = table.Place()
 	keys := offerKeyNames(table, true)
 	named := map[string]bool{}
 	for _, p := range t.pairs {
 		var err error
 		i := slices.IndexFunc(offerTables[table], func(k offerKey) bool { return k.name == p.key })
 		switch {
+		case i >= 0 && offerTables[table][i].stands != "":
+			k := offerTables[table][i]
+			named[k.stands] = true
+			err = k.read(file, p, &r.Row)
 		case i >= 0:
 			err = offerTables[table][i].read(file, p, &r.Row)
 		case p.key == OffField:
@@ -390,13 +443,16 @@ func offerRecordFrom(id, file string, table town.OfferTable, t tomlTable) (Offer
 			r.Fields = append(r.Fields, PatchField{Name: p.key, Line: p.line})
 		}
 	}
-	for _, k := range keys {
-		if !named[k] {
-			return OfferRecord{}, bad(t.line, "[[%s]] has no %s; %s name the row", table, k, proseList(keys))
+	for _, k := range offerTables[table] {
+		switch {
+		case k.stands != "" && named[k.name] && len(r.Row.Stages) > 0:
+			return OfferRecord{}, bad(t.line, "[[%s]] states both %s and %s; a row stands in one chapter or from one on", table, k.stands, k.name)
+		case k.key && !named[k.name]:
+			return OfferRecord{}, bad(t.line, "[[%s]] has no %s; %s name the row", table, k.name, proseList(keys))
 		}
 	}
 	switch {
-	case len(r.Fields) == 0:
+	case len(r.Fields) == 0 && table.Place() == "":
 		return OfferRecord{}, bad(t.line, "[[%s]] %v changes nothing", table, r.Key())
 	case r.Off && len(r.Fields) > 1:
 		return OfferRecord{}, bad(t.line, "[[%s]] %v switches the row off and sets other keys; off = true stands alone", table, r.Key())
@@ -587,8 +643,8 @@ func townMapPoint(file string, p tomlPair) (town.MapPoint, error) {
 // key of townKeys the entry has a value for, and off = false. The file is
 // read back through ParseTowns, and an entry it does not give back unchanged
 // is an error, so the file never holds a value its entry does not. Each of
-// rows, tavern rows, follows as a [[tavern]] table with its key, its mission
-// and off = false, read back the same way.
+// rows, rows of a tavern catalog, follows as a table of its building with
+// its key, the fields it holds and off = false, read back the same way.
 func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]byte, error) {
 	var b strings.Builder
 	for _, l := range head {
@@ -610,9 +666,12 @@ func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]b
 		fmt.Fprintf(&b, "%-11s = false\n", OffField)
 	}
 	for _, r := range rows {
-		fmt.Fprintf(&b, "\n[[%s]]\n", town.TavernTable)
-		for _, k := range offerTables[town.TavernTable] {
-			fmt.Fprintf(&b, "%-11s = %s\n", k.name, k.write(r))
+		table := town.TavernTable.Of(r)
+		fmt.Fprintf(&b, "\n[[%s]]\n", table)
+		for _, k := range offerTables[table] {
+			if k.has == nil || k.has(r) {
+				fmt.Fprintf(&b, "%-11s = %s\n", k.name, k.write(r))
+			}
 		}
 		fmt.Fprintf(&b, "%-11s = false\n", OffField)
 	}
@@ -632,13 +691,13 @@ func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]b
 		}
 	}
 	if len(back) != len(rows) {
-		return nil, fmt.Errorf("the written %s reads back %d tavern rows, not %d", TownsFile, len(back), len(rows))
+		return nil, fmt.Errorf("the written %s reads back %d offer rows, not %d", TownsFile, len(back), len(rows))
 	}
 	for i, r := range back {
 		var got town.OfferRow
 		r.Apply(&got)
 		if r.Off || !got.Equal(rows[i]) {
-			return nil, fmt.Errorf("tavern row %v of the written %s does not read back as its row", town.TavernTable.Key(rows[i]), TownsFile)
+			return nil, fmt.Errorf("row %v of the written %s does not read back as its row", town.TavernTable.Key(rows[i]), TownsFile)
 		}
 	}
 	return out, nil
@@ -659,6 +718,82 @@ func sameTownEntry(a, b town.Entry) bool {
 		return e
 	}
 	return reflect.DeepEqual(norm(a), norm(b))
+}
+
+// OfferRecordOf is the record of table that states row whole: its key and
+// every other key of the table that holds a value. An off record states the
+// key in its one chapter and off alone.
+func OfferRecordOf(table town.OfferTable, row town.OfferRow, off bool) OfferRecord {
+	row.Place = table.Place()
+	r := OfferRecord{Table: table, Row: row, Off: off}
+	if off {
+		r.Row = town.ChapterOffer(row.Town, row.Chapter(), row.NPC, row.Topic)
+		r.Row.Place = row.Place
+		r.Fields = []PatchField{{Name: OffField}}
+		return r
+	}
+	for _, k := range offerTables[table] {
+		if !k.key && (k.has == nil || k.has(row)) {
+			r.Fields = append(r.Fields, PatchField{Name: k.name})
+		}
+	}
+	return r
+}
+
+// offerPairs are the pairs record r writes: the keys that name its row and
+// hold a value, then each key it sets, or off = true after its key.
+func offerPairs(r OfferRecord) []missionPair {
+	var out []missionPair
+	for _, k := range offerTables[r.Table] {
+		named := slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == k.name })
+		if k.key && (k.has == nil || k.has(r.Row)) || named && !r.Off {
+			out = append(out, missionPair{k.name, k.write(r.Row)})
+		}
+	}
+	if r.Off {
+		out = append(out, missionPair{OffField, "true"})
+	}
+	return out
+}
+
+// WriteOfferRows is the towns file source with the offer records before,
+// the ones it holds, made the records after, by the one row writer: a
+// record keeps its table's lines when after holds a record of its line, a
+// record of no line of source is appended, and every [[town]] table stays
+// as written.
+func WriteOfferRows(source []byte, before, after []OfferRecord) ([]byte, error) {
+	tables, err := parseTOMLWith(source, tomlOptions{arrays: true})
+	if err != nil {
+		return nil, fileError(TownsFile, err)
+	}
+	identity := func(line int) string { return "line " + strconv.Itoa(line) }
+	row := func(r OfferRecord, line int) sourceRow {
+		return sourceRow{table: string(r.Table), identity: identity(line), pairs: offerPairs(r)}
+	}
+	var old, next []sourceRow
+	lines := map[int]bool{}
+	for _, t := range tables[1:] {
+		lines[t.line] = true
+		if _, ok := offerTables[town.OfferTable(t.name)]; !ok || !t.array {
+			kept := sourceRow{table: t.name, identity: identity(t.line)}
+			old, next = append(old, kept), append(next, kept)
+			continue
+		}
+		i := slices.IndexFunc(before, func(r OfferRecord) bool { return r.Line == t.line })
+		if i < 0 {
+			return nil, fmt.Errorf("%s: no record of the [[%s]] table at line %d", TownsFile, t.name, t.line)
+		}
+		old = append(old, row(before[i], t.line))
+		if j := slices.IndexFunc(after, func(r OfferRecord) bool { return r.Line == t.line }); j >= 0 {
+			next = append(next, row(after[j], t.line))
+		}
+	}
+	for i, r := range after {
+		if !lines[r.Line] {
+			next = append(next, sourceRow{table: string(r.Table), identity: "new " + strconv.Itoa(i), pairs: offerPairs(r)})
+		}
+	}
+	return writeRows(source, old, next, func(key string) string { return fmt.Sprintf("%-7s", key) })
 }
 
 // writeTOMLString is s as a basic string readString reads back; false for

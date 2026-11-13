@@ -476,6 +476,15 @@ func modesAct(e *MapEditor, name string) string {
 			p.graph, p.graphFields = modesGraph(), modesCampaignFields()
 			p.graph.Mod = true
 		}
+	case "ui:mod-graph-handouts":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			p.graph, p.graphFields, p.handoutFields = modesHandoutGraph(), modesCampaignFields(), modesHandoutFields()
+		}
+	case "ui:graph-handout":
+		if s, _, ok := e.objectSpec(); ok && s.Canvas != nil {
+			page, _ := e.modGraph()
+			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).CanvasBoxes.rect(firstHandout(page))))
+		}
 	case "ui:graph-edit", "ui:graph-link":
 		key := strings.TrimPrefix(name, "ui:")
 		key = strings.Replace(key, "graph-", "graph.", 1)
@@ -715,6 +724,7 @@ var modesPaths = []modesPath{
 	{"mod-graph-node", []string{"ui:mod-graph", "package", "package", "ui:graph-node"}},
 	{"mod-graph-edit", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node"}},
 	{"mod-graph-link", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node", "ui:graph-link"}},
+	{"mod-graph-handout", []string{"ui:mod-graph-handouts", "package", "package", "ui:graph-edit", "ui:graph-handout"}},
 	{"mod-tabs", []string{"ui:mod-second-map"}},
 	{"mod-maps", []string{"package", "package"}},
 	{"mod-maps-row", []string{"package", "package", "backtab"}},

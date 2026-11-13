@@ -772,16 +772,10 @@ func (t *Town) Available() []int {
 // dropped, because those two arrays have no positional partner for a hole to
 // mean anything against.
 func (t *Town) Offers(b TownBuilding) []TownOffer {
-	rows := t.chapterOffers(b)
-	// A campaign of several towns shows each town its own missions' rows.
-	if !t.manyTowns() {
-		return rows
-	}
-	return slices.DeleteFunc(rows, func(o TownOffer) bool {
-		if b == TownTavern {
-			return !t.tavernHere(o.NPC, o.Mission)
-		}
-		return !t.offeredHere(o.Mission)
+	// A campaign of several towns shows each town its own rows, and a row
+	// that waits for a win shows once the campaign holds it.
+	return slices.DeleteFunc(t.chapterOffers(b), func(o TownOffer) bool {
+		return !t.handedHere(b, o.NPC, o.Mission) || !t.shows(b, o.NPC, o.Mission)
 	})
 }
 
@@ -843,7 +837,7 @@ func (t *Town) Take(b TownBuilding, index int) (int, bool) {
 	if !t.Open() || index < 0 {
 		return 0, false
 	}
-	if t.manyTowns() && !slices.ContainsFunc(t.Offers(b), func(o TownOffer) bool { return o.Index == index }) {
+	if !slices.ContainsFunc(t.Offers(b), func(o TownOffer) bool { return o.Index == index }) {
 		return 0, false
 	}
 	if t.progress != nil {

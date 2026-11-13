@@ -10,23 +10,62 @@ import (
 )
 
 // A first-game tavern row's layer 0 is the scenario's InnNPC and InnMission
-// pairs, walking the shorter array (REG-SCN-064). An unlayered book states
-// no rows and each chapter reads its own pairs.
+// pairs, walking the shorter array, and a shop's and a school's row the
+// positive elements of ShopMission and TCMission (REG-SCN-064). An unlayered
+// book states no rows and each chapter reads its own lists.
 
-// chapter is chapter n's offer data, its tavern pairs from the catalog's
-// rows through the one offer builder.
+// chapter is chapter n's offer data, its tavern pairs and its shop and
+// school lists from the catalog's rows through the one offer builder. The
+// lists hold every row of the chapter whatever is won; shows asks that.
 func (c Campaign) chapter(n int) Chapter {
 	ch := c.Chapters[n]
 	rows, ok := c.Towns.tavernRows()
 	if !ok {
 		return ch
 	}
-	ch.InnNPC, ch.Inn = nil, nil
+	ch.InnNPC, ch.Inn, ch.Shop, ch.School = nil, nil, nil, nil
 	for _, o := range innOffers(rows, innState{every: true, stage: n}) {
-		ch.InnNPC = append(ch.InnNPC, o.npc)
-		ch.Inn = append(ch.Inn, o.topic)
+		switch o.place {
+		case town.PlaceShop:
+			ch.Shop = append(ch.Shop, o.topic)
+		case town.PlaceSchool:
+			ch.School = append(ch.School, o.topic)
+		default:
+			ch.InnNPC = append(ch.InnNPC, o.npc)
+			ch.Inn = append(ch.Inn, o.topic)
+		}
 	}
 	return ch
+}
+
+// offerPlaces are the row places of the three buildings.
+var offerPlaces = map[TownBuilding]string{TownTavern: "", TownShop: town.PlaceShop, TownSchool: town.PlaceSchool}
+
+// chapterRow is the catalog row behind an element of building b's list in
+// chapter n: the tavern's by its NPC record, a shop's or a school's by its
+// mission. No layer, or no such row, answers false.
+func (c Campaign) chapterRow(n int, b TownBuilding, npc, mission int) (town.OfferRow, bool) {
+	rows, _ := c.Towns.tavernRows()
+	return chapterRowIn(rows, n, b, npc, mission)
+}
+
+// chapterRowIn is chapterRow over the rows given.
+func chapterRowIn(rows []town.OfferRow, n int, b TownBuilding, npc, mission int) (town.OfferRow, bool) {
+	at := innState{every: true, stage: n}
+	for _, r := range rows {
+		if r.Place == offerPlaces[b] && at.admits(r) && (b == TownTavern && r.NPC == npc || b != TownTavern && r.Topic == mission) {
+			return r, true
+		}
+	}
+	return town.OfferRow{}, false
+}
+
+// shows reports whether building b's element of the live chapter is on
+// offer now: the row's test over what the campaign has won.
+func (t *Town) shows(b TownBuilding, npc, mission int) bool {
+	n := t.ChapterData().Mission
+	r, ok := t.camp.chapterRow(n, b, npc, mission)
+	return !ok || innState{every: true, stage: n, won: t.Done}.admits(r)
 }
 
 // chapterForms are chapter n's merged pairs, then the scenario's when a
@@ -48,19 +87,10 @@ func (b *townBook) tavernRows() ([]town.OfferRow, bool) {
 	return b.catalog.Offers, true
 }
 
-// addedTavernRow is npc's row in chapter when a mod added it.
-func (b *townBook) addedTavernRow(chapter, npc int) (town.OfferRow, bool) {
-	rows, _ := b.tavernRows()
-	for _, r := range rows {
-		if r.Chapter() == chapter && r.NPC == npc {
-			return r, b.addedOffers[town.TavernTable.Key(r)]
-		}
-	}
-	return town.OfferRow{}, false
-}
-
 // scenarioTavern is layer 0 of the tavern rows in chapter and file order,
-// each in the first town offering its mission, else town 1.
+// each in the first town offering its mission, else town 1; after a
+// chapter's talks come its shop's and its school's rows, one for each
+// positive mission of the list, a repeated one once.
 func scenarioTavern(c Campaign, towns []town.Entry) []town.OfferRow {
 	chapters := make([]int, 0, len(c.Chapters))
 	for n := range c.Chapters {
@@ -70,12 +100,26 @@ func scenarioTavern(c Campaign, towns []town.Entry) []town.OfferRow {
 	out := []town.OfferRow{}
 	for _, n := range chapters {
 		ch := c.Chapters[n]
-		for i := range min(len(ch.InnNPC), len(ch.Inn)) {
-			id := chapterTown
-			if j := slices.IndexFunc(towns, func(e town.Entry) bool { return townOffersMission(e, towns, ch.Inn[i]) }); j >= 0 {
-				id = towns[j].ID
+		home := func(mission int) int {
+			if j := slices.IndexFunc(towns, func(e town.Entry) bool { return townOffersMission(e, towns, mission) }); j >= 0 {
+				return towns[j].ID
 			}
-			out = append(out, town.ChapterOffer(id, n, ch.InnNPC[i], ch.Inn[i]))
+			return chapterTown
+		}
+		for i := range min(len(ch.InnNPC), len(ch.Inn)) {
+			out = append(out, town.ChapterOffer(home(ch.Inn[i]), n, ch.InnNPC[i], ch.Inn[i]))
+		}
+		for _, list := range []struct {
+			place    string
+			missions []int
+		}{{town.PlaceShop, ch.Shop}, {town.PlaceSchool, ch.School}} {
+			for i, m := range list.missions {
+				if m > 0 && !slices.Contains(list.missions[:i], m) {
+					row := town.ChapterOffer(home(m), n, 0, m)
+					row.Place = list.place
+					out = append(out, row)
+				}
+			}
 		}
 	}
 	return out
@@ -83,9 +127,11 @@ func scenarioTavern(c Campaign, towns []town.Entry) []town.OfferRow {
 
 // offerRules judge a row a mod adds or changes; a nil answer skips its
 // check. missions names where mission looks; talk answers where the row's
-// talk text stands and whether it is held.
+// talk text stands and whether it is held; stages are the stages a row
+// that stands from n on is offered at.
 type offerRules struct {
 	stage    func(n int) bool
+	stages   func(n int) []int
 	mission  func(n int) bool
 	missions string
 	offers   func(id, n int) bool
@@ -100,6 +146,9 @@ func offerRulesFor(table town.OfferTable, c Campaign, towns []town.Entry, in mod
 	switch table {
 	case town.TavernTable:
 		r.stage = func(n int) bool { return containsMission(c.Main, n) }
+		r.stages = func(n int) []int {
+			return slices.DeleteFunc(slices.Sorted(slices.Values(c.Main)), func(m int) bool { return m < n })
+		}
 		r.mission = func(n int) bool { return containsMission(c.Main, n) || containsMission(c.Side, n) }
 		r.missions = "a mission section of the campaign"
 		r.offers = func(id, n int) bool {
@@ -108,8 +157,19 @@ func offerRulesFor(table town.OfferTable, c Campaign, towns []town.Entry, in mod
 		}
 		if in.Text != nil {
 			r.talk = func(o town.OfferRow) (string, bool) {
-				path, _ := tavernTalkTextPath(o.NPC, o.Topic, o.Chapter())
-				return path, in.Text(path)
+				if o.Place != "" {
+					return "", true
+				}
+				at := []int{o.Chapter()}
+				if o.Topic == 0 && len(o.Stages) == 0 {
+					at = r.stages(o.From)
+				}
+				for _, n := range at {
+					if path, _ := tavernTalkTextPath(o.NPC, o.Topic, n); !in.Text(path) {
+						return path, false
+					}
+				}
+				return "", true
 			}
 		}
 	case town.InnTable:
@@ -128,10 +188,15 @@ func offerRulesFor(table town.OfferTable, c Campaign, towns []town.Entry, in mod
 func (rules offerRules) check(r town.OfferRow, table town.OfferTable) error {
 	k := table.Key(r)
 	bad := func(format string, args ...any) error {
-		return town.OfferErrorf(k, "%s row %v: "+format, append([]any{table, k}, args...)...)
+		return town.OfferErrorf(k, "%s row %v: "+format, append([]any{k.Table, k}, args...)...)
 	}
 	if rules.stage != nil && !rules.stage(r.Chapter()) {
 		return bad("chapter %d is not a main mission of the campaign", r.Chapter())
+	}
+	for _, m := range r.Won {
+		if rules.mission != nil && !rules.mission(m) {
+			return bad("won names mission %d, which is not %s", m, rules.missions)
+		}
 	}
 	if r.Kind == town.OfferMission {
 		if rules.mission != nil && !rules.mission(r.Topic) {
@@ -152,21 +217,30 @@ func (rules offerRules) check(r town.OfferRow, table town.OfferTable) error {
 	return nil
 }
 
+// baseOffers is layer 0 of b's offer rows: the catalog's own, else the
+// scenario's of campaign c; nil with no book.
+func (b *townBook) baseOffers(c Campaign) []town.OfferRow {
+	switch {
+	case b == nil || b.catalog == nil:
+		return nil
+	case b.catalog.Offers != nil:
+		return b.catalog.Offers
+	}
+	return scenarioTavern(c, b.chapterTowns())
+}
+
 // layerOffers merges the mods' offer records over book's rows, or the
 // scenario's when it states none, judging each mod's result: the catalog's
 // row bounds, the bank and offerRules for each added or changed row.
 func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) ([]mod.Override, error) {
 	table := book.catalog.OfferTable
 	for _, r := range d.Offers {
-		if r.Table != table {
+		if r.Table.Catalog() != table {
 			return nil, r.Errorf("catalog %s takes [[%s]] offer rows, not [[%s]] ones", book.catalog.Catalog, table, r.Table)
 		}
 	}
 	towns := book.chapterTowns()
-	base := book.catalog.Offers
-	if base == nil {
-		base = scenarioTavern(c, towns)
-	}
+	base := book.baseOffers(c)
 	rules := offerRulesFor(table, c, towns, in)
 	key := table.Key
 	patches := make([]mod.Patch[town.OfferKey, town.OfferRow], 0, len(d.Offers))
@@ -232,8 +306,11 @@ func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) 
 // checkJoinTalk refuses mod modID's records when they drop the talk that
 // companion join j waits for, naming the last that names it.
 func checkJoinTalk(j mod.CompanionJoin, d mod.TownData, modID string, table town.OfferTable, rows []town.OfferRow) error {
-	talks := func(k town.OfferKey) bool { return k.Chapter == j.Chapter && k.NPC == j.Talk }
-	if j.Building != mod.BuildingTavern || slices.ContainsFunc(rows, func(r town.OfferRow) bool { return talks(table.Key(r)) }) {
+	talks := func(k town.OfferKey) bool { return k.Table == table && k.Chapter == j.Chapter && k.NPC == j.Talk }
+	at := innState{every: true, stage: j.Chapter}
+	if j.Building != mod.BuildingTavern || slices.ContainsFunc(rows, func(r town.OfferRow) bool {
+		return r.Place == "" && r.NPC == j.Talk && at.admits(r)
+	}) {
 		return nil
 	}
 	for _, r := range slices.Backward(d.Offers) {

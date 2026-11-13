@@ -200,6 +200,17 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	}
 	result := *x.mod.loaded
 	result.Missions = parsed
+	// The towns draft replaces the mod's offer records, read as the game
+	// reads the file, so the check refuses a row with its file and line.
+	if towns, changed, err := d.townsDraft(); err != nil {
+		return nil, err
+	} else if changed {
+		_, offers, err := mod.ParseTowns(w.Package.ID, mod.TownsFile, towns)
+		if err != nil {
+			return nil, err
+		}
+		result.Towns.Offers = offers
+	}
 	f, _, err := x.admittedFork(result)
 	if err != nil {
 		return nil, err

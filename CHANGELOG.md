@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] Opening a mod now uses the system's file window everywhere: in the map editor's mod window a click on Working folder, Enter in it, Ctrl+O and Open mod all open it, and it no longer fails before the first mod is saved; the starter's mods folder has a Browse button.
+- [BASE] In data/towns.toml a mod sets which mission a town's shop and school hand out ([[shop]], [[school]]), and a talk or hand-out can wait for wins (won) and stand from a chapter on (from); the editor's campaign graph edits these mod hand-outs (add, change, switch off, remove), and Ctrl+S writes data/towns.toml keeping its comments.
 
 ## 0.154.0
 
