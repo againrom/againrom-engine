@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.154.0
+
 ### For players
 
 - [ROM2] Enemy people with a spellbook back away when hurt with a foe beside them and flee at a quarter of their health, and enemy archers back away below half; a small enemy guard group that sees little chases from farther away, and a summoned creature guards the place where it appeared.
