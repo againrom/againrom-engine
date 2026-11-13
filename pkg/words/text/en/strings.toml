@@ -986,6 +986,7 @@
 "editor.trigger.copysharedaction" = "Several actions carry ID %d; give each its own ID to copy the trigger."
 "editor.trigger.copylongcondition" = "The label of condition %d fills all 64 bytes; shorten it to copy the trigger."
 "editor.trigger.copylongaction" = "The label of action %d fills all 64 bytes; shorten it to copy the trigger."
+"editor.trigger.copydropzone" = "This trigger is not copied: its action %d sets a drop zone, and the copy would be a second drop zone on the same cell."
 "editor.trigger.back" = "Back"
 "editor.trigger.newcondition" = "New condition"
 "editor.trigger.newaction" = "New action"

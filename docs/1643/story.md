@@ -5,12 +5,14 @@
 A map maker copies the selected trigger with one press: the trigger window's Copy, or Copy trigger in the Tools
 menu. The copy stands right after the original, carries the original's name with a copy mark, and is selected.
 It has conditions and actions of its own with the original's settings, so changing it later leaves the original
-as it was. One Undo removes the copy; Redo makes the same copy again.
+as it was. Each message the copy shows is a page of its own with the original's text. One Undo removes the copy
+and its pages; Redo makes the same copy again. A trigger with a drop zone is not copied.
 
 ## Authority
 
 - Owner: «добавить возможность копировать триггер -- именно просто создать копию, далее можно его поменять как
   обычный триггер. это удобство».
+- Owner: a copied trigger's message gets a text page of its own; a trigger with a drop point is not copied.
 - No original behaviour is involved; the map format is unchanged and no DIV row is needed.
 
 ## Rules
@@ -26,6 +28,9 @@ as it was. One Undo removes the copy; Redo makes the same copy again.
 9. An original's slot word outside the comparison alphabet or the ID cap is in the copy as it is.
 10. A node at ID 5000, a 64-byte label or an ID two nodes carry refuses the copy in EN and RU words, writing nothing.
 11. A name that already ends with the copy mark keeps one mark.
+12. Each message action of the copy shows a new page holding the text of the original's page at the copy.
+13. A text written to either page later leaves the other; Undo removes the copy's pages; a saved map reopens with both.
+14. A trigger with a drop action is refused in EN and RU words; the map, its pages and the history stay as they were.
 
 ## Code
 
@@ -34,11 +39,11 @@ as it was. One Undo removes the copy; Redo makes the same copy again.
 | trigger record | `mapedit.Editor.NewTrigger` (`NewScriptTrigger`, extended encoder) | `CopyTrigger` asks it with the original's record, whose words stand unchecked as in `SetTriggerSlots` |
 | condition and action node | `mapedit.NewScriptNode`, IDs from `NextScriptID` | `copyNodes` asks them |
 | trigger order | `mapedit.Editor.Reorder`, the trigger move | the copy moves from the end to after the original |
-| history | `Mark`/`Squash`, `mapInspectionEdits.change` | one step |
+| history, message page | `Mark`/`Squash`, `change` and its stage; `addMessagePage`, which `pointMessage` asks | one step; a page per message |
 | command | `editorCommandRows` | `copy_trigger` row |
 | key and Tools menu row | `editorKeyRows`, `toolButtons` | `copytrigger` rows |
 | trigger window buttons | details and wizard button rows | Copy before Back |
-| words | `e.word` word book | nine keys, EN and RU |
+| words | `e.word` word book | ten keys, EN and RU |
 
 ## Proof
 
@@ -49,7 +54,8 @@ as it was. One Undo removes the copy; Redo makes the same copy again.
 | `TestTriggerCopyKeepsAnExtendedTriggersPairs` | 2, 6 |
 | `TestTriggerCopyNameFitsTheNameField` | 3, 11 |
 | `TestTriggerCopyKeepsWordsOutsideTheAlphabet` | 5, 9 |
-| `TestTriggerCopyRefusesInTheWordBook` | 10 |
+| `TestTriggerCopyRefusesInTheWordBook`, `TestTriggerCopyRefusesADropZone` | 10, 14 |
+| `TestTriggerCopyShowsAPageOfItsOwn`, `TestTriggerCopyGivesEachMessageActionAPage`, `TestTriggerCopyPageReachesTheModsFolder` | 12, 13 |
 | `TestMapEditorCommandsMatchTheWindowRoutes` (copy_trigger) | 1, 5 |
 | `TestMapEditorCopyTriggerIsOneCommandRow` | 1, 3, 8 |
 | `TestMapEditorModesHoldEveryKeyAndGesture` (four copytrigger paths) | 8 |
@@ -64,9 +70,6 @@ Release tests at the release: `TestReleaseMapEditorScriptsListUntouchedBytes`, `
 
 ## Open debt
 
-- A message page an action shows stays shared by the original and the copy; a page of the copy's own waits for an
-  owner decision.
-- A copied drop-location trigger is a second drop zone; whether Copy should refuse it waits for an owner decision.
 - The copy's nodes hold 0 in the word after the ID, as `NewScriptNode` and the game's node constructor write it.
   The game reads that word for conditions (ALM-NODEREAD-232); in the installed maps 0 of 1477 EN and 0 of 1470 RU
   nodes hold another value. Slot names and trigger bytes +0x40..+0x7f have no reader in the game

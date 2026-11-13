@@ -929,6 +929,7 @@
 "editor.trigger.copysharedaction" = "Номер %d носят несколько действий; дайте каждому свой номер, чтобы скопировать триггер."
 "editor.trigger.copylongcondition" = "Название условия %d занимает все 64 байта; сократите его, чтобы скопировать триггер."
 "editor.trigger.copylongaction" = "Название действия %d занимает все 64 байта; сократите его, чтобы скопировать триггер."
+"editor.trigger.copydropzone" = "Этот триггер не копируется: его действие %d задает зону высадки, и копия стала бы второй зоной высадки на той же клетке."
 "editor.trigger.back" = "Назад"
 "editor.trigger.newcondition" = "Новое условие"
 "editor.trigger.newaction" = "Новое действие"

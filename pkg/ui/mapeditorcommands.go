@@ -258,7 +258,7 @@ func editorCommandRows() []editorCommand {
 			[]commandArg{opt("index", intArg("Trigger index to rewrite; default -1 adds a trigger")), req("name", textArg("Trigger name")),
 				opt("once", boolArg("Run once; default true")), opt("conditions", triggerRowsArg(true)), req("actions", triggerRowsArg(false))},
 			(*MapEditor).decodeWriteTrigger, (*MapEditor).commandWriteTriggerDialogue),
-		typedCommand("copy_trigger", "Copy a trigger as one edit, as the trigger window's Copy does: the copy stands right after it, the later triggers one index on, with new conditions and actions of its own and the name with a copy mark",
+		typedCommand("copy_trigger", "Copy a trigger as one edit, as the trigger window's Copy does: the copy stands right after it, the later triggers one index on, with new conditions and actions of its own, a new page with the same text for each message it shows, and the name with a copy mark; a trigger with a drop zone is not copied",
 			[]commandArg{req("index", intArg("Trigger index"))},
 			(*MapEditor).decodeCopyTrigger, (*MapEditor).commandCopyTrigger),
 		typedCommand("move_records", "Move several units, structures and sacks by dx,dy cells as one edit, as a drag of a selection does",

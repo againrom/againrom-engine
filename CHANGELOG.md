@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A save made in town loads after you edit or update one of its mods or change a mod setting. Items, skill levels, clothing layers, guests and campaign missions the changed mods no longer hold are taken away, and the Load page lists them; items the mods still define stay yours. A save made inside a mission, or under other mods, is still refused.
 - [BASE] Map editor: missions that a mod replaces with a map file named by the mission number (for example 10.alm) now appear in the mod's mission list and open from the campaign graph with a click.
 - [ROM1] The map editor's File menu and its save window have the switch "Texts inside the map", off by default: on, the briefing and message pages are saved inside the map, which becomes an `.almx`, and the game, the mod check and a packed mod read them from there. A save that would leave such a map's pages in neither the map nor its folder, or write a map too large for the game to read its pages from, is refused and writes nothing.
+- [BASE] In the map editor, a copied trigger that shows a message now gets its own text page with the same text, so changing the copy's text no longer changes the original's. A trigger with a drop zone is not copied; the editor says why.
 
 ## 0.153.0
 

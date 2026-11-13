@@ -507,8 +507,10 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 // node carries gets a new node of the same label, operation and parameters
 // under the next free id, so the copy shares no node with trigger i. An id no
 // node carries stays as it is, and a slot word trigger i holds stands unchecked
-// as in SetTriggerSlots. A node no new node can carry is a *CopyRefusalError.
-func (e *Editor) CopyTrigger(i int, name string) (int, error) {
+// as in SetTriggerSlots. A node no new node can carry, and a drop action, is
+// a *CopyRefusalError. action, when not nil, may change each action node's
+// copy before it is built; its error copies nothing.
+func (e *Editor) CopyTrigger(i int, name string, action func(*alm.ScriptNode) error) (int, error) {
 	view, err := e.Map()
 	if err != nil {
 		return -1, err
@@ -526,14 +528,14 @@ func (e *Editor) CopyTrigger(i int, name string) (int, error) {
 		return -1, err
 	}
 	var batch []Placement
-	conds, err := e.copyNodes(KindCondition, sc.Conditions, slices.Concat(t.Left, t.Right), &batch)
+	conds, err := e.copyNodes(KindCondition, sc.Conditions, slices.Concat(t.Left, t.Right), &batch, nil)
 	if err != nil {
 		return -1, err
 	}
 	if err := e.scriptRoom(len(batch), 1); err != nil {
 		return -1, err
 	}
-	acts, err := e.copyNodes(KindAction, sc.Actions, t.Acts, &batch)
+	acts, err := e.copyNodes(KindAction, sc.Actions, t.Acts, &batch, action)
 	if err != nil {
 		return -1, err
 	}
@@ -570,6 +572,7 @@ const (
 	CopySharedID  CopyRefused = iota // several nodes of the array carry ID
 	CopyIDsFull                      // a new node would take an id above ID, the cap
 	CopyLongLabel                    // node ID's label fills its field
+	CopyDropZone                     // action ID is a drop action: its copy would be a second zone on the cell
 )
 
 // CopyRefusalError is why CopyTrigger copies nothing: Kind is the node array.
@@ -585,14 +588,17 @@ func (e *CopyRefusalError) Error() string {
 		return fmt.Sprintf("mapedit: several %s nodes carry ID %d", sectionName(e.Kind), e.ID)
 	case CopyIDsFull:
 		return fmt.Sprintf("mapedit: the next node ID exceeds %d", e.ID)
+	case CopyDropZone:
+		return fmt.Sprintf("mapedit: action %d is a drop action", e.ID)
 	}
 	return fmt.Sprintf("mapedit: %s node %d has a label of %d bytes", sectionName(e.Kind), e.ID, alm.ScriptLabelLen)
 }
 
 // copyNodes appends to batch a new node of array k for each distinct id of
 // ids that one of nodes carries, numbered from the array's next free id, and
-// returns each copied id's new id.
-func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *[]Placement) (map[uint32]uint32, error) {
+// returns each copied id's new id. change, when not nil, may change a node's
+// copy before it is built.
+func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *[]Placement, change func(*alm.ScriptNode) error) (map[uint32]uint32, error) {
 	next, err := e.NextScriptID(k)
 	if err != nil {
 		return nil, err
@@ -608,6 +614,9 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 			if nodes[n].ID != id {
 				continue
 			}
+			if k == KindAction && nodes[n].Opcode == dropOpcode {
+				return nil, &CopyRefusalError{Why: CopyDropZone, Kind: k, ID: id}
+			}
 			if at >= 0 {
 				return nil, &CopyRefusalError{Why: CopySharedID, Kind: k, ID: id}
 			}
@@ -620,6 +629,11 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 			return nil, &CopyRefusalError{Why: CopyIDsFull, Kind: k, ID: maxID}
 		}
 		n := nodes[at]
+		if change != nil {
+			if err := change(&n); err != nil {
+				return nil, err
+			}
+		}
 		label, err := alm.ScriptLabelText.Encode(n.Label)
 		if err != nil {
 			return nil, err

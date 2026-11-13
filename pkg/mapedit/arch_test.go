@@ -48,7 +48,7 @@ var almReferences = nameTable{
 	"script.go/newScriptTrigger":          {"alm.ScriptLabelText", "alm.ScriptTrigger"},
 	"script.go/(*Editor).SetTriggerSlots": {"alm.ScriptTrigger"},
 	"script.go/(*Editor).AddDropZone":     {"alm.ScriptTrigger"},
-	"script.go/(*Editor).CopyTrigger":     {"alm.ScriptTrigger"},
+	"script.go/(*Editor).CopyTrigger":     {"alm.ScriptNode", "alm.ScriptTrigger"},
 	"script.go/(*Editor).copyNodes":       {"alm.ScriptLabelText", "alm.ScriptNode"},
 	"arm.go/(*Editor).AddArm":             {"alm.ScriptTrigger"},
 	// The Againrom script record: the frame finds it by its typeId, its

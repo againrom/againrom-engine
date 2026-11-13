@@ -81,7 +81,8 @@ func (mw *mapWorld) authoredName(e *sim.Entity) (string, bool) {
 }
 
 // workspaceStage is the workspace an edit in progress writes a unit's name
-// into: change adopts it with the edited model as one undo step. root is the
+// or a copied trigger's page into: change adopts it with the edited model as
+// one undo step. root is the
 // edits value whose workspace the stage starts from.
 type workspaceStage struct {
 	root *mapInspectionEdits

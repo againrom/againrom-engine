@@ -71,8 +71,10 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 
 // CopyTrigger places a copy of trigger index right after it as one edit: its
 // fields, its own new condition and action nodes, and its name with the word
-// book's copy mark. The document's added record is the copy. A new check is
-// refused where the wizard refuses one.
+// book's copy mark. Each message action of the copy shows a new page holding
+// the text of the original's page. The document's added record is the copy.
+// A new check is refused where the wizard refuses one, and a trigger with a
+// drop action is not copied.
 func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, error) {
 	at := -1
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
@@ -105,7 +107,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, err
 		if err := registerCollision(sc, added); err != nil {
 			return false, s.checkWords(err)
 		}
-		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")))
+		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")), s.copyMessagePage)
 		return err == nil, copyRefusal(err, s.inspector.word)
 	})
 	if d != nil {
@@ -114,12 +116,36 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, err
 	return d, err
 }
 
+// copyMessagePage points a copied message action at a new page holding the
+// text of the page it names, staged with the change in progress. An action
+// that shows no message, or names a page the map does not have, stays as it
+// is.
+func (s *mapInspectionEdits) copyMessagePage(n *alm.ScriptNode) error {
+	if scriptParameterKind(false, n.Opcode, n.Type, 0) != ui.ScriptMessageParameter {
+		return nil
+	}
+	if s.stage == nil {
+		return errors.New("a trigger is not copied here")
+	}
+	w, err := s.stage.workspace()
+	if err != nil {
+		return err
+	}
+	text, exists := w.Pages[messageFilename(n.Value[0])]
+	if !exists {
+		return nil
+	}
+	n.Value[0], err = s.addMessagePage(w, text)
+	return err
+}
+
 // copyRefusals are the word-book texts of the nodes a copy refuses, by
 // reason and node array; each takes the node ID or the ID cap.
 var copyRefusals = map[mapedit.CopyRefused]struct{ conditionWord, actionWord string }{
 	mapedit.CopySharedID:  {conditionWord: "editor.trigger.copysharedcondition", actionWord: "editor.trigger.copysharedaction"},
 	mapedit.CopyIDsFull:   {conditionWord: "editor.trigger.copyidsfull", actionWord: "editor.trigger.copyidsfull"},
 	mapedit.CopyLongLabel: {conditionWord: "editor.trigger.copylongcondition", actionWord: "editor.trigger.copylongaction"},
+	mapedit.CopyDropZone:  {conditionWord: "editor.trigger.copydropzone", actionWord: "editor.trigger.copydropzone"},
 }
 
 // copyRefusal is err in the words of word when it is a node the copy

@@ -388,7 +388,7 @@ func TestTriggerCopyRefusesInTheWordBook(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = m.CopyTrigger(0, "T (copy)")
+		_, err = m.CopyTrigger(0, "T (copy)", nil)
 		got, want := copyRefusal(err, ru.Text), fmt.Sprintf(ru.Text(c.key), c.id)
 		if got == nil || got.Error() != want || want == fmt.Sprintf(words.For("").Text(c.key), c.id) {
 			t.Fatalf("%s: in RU the copy says %v, want %q", c.key, got, want)

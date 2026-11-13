@@ -58,7 +58,7 @@ type mapInspectionEdits struct {
 	batch         *mapedit.Editor
 	scriptTargets map[uint32][]ui.InspectionScriptTarget
 	// stage is the workspace the change in progress writes a unit's name
-	// into; nil outside a change.
+	// or a copied trigger's page into; nil outside a change.
 	stage *workspaceStage
 }
 

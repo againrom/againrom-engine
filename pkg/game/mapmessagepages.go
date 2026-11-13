@@ -20,6 +20,18 @@ import (
 
 func messageFilename(n uint32) string { return fmt.Sprintf("event%02d.txt", n) }
 
+// addMessagePage puts a new message page holding text into workspace w and
+// returns its number, the first free one. A workspace already at the page
+// bound is refused in the word book's words and left as it is.
+func (s *mapInspectionEdits) addMessagePage(w *editorWorkspaceState, text []byte) (uint32, error) {
+	if len(w.Pages) >= mod.MaxMissionTexts {
+		return 0, fmt.Errorf(s.inspector.word("editor.message.full"), mod.MaxMissionTexts)
+	}
+	n := freeMessage(w.Pages)
+	w.Pages[messageFilename(n)] = bytes.Clone(text)
+	return n, nil
+}
+
 func freeMessage(pages map[string][]byte) uint32 {
 	for n := uint32(1); ; n++ {
 		if n == uint32(ReservedMessageNumber) {
@@ -661,9 +673,7 @@ func (s *mapInspectionEdits) CreateMessageParts(owner ui.InspectionMessageOwner,
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, 0, err
 	}
-	n := freeMessage(s.workspace.Pages)
-	d, err := s.pointMessageParts(owner, n, true, parts)
-	return d, n, err
+	return s.pointMessageParts(owner, 0, true, parts)
 }
 
 // PointMessageParts makes owner name the existing page and writes its
@@ -672,47 +682,57 @@ func (s *mapInspectionEdits) PointMessageParts(owner ui.InspectionMessageOwner, 
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
-	return s.pointMessageParts(owner, page, false, parts)
+	d, _, err := s.pointMessageParts(owner, page, false, parts)
+	return d, err
 }
 
 // pointMessageParts makes owner name page n, a new page when fresh, and
-// writes its parts; both are one history entry.
-func (s *mapInspectionEdits) pointMessageParts(owner ui.InspectionMessageOwner, n uint32, fresh bool, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, error) {
+// writes its parts; both are one history entry. It returns the page's number.
+func (s *mapInspectionEdits) pointMessageParts(owner ui.InspectionMessageOwner, n uint32, fresh bool, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, uint32, error) {
 	saved := *s
 	saved.undoWorkspace = slices.Clone(s.undoWorkspace)
-	d, err := s.pointMessage(owner, n, fresh)
+	d, n, err := s.pointMessage(owner, n, fresh)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	steps := len(s.undoWorkspace)
 	text, err := s.SetMessageParts(n, parts)
 	if err != nil {
 		*s = saved
-		return nil, err
+		return nil, 0, err
 	}
 	if text != nil {
 		d = text
 	}
 	s.undoWorkspace = s.undoWorkspace[:steps]
-	return d, nil
+	return d, n, nil
 }
 
 func (s *mapInspectionEdits) NewMessage(owner ui.InspectionMessageOwner) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
-	return s.pointMessage(owner, freeMessage(s.workspace.Pages), true)
+	d, _, err := s.pointMessage(owner, 0, true)
+	return d, err
 }
 
-// pointMessage makes owner name page n: a new empty page when fresh, else
-// a page the map has.
-func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uint32, fresh bool) (*ui.InspectionDocument, error) {
-	if _, exists := s.workspace.Pages[messageFilename(n)]; !fresh && !exists {
-		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+// pointMessage makes owner name a page and returns its number: a new empty
+// page when fresh, else page n, which the map has.
+func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uint32, fresh bool) (_ *ui.InspectionDocument, _ uint32, err error) {
+	w := cloneWorkspace(s.workspace)
+	if fresh {
+		if n, err = s.addMessagePage(w, []byte(newMessagePage)); err != nil {
+			return nil, 0, err
+		}
+	} else if _, exists := w.Pages[messageFilename(n)]; !exists {
+		return nil, 0, errors.New(s.inspector.word("editor.message.unavailable"))
 	}
-	if fresh && len(s.workspace.Pages) >= mod.MaxMissionTexts {
-		return nil, fmt.Errorf(s.inspector.word("editor.message.full"), mod.MaxMissionTexts)
-	}
+	d, err := s.pointedMessage(owner, n, w)
+	return d, n, err
+}
+
+// pointedMessage makes owner name page n of workspace w and adopts w.
+func (s *mapInspectionEdits) pointedMessage(owner ui.InspectionMessageOwner, n uint32, w *editorWorkspaceState) (*ui.InspectionDocument, error) {
 	next := s.model.Clone()
 	mark := next.Mark()
 	kind, index, key := owner.Kind, owner.Index, owner.Key
@@ -762,10 +782,6 @@ func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uin
 		return nil, err
 	}
 	next.Squash(mark)
-	w := cloneWorkspace(s.workspace)
-	if fresh {
-		w.Pages[messageFilename(n)] = []byte(newMessagePage)
-	}
 	d, err := s.project(next)
 	if err != nil {
 		return nil, err
