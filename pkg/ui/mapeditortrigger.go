@@ -1127,7 +1127,8 @@ func (e *MapEditor) scriptDirty(v scriptView) bool {
 }
 
 // PopupLines are the shown object popup's rows as text, label then value,
-// and its notes: what a headless driver reads.
+// the boxes of its canvas, the labels of the canvas's lines and its notes:
+// what a headless driver reads.
 func (e *MapEditor) PopupLines() []string {
 	s, _, ok := e.objectSpec()
 	if !ok {
@@ -1141,7 +1142,22 @@ func (e *MapEditor) PopupLines() []string {
 		}
 		out = append(out, strings.TrimSpace(mark+r.Label+" "+r.Value))
 	}
-	return append(out, s.Notes...)
+	return append(append(append(out, s.Canvas.texts()...), s.Canvas.labels()...), s.Notes...)
+}
+
+// PopupCanvasBoxes are the boxes of the shown object popup's canvas: each
+// one's text and its window rectangle, which a headless driver clicks.
+func (e *MapEditor) PopupCanvasBoxes() (texts []string, rects []image.Rectangle) {
+	s, _, ok := e.objectSpec()
+	if !ok || s.Canvas == nil {
+		return nil, nil
+	}
+	boxes := layoutPopup(s, e.font, e.bodyFont()).CanvasBoxes
+	rects = make([]image.Rectangle, len(boxes))
+	for i, row := range boxes {
+		rects[i] = row.rect
+	}
+	return s.Canvas.texts(), rects
 }
 
 // PopupRowButtons are the captions of popup row n's own buttons.

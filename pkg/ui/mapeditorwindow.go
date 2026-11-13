@@ -80,6 +80,8 @@ type editorChrome struct {
 	buttonPress            buttonPress
 	scroll                 editorScroll
 	objectTop              int
+	graphAt, graphFrom     image.Point // the graph sheet's point W shows, and where a drag last held it
+	graphHeld              bool        // a drag holds the graph's sheet
 	objectWheel, listWheel float64
 	clicks                 doubleClick
 	lastRow                int
@@ -2099,6 +2101,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		return true
 	}
 	if e.uiDown {
+		e.graphDrag(p, in.PrimaryDown)
 		if !in.PrimaryDown {
 			e.uiDown = false
 			e.clicks.release()
@@ -2177,7 +2180,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			}
 		}
 	case popObject:
-		if !e.objectWheelDropdown(wheel) {
+		if !e.objectWheelDropdown(wheel) && !e.graphWheel(wheel) {
 			e.objectTop = max(0, e.objectTop+editorWheelRows(&e.objectWheel, wheel))
 		}
 	case popMenu:

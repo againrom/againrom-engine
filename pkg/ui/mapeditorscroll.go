@@ -8,7 +8,10 @@ type editorScroll struct {
 	model   *Picker
 	add     bool
 	details bool
-	grabY   int
+	// canvas is the pixels one bar position moves W's graph, zero for a
+	// bar of anything else.
+	canvas int
+	grabY  int
 }
 
 func editorListStep(m *Picker, delta int) bool {
@@ -20,7 +23,7 @@ func editorListStep(m *Picker, delta int) bool {
 }
 
 func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
-	e.scroll.details = false
+	e.scroll.details, e.scroll.canvas = false, 0
 	switch e.chromeHit(p) {
 	case popMenu:
 		if b, ok := e.openMenuEntry(); ok {
@@ -57,6 +60,13 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 				m.Select(s.Top)
 				e.scroll.details = true
 				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m, false
+			}
+			if s.Canvas != nil && p.In(l.CanvasBar) {
+				bar := l.canvasBar(s.Canvas)
+				m := NewPicker(make([]PickerRow, bar.Count)).SetWindow(1)
+				m.Select(bar.Pos)
+				e.scroll.canvas = max(1, l.Pitch)
+				return bar, m, false
 			}
 		}
 	case popTree:
@@ -114,6 +124,9 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	}
 	if s.details {
 		e.objectTop = s.model.Selection()
+	}
+	if s.canvas > 0 {
+		e.graphAt.Y = s.model.Selection() * s.canvas
 	}
 	e.down, e.uiDown = in.PrimaryDown, in.PrimaryDown
 	return true

@@ -533,7 +533,7 @@ func (c Campaign) withModMissions(d mod.MissionData) (Campaign, error) {
 		if !m.Campaign() {
 			continue
 		}
-		added := !slices.Contains(c.Main, m.Number) && !slices.Contains(c.Side, m.Number) && !slices.Contains(c.Offered, m.Number)
+		added := !c.holds(m.Number)
 		if added {
 			c.Side = append(c.Side, m.Number)
 		}
@@ -555,35 +555,60 @@ func (c Campaign) withModMissions(d mod.MissionData) (Campaign, error) {
 	}
 	c.missionTowns = map[int][]int{}
 	for _, root := range c.Main {
-		current := root
-		var path []int
-		for n, steps := root, 0; steps <= len(c.Main)+len(c.Side); steps++ {
-			path = append(path, n)
-			next, automatic := c.AutoAdvance(n)
-			if !automatic {
-				offer, ok := c.NextMission(current)
-				if ok && (offer.Town || c.TownAfter[n]) {
-					for _, mission := range path {
-						if !slices.Contains(c.missionTowns[mission], offer.Mission) {
-							c.missionTowns[mission] = append(c.missionTowns[mission], offer.Mission)
-						}
-					}
+		path, _, offer, ok := c.winRoute(root, root)
+		if !ok {
+			continue
+		}
+		if offer.Town {
+			for _, mission := range path {
+				if !slices.Contains(c.missionTowns[mission], offer.Mission) {
+					c.missionTowns[mission] = append(c.missionTowns[mission], offer.Mission)
 				}
-				if c.TownAfter[n] {
-					if ok && (c.TownBoundary == 0 || offer.Mission < c.TownBoundary) {
-						c.TownBoundary = offer.Mission
-					}
-				}
-				break
 			}
-			if containsMission(c.Main, next) {
-				current = next
-			}
-			n = next
+		}
+		if c.TownAfter[path[len(path)-1]] && (c.TownBoundary == 0 || offer.Mission < c.TownBoundary) {
+			c.TownBoundary = offer.Mission
 		}
 	}
 	slices.Sort(c.Side)
 	return c, nil
+}
+
+// holds reports that the campaign names mission n: as a section or in a
+// building's list. A mod's campaign mission of any other number is one the
+// mod adds.
+func (c Campaign) holds(n int) bool {
+	return slices.Contains(c.Main, n) || slices.Contains(c.Side, n) || slices.Contains(c.Offered, n)
+}
+
+// advances reports that the win of mission completed moves a campaign that
+// stands on main mission main: a main mission not behind it. The win of a
+// side mission, or of an earlier main one, leaves the town where it stands.
+func (c Campaign) advances(completed, main int) bool {
+	return completed >= main && containsMission(c.Main, completed)
+}
+
+// winRoute walks the win of mission n while the campaign stands on main
+// mission main: path is the missions the sections lead through, n first
+// (AutoAdvance), and stands the main mission the campaign stands on at the
+// last of them. offer is what follows there (NextMission), and opens the
+// town where the last mission's win is set to (TownAfter). ok is false where
+// no main mission follows, and for sections that lead round without end.
+func (c Campaign) winRoute(n, main int) (path []int, stands int, offer Offer, ok bool) {
+	for range len(c.Main) + len(c.Side) + 1 {
+		path = append(path, n)
+		next, automatic := c.AutoAdvance(n)
+		if !automatic {
+			offer, ok = c.NextMission(main)
+			offer.Town = ok && (offer.Town || c.TownAfter[n])
+			return path, main, offer, ok
+		}
+		if containsMission(c.Main, next) {
+			main = next
+		}
+		n = next
+	}
+	return path, main, Offer{}, false
 }
 
 // readChapter is one section's town data, and whether the section carries

@@ -1571,3 +1571,4 @@ pkg/secondshop.TestDeathItemsInstalledOgreFailureBound
 pkg/game.TestReleaseSecondCrownComesHomeFromMissionSeventy
 pkg/game.TestReleaseSecondCrownComesHomeFromMissionEighty
 pkg/game.TestReleaseSecondMissionTowersCastAtTheParty
+pkg/game.TestReleaseCampaignGraphEqualsTheHandoutCensus

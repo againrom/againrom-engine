@@ -22,6 +22,8 @@ type modesWorkspace struct {
 	dirtyOnEdit bool
 	// overview is the mod's overview page; empty, W has none.
 	overview ModOverviewPage
+	// graph is the campaign graph; empty, W has no graph page.
+	graph CampaignGraphPage
 }
 
 // modesOverview is the overview of a mod no mission of which opens.
@@ -33,6 +35,8 @@ var modesOverview = ModOverviewPage{First: true, Sections: []ModOverviewSection{
 }}
 
 func (p *modesWorkspace) ModOverview() ModOverviewPage { return p.overview }
+
+func (p *modesWorkspace) CampaignGraph() CampaignGraphPage { return p.graph }
 
 func newModesWorkspace() *modesWorkspace {
 	return &modesWorkspace{fields: []InspectionField{

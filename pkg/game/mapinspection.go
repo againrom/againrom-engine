@@ -58,6 +58,8 @@ type MapInspector struct {
 	placedArts *placedArtCache
 	// noMap is the host W works through with no map open.
 	noMap *mapInspectionEdits
+	// flow is the install's campaign for W's graph, nil until first asked.
+	flow *campaignFlow
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.

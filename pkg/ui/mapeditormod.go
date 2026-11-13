@@ -44,7 +44,7 @@ func (e *MapEditor) FocusModField(key string) bool {
 	}
 	for i, f := range e.obj.fields {
 		if f.Key == key && !f.ReadOnly {
-			e.modPage = 0
+			e.modPage = modPageFields
 			e.obj.detail = f.Parent
 			e.objectSpec()
 			e.focusObjectField(i)
@@ -221,7 +221,10 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		}
 		return true, nil
 	}
-	if e.modPage == 1 && (key == "tab" || key == "backtab") {
+	if e.modPage == modPageGraph && e.graphKey(key) {
+		return true, nil
+	}
+	if e.modPage != modPageFields && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
 		if key == "backtab" {
 			step = n - 1
@@ -234,12 +237,8 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		e.closeObject()
 		return true, e.keyClose(key)
 	case "package":
-		// With an overview, the window's key turns its page.
-		if _, ok := e.modOverview(); ok {
-			if e.modPage == 0 && e.applyModField() != nil {
-				return true, nil
-			}
-			e.showModPage(1 - e.modPage)
+		// With more pages than one, the window's key turns its page.
+		if e.turnModPage(-1) {
 			return true, nil
 		}
 		return true, e.keyWorkspace(key)
@@ -413,19 +412,21 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	o.rowActs = map[int][]string{}
 	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(620, e.window.X-16)), At: e.personCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
-	page, overview := e.modOverview()
-	if !overview {
-		e.modPage = 0
-	} else {
-		s.Tabs, s.ActiveTab, s.TabSwitch = []string{e.word("editor.mod.missions"), e.word("editor.mod.overview")}, e.modPage, true
+	if s.Tabs, s.ActiveTab = e.modTabs(); len(s.Tabs) > 0 {
+		s.TabSwitch = true
 	}
-	if e.modPage == 1 {
+	switch e.modPage {
+	case modPageOverview:
+		page, _ := e.modOverview()
 		e.modOverviewRows(&s, &links, page)
-	} else {
+	case modPageGraph:
+		page, _ := e.modGraph()
+		e.modGraphRows(&s, &links, page)
+	default:
 		e.objectFieldRows(&s, &links)
 	}
 	for _, f := range o.fields {
-		if f.Key != "source" || e.modPage == 1 {
+		if f.Key != "source" || e.modPage != modPageFields {
 			continue
 		}
 		start := max(0, int(f.Value)-2)
@@ -458,6 +459,9 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		s.ButtonFocus = &n
 	}
 	status := e.modStatus
+	if status == "" && e.modPage == modPageGraph {
+		status = e.plainWord("editor.graph.keys")
+	}
 	if status == "" {
 		status = e.plainWord("editor.mod.keys")
 	}
@@ -517,10 +521,11 @@ func (e *MapEditor) modPress(p image.Point) bool {
 		return true
 	}
 	if part == popupTab {
-		if e.modPage == 0 && e.applyModField() != nil {
-			return true
-		}
-		e.showModPage(n)
+		e.turnModPage(n)
+		return true
+	}
+	if part == popupCanvasBox || part == popupCanvasGround {
+		e.graphPress(part, n, p)
 		return true
 	}
 	if part == popupRowButton || part == popupRowControl || part == popupRowLine {

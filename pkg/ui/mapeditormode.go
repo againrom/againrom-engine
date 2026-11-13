@@ -108,7 +108,7 @@ func (p editorPrompt) fields() bool {
 // editorMode is every layer the window can be in.
 type editorMode struct {
 	modWindow       bool
-	modPage         int // W's page shown: 0 the mod's fields, 1 its overview
+	modPage         int // W's page shown, one of the modPage constants
 	modConfirm      string
 	modConfirmLabel string
 	modStatus       string

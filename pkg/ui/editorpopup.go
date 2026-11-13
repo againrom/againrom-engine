@@ -400,6 +400,8 @@ type popupSpec struct {
 	MinWidth int
 	// Grid, when set, stands between the rows and the list.
 	Grid *popupGrid
+	// Canvas, when set, is a drawing between the grid and the list.
+	Canvas *popupCanvas
 	// Drag is the card a row drag holds, nil for none.
 	Drag *popupRowDrag
 	// Fit makes the popup fit its content to its width, as a window in a
@@ -564,6 +566,14 @@ type popupLayout struct {
 	GridInert                  []bool
 	GridIndices                []int
 	GridHeadText               []string
+	// Canvas is the canvas's view, CanvasBar its scroll bar, CanvasAt the
+	// sheet point at the view's corner, CanvasBoxes each box's place in the
+	// window, a row under the box's number that the draw reads and the hit
+	// test asks, and CanvasInert the boxes that take no press.
+	Canvas, CanvasBar image.Rectangle
+	CanvasAt          image.Point
+	CanvasBoxes       controlLayout
+	CanvasInert       []bool
 	// Drop is the card, counted among the spec's card rows, that a held card
 	// lands before, the card count for after the last, -1 for no drag;
 	// Marker is the bar drawn at that gap while the drop moves the card.
@@ -946,7 +956,7 @@ func popupRowsHeight(s popupSpec, flow popupFlow, pitch, shown int) int {
 // the scrolled rows and the extra lines of the first multi-line field, and the
 // least height that keeps them usable. s.Rows is not modified.
 func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int) (listRows, rowsFit, extraLines, minH int) {
-	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad + s.Grid.height() + flow.cardBand()
+	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad + s.Grid.height() + s.Canvas.least() + flow.cardBand()
 	fixed += flow.buttonLines * (pitch + 4 + popupPad)
 	// A card beside the rows stays clear of the note and button lines.
 	cardLeast := 0
@@ -1120,6 +1130,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	h += flow.buttonLines * (pitch + 4 + popupPad)
 	s.Grid = fitGrid(s, w, h, sizedH, sized)
 	h += s.Grid.height()
+	s.Canvas = fitCanvas(s, h, sizedH, sized)
+	h += s.Canvas.height()
 	if sized {
 		h = max(h, sizedH)
 	}
@@ -1347,6 +1359,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		}
 		y = top + g.height()
 	}
+	if c := s.Canvas; c != nil {
+		y = l.placeCanvas(c, r, y)
+	}
 	if s.List != nil {
 		if len(flow.listHeads) > 0 {
 			x := r.Min.X + popupPad + listTextX
@@ -1541,6 +1556,9 @@ const (
 	popupRowGrip                     // a card's grip: a drag moves the card
 	popupTab
 	popupSwitchButton // the button row's SwitchButton
+	popupCanvasBox    // a canvas box that takes a press; the index is the box's
+	popupCanvasGround // the canvas's ground: a drag moves the sheet
+	popupCanvasBar    // the canvas's scroll bar
 )
 
 // gridIndex maps a visible rectangle to its unchanged source cell index.
@@ -1587,6 +1605,12 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 		if p.In(c) && !l.GridInert[i] {
 			return popupGridPart, l.gridIndex(i)
 		}
+	}
+	if p.In(l.CanvasBar) {
+		return popupCanvasBar, 0
+	}
+	if p.In(l.Canvas) {
+		return l.canvasHit(p)
 	}
 	if l.HasList {
 		if p.In(l.List.Bar()) {
@@ -1887,6 +1911,18 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	if g := s.Grid; g != nil {
 		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK, held)
 	}
+	if c := s.Canvas; c != nil && !l.Canvas.Empty() {
+		over := l.canvasOver(pointer, pointerOK)
+		drawCanvasSheet(dst, c, l, ink)
+		clip := dst.SubImage(l.Canvas.Inset(1)).(*image.RGBA)
+		for _, b := range l.canvasButtons(c, over, held) {
+			drawPushButton(clip, body, b)
+		}
+		drawCanvasWords(dst, body, c, l, ink, over)
+		if !l.CanvasBar.Empty() {
+			drawVScrollBar(dst, frames, l.canvasBar(c).withPointer(pointer, pointerOK))
+		}
+	}
 	if l.HasList && s.ListText != nil {
 		box := l.List
 		box.HeadingFace = title
@@ -2016,6 +2052,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 		direction := row.Kind == popupDirection
 		place := tipPlace{Box: box, PullRight: row.Tip != "", FlipBy: h + rr.Rect.Dy(), PushTopLeft: direction, Clip: direction}
 		return popupTip{Rect: placeTip(place, bounds), Lines: lines}, true
+	}
+	if tip, ok := canvasTipAt(bounds, body, s.Canvas, l, p); ok {
+		return tip, true
 	}
 	g := s.Grid
 	if g == nil {

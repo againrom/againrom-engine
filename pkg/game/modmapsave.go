@@ -42,6 +42,9 @@ type editorMod struct {
 	copyOnly         bool
 	selected         string
 	title            string
+	// flow is the campaign and the missions of the mod's admitted fork, for
+	// W's graph; nil when no fork was built.
+	flow *campaignFlow
 }
 
 // SetMod is the editor's one open route: it opens the mod at dir, a folder or

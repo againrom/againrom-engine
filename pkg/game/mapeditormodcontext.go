@@ -145,6 +145,7 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 	m.context = &editorContext{table: f.Table, tiles: terrain.LoadTileset(f.Archives.Containers)}
 	m.catalog = characterCatalog(f.Table)
 	m.fileOverrides = f.ModFileOverrides()
+	m.flow = &campaignFlow{campaign: f.Campaign.Value(), missions: tableMissions(f.Table)}
 	return issue
 }
 
@@ -155,6 +156,7 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	}
 	next := *x.mod
 	next.context, next.report, next.fileOverrides, next.refusal, next.checkLines = nil, ModDataReport{}, nil, "", nil
+	next.flow = nil
 	next.files = slices.Clone(x.mod.files)
 	tree, err := mod.OpenTree(next.dir)
 	if err != nil {

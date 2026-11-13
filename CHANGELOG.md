@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [ROM1] W saves a mod mission's map to `maps/<name>.alm`, or `.almx` for an extended map, with its pages and labels beside it, moves a mod in an older layout there on its next save, and edits the starting hero's class and sex; before, an extended map saved into a mod was named `.alm`.
+- [ROM1] The mod window (W) has a Campaign graph page: the start, every mission, every town and what its tavern, shop and school hand out, with arrows for what follows what. With a mod open it marks the missions and arrows the mod changes, and a click on a mission opens its map. The page only shows the campaign and changes nothing.
 
 ## 0.153.0
 

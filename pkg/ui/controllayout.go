@@ -9,7 +9,7 @@ import "image"
 type controlLayout []controlRow
 
 // controlRow is one control: its identity on its screen and its rectangle in
-// the 640x480 frame.
+// that screen's frame.
 type controlRow struct {
 	id   int
 	rect image.Rectangle

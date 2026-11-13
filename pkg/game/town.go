@@ -549,7 +549,7 @@ func (t *Town) Won(n int) (side bool, accepted bool) {
 }
 
 func (t *Town) advanceMain(completed int) {
-	if completed < t.main || !containsMission(t.camp.Main, completed) {
+	if !t.camp.advances(completed, t.main) {
 		return
 	}
 	previous := t.main

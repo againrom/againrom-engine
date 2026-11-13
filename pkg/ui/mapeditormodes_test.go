@@ -448,6 +448,14 @@ func modesAct(e *MapEditor, name string) string {
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
 			p.overview = modesOverview
 		}
+	case "ui:mod-graph":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			p.graph = modesGraph()
+		}
+	case "ui:graph-node":
+		if s, _, ok := e.objectSpec(); ok && s.Canvas != nil {
+			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).CanvasBoxes.rect(modesGraphFirst)))
+		}
 	case "ui:pick-move":
 		if s, _, ok := e.objectSpec(); ok && e.obj.cell >= 0 {
 			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
@@ -659,6 +667,9 @@ var modesPaths = []modesPath{
 	{"mod-manifest-conflicts", []string{"ui:mod-manifest", "package", "ui:mod-focus-conflicts", "ui:text-plain"}},
 	{"mod-manifest-load-after", []string{"ui:mod-manifest", "package", "ui:mod-focus-load-after", "ui:text-plain"}},
 	{"mod-open", []string{"package", "ui:mod-focus-open", "enter"}},
+	{"mod-graph", []string{"ui:mod-graph", "package", "package"}},
+	{"mod-graph-pan", []string{"ui:mod-graph", "package", "package", "pagedown"}},
+	{"mod-graph-node", []string{"ui:mod-graph", "package", "package", "ui:graph-node"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the
@@ -705,6 +716,20 @@ func modesGoldenRow(t *testing.T, host string, p modesPath) string {
 // TestMapEditorModesHoldTheModOverviewRows compares the rows of the paths
 // that open W on a mod's overview with the recorded table.
 func TestMapEditorModesHoldTheModOverviewRows(t *testing.T) {
+	modesHoldRows(t, "mod-overview")
+}
+
+// TestMapEditorModesHoldTheGraphRows compares the rows of the paths that
+// turn W to its campaign graph, move the graph and press a mission's node
+// with the recorded table.
+func TestMapEditorModesHoldTheGraphRows(t *testing.T) {
+	modesHoldRows(t, "mod-graph")
+}
+
+// modesHoldRows compares the workspace rows of the paths named with prefix
+// with the recorded table.
+func modesHoldRows(t *testing.T, prefix string) {
+	t.Helper()
 	raw, err := os.ReadFile(modesGoldenPath)
 	if err != nil {
 		t.Fatal(err)
@@ -714,7 +739,7 @@ func TestMapEditorModesHoldTheModOverviewRows(t *testing.T) {
 		recorded[strings.SplitN(l, " ", 2)[0]] = l
 	}
 	for _, p := range modesPaths {
-		if !strings.HasPrefix(p.name, "mod-overview") {
+		if !strings.HasPrefix(p.name, prefix) {
 			continue
 		}
 		if got := modesGoldenRow(t, "workspace", p); got != recorded["workspace/"+p.name] {

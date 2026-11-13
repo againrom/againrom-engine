@@ -1,6 +1,10 @@
 package ui
 
-import "fmt"
+import (
+	"fmt"
+	"image"
+	"slices"
+)
 
 type WorkspaceConfirmation struct{ Action, Message, Confirm string }
 
@@ -71,12 +75,70 @@ func (e *MapEditor) modOverview() (ModOverviewPage, bool) {
 	return p, len(p.Sections) > 0
 }
 
-// showModPage shows W's page n, 1 the overview: its rows from the top, the
+// W's pages, as modPage holds them.
+const (
+	modPageFields   = iota // the mod's fields and its missions
+	modPageOverview        // what the mod holds and what the game says of it
+	modPageGraph           // the campaign as a graph
+)
+
+// modPageWords is the word of each page's tab, in the order of the pages.
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab"}
+
+// modPages is W's pages in tab order: the mod's fields, the overview when
+// the host gives one, and the campaign graph when the host draws one.
+func (e *MapEditor) modPages() []int {
+	pages := []int{modPageFields}
+	if _, ok := e.modOverview(); ok {
+		pages = append(pages, modPageOverview)
+	}
+	if _, ok := e.modGraph(); ok {
+		pages = append(pages, modPageGraph)
+	}
+	return pages
+}
+
+// modTabs is W's tab captions and the tab of the page shown, none for a
+// window of one page. A page the host no longer gives falls back to the
+// mod's fields.
+func (e *MapEditor) modTabs() ([]string, int) {
+	pages := e.modPages()
+	if !slices.Contains(pages, e.modPage) {
+		e.modPage = modPageFields
+	}
+	if len(pages) < 2 {
+		return nil, 0
+	}
+	tabs := make([]string, len(pages))
+	for i, page := range pages {
+		tabs[i] = e.word(modPageWords[page])
+	}
+	return tabs, slices.Index(pages, e.modPage)
+}
+
+// turnModPage shows W's page of tab n; a negative n shows the page after
+// the one shown, the first after the last. It reports false for a window
+// of one page, and stays on the fields page while its field refuses.
+func (e *MapEditor) turnModPage(n int) bool {
+	pages := e.modPages()
+	if len(pages) < 2 {
+		return false
+	}
+	if n < 0 {
+		n = (slices.Index(pages, e.modPage) + 1) % len(pages)
+	}
+	if n < len(pages) && (e.modPage != modPageFields || e.applyModField() == nil) {
+		e.showModPage(pages[n])
+	}
+	return true
+}
+
+// showModPage shows W's page n: its rows and its graph from the top, the
 // keyboard on its first control.
 func (e *MapEditor) showModPage(n int) {
-	e.modPage, e.objectTop = n, 0
+	e.modPage, e.objectTop, e.graphAt = n, 0, image.Point{}
 	e.obj.focus = 0
-	if n == 1 {
+	if n != modPageFields {
 		e.obj.focus = len(e.obj.fields)
 	}
 }
@@ -85,10 +147,10 @@ func (e *MapEditor) showModPage(n int) {
 // says so, else the mod's fields.
 func (e *MapEditor) openModPage() {
 	if p, ok := e.modOverview(); ok && p.First {
-		e.showModPage(1)
+		e.showModPage(modPageOverview)
 		return
 	}
-	e.modPage = 0
+	e.modPage = modPageFields
 }
 
 func (e *MapEditor) workspace() (InspectionWorkspace, bool) {
