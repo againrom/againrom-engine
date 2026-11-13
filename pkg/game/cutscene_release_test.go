@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/devicefake"
 	"bytes"
 	"encoding/binary"
 	"io"
@@ -70,23 +71,23 @@ func testSoundOptionsWitnessConsumer(t *testing.T) {
 }
 
 type delayedSpeechPositionPlayer struct {
-	*deliveryWitnessPlayer
+	*devicefake.Player
 	pending int
 }
 
 func (p *delayedSpeechPositionPlayer) Pause() {
-	p.deliveryWitnessPlayer.Pause()
+	p.Player.Pause()
 	p.pending = 4
 }
 
 func (p *delayedSpeechPositionPlayer) Position() time.Duration {
-	if !p.playing && p.closes == 0 && p.pending > 0 {
+	if !p.Playing && p.Closes == 0 && p.pending > 0 {
 		p.pending--
 		if p.pending == 0 {
-			p.position += time.Millisecond
+			p.At += time.Millisecond
 		}
 	}
-	return p.position
+	return p.At
 }
 
 func (p *delayedSpeechPositionPlayer) DeviceGain() float64 { return 0 }
@@ -109,7 +110,7 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 		if _, err := reader.Seek(0, io.SeekStart); err != nil {
 			t.Fatal(err)
 		}
-		player := &delayedSpeechPositionPlayer{deliveryWitnessPlayer: &deliveryWitnessPlayer{reader: reader, position: 17 * time.Millisecond}}
+		player := &delayedSpeechPositionPlayer{Player: &devicefake.Player{Reader: reader, At: 17 * time.Millisecond}}
 		players = append(players, player)
 		raws = append(raws, raw)
 		return player, nil
@@ -131,8 +132,8 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 	}
 	roomPCM := roomTablePCM(t, f)
 	for i, player := range players {
-		rewound := player.seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
-		if player.closes != 1 || player.playing || rewound {
+		rewound := player.Seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
+		if player.Closes != 1 || player.Playing || rewound {
 			t.Fatal("delayed cache control lost close-once or no-rewind semantics", player)
 		}
 	}
@@ -141,7 +142,7 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 
 func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
-	var players []*deliveryWitnessPlayer
+	var players []*devicefake.Player
 	var raws [][]byte
 	pcmBuffers := 0
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
@@ -163,7 +164,7 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 			t.Fatal(err)
 		}
 		pcmBuffers++
-		player := &deliveryWitnessPlayer{reader: reader, position: 17 * time.Millisecond}
+		player := &devicefake.Player{Reader: reader, At: 17 * time.Millisecond}
 		players = append(players, player)
 		raws = append(raws, raw)
 		return player, nil
@@ -195,8 +196,8 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 	t.Logf("%d response and %d room entry PCM buffers", 68, rooms)
 	roomPCM := roomTablePCM(t, f)
 	for i, player := range players {
-		rewound := player.seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
-		if player.closes != 1 || player.playing || rewound {
+		rewound := player.Seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
+		if player.Closes != 1 || player.Playing || rewound {
 			t.Fatal("controlled player survived, closed twice or rewound", player)
 		}
 	}

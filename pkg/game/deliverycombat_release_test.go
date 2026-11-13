@@ -227,8 +227,8 @@ func TestReleaseSharedAudioCombat(t *testing.T) {
 		t.Fatal("combat shutdown leaked retained buffers", state)
 	}
 	for i, p := range w.players {
-		if p.closes != 1 || p.playing {
-			t.Fatal(fmt.Sprintf("combat lower player %d: closes=%d playing=%v", i+1, p.closes, p.playing))
+		if p.Closes != 1 || p.Playing {
+			t.Fatal(fmt.Sprintf("combat lower player %d: closes=%d playing=%v", i+1, p.Closes, p.Playing))
 		}
 	}
 	w.receipt("combat-shutdown")

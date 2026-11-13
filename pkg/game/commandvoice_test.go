@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/devicefake"
 	"io"
 	"slices"
 	"strings"
@@ -17,7 +18,7 @@ import (
 
 func TestCommandVoiceObserverForwardsTypedAdmissionAndRefusal(t *testing.T) {
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
-		return &deliveryWitnessPlayer{reader: reader}, nil
+		return &devicefake.Player{Reader: reader}, nil
 	})
 	t.Cleanup(restore)
 	owner, err := ui.OpenSharedAudio(audio.Settings{Master: 100}, audio.Settings{Master: 100})

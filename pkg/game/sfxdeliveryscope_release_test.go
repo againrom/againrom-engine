@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/devicefake"
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
@@ -65,7 +66,7 @@ func deliveryScopePresent(snapshot audio.DeliverySnapshot, scope audio.ScopeID) 
 	return false
 }
 
-func deliveryScopeProbe(w *deliveryWitness) (audio.DeliveryReceipt, *deliveryWitnessPlayer, int64) {
+func deliveryScopeProbe(w *deliveryWitness) (audio.DeliveryReceipt, *devicefake.Player, int64) {
 	w.t.Helper()
 	before := w.owner.BackendState().Created
 	w.front.live.view.PlayUISound(ui.UISoundOptionsTest)
@@ -78,7 +79,7 @@ func deliveryScopeProbe(w *deliveryWitness) (audio.DeliveryReceipt, *deliveryWit
 				w.t.Fatal("instrument: Viewer fixed producer did not create a scoped retained buffer", r, state)
 			}
 			p := w.players[state.Created-1]
-			p.position = 17 * time.Millisecond
+			p.At = 17 * time.Millisecond
 			for _, ch := range w.owner.Service.Snapshot().Channels {
 				if ch.Voice == r.Voice && ch.Playing && ch.Phase > 0 {
 					return r, p, ch.Phase
@@ -91,10 +92,10 @@ func deliveryScopeProbe(w *deliveryWitness) (audio.DeliveryReceipt, *deliveryWit
 	return audio.DeliveryReceipt{}, nil, 0
 }
 
-func deliveryScopeAlive(w *deliveryWitness, receipt audio.DeliveryReceipt, player *deliveryWitnessPlayer, phase int64) {
+func deliveryScopeAlive(w *deliveryWitness, receipt audio.DeliveryReceipt, player *devicefake.Player, phase int64) {
 	w.t.Helper()
 	snapshot := w.owner.Service.Snapshot()
-	if !deliveryScopePresent(snapshot, receipt.Scope) || !player.playing || player.closes != 0 || player.position != 17*time.Millisecond {
+	if !deliveryScopePresent(snapshot, receipt.Scope) || !player.Playing || player.Closes != 0 || player.At != 17*time.Millisecond {
 		w.t.Fatal("outgoing scope or lowest retained handle changed before commit", receipt, snapshot.Scopes, player)
 	}
 	for _, ch := range snapshot.Channels {
@@ -142,7 +143,7 @@ func deliveryScopeShutdown(w *deliveryWitness) {
 		w.t.Fatal("App shutdown left owned buffers or scopes alive", state)
 	}
 	for i, player := range w.players {
-		if player.closes != 1 || player.playing {
+		if player.Closes != 1 || player.Playing {
 			w.t.Fatal("App shutdown did not close each lowest retained handle exactly once", i, player)
 		}
 	}
@@ -162,7 +163,7 @@ func deliveryScopeShutdown(w *deliveryWitness) {
 			Seeks    int
 			Position time.Duration
 			Gain     float64
-		}{i + 1, player.playing, player.closes, player.seeks, player.position, player.gain})
+		}{i + 1, player.Playing, player.Closes, player.Seeks, player.At, player.Gain})
 	}
 	deliveryScopeJSON(w, "terminal-lowest-handles", handles)
 	w.receipt("shutdown")
@@ -203,7 +204,7 @@ func deliveryScopeControlled(w *deliveryWitness) {
 	admitted := w.owner.Service.Snapshot().Counters.Admitted
 	w.owner.SetSettings(audio.EffectsChannel, audio.Settings{Master: 37, Muted: true})
 	w.owner.SetSettings(audio.SpeechChannel, audio.Settings{Master: 61})
-	if w.owner.Service.Snapshot().Counters.Admitted != admitted || oldPlayer.gain != 0 {
+	if w.owner.Service.Snapshot().Counters.Admitted != admitted || oldPlayer.Gain != 0 {
 		w.t.Fatal("settings re-admitted a buffer or missed the lowest retained gain")
 	}
 	deliveryScopeAlive(w, oldReceipt, oldPlayer, oldPhase)
@@ -283,7 +284,7 @@ func deliveryScopeControlled(w *deliveryWitness) {
 	deliveryScopeEqual(w.t, baseline, afterFailure)
 	f.ConfigureSaveSeams(app, store, OriginalStore{}, nil)
 	deliveryScopeChoose(w, "Lifecycle")
-	if app.Screen() != ui.ScreenMap || f.live == oldLive || oldPlayer.closes != 1 || oldPlayer.playing || deliveryScopePresent(w.owner.Service.Snapshot(), oldReceipt.Scope) {
+	if app.Screen() != ui.ScreenMap || f.live == oldLive || oldPlayer.Closes != 1 || oldPlayer.Playing || deliveryScopePresent(w.owner.Service.Snapshot(), oldReceipt.Scope) {
 		w.t.Fatal("successful ordinary LOAD did not commit and dispose its outgoing scope", app.Screen(), app.HeadlessMessage(), oldReceipt.Scope, oldPlayer)
 	}
 	w.finishOneShots()
@@ -381,7 +382,7 @@ func deliveryTownEqual(w *deliveryWitness, before, after deliveryTownCut) {
 	}
 }
 
-func deliveryTownVoice(w *deliveryWitness) (audio.Voice, uint64, *deliveryWitnessPlayer, int64) {
+func deliveryTownVoice(w *deliveryWitness) (audio.Voice, uint64, *devicefake.Player, int64) {
 	w.t.Helper()
 	voice := w.front.townUI.speech.voice
 	if voice == nil || !voice.Playing() {
@@ -400,7 +401,7 @@ func deliveryTownVoice(w *deliveryWitness) (audio.Voice, uint64, *deliveryWitnes
 		w.t.Fatal("instrument: lowest speech buffer missing")
 	}
 	player := w.players[buffer-1]
-	player.position = 17 * time.Millisecond
+	player.At = 17 * time.Millisecond
 	phase := voice.(interface{ Phase() int64 }).Phase()
 	if phase <= 0 {
 		w.t.Fatal("instrument: speech phase did not advance")
@@ -408,11 +409,11 @@ func deliveryTownVoice(w *deliveryWitness) (audio.Voice, uint64, *deliveryWitnes
 	return voice, buffer, player, phase
 }
 
-func deliveryTownRetained(w *deliveryWitness, voice audio.Voice, player *deliveryWitnessPlayer, phase int64, paused bool) {
+func deliveryTownRetained(w *deliveryWitness, voice audio.Voice, player *devicefake.Player, phase int64, paused bool) {
 	w.t.Helper()
 	s := w.front.townUI
 	if s.speech.voice != voice || s.speech.paused != paused || voice.Playing() == paused ||
-		voice.(interface{ Phase() int64 }).Phase() != phase || player.closes != 0 || player.seeks != 0 || player.position != 17*time.Millisecond {
+		voice.(interface{ Phase() int64 }).Phase() != phase || player.Closes != 0 || player.Seeks != 0 || player.At != 17*time.Millisecond {
 		w.t.Fatal("temporary inactivity replaced, closed, rewound or lost the speech handle", s.speech, player, phase, paused)
 	}
 	id := voice.(interface{ ID() audio.VoiceID }).ID()
@@ -437,10 +438,10 @@ func deliveryTownRetained(w *deliveryWitness, voice audio.Voice, player *deliver
 	w.t.Fatal("temporary inactivity destroyed the current sample", id)
 }
 
-func deliveryTownDestroyed(w *deliveryWitness, voice audio.Voice, buffer uint64, player *deliveryWitnessPlayer) {
+func deliveryTownDestroyed(w *deliveryWitness, voice audio.Voice, buffer uint64, player *devicefake.Player) {
 	w.t.Helper()
 	id := voice.(interface{ ID() audio.VoiceID }).ID()
-	if player.closes != 1 || player.playing || voice.Playing() || voice.(interface{ Phase() int64 }).Phase() != 0 {
+	if player.Closes != 1 || player.Playing || voice.Playing() || voice.(interface{ Phase() int64 }).Phase() != 0 {
 		w.t.Fatal("terminal speech boundary did not close its handle once", id, buffer, player)
 	}
 	for _, sample := range w.owner.Service.Snapshot().Samples {
@@ -493,9 +494,9 @@ func deliveryTownPaused(w *deliveryWitness) {
 	deliveryTownEqual(w, before, resumed)
 	deliveryTownActions(w, buffer, sequence, []string{"stop", "play"})
 	w.receipt("after-focus-return")
-	player.playing = false
+	player.Playing = false
 	w.check(w.app.HeadlessStep())
-	if s.speech.voice != nil || player.closes != 1 || s.speech.paused {
+	if s.speech.voice != nil || player.Closes != 1 || s.speech.paused {
 		w.t.Fatal("natural line completion did not destroy its retained buffer once")
 	}
 	deliveryTownDestroyed(w, voice, buffer, player)
@@ -503,7 +504,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 	deliveryTownEqual(w, before, completed)
 	w.check(w.app.HeadlessFocus(false))
 	w.check(w.app.HeadlessFocus(true))
-	if s.speech.voice != nil || player.closes != 1 {
+	if s.speech.voice != nil || player.Closes != 1 {
 		w.t.Fatal("completed line replayed on focus return")
 	}
 	deliveryTownActions(w, buffer, sequence, []string{"stop", "play", "destroy"})
@@ -515,7 +516,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 	oldVoice, oldBuffer, oldPlayer, _ := deliveryTownVoice(w)
 	oldPart := s.dialogue.displayPart
 	w.check(w.app.HeadlessActivate("dialogue"))
-	if oldPlayer.closes != 1 || oldVoice.Playing() || s.room != roomTalk || s.dialogue.displayPart == oldPart || s.speech.voice == nil || s.speech.voice == oldVoice {
+	if oldPlayer.Closes != 1 || oldVoice.Playing() || s.room != roomTalk || s.dialogue.displayPart == oldPart || s.speech.voice == nil || s.speech.voice == oldVoice {
 		w.t.Fatal("App line replacement did not destroy old voice and start the displayed part")
 	}
 	deliveryTownDestroyed(w, oldVoice, oldBuffer, oldPlayer)
@@ -525,7 +526,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 	for tries := 0; s.room == roomTalk && tries < 64; tries++ {
 		w.check(w.app.HeadlessActivate("dialogue"))
 	}
-	if s.room == roomTalk || lastPlayer.closes != 1 || lastVoice.Playing() || s.speech.voice != nil {
+	if s.room == roomTalk || lastPlayer.Closes != 1 || lastVoice.Playing() || s.speech.voice != nil {
 		w.t.Fatal("App dialogue completion retained the outgoing line")
 	}
 	deliveryTownDestroyed(w, lastVoice, lastBuffer, lastPlayer)
@@ -568,9 +569,9 @@ func deliveryTownPaused(w *deliveryWitness) {
 	deliveryTownEqual(w, responseBefore, returned)
 	deliveryTownActions(w, responseBuffer, sequence, []string{"stop", "play"})
 	w.receipt("after-menu-return")
-	responsePlayer.playing = false
+	responsePlayer.Playing = false
 	w.check(w.app.HeadlessStep())
-	if responsePlayer.closes != 1 || s.speech.voice == nil || s.speech.voice == response || len(s.speech.pending) != 0 {
+	if responsePlayer.Closes != 1 || s.speech.voice == nil || s.speech.voice == response || len(s.speech.pending) != 0 {
 		w.t.Fatal("resumed response did not complete into exactly its pending line")
 	}
 	deliveryTownDestroyed(w, response, responseBuffer, responsePlayer)
@@ -586,7 +587,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 	w.check(w.app.HeadlessFocus(false))
 	deliveryTownRetained(w, roomVoice, roomPlayer, roomPhase, true)
 	w.check(w.app.HeadlessKey("escape"))
-	if s.room != roomSquare || roomPlayer.closes != 1 || roomVoice.Playing() || s.speech.voice != nil || len(s.speech.pending) != 0 {
+	if s.room != roomSquare || roomPlayer.Closes != 1 || roomVoice.Playing() || s.speech.voice != nil || len(s.speech.pending) != 0 {
 		w.t.Fatal("App room destruction retained paused speech or its queue")
 	}
 	deliveryTownDestroyed(w, roomVoice, roomBuffer, roomPlayer)

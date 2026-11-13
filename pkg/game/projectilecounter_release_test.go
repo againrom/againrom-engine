@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/devicefake"
 	"encoding/json"
 	"io"
 	"os"
@@ -16,7 +17,7 @@ import (
 func counterSilentDevice(t *testing.T) {
 	t.Helper()
 	t.Cleanup(ui.SetDeliveryPlayerFactory(func(r io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
-		return &deliveryWitnessPlayer{reader: r}, nil
+		return &devicefake.Player{Reader: r}, nil
 	}))
 }
 

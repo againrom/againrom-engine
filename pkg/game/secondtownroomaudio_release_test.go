@@ -1,7 +1,6 @@
 package game
 
 import (
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -10,99 +9,29 @@ import (
 	"againrom/pkg/ui"
 )
 
-// townAudioDevice is a delivery device that consumes each buffer at the
-// device rate of the test's clock, so voices finish as they would on a
-// sound card.
-type townAudioDevice struct {
-	reader  io.ReadSeeker
-	now     func() time.Time
-	playing bool
-	last    time.Time
-	pos     int64
-	vol     float64
-	closed  bool
-}
-
-func (p *townAudioDevice) pump() {
-	if !p.playing || p.closed {
-		return
-	}
-	now := p.now()
-	if now.Before(p.last) {
-		p.last = now
-	}
-	want := int64(now.Sub(p.last)) * int64(audio.DeviceRate) / int64(time.Second) * 4
-	p.last = now
-	buf := make([]byte, 4096)
-	for want > 0 {
-		n := min(want, int64(len(buf)))
-		k, err := p.reader.Read(buf[:n])
-		p.pos += int64(k)
-		want -= int64(k)
-		if err == io.EOF || k == 0 {
-			p.playing = false
-			return
-		}
-	}
-}
-
-func (p *townAudioDevice) Play() {
-	if !p.closed && !p.playing {
-		p.playing, p.last = true, p.now()
-	}
-}
-func (p *townAudioDevice) IsPlaying() bool { p.pump(); return p.playing && !p.closed }
-func (p *townAudioDevice) Pause()          { p.pump(); p.playing = false }
-func (p *townAudioDevice) Seek(d time.Duration) error {
-	b := int64(d) * int64(audio.DeviceRate) / int64(time.Second) * 4
-	_, err := p.reader.Seek(b, io.SeekStart)
-	p.pos = b
-	return err
-}
-func (p *townAudioDevice) Position() time.Duration {
-	return time.Duration(p.pos / 4 * int64(time.Second) / int64(audio.DeviceRate))
-}
-func (p *townAudioDevice) SetVolume(v float64) { p.vol = v }
-func (p *townAudioDevice) Volume() float64     { return p.vol }
-func (p *townAudioDevice) Close() error        { p.closed = true; return nil }
-
 // townAudioRun is one session over the installed second game: the shared
 // delivery route with townAudioDevice, the receipts counted by phase.
 type townAudioRun struct {
-	t       *testing.T
-	f       *FrontEnd
-	app     *ui.App
-	town    *townScreen
-	now     time.Time
-	devices []*townAudioDevice
-	seen    map[uint64]bool
-	phase   string
-	counts  map[string]map[audio.DeliveryReason]int
+	*deliveryRun
+	town   *townScreen
+	seen   map[uint64]bool
+	phase  string
+	counts map[string]map[audio.DeliveryReason]int
 }
 
 func newTownAudioRun(t *testing.T) *townAudioRun {
 	t.Helper()
-	r := &townAudioRun{t: t, now: time.Unix(100, 0), seen: map[uint64]bool{}, counts: map[string]map[audio.DeliveryReason]int{}}
-	t.Cleanup(ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
-		d := &townAudioDevice{reader: reader, now: func() time.Time { return r.now }, vol: 1}
-		r.devices = append(r.devices, d)
-		return d, nil
-	}))
-	return r
+	return &townAudioRun{deliveryRun: newDeliveryRun(t, true, true), seen: map[uint64]bool{}, counts: map[string]map[audio.DeliveryReason]int{}}
 }
 
 // use makes the run's clock the front end's and binds its town screen.
 func (r *townAudioRun) use(f *FrontEnd, app *ui.App, s *townScreen, now *time.Time) {
-	r.f, r.app, r.town = f, app, s
-	if now != nil {
-		r.now = *now
-	}
-	f.TownAnimationNow = func() time.Time { return r.now }
-	r.t.Cleanup(app.StopAudio)
+	r.town = s
+	r.deliveryRun.use(f, app, now)
 }
 
 func (r *townAudioRun) collect() {
-	owner := ui.DeliveryOwner(r.f.SoundPlayer)
+	owner := ui.DeliveryOwner(r.front.SoundPlayer)
 	if owner == nil {
 		r.t.Fatal("no delivery owner")
 	}
@@ -134,8 +63,8 @@ func (r *townAudioRun) step(n int) {
 				r.town.AdvanceTownSquareAnimation()
 			}
 		}
-		for _, d := range r.devices {
-			d.pump()
+		for _, d := range r.players {
+			d.Pump()
 		}
 		r.collect()
 	}

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,67 +23,31 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type deliveryWitnessPlayer struct {
-	reader        io.ReadSeeker
-	playing       bool
-	position      time.Duration
-	gain          float64
-	closes, seeks int
-}
-
-func (p *deliveryWitnessPlayer) Play()           { p.playing = true }
-func (p *deliveryWitnessPlayer) IsPlaying() bool { return p.playing }
-func (p *deliveryWitnessPlayer) Pause()          { p.playing = false }
-func (p *deliveryWitnessPlayer) Seek(at time.Duration) error {
-	p.position = at
-	p.seeks++
-	_, err := p.reader.Seek(int64(at)*audio.DeviceRate*4/int64(time.Second), io.SeekStart)
-	return err
-}
-func (p *deliveryWitnessPlayer) Position() time.Duration { return p.position }
-func (p *deliveryWitnessPlayer) SetVolume(gain float64)  { p.gain = gain }
-func (p *deliveryWitnessPlayer) Volume() float64         { return p.gain }
-func (p *deliveryWitnessPlayer) Close() error            { p.closes++; p.playing = false; return nil }
-
 type deliveryWitness struct {
-	t            *testing.T
-	front        *FrontEnd
-	app          *ui.App
+	*deliveryRun
 	owner        *ui.SharedAudio
 	dir          string
-	players      []*deliveryWitnessPlayer
-	restore      func()
-	now          time.Time
 	holdOneShots bool
 }
 
 func newDeliveryWitness(t *testing.T, dir string, controlled bool) *deliveryWitness {
 	t.Helper()
-	w := &deliveryWitness{t: t, dir: dir, now: time.Unix(100, 0)}
-	if controlled {
-		w.restore = ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
-			p := &deliveryWitnessPlayer{reader: reader}
-			w.players = append(w.players, p)
-			return p, nil
-		})
-		t.Cleanup(w.restore)
-	}
-	w.front = releaseFront(t)
-	w.front.Options = OptionsStore{}
-	w.front.SetDeterministicFrames(true)
-	w.front.TownAnimationNow = func() time.Time { return w.now }
-	w.front.TownAnimationRandom = func(int) int { return 0 }
-	w.front.TownAmbientRandom = func(int) int { return 0 }
-	w.front.TavernRandom = func(int) int { return 0 }
-	w.front.SchoolRandom = func(int) int { return 0 }
-	w.owner = ui.DeliveryOwner(w.front.SoundPlayer)
-	if w.owner == nil || w.owner != ui.DeliveryOwner(w.front.speech.player) {
+	w := &deliveryWitness{deliveryRun: newDeliveryRun(t, controlled, false), dir: dir}
+	front := releaseFront(t)
+	front.Options = OptionsStore{}
+	front.SetDeterministicFrames(true)
+	front.TownAnimationRandom = func(int) int { return 0 }
+	front.TownAmbientRandom = func(int) int { return 0 }
+	front.TavernRandom = func(int) int { return 0 }
+	front.SchoolRandom = func(int) int { return 0 }
+	w.owner = ui.DeliveryOwner(front.SoundPlayer)
+	if w.owner == nil || w.owner != ui.DeliveryOwner(front.speech.player) {
 		t.Fatal("instrument: production has no one effects/speech owner")
 	}
-	w.app = w.front.App("shared audio delivery")
-	w.app.SetCutscenes(nil)
-	w.app.Layout(640, 480)
-	t.Cleanup(w.app.StopAudio)
+	app := front.App("shared audio delivery")
+	app.SetCutscenes(nil)
+	app.Layout(640, 480)
+	w.use(front, app, nil)
 	return w
 }
 func (w *deliveryWitness) check(err error) {
@@ -99,7 +62,7 @@ func (w *deliveryWitness) finishOneShots() {
 	}
 	for _, b := range w.owner.BackendState().Buffers {
 		if !b.Repeat && int(b.ID) <= len(w.players) {
-			w.players[b.ID-1].playing = false
+			w.players[b.ID-1].Playing = false
 		}
 	}
 }
@@ -447,8 +410,8 @@ func (w *deliveryWitness) admissionAndFrozenWorld() {
 		w.t.Fatalf("mixed channel count=%d", occupied)
 	}
 	w.independentStreams()
-	w.players[firstBuffer].position = 17 * time.Millisecond
-	priorSeek := w.players[firstBuffer].seeks
+	w.players[firstBuffer].At = 17 * time.Millisecond
+	priorSeek := w.players[firstBuffer].Seeks
 	sample, ok := f.SoundBank.Sample(100)
 	if !ok {
 		w.t.Fatal("instrument: missing fixed UI high-priority sample")
@@ -457,7 +420,7 @@ func (w *deliveryWitness) admissionAndFrozenWorld() {
 	if high == nil || voices[0].Playing() || !voices[1].Playing() {
 		w.t.Fatal("strict lower priority did not evict first tied minimum")
 	}
-	if p := w.players[firstBuffer]; p.position != 0 || p.seeks != priorSeek+1 || p.closes != 0 {
+	if p := w.players[firstBuffer]; p.At != 0 || p.Seeks != priorSeek+1 || p.Closes != 0 {
 		w.t.Fatal("installed eviction did not stop/rewind/retain first minimum", p)
 	}
 	if v := audio.Dispatch(scope.Player(audio.EffectsChannel), sample, audio.FixedRequest("fixed-interface", "registry:100", audio.EffectsChannel, 220, false, centre)); v == nil {
@@ -626,8 +589,8 @@ func (w *deliveryWitness) installedLoopRetention() {
 		w.t.Fatal("instrument: no installed river loop for phase control")
 	}
 	p := w.players[id-1]
-	p.position = 17 * time.Millisecond
-	seeks := p.seeks
+	p.At = 17 * time.Millisecond
+	seeks := p.Seeks
 	st, _, ok := ui.SoundDeviceState(w.front.SoundPlayer)
 	if !ok {
 		w.t.Fatal("instrument: shared settings seam missing")
@@ -648,7 +611,7 @@ func (w *deliveryWitness) installedLoopRetention() {
 	for _, r := range next.Receipts {
 		moved = moved || r.Buffer == id && r.Action == "move"
 	}
-	if !found || !moved || next.Created != state.Created || p.seeks != seeks || p.closes != 0 {
+	if !found || !moved || next.Created != state.Created || p.Seeks != seeks || p.Closes != 0 {
 		w.t.Fatal("installed loop move/settings replaced, rewound or destroyed buffer", next)
 	}
 	w.owner.SetSettings(audio.EffectsChannel, st)

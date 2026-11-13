@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/devicefake"
 	"bytes"
 	"encoding/binary"
 	"io"
@@ -16,7 +17,7 @@ import (
 func TestReleaseTownSpeechResponses(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	var delivered [][]byte
-	var players []*deliveryWitnessPlayer
+	var players []*devicefake.Player
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
 		size, err := reader.Seek(0, io.SeekEnd)
 		if err != nil || size <= 0 || size > 64<<20 {
@@ -33,7 +34,7 @@ func TestReleaseTownSpeechResponses(t *testing.T) {
 			t.Fatal(err)
 		}
 		delivered = append(delivered, raw)
-		player := &deliveryWitnessPlayer{reader: reader, position: 17 * time.Millisecond}
+		player := &devicefake.Player{Reader: reader, At: 17 * time.Millisecond}
 		players = append(players, player)
 		return player, nil
 	})
@@ -94,7 +95,7 @@ func TestReleaseTownSpeechResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, player := range players {
-		if player.closes != 1 || player.playing {
+		if player.Closes != 1 || player.Playing {
 			t.Fatal("response backend player survived shutdown or closed twice", player)
 		}
 	}
