@@ -73,6 +73,28 @@ func cellBuildingBits(value byte, blocking bool) byte {
 	return value & 0xfa
 }
 
+// footprintBit is cell key's bit of b's footprint words: row-major over the
+// rectangle from b's origin.
+func footprintBit(b Structure, key uint16) uint32 {
+	return uint32(1) << (uint32((int32(key>>8)-b.Row)*int32(b.Width)+int32(key&255)-b.Col) & 31)
+}
+
+// BuildingCellPlanes is the Static and Dynamic byte of cell key where a
+// structure's footprint holds the cell, for a World that keeps no cell
+// planes: both bytes carry bits 0 and 2 where the structure's Blocking word
+// closes the cell and neither where it opens it (R2-ENGINE-758). held is
+// false, and the bytes are returned as given, where no structure holds key
+// or the World keeps planes, which hold the bits already.
+func (w *World) BuildingCellPlanes(key uint16, static, dynamic byte) (s, d byte, held bool) {
+	i, ok := w.structureSlots[key]
+	if !ok || i < 0 || w.savedCellPlanes != nil {
+		return static, dynamic, false
+	}
+	b := w.structures[i]
+	blocking := b.Blocking&footprintBit(b, key) != 0
+	return cellBuildingBits(static, blocking), cellBuildingBits(dynamic, blocking), true
+}
+
 // cellPlaneParts are a cell's P2 inputs beside its terrain byte, each read
 // from its own source. dynamic is the one Dynamic recipe; static is it without
 // the occupied layers.

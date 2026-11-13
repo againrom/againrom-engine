@@ -237,6 +237,45 @@ func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
 	}
 }
 
+// A mission document's key list takes both plane bytes of a cell whose entry
+// names a Building from the World's answer; a unit's cell, a cell with no
+// entry and the input document keep their bytes, and so does every cell
+// when the World gives no answer.
+func TestSecondMissionKeyListTakesABuildingCellsPlanesFromTheWorld(t *testing.T) {
+	doc := documentDataFixture(t)
+	if doc.World == nil {
+		t.Fatal("the fixture has no world half")
+	}
+	blocks := []BlockRecord{{Cell: 0x0901, Dyn: 0x21, Static: 0x21}, {Cell: 0x0902, Dyn: 0x60, Static: 0x20}, {Cell: 0x0903, Dyn: 0x1f, Static: 0x1f}}
+	doc.World.Blocks = slices.Clone(blocks)
+	doc.World.Cells = []DocumentCellData{{Cell: 0x0901, Building: 0x51000020}, {Cell: 0x0902, GroundActor: 0x51000010}}
+	doc.World.CellRest = nil
+	asked := 0
+	planes := func(cell uint16, static, dynamic byte) (byte, byte, bool) {
+		asked++
+		if cell != 0x0901 || static != 0x21 || dynamic != 0x21 {
+			t.Errorf("the World is asked for cell %#04x with bytes %#02x and %#02x", cell, static, dynamic)
+		}
+		return 0x25, 0x25, true
+	}
+	out, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{BuildingPlanes: planes})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := slices.Clone(blocks)
+	want[0].Dyn, want[0].Static = 0x25, 0x25
+	if !slices.Equal(out.World.Blocks, want) || asked != 1 {
+		t.Errorf("key list %v after %d questions, want %v after one", out.World.Blocks, asked, want)
+	}
+	if !slices.Equal(doc.World.Blocks, blocks) {
+		t.Error("the input document changed")
+	}
+	plain, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
+	if err != nil || !slices.Equal(plain.World.Blocks, blocks) {
+		t.Errorf("key list %v without the World's answer, want %v: %v", plain.World.Blocks, blocks, err)
+	}
+}
+
 // A mission document's session matrix holds bit 0x10 of M[owner][viewer]
 // for each pair of the document's Player slots in which the World's fog
 // lets viewer see by owner's bodies (R2-ENGINE-826); a slot no Player holds

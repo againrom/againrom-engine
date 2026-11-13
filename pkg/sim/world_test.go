@@ -149,6 +149,7 @@ func init() {
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
 	worldMethods = append(worldMethods, "EntityAlive")
+	worldMethods = append(worldMethods, "BuildingCellPlanes")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")
@@ -161,6 +162,7 @@ func init() {
 var worldArgReaders = map[string][]reflect.Value{
 	"ROM2ScenarioValue":    {reflect.ValueOf(int32(753))},
 	"CellPlanes":           {reflect.ValueOf(CellPlaneStart{Base: &SavedCellPlanes{}, Overlay: []byte{1}})},
+	"BuildingCellPlanes":   {reflect.ValueOf(uint16(0)), reflect.ValueOf(byte(0x21)), reflect.ValueOf(byte(0x21))},
 	"ActorOrderProgress":   {reflect.ValueOf(EntityID(7))},
 	"OrderSackPickup":      {reflect.ValueOf(EntityID(7)), reflect.ValueOf(CellPoint{X: 4, Y: 5})},
 	"OrderSackCollect":     {reflect.ValueOf(EntityID(7))},

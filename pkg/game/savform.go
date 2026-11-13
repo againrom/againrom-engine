@@ -109,7 +109,7 @@ func secondFormKeeps(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error
 	if err := w.UnmarshalBinary(s.World); err != nil {
 		return sav.ProfileKeeps{}, err
 	}
-	keeps := sav.ProfileKeeps{Sees: w.RevealsOwner}
+	keeps := sav.ProfileKeeps{Sees: w.RevealsOwner, BuildingPlanes: w.BuildingCellPlanes}
 	casters, err := virtualCasterRecords(&w, doc)
 	if err != nil {
 		return sav.ProfileKeeps{}, err

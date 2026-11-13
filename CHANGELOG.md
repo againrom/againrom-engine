@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A creature with a strong damage row now hits as hard as in the original, and a mage who has to turn toward his target pays the mana for his spell once he faces it, not at the moment he is ordered to cast.
 - [ROM2] A game saved in Againrom and then loaded in the original keeps characters and creatures blocking one another right after the load.
 - [ROM2] In the Druids' inn the patron who becomes a hired orc shows as the orc from the start, not as a two-handed swordsman.
+- [ROM2] A game saved in Againrom and then loaded in the original marks the ground under buildings the way the original's own saves do.
 
 ### For map makers and modders
 

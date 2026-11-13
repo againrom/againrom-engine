@@ -323,8 +323,7 @@ func (w *World) savedCellCost(c SavedActorCell) uint8 {
 	cost := payload[0]
 	if buildingKey := binary.LittleEndian.Uint32(payload[12:]); buildingKey != 0 {
 		b, s, _ := w.savedCellBuilding(buildingKey)
-		bit := uint32((int32(c.Cell>>8)-b.Row)*int32(b.Width)+int32(c.Cell&255)-b.Col) & 31
-		if s.Blocking&(uint32(1)<<bit) == 0 {
+		if s.Blocking&footprintBit(b, c.Cell) == 0 {
 			cost = p.Costs[5]
 		}
 	}
@@ -352,8 +351,7 @@ func (w *World) recomputeSavedCell(key uint16) string {
 	parts := cellPlaneParts{ground: cellSlotTaken(c.Ground), air: cellSlotTaken(c.Air), keep: p.Static[key] & 0x10}
 	if buildingKey := binary.LittleEndian.Uint32(c.Payload[12:]); buildingKey != 0 {
 		b, s, _ := w.savedCellBuilding(buildingKey)
-		bit := uint32((int32(key>>8)-b.Row)*int32(b.Width)+int32(key&255)-b.Col) & 31
-		parts.footprint, parts.blocking = true, s.Blocking&(uint32(1)<<bit) != 0
+		parts.footprint, parts.blocking = true, s.Blocking&footprintBit(b, key) != 0
 	}
 	layer, arm := areaBlockingLayer()
 	parts.area = binary.LittleEndian.Uint32(c.Payload[20+4*layer:]) != 0 || w.nativeAreaLayerPresent(key, arm)

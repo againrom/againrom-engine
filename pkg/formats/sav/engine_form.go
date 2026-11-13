@@ -85,6 +85,11 @@ type ProfileKeeps struct {
 	Sees func(viewer, owner uint32) bool
 	// Extra is the records of the profile's list after the Sacks, in order.
 	Extra []DocumentRecordData
+	// BuildingPlanes gives the plane-one and plane-two byte of a cell whose
+	// entry names a Building, from the bytes the engine's document holds;
+	// held is false where the World has no building there. nil keeps the
+	// document's bytes.
+	BuildingPlanes func(cell uint16, static, dynamic byte) (s, d byte, held bool)
 }
 
 // retype writes each record keeps names as the Pointer class with its word.
@@ -268,7 +273,7 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 		return DocumentData{}, false, err
 	}
 	if out.World != nil {
-		p.worldForm(out.World)
+		p.worldForm(out.World, keeps)
 		p.form.sight(&out, keeps.Sees)
 		for _, r := range keeps.Extra {
 			out.Objects = append(out.Objects, r)
@@ -357,7 +362,7 @@ func dropClassRecords(data *DocumentData, classes []string) {
 // past the hundred and no stance outside 50x50: the profile's entries get
 // zero there but what its terrain rule writes, and its cells no first-game
 // trigger tail (DIV-4350).
-func (p *Profile) worldForm(w *DocumentWorldData) {
+func (p *Profile) worldForm(w *DocumentWorldData, keeps ProfileKeeps) {
 	for i := range w.Cells {
 		c := &w.Cells[i]
 		c.Operation, c.Power, c.SourceX, c.SourceY, c.TargetX, c.TargetY, c.Residue32 = 0, 0, 0, 0, 0, 0, 0
@@ -376,7 +381,7 @@ func (p *Profile) worldForm(w *DocumentWorldData) {
 	}
 	copy(w.Session.DiplomacyHeader[:], p.form.diplomacyHead)
 	if t := p.form.terrain; t != nil {
-		t.write(w, p.cellRest())
+		t.write(w, p.cellRest(), keeps.BuildingPlanes)
 	}
 }
 
@@ -410,8 +415,22 @@ func (f *documentForm) sight(data *DocumentData, sees func(viewer, owner uint32)
 
 // write lists the cells the rule keeps, stores each entry's own key and
 // footprint occupants and orders the entries by bucket. The order inside a
-// bucket is not claimed: the key falls inside it (DIV-4351).
-func (t *terrainForm) write(w *DocumentWorldData, rest int) {
+// bucket is not claimed: the key falls inside it (DIV-4351). A cell whose
+// entry names a Building takes its two plane bytes from planes: the
+// original's refresh of an entry cell folds the Building's blocking bit
+// into both (R2-ENGINE-758).
+func (t *terrainForm) write(w *DocumentWorldData, rest int, planes func(cell uint16, static, dynamic byte) (s, d byte, held bool)) {
+	if planes != nil {
+		building := map[uint16]bool{}
+		for _, c := range w.Cells {
+			building[c.Cell] = c.Building != 0
+		}
+		for i := range w.Blocks {
+			if b := &w.Blocks[i]; building[b.Cell] {
+				b.Static, b.Dyn, _ = planes(b.Cell, b.Static, b.Dyn)
+			}
+		}
+	}
 	w.Blocks = slices.DeleteFunc(w.Blocks, func(b BlockRecord) bool {
 		return b.Cell < t.from || b.Cell >= t.to || b.Dyn <= t.above
 	})
