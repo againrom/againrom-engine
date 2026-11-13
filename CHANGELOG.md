@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.153.0
+
 ### For players
 
 - [BASE] Abandoning a mission restores the backpack and town bag exactly as they were before entering it, with every item in its original place.
