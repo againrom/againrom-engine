@@ -136,9 +136,10 @@ func (e *MapEditor) returnMode(m keptMode) {
 }
 
 // free reports that no layer takes the canvas: the catalogue, a prompt and an
-// armed pick each do.
+// armed pick each do. The mod window floats over the map as the object
+// window does and takes only what falls on it.
 func (m *editorMode) free() bool {
-	return !m.modWindow && !m.catalog && !m.prompt.open() && m.pick == pickNone
+	return !m.catalog && !m.prompt.open() && m.pick == pickNone
 }
 
 // listView reports that the record list is what the rail shows.
@@ -364,7 +365,7 @@ func (e *MapEditor) closeReport() {
 // blocksCanvas reports that the map takes no pointer: the catalogue or a
 // prompt covers it. The Add window's cell pick leaves the map to the click.
 func (m *editorMode) blocksCanvas() bool {
-	return m.modWindow || m.catalog || m.prompt.open() && !m.addPicking()
+	return m.catalog || m.prompt.open() && !m.addPicking()
 }
 
 // addPicking reports that the Add window waits for a cell click on the map.

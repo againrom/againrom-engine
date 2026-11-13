@@ -353,10 +353,26 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		}
 		return true, e.modAction(action, "")
 	}
-	if o.focus < 0 || o.focus >= len(o.fields) {
+	// A button of the window holds the keyboard; so does the window with no
+	// map under it. With no field or button focused the key is the map's.
+	if o.focus >= len(o.fields) || o.focus < 0 && e.doc == nil {
 		return true, nil
 	}
 	return false, nil
+}
+
+// modYieldKeys gives the keyboard to the map at a press on it: the mod
+// window's focus and open drop-down are put down. A value typed and not yet
+// entered keeps the focus, so nothing typed is lost or read as a map key.
+func (e *MapEditor) modYieldKeys() {
+	o := &e.obj
+	if !e.modWindow || e.prompt.open() || e.modConfirm != "" || o.doc != e.doc || o.record != modObjectRecord {
+		return
+	}
+	if o.focus >= 0 && o.focus < len(o.fields) && o.focus < len(o.buf) && o.buf[o.focus] != fieldInput(o.fields[o.focus]) {
+		return
+	}
+	o.focus, o.open = -1, -1
 }
 
 func (e *MapEditor) keyModBacktab(string) error { return nil }
@@ -433,7 +449,9 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		end := min(len(f.Choices), start+3)
 		start = max(0, end-3)
 		for n := start; n < end; n++ {
-			row := popupRow{Kind: popupChoice, Label: editorClip(e.bodyFont(), e.editorHostText(f.Choices[n].Label), s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
+			// A choice's label is already in the font's bytes, as the
+			// Mission drop-down draws it.
+			row := popupRow{Kind: popupChoice, Label: editorClip(e.bodyFont(), f.Choices[n].Label, s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
 			index := len(s.Rows)
 			s.Rows = append(s.Rows, row)
 			links = append(links, 0)

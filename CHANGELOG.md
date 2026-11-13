@@ -38,6 +38,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor, a copied trigger that shows a message now gets its own text page with the same text, so changing the copy's text no longer changes the original's. A trigger with a drop zone is not copied; the editor says why.
 - [BASE] In the map editor a picture or a town description can be added to a mod by picking a file: the editor puts it into the mod's folder, checks it at once and writes it on Ctrl+S; the mod check now warns about files the game does not read and about files kept outside their place.
 - [BASE] Map editor: with a mod open, several of its maps stay open at once as tabs under the menu bar; each keeps its own view, selection, unsaved changes and undo history.
+- [BASE] Map editor: the mod window's mission rows now show their text in Russian instead of question marks, and while the mod window is open you can still zoom, scroll, select and paint on the map beside it; click the map to give it the keyboard.
 
 ## 0.153.0
 

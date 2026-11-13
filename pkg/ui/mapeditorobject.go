@@ -91,12 +91,25 @@ type objectEdit struct {
 // no map open as with one.
 func (e *MapEditor) dropObject() { e.obj.doc, e.obj.record = nil, -2 }
 
+// modObjectRecord is the record the object window's fields are read for
+// while it shows the mod: no record of the map, so a selection made on the
+// map leaves the window's fields, focus and typed values as they are.
+const modObjectRecord = -3
+
+// objectRecord is the record the object window shows now.
+func (e *MapEditor) objectRecord() int {
+	if e.modWindow {
+		return modObjectRecord
+	}
+	return e.selected
+}
+
 func (e *MapEditor) loadObject() {
 	o := &e.obj
-	if o.doc == e.doc && o.record == e.selected {
+	if o.doc == e.doc && o.record == e.objectRecord() {
 		return
 	}
-	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1, pickField: -1}
+	*o = objectEdit{doc: e.doc, record: e.objectRecord(), focus: -1, open: -1, cell: -1, pickField: -1}
 	if e.modWindow {
 		if host, ok := e.workspace(); ok {
 			o.fields = host.WorkspaceFields("package")
@@ -830,14 +843,14 @@ func (e *MapEditor) objectStep(delta int) bool {
 
 // dropdownOpen reports that a drop-down of the shown object popup is open.
 func (e *MapEditor) dropdownOpen() bool {
-	return e.obj.open >= 0 && e.obj.doc == e.doc && e.obj.record == e.selected
+	return e.obj.open >= 0 && e.obj.doc == e.doc && e.obj.record == e.objectRecord()
 }
 
 func (e *MapEditor) searchableObjectChoices() bool { return e.modWindow || e.nativeUnitWindow() }
 
 // objectTyping reports that the keyboard edits an object popup field.
 func (e *MapEditor) objectTyping() bool {
-	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.selected
+	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.objectRecord()
 }
 
 // FieldFocus is the record popup field the keyboard edits, -1 for none,

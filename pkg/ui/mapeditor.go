@@ -546,6 +546,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		e.down = in.PrimaryDown
 		return
 	}
+	if (in.PrimaryDown || in.MiddleDown) && !e.down {
+		e.modYieldKeys()
+	}
 	// The map's own window starts right of the left panel.
 	in.CursorX -= e.mapArea().Min.X
 	x, y := e.doc.Viewer.windowToFrame(in.CursorX, in.CursorY)

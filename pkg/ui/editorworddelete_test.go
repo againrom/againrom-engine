@@ -110,7 +110,7 @@ func TestEditorDropdownBackspaceKeepsRuneDeletion(t *testing.T) {
 	} {
 		e := NewMapEditor(nil, nil, nil)
 		e.modWindow = true
-		e.obj.open = 0
+		e.obj.record, e.obj.open = modObjectRecord, 0
 		e.obj.search = tc.before
 		e.obj.choice = NewPicker([]PickerRow{{Text: "one два", Choosable: true}})
 		if err := e.keyBackspace("backspace"); err != nil {
