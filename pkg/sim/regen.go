@@ -9,23 +9,12 @@ import (
 // source-current actors dispatch to originalregen.go's signed-word consumer
 // instead (1107, DIV-738); native-retired actors use this legacy branch.
 //
-// regenPhase is the sixteen-sub-tick slot the whole pass dispatches on, the
-// same slot decayPass's own walk is filtered on. It is written out here
-// rather than aliased to decayPhase in step.go: the two share a VALUE and
-// not a REASON — the ladder's is a free choice between two legal slots and
-// this one is the dispatch slot itself — and an alias would let a later
-// story's decision about the ladder move regeneration by accident.
-//
-// manaRegenCycle is scriptCycle itself, under its own name: the mana arm
-// fires on every full tick, which is scriptCycle's own cadence.
-//
-// regenScale is the fixed-point scale a pool is carried at while a gain
-// accumulates — a hundredth of a point, which is what the remainder byte
-// holds. The two are the same number and are two constants ON PURPOSE:
-// folding them into one would make the gain expression read as `max * 2 /
-// period`, which truncates to zero for most units and is the one way this
-// story can be built so that it compiles, stays deterministic, and heals
-// nobody.
+// regenPhase is the sixteen-sub-tick slot the pass dispatches on. It shares
+// decayPhase's value and not its reason, so it is no alias of it.
+// manaRegenCycle is scriptCycle: the mana arm fires on every full tick.
+// regenScale is the fixed-point scale of a pool while a gain accumulates, a
+// hundredth of a point, which the remainder byte holds; regenPercent is the
+// modifier's base.
 //
 // HERO-REGEN-021
 const (
@@ -40,9 +29,10 @@ const (
 // maxima, on the dispatch slot regenPhase names. It is the second game's
 // regeneration (nativeRegen), called every sub-tick, exactly as decayPass is.
 //
-// Mana moves on every pass. Health moves on every fourth pass, on the pass
-// whose low two bits equal those of the actor's runtime id, its +4
-// (R2-ENGINE-030), so the actors of one map heal on four staggered passes.
+// Mana moves on every pass. Health moves on the pass whose count mod 4
+// equals the actor's runtime id mod 4 (R2-ENGINE-1205), so the actors of one
+// map heal on four staggered passes. The pass count is the sub-tick over
+// sixteen; the original counts passes in a counter of its own.
 func (w *World) regenPass() {
 	if w.tick%manaRegenCycle != regenPhase {
 		return
@@ -74,7 +64,7 @@ func (w *World) regenerateEach(healthDue func(*Entity) bool) {
 			w.regenerateOriginalCurrent(i, health)
 			continue
 		}
-		if !e.Alive() {
+		if !e.InLife(w.game.regenLife) {
 			continue
 		}
 		rate := e.regenerationRate(w.tick)

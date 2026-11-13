@@ -130,6 +130,10 @@ type gameProfile struct {
 	// nativeRegen: regeneration runs as a pass of the step, and each actor
 	// heals on its own phase (regenPass).
 	nativeRegen bool
+	// regenLife: the life state the pool pass restores a unit in. The second
+	// game restores nothing at health zero or below, an undying unit
+	// included (R2-ENGINE-1207).
+	regenLife LifeState
 	// nativeDecay: the decay ladder walks held dead and decaying health on
 	// the native tick; no session-clock dead ladder runs.
 	nativeDecay bool
@@ -218,6 +222,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
 		nativeRegen:                true,
+		regenLife:                  LifeStanding,
 		nativeDecay:                true,
 		keepsCastRetain:            true,
 		residueOverBookCasts:       true,

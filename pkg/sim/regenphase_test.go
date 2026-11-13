@@ -38,8 +38,8 @@ func healTicks(t *testing.T, second bool) map[EntityID][]uint64 {
 	return moved
 }
 
-// R2-ENGINE-030: the second game heals an actor on every fourth pass, on the
-// pass whose low two bits equal its +4's.
+// R2-ENGINE-1205: the second game heals an actor on every fourth pass, on the
+// pass whose count mod 4 equals its runtime id mod 4.
 func TestSecondGameHealsEachActorOnItsOwnPhase(t *testing.T) {
 	t.Parallel()
 	moved := healTicks(t, true)

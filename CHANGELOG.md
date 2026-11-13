@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A game saved in Againrom and then loaded in the original keeps characters and creatures blocking one another right after the load.
 - [ROM2] In the Druids' inn the patron who becomes a hired orc shows as the orc from the start, not as a two-handed swordsman.
 - [ROM2] A game saved in Againrom and then loaded in the original marks the ground under buildings the way the original's own saves do.
+- [ROM2] A unit at zero health or below no longer restores health or mana, even one a map made undying.
 
 ### For map makers and modders
 
