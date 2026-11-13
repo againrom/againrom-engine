@@ -210,6 +210,36 @@ selected base (its `applies-to` or its `api`) says so on its row and can still
 be ticked. Selecting another base or ticking a mod refreshes the rows. Without
 a selected base the enabled mods are listed by name, unnumbered.
 
+### The mods folder, and starting a mod's mission from the starter
+
+The starter, the game and the map editor use one mods folder. It is the folder
+the starter's **Folder** field names (`dir` of `[mods]` in `starter.ini`), else
+the folder `mods` beside the programs. The starter passes it to the game and to
+the map editor as `-mods-dir`. A game or an editor started without the starter
+and without `-mods-dir` reads the `starter.ini` beside it and resolves the same
+folder. A `starter.ini` kept elsewhere (`starter -ini <path>`) is known only to
+the starter and to the programs it starts.
+
+The starter reads the mods folder again when its window regains focus, and on
+**Rescan**. A mod published or copied there while the starter was open is
+listed; the ticks, the order, the selected mod and the selected mission stay.
+
+Tick a mod and the **Missions** list under the status line shows the missions the
+mod declares in `data/missions.toml`: each numbered row that is not `off`, by
+its number and its title in the starter's language. The starter reads the rows
+as the game does and opens no map. A mod that is not ticked shows no missions
+and says so; a mod with no missions file says it has none, on either game; a
+missions file the game would refuse shows the refusal.
+
+Select a mission and press **Start mission**: the game starts with the enabled
+mods on that mission (`-mods <ids> -mission <n>`). **Play** starts the game with
+the enabled mods and no mission of the list; the typed **mission** setting still
+applies to Play. Play and Start mission write `starter.ini` first, so the
+enabled list needs no **Save settings**. A start the starter refuses writes
+nothing. The list holds three rows in view and scrolls with the wheel; while
+it is shown the Check output keeps two lines. With no mod selected the window
+is as it was, with six lines of Check output.
+
 The script's `print` output is discarded, in `againrom -check` and in play.
 A script reports a problem with `fail("text")`; the refusal names the mod,
 the file and the line (`mod "m": main.star:3: fail: text`), and it stops the
@@ -2117,7 +2147,8 @@ The record list's Add button on filter 5 opens the same cell-spell Add window.
 
 The map editor is the `--editor` mode of the game program, `againrom.exe
 --editor` (`./againrom --editor` on macOS). The starter's **Map editor** button (**Редактор карт** on a
-Russian base) opens it on the selected base. The starter first runs the
+Russian base) opens it on the selected base and passes it the starter's mods
+folder (`-mods-dir`), which Publish writes into. The starter first runs the
 editor's map list on that base; when the editor cannot load it, for example a
 second-game install, the starter shows the editor's error and opens nothing.
 A folder that is not an install and a missing game program are refused with the
@@ -2320,6 +2351,12 @@ armour cell. The first member leads; a party has one to eight distinct members.
 Existing declared characters are choices. Creating character definitions and
 adding new tiles are outside this window.
 
+A mod with no folder yet shows the working folder the editor proposes:
+`workbench/<id>` in the player profile, the folder that holds `saves` and `maps`
+(`Againrom/workbench/<id>` beside the programs when they stand in an install).
+Save makes that folder and saves the mod into it; a folder already there is
+refused and nothing is written. Another folder can be typed instead.
+
 Open an unregistered map and choose Add map to append it. Move up/down or
 Alt+Up/Down changes list order; After win changes the chain. Removing a chain
 link asks before reconnecting its successors. Undo after Save makes the
@@ -2370,8 +2407,14 @@ companion requirements are checked when the mod is activated by the normal
 loader. F5 and Publish retain activation checks. Custom scripts still run during
 admission and must load every edited mission under their default settings.
 
-Publish uses the same packer as `-pack-mod`. Type an existing output folder
-outside installs and the working mod; it stays selected for the session.
+Publish uses the same packer as `-pack-mod`. The Publish folder shows the mods
+folder the starter and the game read, and Publish writes `mod-<id>.res` there
+with no path typed; it makes that folder when it is absent. Another existing
+folder can be typed and stays selected for the session; a blank field returns to
+the mods folder. Publish refuses a handwritten mod that has no complete copy
+yet, a map that is no mission of the mod, a mod changed outside the editor, a
+folder inside an install or inside the working mod, a typed folder that does not
+exist, and the case where no mods folder is known and none is typed.
 Publish asks Save and publish for unsaved changes, then separately asks Replace
 for an existing RES. Cancel writes nothing at that step. A folder with the same
 ID in the output directory is refused to avoid ambiguous discovery. The status

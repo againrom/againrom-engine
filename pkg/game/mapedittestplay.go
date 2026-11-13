@@ -41,6 +41,9 @@ type TestPlayHost struct {
 	Game string
 	// Start launches program with args and returns without waiting.
 	Start func(program string, args []string) error
+	// ModsFolder is the mods folder the program resolved, the one the starter
+	// and the game read; Publish writes there when no folder is typed.
+	ModsFolder string
 }
 
 // SetTestPlay names the host of the editor's test play.

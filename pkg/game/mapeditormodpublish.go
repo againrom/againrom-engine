@@ -22,17 +22,19 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 	if x.mod == nil || !x.mod.owned || x.mod.copyOnly {
 		return errors.New(x.word("editor.mod.err.nocopy"))
 	}
-	if x.modOutput == "" {
-		return errors.New(x.word("editor.mod.err.nooutput"))
-	}
-	out, err := editorPhysicalDirectory(x.modOutput)
+	out, absent, err := x.resolvedPublishFolder()
 	if err != nil {
 		return err
 	}
-	if err := fenceEditorWrite(x.archives.Root, out, "Publish"); err != nil {
+	// A folder not made yet is judged where it will stand: by its parent.
+	standing := out
+	if absent {
+		standing = filepath.Dir(out)
+	}
+	if err := fenceEditorWrite(x.archives.Root, standing, "Publish"); err != nil {
 		return err
 	}
-	if inside, err := sameOrDescendantPhysical(x.mod.dir, out); err != nil {
+	if inside, err := sameOrDescendantPhysical(x.mod.dir, standing); err != nil {
 		return err
 	} else if inside {
 		return errors.New(x.word("editor.mod.err.outputinside"))
@@ -81,6 +83,12 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 		return &ui.WorkspaceConfirmation{Action: "publish-replace", Message: message, Confirm: x.word("editor.mod.replacefile")}
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
+	}
+	// Every refusal and question is behind: the mods folder is made now.
+	if absent {
+		if err := os.Mkdir(out, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+			return err
+		}
 	}
 	file, err := PackMod(x.mod.dir, out, replace)
 	if err != nil {

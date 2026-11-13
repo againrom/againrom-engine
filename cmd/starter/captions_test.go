@@ -16,6 +16,7 @@ import (
 // bare format verb, a file name, a product mark.
 var sameInBothLanguages = map[captionID]bool{
 	cText: true, cModState: true, cSettingsToml: true, cBaseOK: true,
+	cMissionsToml: true,
 }
 
 func verbs(s string) string { return strings.Join(verbPattern.FindAllString(s, -1), " ") }

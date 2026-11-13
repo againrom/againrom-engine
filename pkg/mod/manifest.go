@@ -390,12 +390,6 @@ func parseStrings(v string) ([]string, error) {
 	}
 }
 
-// DefaultDir is the mods directory beside a program: the "mods" folder of the
-// directory that holds its executable.
-func DefaultDir(programDir string) string {
-	return filepath.Join(programDir, "mods")
-}
-
 // Entry is one mod, a folder or a packed RES file, and what reading it gave.
 type Entry struct {
 	// Folder is the mod's name in the mods directory: the folder's name, or

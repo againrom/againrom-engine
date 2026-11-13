@@ -70,7 +70,8 @@ func (a *app) render() *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, winW, winH))
 	fill(img, img.Bounds(), colBackground)
 	fill(img, image.Rect(0, 440+panelH, winW, winH), colPanel)
-	widgetkit.DrawPanel(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBackground, colBorder)
+	box, _ := a.outputBox()
+	widgetkit.DrawPanel(img, box, colBackground, colBorder)
 	for _, it := range a.layout() {
 		r := it.rect
 		switch it.kind {

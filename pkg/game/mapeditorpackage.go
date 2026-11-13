@@ -88,6 +88,7 @@ func (s *mapInspectionEdits) openOrCreateWorkspace(dir string) (*ui.InspectionDo
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
+	s.inspector.makeWorkbench(abs)
 	if _, err := s.saveWorkspacePackage(abs); err != nil {
 		return nil, err
 	}

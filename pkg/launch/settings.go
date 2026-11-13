@@ -100,7 +100,7 @@ var (
 	Mods = Setting{Key: "mods", Kind: Verbatim, Flag: "mods",
 		Usage: "comma-separated ids of the mods to load; each is a folder with a mod.toml or a packed file mod-<id>.res in the mods directory (the load order follows requires and load-after, not this list)"}
 	ModsDir = Setting{Key: "mods-dir", Kind: Verbatim, Flag: "mods-dir", Needs: "mods",
-		Usage: "directory holding the mod folders and packed mods (default: mods beside this binary)"}
+		Usage: "directory holding the mod folders and packed mods (default: the folder the starter.ini beside this binary names, else mods beside this binary)"}
 	ModSetting = Setting{Key: "mod-setting", Kind: Verbatim, Repeat: true, Flag: "mod-setting", Needs: "mods",
 		Usage: "a mod setting as <mod>.<key>=<value>; repeat the flag for several (a setting not given keeps the mod's default)"}
 	ModsAcceptUnmarked = Setting{Key: "mods-accept-unmarked", Kind: Switch, Default: "false", Flag: "mods-accept-unmarked", Needs: "mods",
@@ -163,12 +163,15 @@ var (
 	EditorMode   = Setting{Key: "editor", Kind: Switch, Default: "false", Flag: "editor", Usage: "run the map editor; the arguments after this flag are the map editor's own"}
 	EditorAssets = Setting{Key: "assets", Kind: Verbatim, Flag: "assets", Usage: "read-only installed asset root"}
 	EditorList   = Setting{Key: "list", Kind: Switch, Default: "false", Flag: "list", Usage: "list installed map keys and exit"}
+	// EditorModsDir is the mods folder Publish writes a packed mod into.
+	EditorModsDir = Setting{Key: "mods-dir", Kind: Verbatim, Flag: "mods-dir",
+		Usage: "mods folder the mod window publishes into (default: the folder the starter.ini beside this binary names, else mods beside this binary)"}
 )
 
 // Editor is the map editor's launch table, in the order its arguments pass
 // them: the mode switch first, because the game hands what follows it to the
 // editor.
-var Editor = Rows{EditorMode, EditorAssets, EditorList}
+var Editor = Rows{EditorMode, EditorAssets, EditorModsDir, EditorList}
 
 // ByKey returns the row with key.
 func ByKey(key string) (Setting, bool) { return Rows(Table).byKey(key) }

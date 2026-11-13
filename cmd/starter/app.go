@@ -21,24 +21,33 @@ import (
 	"againrom/pkg/ui/widgetkit"
 )
 
-// Window size in pixels. panelH is the height of the mod settings panel that
-// sits between the mod list and the action buttons.
+// Window size in pixels. panelH is the height of the mod settings panel, which
+// sits between the mod list and the action buttons. The window fits a screen
+// 768 pixels high; the mission list takes its rows from the Check output's.
 const (
 	winW   = 760
 	panelH = 140
 	winH   = 620 + panelH
 )
 
-// Rows in view of the three scrolling lists: the bases, the mods and the
-// selected mod's settings.
+// Rows in view of the four scrolling lists: the bases, the mods, the selected
+// mod's settings and its missions.
 const (
 	baseRows    = 5
 	modRows     = 6
 	settingRows = 5
+	missionRows = 3
 )
 
-// panelTop is the y of the settings panel's heading.
-const panelTop = 398
+// panelTop is the y of the settings panel's heading, actionsTop that of the
+// action buttons, with the command line and the status line under them, and
+// missionsTop that of the mission list's heading, under the status line.
+const (
+	panelTop    = 398
+	actionsTop  = 410 + panelH
+	statusTop   = actionsTop + 56
+	missionsTop = statusTop + 26
+)
 
 type fieldID int
 
@@ -91,6 +100,8 @@ const (
 	aSettingsOpen
 	aSettingsClose
 	aWindowed
+	aSelectMission // choose the mission in row i of the panel mod's list
+	aStartMission  // start the game on the chosen mission
 )
 
 // viewKind is which of the starter's two views the window shows.
@@ -177,11 +188,19 @@ type app struct {
 	problems []ini.Problem
 	s        settings
 
-	infos     map[string]installinfo.Info // by base path
-	scan      []mod.Entry
-	scanErr   error
-	selMod    string                   // mod whose settings the panel shows
-	declared  map[string]declaredSetts // settings.toml of each scanned mod
+	infos    map[string]installinfo.Info // by base path
+	scan     []mod.Entry
+	scanErr  error
+	selMod   string                   // mod whose settings the panel shows
+	declared map[string]declaredSetts // settings.toml of each scanned mod
+	// missions holds what each scanned mod declares, by id and language;
+	// selMission is the number of the mission Start names, 0 for none, and
+	// selMissionMod the mod it is a mission of.
+	missions      map[string]declaredMissions
+	selMission    int
+	selMissionMod string
+	// focused is whether the window had the focus at the last frame.
+	focused   bool
 	addText   string
 	focus     fieldID
 	view      viewKind
@@ -283,7 +302,93 @@ func (a *app) selfDir() string { return filepath.Dir(a.selfPath) }
 func (a *app) rescan() {
 	a.scan, a.scanErr = mod.Scan(a.s.modsDir(a.selfDir()))
 	a.declared = map[string]declaredSetts{}
+	a.missions = map[string]declaredMissions{}
 	a.dirty = true
+}
+
+// setFocused takes in whether the window has the focus. Regaining it reads
+// the mods folder again, so a mod published meanwhile is listed; the ticks,
+// the order and the selections are settings and stay.
+func (a *app) setFocused(now bool) {
+	if now && !a.focused {
+		a.rescan()
+	}
+	a.focused = now
+}
+
+// declaredMissions is what reading a mod's missions gave.
+type declaredMissions struct {
+	list []mod.Mission
+	err  error
+}
+
+// missionsOf returns the missions the mod id declares, worded in the language
+// of the selected base and read once per scan by the mod package's one
+// mission description.
+func (a *app) missionsOf(id string) ([]mod.Mission, error) {
+	lang := a.lang()
+	key := id + "\x00" + lang
+	if d, ok := a.missions[key]; ok {
+		return d.list, d.err
+	}
+	d := declaredMissions{err: captionErr(cModNoFolder, id)}
+	for _, e := range a.scan {
+		if e.Folder == id && e.Err == nil {
+			var data mod.MissionData
+			data, _, d.err = mod.DescribeMissions(e.Dir, e.Manifest.ID, lang)
+			d.list = data.Listed()
+		}
+	}
+	a.missions[key] = d
+	return d.list, d.err
+}
+
+// panelMissions are the missions the mission list shows: those of the panel's
+// mod while it is enabled.
+func (a *app) panelMissions() ([]mod.Mission, bool) {
+	id, ok := a.panelMod()
+	if !ok || !a.s.modEnabled(id) {
+		return nil, false
+	}
+	list, err := a.missionsOf(id)
+	return list, err == nil
+}
+
+// missionLabel is a mission as its row of the mission list shows it: the
+// number and the title the mod's strings give it in the starter's language.
+func missionLabel(m mod.Mission) string {
+	return strings.TrimSpace(fmt.Sprintf("%d. %s", m.Number, m.Title))
+}
+
+// chosenMission is the number of the mission Start names, while the mission
+// list still shows it as a mission of the mod it was chosen in.
+func (a *app) chosenMission() (int, bool) {
+	if id, ok := a.panelMod(); !ok || id != a.selMissionMod {
+		return 0, false
+	}
+	list, _ := a.panelMissions()
+	for _, m := range list {
+		if m.Number == a.selMission {
+			return m.Number, true
+		}
+	}
+	return 0, false
+}
+
+// missionsShown reports whether the window shows the mission list: on the
+// main view while the panel has a mod.
+func (a *app) missionsShown() bool {
+	_, ok := a.panelMod()
+	return ok && a.view == viewMain
+}
+
+// outputBox is the frame of the Check output and the lines it holds. The
+// mission list, while shown, stands above it and leaves it two lines.
+func (a *app) outputBox() (image.Rectangle, int) {
+	if a.missionsShown() {
+		return image.Rect(10, scrollLists[listMissions].area.Max.Y+4, winW-10, winH-6), 2
+	}
+	return image.Rect(10, statusTop+22, winW-10, winH-6), outputLines
 }
 
 // declaredSetts is what reading a mod's settings.toml gave.
@@ -642,7 +747,7 @@ func (a *app) layout() []item {
 		field(rect(76, 210, 224, 22), fModsDir)
 		button(rect(306, 210, 69, 22), a.t(cRescan), action{kind: aRescan})
 		if a.s.ModsDir == "" {
-			textW(76, 234, lw-66, a.t(cModsDefault, mod.DefaultDir(a.selfDir())), toneDim)
+			textW(76, 234, lw-66, a.t(cModsDefault, launch.ModsFolder("", a.selfDir())), toneDim)
 		}
 		rows := a.modRows()
 		top, shown = a.window(listMods, len(rows))
@@ -721,7 +826,7 @@ func (a *app) layout() []item {
 		}
 	}
 	// Actions.
-	by := 410 + panelH
+	by := actionsTop
 	button(rect(10, by, 100, 28), a.t(cPlay), action{kind: aPlay})
 	button(rect(118, by, 100, 28), a.t(cCheck), action{kind: aCheck})
 	button(rect(226, by, 140, 28), a.t(cSaveSettings), action{kind: aSave})
@@ -741,13 +846,38 @@ func (a *app) layout() []item {
 		st = toneBad
 	}
 	if a.status != "" {
-		text(10, by+56, a.status, st)
+		text(10, statusTop, a.status, st)
 	}
+	// Missions of the panel's mod, under the status line.
+	if id, _ := a.panelMod(); a.missionsShown() {
+		lw := winW - 20
+		heading(10, missionsTop, a.t(cHeadMissions))
+		if !a.s.modEnabled(id) {
+			textW(10, missionsTop+22, lw, a.t(cMissionsDisabled), toneDim)
+		} else if list, err := a.missionsOf(id); err != nil {
+			textW(10, missionsTop+22, lw, a.t(cMissionsToml, a.errText(err)), toneBad)
+		} else if len(list) == 0 {
+			textW(10, missionsTop+22, lw, a.t(cNoMissions), toneDim)
+		} else {
+			textW(120, missionsTop, 200, id, toneNormal)
+			button(rect(winW-150, missionsTop-3, 140, 22), a.t(cStartMission), action{kind: aStartMission})
+			top, shown := a.window(listMissions, len(list))
+			if shown < len(list) {
+				textW(330, missionsTop, winW-490, a.t(cSettingsInView, top+1, top+shown, len(list)), toneDim)
+			}
+			for k := 0; k < shown; k++ {
+				m := list[top+k]
+				it = append(it, item{kind: iBaseRow, rect: scrollLists[listMissions].row(k), text: missionLabel(m),
+					checked: m.Number == a.selMission && id == a.selMissionMod, act: action{aSelectMission, top + k}})
+			}
+		}
+	}
+	box, lines := a.outputBox()
 	for k, line := range a.output {
-		if k == outputLines {
+		if k == lines {
 			break
 		}
-		text(14, by+80+18*k, line, toneNormal)
+		text(14, box.Min.Y+2+18*k, line, toneNormal)
 	}
 	return it
 }
@@ -789,6 +919,7 @@ const (
 	listBases = iota
 	listMods
 	listSettings
+	listMissions
 	listCount
 )
 
@@ -796,6 +927,7 @@ var scrollLists = [listCount]scrollList{
 	listBases:    {area: image.Rect(10, 66, winW-10, 156), rowH: 18, rows: baseRows},
 	listMods:     {area: image.Rect(10, 250, winW-10, 360), rowH: 18, rows: modRows},
 	listSettings: {area: image.Rect(10, panelTop+24, winW-10, panelTop+24+24*settingRows), rowH: 24, rows: settingRows},
+	listMissions: {area: image.Rect(10, missionsTop+22, winW-10, missionsTop+22+18*missionRows), rowH: 18, rows: missionRows},
 }
 
 // row is the rectangle of the list's row k in view.
@@ -825,7 +957,7 @@ func clampScroll(offset *int, n, capacity int) int {
 // command is the line Play would run.
 func (a *app) command() (string, error) {
 	root, _ := a.selectedRoot()
-	args, err := a.gameArgs(root, false)
+	args, err := a.gameArgs(root, false, "")
 	if err != nil {
 		return "", err
 	}
@@ -892,7 +1024,8 @@ func (a *app) apply(act action) {
 		rows := a.modRows()
 		if act.i < len(rows) {
 			if rows[act.i].id != a.selMod {
-				a.scroll[listSettings] = 0
+				a.scroll[listSettings], a.scroll[listMissions] = 0, 0
+				a.selMission, a.selMissionMod = 0, ""
 			}
 			a.selMod = rows[act.i].id
 			if r := rows[act.i]; r.enabled || r.problem == "" {
@@ -932,6 +1065,17 @@ func (a *app) apply(act action) {
 		a.s.CloseOnPlay = !a.s.CloseOnPlay
 	case aPlay:
 		a.play()
+	case aSelectMission:
+		if list, _ := a.panelMissions(); act.i < len(list) {
+			a.selMission = list[act.i].Number
+			a.selMissionMod, _ = a.panelMod()
+		}
+	case aStartMission:
+		if n, ok := a.chosenMission(); ok {
+			a.start(strconv.Itoa(n))
+		} else {
+			a.fail(cCannotPlay, a.t(cSelectMission))
+		}
 	case aCheck:
 		a.check()
 	case aSave:
@@ -1137,6 +1281,18 @@ func (a *app) wheel(p image.Point, lines int) {
 }
 
 func (a *app) save() {
+	if err := a.writeSettings(); err != nil {
+		a.fail(cSaveFailed, err)
+		return
+	}
+	a.ok(cSaved, a.iniPath)
+	a.probeVersion()
+}
+
+// writeSettings stores the settings in starter.ini, the one writer of that
+// file: Save settings calls it, and so does a start of the game, so the game
+// and the next starter read the list of mods the player just played with.
+func (a *app) writeSettings() error {
 	a.s.store(a.file)
 	// starter.ini is written in place, its folders made and kept.
 	_, err := hostfile.Commit(hostfile.Set{
@@ -1145,17 +1301,13 @@ func (a *app) save() {
 		}},
 		Dirs: hostfile.Parents, DirPerm: 0o755,
 	})
-	if err != nil {
-		a.fail(cSaveFailed, err)
-		return
-	}
-	a.ok(cSaved, a.iniPath)
-	a.probeVersion()
+	return err
 }
 
 // launchPlan resolves the executable and arguments for a launch or a check and
-// reports why they cannot be had.
-func (a *app) launchPlan(check bool) (string, []string, error) {
+// reports why they cannot be had. mission, when not blank, is the mission the
+// launch names in place of the mission setting.
+func (a *app) launchPlan(check bool, mission string) (string, []string, error) {
 	root, ok := a.selectedRoot()
 	if !ok {
 		return "", nil, captionErr(cNoBaseSelected)
@@ -1174,7 +1326,7 @@ func (a *app) launchPlan(check bool) (string, []string, error) {
 			return "", nil, captionErr(cModUnusable, m.id, m.refusal)
 		}
 	}
-	args, err := a.gameArgs(root, check)
+	args, err := a.gameArgs(root, check, mission)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1185,37 +1337,48 @@ func (a *app) launchPlan(check bool) (string, []string, error) {
 	return exe, args, nil
 }
 
-// gameArgs is the game's argument list for root.
-func (a *app) gameArgs(root string, check bool) ([]string, error) {
+// gameArgs is the game's argument list for root; mission as launchPlan takes it.
+func (a *app) gameArgs(root string, check bool, mission string) ([]string, error) {
 	modSettings, err := a.modSettings()
 	if err != nil {
 		return nil, err
 	}
-	g := gameLaunch{Root: root, ModsDir: a.s.modsDir(a.selfDir()), ModSettings: modSettings, Check: check}
+	g := gameLaunch{Root: root, ModsDir: a.s.modsDir(a.selfDir()), Mission: mission, ModSettings: modSettings, Check: check}
 	if id := a.infos[root].Base.ID(); basepkg.Nameable(id) {
 		g.Base = id
 	}
 	return a.s.launchArgs(g)
 }
 
-func (a *app) play() {
-	exe, args, err := a.launchPlan(false)
+// play starts the game as the settings say.
+func (a *app) play() { a.start("") }
+
+// start starts the game: on the mission when one is named, else as the
+// settings say. The settings are written first, so the enabled list the game
+// was started with is the one starter.ini holds; a failed write is reported
+// and does not hold the game back.
+func (a *app) start(mission string) {
+	exe, args, err := a.launchPlan(false, mission)
 	if err != nil {
 		a.fail(cCannotPlay, a.errText(err))
 		return
 	}
+	written := a.writeSettings()
 	if err := a.deps.start(exe, args); err != nil {
 		a.fail(cCannotStart, exe, err)
 		return
 	}
 	a.ok(cStarted, filepath.Base(exe))
+	if written != nil {
+		a.fail(cSaveFailed, written)
+	}
 	if a.s.CloseOnPlay {
 		a.closing = true
 	}
 }
 
 func (a *app) check() {
-	exe, args, err := a.launchPlan(true)
+	exe, args, err := a.launchPlan(true, "")
 	if err != nil {
 		a.fail(cCannotCheck, a.errText(err))
 		return
@@ -1243,8 +1406,9 @@ func (a *app) mapEditorPlan() (exe string, start, check []string, err error) {
 	if !fileExists(exe) {
 		return "", nil, nil, captionErr(cEditorNotFound, exe)
 	}
-	if start, err = editorArgs(root, false); err == nil {
-		check, err = editorArgs(root, true)
+	modsDir := a.s.modsDir(a.selfDir())
+	if start, err = editorArgs(root, modsDir, false); err == nil {
+		check, err = editorArgs(root, modsDir, true)
 	}
 	if err != nil {
 		return "", nil, nil, refusalErr(err)
@@ -1252,15 +1416,18 @@ func (a *app) mapEditorPlan() (exe string, start, check []string, err error) {
 	return exe, start, check, nil
 }
 
-// editorArgs is the map editor's arguments for the asset root, with the map
-// list when list is set, built from the rows of launch.Editor.
-func editorArgs(root string, list bool) ([]string, error) {
+// editorArgs is the map editor's arguments for the asset root and the mods
+// folder its mod window publishes into, with the map list when list is set,
+// built from the rows of launch.Editor.
+func editorArgs(root, modsDir string, list bool) ([]string, error) {
 	return launch.Editor.Build(launch.One(func(st launch.Setting) string {
 		switch st.Key {
 		case launch.EditorMode.Key:
 			return launch.FormatBool(true)
 		case launch.EditorAssets.Key:
 			return root
+		case launch.EditorModsDir.Key:
+			return modsDir
 		case launch.EditorList.Key:
 			return launch.FormatBool(list)
 		}

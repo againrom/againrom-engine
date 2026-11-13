@@ -173,7 +173,7 @@ func resolveMods(o options, executable string) ([]mod.Entry, error) {
 		if executable == "" {
 			return nil, errors.New("no -mods-dir and the executable's folder is unknown")
 		}
-		dir = mod.DefaultDir(filepath.Dir(executable))
+		dir = launchset.ProgramModsFolder("", filepath.Dir(executable))
 	}
 	return mod.Resolve(dir, o.mods)
 }

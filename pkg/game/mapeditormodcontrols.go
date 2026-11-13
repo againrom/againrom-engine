@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,15 +41,25 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 		return s.setModAsset(key, value)
 	}
 	if key == "output" {
-		dir, err := editorPhysicalDirectory(strings.TrimSpace(value))
-		if err == nil {
-			s.inspector.modOutput = dir
-		}
-		return nil, true, err
+		return nil, true, s.inspector.setPublishFolder(value)
 	}
 	if key == "save" {
 		if s.inspector.mod == nil {
-			return nil, true, errors.New(s.inspector.word("editor.mod.err.nofolder"))
+			// A mod with no folder is saved into the proposed working folder,
+			// which Save makes; a folder already there is refused, not
+			// written over.
+			dir := s.inspector.proposedModFolder(s.workspace.Package.ID)
+			if dir == "" {
+				return nil, true, errors.New(s.inspector.word("editor.mod.err.nofolder"))
+			}
+			if _, err := os.Lstat(dir); err == nil {
+				return nil, true, fmt.Errorf(s.inspector.word("editor.mod.err.exists"), dir)
+			}
+			d, err := s.openOrCreateWorkspace(dir)
+			if err == nil {
+				s.saveNote = s.inspector.word("editor.mod.saved") + " " + dir
+			}
+			return d, true, err
 		}
 		_, err := s.SaveIntoMod()
 		if err == nil {

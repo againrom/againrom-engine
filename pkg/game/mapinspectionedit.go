@@ -1087,22 +1087,7 @@ const editorMapsFolder = "maps"
 // admits writes beneath it when the profile sits inside the install. It
 // answers none when the editor has no player profile.
 func (x *MapInspector) mapsFolder() (string, *runtimeProfileAccess) {
-	if x.testPlay == nil || x.testPlay.Profile == nil {
-		return "", nil
-	}
-	profile, err := x.testPlay.Profile()
-	if err != nil {
-		return "", nil
-	}
-	root := ""
-	if x.archives != nil {
-		root = x.archives.Root
-	}
-	dir, grant, err := profile.folder(editorMapsFolder, root)
-	if err != nil {
-		return "", nil
-	}
-	return dir, grant
+	return x.profileFolder(editorMapsFolder)
 }
 
 // MapsFolder is the folder of the player profile the editor saves maps in,

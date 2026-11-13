@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -80,19 +79,9 @@ func (x *MapInspector) SetMod(dir string) error {
 			lang = l.Code
 		}
 	}
-	var src []byte
-	var d mod.MissionData
-	if _, err := tree.Lstat(mod.MissionsFile); !errors.Is(err, fs.ErrNotExist) {
-		if src, _, err = tree.ReadInside(mod.MissionsFile); err != nil {
-			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
-		}
-		look, err := mod.TextLookup(dir, lang)
-		if err != nil {
-			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
-		}
-		if d, err = mod.ParseMissions(e.Manifest.ID, mod.MissionsFile, src, look, lang); err != nil {
-			return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
-		}
+	d, src, err := mod.DescribeMissions(dir, e.Manifest.ID, lang)
+	if err != nil {
+		return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 	}
 	owned := false
 	if _, err := os.Lstat(filepath.Join(dir, editorPackageRecord)); err == nil && !tree.Packed() {

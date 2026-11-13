@@ -50,6 +50,7 @@ func keyRepeat(k ebiten.Key) bool {
 
 func (w *window) Update() error {
 	a := w.a
+	a.setFocused(ebiten.IsFocused())
 	if w.blockDialogInput(starterInputHeld()) {
 		return nil
 	}

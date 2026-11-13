@@ -151,7 +151,8 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	for _, action := range []string{"add", "up", "down", "remove"} {
 		out = append(out, ui.InspectionField{Key: action, Label: x.modFieldLabel(action), Action: true})
 	}
-	out = append(out, workspaceText("output", x.word("editor.mod.output"), x.modOutput))
+	output, _ := x.publishFolder()
+	out = append(out, workspaceText("output", x.word("editor.mod.output"), output))
 	return out
 }
 
@@ -321,8 +322,9 @@ func (s *mapInspectionEdits) ModSummary() string {
 }
 
 func (s *mapInspectionEdits) ModOutput() string {
-	if s.inspector.modOutput == "" || s.workspace == nil {
+	output, _ := s.inspector.publishFolder()
+	if output == "" || s.workspace == nil {
 		return ""
 	}
-	return filepath.Join(s.inspector.modOutput, mod.PackedName(s.workspace.Package.ID))
+	return filepath.Join(output, mod.PackedName(s.workspace.Package.ID))
 }

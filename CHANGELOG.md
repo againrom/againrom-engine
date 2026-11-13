@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 - [ROM2] In the Druids' inn the patron who becomes a hired orc shows as the orc from the start, not as a two-handed swordsman.
 - [ROM2] A game saved in Againrom and then loaded in the original marks the ground under buildings the way the original's own saves do.
 - [ROM2] A unit at zero health or below no longer restores health or mana, even one a map made undying.
+- [BASE] The starter, the game and the map editor share one mods folder: the editor publishes a mod there with no path typed, and the starter lists a ticked mod's missions and starts the chosen one.
 
 ### For map makers and modders
 

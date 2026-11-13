@@ -9,7 +9,6 @@ import (
 
 	"againrom/pkg/ini"
 	"againrom/pkg/launch"
-	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
 )
 
@@ -17,7 +16,7 @@ import (
 const (
 	secStarter = launch.StarterSection
 	secBases   = launch.BasesSection
-	secMods    = "mods"
+	secMods    = launch.ModsSection
 	secOptions = "options"
 
 	// secModPrefix starts the name of a mod's own section: [mod.<id>] holds the
@@ -79,7 +78,7 @@ func loadSettings(f *ini.File) settings {
 	s.Againrom = get(secStarter, "againrom")
 	s.CloseOnPlay = launch.ParseBool(get(secStarter, "close-on-play"), false)
 	s.Bases, s.LastBase = launch.ReadBases(f)
-	s.ModsDir = get(secMods, "dir")
+	s.ModsDir = get(secMods, launch.ModsDirKey)
 	s.Enabled = splitList(get(secMods, "enabled"))
 	s.AcceptUnmarked = launch.ParseBool(get(secMods, "accept-unmarked"), false)
 	for _, sec := range f.Sections() {
@@ -114,7 +113,7 @@ func (s settings) store(f *ini.File) {
 			f.Delete(secBases, k)
 		}
 	}
-	f.Set(secMods, "dir", s.ModsDir)
+	f.Set(secMods, launch.ModsDirKey, s.ModsDir)
 	f.Set(secMods, "enabled", strings.Join(s.Enabled, ","))
 	f.Set(secMods, "accept-unmarked", launch.FormatBool(s.AcceptUnmarked))
 	kept := map[string]bool{}
@@ -262,8 +261,11 @@ func (s settings) modEnabled(id string) bool {
 // is the detected profile id or empty, ModSettings mod.SettingFlag texts.
 type gameLaunch struct {
 	Root, Base, ModsDir string
-	ModSettings         []string
-	Check               bool
+	// Mission, when not blank, is the mission Start names; it stands in for
+	// the mission setting.
+	Mission     string
+	ModSettings []string
+	Check       bool
 }
 
 // launchArgs is the argument list that starts the game for g, built from the
@@ -291,6 +293,10 @@ func (s settings) launchArgs(g gameLaunch) ([]string, error) {
 			return []string{launch.FormatBool(g.Check)}
 		case launch.Version.Key:
 			return nil
+		case launch.Mission.Key:
+			if g.Mission != "" {
+				return []string{g.Mission}
+			}
 		}
 		return []string{s.option(st)}
 	})
@@ -305,13 +311,10 @@ func defaultINIPath(selfDir string) string {
 	return launch.StarterINI(selfDir)
 }
 
-// modsDir is the directory mods are read from: the configured one, else the
-// mods folder beside the starter executable.
+// modsDir is the directory mods are read from, by the one resolver: the
+// configured one, else the mods folder beside the starter executable.
 func (s settings) modsDir(selfDir string) string {
-	if d := strings.TrimSpace(s.ModsDir); d != "" {
-		return d
-	}
-	return mod.DefaultDir(selfDir)
+	return launch.ModsFolder(s.ModsDir, selfDir)
 }
 
 // gameExecutable is the program Play starts: the configured path, else the

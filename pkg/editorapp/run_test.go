@@ -17,7 +17,7 @@ import (
 // program's own file, as a new process through the one launch.
 func TestTestPlayStartsTheProgramBesideTheEditor(t *testing.T) {
 	self := launch.Beside(filepath.Join(t.TempDir(), "x"), "againrom", runtime.GOOS)
-	if got := testPlayHost(self, "", "").Game; got != self {
+	if got := testPlayHost(self, "", "", "").Game; got != self {
 		t.Fatalf("test play starts %q, want %q", got, self)
 	}
 }
@@ -235,3 +235,42 @@ func TestReportFailureWritesTheLogWhenThereIsNoConsole(t *testing.T) {
 type brokenWriter struct{}
 
 func (brokenWriter) Write([]byte) (int, error) { return 0, os.ErrInvalid }
+
+// The editor's mods folder is the one the starter names when it starts the
+// editor; an editor started without the starter resolves the same folder from
+// the starter.ini beside it, and without one the mods folder beside it.
+func TestModsFolderIsTheOneTheStarterAndTheGameRead(t *testing.T) {
+	dir := t.TempDir()
+	self := filepath.Join(dir, "againrom.exe")
+	beside := filepath.Join(dir, "mods")
+	if got := testPlayHost(self, "", "", "").ModsFolder; got != beside || got != launch.ModsFolder("", dir) {
+		t.Fatalf("with no starter.ini the mods folder is %q, want %q", got, beside)
+	}
+	named := filepath.Join(t.TempDir(), "shared mods")
+	writeFile(t, filepath.Join(dir, "starter.ini"), "[mods]\ndir = "+named+"\n")
+	if got := testPlayHost(self, "", "", "").ModsFolder; got != named {
+		t.Fatalf("with a starter.ini the mods folder is %q, want %q", got, named)
+	}
+	passed := filepath.Join(t.TempDir(), "passed")
+	if got := testPlayHost(self, "", "", passed).ModsFolder; got != passed {
+		t.Fatalf("with the starter's argument the mods folder is %q, want %q", got, passed)
+	}
+	// The starter's argument is one the editor's flags take.
+	args, err := launch.Editor.Build(launch.One(func(st launch.Setting) string {
+		switch st.Key {
+		case launch.EditorMode.Key:
+			return launch.FormatBool(false)
+		case launch.EditorModsDir.Key:
+			return passed
+		case launch.EditorList.Key:
+			return launch.FormatBool(false)
+		}
+		return ""
+	}))
+	if err != nil || len(args) != 2 || args[0] != "-"+launch.EditorModsDir.Flag || args[1] != passed {
+		t.Fatalf("the mods folder row built %q, %v", args, err)
+	}
+	if err := runAs(self, append(args, "-size", "1x1"), io.Discard); err == nil || !strings.Contains(err.Error(), "invalid size") {
+		t.Fatalf("the editor's flags did not take %q: %v", args, err)
+	}
+}

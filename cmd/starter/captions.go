@@ -84,6 +84,13 @@ const (
 	cDefaults       captionID = "defaults"
 	cSettingsInView captionID = "settings-in-view"
 
+	cHeadMissions     captionID = "head-missions"
+	cStartMission     captionID = "start-mission"
+	cMissionsDisabled captionID = "missions-disabled"
+	cNoMissions       captionID = "no-missions"
+	cMissionsToml     captionID = "missions-toml"
+	cSelectMission    captionID = "select-mission"
+
 	cPlay         captionID = "play"
 	cCheck        captionID = "check"
 	cSaveSettings captionID = "save-settings"
@@ -228,6 +235,13 @@ var captionRows = []captionRow{
 	row(cNoModSettings, "This mod has no settings.", "У этого мода нет установок.", ""),
 	row(cDefaults, "Defaults", "Сбросить", "dialogs.txt: Reset settings"),
 	row(cSettingsInView, "%d-%d of %d, the wheel scrolls", "%d-%d из %d, листает колесо", ""),
+
+	row(cHeadMissions, "Missions", "Миссии", ""),
+	row(cStartMission, "Start mission", "Начать миссию", ""),
+	row(cMissionsDisabled, "Tick the mod to list and start its missions.", "Отметьте мод, чтобы увидеть и начать его миссии.", ""),
+	row(cNoMissions, "This mod has no missions.", "У этого мода нет миссий.", ""),
+	row(cMissionsToml, "missions.toml: %s", "missions.toml: %s", ""),
+	row(cSelectMission, "select a mission in the list first", "сначала выберите миссию в списке", ""),
 
 	row(cPlay, "Play", "Играть", ""),
 	row(cCheck, "Check", "Проверить", ""),

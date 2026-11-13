@@ -29,7 +29,8 @@ func frameRingHash(a *app) string {
 			}
 		}
 	}
-	ring(image.Rect(10, 488+panelH, winW-10, winH-6))
+	box, _ := a.outputBox()
+	ring(box)
 	for _, it := range a.layout() {
 		switch it.kind {
 		case iButton, iToggle, iField:

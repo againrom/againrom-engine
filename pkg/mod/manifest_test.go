@@ -129,9 +129,3 @@ func TestResolveOrderAndRefusals(t *testing.T) {
 		t.Fatalf("no ids: %v %v", none, err)
 	}
 }
-
-func TestDefaultDir(t *testing.T) {
-	if got := DefaultDir(filepath.Join("c", "game")); got != filepath.Join("c", "game", "mods") {
-		t.Fatal(got)
-	}
-}

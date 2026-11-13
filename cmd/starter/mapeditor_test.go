@@ -42,11 +42,11 @@ func TestMapEditorChecksTheBaseThenStartsBesideTheStarter(t *testing.T) {
 		t.Fatalf("started before the check: %q %q", r.fakes.started, a.status)
 	}
 	a.poll()
-	wantCheck := []string{exe, "-editor", "-assets", r.root, "-list"}
+	wantCheck := []string{exe, "-editor", "-assets", r.root, "-mods-dir", filepath.Join(r.dir, "mods"), "-list"}
 	if len(r.fakes.ran) != 1 || !reflect.DeepEqual(r.fakes.ran[0], wantCheck) {
 		t.Fatalf("ran %q\nwant %q", r.fakes.ran, wantCheck)
 	}
-	want := []string{exe, "-editor", "-assets", r.root}
+	want := []string{exe, "-editor", "-assets", r.root, "-mods-dir", filepath.Join(r.dir, "mods")}
 	if len(r.fakes.started) != 1 || !reflect.DeepEqual(r.fakes.started[0], want) {
 		t.Fatalf("started %q\nwant %q", r.fakes.started, want)
 	}

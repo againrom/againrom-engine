@@ -102,6 +102,7 @@ func runAs(self string, args []string, out io.Writer) error {
 	flags := flag.NewFlagSet("mapedit", flag.ContinueOnError)
 	assets := flags.String(launch.EditorAssets.Flag, "", launch.EditorAssets.Usage)
 	path := flags.String("map", "", "explicit ALM path or catalogue key, e.g. scenario/10.alm")
+	modsDir := flags.String(launch.EditorModsDir.Flag, "", launch.EditorModsDir.Usage)
 	list := flags.Bool(launch.EditorList.Flag, launch.EditorList.GameBool(), launch.EditorList.Usage)
 	check := flags.Bool("check", false, "load and report every record/warning without opening a window")
 	snapshot := flags.String("snapshot", "", "write a headless diagnostic PNG and exit (not GPU readback)")
@@ -179,7 +180,7 @@ func runAs(self string, args []string, out io.Writer) error {
 		return err
 	}
 	userConfigDir, _ := os.UserConfigDir()
-	x.SetTestPlay(testPlayHost(self, userConfigDir, root))
+	x.SetTestPlay(testPlayHost(self, userConfigDir, root, *modsDir))
 	if *modDir != "" {
 		if err := x.SetMod(*modDir); err != nil {
 			return err
@@ -320,9 +321,12 @@ func printFindings(out io.Writer, rows []ui.InspectionFinding) error {
 
 // testPlayHost is the test play of the editor at self over the install root:
 // the player profile that program resolves, and the game beside it started
-// through the one launch.
-func testPlayHost(self, userConfigDir, root string) game.TestPlayHost {
+// through the one launch. Its mods folder is the one resolver's: the folder
+// modsDir names, as the starter passes it, else the one the starter.ini beside
+// the program names, else the mods folder beside the program.
+func testPlayHost(self, userConfigDir, root, modsDir string) game.TestPlayHost {
 	return game.TestPlayHost{
+		ModsFolder: launch.ProgramModsFolder(modsDir, filepath.Dir(self)),
 		Profile: func() (game.RuntimeProfile, error) {
 			return game.ResolveRuntimeProfile("", self, userConfigDir, root)
 		},

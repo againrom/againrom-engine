@@ -339,7 +339,8 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		return []ui.InspectionField{workspaceText("page", book.Text("editor.pages.file"), s.page), workspaceText("body", book.Text("editor.pages.body"), string(value))}
 	case "package":
 		p := s.workspace.Package
-		dir := ""
+		// A mod with no folder yet shows the working folder proposed for it.
+		dir := s.inspector.proposedModFolder(p.ID)
 		if s.inspector.mod != nil {
 			dir = s.inspector.mod.dir
 		}

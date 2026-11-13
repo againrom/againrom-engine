@@ -17,6 +17,44 @@ const (
 	LastBaseKey    = "last-base"
 )
 
+// Section and key of the starter's settings file that name the mods folder.
+const (
+	ModsSection = "mods"
+	ModsDirKey  = "dir"
+)
+
+// ModsFolder is the one mods folder of the programs in the folder programDir,
+// read by the starter's scan and the game and written by the editor's Publish:
+// the folder named, else the mods folder beside the programs.
+func ModsFolder(named, programDir string) string {
+	if d := strings.TrimSpace(named); d != "" {
+		return d
+	}
+	return filepath.Join(programDir, "mods")
+}
+
+// StarterModsDir is the mods folder the starter.ini in the folder dir names,
+// blank when it names none or cannot be read.
+func StarterModsDir(dir string) string {
+	data, err := os.ReadFile(StarterINI(dir))
+	if err != nil {
+		return ""
+	}
+	f, _ := ini.Parse(data)
+	named, _ := f.Get(ModsSection, ModsDirKey)
+	return named
+}
+
+// ProgramModsFolder is ModsFolder for a program the starter did not start
+// with a folder: the folder its own flag names, else the one the starter.ini
+// beside it names.
+func ProgramModsFolder(flag, programDir string) string {
+	if strings.TrimSpace(flag) == "" {
+		flag = StarterModsDir(programDir)
+	}
+	return ModsFolder(flag, programDir)
+}
+
 // NamedBase is one named game root.
 type NamedBase struct {
 	Key  string

@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"againrom/pkg/base"
+	"againrom/pkg/launch"
 	"againrom/pkg/mod"
+	"againrom/pkg/modrt"
 )
 
 // The fixture mod of the install-files tests with a setting and a rule set
@@ -17,14 +19,18 @@ import (
 // mark, and mission 10's World and its hash are equal. A SAV made with the
 // folder loads with the packed mod. A session without the mod differs from
 // the folder's, so the comparison can fail; a packed reader that skipped
-// files/ would lose the mod's pictures, sound and texts.
+// files/ would lose the mod's pictures, sound and texts. The packed mod stands
+// in the mods folder the one resolver gives a program folder.
 func TestReleasePackedModPlaysAsItsFolder(t *testing.T) {
 	f, slot := modFilesInstall(t)
 	if f.Archives.Game() != base.GameROM1 {
 		t.Skip("the root holds the second game")
 	}
 	const id = "packed-art"
-	folders, packedMods := t.TempDir(), t.TempDir()
+	folders, packedMods := t.TempDir(), launch.ModsFolder("", t.TempDir())
+	if err := os.Mkdir(packedMods, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	writeInstallFilesMod(t, f, slot, folders, id, "", "def init(game, settings):\n    game.rules.skill_cap = settings.cap\n")
 	settings := "[cap]\nlabel = \"Cap\"\ntype = \"int\"\ndefault = 120\nmin = 100\nmax = 150\n"
 	if err := os.WriteFile(filepath.Join(folders, id, mod.SettingsName), []byte(settings), 0o644); err != nil {
@@ -49,6 +55,15 @@ func TestReleasePackedModPlaysAsItsFolder(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseID := BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS")))
+	// The starter lists the packed mod of its mods folder and no mission for
+	// it, so it starts the game with the enabled list and no mission.
+	listed, err := mod.Scan(packedMods)
+	if err != nil || len(listed) != 1 || listed[0].Err != nil || listed[0].Manifest.ID != id {
+		t.Fatalf("the mods folder lists %+v, %v", listed, err)
+	}
+	if d, _, err := mod.DescribeMissions(listed[0].Dir, id, modrt.LanguageFor(baseID)); err != nil || len(d.Listed()) != 0 {
+		t.Fatalf("the starter would list the missions %+v, %v", d.Listed(), err)
+	}
 	fromFolder := runTownModsFor(t, baseID, folders, id)
 	fromRES := runTownModsFor(t, baseID, packedMods, id)
 	if fromRES.Ordered[0].Dir != filepath.Join(packedMods, mod.PackedName(id)) {

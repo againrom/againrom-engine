@@ -9,10 +9,11 @@ import (
 	basepkg "againrom/pkg/base"
 )
 
-// The map editor's arguments are the game's editor mode and the asset root
-// alone, the map list check adds -list, and a detected base or enabled mods, which the game's arguments
-// carry, reach neither.
-func TestEditorArgumentsNameTheAssetRootAlone(t *testing.T) {
+// The map editor's arguments are the game's editor mode, the asset root and
+// the mods folder the starter resolved, the map list check adds -list, and a
+// detected base or enabled mods, which the game's arguments carry, reach
+// neither.
+func TestEditorArgumentsNameTheAssetRootAndTheModsFolder(t *testing.T) {
 	for _, c := range []struct {
 		name, ini string
 		base      bool
@@ -31,10 +32,10 @@ func TestEditorArgumentsNameTheAssetRootAlone(t *testing.T) {
 		if err != nil || got != exe {
 			t.Fatalf("%s: plan %q, %v", c.name, got, err)
 		}
-		if want := []string{"-editor", "-assets", r.root}; !reflect.DeepEqual(start, want) {
+		if want := []string{"-editor", "-assets", r.root, "-mods-dir", filepath.Join(r.dir, "mods")}; !reflect.DeepEqual(start, want) {
 			t.Errorf("%s: editor arguments %q, want %q", c.name, start, want)
 		}
-		if want := []string{"-editor", "-assets", r.root, "-list"}; !reflect.DeepEqual(check, want) {
+		if want := []string{"-editor", "-assets", r.root, "-mods-dir", filepath.Join(r.dir, "mods"), "-list"}; !reflect.DeepEqual(check, want) {
 			t.Errorf("%s: map list arguments %q, want %q", c.name, check, want)
 		}
 		if c.base {
