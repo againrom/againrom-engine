@@ -37,22 +37,30 @@ const (
 )
 
 // regenPass advances every living entity's health and mana toward their
-// maxima, on the dispatch slot regenPhase names.
+// maxima, on the dispatch slot regenPhase names. It is the second game's
+// regeneration (nativeRegen), called every sub-tick, exactly as decayPass is.
 //
-// It is called every sub-tick, exactly as decayPass is, and phase-gates only
-// itself: there is no dispatch here for it to join. healthRegenCycle is a
-// multiple of manaRegenCycle, so every tick that qualifies for health
-// already qualifies for mana; the separate test below is what says so rather
-// than that arithmetic fact.
+// Mana moves on every pass. Health moves on every fourth pass, on the pass
+// whose low two bits equal those of the actor's runtime id, its +4
+// (R2-ENGINE-030), so the actors of one map heal on four staggered passes.
 func (w *World) regenPass() {
 	if w.tick%manaRegenCycle != regenPhase {
 		return
 	}
-	health := w.tick%healthRegenCycle == regenPhase
-	w.regenerateActors(health)
+	const phases = healthRegenCycle / manaRegenCycle
+	pass := w.tick / manaRegenCycle
+	w.regenerateEach(func(e *Entity) bool { return pass%phases == uint64(e.SourceBinding.RuntimeID)%phases })
 }
 
+// regenerateActors is the first game's pool pass: health moves for every
+// actor or for none.
 func (w *World) regenerateActors(health bool) {
+	w.regenerateEach(func(*Entity) bool { return health })
+}
+
+// regenerateEach advances each on-map actor's pools; healthDue says whether
+// the health arm runs for that actor on this pass.
+func (w *World) regenerateEach(healthDue func(*Entity) bool) {
 	for i := range w.entities {
 		e := &w.entities[i]
 		// The pass walks the on-map list, which an actor a script took off the
@@ -61,6 +69,7 @@ func (w *World) regenerateActors(health bool) {
 		if e.OffMap {
 			continue
 		}
+		health := healthDue(e)
 		if e.CurrentProfileBasis == ProfileOriginalCurrent {
 			w.regenerateOriginalCurrent(i, health)
 			continue

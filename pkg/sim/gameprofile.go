@@ -123,7 +123,8 @@ type gameProfile struct {
 	// spareMageTypes: the creature type ids an arm that spares mages spares
 	// beside a human with a mana pool (sparedMage).
 	spareMageTypes []int32
-	// nativeRegen: regeneration runs as a pass of the step.
+	// nativeRegen: regeneration runs as a pass of the step, and each actor
+	// heals on its own phase (regenPass).
 	nativeRegen bool
 	// nativeDecay: the decay ladder walks held dead and decaying health on
 	// the native tick; no session-clock dead ladder runs.
