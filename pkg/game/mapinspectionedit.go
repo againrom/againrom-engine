@@ -33,6 +33,8 @@ type mapInspectionEdits struct {
 	savedWorkspace               []byte
 	workspaceImage               []byte
 	workspaceHistory             bool
+	flowImage                    []byte
+	draftFlow                    *campaignFlow
 	page                         string
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 

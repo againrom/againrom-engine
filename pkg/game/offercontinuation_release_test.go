@@ -160,7 +160,7 @@ func preparedOfferTown(t *testing.T, chapter, mission int, building TownBuilding
 		t.Fatal("mission return has no live campaign progress")
 	}
 	for p.main.mission < chapter {
-		p.advanceMain(f.Campaign.Value(), p.main.mission)
+		p.complete(f.Campaign.Value(), p.main.mission)
 	}
 	if p.main.mission != chapter || p.record(mission) == nil {
 		t.Fatal("installed chapter has no live offered record", chapter, mission)

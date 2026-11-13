@@ -139,11 +139,24 @@ func (e *MapEditor) modGraphRows(s *popupSpec, links *[]int, page CampaignGraphP
 		text(e.word("editor.graph.mod"))
 	default:
 		text(e.word("editor.graph.install"))
+		text(e.word("editor.graph.readonly"))
 	}
 	if page.Mod {
 		for _, m := range e.graphMarks(CampaignGraphNode{MapMark: true, FlowMark: true, AddedMark: true, PartyMark: true}) {
 			row := popupRow{Kind: popupText, Label: m.Text, Value: e.word("editor.graph.legend." + m.key), Ink: m.Ink}
 			s.Rows, *links = append(s.Rows, row), append(*links, 0)
+		}
+		if !page.Refused && !page.Unbuilt {
+			if e.graphEdit {
+				text(e.word("editor.graph.select"))
+				if e.graphMission > 0 {
+					text(fmt.Sprintf(e.plainWord("editor.graph.mission"), e.graphMission))
+				}
+				if e.graphLink {
+					text(e.word("editor.graph.target"))
+				}
+			}
+			e.objectFieldRows(s, links)
 		}
 	}
 	// The graph grows down to the status strip and scrolls the rest.
@@ -256,6 +269,12 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	widths, marks := make([]int, cols), make([]int, len(page.Nodes))
 	for i, n := range page.Nodes {
 		b := e.graphBox(n)
+		if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && n.Kind == GraphMission {
+			b.Inert = false
+			if n.Number == e.graphMission {
+				b.Edge = editorWarning
+			}
+		}
 		for _, m := range b.Marks {
 			marks[i] += advance(" ") + advance(m.Text)
 		}
@@ -409,6 +428,13 @@ func (e *MapEditor) graphShown() bool {
 // graphKey moves the graph by a key: the arrows a row or two columns' gap,
 // the page keys a view less a row, Home and End to the top and the bottom.
 func (e *MapEditor) graphKey(key string) bool {
+	if key == "escape" && e.graphLink {
+		e.graphLink = false
+		return true
+	}
+	if e.graphEdit && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) {
+		return false
+	}
 	s, _, ok := e.objectSpec()
 	if !ok || s.Canvas == nil {
 		return false
@@ -460,7 +486,57 @@ func (e *MapEditor) graphPress(part popupPart, n int, p image.Point) {
 	if n < 0 || n >= len(page.Nodes) {
 		return
 	}
+	if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && page.Nodes[n].Kind == GraphMission {
+		if err := e.applyModField(); err != nil {
+			return
+		}
+		number := page.Nodes[n].Number
+		if e.graphLink {
+			if err := e.modAction("AutoGetMission", strconv.Itoa(number)); err != nil {
+				return
+			}
+			e.graphLink = false
+			return
+		}
+		e.graphMission = number
+		e.dropObject()
+		e.loadObject()
+		e.obj.focus = len(e.obj.fields)
+		return
+	}
 	e.openGraphNode(page.Nodes[n])
+}
+
+func (e *MapEditor) modFieldScope() string {
+	if e.modPage == modPageGraph {
+		if e.graphEdit {
+			return "campaign." + strconv.Itoa(e.graphMission)
+		}
+		return "campaign.0"
+	}
+	return "package"
+}
+
+func (e *MapEditor) graphAction(key string) error {
+	page, _ := e.modGraph()
+	if !page.Mod || page.Unread || page.Refused || page.Unbuilt {
+		return nil
+	}
+	switch key {
+	case "graph.edit":
+		if err := e.applyModField(); err != nil {
+			return err
+		}
+		e.graphEdit, e.graphLink = !e.graphEdit, false
+	case "graph.link":
+		e.graphLink = true
+	case "graph.unlink":
+		return e.modAction("AutoGetMission", "-1")
+	}
+	e.dropObject()
+	e.loadObject()
+	e.obj.focus = len(e.obj.fields)
+	return nil
 }
 
 // graphDrag moves a held sheet with the pointer and lets go on release.

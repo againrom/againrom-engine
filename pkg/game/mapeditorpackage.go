@@ -132,7 +132,7 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 // firstEnabled is the mod's first mission that is not switched off.
 func (m *editorMod) firstEnabled() (mod.Mission, bool) {
 	for _, candidate := range m.missions.Missions {
-		if !candidate.Off {
+		if !candidate.Off && candidate.Map != "" {
 			return candidate, true
 		}
 	}
@@ -145,7 +145,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 		return nil, errors.New(x.word("editor.mod.err.outside"))
 	}
 	w := cloneWorkspace(s.workspace)
-	if flush {
+	if flush && s.model != nil {
 		s.syncModDocument(w, w.Pages, w.Labels, !bytes.Equal(s.saved, s.model.Bytes()) || s.TextsInside() != s.savedInside)
 	}
 	entry := w.Project.Missions[index-1]
@@ -153,7 +153,12 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 		return nil, errors.New(x.word("editor.mod.err.disabledopen"))
 	}
 	source := entry.Map
-	if x.mod != nil {
+	if entry.Map == "" {
+		if address, ok := MissionMap(entry.Number); ok {
+			source = strings.TrimPrefix(address, scenarioPrefix)
+		}
+		source = ui.MapSourceKey(ui.SourceScenario, source)
+	} else if x.mod != nil {
 		source = filepath.Join(x.mod.dir, filepath.FromSlash(entry.Map))
 	}
 	previous := ""

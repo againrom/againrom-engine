@@ -26,9 +26,41 @@ type editorPackageSpec struct {
 	Manifest                            mod.Manifest
 	Number, After, Guest, Chapter, Gold int
 	Party                               []mod.GuestMember
+	AutoGetMission                      *int `json:",omitempty"`
+	MainParty                           bool `json:",omitempty"`
 	// Class and Sex are the guest row's hero words, empty when the row
 	// names none.
 	Class, Sex string `json:",omitempty"`
+	// Kept is the route held under the other kind of the kind choice.
+	Kept *editorRouteSpec `json:",omitempty"`
+}
+
+type editorRouteSpec struct {
+	After, Guest, Chapter, Gold int
+	Party                       []mod.GuestMember
+	AutoGetMission              *int
+	MainParty                   bool
+	Class, Sex                  string
+}
+
+func (p *editorPackageSpec) swapRoute() {
+	party := func(g []mod.GuestMember) []mod.GuestMember { return mod.CloneMission(mod.Mission{Party: g}).Party }
+	auto := func(v *int) *int {
+		if v == nil {
+			return nil
+		}
+		n := *v
+		return &n
+	}
+	kept := &editorRouteSpec{After: p.After, Guest: p.Guest, Chapter: p.Chapter, Gold: p.Gold, Party: party(p.Party),
+		AutoGetMission: auto(p.AutoGetMission), MainParty: p.MainParty, Class: p.Class, Sex: p.Sex}
+	next := editorRouteSpec{}
+	if p.Kept != nil {
+		next = *p.Kept
+	}
+	p.After, p.Guest, p.Chapter, p.Gold = next.After, next.Guest, next.Chapter, next.Gold
+	p.Party, p.AutoGetMission, p.MainParty = party(next.Party), auto(next.AutoGetMission), next.MainParty
+	p.Class, p.Sex, p.Kept = next.Class, next.Sex, kept
 }
 
 type editorWorkspaceState struct {
@@ -56,6 +88,10 @@ func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
 	next.Project = w.Project.clone()
 	party := mod.CloneMission(mod.Mission{Party: w.Package.Party})
 	next.Package.Party = party.Party
+	if w.Package.AutoGetMission != nil {
+		v := *w.Package.AutoGetMission
+		next.Package.AutoGetMission = &v
+	}
 	next.Package.Manifest = mod.CloneManifest(w.Package.Manifest)
 	next.Pages = make(map[string][]byte, len(w.Pages))
 	for name, b := range w.Pages {
@@ -306,6 +342,9 @@ func workspaceText(key, label, value string) ui.InspectionField {
 }
 
 func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField {
+	if strings.HasPrefix(scope, "campaign.") {
+		return s.campaignFields(scope)
+	}
 	if s.model == nil && scope != "package" {
 		return nil
 	}
@@ -391,7 +430,10 @@ func opensMod(scope, key, value string) bool {
 }
 
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
-	if s.model == nil && (scope != "package" || !isManifestField(key) && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
+	if strings.HasPrefix(scope, "campaign.") {
+		return s.setCampaignField(scope, key, value)
+	}
+	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}
@@ -458,67 +500,87 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	if isManifestField(key) {
 		return s.setManifestField(key, value)
 	}
+	if (s.workspace.Package.Kind == mod.MissionCampaign || s.workspace.Package.Kind == mod.MissionReplace) && campaignFieldKey(key) {
+		return s.setCampaignField("campaign."+strconv.Itoa(s.workspace.Package.Number), key, value)
+	}
 	if next, handled, err := s.setModControl(key, value); handled {
 		return next, err
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
-		if err := s.fileMissionFixed(w); err != nil {
-			return err
-		}
-		p := &w.Package
-		switch key {
-		case "kind":
-			if value == "0" {
-				value = mod.MissionGuest
-			}
-			if value == "1" {
-				value = mod.MissionReplace
-			}
-			if value != mod.MissionGuest && value != mod.MissionReplace {
-				return errors.New(s.inspector.word("editor.mod.err.routekind"))
-			}
-			p.Kind = value
-		case "class", "sex":
-			word, ok := heroWord(key, value)
-			if !ok {
-				return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
-			}
-			if key == "class" {
-				p.Class = word
-			} else {
-				p.Sex = word
-			}
-		default:
-			n, err := strconv.ParseInt(strings.TrimSpace(value), 0, 32)
-			maxValue, minValue := int64(65535), int64(1)
-			if key == "gold" {
-				maxValue, minValue = 1_000_000, 0
-			}
-			if err != nil || n < minValue || n > maxValue {
-				return fmt.Errorf(s.inspector.word("editor.mod.err.range"), s.inspector.modFieldLabel(key), minValue, maxValue)
-			}
-			switch key {
-			case "number":
-				p.Number = int(n)
-			case "after":
-				p.After = int(n)
-				if len(p.Party) == 0 {
-					if town, ok := s.modDestination(w); ok {
-						p.Chapter = town
-					}
-				}
-			case "guest":
-				p.Guest = int(n)
-			case "chapter":
-				p.Chapter = int(n)
-			case "gold":
-				p.Gold = int(n)
-			default:
-				return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
-			}
-		}
-		return nil
+		return s.editPackageField(w, key, value)
 	})
+}
+
+func (s *mapInspectionEdits) editPackageField(w *editorWorkspaceState, key, value string) error {
+	if err := s.fileMissionFixed(w); err != nil {
+		return err
+	}
+	p := &w.Package
+	switch key {
+	case "AutoGetMission":
+		if strings.TrimSpace(value) == "" {
+			p.AutoGetMission = nil
+		} else {
+			n, err := strconv.Atoi(strings.TrimSpace(value))
+			if err != nil {
+				return errors.New(s.inspector.word("editor.graph.err.successor"))
+			}
+			p.AutoGetMission = &n
+		}
+	case "kind":
+		if value == "0" {
+			value = mod.MissionGuest
+		}
+		if value == "1" {
+			value = mod.MissionReplace
+		}
+		if value != mod.MissionGuest && value != mod.MissionReplace {
+			return errors.New(s.inspector.word("editor.mod.err.routekind"))
+		}
+		if value != p.Kind {
+			p.Kind = value
+			p.swapRoute()
+		}
+	case "class", "sex":
+		word, ok := heroWord(key, value)
+		if !ok {
+			return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
+		}
+		if key == "class" {
+			p.Class = word
+		} else {
+			p.Sex = word
+		}
+	default:
+		n, err := strconv.ParseInt(strings.TrimSpace(value), 0, 32)
+		maxValue, minValue := int64(65535), int64(1)
+		if key == "gold" {
+			maxValue, minValue = 1_000_000, 0
+		}
+		if err != nil || n < minValue || n > maxValue {
+			return fmt.Errorf(s.inspector.word("editor.mod.err.range"), s.inspector.modFieldLabel(key), minValue, maxValue)
+		}
+		switch key {
+		case "number":
+			p.Number = int(n)
+		case "after":
+			p.After = int(n)
+			if len(p.Party) == 0 {
+				if town, ok := s.modDestination(w); ok {
+					p.Chapter = town
+				}
+			}
+		case "guest":
+			p.Guest = int(n)
+		case "chapter":
+			p.Chapter = int(n)
+		case "gold":
+			p.Gold = int(n)
+		default:
+			return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
+		}
+	}
+	return nil
 }
 
 func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDocument, error) {
@@ -592,6 +654,7 @@ func (p editorPackageSpec) mission(b []byte, pages map[string][]byte, place mod.
 			m.Guest, m.Chapter, m.Carry = 0, 0, ""
 		}
 	}
+	m.AutoGetMission, m.MainParty = p.AutoGetMission, p.MainParty
 	return m
 }
 

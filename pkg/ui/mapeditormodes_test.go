@@ -471,6 +471,17 @@ func modesAct(e *MapEditor, name string) string {
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
 			p.graph = modesGraph()
 		}
+	case "ui:mod-graph-author":
+		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
+			p.graph, p.graphFields = modesGraph(), modesCampaignFields()
+			p.graph.Mod = true
+		}
+	case "ui:graph-edit", "ui:graph-link":
+		key := strings.TrimPrefix(name, "ui:")
+		key = strings.Replace(key, "graph-", "graph.", 1)
+		if e.FocusModField(key) {
+			_ = e.Key("enter")
+		}
 	case "ui:mod-second-map":
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
 			p.inMod = true
@@ -702,6 +713,8 @@ var modesPaths = []modesPath{
 	{"mod-graph", []string{"ui:mod-graph", "package", "package"}},
 	{"mod-graph-pan", []string{"ui:mod-graph", "package", "package", "pagedown"}},
 	{"mod-graph-node", []string{"ui:mod-graph", "package", "package", "ui:graph-node"}},
+	{"mod-graph-edit", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node"}},
+	{"mod-graph-link", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node", "ui:graph-link"}},
 	{"mod-tabs", []string{"ui:mod-second-map"}},
 	// Four party rows keep the plain and mod hosts' sampled rows in place.
 	{"testplay-party", []string{"testplay"}},

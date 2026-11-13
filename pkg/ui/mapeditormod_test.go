@@ -23,7 +23,9 @@ type modesWorkspace struct {
 	// overview is the mod's overview page; empty, W has none.
 	overview ModOverviewPage
 	// graph is the campaign graph; empty, W has no graph page.
-	graph CampaignGraphPage
+	graph        CampaignGraphPage
+	graphFields  []InspectionField
+	graphRefusal error
 	// inMod makes another map open beside the open one, as in an open mod.
 	inMod bool
 }
@@ -59,28 +61,38 @@ func newModesWorkspace() *modesWorkspace {
 }
 
 func (p *modesWorkspace) WorkspaceFields(scope string) []InspectionField {
+	if strings.HasPrefix(scope, "campaign.") && scope != "campaign.0" {
+		return p.graphFields
+	}
 	if scope == "package" {
 		return p.fields
 	}
 	return nil
 }
 func (p *modesWorkspace) SetWorkspaceField(scope, key, value string) (*InspectionDocument, error) {
+	fields := p.fields
+	if strings.HasPrefix(scope, "campaign.") {
+		if p.graphRefusal != nil {
+			return nil, p.graphRefusal
+		}
+		fields = p.graphFields
+	}
 	if key == "folder" && p.leave != nil {
 		return nil, p.leave
 	}
 	if key == "publish" && p.confirm != nil {
 		return nil, p.confirm
 	}
-	for i := range p.fields {
-		if p.fields[i].Key == key {
-			if p.fields[i].Text {
-				p.fields[i].TextValue = value
+	for i := range fields {
+		if fields[i].Key == key {
+			if fields[i].Text {
+				fields[i].TextValue = value
 			} else {
 				n, e := strconv.ParseInt(value, 10, 64)
-				if e != nil && !p.fields[i].Action {
+				if e != nil && !fields[i].Action {
 					return nil, e
 				}
-				p.fields[i].Value = n
+				fields[i].Value = n
 			}
 		}
 	}

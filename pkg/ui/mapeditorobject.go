@@ -112,7 +112,20 @@ func (e *MapEditor) loadObject() {
 	*o = objectEdit{doc: e.doc, record: e.objectRecord(), focus: -1, open: -1, cell: -1, pickField: -1}
 	if e.modWindow {
 		if host, ok := e.workspace(); ok {
-			o.fields = host.WorkspaceFields("package")
+			o.fields = host.WorkspaceFields(e.modFieldScope())
+			if e.modPage == modPageGraph {
+				page, _ := e.modGraph()
+				if page.Mod && !page.Unread && !page.Refused && !page.Unbuilt {
+					label := e.word("editor.graph.edit")
+					if e.graphEdit {
+						label = e.word("editor.graph.openmaps")
+					}
+					o.fields = append([]InspectionField{{Key: "graph.edit", Label: label, Action: true, Column: 1}}, o.fields...)
+					if e.graphEdit && slices.ContainsFunc(o.fields, func(f InspectionField) bool { return f.Key == "AutoGetMission" }) {
+						o.fields = append(o.fields, InspectionField{Key: "graph.link", Label: e.word("editor.graph.link"), Action: true, Column: 1}, InspectionField{Key: "graph.unlink", Label: e.word("editor.graph.unlink"), Action: true, Column: 1})
+					}
+				}
+			}
 			for _, f := range o.fields {
 				o.buf = append(o.buf, fieldInput(f))
 			}
@@ -356,7 +369,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		for _, i := range order {
 			f := o.fields[i]
-			if e.modWindow && f.Action && f.Column == 0 {
+			if e.modWindow && e.modPage != modPageGraph && f.Action && f.Column == 0 {
 				continue
 			}
 			if e.modWindow && f.Parent != "" && f.Parent != o.detail {
@@ -998,6 +1011,7 @@ func (e *MapEditor) closeObject() {
 		e.obj.doc = nil
 	}
 	e.modWindow = false
+	e.graphLink = false
 	e.modConfirm = ""
 	e.messagePage = 0
 	e.objectHidden = true

@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/modrt"
 	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
@@ -43,7 +44,8 @@ type editorMod struct {
 	title            string
 	// flow is the campaign and the missions of the mod's admitted fork, for
 	// W's graph; nil when no fork was built.
-	flow *campaignFlow
+	flow   *campaignFlow
+	loaded *modrt.Result
 }
 
 // SetMod is the editor's one open route: it opens the mod at dir, a folder or

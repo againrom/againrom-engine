@@ -523,23 +523,16 @@ func (t *Town) Won(n int) (side bool, accepted bool) {
 	t.gold += t.camp.Reward(n)
 	t.applyMercenaryUnlocks(n)
 	side = t.records.removeChild(n)
-	routed := n == t.main
+	a := t.camp.after(n, t.main, false)
 	taken := false
-	if next, ok := t.camp.AutoAdvance(n); ok {
-		taken = t.records.follow(t.camp, next)
-		t.main, t.selected = t.records.main.mission, next
-	} else if t.camp.TownAfter[n] {
-		if offer, ok := t.camp.NextMission(t.main); ok {
-			t.records.follow(t.camp, offer.Mission)
-			t.main, t.selected = t.records.main.mission, offer.Mission
+	if a.declared || a.record != 0 {
+		if a.follow {
+			taken = t.records.follow(t.camp, a.record) && a.declared
+			t.main, t.selected = t.records.main.mission, a.record
+		} else if a.record != t.main {
+			t.main = a.record
+			t.records.loadMain(t.camp, a.record, a.announce)
 		}
-	} else {
-		t.advanceMain(n)
-	}
-	// REG-SCN-063: a won main mission whose own section names its successor
-	// routes the party there and latches that record's announce flag.
-	if next, ok := t.camp.AutoAdvance(n); routed && ok && next == t.main {
-		t.announceMission(next)
 	}
 	t.refreshAvailable()
 	if !taken {

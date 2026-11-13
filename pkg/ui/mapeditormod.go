@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -42,15 +43,37 @@ func (e *MapEditor) FocusModField(key string) bool {
 		e.obj.focus = len(e.obj.fields) + n
 		return true
 	}
-	for i, f := range e.obj.fields {
-		if f.Key == key && !f.ReadOnly {
-			e.modPage = modPageFields
-			e.obj.detail = f.Parent
-			e.objectSpec()
-			e.focusObjectField(i)
-			return true
+	focus := func() bool {
+		for i, f := range e.obj.fields {
+			if f.Key == key && !f.ReadOnly {
+				if e.modPage != modPageGraph {
+					e.modPage = modPageFields
+				}
+				e.obj.detail = f.Parent
+				e.objectSpec()
+				e.focusObjectField(i)
+				return true
+			}
 		}
+		return false
 	}
+	if focus() {
+		return true
+	}
+	if e.modPage != modPageGraph {
+		return false
+	}
+	// The graph page holds the fields of its mission only: a field of the
+	// mod's own page is focused there.
+	e.modPage = modPageFields
+	e.dropObject()
+	e.loadObject()
+	if focus() {
+		return true
+	}
+	e.modPage = modPageGraph
+	e.dropObject()
+	e.loadObject()
 	return false
 }
 
@@ -72,6 +95,9 @@ func (e *MapEditor) applyModField() error {
 }
 
 func (e *MapEditor) modAction(key, value string) error {
+	if strings.HasPrefix(key, "graph.") {
+		return e.graphAction(key)
+	}
 	if _, ok := e.workspace(); !ok {
 		return nil
 	}
@@ -83,7 +109,11 @@ func (e *MapEditor) modAction(key, value string) error {
 	} else if focus >= 0 {
 		fieldKey = e.obj.fields[focus].Key
 	}
-	_, err := e.commandSetMapField(mapField{Scope: "package", Key: key, Value: value})
+	scope := "package"
+	if e.modPage == modPageGraph && e.graphEdit && (key == "AutoGetMission" || key == "insert" || slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key })) {
+		scope = e.modFieldScope()
+	}
+	_, err := e.commandSetMapField(mapField{Scope: scope, Key: key, Value: value})
 	if err != nil {
 		var leave *WorkspaceLeave
 		if errors.As(err, &leave) {
@@ -122,6 +152,7 @@ func (e *MapEditor) modAction(key, value string) error {
 		}
 	}
 	if key == "folder" || key == "folder-open" {
+		e.graphMission, e.graphLink = 0, false
 		e.openModPage()
 	}
 	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {
@@ -143,6 +174,9 @@ func (e *MapEditor) modButton(n int) error {
 		return nil
 	}
 	if n < 0 || n >= len(modButtons) {
+		return nil
+	}
+	if e.modPage == modPageGraph && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
 		return nil
 	}
 	switch key := modButtons[n].action; key {
@@ -224,7 +258,7 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 	if e.modPage == modPageGraph && e.graphKey(key) {
 		return true, nil
 	}
-	if e.modPage != modPageFields && (key == "tab" || key == "backtab") {
+	if e.modPage != modPageFields && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
 		if key == "backtab" {
 			step = n - 1
@@ -466,6 +500,10 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		s.Buttons = append(s.Buttons, e.word(b.word))
 	}
 	s.Disabled = nil
+	if e.modPage == modPageGraph {
+		s.Disabled = make([]bool, len(modButtons))
+		s.Disabled[modButtonIndex("add")], s.Disabled[modButtonIndex("remove")] = true, true
+	}
 	if e.modConfirm != "" {
 		s.Buttons = []string{e.word("editor.mod.confirm"), e.word("editor.button.cancel")}
 		if e.modConfirmLabel != "" {

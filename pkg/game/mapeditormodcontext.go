@@ -127,6 +127,7 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 
 	}
 	m.checkLines = ModCheckLines(result)
+	m.loaded = &result
 	issue := ""
 	if err := checkMissionProjection(x.word, m.missions.Missions, result.Missions); err != nil {
 		issue = err.Error()

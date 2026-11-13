@@ -14,7 +14,8 @@ import (
 )
 
 func modPackageSpec(m mod.Mission, previous editorPackageSpec) editorPackageSpec {
-	return editorPackageSpec{ID: previous.ID, Title: previous.Title, Manifest: mod.CloneManifest(previous.Manifest), Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: mod.CloneMission(m).Party, Class: m.Class, Sex: m.Sex}
+	m = mod.CloneMission(m)
+	return editorPackageSpec{ID: previous.ID, Title: previous.Title, Manifest: mod.CloneManifest(previous.Manifest), Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold, Party: m.Party, Class: m.Class, Sex: m.Sex, AutoGetMission: m.AutoGetMission, MainParty: m.MainParty}
 }
 
 func sameWorkspace(a, b []byte) bool {

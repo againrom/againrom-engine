@@ -938,8 +938,8 @@ automatic chain is Unknown (`DIV-4854`, `DIV-4856`).
 The early town after removing the prologue link is also authored behaviour
 (`DIV-4857`).
 
-The map editor does not author these flow and party fields yet. Edit the
-missions file directly. The second game's bank-driven campaign routing is
+The map editor authors these flow and party fields on W's Campaign graph
+page (see Map editor). The second game's bank-driven campaign routing is
 also outside this implementation: the shared scenario value receives the
 override, but the bank does not route by it.
 
@@ -2386,6 +2386,29 @@ armour cell. The first member leads; a party has one to eight distinct members.
 Existing declared characters are choices. Creating character definitions and
 adding new tiles are outside this window.
 
+The Campaign graph tab shows the install's campaign, or the open mod's
+current draft. With no mod open it says Read-only. In a mod, Edit missions
+changes clicks from opening maps to selecting missions. Select a mission,
+choose Draw arrow to a mission, then click its automatic successor. Remove
+automatic arrow writes `AutoGetMission = -1`; an empty Follows at once field
+keeps the install's link. Esc cancels a pending arrow. Open maps restores
+the map-opening clicks.
+
+The selected mission uses the Missions page's party fields: Main party,
+Guest companion with its town grant, or a Party of one to eight named
+members, with the same level and equipment controls. These write only the
+existing `party`, `guest`, `chapter` and `gold` keys. No guest `after` chain,
+town hand-out or talk condition is edited from this graph.
+
+Insert mission takes a new number, a space and the path of a map already
+held by the mod, for example `11 maps/detour.alm`. Enter inserts it after
+the selected mission and gives it that mission's previous automatic
+successor. Its party starts as Main party. The ordinary mission check
+refuses invalid numbers, maps, links and parties with its own message.
+Each accepted field, arrow or insertion is one Undo step. The graph shows
+the draft immediately; only Ctrl+S writes it through the project writer.
+The graph does not edit the second game's campaign.
+
 A mod with no folder yet shows the working folder the editor proposes:
 `workbench/<id>` in the player profile, the folder that holds `saves` and `maps`
 (`Againrom/workbench/<id>` beside the programs when they stand in an install).
@@ -2426,7 +2449,10 @@ mission list too, after the rows of `data/missions.toml` and named by its file
 (`10.alm`). The list and the campaign graph open its map as they open any
 row's. The file's name is its route: Route and Mission number are read-only,
 Move and Remove are refused, and Save writes the map and its pages and no row
-for it. An extended map saved under such an `.alm` name is refused; rename the
+for it. An edit of its flow or party, from the graph or from Follows at once
+and Lands as on this page, adds an explicit campaign row for its map; Save
+then moves a map from the mod's root to `maps/m20.alm`, and a map under
+`maps/` keeps its name. An extended map saved under such an `.alm` name is refused; rename the
 file to `.almx` in the mod folder.
 
 A handwritten mod's first Save makes a complete copy under another parent

@@ -83,6 +83,8 @@ type editorChrome struct {
 	objectTop              int
 	graphAt, graphFrom     image.Point // the graph sheet's point W shows, and where a drag last held it
 	graphHeld              bool        // a drag holds the graph's sheet
+	graphEdit, graphLink   bool
+	graphMission           int
 	objectWheel, listWheel float64
 	clicks                 doubleClick
 	lastRow                int

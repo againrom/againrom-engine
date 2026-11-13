@@ -365,21 +365,6 @@ func candidateSides(ch Chapter) []int {
 	return out
 }
 
-func (p *campaignProgress) advanceMain(c Campaign, mission int) {
-	next := mission + mainMissionStride
-	if !containsMission(c.Main, next) {
-		p.selected = p.main.mission
-		return
-	}
-	// REG-SCN-063: a won record whose AutoGetMission names the next mission
-	// loads it and latches its announce flag; loading writes +0x110 anew. A
-	// completion is reached only for a carried -1 or a value above the main
-	// mission, and the latch follows the won record's own declaration
-	// (DIV-3800).
-	routed := autoGetMissionValue(c, mission) == uint32(next)
-	p.loadMain(c, next, routed)
-}
-
 func (p *campaignProgress) loadMain(c Campaign, main int, announced bool) {
 	ch := c.chapter(main)
 	p.campaignRecords.loadMain(c, main, announced)
@@ -412,13 +397,9 @@ func (p *campaignProgress) complete(c Campaign, mission int) (side bool, ok bool
 		copy(p.children[i:], p.children[i+1:])
 		p.children = p.children[:len(p.children)-1]
 		p.selected = p.main.mission
-		if next, ok := c.AutoAdvance(mission); ok {
-			p.follow(c, next)
-		}
-		if c.TownAfter[mission] {
-			if offer, ok := c.NextMission(p.main.mission); ok {
-				p.follow(c, offer.Mission)
-			}
+		a := c.after(mission, p.main.mission, true)
+		if a.follow && (a.declared || a.record != 0) {
+			p.follow(c, a.record)
 		}
 		return true, true
 	}
@@ -429,13 +410,16 @@ func (p *campaignProgress) complete(c Campaign, mission int) (side bool, ok bool
 			}
 		}
 		p.main.enableMercenary = nil
-		if next, ok := c.AutoAdvance(mission); ok {
-			p.follow(c, next)
-		} else {
-			p.advanceMain(c, mission)
-			if c.TownAfter[mission] {
-				p.main.announced = true
+		a := c.after(mission, p.main.mission, true)
+		if a.declared || a.record != 0 {
+			if a.follow {
+				p.follow(c, a.record)
+			} else {
+				p.loadMain(c, a.record, a.announce)
 			}
+		} else {
+			p.selected = p.main.mission
+			p.main.announced = p.main.announced || a.announce
 		}
 		return false, true
 	}

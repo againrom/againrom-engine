@@ -183,6 +183,7 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 	//
 	// It does NOT open the town.
 	payment := s.Town.campaignPayment(n)
+	a := campaign.after(n, s.Town.currentMain(), s.Town.restoredCampaign())
 	firstCompletion := !s.Town.Done(n)
 	restoredSide, restoredAccepted := s.Town.Won(n)
 	if firstCompletion && s.Town.Done(n) {
@@ -204,8 +205,7 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 			s.Offered = s.Town.selectedMission()
 			return 0, fmt.Sprintf("mission %d is below restored main progress %d", n, s.Town.Chapter())
 		}
-		_, automatic := campaign.AutoAdvance(n)
-		if restoredSide && !automatic && !campaign.TownAfter[n] {
+		if restoredSide && !a.follow {
 			s.Offered = s.Town.selectedMission()
 			if s.Town.Open() {
 				if s.Town.progress != nil {
@@ -221,7 +221,7 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 		}
 	}
 
-	if v, ok := campaign.AutoAdvance(n); ok {
+	if v := a.successor; a.declared {
 		if _, addressable := MissionMap(v); addressable {
 			s.Offered = 0
 			return v, completed(fmt.Sprintf("your party carries over; mission %d follows and opens now", v))
@@ -230,8 +230,8 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 		return 0, completed(fmt.Sprintf("your party carries over; the campaign declares mission %d follows and this tree can open no such mission: choose a row", v))
 	}
 
-	offer, ok := campaign.NextMission(n)
-	if campaign.TownAfter[n] {
+	offer, ok := a.offer, a.offered
+	if a.town {
 		offer, ok = Offer{Mission: s.Town.currentMain(), Town: true}, true
 	}
 	if !ok {

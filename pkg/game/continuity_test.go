@@ -270,7 +270,8 @@ func companionTable(t *testing.T) *mapload.Table {
 		{},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
-	return &mapload.Table{Humans: humans, NPC: data.LoadNPCDefs(npcReg), Weapons: weapons, Armors: armors, Shapes: emptyScale{}, Materials: emptyScale{}}
+	npcs := data.LoadNPCCatalog(npcReg)
+	return &mapload.Table{Humans: humans, NPC: npcs.Defs, NPCCatalog: npcs, Weapons: weapons, Armors: armors, Shapes: emptyScale{}, Materials: emptyScale{}}
 }
 
 func TestMission30AddHeroCreatesASeparatePersistentCompanion(t *testing.T) {

@@ -566,7 +566,7 @@ func (c Campaign) withModMissions(d mod.MissionData) (Campaign, error) {
 				}
 			}
 		}
-		if c.TownAfter[path[len(path)-1]] && (c.TownBoundary == 0 || offer.Mission < c.TownBoundary) {
+		if c.after(path[len(path)-1], root, false).town && (c.TownBoundary == 0 || offer.Mission < c.TownBoundary) {
 			c.TownBoundary = offer.Mission
 		}
 	}
@@ -588,6 +588,79 @@ func (c Campaign) advances(completed, main int) bool {
 	return completed >= main && containsMission(c.Main, completed)
 }
 
+type campaignAfter struct {
+	// declared says the mission's own section names a successor; successor
+	// is that number, whatever it is.
+	declared  bool
+	successor int
+	record    int
+	follow    bool
+	announce  bool
+	offer     Offer
+	offered   bool
+	town      bool
+	walk      Offer
+	walkOK    bool
+	screen    winRoute
+}
+
+type campaignExit struct {
+	successor  int
+	stage      int32
+	done, open bool
+}
+
+// after decides the successor, record and town offer of a win. Restored
+// records retain their adjacent-main rule; fresh records use campaign order.
+func (c Campaign) after(n, main int, restored bool, exit ...campaignExit) campaignAfter {
+	a := campaignAfter{}
+	if len(exit) != 0 {
+		e := exit[0]
+		switch {
+		case e.successor < 0:
+			a.screen = winStay
+		case c.TerminalMission(n, e.stage) && e.done:
+			a.screen = winEnding
+		case e.successor > 0:
+			a.screen = winMission
+		case e.open:
+			a.screen = winTown
+		}
+	}
+	a.walk, a.walkOK = c.NextMission(main)
+	if next, ok := c.AutoAdvance(n); ok {
+		a.declared, a.successor, a.record, a.follow, a.announce = true, next, next, true, true
+		return a
+	}
+	a.town = c.TownAfter[n]
+	a.walk.Town = a.walkOK && (a.walk.Town || a.town)
+	a.offer, a.offered = c.NextMission(n)
+	if a.town {
+		a.follow, a.announce = true, true
+		if a.walkOK {
+			a.record = a.walk.Mission
+		}
+	} else if c.advances(n, main) {
+		a.record = n
+		if next, ok := c.NextMission(n); ok {
+			a.record = next.Mission
+		}
+	}
+	if restored && n == main {
+		a.record = 0
+		if next := n + mainMissionStride; containsMission(c.Main, next) {
+			a.record = next
+		}
+	}
+	if a.town {
+		a.offer, a.offered = Offer{Mission: main, Town: true}, true
+		if containsMission(c.Main, a.record) && a.record >= main {
+			a.offer.Mission = a.record
+		}
+	}
+	return a
+}
+
 // winRoute walks the win of mission n while the campaign stands on main
 // mission main: path is the missions the sections lead through, n first
 // (AutoAdvance), and stands the main mission the campaign stands on at the
@@ -597,12 +670,11 @@ func (c Campaign) advances(completed, main int) bool {
 func (c Campaign) winRoute(n, main int) (path []int, stands int, offer Offer, ok bool) {
 	for range len(c.Main) + len(c.Side) + 1 {
 		path = append(path, n)
-		next, automatic := c.AutoAdvance(n)
-		if !automatic {
-			offer, ok = c.NextMission(main)
-			offer.Town = ok && (offer.Town || c.TownAfter[n])
-			return path, main, offer, ok
+		a := c.after(n, main, false)
+		if !a.declared {
+			return path, main, a.walk, a.walkOK
 		}
+		next := a.successor
 		if containsMission(c.Main, next) {
 			main = next
 		}

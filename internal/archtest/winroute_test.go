@@ -47,6 +47,12 @@ func TestCheckWinRoute(t *testing.T) {
 			"package game\ntype campaignService interface {\n\troute(f *FrontEnd, n, successor int) winRoute\n}\n", "campaignService declares the win step route"},
 		{"a return mission field", "pkg/game/worldmap.go",
 			"package game\nfunc f(s *worldMapState) bool { return s.returnMission != 0 }\n", ""},
+		{"a successor arm in the town", "pkg/game/town.go",
+			"package game\nfunc (t *Town) Won(n int) { t.camp.AutoAdvance(n) }\n", "win successor read outside Campaign.after"},
+		{"a successor arm in the record", "pkg/game/campaignprogress.go",
+			"package game\nfunc (p *campaignProgress) complete(c Campaign, n int) { _ = c.TownAfter[n] }\n", "win successor read outside Campaign.after"},
+		{"a successor arm in the session", "pkg/game/campaignsession.go",
+			"package game\nfunc (s *CampaignSession) recordWin(c Campaign, n int) { c.NextMission(n) }\n", "win successor read outside Campaign.after"},
 		{"a test file", "pkg/game/modmission_test.go",
 			"package game\nfunc f(g *guestMission) bool { return g.playing(25) }\n", ""},
 	}

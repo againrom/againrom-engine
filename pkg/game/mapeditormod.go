@@ -75,10 +75,10 @@ func (d *editorModDocument) selected(p editorPackageSpec, word func(string) stri
 	m.Kind, m.Number = p.Kind, p.Number
 	m.After, m.Guest, m.Chapter, m.Gold = p.After, p.Guest, p.Chapter, p.Gold
 	m.Class, m.Sex = p.Class, p.Sex
+	m.AutoGetMission, m.MainParty = p.AutoGetMission, p.MainParty
 	m.Party = mod.CloneMission(mod.Mission{Party: p.Party}).Party
-	if m.Kind == mod.MissionReplace {
-		m.After, m.Guest, m.Chapter, m.Gold, m.Carry, m.Party = 0, 0, 0, 0, "", nil
-		m.Class, m.Sex = "", ""
+	if m.Campaign() {
+		m.After = 0
 	}
 	if len(m.Party) != 0 {
 		m.Guest, m.Chapter, m.Carry = 0, 0, ""
@@ -126,13 +126,26 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 			}
 		}
 	}
+	finish := func(m mod.Mission, layout mod.LayoutChange) (map[string][]byte, []mod.Mission, mod.Mission, mod.LayoutChange, error) {
+		data, err := mod.WriteMissions(d.Source, d.Original, d.Missions)
+		if err != nil {
+			return nil, nil, m, none, err
+		}
+		// A mod with no missions file and no row to write keeps none.
+		if len(data) != 0 || len(d.Source) != 0 {
+			d.Files[mod.MissionsFile] = data
+		}
+		d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
+		if err != nil {
+			return nil, nil, m, none, err
+		}
+		return d.Files, d.Missions, m, layout, nil
+	}
 	if d.Selected < 0 {
 		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels)) {
 			return nil, nil, mod.Mission{}, none, errors.New(s.inspector.word("editor.mod.err.unnamed"))
 		}
-		var err error
-		d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
-		return d.Files, d.Missions, mod.Mission{}, none, err
+		return finish(mod.Mission{}, none)
 	}
 	m, err := d.selected(s.workspace.Package, s.inspector.word)
 	if err != nil {
@@ -140,6 +153,13 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 	}
 	if m.Off {
 		return nil, nil, m, none, errors.New(s.inspector.word("editor.mod.err.disabledmap"))
+	}
+	if m.Map == "" {
+		if s.model == nil || bytes.Equal(b, s.saved) {
+			d.Missions[d.Selected] = m
+			return finish(m, none)
+		}
+		m.Map = s.place().Free(s.projectFiles(d)).Map
 	}
 	if m.ByFileName() {
 		// The layout does not rename a map file that is its own declaration.
@@ -158,19 +178,7 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 	m.MapBytes = bytes.Clone(b)
 	m.TextFiles = s.workspace.Pages
 	d.Missions[d.Selected] = m
-	data, err := mod.WriteMissions(d.Source, d.Original, d.Missions)
-	if err != nil {
-		return nil, nil, m, none, err
-	}
-	// A mod with no missions file and no row to write keeps none.
-	if len(data) != 0 || len(d.Source) != 0 {
-		d.Files[mod.MissionsFile] = data
-	}
-	d.Files[mod.ManifestName], err = s.workspace.Package.manifestBytes(d.Manifest)
-	if err != nil {
-		return nil, nil, m, none, err
-	}
-	return d.Files, d.Missions, m, layout, nil
+	return finish(m, layout)
 }
 
 // treeLayout moves the project's mission rows that lie outside the tree
@@ -289,7 +297,38 @@ func (s *mapInspectionEdits) projectFiles(d *editorModDocument) []string {
 	return held
 }
 
+func (x *MapInspector) missionFiles(rows []mod.Mission, pending map[string][]byte) error {
+	for i := range rows {
+		m := &rows[i]
+		if m.Off || m.Map == "" {
+			continue
+		}
+		if len(m.MapBytes) == 0 {
+			if err := m.ReadFiles(x.mod.dir); err != nil {
+				return err
+			}
+		}
+		if b, ok := pending[m.Map]; ok {
+			m.MapBytes = bytes.Clone(b)
+		}
+	}
+	return nil
+}
+
 func (x *MapInspector) checkMissionSet(missions []mod.Mission) error {
+	if x.mod != nil && x.mod.loaded != nil && slices.ContainsFunc(missions, func(m mod.Mission) bool { return m.Kind == mod.MissionCampaign || m.Campaign() && m.GuestParty() }) {
+		rows := make([]mod.Mission, len(missions))
+		for i, m := range missions {
+			rows[i] = mod.CloneMission(m)
+		}
+		if err := x.missionFiles(rows, nil); err != nil {
+			return err
+		}
+		result := *x.mod.loaded
+		result.Missions = mod.MissionData{Missions: rows}
+		_, _, err := x.admittedFork(result)
+		return err
+	}
 	if len(missions) == 1 {
 		return x.checkMissionRoute(missions[0])
 	}

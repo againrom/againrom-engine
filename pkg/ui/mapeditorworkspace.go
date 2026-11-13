@@ -127,7 +127,7 @@ func (e *MapEditor) turnModPage(n int) bool {
 	if n < 0 {
 		n = (slices.Index(pages, e.modPage) + 1) % len(pages)
 	}
-	if n < len(pages) && (e.modPage != modPageFields || e.applyModField() == nil) {
+	if n < len(pages) && (e.modPage == modPageOverview || e.applyModField() == nil) {
 		e.showModPage(pages[n])
 	}
 	return true
@@ -136,8 +136,16 @@ func (e *MapEditor) turnModPage(n int) bool {
 // showModPage shows W's page n: its rows and its graph from the top, the
 // keyboard on its first control.
 func (e *MapEditor) showModPage(n int) {
+	graph := e.modPage == modPageGraph || n == modPageGraph
+	if n != modPageGraph {
+		e.graphLink = false
+	}
 	e.modPage, e.objectTop, e.graphAt = n, 0, image.Point{}
 	e.obj.focus = 0
+	if graph {
+		e.dropObject()
+		e.loadObject()
+	}
 	if n != modPageFields {
 		e.obj.focus = len(e.obj.fields)
 	}
@@ -187,6 +195,7 @@ func (e *MapEditor) keyWorkspace(key string) error {
 		e.modWindow = true
 		e.modConfirm = ""
 		e.objectHidden = false
+		e.modPage = modPageFields
 		e.dropObject()
 		e.loadObject()
 		e.objectSpec()

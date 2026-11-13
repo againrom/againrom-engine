@@ -13,9 +13,7 @@ import (
 
 func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.InspectionField {
 	x, p := s.inspector, s.workspace.Package
-	if p.Kind == mod.MissionReplace {
-		p.Party = nil
-	}
+	campaign := p.Kind == mod.MissionCampaign || p.Kind == mod.MissionReplace
 	fixed := s.fileMissionFixed(s.workspace) != nil
 	for i := range out {
 		f := &out[i]
@@ -25,6 +23,11 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 		case "folder", "id", "title", "source":
 			f.Column = 0
 		case "kind":
+			if p.Kind == mod.MissionCampaign {
+				f.ReadOnly, f.Text, f.TextValue = true, true, x.word("editor.mod.campaign")
+				f.Lines = []ui.InspectionLine{{Text: x.inspectionUTF8(f.Label + ": " + f.TextValue)}}
+				break
+			}
 			f.Text = false
 			f.Value = 0
 			if p.Kind == mod.MissionReplace {
@@ -69,7 +72,7 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 				}
 			}
 		}
-		if f.Key == "chapter" || f.Key == "id" && x.mod != nil || fixed && (f.Key == "kind" || f.Key == "number") || p.Kind == mod.MissionReplace && (f.Key == "after" || f.Key == "guest" || f.Key == "gold") || len(p.Party) > 0 && (f.Key == "guest" || f.Key == "chapter") {
+		if f.Key == "chapter" || f.Key == "id" && x.mod != nil || fixed && (f.Key == "kind" || f.Key == "number") || campaign && f.Key == "after" || campaign && p.Guest == 0 && len(p.Party) == 0 && (f.Key == "guest" || f.Key == "gold") || len(p.Party) > 0 && (f.Key == "guest" || f.Key == "chapter") {
 			f.ReadOnly = true
 			f.Lines = []ui.InspectionLine{{Text: x.inspectionUTF8(f.Label+": ") + fieldLabel(*f)}}
 		}
@@ -78,10 +81,32 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	if len(p.Party) > 0 {
 		landing = 1
 	}
-	if p.Kind != mod.MissionReplace {
-		out = append(out, ui.InspectionField{Key: "landing", Label: x.word("editor.mod.landing"), Value: landing, Column: 1, Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.mod.companion"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.mod.party"))}}})
-		out = append(out, x.heroField("class", p.Class), x.heroField("sex", p.Sex))
-		if len(p.Party) == 0 {
+	if campaign && p.Guest == 0 && len(p.Party) == 0 {
+		landing = 2
+	}
+	{
+		choices := []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.mod.companion"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.mod.party"))}}
+		if campaign {
+			choices = append(choices, ui.InspectionChoice{Value: 2, Label: x.inspectionUTF8(x.word("editor.graph.mainparty"))})
+			auto := ""
+			if p.AutoGetMission != nil {
+				auto = strconv.Itoa(*p.AutoGetMission)
+			}
+			out = append(out, ui.InspectionField{Key: "AutoGetMission", Label: x.word("editor.graph.successor"), Meaning: x.word("editor.graph.flowhint"), Text: true, TextValue: auto, Column: 1})
+		}
+		out = append(out, ui.InspectionField{Key: "landing", Label: x.word("editor.mod.landing"), Value: landing, Column: 1, Choices: choices})
+		if campaign && s.campaignLocked() != nil {
+			for i := range out {
+				if f := &out[i]; f.Key == "AutoGetMission" || f.Key == "landing" {
+					f.ReadOnly = true
+					f.Lines = []ui.InspectionLine{{Text: x.inspectionUTF8(f.Label+": ") + fieldLabel(*f)}}
+				}
+			}
+		}
+		if !campaign {
+			out = append(out, x.heroField("class", p.Class), x.heroField("sex", p.Sex))
+		}
+		if len(p.Party) == 0 && p.Guest != 0 {
 			out = append(out, x.modLine("carry", x.word("editor.mod.carryjoin")))
 		}
 	}
@@ -258,6 +283,17 @@ func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool)
 		return 0, false
 	}
 	m := w.Package.mission(nil, nil, mod.MissionPlace{})
+	if w.Package.Kind == mod.MissionCampaign || w.Package.Kind == mod.MissionReplace {
+		copy := cloneWorkspace(w)
+		s.syncModDocument(copy, copy.Pages, copy.Labels, false)
+		if flow, err := c.withModMissions(mod.MissionData{Missions: copy.Project.Missions}); err == nil {
+			towns := flow.missionTowns[w.Package.Number]
+			if len(towns) > 0 {
+				return towns[0], true
+			}
+		}
+		return 0, false
+	}
 	d := mod.MissionData{Missions: []mod.Mission{m}}
 	if p := w.Project; p != nil && p.Selected >= 0 {
 		m, err = p.selected(w.Package, s.inspector.word)

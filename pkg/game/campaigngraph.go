@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"slices"
 
 	"againrom/pkg/formats/alm"
@@ -187,18 +188,19 @@ func (g *campaignGraph) follow(at, n, stands, home int) {
 		at = to
 	}
 	last := path[len(path)-1]
-	if _, more := g.c.AutoAdvance(last); more {
+	a := g.c.after(last, stood, false)
+	if a.declared {
 		return // the sections lead round without end
 	}
 	stays := home != 0 && stood == home && !g.c.advances(last, home)
 	switch {
-	case stays && !(ok && g.c.TownAfter[last]):
+	case stays && !(ok && a.town):
 		g.toTown(at, last, home)
 	case !ok || stood == 0:
 	case offer.Town:
 		g.toTown(at, last, offer.Mission)
 		// The win set to open the town leaves its main mission announced.
-		if g.told[offer.Mission] = g.told[offer.Mission] || g.c.TownAfter[last]; g.laid[offer.Mission] {
+		if g.told[offer.Mission] = g.told[offer.Mission] || a.town; g.laid[offer.Mission] {
 			g.offered(offer.Mission)
 		}
 	default:
@@ -334,11 +336,13 @@ func (x *MapInspector) graphMission(n int) (title, source string) {
 	return "", ""
 }
 
-// CampaignGraph is W's campaign graph page: the install's campaign, or with
-// a mod open the campaign of the mod's admitted fork, the one the game's
-// launch builds. A mission the mod holds the map of opens as its row of W's
-// mission list does; any other opens its install map. The graph of a mod the
-// game refuses, or whose fork was not built, is the install's.
+func (x *MapInspector) graphUnread() bool {
+	book := townBookOf(x.archives.Base.Profile)
+	return book != nil && book.catalog != nil && !townCatalogTakesLayer(book.catalog)
+}
+
+// CampaignGraph reads the admitted project draft, or the install when the
+// mod is absent or refused. Missions open through the existing map routes.
 func (s *mapInspectionEdits) CampaignGraph() ui.CampaignGraphPage {
 	x := s.inspector
 	stock := x.installFlow()
@@ -346,7 +350,7 @@ func (s *mapInspectionEdits) CampaignGraph() ui.CampaignGraphPage {
 		return ui.CampaignGraphPage{}
 	}
 	page := ui.CampaignGraphPage{Mod: x.mod != nil}
-	if book := townBookOf(x.archives.Base.Profile); book != nil && book.catalog != nil && !townCatalogTakesLayer(book.catalog) {
+	if x.graphUnread() {
 		page.Unread = true
 		return page
 	}
@@ -355,6 +359,16 @@ func (s *mapInspectionEdits) CampaignGraph() ui.CampaignGraphPage {
 		page.Refused = x.mod.refusal != ""
 		if page.Unbuilt = x.mod.flow == nil && !page.Refused; x.mod.flow != nil {
 			flow = x.mod.flow
+		}
+		if s.workspace != nil && s.workspace.Project != nil && !page.Refused && !page.Unbuilt {
+			if !bytes.Equal(s.flowImage, s.workspaceImage) || s.draftFlow == nil {
+				if draft, err := s.missionDraft(s.workspace); err == nil {
+					s.draftFlow, s.flowImage = draft, s.workspaceImage
+				}
+			}
+			if s.draftFlow != nil {
+				flow = s.draftFlow
+			}
 		}
 	}
 	if flow.graph == nil {

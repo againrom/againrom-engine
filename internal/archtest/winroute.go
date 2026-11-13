@@ -72,6 +72,15 @@ func CheckWinRoute(files map[string]string) []Violation {
 						Reason: sel.Sel.Name + " call outside the session mission identity; read newMissionIdentity's answer"})
 				}
 			case *ast.FuncDecl:
+				if winSuccessorConsumer(name, n.Name.Name) {
+					ast.Inspect(n.Body, func(node ast.Node) bool {
+						if sel, ok := node.(*ast.SelectorExpr); ok &&
+							(sel.Sel.Name == "AutoAdvance" || sel.Sel.Name == "TownAfter" || sel.Sel.Name == "NextMission") {
+							vs = append(vs, Violation{From: at(sel.Pos()), Reason: "win successor read outside Campaign.after"})
+						}
+						return true
+					})
+				}
 				switch n.Name.Name {
 				case "finishWon":
 					if receiverName(n.Recv) != "frontTransitions" {
@@ -109,4 +118,13 @@ func CheckWinRoute(files map[string]string) []Violation {
 		vs = append(vs, Violation{From: "pkg/game", Reason: "finishWin declared " + strconv.Itoa(len(finishWin)) + " times, want 1: " + strings.Join(finishWin, ", ")})
 	}
 	return vs
+}
+
+func winSuccessorConsumer(file, function string) bool {
+	return file == "pkg/game/town.go" && function == "Won" ||
+		file == "pkg/game/campaignprogress.go" && function == "complete" ||
+		file == "pkg/game/campaignsession.go" && function == "recordWin" ||
+		file == "pkg/game/campaignreturn.go" && function == "routeAfterWin" ||
+		file == "pkg/game/campaign.go" && function == "winRoute" ||
+		file == "pkg/game/campaigngraph.go" && function == "follow"
 }

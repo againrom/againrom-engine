@@ -290,20 +290,13 @@ const (
 // crosses: the town is a screen the front end already installed, standing
 // whether a mission is running or not.
 func (s *CampaignSession) routeAfterWin(campaign Campaign, n, successor int) winRoute {
-	if successor < 0 {
-		return winStay
-	}
-	if campaign.TerminalMission(n, s.Town.campaignStage()) && s.Town.Done(n) {
+	a := campaign.after(n, s.Town.currentMain(), s.Town.restoredCampaign(), campaignExit{
+		successor: successor, stage: s.Town.campaignStage(), done: s.Town.Done(n), open: s.Town.Open(),
+	})
+	if a.screen == winEnding {
 		s.endLive()
-		return winEnding
 	}
-	if successor > 0 {
-		return winMission
-	}
-	if s.Town.Open() {
-		return winTown
-	}
-	return winList
+	return a.screen
 }
 
 // leaveLive is what leaving the live mission n without completing it does to
