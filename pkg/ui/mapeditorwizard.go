@@ -1159,8 +1159,9 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 	if heroes && e.multiplayer() {
 		text(e.word("editor.wizard.multiplayer"), "warning")
 	}
-	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.details")}
-	s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
+	_, copies := e.copyOpen()
+	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.details"), e.word("editor.trigger.copy")}
+	s.Disabled = []bool{!e.objectDirty(), false, false, false, false, !copies}
 	fitButtons(s, e.bodyFont())
 }
 
@@ -1557,6 +1558,8 @@ func (e *MapEditor) wizardButton(v scriptView, n int) {
 		}
 		e.triggerDetails = v.index + 1
 		e.obj.doc = nil
+	case 5:
+		e.copyTrigger(v.index)
 	}
 }
 

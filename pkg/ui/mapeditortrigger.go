@@ -654,8 +654,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		if acts < scriptprofile.Extended.Actions {
 			add(popupRow{Kind: popupText}, -1, actAddAct)
 		}
-		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back")}
-		s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
+		_, copies := e.copyOpen()
+		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back"), e.word("editor.trigger.copy")}
+		s.Disabled = []bool{!e.objectDirty(), false, false, false, false, !copies}
 		fitButtons(&s, e.bodyFont())
 	} else {
 		s.Title = fmt.Sprintf(e.word("editor.node.action"), v.node.ID)
@@ -907,6 +908,8 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 			return
 		}
 		e.ShowTriggerDetails(false)
+	case v.trigger != nil && n == 5:
+		e.copyTrigger(v.index)
 	case n == 2 && e.listedCondition(v):
 		e.addToTrigger(v)
 	case v.node != nil && n == 2:
@@ -999,6 +1002,60 @@ func (e *MapEditor) deleteTrigger(v scriptView) {
 	} else if ch.doc != nil {
 		e.selected = -1
 	}
+}
+
+// copyHost reports that the map is editable and its host copies triggers.
+func (e *MapEditor) copyHost() bool {
+	if !e.editable() {
+		return false
+	}
+	_, ok := e.doc.Edits.(InspectionTriggerCopy)
+	return ok
+}
+
+// copyOpen is the selected trigger's index when its host copies triggers.
+func (e *MapEditor) copyOpen() (int, bool) {
+	if !e.copyHost() {
+		return 0, false
+	}
+	v, ok := e.scriptViewOf(e.selected)
+	return v.index, ok && v.trigger != nil
+}
+
+// copySelectedTrigger is the Copy trigger row of the Tools menu and of the
+// key table: it copies the selected trigger, and with none selected says to
+// select one.
+func (e *MapEditor) copySelectedTrigger() {
+	index, ok := e.copyOpen()
+	if !ok {
+		e.message = e.word("editor.trigger.copyfirst")
+		return
+	}
+	e.copyTrigger(index)
+}
+
+// copyTrigger copies trigger index right after it as one edit and selects
+// the copy, its popup read afresh. A shown popup with unapplied edits keeps
+// them and says so.
+func (e *MapEditor) copyTrigger(index int) {
+	if e.objectDirty() {
+		e.obj.note = e.word("editor.trigger.applyfirst")
+		return
+	}
+	ch, err := e.commandCopyTrigger(index)
+	if e.askScriptForm(err, func() { e.copyTrigger(index) }) {
+		return
+	}
+	if err != nil {
+		e.message = e.editorHostText(err.Error())
+		return
+	}
+	if ch.record == nil {
+		return
+	}
+	e.selectNewest(KindTrigger, *ch.record)
+	e.obj.doc = nil
+	e.loadObject()
 }
 
 // scriptValues are the changed fields of a script popup as the host's field

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -66,6 +67,93 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	}
 	_, err := m.Place(k, rec)
 	return id, err
+}
+
+// CopyTrigger places a copy of trigger index right after it as one edit: its
+// fields, its own new condition and action nodes, and its name with the word
+// book's copy mark. The document's added record is the copy. A new check is
+// refused where the wizard refuses one.
+func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, error) {
+	at := -1
+	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
+		_, sc, err := wizardScript(m)
+		if err != nil {
+			return false, err
+		}
+		if index < 0 || index >= len(sc.Triggers) {
+			return false, fmt.Errorf("no trigger %d", index+1)
+		}
+		limits := scriptprofile.Of(sc.Extended)
+		if n := len(sc.Triggers); n >= limits.Triggers {
+			return false, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
+				fmt.Sprintf("the script already holds %d triggers", limits.Triggers))
+		}
+		t := sc.Triggers[index]
+		checks := map[uint32]bool{}
+		for _, id := range conditionIDs(t) {
+			checks[id] = id != 0 && nodeIndex(sc.Conditions, id) >= 0
+		}
+		added := 0
+		for _, copied := range checks {
+			if copied {
+				added++
+			}
+		}
+		if limits.Registers > 0 && len(sc.Conditions)+added > limits.Registers {
+			return false, s.checkWords(errChecksFull)
+		}
+		if err := registerCollision(sc, added); err != nil {
+			return false, s.checkWords(err)
+		}
+		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")))
+		return err == nil, copyRefusal(err, s.inspector.word)
+	})
+	if d != nil {
+		d.AddedRecord = ui.RecordRef{Kind: ui.KindTrigger, Index: at}
+	}
+	return d, err
+}
+
+// copyRefusals are the word-book texts of the nodes a copy refuses, by
+// reason and node array; each takes the node ID or the ID cap.
+var copyRefusals = map[mapedit.CopyRefused]struct{ conditionWord, actionWord string }{
+	mapedit.CopySharedID:  {conditionWord: "editor.trigger.copysharedcondition", actionWord: "editor.trigger.copysharedaction"},
+	mapedit.CopyIDsFull:   {conditionWord: "editor.trigger.copyidsfull", actionWord: "editor.trigger.copyidsfull"},
+	mapedit.CopyLongLabel: {conditionWord: "editor.trigger.copylongcondition", actionWord: "editor.trigger.copylongaction"},
+}
+
+// copyRefusal is err in the words of word when it is a node the copy
+// refuses, err otherwise.
+func copyRefusal(err error, word func(string) string) error {
+	var r *mapedit.CopyRefusalError
+	if !errors.As(err, &r) {
+		return err
+	}
+	key := copyRefusals[r.Why].conditionWord
+	if r.Kind == mapedit.KindAction {
+		key = copyRefusals[r.Why].actionWord
+	}
+	return fmt.Errorf(word(key), r.ID)
+}
+
+// copyName is name in format, the copy mark's words, with as many of name's
+// last characters cut as the record's name field needs. A name that already
+// carries the mark keeps one mark.
+func copyName(name, format string) string {
+	if before, after, ok := strings.Cut(format, "%s"); ok && before+after != "" {
+		if rest, ok := strings.CutPrefix(name, before); ok {
+			if rest, ok := strings.CutSuffix(rest, after); ok {
+				name = rest
+			}
+		}
+	}
+	runes := []rune(name)
+	for n := len(runes); ; n-- {
+		out := fmt.Sprintf(format, string(runes[:n]))
+		if b, err := alm.ScriptLabelText.Encode(out); n == 0 || err == nil && len(b) < alm.ScriptLabelLen {
+			return out
+		}
+	}
 }
 
 func scriptNodes(sc alm.Script, k mapedit.Kind) []alm.ScriptNode {

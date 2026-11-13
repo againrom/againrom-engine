@@ -27,14 +27,7 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDoc
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
 		if err := writeWizardTrigger(m, t); err != nil {
-			var taken registerTaken
-			switch {
-			case errors.As(err, &taken):
-				err = fmt.Errorf(s.inspector.word("editor.wizard.registers"), taken.register)
-			case errors.Is(err, errChecksFull):
-				err = lifted(err, s.inspector.word("editor.wizard.checksfull"))
-			}
-			return false, err
+			return false, s.checkWords(err)
 		}
 		changed := m.Mark() != mark
 		m.Squash(mark)
@@ -44,6 +37,19 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDoc
 		s.undoWorkspace = s.undoWorkspace[:steps]
 	}
 	return d, err
+}
+
+// checkWords is a refusal for want of a check register in the editor's
+// words; any other error as it is.
+func (s *mapInspectionEdits) checkWords(err error) error {
+	var taken registerTaken
+	switch {
+	case errors.As(err, &taken):
+		return fmt.Errorf(s.inspector.word("editor.wizard.registers"), taken.register)
+	case errors.Is(err, errChecksFull):
+		return lifted(err, s.inspector.word("editor.wizard.checksfull"))
+	}
+	return err
 }
 
 // wizardScript is m's decoded script.

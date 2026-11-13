@@ -1,4 +1,4 @@
-== trigger-en-1920x1080 e39ba162e0c841ec panels=[260 520 26] map=(260,58)-(1400,1038)
+== trigger-en-1920x1080 b70267503bdc6937 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -32,7 +32,7 @@ title "Trigger 1"
 3 "  Group" "" [On map] ""
 0 "" "" [Add action] ""
 0 "With no condition the trigger never runs." "" [] ""
-== trigger-ru-1920x1080 aa6930d752035f00 panels=[260 520 26] map=(260,58)-(1400,1038)
+== trigger-ru-1920x1080 450e001dfa39130f panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability brush.bridge drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры

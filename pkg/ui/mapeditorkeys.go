@@ -177,6 +177,7 @@ func init() {
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
 		{key: "newtrigger", label: "F4", act: (*MapEditor).menuKey, help: keys(helpLine{Word: "editor.keys.newtrigger"})},
+		{key: "copytrigger", act: (*MapEditor).menuKey, unlisted: "Tools menu and the trigger window's Copy"},
 		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
 		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenKeys, lineBoxMove}, {screenAddCell, linePlace}}},
 		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},

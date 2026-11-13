@@ -44,9 +44,12 @@ var almReferences = nameTable{
 	// trigger writer takes the format's trigger value.
 	"script.go/scriptLayout":              {"alm.FrameScript", "alm.ScriptFrameError"},
 	"script.go/triggerWords":              {"alm.ScriptTrigger"},
-	"script.go/NewScriptTrigger":          {"alm.ScriptLabelText", "alm.ScriptTrigger"},
+	"script.go/NewScriptTrigger":          {"alm.ScriptTrigger"},
+	"script.go/newScriptTrigger":          {"alm.ScriptLabelText", "alm.ScriptTrigger"},
 	"script.go/(*Editor).SetTriggerSlots": {"alm.ScriptTrigger"},
 	"script.go/(*Editor).AddDropZone":     {"alm.ScriptTrigger"},
+	"script.go/(*Editor).CopyTrigger":     {"alm.ScriptTrigger"},
+	"script.go/(*Editor).copyNodes":       {"alm.ScriptLabelText", "alm.ScriptNode"},
 	"arm.go/(*Editor).AddArm":             {"alm.ScriptTrigger"},
 	// The Againrom script record: the frame finds it by its typeId, its
 	// trigger row measures and writes through the record's one trigger
@@ -59,7 +62,8 @@ var almReferences = nameTable{
 	"scriptform.go/recordTriggerLength":          {"alm.DecodeScriptRecordTrigger"},
 	"scriptform.go/recordTriggerFields":          {"alm.ScriptLabelText", "alm.ScriptRecordActionSize", "alm.ScriptRecordConditionSize", "alm.ScriptRecordCounts", "alm.ScriptRecordOnce", "alm.ScriptRecordTriggerHead"},
 	"scriptform.go/(*Editor).Extended":           {"alm.ScriptRecordTypeID"},
-	"scriptform.go/(*Editor).NewTrigger":         {"alm.EncodeScriptRecordTrigger", "alm.ScriptTrigger"},
+	"scriptform.go/(*Editor).NewTrigger":         {"alm.ScriptTrigger"},
+	"scriptform.go/(*Editor).newTrigger":         {"alm.EncodeScriptRecordTrigger", "alm.ScriptTrigger"},
 	"scriptform.go/(*Editor).setRecordTrigger":   {"alm.DecodeScriptRecordTrigger", "alm.EncodeScriptRecordTrigger", "alm.ScriptTrigger"},
 	"scriptform.go/(*Editor).ScriptVariables":    {"alm.ScriptRecordHeadSize", "alm.ScriptRecordTypeID", "alm.ScriptRecordVariables"},
 	"scriptform.go/(*Editor).SetScriptVariables": {"alm.ScriptRecordTypeID", "alm.ScriptRecordVariables"},

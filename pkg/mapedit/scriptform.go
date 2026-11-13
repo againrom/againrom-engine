@@ -89,10 +89,20 @@ func (e *Editor) scriptRoom(checks, triggers int) error {
 // NewScriptTrigger builds, or on an extended map the bytes of the next
 // trigger of the Againrom record.
 func (e *Editor) NewTrigger(t alm.ScriptTrigger) ([]byte, error) {
+	return e.newTrigger(t, nil)
+}
+
+// newTrigger is NewTrigger where on an ordinary map a slot word the same
+// slot of trigger record like holds stands unchecked; like nil checks every
+// word.
+func (e *Editor) newTrigger(t alm.ScriptTrigger, like []byte) ([]byte, error) {
 	if e.Extended() {
 		return alm.EncodeScriptRecordTrigger(e.Count(KindTrigger), t)
 	}
-	return NewScriptTrigger(t)
+	if like == nil {
+		return NewScriptTrigger(t)
+	}
+	return newScriptTrigger(t, heldIn(like))
 }
 
 // setRecordTrigger writes t over record trigger i, whose bytes are rec,

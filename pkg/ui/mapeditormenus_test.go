@@ -27,7 +27,7 @@ var tableMenus = []string{"file", "tools", "view", "window"}
 // menuRowKeys are each table menu's row keys in order, "" for a heading.
 var menuRowKeys = map[string][]string{
 	"file":   mapRowKeys,
-	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "traparea", "", "randomterrain", "randomheights"},
+	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "copytrigger", "traparea", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
 	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel", "variables"},
 }
@@ -217,6 +217,15 @@ func TestMapEditorMenuRowPressDoesWhatItsButtonDoes(t *testing.T) {
 				want, wp, _ := menuEditor(t, lang)
 				got, gp, _ := menuEditor(t, lang)
 				for press := 1; press <= 2; press++ {
+					// A press that answers with a message, as Copy trigger does
+					// with no trigger selected, says the same on both; Esc
+					// closes it before the next press.
+					if want.message != got.message {
+						t.Fatalf("press %d on the %s row says %q, its key %q", press-1, b.key, got.message, want.message)
+					}
+					if got.message != "" {
+						_, _ = want.Key("escape"), got.Key("escape")
+					}
 					shown := got.toolbarOn()
 					switch {
 					case b.onToolbar():

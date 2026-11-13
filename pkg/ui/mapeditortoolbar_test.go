@@ -17,6 +17,7 @@ import (
 type toolAreaHost struct{ *groupsProbe }
 
 func (toolAreaHost) AddBoxArea(image.Rectangle, int) (*InspectionDocument, error) { return nil, nil }
+func (toolAreaHost) CopyTrigger(int) (*InspectionDocument, error)                 { return nil, nil }
 
 // toolEditor is the panels map at 1280 x 800 on a host that takes every
 // tool of the toolbar's left group.

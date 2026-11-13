@@ -648,6 +648,11 @@ var modesPaths = []modesPath{
 	{"dirty-catalog", []string{"ui:select0", "clone", "ui:click-cell", "catalog"}},
 	{"triggers", []string{"triggers"}},
 	{"scripts", []string{"scripts"}},
+	// Four Copy trigger rows keep the later sampled rows in place.
+	{"copytrigger", []string{"copytrigger"}},
+	{"copytrigger-unit", []string{"ui:select0", "copytrigger"}},
+	{"triggers-copytrigger", []string{"triggers", "copytrigger"}},
+	{"scripts-copytrigger", []string{"scripts", "copytrigger"}},
 	{"paged", []string{"pagedown"}},
 	{"players", []string{"players"}},
 	{"player-name", []string{"players", "down", "field"}},

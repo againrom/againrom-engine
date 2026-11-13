@@ -618,6 +618,8 @@ func (e *MapEditor) menuAct(key string) {
 		e.chooseBrush(brushOff)
 	case "newtrigger":
 		e.addNow(KindTrigger)
+	case "copytrigger":
+		e.copySelectedTrigger()
 	default:
 		if e.Key(key) == ebiten.Termination {
 			e.exitAsked = true

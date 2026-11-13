@@ -220,6 +220,38 @@ func (e *MapEditor) commandAddBoxArea(a boxArea) (editorChange, error) {
 	return e.adopted(next, ref)
 }
 
+// commandCopyTrigger copies trigger index right after it as one edit; the
+// change names the copy.
+func (e *MapEditor) commandCopyTrigger(index int) (editorChange, error) {
+	host, ok := e.doc.Edits.(InspectionTriggerCopy)
+	if !ok {
+		return editorChange{}, errNoEditHost
+	}
+	next, err := host.CopyTrigger(index)
+	if err != nil {
+		return editorChange{}, err
+	}
+	var ref *RecordRef
+	if next != nil {
+		ref = &next.AddedRecord
+	}
+	return e.adopted(next, ref)
+}
+
+func (e *MapEditor) decodeCopyTrigger(raw json.RawMessage) (int, error) {
+	a, err := decodeArgs[struct{ Index int }](raw, editorCommandArgs("copy_trigger"))
+	if err != nil {
+		return 0, err
+	}
+	if _, ok := e.doc.Edits.(InspectionTriggerCopy); !ok || e.doc.Script == nil {
+		return 0, errNoEditHost
+	}
+	if a.Index < 0 || a.Index >= len(e.doc.Script.Triggers) {
+		return 0, fmt.Errorf("the map has no trigger %d", a.Index)
+	}
+	return a.Index, nil
+}
+
 // goalTarget is script goal Goal pointed at Target.
 type goalTarget struct {
 	Goal   int

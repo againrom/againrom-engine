@@ -207,6 +207,11 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 					"conditions": []any{map[string]any{"item": "c.heroarea", "params": []any{hero, []int{10, 12, 14, 15}}}},
 					"actions":    []any{map[string]any{"item": "a.gold"}, map[string]any{"item": "a.win"}}}}}
 		}},
+		{"copy_trigger", func(t *testing.T) *ui.MapEditor { e, _ := openGoalMap(t, goalMap(t, true)); return e }, func(t *testing.T, e *ui.MapEditor) {
+			copyPress(t, e, 1)
+		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
+			return []commandCall{{"copy_trigger", map[string]any{"index": 1}}}
+		}},
 		{"paint height", plain, func(t *testing.T, e *ui.MapEditor) {
 			brushWindow(t, e, "height", 0)
 			pointerStroke(e, stroke)

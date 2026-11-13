@@ -9,6 +9,13 @@ type InspectionTriggerWizard interface {
 	WriteTrigger(t WizardTrigger) (*InspectionDocument, error)
 }
 
+// InspectionTriggerCopy is implemented by edits whose host copies a trigger
+// right after it as one edit, the copy with nodes of its own; the returned
+// document's AddedRecord names the copy.
+type InspectionTriggerCopy interface {
+	CopyTrigger(index int) (*InspectionDocument, error)
+}
+
 // WizardNode is one node a wizard row names. Keep names node ID as it
 // stands. Otherwise the node becomes Opcode with Types and Values: node ID
 // is rewritten in place when no other slot of any trigger names it, else a

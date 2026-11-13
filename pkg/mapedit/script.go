@@ -163,6 +163,9 @@ func (e *Editor) Reorder(k Kind, from, to int) error {
 	return nil
 }
 
+// errLabelLong refuses a node label that leaves its field no closing zero.
+var errLabelLong = fmt.Errorf("mapedit: a node label is under %d bytes", alm.ScriptLabelLen)
+
 // NewScriptNode builds one node record: a zero record with the label, opcode,
 // id and the parameter slots set. At most ten parameters.
 func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]byte, error) {
@@ -170,7 +173,7 @@ func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]by
 		return nil, fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, len(params))
 	}
 	if len(label) >= alm.ScriptLabelLen {
-		return nil, fmt.Errorf("mapedit: a node label is under %d bytes", alm.ScriptLabelLen)
+		return nil, errLabelLong
 	}
 	rec := make([]byte, alm.ScriptNodeSize)
 	copy(rec, label)
@@ -292,6 +295,12 @@ func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Fie
 // pairs or actions than it has slots, a code above the alphabet, an id above
 // the cap) is a *ScriptLimitError and builds nothing.
 func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
+	return newScriptTrigger(t, nil)
+}
+
+// newScriptTrigger is NewScriptTrigger leaving unchecked the slot words kept
+// reports, as triggerWords does.
+func newScriptTrigger(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]byte, error) {
 	name, err := alm.ScriptLabelText.Encode(t.Name)
 	if err != nil {
 		return nil, err
@@ -299,7 +308,7 @@ func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
 	if len(name) >= alm.ScriptLabelLen {
 		return nil, fmt.Errorf("mapedit: a trigger name is under %d bytes", alm.ScriptLabelLen)
 	}
-	slots, words, err := triggerWords(t, nil)
+	slots, words, err := triggerWords(t, kept)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +341,7 @@ func (e *Editor) SetTriggerSlots(i int, t alm.ScriptTrigger) error {
 	if e.Extended() {
 		return e.setRecordTrigger(i, rec, t)
 	}
-	held := func(f Field, v uint32) bool { return binary.LittleEndian.Uint32(rec[f.Offset:]) == v }
+	held := heldIn(rec)
 	slots, words, err := triggerWords(t, held)
 	if err != nil {
 		return err
@@ -350,6 +359,12 @@ func (e *Editor) SetTriggerSlots(i int, t alm.ScriptTrigger) error {
 		return nil
 	}
 	return e.SetFields(KindTrigger, i, sets...)
+}
+
+// heldIn reports whether trigger record rec holds v in slot f: the words a
+// trigger written after rec leaves unchecked.
+func heldIn(rec []byte) func(f Field, v uint32) bool {
+	return func(f Field, v uint32) bool { return binary.LittleEndian.Uint32(rec[f.Offset:]) == v }
 }
 
 // NextScriptID is one above the highest id among the records of node array k,
@@ -484,6 +499,147 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 		return 0, err
 	}
 	return len(zones), nil
+}
+
+// CopyTrigger places a copy of trigger i named name right after it as one
+// edit and returns the copy's index; later triggers move by one, through
+// Reorder. Each distinct condition and action id trigger i names that one
+// node carries gets a new node of the same label, operation and parameters
+// under the next free id, so the copy shares no node with trigger i. An id no
+// node carries stays as it is, and a slot word trigger i holds stands unchecked
+// as in SetTriggerSlots. A node no new node can carry is a *CopyRefusalError.
+func (e *Editor) CopyTrigger(i int, name string) (int, error) {
+	view, err := e.Map()
+	if err != nil {
+		return -1, err
+	}
+	sc, err := view.Script()
+	if err != nil {
+		return -1, err
+	}
+	if i < 0 || i >= len(sc.Triggers) {
+		return -1, fmt.Errorf("mapedit: no trigger %d", i)
+	}
+	t := sc.Triggers[i]
+	like, err := e.Record(KindTrigger, i)
+	if err != nil {
+		return -1, err
+	}
+	var batch []Placement
+	conds, err := e.copyNodes(KindCondition, sc.Conditions, slices.Concat(t.Left, t.Right), &batch)
+	if err != nil {
+		return -1, err
+	}
+	if err := e.scriptRoom(len(batch), 1); err != nil {
+		return -1, err
+	}
+	acts, err := e.copyNodes(KindAction, sc.Actions, t.Acts, &batch)
+	if err != nil {
+		return -1, err
+	}
+	renamed := func(ids []uint32, to map[uint32]uint32) []uint32 {
+		out := slices.Clone(ids)
+		for k, id := range out {
+			if n, ok := to[id]; ok {
+				out[k] = n
+			}
+		}
+		return out
+	}
+	rec, err := e.newTrigger(alm.ScriptTrigger{Name: name, Left: renamed(t.Left, conds), Right: renamed(t.Right, conds),
+		Cmp: slices.Clone(t.Cmp), Acts: renamed(t.Acts, acts), Once: t.Once, Group: slices.Clone(t.Group)}, like)
+	if err != nil {
+		return -1, err
+	}
+	mark := e.Mark()
+	placed, err := e.PlaceAll(append(batch, Placement{KindTrigger, rec}))
+	if err != nil {
+		return -1, err
+	}
+	if err := e.Reorder(KindTrigger, placed[len(placed)-1], i+1); err != nil {
+		return -1, err
+	}
+	e.Squash(mark)
+	return i + 1, nil
+}
+
+// CopyRefused names a node of a trigger CopyTrigger gives no copy.
+type CopyRefused int
+
+const (
+	CopySharedID  CopyRefused = iota // several nodes of the array carry ID
+	CopyIDsFull                      // a new node would take an id above ID, the cap
+	CopyLongLabel                    // node ID's label fills its field
+)
+
+// CopyRefusalError is why CopyTrigger copies nothing: Kind is the node array.
+type CopyRefusalError struct {
+	Why  CopyRefused
+	Kind Kind
+	ID   uint32
+}
+
+func (e *CopyRefusalError) Error() string {
+	switch e.Why {
+	case CopySharedID:
+		return fmt.Sprintf("mapedit: several %s nodes carry ID %d", sectionName(e.Kind), e.ID)
+	case CopyIDsFull:
+		return fmt.Sprintf("mapedit: the next node ID exceeds %d", e.ID)
+	}
+	return fmt.Sprintf("mapedit: %s node %d has a label of %d bytes", sectionName(e.Kind), e.ID, alm.ScriptLabelLen)
+}
+
+// copyNodes appends to batch a new node of array k for each distinct id of
+// ids that one of nodes carries, numbered from the array's next free id, and
+// returns each copied id's new id.
+func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *[]Placement) (map[uint32]uint32, error) {
+	next, err := e.NextScriptID(k)
+	if err != nil {
+		return nil, err
+	}
+	maxID := scriptprofile.Of(e.Extended()).MaxID
+	out := map[uint32]uint32{}
+	for _, id := range ids {
+		if _, done := out[id]; done || id == 0 {
+			continue
+		}
+		at := -1
+		for n := range nodes {
+			if nodes[n].ID != id {
+				continue
+			}
+			if at >= 0 {
+				return nil, &CopyRefusalError{Why: CopySharedID, Kind: k, ID: id}
+			}
+			at = n
+		}
+		if at < 0 {
+			continue
+		}
+		if next > maxID {
+			return nil, &CopyRefusalError{Why: CopyIDsFull, Kind: k, ID: maxID}
+		}
+		n := nodes[at]
+		label, err := alm.ScriptLabelText.Encode(n.Label)
+		if err != nil {
+			return nil, err
+		}
+		params := make([]ScriptParam, alm.ScriptParams)
+		for s := range params {
+			params[s] = ScriptParam{Type: n.Type[s], Value: n.Value[s]}
+		}
+		rec, err := NewScriptNode(string(label), n.Opcode, next, params...)
+		if errors.Is(err, errLabelLong) {
+			return nil, &CopyRefusalError{Why: CopyLongLabel, Kind: k, ID: id}
+		}
+		if err != nil {
+			return nil, err
+		}
+		*batch = append(*batch, Placement{k, rec})
+		out[id] = next
+		next++
+	}
+	return out, nil
 }
 
 // DropZones are the indices, among the actions, of the drop actions in file

@@ -99,6 +99,7 @@ func init() {
 		{key: brushMenuKeys[brushBridge], icon: &iconBridge, word: "editor.tool.bridge", kind: toolPick, cell: image.Pt(1, 6), off: noBrush, menu: "tools"},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, cell: image.Pt(1, 5), off: func(e *MapEditor) bool { return !e.editable() }, menu: "tools"},
 		{key: "newtrigger", word: "editor.tool.newtrigger", keyRow: "newtrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.addNowOpen(KindTrigger) }, menu: "tools"},
+		{key: "copytrigger", word: "editor.tool.copytrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.copyHost() }, menu: "tools"},
 		{key: "traparea", word: "editor.cast.area", kind: toolPick, off: noEdit, menu: "tools"},
 		{key: "randomterrain", word: "editor.tools.randomterrain", headingWord: "editor.menu.generate", kind: toolAction, off: noRandom, menu: "tools"},
 		{key: "randomheights", word: "editor.tools.randomheights", kind: toolAction, off: noRandom, menu: "tools"},
