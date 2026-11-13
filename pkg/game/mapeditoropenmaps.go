@@ -58,11 +58,16 @@ func (s *mapInspectionEdits) project0() *editorModDocument {
 }
 
 // ownMission is the row of project d that declares this map: the row of the
-// key these edits have selected.
+// key these edits have selected. A map of the mod no row names answers a
+// mission of its path alone, with no key and no number, so its drafts are
+// found as a row's are.
 func (s *mapInspectionEdits) ownMission(d *editorModDocument) (mod.Mission, bool) {
 	own := s.project0()
-	if own == nil || d == nil || own.Selected < 0 || own.Selected >= len(own.Missions) {
+	if own == nil || d == nil {
 		return mod.Mission{}, false
+	}
+	if own.Selected < 0 || own.Selected >= len(own.Missions) {
+		return mod.Mission{Map: own.Loose}, own.Loose != ""
 	}
 	key := own.Missions[own.Selected].RowID()
 	for _, m := range d.Missions {
@@ -150,26 +155,31 @@ func (s *mapInspectionEdits) MapDirty() bool {
 	return dirty
 }
 
-// openMissionMap opens the map of the project's mission index beside the open
-// maps: a new edits of the one opener, holding the project as it stands. A
-// map already open answers ui.MapOpen with its edits; this map's own other
-// declaration is selected in place.
-func (s *mapInspectionEdits) openMissionMap(index int) (*ui.InspectionDocument, error) {
+// openModMap is the one switch to a map of the mod: it opens the map of the
+// project's mission index, or with loose the map at that path no row names,
+// beside the open maps: a new edits of the one opener, holding the project
+// as it stands. A map already open answers ui.MapOpen with its edits; this
+// map's own other declaration is selected in place.
+func (s *mapInspectionEdits) openModMap(index int, loose string) (*ui.InspectionDocument, error) {
 	x := s.inspector
 	d := s.project0()
-	if d == nil || index < 1 || index > len(d.Missions) {
+	if d == nil || loose == "" && (index < 1 || index > len(d.Missions)) {
 		return nil, errors.New(x.word("editor.mod.err.outside"))
 	}
+	rel := loose
+	if rel == "" {
+		rel = d.Missions[index-1].Map
+	}
 	if x.mod != nil {
-		source := filepath.Join(x.mod.dir, filepath.FromSlash(d.Missions[index-1].Map))
+		source := filepath.Join(x.mod.dir, filepath.FromSlash(rel))
 		for _, t := range s.openEdits() {
-			if !sameSaveName(t.source, source) {
+			if t.model == nil || !sameSaveName(t.source, source) {
 				continue
 			}
 			if t != s {
 				return nil, &ui.MapOpen{Edits: t}
 			}
-			if index-1 == d.Selected {
+			if loose != "" || index-1 == d.Selected {
 				return nil, nil
 			}
 			return s.activateWorkspaceMission(index, true)
@@ -177,7 +187,7 @@ func (s *mapInspectionEdits) openMissionMap(index int) (*ui.InspectionDocument, 
 	}
 	next := &mapInspectionEdits{inspector: x, model: s.model, source: s.source, saved: s.saved, clock: s.clock, modDir: s.modDir,
 		workspace: s.workspace, savedWorkspace: s.savedWorkspace, workspaceImage: s.workspaceImage}
-	doc, err := next.activateWorkspaceMission(index, true)
+	doc, err := next.activateWorkspaceMission(index, true, loose)
 	if err != nil {
 		s.refreshModSelection()
 		return nil, err
@@ -245,11 +255,14 @@ func (s *mapInspectionEdits) Shown(left ui.InspectionEdits, open []ui.Inspection
 // from that row. Undo and redo steps recorded before it keep the project.
 func (s *mapInspectionEdits) carry(p *editorModDocument, pack editorPackageSpec) {
 	w := cloneWorkspace(s.workspace)
-	key, keyed := "", false
+	key, keyed, loose := "", false, ""
 	if m, ok := s.ownMission(p); ok {
-		key, keyed = m.RowID(), true
+		key, keyed = m.RowID(), m.RowID() != ""
+		if !keyed {
+			loose = m.Map
+		}
 	}
-	p.Selected = -1
+	p.Selected, p.Loose = -1, loose
 	w.Package.ID, w.Package.Title, w.Package.Manifest = pack.ID, pack.Title, mod.CloneManifest(pack.Manifest)
 	for i, m := range p.Missions {
 		if keyed && m.RowID() == key {
@@ -280,7 +293,7 @@ func (s *mapInspectionEdits) carriedOver(step *editorWorkspaceState) *editorWork
 	for _, name := range s.ownDraftNames(step.Project) {
 		p.Files[name] = bytes.Clone(step.Project.Files[name])
 	}
-	if row, ok := s.ownMission(step.Project); ok {
+	if row, ok := s.ownMission(step.Project); ok && row.RowID() != "" {
 		for i := range p.Missions {
 			if p.Missions[i].RowID() == row.RowID() {
 				p.Missions[i] = row

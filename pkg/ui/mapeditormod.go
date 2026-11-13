@@ -79,6 +79,31 @@ func (e *MapEditor) FocusModField(key string) bool {
 
 func (e *MapEditor) ModWindowOpen() bool { return e.modWindow }
 
+// InspectionModMaps is a host that lists the maps of its open mod: the
+// package field "map", one choice per map with its role, the map these
+// edits hold chosen. Setting that field to a choice opens its map.
+type InspectionModMaps interface {
+	ModMaps() InspectionField
+}
+
+// modMapList is the open mod's list of maps as the host gives it. W's rows
+// and the Open window's group of the mod's maps both read it.
+func (e *MapEditor) modMapList() (InspectionField, bool) {
+	host, ok := e.modEdits().(InspectionModMaps)
+	if !ok {
+		return InspectionField{}, false
+	}
+	f := host.ModMaps()
+	return f, len(f.Choices) > 0
+}
+
+// OpenModMap opens row n, from 1, of the mod's list of maps as a tab: the
+// route of the list's Open button and of the Open window's group.
+func (e *MapEditor) OpenModMap(n int) error {
+	_, err := e.commandSetMapField(mapField{Scope: "package", Key: "map", Value: strconv.Itoa(n)})
+	return err
+}
+
 func (e *MapEditor) applyModField() error {
 	o := &e.obj
 	if o.focus < 0 || o.focus >= len(o.fields) {
@@ -258,6 +283,11 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 	if e.modPage == modPageGraph && e.graphKey(key) {
 		return true, nil
 	}
+	if e.modPage == modPageMaps {
+		if done, err := e.modMapKey(key); done {
+			return true, err
+		}
+	}
 	if e.modPage != modPageFields && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
 		if key == "backtab" {
@@ -267,6 +297,8 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		return true, nil
 	}
 	switch key {
+	case "nextmap", "prevmap":
+		return true, e.keyMapStep(key)
 	case "close":
 		e.closeObject()
 		return true, e.keyClose(key)
@@ -472,6 +504,8 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	case modPageGraph:
 		page, _ := e.modGraph()
 		e.modGraphRows(&s, &links, page)
+	case modPageMaps:
+		e.modMapRows(&s, &links)
 	default:
 		e.objectFieldRows(&s, &links)
 	}
@@ -510,8 +544,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 			s.Buttons[0] = e.modConfirmLabel
 		}
 	}
-	if o.focus >= len(o.fields) {
-		n := o.focus - len(o.fields)
+	if n := o.focus - len(o.fields); n >= 0 && n < len(s.Buttons) {
 		s.ButtonFocus = &n
 	}
 	status := e.modStatus
@@ -538,7 +571,86 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.objectTop = max(0, min(e.objectTop, max(0, popupRowCount(s)-s.MaxRows)))
 	s.Top = e.objectTop
 	s.ColumnTops = []int{0, e.objectTop}
+	if e.modPage == modPageMaps {
+		s.ColumnTops = nil
+	}
 	return s, links, true
+}
+
+// modMapRows lays W's page of the mod's maps: one row per map with its role
+// and its Open button, the map shown marked, a role too long for the row
+// broken onto the lines under it. The keyboard's place past the window's
+// buttons is a map's Open button.
+func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
+	o := &e.obj
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
+	o.first, o.rowField = len(s.Rows), map[int]int{}
+	s.Columns = 1
+	list, _ := e.modMapList()
+	open := e.word("editor.mod.open")
+	room := s.Width - 60
+	if f := e.bodyFont(); f != nil {
+		room -= f.Advance(open) + 24
+	}
+	at := o.focus - len(o.fields) - e.modButtonCount()
+	e.modMapLine = e.modMapLine[:0]
+	for n, c := range list.Choices {
+		mark := "  "
+		if c.Value == list.Value {
+			mark = "> "
+		}
+		parts := editorTextLines(e.bodyFont(), mark+e.editorHostText(c.Label), room)
+		if len(parts) > 1 {
+			// Too long for one row, the roles break after each comma first.
+			parts = parts[:0]
+			for _, role := range strings.SplitAfter(e.editorHostText(c.Label), ", ") {
+				parts = append(parts, editorTextLines(e.bodyFont(), strings.TrimSpace(role), room-30)...)
+			}
+			parts[0] = mark + parts[0]
+		}
+		for k, part := range parts {
+			row := popupRow{Kind: popupText, Label: part}
+			if k == 0 {
+				e.modMapLine = append(e.modMapLine, len(s.Rows))
+				row.Buttons, row.Armed = []string{open}, []bool{n == at}
+				o.rowActs[len(s.Rows)] = []string{strconv.FormatInt(c.Value, 10)}
+			} else {
+				row.Label = "    " + part
+			}
+			s.Rows, *links = append(s.Rows, row), append(*links, 0)
+		}
+	}
+}
+
+// modMapKey answers a key on W's page of the mod's maps: Tab and the arrows
+// walk the window's buttons and then each map's Open button, and Enter on a
+// map's button opens that map.
+func (e *MapEditor) modMapKey(key string) (bool, error) {
+	o := &e.obj
+	list, _ := e.modMapList()
+	buttons := e.modButtonCount()
+	n, at := buttons+len(list.Choices), max(0, o.focus-len(o.fields))
+	switch key {
+	case "tab", "down":
+		at = (at + 1) % n
+	case "backtab", "up":
+		at = (at + n - 1) % n
+	case "enter":
+		if at < buttons {
+			return false, nil
+		}
+		return true, e.modAction("map", strconv.FormatInt(list.Choices[at-buttons].Value, 10))
+	default:
+		return false, nil
+	}
+	o.focus = len(o.fields) + at
+	if k := at - buttons; k >= 0 {
+		e.modSpec()
+		if k < len(e.modMapLine) {
+			e.objectTop = e.modMapLine[k]
+		}
+	}
+	return true, nil
 }
 
 // modOverviewRows lays W's overview page: a heading per section and its
@@ -600,7 +712,12 @@ func (e *MapEditor) modPress(p image.Point) bool {
 				return true
 			}
 			if actions := e.obj.rowActs[row]; k < len(actions) {
-				_ = e.modAction("source", actions[k])
+				// A row's button opens its mission, or its map on the maps' page.
+				key := "source"
+				if e.modPage == modPageMaps {
+					key = "map"
+				}
+				_ = e.modAction(key, actions[k])
 				return true
 			}
 		}

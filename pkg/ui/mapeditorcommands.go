@@ -640,7 +640,7 @@ func (e *MapEditor) commandSetMapField(f mapField) (editorChange, error) {
 		if err := checkOpened(next); err != nil {
 			return editorChange{}, err
 		}
-		if _, ok := e.mapSet(); ok && f.Scope == "package" && f.Key == "source" {
+		if _, ok := e.mapSet(); ok && f.Scope == "package" && (f.Key == "source" || f.Key == "map") {
 			// Another mission's map opens beside the open maps.
 			if err := e.addOpenMap(next); err != nil {
 				return editorChange{}, err
@@ -1476,7 +1476,7 @@ func (e *MapEditor) decodeMapField(raw json.RawMessage) (mapField, error) {
 // packageWindowOnly are the mod package fields set_map_field leaves to the
 // window: the working folder, the output folder and the project's mission
 // choice open or switch what the window edits, not a value of the package.
-var packageWindowOnly = map[string]bool{"folder": true, "folder-open": true, "output": true, "source": true}
+var packageWindowOnly = map[string]bool{"folder": true, "folder-open": true, "output": true, "source": true, "map": true}
 
 func (e *MapEditor) decodeRandomize(raw json.RawMessage) (wholeMap, error) {
 	a, err := decodeArgs[struct {

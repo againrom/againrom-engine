@@ -747,9 +747,10 @@ func (e *MapEditor) listKind() string {
 	return ""
 }
 
-// catalogRows are the map picker's rows: under three headings the new-map
-// sizes, the single-player maps and the multiplayer maps. The second result
-// maps a row to its map, -1 for a heading.
+// catalogRows are the map picker's rows: the open mod's maps first, then
+// under three headings the new-map sizes, the single-player maps and the
+// multiplayer maps. The second result maps a row to its map, -1 for a
+// heading and below -1 for a map of the mod.
 func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 	var rows []PickerRow
 	var maps []int
@@ -778,6 +779,20 @@ func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 				label = strings.Replace(ParseMapSource(m.Key).Path, "x", " x ", 1)
 			}
 			rows, maps = append(rows, PickerRow{Text: "  " + label, Choosable: true}), append(maps, i)
+		}
+	}
+	// With a mod open its maps lead: row n of the mod's list is -(n+1).
+	if list, ok := e.modMapList(); ok {
+		rows, maps = append(rows, PickerRow{Text: e.word("editor.mod.maps")}), append(maps, -1)
+		for n, c := range list.Choices {
+			// A map of several roles gives each role after the first its own line.
+			for k, part := range strings.SplitAfter(e.editorHostText(c.Label), ", ") {
+				if k == 0 {
+					rows, maps = append(rows, PickerRow{Text: "  " + strings.TrimSpace(part), Choosable: true}), append(maps, -(n+2))
+				} else {
+					rows, maps = append(rows, PickerRow{Text: "      " + strings.TrimSpace(part)}), append(maps, -1)
+				}
+			}
 		}
 	}
 	add(e.word("editor.picker.new"), fresh)
@@ -1163,10 +1178,22 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	switch e.listKind() {
 	case "catalog":
 		_, maps := e.catalogRows()
-		if n < 0 || n >= len(maps) || maps[n] < 0 {
+		if n < 0 || n >= len(maps) || maps[n] == -1 {
 			return
 		}
 		e.model.Select(n)
+		if maps[n] < 0 {
+			// A map of the open mod opens as a tab, through W's list route.
+			if !open {
+				return
+			}
+			if err := e.OpenModMap(-maps[n] - 1); err != nil {
+				e.message = err.Error()
+			} else if e.catalog && e.doc != nil {
+				e.leave(leaveCatalog)
+			}
+			return
+		}
 		if key := e.maps[maps[n]].Key; open && ParseMapSource(key).Kind == SourceNew {
 			e.askNewMode(key)
 		} else if open {

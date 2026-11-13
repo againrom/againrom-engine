@@ -182,6 +182,7 @@ func (s *mapInspectionEdits) editModControl(w *editorWorkspaceState, key, value 
 		if d.Selected >= 0 && d.Selected < len(d.Missions) && !d.Missions[d.Selected].Off {
 			return nil
 		}
+		d.Loose = ""
 		c, e := LoadCampaign(s.inspector.archives.Containers)
 		if e != nil {
 			return e

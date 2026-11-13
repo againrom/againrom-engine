@@ -38,6 +38,13 @@ func missionMapNumber(name string) (int, bool) {
 // file is the declaration, and no row of the missions file holds it.
 func (m Mission) ByFileName() bool { return m.byName }
 
+// WithMissions is d holding rows as its missions; the file form's missions
+// that wait for AdmitMaps stay as read.
+func (d MissionData) WithMissions(rows []Mission) MissionData {
+	d.Missions = rows
+	return d
+}
+
 // RowID names m among its mod's declarations: the key of a row, or the map
 // file of a file-form mission, which has no key. A key holds no dot, so the
 // two never meet.

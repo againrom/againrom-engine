@@ -220,6 +220,32 @@ func (e *MapEditor) ShowOpenMap(n int) bool {
 	return true
 }
 
+// keyMapStep shows the next open map of the mod, or with prevmap the one
+// before, and wraps at the ends. With W open the window stays, on the map
+// now shown. One open map has no other to show.
+func (e *MapEditor) keyMapStep(key string) error {
+	n := len(e.openMaps)
+	if n < 2 || e.prompt.open() {
+		return nil
+	}
+	step, window := 1, e.modWindow
+	if key == "prevmap" {
+		step = n - 1
+	}
+	if window {
+		if err := e.applyModField(); err != nil {
+			return err
+		}
+	}
+	e.ShowOpenMap((e.shownMap + step) % n)
+	if window {
+		e.modWindow, e.objectHidden, e.obj.doc = true, false, nil
+		e.loadObject()
+		e.objectSpec()
+	}
+	return nil
+}
+
 // showOpenEdits shows the open map whose edits are edits.
 func (e *MapEditor) showOpenEdits(edits InspectionEdits) bool {
 	for i, d := range e.openDocs() {

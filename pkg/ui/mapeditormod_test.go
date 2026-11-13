@@ -16,6 +16,7 @@ import (
 type modesWorkspace struct {
 	modesFull
 	fields  []InspectionField
+	maps    InspectionField // the mod's list of maps
 	confirm *WorkspaceConfirmation
 	leave   *WorkspaceLeave
 	// dirtyOnEdit makes any field edit leave unsaved changes behind.
@@ -57,8 +58,13 @@ func newModesWorkspace() *modesWorkspace {
 		{Key: "party.0.character", Label: "Member / Leader", Value: 0, Column: 1, Choices: []InspectionChoice{{Value: 0, Label: "Aila"}, {Value: 1, Label: "Sellsword"}}},
 		{Key: "party.0.level", Label: "Level", Value: 2, Column: 1, Parent: "party.0."},
 		{Key: "add", Label: "Add open map", Action: true},
-	}}
+	}, maps: InspectionField{Key: "map", Label: "Maps of the mod", ReadOnly: true, Value: 1, Choices: []InspectionChoice{
+		{Value: 1, Label: "crossing.alm: guest 25 after 20"}, {Value: 2, Label: "watch.alm: guest 26 after 25, replaces 3"},
+		{Value: 3, Label: "7.alm: replaces 7 by name"}, {Value: 4, Label: "spare.alm: unused"}, {Value: 5, Label: "gone.alm: missing"}}}}
 }
+
+// ModMaps is the package field "map": the mod's list of maps.
+func (p *modesWorkspace) ModMaps() InspectionField { return p.maps }
 
 func (p *modesWorkspace) WorkspaceFields(scope string) []InspectionField {
 	if strings.HasPrefix(scope, "campaign.") && scope != "campaign.0" {
@@ -82,6 +88,9 @@ func (p *modesWorkspace) SetWorkspaceField(scope, key, value string) (*Inspectio
 	}
 	if key == "publish" && p.confirm != nil {
 		return nil, p.confirm
+	}
+	if n, err := strconv.ParseInt(value, 10, 64); key == "map" && err == nil {
+		p.maps.Value = n
 	}
 	for i := range fields {
 		if fields[i].Key == key {
@@ -221,6 +230,9 @@ func TestModWindowMissionRowsHaveNoDropdownInBothLanguages(t *testing.T) {
 					if page == modPageFields {
 						want = len(host.fields[3].Choices)
 					}
+					if page == modPageMaps { // a row with its Open button per map
+						want = len(host.maps.Choices)
+					}
 					if rows != want {
 						t.Errorf("page %d: laid out %d mission rows, want %d", page, rows, want)
 					}
@@ -327,7 +339,7 @@ func TestModWindowOpensOnTheOverviewAndItsTabsTurnPages(t *testing.T) {
 	e.doc.Edits.(*modesWorkspace).overview = modesOverview
 	_ = e.Key("package")
 	s, _, ok := e.modSpec()
-	if !ok || e.modPage != 1 || len(s.Tabs) != 2 || s.ActiveTab != 1 {
+	if !ok || e.modPage != 1 || len(s.Tabs) != 3 || s.ActiveTab != 1 {
 		t.Fatalf("page %d tabs %v active %d", e.modPage, s.Tabs, s.ActiveTab)
 	}
 	lines := strings.Join(e.PopupLines(), "\n")
@@ -350,7 +362,7 @@ func TestModWindowOpensOnTheOverviewAndItsTabsTurnPages(t *testing.T) {
 	}
 	plain, _ := newModesEditor(t, "workspace")
 	_ = plain.Key("package")
-	if s, _, _ := plain.modSpec(); plain.modPage != 0 || len(s.Tabs) != 0 {
+	if s, _, _ := plain.modSpec(); plain.modPage != 0 || len(s.Tabs) != 2 {
 		t.Fatalf("without an overview: page %d tabs %v", plain.modPage, s.Tabs)
 	}
 }
@@ -381,7 +393,7 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 		t.Fatalf("W with no map: field %d, control %d", field, e.obj.focus)
 	}
 	s, _, ok := e.modSpec()
-	if !ok || e.modPage != 1 || len(s.Tabs) != 2 {
+	if !ok || e.modPage != 1 || len(s.Tabs) != 3 {
 		t.Fatalf("page %d tabs %v", e.modPage, s.Tabs)
 	}
 	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "terrain: data/terrain.toml") {
@@ -397,7 +409,7 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 	if e.modPage != 0 || !e.modWindow {
 		t.Fatalf("the Missions tab left page %d", e.modPage)
 	}
-	for _, key := range []string{"tab", "backtab", "package", "package"} {
+	for _, key := range []string{"tab", "backtab", "package", "package", "package"} {
 		if err := e.Key(key); err != nil {
 			t.Fatalf("%s: %v", key, err)
 		}

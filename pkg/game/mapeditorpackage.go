@@ -139,16 +139,26 @@ func (m *editorMod) firstEnabled() (mod.Mission, bool) {
 	return mod.Mission{}, false
 }
 
-func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*ui.InspectionDocument, error) {
+// activateWorkspaceMission makes these edits hold the map of the project's
+// mission index, or with loose the map at that path no row names: the map
+// left is flushed into the project's drafts, the target is read from its
+// draft or the mod folder, and W's fields take the target's row, or none.
+func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool, unnamed ...string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if s.workspace.Project == nil || index < 1 || index > len(s.workspace.Project.Missions) {
+	loose := strings.Join(unnamed, "")
+	if s.workspace.Project == nil || loose == "" && (index < 1 || index > len(s.workspace.Project.Missions)) {
 		return nil, errors.New(x.word("editor.mod.err.outside"))
 	}
 	w := cloneWorkspace(s.workspace)
 	if flush && s.model != nil {
 		s.syncModDocument(w, w.Pages, w.Labels, !bytes.Equal(s.saved, s.model.Bytes()) || s.TextsInside() != s.savedInside)
 	}
-	entry := w.Project.Missions[index-1]
+	entry := mod.Mission{Map: loose}
+	if loose == "" {
+		entry = w.Project.Missions[index-1]
+	} else {
+		index = 0
+	}
 	if entry.Off {
 		return nil, errors.New(x.word("editor.mod.err.disabledopen"))
 	}
@@ -180,7 +190,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 		return nil, err
 	}
 	next := candidate.Edits.(*mapInspectionEdits)
-	w.Project.Selected = index - 1
+	w.Project.Selected, w.Project.Loose = index-1, loose
 	w.Package = modPackageSpec(entry, s.workspace.Package)
 	w.Pages = next.workspace.Pages
 	w.Labels = next.workspace.Labels
@@ -212,7 +222,11 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	var b []byte
 	var err error
-	if s.model != nil && (s.workspace.Project == nil || s.workspace.Project.Selected >= 0) {
+	loose := ""
+	if d := s.workspace.Project; d != nil && d.Selected < 0 {
+		loose = d.Loose
+	}
+	if s.model != nil && (s.workspace.Project == nil || s.workspace.Project.Selected >= 0 || loose != "") {
 		if err := s.gate(false); err != nil {
 			return "", err
 		}
@@ -359,7 +373,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	s.workspace.Package.ID, s.workspace.Package.Title = x.mod.id, x.mod.title
 	s.workspace.Package.Manifest, _ = mod.ParseManifest(x.mod.manifest)
-	s.workspace.Project.Selected = -1
+	s.workspace.Project.Selected, s.workspace.Project.Loose = -1, loose
 	for i, entry := range x.mod.missions.Missions {
 		if m.Map != "" && entry.RowID() == m.RowID() {
 			s.workspace.Project.Selected = i
@@ -367,8 +381,12 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			break
 		}
 	}
+	// The tab holds the file the save wrote: its row's map, or the map no
+	// row names at its own path in the folder.
 	if m.Map != "" {
 		s.source = filepath.Join(folder, filepath.FromSlash(m.Map))
+	} else if loose != "" {
+		s.source = filepath.Join(folder, filepath.FromSlash(loose))
 	}
 	s.rebaseHistory(layout, from, folder)
 	s.workspaceImage = workspaceBytes(s.workspace)

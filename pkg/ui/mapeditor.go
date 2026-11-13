@@ -630,6 +630,14 @@ func (e *MapEditor) Update() error {
 			return err
 		}
 	}
+	if native.pressed(ebiten.KeyControl) && native.justPressed(ebiten.KeyTab) {
+		// Ctrl+Tab and Ctrl+Shift+Tab turn the open maps of the mod.
+		key := "nextmap"
+		if native.pressed(ebiten.KeyShift) {
+			key = "prevmap"
+		}
+		return e.Key(key)
+	}
 	if handled, err := e.modNativeKeys(native); handled {
 		return err
 	}

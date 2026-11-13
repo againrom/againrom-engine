@@ -80,13 +80,15 @@ const (
 	modPageFields   = iota // the mod's fields and its missions
 	modPageOverview        // what the mod holds and what the game says of it
 	modPageGraph           // the campaign as a graph
+	modPageMaps            // every map of the mod with its role
 )
 
 // modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab"}
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.mapstab"}
 
 // modPages is W's pages in tab order: the mod's fields, the overview when
-// the host gives one, and the campaign graph when the host draws one.
+// the host gives one, the campaign graph when the host draws one, and the
+// mod's maps when the host lists them.
 func (e *MapEditor) modPages() []int {
 	pages := []int{modPageFields}
 	if _, ok := e.modOverview(); ok {
@@ -94,6 +96,9 @@ func (e *MapEditor) modPages() []int {
 	}
 	if _, ok := e.modGraph(); ok {
 		pages = append(pages, modPageGraph)
+	}
+	if _, ok := e.modMapList(); ok {
+		pages = append(pages, modPageMaps)
 	}
 	return pages
 }

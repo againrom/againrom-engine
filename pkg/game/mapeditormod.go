@@ -19,6 +19,20 @@ type editorModDocument struct {
 	Original, Missions []mod.Mission
 	Files              map[string][]byte
 	Selected           int
+	// Loose is the path in the mod of the map the edits hold when no row
+	// names it; Selected is then -1.
+	Loose string `json:",omitempty"`
+}
+
+// current is the mission whose map, pages and labels the edits hold: the
+// selected row with the fields of p, or the map no row names as a mission
+// of its path alone. row reports the first.
+func (d *editorModDocument) current(p editorPackageSpec, word func(string) string) (m mod.Mission, row bool, err error) {
+	if d.Selected < 0 && d.Loose != "" {
+		return mod.Mission{Map: d.Loose}, false, nil
+	}
+	m, err = d.selected(p, word)
+	return m, true, err
 }
 
 func (m *editorMod) document() *editorModDocument {
@@ -140,6 +154,14 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 			return nil, nil, m, none, err
 		}
 		return d.Files, d.Missions, m, layout, nil
+	}
+	if d.Selected < 0 && d.Loose != "" && s.model != nil {
+		// A map no row names is written at its own path.
+		if err := extendedName(b, d.Loose); err != nil {
+			return nil, nil, mod.Mission{}, none, err
+		}
+		d.Files[d.Loose] = bytes.Clone(b)
+		return finish(mod.Mission{}, none)
 	}
 	if d.Selected < 0 {
 		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels)) {

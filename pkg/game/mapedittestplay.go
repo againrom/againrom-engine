@@ -108,6 +108,9 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		if err := s.unchangedModSource(); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}
+		if d := s.workspace.Project; d.Selected < 0 && d.Loose != "" {
+			return "", fmt.Errorf("Test play: %s", x.word("editor.mod.err.playunused"))
+		}
 		files, missions, current, _, e := s.retainedPackageFiles(b)
 		if e != nil {
 			return "", fmt.Errorf("Test play: %w", e)

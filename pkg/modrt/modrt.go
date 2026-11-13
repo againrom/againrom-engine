@@ -159,6 +159,13 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		for _, w := range description.Warnings {
 			warnings = append(warnings, fmt.Sprintf("mod %q: %s", id, w))
 		}
+		var held []string
+		for _, f := range description.Files {
+			held = append(held, f.Path)
+		}
+		for _, w := range mod.MapWarnings(mod.MapList(held, id, sh.data.Missions)) {
+			warnings = append(warnings, fmt.Sprintf("mod %q: %s", id, w))
+		}
 		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state})
 	}
 	r, err := rules.New(sh.params)

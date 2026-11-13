@@ -31,7 +31,7 @@ func sameWorkspace(a, b []byte) bool {
 	for _, w := range []*editorWorkspaceState{&left, &right} {
 		w.Pages = nil
 		w.Package = editorPackageSpec{ID: w.Package.ID, Title: w.Package.Title, Manifest: w.Package.Manifest}
-		w.Project.Selected = 0
+		w.Project.Selected, w.Project.Loose = 0, ""
 	}
 	x, _ := json.Marshal(left)
 	y, _ := json.Marshal(right)
@@ -43,10 +43,10 @@ func sameWorkspace(a, b []byte) bool {
 // and the labels file beside the map when the labels differ from oldLabels.
 func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages map[string][]byte, oldLabels map[uint32]string, mapChanged bool) {
 	d := w.Project
-	if d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) {
+	if d == nil || d.Selected >= len(d.Missions) {
 		return
 	}
-	m, err := d.selected(w.Package, s.inspector.word)
+	m, row, err := d.current(w.Package, s.inspector.word)
 	if err != nil || m.Off {
 		return
 	}
@@ -99,7 +99,9 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 		}
 		d.Files[path.Join(folder, name)] = bytes.Clone(b)
 	}
-	d.Missions[d.Selected] = m
+	if row {
+		d.Missions[d.Selected] = m
+	}
 }
 
 func (s *mapInspectionEdits) refreshModSelection() {

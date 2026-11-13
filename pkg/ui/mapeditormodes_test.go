@@ -324,7 +324,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "newtrigger", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown", "applyobject", "backtab"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "newtrigger", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown", "applyobject", "backtab", "nextmap", "prevmap"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:tool-fit", "ui:file-undo", "ui:file-redo", "ui:file-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 
@@ -622,7 +622,7 @@ var modesPaths = []modesPath{
 	{"mod-choice", []string{"package", "tab", "tab", "tab", "enter"}},
 	{"mod-edit", []string{"package", "ui:mod-focus-folder", "ui:text-plain"}},
 	{"mod-overview", []string{"ui:mod-overview", "package"}},
-	{"mod-overview-fields", []string{"ui:mod-overview", "package", "package"}},
+	{"mod-overview-fields", []string{"ui:mod-overview", "package", "package", "package"}},
 	{"list", nil},
 	{"selected", []string{"ui:select0"}},
 	{"structure", []string{"ui:select2"}},
@@ -716,6 +716,8 @@ var modesPaths = []modesPath{
 	{"mod-graph-edit", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node"}},
 	{"mod-graph-link", []string{"ui:mod-graph-author", "package", "package", "ui:graph-edit", "ui:graph-node", "ui:graph-link"}},
 	{"mod-tabs", []string{"ui:mod-second-map"}},
+	{"mod-maps", []string{"package", "package"}},
+	{"mod-maps-row", []string{"package", "package", "backtab"}},
 	// Four party rows keep the plain and mod hosts' sampled rows in place.
 	{"testplay-party", []string{"testplay"}},
 	{"testplay-party-card", []string{"testplay", "ui:party-card"}},

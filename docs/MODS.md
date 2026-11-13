@@ -57,8 +57,12 @@ held file loading.
 Old paths named by rows remain readable and packed. Old mission map and page paths,
 and the second weapon bodies name, produce check warnings naming the fixed place.
 A title or briefing key with a page produces a warning because
-the key wins. Maps not used by any mission and missing map declarations are left
-to the map-list work. The packed name table supports components through 255 UTF-8
+the key wins. A map file that no mission names and whose file name replaces no
+mission produces the warning "no mission names this map; the game does not play
+it". It reads the mod's one map list (`mod.MapList`), which the map editor
+shows. A mission whose map file is absent is refused, not warned about: "no
+such file in the mod folder". A map path with `{lang}` may hold one language's
+file alone. The packed name table supports components through 255 UTF-8
 bytes, so names over 15 bytes need no warning.
 
 Files outside this table and outside paths named by rows are warned about and
@@ -1367,8 +1371,8 @@ equipment. A mod with an enabled mission opens that mission's map, as before.
 Any other mod, and every packed mod, opens over the map in the editor and
 shows W's Overview page first: the kinds whose files the mod holds, the lines
 `againrom -check` prints for it, its files, the overrides and warnings its data
-gave, and what refuses it. The Missions and Overview tabs at the top of W, or
-W again, turn the page. The fields page also edits the manifest's version,
+gave, and what refuses it. The tabs at the top of W (Missions, Overview,
+Campaign graph, Maps), or W again, turn the page. The fields page also edits the manifest's version,
 author, description, target base, requirements, conflicts and load order hints.
 The target is a choice of `common`, `rom1`, `rom1-en`, `rom1-ru`, `rom2-en`
 and `rom2-ru`. Dependency fields take comma-separated IDs; a requirement may
@@ -2420,6 +2424,19 @@ Alt+Up/Down changes list order; After win changes the chain. Removing a chain
 link asks before reconnecting its successors. Undo after Save makes the
 project dirty again.
 
+W's last page, Maps, lists every map of the mod once, one row per map file
+with what the mod does with it: `guest N after M` or `replaces N` for each
+mission row that names it, `replaces N by name` for a file named by a mission
+number, `unused` for a map nothing names, and `missing` for a map a row names
+whose file the mod does not hold. A map two rows name is one row with both
+roles. The map shown is marked with `>`. Open on a row, or Tab or the arrows
+to the row and Enter, opens that map as a tab; a missing map refuses. File >
+Open shows the same list as its first group, Maps of the mod, while a mod is
+open; choosing a map there opens it as a tab and stays in the mod. An unused
+map is edited and saved like any other: Ctrl+S writes it at its own path and
+adds no mission row. F5 on an unused map refuses and says to make it a mission
+first.
+
 With a mod open, several of its maps stay open at once. The mission choice,
 a mission of the campaign graph, the map list and File > Open each open the
 map beside the ones already open; a map that is already open is shown, never
@@ -2427,8 +2444,9 @@ opened twice. From the second open map on, a strip of tabs stands under the
 menu bar: one tab per open map, with its mission number and name, and a star
 while the map has unsaved changes of its own. A click on a tab shows its
 map. The x at the right end of the strip closes the map shown, and asks the
-unsaved-changes question first when that map has changes. The tabs have no
-keys. At most 8 maps are open at once; opening a ninth is refused with a
+unsaved-changes question first when that map has changes. Ctrl+Tab shows the
+next open map and Ctrl+Shift+Tab the previous one, the first after the last;
+with W open they keep W open. At most 8 maps are open at once; opening a ninth is refused with a
 message that says to close one first. With one map open, or no mod, there is
 no strip.
 

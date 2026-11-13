@@ -200,6 +200,9 @@ func (s *mapInspectionEdits) bindWorkspaceMod(w *editorWorkspaceState, source st
 					break
 				}
 			}
+		} else if rel, err := filepath.Rel(m.dir, source); err == nil && filepath.IsLocal(rel) && ui.ParseMapSource(source).Kind == ui.SourceHost {
+			// A map of the mod no row names is held by its path.
+			w.Project.Loose = filepath.ToSlash(rel)
 		}
 	}
 }
@@ -433,7 +436,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	if strings.HasPrefix(scope, "campaign.") {
 		return s.setCampaignField(scope, key, value)
 	}
-	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
+	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}
@@ -495,7 +498,14 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		if err != nil {
 			return nil, err
 		}
-		return s.openMissionMap(index)
+		return s.openModMap(index, "")
+	}
+	if key == "map" {
+		index, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return nil, err
+		}
+		return s.openMapEntry(index)
 	}
 	if isManifestField(key) {
 		return s.setManifestField(key, value)

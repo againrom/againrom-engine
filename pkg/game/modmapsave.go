@@ -266,6 +266,9 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 			return "", err
 		}
 		ok = !e.Off
+	} else if d != nil && d.Loose != "" {
+		// A map of the mod no row names is saved at its own path.
+		e, ok = mod.Mission{Map: d.Loose}, true
 	}
 	if !ok {
 		return "", fmt.Errorf(x.word("editor.mod.err.noentry"), m.id, s.source, mod.MissionsFile)
