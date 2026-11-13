@@ -180,7 +180,7 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 		return
 	}
 	i, ok := w.bookCastIndex(w.entities[ci].ID)
-	if !ok || w.bookCasts[i].Paid {
+	if !ok || w.bookCasts[i].Paid || w.paymentAwaitsFacing(ci, w.bookCasts[i], rule) {
 		return
 	}
 	debitBook(&w.entities[ci], rule)
@@ -202,6 +202,17 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 			}
 		}
 	}
+}
+
+// paymentAwaitsFacing reports a cast whose payment waits for its wind-up:
+// under paysFacingAim, while its caster turns toward an aim that is not
+// itself, or while it lacks the cost, which the wind-up start asks again.
+func (w *World) paymentAwaitsFacing(ci int, c bookCast, rule SpellRule) bool {
+	if !w.game.paysFacingAim {
+		return false
+	}
+	e := &w.entities[ci]
+	return e.Turning() && c.Target != c.Caster || !bookAffords(*e, rule)
 }
 
 // Admission fan visuals are returned in the same Step that prepared them.

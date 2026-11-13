@@ -438,6 +438,26 @@ func (d UnitDef) Combat() Combat {
 	}
 }
 
+// ByteStoredDamage is d with its damage pair as a creature row reader that
+// keeps the pair in two bytes stores it and the creature strike reads it
+// back (R2-ENGINE-483, R2-ENGINE-478 step 1). A pair outside the always-hits
+// arm with a base of 128 or more, or a spread above the base plus 255, is
+// stored in fifteens: the base at most 127 of them with the top bit set, the
+// spread at most 255. Any other pair is stored as its two low bytes. A base
+// byte with the top bit is read back as fifteens, whichever arm stored it.
+func (d UnitDef) ByteStoredDamage() UnitDef {
+	base, spread := uint8(d.DamageBase), uint8(d.DamageSpread)
+	if !d.AlwaysHits && (d.DamageBase >= 128 || d.DamageSpread > d.DamageBase+255) {
+		base, spread = uint8(min(d.DamageBase/15, 127))|0x80, uint8(min(d.DamageSpread/15, 255))
+	}
+	if base&0x80 != 0 {
+		d.DamageBase, d.DamageSpread = int32(base&0x7f)*15, int32(spread)*15
+	} else {
+		d.DamageBase, d.DamageSpread = int32(base), int32(spread)
+	}
+	return d
+}
+
 // UnitCapacity is every Unit's carry capacity: the constructor's body x 10 at
 // its own default body, set before any template is read and never recomputed
 // on the units arm (UNIT-CTOR-004, UNIT-DERIVE-003).

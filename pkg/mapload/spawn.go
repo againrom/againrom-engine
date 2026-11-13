@@ -511,8 +511,9 @@ func (serverKeys) resolve(u alm.Unit, t *Table) Resolution {
 
 // CreatureDifficulty is one game's arithmetic for a creature a map places:
 // the fraction of its maximum health the weakening setting leaves, whether
-// that setting also shifts Wimpy right by one, and whether a map may keep
-// every creature at its row. The second game's value is R2-ENGINE-1002's;
+// that setting also shifts Wimpy right by one, whether a map may keep every
+// creature at its row, and whether the row's damage pair passes through two
+// bytes. The second game's value is R2-ENGINE-1002's;
 // the product is truncated as the first game's is (DIV-4698).
 type CreatureDifficulty struct {
 	EasyHealthNum, EasyHealthDen int32
@@ -520,13 +521,16 @@ type CreatureDifficulty struct {
 	// MapKeepsRows: a map whose Word70 is above 1 sets the session flag
 	// that leaves every creature at its row (R2-ENGINE-509).
 	MapKeepsRows bool
+	// ByteDamage: the row's damage pair is the one its two attack bytes
+	// give back (data.UnitDef.ByteStoredDamage, R2-ENGINE-483).
+	ByteDamage bool
 }
 
 var (
 	// FirstGameCreatureDifficulty is two thirds of the health.
 	FirstGameCreatureDifficulty = &CreatureDifficulty{EasyHealthNum: 66, EasyHealthDen: 100}
 	// SecondGameCreatureDifficulty is half the health and half the Wimpy.
-	SecondGameCreatureDifficulty = &CreatureDifficulty{EasyHealthNum: 1, EasyHealthDen: 2, EasyHalvesWimpy: true, MapKeepsRows: true}
+	SecondGameCreatureDifficulty = &CreatureDifficulty{EasyHealthNum: 1, EasyHealthDen: 2, EasyHalvesWimpy: true, MapKeepsRows: true, ByteDamage: true}
 )
 
 // creatureDifficulty is t's rule; nil is the first game's.
@@ -665,9 +669,13 @@ func unitRowDefinition(t *Table, index int, diff Difficulty) (data.UnitDef, [sim
 	// live ToHit alone. Snapshot General before Adjust so the placement bonus
 	// is not copied into the equip modifier and added twice.
 	general := d.ToHit
+	rule := t.creatureDifficulty()
+	if rule.ByteDamage {
+		d = d.ByteStoredDamage()
+	}
 	// Applied ONCE, before anything is built from the definition, so the value
 	// cannot be applied twice by a second caller reading the same entry.
-	d, err = t.creatureDifficulty().Adjust(d, diff)
+	d, err = rule.Adjust(d, diff)
 	if err != nil {
 		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, err
 	}

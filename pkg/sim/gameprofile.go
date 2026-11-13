@@ -77,6 +77,10 @@ type gameProfile struct {
 	// releaseRevalidates: a release asks the whole admission again: reach
 	// and range (MAGIC-403 states the first game asks none).
 	releaseRevalidates bool
+	// paysFacingAim: a book cast at another unit or a cell pays when its
+	// wind-up starts facing the aim, not at the order (R2-ENGINE-543,
+	// R2-ENGINE-544, R2-ENGINE-926).
+	paysFacingAim bool
 	// blowOrdersAttack: an area blow orders a victim of another owner against
 	// the caster (DIV-1600); otherwise it runs the blow hook (answerAreaBlow).
 	blowOrdersAttack bool
@@ -196,6 +200,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeWalkRefusal:          true,
 		cellCastReach:              true,
 		releaseRevalidates:         true,
+		paysFacingAim:              true,
 		blowOrdersAttack:           true,
 		bookWalkAll:                true,
 		postKeepsDying:             true,

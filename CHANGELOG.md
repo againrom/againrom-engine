@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] Enemy people with a spellbook back away when hurt with a foe beside them and flee at a quarter of their health, and enemy archers back away below half; a small enemy guard group that sees little chases from farther away, and a summoned creature guards the place where it appeared.
 - [ROM2] Wounded characters and creatures no longer all regain health at the same moment; each heals on its own turn among four, as in the original.
+- [ROM2] A creature with a strong damage row now hits as hard as in the original, and a mage who has to turn toward his target pays the mana for his spell once he faces it, not at the moment he is ordered to cast.
 
 ### For map makers and modders
 

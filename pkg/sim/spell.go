@@ -1952,6 +1952,16 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			i++
 			continue
 		}
+		if w.game.paysFacingAim && !c.Paid && c.Remaining == castWindupTicks(w.entities[ci]) {
+			// The wind-up starts facing the aim and pays there; without the
+			// cost it is asked again next tick (R2-ENGINE-543, R2-ENGINE-544).
+			rule, _ := w.bookSpell(w.entities[ci], uint32(c.Spell))
+			w.admitBookPayment(ci, rule)
+			if rule.Delivery != 0 && !c.Paid {
+				i++
+				continue
+			}
+		}
 		if c.Remaining > 0 {
 			c.Remaining--
 		}
