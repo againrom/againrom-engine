@@ -2476,6 +2476,10 @@ the mods folder. Publish refuses a handwritten mod that has no complete copy
 yet, a map that is no mission of the mod, a mod changed outside the editor, a
 folder inside an install or inside the working mod, a typed folder that does not
 exist, and the case where no mods folder is known and none is typed.
+When the programs stand in an install, Save and Publish still write beneath
+`Againrom/workbench` and beneath the `mods` folder beside the programs, and
+the editor makes both folders when it saves or publishes; every other folder
+of the install, typed or named in the starter, stays refused.
 Publish asks Save and publish for unsaved changes, then separately asks Replace
 for an existing RES. Cancel writes nothing at that step. A folder with the same
 ID in the output directory is refused to avoid ambiguous discovery. The status

@@ -51,8 +51,8 @@ type editorMod struct {
 // SetMod is the editor's one open route: it opens the mod at dir, a folder or
 // a packed file holding any kinds, runs it and makes it the mod the editor
 // works in. Save writes the edited map to the path the mod's mission entry
-// for that map names. A folder must lie outside the install; a packed mod
-// opens read-only.
+// for that map names. A folder must lie outside the install or in a folder
+// the editor's mod grants admit; a packed mod opens read-only.
 func (x *MapInspector) SetMod(dir string) error {
 	e := mod.Load(dir)
 	if e.Err != nil {
@@ -71,7 +71,7 @@ func (x *MapInspector) SetMod(dir string) error {
 		if err != nil {
 			return err
 		}
-		if inside {
+		if inside && !admittedByGrant(dir, x.modWriteGrants()) {
 			return fmt.Errorf(x.word("editor.mod.err.ininstall"), dir, root)
 		}
 	}

@@ -250,7 +250,10 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	folder := filepath.Join(parent, filepath.Base(abs))
-	guard, _ := admittedOnce(func(path string) error { return fenceEditorWrite(x.archives.Root, path, "Save mod package") })
+	grants := x.modWriteGrants()
+	guard, _ := admittedOnce(func(path string) error {
+		return fenceEditorWrite(x.archives.Root, path, "Save mod package", grants...)
+	})
 	if err := guard(parent); err != nil {
 		return "", err
 	}

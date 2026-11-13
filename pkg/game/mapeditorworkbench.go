@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/launch"
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
 )
@@ -63,6 +64,51 @@ func (x *MapInspector) proposedModFolder(id string) string {
 		return ""
 	}
 	return filepath.Join(profile.Directory, editorWorkbenchFolder, id)
+}
+
+// modWriteGrants admits a mod's writes, with the programs inside an install,
+// beneath the workbench and beneath the resolved mods folder when it is the
+// one launch.ModsFolder names beside the programs; both are made when absent.
+// Elsewhere it grants nothing.
+func (x *MapInspector) modWriteGrants() []*runtimeProfileAccess {
+	if x.testPlay == nil || x.testPlay.Profile == nil {
+		return nil
+	}
+	profile, err := x.testPlay.Profile()
+	if err != nil || profile.Saves.profile == nil {
+		return nil
+	}
+	root := ""
+	if x.archives != nil {
+		root = x.archives.Root
+	}
+	_, workbench, err := profile.folder(editorWorkbenchFolder, root)
+	if err != nil || workbench == nil {
+		return nil
+	}
+	grants := []*runtimeProfileAccess{workbench}
+	named := strings.TrimSpace(x.testPlay.ModsFolder)
+	if named == "" {
+		return grants
+	}
+	mods, err := filepath.Abs(named)
+	if err != nil {
+		return grants
+	}
+	parent, err := editorPhysicalDirectory(filepath.Dir(mods))
+	beside := launch.ModsFolder("", filepath.Dir(workbench.root.path))
+	if err != nil || !sameSaveName(filepath.Join(parent, filepath.Base(mods)), beside) {
+		return grants
+	}
+	dir, err := createProfileDirectory(beside)
+	if err != nil {
+		return grants
+	}
+	grant := &runtimeProfileAccess{root: dir, directory: dir, descendants: true}
+	if allowed, err := grant.allows(dir.path); err != nil || !allowed {
+		return grants
+	}
+	return append(grants, grant)
 }
 
 // makeWorkbench makes the profile's workbench when dir is a proposed working

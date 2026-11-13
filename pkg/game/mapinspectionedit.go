@@ -1035,10 +1035,8 @@ func editedMapTarget(root, source, path string, overwrite bool, grants ...*runti
 // fenceEditorWrite refuses a map write into the resolved directory parent
 // when it lies in the install at root or in a preserved pair beside it.
 func fenceEditorWrite(root, parent, verb string, grants ...*runtimeProfileAccess) error {
-	for _, grant := range grants {
-		if allowed, err := grant.allows(parent); err == nil && allowed {
-			return nil
-		}
+	if admittedByGrant(parent, grants) {
+		return nil
 	}
 	roots := []string{root}
 	if root != "" {
@@ -1054,6 +1052,17 @@ func fenceEditorWrite(root, parent, verb string, grants ...*runtimeProfileAccess
 		return &editorFenceError{verb: verb, folder: parent, cause: err}
 	}
 	return nil
+}
+
+// admittedByGrant reports whether one of grants admits writes in the folder
+// dir: the one exception every writer the install fence refuses may ask.
+func admittedByGrant(dir string, grants []*runtimeProfileAccess) bool {
+	for _, grant := range grants {
+		if allowed, err := grant.allows(dir); err == nil && allowed {
+			return true
+		}
+	}
+	return false
 }
 
 // editorFenceError is a refusal of fenceEditorWrite: the folder refused and

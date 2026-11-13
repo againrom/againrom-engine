@@ -20,8 +20,8 @@ var (
 // that path. outDir is an existing folder below no folder that holds an
 // install's archives. An existing file there is refused unless replace is
 // set; then the new file takes its place whole. Nothing is left behind on a
-// failure.
-func PackMod(folder, outDir string, replace bool) (string, error) {
+// failure. A folder one of grants admits is written.
+func PackMod(folder, outDir string, replace bool, grants ...*runtimeProfileAccess) (string, error) {
 	st, err := os.Stat(outDir)
 	if err != nil {
 		return "", err
@@ -35,7 +35,7 @@ func PackMod(folder, outDir string, replace bool) (string, error) {
 	}
 	if install, inside, err := requiredArchiveAncestor(resolved); err != nil {
 		return "", err
-	} else if inside {
+	} else if inside && !admittedByGrant(outDir, grants) {
 		return "", fmt.Errorf("%s is inside the install %s: %w", outDir, install, ErrPackInstall)
 	}
 	m, data, err := mod.Pack(folder)

@@ -22,6 +22,7 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 	if x.mod == nil || !x.mod.owned || x.mod.copyOnly {
 		return errors.New(x.word("editor.mod.err.nocopy"))
 	}
+	grants := x.modWriteGrants()
 	out, absent, err := x.resolvedPublishFolder()
 	if err != nil {
 		return err
@@ -31,7 +32,7 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 	if absent {
 		standing = filepath.Dir(out)
 	}
-	if err := fenceEditorWrite(x.archives.Root, standing, "Publish"); err != nil {
+	if err := fenceEditorWrite(x.archives.Root, standing, "Publish", grants...); err != nil {
 		return err
 	}
 	if inside, err := sameOrDescendantPhysical(x.mod.dir, standing); err != nil {
@@ -90,7 +91,7 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 			return err
 		}
 	}
-	file, err := PackMod(x.mod.dir, out, replace)
+	file, err := PackMod(x.mod.dir, out, replace, grants...)
 	if err != nil {
 		return err
 	}

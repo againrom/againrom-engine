@@ -385,8 +385,8 @@ func walkRetainedTestMod(folder string, old []string, record string, guard func(
 
 // checkModMapDirectory refuses, before any directory is created, a target
 // directory whose deepest existing ancestor resolves outside the mod folder or
-// inside the install at root.
-func checkModMapDirectory(root, dir, target, rel string) error {
+// inside the install at root and admitted by none of grants.
+func checkModMapDirectory(root, dir, target, rel string, grants ...*runtimeProfileAccess) error {
 	folder, err := editorPhysicalDirectory(dir)
 	if err != nil {
 		return fmt.Errorf("resolve mod folder: %w", err)
@@ -421,7 +421,7 @@ func checkModMapDirectory(root, dir, target, rel string) error {
 	if !inside {
 		return fmt.Errorf("%s leads outside the mod folder", rel)
 	}
-	return fenceEditorWrite(root, physical, "Save")
+	return fenceEditorWrite(root, physical, "Save", grants...)
 }
 
 func (x *MapInspector) writeEditorProject(folder, id string, old []string, files map[string][]byte, plan missionPackagePlan, replace bool) error {
@@ -434,7 +434,8 @@ func (x *MapInspector) writeEditorProject(folder, id string, old []string, files
 	if err != nil {
 		return err
 	}
-	guard, _ := admittedOnce(func(path string) error { return fenceEditorWrite(root, path, "Save mod package") })
+	grants := x.modWriteGrants()
+	guard, _ := admittedOnce(func(path string) error { return fenceEditorWrite(root, path, "Save mod package", grants...) })
 	if err := guard(parent); err != nil {
 		return err
 	}
@@ -445,7 +446,7 @@ func (x *MapInspector) writeEditorProject(folder, id string, old []string, files
 	if err == nil {
 		for rel := range files {
 			full := filepath.Join(folder, filepath.FromSlash(rel))
-			if err := checkModMapDirectory(root, folder, filepath.Dir(full), rel); err != nil {
+			if err := checkModMapDirectory(root, folder, filepath.Dir(full), rel, grants...); err != nil {
 				return err
 			}
 		}
