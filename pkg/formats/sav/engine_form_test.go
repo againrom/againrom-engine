@@ -198,15 +198,16 @@ func TestEngineMissionDocumentInSecondGameWidths(t *testing.T) {
 
 // A mission document's terrain and session follow the second game's
 // serializer: the key list holds only the window's cells above 0x0f, the
-// entries go bucket by bucket with their own key at +0x3a, result slot 901
-// is 1 and the diplomacy block opens 1 1 0 0.
+// entries go bucket by bucket with their own key at +0x3a and their ground
+// and air occupants again at +0x2c and +0x30, result slot 901 is 1 and the
+// diplomacy block opens 1 1 0 0.
 func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
 	doc := documentDataFixture(t)
 	if doc.World == nil {
 		t.Fatal("the fixture has no world half")
 	}
 	doc.World.Blocks = []BlockRecord{{Cell: 0x0005, Dyn: 0x1f, Static: 0x1f}, {Cell: 0x0900, Dyn: 0x07, Static: 0x07}, {Cell: 0x0901, Dyn: 0x1f, Static: 0x05}}
-	doc.World.Cells = []DocumentCellData{{Cell: 0x0630, Cost: 6}, {Cell: 0x0640, Cost: 7}}
+	doc.World.Cells = []DocumentCellData{{Cell: 0x0630, Cost: 6, GroundActor: 0x51000010}, {Cell: 0x0640, Cost: 7, AirActor: 0x51000020}}
 	doc.World.CellRest = nil
 	out, ok, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
 	if err != nil || !ok {
@@ -223,6 +224,9 @@ func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
 	for i, c := range w.Cells {
 		if got := uint16(w.CellRest[i*rest+14]) | uint16(w.CellRest[i*rest+15])<<8; got != c.Cell {
 			t.Errorf("entry %#x holds key %#x at +0x3a", c.Cell, got)
+		}
+		if ground, air := binary.LittleEndian.Uint32(w.CellRest[i*rest:]), binary.LittleEndian.Uint32(w.CellRest[i*rest+4:]); ground != c.GroundActor || air != c.AirActor || ground+air == 0 {
+			t.Errorf("entry %#x holds footprint occupants %#x and %#x, occupants %#x and %#x", c.Cell, ground, air, c.GroundActor, c.AirActor)
 		}
 	}
 	if w.SessionResults[901-100] != 1 || !bytes.Equal(w.Session.DiplomacyHeader[:4], []byte{1, 1, 0, 0}) {

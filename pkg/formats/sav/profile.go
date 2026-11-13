@@ -93,12 +93,13 @@ var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArra
 	// The key list holds the cells 0x807 up to 0xedee whose plane-two byte
 	// exceeds 0x0f (R2-SESSION-019); the entry map is written bucket by
 	// bucket, (key >> 4) mod 100, each entry holding its own key at +0x3a
-	// (R2-SESSION-310, R2-SESSION-311). Result slot 901 is 1: only the
+	// (R2-SESSION-310, R2-SESSION-311) and its ground and air occupant
+	// again at +0x2c and +0x30. Result slot 901 is 1: only the
 	// session init writes it (R2-SESSION-313); the diplomacy block opens
 	// 1 1 0 0, the constructor's bytes (R2-ENGINE-760). The server gives
 	// Player P sight by Player Q's bodies from bit 0x10 of M[Q][P]
 	// (R2-ENGINE-826).
-	terrain: &terrainForm{from: 0x807, to: 0xedee, above: 0x0f, buckets: 100, keyAt: 0x3a - 0x2c},
+	terrain: &terrainForm{from: 0x807, to: 0xedee, above: 0x0f, buckets: 100, keyAt: 0x3a - 0x2c, groundAt: 0x2c - 0x2c, airAt: 0x30 - 0x2c},
 	results: map[int]int32{901: 1}, diplomacyHead: []byte{1, 1, 0, 0}, sightBit: 0x10,
 	// The original's attack planner reads the target of order 3 before any
 	// null test (R2-ENGINE-936), and its order-3 setter stores a target

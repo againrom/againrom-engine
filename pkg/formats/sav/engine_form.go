@@ -60,6 +60,11 @@ type terrainForm struct {
 	buckets int
 	// keyAt is where in an entry's rest the entry's own cell key lies.
 	keyAt int
+	// groundAt and airAt are where in an entry's rest the footprint
+	// occupants lie: the entry's ground and air occupant again, as each
+	// original mission file holds them. The original's refresh of an entry
+	// cell takes plane two's occupancy bits from them (R2-ENGINE-758).
+	groundAt, airAt int
 }
 
 // formRetype writes a record of class from, named in a ProfileKeeps, as
@@ -350,7 +355,8 @@ func dropClassRecords(data *DocumentData, classes []string) {
 // worldForm writes a world half in p's widths. An engine document holds
 // no terrain entry bytes past the first game's cell fields, no result slot
 // past the hundred and no stance outside 50x50: the profile's entries get
-// zero there, and its cells no first-game trigger tail (DIV-4350).
+// zero there but what its terrain rule writes, and its cells no first-game
+// trigger tail (DIV-4350).
 func (p *Profile) worldForm(w *DocumentWorldData) {
 	for i := range w.Cells {
 		c := &w.Cells[i]
@@ -403,8 +409,8 @@ func (f *documentForm) sight(data *DocumentData, sees func(viewer, owner uint32)
 }
 
 // write lists the cells the rule keeps, stores each entry's own key and
-// orders the entries by bucket. The order inside a bucket is not claimed:
-// the key falls inside it (DIV-4351).
+// footprint occupants and orders the entries by bucket. The order inside a
+// bucket is not claimed: the key falls inside it (DIV-4351).
 func (t *terrainForm) write(w *DocumentWorldData, rest int) {
 	w.Blocks = slices.DeleteFunc(w.Blocks, func(b BlockRecord) bool {
 		return b.Cell < t.from || b.Cell >= t.to || b.Dyn <= t.above
@@ -417,6 +423,8 @@ func (t *terrainForm) write(w *DocumentWorldData, rest int) {
 	for i, c := range w.Cells {
 		r := slices.Clone(w.CellRest[i*rest : (i+1)*rest])
 		r[t.keyAt], r[t.keyAt+1] = byte(c.Cell), byte(c.Cell>>8)
+		put32(r, t.groundAt, c.GroundActor)
+		put32(r, t.airAt, c.AirActor)
 		entries[i] = entry{c, r}
 	}
 	bucket := func(key uint16) int { return int(key>>4) % t.buckets }
