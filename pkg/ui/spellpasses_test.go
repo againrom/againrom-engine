@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/pkg/render/terrain"
@@ -159,9 +160,9 @@ func TestSpellPassesComposeLiteralSameCellAlphaInProductionOrder(t *testing.T) {
 	}
 }
 
-// The mission frame's world layers, drawFrame and the drawMapLayers it reaches
-// through drawMap, call the unified art composition once and the old separate
-// spell pass never.
+// The mission frame's world layers, the window steps of missionLayers and the
+// drawMapLayers they reach through drawMap, call the unified art composition
+// once and the old separate spell pass never.
 func TestMissionFrameUsesTheUnifiedSpellCompositionExactlyOnce(t *testing.T) {
 	var decls []ast.Decl
 	for _, file := range []string{"viewer.go", "mapzoom.go"} {
@@ -174,7 +175,7 @@ func TestMissionFrameUsesTheUnifiedSpellCompositionExactlyOnce(t *testing.T) {
 	artCalls, oldSpellCalls := 0, 0
 	for _, decl := range decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Name.Name != "drawFrame" && fn.Name.Name != "drawMapLayers" {
+		if !ok || fn.Name.Name != "drawFrame" && fn.Name.Name != "drawMapLayers" && !strings.HasPrefix(fn.Name.Name, "layer") {
 			continue
 		}
 		ast.Inspect(fn.Body, func(n ast.Node) bool {

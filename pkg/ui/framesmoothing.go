@@ -14,29 +14,21 @@ import (
 // draw. filterSharp, or a shader that did not compile, runs method B
 // (drawSharpBilinear) unchanged. filterPixel is FilterNearest below a scale
 // of 2 and method B from 2 up. The destination rectangle is op's in every branch.
+// A missing image or op takes the stage of scale 0.
 func drawFinalFrame(dst, src *ebiten.Image, op *ebiten.DrawImageOptions, buf **ebiten.Image, filter frameFilter) {
-	if filter == filterPixel && dst != nil && src != nil && op != nil {
-		if s := op.GeoM.Element(0, 0); s > 0 && s < 2 {
-			nearestBlit(dst, src, op)
-			return
-		}
+	s := 0.0
+	if dst != nil && src != nil && op != nil {
+		s = op.GeoM.Element(0, 0)
 	}
-	if filter != filterSmooth {
-		sharpBilinearBlit(dst, src, op, buf)
-		return
-	}
-	if dst == nil || src == nil || op == nil {
-		return
-	}
-	scale := op.GeoM.Element(0, 0)
-	if scale <= 0 {
-		return
-	}
-	if scale == 1 {
+	switch stageOf(filter, s).window {
+	case scaleNone:
+	case scaleNearest:
 		nearestBlit(dst, src, op)
-		return
-	}
-	if !catmullRomBlit(dst, src, op) {
+	case scaleCatmull:
+		if !catmullRomBlit(dst, src, op) {
+			sharpBilinearBlit(dst, src, op, buf)
+		}
+	default:
 		sharpBilinearBlit(dst, src, op, buf)
 	}
 }

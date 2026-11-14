@@ -64,12 +64,12 @@ func fillHeadlessRect(dst *image.RGBA, r screenRect, c color.RGBA) {
 }
 
 // headlessMissionFrame composes the mission frame for a win-sized window on
-// the CPU and names every scaling stage it passed. It follows Viewer.Draw:
-// the map surface, the overlay rectangles, the numerals, the panel backings
-// and the HUD pictures on the logical canvas, then the canvas placed in the
-// window by the final-frame scaler's reference. The grid, the route strokes,
-// the fog, popups, the pointer and the window-resolution text overlay are
-// not composed.
+// the CPU and names every scaling stage it passed. It is the CPU executor of
+// missionLayers: it runs each step's cpu in list order, the map surface, the
+// overlay rectangles, the numerals, the panel backings and the HUD pictures
+// on the logical canvas, then the canvas placed in the window by the
+// final-frame scaler's reference. A step with no cpu, and what a step's
+// cpuSkips names, is not composed.
 func (v *Viewer) headlessMissionFrame(win image.Point) (*image.RGBA, []string, error) {
 	if v == nil || v.cam == nil || win.X <= 0 || win.Y <= 0 {
 		return nil, nil, fmt.Errorf("headless mission frame: no placed viewer")
@@ -80,94 +80,160 @@ func (v *Viewer) headlessMissionFrame(win image.Point) (*image.RGBA, []string, e
 	}
 	v.syncMapViewport()
 	v.refreshHoverLighting()
-	stages := []string{fmt.Sprintf("zoom %d%%", v.cam.ZoomPercent())}
+	f := &cpuPass{win: win, stages: []string{fmt.Sprintf("zoom %d%%", v.cam.ZoomPercent())}}
 	if _, _, _, visible := v.noticePresent(); visible {
-		stages = append(stages, "a notice is open and is not composed")
+		f.stages = append(f.stages, "a notice is open and is not composed")
 		if v.canvasRemapsMap() {
-			stages = append(stages, "the map follows the canvas route; the dialogue backdrop is not composed")
+			f.stages = append(f.stages, "the map follows the canvas route; the dialogue backdrop is not composed")
 		}
 	}
-	canvas := image.NewRGBA(image.Rect(0, 0, v.frameW, v.frameH))
-	mapRect := image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
-	out := image.NewRGBA(image.Rect(0, 0, win.X, win.Y))
-	draw.Draw(out, out.Rect, image.NewUniform(color.RGBA{A: 0xff}), image.Point{}, draw.Src)
-	s := v.place.Scale()
-	ox, oy := v.place.Origin()
+	f.canvas = image.NewRGBA(image.Rect(0, 0, v.frameW, v.frameH))
+	f.mapRect = image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
+	f.out = image.NewRGBA(image.Rect(0, 0, win.X, win.Y))
+	draw.Draw(f.out, f.out.Rect, image.NewUniform(color.RGBA{A: 0xff}), image.Point{}, draw.Src)
+	f.s = v.place.Scale()
+	f.ox, f.oy = v.place.Origin()
+	for _, l := range missionLayers {
+		if l.cpu == nil {
+			continue
+		}
+		if err := l.cpu(v, f); err != nil {
+			return nil, nil, err
+		}
+	}
+	return f.out, f.stages, nil
+}
+
+// cpuPass is what the CPU executor's steps pass on. comp is the zoom-1
+// composition, nil when the map is drawn at the camera's zoom.
+type cpuPass struct {
+	win         image.Point
+	canvas, out *image.RGBA
+	mapRect     image.Rectangle
+	s, ox, oy   float64
+	stages      []string
+	comp        *image.RGBA
+	mapOp       ebiten.DrawImageOptions
+	remapped    bool
+	mapStage    string
+}
+
+func (f *cpuPass) over(pic image.Image, at image.Point, ok bool) {
+	if ok {
+		draw.Draw(f.canvas, pic.Bounds().Sub(pic.Bounds().Min).Add(at), pic, pic.Bounds().Min, draw.Over)
+	}
+}
+
+func (v *Viewer) cpuMap(f *cpuPass) error {
 	if unit, op, ok := v.smoothMapPlacement(); ok {
-		var comp *image.RGBA
 		var err error
 		v.underCamera(unit, func() {
-			if comp, _, err = v.headlessMapLayers(); err == nil {
-				v.headlessOverlayRects(comp, marksMap)
+			if f.comp, _, err = v.headlessMapLayers(); err == nil {
+				v.headlessOverlayRects(f.comp, marksMap)
 			}
 		})
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
-		target, targetName := out, "window"
-		placement, x, y := s, ox, oy
-		if v.canvasRemapsMap() {
-			target, targetName = canvas.SubImage(mapRect).(*image.RGBA), "canvas"
-			placement, x, y = 1, 0, 0
+		f.mapOp, f.remapped = op, v.canvasRemapsMap()
+		if f.remapped {
+			v.cpuPlaceMap(f, f.canvas.SubImage(f.mapRect).(*image.RGBA), "canvas", 1, 0, 0)
 		}
-		f := op.GeoM.Element(0, 0) * placement
-		filter := referenceFinalFrame(target, comp, f, op.GeoM.Element(0, 2)*placement+x, op.GeoM.Element(1, 2)*placement+y, v.mapFilter())
-		v.headlessOverlayRects(canvas.SubImage(mapRect).(*image.RGBA), marksFrame)
-		frame := image.Rect(int(math.Ceil(ox-0.5)), int(math.Ceil(oy-0.5)),
-			int(math.Ceil(ox+s*float64(v.frameW)-0.5)), int(math.Ceil(oy+s*float64(v.frameH)-0.5)))
-		black := image.NewUniform(color.RGBA{A: 0xff})
-		for _, strip := range []image.Rectangle{
-			image.Rect(0, 0, frame.Min.X, win.Y), image.Rect(frame.Max.X, 0, win.X, win.Y),
-			image.Rect(0, 0, win.X, frame.Min.Y), image.Rect(0, frame.Max.Y, win.X, win.Y),
-		} {
-			draw.Draw(out, strip, black, image.Point{}, draw.Src)
-		}
-		stages = append(stages, fmt.Sprintf("map with status bars and marks %dx%d at zoom 1 -> %s: %s x%.4f", comp.Rect.Dx(), comp.Rect.Dy(), targetName, filter, f))
-	} else {
-		layers, _, err := v.headlessMapLayers()
-		if err != nil {
-			return nil, nil, err
-		}
-		draw.Draw(canvas, mapRect, layers, image.Point{}, draw.Src)
-		v.headlessOverlayRects(canvas.SubImage(mapRect).(*image.RGBA), marksAll)
-		if z := v.cam.DrawnZoom(); z != 1 {
-			stages = append(stages, fmt.Sprintf("map sprites, tiles, status bars and marks -> canvas: nearest x%.4f each", z))
-		}
+		return nil
 	}
+	layers, _, err := v.headlessMapLayers()
+	if err != nil {
+		return err
+	}
+	draw.Draw(f.canvas, f.mapRect, layers, image.Point{}, draw.Src)
+	return nil
+}
+
+// cpuPlaceMap scales the zoom-1 composition onto target by the map's own
+// placement times placement, shifted by x, y.
+func (v *Viewer) cpuPlaceMap(f *cpuPass, target *image.RGBA, targetName string, placement, x, y float64) {
+	sc := f.mapOp.GeoM.Element(0, 0) * placement
+	filter := referenceFinalFrame(target, f.comp, sc, f.mapOp.GeoM.Element(0, 2)*placement+x, f.mapOp.GeoM.Element(1, 2)*placement+y, v.mapFilter())
+	f.mapStage = fmt.Sprintf("map with status bars and marks %dx%d at zoom 1 -> %s: %s x%.4f", f.comp.Rect.Dx(), f.comp.Rect.Dy(), targetName, filter, sc)
+}
+
+func (v *Viewer) cpuMarks(f *cpuPass) error {
+	if f.comp != nil {
+		v.headlessOverlayRects(f.canvas.SubImage(f.mapRect).(*image.RGBA), marksFrame)
+		return nil
+	}
+	v.headlessOverlayRects(f.canvas.SubImage(f.mapRect).(*image.RGBA), marksAll)
+	if z := v.cam.DrawnZoom(); z != 1 {
+		f.stages = append(f.stages, fmt.Sprintf("map sprites, tiles, status bars and marks -> canvas: nearest x%.4f each", z))
+	}
+	return nil
+}
+
+func (v *Viewer) cpuNumerals(f *cpuPass) error {
 	for _, p := range v.numeralPlacements() {
-		draw.Draw(canvas, p.Pic.Bounds().Add(p.At), p.Pic, p.Pic.Bounds().Min, draw.Over)
+		draw.Draw(f.canvas, p.Pic.Bounds().Add(p.At), p.Pic, p.Pic.Bounds().Min, draw.Over)
 	}
+	return nil
+}
+
+func (v *Viewer) cpuBackings(f *cpuPass) error {
 	if v.cam.ViewH < v.frameH {
-		draw.Draw(canvas, image.Rect(0, v.cam.ViewH, v.cam.ViewW, v.frameH), image.NewUniform(invFill), image.Point{}, draw.Src)
+		draw.Draw(f.canvas, image.Rect(0, v.cam.ViewH, v.cam.ViewW, v.frameH), image.NewUniform(invFill), image.Point{}, draw.Src)
 	}
 	if v.cam.ViewW < v.frameW {
-		draw.Draw(canvas, image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), image.NewUniform(missionColumnBackdrop), image.Point{}, draw.Src)
+		draw.Draw(f.canvas, image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), image.NewUniform(missionColumnBackdrop), image.Point{}, draw.Src)
 	}
-	over := func(pic image.Image, at image.Point, ok bool) {
-		if ok {
-			draw.Draw(canvas, pic.Bounds().Sub(pic.Bounds().Min).Add(at), pic, pic.Bounds().Min, draw.Over)
-		}
-	}
-	for _, present := range []func() (*image.RGBA, image.Point, bool){
-		v.panelPresent, v.spellbookPresent, v.minimapPresent,
-	} {
-		pic, at, ok := present()
-		over(pic, at, ok && pic != nil)
-	}
+	return nil
+}
+
+// cpuPicture places one HUD picture that its present function answers.
+func (f *cpuPass) cpuPicture(present func() (*image.RGBA, image.Point, bool)) error {
+	pic, at, ok := present()
+	f.over(pic, at, ok && pic != nil)
+	return nil
+}
+
+func (v *Viewer) cpuPanel(f *cpuPass) error        { return f.cpuPicture(v.panelPresent) }
+func (v *Viewer) cpuSpellbook(f *cpuPass) error    { return f.cpuPicture(v.spellbookPresent) }
+func (v *Viewer) cpuMinimap(f *cpuPass) error      { return f.cpuPicture(v.minimapPresent) }
+func (v *Viewer) cpuPackBar(f *cpuPass) error      { return f.cpuPicture(v.packBarPresent) }
+func (v *Viewer) cpuCommandPanel(f *cpuPass) error { return f.cpuPicture(v.commandPanelPresent) }
+func (v *Viewer) cpuMessage(f *cpuPass) error      { return f.cpuPicture(v.messagePresent) }
+
+func (v *Viewer) cpuColumnFiller(f *cpuPass) error {
 	if pic, at, ok := v.columnFillerPresent(); ok && pic != nil {
-		over(pic, at, true)
+		f.over(pic, at, true)
 	}
-	for _, present := range []func() (*image.RGBA, image.Point, bool){
-		v.packBarPresent, v.commandPanelPresent, v.messagePresent,
+	return nil
+}
+
+func (v *Viewer) cpuMapToWindow(f *cpuPass) error {
+	if f.comp == nil {
+		return nil
+	}
+	if !f.remapped {
+		v.cpuPlaceMap(f, f.out, "window", f.s, f.ox, f.oy)
+	}
+	s, ox, oy, win := f.s, f.ox, f.oy, f.win
+	frame := image.Rect(int(math.Ceil(ox-0.5)), int(math.Ceil(oy-0.5)),
+		int(math.Ceil(ox+s*float64(v.frameW)-0.5)), int(math.Ceil(oy+s*float64(v.frameH)-0.5)))
+	black := image.NewUniform(color.RGBA{A: 0xff})
+	for _, strip := range []image.Rectangle{
+		image.Rect(0, 0, frame.Min.X, win.Y), image.Rect(frame.Max.X, 0, win.X, win.Y),
+		image.Rect(0, 0, win.X, frame.Min.Y), image.Rect(0, frame.Max.Y, win.X, win.Y),
 	} {
-		pic, at, ok := present()
-		over(pic, at, ok && pic != nil)
+		draw.Draw(f.out, strip, black, image.Point{}, draw.Src)
 	}
-	layer := image.NewRGBA(out.Rect)
-	filter := referenceFinalFrame(layer, canvas, s, ox, oy, v.canvasFilter())
-	draw.Draw(out, out.Rect, layer, image.Point{}, draw.Over)
-	stages = append(stages, fmt.Sprintf("canvas %dx%d -> window %dx%d: %s x%.4f", v.frameW, v.frameH, win.X, win.Y, filter, v.place.Scale()))
-	return out, stages, nil
+	f.stages = append(f.stages, f.mapStage)
+	return nil
+}
+
+func (v *Viewer) cpuCanvasToWindow(f *cpuPass) error {
+	layer := image.NewRGBA(f.out.Rect)
+	filter := referenceFinalFrame(layer, f.canvas, f.s, f.ox, f.oy, v.canvasFilter())
+	draw.Draw(f.out, f.out.Rect, layer, image.Point{}, draw.Over)
+	f.stages = append(f.stages, fmt.Sprintf("canvas %dx%d -> window %dx%d: %s x%.4f", v.frameW, v.frameH, f.win.X, f.win.Y, filter, v.place.Scale()))
+	return nil
 }
 
 // headlessWindowFrame is the frame as the laid-out window shows it. The
@@ -212,21 +278,19 @@ func (a *App) headlessWindowFrame() (*image.RGBA, string, error) {
 // for the pixel filter below a scale of 2 the nearest texel. It answers the
 // name of the filter it ran.
 func referenceFinalFrame(dst, src *image.RGBA, s, ox, oy float64, filter frameFilter) string {
-	if s <= 0 {
+	switch stageOf(filter, s).cpu {
+	case scaleNone:
 		return "none"
-	}
-	if s == math.Trunc(s) && (filter != filterSmooth || s == 1) {
+	case scaleNearest:
 		referenceNearest(dst, src, s, ox, oy)
-		if s == 1 {
+		switch {
+		case s == 1:
 			return "exact copy"
+		case s == math.Trunc(s):
+			return "nearest (whole factor)"
 		}
-		return "nearest (whole factor)"
-	}
-	if filter == filterPixel && s < 2 {
-		referenceNearest(dst, src, s, ox, oy)
 		return "nearest"
-	}
-	if filter == filterSmooth {
+	case scaleCatmull:
 		catmullrom.Resample(dst, src, s, ox, oy)
 		return "catmull-rom"
 	}

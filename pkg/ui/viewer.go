@@ -3354,12 +3354,22 @@ func (v *Viewer) Draw(screen *ebiten.Image) {
 		&v.settledBuf, &v.settledTex, &v.textSettleFallbacks)
 	v.textKept = len(capturedText)
 	finalFrameFilter = v.canvasFilter()
-	if placed.composed {
-		v.blitMapToWindow(screen, placed.op)
+	v.drawLayers(screen, &windowPass{placed: placed, canvas: frameCanvas, op: &op, text: capturedText, ox: ox, oy: oy}, true)
+}
+
+func (v *Viewer) layerMapToWindow(screen *ebiten.Image, f *windowPass) {
+	if f.placed.composed {
+		v.blitMapToWindow(screen, f.placed.op)
 	}
-	blitFrameCanvas(screen, frameCanvas, &op)
-	if len(capturedText) > 0 {
-		v.textOverlay.draw(screen, capturedText, v.place.Scale(), ox, oy)
+}
+
+func (v *Viewer) layerCanvasToWindow(screen *ebiten.Image, f *windowPass) {
+	blitFrameCanvas(screen, f.canvas, f.op)
+}
+
+func (v *Viewer) layerTextOverlay(screen *ebiten.Image, f *windowPass) {
+	if len(f.text) > 0 {
+		v.textOverlay.draw(screen, f.text, v.place.Scale(), f.ox, f.oy)
 	}
 }
 
@@ -3465,24 +3475,30 @@ var blitColumnLayer = func(screen, img *ebiten.Image, op *ebiten.DrawImageOption
 	screen.DrawImage(img, op)
 }
 
-// drawFrame composes the mission screen onto one frame-sized destination.
+// drawFrame composes the mission screen onto one frame-sized destination:
+// the window executor's canvas layers of missionLayers.
 func (v *Viewer) drawFrame(screen *ebiten.Image) {
+	v.drawLayers(screen, &windowPass{}, false)
+}
+
+func (v *Viewer) layerMap(screen *ebiten.Image, f *windowPass) {
 	mapSurface := screen.SubImage(image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH).Intersect(screen.Bounds())).(*ebiten.Image)
 	// Resolve the frame hit before sprite and panel composition.
 
 	v.refreshHoverLighting()
 
 	v.drawMap(mapSurface)
-	if v.editorView {
-		return
-	}
+}
 
+func (v *Viewer) layerMarks(screen *ebiten.Image, f *windowPass) {
 	marks := marksAll
 	if v.marksComposed {
 		marks = marksFrame
 	}
 	v.drawMapMarks(screen, marks)
+}
 
+func (v *Viewer) layerPathStrokes(screen *ebiten.Image, f *windowPass) {
 	// The path overlay, last of all. It is over every glyph rather than in the
 	// pass slice because it is the one instrument drawn as STROKES and not as
 	// filled quads, and an overlayPass carries rectangles: folding a polyline
@@ -3496,7 +3512,9 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		vector.StrokeLine(screen, float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1),
 			PathWidth, PathColor, false)
 	}
+}
 
+func (v *Viewer) layerNumerals(screen *ebiten.Image, f *windowPass) {
 	// THE DAMAGE NUMERALS, over every world glyph and under every box. They are
 	// the map's own content — the original draws them from its map view's
 	// paint — so they go over the units, the bars and the route strokes they
@@ -3538,7 +3556,9 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		screen.DrawImage(v.numeralImgs[i], &op)
 	}
 	endTextCapture(numeralCapture, image.Point{})
+}
 
+func (v *Viewer) layerBackings(screen *ebiten.Image, f *windowPass) {
 	// The mission surface ends at the top of its open bottom panels. World
 	// layers are deliberately composed first, then this opaque HUD backing
 	// removes every overhang below the live viewport before any panel or popup
@@ -3554,7 +3574,9 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 			float32(v.frameH), missionColumnBackdrop, false)
 		v.canvasLog.overSolid(image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), missionColumnBackdrop)
 	}
+}
 
+func (v *Viewer) layerPanel(screen *ebiten.Image, f *windowPass) {
 	// The unit information panel, after everything. It is outside the pass
 	// slice for the reason the path overlay is: a pass carries filled
 	// rectangles and sprite placements in WORLD coordinates through the camera,
@@ -3572,27 +3594,27 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	//
 	// Each text-bearing HUD picture captures in its own local coordinates,
 	// then shifts its glyphs by the same origin as its blit.
-	{
-		panelCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.panelPresent()
-		endTextCapture(panelCapture, at)
-		if ok {
-			if v.panelFresh {
-				b := pic.Bounds()
-				if v.panelImg == nil || v.panelImg.Bounds().Dx() != b.Dx() || v.panelImg.Bounds().Dy() != b.Dy() {
-					v.panelImg = ebiten.NewImage(b.Dx(), b.Dy())
-				}
-				v.panelImg.WritePixels(pic.Pix)
-				v.panelFresh = false
+	panelCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.panelPresent()
+	endTextCapture(panelCapture, at)
+	if ok {
+		if v.panelFresh {
+			b := pic.Bounds()
+			if v.panelImg == nil || v.panelImg.Bounds().Dx() != b.Dx() || v.panelImg.Bounds().Dy() != b.Dy() {
+				v.panelImg = ebiten.NewImage(b.Dx(), b.Dy())
 			}
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			blitColumnLayer(screen, v.panelImg, &op, "panel")
-			v.canvasLog.over(pic, at)
+			v.panelImg.WritePixels(pic.Pix)
+			v.panelFresh = false
 		}
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		blitColumnLayer(screen, v.panelImg, &op, "panel")
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerSpellbook(screen *ebiten.Image, f *windowPass) {
 	// THE SPELLBOOK BAR, above an open pack bar or at the bottom when alone
 	// (plan T6, placed where it now is by the owner's 0140 ruling — hud.go).
 	// It is outside the pass slice for the panel's own reason immediately
@@ -3608,24 +3630,24 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// choice and not the panel's fresh-flagged cache (spellbookImg's own
 	// field comment, viewer.go): a grid of small cells costs less to
 	// recompose than a rebuild key would save.
-	{
-		bookCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.spellbookPresent()
-		endTextCapture(bookCapture, at)
-		if ok {
-			b := pic.Bounds()
-			if v.spellbookImg == nil || v.spellbookImg.Bounds().Dx() != b.Dx() || v.spellbookImg.Bounds().Dy() != b.Dy() {
-				v.spellbookImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.spellbookImg.WritePixels(pic.Pix)
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.spellbookImg, &op)
-			v.canvasLog.over(pic, at)
+	bookCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.spellbookPresent()
+	endTextCapture(bookCapture, at)
+	if ok {
+		b := pic.Bounds()
+		if v.spellbookImg == nil || v.spellbookImg.Bounds().Dx() != b.Dx() || v.spellbookImg.Bounds().Dy() != b.Dy() {
+			v.spellbookImg = ebiten.NewImage(b.Dx(), b.Dy())
 		}
+		v.spellbookImg.WritePixels(pic.Pix)
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.spellbookImg, &op)
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerReadout(screen *ebiten.Image, f *windowPass) {
 	// The debug readout, last of all and in the other corner. It is the panel's
 	// own shape at every step — decided entirely by readoutPresent, which
 	// needs no window, uploaded once per composition, placed by the same corner
@@ -3636,27 +3658,46 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// what leaves the whole of what the readout states reachable in a test with
 	// no engine: a measurement taken inside readoutPresent would be a value no
 	// assertion could pin.
-	{
-		readoutCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.readoutPresent(int(ebiten.ActualFPS() + 0.5))
-		endTextCapture(readoutCapture, at)
-		if ok {
-			if v.readoutFresh {
-				b := pic.Bounds()
-				if v.readoutImg == nil || v.readoutImg.Bounds().Dx() != b.Dx() || v.readoutImg.Bounds().Dy() != b.Dy() {
-					v.readoutImg = ebiten.NewImage(b.Dx(), b.Dy())
-				}
-				v.readoutImg.WritePixels(pic.Pix)
-				v.readoutFresh = false
+	readoutCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.readoutPresent(int(ebiten.ActualFPS() + 0.5))
+	endTextCapture(readoutCapture, at)
+	if ok {
+		if v.readoutFresh {
+			b := pic.Bounds()
+			if v.readoutImg == nil || v.readoutImg.Bounds().Dx() != b.Dx() || v.readoutImg.Bounds().Dy() != b.Dy() {
+				v.readoutImg = ebiten.NewImage(b.Dx(), b.Dy())
 			}
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.readoutImg, &op)
-			v.canvasLog.over(pic, at)
+			v.readoutImg.WritePixels(pic.Pix)
+			v.readoutFresh = false
 		}
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.readoutImg, &op)
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerFrameRate(screen *ebiten.Image, f *windowPass) {
+	_, pic, at, ok := v.FPSReadout(time.Now().UnixMilli())
+	if ok {
+		if v.fpsFresh {
+			b := pic.Bounds()
+			if v.fpsImg == nil || v.fpsImg.Bounds().Dx() != b.Dx() || v.fpsImg.Bounds().Dy() != b.Dy() {
+				v.fpsImg = ebiten.NewImage(b.Dx(), b.Dy())
+			}
+			v.fpsImg.WritePixels(pic.Pix)
+			v.fpsFresh = false
+		}
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.fpsImg, &op)
+		v.canvasLog.over(pic, at)
+	}
+}
+
+func (v *Viewer) layerMinimap(screen *ebiten.Image, f *windowPass) {
 	// THE MINIMAP, beside the readout and in the OTHER free corner
 	// (minimap.go). Top left is the readout's own and bottom left is the unit
 	// panel's (readout.go's own "THE CORNER IS THE OTHER ONE"); top right is
@@ -3675,25 +3716,6 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// and under their own reasoning (below): it is a HUD instrument a running
 	// popup already darkens along with everything else, not an exception carved
 	// out for it.
-	{
-		_, pic, at, ok := v.FPSReadout(time.Now().UnixMilli())
-		if ok {
-			if v.fpsFresh {
-				b := pic.Bounds()
-				if v.fpsImg == nil || v.fpsImg.Bounds().Dx() != b.Dx() || v.fpsImg.Bounds().Dy() != b.Dy() {
-					v.fpsImg = ebiten.NewImage(b.Dx(), b.Dy())
-				}
-				v.fpsImg.WritePixels(pic.Pix)
-				v.fpsFresh = false
-			}
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.fpsImg, &op)
-			v.canvasLog.over(pic, at)
-		}
-	}
-
 	if pic, at, ok := v.minimapPresent(); ok {
 		b := pic.Bounds()
 		if v.minimapImg == nil || v.minimapImg.Bounds().Dx() != b.Dx() || v.minimapImg.Bounds().Dy() != b.Dy() {
@@ -3706,9 +3728,13 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		blitColumnLayer(screen, v.minimapImg, &op, "minimap")
 		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerMissionTip(screen *ebiten.Image, f *windowPass) {
 	v.paintMissionTip(screen)
+}
 
+func (v *Viewer) layerCursorMode(screen *ebiten.Image, f *windowPass) {
 	// App sessions own the system cursor mode; standalone viewers update it here.
 	if _, _, shown := v.attackPointerPresent(); v.cursorMgr == nil && v.pointerModeChange(shown) {
 		mode := ebiten.CursorModeVisible
@@ -3717,7 +3743,9 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		}
 		ebiten.SetCursorMode(mode)
 	}
+}
 
+func (v *Viewer) layerColumnFiller(screen *ebiten.Image, f *windowPass) {
 	// MENU-COMBAT-017
 	if pic, at, ok := v.columnFillerPresent(); ok {
 		if v.fillerImg == nil {
@@ -3733,35 +3761,37 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 			v.canvasLog.unknown(pic.Bounds().Sub(pic.Bounds().Min).Add(at))
 		}
 	}
+}
 
+func (v *Viewer) layerMissionCard(screen *ebiten.Image, f *windowPass) {
 	// Widget 8 replaces the lower statistics card's rows while its readout is
 	// drawn; the card's body art stays under the readout.
 	readoutCapture := beginTextCapture(v.textSmoothingEnabled)
-	readoutPic, readoutAt, readoutShown := v.structureReadoutPresent()
-	endTextCapture(readoutCapture, readoutAt)
-	{
-		missionCardCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.missionCardPresentWith(readoutShown)
-		endTextCapture(missionCardCapture, at)
-		if ok {
-			if v.missionCardFresh {
-				b := pic.Bounds()
-				if v.missionCardImg == nil || v.missionCardImg.Bounds().Dx() != b.Dx() || v.missionCardImg.Bounds().Dy() != b.Dy() {
-					v.missionCardImg = ebiten.NewImage(b.Dx(), b.Dy())
-				}
-				v.missionCardImg.WritePixels(pic.Pix)
-				v.missionCardFresh = false
+	f.readoutPic, f.readoutAt, f.readoutShown = v.structureReadoutPresent()
+	endTextCapture(readoutCapture, f.readoutAt)
+	missionCardCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.missionCardPresentWith(f.readoutShown)
+	endTextCapture(missionCardCapture, at)
+	if ok {
+		if v.missionCardFresh {
+			b := pic.Bounds()
+			if v.missionCardImg == nil || v.missionCardImg.Bounds().Dx() != b.Dx() || v.missionCardImg.Bounds().Dy() != b.Dy() {
+				v.missionCardImg = ebiten.NewImage(b.Dx(), b.Dy())
 			}
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			blitColumnLayer(screen, v.missionCardImg, &op, "missionCard")
-			v.canvasLog.over(pic, at)
+			v.missionCardImg.WritePixels(pic.Pix)
+			v.missionCardFresh = false
 		}
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		blitColumnLayer(screen, v.missionCardImg, &op, "missionCard")
+		v.canvasLog.over(pic, at)
 	}
+}
 
-	if readoutShown {
-		pic, at := readoutPic, readoutAt
+func (v *Viewer) layerStructureReadout(screen *ebiten.Image, f *windowPass) {
+	if f.readoutShown {
+		pic, at := f.readoutPic, f.readoutAt
 		if v.structFresh {
 			b := pic.Bounds()
 			if v.structImg == nil || v.structImg.Bounds().Dx() != b.Dx() || v.structImg.Bounds().Dy() != b.Dy() {
@@ -3776,7 +3806,9 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		blitColumnLayer(screen, v.structImg, &op, "structureReadout")
 		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerWorn(screen *ebiten.Image, f *windowPass) {
 	// THE WORN BLIT GOES THROUGH blitColumnLayer TOO, since round 2 (W-2): it
 	// used to call screen.DrawImage directly, which is not the hooked seam
 	// missioncolumn_test.go's recordColumnLayers intercepts, so a test
@@ -3798,27 +3830,29 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		blitColumnLayer(screen, v.invImg, &op, "worn")
 		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerPackBar(screen *ebiten.Image, f *windowPass) {
 	// The pack bar composes its picture every frame, so the counts on its
 	// cells are captured for the overlay the frame they are drawn.
-	{
-		packCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.packBarPresent()
-		endTextCapture(packCapture, at)
-		if ok {
-			b := pic.Bounds()
-			if v.packImg == nil || v.packImg.Bounds().Dx() != b.Dx() || v.packImg.Bounds().Dy() != b.Dy() {
-				v.packImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.packImg.WritePixels(pic.Pix)
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.packImg, &op)
-			v.canvasLog.over(pic, at)
+	packCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.packBarPresent()
+	endTextCapture(packCapture, at)
+	if ok {
+		b := pic.Bounds()
+		if v.packImg == nil || v.packImg.Bounds().Dx() != b.Dx() || v.packImg.Bounds().Dy() != b.Dy() {
+			v.packImg = ebiten.NewImage(b.Dx(), b.Dy())
 		}
+		v.packImg.WritePixels(pic.Pix)
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.packImg, &op)
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerCommandPanel(screen *ebiten.Image, f *windowPass) {
 	// THE COMMAND PANEL LAST OF THE FOUR, because it is the one that must never
 	// be covered: every other box down here can be switched off from it, and a
 	// switch under something else is a switch the player cannot reach. Nothing
@@ -3837,27 +3871,29 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		blitColumnLayer(screen, v.commandPanelImg, &op, "controlPanel")
 		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerGold(screen *ebiten.Image, f *windowPass) {
 	// THE DROP GOLD EDITOR is a modal over every HUD box and under the message
 	// line. Its text is captured for the overlay like the pack bar's counts.
-	{
-		goldCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.goldModalPresent()
-		endTextCapture(goldCapture, at)
-		if ok {
-			b := pic.Bounds()
-			if v.goldImg == nil || v.goldImg.Bounds().Dx() != b.Dx() || v.goldImg.Bounds().Dy() != b.Dy() {
-				v.goldImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.goldImg.WritePixels(pic.Pix)
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.goldImg, &op)
-			v.canvasLog.over(pic, at)
+	goldCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.goldModalPresent()
+	endTextCapture(goldCapture, at)
+	if ok {
+		b := pic.Bounds()
+		if v.goldImg == nil || v.goldImg.Bounds().Dx() != b.Dx() || v.goldImg.Bounds().Dy() != b.Dy() {
+			v.goldImg = ebiten.NewImage(b.Dx(), b.Dy())
 		}
+		v.goldImg.WritePixels(pic.Pix)
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.goldImg, &op)
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerMessage(screen *ebiten.Image, f *windowPass) {
 	// THE MESSAGE LINE, last of all — over the inventory window too: it takes
 	// no input and gates nothing, so its place in the paint order is a
 	// visibility question alone, never a modality one.
@@ -3867,53 +3903,55 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// engine call is made here. The upload happens only for a picture that has
 	// not had one, and reuses the image already there while the box keeps its
 	// size.
-	{
-		messageCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.messagePresent()
-		endTextCapture(messageCapture, at)
-		if ok {
-			blit := v.messageBlitOf(pic)
-			if v.messageFresh {
-				b := blit.Bounds()
-				if v.messageImg == nil || v.messageImg.Bounds().Dx() != b.Dx() || v.messageImg.Bounds().Dy() != b.Dy() {
-					v.messageImg = ebiten.NewImage(b.Dx(), b.Dy())
-				}
-				v.messageImg.WritePixels(blit.Pix)
-				v.messageFresh = false
+	messageCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.messagePresent()
+	endTextCapture(messageCapture, at)
+	if ok {
+		blit := v.messageBlitOf(pic)
+		if v.messageFresh {
+			b := blit.Bounds()
+			if v.messageImg == nil || v.messageImg.Bounds().Dx() != b.Dx() || v.messageImg.Bounds().Dy() != b.Dy() {
+				v.messageImg = ebiten.NewImage(b.Dx(), b.Dy())
 			}
-			var op ebiten.DrawImageOptions
-			op.Filter = ebiten.FilterNearest
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.messageImg, &op)
-			v.canvasLog.over(blit, at)
+			v.messageImg.WritePixels(blit.Pix)
+			v.messageFresh = false
 		}
+		var op ebiten.DrawImageOptions
+		op.Filter = ebiten.FilterNearest
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.messageImg, &op)
+		v.canvasLog.over(blit, at)
 	}
+}
 
+func (v *Viewer) layerTooltip(screen *ebiten.Image, f *windowPass) {
 	// Every hover family uses the same delayed controller and final overlay.
 	// The third of the three mission HUD boxes DIV-1385 smooths — see the
 	// panel above.
-	{
-		tooltipCapture := beginTextCapture(v.textSmoothingEnabled)
-		pic, at, ok := v.tooltipPresent()
-		endTextCapture(tooltipCapture, at)
-		if ok {
-			b := pic.Bounds()
-			if v.itemPopupImg == nil || v.itemPopupImg.Bounds().Size() != b.Size() {
-				if v.itemPopupImg != nil {
-					v.itemPopupImg.Dispose()
-				}
-				v.itemPopupImg = ebiten.NewImage(b.Dx(), b.Dy())
+	tooltipCapture := beginTextCapture(v.textSmoothingEnabled)
+	pic, at, ok := v.tooltipPresent()
+	endTextCapture(tooltipCapture, at)
+	if ok {
+		b := pic.Bounds()
+		if v.itemPopupImg == nil || v.itemPopupImg.Bounds().Size() != b.Size() {
+			if v.itemPopupImg != nil {
+				v.itemPopupImg.Dispose()
 			}
-			v.itemPopupImg.WritePixels(pic.Pix)
-			var op ebiten.DrawImageOptions
-			op.GeoM.Translate(float64(at.X), float64(at.Y))
-			screen.DrawImage(v.itemPopupImg, &op)
-			v.canvasLog.over(pic, at)
+			v.itemPopupImg = ebiten.NewImage(b.Dx(), b.Dy())
 		}
+		v.itemPopupImg.WritePixels(pic.Pix)
+		var op ebiten.DrawImageOptions
+		op.GeoM.Translate(float64(at.X), float64(at.Y))
+		screen.DrawImage(v.itemPopupImg, &op)
+		v.canvasLog.over(pic, at)
 	}
+}
 
+func (v *Viewer) layerPopupBackdrop(screen *ebiten.Image, f *windowPass) {
 	v.paintPopupBackdrop(screen)
+}
 
+func (v *Viewer) layerPointer(screen *ebiten.Image, f *windowPass) {
 	// AND THE POINTER OVER ALL OF IT, for a viewer composing its own frame. A
 	// viewer inside an App session leaves this to the App, which composes the
 	// same three pictures after the in-game menu as well (App.Draw,

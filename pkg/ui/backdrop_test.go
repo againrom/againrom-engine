@@ -179,8 +179,9 @@ func TestNoDimWithoutADrawableArea(t *testing.T) {
 	}
 }
 
-// 0077 AC-6 — THE ORDER, witnessed by parsing drawFrame rather than by reading pixels
-// back (which this package cannot do before the game starts).
+// 0077 AC-6 — THE ORDER, witnessed by parsing the window steps of missionLayers
+// rather than by reading pixels back (which this package cannot do before the
+// game starts).
 //
 // The claim is that the notice dim stands after everything the front end draws
 // over the map and under the right column, and that the whole-frame backdrops
@@ -191,21 +192,37 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse viewer.go: %v", err)
 	}
-	var body *ast.BlockStmt
-	ast.Inspect(f, func(n ast.Node) bool {
-		fd, ok := n.(*ast.FuncDecl)
-		if !ok || fd.Name.Name != "drawFrame" || fd.Recv == nil {
+	methods := map[string]*ast.BlockStmt{}
+	for _, d := range f.Decls {
+		if fd, ok := d.(*ast.FuncDecl); ok && fd.Recv != nil {
+			methods[fd.Name.Name] = fd.Body
+		}
+	}
+	plan, err := parser.ParseFile(fset, "missionframe.go", nil, 0)
+	if err != nil {
+		t.Fatalf("parse missionframe.go: %v", err)
+	}
+	var steps []ast.Stmt
+	ast.Inspect(plan, func(n ast.Node) bool {
+		kv, ok := n.(*ast.KeyValueExpr)
+		if !ok {
 			return true
 		}
-		body = fd.Body
-		return false
+		if id, isID := kv.Key.(*ast.Ident); !isID || id.Name != "window" {
+			return true
+		}
+		if sel, ok := kv.Value.(*ast.SelectorExpr); ok && methods[sel.Sel.Name] != nil {
+			steps = append(steps, methods[sel.Sel.Name])
+		}
+		return true
 	})
-	if body == nil {
-		t.Fatal("no Viewer.drawFrame found in viewer.go")
+	if len(steps) != len(missionLayers) {
+		t.Fatalf("found %d of the %d window steps of missionLayers in viewer.go", len(steps), len(missionLayers))
 	}
+	body := &ast.BlockStmt{List: steps}
 
-	// The index of the top-level statement in drawFrame that mentions each name. A
-	// name that appears in no statement, or in more than one, is itself a
+	// The index of the step of missionLayers that mentions each name. A
+	// name that appears in no step, or in more than one, is itself a
 	// finding: this test's whole meaning is that each of these is one site.
 	at := func(name string) int {
 		found := -1
@@ -219,14 +236,14 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 			})
 			if mentions {
 				if found >= 0 {
-					t.Fatalf("%q is mentioned by two top-level statements of drawFrame (%d and %d) — "+
+					t.Fatalf("%q is mentioned by two steps of missionLayers (%d and %d) — "+
 						"this ordering test can no longer say where it stands", name, found, i)
 				}
 				found = i
 			}
 		}
 		if found < 0 {
-			t.Fatalf("no top-level statement of drawFrame mentions %q", name)
+			t.Fatalf("no step of missionLayers mentions %q", name)
 		}
 		return found
 	}
