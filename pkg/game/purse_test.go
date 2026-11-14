@@ -426,7 +426,7 @@ func TestPurseDraftIsCancelledByTheSaveKeyAndNothingDropsAfterwards(t *testing.T
 	if _, open := app.HeadlessGold(); !open {
 		t.Fatal("setup: the editor did not open")
 	}
-	if err := app.HeadlessKey("f2"); err != nil {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil {
 		t.Fatal(err)
 	}
 	if _, open := app.HeadlessGold(); open {

@@ -144,7 +144,7 @@ func escortF2Save(t *testing.T, f *FrontEnd, app *ui.App, name string) (string, 
 		}
 	}
 	text, kind, notice := f.LiveNotice()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatalf("escort F2 SAVE: error=%v screen=%s message=%q notice=%t kind=%d text=%q", err, app.Screen(), app.HeadlessMessage(), notice, kind, text)
 	}
 	dir := t.TempDir()

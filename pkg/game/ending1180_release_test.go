@@ -44,7 +44,7 @@ func TestReleaseCampaign1180EndingCreditsHallSaveAndReset(t *testing.T) {
 	f.ConfigureSaveSeams(a, store, OriginalStore{}, nil)
 	checkF2 := func(surface string) {
 		t.Helper()
-		if err := a.HeadlessKey("f2"); err != nil || a.Screen() != ui.ScreenEnding {
+		if err := a.HeadlessKey("ctrl-f2"); err != nil || a.Screen() != ui.ScreenEnding {
 			t.Fatal(surface, "F2 did not return or remain at ending", err, a.Screen())
 		}
 	}

@@ -110,7 +110,7 @@ func secondMissionSettledAt(t *testing.T, mission int) (*FrontEnd, *ui.App) {
 func secondMissionNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name string) []byte {
 	t.Helper()
 	f.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, nil)
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("ordinary named SAVE dialog", err, app.Screen())
 	}
 	if err := app.HeadlessSaveEdit(out, name, ui.SaveSAV); err != nil {

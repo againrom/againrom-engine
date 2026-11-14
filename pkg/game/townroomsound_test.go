@@ -406,7 +406,7 @@ func TestShopRoomRequestsInShopAgainAfterEachPause(t *testing.T) {
 	if n, on := inshop(); n != 2 || !on {
 		t.Fatalf("after focus returns InShop requests %d playing %v, want 2 and playing", n, on)
 	}
-	if err := a.HeadlessKey("f2"); err != nil {
+	if err := a.HeadlessKey("ctrl-f2"); err != nil {
 		t.Fatal(err)
 	}
 	step(2)

@@ -83,7 +83,7 @@ func TestReleaseHeisdeadCampaignEnd(t *testing.T) {
 	saves := SaveStore{Dir: filepath.Join(t.TempDir(), "ending-saves")}
 	f.ConfigureSaveSeams(app, saves, OriginalStore{}, nil)
 	for i := 0; i < 5; i++ {
-		if err := app.HeadlessKey("f2"); err != nil && app.Screen() == ui.ScreenCredits {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil && app.Screen() == ui.ScreenCredits {
 			t.Fatal(err)
 		}
 		if app.Screen() == ui.ScreenSave {

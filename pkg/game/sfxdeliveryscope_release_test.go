@@ -213,7 +213,7 @@ func deliveryScopeControlled(w *deliveryWitness) {
 	w.receipt("settings")
 	store := SaveStore{Dir: filepath.Join(w.dir, "current-saves")}
 	f.ConfigureSaveSeams(app, store, OriginalStore{}, nil)
-	w.check(app.HeadlessKey("f2"))
+	w.check(app.HeadlessKey("ctrl-f2"))
 	if app.Screen() != ui.ScreenSave {
 		w.t.Fatal("ordinary F2 did not open SAVE", app.Screen())
 	}
@@ -549,7 +549,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 	start = w.owner.BackendState()
 	sequence = start.Receipts[len(start.Receipts)-1].Sequence
 	w.receipt("before-menu")
-	w.check(w.app.HeadlessKey("f3"))
+	w.check(w.app.HeadlessKey("ctrl-f3"))
 	if w.app.Screen() != ui.ScreenLoad {
 		w.t.Fatal("ordinary F3 did not open LOAD over the school", w.app.Screen())
 	}

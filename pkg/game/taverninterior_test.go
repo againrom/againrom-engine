@@ -464,7 +464,7 @@ func TestTavernInteriorInteractionsReentryLoadAndMissingFamilies(t *testing.T) {
 
 	// Actual App LOAD installs a different game through resetForNewGame.
 	drawTavernApp(t, a, s, now, 101*time.Millisecond)
-	if err := a.HeadlessKey("f3"); err != nil {
+	if err := a.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.HeadlessActivate("@first"); err != nil {

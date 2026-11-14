@@ -129,7 +129,7 @@ func saveDialogCurrentMission(t *testing.T, f *FrontEnd, path string, raw []byte
 		runSpellWitnessChild(t, path, "AGAINROM_CURRENT_ACTION_INPUT")
 	}
 	cold.ConfigureSaveSeams(app, SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
-	if err := app.HeadlessKey("f2"); err != nil {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil {
 		t.Fatal(err)
 	}
 	if app.Screen() != ui.ScreenSave {

@@ -39,8 +39,8 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 		missionKeySaveGame: ebiten.KeyF2, missionKeyLoadGame: ebiten.KeyF3,
 	} {
 		for _, p := range missionKeyGameProfiles {
-			if b := missionRow(t, p, action, key); b.ctrl != modAny || b.shift != modAny || b.alt != modAny || b.hold {
-				t.Errorf("binding %v = %+v, want a bare press edge", key, b)
+			if b := missionRow(t, p, action, key); b.ctrl != modHeld || b.shift != modAny || b.alt != modAny || b.hold {
+				t.Errorf("binding %v = %+v, want a Ctrl press edge", key, b)
 			}
 		}
 	}
@@ -77,8 +77,8 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 	}
 	for _, p := range missionKeyGameProfiles {
 		for _, b := range missionBindings(p) {
-			if b.key == ebiten.KeyF2 && b.action != missionKeySaveGame ||
-				b.key == ebiten.KeyF3 && b.action != missionKeyLoadGame {
+			if b.key == ebiten.KeyF2 && b.action != missionKeySaveGame && b.action != missionKeyQuickSave ||
+				b.key == ebiten.KeyF3 && b.action != missionKeyLoadGame && b.action != missionKeyQuickLoad {
 				t.Errorf("profile %d: duplicate original key binding: %s = %s", p, b.name, missionKeyActionNames[b.action])
 			}
 		}
@@ -375,11 +375,11 @@ func TestFunctionKeysAreAvailableThroughHeadlessPhysicalVocabulary(t *testing.T)
 	h := newHaltFix(t, haltOpts{})
 	spy := &spySaveSeams{}
 	spy.install(h.a)
-	if err := h.a.HeadlessKey("f2"); err != nil || len(spy.saved) != 1 {
-		t.Fatalf("headless F2: saves=%v err=%v", spy.saved, err)
+	if err := h.a.HeadlessKey("ctrl-f2"); err != nil || len(spy.saved) != 1 {
+		t.Fatalf("headless Ctrl+F2: saves=%v err=%v", spy.saved, err)
 	}
 	h.a.step(appInput{Escape: true}, time.Unix(100, 0))
-	if err := h.a.HeadlessKey("f3"); err != nil || h.a.Screen() != ScreenLoad {
+	if err := h.a.HeadlessKey("ctrl-f3"); err != nil || h.a.Screen() != ScreenLoad {
 		t.Fatalf("headless F3: screen=%v err=%v", h.a.Screen(), err)
 	}
 }

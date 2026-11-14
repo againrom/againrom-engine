@@ -123,14 +123,14 @@ func TestMissionQuickSaveAndLoadKeysFollowTheProfile(t *testing.T) {
 		shift, ctrl        bool
 		wantSave, wantLoad bool
 	}{
-		{"pickup-p", ebiten.KeyF4, true, false, true, false},
+		{"pickup-p", ebiten.KeyF4, true, false, false, false},
 		{"pickup-p", ebiten.KeyF4, false, false, false, false},
 		{"pickup-p", ebiten.KeyF4, true, true, false, false},
-		{"pickup-p", ebiten.KeyF9, true, false, false, true},
+		{"pickup-p", ebiten.KeyF9, true, false, false, false},
 		{"", ebiten.KeyF4, false, false, true, false},
 		{"", ebiten.KeyF4, true, false, false, false},
 		{"", ebiten.KeyF9, false, false, false, true},
-		{"", ebiten.KeyF9, true, false, false, true},
+		{"", ebiten.KeyF9, true, false, false, false},
 	} {
 		var in appInput
 		in.Viewer.Shift = tc.shift

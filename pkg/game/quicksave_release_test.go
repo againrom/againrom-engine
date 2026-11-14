@@ -246,7 +246,7 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessKey("f3"); err != nil {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	rows := app.HeadlessRows()

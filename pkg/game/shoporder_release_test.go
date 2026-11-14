@@ -421,7 +421,7 @@ func shopOrderF2Save(t *testing.T, app *ui.App, store SaveStore) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
 		t.Fatalf("F2: screen %v, err %v", app.Screen(), err)
 	}
 	after, err := store.List()

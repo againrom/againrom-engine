@@ -117,7 +117,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 	r.s.CloseTip()
 	store := SaveStore{Dir: t.TempDir()}
 	r.f.ConfigureSaveSeams(r.app, store, OriginalStore{}, nil)
-	if err := r.app.HeadlessKey("f2"); err != nil {
+	if err := r.app.HeadlessKey("ctrl-f2"); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.app.HeadlessSaveAction("save"); err != nil {
@@ -146,7 +146,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 	}
 	oldScreen, lastPaint := r.s, r.s.sqPaintLast()
 	r.now = r.now.Add(67 * time.Millisecond)
-	if err := r.app.HeadlessKey("f3"); err != nil {
+	if err := r.app.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.app.HeadlessKey("enter"); err != nil {

@@ -404,7 +404,7 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 	}
 	exteriorPointer(t, a, 10)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if err := a.HeadlessKey("f3"); err != nil {
+	if err := a.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.HeadlessActivate("@first"); err != nil {

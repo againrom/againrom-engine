@@ -192,7 +192,7 @@ func companionColdReport(t *testing.T, f *FrontEnd, app *ui.App, payload []byte,
 	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	before, tick := f.live.world.Hash(), f.live.world.Tick()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
 		t.Fatal("ordinary current SAV failed", err, app.Screen())
 	}
 	entries, err := store.List()

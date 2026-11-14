@@ -245,7 +245,7 @@ func secondMissionTerminalRefusals(t *testing.T, f *FrontEnd, app *ui.App, out s
 		if _, err := os.Stat(filepath.Join(out, string(quickSaveBase(0))+".sav")); !os.IsNotExist(err) {
 			t.Fatal("terminal F4 published output", err)
 		}
-		if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 			t.Fatal("terminal negative stimulus did not reach ordinary F2 SAVE", err)
 		}
 		if err := app.HeadlessSaveEdit(out, "Refused terminal", ui.SaveSAV); err != nil {

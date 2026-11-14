@@ -108,7 +108,7 @@ func TestSavePointEndingHallAndCreditsNeverSave(t *testing.T) {
 					t.Fatal("direct SAVE entry opened a non-game save point", back, a.Screen())
 				}
 			}
-			if err := a.HeadlessKey("f2"); err != nil {
+			if err := a.HeadlessKey("ctrl-f2"); err != nil {
 				t.Fatal(err)
 			}
 			if a.Screen() == ScreenSave {

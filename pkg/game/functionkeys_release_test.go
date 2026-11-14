@@ -39,7 +39,7 @@ func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
 				if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 					t.Fatal(err)
 				}
-				if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad || app.HeadlessMessage() != "no saved games" {
+				if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenLoad || app.HeadlessMessage() != "no saved games" {
 					t.Fatalf("empty F3: screen=%v message=%q err=%v", app.Screen(), app.HeadlessMessage(), err)
 				}
 				for i := 0; i < 2; i++ {
@@ -49,7 +49,7 @@ func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
 				}
 			}
 			origin := app.Screen()
-			if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
+			if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
 				t.Fatalf("F2: screen=%v err=%v", app.Screen(), err)
 			}
 			if got := app.HeadlessMessage(); got != f.Words.SaveAcknowledgement {
@@ -83,7 +83,7 @@ func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
 			if err := app.HeadlessKey("escape"); err != nil || app.Screen() != origin {
 				t.Fatalf("Save return: %v error=%v", app.Screen(), err)
 			}
-			if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
+			if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenLoad {
 				t.Fatalf("F3: %v error=%v", app.Screen(), err)
 			}
 			if err := app.HeadlessKey("enter"); err != nil || app.Screen() != origin {
@@ -113,13 +113,13 @@ func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenMap {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenMap {
 			t.Fatalf("standalone F2: screen=%v error=%v", app.Screen(), err)
 		}
 		if entries, err := store.List(); err != nil || len(entries) != 0 {
 			t.Fatalf("standalone F2 wrote a save: entries=%v error=%v", entries, err)
 		}
-		if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenGameMenu {
+		if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenGameMenu {
 			t.Fatalf("standalone F3: screen=%v error=%v", app.Screen(), err)
 		}
 		rows := app.HeadlessRows()

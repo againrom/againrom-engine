@@ -64,10 +64,10 @@ func TestReleaseTwoSavePointsMissionAndCity(t *testing.T) {
 	if screen.worldMap == nil || screen.worldMap.returnMission != 20 {
 		t.Fatal("installed return route is absent")
 	}
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenTown {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenTown {
 		t.Fatal("pending F2 opened SAVE", err, app.Screen())
 	}
-	if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenLoad {
 		t.Fatal("pending return lost F3", err)
 	}
 	if err := app.HeadlessKey("escape"); err != nil {
@@ -92,7 +92,7 @@ func TestReleaseTwoSavePointsMissionAndCity(t *testing.T) {
 		if room == roomGates {
 			screen.enterWorldMap()
 		}
-		if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 			t.Fatal("resolved city room lost F2", room, err)
 		}
 		label := "city-point-" + string(rune('a'+i))
@@ -143,7 +143,7 @@ func TestReleaseTwoSavePointsMissionAndCity(t *testing.T) {
 	if len(screen.worldMap.route) == 0 {
 		t.Fatal("outward route is absent")
 	}
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("outward city lost F2", err)
 	}
 	if err := app.HeadlessSaveEdit(store.Dir, "outward-city", ui.SaveSAV); err != nil {
@@ -205,7 +205,7 @@ func TestReleaseTwoSavePointsMissionAndCity(t *testing.T) {
 		t.Fatal("legacy return repeated reward")
 	}
 	resolvedStore := SaveStore{Dir: t.TempDir()}
-	if err := coldApp.HeadlessKey("f2"); err != nil || coldApp.Screen() != ui.ScreenSave {
+	if err := coldApp.HeadlessKey("ctrl-f2"); err != nil || coldApp.Screen() != ui.ScreenSave {
 		t.Fatal("resolved legacy F2", err)
 	}
 	if err := coldApp.HeadlessSaveEdit(resolvedStore.Dir, "resolved", ui.SaveSAV); err != nil {

@@ -65,7 +65,7 @@ func TestSecondCampaignLastVictoryRunsTheEnding(t *testing.T) {
 		t.Fatalf("Victory in the last mission opened screen %v, want the ending", screen)
 	}
 	for i := 0; i < 8 && app.Screen() == ui.ScreenCredits; i++ {
-		if err := app.HeadlessKey("f2"); err != nil {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil {
 			t.Fatal(err)
 		}
 	}

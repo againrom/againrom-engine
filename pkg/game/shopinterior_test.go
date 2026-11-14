@@ -374,7 +374,7 @@ func TestShopInteriorLifecycleDegradationAndPresentationBoundary(t *testing.T) {
 		t.Fatalf("fresh reentry = %+v chosen%d", *shopRacks(s), s.shopChosen)
 	}
 	shopRacks(s).Index[0] = 5
-	if err := app.HeadlessKey("f3"); err != nil {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	if app.Screen() != ui.ScreenLoad || s.shopPage().Active() {

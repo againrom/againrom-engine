@@ -137,7 +137,7 @@ func TestScreenshotKeepsLaunchDirectoryAfterSaveBrowse(t *testing.T) {
 	}
 	launchDir, browsedDir := t.TempDir(), t.TempDir()
 	f.ConfigureSaveSeams(a, SaveStore{Dir: launchDir}, OriginalStore{}, nil)
-	if err := a.HeadlessKey("f2"); err != nil {
+	if err := a.HeadlessKey("ctrl-f2"); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.HeadlessSaveEdit(browsedDir, "Checkpoint", ui.SaveSAV); err != nil {

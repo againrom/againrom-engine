@@ -31,7 +31,7 @@ func saveDialogPreTownBattlefield(t *testing.T) {
 	}
 	dir := filepath.Join(t.TempDir(), "new destination")
 	f.ConfigureSaveSeams(app, SaveStore{Dir: dir}, OriginalStore{}, nil)
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("F2 did not open SAVE", app.Screen(), err)
 	}
 	before, _, err := f.Snapshot(true)
@@ -132,7 +132,7 @@ func saveDialogRepeatedSuffix(t *testing.T) {
 				t.Fatal("seed LOAD", app.Screen(), app.HeadlessMessage(), err)
 			}
 			f.Town.gold += 31
-			if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+			if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 				t.Fatal("town F2", app.Screen(), err)
 			}
 			state, _ := app.HeadlessSaveState()
@@ -222,7 +222,7 @@ func TestCurrentSaveDialogMissionConfirmationAndColdContinuation(t *testing.T) {
 	for cycle := 0; cycle < 2; cycle++ {
 		f.ConfigureSaveSeams(app, SaveStore{Dir: dir}, OriginalStore{}, nil)
 		before := f.live.world.Hash()
-		if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 			t.Fatal("open actual SAVE", app.Screen(), err)
 		}
 		state, _ := app.HeadlessSaveState()
@@ -311,7 +311,7 @@ func TestCurrentSaveDialogCityPurchaseTrainingAndColdContinuation(t *testing.T) 
 	for cycle := 0; cycle < 2; cycle++ {
 		buyTrainingItem(t, f)
 		party, graph, gold := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone(), f.Town.Gold()
-		if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 			t.Fatal("city F2", app.Screen(), err)
 		}
 		state, _ := app.HeadlessSaveState()

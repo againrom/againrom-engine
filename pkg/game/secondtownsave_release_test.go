@@ -157,7 +157,7 @@ func secondTownMutate(f *FrontEnd) {
 func secondTownNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name string) []byte {
 	t.Helper()
 	f.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, nil)
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatalf("ordinary first-town SAVE refusal: %v screen=%v bank_stage=%d", err, app.Screen(), f.Town.second.bank[768])
 	}
 	if err := app.HeadlessSaveEdit(out, name, ui.SaveSAV); err != nil {
@@ -380,7 +380,7 @@ func TestReleaseSecondTownNamedSaveContinuation(t *testing.T) {
 
 func secondTownDismissAck(t *testing.T, app *ui.App) {
 	t.Helper()
-	if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenLoad {
 		t.Fatal("ordinary LOAD window", err, app.Screen())
 	}
 	if err := app.HeadlessKey("escape"); err != nil {
@@ -488,7 +488,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if f.Town.second.current != (partyPlace{}) {
 		t.Fatal("the global map did not open")
 	}
-	if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil || app.Screen() != ui.ScreenLoad {
 		t.Fatal("ordinary LOAD from the global map", err, app.Screen())
 	}
 	_, list, _ := f.SaveSeams(SaveStore{Dir: out}, OriginalStore{}, nil)

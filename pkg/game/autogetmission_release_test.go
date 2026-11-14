@@ -75,7 +75,7 @@ func autoGetF2Save(t *testing.T, f *FrontEnd, app *ui.App, name string) (string,
 	}
 	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := f.live.world.Hash()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("F2 SAVE", err, app.Screen())
 	}
 	dir := t.TempDir()

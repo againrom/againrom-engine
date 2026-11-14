@@ -133,7 +133,7 @@ func secondRowStrip(pix *image.RGBA, list image.Rectangle, pitch, i int) []byte 
 // when it is not empty, and returns to the map.
 func secondSaveVia(t *testing.T, app *ui.App, over, label string) {
 	t.Helper()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("save page", err, app.Screen())
 	}
 	for i, r := range app.HeadlessRows() {
@@ -181,7 +181,7 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	}
 
 	// The save page shows the Empty Slot row above the listed saves.
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("save page", err, app.Screen())
 	}
 	rows := app.HeadlessRows()
@@ -203,7 +203,7 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	if err := app.HeadlessSaveAction("cancel"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("save page", err, app.Screen())
 	}
 	blankPanel := app.GameMenuPanel()

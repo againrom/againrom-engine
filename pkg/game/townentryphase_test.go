@@ -255,7 +255,7 @@ func TestTownEntryProcessTimerAndBlockedAdmission(t *testing.T) {
 				}
 			}
 			last = x.front.townUI.sqPaintLast()
-			if err := x.app.HeadlessKey("f3"); err != nil {
+			if err := x.app.HeadlessKey("ctrl-f3"); err != nil {
 				t.Fatal(err)
 			}
 			if err := x.app.HeadlessKey("enter"); err != nil {

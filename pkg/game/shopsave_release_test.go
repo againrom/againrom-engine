@@ -74,7 +74,7 @@ func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
 			screen.shopMember = 1
 			staged := cloneShopMutation(f.Shop)
 			for cycle := 0; cycle < 2; cycle++ {
-				if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+				if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 					t.Fatal("shop F2 lost SAVE", err, app.Screen())
 				}
 				label := "pending-" + string(rune('a'+cycle))
@@ -127,7 +127,7 @@ func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if err := app.HeadlessKey("f2"); err != nil {
+			if err := app.HeadlessKey("ctrl-f2"); err != nil {
 				t.Fatal(err)
 			}
 			if err := app.HeadlessKey("escape"); err != nil {

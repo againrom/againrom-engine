@@ -241,7 +241,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 		t.Fatal(err)
 	}
 	runSpellWitnessChild(t, proofPath, "AGAINROM_TIMED_AUTOSAVE_INPUT")
-	if err := app.HeadlessKey("f3"); err != nil {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	want := -1

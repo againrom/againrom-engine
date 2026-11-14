@@ -87,7 +87,7 @@ func TestTimedAutosaveDeletedSlotRecovery(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessKey("f3"); err != nil {
+	if err := app.HeadlessKey("ctrl-f3"); err != nil {
 		t.Fatal(err)
 	}
 	rows := app.HeadlessRows()

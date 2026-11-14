@@ -68,9 +68,10 @@ func TestMissionKeyTableListsEveryKeyOnce(t *testing.T) {
 		"f10 ctrl shift = grid", "f11 ctrl shift = readout",
 		"e = select-all", "i = inventory", "backquote = inventory", "x = worn", "b = book", "q = book",
 		"j = doll", "space no-shift no-alt = panels", "z no-ctrl no-alt hold = highlight",
-		"f1 = help", "pause = pause-text", "f2 = save-game", "f3 = load-game",
+		"f1 = help", "pause = pause-text", "f2 no-ctrl = quick-save", "f2 ctrl = save-game",
+		"f3 no-ctrl = quick-load", "f3 ctrl = load-game",
 		"f5 shift = spell 0", "f6 shift = spell 1", "f7 shift = spell 2", "f8 shift = spell 3",
-		"f9 shift = quick-load", "f10 shift = grid", "f11 shift = readout", "f12 shift = fps",
+		"f10 shift = grid", "f11 shift = readout", "f12 shift = fps",
 		"0 no-ctrl no-shift no-alt = pause", "numpad-0 no-ctrl no-shift no-alt = pause",
 		"equal = faster", "numpad-plus no-ctrl = faster", "minus = slower", "numpad-minus no-ctrl = slower",
 		"numpad-plus ctrl = unpaced", "numpad-minus ctrl = paced",
@@ -92,7 +93,7 @@ func TestMissionKeyTableListsEveryKeyOnce(t *testing.T) {
 		"t no-ctrl = stand-ground", "r no-ctrl = retreat", "m no-ctrl = move", "l no-ctrl = support",
 		"f4 no-shift = spell 0", "f5 no-shift = spell 1", "f6 no-shift = spell 2", "f7 no-shift = spell 3",
 		"f8 no-shift = spell 4", "f9 no-shift = spell 5", "f10 no-shift = spell 6", "f11 no-shift = spell 7",
-		"f12 no-shift = spell 8", "f4 no-ctrl shift = quick-save",
+		"f12 no-shift = spell 8",
 	)
 	for _, tc := range []struct {
 		profile string
@@ -186,8 +187,10 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 	in.Numerals = pressed(ebiten.KeyL) && ctrl
 	in.Attack = pressed(ebiten.KeyA) && !ctrl
 	in.HighlightHeld = held(ebiten.KeyZ) && !ctrl && !alt
-	in.SaveGame = pressed(ebiten.KeyF2)
-	in.LoadGame = pressed(ebiten.KeyF3)
+	in.SaveGame = pressed(ebiten.KeyF2) && ctrl
+	in.LoadGame = pressed(ebiten.KeyF3) && ctrl
+	in.QuickSave = pressed(ebiten.KeyF2) && !ctrl
+	in.QuickLoad = pressed(ebiten.KeyF3) && !ctrl
 	in.TimeFlow = pressed(ebiten.KeyN) && ctrl
 	in.Smoothing = pressed(ebiten.KeyO) && ctrl
 	in.AutoHealing = pressed(ebiten.KeyU) && ctrl
@@ -229,11 +232,11 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 	in.PlayerRetreat, in.Move = orders(ebiten.KeyR), orders(ebiten.KeyM)
 	in.Support = second && pressed(ebiten.KeyL) && !ctrl
 	bare := []string{"save", "spell", "spell", "spell", "spell", "load", "grid", "readout", "fps"}
-	shifted := []string{"", "spell", "spell", "spell", "spell", "load", "grid", "readout", "fps"}
+	shifted := []string{"", "spell", "spell", "spell", "spell", "", "grid", "readout", "fps"}
 	firstSlot := 5
 	if second {
 		bare = []string{"spell", "spell", "spell", "spell", "spell", "spell", "spell", "spell", "spell"}
-		shifted[0], firstSlot = "save", 4
+		firstSlot = 4
 	}
 	apply := func(what string, slot int) {
 		switch what {
@@ -258,7 +261,7 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 		if !shift {
 			apply(bare[i], i+4-firstSlot)
 		}
-		if shift && !(shifted[i] == "save" && ctrl) {
+		if shift {
 			apply(shifted[i], i+4-5)
 		}
 	}
@@ -325,7 +328,7 @@ func TestMovedMissionKeyNamesPressAsTheBaseCasesDid(t *testing.T) {
 			"a": {Attack: true}, "w": {WeaponSwap: true}, "e": {SelectAll: true}, "b": {Book: true},
 			"q": {Book: true}, "i": {Inventory: true}, "backquote": {Inventory: true}, "j": {Doll: true},
 			"space": {Panels: true}, "0": {Pause: true}, "numpad-0": {Pause: true}, "f1": {Help: true},
-			"f2": {SaveGame: true}, "f3": {LoadGame: true}, "numpad-plus": {Faster: true},
+			"f2": {QuickSave: true}, "f3": {QuickLoad: true}, "numpad-plus": {Faster: true},
 			"numpad-minus": {Slower: true},
 		} {
 			var got appInput

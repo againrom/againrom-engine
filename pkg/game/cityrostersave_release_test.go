@@ -15,7 +15,7 @@ import (
 
 func cityRosterF2Save(t *testing.T, app *ui.App, store SaveStore, label string) []byte {
 	t.Helper()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("city F2 SAVE", err, app.Screen())
 	}
 	if err := app.HeadlessSaveEdit(store.Dir, label, ui.SaveSAV); err != nil {

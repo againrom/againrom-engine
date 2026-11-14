@@ -123,7 +123,7 @@ func ogreF2Save(t *testing.T, f *FrontEnd, app *ui.App) (string, []byte) {
 	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	before := f.live.world.Hash()
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenGameMenu {
 		t.Fatal("F2 SAVE", err, app.Screen())
 	}
 	entries, err := store.List()

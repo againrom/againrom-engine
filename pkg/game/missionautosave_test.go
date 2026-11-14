@@ -158,7 +158,7 @@ func TestMissionStartAutosaveUsesLastSuccessfulSaveDirectory(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
+	if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("ordinary SAVE dialog", err, app.Screen())
 	}
 	if err := app.HeadlessSaveEdit(next.Dir, "chosen directory", ui.SaveSAV); err != nil {

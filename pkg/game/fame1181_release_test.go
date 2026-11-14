@@ -137,7 +137,7 @@ func TestReleaseFame1181TerminalResultColdHallAndSAV(t *testing.T) {
 		t.Fatal("the hall has one button", rows)
 	}
 	result := *f.fame.Result
-	if err := a.HeadlessKey("f2"); err != nil || a.Screen() != ui.ScreenEnding {
+	if err := a.HeadlessKey("ctrl-f2"); err != nil || a.Screen() != ui.ScreenEnding {
 		t.Fatal("ending exposed a SAVE point", err, a.Screen())
 	}
 	unchangedSaves()

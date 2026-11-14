@@ -167,7 +167,7 @@ func TestTerminalDefeat1091MissingFontCannotResumePlay(t *testing.T) {
 	seam.v.SetFont(nil)
 	before := seam.ticks
 	a.HeadlessStep()
-	a.HeadlessKey("f3")
+	a.HeadlessKey("ctrl-f3")
 	if seam.ticks != before || a.Screen() != ScreenMap || !seam.v.NoticeOpen() {
 		t.Fatal("missing font removed the terminal gate")
 	}
