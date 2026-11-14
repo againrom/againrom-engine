@@ -286,7 +286,8 @@ func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool)
 	if w.Package.Kind == mod.MissionCampaign || w.Package.Kind == mod.MissionReplace {
 		copy := cloneWorkspace(w)
 		s.syncModDocument(copy, copy.Pages, copy.Labels, false)
-		if flow, err := c.withModMissions(mod.MissionData{Missions: copy.Project.Missions}); err == nil {
+		set, _ := s.inspector.modMissions(s.inspector.mod.description(), copy.Project.Missions)
+		if flow, err := c.withModMissions(set); err == nil {
 			towns := flow.missionTowns[w.Package.Number]
 			if len(towns) > 0 {
 				return towns[0], true

@@ -247,9 +247,10 @@ var firstEdition = Edition{
 }
 
 var secondEdition = Edition{
-	Game:     GameROM2,
-	SaveTag:  GameROM2,
-	Campaign: CampaignDestinations,
+	Game:      GameROM2,
+	SaveTag:   GameROM2,
+	Campaign:  CampaignDestinations,
+	ModFamily: []string{"rom2"},
 
 	CampaignEndStage: 120,
 

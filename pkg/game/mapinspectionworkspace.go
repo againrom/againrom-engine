@@ -144,6 +144,7 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 		return nil
 	}
 	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest, Manifest: defaultPackageManifest()}}
+	w.Package.Manifest.AppliesTo = []string{s.inspector.packageBase()}
 	if s.model == nil {
 		// No map is open: the workspace is the opened mod's alone.
 		s.bindWorkspaceMod(w, "")

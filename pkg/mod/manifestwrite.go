@@ -9,11 +9,13 @@ import (
 	"strings"
 )
 
+// CloneManifest is m with lists of its own.
 func CloneManifest(m Manifest) Manifest {
-	m.AppliesTo = slices.Clone(m.AppliesTo)
-	m.Requires = slices.Clone(m.Requires)
-	m.Conflicts = slices.Clone(m.Conflicts)
-	m.LoadAfter = slices.Clone(m.LoadAfter)
+	for _, k := range ManifestKeys {
+		if k.Value == ManifestList {
+			k.Set(&m, slices.Clone(k.Get(m).([]string)))
+		}
+	}
 	return m
 }
 
@@ -22,7 +24,7 @@ func CloneManifest(m Manifest) Manifest {
 func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 	encoded := map[string]string{}
 	for key, value := range values {
-		if !slices.Contains(manifestKeys, key) {
+		if !slices.Contains(manifestKeyNames(), key) {
 			return nil, fmt.Errorf("%q is not a mod.toml key", key)
 		}
 		switch v := value.(type) {
@@ -50,7 +52,7 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 		newline = "\r\n"
 	}
 	appendMissing := func() {
-		for _, key := range manifestKeys {
+		for _, key := range manifestKeyNames() {
 			if value, ok := encoded[key]; ok {
 				if out.Len() > 0 && !strings.HasSuffix(out.String(), "\n") {
 					out.WriteString(newline)

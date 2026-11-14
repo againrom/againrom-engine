@@ -131,7 +131,7 @@ func TestTheEditorKeepsAMapNamedByItsNumberAsAFileOfTheMod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	admitted, _, err := loaded.Missions.AdmitMaps(func(int) error { return nil })
+	admitted, _, err := loaded.Missions.Listed(func(int) error { return nil })
 	if m, ok := admitted.Replacing(10); err != nil || !ok || m.Map != "10.alm" {
 		t.Fatalf("the saved mod's file form: %+v %v", admitted.Missions, err)
 	}

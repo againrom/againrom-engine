@@ -115,7 +115,7 @@ func missionIdentity(m Mission) string {
 // row is appended. A mission the file form declares is its map file and
 // takes no row, so it is left out of both.
 func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
-	before, after = rows(before), rows(after)
+	before, after = missionRows(before), missionRows(after)
 	sourced := func(list []Mission) []sourceRow {
 		out := make([]sourceRow, len(list))
 		for i, m := range list {

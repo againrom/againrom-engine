@@ -5,9 +5,9 @@ import (
 	"maps"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
+	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mod"
 	"againrom/pkg/vfs"
@@ -17,25 +17,24 @@ import (
 // composed exactly as NPCRegistry beside it is (mission.go): the campaign
 // container's identity segment and the entry inside it, so a renamed container
 // moves the maps, the NPC table and this together.
-var ScenarioRegistry = scenarioPrefix + "scenario.reg"
+var ScenarioRegistry = campaignset.Registry
 
 // The three keys a town building's offer list is written under, and the one
 // registry section every mission record is a child of. Each key name is the
 // registry's own, spelled once here; nothing else in this package spells them.
 const (
-	innMissionKey  = "InnMission"
-	shopMissionKey = "ShopMission"
-	tcMissionKey   = "TCMission"
+	innMissionKey  = campaignset.InnKey
+	shopMissionKey = campaignset.ShopKey
+	tcMissionKey   = campaignset.TCKey
 
 	// autoGetMissionKey is the key a [Mission<n>] section declares its own
 	// successor under. It is spelled once here, same as the three offer keys
 	// above.
 	autoGetMissionKey = "AutoGetMission"
 
-	missionSection    = "Mission"
 	generalSection    = "General"
 	totalMissionsKey  = "TotalMissions"
-	mainMissionStride = 10
+	mainMissionStride = campaignset.Stride
 
 	// The four keys a chapter carries beside its three offer lists, each
 	// spelled once here like the four above it.
@@ -432,7 +431,6 @@ func ReadCampaign(r *reg.Reg) Campaign {
 	if r == nil || r.Root == nil {
 		return c
 	}
-	seen := make(map[int]bool)
 	for _, section := range r.Root.Children {
 		if !section.Dir {
 			continue
@@ -452,11 +450,6 @@ func ReadCampaign(r *reg.Reg) Campaign {
 			}
 			c.Last[n] = true
 		}
-		if n%mainMissionStride == 0 {
-			c.Main = append(c.Main, n)
-		} else {
-			c.Side = append(c.Side, n)
-		}
 		if object := int(sectionInt(section, mapObjectKey)); object != 0 {
 			if c.MapObjects == nil {
 				c.MapObjects = make(map[int]int)
@@ -468,23 +461,6 @@ func ReadCampaign(r *reg.Reg) Campaign {
 				c.Auto = make(map[int]int)
 			}
 			c.Auto[n] = int(v)
-		}
-		// THE THREE KEYS ARE READ TOGETHER AND MERGED, because what is
-		// wanted here is the SET a town hands out and not which building
-		// hands out which — a distinction this tree has no building to act
-		// on. REG-SCN-064's own census says no mission is named by two of
-		// them anyway, so the merge loses nothing it could have kept.
-		for _, key := range [...]string{innMissionKey, shopMissionKey, tcMissionKey} {
-			for _, v := range sectionInts(section, key) {
-				// ZERO IS THE SENTINEL AND NOT A MISSION: InnMission[i]
-				// is zero for an NPC with nothing to give (REG-SCN-064),
-				// and three sections of a stock scenario carry one.
-				if v <= 0 || seen[int(v)] {
-					continue
-				}
-				seen[int(v)] = true
-				c.Offered = append(c.Offered, int(v))
-			}
 		}
 		// THE CHAPTER IS READ FROM THE SAME SECTION IN THE SAME PASS and is not
 		// derived from anything above it. The loop over the three keys just above
@@ -498,9 +474,10 @@ func ReadCampaign(r *reg.Reg) Campaign {
 			c.Chapters[n] = ch
 		}
 	}
-	sort.Ints(c.Main)
-	sort.Ints(c.Side)
-	sort.Ints(c.Offered)
+	// The mission sets are campaignset's: the offer keys are read together
+	// and merged, zero being the sentinel of an NPC with nothing to give.
+	nums := campaignset.Read(r)
+	c.Main, c.Side, c.Offered = nums.Main, nums.Side, nums.Offered
 	return c
 }
 
@@ -738,17 +715,7 @@ func sectionIntSlice(section *reg.Node, key string) []int {
 // (maplist.go), so neither place invents a second idea of what a mission
 // number looks like.
 func sectionMission(name string) (int, bool) {
-	if len(name) <= len(missionSection) {
-		return 0, false
-	}
-	if !strings.EqualFold(name[:len(missionSection)], missionSection) {
-		return 0, false
-	}
-	n, err := strconv.Atoi(name[len(missionSection):])
-	if err != nil || n <= 0 {
-		return 0, false
-	}
-	return n, true
+	return campaignset.SectionNumber(name)
 }
 
 // sectionInts is every integer a section's key holds, whichever of the two
@@ -760,17 +727,7 @@ func sectionMission(name string) (int, bool) {
 // half the campaign's offers as nothing at all — which is a hole that draws no
 // error and shows up only as a boundary in the wrong place.
 func sectionInts(section *reg.Node, key string) []int32 {
-	n := childNamed(section, key)
-	if n == nil {
-		return nil
-	}
-	switch n.Type {
-	case reg.TypeInt:
-		return []int32{n.Int}
-	case reg.TypeIntArray:
-		return n.Ints
-	}
-	return nil
+	return campaignset.Ints(section, key)
 }
 
 // sectionIntOK is a section's key as a single integer, and whether the key

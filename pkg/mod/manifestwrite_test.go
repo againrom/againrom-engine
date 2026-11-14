@@ -8,7 +8,7 @@ import (
 )
 
 func TestWriteManifestPreservesEveryOtherByte(t *testing.T) {
-	for _, key := range manifestKeys {
+	for _, key := range manifestKeyNames() {
 		t.Run(key, func(t *testing.T) {
 			value := any("new \"value\"\n\\\t")
 			old := "'old'"

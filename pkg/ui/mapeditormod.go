@@ -625,10 +625,10 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 		}
 		parts := editorTextLines(e.bodyFont(), mark+e.editorHostText(c.Label), room)
 		if len(parts) > 1 {
-			// Too long for one row, the roles break after each comma first.
+			// Too long for one row, the roles break each on a line first.
 			parts = parts[:0]
-			for _, role := range strings.SplitAfter(e.editorHostText(c.Label), ", ") {
-				parts = append(parts, editorTextLines(e.bodyFont(), strings.TrimSpace(role), room-30)...)
+			for _, role := range choiceLines(list, n) {
+				parts = append(parts, editorTextLines(e.bodyFont(), e.editorHostText(role), room-30)...)
 			}
 			parts[0] = mark + parts[0]
 		}

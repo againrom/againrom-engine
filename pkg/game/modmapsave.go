@@ -36,12 +36,15 @@ type editorMod struct {
 	contextIssue     string
 	dir              string
 	id               string
-	missions         mod.MissionData
-	owned            bool
-	packed           bool
-	copyOnly         bool
-	selected         string
-	title            string
+	// described is the mod's missions as read at open; missions is the list
+	// modMissions joins of it.
+	described mod.MissionData
+	missions  mod.MissionData
+	owned     bool
+	packed    bool
+	copyOnly  bool
+	selected  string
+	title     string
 	// flow is the campaign and the missions of the mod's admitted fork, for
 	// W's graph; nil when no fork was built.
 	flow   *campaignFlow
@@ -92,7 +95,8 @@ func (x *MapInspector) SetMod(dir string) error {
 		}
 		owned = true
 	}
-	m := &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, packed: tree.Packed(), title: e.Manifest.Title}
+	listed, _ := x.modMissions(d, d.Missions)
+	m := &editorMod{dir: dir, id: e.Manifest.ID, described: d, missions: listed, owned: owned, packed: tree.Packed(), title: e.Manifest.Title}
 	if err := m.readInventory(tree); err != nil {
 		return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 	}

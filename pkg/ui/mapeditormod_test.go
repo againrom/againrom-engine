@@ -61,7 +61,8 @@ func newModesWorkspace() *modesWorkspace {
 		{Key: "add", Label: "Add open map", Action: true},
 	}, maps: InspectionField{Key: "map", Label: "Maps of the mod", ReadOnly: true, Value: 1, Choices: []InspectionChoice{
 		{Value: 1, Label: "crossing.alm: guest 25 after 20"}, {Value: 2, Label: "watch.alm: guest 26 after 25, replaces 3"},
-		{Value: 3, Label: "7.alm: replaces 7 by name"}, {Value: 4, Label: "spare.alm: unused"}, {Value: 5, Label: "gone.alm: missing"}}}}
+		{Value: 3, Label: "7.alm: replaces 7 by name"}, {Value: 4, Label: "spare.alm: unused"}, {Value: 5, Label: "gone.alm: missing"}},
+		ChoiceLines: [][]string{nil, {"watch.alm: guest 26 after 25,", "replaces 3"}}}}
 }
 
 // ModMaps is the package field "map": the mod's list of maps.

@@ -20,7 +20,7 @@ const SupportedAPI = 1
 func Applies(appliesTo []string, id string) bool {
 	names := base.AppliesTo(id)
 	for _, a := range appliesTo {
-		if a == "common" || slices.Contains(names, a) {
+		if a == base.AllBases || slices.Contains(names, a) {
 			return true
 		}
 	}

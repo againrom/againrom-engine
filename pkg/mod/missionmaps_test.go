@@ -70,7 +70,7 @@ func TestTheFileFormReadsNumberedMapsInTheTopAndTheMapsFolder(t *testing.T) {
 	if err != nil || !held {
 		t.Fatalf("held %v: %v", held, err)
 	}
-	got, warnings, err := d.Missions.AdmitMaps(campaignOf(10, 20, 30, 40, 60))
+	got, warnings, err := d.Missions.Listed(campaignOf(10, 20, 30, 40, 60))
 	if err != nil || len(warnings) != 0 {
 		t.Fatalf("%v %v", warnings, err)
 	}
@@ -108,7 +108,7 @@ func TestAMapARowNamesIsThatRowsMap(t *testing.T) {
 		if err != nil || held {
 			t.Fatalf("%s: held %v: %v", name, held, err)
 		}
-		got, warnings, err := d.Missions.AdmitMaps(campaignOf(10))
+		got, warnings, err := d.Missions.Listed(campaignOf(10))
 		if err != nil || len(warnings) != 0 || len(got.Missions) != 1 {
 			t.Fatalf("%s: %v %v %+v", name, warnings, err, got.Missions)
 		}
@@ -143,7 +143,7 @@ func TestTwoDeclarationsOfOneReplacedMissionAreRefusedNamingBoth(t *testing.T) {
 		if _, err := declaredMissions(t, &d, "m", mapMod(t, c.files), "en"); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if _, _, err := d.Missions.AdmitMaps(campaignOf(10)); err == nil || !strings.Contains(err.Error(), c.want) {
+		if _, _, err := d.Missions.Listed(campaignOf(10)); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
 	}
@@ -158,7 +158,7 @@ func TestAFileWithoutACounterpartReplacesAndRefusesNothing(t *testing.T) {
 	if _, err := declaredMissions(t, &d, "m", dir, "en"); err != nil {
 		t.Fatal(err)
 	}
-	got, warnings, err := d.Missions.AdmitMaps(campaignOf(10))
+	got, warnings, err := d.Missions.Listed(campaignOf(10))
 	want := []string{
 		`mod "m": 99.alm: number 99 is no mission of this install's campaign; the file replaces nothing`,
 		`mod "m": maps/99.alm: number 99 is no mission of this install's campaign; the file replaces nothing`,
@@ -171,7 +171,7 @@ func TestAFileWithoutACounterpartReplacesAndRefusesNothing(t *testing.T) {
 	if _, err := declaredMissions(t, &held, "m", mapMod(t, map[string]string{"10.alm": "A", "10.text/Bad Name.txt": "x"}), "en"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := held.Missions.AdmitMaps(campaignOf(10)); err == nil || !strings.Contains(err.Error(), `mod "m": 10.alm: texts: `) {
+	if _, _, err := held.Missions.Listed(campaignOf(10)); err == nil || !strings.Contains(err.Error(), `mod "m": 10.alm: texts: `) {
 		t.Fatalf("%v", err)
 	}
 }
@@ -185,7 +185,7 @@ func TestOneMapFileServesBothLanguages(t *testing.T) {
 		if _, err := declaredMissions(t, &d, "m", dir, lang); err != nil {
 			t.Fatal(err)
 		}
-		got, _, err := d.Missions.AdmitMaps(campaignOf(10))
+		got, _, err := d.Missions.Listed(campaignOf(10))
 		if err != nil || len(got.Missions) != 1 {
 			t.Fatalf("%s: %v %+v", lang, err, got)
 		}
@@ -205,7 +205,7 @@ func TestReplacementsNameEachReplacedMission(t *testing.T) {
 	if _, err := declaredMissions(t, &d, "m", dir, "en"); err != nil {
 		t.Fatal(err)
 	}
-	got, _, err := d.Missions.AdmitMaps(campaignOf(10, 20))
+	got, _, err := d.Missions.Listed(campaignOf(10, 20))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestAPackedModsMapsAreItsFolders(t *testing.T) {
 		if _, err := declaredMissions(t, &d, "m", dir, "en"); err != nil {
 			t.Fatal(err)
 		}
-		got, warnings, err := d.Missions.AdmitMaps(campaignOf(10, 20))
+		got, warnings, err := d.Missions.Listed(campaignOf(10, 20))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -258,7 +258,7 @@ func TestAFileAndALaterModsRowOfOneMissionMergeInLoadOrder(t *testing.T) {
 	if _, err := declaredMissions(t, &d, "r", second, "en"); err != nil {
 		t.Fatal(err)
 	}
-	admitted, _, err := d.Missions.AdmitMaps(campaignOf(20))
+	admitted, _, err := d.Missions.Listed(campaignOf(20))
 	if err != nil {
 		t.Fatal(err)
 	}

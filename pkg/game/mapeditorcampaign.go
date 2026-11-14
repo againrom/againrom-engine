@@ -185,12 +185,9 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range d.Missions {
-		if m.ByFileName() {
-			m = mod.CloneMission(m)
-			m.MapBytes = nil
-			parsed.Missions = append(parsed.Missions, m)
-		}
+	parsed, err = x.modMissions(x.mod.description(), parsed.Missions)
+	if err != nil {
+		return nil, err
 	}
 	if err := x.missionFiles(parsed.Missions, d.Files); err != nil {
 		return nil, err
@@ -218,5 +215,5 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	if f == nil {
 		return nil, fmt.Errorf("%s", x.word("editor.graph.unbuilt"))
 	}
-	return &campaignFlow{campaign: f.Campaign.Value(), missions: tableMissions(f.Table)}, nil
+	return forkFlow(f), nil
 }

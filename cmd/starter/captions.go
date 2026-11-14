@@ -90,6 +90,7 @@ const (
 	cStartMission     captionID = "start-mission"
 	cMissionsDisabled captionID = "missions-disabled"
 	cNoMissions       captionID = "no-missions"
+	cMissionByName    captionID = "mission-by-name"
 	cMissionsToml     captionID = "missions-toml"
 	cSelectMission    captionID = "select-mission"
 
@@ -244,6 +245,7 @@ var captionRows = []captionRow{
 	row(cStartMission, "Start mission", "Начать миссию", ""),
 	row(cMissionsDisabled, "Tick the mod to list and start its missions.", "Отметьте мод, чтобы увидеть и начать его миссии.", ""),
 	row(cNoMissions, "This mod has no missions.", "У этого мода нет миссий.", ""),
+	row(cMissionByName, "replaced by the map %s", "заменена картой %s", ""),
 	row(cMissionsToml, "missions.toml: %s", "missions.toml: %s", ""),
 	row(cSelectMission, "select a mission in the list first", "сначала выберите миссию в списке", ""),
 

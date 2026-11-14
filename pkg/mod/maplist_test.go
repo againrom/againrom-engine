@@ -104,7 +104,7 @@ func TestMapListTakesTheFileFormFromTheLoader(t *testing.T) {
 		return missionMap{Mission: Mission{Mod: "m", File: rel, Kind: MissionReplace, Number: n, Map: rel, byName: true}}
 	}
 	d := MissionData{maps: []missionMap{file(7, "maps/7.alm"), file(900, "maps/900.alm")}}
-	admitted, _, err := d.AdmitMaps(func(n int) error {
+	admitted, _, err := d.Listed(func(n int) error {
 		if n == 900 {
 			return errors.New("the install holds no campaign map of this number")
 		}

@@ -61,8 +61,12 @@ func TestReleasePackedModPlaysAsItsFolder(t *testing.T) {
 	if err != nil || len(listed) != 1 || listed[0].Err != nil || listed[0].Manifest.ID != id {
 		t.Fatalf("the mods folder lists %+v, %v", listed, err)
 	}
-	if d, _, err := mod.DescribeMissions(listed[0].Dir, id, modrt.LanguageFor(baseID)); err != nil || len(d.Listed()) != 0 {
-		t.Fatalf("the starter would list the missions %+v, %v", d.Listed(), err)
+	d, _, err := mod.DescribeMissions(listed[0].Dir, id, modrt.LanguageFor(baseID))
+	if err == nil {
+		d, _, err = d.Listed(nil)
+	}
+	if err != nil || len(d.Playable()) != 0 {
+		t.Fatalf("the starter would list the missions %+v, %v", d.Playable(), err)
 	}
 	fromFolder := runTownModsFor(t, baseID, folders, id)
 	fromRES := runTownModsFor(t, baseID, packedMods, id)

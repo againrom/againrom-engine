@@ -21,6 +21,11 @@ type campaignFlow struct {
 	graph    *ui.CampaignGraphPage
 }
 
+// newCampaignFlow is the one constructor of a campaign flow.
+func newCampaignFlow(c Campaign, missions mod.MissionData) *campaignFlow {
+	return &campaignFlow{campaign: c, missions: missions}
+}
+
 // The columns of the campaign graph: the films, the start and the towns, the
 // hand-outs of a town, then the missions of one ten, one column each.
 const (
@@ -414,11 +419,13 @@ func (x *MapInspector) installFlow() *campaignFlow {
 		return nil
 	}
 	if x.flow == nil {
-		x.flow = &campaignFlow{}
-		if c, err := LoadCampaign(x.archives.Containers); err == nil {
+		c, err := LoadCampaign(x.archives.Containers)
+		if err == nil {
 			c.Towns = townBookOf(x.archives.Base.Profile)
-			x.flow.campaign = c
+		} else {
+			c = Campaign{}
 		}
+		x.flow = newCampaignFlow(c, mod.MissionData{})
 	}
 	return x.flow
 }

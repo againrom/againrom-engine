@@ -125,6 +125,38 @@ func TestOpenWindowLeadsWithTheMapsOfTheMod(t *testing.T) {
 	}
 }
 
+// A map's roles are lines as the host lists them, never a split label.
+func TestModMapRolesAreAListNotASplitLabel(t *testing.T) {
+	e, _ := newModesEditor(t, "workspace")
+	p := e.doc.Edits.(*modesWorkspace)
+	p.maps.Choices = []InspectionChoice{{Value: 1, Label: "a.alm: guest 25, the ambush, after 20, replaces 3"}, {Value: 2, Label: "b.alm: guest 26, the watch"}}
+	p.maps.ChoiceLines = [][]string{{"a.alm: guest 25, the ambush, after 20,", "replaces 3"}}
+	rows, _ := e.catalogRows()
+	want := []string{"Maps of the mod", "a.alm: guest 25, the ambush, after 20,", "replaces 3", "b.alm: guest 26, the watch"}
+	if len(rows) < len(want) {
+		t.Fatalf("rows %v", rows)
+	}
+	for i := range want {
+		if strings.TrimSpace(rows[i].Text) != want[i] {
+			t.Fatalf("row %d is %q, want %q", i, rows[i].Text, want[i])
+		}
+	}
+	e.Layout(640, 480)
+	for turn := 0; e.modPage != modPageMaps; turn++ {
+		if err := e.Key("package"); err != nil || turn > 5 {
+			t.Fatalf("W has no Maps page: %v", err)
+		}
+	}
+	s, _, _ := e.modSpec()
+	var drawn []string
+	for _, r := range s.Rows[e.modMapLine[0]:] {
+		drawn = append(drawn, strings.TrimSpace(r.Label))
+	}
+	if got := strings.Join(drawn, " | "); !strings.Contains(got, "b.alm: guest 26, the watch") || strings.Contains(got, "| the watch") {
+		t.Fatalf("W's Maps page rows %q", drawn)
+	}
+}
+
 // Ctrl+Tab is the key of the open maps, not W's Tab: with one map open it
 // leaves the keyboard's place in W where it stands.
 func TestModWindowCtrlTabIsNotTheFieldTab(t *testing.T) {

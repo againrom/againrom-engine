@@ -13,9 +13,11 @@ import (
 
 // modMapsMod writes a mod whose maps have each role: one map two rows name,
 // one a row names with no file, one named by its file name, one no mission
-// names. It opens the editor's own copy of it in W and answers its folder.
-func modMapsMod(t *testing.T, e *ui.MapEditor, raw []byte) string {
+// names, with mission 20's map in the install. It opens the editor's own
+// copy of it in W and answers its folder.
+func modMapsMod(t *testing.T, x *MapInspector, e *ui.MapEditor, raw []byte) string {
 	t.Helper()
+	x.archives.Containers.Overlay("scenario/20.alm", func() ([]byte, error) { return raw, nil })
 	var missions strings.Builder
 	for i, name := range []string{"map1.alm", "map1.alm", "gone.alm"} {
 		fmt.Fprintf(&missions, "[[mission]]\nkey='m%d'\nnumber=%d\nmap='%s'\nafter=%d\nparty=[{character='npc22'}]\n", i+1, 21+i, name, 20+i)
@@ -101,7 +103,7 @@ func TestEditorListsAndOpensEveryMapOfTheMod(t *testing.T) {
 			f.x.archives.Base.Profile.Language = map[string]string{"": "english", "ru": "russian"}[lang.book]
 			e.SetWords(words.For(lang.book))
 			e.Layout(1280, 800)
-			dir := modMapsMod(t, e, e.Document().SourceBytes)
+			dir := modMapsMod(t, f.x, e, e.Document().SourceBytes)
 			m1 := openMapsFile(t, tree(t, dir), "map1.alm")
 			if got := modMapsRows(t, e); got != lang.rows {
 				t.Fatalf("the map list:\n got %q\nwant %q", got, lang.rows)

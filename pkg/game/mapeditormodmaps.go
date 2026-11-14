@@ -12,17 +12,13 @@ import (
 )
 
 // modMaps is the open project's maps: the one list (mod.MapList) over the
-// mod's files with the drafts and the rows as they stand. The file form is
-// the fork's answer in the rows, or what the loader read while no fork is.
+// mod's files with the drafts and modMissions of the rows as they stand.
 func (s *mapInspectionEdits) modMaps() []mod.MapEntry {
 	d := s.project0()
 	if d == nil {
 		return nil
 	}
-	data := mod.MissionData{Missions: d.Missions}
-	if m := s.inspector.mod; m != nil && m.flow == nil && m.loaded != nil {
-		data = m.loaded.Missions.WithMissions(d.Missions)
-	}
+	data, _ := s.inspector.modMissions(s.inspector.mod.description(), d.Missions)
 	return mod.MapList(s.projectFiles(d), "", data)
 }
 
@@ -46,16 +42,16 @@ func mapEntryOf(list []mod.MapEntry, rel string) int {
 	})
 }
 
-// mapRole is the role of map entry e in the editor's language: each row
+// mapRoles are the roles of map entry e in the editor's language: each row
 // that names it, a replacement by its file name, unused or missing.
-func (x *MapInspector) mapRole(e mod.MapEntry) string {
+func (x *MapInspector) mapRoles(e mod.MapEntry) []string {
 	switch e.Role() {
 	case mod.MapMissing:
-		return x.word("editor.mod.map.missing")
+		return []string{x.word("editor.mod.map.missing")}
 	case mod.MapByName:
-		return fmt.Sprintf(x.word("editor.mod.map.byname"), e.Number)
+		return []string{fmt.Sprintf(x.word("editor.mod.map.byname"), e.Number)}
 	case mod.MapUnused:
-		return x.word("editor.mod.map.unused")
+		return []string{x.word("editor.mod.map.unused")}
 	}
 	var roles []string
 	for _, m := range e.Rows {
@@ -65,7 +61,7 @@ func (x *MapInspector) mapRole(e mod.MapEntry) string {
 			roles = append(roles, fmt.Sprintf(x.word("editor.mod.map.replace"), m.Number))
 		}
 	}
-	return strings.Join(roles, ", ")
+	return roles
 }
 
 // ModMaps is the open project's list of maps; with no project it is empty.
@@ -84,7 +80,19 @@ func (s *mapInspectionEdits) modMapField() ui.InspectionField {
 	list := s.modMaps()
 	for n, e := range list {
 		name := strings.TrimPrefix(e.Path, mod.MapsFolder+"/")
-		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(n + 1), Label: name + ": " + x.mapRole(e)})
+		roles := x.mapRoles(e)
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(n + 1), Label: name + ": " + strings.Join(roles, ", ")})
+		var lines []string
+		for k, role := range roles {
+			if k == 0 {
+				role = name + ": " + role
+			}
+			if k < len(roles)-1 {
+				role += ","
+			}
+			lines = append(lines, role)
+		}
+		f.ChoiceLines = append(f.ChoiceLines, lines)
 	}
 	f.Value = int64(mapEntryOf(list, s.ownMap()) + 1)
 	return f

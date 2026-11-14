@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/campaignset"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/herokind"
@@ -159,7 +160,7 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 	if f == nil || f.Table == nil || f.Archives == nil || f.Archives.Containers == nil {
 		return nil, nil, errors.New("the front end has no definition table or archives to carry the mods' missions")
 	}
-	declared, unmatched, err := declared.AdmitMaps(f.campaignMap)
+	declared, unmatched, err := declared.Listed(f.campaignMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -678,13 +679,7 @@ func (f *FrontEnd) campaignMap(n int) error {
 // campaign, or whose map at address the install does not hold.
 func (f *FrontEnd) installedCampaignMap(n int, address string) error {
 	c := f.Campaign.Value()
-	if !slices.Contains(c.Main, n) && !slices.Contains(c.Side, n) && !slices.Contains(c.Offered, n) {
-		return fmt.Errorf("number %d is no mission of this install's campaign", n)
-	}
-	if _, err := f.Archives.Containers.ReadFile(address); err != nil {
-		return fmt.Errorf("the install holds no map for mission %d (%s)", n, address)
-	}
-	return nil
+	return campaignset.Numbers{Main: c.Main, Side: c.Side, Offered: c.Offered}.Check(f.Archives.Containers, n, address)
 }
 
 // startGuestMission is the guest half of the win of mission n: when a mod

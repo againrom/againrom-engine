@@ -90,7 +90,7 @@ func TestAModOfAManifestAndANumberedMapReplacesThatMission(t *testing.T) {
 	if _, ok := res.Missions.Replacing(10); ok || len(res.Missions.Missions) != 1 {
 		t.Fatalf("the file form was declared before the install was asked: %+v", res.Missions.Missions)
 	}
-	admitted, warnings, err := res.Missions.AdmitMaps(func(int) error { return nil })
+	admitted, warnings, err := res.Missions.Listed(func(int) error { return nil })
 	if err != nil || len(warnings) != 0 {
 		t.Fatal(warnings, err)
 	}

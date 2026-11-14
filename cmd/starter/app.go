@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	basepkg "againrom/pkg/base"
+	"againrom/pkg/campaignset"
 	"againrom/pkg/hostfile"
 	"againrom/pkg/ini"
 	"againrom/pkg/installinfo"
@@ -328,7 +329,8 @@ type declaredMissions struct {
 // mission description.
 func (a *app) missionsOf(id string) ([]mod.Mission, error) {
 	lang := a.lang()
-	key := id + "\x00" + lang
+	root, _ := a.selectedRoot()
+	key := root + "\x00" + id + "\x00" + lang
 	if d, ok := a.missions[key]; ok {
 		return d.list, d.err
 	}
@@ -336,12 +338,26 @@ func (a *app) missionsOf(id string) ([]mod.Mission, error) {
 	for _, e := range a.scan {
 		if e.Folder == id && e.Err == nil {
 			var data mod.MissionData
-			data, _, d.err = mod.DescribeMissions(e.Dir, e.Manifest.ID, lang)
-			d.list = data.Listed()
+			data, _, err := mod.DescribeMissions(e.Dir, e.Manifest.ID, lang)
+			if err == nil {
+				data, _, err = data.Listed(a.installAnswer(root))
+			}
+			d.list, d.err = data.Playable(), err
 		}
 	}
 	a.missions[key] = d
 	return d.list, d.err
+}
+
+// installAnswer is the game's test of a mission number over the selected
+// install; with none readable it holds every file-named map back.
+func (a *app) installAnswer(root string) func(n int) error {
+	if root != "" && a.infos[root].Valid() {
+		if h, err := campaignset.Open(root); err == nil {
+			return h.Answer
+		}
+	}
+	return func(int) error { return errors.ErrUnsupported }
 }
 
 // panelMissions are the missions the mission list shows: those of the panel's
@@ -356,8 +372,12 @@ func (a *app) panelMissions() ([]mod.Mission, bool) {
 }
 
 // missionLabel is a mission as its row of the mission list shows it: the
-// number and the title the mod's strings give it in the starter's language.
-func missionLabel(m mod.Mission) string {
+// number and the title the mod's strings give it in the starter's language,
+// or its map file for a file-form mission.
+func (a *app) missionLabel(m mod.Mission) string {
+	if m.ByFileName() {
+		return fmt.Sprintf("%d. %s", m.Number, a.t(cMissionByName, m.Map))
+	}
 	return strings.TrimSpace(fmt.Sprintf("%d. %s", m.Number, m.Title))
 }
 
@@ -869,7 +889,7 @@ func (a *app) layout() []item {
 			}
 			for k := 0; k < shown; k++ {
 				m := list[top+k]
-				it = append(it, item{kind: iBaseRow, rect: scrollLists[listMissions].row(k), text: missionLabel(m),
+				it = append(it, item{kind: iBaseRow, rect: scrollLists[listMissions].row(k), text: a.missionLabel(m),
 					checked: m.Number == a.selMission && id == a.selMissionMod, act: action{aSelectMission, top + k}})
 			}
 		}

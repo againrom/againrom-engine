@@ -2,8 +2,8 @@ package game
 
 import (
 	"fmt"
-	"strconv"
 
+	"againrom/pkg/campaignset"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -37,10 +37,7 @@ var NPCRegistry = scenarioPrefix + "npc.reg"
 // container instead, so a modded scenario archive answers for its own contents
 // and an absent map fails at the read with its address in the message.
 func MissionMap(n int) (string, bool) {
-	if n <= 0 {
-		return "", false
-	}
-	return scenarioPrefix + strconv.Itoa(n) + ".alm", true
+	return campaignset.MapAddress(n)
 }
 
 // Mission is a started campaign mission: the map it was built from, the world

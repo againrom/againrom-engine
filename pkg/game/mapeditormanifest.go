@@ -14,15 +14,32 @@ import (
 )
 
 func defaultPackageManifest() mod.Manifest {
-	return mod.Manifest{Version: "1.0.0", Author: "Againrom", Description: "Map editor mission package", API: 1, AppliesTo: []string{"rom1"}}
+	return mod.Manifest{Version: "1.0.0", Author: "Againrom", Description: "Map editor mission package", API: 1, AppliesTo: []string{base.ROM1}}
 }
 
+// packageBase is a new package's applies-to: the install game's family.
+func (x *MapInspector) packageBase() string {
+	var p base.Profile
+	if x.archives != nil {
+		p = x.archives.Base.Profile
+	}
+	return base.ModFamilyOf(p.GameOf())
+}
+
+// manifestValues are the keys the editor writes, from mod.ManifestKeys.
 func (p editorPackageSpec) manifestValues() map[string]any {
 	m := p.Manifest
 	if m.Version == "" {
 		m = defaultPackageManifest()
 	}
-	return map[string]any{"id": p.ID, "title": p.Title, "version": m.Version, "author": m.Author, "description": m.Description, "api": 1, "applies-to": m.AppliesTo, "requires": m.Requires, "conflicts": m.Conflicts, "load-after": m.LoadAfter}
+	values := map[string]any{}
+	for _, k := range mod.ManifestKeys {
+		if k.Edit != mod.EditNone {
+			values[k.Name] = k.Get(m)
+		}
+	}
+	values["id"], values["title"], values["api"] = p.ID, p.Title, 1
+	return values
 }
 
 func (p editorPackageSpec) manifestBytes(source []byte) ([]byte, error) {
@@ -40,9 +57,9 @@ func (p editorPackageSpec) manifestBytes(source []byte) ([]byte, error) {
 			}
 		}
 	} else {
-		for _, key := range []string{"requires", "conflicts", "load-after"} {
-			if len(values[key].([]string)) == 0 {
-				delete(values, key)
+		for _, k := range mod.ManifestKeys {
+			if list, ok := values[k.Name].([]string); ok && !k.Bases && len(list) == 0 {
+				delete(values, k.Name)
 			}
 		}
 	}
@@ -54,28 +71,36 @@ func (p editorPackageSpec) manifestBytes(source []byte) ([]byte, error) {
 }
 
 func isManifestField(key string) bool {
-	switch key {
-	case "id", "title", "version", "author", "description", "applies-to", "requires", "conflicts", "load-after":
-		return true
-	}
-	return false
+	k, ok := mod.ManifestKeyNamed(key)
+	return ok && k.Edit != mod.EditNone
 }
 
-var manifestBases = []string{"common", base.ROM1, base.ROM1EN, base.ROM1RU, base.ROM2EN, base.ROM2RU}
+// manifestBases are the applies-to choices, from base.ModBases.
+func manifestBases() []string {
+	names := make([]string, len(base.ModBases))
+	for i, b := range base.ModBases {
+		names[i] = b.Name
+	}
+	return names
+}
 
 func (s *mapInspectionEdits) manifestFields() []ui.InspectionField {
 	p := s.workspace.Package
 	values := p.manifestValues()
+	bases := manifestBases()
 	var fields []ui.InspectionField
-	for _, key := range []string{"version", "author", "description", "applies-to", "requires", "conflicts", "load-after"} {
-		value, ok := values[key].(string)
-		if !ok {
-			value = strings.Join(values[key].([]string), ", ")
+	for _, k := range mod.ManifestKeys {
+		if k.Edit != mod.EditField {
+			continue
 		}
-		f := workspaceText(key, s.inspector.modFieldLabel(key), value)
-		if key == "applies-to" {
+		value, ok := values[k.Name].(string)
+		if !ok {
+			value = strings.Join(values[k.Name].([]string), ", ")
+		}
+		f := workspaceText(k.Name, s.inspector.modFieldLabel(k.Name), value)
+		if k.Bases {
 			f.Text, f.Value = false, -1
-			for n, base := range manifestBases {
+			for n, base := range bases {
 				f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(n), Label: base})
 				if base == value {
 					f.Value = int64(n)
@@ -91,7 +116,8 @@ func (s *mapInspectionEdits) manifestFields() []ui.InspectionField {
 }
 
 func (s *mapInspectionEdits) setManifestField(key, text string) (*ui.InspectionDocument, error) {
-	if key == "applies-to" && text == "-1" {
+	row, _ := mod.ManifestKeyNamed(key)
+	if row.Bases && text == "-1" {
 		return nil, nil
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
@@ -107,16 +133,17 @@ func (s *mapInspectionEdits) setManifestField(key, text string) (*ui.InspectionD
 			return err
 		}
 		var value any = text
-		switch key {
-		case "applies-to":
-			if n, err := strconv.Atoi(text); err == nil && n >= 0 && n < len(manifestBases) {
-				text = manifestBases[n]
+		switch {
+		case row.Bases:
+			bases := manifestBases()
+			if n, err := strconv.Atoi(text); err == nil && n >= 0 && n < len(bases) {
+				text = bases[n]
 			}
-			if !slices.Contains(manifestBases, text) {
+			if !slices.Contains(bases, text) {
 				return errors.New(s.inspector.word("editor.mod.err.appliesto"))
 			}
 			value = []string{text}
-		case "requires", "conflicts", "load-after":
+		case row.Value == mod.ManifestList:
 			var list []string
 			if strings.TrimSpace(text) != "" {
 				for _, id := range strings.Split(text, ",") {

@@ -1,9 +1,7 @@
 // Package mod finds mod folders and reads their manifests.
 //
 // A mod is a folder named by its id that holds a mod.toml. manifest.go reads
-// the manifest fields the launcher and the engine need to name and order a mod:
-// id, title, version, applies-to, api, requires, conflicts, load-after and
-// entry. settings.go reads settings.toml, order.go checks and orders a set of
+// its keys by the table ManifestKeys. settings.go reads settings.toml, order.go checks and orders a set of
 // mods, digest.go fingerprints a mod folder and a mod set. Running a mod's
 // script is the business of another package; this one has no effect on the
 // game.
@@ -19,10 +17,8 @@
 //   - a table header ("[name]" or "[[name]]") ends the top-level keys; every
 //     line after it is ignored.
 //
-// A top-level key that is not one of manifestKeys is an error. author and
-// description are for people. id, title and version are
-// required strings; applies-to is a string or an
-// array of strings and defaults to ["common"]. A key given twice is an error.
+// A top-level key that is not one of ManifestKeys, or one given twice, is an
+// error. id, title and version are required.
 package mod
 
 import (
@@ -36,6 +32,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/base"
 )
 
 // utf8BOM is the byte order mark some editors put at the start of a file.
@@ -100,66 +98,35 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 		}
 		seen[key] = true
 		val := strings.TrimSpace(t[eq+1:])
-		switch key {
-		case "id", "title", "version", "author", "description":
-			s, err := parseString(val)
-			if err != nil {
-				if !strict && (key == "author" || key == "description") {
-					continue
-				}
-				return Manifest{}, fmt.Errorf("line %d: %s: %w", n+1, key, err)
-			}
-			switch key {
-			case "id":
-				m.ID = s
-			case "title":
-				m.Title = s
-			case "author":
-				m.Author = s
-			case "description":
-				m.Description = s
-			default:
-				m.Version = s
-			}
-		case "applies-to":
-			list, err := parseStrings(val)
-			if err != nil {
-				return Manifest{}, fmt.Errorf("line %d: applies-to: %w", n+1, err)
-			}
-			m.AppliesTo = list
-		case "requires", "conflicts", "load-after":
-			for depth := bracketDepth(val); depth > 0 && n+1 < len(lines); {
-				n++
-				val += " " + stripComment(lines[n])
-				depth += bracketDepth(lines[n])
-			}
-			list, err := parseStrings(strings.TrimSpace(stripComment(val)))
-			if err != nil {
-				return Manifest{}, fmt.Errorf("line %d: %s: %w", n+1, key, err)
-			}
-			switch key {
-			case "requires":
-				m.Requires = list
-			case "conflicts":
-				m.Conflicts = list
-			default:
-				m.LoadAfter = list
-			}
-		case "entry":
-			e, err := parseString(val)
-			if err != nil {
-				return Manifest{}, fmt.Errorf("line %d: entry: %w", n+1, err)
-			}
-			m.Entry = e
-		case "api":
-			v, err := parseInt(val)
-			if err != nil {
-				return Manifest{}, fmt.Errorf("line %d: api: %w", n+1, err)
-			}
-			m.API = v
-		default:
-			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", n+1, key, strings.Join(manifestKeys, ", "))
+		row, ok := ManifestKeyNamed(key)
+		if !ok {
+			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", n+1, key, strings.Join(manifestKeyNames(), ", "))
 		}
+		var value any
+		var err error
+		switch row.Value {
+		case ManifestString:
+			value, err = parseString(val)
+		case ManifestInt:
+			value, err = parseInt(val)
+		default:
+			if row.Continued {
+				for depth := bracketDepth(val); depth > 0 && n+1 < len(lines); {
+					n++
+					val += " " + stripComment(lines[n])
+					depth += bracketDepth(lines[n])
+				}
+				val = strings.TrimSpace(stripComment(val))
+			}
+			value, err = parseStrings(val)
+		}
+		if err != nil {
+			if !strict && row.Lenient {
+				continue
+			}
+			return Manifest{}, fmt.Errorf("line %d: %s: %w", n+1, key, err)
+		}
+		row.Set(&m, value)
 	}
 	for _, f := range []struct{ name, v string }{{"id", m.ID}, {"title", m.Title}, {"version", m.Version}} {
 		if strings.TrimSpace(f.v) == "" {
@@ -170,7 +137,7 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("id %q is not valid: use 1 to 64 of a-z, 0-9, '.', '_', '-', starting with a letter or digit", m.ID)
 	}
 	if !seen["applies-to"] {
-		m.AppliesTo = []string{"common"}
+		m.AppliesTo = []string{base.AllBases}
 	}
 	if !seen["api"] {
 		m.API = 1
@@ -198,10 +165,6 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 	}
 	return m, nil
 }
-
-// manifestKeys are the top-level keys of mod.toml, in the order the
-// documentation lists them.
-var manifestKeys = []string{"id", "title", "version", "author", "description", "api", "applies-to", "entry", "requires", "conflicts", "load-after"}
 
 func validKey(k string) bool {
 	if k == "" {

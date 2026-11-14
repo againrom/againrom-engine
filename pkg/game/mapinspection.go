@@ -63,6 +63,8 @@ type MapInspector struct {
 	openMaps []*mapInspectionEdits
 	// flow is the install's campaign for W's graph, nil until first asked.
 	flow *campaignFlow
+	// missionHeld caches missionAnswer by mission number.
+	missionHeld map[int]error
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.

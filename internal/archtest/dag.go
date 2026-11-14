@@ -173,6 +173,7 @@ var allow = map[string][]string{
 	"pkg/ui/widgetkit": {},
 	// installinfo is the cheap look at a directory as an install.
 	"pkg/installinfo": {"pkg/base", "pkg/locale", "pkg/vfs"},
+	"pkg/campaignset": {"pkg/formats/reg", "pkg/installpath", "pkg/vfs"},
 	// heldkey reads held keyboard keys for the game and the launcher.
 	"pkg/ui/heldkey":     {},
 	"cmd/cutscenehelper": {"pkg/video"},
@@ -446,7 +447,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/installinfo", "pkg/hostfile", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui/widgetkit", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/campaignset", "pkg/installinfo", "pkg/hostfile", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui/widgetkit", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports only the pkg/ini leaf, to read the
 	// starter's selected base for the editor.

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
@@ -47,17 +48,9 @@ func isMapExt(ext string, same func(a, b string) bool) bool {
 // fail here; the panic is what says so, in the MustCompile shape, and it can only
 // fire if that constant is edited into something no address could ever name.
 var (
-	scenarioIdentity = mustIdentity(ScenarioArchive)
-	scenarioPrefix   = scenarioIdentity + "/"
+	scenarioPrefix   = campaignset.Prefix
+	scenarioIdentity = strings.TrimSuffix(scenarioPrefix, "/")
 )
-
-func mustIdentity(archive string) string {
-	identity, err := vfs.Identity(archive)
-	if err != nil {
-		panic("game: " + err.Error())
-	}
-	return identity
-}
 
 // NamedReader is one place maps come from: the names it holds, and the bytes
 // behind a name.

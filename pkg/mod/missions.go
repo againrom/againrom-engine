@@ -165,7 +165,7 @@ type MissionData struct {
 	Order    Precedence
 
 	// maps are the file form's replacing missions, in load order, until
-	// AdmitMaps keeps those whose campaign map the install holds.
+	// Listed joins them to the rows.
 	maps []missionMap
 }
 

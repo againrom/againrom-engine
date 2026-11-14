@@ -66,7 +66,10 @@ func TestReleaseEditorPublishedModChainSAV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if missions := d.Listed(); len(missions) == 0 || missions[0].Number != guestMissionNo || missions[0].Title == "" {
+	if d, _, err = d.Listed(nil); err != nil {
+		t.Fatal(err)
+	}
+	if missions := d.Playable(); len(missions) == 0 || missions[0].Number != guestMissionNo || missions[0].Title == "" {
 		t.Fatalf("the starter would list %+v, want mission %d first with its title", missions, guestMissionNo)
 	}
 	releaseMissionChainSAV(t, mods)

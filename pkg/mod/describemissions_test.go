@@ -44,7 +44,11 @@ func TestDescribeMissionsReadsAFolderAndAPackedMod(t *testing.T) {
 			if string(source) != files[MissionsFile] {
 				t.Errorf("%s %s: the source is not the missions file", at, lang)
 			}
-			listed := d.Listed()
+			set, _, err := d.Listed(nil)
+			if err != nil {
+				t.Fatalf("%s %s: %v", at, lang, err)
+			}
+			listed := set.Playable()
 			if len(d.Missions) != 2 || len(listed) != 1 || listed[0].Number != 25 || listed[0].Title != title {
 				t.Errorf("%s %s: listed %+v of %d rows, want mission 25 %q", at, lang, listed, len(d.Missions), title)
 			}
@@ -54,7 +58,7 @@ func TestDescribeMissionsReadsAFolderAndAPackedMod(t *testing.T) {
 	plain := filepath.Join(root, "plain")
 	writeMod(t, root, "plain", good("plain"))
 	d, source, err := DescribeMissions(plain, "plain", "en")
-	if err != nil || source != nil || !d.Empty() || len(d.Listed()) != 0 {
+	if err != nil || source != nil || !d.Empty() || len(d.Playable()) != 0 {
 		t.Fatalf("a mod with no missions file: %+v %q %v", d, source, err)
 	}
 	if err := os.MkdirAll(filepath.Join(plain, "data"), 0o755); err != nil {

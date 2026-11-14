@@ -39,9 +39,9 @@ func missionMapNumber(name string) (int, bool) {
 func (m Mission) ByFileName() bool { return m.byName }
 
 // WithMissions is d holding rows as its missions; the file form's missions
-// that wait for AdmitMaps stay as read.
+// that wait for Listed stay as read; file-form rows are left out.
 func (d MissionData) WithMissions(rows []Mission) MissionData {
-	d.Missions = rows
+	d.Missions = missionRows(rows)
 	return d
 }
 
@@ -55,9 +55,8 @@ func (m Mission) RowID() string {
 	return m.Key
 }
 
-// rows are the missions the missions file holds: missions without those the
-// file form declares.
-func rows(missions []Mission) []Mission {
+// missionRows are missions without the file form's.
+func missionRows(missions []Mission) []Mission {
 	out := make([]Mission, 0, len(missions))
 	for _, m := range missions {
 		if !m.byName {
@@ -67,26 +66,40 @@ func rows(missions []Mission) []Mission {
 	return out
 }
 
-// readMissionMaps is the file form of the missions kind. A file in the mod's
-// top or in its maps folder whose name is a mission number, and that no
-// mission row of the mod names as its map, is a replacing mission of that
-// number with that map, read as a row's map is read. It waits for AdmitMaps
-// to ask the install. It reports whether the mod holds such a file.
+// readMissionMaps reads the files missionMapFiles finds, waiting for Listed;
+// it reports whether the mod holds one.
 func readMissionMaps(r DataReader, d *Data, t Tree) (bool, error) {
+	found, err := missionMapFiles(t, r.Mod, r.Lang, d.Missions.Missions)
+	for _, m := range found {
+		err := m.ReadFiles(r.Dir)
+		d.Missions.maps = append(d.Missions.maps, missionMap{Mission: m, at: len(d.Missions.Missions), err: err})
+	}
+	return len(found) > 0, err
+}
+
+// rowMaps are the maps mod id's rows name.
+func rowMaps(rows []Mission, id string) map[string]bool {
 	named := map[string]bool{}
-	for _, m := range d.Missions.Missions {
-		if m.Mod == r.Mod && !m.Off {
+	for _, m := range rows {
+		if m.Mod == id && !m.Off && !m.byName {
 			named[namefold.ModTree(m.Map)] = true
 		}
 	}
-	held := false
+	return named
+}
+
+// missionMapFiles are the file form's missions of mod id in tree t: each
+// number-named file of the top or maps folder no row names. It opens none.
+func missionMapFiles(t Tree, id, lang string, rows []Mission) ([]Mission, error) {
+	named := rowMaps(rows, id)
+	var out []Mission
 	for _, folder := range []string{".", MapsFolder} {
 		if st, err := t.Stat(folder); err != nil || !st.IsDir() {
 			continue
 		}
 		entries, err := t.ReadDir(folder)
 		if err != nil {
-			return held, err
+			return out, err
 		}
 		for _, e := range entries {
 			n, ok := missionMapNumber(e.Name())
@@ -97,32 +110,37 @@ func readMissionMaps(r DataReader, d *Data, t Tree) (bool, error) {
 			if named[namefold.ModTree(rel)] {
 				continue
 			}
-			held = true
-			m := Mission{Mod: r.Mod, File: rel, Kind: MissionReplace, Number: n, Map: rel, language: r.Lang, byName: true}
-			err := m.ReadFiles(r.Dir)
-			d.Missions.maps = append(d.Missions.maps, missionMap{Mission: m, at: len(d.Missions.Missions), err: err})
+			out = append(out, Mission{Mod: id, File: rel, Kind: MissionReplace, Number: n, Map: rel, language: lang, byName: true})
 		}
 	}
-	return held, nil
+	return out, nil
 }
 
-// AdmitMaps keeps the file form's replacing missions whose campaign map the
-// install holds. held answers nil for a mission number whose campaign map the
-// install holds and the reason for any other; a file of such a number
-// replaces nothing and comes back as a warning naming it. A kept file whose
-// mission another declaration of its mod names, a row or a second file, is
-// refused naming both. The kept files join the missions at their place in
-// load order, so MergeMissions judges them as it judges rows.
-func (d MissionData) AdmitMaps(held func(n int) error) (MissionData, []string, error) {
+// Listed is the one mission set of d for the starter, the editor and the
+// game: its rows and the file form's missions at their load-order place.
+// held answers nil for a number whose campaign map the install holds; any
+// other number's file is a warning. A nil held keeps every file. A file a
+// row names is that row's map; a second declaration of a kept file's
+// mission is refused naming both.
+func (d MissionData) Listed(held func(n int) error) (MissionData, []string, error) {
 	if len(d.maps) == 0 {
 		return d, nil, nil
 	}
 	var warnings []string
 	var kept []missionMap
+	named := map[string]map[string]bool{}
 	for _, m := range d.maps {
-		if err := held(m.Number); err != nil {
-			warnings = append(warnings, fmt.Sprintf("mod %q: %s: %v; the file replaces nothing", m.Mod, m.File, err))
+		if named[m.Mod] == nil {
+			named[m.Mod] = rowMaps(d.Missions, m.Mod)
+		}
+		if named[m.Mod][namefold.ModTree(m.Map)] {
 			continue
+		}
+		if held != nil {
+			if err := held(m.Number); err != nil {
+				warnings = append(warnings, fmt.Sprintf("mod %q: %s: %v; the file replaces nothing", m.Mod, m.File, err))
+				continue
+			}
 		}
 		if m.err != nil {
 			return MissionData{}, warnings, fmt.Errorf("mod %q: %w", m.Mod, m.err)

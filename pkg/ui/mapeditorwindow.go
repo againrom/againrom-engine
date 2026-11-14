@@ -785,13 +785,13 @@ func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 	// With a mod open its maps lead: row n of the mod's list is -(n+1).
 	if list, ok := e.modMapList(); ok {
 		rows, maps = append(rows, PickerRow{Text: e.word("editor.mod.maps")}), append(maps, -1)
-		for n, c := range list.Choices {
+		for n := range list.Choices {
 			// A map of several roles gives each role after the first its own line.
-			for k, part := range strings.SplitAfter(e.editorHostText(c.Label), ", ") {
+			for k, part := range choiceLines(list, n) {
 				if k == 0 {
-					rows, maps = append(rows, PickerRow{Text: "  " + strings.TrimSpace(part), Choosable: true}), append(maps, -(n+2))
+					rows, maps = append(rows, PickerRow{Text: "  " + e.editorHostText(part), Choosable: true}), append(maps, -(n+2))
 				} else {
-					rows, maps = append(rows, PickerRow{Text: "      " + strings.TrimSpace(part)}), append(maps, -1)
+					rows, maps = append(rows, PickerRow{Text: "      " + e.editorHostText(part)}), append(maps, -1)
 				}
 			}
 		}

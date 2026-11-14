@@ -107,11 +107,7 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // A mod the game refuses for its missions still opens: the missions are the
 // document the editor edits, and Save admits them again. The refusal is kept
 // for the overview and the context holds every other kind.
-//
-// The mod's mission list is the rows of its missions file and, from the
-// fork, the missions its map files replace by their names.
 func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, drafts ...map[string][]byte) string {
-	m.missions.Missions = slices.DeleteFunc(slices.Clone(m.missions.Missions), mod.Mission.ByFileName)
 	result, err := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
@@ -129,7 +125,7 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 	m.checkLines = ModCheckLines(result)
 	m.loaded = &result
 	issue := ""
-	if err := checkMissionProjection(x.word, m.missions.Missions, result.Missions); err != nil {
+	if err := checkMissionProjection(x.word, m.described.Missions, result.Missions); err != nil {
 		issue = err.Error()
 	}
 	f, report, err := x.admittedFork(result)
@@ -150,16 +146,53 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, dr
 	m.context = &editorContext{table: f.Table, tiles: terrain.LoadTileset(f.Archives.Containers)}
 	m.catalog = characterCatalog(f.Table)
 	m.fileOverrides = f.ModFileOverrides()
-	m.flow = &campaignFlow{campaign: f.Campaign.Value(), missions: tableMissions(f.Table)}
-	// A mission the mod replaces by a map file's name is a row of the mission
-	// list too, as the fork admitted it: after the rows of the missions file.
-	for _, named := range m.flow.missions.Missions {
-		if named.Mod == m.id && named.ByFileName() {
-			named.MapBytes, named.TextFiles, named.OtherLanguageTexts = nil, nil, nil
-			m.missions.Missions = append(m.missions.Missions, named)
-		}
-	}
+	m.flow = forkFlow(f)
 	return issue
+}
+
+// modMissions is the one mission set of a mod the editor works in: rows and
+// described's map files, joined by mod.MissionData.Listed as the install
+// answers. A refusal answers the rows alone.
+func (x *MapInspector) modMissions(described mod.MissionData, rows []mod.Mission) (mod.MissionData, error) {
+	d := described.WithMissions(rows)
+	listed, _, err := d.Listed(x.missionAnswer())
+	if err != nil {
+		return d, err
+	}
+	return listed, nil
+}
+
+// missionAnswer is the game's test (campaignMap) over the install's
+// archives; nil with none open, so every number-named map is listed.
+func (x *MapInspector) missionAnswer() func(n int) error {
+	flow := x.installFlow()
+	if flow == nil {
+		return nil
+	}
+	f := &FrontEnd{InstallResources: InstallResources{Archives: x.archives, Campaign: resolved(flow.campaign, nil)}}
+	return func(n int) error {
+		if err, ok := x.missionHeld[n]; ok {
+			return err
+		}
+		if x.missionHeld == nil {
+			x.missionHeld = map[int]error{}
+		}
+		x.missionHeld[n] = f.campaignMap(n)
+		return x.missionHeld[n]
+	}
+}
+
+// description is the description m read at open; empty with no mod.
+func (m *editorMod) description() mod.MissionData {
+	if m == nil {
+		return mod.MissionData{}
+	}
+	return m.described
+}
+
+// forkFlow is an admitted fork's campaign flow, at open and for the draft.
+func forkFlow(f *FrontEnd) *campaignFlow {
+	return newCampaignFlow(f.Campaign.Value(), tableMissions(f.Table))
 }
 
 func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {

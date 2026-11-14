@@ -10,11 +10,10 @@ import (
 )
 
 // checkMissionProjection refuses the rows expected that the missions actual,
-// read from the mod's files, do not hold one for one. A mission its map file
-// declares is no row of the missions file and is left out.
+// read from the mod's files, do not hold one for one. A file-form mission
+// is no row.
 func checkMissionProjection(word func(string) string, expected []mod.Mission, actual mod.MissionData) error {
-	expected = slices.DeleteFunc(slices.Clone(expected), mod.Mission.ByFileName)
-	want, _, err := mod.MergeMissions(mod.MissionData{Missions: expected})
+	want, _, err := mod.MergeMissions(mod.MissionData{}.WithMissions(expected))
 	if err != nil {
 		return err
 	}

@@ -57,7 +57,7 @@ func TestEditorModMapListDrawsInEachLanguage(t *testing.T) {
 				e := f.x.Editor()
 				e.SetWords(words.For(entry))
 				e.Layout(size.X, size.Y)
-				modMapsMod(t, e, synth.ALM(synth.ALMOptions{Width: 8, Height: 8, Name: "mission"}))
+				modMapsMod(t, f.x, e, synth.ALM(synth.ALMOptions{Width: 8, Height: 8, Name: "mission"}))
 				drawn := f.x.inspectionUTF8
 				// whole checks each map the lines show: every word of its role
 				// stands whole. With all, every map of the mod is shown; without,

@@ -167,6 +167,8 @@ type InspectionField struct {
 	Groups          []InspectionChoiceGroup                        `json:"-"`
 	Pictures        func([]InspectionChoice) map[int64]*image.RGBA `json:"-"`
 	ChoicePad       []image.Point                                  `json:"-"`
+	// ChoiceLines holds each choice's label as the lines a list shows.
+	ChoiceLines [][]string `json:"-"`
 	// Group is the heading the field shows under; "" for none.
 	Group string
 	// IconTip shows a choice's picture at full size in the editor's tip
@@ -205,6 +207,14 @@ type InspectionField struct {
 type InspectionChoice struct {
 	Value int64
 	Label string
+}
+
+// choiceLines are choice n's lines, or its label whole.
+func choiceLines(f InspectionField, n int) []string {
+	if n < len(f.ChoiceLines) && len(f.ChoiceLines[n]) > 0 {
+		return f.ChoiceLines[n]
+	}
+	return []string{f.Choices[n].Label}
 }
 
 // EditorMap is one row of the map list: its key, its label, and whether the

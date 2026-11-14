@@ -171,7 +171,7 @@ file and line. A list may span lines.
 | `author` | optional string for people; shown and edited in W |
 | `description` | optional string for people; shown and edited in W |
 | `api` | integer, default 1; this build runs api 1 and refuses any other |
-| `applies-to` | a string or list; default `["common"]`. Entries are `common` (every install), an install id such as `rom1-en`, or the family word `rom1` (every first-game install). The mod is refused on an install none of them names |
+| `applies-to` | a string or list; default `["common"]`. Entries are `common` (every install), an install id such as `rom1-en`, or a family word: `rom1` (every first-game install) or `rom2` (every second-game install). The mod is refused on an install none of them names |
 | `entry` | the Starlark file; default `main.star` when the folder holds one |
 | `requires` | ids the mod needs, each with an optional constraint such as `"base>=1.0"` (operators `>=`, `<=`, `>`, `<`, `=`, dotted numbers). The required mod must be enabled and loads before this one |
 | `conflicts` | ids that must not be enabled together with this mod |
@@ -230,8 +230,13 @@ listed; the ticks, the order, the selected mod and the selected mission stay.
 
 Tick a mod and the **Missions** list under the status line shows the missions the
 mod declares in `data/missions.toml`: each numbered row that is not `off`, by
-its number and its title in the starter's language. The starter reads the rows
-as the game does and opens no map. A mod that is not ticked shows no missions
+its number and its title in the starter's language. A map file named by its
+mission number that no row names (`10.alm`, `maps/20.alm`, see below) is listed
+as `10. replaced by the map 10.alm`, only when the selected install's campaign
+holds mission 10 and its map: the starter asks the game's own test, and a file
+the game would warn of is not listed. With no install selected or readable the
+starter lists the rows alone, drops every such file and refuses nothing for it.
+The starter opens no mod map. A mod that is not ticked shows no missions
 and says so; a mod with no missions file says it has none, on either game; a
 missions file the game would refuse shows the refusal.
 
@@ -755,8 +760,8 @@ weapon = "War Hammer"
 body   = "hammer2h"
 ```
 
-A mod that loads on both games lists `"rom1"`, `"rom2-en"` and `"rom2-ru"` in
-`applies-to`. `-check` prints `againrom: weapon bodies=N body sheets=M`.
+A mod that loads on both games lists `"rom1"` and `"rom2"` (or `"rom2-en"`
+and `"rom2-ru"`) in `applies-to`. `-check` prints `againrom: weapon bodies=N body sheets=M`.
 
 ## Missions
 
@@ -1183,6 +1188,11 @@ The rules:
 6. `againrom -check` prints one line per replaced mission, of either form:
    `againrom: mission 10 replaced by mod "m": map 10.alm, named by its file
    name`, or `..., declared at data/missions.toml:4` for a table.
+7. The starter's Missions list, the map editor's open, its Campaign graph and
+   its mod pages list the same missions: the rows, then each numbered file no
+   row names; the starter and the editor drop a file whose number the install
+   holds no map for, as the game does. With no install the starter drops every
+   such file and the editor lists them all.
 
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
 <mod folder>` copies an installed map to `maps/<lang>/m<n>.alm` of a mod
@@ -1374,8 +1384,9 @@ shows W's Overview page first: the kinds whose files the mod holds, the lines
 gave, and what refuses it. The tabs at the top of W (Missions, Overview,
 Campaign graph, Maps), or W again, turn the page. The fields page also edits the manifest's version,
 author, description, target base, requirements, conflicts and load order hints.
-The target is a choice of `common`, `rom1`, `rom1-en`, `rom1-ru`, `rom2-en`
-and `rom2-ru`. Dependency fields take comma-separated IDs; a requirement may
+The target is a choice of `common`, `rom1`, `rom1-en`, `rom1-ru`, `rom2`,
+`rom2-en` and `rom2-ru`; a new package targets the open install's game (`rom1`
+or `rom2`). Dependency fields take comma-separated IDs; a requirement may
 include a version constraint. Invalid values show the manifest reader's error.
 ID stays fixed after opening. Edits share the project draft and Undo/Redo;
 Ctrl+S writes them. API is written as 1 and is not a field. A packed mod refuses every change in W and every save

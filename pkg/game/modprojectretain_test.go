@@ -184,7 +184,7 @@ func TestProjectSaveDoesNotRecordTheAuthorsTree(t *testing.T) {
 }
 
 func TestManifestChoiceOptionsNeverWriteAnUnknownChoiceNumber(t *testing.T) {
-	starts := [][]string{{"common"}, {"rom1"}, {"rom1-en"}, {"rom1-ru"}, {"rom2-en"}, {"rom2-ru"}, {"rom1-en", "rom1-ru"}, {"future-base"}}
+	starts := [][]string{{"common"}, {"rom1"}, {"rom1-en"}, {"rom1-ru"}, {"rom2"}, {"rom2-en"}, {"rom2-ru"}, {"rom1-en", "rom1-ru"}, {"future-base"}}
 	for _, start := range starts {
 		p := editorPackageSpec{ID: "choice-mod", Title: "Choice mod", Manifest: defaultPackageManifest()}
 		p.Manifest.AppliesTo = start
@@ -222,9 +222,12 @@ func TestManifestChoiceOptionsNeverWriteAnUnknownChoiceNumber(t *testing.T) {
 				dir := filepath.Join(root, p.ID)
 				writeTestPlayInput(t, filepath.Join(dir, mod.ManifestName), out)
 				entry := mod.Load(dir)
-				base := manifestBases[choice.Value]
-				if base == "common" || base == "rom1" {
+				base := manifestBases()[choice.Value]
+				switch base {
+				case "common", "rom1":
 					base = "rom1-en"
+				case "rom2":
+					base = "rom2-ru"
 				}
 				if entry.Err != nil {
 					t.Fatal(entry.Err)
@@ -234,7 +237,7 @@ func TestManifestChoiceOptionsNeverWriteAnUnknownChoiceNumber(t *testing.T) {
 				}
 			}
 		}
-		if choices < len(manifestBases) {
+		if choices < len(manifestBases()) {
 			t.Fatal("choice fields were not walked")
 		}
 	}

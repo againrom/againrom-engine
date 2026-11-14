@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"againrom/pkg/base"
+	"againrom/pkg/campaignset"
 	"againrom/pkg/installinfo"
 	"againrom/pkg/installpath"
 	"againrom/pkg/render/terrain"
@@ -14,11 +15,11 @@ import (
 
 // The archives the front-end requires under the asset root.
 const (
-	MainArchive     = "main.res"     // menu art
-	GraphicsArchive = "graphics.res" // terrain tiles
-	ScenarioArchive = "scenario.res" // campaign maps
-	WorldArchive    = "world.res"    // the placeable-definition table
-	MoviesArchive   = "movies.res"   // the shop merchant's own static picture
+	MainArchive     = "main.res"          // menu art
+	GraphicsArchive = "graphics.res"      // terrain tiles
+	ScenarioArchive = campaignset.Archive // campaign maps
+	WorldArchive    = "world.res"         // the placeable-definition table
+	MoviesArchive   = "movies.res"        // the shop merchant's own static picture
 )
 
 // RequiredArchives is the fixed order OpenArchives opens the five in, and the
