@@ -886,7 +886,7 @@ func TestReleaseNativeTownSaveShopBaredSessionRoundTripsAsSAV(t *testing.T) {
 	if marked == 0 {
 		t.Fatal("fixture assumption broke: no candidate mission recorded a world-map marker on this root")
 	}
-	f.quickSpells = [9]uint32{1, 0, 5, 0}
+	f.quickSpells = spellSlots(1, 0, 5, 0)
 	f.Offered = 999
 	f.Town.gold = 500
 
@@ -2409,7 +2409,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t
 		t.Fatal("fixture assumption broke: reload bound no imported-city baseline")
 	}
 	want := reloaded.originalCity.baselineQuickSpells
-	want[0] = 65535 // No original book cell; SAV must retain the ID.
+	want[0].Spell = 65535 // No original book cell; SAV must retain the ID.
 	if want == reloaded.originalCity.baselineQuickSpells {
 		t.Fatal("fixture assumption broke: the mutated slots still equal the baseline")
 	}

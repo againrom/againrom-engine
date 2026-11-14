@@ -252,7 +252,7 @@ func TestAltBackspaceAndAltF12AreInert(t *testing.T) {
 	if len(v.MessageLines()) != 0 {
 		t.Error("control: plain Backspace did not empty the line")
 	}
-	if err := a.HeadlessKey("f12"); err != nil || !v.FPSShown() {
-		t.Error("control: plain F12 did not toggle the readout")
+	if err := a.HeadlessKey("ctrl-shift-f12"); err != nil || !v.FPSShown() {
+		t.Error("control: Ctrl+Shift+F12 did not toggle the readout")
 	}
 }

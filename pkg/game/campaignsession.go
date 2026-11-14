@@ -6,6 +6,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // The operations below are the campaign half of a game's lifecycle. Each is a
@@ -62,7 +63,7 @@ func (s *CampaignSession) clear(campaign Campaign) {
 	s.detachProjectileCounter()
 	s.detachFameObserver()
 	s.fame = SnapshotFame{}
-	s.quickSpells = [9]uint32{}
+	s.quickSpells = ui.ShortcutSlots{}
 	s.Carried = nil
 	s.Difficulty = 0 // Normal, as on a zero-value FrontEnd.
 	s.Offered = 0

@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/ui"
 )
 
 // AI-SPELLIDENT-286: controller cell/index -> real spell ID. Commands in
@@ -15,17 +16,24 @@ var originalBookIDs = data.FirstSpellPresentation().BookRows
 
 // Unknown book IDs use the ordinary unbound cell. Current SAV session policy
 // retains those custom bindings; ordinary edits to a bound cell take priority.
-func quickSpellsToOriginalIndices(slots [9]uint32) (sav.CityShortcuts, error) {
+func quickSpellsToOriginalIndices(slots ui.ShortcutSlots, profiles ...campaignService) (sav.CityShortcuts, error) {
 	indices := sav.CityShortcuts{-1, -1, -1, -1}
 	if err := validateQuickSpells(slots); err != nil {
 		return indices, originalCityUnsupportedf("%v", err)
 	}
-	for i, id := range slots[:len(indices)] {
-		if id == 0 {
+	start := 1
+	if len(profiles) > 0 {
+		start = profiles[0].shortcutStart()
+	}
+	if start < 0 {
+		return indices, nil
+	}
+	for i, id := range slots[start : start+len(indices)] {
+		if id.Spell == 0 {
 			continue
 		}
 		for cell, originalID := range originalBookIDs {
-			if id == uint32(originalID) {
+			if id.Spell == uint32(originalID) {
 				indices[i] = int32(cell)
 				break
 			}
@@ -34,8 +42,8 @@ func quickSpellsToOriginalIndices(slots [9]uint32) (sav.CityShortcuts, error) {
 	return indices, nil
 }
 
-func quickSpellsFromOriginalIndices(indices []int32) ([9]uint32, error) {
-	var slots [9]uint32
+func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
+	var slots ui.ShortcutSlots
 	if len(indices) != len(sav.CityShortcuts{}) {
 		return slots, fmt.Errorf("original quick spells: got %d slots, want four", len(indices))
 	}
@@ -44,12 +52,12 @@ func quickSpellsFromOriginalIndices(indices []int32) ([9]uint32, error) {
 			continue
 		}
 		if index < 0 || index >= int32(len(originalBookIDs)) {
-			return [9]uint32{}, fmt.Errorf("original quick spells: slot %d index %d outside -1 or 0..23", i, index)
+			return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: slot %d index %d outside -1 or 0..23", i, index)
 		}
-		slots[i] = uint32(originalBookIDs[index])
+		slots[i+1].Spell = uint32(originalBookIDs[index])
 	}
 	if err := validateQuickSpells(slots); err != nil {
-		return [9]uint32{}, fmt.Errorf("original quick spells: %w", err)
+		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: %w", err)
 	}
 	return slots, nil
 }
@@ -57,38 +65,40 @@ func quickSpellsFromOriginalIndices(indices []int32) ([9]uint32, error) {
 // Missing legacy records default empty. Present but malformed records refuse
 // the whole load, before either the town or mission adoption boundary. The
 // bounded policy is ours; malformed original runtime behaviour is Unknown.
-func originalQuickSpells(file *sav.File) ([9]uint32, error) { return fileQuickSpells(file, false) }
+func originalQuickSpells(file *sav.File) (ui.ShortcutSlots, error) {
+	return fileQuickSpells(file, false)
+}
 
 // fileQuickSpells reads the file's shortcut cells. emptyUnbound admits an
 // empty array as no binding: the second game's files hold one, and no claim
 // reads its index domain (DIV-4154).
-func fileQuickSpells(file *sav.File, emptyUnbound bool) ([9]uint32, error) {
+func fileQuickSpells(file *sav.File, emptyUnbound bool) (ui.ShortcutSlots, error) {
 	value, present, err := file.StateLeaves().ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
-		return [9]uint32{}, err
+		return ui.ShortcutSlots{}, err
 	}
 	if !present {
-		return [9]uint32{}, nil
+		return ui.ShortcutSlots{}, nil
 	}
 	if value.Dir || value.Type != reg.TypeIntArray {
-		return [9]uint32{}, fmt.Errorf("original quick spells: invalid source shape")
+		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: invalid source shape")
 	}
 	if len(value.Ints) == 0 && emptyUnbound {
-		return [9]uint32{}, nil
+		return ui.ShortcutSlots{}, nil
 	}
 	return quickSpellsFromOriginalIndices(value.Ints)
 }
 
-func quickSpellsFromState(state sav.DocumentStateData) ([9]uint32, error) {
+func quickSpellsFromState(state sav.DocumentStateData) (ui.ShortcutSlots, error) {
 	value, present, err := state.ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
-		return [9]uint32{}, err
+		return ui.ShortcutSlots{}, err
 	}
 	if !present {
-		return [9]uint32{}, fmt.Errorf("original city quick spells: missing source record")
+		return ui.ShortcutSlots{}, fmt.Errorf("original city quick spells: missing source record")
 	}
 	if value.Kind != 6 || len(value.Bytes) != 16 {
-		return [9]uint32{}, fmt.Errorf("original quick spells: invalid source shape")
+		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: invalid source shape")
 	}
 	indices := make([]int32, 4)
 	for i := range indices {
@@ -99,15 +109,16 @@ func quickSpellsFromState(state sav.DocumentStateData) ([9]uint32, error) {
 
 func writeQuickSpellLeaf(doc *sav.DocumentData, shortcuts sav.CityShortcuts) {
 	_, _ = patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, "/SpellBook/Shortcuts", func(v *sav.CityStateValueData) error {
-		v.Bytes = make([]byte, 16)
-		for j, index := range shortcuts {
+		cells := shortcuts[:]
+		v.Bytes = make([]byte, 4*len(cells))
+		for j, index := range cells {
 			binary.LittleEndian.PutUint32(v.Bytes[j*4:], uint32(index))
 		}
 		return nil
 	})
 }
 
-func originalCityQuickSpells(document *sav.CityProvenance) ([9]uint32, error) {
+func originalCityQuickSpells(document *sav.CityProvenance) (ui.ShortcutSlots, error) {
 	data := document.Data().State
 	return quickSpellsFromState(sav.DocumentStateData{RootKind: data.RootKind, DirectoryRecords: data.DirectoryRecords, ValueRecords: data.ValueRecords})
 }
@@ -115,17 +126,17 @@ func originalCityQuickSpells(document *sav.CityProvenance) ([9]uint32, error) {
 // Native snapshots carry real uint16 spell IDs, not original signed indices.
 // Unknown-to-this-install IDs remain bound but unavailable, preserving custom
 // catalogs. The producer moves duplicates, so malformed native duplicates fail.
-func validateQuickSpells(slots [9]uint32) error {
+func validateQuickSpells(slots ui.ShortcutSlots) error {
 	for i, id := range slots {
-		if id > 65535 {
-			return fmt.Errorf("quick spell F%d ID %d exceeds uint16", i+5, id)
+		if id.Spell > 65535 || len(id.Item) > 65536 || id.Spell != 0 && id.Item != "" {
+			return fmt.Errorf("shortcut F%d has invalid content %v", i+4, id)
 		}
-		if id == 0 {
+		if id == (ui.Shortcut{}) {
 			continue
 		}
 		for j := 0; j < i; j++ {
 			if slots[j] == id {
-				return fmt.Errorf("quick spell F%d duplicates F%d", i+5, j+5)
+				return fmt.Errorf("quick spell F%d duplicates F%d", i+4, j+4)
 			}
 		}
 	}

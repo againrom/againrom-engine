@@ -353,7 +353,7 @@ type RuntimeServices struct {
 // and splitting it out would make the reset reach across two components.
 type CampaignSession struct {
 	fame        SnapshotFame
-	quickSpells [9]uint32 // session-owned real spell IDs; 0 is unbound
+	quickSpells ui.ShortcutSlots // session-owned spell or item slots; zero is unbound
 
 	// Difficulty belongs to the campaign, not the process or the hero. Zero is
 	// the legacy/default Normal value; new and restored sessions store 1..3.

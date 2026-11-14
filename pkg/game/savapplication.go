@@ -627,7 +627,7 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 		}
 		selection = slices.Clone(raw.Selection)
 	}
-	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
+	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells, campaignOf(s.game))
 	if err != nil {
 		return worldSaveUnsupportedf("quick spells: %v", err)
 	}

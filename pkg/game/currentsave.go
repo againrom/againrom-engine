@@ -299,7 +299,7 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 		return sav.DocumentData{}, err
 	}
 	writeDifficulty(&doc, campaignOf(s.game), difficulty)
-	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
+	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells, campaignOf(s.game))
 	if err != nil {
 		return sav.DocumentData{}, err
 	}

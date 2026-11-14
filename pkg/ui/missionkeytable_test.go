@@ -33,7 +33,7 @@ func missionKeyLine(b missionKeyBinding) string {
 		action = "action-" + strconv.Itoa(int(b.action))
 	}
 	line = append(line, "=", action)
-	if b.action == missionKeyShortcut || b.action == missionKeyGroup {
+	if b.action == missionKeyShortcut || b.action == missionKeyBindSpell || b.action == missionKeyBindItem || b.action == missionKeyGroup {
 		line = append(line, strconv.Itoa(b.arg))
 	}
 	return strings.Join(line, " ")
@@ -48,13 +48,11 @@ func TestMissionKeyTableListsEveryKeyOnce(t *testing.T) {
 		"f ctrl = formation", "n ctrl = time-flow", "o ctrl = smoothing", "u ctrl = auto-healing",
 		"h ctrl = show-health", "l ctrl = numerals",
 		"k ctrl shift = kill", "semicolon ctrl shift = chip", "f4 ctrl shift = reveal",
-		"f10 ctrl shift = grid", "f11 ctrl shift = readout",
+		"f10 ctrl shift = grid", "f11 ctrl shift = readout", "f12 ctrl shift = fps",
 		"e = select-all", "i = inventory", "backquote = inventory", "x = worn", "b = book", "q = book",
 		"j = doll", "space no-shift no-alt = panels", "z no-ctrl no-alt hold = highlight",
 		"f1 = help", "pause = pause-text", "f2 no-ctrl = quick-save", "f2 ctrl = save-game",
 		"f3 no-ctrl = quick-load", "f3 ctrl = load-game",
-		"f5 shift = spell 0", "f6 shift = spell 1", "f7 shift = spell 2", "f8 shift = spell 3",
-		"f10 shift = grid", "f11 shift = readout", "f12 shift = fps",
 		"0 no-ctrl no-shift no-alt = pause", "numpad-0 no-ctrl no-shift no-alt = pause",
 		"equal = faster", "numpad-plus no-ctrl = faster", "minus = slower", "numpad-minus no-ctrl = slower",
 		"numpad-plus ctrl = unpaced", "numpad-minus ctrl = paced",
@@ -65,18 +63,19 @@ func TestMissionKeyTableListsEveryKeyOnce(t *testing.T) {
 		"numpad-4 = group 4", "numpad-5 = group 5", "numpad-6 = group 6", "numpad-7 = group 7",
 		"numpad-8 = group 8", "numpad-9 = group 9",
 	}
-	first := append(slices.Clone(both),
+	slotRows := func(profile string) (rows []string) {
+		for slot, key := range []string{"f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"} {
+			n := strconv.Itoa(shortcutOrdinal(missionKeyProfiles[profile], slot))
+			rows = append(rows, key+" no-ctrl no-shift no-alt = spell "+n, key+" ctrl no-shift no-alt = bind-spell "+n, key+" no-ctrl shift no-alt = bind-item "+n)
+		}
+		return rows
+	}
+	first := append(append(slices.Clone(both), slotRows("")...),
 		"p = patrol", "g = guard", "d = defend", "c = cast", "s = march", "t = stand-ground", "r = retreat", "m = move",
-		"f4 no-shift = quick-save", "f5 no-shift = spell 0", "f6 no-shift = spell 1", "f7 no-shift = spell 2",
-		"f8 no-shift = spell 3", "f9 no-shift = quick-load", "f10 no-shift = grid", "f11 no-shift = readout",
-		"f12 no-shift = fps",
 	)
-	second := append(slices.Clone(both),
+	second := append(append(slices.Clone(both), slotRows("pickup-p")...),
 		"p no-ctrl = pickup", "g no-ctrl = guard", "d no-ctrl = defend", "c no-ctrl = cast", "s no-ctrl = march",
 		"t no-ctrl = stand-ground", "r no-ctrl = retreat", "m no-ctrl = move", "l no-ctrl = support",
-		"f4 no-shift = spell 0", "f5 no-shift = spell 1", "f6 no-shift = spell 2", "f7 no-shift = spell 3",
-		"f8 no-shift = spell 4", "f9 no-shift = spell 5", "f10 no-shift = spell 6", "f11 no-shift = spell 7",
-		"f12 no-shift = spell 8",
 	)
 	for _, tc := range []struct {
 		profile string
@@ -214,44 +213,23 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 	in.March, in.StandGround = orders(ebiten.KeyS), orders(ebiten.KeyT)
 	in.PlayerRetreat, in.Move = orders(ebiten.KeyR), orders(ebiten.KeyM)
 	in.Support = second && pressed(ebiten.KeyL) && !ctrl
-	bare := []string{"save", "spell", "spell", "spell", "spell", "load", "grid", "readout", "fps"}
-	shifted := []string{"", "spell", "spell", "spell", "spell", "", "grid", "readout", "fps"}
-	firstSlot := 5
-	if second {
-		bare = []string{"spell", "spell", "spell", "spell", "spell", "spell", "spell", "spell", "spell"}
-		firstSlot = 4
-	}
-	apply := func(what string, slot int) {
-		switch what {
-		case "save":
-			in.QuickSave = true
-		case "load":
-			in.QuickLoad = true
-		case "grid":
-			in.Grid = true
-		case "readout":
-			in.Readout = true
-		case "fps":
-			in.FPS = true
-		case "spell":
-			in.QuickSpell[slot] = true
-		}
-	}
 	for i := 0; i < 9; i++ {
-		if !pressed(ebiten.Key(int(ebiten.KeyF4) + i)) {
-			continue
-		}
-		if !shift {
-			apply(bare[i], i+4-firstSlot)
-		}
-		if shift {
-			apply(shifted[i], i+4-5)
+		if pressed(ebiten.Key(int(ebiten.KeyF4)+i)) && !alt {
+			switch {
+			case ctrl && !shift:
+				in.BindSpell[i] = true
+			case !ctrl && shift:
+				in.BindItem[i] = true
+			case !ctrl && !shift:
+				in.QuickSpell[i] = true
+			}
 		}
 	}
 	if ctrl && shift {
 		in.Reveal = in.Reveal || pressed(ebiten.KeyF4)
 		in.Grid = in.Grid || pressed(ebiten.KeyF10)
 		in.Readout = in.Readout || pressed(ebiten.KeyF11)
+		in.FPS = pressed(ebiten.KeyF12)
 	}
 	return in
 }
@@ -323,4 +301,17 @@ func TestMovedMissionKeyNamesPressAsTheBaseCasesDid(t *testing.T) {
 			}
 		}
 	}
+}
+
+// shortcutOrdinal is the number a quick-spell slot's profile name carries,
+// less one: the first game's F5 to F8 slots keep spell-1 to spell-4.
+func shortcutOrdinal(p missionKeyAction, slot int) int {
+	if missionKeyPolicies[p].games&firstGameKeys != 0 {
+		return (slot + 8) % 9
+	}
+	return slot
+}
+
+func shortcutSlotName(profile string, slot int) string {
+	return "spell-" + strconv.Itoa(shortcutOrdinal(missionKeyProfiles[profile], slot)+1)
 }

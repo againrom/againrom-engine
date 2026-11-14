@@ -132,7 +132,7 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 	if viewer.FogRevealed() {
 		t.Fatal("second edge left reveal on")
 	}
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := os.ReadFile(filepath.Join(store.Dir, "quick-save-1.sav"))

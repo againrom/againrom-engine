@@ -264,7 +264,7 @@ func openPrepared(p preparedMap, commit func()) ui.MapOpener {
 
 type restoreCandidate struct {
 	fame              SnapshotFame
-	quickSpells       [9]uint32
+	quickSpells       ui.ShortcutSlots
 	difficulty        mapload.Difficulty
 	town              *Town
 	carried           []mapload.PartyMember

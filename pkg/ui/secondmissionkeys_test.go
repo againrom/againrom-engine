@@ -16,7 +16,7 @@ func TestSecondMissionBookShortcutsUseAllNineFunctionKeys(t *testing.T) {
 			if err := a.HeadlessKey(fmt.Sprintf("ctrl-f%d", slot+4)); err != nil {
 				t.Fatal(err)
 			}
-			if len(slots) != 9 || slots[slot] != 89 {
+			if len(slots) != 9 || slots[slot].Spell != 89 {
 				t.Fatalf("Ctrl+F%d stored %v, want slot %d = 89", slot+4, slots, slot)
 			}
 			v.selectedSpell = 0
@@ -31,7 +31,7 @@ func TestSecondMissionBookShortcutsUseAllNineFunctionKeys(t *testing.T) {
 }
 
 func TestSecondMissionControlLettersDoNotIssuePlainOrders(t *testing.T) {
-	if MissionShortcutCount("") != 4 || MissionShortcutCount("pickup-p") != 9 {
+	if MissionShortcutCount("") != 9 || MissionShortcutCount("pickup-p") != 9 {
 		t.Fatal("shortcut admission does not follow the mission profile")
 	}
 	for _, key := range []struct {
@@ -99,7 +99,7 @@ func TestSecondMissionShortcutModifiersKeepTheDebugUnlock(t *testing.T) {
 			if err := a.HeadlessKey("ctrl-shift-" + key); err != nil {
 				t.Fatal(err)
 			}
-			if *slots != [9]uint32{} {
+			if *slots != spellSlots() {
 				t.Fatal("debug chord assigned a spell")
 			}
 			changed := v.FogRevealed() || beforeGrid != v.GridOverlay() || beforeReadout != v.readoutHidden
@@ -109,7 +109,7 @@ func TestSecondMissionShortcutModifiersKeepTheDebugUnlock(t *testing.T) {
 			if err := a.HeadlessKey("shift-" + key); err != nil {
 				t.Fatal(err)
 			}
-			if *slots != [9]uint32{} {
+			if *slots != spellSlots() {
 				t.Fatal("unknown Shift slot action assigned a spell")
 			}
 		}
@@ -127,9 +127,9 @@ func TestMissionQuickSaveAndLoadKeysFollowTheProfile(t *testing.T) {
 		{"pickup-p", ebiten.KeyF4, false, false, false, false},
 		{"pickup-p", ebiten.KeyF4, true, true, false, false},
 		{"pickup-p", ebiten.KeyF9, true, false, false, false},
-		{"", ebiten.KeyF4, false, false, true, false},
+		{"", ebiten.KeyF4, false, false, false, false},
 		{"", ebiten.KeyF4, true, false, false, false},
-		{"", ebiten.KeyF9, false, false, false, true},
+		{"", ebiten.KeyF9, false, false, false, false},
 		{"", ebiten.KeyF9, true, false, false, false},
 	} {
 		var in appInput

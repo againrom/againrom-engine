@@ -27,6 +27,8 @@ const (
 	missionKeyFPS
 	missionKeyReveal
 	missionKeyShortcut
+	missionKeyBindSpell
+	missionKeyBindItem
 	missionKeySupport
 	missionKeyAttack
 	missionKeyAutocast
@@ -83,7 +85,8 @@ const (
 
 // missionKeyBinding is one row: a key with what it asks of Ctrl, Shift and
 // Alt, a press edge or (hold) a level, and the action it sets. arg is the
-// quick-spell slot or the group digit of the actions that take one.
+// group digit, or the ordinal that names a quick-spell slot in the profile
+// settings; index is that slot's place among the nine.
 type missionKeyBinding struct {
 	only             missionKeyGames
 	name             string
@@ -91,9 +94,10 @@ type missionKeyBinding struct {
 	ctrl, shift, alt keyMod
 	hold             bool
 	action           missionKeyAction
-	arg              int
+	arg, index       int
 	// fixed rows are not the player's to rebind (debug chords, F1).
-	fixed bool
+	fixed  bool
+	listed bool
 }
 
 // missionKeyPolicy is a profile's data beside its rows: the game whose rows
@@ -132,12 +136,12 @@ func missionShortcutMarks(p missionKeyAction, k PlayerMissionKeys) []string {
 		if b.action != missionKeyShortcut || b.fixed {
 			continue
 		}
-		for len(marks) <= b.arg {
+		for len(marks) <= b.index {
 			marks, shifted = append(marks, ""), append(shifted, false)
 		}
-		if marks[b.arg] == "" || shifted[b.arg] && b.shift != modHeld {
-			marks[b.arg] = MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()
-			shifted[b.arg] = b.shift == modHeld
+		if marks[b.index] == "" || shifted[b.index] && b.shift != modHeld {
+			marks[b.index] = MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()
+			shifted[b.index] = b.shift == modHeld
 		}
 	}
 	return marks
@@ -185,8 +189,9 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "k", key: ebiten.KeyK, ctrl: modHeld, shift: modHeld, action: missionKeyKill, fixed: true},
 		{name: "semicolon", key: ebiten.KeySemicolon, ctrl: modHeld, shift: modHeld, action: missionKeyChip, fixed: true},
 		{name: "f4", key: ebiten.KeyF4, ctrl: modHeld, shift: modHeld, action: missionKeyReveal, fixed: true},
-		{name: "f10", key: ebiten.KeyF10, ctrl: modHeld, shift: modHeld, action: missionKeyGrid, fixed: true},
-		{name: "f11", key: ebiten.KeyF11, ctrl: modHeld, shift: modHeld, action: missionKeyReadout, fixed: true},
+		{name: "f10", key: ebiten.KeyF10, ctrl: modHeld, shift: modHeld, action: missionKeyGrid, fixed: true, listed: true},
+		{name: "f11", key: ebiten.KeyF11, ctrl: modHeld, shift: modHeld, action: missionKeyReadout, fixed: true, listed: true},
+		{name: "f12", key: ebiten.KeyF12, ctrl: modHeld, shift: modHeld, action: missionKeyFPS, fixed: true, listed: true},
 		// Selection and panels (AI-SELECT-122, keyboard.tsv; DIV-296, DIV-1817).
 		{name: "e", key: ebiten.KeyE, action: missionKeySelectAll},
 		{name: "i", key: ebiten.KeyI, action: missionKeyInventory},
@@ -204,31 +209,6 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "f2", key: ebiten.KeyF2, ctrl: modHeld, action: missionKeySaveGame},
 		{name: "f3", key: ebiten.KeyF3, ctrl: modFree, action: missionKeyQuickLoad},
 		{name: "f3", key: ebiten.KeyF3, ctrl: modHeld, action: missionKeyLoadGame},
-		{only: firstGameKeys, name: "f4", key: ebiten.KeyF4, shift: modFree, action: missionKeyQuickSave},
-		{only: firstGameKeys, name: "f5", key: ebiten.KeyF5, shift: modFree, action: missionKeyShortcut, arg: 0},
-		{only: firstGameKeys, name: "f6", key: ebiten.KeyF6, shift: modFree, action: missionKeyShortcut, arg: 1},
-		{only: firstGameKeys, name: "f7", key: ebiten.KeyF7, shift: modFree, action: missionKeyShortcut, arg: 2},
-		{only: firstGameKeys, name: "f8", key: ebiten.KeyF8, shift: modFree, action: missionKeyShortcut, arg: 3},
-		{only: firstGameKeys, name: "f9", key: ebiten.KeyF9, shift: modFree, action: missionKeyQuickLoad},
-		{only: firstGameKeys, name: "f10", key: ebiten.KeyF10, shift: modFree, action: missionKeyGrid},
-		{only: firstGameKeys, name: "f11", key: ebiten.KeyF11, shift: modFree, action: missionKeyReadout},
-		{only: firstGameKeys, name: "f12", key: ebiten.KeyF12, shift: modFree, action: missionKeyFPS},
-		{only: secondGameKeys, name: "f4", key: ebiten.KeyF4, shift: modFree, action: missionKeyShortcut, arg: 0},
-		{only: secondGameKeys, name: "f5", key: ebiten.KeyF5, shift: modFree, action: missionKeyShortcut, arg: 1},
-		{only: secondGameKeys, name: "f6", key: ebiten.KeyF6, shift: modFree, action: missionKeyShortcut, arg: 2},
-		{only: secondGameKeys, name: "f7", key: ebiten.KeyF7, shift: modFree, action: missionKeyShortcut, arg: 3},
-		{only: secondGameKeys, name: "f8", key: ebiten.KeyF8, shift: modFree, action: missionKeyShortcut, arg: 4},
-		{only: secondGameKeys, name: "f9", key: ebiten.KeyF9, shift: modFree, action: missionKeyShortcut, arg: 5},
-		{only: secondGameKeys, name: "f10", key: ebiten.KeyF10, shift: modFree, action: missionKeyShortcut, arg: 6},
-		{only: secondGameKeys, name: "f11", key: ebiten.KeyF11, shift: modFree, action: missionKeyShortcut, arg: 7},
-		{only: secondGameKeys, name: "f12", key: ebiten.KeyF12, shift: modFree, action: missionKeyShortcut, arg: 8},
-		{name: "f5", key: ebiten.KeyF5, shift: modHeld, action: missionKeyShortcut, arg: 0},
-		{name: "f6", key: ebiten.KeyF6, shift: modHeld, action: missionKeyShortcut, arg: 1},
-		{name: "f7", key: ebiten.KeyF7, shift: modHeld, action: missionKeyShortcut, arg: 2},
-		{name: "f8", key: ebiten.KeyF8, shift: modHeld, action: missionKeyShortcut, arg: 3},
-		{name: "f10", key: ebiten.KeyF10, shift: modHeld, action: missionKeyGrid},
-		{name: "f11", key: ebiten.KeyF11, shift: modHeld, action: missionKeyReadout},
-		{name: "f12", key: ebiten.KeyF12, shift: modHeld, action: missionKeyFPS},
 		// The clock and the camera (SESS-CLOCK-005, keyboard.tsv rows 21..24;
 		// DIV-2263, DIV-2950).
 		{name: "0", key: ebiten.KeyDigit0, ctrl: modFree, shift: modFree, alt: modFree, action: missionKeyPause},
@@ -263,6 +243,19 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "numpad-7", key: ebiten.KeyNumpad7, action: missionKeyGroup, arg: 7},
 		{name: "numpad-8", key: ebiten.KeyNumpad8, action: missionKeyGroup, arg: 8},
 		{name: "numpad-9", key: ebiten.KeyNumpad9, action: missionKeyGroup, arg: 9},
+	}
+	for slot, key := range []ebiten.Key{ebiten.KeyF4, ebiten.KeyF5, ebiten.KeyF6, ebiten.KeyF7, ebiten.KeyF8, ebiten.KeyF9, ebiten.KeyF10, ebiten.KeyF11, ebiten.KeyF12} {
+		name := namefold.ArchiveText(key.String())
+		// The first game's profile entries spell-1 to spell-4 keep the keys F5
+		// to F8 they named before the common layout; its F4 slot is the last name.
+		ordinal := slot
+		if policy.games&firstGameKeys != 0 {
+			ordinal = (slot + 8) % 9
+		}
+		table = append(table,
+			missionKeyBinding{name: name, key: key, ctrl: modFree, shift: modFree, alt: modFree, action: missionKeyShortcut, arg: ordinal, index: slot},
+			missionKeyBinding{name: name, key: key, ctrl: modHeld, shift: modFree, alt: modFree, action: missionKeyBindSpell, arg: ordinal, index: slot},
+			missionKeyBinding{name: name, key: key, ctrl: modFree, shift: modHeld, alt: modFree, action: missionKeyBindItem, arg: ordinal, index: slot})
 	}
 	rows := table[:0]
 	for _, b := range table {
@@ -332,7 +325,11 @@ func (in *appInput) readMissionKeyRows(p missionKeyAction, pressed, held func(eb
 		case missionKeyReveal:
 			in.Reveal = true
 		case missionKeyShortcut:
-			in.QuickSpell[b.arg] = true
+			in.QuickSpell[b.index] = true
+		case missionKeyBindSpell:
+			in.BindSpell[b.index] = true
+		case missionKeyBindItem:
+			in.BindItem[b.index] = true
 		case missionKeyAttack:
 			in.Attack = true
 		case missionKeyAutocast:

@@ -1,21 +1,38 @@
 package ui
 
-// SetQuickSpells attaches the session's real spell IDs in shortcut order.
-// Zero means unbound. The owner outlives this viewer; no actor owns these slots.
+import "encoding/json"
+
+type Shortcut struct {
+	Spell uint32 `json:",omitempty"`
+	Item  string `json:",omitempty"`
+}
+
+type ShortcutSlots [9]Shortcut
+
+func (s *Shortcut) UnmarshalJSON(b []byte) error {
+	if len(b) > 0 && b[0] != '{' {
+		return json.Unmarshal(b, &s.Spell)
+	}
+	type plain Shortcut
+	return json.Unmarshal(b, (*plain)(s))
+}
+
+// SetQuickSpells attaches the session's spell-or-item slots in shortcut order.
+// An empty slot is unbound. The owner outlives this viewer; no actor owns these slots.
 // A standalone viewer without this seam cannot change session bindings.
-func (v *Viewer) SetQuickSpells(slots *[9]uint32) { v.quickSpells = slots }
+func (v *Viewer) SetQuickSpells(slots *ShortcutSlots) { v.quickSpells = slots }
 
 // QuickSpellState reports a value snapshot for diagnostics and headless
 // witnesses. It does not expose the session's writable storage.
-func (v *Viewer) QuickSpellState() (slots [9]uint32, current uint32, armed bool) {
+func (v *Viewer) QuickSpellState() (slots ShortcutSlots, current uint32, armed bool) {
 	if v.quickSpells != nil {
 		slots = *v.quickSpells
 	}
 	return slots, v.selectedSpell, v.spellModeLive()
 }
 
-// quickSpell follows AI-QUICKASSIGN-278 and AI-QUICKINVOKE-279. Entries carry
-// real IDs; their positions in a compact/custom book never become spell IDs.
+// quickSpell binds or invokes slots.
+// Items use the inventory route.
 func (v *Viewer) quickSpell(slot int, ctrl bool, x, y int) {
 	if v.quickSpells == nil || slot < 0 || slot >= len(v.quickSpells) {
 		return
@@ -29,23 +46,57 @@ func (v *Viewer) quickSpell(slot int, ctrl bool, x, y int) {
 			}
 		}
 		if id != 0 {
-			for i, other := range v.quickSpells {
-				if other == id {
-					v.quickSpells[i] = 0
+			v.bindShortcut(slot, Shortcut{Spell: id})
+		}
+	} else if s := v.quickSpells[slot]; s.Item != "" {
+		if v.inventoryEligible() {
+			for i, key := range v.invSubject.PackKeys {
+				if key == s.Item {
+					v.invEquipRequest = i + 1
+					break
 				}
 			}
-			v.quickSpells[slot] = id
 		}
-	} else if id := v.quickSpells[slot]; id != 0 {
-		v.selectedSpell = id
+		return
+	} else if s.Spell != 0 {
+		v.selectedSpell = s.Spell
+	}
+	if id := v.quickSpells[slot].Spell; id != 0 && !ctrl {
+		for _, entry := range v.spellbook {
+			if entry.ID == id && entry.Unavailable && entry.ItemCast != nil {
+				v.ArmItemCast(v.spellbookOwner, entry.ItemCast.Index, id, entry.ItemCast.Key)
+				return
+			}
+		}
 	}
 	// Ctrl also reaches this test. A closed book never opens as a side effect.
-	if id := v.quickSpells[slot]; id != 0 && !v.hudShown(hudPanelBook) && v.spellAvailable(id) &&
+	if id := v.quickSpells[slot].Spell; id != 0 && !v.hudShown(hudPanelBook) && v.spellAvailable(id) &&
 		canArmAttack(v.sel, v.entities, v.localOwner) && v.commandCastActive() {
 		// The same one-shot arm as C (AI-QUICKINVOKE-279).
 		v.armSpell()
 		v.spellNeedsBook, v.castOnce = false, true
 	}
+}
+
+func (v *Viewer) bindShortcutItem(slot, x, y int) {
+	if v.quickSpells == nil || slot < 0 || slot >= len(v.quickSpells) {
+		return
+	}
+	x, y = v.windowToFrame(x, y)
+	i, ok := v.inventoryPackCellAt(x, y)
+	if !ok || i >= len(v.invSubject.PackKeys) || v.invSubject.PackKeys[i] == "" {
+		return
+	}
+	v.bindShortcut(slot, Shortcut{Item: v.invSubject.PackKeys[i]})
+}
+
+func (v *Viewer) bindShortcut(slot int, s Shortcut) {
+	for i, other := range v.quickSpells {
+		if other == s {
+			v.quickSpells[i] = Shortcut{}
+		}
+	}
+	v.quickSpells[slot] = s
 }
 
 func (v *Viewer) spellAvailable(id uint32) bool {

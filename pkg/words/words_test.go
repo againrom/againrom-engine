@@ -29,6 +29,13 @@ var sameWord = map[string]string{
 // editorPrefix starts every id of the map editor's own words.
 const editorPrefix = "editor."
 
+// recaptioned holds ids whose words were changed on purpose after the dump:
+// the shortcut slots now serve books and inventory, not spells only.
+var recaptioned = map[string]bool{"keys.action.spell": true}
+
+// laterIDs are ids authored after the dump, like the editor words.
+var laterIDs = map[string]bool{"keys.action.bind-item": true, "keys.action.bind-spell": true}
+
 func TestTablesEqualTheReplacedWords(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "replaced.tsv"))
 	if err != nil {
@@ -56,7 +63,9 @@ func TestTablesEqualTheReplacedWords(t *testing.T) {
 			id = to
 		}
 		entry := map[string]string{"en": "english", "ru": "russian"}[cols[0]]
-		if got := For(entry).Text(id); got != want {
+		if recaptioned[id] {
+			// The caption was changed on purpose after the dump.
+		} else if got := For(entry).Text(id); got != want {
 			t.Errorf("%s %s = %q, the replaced code drew %q", cols[0], id, got, want)
 		}
 		seen[id] = true
@@ -72,7 +81,7 @@ func TestTablesEqualTheReplacedWords(t *testing.T) {
 	// Editor words and the shared smoothing caption are authored here.
 	fresh := 0
 	for _, id := range ids {
-		if strings.HasPrefix(id, editorPrefix) || id == "options.smoothing" {
+		if strings.HasPrefix(id, editorPrefix) || id == "options.smoothing" || laterIDs[id] {
 			fresh++
 			continue
 		}

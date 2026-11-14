@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/ui"
 )
 
 func TestCurrentCustomQuickSpellsKeepTwoCyclesAndOrdinaryEdits(t *testing.T) {
 	f, _ := originalCityRouteFixture(t)
-	f.quickSpells = [9]uint32{17, 89, 23, 0}
+	f.quickSpells = spellSlots(17, 89, 23, 0)
 	for cycle := 0; cycle < 2; cycle++ {
 		snapshot, label, err := f.Snapshot(false)
 		if err != nil {
@@ -25,7 +26,7 @@ func TestCurrentCustomQuickSpellsKeepTwoCyclesAndOrdinaryEdits(t *testing.T) {
 			t.Fatal(err)
 		}
 		ordinary, err := originalQuickSpellsMustRead(raw)
-		if err != nil || ordinary != ([9]uint32{0, 0, 23, 0}) {
+		if err != nil || ordinary != (spellSlots(0, 0, 23, 0)) {
 			t.Fatal("ordinary custom shortcut projection", ordinary, err)
 		}
 		cold := &FrontEnd{InstallResources: f.InstallResources}
@@ -43,24 +44,24 @@ func TestCurrentCustomQuickSpellsKeepTwoCyclesAndOrdinaryEdits(t *testing.T) {
 			t.Fatal(err)
 		}
 		changed := &FrontEnd{InstallResources: f.InstallResources}
-		if _, town, err := changed.RestoreOriginal(edited); err != nil || !town || changed.quickSpells != ([9]uint32{1, 89, 23, 0}) {
+		if _, town, err := changed.RestoreOriginal(edited); err != nil || !town || changed.quickSpells != (spellSlots(17, 1, 23, 0)) {
 			t.Fatal("ordinary shortcut edit lost", changed.quickSpells, town, err)
 		}
 		f = cold
 	}
 }
 
-func originalQuickSpellsMustRead(raw []byte) ([9]uint32, error) {
+func originalQuickSpellsMustRead(raw []byte) (ui.ShortcutSlots, error) {
 	file, err := sav.Open(raw)
 	if err != nil {
-		return [9]uint32{}, err
+		return spellSlots(), err
 	}
 	return originalQuickSpells(file)
 }
 
 func TestCurrentCustomShortcutMalformedPolicyIsAtomic(t *testing.T) {
 	f, _ := originalCityRouteFixture(t)
-	f.quickSpells = [9]uint32{89}
+	f.quickSpells = spellSlots(89)
 	snapshot, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
@@ -81,11 +82,12 @@ func TestCurrentCustomShortcutMalformedPolicyIsAtomic(t *testing.T) {
 			}
 			switch mode {
 			case "slot":
-				a.Session.QuickSpells[0].Slot = 4
+				a.Session.QuickSpells[0].Slot = 9
 			case "known ID":
+				a.Session.QuickSpells[0].Slot = 1
 				a.Session.QuickSpells[0].ID = 1
 			case "duplicate":
-				a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{1, 89})
+				a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{Slot: 1, ID: 89})
 			case "width":
 				a.Session.QuickSpells[0].ID = 65536
 			}

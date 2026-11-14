@@ -75,12 +75,12 @@ func TestReboundSpellSlotNeverReachesADebugChord(t *testing.T) {
 		{ebiten.KeyF4, func(in appInput) bool { return in.Reveal }},
 	} {
 		a, _ := onMapWithKeys(t, "")
-		bindAll(t, a, "spell-1", chord(tc.key, ""))
+		bindAll(t, a, shortcutSlotName("", 0), chord(tc.key, ""))
 		in := pressOnMap(a, chord(tc.key, "cs"))
 		if in.QuickSpell[0] || !tc.debug(in) {
 			t.Fatalf("Ctrl+Shift+%v: spell %v debug %v, want false true", tc.key, in.QuickSpell[0], tc.debug(in))
 		}
-		for _, c := range []MissionKeyChord{chord(tc.key, ""), chord(tc.key, "s")} {
+		for _, c := range []MissionKeyChord{chord(tc.key, "")} {
 			if in := pressOnMap(a, c); !in.QuickSpell[0] || in.Grid {
 				t.Fatalf("%v: spell %v grid %v", c, in.QuickSpell[0], in.Grid)
 			}
@@ -97,11 +97,11 @@ func TestBindTakesOnlyTheChordOfATwoKeyAction(t *testing.T) {
 	if in := pressOnMap(a, chord(ebiten.KeyF2, "")); !in.Attack || in.QuickSave {
 		t.Fatalf("F2: attack %v quick save %v", in.Attack, in.QuickSave)
 	}
-	if !pressOnMap(a, chord(ebiten.KeyF4, "")).QuickSave {
-		t.Fatal("quick save lost F4 when F2 went to attack")
+	if pressOnMap(a, chord(ebiten.KeyF4, "")).QuickSave {
+		t.Fatal("F4 still quick saves")
 	}
-	if got := missionKeyCaptions(a.missionKeys, a.player.keys, missionKeySlot{action: missionKeyQuickSave}); got != "F4" {
-		t.Fatalf("quick save row reads %q, want F4", got)
+	if got := missionKeyCaptions(a.missionKeys, a.player.keys, missionKeySlot{action: missionKeyQuickSave}); got != "" {
+		t.Fatalf("quick save row reads %q, want unassigned", got)
 	}
 
 	a, _ = onMapWithKeys(t, "")
@@ -122,7 +122,7 @@ func TestProfileReadNeverLetsOneChordFireTwoActions(t *testing.T) {
 	settings := map[string]string{
 		"FirstGameKeys.attack":    "K",
 		"FirstGameKeys.inventory": "K",
-		"FirstGameKeys.spell-1":   "F4",
+		"FirstGameKeys.spell-9":   "F4",
 		"FirstGameKeys.book":      "Ctrl+Shift+F10",
 		"FirstGameKeys.worn":      "Ctrl+Shift+K",
 	}
@@ -147,10 +147,10 @@ func TestProfileReadNeverLetsOneChordFireTwoActions(t *testing.T) {
 
 func TestScriptedKeyReadsTheGamesTableNotThePlayersLayout(t *testing.T) {
 	a, _ := onMapWithKeys(t, "")
-	bindAll(t, a, "spell-1", chord(ebiten.KeyK, ""))
+	bindAll(t, a, shortcutSlotName("", 0), chord(ebiten.KeyK, ""))
 	in := a.headlessIdleInput()
-	if !in.missionKeyNamed(a.activeMissionKeys(), "f5") || !in.QuickSpell[0] {
-		t.Fatal("the scenario key f5 does not cast spell 1 under a player layout")
+	if !in.missionKeyNamed(a.activeMissionKeys(), "f4") || !in.QuickSpell[0] {
+		t.Fatal("the scenario key f4 does not cast spell 1 under a player layout")
 	}
 	if !pressOnMap(a, chord(ebiten.KeyK, "")).QuickSpell[0] || pressOnMap(a, chord(ebiten.KeyF5, "")).QuickSpell[0] {
 		t.Fatal("the player's own press no longer reads the layout")

@@ -108,23 +108,23 @@ func TestKeysPageCaptureCancelsAndRefusesReservedKeys(t *testing.T) {
 	}
 }
 
-func TestReboundSpellKeyKeepsItsShiftAndMarksTheBook(t *testing.T) {
+func TestReboundShortcutKeyMarksTheBook(t *testing.T) {
 	for _, profile := range []string{"", "pickup-p"} {
 		a, _ := onMapWithKeys(t, profile)
 		p := missionKeyProfiles[profile]
-		key := map[string]ebiten.Key{"": ebiten.KeyF5, "pickup-p": ebiten.KeyF4}[profile]
+		key := map[string]ebiten.Key{"": ebiten.KeyF4, "pickup-p": ebiten.KeyF4}[profile]
 		if got, def := missionShortcutMarks(p, a.player.keys), key.String(); got[0] != def {
 			t.Fatalf("%q: default mark %q, want %q", profile, got[0], def)
 		}
 		g := MissionKeyChord{Key: ebiten.KeyG}
-		if err := a.bindMissionKey("spell-1", g); err != nil {
+		if err := a.bindMissionKey(shortcutSlotName(profile, 0), g); err != nil {
 			t.Fatal(err)
 		}
 		if got := missionShortcutMarks(p, a.player.keys); got[0] != "G" {
 			t.Fatalf("%q: mark after G %q", profile, got[0])
 		}
-		if !pressOnMap(a, MissionKeyChord{Key: ebiten.KeyG, Shift: true}).QuickSpell[0] {
-			t.Fatalf("%q: Shift+G does not reach spell 1", profile)
+		if !pressOnMap(a, MissionKeyChord{Key: ebiten.KeyG}).QuickSpell[0] {
+			t.Fatalf("%q: G does not reach shortcut 1", profile)
 		}
 		if pressOnMap(a, MissionKeyChord{Key: key}).QuickSpell[0] {
 			t.Fatalf("%q: the default key still reaches spell 1", profile)

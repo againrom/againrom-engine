@@ -241,8 +241,8 @@ func TestAutosaveInFlightOrdersLaterSavesLoadAndExit(t *testing.T) {
 		name string
 		run  func(app *ui.App)
 	}{
-		{"quick save", func(app *ui.App) { _ = app.HeadlessKey("f4") }},
-		{"quick load", func(app *ui.App) { _ = app.HeadlessKey("f9") }},
+		{"quick save", func(app *ui.App) { _ = app.HeadlessKey("f2") }},
+		{"quick load", func(app *ui.App) { _ = app.HeadlessKey("f3") }},
 		{"exit", func(app *ui.App) { app.FlushBackground() }},
 	} {
 		t.Run(step.name, func(t *testing.T) {

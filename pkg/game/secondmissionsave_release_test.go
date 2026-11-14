@@ -178,7 +178,7 @@ type secondSaveSample struct {
 	View                ui.SaveApplicationState
 	Campaign            *currentSecondCampaign
 	Gold                int
-	Quick               [9]uint32
+	Quick               ui.ShortcutSlots
 	Party               [][]byte
 	Objectives          []ui.QuestObjective
 	Explored, Visible   []byte

@@ -48,9 +48,9 @@ func equalSel(a, b selection) bool {
 	return true
 }
 
-// F12 toggles the frame-rate readout; it is off at load and draws a box with
+// Ctrl+Shift+F12 toggles the frame-rate readout; it is off at load and draws a box with
 // the `%3.1f fps` line (MENU-060).
-func TestF12TogglesTheFrameRateReadout(t *testing.T) {
+func TestDiagnosticChordTogglesTheFrameRateReadout(t *testing.T) {
 	a, v := mkOnMap(t)
 	v.SetFont(panelFont())
 	if v.FPSShown() {
@@ -59,7 +59,7 @@ func TestF12TogglesTheFrameRateReadout(t *testing.T) {
 	if _, _, ok := v.fpsPresent(60); ok {
 		t.Fatal("an off readout presented a picture")
 	}
-	if err := a.HeadlessKey("f12"); err != nil {
+	if err := a.HeadlessKey("ctrl-shift-f12"); err != nil {
 		t.Fatal(err)
 	}
 	if !v.FPSShown() {
@@ -79,7 +79,7 @@ func TestF12TogglesTheFrameRateReadout(t *testing.T) {
 	if got := FPSLine(5); got != "5.0 fps" {
 		t.Errorf("line = %q", got)
 	}
-	if err := a.HeadlessKey("f12"); err != nil {
+	if err := a.HeadlessKey("ctrl-shift-f12"); err != nil {
 		t.Fatal(err)
 	}
 	if v.FPSShown() {

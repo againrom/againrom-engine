@@ -5,15 +5,19 @@ import (
 	"fmt"
 )
 
-// itemCastKey is the identity an item cast's arm carries to its release. A
-// native record formats by value: its pointer differs per copy.
+// itemCastKey is the item's description: the identity an item cast's arm
+// carries to its release and a shortcut binding keeps. A world allocates object
+// identities and tokens afresh, so neither is part of it. A native record
+// formats by value: its pointer differs per copy.
 func itemCastKey(item sim.ItemInstance) string {
 	native := item.NativeRecord
-	item.NativeRecord = nil
+	item.NativeRecord, item.ObjectID = nil, 0
 	if native == nil {
 		return fmt.Sprintf("%#v", item)
 	}
-	return fmt.Sprintf("%#v%+v", item, *native)
+	record := *native
+	record.Token = sim.SavedObjectToken{}
+	return fmt.Sprintf("%#v%+v", item, record)
 }
 
 func (mw *mapWorld) useScroll(owner uint32, index int, key string, target uint32, x, y int, atCell bool) {
@@ -38,4 +42,12 @@ func (mw *mapWorld) useScroll(owner uint32, index int, key string, target uint32
 	}
 	mw.pending = append(mw.pending, cmd)
 	mw.commanded[id] = true
+}
+
+func inventoryItemKeys(stacks []sim.ItemStack) []string {
+	keys := make([]string, len(stacks))
+	for i, stack := range stacks {
+		keys[i] = itemCastKey(stack.Instance())
+	}
+	return keys
 }

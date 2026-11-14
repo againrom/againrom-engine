@@ -26,7 +26,7 @@ type secondTownSample struct {
 	Party         [][]byte
 	Gold, Offered int
 	Difficulty    mapload.Difficulty
-	Quick         [9]uint32
+	Quick         ui.ShortcutSlots
 	Fame          SnapshotFame
 	Header        string
 	Rows          []ui.TownRow
@@ -150,7 +150,7 @@ func secondTownMutate(f *FrontEnd) {
 		f.Carried[0].CarriedItems = append(f.Carried[0].CarriedItems, equipment[0])
 	}
 	f.Town.gold, f.Difficulty = 777, mapload.DifficultyHard
-	f.quickSpells = [9]uint32{2, 0, 4, 0}
+	f.quickSpells = spellSlots(2, 0, 4, 0)
 	f.Town.second.bank[0], f.Town.second.bank[997], f.Town.second.bank[754] = -27, 34567, 91
 }
 
@@ -406,14 +406,14 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	f.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, func() time.Time { return now })
 	defer app.FlushBackground()
 	before := secondTownSampleNow(t, f, app)
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	cold, a := secondTownCold(t, out, string(quickSaveBase(0))+".sav")
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	f.Town.gold++
 	f.Town.second.bank[997]++
-	if err := app.HeadlessKey("f9"); err != nil {
+	if err := app.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
 	}
 	secondTownDismissAck(t, app)
@@ -475,7 +475,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if _, open := f.TownScreen().(ui.TownDialogueScreen).TownDialogue(); open {
 		t.Fatal("valid LOAD retained stale modal")
 	}
-	if err := app.HeadlessKey("f9"); err != nil {
+	if err := app.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
 	}
 	secondTownDismissAck(t, app)

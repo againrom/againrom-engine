@@ -132,11 +132,12 @@ type appInput struct {
 	WindowToggle bool
 	// AI-KEY-125: F2 Save and F3 Load/Diplomacy. These are distinct from
 	// the main menu's existing L shortcut. Press-edge policy is DIV-526.
-	SaveGame   bool
-	LoadGame   bool
-	QuickSave  bool
-	QuickLoad  bool
-	QuickSpell [9]bool // slot press edges; modifiers come from Viewer
+	SaveGame            bool
+	LoadGame            bool
+	QuickSave           bool
+	QuickLoad           bool
+	BindSpell, BindItem [9]bool
+	QuickSpell          [9]bool // slot press edges; modifiers come from Viewer
 
 	// Pause, Faster and Slower are the map screen's three paced-cadence keys.
 	// Unpaced and Paced select the original's separate owner-loop arm
@@ -1711,8 +1712,14 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			v.quickSpellLabels = missionShortcutMarks(a.activeMissionKeys(), a.player.keys)
 			if !quickBlocked {
 				for slot, pressed := range in.QuickSpell {
-					if pressed {
-						v.quickSpell(slot, in.Viewer.Ctrl, in.CursorX, in.CursorY)
+					if in.BindItem[slot] {
+						v.bindShortcutItem(slot, in.CursorX, in.CursorY)
+					}
+					if in.BindSpell[slot] {
+						v.quickSpell(slot, true, in.CursorX, in.CursorY)
+					}
+					if pressed && !in.BindItem[slot] && !in.BindSpell[slot] {
+						v.quickSpell(slot, false, in.CursorX, in.CursorY)
 					}
 				}
 			}

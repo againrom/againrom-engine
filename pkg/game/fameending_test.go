@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/mapload"
+	"againrom/pkg/ui"
 )
 
 func completedFameFront(t *testing.T) *FrontEnd {
@@ -106,7 +107,7 @@ func TestTerminalResetDropsTheNewGameSessionFields(t *testing.T) {
 		Carried     []mapload.PartyMember
 		Offered     int
 		Difficulty  mapload.Difficulty
-		QuickSpells [9]uint32
+		QuickSpells ui.ShortcutSlots
 		Fame        SnapshotFame
 		Live        bool
 		LiveMission int

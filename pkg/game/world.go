@@ -795,7 +795,7 @@ type missionNotices struct {
 	// entryQuickSpells are the front end's quick-spell bindings at the moment
 	// this driver became the live one; leaving the mission without completing
 	// it puts them back.
-	entryQuickSpells [9]uint32
+	entryQuickSpells ui.ShortcutSlots
 	// resumed is set when the driver was restored from a SAV, which holds the
 	// mission's party and no town party.
 	resumed bool
@@ -1069,8 +1069,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		// count, and only the elements reader carries the count back out of the
 		// world at all.
 		mw.invCodes, _ = mw.world.CarriedStacks(sim.EntityID(subject.ID))
-		subject.Pack, subject.PackCount, _ = buildInventoryPack(src, t, mw.invCodes, mw.invIconCache)
-		subject.PackStars = itemStackStarFlags(mw.invCodes)
+		fillInventoryPack(&subject, src, t, mw.invCodes, mw.invIconCache)
 
 		// invParty IS RESOLVED HERE, ALONGSIDE THE FIGURE (docs/0124-equip-
 		// from-the-pack T4; plan D-5, R-1): the same party member
@@ -2445,8 +2444,7 @@ func (mw *mapWorld) switchInventorySubject(selected uint32) {
 	if mw.invIconCache == nil {
 		mw.invIconCache = make(map[uint16]*image.RGBA)
 	}
-	subject.Pack, subject.PackCount, _ = buildInventoryPack(mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
-	subject.PackStars = itemStackStarFlags(stacks)
+	fillInventoryPack(&subject, mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
 	figureDir, figureFace := memberFigure(member)
 	mw.invParty.hero, mw.invParty.profile, mw.invParty.startWeapon = member.Hero, member.Profile, mapload.MemberWeapon(member, mw.invParty.table)
 	mw.invParty.class, mw.invParty.hired = member.Class, member.Hired()
@@ -2516,8 +2514,7 @@ func (mw *mapWorld) refreshPack() {
 	if itemStacksEqual(stacks, mw.invCodes) && gold == inventoryGold(mw.invSubject) {
 		return
 	}
-	mw.invSubject.Pack, mw.invSubject.PackCount, _ = buildInventoryPack(mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
-	mw.invSubject.PackStars = itemStackStarFlags(stacks)
+	fillInventoryPack(&mw.invSubject, mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
 	// THE POPUP'S OWN PACK TEXT MOVES WITH THE PACK (0151, defect 5), on the
 	// SAME stacks read this compares against invCodes — a second container
 	// read here would be a second answer to what refreshPack has already

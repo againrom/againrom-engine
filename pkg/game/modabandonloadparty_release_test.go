@@ -104,7 +104,7 @@ func TestReleaseModAbandonOfALoadedMissionBringsTheSavedPartyHome(t *testing.T) 
 	}
 	gold := g.Town.Gold()
 	bound := g.quickSpells
-	g.quickSpells[0] ^= 0x55
+	g.quickSpells[0].Spell ^= 0x55
 	abandonThroughMenu(t, g, a, screens.Screens[0])
 	if a.Screen() != ui.ScreenTown {
 		t.Fatalf("abandoning left screen %s", a.Screen())

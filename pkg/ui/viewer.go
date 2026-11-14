@@ -1113,11 +1113,11 @@ type Viewer struct {
 	spellbookHeld    bool // a unit is selected; entity id 0 is a real owner
 	selectedSpell    uint32
 	spellTakesBody   func(id uint32) bool
-	spellbookFixed   bool       // the installed 24-cell catalog, rather than a custom compact book
-	spellArmed       bool       // current spell and armed Cast mode are independent
-	spellNeedsBook   bool       // book-chosen: live only while the book is shown
-	castOnce         bool       // armed by C or the Cast cell over a closed book: one cast, then the book closes
-	quickSpells      *[9]uint32 // session-owned; never retained by an actor
+	spellbookFixed   bool           // the installed 24-cell catalog, rather than a custom compact book
+	spellArmed       bool           // current spell and armed Cast mode are independent
+	spellNeedsBook   bool           // book-chosen: live only while the book is shown
+	castOnce         bool           // armed by C or the Cast cell over a closed book: one cast, then the book closes
+	quickSpells      *ShortcutSlots // session-owned; never retained by an actor
 	quickSpellLabels []string
 	itemCast         *itemCastSelection
 	itemCastSink     MapItemCast

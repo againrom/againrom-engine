@@ -16,6 +16,7 @@ type currentSessionData struct {
 	Difficulty         *mapload.Difficulty    `json:",omitempty"`
 	Game               base.Game              `json:",omitempty"`
 	Second             *currentSecondCampaign `json:",omitempty"`
+	ShortcutLayout     uint8                  `json:",omitempty"`
 	QuickSpells        []currentQuickSpell    `json:",omitempty"`
 	Offered            int
 	Won                []int               `json:",omitempty"`
@@ -34,6 +35,7 @@ type currentSessionData struct {
 type currentQuickSpell struct {
 	Slot uint8
 	ID   uint32
+	Item string `json:",omitempty"`
 }
 
 type currentFamePolicy struct {
@@ -77,13 +79,28 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 	a.Session.Guest = s.guest.record()
 	a.Session.GuestWaiting = s.guestWaiting
 	a.Session.Towns = s.towns.clone()
-	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
+	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells, campaignOf(s.game))
 	if err != nil {
 		return err
 	}
-	for slot, id := range s.QuickSpells {
-		if id != 0 && (slot >= len(shortcuts) || shortcuts[slot] == -1) {
-			a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{uint8(slot), id})
+	// A first-game play whose engine rows all sit in the original four cells
+	// keeps the original layout: rows numbered from the first cell.
+	first := campaignOf(s.game).shortcutStart() >= 0
+	original := first
+	for slot, bound := range s.QuickSpells {
+		ordinary := first && slot >= 1 && slot <= 4 && shortcuts[slot-1] != -1
+		if bound != (ui.Shortcut{}) && !ordinary {
+			original = original && slot >= 1 && slot <= 4 && bound.Item == ""
+			a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{Slot: uint8(slot), ID: bound.Spell, Item: bound.Item})
+		}
+	}
+	if len(a.Session.QuickSpells) > 0 {
+		a.Session.ShortcutLayout = 1
+		if original {
+			a.Session.ShortcutLayout = 0
+			for i := range a.Session.QuickSpells {
+				a.Session.QuickSpells[i].Slot--
+			}
 		}
 	}
 	fame := fameFromSnapshot(s)
@@ -130,16 +147,27 @@ func validateCurrentSession(s *currentSessionData) error {
 	if err := campaignOf(s.Game).validateSession(s); err != nil {
 		return err
 	}
-	var ids [9]uint32
+	if s.ShortcutLayout > 1 {
+		return fmt.Errorf("invalid shortcut layout")
+	}
+	var ids ui.ShortcutSlots
 	for _, row := range s.QuickSpells {
-		if int(row.Slot) >= ui.MissionShortcutCount(s.Game.Edition().MissionKeys) || row.ID == 0 || ids[row.Slot] != 0 {
-			return fmt.Errorf("invalid current quick-spell slot")
+		if row.Slot >= 9 || row.ID == 0 && row.Item == "" || ids[row.Slot] != (ui.Shortcut{}) {
+			return fmt.Errorf("invalid current shortcut slot")
 		}
-		indices, err := quickSpellsToOriginalIndices([9]uint32{row.ID})
-		if err != nil || row.Slot < 4 && indices[0] != -1 {
-			return fmt.Errorf("invalid current custom quick-spell binding")
+		bound := ui.Shortcut{Spell: row.ID, Item: row.Item}
+		if s.ShortcutLayout == 0 {
+			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: bound})
+			if err != nil || row.Item != "" || row.Slot < 4 && indices[0] != -1 {
+				return fmt.Errorf("invalid current custom quick-spell binding")
+			}
+		} else if campaignOf(s.Game).shortcutStart() >= 0 && row.Slot >= 1 && row.Slot <= 4 {
+			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: bound})
+			if err != nil || indices[0] != -1 {
+				return fmt.Errorf("invalid current ordinary shortcut residue")
+			}
 		}
-		ids[row.Slot] = row.ID
+		ids[row.Slot] = bound
 	}
 	if err := validateQuickSpells(ids); err != nil {
 		return err
@@ -200,7 +228,7 @@ func validateCurrentSession(s *currentSessionData) error {
 			}
 		}
 		if v.PressedSpell != 0 {
-			indices, err := quickSpellsToOriginalIndices([9]uint32{v.PressedSpell})
+			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: {Spell: v.PressedSpell}})
 			if err != nil || indices[0] != -1 {
 				return fmt.Errorf("invalid current custom pressed spell")
 			}
@@ -249,11 +277,28 @@ func applyCurrentView(v *ui.SaveApplicationState, raw OriginalStateData, a *curr
 	}
 }
 
-func currentQuickSpells(ordinary [9]uint32, session *currentSessionData) ([9]uint32, error) {
+func currentQuickSpells(ordinary ui.ShortcutSlots, session *currentSessionData) (ui.ShortcutSlots, error) {
 	if session != nil {
+		if campaignOf(session.Game).shortcutStart() < 0 {
+			if session.ShortcutLayout == 0 {
+				for i := 0; i < 4; i++ {
+					ordinary[i] = ordinary[i+1]
+				}
+				ordinary[4] = ui.Shortcut{}
+			} else {
+				ordinary = ui.ShortcutSlots{}
+			}
+		}
 		for _, row := range session.QuickSpells {
-			if ordinary[row.Slot] == 0 {
-				ordinary[row.Slot] = row.ID
+			slot := int(row.Slot)
+			if session.ShortcutLayout == 0 && campaignOf(session.Game).shortcutStart() >= 0 {
+				slot++
+			}
+			if slot >= len(ordinary) {
+				return ui.ShortcutSlots{}, fmt.Errorf("invalid legacy shortcut slot")
+			}
+			if ordinary[slot] == (ui.Shortcut{}) {
+				ordinary[slot] = ui.Shortcut{Spell: row.ID, Item: row.Item}
 			}
 		}
 	}

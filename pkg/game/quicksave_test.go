@@ -258,21 +258,21 @@ func TestQuickLoadFailurePreservesDueDeadlineAndSession(t *testing.T) {
 	}
 	live, hash, tick := f.live, f.live.world.Hash(), f.live.world.Tick()
 	now = now.Add(5 * time.Minute)
-	if err := app.HeadlessKey("f9"); err != nil {
+	if err := app.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
 	}
 	if f.live != live || f.live.world.Hash() != hash || f.live.world.Tick() != tick || app.Screen() != ui.ScreenMap {
-		t.Fatal("failed F9 changed session")
+		t.Fatal("failed F3 changed session")
 	}
 	path := filepath.Join(store.Dir, "timed-autosave-1.sav")
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatal("failed F9 admitted due poll", err)
+		t.Fatal("failed F3 admitted due poll", err)
 	}
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(path); err != nil {
-		t.Fatal("failed F9 reset due deadline", err)
+		t.Fatal("failed F3 reset due deadline", err)
 	}
 }
 
@@ -293,7 +293,7 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	visible := false
@@ -308,7 +308,7 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 	if err := os.Remove(filepath.Join(store.Dir, "quick-save-2.sav")); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	if slots := readQuickSaveSlots(store.Dir); slots[1].sequence != 1 {
@@ -336,7 +336,7 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	if slots := readQuickSaveSlots(other); slots[0].sequence != 1 {

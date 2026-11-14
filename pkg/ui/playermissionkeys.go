@@ -36,6 +36,7 @@ var missionKeyActionNames = map[missionKeyAction]string{
 	missionKeyDefend: "defend", missionKeyCast: "cast", missionKeyMarch: "march", missionKeyStandGround: "stand-ground",
 	missionKeyRetreat: "retreat", missionKeyMove: "move", missionKeyQuickSave: "quick-save",
 	missionKeyQuickLoad: "quick-load", missionKeyGrid: "grid", missionKeyReadout: "readout", missionKeyFPS: "fps",
+	missionKeyBindSpell: "bind-spell", missionKeyBindItem: "bind-item",
 	missionKeyReveal: "reveal", missionKeyShortcut: "spell", missionKeySupport: "support", missionKeyAttack: "attack",
 	missionKeyAutocast: "autocast", missionKeyWeaponSwap: "weapon-swap", missionKeyRetreatSetting: "retreat-setting",
 	missionKeyFormation: "formation", missionKeyTimeFlow: "time-flow", missionKeySmoothing: "smoothing",
@@ -51,7 +52,7 @@ var missionKeyActionNames = map[missionKeyAction]string{
 func (s missionKeySlot) name() string {
 	n := missionKeyActionNames[s.action]
 	switch s.action {
-	case missionKeyShortcut:
+	case missionKeyShortcut, missionKeyBindSpell, missionKeyBindItem:
 		return n + "-" + strconv.Itoa(s.arg+1)
 	case missionKeyGroup:
 		return n + "-" + strconv.Itoa(s.arg)
@@ -134,12 +135,12 @@ func MissionKeyActions(profile string) []string {
 	return names
 }
 
-// listedMissionKeys are the actions with a row that is not fixed.
+// listedMissionKeys lists editable actions and listed fixed keys.
 func listedMissionKeys(p missionKeyAction) []missionKeySlot {
 	seen := map[missionKeySlot]bool{}
 	var slots []missionKeySlot
 	for _, b := range missionBindings(p) {
-		if !b.fixed && !seen[b.slot()] {
+		if (!b.fixed || b.listed) && !seen[b.slot()] {
 			seen[b.slot()] = true
 			slots = append(slots, b.slot())
 		}
@@ -171,7 +172,7 @@ func missionKeyRows(p missionKeyAction, k PlayerMissionKeys) []missionKeyBinding
 				continue
 			}
 			m := exactRow(c)
-			m.hold, m.action, m.arg = first[s].hold, s.action, s.arg
+			m.hold, m.action, m.arg, m.index = first[s].hold, s.action, s.arg, first[s].index
 			if !slices.Contains(rows, m) {
 				rows = append(rows, m)
 			}
@@ -230,6 +231,11 @@ func (k PlayerMissionKeys) bind(p missionKeyAction, name string, c MissionKeyCho
 	if !listed {
 		return k, fmt.Errorf("%w: %q", errMissionKeyUnknown, name)
 	}
+	for _, b := range missionBindings(p) {
+		if b.fixed && b.listed && b.slot().name() == name {
+			return k, errMissionKeyFixed
+		}
+	}
 	chords := slotChords(p, name, c)
 	if c.None || missionKeyFixed(p, chords...) {
 		return k, errMissionKeyFixed
@@ -243,21 +249,10 @@ func (k PlayerMissionKeys) bind(p missionKeyAction, name string, c MissionKeyCho
 	return next, nil
 }
 
-// slotChords are the chords binding action name to c answers: a spell slot
-// that has a Shift form in the table answers it on the new key too.
+// slotChords are the exact chords an action answers after rebinding.
+// Spell assignment and item assignment each keep their own action and key.
 func slotChords(p missionKeyAction, name string, c MissionKeyChord) []MissionKeyChord {
-	chords := []MissionKeyChord{c}
-	if c.Shift || c.None {
-		return chords
-	}
-	for _, b := range missionBindings(p) {
-		if b.action == missionKeyShortcut && b.slot().name() == name && b.shift == modHeld {
-			shifted := c
-			shifted.Shift = true
-			return append(chords, shifted)
-		}
-	}
-	return chords
+	return []MissionKeyChord{c}
 }
 
 // takeOver takes the chords from every other action that answers one of

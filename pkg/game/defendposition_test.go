@@ -49,7 +49,7 @@ func TestSecondDefendWalkAndNineShortcutsSurviveOrdinarySAV(t *testing.T) {
 		t.Fatalf("step-away destination (%d,%d), want (%d,%d)", before.TargetX, before.TargetY, subject.X+4, subject.Y+1)
 	}
 	// Four ordinary slots and five rows in the existing session record.
-	f.quickSpells = [9]uint32{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	f.quickSpells = spellSlots(1, 2, 3, 4, 5, 6, 7, 8, 9)
 	raw := secondPageSave(t, f, app)
 	checkSecondMissionFile(t, raw, 10)
 	doc := engineSaveDocument(t, raw)

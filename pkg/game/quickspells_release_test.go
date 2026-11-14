@@ -40,8 +40,8 @@ func TestReleaseQuickSpellsCustomOriginalTownSAVRoundTrip(t *testing.T) {
 	// ID 65535 is a current custom binding with no cell in the original
 	// 24-entry map: the legacy field projects it unbound, the current SAV
 	// extension retains it. Againrom policy, not a ROM1 claim.
-	want := [9]uint32{65535, 1, 6, 19}
-	wantLegacy := [9]uint32{0, 1, 6, 19}
+	want := spellSlots(65535, 1, 6, 19)
+	wantLegacy := spellSlots(0, 1, 6, 19)
 	f.quickSpells = want
 	ordinarySave := func(app *ui.App, name string) {
 		t.Helper()
@@ -197,10 +197,10 @@ func TestReleaseQuickSpellsSaveFreshLoadAndCast(t *testing.T) {
 		t.Fatal(err)
 	}
 	key(a, "book")
-	want := [9]uint32{16, 1, 6, 19}
-	// The first game binds four: Ctrl+F5..F8.
-	for slot, spell := range want[:4] {
-		x, y, err := a.HeadlessSpellPoint(spell)
+	want := spellSlots(0, 16, 1, 6, 19)
+	// Exercise the four slots the original SAV also carries: Ctrl+F5..F8.
+	for slot, spell := range want[1:5] {
+		x, y, err := a.HeadlessSpellPoint(spell.Spell)
 		if err != nil {
 			t.Fatal(err)
 		}

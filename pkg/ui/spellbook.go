@@ -323,10 +323,10 @@ func (v *Viewer) spellbookPresent() (*image.RGBA, image.Point, bool) {
 				continue
 			}
 			for slot, id := range v.quickSpells {
-				if id == v.spellbook[i].ID {
+				if id.Spell == v.spellbook[i].ID {
 					if original {
-						if !v.spellbook[i].Unavailable {
-							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), v.quickSpellMark(slot), id == v.selectedSpell)
+						if !v.spellbook[i].covered() {
+							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), v.quickSpellMark(slot), id.Spell == v.selectedSpell)
 						}
 					} else {
 						drawQuickSpellMark(img, v.font, cell.Sub(bar.Min), v.quickSpellMark(slot))
@@ -362,7 +362,7 @@ func drawNoHeroText(img *image.RGBA, line string, cardFont, font *text.Font, ori
 // first game's function key before the map's first tick sets the marks.
 func (v *Viewer) quickSpellMark(slot int) string {
 	if v.quickSpellLabels == nil {
-		return "F" + strconv.Itoa(5+slot)
+		return "F" + strconv.Itoa(4+slot)
 	}
 	if slot < len(v.quickSpellLabels) {
 		return v.quickSpellLabels[slot]

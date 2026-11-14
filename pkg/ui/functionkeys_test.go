@@ -49,11 +49,11 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 		shift, ctrl bool
 		want        func(appInput) bool
 	}{
-		{ebiten.KeyF4, false, false, func(in appInput) bool { return in.QuickSave && !in.Reveal }},
+		{ebiten.KeyF4, false, false, func(in appInput) bool { return in.QuickSpell[0] && !in.Reveal }},
 		{ebiten.KeyF4, true, true, func(in appInput) bool { return in.Reveal && !in.QuickSave }},
-		{ebiten.KeyF9, false, false, func(in appInput) bool { return in.QuickLoad }},
-		{ebiten.KeyF10, false, false, func(in appInput) bool { return in.Grid }},
-		{ebiten.KeyF11, false, false, func(in appInput) bool { return in.Readout }},
+		{ebiten.KeyF9, false, false, func(in appInput) bool { return in.QuickSpell[5] }},
+		{ebiten.KeyF10, true, true, func(in appInput) bool { return in.Grid }},
+		{ebiten.KeyF11, true, true, func(in appInput) bool { return in.Readout }},
 	} {
 		in := appInput{Viewer: Input{Shift: tc.shift, Ctrl: tc.ctrl}}
 		in.readMissionKeys(missionKeyPatrol, onlyKey(tc.key), tc.ctrl)

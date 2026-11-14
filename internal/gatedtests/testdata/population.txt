@@ -1577,3 +1577,4 @@ pkg/game.TestReleaseSecondCrownComesHomeFromMissionSeventy
 pkg/game.TestReleaseSecondCrownComesHomeFromMissionEighty
 pkg/game.TestReleaseSecondMissionTowersCastAtTheParty
 pkg/game.TestReleaseCampaignGraphEqualsTheHandoutCensus
+pkg/game.TestShortcutInventoryFrames

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"slices"
 	"strconv"
 
 	"againrom/pkg/render/terrain"
@@ -162,8 +163,10 @@ type InventorySubject struct {
 	// PackPurse marks the purse element, parallel to Pack. Its quantity is
 	// the one pack number the grouping routine formats (TOWN-469); item-stack
 	// counts stay ungrouped.
-	PackPurse []bool
-	PackInfo  [][]string
+	PackPurse         []bool
+	PackInfo          [][]string
+	PackKeys          []string
+	PackShortcutMarks []string
 
 	// WeaponFallback is true when slot 1's picture, popup and icon are all
 	// drawn from the subject's own starting-weapon fallback rather than a real
@@ -459,6 +462,9 @@ func renderPackBarArt(s InventorySubject, scroll, cols int, bar image.Rectangle,
 			blit(img, art.PackItem, box.Min.X, box.Min.Y)
 		}
 		drawInventoryPicture(img, box, pic)
+		if pic != nil && idx < len(s.PackShortcutMarks) {
+			drawQuickSpellMark(img, f, box, s.PackShortcutMarks[idx])
+		}
 		if pic != nil && idx >= 0 && idx < len(s.PackCount) {
 			drawInventoryPackCount(img, box, bar.Dy(), s.PackCount[idx], idx < len(s.PackPurse) && s.PackPurse[idx], f)
 		}
@@ -1021,6 +1027,15 @@ func (v *Viewer) packBarPresent() (*image.RGBA, image.Point, bool) {
 	eligible := v.inventoryEligible()
 	if eligible {
 		subject, scroll = v.previewSubject(), v.packScrollAt(cols)
+	}
+	if eligible && v.quickSpells != nil {
+		subject.PackShortcutMarks = make([]string, len(subject.PackKeys))
+		// Identical carried items share one key: the first cell in pack order is the bound one.
+		for slot, bound := range v.quickSpells {
+			if i := slices.Index(subject.PackKeys, bound.Item); bound.Item != "" && i >= 0 {
+				subject.PackShortcutMarks[i] = v.quickSpellMark(slot)
+			}
+		}
 	}
 	v.syncPackStarPhases(scroll, cols)
 	pic := renderPackBarArt(subject, scroll, cols, bar, v.cardFont(), v.packStarPhases, v.packStarOmit(), v.bottomHUDArt)

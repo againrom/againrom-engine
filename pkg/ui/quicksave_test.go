@@ -10,7 +10,7 @@ import (
 
 func TestQuickKeysReachPhysicalVocabulary(t *testing.T) {
 	h := newHaltFix(t, haltOpts{})
-	for _, key := range []string{"f4", "f9"} {
+	for _, key := range []string{"f2", "f3"} {
 		if err := h.a.HeadlessKey(key); err != nil {
 			t.Errorf("%s: %v", key, err)
 		}

@@ -99,7 +99,7 @@ func (a *App) keyRowText(row, width int) string {
 func keyActionCaption(f *flow, s missionKeySlot) string {
 	w := f.menuWord("keys.action." + missionKeyActionNames[s.action])
 	switch s.action {
-	case missionKeyShortcut:
+	case missionKeyShortcut, missionKeyBindSpell, missionKeyBindItem:
 		return fmt.Sprintf(w, s.arg+1)
 	case missionKeyGroup:
 		return fmt.Sprintf(w, s.arg)
@@ -112,7 +112,7 @@ func keyActionCaption(f *flow, s missionKeySlot) string {
 func missionKeyCaptions(p missionKeyAction, k PlayerMissionKeys, s missionKeySlot) string {
 	var plain, all []string
 	for _, b := range missionKeyRows(p, k) {
-		if b.fixed || b.slot() != s {
+		if b.fixed && !b.listed || b.slot() != s {
 			continue
 		}
 		c := MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()

@@ -522,3 +522,5 @@ func (t *Town) campaignStage() int32 {
 func (secondCampaignRules) saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error) {
 	return secondSavedForms[savedFormKind(s)].write(f, s, doc)
 }
+
+func (secondCampaignRules) shortcutStart() int { return -1 }

@@ -15,6 +15,7 @@ import (
 // state happens to exist. Each implementation is stateless: the state it
 // reads and writes is the session's own.
 type campaignService interface {
+	shortcutStart() int
 	// townAdapter supplies the common host's campaign state.
 	townAdapter(t *townScreen) townCampaignAdapter
 	// place is where the session's party stands: a town or a mission.
@@ -133,7 +134,7 @@ type campaignService interface {
 // session in its campaign tail rather than in an engine document, that
 // session.
 type originalFileState struct {
-	quickSpells [9]uint32
+	quickSpells ui.ShortcutSlots
 	session     *currentSessionData
 	// fileView is that a mission file without a complete document gives the
 	// first frame from its own state store.

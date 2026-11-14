@@ -726,6 +726,14 @@ func itemIcon[K ~uint16 | ~int64](src entrySource, table *mapload.Table, code ui
 	return icon, addr
 }
 
+// fillInventoryPack sets the subject's per-cell pack fields from the carried
+// stacks: the one place a subject's pack cells are built.
+func fillInventoryPack(subject *ui.InventorySubject, src entrySource, table *mapload.Table, stacks []sim.ItemStack, cache map[uint16]*image.RGBA) {
+	subject.Pack, subject.PackCount, _ = buildInventoryPack(src, table, stacks, cache)
+	subject.PackKeys = inventoryItemKeys(stacks)
+	subject.PackStars = itemStackStarFlags(stacks)
+}
+
 func buildInventoryPack(src entrySource, table *mapload.Table, stacks []sim.ItemStack, cache map[uint16]*image.RGBA) ([]*image.RGBA, []uint32, []string) {
 	if len(stacks) == 0 {
 		// A CARRIER OF NOTHING ANSWERS NIL AND NOT AN EMPTY SLICE, which is

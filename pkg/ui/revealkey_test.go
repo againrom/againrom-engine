@@ -86,8 +86,8 @@ func TestShiftF4HeadlessRevealsMinimapWithoutSaving(t *testing.T) {
 	if quick != 0 || ordinary != 0 || autosaves != 0 || polls == 0 {
 		t.Fatalf("reveal save counts: quick=%d ordinary=%d timed=%d polls=%d", quick, ordinary, autosaves, polls)
 	}
-	if err := h.a.HeadlessKey("f4"); err != nil || quick != 1 || h.v.FogRevealed() {
-		t.Fatalf("bare F4 loss control: quick=%d reveal=%v err=%v", quick, h.v.FogRevealed(), err)
+	if err := h.a.HeadlessKey("f2"); err != nil || quick != 1 || h.v.FogRevealed() {
+		t.Fatalf("bare F2 loss control: quick=%d reveal=%v err=%v", quick, h.v.FogRevealed(), err)
 	}
 }
 

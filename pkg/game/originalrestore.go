@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // originalSource is what an original SAV says, decoded and validated from the
@@ -25,7 +26,7 @@ type originalSource struct {
 	// changed mods, what they no longer hold.
 	mods        modMarkLoad
 	sf          *sav.File
-	quickSpells [9]uint32
+	quickSpells ui.ShortcutSlots
 	campaign    *originalCampaignDecode
 
 	tails             []sim.CellTail

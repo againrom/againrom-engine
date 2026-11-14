@@ -64,7 +64,7 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 			for i := range 5 {
 				for attempts := 0; app.HeadlessNoticeOpen() && attempts < 32; attempts++ {
 					before := readQuickSaveSlots(store.Dir)
-					if err := app.HeadlessKey("f4"); err != nil {
+					if err := app.HeadlessKey("f2"); err != nil {
 						t.Fatal(err)
 					}
 					if !reflect.DeepEqual(before, readQuickSaveSlots(store.Dir)) {
@@ -82,7 +82,7 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 					t.Fatal("changed-source loss control did not change")
 				}
 				lastHash = first.State.Hash
-				if err := app.HeadlessKey("f4"); err != nil || app.Screen() != ui.ScreenMap {
+				if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenMap {
 					t.Fatal("actual F4", err)
 				}
 				if !reflect.DeepEqual(first, missionAutosaveSampleNow(t, f)) {
@@ -135,7 +135,7 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if err := app.HeadlessKey("f9"); err != nil || app.Screen() != ui.ScreenMap {
+			if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenMap {
 				t.Fatal("actual F9", err)
 			}
 			quickAssertSample(t, f, missionAutosaveSampleNow(t, f), latest.Samples[0])
@@ -230,7 +230,7 @@ func quickLoadCold(t *testing.T, path string) {
 	if err := app.OpenMission(f.DirectNewGame(10)); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("f9"); err != nil || f.live == nil || !f.live.mission.resumed {
+	if err := app.HeadlessKey("f3"); err != nil || f.live == nil || !f.live.mission.resumed {
 		t.Fatal("cold App F9", err)
 	}
 	quickAssertSample(t, f, missionAutosaveSampleNow(t, f), proof.Samples[0])
@@ -282,7 +282,7 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 			t.Fatal("ordinary delete retained quick pair", err)
 		}
 	}
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	if slots := readQuickSaveSlots(store.Dir); slots[1].sequence != 5 {
@@ -321,7 +321,7 @@ func quickTownWitness(t *testing.T) {
 	}
 	g.TownScreen().(*townScreen).CloseTip()
 	before := g.Town.Gold()
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	older, err := os.ReadFile(filepath.Join(dir, "quick-save-1.sav"))
@@ -330,7 +330,7 @@ func quickTownWitness(t *testing.T) {
 	}
 	g.Town.gold += 77
 	first := timedTownCapture(t, g)
-	if err := app.HeadlessKey("f4"); err != nil {
+	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "quick-save-2.sav")
@@ -339,7 +339,7 @@ func quickTownWitness(t *testing.T) {
 		t.Fatal("town current-state write", err)
 	}
 	g.Town.gold += 13
-	if err := app.HeadlessKey("f9"); err != nil {
+	if err := app.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
 	}
 	g.TownScreen().(*townScreen).CloseTip()

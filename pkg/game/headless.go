@@ -244,16 +244,16 @@ type HeadlessMemberAssertion struct {
 }
 
 type HeadlessStateAssertion struct {
-	QuickSpells  *[9]uint32 `json:"quick_spells,omitempty"`
-	CurrentSpell *uint32    `json:"current_spell,omitempty"`
-	SpellArmed   *bool      `json:"spell_armed,omitempty"`
-	Difficulty   *int       `json:"difficulty,omitempty"`
-	Screen       string     `json:"screen,omitempty"`
-	Mission      *int       `json:"mission,omitempty"`
-	Notice       string     `json:"notice,omitempty"`
-	TownPlace    string     `json:"town_place,omitempty"`
-	Purse        *uint32    `json:"purse,omitempty"`
-	Documents    *uint32    `json:"documents,omitempty"`
+	QuickSpells  *ui.ShortcutSlots `json:"quick_spells,omitempty"`
+	CurrentSpell *uint32           `json:"current_spell,omitempty"`
+	SpellArmed   *bool             `json:"spell_armed,omitempty"`
+	Difficulty   *int              `json:"difficulty,omitempty"`
+	Screen       string            `json:"screen,omitempty"`
+	Mission      *int              `json:"mission,omitempty"`
+	Notice       string            `json:"notice,omitempty"`
+	TownPlace    string            `json:"town_place,omitempty"`
+	Purse        *uint32           `json:"purse,omitempty"`
+	Documents    *uint32           `json:"documents,omitempty"`
 	// Collected is the CAMPAIGN DOCUMENT COLLECTION's own size, which is a
 	// different quantity from Documents above it: Documents counts the ACCESS
 	// ITEM in the primary's pack, and this counts the (value, kind) elements
@@ -294,7 +294,7 @@ type HeadlessState struct {
 	Tooltip        ui.HeadlessTooltipState  `json:"tooltip"`
 	ScorchedGround int                      `json:"scorched_ground,omitempty"`
 	BurnedObjects  int                      `json:"burned_objects,omitempty"`
-	QuickSpells    [9]uint32                `json:"quick_spells"`
+	QuickSpells    ui.ShortcutSlots         `json:"quick_spells"`
 	CurrentSpell   uint32                   `json:"current_spell,omitempty"`
 	SpellArmed     bool                     `json:"spell_armed,omitempty"`
 	Difficulty     int                      `json:"difficulty"`

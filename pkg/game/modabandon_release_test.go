@@ -199,7 +199,7 @@ func TestReleaseModAbandonReturnsToTheTownAsEntered(t *testing.T) {
 	abandonSteps(t, a, 60)
 	driver.world.SetPurse(sim.SelfSlot, uint32(entry.gold)+777)
 	entryQuick := f.quickSpells
-	f.quickSpells[1] ^= 0x33
+	f.quickSpells[1].Spell ^= 0x33
 	if err := a.HeadlessKey("escape"); err != nil || a.Screen() != ui.ScreenGameMenu {
 		t.Fatalf("Escape in the mission: %v on %s", err, a.Screen())
 	}

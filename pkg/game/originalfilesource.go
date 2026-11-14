@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // originalFileSource is one place an original file states a value the game
@@ -476,7 +477,7 @@ func applicationCurrentRaw(app *SnapshotApplicationState) (OriginalStateData, er
 		out.Speed = int32(nearestOriginalSpeed(now.PeriodUS))
 	}
 	out.ViewX, out.ViewY = originalViewOrigin(now.ViewX, now.ViewY)
-	pressed, err := quickSpellsToOriginalIndices([9]uint32{now.PressedSpell})
+	pressed, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: {Spell: now.PressedSpell}})
 	if err != nil {
 		return out, worldSaveUnsupportedf("current spell %d has no original book index", now.PressedSpell)
 	}

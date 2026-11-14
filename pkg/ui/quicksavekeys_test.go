@@ -49,19 +49,25 @@ func TestShiftedQuickKeysNoLongerSaveOrLoad(t *testing.T) {
 		var in appInput
 		in.Viewer.Shift = true
 		in.readMissionKeys(missionKeyProfiles[tc.profile], onlyKey(tc.key), false)
-		if want := (appInput{Viewer: Input{Shift: true}}); !reflect.DeepEqual(in, want) {
+		want := appInput{Viewer: Input{Shift: true}}
+		if tc.key == ebiten.KeyF4 {
+			want.BindItem[0] = true
+		} else {
+			want.BindItem[5] = true
+		}
+		if !reflect.DeepEqual(in, want) {
 			t.Errorf("profile %q Shift+%v set %+v, want nothing", tc.profile, tc.key, in)
 		}
 	}
 }
 
-func TestFirstGameKeepsF4AndF9ForQuickSaveAndLoad(t *testing.T) {
+func TestFirstGameShortcutKeysNeverQuickSaveOrLoad(t *testing.T) {
 	for _, tc := range []struct {
 		key        ebiten.Key
 		save, load bool
 	}{
-		{ebiten.KeyF4, true, false},
-		{ebiten.KeyF9, false, true},
+		{ebiten.KeyF4, false, false},
+		{ebiten.KeyF9, false, false},
 	} {
 		var in appInput
 		in.readMissionKeys(missionKeyProfiles[""], onlyKey(tc.key), false)

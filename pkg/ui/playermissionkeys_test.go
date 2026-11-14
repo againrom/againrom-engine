@@ -45,7 +45,7 @@ func TestReboundMissionKeyFiresAndTheDefaultKeyNoLonger(t *testing.T) {
 			}
 		}
 		shifted := MissionKeyChord{Key: ebiten.KeyF5, Shift: true, Alt: true}
-		if err := a.bindMissionKey("spell-1", shifted); err != nil {
+		if err := a.bindMissionKey(shortcutSlotName(profile, 0), shifted); err != nil {
 			t.Fatal(err)
 		}
 		if in := pressOnMap(a, shifted); !in.QuickSpell[0] {
@@ -54,7 +54,7 @@ func TestReboundMissionKeyFiresAndTheDefaultKeyNoLonger(t *testing.T) {
 		if in := pressOnMap(a, MissionKeyChord{Key: ebiten.KeyF5, Shift: true}); in.QuickSpell[0] {
 			t.Fatalf("%q: Shift+F5 without Alt still casts spell 1", profile)
 		}
-		if len(*written) != 2 || (*written)[1]["spell-1"] != shifted {
+		if len(*written) != 2 || (*written)[1][shortcutSlotName(profile, 0)] != shifted {
 			t.Fatalf("%q: stored layouts %v", profile, *written)
 		}
 	}
@@ -141,7 +141,7 @@ func TestMissionKeyLayoutListsEachGamesActionsAndReadsBack(t *testing.T) {
 		has     []string
 		lacks   []string
 	}{
-		{"", first, []string{"patrol", "spell-4", "group-0", "pause"}, []string{"pickup", "support", "spell-5", "help", "kill"}},
+		{"", first, []string{"patrol", "spell-4", "group-0", "pause"}, []string{"pickup", "support", "help", "kill"}},
 		{"pickup-p", second, []string{"pickup", "support", "spell-9"}, []string{"patrol", "help", "chip", "reveal"}},
 	} {
 		for _, n := range tc.has {

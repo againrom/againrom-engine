@@ -10,7 +10,7 @@
     {"command":"key","key":"f8"},
     {"command":"pointer","action":"hover","at":{"spell":23}},
     {"command":"key","key":"ctrl-f5"},
-    {"command":"assert_state","state":{"quick_spells":[23,0,0,0],"current_spell":0,"spell_armed":false}},
+    {"command":"assert_state","state":{"quick_spells":[0,23,0,0,0],"current_spell":0,"spell_armed":false}},
     {"command":"key","key":"f5"},
     {"command":"assert_state","state":{"current_spell":23,"spell_armed":false}},
     {"command":"key","key":"book"},
@@ -27,7 +27,7 @@
     {"command":"key","key":"ctrl-f7"},
     {"command":"pointer","action":"hover","at":{"spell":18}},
     {"command":"key","key":"ctrl-f8"},
-    {"command":"assert_state","state":{"quick_spells":[1,6,12,18],"current_spell":0,"spell_armed":false}},
+    {"command":"assert_state","state":{"quick_spells":[0,1,6,12,18],"current_spell":0,"spell_armed":false}},
     {"command":"key","key":"f5"},
     {"command":"assert_state","state":{"current_spell":1,"spell_armed":false}},
     {"command":"key","key":"book"},
@@ -35,16 +35,16 @@
     {"command":"assert_state","state":{"current_spell":1,"spell_armed":true}},
     {"command":"save"},
     {"command":"load","target":"@first"},
-    {"command":"assert_state","state":{"screen":"map","quick_spells":[1,6,12,18],"current_spell":1,"spell_armed":true}},
+    {"command":"assert_state","state":{"screen":"map","quick_spells":[0,1,6,12,18],"current_spell":1,"spell_armed":true}},
     {"command":"pointer","action":"right-press","at":{"ground":true}},
     {"command":"pointer","action":"right-release","at":{"ground":true}},
-    {"command":"assert_state","state":{"quick_spells":[1,6,12,18],"current_spell":0,"spell_armed":false}},
+    {"command":"assert_state","state":{"quick_spells":[0,1,6,12,18],"current_spell":0,"spell_armed":false}},
     {"command":"select_member","id":"hero"},
     {"command":"key","key":"book"},
     {"command":"key","key":"f5"},
     {"command":"assert_state","state":{"current_spell":1,"spell_armed":false}},
     {"command":"key","key":"book"},
     {"command":"key","key":"f5"},
-    {"command":"assert_state","state":{"quick_spells":[1,6,12,18],"current_spell":1,"spell_armed":true}}
+    {"command":"assert_state","state":{"quick_spells":[0,1,6,12,18],"current_spell":1,"spell_armed":true}}
   ]
 }

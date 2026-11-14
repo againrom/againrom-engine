@@ -296,7 +296,7 @@ func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	key("f4")
+	key("f2")
 	now = now.Add(5 * time.Minute)
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)

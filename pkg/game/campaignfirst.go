@@ -263,3 +263,5 @@ func (c chapterTownCampaign) townShop() *Shop {
 	}
 	return c.t.sess.Shop
 }
+
+func (firstCampaignRules) shortcutStart() int { return 1 }

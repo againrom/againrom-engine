@@ -126,8 +126,8 @@ func TestReleaseGeneratedCityConversion1166(t *testing.T) {
 		strip         func(*currentActionData)
 	}{
 		{"custom quick spell", "AgainromActions session (DIV-1369)",
-			func(g *FrontEnd) { g.quickSpells[0] = 65535 },
-			func(g *FrontEnd) bool { return g.quickSpells[0] == 65535 },
+			func(g *FrontEnd) { g.quickSpells[0].Spell = 65535 },
+			func(g *FrontEnd) bool { return g.quickSpells[0].Spell == 65535 },
 			func(a *currentActionData) bool {
 				return a.Session != nil && slices.Contains(a.Session.QuickSpells, currentQuickSpell{Slot: 0, ID: 65535})
 			},

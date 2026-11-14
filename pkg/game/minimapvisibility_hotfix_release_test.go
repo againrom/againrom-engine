@@ -131,7 +131,7 @@ func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {
 	f, a := minimapColdLoad(t, dir, "quick-save-1.sav")
 	minimapVisibleInstalled(t, f, a, "owner-load")
 	before := f.live.view.SaveApplication()
-	if err := a.HeadlessKey("f9"); err != nil {
+	if err := a.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
 	}
 	minimapVisibleInstalled(t, f, a, "owner-f9")

@@ -515,7 +515,7 @@ func smoothingViews() []smoothingRun {
 		{name: "mission, bound quick-spell digits", open: smoothingCaster, steps: 1, onMap: true,
 			ready: func(t *testing.T, f *FrontEnd, a *ui.App) {
 				slots, current, _ := f.live.view.QuickSpellState()
-				if slots[0] != 23 || current != 23 {
+				if slots[0].Spell != 23 || current != 23 {
 					t.Fatalf("quick slots %v, current %d; want slot F5 and current 23", slots, current)
 				}
 				if _, _, err := a.HeadlessSpellPoint(23); err != nil {
