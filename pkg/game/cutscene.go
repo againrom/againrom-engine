@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/installpath"
 	"againrom/pkg/namefold"
+	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 )
@@ -96,27 +97,50 @@ func (b *CutsceneBank) open() error {
 // release witness; a missing member never falls back to loose files. Logos
 // explicitly use VIDEO4 on both speed routes.
 func (b *CutsceneBank) Media(name string) ([]byte, error) {
-	name, err := cutsceneMember(name)
+	bank, address, err := b.find(name)
 	if err != nil {
 		return nil, err
 	}
+	return bank.index.ReadFile(address)
+}
+
+// find is the one lookup of a movie: the bank that holds member name and
+// its address there, refused when the name is no member's or the member's
+// size is out of range. Media reads what it finds; Films lists it.
+func (b *CutsceneBank) find(name string) (*CutsceneBank, string, error) {
+	name, err := cutsceneMember(name)
+	if err != nil {
+		return nil, "", err
+	}
 	if b != nil && b.logos != nil && strings.HasPrefix(name, "logos/") {
-		return b.logos.Media(name)
+		return b.logos.find(name)
 	}
 	if err := b.open(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
+	address := b.archive + "/" + name
 	for _, e := range b.index.Entries() {
-		address := b.archive + "/" + name
 		if e.Address != address {
 			continue
 		}
 		if e.Size <= 0 || e.Size > video.MaxMediaBytes {
-			return nil, fmt.Errorf("video: media size %d outside permitted range", e.Size)
+			return nil, "", fmt.Errorf("video: media size %d outside permitted range", e.Size)
 		}
-		return b.index.ReadFile(address)
+		return b, address, nil
 	}
-	return nil, fmt.Errorf("%w: %s in %s", video.ErrAbsent, name, b.archive)
+	return nil, "", fmt.Errorf("%w: %s in %s", video.ErrAbsent, name, b.archive)
+}
+
+// Films is the movies of directory the bank holds, in the order a play of
+// the directory asks for them; none when the bank cannot be read.
+func (b *CutsceneBank) Films(directory string) []string {
+	var out []string
+	for _, name := range ui.NumberedCutscenes(directory) {
+		if _, _, err := b.find(name); err == nil {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // Open decodes the selected member and companion with the portable decoder.

@@ -269,7 +269,7 @@ func TestCampaignGraphDrawsTheRouteAModChanges(t *testing.T) {
 	stock := routeCampaign(t, routeSections())
 	lines := func(src string) ([]string, map[int][]string) {
 		c, d := routeMod(t, stock, src)
-		page := campaignGraphOf(stock, c, d)
+		page := campaignGraphOf(stock, c, d, nil)
 		return graphLines(page), graphAfter(page)
 	}
 	check := func(name string, after map[int][]string, n int, want ...string) {
@@ -336,7 +336,7 @@ func TestCampaignGraphFollowsTheCampaignMissionByMission(t *testing.T) {
 		{"last town's side mission set to open the town", routeCampaign(t, ends), routeLastSide},
 	} {
 		c, d := routeMod(t, tc.stock, tc.mod)
-		got, want := graphAfter(campaignGraphOf(tc.stock, c, d)), playedAfter(t, c, d)
+		got, want := graphAfter(campaignGraphOf(tc.stock, c, d, nil)), playedAfter(t, c, d)
 		for _, n := range slices.Sorted(maps.Keys(want)) {
 			if _, drawn := got[n]; !drawn {
 				t.Errorf("%s: the graph has no node of mission %d", tc.name, n)

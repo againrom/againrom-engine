@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -140,21 +141,21 @@ func wantGraph(t *testing.T, page ui.CampaignGraphPage, want []string) {
 // mission. A side mission returns to the town that handed it out.
 func TestCampaignGraphHoldsTheFlowTheTownsAndEachHandout(t *testing.T) {
 	c := graphCampaign(t)
-	wantGraph(t, campaignGraphOf(c, c, mod.MissionData{}), []string{
+	wantGraph(t, campaignGraphOf(c, c, mod.MissionData{}, nil), []string{
 		"start at 0,0",
-		"mission 10 at 2,0",
-		"mission 20 at 2,1",
-		"town 30 at 0,2",
-		"inn 5 at 1,2",
-		"mission 30 at 2,2",
-		"town 40 at 0,6",
-		"inn 6 at 1,3 empty",
-		"shop row 4 at 1,4",
-		"mission 31 at 2,4",
-		"school row 5 at 1,5",
-		"mission 32 at 2,5",
-		"inn 7 at 1,6",
-		"mission 40 at 2,6",
+		"mission 10 at 2,1",
+		"mission 20 at 2,2",
+		"town 30 at 0,3",
+		"inn 5 at 1,3",
+		"mission 30 at 2,3",
+		"town 40 at 0,7",
+		"inn 6 at 1,4 empty",
+		"shop row 5 at 1,5",
+		"mission 31 at 3,3",
+		"school row 6 at 1,6",
+		"mission 32 at 4,3",
+		"inn 7 at 1,7",
+		"mission 40 at 2,7",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > town 30",
@@ -162,11 +163,11 @@ func TestCampaignGraphHoldsTheFlowTheTownsAndEachHandout(t *testing.T) {
 		"inn 5 > mission 30",
 		"mission 30 > town 40",
 		"town 30 > inn 6",
-		"town 30 > shop row 4",
-		"shop row 4 > mission 31",
+		"town 30 > shop row 5",
+		"shop row 5 > mission 31",
 		"mission 31 > town 30",
-		"town 30 > school row 5",
-		"school row 5 > mission 32",
+		"town 30 > school row 6",
+		"school row 6 > mission 32",
 		"mission 32 > town 30",
 		"town 40 > inn 7",
 		"inn 7 > mission 40",
@@ -186,23 +187,23 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantGraph(t, campaignGraphOf(stock, c, d), []string{
+	wantGraph(t, campaignGraphOf(stock, c, d, nil), []string{
 		"start at 0,0",
-		"mission 10 at 2,0",
-		"mission 20 at 2,1 map",
-		"mission 25 at 2,2 added party",
+		"mission 10 at 2,1",
+		"mission 20 at 2,2 map",
+		"mission 25 at 3,2 added party",
 		"town 30 at 0,3",
 		"inn 5 at 1,3",
 		"mission 30 at 2,3",
-		"town 40 at 0,8",
+		"town 40 at 0,7",
 		"inn 6 at 1,4 empty",
 		"shop row 5 at 1,5",
-		"mission 31 at 2,5 flow",
-		"mission 41 at 2,6 added",
-		"school row 7 at 1,7",
-		"mission 32 at 2,7",
-		"inn 7 at 1,8",
-		"mission 40 at 2,8",
+		"mission 31 at 3,3 flow",
+		"mission 41 at 3,7 added",
+		"school row 6 at 1,6",
+		"mission 32 at 4,3",
+		"inn 7 at 1,7",
+		"mission 40 at 2,7",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > mission 25 (mod)",
@@ -215,8 +216,8 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 		"shop row 5 > mission 31",
 		"mission 31 > mission 41 (mod)",
 		"mission 41 > town 40 (mod)",
-		"town 30 > school row 7",
-		"school row 7 > mission 32",
+		"town 30 > school row 6",
+		"school row 6 > mission 32",
 		"mission 32 > town 30",
 		"town 40 > inn 7",
 		"inn 7 > mission 40",
@@ -231,8 +232,8 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 	if c, err = stock.withModMissions(off); err != nil {
 		t.Fatal(err)
 	}
-	lines := graphLines(campaignGraphOf(stock, c, off))
-	for _, want := range []string{"mission 10 at 2,0 flow", "mission 10 > town 20 (mod)"} {
+	lines := graphLines(campaignGraphOf(stock, c, off, nil))
+	for _, want := range []string{"mission 10 at 2,1 flow", "mission 10 > town 20 (mod)"} {
 		if !slices.Contains(lines, want) {
 			t.Fatalf("no %q in:\n%s", want, strings.Join(lines, "\n"))
 		}
@@ -254,9 +255,9 @@ func TestCampaignGraphLayoutIsTheSameOverTwoBuilds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first := campaignGraphOf(stock, c, d)
+	first := campaignGraphOf(stock, c, d, nil)
 	for range 8 { // the campaign's maps are walked in a new order each time
-		if next := campaignGraphOf(stock, c, d); !reflect.DeepEqual(first, next) {
+		if next := campaignGraphOf(stock, c, d, nil); !reflect.DeepEqual(first, next) {
 			t.Fatalf("two builds differ:\n%s\n\n%s", strings.Join(graphLines(first), "\n"), strings.Join(graphLines(next), "\n"))
 		}
 	}
@@ -282,9 +283,32 @@ func graphFixture(t *testing.T) (*testPlayFixture, *ui.MapEditor) {
 // maps named as given, drawn in the fonts of the install a when there is one.
 func graphFixtureIn(t *testing.T, entry string, a *Archives, names []string) (*testPlayFixture, *ui.MapEditor) {
 	t.Helper()
+	return graphFixtureDrawn(t, entry, a, nil, nil, names)
+}
+
+// graphFixtureDrawn is graphFixtureIn drawn in font when it is set, with
+// the install's video archive holding films, the stand-in bytes of each
+// named film, when films is set.
+func graphFixtureDrawn(t *testing.T, entry string, a *Archives, font *text.Font, films []string, names []string) (*testPlayFixture, *ui.MapEditor) {
+	t.Helper()
 	f := newTestPlayFixture(t)
 	x := f.x
 	x.tiles, x.font = &terrain.Tileset{}, &text.Font{Selector: 1}
+	if font != nil {
+		x.font, x.cardFont, x.body = font, font, font
+	}
+	if films != nil {
+		var files []synth.File
+		for _, name := range films {
+			files = append(files, synth.File{Path: strings.ToUpper(name), Data: []byte("film stand-in " + name)})
+		}
+		if err := os.MkdirAll(filepath.Join(f.root, "ALLODS"), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(f.root, "ALLODS", "VIDEO4.RES"), synth.Archive(files), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	x.archives.Base.Profile.Language = entry
 	if a != nil {
 		font, err := LoadFont(a.Containers, DefaultFont, FontShades)
@@ -341,14 +365,42 @@ func showGraph(t *testing.T, e *ui.MapEditor) {
 // clickGraphBox clicks the box of the shown graph whose text is want.
 func clickGraphBox(t *testing.T, e *ui.MapEditor, want string) {
 	t.Helper()
-	texts, rects := e.PopupCanvasBoxes()
+	texts, _ := e.PopupCanvasBoxes()
 	i := slices.Index(texts, want)
 	if i < 0 {
 		t.Fatalf("no box %q in %q", want, texts)
 	}
-	p := rects[i].Min.Add(rects[i].Size().Div(2))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	clickCanvasBox(t, e, i)
+}
+
+// clickCanvasBox clicks box i of the shown graph, first turning the wheel
+// over the graph, as a user does, while the box's middle lies above or
+// below the graph's view.
+func clickCanvasBox(t *testing.T, e *ui.MapEditor, i int) {
+	t.Helper()
+	for range 40 {
+		_, rects := e.PopupCanvasBoxes()
+		view := e.PopupCanvasView()
+		if i < 0 || i >= len(rects) || view.Empty() {
+			t.Fatalf("no box %d on the graph", i)
+		}
+		p := rects[i].Min.Add(rects[i].Size().Div(2))
+		if p.In(view) {
+			e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
+			e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+			return
+		}
+		if p.X < view.Min.X || p.X >= view.Max.X {
+			t.Fatalf("box %d at %v stands beside the view %v", i, rects[i], view)
+		}
+		at := view.Min.Add(view.Size().Div(2))
+		turn := ui.Input{CursorX: at.X, CursorY: at.Y, WheelY: -1}
+		if p.Y < view.Min.Y {
+			turn.WheelY = 1
+		}
+		e.Pointer(turn, time.Unix(1, 0))
+	}
+	t.Fatalf("box %d never came into the graph's view", i)
 }
 
 func openSource(e *ui.MapEditor) string {
@@ -369,7 +421,7 @@ func TestEditorGraphOfTheInstallOpensAMissionsInstallMap(t *testing.T) {
 		t.Fatalf("the install's graph is flagged: mod %t, refused %t, unread %t", page.Mod, page.Refused, page.Unread)
 	}
 	c := graphCampaign(t)
-	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{})); !slices.Equal(got, want) {
+	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{}, nil)); !slices.Equal(got, want) {
 		t.Fatalf("graph:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	lines := strings.Join(e.PopupLines(), "\n")
@@ -418,7 +470,7 @@ func TestEditorGraphOfAModOpensTheModsMap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := graphLines(page), graphLines(campaignGraphOf(stock, c, d)); !slices.Equal(got, want) {
+	if got, want := graphLines(page), graphLines(campaignGraphOf(stock, c, d, nil)); !slices.Equal(got, want) {
 		t.Fatalf("graph:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	rows := map[int]int{}
@@ -472,7 +524,7 @@ func TestEditorGraphOfARefusedModIsTheInstalls(t *testing.T) {
 		t.Fatalf("mod %t, refused %t: %q", page.Mod, page.Refused, f.x.mod.refusal)
 	}
 	c := graphCampaign(t)
-	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{})); !slices.Equal(got, want) {
+	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{}, nil)); !slices.Equal(got, want) {
 		t.Fatalf("graph:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	showGraph(t, e)
@@ -489,7 +541,7 @@ func TestEditorGraphOfARefusedModIsTheInstalls(t *testing.T) {
 	if !page.Mod || page.Refused || !page.Unbuilt {
 		t.Fatalf("mod %t, refused %t, unbuilt %t", page.Mod, page.Refused, page.Unbuilt)
 	}
-	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{})); !slices.Equal(got, want) {
+	if got, want := graphLines(page), graphLines(campaignGraphOf(c, c, mod.MissionData{}, nil)); !slices.Equal(got, want) {
 		t.Fatalf("graph of the unbuilt mod:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "The open mod's campaign could not be built") {

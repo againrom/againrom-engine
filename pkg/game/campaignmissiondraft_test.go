@@ -76,7 +76,7 @@ func TestCampaignInsertedDraftUsesTheSessionWinRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := graphAfter(campaignGraphOf(graphCampaign(t), c, d)); len(got[10]) != 1 || got[10][0] != "mission 11" || len(got[11]) != 1 || got[11][0] != "mission 20" {
+	if got := graphAfter(campaignGraphOf(graphCampaign(t), c, d, nil)); len(got[10]) != 1 || got[10][0] != "mission 11" || len(got[11]) != 1 || got[11][0] != "mission 20" {
 		t.Fatalf("draft graph: %v", got)
 	}
 	session := CampaignSession{Town: NewTown(c)}

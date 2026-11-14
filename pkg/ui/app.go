@@ -2301,7 +2301,7 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		switch a.assets.Binding(released).Action {
 		case menu.ActionNewGame:
 			a.activateNewGame()
-			a.PlayCutsceneSequence(numberedCutscenes("newgame"))
+			a.PlayCutsceneSequence(NumberedCutscenes("newgame"))
 		case menu.ActionLoad:
 			a.flow.openLoad(ScreenMenu)
 		case menu.ActionHallOfFame:

@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"againrom/internal/synth"
 	"againrom/pkg/mod"
@@ -39,16 +38,14 @@ func graphFileMod(t *testing.T, missions string, numbers ...int) string {
 // clickGraphMission clicks the box of mission n of the shown graph.
 func clickGraphMission(t *testing.T, e *ui.MapEditor, n int) {
 	t.Helper()
-	texts, rects := e.PopupCanvasBoxes()
+	texts, _ := e.PopupCanvasBoxes()
 	i := slices.IndexFunc(texts, func(s string) bool {
 		return strings.Contains(s+" ", fmt.Sprintf(" %d ", n)) && !strings.Contains(s, ",")
 	})
-	if i < 0 || rects[i].Empty() {
+	if i < 0 {
 		t.Fatalf("no box of mission %d in %q", n, texts)
 	}
-	p := rects[i].Min.Add(rects[i].Size().Div(2))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	clickCanvasBox(t, e, i)
 }
 
 // A mod that replaces missions by map files named as their numbers, with no

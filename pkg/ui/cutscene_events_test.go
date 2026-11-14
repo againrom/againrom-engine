@@ -45,7 +45,7 @@ func TestCutsceneStartupThenNewGameButton(t *testing.T) {
 	a := newTestApp(t, appRows(1), okLoader(t))
 	source := &eventMovies{present: map[string]bool{"logos/buka.smk": true, "intro/04.smk": true, "intro/05.smk": true, "newgame/01.smk": true}}
 	a.SetCutscenes(source)
-	a.SetStartupCutscenes(append([]string{"logos/buka.smk", "logos/nival.smk", "logos/1c.smk"}, numberedCutscenes("intro")...))
+	a.SetStartupCutscenes(append([]string{"logos/buka.smk", "logos/nival.smk", "logos/1c.smk"}, NumberedCutscenes("intro")...))
 	if !a.PlayStartupCutscenes() {
 		t.Fatal("startup did not play")
 	}

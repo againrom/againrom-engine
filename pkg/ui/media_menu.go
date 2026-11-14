@@ -200,7 +200,7 @@ func (a *App) replayMovie() {
 		return
 	}
 	a.media.message = ""
-	if !a.PlayCutsceneSequence(numberedCutscenes(entries[max(a.movieList().Selection(), 0)].Directory)) {
+	if !a.PlayCutsceneSequence(NumberedCutscenes(entries[max(a.movieList().Selection(), 0)].Directory)) {
 		a.media.message = a.mediaMessages().Unavailable
 	}
 }

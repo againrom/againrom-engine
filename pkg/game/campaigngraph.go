@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"slices"
+	"strings"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/herokind"
@@ -21,18 +22,20 @@ type campaignFlow struct {
 }
 
 // The columns of the campaign graph: the start and the towns, the hand-outs
-// of a town, the missions.
+// of a town, then the missions of one ten, one column each.
 const (
 	graphTownColumn = iota
 	graphHandoutColumn
 	graphMissionColumn
 )
 
-// campaignGraph lays a campaign as a graph. A node takes the next free row
-// when it is reached, so the rows follow the campaign: the first mission and
-// what follows it without a town, then each town in the order the wins open
-// them, its hand-outs in the scenario's order and each hand-out's mission on
-// the hand-out's row.
+// filmShelf is the films of a movie directory the game finds to play, in
+// the order it plays them; CutsceneBank.Films is the game's.
+type filmShelf func(directory string) []string
+
+// campaignGraph builds a campaign as a graph: the walk of the campaign makes
+// the nodes and the arrows, the start's and each mission's films are added,
+// and levels places them by tens.
 type campaignGraph struct {
 	stock    Campaign // the install's campaign, which says what a mod adds
 	c        Campaign
@@ -40,25 +43,27 @@ type campaignGraph struct {
 	page     ui.CampaignGraphPage
 	mission  map[int]int    // the node of a mission, by its number
 	town     map[int]int    // the node of a chapter's town
+	handouts map[int][]int  // the hand-out nodes of a town's node, in order
+	film     map[int]int    // the film node of the start's or a mission's node
 	edges    map[[2]int]int // an arrow's place in the page, by its two nodes
 	walked   map[[3]int]bool
-	laid     map[int]bool // the chapters whose town has its rows
-	told     map[int]bool // the chapters whose town offers its mission itself
-	queue    []int        // the chapters reached and not laid, in that order
-	row      int
+	laid     map[int]bool                    // the chapters whose town has its hand-outs
+	told     map[int]bool                    // the chapters whose town offers its mission itself
+	queue    []int                           // the chapters reached and not laid, in that order
 	base     map[town.OfferKey]town.OfferRow // the install's offer rows, layer 0
 	rows     []town.OfferRow                 // the campaign's offer rows: the merged ones, else layer 0
 }
 
 // campaignGraphOf is campaign c with the mod missions it runs with as a
-// graph; stock is the install's campaign. What follows a win is read from
-// what the game reads: the campaign's walk of a win (winRoute), whether the
-// win moves the town (advances), the guest mission a starting hero plays
-// after it (AfterWin) and each chapter's building lists.
-func campaignGraphOf(stock, c Campaign, missions mod.MissionData) ui.CampaignGraphPage {
+// graph; stock is the install's campaign and films the game's film lookup,
+// nil for none. What follows a win is read from what the game reads: the
+// campaign's walk of a win (winRoute), whether the win moves the town
+// (advances), the guest mission a starting hero plays after it (AfterWin)
+// and each chapter's building lists.
+func campaignGraphOf(stock, c Campaign, missions mod.MissionData, films filmShelf) ui.CampaignGraphPage {
 	g := &campaignGraph{stock: stock, c: c, missions: missions, mission: map[int]int{}, town: map[int]int{},
-		edges: map[[2]int]int{}, walked: map[[3]int]bool{}, laid: map[int]bool{}, told: map[int]bool{},
-		base: map[town.OfferKey]town.OfferRow{}}
+		handouts: map[int][]int{}, film: map[int]int{}, edges: map[[2]int]int{}, walked: map[[3]int]bool{},
+		laid: map[int]bool{}, told: map[int]bool{}, base: map[town.OfferKey]town.OfferRow{}}
 	base := stock.Towns.baseOffers(stock)
 	for _, r := range base {
 		g.base[town.TavernTable.Key(r)] = r
@@ -68,8 +73,8 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData) ui.CampaignGra
 	}
 	g.rows = base
 	if first, ok := c.FirstMission(); ok {
-		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart, Column: graphTownColumn, Row: g.nextRow()})
-		at, _ := g.missionNode(first, g.page.Nodes[start].Row)
+		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart})
+		at, _ := g.missionNode(first)
 		g.edge(start, at, ui.EveryHero)
 		g.follow(at, first, first, 0)
 	}
@@ -85,15 +90,15 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData) ui.CampaignGra
 			g.layTowns()
 		}
 	}
-	// A mission nothing reaches stands alone under the towns. A main one
-	// still moves the campaign on; a side one stands on none.
+	// A mission nothing reaches stands alone. A main one still moves the
+	// campaign on; a side one stands on none.
 	for _, n := range slices.Sorted(slices.Values(slices.Concat(c.Main, c.Side))) {
 		if _, placed := g.mission[n]; !placed {
 			stands := 0
 			if slices.Contains(c.Main, n) {
 				stands = n
 			}
-			at, _ := g.missionNode(n, g.nextRow())
+			at, _ := g.missionNode(n)
 			g.follow(at, n, stands, 0)
 			g.layTowns()
 		}
@@ -108,12 +113,9 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData) ui.CampaignGra
 			e.Heroes = 0
 		}
 	}
+	g.films(films)
+	g.levels()
 	return g.page
-}
-
-func (g *campaignGraph) nextRow() int {
-	g.row++
-	return g.row - 1
 }
 
 func (g *campaignGraph) node(n ui.CampaignGraphNode) int {
@@ -136,14 +138,14 @@ func (g *campaignGraph) edge(from, to int, heroes ui.HeroAudience) {
 	g.page.Edges = append(g.page.Edges, ui.CampaignGraphEdge{From: from, To: to, Marked: marked, Heroes: heroes})
 }
 
-// missionNode is the node of mission n, made on row when the graph has none,
-// and whether it was made. Its marks are what the mod's rows of that number
-// state.
-func (g *campaignGraph) missionNode(n, row int) (int, bool) {
+// missionNode is the node of mission n, made when the graph has none, and
+// whether it was made. Its marks are what the mod's rows of that number
+// state; it is a side mission unless the campaign counts it main.
+func (g *campaignGraph) missionNode(n int) (int, bool) {
 	if at, ok := g.mission[n]; ok {
 		return at, false
 	}
-	node := ui.CampaignGraphNode{Kind: ui.GraphMission, Number: n, Column: graphMissionColumn, Row: row}
+	node := ui.CampaignGraphNode{Kind: ui.GraphMission, Number: n, Side: !slices.Contains(g.c.Main, n)}
 	for _, m := range g.missions.Missions {
 		if m.Off || m.Number != n {
 			continue
@@ -161,24 +163,20 @@ func (g *campaignGraph) missionNode(n, row int) (int, bool) {
 	return g.mission[n], true
 }
 
-// townNode is the node of chapter n's town, made and queued for its rows
-// when the graph has none.
+// townNode is the node of chapter n's town, made and queued for its
+// hand-outs when the graph has none.
 func (g *campaignGraph) townNode(n int) int {
 	if at, ok := g.town[n]; ok {
 		return at
 	}
-	g.town[n] = g.node(ui.CampaignGraphNode{Kind: ui.GraphTown, Number: n, Column: graphTownColumn})
+	g.town[n] = g.node(ui.CampaignGraphNode{Kind: ui.GraphTown, Number: n})
 	g.queue = append(g.queue, n)
 	return g.town[n]
 }
 
-// reach is the node of mission n, on the next free row when the graph had
-// none.
+// reach is the node of mission n, made when the graph had none.
 func (g *campaignGraph) reach(n int) int {
-	to, made := g.missionNode(n, g.row)
-	if made {
-		g.nextRow()
-	}
+	to, _ := g.missionNode(n)
 	return to
 }
 
@@ -243,20 +241,15 @@ func (g *campaignGraph) toTown(at, n, chapter int) {
 
 // offered draws a town that offers its main mission itself, as a win set to
 // open the town leaves it, and what that mission leads to; a town whose
-// building hands the mission out has the arrow already. It reports that the
-// mission took the town's row.
-func (g *campaignGraph) offered(chapter int) bool {
+// building hands the mission out has the arrow already.
+func (g *campaignGraph) offered(chapter int) {
 	handed := func(h graphHandout) bool { return h.mission == chapter }
 	if !g.told[chapter] || slices.ContainsFunc(graphHandouts(g.c.chapter(chapter)), handed) {
-		return false
+		return
 	}
-	to, made := g.missionNode(chapter, g.row)
-	if made {
-		g.nextRow()
-	}
+	to, _ := g.missionNode(chapter)
 	g.edge(g.town[chapter], to, ui.EveryHero)
 	g.follow(to, chapter, chapter, 0)
-	return made
 }
 
 // graphHandout is one offer of a town's building: the building, the
@@ -287,26 +280,20 @@ func graphHandouts(ch Chapter) []graphHandout {
 	return out
 }
 
-// layTowns gives every queued town its rows: the town on its first
-// hand-out's row, one row a hand-out, and what each handed-out mission
-// leads to. A mission whose win moves the town goes on from itself; any
-// other is walked from the town that handed it out.
+// layTowns gives every queued town its hand-outs and what each handed-out
+// mission leads to. A mission whose win moves the town goes on from itself;
+// any other is walked from the town that handed it out.
 func (g *campaignGraph) layTowns() {
 	for len(g.queue) > 0 {
 		chapter := g.queue[0]
 		g.queue = g.queue[1:]
 		g.laid[chapter] = true
 		home := g.town[chapter]
-		g.page.Nodes[home].Row = g.row
 		handouts := graphHandouts(g.c.chapter(chapter))
-		if !g.offered(chapter) && len(handouts) == 0 {
-			g.nextRow()
-		}
+		g.offered(chapter)
 		g.page.Nodes[home].Pick = townPick(chapter)
 		for _, h := range handouts {
-			row := g.nextRow()
-			node := ui.CampaignGraphNode{Kind: ui.GraphHandout, Place: h.place, Number: h.npc,
-				Column: graphHandoutColumn, Row: row, Empty: h.mission == 0}
+			node := ui.CampaignGraphNode{Kind: ui.GraphHandout, Place: h.place, Number: h.npc, Empty: h.mission == 0}
 			// A row is picked by its key; one the install does not hold is
 			// the mod's, one it holds otherwise the mod changed.
 			if r, ok := chapterRowIn(g.rows, chapter, graphBuildings[h.place], h.npc, h.mission); ok {
@@ -316,11 +303,12 @@ func (g *campaignGraph) layTowns() {
 				node.AddedMark, node.FlowMark = !held, held && !prior.Equal(r)
 			}
 			at := g.node(node)
+			g.handouts[home] = append(g.handouts[home], at)
 			g.edge(home, at, ui.EveryHero)
 			if h.mission == 0 {
 				continue
 			}
-			to, _ := g.missionNode(h.mission, row)
+			to, _ := g.missionNode(h.mission)
 			g.edge(at, to, ui.EveryHero)
 			if g.c.advances(h.mission, chapter) {
 				g.follow(to, h.mission, h.mission, 0)
@@ -328,6 +316,88 @@ func (g *campaignGraph) layTowns() {
 				g.follow(to, h.mission, chapter, chapter)
 			}
 		}
+	}
+}
+
+// films adds a film node for the start and for each mission whose movie
+// directory the game finds a film in, named by its files and tied to its
+// node by an arrow for every hero.
+func (g *campaignGraph) films(shelf filmShelf) {
+	if shelf == nil {
+		return
+	}
+	for i := range len(g.page.Nodes) {
+		n := g.page.Nodes[i]
+		directory := ui.StartCutscenes
+		switch n.Kind {
+		case ui.GraphStart:
+		case ui.GraphMission:
+			directory = ui.MissionCutscenes(n.Number)
+		default:
+			continue
+		}
+		if files := shelf(directory); len(files) > 0 {
+			g.film[i] = g.node(ui.CampaignGraphNode{Kind: ui.GraphFilm, Number: n.Number, Title: strings.Join(files, ", ")})
+			g.page.Edges = append(g.page.Edges, ui.CampaignGraphEdge{From: i, To: g.film[i]})
+		}
+	}
+}
+
+// levels places the nodes by tens. Mission n stands on level n/10, so 10 to
+// 19 share a level and a number under 10 stands on level 0; the missions of
+// a level take one row, in number order, a column each from the mission
+// column on, and each one's film stands under it. The town of chapter n
+// stands on n's level in the town column, its hand-outs one a row beside it
+// from its row on, the towns of a level in chapter order. The start and its
+// film stand above every level; a level is as tall as its rows.
+func (g *campaignGraph) levels() {
+	nodes := g.page.Nodes
+	missions, towns := map[int][]int{}, map[int][]int{}
+	var levels []int
+	for i, n := range nodes {
+		level := n.Number / mainMissionStride
+		switch n.Kind {
+		case ui.GraphMission:
+			missions[level] = append(missions[level], i)
+		case ui.GraphTown:
+			towns[level] = append(towns[level], i)
+		default:
+			continue
+		}
+		if !slices.Contains(levels, level) {
+			levels = append(levels, level)
+		}
+	}
+	slices.Sort(levels)
+	row := 0
+	for i, n := range nodes {
+		if n.Kind == ui.GraphStart {
+			row = 1
+			if film, ok := g.film[i]; ok {
+				nodes[film].Row, row = 1, 2
+			}
+		}
+	}
+	byNumber := func(a, b int) int { return nodes[a].Number - nodes[b].Number }
+	for _, level := range levels {
+		next := row
+		slices.SortFunc(missions[level], byNumber)
+		for k, i := range missions[level] {
+			nodes[i].Column, nodes[i].Row, next = graphMissionColumn+k, row, max(next, row+1)
+			if film, ok := g.film[i]; ok {
+				nodes[film].Column, nodes[film].Row, next = graphMissionColumn+k, row+1, row+2
+			}
+		}
+		at := row
+		slices.SortFunc(towns[level], byNumber)
+		for _, i := range towns[level] {
+			nodes[i].Column, nodes[i].Row = graphTownColumn, at
+			for k, h := range g.handouts[i] {
+				nodes[h].Column, nodes[h].Row = graphHandoutColumn, at+k
+			}
+			at += max(1, len(g.handouts[i]))
+		}
+		row = max(next, at)
 	}
 }
 
@@ -346,6 +416,12 @@ func (x *MapInspector) installFlow() *campaignFlow {
 		}
 	}
 	return x.flow
+}
+
+// films is the install's film bank on the speed route a player who names
+// none plays from: the films the game finds to play are the graph's.
+func (x *MapInspector) films() *CutsceneBank {
+	return openCutscenes(x.archives.Root, x.archives.Base.Profile.Edition().Cutscenes, CutsceneArchive(false, false))
 }
 
 // graphMission is what a mission node shows and opens: the title the map
@@ -397,7 +473,7 @@ func (s *mapInspectionEdits) CampaignGraph() ui.CampaignGraphPage {
 		}
 	}
 	if flow.graph == nil {
-		built := campaignGraphOf(stock.campaign, flow.campaign, flow.missions)
+		built := campaignGraphOf(stock.campaign, flow.campaign, flow.missions, x.films().Films)
 		for i := range built.Nodes {
 			n := &built.Nodes[i]
 			if n.Kind != ui.GraphMission {

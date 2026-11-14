@@ -23,6 +23,9 @@ const (
 	// GraphHandout is a building's offer of a mission; Place is the
 	// building and Number the tavern's visitor.
 	GraphHandout
+	// GraphFilm is a film the game plays; Number is the mission whose win
+	// plays it, zero for the start, and Title names its files.
+	GraphFilm
 )
 
 // GraphPlace is the building of a hand-out.
@@ -50,8 +53,10 @@ type CampaignGraphNode struct {
 	FlowMark    bool
 	AddedMark   bool
 	PartyMark   bool
-	// Empty marks a hand-out with nothing to give.
+	// Empty marks a hand-out with nothing to give; Side a mission that is
+	// not one of the campaign's main missions.
 	Empty      bool
+	Side       bool
 	Source     string
 	ModMission int
 	// Pick, when set, is what the host selects a town or a hand-out by
@@ -109,6 +114,72 @@ var (
 	graphPartyInk = editorGold
 )
 
+// graphKind is a kind of node the graph tells apart by colour.
+type graphKind uint8
+
+const (
+	graphKindStart graphKind = iota
+	graphKindMain
+	graphKindSide
+	graphKindTown
+	graphKindTalk
+	graphKindHandout
+	graphKindFilm
+)
+
+// graphKinds is the one table of a kind's colour and its legend's word-book
+// key, in the legend's order. The node painter and the legend read it.
+var graphKinds = [...]struct {
+	key string
+	ink color.RGBA
+}{
+	graphKindStart:   {"start", editorLight},
+	graphKindMain:    {"main", color.RGBA{0xd8, 0x6a, 0x52, 255}},
+	graphKindSide:    {"side", color.RGBA{0x7c, 0xb0, 0x5c, 255}},
+	graphKindTown:    {"town", editorGold},
+	graphKindTalk:    {"talk", color.RGBA{0x62, 0x9c, 0xd8, 255}},
+	graphKindHandout: {"handout", color.RGBA{0xa8, 0x84, 0xd0, 255}},
+	graphKindFilm:    {"film", color.RGBA{0xd8, 0x84, 0xb4, 255}},
+}
+
+// GraphInk is the colour of node n's kind, from the one table.
+func GraphInk(n CampaignGraphNode) color.RGBA { return graphKinds[graphKindOf(n)].ink }
+
+// graphKindOf is the colour kind of node n.
+func graphKindOf(n CampaignGraphNode) graphKind {
+	switch {
+	case n.Kind == GraphMission && n.Side:
+		return graphKindSide
+	case n.Kind == GraphMission:
+		return graphKindMain
+	case n.Kind == GraphTown:
+		return graphKindTown
+	case n.Kind == GraphHandout && n.Place == GraphInn:
+		return graphKindTalk
+	case n.Kind == GraphHandout:
+		return graphKindHandout
+	case n.Kind == GraphFilm:
+		return graphKindFilm
+	}
+	return graphKindStart
+}
+
+// graphLegend is the legend of the kinds page shows, in the table's order:
+// each kind's name after a swatch of its colour.
+func (e *MapEditor) graphLegend(page CampaignGraphPage) []canvasMark {
+	shown := map[graphKind]bool{}
+	for _, n := range page.Nodes {
+		shown[graphKindOf(n)] = true
+	}
+	var out []canvasMark
+	for k, kind := range graphKinds {
+		if shown[graphKind(k)] {
+			out = append(out, canvasMark{Text: e.word("editor.graph.kind." + kind.key), Ink: kind.ink})
+		}
+	}
+	return out
+}
+
 // modGraph is the campaign graph the host draws, and whether W has the page.
 func (e *MapEditor) modGraph() (CampaignGraphPage, bool) {
 	host, ok := e.modEdits().(ModCampaignGraph)
@@ -165,6 +236,7 @@ func (e *MapEditor) modGraphRows(s *popupSpec, links *[]int, page CampaignGraphP
 	}
 	// The graph grows down to the status strip and scrolls the rest.
 	s.Room = e.popupRoom()
+	text(e.word("editor.graph.levels"))
 	s.Canvas = e.graphCanvas(page)
 }
 
@@ -208,12 +280,20 @@ func (e *MapEditor) graphHeroes(h HeroAudience) string {
 // mission with a map to open takes a press; every other node is a frame.
 func (e *MapEditor) graphBox(n CampaignGraphNode) canvasBox {
 	number := func(format string) string { return e.editorHostText(fmt.Sprintf(format, n.Number)) }
-	b := canvasBox{Inert: true, Fill: editorPanel, Edge: editorPaper}
+	ink := GraphInk(n)
+	b := canvasBox{Inert: true, Fill: editorPanel, Edge: ink, Band: ink}
 	switch n.Kind {
 	case GraphStart:
-		b.Lines, b.Tip, b.Edge = []string{e.word("editor.graph.start")}, e.word("editor.graph.start.tip"), editorLight
+		b.Lines, b.Tip = []string{e.word("editor.graph.start")}, e.word("editor.graph.start.tip")
 	case GraphTown:
-		b.Lines, b.Tip, b.Edge = []string{number(e.plainWord("editor.graph.town"))}, number(e.plainWord("editor.graph.town.tip")), editorGold
+		b.Lines, b.Tip = []string{number(e.plainWord("editor.graph.town"))}, number(e.plainWord("editor.graph.town.tip"))
+	case GraphFilm:
+		files := e.editorHostText(n.Title)
+		b.Lines, b.Tip = []string{e.word("editor.graph.kind.film"), files}, e.word("editor.graph.film.start")
+		if n.Number > 0 {
+			b.Tip = number(e.plainWord("editor.graph.film.won"))
+		}
+		b.Tip += ": " + files
 	case GraphHandout:
 		b.Tip = e.word("editor.graph.handout.tip")
 		switch {
@@ -247,10 +327,11 @@ func (e *MapEditor) graphBox(n CampaignGraphNode) canvasBox {
 // graphCanvas is the campaign graph of page as a canvas: one box a node, at
 // its column and row, each column as wide as its longest text; one line an
 // edge. A line runs straight to the node on its right or under it, down a
-// trunk to a node of the next column, and otherwise up or down a lane right
-// of the columns into its target's top. Lines to one target share a lane.
-// A line that holds for some heroes only takes a lane, leaves its node at a
-// level of its own and carries the heroes' words there, left of the lanes.
+// town's trunk to its hand-outs, and otherwise along a lane in the gap right
+// of its node's column, over its target's row and into the target's top.
+// Lines to one target from one gap share a lane. A line that holds for some
+// heroes only takes a lane, leaves its node at a level of its own and
+// carries the heroes' words there, in the gap left of the lanes.
 func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	if len(page.Nodes) == 0 {
 		return nil
@@ -271,6 +352,7 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		cols, rows = max(cols, n.Column+1), max(rows, n.Row+1)
 	}
 	widths, marks := make([]int, cols), make([]int, len(page.Nodes))
+	taken := map[image.Point]bool{}
 	for i, n := range page.Nodes {
 		b := e.graphBox(n)
 		if e.graphEdit && page.Mod && !page.Refused && !page.Unbuilt && (n.Kind == GraphMission || n.Pick != "") {
@@ -291,48 +373,33 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 			}
 		}
 		widths[n.Column] = max(widths[n.Column], min(graphWide, w+2*canvasBoxPad+2))
-		c.Boxes[i] = b
-	}
-	left, x := make([]int, cols), graphPad
-	for k := range widths {
-		widths[k] = max(widths[k], graphNarrow)
-		left[k] = x
-		x += widths[k] + graphGapX
-	}
-	// said is each line's heroes' words, told the lines of each node that
-	// carry any, and gutter the room the longest takes left of the lanes.
-	said, told, gutter := make([]string, len(page.Edges)), map[int]int{}, 0
-	for k, ed := range page.Edges {
-		if ed.Heroes != 0 {
-			said[k] = e.graphHeroes(ed.Heroes)
-			told[ed.From]++
-			gutter = max(gutter, advance(said[k])+2*canvasBoxPad)
-		}
-	}
-	rail := x - graphGapX + graphLane + gutter
-	taken := map[image.Point]bool{}
-	for i, n := range page.Nodes {
-		b := &c.Boxes[i]
 		h := low
 		if len(b.Lines) > 1 {
 			h = tall
 		}
 		y := graphPad + n.Row*pitch + (tall-h)/2
-		b.Area = image.Rect(left[n.Column], y, left[n.Column]+widths[n.Column], y+h)
-		for k := range b.Lines {
-			room := widths[n.Column] - 2*canvasBoxPad
-			if k == 0 {
-				room -= marks[i]
-			}
-			b.Lines[k] = editorClip(body, b.Lines[k], room)
-		}
+		b.Area = image.Rect(0, y, 0, y+h)
+		c.Boxes[i] = b
 		taken[image.Pt(n.Column, n.Row)] = true
 	}
+	for k := range widths {
+		widths[k] = max(widths[k], graphNarrow)
+	}
+	// said is each line's heroes' words, told the lines of each node that
+	// carry any, and gutter the room the longest takes in each gap.
+	said, told, gutter := make([]string, len(page.Edges)), map[int]int{}, make([]int, cols)
+	for k, ed := range page.Edges {
+		if ed.Heroes != 0 && ed.From >= 0 && ed.From < len(page.Nodes) {
+			said[k] = e.graphHeroes(ed.Heroes)
+			told[ed.From]++
+			at := page.Nodes[ed.From].Column
+			gutter[at] = max(gutter[at], advance(said[k])+2*canvasBoxPad)
+		}
+	}
 	mid := func(row int) int { return graphPad + row*pitch + tall/2 }
-	centre := func(i int) int { return (c.Boxes[i].Area.Min.X + c.Boxes[i].Area.Max.X) / 2 }
 	// above is the level of a line's run over node i, in the gap over its
 	// row; the nodes of one row take runs at different levels.
-	above := func(i int) int { return graphPad + page.Nodes[i].Row*pitch - 4 - 3*(page.Nodes[i].Column%3) }
+	above := func(i int) int { return graphPad + page.Nodes[i].Row*pitch - 4 - 3*(page.Nodes[i].Column%4) }
 	clear := func(from, to CampaignGraphNode) bool {
 		for k := from.Column + 1; k < to.Column; k++ {
 			if taken[image.Pt(k, from.Row)] {
@@ -341,75 +408,128 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		}
 		return true
 	}
-	c.Lines = make([]canvasLine, len(page.Edges))
-	lanes := map[int][2]int{}
-	var railed []int
-	leaves, nth := make([]int, len(page.Edges)), map[int]int{}
+	// The routes: straight, down, a town's trunk, or a lane of the gap right
+	// of the line's node, whose span the lane's lines reach.
+	const (
+		routeNone = iota
+		routeStraight
+		routeDown
+		routeTrunk
+		routeLane
+	)
+	route, leaves, nth := make([]int, len(page.Edges)), make([]int, len(page.Edges)), map[int]int{}
+	type laneKey struct{ gap, to int }
+	spans := map[laneKey][2]int{}
 	for k, ed := range page.Edges {
 		if ed.From < 0 || ed.From >= len(page.Nodes) || ed.To < 0 || ed.To >= len(page.Nodes) {
 			continue
 		}
 		from, to := page.Nodes[ed.From], page.Nodes[ed.To]
-		a, b := c.Boxes[ed.From].Area, c.Boxes[ed.To].Area
-		l := canvasLine{Ink: editorPaper, Arrow: true, Over: ed.Marked, Label: said[k]}
-		if ed.Marked {
-			l.Ink = graphFlowInk
-		}
-		plain := l.Label == ""
+		plain := said[k] == ""
 		leaves[k] = mid(from.Row)
 		if n := told[ed.From]; !plain && n > 1 {
 			// The labelled lines of one node leave its side a text line
 			// apart, or closer where its side is too short for that.
-			step := min(line, (a.Dy()-2)/(n-1))
+			step := min(line, (c.Boxes[ed.From].Area.Dy()-2)/(n-1))
 			leaves[k] += (2*nth[ed.From] - n + 1) * step / 2
 			nth[ed.From]++
 		}
 		switch {
 		case plain && from.Row == to.Row && to.Column > from.Column && clear(from, to):
-			l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {b.Min.X - 1, mid(to.Row)}}
+			route[k] = routeStraight
 		case plain && from.Column == to.Column && to.Row == from.Row+1:
-			l.Points = []image.Point{{centre(ed.From), a.Max.Y}, {centre(ed.To), b.Min.Y - 1}}
-		case plain && to.Column == from.Column+1 && to.Row > from.Row:
-			trunk := a.Max.X + graphGapX/2
-			l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {trunk, mid(from.Row)}, {trunk, mid(to.Row)}, {b.Min.X - 1, mid(to.Row)}}
+			route[k] = routeDown
+		case plain && from.Kind == GraphTown && to.Column == from.Column+1 && to.Row > from.Row:
+			route[k] = routeTrunk
 		default:
-			span, ok := lanes[ed.To]
+			route[k] = routeLane
+			key := laneKey{from.Column, ed.To}
+			span, ok := spans[key]
 			if !ok {
 				span = [2]int{above(ed.To), above(ed.To)}
 			}
-			lanes[ed.To] = [2]int{min(span[0], leaves[k]), max(span[1], leaves[k])}
-			railed = append(railed, k)
+			spans[key] = [2]int{min(span[0], leaves[k]), max(span[1], leaves[k])}
 		}
-		c.Lines[k] = l
 	}
-	// The targets take lanes in the order their spans begin, each the
-	// first lane no earlier span reaches.
-	targets := make([]int, 0, len(lanes))
-	for to := range lanes {
-		targets = append(targets, to)
+	// The targets of one gap take its lanes in the order their spans begin,
+	// each the first lane no earlier span reaches.
+	keys := make([]laneKey, 0, len(spans))
+	for key := range spans {
+		keys = append(keys, key)
 	}
-	sort.Slice(targets, func(i, j int) bool {
-		a, b := lanes[targets[i]], lanes[targets[j]]
+	sort.Slice(keys, func(i, j int) bool {
+		a, b := spans[keys[i]], spans[keys[j]]
+		if keys[i].gap != keys[j].gap {
+			return keys[i].gap < keys[j].gap
+		}
 		if a[0] != b[0] {
 			return a[0] < b[0]
 		}
-		return targets[i] < targets[j]
+		return keys[i].to < keys[j].to
 	})
-	var ends []int
-	lane := map[int]int{}
-	for _, to := range targets {
-		at := slices.IndexFunc(ends, func(end int) bool { return end+2 < lanes[to][0] })
+	ends, lane := make([][]int, cols), map[laneKey]int{}
+	for _, key := range keys {
+		at := slices.IndexFunc(ends[key.gap], func(end int) bool { return end+2 < spans[key][0] })
 		if at < 0 {
-			at, ends = len(ends), append(ends, 0)
+			at, ends[key.gap] = len(ends[key.gap]), append(ends[key.gap], 0)
 		}
-		ends[at], lane[to] = lanes[to][1], at
+		ends[key.gap][at], lane[key] = spans[key][1], at
 	}
-	for _, k := range railed {
-		ed := page.Edges[k]
-		x, y, from := rail+lane[ed.To]*graphLane, above(ed.To), leaves[k]
-		c.Lines[k].Points = []image.Point{{c.Boxes[ed.From].Area.Max.X, from}, {x, from}, {x, y}, {centre(ed.To), y}, {centre(ed.To), c.Boxes[ed.To].Area.Min.Y - 1}}
+	// A gap holds the trunk, the words of its labelled lines, then its lanes.
+	inset, gap := make([]int, cols), make([]int, cols)
+	for k := range cols {
+		inset[k] = max(graphGapX/2, gutter[k])
+		gap[k] = max(graphGapX, inset[k]+(len(ends[k])+1)*graphLane)
 	}
-	c.Sheet = image.Pt(rail+len(ends)*graphLane+graphPad-graphLane, graphPad+rows*pitch-graphGapY+graphPad)
+	left, x := make([]int, cols), graphPad
+	for k := range widths {
+		left[k] = x
+		x += widths[k] + gap[k]
+	}
+	for i, n := range page.Nodes {
+		b := &c.Boxes[i]
+		b.Area.Min.X, b.Area.Max.X = left[n.Column], left[n.Column]+widths[n.Column]
+		for k := range b.Lines {
+			room := widths[n.Column] - 2*canvasBoxPad
+			if k == 0 {
+				room -= marks[i]
+			}
+			b.Lines[k] = editorClip(body, b.Lines[k], room)
+		}
+	}
+	centre := func(i int) int { return (c.Boxes[i].Area.Min.X + c.Boxes[i].Area.Max.X) / 2 }
+	c.Lines = make([]canvasLine, len(page.Edges))
+	for k, ed := range page.Edges {
+		l := canvasLine{Ink: editorPaper, Arrow: true, Over: ed.Marked, Label: said[k]}
+		if ed.Marked {
+			l.Ink = graphFlowInk
+		}
+		if route[k] != routeNone {
+			from, to := page.Nodes[ed.From], page.Nodes[ed.To]
+			a, b := c.Boxes[ed.From].Area, c.Boxes[ed.To].Area
+			switch route[k] {
+			case routeStraight:
+				l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {b.Min.X - 1, mid(to.Row)}}
+			case routeDown:
+				l.Points = []image.Point{{centre(ed.From), a.Max.Y}, {centre(ed.To), b.Min.Y - 1}}
+			case routeTrunk:
+				trunk := a.Max.X + graphGapX/2
+				l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {trunk, mid(from.Row)}, {trunk, mid(to.Row)}, {b.Min.X - 1, mid(to.Row)}}
+			case routeLane:
+				key := laneKey{from.Column, ed.To}
+				x, y := a.Max.X+inset[from.Column]+(lane[key]+1)*graphLane, above(ed.To)
+				l.Points = []image.Point{{a.Max.X, leaves[k]}, {x, leaves[k]}, {x, y}, {centre(ed.To), y}, {centre(ed.To), b.Min.Y - 1}}
+			}
+		}
+		c.Lines[k] = l
+	}
+	last := cols - 1
+	right := left[last] + widths[last]
+	if len(ends[last]) > 0 || gutter[last] > 0 {
+		right += inset[last] + len(ends[last])*graphLane
+	}
+	c.Sheet = image.Pt(right+graphPad, graphPad+rows*pitch-graphGapY+graphPad)
+	c.Legend = e.graphLegend(page)
 	return c
 }
 

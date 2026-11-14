@@ -31,16 +31,25 @@ func (v *Viewer) SetMissionCutscene(mission int) {
 	v.missionCutscene = mission
 	v.completionCutscene = ""
 	if mission > 0 {
-		v.completionCutscene = fmt.Sprintf("m%d", mission)
+		v.completionCutscene = MissionCutscenes(mission)
 	}
 }
+
+// StartCutscenes is the movie directory that plays when a new campaign's
+// first map is entered from character creation.
+const StartCutscenes = "start"
+
+// MissionCutscenes is the movie directory that plays on mission n's victory.
+func MissionCutscenes(n int) string { return fmt.Sprintf("m%d", n) }
 
 func (v *Viewer) SetCompletionCutscene(directory string) {
 	v.missionCutscene = 0
 	v.completionCutscene = directory
 }
 
-func numberedCutscenes(directory string) []string {
+// NumberedCutscenes are the names a directory's movies are asked by, in the
+// order they play: 01.smk to 99.smk.
+func NumberedCutscenes(directory string) []string {
 	names := make([]string, 99)
 	for n := range names {
 		names[n] = fmt.Sprintf("%s/%02d.smk", directory, n+1)
@@ -60,7 +69,7 @@ func (a *App) PlayStartupCutscenes() bool {
 func (a *App) startPendingCutscene() {
 	if directory := a.flow.completedCutscene; directory != "" {
 		a.flow.completedCutscene = ""
-		a.PlayCutsceneSequence(numberedCutscenes(directory))
+		a.PlayCutsceneSequence(NumberedCutscenes(directory))
 		return
 	}
 	v := a.flow.viewer
@@ -68,7 +77,7 @@ func (a *App) startPendingCutscene() {
 		return
 	}
 	v.entryCampaignStart = false
-	a.PlayCutsceneSequence(numberedCutscenes("start"))
+	a.PlayCutsceneSequence(NumberedCutscenes(StartCutscenes))
 }
 
 // PlayCutscene retains the existing destination screen. No input, map tick or

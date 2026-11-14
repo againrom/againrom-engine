@@ -2465,6 +2465,22 @@ automatic arrow writes `AutoGetMission = -1`; an empty Follows at once field
 keeps the install's link. Esc cancels a pending arrow. Open maps restores
 the map-opening clicks.
 
+The graph stands in levels by tens: missions 10 to 19 share one row in number
+order, 20 to 29 the row below, and so on. A chapter's town stands at the left
+of its level with its tavern talks, shop and school hand-outs in the column
+beside it, one row each. A main mission is one the campaign numbers by a whole
+ten; any other mission, and every mission a mod adds, is a side mission. Each
+kind has one colour, on its box's edge and the band at its top: start, main
+mission, side mission, town, tavern talk, shop or school, film. The legend
+above the graph names the kinds the graph shows, in the editor's language.
+
+A film node names the files the game plays: under the start the opening film
+(`start/01.smk` and the numbers after it), under a mission the film played
+when it is won (`m<N>/01.smk` and on). The graph asks the same lookup the game
+plays from, the install's video archive, so a film the install does not hold
+gets no node. A mod cannot add or replace a film. The second game has no
+graph.
+
 The selected mission uses the Missions page's party fields: Main party,
 Guest companion with its town grant, or a Party of one to eight named
 members, with the same level and equipment controls. These write only the

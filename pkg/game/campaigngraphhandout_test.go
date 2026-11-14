@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"againrom/internal/synth"
 	"againrom/pkg/mod"
@@ -57,39 +56,13 @@ func clickPick(t *testing.T, e *ui.MapEditor, s *mapInspectionEdits, prefix stri
 	t.Helper()
 	page := s.CampaignGraph()
 	i := slices.IndexFunc(page.Nodes, func(n ui.CampaignGraphNode) bool { return strings.HasPrefix(n.Pick, prefix) })
-	_, rects := e.PopupCanvasBoxes()
-	if i < 0 || i >= len(rects) || rects[i].Empty() {
-		t.Fatalf("no shown node picked %q in %q", prefix, graphLines(page))
+	if i < 0 {
+		t.Fatalf("no node picked %q in %q", prefix, graphLines(page))
 	}
-	p := rects[i].Min.Add(rects[i].Size().Div(2))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	clickCanvasBox(t, e, i)
 	if !strings.HasPrefix(s.handout, prefix) {
 		t.Fatalf("the click selected %q, not %q", s.handout, prefix)
 	}
-}
-
-// clickPickScrolled clicks the graph node whose pick starts with prefix,
-// turning the wheel over the graph while the node lies below the window.
-func clickPickScrolled(t *testing.T, e *ui.MapEditor, s *mapInspectionEdits, prefix string) {
-	t.Helper()
-	for range 12 {
-		page := s.CampaignGraph()
-		i := slices.IndexFunc(page.Nodes, func(n ui.CampaignGraphNode) bool { return strings.HasPrefix(n.Pick, prefix) })
-		_, rects := e.PopupCanvasBoxes()
-		if i < 0 || i >= len(rects) {
-			t.Fatalf("no node picked %q in %q", prefix, graphLines(page))
-		}
-		p := rects[i].Min.Add(rects[i].Size().Div(2))
-		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
-		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
-		if strings.HasPrefix(s.handout, prefix) {
-			return
-		}
-		top := rects[0].Min.Add(rects[0].Size().Div(2))
-		e.Pointer(ui.Input{CursorX: top.X, CursorY: top.Y, WheelY: -1}, time.Unix(1, 0))
-	}
-	t.Fatalf("the clicks selected %q, not %q", s.handout, prefix)
 }
 
 // handoutEdit is one edit of the graph's hand-out fields: the node it
@@ -306,7 +279,7 @@ func TestCampaignGraphHandoutPlaceChangeOfAModRow(t *testing.T) {
 				{"row shop 1 40 0 31", "building", "2"},
 				{"row tavern 1 40 8", "building", "1"},
 			} {
-				clickPickScrolled(t, e, s, edit.pick)
+				clickPick(t, e, s, edit.pick)
 				before, steps := workspaceBytes(s.workspace), len(s.undoWorkspace)
 				if err := graphField(t, e, edit.key, edit.value); err != nil {
 					t.Fatalf("%v: %v", edit, err)

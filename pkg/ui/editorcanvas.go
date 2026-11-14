@@ -15,24 +15,31 @@ import (
 // sheet's extent and At the sheet's point at the view's top-left corner;
 // the layout holds At inside the sheet. Height is the view's height in a
 // popup at its own size, zero for the whole sheet; a sized popup gives the
-// view its free height. A box that is not Inert takes a press.
+// view its free height. A box that is not Inert takes a press. Legend is
+// words stated over the view, each after a swatch of its ink; they stand
+// still while the sheet moves, and head is the height a layout gave them.
 type popupCanvas struct {
 	Sheet, At image.Point
 	Height    int
 	Boxes     []canvasBox
 	Lines     []canvasLine
+	Legend    []canvasMark
+	head      int
 }
 
 // canvasBox is one box of a canvas, Area in sheet pixels: its text lines
 // top down, and the marks drawn after its first line, each a short word in
 // its own ink. An inert box is a flat frame of Fill and Edge; a box that
-// takes a press is a push button. Tip reads whole under the box.
+// takes a press is a push button. Band, when set, is a strip across the
+// box's top in that colour, over the frame or the button alike. Tip reads
+// whole under the box.
 type canvasBox struct {
 	Area       image.Rectangle
 	Lines      []string
 	Marks      []canvasMark
 	Inert      bool
 	Fill, Edge color.RGBA
+	Band       color.RGBA
 	Tip        string
 }
 
@@ -59,16 +66,20 @@ const (
 	canvasLeastHeight = 48
 	// canvasBoxPad is the room between a box's edge and its text.
 	canvasBoxPad = 4
+	// canvasBand is where a box's band ends: it fills rows 1 to 3 inside the
+	// box's outer pixel, above the text's pad.
+	canvasBand = 4
 	// canvasArrow is an arrow head's length; it is half as wide again.
 	canvasArrow = 5
 )
 
-// height is the view's height in the popup, its gap below included.
+// height is the canvas's height in the popup: its legend, its view and the
+// gap below.
 func (c *popupCanvas) height() int {
 	if c == nil {
 		return 0
 	}
-	return c.Height + popupPad
+	return c.head + c.Height + popupPad
 }
 
 // least is the height a sized popup always keeps for the canvas.
@@ -76,7 +87,45 @@ func (c *popupCanvas) least() int {
 	if c == nil {
 		return 0
 	}
-	return canvasLeastHeight + popupPad
+	return c.head + canvasLeastHeight + popupPad
+}
+
+// canvasSwatch is the width of a legend word's swatch and the room after it.
+const canvasSwatch = 12
+
+// legendPlaces is where each legend word stands, its swatch first, relative
+// to the legend's corner, in lines a text line and a gap high that wrap at
+// width; and the height the lines take.
+func (c *popupCanvas) legendPlaces(body *text.Font, width int) ([]image.Rectangle, int) {
+	if c == nil || len(c.Legend) == 0 {
+		return nil, 0
+	}
+	line := fontHeight(body, 15) + 4
+	out, x, y := make([]image.Rectangle, len(c.Legend)), 0, 0
+	for i, m := range c.Legend {
+		w := 2*canvasSwatch + 7*len(m.Text)
+		if body != nil {
+			w = 2*canvasSwatch + body.Advance(m.Text)
+		}
+		if x > 0 && x+w > width {
+			x, y = 0, y+line
+		}
+		out[i] = image.Rect(x, y, x+w, y+line)
+		x += w + canvasSwatch
+	}
+	return out, y + line
+}
+
+// legendWords is the legend's words in order.
+func (c *popupCanvas) legendWords() []string {
+	if c == nil {
+		return nil
+	}
+	out := make([]string, len(c.Legend))
+	for i, m := range c.Legend {
+		out[i] = m.Text
+	}
+	return out
 }
 
 // texts is each box as one line of text: its lines that hold any, then its
@@ -111,16 +160,18 @@ func (c *popupCanvas) labels() []string {
 }
 
 // fitCanvas is popup s's canvas with the height its view takes, the rest
-// of the popup rest pixels high: the free height of a sized popup; else the
-// sheet's height, up to the spec's own Height or, when it names none, to
-// the room below the popup's corner.
-func fitCanvas(s popupSpec, rest, sizedH int, sized bool) *popupCanvas {
+// of the popup rest pixels high and its legend head pixels over the view:
+// the free height of a sized popup; else the sheet's height, up to the
+// spec's own Height or, when it names none, to the room below the popup's
+// corner.
+func fitCanvas(s popupSpec, rest, head, sizedH int, sized bool) *popupCanvas {
 	c := s.Canvas
 	if c == nil {
 		return nil
 	}
 	fit := *c
-	free := func(h int) int { return max(canvasLeastHeight, h-rest-popupPad) }
+	fit.head = head
+	free := func(h int) int { return max(canvasLeastHeight, h-rest-head-popupPad) }
 	room := gridRoom(s)
 	switch {
 	case sized:
@@ -135,12 +186,17 @@ func fitCanvas(s popupSpec, rest, sizedH int, sized bool) *popupCanvas {
 	return &fit
 }
 
-// placeCanvas lays canvas c at y inside popup rectangle r: its view, the
-// bar of a sheet taller than the view, the sheet point shown and each box's
-// place in the window, a control row under the box's number. It answers the
-// y below the canvas.
-func (l *popupLayout) placeCanvas(c *popupCanvas, r image.Rectangle, y int) int {
-	view := image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad, y+c.Height)
+// placeCanvas lays canvas c at y inside popup rectangle r: its legend, its
+// view under the legend, the bar of a sheet taller than the view, the sheet
+// point shown and each box's place in the window, a control row under the
+// box's number. It answers the y below the canvas.
+func (l *popupLayout) placeCanvas(c *popupCanvas, r image.Rectangle, y int, legend []image.Rectangle) int {
+	corner := image.Pt(r.Min.X+popupPad, y)
+	l.CanvasLegend = make([]image.Rectangle, len(legend))
+	for i, at := range legend {
+		l.CanvasLegend[i] = at.Add(corner)
+	}
+	view := image.Rect(r.Min.X+popupPad, y+c.head, r.Max.X-popupPad, y+c.head+c.Height)
 	if c.Sheet.Y > view.Dy() {
 		l.CanvasBar = image.Rect(view.Max.X-widgetSpriteSize, view.Min.Y, view.Max.X, view.Max.Y)
 		view.Max.X -= widgetSpriteSize + 2
@@ -154,6 +210,22 @@ func (l *popupLayout) placeCanvas(c *popupCanvas, r image.Rectangle, y int) int 
 		l.CanvasBoxes[i], l.CanvasInert[i] = controlRow{id: i, rect: b.Area.Add(shift)}, b.Inert
 	}
 	return y + c.height()
+}
+
+// drawCanvasLegend paints the canvas's legend: each word's swatch in its
+// ink, then the word in the popup's label ink.
+func drawCanvasLegend(dst *image.RGBA, body *text.Font, c *popupCanvas, l popupLayout, ink popupInk) {
+	for i, at := range l.CanvasLegend {
+		if i >= len(c.Legend) {
+			return
+		}
+		m := c.Legend[i]
+		swatch := image.Rect(at.Min.X, at.Min.Y+3, at.Min.X+canvasSwatch, at.Max.Y-3).Intersect(l.Rect)
+		draw.Draw(dst, swatch, &image.Uniform{C: m.Ink}, image.Point{}, draw.Src)
+		if body != nil {
+			body.Draw(dst.SubImage(at.Intersect(l.Rect)).(*image.RGBA), m.Text, at.Min.X+2*canvasSwatch-canvasSwatch/2, at.Min.Y+2, ink.Label)
+		}
+	}
 }
 
 // canvasBar is the scroll bar of a canvas whose sheet is taller than its
@@ -232,10 +304,16 @@ func (l popupLayout) canvasButtons(c *popupCanvas, over int, held *buttonPress) 
 	return out
 }
 
-// drawCanvasWords paints the canvas's text: each line's label on the ground,
-// over the line, then the text of each box that shows, over its frame or
-// button: its lines, and its marks after the first line.
+// drawCanvasWords paints each box's band over its frame or button, then the
+// canvas's text: each line's label on the ground, over the line, then the
+// text of each box that shows: its lines, and its marks after the first line.
 func drawCanvasWords(dst *image.RGBA, body *text.Font, c *popupCanvas, l popupLayout, ink popupInk, over int) {
+	for i, b := range c.Boxes {
+		if r := l.CanvasBoxes[i].rect; b.Band != (color.RGBA{}) {
+			band := image.Rect(r.Min.X+1, r.Min.Y+1, r.Max.X-1, r.Min.Y+canvasBand).Intersect(l.Canvas.Inset(1))
+			draw.Draw(dst, band, &image.Uniform{C: b.Band}, image.Point{}, draw.Src)
+		}
+	}
 	if body == nil {
 		return
 	}

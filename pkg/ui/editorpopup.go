@@ -592,11 +592,13 @@ type popupLayout struct {
 	// Canvas is the canvas's view, CanvasBar its scroll bar, CanvasAt the
 	// sheet point at the view's corner, CanvasBoxes each box's place in the
 	// window, a row under the box's number that the draw reads and the hit
-	// test asks, and CanvasInert the boxes that take no press.
+	// test asks, CanvasInert the boxes that take no press, and CanvasLegend
+	// each legend word's place, its swatch first.
 	Canvas, CanvasBar image.Rectangle
 	CanvasAt          image.Point
 	CanvasBoxes       controlLayout
 	CanvasInert       []bool
+	CanvasLegend      []image.Rectangle
 	// Drop is the card, counted among the spec's card rows, that a held card
 	// lands before, the card count for after the last, -1 for no drag;
 	// Marker is the bar drawn at that gap while the drop moves the card.
@@ -1192,7 +1194,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	h += flow.buttonLines * (pitch + 4 + popupPad)
 	s.Grid = fitGrid(s, w, h, sizedH, sized)
 	h += s.Grid.height()
-	s.Canvas = fitCanvas(s, h, sizedH, sized)
+	legend, head := s.Canvas.legendPlaces(body, w-2*popupPad)
+	s.Canvas = fitCanvas(s, h, head, sizedH, sized)
 	h += s.Canvas.height()
 	if sized {
 		h = max(h, sizedH)
@@ -1417,7 +1420,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		y = top + g.height()
 	}
 	if c := s.Canvas; c != nil {
-		y = l.placeCanvas(c, r, y)
+		y = l.placeCanvas(c, r, y, legend)
 	}
 	if s.List != nil {
 		if len(flow.listHeads) > 0 {
@@ -1979,6 +1982,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			drawPushButton(clip, body, b)
 		}
 		drawCanvasWords(dst, body, c, l, ink, over)
+		drawCanvasLegend(dst, body, c, l, ink)
 		if !l.CanvasBar.Empty() {
 			drawVScrollBar(dst, frames, l.canvasBar(c).withPointer(pointer, pointerOK))
 		}

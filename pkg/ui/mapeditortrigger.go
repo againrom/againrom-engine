@@ -1199,7 +1199,7 @@ func (e *MapEditor) PopupLines() []string {
 		}
 		out = append(out, strings.TrimSpace(mark+r.Label+" "+r.Value))
 	}
-	return append(append(append(out, s.Canvas.texts()...), s.Canvas.labels()...), s.Notes...)
+	return append(append(append(append(out, s.Canvas.legendWords()...), s.Canvas.texts()...), s.Canvas.labels()...), s.Notes...)
 }
 
 // PopupCanvasBoxes are the boxes of the shown object popup's canvas: each
@@ -1215,6 +1215,16 @@ func (e *MapEditor) PopupCanvasBoxes() (texts []string, rects []image.Rectangle)
 		rects[i] = row.rect
 	}
 	return s.Canvas.texts(), rects
+}
+
+// PopupCanvasView is the window rectangle the shown object popup's canvas
+// shows its sheet in, empty for none.
+func (e *MapEditor) PopupCanvasView() image.Rectangle {
+	s, _, ok := e.objectSpec()
+	if !ok || s.Canvas == nil {
+		return image.Rectangle{}
+	}
+	return layoutPopup(s, e.font, e.bodyFont()).Canvas
 }
 
 // PopupRowButtons are the captions of popup row n's own buttons.

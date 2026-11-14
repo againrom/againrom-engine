@@ -428,6 +428,56 @@ func TestCampaignGraphLayoutComesFromItsData(t *testing.T) {
 	}
 }
 
+// Each box's edge and band carry its kind's colour from the one table, its
+// ground stays the panel's so its words read, the kinds differ in colour,
+// and the legend names each kind shown in the table's order, in English and
+// in Russian. A film box names its files.
+func TestCampaignGraphColoursEachKindFromOneTable(t *testing.T) {
+	page := CampaignGraphPage{Nodes: []CampaignGraphNode{
+		{Kind: GraphStart},
+		{Kind: GraphFilm, Title: "start/01.smk", Row: 1},
+		{Kind: GraphMission, Number: 10, Column: 2, Row: 1, Source: "map1"},
+		{Kind: GraphMission, Number: 11, Column: 3, Row: 1, Source: "map2", Side: true},
+		{Kind: GraphTown, Number: 20, Row: 2},
+		{Kind: GraphHandout, Place: GraphInn, Number: 5, Column: 1, Row: 2},
+	}, Edges: []CampaignGraphEdge{{From: 0, To: 1}, {From: 0, To: 2}, {From: 2, To: 3}, {From: 2, To: 4}, {From: 4, To: 5}}}
+	e, _ := graphEditor(t, page)
+	c := e.graphCanvas(page)
+	inks := map[color.RGBA]graphKind{}
+	for k, kind := range graphKinds {
+		if was, ok := inks[kind.ink]; ok {
+			t.Errorf("kinds %d and %d share the colour %v", was, k, kind.ink)
+		}
+		inks[kind.ink] = graphKind(k)
+	}
+	for i, n := range page.Nodes {
+		b := c.Boxes[i]
+		if want := graphKinds[graphKindOf(n)].ink; b.Band != want || b.Edge != want || GraphInk(n) != want {
+			t.Errorf("node %d: band %v edge %v, its kind's colour %v", i, b.Band, b.Edge, want)
+		}
+		if b.Fill != editorPanel {
+			t.Errorf("node %d is filled %v", i, b.Fill)
+		}
+	}
+	if film := c.Boxes[1].Lines; len(film) != 2 || film[1] != "start/01.smk" {
+		t.Errorf("the film box reads %q", film)
+	}
+	for _, lang := range []string{"en", "ru"} {
+		e.SetWords(words.For(lang))
+		var want []string
+		for _, key := range []string{"start", "main", "side", "town", "talk", "film"} {
+			want = append(want, words.For(lang).Text("editor.graph.kind."+key))
+		}
+		var got []string
+		for _, m := range e.graphLegend(page) {
+			got = append(got, m.Text)
+		}
+		if !slices.Equal(got, want) {
+			t.Errorf("%s legend %q, want %q", lang, got, want)
+		}
+	}
+}
+
 // An arrow that holds for some heroes only carries their word, in English
 // and in Russian. It leaves its mission's side at a level of its own, runs
 // to a lane past the word and ends in its target's top; the page's lines
