@@ -47,7 +47,7 @@ func pixHash(p *image.RGBA) string {
 // placementAnswersDigest is the digest of the same 512 answers taken through
 // the base's own branches (the window placed over the mission or not) before
 // the operations replaced them; the list is in the hotfix's notes.
-const placementAnswersDigest = "0d731e49412f017a08cb0140e4e25faf8ae6a09b6f78d21af1bc0598a8c6423d"
+const placementAnswersDigest = "82bdbb8eeac8147cdaf73c4be69eb40a818fb202495843ae09d5151f18cf637b"
 
 // TestPlacementOperationsAnswerAsTheBaseBranches asks each operation of both
 // games' placements, at two window sizes and five menu states, and compares

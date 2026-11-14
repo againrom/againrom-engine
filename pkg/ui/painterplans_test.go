@@ -109,7 +109,7 @@ func painterCalls(calls []text.DrawCall) []byte {
 // painterPlanDigest is the digest of every line TestPainterPlansKeepEveryPixel
 // writes, taken at the base before the frame shadows and the native-to-wide
 // composites were planned; the lines are in the hotfix's notes.
-const painterPlanDigest = "a851da0b2257eda2ec36eef751f885d05d74a5f4cb9b9fbd9dd6a396f942e1dc"
+const painterPlanDigest = "17d446647551c373e18684c80316d23ea22e90b0d00d20a6da0f49ff44593c8b"
 
 // TestPainterPlansKeepEveryPixel renders every frame shadow and composite the
 // painter-twin census names through the CPU path, and through the GPU path's

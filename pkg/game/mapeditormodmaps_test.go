@@ -114,7 +114,7 @@ func TestEditorListsAndOpensEveryMapOfTheMod(t *testing.T) {
 			if err := workspaceField(e, "metadata", 0, "Spare"); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := spare.TestPlay(); err == nil || !strings.Contains(err.Error(), "gone.alm") {
+			if _, err := spare.TestPlay(); err == nil || !strings.Contains(err.Error(), "m3: ") || !strings.Contains(err.Error(), lang.missing) {
 				t.Fatal("test play of a map no mission names:", err)
 			}
 
