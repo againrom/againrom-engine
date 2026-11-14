@@ -344,6 +344,28 @@ func (s *mapInspectionEdits) projectFiles(d *editorModDocument) []string {
 	return held
 }
 
+func (x *MapInspector) rowFiles(m *mod.Mission, view map[string][]byte) error {
+	if view == nil || m.Map == "" {
+		return m.ReadFiles(x.mod.dir)
+	}
+	b, drafted := view[m.Map]
+	missing := fmt.Errorf("%s: %s", m.Key, x.word("editor.mod.err.mapmissing"))
+	if drafted && len(b) == 0 {
+		return missing
+	}
+	err := m.ReadFiles(x.mod.dir)
+	if _, _, e := mod.MissionMap.ReadIn(x.mod.dir, m.Map); e != nil {
+		if !drafted {
+			return missing
+		}
+		err = nil
+	}
+	if drafted {
+		m.MapBytes = bytes.Clone(b)
+	}
+	return err
+}
+
 func (x *MapInspector) missionFiles(rows []mod.Mission, pending map[string][]byte) error {
 	for i := range rows {
 		m := &rows[i]
@@ -362,11 +384,18 @@ func (x *MapInspector) missionFiles(rows []mod.Mission, pending map[string][]byt
 	return nil
 }
 
-func (x *MapInspector) checkMissionSet(missions []mod.Mission) error {
+func (x *MapInspector) checkMissionSet(missions []mod.Mission, view map[string][]byte) error {
 	if x.mod != nil && x.mod.loaded != nil && slices.ContainsFunc(missions, func(m mod.Mission) bool { return m.Kind == mod.MissionCampaign || m.Campaign() && m.GuestParty() }) {
 		rows := make([]mod.Mission, len(missions))
 		for i, m := range missions {
 			rows[i] = mod.CloneMission(m)
+		}
+		for i := range rows {
+			if m := &rows[i]; !m.Off && m.Map != "" && view != nil {
+				if err := x.rowFiles(m, view); err != nil {
+					return err
+				}
+			}
 		}
 		if err := x.missionFiles(rows, nil); err != nil {
 			return err
@@ -389,7 +418,7 @@ func (x *MapInspector) checkMissionSet(missions []mod.Mission) error {
 	}
 	for _, m := range d.Missions {
 		if len(m.MapBytes) == 0 && x.mod != nil {
-			if e := m.ReadFiles(x.mod.dir); e != nil {
+			if e := x.rowFiles(&m, view); e != nil {
 				return e
 			}
 		}

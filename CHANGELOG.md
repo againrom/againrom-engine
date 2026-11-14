@@ -40,6 +40,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor F5 "who plays the map" window: on Standard it no longer shows the character boxes that could not be changed, and every character box stays pressable after the window was made narrower or switched from Standard to Custom.
 - [BASE] Map editor campaign graph: cards stand further apart, each town lists its hand-outs side mission first, then main mission, then none, and the lines no longer cross or run close together.
 - [BASE] The map editor's mod window lists each map no mission uses on its Missions page, with Make mission and Replace, and each map that replaces a mission by its file name, with Make row; "Add map without mission" copies the open map into the mod, "Add folder of maps" adds every map of a folder, and F5 on an unused map plays it as a guest mission with the mod active.
+- [BASE] Map editor: F5 now plays a mod's unsaved maps, so a map added from a folder or made a mission needs no Ctrl+S first, and the mod window's bottom buttons stay on screen at 640 by 480 when its page is scrolled.
 
 ## 0.154.0
 

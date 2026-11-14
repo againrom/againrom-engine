@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -59,7 +60,7 @@ func reopened(t *testing.T, f *testPlayFixture, dir string) mod.MissionData {
 	if err != nil {
 		t.Fatal("the saved mod's rows are refused:", err)
 	}
-	if err := f.x.checkMissionSet(d.Missions); err != nil {
+	if err := f.x.checkMissionSet(d.Missions, nil); err != nil {
 		t.Fatal("the saved mod does not check clean:", err)
 	}
 	return d
@@ -355,6 +356,74 @@ func TestAddFolderOfMapsSkipsDotFilesInAPagesFolder(t *testing.T) {
 			}
 			if !slices.ContainsFunc(slices.Collect(mapKeys(s.workspace.Project.Files)), func(k string) bool { return strings.HasSuffix(k, "title.txt") }) {
 				t.Fatal("the map's own page file was not taken")
+			}
+		})
+	}
+}
+
+func addAlphaFolder(t *testing.T, spare *mapInspectionEdits) {
+	t.Helper()
+	folder := t.TempDir()
+	if err := os.WriteFile(filepath.Join(folder, "alpha.alm"), spare.model.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := spare.SetWorkspaceField("package", "addmaps", folder); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTestPlayPlaysTheUnsavedDraftOfAddedMaps(t *testing.T) {
+	for _, lang := range makeMapLangs {
+		t.Run("lang="+lang.book, func(t *testing.T) {
+			f, _, spare, dir := makeMapEditor(t, lang.book)
+			addAlphaFolder(t, spare)
+			if _, err := spare.SetWorkspaceField("package", "makemission", "maps/alpha.alm"); err != nil {
+				t.Fatal(err)
+			}
+			modBefore, profileBefore := tree(t, dir), tree(t, f.profile)
+			if _, err := spare.TestPlay(); err != nil {
+				t.Fatal("test play of the unsaved draft:", err)
+			}
+			if len(f.started) != 1 {
+				t.Fatalf("the game started %d times", len(f.started))
+			}
+			if !reflect.DeepEqual(modBefore, tree(t, dir)) {
+				t.Fatal("test play wrote the mod folder")
+			}
+			if _, ok := tree(t, dir)["maps/alpha.alm"]; ok {
+				t.Fatal("the draft's map reached the mod folder")
+			}
+			after := tree(t, f.profile)
+			for name := range after {
+				if _, ok := profileBefore[name]; !ok && !strings.HasPrefix(name, "testplay/") {
+					t.Fatal("test play wrote the profile outside its mods folder:", name)
+				}
+			}
+			for name, body := range profileBefore {
+				if after[name] != body {
+					t.Fatal("test play changed the profile file", name)
+				}
+			}
+			if after["testplay/ambush/maps/alpha.alm"] == "" {
+				t.Fatal("the test mod does not carry the draft's map")
+			}
+		})
+	}
+}
+
+func TestTestPlayRefusesARowWhoseMapTheDraftLacksInEditorWords(t *testing.T) {
+	for _, lang := range makeMapLangs {
+		t.Run("lang="+lang.book, func(t *testing.T) {
+			f, _, spare, _ := makeMapEditor(t, lang.book)
+			addAlphaFolder(t, spare)
+			if _, err := spare.SetWorkspaceField("package", "makemission", "maps/alpha.alm"); err != nil {
+				t.Fatal(err)
+			}
+			delete(spare.workspace.Project.Files, "maps/alpha.alm")
+			_, err := spare.TestPlay()
+			want := map[string]string{"": "the mod holds no file of this map", "ru": "в моде нет файла этой карты"}[lang.book]
+			if err == nil || !strings.Contains(err.Error(), want) || strings.Contains(err.Error(), "no such file") || len(f.started) != 0 {
+				t.Fatalf("a row whose map the draft lacks: %v, started %d", err, len(f.started))
 			}
 		})
 	}

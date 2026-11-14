@@ -597,11 +597,15 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	}
 	s.MaxRows = max(3, (e.popupRoom().Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))
 	// Rows give way until a wrapped button row fits the editor window.
-	for s.MaxRows > 3 && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > s.Bounds.Dy() {
+	want := e.objectTop
+	for {
+		e.objectTop = max(0, min(want, max(0, popupRowCount(s)-s.MaxRows)))
+		s.Top = e.objectTop
+		if s.MaxRows <= 3 || layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() <= s.Bounds.Dy() {
+			break
+		}
 		s.MaxRows--
 	}
-	e.objectTop = max(0, min(e.objectTop, max(0, popupRowCount(s)-s.MaxRows)))
-	s.Top = e.objectTop
 	// Only the graph page keeps its rows still above a canvas that scrolls
 	// alone; every other page is one list of rows that the wheel and the
 	// bar move together, so a one-column page shows the rows it scrolled to.
