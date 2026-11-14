@@ -140,7 +140,7 @@ func missionShortcutMarks(p missionKeyAction, k PlayerMissionKeys) []string {
 			marks, shifted = append(marks, ""), append(shifted, false)
 		}
 		if marks[b.index] == "" || shifted[b.index] && b.shift != modHeld {
-			marks[b.index] = MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()
+			marks[b.index] = rowChord(b).caption()
 			shifted[b.index] = b.shift == modHeld
 		}
 	}

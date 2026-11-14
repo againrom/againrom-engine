@@ -115,7 +115,7 @@ func missionKeyCaptions(p missionKeyAction, k PlayerMissionKeys, s missionKeySlo
 		if b.fixed && !b.listed || b.slot() != s {
 			continue
 		}
-		c := MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()
+		c := rowChord(b).caption()
 		if !strings.Contains(c, "+") && !slices.Contains(plain, c) {
 			plain = append(plain, c)
 		}
