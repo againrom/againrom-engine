@@ -52,19 +52,6 @@ func (e *MapEditor) askSpeaker(unit int, name string, back func()) {
 	e.cancelRestore = saved
 }
 
-// speakerPictureRequest is what the picture's window lists: PNG files, from
-// the host's folder, else the editor's base folder.
-func (e *MapEditor) speakerPictureRequest(host InspectionSpeakerRecords) pathdialog.Request {
-	dir := host.SpeakerPictureFolder()
-	if dir == "" {
-		dir = e.pathDialog.baseDir
-	}
-	return pathdialog.Request{
-		Kind: pathdialog.OpenFile, Title: e.word("editor.speaker.add.picture"), StartDir: dir,
-		Filters: []pathdialog.Filter{{Name: e.word("editor.speaker.add.pictures"), Extensions: []string{"png"}}},
-	}
-}
-
 // speakerPromptStep takes the record's name and asks for its picture. An
 // empty name leaves the prompt open.
 func (e *MapEditor) speakerPromptStep(value string) error {
@@ -80,15 +67,14 @@ func (e *MapEditor) speakerPromptStep(value string) error {
 	}
 	unit, back := p.unit, p.back
 	e.dropPrompt()
-	if !e.hasPathDialog() {
-		e.speakerPictureFailed(back, nil)
-		return nil
-	}
-	e.askChoice(pathChoice{
-		request:   e.speakerPictureRequest(host),
+	e.askPathQuestion(pathQuestion{
+		kind:      pathdialog.OpenFile,
+		title:     e.word("editor.speaker.add.picture"),
+		filters:   []pathdialog.Filter{{Name: e.word("editor.speaker.add.pictures"), Extensions: []string{"png"}}},
+		start:     host.SpeakerPictureFolder,
 		chosen:    func(path string) { e.speakerPictureChosen(host, unit, name, path, back) },
 		cancelled: back,
-		failed:    func(err error) { e.speakerPictureFailed(back, err) },
+		fallback:  func(err error) { e.speakerPictureFailed(back, err) },
 	})
 	return nil
 }

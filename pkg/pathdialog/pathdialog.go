@@ -32,6 +32,11 @@ type Request struct {
 	DefaultName string
 }
 
+// NewRequest is the one builder of a Request.
+func NewRequest(kind Kind, title, startDir string, filters ...Filter) Request {
+	return Request{Kind: kind, Title: title, StartDir: startDir, Filters: filters}
+}
+
 type Result struct {
 	Path      string
 	Cancelled bool

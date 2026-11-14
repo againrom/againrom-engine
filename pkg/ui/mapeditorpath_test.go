@@ -210,7 +210,7 @@ func TestEditorSaveAsStartsInTheHostsSaveFolder(t *testing.T) {
 		{"", pathdialog.SaveFile, base},
 	} {
 		edits.folder = c.folder
-		if got := e.pathRequest(c.kind).StartDir; got != c.want {
+		if got := e.questionRequest(e.mapQuestion(c.kind)).StartDir; got != c.want {
 			t.Errorf("folder %q kind %v starts in %q, want %q", c.folder, c.kind, got, c.want)
 		}
 	}
@@ -226,19 +226,19 @@ func TestEditorOpenStartsInTheMapsFolder(t *testing.T) {
 	e.doc.Source = filepath.Join(own, "own.alm")
 	e.SetPathDialog(nil, base)
 	maps := filepath.Join(base, "profile", "maps")
-	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != own {
+	if got := e.questionRequest(e.mapQuestion(pathdialog.OpenFile)).StartDir; got != own {
 		t.Fatalf("no maps folder named: Open starts in %q, want the open map's folder %q", got, own)
 	}
 	answer := maps
 	e.SetMapsFolder(func() string { return answer })
-	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != maps {
+	if got := e.questionRequest(e.mapQuestion(pathdialog.OpenFile)).StartDir; got != maps {
 		t.Errorf("Open starts in %q, want the maps folder %q", got, maps)
 	}
-	if got := e.pathRequest(pathdialog.SaveFile).StartDir; got != edits.folder {
+	if got := e.questionRequest(e.mapQuestion(pathdialog.SaveFile)).StartDir; got != edits.folder {
 		t.Errorf("Save As starts in %q, want the host's save folder %q", got, edits.folder)
 	}
 	answer = ""
-	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != own {
+	if got := e.questionRequest(e.mapQuestion(pathdialog.OpenFile)).StartDir; got != own {
 		t.Errorf("an empty maps folder: Open starts in %q, want %q", got, own)
 	}
 }

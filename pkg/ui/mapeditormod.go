@@ -204,20 +204,22 @@ func (e *MapEditor) modButton(n int) error {
 	if e.modPage == modPageGraph && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
 		return nil
 	}
-	switch key := modButtons[n].action; key {
-	case "close":
-		e.closeObject()
-		return nil
-	case "open":
+	key := modButtons[n].action
+	if ask := modPathRows[key]; ask != nil {
 		// A typed field edit is applied first, as the other buttons do, so the
-		// route asks about unsaved changes with it; the folder field holds a
-		// path, not a mod edit, and stays as typed.
-		if o := e.obj; o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Key != "folder" {
+		// route asks about unsaved changes with it; a field that asks a path
+		// holds a path, not a mod edit, and stays as typed.
+		if f, ok := e.modFocusField(); ok && modPathRows[f.Key] == nil {
 			if err := e.applyModField(); err != nil {
 				return err
 			}
 		}
-		e.openModChoice()
+		e.askPathQuestion(ask(e))
+		return nil
+	}
+	switch key {
+	case "close":
+		e.closeObject()
 		return nil
 	default:
 		if err := e.applyModField(); err != nil {
@@ -227,50 +229,60 @@ func (e *MapEditor) modButton(n int) error {
 	}
 }
 
-// openModChoice asks the host's path window for a mod to open: its mod.toml
-// or a packed mod-<id>.res. The answer goes the folder field's own route,
-// which asks about unsaved changes before it opens the mod. With no window
-// the folder field takes the path.
-func (e *MapEditor) openModChoice() {
-	if !e.hasPathDialog() {
-		e.modOpenTyped(nil)
-		return
-	}
-	r := pathdialog.Request{Kind: pathdialog.OpenFile, Title: e.plainWord("editor.mod.openmod"), StartDir: e.pathDialog.baseDir,
-		Filters: []pathdialog.Filter{{Name: e.plainWord("editor.mod.openfilter"), Extensions: []string{"toml", "res"}}}}
-	if e.pathDialog.mapsFolder != nil {
-		if dir := e.pathDialog.mapsFolder(); dir != "" {
-			r.StartDir = dir
-		}
-	}
-	for _, f := range e.obj.fields {
-		if folder := strings.TrimSpace(fieldInput(f)); f.Key == "folder" && filepath.IsAbs(folder) {
-			r.StartDir = filepath.Dir(filepath.Clean(folder))
-		}
-	}
-	e.askChoice(pathChoice{
-		request:   r,
-		chosen:    func(path string) { _ = e.modAction("folder", path) },
-		cancelled: func() {},
-		failed:    e.modOpenTyped,
-	})
+// modPathRows are the path questions of W's rows by the field, button or row
+// button key; Publish folder asks none: it is typed.
+var modPathRows = map[string]func(*MapEditor) pathQuestion{
+	"folder":  func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
+	"open":    func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
+	"addmaps": (*MapEditor).mapsFolderQuestion,
 }
 
-// modFolderShown reports that W's folder field holds the focus as shown: a
-// press on it or Enter opens the path window; a typed folder is edited.
-func (e *MapEditor) modFolderShown() bool {
+// modOpenQuestion asks for a mod.toml or mod-<id>.res, from the folder of an
+// absolute path in field, else the maps folder; field's route takes the answer.
+func (e *MapEditor) modOpenQuestion(field string) pathQuestion {
+	return pathQuestion{
+		kind:    pathdialog.OpenFile,
+		title:   e.plainWord("editor.mod.openmod"),
+		filters: []pathdialog.Filter{{Name: e.plainWord("editor.mod.openfilter"), Extensions: []string{"toml", "res"}}},
+		start: func() string {
+			start := e.mapsStart()
+			for _, f := range e.obj.fields {
+				if folder := strings.TrimSpace(fieldInput(f)); f.Key == field && filepath.IsAbs(folder) {
+					start = filepath.Dir(filepath.Clean(folder))
+				}
+			}
+			return start
+		},
+		chosen:   func(path string) { _ = e.modAction(field, path) },
+		fallback: func(err error) { e.modOpenTyped(field, err) },
+	}
+}
+
+// modFocusField is W's field that holds the focus; false on a button.
+func (e *MapEditor) modFocusField() (InspectionField, bool) {
+	if o := &e.obj; o.focus >= 0 && o.focus < len(o.fields) {
+		return o.fields[o.focus], true
+	}
+	return InspectionField{}, false
+}
+
+// modPathShown is the path question of W's focused field as shown, which a
+// press or Enter asks; nil for a typed path or a field that asks none.
+func (e *MapEditor) modPathShown() func(*MapEditor) pathQuestion {
 	o := &e.obj
 	if !e.modWindow || e.prompt.open() || o.focus < 0 || o.focus >= len(o.fields) || o.focus >= len(o.buf) {
-		return false
+		return nil
 	}
-	f := o.fields[o.focus]
-	return f.Key == "folder" && !f.ReadOnly && o.buf[o.focus] == fieldInput(f)
+	if f := o.fields[o.focus]; !f.ReadOnly && o.buf[o.focus] == fieldInput(f) {
+		return modPathRows[f.Key]
+	}
+	return nil
 }
 
-// modOpenTyped focuses W's folder field and says to type the mod's path
-// there; err is why the host showed no window, nil when it has none.
-func (e *MapEditor) modOpenTyped(err error) {
-	e.FocusModField("folder")
+// modOpenTyped focuses W's field and says to type the mod's path there; err
+// is why the host showed no window, nil when it has none.
+func (e *MapEditor) modOpenTyped(field string, err error) {
+	e.FocusModField(field)
 	if err == nil || errors.Is(err, pathdialog.ErrUnavailable) {
 		e.modStatus = e.plainWord("editor.mod.nodialog")
 		return
@@ -401,12 +413,12 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Action {
 			return true, e.modAction(o.fields[o.focus].Key, "")
 		}
-		if e.modFolderShown() {
-			e.openModChoice()
+		if ask := e.modPathShown(); ask != nil {
+			e.askPathQuestion(ask(e))
 			return true, nil
 		}
-		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Key == "folder" {
-			return true, e.modAction("folder", o.buf[o.focus])
+		if f, ok := e.modFocusField(); ok && modPathRows[f.Key] != nil {
+			return true, e.modAction(f.Key, o.buf[o.focus])
 		}
 		if o.focus >= 0 && o.focus < len(o.fields) && len(o.fields[o.focus].Choices) > 0 && o.buf[o.focus] == fieldInput(o.fields[o.focus]) {
 			e.objectRowPress(popupRowControl, e.fieldRow(o.focus))
@@ -665,32 +677,23 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 	add(popupRow{Kind: popupText, Label: e.word("editor.mod.addmaps.label"), Buttons: []string{e.word("editor.mod.addmaps")}, Column: 0}, []string{"addmaps"}, []string{""})
 }
 
-// askMapsFolder asks the host's folder window for maps to add, else a typed path.
-func (e *MapEditor) askMapsFolder() {
-	typed := func(err error) {
-		e.openPrompt(editorPrompt{kind: promptMapsFolder})
-		if err != nil && !errors.Is(err, pathdialog.ErrUnavailable) {
-			e.message = fmt.Sprintf(e.plainWord("editor.mod.addmaps.typepath"), err)
-		} else {
-			e.message = e.plainWord("editor.mod.addmaps.nodialog")
-		}
+// mapsFolderQuestion asks for a folder of maps to add; the fallback is the
+// typed maps folder line.
+func (e *MapEditor) mapsFolderQuestion() pathQuestion {
+	return pathQuestion{
+		kind:   pathdialog.ChooseFolder,
+		title:  e.plainWord("editor.mod.addmaps.title"),
+		start:  e.mapsStart,
+		chosen: func(path string) { _ = e.modAction("addmaps", path) },
+		fallback: func(err error) {
+			e.openPrompt(editorPrompt{kind: promptMapsFolder})
+			if err != nil && !errors.Is(err, pathdialog.ErrUnavailable) {
+				e.message = fmt.Sprintf(e.plainWord("editor.mod.addmaps.typepath"), err)
+			} else {
+				e.message = e.plainWord("editor.mod.addmaps.nodialog")
+			}
+		},
 	}
-	if !e.hasPathDialog() {
-		typed(nil)
-		return
-	}
-	r := pathdialog.Request{Kind: pathdialog.ChooseFolder, Title: e.plainWord("editor.mod.addmaps.title"), StartDir: e.pathDialog.baseDir}
-	if e.pathDialog.mapsFolder != nil {
-		if dir := e.pathDialog.mapsFolder(); dir != "" {
-			r.StartDir = dir
-		}
-	}
-	e.askChoice(pathChoice{
-		request:   r,
-		chosen:    func(path string) { _ = e.modAction("addmaps", path) },
-		cancelled: func() {},
-		failed:    typed,
-	})
 }
 
 // modOverviewRows lays W's overview page: a heading per section and its
@@ -777,8 +780,8 @@ func (e *MapEditor) modPress(p image.Point) bool {
 				if keys := e.obj.modKeys[row]; k < len(keys) && keys[k] != "" {
 					key = keys[k]
 				}
-				if key == "addmaps" && actions[k] == "" {
-					e.askMapsFolder()
+				if ask := modPathRows[key]; ask != nil && actions[k] == "" {
+					e.askPathQuestion(ask(e))
 					return true
 				}
 				_ = e.modAction(key, actions[k])

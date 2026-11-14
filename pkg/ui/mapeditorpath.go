@@ -47,10 +47,65 @@ func (e *MapEditor) SetPathDialog(ask pathdialog.Func, baseDir string) {
 // SetMapsFolder names the host's maps folder, which the Open window starts in.
 func (e *MapEditor) SetMapsFolder(folder func() string) { e.pathDialog.mapsFolder = folder }
 
-func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
-	r := pathdialog.Request{
-		Kind: kind, Title: "Open map", StartDir: e.pathDialog.baseDir,
-		Filters: []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}},
+// pathQuestion is the path question a row asks the host's window, as data:
+// the window, its start-folder rule ("" keeps the base folder), what the
+// answer and a cancel do, and the typed fallback (err nil: no window).
+type pathQuestion struct {
+	kind        pathdialog.Kind
+	title       string
+	filters     []pathdialog.Filter
+	defaultName string
+	start       func() string
+	chosen      func(path string)
+	cancelled   func()
+	fallback    func(err error)
+}
+
+// questionRequest is the window q asks for, its start rule applied.
+func (e *MapEditor) questionRequest(q pathQuestion) pathdialog.Request {
+	start := ""
+	if q.start != nil {
+		start = q.start()
+	}
+	if start == "" {
+		start = e.pathDialog.baseDir
+	}
+	r := pathdialog.NewRequest(q.kind, q.title, start, q.filters...)
+	r.DefaultName = q.defaultName
+	return r
+}
+
+// askPathQuestion is the one opener of the host's window.
+func (e *MapEditor) askPathQuestion(q pathQuestion) {
+	if !e.hasPathDialog() {
+		q.fallback(nil)
+		return
+	}
+	cancelled := q.cancelled
+	if cancelled == nil {
+		cancelled = func() {}
+	}
+	e.askChoice(pathChoice{request: e.questionRequest(q), chosen: q.chosen, cancelled: cancelled, failed: q.fallback})
+}
+
+// mapsStart is the host's maps folder; "" when the host names none.
+func (e *MapEditor) mapsStart() string {
+	if e.pathDialog.mapsFolder == nil {
+		return ""
+	}
+	return e.pathDialog.mapsFolder()
+}
+
+// mapQuestion is File > Open's and Save As's question; the fallback is the
+// typed Open or Save line.
+func (e *MapEditor) mapQuestion(kind pathdialog.Kind) pathQuestion {
+	q := pathQuestion{
+		kind: kind, title: "Open map",
+		filters:   []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}},
+		start:     func() string { return e.mapStart(kind) },
+		chosen:    func(path string) { e.mapChosen(kind, path) },
+		cancelled: func() { e.cancelPopup() },
+		fallback:  func(err error) { e.pathFallback(kind, err) },
 	}
 	// An extended map is saved as an .almx (DIV-4603).
 	ext := ".alm"
@@ -58,42 +113,53 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 		ext = ".almx"
 	}
 	if kind == pathdialog.SaveFile {
-		r.Title = "Save map as"
-		r.DefaultName = "new-map" + ext
+		q.title = "Save map as"
+		q.defaultName = "new-map" + ext
 	}
-	if e.doc != nil {
-		source := e.doc.Source
-		src := ParseMapSource(source)
-		if source != "" && src.Kind != SourceNew {
-			if kind == pathdialog.SaveFile {
-				r.DefaultName = filepath.Base(filepath.FromSlash(source))
-				if x := filepath.Ext(r.DefaultName); ext == ".almx" && !namefold.HostEqual(x, ext) {
-					r.DefaultName = strings.TrimSuffix(r.DefaultName, x) + ext
-				}
+	if source := e.mapSource(); source != "" && kind == pathdialog.SaveFile {
+		q.defaultName = filepath.Base(filepath.FromSlash(source))
+		if x := filepath.Ext(q.defaultName); ext == ".almx" && !namefold.HostEqual(x, ext) {
+			q.defaultName = strings.TrimSuffix(q.defaultName, x) + ext
+		}
+	}
+	return q
+}
+
+// mapSource is the open map's source; "" for none or a new map.
+func (e *MapEditor) mapSource() string {
+	if e.doc == nil || e.doc.Source == "" || ParseMapSource(e.doc.Source).Kind == SourceNew {
+		return ""
+	}
+	return e.doc.Source
+}
+
+// mapStart is the open map's folder; Open starts in the host's maps folder
+// and Save As in its save folder where they name one.
+func (e *MapEditor) mapStart(kind pathdialog.Kind) string {
+	start := ""
+	if source := e.mapSource(); source != "" {
+		if src := ParseMapSource(source); src.Kind != SourceScenario {
+			if src.Kind == SourceLoose {
+				source = filepath.Join(e.pathDialog.baseDir, filepath.FromSlash(src.Path))
 			}
-			if src.Kind != SourceScenario {
-				if src.Kind == SourceLoose {
-					source = filepath.Join(e.pathDialog.baseDir, filepath.FromSlash(src.Path))
-				}
-				if absolute, err := filepath.Abs(source); err == nil {
-					r.StartDir = filepath.Dir(absolute)
-				}
+			if absolute, err := filepath.Abs(source); err == nil {
+				start = filepath.Dir(absolute)
 			}
 		}
 	}
-	if kind == pathdialog.OpenFile && e.pathDialog.mapsFolder != nil {
-		if dir := e.pathDialog.mapsFolder(); dir != "" {
-			r.StartDir = dir
+	if kind == pathdialog.OpenFile {
+		if dir := e.mapsStart(); dir != "" {
+			start = dir
 		}
 	}
 	if kind == pathdialog.SaveFile && e.editable() {
 		if f, ok := e.doc.Edits.(InspectionSaveFolder); ok {
 			if dir := f.SaveFolder(); dir != "" {
-				r.StartDir = dir
+				start = dir
 			}
 		}
 	}
-	return r
+	return start
 }
 
 // hasPathDialog reports that the host can show a dialog now.
@@ -101,42 +167,30 @@ func (e *MapEditor) hasPathDialog() bool {
 	return e.pathDialog.ask != nil && e.mcp.call == nil
 }
 
-// mapChoice is the choice of a map to open or save: Open and Save As are
-// built by pathRequest and end in Open or saveAs.
-func (e *MapEditor) mapChoice(kind pathdialog.Kind) pathChoice {
-	return pathChoice{
-		request: e.pathRequest(kind),
-		chosen: func(path string) {
-			e.leave(leaveDrag | leaveReport | leavePick)
-			var err error
-			if kind == pathdialog.SaveFile {
-				err = e.saveAs(path)
-			} else {
-				err = e.Open(path)
-			}
-			// A save that asks to fold the script keeps its question.
-			if err != nil && e.prompt.kind != promptScriptForm {
-				message := e.message
-				e.cancelPopup(popPrompt)
-				e.message = message
-			}
-		},
-		cancelled: func() { e.cancelPopup() },
-		failed:    func(err error) { e.pathFallback(kind, err) },
+// mapChosen opens or saves the map at the path the window answered.
+func (e *MapEditor) mapChosen(kind pathdialog.Kind, path string) {
+	e.leave(leaveDrag | leaveReport | leavePick)
+	var err error
+	if kind == pathdialog.SaveFile {
+		err = e.saveAs(path)
+	} else {
+		err = e.Open(path)
+	}
+	// A save that asks to fold the script keeps its question.
+	if err != nil && e.prompt.kind != promptScriptForm {
+		message := e.message
+		e.cancelPopup(popPrompt)
+		e.message = message
 	}
 }
 
 func (e *MapEditor) askPath(kind pathdialog.Kind) {
 	e.rememberCancel()
-	if !e.hasPathDialog() {
-		e.pathFallback(kind, nil)
-		return
-	}
-	e.askChoice(e.mapChoice(kind))
+	e.askPathQuestion(e.mapQuestion(kind))
 }
 
 // askChoice shows choice's window on a worker; PollPathDialog applies the
-// answer. The caller has checked hasPathDialog.
+// answer. askPathQuestion is its one caller.
 func (e *MapEditor) askChoice(c pathChoice) {
 	e.cancelRecordDrag()
 	e.brush.endStroke()

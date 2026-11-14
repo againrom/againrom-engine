@@ -3,16 +3,40 @@ package main
 import "againrom/pkg/pathdialog"
 
 // folderChoice is one folder the starter asks the path window for: the field
-// the folder fills, the window's title and the line a failed window shows.
+// it fills, the window's title and start, the failure line and the answer.
 type folderChoice struct {
 	field         fieldID
 	title, failed captionID
+	start         func(a *app) string
+	chosen        func(a *app, path string)
 }
 
 var (
-	baseFolderChoice = folderChoice{field: fAddBase, title: cChooseBaseFolder, failed: cFolderDialogFailed}
-	modsFolderChoice = folderChoice{field: fModsDir, title: cChooseModsFolder, failed: cModsDialogFailed}
+	baseFolderChoice = folderChoice{field: fAddBase, title: cChooseBaseFolder, failed: cFolderDialogFailed, start: (*app).baseFolderStart, chosen: (*app).baseFolderChosen}
+	modsFolderChoice = folderChoice{field: fModsDir, title: cChooseModsFolder, failed: cModsDialogFailed, start: (*app).modsFolderStart, chosen: (*app).modsFolderChosen}
 )
+
+func (a *app) baseFolderStart() string {
+	if start, ok := a.selectedRoot(); ok {
+		return start
+	}
+	return a.selfDir()
+}
+
+func (a *app) modsFolderStart() string { return a.s.modsDir(a.selfDir()) }
+
+func (a *app) baseFolderChosen(path string) {
+	a.focus = fNone
+	a.addText = path
+	a.addBase()
+}
+
+func (a *app) modsFolderChosen(path string) {
+	a.focus = fNone
+	a.s.ModsDir = path
+	a.rescan()
+	a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
+}
 
 type folderDialogResult struct {
 	choice folderChoice
@@ -26,14 +50,7 @@ func (a *app) chooseFolder(c folderChoice) {
 	if a.folderDialogResults != nil {
 		return
 	}
-	start, ok := a.selectedRoot()
-	if !ok {
-		start = a.selfDir()
-	}
-	if c.field == fModsDir {
-		start = a.s.modsDir(a.selfDir())
-	}
-	req := pathdialog.Request{Kind: pathdialog.ChooseFolder, Title: a.t(c.title), StartDir: start}
+	req := pathdialog.NewRequest(pathdialog.ChooseFolder, a.t(c.title), c.start(a))
 	dialog := a.deps.pathDialog
 	if dialog == nil {
 		a.folderDialogFailed(c, pathdialog.ErrUnavailable)
@@ -58,15 +75,8 @@ func (a *app) pollFolderDialog() bool {
 		case r.err != nil:
 			a.folderDialogFailed(r.choice, r.err)
 		case r.result.Cancelled:
-		case r.choice.field == fModsDir:
-			a.focus = fNone
-			a.s.ModsDir = r.result.Path
-			a.rescan()
-			a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
 		default:
-			a.focus = fNone
-			a.addText = r.result.Path
-			a.addBase()
+			r.choice.chosen(a, r.result.Path)
 		}
 	default:
 	}

@@ -600,8 +600,8 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		_ = e.modAction(o.fields[i].Key, "")
 		return
 	}
-	if e.modFolderShown() {
-		e.openModChoice()
+	if ask := e.modPathShown(); ask != nil {
+		e.askPathQuestion(ask(e))
 		return
 	}
 	if e.modWindow && part == popupRowButton && strings.HasSuffix(o.fields[i].Key, ".character") {
