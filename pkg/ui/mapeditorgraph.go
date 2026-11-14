@@ -529,6 +529,7 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		}
 		c.Lines[k] = l
 	}
+	c.Lines = stepCrossings(c.Lines)
 	last := cols - 1
 	right := left[last] + widths[last]
 	if len(ends[last]) > 0 || gutter[last] > 0 {
@@ -541,6 +542,127 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	c.Sheet = image.Pt(right+graphPad, sheet)
 	c.Legend = e.graphLegend(page)
 	return c
+}
+
+// A line drawn later lies over the lines drawn before it. Where its straight
+// segment crosses a perpendicular segment of a line beneath it, it steps over
+// that segment: it leaves its line graphStepHalf pixels before the crossing,
+// rises graphStepRise pixels (up for a horizontal segment, left for a
+// vertical one, the same side for every crossing), and returns graphStepHalf
+// pixels after it. The crossed line stays straight. A crossing whose step
+// would reach a segment end stays a plain crossing. Crossings within two step
+// halves of each other share one step that spans them, so steps never overlap.
+const (
+	graphStepHalf = 4
+	graphStepRise = 4
+)
+
+// stepCrossings returns lines with each upper line's crossings stepped.
+func stepCrossings(lines []canvasLine) []canvasLine {
+	order := make([]int, 0, len(lines))
+	for _, over := range []bool{false, true} {
+		for k, l := range lines {
+			if l.Over == over {
+				order = append(order, k)
+			}
+		}
+	}
+	rank := make([]int, len(lines))
+	for pos, k := range order {
+		rank[k] = pos
+	}
+	out := make([]canvasLine, len(lines))
+	for k, line := range lines {
+		out[k] = line
+		if len(line.Points) < 2 {
+			continue
+		}
+		pts := []image.Point{line.Points[0]}
+		for i := 1; i < len(line.Points); i++ {
+			a, b := line.Points[i-1], line.Points[i]
+			pts = append(pts, stepSegment(a, b, k, lines, rank)...)
+			pts = append(pts, b)
+		}
+		out[k].Points = pts
+	}
+	return out
+}
+
+// stepSegment returns the points that step segment a-b of line k over the
+// perpendicular segments of the lines beneath it, between a and b.
+func stepSegment(a, b image.Point, k int, lines []canvasLine, rank []int) []image.Point {
+	horizontal := a.Y == b.Y && a.X != b.X
+	if !horizontal && !(a.X == b.X && a.Y != b.Y) {
+		return nil
+	}
+	// along is the segment's own axis; across is the axis it steps over.
+	along := func(p image.Point) int {
+		if horizontal {
+			return p.X
+		}
+		return p.Y
+	}
+	across := func(p image.Point) int {
+		if horizontal {
+			return p.Y
+		}
+		return p.X
+	}
+	point := func(p, q int) image.Point {
+		if horizontal {
+			return image.Pt(p, q)
+		}
+		return image.Pt(q, p)
+	}
+	lo, hi := min(along(a), along(b)), max(along(a), along(b))
+	at := across(a)
+	var cuts []int
+	for j, other := range lines {
+		if j == k || rank[j] > rank[k] {
+			continue
+		}
+		for i := 1; i < len(other.Points); i++ {
+			c, d := other.Points[i-1], other.Points[i]
+			if along(c) != along(d) || across(c) == across(d) {
+				continue
+			}
+			p := along(c)
+			low, high := min(across(c), across(d)), max(across(c), across(d))
+			if lo < p && p < hi && low < at && at < high {
+				cuts = append(cuts, p)
+			}
+		}
+	}
+	if len(cuts) == 0 {
+		return nil
+	}
+	slices.Sort(cuts)
+	// Crossings closer than two step halves share one step that spans them all.
+	var spans [][2]int
+	for _, p := range cuts {
+		if n := len(spans); n > 0 && p-spans[n-1][1] <= 2*graphStepHalf {
+			spans[n-1][1] = p
+		} else {
+			spans = append(spans, [2]int{p, p})
+		}
+	}
+	dir := sign(along(b) - along(a))
+	if dir < 0 {
+		slices.Reverse(spans)
+	}
+	var pts []image.Point
+	for _, s := range spans {
+		first, last := s[0], s[1]
+		if dir < 0 {
+			first, last = last, first
+		}
+		from, to := first-graphStepHalf*dir, last+graphStepHalf*dir
+		if min(from, to) <= lo || max(from, to) >= hi {
+			continue
+		}
+		pts = append(pts, point(from, at), point(from, at-graphStepRise), point(to, at-graphStepRise), point(to, at))
+	}
+	return pts
 }
 
 // graphPan moves the graph's sheet by d under W's view, held inside it.

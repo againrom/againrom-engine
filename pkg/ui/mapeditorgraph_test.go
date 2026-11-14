@@ -634,3 +634,81 @@ func TestPopupCanvasDrawsMarkedLinesOverAndLabels(t *testing.T) {
 		t.Errorf("labels %q", got)
 	}
 }
+
+// passes counts the segments of line that contain p.
+func passes(line canvasLine, p image.Point) int {
+	n := 0
+	for i := 1; i < len(line.Points); i++ {
+		seg := image.Rectangle{Min: line.Points[i-1], Max: line.Points[i]}.Canon()
+		if p.X >= seg.Min.X && p.X <= seg.Max.X && p.Y >= seg.Min.Y && p.Y <= seg.Max.Y {
+			n++
+		}
+	}
+	return n
+}
+
+func TestCrossingArrowStepsOverTheCrossedLine(t *testing.T) {
+	horizontal := canvasLine{Points: []image.Point{{0, 10}, {40, 10}}, Ink: editorPaper, Arrow: true}
+	vertical := canvasLine{Points: []image.Point{{20, 0}, {20, 30}}, Ink: editorPaper, Arrow: true}
+	stepped := []image.Point{{0, 10}, {16, 10}, {16, 6}, {24, 6}, {24, 10}, {40, 10}}
+	cases := []struct {
+		name  string
+		lines []canvasLine
+		want  [][]image.Point
+	}{
+		{"horizontal upper", []canvasLine{vertical, horizontal}, [][]image.Point{{{20, 0}, {20, 30}}, stepped}},
+		{"vertical upper", []canvasLine{horizontal, vertical}, [][]image.Point{{{0, 10}, {40, 10}}, {{20, 0}, {20, 6}, {16, 6}, {16, 14}, {20, 14}, {20, 30}}}},
+		{"shared end", []canvasLine{horizontal, {Points: []image.Point{{40, 10}, {40, 30}}, Arrow: true, Ink: editorPaper}}, nil},
+		{"touching end", []canvasLine{horizontal, {Points: []image.Point{{20, 10}, {20, 30}}, Arrow: true, Ink: editorPaper}}, nil},
+	}
+	for _, tc := range cases {
+		got := stepCrossings(tc.lines)
+		if tc.want == nil {
+			for k := range tc.lines {
+				if !reflect.DeepEqual(got[k].Points, tc.lines[k].Points) {
+					t.Errorf("%s: line %d changed to %v", tc.name, k, got[k].Points)
+				}
+			}
+			continue
+		}
+		for k := range tc.lines {
+			if !reflect.DeepEqual(got[k].Points, tc.want[k]) {
+				t.Errorf("%s: line %d is %v, want %v", tc.name, k, got[k].Points, tc.want[k])
+			}
+		}
+	}
+	// The crossing point (20, 10) lies on the crossed line once and on no
+	// segment of the stepped line.
+	crossing := image.Pt(20, 10)
+	got := stepCrossings([]canvasLine{vertical, horizontal})
+	if n := passes(got[1], crossing); n != 0 {
+		t.Errorf("stepped line passes the crossing %d times", n)
+	}
+	if n := passes(got[0], crossing); n != 1 {
+		t.Errorf("crossed line passes the crossing %d times", n)
+	}
+}
+
+func TestCloseCrossingsOnOneSegmentDoNotOverlap(t *testing.T) {
+	lines := []canvasLine{
+		{Points: []image.Point{{18, 0}, {18, 30}}, Arrow: true, Ink: editorPaper},
+		{Points: []image.Point{{22, 0}, {22, 30}}, Arrow: true, Ink: editorPaper},
+		{Points: []image.Point{{0, 10}, {40, 10}}, Arrow: true, Ink: editorPaper, Over: true},
+	}
+	// Crossings 4 px apart share one step that spans both.
+	got := stepCrossings(lines)[2].Points
+	want := []image.Point{{0, 10}, {14, 10}, {14, 6}, {26, 6}, {26, 10}, {40, 10}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("upper line is %v, want %v", got, want)
+	}
+	far := []canvasLine{
+		{Points: []image.Point{{18, 0}, {18, 30}}, Arrow: true, Ink: editorPaper},
+		{Points: []image.Point{{30, 0}, {30, 30}}, Arrow: true, Ink: editorPaper},
+		{Points: []image.Point{{0, 10}, {40, 10}}, Arrow: true, Ink: editorPaper, Over: true},
+	}
+	got = stepCrossings(far)[2].Points
+	want = []image.Point{{0, 10}, {14, 10}, {14, 6}, {22, 6}, {22, 10}, {26, 10}, {26, 6}, {34, 6}, {34, 10}, {40, 10}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("far crossings: upper line is %v, want %v", got, want)
+	}
+}
