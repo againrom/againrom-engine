@@ -403,19 +403,19 @@ func TestWheelNotchPostsTheZoomAndTheNextReplacesIt(t *testing.T) {
 		v.step(Input{CursorX: centre.x, CursorY: centre.y, WheelY: dir}, now)
 	}
 	notch(+1)
-	if got := noticeTexts(v); len(got) != 1 || got[0] != "Zoom: 120%" {
-		t.Fatalf("after one notch in: %q, want [Zoom: 120%%]", got)
+	if got := noticeTexts(v); len(got) != 1 || got[0] != "Zoom: 105%" {
+		t.Fatalf("after one notch in: %q, want [Zoom: 105%%]", got)
 	}
 	v.PostMessage("other", MessageWhite, time.Second)
 	notch(+1)
-	if got := noticeTexts(v); len(got) != 2 || got[0] != "other" || got[1] != "Zoom: 144%" {
-		t.Fatalf("after a second notch in: %q, want [other Zoom: 144%%]", got)
+	if got := noticeTexts(v); len(got) != 2 || got[0] != "other" || got[1] != "Zoom: 110%" {
+		t.Fatalf("after a second notch in: %q, want [other Zoom: 110%%]", got)
 	}
 	notch(-1)
 	notch(-1)
 	notch(-1)
-	if got := noticeTexts(v); len(got) != 2 || got[1] != "Zoom: 83%" {
-		t.Fatalf("after three notches out: %q, want [other Zoom: 83%%]", got)
+	if got := noticeTexts(v); len(got) != 2 || got[1] != "Zoom: 95%" {
+		t.Fatalf("after three notches out: %q, want [other Zoom: 95%%]", got)
 	}
 }
 
@@ -428,7 +428,7 @@ func TestWheelNotchAtTheLimitPostsNothing(t *testing.T) {
 		limit string
 	}{{+1, "Zoom: 800%"}, {-1, "Zoom: 13%"}} {
 		v := zoomNoticeViewer(t, AuthoredWords().ZoomNotice)
-		for i := 0; i < 60; i++ {
+		for i := 0; i < 150; i++ {
 			v.step(Input{CursorX: centre.x, CursorY: centre.y, WheelY: tc.dir}, now)
 		}
 		got := noticeTexts(v)
@@ -448,7 +448,7 @@ func TestZoomNoticeWords(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	for _, tc := range []struct {
 		lang, want string
-	}{{"english", "Zoom: 120%"}, {"russian", "Масштаб: 120%"}} {
+	}{{"english", "Zoom: 105%"}, {"russian", "Масштаб: 105%"}} {
 		v := zoomNoticeViewer(t, words.For(tc.lang).Text("map.zoom"))
 		v.step(Input{CursorX: centre.x, CursorY: centre.y, WheelY: +1}, now)
 		if got := noticeTexts(v); len(got) != 1 || got[0] != tc.want {

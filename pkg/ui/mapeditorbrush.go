@@ -807,6 +807,7 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error 
 	}
 	nv := next.Viewer
 	nv.editorView = true
+	nv.wheelZoomPercent = 0
 	nv.flat, nv.unshaded, nv.showGrid = old.flat, old.unshaded, old.showGrid
 	e.doc = next
 	e.cancelRestore, e.listRestore = nil, nil

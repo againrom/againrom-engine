@@ -39,6 +39,11 @@ const (
 	// WheelZoomStep is the multiplicative zoom applied per wheel notch.
 	WheelZoomStep = 1.2
 
+	WheelZoomPercent = 5
+
+	WheelZoomCoarsePercent = 25
+	WheelZoomCoarseFrom    = 200
+
 	// DefaultWindowW and DefaultWindowH size the window at startup. They size a
 	// WINDOW and not a frame; the mission frame below is what the screen is
 	// composed at, and the two are equal only by coincidence.
@@ -140,7 +145,8 @@ type Viewer struct {
 	playerPaused        bool
 	playerPauseLabel    string
 	editorView          bool // read-only authored map canvas; no mission HUD
-	missionCutscene     int  // movie family, requested only by an accepted completion
+	wheelZoomPercent    int
+	missionCutscene     int // movie family, requested only by an accepted completion
 	musicAreas          musicAreaSource
 	completionCutscene  string
 	entryCampaignStart  bool // character creation precedes the first mission
@@ -1590,6 +1596,7 @@ func NewViewerWithStatics(title string, g terrain.Grid, set *terrain.Tileset, st
 		return nil, errNilTileset
 	}
 	v := &Viewer{
+		wheelZoomPercent:     WheelZoomPercent,
 		textSmoothingEnabled: true,
 		tooltip:              &tooltipController{delay: DefaultTooltipDelay},
 		staticSet:            statics,
@@ -3051,16 +3058,20 @@ func (v *Viewer) step(in Input, now time.Time) {
 			v.ScrollPack(+packStrip.wheel)
 		}
 	} else if wheeled(in) {
-		factor := WheelZoomStep
-		if wheelSign(in) < 0 {
-			factor = 1 / WheelZoomStep
-		}
 		sx, sy := float64(v.cam.ViewW)/2, float64(v.cam.ViewH)/2
 		if v.editorView {
 			sx, sy = float64(in.CursorX), float64(in.CursorY)
 		}
 		zoom := v.cam.Zoom
-		v.cam.ZoomAbout(sx, sy, factor)
+		if v.wheelZoomPercent > 0 {
+			v.cam.ZoomStepAbout(sx, sy, v.wheelZoomPercent, WheelZoomCoarsePercent, WheelZoomCoarseFrom, wheelSign(in))
+		} else {
+			factor := WheelZoomStep
+			if wheelSign(in) < 0 {
+				factor = 1 / WheelZoomStep
+			}
+			v.cam.ZoomAbout(sx, sy, factor)
+		}
 		if v.cam.Zoom != zoom {
 			v.postSettingNotice(noticeSlotZoom, v.cam.ZoomPercent())
 		}
