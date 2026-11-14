@@ -159,8 +159,8 @@ func TestEditorFrameStaysSmoothWithSmoothingOff(t *testing.T) {
 	e.doc = &InspectionDocument{Viewer: geometryViewer(t)}
 	e.doc.Viewer.SetFrameSmoothing(false)
 	e.window, e.deviceScale = image.Pt(640, 480), 1.5
-	if e.frameFilter() != filterSmooth {
-		t.Fatalf("editor frame filter %v, want smooth", e.frameFilter())
+	if editorPresentation.filter() != filterSmooth {
+		t.Fatalf("editor frame filter %v, want smooth", editorPresentation.filter())
 	}
 }
 

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -58,30 +59,139 @@ func pointOfDevice(x, y int, scale float64) (int, int) {
 	return int(math.Floor(float64(x) / scale)), int(math.Floor(float64(y) / scale))
 }
 
+// layoutUnit is the unit a surface lays its panels out in.
+type layoutUnit uint8
+
+const (
+	// unitDevicePixels lays the surface out in the window's device pixels.
+	unitDevicePixels layoutUnit = iota
+	// unitPoints lays it out in whole points, presented at the device scale.
+	unitPoints
+)
+
+// finalStage is how a surface's frame reaches the window.
+type finalStage uint8
+
+const (
+	// stageWindow draws the frame on the window's own pixels.
+	stageWindow finalStage = iota
+	// stageScaledOnce draws the frame in points, then scales it to the device
+	// pixels once through drawFinalFrame.
+	stageScaledOnce
+)
+
+// pointerMap is how a device pixel of the pointer becomes a layout position.
+type pointerMap uint8
+
+const (
+	// pointerDevice takes the device pixel as it is.
+	pointerDevice pointerMap = iota
+	// pointerToPoints takes the point the device pixel lies in.
+	pointerToPoints
+)
+
+// displayRow is one surface's row: the unit its layout is in, its final
+// stage, its pointer mapping and its scale filter. The presenter reads it.
+type displayRow struct {
+	unit    layoutUnit
+	stage   finalStage
+	pointer pointerMap
+	// filter is the filter of a scaled final stage. Nil means the screen's
+	// own policy (App.frameFilter) applies to its draws.
+	filter func() frameFilter
+	// ink fills the window under a scaled frame.
+	ink color.Color
+}
+
+// gamePresentation is the front end and a lone viewer: device pixels, drawn
+// on the window itself, with the screens' own filters.
+var gamePresentation = displayRow{unit: unitDevicePixels, stage: stageWindow, pointer: pointerDevice}
+
+// editorPresentation is the map editor: panels drawn in points and scaled
+// once to the device pixels with the smooth filter the owner directed.
+var editorPresentation = displayRow{
+	unit:    unitPoints,
+	stage:   stageScaledOnce,
+	pointer: pointerToPoints,
+	filter:  func() frameFilter { return filterOf(false, false) },
+	ink:     editorInk,
+}
+
+// layout is the one LayoutF: it sets the surface's device scale through
+// setScale, lays the surface out in its unit and answers the device size.
+func (p displayRow) layout(outsideW, outsideH float64, setScale func(float64), lay func(w, h int) (int, int)) (float64, float64) {
+	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
+	setScale(w.scale)
+	if p.unit == unitPoints {
+		lay(w.points.X, w.points.Y)
+	} else {
+		lay(w.device.X, w.device.Y)
+	}
+	return w.layoutF()
+}
+
+// scaled reports whether the frame is scaled to the device pixels at device
+// scale s. At scale 1, or with no scale yet, it draws on the window.
+func (p displayRow) scaled(s float64) bool {
+	return p.stage == stageScaledOnce && s > 0 && s != 1
+}
+
+// toLayout is the layout position of the device pixel (x, y) at device scale s.
+func (p displayRow) toLayout(x, y int, s float64) (int, int) {
+	if p.pointer == pointerToPoints {
+		return pointOfDevice(x, y, s)
+	}
+	return x, y
+}
+
+// ofPoints is n points in the row's layout pixels at device scale s.
+func (p displayRow) ofPoints(n int, s float64) int {
+	if p.unit == unitDevicePixels && s > 0 && !math.IsInf(s, 0) {
+		return max(1, int(math.Round(float64(n)*s)))
+	}
+	return n
+}
+
+// present is the one final stage: draw paints the frame on the window when
+// the row is not scaled at s, else on *frame, size layout pixels, which is
+// scaled once to the device pixels through drawFinalFrame.
+func (p displayRow) present(screen *ebiten.Image, s float64, size image.Point, frame, sharp **ebiten.Image, draw func(*ebiten.Image)) {
+	if !p.scaled(s) {
+		draw(screen)
+		return
+	}
+	r := image.Rectangle{Max: size}
+	if r.Empty() {
+		return
+	}
+	if *frame == nil || (*frame).Bounds() != r {
+		if *frame != nil {
+			(*frame).Dispose()
+		}
+		*frame = ebiten.NewImage(r.Dx(), r.Dy())
+	}
+	draw(*frame)
+	screen.Fill(p.ink)
+	var op ebiten.DrawImageOptions
+	op.GeoM.Scale(s, s)
+	drawFinalFrame(screen, *frame, &op, sharp, p.filter())
+}
+
 // LayoutF lays the front end out in the window's device pixels; every screen
 // then places its frame in them through its own placement.
 func (a *App) LayoutF(outsideW, outsideH float64) (float64, float64) {
-	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
-	a.deviceScale = w.scale
-	a.Layout(w.device.X, w.device.Y)
-	return w.layoutF()
+	return gamePresentation.layout(outsideW, outsideH, func(s float64) { a.deviceScale = s }, a.Layout)
 }
 
 // LayoutF lays a viewer run on its own out in the window's device pixels.
 func (v *Viewer) LayoutF(outsideW, outsideH float64) (float64, float64) {
-	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
-	v.deviceScale = w.scale
-	v.Layout(w.device.X, w.device.Y)
-	return w.layoutF()
+	return gamePresentation.layout(outsideW, outsideH, func(s float64) { v.deviceScale = s }, v.Layout)
 }
 
 // edgeMargin is the edge-scroll strip in the layout's pixels: EdgeMargin
 // points times the device scale. It is the one reader of EdgeMargin.
 func (v *Viewer) edgeMargin() int {
-	if s := v.deviceScale; s > 0 && !math.IsInf(s, 0) {
-		return max(1, int(math.Round(EdgeMargin*s)))
-	}
-	return EdgeMargin
+	return gamePresentation.ofPoints(EdgeMargin, v.deviceScale)
 }
 
 // inEdgeMargin reports a position in the strip of a window of size win.
@@ -93,10 +203,7 @@ func (v *Viewer) inEdgeMargin(x, y int, win image.Point) bool {
 // LayoutF lays the map editor out in whole points, the unit its panels and
 // font are drawn in, and keeps the device scale Draw presents them by.
 func (e *MapEditor) LayoutF(outsideW, outsideH float64) (float64, float64) {
-	w := windowPixels(outsideW, outsideH, monitorDeviceScale())
-	e.deviceScale = w.scale
-	e.Layout(w.points.X, w.points.Y)
-	return w.layoutF()
+	return editorPresentation.layout(outsideW, outsideH, func(s float64) { e.deviceScale = s }, e.Layout)
 }
 
 func (l *frameLog) LayoutF(w, h float64) (float64, float64) { return l.app.LayoutF(w, h) }
@@ -108,31 +215,7 @@ var editorPointsSharpBuf *ebiten.Image
 // pixels through the final-frame scaler, once. At a device scale of 1 the
 // editor draws on the window itself.
 func (e *MapEditor) Draw(screen *ebiten.Image) {
-	s := e.deviceScale
-	if !(s > 0) || s == 1 {
-		e.drawPoints(screen)
-		return
-	}
-	size := image.Rectangle{Max: e.window}
-	if size.Empty() {
-		return
-	}
-	if e.pointsFrame == nil || e.pointsFrame.Bounds() != size {
-		if e.pointsFrame != nil {
-			e.pointsFrame.Dispose()
-		}
-		e.pointsFrame = ebiten.NewImage(size.Dx(), size.Dy())
-	}
-	e.drawPoints(e.pointsFrame)
-	screen.Fill(editorInk)
-	var op ebiten.DrawImageOptions
-	op.GeoM.Scale(s, s)
-	drawFinalFrame(screen, e.pointsFrame, &op, &editorPointsSharpBuf, e.frameFilter())
-}
-
-// frameFilter keeps the editor's combined art and text smooth at device scale.
-func (e *MapEditor) frameFilter() frameFilter {
-	return filterOf(false, false)
+	editorPresentation.present(screen, e.deviceScale, e.window, &e.pointsFrame, &editorPointsSharpBuf, e.drawPoints)
 }
 
 // engineEditorInput is the engine's input reader. It is a variable so a test
@@ -140,12 +223,12 @@ func (e *MapEditor) frameFilter() frameFilter {
 var engineEditorInput = readEditorInput
 
 // readNative is the editor's one input door: the test seam's input as given,
-// or the engine's with the pointer brought from device pixels to points.
+// or the engine's with the pointer mapped by the editor's row.
 func (e *MapEditor) readNative() editorNativeInput {
 	if e.nativeInput != nil {
 		return e.nativeInput()
 	}
 	in := engineEditorInput()
-	in.canvas.CursorX, in.canvas.CursorY = pointOfDevice(in.canvas.CursorX, in.canvas.CursorY, e.deviceScale)
+	in.canvas.CursorX, in.canvas.CursorY = editorPresentation.toLayout(in.canvas.CursorX, in.canvas.CursorY, e.deviceScale)
 	return in
 }
