@@ -19,7 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
-- - [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
+- [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
 
 ## 0.155.0
 
