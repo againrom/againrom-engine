@@ -389,19 +389,20 @@ func (x *MapInspector) rowFiles(m *mod.Mission, view draftView) error {
 	return err
 }
 
-func (x *MapInspector) missionFiles(rows []mod.Mission, pending map[string][]byte) error {
+func (x *MapInspector) missionFiles(rows []mod.Mission, view draftView) error {
 	for i := range rows {
 		m := &rows[i]
 		if m.Off || m.Map == "" {
 			continue
 		}
-		if len(m.MapBytes) == 0 {
+		if view.drafts != nil {
+			if err := x.rowFiles(m, view); err != nil {
+				return err
+			}
+		} else if len(m.MapBytes) == 0 {
 			if err := m.ReadFiles(x.mod.dir); err != nil {
 				return err
 			}
-		}
-		if b, ok := pending[m.Map]; ok {
-			m.MapBytes = bytes.Clone(b)
 		}
 	}
 	return nil
@@ -413,14 +414,7 @@ func (x *MapInspector) checkMissionSet(missions []mod.Mission, view draftView) e
 		for i, m := range missions {
 			rows[i] = mod.CloneMission(m)
 		}
-		for i := range rows {
-			if m := &rows[i]; !m.Off && m.Map != "" && view.drafts != nil {
-				if err := x.rowFiles(m, view); err != nil {
-					return err
-				}
-			}
-		}
-		if err := x.missionFiles(rows, nil); err != nil {
+		if err := x.missionFiles(rows, view); err != nil {
 			return err
 		}
 		result := *x.mod.loaded

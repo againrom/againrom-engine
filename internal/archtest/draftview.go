@@ -7,21 +7,21 @@ import (
 	"go/token"
 )
 
-// The draft view scan. The editor's four readers of the project's drafts reach
-// them only through projectView: projectFiles and readInventory call it, and
-// openModContext, rowFiles and checkMissionSet take its draftView and no draft
-// map of their own. A reader that deletes a name itself or takes a bare draft
+// The draft view scan. The editor's readers of the project's drafts reach
+// them only through projectView: the callers call it, and the others take
+// its draftView and no draft map of their own. A reader that deletes a name itself or takes a bare draft
 // map is a second route.
 
 // DraftViewFiles are the files that hold the readers, each with its readers.
 var DraftViewFiles = map[string][]string{
-	"pkg/game/mapeditormod.go":        {"projectFiles", "rowFiles", "checkMissionSet"},
+	"pkg/game/mapeditormod.go":        {"projectFiles", "rowFiles", "missionFiles", "checkMissionSet"},
+	"pkg/game/mapeditorcampaign.go":   {"missionDraft"},
 	"pkg/game/modmapsave.go":          {"readInventory"},
 	"pkg/game/mapeditormodcontext.go": {"openModContext"},
 }
 
 // DraftViewCallers must call projectView; the others take a draftView.
-var DraftViewCallers = map[string]bool{"projectFiles": true, "readInventory": true}
+var DraftViewCallers = map[string]bool{"projectFiles": true, "readInventory": true, "missionDraft": true}
 
 // DraftViewFindings reports each reader in files (path to source) that has a
 // second route to the drafts.

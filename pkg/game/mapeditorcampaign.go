@@ -189,7 +189,7 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	if err != nil {
 		return nil, err
 	}
-	if err := x.missionFiles(parsed.Missions, d.Files); err != nil {
+	if err := x.missionFiles(parsed.Missions, projectView(x.mod.files, d.Files)); err != nil {
 		return nil, err
 	}
 	if x.mod.loaded == nil {
