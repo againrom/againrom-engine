@@ -11,6 +11,18 @@ import (
 	"againrom/pkg/namefold"
 )
 
+// The refusals of MakeMission and MakeRow, for the editor to say in its words.
+var (
+	// ErrMapNamed is a map a mission row already names.
+	ErrMapNamed = errors.New("map is already named by a mission")
+	// ErrNotByName is a map whose file name replaces no mission.
+	ErrNotByName = errors.New("map does not replace a mission by its file name")
+	// ErrNotCampaign is a number the install holds no mission of.
+	ErrNotCampaign = errors.New("number is not a mission of the install")
+	// ErrReplaced is a number a mission of the mod already replaces.
+	ErrReplaced = errors.New("number already replaces a mission")
+)
+
 // MakeMission is the row that makes unused map e a mission of mod id: a
 // guest mission when replace is 0, else a replacing mission of mission
 // number replace. A guest is the default guest row the editor's Add builds,
@@ -20,15 +32,15 @@ import (
 // caller appends the row and writes it with WriteMissions.
 func MakeMission(id string, d MissionData, e MapEntry, guest Mission, replace int, held func(n int) error) (Mission, error) {
 	if e.Role() != MapUnused {
-		return Mission{}, errors.New("map is already named by a mission")
+		return Mission{}, ErrMapNamed
 	}
 	m := Mission{Mod: id, File: MissionsFile, Key: mapKey(d, e.Stem), Map: e.Path}
 	if replace != 0 {
 		if held == nil || held(replace) != nil {
-			return Mission{}, fmt.Errorf("number %d is not a mission of the install", replace)
+			return Mission{}, fmt.Errorf("%w: %d", ErrNotCampaign, replace)
 		}
 		if _, ok := d.Replacing(replace); ok {
-			return Mission{}, fmt.Errorf("number %d already replaces a mission", replace)
+			return Mission{}, fmt.Errorf("%w: %d", ErrReplaced, replace)
 		}
 		m.Kind, m.Number = MissionReplace, replace
 		return m, nil
@@ -42,31 +54,45 @@ func MakeMission(id string, d MissionData, e MapEntry, guest Mission, replace in
 // install must hold that number, as for MakeMission.
 func MakeRow(id string, d MissionData, e MapEntry, held func(n int) error) (Mission, error) {
 	if e.Role() != MapByName {
-		return Mission{}, errors.New("map does not replace a mission by its file name")
+		return Mission{}, ErrNotByName
 	}
 	if held == nil || held(e.Number) != nil {
-		return Mission{}, fmt.Errorf("number %d is not a mission of the install", e.Number)
+		return Mission{}, fmt.Errorf("%w: %d", ErrNotCampaign, e.Number)
 	}
 	return Mission{Mod: id, File: MissionsFile, Key: mapKey(d, e.Stem), Kind: MissionReplace,
 		Number: e.Number, Map: e.Path}, nil
 }
 
-// mapKey is the stem as a row key, with _2, _3 and so on where d holds the key.
-func mapKey(d MissionData, stem string) string {
-	key := strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
-			return r
-		case r >= 'A' && r <= 'Z':
-			return r + 'a' - 'A'
+// ReplaceNumbers are the numbers of candidates, lowest first, that the install
+// holds (held answers nil) and no mission of d replaces.
+func (d MissionData) ReplaceNumbers(candidates []int, held func(n int) error) []int {
+	var out []int
+	for _, n := range candidates {
+		if _, taken := d.Replacing(n); !taken && held != nil && held(n) == nil && !slices.Contains(out, n) {
+			out = append(out, n)
 		}
-		return '_'
-	}, stem)
-	if key == "" || key[0] < 'a' || key[0] > 'z' {
-		key = "m" + key
 	}
-	key = key[:min(len(key), 28)]
-	stem = key
+	slices.Sort(out)
+	return out
+}
+
+// mapKey is the stem as a row key (a to z, 0 to 9 and _, starting with a
+// letter), with _2, _3 and so on where d holds the key.
+func mapKey(d MissionData, stem string) string {
+	var b strings.Builder
+	for _, r := range namefold.ModTree(stem) {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_' {
+			b.WriteRune(r)
+		} else {
+			b.WriteByte('_')
+		}
+	}
+	stem = b.String()
+	if stem == "" || stem[0] < 'a' || stem[0] > 'z' {
+		stem = "m" + stem
+	}
+	stem = stem[:min(len(stem), 28)]
+	key := stem
 	for suffix := 2; slices.ContainsFunc(d.Missions, func(m Mission) bool { return m.Key == key }); suffix++ {
 		key = stem + "_" + strconv.Itoa(suffix)
 	}
@@ -117,7 +143,7 @@ func belongsTo(name, stem string) bool {
 		return false
 	}
 	rest := name[len(stem):]
-	return rest == ".variables" || strings.HasPrefix(rest, ".text/")
+	return namefold.ModTree(name) == namefold.ModTree(MapLabelFile(stem+MapExt)) || strings.HasPrefix(rest, mapTextSuffix+"/")
 }
 
 // PlaceFolderMaps is where each file of folder goes in the mod, keyed by its

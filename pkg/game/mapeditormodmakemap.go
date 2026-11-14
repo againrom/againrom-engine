@@ -78,19 +78,28 @@ func (s *mapInspectionEdits) mapList(d *editorModDocument) ([]mod.MapEntry, mod.
 // replaceNumbers are the campaign's mission numbers the install holds and no
 // row of data replaces, lowest first.
 func (x *MapInspector) replaceNumbers(data mod.MissionData) []int {
-	flow, held := x.installFlow(), x.missionAnswer()
-	if flow == nil || held == nil {
+	flow := x.installFlow()
+	if flow == nil {
 		return nil
 	}
 	c := flow.campaign
-	var out []int
-	for _, n := range slices.Concat(c.Main, c.Side, c.Offered) {
-		if _, taken := data.Replacing(n); !taken && held(n) == nil && !slices.Contains(out, n) {
-			out = append(out, n)
-		}
+	return data.ReplaceNumbers(slices.Concat(c.Main, c.Side, c.Offered), x.missionAnswer())
+}
+
+// mapRefusal is err, a refusal of mod.MakeMission or mod.MakeRow about map
+// rel and mission number n, in the editor's words.
+func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
+	switch {
+	case errors.Is(err, mod.ErrMapNamed):
+		return fmt.Errorf(x.word("editor.mod.err.maptaken"), rel)
+	case errors.Is(err, mod.ErrNotByName):
+		return fmt.Errorf(x.word("editor.mod.err.notbyname"), rel)
+	case errors.Is(err, mod.ErrNotCampaign):
+		return fmt.Errorf(x.word("editor.mod.err.replacenumber"), n)
+	case errors.Is(err, mod.ErrReplaced):
+		return fmt.Errorf(x.word("editor.mod.err.replacetaken"), n)
 	}
-	slices.Sort(out)
-	return out
+	return err
 }
 
 // ModMapActions are the entries of the mod's maps that a mission can be made
@@ -154,23 +163,17 @@ func (s *mapInspectionEdits) makeMission(w *editorWorkspaceState, value string) 
 		return err
 	}
 	if e.Role() != mod.MapUnused {
-		return fmt.Errorf(x.word("editor.mod.err.maptaken"), e.Path)
+		return x.mapRefusal(mod.ErrMapNamed, e.Path, 0)
 	}
-	held := x.missionAnswer()
 	var guest mod.Mission
-	if replace != 0 {
-		if held == nil || held(replace) != nil {
-			return fmt.Errorf(x.word("editor.mod.err.replacenumber"), replace)
+	if replace == 0 {
+		if guest, err = s.guestRow(d, w.Package.ID); err != nil {
+			return err
 		}
-		if _, taken := data.Replacing(replace); taken {
-			return fmt.Errorf(x.word("editor.mod.err.replacetaken"), replace)
-		}
-	} else if guest, err = s.guestRow(d, w.Package.ID); err != nil {
-		return err
 	}
-	row, err := mod.MakeMission(w.Package.ID, data, e, guest, replace, held)
+	row, err := mod.MakeMission(w.Package.ID, data, e, guest, replace, x.missionAnswer())
 	if err != nil {
-		return err
+		return x.mapRefusal(err, e.Path, replace)
 	}
 	d.Missions = append(d.Missions, row)
 	if d.Selected < 0 && namefold.ModTree(d.Loose) == namefold.ModTree(row.Map) {
@@ -192,19 +195,12 @@ func (s *mapInspectionEdits) makeRow(w *editorWorkspaceState, value string) erro
 	if err != nil {
 		return err
 	}
-	if e.Role() != mod.MapByName {
-		return fmt.Errorf(x.word("editor.mod.err.notbyname"), e.Path)
-	}
-	held := x.missionAnswer()
-	if held == nil || held(e.Number) != nil {
-		return fmt.Errorf(x.word("editor.mod.err.replacenumber"), e.Number)
-	}
-	row, err := mod.MakeRow(w.Package.ID, data, e, held)
+	row, err := mod.MakeRow(w.Package.ID, data, e, x.missionAnswer())
 	if err != nil {
-		return err
+		return x.mapRefusal(err, e.Path, e.Number)
 	}
 	at := slices.IndexFunc(d.Missions, func(m mod.Mission) bool {
-		return m.ByFileName() && namefold.ModTree(m.Map) == namefold.ModTree(e.Path)
+		return m.Kind == mod.MissionReplace && m.Number == e.Number && namefold.ModTree(m.Map) == namefold.ModTree(e.Path)
 	})
 	if at < 0 {
 		d.Missions = append(d.Missions, row)

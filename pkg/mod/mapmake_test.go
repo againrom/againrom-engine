@@ -159,3 +159,14 @@ func TestMakeRowKeyIsAValidRowKeyOfTheStem(t *testing.T) {
 		}
 	}
 }
+
+func TestReplaceNumbersAreTheHeldOnesNoRowReplaces(t *testing.T) {
+	d := MissionData{Missions: []Mission{{Mod: "m", File: MissionsFile, Key: "a", Kind: MissionReplace, Number: 20, Map: "a.alm"}}}
+	got := d.ReplaceNumbers([]int{40, 20, 30, 50, 30}, heldOnly(20, 30, 40))
+	if len(got) != 2 || got[0] != 30 || got[1] != 40 {
+		t.Fatalf("numbers %v, want [30 40]", got)
+	}
+	if got := d.ReplaceNumbers([]int{30}, nil); len(got) != 0 {
+		t.Fatalf("with no install %v", got)
+	}
+}

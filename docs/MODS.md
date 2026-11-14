@@ -2550,8 +2550,24 @@ whose file the mod does not hold. A map two rows name is one row with both
 roles. The list is the first group of File > Open, Maps of the mod, while a mod is
 open; choosing a map there opens it as a tab and stays in the mod. An unused
 map is edited and saved like any other: Ctrl+S writes it at its own path and
-adds no mission row. F5 on an unused map refuses and says to make it a mission
-first.
+adds no mission row.
+
+The mod window's Missions page lists, under the mission rows, each map no
+mission uses and each map that replaces a mission by its file name. Make
+mission on an unused map writes a guest row (the number, the mission it plays
+after and the party the Add button gives) or, with Replace N, a row that
+replaces the lowest mission number the install holds and no row of the mod
+replaces; the number can be changed in the mission's fields. Make row on a map
+named by a mission number writes the row that names that same map. The row
+key is the map's stem written as a row key (`m10` for `10.alm`). Add unused
+copies the open map into `maps/<stem>.alm` with its pages and labels as a
+draft that no row names, `-2` and on when the stem is taken. Add maps from
+folder opens the system folder window and adds every `.alm` and `.almx` at the
+folder's top with its `<stem>.text/` pages and `<stem>.variables`; a stem of
+digits takes the `m` prefix. Where the system has no folder window a typed
+path is asked for. Each action is one Undo step and Ctrl+S writes it. F5 on an
+unused map plays it as a guest mission of the mod, with the mod active, through
+the party window; the row exists in the test copy only.
 
 With a mod open, several of its maps stay open at once. The mission choice,
 a mission of the campaign graph, the map list and File > Open each open the
