@@ -14,7 +14,7 @@ import (
 func TestShortcutInventoryFrames(t *testing.T) {
 	dir := os.Getenv("AGAINROM_SHORTCUT_FRAMES")
 	if dir == "" || os.Getenv("AGAINROM_ASSETS") == "" {
-		t.Skip("needs shortcut frame directory and install")
+		t.Skip("needs AGAINROM_SHORTCUT_FRAMES and AGAINROM_ASSETS")
 	}
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
