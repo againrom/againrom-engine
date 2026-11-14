@@ -41,7 +41,7 @@ func TestMissionMenuNativePlacementAndControlCentres(t *testing.T) {
 			if place.Scale() != a.flow.viewer.place.Scale() || rect.Min.X != (a.flow.viewer.frameW-rect.Dx())/2 || rect.Min.Y != (a.flow.viewer.frameH-rect.Dy())/2 {
 				t.Fatalf("size %v page %v: scale %v rect %v", size, page, place.Scale(), rect)
 			}
-			if page == gameMenuRoot && rect.Size() != image.Pt(296, 296) {
+			if page == gameMenuRoot && rect.Size() != image.Pt(296, 328) {
 				t.Fatalf("menu frame %v", rect)
 			}
 			if (page == gameMenuEndQuestConfirmation || page == gameMenuAbortGameConfirmation) && rect.Size() != image.Pt(296, 232) {
@@ -67,7 +67,7 @@ func TestMissionMenuNativePlacementAndControlCentres(t *testing.T) {
 				}
 			}
 			if page == gameMenuRoot || page == gameMenuEndQuestConfirmation || page == gameMenuAbortGameConfirmation {
-				row := gameMenuRowRect(gameMenuPanelRect(a.flow.menuPanelSurface(), a.flow.pages.menu), 0)
+				row := gameMenuRowRect(gameMenuPanelRectFor(a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuGeometryProfile()), 0)
 				p := row.Min.Add(row.Size().Div(2))
 				x, y, ok := a.nativeFrameToWindow(p)
 				if !ok {
@@ -319,7 +319,7 @@ func TestNativeMissionMenuModRowsFitAndClick(t *testing.T) {
 
 func TestNativeMissionMenuClickAndKeyboardReachTheDrawnRow(t *testing.T) {
 	a := nativeMenuApp(t, image.Pt(1024, 768))
-	r := gameMenuRowRect(gameMenuPanelRect(gameMenuMission, a.flow.pages.menu), 5)
+	r := gameMenuRowRect(gameMenuPanelRectFor(gameMenuMission, a.flow.menuRows(), a.flow.menuGeometryProfile()), 6)
 	p := r.Min.Add(r.Size().Div(2))
 	x, y, _ := a.nativeFrameToWindow(p)
 	now := time.Unix(0, 0)
@@ -329,7 +329,7 @@ func TestNativeMissionMenuClickAndKeyboardReachTheDrawnRow(t *testing.T) {
 		t.Fatalf("clicked page %v", a.flow.menuPage)
 	}
 	a.flow.rebuildGameMenu(gameMenuRoot, 0)
-	for range 5 {
+	for range 6 {
 		a.step(appInput{Down: true}, now)
 	}
 	a.step(appInput{Enter: true}, now)

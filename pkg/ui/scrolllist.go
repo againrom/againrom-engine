@@ -54,8 +54,8 @@ var (
 	// is the same list turned by the wheel with the pointer over it.
 	saveListFocused = scrollSpec{unit: scrollRows, wheel: 1, key: 1, lap: 1}
 	saveListHover   = scrollSpec{unit: scrollRows, wheel: 1, whole: true, key: 1, lap: 1}
-	// soundTrackList is the sound options page's music track list.
-	soundTrackList = scrollSpec{unit: scrollRows, wheel: pickerWheelRows, whole: true, key: 1, lap: 1}
+	// settingsPageList is a settings page's list: the music tracks, the keys.
+	settingsPageList = scrollSpec{unit: scrollRows, wheel: pickerWheelRows, whole: true, key: 1, lap: 1}
 	// worldMapList is the world map's destination list.
 	worldMapList = scrollSpec{unit: scrollRows, wheel: 1, key: 1}
 	// shopRegion is the shop's regions under the pointer, one row a notch.

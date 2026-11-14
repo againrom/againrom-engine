@@ -47,7 +47,7 @@ func TestGameOptionsDrawsThroughTheSharedBuilders(t *testing.T) {
 	values := GameOptionValues{}
 	var log []optionWrite
 	a := optionsApp(t, &values, &log, nil)
-	calls := recordWidgets(t, func() { a.gameOptionsPicture() })
+	calls := recordWidgets(t, func() { a.settingsPicture(gameOptionsPage()) })
 	wantWidgets(t, "game options", calls, map[widgetKind]int{widgetSlider: 1, widgetRadio: 3, widgetCheck: 7, widgetPushButton: 3})
 }
 
@@ -68,7 +68,7 @@ func TestSoundOptionsDrawsThroughTheSharedBuilders(t *testing.T) {
 	if err := a.HeadlessGameMenuAction("sound-options"); err != nil {
 		t.Fatal(err)
 	}
-	calls := recordWidgets(t, func() { a.soundOptionsPicture() })
+	calls := recordWidgets(t, func() { a.settingsPicture(soundOptionsPage()) })
 	wantWidgets(t, "sound options", calls, map[widgetKind]int{widgetSlider: 2, widgetPushButton: 2})
 }
 

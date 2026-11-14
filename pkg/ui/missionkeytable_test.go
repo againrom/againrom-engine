@@ -10,23 +10,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-var missionKeyActionNames = map[missionKeyAction]string{
-	missionKeyPatrol: "patrol", missionKeyGrab: "grab", missionKeyPickup: "pickup", missionKeyGuard: "guard",
-	missionKeyDefend: "defend", missionKeyCast: "cast", missionKeyMarch: "march", missionKeyStandGround: "stand-ground",
-	missionKeyRetreat: "retreat", missionKeyMove: "move", missionKeyQuickSave: "quick-save",
-	missionKeyQuickLoad: "quick-load", missionKeyGrid: "grid", missionKeyReadout: "readout", missionKeyFPS: "fps",
-	missionKeyReveal: "reveal", missionKeyShortcut: "spell", missionKeySupport: "support", missionKeyAttack: "attack",
-	missionKeyAutocast: "autocast", missionKeyWeaponSwap: "weapon-swap", missionKeyRetreatSetting: "retreat-setting",
-	missionKeyFormation: "formation", missionKeyTimeFlow: "time-flow", missionKeySmoothing: "smoothing",
-	missionKeyAutoHealing: "auto-healing", missionKeyShowHealth: "show-health", missionKeyNumerals: "numerals",
-	missionKeyKill: "kill", missionKeyChip: "chip", missionKeySelectAll: "select-all", missionKeyInventory: "inventory",
-	missionKeyWorn: "worn", missionKeyBook: "book", missionKeyDoll: "doll", missionKeyPanels: "panels",
-	missionKeyHighlight: "highlight", missionKeyHelp: "help", missionKeySaveGame: "save-game",
-	missionKeyLoadGame: "load-game", missionKeyPauseText: "pause-text", missionKeyPause: "pause",
-	missionKeyFaster: "faster", missionKeySlower: "slower", missionKeyUnpaced: "unpaced", missionKeyPaced: "paced",
-	missionKeyZoomReset: "zoom-reset", missionKeySpeedReset: "speed-reset", missionKeyClearMessages: "clear-messages", missionKeyGroup: "group",
-}
-
 // missionKeyLine is one row as the table test lists it: the key's name, what
 // it asks of each modifier, hold for a level, and the action.
 func missionKeyLine(b missionKeyBinding) string {

@@ -219,7 +219,7 @@ func TestOnLayoutIsAValueAndSkipsAnEmptyWord(t *testing.T) {
 func TestGameMenuRowsComeFromTheWordSet(t *testing.T) {
 	t.Run("authored", func(t *testing.T) {
 		w := AuthoredWords()
-		wantMission := []string{"SAVE GAME", "LOAD GAME", "GAME OPTIONS", "SOUND OPTIONS",
+		wantMission := []string{"SAVE GAME", "LOAD GAME", "GAME OPTIONS", "SOUND OPTIONS", "Keys",
 			"QUEST OBJECTIVES", "END QUEST", "RETURN TO GAME"}
 		checkRows(t, gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true}), wantMission)
 		wantTown := []string{"SAVE GAME", "LOAD GAME", "GAME OPTIONS", "SOUND OPTIONS", "ABORT GAME", "RETURN TO GAME"}
@@ -227,7 +227,7 @@ func TestGameMenuRowsComeFromTheWordSet(t *testing.T) {
 	})
 	t.Run("installed", func(t *testing.T) {
 		w := installedWords()
-		wantMission := []string{"Save Game", "Load Game", "Game Options", "Sound Options",
+		wantMission := []string{"Save Game", "Load Game", "Game Options", "Sound Options", "Keys",
 			"Quest Objectives", "End Quest", "Return to Game"}
 		checkRows(t, gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true}), wantMission)
 		wantTown := []string{"Save Game", "Load Game", "Game Options", "Sound Options", "Abort Game", "Return to Game"}
@@ -239,8 +239,8 @@ func TestGameMenuRowsComeFromTheWordSet(t *testing.T) {
 		w := AuthoredWords()
 		w.MenuEndQuest = "~End Quest"
 		rows := gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true})
-		if got := gameMenuLabelText(rows[5].Label); got != "End Quest" {
-			t.Fatalf("row 5 = %q", got)
+		if got := gameMenuLabelText(rows[6].Label); got != "End Quest" {
+			t.Fatalf("row 6 = %q", got)
 		}
 		if got := gameMenuLabelText(rows[0].Label); got != "SAVE GAME" {
 			t.Fatalf("row 0 = %q", got)

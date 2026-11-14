@@ -25,9 +25,6 @@ type gameOptionsDraft struct {
 	speedChanged  bool
 	delay         int
 	delayStart    int
-	slider        sliderInput
-	// radio is the radio group a held press began on, or 0.
-	radio gameMenuAction
 }
 
 func (f *flow) newGameOptionsDraft() *gameOptionsDraft {

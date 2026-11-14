@@ -16,7 +16,7 @@ func TestQuickSpellMarkInkIsTheOriginalGoldNotThePackReadoutInk(t *testing.T) {
 	for _, selected := range []bool{false, true} {
 		dst := image.NewRGBA(image.Rect(0, 0, 24, 24))
 		cell := image.Rect(8, 8, 20, 20)
-		drawOriginalQuickSpellMark(dst, chargenTestFont(), cell, 0, selected)
+		drawOriginalQuickSpellMark(dst, chargenTestFont(), cell, "F5", selected)
 		pad := 0
 		if selected {
 			pad = 2

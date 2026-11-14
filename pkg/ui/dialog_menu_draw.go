@@ -26,11 +26,8 @@ func (a *App) GameMenuPanel() (pic *image.RGBA) {
 	if a.flow.menuPage == gameMenuQuestObjectivesPage {
 		return a.questPicture()
 	}
-	if a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil {
-		return a.gameOptionsPicture()
-	}
-	if a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil {
-		return a.soundOptionsPicture()
+	if p, ok := a.flow.settingsPage(); ok {
+		return a.settingsPicture(p)
 	}
 	dst := composeGameMenuPanel(a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuArt, a.menuPointer(), a.flow.menuGeometryProfile())
 	if message := a.gameMenuAcknowledgement(); message != "" {

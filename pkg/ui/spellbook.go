@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"strconv"
+	"strings"
 
 	"againrom/pkg/render/text"
 )
@@ -325,10 +326,10 @@ func (v *Viewer) spellbookPresent() (*image.RGBA, image.Point, bool) {
 				if id == v.spellbook[i].ID {
 					if original {
 						if !v.spellbook[i].Unavailable {
-							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), slot+v.quickSpellOffset, id == v.selectedSpell)
+							drawOriginalQuickSpellMark(img, v.cardFont(), cell.Sub(bar.Min), v.quickSpellMark(slot), id == v.selectedSpell)
 						}
 					} else {
-						drawQuickSpellMark(img, v.font, cell.Sub(bar.Min), slot+v.quickSpellOffset)
+						drawQuickSpellMark(img, v.font, cell.Sub(bar.Min), v.quickSpellMark(slot))
 					}
 				}
 			}
@@ -357,10 +358,44 @@ func drawNoHeroText(img *image.RGBA, line string, cardFont, font *text.Font, ori
 	f.Draw(img, line, x0+(dx-w)/2, b.Min.Y+(b.Dy()-h)/2, spellbookText)
 }
 
-func drawQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rectangle, slot int) {
-	label := "F" + strconv.Itoa(5+slot)
+// quickSpellMark is slot's mark: its key in the player's layout, or the
+// first game's function key before the map's first tick sets the marks.
+func (v *Viewer) quickSpellMark(slot int) string {
+	if v.quickSpellLabels == nil {
+		return "F" + strconv.Itoa(5+slot)
+	}
+	if slot < len(v.quickSpellLabels) {
+		return v.quickSpellLabels[slot]
+	}
+	return ""
+}
+
+// fitQuickSpellMark is label drawn shorter until it is room wide: the
+// modifier words become their first letters, then only the key stands after a
+// plus, then the end is cut.
+func fitQuickSpellMark(font *text.Font, label string, room int) string {
+	if w, _ := font.Measure(label); w <= room {
+		return label
+	}
+	label = strings.NewReplacer("Ctrl+", "C+", "Shift+", "S+", "Alt+", "A+").Replace(label)
+	if w, _ := font.Measure(label); w <= room {
+		return label
+	}
+	if i := strings.LastIndex(label, "+"); i >= 0 {
+		label = label[i:]
+	}
+	for runes := []rune(label); len(runes) > 1; runes = runes[:len(runes)-1] {
+		if w, _ := font.Measure(string(runes)); w <= room {
+			return string(runes)
+		}
+	}
+	return ""
+}
+
+func drawQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rectangle, label string) {
+	label = fitQuickSpellMark(font, label, cell.Dx()-4)
 	w, h := font.Measure(label)
-	if w <= 0 || h <= 0 || w+4 > cell.Dx() || h+4 > cell.Dy() {
+	if label == "" || w <= 0 || h <= 0 || w+4 > cell.Dx() || h+4 > cell.Dy() {
 		return
 	}
 	box := image.Rect(cell.Max.X-w-3, cell.Max.Y-h-3, cell.Max.X-1, cell.Max.Y-1)
@@ -414,15 +449,19 @@ func liftChannel(v uint8) uint8 {
 // this one did not.
 var quickSpellMarkInk = color.RGBA{R: 200, G: 174, B: 84, A: 0xff}
 
-func drawOriginalQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rectangle, slot int, selected bool) {
-	if font == nil {
+// drawOriginalQuickSpellMark draws a function key as its number alone.
+func drawOriginalQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rectangle, label string, selected bool) {
+	if n, ok := strings.CutPrefix(label, "F"); ok && n != "" && strings.Trim(n, "0123456789") == "" {
+		label = n
+	}
+	if font == nil || label == "" {
 		return
 	}
 	pad := 0
 	if selected {
 		pad = 2
 	}
-	label := strconv.Itoa(5 + slot)
+	label = fitQuickSpellMark(font, label, cell.Dx()-pad-1)
 	font.Draw(dst, label, cell.Min.X+pad+1, cell.Min.Y+pad+1, DamageNumeralShadowColor)
 	font.Draw(dst, label, cell.Min.X+pad, cell.Min.Y+pad, quickSpellMarkInk)
 }

@@ -63,6 +63,8 @@ func (f *flow) menuRows() []gameMenuRow {
 	switch f.menuPage {
 	case gameMenuGameOptionsPage:
 		return f.gameOptionsRows()
+	case gameMenuKeysPage:
+		return f.keysPageRows()
 	case gameMenuSoundOptionsPage:
 		if f.soundOptions.Read != nil {
 			return f.soundOptionRows()
@@ -127,7 +129,13 @@ func (f *flow) menuRows() []gameMenuRow {
 		}
 	}
 	state := gameMenuRowState{campaign: f.menuContext.Campaign, canSave: f.menuCanSave, canLoad: f.menuCanLoad, canSound: f.menuCanSound, townSaveClosed: !f.savePoint(saveMenuRow).open()}
-	return f.withModRows(gameMenuRootRows(f.pages.menu.rowsAt(f.menuSurface), f.words, state))
+	rows := gameMenuRootRows(f.pages.menu.rowsAt(f.menuSurface), f.words, state)
+	for i := range rows {
+		if rows[i].Action == gameMenuKeys {
+			rows[i].Label = f.menuText(rows[i].Label)
+		}
+	}
+	return f.withModRows(rows)
 }
 
 // withModRows appends one row for each mod screen placed in the in-game menu.
@@ -224,6 +232,9 @@ func (f *flow) refreshGameMenuGates() {
 }
 
 func (f *flow) rebuildGameMenu(page gameMenuPage, selection int) {
+	if f.menuPage != page {
+		f.settingsHold = settingsHold{}
+	}
 	if page == gameMenuSoundOptionsPage && f.menuPage != page {
 		f.initSoundTracks()
 	}
@@ -237,7 +248,6 @@ func (f *flow) rebuildGameMenu(page gameMenuPage, selection int) {
 		f.gameOptions.draft = nil
 	}
 	f.menuPage = page
-	f.soundPointer = soundOptionPointer{}
 	if page == gameMenuRoot {
 		f.refreshGameMenuGates()
 	}
@@ -417,6 +427,9 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 		f.rebuildGameMenu(gameMenuGameOptionsPage, 0)
 	case gameMenuSoundOptions:
 		f.rebuildGameMenu(gameMenuSoundOptionsPage, 0)
+	case gameMenuKeys:
+		f.msg = ""
+		f.rebuildGameMenu(gameMenuKeysPage, 0)
 	case gameMenuQuestObjectives:
 		f.questTop, f.questPress, f.questBar = 0, buttonLatch{}, scrollBarInput{}
 		f.rebuildGameMenu(gameMenuQuestObjectivesPage, 0)

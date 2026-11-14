@@ -92,6 +92,8 @@ type missionKeyBinding struct {
 	hold             bool
 	action           missionKeyAction
 	arg              int
+	// fixed rows are not the player's to rebind (debug chords, F1).
+	fixed bool
 }
 
 // missionKeyPolicy is a profile's data beside its rows: the game whose rows
@@ -99,11 +101,13 @@ type missionKeyBinding struct {
 type missionKeyPolicy struct {
 	games  missionKeyGames
 	orders keyMod
+	// store names the game's keys in the profile settings.
+	store string
 }
 
 var missionKeyPolicies = map[missionKeyAction]missionKeyPolicy{
-	missionKeyPatrol: {games: firstGameKeys},
-	missionKeyPickup: {games: secondGameKeys, orders: modFree},
+	missionKeyPatrol: {games: firstGameKeys, store: "FirstGameKeys"},
+	missionKeyPickup: {games: secondGameKeys, orders: modFree, store: "SecondGameKeys"},
 }
 
 var missionKeyProfiles = map[string]missionKeyAction{"pickup-p": missionKeyPickup}
@@ -119,15 +123,24 @@ func MissionShortcutCount(name string) int {
 	return len(slots)
 }
 
-// missionShortcutOffset is the function-key number of a profile's first
-// spell slot less five, the offset the book's slot marks are drawn with.
-func missionShortcutOffset(p missionKeyAction) int {
-	for _, b := range missionBindings(p) {
-		if b.action == missionKeyShortcut && b.arg == 0 && b.shift == modFree {
-			return int(b.key-ebiten.KeyF4) + 4 - 5
+// missionShortcutMarks are the book's slot marks: each spell slot's key in
+// the player's layout, a row without Shift first; empty where none is.
+func missionShortcutMarks(p missionKeyAction, k PlayerMissionKeys) []string {
+	var marks []string
+	var shifted []bool
+	for _, b := range missionKeyRows(p, k) {
+		if b.action != missionKeyShortcut || b.fixed {
+			continue
+		}
+		for len(marks) <= b.arg {
+			marks, shifted = append(marks, ""), append(shifted, false)
+		}
+		if marks[b.arg] == "" || shifted[b.arg] && b.shift != modHeld {
+			marks[b.arg] = MissionKeyChord{Key: b.key, Ctrl: b.ctrl == modHeld, Shift: b.shift == modHeld, Alt: b.alt == modHeld}.caption()
+			shifted[b.arg] = b.shift == modHeld
 		}
 	}
-	return 0
+	return marks
 }
 
 // SetMissionKeys selects the edition's mission bindings.
@@ -169,11 +182,11 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "h", key: ebiten.KeyH, ctrl: modHeld, action: missionKeyShowHealth},
 		{name: "l", key: ebiten.KeyL, ctrl: modHeld, action: missionKeyNumerals},
 		// Debug chords; the map arm asks the cheat unlock (DIV-4862, DIV-2178).
-		{name: "k", key: ebiten.KeyK, ctrl: modHeld, shift: modHeld, action: missionKeyKill},
-		{name: "semicolon", key: ebiten.KeySemicolon, ctrl: modHeld, shift: modHeld, action: missionKeyChip},
-		{name: "f4", key: ebiten.KeyF4, ctrl: modHeld, shift: modHeld, action: missionKeyReveal},
-		{name: "f10", key: ebiten.KeyF10, ctrl: modHeld, shift: modHeld, action: missionKeyGrid},
-		{name: "f11", key: ebiten.KeyF11, ctrl: modHeld, shift: modHeld, action: missionKeyReadout},
+		{name: "k", key: ebiten.KeyK, ctrl: modHeld, shift: modHeld, action: missionKeyKill, fixed: true},
+		{name: "semicolon", key: ebiten.KeySemicolon, ctrl: modHeld, shift: modHeld, action: missionKeyChip, fixed: true},
+		{name: "f4", key: ebiten.KeyF4, ctrl: modHeld, shift: modHeld, action: missionKeyReveal, fixed: true},
+		{name: "f10", key: ebiten.KeyF10, ctrl: modHeld, shift: modHeld, action: missionKeyGrid, fixed: true},
+		{name: "f11", key: ebiten.KeyF11, ctrl: modHeld, shift: modHeld, action: missionKeyReadout, fixed: true},
 		// Selection and panels (AI-SELECT-122, keyboard.tsv; DIV-296, DIV-1817).
 		{name: "e", key: ebiten.KeyE, action: missionKeySelectAll},
 		{name: "i", key: ebiten.KeyI, action: missionKeyInventory},
@@ -184,7 +197,7 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "j", key: ebiten.KeyJ, action: missionKeyDoll},
 		{name: "space", key: ebiten.KeySpace, shift: modFree, alt: modFree, action: missionKeyPanels},
 		{name: "z", key: ebiten.KeyZ, ctrl: modFree, alt: modFree, hold: true, action: missionKeyHighlight},
-		{name: "f1", key: ebiten.KeyF1, action: missionKeyHelp},
+		{name: "f1", key: ebiten.KeyF1, action: missionKeyHelp, fixed: true},
 		{name: "pause", key: ebiten.KeyPause, action: missionKeyPauseText},
 		// Function keys (AI-KEY-125; DIV-526, DIV-4885, DIV-4887).
 		{name: "f2", key: ebiten.KeyF2, ctrl: modFree, action: missionKeyQuickSave},
@@ -271,7 +284,11 @@ func (in *appInput) readMissionKeys(p missionKeyAction, pressed func(ebiten.Key)
 // Where two rows set one field, the lowest group digit wins, and a bare zero
 // is the clock pause and not group 0 (DIV-2263).
 func (in *appInput) readMissionKeyRows(p missionKeyAction, pressed, held func(ebiten.Key) bool, ctrl bool) {
-	for _, b := range missionBindings(p) {
+	var player PlayerMissionKeys
+	if in.layout != nil {
+		player = *in.layout
+	}
+	for _, b := range missionKeyRows(p, player) {
 		down := pressed
 		if b.hold {
 			down = held

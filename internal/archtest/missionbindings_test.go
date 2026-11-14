@@ -39,6 +39,7 @@ var otherKeyFields = map[string]string{
 	"Right": "lists and text fields", "Typed": "text field", "Backspace": "text field",
 	"Delete": "text field", "Home": "text field", "End": "text field", "SelectText": "text field",
 	"AltLetter": "console", "Load": "main menu", "PaneMode": "character pane",
+	"Keys": "the Keys page's capture",
 }
 
 // missionKeyTable is what the table names: its row names and the appInput

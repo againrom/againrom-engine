@@ -5,7 +5,6 @@ import (
 	"image"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
 )
 
@@ -66,96 +65,62 @@ func soundSliderRect(channel audio.Channel) image.Rectangle {
 	return image.Rect(r.Min.X, r.Min.Y+15, r.Max.X, r.Max.Y)
 }
 
-// soundSlider is a channel's volume control: the shared slider over
-// positions 0..soundSliderRange (MENU-118).
-func (a *App) soundSlider(channel audio.Channel, position int) hSlider {
-	p, ok := a.pointerFrame()
-	return hSlider{Rect: soundSliderRect(channel), Pos: position, Max: soundSliderRange}.withPointer(p, ok)
-}
-
-func (a *App) soundOptionsPicture() *image.RGBA {
-	f := a.flow
-	g := soundOptionsDialog
-	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawFrame(dst, g.frame(f.menuArt))
-	font, words := f.menuFont, f.soundOptions.Words
-	title := gameMenuLabelText(words.Title)
-	font.Draw(dst, title, g.Min.X+(g.W()-font.Advance(title))/2, g.Min.Y+20, gameMenuText)
-	values := f.soundOptions.Read()
-	pointer, pointerOK := a.pointerFrame()
-	for i, row := range f.menuRows() {
-		r := soundOptionRect(row.Action)
-		focused := f.menuList.Selection() == i
-		since := markCapture()
-		if row.Action == gameMenuMusicTracks {
-			a.drawSoundTracks(dst, focused)
-		} else if channel, slider := soundActionChannel(row.Action); slider {
-			tone := gameMenuText
-			if focused {
-				tone = loadSelectedText
-			}
-			label := gameMenuLabelText(words.Labels[channel])
-			font.Draw(dst.SubImage(r).(*image.RGBA), label, r.Min.X, r.Min.Y, tone)
-			position := soundPercentSlider(values[channel])
-			if f.soundPointer.slider.active() && f.soundPointer.action == row.Action {
-				position = f.soundPointer.value
-			}
-			s := a.soundSlider(channel, position)
-			s.Disabled = !row.Enabled
-			drawHSlider(dst, a.media.scroll, s)
-			if !row.Enabled {
-				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, s.Rect.Min.Y), since)
-			}
-			continue
-		} else if isSoundCheck(row.Action) {
-			on := f.soundOptions.acknowledgments
-			if row.Action == gameMenuMusicRandom {
-				on = f.soundOptions.ReadPlayback().RandomOrder
-			}
-			a.drawGameOption(dst, r, row.Label, on, focused, !row.Enabled)
-			continue
-		} else {
-			label, literal := row.Label, row.Literal
-			if row.Action == gameMenuVolumeDown {
-				label, literal = "-", true
-			} else if row.Action == gameMenuVolumeUp {
-				label, literal = "+", true
-			}
-			inside := pointerOK && pointer.In(r)
-			drawPushButton(dst, font, pushButton{Rect: r, Label: label, Literal: literal, Hover: inside, Inside: inside, Focus: focused,
-				Pressed: f.soundPointer.press.Pressed(int(row.Action)), Disabled: !row.Enabled})
-			continue
-		}
-		if !row.Enabled {
-			dimDisabledRow(dst, r, since)
-		}
-	}
-	_, master, _ := f.readMenuSound()
-	label := fmt.Sprintf("%d%%", master)
-	mid := soundOptionRect(gameMenuVolumeDown)
-	font.Draw(dst, label, (mid.Max.X+soundOptionRect(gameMenuVolumeUp).Min.X)/2-font.Advance(label)/2,
-		mid.Min.Y+(mid.Dy()-font.Height())/2, gameMenuText)
-	message := f.menuDisplayText(f.msg)
-	for i, line := range noticeFlowLines(font, message, g.W()-80) {
-		if i == 2 {
-			break
-		}
-		font.Draw(dst, string(line), g.Min.X+40, g.Min.Y+44+i*(font.Height()+1), gameMenuText)
-	}
-	return dst
-}
-
-// soundTrackBar is the track list's bar, for geometry only.
 func soundTrackBar(f *text.Font) vScrollBar { return vScrollBar{Rect: soundTrackBox(f).Bar()} }
 
-func (a *App) drawSoundTracks(dst *image.RGBA, focused bool) {
-	f := a.flow
+// soundOptionsPage is the Sound Options page; the page's message wraps
+// under the title.
+func soundOptionsPage() settingsPage {
 	g := soundOptionsDialog
-	r := soundOptionRect(gameMenuMusicTracks)
-	f.menuFont.Draw(dst, gameMenuLabelText(f.soundOptions.Words.Tracks), r.Min.X, g.Min.Y+60, loadSelectedText)
-	list := f.soundOptions.list
-	pointer, pointerOK := a.pointerFrame()
-	drawListBox(dst, f.menuFont, a.media.scroll, soundTrackBox(f.menuFont), list, func(row, _ int) string {
-		return list.Rows()[row].Text
-	}, pointer, pointerOK)
+	return settingsPage{dialog: g, titleSpan: g.W(), title: func(f *flow) string { return f.soundOptions.Words.Title },
+		control: (*App).soundOptionsControl, extras: (*App).soundOptionsExtras,
+		notice: image.Rect(g.Min.X+40, g.Min.Y+44, g.Max.X-40, g.Min.Y+80)}
+}
+
+// soundOptionsControl is a Sound Options row's control: each channel a
+// slider over positions 0..soundSliderRange (MENU-118), the tracks the
+// shared list (MENU-120), two checkboxes and the push buttons.
+func (a *App) soundOptionsControl(row gameMenuRow) settingsControl {
+	f := a.flow
+	r := soundOptionRect(row.Action)
+	c := settingsControl{kind: settingsPush, rect: r, label: row.Label, literal: row.Literal, disabled: !row.Enabled}
+	if channel, ok := soundActionChannel(row.Action); ok {
+		c.kind, c.label, c.focusing = settingsSlider, f.soundOptions.Words.Labels[channel], true
+		c.slider = hSlider{Rect: soundSliderRect(channel), Pos: soundPercentSlider(f.soundOptions.Read()[channel]), Max: soundSliderRange}
+		c.set = func(pos int) int { f.applySoundSlider(channel, soundSliderPercent(pos)); return pos }
+		c.released = func() {
+			if channel == audio.EffectsChannel {
+				a.playUISound(UISoundOptionsTest)
+			} else if channel == audio.SpeechChannel {
+				a.playSpeechTest()
+			}
+		}
+		if row.Enabled {
+			c.adjust = func(delta int) { f.stepSoundSlider(channel, delta*soundKeyStep) }
+		}
+		return c
+	}
+	switch {
+	case row.Action == gameMenuMusicTracks:
+		list := f.soundOptions.list
+		c.kind, c.label, c.list, c.box, c.wheel = settingsList, f.soundOptions.Words.Tracks, list, soundTrackBox(f.menuFont), settingsPageList
+		c.labelAt = image.Pt(r.Min.X, soundOptionsDialog.Min.Y+60)
+		c.text = func(row, _ int) string { return list.Rows()[row].Text }
+	case isSoundCheck(row.Action):
+		c.kind, c.on = settingsCheck, f.soundOptions.acknowledgments
+		if row.Action == gameMenuMusicRandom {
+			c.on = f.soundOptions.ReadPlayback().RandomOrder
+		}
+	case row.Action == gameMenuVolumeDown:
+		c.label, c.literal = "-", true
+	case row.Action == gameMenuVolumeUp:
+		c.label, c.literal = "+", true
+	}
+	return c
+}
+
+// soundOptionsExtras is the master volume between its two buttons.
+func (a *App) soundOptionsExtras() []settingsControl {
+	_, master, _ := a.flow.readMenuSound()
+	down, up := soundOptionRect(gameMenuVolumeDown), soundOptionRect(gameMenuVolumeUp)
+	return []settingsControl{{kind: settingsText, rect: image.Rect(down.Max.X, down.Min.Y, up.Min.X, down.Max.Y), label: fmt.Sprintf("%d%%", master)}}
 }

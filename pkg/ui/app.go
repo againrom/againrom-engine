@@ -87,8 +87,10 @@ type appInput struct {
 	// continue to consume their named controls rather than arbitrary keys.
 	AnyKey  bool
 	AnyHeld bool
+	Keys    []ebiten.Key // pressed this tick, for the Keys page's capture
 	Close   bool
 	Viewer  Input // the camera input, used only on the map screen
+	layout  *PlayerMissionKeys
 
 	CursorX, CursorY int
 	PrimaryPressed   bool // primary mouse button went down this tick
@@ -523,7 +525,7 @@ func onlyKey(key ebiten.Key) func(ebiten.Key) bool {
 // the arrow keys, Enter and the wheel. The menu screen deliberately reads no
 // keys but Esc — it is driven by the pointer, and keyboard navigation of the
 // brooch is not part of this front-end.
-func readAppInput(keys missionKeyAction) appInput {
+func readAppInput(keys missionKeyAction, player *PlayerMissionKeys) appInput {
 	cx, cy := ebiten.CursorPosition()
 	_, wy := ebiten.Wheel()
 	shiftHeld := heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)
@@ -531,6 +533,7 @@ func readAppInput(keys missionKeyAction) appInput {
 	// window. Every mission key is a row of missionBindings.
 	in := appInput{
 		AnyKey:            len(inpututil.AppendJustPressedKeys(nil)) != 0,
+		Keys:              inpututil.AppendJustPressedKeys(nil),
 		AnyHeld:           len(heldkey.AppendPressed(nil)) != 0,
 		Close:             ebiten.IsWindowBeingClosed(),
 		Viewer:            readInput(),
@@ -577,6 +580,7 @@ func readAppInput(keys missionKeyAction) appInput {
 		// reading Viewer.Input already gives Shift (readInput, viewer.go).
 		ShiftHeld: shiftHeld,
 	}
+	in.layout = player
 	in.readMissionKeyRows(keys, inpututil.IsKeyJustPressed, heldkey.Pressed, ctrlHeld())
 	in.Enter, in.WindowToggle = splitAltEnter(altHeld(), in.Enter)
 	return in
@@ -635,6 +639,7 @@ type App struct {
 	assets         *menu.Assets
 	flow           *flow
 	missionKeys    missionKeyAction
+	player         playerKeys
 	mapEntry       func(*Viewer)
 	// windowed is the form the game window has now: a decorated window when
 	// true, the whole screen when false. window is the window system a
@@ -1115,7 +1120,7 @@ func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Update gathers one tick of input and hands it to step. It holds no logic, so
 // nothing the front-end decides is out of a test's reach.
 func (a *App) Update() error {
-	if a.step(readAppInput(a.activeMissionKeys()), time.Now()) {
+	if a.step(readAppInput(a.activeMissionKeys(), a.activePlayerKeys()), time.Now()) {
 		return ebiten.Termination
 	}
 	return nil
@@ -1184,10 +1189,7 @@ func (a *App) dropWidgetLatches() {
 	if f.viewer != nil {
 		f.viewer.gold.press.Clear()
 	}
-	f.soundPointer = soundOptionPointer{}
-	if d := f.gameOptions.draft; d != nil {
-		d.radio = 0
-	}
+	f.settingsHold = settingsHold{}
 }
 
 // stepNoticeButtons drives an outcome panel's buttons through the shared
@@ -1305,6 +1307,9 @@ func (a *App) stepDialoguePointer(in appInput, owner dialoguePointerOwner, insid
 // Esc is handled first on every screen, so leaving is never blocked by whatever
 // else the screen is doing. Everything after it is per-screen dispatch.
 func (a *App) step(in appInput, now time.Time) (exit bool) {
+	if a.flow.screen == ScreenGameMenu && a.player.capture != "" {
+		in = in.capturedByKeysPage()
+	}
 	if a.flow.screen != ScreenMenu {
 		a.menuAway = true
 	}
@@ -1486,6 +1491,10 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		in.Typed = ""
 	}
 	in = a.stepCheatChat(in)
+	if a.flow.screen == ScreenGameMenu && a.player.capture != "" {
+		a.stepKeyCapture(in)
+		return false
+	}
 	if in.Escape {
 		// The open Drop Gold editor owns Escape as its cancel.
 		if v := a.flow.viewer; v != nil && a.flow.screen == ScreenMap && v.goldModalOpen() && !in.Unfocused {
@@ -1699,7 +1708,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			if in.FPS {
 				v.ToggleFPS()
 			}
-			v.quickSpellOffset = missionShortcutOffset(a.activeMissionKeys())
+			v.quickSpellLabels = missionShortcutMarks(a.activeMissionKeys(), a.player.keys)
 			if !quickBlocked {
 				for slot, pressed := range in.QuickSpell {
 					if pressed {
@@ -3135,9 +3144,14 @@ func (a *App) holdMapUnder(back Screen, in appInput, now time.Time) {
 
 func (a *App) beforeGameMenuAction(action gameMenuAction) {
 	a.playUISound(UISoundCommonControl)
-	if action == gameMenuTestSound {
+	switch action {
+	case gameMenuTestSound:
 		// Options action 7 is itself the fixed sword-sample request.
 		a.playUISound(UISoundOptionsTest)
+	case gameMenuKeyList:
+		a.startKeyCapture()
+	case gameMenuKeyDefaults:
+		a.restoreKeysPage()
 	}
 }
 
@@ -3163,8 +3177,8 @@ func (a *App) chooseGameMenu() {
 // click outside it reaches no other child; nothing behind this panel is
 // reachable while it stands, because the map arm never runs.
 func (a *App) stepGameMenu(in appInput) bool {
-	if a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil {
-		return a.stepSoundOptions(in)
+	if p, ok := a.flow.settingsPage(); ok {
+		return a.stepSettingsPage(p, in)
 	}
 	if a.flow.menuPage == gameMenuQuestObjectivesPage {
 		a.stepQuestObjectives(in)
@@ -3174,16 +3188,8 @@ func (a *App) stepGameMenu(in appInput) bool {
 	if list == nil {
 		return false
 	}
-	if a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil && a.stepGameOptionsPointer(in) {
-		return false
-	}
-	options := a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil
 	if in.PrimaryPressed {
-		if options {
-			a.pressGameOptions(a.windowToNativeFrame(in.CursorX, in.CursorY))
-		} else {
-			a.flow.menuPress.Press(a.gameMenuButtonAt(in))
-		}
+		a.flow.menuPress.Press(a.gameMenuButtonAt(in))
 	}
 	if in.PrimaryReleased && (in.Up || in.Down || in.Enter || in.Typed != "") {
 		// A key in the release's tick takes the tick; the release
@@ -3209,10 +3215,6 @@ func (a *App) stepGameMenu(in appInput) bool {
 			}
 		}
 	case in.PrimaryReleased:
-		if options {
-			a.releaseGameOptions(a.windowToNativeFrame(in.CursorX, in.CursorY))
-			return false
-		}
 		at, inside := a.gameMenuButtonAt(in)
 		row, activated := a.flow.menuPress.Release(at, inside)
 		if !activated {
@@ -4172,7 +4174,7 @@ func (a *App) paintGameMenuOnWideCanvas(dst *ebiten.Image) {
 	a.menuLog.reset(a.menuCanvas.Bounds())
 	a.menuLog.fill(a.menuCanvas.Bounds(), color.RGBA{})
 	a.paintCurrentGameMenu(a.menuCanvas)
-	if a.flow.msg != "" && a.gameMenuAcknowledgement() == "" && !(a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil) {
+	if p, ok := a.flow.settingsPage(); a.flow.msg != "" && a.gameMenuAcknowledgement() == "" && !(ok && !p.notice.Empty()) {
 		msg := clipRunes(a.flow.msg, pickerCols)
 		drawDebugText(a.menuCanvas, &a.menuLog, msg, pickerLeft, pickerMessageY)
 	}

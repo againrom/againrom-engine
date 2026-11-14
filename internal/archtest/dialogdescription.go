@@ -181,13 +181,11 @@ func namesNoticeStyle(x ast.Expr) bool {
 // one painter that draw a frame and push a button: parts of that painter, a
 // widget, and windows the dialog census did not take in. It may only fall.
 var dialogPainterBaseline = map[string]string{
-	"pkg/ui/editorpopup.go drawPopupGrid":             "the grid part of the one painter",
-	"pkg/ui/widgetdropdown.go drawDropdown":           "a widget's open list",
-	"pkg/ui/mapeditorwindow.go chromeCompose":         "the map editor's window chrome",
-	"pkg/ui/load_draw.go composePage":                 "the load page, outside the dialog census",
-	"pkg/ui/gameoptions_draw.go gameOptionsPicture":   "the game options window, outside the dialog census",
-	"pkg/ui/soundoptions_draw.go soundOptionsPicture": "the sound options window, outside the dialog census",
-	"pkg/ui/media_menu.go composeCutsceneLibrary":     "the cutscene library, outside the dialog census",
-	"pkg/ui/questobjectives.go questPicture":          "the objectives window, outside the dialog census",
-	"pkg/ui/tippanel.go ComposeTipPanel":              "the tip panel, outside the dialog census",
+	"pkg/ui/editorpopup.go drawPopupGrid":         "the grid part of the one painter",
+	"pkg/ui/widgetdropdown.go drawDropdown":       "a widget's open list",
+	"pkg/ui/mapeditorwindow.go chromeCompose":     "the map editor's window chrome",
+	"pkg/ui/load_draw.go composePage":             "the load page, outside the dialog census",
+	"pkg/ui/media_menu.go composeCutsceneLibrary": "the cutscene library, outside the dialog census",
+	"pkg/ui/questobjectives.go questPicture":      "the objectives window, outside the dialog census",
+	"pkg/ui/tippanel.go ComposeTipPanel":          "the tip panel, outside the dialog census",
 }

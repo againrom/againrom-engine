@@ -299,16 +299,10 @@ func (a *App) missionMenuRect() image.Rectangle {
 	if f.screen == ScreenMod {
 		return windowFrame(modPanel, f.menuArt).rect()
 	}
-	switch f.menuPage {
-	case gameMenuGameOptionsPage:
-		if f.gameOptions.Read != nil {
-			return gameOptionsDialog.Rectangle
-		}
-	case gameMenuSoundOptionsPage:
-		if f.soundOptions.Read != nil {
-			return soundOptionsDialog.Rectangle
-		}
-	case gameMenuQuestObjectivesPage:
+	if p, ok := f.settingsPage(); ok {
+		return p.dialog.Rectangle
+	}
+	if f.menuPage == gameMenuQuestObjectivesPage {
 		return windowFrame(f.questLayout().Panel, f.menuArt).rect()
 	}
 	return windowFrame(gameMenuPanelRectFor(f.menuPanelSurface(), f.menuRows(), f.menuGeometryProfile()), f.menuArt).rect()

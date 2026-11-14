@@ -996,6 +996,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	a.SetFrameSmoothing(f.graphics.Smoothing)
 	edition := f.Base().Profile.Edition()
 	a.SetMissionKeys(edition.MissionKeys)
+	f.PersistenceContext.wireMissionKeys(a, edition.MissionKeys)
 	if f.Cutscenes != nil {
 		a.SetCutscenes(f.Cutscenes)
 	} else if _, ok := edition.Cutscenes[edition.DefaultCutscenes]; ok && f.Archives != nil {

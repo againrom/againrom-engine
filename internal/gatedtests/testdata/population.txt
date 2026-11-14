@@ -12,6 +12,7 @@ pkg/game.TestReleaseShopStockHoldsOneEntryPerEffectKind
 # TestScanMatchesTheCheckedInPopulationList requires an exact match with
 # matches these IDs against its runtime JSON skip census.
 pkg/game.TestReleaseHeadlessCaptureIsUnchangedWithoutTheNewVersion
+pkg/game.TestSettingsPagesFramesInEachLanguage
 pkg/game.TestReleaseHeadlessExampleNamesAndPicturesTheModTown
 pkg/game.TestReleaseHeadlessFrameDoesNotDependOnWallClock
 pkg/game.TestReleaseHeadlessFrameDrawsTheModTownName

@@ -1118,7 +1118,7 @@ type Viewer struct {
 	spellNeedsBook   bool       // book-chosen: live only while the book is shown
 	castOnce         bool       // armed by C or the Cast cell over a closed book: one cast, then the book closes
 	quickSpells      *[9]uint32 // session-owned; never retained by an actor
-	quickSpellOffset int
+	quickSpellLabels []string
 	itemCast         *itemCastSelection
 	itemCastSink     MapItemCast
 	castNeedsSight   bool // SetCastNeedsSight: a cast takes only ground in current sight

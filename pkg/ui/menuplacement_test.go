@@ -37,6 +37,7 @@ func decodedRootRows(w Words, town bool, s gameMenuRowState) []gameMenuRow {
 		second,
 		{Label: w.MenuGameOptions, Fallback: 'O', Action: gameMenuGameOptions, Enabled: true},
 		{Label: w.MenuSoundOptions, Fallback: 'N', Action: gameMenuSoundOptions, Enabled: s.canSound},
+		{Label: w.Engine.Text("menu.keys"), Fallback: 'K', Action: gameMenuKeys, Enabled: true}, // DIV-4939
 		{Label: w.MenuQuestObjectives, Fallback: 'M', Action: gameMenuQuestObjectives, Enabled: s.campaign},
 		{Label: w.MenuEndQuest, Fallback: 'E', Action: gameMenuEndQuest, Enabled: true},
 		{Label: w.MenuReturn, Fallback: 'R', Action: gameMenuReturn, Enabled: true},

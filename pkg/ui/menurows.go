@@ -33,6 +33,7 @@ const (
 	menuWordEndQuest
 	menuWordAbort
 	menuWordReturn
+	menuWordKeys
 )
 
 func (w Words) menuWord(k menuWord) string {
@@ -53,6 +54,8 @@ func (w Words) menuWord(k menuWord) string {
 		return w.MenuEndQuest
 	case menuWordAbort:
 		return w.MenuAbort
+	case menuWordKeys:
+		return w.Engine.Text("menu.keys") // UTF-8; the flow converts it
 	}
 	return w.MenuReturn
 }
@@ -96,7 +99,8 @@ func (s gameMenuRowState) holds(c menuRowCondition) bool {
 // firstGameMenuRows: the mission (MENU-ITEM-011) shows Load or Diplomacy by
 // the campaign boolean; quest objectives keeps the inert immediate M behind
 // its `~Q`, and the town's Abort Game the immediate E (MENU-KEY-013). The
-// town (MENU-ITEM-012) puts Save before Load.
+// town (MENU-ITEM-012) puts Save before Load. Keys is the engine's row
+// (DIV-4939); the second game's mission shares these rows.
 var firstGameMenuRows = GameMenuRows{
 	Mission: []GameMenuRowSpec{
 		{menuWordSave, 'S', gameMenuSave, menuRowAlways, menuRowCampaignSave},
@@ -104,6 +108,7 @@ var firstGameMenuRows = GameMenuRows{
 		{menuWordDiplomacy, 'D', gameMenuDiplomacy, menuRowStandalone, menuRowAlways},
 		{menuWordGameOptions, 'O', gameMenuGameOptions, menuRowAlways, menuRowAlways},
 		{menuWordSoundOptions, 'N', gameMenuSoundOptions, menuRowAlways, menuRowCanSound},
+		{menuWordKeys, 'K', gameMenuKeys, menuRowAlways, menuRowAlways},
 		{menuWordQuestObjectives, 'M', gameMenuQuestObjectives, menuRowAlways, menuRowCampaign},
 		{menuWordEndQuest, 'E', gameMenuEndQuest, menuRowAlways, menuRowAlways},
 		{menuWordReturn, 'R', gameMenuReturn, menuRowAlways, menuRowAlways},

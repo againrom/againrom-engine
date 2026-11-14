@@ -15,7 +15,7 @@ func gameMenuBaseRows(s gameMenuSurface) int {
 	if s == gameMenuTown {
 		return 6
 	}
-	return 7
+	return 8
 }
 
 // popupRows is the second game's town popup (R2-ENGINE-441), written apart

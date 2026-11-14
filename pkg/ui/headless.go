@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,9 +30,12 @@ func (a *App) headlessGameOptionsFrame() (*image.RGBA, error) {
 	if a == nil || a.flow == nil || a.flow.screen != ScreenGameMenu || a.flow.menuPage != gameMenuGameOptionsPage || a.flow.gameOptions.draft == nil {
 		return nil, fmt.Errorf("headless game options: page is not open")
 	}
-	return a.gameOptionsPicture(), nil
+	return a.settingsPicture(gameOptionsPage()), nil
 }
 
+// A headless input carries no player layout: scenarios, recorded and replayed
+// runs read the game's own mission key table.
+//
 // An idle frame or key edge does not move the mouse to the window origin.
 // Keep the viewer's last observed window position, or remain outside before
 // any pointer was observed. Explicit pointer (0,0) remains a real edge input.
@@ -689,6 +693,12 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 		want = gameMenuGameOptions
 	case "sound-options":
 		want = gameMenuSoundOptions
+	case "keys":
+		want = gameMenuKeys
+	case "key-list":
+		want = gameMenuKeyList
+	case "key-defaults":
+		want = gameMenuKeyDefaults
 	case "objectives":
 		want = gameMenuQuestObjectives
 	case "end":
@@ -758,6 +768,42 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 		return a.headlessChooseRow(a.flow.menuList, i)
 	}
 	return fmt.Errorf("headless game-menu action %q: screen %s has no such action", name, a.flow.screen)
+}
+
+// HeadlessWaitKey puts the open Keys page's row of action to wait for its key,
+// as a player does: the row, then Enter.
+func (a *App) HeadlessWaitKey(action string) error {
+	if a == nil || a.flow == nil || a.flow.screen != ScreenGameMenu || a.flow.menuPage != gameMenuKeysPage {
+		return fmt.Errorf("headless wait key: the Keys page is not open")
+	}
+	row := slices.IndexFunc(listedMissionKeys(a.missionKeys), func(s missionKeySlot) bool { return s.name() == action })
+	if row < 0 {
+		return fmt.Errorf("headless wait key: no action %q", action)
+	}
+	a.keysList().Select(row)
+	return a.HeadlessGameMenuAction("key-list")
+}
+
+// HeadlessRebindKey binds action to chord on the open Keys page as a player
+// does: the action's row, Enter, then the chord's key edge.
+func (a *App) HeadlessRebindKey(action, chord string) error {
+	c, err := ParseMissionKeyChord(chord)
+	if err != nil {
+		return err
+	}
+	if err := a.HeadlessWaitKey(action); err != nil {
+		return err
+	}
+	in := a.headlessIdleInput()
+	in.AnyKey, in.Keys = true, []ebiten.Key{c.Key}
+	in.Viewer.Ctrl, in.Viewer.Shift, in.Viewer.Alt = c.Ctrl, c.Shift, c.Alt
+	if a.step(in, a.headlessAt()) {
+		return fmt.Errorf("headless rebind requested application exit")
+	}
+	if a.player.capture != "" {
+		return fmt.Errorf("headless rebind %s %s: %s", action, chord, a.flow.msg)
+	}
+	return nil
 }
 
 // HeadlessNativePoint maps a control point through the active presentation.
@@ -1152,10 +1198,10 @@ func headlessWorldMapRecord(target string) (number int, town bool, ok bool) {
 // list from either end, never enough to loop.
 func (a *App) headlessChooseRow(p *Picker, target int) error {
 	down, up := "down", "up"
-	if a.flow != nil && a.flow.screen == ScreenGameMenu && p == a.flow.menuList &&
-		(a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil ||
-			a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil) {
-		down, up = "tab", "shift-tab"
+	if a.flow != nil && a.flow.screen == ScreenGameMenu && p == a.flow.menuList {
+		if _, ok := a.flow.settingsPage(); ok {
+			down, up = "tab", "shift-tab"
+		}
 	}
 	bound := len(p.Rows()) + 1
 	for i := 0; i < bound && p.Selection() < target; i++ {

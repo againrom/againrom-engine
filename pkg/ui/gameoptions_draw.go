@@ -2,8 +2,6 @@ package ui
 
 import (
 	"image"
-
-	"againrom/pkg/render/frame"
 )
 
 // gameOptionRect places controls inside the snapped Game Options frame.
@@ -61,13 +59,6 @@ func isGameOptionButton(a gameMenuAction) bool {
 	return a == gameMenuTooltipDelay || a == gameMenuAutosaveMinutes || a == gameMenuPageReturn || a == gameMenuOptionsCancel
 }
 
-// gameSpeedSlider is the speed control: the shared slider over the engine's
-// speed positions (MENU-118).
-func (a *App) gameSpeedSlider(speed int) hSlider {
-	p, ok := a.pointerFrame()
-	return hSlider{Rect: gameOptionRect(gameMenuSpeedDown), Pos: speed, Max: gameSpeedLevels}.withPointer(p, ok)
-}
-
 // isGameOptionCheck reports whether a Game Options row is a checkbox.
 func isGameOptionCheck(a gameMenuAction) bool {
 	if a == gameMenuToggleTips || a == gameMenuTimedAutosave {
@@ -90,225 +81,68 @@ func actionOption(a gameMenuAction) (GameOption, bool) {
 	return GameOption(a - gameMenuDayNight), true
 }
 
-// stepGameOptionsPointer handles the speed slider's keys and drag. It reports
-// whether the input was consumed.
-func (a *App) stepGameOptionsPointer(in appInput) bool {
-	f := a.flow
-	d := f.gameOptions.draft
-	if d == nil {
-		return false
-	}
-	rows := f.menuRows()
-	focus := rows[f.menuList.Selection()].Action
-	if (in.Left || in.Right) && focus == gameMenuAutosaveMinutes {
-		delta := -1
-		if in.Right {
-			delta = 1
-		}
-		d.autosave.Minutes = min(max(d.autosave.Minutes+delta, 1), MaxAutosaveMinutes)
-		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
-		return true
-	}
-	if (in.Left || in.Right) && (focus == gameMenuSpeedDown || focus == gameMenuSpeedUp) {
-		delta := -a.gameSpeedSlider(d.speed).step()
-		if in.Right {
-			delta = -delta
-		}
-		f.setDraftSpeed(d.speed + delta)
-		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
-		return true
-	}
-	if in.PaneMode {
-		// Tab and Shift+Tab move the focus between controls, as on Sound
-		// Options, while a focused control keeps its own arrows.
-		delta := 1
-		if in.ShiftHeld {
-			delta = -1
-		}
-		f.menuList.Move(delta)
-		return true
-	}
-	if (in.Up || in.Down) && isRadioAction(focus) {
-		// Focused arrows move the group's own selection and keep the focus
-		// (MENU-123); past the group's end they move to the next control
-		// (DIV-2592).
-		o := GameOption(focus - gameMenuDayNight)
-		n := f.optionValues()[o] + 1
-		if in.Up {
-			n -= 2
-		}
-		if n >= 0 && n < 3 {
-			f.setDraftOption(o, n)
-			f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
-			return true
-		}
-	}
-	if in.Panels && isGameOptionCheck(focus) {
-		// Focused Space toggles a checkbox (MENU-124).
-		a.chooseGameMenu()
-		a.syncViewerLayout()
-		return true
-	}
-	if in.Unfocused {
-		d.slider = sliderInput{}
-		return false
-	}
-	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	if d.radio != 0 && !in.PrimaryPressed && in.Viewer.PrimaryDown && inFrame {
-		// A held button moved over the group selects again (MENU-123).
-		a.selectGameOptionRadio(d.radio, p)
-	}
-	held := d.slider.active()
-	if pos, set := d.slider.step(a.gameSpeedSlider(d.speed), p, inFrame, in); set {
-		f.setDraftSpeed(pos)
-		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
-	}
-	if held && !d.slider.active() {
-		a.playUISound(UISoundCommonControl)
-		return true
-	}
-	return d.slider.active()
-}
-
-// gameOptionsRowAt is the enabled control row under p, outside the slider.
-func (a *App) gameOptionsRowAt(p image.Point) (int, gameMenuRow, bool) {
-	for i, row := range a.flow.menuRows() {
-		if row.Status || !row.Enabled || row.Action == gameMenuSpeedDown || row.Action == gameMenuSpeedUp ||
-			!p.In(gameOptionRect(row.Action)) {
-			continue
-		}
-		return i, row, true
-	}
-	return 0, gameMenuRow{}, false
-}
-
-// pressGameOptions is the page's button-down: a checkbox toggles and a radio
-// row selects on the press (MENU-123, MENU-124); a push button latches.
-func (a *App) pressGameOptions(p image.Point, ok bool) {
-	f := a.flow
-	f.menuPress.Clear()
-	i, row, hit := a.gameOptionsRowAt(p)
-	if !ok || !hit {
-		return
-	}
-	f.menuList.Select(i)
-	switch {
-	case isGameOptionButton(row.Action):
-		f.menuPress.Press(i, true)
-	case isRadioAction(row.Action):
-		f.gameOptions.draft.radio = row.Action
-		a.selectGameOptionRadio(row.Action, p)
-	default:
-		a.chooseGameMenu()
-		a.syncViewerLayout()
-	}
-}
-
-// selectGameOptionRadio selects the radio row under p, if it changes.
-func (a *App) selectGameOptionRadio(action gameMenuAction, p image.Point) {
-	f := a.flow
-	n, ok := choiceGroup{Rect: gameOptionRadioRect(action), Labels: make([]string, 3)}.RowAt(p)
-	o := GameOption(action - gameMenuDayNight)
-	if !ok || f.optionValues()[o] == n {
-		return
-	}
-	a.playUISound(UISoundCommonControl)
-	f.setDraftOption(o, n)
-	f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
-}
-
-// releaseGameOptions activates the latched push button on a release inside.
-func (a *App) releaseGameOptions(p image.Point, ok bool) {
-	f := a.flow
-	f.gameOptions.draft.radio = 0
-	i, row, hit := a.gameOptionsRowAt(p)
-	at, activated := f.menuPress.Release(i, ok && hit && isGameOptionButton(row.Action))
-	if !activated {
-		return
-	}
-	f.menuList.Select(at)
-	if row.Action == gameMenuAutosaveMinutes {
-		r := gameOptionRect(row.Action)
-		delta := 1
-		if p.X < r.Min.X+r.Dx()/2 {
-			delta = -1
-		}
-		f.gameOptions.draft.autosave.Minutes = min(max(f.gameOptions.draft.autosave.Minutes+delta, 1), MaxAutosaveMinutes)
-		f.rebuildGameMenu(gameMenuGameOptionsPage, at)
-		a.playUISound(UISoundCommonControl)
-		return
-	}
-	a.chooseGameMenu()
-	a.syncViewerLayout()
-}
-
-func (a *App) gameOptionsPicture() *image.RGBA {
-	f := a.flow
+func gameOptionsPage() settingsPage {
 	g := gameOptionsDialog
-	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawFrame(dst, g.frame(f.menuArt))
-	font := f.menuFont
-	w := f.gameOptions.Words
-	label := gameMenuLabelText(w.Title)
-	font.Draw(dst, label, g.Min.X+(g.Body().Dx()-font.Advance(label))/2, g.Min.Y+20, gameMenuText)
-	values := f.optionValues()
-	d := f.gameOptions.draft
-	pointer, pointerOK := a.pointerFrame()
-	for i, row := range f.menuRows() {
-		focused := i == f.menuList.Selection()
-		if row.Status {
-			r := gameOptionSpeedLabel()
-			font.Draw(dst.SubImage(r).(*image.RGBA), gameMenuLabelText(row.Label), r.Min.X, r.Min.Y, gameMenuText)
-			continue
-		}
-		r := gameOptionRect(row.Action)
-		if r.Empty() {
-			continue
-		}
-		switch {
-		case row.Action == gameMenuSpeedDown || row.Action == gameMenuSpeedUp:
-			if row.Action == gameMenuSpeedDown {
-				drawHSlider(dst, a.media.scroll, a.gameSpeedSlider(d.speed))
-			}
-		case isRadioAction(row.Action):
-			o := GameOption(row.Action - gameMenuDayNight)
-			since := markCapture()
-			font.Draw(dst.SubImage(r).(*image.RGBA), gameMenuLabelText(w.Labels[o]), r.Min.X+2, r.Min.Y+2, gameMenuText)
-			if !row.Enabled {
-				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, gameOptionRadioRect(row.Action).Min.Y), since)
-			}
-			choices := w.Choices[o]
-			drawChoiceGroup(dst, font, choiceGroup{Kind: choiceRadio, Rect: gameOptionRadioRect(row.Action), Labels: choices[:3],
-				Selected: values[o], Focus: focused, Disabled: !row.Enabled, Off: f.gameOptions.Radios[0], On: f.gameOptions.Radios[1]})
-		case isGameOptionButton(row.Action):
-			inside := pointerOK && pointer.In(r)
-			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Literal: row.Literal, Hover: inside, Inside: inside,
-				Focus: focused, Pressed: f.menuPress.Pressed(i), Disabled: !row.Enabled})
-		default:
-			label, on := "", false
-			switch row.Action {
-			case gameMenuToggleTips:
-				label, on = w.Tips, d.tips
-			case gameMenuTimedAutosave:
-				label, _ = f.timedAutosaveLabels(d)
-				on = d.autosave.Enabled
-			default:
-				o := GameOption(row.Action - gameMenuDayNight)
-				label, on = w.Labels[o], values[o] != 0
-			}
-			a.drawGameOption(dst, r, label, on, focused, !row.Enabled)
-		}
-	}
-	return dst
+	return settingsPage{dialog: g, titleSpan: g.Body().Dx(), title: func(f *flow) string { return f.gameOptions.Words.Title },
+		control: (*App).gameOptionsControl}
 }
 
-// drawGameOption draws one standard checkbox row through the shared
-// builder (MENU-124).
-func (a *App) drawGameOption(dst *image.RGBA, r image.Rectangle, label string, on, focused, disabled bool) {
-	g := choiceGroup{Kind: choiceCheck, Rect: r, Labels: []string{label}, Focus: focused, Disabled: disabled,
-		Off: a.flow.gameOptions.Checks[0], On: a.flow.gameOptions.Checks[1]}
-	if on {
-		g.Mask = 1
+// gameOptionsControl is a Game Options row's control. The speed slider is
+// two rows over one rectangle (MENU-118); the second draws nothing.
+func (a *App) gameOptionsControl(row gameMenuRow) settingsControl {
+	f := a.flow
+	if row.Status {
+		return settingsControl{kind: settingsCaption, rect: gameOptionSpeedLabel(), label: row.Label}
 	}
-	drawChoiceGroup(dst, a.flow.menuFont, g)
+	r := gameOptionRect(row.Action)
+	c := settingsControl{rect: r, label: row.Label, literal: row.Literal, disabled: !row.Enabled}
+	d, w := f.gameOptions.draft, f.gameOptions.Words
+	rebuild := func() { f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection()) }
+	switch {
+	case r.Empty():
+	case row.Action == gameMenuSpeedDown || row.Action == gameMenuSpeedUp:
+		s := hSlider{Rect: r, Pos: d.speed, Max: gameSpeedLevels}
+		c.adjust = func(delta int) { f.setDraftSpeed(d.speed + delta*s.step()); rebuild() }
+		if row.Action == gameMenuSpeedDown {
+			c.kind, c.label, c.disabled, c.slider = settingsSlider, "", false, s
+			c.set = func(pos int) int { f.setDraftSpeed(pos); rebuild(); return d.speed }
+		}
+	case isRadioAction(row.Action):
+		o := GameOption(row.Action - gameMenuDayNight)
+		c.kind, c.label = settingsRadio, w.Labels[o]
+		c.group = choiceGroup{Kind: choiceRadio, Rect: gameOptionRadioRect(row.Action), Labels: w.Choices[o][:3],
+			Selected: f.optionValues()[o], Off: f.gameOptions.Radios[0], On: f.gameOptions.Radios[1]}
+		c.set = func(n int) int { f.setDraftOption(o, n); rebuild(); return n }
+	case isGameOptionButton(row.Action):
+		c.kind = settingsPush
+		if row.Action == gameMenuAutosaveMinutes {
+			minutes := func(delta int) {
+				d.autosave.Minutes = min(max(d.autosave.Minutes+delta, 1), MaxAutosaveMinutes)
+				rebuild()
+			}
+			c.adjust = minutes
+			c.activate = func(p image.Point) {
+				// The button's left half lowers the minutes, the right half raises them.
+				if p.X < r.Min.X+r.Dx()/2 {
+					minutes(-1)
+				} else {
+					minutes(1)
+				}
+				a.playUISound(UISoundCommonControl)
+			}
+		}
+	default:
+		c.kind = settingsCheck
+		switch row.Action {
+		case gameMenuToggleTips:
+			c.label, c.on = w.Tips, d.tips
+		case gameMenuTimedAutosave:
+			c.label, _ = f.timedAutosaveLabels(d)
+			c.on = d.autosave.Enabled
+		default:
+			o := GameOption(row.Action - gameMenuDayNight)
+			c.label, c.on = w.Labels[o], f.optionValues()[o] != 0
+		}
+	}
+	return c
 }

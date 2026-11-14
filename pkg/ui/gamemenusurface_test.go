@@ -53,7 +53,7 @@ func openTownMenu(t *testing.T) *flow {
 func TestTheTwoSurfacesAreTheDecodedListsInTheDecodedOrder(t *testing.T) {
 	mission := []gameMenuAction{
 		gameMenuSave, gameMenuLoad, gameMenuGameOptions, gameMenuSoundOptions,
-		gameMenuQuestObjectives, gameMenuEndQuest, gameMenuReturn,
+		gameMenuKeys, gameMenuQuestObjectives, gameMenuEndQuest, gameMenuReturn,
 	}
 	town := []gameMenuAction{
 		gameMenuSave, gameMenuLoad, gameMenuGameOptions, gameMenuSoundOptions, gameMenuAbortGame, gameMenuReturn,
@@ -220,7 +220,7 @@ func TestEverySurfacesAcceleratorsAreDistinct(t *testing.T) {
 		open func(*testing.T) *flow
 		want string
 	}{
-		{"the mission surface", openMissionMenu, "slonqer"},
+		{"the mission surface", openMissionMenu, "slonkqer"},
 		{"the town surface", openTownMenu, "sloner"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -526,8 +526,8 @@ func TestGameMenuPaintUsesDecodedRectangles(t *testing.T) {
 	paintGameMenu(ebiten.NewImage(frame.W, frame.H), nil, f.menuSurface, f.menuRows(), f.menuList, GameMenuProfile{})
 
 	want := []draw{
-		{kind: "fill", x: 100, y: 60, w: 340, h: 340, colour: gameMenuFill},
-		{kind: "stroke", x: 100.5, y: 60.5, w: 339, h: 339, colour: gameMenuBorder},
+		{kind: "fill", x: 100, y: 60, w: 340, h: 320, colour: gameMenuFill},
+		{kind: "stroke", x: 100.5, y: 60.5, w: 339, h: 319, colour: gameMenuBorder},
 		{kind: "fill", x: 140, y: 100, w: 252, h: 30, colour: gameMenuFocusFill},
 		{kind: "fill", x: 140, y: 190, w: 252, h: 30, colour: gameMenuDisabled},
 	}
@@ -547,8 +547,8 @@ func TestCompleteGameMenuPaintFrames(t *testing.T) {
 		want       string
 	}
 	cases := []frameCase{
-		{name: "campaign root", surface: gameMenuMission, page: gameMenuRoot, campaign: true, save: true, load: true, sound: true, want: "b6ae5dfe17fc05a9dc471f8526d5c7fc4b5d4f6a478fe8962eef94c8a6b4b9ac"},
-		{name: "standalone root", surface: gameMenuMission, page: gameMenuRoot, save: true, load: true, sound: true, want: "67a8a7f60b8792d92461ca001234b9643895a92e49fa09487add169041692580"},
+		{name: "campaign root", surface: gameMenuMission, page: gameMenuRoot, campaign: true, save: true, load: true, sound: true, want: "1d5a086106edfa9d44d2e8523fef7f35994d27b0a0d555cc26a9536566813d04"},
+		{name: "standalone root", surface: gameMenuMission, page: gameMenuRoot, save: true, load: true, sound: true, want: "9fb9989c729fd7e2eae6970dc40c48f5db69ebb67f6b8ad5eafeb57969e4292d"},
 		{name: "town root", surface: gameMenuTown, page: gameMenuRoot, save: true, load: true, sound: true, want: "fd6b1a4d830bb4ac5b9f7c1d50e2855758e87a15a3280a829946fe18b0b12ff8"},
 		{name: "game options", surface: gameMenuMission, page: gameMenuGameOptionsPage, campaign: true, want: "fee60c3d4bac042c1dea4dc4cc8f15f4be61e1aa1e2d64b83e6598cd187eaf77"},
 		{name: "sound options", surface: gameMenuMission, page: gameMenuSoundOptionsPage, campaign: true, sound: true, want: "52dfc3d5a762dea4d8d2f0e850904edb369eedbefe5359233b1df81c3bb96a16"},

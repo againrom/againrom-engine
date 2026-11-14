@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -88,6 +89,11 @@ const (
 	gameMenuOptionsCancel
 	gameMenuTimedAutosave
 	gameMenuAutosaveMinutes
+	// gameMenuKeys opens the Keys page; gameMenuKeyList is its list of
+	// actions and gameMenuKeyDefaults its Defaults button.
+	gameMenuKeys
+	gameMenuKeyList
+	gameMenuKeyDefaults
 )
 
 // gameMenuPage is the state within ScreenGameMenu. Keeping every destination
@@ -104,6 +110,7 @@ const (
 	gameMenuEndQuestConfirmation
 	gameMenuAbortGameConfirmation
 	gameMenuModActionConfirmation
+	gameMenuKeysPage
 )
 
 // gameMenuRow is one entry: the label as authored, the accelerator to use when
@@ -187,11 +194,20 @@ func gameMenuModRows(rows []gameMenuRow) int {
 	return n
 }
 
+func gameMenuHasRow(rows []gameMenuRow, action gameMenuAction) bool {
+	return slices.ContainsFunc(rows, func(r gameMenuRow) bool { return r.Action == action })
+}
+
 // gameMenuPanelRectFor is the panel's rectangle for a row list: the decoded one,
 // grown for mod rows and centred with its shadow in the native canvas.
 func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, at ...menuPlacer) image.Rectangle {
 	pl := placementOf(at)
 	p := pl.panel(s)
+	if s == gameMenuMission && gameMenuHasRow(rows, gameMenuKeys) {
+		// The root list of a mission sets the panel's height: as much room
+		// under the last row as over the first.
+		p = pl.grow(p, 2*gameMenuRowTop+gameMenuRowPitch*len(rows))
+	}
 	if mods := gameMenuModRows(rows); mods > 0 {
 		need := gameMenuRowTop + gameMenuRowPitch*len(rows) + gameMenuBottomMargin
 		if need > p.Dy() {

@@ -620,7 +620,7 @@ func TestFlow(t *testing.T) {
 			"menuSound": false, "setMenuSound": false,
 			"gameOptions": false,
 			// Sound settings seam and one captured gesture, not per-button commands.
-			"soundOptions": false, "soundPointer": false,
+			"soundOptions": false, "settingsHold": false,
 			"tooltip": false, "persistTooltipDelay": false,
 			"menuExit": false,
 			"words":    false, "menuFont": false,

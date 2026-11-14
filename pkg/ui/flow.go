@@ -682,7 +682,7 @@ type flow struct {
 	setMenuSound        GameMenuSoundSink
 	gameOptions         GameOptionControls
 	soundOptions        SoundOptionControls
-	soundPointer        soundOptionPointer
+	settingsHold        settingsHold
 	tooltip             *tooltipController
 	persistTooltipDelay func(int) error
 	menuExit            bool

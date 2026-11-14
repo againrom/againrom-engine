@@ -53,7 +53,7 @@ func TestCampaignLoadReturnRebuildsAndHoldsTheVisibleMenu(t *testing.T) {
 	}
 	wantEnabled := map[gameMenuAction]bool{
 		gameMenuSave: false, gameMenuLoad: false, gameMenuGameOptions: true,
-		gameMenuSoundOptions: false, gameMenuQuestObjectives: true,
+		gameMenuSoundOptions: false, gameMenuKeys: true, gameMenuQuestObjectives: true,
 		gameMenuEndQuest: true, gameMenuReturn: true,
 	}
 	rows := h.a.flow.menuRows()

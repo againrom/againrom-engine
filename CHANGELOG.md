@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] P now sends the first selected hero who sees a sack to collect sacks one after another, and he holds his ground when none is left in reach; heroes sent to the same sack no longer wait for each other.
 - [BASE] Mouse wheel zoom in missions moves 5 percent per notch up to 200 percent and 25 percent per notch above it; the map editor keeps its old step.
 - [BASE] F2 now quick saves and F3 quick loads in both games; Ctrl+F2 and Ctrl+F3 open the save and load windows, and Shift+F4 and Shift+F9 no longer save or load.
+- [BASE] Both games: the mission menu has a Keys row; pick an action, press its new key (Shift, Ctrl and Alt allowed, Esc cancels); a key another action held moves to the new one, Defaults gives the game its own keys back, and each game keeps its keys in your profile, never in a saved game. The mission menu's frame now fits its rows with even room above and below.
 
 ### For map makers and modders
 
