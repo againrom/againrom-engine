@@ -70,8 +70,9 @@ func TestEditorGraphPageDrawsInEachLanguage(t *testing.T) {
 				if i := slices.Index(texts, drawn("editor.graph.start")); i < 0 {
 					t.Fatalf("no start box among %q", texts)
 				}
+				view := e.PopupCanvasView()
 				for i, r := range rects {
-					if r.Empty() {
+					if r.Intersect(view).Empty() {
 						continue // scrolled out of the canvas
 					}
 					if !r.Min.In(image.Rect(0, 0, 1280, 800)) || pic.RGBAAt(r.Min.X, r.Min.Y).A == 0 {

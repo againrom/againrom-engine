@@ -113,6 +113,13 @@ func graphLines(page ui.CampaignGraphPage) []string {
 				line += " " + m.name
 			}
 		}
+		if len(n.Region) > 0 {
+			held := make([]string, len(n.Region))
+			for k, h := range n.Region {
+				held[k] = label(h)
+			}
+			line += " holds " + strings.Join(held, ", ")
+		}
 		out = append(out, line)
 	}
 	for _, e := range page.Edges {
@@ -136,47 +143,44 @@ func wantGraph(t *testing.T, page ui.CampaignGraphPage, want []string) {
 }
 
 // The graph of a campaign holds the start, each mission, each chapter's
-// town and each hand-out; an arrow for a mission that leads to another with
-// no town between, for a win that opens a town, and from a hand-out to its
-// mission. A side mission returns to the town that handed it out.
+// town and each hand-out; a town's region holds its hand-outs in their
+// order, then the missions they give, a column for each hand-out, the one
+// giving a main mission first, and no arrow leads from a town to them. An arrow leads from a mission to another with no
+// town between, from a win that opens a town, and from a hand-out to its
+// mission. A side mission's return to the town that handed it out is the
+// area, no arrow.
 func TestCampaignGraphHoldsTheFlowTheTownsAndEachHandout(t *testing.T) {
 	c := graphCampaign(t)
 	wantGraph(t, campaignGraphOf(c, c, mod.MissionData{}, nil), []string{
 		"start at 1,0",
-		"mission 10 at 3,1",
-		"mission 20 at 3,2",
-		"town 30 at 1,3",
+		"mission 10 at 1,1",
+		"mission 20 at 1,2",
+		"town 30 at 1,3 holds shop row 3, school row 3, inn 5, inn 6, mission 30, mission 31, mission 32",
 		"shop row 3 at 2,3",
-		"mission 31 at 4,3",
-		"school row 4 at 2,4",
-		"mission 32 at 5,3",
-		"inn 5 at 2,5",
-		"mission 30 at 3,3",
-		"town 40 at 1,7",
-		"inn 6 at 2,6 empty",
-		"inn 7 at 2,7",
-		"mission 40 at 3,7",
+		"mission 31 at 2,4",
+		"school row 3 at 3,3",
+		"mission 32 at 3,4",
+		"inn 5 at 1,3",
+		"mission 30 at 1,4",
+		"town 40 at 1,5 holds inn 7, mission 40",
+		"inn 6 at 4,3 empty",
+		"inn 7 at 1,5",
+		"mission 40 at 1,6",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > town 30",
-		"town 30 > shop row 3",
 		"shop row 3 > mission 31",
-		"mission 31 > town 30",
-		"town 30 > school row 4",
-		"school row 4 > mission 32",
-		"mission 32 > town 30",
-		"town 30 > inn 5",
+		"school row 3 > mission 32",
 		"inn 5 > mission 30",
 		"mission 30 > town 40",
-		"town 30 > inn 6",
-		"town 40 > inn 7",
 		"inn 7 > mission 40",
 	})
 }
 
 // Each change of a mod is a mark: a replaced map, an overridden flow, an
 // added mission and a guest party, and the arrows the mod set. The added
-// mission's win is set to open the town, so it opens the next chapter's.
+// mission's win is set to open the town, so it opens the next chapter's; no
+// town gives it, so it stands on its ten's own row, over town 40's area.
 func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 	stock := graphCampaign(t)
 	d, err := mod.ParseMissions("marks", mod.MissionsFile, []byte(graphModMissions), func(string) (string, bool) { return "", false }, "en")
@@ -189,37 +193,31 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 	}
 	wantGraph(t, campaignGraphOf(stock, c, d, nil), []string{
 		"start at 1,0",
-		"mission 10 at 3,1",
-		"mission 20 at 3,2 map",
-		"mission 25 at 4,2 added party",
-		"town 30 at 1,3",
+		"mission 10 at 1,1",
+		"mission 20 at 1,2 map",
+		"mission 25 at 2,2 added party",
+		"town 30 at 1,3 holds shop row 3, school row 3, inn 5, inn 6, mission 30, mission 31, mission 32",
 		"shop row 3 at 2,3",
-		"mission 31 at 4,3 flow",
-		"mission 41 at 4,7 added",
-		"town 40 at 1,7",
-		"school row 4 at 2,4",
-		"mission 32 at 5,3",
-		"inn 5 at 2,5",
-		"mission 30 at 3,3",
-		"inn 6 at 2,6 empty",
-		"inn 7 at 2,7",
-		"mission 40 at 3,7",
+		"mission 31 at 2,4 flow",
+		"mission 41 at 1,5 added",
+		"town 40 at 1,6 holds inn 7, mission 40",
+		"school row 3 at 3,3",
+		"mission 32 at 3,4",
+		"inn 5 at 1,3",
+		"mission 30 at 1,4",
+		"inn 6 at 4,3 empty",
+		"inn 7 at 1,6",
+		"mission 40 at 1,7",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > mission 25 (mod)",
 		"mission 25 > town 30 (mod)",
-		"town 30 > shop row 3",
 		"shop row 3 > mission 31",
 		"mission 31 > mission 41 (mod)",
 		"mission 41 > town 40 (mod)",
-		"town 30 > school row 4",
-		"school row 4 > mission 32",
-		"mission 32 > town 30",
-		"town 30 > inn 5",
+		"school row 3 > mission 32",
 		"inn 5 > mission 30",
 		"mission 30 > town 40",
-		"town 30 > inn 6",
-		"town 40 > inn 7",
 		"inn 7 > mission 40",
 	})
 
@@ -233,7 +231,7 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := graphLines(campaignGraphOf(stock, c, off, nil))
-	for _, want := range []string{"mission 10 at 3,1 flow", "mission 10 > town 20 (mod)"} {
+	for _, want := range []string{"mission 10 at 1,1 flow", "mission 10 > town 20 (mod)"} {
 		if !slices.Contains(lines, want) {
 			t.Fatalf("no %q in:\n%s", want, strings.Join(lines, "\n"))
 		}
@@ -263,6 +261,9 @@ func TestCampaignGraphLayoutIsTheSameOverTwoBuilds(t *testing.T) {
 	}
 	cells := map[[2]int]bool{}
 	for _, n := range first.Nodes {
+		if n.Kind == ui.GraphTown {
+			continue // the caption stands at its area's first card
+		}
 		if at := [2]int{n.Column, n.Row}; cells[at] {
 			t.Fatalf("two nodes stand at column %d, row %d", n.Column, n.Row)
 		} else {

@@ -18,9 +18,11 @@ import (
 // view its free height. A box that is not Inert takes a press. Legend is
 // words stated over the view, each after a swatch of its ink; they stand
 // still while the sheet moves, and head is the height a layout gave them.
+// Areas lie under the lines and the boxes.
 type popupCanvas struct {
 	Sheet, At image.Point
 	Height    int
+	Areas     []canvasArea
 	Boxes     []canvasBox
 	Lines     []canvasLine
 	Legend    []canvasMark
@@ -32,15 +34,24 @@ type popupCanvas struct {
 // its own ink. An inert box is a flat frame of Fill and Edge; a box that
 // takes a press is a push button. Band, when set, is a strip across the
 // box's top in that colour, over the frame or the button alike. Tip reads
-// whole under the box.
+// whole under the box. A Bare inert box has no frame: its band and text
+// stand on what lies under it.
 type canvasBox struct {
 	Area       image.Rectangle
 	Lines      []string
 	Marks      []canvasMark
 	Inert      bool
+	Bare       bool
 	Fill, Edge color.RGBA
 	Band       color.RGBA
 	Tip        string
+}
+
+// canvasArea is a framed area of a canvas, Area in sheet pixels: a flat
+// frame of Fill and Edge that the boxes it holds stand in.
+type canvasArea struct {
+	Area       image.Rectangle
+	Fill, Edge color.RGBA
 }
 
 // canvasMark is a short word drawn in its own ink.
@@ -266,12 +277,17 @@ func (l popupLayout) canvasShown(i int) image.Rectangle {
 }
 
 // drawCanvasSheet paints a canvas's view below its buttons: its ground, the
-// lines, then each inert box that shows, a flat frame. Everything is cut at
-// the view's edge.
+// areas that show, the lines, then each inert box that shows and is not
+// bare, a flat frame. Everything is cut at the view's edge.
 func drawCanvasSheet(dst *image.RGBA, c *popupCanvas, l popupLayout, ink popupInk) {
 	drawFrame(dst, panelFrame(l.Canvas, ink.TitleGround, ink.Edge))
 	clip := dst.SubImage(l.Canvas.Inset(1)).(*image.RGBA)
 	shift := l.Canvas.Min.Sub(l.CanvasAt)
+	for _, a := range c.Areas {
+		if r := a.Area.Add(shift); !r.Intersect(clip.Rect).Empty() {
+			drawFrame(clip, panelFrame(r, a.Fill, a.Edge))
+		}
+	}
 	for _, over := range []bool{false, true} {
 		for _, line := range c.Lines {
 			if line.Over == over {
@@ -280,7 +296,7 @@ func drawCanvasSheet(dst *image.RGBA, c *popupCanvas, l popupLayout, ink popupIn
 		}
 	}
 	for i, b := range c.Boxes {
-		if !b.Inert || l.canvasShown(i).Empty() {
+		if !b.Inert || b.Bare || l.canvasShown(i).Empty() {
 			continue
 		}
 		edge := b.Edge

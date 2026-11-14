@@ -154,6 +154,10 @@ func TestCampaignGraphStandsByTensInKindColoursWithFilms(t *testing.T) {
 						if !p.In(view) {
 							continue
 						}
+						if n.Kind == ui.GraphTown {
+							// A caption has no band: its area's frame has the ink.
+							p = image.Pt(r.Min.X+5, r.Min.Y-1)
+						}
 						if got := pic.RGBAAt(p.X, p.Y); got != ui.GraphInk(n) {
 							t.Errorf("node %d (%d %d) has band %v, its kind's colour is %v", i, n.Kind, n.Number, got, ui.GraphInk(n))
 						}
@@ -400,7 +404,15 @@ func TestCampaignGraphFilmsOfOneLevelStackDown(t *testing.T) {
 	}
 	for k := 0; k+1 < len(levels); k++ {
 		a, b := levels[k], levels[k+1]
-		got, want := first[b]-first[a], max(plain[b]-plain[a], count[a])
+		// The missions of a town's area stand under its hand-out row, so the
+		// next level's first row is one further down.
+		room := 0
+		for _, n := range with.Nodes {
+			if n.Kind == ui.GraphTown && n.Number/mainMissionStride == a {
+				room = 1
+			}
+		}
+		got, want := first[b]-first[a], max(plain[b]-plain[a], count[a]+room)
 		if got != want {
 			t.Errorf("level %d is %d rows tall, want %d", a, got, want)
 		}

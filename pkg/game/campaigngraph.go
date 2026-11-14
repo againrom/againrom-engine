@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"cmp"
+	"maps"
 	"slices"
 	"strings"
 
@@ -27,13 +28,11 @@ func newCampaignFlow(c Campaign, missions mod.MissionData) *campaignFlow {
 	return &campaignFlow{campaign: c, missions: missions}
 }
 
-// The columns of the campaign graph: the films, the start and the towns, the
-// hand-outs of a town, then the missions of one ten, one column each.
+// The columns of the campaign graph: the films, then the columns every area
+// and every loose mission stand in, the first being the start's.
 const (
 	graphFilmColumn = iota
-	graphTownColumn
-	graphHandoutColumn
-	graphMissionColumn
+	graphFirstColumn
 )
 
 // filmShelf is the films of a movie directory the game finds to play, in
@@ -50,7 +49,6 @@ type campaignGraph struct {
 	page     ui.CampaignGraphPage
 	mission  map[int]int    // the node of a mission, by its number
 	town     map[int]int    // the node of a chapter's town
-	handouts map[int][]int  // the hand-out nodes of a town's node, in order
 	film     map[int]int    // the film node of the start's or a mission's node
 	edges    map[[2]int]int // an arrow's place in the page, by its two nodes
 	walked   map[[3]int]bool
@@ -69,7 +67,7 @@ type campaignGraph struct {
 // and each chapter's building lists.
 func campaignGraphOf(stock, c Campaign, missions mod.MissionData, films filmShelf) ui.CampaignGraphPage {
 	g := &campaignGraph{stock: stock, c: c, missions: missions, mission: map[int]int{}, town: map[int]int{},
-		handouts: map[int][]int{}, film: map[int]int{}, edges: map[[2]int]int{}, walked: map[[3]int]bool{},
+		film: map[int]int{}, edges: map[[2]int]int{}, walked: map[[3]int]bool{},
 		laid: map[int]bool{}, told: map[int]bool{}, base: map[town.OfferKey]town.OfferRow{}}
 	base := stock.Towns.baseOffers(stock)
 	for _, r := range base {
@@ -80,7 +78,7 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData, films filmShel
 	}
 	g.rows = base
 	if first, ok := c.FirstMission(); ok {
-		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart, Column: graphTownColumn})
+		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart, Column: graphFirstColumn})
 		at, _ := g.missionNode(first)
 		g.edge(start, at, ui.EveryHero)
 		g.follow(at, first, first, 0)
@@ -120,6 +118,7 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData, films filmShel
 			e.Heroes = 0
 		}
 	}
+	g.regions()
 	g.films(films)
 	g.levels()
 	return g.page
@@ -301,8 +300,8 @@ func handoutGroup(h graphHandout) int {
 	}
 }
 
-// layTowns gives every queued town its hand-outs and what each handed-out
-// mission leads to. A mission whose win moves the town goes on from itself;
+// layTowns gives every queued town its hand-outs, its region, and what each
+// handed-out mission leads to. A mission whose win moves the town goes on from itself;
 // any other is walked from the town that handed it out.
 func (g *campaignGraph) layTowns() {
 	for len(g.queue) > 0 {
@@ -324,8 +323,7 @@ func (g *campaignGraph) layTowns() {
 				node.AddedMark, node.FlowMark = !held, held && !prior.Equal(r)
 			}
 			at := g.node(node)
-			g.handouts[home] = append(g.handouts[home], at)
-			g.edge(home, at, ui.EveryHero)
+			g.page.Nodes[home].Region = append(g.page.Nodes[home].Region, at)
 			if h.mission == 0 {
 				continue
 			}
@@ -338,6 +336,61 @@ func (g *campaignGraph) layTowns() {
 			}
 		}
 	}
+}
+
+// regions adds to each town's region, after its hand-outs, the missions the
+// town or its hand-outs give, in number order, and drops each arrow from such
+// a mission back to its own town, and from a town to a mission it holds: the
+// area holds both. A mission two
+// towns give, or that an arrow reaches from a node another town's area
+// would hold, stands outside every area.
+func (g *campaignGraph) regions() {
+	nodes := g.page.Nodes
+	home := map[int]int{} // the town whose area holds a node
+	for i, n := range nodes {
+		if n.Kind == ui.GraphTown {
+			home[i] = i
+			for _, h := range n.Region {
+				home[h] = i
+			}
+		}
+	}
+	given := map[int]int{} // the town that gives a mission, -1 for two
+	for _, e := range g.page.Edges {
+		t, ok := home[e.From]
+		if !ok || nodes[e.To].Kind != ui.GraphMission {
+			continue
+		}
+		if at, seen := given[e.To]; seen && at != t {
+			t = -1
+		}
+		given[e.To] = t
+	}
+	for i, t := range given {
+		home[i] = t
+	}
+	for _, e := range g.page.Edges {
+		if t, ok := given[e.To]; ok && t >= 0 {
+			if from, held := home[e.From]; held && from >= 0 && from != t {
+				given[e.To] = -1
+			}
+		}
+	}
+	members := slices.Collect(maps.Keys(given))
+	slices.SortFunc(members, func(a, b int) int { return cmp.Compare(nodes[a].Number, nodes[b].Number) })
+	for _, i := range members {
+		if t := given[i]; t >= 0 {
+			nodes[t].Region = append(nodes[t].Region, i)
+		}
+	}
+	g.page.Edges = slices.DeleteFunc(g.page.Edges, func(e ui.CampaignGraphEdge) bool {
+		t, ok := given[e.From]
+		if ok && t >= 0 && e.To == t {
+			return true
+		}
+		t, ok = given[e.To]
+		return ok && t >= 0 && e.From == t && nodes[e.From].Kind == ui.GraphTown
+	})
 }
 
 // films adds a film node for the start and for each mission whose movie
@@ -363,25 +416,76 @@ func (g *campaignGraph) films(shelf filmShelf) {
 	}
 }
 
+// areaColumns is the columns of town's area: each a hand-out, -1 for none,
+// then the missions it gives. The column of the hand-out giving a main
+// mission comes first, then the others that give one, then the hand-outs
+// that give none, each group in the region's order.
+func (g *campaignGraph) areaColumns(town int) [][]int {
+	nodes := g.page.Nodes
+	var cols [][]int
+	at := map[int]int{}
+	for _, h := range nodes[town].Region {
+		if nodes[h].Kind != ui.GraphMission {
+			at[h] = len(cols)
+			cols = append(cols, []int{h})
+		}
+	}
+	for _, m := range nodes[town].Region {
+		if nodes[m].Kind != ui.GraphMission {
+			continue
+		}
+		col, ok := -1, false
+		for h, c := range at {
+			if _, given := g.edges[[2]int{h, m}]; given && (!ok || c < col) {
+				col, ok = c, true
+			}
+		}
+		if !ok {
+			col = len(cols)
+			cols = append(cols, []int{-1})
+		}
+		cols[col] = append(cols[col], m)
+	}
+	rank := func(c []int) int {
+		switch {
+		case len(c) == 1:
+			return 2
+		case slices.ContainsFunc(c[1:], func(m int) bool { return nodes[m].Number%mainMissionStride == 0 }):
+			return 0
+		}
+		return 1
+	}
+	slices.SortStableFunc(cols, func(a, b []int) int { return cmp.Compare(rank(a), rank(b)) })
+	return cols
+}
+
 // levels places the nodes by tens. Mission n stands on level n/10, so 10 to
 // 19 share a level and a number under 10 stands on level 0; the missions of
-// a level take one row, in number order, a column each from the mission
-// column on. A film stands in the film column at its node's row, dropped
-// below it; when a level has two films, the second takes the row under the
-// first. The town of chapter n stands on n's level in the town column, its
-// hand-outs one a row beside it from its row on, the towns of a level in
-// chapter order. The start and its film stand above every level; a level is
-// as tall as its rows.
+// a level no town's region holds take one row, in number order, a column
+// each from the first column on. The town of chapter n stands on n's level
+// under that row, the towns of a level in chapter order. Its area is a row
+// of hand-out cards, one column each in the order areaColumns states, and
+// under each the missions it gives, whatever their ten; the town's own node
+// is the area's caption and stands at the first card. A film stands in the
+// film column at its node's row, dropped below it, or on the first free row
+// under that. The start and its film stand above every level; a level is as
+// tall as its rows.
 func (g *campaignGraph) levels() {
 	nodes := g.page.Nodes
 	missions, towns := map[int][]int{}, map[int][]int{}
+	held := map[int]bool{}
+	for _, n := range nodes {
+		for _, h := range n.Region {
+			held[h] = true
+		}
+	}
 	var levels []int
 	for i, n := range nodes {
 		level := n.Number / mainMissionStride
-		switch n.Kind {
-		case ui.GraphMission:
+		switch {
+		case n.Kind == ui.GraphMission && !held[i]:
 			missions[level] = append(missions[level], i)
-		case ui.GraphTown:
+		case n.Kind == ui.GraphTown:
 			towns[level] = append(towns[level], i)
 		default:
 			continue
@@ -391,38 +495,54 @@ func (g *campaignGraph) levels() {
 		}
 	}
 	slices.Sort(levels)
-	row := 0
+	row, shelf := 0, 0
 	for i, n := range nodes {
 		if n.Kind == ui.GraphStart {
-			row = 1
+			row, shelf = 1, 1
 			if film, ok := g.film[i]; ok {
 				nodes[film].Column, nodes[film].Row, nodes[film].Dropped = graphFilmColumn, 0, true
 			}
 		}
 	}
+	// film stands the film of node i, on row at, at that row or the first
+	// free one under it, and is the row under the film.
+	film := func(i, at int) int {
+		f, ok := g.film[i]
+		if !ok {
+			return at + 1
+		}
+		at = max(at, shelf)
+		nodes[f].Column, nodes[f].Row, nodes[f].Dropped = graphFilmColumn, at, true
+		shelf = at + 1
+		return shelf
+	}
 	byNumber := func(a, b int) int { return nodes[a].Number - nodes[b].Number }
 	for _, level := range levels {
-		next := row
-		slices.SortFunc(missions[level], byNumber)
-		films := 0
-		for k, i := range missions[level] {
-			nodes[i].Column, nodes[i].Row, next = graphMissionColumn+k, row, max(next, row+1)
-			if film, ok := g.film[i]; ok {
-				nodes[film].Column, nodes[film].Row, nodes[film].Dropped = graphFilmColumn, row+films, true
-				films++
-				next = max(next, row+films)
-			}
-		}
 		at := row
+		slices.SortFunc(missions[level], byNumber)
+		for k, i := range missions[level] {
+			nodes[i].Column, nodes[i].Row = graphFirstColumn+k, row
+			at = max(at, film(i, row))
+		}
 		slices.SortFunc(towns[level], byNumber)
 		for _, i := range towns[level] {
-			nodes[i].Column, nodes[i].Row = graphTownColumn, at
-			for k, h := range g.handouts[i] {
-				nodes[h].Column, nodes[h].Row = graphHandoutColumn, at+k
+			nodes[i].Column, nodes[i].Row = graphFirstColumn, at
+			end := at + 1
+			for k, col := range g.areaColumns(i) {
+				for j, m := range col {
+					if m < 0 {
+						continue
+					}
+					nodes[m].Column, nodes[m].Row = graphFirstColumn+k, at+j
+					if nodes[m].Kind == ui.GraphMission {
+						end = max(end, film(m, nodes[m].Row))
+					}
+					end = max(end, nodes[m].Row+1)
+				}
 			}
-			at += max(1, len(g.handouts[i]))
+			at = end
 		}
-		row = max(next, at)
+		row = at
 	}
 }
 

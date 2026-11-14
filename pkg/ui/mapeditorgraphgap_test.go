@@ -16,8 +16,8 @@ func TestGraphGapsGiveRoomBetweenLineRuns(t *testing.T) {
 	}
 }
 
-// graphHandoutOrderPage is a town whose side hand-out stands over its main
-// one, both handed to the town's row, with the side mission's way back.
+// graphHandoutOrderPage is a town whose area holds its side hand-out over
+// its main one and both missions on the town's row.
 func graphHandoutOrderPage() CampaignGraphPage {
 	var p CampaignGraphPage
 	add := func(n CampaignGraphNode) int {
@@ -30,7 +30,8 @@ func graphHandoutOrderPage() CampaignGraphPage {
 	none := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphInn, Number: 25, Column: 1, Row: 2, Empty: true})
 	main := add(CampaignGraphNode{Kind: GraphMission, Number: 30, Title: "Main", Column: 2})
 	side := add(CampaignGraphNode{Kind: GraphMission, Number: 31, Title: "Side", Column: 3})
-	for _, e := range [][2]int{{town, shop}, {town, inn}, {town, none}, {shop, side}, {inn, main}, {side, town}} {
+	p.Nodes[town].Region = []int{shop, inn, none, main, side}
+	for _, e := range [][2]int{{shop, side}, {inn, main}} {
 		p.Edges = append(p.Edges, CampaignGraphEdge{From: e[0], To: e[1]})
 	}
 	return p

@@ -53,13 +53,25 @@ func crossingsOf(lines []canvasLine) []crossing {
 	return found
 }
 
-// The campaign graph of the modes page routes arrows that cross. As the
-// graph draws them, the upper arrow of each crossing carries a step of four
-// pixels: the crossing lies on the far side of a step, not on a plain run of
-// either arrow.
+// The campaign graph of the modes page, with an arrow from the side mission
+// 31 to the main mission 50, routes arrows that cross. As the graph draws
+// them, the upper arrow of each crossing carries a step of four pixels: the
+// crossing lies on the far side of a step, not on a plain run of either
+// arrow.
 func TestRoutedCrossingArrowsStepOverEachOther(t *testing.T) {
-	e, _ := graphEditor(t, modesGraph())
-	c := e.graphCanvas(modesGraph())
+	page := modesGraph()
+	from, to := -1, -1
+	for i, n := range page.Nodes {
+		switch {
+		case n.Kind == GraphMission && n.Number == 31:
+			from = i
+		case n.Kind == GraphMission && n.Number == 50:
+			to = i
+		}
+	}
+	page.Edges = append(page.Edges, CampaignGraphEdge{From: from, To: to})
+	e, _ := graphEditor(t, page)
+	c := e.graphCanvas(page)
 	found := crossingsOf(c.Lines)
 	if len(found) == 0 {
 		t.Fatal("the page routes no crossing arrows")

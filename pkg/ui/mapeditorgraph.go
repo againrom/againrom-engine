@@ -19,6 +19,7 @@ const (
 	// GraphMission is a mission; Number is its number.
 	GraphMission
 	// GraphTown is the town of a chapter; Number is the chapter's mission.
+	// It is drawn as the caption of the area that holds its Region.
 	GraphTown
 	// GraphHandout is a building's offer of a mission; Place is the
 	// building and Number the tavern's visitor.
@@ -66,6 +67,9 @@ type CampaignGraphNode struct {
 	// while missions are edited; Selected marks the one it holds selected.
 	Pick     string
 	Selected bool
+	// Region is a town's hand-out nodes, in order, then the missions they
+	// give: its area holds them.
+	Region []int
 }
 
 // CampaignGraphEdge is an arrow from node From to node To, by their indices.
@@ -113,7 +117,14 @@ const (
 	graphRunBase = 4
 	graphRunStep = 5
 	graphRuns    = 4
+	// graphRegionPadX and graphRegionPadY are the room a town's area leaves
+	// round the boxes and the runs it holds.
+	graphRegionPadX = 6
+	graphRegionPadY = 4
 )
+
+// graphRegionFill is the ground of a town's area, a shade over the sheet's.
+var graphRegionFill = color.RGBA{0x29, 0x23, 0x1a, 255}
 
 // The inks of the four mod marks, on a node and in the legend.
 var (
@@ -295,6 +306,7 @@ func (e *MapEditor) graphBox(n CampaignGraphNode) canvasBox {
 	case GraphStart:
 		b.Lines, b.Tip = []string{e.word("editor.graph.start")}, e.word("editor.graph.start.tip")
 	case GraphTown:
+		b.Bare, b.Band = true, color.RGBA{}
 		b.Lines, b.Tip = []string{number(e.plainWord("editor.graph.town"))}, number(e.plainWord("editor.graph.town.tip"))
 	case GraphFilm:
 		files := e.editorHostText(n.Title)
@@ -335,9 +347,12 @@ func (e *MapEditor) graphBox(n CampaignGraphNode) canvasBox {
 
 // graphCanvas is the campaign graph of page as a canvas: one box a node, at
 // its column and row, each column as wide as its longest text; one line an
-// edge. A line runs straight to the node on its right or under it, down a
-// town's trunk to its hand-outs, and otherwise along a lane in the gap right
-// of its node's column, over its target's row and into the target's top.
+// edge. A town is an area round its region's hand-outs and missions and the
+// lines between them, its box the area's caption in the top-left corner; a
+// line into or out of it leaves or ends at the area's frame. A line runs
+// straight to the node on its right or under it, and otherwise along a lane
+// in the gap right of its node's column, over its target's row and into the
+// target's top.
 // Lines to one target from one gap share a lane. A line that holds for some
 // heroes only takes a lane, leaves its node at a level of its own and
 // carries the heroes' words there, in the gap left of the lanes.
@@ -354,7 +369,26 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	}
 	line := fontHeight(body, 15)
 	tall, low := 2*line+2*canvasBoxPad, line+2*canvasBoxPad
-	pitch := tall + graphGapY
+	// home is the town whose area holds each node, -1 for none. A row gap
+	// holds the caption of the area under it, the area's top, the run into
+	// the town and the area above.
+	home := make([]int, len(page.Nodes))
+	for i := range home {
+		home[i] = -1
+	}
+	for i, n := range page.Nodes {
+		if n.Kind != GraphTown {
+			continue
+		}
+		home[i] = i
+		for _, h := range n.Region {
+			if h >= 0 && h < len(page.Nodes) {
+				home[h] = i
+			}
+		}
+	}
+	caption := line + 2*canvasBoxPad
+	pitch := tall + max(graphGapY, 2*graphRunBase+2*graphRegionPadY+graphRunStep) + caption
 	c := &popupCanvas{At: e.graphAt, Boxes: make([]canvasBox, len(page.Nodes))}
 	cols, rows := 0, 0
 	for _, n := range page.Nodes {
@@ -381,7 +415,9 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 				w = max(w, advance(s))
 			}
 		}
-		widths[n.Column] = max(widths[n.Column], min(graphWide, w+2*canvasBoxPad+2))
+		if n.Kind != GraphTown {
+			widths[n.Column] = max(widths[n.Column], min(graphWide, w+2*canvasBoxPad+2))
+		}
 		h := low
 		if len(b.Lines) > 1 {
 			h = tall
@@ -397,6 +433,24 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	for k := range widths {
 		widths[k] = max(widths[k], graphNarrow)
 	}
+	// inside says line k joins two nodes of one area; outward that it
+	// leaves a town's area; leave is the node line k leaves as it leaves
+	// it: a town from its area's last column.
+	inside := func(k int) bool {
+		ed := page.Edges[k]
+		return ed.From >= 0 && ed.From < len(page.Nodes) && ed.To >= 0 && ed.To < len(page.Nodes) &&
+			home[ed.From] >= 0 && home[ed.From] == home[ed.To]
+	}
+	outward := func(k int) bool { return page.Nodes[page.Edges[k].From].Kind == GraphTown && !inside(k) }
+	leave := func(k int) CampaignGraphNode {
+		n := page.Nodes[page.Edges[k].From]
+		for _, h := range n.Region {
+			if h >= 0 && h < len(page.Nodes) && outward(k) {
+				n.Column = max(n.Column, page.Nodes[h].Column)
+			}
+		}
+		return n
+	}
 	// said is each line's heroes' words, told the lines of each node that
 	// carry any, and gutter the room the longest takes in each gap.
 	said, told, gutter := make([]string, len(page.Edges)), map[int]int{}, make([]int, cols)
@@ -404,7 +458,7 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		if ed.Heroes != 0 && ed.From >= 0 && ed.From < len(page.Nodes) {
 			said[k] = e.graphHeroes(ed.Heroes)
 			told[ed.From]++
-			at := page.Nodes[ed.From].Column
+			at := leave(k).Column
 			gutter[at] = max(gutter[at], advance(said[k])+2*canvasBoxPad)
 		}
 	}
@@ -426,13 +480,12 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		}
 		return true
 	}
-	// The routes: straight, down, a town's trunk, or a lane of the gap right
-	// of the line's node, whose span the lane's lines reach.
+	// The routes: straight, down, or a lane of the gap right of the line's
+	// node, whose span the lane's lines reach.
 	const (
 		routeNone = iota
 		routeStraight
 		routeDown
-		routeTrunk
 		routeLane
 	)
 	route, leaves, nth := make([]int, len(page.Edges)), make([]int, len(page.Edges)), map[int]int{}
@@ -442,7 +495,7 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		if ed.From < 0 || ed.From >= len(page.Nodes) || ed.To < 0 || ed.To >= len(page.Nodes) {
 			continue
 		}
-		from, to := page.Nodes[ed.From], page.Nodes[ed.To]
+		from, to := leave(k), page.Nodes[ed.To]
 		plain := said[k] == ""
 		leaves[k] = mid(from.Row)
 		if n := told[ed.From]; !plain && n > 1 {
@@ -452,13 +505,16 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 			leaves[k] += (2*nth[ed.From] - n + 1) * step / 2
 			nth[ed.From]++
 		}
+		if outward(k) {
+			// A town's line out of its area leaves it above the first
+			// hand-out's.
+			leaves[k] = c.Boxes[ed.From].Area.Min.Y - graphRegionPadY/2
+		}
 		switch {
-		case plain && from.Row == to.Row && to.Column > from.Column && clear(from, to):
+		case plain && !outward(k) && from.Row == to.Row && to.Column > from.Column && clear(from, to):
 			route[k] = routeStraight
 		case plain && from.Column == to.Column && to.Row == from.Row+1:
 			route[k] = routeDown
-		case plain && from.Kind == GraphTown && to.Column == from.Column+1 && to.Row > from.Row:
-			route[k] = routeTrunk
 		default:
 			route[k] = routeLane
 		}
@@ -476,7 +532,7 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		if route[k] != routeLane {
 			continue
 		}
-		from, to := page.Nodes[ed.From], page.Nodes[ed.To]
+		from, to := leave(k), page.Nodes[ed.To]
 		for j, n := range page.Nodes {
 			if j == ed.To || n.Row != to.Row || !landed[j] {
 				continue
@@ -503,14 +559,45 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	for i := range under {
 		rank[i] = min(climb(i, map[int]bool{}), graphRuns-1)
 	}
+	// top is the top of each town's area, over its boxes and the runs into
+	// them; run is the level of line k's run: a line from outside into a
+	// town runs over its area's top.
+	top := map[int]int{}
+	for i, t := range home {
+		if t >= 0 {
+			if y, ok := top[t]; !ok || c.Boxes[i].Area.Min.Y < y {
+				top[t] = c.Boxes[i].Area.Min.Y
+			}
+		}
+	}
+	for t := range top {
+		top[t] -= caption
+	}
 	for k, ed := range page.Edges {
 		if route[k] != routeLane {
 			continue
 		}
-		key := laneKey{page.Nodes[ed.From].Column, ed.To}
+		if t := home[ed.To]; t >= 0 && (ed.To != t || inside(k)) {
+			top[t] = min(top[t], above(ed.To))
+		}
+	}
+	for t := range top {
+		top[t] -= graphRegionPadY
+	}
+	run := func(k int) int {
+		if to := page.Edges[k].To; home[to] == to && !inside(k) {
+			return top[to] - graphRunBase
+		}
+		return above(page.Edges[k].To)
+	}
+	for k, ed := range page.Edges {
+		if route[k] != routeLane {
+			continue
+		}
+		key := laneKey{leave(k).Column, ed.To}
 		span, ok := spans[key]
 		if !ok {
-			span = [2]int{above(ed.To), above(ed.To)}
+			span = [2]int{run(k), run(k)}
 		}
 		spans[key] = [2]int{min(span[0], leaves[k]), max(span[1], leaves[k])}
 	}
@@ -553,6 +640,9 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		b := &c.Boxes[i]
 		b.Area.Min.X, b.Area.Max.X = left[n.Column], left[n.Column]+widths[n.Column]
 		for k := range b.Lines {
+			if n.Kind == GraphTown {
+				break
+			}
 			room := widths[n.Column] - 2*canvasBoxPad
 			if k == 0 {
 				room -= marks[i]
@@ -560,31 +650,77 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 			b.Lines[k] = editorClip(body, b.Lines[k], room)
 		}
 	}
-	centre := func(i int) int { return (c.Boxes[i].Area.Min.X + c.Boxes[i].Area.Max.X) / 2 }
+	centre := func(i int) int {
+		k := page.Nodes[i].Column
+		return left[k] + widths[k]/2
+	}
+	// lay draws line k between frames a and b of its two nodes.
 	c.Lines = make([]canvasLine, len(page.Edges))
-	for k, ed := range page.Edges {
+	lay := func(k int, a, b image.Rectangle) {
+		ed := page.Edges[k]
 		l := canvasLine{Ink: editorPaper, Arrow: true, Over: ed.Marked, Label: said[k]}
 		if ed.Marked {
 			l.Ink = graphFlowInk
 		}
 		if route[k] != routeNone {
-			from, to := page.Nodes[ed.From], page.Nodes[ed.To]
-			a, b := c.Boxes[ed.From].Area, c.Boxes[ed.To].Area
+			from, to := leave(k), page.Nodes[ed.To]
 			switch route[k] {
 			case routeStraight:
 				l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {b.Min.X - 1, mid(to.Row)}}
 			case routeDown:
 				l.Points = []image.Point{{centre(ed.From), a.Max.Y}, {centre(ed.To), b.Min.Y - 1}}
-			case routeTrunk:
-				trunk := a.Max.X + graphGapX/2
-				l.Points = []image.Point{{a.Max.X, mid(from.Row)}, {trunk, mid(from.Row)}, {trunk, mid(to.Row)}, {b.Min.X - 1, mid(to.Row)}}
 			case routeLane:
 				key := laneKey{from.Column, ed.To}
-				x, y := a.Max.X+inset[from.Column]+(lane[key]+1)*graphLane, above(ed.To)
+				x, y := left[from.Column]+widths[from.Column]+inset[from.Column]+(lane[key]+1)*graphLane, run(k)
 				l.Points = []image.Point{{a.Max.X, leaves[k]}, {x, leaves[k]}, {x, y}, {centre(ed.To), y}, {centre(ed.To), b.Min.Y - 1}}
 			}
 		}
 		c.Lines[k] = l
+	}
+	// The lines within an area join the boxes; the area is round its boxes
+	// and those lines, from its top. A line into or out of it leaves or ends
+	// at the area's frame, a town's, and any other at its node's box.
+	frame := make([]image.Rectangle, len(page.Nodes))
+	for i := range page.Nodes {
+		frame[i] = c.Boxes[i].Area
+	}
+	for k, ed := range page.Edges {
+		if inside(k) {
+			lay(k, c.Boxes[ed.From].Area, c.Boxes[ed.To].Area)
+			for _, p := range c.Lines[k].Points {
+				t := home[ed.From]
+				frame[t] = frame[t].Union(image.Rectangle{Min: p, Max: p.Add(image.Pt(1, 1))})
+			}
+		}
+	}
+	for i, n := range page.Nodes {
+		if n.Kind != GraphTown {
+			continue
+		}
+		for _, h := range n.Region {
+			if h >= 0 && h < len(page.Nodes) {
+				frame[i] = frame[i].Union(c.Boxes[h].Area)
+			}
+		}
+		frame[i] = image.Rect(frame[i].Min.X-graphRegionPadX, min(top[i], frame[i].Min.Y-graphRegionPadY), frame[i].Max.X+graphRegionPadX, frame[i].Max.Y+graphRegionPadY)
+		// The town's box is the area's caption, in its top-left corner.
+		b := &c.Boxes[i]
+		wide := 2*canvasBoxPad + 2
+		for _, s := range b.Lines {
+			wide += advance(s)
+		}
+		frame[i].Max.X = max(frame[i].Max.X, frame[i].Min.X+wide)
+		b.Area = image.Rect(frame[i].Min.X+1, frame[i].Min.Y+1, frame[i].Min.X+wide-1, frame[i].Min.Y+1+caption)
+		c.Areas = append(c.Areas, canvasArea{Area: frame[i], Fill: graphRegionFill, Edge: GraphInk(n)})
+	}
+	for k, ed := range page.Edges {
+		if !inside(k) {
+			if route[k] == routeNone {
+				lay(k, image.Rectangle{}, image.Rectangle{})
+				continue
+			}
+			lay(k, frame[ed.From], frame[ed.To])
+		}
 	}
 	c.Lines = stepCrossings(c.Lines)
 	last := cols - 1
@@ -592,9 +728,9 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	if len(ends[last]) > 0 || gutter[last] > 0 {
 		right += inset[last] + len(ends[last])*graphLane
 	}
-	sheet := graphPad + rows*pitch - graphGapY + graphPad
-	for _, b := range c.Boxes {
-		sheet = max(sheet, b.Area.Max.Y+graphPad)
+	sheet := graphPad + rows*pitch - (pitch - tall) + graphPad
+	for _, r := range frame {
+		sheet = max(sheet, r.Max.Y+graphPad)
 	}
 	c.Sheet = image.Pt(right+graphPad, sheet)
 	c.Legend = e.graphLegend(page)

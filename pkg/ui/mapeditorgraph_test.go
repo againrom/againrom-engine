@@ -21,8 +21,9 @@ const (
 )
 
 // modesGraph is a campaign as a graph: the start, two missions one after the
-// other, then six towns, each with a tavern visitor's main mission, a shop's
-// side mission that returns to the town, and a visitor with nothing.
+// other, then six towns, each an area holding a tavern visitor, a shop and a
+// visitor with nothing, and on the town's row the visitor's main mission and
+// the shop's side mission, which returns to the town within the area.
 func modesGraph() CampaignGraphPage {
 	var p CampaignGraphPage
 	add := func(n CampaignGraphNode) int {
@@ -30,23 +31,24 @@ func modesGraph() CampaignGraphPage {
 		return len(p.Nodes) - 1
 	}
 	link := func(from, to int) { p.Edges = append(p.Edges, CampaignGraphEdge{From: from, To: to}) }
-	start := add(CampaignGraphNode{Kind: GraphStart})
-	first := add(CampaignGraphNode{Kind: GraphMission, Number: 10, Title: "Crossing", Column: 2, Source: "map1"})
-	second := add(CampaignGraphNode{Kind: GraphMission, Number: 20, Title: "Watch", Column: 2, Row: 1, Source: "map2"})
+	start := add(CampaignGraphNode{Kind: GraphStart, Column: 1})
+	first := add(CampaignGraphNode{Kind: GraphMission, Number: 10, Title: "Crossing", Column: 1, Row: 1, Source: "map1"})
+	second := add(CampaignGraphNode{Kind: GraphMission, Number: 20, Title: "Watch", Column: 1, Row: 2, Source: "map2"})
 	link(start, first)
 	link(first, second)
-	last, row := second, 2
+	last, row := second, 3
 	for chapter := 30; chapter <= 80; chapter += 10 {
-		town := add(CampaignGraphNode{Kind: GraphTown, Number: chapter, Row: row})
+		town := add(CampaignGraphNode{Kind: GraphTown, Number: chapter, Column: 1, Row: row})
 		inn := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphInn, Number: 100 + chapter, Column: 1, Row: row})
-		main := add(CampaignGraphNode{Kind: GraphMission, Number: chapter, Title: fmt.Sprintf("Main %d", chapter), Column: 2, Row: row, Source: "map3"})
-		shop := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphShop, Column: 1, Row: row + 1})
+		main := add(CampaignGraphNode{Kind: GraphMission, Number: chapter, Title: fmt.Sprintf("Main %d", chapter), Column: 1, Row: row + 1, Source: "map3"})
+		shop := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphShop, Column: 2, Row: row})
 		side := add(CampaignGraphNode{Kind: GraphMission, Number: chapter + 1, Title: "Side", Column: 2, Row: row + 1})
-		none := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphInn, Number: 200 + chapter, Column: 1, Row: row + 2, Empty: true})
-		for _, e := range [][2]int{{last, town}, {town, inn}, {inn, main}, {town, shop}, {shop, side}, {side, town}, {town, none}} {
+		none := add(CampaignGraphNode{Kind: GraphHandout, Place: GraphInn, Number: 200 + chapter, Column: 3, Row: row, Empty: true})
+		p.Nodes[town].Region = []int{inn, shop, none, main, side}
+		for _, e := range [][2]int{{last, town}, {inn, main}, {shop, side}} {
 			link(e[0], e[1])
 		}
-		last, row = main, row+3
+		last, row = main, row+2
 	}
 	return p
 }
@@ -82,14 +84,16 @@ func graphLayout(t *testing.T, e *MapEditor) (popupSpec, popupLayout) {
 // The canvas is an element of the popup builder: any spec holds one. Its
 // view is cut to its height, a sheet taller than the view takes a bar, a
 // press lands on the box that takes one and elsewhere on the ground, and the
-// one painter draws it.
+// one painter draws it, its areas under its boxes.
 func TestPopupCanvasIsLaidHitAndPainted(t *testing.T) {
 	f := panelFont()
 	c := &popupCanvas{Sheet: image.Pt(200, 300), Height: 100, Boxes: []canvasBox{
 		{Area: image.Rect(10, 10, 90, 40), Lines: []string{"frame"}, Inert: true, Fill: editorPanel, Edge: editorGold},
 		{Area: image.Rect(10, 50, 90, 80), Lines: []string{"press"}, Marks: []canvasMark{{Text: "new", Ink: editorLight}}, Tip: "a tip"},
 		{Area: image.Rect(10, 250, 90, 280), Lines: []string{"below"}},
-	}, Lines: []canvasLine{{Points: []image.Point{{50, 40}, {50, 49}}, Ink: editorPaper, Arrow: true}}}
+		{Area: image.Rect(110, 10, 190, 40), Lines: []string{"title"}, Inert: true, Bare: true, Fill: editorPanel, Edge: editorLight},
+	}, Areas: []canvasArea{{Area: image.Rect(104, 4, 196, 46), Fill: graphRegionFill, Edge: editorWarning}},
+		Lines: []canvasLine{{Points: []image.Point{{50, 40}, {50, 49}}, Ink: editorPaper, Arrow: true}}}
 	s := popupSpec{Title: "Any window", Width: 300, At: image.Pt(20, 20), Canvas: c, Buttons: []string{"Close"}}
 	l := layoutPopup(s, f, f)
 	if l.Canvas.Dy() != 100 || l.CanvasBar.Empty() || !l.Canvas.In(l.Rect) || l.Canvas.Overlaps(l.CanvasBar) {
@@ -136,10 +140,21 @@ func TestPopupCanvasIsLaidHitAndPainted(t *testing.T) {
 	if got := pic.RGBAAt(line.X, line.Y); got != editorPaper {
 		t.Fatalf("the line's pixel is %v, want %v", got, editorPaper)
 	}
+	// An area is a flat frame under the boxes; a bare box in it has no frame
+	// of its own and takes no press.
+	if at := l.Canvas.Min.Add(image.Pt(104, 4)); pic.RGBAAt(at.X, at.Y) != editorWarning {
+		t.Fatalf("the area's edge is %v, want %v", pic.RGBAAt(at.X, at.Y), editorWarning)
+	}
+	if at := l.CanvasBoxes.rect(3).Max.Sub(image.Pt(1, 1)); pic.RGBAAt(at.X, at.Y) != graphRegionFill {
+		t.Fatalf("the bare box's corner is %v, want the area's ground %v", pic.RGBAAt(at.X, at.Y), graphRegionFill)
+	}
+	if part, _ := l.hit(center(l.CanvasBoxes.rect(3))); part != popupCanvasGround {
+		t.Fatalf("a press on the bare box lands on part %d", part)
+	}
 	if tip, ok := popupTipAt(pic.Bounds(), f, f, s, l, center(l.CanvasBoxes.rect(1)), true); !ok || len(tip.Lines) != 1 || tip.Lines[0] != "a tip" {
 		t.Fatalf("tip %v %v", tip, ok)
 	}
-	if got := c.texts(); !slices.Equal(got, []string{"frame", "press new", "below"}) {
+	if got := c.texts(); !slices.Equal(got, []string{"frame", "press new", "below", "title"}) {
 		t.Fatalf("texts %q", got)
 	}
 }
@@ -374,8 +389,9 @@ func TestCampaignGraphNodeOpensItsMissionsMap(t *testing.T) {
 }
 
 // The graph's layout is its data alone: the same page lays the same canvas,
-// a node stands at its column and row, no two boxes overlap, and every
-// line runs level or upright from its node's box to its target's.
+// a node stands at its column and row, no two boxes overlap, every line
+// runs level or upright from its node's box to its target's, and each town
+// is one area that holds its region and the lines within it alone.
 func TestCampaignGraphLayoutComesFromItsData(t *testing.T) {
 	e, _ := graphEditor(t, modesGraph())
 	page := modesGraph()
@@ -392,6 +408,9 @@ func TestCampaignGraphLayoutComesFromItsData(t *testing.T) {
 			a, o := page.Nodes[i], page.Nodes[k]
 			if b.Area.Overlaps(other.Area) {
 				t.Errorf("boxes %d and %d overlap", k, i)
+			}
+			if a.Kind == GraphTown || o.Kind == GraphTown {
+				continue // a caption stands in its area's corner, not on the grid
 			}
 			if a.Column == o.Column && b.Area.Min.X != other.Area.Min.X || a.Column > o.Column && b.Area.Min.X < other.Area.Max.X {
 				t.Errorf("boxes %d and %d leave their columns: %v %v", k, i, other.Area, b.Area)
@@ -412,10 +431,12 @@ func TestCampaignGraphLayoutComesFromItsData(t *testing.T) {
 				t.Errorf("line %d turns askew between %v and %v", k, a, b)
 			}
 		}
-		if from, to := line.Points[0], line.Points[len(line.Points)-1]; !touches(from, c.Boxes[edge.From].Area) || !touches(to, c.Boxes[edge.To].Area) {
-			t.Errorf("line %d runs %v to %v, its boxes are %v and %v", k, from, to, c.Boxes[edge.From].Area, c.Boxes[edge.To].Area)
+		from, to := graphFrame(page, c, edge.From), graphFrame(page, c, edge.To)
+		if p, q := line.Points[0], line.Points[len(line.Points)-1]; !touches(p, from) || !touches(q, to) {
+			t.Errorf("line %d runs %v to %v, its frames are %v and %v", k, p, q, from, to)
 		}
-		// A line crosses no box but its own two.
+		// A line crosses no box but its own two, and no town's area but
+		// the one its node or its target stands in.
 		for i := 1; i < len(line.Points); i++ {
 			seg := image.Rectangle{Min: line.Points[i-1], Max: line.Points[i]}.Canon()
 			seg.Max = seg.Max.Add(image.Pt(1, 1))
@@ -424,12 +445,128 @@ func TestCampaignGraphLayoutComesFromItsData(t *testing.T) {
 					t.Errorf("line %d crosses box %d", k, n)
 				}
 			}
+			for n, a := range c.Areas {
+				if a.Area != graphFrame(page, c, graphTownOf(page, edge.From)) && a.Area != graphFrame(page, c, graphTownOf(page, edge.To)) && seg.Overlaps(a.Area) {
+					t.Errorf("line %d crosses area %d", k, n)
+				}
+			}
+		}
+	}
+	// Each town is one area in its kind's colour round its box and its
+	// region's; no other node's box stands in it.
+	towns := 0
+	for i, n := range page.Nodes {
+		if n.Kind != GraphTown {
+			continue
+		}
+		towns++
+		area := graphFrame(page, c, i)
+		for j, b := range c.Boxes {
+			if held := j == i || slices.Contains(n.Region, j); held != b.Area.In(area) {
+				t.Errorf("box %d stands in town %d's area %v: %t, it is held: %t", j, i, area, b.Area.In(area), held)
+			}
+		}
+	}
+	if len(c.Areas) != towns {
+		t.Errorf("%d areas for %d towns", len(c.Areas), towns)
+	}
+	// No two areas overlap. A line between two nodes of one area stays in
+	// it; the one line that leaves an area is a mission's to a town.
+	for i, a := range c.Areas {
+		for _, b := range c.Areas[:i] {
+			if a.Area.Overlaps(b.Area) {
+				t.Errorf("areas %v and %v overlap", b.Area, a.Area)
+			}
+		}
+	}
+	for k, line := range c.Lines {
+		edge := page.Edges[k]
+		from, to := graphTownOf(page, edge.From), graphTownOf(page, edge.To)
+		if page.Nodes[from].Kind != GraphTown {
+			continue
+		}
+		if from == to {
+			for _, p := range line.Points {
+				if area := graphFrame(page, c, from); !p.In(area) {
+					t.Errorf("line %d within town %d's area leaves it at %v", k, from, p)
+				}
+			}
+		} else if page.Nodes[edge.From].Kind != GraphMission || page.Nodes[edge.To].Kind != GraphTown {
+			t.Errorf("line %d leaves town %d's area and is not a mission's to a town", k, from)
+		}
+	}
+	for _, a := range c.Areas {
+		if a.Edge != graphKinds[graphKindTown].ink {
+			t.Errorf("an area's edge is %v, the town's colour is %v", a.Edge, graphKinds[graphKindTown].ink)
 		}
 	}
 }
 
+// A town's name is the caption in its area's top-left corner, areas of towns
+// laid alike are of one height and one left edge, and a line from a mission
+// down to the town under it is one upright segment ending on the area's top.
+func TestCampaignGraphAreaHasACaptionAndAStraightArrowDown(t *testing.T) {
+	e, _ := graphEditor(t, modesGraph())
+	page := modesGraph()
+	c := e.graphCanvas(page)
+	var height, left int
+	for i, n := range page.Nodes {
+		if n.Kind != GraphTown {
+			continue
+		}
+		area := graphFrame(page, c, i)
+		if b := c.Boxes[i].Area; b.Min.X-area.Min.X > 2 || b.Min.Y-area.Min.Y > 2 || !b.In(area) {
+			t.Errorf("town %d's caption %v is not in the corner of its area %v", i, b, area)
+		}
+		if height == 0 {
+			height, left = area.Dy(), area.Min.X
+		}
+		if area.Dy() != height || area.Min.X != left {
+			t.Errorf("town %d's area %v differs from the first's in height %d or left edge %d", i, area, height, left)
+		}
+	}
+	straight := 0
+	for k, ed := range page.Edges {
+		if page.Nodes[ed.From].Kind != GraphMission || page.Nodes[ed.To].Kind != GraphTown {
+			continue
+		}
+		area, p := graphFrame(page, c, ed.To), c.Lines[k].Points
+		if len(p) != 2 || p[0].X != p[1].X || p[1].Y != area.Min.Y-1 || p[1].X <= area.Min.X || p[1].X >= area.Max.X {
+			t.Errorf("line %d runs %v, not straight down to the area %v", k, p, area)
+		}
+		straight++
+	}
+	if straight == 0 {
+		t.Error("no line leads from a mission to a town")
+	}
+}
+
+// graphFrame is what the lines of node i leave or end at on canvas c: the
+// area that holds a town's box, else the node's box.
+func graphFrame(page CampaignGraphPage, c *popupCanvas, i int) image.Rectangle {
+	if page.Nodes[i].Kind == GraphTown {
+		for _, a := range c.Areas {
+			if c.Boxes[i].Area.In(a.Area) {
+				return a.Area
+			}
+		}
+	}
+	return c.Boxes[i].Area
+}
+
+// graphTownOf is the town whose region holds node i, else i.
+func graphTownOf(page CampaignGraphPage, i int) int {
+	for t, n := range page.Nodes {
+		if slices.Contains(n.Region, i) {
+			return t
+		}
+	}
+	return i
+}
+
 // Each box's edge and band carry its kind's colour from the one table, its
-// ground stays the panel's so its words read, the kinds differ in colour,
+// ground stays the panel's so its words read; a town's box is bare, a title
+// in an area of the town's colour. The kinds differ in colour,
 // and the legend names each kind shown in the table's order, in English and
 // in Russian. A film box names its files.
 func TestCampaignGraphColoursEachKindFromOneTable(t *testing.T) {
@@ -438,9 +575,9 @@ func TestCampaignGraphColoursEachKindFromOneTable(t *testing.T) {
 		{Kind: GraphFilm, Title: "start/01.smk", Row: 1},
 		{Kind: GraphMission, Number: 10, Column: 2, Row: 1, Source: "map1"},
 		{Kind: GraphMission, Number: 11, Column: 3, Row: 1, Source: "map2", Side: true},
-		{Kind: GraphTown, Number: 20, Row: 2},
+		{Kind: GraphTown, Number: 20, Row: 2, Region: []int{5}},
 		{Kind: GraphHandout, Place: GraphInn, Number: 5, Column: 1, Row: 2},
-	}, Edges: []CampaignGraphEdge{{From: 0, To: 1}, {From: 0, To: 2}, {From: 2, To: 3}, {From: 2, To: 4}, {From: 4, To: 5}}}
+	}, Edges: []CampaignGraphEdge{{From: 0, To: 1}, {From: 0, To: 2}, {From: 2, To: 3}, {From: 2, To: 4}}}
 	e, _ := graphEditor(t, page)
 	c := e.graphCanvas(page)
 	inks := map[color.RGBA]graphKind{}
@@ -452,12 +589,22 @@ func TestCampaignGraphColoursEachKindFromOneTable(t *testing.T) {
 	}
 	for i, n := range page.Nodes {
 		b := c.Boxes[i]
-		if want := graphKinds[graphKindOf(n)].ink; b.Band != want || b.Edge != want || GraphInk(n) != want {
+		want, band := graphKinds[graphKindOf(n)].ink, graphKinds[graphKindOf(n)].ink
+		if n.Kind == GraphTown {
+			band = color.RGBA{} // a caption has no band: its area's frame has the ink
+		}
+		if b.Band != band || b.Edge != want || GraphInk(n) != want {
 			t.Errorf("node %d: band %v edge %v, its kind's colour %v", i, b.Band, b.Edge, want)
 		}
 		if b.Fill != editorPanel {
 			t.Errorf("node %d is filled %v", i, b.Fill)
 		}
+		if b.Bare != (n.Kind == GraphTown) {
+			t.Errorf("node %d of kind %d is bare: %t", i, n.Kind, b.Bare)
+		}
+	}
+	if len(c.Areas) != 1 || c.Areas[0].Edge != graphKinds[graphKindTown].ink {
+		t.Errorf("the town's areas are %v, one in the town's colour wanted", c.Areas)
 	}
 	if film := c.Boxes[1].Lines; len(film) != 2 || film[1] != "start/01.smk" {
 		t.Errorf("the film box reads %q", film)
@@ -486,13 +633,13 @@ func TestCampaignGraphFilmCardsClearTheArrows(t *testing.T) {
 		{Kind: GraphStart, Column: 1},
 		{Kind: GraphFilm, Title: "start/01.smk", Column: 0, Row: 0, Dropped: true},
 		{Kind: GraphHandout, Place: GraphInn, Number: 5, Column: 2, Row: 1},
-		{Kind: GraphTown, Number: 20, Column: 1, Row: 1},
+		{Kind: GraphTown, Number: 20, Column: 1, Row: 1, Region: []int{2}},
 		{Kind: GraphMission, Number: 10, Column: 3, Row: 1, Source: "map1"},
 		{Kind: GraphFilm, Number: 10, Title: "m10/01.smk", Column: 0, Row: 1, Dropped: true},
 		{Kind: GraphMission, Number: 11, Column: 4, Row: 1, Source: "map2"},
 		{Kind: GraphMission, Number: 20, Column: 3, Row: 2, Source: "map3"},
 		{Kind: GraphFilm, Number: 20, Title: "m20/01.smk", Column: 0, Row: 2, Dropped: true},
-	}, Edges: []CampaignGraphEdge{{From: 0, To: 3}, {From: 3, To: 2}, {From: 2, To: 4}, {From: 3, To: 6}, {From: 4, To: 7}}}
+	}, Edges: []CampaignGraphEdge{{From: 0, To: 3}, {From: 2, To: 4}, {From: 3, To: 6}, {From: 4, To: 7}}}
 	e, _ := graphEditor(t, page)
 	c := e.graphCanvas(page)
 	flat := slices.Clone(page.Nodes)
@@ -523,7 +670,8 @@ func TestCampaignGraphFilmCardsClearTheArrows(t *testing.T) {
 
 // An arrow that holds for some heroes only carries their word, in English
 // and in Russian. It leaves its mission's side at a level of its own, runs
-// to a lane past the word and ends in its target's top; the page's lines
+// to a lane past the word and ends in its target's top, the top of a town's
+// area; the page's lines
 // hold the word.
 func TestCampaignGraphNamesAnArrowsHeroes(t *testing.T) {
 	page := CampaignGraphPage{Nodes: []CampaignGraphNode{
@@ -564,7 +712,7 @@ func TestCampaignGraphNamesAnArrowsHeroes(t *testing.T) {
 		if lane.Y != from.Y || lane.X-from.X < advance(want)+2*canvasBoxPad {
 			t.Errorf("line %d runs %v to %v: no room for %q", k, from, lane, want)
 		}
-		if target := c.Boxes[page.Edges[k].To].Area; to.Y != target.Min.Y-1 || to.X < target.Min.X || to.X >= target.Max.X {
+		if target := graphFrame(page, c, page.Edges[k].To); to.Y != target.Min.Y-1 || to.X < target.Min.X || to.X >= target.Max.X {
 			t.Errorf("line %d ends at %v, its target's box is %v", k, to, target)
 		}
 		levels = append(levels, from.Y)

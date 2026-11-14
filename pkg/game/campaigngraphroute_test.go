@@ -260,7 +260,8 @@ func playedAfter(t *testing.T, c Campaign, d mod.MissionData) map[int][]string {
 
 // A mod's change of the route is drawn as the game plays it. A side mission
 // sent to a later main mission leads there, and that mission's win opens
-// its own next town, not the side mission's. A main mission whose lead the
+// its own next town, not the side mission's; a side mission's way back to its
+// town is the town's area, no arrow. A main mission whose lead the
 // mod ends opens the town of the next one, which offers that mission itself
 // and goes on from it. Guest missions that between them play for every hero
 // leave no arrow straight to the town; an arrow that holds for some heroes
@@ -291,12 +292,16 @@ func TestCampaignGraphDrawsTheRouteAModChanges(t *testing.T) {
 	check("side to main", after, 31, "mission 50")
 	check("side to main", after, 50, "town 60")
 	check("side to main", after, 30, "town 40")
-	check("side to main", after, 41, "town 40")
+	check("side to main", after, 41)
 
 	all, after := lines(routeLeadOff)
 	check("lead off", after, 10, "town 20")
 	check("lead off", after, 20, "town 30")
-	holds("lead off", all, "town 20 > mission 20")
+	if !slices.ContainsFunc(all, func(l string) bool {
+		return strings.HasPrefix(l, "town 20 ") && strings.HasSuffix(l, " holds mission 20")
+	}) || slices.Contains(all, "town 20 > mission 20") {
+		t.Errorf("lead off: town 20 holds mission 20 in its area with no arrow in\n%s", strings.Join(all, "\n"))
+	}
 
 	all, after = lines(routeTwoGuests)
 	check("two guests", after, 20, "mission 25 for editor.message.hero.man", "mission 26 for editor.message.hero.woman")
@@ -309,9 +314,23 @@ func TestCampaignGraphDrawsTheRouteAModChanges(t *testing.T) {
 	check("one guest", after, 25, "town 30")
 }
 
+// heldHome drops from what each mission leads to the return to the town
+// whose area holds the mission: the area draws that return.
+func heldHome(page ui.CampaignGraphPage, after map[int][]string) {
+	for _, n := range page.Nodes {
+		home := fmt.Sprintf("town %d", n.Number)
+		for _, h := range n.Region {
+			if m := page.Nodes[h]; m.Kind == ui.GraphMission {
+				after[m.Number] = slices.DeleteFunc(after[m.Number], func(s string) bool { return s == home || strings.HasPrefix(s, home+" for ") })
+			}
+		}
+	}
+}
+
 // Over each fixture campaign and mod, every mission node of the graph leads
-// to what the campaign plays after its win, for the same heroes, and the
-// graph holds a node for every mission the campaign plays.
+// to what the campaign plays after its win, for the same heroes, but for a
+// return to the town whose area holds it, and the graph holds a node for
+// every mission the campaign plays.
 func TestCampaignGraphFollowsTheCampaignMissionByMission(t *testing.T) {
 	twice := routeSections()
 	twice[4] = routeChapter(40, []int32{40}, []int32{41, 31})
@@ -336,7 +355,9 @@ func TestCampaignGraphFollowsTheCampaignMissionByMission(t *testing.T) {
 		{"last town's side mission set to open the town", routeCampaign(t, ends), routeLastSide},
 	} {
 		c, d := routeMod(t, tc.stock, tc.mod)
-		got, want := graphAfter(campaignGraphOf(tc.stock, c, d, nil)), playedAfter(t, c, d)
+		page := campaignGraphOf(tc.stock, c, d, nil)
+		got, want := graphAfter(page), playedAfter(t, c, d)
+		heldHome(page, want)
 		for _, n := range slices.Sorted(maps.Keys(want)) {
 			if _, drawn := got[n]; !drawn {
 				t.Errorf("%s: the graph has no node of mission %d", tc.name, n)
