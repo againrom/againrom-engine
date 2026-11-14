@@ -164,7 +164,30 @@ func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.R
 	if kind == KindStructure && key == "kind" {
 		previewKey = "kind-grid"
 	}
+	if kind == KindUnit && key == "identity" {
+		previewKey = "identity-grid"
+	}
 	pic := host.NewRecordPreview(kind, previewKey, value)
+	e.place.icons[k] = pic
+	return pic
+}
+
+// placeTipPicture is the picture the hover tip of a cell of the grid of kind
+// and step key shows for choice value: the one picture the Add window's list
+// shows beside the choice.
+func (e *MapEditor) placeTipPicture(kind RecordKind, key string, value int64) *image.RGBA {
+	host, ok := e.addHost()
+	if !ok {
+		return nil
+	}
+	k := fmt.Sprintf("tip/%s/%s/%d", kind, key, value)
+	if pic, ok := e.place.icons[k]; ok {
+		return pic
+	}
+	if e.place.icons == nil {
+		e.place.icons = map[string]*image.RGBA{}
+	}
+	pic := host.NewRecordPreview(kind, key, value)
 	e.place.icons[k] = pic
 	return pic
 }
@@ -205,7 +228,11 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		if pressed {
 			note = fmt.Sprintf(e.word("editor.place.placing"), c.Label)
 		}
-		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label})
+		cell := popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label}
+		if kind == KindUnit && key == "identity" {
+			cell.TipPicture = e.placeTipPicture(kind, key, c.Value)
+		}
+		g.Cells = append(g.Cells, cell)
 	}
 	groups, blocks := e.placeGroups(choices)
 	if len(blocks) < 2 {
@@ -264,6 +291,8 @@ func (e *MapEditor) placeBlock(blocks []string) int {
 func (e *MapEditor) placeSwitch(s *popupSpec) {
 	if _, blocks := e.placeGroups(e.placeShown()); len(blocks) > 1 {
 		s.Tabs, s.ActiveTab, s.TabSwitch = blocks, e.placeBlock(blocks), true
+		// A caption wider than its share takes a line of its own.
+		s.Fit = true
 	}
 }
 

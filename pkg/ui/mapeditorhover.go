@@ -32,20 +32,27 @@ func (e *MapEditor) editorTipStyle(picture image.Image) *hoverStyle {
 // corner; false over no cell that names itself or where another window
 // covers the popup.
 func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
+	cell, at, ok := e.gridCellAt(p)
+	return cell.Tip, at, ok
+}
+
+// gridCellAt is the list popup's grid cell under p that names itself, and
+// its corner.
+func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool) {
 	if e.chromeHit(p) != popList {
-		return "", image.Point{}, false
+		return popupGridCell{}, image.Point{}, false
 	}
 	s, ok := e.listSpec()
 	if !ok || s.Grid == nil {
-		return "", image.Point{}, false
+		return popupGridCell{}, image.Point{}, false
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for i, r := range l.GridCells {
 		if n := l.gridIndex(i); p.In(r) && n < len(s.Grid.Cells) && s.Grid.Cells[n].Tip != "" {
-			return s.Grid.Cells[n].Tip, r.Min, true
+			return s.Grid.Cells[n], r.Min, true
 		}
 	}
-	return "", image.Point{}, false
+	return popupGridCell{}, image.Point{}, false
 }
 
 // choiceTipAt is the tip of the open list's row under p when the field shows
@@ -82,7 +89,12 @@ func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
 	}
 	text, picture, at, ok := e.choiceTipAt(p)
 	if !ok {
-		text, at, ok = e.gridTipAt(p)
+		var cell popupGridCell
+		cell, at, ok = e.gridCellAt(p)
+		text = cell.Tip
+		if cell.TipPicture != nil {
+			picture = cell.TipPicture
+		}
 	}
 	if !ok && e.chromeHit(p) == popToolbar {
 		text, at, ok = e.toolTip(p)

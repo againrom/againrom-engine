@@ -90,6 +90,10 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 	}
 	// Each head of the other people holds its men, then its women.
 	women := map[int][]int64{}
+	// The Humans row takes the first non-hero person of each sprite type; its
+	// cells also stay in the group they are grouped in.
+	humans := ui.InspectionChoiceGroup{Block: creatures, Head: utf(x.word("editor.unit.groups.humans"))}
+	drawn := map[*terrain.UnitClass]bool{}
 	for _, c := range choices {
 		id, ok := x.identities[c.Value]
 		if !ok {
@@ -108,6 +112,10 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 			}
 		case mapload.UnitPerson, mapload.UnitNamed:
 			role, head, female := x.personRole(id)
+			if sheet := x.personDraws()[c.Value].class; role >= personFighter && sheet != nil && !drawn[sheet] {
+				drawn[sheet] = true
+				humans.Values = append(humans.Values, c.Value)
+			}
 			group = other + 1 + int(role)
 			if role == personOther {
 				group = slices.IndexFunc(groups, func(g ui.InspectionChoiceGroup) bool { return g.Block == people && g.Head == utf(head) })
@@ -130,6 +138,9 @@ func (x *MapInspector) identityGroups(choices []ui.InspectionChoice) []ui.Inspec
 		return cmp.Or(cmp.Compare(ta, tb), cmp.Compare(la, lb))
 	})
 	var populated []ui.InspectionChoiceGroup
+	if len(humans.Values) > 0 {
+		populated = append(populated, humans)
+	}
 	for i, group := range groups {
 		group.Values = append(group.Values, women[i]...)
 		if len(group.Values) > 0 {
@@ -295,14 +306,24 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 // sprite the map draws each one with, a creature's at its placed tier and a
 // person's or named character's as the mission draws it (personDraws).
 func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map[int64]*image.RGBA {
+	return s.identityPicturesOf(choices, false)
+}
+
+// identityPicturesOf is identityPictures, with each person's sprite where
+// sprites is set (the grid's cells) and his portrait or figure otherwise.
+func (s *mapInspectionEdits) identityPicturesOf(choices []ui.InspectionChoice, sprites bool) map[int64]*image.RGBA {
 	x := s.inspector
 	if x.recordPictures == nil {
 		x.recordPictures = map[string]map[int64]*image.RGBA{}
 	}
-	pictures, ok := x.recordPictures["identity"]
+	name := "identity"
+	if sprites {
+		name = "identity-grid"
+	}
+	pictures, ok := x.recordPictures[name]
 	if !ok {
 		pictures = map[int64]*image.RGBA{}
-		x.recordPictures["identity"] = pictures
+		x.recordPictures[name] = pictures
 	}
 	for _, c := range choices {
 		if _, done := pictures[c.Value]; done {
@@ -312,7 +333,7 @@ func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map
 		if !ok {
 			continue
 		}
-		pictures[c.Value] = s.identityFigure(id)
+		pictures[c.Value] = s.identityFigure(id, sprites)
 	}
 	out := map[int64]*image.RGBA{}
 	for _, c := range choices {
@@ -323,8 +344,14 @@ func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map
 	return out
 }
 
-// identityFigure is the sprite the map draws identity id with, nil for none.
-func (s *mapInspectionEdits) identityFigure(id mapload.Identity) *image.RGBA {
+// identityFigure is the picture of identity id: a named character's face,
+// else for a person the figure the game shows for him, else the sprite the
+// map draws him with; with sprites set a person shows the sprite. Nil for
+// none.
+func (s *mapInspectionEdits) identityFigure(id mapload.Identity, sprites bool) *image.RGBA {
+	if pic := s.identityPortrait(id); pic != nil {
+		return pic
+	}
 	x := s.inspector
 	var draw personDraw
 	if id.Kind == mapload.UnitCreature {
@@ -336,8 +363,42 @@ func (s *mapInspectionEdits) identityFigure(id mapload.Identity) *image.RGBA {
 		draw.tier, _ = placementTier(u, x.table)
 	} else {
 		draw = x.personDraws()[identityChoiceValue(id)]
+		if draw.shown != nil && !sprites {
+			if pic := draw.shown(); pic != nil {
+				return pic
+			}
+		}
 	}
-	return s.unitPreview(draw.class, draw.tier)
+	pic := s.unitPreview(draw.class, draw.tier)
+	if pic == nil && draw.shown != nil {
+		// A class with no sheet in the install shows his figure instead.
+		pic = draw.shown()
+	}
+	return pic
+}
+
+// identityPortrait is the portrait of the named character a person or named
+// identity id is: a named identity's own record, or the first named identity
+// (in value order) whose record names the same Humans row. Nil for a creature
+// and for a row no record names.
+func (s *mapInspectionEdits) identityPortrait(id mapload.Identity) *image.RGBA {
+	x := s.inspector
+	if id.Kind == mapload.UnitCreature {
+		return nil
+	}
+	npc, ok := int64(id.NPC), id.Kind == mapload.UnitNamed
+	if !ok {
+		for _, v := range slices.Sorted(maps.Keys(x.identities)) {
+			if o := x.identities[v]; o.Kind == mapload.UnitNamed && o.Row == id.Row {
+				npc, ok = int64(o.NPC), true
+				break
+			}
+		}
+	}
+	if !ok {
+		return nil
+	}
+	return s.npcPortraits([]ui.InspectionChoice{{Value: npc}})[npc]
 }
 
 // unitClass is the class sheet of unit class id class, nil for none.
@@ -353,6 +414,9 @@ func (x *MapInspector) unitClass(class int16) *terrain.UnitClass {
 type personDraw struct {
 	class *terrain.UnitClass
 	tier  int
+	// shown is the picture the game's info panel shows for the person: the
+	// figure composed from his equipment, or his class picture. Nil for none.
+	shown func() *image.RGBA
 }
 
 // personDraws are the class sheets the mission draws each person and named
@@ -403,7 +467,7 @@ func (x *MapInspector) personDraws() map[int64]personDraw {
 			for i, n := range part {
 				units[i] = st.units[n]
 			}
-			art, tiers, err := x.peopleArt(units, st.table)
+			art, tiers, shown, err := x.peopleArt(units, st.table)
 			if err != nil && len(part) > 1 {
 				for _, n := range part {
 					parts = append(parts, []int{n})
@@ -411,7 +475,8 @@ func (x *MapInspector) personDraws() map[int64]personDraw {
 				continue
 			}
 			for i, n := range part {
-				x.identityDraws[st.values[n]] = personDraw{class: art[sim.EntityID(i)], tier: tiers[sim.EntityID(i)]}
+				id := sim.EntityID(i)
+				x.identityDraws[st.values[n]] = personDraw{class: art[id], tier: tiers[id], shown: func() *image.RGBA { return shown(id) }}
 			}
 		}
 	}
@@ -485,9 +550,9 @@ func (x *MapInspector) placedArt(model *mapedit.Editor, units []alm.Unit, missio
 }
 
 // peopleArt is the class each of units is drawn with when a mission on table
-// t starts them on one new map, and the tier each is drawn at, by entity id
-// (the placement's index).
-func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table) (map[sim.EntityID]*terrain.UnitClass, map[sim.EntityID]int, error) {
+// t starts them on one new map, the tier each is drawn at, and the picture
+// the game's info panel shows for each, by entity id (the placement's index).
+func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table) (map[sim.EntityID]*terrain.UnitClass, map[sim.EntityID]int, func(sim.EntityID) *image.RGBA, error) {
 	side := 32
 	for (side-4)*(side-4) < len(units) {
 		side += 8
@@ -496,29 +561,65 @@ func (x *MapInspector) peopleArt(units []alm.Unit, t *mapload.Table) (map[sim.En
 	spec.Width, spec.Height = side, side
 	model, err := mapedit.NewMap(spec)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if _, err := placeNewUnit(model, image.Pt(2, 2), 0, 0); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	m, err := model.Map()
+	fresh := func() (*alm.Map, error) {
+		m, err := model.Map()
+		if err != nil {
+			return nil, err
+		}
+		blank := m.Units[0]
+		m.Units, m.AuthoredUnits = nil, nil
+		for i, u := range units {
+			keyed := blank
+			keyed.ClassID, keyed.ClassSubID, keyed.DefID, keyed.Flags, keyed.ServerID = u.ClassID, u.ClassSubID, u.DefID, u.Flags, u.ServerID
+			keyed.X, keyed.Y = cellWords(image.Pt(2+i%(side-4), 2+i/(side-4)), newUnitFraction, newUnitFraction)
+			keyed.UnitID = uint16(i + 1)
+			m.Units = append(m.Units, keyed)
+		}
+		return m, nil
+	}
+	m, err := fresh()
 	if err != nil {
-		return nil, nil, err
-	}
-	blank := m.Units[0]
-	m.Units, m.AuthoredUnits = nil, nil
-	for i, u := range units {
-		keyed := blank
-		keyed.ClassID, keyed.ClassSubID, keyed.DefID, keyed.Flags, keyed.ServerID = u.ClassID, u.ClassSubID, u.DefID, u.Flags, u.ServerID
-		keyed.X, keyed.Y = cellWords(image.Pt(2+i%(side-4), 2+i/(side-4)), newUnitFraction, newUnitFraction)
-		keyed.UnitID = uint16(i + 1)
-		m.Units = append(m.Units, keyed)
+		return nil, nil, nil, err
 	}
 	art, err := x.startedArt(m, t, x.identityMission)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return art, entityTiers(m, t), nil
+	// The figure is composed from the same units on a plain map by the
+	// resolver the unit popup uses, and only when a cell asks for it.
+	var world *mapWorld
+	shown := func(id sim.EntityID) *image.RGBA {
+		if world == nil {
+			plain, err := fresh()
+			if err != nil {
+				return nil
+			}
+			v, err := ui.NewViewer("", terrain.Grid{Width: plain.Width, Height: plain.Height, Tiles: terrain.RenderTileWords(plain.Tiles), Altitudes: plain.Altitudes}, x.tiles)
+			if err != nil {
+				return nil
+			}
+			if x.panelWords != nil {
+				v.SetWords(*x.panelWords)
+			}
+			if world, err = openMapWorld(plain, t, x.units, v); err != nil {
+				world = nil
+				return nil
+			}
+		}
+		fig, ok := world.figures[id]
+		if !ok || x.archives == nil {
+			return nil
+		}
+		r := speakerResolver{src: x.archives.artSource(), figure: &fig, equipment: world.equipmentOf(id), npcFaces: speakerFaces(x.table)}
+		pic, _, _ := r.SpeakerFace(-1)
+		return pic
+	}
+	return art, entityTiers(m, t), shown, nil
 }
 
 // startedArt is the class sheet the mission draws each person of map m with

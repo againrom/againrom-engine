@@ -127,9 +127,9 @@ func missionArt(t *testing.T, s *mapInspectionEdits, u alm.Unit) (*terrain.UnitC
 	return missionAppearanceArt(ms, x.units, list, src, placedClientHeroes(ms, x.table))[0], entityTiers(m, x.table)[0]
 }
 
-// Every person cell, a named character's too, is the sprite the mission
+// Every person cell that no named record names is the sprite the mission
 // draws the same placement with: the class sheet of its row's type, never a
-// portrait or a bare paper doll.
+// bare paper doll. A cell with a record shows that record's portrait.
 func TestEditorIdentityPeopleCellsDrawTheMissionSprite(t *testing.T) {
 	s := peopleIdentityEditor(t, "en")
 	x := s.inspector
@@ -148,7 +148,13 @@ func TestEditorIdentityPeopleCellsDrawTheMissionSprite(t *testing.T) {
 		if !ok {
 			t.Fatalf("identity %#x cannot be placed", v)
 		}
-		pic := s.NewRecordPreview(ui.KindUnit, "identity", v)
+		pic := s.NewRecordPreview(ui.KindUnit, "identity-grid", v)
+		if v == identityValue(identityNamed, 8) || v == personValue(2) {
+			if pic == nil || portrait == nil || !bytes.Equal(pic.Pix, portrait.Pix) {
+				t.Errorf("identity %#x does not show record 8's portrait", v)
+			}
+			continue
+		}
 		c, tier := missionArt(t, s, u)
 		want := s.unitPreview(c, tier)
 		if pic == nil || want == nil || pic.Bounds() != want.Bounds() || !bytes.Equal(pic.Pix, want.Pix) {

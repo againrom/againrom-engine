@@ -238,12 +238,14 @@ func (g *popupGrid) rows(cols int) []popupGridRow {
 // picture; an Inert cell is drawn flat and takes no press. Tip names the
 // cell in the hover tooltip, empty for none.
 type popupGridCell struct {
-	Icon    *image.RGBA
-	Label   string
-	Tip     string
-	Pressed bool
-	Ticked  bool
-	Inert   bool
+	Icon  *image.RGBA
+	Label string
+	Tip   string
+	// TipPicture is the picture the hover tip shows at full size beside Tip.
+	TipPicture *image.RGBA
+	Pressed    bool
+	Ticked     bool
+	Inert      bool
 }
 
 // gridCellSide is a grid cell's side when the grid names none.

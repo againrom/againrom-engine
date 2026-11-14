@@ -34,23 +34,26 @@ func TestEditorIdentityGroupsKeepTableOrderAndEveryRow(t *testing.T) {
 			}
 			before := append([]byte(nil), s.model.Bytes()...)
 			step := s.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "identity")
-			heads := []string{"Catapults", "Goblins", "Orcs", "Ogres and trolls", "Bats, ghosts and bees", "Squirrels, caterpillars and turtles", "Dragons", "Daemon", "Other creatures", "Story heroes", "Player characters", "Others: fighters"}
-			blocks := []string{"Creatures", "People"}
+			heads := []string{"Humans", "Catapults", "Goblins", "Orcs", "Ogres and trolls", "Bats, ghosts and bees", "Squirrels, caterpillars and turtles", "Dragons", "Daemon", "Other creatures", "Story heroes", "Player characters", "Others: fighters"}
+			blocks := []string{"Humans and Creatures", "Named characters"}
 			if lang == "ru" {
-				heads = []string{"Катапульты", "Гоблины", "Орки", "Людоеды и тролли", "Мыши, духи и осы", "Белки, гусеницы и черепахи", "Драконы", "Демон", "Другие существа", "Сюжетные герои", "Персонажи игрока", "Прочие: бойцы"}
-				blocks = []string{"Существа", "Люди"}
+				heads = []string{"Люди", "Катапульты", "Гоблины", "Орки", "Людоеды и тролли", "Мыши, духи и осы", "Белки, гусеницы и черепахи", "Драконы", "Демон", "Другие существа", "Сюжетные герои", "Персонажи игрока", "Прочие: бойцы"}
+				blocks = []string{"Люди и Существа", "Именованные персонажи"}
 			}
 			if len(step.Groups) != len(heads) {
 				t.Fatalf("grid has %d groups %+v, want %d headed groups", len(step.Groups), step.Groups, len(heads))
 			}
-			wantRows := [][]int{{3, 5}, {2, 4}, {6, 7}, {8, 9}, {10, 11, 12}, {13, 14, 15}, {1}, {16}, {17, 18}, {0, 7, 8}, {2}, {5, 6, 1}}
+			wantRows := [][]int{{1}, {3, 5}, {2, 4}, {6, 7}, {8, 9}, {10, 11, 12}, {13, 14, 15}, {1}, {16}, {17, 18}, {0, 7, 8}, {2}, {5, 6, 1}}
 			var seen []int64
 			for i, g := range step.Groups {
 				kind, block := mapload.UnitCreature, blocks[0]
-				if i >= 9 {
+				if i == 0 {
+					kind = mapload.UnitPerson
+				}
+				if i >= 10 {
 					kind, block = mapload.UnitPerson, blocks[1]
 				}
-				if i == 9 {
+				if i == 10 {
 					kind = mapload.UnitNamed
 				}
 				var want []int64
@@ -60,7 +63,9 @@ func TestEditorIdentityGroupsKeepTableOrderAndEveryRow(t *testing.T) {
 				if g.Head != x.inspectionUTF8(heads[i]) || g.Block != x.inspectionUTF8(block) || !slices.Equal(g.Values, want) {
 					t.Errorf("group %d = %+v, want %q / %q / %v", i, g, block, heads[i], want)
 				}
-				seen = append(seen, g.Values...)
+				if i > 0 {
+					seen = append(seen, g.Values...)
+				}
 			}
 			var offered []int64
 			for _, c := range step.Choices {

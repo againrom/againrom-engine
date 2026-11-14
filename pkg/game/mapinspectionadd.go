@@ -469,6 +469,8 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 		return s.BrushObjectIcon(int(value))
 	case "identity":
 		return s.identityPicture(value)
+	case "identity-grid":
+		return s.identityPicturesOf([]ui.InspectionChoice{{Value: value}}, true)[value]
 	case "class":
 		if value < math.MinInt16 || value > math.MaxInt16 {
 			return nil

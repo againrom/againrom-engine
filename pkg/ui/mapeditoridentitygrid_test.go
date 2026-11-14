@@ -249,3 +249,56 @@ func TestMapEditorStructureGridSpecStaysUngrouped(t *testing.T) {
 		t.Fatalf("object brush shows a switch %q", s.Tabs)
 	}
 }
+
+// previewByKeyHost answers each preview key with its own picture, so a test
+// tells the cell's picture from the hover tip's.
+type previewByKeyHost struct{ *identityGridHost }
+
+func (h *previewByKeyHost) NewRecordPreview(k RecordKind, key string, v int64) *image.RGBA {
+	side := map[string]int{"identity-grid": 8, "identity": 20}[key]
+	if side == 0 {
+		return nil
+	}
+	return image.NewRGBA(image.Rect(0, 0, side, side))
+}
+
+// A unit identity cell keeps its small sprite and its hover tip shows the
+// choice's own picture at full size.
+func TestMapEditorIdentityGridTipShowsTheChoicePicture(t *testing.T) {
+	e := identityGridEditor(t)
+	host := &previewByKeyHost{e.doc.Edits.(*identityGridHost)}
+	host.self, e.doc.Edits = host, host
+	e.place = placeGrid{}
+	g, _, _ := e.placeGridSpec()
+	for n, c := range g.Cells {
+		if c.Icon == nil || c.Icon.Bounds().Dx() != 8 {
+			t.Fatalf("cell %d icon is not the grid sprite: %v", n, c.Icon)
+		}
+		if c.TipPicture == nil || c.TipPicture.Bounds().Dx() != 20 {
+			t.Fatalf("cell %d tip picture is not the choice picture: %v", n, c.TipPicture)
+		}
+	}
+}
+
+// Block captions wider than their share of the grid's switch take a line
+// each, so every caption stays inside its own button.
+func TestMapEditorIdentityGridSwitchKeepsLongCaptionsInsideTheirButtons(t *testing.T) {
+	e := identityGridEditor(t)
+	host := e.doc.Edits.(*identityGridHost)
+	var step InspectionNewStep
+	if err := json.Unmarshal([]byte(`{"Choices":[{"Value":1,"Label":"a"},{"Value":2,"Label":"b"}],"Value":1,"Groups":[{"Block":"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW","Head":"H","Values":[1]},{"Block":"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM","Head":"N","Values":[2]}]}`), &step); err != nil {
+		t.Fatal(err)
+	}
+	host.step = &step
+	e.place = placeGrid{}
+	l := layoutPopup(mustListSpec(t, e), e.font, e.bodyFont())
+	if len(l.Tabs) != 2 {
+		t.Fatalf("switch buttons = %d, want 2", len(l.Tabs))
+	}
+	for i, tab := range l.Tabs {
+		caption := []string{"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"}[i]
+		if w := e.bodyFont().Advance(caption); w > tab.Dx() {
+			t.Errorf("caption %d is %d wide inside a %d wide button", i, w, tab.Dx())
+		}
+	}
+}
