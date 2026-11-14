@@ -61,10 +61,8 @@ type objectEdit struct {
 	// actions of a script popup row's buttons.
 	rowField map[int]int
 	rowActs  map[int][]string
-	// modKeys are the host keys of the mod window's row buttons, where one
-	// is not the mission choice; rowActs holds their values.
-	modKeys map[int][]string
-	rowOpen map[int]int
+	modKeys  map[int][]string
+	rowOpen  map[int]int
 	// rowBlock maps a spec row to the plain view block it opens and closes;
 	// usesShown reports that the plain view listed the script nodes naming
 	// the record; viewOffer marks a view switch offer.

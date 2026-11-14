@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-// heldOnly is the install's answer in these tests: nil for the numbers it
-// holds as missions, an error for the rest.
 func heldOnly(numbers ...int) func(int) error {
 	return func(n int) error {
 		for _, h := range numbers {
@@ -131,8 +129,6 @@ func TestPlaceFolderMapsGivesEachCopyItsOwnStem(t *testing.T) {
 	files := []string{"maps/alpha.alm"}
 	folder := FolderMaps([]string{"alpha.alm", "alpha.text/en/title.txt", "alpha.variables", "x.almx", "x.alm"})
 	places := PlaceFolderMaps(files, folder)
-	// x.alm sorts before x.almx: the first copy of a stem keeps it, the
-	// second takes -2.
 	want := map[string]string{
 		"alpha.alm":               "maps/alpha-2.alm",
 		"alpha.text/en/title.txt": "maps/alpha-2.text/en/title.txt",

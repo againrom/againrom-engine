@@ -33,8 +33,6 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	return nil
 }
 
-// isModMapKey reports a key that makes a mission of an unused map or adds
-// maps to the mod.
 func isModMapKey(key string) bool {
 	return key == "makemission" || key == "makerow" || key == "addmap" || key == "addmaps"
 }

@@ -10,8 +10,6 @@ import (
 	"againrom/pkg/pathdialog"
 )
 
-// modMapActionsEditor is W's Missions page over a host that lists an unused
-// map and a map that replaces a mission by its file name.
 func modMapActionsEditor(t *testing.T, lang string, size image.Point) (*MapEditor, *modesWorkspace) {
 	t.Helper()
 	e := modesWordsEditor(t, "workspace", lang, size)
@@ -30,8 +28,6 @@ func modMapActionsEditor(t *testing.T, lang string, size image.Point) (*MapEdito
 	return e, p
 }
 
-// pageButton is the centre of the button captioned caption on W's page, and
-// whether every button of the page's map rows is whole inside the window.
 func pageButton(t *testing.T, e *MapEditor, caption string) image.Point {
 	t.Helper()
 	for top := 0; top < 40; top++ {
@@ -53,9 +49,6 @@ func pageButton(t *testing.T, e *MapEditor, caption string) image.Point {
 	return image.Point{}
 }
 
-// The Missions page lists each map no mission uses with the buttons that
-// make it a mission, and a button press reaches the host with its key and
-// value, in both languages and at both window sizes.
 func TestModWindowMissionsPageOffersTheMapActions(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, size := range []image.Point{{640, 480}, {1280, 800}} {
@@ -77,7 +70,6 @@ func TestModWindowMissionsPageOffersTheMapActions(t *testing.T) {
 	}
 }
 
-// A host that lists no map actions leaves the Missions page as it was.
 func TestModWindowMissionsPageHasNoMapRowsWithoutTheHost(t *testing.T) {
 	e, _ := newModesEditor(t, "workspace")
 	_ = e.Key("package")
@@ -89,8 +81,6 @@ func TestModWindowMissionsPageHasNoMapRowsWithoutTheHost(t *testing.T) {
 	}
 }
 
-// Add maps from folder opens the system folder window first, and its answer
-// goes to the host as the folder.
 func TestAddMapsFromFolderAsksTheSystemFolderWindow(t *testing.T) {
 	e, p := modMapActionsEditor(t, "en", image.Pt(1280, 800))
 	requests := make(chan pathdialog.Request, 1)
@@ -111,8 +101,6 @@ func TestAddMapsFromFolderAsksTheSystemFolderWindow(t *testing.T) {
 	}
 }
 
-// Where the system has no folder window the typed field asks, and Enter sends
-// its path to the host.
 func TestAddMapsFromFolderFallsBackToATypedFolder(t *testing.T) {
 	for name, ask := range map[string]func(pathdialog.Request) (pathdialog.Result, error){
 		"no window": nil,

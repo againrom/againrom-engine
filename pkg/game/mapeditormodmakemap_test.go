@@ -13,17 +13,11 @@ import (
 	"againrom/pkg/words"
 )
 
-// makeMapLangs are the editor's two languages and what each says of a map
-// that is already named, in the refusal's own words.
 var makeMapLangs = []struct{ book, taken, number string }{
 	{"", "is already named by a mission of the mod", "is not a mission of this install's campaign"},
 	{"ru", "уже названа миссией мода", "не миссия кампании этой установки"},
 }
 
-// makeMapEditor is the editor over a mod with an unused map, spare.alm, a map
-// that replaces mission 20 by its name and a map two rows name; the unused
-// map is open as a tab. It answers the unused map's edits and the folder the
-// editor saves the mod in.
 func makeMapEditor(t *testing.T, book string) (*testPlayFixture, *ui.MapEditor, *mapInspectionEdits, string) {
 	t.Helper()
 	f, e := workspaceFixture(t)
@@ -35,13 +29,10 @@ func makeMapEditor(t *testing.T, book string) (*testPlayFixture, *ui.MapEditor, 
 		t.Fatal(err)
 	}
 	spare := e.Document().Edits.(*mapInspectionEdits)
-	// The row that names a map the mod has no file of is not under test.
 	delete(spare.workspace.Project.Files, openMapsFile(t, tree(t, dir), "gone.alm"))
 	return f, e, spare, dir
 }
 
-// actionOf is the entry of the Missions page's map actions that names map
-// rel, and the captions of its buttons.
 func actionOf(t *testing.T, s *mapInspectionEdits, rel string) (ui.ModMapAction, bool) {
 	t.Helper()
 	actions, open := s.ModMapActions()
@@ -56,9 +47,6 @@ func actionOf(t *testing.T, s *mapInspectionEdits, rel string) (ui.ModMapAction,
 	return ui.ModMapAction{}, false
 }
 
-// reopened is the mod saved at dir as the game reads it, its rows in the
-// editor's language and the install's answer, checked as the editor checks
-// them before it plays them.
 func reopened(t *testing.T, f *testPlayFixture, dir string) mod.MissionData {
 	t.Helper()
 	d, _, err := mod.DescribeMissions(dir, "ambush", "en")
@@ -91,9 +79,6 @@ func rowOf(d mod.MissionData, rel string) (mod.Mission, bool) {
 	return mod.Mission{}, false
 }
 
-// Make mission turns the unused map into a guest row of the editor's default
-// guest, or into a replacement of a campaign number the install holds, in one
-// Undo step; the saved mod checks clean and reopens with the row.
 func TestMakeMissionOfAnUnusedMapGuestAndReplace(t *testing.T) {
 	for _, lang := range makeMapLangs {
 		t.Run("lang="+lang.book, func(t *testing.T) {
@@ -155,8 +140,6 @@ func TestMakeMissionReplacesACampaignNumberTheInstallHolds(t *testing.T) {
 	}
 }
 
-// A map that replaces a mission by its file name gets a row that names the
-// same map under the same number.
 func TestMakeRowNamesTheMapThatReplacesByFileName(t *testing.T) {
 	f, e, spare, dir := makeMapEditor(t, "")
 	a, ok := actionOf(t, spare, "20.alm")
@@ -176,7 +159,6 @@ func TestMakeRowNamesTheMapThatReplacesByFileName(t *testing.T) {
 	}
 }
 
-// Each refusal speaks the editor's words and leaves no draft and no history.
 func TestMapActionsRefuseInTheEditorsWordsAndLeaveNoDraft(t *testing.T) {
 	for _, lang := range makeMapLangs {
 		t.Run("lang="+lang.book, func(t *testing.T) {
@@ -202,8 +184,6 @@ func TestMapActionsRefuseInTheEditorsWordsAndLeaveNoDraft(t *testing.T) {
 	}
 }
 
-// Add map copies the open map under its own stem, with a -2 when the stem is
-// held, as a draft no mission names, in one Undo step.
 func TestAddMapCopiesTheOpenMapUnderItsOwnStem(t *testing.T) {
 	_, e, spare, _ := makeMapEditor(t, "")
 	if _, err := spare.SetWorkspaceField("package", "addmap", ""); err != nil {
@@ -228,8 +208,6 @@ func TestAddMapCopiesTheOpenMapUnderItsOwnStem(t *testing.T) {
 	}
 }
 
-// Add maps from folder adds every map of a folder with its pages and labels
-// as one Undo step, and the saved mod reopens with the seven maps unused.
 func TestAddMapsFromFolderAddsSevenMapsInOneUndoStep(t *testing.T) {
 	f, e, spare, dir := makeMapEditor(t, "")
 	raw := spare.model.Bytes()
@@ -299,8 +277,6 @@ func stringBytes(m map[string]string) map[string][]byte {
 	return out
 }
 
-// F5 on an unused map plays it as a guest mission of the mod, with the mod
-// active, and writes no row into the project.
 func TestTestPlayOfAnUnusedMapStartsItWithTheModActive(t *testing.T) {
 	f, _, spare, _ := makeMapEditor(t, "")
 	rows := len(spare.workspace.Project.Missions)

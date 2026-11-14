@@ -90,8 +90,6 @@ func workspacePage(t *testing.T, e *ui.MapEditor, name, value string) {
 	}
 }
 
-// workspaceFonts, when set, are the title font and the body font the fixture's
-// editor draws with, for a test that writes frames in an install's fonts.
 var workspaceFonts []*text.Font
 
 func workspaceFixture(t *testing.T) (*testPlayFixture, *ui.MapEditor) {

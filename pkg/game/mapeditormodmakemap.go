@@ -16,11 +16,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// guestRow is the default guest row of mod id among the rows of d: the
-// campaign's first guest slot, the lowest number after it that the install
-// admits and no row of d takes, the party of its companion and a place after
-// the last guest row of d. Add and Make mission both build their guest from
-// it, and name the map themselves.
 func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Mission, error) {
 	c, err := LoadCampaign(s.inspector.archives.Containers)
 	if err != nil {
@@ -51,8 +46,6 @@ func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Miss
 	return m, nil
 }
 
-// draftOpenMap puts the open map, its pages and its variable labels into the
-// drafts of d at the free place of its stem, and answers that place.
 func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlace, error) {
 	place := s.place().Free(s.projectFiles(d))
 	pages, err := s.exportPageTree("", nil)
@@ -69,14 +62,11 @@ func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlac
 	return place, nil
 }
 
-// mapList is the maps of project d: the one list over its files and rows.
 func (s *mapInspectionEdits) mapList(d *editorModDocument) ([]mod.MapEntry, mod.MissionData) {
 	data, _ := s.inspector.modMissions(s.inspector.mod.description(), d.Missions)
 	return mod.MapList(s.projectFiles(d), "", data), data
 }
 
-// replaceNumbers are the campaign's mission numbers the install holds and no
-// row of data replaces, lowest first.
 func (x *MapInspector) replaceNumbers(data mod.MissionData) []int {
 	flow := x.installFlow()
 	if flow == nil {
@@ -86,8 +76,6 @@ func (x *MapInspector) replaceNumbers(data mod.MissionData) []int {
 	return data.ReplaceNumbers(slices.Concat(c.Main, c.Side, c.Offered), x.missionAnswer())
 }
 
-// mapRefusal is err, a refusal of mod.MakeMission or mod.MakeRow about map
-// rel and mission number n, in the editor's words.
 func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
 	switch {
 	case errors.Is(err, mod.ErrMapNamed):
@@ -102,10 +90,6 @@ func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
 	return err
 }
 
-// ModMapActions are the entries of the mod's maps that a mission can be made
-// of: a map no row names, with the guest row and the first replacement the
-// install allows, and a map that replaces a mission by its file name, with
-// the row that names it.
 func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
 	d := s.project0()
 	if d == nil {
@@ -133,7 +117,6 @@ func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
 	return out, true
 }
 
-// mapOf is the entry of list at path rel.
 func (s *mapInspectionEdits) mapOf(list []mod.MapEntry, rel string) (mod.MapEntry, error) {
 	if i := mapEntryOf(list, rel); i >= 0 {
 		return list[i], nil
@@ -141,9 +124,6 @@ func (s *mapInspectionEdits) mapOf(list []mod.MapEntry, rel string) (mod.MapEntr
 	return mod.MapEntry{}, fmt.Errorf(s.inspector.word("editor.mod.err.mapunknown"), rel)
 }
 
-// makeMission makes the unused map of value a mission row of w's project:
-// value is its path, or "N|path" for a replacement of mission N. A map the
-// open edits hold as a loose map becomes the selected row.
 func (s *mapInspectionEdits) makeMission(w *editorWorkspaceState, value string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {
@@ -183,8 +163,6 @@ func (s *mapInspectionEdits) makeMission(w *editorWorkspaceState, value string) 
 	return nil
 }
 
-// makeRow writes the row of the map of value, a map that replaces its mission
-// by its file name, in place of the file form's mission.
 func (s *mapInspectionEdits) makeRow(w *editorWorkspaceState, value string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {
@@ -213,8 +191,6 @@ func (s *mapInspectionEdits) makeRow(w *editorWorkspaceState, value string) erro
 	return nil
 }
 
-// addOpenMap copies the open map into the mod under its own stem as a draft
-// no row names.
 func (s *mapInspectionEdits) addOpenMap(w *editorWorkspaceState) error {
 	if w.Project == nil || s.model == nil {
 		return errors.New(s.inspector.word("editor.mod.err.nomaptoadd"))
@@ -223,8 +199,6 @@ func (s *mapInspectionEdits) addOpenMap(w *editorWorkspaceState) error {
 	return err
 }
 
-// folderNames are the files of host folder that can belong to a map: those at
-// its top and those inside a folder of text pages, as slash paths.
 func folderNames(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -253,9 +227,6 @@ func folderNames(dir string) ([]string, error) {
 	return names, nil
 }
 
-// addFolderMaps adds every map of host folder, with its pages and labels, as
-// drafts of w's project. The files go where the mod's one placement rule puts
-// each stem, and each name passes the rule a row's map passes.
 func (s *mapInspectionEdits) addFolderMaps(w *editorWorkspaceState, folder string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {

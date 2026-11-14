@@ -78,8 +78,6 @@ const (
 	promptSeed
 	// promptTestParty asks who plays the map before a test play.
 	promptTestParty
-	// promptMapsFolder takes the path of a folder of maps to add to the open
-	// mod, where the host shows no folder window.
 	promptMapsFolder
 )
 

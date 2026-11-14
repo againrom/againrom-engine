@@ -11,9 +11,6 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// The Missions page with an unused map and its actions, and the page after
-// Make mission, in each language at the small window and the large. With
-// AGAINROM_MAPACTIONS_FRAMES naming a folder the frames are written there.
 func TestMissionsPageShowsTheUnusedMapActionsInEachLanguage(t *testing.T) {
 	dir := os.Getenv("AGAINROM_MAPACTIONS_FRAMES")
 	only := ""
@@ -76,7 +73,6 @@ func TestMissionsPageShowsTheUnusedMapActionsInEachLanguage(t *testing.T) {
 				if _, ok := actionOf(t, spare, "maps/spare.alm"); ok {
 					t.Fatal("the unused entry stays after Make mission")
 				}
-				// Undo and Redo reload the page the way a button press does.
 				for _, key := range []string{"undo", "redo"} {
 					if err := e.Key(key); err != nil {
 						t.Fatal(err)
