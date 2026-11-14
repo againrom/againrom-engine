@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image"
 	"math/rand"
 	"testing"
@@ -86,7 +85,7 @@ func releaseFireArrowProjectile(t *testing.T, fromScroll bool) (sim.CastEvent, s
 		if spell, _, ok := sim.ScrollSpell(items[0]); !ok || spell != 1 {
 			t.Fatalf("first mage item is not the installed Fire Arrow scroll: %+v", items[0])
 		}
-		mw.useScroll(uint32(casterID), 0, fmt.Sprintf("%#v", items[0]), uint32(target.ID), 0, 0, false)
+		mw.useScroll(uint32(casterID), 0, itemCastKey(items[0]), uint32(target.ID), 0, 0, false)
 	} else {
 		book := caster.Book
 		if !book.HasInstances() {

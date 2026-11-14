@@ -130,7 +130,7 @@ func TestReleaseCorpseEntrySAVLoad(t *testing.T) {
 				t.Fatal(err)
 			}
 		} else {
-			key("f3")
+			key("ctrl-f3")
 		}
 		key("home")
 		found := false

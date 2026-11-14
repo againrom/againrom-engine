@@ -2,7 +2,6 @@ package game
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"image"
 	"math/rand"
 	"os"
@@ -169,7 +168,7 @@ func TestReleaseTeleportBookAndScrollDrawAtDestination(t *testing.T) {
 			teleportJumpLogHash(t, mw, name)
 			if scroll {
 				items, _ := mw.world.CarriedItems(casterID)
-				mw.useScroll(uint32(casterID), 0, fmt.Sprintf("%#v", items[0]), 0, destination.X, destination.Y, true)
+				mw.useScroll(uint32(casterID), 0, itemCastKey(items[0]), 0, destination.X, destination.Y, true)
 				if len(mw.pending) != 1 || mw.pending[0].Kind != sim.KindUseScrollAt {
 					t.Fatal("Teleport scroll did not queue its cell cast", mw.pending)
 				}

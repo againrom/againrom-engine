@@ -409,7 +409,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	cold, a := secondTownCold(t, out, string(quickSaveBase(0))+".sav")
+	cold, a := secondTownCold(t, out, string(secondQuickSaveBase(0))+".sav")
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	f.Town.gold++
 	f.Town.second.bank[997]++
@@ -494,7 +494,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	_, list, _ := f.SaveSeams(SaveStore{Dir: out}, OriginalStore{}, nil)
 	label := ""
 	for _, row := range list() {
-		if row.Name == localOriginalSaveToken(string(quickSaveBase(0))+".sav") {
+		if row.Name == localOriginalSaveToken(string(secondQuickSaveBase(0))+".sav") {
 			label = row.Label
 		}
 	}
@@ -514,7 +514,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	cold, a = secondTownCold(t, out, string(timedSaveBase(0))+".sav")
+	cold, a = secondTownCold(t, out, string(secondTimedSaveBase(0))+".sav")
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	t.Log("F4/cold App LOAD; F9; SaveSeams; compat exporters; detached room/TALK/party/bank; timed city autosave/cold LOAD; stale modal and map cleared")
 }

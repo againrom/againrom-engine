@@ -171,7 +171,7 @@ func TestReleaseVictoryAppReturnsHomeAndBlocksPendingSave(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				key("f2")
+				key("ctrl-f2")
 				if a.Screen() != ui.ScreenTown || !s.WorldMapView().Returning {
 					t.Fatal("pending F2 opened SAVE or resolved travel")
 				}
@@ -179,7 +179,7 @@ func TestReleaseVictoryAppReturnsHomeAndBlocksPendingSave(t *testing.T) {
 				if err != nil || len(entries) != 1 {
 					t.Fatalf("pending F2 wrote a new slot: %v err=%v", entries, err)
 				}
-				key("f3")
+				key("ctrl-f3")
 				if a.Screen() != ui.ScreenLoad {
 					t.Fatal("pending return blocked F3")
 				}
@@ -209,7 +209,7 @@ func TestReleaseVictoryAppReturnsHomeAndBlocksPendingSave(t *testing.T) {
 				t.Fatalf("return/load replayed campaign completion: done=%v count=%d/%d gold=%d/%d partyEqual=%v available=%v", f.Town.Done(30), f.Town.finishedCount(), completed, f.Town.Gold(), gold, reflect.DeepEqual(f.Carried, party), f.Town.Available())
 			}
 			if tc.savePending {
-				key("f2")
+				key("ctrl-f2")
 				entries, err := store.List()
 				if err != nil || len(entries) != 2 {
 					t.Fatal("resolved city SAVE", entries, err)

@@ -119,12 +119,12 @@ func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {
 		t.Fatal("frozen owner save changed")
 	}
 	dir := t.TempDir()
-	for _, name := range []string{"rom1-quick-save-1.sav", "rom1-quick-save-1.quick-owner"} {
+	for _, name := range []string{"quick-save-1.sav", "quick-save-1.quick-owner"} {
 		data, err := os.ReadFile(filepath.Join(filepath.Dir(source), name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, name), data, 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "rom1-"+name), data, 0600); err != nil {
 			t.Fatal(err)
 		}
 	}

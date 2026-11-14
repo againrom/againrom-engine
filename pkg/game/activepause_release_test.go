@@ -284,7 +284,7 @@ func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
 	source := activePauseSampleNow(t, f)
 	paths := []string{filepath.Join(store.Dir, "Paused expedition.sav"), filepath.Join(store.Dir, "rom1-quick-save-1.sav"), filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")}
 	labels := []string{"Paused expedition", "quicksave 1", "timed autosave 1"}
-	key("f2")
+	key("ctrl-f2")
 	if err := app.HeadlessSaveEdit(store.Dir, "Paused expedition", ui.SaveSAV); err != nil {
 		t.Fatal(err)
 	}
