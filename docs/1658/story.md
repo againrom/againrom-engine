@@ -56,11 +56,12 @@ active. Each action is one Undo step and Ctrl+S writes it.
 | `TestAddMapsFromFolderAddsSevenMapsInOneUndoStep` | 5, 6 |
 | `TestAddMapsFromFolderAsksTheSystemFolderWindow`, `TestAddMapsFromFolderFallsBackToATypedFolder` | 7 |
 | `TestTestPlayOfAnUnusedMapStartsItWithTheModActive` | 8 |
-| `TestModWindowMissionsPageOffersTheMapActions` (EN, RU; 640 by 480, 1280 by 800) | 1, 3, 4 |
+| `TestModWindowMissionsPageOffersTheMapActions`, `TestMissionsPageShowsTheUnusedMapActionsInEachLanguage` (EN, RU; 640 by 480, 1280 by 800) | 1, 3, 4 |
 | `TestMakeMissionGuestIsTheEditorsDefaultGuestNamingTheMap`, `TestPlaceFolderMapsTakeTheNextSuffixAgainstTheModsFiles` | 1, 5, 6 |
 
 Release tests at the release: none.
 
 ## Open debt
 
-- The Missions page's map buttons answer the mouse only; a key route waits for an owner ruling.
+- The Missions page's map buttons answer the mouse only, as the page's Open buttons do; Tab walks the window's own
+  buttons. A key route for row buttons waits for an owner ruling.
