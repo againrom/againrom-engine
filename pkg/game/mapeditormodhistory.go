@@ -54,7 +54,7 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 		// A map whose record cannot be made keeps its draft as it was: a
 		// draft without the record would lose the pages the map holds inside.
 		// With the switch off those pages go into the map's folder drafts.
-		b, err := s.withTexts(s.model.Bytes())
+		b, err := s.mapBytes(mapDraft)
 		if err == nil && !s.TextsInside() {
 			var inside map[string][]byte
 			inside, _, err = s.sourceTexts()

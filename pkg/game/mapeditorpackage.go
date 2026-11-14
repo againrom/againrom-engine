@@ -231,10 +231,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		if err := s.gate(false); err != nil {
 			return "", err
 		}
-		b, err = s.model.SaveBytes()
-		if err == nil {
-			b, err = s.withTexts(b)
-		}
+		b, err = s.mapBytes(mapSave)
 		if err != nil {
 			return "", err
 		}

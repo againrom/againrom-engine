@@ -114,7 +114,7 @@ func (x *MapInspector) WriteNewMap(source, path string) (string, []ui.Inspection
 	if x.archives != nil {
 		root = x.archives.Root
 	}
-	b, err := s.model.SaveBytes()
+	b, err := s.mapBytes(mapSaveBare)
 	if err != nil {
 		return "", nil, err
 	}

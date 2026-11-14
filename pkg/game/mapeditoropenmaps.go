@@ -226,7 +226,11 @@ func (s *mapInspectionEdits) Shown(left ui.InspectionEdits, open []ui.Inspection
 		if bytes.Equal(from.saved, from.model.Bytes()) {
 			delete(p.Files, m.Map)
 		} else {
-			p.Files[m.Map] = from.model.Bytes()
+			b, err := from.mapBytes(mapDraft)
+			if err != nil {
+				return err
+			}
+			p.Files[m.Map] = b
 		}
 	}
 	if !slices.Contains(x.openMaps, from) {

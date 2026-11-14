@@ -939,10 +939,7 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 // cannot be read, the answer says so and that the edits are kept; nothing is
 // changed.
 func (s *mapInspectionEdits) encodeForSave() ([]byte, error) {
-	b, err := s.model.SaveBytes()
-	if err == nil {
-		b, err = s.withTexts(b)
-	}
+	b, err := s.mapBytes(mapSave)
 	if err != nil {
 		return nil, fmt.Errorf(words.For(s.inspector.pageLanguage()).Text("editor.save.noencode"), err)
 	}

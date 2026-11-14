@@ -52,6 +52,10 @@ func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Miss
 // of its stem, and answers that place.
 func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlace, error) {
 	place := s.place().Free(s.projectFiles(d))
+	b, err := s.mapBytes(mapModFile)
+	if err != nil {
+		return place, err
+	}
 	pages, err := s.exportPageTree("", nil)
 	if err != nil {
 		return place, err
@@ -62,7 +66,7 @@ func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlac
 	if labels := s.labelsForSave(); len(labels) > 0 {
 		d.Files[place.Labels()] = labels
 	}
-	d.Files[place.Map] = s.model.Bytes()
+	d.Files[place.Map] = b
 	return place, nil
 }
 

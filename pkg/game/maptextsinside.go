@@ -55,6 +55,50 @@ func (s *mapInspectionEdits) withTexts(b []byte) ([]byte, error) {
 	return out, err
 }
 
+// mapBytesPurpose is what a map's bytes are written for.
+type mapBytesPurpose int
+
+const (
+	// mapSave is the save form with the pages in the texts record: the
+	// editor save and the workspace package.
+	mapSave mapBytesPurpose = iota
+	// mapSaveBare is the save form without the record: a test play and a
+	// new map hold the pages elsewhere or none.
+	mapSaveBare
+	// mapDraft is the raw bytes with the record: a mod draft and the carry
+	// of an open map into the mod.
+	mapDraft
+	// mapModFile is the raw bytes without the record: a mod's map file,
+	// whose pages are written as folder files beside it.
+	mapModFile
+)
+
+// mapBytesRow says how one purpose encodes the map and whether the record is
+// written.
+var mapBytesRow = [...]struct{ save, record bool }{
+	mapSave:     {true, true},
+	mapSaveBare: {true, false},
+	mapDraft:    {false, true},
+	mapModFile:  {false, false},
+}
+
+// mapBytes is the map's bytes for purpose. Every writer of the map's bytes
+// asks it, and only it writes the texts record.
+func (s *mapInspectionEdits) mapBytes(purpose mapBytesPurpose) ([]byte, error) {
+	row := mapBytesRow[purpose]
+	b := s.model.Bytes()
+	if row.save {
+		var err error
+		if b, err = s.model.SaveBytes(); err != nil {
+			return nil, err
+		}
+	}
+	if !row.record {
+		return b, nil
+	}
+	return s.withTexts(b)
+}
+
 // sourceTexts is the page tree the texts record of the map's own file holds,
 // and whether the file holds the record; none when the map has no host file,
 // it cannot be read, or holds no record.

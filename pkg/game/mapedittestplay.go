@@ -82,7 +82,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	if err := s.gate(false); err != nil {
 		return "", err
 	}
-	b, err := s.model.SaveBytes()
+	b, err := s.mapBytes(mapSaveBare)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}

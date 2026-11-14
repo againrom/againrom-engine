@@ -19,7 +19,11 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	if w.Project != nil {
 		return nil
 	}
-	m := w.Package.mission(s.model.Bytes(), w.Pages, s.place())
+	b, err := s.mapBytes(mapModFile)
+	if err != nil {
+		return err
+	}
+	m := w.Package.mission(b, w.Pages, s.place())
 	pages, err := s.exportPageTree("", nil)
 	if err != nil {
 		return err
