@@ -585,6 +585,10 @@ func (e *MapEditor) keyEnter(string) error {
 		return e.saveAs(strings.TrimSpace(e.prompt.path))
 	case promptOpen:
 		return e.Open(strings.TrimSpace(e.prompt.path))
+	case promptMapsFolder:
+		folder := strings.TrimSpace(e.prompt.path)
+		e.dropPrompt()
+		return e.modAction("addmaps", folder)
 	}
 	if len(e.report.goals) > 0 {
 		e.armGoal()

@@ -144,3 +144,18 @@ func TestPlaceFolderMapsGivesEachCopyItsOwnStem(t *testing.T) {
 		t.Fatalf("places:\n got %v\nwant %v", places, want)
 	}
 }
+
+func TestMakeRowKeyIsAValidRowKeyOfTheStem(t *testing.T) {
+	files := []string{MissionsFile, "10.alm"}
+	d := MissionData{Missions: []Mission{{Mod: "m", File: "10.alm", Kind: MissionReplace, Number: 10, Map: "10.alm", byName: true}}}
+	e := entryOf(t, MapList(files, "m", d), "10.alm")
+	row, err := MakeRow("m", d, e, heldOnly(10))
+	if err != nil || row.Key != "m10" {
+		t.Fatalf("key %q, %v", row.Key, err)
+	}
+	for stem, want := range map[string]string{"Big-Map": "big_map", "": "m"} {
+		if got := mapKey(MissionData{}, stem); got != want {
+			t.Errorf("mapKey(%q) = %q, want %q", stem, got, want)
+		}
+	}
+}

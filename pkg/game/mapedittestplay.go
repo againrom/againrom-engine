@@ -90,7 +90,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		return "", fmt.Errorf("Test play: the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
 	}
 	var pkg *editorPackageSpec
-	if ws != nil {
+	if ws != nil && !s.looseMap() {
 		pkg = &ws.Package
 		if party != nil {
 			own := *pkg
@@ -112,12 +112,19 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		if err := s.unchangedModSource(); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}
-		if d := ws.Project; d.Selected < 0 && d.Loose != "" {
-			return "", fmt.Errorf("Test play: %s", x.word("editor.mod.err.playunused"))
-		}
 		files, missions, current, _, e := s.retainedPackageFiles(b)
 		if e != nil {
 			return "", fmt.Errorf("Test play: %w", e)
+		}
+		if s.looseMap() {
+			row, e := s.looseTestRow(ws, party, hero)
+			if e != nil {
+				return "", fmt.Errorf("Test play: %w", e)
+			}
+			missions, current = append(slices.Clone(missions), row), row
+			if files[mod.MissionsFile], e = mod.WriteMissions(ws.Project.Source, ws.Project.Original, missions); e != nil {
+				return "", fmt.Errorf("Test play: %w", e)
+			}
 		}
 		if e := x.checkMissionSet(missions); e != nil {
 			return "", fmt.Errorf("Test play: %w", e)
@@ -475,6 +482,38 @@ func (s *mapInspectionEdits) testPlayFirstLink(after int) int {
 	return after
 }
 
+// looseMap reports that the open map is a map of the open mod that no row
+// names.
+func (s *mapInspectionEdits) looseMap() bool {
+	d := s.project0()
+	return d != nil && d.Selected < 0 && d.Loose != ""
+}
+
+// looseTestRow is the guest row that test play declares for the open map no
+// row names: the row Make mission would write, with the chosen party when
+// there is one. It is written into the test copy of the mod only.
+func (s *mapInspectionEdits) looseTestRow(w *editorWorkspaceState, party []mod.GuestMember, hero herokind.Kind) (mod.Mission, error) {
+	x, d := s.inspector, w.Project
+	list, data := s.mapList(d)
+	e, err := s.mapOf(list, d.Loose)
+	if err != nil {
+		return mod.Mission{}, err
+	}
+	guest, err := s.guestRow(d, w.Package.ID)
+	if err != nil {
+		return mod.Mission{}, err
+	}
+	row, err := mod.MakeMission(w.Package.ID, data, e, guest, 0, x.missionAnswer())
+	if err != nil {
+		return mod.Mission{}, err
+	}
+	if party != nil {
+		row.Party, row.After = party, s.testPlayFirstLink(row.After)
+		row.Class, row.Sex = heroWords(hero)
+	}
+	return row, nil
+}
+
 // testPlayTakesParty reports that the party window may open for the open
 // map: any mission that is on. A mission of the open package that declares
 // its own party, replaces a campaign mission or is declared by its map file
@@ -485,7 +524,7 @@ func (s *mapInspectionEdits) testPlayTakesParty() bool {
 		return true
 	}
 	d := w.Project
-	return d.Selected >= 0 && d.Selected < len(d.Missions) && !d.Missions[d.Selected].Off
+	return s.looseMap() || d.Selected >= 0 && d.Selected < len(d.Missions) && !d.Missions[d.Selected].Off
 }
 
 // testPlayAsDeclared reports that the open package's mission plays as the
@@ -494,7 +533,7 @@ func (s *mapInspectionEdits) testPlayTakesParty() bool {
 // guest mission, as a map outside any package does.
 func (s *mapInspectionEdits) testPlayAsDeclared() bool {
 	w := s.workspace
-	if w == nil {
+	if w == nil || s.looseMap() {
 		return false
 	}
 	if (mod.Mission{Kind: w.Package.Kind}).Campaign() {
@@ -514,7 +553,7 @@ func (s *mapInspectionEdits) TestPlayDeclaresParty() bool {
 // for a mission that plays as declared, whose chosen party plays as the
 // install's guest mission.
 func (s *mapInspectionEdits) testPlayOfferWorkspace() *editorWorkspaceState {
-	if s.testPlayAsDeclared() {
+	if s.testPlayAsDeclared() || s.looseMap() {
 		return nil
 	}
 	return s.workspace

@@ -18,8 +18,8 @@ func (s *mapInspectionEdits) modMaps() []mod.MapEntry {
 	if d == nil {
 		return nil
 	}
-	data, _ := s.inspector.modMissions(s.inspector.mod.description(), d.Missions)
-	return mod.MapList(s.projectFiles(d), "", data)
+	list, _ := s.mapList(d)
+	return list
 }
 
 // ownMap is the path in the mod of the map these edits hold: its row's map,

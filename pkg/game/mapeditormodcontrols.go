@@ -33,6 +33,12 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	return nil
 }
 
+// isModMapKey reports a key that makes a mission of an unused map or adds
+// maps to the mod.
+func isModMapKey(key string) bool {
+	return key == "makemission" || key == "makerow" || key == "addmap" || key == "addmaps"
+}
+
 func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDocument, bool, error) {
 	if key == "publish" || key == "publish-save" || key == "publish-replace" {
 		return nil, true, s.publishEditorMod(key, value)
@@ -67,7 +73,7 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 		}
 		return nil, true, err
 	}
-	known := key == "landing" || key == "add" || key == "remove" || key == "up" || key == "down" || strings.HasPrefix(key, "party.")
+	known := isModMapKey(key) || key == "landing" || key == "add" || key == "remove" || key == "up" || key == "down" || strings.HasPrefix(key, "party.")
 	if !known {
 		return nil, false, nil
 	}
@@ -81,11 +87,19 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 }
 
 func (s *mapInspectionEdits) editModControl(w *editorWorkspaceState, key, value string) error {
-	if err := s.fileMissionFixed(w); err != nil && key != "add" {
+	if err := s.fileMissionFixed(w); err != nil && key != "add" && !isModMapKey(key) {
 		return err
 	}
 	p := &w.Package
 	switch key {
+	case "makemission":
+		return s.makeMission(w, value)
+	case "makerow":
+		return s.makeRow(w, value)
+	case "addmap":
+		return s.addOpenMap(w)
+	case "addmaps":
+		return s.addFolderMaps(w, value)
 	case "insert":
 		return s.insertCampaignMission(w, value)
 	case "landing":
@@ -183,48 +197,18 @@ func (s *mapInspectionEdits) editModControl(w *editorWorkspaceState, key, value 
 			return nil
 		}
 		d.Loose = ""
-		c, e := LoadCampaign(s.inspector.archives.Containers)
+		m, e := s.guestRow(d, p.ID)
 		if e != nil {
 			return e
 		}
-		m, e := testPlayGuest(c, s.inspector.archives.Containers)
-		if e != nil {
-			return e
-		}
-		for ; m.Number <= 65535; m.Number++ {
-			used := slices.ContainsFunc(d.Missions, func(v mod.Mission) bool { return v.Number == m.Number })
-			if !used && checkGuest(c, s.inspector.archives.Containers, mod.MissionData{Missions: []mod.Mission{m}}, m) == nil {
-				break
-			}
-		}
-		if m.Number > 65535 {
-			return errors.New(s.inspector.word("editor.mod.err.nonumber"))
-		}
-		m.Mod = p.ID
 		m.Key = fmt.Sprintf("map%d", m.Number)
-		place := s.place().Free(s.projectFiles(d))
+		place, e := s.draftOpenMap(d)
+		if e != nil {
+			return e
+		}
 		m.Map = place.Map
-		m.Party = []mod.GuestMember{{Character: mod.InstallCharacterKey(int32(m.Guest))}}
-		m.Guest, m.Chapter, m.Carry = 0, 0, ""
-		pages, err := s.exportPageTree("", nil)
-		if err != nil {
-			return err
-		}
-		for name, b := range pages {
-			d.Files[place.Pages("")+"/"+name] = bytes.Clone(b)
-		}
-		if labels := s.labelsForSave(); len(labels) > 0 {
-			d.Files[place.Labels()] = labels
-		}
-		for i := len(d.Missions) - 1; i >= 0; i-- {
-			if d.Missions[i].Kind == mod.MissionGuest && !d.Missions[i].Off {
-				m.After = d.Missions[i].Number
-				break
-			}
-		}
 		d.Missions = append(d.Missions, m)
 		d.Selected = len(d.Missions) - 1
-		d.Files[m.Map] = s.model.Bytes()
 		w.Package = modPackageSpec(m, *p)
 	default:
 		parts := strings.Split(key, ".")

@@ -53,7 +53,20 @@ func MakeRow(id string, d MissionData, e MapEntry, held func(n int) error) (Miss
 
 // mapKey is the stem as a row key, with _2, _3 and so on where d holds the key.
 func mapKey(d MissionData, stem string) string {
-	key := stem
+	key := strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r + 'a' - 'A'
+		}
+		return '_'
+	}, stem)
+	if key == "" || key[0] < 'a' || key[0] > 'z' {
+		key = "m" + key
+	}
+	key = key[:min(len(key), 28)]
+	stem = key
 	for suffix := 2; slices.ContainsFunc(d.Missions, func(m Mission) bool { return m.Key == key }); suffix++ {
 		key = stem + "_" + strconv.Itoa(suffix)
 	}

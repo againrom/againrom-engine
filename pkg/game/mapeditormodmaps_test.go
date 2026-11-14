@@ -80,11 +80,11 @@ func modMapsOpen(t *testing.T, e *ui.MapEditor, n int) error {
 // Undo, across a switch to a map with a row and back; Save writes it at its
 // own path and no row.
 func TestEditorListsAndOpensEveryMapOfTheMod(t *testing.T) {
-	for _, lang := range []struct{ book, group, rows, missing, play string }{
+	for _, lang := range []struct{ book, group, rows, missing string }{
 		{"", "Maps of the mod", "[map1.alm: guest 21 after 20, guest 22 after 21] | gone.alm: missing | 20.alm: replaces 20 by name | spare.alm: unused",
-			"holds no file of this map", "no mission of the mod names this map"},
+			"holds no file of this map"},
 		{"ru", "Карты мода", "[map1.alm: гостевая 21 после 20, гостевая 22 после 21] | gone.alm: файла нет | 20.alm: заменяет 20 по имени | spare.alm: не используется",
-			"нет файла этой карты", "ни одна миссия"},
+			"нет файла этой карты"},
 	} {
 		t.Run("lang="+lang.book, func(t *testing.T) {
 			f, e := workspaceFixture(t)
@@ -114,7 +114,7 @@ func TestEditorListsAndOpensEveryMapOfTheMod(t *testing.T) {
 			if err := workspaceField(e, "metadata", 0, "Spare"); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := spare.TestPlay(); err == nil || !strings.Contains(err.Error(), lang.play) {
+			if _, err := spare.TestPlay(); err == nil || !strings.Contains(err.Error(), "gone.alm") {
 				t.Fatal("test play of a map no mission names:", err)
 			}
 
