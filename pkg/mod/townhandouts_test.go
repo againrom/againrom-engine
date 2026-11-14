@@ -82,9 +82,9 @@ func TestWriteTownsWritesEachRowUnderItsTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "\n[[tavern]]\ntown        = 1\nchapter     = 30\nnpc         = 22\nmission     = 30\noff         = false\n" +
-		"\n[[shop]]\ntown        = 1\nchapter     = 30\nmission     = 31\noff         = false\n" +
-		"\n[[tavern]]\ntown        = 1\nfrom        = 40\nnpc         = 23\nmission     = 41\nwon         = [31, 30]\noff         = false\n"
+	want := "[[tavern]]\ntown    = 1\nchapter = 30\nnpc     = 22\nmission = 30\n" +
+		"[[shop]]\ntown    = 1\nchapter = 30\nmission = 31\n" +
+		"[[tavern]]\ntown    = 1\nfrom    = 40\nnpc     = 23\nmission = 41\nwon     = [31, 30]\n"
 	if string(out) != want {
 		t.Fatalf("written\n%s\nwant\n%s", out, want)
 	}

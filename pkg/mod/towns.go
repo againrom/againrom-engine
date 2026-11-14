@@ -644,7 +644,7 @@ func townMapPoint(file string, p tomlPair) (town.MapPoint, error) {
 // read back through ParseTowns, and an entry it does not give back unchanged
 // is an error, so the file never holds a value its entry does not. Each of
 // rows, rows of a tavern catalog, follows as a table of its building with
-// its key, the fields it holds and off = false, read back the same way.
+// its key and the fields it holds, written by the row writer writeRows.
 func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]byte, error) {
 	var b strings.Builder
 	for _, l := range head {
@@ -665,16 +665,19 @@ func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]b
 		}
 		fmt.Fprintf(&b, "%-11s = false\n", OffField)
 	}
-	for _, r := range rows {
+	offers := make([]sourceRow, len(rows))
+	for i, r := range rows {
 		table := town.TavernTable.Of(r)
-		fmt.Fprintf(&b, "\n[[%s]]\n", table)
-		for _, k := range offerTables[table] {
-			if k.has == nil || k.has(r) {
-				fmt.Fprintf(&b, "%-11s = %s\n", k.name, k.write(r))
-			}
-		}
-		fmt.Fprintf(&b, "%-11s = false\n", OffField)
+		offers[i] = sourceRow{table: string(table), identity: "new " + strconv.Itoa(i), pairs: offerPairs(OfferRecordOf(table, r, false))}
 	}
+	if len(offers) > 0 && b.Len() > 0 {
+		b.WriteString("\n")
+	}
+	rowText, err := writeRows(nil, nil, offers, offerRowsPad)
+	if err != nil {
+		return nil, err
+	}
+	b.Write(rowText)
 	out := []byte(b.String())
 	records, back, err := ParseTowns("", TownsFile, out)
 	if err != nil {
@@ -793,8 +796,12 @@ func WriteOfferRows(source []byte, before, after []OfferRecord) ([]byte, error) 
 			next = append(next, sourceRow{table: string(r.Table), identity: "new " + strconv.Itoa(i), pairs: offerPairs(r)})
 		}
 	}
-	return writeRows(source, old, next, func(key string) string { return fmt.Sprintf("%-7s", key) })
+	return writeRows(source, old, next, offerRowsPad)
 }
+
+// offerRowsPad is the key column of an offer row: each key padded to seven,
+// the one column of the offer rows of a towns file.
+func offerRowsPad(key string) string { return fmt.Sprintf("%-7s", key) }
 
 // writeTOMLString is s as a basic string readString reads back; false for
 // text that is not UTF-8 or holds a control character other than tab.
