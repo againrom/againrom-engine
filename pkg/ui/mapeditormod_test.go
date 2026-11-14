@@ -42,7 +42,7 @@ func (p *modesWorkspace) Shown(InspectionEdits, []InspectionEdits) error { retur
 var modesOverview = ModOverviewPage{First: true, Sections: []ModOverviewSection{
 	{Heading: "Kinds the mod holds", Lines: []string{"terrain: data/terrain.toml"}},
 	{Heading: "Report (againrom -check)", Lines: []string{"1 mod(s) active on rom1-en", "mod snow-field 1.0.0"}},
-	{Heading: "Files", Lines: []string{"data/terrain.toml", "mod.toml"}},
+	{Heading: "Files (2)", Lines: []string{"data/terrain.toml", "mod.toml"}, Fold: true},
 	{Heading: "Refusals", Lines: []string{"none"}},
 }}
 
@@ -169,7 +169,7 @@ func TestModWindowPublishConfirmationKeepsItsTargetAndShowsTheExplicitAction(t *
 		t.Fatal("missing explicit confirmation", s.Buttons)
 	}
 	before := len(calls.lines)
-	for _, key := range []string{"cardup", "saveas", "testplay", "undo", "package"} {
+	for _, key := range []string{"cardup", "saveas", "testplay", "undo"} {
 		_ = e.Key(key)
 	}
 	for range 5 {
@@ -184,6 +184,39 @@ func TestModWindowPublishConfirmationKeepsItsTargetAndShowsTheExplicitAction(t *
 	_ = e.Key("escape")
 	if e.modConfirm != "" || len(calls.lines) != before {
 		t.Fatal("Cancel performed an action")
+	}
+}
+
+func TestModWindowTabAnswersAWaitingConfirmationAsCancel(t *testing.T) {
+	for _, byKey := range []bool{false, true} {
+		e, calls := newModesEditor(t, "workspace")
+		p := e.doc.Edits.(*modesWorkspace)
+		page := modesOverview
+		page.First = false
+		p.overview, p.graph = page, modesGraph()
+		p.confirm = &WorkspaceConfirmation{Action: "publish-replace", Message: "Replace this target?", Confirm: "Replace"}
+		_ = e.Key("package")
+		if e.modPage != modPageFields {
+			t.Fatal("the window opens on page", e.modPage)
+		}
+		if !e.FocusModField("publish") {
+			t.Fatal("missing Publish footer")
+		}
+		_ = e.Key("enter")
+		if e.modConfirm == "" {
+			t.Fatal("no confirmation waits")
+		}
+		before := len(calls.lines)
+		if byKey {
+			_ = e.Key("package")
+		} else {
+			s, _, _ := e.modSpec()
+			r := layoutPopup(s, e.font, e.bodyFont()).Tabs[1]
+			e.modPress(r.Min.Add(r.Size().Div(2)))
+		}
+		if e.modPage != modPageOverview || e.modConfirm != "" || len(calls.lines) != before {
+			t.Fatalf("byKey %v: page %d confirm %q calls %v", byKey, e.modPage, e.modConfirm, calls.lines[before:])
+		}
 	}
 }
 
@@ -237,9 +270,6 @@ func TestModWindowMissionRowsHaveNoDropdownInBothLanguages(t *testing.T) {
 					want := 0
 					if page == modPageFields {
 						want = len(host.fields[3].Choices)
-					}
-					if page == modPageMaps { // a row with its Open button per map
-						want = len(host.maps.Choices)
 					}
 					if rows != want {
 						t.Errorf("page %d: laid out %d mission rows, want %d", page, rows, want)
@@ -347,11 +377,11 @@ func TestModWindowOpensOnTheOverviewAndItsTabsTurnPages(t *testing.T) {
 	e.doc.Edits.(*modesWorkspace).overview = modesOverview
 	_ = e.Key("package")
 	s, _, ok := e.modSpec()
-	if !ok || e.modPage != 1 || len(s.Tabs) != 3 || s.ActiveTab != 1 {
+	if !ok || e.modPage != 1 || len(s.Tabs) != 2 || s.ActiveTab != 1 {
 		t.Fatalf("page %d tabs %v active %d", e.modPage, s.Tabs, s.ActiveTab)
 	}
 	lines := strings.Join(e.PopupLines(), "\n")
-	for _, want := range []string{"Kinds the mod holds", "terrain: data/terrain.toml", "1 mod(s) active on rom1-en", "mod.toml"} {
+	for _, want := range []string{"Kinds the mod holds", "terrain: data/terrain.toml", "1 mod(s) active on rom1-en", "Files (2)"} {
 		if !strings.Contains(lines, want) {
 			t.Fatalf("overview lacks %q:\n%s", want, lines)
 		}
@@ -370,7 +400,7 @@ func TestModWindowOpensOnTheOverviewAndItsTabsTurnPages(t *testing.T) {
 	}
 	plain, _ := newModesEditor(t, "workspace")
 	_ = plain.Key("package")
-	if s, _, _ := plain.modSpec(); plain.modPage != 0 || len(s.Tabs) != 2 {
+	if s, _, _ := plain.modSpec(); plain.modPage != 0 || len(s.Tabs) != 0 {
 		t.Fatalf("without an overview: page %d tabs %v", plain.modPage, s.Tabs)
 	}
 }
@@ -401,7 +431,7 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 		t.Fatalf("W with no map: field %d, control %d", field, e.obj.focus)
 	}
 	s, _, ok := e.modSpec()
-	if !ok || e.modPage != 1 || len(s.Tabs) != 3 {
+	if !ok || e.modPage != 1 || len(s.Tabs) != 2 {
 		t.Fatalf("page %d tabs %v", e.modPage, s.Tabs)
 	}
 	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "terrain: data/terrain.toml") {
@@ -417,7 +447,7 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 	if e.modPage != 0 || !e.modWindow {
 		t.Fatalf("the Missions tab left page %d", e.modPage)
 	}
-	for _, key := range []string{"tab", "backtab", "package", "package", "package"} {
+	for _, key := range []string{"tab", "backtab", "package", "package"} {
 		if err := e.Key(key); err != nil {
 			t.Fatalf("%s: %v", key, err)
 		}

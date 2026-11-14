@@ -154,10 +154,10 @@ func TestModWindowTurnsToTheCampaignGraph(t *testing.T) {
 	host.overview, host.graph = modesOverview, modesGraph()
 	_ = e.Key("package")
 	s, _, _ := e.modSpec()
-	if e.modPage != modPageOverview || len(s.Tabs) != 4 || s.Tabs[2] != "Campaign graph" {
+	if e.modPage != modPageOverview || len(s.Tabs) != 3 || s.Tabs[2] != "Campaign graph" {
 		t.Fatalf("page %d tabs %q", e.modPage, s.Tabs)
 	}
-	for _, want := range []int{modPageGraph, modPageMaps, modPageFields, modPageOverview} {
+	for _, want := range []int{modPageGraph, modPageFields, modPageOverview} {
 		if _ = e.Key("package"); e.modPage != want || !e.modWindow {
 			t.Fatalf("the window's key shows page %d, want %d", e.modPage, want)
 		}
@@ -197,11 +197,11 @@ func TestModWindowTurnsToTheCampaignGraph(t *testing.T) {
 	}
 	// A host with a graph alone gives W its page beside the two a mod has.
 	two, _ := graphEditor(t, modesGraph())
-	if s, _, _ := two.modSpec(); len(s.Tabs) != 3 || s.ActiveTab != 1 {
+	if s, _, _ := two.modSpec(); len(s.Tabs) != 2 || s.ActiveTab != 1 {
 		t.Fatalf("with a graph alone: tabs %q active %d", s.Tabs, s.ActiveTab)
 	}
 	two.doc.Edits.(*modesWorkspace).graph = CampaignGraphPage{}
-	if s, _, _ := two.modSpec(); len(s.Tabs) != 2 || two.modPage != modPageFields {
+	if s, _, _ := two.modSpec(); len(s.Tabs) != 0 || two.modPage != modPageFields {
 		t.Fatalf("with the graph gone: tabs %q page %d", s.Tabs, two.modPage)
 	}
 }

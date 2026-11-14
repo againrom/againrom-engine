@@ -34,6 +34,7 @@ modder or developer can notice gets no entry.
 - [BASE] Campaign graph: films now stand in their own first column, a little below the row of the mission they follow, with no arrow and no extra row.
 - [BASE] On the campaign graph, where two arrows cross, the upper arrow now steps over the other in a small square bump.
 - [BASE] Map editor Units window: the tabs are now "Humans and Creatures" and "Named characters", a new "Humans" row lists every non-hero human sprite type, and pointing at a human shows their portrait or full figure.
+- [BASE] Map editor mod window: the Maps tab is gone (the Open window still lists the mod's maps), the Files list on the Overview tab starts folded and opens with a click or Enter, and pressing a tab while a confirmation waits cancels it and shows that tab.
 
 ## 0.154.0
 

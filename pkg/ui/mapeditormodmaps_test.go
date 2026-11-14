@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image"
 	"strings"
 	"testing"
 
@@ -9,87 +8,26 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// W's last page lists every map of the mod, one row per map with its role
-// and an Open button, at the small window and the large and in each
-// language: a role too long for the row goes on under it whole, the rows
-// scroll to the map the keyboard stands on, and Enter there opens that map.
-func TestModWindowMapsPageListsEveryMapOfTheMod(t *testing.T) {
+// The mod window has no page of the mod's maps: its tabs are the fields, the
+// overview and the graph, while the Open window still lists every map.
+func TestModWindowHasNoMapsTab(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, size := range []image.Point{{X: 640, Y: 480}, {X: 1280, Y: 800}} {
-			e, calls := newModesEditor(t, "workspace")
-			e.SetWords(words.For(lang))
-			e.Layout(size.X, size.Y)
-			_ = e.Key("package")
-			s, _, _ := e.modSpec()
-			if len(s.Tabs) != 2 || s.Tabs[1] != e.word("editor.mod.mapstab") {
-				t.Fatalf("%s tabs %q", lang, s.Tabs)
+		e, _ := newModesEditor(t, "workspace")
+		e.SetWords(words.For(lang))
+		host := e.doc.Edits.(*modesWorkspace)
+		host.overview, host.graph = modesOverview, modesGraph()
+		_ = e.Key("package")
+		s, _, _ := e.modSpec()
+		if len(s.Tabs) != 3 {
+			t.Fatalf("%s tabs %q", lang, s.Tabs)
+		}
+		for _, tab := range s.Tabs {
+			if tab == "Maps" || tab == "Карты" {
+				t.Fatalf("%s tabs %q hold the maps tab", lang, s.Tabs)
 			}
-			_ = e.Key("package")
-			if e.modPage != modPageMaps {
-				t.Fatalf("the window's key shows page %d", e.modPage)
-			}
-			s, _, _ = e.modSpec()
-			list := e.doc.Edits.(*modesWorkspace).ModMaps()
-			buttons := 0
-			var drawn []string
-			for i, r := range s.Rows {
-				drawn = append(drawn, strings.TrimSpace(r.Label))
-				if len(r.Buttons) == 1 {
-					buttons++
-					if e.obj.rowActs[i] == nil {
-						t.Fatalf("row %d has a button and no map", i)
-					}
-				}
-			}
-			all := strings.Join(drawn, " ")
-			for _, c := range list.Choices {
-				for _, w := range strings.Fields(c.Label) {
-					if !strings.Contains(" "+all+" ", " "+w+" ") {
-						t.Fatalf("%s %v: %q of %q is not whole in %q", lang, size, w, c.Label, drawn)
-					}
-				}
-			}
-			if buttons != len(list.Choices) || !strings.HasPrefix(s.Rows[0].Label, "> ") {
-				t.Fatalf("%d Open buttons for %d maps; first row %q", buttons, len(list.Choices), s.Rows[0].Label)
-			}
-			l := layoutPopup(s, e.font, e.bodyFont())
-			if !l.Rect.In(image.Rectangle{Max: size}) || len(l.Rows) < 3 {
-				t.Fatalf("%s %v: the page is %v with %d rows", lang, size, l.Rect, len(l.Rows))
-			}
-			// Up from the first button is the last map; its row scrolls in.
-			_ = e.Key("up")
-			s, _, _ = e.modSpec()
-			l = layoutPopup(s, e.font, e.bodyFont())
-			last, seen := e.modMapLine[len(e.modMapLine)-1], false
-			for _, r := range l.Rows {
-				seen = seen || r.Index == last
-			}
-			if !seen || !s.Rows[last].Armed[0] || s.ButtonFocus != nil {
-				t.Fatalf("%s %v: the last map's row %d is not the keyboard's shown place", lang, size, last)
-			}
-			_ = e.Key("enter")
-			want := `Workspace package map "5"`
-			if got := calls.lines[len(calls.lines)-1]; got != want || !e.modWindow || e.modPage != modPageMaps {
-				t.Fatalf("Enter on the last map: %q, window %v page %d", got, e.modWindow, e.modPage)
-			}
-			// A click on a row's Open button opens that row's map; the
-			// window's own buttons answer on this page as on the others.
-			_ = e.Key("home")
-			e.objectTop = 0
-			s, _, _ = e.modSpec()
-			for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-				if r.Index == e.modMapLine[1] {
-					modesClick(e, center(r.Buttons[0]))
-				}
-			}
-			if got := calls.lines[len(calls.lines)-1]; got != `Workspace package map "2"` {
-				t.Fatalf("%s %v: a click on the second map's Open went %q", lang, size, got)
-			}
-			s, _, _ = e.modSpec()
-			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[modButtonIndex("close")]))
-			if e.modWindow {
-				t.Fatalf("%s %v: Close left the window open", lang, size)
-			}
+		}
+		if rows, maps := e.catalogRows(); len(rows) < 2 || maps[1] >= 0 {
+			t.Fatalf("%s: the Open window lost the mod's maps: %v", lang, rows)
 		}
 	}
 }
@@ -140,20 +78,6 @@ func TestModMapRolesAreAListNotASplitLabel(t *testing.T) {
 		if strings.TrimSpace(rows[i].Text) != want[i] {
 			t.Fatalf("row %d is %q, want %q", i, rows[i].Text, want[i])
 		}
-	}
-	e.Layout(640, 480)
-	for turn := 0; e.modPage != modPageMaps; turn++ {
-		if err := e.Key("package"); err != nil || turn > 5 {
-			t.Fatalf("W has no Maps page: %v", err)
-		}
-	}
-	s, _, _ := e.modSpec()
-	var drawn []string
-	for _, r := range s.Rows[e.modMapLine[0]:] {
-		drawn = append(drawn, strings.TrimSpace(r.Label))
-	}
-	if got := strings.Join(drawn, " | "); !strings.Contains(got, "b.alm: guest 26, the watch") || strings.Contains(got, "| the watch") {
-		t.Fatalf("W's Maps page rows %q", drawn)
 	}
 }
 
@@ -223,5 +147,48 @@ func TestOpenMapKeysHaveAHelpLineEach(t *testing.T) {
 		if next, back := count(two); next != 1 || back != 1 {
 			t.Errorf("%s two maps: %d Ctrl+Tab and %d Ctrl+Shift+Tab lines, want one each", lang, next, back)
 		}
+	}
+}
+
+// The overview's Files list is folded when the page opens, its heading says
+// how many files there are, and a click or Enter on the heading unfolds it
+// and folds it again.
+func TestModOverviewFilesListStartsFoldedAndAnswersClickAndEnter(t *testing.T) {
+	lines := func(e *MapEditor) string { return strings.Join(e.PopupLines(), "\n") }
+	e, _ := newModesEditor(t, "workspace")
+	e.doc.Edits.(*modesWorkspace).overview = modesOverview
+	_ = e.Key("package")
+	if got := lines(e); !strings.Contains(got, "Files (2)") || strings.Contains(got, "mod.toml") || !strings.Contains(got, "terrain: data/terrain.toml") {
+		t.Fatalf("the page opens with the files list not folded:\n%s", got)
+	}
+	click := func() {
+		s, _, _ := e.modSpec()
+		l := layoutPopup(s, e.font, e.bodyFont())
+		for _, r := range l.Rows {
+			if r.Index == e.modFoldRow[0] {
+				modesClick(e, center(r.Label))
+				return
+			}
+		}
+		t.Fatal("the Files heading is not laid out")
+	}
+	click()
+	if got := lines(e); !strings.Contains(got, "mod.toml") {
+		t.Fatalf("a click did not unfold the files:\n%s", got)
+	}
+	click()
+	if got := lines(e); strings.Contains(got, "mod.toml") {
+		t.Fatalf("a second click did not fold the files:\n%s", got)
+	}
+	for i := 0; i < 20 && e.obj.focus != len(e.obj.fields)+e.modButtonCount(); i++ {
+		_ = e.Key("tab")
+	}
+	_ = e.Key("enter")
+	if got := lines(e); !strings.Contains(got, "mod.toml") {
+		t.Fatalf("Enter on the heading did not unfold the files:\n%s", got)
+	}
+	_ = e.Key("enter")
+	if got := lines(e); strings.Contains(got, "mod.toml") {
+		t.Fatalf("a second Enter did not fold the files:\n%s", got)
 	}
 }

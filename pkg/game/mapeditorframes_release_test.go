@@ -187,12 +187,6 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 		t.Fatal(err)
 	}
 	shot(e, "mod-window-small", image.Rectangle{})
-	// The mod's maps are W's last page; the window's key turns on to its first.
-	modMapsPage(t, e)
-	shot(e, "mod-maps-small", image.Rectangle{})
-	if err := e.Key("package"); err != nil {
-		t.Fatal(err)
-	}
 	if !e.FocusModField("source") {
 		t.Fatal("missing mission choice")
 	}

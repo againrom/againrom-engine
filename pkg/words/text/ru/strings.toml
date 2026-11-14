@@ -1372,7 +1372,6 @@
 "editor.mod.up" = "Выше"
 "editor.mod.down" = "Ниже"
 "editor.mod.open" = "Открыть"
-"editor.mod.mapstab" = "Карты"
 "editor.mod.maps" = "Карты мода"
 "editor.mod.map.guest" = "гостевая %d после %d"
 "editor.mod.map.replace" = "заменяет %d"

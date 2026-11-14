@@ -1868,7 +1868,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 		if row.Kind == popupHeading {
 			band := rr.Rect.Intersect(l.Rect)
-			drawFrame(dst, panelFrame(band, ink.TitleGround, ink.Edge))
+			edge := ink.Edge
+			if row.Focus {
+				edge = ink.Title
+			}
+			drawFrame(dst, panelFrame(band, ink.TitleGround, edge))
 			if title != nil {
 				x := rr.Rect.Min.X + 4
 				if row.Fold != FoldNone {

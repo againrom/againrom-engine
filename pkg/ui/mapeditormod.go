@@ -282,6 +282,10 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 	o := &e.obj
 	if e.modConfirm != "" {
 		switch key {
+		case "package":
+			if e.turnModPage(-1) {
+				return true, nil
+			}
 		case "tab", "backtab":
 			o.focus = len(o.fields) + (o.focus-len(o.fields)+1)%2
 		case "enter":
@@ -295,13 +299,18 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 	if e.modPage == modPageGraph && e.graphKey(key) {
 		return true, nil
 	}
-	if e.modPage == modPageMaps {
-		if done, err := e.modMapKey(key); done {
-			return true, err
+	if e.modPage == modPageOverview && key == "enter" {
+		if at := o.focus - len(o.fields) - e.modButtonCount(); at >= 0 && at < len(e.modFoldRow) {
+			e.toggleModFold(at)
+			return true, nil
 		}
 	}
 	if e.modPage != modPageFields && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
+		if e.modPage == modPageOverview {
+			e.modSpec()
+			n += len(e.modFoldRow)
+		}
 		if key == "backtab" {
 			step = n - 1
 		}
@@ -527,8 +536,6 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	case modPageGraph:
 		page, _ := e.modGraph()
 		e.modGraphRows(&s, &links, page)
-	case modPageMaps:
-		e.modMapRows(&s, &links)
 	default:
 		e.objectFieldRows(&s, &links)
 	}
@@ -601,82 +608,6 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	return s, links, true
 }
 
-// modMapRows lays W's page of the mod's maps: one row per map with its role
-// and its Open button, the map shown marked, a role too long for the row
-// broken onto the lines under it. The keyboard's place past the window's
-// buttons is a map's Open button.
-func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
-	o := &e.obj
-	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
-	o.first, o.rowField = len(s.Rows), map[int]int{}
-	s.Columns = 1
-	list, _ := e.modMapList()
-	open := e.word("editor.mod.open")
-	room := s.Width - 60
-	if f := e.bodyFont(); f != nil {
-		room -= f.Advance(open) + 24
-	}
-	at := o.focus - len(o.fields) - e.modButtonCount()
-	e.modMapLine = e.modMapLine[:0]
-	for n, c := range list.Choices {
-		mark := "  "
-		if c.Value == list.Value {
-			mark = "> "
-		}
-		parts := editorTextLines(e.bodyFont(), mark+e.editorHostText(c.Label), room)
-		if len(parts) > 1 {
-			// Too long for one row, the roles break each on a line first.
-			parts = parts[:0]
-			for _, role := range choiceLines(list, n) {
-				parts = append(parts, editorTextLines(e.bodyFont(), e.editorHostText(role), room-30)...)
-			}
-			parts[0] = mark + parts[0]
-		}
-		for k, part := range parts {
-			row := popupRow{Kind: popupText, Label: part}
-			if k == 0 {
-				e.modMapLine = append(e.modMapLine, len(s.Rows))
-				row.Buttons, row.Armed = []string{open}, []bool{n == at}
-				o.rowActs[len(s.Rows)] = []string{strconv.FormatInt(c.Value, 10)}
-			} else {
-				row.Label = "    " + part
-			}
-			s.Rows, *links = append(s.Rows, row), append(*links, 0)
-		}
-	}
-}
-
-// modMapKey answers a key on W's page of the mod's maps: Tab and the arrows
-// walk the window's buttons and then each map's Open button, and Enter on a
-// map's button opens that map.
-func (e *MapEditor) modMapKey(key string) (bool, error) {
-	o := &e.obj
-	list, _ := e.modMapList()
-	buttons := e.modButtonCount()
-	n, at := buttons+len(list.Choices), max(0, o.focus-len(o.fields))
-	switch key {
-	case "tab", "down":
-		at = (at + 1) % n
-	case "backtab", "up":
-		at = (at + n - 1) % n
-	case "enter":
-		if at < buttons {
-			return false, nil
-		}
-		return true, e.modAction("map", strconv.FormatInt(list.Choices[at-buttons].Value, 10))
-	default:
-		return false, nil
-	}
-	o.focus = len(o.fields) + at
-	if k := at - buttons; k >= 0 {
-		e.modSpec()
-		if k < len(e.modMapLine) {
-			e.objectTop = e.modMapLine[k]
-		}
-	}
-	return true, nil
-}
-
 // modOverviewRows lays W's overview page: a heading per section and its
 // lines, broken to the window's width.
 func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverviewPage) {
@@ -684,8 +615,21 @@ func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverview
 	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
 	o.first, o.rowField = len(s.Rows), map[int]int{}
 	s.Columns = 1
+	e.modFoldRow = e.modFoldRow[:0]
+	at := o.focus - len(o.fields) - e.modButtonCount()
+	folds := 0
 	for _, section := range page.Sections {
-		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(section.Heading)}), append(*links, 0)
+		head := popupRow{Kind: popupHeading, Label: e.editorHostText(section.Heading)}
+		if section.Fold {
+			head = blockRow(head.Label, e.modUnfolded[folds])
+			head.Focus = folds == at
+			e.modFoldRow = append(e.modFoldRow, len(s.Rows))
+			folds++
+		}
+		s.Rows, *links = append(s.Rows, head), append(*links, 0)
+		if section.Fold && !e.modUnfolded[folds-1] {
+			continue
+		}
 		for _, line := range section.Lines {
 			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(line), s.Width-40) {
 				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
@@ -709,11 +653,11 @@ func (e *MapEditor) modPress(p image.Point) bool {
 		e.modButton(n)
 		return true
 	}
-	if e.modConfirm != "" {
-		return true
-	}
 	if part == popupTab {
 		e.turnModPage(n)
+		return true
+	}
+	if e.modConfirm != "" {
 		return true
 	}
 	if part == popupCanvasBox || part == popupCanvasGround {
@@ -722,6 +666,12 @@ func (e *MapEditor) modPress(p image.Point) bool {
 	}
 	if part == popupRowButton || part == popupRowControl || part == popupRowLine {
 		if err := e.applyModField(); err != nil {
+			return true
+		}
+	}
+	if part == popupRowLine && e.modPage == modPageOverview {
+		if k := slices.Index(e.modFoldRow, n); k >= 0 {
+			e.toggleModFold(k)
 			return true
 		}
 	}
@@ -736,12 +686,8 @@ func (e *MapEditor) modPress(p image.Point) bool {
 				return true
 			}
 			if actions := e.obj.rowActs[row]; k < len(actions) {
-				// A row's button opens its mission, or its map on the maps' page.
-				key := "source"
-				if e.modPage == modPageMaps {
-					key = "map"
-				}
-				_ = e.modAction(key, actions[k])
+				// A row's button opens its mission.
+				_ = e.modAction("source", actions[k])
 				return true
 			}
 		}
@@ -751,6 +697,14 @@ func (e *MapEditor) modPress(p image.Point) bool {
 		return true
 	}
 	return false
+}
+
+// toggleModFold unfolds the overview's folded section k, or folds it again.
+func (e *MapEditor) toggleModFold(k int) {
+	if e.modUnfolded == nil {
+		e.modUnfolded = map[int]bool{}
+	}
+	e.modUnfolded[k] = !e.modUnfolded[k]
 }
 
 func (e *MapEditor) modButtonCount() int {

@@ -1,6 +1,10 @@
 package game
 
-import "againrom/pkg/ui"
+import (
+	"fmt"
+
+	"againrom/pkg/ui"
+)
 
 // modOverview is the overview page of the mod the editor works in: the
 // kinds whose files it holds, the report againrom -check prints for it, its
@@ -27,19 +31,20 @@ func (x *MapInspector) modOverview() ui.ModOverviewPage {
 	for _, s := range []struct {
 		heading string
 		lines   []string
+		fold    bool
 	}{
-		{x.word("editor.mod.overview.kinds"), m.kinds},
-		{x.word("editor.mod.overview.report"), m.checkLines},
-		{x.word("editor.mod.overview.files"), m.files},
-		{x.word("editor.mod.overview.overrides"), append(append([]string(nil), m.report.Overrides...), m.fileOverrides...)},
-		{x.word("editor.mod.overview.warnings"), m.report.Warnings},
-		{x.word("editor.mod.overview.issues"), issues},
+		{x.word("editor.mod.overview.kinds"), m.kinds, false},
+		{x.word("editor.mod.overview.report"), m.checkLines, false},
+		{fmt.Sprintf("%s (%d)", x.word("editor.mod.overview.files"), len(m.files)), m.files, true},
+		{x.word("editor.mod.overview.overrides"), append(append([]string(nil), m.report.Overrides...), m.fileOverrides...), false},
+		{x.word("editor.mod.overview.warnings"), m.report.Warnings, false},
+		{x.word("editor.mod.overview.issues"), issues, false},
 	} {
 		lines := s.lines
 		if len(lines) == 0 {
 			lines = []string{x.word("editor.mod.overview.none")}
 		}
-		page.Sections = append(page.Sections, ui.ModOverviewSection{Heading: s.heading, Lines: lines})
+		page.Sections = append(page.Sections, ui.ModOverviewSection{Heading: s.heading, Lines: lines, Fold: s.fold})
 	}
 	return page
 }

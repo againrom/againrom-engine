@@ -1378,7 +1378,6 @@
 "editor.mod.up" = "Move up"
 "editor.mod.down" = "Move down"
 "editor.mod.open" = "Open"
-"editor.mod.mapstab" = "Maps"
 "editor.mod.maps" = "Maps of the mod"
 "editor.mod.map.guest" = "guest %d after %d"
 "editor.mod.map.replace" = "replaces %d"

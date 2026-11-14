@@ -247,7 +247,7 @@ empty text and inherits.
 | `write_message` | `parts`; `page`, `action` or both | The message editor's Apply. `page` alone rewrites that page; `action` alone gives the action a new page; both point the action at the page and rewrite it. A part is `{"body"}` for a new card, with `source` for a card the page holds (`messages` lists them) and optional `speaker`; a card of the page left out is struck. |
 | `add_box_area` | `area`; optional `trigger` (default -1, a new trigger) | The box area tool (L) and its trigger choice: one more box condition pair on the trigger. A trigger with three pairs is refused. |
 | `set_goal_target` | `goal`, `kind` (`Unit`, `Structure`), `index` | A pick from the Goals (G) report. `goals` lists the goals and the kind each takes. |
-| `set_map_field` | `scope` (`metadata`, `pages`, `package`), `key`, `value` | The Metadata (M) and Pages (X) prompts and the mod package window (W). `map_fields` lists the keys. The package fields `folder`, `folder-open`, `output`, `source` and `map` (a row of W's Maps page) open a folder or a map and stay in the window. |
+| `set_map_field` | `scope` (`metadata`, `pages`, `package`), `key`, `value` | The Metadata (M) and Pages (X) prompts and the mod package window (W). `map_fields` lists the keys. The package fields `folder`, `folder-open`, `output`, `source` and `map` (a map of the mod, as the Open window lists it) open a folder or a map and stay in the window. |
 | `randomize` | `plane` (`terrain`, `heights`), `seed`; optional `verbose` | Ctrl+E and Ctrl+Shift+R. One seed on one map gives one result. |
 | `undo`, `redo` | `{}` | The window's Undo and Redo, the same function: it leaves a drag or pick and keeps an open message page on a page the map still holds. |
 

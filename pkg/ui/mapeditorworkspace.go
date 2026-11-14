@@ -20,10 +20,12 @@ type InspectionWorkspace interface {
 }
 
 // ModOverviewSection is one heading of the overview page of the mod W has
-// open, with its lines.
+// open, with its lines. A Fold section shows its heading alone until a click
+// or Enter on the heading unfolds it.
 type ModOverviewSection struct {
 	Heading string
 	Lines   []string
+	Fold    bool
 }
 
 // ModOverviewPage is that page: its sections, and whether W shows it first,
@@ -80,15 +82,13 @@ const (
 	modPageFields   = iota // the mod's fields and its missions
 	modPageOverview        // what the mod holds and what the game says of it
 	modPageGraph           // the campaign as a graph
-	modPageMaps            // every map of the mod with its role
 )
 
 // modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.mapstab"}
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab"}
 
 // modPages is W's pages in tab order: the mod's fields, the overview when
-// the host gives one, the campaign graph when the host draws one, and the
-// mod's maps when the host lists them.
+// the host gives one, the campaign graph when the host draws one.
 func (e *MapEditor) modPages() []int {
 	pages := []int{modPageFields}
 	if _, ok := e.modOverview(); ok {
@@ -96,9 +96,6 @@ func (e *MapEditor) modPages() []int {
 	}
 	if _, ok := e.modGraph(); ok {
 		pages = append(pages, modPageGraph)
-	}
-	if _, ok := e.modMapList(); ok {
-		pages = append(pages, modPageMaps)
 	}
 	return pages
 }
@@ -132,6 +129,9 @@ func (e *MapEditor) turnModPage(n int) bool {
 	if n < 0 {
 		n = (slices.Index(pages, e.modPage) + 1) % len(pages)
 	}
+	if e.modConfirm != "" {
+		e.modConfirm, e.modStatus = "", ""
+	}
 	if n < len(pages) && (e.modPage == modPageOverview || e.applyModField() == nil) {
 		e.showModPage(pages[n])
 	}
@@ -146,6 +146,7 @@ func (e *MapEditor) showModPage(n int) {
 		e.graphLink = false
 	}
 	e.modPage, e.objectTop, e.graphAt = n, 0, image.Point{}
+	e.modUnfolded = nil
 	e.obj.focus = 0
 	if graph {
 		e.dropObject()

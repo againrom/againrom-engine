@@ -63,18 +63,6 @@ func modMapsRows(t *testing.T, e *ui.MapEditor) string {
 	return strings.Join(out, " | ")
 }
 
-// modMapsPage turns W, opened when it is shut, to its page of the mod's maps:
-// the window's key turns its pages, and that page is the one whose first row
-// carries an Open button.
-func modMapsPage(t *testing.T, e *ui.MapEditor) {
-	t.Helper()
-	for turn := 0; !e.ModWindowOpen() || len(e.PopupRowButtons(0)) != 1; turn++ {
-		if err := e.Key("package"); err != nil || turn > 5 {
-			t.Fatalf("W has no page of the mod's maps: %v\n%s", err, strings.Join(e.PopupLines(), "\n"))
-		}
-	}
-}
-
 // modMapsOpen opens row n of the map list, as the list's Open button does.
 func modMapsOpen(t *testing.T, e *ui.MapEditor, n int) error {
 	t.Helper()

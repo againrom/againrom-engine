@@ -1380,9 +1380,9 @@ list, its characters and speakers in W's pickers, and its items in the party's
 equipment. A mod with an enabled mission opens that mission's map, as before.
 Any other mod, and every packed mod, opens over the map in the editor and
 shows W's Overview page first: the kinds whose files the mod holds, the lines
-`againrom -check` prints for it, its files, the overrides and warnings its data
+`againrom -check` prints for it, its files (folded to a heading with their count; a click or Enter on it unfolds the list), the overrides and warnings its data
 gave, and what refuses it. The tabs at the top of W (Missions, Overview,
-Campaign graph, Maps), or W again, turn the page. The fields page also edits the manifest's version,
+Campaign graph), or W again, turn the page. The fields page also edits the manifest's version,
 author, description, target base, requirements, conflicts and load order hints.
 The target is a choice of `common`, `rom1`, `rom1-en`, `rom1-ru`, `rom2`,
 `rom2-en` and `rom2-ru`; a new package targets the open install's game (`rom1`
@@ -2542,14 +2542,12 @@ Alt+Up/Down changes list order; After win changes the chain. Removing a chain
 link asks before reconnecting its successors. Undo after Save makes the
 project dirty again.
 
-W's last page, Maps, lists every map of the mod once, one row per map file
+File > Open lists every map of the mod once, one row per map file
 with what the mod does with it: `guest N after M` or `replaces N` for each
 mission row that names it, `replaces N by name` for a file named by a mission
 number, `unused` for a map nothing names, and `missing` for a map a row names
 whose file the mod does not hold. A map two rows name is one row with both
-roles. The map shown is marked with `>`. Open on a row, or Tab or the arrows
-to the row and Enter, opens that map as a tab; a missing map refuses. File >
-Open shows the same list as its first group, Maps of the mod, while a mod is
+roles. The list is the first group of File > Open, Maps of the mod, while a mod is
 open; choosing a map there opens it as a tab and stays in the mod. An unused
 map is edited and saved like any other: Ctrl+S writes it at its own path and
 adds no mission row. F5 on an unused map refuses and says to make it a mission

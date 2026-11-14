@@ -80,7 +80,7 @@ func openInW(t *testing.T, s *mapInspectionEdits, dir string) *mapInspectionEdit
 // overviewLines is the lines of the overview section headed heading.
 func overviewLines(page ui.ModOverviewPage, heading string) []string {
 	for _, s := range page.Sections {
-		if s.Heading == heading {
+		if s.Heading == heading || strings.HasPrefix(s.Heading, heading+" (") {
 			return s.Lines
 		}
 	}

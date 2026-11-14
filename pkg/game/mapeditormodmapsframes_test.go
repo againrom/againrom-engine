@@ -15,9 +15,8 @@ import (
 	"againrom/pkg/words"
 )
 
-// W's list of the mod's maps and the Open window's group of them draw every
-// map with its role in each language of the word book, at the small window
-// and the large: every word of every role stands whole, inside the window.
+// The Open window's group of the mod's maps draws every map with its role in each language
+// of the word book, at the small window and the large: every word of every role stands whole, inside the window.
 // With AGAINROM_MODMAPS_FRAMES naming a folder the frames are written there,
 // in the fonts and the language of the install AGAINROM_ASSETS names when it
 // names one.
@@ -94,16 +93,9 @@ func TestEditorModMapListDrawsInEachLanguage(t *testing.T) {
 					}
 				}
 
-				if !e.ModWindowOpen() {
-					if err := e.Key("package"); err != nil {
-						t.Fatal(err)
-					}
+				if e.ModWindowOpen() {
+					_ = e.Key("escape")
 				}
-				modMapsPage(t, e)
-				whole("W", e.PopupLines(), true)
-				shot("mod-maps")
-
-				_ = e.Key("escape")
 				if err := e.Key("catalog"); err != nil {
 					t.Fatal(err)
 				}
