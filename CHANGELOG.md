@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [BASE] On the Keys page the mouse pointer no longer freezes while the game waits for a new key.
 - [BASE] F2 quick saves and the timed autosave are kept per game (rom1-/rom2- files), so one game no longer rotates away the other's saves, F3 loads the running game's newest quick save, and each game's Load list shows its own; an older unprefixed quick or timed save stays loadable and is never overwritten.
 - [BASE] New launch option -smooth-regen: health and mana come back in many small steps instead of rarer larger ones, at the same overall speed, the faster recovery after a rest included; off by default.
+- [BASE] The starter has a "Smooth regeneration" check box, off by default, that starts the game with -smooth-regen.
 
 ### For map makers and modders
 

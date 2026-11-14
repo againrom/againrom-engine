@@ -133,7 +133,7 @@ var windowCaptions = []captionID{
 // settingsCaptions are the captions the settings view shows.
 var settingsCaptions = []captionID{
 	cHeadParams, cHeadAdvanced, cHeadStarter, cSound, cVolume, cMovies,
-	cMissionMovies, cMarkers, cSavesFolder, cMissionNumber, cMapPicker, cChicken, cSkill,
+	cMissionMovies, cMarkers, cSavesFolder, cMissionNumber, cMapPicker, cChicken, cSmoothRegen, cSkill,
 	cExtraArgs, cCloseAfterPlay, cGameProgram, cLoadUnmarked,
 	cPlay, cCheck, cSaveSettings, cMapEditor, cClose,
 }

@@ -12,7 +12,7 @@ import (
 // settingsFields are the fields and actions the settings view owns.
 var (
 	settingsFieldIDs = []fieldID{fVolume, fSaves, fMission, fSkill, fShopStockMultiplier, fExtra, fAgainrom}
-	settingsActions  = []actionKind{aSound, aMovies, aVideo, aMarkers, aPicker, aChicken, aCloseOnPlay, aAcceptUnmarked}
+	settingsActions  = []actionKind{aSound, aMovies, aVideo, aMarkers, aPicker, aChicken, aSmoothRegen, aCloseOnPlay, aAcceptUnmarked}
 )
 
 func TestMainViewDrawsNoSettingsControl(t *testing.T) {

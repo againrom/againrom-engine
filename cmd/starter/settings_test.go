@@ -83,7 +83,7 @@ func TestStoreWritesAFreshFileInDocumentedOrder(t *testing.T) {
 	s.addBase(root)
 	s.LastBase = "en"
 	s.store(f)
-	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
+	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
@@ -106,6 +106,7 @@ func TestLaunchArgsExactArgv(t *testing.T) {
 		{"8x", func(s *settings) { s.Video = video8x }, []string{"-assets", root, "-8x"}},
 		{"markers", func(s *settings) { s.Markers = true }, []string{"-assets", root, "-markers"}},
 		{"chicken", func(s *settings) { s.Chicken = true }, []string{"-assets", root, "-chicken"}},
+		{"smooth regen", func(s *settings) { s.SmoothRegen = true }, []string{"-assets", root, "-smooth-regen"}},
 		{"saves", func(s *settings) { s.Saves = `C:\my saves` }, []string{"-assets", root, "-saves", `C:\my saves`}},
 		{"mission", func(s *settings) { s.Mission = "7" }, []string{"-assets", root, "-mission", "7"}},
 		{"picker", func(s *settings) { s.Picker = true }, []string{"-assets", root, "-picker"}},

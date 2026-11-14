@@ -52,6 +52,7 @@ type settings struct {
 	Video               string
 	Markers             bool
 	Chicken             bool
+	SmoothRegen         bool
 	Saves               string
 	Mission             string // empty means the game's default
 	Picker              bool
@@ -291,7 +292,7 @@ func (s settings) launchArgs(g gameLaunch) ([]string, error) {
 			return []string{launch.FormatBool(s.AcceptUnmarked)}
 		case launch.Check.Key:
 			return []string{launch.FormatBool(g.Check)}
-		case launch.Version.Key, launch.Hero.Key, launch.SmoothRegen.Key:
+		case launch.Version.Key, launch.Hero.Key:
 			return nil
 		case launch.Mission.Key:
 			if g.Mission != "" {

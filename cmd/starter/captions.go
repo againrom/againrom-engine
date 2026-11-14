@@ -65,6 +65,7 @@ const (
 	cMissionNumber          captionID = "mission-number"
 	cMapPicker              captionID = "map-picker"
 	cChicken                captionID = "chicken"
+	cSmoothRegen            captionID = "smooth-regen"
 	cSkill                  captionID = "skill"
 	cShopStockMultiplier    captionID = "shop-stock-multiplier"
 	cBadShopStockMultiplier captionID = "bad-shop-stock-multiplier"
@@ -220,6 +221,7 @@ var captionRows = []captionRow{
 	row(cMissionNumber, "Mission number", "Номер миссии", "dialogs.txt: Enter Number & Name; main.txt: Mission Completed"),
 	row(cMapPicker, "Map picker", "Выбор карты", "dialogs.txt: Select map to play"),
 	row(cChicken, "#Chicken each mission", "#Chicken за миссию", ""),
+	row(cSmoothRegen, "Smooth regeneration", "Плавная регенерация", ""),
 	row(cSkill, "Skill", "Навык", "main.txt: Skills"),
 	row(cShopStockMultiplier, "Shop stock multiplier (%d..%d)", "Множитель товаров (%d..%d)", ""),
 	row(cBadShopStockMultiplier, "shop stock multiplier %q must be a whole number from %d to %d", "множитель товаров %q должен быть целым числом от %d до %d", ""),

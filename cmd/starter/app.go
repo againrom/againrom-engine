@@ -85,6 +85,7 @@ const (
 	aMovies
 	aMarkers
 	aChicken
+	aSmoothRegen
 	aPicker
 	aCloseOnPlay
 	aAcceptUnmarked
@@ -728,12 +729,12 @@ func (a *app) layout() []item {
 				field(ctl(y), v.edit)
 			}
 		}
-		heading(10, 404, a.t(cHeadStarter))
-		y := row(15, a.t(cCloseAfterPlay))
+		heading(10, 428, a.t(cHeadStarter))
+		y := row(16, a.t(cCloseAfterPlay))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-		y = row(16, a.t(cGameProgram))
+		y = row(17, a.t(cGameProgram))
 		field(ctl(y), fAgainrom)
-		y = row(17, a.t(cLoadUnmarked))
+		y = row(18, a.t(cLoadUnmarked))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 	} else {
 		// Base games.
@@ -1087,7 +1088,7 @@ func (a *app) apply(act action) {
 	case aRescan:
 		a.rescan()
 		a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
-	case aSound, aVideo, aMovies, aMarkers, aChicken, aWindowed, aPicker:
+	case aSound, aVideo, aMovies, aMarkers, aChicken, aSmoothRegen, aWindowed, aPicker:
 		a.stepOption(act.kind)
 	case aAcceptUnmarked:
 		a.s.AcceptUnmarked = !a.s.AcceptUnmarked

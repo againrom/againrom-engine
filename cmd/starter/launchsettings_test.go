@@ -180,7 +180,7 @@ func TestDefaultSettingsFileBytes(t *testing.T) {
 	f := mustParse(t, "")
 	defaultSettings().store(f)
 	const want = "[starter]\nagainrom =\nclose-on-play = false\nlast-base =\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n" +
-		"[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nwindow = false\n" +
+		"[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\n" +
 		"saves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("default settings file\n%q\nwant\n%q", got, want)

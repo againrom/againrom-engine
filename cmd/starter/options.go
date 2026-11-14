@@ -36,10 +36,11 @@ var optionViews = []optionView{
 		refusal: cBadMission, clash: cPickerMission},
 	{key: launch.Picker.Key, value: func(s *settings) any { return &s.Picker }, act: aPicker, row: 9, label: cMapPicker},
 	{key: launch.Chicken.Key, value: func(s *settings) any { return &s.Chicken }, act: aChicken, row: 10, label: cChicken},
-	{key: launch.Skill.Key, value: func(s *settings) any { return &s.Skill }, edit: fSkill, row: 11, label: cSkill},
+	{key: launch.SmoothRegen.Key, value: func(s *settings) any { return &s.SmoothRegen }, act: aSmoothRegen, row: 11, label: cSmoothRegen},
+	{key: launch.Skill.Key, value: func(s *settings) any { return &s.Skill }, edit: fSkill, row: 12, label: cSkill},
 	{key: launch.ShopStockMultiplier.Key, value: func(s *settings) any { return &s.ShopStockMultiplier }, edit: fShopStockMultiplier,
-		row: 12, label: cShopStockMultiplier, bounds: true, refusal: cBadShopStockMultiplier},
-	{key: launch.Extra.Key, value: func(s *settings) any { return &s.Extra }, edit: fExtra, row: 13, label: cExtraArgs, refusal: cExtraQuote},
+		row: 13, label: cShopStockMultiplier, bounds: true, refusal: cBadShopStockMultiplier},
+	{key: launch.Extra.Key, value: func(s *settings) any { return &s.Extra }, edit: fExtra, row: 14, label: cExtraArgs, refusal: cExtraQuote},
 }
 
 // advancedRow is the settings view row the advanced heading takes.

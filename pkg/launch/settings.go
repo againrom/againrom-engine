@@ -151,10 +151,10 @@ var (
 )
 
 // Settings are the rows kept in [options], in the order of the file.
-var Settings = []Setting{Sound, Volume, Movies, Video, Markers, Chicken, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
+var Settings = []Setting{Sound, Volume, Movies, Video, Markers, Chicken, SmoothRegen, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
 
 // Table is every row, in the order the game's arguments pass them.
-var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked, Hero}, Settings...), SmoothRegen, Check, Version)
+var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked, Hero}, Settings...), Check, Version)
 
 // Rows is a launch table: the rows one program reads, in the order its
 // arguments pass them.
