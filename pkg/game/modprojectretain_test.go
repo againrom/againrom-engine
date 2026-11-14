@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/hostfile"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -186,7 +187,7 @@ func TestProjectSaveDoesNotRecordTheAuthorsTree(t *testing.T) {
 func TestManifestChoiceOptionsNeverWriteAnUnknownChoiceNumber(t *testing.T) {
 	starts := [][]string{{"common"}, {"rom1"}, {"rom1-en"}, {"rom1-ru"}, {"rom2"}, {"rom2-en"}, {"rom2-ru"}, {"rom1-en", "rom1-ru"}, {"future-base"}}
 	for _, start := range starts {
-		p := editorPackageSpec{ID: "choice-mod", Title: "Choice mod", Manifest: defaultPackageManifest()}
+		p := editorPackageSpec{ID: "choice-mod", Title: "Choice mod", Manifest: defaultPackageManifest(base.GameROM1)}
 		p.Manifest.AppliesTo = start
 		source, err := p.manifestBytes(nil)
 		if err != nil {
@@ -245,7 +246,7 @@ func TestManifestChoiceOptionsNeverWriteAnUnknownChoiceNumber(t *testing.T) {
 
 func TestManifestUnknownChoiceLeavesTheWholeDraftUnchanged(t *testing.T) {
 	for _, list := range [][]string{{"rom1-en", "rom1-ru"}, {"future-base"}} {
-		p := editorPackageSpec{ID: "choice-mod", Title: "Choice mod", Manifest: defaultPackageManifest()}
+		p := editorPackageSpec{ID: "choice-mod", Title: "Choice mod", Manifest: defaultPackageManifest(base.GameROM1)}
 		p.Manifest.AppliesTo = list
 		source, err := p.manifestBytes(nil)
 		if err != nil {

@@ -346,11 +346,12 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *miss
 		}
 		return fenceEditorWrite(root, dir, "Test play")
 	})
+	info := InspectInstall(root)
 	lang := locale.Fallback
-	if l, ok := locale.ByBaseSuffix(BaseID(InspectInstall(root))); ok {
+	if l, ok := locale.ByBaseSuffix(BaseID(info)); ok {
 		lang = l.Code
 	}
-	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, lang, nil)
+	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, info.Base.Profile.GameOf(), lang, nil)
 	options := missionPackagePlan{}
 	if plan != nil {
 		files, options = plan.Files, *plan

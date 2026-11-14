@@ -24,7 +24,7 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 	if err != nil {
 		return err
 	}
-	files := missionPackageFiles(w.Package.Title, w.Package.Manifest.Description, m, s.inspector.pageLanguage(), s.labelsForSave(), pages)
+	files := missionPackageFiles(w.Package.Title, w.Package.Manifest.Description, m, s.inspector.installGame(), s.inspector.pageLanguage(), s.labelsForSave(), pages)
 	files[mod.ManifestName], err = w.Package.manifestBytes(nil)
 	if err != nil {
 		return err

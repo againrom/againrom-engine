@@ -70,7 +70,7 @@ func TestAManifestKeyAddedToTheTableIsAnEditorField(t *testing.T) {
 	t.Cleanup(func() { mod.ManifestKeys = saved })
 	mod.ManifestKeys = append(slices.Clone(saved), mod.ManifestKey{Name: "launch", Value: mod.ManifestString, Edit: mod.EditField,
 		Get: func(m mod.Manifest) any { return m.Entry }, Set: func(m *mod.Manifest, v any) { m.Entry = v.(string) }})
-	p := editorPackageSpec{ID: "keyed", Title: "Keyed", Manifest: defaultPackageManifest()}
+	p := editorPackageSpec{ID: "keyed", Title: "Keyed", Manifest: defaultPackageManifest(base.GameROM1)}
 	source, err := p.manifestBytes(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestAManifestKeyAddedToTheTableIsAnEditorField(t *testing.T) {
 // The editor offers both games' bases; a new package takes the install's.
 func TestEditorOffersTheBasesOfBothGames(t *testing.T) {
 	s := &mapInspectionEdits{inspector: &MapInspector{}}
-	s.workspace = &editorWorkspaceState{Package: editorPackageSpec{ID: "bases", Title: "Bases", Manifest: defaultPackageManifest()}}
+	s.workspace = &editorWorkspaceState{Package: editorPackageSpec{ID: "bases", Title: "Bases", Manifest: defaultPackageManifest(base.GameROM1)}}
 	var offered []string
 	for _, f := range s.manifestFields() {
 		if f.Key == "applies-to" {
@@ -115,11 +115,11 @@ func TestEditorOffersTheBasesOfBothGames(t *testing.T) {
 	}{{base.GameROM1, "rom1"}, {base.GameROM2, "rom2"}} {
 		x := &MapInspector{archives: &Archives{}}
 		x.archives.Base.Profile.Game = tc.game
-		if got := x.packageBase(); got != tc.want {
+		if got := defaultPackageManifest(x.installGame()).AppliesTo; !slices.Equal(got, []string{tc.want}) {
 			t.Fatalf("a package on a %q install applies to %q, want %q", tc.game, got, tc.want)
 		}
 	}
-	if got := (&MapInspector{}).packageBase(); got != "rom1" {
+	if got := defaultPackageManifest((&MapInspector{}).installGame()).AppliesTo; !slices.Equal(got, []string{"rom1"}) {
 		t.Fatalf("with no install a package applies to %q", got)
 	}
 }

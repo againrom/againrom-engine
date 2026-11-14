@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/mod"
 )
 
@@ -41,7 +42,7 @@ func TestMapPagesSaveAsCarriesPages(t *testing.T) {
 		t.Fatal("cold editor reopen lost pages")
 	}
 	m := s.workspace.Package.mission(b, s.workspace.Pages, s.place())
-	files := missionPackageFiles("Map", "Map", m, "en", nil)
+	files := missionPackageFiles("Map", "Map", m, base.GameROM1, "en", nil)
 	if !bytes.Equal(files["maps/saved.text/en/event01.txt"], page) || !strings.Contains(string(files[mod.MissionsFile]), `= "maps/saved.alm"`) || strings.Contains(string(files[mod.MissionsFile]), "texts") {
 		t.Fatalf("package did not copy the saved page bytes beside its map: %v\n%s", slices.Sorted(maps.Keys(files)), files[mod.MissionsFile])
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
@@ -156,7 +157,7 @@ func TestWorkspaceBindsOpenedModAndKeepsPendingPages(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := &mapInspectionEdits{inspector: &MapInspector{}, model: model, source: scenarioPrefix + "25.alm"}
-	w := &editorWorkspaceState{Pages: map[string][]byte{"event01.txt": []byte("saved")}, Package: editorPackageSpec{ID: "authored-map", Manifest: defaultPackageManifest()}}
+	w := &editorWorkspaceState{Pages: map[string][]byte{"event01.txt": []byte("saved")}, Package: editorPackageSpec{ID: "authored-map", Manifest: defaultPackageManifest(base.GameROM1)}}
 	s.savedWorkspace = workspaceBytes(w)
 	s.undoWorkspace = []editorWorkspaceSnapshot{{workspace: cloneWorkspace(w), model: model, source: s.source}}
 	s.workspace = cloneWorkspace(w)
@@ -224,8 +225,8 @@ func TestManifestDraftWithoutAMapSharesHistory(t *testing.T) {
 }
 
 func TestNewPackageUsesManifestDefaultsWithoutAnEntry(t *testing.T) {
-	p := editorPackageSpec{ID: "example", Title: "Example", Manifest: defaultPackageManifest()}
-	files := missionPackageFiles(p.Title, p.Manifest.Description, p.mission([]byte("map bytes"), nil, missionPlace("", false)), "en", nil)
+	p := editorPackageSpec{ID: "example", Title: "Example", Manifest: defaultPackageManifest(base.GameROM1)}
+	files := missionPackageFiles(p.Title, p.Manifest.Description, p.mission([]byte("map bytes"), nil, missionPlace("", false)), base.GameROM1, "en", nil)
 	want := "id = \"example\"\ntitle = \"Example\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\ndescription = \"Map editor mission package\"\napi = 1\napplies-to = [\"rom1\"]\n"
 	if string(files[mod.ManifestName]) != want {
 		t.Fatalf("manifest:\n%s", files[mod.ManifestName])

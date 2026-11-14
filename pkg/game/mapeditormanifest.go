@@ -13,24 +13,25 @@ import (
 	"againrom/pkg/ui"
 )
 
-func defaultPackageManifest() mod.Manifest {
-	return mod.Manifest{Version: "1.0.0", Author: "Againrom", Description: "Map editor mission package", API: 1, AppliesTo: []string{base.ROM1}}
+// defaultPackageManifest is a new package's manifest: it applies to game's family.
+func defaultPackageManifest(game base.Game) mod.Manifest {
+	return mod.Manifest{Version: "1.0.0", Author: "Againrom", Description: "Map editor mission package", API: 1, AppliesTo: []string{base.ModFamilyOf(game)}}
 }
 
-// packageBase is a new package's applies-to: the install game's family.
-func (x *MapInspector) packageBase() string {
+// installGame is the game of the open install, the first game with none.
+func (x *MapInspector) installGame() base.Game {
 	var p base.Profile
 	if x.archives != nil {
 		p = x.archives.Base.Profile
 	}
-	return base.ModFamilyOf(p.GameOf())
+	return p.GameOf()
 }
 
 // manifestValues are the keys the editor writes, from mod.ManifestKeys.
 func (p editorPackageSpec) manifestValues() map[string]any {
 	m := p.Manifest
 	if m.Version == "" {
-		m = defaultPackageManifest()
+		m = defaultPackageManifest(base.Profile{}.GameOf())
 	}
 	values := map[string]any{}
 	for _, k := range mod.ManifestKeys {

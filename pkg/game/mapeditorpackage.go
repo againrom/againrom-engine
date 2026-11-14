@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
@@ -20,10 +21,10 @@ const editorPackageRecord = ".editor-files.json"
 // path is its place: the manifest, the mission table, the map, the pages
 // beside it in lang's folder (or the page tree, keyed below the pages
 // folder), the labels when there are any, and the files m carries.
-func missionPackageFiles(title, description string, m mod.Mission, lang string, labels []byte, trees ...map[string][]byte) map[string][]byte {
+func missionPackageFiles(title, description string, m mod.Mission, game base.Game, lang string, labels []byte, trees ...map[string][]byte) map[string][]byte {
 	place := mod.MissionPlace{Map: m.Map}
 	m.Texts = ""
-	p := editorPackageSpec{ID: m.Mod, Title: title, Manifest: defaultPackageManifest()}
+	p := editorPackageSpec{ID: m.Mod, Title: title, Manifest: defaultPackageManifest(game)}
 	p.Manifest.Description = description
 	manifest, _ := p.manifestBytes(nil)
 	files := map[string][]byte{mod.ManifestName: manifest, mod.MissionsFile: testPlayMissions(m), m.Map: bytes.Clone(m.MapBytes)}
@@ -304,7 +305,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", err
 		}
 	} else {
-		files = missionPackageFiles(p.Title, p.Manifest.Description, m, x.pageLanguage(), s.labelsForSave())
+		files = missionPackageFiles(p.Title, p.Manifest.Description, m, x.installGame(), x.pageLanguage(), s.labelsForSave())
 		files[mod.ManifestName], err = p.manifestBytes(nil)
 		if err != nil {
 			return "", err
