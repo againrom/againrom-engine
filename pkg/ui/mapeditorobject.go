@@ -116,13 +116,13 @@ func (e *MapEditor) loadObject() {
 			if e.modPage == modPageGraph {
 				page, _ := e.modGraph()
 				if page.Mod && !page.Unread && !page.Refused && !page.Unbuilt {
-					label := e.word("editor.graph.edit")
+					label := e.plainWord("editor.graph.edit")
 					if e.graphEdit {
-						label = e.word("editor.graph.openmaps")
+						label = e.plainWord("editor.graph.openmaps")
 					}
 					o.fields = append([]InspectionField{{Key: "graph.edit", Label: label, Action: true, Column: 1}}, o.fields...)
 					if e.graphEdit && slices.ContainsFunc(o.fields, func(f InspectionField) bool { return f.Key == "AutoGetMission" }) {
-						o.fields = append(o.fields, InspectionField{Key: "graph.link", Label: e.word("editor.graph.link"), Action: true, Column: 1}, InspectionField{Key: "graph.unlink", Label: e.word("editor.graph.unlink"), Action: true, Column: 1})
+						o.fields = append(o.fields, InspectionField{Key: "graph.link", Label: e.plainWord("editor.graph.link"), Action: true, Column: 1}, InspectionField{Key: "graph.unlink", Label: e.plainWord("editor.graph.unlink"), Action: true, Column: 1})
 					}
 				}
 			}

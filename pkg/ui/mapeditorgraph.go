@@ -225,7 +225,7 @@ func (e *MapEditor) modGraphRows(s *popupSpec, links *[]int, page CampaignGraphP
 			if e.graphEdit {
 				text(e.word("editor.graph.select"))
 				if e.graphMission > 0 && !e.graphPicked {
-					text(fmt.Sprintf(e.plainWord("editor.graph.mission"), e.graphMission))
+					text(e.editorHostText(fmt.Sprintf(e.plainWord("editor.graph.mission"), e.graphMission)))
 				}
 				if e.graphLink {
 					text(e.word("editor.graph.target"))

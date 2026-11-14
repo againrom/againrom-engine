@@ -536,10 +536,9 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		if f.Key != "source" || e.modPage != modPageFields {
 			continue
 		}
-		start := max(0, int(f.Value)-2)
-		end := min(len(f.Choices), start+3)
-		start = max(0, end-3)
-		for n := start; n < end; n++ {
+		// Every mission of the mod is a row; the window's scroll reaches
+		// the ones the page has no room to show.
+		for n := range f.Choices {
 			// A choice's label is already in the font's bytes, as the
 			// Mission drop-down draws it.
 			row := popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), f.Choices[n].Label, s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
@@ -593,9 +592,11 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	}
 	e.objectTop = max(0, min(e.objectTop, max(0, popupRowCount(s)-s.MaxRows)))
 	s.Top = e.objectTop
-	s.ColumnTops = []int{0, e.objectTop}
-	if e.modPage == modPageMaps {
-		s.ColumnTops = nil
+	// Only the graph page keeps its rows still above a canvas that scrolls
+	// alone; every other page is one list of rows that the wheel and the
+	// bar move together, so a one-column page shows the rows it scrolled to.
+	if e.modPage == modPageGraph {
+		s.ColumnTops = []int{0, e.objectTop}
 	}
 	return s, links, true
 }
