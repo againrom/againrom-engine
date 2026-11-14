@@ -15,7 +15,7 @@ import (
 // state happens to exist. Each implementation is stateless: the state it
 // reads and writes is the session's own.
 type campaignService interface {
-	shortcutStart() int
+	shortcutLayout() ui.ShortcutLayout
 	// townAdapter supplies the common host's campaign state.
 	townAdapter(t *townScreen) townCampaignAdapter
 	// place is where the session's party stands: a town or a mission.

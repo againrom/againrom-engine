@@ -303,7 +303,7 @@ func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) {
 // fileState reads a Bsg& file's session from the campaign tail; an empty
 // shortcut array binds no cell (DIV-4153, DIV-4154).
 func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
-	quick, err := fileQuickSpells(sf, true)
+	quick, err := fileQuickSpells(sf, ui.SecondShortcutLayout)
 	if err != nil {
 		return originalFileState{}, err
 	}
@@ -523,4 +523,4 @@ func (secondCampaignRules) saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentDat
 	return secondSavedForms[savedFormKind(s)].write(f, s, doc)
 }
 
-func (secondCampaignRules) shortcutStart() int { return -1 }
+func (secondCampaignRules) shortcutLayout() ui.ShortcutLayout { return ui.SecondShortcutLayout }

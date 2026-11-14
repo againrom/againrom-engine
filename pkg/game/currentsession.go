@@ -85,12 +85,13 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 	}
 	// A first-game play whose engine rows all sit in the original four cells
 	// keeps the original layout: rows numbered from the first cell.
-	first := campaignOf(s.game).shortcutStart() >= 0
-	original := first
+	layout := campaignOf(s.game).shortcutLayout()
+	original := layout.HasCells()
 	for slot, bound := range s.QuickSpells {
-		ordinary := first && slot >= 1 && slot <= 4 && shortcuts[slot-1] != -1
+		cell, hasCell := layout.SlotCell(slot)
+		ordinary := hasCell && shortcuts[cell] != -1
 		if bound != (ui.Shortcut{}) && !ordinary {
-			original = original && slot >= 1 && slot <= 4 && bound.Item == ""
+			original = original && hasCell && bound.Item == ""
 			a.Session.QuickSpells = append(a.Session.QuickSpells, currentQuickSpell{Slot: uint8(slot), ID: bound.Spell, Item: bound.Item})
 		}
 	}
@@ -157,13 +158,13 @@ func validateCurrentSession(s *currentSessionData) error {
 		}
 		bound := ui.Shortcut{Spell: row.ID, Item: row.Item}
 		if s.ShortcutLayout == 0 {
-			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: bound})
-			if err != nil || row.Item != "" || row.Slot < 4 && indices[0] != -1 {
+			cell, err := shortcutOriginalCell(bound)
+			if err != nil || row.Item != "" || row.Slot < 4 && cell != -1 {
 				return fmt.Errorf("invalid current custom quick-spell binding")
 			}
-		} else if campaignOf(s.Game).shortcutStart() >= 0 && row.Slot >= 1 && row.Slot <= 4 {
-			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: bound})
-			if err != nil || indices[0] != -1 {
+		} else if _, hasCell := campaignOf(s.Game).shortcutLayout().SlotCell(int(row.Slot)); hasCell {
+			cell, err := shortcutOriginalCell(bound)
+			if err != nil || cell != -1 {
 				return fmt.Errorf("invalid current ordinary shortcut residue")
 			}
 		}
@@ -228,8 +229,8 @@ func validateCurrentSession(s *currentSessionData) error {
 			}
 		}
 		if v.PressedSpell != 0 {
-			indices, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: {Spell: v.PressedSpell}})
-			if err != nil || indices[0] != -1 {
+			cell, err := shortcutOriginalCell(ui.Shortcut{Spell: v.PressedSpell})
+			if err != nil || cell != -1 {
 				return fmt.Errorf("invalid current custom pressed spell")
 			}
 		}
@@ -279,20 +280,22 @@ func applyCurrentView(v *ui.SaveApplicationState, raw OriginalStateData, a *curr
 
 func currentQuickSpells(ordinary ui.ShortcutSlots, session *currentSessionData) (ui.ShortcutSlots, error) {
 	if session != nil {
-		if campaignOf(session.Game).shortcutStart() < 0 {
+		layout := campaignOf(session.Game).shortcutLayout()
+		if !layout.HasCells() {
 			if session.ShortcutLayout == 0 {
-				for i := 0; i < 4; i++ {
-					ordinary[i] = ordinary[i+1]
+				first := ui.FirstShortcutLayout
+				for i := 0; i < first.Cells; i++ {
+					ordinary[i] = ordinary[first.CellSlot(i)]
 				}
-				ordinary[4] = ui.Shortcut{}
+				ordinary[first.Cells] = ui.Shortcut{}
 			} else {
 				ordinary = ui.ShortcutSlots{}
 			}
 		}
 		for _, row := range session.QuickSpells {
 			slot := int(row.Slot)
-			if session.ShortcutLayout == 0 && campaignOf(session.Game).shortcutStart() >= 0 {
-				slot++
+			if session.ShortcutLayout == 0 && layout.HasCells() {
+				slot += layout.CellSlot(0)
 			}
 			if slot >= len(ordinary) {
 				return ui.ShortcutSlots{}, fmt.Errorf("invalid legacy shortcut slot")

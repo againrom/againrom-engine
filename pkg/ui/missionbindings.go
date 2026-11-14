@@ -106,12 +106,13 @@ type missionKeyPolicy struct {
 	games  missionKeyGames
 	orders keyMod
 	// store names the game's keys in the profile settings.
-	store string
+	store     string
+	shortcuts ShortcutLayout
 }
 
 var missionKeyPolicies = map[missionKeyAction]missionKeyPolicy{
-	missionKeyPatrol: {games: firstGameKeys, store: "FirstGameKeys"},
-	missionKeyPickup: {games: secondGameKeys, orders: modFree, store: "SecondGameKeys"},
+	missionKeyPatrol: {games: firstGameKeys, store: "FirstGameKeys", shortcuts: FirstShortcutLayout},
+	missionKeyPickup: {games: secondGameKeys, orders: modFree, store: "SecondGameKeys", shortcuts: SecondShortcutLayout},
 }
 
 var missionKeyProfiles = map[string]missionKeyAction{"pickup-p": missionKeyPickup}
@@ -244,14 +245,10 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 		{name: "numpad-8", key: ebiten.KeyNumpad8, action: missionKeyGroup, arg: 8},
 		{name: "numpad-9", key: ebiten.KeyNumpad9, action: missionKeyGroup, arg: 9},
 	}
-	for slot, key := range []ebiten.Key{ebiten.KeyF4, ebiten.KeyF5, ebiten.KeyF6, ebiten.KeyF7, ebiten.KeyF8, ebiten.KeyF9, ebiten.KeyF10, ebiten.KeyF11, ebiten.KeyF12} {
+	for slot := range len(ShortcutSlots{}) {
+		key := shortcutKey(slot)
 		name := namefold.ArchiveText(key.String())
-		// The first game's profile entries spell-1 to spell-4 keep the keys F5
-		// to F8 they named before the common layout; its F4 slot is the last name.
-		ordinal := slot
-		if policy.games&firstGameKeys != 0 {
-			ordinal = (slot + 8) % 9
-		}
+		ordinal := policy.shortcuts.Ordinal(slot)
 		table = append(table,
 			missionKeyBinding{name: name, key: key, ctrl: modFree, shift: modFree, alt: modFree, action: missionKeyShortcut, arg: ordinal, index: slot},
 			missionKeyBinding{name: name, key: key, ctrl: modHeld, shift: modFree, alt: modFree, action: missionKeyBindSpell, arg: ordinal, index: slot},

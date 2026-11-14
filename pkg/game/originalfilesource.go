@@ -477,10 +477,10 @@ func applicationCurrentRaw(app *SnapshotApplicationState) (OriginalStateData, er
 		out.Speed = int32(nearestOriginalSpeed(now.PeriodUS))
 	}
 	out.ViewX, out.ViewY = originalViewOrigin(now.ViewX, now.ViewY)
-	pressed, err := quickSpellsToOriginalIndices(ui.ShortcutSlots{1: {Spell: now.PressedSpell}})
+	pressed, err := shortcutOriginalCell(ui.Shortcut{Spell: now.PressedSpell})
 	if err != nil {
 		return out, worldSaveUnsupportedf("current spell %d has no original book index", now.PressedSpell)
 	}
-	out.Pressed = pressed[0]
+	out.Pressed = pressed
 	return out, nil
 }

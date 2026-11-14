@@ -1,6 +1,10 @@
 package ui
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type Shortcut struct {
 	Spell uint32 `json:",omitempty"`
@@ -8,6 +12,34 @@ type Shortcut struct {
 }
 
 type ShortcutSlots [9]Shortcut
+
+// ShortcutLayout is a game's shortcut slot row.
+type ShortcutLayout struct {
+	CellStart, Cells int
+	OrdinalShift     int
+}
+
+// FirstShortcutLayout has four original cells.
+var FirstShortcutLayout = ShortcutLayout{CellStart: 1, Cells: 4, OrdinalShift: 8}
+
+var SecondShortcutLayout = ShortcutLayout{}
+
+func (l ShortcutLayout) HasCells() bool { return l.Cells > 0 }
+
+func (l ShortcutLayout) CellSlot(i int) int { return l.CellStart + i }
+
+func (l ShortcutLayout) SlotCell(slot int) (int, bool) {
+	i := slot - l.CellStart
+	return i, l.Cells > 0 && i >= 0 && i < l.Cells
+}
+
+func (l ShortcutLayout) Ordinal(slot int) int {
+	return (slot + l.OrdinalShift) % len(ShortcutSlots{})
+}
+
+func shortcutKey(slot int) ebiten.Key { return ebiten.KeyF4 + ebiten.Key(slot) }
+
+func ShortcutKeyName(slot int) string { return shortcutKey(slot).String() }
 
 func (s *Shortcut) UnmarshalJSON(b []byte) error {
 	if len(b) > 0 && b[0] != '{' {

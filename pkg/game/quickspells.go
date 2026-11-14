@@ -21,25 +21,35 @@ func quickSpellsToOriginalIndices(slots ui.ShortcutSlots, profiles ...campaignSe
 	if err := validateQuickSpells(slots); err != nil {
 		return indices, originalCityUnsupportedf("%v", err)
 	}
-	start := 1
+	layout := ui.FirstShortcutLayout
 	if len(profiles) > 0 {
-		start = profiles[0].shortcutStart()
+		layout = profiles[0].shortcutLayout()
 	}
-	if start < 0 {
+	if !layout.HasCells() {
 		return indices, nil
 	}
-	for i, id := range slots[start : start+len(indices)] {
-		if id.Spell == 0 {
-			continue
-		}
+	for i := range indices {
+		indices[i] = originalCell(slots[layout.CellSlot(i)].Spell)
+	}
+	return indices, nil
+}
+
+func originalCell(spell uint32) int32 {
+	if spell != 0 {
 		for cell, originalID := range originalBookIDs {
-			if id.Spell == uint32(originalID) {
-				indices[i] = int32(cell)
-				break
+			if spell == uint32(originalID) {
+				return int32(cell)
 			}
 		}
 	}
-	return indices, nil
+	return -1
+}
+
+func shortcutOriginalCell(bound ui.Shortcut) (int32, error) {
+	if err := validateShortcut(0, bound); err != nil {
+		return -1, err
+	}
+	return originalCell(bound.Spell), nil
 }
 
 func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
@@ -54,7 +64,7 @@ func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
 		if index < 0 || index >= int32(len(originalBookIDs)) {
 			return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: slot %d index %d outside -1 or 0..23", i, index)
 		}
-		slots[i+1].Spell = uint32(originalBookIDs[index])
+		slots[ui.FirstShortcutLayout.CellSlot(i)].Spell = uint32(originalBookIDs[index])
 	}
 	if err := validateQuickSpells(slots); err != nil {
 		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: %w", err)
@@ -66,13 +76,13 @@ func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
 // the whole load, before either the town or mission adoption boundary. The
 // bounded policy is ours; malformed original runtime behaviour is Unknown.
 func originalQuickSpells(file *sav.File) (ui.ShortcutSlots, error) {
-	return fileQuickSpells(file, false)
+	return fileQuickSpells(file, ui.FirstShortcutLayout)
 }
 
-// fileQuickSpells reads the file's shortcut cells. emptyUnbound admits an
-// empty array as no binding: the second game's files hold one, and no claim
+// fileQuickSpells reads the file's shortcut cells. A layout without cells admits
+// an empty array as no binding: the second game's files hold one, and no claim
 // reads its index domain (DIV-4154).
-func fileQuickSpells(file *sav.File, emptyUnbound bool) (ui.ShortcutSlots, error) {
+func fileQuickSpells(file *sav.File, layout ui.ShortcutLayout) (ui.ShortcutSlots, error) {
 	value, present, err := file.StateLeaves().ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
 		return ui.ShortcutSlots{}, err
@@ -83,7 +93,7 @@ func fileQuickSpells(file *sav.File, emptyUnbound bool) (ui.ShortcutSlots, error
 	if value.Dir || value.Type != reg.TypeIntArray {
 		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: invalid source shape")
 	}
-	if len(value.Ints) == 0 && emptyUnbound {
+	if len(value.Ints) == 0 && !layout.HasCells() {
 		return ui.ShortcutSlots{}, nil
 	}
 	return quickSpellsFromOriginalIndices(value.Ints)
@@ -128,17 +138,24 @@ func originalCityQuickSpells(document *sav.CityProvenance) (ui.ShortcutSlots, er
 // catalogs. The producer moves duplicates, so malformed native duplicates fail.
 func validateQuickSpells(slots ui.ShortcutSlots) error {
 	for i, id := range slots {
-		if id.Spell > 65535 || len(id.Item) > 65536 || id.Spell != 0 && id.Item != "" {
-			return fmt.Errorf("shortcut F%d has invalid content %v", i+4, id)
+		if err := validateShortcut(i, id); err != nil {
+			return err
 		}
 		if id == (ui.Shortcut{}) {
 			continue
 		}
 		for j := 0; j < i; j++ {
 			if slots[j] == id {
-				return fmt.Errorf("quick spell F%d duplicates F%d", i+4, j+4)
+				return fmt.Errorf("quick spell %s duplicates %s", ui.ShortcutKeyName(i), ui.ShortcutKeyName(j))
 			}
 		}
+	}
+	return nil
+}
+
+func validateShortcut(slot int, id ui.Shortcut) error {
+	if id.Spell > 65535 || len(id.Item) > 65536 || id.Spell != 0 && id.Item != "" {
+		return fmt.Errorf("shortcut %s has invalid content %v", ui.ShortcutKeyName(slot), id)
 	}
 	return nil
 }

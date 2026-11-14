@@ -3,7 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-	"strconv"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -362,7 +361,7 @@ func drawNoHeroText(img *image.RGBA, line string, cardFont, font *text.Font, ori
 // first game's function key before the map's first tick sets the marks.
 func (v *Viewer) quickSpellMark(slot int) string {
 	if v.quickSpellLabels == nil {
-		return "F" + strconv.Itoa(4+slot)
+		return ShortcutKeyName(slot)
 	}
 	if slot < len(v.quickSpellLabels) {
 		return v.quickSpellLabels[slot]
