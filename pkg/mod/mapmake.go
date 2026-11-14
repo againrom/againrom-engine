@@ -124,11 +124,7 @@ func FolderMaps(names []string) []FolderMap {
 
 // belongsTo reports a folder file that holds the pages or labels of stem's map.
 func belongsTo(name, stem string) bool {
-	if len(name) <= len(stem) || namefold.ModTree(name[:len(stem)]) != namefold.ModTree(stem) {
-		return false
-	}
-	rest := name[len(stem):]
-	return namefold.ModTree(name) == namefold.ModTree(MapLabelFile(stem+MapExt)) || strings.HasPrefix(rest, mapTextSuffix+"/")
+	return MissionPlace{Map: stem + MapExt}.Companion(name)
 }
 
 // PlaceFolderMaps is where each folder file goes in the mod, by the one

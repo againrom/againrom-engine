@@ -42,6 +42,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor campaign graph: cards stand further apart, each town lists its hand-outs side mission first, then main mission, then none, and the lines no longer cross or run close together.
 - [BASE] The map editor's mod window lists each map no mission uses on its Missions page, with Make mission and Replace, and each map that replaces a mission by its file name, with Make row; "Add map without mission" copies the open map into the mod, "Add folder of maps" adds every map of a folder, and F5 on an unused map plays it as a guest mission with the mod active.
 - [BASE] Map editor: F5 now plays a mod's unsaved maps, so a map added from a folder or made a mission needs no Ctrl+S first, and the mod window's bottom buttons stay on screen at 640 by 480 when its page is scrolled.
+- Add folder of maps now carries a map's pages folder whatever the case of its name.
 
 ## 0.154.0
 

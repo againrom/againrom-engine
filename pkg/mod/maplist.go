@@ -171,11 +171,14 @@ func MapList(files []string, id string, d MissionData) []MapEntry {
 		e := &out[i]
 		for _, rel := range e.Files {
 			place := MissionPlace{Map: rel}
-			e.Labels = e.Labels || held.has(place.Labels())
 			prefix := namefold.ModTree(place.Pages("")) + "/"
 			for _, f := range files {
+				if !place.Companion(f) {
+					continue
+				}
 				tail, ok := strings.CutPrefix(namefold.ModTree(f), prefix)
 				if !ok {
+					e.Labels = true
 					continue
 				}
 				lang := ""

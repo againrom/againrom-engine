@@ -78,6 +78,12 @@ func (p MissionPlace) Pages(lang string) string {
 // Labels is the editor's variable labels file beside the map.
 func (p MissionPlace) Labels() string { return MapLabelFile(p.Map) }
 
+// Companion reports that f is the map's labels file or under its pages folder.
+func (p MissionPlace) Companion(f string) bool {
+	f = namefold.ModTree(f)
+	return f == namefold.ModTree(p.Labels()) || strings.HasPrefix(f, namefold.ModTree(p.Pages(""))+"/")
+}
+
 // InTree reports that the map lies in the tree's maps folder; a row map
 // elsewhere is an old path, read with a warning.
 func (p MissionPlace) InTree() bool {
@@ -111,9 +117,10 @@ func (p MissionPlace) free(taken func(stem string) bool) MissionPlace {
 // the place whose path without extension is stem.
 func stemTaken(held []string, stem string) bool {
 	stem = namefold.ModTree(stem)
+	m := MissionPlace{Map: stem + MapExt}
 	return slices.ContainsFunc(held, func(f string) bool {
 		f = namefold.ModTree(f)
-		return f == stem+MapExt || f == stem+ExtendedMapExt || f == stem+mapVariablesSuffix || strings.HasPrefix(f, stem+mapTextSuffix+"/")
+		return f == stem+MapExt || f == stem+ExtendedMapExt || m.Companion(f)
 	})
 }
 
