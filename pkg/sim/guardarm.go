@@ -29,20 +29,16 @@ const postRadius = coverRadius
 
 // postEngage is the block scan itself, shared by this arm and by the
 // original-runtime savedGuard: everything within postRadius of post that the
-// actor at i is hostile to, walked in ascending entity id, engaged at the
-// first candidate whose order is not refused. It reports whether the actor
-// comes out of it holding a victim.
+// actor at i is hostile to, walked in ascending entity id by chooseTarget's
+// targetFirstEngaged row. It reports whether the actor comes out of it
+// holding a victim.
 //
-// THE PICK IS THE FIRST SURVIVOR, NOT THE CHEAPEST, and that is what makes
-// this a different picker from acquireStanding rather than a second spelling
-// of it. acquireStanding scores every candidate with candidateCost and takes
-// the minimum, over the actor's SIGHT rather than over a block, and caps the
-// pick at reach. The two populations and the two orderings are both
-// different, so both are written.
+// THE PICK IS THE FIRST SURVIVOR, NOT THE CHEAPEST. acquireStanding scores
+// every candidate with candidateCost and takes the minimum, over the actor's
+// SIGHT rather than over a block, and caps the pick at reach.
 //
-// ASCENDING ENTITY ID IS OURS. Ascending id is the order every other
-// candidate walk in this package uses, and it is the order savedGuard has
-// already been taking.
+// ASCENDING ENTITY ID IS OURS: the order every other candidate walk in this
+// package uses.
 //
 // THE FILTER IS DIPLOMACY, PRESENCE AND, IN THE FIRST GAME, LIFE.
 // actorCandidates' live-first parking is the ACQUISITION's rule and is not
@@ -50,13 +46,7 @@ const postRadius = coverRadius
 //
 // AI-FILTER-001
 func (w *World) postEngage(i int, post cell) bool {
-	for _, ci := range w.postCandidates(i, post) {
-		w.orderAttack(i, w.entities[ci].ID)
-		if w.entities[i].HasAttackTarget {
-			return true
-		}
-	}
-	return false
+	return w.chooseTarget(i, w.postCandidates(i, post), orderNone, targetFirstEngaged) >= 0
 }
 
 // postCandidates is the block's population. In the first game a dying body

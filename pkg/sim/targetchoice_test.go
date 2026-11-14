@@ -19,3 +19,16 @@ func TestTargetChoiceKeepsGroupAndRepickTieRules(t *testing.T) {
 		}
 	}
 }
+
+func TestTargetChoiceFirstEngagedPassesARefusedCandidate(t *testing.T) {
+	t.Parallel()
+	melee, flier := flierVetoAttacker(DomainGround, 1), flierVetoVictim(DomainAir)
+	w := engWorld(t, flierVetoRel(t), melee, flier, engFighter(3, 2, 7, 5))
+	if got := w.chooseTarget(0, []int{1, 2}, orderNone, targetFirstEngaged); got != 2 || w.entities[0].AttackTarget != 3 {
+		t.Fatalf("first engaged=%d victim=%d, want candidate 2 holding foe 3", got, w.entities[0].AttackTarget)
+	}
+	lone := engWorld(t, flierVetoRel(t), melee, flier)
+	if got := lone.chooseTarget(0, []int{1}, orderNone, targetFirstEngaged); got != -1 || lone.entities[0].HasAttackTarget {
+		t.Fatalf("lone flier engaged=%d, want -1 and no victim", got)
+	}
+}

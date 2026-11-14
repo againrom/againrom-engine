@@ -8,6 +8,7 @@ const (
 	targetIdleDistance
 	targetCover
 	targetIdleReserve
+	targetFirstEngaged
 )
 
 type orderProfile struct {
@@ -25,7 +26,9 @@ type orderProfile struct {
 	supportOrder bool
 }
 
-// chooseTarget ranks an ordered candidate population without changing it.
+// chooseTarget ranks an ordered candidate population without changing it;
+// targetFirstEngaged alone engages each in turn and takes the first that
+// leaves the actor holding a victim.
 func (w *World) chooseTarget(i int, candidates []int, order uint8, ranking targetRanking) int {
 	winner, best := -1, scoreSeed
 	for _, ci := range candidates {
@@ -34,6 +37,12 @@ func (w *World) chooseTarget(i int, candidates []int, order uint8, ranking targe
 		}
 		cost := int32(0)
 		switch ranking {
+		case targetFirstEngaged:
+			w.orderAttack(i, w.entities[ci].ID)
+			if w.entities[i].HasAttackTarget {
+				return ci
+			}
+			continue
 		case targetGroupScore:
 			cost = w.candidateCost(i, ci, order)
 		case targetTurn:
