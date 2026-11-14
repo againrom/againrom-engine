@@ -46,8 +46,8 @@ func TestDollLayersHaveOneBuilder(t *testing.T) {
 					return true
 				}
 				count++
-				if name != "pkg/game/inventory.go" || fn.Name.Name != "composeDoll" {
-					t.Errorf("%s:%s builds doll layers outside composeDoll", name, fn.Name.Name)
+				if name != "pkg/game/inventory.go" || fn.Name.Name != "composeFigure" {
+					t.Errorf("%s:%s builds doll layers outside composeFigure", name, fn.Name.Name)
 				}
 				return true
 			})
@@ -55,6 +55,47 @@ func TestDollLayersHaveOneBuilder(t *testing.T) {
 	}
 	if count != 2 {
 		t.Fatalf("FigureDrawSteps references = %d, want the source and nil-source arms", count)
+	}
+}
+
+func TestFigureBackgroundHasOneCaller(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := LoadRandomnessSources(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, source := range files {
+		f, err := parser.ParseFile(token.NewFileSet(), name, source, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f.Name.Name != "game" {
+			continue
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			if id, ok := n.(*ast.Ident); ok && id.Name == "composeDoll" {
+				t.Errorf("%s still names composeDoll", name)
+			}
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			id, ok := call.Fun.(*ast.Ident)
+			if !ok || id.Name != "addFigureBackground" {
+				return true
+			}
+			if name != "pkg/game/inventory.go" {
+				t.Errorf("%s calls addFigureBackground outside composeFigure", name)
+			}
+			return true
+		})
 	}
 }
 

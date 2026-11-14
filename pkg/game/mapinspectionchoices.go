@@ -202,7 +202,7 @@ func faceChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice 
 	var choices []ui.InspectionChoice
 	pictures := map[int64]*image.RGBA{}
 	for face := int64(1); face <= 127; face++ {
-		doll, _ := composeDoll(s.inspector.archives.artSource(), 0, data.Equipment{}, nil, dir, int(face), false)
+		doll, _ := composeFigure(s.inspector.archives.artSource(), figureOptions{Equipment: data.Equipment{}, Fig: figureID{Dir: dir, Face: int(face)}})
 		if doll.Figure != nil {
 			choices = append(choices, ui.InspectionChoice{Value: face, Label: fmt.Sprintf("%d", face)})
 			pictures[face] = doll.Figure

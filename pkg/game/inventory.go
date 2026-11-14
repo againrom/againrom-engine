@@ -175,11 +175,22 @@ func composeInventorySubject(src entrySource, id uint32, eq data.Equipment,
 // slot in the mask, so a press on it starts no drag of the anchor's item.
 func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipment, layers []figureLayer,
 	figureDir data.FigureDir, figureFace int) (ui.InventorySubject, []string) {
-	return composeDoll(src, id, eq, layers, figureDir, figureFace, true)
+	return composeFigure(src, figureOptions{ID: id, Equipment: eq, Layers: layers,
+		Fig: figureID{Dir: figureDir, Face: figureFace}, Icons: true})
 }
 
-func composeDoll(src entrySource, id uint32, eq data.Equipment, layers []figureLayer,
-	figureDir data.FigureDir, figureFace int, icons bool) (ui.InventorySubject, []string) {
+type figureOptions struct {
+	ID         uint32
+	Equipment  data.Equipment
+	Layers     []figureLayer
+	Fig        figureID
+	Background bool
+	Icons      bool
+}
+
+func composeFigure(src entrySource, opt figureOptions) (ui.InventorySubject, []string) {
+	id, eq, layers, icons := opt.ID, opt.Equipment, opt.Layers, opt.Icons
+	figureDir, figureFace := opt.Fig.Dir, opt.Fig.Face
 	var subject ui.InventorySubject
 	subject.ID = id
 	var hoverCoverage figureSlotCoverage
@@ -341,6 +352,9 @@ func composeDoll(src entrySource, id uint32, eq data.Equipment, layers []figureL
 	}
 
 	subject.HoverSlotMask = hoverCoverage.hoverMask(subject.SlotMask)
+	if opt.Background {
+		subject.Figure = addFigureBackground(src, subject.Figure, opt.Fig)
+	}
 	return subject, unread
 }
 

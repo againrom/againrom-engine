@@ -201,8 +201,8 @@ func composeDollEvidence(src entrySource, slots [sim.EquipSlots]uint16, fig figu
 }
 
 func composeUnitFigure(src entrySource, eq data.Equipment, fig figureID) (*image.RGBA, *ui.SlotMask) {
-	subject, _ := composeDoll(src, 0, eq, nil, fig.Dir, fig.Face, false)
-	return addFigureBackground(src, subject.Figure, fig), subject.SlotMask
+	subject, _ := composeFigure(src, figureOptions{Equipment: eq, Fig: fig, Background: true})
+	return subject.Figure, subject.SlotMask
 }
 
 // unitFigure is the composed doll for one entity, or nil for one this build

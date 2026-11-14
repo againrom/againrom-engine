@@ -170,7 +170,7 @@ func TestEditorIdentityPeopleCellsDrawTheMissionSprite(t *testing.T) {
 			t.Errorf("identity %#x shows the dialogue portrait", v)
 		}
 		if dir, face, ok := mapload.PlacedFigure(u, x.table); ok {
-			if doll, _ := composeDoll(x.archives.artSource(), 0, data.Equipment{}, nil, dir, face, false); doll.Figure != nil && bytes.Equal(doll.Figure.Pix, pic.Pix) {
+			if doll, _ := composeFigure(x.archives.artSource(), figureOptions{Equipment: data.Equipment{}, Fig: figureID{Dir: dir, Face: face}}); doll.Figure != nil && bytes.Equal(doll.Figure.Pix, pic.Pix) {
 				t.Errorf("identity %#x shows the bare paper doll", v)
 			}
 		}

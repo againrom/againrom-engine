@@ -53,9 +53,7 @@ func composeInventoryPortrait(src entrySource, id uint32, eq data.Equipment, fig
 }
 
 func composeInventoryPortraitLayered(src entrySource, id uint32, eq data.Equipment, layers []figureLayer, fig figureID) (ui.InventorySubject, []string) {
-	out, unread := composeInventorySubjectLayered(src, id, eq, layers, fig.Dir, fig.Face)
-	out.Figure = addFigureBackground(src, out.Figure, fig)
-	return out, unread
+	return composeFigure(src, figureOptions{ID: id, Equipment: eq, Layers: layers, Fig: fig, Background: true, Icons: true})
 }
 
 // The horse is a background layer on the same 160x240 canvas. It carries no
