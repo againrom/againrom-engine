@@ -288,11 +288,11 @@ func checkGuest(c Campaign, src *vfs.FS, d mod.MissionData, m mod.Mission) error
 	if !slices.Contains(c.Main, root.After) {
 		return fmt.Errorf("after %d is not a main mission of this install's campaign, nor a guest mission of the active mods", root.After)
 	}
-	if next, ok := c.AutoAdvance(root.After); ok {
+	offer, next, ok := c.opensTown(root.After)
+	switch {
+	case next != -1:
 		return fmt.Errorf("mission %d is followed by mission %d, not by a town", root.After, next)
-	}
-	offer, ok := c.NextMission(root.After)
-	if !ok || !offer.Town {
+	case !ok:
 		return fmt.Errorf("the win of mission %d opens no town", root.After)
 	}
 	joiners := 0

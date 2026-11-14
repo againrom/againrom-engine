@@ -541,14 +541,17 @@ func (t *Town) Won(n int) (side bool, accepted bool) {
 	return side, true
 }
 
+// advanceMain moves a restored town that names no main mission past the won
+// main mission completed, to the record the one win decision (after) names;
+// a record that is no main mission leaves it on completed.
 func (t *Town) advanceMain(completed int) {
 	if !t.camp.advances(completed, t.main) {
 		return
 	}
 	previous := t.main
 	t.main = completed
-	if next, ok := t.camp.NextMission(completed); ok {
-		t.main = next.Mission
+	if a := t.camp.after(completed, previous, false); containsMission(t.camp.Main, a.record) {
+		t.main = a.record
 	}
 	if t.main != previous {
 		t.records.loadMain(t.camp, t.main, false)

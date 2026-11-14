@@ -285,8 +285,8 @@ func (x *MapInspector) testPlayNumber(w *editorWorkspaceState) int {
 // companion, and the lowest number after it that checkGuest admits.
 func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 	for _, after := range c.Main {
-		offer, ok := c.NextMission(after)
-		if !ok || !offer.Town {
+		offer, _, ok := c.opensTown(after)
+		if !ok {
 			continue
 		}
 		for _, guest := range c.Chapters[offer.Mission].AddHero {
@@ -475,8 +475,7 @@ func (s *mapInspectionEdits) testPlayFirstLink(after int) int {
 		return after
 	}
 	for _, main := range c.Main {
-		_, auto := c.AutoAdvance(main)
-		if offer, ok := c.NextMission(main); ok && offer.Town && !auto && !follows(main) {
+		if _, _, ok := c.opensTown(main); ok && !follows(main) {
 			return main
 		}
 	}

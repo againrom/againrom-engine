@@ -72,6 +72,9 @@ func CheckWinRoute(files map[string]string) []Violation {
 						Reason: sel.Sel.Name + " call outside the session mission identity; read newMissionIdentity's answer"})
 				}
 			case *ast.FuncDecl:
+				if v, ok := townWinCopy(name, n); ok {
+					vs = append(vs, Violation{From: at(n.Pos()), Reason: v})
+				}
 				if winSuccessorConsumer(name, n.Name.Name) {
 					ast.Inspect(n.Body, func(node ast.Node) bool {
 						if sel, ok := node.(*ast.SelectorExpr); ok &&
@@ -120,11 +123,34 @@ func CheckWinRoute(files map[string]string) []Violation {
 	return vs
 }
 
+// townWinCopy reports a function that reads both AutoAdvance and NextMission
+// outside the two that own the question: Campaign.after and Campaign.opensTown.
+func townWinCopy(file string, fn *ast.FuncDecl) (string, bool) {
+	if file == "pkg/game/campaign.go" && receiverName(fn.Recv) == "Campaign" &&
+		(fn.Name.Name == "after" || fn.Name.Name == "opensTown") || fn.Body == nil {
+		return "", false
+	}
+	read := map[string]bool{}
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if sel, ok := node.(*ast.SelectorExpr); ok {
+			read[sel.Sel.Name] = true
+		}
+		return true
+	})
+	if read["AutoAdvance"] && read["NextMission"] {
+		return "town-win predicate in " + fn.Name.Name + "; ask Campaign.opensTown", true
+	}
+	return "", false
+}
+
 func winSuccessorConsumer(file, function string) bool {
-	return file == "pkg/game/town.go" && function == "Won" ||
+	return file == "pkg/game/town.go" && (function == "Won" || function == "advanceMain") ||
+		file == "pkg/game/modmission.go" && function == "checkGuest" ||
 		file == "pkg/game/campaignprogress.go" && function == "complete" ||
 		file == "pkg/game/campaignsession.go" && function == "recordWin" ||
 		file == "pkg/game/campaignreturn.go" && function == "routeAfterWin" ||
 		file == "pkg/game/campaign.go" && function == "winRoute" ||
-		file == "pkg/game/campaigngraph.go" && function == "follow"
+		file == "pkg/game/campaigngraph.go" && function == "follow" ||
+		file == "pkg/game/mapeditormodfields.go" && function == "modFields" ||
+		file == "pkg/game/mapedittestplay.go" && (function == "testPlayGuest" || function == "testPlayFirstLink")
 }

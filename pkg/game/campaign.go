@@ -352,6 +352,21 @@ func (c Campaign) offers(n int) bool {
 	return i < len(c.Offered) && c.Offered[i] == n
 }
 
+// opensTown is the one answer to "does the win of main mission n open a
+// town": the next main mission, where a building offers it. next is the
+// successor n's own section declares, or -1 (AutoGetMission's none); a
+// declared successor follows n and no town opens.
+func (c Campaign) opensTown(n int) (town Offer, next int, ok bool) {
+	if s, auto := c.AutoAdvance(n); auto {
+		return Offer{}, s, false
+	}
+	offer, ok := c.NextMission(n)
+	if !ok || !offer.Town {
+		return Offer{}, -1, false
+	}
+	return offer, -1, true
+}
+
 // TownBegins is the lowest mission any building offers, and whether there is
 // one: the boundary between the prologue the campaign plays before a town and
 // the part a town drives.

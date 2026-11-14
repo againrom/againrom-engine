@@ -41,10 +41,8 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 			c, e := LoadCampaign(x.archives.Containers)
 			if e == nil {
 				for _, n := range c.Main {
-					if town, ok := c.NextMission(n); ok && town.Town {
-						if _, auto := c.AutoAdvance(n); !auto {
-							f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(n), Label: x.inspectionUTF8(fmt.Sprintf("%s %d", x.word("editor.mod.campaign"), n))})
-						}
+					if _, _, ok := c.opensTown(n); ok {
+						f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(n), Label: x.inspectionUTF8(fmt.Sprintf("%s %d", x.word("editor.mod.campaign"), n))})
 					}
 				}
 			}
