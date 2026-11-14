@@ -299,7 +299,7 @@ func TestMapPagesLegacyPackagePreservesCommon(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeTestPlayInput(t, filepath.Join(folder, editorPackageRecord), testPlayRecordBytes(old))
-	if err := workspaceField(e, "package", 0, folder); err != nil {
+	if _, err := s.SetWorkspaceField("package", "folder", folder); err != nil {
 		t.Fatal(err)
 	}
 	s = e.Document().Edits.(*mapInspectionEdits)
