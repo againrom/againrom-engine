@@ -31,18 +31,18 @@ func entryOf(t *testing.T, list []MapEntry, path string) MapEntry {
 	return MapEntry{}
 }
 
-func TestMakeMissionGuestPlaysAfterTheLastGuestAndTakesAFreeNumber(t *testing.T) {
+func TestMakeMissionGuestIsTheEditorsDefaultGuestNamingTheMap(t *testing.T) {
 	files := []string{"mod.toml", MissionsFile, "maps/first.alm", "maps/second.alm"}
 	d := MissionData{Missions: []Mission{
 		{Mod: "m", File: MissionsFile, Key: "first", Kind: MissionGuest, Number: 21, After: 0, Map: "maps/first.alm"},
 	}}
 	e := entryOf(t, MapList(files, "m", d), "maps/second.alm")
-	// 22 is a mission of the install, so the free number is 23.
-	row, err := MakeMission("m", d, e, 0, heldOnly(22))
+	guest := Mission{Mod: "x", Key: "map", Kind: MissionGuest, Number: 23, After: 21, Party: []GuestMember{{Character: "c"}}}
+	row, err := MakeMission("m", d, e, guest, 0, heldOnly(22))
 	if err != nil {
 		t.Fatalf("make guest: %v", err)
 	}
-	want := Mission{Mod: "m", File: MissionsFile, Key: "second", Kind: MissionGuest, Number: 23, After: 21, Map: "maps/second.alm"}
+	want := Mission{Mod: "m", File: MissionsFile, Key: "second", Kind: MissionGuest, Number: 23, After: 21, Map: "maps/second.alm", Party: []GuestMember{{Character: "c"}}}
 	if !reflect.DeepEqual(row, want) {
 		t.Fatalf("guest row:\n got %+v\nwant %+v", row, want)
 	}
@@ -52,7 +52,7 @@ func TestMakeMissionReplaceNTakesAMissionTheInstallHolds(t *testing.T) {
 	files := []string{MissionsFile, "maps/second.alm"}
 	d := MissionData{}
 	e := entryOf(t, MapList(files, "m", d), "maps/second.alm")
-	row, err := MakeMission("m", d, e, 40, heldOnly(40))
+	row, err := MakeMission("m", d, e, Mission{}, 40, heldOnly(40))
 	if err != nil {
 		t.Fatalf("make replace: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestMakeMissionRefusesANumberTheInstallLacks(t *testing.T) {
 	files := []string{MissionsFile, "maps/second.alm"}
 	d := MissionData{}
 	e := entryOf(t, MapList(files, "m", d), "maps/second.alm")
-	if _, err := MakeMission("m", d, e, 41, heldOnly(40)); err == nil {
+	if _, err := MakeMission("m", d, e, Mission{}, 41, heldOnly(40)); err == nil {
 		t.Fatal("replace 41 accepted; the install holds 40 only")
 	}
 }
@@ -74,7 +74,7 @@ func TestMakeMissionRefusesAMapThatAlreadyHasRows(t *testing.T) {
 	files := []string{MissionsFile, "maps/first.alm"}
 	d := MissionData{Missions: []Mission{{Mod: "m", File: MissionsFile, Key: "first", Kind: MissionGuest, Number: 21, Map: "maps/first.alm"}}}
 	e := entryOf(t, MapList(files, "m", d), "maps/first.alm")
-	if _, err := MakeMission("m", d, e, 0, heldOnly()); err == nil {
+	if _, err := MakeMission("m", d, e, Mission{}, 0, heldOnly()); err == nil {
 		t.Fatal("make mission on a map a row names was accepted")
 	}
 }
@@ -92,23 +92,19 @@ func TestMakeRowNamesTheMapThatReplacesByFileName(t *testing.T) {
 	}
 }
 
-func TestPlaceMapKeepsTheStemOrTakesTheNextSuffix(t *testing.T) {
-	files := []string{"maps/first.alm", "maps/second-2.almx", "maps/x/first.alm"}
-	cases := []struct{ stem, ext, want string }{
-		{"third", ".alm", "maps/third.alm"},
-		{"first", ".alm", "maps/first-2.alm"},
-		{"First", ".almx", "maps/First-2.almx"},
-		{"second", ".almx", "maps/second.almx"},
-		{"second", ".alm", "maps/second.alm"},
+func TestPlaceFolderMapsTakeTheNextSuffixAgainstTheModsFiles(t *testing.T) {
+	files := []string{"maps/first.alm", "maps/second-2.almx", "maps/third.variables", "maps/first-2.alm"}
+	folder := FolderMaps([]string{"first.alm", "second.almx", "third.alm", "fourth.alm", "12.alm"})
+	got := PlaceFolderMaps(files, folder)
+	want := map[string]string{
+		"first.alm":   "maps/first-3.alm",
+		"second.almx": "maps/second.almx",
+		"third.alm":   "maps/third-2.alm",
+		"fourth.alm":  "maps/fourth.alm",
+		"12.alm":      "maps/m12.alm",
 	}
-	for _, c := range cases {
-		if got := PlaceMap(files, c.stem, c.ext); got != c.want {
-			t.Errorf("PlaceMap(%q, %q) = %q, want %q", c.stem, c.ext, got, c.want)
-		}
-	}
-	files = append(files, "maps/first-2.alm")
-	if got := PlaceMap(files, "first", ".alm"); got != "maps/first-3.alm" {
-		t.Errorf("third copy = %q, want maps/first-3.alm", got)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("places:\n got %v\nwant %v", got, want)
 	}
 }
 

@@ -13,12 +13,12 @@ import (
 
 // MakeMission is the row that makes unused map e a mission of mod id: a
 // guest mission when replace is 0, else a replacing mission of mission
-// number replace. A guest plays after the last guest row of d and takes the
-// first number from the mission numbers the install does not hold. held is
-// the install's answer for a number (nil for a mission it plays); with no
-// install it is nil, and a replacement is then refused. The caller appends
-// the row and writes it with WriteMissions.
-func MakeMission(id string, d MissionData, e MapEntry, replace int, held func(n int) error) (Mission, error) {
+// number replace. A guest is the default guest row the editor's Add builds,
+// passed as guest (its number, the mission it plays after and its party),
+// naming e. held is the install's answer for a number (nil for a mission it
+// plays); with no install it is nil, and a replacement is then refused. The
+// caller appends the row and writes it with WriteMissions.
+func MakeMission(id string, d MissionData, e MapEntry, guest Mission, replace int, held func(n int) error) (Mission, error) {
 	if e.Role() != MapUnused {
 		return Mission{}, errors.New("map is already named by a mission")
 	}
@@ -33,15 +33,8 @@ func MakeMission(id string, d MissionData, e MapEntry, replace int, held func(n 
 		m.Kind, m.Number = MissionReplace, replace
 		return m, nil
 	}
-	m.Kind = MissionGuest
-	for i := len(d.Missions) - 1; i >= 0; i-- {
-		if g := d.Missions[i]; g.Kind == MissionGuest && !g.Off {
-			m.After = g.Number
-			break
-		}
-	}
-	m.Number = freeNumber(d, held)
-	return m, nil
+	guest.Mod, guest.File, guest.Key, guest.Map = m.Mod, m.File, m.Key, m.Map
+	return guest, nil
 }
 
 // MakeRow is the replacing row of a map that replaces its mission by file
@@ -65,29 +58,6 @@ func mapKey(d MissionData, stem string) string {
 		key = stem + "_" + strconv.Itoa(suffix)
 	}
 	return key
-}
-
-// freeNumber is the lowest number above every row of d that the install does
-// not hold as a mission, so a guest row never takes a campaign number.
-func freeNumber(d MissionData, held func(n int) error) int {
-	top := 0
-	for _, m := range d.Missions {
-		top = max(top, m.Number)
-	}
-	for n := top + 1; ; n++ {
-		if held != nil && held(n) == nil {
-			continue
-		}
-		return n
-	}
-}
-
-// PlaceMap is the path of a copy of a map called stem with extension ext in
-// mod files: maps/<stem><ext>, or with -2, -3 and so on when a map of that
-// stem is already among the maps folder's files, whatever its extension.
-func PlaceMap(files []string, stem, ext string) string {
-	taken := mapStems(files)
-	return MapsFolder + "/" + placeStem(taken, stem) + ext
 }
 
 // FolderMap is one map of a folder being added to a mod: its file name, its
@@ -138,39 +108,20 @@ func belongsTo(name, stem string) bool {
 }
 
 // PlaceFolderMaps is where each file of folder goes in the mod, keyed by its
-// folder path: the map and its files under maps/ with the stem the mod
-// takes for it. The stems are placed in folder order against the mod's maps
-// and each other, so a second copy of a stem takes the next suffix.
+// folder path: the map and its files under maps/ at the place the mod's one
+// placement rule (MissionPlace.Free) gives its stem. The maps are placed in
+// folder order against the mod's files and each other, so a second copy of
+// a stem takes the next suffix.
 func PlaceFolderMaps(files []string, folder []FolderMap) map[string]string {
-	taken := mapStems(files)
+	held := slices.Clone(files)
 	out := map[string]string{}
 	for _, f := range folder {
-		stem := placeStem(taken, f.Stem)
+		place := PlaceMission(MissionStem(f.Stem), f.Ext == ExtendedMapExt).Free(held)
+		held = append(held, place.Map)
+		stem := strings.TrimSuffix(place.Map, path.Ext(place.Map))
 		for _, name := range f.Files {
-			out[name] = MapsFolder + "/" + stem + name[len(f.Stem):]
+			out[name] = stem + name[len(f.Stem):]
 		}
 	}
 	return out
-}
-
-// mapStems is the folded stems of the map files directly in the maps folder.
-func mapStems(files []string) map[string]bool {
-	taken := map[string]bool{}
-	for _, f := range files {
-		if path.Dir(f) == MapsFolder && isMapFile(f) {
-			taken[namefold.ModTree(strings.TrimSuffix(path.Base(f), path.Ext(f)))] = true
-		}
-	}
-	return taken
-}
-
-// placeStem is stem, or stem-2, stem-3 and so on, the first not taken; it
-// marks the stem taken.
-func placeStem(taken map[string]bool, stem string) string {
-	name := stem
-	for n := 2; taken[namefold.ModTree(name)]; n++ {
-		name = stem + "-" + strconv.Itoa(n)
-	}
-	taken[namefold.ModTree(name)] = true
-	return name
 }
