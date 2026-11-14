@@ -1316,6 +1316,7 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("load %s: %w", e.Source, err)
 	}
+	mw.world.SetSmoothRegen(f.runtime.smoothRegen)
 	if !e.FromArchive {
 		mw.usePlayerColours(mv.Map)
 	}

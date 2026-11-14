@@ -152,6 +152,10 @@ func (w *World) CheatCurse(hero EntityID) bool {
 
 func (w *World) SetSafeMode(enabled bool) { w.safeMode = enabled }
 
+// SetSmoothRegen spreads each health and mana gain over the sub-ticks of its
+// window. It is a launch option: not saved, not hashed.
+func (w *World) SetSmoothRegen(on bool) { w.smoothRegen = on }
+
 func (w *World) CheatSummon(template Entity, pack []ItemStack, worn [EquipSlots]ItemInstance, x, y int32) (EntityID, error) {
 	if _, ok := w.cellIndex(x, y); !ok {
 		return 0, fmt.Errorf("sim: cheat summon anchor is outside map")

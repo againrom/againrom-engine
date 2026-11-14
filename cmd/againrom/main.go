@@ -110,7 +110,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n> [-hero <kind>]] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       againrom --editor <map editor arguments>\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-smooth-regen] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n> [-hero <kind>]] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       againrom --editor <map editor arguments>\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // chargenUsage is the -chargen flag's own help text, named because parse
 // discards the flag set's output, so a second copy of this string could drift
@@ -305,6 +305,7 @@ type options struct {
 	check               bool
 	markers             bool
 	chicken             bool
+	smoothRegen         bool
 	shopStockMultiplier int
 	// window opens the game in a decorated window instead of over the whole
 	// screen; Alt+Enter switches between the two while the game runs.
@@ -580,6 +581,7 @@ func modFrontEnd(root string, o options, preferences game.OptionsStore, files mo
 	// path, so -markers=false leaves them on screen and takes the crosses off.
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
 	front.SetChickenAtMissionStart(o.chicken)
+	front.SetSmoothRegen(o.smoothRegen)
 	if err := front.SetShopStockMultiplier(max(launchset.ShopStockMultiplier.Min, o.shopStockMultiplier)); err != nil {
 		return nil, err
 	}

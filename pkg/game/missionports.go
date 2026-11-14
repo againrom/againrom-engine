@@ -84,6 +84,7 @@ func (f *FrontEnd) missionPorts() missionPorts {
 			textSmoothing:      !f.smoothingOff.text,
 			deterministicFrame: f.runtime.deterministicFrames,
 			chicken:            f.runtime.chicken,
+			smoothRegen:        f.runtime.smoothRegen,
 		},
 		art:         viewerArtSource{in: &f.InstallResources, pr: &f.Presentation, pc: &f.PersistenceContext}.resolve,
 		cityBase:    cityBaseFrom(f, f.Table),

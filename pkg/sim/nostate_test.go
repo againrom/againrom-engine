@@ -114,6 +114,7 @@ var nstPinned = []struct {
 		{"carried", "[][]sim.ItemStack"},
 		{"equipment", "[][12]sim.ItemInstance"},
 		{"purses", "[50]uint32"},
+		{"smoothRegen", "bool"},
 		// The burst picture's installed phase count, install-derived like ghost
 		// and carried across a decode, and the blasts of one effect walk that
 		// wait for their record; the queue is empty between ticks.

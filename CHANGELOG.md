@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [BASE] Both games: F4 to F12 are nine shortcut slots, each a spell or an item: Shift with the pointer over a carried item binds it and the item shows its key, Ctrl binds a book spell (one you hold only as scrolls too); the key puts on, drinks or readies what it holds, as the inventory would. Your shortcuts are kept in your saves. In the first game F5 to F8 keep your spells and your own keys; the grid, readout and frame rate keys move to Ctrl+Shift+F10 to F12.
 - [BASE] On the Keys page the mouse pointer no longer freezes while the game waits for a new key.
 - [BASE] F2 quick saves and the timed autosave are kept per game (rom1-/rom2- files), so one game no longer rotates away the other's saves, F3 loads the running game's newest quick save, and each game's Load list shows its own; an older unprefixed quick or timed save stays loadable and is never overwritten.
+- [BASE] New launch option -smooth-regen: health and mana come back in many small steps instead of rarer larger ones, at the same overall speed, the faster recovery after a rest included; off by default.
 
 ### For map makers and modders
 

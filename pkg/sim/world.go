@@ -1926,6 +1926,8 @@ type World struct {
 	equipment  [][EquipSlots]ItemInstance
 	purses     [relationSlots]uint32
 
+	smoothRegen bool
+
 	// burst holds the Fire_Ball burst's installed phase count and the blasts of
 	// the current effect walk that have not yet built their record. Neither is
 	// saved: the count is install-derived input like ghost, carried across a

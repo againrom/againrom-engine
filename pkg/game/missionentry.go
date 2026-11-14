@@ -103,6 +103,7 @@ type missionDisplay struct {
 	textSmoothing      bool
 	deterministicFrame bool
 	chicken            bool
+	smoothRegen        bool
 }
 
 // enterMission builds the complete map screen for one mission and returns the
@@ -166,6 +167,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// world opens nothing, and a driver that went looking for an install
 	// itself would give one mission two behaviours depending on when it ran.
 	mw := ports.install.openMissionDriver(ms, r.units, mv.Viewer)
+	mw.world.SetSmoothRegen(ports.display.smoothRegen)
 	mw.projectileCounter = ports.projectiles
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)

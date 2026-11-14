@@ -17,6 +17,7 @@ import (
 type runtimeSwitches struct {
 	deterministicFrames bool
 	chicken             bool
+	smoothRegen         bool
 	shopStockMultiplier int32
 }
 
@@ -36,6 +37,9 @@ type cheatConsole struct {
 
 func (f *FrontEnd) SetChickenAtMissionStart(on bool) { f.runtime.chicken = on }
 func (f *FrontEnd) ChickenAtMissionStart() bool      { return f != nil && f.runtime.chicken }
+
+func (f *FrontEnd) SetSmoothRegen(on bool) { f.runtime.smoothRegen = on }
+func (f *FrontEnd) SmoothRegen() bool      { return f != nil && f.runtime.smoothRegen }
 
 func (f *FrontEnd) chatCommand(line string) {
 	if f != nil && f.live != nil {

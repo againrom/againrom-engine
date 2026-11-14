@@ -80,8 +80,13 @@ func (w *World) beginSessionTick(tr *ScriptTrace, obs *castObs, withdrawals *wit
 		w.actorPass()
 		w.withdrawalPassObserved(withdrawals)
 	}
+	if w.smoothRegen {
+		w.regenerateActorsSmooth(c)
+	}
 	if c.poolsDue() {
-		w.regenerateActors(c.healthDue())
+		if !w.smoothRegen {
+			w.regenerateActors(c.healthDue())
+		}
 		w.decaySessionActors(c)
 	}
 	c.advanceSubTick()

@@ -34,23 +34,63 @@ const (
 // map heal on four staggered passes. The pass count is the sub-tick over
 // sixteen; the original counts passes in a counter of its own.
 func (w *World) regenPass() {
+	const phases = healthRegenCycle / manaRegenCycle
+	if w.smoothRegen {
+		mana := windowPart(w.tick%manaRegenCycle, regenPhase, manaRegenCycle)
+		w.regenerateEach(mana, func(e *Entity) (regenPart, bool) {
+			end := uint64(e.SourceBinding.RuntimeID)%phases*manaRegenCycle + regenPhase
+			return windowPart(w.tick%healthRegenCycle, end, healthRegenCycle), true
+		})
+		return
+	}
 	if w.tick%manaRegenCycle != regenPhase {
 		return
 	}
-	const phases = healthRegenCycle / manaRegenCycle
 	pass := w.tick / manaRegenCycle
-	w.regenerateEach(func(e *Entity) bool { return pass%phases == uint64(e.SourceBinding.RuntimeID)%phases })
+	w.regenerateEach(regenPart{}, func(e *Entity) (regenPart, bool) {
+		return regenPart{}, pass%phases == uint64(e.SourceBinding.RuntimeID)%phases
+	})
 }
 
 // regenerateActors is the first game's pool pass: health moves for every
 // actor or for none.
 func (w *World) regenerateActors(health bool) {
-	w.regenerateEach(func(*Entity) bool { return health })
+	w.regenerateEach(regenPart{}, func(*Entity) (regenPart, bool) { return regenPart{}, health })
 }
 
-// regenerateEach advances each on-map actor's pools; healthDue says whether
-// the health arm runs for that actor on this pass.
-func (w *World) regenerateEach(healthDue func(*Entity) bool) {
+// regenerateActorsSmooth is the first game's pool pass under the smooth option.
+// FullTick turns over after phase 14, so a cycle position counts from phase 15.
+func (w *World) regenerateActorsSmooth(c SessionClock) {
+	phase := uint64((c.phase() + 16) % 16)
+	cycle := uint64(c.FullTick&3)*manaRegenCycle + (phase+1)%manaRegenCycle
+	health := windowPart(cycle, regenPhase+1, healthRegenCycle)
+	w.regenerateEach(windowPart(phase, regenPhase, manaRegenCycle), func(*Entity) (regenPart, bool) { return health, true })
+}
+
+// regenPart is part j of k of a window's gain; the zero value is the whole.
+type regenPart struct{ j, k int64 }
+
+// windowPart is the part at position pos of a cycle of k closing at end.
+func windowPart(pos, end, k uint64) regenPart {
+	return regenPart{j: int64((pos + 2*k - end - 1) % k), k: int64(k)}
+}
+
+// share is G*(j+1)/k - G*j/k; ok is false when that overflows int64.
+func (p regenPart) share(gain int64) (int64, bool) {
+	if p.k == 0 {
+		return gain, true
+	}
+	if gain > math.MaxInt64/p.k || gain < math.MinInt64/p.k {
+		return 0, false
+	}
+	return gain*(p.j+1)/p.k - gain*p.j/p.k, true
+}
+
+func (p regenPart) last() bool { return p.k == 0 || p.j == p.k-1 }
+
+// regenerateEach advances each on-map actor's pools by the mana part and by
+// the part health names for the actor, if the health arm runs.
+func (w *World) regenerateEach(mana regenPart, health func(*Entity) (regenPart, bool)) {
 	for i := range w.entities {
 		e := &w.entities[i]
 		// The pass walks the on-map list, which an actor a script took off the
@@ -59,21 +99,21 @@ func (w *World) regenerateEach(healthDue func(*Entity) bool) {
 		if e.OffMap {
 			continue
 		}
-		health := healthDue(e)
+		healthPart, healthDue := health(e)
 		if e.CurrentProfileBasis == ProfileOriginalCurrent {
-			w.regenerateOriginalCurrent(i, health)
+			w.regenerateOriginalCurrent(i, healthDue, mana, healthPart)
 			continue
 		}
 		if !e.InLife(w.game.regenLife) {
 			continue
 		}
 		rate := e.regenerationRate(w.tick)
-		mana := e.Mana
-		regenerate(&mana, e.MaxMana, e.ManaRegenPeriod, &e.ManaHundredths, 1, e.ManaRegeneration, rate)
-		e.setCurrentMana(mana)
-		if health {
+		m := e.Mana
+		regenerate(&m, e.MaxMana, e.ManaRegenPeriod, &e.ManaHundredths, 1, e.ManaRegeneration, rate, mana)
+		e.setCurrentMana(m)
+		if healthDue {
 			hp := e.HP
-			regenerate(&hp, e.MaxHP, e.HealthRegenPeriod, &e.HealthHundredths, 2, e.HealthRegeneration, rate)
+			regenerate(&hp, e.MaxHP, e.HealthRegenPeriod, &e.HealthHundredths, 2, e.HealthRegeneration, rate, healthPart)
 			e.setCurrentHealth(hp)
 		}
 	}
@@ -104,19 +144,23 @@ func (w *World) regenerateEach(healthDue func(*Entity) bool) {
 // whole product: a gain that truncates to zero on a given tick is the
 // arithmetic's own answer, not a defect, because the remainder byte is what
 // carries the rest to the next qualifying tick (AC-2).
-func regenerate(cur *int32, max, period int32, rest *uint8, double int64, modifier, rate int32) {
+func regenerate(cur *int32, max, period int32, rest *uint8, double int64, modifier, rate int32, part regenPart) {
 	if max <= 0 || *cur >= max || period <= 0 {
 		return
 	}
 	product := int64(max) * double * int64(regenPercent+modifier)
 	if rate > 1 && (product > math.MaxInt64/int64(rate) || product < math.MinInt64/int64(rate)) {
-		regenerateWide(cur, max, period, rest, product, rate)
+		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
 	}
-	gain := product * int64(rate) / int64(period)
+	gain, fits := part.share(product * int64(rate) / int64(period))
+	if !fits {
+		regenerateWide(cur, max, period, rest, product, rate, part)
+		return
+	}
 	base := int64(*cur)*regenScale + int64(*rest)
 	if (base > 0 && gain > math.MaxInt64-base) || (base < 0 && gain < math.MinInt64-base) {
-		regenerateWide(cur, max, period, rest, product, rate)
+		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
 	}
 	acc := base + gain
@@ -136,11 +180,19 @@ func regenerate(cur *int32, max, period int32, rest *uint8, double int64, modifi
 // Only extreme native int32 modifiers need this path. Rate3 must not turn a
 // positive widened gain into damage by overflowing the former rate1 product.
 // The original-current consumer deliberately retains its separate dword wrap.
-func regenerateWide(cur *int32, maximum, period int32, rest *uint8, product int64, rate int32) {
+func regenerateWide(cur *int32, maximum, period int32, rest *uint8, product int64, rate int32, part regenPart) {
 	var acc, gain, q, rem big.Int
 	gain.SetInt64(product)
 	gain.Mul(&gain, big.NewInt(int64(rate)))
 	gain.Quo(&gain, big.NewInt(int64(period)))
+	if part.k != 0 {
+		var hi, lo big.Int
+		hi.Mul(&gain, big.NewInt(part.j+1))
+		hi.Quo(&hi, big.NewInt(part.k))
+		lo.Mul(&gain, big.NewInt(part.j))
+		lo.Quo(&lo, big.NewInt(part.k))
+		gain.Sub(&hi, &lo)
+	}
 	acc.SetInt64(int64(*cur)*100 + int64(*rest))
 	acc.Add(&acc, &gain)
 	q.QuoRem(&acc, big.NewInt(100), &rem)
