@@ -173,24 +173,24 @@ func TestViewerStep(t *testing.T) {
 
 	t.Run("a wheel notch zooms about the view centre", func(t *testing.T) {
 		for _, tc := range []struct {
-			name   string
-			wheel  float64
-			factor float64
+			name  string
+			wheel float64
+			want  float64
 		}{
-			{"in", +1, WheelZoomStep},
-			{"out", -1, 1 / WheelZoomStep},
+			{"in", +1, 1.05},
+			{"out", -1, 0.95},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				v := stepViewer(t)
-				z0 := v.Camera().Zoom
+				v.Camera().SetZoom(1)
 				v.syncMapViewport()
 				sx, sy := float64(v.Camera().ViewW)/2, float64(v.Camera().ViewH)/2
 				wx, wy := v.Camera().ScreenToWorld(sx, sy)
 
 				v.step(Input{CursorX: centre.x, CursorY: centre.y, WheelY: tc.wheel}, frozen)
 
-				if got, want := v.Camera().Zoom, z0*tc.factor; math.Abs(got-want) > 1e-12 {
-					t.Errorf("Zoom = %v, want %v", got, want)
+				if got := v.Camera().Zoom; math.Abs(got-tc.want) > 1e-12 {
+					t.Errorf("Zoom = %v, want %v", got, tc.want)
 				}
 				gx, gy := v.Camera().ScreenToWorld(sx, sy)
 				if math.Abs(gx-wx) > 1e-9 || math.Abs(gy-wy) > 1e-9 {

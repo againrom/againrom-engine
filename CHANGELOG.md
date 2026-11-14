@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] Change one saved Smoothing setting in Game Options or with Ctrl+O across game screens.
 - [ROM2] P now sends the first selected hero who sees a sack to collect sacks one after another, and he holds his ground when none is left in reach; heroes sent to the same sack no longer wait for each other.
+- [BASE] Mouse wheel zoom in missions moves 5 percent per notch up to 200 percent and 25 percent per notch above it; the map editor keeps its old step.
 
 ### For map makers and modders
 
@@ -35,6 +36,8 @@ modder or developer can notice gets no entry.
 - [BASE] On the campaign graph, where two arrows cross, the upper arrow now steps over the other in a small square bump.
 - [BASE] Map editor Units window: the tabs are now "Humans and Creatures" and "Named characters", a new "Humans" row lists every non-hero human sprite type, and pointing at a human shows their portrait or full figure.
 - [BASE] Map editor mod window: the Maps tab is gone (the Open window still lists the mod's maps), the Files list on the Overview tab starts folded and opens with a click or Enter, and pressing a tab while a confirmation waits cancels it and shows that tab.
+- [BASE] Map editor F5 "who plays the map" window: on Standard it no longer shows the character boxes that could not be changed, and every character box stays pressable after the window was made narrower or switched from Standard to Custom.
+- [BASE] Map editor campaign graph: cards stand further apart, each town lists its hand-outs side mission first, then main mission, then none, and the lines no longer cross or run close together.
 
 ## 0.154.0
 

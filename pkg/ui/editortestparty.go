@@ -209,6 +209,8 @@ func (e *MapEditor) testPartyAny() bool {
 // plays, and under it the skills and spells boxes; a card whose character
 // does not cast has no spells box. The lines the notice before a test play
 // lists stand in the window, and Start takes no press with nobody chosen.
+// Standard shows no grid: the mission's own party plays and no box could
+// change it.
 // The middle button names the kind of hero the cards stand beside, since
 // the game composes three of the companions by the hero's class and sex; a
 // press takes the next kind. A name wider than its card takes two lines.
@@ -223,15 +225,19 @@ func (e *MapEditor) testPartySpec() popupSpec {
 	custom := !e.prompt.party.declared || e.testPartyCustom
 	disabled := []bool{custom && !e.testPartyAny(), !custom, false}
 	if e.prompt.party.declared {
-		mode := "editor.testparty.standard"
+		mode := e.word("editor.testparty.standard")
 		if e.testPartyCustom {
-			mode = "editor.testparty.custom"
+			mode = e.word("editor.testparty.custom")
 		}
-		buttons, disabled = append(buttons, e.word("editor.testparty.mode")+": "+e.word(mode)), append(disabled, false)
+		buttons, disabled = append(buttons, e.word("editor.testparty.mode")+": "+mode), append(disabled, false)
 	}
 	s := e.questionSpec(e.word("editor.testparty.title"), notes, buttons)
 	s.Disabled = disabled
 	body := e.bodyFont()
+	if !custom {
+		s.At = e.promptCorner(centreQuestion, layoutPopup(s, e.font, body).Rect.Size())
+		return s
+	}
 	heads := []string{e.word("editor.testparty.plays"), e.word("editor.testparty.skills"), e.word("editor.testparty.spells")}
 	line := fontHeight(body, 15) + popupRowExtra
 	g := &popupGrid{Rows: testPartyRows, Cols: len(cards), RowHeads: heads, HeadW: 8, HeadH: line, HeadFlat: true}

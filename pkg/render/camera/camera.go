@@ -332,9 +332,35 @@ func (c *Camera) ZoomAbout(sx, sy, factor float64) {
 	if factor <= 0 || math.IsNaN(factor) {
 		return
 	}
+	c.zoomAbout(sx, sy, c.zoom()*factor)
+}
+
+func (c *Camera) ZoomStepAbout(sx, sy float64, fine, coarse, from, dir int) {
+	if fine <= 0 || coarse <= 0 || dir == 0 {
+		return
+	}
+	pct := c.zoom() * 100
+	step := float64(coarse)
+	if pct < float64(from)-1e-9 || (dir < 0 && pct <= float64(from)+1e-9) {
+		step = float64(fine)
+	}
+	var n float64
+	if dir > 0 {
+		n = math.Floor(pct/step+1e-9) + 1
+	} else {
+		n = math.Ceil(pct/step-1e-9) - 1
+	}
+	target := math.Min(math.Max(n*step/100, c.zoomFloor()), ZoomMax)
+	if target == c.zoom() {
+		return
+	}
+	c.zoomAbout(sx, sy, target)
+}
+
+func (c *Camera) zoomAbout(sx, sy, target float64) {
 	wx, wy := c.ScreenToWorld(sx, sy)
 
-	c.Zoom = math.Min(math.Max(c.zoom()*factor, c.zoomFloor()), ZoomMax)
+	c.Zoom = math.Min(math.Max(target, c.zoomFloor()), ZoomMax)
 
 	// Re-anchor: solve X so that (wx, wy) lands back on (sx, sy) at the new zoom.
 	z := c.zoom()

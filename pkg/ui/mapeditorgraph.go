@@ -100,13 +100,19 @@ const (
 	// graphPad is the sheet's margin, graphGapX and graphGapY the room
 	// between two columns and two rows of boxes.
 	graphPad  = 14
-	graphGapX = 22
-	graphGapY = 14
+	graphGapX = 34
+	graphGapY = 28
 	// graphNarrow and graphWide bound a column's width.
 	graphNarrow = 56
 	graphWide   = 230
 	// graphLane is the room one upright lane takes right of the columns.
-	graphLane = 6
+	graphLane = 10
+	// graphRunBase is how far over its row the lowest run of lines runs,
+	// graphRunStep the room between two runs over one row, and graphRuns
+	// how many levels a row's runs take before they begin again.
+	graphRunBase = 4
+	graphRunStep = 5
+	graphRuns    = 4
 )
 
 // The inks of the four mod marks, on a node and in the legend.
@@ -403,9 +409,15 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 		}
 	}
 	mid := func(row int) int { return graphPad + row*pitch + tall/2 }
-	// above is the level of a line's run over node i, in the gap over its
-	// row; the nodes of one row take runs at different levels.
-	above := func(i int) int { return graphPad + page.Nodes[i].Row*pitch - 4 - 3*(page.Nodes[i].Column%4) }
+	// rank is the place of a node among the nodes of its row that lane
+	// lines come down to, left to right; above is the level of a line's
+	// run over node i, in the gap over its row. A node further right takes
+	// a higher run, so the run over it passes above the lines coming down
+	// to the nodes before it.
+	rank := make([]int, len(page.Nodes))
+	above := func(i int) int {
+		return graphPad + page.Nodes[i].Row*pitch - graphRunBase - graphRunStep*rank[i]
+	}
 	clear := func(from, to CampaignGraphNode) bool {
 		for k := from.Column + 1; k < to.Column; k++ {
 			if taken[image.Pt(k, from.Row)] {
@@ -449,13 +461,58 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 			route[k] = routeTrunk
 		default:
 			route[k] = routeLane
-			key := laneKey{from.Column, ed.To}
-			span, ok := spans[key]
-			if !ok {
-				span = [2]int{above(ed.To), above(ed.To)}
-			}
-			spans[key] = [2]int{min(span[0], leaves[k]), max(span[1], leaves[k])}
 		}
+	}
+	// A run passes over the columns between its lane and its node; the run
+	// over a node that stands under that stretch comes down from lower.
+	landed := map[int]bool{}
+	for k, ed := range page.Edges {
+		if route[k] == routeLane {
+			landed[ed.To] = true
+		}
+	}
+	under := map[int][]int{}
+	for k, ed := range page.Edges {
+		if route[k] != routeLane {
+			continue
+		}
+		from, to := page.Nodes[ed.From], page.Nodes[ed.To]
+		for j, n := range page.Nodes {
+			if j == ed.To || n.Row != to.Row || !landed[j] {
+				continue
+			}
+			if from.Column < to.Column && n.Column > from.Column && n.Column < to.Column ||
+				from.Column >= to.Column && n.Column > to.Column && n.Column <= from.Column {
+				under[ed.To] = append(under[ed.To], j)
+			}
+		}
+	}
+	var climb func(i int, seen map[int]bool) int
+	climb = func(i int, seen map[int]bool) int {
+		if seen[i] {
+			return -1
+		}
+		seen[i] = true
+		best := -1
+		for _, j := range under[i] {
+			best = max(best, climb(j, seen))
+		}
+		delete(seen, i)
+		return best + 1
+	}
+	for i := range under {
+		rank[i] = min(climb(i, map[int]bool{}), graphRuns-1)
+	}
+	for k, ed := range page.Edges {
+		if route[k] != routeLane {
+			continue
+		}
+		key := laneKey{page.Nodes[ed.From].Column, ed.To}
+		span, ok := spans[key]
+		if !ok {
+			span = [2]int{above(ed.To), above(ed.To)}
+		}
+		spans[key] = [2]int{min(span[0], leaves[k]), max(span[1], leaves[k])}
 	}
 	// The targets of one gap take its lanes in the order their spans begin,
 	// each the first lane no earlier span reaches.

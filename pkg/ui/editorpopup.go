@@ -312,6 +312,17 @@ func gridRoom(s popupSpec) image.Rectangle {
 // room allows.
 const gridLeastCols = 6
 
+// fixedGridWidth is the width a grid with a fixed column count needs to show
+// every column; zero for any other popup. A sized popup is held to it, since
+// a column outside the window takes no press.
+func fixedGridWidth(s popupSpec) int {
+	g := s.Grid
+	if g == nil || g.Cols <= 0 {
+		return 0
+	}
+	return 2*popupPad + g.HeadW + g.Cols*g.side()
+}
+
 // gridWidth is the width popup s takes, w its own, widened only so that a
 // grid of every row whose columns follow the width shows gridLeastCols
 // columns, up to the room's width (the popup then stands left of its corner,
@@ -1124,7 +1135,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		if s.MinWidth > 0 {
 			least = min(least, s.MinWidth)
 		}
-		w = max(s.Size.X, least)
+		w = max(s.Size.X, least, fixedGridWidth(s))
 	}
 	if !s.Bounds.Empty() {
 		w = min(w, s.Bounds.Dx())

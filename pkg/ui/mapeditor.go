@@ -383,6 +383,7 @@ func (e *MapEditor) showOpened(next *InspectionDocument) {
 // is newly opened and is fitted to the window.
 func (e *MapEditor) showDoc(next *InspectionDocument, kept *openMap) {
 	next.Viewer.editorView = true
+	next.Viewer.wheelZoomPercent = 0
 	e.doc = next
 	e.barSets, e.barOwner = nil, ""
 	e.formAgreed = false
