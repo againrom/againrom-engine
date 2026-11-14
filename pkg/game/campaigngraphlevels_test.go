@@ -127,20 +127,41 @@ func TestCampaignGraphStandsByTensInKindColoursWithFilms(t *testing.T) {
 				}
 
 				// Each box shown carries its kind's colour in its band.
-				pic := e.ChromeImage()
-				_, rects := e.PopupCanvasBoxes()
-				view := e.PopupCanvasView()
+				// The sheet is larger than the view: the graph is moved down a
+				// page at a time, then right, until every kind has shown a box.
+				top, need := e.ChromeImage(), len(graphKindKeys)
+				if tc.name == "no-films" {
+					need--
+				}
+				pans := []string{""}
+				for range 3 {
+					pans = append(pans, slices.Repeat([]string{"pagedown"}, 5)...)
+					pans = append(pans, "home", "right", "right", "right", "right")
+				}
 				seen := map[string]bool{}
-				for i, n := range page.Nodes {
-					r := rects[i]
-					p := image.Pt(r.Min.X+3, r.Min.Y+2)
-					if !p.In(view) {
-						continue
+				for _, key := range pans {
+					if key != "" {
+						if err := e.Key(key); err != nil {
+							t.Fatal(err)
+						}
 					}
-					if got := pic.RGBAAt(p.X, p.Y); got != ui.GraphInk(n) {
-						t.Errorf("node %d (%d %d) has band %v, its kind's colour is %v", i, n.Kind, n.Number, got, ui.GraphInk(n))
+					pic := e.ChromeImage()
+					_, rects := e.PopupCanvasBoxes()
+					view := e.PopupCanvasView()
+					for i, n := range page.Nodes {
+						r := rects[i]
+						p := image.Pt(r.Min.X+3, r.Min.Y+2)
+						if !p.In(view) {
+							continue
+						}
+						if got := pic.RGBAAt(p.X, p.Y); got != ui.GraphInk(n) {
+							t.Errorf("node %d (%d %d) has band %v, its kind's colour is %v", i, n.Kind, n.Number, got, ui.GraphInk(n))
+						}
+						seen[graphKindName(n)] = true
 					}
-					seen[graphKindName(n)] = true
+					if len(seen) >= need {
+						break
+					}
 				}
 				for _, key := range graphKindKeys {
 					if !seen[key] && (key != "film" || tc.name != "no-films") {
@@ -152,7 +173,7 @@ func TestCampaignGraphStandsByTensInKindColoursWithFilms(t *testing.T) {
 					if tc.mod != "" {
 						name += "-mod"
 					}
-					witness.PNG(t, filepath.Join(dir, name+".png"), pic)
+					witness.PNG(t, filepath.Join(dir, name+".png"), top)
 				}
 			})
 		}

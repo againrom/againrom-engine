@@ -74,7 +74,7 @@ func TestEditorGraphPageDrawsInEachLanguage(t *testing.T) {
 					if r.Empty() {
 						continue // scrolled out of the canvas
 					}
-					if !r.In(image.Rect(0, 0, 1280, 800)) || pic.RGBAAt(r.Min.X, r.Min.Y).A == 0 {
+					if !r.Min.In(image.Rect(0, 0, 1280, 800)) || pic.RGBAAt(r.Min.X, r.Min.Y).A == 0 {
 						t.Fatalf("box %q at %v is not drawn inside the window", texts[i], r)
 					}
 				}

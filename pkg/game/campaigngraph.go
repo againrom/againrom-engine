@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"cmp"
 	"slices"
 	"strings"
 
@@ -269,9 +270,8 @@ type graphHandout struct {
 // graphBuildings are the town buildings of the graph's hand-out places.
 var graphBuildings = map[ui.GraphPlace]TownBuilding{ui.GraphInn: TownTavern, ui.GraphShop: TownShop, ui.GraphSchool: TownSchool}
 
-// graphHandouts is a chapter's hand-outs in the scenario's order: the
-// tavern's pairs over the shorter of its two lists, the shop's missions,
-// the school's.
+// graphHandouts is a chapter's hand-outs in the order they stand: side
+// missions, then main, then none.
 func graphHandouts(ch Chapter) []graphHandout {
 	var out []graphHandout
 	for i := range min(len(ch.InnNPC), len(ch.Inn)) {
@@ -283,7 +283,22 @@ func graphHandouts(ch Chapter) []graphHandout {
 	for _, n := range ch.School {
 		out = append(out, graphHandout{place: ui.GraphSchool, mission: n})
 	}
+	slices.SortStableFunc(out, func(a, b graphHandout) int {
+		return cmp.Compare(handoutGroup(a), handoutGroup(b))
+	})
 	return out
+}
+
+// handoutGroup ranks a hand-out: side 0, main 1, none 2.
+func handoutGroup(h graphHandout) int {
+	switch {
+	case h.mission == 0:
+		return 2
+	case h.mission%10 == 0:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // layTowns gives every queued town its hand-outs and what each handed-out
