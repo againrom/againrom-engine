@@ -49,10 +49,13 @@ type CampaignGraphNode struct {
 	Number      int
 	Title       string
 	Column, Row int
-	MapMark     bool
-	FlowMark    bool
-	AddedMark   bool
-	PartyMark   bool
+	// Dropped marks a film that stands a third of its own height below its
+	// row, so it reads as after the node of its row.
+	Dropped   bool
+	MapMark   bool
+	FlowMark  bool
+	AddedMark bool
+	PartyMark bool
 	// Empty marks a hand-out with nothing to give; Side a mission that is
 	// not one of the campaign's main missions.
 	Empty      bool
@@ -378,6 +381,9 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 			h = tall
 		}
 		y := graphPad + n.Row*pitch + (tall-h)/2
+		if n.Dropped {
+			y += h / 3
+		}
 		b.Area = image.Rect(0, y, 0, y+h)
 		c.Boxes[i] = b
 		taken[image.Pt(n.Column, n.Row)] = true
@@ -528,7 +534,11 @@ func (e *MapEditor) graphCanvas(page CampaignGraphPage) *popupCanvas {
 	if len(ends[last]) > 0 || gutter[last] > 0 {
 		right += inset[last] + len(ends[last])*graphLane
 	}
-	c.Sheet = image.Pt(right+graphPad, graphPad+rows*pitch-graphGapY+graphPad)
+	sheet := graphPad + rows*pitch - graphGapY + graphPad
+	for _, b := range c.Boxes {
+		sheet = max(sheet, b.Area.Max.Y+graphPad)
+	}
+	c.Sheet = image.Pt(right+graphPad, sheet)
 	c.Legend = e.graphLegend(page)
 	return c
 }

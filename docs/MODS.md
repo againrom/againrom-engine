@@ -2474,9 +2474,11 @@ kind has one colour, on its box's edge and the band at its top: start, main
 mission, side mission, town, tavern talk, shop or school, film. The legend
 above the graph names the kinds the graph shows, in the editor's language.
 
-A film node names the files the game plays: under the start the opening film
-(`start/01.smk` and the numbers after it), under a mission the film played
-when it is won (`m<N>/01.smk` and on). The graph asks the same lookup the game
+A film node names the files the game plays: for the start the opening film
+(`start/01.smk` and the numbers after it), for a mission the film played when
+it is won (`m<N>/01.smk` and on). Films stand in the graph's first column, on
+the row of their node and dropped a little below it; no arrow ties a film to
+its node. A level with two films stacks the second under the first. The graph asks the same lookup the game
 plays from, the install's video archive, so a film the install does not hold
 gets no node. A mod cannot add or replace a film. The second game has no
 graph.

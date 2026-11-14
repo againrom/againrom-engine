@@ -478,6 +478,49 @@ func TestCampaignGraphColoursEachKindFromOneTable(t *testing.T) {
 	}
 }
 
+// TestCampaignGraphFilmCardsClearTheArrows draws a page with a start film and
+// films after two missions of two levels: no arrow crosses a card, and each
+// dropped film stands a third of its height below the place of its row.
+func TestCampaignGraphFilmCardsClearTheArrows(t *testing.T) {
+	page := CampaignGraphPage{Nodes: []CampaignGraphNode{
+		{Kind: GraphStart, Column: 1},
+		{Kind: GraphFilm, Title: "start/01.smk", Column: 0, Row: 0, Dropped: true},
+		{Kind: GraphHandout, Place: GraphInn, Number: 5, Column: 2, Row: 1},
+		{Kind: GraphTown, Number: 20, Column: 1, Row: 1},
+		{Kind: GraphMission, Number: 10, Column: 3, Row: 1, Source: "map1"},
+		{Kind: GraphFilm, Number: 10, Title: "m10/01.smk", Column: 0, Row: 1, Dropped: true},
+		{Kind: GraphMission, Number: 11, Column: 4, Row: 1, Source: "map2"},
+		{Kind: GraphMission, Number: 20, Column: 3, Row: 2, Source: "map3"},
+		{Kind: GraphFilm, Number: 20, Title: "m20/01.smk", Column: 0, Row: 2, Dropped: true},
+	}, Edges: []CampaignGraphEdge{{From: 0, To: 3}, {From: 3, To: 2}, {From: 2, To: 4}, {From: 3, To: 6}, {From: 4, To: 7}}}
+	e, _ := graphEditor(t, page)
+	c := e.graphCanvas(page)
+	flat := slices.Clone(page.Nodes)
+	for i := range flat {
+		flat[i].Dropped = false
+	}
+	undropped := e.graphCanvas(CampaignGraphPage{Nodes: flat, Edges: page.Edges})
+	for i, n := range page.Nodes {
+		if !n.Dropped {
+			continue
+		}
+		if got, want := c.Boxes[i].Area.Min.Y-undropped.Boxes[i].Area.Min.Y, c.Boxes[i].Area.Dy()/3; got != want {
+			t.Errorf("film node %d is dropped %d px, want a third of its height, %d px", i, got, want)
+		}
+	}
+	for k, l := range c.Lines {
+		for j := 0; j+1 < len(l.Points); j++ {
+			a, b := l.Points[j], l.Points[j+1]
+			seg := image.Rect(min(a.X, b.X), min(a.Y, b.Y), max(a.X, b.X)+1, max(a.Y, b.Y)+1)
+			for i, box := range c.Boxes {
+				if seg.Overlaps(box.Area) {
+					t.Errorf("edge %d crosses node %d at %v", k, i, seg)
+				}
+			}
+		}
+	}
+}
+
 // An arrow that holds for some heroes only carries their word, in English
 // and in Russian. It leaves its mission's side at a level of its own, runs
 // to a lane past the word and ends in its target's top; the page's lines

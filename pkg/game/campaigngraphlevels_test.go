@@ -15,6 +15,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/internal/witness"
+	"againrom/pkg/mod"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
@@ -59,7 +60,7 @@ var graphKindKeys = []string{"start", "main", "side", "town", "talk", "handout",
 // film and mission 10's victory film: the missions of one ten share a row in
 // number order and the next ten stands below; each box carries its kind's
 // colour from the one table; the legend names each kind shown in table
-// order; a film node names its file under its mission. An install whose
+// order; a film node names its file in the first column at its mission's row. An install whose
 // video archive holds neither film shows no film node and no film in the
 // legend. In English and Russian. With AGAINROM_GRAPH_LEVEL_FRAMES naming a
 // folder the frames of the page, of the install and of a mod, are written
@@ -206,9 +207,93 @@ func wantGraphLevels(t *testing.T, mission map[int]ui.CampaignGraphNode) {
 	}
 }
 
+// TestCampaignGraphFilmsStandInTheirColumn holds the films of the start and
+// of missions 10 and 20, on two levels, to the film column: one column
+// directly left of the first mission column, each film at its node's row,
+// and no level taller than without the films.
+func TestCampaignGraphFilmsStandInTheirColumn(t *testing.T) {
+	c := graphCampaign(t)
+	shelf := func(directory string) []string {
+		switch directory {
+		case ui.StartCutscenes:
+			return []string{"start/01.smk"}
+		case ui.MissionCutscenes(10):
+			return []string{"m10/01.smk"}
+		case ui.MissionCutscenes(20):
+			return []string{"m20/01.smk"}
+		}
+		return nil
+	}
+	with := campaignGraphOf(c, c, mod.MissionData{}, shelf)
+	without := campaignGraphOf(c, c, mod.MissionData{}, nil)
+	mission, plain := map[int]ui.CampaignGraphNode{}, map[int]ui.CampaignGraphNode{}
+	var start ui.CampaignGraphNode
+	rows := func(nodes []ui.CampaignGraphNode) int {
+		r := 0
+		for _, n := range nodes {
+			if n.Kind != ui.GraphFilm {
+				r = max(r, n.Row+1)
+			}
+		}
+		return r
+	}
+	for _, n := range with.Nodes {
+		switch n.Kind {
+		case ui.GraphStart:
+			start = n
+		case ui.GraphMission:
+			mission[n.Number] = n
+		}
+	}
+	for _, n := range without.Nodes {
+		if n.Kind == ui.GraphMission {
+			plain[n.Number] = n
+		}
+	}
+	if got, want := rows(with.Nodes), rows(without.Nodes); got != want {
+		t.Errorf("the films make the graph %d rows tall, without them %d", got, want)
+	}
+	for n, m := range mission {
+		if p := plain[n]; m.Row != p.Row || m.Column != p.Column {
+			t.Errorf("the film moved mission %d to %d,%d from %d,%d", n, m.Column, m.Row, p.Column, p.Row)
+		}
+	}
+	for _, e := range with.Edges {
+		if with.Nodes[e.To].Kind == ui.GraphFilm || with.Nodes[e.From].Kind == ui.GraphFilm {
+			t.Errorf("the edge %d to %d ties a film, want none", e.From, e.To)
+		}
+	}
+	films := 0
+	for _, f := range with.Nodes {
+		if f.Kind != ui.GraphFilm {
+			continue
+		}
+		films++
+		if f.Column != 0 {
+			t.Errorf("the film of %d stands in column %d, want the first column 0", f.Number, f.Column)
+		}
+		if !f.Dropped {
+			t.Errorf("the film of %d is not dropped below its row", f.Number)
+		}
+		want := start.Row
+		if f.Number != 0 {
+			want = mission[f.Number].Row
+		}
+		if f.Row != want {
+			t.Errorf("the film of %d stands on row %d, its node on row %d", f.Number, f.Row, want)
+		}
+	}
+	if films != 3 {
+		t.Errorf("%d film nodes, want 3", films)
+	}
+	if start.Row != 0 {
+		t.Errorf("the start stands on row %d", start.Row)
+	}
+}
+
 // wantGraphFilms holds the film nodes to the films the install holds: with
-// them, the start's film and mission 10's, each naming its file, tied to
-// its node by an arrow and standing under it; without them, none.
+// them, the start's film and mission 10's, each naming its file, placed
+// in the first column at its node's row, dropped below it; without them, none.
 func wantGraphFilms(t *testing.T, page ui.CampaignGraphPage, mission map[int]ui.CampaignGraphNode, films []ui.CampaignGraphNode, held bool) {
 	t.Helper()
 	if !held {
@@ -220,7 +305,7 @@ func wantGraphFilms(t *testing.T, page ui.CampaignGraphPage, mission map[int]ui.
 	if len(films) != 2 || films[0].Number != 0 || films[0].Title != "start/01.smk" || films[1].Number != 10 || films[1].Title != "m10/01.smk" {
 		t.Fatalf("film nodes %v", films)
 	}
-	if m, f := mission[10], films[1]; f.Column != m.Column || f.Row != m.Row+1 {
+	if m, f := mission[10], films[1]; f.Column != 0 || f.Row != m.Row || !f.Dropped {
 		t.Errorf("mission 10's film stands at %d,%d, mission 10 at %d,%d", f.Column, f.Row, m.Column, m.Row)
 	}
 	tied := 0
@@ -230,7 +315,73 @@ func wantGraphFilms(t *testing.T, page ui.CampaignGraphPage, mission map[int]ui.
 			tied++
 		}
 	}
-	if tied != 2 {
-		t.Errorf("%d film nodes tied to their nodes, want 2", tied)
+	if tied != 0 {
+		t.Errorf("%d arrows tie a film, want none", tied)
+	}
+}
+
+// TestCampaignGraphFilmsOfOneLevelStackDown holds the films of a level, one
+// for each of its missions, to a stack down the film column from the row of
+// the missions, in the missions' order; a level is as tall as its rows, and
+// taller only when the stack runs past them.
+func TestCampaignGraphFilmsOfOneLevelStackDown(t *testing.T) {
+	c := graphCampaign(t)
+	shelf := func(directory string) []string { return []string{directory + "/01.smk"} }
+	with := campaignGraphOf(c, c, mod.MissionData{}, shelf)
+	without := campaignGraphOf(c, c, mod.MissionData{}, nil)
+	first, count := map[int]int{}, map[int]int{}
+	for _, n := range with.Nodes {
+		if n.Kind == ui.GraphMission {
+			level := n.Number / mainMissionStride
+			if _, ok := first[level]; !ok || n.Row < first[level] {
+				first[level] = n.Row
+			}
+			count[level]++
+		}
+	}
+	plain := map[int]int{}
+	var levels []int
+	for _, n := range without.Nodes {
+		if n.Kind == ui.GraphMission {
+			level := n.Number / mainMissionStride
+			if _, ok := plain[level]; !ok {
+				levels = append(levels, level)
+				plain[level] = n.Row
+			}
+		}
+	}
+	slices.Sort(levels)
+	stacked := false
+	for _, n := range with.Nodes {
+		if n.Kind != ui.GraphFilm || n.Number == 0 {
+			continue
+		}
+		if count[n.Number/mainMissionStride] > 1 {
+			stacked = true
+		}
+	}
+	if !stacked {
+		t.Skip("the fixture has no level with two missions")
+	}
+	for _, level := range levels {
+		var rows []int
+		for _, n := range with.Nodes {
+			if n.Kind == ui.GraphFilm && n.Number != 0 && n.Number/mainMissionStride == level {
+				rows = append(rows, n.Row)
+			}
+		}
+		slices.Sort(rows)
+		for k, r := range rows {
+			if r != first[level]+k {
+				t.Errorf("level %d: film %d on row %d, want %d", level, k, r, first[level]+k)
+			}
+		}
+	}
+	for k := 0; k+1 < len(levels); k++ {
+		a, b := levels[k], levels[k+1]
+		got, want := first[b]-first[a], max(plain[b]-plain[a], count[a])
+		if got != want {
+			t.Errorf("level %d is %d rows tall, want %d", a, got, want)
+		}
 	}
 }

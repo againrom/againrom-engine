@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor's mod window the Overview page scrolls to its end, the Campaign graph buttons show their words instead of question marks, and the Missions page lists every mission of the mod.
 - [BASE] The map editor's help lists Ctrl+Tab and Ctrl+Shift+Tab (next and previous open map) only while two or more maps are open; with one map or none the two lines are left out, and the keys work as before.
 - [ROM1] F5 test play from the map editor now starts the map with the hero and party chosen in the party window, with no character generation; the window remembers the choice between editor runs, and a mission with its own party gets a Party: Standard / Custom switch.
+- [BASE] Campaign graph: films now stand in their own first column, a little below the row of the mission they follow, with no arrow and no extra row.
 
 ## 0.154.0
 

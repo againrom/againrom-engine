@@ -142,20 +142,20 @@ func wantGraph(t *testing.T, page ui.CampaignGraphPage, want []string) {
 func TestCampaignGraphHoldsTheFlowTheTownsAndEachHandout(t *testing.T) {
 	c := graphCampaign(t)
 	wantGraph(t, campaignGraphOf(c, c, mod.MissionData{}, nil), []string{
-		"start at 0,0",
-		"mission 10 at 2,1",
-		"mission 20 at 2,2",
-		"town 30 at 0,3",
-		"inn 5 at 1,3",
-		"mission 30 at 2,3",
-		"town 40 at 0,7",
-		"inn 6 at 1,4 empty",
-		"shop row 5 at 1,5",
-		"mission 31 at 3,3",
-		"school row 6 at 1,6",
-		"mission 32 at 4,3",
-		"inn 7 at 1,7",
-		"mission 40 at 2,7",
+		"start at 1,0",
+		"mission 10 at 3,1",
+		"mission 20 at 3,2",
+		"town 30 at 1,3",
+		"inn 5 at 2,3",
+		"mission 30 at 3,3",
+		"town 40 at 1,7",
+		"inn 6 at 2,4 empty",
+		"shop row 5 at 2,5",
+		"mission 31 at 4,3",
+		"school row 6 at 2,6",
+		"mission 32 at 5,3",
+		"inn 7 at 2,7",
+		"mission 40 at 3,7",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > town 30",
@@ -188,22 +188,22 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantGraph(t, campaignGraphOf(stock, c, d, nil), []string{
-		"start at 0,0",
-		"mission 10 at 2,1",
-		"mission 20 at 2,2 map",
-		"mission 25 at 3,2 added party",
-		"town 30 at 0,3",
-		"inn 5 at 1,3",
-		"mission 30 at 2,3",
-		"town 40 at 0,7",
-		"inn 6 at 1,4 empty",
-		"shop row 5 at 1,5",
-		"mission 31 at 3,3 flow",
-		"mission 41 at 3,7 added",
-		"school row 6 at 1,6",
-		"mission 32 at 4,3",
-		"inn 7 at 1,7",
-		"mission 40 at 2,7",
+		"start at 1,0",
+		"mission 10 at 3,1",
+		"mission 20 at 3,2 map",
+		"mission 25 at 4,2 added party",
+		"town 30 at 1,3",
+		"inn 5 at 2,3",
+		"mission 30 at 3,3",
+		"town 40 at 1,7",
+		"inn 6 at 2,4 empty",
+		"shop row 5 at 2,5",
+		"mission 31 at 4,3 flow",
+		"mission 41 at 4,7 added",
+		"school row 6 at 2,6",
+		"mission 32 at 5,3",
+		"inn 7 at 2,7",
+		"mission 40 at 3,7",
 		"start > mission 10",
 		"mission 10 > mission 20",
 		"mission 20 > mission 25 (mod)",
@@ -233,7 +233,7 @@ func TestCampaignGraphMarksWhatAModChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := graphLines(campaignGraphOf(stock, c, off, nil))
-	for _, want := range []string{"mission 10 at 2,1 flow", "mission 10 > town 20 (mod)"} {
+	for _, want := range []string{"mission 10 at 3,1 flow", "mission 10 > town 20 (mod)"} {
 		if !slices.Contains(lines, want) {
 			t.Fatalf("no %q in:\n%s", want, strings.Join(lines, "\n"))
 		}

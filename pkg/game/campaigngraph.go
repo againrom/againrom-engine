@@ -21,10 +21,11 @@ type campaignFlow struct {
 	graph    *ui.CampaignGraphPage
 }
 
-// The columns of the campaign graph: the start and the towns, the hand-outs
-// of a town, then the missions of one ten, one column each.
+// The columns of the campaign graph: the films, the start and the towns, the
+// hand-outs of a town, then the missions of one ten, one column each.
 const (
-	graphTownColumn = iota
+	graphFilmColumn = iota
+	graphTownColumn
 	graphHandoutColumn
 	graphMissionColumn
 )
@@ -73,7 +74,7 @@ func campaignGraphOf(stock, c Campaign, missions mod.MissionData, films filmShel
 	}
 	g.rows = base
 	if first, ok := c.FirstMission(); ok {
-		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart})
+		start := g.node(ui.CampaignGraphNode{Kind: ui.GraphStart, Column: graphTownColumn})
 		at, _ := g.missionNode(first)
 		g.edge(start, at, ui.EveryHero)
 		g.follow(at, first, first, 0)
@@ -320,8 +321,8 @@ func (g *campaignGraph) layTowns() {
 }
 
 // films adds a film node for the start and for each mission whose movie
-// directory the game finds a film in, named by its files and tied to its
-// node by an arrow for every hero.
+// directory the game finds a film in, named by its files. A film has no arrow:
+// its row ties it to its node.
 func (g *campaignGraph) films(shelf filmShelf) {
 	if shelf == nil {
 		return
@@ -338,7 +339,6 @@ func (g *campaignGraph) films(shelf filmShelf) {
 		}
 		if files := shelf(directory); len(files) > 0 {
 			g.film[i] = g.node(ui.CampaignGraphNode{Kind: ui.GraphFilm, Number: n.Number, Title: strings.Join(files, ", ")})
-			g.page.Edges = append(g.page.Edges, ui.CampaignGraphEdge{From: i, To: g.film[i]})
 		}
 	}
 }
@@ -346,10 +346,12 @@ func (g *campaignGraph) films(shelf filmShelf) {
 // levels places the nodes by tens. Mission n stands on level n/10, so 10 to
 // 19 share a level and a number under 10 stands on level 0; the missions of
 // a level take one row, in number order, a column each from the mission
-// column on, and each one's film stands under it. The town of chapter n
-// stands on n's level in the town column, its hand-outs one a row beside it
-// from its row on, the towns of a level in chapter order. The start and its
-// film stand above every level; a level is as tall as its rows.
+// column on. A film stands in the film column at its node's row, dropped
+// below it; when a level has two films, the second takes the row under the
+// first. The town of chapter n stands on n's level in the town column, its
+// hand-outs one a row beside it from its row on, the towns of a level in
+// chapter order. The start and its film stand above every level; a level is
+// as tall as its rows.
 func (g *campaignGraph) levels() {
 	nodes := g.page.Nodes
 	missions, towns := map[int][]int{}, map[int][]int{}
@@ -374,7 +376,7 @@ func (g *campaignGraph) levels() {
 		if n.Kind == ui.GraphStart {
 			row = 1
 			if film, ok := g.film[i]; ok {
-				nodes[film].Row, row = 1, 2
+				nodes[film].Column, nodes[film].Row, nodes[film].Dropped = graphFilmColumn, 0, true
 			}
 		}
 	}
@@ -382,10 +384,13 @@ func (g *campaignGraph) levels() {
 	for _, level := range levels {
 		next := row
 		slices.SortFunc(missions[level], byNumber)
+		films := 0
 		for k, i := range missions[level] {
 			nodes[i].Column, nodes[i].Row, next = graphMissionColumn+k, row, max(next, row+1)
 			if film, ok := g.film[i]; ok {
-				nodes[film].Column, nodes[film].Row, next = graphMissionColumn+k, row+1, row+2
+				nodes[film].Column, nodes[film].Row, nodes[film].Dropped = graphFilmColumn, row+films, true
+				films++
+				next = max(next, row+films)
 			}
 		}
 		at := row
