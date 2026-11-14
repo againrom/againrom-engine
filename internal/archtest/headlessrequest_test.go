@@ -35,6 +35,11 @@ func TestCheckHeadlessRequestNamesEachFault(t *testing.T) {
 			f["cmd/x/main.go"] = "package main\nvar _, _ = fmt.Sscanf(v, \"%dx%d\", &a, &b)\n"
 			return f
 		}(), "window size parser"},
+		{"second split", func() map[string]string {
+			f := headlessRequestFixture(namedControlAccessorsRemaining)
+			f["pkg/editorapp/run.go"] = "package editorapp\nvar parts = strings.Split(*size, \"x\")\n"
+			return f
+		}(), "window size parser"},
 		{"rose", headlessRequestFixture(namedControlAccessorsRemaining + 1), "rose to"},
 		{"fell", headlessRequestFixture(namedControlAccessorsRemaining - 1), "fell to"},
 	}

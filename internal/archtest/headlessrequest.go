@@ -16,6 +16,7 @@ const namedControlAccessorsRemaining = 5
 var (
 	headlessPictureMethod = regexp.MustCompile(`(?m)^func \(a \*App\) (Headless[A-Za-z]*)\(.*\*image\.RGBA`)
 	windowSizeSscanf      = regexp.MustCompile(`Sscanf\([^\n]*"%dx%d"`)
+	windowSizeSplit       = regexp.MustCompile(`Split\([^\n]*"x"\)`)
 	windowSizeParser      = regexp.MustCompile(`(?m)^func ParseWindowSize\(`)
 	namedControlAccessor  = regexp.MustCompile(`(?m)^func \(e \*MapEditor\) [A-Z][A-Za-z]*Rects?\([^\n]*image\.Rectangle`)
 )
@@ -35,7 +36,7 @@ func CheckHeadlessRequest(files map[string]string) []Violation {
 			}
 			named += len(namedControlAccessor.FindAllString(src, -1))
 		}
-		if windowSizeSscanf.MatchString(src) || strings.Contains(src, "routeWindowSize") {
+		if windowSizeSscanf.MatchString(src) || windowSizeSplit.MatchString(src) || strings.Contains(src, "routeWindowSize") {
 			out = append(out, Violation{From: path, Reason: "a window size parser beside ui.ParseWindowSize"})
 		}
 		parsers += len(windowSizeParser.FindAllString(src, -1))

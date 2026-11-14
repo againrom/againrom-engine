@@ -144,15 +144,11 @@ func runAs(self string, args []string, out io.Writer) error {
 		}
 		*path = flags.Arg(0)
 	}
-	parts := strings.Split(*size, "x")
-	w, h := 0, 0
-	if len(parts) == 2 {
-		w, _ = strconv.Atoi(parts[0])
-		h, _ = strconv.Atoi(parts[1])
-	}
-	if w < 640 || h < 480 || w > 3840 || h > 2160 {
+	win, err := ui.ParseWindowSize(*size, image.Point{})
+	if err != nil || win.X < 640 || win.Y < 480 || win.X > 3840 || win.Y > 2160 {
 		return fmt.Errorf("invalid size %q (640x480..3840x2160)", *size)
 	}
+	w, h := win.X, win.Y
 	if *detailScroll < 0 || *detailScroll > 100000 || (*detailScroll > 0 && (*snapshot == "" || *selectRecord == "")) {
 		return fmt.Errorf("-scroll-details requires -snapshot and -select; range 0..100000")
 	}
