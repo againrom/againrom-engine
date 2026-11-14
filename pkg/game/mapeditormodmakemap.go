@@ -16,6 +16,8 @@ import (
 	"againrom/pkg/ui"
 )
 
+// guestRow is the default guest row of mod id among the rows of d: Add and Make
+// mission both build their guest from it, and name the map themselves.
 func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Mission, error) {
 	c, err := LoadCampaign(s.inspector.archives.Containers)
 	if err != nil {
@@ -46,6 +48,8 @@ func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Miss
 	return m, nil
 }
 
+// draftOpenMap drafts the open map, pages and labels into d at the free place
+// of its stem, and answers that place.
 func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlace, error) {
 	place := s.place().Free(s.projectFiles(d))
 	pages, err := s.exportPageTree("", nil)
@@ -62,11 +66,14 @@ func (s *mapInspectionEdits) draftOpenMap(d *editorModDocument) (mod.MissionPlac
 	return place, nil
 }
 
+// mapList is the maps of project d: the one list over its files and rows.
 func (s *mapInspectionEdits) mapList(d *editorModDocument) ([]mod.MapEntry, mod.MissionData) {
 	data, _ := s.inspector.modMissions(s.inspector.mod.description(), d.Missions)
 	return mod.MapList(s.projectFiles(d), "", data), data
 }
 
+// replaceNumbers are the campaign's mission numbers the install holds and no
+// row of data replaces.
 func (x *MapInspector) replaceNumbers(data mod.MissionData) []int {
 	flow := x.installFlow()
 	if flow == nil {
@@ -76,6 +83,7 @@ func (x *MapInspector) replaceNumbers(data mod.MissionData) []int {
 	return data.ReplaceNumbers(slices.Concat(c.Main, c.Side, c.Offered), x.missionAnswer())
 }
 
+// mapRefusal is a refusal of MakeMission or MakeRow in the editor's words.
 func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
 	switch {
 	case errors.Is(err, mod.ErrMapNamed):
@@ -90,6 +98,8 @@ func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
 	return err
 }
 
+// ModMapActions are the mod's maps that a mission can be made of: an unused
+// map, and a map that replaces a mission by its file name.
 func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
 	d := s.project0()
 	if d == nil {
@@ -117,6 +127,7 @@ func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
 	return out, true
 }
 
+// mapOf is the entry of list at path rel.
 func (s *mapInspectionEdits) mapOf(list []mod.MapEntry, rel string) (mod.MapEntry, error) {
 	if i := mapEntryOf(list, rel); i >= 0 {
 		return list[i], nil
@@ -124,6 +135,8 @@ func (s *mapInspectionEdits) mapOf(list []mod.MapEntry, rel string) (mod.MapEntr
 	return mod.MapEntry{}, fmt.Errorf(s.inspector.word("editor.mod.err.mapunknown"), rel)
 }
 
+// makeMission makes the unused map of value, a path or "N|path" for a
+// replacement of mission N, a mission row of w's project.
 func (s *mapInspectionEdits) makeMission(w *editorWorkspaceState, value string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {
@@ -163,6 +176,7 @@ func (s *mapInspectionEdits) makeMission(w *editorWorkspaceState, value string) 
 	return nil
 }
 
+// makeRow writes the row of a map that replaces its mission by file name.
 func (s *mapInspectionEdits) makeRow(w *editorWorkspaceState, value string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {
@@ -191,6 +205,7 @@ func (s *mapInspectionEdits) makeRow(w *editorWorkspaceState, value string) erro
 	return nil
 }
 
+// addOpenMap copies the open map into the mod as a draft no row names.
 func (s *mapInspectionEdits) addOpenMap(w *editorWorkspaceState) error {
 	if w.Project == nil || s.model == nil {
 		return errors.New(s.inspector.word("editor.mod.err.nomaptoadd"))
@@ -199,6 +214,7 @@ func (s *mapInspectionEdits) addOpenMap(w *editorWorkspaceState) error {
 	return err
 }
 
+// folderNames are the files of dir that can belong to a map, as slash paths.
 func folderNames(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -227,6 +243,8 @@ func folderNames(dir string) ([]string, error) {
 	return names, nil
 }
 
+// addFolderMaps adds every map of folder, with pages and labels, as drafts of
+// w's project, placed by the mod's one placement rule.
 func (s *mapInspectionEdits) addFolderMaps(w *editorWorkspaceState, folder string) error {
 	x, d := s.inspector, w.Project
 	if d == nil {

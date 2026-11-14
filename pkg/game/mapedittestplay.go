@@ -482,11 +482,14 @@ func (s *mapInspectionEdits) testPlayFirstLink(after int) int {
 	return after
 }
 
+// looseMap reports that the open map is in the open mod and no row names it.
 func (s *mapInspectionEdits) looseMap() bool {
 	d := s.project0()
 	return d != nil && d.Selected < 0 && d.Loose != ""
 }
 
+// looseTestRow is the guest row test play declares for a loose map, in the
+// test copy of the mod only.
 func (s *mapInspectionEdits) looseTestRow(w *editorWorkspaceState, party []mod.GuestMember, hero herokind.Kind) (mod.Mission, error) {
 	x, d := s.inspector, w.Project
 	list, data := s.mapList(d)

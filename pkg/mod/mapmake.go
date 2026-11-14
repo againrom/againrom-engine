@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/namefold"
 )
 
+// The refusals of MakeMission and MakeRow.
 var (
 	ErrMapNamed    = errors.New("map is already named by a mission")
 	ErrNotByName   = errors.New("map does not replace a mission by its file name")
@@ -18,6 +19,9 @@ var (
 	ErrReplaced    = errors.New("number already replaces a mission")
 )
 
+// MakeMission is the row that makes unused map e a mission of mod id: a guest
+// mission when replace is 0, else a replacement of mission number replace.
+// held is the install's answer for a number; nil refuses any replacement.
 func MakeMission(id string, d MissionData, e MapEntry, guest Mission, replace int, held func(n int) error) (Mission, error) {
 	if e.Role() != MapUnused {
 		return Mission{}, ErrMapNamed
@@ -37,6 +41,7 @@ func MakeMission(id string, d MissionData, e MapEntry, guest Mission, replace in
 	return guest, nil
 }
 
+// MakeRow is the replacing row of a map that replaces its mission by file name.
 func MakeRow(id string, d MissionData, e MapEntry, held func(n int) error) (Mission, error) {
 	if e.Role() != MapByName {
 		return Mission{}, ErrNotByName
@@ -48,6 +53,8 @@ func MakeRow(id string, d MissionData, e MapEntry, held func(n int) error) (Miss
 		Number: e.Number, Map: e.Path}, nil
 }
 
+// ReplaceNumbers are the candidates, lowest first, that the install holds and
+// no mission of d replaces.
 func (d MissionData) ReplaceNumbers(candidates []int, held func(n int) error) []int {
 	var out []int
 	for _, n := range candidates {
@@ -59,6 +66,7 @@ func (d MissionData) ReplaceNumbers(candidates []int, held func(n int) error) []
 	return out
 }
 
+// mapKey is the stem as a row key, with _2, _3 and so on where d holds it.
 func mapKey(d MissionData, stem string) string {
 	var b strings.Builder
 	for _, r := range namefold.ModTree(stem) {
@@ -80,11 +88,15 @@ func mapKey(d MissionData, stem string) string {
 	return key
 }
 
+// FolderMap is one map of a folder being added to a mod, with the folder files
+// that belong to it.
 type FolderMap struct {
 	Name, Stem, Ext string
 	Files           []string
 }
 
+// FolderMaps are the maps among a folder's top-level names, in name order. A
+// stem's pages and labels go with its first map only.
 func FolderMaps(names []string) []FolderMap {
 	sorted := slices.Clone(names)
 	slices.Sort(sorted)
@@ -110,6 +122,7 @@ func FolderMaps(names []string) []FolderMap {
 	return out
 }
 
+// belongsTo reports a folder file that holds the pages or labels of stem's map.
 func belongsTo(name, stem string) bool {
 	if len(name) <= len(stem) || namefold.ModTree(name[:len(stem)]) != namefold.ModTree(stem) {
 		return false
@@ -118,6 +131,8 @@ func belongsTo(name, stem string) bool {
 	return namefold.ModTree(name) == namefold.ModTree(MapLabelFile(stem+MapExt)) || strings.HasPrefix(rest, mapTextSuffix+"/")
 }
 
+// PlaceFolderMaps is where each folder file goes in the mod, by the one
+// placement rule (MissionPlace.Free); a repeated stem takes the next suffix.
 func PlaceFolderMaps(files []string, folder []FolderMap) map[string]string {
 	held := slices.Clone(files)
 	out := map[string]string{}

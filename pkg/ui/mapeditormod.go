@@ -615,17 +615,23 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	return s, links, true
 }
 
+// ModMapButton is one button of a map's entry: caption, host key and value.
 type ModMapButton struct{ Caption, Key, Value string }
 
+// ModMapAction is a map of the open mod that a mission can be made of.
 type ModMapAction struct {
 	Label   string
 	Buttons []ModMapButton
 }
 
+// InspectionModMapActions is a host that lists those maps; false when no mod
+// project is open.
 type InspectionModMapActions interface {
 	ModMapActions() ([]ModMapAction, bool)
 }
 
+// modMapRows adds the unused maps with their make buttons, and the rows that
+// add the open map or a folder of maps, to W's Missions page.
 func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 	host, ok := e.modEdits().(InspectionModMapActions)
 	if !ok {
@@ -659,6 +665,7 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 	add(popupRow{Kind: popupText, Label: e.word("editor.mod.addmaps.label"), Buttons: []string{e.word("editor.mod.addmaps")}, Column: 0}, []string{"addmaps"}, []string{""})
 }
 
+// askMapsFolder asks the host's folder window for maps to add, else a typed path.
 func (e *MapEditor) askMapsFolder() {
 	typed := func(err error) {
 		e.openPrompt(editorPrompt{kind: promptMapsFolder})
@@ -764,7 +771,8 @@ func (e *MapEditor) modPress(p image.Point) bool {
 				return true
 			}
 			if actions := e.obj.rowActs[row]; k < len(actions) {
-				// A row's button opens its mission.
+				// A row's button opens its mission, or runs the key its map
+				// action names.
 				key := "source"
 				if keys := e.obj.modKeys[row]; k < len(keys) && keys[k] != "" {
 					key = keys[k]

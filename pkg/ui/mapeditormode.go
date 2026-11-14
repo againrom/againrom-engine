@@ -78,6 +78,7 @@ const (
 	promptSeed
 	// promptTestParty asks who plays the map before a test play.
 	promptTestParty
+	// promptMapsFolder takes a folder path where the host shows no folder window.
 	promptMapsFolder
 )
 
