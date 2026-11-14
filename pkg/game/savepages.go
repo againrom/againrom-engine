@@ -125,7 +125,7 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 // timed slots, which only their own keys write (DIV-3080).
 func secondSaveHidden() []string {
 	out := []string{"game9998.sav", "game9999.sav"}
-	for _, k := range []ownedSlotKind{quickSlots, timedSlots} {
+	for _, k := range allOwnedSlotKinds() {
 		for slot := range 3 {
 			out = append(out, string(k.slotBase(slot))+originalSaveExt)
 		}

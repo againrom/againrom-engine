@@ -167,7 +167,7 @@ func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	quick, err := store.Read("quick-save-1.sav")
+	quick, err := store.Read("rom1-quick-save-1.sav")
 	if err != nil {
 		t.Fatal("F4 output", app.Screen(), app.HeadlessNoticeOpen(), err)
 	}
@@ -177,7 +177,7 @@ func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	timed, err := store.Read("timed-autosave-1.sav")
+	timed, err := store.Read("rom1-timed-autosave-1.sav")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +404,7 @@ func TestReleaseSaveRoutesWriteIdenticalStateExceptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	quick, err := store.Read("quick-save-1.sav")
+	quick, err := store.Read("rom1-quick-save-1.sav")
 	if err != nil {
 		t.Fatal("actual F4 output", err)
 	}
@@ -413,7 +413,7 @@ func TestReleaseSaveRoutesWriteIdenticalStateExceptName(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	timed, err := store.Read("timed-autosave-1.sav")
+	timed, err := store.Read("rom1-timed-autosave-1.sav")
 	if err != nil {
 		t.Fatal("actual timer Poll output", err)
 	}
@@ -444,8 +444,8 @@ func TestReleaseSaveRoutesWriteIdenticalStateExceptName(t *testing.T) {
 		Raw               []byte
 	}{
 		{"f2", "same-state.sav", "same-state", manual},
-		{"f4", "quick-save-1.sav", "quicksave 1", quick},
-		{"timed", "timed-autosave-1.sav", "timed autosave 1", timed},
+		{"f4", "rom1-quick-save-1.sav", "quicksave 1", quick},
+		{"timed", "rom1-timed-autosave-1.sav", "timed autosave 1", timed},
 	}
 	type comparison struct {
 		Route, File                string

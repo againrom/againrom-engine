@@ -51,7 +51,7 @@ func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
 			now := time.Unix(100, 0)
 			app := f.App("timed current state")
 			app.Layout(width, width*3/4)
-			path := filepath.Join(store.Dir, "timed-autosave-1.sav")
+			path := filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")
 			var sourceBefore *missionAutosaveSample
 			f.ConfigureSaveSeams(app, store, OriginalStore{}, func() time.Time {
 				if !now.Before(time.Unix(100, 0).Add(6*time.Minute)) && app.Screen() == ui.ScreenMap && f.live != nil && !f.live.view.NoticeOpen() {
@@ -195,7 +195,7 @@ func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
 
 func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, now *time.Time) {
 	t.Helper()
-	protected := filepath.Join(store.Dir, "timed-autosave-2.sav")
+	protected := filepath.Join(store.Dir, "rom1-timed-autosave-2.sav")
 	foreign := []byte("protected foreign slot")
 	if err := os.WriteFile(protected, foreign, 0600); err != nil {
 		t.Fatal(err)
@@ -206,7 +206,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(store.Dir, "timed-autosave-3.sav")
+	path := filepath.Join(store.Dir, "rom1-timed-autosave-3.sav")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal("protected slot stopped the installed healthy slot", err)
@@ -413,7 +413,7 @@ func timedTownWitness(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	path := filepath.Join(dir, "timed-autosave-1.sav")
+	path := filepath.Join(dir, "rom1-timed-autosave-1.sav")
 	saved, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal("town missing-write control", err)
@@ -454,7 +454,7 @@ func timedTownCold(t *testing.T, path string) {
 		t.Fatal("town proof/hash", err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "timed-autosave-1.sav"), raw, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "rom1-timed-autosave-1.sav"), raw, 0600); err != nil {
 		t.Fatal(err)
 	}
 	f := releaseFront(t)

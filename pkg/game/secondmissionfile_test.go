@@ -163,7 +163,7 @@ func TestSecondMissionSavePointsWriteTheSecondGameFile(t *testing.T) {
 	if _, err := prepared.Commit(true); err != nil {
 		t.Fatal(err)
 	}
-	points := map[string]string{"quick-save-1.sav": "quick save", "timed-autosave-1.sav": "timed autosave",
+	points := map[string]string{"rom2-quick-save-1.sav": "quick save", "rom2-timed-autosave-1.sav": "timed autosave",
 		"game0000.sav": "mission start autosave", "page.sav": "save page"}
 	entries, err := secondSaveFiles(dir)
 	if err != nil || len(entries) != len(points) {

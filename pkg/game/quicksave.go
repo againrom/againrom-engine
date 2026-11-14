@@ -17,10 +17,10 @@ type quickSaveSlot struct {
 	raw      []byte
 }
 
-func readQuickSaveSlots(dir string) [3]quickSaveSlot {
+func readQuickSaveSlots(kind ownedSlotKind, dir string) [3]quickSaveSlot {
 	var slots [3]quickSaveSlot
 	for slot := range slots {
-		base := filepath.Join(dir, string(quickSlots.slotBase(slot)))
+		base := filepath.Join(dir, string(kind.slotBase(slot)))
 		info, err := os.Lstat(base + ".sav")
 		ownerInfo, ownerErr := os.Lstat(base + quickOwnerExtension)
 		if os.IsNotExist(err) && os.IsNotExist(ownerErr) {
@@ -35,7 +35,7 @@ func readQuickSaveSlots(dir string) [3]quickSaveSlot {
 		if err != nil || ownerErr != nil {
 			continue
 		}
-		if sequence, err := quickSlots.validatePair(slot, raw, owner); err == nil {
+		if sequence, err := kind.validatePair(slot, raw, owner); err == nil {
 			slots[slot] = quickSaveSlot{sequence: sequence, raw: raw}
 		}
 	}
@@ -91,7 +91,8 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 				return err
 			}
 			notifySaveCapture(observers, "f4", snapshot)
-			slot, sequence, err := quickSavePosition(readQuickSaveSlots(current.Dir))
+			kind := quickSlots.forGame(f.savedGame())
+			slot, sequence, err := quickSavePosition(readQuickSaveSlots(kind, current.Dir))
 			if err != nil {
 				return err
 			}
@@ -99,11 +100,11 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 			if err != nil {
 				return err
 			}
-			return quickSlots.write(*current, fences, slot, sequence, raw, nil)
+			return kind.write(*current, fences, slot, sequence, raw, nil)
 		},
 		Load: func() (ui.MapOpener, bool, error) {
 			queue.wait()
-			raw, err := newestQuickSave(readQuickSaveSlots(current.Dir))
+			raw, err := newestQuickSave(readQuickSaveSlots(quickSlots.forGame(f.savedGame()), current.Dir))
 			if err != nil {
 				return nil, false, err
 			}

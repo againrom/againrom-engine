@@ -254,7 +254,7 @@ func TestAutosaveInFlightOrdersLaterSavesLoadAndExit(t *testing.T) {
 			done := make(chan struct{})
 			go func() { step.run(app); close(done) }()
 			blocked(t, done)
-			if _, err := os.Stat(filepath.Join(store.Dir, "quick-save-1.sav")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(store.Dir, "rom1-quick-save-1.sav")); !os.IsNotExist(err) {
 				t.Fatal("later save was written before the automatic save finished", err)
 			}
 			close(gate.gate)

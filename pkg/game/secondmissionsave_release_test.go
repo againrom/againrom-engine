@@ -465,7 +465,7 @@ func secondMissionSaveEntries(t *testing.T, mission int) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	quick := string(quickSaveBase(0)) + ".sav"
+	quick := string(secondQuickSaveBase(0)) + ".sav"
 	cold, a = secondMissionColdAt(t, out, quick, mission)
 	secondAssertSample(t, captured, secondSaveSampleNow(t, cold, a))
 	for range 4 {
@@ -567,7 +567,7 @@ func secondMissionSaveEntries(t *testing.T, mission int) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	timedName := string(timedSaveBase(0)) + ".sav"
+	timedName := string(secondTimedSaveBase(0)) + ".sav"
 	if timedBefore == nil {
 		t.Fatal("no pre-publication sample")
 	}

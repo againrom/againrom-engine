@@ -191,7 +191,7 @@ func secondMissionPresentationControls(t *testing.T, f *FrontEnd, app *ui.App, o
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	loaded, loadedApp := secondMissionColdAt(t, fractionalOut, string(quickSaveBase(0))+".sav", mission)
+	loaded, loadedApp := secondMissionColdAt(t, fractionalOut, string(secondQuickSaveBase(0))+".sav", mission)
 	secondAssertSample(t, fractional, secondSaveSampleNow(t, loaded, loadedApp))
 	if err := f.live.view.RestoreAnimation(captured.Animation); err != nil {
 		t.Fatal(err)
@@ -242,7 +242,7 @@ func secondMissionTerminalRefusals(t *testing.T, f *FrontEnd, app *ui.App, out s
 		if err := app.HeadlessKey("f2"); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := os.Stat(filepath.Join(out, string(quickSaveBase(0))+".sav")); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(out, string(secondQuickSaveBase(0))+".sav")); !os.IsNotExist(err) {
 			t.Fatal("terminal F4 published output", err)
 		}
 		if err := app.HeadlessKey("ctrl-f2"); err != nil || app.Screen() != ui.ScreenSave {

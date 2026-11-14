@@ -11,6 +11,9 @@ import (
 // value sits behind the game package's campaign service, which is picked from
 // Campaign.
 type Edition struct {
+	// SlotWord leads the file names of the game's quick and timed save slots.
+	SlotWord string
+
 	// Game is the game the edition belongs to.
 	Game Game
 
@@ -216,6 +219,7 @@ const (
 )
 
 var firstEdition = Edition{
+	SlotWord: "rom1",
 	PartyProfile: PartyProfile{
 		TavernTypes:  []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
 		TavernUnits:  []int{1, 2},
@@ -247,6 +251,7 @@ var firstEdition = Edition{
 }
 
 var secondEdition = Edition{
+	SlotWord:  "rom2",
 	Game:      GameROM2,
 	SaveTag:   GameROM2,
 	Campaign:  CampaignDestinations,
@@ -324,6 +329,9 @@ func (g Game) Edition() Edition {
 	}
 	return firstEdition
 }
+
+// SlotWords are the slot words of every game's edition.
+func SlotWords() []string { return []string{firstEdition.SlotWord, secondEdition.SlotWord} }
 
 // Edition is the profile's edition.
 func (p Profile) Edition() Edition { return p.GameOf().Edition() }

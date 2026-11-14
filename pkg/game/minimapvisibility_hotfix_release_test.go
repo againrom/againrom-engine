@@ -119,7 +119,7 @@ func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {
 		t.Fatal("frozen owner save changed")
 	}
 	dir := t.TempDir()
-	for _, name := range []string{"quick-save-1.sav", "quick-save-1.quick-owner"} {
+	for _, name := range []string{"rom1-quick-save-1.sav", "rom1-quick-save-1.quick-owner"} {
 		data, err := os.ReadFile(filepath.Join(filepath.Dir(source), name))
 		if err != nil {
 			t.Fatal(err)
@@ -128,7 +128,7 @@ func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	f, a := minimapColdLoad(t, dir, "quick-save-1.sav")
+	f, a := minimapColdLoad(t, dir, "rom1-quick-save-1.sav")
 	minimapVisibleInstalled(t, f, a, "owner-load")
 	before := f.live.view.SaveApplication()
 	if err := a.HeadlessKey("f3"); err != nil {

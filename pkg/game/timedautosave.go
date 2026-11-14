@@ -44,12 +44,12 @@ func (s OptionsStore) setTimedAutosave(v ui.TimedAutosaveSettings) error {
 	return s.writeAll(m)
 }
 
-func timedSavePosition(dir string) (int, uint64, error) {
+func timedSavePosition(kind ownedSlotKind, dir string) (int, uint64, error) {
 	var newest uint64
 	next := 0
 	var writable [3]bool
 	for slot := range 3 {
-		base := filepath.Join(dir, string(timedSlots.slotBase(slot)))
+		base := filepath.Join(dir, string(kind.slotBase(slot)))
 		saveInfo, saveErr := os.Lstat(base + ".sav")
 		ownerInfo, ownerStatErr := os.Lstat(base + timedOwnerExtension)
 		if os.IsNotExist(saveErr) && os.IsNotExist(ownerStatErr) {
@@ -64,7 +64,7 @@ func timedSavePosition(dir string) (int, uint64, error) {
 		if err != nil || ownerErr != nil {
 			continue
 		}
-		sequence, err := timedSlots.validatePair(slot, raw, owner)
+		sequence, err := kind.validatePair(slot, raw, owner)
 		if err == nil {
 			writable[slot] = true
 			if sequence > newest {
@@ -150,15 +150,16 @@ func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fence
 			}
 			notifySaveCapture(observers, "timed", snapshot)
 			store := *current
+			kind := timedSlots.forGame(f.savedGame())
 			view, snapshot := f.detachedExporter(snapshot)
 			q.submit(f.runsAutosaveInline(), true, "", func() autosaveResult {
-				slot, sequence, err := timedSavePosition(store.Dir)
+				slot, sequence, err := timedSavePosition(kind, store.Dir)
 				if err != nil {
 					return autosaveResult{timed: true, err: err}
 				}
 				raw, _, err := view.playerMissionSave(snapshot, fmt.Sprintf("timed autosave %d", slot+1))
 				if err == nil {
-					err = timedSlots.write(store, fences, slot, sequence, raw, nil)
+					err = kind.write(store, fences, slot, sequence, raw, nil)
 				}
 				return autosaveResult{timed: true, err: err}
 			})

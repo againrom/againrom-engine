@@ -54,7 +54,7 @@ func TestTimedAutosaveClockExpiry(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-1.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); !os.IsNotExist(err) {
 		t.Fatal("early save", err)
 	}
 	if f.live.world.Hash() != hash {
@@ -64,7 +64,7 @@ func TestTimedAutosaveClockExpiry(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-1.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); err != nil {
 		t.Fatal("expired wall clock did not publish timed SAV", err)
 	}
 	if f.live.world.Hash() != hash {
@@ -257,7 +257,7 @@ func TestTimedAutosaveDraftPersistenceAndDeferral(t *testing.T) {
 	}
 	now = now.Add(time.Hour)
 	action("return")
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-1.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); !os.IsNotExist(err) {
 		t.Fatal("disabled timer wrote", err)
 	}
 	key("escape")
@@ -268,14 +268,14 @@ func TestTimedAutosaveDraftPersistenceAndDeferral(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-1.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); !os.IsNotExist(err) {
 		t.Fatal("menu did not defer timer", err)
 	}
 	for range 9 {
 		f.live.tick()
 	}
 	action("return")
-	raw, err := store.Read("timed-autosave-1.sav")
+	raw, err := store.Read("rom1-timed-autosave-1.sav")
 	if err != nil {
 		t.Fatal("resume did not write", err)
 	}
@@ -286,7 +286,7 @@ func TestTimedAutosaveDraftPersistenceAndDeferral(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-2.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-2.sav")); !os.IsNotExist(err) {
 		t.Fatal("catch-up burst", err)
 	}
 	g := currentPoolFixtureFront(t, 91, 92)
@@ -353,7 +353,7 @@ func TestTimedAutosaveOwnedRotationAndRollback(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if slot, seq, err := timedSavePosition(store.Dir); err != nil || slot != 1 || seq != 8 {
+			if slot, seq, err := timedSavePosition(testTimedKind, store.Dir); err != nil || slot != 1 || seq != 8 {
 				t.Fatal("rotation", slot, seq, err)
 			}
 			if err := writeTimedSave(store, nil, 0, 7, raw, nil); err == nil {
@@ -491,10 +491,10 @@ func TestTimedAutosaveFollowsManualSaveDestination(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("return"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(other, "timed-autosave-1.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(other, "rom1-timed-autosave-1.sav")); err != nil {
 		t.Fatal("timed save did not follow successful manual SAVE", err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-1.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); !os.IsNotExist(err) {
 		t.Fatal("timed save used old destination", err)
 	}
 	if after, err := os.ReadFile(filepath.Join(other, "manual.sav")); err != nil || !bytes.Equal(after, manual) {
@@ -514,7 +514,7 @@ func TestTimedAutosaveVisibleFailureRetryAndLoadReset(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(store.Dir, "timed-autosave-1.sav")
+	path := filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")
 	for slot := range 3 {
 		if err := os.WriteFile(filepath.Join(store.Dir, string(timedSaveBase(slot))+".sav"), []byte("keep"), 0600); err != nil {
 			t.Fatal(err)
@@ -563,14 +563,14 @@ func TestTimedAutosaveVisibleFailureRetryAndLoadReset(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-2.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-2.sav")); !os.IsNotExist(err) {
 		t.Fatal("LOAD retained old deadline", err)
 	}
 	now = now.Add(4 * time.Minute)
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-2.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-2.sav")); err != nil {
 		t.Fatal("LOAD did not start fresh deadline", err)
 	}
 	now = now.Add(4 * time.Minute)
@@ -581,14 +581,14 @@ func TestTimedAutosaveVisibleFailureRetryAndLoadReset(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-3.sav")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-3.sav")); !os.IsNotExist(err) {
 		t.Fatal("NEW GAME retained old deadline", err)
 	}
 	now = now.Add(4 * time.Minute)
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Dir, "timed-autosave-3.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(store.Dir, "rom1-timed-autosave-3.sav")); err != nil {
 		t.Fatal("NEW GAME did not start fresh deadline", err)
 	}
 }

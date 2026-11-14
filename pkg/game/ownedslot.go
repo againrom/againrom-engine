@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 )
 
@@ -18,12 +19,31 @@ type ownedSlotKind struct {
 	tag      string // the sidecar's Kind value
 	base     string // the file base; slot n is "<base>-<n+1>"
 	ownerExt string // the sidecar's extension
+	game     string // leads the base; empty is the older pair
 }
 
 var (
-	quickSlots = ownedSlotKind{"quick", "againrom-quick-sav", "quick-save", quickOwnerExtension}
-	timedSlots = ownedSlotKind{"timed", "againrom-timed-sav", "timed-autosave", timedOwnerExtension}
+	quickSlots = ownedSlotKind{"quick", "againrom-quick-sav", "quick-save", quickOwnerExtension, ""}
+	timedSlots = ownedSlotKind{"timed", "againrom-timed-sav", "timed-autosave", timedOwnerExtension, ""}
 )
+
+// forGame is the kind's slots of game g.
+func (k ownedSlotKind) forGame(g base.Game) ownedSlotKind {
+	k.game = g.Edition().SlotWord
+	return k
+}
+
+// allOwnedSlotKinds is every kind a save folder may hold.
+func allOwnedSlotKinds() []ownedSlotKind {
+	out := []ownedSlotKind{timedSlots, quickSlots}
+	for _, word := range base.SlotWords() {
+		for _, k := range []ownedSlotKind{timedSlots, quickSlots} {
+			k.game = word
+			out = append(out, k)
+		}
+	}
+	return out
+}
 
 // ownedSlotRecord's field names and order are the sidecar bytes.
 type ownedSlotRecord struct {
@@ -34,7 +54,11 @@ type ownedSlotRecord struct {
 }
 
 func (k ownedSlotKind) slotBase(slot int) validatedSaveName {
-	return validatedSaveName(fmt.Sprintf("%s-%d", k.base, slot+1))
+	name := k.base
+	if k.game != "" {
+		name = k.game + "-" + name
+	}
+	return validatedSaveName(fmt.Sprintf("%s-%d", name, slot+1))
 }
 
 func (k ownedSlotKind) validatePair(slot int, raw, owner []byte) (uint64, error) {

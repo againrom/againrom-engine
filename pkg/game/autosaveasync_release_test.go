@@ -53,7 +53,7 @@ func TestReleaseAutosaveWorkerWritesTheFrameThreadBytesInMission(t *testing.T) {
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	timed, err := os.ReadFile(filepath.Join(store.Dir, "timed-autosave-1.sav"))
+	timed, err := os.ReadFile(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav"))
 	if err != nil {
 		t.Fatal("timed autosave missing", err)
 	}
@@ -71,7 +71,7 @@ func TestReleaseAutosaveWorkerWritesTheFrameThreadBytesInMission(t *testing.T) {
 	for range 200 {
 		f.live.tick()
 	}
-	if after, err := os.ReadFile(filepath.Join(store.Dir, "timed-autosave-1.sav")); err != nil || !bytes.Equal(after, timed) {
+	if after, err := os.ReadFile(filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")); err != nil || !bytes.Equal(after, timed) {
 		t.Fatal("later play changed a finished autosave", err)
 	}
 	if app.Screen() != ui.ScreenMap {

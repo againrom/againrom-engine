@@ -63,11 +63,11 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 			var lastHash uint64
 			for i := range 5 {
 				for attempts := 0; app.HeadlessNoticeOpen() && attempts < 32; attempts++ {
-					before := readQuickSaveSlots(store.Dir)
+					before := readQuickSaveSlots(testQuickKind, store.Dir)
 					if err := app.HeadlessKey("f2"); err != nil {
 						t.Fatal(err)
 					}
-					if !reflect.DeepEqual(before, readQuickSaveSlots(store.Dir)) {
+					if !reflect.DeepEqual(before, readQuickSaveSlots(testQuickKind, store.Dir)) {
 						t.Fatal("notice admitted F4")
 					}
 					if err := app.HeadlessActivate("notice"); err != nil {
@@ -141,8 +141,8 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 			quickAssertSample(t, f, missionAutosaveSampleNow(t, f), latest.Samples[0])
 			missionAutosaveNext(f, latest)
 			quickAssertSample(t, f, missionAutosaveSampleNow(t, f), latest.Samples[1])
-			quickWriteProof(t, filepath.Join(store.Dir, "quick-save-2.sav"), emitted[4], latest)
-			runSpellWitnessChild(t, filepath.Join(store.Dir, "quick-save-2.sav"), "AGAINROM_QUICK_LOAD_INPUT")
+			quickWriteProof(t, filepath.Join(store.Dir, "rom1-quick-save-2.sav"), emitted[4], latest)
+			runSpellWitnessChild(t, filepath.Join(store.Dir, "rom1-quick-save-2.sav"), "AGAINROM_QUICK_LOAD_INPUT")
 			for _, path := range []string{manual, filepath.Join(store.Dir, start.Name)} {
 				if got, err := os.ReadFile(path); err != nil || !bytes.Equal(got, startRaw) {
 					t.Fatal("manual/start changed", err)
@@ -218,7 +218,7 @@ func quickLoadCold(t *testing.T, path string) {
 			}
 		}
 	}
-	raw, err := newestQuickSave(readQuickSaveSlots(store.Dir))
+	raw, err := newestQuickSave(readQuickSaveSlots(testQuickKind, store.Dir))
 	if err != nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != proof.SHA256 {
 		t.Fatal("cold newest ownership", err)
 	}
@@ -278,14 +278,14 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 		}
 	}
 	for _, ext := range []string{".sav", quickOwnerExtension} {
-		if _, err := os.Stat(filepath.Join(store.Dir, "quick-save-2") + ext); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(store.Dir, "rom1-quick-save-2") + ext); !os.IsNotExist(err) {
 			t.Fatal("ordinary delete retained quick pair", err)
 		}
 	}
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(store.Dir); slots[1].sequence != 5 {
+	if slots := readQuickSaveSlots(testQuickKind, store.Dir); slots[1].sequence != 5 {
 		t.Fatal("deleted slot did not recover with highest surviving sequence plus one", slots[1].sequence)
 	}
 }
@@ -324,7 +324,7 @@ func quickTownWitness(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	older, err := os.ReadFile(filepath.Join(dir, "quick-save-1.sav"))
+	older, err := os.ReadFile(filepath.Join(dir, "rom1-quick-save-1.sav"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func quickTownWitness(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "quick-save-2.sav")
+	path := filepath.Join(dir, "rom1-quick-save-2.sav")
 	saved, err := os.ReadFile(path)
 	if err != nil || bytes.Equal(saved, raw) || g.Town.Gold() != before+77 {
 		t.Fatal("town current-state write", err)
@@ -347,7 +347,7 @@ func quickTownWitness(t *testing.T) {
 		currentValueDiagnostics(t, "town", reflect.ValueOf(first), reflect.ValueOf(got))
 		t.Fatal("town F9 lost current state")
 	}
-	if got, err := os.ReadFile(filepath.Join(dir, "quick-save-1.sav")); err != nil || !bytes.Equal(got, older) {
+	if got, err := os.ReadFile(filepath.Join(dir, "rom1-quick-save-1.sav")); err != nil || !bytes.Equal(got, older) {
 		t.Fatal("town newest replaced older bytes", err)
 	}
 	proof := timedTownProof{fmt.Sprintf("%x", sha256.Sum256(saved)), []timedTownSample{first, timedTownNext(t, g, app)}}

@@ -44,7 +44,7 @@ func TestQuickSaveOldestNewestAndStableTies(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			slots := readQuickSaveSlots(store.Dir)
+			slots := readQuickSaveSlots(testQuickKind, store.Dir)
 			wantSlot, wantNext := 0, sequences[0]+1
 			if sequences == [3]uint64{10, 1, 100} {
 				wantSlot, wantNext = 1, 101
@@ -102,7 +102,7 @@ func TestQuickSaveProtectedSlotsAndBoundedRecovery(t *testing.T) {
 				}
 			}
 			for seq := uint64(1); seq <= 7; seq++ {
-				slot, next, err := quickSavePosition(readQuickSaveSlots(store.Dir))
+				slot, next, err := quickSavePosition(readQuickSaveSlots(testQuickKind, store.Dir))
 				want := 0
 				if seq%2 == 0 {
 					want = 2
@@ -129,7 +129,7 @@ func TestQuickSaveProtectedSlotsAndBoundedRecovery(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if _, _, err := quickSavePosition(readQuickSaveSlots(store.Dir)); err == nil {
+			if _, _, err := quickSavePosition(readQuickSaveSlots(testQuickKind, store.Dir)); err == nil {
 				t.Fatal("all blocked accepted")
 			}
 		})
@@ -232,14 +232,14 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 	if err := writeQuickSave(store, nil, 0, 1, raw, nil); err != nil {
 		t.Fatal(err)
 	}
-	captured := readQuickSaveSlots(store.Dir)
+	captured := readQuickSaveSlots(testQuickKind, store.Dir)
 	if err := os.WriteFile(filepath.Join(store.Dir, string(quickSaveBase(0)))+".sav", []byte("replaced path"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := newestQuickSave(captured); err != nil || !bytes.Equal(got, raw) {
 		t.Fatal("selection reread path", err)
 	}
-	if _, err := newestQuickSave(readQuickSaveSlots(store.Dir)); err == nil {
+	if _, err := newestQuickSave(readQuickSaveSlots(testQuickKind, store.Dir)); err == nil {
 		t.Fatal("new selection admitted changed pair")
 	}
 }
@@ -264,7 +264,7 @@ func TestQuickLoadFailurePreservesDueDeadlineAndSession(t *testing.T) {
 	if f.live != live || f.live.world.Hash() != hash || f.live.world.Tick() != tick || app.Screen() != ui.ScreenMap {
 		t.Fatal("failed F3 changed session")
 	}
-	path := filepath.Join(store.Dir, "timed-autosave-1.sav")
+	path := filepath.Join(store.Dir, "rom1-timed-autosave-1.sav")
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatal("failed F3 admitted due poll", err)
 	}
@@ -305,16 +305,16 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 	if !visible || f.live.world.Hash() != hash {
 		t.Fatal("all-blocked error was not visible or changed state")
 	}
-	if err := os.Remove(filepath.Join(store.Dir, "quick-save-2.sav")); err != nil {
+	if err := os.Remove(filepath.Join(store.Dir, "rom1-quick-save-2.sav")); err != nil {
 		t.Fatal(err)
 	}
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(store.Dir); slots[1].sequence != 1 {
+	if slots := readQuickSaveSlots(testQuickKind, store.Dir); slots[1].sequence != 1 {
 		t.Fatal("actual App retry did not find healthy slot")
 	}
-	prior, err := os.ReadFile(filepath.Join(store.Dir, "quick-save-2.sav"))
+	prior, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-2.sav"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,10 +339,10 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(other); slots[0].sequence != 1 {
+	if slots := readQuickSaveSlots(testQuickKind, other); slots[0].sequence != 1 {
 		t.Fatal("quick did not follow committed manual destination")
 	}
-	if got, err := os.ReadFile(filepath.Join(store.Dir, "quick-save-2.sav")); err != nil || !bytes.Equal(got, prior) {
+	if got, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-2.sav")); err != nil || !bytes.Equal(got, prior) {
 		t.Fatal("destination change touched prior slot", err)
 	}
 }

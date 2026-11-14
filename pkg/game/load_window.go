@@ -52,10 +52,11 @@ func prepareLoadDeleteFiles(dir, token string, fences []string, files namedSaveF
 		return nil, err
 	}
 	targets := []namedSaveTarget{{path: path, before: info, oldHash: sha256.Sum256(raw), old: raw}}
-	if companion, owned := timedSlots.deleteCompanion(path, raw); owned {
-		targets = append(targets, companion)
-	} else if companion, owned := quickSlots.deleteCompanion(path, raw); owned {
-		targets = append(targets, companion)
+	for _, kind := range allOwnedSlotKinds() {
+		if companion, owned := kind.deleteCompanion(path, raw); owned {
+			targets = append(targets, companion)
+			break
+		}
 	}
 	return func() error {
 		namedSaveMu.Lock()

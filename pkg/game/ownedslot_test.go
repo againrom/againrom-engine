@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"againrom/pkg/base"
 )
 
 // Each kind's files and error texts, pinned as literals.
@@ -18,10 +20,10 @@ func TestOwnedSlotWriterBytesPerKind(t *testing.T) {
 		name, base, ext, tag string
 		write                func(SaveStore, int, uint64) error
 	}{
-		{"quick", "quick-save", ".quick-owner", "againrom-quick-sav", func(s SaveStore, slot int, seq uint64) error {
+		{"quick", "rom1-quick-save", ".quick-owner", "againrom-quick-sav", func(s SaveStore, slot int, seq uint64) error {
 			return writeQuickSave(s, nil, slot, seq, raw, nil)
 		}},
-		{"timed", "timed-autosave", ".timed-owner", "againrom-timed-sav", func(s SaveStore, slot int, seq uint64) error {
+		{"timed", "rom1-timed-autosave", ".timed-owner", "againrom-timed-sav", func(s SaveStore, slot int, seq uint64) error {
 			return writeTimedSave(s, nil, slot, seq, raw, nil)
 		}},
 	} {
@@ -78,21 +80,34 @@ type (
 	timedSaveOwner = ownedSlotRecord
 )
 
-func quickSaveBase(slot int) validatedSaveName { return quickSlots.slotBase(slot) }
-func timedSaveBase(slot int) validatedSaveName { return timedSlots.slotBase(slot) }
+var (
+	testQuickKind = quickSlots.forGame(base.GameROM1)
+	testTimedKind = timedSlots.forGame(base.GameROM1)
+)
+
+func quickSaveBase(slot int) validatedSaveName { return testQuickKind.slotBase(slot) }
+func timedSaveBase(slot int) validatedSaveName { return testTimedKind.slotBase(slot) }
+
+func secondQuickSaveBase(slot int) validatedSaveName {
+	return quickSlots.forGame(base.GameROM2).slotBase(slot)
+}
+
+func secondTimedSaveBase(slot int) validatedSaveName {
+	return timedSlots.forGame(base.GameROM2).slotBase(slot)
+}
 
 func validateQuickSavePair(slot int, raw, owner []byte) (uint64, error) {
-	return quickSlots.validatePair(slot, raw, owner)
+	return testQuickKind.validatePair(slot, raw, owner)
 }
 
 func validateTimedSavePair(slot int, raw, owner []byte) (uint64, error) {
-	return timedSlots.validatePair(slot, raw, owner)
+	return testTimedKind.validatePair(slot, raw, owner)
 }
 
 func writeQuickSave(store SaveStore, fences []string, slot int, sequence uint64, raw []byte, files namedSaveFileOps) error {
-	return quickSlots.write(store, fences, slot, sequence, raw, files)
+	return testQuickKind.write(store, fences, slot, sequence, raw, files)
 }
 
 func writeTimedSave(store SaveStore, fences []string, slot int, sequence uint64, raw []byte, files namedSaveFileOps) error {
-	return timedSlots.write(store, fences, slot, sequence, raw, files)
+	return testTimedKind.write(store, fences, slot, sequence, raw, files)
 }
