@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 - [BASE] In data/towns.toml a mod sets which mission a town's shop and school hand out ([[shop]], [[school]]), and a talk or hand-out can wait for wins (won) and stand from a chapter on (from); the editor's campaign graph edits these mod hand-outs (add, change, switch off, remove), and Ctrl+S writes data/towns.toml keeping its comments.
 - [BASE] In the map editor's mod window the Overview page scrolls to its end, the Campaign graph buttons show their words instead of question marks, and the Missions page lists every mission of the mod.
 - [BASE] The map editor's help lists Ctrl+Tab and Ctrl+Shift+Tab (next and previous open map) only while two or more maps are open; with one map or none the two lines are left out, and the keys work as before.
+- [ROM1] F5 test play from the map editor now starts the map with the hero and party chosen in the party window, with no character generation; the window remembers the choice between editor runs, and a mission with its own party gets a Party: Standard / Custom switch.
 
 ## 0.154.0
 

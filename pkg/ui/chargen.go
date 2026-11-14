@@ -441,6 +441,40 @@ func (c *Chargen) heroParts(choice int) (sex, class int) {
 	return h.Sex, h.Class
 }
 
+// ChooseHero makes the presses that choose the hero of the sex and class
+// given and change nothing else: on the two-stage generator the picture
+// standing for him, then Forward; on the one-stage screen the sex and class
+// rows. It reports whether the screen then holds that hero.
+func (c *Chargen) ChooseHero(female, mage bool) bool {
+	if c == nil {
+		return false
+	}
+	sex, class := 0, 0
+	if female {
+		sex = 1
+	}
+	if mage {
+		class = 1
+	}
+	switch {
+	case c.stage == PreCreateStage:
+		for p := range generatorHeroes {
+			if s, k := c.heroParts(p); s == sex && k == class {
+				c.SelectPreChoice(p)
+				c.Forward()
+				break
+			}
+		}
+	case c.setup.PreCreate == nil:
+		for i, want := range []int{sex, class} {
+			if i < len(c.choiceIndex) {
+				c.adjustChoice(i, want-c.choiceIndex[i])
+			}
+		}
+	}
+	return c.stage == DetailedStage && len(c.choiceIndex) > 1 && c.choiceIndex[0] == sex && c.choiceIndex[1] == class
+}
+
 // Forward enters a fresh detailed draft without validating the name.
 func (c *Chargen) Forward() {
 	if c == nil || c.stage != PreCreateStage {

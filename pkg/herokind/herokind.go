@@ -74,6 +74,28 @@ func (k Kind) String() string {
 	return sex + " " + class
 }
 
+// Word is the kind as one word, "female-mage", as a command line names it.
+func (k Kind) Word() string { return strings.ReplaceAll(k.String(), " ", "-") }
+
+// Words are the four kinds' words in the selector order.
+func Words() []string {
+	out := make([]string, kinds)
+	for k := range kinds {
+		out[k] = k.Word()
+	}
+	return out
+}
+
+// ParseWord is the kind Word names.
+func ParseWord(w string) (Kind, bool) {
+	for k := range kinds {
+		if k.Word() == w {
+			return k, true
+		}
+	}
+	return 0, false
+}
+
 // The words a declaration names a class and a sex with.
 const (
 	Fighter = "fighter"

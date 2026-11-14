@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,6 +9,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/game"
+	"againrom/pkg/herokind"
 	"againrom/pkg/ui"
 )
 
@@ -80,8 +80,8 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := game.TestPlayArgs(root, filepath.Join(profile.Directory, game.TestPlayModID), o.mission)
-	if err != nil || !o.missionSet || !reflect.DeepEqual(started, want) {
+	want, err := game.TestPlayArgs(root, filepath.Join(profile.Directory, game.TestPlayModID), o.mission, herokind.MaleFighter.Word())
+	if err != nil || !o.missionSet || !o.heroSet || !reflect.DeepEqual(started, want) {
 		t.Fatalf("launch args %q", started)
 	}
 	mods, err := resolveMods(o, program)
@@ -114,13 +114,8 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	if err := armNewGameDoor(a, f, o); err != nil {
 		t.Fatal(err)
 	}
-	if a.Screen() != ui.ScreenChargen {
-		t.Fatalf("F5 entry screen=%s", a.Screen())
-	}
-	scenario := game.HeadlessScenario{Version: game.HeadlessScenarioVersion, Steps: []game.HeadlessStep{{Command: "create_character", Character: &game.HeadlessCharacter{Name: "Author"}}}}
-	if err := game.RunHeadlessScenario(f, a, scenario, io.Discard, io.Discard); err != nil {
-		t.Fatal(err)
-	}
+	// The party window chose the hero, so the game opens the map with no
+	// generation screen.
 	if state := f.HeadlessSnapshot(a.Screen()); state.Screen != "map" || state.Mission != o.mission {
 		t.Fatalf("entry %+v", state)
 	}
@@ -149,7 +144,7 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 		}
 	}
 	state := f.HeadlessSnapshot(a.Screen())
-	t.Logf("F5 mission %d -> chargen -> authored Victory -> acknowledgement -> %s/%s chapter%d members%d", o.mission, state.Screen, state.TownPlace, f.Town.Chapter(), len(state.Members))
+	t.Logf("F5 mission %d -> authored Victory -> acknowledgement -> %s/%s chapter%d members%d", o.mission, state.Screen, state.TownPlace, f.Town.Chapter(), len(state.Members))
 	// The party window's mission declares its party and no guest, so it names
 	// no chapter: the hero waits in the campaign's first town.
 	first, ok := f.Campaign.Value().TownBegins()

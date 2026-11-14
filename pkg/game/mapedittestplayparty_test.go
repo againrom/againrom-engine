@@ -266,7 +266,7 @@ func TestTestPlayWritesTheChosenParty(t *testing.T) {
 
 // A package's guest route keeps its number, the mission it plays after and
 // its gold under the chosen party; a route that replaces a campaign mission
-// or declares its own party plays as it says, with no window.
+// plays as it says, with no window; one that declares its own party has the switch.
 func TestTestPlayPartyAndThePackageRoute(t *testing.T) {
 	f, e, _ := partyFixture(t)
 	setRoute(t, e, map[string]int{"number": 35, "after": 30, "guest": 23, "chapter": 40, "gold": 500}, "")
@@ -287,11 +287,31 @@ func TestTestPlayPartyAndThePackageRoute(t *testing.T) {
 	f.x.archives.Containers.Overlay("scenario/20.alm", func() ([]byte, error) { return append([]byte(nil), original...), nil })
 	setRoute(t, e, map[string]int{"number": 20}, "replace")
 	_ = e.Key("escape")
-	if s.TestPlayCards(0) != nil {
-		t.Fatal("a replacing mission offers the party window")
+	if s.TestPlayCards(0) == nil || !s.TestPlayDeclaresParty() {
+		t.Fatal("a replacing mission offers the party window with the switch")
 	}
-	if err := pastNotice(e, "testplay"); err != nil || e.TestPartyOpen() || len(f.started) != 1 {
-		t.Fatalf("the replacing route: %v, started %q", err, f.started)
+	if err := e.Key("testplay"); err != nil || !e.TestPartyOpen() {
+		t.Fatalf("F5 on a replacing mission did not ask: %v", err)
+	}
+	if err := e.Key("enter"); err != nil || len(f.started) != 1 {
+		t.Fatalf("the Standard route: %v, started %q", err, f.started)
+	}
+	if _, ok := startedFlag(f, "hero"); ok {
+		t.Fatalf("Standard keeps generation: %q", f.started)
+	}
+	if m := loadWorkspaceMod(t, f.root, testModFolder(f)); m.Number != 20 || !m.Campaign() {
+		t.Fatalf("Standard plays mission %d as declared, campaign %t", m.Number, m.Campaign())
+	}
+	if _, err := s.TestPlayParty(herokind.FemaleMage.Index(), []ui.TestPlayMember{{On: true, Skills: true, Spells: true}, {On: true}, {}, {}, {}, {}}); err != nil {
+		t.Fatal(err)
+	}
+	if hero, _ := startedFlag(f, "hero"); hero != herokind.FemaleMage.Word() {
+		t.Fatalf("Custom skips generation: %q", f.started)
+	}
+	cm := loadWorkspaceMod(t, f.root, testModFolder(f))
+	want := []mod.GuestMember{{Hero: true, Skills: mod.GuestSkills, Spells: mod.GuestSpellsAll}, {Character: "npc22"}}
+	if cm.Campaign() || !reflect.DeepEqual(cm.Party, want) || cm.Class != herokind.Mage || cm.Sex != herokind.Female {
+		t.Fatalf("Custom declares %+v campaign %t %s %s", cm.Party, cm.Campaign(), cm.Class, cm.Sex)
 	}
 
 	_, e, s = partyFixture(t)
@@ -299,7 +319,7 @@ func TestTestPlayPartyAndThePackageRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.workspace.Package.Party = []mod.GuestMember{{Character: "npc24"}}
-	if s.TestPlayCards(0) != nil {
+	if s.TestPlayCards(0) == nil {
 		t.Fatal("a mission that declares its party offers the party window")
 	}
 	if (secondCampaignRules{}).testPlayParty() != nil {

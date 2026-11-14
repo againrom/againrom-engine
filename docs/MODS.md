@@ -2614,7 +2614,7 @@ To build a playable scenario, create its size with N, set D, add its units
 and structures, write an `event01.txt` page with X, and use F2 to connect a
 message and win action to the intended conditions. Set the route and a new
 folder with W, save with Ctrl+S, and reopen the folder with W to check the
-checkpoint. F5 enters character generation for the current map. Acknowledging
+checkpoint. F5 plays the current map with the party its window chooses. Acknowledging
 its Victory panel returns the game to the campaign town; the editor stays
 open for further changes.
 
@@ -2639,8 +2639,8 @@ Without an open project, the editor writes the map into its own test mod,
 `testplay`, in the editor's player profile (the
 `testplay` folder beside the game program, or `Againrom/testplay` when the editor runs
 from inside an install), and starts the game beside the editor on the same
-base with `-mods testplay -mods-dir <that folder> -mission <n>`: character
-generation, then the map as guest mission `n`. The test mod declares the map
+base with `-mods testplay -mods-dir <that folder> -hero <kind> -mission <n>`:
+the map as mission `n`, with no character generation. The test mod declares the map
 as a guest mission after the campaign's first won mission that opens a town
 granting a companion; `n` is the lowest number after that mission the game
 accepts for a guest (21 on the first game's installs). It carries the text
@@ -2655,7 +2655,7 @@ missing or failed game program is named on the message line. The second game
 has no test play.
 
 On the first game F5 first opens one window that asks who plays the map. It
-holds six cards in a row: the hero character generation makes, then the
+holds six cards in a row: the hero, then the
 campaign's five companions, `npc22` to `npc26` of the character catalog (the
 second and third at levels 2 and 3). A click on a card's top box puts the
 character in the party or takes him out; the hero alone is in at first.
@@ -2664,28 +2664,41 @@ Under each card, Skills 100 writes `skills = 100` and All spells writes
 spells box. Start, or Enter, plays the map with exactly the chosen party: the
 test mod's mission declares it as its `party` array and no guest. Start takes
 no press while nobody is chosen. Cancel, or Esc, plays nothing and writes
-nothing. The window opens with the last choice until the editor closes. The
+nothing. The window opens with the last choice: the kind of hero and every
+box, kept by card in the editor's profile file `mapedit-panels.json`, so the
+choice outlives a change of map and the editor itself. A card the map does
+not offer keeps its boxes for a map that does; All spells on a card that does
+not cast beside the kind shown stays chosen but neither shows nor plays. A
+kept choice that does not read gives that part its default. The
 warnings the notice before a test play listed stand in this window, and no
 separate notice follows.
 
-The game composes `npc22` to `npc24` by the hero's class and sex, and the
-hero is made only after the game starts. So the window names the kind of hero
+The game composes `npc22` to `npc24` by the hero's class and sex, so the
+window names the kind of hero
 its cards stand beside on the button between Start and Cancel: man fighter at
 first, and a press takes the next of the four kinds. Each companion's card is
 the member the game builds beside that hero: his name, his portrait and
 whether he has an All spells box. The hero's card has that box when the hero
-is a mage. The test mission is written with that kind's `class` and `sex`, so
-the game plays it for that hero alone: when character generation makes
-another, the start is refused in a line and the map maker picks the kind the
-window showed. A name wider than its card stands on two lines.
+is a mage. Start passes that kind to the game as `-hero` (`male-fighter`,
+`female-fighter`, `male-mage` or `female-mage`), and the game opens no
+generation screen: the hero is the one the screen makes when its picture of
+that kind is pressed and nothing else is changed, with the picture's name,
+statistics and skill at Normal difficulty. The test mission is written with
+that kind's `class` and `sex`; a start that reaches character generation
+another way and makes another hero is refused in a line. A name wider than
+its card stands on two lines.
 
 The window stands for a map with no open project and for a project's own
-mission that declares a guest and no `party` array; such a mission keeps its
-number and `gold` in the test copy, and the working mod is not changed. It
-keeps its `after` too, unless `after` names another mission of the project:
-the test copy then plays it as a first link, after the first main mission
-whose win opens a town and that no other mission of the project follows, so
-the hero alone can start it. A mission that names `class` or `sex` offers the
-kinds it plays for. A mission that replaces a campaign mission, declares its
-own `party` array or is selected by its map file plays as declared, with the
-notice alone.
+mission that declares a guest. Such a mission keeps its number and `gold` in
+the test copy, and the working mod is not changed. It keeps its `after` too,
+unless `after` names another mission of the project: the test copy then plays
+it as a first link, after the first main mission whose win opens a town and
+that no other mission of the project follows, so the hero alone can start it.
+A mission that names `class` or `sex` offers the kinds it plays for. A mission
+that declares its own `party` array, replaces a campaign mission or is
+selected by its map file shows one more button, Party: Standard plays it as it
+declares, with character generation first, as before; Custom plays the map
+with the window's choice and no generation, as the install's guest mission in
+place of the replaced one. The last value is remembered with the rest of the
+choice. A start by hand with `-mods testplay -mission <n>` and no `-hero`
+opens character generation.

@@ -234,9 +234,10 @@ type MapEditor struct {
 	filter                      int
 	barSets                     map[string]barWindowSet
 	barOwner                    string
-	editorMode                                   // the window's mode: catalogue, prompt, pick, brush and report
-	testParty                   []TestPlayMember // the party window's choice, kept while the editor runs
-	testPartyHero               int              // the kind of hero the party window's cards stand beside
+	editorMode                                            // the window's mode: catalogue, prompt, pick, brush and report
+	testPartyKept               map[string]TestPlayMember // the party window's choice by card key, kept in the editor's profile
+	testPartyHero               int                       // the kind of hero the map maker last chose in the party window
+	testPartyCustom             bool                      // the party window's switch for a mission with its own party: false is Standard, true Custom
 	message                     string
 	down, moved                 bool
 	press                       image.Point

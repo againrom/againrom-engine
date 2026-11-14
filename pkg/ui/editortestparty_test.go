@@ -34,8 +34,8 @@ func (p *partyEdits) TestPlayParty(hero int, choice []TestPlayMember) (string, e
 
 func partyCards() []TestPlayCard {
 	face := image.NewRGBA(image.Rect(0, 0, 32, 40))
-	return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Mage", Caster: true, Portrait: face}, {Name: "Monk"},
-		{Name: "Prisoner", Caster: true}, {Name: "Brian"}, {Name: "Rood Glaen", Caster: true}}
+	return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Mage", Key: "npc22", Caster: true, Portrait: face}, {Name: "Monk", Key: "npc23"},
+		{Name: "Prisoner", Key: "npc24", Caster: true}, {Name: "Brian", Key: "npc25"}, {Name: "Rood Glaen", Key: "npc26", Caster: true}}
 }
 
 func partyEditor(t *testing.T, p *partyEdits, lang string) *MapEditor {
@@ -179,8 +179,9 @@ func TestThePartyWindowHoldsTheNoticeLines(t *testing.T) {
 
 // The window names the kind of hero its cards stand beside. A press on that
 // button takes the next kind the host offers cards for, the cards change
-// with it, a spells tick leaves a card that no longer casts, Start plays for
-// the kind shown, and the next window opens on it.
+// with it, a spells tick stays remembered but unshown and unplayed on a card
+// that no longer casts, Start plays for the kind shown, and the next window
+// opens on it.
 func TestThePartyWindowNamesTheHeroKind(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		t.Run(lang, func(t *testing.T) {
@@ -189,11 +190,11 @@ func TestThePartyWindowNamesTheHeroKind(t *testing.T) {
 			p.byHero = func(hero int) []TestPlayCard {
 				switch hero {
 				case 0:
-					return []TestPlayCard{{Hero: true}, {Name: "Reniesta", Caster: true}}
+					return []TestPlayCard{{Hero: true}, {Name: "Reniesta", Key: "npc22", Caster: true}}
 				case 2:
-					return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Danath"}}
+					return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Danath", Key: "npc22"}}
 				case 3:
-					return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Naira"}}
+					return []TestPlayCard{{Hero: true, Caster: true}, {Name: "Naira", Key: "npc22"}}
 				}
 				return nil
 			}
@@ -219,7 +220,8 @@ func TestThePartyWindowNamesTheHeroKind(t *testing.T) {
 			next()
 			s, _ = e.promptSpec()
 			want := []TestPlayMember{{On: true}, {On: true}}
-			if e.TestPartyHero() != 2 || s.Buttons[testPartyKind] != label(2) || s.Grid.ColHeads[1] != "Danath" || !slices.Equal(e.TestPartyChoice(), want) {
+			if e.TestPartyHero() != 2 || s.Buttons[testPartyKind] != label(2) || s.Grid.ColHeads[1] != "Danath" ||
+				!slices.Equal(e.TestPartyChoice(), []TestPlayMember{{On: true}, {On: true, Spells: true}}) || s.Grid.Cells[2*2+1].Ticked {
 				t.Fatalf("after the press: kind %d, buttons %q, heads %q, choice %+v", e.TestPartyHero(), s.Buttons, s.Grid.ColHeads, e.TestPartyChoice())
 			}
 			if _, ok := e.FindControl(ControlQuery{Role: ControlPromptGridCell, N: testPartyRowSpells, K: 1}); ok {

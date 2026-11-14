@@ -8,11 +8,14 @@ const TestPlayHeroes = 4
 
 // TestPlayCard is one character the party window before a test play offers.
 // Hero marks the map maker's own hero, whom the window names itself; any
-// other card carries the game's name of its character. Portrait is nil when
-// the game holds no picture of the character, and Caster says that the
-// character casts, so the card takes the spells box.
+// other card carries the game's name of its character and Key, the
+// character the card stands for whatever hero it is offered beside, which
+// the choice is remembered by. Portrait is nil when the game holds no
+// picture of the character, and Caster says that the character casts, so
+// the card takes the spells box.
 type TestPlayCard struct {
 	Name     string
+	Key      string
 	Portrait *image.RGBA
 	Hero     bool
 	Caster   bool
@@ -36,10 +39,36 @@ type InspectionTestPlayParty interface {
 	TestPlayParty(hero int, choice []TestPlayMember) (string, error)
 }
 
-// testPartyPrompt is what the party window holds while it is open.
+// InspectionTestPlayDeclared is implemented by hosts whose open mission may
+// declare its own party. The party window then carries a switch: Standard
+// starts the mission with that party, Custom with the window's choice.
+// TestPlayDeclaresParty reports that the open mission declares one.
+type InspectionTestPlayDeclared interface{ TestPlayDeclaresParty() bool }
+
+// testPartyPrompt is what the party window holds while it is open: the
+// cards and the kind of hero they are offered beside.
 type testPartyPrompt struct {
 	host  InspectionTestPlayParty
 	cards []TestPlayCard
+	hero  int
+	// declared: the mission declares its own party; the window then holds the
+	// switch between that party and the window's choice.
+	declared bool
+	// heroIn: the choice had nobody in, so the open window shows the hero in.
+	// It belongs to the window; the remembered choice takes it only when the
+	// map maker changes the hero's card or presses Start.
+	heroIn bool
+}
+
+// testPartyHeroKey is the key the hero's card is remembered by.
+const testPartyHeroKey = "hero"
+
+// testPartyKey is the key card c's choice is remembered by.
+func testPartyKey(c TestPlayCard) string {
+	if c.Hero {
+		return testPartyHeroKey
+	}
+	return c.Key
 }
 
 // The party window's rows and buttons, in order.
@@ -54,6 +83,7 @@ const (
 	testPartyStart = iota
 	testPartyKind
 	testPartyStay
+	testPartyMode
 )
 
 // testPartyKinds are the words of the kinds a hero is, in their order.
@@ -66,7 +96,9 @@ const testPartySide, testPartyHigh = 104, 80
 
 // askTestParty opens the party window before a test play when the host
 // offers characters, and reports whether it did. The window starts from the
-// choice the last one in this editor made, or from the hero alone.
+// kind of hero and the boxes the map maker last chose, kept in the editor's
+// profile, or from a man fighter alone. A choice that puts none of the cards
+// in the party puts the hero in.
 func (e *MapEditor) askTestParty() bool {
 	host, ok := e.doc.Edits.(InspectionTestPlayParty)
 	if !ok {
@@ -77,8 +109,9 @@ func (e *MapEditor) askTestParty() bool {
 		return false
 	}
 	e.leave(leaveDrag | leavePick)
-	e.openPrompt(editorPrompt{kind: promptTestParty, party: &testPartyPrompt{host: host}})
-	e.testPartyDeal(hero, cards)
+	d, _ := e.doc.Edits.(InspectionTestPlayDeclared)
+	e.openPrompt(editorPrompt{kind: promptTestParty, party: &testPartyPrompt{host: host, hero: hero, cards: cards, declared: d != nil && d.TestPlayDeclaresParty()}})
+	e.prompt.party.heroIn = !e.testPartyAny()
 	return true
 }
 
@@ -94,30 +127,55 @@ func testPartyOffer(host InspectionTestPlayParty, from int) (int, []TestPlayCard
 	return from, nil
 }
 
-// testPartyDeal lays cards, offered for a hero of kind hero, in the open
-// window. The choice stays, less the spells of a card that no longer casts;
-// a different number of cards starts from the hero alone.
-func (e *MapEditor) testPartyDeal(hero int, cards []TestPlayCard) {
-	if len(e.testParty) != len(cards) {
-		e.testParty = make([]TestPlayMember, len(cards))
-		e.testParty[0].On = true
+// testPartyKeep remembers m as the choice of the card keyed key.
+func (e *MapEditor) testPartyKeep(key string, m TestPlayMember) {
+	if e.testPartyKept == nil {
+		e.testPartyKept = map[string]TestPlayMember{}
 	}
-	for i, c := range cards {
-		e.testParty[i].Spells = e.testParty[i].Spells && c.Caster
-	}
-	e.testPartyHero, e.prompt.party.cards = hero, cards
+	e.testPartyKept[key] = m
 }
 
-// TestPartyHero is the kind of hero the party window's cards stand beside.
-func (e *MapEditor) TestPartyHero() int { return e.testPartyHero }
+// testPartyMember is the remembered choice of card c: the hero alone plays
+// on a card the map maker never chose for. A spells tick stays remembered
+// on a card that does not cast; the window shows it and the play takes it
+// only where the card casts.
+func (e *MapEditor) testPartyMember(c TestPlayCard) TestPlayMember {
+	if c.Hero && e.prompt.party != nil && e.prompt.party.heroIn {
+		m := e.testPartyKept[testPartyHeroKey]
+		m.On = true
+		return m
+	}
+	if m, ok := e.testPartyKept[testPartyKey(c)]; ok {
+		return m
+	}
+	return TestPlayMember{On: c.Hero}
+}
+
+// TestPartyHero is the kind of hero the party window's cards stand beside,
+// or the kind the next window starts from.
+func (e *MapEditor) TestPartyHero() int {
+	if p := e.prompt.party; p != nil {
+		return p.hero
+	}
+	return e.testPartyHero
+}
 
 // TestPartyOpen reports whether the party window before a test play is open.
 func (e *MapEditor) TestPartyOpen() bool { return e.prompt.kind == promptTestParty }
 
-// TestPartyChoice is the party window's choice, one entry per card: the
-// open window's, or the one the next window starts from.
+// TestPartyChoice is the open party window's choice, one entry per card,
+// with the spells ticks remembered on cards that do not cast; none while no
+// window is open.
 func (e *MapEditor) TestPartyChoice() []TestPlayMember {
-	return append([]TestPlayMember(nil), e.testParty...)
+	p := e.prompt.party
+	if p == nil {
+		return nil
+	}
+	out := make([]TestPlayMember, len(p.cards))
+	for i, c := range p.cards {
+		out[i] = e.testPartyMember(c)
+	}
+	return out
 }
 
 // controlPromptGridCellRect is the window rectangle of the open prompt's grid
@@ -138,7 +196,7 @@ func (e *MapEditor) controlPromptGridCellRect(row, col int) (image.Rectangle, bo
 
 // testPartyAny reports that the choice has a character who plays.
 func (e *MapEditor) testPartyAny() bool {
-	for _, m := range e.testParty {
+	for _, m := range e.TestPartyChoice() {
 		if m.On {
 			return true
 		}
@@ -160,9 +218,19 @@ func (e *MapEditor) testPartySpec() popupSpec {
 	if e.noticeNeeded(noticeTestPlay) {
 		notes = e.noticeNotes()
 	}
-	kind := e.word("editor.testparty.hero") + ": " + e.word(testPartyKinds[e.testPartyHero])
-	s := e.questionSpec(e.word("editor.testparty.title"), notes, []string{e.word("editor.testparty.start"), kind, e.word("editor.button.cancel")})
-	s.Disabled = []bool{!e.testPartyAny(), false, false}
+	kind := e.word("editor.testparty.hero") + ": " + e.word(testPartyKinds[e.prompt.party.hero])
+	buttons := []string{e.word("editor.testparty.start"), kind, e.word("editor.button.cancel")}
+	custom := !e.prompt.party.declared || e.testPartyCustom
+	disabled := []bool{custom && !e.testPartyAny(), !custom, false}
+	if e.prompt.party.declared {
+		mode := "editor.testparty.standard"
+		if e.testPartyCustom {
+			mode = "editor.testparty.custom"
+		}
+		buttons, disabled = append(buttons, e.word("editor.testparty.mode")+": "+e.word(mode)), append(disabled, false)
+	}
+	s := e.questionSpec(e.word("editor.testparty.title"), notes, buttons)
+	s.Disabled = disabled
 	body := e.bodyFont()
 	heads := []string{e.word("editor.testparty.plays"), e.word("editor.testparty.skills"), e.word("editor.testparty.spells")}
 	line := fontHeight(body, 15) + popupRowExtra
@@ -179,6 +247,7 @@ func (e *MapEditor) testPartySpec() popupSpec {
 			g.HeadH = 2 * line
 		}
 	}
+	choice := e.TestPartyChoice()
 	for row := range testPartyRows {
 		for i, c := range cards {
 			name := c.Name
@@ -188,7 +257,7 @@ func (e *MapEditor) testPartySpec() popupSpec {
 			if row == testPartyRowPlays {
 				g.ColHeads = append(g.ColHeads, name)
 			}
-			g.Cells = append(g.Cells, testPartyCell(row, c, name, e.testParty[i]))
+			g.Cells = append(g.Cells, testPartyCell(row, c, name, choice[i], custom))
 		}
 	}
 	s.Grid = g
@@ -197,19 +266,21 @@ func (e *MapEditor) testPartySpec() popupSpec {
 	return s
 }
 
-// testPartyCell is the box of row on card c, named name, under choice m.
-func testPartyCell(row int, c TestPlayCard, name string, m TestPlayMember) popupGridCell {
+// testPartyCell is the box of row on card c, named name, under choice m. A
+// card that does not cast shows no spells tick.
+func testPartyCell(row int, c TestPlayCard, name string, m TestPlayMember, custom bool) popupGridCell {
+	m.Spells = m.Spells && c.Caster
 	switch row {
 	case testPartyRowPlays:
-		cell := popupGridCell{Icon: c.Portrait, Tip: name, Pressed: m.On, Ticked: m.On}
+		cell := popupGridCell{Icon: c.Portrait, Tip: name, Pressed: m.On, Ticked: m.On, Inert: !custom}
 		if c.Portrait == nil {
 			cell.Label = name
 		}
 		return cell
 	case testPartyRowSkills:
-		return popupGridCell{Pressed: m.Skills, Ticked: m.Skills}
+		return popupGridCell{Pressed: m.Skills, Ticked: m.Skills, Inert: !custom}
 	}
-	return popupGridCell{Pressed: m.Spells, Ticked: m.Spells, Inert: !c.Caster}
+	return popupGridCell{Pressed: m.Spells, Ticked: m.Spells, Inert: !c.Caster || !custom}
 }
 
 // testPartyPress is a press on the party window: a box switches, Start
@@ -222,42 +293,76 @@ func (e *MapEditor) testPartyPress(p image.Point) {
 		e.cancelPopup()
 	case part == popupButton && n == testPartyStart:
 		_ = e.testPartyGo()
+	case part == popupButton && n == testPartyMode && e.prompt.party.declared:
+		e.testPartyCustom = !e.testPartyCustom
+		e.savePanels()
 	case part == popupButton && n == testPartyKind:
-		if hero, cards := testPartyOffer(e.prompt.party.host, e.testPartyHero+1); len(cards) != 0 {
-			e.testPartyDeal(hero, cards)
+		p := e.prompt.party
+		if hero, cards := testPartyOffer(p.host, p.hero+1); len(cards) != 0 {
+			p.hero, p.cards, e.testPartyHero = hero, cards, hero
+			e.savePanels()
 		}
 	case part == popupGridPart:
-		e.testPartySwitch(n/len(e.testParty), n%len(e.testParty))
+		if cols := len(e.prompt.party.cards); cols > 0 {
+			e.testPartySwitch(n/cols, n%cols)
+		}
 	}
 }
 
 // testPartySwitch switches the box in row of card. The choice is the
-// editor's, so the next window in this session starts from it.
+// editor's and its profile's, so the next window starts from it, in this
+// run and the next.
 func (e *MapEditor) testPartySwitch(row, card int) {
-	if e.prompt.party == nil || card < 0 || card >= len(e.testParty) {
+	p := e.prompt.party
+	if p == nil || card < 0 || card >= len(p.cards) || p.declared && !e.testPartyCustom {
 		return
 	}
-	m := &e.testParty[card]
+	c := p.cards[card]
+	m := e.testPartyMember(c)
 	switch row {
 	case testPartyRowPlays:
 		m.On = !m.On
 	case testPartyRowSkills:
 		m.Skills = !m.Skills
 	case testPartyRowSpells:
-		if e.prompt.party.cards[card].Caster {
-			m.Spells = !m.Spells
+		if !c.Caster {
+			return
 		}
+		m.Spells = !m.Spells
+	default:
+		return
 	}
+	e.testPartyKeep(testPartyKey(c), m)
+	if c.Hero {
+		p.heroIn = false
+	}
+	e.savePanels()
 }
 
-// testPartyGo leaves the party window and plays the map with the choice;
-// with nobody chosen it stays.
+// testPartyGo leaves the party window and plays the map with the choice,
+// the spells ticks of cards that do not cast left out; with nobody chosen
+// it stays. The kind shown is the one the next window starts from.
 func (e *MapEditor) testPartyGo() error {
 	p := e.prompt.party
+	if p != nil && p.declared && !e.testPartyCustom {
+		e.leave(leavePrompt)
+		return e.testPlay()
+	}
 	if p == nil || !e.testPartyAny() {
 		return nil
 	}
-	hero, choice := e.testPartyHero, e.TestPartyChoice()
+	hero, choice := p.hero, e.TestPartyChoice()
+	for i, c := range p.cards {
+		choice[i].Spells = choice[i].Spells && c.Caster
+		if c.Hero && p.heroIn {
+			e.testPartyKeep(testPartyHeroKey, e.testPartyMember(c))
+			e.savePanels()
+		}
+	}
+	if e.testPartyHero != hero {
+		e.testPartyHero = hero
+		e.savePanels()
+	}
 	e.leave(leavePrompt)
 	return e.testPlayBy(func() (string, error) { return p.host.TestPlayParty(hero, choice) })
 }

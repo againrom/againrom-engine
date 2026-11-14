@@ -216,7 +216,7 @@ func (p *modesFull) Report() []InspectionFinding { return modesFindings }
 // The full host offers three characters for a test play, so F5 opens the
 // window that asks who plays the map.
 func (p *modesFull) TestPlayCards(hero int) []TestPlayCard {
-	return []TestPlayCard{{Hero: true, Caster: hero >= 2}, {Name: "Mage", Caster: true}, {Name: "Monk"}}
+	return []TestPlayCard{{Hero: true, Caster: hero >= 2}, {Name: "Mage", Key: "npc22", Caster: true}, {Name: "Monk", Key: "npc23"}}
 }
 func (p *modesFull) TestPlayParty(hero int, choice []TestPlayMember) (string, error) {
 	p.calls.add("TestPlayParty(%d, %v)", hero, choice)

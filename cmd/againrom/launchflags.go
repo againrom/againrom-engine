@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/base"
+	"againrom/pkg/herokind"
 	launchset "againrom/pkg/launch"
 	"againrom/pkg/mod"
 )
@@ -33,6 +34,7 @@ func launchFlags(o *options, skill, mods *string) map[string]launchFlag {
 			return nil
 		}},
 		"mods-accept-unmarked":  {target: &o.modsAcceptUnmarked},
+		"hero":                  {target: &o.heroWord, list: herokind.Words()},
 		"check":                 {target: &o.check},
 		"version":               {target: &o.version},
 		"sound":                 {target: &o.sound},

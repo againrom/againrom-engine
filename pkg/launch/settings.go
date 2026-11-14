@@ -105,6 +105,9 @@ var (
 		Usage: "a mod setting as <mod>.<key>=<value>; repeat the flag for several (a setting not given keeps the mod's default)"}
 	ModsAcceptUnmarked = Setting{Key: "mods-accept-unmarked", Kind: Switch, Default: "false", Flag: "mods-accept-unmarked", Needs: "mods",
 		Usage: "let a saved game that carries no mod mark start under the active mods (without it such a save is refused)"}
+	// -hero is the map editor's test play: the party window chose the hero.
+	Hero = Setting{Key: "hero", Kind: Text, Flag: "hero", Needs: "mission",
+		Usage: "with -mission, skip the character generation screen: the hero is the one it makes for this kind when nothing on it is changed (one of: %s)"}
 	Check = Setting{Key: "check", Kind: Switch, Default: "false", Flag: "check",
 		Usage: "load the assets and the map list, print a summary, and exit without a window"}
 	Version = Setting{Key: "version", Kind: Switch, Default: "false", Flag: "version",
@@ -149,7 +152,7 @@ var (
 var Settings = []Setting{Sound, Volume, Movies, Video, Markers, Chicken, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
 
 // Table is every row, in the order the game's arguments pass them.
-var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked}, Settings...), Check, Version)
+var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked, Hero}, Settings...), Check, Version)
 
 // Rows is a launch table: the rows one program reads, in the order its
 // arguments pass them.

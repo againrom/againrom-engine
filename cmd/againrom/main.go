@@ -102,6 +102,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/editorapp"
 	"againrom/pkg/game"
+	"againrom/pkg/herokind"
 	launchset "againrom/pkg/launch"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -109,7 +110,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       againrom --editor <map editor arguments>\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n> [-hero <kind>]] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       againrom --editor <map editor arguments>\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // chargenUsage is the -chargen flag's own help text, named because parse
 // discards the flag set's output, so a second copy of this string could drift
@@ -324,6 +325,13 @@ type options struct {
 	// leaves the number for NEW GAME to open when it is pressed.
 	missionSet bool
 
+	// hero is -hero's kind, read from heroWord: the -mission start accepts
+	// the generation screen for that hero at once. heroSet is whether -hero
+	// was given.
+	heroWord string
+	hero     herokind.Kind
+	heroSet  bool
+
 	// skill is -skill's value, already resolved to its slot by skillSlot —
 	// skillNone when the flag was not given. Resolving it here rather than in
 	// frontEnd means a bad name is reported at parse time, the same moment
@@ -454,6 +462,16 @@ func parse(args []string) (options, error) {
 	o.volumeSet = given[launchset.Volume.Flag]
 	if err := checkLaunchBounds(flags); err != nil {
 		return o, err
+	}
+	if o.heroSet = given[launchset.Hero.Flag]; o.heroSet {
+		k, ok := herokind.ParseWord(o.heroWord)
+		if !ok {
+			return o, fmt.Errorf("unknown -hero %q; one of: %s", o.heroWord, strings.Join(herokind.Words(), ", "))
+		}
+		if !o.missionSet {
+			return o, errors.New("-hero needs -mission")
+		}
+		o.hero = k
 	}
 	if strings.TrimSpace(mods) == "" && (len(o.modSettings) != 0 || o.modsAcceptUnmarked) {
 		return o, errors.New("-mod-setting and -mods-accept-unmarked need -mods")
@@ -620,7 +638,15 @@ func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 	}
 	begin := front.NewGameBegin(o.startMission(front))
 	if o.missionSet {
-		return app.OpenChargen(ui.NewChargen(front.ChargenSetup()), begin)
+		if err := app.OpenChargen(ui.NewChargen(front.ChargenSetup()), begin); err != nil {
+			return err
+		}
+		// -hero accepts the screen for that hero as it opened; a start the
+		// screen refuses leaves it showing with its line.
+		if o.heroSet {
+			app.AcceptChargenHero(o.hero.Female(), o.hero.Mage())
+		}
+		return nil
 	}
 	app.SetNewGameChargen(func() *ui.ChargenEntry {
 		return &ui.ChargenEntry{Model: ui.NewChargen(front.ChargenSetup()), Begin: begin}

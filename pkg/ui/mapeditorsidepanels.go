@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"maps"
 	"slices"
 	"strings"
 
@@ -377,7 +378,8 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 // widths and keeps the bottom panel minimized; a side panel the file keeps
 // floating, and the toolbar it keeps floating, stand as windows at their kept
 // corners, and a toolbar it keeps hidden stays hidden; a window too narrow for the
-// side panels shows the left one only, or neither.
+// side panels shows the left one only, or neither. The party window opens
+// with the choice the file keeps.
 func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte) error) {
 	e.panels.save = save
 	p := readPanelProfile(data, readErr)
@@ -393,6 +395,7 @@ func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte
 	}
 	e.props.plain = p.plain
 	e.kept = p.windows
+	e.testPartyHero, e.testPartyKept, e.testPartyCustom = p.partyHero, p.party, p.partyCustom
 	e.relayout()
 }
 
@@ -446,15 +449,26 @@ type floatKept struct {
 }
 
 // panelProfile is the editor's panel profile file as one value: the state of
-// each side panel, the floating windows, the object window's view and the
-// dragged sizes of the windows that keep them. readPanelProfile is the only
-// reader of the file and bytes the only writer.
+// each side panel, the floating windows, the object window's view, the
+// dragged sizes of the windows that keep them, and the party window's choice:
+// the kind of hero and each card's boxes by its key. readPanelProfile is the
+// only reader of the file and bytes the only writer.
 type panelProfile struct {
-	sides   [len(sidePanels)]panelState
-	floats  [len(floatWindows)]floatKept
-	plain   bool
-	windows map[string]image.Point
+	sides       [len(sidePanels)]panelState
+	floats      [len(floatWindows)]floatKept
+	plain       bool
+	windows     map[string]image.Point
+	partyHero   int
+	partyCustom bool
+	party       map[string]TestPlayMember
 }
+
+// testPartyEntry is the profile file's entry for the party window's choice,
+// and testPartyMost the most cards it keeps.
+const (
+	testPartyEntry = "testparty"
+	testPartyMost  = 64
+)
 
 // profileEntry is one top-level entry of the profile file with each field
 // still encoded, so that a field that does not read costs no other part.
@@ -557,6 +571,30 @@ func readPanelProfile(data []byte, readErr error) panelProfile {
 			out.windows[name] = image.Pt(k.Width, k.Height)
 		}
 	}
+	// The party window's entry. A kind of hero that does not read or names
+	// no kind gives a man fighter; a card whose boxes do not read is left
+	// out, so the window gives it its default.
+	var party struct {
+		Hero   json.RawMessage
+		Custom bool
+		Cards  map[string]json.RawMessage
+	}
+	if json.Unmarshal(all[testPartyEntry], &party) == nil {
+		out.partyCustom = party.Custom
+		if json.Unmarshal(party.Hero, &out.partyHero) != nil || out.partyHero < 0 || out.partyHero >= TestPlayHeroes {
+			out.partyHero = 0
+		}
+		for _, key := range slices.Sorted(maps.Keys(party.Cards)) {
+			var m struct{ On, Skills, Spells bool }
+			if key == "" || len(out.party) == testPartyMost || json.Unmarshal(party.Cards[key], &m) != nil {
+				continue
+			}
+			if out.party == nil {
+				out.party = map[string]TestPlayMember{}
+			}
+			out.party[key] = TestPlayMember(m)
+		}
+	}
 	return out
 }
 
@@ -593,13 +631,20 @@ func (p panelProfile) bytes() []byte {
 		}
 		kept[keptWindowsEntry] = windows
 	}
+	if p.partyHero != 0 || p.partyCustom || len(p.party) > 0 {
+		cards := map[string]any{}
+		for key, m := range p.party {
+			cards[key] = map[string]bool{"on": m.On, "skills": m.Skills, "spells": m.Spells}
+		}
+		kept[testPartyEntry] = map[string]any{"hero": p.partyHero, "custom": p.partyCustom, "cards": cards}
+	}
 	b, _ := json.Marshal(kept)
 	return append(b, '\n')
 }
 
 // panelStateBytes is the editor's panel state as the profile file keeps it.
 func (e *MapEditor) panelStateBytes() []byte {
-	p := panelProfile{sides: e.panels.state, plain: e.props.plain, windows: e.kept}
+	p := panelProfile{sides: e.panels.state, plain: e.props.plain, windows: e.kept, partyHero: e.testPartyHero, partyCustom: e.testPartyCustom, party: e.testPartyKept}
 	for i, w := range floatWindows {
 		p.floats[i].hidden = w.row == popToolbar && e.panels.toolbarHidden
 		if e.panels.floats[w.row] {

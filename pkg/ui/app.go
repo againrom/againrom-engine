@@ -3418,6 +3418,33 @@ func (a *App) stepChargen(in appInput, now time.Time) {
 	if !in.Enter {
 		return
 	}
+	a.confirmChargen(c)
+}
+
+// AcceptChargenHero accepts the open generation screen for the hero of the
+// sex and class given as a player does who chooses that hero and changes
+// nothing else: Chargen.ChooseHero, then the screen's own accept. A screen
+// that does not take the hero, or whose accept refuses, stays showing with
+// its line.
+func (a *App) AcceptChargenHero(female, mage bool) {
+	c := a.flow.chargen
+	if c == nil || a.flow.screen != ScreenChargen {
+		return
+	}
+	if !c.ChooseHero(female, mage) {
+		a.flow.msg = "cannot choose the hero this start names"
+		return
+	}
+	if c.setup.PreCreate != nil {
+		a.playChargen(c)
+		return
+	}
+	a.confirmChargen(c)
+}
+
+// confirmChargen is the one-stage screen's accept: the result begins, and
+// the map it opens is entered.
+func (a *App) confirmChargen(c *Chargen) {
 	result, ok := c.Result()
 	if !ok {
 		a.flow.msg = "cannot confirm: the spread is not legal"

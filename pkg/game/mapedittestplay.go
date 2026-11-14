@@ -65,6 +65,10 @@ func (s *mapInspectionEdits) TestPlay() (string, error) { return s.testPlayWith(
 // written into the test mod alone; the open package keeps its own.
 func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind.Kind) (string, error) {
 	x := s.inspector
+	ws := s.workspace
+	if party != nil && s.testPlayAsDeclared() {
+		ws = nil
+	}
 	h := x.testPlay
 	if h == nil {
 		return "", errors.New("Test play: this editor was started without the game program")
@@ -86,8 +90,8 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		return "", fmt.Errorf("Test play: the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
 	}
 	var pkg *editorPackageSpec
-	if s.workspace != nil {
-		pkg = &s.workspace.Package
+	if ws != nil {
+		pkg = &ws.Package
 		if party != nil {
 			own := *pkg
 			defer func() { *pkg = own }()
@@ -104,11 +108,11 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		m.Class, m.Sex = heroWords(hero)
 	}
 	var plan *missionPackagePlan
-	if s.workspace != nil && s.workspace.Project != nil {
+	if ws != nil && ws.Project != nil {
 		if err := s.unchangedModSource(); err != nil {
 			return "", fmt.Errorf("Test play: %w", err)
 		}
-		if d := s.workspace.Project; d.Selected < 0 && d.Loose != "" {
+		if d := ws.Project; d.Selected < 0 && d.Loose != "" {
 			return "", fmt.Errorf("Test play: %s", x.word("editor.mod.err.playunused"))
 		}
 		files, missions, current, _, e := s.retainedPackageFiles(b)
@@ -119,12 +123,12 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 			return "", fmt.Errorf("Test play: %w", e)
 		}
 		m = current
-		plan = &missionPackagePlan{ID: s.workspace.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions, Word: x.word}
+		plan = &missionPackagePlan{ID: ws.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions, Word: x.word}
 		if x.mod != nil {
 			plan.Source = x.mod.dir
 		}
-	} else if s.workspace != nil {
-		m.TextFiles = cloneWorkspace(s.workspace).Pages
+	} else if ws != nil {
+		m.TextFiles = cloneWorkspace(ws).Pages
 	}
 	if plan == nil {
 		if err := s.carryModSpeakers(&m); err != nil {
@@ -155,7 +159,11 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	if plan != nil {
 		id = plan.ID
 	}
-	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number, id)
+	word := ""
+	if party != nil {
+		word = hero.Word()
+	}
+	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number, word, id)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
@@ -171,8 +179,10 @@ func hasError(rows []ui.InspectionFinding) bool {
 }
 
 // TestPlayArgs is the game's command line of a test play: the install root
-// and its base, the test mod from modsDir, and the direct start of mission n.
-func TestPlayArgs(root, modsDir string, n int, ids ...string) ([]string, error) {
+// and its base, the test mod from modsDir, and the direct start of mission
+// n; with a hero word, the start skips character generation and plays that
+// kind of hero as the screen makes him unchanged.
+func TestPlayArgs(root, modsDir string, n int, hero string, ids ...string) ([]string, error) {
 	id := TestPlayModID
 	if len(ids) != 0 {
 		id = ids[0]
@@ -192,6 +202,8 @@ func TestPlayArgs(root, modsDir string, n int, ids ...string) ([]string, error) 
 			return []string{modsDir}
 		case launch.Mission.Key:
 			return []string{strconv.Itoa(n)}
+		case launch.Hero.Key:
+			return []string{hero}
 		}
 		return []string{st.Load("")}
 	})
@@ -423,7 +435,7 @@ func heroWords(hero herokind.Kind) (class, sex string) {
 // testPlayHeroes are the heroes the open map's test mission plays for: the
 // open package's class and sex, every hero when it names none.
 func (s *mapInspectionEdits) testPlayHeroes() herokind.Set {
-	if s.workspace == nil {
+	if s.workspace == nil || s.testPlayAsDeclared() {
 		return herokind.Every
 	}
 	return herokind.Named(s.workspace.Package.Class, s.workspace.Package.Sex)
@@ -463,25 +475,49 @@ func (s *mapInspectionEdits) testPlayFirstLink(after int) int {
 	return after
 }
 
-// testPlayTakesParty reports that the open map's test mission takes a party
-// the window chooses: a guest mission that declares none of its own. A
-// mission of the open package that replaces a campaign mission, declares its
-// party or is declared by its map file plays as the package says.
+// testPlayTakesParty reports that the party window may open for the open
+// map: any mission that is on. A mission of the open package that declares
+// its own party, replaces a campaign mission or is declared by its map file
+// has the window's switch beside it; see testPlayAsDeclared.
 func (s *mapInspectionEdits) testPlayTakesParty() bool {
 	w := s.workspace
-	if w == nil {
+	if w == nil || w.Project == nil {
 		return true
 	}
-	if (mod.Mission{Kind: w.Package.Kind}).Campaign() || len(w.Package.Party) != 0 {
+	d := w.Project
+	return d.Selected >= 0 && d.Selected < len(d.Missions) && !d.Missions[d.Selected].Off
+}
+
+// testPlayAsDeclared reports that the open package's mission plays as the
+// package declares it: it replaces a campaign mission or its map file is its
+// declaration. The window's chosen party plays such a map as the install's
+// guest mission, as a map outside any package does.
+func (s *mapInspectionEdits) testPlayAsDeclared() bool {
+	w := s.workspace
+	if w == nil {
 		return false
 	}
-	if d := w.Project; d != nil {
-		if d.Selected < 0 || d.Selected >= len(d.Missions) {
-			return false
-		}
-		return !d.Missions[d.Selected].Off && !d.Missions[d.Selected].ByFileName()
+	if (mod.Mission{Kind: w.Package.Kind}).Campaign() {
+		return true
 	}
-	return true
+	d := w.Project
+	return d != nil && d.Selected >= 0 && d.Selected < len(d.Missions) && d.Missions[d.Selected].ByFileName()
+}
+
+// TestPlayDeclaresParty reports that the open mission has a party or a start
+// of its own beside the party window's choice.
+func (s *mapInspectionEdits) TestPlayDeclaresParty() bool {
+	return s.workspace != nil && (len(s.workspace.Package.Party) != 0 || s.testPlayAsDeclared()) && s.testPlayTakesParty()
+}
+
+// testPlayOfferWorkspace is the workspace the window's cards are built for: none
+// for a mission that plays as declared, whose chosen party plays as the
+// install's guest mission.
+func (s *mapInspectionEdits) testPlayOfferWorkspace() *editorWorkspaceState {
+	if s.testPlayAsDeclared() {
+		return nil
+	}
+	return s.workspace
 }
 
 // townInstall is the install's definitions as the game's member builder
@@ -514,7 +550,7 @@ func (s *mapInspectionEdits) testPlayOffer(hero herokind.Kind) ([]ui.TestPlayCar
 	if len(rows) == 0 {
 		return nil, nil
 	}
-	in, catalog, town, selector := x.townInstall(), installCharacters(x.table), x.testPlayNumber(s.workspace), 0
+	in, catalog, town, selector := x.townInstall(), installCharacters(x.table), x.testPlayNumber(s.testPlayOfferWorkspace()), 0
 	if x.font != nil {
 		selector = x.font.Selector
 	}
@@ -532,7 +568,7 @@ func (s *mapInspectionEdits) testPlayOffer(hero herokind.Kind) ([]ui.TestPlayCar
 			continue
 		}
 		face := composeMemberPortrait(x.archives.artSource(), x.units, 0, mapload.EquipmentFromParty(p), p).Figure
-		cards = append(cards, ui.TestPlayCard{Name: x.inspectionUTF8(x.messageUTF8([]byte(p.Name))),
+		cards = append(cards, ui.TestPlayCard{Name: x.inspectionUTF8(x.messageUTF8([]byte(p.Name))), Key: g.Character,
 			Portrait: ui.SpeakerPortrait(face, image.Rectangle{}), Caster: p.Mage})
 		members = append(members, g)
 	}

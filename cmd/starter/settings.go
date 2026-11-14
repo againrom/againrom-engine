@@ -291,7 +291,7 @@ func (s settings) launchArgs(g gameLaunch) ([]string, error) {
 			return []string{launch.FormatBool(s.AcceptUnmarked)}
 		case launch.Check.Key:
 			return []string{launch.FormatBool(g.Check)}
-		case launch.Version.Key:
+		case launch.Version.Key, launch.Hero.Key:
 			return nil
 		case launch.Mission.Key:
 			if g.Mission != "" {
