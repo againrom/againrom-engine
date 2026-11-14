@@ -26,7 +26,7 @@ active. Each action is one Undo step and Ctrl+S writes it.
 2. A number the install's campaign lacks, or one a row already replaces, is refused and leaves no draft.
 3. Make row on a map named by its mission number writes the row naming the same map and number.
 4. After either, the page lists the row among the missions and no longer lists the map as unused.
-5. Add map without mission copies the open map, its pages and its labels to maps/stem with -2, -3 on a taken stem; no row names it.
+5. Add map without mission copies the open map, pages and labels to maps/stem, -2, -3 on a taken stem; no row.
 6. Add folder of maps adds each map of the folder with its pages and labels as one Undo step.
 7. The folder is asked of the system window; a typed path is asked only where the system has none.
 8. F5 on an unused map opens the party window and plays the map as a guest mission with the mod active; no row is kept.
