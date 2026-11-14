@@ -39,6 +39,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor mod window: the Maps tab is gone (the Open window still lists the mod's maps), the Files list on the Overview tab starts folded and opens with a click or Enter, and pressing a tab while a confirmation waits cancels it and shows that tab.
 - [BASE] Map editor F5 "who plays the map" window: on Standard it no longer shows the character boxes that could not be changed, and every character box stays pressable after the window was made narrower or switched from Standard to Custom.
 - [BASE] Map editor campaign graph: cards stand further apart, each town lists its hand-outs side mission first, then main mission, then none, and the lines no longer cross or run close together.
+- [BASE] The map editor's mod window lists each map no mission uses on its Missions page, with Make mission and Replace, and each map that replaces a mission by its file name, with Make row; "Add map without mission" copies the open map into the mod, "Add folder of maps" adds every map of a folder, and F5 on an unused map plays it as a guest mission with the mod active.
 
 ## 0.154.0
 

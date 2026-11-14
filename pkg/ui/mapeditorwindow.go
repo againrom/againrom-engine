@@ -1613,6 +1613,8 @@ func (e *MapEditor) promptTitle() string {
 		return e.word("editor.prompt.share")
 	case e.prompt.kind == promptSeed:
 		return e.seedTitle()
+	case e.prompt.kind == promptMapsFolder:
+		return e.word("editor.mod.addmaps.title")
 	}
 	return e.word("editor.prompt.open")
 }

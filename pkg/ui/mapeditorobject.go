@@ -61,6 +61,7 @@ type objectEdit struct {
 	// actions of a script popup row's buttons.
 	rowField map[int]int
 	rowActs  map[int][]string
+	modKeys  map[int][]string
 	rowOpen  map[int]int
 	// rowBlock maps a spec row to the plain view block it opens and closes;
 	// usesShown reports that the plain view listed the script nodes naming

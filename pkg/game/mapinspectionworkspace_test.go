@@ -90,11 +90,16 @@ func workspacePage(t *testing.T, e *ui.MapEditor, name, value string) {
 	}
 }
 
+var workspaceFonts []*text.Font
+
 func workspaceFixture(t *testing.T) (*testPlayFixture, *ui.MapEditor) {
 	t.Helper()
 	f := newTestPlayFixture(t)
 	f.x.tiles = &terrain.Tileset{}
 	f.x.font = &text.Font{Selector: 1}
+	if workspaceFonts != nil {
+		f.x.font, f.x.cardFont, f.x.body = workspaceFonts[0], workspaceFonts[0], workspaceFonts[1]
+	}
 	e := f.x.Editor()
 	if err := e.Key("new"); err != nil {
 		t.Fatal(err)

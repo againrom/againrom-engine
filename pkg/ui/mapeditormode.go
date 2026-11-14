@@ -78,6 +78,7 @@ const (
 	promptSeed
 	// promptTestParty asks who plays the map before a test play.
 	promptTestParty
+	promptMapsFolder
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it

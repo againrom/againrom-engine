@@ -443,7 +443,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	if scope == "handout" {
 		return s.setHandoutField(key, value)
 	}
-	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
+	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}

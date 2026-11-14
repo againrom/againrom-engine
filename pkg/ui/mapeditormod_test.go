@@ -29,7 +29,9 @@ type modesWorkspace struct {
 	handoutFields []InspectionField
 	graphRefusal  error
 	// inMod makes another map open beside the open one, as in an open mod.
-	inMod bool
+	inMod       bool
+	actions     []ModMapAction
+	actionsOpen bool
 }
 
 func (p *modesWorkspace) InMod() bool                                    { return p.inMod }
@@ -465,3 +467,5 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 		t.Fatalf("Close left window %v catalog %v", e.modWindow, e.catalog)
 	}
 }
+
+func (p *modesWorkspace) ModMapActions() ([]ModMapAction, bool) { return p.actions, p.actionsOpen }
