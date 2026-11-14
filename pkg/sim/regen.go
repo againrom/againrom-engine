@@ -75,18 +75,25 @@ func windowPart(pos, end, k uint64) regenPart {
 	return regenPart{j: int64((pos + 2*k - end - 1) % k), k: int64(k)}
 }
 
-// share is G*(j+1)/k - G*j/k; ok is false when that overflows int64.
-func (p regenPart) share(gain int64) (int64, bool) {
-	if p.k == 0 {
-		return gain, true
-	}
-	if gain > math.MaxInt64/p.k || gain < math.MinInt64/p.k {
-		return 0, false
-	}
-	return gain*(p.j+1)/p.k - gain*p.j/p.k, true
+func (p regenPart) applies(negative bool) bool {
+	return p.k == 0 || !negative || p.j == p.k-1
 }
 
-func (p regenPart) last() bool { return p.k == 0 || p.j == p.k-1 }
+// step is the part of gain for a pool holding base; negatives go whole on the
+// closing part.
+func (p regenPart) step(gain, base int64) (part int64, apply, fits bool) {
+	negative := gain < 0 || base < 0
+	if !p.applies(negative) {
+		return 0, false, true
+	}
+	if p.k == 0 || negative {
+		return gain, true, true
+	}
+	if gain > math.MaxInt64/p.k {
+		return 0, true, false
+	}
+	return gain*(p.j+1)/p.k - gain*p.j/p.k, true, true
+}
 
 // regenerateEach advances each on-map actor's pools by the mana part and by
 // the part health names for the actor, if the health arm runs.
@@ -153,12 +160,15 @@ func regenerate(cur *int32, max, period int32, rest *uint8, double int64, modifi
 		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
 	}
-	gain, fits := part.share(product * int64(rate) / int64(period))
+	base := int64(*cur)*regenScale + int64(*rest)
+	gain, apply, fits := part.step(product*int64(rate)/int64(period), base)
+	if !apply {
+		return
+	}
 	if !fits {
 		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
 	}
-	base := int64(*cur)*regenScale + int64(*rest)
 	if (base > 0 && gain > math.MaxInt64-base) || (base < 0 && gain < math.MinInt64-base) {
 		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
@@ -185,7 +195,12 @@ func regenerateWide(cur *int32, maximum, period int32, rest *uint8, product int6
 	gain.SetInt64(product)
 	gain.Mul(&gain, big.NewInt(int64(rate)))
 	gain.Quo(&gain, big.NewInt(int64(period)))
-	if part.k != 0 {
+	base := int64(*cur)*regenScale + int64(*rest)
+	negative := gain.Sign() < 0 || base < 0
+	if !part.applies(negative) {
+		return
+	}
+	if part.k != 0 && !negative {
 		var hi, lo big.Int
 		hi.Mul(&gain, big.NewInt(part.j+1))
 		hi.Quo(&hi, big.NewInt(part.k))
@@ -193,7 +208,7 @@ func regenerateWide(cur *int32, maximum, period int32, rest *uint8, product int6
 		lo.Quo(&lo, big.NewInt(part.k))
 		gain.Sub(&hi, &lo)
 	}
-	acc.SetInt64(int64(*cur)*100 + int64(*rest))
+	acc.SetInt64(base)
 	acc.Add(&acc, &gain)
 	q.QuoRem(&acc, big.NewInt(100), &rem)
 	if rem.Sign() < 0 {

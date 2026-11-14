@@ -94,29 +94,31 @@ func TestSmoothRegenCapsAtTheMaximumInsideAWindow(t *testing.T) {
 	}
 }
 
-func TestSmoothRegenOriginalCurrentKeepsTheWholeStepWhereTheGainIsNegative(t *testing.T) {
-	for _, second := range []bool{false, true} {
-		t.Run(fmt.Sprintf("second=%t", second), func(t *testing.T) {
-			e := smoothEntity(1)
-			e.HealthRegeneration, e.ManaRegeneration = -200, -200
-			e.HP, e.Mana = 900, 400
-			off := smoothWorld(t, e, second, true, false)
-			on := smoothWorld(t, e, second, true, true)
-			start := pools(on)
-			for i := 0; i < healthRegenCycle; i++ {
-				Step(off, nil)
-				Step(on, nil)
-				if got := pools(on); i < healthRegenCycle-1 && got[0] != start[0] {
-					t.Fatalf("sub-tick %d: health moved to %v before the window closed", i, got)
+func TestSmoothRegenKeepsTheWholeStepWhereTheGainIsNegativeOnEveryPath(t *testing.T) {
+	for _, original := range []bool{false, true} {
+		for _, second := range []bool{false, true} {
+			t.Run(fmt.Sprintf("original=%t/second=%t", original, second), func(t *testing.T) {
+				e := smoothEntity(1)
+				e.HealthRegeneration, e.ManaRegeneration = -200, -200
+				e.HP, e.Mana = 900, 400
+				off := smoothWorld(t, e, second, original, false)
+				on := smoothWorld(t, e, second, original, true)
+				start := pools(on)
+				for i := 0; i < healthRegenCycle; i++ {
+					Step(off, nil)
+					Step(on, nil)
+					if got := pools(on); i < healthRegenCycle-1 && got[0] != start[0] {
+						t.Fatalf("sub-tick %d: health moved to %v before the window closed", i, got)
+					}
 				}
-			}
-			if got, want := pools(on), pools(off); got != want {
-				t.Fatalf("negative gain: smooth %v, whole-pass %v", got, want)
-			}
-			if pools(on) == start {
-				t.Fatal("negative gain never applied")
-			}
-		})
+				if got, want := pools(on), pools(off); got != want {
+					t.Fatalf("negative gain: smooth %v, whole-pass %v", got, want)
+				}
+				if pools(on) == start {
+					t.Fatal("negative gain never applied")
+				}
+			})
+		}
 	}
 }
 
@@ -125,12 +127,14 @@ func TestSmoothRegenPartsSumToTheGain(t *testing.T) {
 		for _, k := range []int64{16, 64} {
 			var sum int64
 			for j := int64(0); j < k; j++ {
-				part, ok := regenPart{j, k}.share(gain)
-				if !ok {
+				part, apply, fits := regenPart{j, k}.step(gain, 0)
+				if !fits {
 					sum = gain
 					break
 				}
-				sum += part
+				if apply {
+					sum += part
+				}
 			}
 			if sum != gain {
 				t.Fatalf("gain %d over %d parts sums to %d", gain, k, sum)

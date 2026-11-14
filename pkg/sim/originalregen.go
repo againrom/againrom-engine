@@ -34,8 +34,7 @@ func regenerateCurrentWord(cur *int32, maximum, period int32, rest *uint8, facto
 	regenerateCurrentPart(cur, maximum, period, rest, factor, modifier, rate, regenPart{})
 }
 
-// regenerateCurrentPart adds one part of the gain; a negative gain or pool
-// keeps the whole step, on the part that closes the window.
+// regenerateCurrentPart adds one part of the gain.
 func regenerateCurrentPart(cur *int32, maximum, period int32, rest *uint8, factor, modifier, rate int32, part regenPart) {
 	c, m, p := int32(int16(*cur)), int32(int16(maximum)), int32(int16(period))
 	if c >= m {
@@ -49,15 +48,11 @@ func regenerateCurrentPart(cur *int32, maximum, period int32, rest *uint8, facto
 	}
 	product := m * factor * (int32(int16(modifier)) + 100) * rate
 	gain := product / p
-	if part.k != 0 {
-		if gain < 0 || c*100+int32(*rest) < 0 {
-			if !part.last() {
-				return
-			}
-		} else {
-			gain = int32(int64(gain)*(part.j+1)/part.k - int64(gain)*part.j/part.k)
-		}
+	part32, apply, _ := part.step(int64(gain), int64(c*100+int32(*rest)))
+	if !apply {
+		return
 	}
+	gain = int32(part32)
 	acc := c*100 + int32(*rest) + gain
 	*rest = uint8(acc % 100)
 	*cur = int32(int16(acc / 100))
