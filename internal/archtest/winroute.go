@@ -124,10 +124,10 @@ func CheckWinRoute(files map[string]string) []Violation {
 }
 
 // townWinCopy reports a function that reads both AutoAdvance and NextMission
-// outside the two that own the question: Campaign.after and Campaign.opensTown.
+// outside the one that owns the question: Campaign.after.
 func townWinCopy(file string, fn *ast.FuncDecl) (string, bool) {
 	if file == "pkg/game/campaign.go" && receiverName(fn.Recv) == "Campaign" &&
-		(fn.Name.Name == "after" || fn.Name.Name == "opensTown") || fn.Body == nil {
+		fn.Name.Name == "after" || fn.Body == nil {
 		return "", false
 	}
 	read := map[string]bool{}

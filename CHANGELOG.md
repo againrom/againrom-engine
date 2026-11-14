@@ -51,6 +51,7 @@ modder or developer can notice gets no entry.
 - On the campaign graph each town is an area with its name in the top-left corner; its tavern, shop and school cards stand in columns with their missions under them, the main mission's card first, and a main mission's arrow runs straight down to the next town's area.
 - A map file a mod's draft deletes under another letter case now leaves the mod's file list too.
 - An open map carried into a mod draft keeps the pages stored inside the map.
+- [ROM1] The map editor and its test play now treat a replaced mission whose AutoGetMission is -1 as opening the town, as the campaign graph and the game do, so a guest mission can follow it.
 
 ## 0.154.0
 

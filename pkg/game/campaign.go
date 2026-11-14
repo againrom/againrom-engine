@@ -357,14 +357,14 @@ func (c Campaign) offers(n int) bool {
 // successor n's own section declares, or -1 (AutoGetMission's none); a
 // declared successor follows n and no town opens.
 func (c Campaign) opensTown(n int) (town Offer, next int, ok bool) {
-	if s, auto := c.AutoAdvance(n); auto {
-		return Offer{}, s, false
+	a := c.after(n, n, false)
+	if a.declared {
+		return Offer{}, a.successor, false
 	}
-	offer, ok := c.NextMission(n)
-	if !ok || !offer.Town {
-		return Offer{}, -1, false
+	if a.town || (a.offered && a.offer.Town) {
+		return a.offer, -1, true
 	}
-	return offer, -1, true
+	return Offer{}, -1, false
 }
 
 // TownBegins is the lowest mission any building offers, and whether there is
