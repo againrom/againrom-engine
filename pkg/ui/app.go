@@ -1493,6 +1493,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	}
 	in = a.stepCheatChat(in)
 	if a.flow.screen == ScreenGameMenu && a.player.capture != "" {
+		a.holdMapUnderMenu(in, now)
 		a.stepKeyCapture(in)
 		return false
 	}

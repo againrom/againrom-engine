@@ -144,6 +144,7 @@ func (in appInput) capturedByKeysPage() appInput {
 		CursorX: in.CursorX, CursorY: in.CursorY, PrimaryPressed: in.PrimaryPressed,
 		PrimaryReleased: in.PrimaryReleased, SecondaryPressed: in.SecondaryPressed, SecondaryReleased: in.SecondaryReleased}
 	out.Viewer.Ctrl, out.Viewer.Shift, out.Viewer.Alt = in.Viewer.Ctrl, in.Viewer.Shift, in.Viewer.Alt
+	out.Viewer.CursorX, out.Viewer.CursorY = in.Viewer.CursorX, in.Viewer.CursorY
 	return out
 }
 

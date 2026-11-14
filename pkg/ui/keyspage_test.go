@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"strings"
 	"testing"
 
@@ -128,6 +129,42 @@ func TestReboundShortcutKeyMarksTheBook(t *testing.T) {
 		}
 		if pressOnMap(a, MissionKeyChord{Key: key}).QuickSpell[0] {
 			t.Fatalf("%q: the default key still reaches spell 1", profile)
+		}
+	}
+}
+
+func TestKeysPageWaitKeepsThePointerMoving(t *testing.T) {
+	for _, profile := range []string{"", "pickup-p"} {
+		a, _ := onKeysPage(t, profile)
+		a.keysList().Select(keysPageRow(t, a, "inventory"))
+		if err := a.HeadlessGameMenuAction("key-list"); err != nil {
+			t.Fatal(err)
+		}
+		if a.player.capture != "inventory" {
+			t.Fatalf("%q: no wait", profile)
+		}
+		v := a.flow.viewer
+		var last image.Point
+		for i, p := range []image.Point{{100, 120}, {220, 200}, {330, 260}} {
+			in := a.headlessIdleInput()
+			in.CursorX, in.CursorY, in.Viewer.CursorX, in.Viewer.CursorY = p.X, p.Y, p.X, p.Y
+			a.step(in, a.headlessAt())
+			if a.player.capture != "inventory" {
+				t.Fatalf("%q: a move ended the wait", profile)
+			}
+			if a.pointer != p || i > 0 && v.winCursorX == last.X && v.winCursorY == last.Y {
+				t.Fatalf("%q tick %d: pointer %v, viewer %d,%d", profile, i, a.pointer, v.winCursorX, v.winCursorY)
+			}
+			if v.winCursorX != p.X || v.winCursorY != p.Y {
+				t.Fatalf("%q tick %d: viewer pointer %d,%d, want %v", profile, i, v.winCursorX, v.winCursorY, p)
+			}
+			last = p
+		}
+		in := a.headlessIdleInput()
+		in.Escape = true
+		a.step(in, a.headlessAt())
+		if a.player.capture != "" {
+			t.Fatalf("%q: Escape did not end the wait", profile)
 		}
 	}
 }

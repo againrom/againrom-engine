@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 - [BASE] F2 now quick saves and F3 quick loads in both games; Ctrl+F2 and Ctrl+F3 open the save and load windows, and Shift+F4 and Shift+F9 no longer save or load.
 - [BASE] Both games: the mission menu has a Keys row; pick an action, press its new key (Shift, Ctrl and Alt allowed, Esc cancels); a key another action held moves to the new one, Defaults gives the game its own keys back, and each game keeps its keys in your profile, never in a saved game. The mission menu's frame now fits its rows with even room above and below.
 - [BASE] Both games: F4 to F12 are nine shortcut slots, each a spell or an item: Shift with the pointer over a carried item binds it and the item shows its key, Ctrl binds a book spell (one you hold only as scrolls too); the key puts on, drinks or readies what it holds, as the inventory would. Your shortcuts are kept in your saves. In the first game F5 to F8 keep your spells and your own keys; the grid, readout and frame rate keys move to Ctrl+Shift+F10 to F12.
+- [BASE] On the Keys page the mouse pointer no longer freezes while the game waits for a new key.
 
 ### For map makers and modders
 
