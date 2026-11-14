@@ -115,9 +115,9 @@ func TestReleasePauseMenuVisitsEveryDestination(t *testing.T) {
 	w := f.Words
 	requireReleaseMenuRows(t, app, []string{
 		drawnMenuLabel(w.MenuSave), drawnMenuLabel(w.MenuLoad), drawnMenuLabel(w.MenuGameOptions),
-		drawnMenuLabel(w.MenuSoundOptions), drawnMenuLabel(w.MenuQuestObjectives),
+		drawnMenuLabel(w.MenuSoundOptions), drawnMenuLabel(abandonLabel(f, w.Engine.Text("menu.keys"))), drawnMenuLabel(w.MenuQuestObjectives),
 		drawnMenuLabel(w.MenuEndQuest), drawnMenuLabel(w.MenuReturn),
-	}, []bool{true, true, true, true, true, true, true})
+	}, []bool{true, true, true, true, true, true, true, true})
 	t.Logf("%s campaign menu labels: % x", root, []byte(strings.Join([]string{
 		w.MenuSave, w.MenuLoad, w.MenuGameOptions, w.MenuSoundOptions,
 		w.MenuQuestObjectives, w.MenuEndQuest, w.MenuReturn,
@@ -278,9 +278,9 @@ func TestReleasePauseMenuVisitsEveryDestination(t *testing.T) {
 	}
 	requireReleaseMenuRows(t, plain, []string{
 		drawnMenuLabel(w.MenuSave), drawnMenuLabel(w.MenuDiplomacy), drawnMenuLabel(w.MenuGameOptions),
-		drawnMenuLabel(w.MenuSoundOptions), drawnMenuLabel(w.MenuQuestObjectives),
+		drawnMenuLabel(w.MenuSoundOptions), drawnMenuLabel(abandonLabel(f, w.Engine.Text("menu.keys"))), drawnMenuLabel(w.MenuQuestObjectives),
 		drawnMenuLabel(w.MenuEndQuest), drawnMenuLabel(w.MenuReturn),
-	}, []bool{false, true, true, true, false, true, true})
+	}, []bool{false, true, true, true, true, false, true, true})
 	plainHash := f.live.world.Hash()
 	if err := plain.HeadlessGameMenuAction("diplomacy"); err != nil {
 		t.Fatal(err)

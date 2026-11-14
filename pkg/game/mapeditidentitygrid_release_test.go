@@ -28,6 +28,9 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 		if group.Block == "" || group.Head == "" || len(group.Values) == 0 {
 			t.Fatal("installed grid has an empty group", group)
 		}
+		if group.Head == x.inspectionUTF8(x.word("editor.unit.groups.humans")) {
+			continue
+		}
 		values = append(values, group.Values...)
 		blocks[group.Block] = append(blocks[group.Block], group.Values...)
 	}

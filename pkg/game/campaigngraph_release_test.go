@@ -37,11 +37,13 @@ func TestReleaseCampaignGraphEqualsTheHandoutCensus(t *testing.T) {
 			towns = append(towns, n.Number)
 		case ui.GraphHandout:
 			var town, mission int
+			for _, home := range page.Nodes {
+				if home.Kind == ui.GraphTown && slices.Contains(home.Region, i) {
+					town = home.Number
+				}
+			}
 			for _, e := range page.Edges {
-				switch {
-				case e.To == i && page.Nodes[e.From].Kind == ui.GraphTown:
-					town = page.Nodes[e.From].Number
-				case e.From == i && page.Nodes[e.To].Kind == ui.GraphMission:
+				if e.From == i && page.Nodes[e.To].Kind == ui.GraphMission {
 					mission = page.Nodes[e.To].Number
 				}
 			}

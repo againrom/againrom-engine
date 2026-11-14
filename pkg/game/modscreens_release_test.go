@@ -150,6 +150,24 @@ func requireNoTemplate(t *testing.T, what string, pix, tmpl *image.RGBA, region 
 	}
 }
 
+// opaqueBounds is the bounding box of the pixels a panel image draws.
+func opaqueBounds(pix *image.RGBA) image.Rectangle {
+	var box image.Rectangle
+	for y := pix.Bounds().Min.Y; y < pix.Bounds().Max.Y; y++ {
+		for x := pix.Bounds().Min.X; x < pix.Bounds().Max.X; x++ {
+			if pix.RGBAAt(x, y).A != 0 {
+				box = box.Union(image.Rect(x, y, x+1, y+1))
+			}
+		}
+	}
+	return box
+}
+
+// lastRowRegion is where a panel's last row stands. It spans the bottom 90 rows (px).
+func lastRowRegion(panel image.Rectangle) image.Rectangle {
+	return image.Rect(100, panel.Max.Y-90, 440, panel.Max.Y)
+}
+
 // diffBounds is the bounding box of the pixels two frames differ at, and whether
 // they differ at all.
 func diffBounds(a, b *image.RGBA) (image.Rectangle, bool) {
@@ -298,8 +316,8 @@ func TestReleaseModScreenInGameMenuRowOpensTheScreen(t *testing.T) {
 		}
 	}
 	shipped, rows := plain.HeadlessRows(), app.HeadlessRows()
-	if len(shipped) != 7 || len(rows) != 8 {
-		t.Fatalf("the menu has %d rows unmodded and %d under the mod, want 7 and 8", len(shipped), len(rows))
+	if len(shipped) != 8 || len(rows) != 9 {
+		t.Fatalf("the menu has %d rows unmodded and %d under the mod, want 8 and 9", len(shipped), len(rows))
 	}
 	for i := range shipped {
 		if rows[i] != shipped[i] {
@@ -307,21 +325,19 @@ func TestReleaseModScreenInGameMenuRowOpensTheScreen(t *testing.T) {
 		}
 	}
 	installLabel := EncodeInstallText(screen.MenuLabel, f.Font.Value().Selector)
-	if rows[7].Text != installLabel || !rows[7].Choosable {
-		t.Fatalf("the mod row is %+v, want %q", rows[7], installLabel)
+	if rows[8].Text != installLabel || !rows[8].Choosable {
+		t.Fatalf("the mod row is %+v, want %q", rows[8], installLabel)
 	}
 
-	// The panel differs from the unmodded panel only on the added row's rectangle
-	// (panel top 60, first row 40 below, pitch 30: the eighth row is y 310..340).
 	panel, base := app.GameMenuPanel(), plain.GameMenuPanel()
 	if panel == nil || base == nil {
 		t.Fatal("no game menu panel")
 	}
-	box, differs := diffBounds(panel, base)
-	if !differs || box.Min.Y < 310 || box.Max.Y > 340 {
-		t.Fatalf("the mod row changes pixels at %v (differs %v), want only the row at y 310..340", box, differs)
+	pb, bb := opaqueBounds(panel), opaqueBounds(base)
+	if pb.Dy() != bb.Dy()+30 {
+		t.Fatalf("the modded panel is %d high and the unmodded one %d, want 30 more", pb.Dy(), bb.Dy())
 	}
-	requireTemplate(t, "the row label", panel, modTemplate(t, f, screen.MenuLabel), box.Inset(-8))
+	requireTemplate(t, "the row label", panel, modTemplate(t, f, screen.MenuLabel), lastRowRegion(pb))
 	requireNoTemplate(t, "the row label on the unmodded panel", base, modTemplate(t, f, screen.MenuLabel), image.Rect(100, 100, 440, 400))
 	shot := image.NewRGBA(panel.Bounds())
 	draw.Draw(shot, shot.Bounds(), &image.Uniform{C: color.RGBA{A: 0xff}}, image.Point{}, draw.Src)
@@ -348,7 +364,7 @@ func TestReleaseModScreenInGameMenuRowOpensTheScreen(t *testing.T) {
 	if err := app.HeadlessKey("escape"); err != nil || app.Screen() != ui.ScreenGameMenu {
 		t.Fatalf("Escape from the mod screen: %v on %s", err, app.Screen())
 	}
-	if after := app.HeadlessRows(); len(after) != 8 || after[7] != rows[7] {
+	if after := app.HeadlessRows(); len(after) != 9 || after[8] != rows[8] {
 		t.Fatalf("the menu rows after returning: %+v", after)
 	}
 	if f.live.world.Hash() != before {

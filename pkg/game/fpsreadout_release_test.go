@@ -329,7 +329,7 @@ func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
 		t.Fatal("hidden sampling", rate, shown)
 	}
 	beforeHash, beforeSAV := f.live.world.Hash(), fpsCurrentSAV(t, f)
-	key("f12")
+	key("ctrl-shift-f12")
 	app.SetTextSmoothing(false)
 	rate, pic, at, shown := f.live.view.FPSReadout(6040)
 	expected := fpsSourcePicture(glyphs, "50.0 fps", false, false, 0)
@@ -370,7 +370,7 @@ func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
 	if f.live.world.Hash() == beforeHash || bytes.Equal(fpsCurrentSAV(t, f), beforeSAV) {
 		t.Fatal("changed-state source loss control did not change World/SAV")
 	}
-	key("f2")
+	key("ctrl-f2")
 	if err := app.HeadlessSaveEdit(store.Dir, "fps-readout", ui.SaveSAV); err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
 	if rate, pic, _, shown := cold.live.view.FPSReadout(9000); rate != 0 || pic != nil || shown {
 		t.Fatal("cold ordinary LOAD inherited FPS state", rate, shown)
 	}
-	if err := coldApp.HeadlessKey("f12"); err != nil {
+	if err := coldApp.HeadlessKey("ctrl-shift-f12"); err != nil {
 		t.Fatal(err)
 	}
 	if rate, pic, _, shown := cold.live.view.FPSReadout(9000); rate != 0 || !shown || !bytes.Equal(pic.Pix, fpsSourcePicture(glyphs, "0.0 fps", false, false, 0).Pix) {

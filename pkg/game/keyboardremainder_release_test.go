@@ -30,13 +30,13 @@ func TestReleaseMapKeyboardRemainder(t *testing.T) {
 	if v.FPSShown() {
 		t.Fatal("the frame-rate readout is on at load")
 	}
-	if err := app.HeadlessKey("f12"); err != nil {
+	if err := app.HeadlessKey("ctrl-shift-f12"); err != nil {
 		t.Fatal(err)
 	}
 	if !v.FPSShown() {
-		t.Error("F12 did not turn the readout on")
+		t.Error("Ctrl+Shift+F12 did not turn the readout on")
 	}
-	if err := app.HeadlessKey("f12"); err != nil {
+	if err := app.HeadlessKey("ctrl-shift-f12"); err != nil {
 		t.Fatal(err)
 	}
 	if v.FPSShown() {

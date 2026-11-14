@@ -133,7 +133,7 @@ func TestReleaseMapEditorWorkspaceRoutesAndTexts(t *testing.T) {
 	if err := fresh.Open("new/32x32"); err != nil {
 		t.Fatal(err)
 	}
-	if err := workspaceField(fresh, "package", 0, folder); err != nil {
+	if err := workspaceField(fresh, "package", 0, folder+string(filepath.Separator)); err != nil {
 		t.Fatal(err)
 	}
 	s := fresh.Document().Edits.(*mapInspectionEdits)
