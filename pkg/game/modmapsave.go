@@ -97,7 +97,7 @@ func (x *MapInspector) SetMod(dir string) error {
 	}
 	listed, _ := x.modMissions(d, d.Missions)
 	m := &editorMod{dir: dir, id: e.Manifest.ID, described: d, missions: listed, owned: owned, packed: tree.Packed(), title: e.Manifest.Title}
-	if err := m.readInventory(tree); err != nil {
+	if err := m.readInventory(tree, nil); err != nil {
 		return fmt.Errorf("%s: %v", fmt.Sprintf(x.word("editor.mod.err.mod"), e.Manifest.ID), err)
 	}
 	m.source = bytes.Clone(src)
@@ -126,30 +126,20 @@ func (x *MapInspector) SetMod(dir string) error {
 		}
 		m.snapshot[editorPackageRecord] = sha256.Sum256(m.ownershipRecord)
 	}
-	m.contextIssue = x.openModContext(m, e, root)
+	m.contextIssue = x.openModContext(m, e, root, draftView{})
 	x.setEditorMod(m)
 	return nil
 }
 
-// readInventory lists the files of the mod's tree and the data kinds whose
-// files it holds: what the overview shows.
-func (m *editorMod) readInventory(tree mod.Tree, drafts ...map[string][]byte) error {
+// readInventory lists the files of the mod's tree, with the drafts applied, and
+// the data kinds whose files it holds: what the overview shows.
+func (m *editorMod) readInventory(tree mod.Tree, drafts map[string][]byte) error {
 	files, err := tree.Files()
 	if err != nil {
 		return err
 	}
-	if len(drafts) > 0 {
-		for name, data := range drafts[0] {
-			if data == nil {
-				files = slices.DeleteFunc(files, func(path string) bool { return path == name })
-				continue
-			}
-			if !slices.Contains(files, name) {
-				files = append(files, name)
-			}
-		}
-		slices.Sort(files)
-	}
+	files = projectView(files, drafts).names
+	slices.Sort(files)
 	m.files, m.kinds = files, nil
 	for _, k := range mod.DataKinds() {
 		for _, name := range k.Files {

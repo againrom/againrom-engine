@@ -45,6 +45,7 @@ modder or developer can notice gets no entry.
 - Add folder of maps now carries a map's pages folder whatever the case of its name.
 - The map editor's test play of a mod on a second-game install now names the second game.
 - On the campaign graph each town is an area with its name in the top-left corner; its tavern, shop and school cards stand in columns with their missions under them, the main mission's card first, and a main mission's arrow runs straight down to the next town's area.
+- A map file a mod's draft deletes under another letter case now leaves the mod's file list too.
 
 ## 0.154.0
 

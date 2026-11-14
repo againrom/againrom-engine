@@ -311,7 +311,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", err
 		}
 	}
-	if err := x.checkMissionSet(missions, nil); err != nil {
+	if err := x.checkMissionSet(missions, draftView{}); err != nil {
 		return "", err
 	}
 	address, _ := MissionMap(m.Number)

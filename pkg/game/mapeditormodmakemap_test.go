@@ -60,7 +60,7 @@ func reopened(t *testing.T, f *testPlayFixture, dir string) mod.MissionData {
 	if err != nil {
 		t.Fatal("the saved mod's rows are refused:", err)
 	}
-	if err := f.x.checkMissionSet(d.Missions, nil); err != nil {
+	if err := f.x.checkMissionSet(d.Missions, draftView{}); err != nil {
 		t.Fatal("the saved mod does not check clean:", err)
 	}
 	return d

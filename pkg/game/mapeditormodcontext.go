@@ -107,20 +107,16 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // A mod the game refuses for its missions still opens: the missions are the
 // document the editor edits, and Save admits them again. The refusal is kept
 // for the overview and the context holds every other kind.
-func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, drafts ...map[string][]byte) string {
+func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, view draftView) string {
 	result, err := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
 	}
-	if len(drafts) > 0 {
-		files := drafts[0]
-		if src, ok := files[mod.SpeakersFile]; ok {
-			result.Speakers, err = mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, files)
-			if err != nil {
-				return err.Error()
-			}
+	if src, ok := view.drafts[mod.SpeakersFile]; ok {
+		result.Speakers, err = mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, view.drafts)
+		if err != nil {
+			return err.Error()
 		}
-
 	}
 	m.checkLines = ModCheckLines(result)
 	m.loaded = &result
@@ -219,7 +215,7 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	if x.archives != nil {
 		root = x.archives.Root
 	}
-	if issue := x.openModContext(&next, mod.Load(next.dir), root, files); issue != "" {
+	if issue := x.openModContext(&next, mod.Load(next.dir), root, draftView{drafts: files}); issue != "" {
 		return fmt.Errorf("%s: %s", fmt.Sprintf(x.word("editor.mod.err.mod"), next.id), issue)
 	}
 	x.setEditorMod(&next)

@@ -327,28 +327,51 @@ func (s *mapInspectionEdits) rebaseHistory(c mod.LayoutChange, from, to string) 
 	}
 }
 
+// draftView is the open project over the mod's files: the names it holds and
+// the drafts as written, where a nil draft is a deletion.
+type draftView struct {
+	names  []string
+	drafts map[string][]byte
+}
+
+// projectView applies drafts over base, the mod's files. A nil draft deletes
+// every base file whose namefold.ModTree equals its name's; the deletions come
+// first, then each other draft is added under its own spelling, replacing a
+// base file that folds equal to it.
+func projectView(base []string, drafts map[string][]byte) draftView {
+	held := slices.Clone(base)
+	names := slices.Sorted(maps.Keys(drafts))
+	for _, name := range names {
+		if drafts[name] == nil {
+			held = slices.DeleteFunc(held, func(f string) bool { return namefold.ModTree(f) == namefold.ModTree(name) })
+		}
+	}
+	for _, name := range names {
+		if drafts[name] != nil {
+			held = slices.DeleteFunc(held, func(f string) bool { return f != name && namefold.ModTree(f) == namefold.ModTree(name) })
+			if !slices.Contains(held, name) {
+				held = append(held, name)
+			}
+		}
+	}
+	return draftView{names: held, drafts: drafts}
+}
+
 // projectFiles is the files of the open project: the mod's files with the
 // drafts over them.
 func (s *mapInspectionEdits) projectFiles(d *editorModDocument) []string {
-	var held []string
+	var base []string
 	if m := s.inspector.mod; m != nil {
-		held = slices.Clone(m.files)
+		base = m.files
 	}
-	for _, name := range slices.Sorted(maps.Keys(d.Files)) {
-		if d.Files[name] == nil {
-			held = slices.DeleteFunc(held, func(f string) bool { return namefold.ModTree(f) == namefold.ModTree(name) })
-		} else if !slices.Contains(held, name) {
-			held = append(held, name)
-		}
-	}
-	return held
+	return projectView(base, d.Files).names
 }
 
-func (x *MapInspector) rowFiles(m *mod.Mission, view map[string][]byte) error {
-	if view == nil || m.Map == "" {
+func (x *MapInspector) rowFiles(m *mod.Mission, view draftView) error {
+	if view.drafts == nil || m.Map == "" {
 		return m.ReadFiles(x.mod.dir)
 	}
-	b, drafted := view[m.Map]
+	b, drafted := view.drafts[m.Map]
 	missing := fmt.Errorf("%s: %s", m.Key, x.word("editor.mod.err.mapmissing"))
 	if drafted && len(b) == 0 {
 		return missing
@@ -384,14 +407,14 @@ func (x *MapInspector) missionFiles(rows []mod.Mission, pending map[string][]byt
 	return nil
 }
 
-func (x *MapInspector) checkMissionSet(missions []mod.Mission, view map[string][]byte) error {
+func (x *MapInspector) checkMissionSet(missions []mod.Mission, view draftView) error {
 	if x.mod != nil && x.mod.loaded != nil && slices.ContainsFunc(missions, func(m mod.Mission) bool { return m.Kind == mod.MissionCampaign || m.Campaign() && m.GuestParty() }) {
 		rows := make([]mod.Mission, len(missions))
 		for i, m := range missions {
 			rows[i] = mod.CloneMission(m)
 		}
 		for i := range rows {
-			if m := &rows[i]; !m.Off && m.Map != "" && view != nil {
+			if m := &rows[i]; !m.Off && m.Map != "" && view.drafts != nil {
 				if err := x.rowFiles(m, view); err != nil {
 					return err
 				}

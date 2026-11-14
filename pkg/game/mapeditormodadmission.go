@@ -37,7 +37,7 @@ func checkMissionProjection(word func(string) string, expected []mod.Mission, ac
 // and map checks alone.
 func (x *MapInspector) admitMissionPackage(result modrt.Result) error {
 	if x.contextBase().table == nil {
-		if err := x.checkMissionSet(result.Missions.Missions, nil); err != nil {
+		if err := x.checkMissionSet(result.Missions.Missions, draftView{}); err != nil {
 			return err
 		}
 		for _, m := range result.Missions.Missions {
