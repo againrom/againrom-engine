@@ -2559,10 +2559,10 @@ after and the party the Add button gives) or, with Replace N, a row that
 replaces the lowest mission number the install holds and no row of the mod
 replaces; the number can be changed in the mission's fields. Make row on a map
 named by a mission number writes the row that names that same map. The row
-key is the map's stem written as a row key (`m10` for `10.alm`). Add unused
-copies the open map into `maps/<stem>.alm` with its pages and labels as a
-draft that no row names, `-2` and on when the stem is taken. Add maps from
-folder opens the system folder window and adds every `.alm` and `.almx` at the
+key is the map's stem written as a row key (`m10` for `10.alm`). Add map without
+mission copies the open map into `maps/<stem>.alm` with its pages and labels as a
+draft that no row names, `-2` and on when the stem is taken. Add folder of
+maps opens the system folder window and adds every `.alm` and `.almx` at the
 folder's top with its `<stem>.text/` pages and `<stem>.variables`; a stem of
 digits takes the `m` prefix. Where the system has no folder window a typed
 path is asked for. Each action is one Undo step and Ctrl+S writes it. F5 on an

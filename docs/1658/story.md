@@ -12,8 +12,8 @@ active. Each action is one Undo step and Ctrl+S writes it.
 - Owner: «Отдельной историей»; «можно тем же роем»: items 6 to 8 of story 1651 are this story.
 - Owner («да»): the unused-map actions stand on the Missions page; the Maps tab stays gone.
 - Owner: «Открыть мод должен быть нативным пикером»: a folder is asked of the system window first.
-- Decided here: the buttons read Add unused (the open map) and Add maps from folder, because Add map is the existing
-  button that makes the open map a mission.
+- Decided here: the buttons read Add map without mission (the open map) and Add folder of maps, because Add map is the
+  existing button that makes the open map a mission. Owner: the row buttons stay mouse-only, as Open is.
 - Decided here: Replace offers the lowest campaign number the install holds that no row of the mod replaces; the
   mission's number field changes it.
 - Decided here: a map file named by digits takes the prefix m, so a copy never becomes a replacement by its name.
@@ -26,8 +26,8 @@ active. Each action is one Undo step and Ctrl+S writes it.
 2. A number the install's campaign lacks, or one a row already replaces, is refused and leaves no draft.
 3. Make row on a map named by its mission number writes the row naming the same map and number.
 4. After either, the page lists the row among the missions and no longer lists the map as unused.
-5. Add unused copies the open map, its pages and its labels to maps/stem with -2, -3 on a taken stem; no row names it.
-6. Add maps from folder adds each map of the folder with its pages and labels as one Undo step.
+5. Add map without mission copies the open map, its pages and its labels to maps/stem with -2, -3 on a taken stem; no row names it.
+6. Add folder of maps adds each map of the folder with its pages and labels as one Undo step.
 7. The folder is asked of the system window; a typed path is asked only where the system has none.
 8. F5 on an unused map opens the party window and plays the map as a guest mission with the mod active; no row is kept.
 9. Every refusal speaks the editor's words in English and Russian.
