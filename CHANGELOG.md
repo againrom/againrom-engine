@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.155.0
+
 ### For players
 
 - [BASE] Change one saved Smoothing setting in Game Options or with Ctrl+O across game screens.
