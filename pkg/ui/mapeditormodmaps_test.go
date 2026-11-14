@@ -144,23 +144,52 @@ func TestModWindowCtrlTabIsNotTheFieldTab(t *testing.T) {
 	}
 }
 
-// The two keys of the open maps have a help line each, in each language: one
-// line naming both is wider than the help rail.
+// The two keys of the open maps have a help line each, shown only while two or
+// more maps are open: none with no mod or one map, one line each with two. A
+// line naming both keys is wider than the help rail.
 func TestOpenMapKeysHaveAHelpLineEach(t *testing.T) {
-	for _, lang := range []string{"", "russian"} {
-		next, back := 0, 0
-		for _, l := range EditorHelpLinesIn(lang) {
+	count := func(e *MapEditor) (next, back int) {
+		for _, l := range e.allHelpLines() {
 			switch {
 			case strings.HasPrefix(l, "Ctrl+Tab:") && !strings.Contains(l, "Ctrl+Shift+Tab"):
 				next++
 			case strings.HasPrefix(l, "Ctrl+Shift+Tab:") && !strings.Contains(l, "Ctrl+Tab"):
 				back++
 			case strings.Contains(l, "Ctrl+Tab") || strings.Contains(l, "Ctrl+Shift+Tab"):
-				t.Errorf("%q: the help line %q names both keys", lang, l)
+				t.Errorf("the help line %q names both keys", l)
 			}
 		}
-		if next != 1 || back != 1 {
-			t.Errorf("%q: %d lines of Ctrl+Tab and %d of Ctrl+Shift+Tab, want one each", lang, next, back)
+		return next, back
+	}
+	for _, lang := range []string{"en", "ru"} {
+		open := func(host string, acts ...string) *MapEditor {
+			e, _ := newModesEditor(t, host)
+			e.SetWords(words.For(lang))
+			for _, a := range acts {
+				modesAct(e, a)
+			}
+			return e
+		}
+		noMod := open("plain")
+		if n := len(noMod.OpenMapRows()); n != 1 {
+			t.Fatalf("%s setup: %d maps open with no mod, want 1", lang, n)
+		}
+		if next, back := count(noMod); next != 0 || back != 0 {
+			t.Errorf("%s no mod: %d Ctrl+Tab and %d Ctrl+Shift+Tab lines, want none", lang, next, back)
+		}
+		one := open("workspace")
+		if n := len(one.OpenMapRows()); n != 1 {
+			t.Fatalf("%s setup: %d maps open, want 1", lang, n)
+		}
+		if next, back := count(one); next != 0 || back != 0 {
+			t.Errorf("%s one map: %d Ctrl+Tab and %d Ctrl+Shift+Tab lines, want none", lang, next, back)
+		}
+		two := open("workspace", "ui:mod-second-map")
+		if n := len(two.OpenMapRows()); n != 2 {
+			t.Fatalf("%s setup: %d maps open, want 2", lang, n)
+		}
+		if next, back := count(two); next != 1 || back != 1 {
+			t.Errorf("%s two maps: %d Ctrl+Tab and %d Ctrl+Shift+Tab lines, want one each", lang, next, back)
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui/widgetkit"
 	"againrom/pkg/words"
+	"math"
 	"slices"
 	"strings"
 
@@ -38,8 +39,12 @@ const (
 	screenCount
 )
 
-// helpLine is a help line: the message id of its words.
-type helpLine struct{ Word string }
+// helpLine is a help line: the message id of its words, and the fewest open
+// maps the live help needs before it shows (0: always).
+type helpLine struct {
+	Word        string
+	minOpenMaps int
+}
 
 // helpEntry is a line of a help screen.
 type helpEntry struct {
@@ -91,8 +96,8 @@ var (
 	lineNew           = helpLine{Word: "editor.keys.new"}
 	linePlayers       = helpLine{Word: "editor.keys.players"}
 	lineMap           = helpLine{Word: "editor.keys.map"}
-	lineMapTabs       = helpLine{Word: "editor.keys.maptabs"}
-	lineMapTabsBack   = helpLine{Word: "editor.keys.maptabsback"}
+	lineMapTabs       = helpLine{Word: "editor.keys.maptabs", minOpenMaps: 2}
+	lineMapTabsBack   = helpLine{Word: "editor.keys.maptabsback", minOpenMaps: 2}
 	lineStructure     = helpLine{Word: "editor.keys.structure"}
 	lineHelp          = helpLine{Word: "editor.keys.help"}
 	lineArea          = helpLine{Word: "editor.keys.area"}
@@ -283,34 +288,38 @@ func containsString(list []string, s string) bool {
 	return false
 }
 
-// EditorHelpLines is every help line the editor window shows, in English.
+// EditorHelpLines is every help line the editor can show, in English, whatever
+// maps are open.
 func EditorHelpLines() []string { return EditorHelpLinesIn("") }
 
-// EditorHelpLinesIn is every help line the editor window shows, in UTF-8, in
-// the words of the install language lang.
+// EditorHelpLinesIn is every help line the editor can show, in UTF-8, in the
+// words of the install language lang, whatever maps are open.
 func EditorHelpLinesIn(lang string) []string {
 	var out []string
 	for _, lines := range editorHelp {
-		out = append(out, helpWords(words.For(lang).Text, lines)...)
+		out = append(out, helpWords(words.For(lang).Text, lines, math.MaxInt)...)
 	}
 	return out
 }
 
-// helpWords is the words of lines read through text.
-func helpWords(text func(string) string, lines []helpLine) []string {
-	out := make([]string, len(lines))
-	for i, l := range lines {
-		out[i] = text(l.Word)
+// helpWords is the words of the lines that show with openMaps maps open, read
+// through text.
+func helpWords(text func(string) string, lines []helpLine, openMaps int) []string {
+	var out []string
+	for _, l := range lines {
+		if openMaps >= l.minOpenMaps {
+			out = append(out, text(l.Word))
+		}
 	}
 	return out
 }
 
-// allHelpLines is every help line in the window's words, each once: the F1
-// list.
+// allHelpLines is every help line that shows now, in the window's words, each
+// once: the F1 list.
 func (e *MapEditor) allHelpLines() []string {
 	var out []string
 	for _, lines := range editorHelp {
-		for _, line := range helpWords(e.word, lines) {
+		for _, line := range helpWords(e.word, lines, len(e.openMaps)) {
 			if !containsString(out, line) {
 				out = append(out, line)
 			}
@@ -357,7 +366,7 @@ func (e *MapEditor) helpScreen() helpScreen {
 
 func (e *MapEditor) helpLines() []string {
 	if e.helpScreen() != screenKeys {
-		return helpWords(e.word, editorHelp[e.helpScreen()])
+		return helpWords(e.word, editorHelp[e.helpScreen()], len(e.openMaps))
 	}
 	var out []helpLine
 	for _, key := range []string{"new", "players", "metadata", "help"} {
@@ -367,7 +376,7 @@ func (e *MapEditor) helpLines() []string {
 			}
 		}
 	}
-	return helpWords(e.word, out)
+	return helpWords(e.word, out, len(e.openMaps))
 }
 
 // Key and Pointer are the same input doors used by Update and headless proof.

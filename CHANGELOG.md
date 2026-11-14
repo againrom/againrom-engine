@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [BASE] Opening a mod now uses the system's file window everywhere: in the map editor's mod window a click on Working folder, Enter in it, Ctrl+O and Open mod all open it, and it no longer fails before the first mod is saved; the starter's mods folder has a Browse button.
 - [BASE] In data/towns.toml a mod sets which mission a town's shop and school hand out ([[shop]], [[school]]), and a talk or hand-out can wait for wins (won) and stand from a chapter on (from); the editor's campaign graph edits these mod hand-outs (add, change, switch off, remove), and Ctrl+S writes data/towns.toml keeping its comments.
 - [BASE] In the map editor's mod window the Overview page scrolls to its end, the Campaign graph buttons show their words instead of question marks, and the Missions page lists every mission of the mod.
+- [BASE] The map editor's help lists Ctrl+Tab and Ctrl+Shift+Tab (next and previous open map) only while two or more maps are open; with one map or none the two lines are left out, and the keys work as before.
 
 ## 0.154.0
 

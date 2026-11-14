@@ -79,7 +79,7 @@ func TestMapEditorAllKeysUseTheScrollableReport(t *testing.T) {
 		}
 		seen[row.Text] = true
 	}
-	for _, line := range append(EditorHelpLines(), e.saveHelp()) {
+	for _, line := range append(e.allHelpLines(), e.saveHelp()) {
 		if !seen[line] {
 			t.Errorf("missing help %q", line)
 		}
