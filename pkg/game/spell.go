@@ -90,10 +90,29 @@ func spellSelfKind(rule sim.SpellRule) bool {
 	return spellSelfOnly(rule) || sim.SpellArmSelfAimed(rule.ArmID()) && !rule.TargetsUnit && rule.Area
 }
 
+// bookOrder lists the table in cell-row order when every row is in it (true), else in table order.
+func bookOrder(table []sim.SpellRule, rows []uint16) ([]sim.SpellRule, bool) {
+	byID := make(map[uint16]sim.SpellRule, len(table))
+	for _, rule := range table {
+		byID[rule.ID] = rule
+	}
+	ordered := make([]sim.SpellRule, 0, len(rows))
+	for _, id := range rows {
+		if rule, ok := byID[id]; ok {
+			ordered = append(ordered, rule)
+		}
+	}
+	if len(rows) != 0 && len(ordered) == len(rows) {
+		return ordered, true
+	}
+	return table, false
+}
+
 func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
 	w ui.Words, icon func(uint16) *image.RGBA, rows []uint16) []ui.SpellEntry {
 	var book []ui.SpellEntry
-	for _, rule := range table {
+	ordered, _ := bookOrder(table, nil)
+	for _, rule := range ordered {
 		var known bool
 		rule, known = sim.BookRuleFor(e, rule)
 		if !known {
@@ -134,20 +153,7 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 	if len(selected) == 0 {
 		return nil, false
 	}
-	byID := make(map[uint16]sim.SpellRule, len(table))
-	for _, rule := range table {
-		byID[rule.ID] = rule
-	}
-	ordered := make([]sim.SpellRule, 0, len(rows))
-	for _, id := range rows {
-		if rule, ok := byID[id]; ok {
-			ordered = append(ordered, rule)
-		}
-	}
-	fixed := len(rows) != 0 && len(ordered) == len(rows)
-	if !fixed {
-		ordered = table
-	}
+	ordered, fixed := bookOrder(table, rows)
 	book := make([]ui.SpellEntry, 0, len(ordered))
 	for _, rule := range ordered {
 		// The popup folds over every selected actor that carries the cell;
