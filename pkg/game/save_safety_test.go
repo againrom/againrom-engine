@@ -20,6 +20,7 @@ import (
 	"againrom/pkg/hostfile"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/savename"
 	"againrom/pkg/vfs"
 )
 
@@ -144,7 +145,7 @@ func TestConcurrentLinkedCommitsReapAllRetiredAliases(t *testing.T) {
 		switch {
 		case looksLikeSaveTemp(entry.Name()):
 			temps = append(temps, entry.Name())
-		case filepath.Ext(entry.Name()) == originalSaveExt:
+		case filepath.Ext(entry.Name()) == savename.Original:
 			finals = append(finals, entry.Name())
 		}
 	}

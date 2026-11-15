@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
+	"againrom/pkg/savename"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -140,7 +141,9 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 			// overwrite must leave the World and its hash as they were.
 			var raw []byte
 			var notice string
+			var captured Snapshot
 			err = f.captureSave(captureTentative, request.OnMap, func(s Snapshot, _ string) error {
+				captured = s
 				notifySaveCapture(observers, "f2", s)
 				var err error
 				raw, notice, err = f.playerMissionSave(s, label)
@@ -149,7 +152,11 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 			if err != nil {
 				return ui.PreparedSave{}, f.playerSaveError(err)
 			}
-			payloads := []namedSavePayload{{".sav", raw}}
+			ext := saveExtOf(captured)
+			if own, ok := savename.Of(request.Name); ok {
+				ext = own
+			}
+			payloads := []namedSavePayload{{ext, raw}}
 			prepared, err := prepareNamedSave(request.Directory, name, payloads, fences, nil, store.profile)
 			if err != nil {
 				return prepared, err

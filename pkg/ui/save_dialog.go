@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"againrom/pkg/namefold"
+	"againrom/pkg/savename"
 )
 
 type saveControl int
@@ -28,16 +29,13 @@ func (a *App) SetSaveDialogSeams(seams SaveDialogSeams) {
 }
 
 func saveListName(name string) string {
-	if namefold.HostEqual(filepath.Ext(name), ".sav") {
-		return name[:len(name)-len(".sav")]
-	}
-	return name
+	return savename.Hide(name)
 }
 
 // A name with two format suffixes must still address the listed disk file.
 func saveFieldName(name string) string {
 	shown := saveListName(name)
-	if ext := filepath.Ext(shown); namefold.HostEqual(ext, ".sav") || namefold.HostEqual(ext, ".ags") {
+	if ext := filepath.Ext(shown); savename.Is(shown) || namefold.HostEqual(ext, ".ags") {
 		return name
 	}
 	return shown

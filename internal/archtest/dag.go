@@ -164,7 +164,8 @@ var allow = map[string][]string{
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
 		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
-		"pkg/scriptprofile"},
+		"pkg/scriptprofile", "pkg/savename"},
+	"pkg/savename":   {"pkg/namefold"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.

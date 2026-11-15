@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"againrom/pkg/hostfile"
-	"againrom/pkg/namefold"
+	"againrom/pkg/savename"
 )
 
 // SaveStore holds authored saves. Only a launch-issued private profile can
@@ -240,11 +240,11 @@ func (s SaveStore) WriteOriginal(originalDir string, data []byte) (string, error
 	validate := func(dir saveDirectoryIdentity) error {
 		return refuseProfileWriteTarget(dir.path, originalDir, s.profile)
 	}
-	return s.write(data, "save-original", originalSaveExt, validate, func(at int) (string, bool) {
+	return s.write(data, "save-original", savename.Original, validate, func(at int) (string, bool) {
 		if at >= 10000 {
 			return "", false
 		}
-		return fmt.Sprintf("game%04d%s", at, originalSaveExt), true
+		return fmt.Sprintf("game%04d%s", at, savename.Original), true
 	})
 }
 
@@ -303,7 +303,7 @@ func (s SaveStore) write(data []byte, tempBase, ext string, validate func(saveDi
 			Close:        "close temporary save: %w",
 			Publish:      "publish save %s: %w",
 			NoCommit:     "publish save %s returned without committing a final path",
-			NoName:       "no free original save name in game0000.sav through game9999.sav",
+			NoName:       "no free original save name in game0000" + savename.Original + " through game9999" + savename.Original,
 			Cleanup:      "remove failed temporary save %s; it remains hidden and the next save will retry cleanup: %w",
 			CloseCleanup: "close failed temporary save during cleanup: %w",
 		},
@@ -347,7 +347,7 @@ func saveTempPatternFor(base, ext string) string {
 
 // ownedSaveTempExtensions are the save extensions whose private staging names
 // this process may recover.
-var ownedSaveTempExtensions = []string{originalSaveExt}
+var ownedSaveTempExtensions = savename.Extensions()
 
 func isOwnedSaveTempName(name string) bool {
 	if !strings.HasPrefix(name, ".save-") {
@@ -389,9 +389,7 @@ func sameOrDescendantPhysical(parent, child string) (bool, error) {
 
 func directoryHasRequiredArchives(dir string) (bool, error) { return installFence.IsInstall(dir) }
 
-// originalSaveExt is what a save file is called. SAV is the only save format;
-// the original game and this one name it the same way.
-const originalSaveExt = ".sav"
+func saveExtOf(Snapshot) string { return savename.For(false) }
 
 // OriginalStore reads installed saves and has no write capability.
 type OriginalStore struct {
@@ -449,5 +447,5 @@ func (s OriginalStore) Read(name string) ([]byte, error) {
 // question is which reader a row belongs to, and a build that had to open a file
 // to find out would open every file in the list to draw it.
 func IsOriginal(name string) bool {
-	return namefold.HostEqual(filepath.Ext(name), originalSaveExt)
+	return savename.Is(name)
 }

@@ -354,7 +354,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// the stdlib-only table of the map script's limits.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
 		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
-		"pkg/scriptprofile"}
+		"pkg/scriptprofile", "pkg/savename"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

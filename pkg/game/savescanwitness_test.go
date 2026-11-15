@@ -12,6 +12,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -24,7 +25,7 @@ func refSaveStoreList(s SaveStore) []SaveEntry {
 	}
 	var out []SaveEntry
 	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
+		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), savename.Original) {
 			continue
 		}
 		fi, err := e.Info()
@@ -52,7 +53,7 @@ func refOriginalList(s OriginalStore) []SaveEntry {
 	}
 	var out []SaveEntry
 	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
+		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), savename.Original) {
 			continue
 		}
 		b, err := s.Read(e.Name())

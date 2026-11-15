@@ -10,6 +10,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/savename"
 )
 
 // ownedSlotKind is a family of three owned save slots: a SAV and a sidecar
@@ -37,7 +38,7 @@ func (k ownedSlotKind) scan(dir string) [3]ownedSlot {
 	var slots [3]ownedSlot
 	for slot := range slots {
 		base := filepath.Join(dir, string(k.slotBase(slot)))
-		info, err := os.Lstat(base + ".sav")
+		info, err := os.Lstat(base + savename.Original)
 		ownerInfo, ownerErr := os.Lstat(base + k.ownerExt)
 		if os.IsNotExist(err) && os.IsNotExist(ownerErr) {
 			slots[slot].free = true
@@ -46,7 +47,7 @@ func (k ownedSlotKind) scan(dir string) [3]ownedSlot {
 		if err != nil || ownerErr != nil || !info.Mode().IsRegular() || !ownerInfo.Mode().IsRegular() {
 			continue
 		}
-		raw, err := ReadSaveFile(base + ".sav")
+		raw, err := ReadSaveFile(base + savename.Original)
 		owner, ownerErr := ReadSaveFile(base + k.ownerExt)
 		if err != nil || ownerErr != nil {
 			continue
@@ -136,7 +137,7 @@ func (k ownedSlotKind) write(store SaveStore, fences []string, slot int, sequenc
 	if err != nil {
 		return err
 	}
-	prepared, err := prepareOwnedNamedSave(store.Dir, k.slotBase(slot), []namedSavePayload{{".sav", raw}, {k.ownerExt, owner}}, fences, files,
+	prepared, err := prepareOwnedNamedSave(store.Dir, k.slotBase(slot), []namedSavePayload{{savename.Original, raw}, {k.ownerExt, owner}}, fences, files,
 		func(targets []namedSaveTarget) error {
 			if targets[0].before == nil && targets[1].before == nil {
 				return nil

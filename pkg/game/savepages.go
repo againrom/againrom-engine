@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/locale"
 	"againrom/pkg/namefold"
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -124,10 +125,10 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 // original's restore points use (R2-SESSION-179) and the engine's quick and
 // timed slots, which only their own keys write (DIV-3080).
 func secondSaveHidden() []string {
-	out := []string{"game9998.sav", "game9999.sav"}
+	out := []string{"game9998" + savename.Original, "game9999" + savename.Original}
 	for _, k := range allOwnedSlotKinds() {
 		for slot := range 3 {
-			out = append(out, string(k.slotBase(slot))+originalSaveExt)
+			out = append(out, string(k.slotBase(slot))+savename.Original)
 		}
 	}
 	return out
@@ -160,9 +161,9 @@ func secondSaveSlot(dir, label string, listed []string) string {
 			taken[namefold.Host(name)] = true
 		}
 		for n := 1; n < 10000; n++ {
-			name := base + originalSaveExt
+			name := base + savename.Original
 			if n > 1 {
-				name = fmt.Sprintf("%s %d%s", base, n, originalSaveExt)
+				name = fmt.Sprintf("%s %d%s", base, n, savename.Original)
 			}
 			if taken[namefold.Host(name)] {
 				continue
@@ -183,7 +184,7 @@ func secondSaveSlot(dir, label string, listed []string) string {
 		if used[n] {
 			continue
 		}
-		name := fmt.Sprintf("game%04d.sav", n)
+		name := fmt.Sprintf("game%04d%s", n, savename.Original)
 		if _, err := os.Lstat(filepath.Join(dir, name)); err == nil {
 			continue
 		}
@@ -260,7 +261,7 @@ func saveSlotNumber(name string) (int, bool) {
 
 // isGameSaveName is the original's game*.sav pattern.
 func isGameSaveName(name string) bool {
-	return len(name) >= len("game.sav") && namefold.HostEqual(name[:4], "game") && namefold.HostEqual(filepath.Ext(name), originalSaveExt)
+	return len(name) >= len("game.sav") && namefold.HostEqual(name[:4], "game") && savename.IsOriginal(name)
 }
 
 // anyGameSave reports whether dir holds a file named game*.sav, whatever its

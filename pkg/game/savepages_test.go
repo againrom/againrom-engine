@@ -13,6 +13,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/locale"
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -96,7 +97,7 @@ func TestSecondSaveSlotNeverTakesAnExistingOrHiddenName(t *testing.T) {
 	}
 	hidden := secondSaveHidden()
 	for _, h := range hidden {
-		base := strings.TrimSuffix(h, originalSaveExt)
+		base := strings.TrimSuffix(h, savename.Original)
 		if got := secondSaveSlot(dir, base, nil); got == h || strings.EqualFold(got, h) {
 			t.Fatalf("label %q took hidden name %q", base, got)
 		}

@@ -16,6 +16,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/hostfile"
 	"againrom/pkg/mapload"
+	"againrom/pkg/savename"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -295,7 +296,7 @@ func TestTheStoreWritesListsAndReadsBack(t *testing.T) {
 	if n1 == n2 {
 		t.Fatalf("two saves landed under one name %q", n1)
 	}
-	if !strings.HasSuffix(n1, originalSaveExt) {
+	if !strings.HasSuffix(n1, savename.Original) {
 		t.Errorf("name %q does not carry the extension", n1)
 	}
 
@@ -598,7 +599,7 @@ func countStrings(values []string, target string) int {
 }
 
 func looksLikeSaveTemp(name string) bool {
-	return strings.HasPrefix(name, ".save-") && strings.Contains(name, originalSaveExt+".tmp-")
+	return strings.HasPrefix(name, ".save-") && strings.Contains(name, savename.Original+".tmp-")
 }
 
 func entryNames(entries []os.DirEntry) []string {

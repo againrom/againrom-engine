@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"time"
 
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -47,7 +48,7 @@ func writeScreenshot(store SaveStore, fences []string, frame image.Image) (strin
 	if err := png.Encode(&encoded, frame); err != nil {
 		return "", err
 	}
-	return store.write(encoded.Bytes(), "save-screenshot", originalSaveExt, func(dir saveDirectoryIdentity) error {
+	return store.write(encoded.Bytes(), "save-screenshot", savename.Original, func(dir saveDirectoryIdentity) error {
 		return validateTarget(dir.path)
 	}, func(at int) (string, bool) {
 		if at >= 10000 {

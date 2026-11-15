@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -45,7 +46,7 @@ func referenceLocalRows(dir string, selector int) []ui.SaveEntry {
 	}
 	var rows []row
 	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
+		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), savename.Original) {
 			continue
 		}
 		fi, err := e.Info()

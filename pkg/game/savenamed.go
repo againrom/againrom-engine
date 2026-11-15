@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
+	"againrom/pkg/savename"
 	"againrom/pkg/ui"
 )
 
@@ -40,7 +41,7 @@ type validatedSaveName string
 
 func namedSaveBase(name string) (validatedSaveName, error) {
 	ext := filepath.Ext(name)
-	if namefold.HostEqual(ext, ".ags") || namefold.HostEqual(ext, ".sav") {
+	if namefold.HostEqual(ext, ".ags") || savename.Is(name) {
 		name = name[:len(name)-len(ext)]
 	}
 	if name == "" || name != strings.TrimSpace(name) || strings.HasSuffix(name, ".") || len(name) > 120 ||
@@ -155,7 +156,7 @@ func prepareOwnedNamedSave(directory string, base validatedSaveName, payloads []
 	targets := make([]namedSaveTarget, 0, len(payloads))
 	seen := make(map[string]bool)
 	for _, payload := range payloads {
-		if payload.ext != ".ags" && payload.ext != ".sav" && payload.ext != timedSlots.ownerExt && payload.ext != quickSlots.ownerExt || seen[payload.ext] || len(payload.data) > maxSaveBytes || len(payload.data) == 0 {
+		if payload.ext != ".ags" && !savename.Is(payload.ext) && payload.ext != timedSlots.ownerExt && payload.ext != quickSlots.ownerExt || seen[payload.ext] || len(payload.data) > maxSaveBytes || len(payload.data) == 0 {
 			return out, fmt.Errorf("invalid named save payload")
 		}
 		seen[payload.ext] = true
