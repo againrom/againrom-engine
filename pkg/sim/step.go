@@ -1151,6 +1151,12 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 		step, ok := w.searchRoute(scratch, i, near, dynamicWindow, scaledBudget, settleStep, sub.x, sub.y)
 		if !ok || len(step) == 0 {
+			// A player's walk to a cell an enemy has taken ends beside it in
+			// the stand order, which strikes what is in reach.
+			if w.walkGoalHeldByEnemy(i) {
+				w.commandStance([]int{i}, OrderStandGround)
+				continue
+			}
 			// The count is the ONLY field written on this path. The position, the
 			// three target fields and the whole stored route are not restored —
 			// they are never touched, so there is no window in which a

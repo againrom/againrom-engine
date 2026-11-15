@@ -94,3 +94,24 @@ func (w *World) holdReplacesPendingRow(i int) {
 		}
 	}
 }
+
+// walkGoalHeldByEnemy reports whether player's unit i, ordered to walk to a
+// cell, stands next to that cell while a living enemy holds it. Such a walk
+// cannot finish, so the unit takes the stand a player gives by hand and strikes
+// what is in reach.
+func (w *World) walkGoalHeldByEnemy(i int) bool {
+	e := &w.entities[i]
+	if e.Owner != SelfSlot || !e.HasTarget || e.HasAttackTarget || e.PendingOrder.Kind != PendingNone {
+		return false
+	}
+	if (cell{x: e.X, y: e.Y}).chebyshevTo(cell{x: e.TargetX, y: e.TargetY}) != 1 {
+		return false
+	}
+	for j := range w.entities {
+		o := &w.entities[j]
+		if j != i && o.Alive() && o.X == e.TargetX && o.Y == e.TargetY && w.hostileTo(e, o) {
+			return true
+		}
+	}
+	return false
+}
