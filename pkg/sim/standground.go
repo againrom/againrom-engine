@@ -107,9 +107,10 @@ func (w *World) walkGoalHeldByEnemy(i int) bool {
 	if (cell{x: e.X, y: e.Y}).chebyshevTo(cell{x: e.TargetX, y: e.TargetY}) != 1 {
 		return false
 	}
-	for j := range w.entities {
+	ground, air := w.cellLayerOccupants(e.TargetX, e.TargetY)
+	for _, j := range append(ground, air...) {
 		o := &w.entities[j]
-		if j != i && o.Alive() && o.X == e.TargetX && o.Y == e.TargetY && w.hostileTo(e, o) {
+		if j != i && o.Alive() && w.hostileTo(e, o) {
 			return true
 		}
 	}

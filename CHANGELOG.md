@@ -34,6 +34,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor: the basic view of the unit window now lets you set a unit's maximum health on the card.
 - [BASE] Map editor: the health and maximum health boxes on the unit window's card now hold five digits.
 - [BASE] A mod names a spell by one name in both games, and two mods' rows for one spell combine field by field.
+- [BASE] A unit sent to a cell covered by any part of a large enemy now stops beside it and attacks, as it already did when sent to the enemy's own cell.
 
 ### For map makers and modders
 
