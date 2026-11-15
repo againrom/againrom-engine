@@ -117,8 +117,7 @@ func (a *App) stepCheatChat(in appInput) appInput {
 			}
 		}
 	}
-	return appInput{CursorX: in.CursorX, CursorY: in.CursorY, Help: in.Help, AltLetter: in.AltLetter,
-		Viewer: Input{CursorX: in.Viewer.CursorX, CursorY: in.Viewer.CursorY, Alt: in.Viewer.Alt, Unfocused: in.Unfocused}, Unfocused: in.Unfocused}
+	return in.passing(passCheatChat)
 }
 
 func (a *App) cheatChatPicture() (*image.RGBA, image.Point) {

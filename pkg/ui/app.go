@@ -1309,7 +1309,7 @@ func (a *App) stepDialoguePointer(in appInput, owner dialoguePointerOwner, insid
 // else the screen is doing. Everything after it is per-screen dispatch.
 func (a *App) step(in appInput, now time.Time) (exit bool) {
 	if a.flow.screen == ScreenGameMenu && a.player.capture != "" {
-		in = in.capturedByKeysPage()
+		in = in.passing(passKeysCapture)
 	}
 	if a.flow.screen != ScreenMenu {
 		a.menuAway = true

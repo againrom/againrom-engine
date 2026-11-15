@@ -137,17 +137,6 @@ func (a *App) startKeyCapture() {
 	}
 }
 
-// capturedByKeysPage is the part of a tick a waiting row leaves to others: the
-// pointer, the focus and the modifiers. Every pressed key goes to the row.
-func (in appInput) capturedByKeysPage() appInput {
-	out := appInput{AnyKey: in.AnyKey, Keys: in.Keys, Close: in.Close, Unfocused: in.Unfocused, Escape: in.Escape,
-		CursorX: in.CursorX, CursorY: in.CursorY, PrimaryPressed: in.PrimaryPressed,
-		PrimaryReleased: in.PrimaryReleased, SecondaryPressed: in.SecondaryPressed, SecondaryReleased: in.SecondaryReleased}
-	out.Viewer.Ctrl, out.Viewer.Shift, out.Viewer.Alt = in.Viewer.Ctrl, in.Viewer.Shift, in.Viewer.Alt
-	out.Viewer.CursorX, out.Viewer.CursorY = in.Viewer.CursorX, in.Viewer.CursorY
-	return out
-}
-
 // stepKeyCapture gives the waiting action the next key: Escape or a click
 // cancels, a lone modifier waits for its key, a reserved key is refused.
 func (a *App) stepKeyCapture(in appInput) {
