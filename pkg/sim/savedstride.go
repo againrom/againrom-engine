@@ -7,8 +7,9 @@ import "encoding/binary"
 // SAV, or establish that an original boundary callback ran. DIV-1189 lets this
 // exact shape finish its accepted stride and hand the remaining dynamic route
 // to the existing native mover. Other original crossings retain their named
-// callback guard and original diagonal-boundary policy.
-func (m SavedActorMotion) NativeStrideCompatible() bool {
+// callback guard and original diagonal-boundary policy. corrected is the
+// World's StrideCorrected.
+func (m SavedActorMotion) NativeStrideCompatible(corrected bool) bool {
 	word := func(at int) uint16 { return binary.LittleEndian.Uint16(m.Mover[at:]) }
 	total, elapsed := word(0xaa), word(0xac)
 	from, to := word(0xa6), word(0x80)
@@ -28,8 +29,7 @@ func (m SavedActorMotion) NativeStrideCompatible() bool {
 	if strideFault(e) != nil {
 		return false
 	}
-	x := s.FromX*256 + 128 + int32(elapsed)*int32(s.StepX)
-	y := s.FromY*256 + 128 + int32(elapsed)*int32(s.StepY)
+	x, y := s.finePoint(int32(elapsed), int32(total), corrected)
 	return x == int32(m.Position.Cell&255)*256+int32(m.Position.FineX) &&
 		y == int32(m.Position.Cell>>8)*256+int32(m.Position.FineY)
 }

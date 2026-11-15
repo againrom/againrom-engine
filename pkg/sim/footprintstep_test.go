@@ -47,20 +47,25 @@ func TestFleeCellReadsTheActorAtItsRawPositionRecord(t *testing.T) {
 	}
 }
 
-// A wide hostile is read at its footprint centre; no claim states the read
-// form of the hostile sums, and DIV-348 records it.
-func TestFleeCellMeasuresAWideHostileAtItsFootprintCentre(t *testing.T) {
+// In the first game a wide hostile is summed at its anchor point, the raw
+// position record, not its footprint centre (AI-698). The second game keeps
+// the centre.
+func TestFleeCellSumsAWideHostileAtItsAnchorPoint(t *testing.T) {
 	t.Parallel()
 	self := withdrawalFighter(1, 2, 20, 20, 10)
 	hostile := withdrawalFighter(2, 3, 22, 18, 100)
 	hostile.TokenSize = 3
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-	// Hostile centre (22*256+128+256, 18*256+128+256) = (6016, 4992); self
-	// (5248, 5248). dx = -768, dy = 256, so x is the major axis: x moves
-	// -768 to 4480 (cell 17) and y by 768*256/768 = 256 to 5504 (cell 21).
-	x, y, ok := w.fleeCell(0, []int{1})
-	if !ok || x != 17 || y != 21 {
-		t.Fatalf("flees to (%d,%d,%t), want (17,21,true)", x, y, ok)
+	// Anchor (22*256+128, 18*256+128) = (5760, 4736); self (5248, 5248).
+	// dx = -512, dy = 512: x moves -768 to 4480 (cell 17), y by 768 to 6016
+	// (cell 23).
+	if x, y, ok := w.fleeCell(0, []int{1}); !ok || x != 17 || y != 23 {
+		t.Fatalf("flees to (%d,%d,%t), want (17,23,true)", x, y, ok)
+	}
+	// The centre (6016, 4992) gives dx = -768, dy = 256: cell (17,21).
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
+	if x, y, ok := w.fleeCell(0, []int{1}); !ok || x != 17 || y != 21 {
+		t.Fatalf("second game flees to (%d,%d,%t), want (17,21,true)", x, y, ok)
 	}
 }
 

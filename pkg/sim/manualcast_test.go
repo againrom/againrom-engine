@@ -144,11 +144,13 @@ func TestManualCastInterruptsReservedScroll(t *testing.T) {
 	}
 }
 
-func TestManualTeleportInterruptsImportedCrossing(t *testing.T) {
+// A first-game manual Teleport given during an imported crossing waits for the
+// crossing to reach its centre, then teleports (MOVE-199).
+func TestManualTeleportWaitsForAnImportedCrossing(t *testing.T) {
 	w := importedRelocationWorld1115(t)
 	Step(w, []Command{{Kind: KindCastAt, Entity: 1, Spell: 26, X: 7, Y: 5}})
-	if len(w.bookCasts) != 1 || w.motionFor(1).Active || w.motionFor(1).Current {
-		t.Fatal("imported movement still owns the caster")
+	if len(w.bookCasts) != 0 || !w.motionFor(1).Active || !w.motionFor(1).Current {
+		t.Fatal("the manual cast ended the imported crossing")
 	}
 	back := retreatRoundTrip1089(t, w)
 	for tick := 0; tick < 64; tick++ {
@@ -190,5 +192,35 @@ func TestInvalidManualCastPreservesCurrentAction(t *testing.T) {
 				t.Fatal("invalid manual cast changed its predecessor")
 			}
 		})
+	}
+}
+
+// A manual cast in reach or a cast approach given while a loaded step is
+// between cells leaves the step running to its centre in the first game, as
+// a walk order does: no cast path zeroes the step counter (MOVE-199). The
+// cast in reach waits as a pending row. The second game still ends the step.
+func TestManualCastLeavesALoadedStepToItsCentre(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		at    CellPoint
+		drops bool
+	}{
+		{"in reach", CellPoint{X: 6, Y: 3}, false},
+		{"approach", CellPoint{X: 15, Y: 15}, false},
+		{"second game in reach", CellPoint{X: 6, Y: 3}, true},
+		{"second game approach", CellPoint{X: 15, Y: 15}, true},
+	} {
+		w := manualCastWorld(t)
+		w.game.castDropsLoadedStep = tc.drops
+		w.savedMotion = &savedActorMotionState{Motions: []SavedActorMotion{{Entity: 1, Current: true, Active: true,
+			Position: SavedActorPosition{Cell: 0x0303, PackedCell: 0x0303, FineX: 160, FineY: 128}}}}
+		admitted := w.beginManualCast(0, CastAt(1, 26, tc.at))
+		m := w.motionFor(1)
+		if kept := m.Current && m.Active; !admitted || kept == tc.drops {
+			t.Errorf("%s: admitted %v, step kept %v, issue %q", tc.name, admitted, kept, m.Issue)
+		}
+		if tc.at.X == 6 && !tc.drops && !w.entities[0].PendingOrder.IsCastRow() {
+			t.Errorf("%s: the cast does not wait for the step: %+v", tc.name, w.entities[0].PendingOrder)
+		}
 	}
 }

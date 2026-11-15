@@ -2,7 +2,7 @@ package sim
 
 import "testing"
 
-// These tests are asset-free: motionFixture1115 builds the whole scenario by
+// These tests are asset-free: savedMotionFixture builds the whole scenario by
 // hand, so nothing here requires a lawful install or the save corpus.
 
 // TestSavedMotion1134ContinuationFromImportWalksToRouteGoal proves the
@@ -12,10 +12,10 @@ import "testing"
 // last cell and end the order there (restAt), the same as any other native
 // destination.
 func TestSavedMotion1134ContinuationFromImportWalksToRouteGoal(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
 	m.StaticRoute = []uint16{uint16(16)<<8 | 16, uint16(16)<<8 | 17}
 	m.DynamicRoute = nil
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 
 	motions, _, _, present := w.SavedActorMotions()
 	if !present || motions[0].Issue != "native movement continues the imported route" || motions[0].Current || motions[0].Active {
@@ -59,10 +59,10 @@ func TestSavedMotion1134ContinuationFromImportWalksToRouteGoal(t *testing.T) {
 // (binary.go's neighbours()) caught — the direct evidence, not merely an
 // absent reading, that concatenation is the wrong policy (savedmotionroute.go).
 func TestSavedMotion1134ContinuationPrefersDynamicOverStatic(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
 	m.DynamicRoute = []uint16{uint16(17)<<8 | 17}
 	m.StaticRoute = []uint16{uint16(18)<<8 | 18, uint16(19)<<8 | 19}
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 
 	at := indexOfEntity(w.entities, EntityID(7))
 	got := w.routes[at]
@@ -86,11 +86,11 @@ func TestSavedMotion1134ContinuationPrefersDynamicOverStatic(t *testing.T) {
 // leaves DynamicRoute empty, so this also exercises the StaticRoute fallback:
 // trimming, not merely emptiness, is what triggers it.
 func TestSavedMotion1134ContinuationTrimsLeadingCurrentCell(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
-	here := uint16(16)<<8 | 15 // matches motionFixture1115's own Position.Cell (0x100f)
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
+	here := uint16(16)<<8 | 15 // matches savedMotionFixture's own Position.Cell (0x100f)
 	m.StaticRoute = []uint16{here, uint16(16)<<8 | 16}
 	m.DynamicRoute = []uint16{here}
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 
 	at := indexOfEntity(w.entities, EntityID(7))
 	got := w.routes[at]
@@ -107,10 +107,10 @@ func TestSavedMotion1134ContinuationTrimsLeadingCurrentCell(t *testing.T) {
 func TestSavedMotion1134ContinuationFromArrivalNeedingNoBoundaryTransition(t *testing.T) {
 	// fineY already centered; fineX 120->128 in one tick of stepX=8 never
 	// overflows a cell boundary, so next.Cell == Position.Cell throughout.
-	w, m, cs, bs := motionFixture1115(t, 120, 128, 8, 0, 2, 0, 1)
+	w, m, cs, bs := savedMotionFixture(t, 120, 128, 8, 0, 2, 0, 1)
 	m.StaticRoute = []uint16{uint16(17)<<8 | 17}
 	m.DynamicRoute = nil
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 
 	motions, _, _, present := w.SavedActorMotions()
 	if !present || !motions[0].Active {
@@ -136,10 +136,10 @@ func TestSavedMotion1134ContinuationFromArrivalNeedingNoBoundaryTransition(t *te
 // mechanism a native .ags resume (pkg/game/resume.go) uses to carry a
 // mission across a session boundary.
 func TestSavedMotion1134ContinuationSurvivesBinaryRoundTrip(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
 	m.StaticRoute = []uint16{uint16(16)<<8 | 16, uint16(16)<<8 | 17}
 	m.DynamicRoute = nil
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 
 	motions, _, _, present := w.SavedActorMotions()
 	if !present || motions[0].Current || motions[0].Active {
@@ -172,11 +172,11 @@ func TestSavedMotion1134ContinuationSurvivesBinaryRoundTrip(t *testing.T) {
 
 // A crossing finishes before its pending turn; route handoff waits for both.
 func TestSavedMotion1134PendingTurnDefersContinuation(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 120, 128, 8, 0, 2, 0, 1)
+	w, m, cs, bs := savedMotionFixture(t, 120, 128, 8, 0, 2, 0, 1)
 	m.Mover[0xa0] = 1 // pendingSavedMotionTurn's second operand
 	m.StaticRoute = []uint16{uint16(17)<<8 | 17}
 	m.DynamicRoute = []uint16{uint16(18)<<8 | 18}
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	Step(w, nil)
 
 	after, _, _, _ := w.SavedActorMotions()

@@ -108,7 +108,7 @@ func TestACrossingEndsTheJoinWalksZeroCost(t *testing.T) {
 	e, _ := w.Entity(2)
 	var mover [180]byte
 	w.ApplyMover(2, &mover)
-	if got, want := binary.LittleEndian.Uint16(mover[0x72:]), w.stepCostWord(e, moverCell(e)); got != want || want == 0 {
+	if got, want := binary.LittleEndian.Uint16(mover[0x72:]), w.stepCostWord(e, w.moverCell(e)); got != want || want == 0 {
 		t.Fatalf("step cost %#x, want %#x", got, want)
 	}
 }

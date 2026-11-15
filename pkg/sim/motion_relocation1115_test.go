@@ -24,7 +24,7 @@ func importedRelocationWorld1115(t *testing.T) *World {
 	m.Mover[0xb0] = 32
 	cs := []SavedActorCell{{Cell: 0x0203, Ground: SavedActorSlot{Key: 0x1004, Entity: 1, Bound: true}}, {Cell: 0x0204}}
 	binary.LittleEndian.PutUint32(cs[0].Payload[4:], 0x1004)
-	importMotion1115(t, w, m, cs, []SavedActorBlock{{Cell: 0x0203, Dyn: 0x40}, {Cell: 0x0204, Dyn: 0x40}})
+	importSavedMotion(t, w, m, cs, []SavedActorBlock{{Cell: 0x0203, Dyn: 0x40}, {Cell: 0x0204, Dyn: 0x40}})
 	return w
 }
 
@@ -89,7 +89,7 @@ func TestSavedMotion1115ActiveBlocksAutomaticCastButNotOneFineUpdate(t *testing.
 
 func TestSavedMotion1115FootprintsAndAirSlotsStayDistinct(t *testing.T) {
 	for _, air := range []bool{false, true} {
-		w, m, _, _ := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+		w, m, _, _ := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 		w.entities[0].TokenSize = 2
 		layer, mask := 0, byte(0x40)
 		if air {
@@ -109,7 +109,7 @@ func TestSavedMotion1115FootprintsAndAirSlotsStayDistinct(t *testing.T) {
 				bs = append(bs, SavedActorBlock{Cell: c.Cell, Dyn: mask})
 			}
 		}
-		importMotion1115(t, w, m, cs, bs)
+		importSavedMotion(t, w, m, cs, bs)
 		Step(w, nil)
 		scratch := newRouteScratch(w)
 		for y := int32(16); y <= 17; y++ {

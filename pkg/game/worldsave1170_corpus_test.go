@@ -103,7 +103,7 @@ func TestCurrentWorldSAVStrideQualification1170(t *testing.T) {
 				continue
 			}
 			active++
-			if m.NativeStrideCompatible() {
+			if m.NativeStrideCompatible(true) {
 				matched++
 				t.Logf("ORIGINAL-STRIDE-MATCH %s sha256=%x actor=%d position=%+v mover=%x dynamic=%v", mf.rel, sha256.Sum256(mf.raw), m.Entity, m.Position, m.Mover, m.DynamicRoute)
 			}

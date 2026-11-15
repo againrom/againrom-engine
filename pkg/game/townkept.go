@@ -71,7 +71,7 @@ func carryKeptActors(world *sim.World, carried []mapload.PartyMember, byParty ma
 // left. The engine holds no Order for a member after the cull.
 func keptFromMission(world *sim.World, e sim.Entity, motions map[sim.EntityID]sim.SavedActorMotion, present bool) (*mapload.KeptActor, error) {
 	k := &mapload.KeptActor{State: cullActorState, Done: cullActorDone, Deadline: currentActionRunEnd(e)}
-	if b := sim.NativeBasisNow(e); b.ScalarIsKnown(sim.ScalarU6C) {
+	if b := sim.NativeBasisNow(e, world.StrideCorrected()); b.ScalarIsKnown(sim.ScalarU6C) {
 		k.Timer = uint8(b.Scalars[sim.ScalarU6C])
 	}
 	old, imported := motions[e.ID]
@@ -90,7 +90,7 @@ func keptFromMission(world *sim.World, e sim.Entity, motions map[sim.EntityID]si
 			return k, nil
 		}
 	}
-	m, err := sim.ProjectActorMotion(e, old, world.Route(e.ID), !present || constructed)
+	m, err := sim.ProjectActorMotion(e, old, world.Route(e.ID), !present || constructed, world.StrideCorrected())
 	if err != nil {
 		return nil, fmt.Errorf("kept actor %d motion: %w", e.ID, err)
 	}

@@ -105,6 +105,14 @@ func (w *World) motionActive(id EntityID) bool {
 
 func (w *World) ActorMotionActive(id EntityID) bool { return w.motionActive(id) }
 
+// savedStepActive reports a loaded step still between cells: a new order
+// keeps it to its centre (noteActorMotionOrder), and in the first game a
+// manual cast waits for that centre (MOVE-199).
+func (w *World) savedStepActive(id EntityID) bool {
+	m := w.motionFor(id)
+	return m != nil && m.Current && m.Active && !w.game.castDropsLoadedStep
+}
+
 func (w *World) ActorFinePosition(id EntityID) (uint8, uint8, bool) {
 	m := w.motionFor(id)
 	if m == nil || !m.Current {
@@ -551,7 +559,7 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 	}
 	// AI-ORDER-039/MOVE-STEP-040: progress3 publishes actor+54=1 on
 	// this executed actor update, independently of reaching the center.
-	nativeStride := m.Issue == "" && m.NativeStrideCompatible()
+	nativeStride := m.Issue == "" && m.NativeStrideCompatible(w.StrideCorrected())
 	m.ActorAction = 1
 	p := m.Position
 	touched := []uint16{p.Cell}
@@ -560,12 +568,10 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 			touched = append(touched, key)
 		}
 	}
-	x := uint16(uint16(p.Cell&255)<<8|uint16(p.FineX)) + uint16(int16(int8(m.Mover[0xb0])))
-	y := uint16(uint16(p.Cell>>8)<<8|uint16(p.FineY)) + uint16(int16(int8(m.Mover[0xb1])))
-	dir := binary.LittleEndian.Uint16(m.Mover[0xae:])
-	if !nativeStride && (dir == 1 || dir == 5) && uint8(x) == 0 && uint8(y) == 0 {
-		x--
-	}
+	// The first game corrects every step; the second its imported ones.
+	sx, sy := strideStep(int32(p.Cell&255)<<8|int32(p.FineX), int32(p.Cell>>8)<<8|int32(p.FineY),
+		int8(m.Mover[0xb0]), int8(m.Mover[0xb1]), binary.LittleEndian.Uint16(m.Mover[0xae:]), !nativeStride || w.StrideCorrected())
+	x, y := uint16(sx), uint16(sy)
 	next := p
 	next.Cell, next.PackedCell = uint16(y>>8)<<8|uint16(x>>8), uint16(y>>8)<<8|uint16(x>>8)
 	next.FineX, next.FineY = uint8(x), uint8(y)

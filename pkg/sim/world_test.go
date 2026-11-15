@@ -150,6 +150,8 @@ func init() {
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
 	worldMethods = append(worldMethods, "EntityAlive")
 	worldMethods = append(worldMethods, "BuildingCellPlanes")
+	// The game's step law: whether a stride takes the octant 1 and 5 correction.
+	worldMethods = append(worldMethods, "StrideCorrected")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")

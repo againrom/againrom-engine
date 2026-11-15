@@ -26,7 +26,7 @@ func strippedSavedMotionPin(form []byte) []byte {
 	return out
 }
 
-func motionFixture1115(t *testing.T, fineX, fineY uint8, stepX, stepY int8, direction, elapsed, total uint16) (*World, SavedActorMotion, []SavedActorCell, []SavedActorBlock) {
+func savedMotionFixture(t *testing.T, fineX, fineY uint8, stepX, stepY int8, direction, elapsed, total uint16) (*World, SavedActorMotion, []SavedActorCell, []SavedActorBlock) {
 	t.Helper()
 	w := mustWorld(t, 1115, Bounds{32, 32}, []Entity{{ID: 7, Owner: 1, X: 15, Y: 16, HP: 100, MaxHP: 100, Speed: 1000, Facing: 64}})
 	o := SavedActorOrder{Entity: 7, State: 0xb}
@@ -55,7 +55,7 @@ func motionFixture1115(t *testing.T, fineX, fineY uint8, stepX, stepY int8, dire
 	return w, m, cells, blocks
 }
 
-func importMotion1115(t *testing.T, w *World, m SavedActorMotion, cells []SavedActorCell, blocks []SavedActorBlock) {
+func importSavedMotion(t *testing.T, w *World, m SavedActorMotion, cells []SavedActorCell, blocks []SavedActorBlock) {
 	t.Helper()
 	if err := w.ImportOriginalActorMotions([]SavedActorMotion{m}, cells, blocks); err != nil {
 		t.Fatal(err)
@@ -63,13 +63,13 @@ func importMotion1115(t *testing.T, w *World, m SavedActorMotion, cells []SavedA
 }
 
 func TestSavedMotion1115LiteralCrossingEachSaveAndIndependentOccupancy(t *testing.T) {
-	w, m, cells, blocks := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+	w, m, cells, blocks := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 	binary.LittleEndian.PutUint16(m.Mover[0x72:], 0x2468)
 	for j := 0; j < 8; j++ {
 		m.Mover[0x82+j] = byte(0xe0 + j)
 	}
 	w.tick = 123 // restored timestamp is not an already-executed candidate
-	importMotion1115(t, w, m, cells, blocks)
+	importSavedMotion(t, w, m, cells, blocks)
 	for tick, wantFine := range []uint8{0, 32, 64, 96, 128} {
 		form := mustMarshal(t, w)
 		var cold World
@@ -145,8 +145,8 @@ func TestSavedMotion1115LiteralCrossingEachSaveAndIndependentOccupancy(t *testin
 }
 
 func TestSavedMotion1115EntryCachePrecedesArrivalFractionSnap(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 0, 1)
-	importMotion1115(t, w, m, cs, bs)
+	w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 0, 1)
+	importSavedMotion(t, w, m, cs, bs)
 	Step(w, nil)
 	got := w.motionFor(7)
 	if got.Position.Cell != 0x1010 || got.Position.FineX != 128 || got.ActorAction != 0 || got.Active || !bytes.Equal(got.Mover[0x82:0x8a], []byte{16, 16, 0, 128, 15, 16, 224, 128}) {
@@ -159,10 +159,10 @@ func TestSavedMotion1115EntryCachePrecedesArrivalFractionSnap(t *testing.T) {
 }
 
 func TestSavedMotion1115EmptyCellDeletionIsAnExplicitCoverageGap(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+	w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 	cs[0].Payload[17] = 0 // remove the fixture's independent nonactor retainer
 	cs[0].Payload[3], cs[0].Payload[50], cs[0].Payload[51] = 0x7b, 0x8c, 0x9d
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	for range 5 {
 		Step(w, nil)
 	}
@@ -209,7 +209,7 @@ func TestSavedMotion1115SignedAndSpecialAxisMath(t *testing.T) {
 		{"sw-zero", 32, 224, -32, 32, 5, 0x110e, 255, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			w, m, cs, bs := motionFixture1115(t, tc.fx, tc.fy, tc.sx, tc.sy, tc.dir, 1, 20)
+			w, m, cs, bs := savedMotionFixture(t, tc.fx, tc.fy, tc.sx, tc.sy, tc.dir, 1, 20)
 			// A centered initial Position with pending operands is deliberately
 			// unsupported. Use a noncenter fraction for the in-cell witness.
 			if tc.name == "samecell" {
@@ -220,7 +220,7 @@ func TestSavedMotion1115SignedAndSpecialAxisMath(t *testing.T) {
 				cs = append(cs, SavedActorCell{Cell: tc.cell})
 				bs = append(bs, SavedActorBlock{Cell: tc.cell})
 			}
-			importMotion1115(t, w, m, cs, bs)
+			importSavedMotion(t, w, m, cs, bs)
 			Step(w, nil)
 			got := w.motionFor(7)
 			if got.Position.Cell != tc.cell || got.Position.FineX != tc.wx || got.Position.FineY != tc.wy {
@@ -231,8 +231,8 @@ func TestSavedMotion1115SignedAndSpecialAxisMath(t *testing.T) {
 }
 
 func TestSavedMotion1115CommandRateAndFacingDoNotReplaceAcceptedStep(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
-	importMotion1115(t, w, m, cs, bs)
+	w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
+	importSavedMotion(t, w, m, cs, bs)
 	Step(w, []Command{{Entity: 7, X: 15, Y: 12}})
 	if !w.motionFor(7).Active || w.motionFor(7).Issue == "" {
 		t.Fatal("replacement did not retain active with explicit route coverage gap")
@@ -260,7 +260,7 @@ func TestSavedMotion1115CommandRateAndFacingDoNotReplaceAcceptedStep(t *testing.
 func TestSavedMotion1115UnsupportedImportAndMissingCellStayNativeSaveable(t *testing.T) {
 	for _, cause := range []string{"elapsed", "packed", "progress", "missing-cell", "occupied-cell", "missing-key"} {
 		t.Run(cause, func(t *testing.T) {
-			w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+			w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 			switch cause {
 			case "elapsed":
 				binary.LittleEndian.PutUint16(m.Mover[0xac:], 8)
@@ -277,7 +277,7 @@ func TestSavedMotion1115UnsupportedImportAndMissingCellStayNativeSaveable(t *tes
 				cs[0].Ground = SavedActorSlot{}
 				clear(cs[0].Payload[4:8])
 			}
-			importMotion1115(t, w, m, cs, bs)
+			importSavedMotion(t, w, m, cs, bs)
 			Step(w, nil)
 			if len(w.SavedActorMotionIssues()) == 0 {
 				t.Fatal("unsupported path has no coverage issue")
@@ -294,7 +294,7 @@ func TestSavedMotion1115UnsupportedImportAndMissingCellStayNativeSaveable(t *tes
 }
 
 func TestSavedMotion1115IndependentSlotQueryAndDetachedAtomicImport(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+	w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 	cs = append(cs, SavedActorCell{Cell: 0x1212, Ground: SavedActorSlot{Key: 0xbeef}})
 	binary.LittleEndian.PutUint32(cs[2].Payload[4:], 0xbeef)
 	bad := append([]SavedActorCell(nil), cs...)
@@ -303,7 +303,7 @@ func TestSavedMotion1115IndependentSlotQueryAndDetachedAtomicImport(t *testing.T
 	if err := w.ImportOriginalActorMotions([]SavedActorMotion{m}, bad, bs); err == nil || !bytes.Equal(before, mustMarshal(t, w)) {
 		t.Fatal("late invalid slot partly adopted")
 	}
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	cs[0].Payload[17] = 0
 	m.StaticRoute[0] = 0
 	got, _, _, _ := w.SavedActorMotions()
@@ -334,8 +334,8 @@ func TestSavedMotion1115IndependentSlotQueryAndDetachedAtomicImport(t *testing.T
 }
 
 func TestSavedMotion1115IndependentWireAndAtomicFaults(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
-	importMotion1115(t, w, m, cs, bs)
+	w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
+	importSavedMotion(t, w, m, cs, bs)
 	valid := mustMarshal(t, w)
 	// Literal counts + fixed211 + two static and one dynamic words +2cells64
 	// +2blocks4 gives365 bytes; no producer size helper participates.
@@ -446,13 +446,13 @@ func TestSavedMotion1115TypedSlotIdentityCannotBeReboundToExistingActor(t *testi
 
 func TestSavedMotion1115PendingOriginalTurnIsNotSilentCurrentContinuation(t *testing.T) {
 	for _, centered := range []bool{false, true} {
-		w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+		w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 		m.Mover[1], m.Mover[0xa0] = 192, 1
 		if centered {
 			m.Position.FineX = 128
 			clear(m.Mover[0xaa:0xae])
 		}
-		importMotion1115(t, w, m, cs, bs)
+		importSavedMotion(t, w, m, cs, bs)
 		if centered {
 			if w.motionFor(7).Issue != "" || !w.ActorMotionActive(7) {
 				t.Fatal("centered pending turn should retain body ownership")

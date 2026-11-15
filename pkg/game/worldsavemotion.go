@@ -76,7 +76,7 @@ func projectMotion(state *SnapshotSAVDocument, world *sim.World) error {
 		m := old
 		if live && old.Issue == "" {
 			var err error
-			m, err = sim.ProjectActorMotion(e, old, world.Route(e.ID), !present || constructed[e.ID])
+			m, err = sim.ProjectActorMotion(e, old, world.Route(e.ID), !present || constructed[e.ID], world.StrideCorrected())
 			if err != nil {
 				return err
 			}

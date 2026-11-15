@@ -94,6 +94,12 @@ type gameProfile struct {
 	// withdrawMoverPoint: the withdrawal measures from the mover's fine
 	// point, not the saved target point.
 	withdrawMoverPoint bool
+	// uncorrectedStride: a step adds its strides with no octant 1/5
+	// correction, and a rate-1 diagonal strides 1 (NativeStride.finePoint).
+	uncorrectedStride bool
+	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
+	// step between cells instead of waiting for its centre.
+	castDropsLoadedStep bool
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
@@ -210,6 +216,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		postKeepsDying:             true,
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
+		uncorrectedStride:          true,
+		castDropsLoadedStep:        true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
 		keepsSuppressedAcquirer:    true,

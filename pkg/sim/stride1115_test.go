@@ -50,10 +50,12 @@ func TestNativeStride1115EveryDirectionCapturesActualRateAndLastPayment(t *testi
 			} else if speed == 1000 {
 				rate, axis, total = 63, 63, 5
 			}
-			if delta[0] != 0 && delta[1] != 0 && speed != 1 {
+			if delta[0] != 0 && delta[1] != 0 {
 				axis, total = 11, 24
 				if speed == 1000 {
 					axis, total = 44, 6
+				} else if speed == 1 {
+					axis, total = 0, 256 // trunc(0.707) strides 0 (MOVE-200)
 				}
 			}
 			want := NativeStride{Present: true, FromX: 8, FromY: 8, ToX: 8 + delta[0], ToY: 8 + delta[1],

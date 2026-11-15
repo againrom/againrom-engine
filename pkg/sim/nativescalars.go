@@ -43,8 +43,9 @@ func (b NativeActorBasis) BlockByteKnown(index int) bool {
 }
 
 // NativeBasisNow overlays maintained fields without replacing independent bits
-// or changing the availability of an observed native scalar.
-func NativeBasisNow(e Entity) NativeActorBasis {
+// or changing the availability of an observed native scalar. corrected is
+// the World's StrideCorrected.
+func NativeBasisNow(e Entity, corrected bool) NativeActorBasis {
 	b := e.NativeBasis
 	if !e.Humanoid && e.TypeID >= 0x1a && b.ScalarIsKnown(ScalarT1C) {
 		b.Scalars[ScalarT1C] = uint32(e.XPValue)
@@ -71,9 +72,7 @@ func NativeBasisNow(e Entity) NativeActorBasis {
 	if e.Stride.Present {
 		x, y := e.X*256+128, e.Y*256+128
 		if e.Transit > 0 {
-			elapsed := int32(e.TransitTotal - e.Transit)
-			x = e.Stride.FromX*256 + 128 + int32(e.Stride.StepX)*elapsed
-			y = e.Stride.FromY*256 + 128 + int32(e.Stride.StepY)*elapsed
+			x, y = e.Stride.finePoint(int32(e.TransitTotal-e.Transit), int32(e.TransitTotal), corrected)
 		}
 		for index, value := range [4]byte{byte(x >> 8), byte(y >> 8), byte(x), byte(y)} {
 			if b.BlockByteKnown(index) {
@@ -97,7 +96,7 @@ func nativeTerminalScalarBasis(b NativeActorBasis) NativeActorBasis {
 }
 
 func (w *World) nativeBasisNow(e Entity) NativeActorBasis {
-	b := NativeBasisNow(e)
+	b := NativeBasisNow(e, w.StrideCorrected())
 	// A native mover outside a stride stands on its cell centre, the position
 	// SAVE writes for it; the stored block keeps the cell the actor was loaded
 	// or last strode from.
@@ -131,7 +130,7 @@ func (w *World) nativeBasisNow(e Entity) NativeActorBasis {
 				m = *motion
 			}
 			if !m.Current && m.Issue == "" {
-				if current, err := ProjectActorMotion(e, m, w.Route(e.ID), w.savedMotion == nil); err == nil {
+				if current, err := ProjectActorMotion(e, m, w.Route(e.ID), w.savedMotion == nil, w.StrideCorrected()); err == nil {
 					m = current
 				}
 			}

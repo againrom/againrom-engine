@@ -6,7 +6,7 @@ import "testing"
 // route naming a cell the native map does not have marks the motion
 // Issue/inactive rather than being consumed uncontested and indexing outside
 // the map later (MOVE-ROUTE-004's packed cell, confirmed by SAV-630's own
-// save/load arm reading; motionFixture1115's map is Bounds{32,32}).
+// save/load arm reading; savedMotionFixture's map is Bounds{32,32}).
 func TestSavedMotion1134OutOfBoundsRouteCellRefusesAdmission(t *testing.T) {
 	const wantIssue = "saved route names a cell outside the native map"
 	for _, tc := range []struct {
@@ -19,9 +19,9 @@ func TestSavedMotion1134OutOfBoundsRouteCellRefusesAdmission(t *testing.T) {
 		{"second-element", func(m *SavedActorMotion) { m.StaticRoute = append(m.StaticRoute, 250) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+			w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 			tc.apply(&m)
-			importMotion1115(t, w, m, cs, bs)
+			importSavedMotion(t, w, m, cs, bs)
 			motions, _, _, present := w.SavedActorMotions()
 			if !present || len(motions) != 1 {
 				t.Fatalf("motion not carried: present=%v n=%d", present, len(motions))
@@ -51,7 +51,7 @@ func TestSavedMotion1134OutOfBoundsRouteCellRefusesAdmission(t *testing.T) {
 // either regardless of distance — what proves that is Issue staying empty
 // rather than becoming an "outside the native map" refusal.
 //
-// motionFixture1115's unit sits at (15,16), so both (0,0) and (31,31) sit
+// savedMotionFixture's unit sits at (15,16), so both (0,0) and (31,31) sit
 // far outside DIV-953's anchor radius: the dynamic cell that continuation
 // would otherwise prefer (DIV-951) is exactly the kind of distant-but-in-
 // bounds input that guard exists to withhold, so this is also its direct
@@ -59,10 +59,10 @@ func TestSavedMotion1134OutOfBoundsRouteCellRefusesAdmission(t *testing.T) {
 // covers an anchored route actually being walked; this test's own claim is
 // narrower and stays true regardless: neither edge cell is bounds-refused.
 func TestSavedMotion1134InBoundsRouteCellsAtTheMapEdgeAdmit(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
 	m.StaticRoute = []uint16{0}
 	m.DynamicRoute = []uint16{uint16(31)<<8 | 31}
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	motions, _, _, present := w.SavedActorMotions()
 	if !present || motions[0].Issue != "" || !motions[0].Current || motions[0].Active {
 		t.Fatalf("map-edge route cells should admit, not bounds-refuse: present=%v issue=%q current=%v active=%v",
@@ -94,13 +94,13 @@ func TestSavedMotion1134InBoundsRouteCellsAtTheMapEdgeAdmit(t *testing.T) {
 // route extractor "does not re-test passability", so a blocked cell in a saved
 // route is expected input, and the world that holds it must still Save.
 func TestSavedMotion1134DomainBlockedRouteCellIsKept(t *testing.T) {
-	w, m, cs, bs := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
-	idx, ok := w.cellIndex(16, 16) // motionFixture1115's own StaticRoute[0] and DynamicRoute[0]
+	w, m, cs, bs := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
+	idx, ok := w.cellIndex(16, 16) // savedMotionFixture's own StaticRoute[0] and DynamicRoute[0]
 	if !ok {
 		t.Fatal("fixture cell (16,16) is unexpectedly out of bounds")
 	}
 	w.grid[idx] = blockGround // entity 7 names no domain, so it is DomainGround
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	motions, _, _, present := w.SavedActorMotions()
 	if !present || motions[0].Issue != "native movement continues the imported route" {
 		t.Fatalf("domain-blocked route cell: present=%v issue=%q", present, motions[0].Issue)

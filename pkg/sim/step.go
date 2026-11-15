@@ -977,7 +977,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// The crossing recomputes every cell of the footprint left and of
 			// the footprint entered, later than the transit start that read them.
 			if e.Stride.Present {
-				if from, to, crossed := strideCrossing(e.Stride, int32(e.TransitTotal)-1-int32(e.Transit)); crossed {
+				if from, to, crossed := strideCrossing(e.Stride, int32(e.TransitTotal)-1-int32(e.Transit), int32(e.TransitTotal), w.StrideCorrected()); crossed {
 					w.recomputeCrossing(*e, from, to)
 					w.moverCrossed(e.ID)
 					if strideEntersStep(e.Stride, from, to) {
@@ -2255,7 +2255,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 		rate, t := w.stepRate(*e, from, cell{x: e.X, y: e.Y}, true)
 		e.TransitTotal = uint16(t)
 		e.Transit = uint16(t - 1)
-		e.retainStride(from, rate)
+		e.retainStride(from, rate, w.game.uncorrectedStride)
 	}
 	// A stride requests the entered footprint's traps on its crossing tick
 	// (MOVE-194); a step without one has no crossing and requests them now.

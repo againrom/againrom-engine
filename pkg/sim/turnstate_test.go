@@ -121,7 +121,7 @@ func TestSelfCastWindupBypassesAnActiveFacingGate(t *testing.T) {
 func TestTurnProjectionStoresCurrentByteFlagCounterAndEstimate(t *testing.T) {
 	e := turnActor(1, 3, 3, 0, 21)
 	e.requestFacing(128)
-	m, err := ProjectActorMotion(e, SavedActorMotion{}, nil, true)
+	m, err := ProjectActorMotion(e, SavedActorMotion{}, nil, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}

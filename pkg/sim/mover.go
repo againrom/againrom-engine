@@ -227,9 +227,9 @@ func (w *World) moverCrossed(id EntityID) {
 
 // moverCell is the cell whose cost an actor's step-cost word was taken from:
 // the cell it stands in, or during a crossing the cell its position is in.
-func moverCell(e Entity) cell {
+func (w *World) moverCell(e Entity) cell {
 	if e.Transit > 0 && e.Stride.Present && e.Transit <= e.TransitTotal {
-		return strideCell(e.Stride, int32(e.TransitTotal-e.Transit))
+		return strideCell(e.Stride, int32(e.TransitTotal-e.Transit), int32(e.TransitTotal), w.StrideCorrected())
 	}
 	return cell{e.X, e.Y}
 }
@@ -271,7 +271,7 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 	})
 	cost := uint16(0)
 	if !r.Joined {
-		cost = w.stepCostWord(e, moverCell(e))
+		cost = w.stepCostWord(e, w.moverCell(e))
 	}
 	putStepCost(m, cost)
 	putWalkClaim(m, r.Claim)
@@ -307,6 +307,6 @@ func (w *World) adoptMover(e Entity, m *[180]byte) {
 		return
 	}
 	cost := binary.LittleEndian.Uint16(m[0x72:])
-	joined := cost == 0 && w.stepCostWord(e, moverCell(e)) != 0
+	joined := cost == 0 && w.stepCostWord(e, w.moverCell(e)) != 0
 	w.setMover(heldMover(e, m, joined))
 }

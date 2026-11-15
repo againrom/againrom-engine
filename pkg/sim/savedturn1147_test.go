@@ -8,13 +8,13 @@ import (
 
 func savedTurnWorldForTest(t *testing.T, current, desired, rate byte, active uint32, counter byte) *World {
 	t.Helper()
-	w, m, cells, blocks := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
+	w, m, cells, blocks := savedMotionFixture(t, 128, 128, 0, 0, 0, 0, 0)
 	m.StaticRoute, m.DynamicRoute = nil, nil
 	m.Mover[0], m.Mover[1], m.Mover[10], m.Mover[0x9d] = current, desired, rate, counter
 	m.Mover[0xa4] = 99 // A stale estimate must not become a countdown.
 	binary.LittleEndian.PutUint32(m.Mover[0xa0:], active)
 	w.savedOrder(7).Raw[8], w.savedOrder(7).Raw[9] = 1, 0
-	importMotion1115(t, w, m, cells, blocks)
+	importSavedMotion(t, w, m, cells, blocks)
 	return w
 }
 

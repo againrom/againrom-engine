@@ -96,9 +96,10 @@ func (w *World) beginManualCast(i int, c Command) bool {
 	if !w.cancelScroll(i) {
 		return false
 	}
-	// A step between two cells completes: the cast waits for its end like one
-	// behind a strike, and the figure is never moved to the cell centre.
-	if w.castStrikeWaits(r, "") || w.entities[i].Transit != 0 {
+	// A step between two cells completes, a loaded one too (MOVE-199): the
+	// cast waits for its end like one behind a strike, and the figure is
+	// never moved to the cell centre.
+	if w.castStrikeWaits(r, "") || w.entities[i].Transit != 0 || w.savedStepActive(c.Entity) {
 		return w.castAfterStrike(i, c)
 	}
 	// At progress zero a unit cast retains the player's separate attack endpoint
@@ -219,9 +220,12 @@ func (w *World) beginCastApproach(i int, c Command) bool {
 	if !w.cancelScroll(i) || w.castStrikeWaits(manualRequestOf(i, c), "") || w.stoneCursed(i) {
 		return false
 	}
+	// clearOrder lets a loaded step finish as the walk does (MOVE-199).
 	w.clearActorCast(i)
 	w.clearOrder(i)
-	w.invalidateActorMotion(c.Entity, "manual cast approach supersedes original movement")
+	if w.game.castDropsLoadedStep {
+		w.invalidateActorMotion(c.Entity, "manual cast approach supersedes original movement")
+	}
 	e := &w.entities[i]
 	e.Retreat = RetreatContinuation{}
 	e.clearAttack()

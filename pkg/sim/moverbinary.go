@@ -33,7 +33,7 @@ func (w *World) moversForm() []moverRecord {
 func (w *World) formMover(r moverRecord, e Entity) moverRecord {
 	r.Claim = walkClaim{}
 	r.Radius = ConstructorSearchRadius
-	if r.Joined && w.stepCostWord(e, moverCell(e)) == 0 {
+	if r.Joined && w.stepCostWord(e, w.moverCell(e)) == 0 {
 		r.Joined = false
 	}
 	return r

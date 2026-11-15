@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A withdrawing or retreating unit now measures a large enemy from its corner cell when it picks where to flee, a unit stepping north-east or south-west enters the next cell on both axes at once, and a spell cast given while a loaded game's unit is between cells waits for its step to end, all as the original does.
 - [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
 - [ROM2] Computer mages no longer cast Slow when they attack.
 - [BASE] Computer mages now heal the first hurt unit near them without keeping a mana reserve, and at full mana cast a protective spell from their book on a unit of their own side.
@@ -29,6 +30,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Poison Cloud no longer hurts a unit the moment it first hits; the damage now starts with the first poison tick, as in the original.
 - [ROM2] In the Kaarg inn, a selected hire seat now shows each new animation frame at the same moment as in the original game.
 - [BASE] Item descriptions now write elemental damage without a colon, for example "Fire 5-8".
+- [ROM1] A withdrawing or retreating unit now measures a large enemy from its corner cell when it picks where to flee, a unit stepping north-east or south-west enters the next cell on both axes at once, and a spell cast given while a loaded game's unit is between cells waits for its step to end, all as the original does.
 
 ### For map makers and modders
 

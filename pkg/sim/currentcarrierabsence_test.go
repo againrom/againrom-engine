@@ -94,8 +94,8 @@ func TestCurrentMotionCellAbsenceIsAtomicAndKeepsOtherCarriers(t *testing.T) {
 
 func TestCurrentPhysicalCrossingUpdatesOnlyPresentActorResidue(t *testing.T) {
 	for _, present := range []bool{false, true} {
-		w, m, cells, blocks := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
-		importMotion1115(t, w, m, cells, blocks)
+		w, m, cells, blocks := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
+		importSavedMotion(t, w, m, cells, blocks)
 		if present {
 			w.SetSavedCellRecords([]SavedCellRecord{{Cell: cells[0].Cell, Ground: SavedCellActorSlot{Key: 0x1004, Entity: 7, Bound: true}, Air: SavedCellActorSlot{Key: 44}, Residue0: 9}, {Cell: cells[1].Cell, Air: SavedCellActorSlot{Key: 45}, Residue1: [2]byte{3, 7}}})
 		}

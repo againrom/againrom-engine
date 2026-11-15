@@ -85,7 +85,7 @@ func TestMilestone2NativeScalarMutation(t *testing.T) {
 			before := map[sim.EntityID]sim.NativeActorBasis{}
 			for _, e := range f.live.world.Entities() {
 				if e.NativeBasis.ScalarsPresent {
-					before[e.ID] = sim.NativeBasisNow(e)
+					before[e.ID] = sim.NativeBasisNow(e, true)
 				}
 			}
 			written, _, _ := saveCurrentEffect(t, f)
@@ -98,7 +98,7 @@ func TestMilestone2NativeScalarMutation(t *testing.T) {
 			}
 			for id, want := range before {
 				e, ok := f.live.world.Entity(id)
-				got := sim.NativeBasisNow(e)
+				got := sim.NativeBasisNow(e, true)
 				if !ok {
 					t.Errorf("tick %d actor %d disappeared through SAVE/LOAD", tick, id)
 					continue

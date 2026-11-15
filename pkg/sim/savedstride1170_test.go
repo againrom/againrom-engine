@@ -35,16 +35,16 @@ func TestSavedStride1170QualifiedBoundaryAndNearMatchGuards(t *testing.T) {
 			// steps paid out of eight, then centers 16 and 17. The older
 			// fixture deliberately carries a different +a6/static/action
 			// shape; its original callback-guard witnesses stay unchanged.
-			w, m, cs, bs := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+			w, m, cs, bs := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 			m.StaticRoute, m.DynamicRoute, m.ActorAction = nil, []uint16{0x1010, 0x1011}, 1
 			binary.LittleEndian.PutUint16(m.Mover[0xa6:], 0x100f)
 			if tc.mutate != nil {
 				tc.mutate(&m)
 			}
-			if m.NativeStrideCompatible() != (tc.mutate == nil) {
+			if m.NativeStrideCompatible(true) != (tc.mutate == nil) {
 				t.Fatal("stride qualification admitted a near-match or refused the complete tuple")
 			}
-			importMotion1115(t, w, m, cs, bs)
+			importSavedMotion(t, w, m, cs, bs)
 			before := w.motionFor(7)
 			if !before.Active {
 				if before.Issue == "" || tc.mutate == nil {
@@ -63,7 +63,7 @@ func TestSavedStride1170QualifiedBoundaryAndNearMatchGuards(t *testing.T) {
 				t.Fatal("guard control never crossed its boundary")
 			}
 			if tc.mutate == nil {
-				if got.Issue != "" || !got.NativeStrideCompatible() {
+				if got.Issue != "" || !got.NativeStrideCompatible(true) {
 					t.Fatal("qualified crossing acquired an original callback refusal", got.Issue)
 				}
 				for range 4 {
@@ -81,23 +81,26 @@ func TestSavedStride1170QualifiedBoundaryAndNearMatchGuards(t *testing.T) {
 
 func TestSavedStride1170QualifiedDiagonalKeepsNativeBoundary(t *testing.T) {
 	// Native NE at rate 12 has signed axis steps +8/-8. Its sixteenth
-	// sample lands exactly on both cell boundaries; the original mover's
-	// diagonal zero-corner adjustment would move X back by 1/256.
-	w, m, cs, bs := motionFixture1115(t, 248, 8, 8, -8, 1, 15, 32)
+	// sample lands exactly on both cell boundaries, and the first game's
+	// octant 1 correction takes X back by 1/256 until the snap (MOVE-174).
+	w, m, cs, bs := savedMotionFixture(t, 248, 8, 8, -8, 1, 15, 32)
 	m.StaticRoute, m.DynamicRoute, m.ActorAction = nil, []uint16{0x0f10}, 1
 	binary.LittleEndian.PutUint16(m.Mover[0xa6:], 0x100f)
 	binary.LittleEndian.PutUint16(m.Mover[0x80:], 0x0f10)
 	binary.LittleEndian.PutUint16(m.Mover[0xa8:], 12)
 	cs = append(cs, SavedActorCell{Cell: 0x0f10})
 	bs = append(bs, SavedActorBlock{Cell: 0x0f10})
-	importMotion1115(t, w, m, cs, bs)
+	importSavedMotion(t, w, m, cs, bs)
 	for tick := 16; tick <= 32; tick++ {
-		if !w.motionFor(7).NativeStrideCompatible() {
+		if !w.motionFor(7).NativeStrideCompatible(true) {
 			t.Fatalf("qualified NE stride lost its operands before sample %d", tick)
 		}
 		Step(w, nil)
 		got := w.motionFor(7)
 		want := [2]int32{15*256 + 128 + int32(tick)*8, 16*256 + 128 - int32(tick)*8}
+		if tick < 32 {
+			want[0]--
+		}
 		actual := [2]int32{int32(got.Position.Cell&255)*256 + int32(got.Position.FineX), int32(got.Position.Cell>>8)*256 + int32(got.Position.FineY)}
 		if actual != want || got.Issue != "" {
 			t.Fatalf("native NE sample %d: %v want %v; issue %q", tick, actual, want, got.Issue)

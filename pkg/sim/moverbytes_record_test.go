@@ -98,7 +98,7 @@ func TestMoverBytesRecordSim(t *testing.T) {
 			} else {
 				w.ApplyMover(id, &old.Mover)
 			}
-			m, err := ProjectActorMotion(e, old, route, fresh)
+			m, err := ProjectActorMotion(e, old, route, fresh, w.StrideCorrected())
 			key := fmt.Sprintf("motion/%s/%d/%v", name, id, fresh)
 			if err != nil {
 				got[key] = "error"
@@ -181,7 +181,7 @@ func TestMoverBytesRecordSim(t *testing.T) {
 		e, _ := hw.Entity(id)
 		old := SavedActorMotion{Entity: id}
 		hw.ApplyMover(id, &old.Mover)
-		if mm, err := ProjectActorMotion(e, old, hw.Route(id), true); err == nil {
+		if mm, err := ProjectActorMotion(e, old, hw.Route(id), true, hw.StrideCorrected()); err == nil {
 			got[fmt.Sprintf("walk/%d", id)] = moverDigest(mm.SavedMover())
 		}
 	}

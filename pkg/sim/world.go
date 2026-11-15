@@ -1270,7 +1270,8 @@ func (e *Entity) clearTransit() {
 	// A known native position block follows the stride while one is held;
 	// the body keeps the cell centre the stride last gave it.
 	if e.Stride.Present {
-		e.NativeBasis.Block = NativeBasisNow(*e).Block
+		// The transit is zeroed above, so no stride point is read.
+		e.NativeBasis.Block = NativeBasisNow(*e, true).Block
 	}
 	e.clearStride()
 }

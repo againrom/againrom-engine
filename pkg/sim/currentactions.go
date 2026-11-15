@@ -95,7 +95,7 @@ func (w *World) syncCurrentActorCarriers(i int) {
 	m := w.motionFor(e.ID)
 	held := e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo
 	if m != nil && !m.Current && !e.OffMap && e.Alive() && m.Issue != "native movement continues the imported route" {
-		next, err := ProjectActorMotion(*e, *m, w.Route(e.ID), false)
+		next, err := ProjectActorMotion(*e, *m, w.Route(e.ID), false, w.StrideCorrected())
 		if err == nil {
 			next.Current, next.Active, next.Issue = m.Current, m.Active, m.Issue
 			// An attack held in place carries action 3, the value SAVE writes

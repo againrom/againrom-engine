@@ -237,12 +237,13 @@ func (w *World) withdrawFrom(i int, hostile []int) bool {
 // In the first game the actor is read at its raw position record, cell*256
 // plus the sub-cell byte per axis, with no footprint centre: 0x80 standing on
 // a cell, and the paid part of the accepted stride between cells (MOVE-174).
-// The second game keeps the centre until its own evidence says otherwise. The
-// hostiles are read at their centres (moverFinePoint); DIV-348 records both.
+// The hostiles are read the same way, at their anchor points (AI-698). The
+// second game keeps the centres until its own evidence says otherwise
+// (DIV-348).
 func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 	var sx, sy int64
 	for _, ci := range hostile {
-		fx, fy := w.moverFinePoint(w.entities[ci])
+		fx, fy := w.fleePoint(w.entities[ci])
 		sx += fx
 		sy += fy
 	}
@@ -252,11 +253,7 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 	}
 
 	mx, my := sx/count, sy/count
-	px, py := w.moverFinePoint(w.entities[i])
-	if !w.game.withdrawMoverPoint {
-		rx, ry := w.savedProjectileTargetPoint(w.entities[i])
-		px, py = int64(rx), int64(ry)
-	}
+	px, py := w.fleePoint(w.entities[i])
 	dx, dy := px-mx, py-my
 	if dx == 0 {
 		dx = 1
@@ -273,6 +270,16 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 		px += stride * dx / intmath.Abs(dy)
 	}
 	return clampPlayable(px>>8, int64(w.bounds.Width)), clampPlayable(py>>8, int64(w.bounds.Height)), true
+}
+
+// fleePoint is where the flee pick reads e: its raw position record in the
+// first game, its footprint centre in the second.
+func (w *World) fleePoint(e Entity) (int64, int64) {
+	if w.game.withdrawMoverPoint {
+		return w.moverFinePoint(e)
+	}
+	x, y := w.savedProjectileTargetPoint(e)
+	return int64(x), int64(y)
 }
 
 // moverFinePoint is e's centre on the 8.8 grid. A mover of side n stores its

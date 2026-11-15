@@ -13,11 +13,12 @@ type strideEvent struct {
 	from, to cell
 }
 
-func strideEvents(s NativeStride) []strideEvent {
+func strideEvents(s NativeStride, corrected bool) []strideEvent {
 	var out []strideEvent
 	widest := max(int32(s.StepX), -int32(s.StepX), int32(s.StepY), -int32(s.StepY))
-	for tick := int32(0); tick < (256+widest-1)/widest; tick++ {
-		if from, to, crossed := strideCrossing(s, tick); crossed {
+	total := (256 + widest - 1) / widest
+	for tick := int32(0); tick < total; tick++ {
+		if from, to, crossed := strideCrossing(s, tick, total, corrected); crossed {
 			out = append(out, strideEvent{tick, from, to})
 		}
 	}
@@ -45,8 +46,75 @@ func TestStrideCrossingTickFollowsTheSignOfTheStep(t *testing.T) {
 		{"diagonal 16 east and north: x on step 8, y on step 9", NativeStride{FromX: 3, FromY: 3, ToX: 4, ToY: 2, StepX: 16, StepY: -16},
 			[]strideEvent{{7, c(3, 3), c(4, 3)}, {8, c(4, 3), c(4, 2)}}},
 	} {
-		if got := strideEvents(tc.s); !reflect.DeepEqual(got, tc.want) {
+		if got := strideEvents(tc.s, true); !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("%s: events %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// In the first game octants 1 and 5 subtract one from x on the call that
+// leaves both sub bytes 0 (MOVE-174), so both axes change cell on one call:
+// octant 1 on step 9 and octant 5 on step 8 at stride 16 (MOVE-200). The
+// second game keeps the axes a call apart.
+func TestStrideCrossingTakesTheOctantCorrection(t *testing.T) {
+	t.Parallel()
+	c := func(x, y int32) cell { return cell{x, y} }
+	ne := NativeStride{FromX: 3, FromY: 3, ToX: 4, ToY: 2, StepX: 16, StepY: -16, Direction: 1}
+	sw := NativeStride{FromX: 3, FromY: 3, ToX: 2, ToY: 4, StepX: -16, StepY: 16, Direction: 5}
+	for _, tc := range []struct {
+		name      string
+		s         NativeStride
+		corrected bool
+		want      []strideEvent
+	}{
+		{"first game octant 1", ne, true, []strideEvent{{8, c(3, 3), c(4, 2)}}},
+		{"first game octant 5", sw, true, []strideEvent{{7, c(3, 3), c(2, 4)}}},
+		{"second game octant 1", ne, false, []strideEvent{{7, c(3, 3), c(4, 3)}, {8, c(4, 3), c(4, 2)}}},
+		{"second game octant 5", sw, false, []strideEvent{{7, c(3, 3), c(3, 4)}, {8, c(3, 4), c(2, 4)}}},
+	} {
+		if got := strideEvents(tc.s, tc.corrected); !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: events %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// A Speed-16 diagonal strides 11 per axis for 24 calls (MOVE-200). In octant
+// 1 at stride 32 (128/32 = 4) the fourth call leaves both sub bytes 0 and x
+// takes one off; the position keeps it until the snap to the destination
+// centre on the last call. A rate-1 diagonal strides 0 in the first game and 1
+// in the second, 256 calls either way.
+func TestStrideFinePointFollowsTheStepLaw(t *testing.T) {
+	t.Parallel()
+	e := Entity{X: 4, Y: 2}
+	e.retainStride(cell{3, 3}, 16, false)
+	if e.Stride.StepX != 11 || e.Stride.StepY != -11 || e.Stride.Direction != 1 || transitOf(16, true) != 24 {
+		t.Fatalf("speed 16 diagonal stride %+v, %d calls", e.Stride, transitOf(16, true))
+	}
+	if x, y := e.Stride.finePoint(23, 24, true); x != 3*256+128+23*11 || y != 3*256+128-23*11 {
+		t.Fatalf("call 23 at (%d,%d)", x, y)
+	}
+	if x, y := e.Stride.finePoint(24, 24, true); x != 4*256+128 || y != 2*256+128 {
+		t.Fatalf("call 24 at (%d,%d), want the destination centre", x, y)
+	}
+	s := NativeStride{FromX: 3, FromY: 3, ToX: 4, ToY: 2, StepX: 32, StepY: -32, Direction: 1}
+	for _, tc := range []struct {
+		elapsed   int32
+		corrected bool
+		x         int32
+	}{{3, true, 3*256 + 128 + 96}, {4, true, 4*256 - 1}, {5, true, 4*256 + 31}, {4, false, 4 * 256}} {
+		if x, _ := s.finePoint(tc.elapsed, 8, tc.corrected); x != tc.x {
+			t.Errorf("call %d corrected %v: x %d, want %d", tc.elapsed, tc.corrected, x, tc.x)
+		}
+	}
+	for _, floored := range []bool{false, true} {
+		slow := Entity{X: 4, Y: 4, HP: 1, MaxHP: 1, TransitTotal: uint16(transitOf(1, true)), Transit: 255}
+		slow.retainStride(cell{3, 3}, 1, floored)
+		want := int8(0)
+		if floored {
+			want = 1
+		}
+		if slow.Stride.StepX != want || slow.Stride.StepY != want || slow.TransitTotal != 256 || strideFault(slow) != nil {
+			t.Errorf("rate-1 diagonal floored %v: stride %+v, %d calls, fault %v", floored, slow.Stride, slow.TransitTotal, strideFault(slow))
 		}
 	}
 }

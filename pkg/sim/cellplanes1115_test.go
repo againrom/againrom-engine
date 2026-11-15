@@ -67,14 +67,14 @@ func strippedCarriedResumePin(form []byte) []byte {
 
 func cellPlanesFixture(t *testing.T, existingDestination bool) (*World, *SavedCellPlanes) {
 	t.Helper()
-	w, m, cells, blocks := motionFixture1115(t, 224, 128, 32, 0, 2, 3, 8)
+	w, m, cells, blocks := savedMotionFixture(t, 224, 128, 32, 0, 2, 3, 8)
 	cells[0].Payload[0], cells[0].Payload[1], cells[0].Payload[17] = 9, 0, 0
 	if existingDestination {
 		cells[1].Payload[0], cells[1].Payload[1] = 7, 0
 	} else {
 		cells = cells[:1]
 	}
-	importMotion1115(t, w, m, cells, blocks)
+	importSavedMotion(t, w, m, cells, blocks)
 	p := new(SavedCellPlanes)
 	p.Costs[0] = 255
 	p.Costs[5] = 6

@@ -570,8 +570,7 @@ func (w *World) savedProjectileTargetPoint(e Entity) (int32, int32) {
 		return e.X*256 + int32(fx), e.Y*256 + int32(fy)
 	}
 	if e.Stride.Present && e.Transit > 0 {
-		elapsed := int32(e.TransitTotal - e.Transit)
-		return e.Stride.FromX*256 + 128 + elapsed*int32(e.Stride.StepX), e.Stride.FromY*256 + 128 + elapsed*int32(e.Stride.StepY)
+		return e.Stride.finePoint(int32(e.TransitTotal-e.Transit), int32(e.TransitTotal), w.StrideCorrected())
 	}
 	return e.X*256 + 128, e.Y*256 + 128
 }
