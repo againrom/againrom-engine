@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Computer mages no longer cast Slow when they attack.
 - [BASE] Computer mages now heal the first hurt unit near them without keeping a mana reserve, and at full mana cast a protective spell from their book on a unit of their own side.
 - [BASE] Light no longer widens anyone's sight: creatures in a Light cloud see less far while humans and heroes are unaffected, and Darkness now shortens only the sight of humans and heroes, leaving creatures as they are.
+- [BASE] A scroll picked in an open spellbook now stays picked after each cast, like a spell, until the scrolls run out.
 
 ### For map makers and modders
 

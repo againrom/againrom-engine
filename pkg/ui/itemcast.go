@@ -3,10 +3,11 @@ package ui
 // Item casts deliberately bypass the learned spellbook. Arming is display-only;
 // the simulation reserves one item only after a real map release.
 type itemCastSelection struct {
-	owner uint32
-	index int
-	spell uint32
-	key   string
+	owner    uint32
+	index    int
+	spell    uint32
+	key      string
+	fromBook bool
 }
 type MapItemCast func(owner uint32, index int, key string, victim uint32, x, y int, atCell bool)
 
@@ -32,6 +33,7 @@ func (v *Viewer) pressBookScroll(spell uint32, s BookItemCast) {
 		return
 	}
 	if v.ArmItemCast(v.spellbookOwner, s.Index, spell, s.Key) {
+		v.itemCast.fromBook = true
 		v.cmdOverlayHidden = false
 	}
 }
@@ -49,14 +51,31 @@ func (v *Viewer) bookLitSpell() uint32 {
 	return v.selectedSpell
 }
 
+// itemCastListed: the book still lists the armed scroll.
+func (v *Viewer) itemCastListed() bool {
+	c := v.itemCast
+	for _, e := range v.spellbook {
+		if e.ID == c.spell && e.ItemCast != nil && e.ItemCast.Index == c.index && e.ItemCast.Key == c.key {
+			return true
+		}
+	}
+	return false
+}
+
+// releaseItemCast casts the armed scroll; one picked in the shown book stays
+// armed, as a spell does.
 func (v *Viewer) releaseItemCast(x, y int) {
 	c := v.itemCast
-	v.itemCast = nil
 	if c == nil || v.itemCastSink == nil {
+		v.itemCast = nil
 		return
+	}
+	if !c.fromBook || !v.hudShown(hudPanelBook) || !v.itemCastListed() {
+		v.itemCast = nil
 	}
 	present := presentSelected(v.sel, v.entities)
 	if len(present) != 1 || present[0].ID != c.owner {
+		v.itemCast = nil
 		return
 	}
 	col, row, inside := v.groundCellAt(float64(x), float64(y))

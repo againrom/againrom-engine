@@ -63,7 +63,7 @@ func TestABookScrollCellArmsTheItemCastAndReachesHisOwnFigure(t *testing.T) {
 	fx, fy := cellPoint(v, 3, 3)
 	tapAt(v, fx, fy)
 	want := bookScrollShot{panelCasterID, panelCasterID, 2, "scroll"}
-	if len(*shots) != 1 || (*shots)[0] != want || v.itemCast != nil {
+	if len(*shots) != 1 || (*shots)[0] != want || v.itemCast == nil {
 		t.Fatalf("sink %+v item cast %+v, want one %+v", *shots, v.itemCast, want)
 	}
 }

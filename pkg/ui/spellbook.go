@@ -487,6 +487,9 @@ func (v *Viewer) SetSpellbook(owner uint32, entries []SpellEntry) {
 	v.spellbookHeld = true
 	v.spellbookOwner, v.spellbook = owner, entries
 	v.spellbookFixed = false
+	if v.itemCast != nil && v.itemCast.fromBook && !v.itemCastListed() {
+		v.itemCast = nil
+	}
 }
 
 // ClearSpellbook is the frame with no unit selected: no bar stands and the

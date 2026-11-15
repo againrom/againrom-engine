@@ -1579,10 +1579,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		v.armed = false
 		v.aimed = commandNone
 	}
-	// Keep a book spell ready for repeated casts, including Teleport. This
-	// owner-directed behaviour replaces 0127's one-cast selection. Explicit
-	// cancellation, another command or a changed book owner still ends the mode.
-	// Item spells take their separate releaseItemCast path above.
+	// A book spell stays armed for repeated casts; scrolls go through releaseItemCast.
 	if ok && len(ords) > 0 && ords[0].spell != 0 {
 		if v.castOnce && v.spellArmed {
 			v.endCastOnce()
