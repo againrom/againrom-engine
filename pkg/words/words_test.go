@@ -198,7 +198,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					if ok && len(n.Args) == 1 && (sel.Sel.Name == "Text" || sel.Sel.Name == "word" || sel.Sel.Name == "plainWord" || sel.Sel.Name == "menuWord") {
 						args = append(args, n.Args[0])
 					}
-					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordChoices" {
+					if fn, ok := n.Fun.(*ast.Ident); ok && (fn.Name == "wordChoices" || fn.Name == "num" || fn.Name == "choice") {
 						args = append(args, n.Args...)
 					}
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "word" && len(n.Args) == 1 {

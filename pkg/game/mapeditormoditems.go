@@ -109,13 +109,13 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		return f
 	}
 	switchRow := func(key string, off bool) []ui.InspectionField {
-		label := "editor.items.off"
+		label := x.word("editor.items.off")
 		var fs []ui.InspectionField
 		if off {
-			label = "editor.items.on"
+			label = x.word("editor.items.on")
 			fs = append(fs, line(key+"state", x.word("editor.items.isoff")))
 		}
-		return append(fs, ui.InspectionField{Key: key + "off", Label: x.word(label), Action: true, Column: 1})
+		return append(fs, ui.InspectionField{Key: key + "off", Label: label, Action: true, Column: 1})
 	}
 	remove := func(key string) ui.InspectionField {
 		return ui.InspectionField{Key: key + "remove", Label: x.word("editor.items.remove"), Action: true, Column: 1}
@@ -201,13 +201,13 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 			choice(k+"allow", "editor.items.allow", allow, "editor.items.allow.yes", "editor.items.allow.no"), sprite(k+"sprite", m.Sprite), remove(k))
 	}
 	for _, n := range []struct{ key, label, hint string }{
-		{itemsNewArmour, "editor.items.new.armour", "editor.items.new.hint"},
-		{itemsNewWeapon, "editor.items.new.weapon", "editor.items.new.weapon.hint"},
-		{itemsNewChange, "editor.items.new.change", "editor.items.new.change.hint"},
-		{itemsNewMaterial, "editor.items.new.material", "editor.items.new.material.hint"},
+		{itemsNewArmour, x.word("editor.items.new.armour"), x.word("editor.items.new.hint")},
+		{itemsNewWeapon, x.word("editor.items.new.weapon"), x.word("editor.items.new.weapon.hint")},
+		{itemsNewChange, x.word("editor.items.new.change"), x.word("editor.items.new.change.hint")},
+		{itemsNewMaterial, x.word("editor.items.new.material"), x.word("editor.items.new.material.hint")},
 	} {
-		f := workspaceText(n.key, x.word(n.label), "")
-		f.Meaning = x.word(n.hint)
+		f := workspaceText(n.key, n.label, "")
+		f.Meaning = n.hint
 		if n.key == itemsNewWeapon {
 			f.Pick = []string{"png"}
 		}
