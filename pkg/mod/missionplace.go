@@ -93,7 +93,7 @@ func (p MissionPlace) InTree() bool {
 // holdsPages reports that folder is the pages folder beside the map or a
 // folder inside it.
 func (p MissionPlace) holdsPages(folder string) bool {
-	beside := p.Pages("")
+	folder, beside := namefold.ModTree(folder), namefold.ModTree(p.Pages(""))
 	return folder == beside || strings.HasPrefix(folder, beside+"/")
 }
 

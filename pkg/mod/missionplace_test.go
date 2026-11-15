@@ -75,3 +75,15 @@ func TestMissionPlaceFreeSkipsTakenStems(t *testing.T) {
 		t.Fatalf("free place %s", got)
 	}
 }
+
+func TestHoldsPagesFoldsCaseAsCompanionDoes(t *testing.T) {
+	p := MissionPlace{Map: "maps/Crypt.alm"}
+	for _, folder := range []string{"maps/Crypt.text", "maps/crypt.TEXT/en", "maps/CRYPT.text/en/deep"} {
+		if !p.holdsPages(folder) || !p.Companion(folder+"/a.txt") {
+			t.Errorf("%q is not held by the one rule", folder)
+		}
+	}
+	if p.holdsPages("maps/crypt.textual") {
+		t.Error("a folder beside the pages is held")
+	}
+}

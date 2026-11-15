@@ -79,16 +79,16 @@ func (s *mapInspectionEdits) ownMission(d *editorModDocument) (mod.Mission, bool
 }
 
 // mapDraftNames is the drafts of project d that belong to the map of row m:
-// the map, the labels beside it and the pages of its folders.
+// the map, its companions and the pages of its Texts folder.
 func (x *MapInspector) mapDraftNames(d *editorModDocument, m mod.Mission) []string {
-	lang := x.pageLanguage()
-	folders := []string{mapTextFolder(m.Map), path.Join(mapTextFolder(m.Map), lang)}
-	if texts := strings.ReplaceAll(m.Texts, "{lang}", lang); texts != "" {
-		folders = append(folders, path.Clean(texts))
+	place := mod.MissionPlace{Map: m.Map}
+	texts := ""
+	if t := strings.ReplaceAll(m.Texts, "{lang}", x.pageLanguage()); t != "" {
+		texts = namefold.ModTree(path.Clean(t))
 	}
 	var names []string
 	for name := range d.Files {
-		if name == m.Map || name == mod.MapLabelFile(m.Map) || slices.Contains(folders, path.Dir(name)) {
+		if name == m.Map || place.Companion(name) || texts != "" && namefold.ModTree(path.Dir(name)) == texts {
 			names = append(names, name)
 		}
 	}

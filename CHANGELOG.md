@@ -21,6 +21,10 @@ modder or developer can notice gets no entry.
 
 - [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
 
+### For map makers and modders
+
+- [BASE] Map editor: a map's draft pages and labels now count and move with the map whatever their letter case or folder depth.
+
 ## 0.155.0
 
 ### For players
