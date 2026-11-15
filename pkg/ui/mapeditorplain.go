@@ -23,14 +23,15 @@ import (
 type plainShow uint8
 
 const (
-	plainField  plainShow = iota // the field's own control
-	plainItem                    // the field's control showing the item's name and picture
-	plainCode                    // a line stating the field's number; the control stands elsewhere
-	plainBits                    // the field's control, then its word and known bits
-	plainName                    // the field's control, or a line with the card's name when the host gives none
-	plainUses                    // the script nodes that name the record
-	plainPanel                   // the field's input on the card, at the place the card draws its panel field
-	plainCorner                  // the field's pad in the lower left corner beside the card
+	plainField    plainShow = iota // the field's own control
+	plainItem                      // the field's control showing the item's name and picture
+	plainCode                      // a line stating the field's number; the control stands elsewhere
+	plainBits                      // the field's control, then its word and known bits
+	plainName                      // the field's control, or a line with the card's name when the host gives none
+	plainUses                      // the script nodes that name the record
+	plainPanel                     // the field's input on the card, at the place the card draws its panel field
+	plainCorner                    // the field's pad in the lower left corner beside the card
+	plainPanelMax                  // the field's input on the second number of the card's pair
 )
 
 // plainBlock is one block of a plain view: the word of its heading, none
@@ -91,6 +92,7 @@ var plainViews = map[RecordKind]plainView{
 			{key: "level", order: 5, block: "main"},
 			{key: "facing", word: "editor.unit.field.facing", order: 6, block: "main", show: plainCorner},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
+			{key: "hpmax", block: "card", show: plainPanelMax, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
 			{key: "reaction", block: "card", show: plainPanel, panel: PanelFieldReaction},
@@ -337,7 +339,7 @@ func (e *MapEditor) PlainFieldBlocks() map[string]string {
 		switch {
 		case p.rest:
 			out[key] = ""
-		case v.rows[p.row].show == plainPanel:
+		case v.rows[p.row].show == plainPanel || v.rows[p.row].show == plainPanelMax:
 			out[key] = ""
 			if e.props.plain && e.fieldRow(p.field) >= 0 {
 				out[key] = p.block
@@ -523,10 +525,16 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	if font == nil {
 		return
 	}
-	edits := map[PanelField]int{}
+	edits, maxEdits := map[PanelField]int{}, map[PanelField]int{}
 	for _, p := range entries {
-		if p.field >= 0 && !p.rest && v.rows[p.row].show == plainPanel && !o.fields[p.field].ReadOnly {
+		if p.field < 0 || p.rest || o.fields[p.field].ReadOnly {
+			continue
+		}
+		switch v.rows[p.row].show {
+		case plainPanel:
 			edits[v.rows[p.row].panel] = p.field
+		case plainPanelMax:
+			maxEdits[v.rows[p.row].panel] = p.field
 		}
 	}
 	layout := CompactPanelLayout(nil)
@@ -539,54 +547,65 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	// A stat whose stored value differs from the card's value, the one the
 	// game uses, is stated in words beside the card.
 	var differ []string
+	// input stands field i's row on box, where the card states number; it
+	// reports false when the field has no row.
+	input := func(i int, label, number string, box image.Rectangle, start, limit int) bool {
+		n := field(i, "", false)
+		if n < 0 {
+			return false
+		}
+		// The card states the value; the row is its input, the field's
+		// notes its tip.
+		tip := []string{e.editorHostText(o.fields[i].Label)}
+		if o.fields[i].Inherit {
+			tip = append(tip, e.groupNote(o.fields[i].Group))
+		}
+		var meaning []string
+		for _, r := range s.Rows[n+1:] {
+			tip = append(tip, r.Label)
+			meaning = append(meaning, r.Label)
+		}
+		s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
+		row := &s.Rows[n]
+		box.Min.X = max(min(box.Min.X, limit-least), start*cardScale)
+		box.Max.X = min(max(box.Max.X, box.Min.X+least), limit)
+		box.Min.Y++
+		box.Max.Y--
+		row.Place, row.Buttons, row.Tip = box, nil, strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
+		if stored := strings.TrimSpace(row.Value); stored != "" && !sameNumber(stored, number) {
+			name := strings.TrimSpace(label)
+			if name == "" {
+				name = e.editorHostText(o.fields[i].Label)
+			}
+			why := strings.Join(meaning, " ")
+			if why == "" {
+				why = fmt.Sprintf(e.word("editor.plain.derived"), number)
+			}
+			differ = append(differ, name+": "+why)
+		}
+		return true
+	}
 	cell := func(f PanelField, label, value string, pen, start, end, y int) {
 		if value == "" {
 			return
 		}
-		// A pair such as health's hp/max keeps its max part on the card;
-		// the input stands on the first number.
-		number, _, pair := strings.Cut(value, "/")
+		// A pair such as health's hp/max has an input on each number when
+		// the map stores both.
+		number, rest, pair := strings.Cut(value, "/")
 		box := image.Rectangle{Min: image.Pt(pen, y).Mul(cardScale), Max: image.Pt(pen+font.Advance(number), y+lineH).Mul(cardScale)}
 		if !pair {
 			box.Max.X = (pen + font.Advance(value)) * cardScale
 		}
-		if i, ok := edits[f]; ok {
-			if n := field(i, "", false); n >= 0 {
-				// The card states the value; the row is its input, the
-				// field's notes its tip.
-				tip := []string{e.editorHostText(o.fields[i].Label)}
-				if o.fields[i].Inherit {
-					tip = append(tip, e.groupNote(o.fields[i].Group))
-				}
-				var meaning []string
-				for _, r := range s.Rows[n+1:] {
-					tip = append(tip, r.Label)
-					meaning = append(meaning, r.Label)
-				}
-				s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
-				row := &s.Rows[n]
-				limit := end * cardScale
-				if pair {
-					limit = min(limit, box.Max.X)
-				}
-				box.Min.X = max(min(box.Min.X, limit-least), start*cardScale)
-				box.Max.X = min(max(box.Max.X, box.Min.X+least), limit)
-				box.Min.Y++
-				box.Max.Y--
-				row.Place, row.Buttons, row.Tip = box, nil, strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
-				if stored := strings.TrimSpace(row.Value); stored != "" && !sameNumber(stored, number) {
-					name := strings.TrimSpace(label)
-					if name == "" {
-						name = e.editorHostText(o.fields[i].Label)
-					}
-					why := strings.Join(meaning, " ")
-					if why == "" {
-						why = fmt.Sprintf(e.word("editor.plain.derived"), number)
-					}
-					differ = append(differ, name+": "+why)
-				}
-				return
+		limit := end * cardScale
+		if pair {
+			limit = min(limit, box.Max.X)
+		}
+		if i, ok := edits[f]; ok && input(i, label, number, box, start, limit) {
+			if i, ok := maxEdits[f]; ok && pair {
+				second := image.Rectangle{Min: image.Pt(pen+font.Advance(number+"/"), y).Mul(cardScale), Max: image.Pt(pen+font.Advance(value), y+lineH).Mul(cardScale)}
+				input(i, "", rest, second, pen+font.Advance(number+"/"), end*cardScale)
 			}
+			return
 		}
 		s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value, Place: box,
 			Tip: fmt.Sprintf(e.word("editor.plain.fixed"), strings.TrimSpace(label+" "+value))}), append(*links, 0)

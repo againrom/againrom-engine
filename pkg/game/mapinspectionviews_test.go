@@ -152,7 +152,7 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
 		"speed": "card", "sight": "card", "facing": "main",
-		"face": "", "sex": "", "hpmax": "", "gold": "", "noloot": "",
+		"hpmax": "card", "face": "", "sex": "", "gold": "", "noloot": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
 		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "resolved": "", "overrides": "",
 	},

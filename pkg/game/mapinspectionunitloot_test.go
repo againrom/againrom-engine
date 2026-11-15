@@ -76,6 +76,39 @@ func TestEditorUnitHealthMaxGoldAndLootReachTheMap(t *testing.T) {
 	}
 }
 
+// TestEditorUnitBasicViewSetsTheMaximumHealth: the basic view's card has an
+// input on the maximum of the health pair, and typing there writes the
+// record's maximum health, which the map spawns as that unit's full health.
+func TestEditorUnitBasicViewSetsTheMaximumHealth(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		t.Run(lang, func(t *testing.T) {
+			s, _ := viewsMap(t)
+			s.inspector.archives.Base.Profile.Language = lang
+			s.inspector.recordOptions = nil
+			e, c := motionWindow(t, s, lang, true, false)
+			if got := e.PlainFieldBlocks()["hpmax"]; got != "card" {
+				t.Fatalf("the basic view places the maximum health in block %q, want the card", got)
+			}
+			typeField(t, e, c, "hpmax", 640)
+			rec, _ := s.model.UnitRecord(0)
+			if v := binary.LittleEndian.Uint16(rec[alm.UnitHealthMax:]); v != 640 {
+				t.Fatalf("record maximum health %d, want 640", v)
+			}
+			m, err := alm.Open(s.model.Bytes())
+			if err != nil {
+				t.Fatal(err)
+			}
+			w, err := mapload.FromALMWith(m, s.inspector.table, mapload.DifficultyNormal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := w.Entities()[0]; got.MaxHP != 640 || got.HP != 640 {
+				t.Fatalf("spawned health %d/%d, want 640/640", got.HP, got.MaxHP)
+			}
+		})
+	}
+}
+
 // TestEditorUnitGoldAddsTheUnitsOwnLootRecord: gold on a unit with no loot
 // record of its own adds one; gold 0 there writes nothing.
 func TestEditorUnitGoldAddsTheUnitsOwnLootRecord(t *testing.T) {
