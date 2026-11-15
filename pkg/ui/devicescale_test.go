@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/ui/widgetkit"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -109,9 +111,9 @@ var deviceScales = []float64{1, 1.25, 1.5, 2}
 // atDeviceScale feeds the monitor's device scale for the test.
 func atDeviceScale(t *testing.T, s float64) {
 	t.Helper()
-	old := monitorDeviceScale
-	t.Cleanup(func() { monitorDeviceScale = old })
-	monitorDeviceScale = func() float64 { return s }
+	old := widgetkit.MonitorDeviceScale
+	t.Cleanup(func() { widgetkit.MonitorDeviceScale = old })
+	widgetkit.MonitorDeviceScale = func() float64 { return s }
 }
 
 // The measurement of the frame each game draws at each device scale, on a
@@ -164,9 +166,9 @@ func TestWindowPixelsRoundsAsTheLibrary(t *testing.T) {
 		{1024, 768, 0, image.Pt(1024, 768), image.Pt(1024, 768)},
 		{0.2, 0.2, 1, image.Pt(1, 1), image.Pt(1, 1)},
 	} {
-		w := windowPixels(c.w, c.h, c.s)
-		if w.device != c.device || w.points != c.points {
-			t.Fatalf("%v x%v at %v: device %v points %v, want %v %v", c.w, c.h, c.s, w.device, w.points, c.device, c.points)
+		w := widgetkit.WindowPixels(c.w, c.h, c.s)
+		if w.Device != c.device || w.Points != c.points {
+			t.Fatalf("%v x%v at %v: device %v points %v, want %v %v", c.w, c.h, c.s, w.Device, w.Points, c.device, c.points)
 		}
 	}
 }

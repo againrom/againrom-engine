@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/pkg/ui/widgetkit"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -38,9 +40,9 @@ func BenchmarkMissionFrameDraw(b *testing.B) {
 // 1440 client area at a device scale of 1.5: in points (1706 by 960, which
 // the library then stretches) and in the device pixels LayoutF answers.
 func BenchmarkMissionFrameDrawAtDisplayScale(b *testing.B) {
-	old := monitorDeviceScale
-	b.Cleanup(func() { monitorDeviceScale = old })
-	monitorDeviceScale = func() float64 { return 1.5 }
+	old := widgetkit.MonitorDeviceScale
+	b.Cleanup(func() { widgetkit.MonitorDeviceScale = old })
+	widgetkit.MonitorDeviceScale = func() float64 { return 1.5 }
 	for _, inDevicePixels := range []bool{false, true} {
 		for _, z := range []float64{1, 1.2} {
 			b.Run(fmt.Sprintf("device=%v/zoom%.2f", inDevicePixels, z), func(b *testing.B) {

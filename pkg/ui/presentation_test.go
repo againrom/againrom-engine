@@ -3,6 +3,8 @@ package ui
 import (
 	"math"
 	"testing"
+
+	"againrom/pkg/ui/widgetkit"
 )
 
 // The game and the map editor are two rows of one presentation: each LayoutF
@@ -19,16 +21,16 @@ func TestDisplayPresentationRowsReadOneLayout(t *testing.T) {
 	ow, oh := float64(pointsWindow.X), float64(pointsWindow.Y)
 	for _, s := range deviceScales {
 		atDeviceScale(t, s)
-		want := windowPixels(ow, oh, s)
+		want := widgetkit.WindowPixels(ow, oh, s)
 		a := newTestApp(t, appRows(1), nil)
-		if lw, lh := a.LayoutF(ow, oh); lw != float64(want.device.X) || lh != float64(want.device.Y) || a.deviceScale != s {
-			t.Fatalf("game at scale %v: LayoutF %v,%v and device scale %v; want %v and %v", s, lw, lh, a.deviceScale, want.device, s)
+		if lw, lh := a.LayoutF(ow, oh); lw != float64(want.Device.X) || lh != float64(want.Device.Y) || a.deviceScale != s {
+			t.Fatalf("game at scale %v: LayoutF %v,%v and device scale %v; want %v and %v", s, lw, lh, a.deviceScale, want.Device, s)
 		}
 		e := NewMapEditor(nil, nil, nil)
-		if ew, eh := e.LayoutF(ow, oh); ew != float64(want.device.X) || eh != float64(want.device.Y) || e.deviceScale != s || e.window != want.points {
-			t.Fatalf("editor at scale %v: LayoutF %v,%v, window %v and device scale %v; want %v, points %v and %v", s, ew, eh, e.window, e.deviceScale, want.device, want.points, s)
+		if ew, eh := e.LayoutF(ow, oh); ew != float64(want.Device.X) || eh != float64(want.Device.Y) || e.deviceScale != s || e.window != want.Points {
+			t.Fatalf("editor at scale %v: LayoutF %v,%v, window %v and device scale %v; want %v, points %v and %v", s, ew, eh, e.window, e.deviceScale, want.Device, want.Points, s)
 		}
-		px, py := pointOfDevice(7, 5, s)
+		px, py := widgetkit.PointOfDevice(7, 5, s)
 		if got := editorPresentation.scaled(s); got != (s != 1) {
 			t.Fatalf("editor scaled at %v: %v, want %v", s, got, s != 1)
 		}

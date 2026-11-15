@@ -9,16 +9,30 @@ import (
 	"testing"
 )
 
-// displayScaleFile holds the one display presenter.
-const displayScaleFile = "pkg/ui/devicescale.go"
+// displayScaleFile holds the display presenter; the arithmetic lives in
+// widgetkit.
+const (
+	displayScaleFile = "pkg/ui/devicescale.go"
+	scaleLeafFile    = "pkg/ui/widgetkit/devicescale.go"
+	starterWindow    = "cmd/starter/window.go"
+)
 
 // displayScaleHomes names, for each part of the device-scale arithmetic, the
-// one declaration in displayScaleFile that may read it.
-var displayScaleHomes = map[string]string{
-	"windowPixels":       "displayRow.layout",
-	"monitorDeviceScale": "displayRow.layout",
-	"pointOfDevice":      "displayRow.toLayout",
-	"DeviceScaleFactor":  "monitorDeviceScale",
+// declarations (file:declaration) that may read it.
+var displayScaleHomes = map[string][]string{
+	"WindowPixels":       {displayScaleFile + ":displayRow.layout", starterWindow + ":window.LayoutF"},
+	"MonitorDeviceScale": {displayScaleFile + ":displayRow.layout", starterWindow + ":window.LayoutF"},
+	"PointOfDevice":      {displayScaleFile + ":displayRow.toLayout", starterWindow + ":window.cursor"},
+	"DeviceScaleFactor":  {scaleLeafFile + ":MonitorDeviceScale"},
+}
+
+func displayScaleHome(name, file, decl string) bool {
+	for _, h := range displayScaleHomes[name] {
+		if h == file+":"+decl {
+			return true
+		}
+	}
+	return false
 }
 
 // displayScaleReaders are the reads of a displayScaleHomes name outside its
@@ -39,7 +53,7 @@ func displayScaleReaders(t *testing.T, files map[string]string) []string {
 				if !ok || own[id] {
 					return true
 				}
-				if want, ok := displayScaleHomes[id.Name]; ok && (name != displayScaleFile || home != want) {
+				if _, ok := displayScaleHomes[id.Name]; ok && !displayScaleHome(id.Name, name, home) {
 					out = append(out, name+":"+home+":"+id.Name)
 				}
 				return true
@@ -89,15 +103,15 @@ func declHome(d ast.Decl) (string, map[*ast.Ident]bool) {
 func TestDisplayScaleReaderNamesASecondRoute(t *testing.T) {
 	got := displayScaleReaders(t, map[string]string{
 		displayScaleFile: "package ui\n" +
-			"var monitorDeviceScale = func() float64 { return ebiten.Monitor().DeviceScaleFactor() }\n" +
-			"func windowPixels(w, h, s float64) {}\n" +
-			"func (p displayRow) layout() { windowPixels(1, 1, monitorDeviceScale()) }\n" +
-			"func (a *App) LayoutF(w, h float64) { windowPixels(w, h, monitorDeviceScale()) }\n",
+			"func (p displayRow) layout() { widgetkit.WindowPixels(1, 1, widgetkit.MonitorDeviceScale()) }\n" +
+			"func (a *App) LayoutF(w, h float64) { widgetkit.WindowPixels(w, h, widgetkit.MonitorDeviceScale()) }\n",
 		"pkg/ui/x.go": "package ui\nfunc f() { _ = ebiten.Monitor().DeviceScaleFactor() }\n",
+		starterWindow: "package main\nfunc (w *window) Layout() { widgetkit.WindowPixels(1, 1, 1) }\n",
 	})
 	want := []string{
-		displayScaleFile + ":App.LayoutF:monitorDeviceScale",
-		displayScaleFile + ":App.LayoutF:windowPixels",
+		"cmd/starter/window.go:window.Layout:WindowPixels",
+		displayScaleFile + ":App.LayoutF:MonitorDeviceScale",
+		displayScaleFile + ":App.LayoutF:WindowPixels",
 		"pkg/ui/x.go:f:DeviceScaleFactor",
 	}
 	if len(got) != len(want) {

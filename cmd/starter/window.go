@@ -18,6 +18,8 @@ type window struct {
 	a                  *app
 	img                *ebiten.Image
 	dialogInputRelease bool
+	// scale is the device scale the last LayoutF set; 0 before the first.
+	scale float64
 }
 
 // desktop is the window system the starter ends in: the call that gives the
@@ -56,15 +58,13 @@ func (w *window) Update() error {
 	}
 	a.poll()
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		a.click(image.Pt(x, y))
+		a.click(w.cursor())
 		if a.folderDialogResults != nil {
 			return nil
 		}
 	}
 	if _, dy := ebiten.Wheel(); dy != 0 {
-		x, y := ebiten.CursorPosition()
-		a.wheel(image.Pt(x, y), widgetkit.ListWheelLines(dy))
+		a.wheel(w.cursor(), widgetkit.ListWheelLines(dy))
 	}
 	ctrl := heldkey.Pressed(ebiten.KeyControl)
 	switch {
@@ -114,7 +114,24 @@ func (w *window) Draw(screen *ebiten.Image) {
 	if w.a.takeDirty() {
 		w.img.WritePixels(w.a.render().Pix)
 	}
-	screen.DrawImage(w.img, nil)
+	var op ebiten.DrawImageOptions
+	if w.scale > 0 && w.scale != 1 {
+		op.GeoM.Scale(w.scale, w.scale)
+		op.Filter = ebiten.FilterLinear
+	}
+	screen.DrawImage(w.img, &op)
 }
 
 func (w *window) Layout(int, int) (int, int) { return winW, winH }
+
+// LayoutF answers the window's device pixels and keeps their scale.
+func (w *window) LayoutF(outsideW, outsideH float64) (float64, float64) {
+	s := widgetkit.WindowPixels(outsideW, outsideH, widgetkit.MonitorDeviceScale())
+	w.scale = s.Scale
+	return s.LayoutF()
+}
+
+func (w *window) cursor() image.Point {
+	x, y := ebiten.CursorPosition()
+	return image.Pt(widgetkit.PointOfDevice(x, y, w.scale))
+}
