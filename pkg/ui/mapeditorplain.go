@@ -62,6 +62,9 @@ type plainRow struct {
 	block     string
 	show      plainShow
 	panel     PanelField
+	// digits is the digit count of the field's largest value when a card
+	// input must hold more than the four digits every card input holds.
+	digits int
 }
 
 // plainView is a record kind's plain table: its blocks in window order, its
@@ -91,9 +94,9 @@ var plainViews = map[RecordKind]plainView{
 			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
 			{key: "level", order: 5, block: "main"},
 			{key: "facing", word: "editor.unit.field.facing", order: 6, block: "main", show: plainCorner},
-			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
-			{key: "hpmax", block: "card", show: plainPanelMax, panel: PanelFieldHealth},
-			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
+			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth, digits: 5},
+			{key: "hpmax", block: "card", show: plainPanelMax, panel: PanelFieldHealth, digits: 5},
+			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard, digits: 5},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
 			{key: "reaction", block: "card", show: plainPanel, panel: PanelFieldReaction},
 			{key: "mind", block: "card", show: plainPanel, panel: PanelFieldMind},
@@ -525,11 +528,12 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	if font == nil {
 		return
 	}
-	edits, maxEdits := map[PanelField]int{}, map[PanelField]int{}
+	edits, maxEdits, digits := map[PanelField]int{}, map[PanelField]int{}, map[int]int{}
 	for _, p := range entries {
 		if p.field < 0 || p.rest || o.fields[p.field].ReadOnly {
 			continue
 		}
+		digits[p.field] = v.rows[p.row].digits
 		switch v.rows[p.row].show {
 		case plainPanel:
 			edits[v.rows[p.row].panel] = p.field
@@ -539,10 +543,13 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	}
 	layout := CompactPanelLayout(nil)
 	lineH := font.Height() + layout.Gap
-	// An input holds four digits of the window's own font.
-	least := 0
-	if body != nil {
-		least = body.Advance("0000") + 2*editTextX
+	// An input holds four digits of the window's own font, or the digits
+	// of its field's largest value when that has more.
+	holds := func(i int) int {
+		if body == nil {
+			return 0
+		}
+		return body.Advance(strings.Repeat("0", max(4, digits[i]))) + 2*editTextX
 	}
 	// A stat whose stored value differs from the card's value, the one the
 	// game uses, is stated in words beside the card.
@@ -567,7 +574,8 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 		}
 		s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
 		row := &s.Rows[n]
-		box.Min.X = max(min(box.Min.X, limit-least), start*cardScale)
+		least := holds(i)
+		box.Min.X = max(min(box.Min.X, limit-least), start)
 		box.Max.X = min(max(box.Max.X, box.Min.X+least), limit)
 		box.Min.Y++
 		box.Max.Y--
@@ -600,10 +608,24 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 		if pair {
 			limit = min(limit, box.Max.X)
 		}
-		if i, ok := edits[f]; ok && input(i, label, number, box, start, limit) {
-			if i, ok := maxEdits[f]; ok && pair {
-				second := image.Rectangle{Min: image.Pt(pen+font.Advance(number+"/"), y).Mul(cardScale), Max: image.Pt(pen+font.Advance(value), y+lineH).Mul(cardScale)}
-				input(i, "", rest, second, pen+font.Advance(number+"/"), end*cardScale)
+		// The second input stands after the "/" and may reach the card's
+		// edge when the cell ends there; when that room cannot hold it, it
+		// takes the room and the first input ends before it.
+		second := image.Rectangle{Min: image.Pt(pen+font.Advance(number+"/"), y).Mul(cardScale), Max: image.Pt(pen+font.Advance(value), y+lineH).Mul(cardScale)}
+		reach := end * cardScale
+		if end == layout.Size.X-layout.Pad.X {
+			reach = layout.Size.X * cardScale
+		}
+		secondMax, hasMax := maxEdits[f]
+		hasMax = hasMax && pair
+		secondStart := second.Min.X
+		if hasMax {
+			secondStart = min(secondStart, reach-holds(secondMax))
+			limit = min(limit, secondStart)
+		}
+		if i, ok := edits[f]; ok && input(i, label, number, box, start*cardScale, limit) {
+			if hasMax {
+				input(secondMax, "", rest, second, secondStart, reach)
 			}
 			return
 		}

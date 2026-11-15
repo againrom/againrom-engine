@@ -1,4 +1,4 @@
-== unit-en-panel-1920x1080 92d012e1d338b888 window=(1400,58)-(1920,1064)
+== unit-en-panel-1920x1080 6e21cba229bf8c78 window=(1400,58)-(1920,1064)
 title "Unit #0"
 0 "Name" "Guard" [] ""
 3 "Player" "Self" [] ""
@@ -61,7 +61,7 @@ title "Sack #0"
 2 "Add an item" "0" [] ""
 1 "+ Details" "" [] ""
 1 "+ Data" "" [] ""
-== unit-en-floating-1920x1080 21ee3a01ec8a42d5 window=(32,66)-(530,676)
+== unit-en-floating-1920x1080 cf5780e92093ac45 window=(32,66)-(530,676)
 title "Unit #0"
 0 "Name" "Guard" [] ""
 3 "Player" "Self" [] ""
@@ -124,7 +124,7 @@ title "Sack #0"
 2 "Add an item" "0" [] ""
 1 "+ Details" "" [] ""
 1 "+ Data" "" [] ""
-== unit-ru-panel-1920x1080 6b0d140bd09b73d6 window=(1400,58)-(1920,1064)
+== unit-ru-panel-1920x1080 49722cc896f75c66 window=(1400,58)-(1920,1064)
 title "Unit #0"
 0 "\xc8\xec\xff" "Guard" [] ""
 3 "\xc8\xe3\xf0\xee\xea" "Self" [] ""
@@ -187,7 +187,7 @@ title "Sack #0"
 2 "\xc4\xee\xe1\xe0\xe2\xe8\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2" "0" [] ""
 1 "+ \xcf\xee\xe4\xf0\xee\xe1\xed\xee\xf1\xf2\xe8" "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== unit-ru-floating-1920x1080 d343c27c752ddb8f window=(32,66)-(530,676)
+== unit-ru-floating-1920x1080 33c0cbf6e63c723f window=(32,66)-(530,676)
 title "Unit #0"
 0 "\xc8\xec\xff" "Guard" [] ""
 3 "\xc8\xe3\xf0\xee\xea" "Self" [] ""

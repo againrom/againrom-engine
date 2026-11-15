@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"image"
 	"strconv"
 	"testing"
 
@@ -106,6 +107,51 @@ func TestEditorUnitBasicViewSetsTheMaximumHealth(t *testing.T) {
 				t.Fatalf("spawned health %d/%d, want 640/640", got.HP, got.MaxHP)
 			}
 		})
+	}
+}
+
+// TestEditorUnitBasicViewHealthInputsHoldFiveDigits: on the basic view's
+// card, each input of the health pair is wide enough for five digits of the
+// window's font plus the edit padding, and the two inputs do not overlap,
+// for a maximum of 100, 640 and 32767.
+func TestEditorUnitBasicViewHealthInputsHoldFiveDigits(t *testing.T) {
+	const editPadding = 8
+	for _, lang := range []string{"", "russian"} {
+		for _, max := range []int64{100, 640, 32767} {
+			t.Run(lang+"/"+strconv.FormatInt(max, 10), func(t *testing.T) {
+				s, _ := viewsMap(t)
+				s.inspector.archives.Base.Profile.Language = lang
+				s.inspector.recordOptions = nil
+				for _, key := range []string{"hpmax", "hp"} {
+					if _, err := s.SetField(ui.KindUnit, 0, key, max); err != nil {
+						t.Fatal(err)
+					}
+				}
+				e, _ := motionWindow(t, s, lang, true, false)
+				body := viewsCardFont()
+				for k := range body.Glyphs {
+					body.Glyphs[k].Advance = 8
+				}
+				body.Spacing = 2
+				e.SetBodyFont(body)
+				e.Layout(1920, 1080)
+				want := body.Advance("00000") + editPadding
+				var boxes [2]image.Rectangle
+				for k, key := range []string{"hp", "hpmax"} {
+					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: fieldIndex(t, e.ObjectFields(), key)})
+					if !ok {
+						t.Fatalf("%s has no input on the card", key)
+					}
+					boxes[k] = r
+					if r.Dx() < want {
+						t.Errorf("%s input is %d wide, want at least %d", key, r.Dx(), want)
+					}
+				}
+				if boxes[0].Overlaps(boxes[1]) {
+					t.Errorf("health input %v overlaps maximum input %v", boxes[0], boxes[1])
+				}
+			})
+		}
 	}
 }
 
