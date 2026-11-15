@@ -41,7 +41,7 @@ func learnPartySpell(p *mapload.PartyMember, id uint16, table *mapload.Table) {
 // partyBookReader projects a town party member of table's game into the
 // read-book view. Town members carry no life state, so they are alive.
 func partyBookReader(p *mapload.PartyMember, table *mapload.Table) sim.BookReader {
-	return sim.BookReader{Alive: true, Mage: p.Mage, Book: p.Book, Known: p.KnownSpells, Game: spellGame(table)}
+	return sim.BookReader{Alive: true, Mage: p.Mage, Book: p.Book, Known: p.KnownSpells, Game: mapload.SpellGameOf(table)}
 }
 
 // readPartyBook runs the one read-book transaction on a party member and

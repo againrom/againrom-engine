@@ -6,8 +6,18 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mod"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
+
+// SpellGameOf is the game whose spell rules table t was read under; no table
+// or no edition is the first game's.
+func SpellGameOf(t *Table) rules.SpellGame {
+	if t != nil && t.Edition != nil {
+		return data.SpellPresentationNamed(t.Edition.Spells).Game
+	}
+	return rules.SpellGameFirst
+}
 
 // unitSpellbook constructs the live book and the class spell slots from the
 // three authored Spell and Probability cell pairs. The first cell controls
@@ -24,14 +34,14 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 		return 0, book, slots
 	}
 	book.State = sim.BookPresent
-	rules := SpellRules(t)
+	rules, count := SpellRules(t), sim.BookSpellCount(SpellGameOf(t))
 	var known uint32
 	for cell := firstSpell; cell < firstSpell+6 && cell < len(params); cell += 2 {
 		id := params[cell]
 		if id <= 0 {
 			continue
 		}
-		if id > 28 || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
+		if int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
 			continue
 		}
 		book.Slots[id-1] = bookSpell(rules[id-1])
@@ -122,12 +132,12 @@ func (b *CreatureBooks) rowFor(typeID, face int32) (CreatureBookRow, bool) {
 
 // add applies params' power and mask cells, then inserts the matched row's
 // spells into book and writes its skill words. Each spell is the installed
-// spell row, as a class cell spell is; a mask names spells 1 to 29 and the
-// book holds 1 to 28 (DIV-2621).
+// spell row, as a class cell spell is; a mask may name a spell the book
+// cannot hold, and that bit is dropped (DIV-2621).
 func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
-	rules := SpellRules(t)
+	rules, count := SpellRules(t), sim.BookSpellCount(SpellGameOf(t))
 	insert := func(id int32) {
-		if id < 1 || id > 28 || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
+		if id < 1 || int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
 			return
 		}
 		book.Slots[id-1] = bookSpell(rules[id-1])
@@ -140,7 +150,7 @@ func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known 
 	}
 	if mask, ok := b.knownMask(params); ok {
 		*book, *known = sim.Spellbook{State: sim.BookPresent}, 0
-		for id := int32(1); id <= 29; id++ {
+		for id := int32(1); int(id) <= count; id++ {
 			if mask&(uint32(1)<<uint(id)) != 0 {
 				insert(id)
 			}

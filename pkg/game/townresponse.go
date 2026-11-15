@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/rules"
 )
@@ -146,7 +147,7 @@ func (t *townScreen) shopItemResponse(item ShopItem) {
 		return found
 	}
 	var names []string
-	if name, ok := shopItemSpeech(item, spellGame(t.in.Table), rules, present, draw); ok {
+	if name, ok := shopItemSpeech(item, mapload.SpellGameOf(t.in.Table), rules, present, draw); ok {
 		names = []string{name}
 	}
 	t.startTownResponse(names)

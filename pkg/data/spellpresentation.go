@@ -242,7 +242,7 @@ var burstLightSteps = []LightStep{{1, 16}, {2, 8}, {3, 0}, {3, 0}, {3, 8}, {3, 1
 // ANIM-CAST-027, ANIM-147, MAGIC-265, MAGIC-270, MAGIC-271,
 // MAGIC-UNITLIGHT-057, DIV-501.
 var firstSpellPresentation = SpellPresentation{
-	Game: rules.SpellGameFirst, LastSoundRow: 28, SoundBase: 500,
+	Game: rules.SpellGameFirst, LastSoundRow: len(rules.SpellProfile(rules.SpellGameFirst)), SoundBase: 500,
 	BurstLight: burstLightSteps, PathLightStep: 10,
 	NamedRows: len(rules.SpellProfile(rules.SpellGameFirst)), BookRows: rules.SpellBookRows(rules.SpellGameFirst), DrainLifeAliasRow: 11,
 	effects: []EffectPresentation{
@@ -269,7 +269,7 @@ var firstSpellPresentation = SpellPresentation{
 // DIV-3102..3104, DIV-3106. Teleport's two records of 21 updates are
 // R2-ENGINE-703's; Heal's and Drain Life's one update R2-ENGINE-691's.
 var secondSpellPresentation = SpellPresentation{
-	Game: rules.SpellGameSecond, LastSoundRow: 29, SoundBase: 500,
+	Game: rules.SpellGameSecond, LastSoundRow: len(rules.SpellProfile(rules.SpellGameSecond)), SoundBase: 500,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
 	PathLightStep: 10, NamedRows: len(rules.SpellProfile(rules.SpellGameSecond)), BookRows: rules.SpellBookRows(rules.SpellGameSecond),
 	effects: []EffectPresentation{

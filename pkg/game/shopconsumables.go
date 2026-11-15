@@ -31,7 +31,7 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 		return nil
 	}
 	var out []ShopItem
-	game := spellGame(t)
+	game := mapload.SpellGameOf(t)
 	for spell := 1; spell < t.Spells.Len(); spell++ {
 		if !rules.SpellShopScroll(game, spell) {
 			continue

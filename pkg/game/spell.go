@@ -11,7 +11,6 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
-	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -21,15 +20,6 @@ func spellBookRows(t *mapload.Table) []uint16 {
 		return data.SpellPresentationNamed(t.Edition.Spells).BookRows
 	}
 	return originalBookIDs
-}
-
-// spellGame is the game whose spell rules, book form included, table t was
-// read under; no table or no edition is the first game's.
-func spellGame(t *mapload.Table) rules.SpellGame {
-	if t != nil && t.Edition != nil {
-		return data.SpellPresentationNamed(t.Edition.Spells).Game
-	}
-	return rules.SpellGameFirst
 }
 
 // spellNamesFrom resolves the fixed book's installed cell names by spell ID.

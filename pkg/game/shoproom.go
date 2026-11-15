@@ -584,7 +584,7 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 		var added [sim.EquipSlots]sim.ItemInstance
 		added[0] = item
 		_, _, taught := mapload.EquippedPoolEffects(added)
-		for id := uint16(1); id <= 28; id++ {
+		for id := uint16(1); int(id) <= sim.BookSpellCount(mapload.SpellGameOf(t.in.Table)); id++ {
 			if taught&(uint32(1)<<id) != 0 {
 				learnPartySpell(member, id, t.in.Table)
 			}
@@ -729,7 +729,7 @@ func (t *shopController) shopShieldDisplacesWeapon() bool {
 // It only validates; callers remove or buy exactly one source unit before
 // committing the spellbook bit, so every refusal is mutation-free.
 func (t *shopController) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember, uint16, ui.TownAction, bool) {
-	spell, readable := item.BookSpell(spellGame(t.in.Table))
+	spell, readable := item.BookSpell(mapload.SpellGameOf(t.in.Table))
 	if !readable {
 		return nil, 0, ui.TownAction{}, false
 	}

@@ -1,6 +1,10 @@
 package sim
 
-import "fmt"
+import (
+	"fmt"
+
+	"againrom/pkg/rules"
+)
 
 // BookState distinguishes old table-backed native actors from a source book.
 // No producer infers a first book from mana or from learned membership.
@@ -26,6 +30,12 @@ type BookSpell struct {
 type Spellbook struct {
 	State BookState
 	Slots [28]BookSpell // index is spell ID minus one; KnownSpells owns membership
+}
+
+// BookSpellCount is the highest spell number a book of game g holds: the
+// game's spell count, at most the book's slot count.
+func BookSpellCount(g rules.SpellGame) int {
+	return min(len(rules.SpellProfile(g)), len(Spellbook{}.Slots))
 }
 
 func (b Spellbook) HasInstances() bool {
@@ -67,10 +77,10 @@ func BookRuleFor(e Entity, rule SpellRule) (SpellRule, bool) {
 	if !knowsSpell(e, uint32(rule.ID)) {
 		return SpellRule{}, false
 	}
-	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (rule.ID < 1 || rule.ID > 28) {
+	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (rule.ID < 1 || int(rule.ID) > len(e.Book.Slots)) {
 		return rule, true
 	}
-	if !e.Book.HasInstances() || rule.ID < 1 || rule.ID > 28 {
+	if !e.Book.HasInstances() || rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) {
 		return SpellRule{}, false
 	}
 	s := e.Book.Slots[rule.ID-1]
@@ -113,13 +123,13 @@ func debitBook(e *Entity, rule SpellRule) {
 // LearnBookSpell is the no-book / already-known gate of teachSpell. A new
 // Spell receives constructor defaults, not another actor's cached parameters.
 func LearnBookSpell(e *Entity, id uint16, table []SpellRule) {
-	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (id < 1 || id > 28) {
+	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (id < 1 || int(id) > len(e.Book.Slots)) {
 		if id < 32 {
 			e.KnownSpells |= uint32(1) << id
 		}
 		return
 	}
-	if !e.Book.HasInstances() || id < 1 || id > 28 || knowsSpell(*e, uint32(id)) {
+	if !e.Book.HasInstances() || id < 1 || int(id) > len(e.Book.Slots) || knowsSpell(*e, uint32(id)) {
 		return
 	}
 	for _, rule := range table {
@@ -142,7 +152,7 @@ func RefreshBook(r Rules, e *Entity, table []SpellRule) {
 		return
 	}
 	for _, rule := range table {
-		if rule.ID < 1 || rule.ID > 28 || !knowsSpell(*e, uint32(rule.ID)) {
+		if rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) || !knowsSpell(*e, uint32(rule.ID)) {
 			continue
 		}
 		var level int32
@@ -160,7 +170,7 @@ func RefreshOriginalBook(e *Entity, table []SpellRule) {
 		return
 	}
 	for _, rule := range table {
-		if rule.ID < 1 || rule.ID > 28 || !knowsSpell(*e, uint32(rule.ID)) {
+		if rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) || !knowsSpell(*e, uint32(rule.ID)) {
 			continue
 		}
 		var level int32
@@ -200,7 +210,7 @@ func (w *World) refreshAppliedBook(ci int, id uint32) {
 	if !w.entities[ci].Book.HasInstances() {
 		return
 	}
-	if rule, ok := w.findSpell(id); ok && id >= 1 && id <= 28 {
+	if rule, ok := w.findSpell(id); ok && id >= 1 && int(id) <= BookSpellCount(w.SpellGame()) {
 		RefreshBook(w.rules, &w.entities[ci], []SpellRule{rule})
 		w.refreshSavedBookRoots(ci)
 	}

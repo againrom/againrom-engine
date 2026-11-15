@@ -112,7 +112,7 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 				return it, true
 			},
 			Finish: func(items []ShopItem, src shopstock.Source) []ShopItem {
-				items = shopGuaranteedBooks(items, books, spellGame(t))
+				items = shopGuaranteedBooks(items, books, mapload.SpellGameOf(t))
 				return order(append(items, shopPotionStock(t, src)...))
 			},
 		})
