@@ -1,7 +1,8 @@
 # Mod data files
 
 A mod is one folder with `mod.toml` and optional data, assets and Starlark logic.
-Every held data file loads automatically; an optional script runs `init(game, settings)`.
+Every held data file loads automatically. An optional `main.star` runs
+`init(game, settings)` for rules and settings (`game.rules`), not to load data.
 Every refusal stops the launch and names the mod, the file and the line.
 `againrom -dump-base <folder>` writes the install's own records in this
 format (section Base dump). `againrom --headless <scenario.json>` runs the
@@ -49,8 +50,9 @@ mission number. Only the manifest is required.
 Every held catalog or configuration file loads without a script. Holding any of
 those files except settings marks the mod as changing state, including empty data
 files and speaker-only mods. Settings alone do not mark it. A script is optional;
-an existing manifest `entry` remains supported. One explicit `game.data.add` of a
-held file is accepted without adding records again; a second explicit call refuses.
+use it only for rules and settings. An existing manifest `entry` remains supported.
+Older mods call `game.data.add` on a held file: the call is accepted once without
+adding records again, a second call refuses, and a new mod does not need it.
 Settings resolve before the files load, so a conditional script does not prevent a
 held file loading.
 
@@ -392,7 +394,6 @@ VV = 4 * (g mod 4) + b in two digits.
 ```
 snow-field/
   mod.toml
-  main.star                                    game.data.add("data/terrain.toml")
   data/terrain.toml
   files/common/graphics/terrain/tile4-04.bmp   group 13, column 0
   files/common/graphics/terrain/tile4-05.bmp   group 13, column 1

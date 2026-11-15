@@ -144,6 +144,14 @@ func TestFixtureDataWithoutScriptsAndOriginalDigests(t *testing.T) {
 			if entry.Err != nil {
 				t.Fatal(entry.Err)
 			}
+			if _, err := os.Stat(filepath.Join(dir, mod.EntryName)); err != nil {
+				for _, base := range []string{"rom1-en", "rom1-ru"} {
+					if _, err := Load([]mod.Entry{entry}, base, nil, Options{}); err != nil {
+						t.Fatalf("%s: a mod without a script: %v", base, err)
+					}
+				}
+				return
+			}
 			manifestPath := filepath.Join(dir, mod.ManifestName)
 			manifest, err := os.ReadFile(manifestPath)
 			if err != nil {

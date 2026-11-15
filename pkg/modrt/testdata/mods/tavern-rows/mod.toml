@@ -5,4 +5,3 @@ author      = "Againrom"
 description = "Chapter 50's tavern gains a talk and a quest, one quest offers another mission, and one talk is switched off."
 api         = 1
 applies-to  = ["rom1"]
-entry       = "main.star"

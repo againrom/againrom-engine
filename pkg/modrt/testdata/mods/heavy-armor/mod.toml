@@ -5,4 +5,3 @@ author      = "Againrom"
 description = "Adds a gambeson under mail, a cloak over it and boots over the legs, and makes chain mail lighter."
 api         = 1
 applies-to  = ["rom1"]
-entry       = "main.star"

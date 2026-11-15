@@ -24,6 +24,8 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] Map editor: a map's draft pages and labels now count and move with the map whatever their letter case or folder depth.
+- [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
+- [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
 
 ## 0.155.0
 

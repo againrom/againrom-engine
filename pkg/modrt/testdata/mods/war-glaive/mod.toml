@@ -5,4 +5,3 @@ author      = "Againrom"
 description = "Adds a war glaive: a pike that hits harder and reaches three cells."
 api         = 1
 applies-to  = ["rom1"]
-entry       = "main.star"

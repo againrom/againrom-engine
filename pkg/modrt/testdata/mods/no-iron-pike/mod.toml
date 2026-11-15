@@ -5,4 +5,3 @@ author      = "Againrom"
 description = "Takes the common iron pike out of every shop."
 api         = 1
 applies-to  = ["rom1"]
-entry       = "main.star"

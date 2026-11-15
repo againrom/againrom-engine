@@ -5,4 +5,3 @@ author      = "Againrom"
 description = "Adds an in-game menu entry that abandons the running mission and returns to the town it was entered from."
 api         = 1
 applies-to  = ["rom1"]
-entry       = "main.star"
