@@ -159,6 +159,9 @@ func (s *mapInspectionEdits) filesFields() []ui.InspectionField {
 	for i, l := range lines {
 		out = append(out, line(fmt.Sprintf("override.%d", i), group, l))
 	}
+	if x.modNotEnabled(x.mod) {
+		out = append(out, line(fmt.Sprintf("override.%d", len(lines)), group, x.word("editor.files.notenabled")))
+	}
 	return out
 }
 
@@ -247,19 +250,24 @@ func (s *mapInspectionEdits) filesOverrides(d *editorModDocument) []string {
 	return *m.filesCheck
 }
 
-// modFileOverrides serves the install files of the enabled mods and of m,
-// with drafts over m's, as the game's launch serves them, and answers its
-// override lines, or the refusal as the one line.
+// modNotEnabled is whether the starter's list is known and m is not in it.
+func (x *MapInspector) modNotEnabled(m *editorMod) bool {
+	h := x.testPlay
+	return h != nil && h.EnabledMods != nil && !slices.Contains(h.EnabledMods(), m.id)
+}
+
+// modFileOverrides serves the install files of the enabled mods, with drafts
+// over m's when m is enabled, as the game's launch serves them, and answers
+// its override lines, or the refusal as the one line.
 func (x *MapInspector) modFileOverrides(m *editorMod, drafts map[string][]byte) []string {
 	h := x.testPlay
 	if h == nil || h.EnabledMods == nil || strings.TrimSpace(h.ModsFolder) == "" || x.archives == nil || x.archives.Containers == nil {
 		return nil
 	}
 	var entries []mod.Entry
-	own := false
 	for _, id := range h.EnabledMods() {
 		if id == m.id {
-			entries, own = append(entries, mod.Load(m.dir)), true
+			entries = append(entries, mod.Load(m.dir))
 			continue
 		}
 		e, err := mod.Resolve(strings.TrimSpace(h.ModsFolder), []string{id})
@@ -268,11 +276,8 @@ func (x *MapInspector) modFileOverrides(m *editorMod, drafts map[string][]byte) 
 		}
 		entries = append(entries, e...)
 	}
-	if len(entries) == 0 || own && len(entries) == 1 {
+	if len(entries) < 2 {
 		return nil
-	}
-	if !own {
-		entries = append(entries, mod.Load(m.dir))
 	}
 	result, err := modrt.Load(entries, m.base, nil, modrt.Options{})
 	if err != nil {

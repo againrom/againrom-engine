@@ -40,6 +40,7 @@ modder or developer can notice gets no entry.
 - [ROM1] The mod window gains a Texts page: edit each text key in English and Russian, see a key one language lacks, and pick a mission's title and briefing from a key.
 - [ROM1] the mod window has an Items page: add armour and weapon rows, change or switch off shipped rows, set material masks and import item sprites, with undo, redo and save
 - [ROM1] the editor's mod window has a Files page: replace install pictures, sounds and texts per language, checked by the game's rules, with the overrides of the enabled mods
+- [ROM1] Map editor: the Files page no longer lists override lines for a mod that is not enabled in the starter; it says so in one line instead.
 
 ## 0.155.0
 

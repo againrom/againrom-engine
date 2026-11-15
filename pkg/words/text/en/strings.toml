@@ -1585,6 +1585,7 @@
 "editor.files.shown" = "%d of %d matching paths shown; narrow the filter"
 "editor.files.overrides" = "Overrides with the enabled mods"
 "editor.files.nooverrides" = "none"
+"editor.files.notenabled" = "This mod is not enabled in the starter, so its files override nothing at play"
 "editor.files.err.gone" = "the files page has no field %s"
 "editor.files.err.nofile" = "pick or type the replacement's file"
 "editor.files.err.file" = "%s is not a file"

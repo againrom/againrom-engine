@@ -246,6 +246,45 @@ func TestFilesPageOverridesAreTheChecksLines(t *testing.T) {
 	}
 }
 
+// With the open mod out of the starter's list the override lines are the
+// check's for the list as it is, and one line says the open mod is not
+// enabled; no line names the open mod.
+func TestFilesPageOpenModNotEnabled(t *testing.T) {
+	enabled := []string{"first-art", "later-art"}
+	s, dir := filesPage(t, &enabled)
+	mods := filepath.Dir(dir)
+	writeModText(t, filepath.Join(mods, "first-art"), "mod.toml", "id = \"first-art\"\ntitle = \"first-art\"\nversion = \"1.0\"\n")
+	writeModText(t, filepath.Join(mods, "later-art"), "mod.toml", "id = \"later-art\"\ntitle = \"later-art\"\nversion = \"1.0\"\nload-after = [\"first-art\"]\n")
+	for _, id := range enabled {
+		writeFileAll(t, filepath.Join(mods, id, "files", "common", filepath.FromSlash(filesPicture)), filesBMP(4, 3))
+	}
+	if err := importFile(s, "common", filesPicture, filesBMP(4, 3), t); err != nil {
+		t.Fatal(err)
+	}
+	notEnabled := s.inspector.word("editor.files.notenabled")
+	want := `override: install file graphics/pic/a.bmp: mod "later-art" (files/common/graphics/pic/a.bmp) overrides mod "first-art" (files/common/graphics/pic/a.bmp)`
+	got := pageOverrides(s)
+	if !slices.Equal(got, []string{want, notEnabled}) {
+		t.Fatalf("the page's lines %q, want %q", got, []string{want, notEnabled})
+	}
+	for _, l := range got[:1] {
+		if strings.Contains(l, "authored-map") {
+			t.Fatalf("the line names the open mod: %q", l)
+		}
+	}
+	enabled = []string{"later-art"}
+	s.inspector.mod.filesCheck = nil
+	none := s.inspector.word("editor.files.nooverrides")
+	if got := pageOverrides(s); !slices.Equal(got, []string{none, notEnabled}) {
+		t.Fatalf("one other mod: the page's lines %q, want %q", got, []string{none, notEnabled})
+	}
+	enabled = nil
+	s.inspector.mod.filesCheck = nil
+	if got := pageOverrides(s); !slices.Equal(got, []string{none, notEnabled}) {
+		t.Fatalf("no mod: the page's lines %q, want %q", got, []string{none, notEnabled})
+	}
+}
+
 // pageOverrides is the override lines the files page shows.
 func pageOverrides(s *mapInspectionEdits) []string {
 	var out []string

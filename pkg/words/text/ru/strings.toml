@@ -1579,6 +1579,7 @@
 "editor.files.shown" = "показано путей: %d из %d; сузьте фильтр"
 "editor.files.overrides" = "Перекрытия с включенными модами"
 "editor.files.nooverrides" = "нет"
+"editor.files.notenabled" = "Этот мод не включен в стартере, поэтому его файлы в игре ничего не перекрывают"
 "editor.files.err.gone" = "на странице файлов нет поля %s"
 "editor.files.err.nofile" = "выберите или впишите файл замены"
 "editor.files.err.file" = "%s не файл"
