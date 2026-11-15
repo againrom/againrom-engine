@@ -181,8 +181,10 @@ func (w *World) landEffectDelta(ti int, rule SpellRule, kind EffectKind, mag int
 // larger magnitude and duration (R2-ENGINE-986, R2-ENGINE-454).
 type secondArmRow struct {
 	drawnDuration, blankCurse, keepsLarger, powerDuration bool
-	firstStageDelay                                       uint8
-	raise                                                 *corpseRaiseProfile
+	// skipsFirstHealth: the first attach changes no health (R2-ENGINE-986).
+	skipsFirstHealth bool
+	firstStageDelay  uint8
+	raise            *corpseRaiseProfile
 }
 
 // armSummon is the second game's Summon arm. The first game has no such
@@ -202,7 +204,7 @@ var spellArms = [...]spellArm{
 	{arm: 6, heals: true, autoCast: autoCastPlace{1, 0, autoCastHealer}, creatureAim: creatureAimCaster, second: renews},
 	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed},
 		second: renews},
-	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: renews},
+	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, skipsFirstHealth: true}},
 	{arm: 9, creatureAim: creatureAimStepCell, second: renews},
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},

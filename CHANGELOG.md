@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 - [BASE] A scroll picked in an open spellbook now stays picked after each cast, like a spell, until the scrolls run out.
 - [BASE] A unit sent to a cell that an enemy then steps onto now stops next to the enemy and attacks it, instead of standing and waiting.
 - [BASE] A scroll cast on an enemy no longer sends your character walking to the enemy's spot: it steps only as close as the spell needs, casts, and stands, even when the enemy is right next to it.
+- [ROM2] Poison Cloud no longer hurts a unit the moment it first hits; the damage now starts with the first poison tick, as in the original.
 
 ### For map makers and modders
 

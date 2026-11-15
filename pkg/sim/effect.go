@@ -412,6 +412,9 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 			// eighth tick rather than reversed: a continuous heal that clamped at full
 			// health once would otherwise be re-applied as zero for the rest of its
 			// life.
+			if poison && rule.secondArm().skipsFirstHealth {
+				return true
+			}
 			w.applyAttachedAt(i, ti, poison)
 			return true
 		},
