@@ -66,11 +66,7 @@ const SfxRegistry = sfxPrefix + "sfx.reg"
 // open and one small registry parse regardless of how many of the corpus's
 // slots a session ever plays.
 func OpenSounds(root string) *SoundBank {
-	path, err := InstallFile(root, SfxArchive)
-	if err != nil {
-		return nil
-	}
-	containers, err := OpenContainers(path)
+	containers, err := openSoundArchive(root)
 	if err != nil {
 		return nil
 	}
@@ -83,6 +79,16 @@ func OpenSounds(root string) *SoundBank {
 		return nil
 	}
 	return &SoundBank{src: containers, entries: sfxSlotTable(r), cache: make(map[int]soundCacheEntry)}
+}
+
+// openSoundArchive opens the install's sound archive at root alone, its
+// registry unread.
+func openSoundArchive(root string) (*vfs.FS, error) {
+	path, err := InstallFile(root, SfxArchive)
+	if err != nil {
+		return nil, err
+	}
+	return OpenContainers(path)
 }
 
 // SoundBank is this tree's one implementation of ui.SoundBank (spec Terms;

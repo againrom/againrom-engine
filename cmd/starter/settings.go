@@ -80,7 +80,7 @@ func loadSettings(f *ini.File) settings {
 	s.CloseOnPlay = launch.ParseBool(get(secStarter, "close-on-play"), false)
 	s.Bases, s.LastBase = launch.ReadBases(f)
 	s.ModsDir = get(secMods, launch.ModsDirKey)
-	s.Enabled = splitList(get(secMods, "enabled"))
+	s.Enabled = launch.EnabledMods(f)
 	s.AcceptUnmarked = launch.ParseBool(get(secMods, "accept-unmarked"), false)
 	for _, sec := range f.Sections() {
 		id, ok := strings.CutPrefix(sec, secModPrefix)
@@ -115,7 +115,7 @@ func (s settings) store(f *ini.File) {
 		}
 	}
 	f.Set(secMods, launch.ModsDirKey, s.ModsDir)
-	f.Set(secMods, "enabled", strings.Join(s.Enabled, ","))
+	f.Set(secMods, launch.ModsEnabledKey, strings.Join(s.Enabled, ","))
 	f.Set(secMods, "accept-unmarked", launch.FormatBool(s.AcceptUnmarked))
 	kept := map[string]bool{}
 	for _, m := range s.ModSettings {
@@ -134,16 +134,6 @@ func (s settings) store(f *ini.File) {
 	for _, st := range launch.Settings {
 		f.Set(secOptions, st.Key, s.option(st))
 	}
-}
-
-func splitList(v string) []string {
-	var out []string
-	for _, p := range strings.Split(v, ",") {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // basePath returns the path of the base with key.

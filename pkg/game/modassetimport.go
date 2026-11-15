@@ -107,7 +107,7 @@ func (s *mapInspectionEdits) modAssetDraft(kind, source, name string) (string, [
 	if err != nil {
 		return "", nil, err
 	}
-	data, err := x.hostFileBytes(source, asset.check, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", ")))
+	data, err := x.hostFileBytes(source, mod.MaxFileBytes, asset.check, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", ")))
 	if err != nil {
 		return "", nil, err
 	}
@@ -130,9 +130,10 @@ func (x *MapInspector) modWritable() error {
 }
 
 // hostFileBytes is the bytes of the host file source on its way into a
-// mod: a file within the bound of a mod's file that passes check, the
-// loader's own rule for its kind; notFile is the refusal of a folder.
-func (x *MapInspector) hostFileBytes(source string, check func([]byte) error, notFile error) ([]byte, error) {
+// mod: a file of at most limit bytes, the bound of its kind of mod file,
+// that passes check, the loader's own rule for its kind; notFile is the
+// refusal of a folder.
+func (x *MapInspector) hostFileBytes(source string, limit int64, check func([]byte) error, notFile error) ([]byte, error) {
 	st, err := os.Stat(source)
 	if err != nil {
 		return nil, err
@@ -140,8 +141,8 @@ func (x *MapInspector) hostFileBytes(source string, check func([]byte) error, no
 	if st.IsDir() {
 		return nil, notFile
 	}
-	if st.Size() > mod.MaxFileBytes {
-		return nil, fmt.Errorf(x.word("editor.asset.err.size"), mod.MaxFileBytes)
+	if st.Size() > limit {
+		return nil, fmt.Errorf(x.word("editor.asset.err.size"), limit)
 	}
 	data, err := os.ReadFile(source)
 	if err != nil {

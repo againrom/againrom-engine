@@ -10,11 +10,10 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 
-	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
-	"againrom/pkg/render/terrain"
 )
 
 type editorModDocument struct {
@@ -63,7 +62,7 @@ func (m *editorMod) document() *editorModDocument {
 		}
 	}
 	// The item sprites stay in the project with their bytes for the same
-	// reason as the strips below.
+	// reason as the install files below.
 	sprites := mod.AssetsFolder + "/" + mod.ItemSprite.Kind
 	filepath.WalkDir(filepath.Join(m.dir, filepath.FromSlash(sprites)), func(p string, e fs.DirEntry, err error) error {
 		if err != nil || e.IsDir() {
@@ -76,11 +75,10 @@ func (m *editorMod) document() *editorModDocument {
 		}
 		return nil
 	})
-	// The strips the page manages that the folder holds stay in the project
-	// with their bytes, so an undo past a save restores them.
-	for g := alm.InstallTileGroups; g < alm.TileGroupCount; g++ {
-		for b := range 4 {
-			rel := mod.FilesDir + "/" + mod.CommonFiles + "/" + terrain.GroupStripPath(g, b)
+	// The install files the folder holds, the terrain strips among them, stay
+	// in the project with their bytes, so an undo past a save restores them.
+	for _, rel := range m.files {
+		if strings.HasPrefix(rel, mod.FilesDir+"/") {
 			if data, err := os.ReadFile(filepath.Join(m.dir, filepath.FromSlash(rel))); err == nil {
 				d.Files[rel] = data
 			}

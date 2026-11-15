@@ -65,6 +65,11 @@ type MapInspector struct {
 	flow *campaignFlow
 	// missionHeld caches missionAnswer by mission number.
 	missionHeld map[int]error
+	// sounds is the install's sound archive, listing the files a mod may
+	// replace and filesFilter the text W's files page narrows them by.
+	sounds      editorSounds
+	listing     *installListing
+	filesFilter string
 	// identityMission is the mission number the identity choices were
 	// built for; guestNumber is the test play guest mission's, nil until
 	// first asked.

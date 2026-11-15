@@ -48,6 +48,9 @@ type TestPlayHost struct {
 	// ModsFolder is the mods folder the program resolved, the one the starter
 	// and the game read; Publish writes there when no folder is typed.
 	ModsFolder string
+	// EnabledMods is the ids of the mods the starter enables in ModsFolder,
+	// read when asked; nil enables none.
+	EnabledMods func() []string
 }
 
 // SetTestPlay names the host of the editor's test play.

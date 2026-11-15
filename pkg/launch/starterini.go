@@ -17,11 +17,37 @@ const (
 	LastBaseKey    = "last-base"
 )
 
-// Section and key of the starter's settings file that name the mods folder.
+// Section and keys of the starter's settings file that name the mods folder
+// and the mods enabled in it.
 const (
-	ModsSection = "mods"
-	ModsDirKey  = "dir"
+	ModsSection    = "mods"
+	ModsDirKey     = "dir"
+	ModsEnabledKey = "enabled"
 )
+
+// EnabledMods is the ids of the mods the settings file f enables, in file
+// order; the starter keeps the list and the editor reads it.
+func EnabledMods(f *ini.File) []string {
+	v, _ := f.Get(ModsSection, ModsEnabledKey)
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// StarterEnabled is EnabledMods of the starter.ini in the folder dir, none
+// when it cannot be read.
+func StarterEnabled(dir string) []string {
+	data, err := os.ReadFile(StarterINI(dir))
+	if err != nil {
+		return nil
+	}
+	f, _ := ini.Parse(data)
+	return EnabledMods(f)
+}
 
 // ModsFolder is the one mods folder of the programs in the folder programDir,
 // read by the starter's scan and the game and written by the editor's Publish:

@@ -52,6 +52,11 @@ type editorMod struct {
 	// strips is the frame count of each strip the mod's files and drafts
 	// hold for a tile group past the install's, by column; 0 for none.
 	strips map[int][4]int
+	// base is the base the mod was run for at open.
+	base string
+	// filesCheck is the files page's report of the install files the mod
+	// and the mods the starter enables carry, made when first shown.
+	filesCheck *[]string
 }
 
 // SetMod is the editor's one open route: it opens the mod at dir, a folder or

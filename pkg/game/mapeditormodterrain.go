@@ -56,9 +56,7 @@ func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
 		return nil
 	}
-	line := func(key, group, text string) ui.InspectionField {
-		return ui.InspectionField{Key: key, Group: group, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(text)}}}
-	}
+	line := x.pageLine
 	rows, _, err := s.terrainRows(s.workspace)
 	if err != nil {
 		return []ui.InspectionField{line("error", "", err.Error())}
@@ -263,7 +261,7 @@ func (s *mapInspectionEdits) ImportTerrainStrip(g, b int, source string, replace
 		}
 		return nil
 	}
-	data, err := x.hostFileBytes(source, check, fmt.Errorf(x.word("editor.terrain.err.strip"), b+1, g, errors.New(source)))
+	data, err := x.hostFileBytes(source, mod.MaxFileBytes, check, fmt.Errorf(x.word("editor.terrain.err.strip"), b+1, g, errors.New(source)))
 	if err != nil {
 		return "", nil, err
 	}

@@ -345,6 +345,11 @@ func workspaceText(key, label, value string) ui.InspectionField {
 	return ui.InspectionField{Key: key, Label: label, Text: true, TextValue: value}
 }
 
+// pageLine is a read-only line of text on one of W's pages, in group.
+func (x *MapInspector) pageLine(key, group, text string) ui.InspectionField {
+	return ui.InspectionField{Key: key, Group: group, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(text)}}}
+}
+
 func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField {
 	if strings.HasPrefix(scope, "campaign.") {
 		return s.campaignFields(scope)
@@ -360,6 +365,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	}
 	if scope == ui.ModItemsScope {
 		return s.itemsFields()
+	}
+	if scope == ui.ModFilesScope {
+		return s.filesFields()
 	}
 	if s.model == nil && scope != "package" {
 		return nil
@@ -460,6 +468,9 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	}
 	if scope == ui.ModItemsScope {
 		return s.setItemsField(key, value)
+	}
+	if scope == ui.ModFilesScope {
+		return s.setFilesField(key, value)
 	}
 	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {

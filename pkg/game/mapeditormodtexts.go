@@ -133,9 +133,7 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
 		return nil
 	}
-	line := func(key, group, text string) ui.InspectionField {
-		return ui.InspectionField{Key: key, Group: group, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(text)}}}
-	}
+	line := x.pageLine
 	d := s.workspace.Project
 	if d == nil {
 		d = x.mod.document()

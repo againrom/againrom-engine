@@ -81,9 +81,7 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 		f.Font = resolved(x.font, nil)
 	}
 	if !result.Files.Empty() {
-		layer := f.modFileLayer()
-		layer.order = result.Files.Order
-		if err := layer.serveInstallFiles(f.Archives, result.Files.Files); err != nil {
+		if err := x.serveModFiles(f, result.Files); err != nil {
 			return nil, ModDataReport{}, err
 		}
 		t, err := LoadTable(f.Archives.Containers)
@@ -111,6 +109,7 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // for the overview and the context holds every other kind.
 func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, view draftView) string {
 	base := BaseID(InspectInstall(root))
+	m.base = base
 	result, err := modrt.Load([]mod.Entry{e}, base, nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
@@ -292,7 +291,7 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	}
 	next := *x.mod
 	next.context, next.report, next.fileOverrides, next.refusal, next.checkLines = nil, ModDataReport{}, nil, "", nil
-	next.flow = nil
+	next.flow, next.filesCheck = nil, nil
 	next.files = slices.Clone(x.mod.files)
 	tree, err := mod.OpenTree(next.dir)
 	if err != nil {

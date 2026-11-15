@@ -42,6 +42,12 @@ func installFileKind(ext string) (FileKind, bool) {
 	return "", false
 }
 
+// InstallFileKind is the kind of install file at address by its extension;
+// false for a file the game takes no install file of.
+func InstallFileKind(address string) (FileKind, bool) {
+	return installFileKind(namefold.Host(path.Ext(address)))
+}
+
 // ChangesState reports whether a file of this kind can change game state.
 // A text feeds the definitions the game builds its World from (the body list,
 // item names, class and spell tables), so it does. A picture and a sound are
@@ -117,11 +123,11 @@ func ReadInstallFiles(id, dir, lang string) ([]InstallFile, error) {
 	case !st.IsDir():
 		return nil, Source{Mod: id, File: FilesDir}.Errorf("is not a folder; install files stand in %s/%s/ or %s/<language>/", FilesDir, CommonFiles, FilesDir)
 	}
-	return readInstallFiles(id, t.FS(), installLangs(), lang)
+	return readInstallFiles(id, t.FS(), InstallLanguages(), lang)
 }
 
-// installLangs is the language folders of files/: common, then each locale.
-func installLangs() []string {
+// InstallLanguages is the language folders of files/: common, then each locale.
+func InstallLanguages() []string {
 	langs := []string{CommonFiles}
 	for _, l := range locale.All() {
 		langs = append(langs, l.Code)
@@ -142,7 +148,7 @@ func installFileAt(id, rel string, size int64, read func() ([]byte, error)) (Ins
 	case len(parts) == 2:
 		return bad("names no archive: a file stands at its install path, the archive's name and the path inside it")
 	}
-	kind, ok := installFileKind(namefold.Host(path.Ext(rel)))
+	kind, ok := InstallFileKind(rel)
 	if !ok {
 		return bad("the game takes no install file of this kind; a mod carries .bmp pictures, .wav sounds and .txt texts")
 	}
@@ -159,12 +165,24 @@ func installFileAt(id, rel string, size int64, read func() ([]byte, error)) (Ins
 	return InstallFile{Mod: id, File: rel, Lang: namefold.Host(parts[0]), Address: strings.Join(parts[1:], "/"), Kind: kind, Bytes: b}, nil
 }
 
+// DraftInstallFile is the editor's draft b of the file at rel in files/ of
+// mod id, held to the rules of one file and of the language folders.
+func DraftInstallFile(id, rel string, b []byte) (InstallFile, error) {
+	f, err := installFileAt(id, rel, int64(len(b)), func() ([]byte, error) { return b, nil })
+	if err != nil {
+		return InstallFile{}, err
+	}
+	if langs := InstallLanguages(); !slices.Contains(langs, f.Lang) {
+		return InstallFile{}, f.Errorf("%q is not a language folder: the folders are %s", f.Lang, strings.Join(langs, ", "))
+	}
+	return f, nil
+}
+
 // OverlayInstallFiles is the install files of mod id on language lang with
 // the editor's drafts of files/ put over them, held to the folder's rules;
 // a nil draft takes its file out.
 func OverlayInstallFiles(id, lang string, files []InstallFile, drafts map[string][]byte) ([]InstallFile, error) {
 	out := slices.Clone(files)
-	langs := installLangs()
 	for _, rel := range slices.Sorted(maps.Keys(drafts)) {
 		if !strings.HasPrefix(rel, FilesDir+"/") {
 			continue
@@ -174,12 +192,9 @@ func OverlayInstallFiles(id, lang string, files []InstallFile, drafts map[string
 		if b == nil {
 			continue
 		}
-		f, err := installFileAt(id, rel, int64(len(b)), func() ([]byte, error) { return b, nil })
+		f, err := DraftInstallFile(id, rel, b)
 		if err != nil {
 			return nil, err
-		}
-		if !slices.Contains(langs, f.Lang) {
-			return nil, f.Errorf("%q is not a language folder: the folders are %s", f.Lang, strings.Join(langs, ", "))
 		}
 		if f.Lang != CommonFiles && f.Lang != lang {
 			continue

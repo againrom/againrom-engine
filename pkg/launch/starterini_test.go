@@ -3,6 +3,7 @@ package launch
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -50,13 +51,19 @@ func TestModsFolderHasOneResolver(t *testing.T) {
 	if got := StarterModsDir(dir); got != "" {
 		t.Errorf("StarterModsDir with no starter.ini = %q", got)
 	}
+	if got := StarterEnabled(dir); got != nil {
+		t.Errorf("StarterEnabled with no starter.ini = %q", got)
+	}
 	if got := ProgramModsFolder("", dir); got != beside {
 		t.Errorf("ProgramModsFolder with no starter.ini = %q, want %q", got, beside)
 	}
 	named := filepath.Join(t.TempDir(), "named")
-	text := "[" + ModsSection + "]\n" + ModsDirKey + " = " + named + "\nenabled = a,b\n"
+	text := "[" + ModsSection + "]\n" + ModsDirKey + " = " + named + "\n" + ModsEnabledKey + " = a, ,b\n"
 	if err := os.WriteFile(StarterINI(dir), []byte(text), 0o644); err != nil {
 		t.Fatal(err)
+	}
+	if got := StarterEnabled(dir); !slices.Equal(got, []string{"a", "b"}) {
+		t.Errorf("StarterEnabled = %q, want the starter's a, b", got)
 	}
 	if got := StarterModsDir(dir); got != named {
 		t.Errorf("StarterModsDir = %q, want %q", got, named)

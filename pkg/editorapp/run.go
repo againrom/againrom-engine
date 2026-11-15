@@ -322,7 +322,8 @@ func printFindings(out io.Writer, rows []ui.InspectionFinding) error {
 // the program names, else the mods folder beside the program.
 func testPlayHost(self, userConfigDir, root, modsDir string) game.TestPlayHost {
 	return game.TestPlayHost{
-		ModsFolder: launch.ProgramModsFolder(modsDir, filepath.Dir(self)),
+		ModsFolder:  launch.ProgramModsFolder(modsDir, filepath.Dir(self)),
+		EnabledMods: func() []string { return launch.StarterEnabled(filepath.Dir(self)) },
 		Profile: func() (game.RuntimeProfile, error) {
 			return game.ResolveRuntimeProfile("", self, userConfigDir, root)
 		},
