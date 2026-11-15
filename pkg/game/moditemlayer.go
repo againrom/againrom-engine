@@ -150,6 +150,14 @@ func itemPatches(items mod.ItemData, classes []*itemClass, t *mapload.Table) ([]
 			if c.Mod != id {
 				continue
 			}
+			if _, own := added[c.Item]; own {
+				if c.Defence != nil || c.Absorption != nil || c.Weight != nil || c.Price != nil || c.Off == nil {
+					return nil, itemFileError(c.Mod, c.File, c.Line, "%q is a row a mod adds; a change of it sets off only, its numbers are in its own row", c.Item)
+				}
+				patches = append(patches, mod.Patch[string, itemRecord]{Source: mod.Source{Mod: c.Mod, File: c.File, Line: c.Line}, Key: c.Item,
+					Fields: []mod.PatchField{{Name: mod.OffField, Line: c.Line}}, Off: *c.Off})
+				continue
+			}
 			p, err := itemChangePatch(c, classes, t)
 			if err != nil {
 				return nil, err
@@ -188,7 +196,8 @@ func itemRowKey(modID, file string, line int, name string, classes []*itemClass)
 	return shippedItemKey(found, name), found, nil
 }
 
-// itemChangePatch is a change of a shipped row: one field per number it sets.
+// itemChangePatch is a change of a shipped row: one field per number it sets,
+// and off when it switches the row.
 func itemChangePatch(c mod.ItemChange, classes []*itemClass, t *mapload.Table) (mod.Patch[string, itemRecord], error) {
 	key, cl, err := itemRowKey(c.Mod, c.File, c.Line, c.Item, classes)
 	if err != nil {
@@ -214,7 +223,12 @@ func itemChangePatch(c mod.ItemChange, classes []*itemClass, t *mapload.Table) (
 			fields = append(fields, mod.PatchField{Name: s.field, Line: c.Line})
 		}
 	}
-	return mod.Patch[string, itemRecord]{Source: mod.Source{Mod: c.Mod, File: c.File, Line: c.Line}, Key: key, Fields: fields,
+	off := false
+	if c.Off != nil {
+		off = *c.Off
+		fields = append(fields, mod.PatchField{Name: mod.OffField, Line: c.Line})
+	}
+	return mod.Patch[string, itemRecord]{Source: mod.Source{Mod: c.Mod, File: c.File, Line: c.Line}, Key: key, Fields: fields, Off: off,
 		Apply: func(rec *itemRecord) {
 			for _, s := range sets {
 				rec.params = data.WithReferenceColumn(rec.params, t.Shapes, t.Materials, s.a, s.v)
@@ -320,7 +334,7 @@ type pairPicture struct {
 // pairPicturesOf names the pairs of rec a mod allows and lists their
 // pictures: every pair of bits, and every pair whose [[material]] gives a
 // sprite. rowSprite is the sprite of every pair of an added weapon row.
-func pairPicturesOf(rec itemRecord, bits [data.ShopShapes]uint16, t *mapload.Table, rowSprite []byte,
+func pairPicturesOf(rec itemRecord, bits [data.ShopShapes]uint16, t *mapload.Table, rowSprite []byte, pictures map[string][]byte,
 	shown func(modID, file string, line int, name string) (string, error), names data.ItemNames) ([]pairPicture, error) {
 	var out []pairPicture
 	for shape := 0; shape < data.ShopShapes; shape++ {
@@ -347,7 +361,7 @@ func pairPicturesOf(rec itemRecord, bits [data.ShopShapes]uint16, t *mapload.Tab
 					names[code] = name
 				}
 				if pair.Sprite != "" {
-					icon, err := modItemSprite(pair.Mod, pair.File, pair.SpriteLine, pair.Dir, pair.Sprite)
+					icon, err := modItemSprite(pair.Mod, pair.File, pair.SpriteLine, pair.Dir, pair.Sprite, pictures)
 					if err != nil {
 						return nil, err
 					}
@@ -371,9 +385,13 @@ func rowName(rec itemRecord) string {
 }
 
 // modItemSprite is the inventory picture a mod's PNG gives, in the game's
-// icon format.
-func modItemSprite(modID, file string, line int, dir, rel string) ([]byte, error) {
-	png, _, err := mod.ItemSprite.ReadIn(dir, rel)
+// icon format. A path pictures holds is read from there, not from dir.
+func modItemSprite(modID, file string, line int, dir, rel string, pictures map[string][]byte) ([]byte, error) {
+	clean, err := mod.ItemSprite.Path(rel)
+	png, held := pictures[clean]
+	if err == nil && !held {
+		png, _, err = mod.ItemSprite.ReadIn(dir, rel)
+	}
 	if err != nil {
 		return nil, itemFileError(modID, file, line, "sprite %q: %v", rel, err)
 	}
@@ -538,7 +556,7 @@ func (f *FrontEnd) setModItems(items mod.ItemData) ([]mod.Override, error) {
 				}
 			}
 			if r.Sprite != "" {
-				if p.icon, err = modItemSprite(r.Mod, r.File, r.SpriteLine, r.Dir, r.Sprite); err != nil {
+				if p.icon, err = modItemSprite(r.Mod, r.File, r.SpriteLine, r.Dir, r.Sprite, items.Pictures); err != nil {
 					return nil, err
 				}
 			}
@@ -571,7 +589,7 @@ func (f *FrontEnd) setModItems(items mod.ItemData) ([]mod.Override, error) {
 			}
 			var sprite []byte
 			if w.Sprite != "" {
-				if sprite, err = modItemSprite(w.Mod, w.File, w.SpriteLine, w.Dir, w.Sprite); err != nil {
+				if sprite, err = modItemSprite(w.Mod, w.File, w.SpriteLine, w.Dir, w.Sprite, items.Pictures); err != nil {
 					return nil, err
 				}
 			}
@@ -584,7 +602,7 @@ func (f *FrontEnd) setModItems(items mod.ItemData) ([]mod.Override, error) {
 						Price: data.ItemPrice(rec.params[2], t.Shapes, t.Materials, shape, material)})
 				}
 			}
-			pics, err := pairPicturesOf(rec, rec.masks, t, sprite, shown, names)
+			pics, err := pairPicturesOf(rec, rec.masks, t, sprite, items.Pictures, shown, names)
 			if err != nil {
 				return nil, err
 			}
@@ -603,11 +621,18 @@ func (f *FrontEnd) setModItems(items mod.ItemData) ([]mod.Override, error) {
 			for s := range bits {
 				bits[s] = rec.masks[s] &^ shipped[s]
 			}
-			pics, err := pairPicturesOf(rec, bits, t, nil, shown, names)
+			pics, err := pairPicturesOf(rec, bits, t, nil, items.Pictures, shown, names)
 			if err != nil {
 				return nil, err
 			}
 			pairPictures = append(pairPictures, pics...)
+		}
+	}
+	// A shipped row switched off keeps its shipped numbers and allows no
+	// pair, so no shop rolls it; an item of it a save holds still loads.
+	for _, rec := range itemLayer0(classes) {
+		if _, off := l.Off[rec.key]; off {
+			rec.class.rows[rec.row] = data.OverlayRow{Name: rec.class.base.EntryName(rec.row), Params: rec.params, Raw: data.ItemMaskRaw([data.ShopShapes]uint16{})}
 		}
 	}
 

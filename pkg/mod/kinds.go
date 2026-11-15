@@ -163,8 +163,8 @@ var dataKinds = []DataKind{
 		Name: "items", Files: []string{ItemsFile}, Key: "the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row",
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
-		Shared: mergedShared + "; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too",
-		read:   readItems, text: true,
+		Shared: mergedShared + "; one field is one number of a row, one mask bit (row, tier, material) or `off`; two mods adding one key need `load-after` too",
+		read:   readItems, write: writeItems, text: true,
 		summary: func(d Data) string {
 			if d.Items.Empty() {
 				return ""

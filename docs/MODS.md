@@ -143,7 +143,7 @@ catalog. Every held data file is read automatically before the optional entry sc
 
 | kind | file | key | layer | two mods on one record | see |
 |---|---|---|---|---|---|
-| items | `data/items.toml` | the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too | Items, `DIV-1861`, `DIV-4005`, `DIV-4006`, `DIV-4007`, `docs/1272/story.md`, `docs/1509/story.md` |
+| items | `data/items.toml` | the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; one field is one number of a row, one mask bit (row, tier, material) or `off`; two mods adding one key need `load-after` too | Items, `DIV-1861`, `DIV-4005`, `DIV-4006`, `DIV-4007`, `docs/1272/story.md`, `docs/1509/story.md` |
 | characters | `data/characters.toml` | `key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows) | catalog, merged | catalog keys: yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after | Guest parties, `docs/1278/story.md`, `docs/1508/story.md`, `DIV-4002`, `DIV-4003` |
 | screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
@@ -547,6 +547,14 @@ a shipped row (`docs/1272/story.md`). `[[material]]` allows or forbids one
 material for one tier of a row. `[[weapon]]` adds a weapon row as a copy of a
 shipped one. Row, tier and material names are those of the install's
 `Data.bin`, which every first-game install spells in English.
+
+`off = true` in a `[[change]]` switches its row off; `off = false` switches it
+back on. An `[[item]]` or `[[weapon]]` row a mod adds, named by its `key`,
+then takes no item code: no shop, party or map offers it. A shipped row
+switched off keeps its shipped numbers, and every material mask of its tiers is
+emptied, so no shop sells it; an item of it a save already holds still loads.
+A change of an added row sets `off` only; its numbers are its own row's.
+The editor's Items page writes these tables (`docs/1666/story.md`).
 
 ### Materials on a row
 

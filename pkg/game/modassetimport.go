@@ -200,7 +200,8 @@ func (s *mapInspectionEdits) ImportModAsset(kind, source string, replace bool) (
 // importModFile puts data into the open project at rel as one undo step,
 // the commit of every import; a held file is replaced only when replace is
 // set, otherwise the answer is the question to ask.
-func (s *mapInspectionEdits) importModFile(rel string, data []byte, replace bool, again func() (*ui.InspectionDocument, error)) (string, *ui.InspectionDocument, error) {
+// A with edit runs in the import's own draft step, given the file's path.
+func (s *mapInspectionEdits) importModFile(rel string, data []byte, replace bool, again func() (*ui.InspectionDocument, error), with ...func(*editorWorkspaceState, string) error) (string, *ui.InspectionDocument, error) {
 	if held, ok := s.heldModFile(rel); ok {
 		if !replace {
 			s.assetAsk = &modAssetRequest{again: again}
@@ -215,6 +216,11 @@ func (s *mapInspectionEdits) importModFile(rel string, data []byte, replace bool
 			w.Project = m.document()
 		}
 		w.Project.Files[rel] = bytes.Clone(data)
+		for _, edit := range with {
+			if err := edit(w, rel); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -247,11 +253,11 @@ func (s *mapInspectionEdits) setModAsset(key, value string) (*ui.InspectionDocum
 }
 
 // importedModFile reports a project file an import or a page drafts: one
-// under assets or files, the terrain file or a strings file. A save drops
+// under assets or files, the terrain, items or a strings file. A save drops
 // from the folder such a file the last save wrote and the project no longer
 // holds.
 func importedModFile(name string) bool {
-	return strings.HasPrefix(name, mod.AssetsFolder+"/") || strings.HasPrefix(name, mod.FilesDir+"/") || name == mod.TerrainFile || slices.Contains(textStringsFiles(), name)
+	return strings.HasPrefix(name, mod.AssetsFolder+"/") || strings.HasPrefix(name, mod.FilesDir+"/") || name == mod.TerrainFile || name == mod.ItemsFile || slices.Contains(textStringsFiles(), name)
 }
 
 // isModAssetKey reports a key of the import route.

@@ -84,10 +84,11 @@ const (
 	modPageGraph           // the campaign as a graph
 	modPageTerrain         // the mod's tile groups and their strips
 	modPageTexts           // the mod's text keys in each language
+	modPageItems           // the item rows the mod adds, changes or switches off
 )
 
 // modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain", "editor.mod.texts"}
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain", "editor.mod.texts", "editor.mod.items"}
 
 // The workspace scopes of W's pages of a scope of their own.
 const (
@@ -95,6 +96,8 @@ const (
 	ModTerrainScope = "terrain"
 	// ModTextsScope is the fields of the open mod's text keys.
 	ModTextsScope = "texts"
+	// ModItemsScope is the fields of the open mod's item rows.
+	ModItemsScope = "items"
 )
 
 // modScopePages is W's pages that hold the workspace fields of a scope of
@@ -102,7 +105,7 @@ const (
 var modScopePages = []struct {
 	page  int
 	scope string
-}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}}
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageItems, ModItemsScope}}
 
 // modPageScope is the workspace scope of W's page n, "" for a page that
 // holds no fields of a scope of its own.

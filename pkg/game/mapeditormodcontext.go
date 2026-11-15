@@ -4,9 +4,11 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
+	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // editorContext is the definition table and the tileset the editor reads a
@@ -122,6 +124,9 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, vi
 	if err := draftTerrain(&result, m, modrt.LanguageFor(base), view.drafts); err != nil {
 		return err.Error()
 	}
+	if err := draftItems(&result, m, modrt.LanguageFor(base), view.drafts); err != nil {
+		return err.Error()
+	}
 	m.checkLines = ModCheckLines(result)
 	m.loaded = &result
 	issue := ""
@@ -191,6 +196,47 @@ func draftTerrain(result *modrt.Result, m *editorMod, lang string, drafts map[st
 		_, row := result.Terrain.Group(g)
 		return ok && !row
 	})
+	return nil
+}
+
+// draftItems puts the project's draft of the items file over result through
+// the items kind's reader, its names read from the drafted strings, and
+// hands the item layer the drafted sprites in place of the folder's. A
+// project that holds no items file has none, whatever the folder holds: an
+// undo past a save takes the saved file out. Records an older mod reads
+// from another file stay.
+func draftItems(result *modrt.Result, m *editorMod, lang string, drafts map[string][]byte) error {
+	if drafts == nil {
+		return nil
+	}
+	src := drafts[mod.ItemsFile]
+	fixed := func(file string) bool { return namefold.ModTree(file) == namefold.ModTree(mod.ItemsFile) }
+	d := &result.Items
+	d.Rows = slices.DeleteFunc(d.Rows, func(r mod.ItemRow) bool { return fixed(r.File) })
+	d.Changes = slices.DeleteFunc(d.Changes, func(c mod.ItemChange) bool { return fixed(c.File) })
+	d.Materials = slices.DeleteFunc(d.Materials, func(r mod.ItemMaterial) bool { return fixed(r.File) })
+	d.Weapons = slices.DeleteFunc(d.Weapons, func(r mod.WeaponRow) bool { return fixed(r.File) })
+	if d.Empty() {
+		d.Mods = nil
+	}
+	if src != nil {
+		look, err := (&editorModDocument{Files: drafts}).textLookup(lang)
+		if err != nil {
+			return err
+		}
+		kind, _ := mod.WrittenKind(mod.ItemsFile)
+		if err := kind.Read(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: lang, Text: look}, &result.Data, mod.ItemsFile, src); err != nil {
+			return err
+		}
+	}
+	for rel, b := range drafts {
+		if strings.HasPrefix(rel, mod.AssetsFolder+"/"+mod.ItemSprite.Kind+"/") && b != nil {
+			if result.Items.Pictures == nil {
+				result.Items.Pictures = map[string][]byte{}
+			}
+			result.Items.Pictures[rel] = b
+		}
+	}
 	return nil
 }
 

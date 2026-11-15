@@ -358,6 +358,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	if scope == ui.ModTextsScope {
 		return s.textsFields()
 	}
+	if scope == ui.ModItemsScope {
+		return s.itemsFields()
+	}
 	if s.model == nil && scope != "package" {
 		return nil
 	}
@@ -454,6 +457,9 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	}
 	if scope == ui.ModTextsScope {
 		return s.setTextsField(key, value)
+	}
+	if scope == ui.ModItemsScope {
+		return s.setItemsField(key, value)
 	}
 	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
@@ -719,15 +725,18 @@ func (s *mapInspectionEdits) packageProtected() []packageGuard {
 
 // contextDraft is the part of the project the mod's context reads from its
 // drafts, each file named with its bytes: the speakers file, the terrain
-// file and the install files under files/. A change of it builds the
-// context again.
+// file, the install files under files/, and the items file with its
+// sprites and, as they name its rows, the strings files. A change of it
+// builds the context again.
 func (w *editorWorkspaceState) contextDraft() []byte {
 	if w == nil || w.Project == nil {
 		return nil
 	}
+	_, items := w.Project.Files[mod.ItemsFile]
 	var b bytes.Buffer
 	for _, name := range slices.Sorted(maps.Keys(w.Project.Files)) {
-		if name != mod.SpeakersFile && name != mod.TerrainFile && !strings.HasPrefix(name, mod.FilesDir+"/") {
+		item := name == mod.ItemsFile || strings.HasPrefix(name, mod.AssetsFolder+"/"+mod.ItemSprite.Kind+"/") || items && slices.Contains(textStringsFiles(), name)
+		if name != mod.SpeakersFile && name != mod.TerrainFile && !strings.HasPrefix(name, mod.FilesDir+"/") && !item {
 			continue
 		}
 		v := w.Project.Files[name]

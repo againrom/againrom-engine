@@ -143,6 +143,10 @@ type ItemChange struct {
 	Absorption *int32
 	Weight     *int32
 	Price      *int32
+	// Off, when set, switches the row off (true) or back on: an item or
+	// weapon row a mod adds then takes no code, and a shipped row no shop
+	// place. It is the one field a change of an added row may set.
+	Off *bool
 }
 
 // ItemData is what the mods of a set add and edit, in load order.
@@ -151,6 +155,9 @@ type ItemData struct {
 	Changes   []ItemChange
 	Materials []ItemMaterial
 	Weapons   []WeaponRow
+	// Pictures are sprite PNGs by their clean path in the mod, read in place
+	// of the mod's file: the editor's drafts not written yet.
+	Pictures map[string][]byte
 	// Mods are the mods that declare items, in load order.
 	Mods []string
 	// Order is the load order the mods state, which the layer step reads.
@@ -558,6 +565,13 @@ func itemChangeFrom(id, file string, t tomlTable) (ItemChange, error) {
 			}
 			c.Item = p.val.str
 			continue
+		case "off":
+			if p.val.kind != tomlBool {
+				return ItemChange{}, bad(p.line, "off must be true or false, not %s", p.val.kind)
+			}
+			off := p.val.flag
+			c.Off = &off
+			continue
 		case "defence":
 			dst, max = &c.Defence, maxItemDefence
 		case "absorption":
@@ -581,7 +595,7 @@ func itemChangeFrom(id, file string, t tomlTable) (ItemChange, error) {
 	if c.Item == "" {
 		return ItemChange{}, bad(t.line, "[[change]] has no item")
 	}
-	if c.Defence == nil && c.Absorption == nil && c.Weight == nil && c.Price == nil {
+	if c.Defence == nil && c.Absorption == nil && c.Weight == nil && c.Price == nil && c.Off == nil {
 		return ItemChange{}, bad(t.line, "[[change]] of %q changes nothing", c.Item)
 	}
 	return c, nil

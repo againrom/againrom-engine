@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -56,11 +57,25 @@ func (m *editorMod) document() *editorModDocument {
 			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
 		}
 	}
-	for _, rel := range append([]string{mod.TerrainFile}, textStringsFiles()...) {
+	for _, rel := range append([]string{mod.TerrainFile, mod.ItemsFile}, textStringsFiles()...) {
 		if src, err := modDataFile(m.dir, rel); err == nil && src != nil {
 			d.Files[rel] = src
 		}
 	}
+	// The item sprites stay in the project with their bytes for the same
+	// reason as the strips below.
+	sprites := mod.AssetsFolder + "/" + mod.ItemSprite.Kind
+	filepath.WalkDir(filepath.Join(m.dir, filepath.FromSlash(sprites)), func(p string, e fs.DirEntry, err error) error {
+		if err != nil || e.IsDir() {
+			return nil
+		}
+		if rel, err := filepath.Rel(m.dir, p); err == nil && mod.ItemSprite.Names(filepath.ToSlash(rel)) {
+			if data, err := os.ReadFile(p); err == nil {
+				d.Files[filepath.ToSlash(rel)] = data
+			}
+		}
+		return nil
+	})
 	// The strips the page manages that the folder holds stay in the project
 	// with their bytes, so an undo past a save restores them.
 	for g := alm.InstallTileGroups; g < alm.TileGroupCount; g++ {
