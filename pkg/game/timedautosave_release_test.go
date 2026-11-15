@@ -275,7 +275,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 		t.Fatal("delete did not return to map")
 	}
 	base := strings.TrimSuffix(path, ".sav")
-	for _, ext := range []string{".sav", timedOwnerExtension} {
+	for _, ext := range []string{".sav", timedSlots.ownerExt} {
 		if _, err := os.Stat(base + ext); !os.IsNotExist(err) {
 			t.Fatal("ordinary chooser retained verified pair", ext, err)
 		}
@@ -288,7 +288,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 	if err != nil {
 		t.Fatal("ordinary delete stopped installed timed recovery", err)
 	}
-	owner, err := os.ReadFile(base + timedOwnerExtension)
+	owner, err := os.ReadFile(base + timedSlots.ownerExt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +302,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 	if got, err := os.ReadFile(protected); err != nil || !bytes.Equal(got, foreign) {
 		t.Fatal("foreign slot changed", err)
 	}
-	if _, err := os.Stat(strings.TrimSuffix(protected, ".sav") + timedOwnerExtension); !os.IsNotExist(err) {
+	if _, err := os.Stat(strings.TrimSuffix(protected, ".sav") + timedSlots.ownerExt); !os.IsNotExist(err) {
 		t.Fatal("foreign slot was adopted", err)
 	}
 	t.Logf("recovery: protected slot2, slot3 source tick%d/next tick%d, ordinary Delete removes verified pair and timed write resumes", sourceTick, sourceTick+16)

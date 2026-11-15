@@ -63,11 +63,11 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 			var lastHash uint64
 			for i := range 5 {
 				for attempts := 0; app.HeadlessNoticeOpen() && attempts < 32; attempts++ {
-					before := readQuickSaveSlots(testQuickKind, store.Dir)
+					before := testQuickKind.scan(store.Dir)
 					if err := app.HeadlessKey("f2"); err != nil {
 						t.Fatal(err)
 					}
-					if !reflect.DeepEqual(before, readQuickSaveSlots(testQuickKind, store.Dir)) {
+					if !reflect.DeepEqual(before, testQuickKind.scan(store.Dir)) {
 						t.Fatal("notice admitted F4")
 					}
 					if err := app.HeadlessActivate("notice"); err != nil {
@@ -94,7 +94,7 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 				if err != nil {
 					t.Fatal("missing-write loss control", err)
 				}
-				owner, err := os.ReadFile(strings.TrimSuffix(path, ".sav") + quickOwnerExtension)
+				owner, err := os.ReadFile(strings.TrimSuffix(path, ".sav") + quickSlots.ownerExt)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -208,7 +208,7 @@ func quickLoadCold(t *testing.T, path string) {
 	store := SaveStore{Dir: t.TempDir()}
 	for slot := range 3 {
 		base := string(quickSaveBase(slot))
-		for _, ext := range []string{".sav", quickOwnerExtension} {
+		for _, ext := range []string{".sav", quickSlots.ownerExt} {
 			raw, err := os.ReadFile(filepath.Join(filepath.Dir(path), base+ext))
 			if err != nil {
 				t.Fatal(err)
@@ -218,7 +218,7 @@ func quickLoadCold(t *testing.T, path string) {
 			}
 		}
 	}
-	raw, err := newestQuickSave(readQuickSaveSlots(testQuickKind, store.Dir))
+	raw, err := newestQuickSave(testQuickKind.scan(store.Dir))
 	if err != nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != proof.SHA256 {
 		t.Fatal("cold newest ownership", err)
 	}
@@ -277,7 +277,7 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 			t.Fatal(err)
 		}
 	}
-	for _, ext := range []string{".sav", quickOwnerExtension} {
+	for _, ext := range []string{".sav", quickSlots.ownerExt} {
 		if _, err := os.Stat(filepath.Join(store.Dir, "rom1-quick-save-2") + ext); !os.IsNotExist(err) {
 			t.Fatal("ordinary delete retained quick pair", err)
 		}
@@ -285,7 +285,7 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(testQuickKind, store.Dir); slots[1].sequence != 5 {
+	if slots := testQuickKind.scan(store.Dir); slots[1].sequence != 5 {
 		t.Fatal("deleted slot did not recover with highest surviving sequence plus one", slots[1].sequence)
 	}
 }

@@ -23,9 +23,40 @@ type ownedSlotKind struct {
 }
 
 var (
-	quickSlots = ownedSlotKind{"quick", "againrom-quick-sav", "quick-save", quickOwnerExtension, ""}
-	timedSlots = ownedSlotKind{"timed", "againrom-timed-sav", "timed-autosave", timedOwnerExtension, ""}
+	quickSlots = ownedSlotKind{"quick", "againrom-quick-sav", "quick-save", ".quick-owner", ""}
+	timedSlots = ownedSlotKind{"timed", "againrom-timed-sav", "timed-autosave", ".timed-owner", ""}
 )
+
+type ownedSlot struct {
+	free     bool
+	sequence uint64
+	raw      []byte
+}
+
+func (k ownedSlotKind) scan(dir string) [3]ownedSlot {
+	var slots [3]ownedSlot
+	for slot := range slots {
+		base := filepath.Join(dir, string(k.slotBase(slot)))
+		info, err := os.Lstat(base + ".sav")
+		ownerInfo, ownerErr := os.Lstat(base + k.ownerExt)
+		if os.IsNotExist(err) && os.IsNotExist(ownerErr) {
+			slots[slot].free = true
+			continue
+		}
+		if err != nil || ownerErr != nil || !info.Mode().IsRegular() || !ownerInfo.Mode().IsRegular() {
+			continue
+		}
+		raw, err := ReadSaveFile(base + ".sav")
+		owner, ownerErr := ReadSaveFile(base + k.ownerExt)
+		if err != nil || ownerErr != nil {
+			continue
+		}
+		if sequence, err := k.validatePair(slot, raw, owner); err == nil {
+			slots[slot] = ownedSlot{sequence: sequence, raw: raw}
+		}
+	}
+	return slots
+}
 
 // forGame is the kind's slots of game g.
 func (k ownedSlotKind) forGame(g base.Game) ownedSlotKind {

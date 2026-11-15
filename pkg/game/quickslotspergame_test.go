@@ -137,7 +137,7 @@ func TestQuickAndTimedSlotsAreEachGamesOwn(t *testing.T) {
 		t.Error("the two games' first quick saves are one file")
 	}
 
-	rom1Slots := readQuickSaveSlots(quickSlots.forGame(base.GameROM1), dir)
+	rom1Slots := quickSlots.forGame(base.GameROM1).scan(dir)
 	raw, err := newestQuickSave(rom1Slots)
 	if err != nil || !bytes.Equal(raw, files["rom1-quick-save-3.sav"]) {
 		t.Fatalf("the first game's newest quick save is not its own third: %v", err)

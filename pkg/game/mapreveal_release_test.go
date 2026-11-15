@@ -139,7 +139,7 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 	if err != nil {
 		t.Fatal("bare F4 missing-write loss control", err)
 	}
-	owner, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-1"+quickOwnerExtension))
+	owner, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-1"+quickSlots.ownerExt))
 	if err != nil {
 		t.Fatal(err)
 	}

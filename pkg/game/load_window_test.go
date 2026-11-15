@@ -11,7 +11,7 @@ import (
 type failTimedDelete struct{ osNamedSaveFiles }
 
 func (f failTimedDelete) Remove(path string) error {
-	if filepath.Ext(path) == timedOwnerExtension {
+	if filepath.Ext(path) == timedSlots.ownerExt {
 		return errors.New("injected companion deletion failure")
 	}
 	return f.osNamedSaveFiles.Remove(path)
@@ -38,7 +38,7 @@ func TestLoadDeleteTimedPairAuthorityAndRollback(t *testing.T) {
 				t.Fatal(err)
 			}
 			base := filepath.Join(store.Dir, string(timedSaveBase(0)))
-			owner, err := os.ReadFile(base + timedOwnerExtension)
+			owner, err := os.ReadFile(base + timedSlots.ownerExt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -47,13 +47,13 @@ func TestLoadDeleteTimedPairAuthorityAndRollback(t *testing.T) {
 				if err := os.WriteFile(base+".sav", raw, 0600); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(base+timedOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(base+timedSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if kind == "foreign owner" {
 				owner = []byte("foreign marker")
-				if err := os.WriteFile(base+timedOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(base+timedSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -67,7 +67,7 @@ func TestLoadDeleteTimedPairAuthorityAndRollback(t *testing.T) {
 			}
 			if kind == "changed owner" {
 				owner = append(owner, ' ')
-				if err := os.WriteFile(base+timedOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(base+timedSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -94,7 +94,7 @@ func TestLoadDeleteTimedPairAuthorityAndRollback(t *testing.T) {
 					t.Fatal("SAV lost during refused deletion", err)
 				}
 			}
-			if got, err := os.ReadFile(base + timedOwnerExtension); err != nil || !bytes.Equal(got, owner) {
+			if got, err := os.ReadFile(base + timedSlots.ownerExt); err != nil || !bytes.Equal(got, owner) {
 				t.Fatal("companion lost or altered", err)
 			}
 			entries, err := os.ReadDir(store.Dir)

@@ -155,7 +155,7 @@ func prepareOwnedNamedSave(directory string, base validatedSaveName, payloads []
 	targets := make([]namedSaveTarget, 0, len(payloads))
 	seen := make(map[string]bool)
 	for _, payload := range payloads {
-		if payload.ext != ".ags" && payload.ext != ".sav" && payload.ext != timedOwnerExtension && payload.ext != quickOwnerExtension || seen[payload.ext] || len(payload.data) > maxSaveBytes || len(payload.data) == 0 {
+		if payload.ext != ".ags" && payload.ext != ".sav" && payload.ext != timedSlots.ownerExt && payload.ext != quickSlots.ownerExt || seen[payload.ext] || len(payload.data) > maxSaveBytes || len(payload.data) == 0 {
 			return out, fmt.Errorf("invalid named save payload")
 		}
 		seen[payload.ext] = true

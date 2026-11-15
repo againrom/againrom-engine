@@ -3,15 +3,11 @@ package game
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"againrom/pkg/ui"
 )
-
-const timedOwnerExtension = ".timed-owner"
 
 func (s OptionsStore) timedAutosave() (ui.TimedAutosaveSettings, error) {
 	v := ui.TimedAutosaveSettings{Enabled: true, Minutes: 5}
@@ -48,28 +44,12 @@ func timedSavePosition(kind ownedSlotKind, dir string) (int, uint64, error) {
 	var newest uint64
 	next := 0
 	var writable [3]bool
-	for slot := range 3 {
-		base := filepath.Join(dir, string(kind.slotBase(slot)))
-		saveInfo, saveErr := os.Lstat(base + ".sav")
-		ownerInfo, ownerStatErr := os.Lstat(base + timedOwnerExtension)
-		if os.IsNotExist(saveErr) && os.IsNotExist(ownerStatErr) {
+	for slot, found := range kind.scan(dir) {
+		if found.free || found.sequence != 0 {
 			writable[slot] = true
-			continue
 		}
-		if saveErr != nil || ownerStatErr != nil || !saveInfo.Mode().IsRegular() || !ownerInfo.Mode().IsRegular() {
-			continue
-		}
-		raw, err := ReadSaveFile(base + ".sav")
-		owner, ownerErr := ReadSaveFile(base + timedOwnerExtension)
-		if err != nil || ownerErr != nil {
-			continue
-		}
-		sequence, err := kind.validatePair(slot, raw, owner)
-		if err == nil {
-			writable[slot] = true
-			if sequence > newest {
-				newest, next = sequence, (slot+1)%3
-			}
+		if found.sequence > newest {
+			newest, next = found.sequence, (slot+1)%3
 		}
 	}
 	if newest == math.MaxUint64 {

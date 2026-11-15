@@ -44,7 +44,7 @@ func TestQuickSaveOldestNewestAndStableTies(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			slots := readQuickSaveSlots(testQuickKind, store.Dir)
+			slots := testQuickKind.scan(store.Dir)
 			wantSlot, wantNext := 0, sequences[0]+1
 			if sequences == [3]uint64{10, 1, 100} {
 				wantSlot, wantNext = 1, 101
@@ -67,7 +67,7 @@ func TestQuickSaveOldestNewestAndStableTies(t *testing.T) {
 			}
 		})
 	}
-	slots := [3]quickSaveSlot{{sequence: 20}, {free: true}, {sequence: 5}}
+	slots := [3]ownedSlot{{sequence: 20}, {free: true}, {sequence: 5}}
 	if slot, seq, err := quickSavePosition(slots); err != nil || slot != 1 || seq != 21 {
 		t.Fatal("free slot first", slot, seq, err)
 	}
@@ -75,7 +75,7 @@ func TestQuickSaveOldestNewestAndStableTies(t *testing.T) {
 	if _, _, err := quickSavePosition(slots); err == nil {
 		t.Fatal("sequence wrapped")
 	}
-	if _, err := newestQuickSave([3]quickSaveSlot{}); err == nil {
+	if _, err := newestQuickSave([3]ownedSlot{}); err == nil {
 		t.Fatal("unverified filename fallback")
 	}
 }
@@ -97,12 +97,12 @@ func TestQuickSaveProtectedSlotsAndBoundedRecovery(t *testing.T) {
 				owner = []byte("foreign owner")
 			}
 			if kind != "foreign" {
-				if err := os.WriteFile(base+quickOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(base+quickSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			for seq := uint64(1); seq <= 7; seq++ {
-				slot, next, err := quickSavePosition(readQuickSaveSlots(testQuickKind, store.Dir))
+				slot, next, err := quickSavePosition(testQuickKind.scan(store.Dir))
 				want := 0
 				if seq%2 == 0 {
 					want = 2
@@ -120,16 +120,16 @@ func TestQuickSaveProtectedSlotsAndBoundedRecovery(t *testing.T) {
 				}
 			}
 			if kind != "foreign" {
-				if got, err := os.ReadFile(base + quickOwnerExtension); err != nil || !bytes.Equal(got, owner) {
+				if got, err := os.ReadFile(base + quickSlots.ownerExt); err != nil || !bytes.Equal(got, owner) {
 					t.Fatal("protected owner changed", err)
 				}
 			}
 			for _, slot := range []int{0, 2} {
-				if err := os.WriteFile(filepath.Join(store.Dir, string(quickSaveBase(slot)))+quickOwnerExtension, []byte("invalid"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(store.Dir, string(quickSaveBase(slot)))+quickSlots.ownerExt, []byte("invalid"), 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if _, _, err := quickSavePosition(readQuickSaveSlots(testQuickKind, store.Dir)); err == nil {
+			if _, _, err := quickSavePosition(testQuickKind.scan(store.Dir)); err == nil {
 				t.Fatal("all blocked accepted")
 			}
 		})
@@ -139,7 +139,7 @@ func TestQuickSaveProtectedSlotsAndBoundedRecovery(t *testing.T) {
 type failQuickDelete struct{ osNamedSaveFiles }
 
 func (f failQuickDelete) Remove(path string) error {
-	if filepath.Ext(path) == quickOwnerExtension {
+	if filepath.Ext(path) == quickSlots.ownerExt {
 		return errors.New("injected quick companion deletion failure")
 	}
 	return f.osNamedSaveFiles.Remove(path)
@@ -159,7 +159,7 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 				if err := writeQuickSave(store, nil, 0, 1, raw, &failTimedPublish{failAt: 2}); err == nil {
 					t.Fatal("no failure")
 				}
-				for _, ext := range []string{".sav", quickOwnerExtension} {
+				for _, ext := range []string{".sav", quickSlots.ownerExt} {
 					if _, err := os.Stat(base + ext); !os.IsNotExist(err) {
 						t.Fatal("partial new pair", err)
 					}
@@ -168,7 +168,7 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 				if err := writeQuickSave(store, nil, 0, 1, raw, nil); err != nil {
 					t.Fatal(err)
 				}
-				owner, err := os.ReadFile(base + quickOwnerExtension)
+				owner, err := os.ReadFile(base + quickSlots.ownerExt)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -176,7 +176,7 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 					if err := writeQuickSave(store, nil, 0, 2, raw, &failTimedPublish{failAt: 2}); err == nil {
 						t.Fatal("no overwrite failure")
 					}
-					if got, err := os.ReadFile(base + quickOwnerExtension); err != nil || !bytes.Equal(got, owner) {
+					if got, err := os.ReadFile(base + quickSlots.ownerExt); err != nil || !bytes.Equal(got, owner) {
 						t.Fatal("old owner lost", err)
 					}
 					if got, err := os.ReadFile(base + ".sav"); err != nil || !bytes.Equal(got, raw) {
@@ -185,7 +185,7 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 				} else {
 					if kind == "foreign owner" {
 						owner = []byte("foreign")
-						if err := os.WriteFile(base+quickOwnerExtension, owner, 0600); err != nil {
+						if err := os.WriteFile(base+quickSlots.ownerExt, owner, 0600); err != nil {
 							t.Fatal(err)
 						}
 					}
@@ -199,7 +199,7 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 					}
 					if kind == "changed owner" {
 						owner = append(owner, ' ')
-						if err := os.WriteFile(base+quickOwnerExtension, owner, 0600); err != nil {
+						if err := os.WriteFile(base+quickSlots.ownerExt, owner, 0600); err != nil {
 							t.Fatal(err)
 						}
 					}
@@ -215,10 +215,10 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 						t.Fatal(err)
 					}
 					if kind == "delete success" {
-						if _, err := os.Stat(base + quickOwnerExtension); !os.IsNotExist(err) {
+						if _, err := os.Stat(base + quickSlots.ownerExt); !os.IsNotExist(err) {
 							t.Fatal("owned companion retained", err)
 						}
-					} else if got, err := os.ReadFile(base + quickOwnerExtension); err != nil || !bytes.Equal(got, owner) {
+					} else if got, err := os.ReadFile(base + quickSlots.ownerExt); err != nil || !bytes.Equal(got, owner) {
 						t.Fatal("protected companion changed", err)
 					}
 				}
@@ -232,14 +232,14 @@ func TestQuickSavePublicationDeleteAndCapturedBytes(t *testing.T) {
 	if err := writeQuickSave(store, nil, 0, 1, raw, nil); err != nil {
 		t.Fatal(err)
 	}
-	captured := readQuickSaveSlots(testQuickKind, store.Dir)
+	captured := testQuickKind.scan(store.Dir)
 	if err := os.WriteFile(filepath.Join(store.Dir, string(quickSaveBase(0)))+".sav", []byte("replaced path"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := newestQuickSave(captured); err != nil || !bytes.Equal(got, raw) {
 		t.Fatal("selection reread path", err)
 	}
-	if _, err := newestQuickSave(readQuickSaveSlots(testQuickKind, store.Dir)); err == nil {
+	if _, err := newestQuickSave(testQuickKind.scan(store.Dir)); err == nil {
 		t.Fatal("new selection admitted changed pair")
 	}
 }
@@ -311,7 +311,7 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(testQuickKind, store.Dir); slots[1].sequence != 1 {
+	if slots := testQuickKind.scan(store.Dir); slots[1].sequence != 1 {
 		t.Fatal("actual App retry did not find healthy slot")
 	}
 	prior, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-2.sav"))
@@ -339,7 +339,7 @@ func TestQuickSaveAppFailureRecoveryAndManualDestination(t *testing.T) {
 	if err := app.HeadlessKey("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if slots := readQuickSaveSlots(testQuickKind, other); slots[0].sequence != 1 {
+	if slots := testQuickKind.scan(other); slots[0].sequence != 1 {
 		t.Fatal("quick did not follow committed manual destination")
 	}
 	if got, err := os.ReadFile(filepath.Join(store.Dir, "rom1-quick-save-2.sav")); err != nil || !bytes.Equal(got, prior) {

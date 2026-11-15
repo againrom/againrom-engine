@@ -3,46 +3,11 @@ package game
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 
 	"againrom/pkg/ui"
 )
 
-const quickOwnerExtension = ".quick-owner"
-
-type quickSaveSlot struct {
-	free     bool
-	sequence uint64
-	raw      []byte
-}
-
-func readQuickSaveSlots(kind ownedSlotKind, dir string) [3]quickSaveSlot {
-	var slots [3]quickSaveSlot
-	for slot := range slots {
-		base := filepath.Join(dir, string(kind.slotBase(slot)))
-		info, err := os.Lstat(base + ".sav")
-		ownerInfo, ownerErr := os.Lstat(base + quickOwnerExtension)
-		if os.IsNotExist(err) && os.IsNotExist(ownerErr) {
-			slots[slot].free = true
-			continue
-		}
-		if err != nil || ownerErr != nil || !info.Mode().IsRegular() || !ownerInfo.Mode().IsRegular() {
-			continue
-		}
-		raw, err := ReadSaveFile(base + ".sav")
-		owner, ownerErr := ReadSaveFile(base + quickOwnerExtension)
-		if err != nil || ownerErr != nil {
-			continue
-		}
-		if sequence, err := kind.validatePair(slot, raw, owner); err == nil {
-			slots[slot] = quickSaveSlot{sequence: sequence, raw: raw}
-		}
-	}
-	return slots
-}
-
-func quickSavePosition(slots [3]quickSaveSlot) (int, uint64, error) {
+func quickSavePosition(slots [3]ownedSlot) (int, uint64, error) {
 	chosen := -1
 	var newest uint64
 	for slot, value := range slots {
@@ -62,7 +27,7 @@ func quickSavePosition(slots [3]quickSaveSlot) (int, uint64, error) {
 	return chosen, newest + 1, nil
 }
 
-func newestQuickSave(slots [3]quickSaveSlot) ([]byte, error) {
+func newestQuickSave(slots [3]ownedSlot) ([]byte, error) {
 	chosen := -1
 	for slot, value := range slots {
 		if value.sequence != 0 && (chosen < 0 || value.sequence > slots[chosen].sequence) {
@@ -92,7 +57,7 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 			}
 			notifySaveCapture(observers, "f4", snapshot)
 			kind := quickSlots.forGame(f.savedGame())
-			slot, sequence, err := quickSavePosition(readQuickSaveSlots(kind, current.Dir))
+			slot, sequence, err := quickSavePosition(kind.scan(current.Dir))
 			if err != nil {
 				return err
 			}
@@ -104,7 +69,7 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 		},
 		Load: func() (ui.MapOpener, bool, error) {
 			queue.wait()
-			raw, err := newestQuickSave(readQuickSaveSlots(quickSlots.forGame(f.savedGame()), current.Dir))
+			raw, err := newestQuickSave(quickSlots.forGame(f.savedGame()).scan(current.Dir))
 			if err != nil {
 				return nil, false, err
 			}

@@ -122,7 +122,7 @@ func TestTimedAutosaveDeletedSlotRecovery(t *testing.T) {
 		t.Fatal("delete did not return to the live map", app.Screen())
 	}
 	base := filepath.Join(store.Dir, string(timedSaveBase(1)))
-	for _, ext := range []string{".sav", timedOwnerExtension} {
+	for _, ext := range []string{".sav", timedSlots.ownerExt} {
 		if _, err := os.Stat(base + ext); !os.IsNotExist(err) {
 			t.Errorf("owned delete retained %s: %v", ext, err)
 		}
@@ -139,7 +139,7 @@ func TestTimedAutosaveDeletedSlotRecovery(t *testing.T) {
 		if err != nil {
 			t.Fatal("rotation did not recover after player deletion", err)
 		}
-		owner, err := os.ReadFile(base + timedOwnerExtension)
+		owner, err := os.ReadFile(base + timedSlots.ownerExt)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -175,7 +175,7 @@ func TestTimedAutosaveProtectedSlotRecovery(t *testing.T) {
 				owner = []byte("foreign companion")
 			}
 			if kind != "foreign" {
-				if err := os.WriteFile(base+timedOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(base+timedSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -193,7 +193,7 @@ func TestTimedAutosaveProtectedSlotRecovery(t *testing.T) {
 				if err != nil {
 					t.Fatal("healthy slot did not receive current save", sequence, err)
 				}
-				marker, err := os.ReadFile(path + timedOwnerExtension)
+				marker, err := os.ReadFile(path + timedSlots.ownerExt)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -207,7 +207,7 @@ func TestTimedAutosaveProtectedSlotRecovery(t *testing.T) {
 				}
 			}
 			if kind != "foreign" {
-				if got, err := os.ReadFile(base + timedOwnerExtension); err != nil || !bytes.Equal(got, owner) {
+				if got, err := os.ReadFile(base + timedSlots.ownerExt); err != nil || !bytes.Equal(got, owner) {
 					t.Fatal("protected companion changed", err)
 				}
 			}
@@ -329,7 +329,7 @@ func TestTimedAutosaveOwnedRotationAndRollback(t *testing.T) {
 			}
 			path := filepath.Join(store.Dir, string(timedSaveBase(0)))
 			if existing {
-				owner, err := os.ReadFile(path + timedOwnerExtension)
+				owner, err := os.ReadFile(path + timedSlots.ownerExt)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -384,7 +384,7 @@ func TestTimedAutosaveOwnedRotationAndRollback(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(path+timedOwnerExtension, owner, 0600); err != nil {
+				if err := os.WriteFile(path+timedSlots.ownerExt, owner, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -392,7 +392,7 @@ func TestTimedAutosaveOwnedRotationAndRollback(t *testing.T) {
 				t.Fatal(err)
 			}
 			if kind == "changed owner" {
-				if err := os.WriteFile(path+timedOwnerExtension, []byte("unowned"), 0600); err != nil {
+				if err := os.WriteFile(path+timedSlots.ownerExt, []byte("unowned"), 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
