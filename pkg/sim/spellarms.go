@@ -159,6 +159,22 @@ func (w *World) sourceSightCut(ti int, rule SpellRule, kind EffectKind, cut int3
 	return max(cut, -room)
 }
 
+// landingMagnitude is the magnitude of the rule's effect of kind and
+// magnitude mag where it lands on entity ti: the arm's class column, then the
+// bound on a unit with a source basis. Every landing site takes its magnitude
+// from here.
+func (w *World) landingMagnitude(ti int, rule SpellRule, kind EffectKind, mag int32) int32 {
+	mag = spellArmOf(rule.arm()).sightCut(&w.entities[ti], kind, mag)
+	return w.sourceSightCut(ti, rule, kind, mag)
+}
+
+// landEffectDelta lands a non-timed effect on entity ti and reports whether
+// it applied: the delta landed, or the unit has no source basis to refuse it.
+func (w *World) landEffectDelta(ti int, rule SpellRule, kind EffectKind, mag int32) bool {
+	_, ok := w.applyEffectDelta(ti, kind, w.landingMagnitude(ti, rule, kind, mag))
+	return ok || w.entities[ti].ActorLoad.Source.Class == 0
+}
+
 // secondArmRow is an arm's second-game difference: Stone Curse's drawn
 // duration and blank effect (R2-ENGINE-025, R2-ENGINE-453); Invisibility's
 // P << 4 (R2-ENGINE-022); on every arm, the Effect renewal that keeps the
