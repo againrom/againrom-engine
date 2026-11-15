@@ -94,41 +94,88 @@ func waitSightCloudOut(t *testing.T, w *World, id EntityID) {
 	t.Fatal("the cloud or its effect never ended")
 }
 
-// A Darkness cloud over the player's own unit shrinks the sight its owner's
-// fog stamp lights, and the count returns when the effect ends; a Light cloud
-// grows it. Both games, at the powers of an early and a late campaign mage.
-func TestADarknessCloudShrinksAndLightGrowsThePlayersSight(t *testing.T) {
+// darkSightCreature is the player's creature, not Humanoid, at (x,y) with a
+// whole-cell sight of 8.
+func darkSightCreature(id EntityID, x, y int32) Entity {
+	return Entity{ID: id, X: x, Y: y, Owner: SelfSlot, ScanRange: 8, HP: 200, MaxHP: 200, TokenSize: 1}
+}
+
+// A cloud at power 90 over the player's creature and hero cuts 4 cells after
+// the first pulse: Light off the creature's sight and not the hero's,
+// Darkness off the hero's and not the creature's; both return when the effect
+// ends. A creature of sight 2 stops at 0 under Light (DIV-4949). Both games.
+func TestLightCutsACreaturesSightAndDarknessAHeros(t *testing.T) {
 	t.Parallel()
 	for _, second := range []bool{false, true} {
 		for _, dark := range []bool{true, false} {
-			for _, power := range []uint16{0, 20, 60, 110} {
-				rule := darkSightRow(second, dark)
-				w := darkSightWorld(t, second, rule, darkSightHero(2))
-				before := litCount(w.Sight(SelfSlot))
-				scanBefore := laEnt(t, w, 2).ScanRange
-				landSightCloud(t, w, rule, power, 2)
-				under := litCount(w.Sight(SelfSlot))
-				hero := laEnt(t, w, 2)
-				t.Logf("second %v dark %v power %d: scan %d -> %d, cells %d -> %d",
-					second, dark, power, scanBefore, hero.ScanRange, before, under)
-				if hero.X != 40 || hero.Y != 40 {
-					t.Fatalf("fixture: the hero moved to (%d,%d)", hero.X, hero.Y)
-				}
-				if dark && under >= before || !dark && under <= before {
-					t.Errorf("second %v dark %v power %d: the player's sight lights %d cells under the cloud, %d before",
-						second, dark, power, under, before)
-				}
-				waitSightCloudOut(t, w, 2)
-				if after := litCount(w.Sight(SelfSlot)); after != before || laEnt(t, w, 2).ScanRange != scanBefore {
-					t.Errorf("second %v dark %v power %d: after the effect the sight lights %d cells at scan %d, want %d at %d",
-						second, dark, power, after, laEnt(t, w, 2).ScanRange, before, scanBefore)
+			rule := darkSightRow(second, dark)
+			short := darkSightCreature(4, 40, 41)
+			short.ScanRange = 2
+			w := darkSightWorld(t, second, rule, darkSightHero(2), darkSightCreature(3, 41, 40), short)
+			hero, creature := laEnt(t, w, 2).ScanRange, laEnt(t, w, 3).ScanRange
+			landSightCloud(t, w, rule, 90, 2)
+			if !scanEffectOn(w, 3) || !scanEffectOn(w, 4) {
+				t.Fatalf("second %v dark %v: the first pulse reached the hero and not both creatures", second, dark)
+			}
+			wantHero, wantCreature, wantShort := hero, creature-4, uint8(0)
+			if dark {
+				wantHero, wantCreature, wantShort = hero-4, creature, 2
+			}
+			h, c, s := laEnt(t, w, 2).ScanRange, laEnt(t, w, 3).ScanRange, laEnt(t, w, 4).ScanRange
+			if h != wantHero || c != wantCreature || s != wantShort {
+				t.Errorf("second %v dark %v: hero sight %d -> %d, creature %d -> %d, short 2 -> %d; want %d, %d and %d",
+					second, dark, hero, h, creature, c, s, wantHero, wantCreature, wantShort)
+			}
+			waitSightCloudOut(t, w, 2)
+			waitSightCloudOut(t, w, 3)
+			waitSightCloudOut(t, w, 4)
+			h, c, s = laEnt(t, w, 2).ScanRange, laEnt(t, w, 3).ScanRange, laEnt(t, w, 4).ScanRange
+			if h != hero || c != creature || s != 2 {
+				t.Errorf("second %v dark %v: after the effect hero sight %d, creature %d, short %d; want %d, %d and 2",
+					second, dark, h, c, s, hero, creature)
+			}
+		}
+	}
+}
+
+// The cells the player's fog stamp lights shrink around a hero in Darkness
+// and a creature in Light, stay the same around a hero in Light and a
+// creature in Darkness, and return when the effect ends. Both games, at the
+// powers of an early and a late campaign mage.
+func TestTheFogStampFollowsTheSightClassUnderLightAndDarkness(t *testing.T) {
+	t.Parallel()
+	for _, second := range []bool{false, true} {
+		for _, dark := range []bool{true, false} {
+			for _, humanoid := range []bool{true, false} {
+				for _, power := range []uint16{0, 20, 60, 110} {
+					rule := darkSightRow(second, dark)
+					body := darkSightCreature(2, 40, 40)
+					if humanoid {
+						body = darkSightHero(2)
+					}
+					w := darkSightWorld(t, second, rule, body)
+					before := litCount(w.Sight(SelfSlot))
+					landSightCloud(t, w, rule, power, 2)
+					under := litCount(w.Sight(SelfSlot))
+					if e := laEnt(t, w, 2); e.X != 40 || e.Y != 40 {
+						t.Fatalf("fixture: the body moved to (%d,%d)", e.X, e.Y)
+					}
+					if cut := dark == humanoid; cut && under >= before || !cut && under != before {
+						t.Errorf("second %v dark %v humanoid %v power %d: the player's sight lights %d cells under the cloud, %d before",
+							second, dark, humanoid, power, under, before)
+					}
+					waitSightCloudOut(t, w, 2)
+					if after := litCount(w.Sight(SelfSlot)); after != before {
+						t.Errorf("second %v dark %v humanoid %v power %d: after the effect the sight lights %d cells, want %d",
+							second, dark, humanoid, power, after, before)
+					}
 				}
 			}
 		}
 	}
 }
 
-// A computer unit in a Darkness cloud marches its target sweep at the shorter
+// A computer Humanoid in a Darkness cloud marches its target sweep at the shorter
 // scan range: a cell at its whole sight drops out of the candidate stamp and
 // returns when the effect ends. Both games.
 func TestAComputerUnitInDarknessSweepsAShorterRange(t *testing.T) {
@@ -136,7 +183,7 @@ func TestAComputerUnitInDarknessSweepsAShorterRange(t *testing.T) {
 	for _, second := range []bool{false, true} {
 		rule := darkSightRow(second, true)
 		guard := engFighter(2, 3, 40, 40)
-		guard.ScanRange = 6
+		guard.ScanRange, guard.Humanoid = 6, true
 		w := darkSightWorld(t, second, rule, guard)
 		edge, ok := w.cellIndex(46, 40)
 		if !ok {
@@ -176,7 +223,11 @@ func TestALightOrDarknessCloudHoldsTheSightBetweenPulses(t *testing.T) {
 			rule := darkSightRow(second, dark)
 			for _, power := range []uint16{20, 110} {
 				for phase := 0; phase < 32; phase++ {
-					w := darkSightWorld(t, second, rule, darkSightHero(2))
+					body := darkSightHero(2)
+					if !dark {
+						body = darkSightCreature(2, 40, 40)
+					}
+					w := darkSightWorld(t, second, rule, body)
 					before := litCount(w.Sight(SelfSlot))
 					for k := 0; k < phase; k++ {
 						Step(w, nil)

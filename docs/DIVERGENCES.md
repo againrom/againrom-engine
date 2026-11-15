@@ -169,6 +169,7 @@ copying those counts.
 | `docs/divergences/rom2-campaign.md` |
 | `docs/divergences/rom2-combat.md` |
 | `docs/divergences/rom2-magic.md` |
+| `docs/divergences/rom2-magic-light-and-darkness.md` |
 | `docs/divergences/rom2-character-generator.md` |
 | `docs/divergences/rom2-global-map.md` |
 | `docs/divergences/rom2-humans.md` |

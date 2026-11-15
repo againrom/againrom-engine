@@ -80,8 +80,8 @@ func darknessFogHero(mw *mapWorld) (sim.Entity, bool) {
 // The visible layer of the player's fog is smaller around a Human standing in
 // a Darkness cloud at every periodic refresh from the first pulse to the
 // cloud's end, the Human not moving, whatever tick the cast is given on, and
-// is whole again at the first refresh after the effect ends; Light makes it
-// larger. Both games' map screens.
+// is whole again at the first refresh after the effect ends; Light leaves it
+// as it is. Both games' map screens.
 func TestTheVisibleFogFollowsADarknessOrLightCloudWithoutAMove(t *testing.T) {
 	for _, second := range []bool{false, true} {
 		for _, dark := range []bool{true, false} {
@@ -114,7 +114,7 @@ func TestTheVisibleFogFollowsADarknessOrLightCloudWithoutAMove(t *testing.T) {
 						continue
 					}
 					refreshes++
-					if n := visible(); dark && n >= before || !dark && n <= before {
+					if n := visible(); dark && n >= before || !dark && n != before {
 						wrong++
 					}
 				}

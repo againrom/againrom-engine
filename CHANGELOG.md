@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
 - [ROM2] Computer mages no longer cast Slow when they attack.
 - [BASE] Computer mages now heal the first hurt unit near them without keeping a mana reserve, and at full mana cast a protective spell from their book on a unit of their own side.
+- [BASE] Light no longer widens anyone's sight: creatures in a Light cloud see less far while humans and heroes are unaffected, and Darkness now shortens only the sight of humans and heroes, leaving creatures as they are.
 
 ### For map makers and modders
 

@@ -371,38 +371,40 @@ func TestAChargesModeRowIsStoredRatherThanAppliedAndForgotten(t *testing.T) {
 	if len(w.attached) != 1 {
 		t.Fatalf("a charges-mode row attached %d effect(s), want 1", len(w.attached))
 	}
-	if got := spAt(t, w, 2).ScanRange; got <= 5 {
-		t.Fatalf("scan range is %d, want a rise from 5", got)
+	if got := spAt(t, w, 2).ScanRange; got >= 5 {
+		t.Fatalf("scan range is %d, want a fall from 5", got)
 	}
 	remaining := w.attached[0].Remaining
 	for i := 0; i < 80; i++ {
 		Step(w, nil)
 	}
-	if len(w.attached) != 1 || w.attached[0].Remaining != remaining || spAt(t, w, 2).ScanRange <= 5 {
+	if len(w.attached) != 1 || w.attached[0].Remaining != remaining || spAt(t, w, 2).ScanRange >= 5 {
 		t.Fatal("charges-only attachment incorrectly used a duration timer")
 	}
 }
 
 // Coverage the review found missing: Shield, Light and Darkness are cast and
-// their magnitudes read. Each is MAGIC-EFFECT-015's own per-arm expression.
+// their magnitudes read. Each is MAGIC-EFFECT-015's own per-arm expression,
+// Light's cut off a creature and Darkness's off a Humanoid (MAGIC-446).
 func TestShieldLightAndDarknessLandTheirDecodedMagnitudes(t *testing.T) {
 	for _, tc := range []struct {
-		name  string
-		id    int32
-		kind  EffectKind
-		mind  int32
-		mag   int32
-		start int32
+		name     string
+		id       int32
+		kind     EffectKind
+		mind     int32
+		mag      int32
+		start    int32
+		humanoid bool
 	}{
-		{"shield p/10 + 3", 18, EffectAbsorption, 100, spellPower(0, 100)/10 + 3, 0},
-		{"light p/30 + 1", 12, EffectScanRange, 100, spellPower(0, 100)/30 + 1, 5},
-		{"darkness -1 - p/30", 17, EffectScanRange, 100, -1 - spellPower(0, 100)/30, 20},
+		{"shield p/10 + 3", 18, EffectAbsorption, 100, spellPower(0, 100)/10 + 3, 0, false},
+		{"light p/30 + 1", 12, EffectScanRange, 100, -spellPower(0, 100)/30 - 1, 5, false},
+		{"darkness -1 - p/30", 17, EffectScanRange, 100, -1 - spellPower(0, 100)/30, 20, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caster := effectMage(1, 2, 2, 1<<uint(tc.id))
 			caster.Mind, caster.Skill[3] = tc.mind, 0
 			target := spEnt(2, 3, 2)
-			target.TokenSize = 1
+			target.TokenSize, target.Humanoid = 1, tc.humanoid
 			if tc.kind == EffectScanRange {
 				target.ScanRange = uint8(tc.start)
 			} else {

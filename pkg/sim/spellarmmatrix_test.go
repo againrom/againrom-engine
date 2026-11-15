@@ -38,6 +38,8 @@ const (
 	recordRoleHide     = 3
 	recordLightBright  = 1
 	recordLightDark    = 2
+	recordSightUnit    = 1
+	recordSightHuman   = 2
 )
 
 // spellArmRecord is each spell-arm question's answer as the consumers
@@ -74,6 +76,7 @@ var spellArmRecord = map[string]armAnswers{
 	"selfAimed":        bothGames(armSet(4)),
 	"sparesMages":      bothGames(armSet(23)),
 	"light":            bothGames(map[uint16]int{12: recordLightBright, 17: recordLightDark}),
+	"sightClass":       bothGames(map[uint16]int{12: recordSightUnit, 17: recordSightHuman}),
 	"drawnDuration":    secondOnly(armSet(20)),
 	"blankCurse":       secondOnly(armSet(20)),
 	"keepsLarger": secondOnly(armSet(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,

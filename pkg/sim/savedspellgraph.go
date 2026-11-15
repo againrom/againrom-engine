@@ -265,7 +265,7 @@ func (w *World) applyFrozenPoint(ci, ti int, rule SpellRule, payload *SavedEffec
 	}
 	applied := false
 	if mode == 0 {
-		_, ok := w.applyEffectDelta(ti, kind, int32(payload.E40))
+		_, ok := w.applyEffectDelta(ti, kind, spellArmOf(rule.arm()).sightCut(&w.entities[ti], kind, int32(payload.E40)))
 		applied = ok || w.entities[ti].ActorLoad.Source.Class == 0
 		if applied {
 			w.clearFelled(ti)

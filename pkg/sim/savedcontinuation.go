@@ -352,7 +352,7 @@ func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cel
 				}
 				applied := false
 				if mode == 0 {
-					_, ok := w.applyEffectDelta(at, kind, int32(e.AE44.E40))
+					_, ok := w.applyEffectDelta(at, kind, spellArmOf(rule.arm()).sightCut(&w.entities[at], kind, int32(e.AE44.E40)))
 					applied = ok || w.entities[at].ActorLoad.Source.Class == 0
 					if applied {
 						w.clearFelled(at)

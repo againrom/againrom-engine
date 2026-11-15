@@ -386,8 +386,10 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if ti < 0 || duration == 0 || kind == EffectNone && !secondBlankCurse(rule) {
 		return false
 	}
+	magnitude = spellArmOf(rule.arm()).sightCut(&w.entities[ti], kind, magnitude)
 	poison := areaRow(rule.arm()).poison && mode&EffectContinuous != 0
 	if w.entities[ti].ActorLoad.Source.Class != 0 && !poison {
+		magnitude = w.sourceSightCut(ti, rule, kind, magnitude)
 		return w.attachSourceEffect(ti, caster, rule, kind, magnitude, duration, mode)
 	}
 	return w.attachEffectTransaction(ti, caster, rule, kind, magnitude, duration, mode, effectAttachmentAdapter{

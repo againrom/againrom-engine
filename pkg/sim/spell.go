@@ -365,7 +365,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		return false
 	}
 	if mode&effectTimedModes == 0 {
-		if _, ok := w.applyEffectDelta(ti, kind, mag); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
+		if _, ok := w.applyEffectDelta(ti, kind, arm.sightCut(&w.entities[ti], kind, mag)); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
 			return false
 		}
 		w.clearFelled(ti)

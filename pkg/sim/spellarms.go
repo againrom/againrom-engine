@@ -35,6 +35,7 @@ type spellArm struct {
 	form             spellForm
 	autoCast         autoCastPlace
 	light            SpellLighting
+	sightClass       sightClass  // the one class whose sight the effect cuts
 	creatureAim      creatureAim // the first game's creature slot-cast aim (MAGIC-237, MAGIC-238)
 	caption          captionRow
 	// burst: each blast ends in one burst record, its picture 2*arm+9
@@ -118,6 +119,46 @@ const (
 	SpellLightDark
 )
 
+// sightClass is the class an arm's effect lowers the sight of by its size;
+// another reached actor takes the effect with no change (MAGIC-446,
+// R2-ENGINE-1242). Zero lands the magnitude as it is.
+type sightClass uint8
+
+const (
+	sightAnyClass sightClass = iota
+	sightNotHumanoid
+	sightHumanoid
+)
+
+// sightCut is the delta the arm's effect of kind and magnitude mag makes on
+// e; an effect of another kind lands mag as it is.
+func (a spellArm) sightCut(e *Entity, kind EffectKind, mag int32) int32 {
+	switch {
+	case a.sightClass == sightAnyClass || kind != EffectScanRange:
+		return mag
+	case e.Humanoid != (a.sightClass == sightHumanoid):
+		return 0
+	}
+	return -max(mag, -mag)
+}
+
+// sourceSightCut bounds a cut on a unit with a source basis at its whole
+// sight, so the basis never wraps below zero. That basis keeps the nominal
+// magnitude and takes it off again at the end, so the magnitude kept is the
+// bounded one. A standing effect of the same spell is about to come off and
+// so counts as sight still to be had.
+func (w *World) sourceSightCut(ti int, rule SpellRule, kind EffectKind, cut int32) int32 {
+	e := &w.entities[ti]
+	if kind != EffectScanRange || cut >= 0 || e.ActorLoad.Source.Class == 0 {
+		return cut
+	}
+	room := int32(e.ScanRange)
+	if i, ok := effectIndex(w.attached, e.ID, rule.ID); ok && w.attached[i].Kind == kind && w.attached[i].Mode&EffectContinuous == 0 && w.attached[i].Magnitude < 0 {
+		room -= w.attached[i].Magnitude
+	}
+	return max(cut, -room)
+}
+
 // secondArmRow is an arm's second-game difference: Stone Curse's drawn
 // duration and blank effect (R2-ENGINE-025, R2-ENGINE-453); Invisibility's
 // P << 4 (R2-ENGINE-022); on every arm, the Effect renewal that keeps the
@@ -150,7 +191,7 @@ var spellArms = [...]spellArm{
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 11, applies: true, drain: true, creatureAim: creatureAimVictim, second: renews},
-	{arm: 12, magnitude: lightMagnitude, formulaMagnitude: true, light: SpellLightBright, creatureAim: creatureAimVictimCell,
+	{arm: 12, magnitude: lightMagnitude, formulaMagnitude: true, light: SpellLightBright, sightClass: sightNotHumanoid, creatureAim: creatureAimVictimCell,
 		caption: captionRow{kind: SpellCaptionLight, negate: true}, second: renews},
 	{arm: 13, form: formBolt, creatureAim: creatureAimVictim, second: renews},
 	{arm: 14, applies: true, prismatic: true, form: formFan, creatureAim: creatureAimVictim, caption: captionRow{kind: SpellCaptionRays},
@@ -160,7 +201,7 @@ var spellArms = [...]spellArm{
 		creatureAim: creatureAimCaster},
 	{arm: 16, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 0, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
-	{arm: 17, magnitude: darknessMagnitude, formulaMagnitude: true, light: SpellLightDark, creatureAim: creatureAimVictimCell,
+	{arm: 17, magnitude: darknessMagnitude, formulaMagnitude: true, light: SpellLightDark, sightClass: sightHumanoid, creatureAim: creatureAimVictimCell,
 		caption: captionRow{kind: SpellCaptionLight}, second: renews},
 	{arm: 18, applies: true, atActor: true, magnitude: shieldMagnitude, formulaMagnitude: true, lastingDuration: true,
 		autoCast: autoCastPlace{1, 1, autoCastShielder}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionShield}, second: renews},

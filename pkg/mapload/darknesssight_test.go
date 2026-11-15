@@ -47,8 +47,8 @@ func darkSourceLit(w *sim.World) int {
 
 // A Darkness cloud the player's mage casts over a source-backed Human, the
 // actor an original SAV loads, shrinks the sight that Human stamps into the
-// player's fog; the count returns when the effect ends; Light grows it. Both
-// games, through the bound source derive.
+// player's fog; the count returns when the effect ends; Light leaves it as it
+// is. Both games, through the bound source derive.
 func TestADarknessCloudShrinksASourceHumansSight(t *testing.T) {
 	t.Parallel()
 	for _, second := range []bool{false, true} {
@@ -114,7 +114,7 @@ func TestADarknessCloudShrinksASourceHumansSight(t *testing.T) {
 				lit := darkSourceLit(w)
 				t.Logf("%s mind %d: scan %d -> %d, word %d -> %d, cells %d -> %d", name, mind, start.ScanRange, under.ScanRange,
 					start.ActorLoad.Source.Sight, under.ActorLoad.Source.Sight, before, lit)
-				if dark && lit >= before || !dark && lit <= before {
+				if dark && lit >= before || !dark && lit != before {
 					t.Errorf("%s mind %d: the source Human lights %d cells under the cloud, %d before", name, mind, lit, before)
 				}
 				for k := 0; k < 20000; k++ {

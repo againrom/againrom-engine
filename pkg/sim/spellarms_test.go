@@ -44,6 +44,9 @@ var spellArmCapabilities = map[string]func(row spellArm, rule SpellRule) int{
 	"light": func(r spellArm, _ SpellRule) int {
 		return map[SpellLighting]int{SpellLightBright: recordLightBright, SpellLightDark: recordLightDark}[r.light]
 	},
+	"sightClass": func(r spellArm, _ SpellRule) int {
+		return map[sightClass]int{sightNotHumanoid: recordSightUnit, sightHumanoid: recordSightHuman}[r.sightClass]
+	},
 	"drawnDuration": func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().drawnDuration) },
 	"blankCurse":    func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().blankCurse) },
 	"keepsLarger":   func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().keepsLarger) },
@@ -92,7 +95,7 @@ var spellArmFieldQuestions = map[string][]string{
 	"attachAward": {"attachAward"}, "selfAimed": {"selfAimed"}, "sparesMages": {"sparesMages"}, "own": {"ownEffect", "ownScaled"},
 	"opposite": {"opposite"}, "magnitude": {"magnitude"}, "formulaMagnitude": {"formulaMagnitude"},
 	"lastingDuration": {"lastingDuration"}, "durationLaw": {"durationLaw"}, "form": {"form"},
-	"autoCast": {"autoCastLevel", "autoCastOrder", "autoCastRole"}, "light": {"light"},
+	"autoCast": {"autoCastLevel", "autoCastOrder", "autoCastRole"}, "light": {"light"}, "sightClass": {"sightClass"},
 	"second": {"drawnDuration", "blankCurse", "keepsLarger", "powerDuration"},
 }
 
