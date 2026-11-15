@@ -128,10 +128,9 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		}
 		return false
 	}
-	all := w.game.bookWalkAll
 	var choices []SpellRule
 	for _, rule := range w.spells {
-		if !bookWalkTakes(rule.ID, all) {
+		if !bookWalkTakes(rule.ID) {
 			continue
 		}
 		var resolved bool
@@ -143,7 +142,7 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		choices = append(choices, rule)
 	}
 	var id uint32
-	fallback, falls := bookWalkFallback(all)
+	fallback, falls := bookWalkFallback(w.game.bookWalkNoFallback)
 	switch {
 	case len(choices) > 0:
 		id = uint32(choices[w.rng.aiRange(int32(len(choices)))].ID)

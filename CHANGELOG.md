@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] With -smooth-regen, a negative health or mana regeneration now takes its whole step at the end of each window for every unit, as it already did for some.
+- [ROM2] Computer mages no longer cast Slow when they attack.
 
 ### For map makers and modders
 

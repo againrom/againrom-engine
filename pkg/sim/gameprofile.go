@@ -84,8 +84,8 @@ type gameProfile struct {
 	// blowOrdersAttack: an area blow orders a victim of another owner against
 	// the caster (DIV-1600); otherwise it runs the blow hook (answerAreaBlow).
 	blowOrdersAttack bool
-	// bookWalkAll: the engage book walk takes every row and has no fallback.
-	bookWalkAll bool
+	// bookWalkNoFallback: the engage book walk has no fallback row.
+	bookWalkNoFallback bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
 	// savedProjectileAim: a projectile aims at the saved target point, not
@@ -206,7 +206,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		releaseRevalidates:         true,
 		paysFacingAim:              true,
 		blowOrdersAttack:           true,
-		bookWalkAll:                true,
+		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
