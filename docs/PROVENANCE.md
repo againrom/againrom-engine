@@ -149,8 +149,10 @@ The work has three roles with a one-way flow between them.
   engine works from. The engine pins one snapshot; only the pin moves.
 - **Implementation.** Engine work reads the pinned snapshot, not the original
   program. Each story records its authority, the claim IDs it implements, in
-  `docs/<NNNN>/story.md`; each hotfix has a row in `docs/HOTFIXES.md`; each
-  difference from the original is one row under `docs/divergences/`. An owner
+  `docs/<NNNN>/story.md`; each hotfix records its authority, cause, kind and
+  proof in the body of its landing commit on `main` (`docs/HOTFIXES.md` holds
+  the earlier rows); each difference from the original is one row under
+  `docs/divergences/`. An owner
   direction may set behaviour without a claim; the difference is then a
   divergence row.
 
