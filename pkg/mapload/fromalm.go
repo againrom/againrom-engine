@@ -292,6 +292,17 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		b = sim.Bounds{Width: int32(m.Width), Height: int32(m.Height)}
 	}
 
+	authoredStock, err := stockFrom(m, t)
+	if err != nil {
+		return nil, nil, err
+	}
+	// The gold of a unit's own sack is its purse (DIV-4946).
+	purses := make(map[sim.EntityID]uint32)
+	for _, stock := range authoredStock {
+		if stock.gold != 0 {
+			purses[stock.id] = stock.gold
+		}
+	}
 	ents := make([]sim.Entity, len(units))
 	var loadout []sim.Stock
 	// One template per placement that resolved through a person row — see this
@@ -323,7 +334,8 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 			def.NativeTraining = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 		}
 		ents[i] = sim.NewActor(def, sim.ActorPlacement{ID: sim.EntityID(i), X: x, Y: y,
-			Owner: u.Owner, Group: u.GroupID, MapUnitID: u.UnitID, SuppressRewards: t.unitKeys().placedRewardMark(u)})
+			Owner: u.Owner, Group: u.GroupID, MapUnitID: u.UnitID, SuppressRewards: t.unitKeys().placedRewardMark(u),
+			Purse: purses[sim.EntityID(i)]})
 		if u.HasCurrentHP {
 			// An authored body arrives already fallen; this applies the
 			// death-time combat adjustment without running clearFelled, which
@@ -354,10 +366,6 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	// actor's container instead. The constructor's error is returned: the installed
 	// terrain's planes can refuse to build (Terrain.BaseFault).
 	authoredSacks, err := sacksFrom(m, t)
-	if err != nil {
-		return nil, nil, err
-	}
-	authoredStock, err := stockFrom(m, t)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -585,8 +593,9 @@ func sacksFrom(m *alm.Map, t *Table) ([]sim.Sack, error) {
 }
 
 // stockFrom joins owned records to unique placement IDs and retains element
-// order and the zero/nonzero dispatch predicate. Coordinates and gold belong
-// only to the ground arm. Unmatched or ambiguous owners contribute no stock.
+// order and the zero/nonzero dispatch predicate. Coordinates belong only to
+// the ground arm; an owned record's gold is Againrom's purse of its unit
+// (DIV-4946). Unmatched or ambiguous owners contribute no stock.
 type ownedStockItem struct {
 	item sim.ItemInstance
 	use  bool
@@ -595,6 +604,7 @@ type ownedStockItem struct {
 type ownedStock struct {
 	id    sim.EntityID
 	items []ownedStockItem
+	gold  uint32
 }
 
 func stockFrom(m *alm.Map, t *Table) ([]ownedStock, error) {
@@ -631,7 +641,7 @@ func stockFrom(m *alm.Map, t *Table) ([]ownedStock, error) {
 				return nil, err
 			}
 		}
-		out = append(out, ownedStock{id: sim.EntityID(idx), items: items})
+		out = append(out, ownedStock{id: sim.EntityID(idx), items: items, gold: r.Gold})
 	}
 	return out, nil
 }

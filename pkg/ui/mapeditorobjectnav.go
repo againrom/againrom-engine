@@ -9,9 +9,28 @@ import (
 )
 
 // personHidden are the keys of the person window's fields it shows in
-// neither view: the facing, the speaker line and the map keys. Their values
-// stay on the unit; Apply writes only the fields a row edits.
-var personHidden = []string{"facing", "speaker", "keys"}
+// neither view: the speaker line and the map keys. Their values stay on the
+// unit; Apply writes only the fields a row edits.
+var personHidden = []string{"speaker", "keys"}
+
+// personSections are the detailed view's sections in window order, each
+// under its heading; personColumnWidth is the least width of a column.
+var personSections = []string{"identity", "equipment", "inventory", "stats"}
+
+const personColumnWidth = 300
+
+// personColumns gives, per count of columns, the column of each section.
+var personColumns = map[int][]int{1: {0, 0, 0, 0}, 2: {0, 0, 1, 1}, 3: {0, 1, 2, 2}, 4: {0, 1, 2, 3}}
+
+// personColumn is the column of the detailed view's section in a window of
+// columns columns, 0 for one column or a field of no section.
+func personColumn(section string, columns int) int {
+	k := slices.Index(personSections, section)
+	if at, ok := personColumns[columns]; ok && k >= 0 {
+		return at[k]
+	}
+	return 0
+}
 
 // personQuiet are the keys of the person window's fields shown without the
 // lines that explain them.

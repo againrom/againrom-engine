@@ -203,24 +203,20 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.CardFont = e.cardFont
 	}
 	if native {
-		s.Width = min(680, e.unitWindowWidth()-32)
-		if e.unitWindowWidth() >= 1100 && !plainShown {
-			s.Width = min(1180, e.unitWindowWidth()-32)
-		}
+		// The detailed view stands at the widest the window allows, every
+		// section in a column; the plain view's width is set from its rows
+		// once they are built.
+		s.Width = e.unitWindowWidth() - 32
 		if s.Card != nil {
-			// The column under the card holds the figure at the game's size.
+			// The column beside the card holds the figure at the game's size.
 			s.CardAside = max(compactPanelW, e.unitFigureSize().X)
-			if aside := e.hostedAside(*s); aside > 0 {
+			if aside := e.hostedAside(*s); aside > 0 && !plainShown {
 				s.Width -= aside + popupPad
 			}
 		}
 		s.At = e.personCorner(homePerson)
 		if !plainShown {
-			s.Tabs = []string{e.word("editor.person.identity"), e.word("editor.person.equipment"), e.word("editor.person.inventory"), e.word("editor.person.stats")}
-			s.ActiveTab = o.section
-			if e.unitWindowWidth() >= 1100 {
-				s.Columns = 3
-			}
+			s.Columns = min(len(personSections), max(1, s.Width/personColumnWidth))
 		}
 	}
 	textWidth := 378
@@ -243,7 +239,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				}
 			}
 			if native && s.Columns > 1 {
-				column := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 2}[f.Section]
+				column := personColumn(f.Section, s.Columns)
 				for k := start; k < len(s.Rows); k++ {
 					s.Rows[k].Column = column
 				}
@@ -368,8 +364,17 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	} else {
 		order := fieldOrder(o.fields)
 		if native {
-			sort.SliceStable(order, func(i, j int) bool { return o.fields[order[i]].Parent == "" && o.fields[order[j]].Parent != "" })
+			// The detailed view shows every section at once, each under its
+			// heading, in its column.
+			sort.SliceStable(order, func(i, j int) bool {
+				a, b := o.fields[order[i]], o.fields[order[j]]
+				if sa, sb := slices.Index(personSections, a.Section), slices.Index(personSections, b.Section); sa != sb {
+					return sa < sb
+				}
+				return a.Parent == "" && b.Parent != ""
+			})
 		}
+		section := ""
 		for _, i := range order {
 			f := o.fields[i]
 			if e.modWindow && e.modPage != modPageGraph && f.Action && f.Column == 0 {
@@ -379,15 +384,13 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				continue
 			}
 			if native {
-				section := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[f.Section]
-				if s.Columns == 1 && section != o.section || s.Columns == 0 && section != o.section {
-					continue
-				}
-				if s.Columns > 1 && section >= 2 && section != max(2, o.section) {
-					continue
-				}
 				if f.Parent != "" && f.Parent != o.detail {
 					continue
+				}
+				if f.Section != section && slices.Contains(personSections, f.Section) {
+					section = f.Section
+					s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.person." + section), Column: personColumn(section, s.Columns)}), append(*links, 0)
+					group = ""
 				}
 			}
 			fieldRows(i, "", true)
@@ -564,6 +567,18 @@ func (e *MapEditor) focusObjectField(i int) {
 		return
 	}
 	row := e.fieldRow(e.obj.focus)
+	if row >= 0 && row < len(s.Rows) && s.Rows[row].placed() && bandLines(s) > 0 && s.MaxRows > 0 {
+		// A card cell in a scrolling band brings its lines into view.
+		pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+		start := popupRowCount(s) - bandLines(s)
+		first, last := start+(s.Rows[row].Place.Min.Y+popupPad)/pitch, start+(s.Rows[row].Place.Max.Y+popupPad)/pitch
+		if first < s.Top {
+			e.objectTop = first
+		} else if last >= s.Top+s.MaxRows {
+			e.objectTop = last - s.MaxRows + 1
+		}
+		return
+	}
 	if row < 0 || row >= len(s.Rows) || s.Rows[row].placed() {
 		return // a row on the card never scrolls
 	}

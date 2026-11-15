@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -39,43 +40,50 @@ func TestEditorPersonWindowOwnerFrames(t *testing.T) {
 			if dir := os.Getenv("AGAINROM_PERSON_FRAMES"); dir != "" && (size.X == 800 || size.X == 1280) {
 				witness.PNG(t, filepath.Join(dir, fmt.Sprintf("person-%dx%d.png", size.X, size.Y)), pic)
 			}
-			if !l.Rect.In(e.popupBounds()) || l.Rect.Dx() > 1180 || l.Rect.Dy() > 620 {
-				t.Error("person window exceeds its bounded natural size", l.Rect)
+			if !l.Rect.In(e.popupBounds()) {
+				t.Error("person window exceeds its bounds", l.Rect)
 			}
 		})
 	}
 }
 
-func TestEditorPersonSectionButtonsSelectTheirRows(t *testing.T) {
-	for _, size := range []image.Point{{640, 480}, {800, 600}, {1280, 1024}} {
+// The detailed view has no tabs: every section's fields stand at once, each
+// section under its heading, in as many columns as the window's width holds.
+func TestEditorPersonDetailedViewShowsEverySectionAtOnce(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {800, 600}, {1280, 1024}, {1920, 1080}} {
 		t.Run(size.String(), func(t *testing.T) {
 			e, host := popupEditor(t)
 			_ = e.Open("popups")
 			e.doc.Edits = &personSettingsProbe{&settingsPreviewProbe{popupHost: host}}
 			e.Layout(size.X, size.Y)
 			e.Select(0, false)
-			for _, section := range []int{1, 2, 3, 0} {
-				s, _, _ := e.objectSpec()
-				l := layoutPopup(s, e.font, e.bodyFont())
-				chromeClick(e, center(l.Tabs[section]))
-				s, _, _ = e.objectSpec()
-				if s.ActiveTab != section {
-					t.Errorf("section button %d did nothing: active=%d drag=%d", section, s.ActiveTab, e.drag)
+			s, _, _ := e.objectSpec()
+			if len(s.Tabs) != 0 {
+				t.Fatal("the detailed view still has tabs", s.Tabs)
+			}
+			if want := min(4, max(1, (e.unitWindowWidth()-32-e.hostedAside(s)-popupPad)/personColumnWidth)); s.Columns != want {
+				t.Errorf("columns %d, want %d", s.Columns, want)
+			}
+			shown := map[string]bool{}
+			for _, i := range e.obj.rowField {
+				shown[e.obj.fields[i].Section] = true
+			}
+			for _, f := range e.obj.fields {
+				if f.Section != "" && !f.ReadOnly && f.Parent == "" && !hiddenField(e.doc.Records[e.selected], f) && !shown[f.Section] {
+					t.Errorf("section %s is not shown", f.Section)
 				}
-				if size.X < 1100 {
-					for _, i := range e.obj.rowField {
-						if e.obj.fields[i].Section != []string{"identity", "equipment", "inventory", "stats"}[section] {
-							t.Error("section button kept another section's field", e.obj.fields[i].Key)
-						}
-					}
+			}
+			for section := range shown {
+				if !slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Kind == popupHeading && r.Label == e.word("editor.person."+section) }) {
+					t.Errorf("section %s has no heading", section)
 				}
-				updateEditorKeys(t, e)
-				updateEditorKeys(t, e, ebiten.KeyTab)
-				if e.obj.focus < 0 {
-					t.Errorf("Tab after section button %d did not focus a field", section)
-				} else if _, ok := e.FindControl(ControlQuery{Role: ControlField, N: e.obj.focus}); !ok {
-					t.Errorf("Tab after section button %d hid its field", section)
-				}
+			}
+			updateEditorKeys(t, e)
+			updateEditorKeys(t, e, ebiten.KeyTab)
+			if e.obj.focus < 0 {
+				t.Error("Tab did not focus a field")
+			} else if _, ok := e.FindControl(ControlQuery{Role: ControlField, N: e.obj.focus}); !ok {
+				t.Error("Tab focused a hidden field")
 			}
 		})
 	}

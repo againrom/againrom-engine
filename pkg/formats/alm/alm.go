@@ -214,6 +214,11 @@ type UnitTail struct {
 	// holds 0 in each. Speed and Sight are absent at 0. Facing is 0 for the
 	// constructor's draw, else 1 plus a direction clockwise from north.
 	Speed, Facing, Sight uint8 // +0x30, +0x33, +0x34
+	// HealthMax is Againrom's maximum health at +0x28, which every shipped
+	// record holds at 0 (ALM-TAILVER-084); 0 keeps the derived maximum.
+	// NoLoot is Againrom's flag bit 8: the unit leaves nothing at death.
+	HealthMax uint16
+	NoLoot    bool
 }
 
 // FacingDirections is how many directions an authored Facing names.
@@ -228,18 +233,21 @@ func decodeUnitTail(rec []byte) UnitTail {
 	t := UnitTail{Body: rec[UnitBody], Mind: rec[UnitMind], Spirit: rec[UnitSpirit], Reaction: rec[UnitReaction],
 		Mana: mana, HasMana: mana != -1, Defence: rec[UnitDefence], Absorption: rec[UnitAbsorption],
 		SkipGear: binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagSkipGear != 0,
-		Speed:    rec[UnitSpeed], Facing: rec[UnitFacing], Sight: rec[UnitSight]}
+		Speed:    rec[UnitSpeed], Facing: rec[UnitFacing], Sight: rec[UnitSight],
+		HealthMax: binary.LittleEndian.Uint16(rec[UnitHealthMax:]),
+		NoLoot:    binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagNoLoot != 0}
 	copy(t.Skill[:], rec[UnitSkills:])
 	copy(t.Protection[:], rec[UnitProtections:])
 	return t
 }
 
 // WithoutTail is u as its template spawns it: no override, the -1 health
-// word, and flag bit 7 clear where the tail read it.
+// word, and flag bits 7 and 8 clear where the tail read them.
 func (u Unit) WithoutTail() Unit {
 	if u.Tail.SkipGear {
 		u.Flags &^= UnitFlagSkipGear
 	}
+	u.Flags &^= UnitFlagNoLoot
 	u.Tail = UnitTail{Mana: -1}
 	u.CurrentHP, u.HasCurrentHP = -1, false
 	return u

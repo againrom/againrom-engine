@@ -137,7 +137,11 @@ func (p *settingsPreviewProbe) UnitSettings(index int, values []InspectionFieldV
 		}
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	pic.Pix[0], pic.Pix[3] = byte(body), 255
+	// Every pixel is opaque: a window that draws the figure smaller than
+	// its pixels still paints one.
+	for at := range 4 {
+		pic.Pix[at*4], pic.Pix[at*4+3] = byte(body), 255
+	}
 	fields := p.Fields("Unit", index)
 	if p.readOnly {
 		fields[len(fields)-1].Lines = []InspectionLine{{Text: fmt.Sprintf("Carrier %d", body)}}

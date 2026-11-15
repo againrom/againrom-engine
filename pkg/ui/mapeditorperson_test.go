@@ -59,10 +59,10 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 					e.obj.section = section
 					s, _, ok := e.objectSpec()
 					l := layoutPopup(s, e.font, e.bodyFont())
-					if !ok || !l.Rect.In(image.Rectangle{Max: size}) || len(l.Tabs) != 4 || len(l.Buttons) != 3 || s.Card == nil {
+					if !ok || !l.Rect.In(image.Rectangle{Max: size}) || len(l.Tabs) != 0 || len(l.Buttons) != 3 || s.Card == nil {
 						t.Fatal("person layout", size, section, l.Rect)
 					}
-					for _, r := range append(l.Buttons, l.Tabs...) {
+					for _, r := range l.Buttons {
 						if !r.In(l.Rect) {
 							t.Fatal("pinned control outside popup", r)
 						}

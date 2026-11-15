@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"againrom/pkg/render/frame"
 )
 
 // unitTypingPause is how long a unit window text field must stay unchanged
@@ -151,10 +153,17 @@ func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionFie
 }
 
 // unitFigureSize is the size of the shown person's figure as the game draws
-// it, zero while the host gives none.
+// it in a window of the editor's size: the figure's own pixels at the scale
+// the game fits its mission frame to the window. Zero while the host gives
+// none.
 func (e *MapEditor) unitFigureSize() image.Point {
 	if p := e.obj.unit.picture; p != nil && p.Doll != nil {
-		return p.Doll.Bounds().Size()
+		size := p.Doll.Bounds().Size()
+		scale := frame.Fit(MissionFrameW, MissionFrameH, e.window.X, e.window.Y).Scale()
+		if scale <= 0 {
+			return size
+		}
+		return image.Pt(int(float64(size.X)*scale+0.5), int(float64(size.Y)*scale+0.5))
 	}
 	return image.Point{}
 }

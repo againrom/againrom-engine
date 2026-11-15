@@ -153,3 +153,47 @@ func TestPlacementTailSpeedAndSightReplaceTheKindsValue(t *testing.T) {
 		t.Fatalf("roster hero carries speed %d sight %d, want 30 and 9", h.AuthoredSpeed, h.AuthoredSight)
 	}
 }
+
+// TestPlacementTailHealthMaxReplacesTheDerivedMaximum: an authored maximum
+// health replaces a creature's and a Human's maximum, the unit starts full,
+// an authored current health stays at most the maximum, and the Human's
+// roster hero carries it (DIV-4945).
+func TestPlacementTailHealthMaxReplacesTheDerivedMaximum(t *testing.T) {
+	for _, i := range []int{0, 2} {
+		base, got := tailWorld(t, mapload.DifficultyHard, i, alm.UnitTail{Mana: -1, HealthMax: 500})
+		if base.MaxHP == 500 || got.MaxHP != 500 || got.HP != 500 {
+			t.Fatalf("placement %d: health %d/%d (template maximum %d), want 500/500", i, got.HP, got.MaxHP, base.MaxHP)
+		}
+		m := fixtureMap()
+		m.Units[i].Tail = alm.UnitTail{Mana: -1, HealthMax: 40}
+		m.Units[i].CurrentHP, m.Units[i].HasCurrentHP = 90, true
+		w, err := mapload.FromALMWith(m, fixtureTable(), mapload.DifficultyNormal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e := w.Entities()[i]; e.MaxHP != 40 || e.HP != 40 {
+			t.Fatalf("placement %d: authored 90 under maximum 40 spawns %d/%d, want 40/40", i, e.HP, e.MaxHP)
+		}
+	}
+	m := fixtureMap()
+	m.Units[0].Tail = alm.UnitTail{Mana: -1, HealthMax: 500}
+	_, roster, err := mapload.FromALMRoster(m, fixtureTable(), mapload.DifficultyNormal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h := roster[0].Hero; h.AuthoredHealthMax != 500 {
+		t.Fatalf("roster hero carries maximum health %d, want 500", h.AuthoredHealthMax)
+	}
+}
+
+// TestPlacementNoLootLeavesNothing: the switch makes the unit discard its
+// bag and roll no death gold or item, on every arm (DIV-4946).
+func TestPlacementNoLootLeavesNothing(t *testing.T) {
+	for _, i := range []int{0, 2} {
+		base, got := tailWorld(t, mapload.DifficultyNormal, i, alm.UnitTail{Mana: -1, NoLoot: true})
+		if base.SuppressCorpseLoot || !got.SuppressCorpseLoot || got.GoldChance != 0 || got.TreasureMin != 0 || got.TreasureMax != 0 {
+			t.Fatalf("placement %d: suppress %v gold %d %d..%d (template suppress %v), want the bag discarded and no roll",
+				i, got.SuppressCorpseLoot, got.GoldChance, got.TreasureMin, got.TreasureMax, base.SuppressCorpseLoot)
+		}
+	}
+}

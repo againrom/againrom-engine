@@ -1368,24 +1368,40 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		if aside := e.hostedAside(s); aside > 0 {
 			s.Width += aside + popupPad
 		}
-		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
-		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
-		// The basic view's larger card under the rows takes the height it
-		// needs; the person window's other views keep their cap.
-		most := 620
-		if s.CardBelow {
-			most = height
+		// Each view takes the size its rows need: the plain view the least
+		// width that holds them, the card and the figure, the detailed view
+		// the widest; both every row high, scrolled only where the room is
+		// lower.
+		if e.PlainView() {
+			s.Width = popupMinWidth(s, e.bodyFont())
 		}
 		room := e.popupRoom().Dy() - 16
-		naturalSize(&s, image.Pt(s.Width, min(most, height, room)))
-		// The column under the card grows to hold the figure at the game's
-		// size while the room allows.
-		if l := layoutPopup(s, e.font, e.bodyFont()); s.Card != nil && l.CardRest.Min.Y >= l.Card.Max.Y {
-			if short := e.unitFigureSize().Y - l.CardRest.Dy(); short > 0 {
-				naturalSize(&s, image.Pt(s.Width, min(l.Rect.Dy()+short, room)))
-			}
+		l := layoutPopup(s, e.font, e.bodyFont())
+		height := l.Rect.Dy()
+		// The column beside or under the card holds the figure whole.
+		if s.Card != nil {
+			height += max(0, e.unitFigureSize().Y-l.CardRest.Dy())
 		}
-		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
+		fit := func(height int) {
+			s.MaxRows = popupRowCount(s)
+			naturalSize(&s, image.Pt(s.Width, min(height, room)))
+			s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
+		}
+		natural := s
+		if height != l.Rect.Dy() || height > room {
+			fit(height)
+		}
+		if e.PlainView() && s.Card != nil && s.CardBelow && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > room {
+			// A room lower than the card band scrolls the band with the
+			// rows, in the window's one scroll; the band holds the card and
+			// the figure whole, at the game's size.
+			pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+			s = natural
+			s.BandLines = (max(cardSize(s).Y, e.unitFigureSize().Y) + 2*popupPad + pitch - 1) / pitch
+			s.MaxRows = 0
+			s.Width = popupMinWidth(s, e.bodyFont())
+			fit(layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
+		}
 		e.clampObjectTop(&s, popupRowCount(s))
 		return s, links, true
 	}
@@ -1459,9 +1475,48 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 // the panel's height shows stays in reach.
 func (e *MapEditor) clampObjectTop(s *popupSpec, count int) {
 	if !e.objectInPanel() {
-		e.objectTop = max(0, min(e.objectTop, count-s.MaxRows))
+		most := 0
+		if s.MaxRows > 0 {
+			most = count - s.MaxRows
+		}
+		if s.MaxRows > 0 && count > s.MaxRows {
+			most = e.columnsLastTop(*s, most, count)
+		}
+		e.objectTop = max(0, min(e.objectTop, most))
 	}
 	s.Top = e.objectTop
+}
+
+// columnsLastTop is the first top from most on at which every column of s
+// shows its last row or has scrolled past it, and a scrolling card band
+// shows whole: rows that take more than one line each need a top past count
+// less the rows shown.
+func (e *MapEditor) columnsLastTop(s popupSpec, most, count int) int {
+	last := map[int]int{}
+	for i, row := range s.Rows {
+		if !row.placed() {
+			column, _ := popupRowPosition(s, i)
+			last[column] = i
+		}
+	}
+	for top := max(0, most); top < count; top++ {
+		s.Top = top
+		l := layoutPopup(s, e.font, e.bodyFont())
+		shown := map[int]bool{}
+		for _, rr := range l.Rows {
+			shown[rr.Index] = true
+		}
+		// A scrolling card band shows whole at the last top.
+		every := bandLines(s) == 0 || max(l.Card.Max.Y, l.CardRest.Max.Y) <= l.RowsViewport.Max.Y
+		for _, i := range last {
+			_, line := popupRowPosition(s, i)
+			every = every && (shown[i] || line < top)
+		}
+		if every {
+			return top
+		}
+	}
+	return max(0, most)
 }
 
 // ScrollDetails moves the object popup's rows down by steps wheel notches.
@@ -1756,9 +1811,15 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
 		// The figure stands at the right of the room the layout leaves
 		// beside the card, at the game's size where the room holds it.
-		rest := layoutPopup(s, e.font, e.bodyFont()).CardRest
-		left := max(rest.Min.X, rest.Max.X-max(compactPanelW, e.unitFigureSize().X))
-		box := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y).Intersect(pic.Bounds())
+		l := layoutPopup(s, e.font, e.bodyFont())
+		rest := l.CardRest
+		size := e.unitFigureSize()
+		left := max(rest.Min.X, rest.Max.X-max(compactPanelW, size.X))
+		whole := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y)
+		box := whole.Intersect(pic.Bounds())
+		if bandLines(s) > 0 {
+			box = box.Intersect(l.RowsViewport) // the band scrolls with the rows
+		}
 		if box.Empty() {
 			return
 		}
@@ -1772,7 +1833,9 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 			}
 			return
 		}
-		editorBlit(pic.SubImage(box).(*image.RGBA), preview, fitRect(preview.Bounds().Size(), box), false)
+		// The figure keeps the game's size; the window was sized to hold it.
+		at := screenRect{X: float64(whole.Max.X - size.X), Y: float64(whole.Min.Y), W: float64(size.X), H: float64(size.Y)}
+		editorBlit(pic.SubImage(box).(*image.RGBA), preview, at, false)
 		return
 	}
 	if r.Preview == nil {

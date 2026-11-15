@@ -34,6 +34,9 @@ type HumanInput struct {
 	// Speed and Sight are an authored base speed and whole-cell sight that
 	// replace the derived ones before the terms add; 0 derives each.
 	Speed, Sight int32
+	// HealthMax is an authored maximum health that replaces the derived one
+	// after the terms add; 0 derives it.
+	HealthMax int32
 }
 
 // HumanOutput is the derived block. Sight is in 1/256 cell; its high byte is
@@ -140,6 +143,9 @@ func DeriveHuman(in HumanInput) (HumanOutput, error) {
 	}
 	t := in.Terms
 	out.HealthMax += t.HealthMax
+	if in.HealthMax != 0 {
+		out.HealthMax = in.HealthMax
+	}
 	out.ManaMax += t.ManaMax
 	out.Sight += t.Sight
 	out.Capacity += t.Capacity

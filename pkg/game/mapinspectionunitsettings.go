@@ -192,6 +192,11 @@ func (u *unitTemplateView) describe(row *ui.InspectionField) {
 		row.Meaning = x.word("editor.unit.facing.note")
 		return
 	}
+	if row.Key == "noloot" {
+		row.Choices = []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.unit.meaning.loot"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.unit.meaning.noloot"))}}
+		row.Meaning = x.word("editor.unit.loot.note")
+		return
+	}
 	if group := overrideGroup(x, row.Key); group != "" {
 		row.Group, row.Inherit, row.Absent = group, true, overrideAbsent(row.Key)
 	}

@@ -41,13 +41,13 @@ func (e *Editor) GroundSack(x, y uint32, item uint16) []byte {
 	return rec
 }
 
-// lootFields are gold, on a ground record with the wide head, then one item
-// row per element and the row that appends an element. An item row set to 0
-// removes its element.
+// lootFields are gold, on a record with the wide head, then one item row per
+// element and the row that appends an element. An item row set to 0 removes
+// its element. A unit's own record's gold is what the unit drops (DIV-4946).
 func lootFields(e *Editor, rec []byte) []Field {
 	var out []Field
 	head := e.lootHead()
-	if head == alm.LootHeadWide && binary.LittleEndian.Uint32(rec[alm.LootOwner:]) == 0 {
+	if head == alm.LootHeadWide {
 		out = append(out, Field{Key: "gold", Label: "Gold", Offset: alm.LootGold, Width: 4, Min: 0, Max: math.MaxInt32})
 	}
 	n := (len(rec) - head) / alm.LootElementSize

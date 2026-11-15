@@ -435,3 +435,19 @@ func TestRecomputeKeepsAnAuthoredSpeedAndSight(t *testing.T) {
 		t.Fatalf("the authored base moved another value: %+v vs %+v", got, plain)
 	}
 }
+
+// TestRecomputeKeepsAnAuthoredHealthMax: an authored maximum health is the
+// maximum after the worn items' terms (DIV-4945); 0 derives it.
+func TestRecomputeKeepsAnAuthoredHealthMax(t *testing.T) {
+	h := data.Hero{Body: 30, Reaction: 30, Mind: 30, Spirit: 30}
+	l := data.Loadout{Mod: data.EquipMod{HealthMax: 7}}
+	plain := h.Recompute(data.Profile{}, l)
+	h.AuthoredHealthMax = 500
+	got := h.Recompute(data.Profile{}, l)
+	if got.HealthMax != 500 || plain.HealthMax == 500 {
+		t.Fatalf("maximum health %d, want 500 (derived %d)", got.HealthMax, plain.HealthMax)
+	}
+	if got.ManaMax != plain.ManaMax || got.Speed != plain.Speed {
+		t.Fatalf("the authored maximum moved another value: %+v vs %+v", got, plain)
+	}
+}

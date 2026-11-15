@@ -384,6 +384,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 	if k == mapedit.KindUnit {
 		out = append(out, s.equipmentFields(template)...)
 		out = append(out, s.inventoryFields(template)...)
+		if gold, ok := s.goldField(template); ok {
+			out = append(out, gold)
+		}
 		if _, err := template.stock(); err == nil {
 			if sheets := s.unitViewSheets(); index < len(sheets) {
 				out = append(out, ui.InspectionField{Key: "resolved", ReadOnly: true, Section: "stats", Lines: s.inspector.sheetLines(template.m.Units[index], mapload.Resolve(template.m.Units[index], s.inspector.table), sheets[index])})
@@ -413,7 +416,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 						f.Parent = ""
 					}
 				}
-				if _, _, ok := carriedField(f.Key); ok {
+				if _, _, ok := carriedField(f.Key); ok || f.Key == unitGoldField || f.Key == "noloot" {
 					f.Section = "inventory"
 				}
 			}
@@ -564,6 +567,9 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	if k == mapedit.KindUnit && key == "level" {
 		return s.setMercenaryLevel(m, index, value)
+	}
+	if k == mapedit.KindUnit && key == unitGoldField {
+		return setUnitGold(m, index, value)
 	}
 	if k == mapedit.KindUnit && unitKeyFields[key] {
 		return false, fmt.Errorf("the unit's %s key is read-only: choose who the unit is, and the editor writes its keys", key)

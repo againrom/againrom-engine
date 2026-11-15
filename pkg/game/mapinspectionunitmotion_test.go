@@ -105,8 +105,8 @@ func TestEditorHiddenFacingWritesTheOldSetterBytes(t *testing.T) {
 					if !slices.Equal(f.ChoicePad, wantPad) {
 						t.Fatal("production facing choices lost compass positions", f.ChoicePad)
 					}
-					if showField(t, e, c, "facing") {
-						t.Fatal("the person window shows the facing")
+					if !showField(t, e, c, "facing") {
+						t.Fatal("the person window hides the facing")
 					}
 					for n := range 9 {
 						if _, err := s.SetFields(ui.KindUnit, 0, []ui.InspectionFieldValue{{Key: "facing", Value: int64(n), Step: 1}}); err != nil {
@@ -235,14 +235,14 @@ func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 					}
 					if plain {
 						blocks := e.PlainFieldBlocks()
-						if blocks["speed"] != "card" || blocks["sight"] != "card" || blocks["facing"] != "" {
+						if blocks["speed"] != "card" || blocks["sight"] != "card" || blocks["facing"] != "main" {
 							t.Fatalf("plain blocks speed %q sight %q facing %q", blocks["speed"], blocks["sight"], blocks["facing"])
 						}
 					}
 					typeField(t, e, c, "speed", 37)
 					typeField(t, e, c, "sight", 7)
-					if showField(t, e, c, "facing") {
-						t.Fatal("the person window shows the facing")
+					if !showField(t, e, c, "facing") {
+						t.Fatal("the person window hides the facing")
 					}
 					if _, err := s.SetFields(ui.KindUnit, 0, []ui.InspectionFieldValue{{Key: "facing", Value: 3, Step: 1}}); err != nil {
 						t.Fatal(err)

@@ -37,9 +37,14 @@ func TestEditorPersonFigureStandsAtTheGameSize(t *testing.T) {
 					}
 				}
 			}
-			// The probe's figure holds a 72x92 face and a 50x126 body.
-			if faces != 72*92 || bodies != 50*126 {
-				t.Errorf("%v plain %v: the window draws %d face and %d body pixels, want %d and %d", size, plain, faces, bodies, 72*92, 50*126)
+			// The probe's figure holds a 72x92 face and a 50x126 body; the
+			// game draws it at the scale its mission frame takes in the window.
+			scale := min(float64(size.X)/MissionFrameW, float64(size.Y)/MissionFrameH)
+			near := func(got int, w, h float64) bool {
+				return float64(got) >= (w*scale-1)*(h*scale-1) && float64(got) <= (w*scale+1)*(h*scale+1)
+			}
+			if !near(faces, 72, 92) || !near(bodies, 50, 126) {
+				t.Errorf("%v plain %v: the window draws %d face and %d body pixels, want about %.0f and %.0f", size, plain, faces, bodies, 72*92*scale*scale, 50*126*scale*scale)
 			}
 		}
 	}

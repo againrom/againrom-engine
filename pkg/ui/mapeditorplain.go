@@ -23,13 +23,14 @@ import (
 type plainShow uint8
 
 const (
-	plainField plainShow = iota // the field's own control
-	plainItem                   // the field's control showing the item's name and picture
-	plainCode                   // a line stating the field's number; the control stands elsewhere
-	plainBits                   // the field's control, then its word and known bits
-	plainName                   // the field's control, or a line with the card's name when the host gives none
-	plainUses                   // the script nodes that name the record
-	plainPanel                  // the field's input on the card, at the place the card draws its panel field
+	plainField  plainShow = iota // the field's own control
+	plainItem                    // the field's control showing the item's name and picture
+	plainCode                    // a line stating the field's number; the control stands elsewhere
+	plainBits                    // the field's control, then its word and known bits
+	plainName                    // the field's control, or a line with the card's name when the host gives none
+	plainUses                    // the script nodes that name the record
+	plainPanel                   // the field's input on the card, at the place the card draws its panel field
+	plainCorner                  // the field's pad in the lower left corner beside the card
 )
 
 // plainBlock is one block of a plain view: the word of its heading, none
@@ -88,6 +89,7 @@ var plainViews = map[RecordKind]plainView{
 			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
 			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
 			{key: "level", order: 5, block: "main"},
+			{key: "facing", word: "editor.unit.field.facing", order: 6, block: "main", show: plainCorner},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
@@ -455,6 +457,9 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 			if row.show == plainItem {
 				e.plainItemRow(&s.Rows[n], p.field)
 			}
+			if row.show == plainCorner {
+				e.plainCornerRow(s, links, n)
+			}
 			if row.show == plainBits {
 				for _, line := range e.placementLines(p.field) {
 					for _, part := range editorTextLines(e.bodyFont(), line, textWidth) {
@@ -467,6 +472,34 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 	if slices.ContainsFunc(v.blocks, func(b plainBlock) bool { return b.card }) {
 		e.plainCardRows(s, links, v, card, field, textWidth)
 	}
+}
+
+// plainCornerRow stands row n, a pad, in the lower left corner of the room
+// beside the card, its label over its buttons; the lines its field added
+// after it become its tip. Without a card, or under a figure too tall to
+// leave the corner room, the row stays among the rows.
+func (e *MapEditor) plainCornerRow(s *popupSpec, links *[]int, n int) {
+	row := &s.Rows[n]
+	if s.Card == nil || row.Kind != popupDirection {
+		return
+	}
+	pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+	w := 3 * pitch
+	if body := e.bodyFont(); body != nil {
+		w = max(w, body.Advance(row.Label)+4)
+	}
+	bottom := compactPanelH * cardScale
+	if e.unitFigureSize().Y+popupPad+4*pitch > bottom {
+		return // the figure above leaves the corner no room
+	}
+	tip := []string{row.Tip}
+	for _, r := range s.Rows[n+1:] {
+		tip = append(tip, r.Label)
+	}
+	s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
+	row = &s.Rows[n]
+	row.Place, row.RestLeft = image.Rect(0, bottom-4*pitch, w, bottom), true
+	row.Tip = strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
 }
 
 // plainCardRows stands the card block's rows on the window's card, drawn

@@ -65,6 +65,22 @@ func withTailWords(d sim.ActorDefinition, u alm.Unit, arm Arm) sim.ActorDefiniti
 	if t.HasMana {
 		d.Mana = int32(t.Mana)
 	}
+	// Againrom's maximum health replaces the derived one; the unit starts
+	// full unless it authors its current health, which stays at most the
+	// maximum (DIV-4945).
+	if t.HealthMax != 0 {
+		d.MaxHP = int32(t.HealthMax)
+		if !u.HasCurrentHP {
+			d.HP = d.MaxHP
+		}
+		d.HP = min(d.HP, d.MaxHP)
+	}
+	// A unit that leaves nothing discards its bag as an NPC template does
+	// and rolls no death gold or item (DIV-4946).
+	if t.NoLoot {
+		d.SuppressCorpseLoot = true
+		d.GoldChance, d.TreasureMin, d.TreasureMax, d.DeathItem = 0, 0, 0, sim.DeathItemRoll{}
+	}
 	if arm == ArmNPC {
 		return d
 	}

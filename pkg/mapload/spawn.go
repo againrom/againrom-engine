@@ -1193,6 +1193,7 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID, rows ...int) (PartyMe
 	// the row's: the skill stores reach the live levels, not the trained base.
 	hero := humanWithTailStats(d, u.Tail).Hero()
 	hero.AuthoredSpeed, hero.AuthoredSight = int32(u.Tail.Speed), int32(u.Tail.Sight)
+	hero.AuthoredHealthMax = int32(u.Tail.HealthMax)
 	name := t.humans().EntryName(r.Index)
 	p := PartyMember{
 		ID:                 fmt.Sprintf("join:%d", uint32(id)),

@@ -261,6 +261,9 @@ type Entity struct {
 	// SuppressRewards is the raised actor's mark, separate from its template's
 	// container policy (R2-ENGINE-535). It blocks death rewards and human XP.
 	SuppressRewards bool
+	// Purse is the gold of the placed unit's own map sack, which its death
+	// drops with its items (DIV-4946); 0 for every other actor.
+	Purse uint32 `json:",omitempty"`
 
 	// KillCreditSource, HasKillCredit and KillCreditSpell are the surviving
 	// damage attribution consumed when this actor later crosses below zero

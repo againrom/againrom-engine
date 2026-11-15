@@ -25,7 +25,7 @@ func popupRowPosition(s popupSpec, index int) (int, int) {
 // take none.
 func popupRowCount(s popupSpec) int {
 	if s.Columns <= 1 {
-		n := len(s.Rows)
+		n := len(s.Rows) + bandLines(s)
 		for _, row := range s.Rows {
 			if row.placed() {
 				n--
@@ -69,6 +69,15 @@ func popupShownRows(s popupSpec, shown int) []int {
 		}
 	}
 	return out
+}
+
+// bandLines are the lines a scrolling card band takes after the rows; 0
+// while the band stands fixed or there is none.
+func bandLines(s popupSpec) int {
+	if s.Card == nil || !s.CardBelow || s.Columns > 1 {
+		return 0
+	}
+	return max(0, s.BandLines)
 }
 
 func popupColumnTop(s popupSpec, column int) int {

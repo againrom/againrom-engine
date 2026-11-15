@@ -210,7 +210,7 @@ func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 31 || !seen["speed"] || !seen["sight"] || !seen["facing"] || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] || !seen["face"] || !seen["sex"] || !seen["npc"] || !seen["npcflag"] {
+	if len(seen) != 33 || !seen["hpmax"] || !seen["noloot"] || !seen["speed"] || !seen["sight"] || !seen["facing"] || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] || !seen["face"] || !seen["sex"] || !seen["npc"] || !seen["npcflag"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }

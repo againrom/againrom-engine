@@ -165,7 +165,7 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 				if speaker {
 					t.Errorf("%s: a line above the card says whether a dialogue shows the unit", name)
 				}
-				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "keys", "speaker", "facing"} {
+				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "keys", "speaker"} {
 					if keys[key] {
 						t.Errorf("%s: the basic view shows %s", name, key)
 					}

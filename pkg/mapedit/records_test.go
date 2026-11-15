@@ -335,7 +335,8 @@ func TestStockHasNoCellAndKeepsItsItems(t *testing.T) {
 		t.Fatal("a refused stock edit wrote")
 	}
 	fs, _ := e.Fields(mapedit.KindLoot, 0)
-	if len(fs) != 6 || fs[0].Key != "item1" || fs[1].Key != "additem" || fs[2].Key != "prependitem" || fs[3].Key != "duplicate1" || fs[4].Key != "use1" || fs[5].Key != "recipe1" {
+	// The stock's gold is its unit's purse (DIV-4946).
+	if len(fs) != 7 || fs[0].Key != "gold" || fs[1].Key != "item1" || fs[2].Key != "additem" || fs[3].Key != "prependitem" || fs[4].Key != "duplicate1" || fs[5].Key != "use1" || fs[6].Key != "recipe1" {
 		t.Fatalf("stock fields %+v", fs)
 	}
 	if v, err := e.FieldValue(mapedit.KindLoot, 0, "prependitem"); err != nil || v != 0 {

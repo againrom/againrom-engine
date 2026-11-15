@@ -151,8 +151,8 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"identity": "main", "name": "main", "owner": "main", "group": "main",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
-		"speed": "card", "sight": "card",
-		"face": "", "sex": "",
+		"speed": "card", "sight": "card", "facing": "main",
+		"face": "", "sex": "", "hpmax": "", "gold": "", "noloot": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
 		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "resolved": "", "overrides": "",
 	},
@@ -169,9 +169,9 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 }
 
 // unitHiddenField reports that f is one of the unit's fields neither view
-// shows: its facing, its dialogue speaker and its map keys.
+// shows: its dialogue speaker and its map keys.
 func unitHiddenField(kind ui.RecordKind, f ui.InspectionField) bool {
-	return kind == ui.KindUnit && slices.Contains([]string{"facing", "speaker", "keys"}, f.Key)
+	return kind == ui.KindUnit && slices.Contains([]string{"speaker", "keys"}, f.Key)
 }
 
 // viewsShape is key with its first number as "#" and anything after a dot
@@ -195,7 +195,7 @@ func viewsShape(key string) string {
 // unit's sack has its block in the plain view and shows there once the
 // blocks open, or is a unit field the basic view leaves to the detailed
 // view, and shows in the technical view in the section that holds it; a
-// unit's facing, speaker and map keys show in neither unit view.
+// unit's speaker and map keys show in neither unit view.
 func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 	for _, kind := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock} {
 		s, _ := viewsMap(t)

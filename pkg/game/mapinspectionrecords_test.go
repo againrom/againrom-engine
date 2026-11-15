@@ -205,7 +205,8 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 		t.Fatal("a stock clone was accepted")
 	}
 	_ = e.Key("escape")
-	if err := enterField(e, 0, "514"); err != nil {
+	// A unit's own record offers its gold first, then its items (DIV-4946).
+	if err := enterField(e, 1, "514"); err != nil {
 		t.Fatal(err)
 	}
 	step("stock item", func(_ *alm.Map, l []alm.LootRecord) bool {

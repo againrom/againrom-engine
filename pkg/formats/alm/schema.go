@@ -94,6 +94,7 @@ const (
 	UnitLoot        = 0x18 // 1-based loot record index, 0 for none
 	UnitHP          = 0x20
 	UnitMana        = 0x24
+	UnitHealthMax   = 0x28 // an Againrom override, unread by the original (ALM-UNITREAD-227)
 	UnitBody        = 0x2c
 	UnitMind        = 0x2d
 	UnitSpirit      = 0x2e
@@ -112,6 +113,11 @@ const (
 	UnitFlagSex      = 0x04
 	UnitFlagSkipGear = 0x80
 	UnitFaceMask     = 0x7f // in the low byte of the sub id
+
+	// UnitFlagNoLoot is Againrom's own flag bit: no shipped record sets it
+	// and the spawner reads no bit but 0, 2 and 7 (ALM-FLAGCORP-110,
+	// ALM-FLAGPATH-109).
+	UnitFlagNoLoot = 0x100
 
 	CountWordSize = 4
 

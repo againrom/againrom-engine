@@ -1639,6 +1639,7 @@ func (w *World) dropTerminalLoot(i int) bool {
 	}
 	before := w.beginLoadMutation(i)
 	if w.entities[i].discardsCorpseLoot() {
+		w.entities[i].Purse = 0
 		w.carried[i] = nil
 		w.equipment[i] = [EquipSlots]ItemInstance{}
 		syncWeaponItem(&w.entities[i], ItemInstance{})
@@ -1654,6 +1655,9 @@ func (w *World) dropTerminalLoot(i int) bool {
 		}
 	} else if validCell {
 		gold, rolledItem, rolled := w.deathRoll(i)
+		// The unit's own purse joins the rolled gold (DIV-4946).
+		gold += w.entities[i].Purse
+		w.entities[i].Purse = 0
 		if gold != 0 || rolled || w.holdsSomething(i) {
 			items := expandItems(w.carried[i])
 			// Original drop order: carried items, slot 2, slot 1, then slots

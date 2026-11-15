@@ -81,7 +81,7 @@ func (w *World) hasTerminalLoot(i int) bool {
 	if e.discardsCorpseLoot() {
 		return false
 	}
-	if len(w.carried[i]) != 0 {
+	if e.Purse != 0 || len(w.carried[i]) != 0 {
 		return true
 	}
 	for slot, item := range w.equipment[i] {

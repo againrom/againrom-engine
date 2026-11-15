@@ -48,7 +48,7 @@ func TestEditorPersonWindowShowsTheKeptRows(t *testing.T) {
 		if got := fields[fieldIndex(t, fields, "owner")].Label; got != "Player" {
 			t.Errorf("plain %v: the unit's player reads %q, want Player", plain, got)
 		}
-		keep := []string{"identity", "owner", "group", "name"}
+		keep := []string{"identity", "owner", "group", "name", "facing"}
 		if !plain {
 			keep = append(keep, "face", "sex")
 		}
@@ -57,7 +57,7 @@ func TestEditorPersonWindowShowsTheKeptRows(t *testing.T) {
 				t.Errorf("plain %v: %s does not show", plain, key)
 			}
 		}
-		for _, key := range []string{"facing", "speaker", "keys"} {
+		for _, key := range []string{"speaker", "keys"} {
 			if showField(t, e, c, key) {
 				t.Errorf("plain %v: %s shows", plain, key)
 			}
@@ -65,7 +65,7 @@ func TestEditorPersonWindowShowsTheKeptRows(t *testing.T) {
 		note := x.word("editor.unit.name.note")
 		for _, line := range personLines(t, e, c) {
 			for _, gone := range []string{x.word("editor.object.cell") + " ", x.word("editor.plain.position") + " ", x.word("editor.usedby.title"),
-				x.word("editor.unit.speaker"), x.word("editor.unit.keys"), x.word("editor.unit.field.facing"), "Stored stat overrides", "Tab: next field"} {
+				x.word("editor.unit.speaker"), x.word("editor.unit.keys"), "Stored stat overrides", "Tab: next field"} {
 				if strings.HasPrefix(line, gone) {
 					t.Errorf("plain %v: the window shows %q", plain, line)
 				}

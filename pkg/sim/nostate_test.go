@@ -236,6 +236,7 @@ var nstPinned = []struct {
 		{"Owner", "uint32"},
 		{"SuppressCorpseLoot", "bool"},
 		{"SuppressRewards", "bool"},
+		{"Purse", "uint32"},
 		{"KillCreditSource", "sim.EntityID"},
 		{"HasKillCredit", "bool"},
 		{"KillCreditSpell", "int8"},

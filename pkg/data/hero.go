@@ -94,6 +94,9 @@ type Hero struct {
 	// Speed and Sight are a map author's base speed and whole-cell sight,
 	// which replace the ones the statistics derive; 0 derives each.
 	AuthoredSpeed, AuthoredSight int32
+	// AuthoredHealthMax is a map author's maximum health, which replaces
+	// the derived one with its terms; 0 derives it.
+	AuthoredHealthMax int32 `json:",omitempty"`
 }
 
 // NewHero is a hero built from a point spread and the one slot he trained: the

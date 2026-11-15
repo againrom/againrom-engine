@@ -39,6 +39,28 @@ func TestZeroOwnedStockKeepsItsDecodedFormAndBaseHash(t *testing.T) {
 	}
 }
 
+// TestOwnedStockGoldIsTheUnitsPurse: an owned record's gold reaches its unit
+// as the purse its death drops; no owned gold leaves the purse empty
+// (DIV-4946).
+func TestOwnedStockGoldIsTheUnitsPurse(t *testing.T) {
+	table := wearTable([]string{"Sword"}, wearWeapons(), wearShields(), wearArmors())
+	m := humanMap()
+	m.Units[0].UnitID = 7
+	m.FormatVersion, m.Meta.Word2C = 990, 1
+	m.LootSection = alm.LootSection{Body: llHead(0, 7, 0, 0, 250)}
+	w, err := mapload.FromALMWith(m, table, mapload.DifficultyNormal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := w.Entities()[0].Purse; got != 250 {
+		t.Fatalf("purse %d, want the owned record's 250", got)
+	}
+	m.LootSection = alm.LootSection{Body: llHead(0, 7, 0, 0, 0)}
+	if w, err = mapload.FromALMWith(m, table, mapload.DifficultyNormal); err != nil || w.Entities()[0].Purse != 0 {
+		t.Fatalf("no owned gold: purse %d err %v, want 0", w.Entities()[0].Purse, err)
+	}
+}
+
 func TestOwnedStockUsesEquipmentDispatchAfterTheRow(t *testing.T) {
 	table := wearTable([]string{"Sword", "Buckler"}, wearWeapons(), wearShields(), wearArmors())
 	pike, err := data.ResolveWeapon("Pike", table.Shapes, table.Materials, table.Weapons)

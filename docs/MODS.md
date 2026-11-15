@@ -2309,6 +2309,16 @@ texts. The game's card and message lines show that name, and a saved game
 shows it again after loading. A person keeps an authored speed and sight
 only until his first equip, training or potion after a load.
 
+The detailed view also sets a unit's Maximum health, its Gold and its Loot
+(DIV-4945, DIV-4946). Maximum health, 0..32767, replaces the derived maximum
+(empty keeps it) and caps the unit's health; it is the record's +0x28, which
+a shipped map holds at 0. Gold is the gold word of the unit's own loot
+record, added when the unit has none; the unit drops it with its items when
+it dies. Loot set to Leaves nothing (flag bit 8) makes the unit leave no
+sack: no items, no gold and none of its kind's loot. A saved game keeps all
+three; a person loses the authored maximum at his first re-derivation after
+a load.
+
 After the size, N asks for the starting height, 0..126, 64 by default; every
 height cell of the new map holds it, and another number is refused with the
 question kept. From a terminal, `-new 32x32/altitude40` gives the same.

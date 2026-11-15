@@ -129,15 +129,9 @@ func openUnitBag(t *testing.T, e *MapEditor, view string) {
 		}
 		clickSwitch(t, e)
 	}
-	{
-		r, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: "inventory"})
-		if !ok {
-			t.Fatal("the person window shows no Bag tab")
-		}
-		chromeClick(e, center(r))
-		if e.obj.section != 2 {
-			t.Fatalf("the Bag tab shows section %d", e.obj.section)
-		}
+	// The detailed view shows every section at once, the bag among them.
+	if _, ok := e.FindControl(ControlQuery{Role: ControlObjectSection, Key: "inventory"}); ok {
+		t.Fatal("the person window shows a Bag tab")
 	}
 	if _, _, ok := e.objectSpec(); !ok {
 		t.Fatal("the unit shows no window")
