@@ -21,7 +21,7 @@ func scriptsListEditor(t *testing.T) *MapEditor {
 		},
 		Conditions: []InspectionScriptNode{
 			{Record: 1, ID: 20, Opcode: 5},
-			{Record: 3, ID: 21, Opcode: 0x10002, Label: "Counter"},
+			{Record: 3, ID: 21, Opcode: 0x10002, Label: "Counter", VariableLabel: "Counter"},
 			{Record: 4, ID: 22, Opcode: 0x10002, Label: "Unused condition"},
 		},
 		Triggers: []InspectionTrigger{{Record: 2, Name: "Rule", Left: []uint32{20, 0, 0}, Right: []uint32{21, 0, 0}, Cmp: make([]uint32, 3), Acts: []uint32{10, 0, 0, 0}}},
@@ -219,7 +219,7 @@ func TestScriptsListVariableRegisterAndLabel(t *testing.T) {
 			e.doc.Script.Actions[0].Opcode = opcode
 			e.doc.Script.Actions[0].AddressesVariable = true
 		}
-		e.doc.Script.Conditions[1].Label = ""
+		e.doc.Script.Conditions[1].Label, e.doc.Script.Conditions[1].VariableLabel = "", ""
 		_ = e.Key("scripts")
 		rows := scriptsTreeRows(e)
 		if strings.TrimSpace(rows[3].Text) != "Variable 1" {

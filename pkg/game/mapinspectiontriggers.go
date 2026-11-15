@@ -66,7 +66,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		for i, n := range family.nodes {
 			r := ui.InspectionRecord{Kind: family.kind, Section: 7, Index: i, Label: text(n.Label)}
 			s.node(&r, family.kind, n)
-			*family.out = append(*family.out, ui.InspectionScriptNode{Record: len(d.Records), ID: n.ID, Opcode: n.Opcode, Label: n.Label, Types: n.Type, Values: n.Value,
+			*family.out = append(*family.out, ui.InspectionScriptNode{Record: len(d.Records), ID: n.ID, Opcode: n.Opcode, Label: n.Label, VariableLabel: presetVariableLabel(n), Types: n.Type, Values: n.Value,
 				AddressesVariable: scriptAddressesVariable(family.kind == ui.KindCondition, n.Opcode), VariableRegister: scriptVariable(n)})
 			d.Records = append(d.Records, r)
 		}

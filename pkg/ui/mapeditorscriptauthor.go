@@ -195,8 +195,8 @@ func (e *MapEditor) variableTitle(v scriptVariableView) string {
 		title += "  " + e.editorHostText(v.label)
 	} else if v.constant >= 0 {
 		n, _ := e.scriptViewOf(v.constant)
-		if n.node.Label != "" {
-			title += "  " + e.editorHostText(n.node.Label)
+		if n.node.VariableLabel != "" {
+			title += "  " + e.editorHostText(n.node.VariableLabel)
 		}
 	}
 	if v.shared >= 0 {

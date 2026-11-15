@@ -116,8 +116,10 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	slices.Sort(vars)
 	for i, r := range vars {
 		name := x.inspectionUTF8(fmt.Sprintf(x.word("editor.scripts.variable"), r))
-		if uint64(r) < uint64(len(sc.Conditions)) && sc.Conditions[r].Opcode == 0x10002 && sc.Conditions[r].Label != "" {
-			name = x.inspectionUTF8(sc.Conditions[r].Label)
+		if uint64(r) < uint64(len(sc.Conditions)) {
+			if label := presetVariableLabel(sc.Conditions[r]); label != "" {
+				name = x.inspectionUTF8(label)
+			}
 		}
 		if label, ok := d.Script.Labels[r]; ok {
 			name = x.inspectionUTF8(label)
@@ -145,6 +147,17 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	}
 	x.messageTargets(out, pages)
 	return out
+}
+
+// presetVariableLabel is the name a map author gave the variable whose
+// register is a constant preset node: the node's label, or "" when the node is
+// no preset, has no label, or still holds the name the editor writes into a
+// new node.
+func presetVariableLabel(n alm.ScriptNode) string {
+	if n.Opcode != 0x10002 || n.Label == mapload.ScriptOperationName(true, n.Opcode) {
+		return ""
+	}
+	return n.Label
 }
 
 func scriptParameterChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {

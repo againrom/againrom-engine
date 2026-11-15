@@ -150,6 +150,7 @@ type InspectionScriptNode struct {
 	Record            int // its document record
 	ID, Opcode        uint32
 	Label             string // UTF-8, the text its name field edits
+	VariableLabel     string // the label that names the variable of a preset node, "" for none
 	Types, Values     [10]uint32
 	AddressesVariable bool
 	VariableRegister  uint32
