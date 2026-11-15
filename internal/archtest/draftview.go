@@ -9,19 +9,28 @@ import (
 
 // The draft view scan. The editor's readers of the project's drafts reach
 // them only through projectView: the callers call it, and the others take
-// its draftView and no draft map of their own. A reader that deletes a name itself or takes a bare draft
-// map is a second route.
+// its draftView and no draft map of their own. A reader that deletes a name
+// itself, takes a bare draft map or reads a draft by its exact name is a
+// second route.
 
 // DraftViewFiles are the files that hold the readers, each with its readers.
 var DraftViewFiles = map[string][]string{
 	"pkg/game/mapeditormod.go":        {"projectFiles", "rowFiles", "missionFiles", "checkMissionSet"},
 	"pkg/game/mapeditorcampaign.go":   {"missionDraft"},
 	"pkg/game/modmapsave.go":          {"readInventory"},
-	"pkg/game/mapeditormodcontext.go": {"openModContext"},
+	"pkg/game/mapeditormodcontext.go": {"openModContext", "draftTerrain", "draftModContext"},
+	"pkg/game/mapeditormodfiles.go":   {"filesOverrides", "modFileOverrides"},
+	"pkg/game/modspeakers.go":         {"speakerDraftFiles", "draftSpeakersFile"},
+	"pkg/game/mapedittestplay.go":     {"testPlayWith"},
 }
 
 // DraftViewCallers must call projectView; the others take a draftView.
-var DraftViewCallers = map[string]bool{"projectFiles": true, "readInventory": true, "missionDraft": true}
+var DraftViewCallers = map[string]bool{"projectFiles": true, "readInventory": true, "missionDraft": true,
+	"draftModContext": true, "filesOverrides": true, "speakerDraftFiles": true, "draftSpeakersFile": true, "testPlayWith": true}
+
+// DraftViewOverlays put the view over the run's records and so delete
+// records; they are held to the other rules.
+var DraftViewOverlays = map[string]bool{"draftTerrain": true}
 
 // DraftViewFindings reports each reader in files (path to source) that has a
 // second route to the drafts.
@@ -48,8 +57,13 @@ func DraftViewFindings(files map[string]string) ([]string, error) {
 					continue
 				}
 				found[r] = true
-				calls, deletes := false, false
+				calls, deletes, exact := false, false, false
 				ast.Inspect(fn.Body, func(n ast.Node) bool {
+					if ix, ok := n.(*ast.IndexExpr); ok {
+						if sel, ok := ix.X.(*ast.SelectorExpr); ok && sel.Sel.Name == "drafts" {
+							exact = true
+						}
+					}
 					if c, ok := n.(*ast.CallExpr); ok {
 						switch fun := c.Fun.(type) {
 						case *ast.Ident:
@@ -60,8 +74,11 @@ func DraftViewFindings(files map[string]string) ([]string, error) {
 					}
 					return true
 				})
-				if deletes {
+				if deletes && !DraftViewOverlays[r] {
 					out = append(out, fmt.Sprintf("%s:%s deletes a name itself", path, r))
+				}
+				if exact {
+					out = append(out, fmt.Sprintf("%s:%s reads a draft by its exact name", path, r))
 				}
 				if DraftViewCallers[r] && !calls {
 					out = append(out, fmt.Sprintf("%s:%s does not call projectView", path, r))

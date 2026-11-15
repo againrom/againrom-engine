@@ -189,7 +189,7 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 	var strips []string
 	if field == "remove" {
 		for b := range 4 {
-			strips = append(strips, mod.FilesDir+"/"+mod.CommonFiles+"/"+terrain.GroupStripPath(g, b))
+			strips = append(strips, modStripFile(g, b))
 		}
 	}
 	return s.editTerrain(edit, strips)
@@ -199,12 +199,8 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 // and the kind's writer writes them over the draft's bytes; the files drop
 // names leave the project with it. A file with no row left leaves the mod.
 func (s *mapInspectionEdits) editTerrain(edit func(*mod.TerrainData) error, drop []string) (*ui.InspectionDocument, error) {
-	m := s.inspector.mod
-	return s.changeWorkspace(func(w *editorWorkspaceState) error {
-		if w.Project == nil {
-			w.Project = m.document()
-		}
-		rows, src, err := s.terrainRows(w)
+	return s.editKind(func(k kindFiles) error {
+		rows, src, err := s.terrainRows(k.w)
 		if err != nil {
 			return err
 		}
@@ -217,28 +213,69 @@ func (s *mapInspectionEdits) editTerrain(edit func(*mod.TerrainData) error, drop
 		if err != nil {
 			return err
 		}
-		w.Project.Files[mod.TerrainFile] = out
 		if len(rows.Groups) == 0 && strings.TrimSpace(string(out)) == "" {
-			s.dropModFile(w, mod.TerrainFile)
+			err = k.drop(mod.TerrainFile)
+		} else {
+			err = k.put(mod.TerrainFile, out)
 		}
 		for _, rel := range drop {
-			s.dropModFile(w, rel)
+			if err == nil {
+				err = k.drop(rel)
+			}
 		}
-		return nil
+		return err
 	})
 }
 
-// dropModFile takes the file rel names out of the project w: the next save
-// removes it from the folder when the folder holds it.
-func (s *mapInspectionEdits) dropModFile(w *editorWorkspaceState, rel string) {
-	for _, name := range slices.Collect(maps.Keys(w.Project.Files)) {
+// kindFiles is one draft step's hold on the project w's files of the kinds
+// the project holds whole (mod.HeldDraft); a file of another kind is
+// refused.
+type kindFiles struct {
+	s *mapInspectionEdits
+	w *editorWorkspaceState
+}
+
+// editKind is one draft step of the project's files of the held kinds:
+// edit writes them through k.
+func (s *mapInspectionEdits) editKind(edit func(k kindFiles) error) (*ui.InspectionDocument, error) {
+	m := s.inspector.mod
+	return s.changeWorkspace(func(w *editorWorkspaceState) error {
+		if w.Project == nil {
+			w.Project = m.document()
+		}
+		return edit(kindFiles{s: s, w: w})
+	})
+}
+
+// put makes out the draft of the file rel names.
+func (k kindFiles) put(rel string, out []byte) error {
+	if !mod.HeldDraft(rel) {
+		return fmt.Errorf("the project holds no kind of %s", rel)
+	}
+	k.w.Project.Files[rel] = out
+	return nil
+}
+
+// drop takes the file rel names out of the project: the next save removes
+// it from the folder when the folder holds it.
+func (k kindFiles) drop(rel string) error {
+	if !mod.HeldDraft(rel) {
+		return fmt.Errorf("the project holds no kind of %s", rel)
+	}
+	for _, name := range slices.Collect(maps.Keys(k.w.Project.Files)) {
 		if mod.FoldAddress(name) == mod.FoldAddress(rel) {
-			delete(w.Project.Files, name)
+			delete(k.w.Project.Files, name)
 		}
 	}
-	if st, err := os.Stat(filepath.Join(s.inspector.mod.dir, filepath.FromSlash(rel))); err == nil && !st.IsDir() {
-		w.Project.Files[rel] = nil
+	if st, err := os.Stat(filepath.Join(k.s.inspector.mod.dir, filepath.FromSlash(rel))); err == nil && !st.IsDir() {
+		k.w.Project.Files[rel] = nil
 	}
+	return nil
+}
+
+// modStripFile is the mod file of tile group g's strip in column b.
+func modStripFile(g, b int) string {
+	return mod.FilesDir + "/" + mod.CommonFiles + "/" + terrain.GroupStripPath(g, b)
 }
 
 // ImportTerrainStrip copies the host file source into the open mod as the
@@ -265,7 +302,7 @@ func (s *mapInspectionEdits) ImportTerrainStrip(g, b int, source string, replace
 	if err != nil {
 		return "", nil, err
 	}
-	rel := mod.FilesDir + "/" + mod.CommonFiles + "/" + terrain.GroupStripPath(g, b)
+	rel := modStripFile(g, b)
 	return s.importModFile(rel, data, replace, func() (*ui.InspectionDocument, error) {
 		_, d, err := s.ImportTerrainStrip(g, b, source, true)
 		return d, err

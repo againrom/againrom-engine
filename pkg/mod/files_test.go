@@ -1,12 +1,30 @@
 package mod
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"againrom/pkg/namefold"
 )
+
+// foldedDrafts is a DraftView over drafts whose names fold apart.
+type foldedDrafts map[string][]byte
+
+func (d foldedDrafts) Draft(rel string) ([]byte, bool) {
+	for name, b := range d {
+		if namefold.ModTree(name) == namefold.ModTree(rel) {
+			return b, true
+		}
+	}
+	return nil, false
+}
+
+func (d foldedDrafts) Drafted() []string { return slices.Sorted(maps.Keys(d)) }
 
 // writeFiles lays files, by slash path under the mod folder, into a new mod
 // folder and returns it.
@@ -84,7 +102,7 @@ func TestInstallFileDraftsGoOverTheFolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := OverlayInstallFiles("m", "ru", files, map[string][]byte{
+	got, err := OverlayInstallFiles("m", "ru", files, foldedDrafts{
 		"files/common/graphics/interface/a.bmp": []byte("BMnew"),
 		"files/common/graphics/interface/b.bmp": nil,
 		"files/common/graphics/terrain/c.bmp":   []byte("BM"),
@@ -103,7 +121,7 @@ func TestInstallFileDraftsGoOverTheFolder(t *testing.T) {
 		"files/common/c.bmp":                  "names no archive",
 		"files/xx/graphics/c.bmp":             "not a language folder",
 	} {
-		if _, err := OverlayInstallFiles("m", "ru", files, map[string][]byte{rel: []byte("BM")}); err == nil || !strings.Contains(err.Error(), want) || !strings.Contains(err.Error(), rel) {
+		if _, err := OverlayInstallFiles("m", "ru", files, foldedDrafts{rel: []byte("BM")}); err == nil || !strings.Contains(err.Error(), want) || !strings.Contains(err.Error(), rel) {
 			t.Errorf("%s: %v, want %q", rel, err, want)
 		}
 	}

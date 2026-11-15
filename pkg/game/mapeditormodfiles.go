@@ -188,14 +188,7 @@ func (s *mapInspectionEdits) setFilesField(key, value string) (*ui.InspectionDoc
 		if !ok || !strings.HasPrefix(held, mod.FilesDir+"/") {
 			return nil, fmt.Errorf(x.word("editor.files.err.gone"), key)
 		}
-		m := x.mod
-		return s.changeWorkspace(func(w *editorWorkspaceState) error {
-			if w.Project == nil {
-				w.Project = m.document()
-			}
-			s.dropModFile(w, held)
-			return nil
-		})
+		return s.editKind(func(k kindFiles) error { return k.drop(held) })
 	}
 	lang, address, ok := strings.Cut(key, ":")
 	if !ok {
@@ -244,7 +237,7 @@ func (s *mapInspectionEdits) ImportInstallFile(lang, address, source string, rep
 func (s *mapInspectionEdits) filesOverrides(d *editorModDocument) []string {
 	m := s.inspector.mod
 	if m.filesCheck == nil {
-		lines := s.inspector.modFileOverrides(m, d.Files)
+		lines := s.inspector.modFileOverrides(m, projectView(m.files, d.Files))
 		m.filesCheck = &lines
 	}
 	return *m.filesCheck
@@ -259,7 +252,7 @@ func (x *MapInspector) modNotEnabled(m *editorMod) bool {
 // modFileOverrides serves the install files of the enabled mods, with drafts
 // over m's when m is enabled, as the game's launch serves them, and answers
 // its override lines, or the refusal as the one line.
-func (x *MapInspector) modFileOverrides(m *editorMod, drafts map[string][]byte) []string {
+func (x *MapInspector) modFileOverrides(m *editorMod, view draftView) []string {
 	h := x.testPlay
 	if h == nil || h.EnabledMods == nil || strings.TrimSpace(h.ModsFolder) == "" || x.archives == nil || x.archives.Containers == nil {
 		return nil
@@ -293,7 +286,7 @@ func (x *MapInspector) modFileOverrides(m *editorMod, drafts map[string][]byte) 
 			}
 		}
 		if e.Manifest.ID == m.id {
-			if of, err = mod.OverlayInstallFiles(m.id, lang, of, drafts); err != nil {
+			if of, err = mod.OverlayInstallFiles(m.id, lang, of, view); err != nil {
 				return []string{err.Error()}
 			}
 		}

@@ -236,7 +236,8 @@ func TestTextsPageModSavesPublishesAndShowsTheTitle(t *testing.T) {
 	if saved[mod.EntryName] != made[mod.EntryName] {
 		t.Fatalf("the save changed the entry file:\n%s", saved[mod.EntryName])
 	}
-	for _, rel := range textStringsFiles() {
+	for _, l := range textLanguages() {
+		rel := mod.StringsFile(l)
 		if _, ok := saved[rel]; !ok {
 			t.Fatalf("the save wrote no %s: %v", rel, keysOf(saved))
 		}

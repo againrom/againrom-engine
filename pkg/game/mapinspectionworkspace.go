@@ -350,24 +350,51 @@ func (x *MapInspector) pageLine(key, group, text string) ui.InspectionField {
 	return ui.InspectionField{Key: key, Group: group, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(text)}}}
 }
 
+// workspaceScope is a page of the mod window with a scope of its own: its
+// fields and their setter, asked before the map's and the package's scopes.
+// A scope ending in a dot takes every scope it starts.
+type workspaceScope struct {
+	scope  string
+	fields func(s *mapInspectionEdits, scope string) []ui.InspectionField
+	set    func(s *mapInspectionEdits, scope, key, value string) (*ui.InspectionDocument, error)
+}
+
+// workspaceScopes is the pages of a scope of their own; a page is one row of
+// workspaceScopeRows.
+var workspaceScopes []workspaceScope
+
+// The rows are set at init: a page's fields ask WorkspaceFields again.
+func init() { workspaceScopes = workspaceScopeRows() }
+
+func workspaceScopeRows() []workspaceScope {
+	type edits = mapInspectionEdits
+	page := func(scope string, fields func(*edits) []ui.InspectionField, set func(*edits, string, string) (*ui.InspectionDocument, error)) workspaceScope {
+		return workspaceScope{scope, func(s *edits, _ string) []ui.InspectionField { return fields(s) },
+			func(s *edits, _, key, value string) (*ui.InspectionDocument, error) { return set(s, key, value) }}
+	}
+	return []workspaceScope{
+		{"campaign.", (*edits).campaignFields, (*edits).setCampaignField},
+		page("handout", (*edits).handoutFields, (*edits).setHandoutField),
+		page(ui.ModTerrainScope, (*edits).terrainFields, (*edits).setTerrainField),
+		page(ui.ModTextsScope, (*edits).textsFields, (*edits).setTextsField),
+		page(ui.ModItemsScope, (*edits).itemsFields, (*edits).setItemsField),
+		page(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
+	}
+}
+
+// pageScope is the row of workspaceScopes that takes scope.
+func pageScope(scope string) (workspaceScope, bool) {
+	for _, r := range workspaceScopes {
+		if r.scope == scope || strings.HasSuffix(r.scope, ".") && strings.HasPrefix(scope, r.scope) {
+			return r, true
+		}
+	}
+	return workspaceScope{}, false
+}
+
 func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField {
-	if strings.HasPrefix(scope, "campaign.") {
-		return s.campaignFields(scope)
-	}
-	if scope == "handout" {
-		return s.handoutFields()
-	}
-	if scope == ui.ModTerrainScope {
-		return s.terrainFields()
-	}
-	if scope == ui.ModTextsScope {
-		return s.textsFields()
-	}
-	if scope == ui.ModItemsScope {
-		return s.itemsFields()
-	}
-	if scope == ui.ModFilesScope {
-		return s.filesFields()
+	if r, ok := pageScope(scope); ok {
+		return r.fields(s, scope)
 	}
 	if s.model == nil && scope != "package" {
 		return nil
@@ -454,23 +481,8 @@ func opensMod(scope, key, value string) bool {
 }
 
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
-	if strings.HasPrefix(scope, "campaign.") {
-		return s.setCampaignField(scope, key, value)
-	}
-	if scope == "handout" {
-		return s.setHandoutField(key, value)
-	}
-	if scope == ui.ModTerrainScope {
-		return s.setTerrainField(key, value)
-	}
-	if scope == ui.ModTextsScope {
-		return s.setTextsField(key, value)
-	}
-	if scope == ui.ModItemsScope {
-		return s.setItemsField(key, value)
-	}
-	if scope == ui.ModFilesScope {
-		return s.setFilesField(key, value)
+	if r, ok := pageScope(scope); ok {
+		return r.set(s, scope, key, value)
 	}
 	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
@@ -735,19 +747,16 @@ func (s *mapInspectionEdits) packageProtected() []packageGuard {
 }
 
 // contextDraft is the part of the project the mod's context reads from its
-// drafts, each file named with its bytes: the speakers file, the terrain
-// file, the install files under files/, and the items file with its
-// sprites and, as they name its rows, the strings files. A change of it
-// builds the context again.
+// drafts, each file named with its bytes: the files mod.RebuildsContext
+// names. A change of it builds the context again.
 func (w *editorWorkspaceState) contextDraft() []byte {
 	if w == nil || w.Project == nil {
 		return nil
 	}
-	_, items := w.Project.Files[mod.ItemsFile]
+	holds := func(rel string) bool { _, ok := w.Project.Files[rel]; return ok }
 	var b bytes.Buffer
 	for _, name := range slices.Sorted(maps.Keys(w.Project.Files)) {
-		item := name == mod.ItemsFile || strings.HasPrefix(name, mod.AssetsFolder+"/"+mod.ItemSprite.Kind+"/") || items && slices.Contains(textStringsFiles(), name)
-		if name != mod.SpeakersFile && name != mod.TerrainFile && !strings.HasPrefix(name, mod.FilesDir+"/") && !item {
+		if !mod.RebuildsContext(name, holds) {
 			continue
 		}
 		v := w.Project.Files[name]

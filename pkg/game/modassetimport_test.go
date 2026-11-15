@@ -138,6 +138,55 @@ func TestImportItemPictureIsOneDraftUntilSave(t *testing.T) {
 	}
 }
 
+// A sprite the mod keeps in a folder spelled in another letter case is the
+// project's file under the kind's own folder name: the open holds it, the
+// import of the same name replaces it and builds the context again, and a
+// save, an undo past it and a save write the old sprite back.
+func TestItemSpriteInAFolderOfAnotherCaseIsTheSameFile(t *testing.T) {
+	for _, folder := range []string{"items", "Items"} {
+		t.Run(folder, func(t *testing.T) {
+			s, dir, _ := modAssetProject(t, "en")
+			old := assetPNG(t, 8, 8, color.RGBA{R: 200, A: 255})
+			const rel = "assets/items/old.png"
+			writeModText(t, dir, "assets/"+folder+"/old.png", string(old))
+			reopenProject(t, s, dir)
+			if !bytes.Equal(s.workspace.Project.Files[rel], old) {
+				t.Fatalf("the project holds %v", slices.Sorted(mapKeys(s.workspace.Project.Files)))
+			}
+			source, next := assetFile(t, "old.png", assetPNG(t, 9, 9, color.RGBA{G: 200, A: 255}))
+			if _, err := s.SetWorkspaceField("package", modAssetImportKey+"items", source); err == nil {
+				t.Fatal("the import of a held name did not ask")
+			}
+			before := s.inspector.mod.context
+			if _, err := s.SetWorkspaceField("package", modAssetReplaceKey, "confirmed"); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(s.workspace.Project.Files[rel], next) {
+				t.Fatalf("the import drafted %v", slices.Sorted(mapKeys(s.workspace.Project.Files)))
+			}
+			if s.inspector.mod.context == before {
+				t.Fatal("the import did not build the context again")
+			}
+			if _, err := s.SaveIntoMod(); err != nil {
+				t.Fatal(err)
+			}
+			if got, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(rel))); err != nil || !bytes.Equal(got, next) {
+				t.Fatalf("the save wrote %d bytes: %v", len(got), err)
+			}
+			if _, err := s.Undo(); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.SaveIntoMod(); err != nil {
+				t.Fatal(err)
+			}
+			got, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(rel)))
+			if err != nil || !bytes.Equal(got, old) {
+				t.Fatalf("the old sprite after undo and save: %d bytes, %v", len(got), err)
+			}
+		})
+	}
+}
+
 func mapKeys(m map[string][]byte) func(func(string) bool) {
 	return func(yield func(string) bool) {
 		for k := range m {

@@ -41,12 +41,14 @@ func TestDraftViewSecondRoutesAreFound(t *testing.T) {
 		"rows []mod.Mission, view draftView)", "rows []mod.Mission, pending map[string][]byte)", 1)
 	files["pkg/game/mapeditorcampaign.go"] = strings.Replace(files["pkg/game/mapeditorcampaign.go"],
 		"projectView(x.mod.files, d.Files)", "d.Files", 1)
+	files["pkg/game/mapeditormodcontext.go"] = strings.Replace(files["pkg/game/mapeditormodcontext.go"],
+		"drafted := view.drafts != nil", "drafted := view.drafts[\"files\"] != nil", 1)
 	got, err := DraftViewFindings(files)
 	if err != nil {
 		t.Fatal(err)
 	}
 	joined := strings.Join(got, "\n")
-	for _, want := range []string{"readInventory deletes a name itself", "readInventory does not call projectView", "openModContext takes a draft map", "missionFiles takes a draft map", "missionDraft does not call projectView"} {
+	for _, want := range []string{"draftTerrain reads a draft by its exact name", "readInventory deletes a name itself", "readInventory does not call projectView", "openModContext takes a draft map", "missionFiles takes a draft map", "missionDraft does not call projectView"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("findings %q lack %q", joined, want)
 		}

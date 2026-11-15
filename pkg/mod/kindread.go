@@ -78,9 +78,9 @@ func readSpeakers(r DataReader, d *Data, rel string, src []byte) error {
 }
 
 // ReadSpeakers parses a speakers file of the mod at dir and reads the picture
-// each record names, refusing a missing one at its line. A picture named in
-// pending is taken from there and not from the mod, for a file not written yet.
-func ReadSpeakers(id, dir, rel string, src []byte, pending map[string][]byte) (SpeakerData, error) {
+// each record names, refusing a missing one at its line. A picture pending
+// holds is taken from there and not from the mod, for a file not written yet.
+func ReadSpeakers(id, dir, rel string, src []byte, pending func(rel string) ([]byte, bool)) (SpeakerData, error) {
 	speakers, err := ParseSpeakers(id, rel, src)
 	if err != nil {
 		return SpeakerData{}, err
@@ -91,9 +91,11 @@ func ReadSpeakers(id, dir, rel string, src []byte, pending map[string][]byte) (S
 		if s.Picture == "" {
 			continue
 		}
-		if b, ok := pending[s.Picture]; ok {
-			s.PictureBytes = b
-			continue
+		if pending != nil {
+			if b, ok := pending(s.Picture); ok {
+				s.PictureBytes = b
+				continue
+			}
 		}
 		data, _, err := SpeakerPicture.ReadIn(dir, s.Picture)
 		if err != nil {

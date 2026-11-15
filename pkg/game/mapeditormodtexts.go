@@ -50,15 +50,6 @@ func textLanguages() []string {
 // languageLabel is a language code as the texts page shows it.
 func languageLabel(code string) string { return strings.ToUpper(code) }
 
-// textStringsFiles is the strings file of each language, English first.
-func textStringsFiles() []string {
-	var out []string
-	for _, l := range textLanguages() {
-		out = append(out, mod.StringsFile(l))
-	}
-	return out
-}
-
 // strings is the project's text of each language, as its strings files
 // read; a language without a file has none.
 func (d *editorModDocument) strings() (map[string]mod.Strings, error) {
@@ -77,10 +68,7 @@ func (d *editorModDocument) strings() (map[string]mod.Strings, error) {
 // textLookup is the one text lookup over the project's strings files for a
 // game in lang: its own string, else the English one.
 func (d *editorModDocument) textLookup(lang string) (func(key string) (string, bool), error) {
-	return mod.Lookup(lang, func(l string) (mod.Strings, error) {
-		rel := mod.StringsFile(l)
-		return mod.ParseStrings(rel, d.Files[rel])
-	})
+	return mod.DraftText(lang, func(rel string) ([]byte, bool) { b, ok := d.Files[rel]; return b, ok })
 }
 
 // textKeys is every key the languages of sets hold, sorted.
@@ -291,10 +279,8 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 // language the edit left alone keeps its file as it was.
 func (s *mapInspectionEdits) editTexts(edit func(map[string]mod.Strings, *editorModDocument) error) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	return s.changeWorkspace(func(w *editorWorkspaceState) error {
-		if w.Project == nil {
-			w.Project = x.mod.document()
-		}
+	return s.editKind(func(k kindFiles) error {
+		w := k.w
 		sets, err := w.Project.strings()
 		if err != nil {
 			return err
@@ -317,10 +303,13 @@ func (s *mapInspectionEdits) editTexts(edit func(map[string]mod.Strings, *editor
 				return err
 			}
 			if len(sets[l]) == 0 && strings.TrimSpace(string(out)) == "" {
-				s.dropModFile(w, rel)
-				continue
+				err = k.drop(rel)
+			} else {
+				err = k.put(rel, out)
 			}
-			w.Project.Files[rel] = out
+			if err != nil {
+				return err
+			}
 		}
 		return w.Project.citedTexts(x.pageLanguage())
 	})

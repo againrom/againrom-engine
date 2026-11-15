@@ -245,7 +245,9 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	return int64(id), nil
 }
 
-func speakerDraftFiles(w *editorWorkspaceState, picture string, data []byte) map[string][]byte {
+// speakerDraftFiles is the project's drafts with picture's data drafted
+// over them, as the speakers reader asks a picture.
+func speakerDraftFiles(w *editorWorkspaceState, picture string, data []byte) func(string) ([]byte, bool) {
 	files := map[string][]byte{}
 	if w != nil && w.Project != nil {
 		for name, b := range w.Project.Files {
@@ -253,12 +255,12 @@ func speakerDraftFiles(w *editorWorkspaceState, picture string, data []byte) map
 		}
 	}
 	files[picture] = data
-	return files
+	return projectView(nil, files).Draft
 }
 
 func (s *mapInspectionEdits) draftSpeakersFile() ([]byte, error) {
 	if w := s.workspace; w != nil && w.Project != nil {
-		if b, ok := w.Project.Files[mod.SpeakersFile]; ok {
+		if b, ok := projectView(nil, w.Project.Files).Draft(mod.SpeakersFile); ok {
 			return b, nil
 		}
 	}

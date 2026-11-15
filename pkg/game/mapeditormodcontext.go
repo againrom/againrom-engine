@@ -4,11 +4,9 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
-	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"fmt"
 	"slices"
-	"strings"
 )
 
 // editorContext is the definition table and the tileset the editor reads a
@@ -114,16 +112,13 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, vi
 	if err != nil {
 		return err.Error()
 	}
-	if src, ok := view.drafts[mod.SpeakersFile]; ok {
-		result.Speakers, err = mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, view.drafts)
-		if err != nil {
+	lang := modrt.LanguageFor(base)
+	if view.drafts != nil {
+		if err := mod.OverlayDrafts(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: lang}, &result.Data, view); err != nil {
 			return err.Error()
 		}
 	}
-	if err := draftTerrain(&result, m, modrt.LanguageFor(base), view.drafts); err != nil {
-		return err.Error()
-	}
-	if err := draftItems(&result, m, modrt.LanguageFor(base), view.drafts); err != nil {
+	if err := draftTerrain(&result, m, lang, view); err != nil {
 		return err.Error()
 	}
 	m.checkLines = ModCheckLines(result)
@@ -154,24 +149,18 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, vi
 	return issue
 }
 
-// draftTerrain puts the project's drafts of the terrain file and of files/
-// over result, the run of mod m's folder on an install of language lang,
-// and counts the strips m holds. With drafts, a group whose four strips are
-// not all held stays out of the context with its strips: the brush offers a
-// group once it is whole, and the save's admission refuses it in the
-// check's words.
-func draftTerrain(result *modrt.Result, m *editorMod, lang string, drafts map[string][]byte) error {
+// draftTerrain puts the project's drafts of files/ over result, the run of
+// mod m's folder on an install of language lang with the drafts of the data
+// kinds over it, and counts the strips m holds. With drafts, a group whose
+// four strips are not all held stays out of the context with its strips:
+// the brush offers a group once it is whole, and the save's admission
+// refuses it in the check's words.
+func draftTerrain(result *modrt.Result, m *editorMod, lang string, view draftView) error {
 	files := result.Files.Files
-	if drafts != nil {
-		if src, ok := drafts[mod.TerrainFile]; ok {
-			result.Terrain = mod.TerrainData{}
-			kind, _ := mod.ScriptDataKind(mod.TerrainFile)
-			if err := kind.Read(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: lang}, &result.Data, mod.TerrainFile, src); err != nil {
-				return err
-			}
-		}
+	drafted := view.drafts != nil
+	if drafted {
 		var err error
-		if files, err = mod.OverlayInstallFiles(m.id, lang, files, drafts); err != nil {
+		if files, err = mod.OverlayInstallFiles(m.id, lang, files, view); err != nil {
 			return err
 		}
 	}
@@ -185,7 +174,7 @@ func draftTerrain(result *modrt.Result, m *editorMod, lang string, drafts map[st
 			m.strips[g] = held
 		}
 	}
-	if drafts == nil {
+	if !drafted {
 		return nil
 	}
 	whole := func(g int) bool { held := m.strips[g]; return !slices.Contains(held[:], 0) }
@@ -195,47 +184,6 @@ func draftTerrain(result *modrt.Result, m *editorMod, lang string, drafts map[st
 		_, row := result.Terrain.Group(g)
 		return ok && !row
 	})
-	return nil
-}
-
-// draftItems puts the project's draft of the items file over result through
-// the items kind's reader, its names read from the drafted strings, and
-// hands the item layer the drafted sprites in place of the folder's. A
-// project that holds no items file has none, whatever the folder holds: an
-// undo past a save takes the saved file out. Records an older mod reads
-// from another file stay.
-func draftItems(result *modrt.Result, m *editorMod, lang string, drafts map[string][]byte) error {
-	if drafts == nil {
-		return nil
-	}
-	src := drafts[mod.ItemsFile]
-	fixed := func(file string) bool { return namefold.ModTree(file) == namefold.ModTree(mod.ItemsFile) }
-	d := &result.Items
-	d.Rows = slices.DeleteFunc(d.Rows, func(r mod.ItemRow) bool { return fixed(r.File) })
-	d.Changes = slices.DeleteFunc(d.Changes, func(c mod.ItemChange) bool { return fixed(c.File) })
-	d.Materials = slices.DeleteFunc(d.Materials, func(r mod.ItemMaterial) bool { return fixed(r.File) })
-	d.Weapons = slices.DeleteFunc(d.Weapons, func(r mod.WeaponRow) bool { return fixed(r.File) })
-	if d.Empty() {
-		d.Mods = nil
-	}
-	if src != nil {
-		look, err := (&editorModDocument{Files: drafts}).textLookup(lang)
-		if err != nil {
-			return err
-		}
-		kind, _ := mod.WrittenKind(mod.ItemsFile)
-		if err := kind.Read(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: lang, Text: look}, &result.Data, mod.ItemsFile, src); err != nil {
-			return err
-		}
-	}
-	for rel, b := range drafts {
-		if strings.HasPrefix(rel, mod.AssetsFolder+"/"+mod.ItemSprite.Kind+"/") && b != nil {
-			if result.Items.Pictures == nil {
-				result.Items.Pictures = map[string][]byte{}
-			}
-			result.Items.Pictures[rel] = b
-		}
-	}
 	return nil
 }
 
@@ -308,7 +256,7 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	if x.archives != nil {
 		root = x.archives.Root
 	}
-	if issue := x.openModContext(&next, mod.Load(next.dir), root, draftView{drafts: files}); issue != "" {
+	if issue := x.openModContext(&next, mod.Load(next.dir), root, projectView(next.files, files)); issue != "" {
 		return fmt.Errorf("%s: %s", fmt.Sprintf(x.word("editor.mod.err.mod"), next.id), issue)
 	}
 	x.setEditorMod(&next)

@@ -518,7 +518,7 @@ func removeItemRow(d *mod.ItemData, key string) {
 
 // editItems is one draft step of the items file.
 func (s *mapInspectionEdits) editItems(edit func(*mod.ItemData, mod.Strings) error) (*ui.InspectionDocument, error) {
-	return s.changeWorkspace(func(w *editorWorkspaceState) error { return s.writeItemsDraft(w, edit) })
+	return s.editKind(func(k kindFiles) error { return s.writeItemsDraft(k.w, edit) })
 }
 
 // writeItemsDraft makes edit's change of the items file and of its English
@@ -550,10 +550,15 @@ func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(
 	if err != nil {
 		return err
 	}
+	k := kindFiles{s: s, w: w}
 	if !bytes.Equal(out, src) {
-		w.Project.Files[mod.ItemsFile] = out
 		if items.Empty() && strings.TrimSpace(string(out)) == "" {
-			s.dropModFile(w, mod.ItemsFile)
+			err = k.drop(mod.ItemsFile)
+		} else {
+			err = k.put(mod.ItemsFile, out)
+		}
+		if err != nil {
+			return err
 		}
 	}
 	if !maps.Equal(was, sets[en]) {
@@ -563,7 +568,7 @@ func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(
 		if err != nil {
 			return err
 		}
-		w.Project.Files[rel] = out
+		return k.put(rel, out)
 	}
 	return nil
 }

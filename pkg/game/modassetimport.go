@@ -254,11 +254,11 @@ func (s *mapInspectionEdits) setModAsset(key, value string) (*ui.InspectionDocum
 }
 
 // importedModFile reports a project file an import or a page drafts: one
-// under assets or files, the terrain, items or a strings file. A save drops
-// from the folder such a file the last save wrote and the project no longer
-// holds.
+// under assets, where the import writes, or a file of a kind the project
+// holds whole. A save drops from the folder such a file the last save wrote
+// and the project no longer holds.
 func importedModFile(name string) bool {
-	return strings.HasPrefix(name, mod.AssetsFolder+"/") || strings.HasPrefix(name, mod.FilesDir+"/") || name == mod.TerrainFile || name == mod.ItemsFile || slices.Contains(textStringsFiles(), name)
+	return strings.HasPrefix(name, mod.AssetsFolder+"/") || mod.HeldDraft(name)
 }
 
 // isModAssetKey reports a key of the import route.

@@ -55,7 +55,9 @@ func TestMoveSpeakerMapsRewritesOnlyAMovedMap(t *testing.T) {
 // neither pending nor in the mod is still refused at its line.
 func TestReadSpeakersTakesAPendingPicture(t *testing.T) {
 	src := []byte("[[speaker]]\nid = 20000\nname = \"Karl\"\npicture = \"speakers/new.png\"\n")
-	d, err := ReadSpeakers("m", t.TempDir(), SpeakersFile, src, map[string][]byte{"speakers/new.png": {1, 2}})
+	d, err := ReadSpeakers("m", t.TempDir(), SpeakersFile, src, func(rel string) ([]byte, bool) {
+		return []byte{1, 2}, rel == "speakers/new.png"
+	})
 	if err != nil || string(d.Speakers[0].PictureBytes) != "\x01\x02" {
 		t.Fatalf("%v %+v", err, d.Speakers)
 	}

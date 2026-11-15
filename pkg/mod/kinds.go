@@ -142,6 +142,14 @@ type DataKind struct {
 	text bool
 	// summary is the check's line on the kind's records; "" when none.
 	summary func(d Data) string
+	// Draft is how the map editor drafts the kind's files; zero when no
+	// page drafts them.
+	Draft Drafting
+	// draft puts the editor's drafts of the kind in view over the run's
+	// records; text is the lookup over the drafted strings, built on ask.
+	draft func(r DataReader, d *Data, view DraftView, text func() (textLookup, error)) error
+	// lookup is the text lookup over the drafts of a kind others cite.
+	lookup func(lang string, file func(rel string) ([]byte, bool)) (textLookup, error)
 }
 
 // mergedShared is the rule a merged kind's records follow.
@@ -165,6 +173,7 @@ var dataKinds = []DataKind{
 		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
 		Shared: mergedShared + "; one field is one number of a row, one mask bit (row, tier, material) or `off`; two mods adding one key need `load-after` too",
 		read:   readItems, write: writeItems, text: true,
+		Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftItems,
 		summary: func(d Data) string {
 			if d.Items.Empty() {
 				return ""
@@ -280,6 +289,7 @@ var dataKinds = []DataKind{
 		Shared: "no: a group is one mod's",
 		read:   readTerrain,
 		write:  writeTerrain,
+		Draft:  Drafting{Context: DraftAlways, Held: true}, draft: draftTerrain,
 		summary: func(d Data) string {
 			if d.Terrain.Empty() {
 				return ""
@@ -328,6 +338,7 @@ var dataKinds = []DataKind{
 		Base:   "empty: the install's records stand below the band of numbers a mod's record takes",
 		Shared: mergedShared + "; `off` switches a record off",
 		read:   readSpeakers,
+		Draft:  Drafting{Context: DraftAlways}, draft: draftSpeakers,
 		summary: func(d Data) string {
 			if d.Speakers.Empty() {
 				return ""
@@ -347,13 +358,13 @@ var dataKinds = []DataKind{
 	{Name: "manifest", Files: []string{ManifestName}, Format: "TOML subset", Language: "shared", Found: "required fixed path"},
 	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
 	{Name: "script modules", Paths: []string{"**/*.star"}, Format: "Starlark", Language: "shared", Found: "script load"},
-	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings},
+	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings, Draft: Drafting{Context: DraftCited, Held: true}, lookup: DraftText},
 	{Name: missionMapsKind, Paths: missionMapPaths, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
 	{Name: missionPagesKind, Paths: append(slices.Clone(missionPagePaths), "<N>.text/*.txt", "<N>.text/{lang}/*.txt"), Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
 	{Name: mapLabelsKind, Paths: mapLabelPaths, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
-	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture},
-	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound},
-	{Name: "install texts", Paths: []string{"files/{layer}/**/*.txt"}, Format: "UTF-8 TXT", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileText},
+	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture, Draft: installDrafts},
+	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound, Draft: installDrafts},
+	{Name: "install texts", Paths: []string{"files/{layer}/**/*.txt"}, Format: "UTF-8 TXT", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileText, Draft: installDrafts},
 	{Name: "map by number", Paths: []string{"<N>.alm", "<N>.almx", "maps/<N>.alm", "maps/<N>.almx"}, Format: "ALM or ALMX", Language: "shared", Found: "campaign mission number"},
 	{Name: "read-me", Files: []string{ReadmeName}, Format: "Markdown", Language: "shared", Found: "fixed path; for people", NoDigest: true},
 }

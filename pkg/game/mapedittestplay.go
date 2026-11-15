@@ -129,7 +129,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 				return "", fmt.Errorf("Test play: %w", e)
 			}
 		}
-		if e := x.checkMissionSet(missions, draftView{drafts: files}); e != nil {
+		if e := x.checkMissionSet(missions, projectView(nil, files)); e != nil {
 			return "", fmt.Errorf("Test play: %w", e)
 		}
 		m = current

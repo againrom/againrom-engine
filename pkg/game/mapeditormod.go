@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
@@ -56,31 +54,23 @@ func (m *editorMod) document() *editorModDocument {
 			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
 		}
 	}
-	for _, rel := range append([]string{mod.TerrainFile, mod.ItemsFile}, textStringsFiles()...) {
-		if src, err := modDataFile(m.dir, rel); err == nil && src != nil {
-			d.Files[rel] = src
+	// The project holds the files of each held kind whole: the folder files
+	// among them, the item sprites and the install files with the terrain
+	// strips, stay with their bytes, so an undo past a save restores them.
+	for _, k := range mod.DraftKinds() {
+		if !k.Draft.Held {
+			continue
 		}
-	}
-	// The item sprites stay in the project with their bytes for the same
-	// reason as the install files below.
-	sprites := mod.AssetsFolder + "/" + mod.ItemSprite.Kind
-	filepath.WalkDir(filepath.Join(m.dir, filepath.FromSlash(sprites)), func(p string, e fs.DirEntry, err error) error {
-		if err != nil || e.IsDir() {
-			return nil
-		}
-		if rel, err := filepath.Rel(m.dir, p); err == nil && mod.ItemSprite.Names(filepath.ToSlash(rel)) {
-			if data, err := os.ReadFile(p); err == nil {
-				d.Files[filepath.ToSlash(rel)] = data
+		for _, rel := range k.DraftNames() {
+			if src, err := modDataFile(m.dir, rel); err == nil && src != nil {
+				d.Files[rel] = src
 			}
 		}
-		return nil
-	})
-	// The install files the folder holds, the terrain strips among them, stay
-	// in the project with their bytes, so an undo past a save restores them.
-	for _, rel := range m.files {
-		if strings.HasPrefix(rel, mod.FilesDir+"/") {
-			if data, err := os.ReadFile(filepath.Join(m.dir, filepath.FromSlash(rel))); err == nil {
-				d.Files[rel] = data
+		for _, rel := range m.files {
+			if k.DraftFolderFile(rel) {
+				if data, err := os.ReadFile(filepath.Join(m.dir, filepath.FromSlash(rel))); err == nil {
+					d.Files[k.DraftFolderName(rel)] = data
+				}
 			}
 		}
 	}
@@ -358,22 +348,37 @@ func (s *mapInspectionEdits) rebaseHistory(c mod.LayoutChange, from, to string) 
 }
 
 // draftView is the open project over the mod's files: the names it holds and
-// the drafts as written, where a nil draft is a deletion.
+// the drafts as written, where a nil draft is a deletion, folded as the mod
+// tree matches names.
 type draftView struct {
 	names  []string
 	drafts map[string][]byte
+	folded map[string]string
 }
+
+// Draft is the draft of the file rel names, matched as the mod tree matches
+// names, and whether the project drafts it; nil bytes take the file out.
+func (v draftView) Draft(rel string) ([]byte, bool) {
+	name, ok := v.folded[namefold.ModTree(rel)]
+	return v.drafts[name], ok
+}
+
+// Drafted is every drafted name, sorted, one spelling per folded name.
+func (v draftView) Drafted() []string { return slices.Sorted(maps.Values(v.folded)) }
 
 // projectView applies drafts over base, the mod's files. A nil draft deletes
 // every base file whose namefold.ModTree equals its name's; the deletions come
 // first, then each other draft is added under its own spelling, replacing a
-// base file that folds equal to it.
+// base file that folds equal to it. The folded drafts follow the same order:
+// of names that fold equal, the last added is the one the view reads.
 func projectView(base []string, drafts map[string][]byte) draftView {
 	held := slices.Clone(base)
 	names := slices.Sorted(maps.Keys(drafts))
+	folded := map[string]string{}
 	for _, name := range names {
 		if drafts[name] == nil {
 			held = slices.DeleteFunc(held, func(f string) bool { return namefold.ModTree(f) == namefold.ModTree(name) })
+			folded[namefold.ModTree(name)] = name
 		}
 	}
 	for _, name := range names {
@@ -382,9 +387,10 @@ func projectView(base []string, drafts map[string][]byte) draftView {
 			if !slices.Contains(held, name) {
 				held = append(held, name)
 			}
+			folded[namefold.ModTree(name)] = name
 		}
 	}
-	return draftView{names: held, drafts: drafts}
+	return draftView{names: held, drafts: drafts, folded: folded}
 }
 
 // projectFiles is the files of the open project: the mod's files with the
@@ -401,7 +407,7 @@ func (x *MapInspector) rowFiles(m *mod.Mission, view draftView) error {
 	if view.drafts == nil || m.Map == "" {
 		return m.ReadFiles(x.mod.dir)
 	}
-	b, drafted := view.drafts[m.Map]
+	b, drafted := view.Draft(m.Map)
 	missing := fmt.Errorf("%s: %s", m.Key, x.word("editor.mod.err.mapmissing"))
 	if drafted && len(b) == 0 {
 		return missing

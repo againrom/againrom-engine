@@ -2,7 +2,6 @@ package mod
 
 import (
 	"io/fs"
-	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -178,21 +177,29 @@ func DraftInstallFile(id, rel string, b []byte) (InstallFile, error) {
 	return f, nil
 }
 
+// DraftView is the map editor's drafts over a mod's files, matched as the
+// mod tree matches names; a nil draft takes its file out.
+type DraftView interface {
+	// Draft is the draft of the file rel names and whether one is held.
+	Draft(rel string) ([]byte, bool)
+	// Drafted is every drafted name, sorted, one spelling per folded name.
+	Drafted() []string
+}
+
 // OverlayInstallFiles is the install files of mod id on language lang with
-// the editor's drafts of files/ put over them, held to the folder's rules;
-// a nil draft takes its file out.
-func OverlayInstallFiles(id, lang string, files []InstallFile, drafts map[string][]byte) ([]InstallFile, error) {
-	out := slices.Clone(files)
-	for _, rel := range slices.Sorted(maps.Keys(drafts)) {
-		if !strings.HasPrefix(rel, FilesDir+"/") {
+// view's drafts of files/ put over them, held to the language layers: a
+// file view drafts is replaced by its draft or taken out.
+func OverlayInstallFiles(id, lang string, files []InstallFile, view DraftView) ([]InstallFile, error) {
+	out := slices.DeleteFunc(slices.Clone(files), func(f InstallFile) bool { _, drafted := view.Draft(f.File); return drafted })
+	for _, rel := range view.Drafted() {
+		if !strings.HasPrefix(namefold.ModTree(rel), FilesDir+"/") {
 			continue
 		}
-		out = slices.DeleteFunc(out, func(f InstallFile) bool { return namefold.ModTree(f.File) == namefold.ModTree(rel) })
-		b := drafts[rel]
+		b, _ := view.Draft(rel)
 		if b == nil {
 			continue
 		}
-		f, err := DraftInstallFile(id, rel, b)
+		f, err := DraftInstallFile(id, FilesDir+rel[len(FilesDir):], b)
 		if err != nil {
 			return nil, err
 		}
