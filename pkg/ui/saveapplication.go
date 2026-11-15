@@ -129,8 +129,9 @@ func (v *Viewer) RestoreSaveApplication(s SaveApplicationState) error {
 	v.syncMapViewport()
 	v.cam.X, v.cam.Y = s.ViewX*camera.CellSize, s.ViewY*camera.CellSize-v.projectionMinY()
 	v.selectedSpell = s.PressedSpell
-	v.spellArmed, v.armed, v.attackHeld = false, false, false
-	v.aimed, v.itemCast = commandNone, nil
+	v.armed, v.attackHeld = false, false
+	v.aimed = commandNone
+	v.clearArmedCast()
 	if s.PressedSpell != 0 && v.spellAvailable(s.PressedSpell) && canArmAttack(v.sel, v.entities, v.localOwner) {
 		v.armBookSpell()
 	}

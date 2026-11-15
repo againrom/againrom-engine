@@ -481,14 +481,13 @@ func drawOriginalQuickSpellMark(dst *image.RGBA, font *text.Font, cell image.Rec
 func (v *Viewer) SetSpellbook(owner uint32, entries []SpellEntry) {
 	if !v.spellbookHeld || owner != v.spellbookOwner {
 		v.selectedSpell = 0
-		v.spellArmed = false
-		v.itemCast = nil
+		v.clearArmedCast()
 	}
 	v.spellbookHeld = true
 	v.spellbookOwner, v.spellbook = owner, entries
 	v.spellbookFixed = false
-	if v.itemCast != nil && v.itemCast.fromBook && !v.itemCastListed() {
-		v.itemCast = nil
+	if v.scrollDropped(false) {
+		v.clearScrollCast()
 	}
 }
 
@@ -497,8 +496,7 @@ func (v *Viewer) SetSpellbook(owner uint32, entries []SpellEntry) {
 func (v *Viewer) ClearSpellbook() {
 	if v.spellbookHeld {
 		v.selectedSpell = 0
-		v.spellArmed = false
-		v.itemCast = nil
+		v.clearArmedCast()
 	}
 	v.spellbookHeld, v.spellbookOwner, v.spellbook = false, 0, nil
 	v.spellbookFixed = false

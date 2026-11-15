@@ -20,8 +20,7 @@ func (v *Viewer) ArmItemCast(owner uint32, index int, spell uint32, key string) 
 		return false
 	}
 	v.armed, v.selectedSpell, v.aimed = false, 0, commandNone
-	v.spellArmed = false
-	v.itemCast = &itemCastSelection{owner: owner, index: index, spell: spell, key: key}
+	v.armScrollCast(&itemCastSelection{owner: owner, index: index, spell: spell, key: key})
 	return true
 }
 
@@ -29,7 +28,7 @@ func (v *Viewer) ArmItemCast(owner uint32, index int, spell uint32, key string) 
 // arm, and a second press on the armed cell clears it as on a spell cell.
 func (v *Viewer) pressBookScroll(spell uint32, s BookItemCast) {
 	if c := v.itemCast; c != nil && c.spell == spell && c.index == s.Index && c.key == s.Key {
-		v.itemCast = nil
+		v.clearScrollCast()
 		return
 	}
 	if v.ArmItemCast(v.spellbookOwner, s.Index, spell, s.Key) {
@@ -67,15 +66,15 @@ func (v *Viewer) itemCastListed() bool {
 func (v *Viewer) releaseItemCast(x, y int) {
 	c := v.itemCast
 	if c == nil || v.itemCastSink == nil {
-		v.itemCast = nil
+		v.clearScrollCast()
 		return
 	}
-	if !c.fromBook || !v.hudShown(hudPanelBook) || !v.itemCastListed() {
-		v.itemCast = nil
+	if v.scrollDropped(true) {
+		v.clearScrollCast()
 	}
 	present := presentSelected(v.sel, v.entities)
 	if len(present) != 1 || present[0].ID != c.owner {
-		v.itemCast = nil
+		v.clearScrollCast()
 		return
 	}
 	col, row, inside := v.groundCellAt(float64(x), float64(y))

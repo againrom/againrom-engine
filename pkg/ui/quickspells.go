@@ -172,7 +172,8 @@ func (v *Viewer) castKey() bool {
 // book that C opened closes, through the same switch the icon and Space read,
 // so no panel disagrees with its icon afterwards.
 func (v *Viewer) endCastOnce() {
-	v.spellArmed, v.spellNeedsBook, v.castOnce = true, true, false
+	v.armSpellCast()
+	v.spellNeedsBook, v.castOnce = true, false
 	v.cmdOverlayHidden = false
 	if v.hudShown(hudPanelBook) {
 		v.toggleHudPanel(hudPanelBook)
@@ -208,7 +209,8 @@ func (v *Viewer) armBookSpell() {
 }
 
 func (v *Viewer) armSpell() {
-	v.spellArmed, v.castOnce = true, false
+	v.armSpellCast()
+	v.castOnce = false
 	v.armed, v.attackHeld, v.aimed = false, false, commandNone
 	v.cmdOverlayHidden = false
 }

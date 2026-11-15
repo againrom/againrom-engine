@@ -1114,12 +1114,11 @@ type Viewer struct {
 	selectedSpell    uint32
 	spellTakesBody   func(id uint32) bool
 	spellbookFixed   bool           // the installed 24-cell catalog, rather than a custom compact book
-	spellArmed       bool           // current spell and armed Cast mode are independent
+	armedCast                       // the armed Cast spell and the armed scroll, one home
 	spellNeedsBook   bool           // book-chosen: live only while the book is shown
 	castOnce         bool           // armed by C or the Cast cell over a closed book: one cast, then the book closes
 	quickSpells      *ShortcutSlots // session-owned; never retained by an actor
 	quickSpellLabels []string
-	itemCast         *itemCastSelection
 	itemCastSink     MapItemCast
 	castNeedsSight   bool // SetCastNeedsSight: a cast takes only ground in current sight
 

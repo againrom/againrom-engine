@@ -1390,10 +1390,9 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 					// A SECOND CLICK ON THE SAME ONE CLEARS IT; any other press on the strip
 					// — a different row, or the first press since a unit change already
 					// cleared it — selects the row it named.
-					v.itemCast = nil
+					v.clearArmedCast()
 					if id := v.spellbook[idx].ID; v.selectedSpell == id {
 						v.selectedSpell = 0
-						v.spellArmed = false
 					} else {
 						v.selectedSpell = id
 						v.armBookSpell()
@@ -1534,7 +1533,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// A click under the move cursor an item cast shows outside sight moves
 	// and drops the item cast, as a refused item release did before.
 	if g.tap && v.itemCast != nil {
-		v.itemCast = nil
+		v.clearScrollCast()
 	}
 
 	// Physical structure orders use the hover hit, never the selected fallback.
@@ -1625,8 +1624,7 @@ func (v *Viewer) cancelMapCommand() {
 		v.armed = false
 		v.aimed = commandNone
 		v.selectedSpell = 0
-		v.spellArmed = false
-		v.itemCast = nil
+		v.clearArmedCast()
 		v.cmdOverlayHidden = false
 	default:
 		v.sel = nil
@@ -1650,8 +1648,7 @@ func (v *Viewer) spellCancelable() bool {
 // cmd/mapview is another package and cannot call it, so the standalone
 // viewer gaining no attack mode is Go's export rule.
 func (v *Viewer) armAttack() {
-	v.itemCast = nil
-	v.spellArmed = false
+	v.clearArmedCast()
 	// THE PANEL'S OWN OVERLAY IS CLEARED BEFORE EITHER BRANCH BELOW (docs/
 	// 1028-command-panel): a fresh raise or a lower both leave no stale
 	// "hidden by a margin press" state behind them, so a key press and a
@@ -1686,8 +1683,7 @@ func (v *Viewer) armAttack() {
 // and cannot call it, so the standalone viewer gaining no command mode is Go's
 // export rule.
 func (v *Viewer) armCommand(command uint8) {
-	v.itemCast = nil
-	v.spellArmed = false
+	v.clearArmedCast()
 	// See armAttack's own doc, one function up, for why this is cleared on
 	// both branches.
 	v.cmdOverlayHidden = false

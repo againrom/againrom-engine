@@ -12,8 +12,7 @@ func (v *Viewer) issuePlayerRetreat() {
 		return
 	}
 	v.armed, v.attackHeld, v.selectedSpell = false, false, 0
-	v.spellArmed = false
-	v.itemCast = nil
+	v.clearArmedCast()
 	v.aimed = commandNone
 	v.cmdOverlayHidden = false
 	if v.playerRetreatSink != nil {
