@@ -73,7 +73,13 @@ func TestScrollNativeRejectsBoundedMalformedReservation(t *testing.T) {
 	w := scrollWorld1090(t, 12, 1)
 	Step(w, []Command{{Kind: KindUseScroll, Entity: 1, X: 2}})
 	form, _ := w.MarshalBinary()
-	at := len(form) - entityIDFloorLen - spellDeliverySpanLen - 65 - relationLen - w.originalDeadSectionLen() - w.instanceWeightSectionLen() - w.actorLoadSectionLen() - w.scriptSectionLen() - w.scrollSectionLen()
+	// The approaching caster now holds a move goal, whose saved sections lie
+	// after the scroll section, so the section is found by its own bytes: the
+	// count 1, the caster 1 and the target 2.
+	at := bytes.Index(form, []byte{1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0})
+	if at < 0 {
+		t.Fatal("no scroll section")
+	}
 	for _, kind := range []string{"count", "flags", "caster", "coordinate", "phase", "item"} {
 		bad := bytes.Clone(form)
 		switch kind {

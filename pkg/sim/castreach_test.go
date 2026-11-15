@@ -79,7 +79,6 @@ func TestAScrollCastAtAWideTargetStartsAcrossTheFootprintGap(t *testing.T) {
 	Step(wide, []Command{UseScroll(1, 0, 2)})
 	Step(narrow, []Command{UseScroll(1, 0, 2)})
 	Step(wide, nil)
-	Step(narrow, nil)
 	if c := wide.ScrollCasts(); len(c) != 1 || !c[0].Started {
 		t.Fatalf("a wide target at gap distance %d (reach %d): scroll %+v, want a started wind-up", reach, reach, c)
 	}

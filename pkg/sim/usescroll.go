@@ -133,10 +133,16 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 		w.entities[ci].clearAttack()
 	}
 	w.clearOrder(ci)
-	w.commandGroup([]int{ci}, orderMove, cell{x: x, y: y})
 	c := ScrollCast{Caster: e.ID, Target: target, X: x, Y: y, AtCell: atCell, Index: uint16(index), Item: item.Clone(), Reservation: reservation}
 	if atCell {
 		c.Target = 0
+	}
+	// A caster out of reach walks into it through the builder a book cast's
+	// approach uses; a caster in reach gets no move order (it stands and casts).
+	if _, power, _ := ScrollSpell(item); !w.scrollInReach(w.entities[ci], c, spellRangeOf(w.rules, rule, power, rangeCast)) {
+		w.armCastApproach(ci, &bookCast{Retained: true, X: x, Y: y}, 0, false)
+	} else {
+		w.commandGroup([]int{ci}, orderNone, cell{})
 	}
 	k, _ := w.scrollIndex(e.ID)
 	w.scrollCasts = append(w.scrollCasts, ScrollCast{})
@@ -289,7 +295,9 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 				k++
 				continue
 			}
-			w.clearOrder(ci)
+			// The walk ends as the book cast's does: the member stands.
+			w.standCaster(ci)
+			e = &w.entities[ci]
 			c.Started, c.Remaining = true, castWindupTicks(*e)
 			atCell := c.AtCell || indexOfEntity(w.entities, c.Target) < 0
 			w.turnToCastAim(ci, c.Target, atCell, c.X, c.Y)

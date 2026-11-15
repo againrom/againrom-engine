@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 - [BASE] Light no longer widens anyone's sight: creatures in a Light cloud see less far while humans and heroes are unaffected, and Darkness now shortens only the sight of humans and heroes, leaving creatures as they are.
 - [BASE] A scroll picked in an open spellbook now stays picked after each cast, like a spell, until the scrolls run out.
 - [BASE] A unit sent to a cell that an enemy then steps onto now stops next to the enemy and attacks it, instead of standing and waiting.
+- [BASE] A scroll cast on an enemy no longer sends your character walking to the enemy's spot: it steps only as close as the spell needs, casts, and stands, even when the enemy is right next to it.
 
 ### For map makers and modders
 
