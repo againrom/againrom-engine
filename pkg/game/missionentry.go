@@ -167,14 +167,10 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// world opens nothing, and a driver that went looking for an install
 	// itself would give one mission two behaviours depending on when it ran.
 	mw := ports.install.openMissionDriver(ms, r.units, mv.Viewer)
-	mw.world.SetSmoothRegen(ports.display.smoothRegen)
+	ports.dressWorld(mw)
 	mw.projectileCounter = ports.projectiles
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
-	ports.audio.wireReplies(mw)
-	mw.view.SetPathfinding(ports.display.pathfinding)
-	mw.view.SetGraphicsOptions(ports.display.graphics)
-	mw.view.SetTextSmoothing(ports.display.textSmoothing)
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		ctx := gameMenuContext(mw, true, ports.install.missionBriefing(r.n))
 		ctx.LeaveToTown = ports.session.canLeaveMission(r.n, mw.world)
@@ -187,7 +183,6 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// draws no spell art.
 	mw.projectiles = ports.install.missionProjectiles()
 	mw.bindFlightInputs()
-	ports.audio.wireEffects(mw, mv.Viewer)
 	if err := settleMission(r, mw, mv.Viewer, ms, fog, ports.profile); err != nil {
 		return preparedMap{}, err
 	}
@@ -213,25 +208,41 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	} else {
 		*r.activate = commitDriver
 	}
-	// THE AUTOCAST SINK, on loadMap's own terms.
-	mv.Viewer.SetAutocastSink(mw.setAutocast)
-	mv.Viewer.SetWeaponSwapSink(mw.swapWeapons)
-	mv.Viewer.SetQuickSpells(&ports.session.quickSpells)
-	mv.Viewer.SetFormationSink(mw.cycleFormation)
-	mv.Viewer.SetDefendSink(mw.defend)
-	mw.restoreStructureUseMetadata(ports.install.missionTable())
-	mv.Viewer.SetStructureUseSink(mw.useStructure)
-	mv.Viewer.SetRetreatSink(func() { ports.profile.cycleRetreat(mw) })
-	mv.Viewer.SetPlayerRetreatSink(mw.playerRetreat)
-	pace := mw.paced
-	if ports.display.deterministicFrame {
-		pace = mw.deterministicFrame
-	}
-	mv.Viewer.SetEntities(mw.entityDraws())
+	pace := ports.bindSeams(mw, mv.Viewer)
 	audioReady = true
 	return preparedMap{viewer: mv.Viewer, tick: pace, order: mw.enqueue, cadence: mw.setCadenceMode,
 		affect: mw.affect, advance: ports.advance(r.n, ms, mw.advanceNotice), attack: mw.attackOrCast,
 		grab: mw.grab, stance: mw.stance, march: mw.march}, nil
+}
+
+// dressWorld sets the launch and display options on an opened world and its
+// view. Every map screen, a mission or a map-list map, takes them here.
+func (p missionPorts) dressWorld(mw *mapWorld) {
+	mw.world.SetSmoothRegen(p.display.smoothRegen)
+	p.audio.wireReplies(mw)
+	mw.view.SetPathfinding(p.display.pathfinding)
+	mw.view.SetGraphicsOptions(p.display.graphics)
+	mw.view.SetTextSmoothing(p.display.textSmoothing)
+}
+
+// bindSeams connects the viewer's sinks and sounds to the world and returns
+// the tick that advances it. Every map screen takes them here.
+func (p missionPorts) bindSeams(mw *mapWorld, v *ui.Viewer) ui.MapTick {
+	p.audio.wireEffects(mw, v)
+	v.SetAutocastSink(mw.setAutocast)
+	v.SetWeaponSwapSink(mw.swapWeapons)
+	v.SetQuickSpells(&p.session.quickSpells)
+	v.SetFormationSink(mw.cycleFormation)
+	v.SetDefendSink(mw.defend)
+	mw.restoreStructureUseMetadata(p.install.missionTable())
+	v.SetStructureUseSink(mw.useStructure)
+	v.SetRetreatSink(func() { p.profile.cycleRetreat(mw) })
+	v.SetPlayerRetreatSink(mw.playerRetreat)
+	v.SetEntities(mw.entityDraws())
+	if p.display.deterministicFrame {
+		return mw.deterministicFrame
+	}
+	return mw.paced
 }
 
 // startMission turns the decoded map into a started mission and grants what

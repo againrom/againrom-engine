@@ -1316,48 +1316,19 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("load %s: %w", e.Source, err)
 	}
-	mw.world.SetSmoothRegen(f.runtime.smoothRegen)
+	ports := f.missionPorts()
+	ports.dressWorld(mw)
 	if !e.FromArchive {
 		mw.usePlayerColours(mv.Map)
 	}
-	audio.wireReplies(mw)
-	mw.view.SetPathfinding(f.showPathfinding)
-	mw.view.SetGraphicsOptions(f.graphics)
-	mw.view.SetTextSmoothing(!f.smoothingOff.text)
 	if err := f.applyFreshGameOptions(mw, nil); err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		return gameMenuContext(mw, false, mv.Map.Description)
 	})
-	audio.wireEffects(mw, mv.Viewer)
-	// The autocast toggle rides a viewer method and not the tuple.
-	mv.Viewer.SetAutocastSink(mw.setAutocast)
-	mv.Viewer.SetWeaponSwapSink(mw.swapWeapons)
-	mv.Viewer.SetQuickSpells(&f.quickSpells)
-	// Ctrl+F is a setting key whose far side appends to this world's queue.
-	mv.Viewer.SetFormationSink(mw.cycleFormation)
-	mv.Viewer.SetDefendSink(mw.defend)
-	mw.restoreStructureUseMetadata(f.Table)
-	mv.Viewer.SetStructureUseSink(mw.useStructure)
-	// Ctrl+W's sibling setting also rides a Viewer-installed seam. FrontEnd
-	// owns the persisted label; mapWorld owns the pending player command.
-	mv.Viewer.SetRetreatSink(func() { f.cycleRetreat(mw) })
-	mv.Viewer.SetPlayerRetreatSink(mw.playerRetreat)
+	pace := ports.bindSeams(mw, mv.Viewer)
 	f.liveDriver(mw, 0, nil)
-	// mw.grab RIDES HERE TOO, exactly as mw.attackOrCast beside it does: a
-	// plain map opened from the picker names no party, so mw.grab's own guard
-	// on invSubjectSet is what keeps the key inert here — the same "every
-	// plain map yields no character" rule partyCharacters and partyArt already
-	// state, applied to the one new key. mw.stance and mw.march RIDE HERE TOO,
-	// exactly as mw.grab does above: the loader hands back every seam the map
-	// screen may reach into this world by, and the whole set lives and dies
-	// with the viewer.
-	pace := mw.paced
-	if f.runtime.deterministicFrames {
-		pace = mw.deterministicFrame
-	}
-	mv.Viewer.SetEntities(mw.entityDraws())
 	audioReady = true
 	return mv.Viewer, pace, mw.enqueue, mw.setCadenceMode, mw.affect, nil, mw.attackOrCast, mw.grab,
 		mw.stance, mw.march, nil

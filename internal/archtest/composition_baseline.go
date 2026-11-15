@@ -38,5 +38,5 @@ package archtest
 // rows, whose functions each reach one component.
 var CommittedComposition = CompositionBaseline{
 	Fields:       79,
-	Coordinators: 12,
+	Coordinators: 11,
 }
