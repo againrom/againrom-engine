@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A withdrawing or retreating unit now measures a large enemy from its corner cell when it picks where to flee, a unit stepping north-east or south-west enters the next cell on both axes at once, and a spell cast given while a loaded game's unit is between cells waits for its step to end, all as the original does.
 - [BASE] Map editor: the basic view of the unit window now lets you set a unit's maximum health on the card.
 - [BASE] Map editor: the health and maximum health boxes on the unit window's card now hold five digits.
+- [BASE] A mod names a spell by one name in both games, and two mods' rows for one spell combine field by field.
 
 ### For map makers and modders
 

@@ -242,9 +242,9 @@ var dataKinds = []DataKind{
 	{
 		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
 
-		Name: "spells", Files: []string{SpellsFile}, Key: "`target` and the field; `[global]` keys",
-		Class: CatalogData, Layer: LayerKept, Owner: "an unscheduled spell catalog story",
-		Base:   "the spell rows, names, rules and formulas of several derived reads of the definition table: no one list",
+		Name: "spells", Files: []string{SpellsFile}, Key: "`target`, a spell name (Spell names), and the field; `[global]` keys",
+		Class: CatalogData, Layer: LayerKept, Owner: "the spell switch, position, book size and shop story",
+		Base:   "the spell rows of the definition table, each keyed by its catalog name; the rows of the mods merge one per spell",
 		Shared: "no: one field of one spell, and one global key, is set by one mod",
 		read:   readSpells,
 		summary: func(d Data) string {
@@ -556,6 +556,9 @@ type Data struct {
 func (d *Data) SetOrder(order Precedence) {
 	if !d.Items.Empty() {
 		d.Items.Order = order
+	}
+	if !d.Spells.Empty() {
+		d.Spells.Order = order
 	}
 	if !d.Companions.Empty() {
 		d.Companions.Order = order

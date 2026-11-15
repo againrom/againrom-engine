@@ -115,9 +115,96 @@ func (g SpellGlobal) Formulas() [5]SpellTable {
 type SpellData struct {
 	Global SpellGlobal
 	Rows   []SpellRow
+	// Order is the load order MergeSpells lays the rows in.
+	Order Precedence
 }
 
 func (d SpellData) Empty() bool { return len(d.Rows) == 0 && len(d.Global.Globals()) == 0 }
+
+// MergeSpells merges the mods' rows into one row per catalog name.
+func MergeSpells(d SpellData, base []string) (SpellData, []Override, error) {
+	records := make([]SpellRow, 0, len(base))
+	held := map[string]bool{}
+	for _, name := range base {
+		if k := rules.SpellKey(name); k != "" && !held[k] {
+			held[k] = true
+			records = append(records, SpellRow{Target: k})
+		}
+	}
+	patches := make([]Patch[string, SpellRow], 0, len(d.Rows))
+	for _, r := range d.Rows {
+		var fields []PatchField
+		for _, f := range spellFieldsOf(r) {
+			fields = append(fields, PatchField{Name: f.name, Line: f.line})
+		}
+		patches = append(patches, Patch[string, SpellRow]{Source: Source{Mod: r.Mod, File: r.File, Line: r.Line},
+			Key: rules.SpellKey(r.Target), Fields: fields, Apply: func(dst *SpellRow) { dst.overlay(r) }})
+	}
+	l, err := Merge("spell", records, func(r SpellRow) string { return r.Target }, patches, d.Order, nil)
+	if err != nil {
+		return SpellData{}, nil, err
+	}
+	out := SpellData{Global: d.Global, Order: d.Order}
+	for _, r := range l.Records {
+		if _, named := l.Named[r.Target]; named {
+			out.Rows = append(out.Rows, r)
+		}
+	}
+	return out, l.Overrides, nil
+}
+
+// overlay writes the fields src sets into r.
+func (r *SpellRow) overlay(src SpellRow) {
+	if r.Mod == "" {
+		r.Mod, r.File, r.Line, r.Target = src.Mod, src.File, src.Line, rules.SpellKey(src.Target)
+	}
+	ints := func(dst *SpellInt, v SpellInt) {
+		if v.Set {
+			*dst = v
+		}
+	}
+	ints(&r.Mana, src.Mana)
+	ints(&r.Range, src.Range)
+	ints(&r.Radius, src.Radius)
+	ints(&r.Rays, src.Rays)
+	ints(&r.Duration, src.Duration)
+	ints(&r.AreaLife, src.AreaLife)
+	if src.DamageMax.Set {
+		r.DamageMin, r.DamageMax = src.DamageMin, src.DamageMax
+	}
+	if e := src.Effect; e != nil {
+		if r.Effect == nil {
+			r.Effect = &SpellEffectEdit{Line: e.Line}
+		}
+		if e.Kind != "" {
+			r.Effect.Kind = e.Kind
+		}
+		if e.Mode != "" {
+			r.Effect.Mode = e.Mode
+		}
+		ints(&r.Effect.Magnitude, e.Magnitude)
+		ints(&r.Effect.Duration, e.Duration)
+	}
+	if src.HealHostile.Set {
+		r.HealHostile = src.HealHostile
+	}
+	if src.SelfCast.Set {
+		r.SelfCast = src.SelfCast
+	}
+	if src.AreaHits.Set {
+		r.AreaHits = src.AreaHits
+	}
+	tables := func(dst *SpellTable, v SpellTable) {
+		if v.Set {
+			*dst = v
+		}
+	}
+	tables(&r.Power, src.Power)
+	tables(&r.DamageFactor, src.DamageFactor)
+	tables(&r.RangeBonus, src.RangeBonus)
+	tables(&r.DurationFactor, src.DurationFactor)
+	tables(&r.Magnitude, src.Magnitude)
+}
 
 func (g SpellGlobal) Globals() []SpellGlobalKey {
 	var out []SpellGlobalKey

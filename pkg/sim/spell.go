@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
+
+	"againrom/pkg/rules"
 )
 
 // EffectKind is the installed spell-effect vocabulary this simulation
@@ -114,7 +116,7 @@ type SpellRule struct {
 
 // ArmNone is the arm of a row that runs no singular behaviour: its damage
 // pair and its effect record are all it carries.
-const ArmNone uint16 = 0xffff
+const ArmNone = rules.SpellArmNone
 
 // ArmID is the first-game id of the behaviour the row runs.
 func (r SpellRule) ArmID() uint16 { return r.arm() }

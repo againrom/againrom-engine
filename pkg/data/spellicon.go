@@ -1,5 +1,7 @@
 package data
 
+import "againrom/pkg/rules"
+
 // The spell book's icons: one pre-composited strip, a fixed grid over it, and
 // the table that says which spell each cell belongs to (`MAGIC-ICON-024`).
 //
@@ -52,19 +54,6 @@ const (
 	SpellIconSlots   = 24
 )
 
-// spellSlotOrder is the ONLY slot-to-spell mapping the engine computes: a
-// 24-entry table with exactly one reader, indexed by slot and yielding the
-// spell id that slot's cell belongs to (`MAGIC-ICON-024`).
-//
-// IT IS NOT SORTED AND IT IS NOT A RANGE. Slot 5 is spell 23, slot 7 is 16,
-// slot 17 is 25 — the order is the book's own layout and nothing derives it.
-// Ids 11, 17, 27 and 28 appear nowhere in it, which is what makes 24 cells
-// serve 28 spells.
-var spellSlotOrder = [SpellIconSlots]int32{
-	1, 2, 3, 4, 5, 23, 24, 16, 15, 14, 13, 12,
-	6, 7, 8, 9, 10, 25, 26, 22, 21, 20, 19, 18,
-}
-
 // SpellIconCell is where slot's cell stands in the atlas, in atlas pixels, and
 // whether the slot exists at all.
 //
@@ -78,19 +67,10 @@ func SpellIconCell(slot int) (x, y int, ok bool) {
 		spellIconOrigin + spellIconPitch*(slot/SpellIconColumns), true
 }
 
-// SpellIconSlot is the slot a spell id occupies, or false for one that occupies
-// none.
-//
-// FOUR SHIPPED SPELLS ANSWER false, and a caller must have something to do with
-// that answer other than treat it as a failure: the original draws those four
-// no icon either, because there is no cell for them. It is a walk rather than a
-// reversed table, because the table is twenty-four entries and a second array
-// that had to be kept in step with it is a second thing to get wrong.
+// SpellIconSlot is a spell's first-game atlas slot (`MAGIC-ICON-024`).
 func SpellIconSlot(spellID int32) (int, bool) {
-	for slot, id := range spellSlotOrder {
-		if id == spellID {
-			return slot, true
-		}
+	if s, ok := rules.GameSpellOf(rules.SpellGameFirst, int(spellID)); ok && s.Slot != 0 {
+		return int(s.Slot) - 1, true
 	}
 	return 0, false
 }

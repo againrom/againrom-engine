@@ -21,7 +21,6 @@ func (f SpellFormula) String() string {
 }
 
 const (
-	SpellIDs                = 28
 	MaxSpellPower     int32 = 255
 	MaxPowerSum       int32 = 2 * EffectiveSkillBound
 	MaxFormulaEntries       = int(MaxSpellPower) + 1
@@ -108,7 +107,7 @@ func checkFormula(k SpellFormula, t []int32) error {
 func (r Rules) HasSpellFormulas() bool { return r.spell != nil }
 
 func (r Rules) SpellFormulaTable(k SpellFormula, id uint16) []int32 {
-	if r.spell == nil || id < 1 || id > SpellIDs || k >= spellFormulas {
+	if r.spell == nil || id < 1 || int(id) > SpellIDs || k >= spellFormulas {
 		return nil
 	}
 	return r.spell[k][id]

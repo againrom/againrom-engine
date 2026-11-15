@@ -93,6 +93,27 @@ func TestSetModSpellsRefusalsNameModFileAndLine(t *testing.T) {
 	}
 }
 
+func TestModSpellRowsNameASpellByCatalogNameOrOldTarget(t *testing.T) {
+	f := modSpellFront()
+	d := spellEdits(mod.SpellRow{Target: "Fire_Ball", Mana: mod.SpellInt{Set: true, Val: 20}},
+		mod.SpellRow{Target: "Fire Ball", Range: mod.SpellInt{Set: true, Val: 14}},
+		mod.SpellRow{Target: "Fire_Arrow", Mana: mod.SpellInt{Set: true, Val: 3}})
+	d.Rows[1].Mod = "other"
+	if err := f.SetModSpells(d); err != nil {
+		t.Fatal(err)
+	}
+	r := mapload.SpellRules(f.Table)
+	if r[1].ManaCost != 20 || r[1].MaxRange != 14 {
+		t.Errorf("Fire Ball by catalog name and by old target: mana %d range %d, want 20 and 14", r[1].ManaCost, r[1].MaxRange)
+	}
+	if r[0].ManaCost != 3 || r[0].MaxRange != 7 {
+		t.Errorf("Fire Arrow mana %d range %d moved", r[0].ManaCost, r[0].MaxRange)
+	}
+	if got := len(f.Table.Mods.Spells.Rows); got != 2 {
+		t.Errorf("the table keeps %d merged rows, want one per spell", got)
+	}
+}
+
 func TestSetModSpellsSurvivesSetModsInEitherOrder(t *testing.T) {
 	f := modSpellFront()
 	if err := f.SetModSpells(spellEdits(mod.SpellRow{Target: "Fire Ball", Mana: mod.SpellInt{Set: true, Val: 2}})); err != nil {
@@ -145,5 +166,32 @@ func TestTheSpellbookAndTooltipShowTheEditedValues(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("edited popups %q, want %q", got, want)
+	}
+}
+
+func TestLaterModSpellRowKeepsWhatAnEarlierRowSetAndItDoesNotName(t *testing.T) {
+	f := modSpellFront()
+	rows := f.Table.Spells.(dbCollection)
+	fill := rows[2]
+	for _, name := range []string{"Wall of Fire", "Fire Sacrifice", "Protection from Fire", "Heal"} {
+		fill.name = name
+		rows = append(rows, fill)
+	}
+	f.Table.Spells = rows
+	d := spellEdits(
+		mod.SpellRow{Target: "Fire Ball", SelfCast: mod.SpellBool{Set: true, Val: true}},
+		mod.SpellRow{Target: "Heal", HealHostile: mod.SpellBool{Set: true, Val: true}},
+		mod.SpellRow{Target: "Fire_Ball", Mana: mod.SpellInt{Set: true, Val: 20}},
+		mod.SpellRow{Target: "Heal", Mana: mod.SpellInt{Set: true, Val: 5}})
+	d.Rows[2].Mod, d.Rows[3].Mod = "b", "b"
+	if err := f.SetModSpells(d); err != nil {
+		t.Fatal(err)
+	}
+	r := mapload.SpellRules(f.Table)
+	if !r[1].SelfCast || r[1].ManaCost != 20 {
+		t.Errorf("Fire Ball self_cast %v mana %d, want true and 20", r[1].SelfCast, r[1].ManaCost)
+	}
+	if !r[5].HealHostile || r[5].ManaCost != 5 {
+		t.Errorf("Heal heal_hostile %v mana %d, want true and 5", r[5].HealHostile, r[5].ManaCost)
 	}
 }

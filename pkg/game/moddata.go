@@ -38,7 +38,11 @@ var modDataAppliers = map[string]modDataApply{
 		r.override(overrides)
 		return err
 	},
-	"spells": func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.SetModSpells(d.Spells) },
+	"spells": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
+		overrides, err := f.setModSpells(d.Spells)
+		r.override(overrides)
+		return err
+	},
 	// The body sheets and the weapon bodies apply together: a weapon body
 	// may name a sheet a mod supplies.
 	"body sheets": func(*FrontEnd, mod.Data, *ModDataReport) error { return nil },

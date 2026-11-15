@@ -147,7 +147,7 @@ catalog. Every held data file is read automatically before the optional entry sc
 | characters | `data/characters.toml` | `key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows) | catalog, merged | catalog keys: yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after | Guest parties, `docs/1278/story.md`, `docs/1508/story.md`, `DIV-4002`, `DIV-4003` |
 | screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
-| spells | `data/spells.toml` | `target` and the field; `[global]` keys | catalog, kept until an unscheduled spell catalog story | no: one field of one spell, and one global key, is set by one mod | Spell damage columns, `docs/1341/story.md`, `DIV-2364` |
+| spells | `data/spells.toml` | `target`, a spell name (Spell names), and the field; `[global]` keys | catalog, kept until the spell switch, position, book size and shop story | no: one field of one spell, and one global key, is set by one mod | Spell names, Spell damage columns, `docs/1341/story.md`, `docs/1673/story.md`, `DIV-2364` |
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (also `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
@@ -657,6 +657,52 @@ same pair of the base row (code and row) and the leaf lists the object with
 its true code and row; LOAD under the same mod set writes them back. A save
 whose leaf lists no such object, as every save written before this, holds
 shipped items only.
+
+## Spell names
+
+A `[[spell]]` row of `data/spells.toml` names its spell in `target` by one
+name in both games: the spell's name in this table, with `_` or a space
+between words (`Fire_Ball` and `Fire Ball` are one spell). The number is the
+spell's row in that game; a dash marks a spell the game lacks. On a custom
+spell table, `target` names a row by the table's own name. The rows of several
+mods for one spell combine into one row: a later row changes only the fields
+it names and keeps every other value an earlier row set, `self_cast` and
+`heal_hostile` included. The catalog is `pkg/rules/spellcatalog.go`.
+
+| name | first game | second game |
+|---|---|---|
+| `Fire_Arrow` | 1 | 1 |
+| `Fire_Ball` | 2 | 2 |
+| `Wall_of_Fire` | 3 | 3 |
+| `Fire_Sacrifice` | 4 | - |
+| `Protection_from_Fire` | 5 | 4 |
+| `Heal` | 6 | 24 |
+| `Freezing_Cloud` | 7 | - |
+| `Poison_Cloud` | 8 | 6 |
+| `Acid_Stream` | 9 | 9 |
+| `Protection_from_Water` | 10 | 8 |
+| `Drain_Life` | 11 | 26 |
+| `Light` | 12 | 15 |
+| `Lightning` | 13 | 10 |
+| `Prismatic_Spray` | 14 | 11 |
+| `Invisibility` | 15 | 12 |
+| `Protection_from_Air` | 16 | 13 |
+| `Darkness` | 17 | 14 |
+| `Shield` | 18 | 27 |
+| `Wall_of_Earth` | 19 | 17 |
+| `Stone_Curse` | 20 | 18 |
+| `Meteor_Storm` | 21 | - |
+| `Protection_from_Earth` | 22 | 19 |
+| `Bless` | 23 | 20 |
+| `Haste` | 24 | 21 |
+| `Control_Spirit` | 25 | 22 |
+| `Teleport` | 26 | 23 |
+| `Curse` | 27 | 28 |
+| `Slow` | 28 | 29 |
+| `Ice_Missile` | - | 5 |
+| `Blizzard` | - | 7 |
+| `Diamond_Dust` | - | 16 |
+| `Summon` | - | 25 |
 
 ## Spell damage columns
 

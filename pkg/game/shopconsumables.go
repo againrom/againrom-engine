@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
@@ -30,7 +31,11 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 		return nil
 	}
 	var out []ShopItem
-	for spell := 1; spell < t.Spells.Len() && spell <= 27; spell++ {
+	game := spellGame(t)
+	for spell := 1; spell < t.Spells.Len(); spell++ {
+		if !rules.SpellShopScroll(game, spell) {
+			continue
+		}
 		params := t.Spells.EntryParams(spell)
 		if len(params) <= 20 || params[20] <= 0 || params[20] > ceiling || params[2] <= 0 || params[2] >= 6 {
 			continue
@@ -54,13 +59,10 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 	return out
 }
 
-// The constructor's school boundary exclusions are ROM1 data-independent
-// rules (SHOP-CONSUME-073). Slow lies outside the 1..27 generator, even on a longer custom table.
-func shopBookSpellAdmitted(id int) bool {
-	return id >= 2 && id <= 27 && !shopBookSpellExcluded[id]
+// shopBookSpellAdmitted reads the game's catalog profile (SHOP-CONSUME-073).
+func shopBookSpellAdmitted(game rules.SpellGame, id int) bool {
+	return rules.SpellShopBook(game, id)
 }
-
-var shopBookSpellExcluded = [28]bool{6: true, 11: true, 12: true, 17: true, 18: true, 27: true}
 
 func shopPotionStock(t *mapload.Table, r shopDrawSource) []ShopItem {
 	if t == nil || t.MagicItems == nil || r == nil {

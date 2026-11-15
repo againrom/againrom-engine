@@ -3,14 +3,20 @@ package game
 import (
 	"testing"
 
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
 func TestShopBookAndCaptionSpellListsKeepTheirAnswers(t *testing.T) {
-	for id := -5; id <= 70; id++ {
-		want := id >= 2 && id <= 27 && id != 6 && id != 11 && id != 12 && id != 17 && id != 18 && id != 27
-		if got := shopBookSpellAdmitted(id); got != want {
-			t.Errorf("shop book spell %d admitted = %v, today %v", id, got, want)
+	for _, game := range []rules.SpellGame{rules.SpellGameFirst, rules.SpellGameSecond} {
+		for id := -5; id <= 70; id++ {
+			want := id >= 2 && id <= 27 && id != 6 && id != 11 && id != 12 && id != 17 && id != 18 && id != 27
+			if got := shopBookSpellAdmitted(game, id); got != want {
+				t.Errorf("game %d shop book spell %d admitted = %v, today %v", game, id, got, want)
+			}
+			if got, want := rules.SpellShopScroll(game, id), id >= 1 && id <= 27; got != want {
+				t.Errorf("game %d shop scroll spell %d admitted = %v, today %v", game, id, got, want)
+			}
 		}
 	}
 	for id := uint16(0); id <= 70; id++ {

@@ -237,13 +237,6 @@ func FirstSpellPresentation() *SpellPresentation { return &firstSpellPresentatio
 
 var burstLightSteps = []LightStep{{1, 16}, {2, 8}, {3, 0}, {3, 0}, {3, 8}, {3, 16}, {3, 24}, {3, 32}, {3, 40}, {3, 46}, {3, 46}}
 
-// firstBookRows is the first game's spellbook slot table, AI-SPELLIDENT-286.
-var firstBookRows = []uint16{1, 2, 3, 4, 5, 23, 24, 16, 15, 14, 13, 12, 6, 7, 8, 9, 10, 25, 26, 22, 21, 20, 19, 18}
-
-// secondBookRows is the second game's, R2-ENGINE-444; that each value is the
-// row its slot's line names is Medium (DIV-3107).
-var secondBookRows = []uint16{1, 2, 3, 4, 24, 20, 21, 26, 13, 12, 11, 10, 5, 6, 7, 8, 25, 22, 23, 27, 19, 18, 17, 16}
-
 // The first game's set: MAGIC-CASTSPAWN-033, MAGIC-BOLTSTILL-072,
 // MAGIC-TRAIL-073, MAGIC-BURSTLIFE-034, MAGIC-OVERLAYART-051,
 // ANIM-CAST-027, ANIM-147, MAGIC-265, MAGIC-270, MAGIC-271,
@@ -251,7 +244,7 @@ var secondBookRows = []uint16{1, 2, 3, 4, 24, 20, 21, 26, 13, 12, 11, 10, 5, 6, 
 var firstSpellPresentation = SpellPresentation{
 	Game: rules.SpellGameFirst, LastSoundRow: 28, SoundBase: 500,
 	BurstLight: burstLightSteps, PathLightStep: 10,
-	NamedRows: 28, BookRows: firstBookRows, DrainLifeAliasRow: 11,
+	NamedRows: len(rules.SpellProfile(rules.SpellGameFirst)), BookRows: rules.SpellBookRows(rules.SpellGameFirst), DrainLifeAliasRow: 11,
 	effects: []EffectPresentation{
 		{ID: 10, LifeDivisor: 200, HasTrail: true, Trail: 0, LightKind: LightPoint, Light: LightStep{0, 16}},
 		{ID: 12, LifeDivisor: 384, HasTrail: true, Trail: 1, LightKind: LightPoint, Light: LightStep{1, 16}},
@@ -278,7 +271,7 @@ var firstSpellPresentation = SpellPresentation{
 var secondSpellPresentation = SpellPresentation{
 	Game: rules.SpellGameSecond, LastSoundRow: 29, SoundBase: 500,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
-	PathLightStep: 10, NamedRows: 29, BookRows: secondBookRows,
+	PathLightStep: 10, NamedRows: len(rules.SpellProfile(rules.SpellGameSecond)), BookRows: rules.SpellBookRows(rules.SpellGameSecond),
 	effects: []EffectPresentation{
 		{ID: 10, LifeDivisor: 200, HasTrail: true, Trail: 0, LightKind: LightPoint, Light: LightStep{0, 16}},
 		{ID: 12, LifeDivisor: 384, HasTrail: true, Trail: 1, LightKind: LightPoint, Light: LightStep{1, 16}},

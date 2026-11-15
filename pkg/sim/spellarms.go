@@ -1,6 +1,10 @@
 package sim
 
-import "slices"
+import (
+	"slices"
+
+	"againrom/pkg/rules"
+)
 
 // spellArm is one spell arm's capabilities, one field per question a
 // consumer asks of an arm. Every consumer reads a row through spellArmOf
@@ -189,7 +193,7 @@ type secondArmRow struct {
 
 // armSummon is the second game's Summon arm. The first game has no such
 // spell, so no first-game id names it.
-const armSummon uint16 = 0xfffe
+const armSummon = rules.SpellArmSummon
 
 // PrismaticSpellID is the first game's id of the arm that fires rays.
 const PrismaticSpellID = 14
@@ -458,27 +462,16 @@ func bookWalkTakes(id uint16) bool {
 // bookWalkFallback is the row a walk with no choice falls back to, if any.
 func bookWalkFallback(noFallback bool) (uint32, bool) { return lastBookSpellID, !noFallback }
 
-// secondSpellArms maps a second-game spell id to the first-game arm of the
-// same spell (R2-ENGINE-019 names the rows, R2-ENGINE-024 groups them by
-// arm). Blizzard runs arm 21's sampled staged program: 32 pulses three area
+// SecondGameSpellArm is the first-game arm a second-game row id runs, read
+// from the catalog's second-game profile (R2-ENGINE-019 names the rows,
+// R2-ENGINE-024 groups them by arm); an id past the profile runs none.
+// Blizzard runs arm 21's sampled staged program: 32 pulses three area
 // updates apart, each one cell drawn x then y as RNG(5)-2 and admitted only
 // inside 8..dimension-9 (R2-ENGINE-391, R2-ENGINE-392). Ice Missile and
 // Diamond Dust reach the blank-effect default as Fire Arrow does and run its
 // damage block alone (R2-ENGINE-024). Summon runs armSummon.
-var secondSpellArms = [...]uint16{
-	1: 1, 2: 2, 3: 3, 4: 5, 5: ArmNone, 6: 8, 7: 21, 8: 10, 9: 9, 10: 13,
-	11: 14, 12: 15, 13: 16, 14: 17, 15: 12, 16: ArmNone, 17: 19, 18: 20, 19: 22,
-	20: 23, 21: 24, 22: 25, 23: 26, 24: 6, 25: armSummon, 26: 11, 27: 18, 28: 27,
-	29: 28,
-}
-
-// SecondGameSpellArm is the arm a second-game row id runs; an id past the
-// published table runs none.
 func SecondGameSpellArm(id uint16) uint16 {
-	if int(id) < len(secondSpellArms) && id != 0 {
-		return secondSpellArms[id]
-	}
-	return ArmNone
+	return rules.SpellArm(rules.SpellGameSecond, int(id))
 }
 
 // The exported capabilities pkg/game, pkg/data and pkg/mapload ask of an arm.

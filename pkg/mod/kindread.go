@@ -3,7 +3,6 @@ package mod
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"againrom/pkg/rules"
 )
@@ -220,7 +219,7 @@ func readSpells(r DataReader, d *Data, rel string, src []byte) error {
 	}
 	for _, row := range spells.Rows {
 		for _, f := range spellFieldsOf(row) {
-			key := strings.ReplaceAll(row.Target, "_", " ") + " " + f.name
+			key := rules.SpellKey(row.Target) + " " + f.name
 			if first, dup := d.spellFields[key]; dup {
 				return bad(f.line, "%s of %q is already set by mod %q", f.name, row.Target, first)
 			}
