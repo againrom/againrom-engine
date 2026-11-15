@@ -173,6 +173,9 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		if s.FrameTicks < 0 || s.FrameTicks > 0 && s.FrameMS != 0 {
 			return fail("seats count either client ticks or milliseconds")
 		}
+		if s.HireOrder != "" && s.HireOrder != "draw-advance" && s.HireOrder != "advance-draw" {
+			return fail("seats hire order %q is neither draw-advance nor advance-draw", s.HireOrder)
+		}
 		if s.FrameMS < 0 || s.FrameMS > 0 && s.Compare != "greater" && s.Compare != "at-least" {
 			return fail("seats need a frame period and its compare, one of %s", strings.Join(compares, ", "))
 		}

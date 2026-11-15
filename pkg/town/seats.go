@@ -46,8 +46,13 @@ type SeatSpec struct {
 	// Clock names a process clock of the page scene whose stamp the seat step
 	// reads and writes, so the step outlives every entry; empty stamps the
 	// step at each entry.
-	Clock string   `json:"clock"`
-	Cite  []string `json:"cite"`
+	Clock string `json:"clock"`
+	// HireOrder is the order a selected hire actor takes within one paint:
+	// "draw-advance" draws the frame the cursor held before the paint's step,
+	// "" or "advance-draw" draws the frame the step reached. Talk actors
+	// always advance and then draw.
+	HireOrder string   `json:"hire-order"`
+	Cite      []string `json:"cite"`
 	// Card and Figure are where the selected seat's person shows its
 	// statistics card and its full figure; nil shows neither.
 	Card       *SeatCard       `json:"card"`

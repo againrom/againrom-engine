@@ -326,7 +326,7 @@ func TestKaargInnSeatStepsOnItsSceneClock(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		got = append(got, paint(126*time.Millisecond))
 	}
-	if fmt.Sprint(got) != "[1 2 0]" || screen.seatFrame(1) != 0 {
+	if fmt.Sprint(got) != "[0 1 2]" || screen.seatFrame(1) != 0 {
 		t.Fatalf("seat 0 stepped %v and seat 1 shows %d", got, screen.seatFrame(1))
 	}
 	paint(126 * time.Millisecond)

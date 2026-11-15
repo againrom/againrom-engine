@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [BASE] A unit sent to a cell that an enemy then steps onto now stops next to the enemy and attacks it, instead of standing and waiting.
 - [BASE] A scroll cast on an enemy no longer sends your character walking to the enemy's spot: it steps only as close as the spell needs, casts, and stands, even when the enemy is right next to it.
 - [ROM2] Poison Cloud no longer hurts a unit the moment it first hits; the damage now starts with the first poison tick, as in the original.
+- [ROM2] In the Kaarg inn, a selected hire seat now shows each new animation frame at the same moment as in the original game.
 
 ### For map makers and modders
 

@@ -208,10 +208,10 @@
      ],
      "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
                "back": "back", "hire-back": "hire-back", "actor": "actor", "patron": "patron", "select": "helper", "frame-ms": 125, "compare": "greater",
-               "clock": "kaarg-seat",
+               "clock": "kaarg-seat", "hire-order": "draw-advance",
                "card": {"rect": [0, 0, 160, 238], "art": "card", "seam": "card-seam", "offset": [12, -1], "cite": ["R2-SESSION-203", "R2-SESSION-213"]},
                "figure": {"rect": [0, 238, 160, 480], "offset": [11, 2], "cite": ["R2-SESSION-203"]},
-               "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-353", "R2-ENGINE-686", "DIV-2973", "DIV-4272"]},
+               "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-353", "R2-ENGINE-686", "DIV-2973"]},
      "pane": {"rect": [480, 238, 640, 480], "book": false, "cite": ["R2-ENGINE-246", "R2-SESSION-204", "R2-SESSION-214"]},
      "buttons": [
        {"name": "sleep", "rect": [494, 15, 614, 67], "on": "button/0", "word": "tavern.sleep", "cite": ["R2-ENGINE-246", "DIV-4440"]},

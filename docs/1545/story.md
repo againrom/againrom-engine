@@ -86,7 +86,7 @@ No second builder is added.
 - `DIV-2974`: the a5 table runs 29 steps instead of the claimed 95.
 - `DIV-4271`: Kin1 plays nothing; Kvox5 as a scene loop; the first stamps of the voice and dish
   clocks; the first seat static value; the draw order.
-- `DIV-4272`: a hire seat steps before it is drawn, one paint earlier than the original.
+- `DIV-4272`: closed by the hotfix div4272; a hire seat draws before its step.
 - `DIV-2731`: the square's `rand()%100` and the first game's shop `rand()%5` still differ.
 - Unknown: whether Kin1 is heard, whether pause stops Kvox5, the screen on re-entry mid-series,
   the original's paint rate.

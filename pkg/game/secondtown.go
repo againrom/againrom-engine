@@ -57,6 +57,10 @@ type townSceneState struct {
 
 	seat       int
 	seatFrames []int
+	// seatHeld is the frame a selected hire seat draws on a paint whose step
+	// moved its cursor on: the cursor from before the step (R2-ENGINE-686).
+	seatHeld   int
+	seatHeldOn bool
 	// seatTicks counts the client ticks since the last frame of a seat grid
 	// whose period is in ticks; seatPhase counts those frames. The selected
 	// seat alone shows seatPhase.
@@ -231,7 +235,7 @@ func (t *townScreen) SelectTownSquare(i int) {
 }
 
 func (t *townScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i int) {
-	t.composed.seat = i
+	t.composed.seat, t.composed.seatHeldOn = i, false
 	if seats.Select != "" {
 		s.Sound(seats.Select)
 	}
@@ -249,7 +253,7 @@ func (t *townScreen) enterSeats() {
 	if seats, _ := t.innPageSeats(); len(seats) > 0 {
 		t.composed.seat = 0
 	}
-	t.composed.seatFrames = nil
+	t.composed.seatFrames, t.composed.seatHeldOn = nil, false
 	t.composed.seatTicks, t.composed.seatPhase = 0, 0
 	t.composed.seatStamp = t.sceneNow()
 }
@@ -297,6 +301,7 @@ func (t *townScreen) townSeatPhase() int {
 // scene clock count the period from that clock's stamp (R2-ENGINE-686).
 func (t *townScreen) advanceSeats(s *town.Scene, seats *town.SeatSpec, frames []image.Image) {
 	st := t.composed
+	st.seatHeldOn = false
 	if st.seat < 0 || len(frames) == 0 {
 		return
 	}
@@ -315,11 +320,18 @@ func (t *townScreen) advanceSeats(s *town.Scene, seats *town.SeatSpec, frames []
 	for len(st.seatFrames) <= st.seat {
 		st.seatFrames = append(st.seatFrames, 0)
 	}
+	if _, hires := t.innPageSeats(); seats.HireOrder == "draw-advance" && st.seat < hires {
+		st.seatHeld, st.seatHeldOn = st.seatFrames[st.seat], true
+	}
 	st.seatFrames[st.seat] = (st.seatFrames[st.seat] + 1) % len(frames)
 }
 
-// seatFrame is the frame a seat's actor shows.
+// seatFrame is the frame a seat's actor shows: its cursor, except a hire seat
+// that draws before its step shows the cursor from before it.
 func (t *townScreen) seatFrame(i int) int {
+	if t.composed.seatHeldOn && i == t.composed.seat {
+		return t.composed.seatHeld
+	}
 	if i < len(t.composed.seatFrames) {
 		return t.composed.seatFrames[i]
 	}

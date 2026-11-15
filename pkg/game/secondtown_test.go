@@ -156,7 +156,10 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 	if seats.Clock != "kaarg-seat" || oneSeats.Clock != "" {
 		t.Errorf("seat clocks %q, town 1 %q; the Kaarg seat step runs on its scene clock (R2-ENGINE-686)", seats.Clock, oneSeats.Clock)
 	}
-	seats.Cite, oneSeats.Cite, seats.Clock = nil, nil, ""
+	if seats.HireOrder != "draw-advance" || oneSeats.HireOrder != "" {
+		t.Errorf("hire order %q, town 1 %q", seats.HireOrder, oneSeats.HireOrder)
+	}
+	seats.Cite, oneSeats.Cite, seats.Clock, seats.HireOrder = nil, nil, "", ""
 	if !reflect.DeepEqual(seats, oneSeats) {
 		t.Errorf("seats %+v, town 1 %+v", seats, oneSeats)
 	}
