@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [BASE] A scroll cast on an enemy no longer sends your character walking to the enemy's spot: it steps only as close as the spell needs, casts, and stands, even when the enemy is right next to it.
 - [ROM2] Poison Cloud no longer hurts a unit the moment it first hits; the damage now starts with the first poison tick, as in the original.
 - [ROM2] In the Kaarg inn, a selected hire seat now shows each new animation frame at the same moment as in the original game.
+- [BASE] Item descriptions now write elemental damage without a colon, for example "Fire 5-8".
 
 ### For map makers and modders
 

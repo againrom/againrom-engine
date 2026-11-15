@@ -399,6 +399,9 @@ func itemEffectInfoLine(effect sim.ItemEffect, table *mapload.Table, installed .
 	case effect.Kind >= 43 && effect.Kind <= 48:
 		base := uint8(effect.Operand)
 		spread := uint8(effect.Operand >> 8)
+		if effect.Kind >= 44 {
+			return fmt.Sprintf("#%s %d-%d", name, base, uint16(base)+uint16(spread)) + suffix
+		}
 		return fmt.Sprintf("#%s: %d-%d", name, base, uint16(base)+uint16(spread)) + suffix
 	default:
 		value := int32(effect.Operand)
