@@ -129,7 +129,7 @@ func ParseTerrain(id, file string, data []byte) (TerrainData, error) {
 			case "minimap":
 				var s string
 				if s, err = text(); err == nil {
-					if g.Minimap, err = parseColour(s); err != nil {
+					if g.Minimap, err = ParseTerrainColour(s); err != nil {
 						err = bad(p.line, "minimap is %q; write a colour as \"#rrggbb\"", s)
 					}
 					g.HasMinimap = true
@@ -154,8 +154,49 @@ func ParseTerrain(id, file string, data []byte) (TerrainData, error) {
 	return out, nil
 }
 
-// parseColour reads "#rrggbb".
-func parseColour(s string) (color.RGBA, error) {
+// writeTerrain is the terrain file source with its rows made d's groups,
+// through the one row writer; the file it writes reads back as d's groups.
+func writeTerrain(source []byte, d Data) ([]byte, error) {
+	before, err := ParseTerrain("", TerrainFile, source)
+	if err != nil {
+		return nil, err
+	}
+	rows := func(groups []TerrainGroup) []sourceRow {
+		out := make([]sourceRow, len(groups))
+		for i, g := range groups {
+			kind := ""
+			if g.Class >= 1 && int(g.Class) <= len(TerrainKinds) {
+				kind = TerrainKinds[g.Class-1]
+			}
+			pairs := []missionPair{{"group", strconv.Itoa(g.Group)}, {"kind", strconv.Quote(kind)}, {"name", strconv.Quote(g.Name)}}
+			if g.HasMinimap {
+				pairs = append(pairs, missionPair{"minimap", strconv.Quote(TerrainColour(g.Minimap))})
+			}
+			out[i] = sourceRow{table: "group", identity: strconv.Itoa(g.Group), pairs: pairs}
+		}
+		return out
+	}
+	out, err := writeRows(source, rows(before.Groups), rows(d.Terrain.Groups), func(key string) string { return key })
+	if err != nil {
+		return nil, err
+	}
+	back, err := ParseTerrain("", TerrainFile, out)
+	if err != nil {
+		return nil, err
+	}
+	if !slices.EqualFunc(back.Groups, d.Terrain.Groups, func(a, b TerrainGroup) bool {
+		return a.Group == b.Group && a.Class == b.Class && a.Name == b.Name && a.HasMinimap == b.HasMinimap && (!a.HasMinimap || a.Minimap == b.Minimap)
+	}) {
+		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", TerrainFile)
+	}
+	return out, nil
+}
+
+// TerrainColour is a minimap colour as a terrain row writes it, "#rrggbb".
+func TerrainColour(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
+
+// ParseTerrainColour reads a minimap colour written "#rrggbb".
+func ParseTerrainColour(s string) (color.RGBA, error) {
 	if len(s) != 7 || s[0] != '#' {
 		return color.RGBA{}, fmt.Errorf("not #rrggbb")
 	}

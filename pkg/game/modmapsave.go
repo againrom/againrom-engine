@@ -49,6 +49,9 @@ type editorMod struct {
 	// W's graph; nil when no fork was built.
 	flow   *campaignFlow
 	loaded *modrt.Result
+	// strips is the frame count of each strip the mod's files and drafts
+	// hold for a tile group past the install's, by column; 0 for none.
+	strips map[int][4]int
 }
 
 // SetMod is the editor's one open route: it opens the mod at dir, a folder or

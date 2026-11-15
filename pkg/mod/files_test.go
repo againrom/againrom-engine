@@ -71,6 +71,44 @@ func TestInstallFilesTakeTheInstallLanguageOverCommon(t *testing.T) {
 	}
 }
 
+// The editor's drafts of files/ go over the files read from the folder: a
+// draft adds or replaces its path, a nil draft takes its file out, the
+// language folder still wins, and a draft is held to the folder's rules.
+func TestInstallFileDraftsGoOverTheFolder(t *testing.T) {
+	dir := writeFiles(t, map[string]string{
+		"files/common/graphics/interface/a.bmp": "BM",
+		"files/common/graphics/interface/b.bmp": "BM",
+		"files/ru/main/text/sites.txt":          "Восток\r\n",
+	})
+	files, err := ReadInstallFiles("m", dir, "ru")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := OverlayInstallFiles("m", "ru", files, map[string][]byte{
+		"files/common/graphics/interface/a.bmp": []byte("BMnew"),
+		"files/common/graphics/interface/b.bmp": nil,
+		"files/common/graphics/terrain/c.bmp":   []byte("BM"),
+		"files/common/main/text/sites.txt":      []byte("Home\r\n"),
+		"files/en/main/text/sites.txt":          []byte("East\r\n"),
+		"data/terrain.toml":                     []byte("not a file of files/"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "common:graphics/interface/a.bmp common:graphics/terrain/c.bmp ru:main/text/sites.txt"; addresses(got) != want || string(got[0].Bytes) != "BMnew" {
+		t.Fatalf("%s, want %s", addresses(got), want)
+	}
+	for rel, want := range map[string]string{
+		"files/common/graphics/terrain/c.png": "no install file of this kind",
+		"files/common/c.bmp":                  "names no archive",
+		"files/xx/graphics/c.bmp":             "not a language folder",
+	} {
+		if _, err := OverlayInstallFiles("m", "ru", files, map[string][]byte{rel: []byte("BM")}); err == nil || !strings.Contains(err.Error(), want) || !strings.Contains(err.Error(), rel) {
+			t.Errorf("%s: %v, want %q", rel, err, want)
+		}
+	}
+}
+
 // Every file of every language folder is held to the folder's rules, and
 // a refusal names the mod and the file.
 func TestInstallFilesRefuseWhatTheGameCannotUse(t *testing.T) {

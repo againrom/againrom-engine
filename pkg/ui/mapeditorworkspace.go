@@ -82,13 +82,19 @@ const (
 	modPageFields   = iota // the mod's fields and its missions
 	modPageOverview        // what the mod holds and what the game says of it
 	modPageGraph           // the campaign as a graph
+	modPageTerrain         // the mod's tile groups and their strips
 )
 
 // modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab"}
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain"}
+
+// ModTerrainScope is the workspace scope of W's terrain page: the fields of
+// the tile groups the open mod adds.
+const ModTerrainScope = "terrain"
 
 // modPages is W's pages in tab order: the mod's fields, the overview when
-// the host gives one, the campaign graph when the host draws one.
+// the host gives one, the campaign graph when the host draws one, the
+// terrain page when the host gives its fields.
 func (e *MapEditor) modPages() []int {
 	pages := []int{modPageFields}
 	if _, ok := e.modOverview(); ok {
@@ -96,6 +102,9 @@ func (e *MapEditor) modPages() []int {
 	}
 	if _, ok := e.modGraph(); ok {
 		pages = append(pages, modPageGraph)
+	}
+	if host, ok := e.workspace(); ok && len(host.WorkspaceFields(ModTerrainScope)) > 0 {
+		pages = append(pages, modPageTerrain)
 	}
 	return pages
 }
@@ -141,18 +150,19 @@ func (e *MapEditor) turnModPage(n int) bool {
 // showModPage shows W's page n: its rows and its graph from the top, the
 // keyboard on its first control.
 func (e *MapEditor) showModPage(n int) {
-	graph := e.modPage == modPageGraph || n == modPageGraph
+	// The graph and terrain pages hold fields of their own scope.
+	reload := e.modPage == modPageGraph || n == modPageGraph || e.modPage == modPageTerrain || n == modPageTerrain
 	if n != modPageGraph {
 		e.graphLink = false
 	}
 	e.modPage, e.objectTop, e.graphAt = n, 0, image.Point{}
 	e.modUnfolded = nil
 	e.obj.focus = 0
-	if graph {
+	if reload {
 		e.dropObject()
 		e.loadObject()
 	}
-	if n != modPageFields {
+	if n != modPageFields && n != modPageTerrain {
 		e.obj.focus = len(e.obj.fields)
 	}
 }

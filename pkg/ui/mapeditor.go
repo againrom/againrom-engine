@@ -201,6 +201,9 @@ type InspectionField struct {
 	// Picture, on a read-only field, is drawn under its lines: the face a
 	// dialogue shows for a unit's speaker.
 	Picture *image.RGBA
+	// Pick, on a text field of W, is the extensions of the host file a press
+	// or Enter asks for; the field takes the chosen path as its value.
+	Pick []string `json:",omitempty"`
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
 - [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
 - [BASE] The map editor's unit window opens small with the Kind row or wide with every field and no tabs; it shows the unit's figure at game size, a facing pad with eight directions and random, maximum health, gold dropped and a drops-loot switch.
+- [ROM1] The mod window gains a Terrain page: add, edit and remove tile groups 13 to 31, import their four strips checked as the game reads them, paint a new group before saving, and publish it with no main.star line.
 
 ## 0.155.0
 

@@ -5,13 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
+	"againrom/pkg/render/terrain"
 )
 
 type editorModDocument struct {
@@ -52,6 +54,19 @@ func (m *editorMod) document() *editorModDocument {
 	if src, err := modDataFile(m.dir, mod.TownsFile); err == nil && src != nil {
 		if _, offers, err := mod.ParseTowns(m.id, mod.TownsFile, src); err == nil {
 			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
+		}
+	}
+	if src, err := modDataFile(m.dir, mod.TerrainFile); err == nil && src != nil {
+		d.Files[mod.TerrainFile] = src
+	}
+	// The strips the page manages that the folder holds stay in the project
+	// with their bytes, so an undo past a save restores them.
+	for g := alm.InstallTileGroups; g < alm.TileGroupCount; g++ {
+		for b := range 4 {
+			rel := mod.FilesDir + "/" + mod.CommonFiles + "/" + terrain.GroupStripPath(g, b)
+			if data, err := os.ReadFile(filepath.Join(m.dir, filepath.FromSlash(rel))); err == nil {
+				d.Files[rel] = data
+			}
 		}
 	}
 	if src, err := m.speakersFile(); err == nil {
@@ -153,7 +168,7 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 		// An imported file the last save wrote and an undo since took out
 		// of the project leaves the folder with this save.
 		for name := range saved.Project.Files {
-			if _, ok := d.Files[name]; !ok && strings.HasPrefix(name, mod.AssetsFolder+"/") {
+			if _, ok := d.Files[name]; !ok && importedModFile(name) {
 				d.Files[name] = nil
 			}
 		}

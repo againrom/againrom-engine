@@ -985,6 +985,9 @@ func (e *MapEditor) modFieldScope() string {
 		}
 		return "campaign.0"
 	}
+	if e.modPage == modPageTerrain {
+		return ModTerrainScope
+	}
 	return "package"
 }
 

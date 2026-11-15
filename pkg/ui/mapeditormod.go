@@ -46,7 +46,7 @@ func (e *MapEditor) FocusModField(key string) bool {
 	focus := func() bool {
 		for i, f := range e.obj.fields {
 			if f.Key == key && !f.ReadOnly {
-				if e.modPage != modPageGraph {
+				if e.modPage == modPageOverview {
 					e.modPage = modPageFields
 				}
 				e.obj.detail = f.Parent
@@ -60,18 +60,19 @@ func (e *MapEditor) FocusModField(key string) bool {
 	if focus() {
 		return true
 	}
-	if e.modPage != modPageGraph {
+	page := e.modPage
+	if page != modPageGraph && page != modPageTerrain {
 		return false
 	}
-	// The graph page holds the fields of its mission only: a field of the
-	// mod's own page is focused there.
+	// The graph and terrain pages hold fields of their own only: a field of
+	// the mod's own page is focused there.
 	e.modPage = modPageFields
 	e.dropObject()
 	e.loadObject()
 	if focus() {
 		return true
 	}
-	e.modPage = modPageGraph
+	e.modPage = page
 	e.dropObject()
 	e.loadObject()
 	return false
@@ -138,6 +139,9 @@ func (e *MapEditor) modAction(key, value string) error {
 	if e.modPage == modPageGraph && e.graphEdit && (key == "AutoGetMission" || key == "insert" || slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key })) {
 		scope = e.modFieldScope()
 	}
+	if e.modPage == modPageTerrain && slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key }) {
+		scope = ModTerrainScope
+	}
 	_, err := e.commandSetMapField(mapField{Scope: scope, Key: key, Value: value})
 	if err != nil {
 		var leave *WorkspaceLeave
@@ -201,7 +205,7 @@ func (e *MapEditor) modButton(n int) error {
 	if n < 0 || n >= len(modButtons) {
 		return nil
 	}
-	if e.modPage == modPageGraph && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
+	if (e.modPage == modPageGraph || e.modPage == modPageTerrain) && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
 		return nil
 	}
 	key := modButtons[n].action
@@ -274,9 +278,25 @@ func (e *MapEditor) modPathShown() func(*MapEditor) pathQuestion {
 		return nil
 	}
 	if f := o.fields[o.focus]; !f.ReadOnly && o.buf[o.focus] == fieldInput(f) {
-		return modPathRows[f.Key]
+		if ask := modPathRows[f.Key]; ask != nil || len(f.Pick) == 0 {
+			return ask
+		}
+		return func(e *MapEditor) pathQuestion { return e.modPickQuestion(f) }
 	}
 	return nil
+}
+
+// modPickQuestion asks for a host file of one of f's Pick extensions, from
+// the maps folder; f's route takes the answer, else the path typed there.
+func (e *MapEditor) modPickQuestion(f InspectionField) pathQuestion {
+	return pathQuestion{
+		kind:     pathdialog.OpenFile,
+		title:    f.Label,
+		filters:  []pathdialog.Filter{{Name: "*." + strings.Join(f.Pick, ", *."), Extensions: f.Pick}},
+		start:    e.mapsStart,
+		chosen:   func(path string) { _ = e.modAction(f.Key, path) },
+		fallback: func(err error) { e.modOpenTyped(f.Key, err) },
+	}
 }
 
 // modOpenTyped focuses W's field and says to type the mod's path there; err
@@ -317,7 +337,7 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 			return true, nil
 		}
 	}
-	if e.modPage != modPageFields && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
+	if e.modPage != modPageFields && e.modPage != modPageTerrain && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
 		if e.modPage == modPageOverview {
 			e.modSpec()

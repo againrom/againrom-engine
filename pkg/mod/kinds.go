@@ -133,6 +133,10 @@ type DataKind struct {
 	// named reads the files of a mod whose names declare records of the
 	// kind, after its table file, and reports whether it holds one.
 	named func(r DataReader, d *Data, t Tree) (bool, error)
+	// write is the kind's file source with its records made those of d,
+	// keeping the bytes of every record d leaves unchanged; nil when the
+	// editor writes no file of the kind.
+	write func(source []byte, d Data) ([]byte, error)
 	// summary is the check's line on the kind's records; "" when none.
 	summary func(d Data) string
 }
@@ -272,6 +276,7 @@ var dataKinds = []DataKind{
 		Base:   "a mod's terrain groups are additions, groups 13 to 31 with their strips; the install's groups 0 to 12 take no row",
 		Shared: "no: a group is one mod's",
 		read:   readTerrain,
+		write:  writeTerrain,
 		summary: func(d Data) string {
 			if d.Terrain.Empty() {
 				return ""
@@ -404,6 +409,17 @@ func (k DataKind) ReadNamed(r DataReader, d *Data, t Tree) (bool, error) {
 		return false, nil
 	}
 	return k.named(r, d, t)
+}
+
+// Write is the kind's file source with its records made those of d: a kept
+// record keeps its lines and comments but for its changed values, a record d
+// lacks leaves and a new one is appended. A kind the editor does not write
+// is refused.
+func (k DataKind) Write(source []byte, d Data) ([]byte, error) {
+	if k.write == nil {
+		return nil, fmt.Errorf("the editor writes no %s file", k.Name)
+	}
+	return k.write(source, d)
 }
 
 // Validates reports that the kind declares how its files are read.

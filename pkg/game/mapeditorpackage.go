@@ -362,10 +362,10 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	whole = nil
 	x.mod.selected = m.RowID()
 	s.workspace.Project = x.mod.document()
-	// The files imported under assets stay in the project, so an undo past
-	// this save takes them out of the folder at the next one.
+	// The files imported under assets and files stay in the project, so an
+	// undo past this save takes them out of the folder at the next one.
 	for name, b := range files {
-		if _, ok := s.workspace.Project.Files[name]; !ok && b != nil && strings.HasPrefix(name, mod.AssetsFolder+"/") {
+		if _, ok := s.workspace.Project.Files[name]; !ok && b != nil && importedModFile(name) {
 			s.workspace.Project.Files[name] = b
 		}
 	}

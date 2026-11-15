@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -262,7 +263,7 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 	trial := *s
 	trial.workspace, trial.model, trial.source = last.workspace, last.model, last.source
 	oldMod := s.inspector.mod
-	if !bytes.Equal(s.workspace.speakerDraft(), last.workspace.speakerDraft()) {
+	if !bytes.Equal(s.workspace.contextDraft(), last.workspace.contextDraft()) {
 		if err := s.draftModContext(last.workspace); err != nil {
 			return nil, err
 		}
@@ -318,7 +319,7 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 		return nil, nil
 	}
 	oldMod := s.inspector.mod
-	if !bytes.Equal(s.workspace.speakerDraft(), next.speakerDraft()) {
+	if !bytes.Equal(s.workspace.contextDraft(), next.contextDraft()) {
 		if err := s.draftModContext(next); err != nil {
 			return nil, err
 		}
@@ -350,6 +351,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	}
 	if scope == "handout" {
 		return s.handoutFields()
+	}
+	if scope == ui.ModTerrainScope {
+		return s.terrainFields()
 	}
 	if s.model == nil && scope != "package" {
 		return nil
@@ -441,6 +445,9 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	}
 	if scope == "handout" {
 		return s.setHandoutField(key, value)
+	}
+	if scope == ui.ModTerrainScope {
+		return s.setTerrainField(key, value)
 	}
 	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
@@ -702,9 +709,22 @@ func (s *mapInspectionEdits) packageProtected() []packageGuard {
 	return out
 }
 
-func (w *editorWorkspaceState) speakerDraft() []byte {
+// contextDraft is the part of the project the mod's context reads from its
+// drafts, each file named with its bytes: the speakers file, the terrain
+// file and the install files under files/. A change of it builds the
+// context again.
+func (w *editorWorkspaceState) contextDraft() []byte {
 	if w == nil || w.Project == nil {
 		return nil
 	}
-	return w.Project.Files[mod.SpeakersFile]
+	var b bytes.Buffer
+	for _, name := range slices.Sorted(maps.Keys(w.Project.Files)) {
+		if name != mod.SpeakersFile && name != mod.TerrainFile && !strings.HasPrefix(name, mod.FilesDir+"/") {
+			continue
+		}
+		v := w.Project.Files[name]
+		fmt.Fprintf(&b, "%s\x00%d\x00%t\x00", name, len(v), v == nil)
+		b.Write(v)
+	}
+	return b.Bytes()
 }

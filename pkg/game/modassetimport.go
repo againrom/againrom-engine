@@ -57,8 +57,11 @@ const (
 	modAssetReplaceKey = "import-replace"
 )
 
-// modAssetRequest is an import that waits for the answer to its question.
-type modAssetRequest struct{ kind, source string }
+// modAssetRequest is an import that waits for the answer to its question:
+// again repeats it with the replacement allowed.
+type modAssetRequest struct {
+	again func() (*ui.InspectionDocument, error)
+}
 
 // modAssetName is the name an imported file takes: the picked file's name in
 // lower case, its stem cut so the name stays within a packed component.
@@ -80,14 +83,8 @@ func modAssetName(source string) string {
 // the bytes pass the check the kind's loader runs.
 func (s *mapInspectionEdits) modAssetDraft(kind, source, name string) (string, []byte, error) {
 	x := s.inspector
-	if x.mod == nil {
-		return "", nil, errors.New(x.word("editor.mod.err.nofolder"))
-	}
-	if err := x.modReadOnly(); err != nil {
+	if err := x.modWritable(); err != nil {
 		return "", nil, err
-	}
-	if x.mod.copyOnly {
-		return "", nil, errors.New(x.word("editor.mod.err.imported"))
 	}
 	var takes []string
 	var asset *modAsset
@@ -110,24 +107,50 @@ func (s *mapInspectionEdits) modAssetDraft(kind, source, name string) (string, [
 	if err != nil {
 		return "", nil, err
 	}
-	st, err := os.Stat(source)
+	data, err := x.hostFileBytes(source, asset.check, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", ")))
 	if err != nil {
-		return "", nil, err
-	}
-	if st.IsDir() {
-		return "", nil, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", "))
-	}
-	if st.Size() > mod.MaxFileBytes {
-		return "", nil, fmt.Errorf(x.word("editor.asset.err.size"), mod.MaxFileBytes)
-	}
-	data, err := os.ReadFile(source)
-	if err != nil {
-		return "", nil, err
-	}
-	if err := asset.check(data); err != nil {
 		return "", nil, err
 	}
 	return rel, data, nil
+}
+
+// modWritable refuses an import into no mod, a mod the editor may not
+// write, and a packed mod the editor holds as a copy.
+func (x *MapInspector) modWritable() error {
+	if x.mod == nil {
+		return errors.New(x.word("editor.mod.err.nofolder"))
+	}
+	if err := x.modReadOnly(); err != nil {
+		return err
+	}
+	if x.mod.copyOnly {
+		return errors.New(x.word("editor.mod.err.imported"))
+	}
+	return nil
+}
+
+// hostFileBytes is the bytes of the host file source on its way into a
+// mod: a file within the bound of a mod's file that passes check, the
+// loader's own rule for its kind; notFile is the refusal of a folder.
+func (x *MapInspector) hostFileBytes(source string, check func([]byte) error, notFile error) ([]byte, error) {
+	st, err := os.Stat(source)
+	if err != nil {
+		return nil, err
+	}
+	if st.IsDir() {
+		return nil, notFile
+	}
+	if st.Size() > mod.MaxFileBytes {
+		return nil, fmt.Errorf(x.word("editor.asset.err.size"), mod.MaxFileBytes)
+	}
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return nil, err
+	}
+	if err := check(data); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // heldModFile is the spelling under which the open project holds the file
@@ -168,9 +191,19 @@ func (s *mapInspectionEdits) ImportModAsset(kind, source string, replace bool) (
 	if err != nil {
 		return "", nil, err
 	}
+	return s.importModFile(rel, data, replace, func() (*ui.InspectionDocument, error) {
+		_, d, err := s.ImportModAsset(kind, source, true)
+		return d, err
+	})
+}
+
+// importModFile puts data into the open project at rel as one undo step,
+// the commit of every import; a held file is replaced only when replace is
+// set, otherwise the answer is the question to ask.
+func (s *mapInspectionEdits) importModFile(rel string, data []byte, replace bool, again func() (*ui.InspectionDocument, error)) (string, *ui.InspectionDocument, error) {
 	if held, ok := s.heldModFile(rel); ok {
 		if !replace {
-			s.assetAsk = &modAssetRequest{kind: kind, source: source}
+			s.assetAsk = &modAssetRequest{again: again}
 			x := s.inspector
 			return "", nil, &ui.WorkspaceConfirmation{Action: modAssetReplaceKey, Message: fmt.Sprintf(x.word("editor.asset.replace"), held), Confirm: x.word("editor.mod.replacefile")}
 		}
@@ -201,7 +234,7 @@ func (s *mapInspectionEdits) setModAsset(key, value string) (*ui.InspectionDocum
 		if ask == nil || value != "confirmed" {
 			return nil, true, nil
 		}
-		_, d, err := s.ImportModAsset(ask.kind, ask.source, true)
+		d, err := ask.again()
 		return d, true, err
 	}
 	kind, ok := strings.CutPrefix(key, modAssetImportKey)
@@ -211,6 +244,13 @@ func (s *mapInspectionEdits) setModAsset(key, value string) (*ui.InspectionDocum
 	s.assetAsk = nil
 	_, d, err := s.ImportModAsset(kind, strings.TrimSpace(value), false)
 	return d, true, err
+}
+
+// importedModFile reports a project file an import or the terrain page
+// drafts: one under assets or files, or the terrain file. A save drops from
+// the folder such a file the last save wrote and the project no longer holds.
+func importedModFile(name string) bool {
+	return strings.HasPrefix(name, mod.AssetsFolder+"/") || strings.HasPrefix(name, mod.FilesDir+"/") || name == mod.TerrainFile
 }
 
 // isModAssetKey reports a key of the import route.

@@ -108,7 +108,8 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 // document the editor edits, and Save admits them again. The refusal is kept
 // for the overview and the context holds every other kind.
 func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, view draftView) string {
-	result, err := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{})
+	base := BaseID(InspectInstall(root))
+	result, err := modrt.Load([]mod.Entry{e}, base, nil, modrt.Options{})
 	if err != nil {
 		return err.Error()
 	}
@@ -117,6 +118,9 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, vi
 		if err != nil {
 			return err.Error()
 		}
+	}
+	if err := draftTerrain(&result, m, modrt.LanguageFor(base), view.drafts); err != nil {
+		return err.Error()
 	}
 	m.checkLines = ModCheckLines(result)
 	m.loaded = &result
@@ -144,6 +148,50 @@ func (x *MapInspector) openModContext(m *editorMod, e mod.Entry, root string, vi
 	m.fileOverrides = f.ModFileOverrides()
 	m.flow = forkFlow(f)
 	return issue
+}
+
+// draftTerrain puts the project's drafts of the terrain file and of files/
+// over result, the run of mod m's folder on an install of language lang,
+// and counts the strips m holds. With drafts, a group whose four strips are
+// not all held stays out of the context with its strips: the brush offers a
+// group once it is whole, and the save's admission refuses it in the
+// check's words.
+func draftTerrain(result *modrt.Result, m *editorMod, lang string, drafts map[string][]byte) error {
+	files := result.Files.Files
+	if drafts != nil {
+		if src, ok := drafts[mod.TerrainFile]; ok {
+			result.Terrain = mod.TerrainData{}
+			kind, _ := mod.ScriptDataKind(mod.TerrainFile)
+			if err := kind.Read(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: lang}, &result.Data, mod.TerrainFile, src); err != nil {
+				return err
+			}
+		}
+		var err error
+		if files, err = mod.OverlayInstallFiles(m.id, lang, files, drafts); err != nil {
+			return err
+		}
+	}
+	m.strips = map[int][4]int{}
+	for _, f := range files {
+		if g, b, ok := terrain.ModGroupStrip(mod.FoldAddress(f.Address)); ok {
+			held := m.strips[g]
+			if s, err := terrain.ReadStrip(f.Bytes); err == nil {
+				held[b] = len(s.SubCells)
+			}
+			m.strips[g] = held
+		}
+	}
+	if drafts == nil {
+		return nil
+	}
+	whole := func(g int) bool { held := m.strips[g]; return !slices.Contains(held[:], 0) }
+	result.Terrain.Groups = slices.DeleteFunc(slices.Clone(result.Terrain.Groups), func(g mod.TerrainGroup) bool { return !whole(g.Group) })
+	result.Files.Files = slices.DeleteFunc(files, func(f mod.InstallFile) bool {
+		g, _, ok := terrain.ModGroupStrip(mod.FoldAddress(f.Address))
+		_, row := result.Terrain.Group(g)
+		return ok && !row
+	})
+	return nil
 }
 
 // modMissions is the one mission set of a mod the editor works in: rows and
