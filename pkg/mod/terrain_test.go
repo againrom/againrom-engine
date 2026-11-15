@@ -59,14 +59,14 @@ func TestTerrainWriterKeepsTheSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	same, err := k.Write(src, Data{Terrain: d})
+	same, err := k.Write(TerrainFile, src, Data{Terrain: d})
 	if err != nil || string(same) != string(src) {
 		t.Fatalf("an unchanged write: %v\n%s", err, same)
 	}
 	groups := d.Groups
 	groups[1].Name, groups[1].HasMinimap, groups[1].Minimap = "Глетчер", true, color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff}
 	groups = append(groups[:2], TerrainGroup{Group: 14, Class: 9, Name: "Lake \"blue\""})
-	out, err := k.Write(src, Data{Terrain: TerrainData{Groups: groups}})
+	out, err := k.Write(TerrainFile, src, Data{Terrain: TerrainData{Groups: groups}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,11 +78,11 @@ func TestTerrainWriterKeepsTheSource(t *testing.T) {
 	if err != nil || len(back.Groups) != 3 || back.Groups[1].Name != "Глетчер" || back.Groups[2].Name != "Lake \"blue\"" || back.Groups[2].Class != 9 {
 		t.Fatalf("read back %+v: %v", back.Groups, err)
 	}
-	fresh, err := k.Write(nil, Data{Terrain: TerrainData{Groups: groups[2:]}})
+	fresh, err := k.Write(TerrainFile, nil, Data{Terrain: TerrainData{Groups: groups[2:]}})
 	if err != nil || string(fresh) != "[[group]]\ngroup = 14\nkind = \"water\"\nname = \"Lake \\\"blue\\\"\"\n" {
 		t.Fatalf("a new file: %v\n%s", err, fresh)
 	}
-	if _, err := (DataKind{Name: "x"}).Write(nil, Data{}); err == nil {
+	if _, err := (DataKind{Name: "x"}).Write("x", nil, Data{}); err == nil {
 		t.Fatal("a kind with no writer wrote")
 	}
 }

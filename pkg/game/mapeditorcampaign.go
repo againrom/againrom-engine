@@ -177,7 +177,7 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	if err != nil {
 		return nil, err
 	}
-	look, err := mod.TextLookup(x.mod.dir, x.pageLanguage())
+	look, err := d.textLookup(x.pageLanguage())
 	if err != nil {
 		return nil, err
 	}

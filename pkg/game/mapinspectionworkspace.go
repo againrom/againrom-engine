@@ -355,6 +355,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	if scope == ui.ModTerrainScope {
 		return s.terrainFields()
 	}
+	if scope == ui.ModTextsScope {
+		return s.textsFields()
+	}
 	if s.model == nil && scope != "package" {
 		return nil
 	}
@@ -449,7 +452,10 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	if scope == ui.ModTerrainScope {
 		return s.setTerrainField(key, value)
 	}
-	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && !isModAssetKey(key)) {
+	if scope == ui.ModTextsScope {
+		return s.setTextsField(key, value)
+	}
+	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}
@@ -540,6 +546,8 @@ func (s *mapInspectionEdits) editPackageField(w *editorWorkspaceState, key, valu
 	}
 	p := &w.Package
 	switch key {
+	case missionTitleKey, missionBriefKey:
+		return s.pickMissionText(w, key, value)
 	case "AutoGetMission":
 		if strings.TrimSpace(value) == "" {
 			p.AutoGetMission = nil

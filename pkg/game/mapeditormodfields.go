@@ -113,6 +113,11 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 		off = "editor.mod.offyes"
 	}
 	out = append(out, x.modLine("off", x.word(off)))
+	for _, key := range []string{missionTitleKey, missionBriefKey} {
+		if f, ok := s.missionTextField(key); ok {
+			out = append(out, f)
+		}
+	}
 	for n, g := range p.Party {
 		prefix := fmt.Sprintf("party.%d.", n)
 		characters := s.modCharacters()

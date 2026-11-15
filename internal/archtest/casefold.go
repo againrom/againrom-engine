@@ -66,6 +66,7 @@ var CaseFoldAllowed = map[string]string{
 	"pkg/game/headlesspointer.go#headlessPointer":                             "reads an action token of a scenario pointer step",
 	"pkg/game/installtext.go#secondGameTextSection":                           "matches a section key inside a text payload",
 	"pkg/game/mapcheck.go#mapCheck.scriptReference":                           "report text",
+	"pkg/game/mapeditormodtexts.go#languageLabel":                             "shows a language code in capitals on the texts page",
 	"pkg/game/mapinspection.go#MapInspector.Editor":                           "orders map titles of an inspection list",
 	"pkg/game/mapinspectionadd.go#mapInspectionEdits.AddRecord":               "error text",
 	"pkg/game/mapinspectionadd.go#newRecordKindOf":                            "error text",

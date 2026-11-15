@@ -83,18 +83,41 @@ const (
 	modPageOverview        // what the mod holds and what the game says of it
 	modPageGraph           // the campaign as a graph
 	modPageTerrain         // the mod's tile groups and their strips
+	modPageTexts           // the mod's text keys in each language
 )
 
 // modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain"}
+var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain", "editor.mod.texts"}
 
-// ModTerrainScope is the workspace scope of W's terrain page: the fields of
-// the tile groups the open mod adds.
-const ModTerrainScope = "terrain"
+// The workspace scopes of W's pages of a scope of their own.
+const (
+	// ModTerrainScope is the fields of the tile groups the open mod adds.
+	ModTerrainScope = "terrain"
+	// ModTextsScope is the fields of the open mod's text keys.
+	ModTextsScope = "texts"
+)
+
+// modScopePages is W's pages that hold the workspace fields of a scope of
+// their own, in tab order; a page is shown while the host gives its fields.
+var modScopePages = []struct {
+	page  int
+	scope string
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}}
+
+// modPageScope is the workspace scope of W's page n, "" for a page that
+// holds no fields of a scope of its own.
+func modPageScope(n int) string {
+	for _, p := range modScopePages {
+		if p.page == n {
+			return p.scope
+		}
+	}
+	return ""
+}
 
 // modPages is W's pages in tab order: the mod's fields, the overview when
-// the host gives one, the campaign graph when the host draws one, the
-// terrain page when the host gives its fields.
+// the host gives one, the campaign graph when the host draws one, then each
+// page of modScopePages the host gives fields for.
 func (e *MapEditor) modPages() []int {
 	pages := []int{modPageFields}
 	if _, ok := e.modOverview(); ok {
@@ -103,8 +126,12 @@ func (e *MapEditor) modPages() []int {
 	if _, ok := e.modGraph(); ok {
 		pages = append(pages, modPageGraph)
 	}
-	if host, ok := e.workspace(); ok && len(host.WorkspaceFields(ModTerrainScope)) > 0 {
-		pages = append(pages, modPageTerrain)
+	if host, ok := e.workspace(); ok {
+		for _, p := range modScopePages {
+			if len(host.WorkspaceFields(p.scope)) > 0 {
+				pages = append(pages, p.page)
+			}
+		}
 	}
 	return pages
 }
@@ -150,8 +177,9 @@ func (e *MapEditor) turnModPage(n int) bool {
 // showModPage shows W's page n: its rows and its graph from the top, the
 // keyboard on its first control.
 func (e *MapEditor) showModPage(n int) {
-	// The graph and terrain pages hold fields of their own scope.
-	reload := e.modPage == modPageGraph || n == modPageGraph || e.modPage == modPageTerrain || n == modPageTerrain
+	// The graph page and the pages of modScopePages hold fields of their
+	// own scope.
+	reload := e.modPage == modPageGraph || n == modPageGraph || modPageScope(e.modPage) != "" || modPageScope(n) != ""
 	if n != modPageGraph {
 		e.graphLink = false
 	}
@@ -162,7 +190,7 @@ func (e *MapEditor) showModPage(n int) {
 		e.dropObject()
 		e.loadObject()
 	}
-	if n != modPageFields && n != modPageTerrain {
+	if n != modPageFields && modPageScope(n) == "" {
 		e.obj.focus = len(e.obj.fields)
 	}
 }

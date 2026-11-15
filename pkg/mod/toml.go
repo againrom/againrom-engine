@@ -139,8 +139,8 @@ func parseTOMLWith(data []byte, o tomlOptions) ([]tomlTable, error) {
 			if !strings.HasPrefix(rest, "=") {
 				return nil, fmt.Errorf("line %d: expected key = value", n+1)
 			}
-			if k == "" {
-				return nil, fmt.Errorf("line %d: the key is empty", n+1)
+			if err := CheckTextKey(k); err != nil {
+				return nil, fmt.Errorf("line %d: %w", n+1, err)
 			}
 			key, after = k, rest[1:]
 		} else {

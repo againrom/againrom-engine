@@ -31,9 +31,9 @@ func missionPairs(m Mission) []missionPair {
 	if m.Off {
 		return []missionPair{{"number", strconv.Itoa(m.Number)}, {"off", "true"}, {"kind", strconv.Quote(m.Kind)}}
 	}
-	for _, v := range []missionPair{{"texts", m.declared(m.Texts, m.textsTemplate)}, {"title", m.Title}, {"briefing", m.Brief}} {
+	for _, v := range []missionPair{{"texts", m.declared(m.Texts, m.textsTemplate)}, {"title", m.TitleKey}, {"briefing", m.BriefKey}} {
 		if v.value != "" {
-			p = append(p, missionPair{v.key, strconv.Quote(v.value)})
+			p = append(p, missionPair{v.key, writeString(v.value)})
 		}
 	}
 	if !m.Campaign() || m.GuestParty() || m.MainParty {

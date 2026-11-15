@@ -61,11 +61,11 @@ func (e *MapEditor) FocusModField(key string) bool {
 		return true
 	}
 	page := e.modPage
-	if page != modPageGraph && page != modPageTerrain {
+	if page != modPageGraph && modPageScope(page) == "" {
 		return false
 	}
-	// The graph and terrain pages hold fields of their own only: a field of
-	// the mod's own page is focused there.
+	// The graph page and the pages of a scope of their own hold their own
+	// fields only: a field of the mod's own page is focused there.
 	e.modPage = modPageFields
 	e.dropObject()
 	e.loadObject()
@@ -139,8 +139,8 @@ func (e *MapEditor) modAction(key, value string) error {
 	if e.modPage == modPageGraph && e.graphEdit && (key == "AutoGetMission" || key == "insert" || slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key })) {
 		scope = e.modFieldScope()
 	}
-	if e.modPage == modPageTerrain && slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key }) {
-		scope = ModTerrainScope
+	if own := modPageScope(e.modPage); own != "" && slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key }) {
+		scope = own
 	}
 	_, err := e.commandSetMapField(mapField{Scope: scope, Key: key, Value: value})
 	if err != nil {
@@ -205,7 +205,7 @@ func (e *MapEditor) modButton(n int) error {
 	if n < 0 || n >= len(modButtons) {
 		return nil
 	}
-	if (e.modPage == modPageGraph || e.modPage == modPageTerrain) && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
+	if (e.modPage == modPageGraph || modPageScope(e.modPage) != "") && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
 		return nil
 	}
 	key := modButtons[n].action
@@ -337,7 +337,7 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 			return true, nil
 		}
 	}
-	if e.modPage != modPageFields && e.modPage != modPageTerrain && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
+	if e.modPage != modPageFields && modPageScope(e.modPage) == "" && !(e.modPage == modPageGraph && e.graphEdit) && (key == "tab" || key == "backtab") {
 		n, step := e.modButtonCount(), 1
 		if e.modPage == modPageOverview {
 			e.modSpec()

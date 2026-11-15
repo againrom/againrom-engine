@@ -214,8 +214,8 @@ func (s *mapInspectionEdits) editTerrain(edit func(*mod.TerrainData) error, drop
 		if err := edit(&rows); err != nil {
 			return err
 		}
-		kind, _ := mod.ScriptDataKind(mod.TerrainFile)
-		out, err := kind.Write(src, mod.Data{Terrain: rows})
+		kind, _ := mod.WrittenKind(mod.TerrainFile)
+		out, err := kind.Write(mod.TerrainFile, src, mod.Data{Terrain: rows})
 		if err != nil {
 			return err
 		}

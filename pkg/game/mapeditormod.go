@@ -56,8 +56,10 @@ func (m *editorMod) document() *editorModDocument {
 			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
 		}
 	}
-	if src, err := modDataFile(m.dir, mod.TerrainFile); err == nil && src != nil {
-		d.Files[mod.TerrainFile] = src
+	for _, rel := range append([]string{mod.TerrainFile}, textStringsFiles()...) {
+		if src, err := modDataFile(m.dir, rel); err == nil && src != nil {
+			d.Files[rel] = src
+		}
 	}
 	// The strips the page manages that the folder holds stay in the project
 	// with their bytes, so an undo past a save restores them.

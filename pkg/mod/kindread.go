@@ -13,7 +13,7 @@ import (
 // data, refusing what a kept kind refuses across mods.
 
 func readItems(r DataReader, d *Data, rel string, src []byte) error {
-	look, err := TextLookup(r.Dir, r.Lang)
+	look, err := r.text()
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func readItems(r DataReader, d *Data, rel string, src []byte) error {
 }
 
 func readCharacters(r DataReader, d *Data, rel string, src []byte) error {
-	look, err := TextLookup(r.Dir, r.Lang)
+	look, err := r.text()
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func readCharacters(r DataReader, d *Data, rel string, src []byte) error {
 }
 
 func readScreens(r DataReader, d *Data, rel string, src []byte) error {
-	look, err := TextLookup(r.Dir, r.Lang)
+	look, err := r.text()
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func readBodies(r DataReader, d *Data, rel string, src []byte) error {
 }
 
 func readMissions(r DataReader, d *Data, rel string, src []byte) error {
-	look, err := TextLookup(r.Dir, r.Lang)
+	look, err := r.text()
 	if err != nil {
 		return err
 	}

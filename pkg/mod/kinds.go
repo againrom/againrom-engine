@@ -2,6 +2,7 @@ package mod
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -133,10 +134,12 @@ type DataKind struct {
 	// named reads the files of a mod whose names declare records of the
 	// kind, after its table file, and reports whether it holds one.
 	named func(r DataReader, d *Data, t Tree) (bool, error)
-	// write is the kind's file source with its records made those of d,
-	// keeping the bytes of every record d leaves unchanged; nil when the
-	// editor writes no file of the kind.
-	write func(source []byte, d Data) ([]byte, error)
+	// write is the kind's file source at rel with its records made those
+	// of d, keeping the bytes of every record d leaves unchanged; nil when
+	// the editor writes no file of the kind.
+	write func(rel string, source []byte, d Data) ([]byte, error)
+	// text marks a kind whose records cite text keys of the strings files.
+	text bool
 	// summary is the check's line on the kind's records; "" when none.
 	summary func(d Data) string
 }
@@ -161,7 +164,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
 		Shared: mergedShared + "; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too",
-		read:   readItems,
+		read:   readItems, text: true,
 		summary: func(d Data) string {
 			if d.Items.Empty() {
 				return ""
@@ -177,7 +180,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the install's npc.reg records, read once, keyed `npc<n>`; `target` edits existing definition rows",
 		Shared: "catalog keys: " + mergedShared + "; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after",
-		read:   readCharacters,
+		read:   readCharacters, text: true,
 		summary: func(d Data) string {
 			if d.Characters.Empty() {
 				return ""
@@ -203,7 +206,7 @@ var dataKinds = []DataKind{
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a mod's information screens and menu actions are additions to the menus; the base has no screen of this kind to change",
 		Shared: "no: a screen is its mod's own; one action is added by one mod",
-		read:   readScreens,
+		read:   readScreens, text: true,
 		summary: func(d Data) string {
 			if d.Screens.Empty() {
 				return ""
@@ -291,7 +294,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the campaign decoder's missions; rows add guest or campaign missions, replace maps, set AutoGetMission, Payment and parties",
 		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
-		read:   readMissions, named: readMissionMaps,
+		read:   readMissions, named: readMissionMaps, text: true,
 	},
 	{
 		Format: "TOML subset; JSON; BMP; UTF-8 TXT", Language: "shared; talk texts per language", Found: "held file; description; mod: art; talk install path", State: true,
@@ -344,7 +347,7 @@ var dataKinds = []DataKind{
 	{Name: "manifest", Files: []string{ManifestName}, Format: "TOML subset", Language: "shared", Found: "required fixed path"},
 	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
 	{Name: "script modules", Paths: []string{"**/*.star"}, Format: "Starlark", Language: "shared", Found: "script load"},
-	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language"},
+	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings},
 	{Name: missionMapsKind, Paths: missionMapPaths, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
 	{Name: missionPagesKind, Paths: append(slices.Clone(missionPagePaths), "<N>.text/*.txt", "<N>.text/{lang}/*.txt"), Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
 	{Name: mapLabelsKind, Paths: mapLabelPaths, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
@@ -415,11 +418,42 @@ func (k DataKind) ReadNamed(r DataReader, d *Data, t Tree) (bool, error) {
 // record keeps its lines and comments but for its changed values, a record d
 // lacks leaves and a new one is appended. A kind the editor does not write
 // is refused.
-func (k DataKind) Write(source []byte, d Data) ([]byte, error) {
+func (k DataKind) Write(rel string, source []byte, d Data) ([]byte, error) {
 	if k.write == nil {
 		return nil, fmt.Errorf("the editor writes no %s file", k.Name)
 	}
-	return k.write(source, d)
+	return k.write(rel, source, d)
+}
+
+// Cites is the text keys the kind's file src at rel cites, sorted, as its
+// reader asks them; a key r's Text lacks is cited all the same. A kind
+// whose records cite no text answers none.
+func (k DataKind) Cites(r DataReader, rel string, src []byte) ([]string, error) {
+	if !k.text {
+		return nil, nil
+	}
+	look, seen := r.Text, map[string]bool{}
+	r.Text = func(key string) (string, bool) {
+		seen[key] = true
+		if look != nil {
+			if v, ok := look(key); ok {
+				return v, true
+			}
+		}
+		return key, true
+	}
+	err := k.read(r, &Data{}, rel, src)
+	return slices.Sorted(maps.Keys(seen)), err
+}
+
+// WrittenKind is the kind whose file the editor writes under rel.
+func WrittenKind(rel string) (DataKind, bool) {
+	for _, k := range dataKinds {
+		if k.write != nil && k.takes(rel) {
+			return k, true
+		}
+	}
+	return DataKind{}, false
 }
 
 // Validates reports that the kind declares how its files are read.
@@ -469,6 +503,17 @@ type DataReader struct {
 	Lang string
 	// Settings are the mod's resolved settings.
 	Settings []SettingValue
+	// Text, when set, is the text lookup the reader asks in place of the
+	// mod's strings files.
+	Text func(key string) (string, bool)
+}
+
+// text is the lookup the readers ask: r's Text, else the mod's strings.
+func (r DataReader) text() (func(key string) (string, bool), error) {
+	if r.Text != nil {
+		return r.Text, nil
+	}
+	return TextLookup(r.Dir, r.Lang)
 }
 
 // Data is what the mods of a set declare, each kind in load order. A merged
@@ -485,6 +530,9 @@ type Data struct {
 	Towns    TownData
 	Terrain  TerrainData
 	Speakers SpeakerData
+	// Strings are the text of each language by its code, as the editor
+	// writes the strings files.
+	Strings map[string]Strings
 
 	// spellGlobals and spellFields name the mod that set each spell global
 	// and each field of a spell.

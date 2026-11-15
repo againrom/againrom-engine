@@ -156,7 +156,7 @@ func ParseTerrain(id, file string, data []byte) (TerrainData, error) {
 
 // writeTerrain is the terrain file source with its rows made d's groups,
 // through the one row writer; the file it writes reads back as d's groups.
-func writeTerrain(source []byte, d Data) ([]byte, error) {
+func writeTerrain(_ string, source []byte, d Data) ([]byte, error) {
 	before, err := ParseTerrain("", TerrainFile, source)
 	if err != nil {
 		return nil, err

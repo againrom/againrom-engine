@@ -78,6 +78,10 @@ type Mission struct {
 	Chapter int
 	Gold    int
 	Carry   string
+	// TitleKey and BriefKey are the text keys the row's title and briefing
+	// cite; Title and Brief are their text in the row's language.
+	TitleKey string `json:",omitempty"`
+	BriefKey string `json:",omitempty"`
 	// Campaign rows may replace routing and payment without replacing a map.
 	AutoGetMission *int `json:",omitempty"`
 	AutoLine       int  `json:",omitempty"`
@@ -418,7 +422,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				*dst, err = ref.Check(file, p.line, p.key, missionPath(s, lang))
 				return err
 			}
-			text := func(dst *string) error {
+			text := func(dst, key *string) error {
 				k, err := str()
 				if err != nil {
 					return err
@@ -427,7 +431,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				if !ok {
 					return bad(p.line, "%s names text key %q, which %s and %s do not hold", p.key, k, StringsFile(lang), StringsFile(locale.Fallback))
 				}
-				*dst = v
+				*dst, *key = v, k
 				return nil
 			}
 			var err error
@@ -471,9 +475,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 					m.textsTemplate = p.val.str
 				}
 			case "title":
-				err = text(&m.Title)
+				err = text(&m.Title, &m.TitleKey)
 			case "briefing":
-				err = text(&m.Brief)
+				err = text(&m.Brief, &m.BriefKey)
 			case "carry":
 				if m.Carry, err = str(); err == nil && m.Carry != CarryJoin {
 					err = bad(p.line, "carry is %q; only %q is supported (the guest joins through the next town's grant)", m.Carry, CarryJoin)

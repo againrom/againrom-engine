@@ -2,8 +2,10 @@ package mod
 
 import (
 	"againrom/pkg/locale"
+	"againrom/pkg/namefold"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"regexp"
 	"sort"
@@ -195,6 +197,88 @@ func ParseStrings(file string, data []byte) (Strings, error) {
 		out[p.key] = p.val.str
 	}
 	return out, nil
+}
+
+// CheckTextKey refuses a name a strings file cannot hold as a key; the
+// parser and the editor ask it.
+func CheckTextKey(key string) error {
+	if key == "" {
+		return errors.New("the key is empty")
+	}
+	return nil
+}
+
+// writeStrings is the strings file at rel with its pairs made those d holds
+// for rel's language: a kept pair keeps its line, a changed value is
+// rewritten in place, a key d lacks leaves with its line, and new keys in
+// sorted order take the lines of leaving ones, then follow at the end.
+func writeStrings(rel string, source []byte, d Data) ([]byte, error) {
+	parts := strings.Split(namefold.ModTree(rel), "/")
+	if !treeMatch(stringsPattern, rel) {
+		return nil, fmt.Errorf("%s is not a strings file", rel)
+	}
+	want := d.Strings[parts[1]]
+	before, err := ParseStrings(rel, source)
+	if err != nil {
+		return nil, err
+	}
+	tables, err := parseTOMLWith(source, tomlOptions{quotedKeys: true})
+	if err != nil {
+		return nil, fileError(rel, err)
+	}
+	pair := func(key, value, eol string) string { return writeString(key) + " = " + writeString(value) + eol }
+	var added []string
+	for k := range want {
+		if err := CheckTextKey(k); err != nil {
+			return nil, &ItemFileError{File: rel, Msg: err.Error()}
+		}
+		if _, ok := before[k]; !ok {
+			added = append(added, k)
+		}
+	}
+	sort.Strings(added)
+	lines := strings.SplitAfter(string(source), "\n")
+	for _, p := range tables[0].pairs {
+		line, bom := lines[p.line-1], ""
+		if p.line == 1 && strings.HasPrefix(line, string(utf8BOM)) {
+			bom, line = string(utf8BOM), line[len(utf8BOM):]
+		}
+		eol := line[len(strings.TrimRight(line, "\r\n")):]
+		v, kept := want[p.key]
+		switch {
+		case kept && v == p.val.str:
+		case kept:
+			end := strings.IndexByte(line, '=')
+			if t := strings.TrimLeft(line, " \t"); t[0] == '"' || t[0] == '\'' {
+				_, rest, _ := readString(t)
+				end = len(line) - len(rest)
+			}
+			value, err := rewritePair(line[end:], writeString(v))
+			if err != nil {
+				return nil, fileError(rel, fmt.Errorf("line %d: %w", p.line, err))
+			}
+			lines[p.line-1] = bom + line[:end] + value
+		case len(added) > 0:
+			lines[p.line-1], added = bom+pair(added[0], want[added[0]], eol), added[1:]
+		default:
+			lines[p.line-1] = bom
+		}
+	}
+	out := strings.Join(lines, "")
+	for _, k := range added {
+		if out != "" && !strings.HasSuffix(out, "\n") {
+			out += "\n"
+		}
+		out += pair(k, want[k], "\n")
+	}
+	back, err := ParseStrings(rel, []byte(out))
+	if err != nil {
+		return nil, err
+	}
+	if !maps.Equal(back, want) {
+		return nil, &ItemFileError{File: rel, Msg: "the written pairs do not read back as the pairs given"}
+	}
+	return []byte(out), nil
 }
 
 // fileError turns a parser error of the form "line N: message" into one that
