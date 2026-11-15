@@ -149,7 +149,7 @@ func gameProfileAnswers(w *World) gameProfileRow {
 	if reflect.DeepEqual(w.game.creatureAim, secondGameCreatureAim) {
 		aim = "second"
 	}
-	if !playsSecondGame(w) && !reflect.DeepEqual(w.game, gameProfile{}) {
+	if !playsSecondGame(w) && !reflect.DeepEqual(w.game, newGameProfile(ScriptROM1)) {
 		route, aim = "mixed", "mixed"
 	}
 	return gameProfileRow{second: playsSecondGame(w), native: (w.savedGroups == nil), route: route, aim: aim, spell: int(w.SpellGame()), built: w.Hash()}

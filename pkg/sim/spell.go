@@ -2301,7 +2301,13 @@ func (w *World) autoCastOrder(ci int) []SpellRule {
 	if armedFirst {
 		order = append(order, armed)
 	}
-	if heal, ok := w.unarmedHeal(ci); ok && !underCommand(w.entities[ci]) && !w.inCombat(ci) {
+	// A computer mage's unbidden heal is supportCast's (AI-785, R2-ENGINE-1244)
+	// unless its Player carries a healing mode, which keeps this heal (DIV-331).
+	_, computer := w.computerSupport(w.entities[ci])
+	if _, mode := w.AutoHealing(w.entities[ci].Owner); mode {
+		computer = false
+	}
+	if heal, ok := w.unarmedHeal(ci); ok && !computer && !underCommand(w.entities[ci]) && !w.inCombat(ci) {
 		order = append(order, heal)
 	}
 	if hasArmed && !armedFirst {

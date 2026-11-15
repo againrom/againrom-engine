@@ -172,7 +172,7 @@ type gameProfile struct {
 // form and the second game's wrapper).
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
-		return gameProfile{}
+		return gameProfile{computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldNone}}
 	}
 	return gameProfile{
 		spellGame:                  rules.SpellGameSecond,
@@ -218,7 +218,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		autoCastSideSight:          true,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
-		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, selfOnly: true, idleOnly: true},
+		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldAfterCandidateHeal},
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
 		nativeRegen:                true,

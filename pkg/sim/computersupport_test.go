@@ -26,9 +26,9 @@ func TestComputerMageSelfShield(t *testing.T) {
 		{"ROM2 unaffordable Shield refuses", true, 7, 1, 11, true, true, 0, false, 12},
 		{"ROM2 human other slot keeps existing policy", true, 7, 0, 60, true, true, AutoCastMinimum, false, 3},
 		{"ROM2 human self keeps minimum", true, SelfSlot, 0, 5, false, true, AutoCastMinimum, true, 3},
-		{"ROM1 computer other slot stays unchanged", false, 7, 1, 60, true, true, AutoCastMinimum, false, 3},
+		{"ROM1 computer no Heal refuses", false, 7, 1, 60, false, true, AutoCastMinimum, false, 3},
 		{"ROM1 human self keeps minimum", false, SelfSlot, 0, 5, false, true, AutoCastMinimum, true, 3},
-		{"ROM1 computer self keeps existing slot policy", false, SelfSlot, 1, 5, false, true, AutoCastMinimum, true, 3},
+		{"ROM1 computer self respects Heal gate", false, SelfSlot, 1, 60, false, true, AutoCastMinimum, false, 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, shield, _ := computerSupportFixture(t, tc.second, tc.owner, tc.control, tc.mana, tc.heal, tc.shield, tc.shieldCost)

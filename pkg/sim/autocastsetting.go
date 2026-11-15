@@ -131,41 +131,65 @@ func (w *World) AutoCastLevelOfSpell(id uint16) AutoCastSetting {
 type supportCastPolicy struct {
 	minimumMana  int32
 	requiresHeal bool
-	selfOnly     bool
 	idleOnly     bool
+	// drawsOne: candidates are Heal's area list, and support past Heal goes
+	// to one drawn candidate (AI-785, AI-786, R2-ENGINE-1244).
+	drawsOne bool
+	shield   supportShield
+}
+
+// supportShield is where the sequence tries Shield at the caster.
+type supportShield uint8
+
+const (
+	shieldBeforeCandidates supportShield = iota
+	shieldAfterCandidateHeal
+	shieldNone
+)
+
+// computerSupportSetting admits every non-hostile owner; DIV-4756 narrows it.
+const computerSupportSetting = AutoCastMinimum | AutoCastOwn | AutoCastAllies | AutoCastNeutral
+
+// computerSupport is the profile's computer policy for a computer mage.
+func (w *World) computerSupport(e Entity) (supportCastPolicy, bool) {
+	p := w.game.computerSupport
+	return p, p.minimumMana != 0 && w.computerControlledUnit(e)
 }
 
 // supportCast shares the self-support prefix and book admission. Computer
-// policy is profile data (R2-ENGINE-351, R2-ENGINE-457).
+// policy is profile data (R2-ENGINE-1244, AI-785).
 func (w *World) supportCast(ci int) {
 	caster := w.entities[ci]
 	s := w.AutoCast(caster.Owner)
 	policy := supportCastPolicy{minimumMana: autoCastTiers[0].mana}
-	if computer := w.game.computerSupport; computer.minimumMana != 0 && w.computerControlledUnit(caster) {
-		policy, s = computer, AutoCastMinimum
+	if computer, ok := w.computerSupport(caster); ok {
+		policy, s = computer, computerSupportSetting
 	} else if caster.Owner != SelfSlot {
 		return
 	}
-	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.engaged(ci) {
+	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.inCombat(ci) {
 		return
 	}
 	heal := autoCastRoleArm(autoCastHealer)
+	var healRule SpellRule
 	if policy.requiresHeal {
 		id := w.spellIDOfArm(heal)
-		if _, ok := w.bookSpell(caster, uint32(id)); !ok || !knowsSpell(caster, uint32(id)) {
+		rule, ok := w.bookSpell(caster, uint32(id))
+		if !ok || !knowsSpell(caster, uint32(id)) {
 			return
 		}
+		healRule = rule
 	}
 	if caster.HP != caster.MaxHP && w.autoCastAt(ci, ci, heal, false) {
 		return
 	}
-	if w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
+	if policy.shield == shieldBeforeCandidates && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
 		return
 	}
-	if policy.selfOnly {
-		return
+	candidates := w.autoCastCandidates(ci, s, policy.drawsOne && healRule.HealHostile)
+	if policy.drawsOne {
+		candidates = w.areaListOrder(ci, candidates, int64(healRule.MaxRange))
 	}
-	candidates := w.autoCastCandidates(ci, s)
 	for _, ti := range candidates {
 		if t := w.entities[ti]; t.MaxHP > 0 && t.HP/t.MaxHP < 1 {
 			if w.autoCastAt(ci, ti, heal, false) {
@@ -173,6 +197,13 @@ func (w *World) supportCast(ci int) {
 			}
 			break
 		}
+	}
+	if policy.drawsOne {
+		if policy.shield == shieldAfterCandidateHeal && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
+			return
+		}
+		w.supportDraw(ci, candidates, policy)
+		return
 	}
 	for _, l := range autoCastTiers[1:] {
 		if s&l.bit == 0 || w.entities[ci].Mana < l.mana {
@@ -195,14 +226,11 @@ func (w *World) supportCast(ci int) {
 // autoCastAt attempts arm on the actor at ti. A buff whose effect stands on
 // the target is not attempted.
 func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
-	id := w.spellIDOfArm(arm)
-	rule, ok := w.bookSpell(w.entities[ci], uint32(id))
-	if !ok || !rule.runsArm(arm) || !knowsSpell(w.entities[ci], uint32(id)) || w.entities[ci].Mana < int32(rule.ManaCost) {
+	rule, ok := w.autoCastAdmits(ci, ti, arm)
+	if !ok {
 		return false
 	}
-	if !w.autoCastArmAdmits(arm, w.entities[ti]) {
-		return false
-	}
+	id := rule.ID
 	if _, standing := effectIndex(w.attached, w.entities[ti].ID, id); buff && standing {
 		return false
 	}
@@ -212,6 +240,64 @@ func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
 	return w.castOrder(ci, Cast(w.entities[ci].ID, w.entities[ti].ID, SpellID(id)))
 }
 
+// autoCastAdmits is autoCastAt's book, cost and target admission of arm.
+func (w *World) autoCastAdmits(ci, ti int, arm uint16) (SpellRule, bool) {
+	id := w.spellIDOfArm(arm)
+	rule, ok := w.bookSpell(w.entities[ci], uint32(id))
+	if !ok || !rule.runsArm(arm) || !knowsSpell(w.entities[ci], uint32(id)) || w.entities[ci].Mana < int32(rule.ManaCost) {
+		return SpellRule{}, false
+	}
+	return rule, w.autoCastArmAdmits(arm, w.entities[ti])
+}
+
+// supportDraw is the computer's support past Heal: one drawn candidate of the
+// caster's owner gets Heal when hurt, and at full mana one drawn Defensive
+// book row unless its effect stands (AI-786, R2-ENGINE-1244). Nothing kept
+// casts nothing (DIV-4951).
+func (w *World) supportDraw(ci int, candidates []int, policy supportCastPolicy) {
+	if len(candidates) == 0 {
+		return
+	}
+	ti := candidates[w.rng.aiRange(int32(len(candidates)))]
+	caster, t := w.entities[ci], w.entities[ti]
+	heal, shield := autoCastRoleArm(autoCastHealer), autoCastRoleArm(autoCastShielder)
+	if t.Owner != caster.Owner || t.HP != t.MaxHP && w.autoCastAt(ci, ti, heal, false) || caster.Mana != caster.MaxMana {
+		return
+	}
+	var kept []uint16
+	for _, row := range w.spells {
+		arm := row.arm()
+		if arm == heal || arm == shield && policy.shield != shieldNone || !autoCastable(row) {
+			continue
+		}
+		if rule, ok := w.autoCastAdmits(ci, ti, arm); ok && rule.ID == row.ID && rule.Defensive {
+			kept = append(kept, arm)
+		}
+	}
+	if len(kept) > 0 {
+		w.autoCastAt(ci, ti, kept[w.rng.aiRange(int32(len(kept)))], true)
+	}
+}
+
+// areaListOrder keeps the candidates within reach cells of the caster in the
+// order Heal's area list visits them: the caster's cell, then each ring
+// outward (AI-336, R2-ENGINE-1245).
+func (w *World) areaListOrder(ci int, candidates []int, reach int64) []int {
+	centre := cellOf(&w.entities[ci])
+	at := map[cell][]int{}
+	for _, ti := range candidates {
+		if c := cellOf(&w.entities[ti]); centre.chebyshevTo(c) <= reach {
+			at[c] = append(at[c], ti)
+		}
+	}
+	out := at[centre]
+	walkCellRings(centre, reach, cellRingWalk{}, func(x, y int64) bool {
+		out = append(out, at[cell{x: int32(x), y: int32(y)}]...)
+		return false
+	})
+	return out
+}
+
 func (w *World) autoCastNeutral(ci, ti int) bool {
 	c, t := w.entities[ci], w.entities[ti]
 	return c.Owner != t.Owner && !w.relations.Locked(c.Owner, t.Owner) && !w.hostileTo(&c, &t)
@@ -219,8 +305,9 @@ func (w *World) autoCastNeutral(ci, ti int) bool {
 
 // autoCastCandidates lists living or raisable, non-hostile actors the
 // automatic choice sees (autoChoiceSees) and the target bits admit, in entity order. The caster is always admitted
-// (R2-ENGINE-360). Range is the cast's own admission.
-func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
+// (R2-ENGINE-360). Range is the cast's own admission. healsHostile keeps hostiles
+// for a computer's Heal row that heals them, unless DIV-4756 refuses them.
+func (w *World) autoCastCandidates(ci int, s AutoCastSetting, healsHostile bool) []int {
 	caster := w.entities[ci]
 	var sight autoChoiceSight
 	var out []int
@@ -237,7 +324,9 @@ func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
 		if i != ci {
 			switch {
 			case w.hostileTo(&caster, &t):
-				continue
+				if !healsHostile {
+					continue
+				}
 			case t.Owner == caster.Owner:
 				if s&AutoCastOwn == 0 {
 					continue
@@ -249,7 +338,7 @@ func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
 			case s&AutoCastNeutral == 0:
 				continue
 			}
-			if !w.autoChoiceSees(ci, i, &sight) {
+			if w.computerHealRefuses(caster, t) || !w.autoChoiceSees(ci, i, &sight) {
 				continue
 			}
 		}

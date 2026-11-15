@@ -52,13 +52,13 @@ func TestSupportAutocastCandidatesSkipOffMapFriends(t *testing.T) {
 	friend.Owner = 1
 	friend.HP = 20
 	w := hlWorld(t, 29, Relations{}, []SpellRule{hlHeal()}, caster, friend)
-	if got := w.autoCastCandidates(0, AutoCastOwn); len(got) != 2 {
+	if got := w.autoCastCandidates(0, AutoCastOwn, false); len(got) != 2 {
 		t.Fatalf("control candidates %v, want the caster and the friend", got)
 	}
 	if !w.takeOffMap(indexOfEntity(w.entities, 2)) {
 		t.Fatal("the fixture friend did not leave the map")
 	}
-	if got := w.autoCastCandidates(0, AutoCastOwn); len(got) != 1 || got[0] != 0 {
+	if got := w.autoCastCandidates(0, AutoCastOwn, false); len(got) != 1 || got[0] != 0 {
 		t.Fatalf("candidates %v with the friend off the map, want the caster alone", got)
 	}
 	if id, ok := w.autoCastTarget(0, hlHeal()); ok {

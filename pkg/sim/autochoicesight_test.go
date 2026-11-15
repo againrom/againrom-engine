@@ -87,7 +87,7 @@ func autoChoiceSightAnswers(w *World) string {
 	near, _ := w.autoCastTargetWithin(0, fire, 7, 1)
 	far, _ := w.autoCastTargetWithin(0, fire, 64, 1)
 	healed, _ := w.autoCastTargetWithin(0, heal, 64, 1)
-	support := w.autoCastCandidates(0, AutoCastOwn|AutoCastAllies|AutoCastNeutral)
+	support := w.autoCastCandidates(0, AutoCastOwn|AutoCastAllies|AutoCastNeutral, false)
 	side := bits(func(i int) bool { return w.ownerSees(SelfSlot, w.entities[i].ID) })
 	own := bits(func(i int) bool { return w.castSeesEntity(0, i) })
 	w.entities[0].AutoSpell = 1

@@ -112,7 +112,7 @@ func TestTheSecondGameSupportCandidatesTakeWhatTheSideSees(t *testing.T) {
 		{name: "first game, a scout sees the ally", scout: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := build(tc.second, tc.scout).autoCastCandidates(0, AutoCastOwn|AutoCastAllies)
+			got := build(tc.second, tc.scout).autoCastCandidates(0, AutoCastOwn|AutoCastAllies, false)
 			if !has(got, 0) || has(got, 1) != tc.ally || has(got, 2) != tc.own {
 				t.Fatalf("candidates %v, want the caster, ally %v, own unit %v", got, tc.ally, tc.own)
 			}
