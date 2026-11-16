@@ -161,7 +161,7 @@ func TestNativeRegistryPreservesImportedCellsUntilMovement(t *testing.T) {
 			t.Fatalf("control did not reach destination: %+v", e)
 		}
 		for _, key := range []uint16{0x0203, 0x0707} {
-			if motionSlot(w.motionCell(key), layer).Key != 0 || w.savedCellPlanes.Dynamic[key]&(0x40<<layer) != 0 {
+			if c := w.motionCell(key); c != nil && motionSlot(c, layer).Key != 0 || w.savedCellPlanes.Dynamic[key]&(0x40<<layer) != 0 {
 				t.Fatalf("movement retained old registry cell %04x", key)
 			}
 		}

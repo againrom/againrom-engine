@@ -188,11 +188,13 @@ func TestReleaseModHealHostileAndSelfCastReachTheCastAndSurviveSaveAndLoad(t *te
 	}
 	wounded = hpOf(g.live, enemy)
 	g.live.castAt(uint32(casterID), uint32(enemy), healSpellID)
-	for tick := 0; hpOf(g.live, enemy) < wounded+minHeal; tick++ {
+	for tick, healed := 0, false; !healed; tick++ {
 		if tick > 300 {
 			t.Fatalf("after the cold LOAD the heal never reached the enemy (hp %d, wounded at %d)", hpOf(g.live, enemy), wounded)
 		}
+		before := hpOf(g.live, enemy)
 		g.live.tick()
+		healed = hpOf(g.live, enemy)-before >= minHeal
 	}
 
 	plain := releaseFront(t)

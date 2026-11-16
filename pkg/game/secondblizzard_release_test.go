@@ -174,6 +174,7 @@ type secondBlizzardResult struct {
 func secondBlizzardRun(t *testing.T) (secondBlizzardResult, int) {
 	t.Helper()
 	w, _, hero := secondSpellMission(t, 102)
+	secondBlizzardStart(t, w, hero)
 	caster := secondBlizzardCaster(t, w, hero)
 	sim.Step(w, []sim.Command{sim.Attack(hero, caster)})
 	var watch secondBlizzardWatch
@@ -207,6 +208,13 @@ func secondBlizzardCaster(t *testing.T, w *sim.World, hero sim.EntityID) sim.Ent
 	}
 	t.Fatal("no placed creature casts Blizzard")
 	return 0
+}
+
+func secondBlizzardStart(t *testing.T, w *sim.World, hero sim.EntityID) {
+	t.Helper()
+	if err := w.HeadlessPlace(hero, 50, 79); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestReleaseSecondGameBlizzardCast: on mission 102 the creatures cast
@@ -266,6 +274,7 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 	app.Layout(1024, 768)
 	secondLaterEntry(t, f, app, 102, 100)
 	hero := f.live.mission.ids[0]
+	secondBlizzardStart(t, f.live.world, hero)
 	caster := secondBlizzardCaster(t, f.live.world, hero)
 	f.live.strike(uint32(hero), uint32(caster))
 	keep := []sim.EntityID{hero}

@@ -124,6 +124,15 @@ func (w *World) layeredPlaneCellNow(key uint16) bool {
 	return c != nil && (c.Payload[2] != 0 || w.areaLayerMask(key) != 0)
 }
 
+// RouteCost is searchCostAt at x, y.
+func (w *World) RouteCost(x, y int32) uint8 {
+	i, ok := w.cellIndex(x, y)
+	if !ok {
+		return 0
+	}
+	return w.searchCostAt(i, cell{x, y})
+}
+
 // searchCostAt is the cost byte a route search prices a step into c with. It is
 // the plane byte as it stands, multiplied or decayed, and is never written.
 func (w *World) searchCostAt(i int, c cell) uint8 {

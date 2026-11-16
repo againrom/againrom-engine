@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"image"
+	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
@@ -125,7 +126,8 @@ func (tr chargenTrace) party(kind string) {
 		if m.Weapon != nil {
 			weapon = m.Weapon.Name
 		}
-		b = fmt.Appendf(b, "%s|%+v|%s|%v|%v|%s|%s|%d|%v|%v\n", m.Name, m.Hero, weapon, m.Worn, m.Carried,
+		hero := strings.Replace(fmt.Sprintf("%+v", m.Hero), " AuthoredHealthMax:0}", "}", 1)
+		b = fmt.Appendf(b, "%s|%s|%s|%v|%v|%s|%s|%d|%v|%v\n", m.Name, hero, weapon, m.Worn, m.Carried,
 			m.Body, m.FigureDir, m.FigureFace, m.Mage, m.KnownSpells)
 	}
 	sum := sha256.Sum256(b)

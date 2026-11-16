@@ -36,6 +36,7 @@ modder or developer can notice gets no entry.
 - [BASE] A mod names a spell by one name in both games, and two mods' rows for one spell combine field by field.
 - [BASE] A unit sent to a cell covered by any part of a large enemy now stops beside it and attacks, as it already did when sent to the enemy's own cell.
 - [BASE] After a cast the caster waits as long as in the original: in the first game reading a scroll no longer adds the spell's Complication to the wait, and in the second game the wait keeps its low byte instead of stopping at 255.
+- [ROM1] A walking unit now holds its cell until it crosses into the next one, so a lasting spell area slows units walking through it as in the original.
 
 ### For map makers and modders
 

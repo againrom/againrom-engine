@@ -308,11 +308,14 @@ func cellPlaneWalkers(w *sim.World) []sim.Command {
 type cellPlaneTrack map[sim.EntityID][]sim.CellPoint
 
 // cellPlaneRun steps w for ticks after cmds and returns each actor's cells.
-func cellPlaneRun(w *sim.World, cmds []sim.Command, ticks int) cellPlaneTrack {
+func cellPlaneRun(w *sim.World, cmds []sim.Command, ticks int, each ...func(tick int)) cellPlaneTrack {
 	track := cellPlaneTrack{}
 	sim.Step(w, cmds)
 	for tick := 0; tick < ticks; tick++ {
 		sim.Step(w, nil)
+		for _, f := range each {
+			f(tick)
+		}
 		for _, e := range w.Entities() {
 			track[e.ID] = append(track[e.ID], sim.CellPoint{X: e.X, Y: e.Y})
 		}
@@ -365,6 +368,79 @@ func cellPlaneTrackDifference(a, b cellPlaneTrack) string {
 		y[min(at, len(y)-1)], near)
 }
 
+func cellPlaneSkippedRecompute(t *testing.T, f *FrontEnd, n int, cmds []sim.Command, want cellPlaneTrack, at int) string {
+	t.Helper()
+	ms, nat, _, _ := cellPlaneMissionPair(t, f, n)
+	b := nat.World.Bounds()
+	read := func(w *sim.World) []uint8 {
+		out := make([]uint8, 0, int(b.Width)*int(b.Height))
+		for y := int32(0); y < b.Height; y++ {
+			for x := int32(0); x < b.Width; x++ {
+				out = append(out, w.RouteCost(x, y))
+			}
+		}
+		return out
+	}
+	type start struct {
+		tick    int
+		cost    uint8
+		skipped bool
+	}
+	began := map[int]start{}
+	p, q := read(ms.World), read(nat.World)
+	sim.Step(nat.World, cmds)
+	cellPlaneRun(ms.World, cmds, at, func(tick int) {
+		sim.Step(nat.World, nil)
+		crossed := map[int]bool{}
+		for _, e := range nat.World.Entities() {
+			if e.Transit == 0 || !e.Stride.Present {
+				continue
+			}
+			side := max(int32(e.TokenSize), 1)
+			for _, c := range [2][2]int32{{e.Stride.FromX, e.Stride.FromY}, {e.Stride.ToX, e.Stride.ToY}} {
+				for dy := int32(0); dy < side; dy++ {
+					for dx := int32(0); dx < side; dx++ {
+						crossed[int(c[1]+dy)*int(b.Width)+int(c[0]+dx)] = true
+					}
+				}
+			}
+		}
+		p2, q2 := read(ms.World), read(nat.World)
+		for i := range p2 {
+			switch {
+			case p2[i] == q2[i]:
+				delete(began, i)
+			case p[i] == q[i]:
+				began[i] = start{tick, q2[i], crossed[i] && q2[i] > q[i] && p2[i] <= p[i]}
+			}
+		}
+		p, q = p2, q2
+	})
+	writes := map[int][]sim.CurrentCellCost{}
+	var cells []string
+	for i := range p {
+		if s, ok := began[i]; ok && s.skipped {
+			key := uint16(i/int(b.Width))<<8 | uint16(i%int(b.Width))
+			writes[s.tick] = append(writes[s.tick], sim.CurrentCellCost{Cell: key, Cost: s.cost})
+			cells = append(cells, fmt.Sprintf("%04x at tick %d", key, s.tick))
+		}
+	}
+	if len(cells) == 0 {
+		return ""
+	}
+	fix, _, _, _ := cellPlaneMissionPair(t, f, n)
+	failed := false
+	got := cellPlaneRun(fix.World, cmds, at+1, func(tick int) {
+		if err := fix.World.RestoreCurrentCellCosts(writes[tick]); err != nil {
+			failed = true
+		}
+	})
+	if _, d := cellPlaneFirstDifference(got, want); failed || d >= 0 {
+		return ""
+	}
+	return fmt.Sprintf("cells %v recomputed at a crossing by the native World and not by the planes World", cells)
+}
+
 // openBuildingCells is every cell of a Building's rectangle whose blocking
 // bit is clear: a doorway or a bridge deck (TERR-STRUCT-071).
 func openBuildingCells(w *sim.World) map[uint16]bool {
@@ -385,15 +461,14 @@ func openBuildingCells(w *sim.World) map[uint16]bool {
 // TestReleaseMissionRoutesAndCostsMatchTheNativeReader starts every shipped
 // mission with its cell planes and without them (the native grid, cost and
 // height readers), orders up to four actors to walk and steps both Worlds
-// 256 ticks. Height reads the same on every cell, and cost on every cell but
-// an open Building cell, which the planes price at the cracked-ground cost
-// (TERR-STRUCT-071). Where a walk differs, the first actor to differ crosses
-// a cell whose bytes differ: an open Building cell, or for a ghost a cell
-// with Static bit 2, which blocks a ghost on the planes as on a loaded World.
-// Loss control: on the first mission with a walk, the planes World's Cost
-// plane is rewritten along the native route; the planes World then walks
-// differently from the native one, which a reader ignoring the planes would
-// not.
+// 256 ticks. Height reads the same on every cell, cost on every cell but
+// an open Building cell, priced at the cracked-ground cost (TERR-STRUCT-071).
+// A differing walk crosses an open Building cell, or for a ghost a Static
+// bit 2 cell (blocks ghosts as on a loaded World), or a layered cell the
+// native World recomputed at a crossing and the slots did not (DIV-4968),
+// when its native cost removes the difference. Loss control: the first
+// walk's native route is written into the planes Cost plane, which then
+// walks differently, as one ignoring the planes would not.
 func TestReleaseMissionRoutesAndCostsMatchTheNativeReader(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
@@ -446,6 +521,9 @@ func TestReleaseMissionRoutesAndCostsMatchTheNativeReader(t *testing.T) {
 						cause, kind = fmt.Sprintf("ghost blocked by Static bit 2 at %04x", key), "ghost Static bit 2"
 					}
 				}
+			}
+			if cause == "" {
+				cause, kind = cellPlaneSkippedRecompute(t, f, n, cmds, want, at), "native crossing recompute, DIV-4968"
 			}
 			d := cellPlaneTrackDifference(want, got)
 			if cause == "" {

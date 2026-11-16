@@ -25,9 +25,9 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 			if at < 0 {
 				continue
 			}
-			e := &w.entities[at]
+			e := w.slotAnchor(w.entities[at])
 			if e.SourceBinding.Identity == 0 && w.motionFor(e.ID) == nil && e.Alive() &&
-				(e.OffMap || layer != e.Domain.layer() || !entityCoversCell(e, int32(c.Cell&255), int32(c.Cell>>8))) {
+				(e.OffMap || layer != e.Domain.layer() || !entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8))) {
 				native[e.ID] = true
 			}
 		}
@@ -102,7 +102,7 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 			if !ok || slot.Bound && slot.Entity != id {
 				continue
 			}
-			e := w.entities[actors[id]]
+			e := w.slotAnchor(w.entities[actors[id]])
 			if !e.OffMap && layer == e.Domain.layer() && entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 				continue
 			}
@@ -130,6 +130,7 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		if _, ok := actors[e.ID]; !ok || e.OffMap || keys[e.ID] == 0 && !native[e.ID] {
 			continue
 		}
+		e = w.slotAnchor(e)
 		want := keys[e.ID]
 		if native[e.ID] {
 			want = 0
@@ -159,6 +160,12 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 	if changed {
 		w.refreshSavedPlaneBlocks()
 	}
+}
+
+func (w *World) slotAnchor(e Entity) Entity {
+	at := w.moverCell(e)
+	e.X, e.Y = at.x, at.y
+	return e
 }
 
 // nativeSlotForm gives every slot bound to a native actor (no source

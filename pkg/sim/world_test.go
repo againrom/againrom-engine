@@ -152,6 +152,7 @@ func init() {
 	worldMethods = append(worldMethods, "BuildingCellPlanes")
 	// The game's step law: whether a stride takes the octant 1 and 5 correction.
 	worldMethods = append(worldMethods, "StrideCorrected")
+	worldMethods = append(worldMethods, "RouteCost")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")
@@ -215,6 +216,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"FireWallCount":        {reflect.ValueOf(int32(4)), reflect.ValueOf(int32(5))},
 	"Purse":                {reflect.ValueOf(uint32(0))},
 	"Route":                {reflect.ValueOf(EntityID(1))},
+	"RouteCost":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(1))},
 	"SavedSackCellKey":     {reflect.ValueOf(uint16(0))},
 	"ScriptRegister":       {reflect.ValueOf(int32(0))},
 	"ScriptLatched":        {reflect.ValueOf(int32(0))},

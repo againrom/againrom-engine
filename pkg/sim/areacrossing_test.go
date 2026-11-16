@@ -248,3 +248,37 @@ func TestSavedPlaneLayerEndsAfterTheActorsOfItsTick(t *testing.T) {
 		t.Error("the expired cell is still layered after the tick")
 	}
 }
+
+func TestASavedPlaneCrossingRecomputesTheEnteredLayeredCell(t *testing.T) {
+	t.Parallel()
+	const from, target = uint16(0x1110), uint16(0x1111)
+	w := acPlaneWorldWith(t, []Entity{{ID: 1, X: 0x10, Y: 0x11, Speed: 16}})
+	for _, k := range []uint16{from, target} {
+		w.savedCellPlanes.Cost[k], w.savedCellPlanes.CostKnown[k] = 8, 1
+	}
+	w.occupyMissionStartCells()
+	w.addAreaEffect(cellEffect{Key: target, Spell: 3, Remaining: 200, Mode: areaModeCloud, Cells: []uint16{target}})
+	if c := w.motionCell(from); c == nil || c.Ground != (SavedActorSlot{Entity: 1, Bound: true}) {
+		t.Fatalf("the mover holds no slot where it stands: %+v", c)
+	}
+	if got := w.savedCellPlanes.Cost[target]; got != 32 {
+		t.Fatalf("the layered cell holds %d, want 32", got)
+	}
+	slot := func() SavedActorSlot {
+		if c := w.motionCell(target); c != nil {
+			return c.Ground
+		}
+		return SavedActorSlot{}
+	}
+	Step(w, []Command{acMove(1, 0x11, 0x11)})
+	crossing := acCrossingTick(t, w.Entities()[0].Stride)
+	for i := 0; i < crossing; i++ {
+		if got := w.savedCellPlanes.Cost[target]; got != 8 || slot() != (SavedActorSlot{}) {
+			t.Fatalf("tick %d of the transit: the entered cell holds %d and slot %+v, want the decayed 8 and none", i, got, slot())
+		}
+		Step(w, nil)
+	}
+	if got := w.savedCellPlanes.Cost[target]; got != 32 || slot() != (SavedActorSlot{Entity: 1, Bound: true}) {
+		t.Errorf("after the crossing the entered cell holds %d and slot %+v, want the recomputed 32 and the mover", got, slot())
+	}
+}
