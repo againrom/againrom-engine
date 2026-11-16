@@ -104,8 +104,22 @@ func catmullRomProgram() *ebiten.Shader {
 // so the retained map allocates nothing per frame.
 var (
 	crPlacement = make([]float32, 4)
-	crUniforms  = map[string]any{"Placement": crPlacement}
+	crKernel    = make([]float32, 2)
+	crUniforms  = map[string]any{"Placement": crPlacement, "Kernel": crKernel}
 )
+
+// windowKernel is the kernel the window scaler draws: Catmull-Rom unless the
+// launch settings chose another. The CPU reference reads it too.
+var windowKernel = catmullrom.CatmullRom
+
+// SetWindowKernel chooses the window scaler's kernel: Mitchell-Netravali
+// (B = C = 1/3) when soft is true, else Catmull-Rom.
+func SetWindowKernel(soft bool) {
+	windowKernel = catmullrom.CatmullRom
+	if soft {
+		windowKernel = catmullrom.Mitchell
+	}
+}
 
 func drawCatmullRom(dst, src *ebiten.Image, op *ebiten.DrawImageOptions) bool {
 	sh := catmullRomProgram()
@@ -115,6 +129,7 @@ func drawCatmullRom(dst, src *ebiten.Image, op *ebiten.DrawImageOptions) bool {
 	s := float32(op.GeoM.Element(0, 0))
 	crPlacement[0], crPlacement[1] = s, s
 	crPlacement[2], crPlacement[3] = float32(op.GeoM.Element(0, 2)), float32(op.GeoM.Element(1, 2))
+	crKernel[0], crKernel[1] = float32(windowKernel.B), float32(windowKernel.C)
 	var o ebiten.DrawRectShaderOptions
 	o.GeoM = op.GeoM
 	o.ColorScale = op.ColorScale

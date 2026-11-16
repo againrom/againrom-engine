@@ -291,7 +291,7 @@ func referenceFinalFrame(dst, src *image.RGBA, s, ox, oy float64, filter frameFi
 		}
 		return "nearest"
 	case scaleCatmull:
-		catmullrom.Resample(dst, src, s, ox, oy)
+		windowKernel.Resample(dst, src, s, ox, oy)
 		return "catmull-rom"
 	}
 	factor := max(int(s), 1)

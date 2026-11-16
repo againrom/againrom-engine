@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
 - [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.
+- [BASE] Hero names and labels in the map editor's windows no longer get a dark rim when the window is scaled; the starter offers a softer picture filter for the window.
 
 ### For map makers and modders
 

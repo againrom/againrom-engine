@@ -1,15 +1,15 @@
 // Package catmullrom is the final-frame scaler the owner chose for the window
-// (engine/docs/HOTFIXES.md): the separable 4x4 Keys cubic convolution with
-// a = -0.5, derived from the kernel alone. It holds the Kage source the UI
-// compiles and a pure-Go reference resampler with the same arithmetic, so a
-// test without a GPU can state what every pixel of the GPU draw must be.
+// (engine/docs/HOTFIXES.md): the separable 4x4 cubic convolution of the
+// Mitchell-Netravali family, by default Catmull-Rom (B = 0, C = 1/2). It holds
+// the Kage source the UI compiles, which takes B and C as data, and a pure-Go
+// reference resampler with the same arithmetic.
 //
 // Destination pixel d on one axis, with scale s and origin o, samples source
 // position p = (d + 0.5 - o) / s. With t = p - 0.5, i = floor(t) and
 // f = t - i, the taps are i-1, i, i+1 and i+2, each clamped to the source's
 // own bounds, weighted by Weights(f). The stored premultiplied values are
-// interpolated directly, with no linear-light conversion; the result is
-// clamped to [0,1] per channel and then r, g and b to at most alpha.
+// interpolated directly; the result is clamped to [0,1] per channel and then
+// r, g and b to at most alpha.
 package catmullrom
 
 import (
@@ -17,31 +17,56 @@ import (
 	"math"
 )
 
-// Weights answers the four tap weights for fraction f in [0,1): the Keys
-// cubic convolution kernel at a = -0.5 evaluated at 1+f, f, 1-f and 2-f.
-func Weights(f float64) [4]float64 {
-	f2 := f * f
-	f3 := f2 * f
-	return [4]float64{
-		(-f3 + 2*f2 - f) / 2,
-		(3*f3 - 5*f2 + 2) / 2,
-		(-3*f3 + 4*f2 + f) / 2,
-		(f3 - f2) / 2,
+// Kernel is one member of the Mitchell-Netravali family by its B and C.
+type Kernel struct{ B, C float64 }
+
+// The two kernels the window offers: Catmull-Rom is the default picture;
+// Mitchell is the softer B = C = 1/3 of the published recommendation.
+var (
+	CatmullRom = Kernel{B: 0, C: 0.5}
+	Mitchell   = Kernel{B: 1.0 / 3, C: 1.0 / 3}
+)
+
+// At is the kernel's value at distance x from the tap, 0 <= x < 2.
+func (k Kernel) At(x float64) float64 {
+	b, c := k.B, k.C
+	x2 := x * x
+	x3 := x2 * x
+	if x < 1 {
+		return ((12-9*b-6*c)*x3 + (-18+12*b+6*c)*x2 + (6 - 2*b)) / 6
 	}
+	return ((-b-6*c)*x3 + (6*b+30*c)*x2 + (-12*b-48*c)*x + (8*b + 24*c)) / 6
 }
+
+// Weights answers the four tap weights for fraction f in [0,1): the kernel
+// evaluated at 1+f, f, 1-f and 2-f.
+func (k Kernel) Weights(f float64) [4]float64 {
+	if k == CatmullRom {
+		// The default picture keeps the closed form it was pinned with.
+		f2 := f * f
+		f3 := f2 * f
+		return [4]float64{(-f3 + 2*f2 - f) / 2, (3*f3 - 5*f2 + 2) / 2, (-3*f3 + 4*f2 + f) / 2, (f3 - f2) / 2}
+	}
+	return [4]float64{k.At(1 + f), k.At(f), k.At(1 - f), k.At(2 - f)}
+}
+
+// Weights is Catmull-Rom's four tap weights for fraction f.
+func Weights(f float64) [4]float64 { return CatmullRom.Weights(f) }
 
 // Taps answers the four source indices, clamped to [0, n), and their weights
 // for source position p in pixels, where pixel k spans [k, k+1).
-func Taps(p float64, n int) (idx [4]int, w [4]float64) {
+func (k Kernel) Taps(p float64, n int) (idx [4]int, w [4]float64) {
 	t := p - 0.5
 	i := math.Floor(t)
-	w = Weights(t - i)
-	for k := range idx {
-		j := int(i) + k - 1
-		idx[k] = min(max(j, 0), n-1)
+	w = k.Weights(t - i)
+	for j := range idx {
+		idx[j] = min(max(int(i)+j-1, 0), n-1)
 	}
 	return idx, w
 }
+
+// Taps is Catmull-Rom's taps.
+func Taps(p float64, n int) (idx [4]int, w [4]float64) { return CatmullRom.Taps(p, n) }
 
 // Covered answers the destination pixel range [lo, hi) whose centres fall in
 // [o, o + n*s): the pixels a draw of an n-pixel source at scale s and origin
@@ -55,6 +80,11 @@ func Covered(n int, s, o float64) (lo, hi int) {
 // with the filtered result. Pixels outside the placed rectangle are left
 // unchanged.
 func Resample(dst, src *image.RGBA, s, ox, oy float64) {
+	CatmullRom.Resample(dst, src, s, ox, oy)
+}
+
+// Resample is the package Resample with this kernel.
+func (k Kernel) Resample(dst, src *image.RGBA, s, ox, oy float64) {
 	sb := src.Rect
 	sw, sh := sb.Dx(), sb.Dy()
 	if sw <= 0 || sh <= 0 || s <= 0 {
@@ -65,9 +95,9 @@ func Resample(dst, src *image.RGBA, s, ox, oy float64) {
 	x0, x1 = max(x0, dst.Rect.Min.X), min(x1, dst.Rect.Max.X)
 	y0, y1 = max(y0, dst.Rect.Min.Y), min(y1, dst.Rect.Max.Y)
 	for y := y0; y < y1; y++ {
-		ry, wy := Taps((float64(y)+0.5-oy)/s, sh)
+		ry, wy := k.Taps((float64(y)+0.5-oy)/s, sh)
 		for x := x0; x < x1; x++ {
-			rx, wx := Taps((float64(x)+0.5-ox)/s, sw)
+			rx, wx := k.Taps((float64(x)+0.5-ox)/s, sw)
 			var acc [4]float64
 			for ty := range 4 {
 				var row [4]float64
@@ -107,10 +137,21 @@ package main
 
 var Placement vec4
 
+// Kernel is the kernel's (B, C).
+var Kernel vec2
+
+func near(x float) float {
+	b, c := Kernel.x, Kernel.y
+	return ((12-9*b-6*c)*x*x*x + (-18+12*b+6*c)*x*x + (6 - 2*b)) / 6
+}
+
+func far(x float) float {
+	b, c := Kernel.x, Kernel.y
+	return ((-b-6*c)*x*x*x + (6*b+30*c)*x*x + (-12*b-48*c)*x + (8*b + 24*c)) / 6
+}
+
 func weights(f float) vec4 {
-	f2 := f * f
-	f3 := f2 * f
-	return vec4((-f3+2*f2-f)/2, (3*f3-5*f2+2)/2, (-3*f3+4*f2+f)/2, (f3-f2)/2)
+	return vec4(far(1+f), near(f), near(1-f), far(2-f))
 }
 
 func row(y float, x vec4, w vec4) vec4 {

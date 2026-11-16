@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"againrom/pkg/ini"
+	"againrom/pkg/launch"
 )
 
 const sampleINI = "; my starter\r\n[starter]\r\nagainrom = D:\\game\\againrom.exe\r\nclose-on-play = yes\r\nlast-base = ru\r\nfuture-key = keep\r\n\r\n[bases]\r\nen = C:\\games\\en\r\nru = C:\\games\\ru\r\nthis line is malformed\r\n\r\n[mods]\r\ndir = D:\\mods\r\nenabled = b, a ,\r\n\r\n[options]\r\nsound = OFF\r\nvolume = 40\r\nmovies = no\r\nvideo = 8x\r\nmarkers = 1\r\nsaves = D:\\saves\r\nmission = 12\r\nskill = axe\r\nextra = -foo \"a b\"\r\n"
@@ -21,7 +22,7 @@ func TestLoadSettingsReadsEveryKey(t *testing.T) {
 		Againrom: `D:\game\againrom.exe`, CloseOnPlay: true, LastBase: "ru",
 		Bases:   []base{{Key: "en", Path: `C:\games\en`}, {Key: "ru", Path: `C:\games\ru`}},
 		ModsDir: `D:\mods`, Enabled: []string{"b", "a"},
-		Sound: soundOff, Volume: "40", Movies: false, Video: video8x, Markers: true,
+		Sound: soundOff, Volume: "40", Movies: false, Video: video8x, WindowFilter: launch.FilterCatmullRom, Markers: true,
 		Saves: `D:\saves`, Mission: "12", Skill: "axe", ShopStockMultiplier: "1", Extra: `-foo "a b"`,
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -83,7 +84,7 @@ func TestStoreWritesAFreshFileInDocumentedOrder(t *testing.T) {
 	s.addBase(root)
 	s.LastBase = "en"
 	s.store(f)
-	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
+	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nwindow-filter = catmull-rom\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
@@ -104,6 +105,7 @@ func TestLaunchArgsExactArgv(t *testing.T) {
 		{"no movies", func(s *settings) { s.Movies = false }, []string{"-assets", root, "-movies=false"}},
 		{"4x", func(s *settings) { s.Video = video4x }, []string{"-assets", root, "-4x"}},
 		{"8x", func(s *settings) { s.Video = video8x }, []string{"-assets", root, "-8x"}},
+		{"mitchell filter", func(s *settings) { s.WindowFilter = launch.FilterMitchell }, []string{"-assets", root, "-mitchell"}},
 		{"markers", func(s *settings) { s.Markers = true }, []string{"-assets", root, "-markers"}},
 		{"chicken", func(s *settings) { s.Chicken = true }, []string{"-assets", root, "-chicken"}},
 		{"smooth regen", func(s *settings) { s.SmoothRegen = true }, []string{"-assets", root, "-smooth-regen"}},

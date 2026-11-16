@@ -15,6 +15,7 @@ func TestSettingsRowsKeepTheRowPositions(t *testing.T) {
 		launch.Markers.Key: 4, launch.Saves.Key: 5, launch.Window.Key: 6, launch.Mission.Key: 8,
 		launch.Picker.Key: 9, launch.Chicken.Key: 10, launch.SmoothRegen.Key: 11, launch.Skill.Key: 12,
 		launch.ShopStockMultiplier.Key: 13, launch.Extra.Key: 14,
+		launch.WindowFilter.Key: 15,
 	}
 	seen := map[string]bool{}
 	for i, r := range settingsRows {
@@ -30,28 +31,28 @@ func TestSettingsRowsKeepTheRowPositions(t *testing.T) {
 				if got := 66 + 24*i + r.dy; got != 238 || r.head != cHeadAdvanced {
 					t.Errorf("advanced heading at %d, want 238", got)
 				}
-			case 15:
-				if got := 66 + 24*i + r.dy; got != 428 || r.head != cHeadStarter {
-					t.Errorf("starter heading at %d, want 428", got)
+			case 16:
+				if got := 66 + 24*i + r.dy; got != 452 || r.head != cHeadStarter {
+					t.Errorf("starter heading at %d, want 452", got)
 				}
 			default:
-				t.Errorf("heading at row %d, want rows 7 and 15", i)
+				t.Errorf("heading at row %d, want rows 7 and 16", i)
 			}
 		case rowCloseOnPlay:
-			if i != 16 {
-				t.Errorf("close-after-play at row %d, want 16", i)
+			if i != 17 {
+				t.Errorf("close-after-play at row %d, want 17", i)
 			}
 		case rowGameProgram:
-			if i != 17 {
-				t.Errorf("game program at row %d, want 17", i)
+			if i != 18 {
+				t.Errorf("game program at row %d, want 18", i)
 			}
 		case rowAcceptUnmarked:
-			if i != 18 {
-				t.Errorf("load unmarked at row %d, want 18", i)
+			if i != 19 {
+				t.Errorf("load unmarked at row %d, want 19", i)
 			}
 		}
 	}
-	if len(seen) != len(want) || len(settingsRows) != 19 {
-		t.Errorf("%d setting rows and %d lines; want %d and 19", len(seen), len(settingsRows), len(want))
+	if len(seen) != len(want) || len(settingsRows) != 20 {
+		t.Errorf("%d setting rows and %d lines; want %d and 20", len(seen), len(settingsRows), len(want))
 	}
 }

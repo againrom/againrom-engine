@@ -167,6 +167,9 @@ var editorPointsSharpBuf *ebiten.Image
 // editor draws on the window itself.
 func (e *MapEditor) Draw(screen *ebiten.Image) {
 	editorPresentation.present(screen, e.deviceScale, e.window, &e.pointsFrame, &editorPointsSharpBuf, e.drawPoints)
+	if len(e.windowText) > 0 && editorPresentation.scaled(e.deviceScale) {
+		e.textOverlay.draw(screen, e.windowText, e.deviceScale, 0, 0)
+	}
 }
 
 // engineEditorInput is the engine's input reader. It is a variable so a test

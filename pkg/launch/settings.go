@@ -83,12 +83,14 @@ const (
 
 // The values of the Override and Choice rows.
 const (
-	SoundDefault = "default"
-	SoundOn      = "on"
-	SoundOff     = "off"
-	VideoNormal  = "normal"
-	Video4x      = "4x"
-	Video8x      = "8x"
+	SoundDefault     = "default"
+	SoundOn          = "on"
+	SoundOff         = "off"
+	VideoNormal      = "normal"
+	Video4x          = "4x"
+	Video8x          = "8x"
+	FilterCatmullRom = "catmull-rom"
+	FilterMitchell   = "mitchell"
 )
 
 // The rows not kept in [options].
@@ -128,6 +130,8 @@ var (
 	Video = Setting{Key: "video", Kind: Choice, Default: VideoNormal,
 		Options: []Option{{Value: VideoNormal}, {Value: Video4x, Flag: "4x", Usage: "select VIDEO4 mission movies (overrides -8x)"},
 			{Value: Video8x, Flag: "8x", Usage: "select VIDEO8 mission movies"}}}
+	WindowFilter = Setting{Key: "window-filter", Kind: Choice, Default: FilterCatmullRom,
+		Options: []Option{{Value: FilterCatmullRom}, {Value: FilterMitchell, Flag: "mitchell", Usage: "scale the window picture with the softer Mitchell-Netravali filter instead of Catmull-Rom"}}}
 	Markers = Setting{Key: "markers", Kind: Switch, Default: "false", Flag: "markers",
 		Usage: "diagnostic: draw a marker on each placed structure, unit and static object (off by default; -markers turns all three on)"}
 	Chicken = Setting{Key: "chicken", Kind: Switch, Default: "false", Flag: "chicken",
@@ -151,7 +155,7 @@ var (
 )
 
 // Settings are the rows kept in [options], in the order of the file.
-var Settings = []Setting{Sound, Volume, Movies, Video, Markers, Chicken, SmoothRegen, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
+var Settings = []Setting{Sound, Volume, Movies, Video, WindowFilter, Markers, Chicken, SmoothRegen, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
 
 // Table is every row, in the order the game's arguments pass them.
 var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked, Hero}, Settings...), Check, Version)

@@ -77,6 +77,9 @@ const (
 	cOff                    captionID = "off"
 	cValueDefault           captionID = "value-default"
 	cValueNormal            captionID = "value-normal"
+	cWindowFilter           captionID = "window-filter"
+	cValueCatmullRom        captionID = "value-catmull-rom"
+	cValueMitchell          captionID = "value-mitchell"
 
 	cSelectMod      captionID = "select-mod"
 	cModState       captionID = "mod-state"
@@ -233,6 +236,9 @@ var captionRows = []captionRow{
 	row(cOff, "off", "Выкл", "dialogs.txt: Off"),
 	row(cValueDefault, "default", "по умолчанию", ""),
 	row(cValueNormal, "normal", "обычное", ""),
+	row(cWindowFilter, "Window picture filter", "Фильтр картинки в окне", ""),
+	row(cValueCatmullRom, "Catmull-Rom (sharper)", "Catmull-Rom (резче)", ""),
+	row(cValueMitchell, "Mitchell-Netravali (softer)", "Mitchell-Netravali (мягче)", ""),
 
 	row(cSelectMod, "Select a mod in the list to edit its settings.", "Выберите мод в списке, чтобы изменить его установки.", ""),
 	row(cModState, "%s (%s)", "%s (%s)", ""),

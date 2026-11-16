@@ -50,6 +50,7 @@ type settings struct {
 	Volume              string // empty means the saved preference
 	Movies              bool
 	Video               string
+	WindowFilter        string
 	Markers             bool
 	Chicken             bool
 	SmoothRegen         bool

@@ -359,6 +359,8 @@ type options struct {
 	// request is silent.
 	noMusic       bool
 	fourX, eightX bool
+	// mitchell is the starter's softer window filter.
+	mitchell bool
 
 	// mods names the mods to load, in order; modsDir is the directory holding
 	// their folders, empty for the profile default.
@@ -582,6 +584,7 @@ func modFrontEnd(root string, o options, preferences game.OptionsStore, files mo
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
 	front.SetChickenAtMissionStart(o.chicken)
 	front.SetSmoothRegen(o.smoothRegen)
+	ui.SetWindowKernel(o.mitchell)
 	if err := front.SetShopStockMultiplier(max(launchset.ShopStockMultiplier.Min, o.shopStockMultiplier)); err != nil {
 		return nil, err
 	}

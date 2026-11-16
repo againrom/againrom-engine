@@ -138,3 +138,81 @@ func TestResampleLinearRampStaysLinear(t *testing.T) {
 		}
 	}
 }
+
+// mitchellPublished is the Mitchell-Netravali cubic at B = C = 1/3 as
+// published, written with its own coefficients.
+func mitchellPublished(x float64) float64 {
+	x = math.Abs(x)
+	switch {
+	case x < 1:
+		return (7*x*x*x - 12*x*x + 16.0/3) / 6
+	case x < 2:
+		return (-7.0/3*x*x*x + 12*x*x - 20*x + 32.0/3) / 6
+	}
+	return 0
+}
+
+func TestMitchellWeightsMatchThePublishedKernel(t *testing.T) {
+	if k := Mitchell.At(0); math.Abs(k-8.0/9) > 1e-12 {
+		t.Fatalf("kernel at 0 = %v, want 8/9", k)
+	}
+	if k := Mitchell.At(1); math.Abs(k-1.0/18) > 1e-12 {
+		t.Fatalf("kernel at 1 = %v, want 1/18", k)
+	}
+	for _, f := range []float64{0, 0.125, 0.25, 0.5, 0.6, 0.75, 0.9375, 0.999} {
+		w := Mitchell.Weights(f)
+		want := [4]float64{mitchellPublished(1 + f), mitchellPublished(f), mitchellPublished(1 - f), mitchellPublished(2 - f)}
+		sum := 0.0
+		for i := range w {
+			sum += w[i]
+			if math.Abs(w[i]-want[i]) > 1e-12 {
+				t.Fatalf("f=%v tap %d: weight %v, published %v", f, i, w[i], want[i])
+			}
+		}
+		if math.Abs(sum-1) > 1e-12 {
+			t.Fatalf("f=%v: weights sum to %v", f, sum)
+		}
+	}
+}
+
+func TestCatmullRomClosedFormMatchesTheGeneralKernel(t *testing.T) {
+	for k := 0; k <= 1000; k++ {
+		f := float64(k) / 1000
+		w := CatmullRom.Weights(f)
+		for i, x := range []float64{1 + f, f, 1 - f, 2 - f} {
+			if d := math.Abs(w[i] - CatmullRom.At(x)); d > 1e-12 {
+				t.Fatalf("f=%v tap %d: closed form %v, kernel %v", f, i, w[i], CatmullRom.At(x))
+			}
+		}
+	}
+}
+
+func TestCatmullRomIsTheDefaultKernel(t *testing.T) {
+	if CatmullRom != (Kernel{B: 0, C: 0.5}) {
+		t.Fatalf("default kernel %v", CatmullRom)
+	}
+	for _, f := range []float64{0, 0.3, 0.5, 0.8} {
+		if Weights(f) != CatmullRom.Weights(f) {
+			t.Fatalf("f=%v: package Weights differ from the Catmull-Rom kernel", f)
+		}
+	}
+}
+
+func TestMitchellResampleStaysFlatAndInRange(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	for i := 0; i < len(src.Pix); i += 4 {
+		v := byte(255 * ((i / 4) % 2))
+		copy(src.Pix[i:i+4], []byte{v, v, v, 255})
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, 18, 18))
+	Mitchell.Resample(dst, src, 2.25, 0, 0)
+	checkPremultiplied(t, "mitchell", dst)
+	flatSrc := flat(8, 8, [4]byte{100, 120, 140, 255})
+	out := image.NewRGBA(image.Rect(0, 0, 18, 18))
+	Mitchell.Resample(out, flatSrc, 2.25, 0, 0)
+	for i := 0; i < len(out.Pix); i += 4 {
+		if out.Pix[i] != 100 || out.Pix[i+1] != 120 || out.Pix[i+2] != 140 {
+			t.Fatalf("pixel %d = %v", i/4, out.Pix[i:i+4])
+		}
+	}
+}

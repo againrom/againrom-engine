@@ -261,9 +261,10 @@ type MapEditor struct {
 	down, moved                 bool
 	press                       image.Point
 	window                      image.Point
-	deviceScale                 float64       // device pixels per point; 0 and 1 draw on the window itself
-	pointsFrame                 *ebiten.Image // the frame in points at another device scale
-	focusedReference            int           // 1-based on the selected record; 0 means none
+	deviceScale                 float64         // device pixels per point; 0 and 1 draw on the window itself
+	pointsFrame                 *ebiten.Image   // the frame in points at another device scale
+	windowText                  []text.DrawCall // kept text the window draws after the scaler, at device resolution
+	focusedReference            int             // 1-based on the selected record; 0 means none
 	recordDrag                  *editorRecordDrag
 	cancelledDrag               bool // consume the remainder of a cancelled press
 	textSmoothingEnabled        bool
@@ -815,10 +816,27 @@ func (e *MapEditor) drawPoints(screen *ebiten.Image) {
 		op.GeoM.Translate(ox, oy)
 		screen.DrawImage(v.canvas, op)
 	}
+	e.windowText = nil
 	if kept := e.drawChrome(screen); len(kept) > 0 {
-		e.textOverlay.draw(screen, kept, 1, 0, 0)
+		if e.textAtWindow() {
+			e.windowText = kept
+		} else {
+			e.textOverlay.draw(screen, kept, 1, 0, 0)
+		}
 	}
 	e.drawMCP(screen)
+}
+
+// textAtWindow reports that the chrome's smoothed text is drawn on the window
+// after the scaler, at device resolution, not onto the points frame the
+// scaler would resample. A pending frame read keeps it on the points frame,
+// which that read returns.
+func (e *MapEditor) textAtWindow() bool {
+	if !editorPresentation.scaled(e.deviceScale) {
+		return false
+	}
+	m := &e.mcp
+	return m.call == nil || m.call.Name != "frame"
 }
 
 // The message is UTF-8, converted once as the box draws. Installed labels are in

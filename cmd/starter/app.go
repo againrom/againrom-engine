@@ -82,6 +82,7 @@ const (
 	aRescan
 	aSound
 	aVideo
+	aWindowFilter
 	aMovies
 	aMarkers
 	aChicken

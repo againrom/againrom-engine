@@ -40,6 +40,8 @@ var optionViews = []optionView{
 	{key: launch.ShopStockMultiplier.Key, value: func(s *settings) any { return &s.ShopStockMultiplier }, edit: fShopStockMultiplier,
 		label: cShopStockMultiplier, bounds: true, refusal: cBadShopStockMultiplier},
 	{key: launch.Extra.Key, value: func(s *settings) any { return &s.Extra }, edit: fExtra, label: cExtraArgs, refusal: cExtraQuote},
+	{key: launch.WindowFilter.Key, value: func(s *settings) any { return &s.WindowFilter }, act: aWindowFilter, label: cWindowFilter,
+		values: []captionID{cValueCatmullRom, cValueMitchell}},
 }
 
 // settingsRowKind is what one line of the settings view shows.
@@ -79,6 +81,7 @@ var settingsRows = []settingsRow{
 	{kind: rowSetting, key: launch.Skill.Key},
 	{kind: rowSetting, key: launch.ShopStockMultiplier.Key},
 	{kind: rowSetting, key: launch.Extra.Key},
+	{kind: rowSetting, key: launch.WindowFilter.Key},
 	{kind: rowHeading, head: cHeadStarter, dy: 2},
 	{kind: rowCloseOnPlay},
 	{kind: rowGameProgram},
