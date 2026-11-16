@@ -432,6 +432,7 @@ func TestMapEditorPasteInTheSameMapSharesASackRecipe(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.Layout(1800, 900)
+	closeMapPanel(t, e)
 	pasteAt(t, e, image.Pt(9, 22))
 	want := clonedAt(t, raw, raw, groupRefs, image.Pt(9, 22))
 	if got := e.Document().SourceBytes; !bytes.Equal(got, want) {
