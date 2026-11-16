@@ -253,6 +253,9 @@ type OriginalSaveResume struct {
 	Heads, Dead, Joined int
 	GroupsRestored      int
 	GroupIssues         []string
+	// WorldEffectsRefusal is the reason a held document's saved world effects
+	// stayed unbound; empty when they bound or none were saved.
+	WorldEffectsRefusal string
 	// Reowned counts joined placements whose saved Player slot differs.
 	Reowned int
 	// Stocked counts exact non-party holdings restored across all Players.
@@ -649,6 +652,7 @@ func (r OriginalSaveResume) String() string {
 			"        source actor/load basis, equipment operands and container bookkeeping RESTORED\n"+
 			"        supported living source actors bound by archive record; native identity/presentation retained\n"+
 			"        saved Groups %d RESTORED; bounded continuation issues: %v\n"+
+			"        saved world effects left unbound: %q\n"+
 			"        NOT CARRIED: 18 bytes of still-unpromoted session gaps (SAV-SESS-031);\n"+
 			"        Unbound Sack/SpellEffect keys, unsupported actor callbacks and\n"+
 			"        effect payload components without a decoded field bridge;\n"+
@@ -670,7 +674,7 @@ func (r OriginalSaveResume) String() string {
 		r.CorpsesRestored, r.TerminalRestored, r.UnboundRestored,
 		r.DyingRestored,
 		r.Structures.Restored, r.Structures.Subclasses, r.Structures.Unbound,
-		r.Structures.Unmatched, r.Structures.Absent, r.GroupsRestored, r.GroupIssues)
+		r.Structures.Unmatched, r.Structures.Absent, r.GroupsRestored, r.GroupIssues, r.WorldEffectsRefusal)
 }
 
 // fogLine is the explored map's row of that report.

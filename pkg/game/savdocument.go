@@ -437,7 +437,7 @@ func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.
 	if err := importSavedPlayerParticipants(&bound, ms.World); err != nil {
 		return err
 	}
-	if err := importSavedActorMotions(ms, &bound); err != nil {
+	if err := importSavedActorMotions(ms, &bound, false); err != nil {
 		return err
 	}
 	if err := decodeWorldCarriersFrom(documentRecord, carrierDecode{w: ms.World, ms: ms, state: &bound}); err != nil {

@@ -12,16 +12,25 @@ import (
 // static/dynamic Blocks. SAV-CELLLOAD-109/110 do not recompute these planes or
 // copy Cell.Cost into current cost. Later ordinary cell operations own those
 // writes. This does not replay the still-unknown pre-entry bootstrap tick.
-func importOriginalCellPlanes(ms *Mission, source entrySource, groups *mod.TerrainData) error {
-	if ms == nil || ms.World == nil || ms.savedDocument == nil || ms.savedDocument.Document == nil || ms.savedDocument.Document.World == nil {
+// A held document, which no claim admits as complete, supplies the same block
+// rows, so its saved cloud areas bind to the planes.
+func importOriginalCellPlanes(ms *Mission, source entrySource, groups *mod.TerrainData, held *heldDocument) error {
+	if ms == nil || ms.World == nil || ms.savedDocument == nil {
+		return nil
+	}
+	doc := ms.savedDocument.Document
+	if doc == nil && held != nil && held.doc.World != nil && len(held.doc.World.Effects) > 0 {
+		doc = held.doc
+	}
+	if doc == nil || doc.World == nil {
 		return nil
 	}
 	base, err := readOriginalCellPlanes(ms.Map, source, groups)
 	if err != nil || base == nil {
 		return err
 	}
-	blocks := make([]sim.SavedActorBlock, 0, len(ms.savedDocument.Document.World.Blocks))
-	for _, block := range ms.savedDocument.Document.World.Blocks {
+	blocks := make([]sim.SavedActorBlock, 0, len(doc.World.Blocks))
+	for _, block := range doc.World.Blocks {
 		blocks = append(blocks, sim.SavedActorBlock{Cell: block.Cell, Dyn: block.Dyn, Static: block.Static})
 	}
 	planes := ms.World.CellPlanes(sim.CellPlaneStart{Base: base, Document: true, Blocks: blocks})

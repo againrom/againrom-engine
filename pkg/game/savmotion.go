@@ -14,7 +14,7 @@ import (
 // Native LOAD restores its own canonical state and never calls this producer.
 // SAV-TOKENPOS-074 and SAV-UNITPROG-156 supply literal independent operands;
 // SAV-CELLLOAD-110 makes cell-slot identity independent of actor Position.
-func importSavedActorMotions(ms *Mission, state *SnapshotSAVDocument) error {
+func importSavedActorMotions(ms *Mission, state *SnapshotSAVDocument, rowsOnly bool) error {
 	if state == nil || state.Document == nil {
 		return nil
 	}
@@ -92,6 +92,11 @@ func importSavedActorMotions(ms *Mission, state *SnapshotSAVDocument) error {
 		if lastCell[cell.Cell] == i {
 			cells = append(cells, sim.SavedActorCell{Cell: cell.Cell, Ground: slot(cell.GroundActor), Air: slot(cell.AirActor), Payload: cell.Payload()})
 		}
+	}
+	if rowsOnly {
+		// A held document gives the cell rows alone; its actors and block rows
+		// stay with the planes the World already holds.
+		return ms.World.ImportOriginalActorMotions(nil, cells, nil)
 	}
 	lastBlock := make(map[uint16]int, len(doc.World.Blocks))
 	for i, block := range doc.World.Blocks {

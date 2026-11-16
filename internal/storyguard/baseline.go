@@ -19,7 +19,7 @@ package storyguard
 // This file holds the numbers only. The reason a number moved is in the
 // history of this file.
 var Committed = Baseline{
-	TestIdentCount: 4379,
+	TestIdentCount: 4377,
 	TestFileCount:  262,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -41,5 +41,5 @@ var Committed = Baseline{
 		"stringliterals.test":    28,
 		"longcommentgroups":      1629,
 	},
-	CommentBytes: 10867838,
+	CommentBytes: 10869272,
 }

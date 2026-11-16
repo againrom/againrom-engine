@@ -38,10 +38,11 @@ const detachedProjectileTarget = sim.EntityID(math.MaxUint32)
 // document it held, its actors by their exact import origins, and keeps only
 // their family (DIV-4175). A held document the binder refuses keeps its
 // records carried and unbound, as a partial state did before; the LOAD is
-// not refused for them. The binder reads the World and writes it only in its
-// two closing imports, so the drivers the first import armed are put back
-// when the second refuses, and a refused bind leaves the World as it was.
-func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument) error {
+// not refused for them, and the load report names the refusal. The binder
+// reads the World and writes it only in its two closing imports, so the
+// drivers the first import armed are put back when the second refuses, and a
+// refused bind leaves the World as it was.
+func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument, report *OriginalSaveResume) error {
 	state := ms.savedDocument
 	if state == nil || state.Document != nil || held == nil || held.doc.World == nil {
 		return bindOriginalWorldEffects(ms, src, state)
@@ -49,6 +50,7 @@ func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument
 	before := ms.World.SavedWorldEffectDrivers()
 	view, err := bindHeldWorldEffects(ms, src, state, held)
 	if err != nil {
+		report.WorldEffectsRefusal = err.Error()
 		if restore := ms.World.ImportOriginalWorldEffectDrivers(before); restore != nil {
 			return restore
 		}
@@ -65,6 +67,12 @@ func bindHeldWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocume
 	}
 	sortSavedActors(actors)
 	view := &SnapshotSAVDocument{Version: state.Version, Document: held.doc, Actors: actors}
+	// A cloud binds to the cell rows the one motion importer reads. The held
+	// document gives it those rows and no actor, so the actors keep the motion
+	// the engine built them.
+	if err := importSavedActorMotions(ms, &SnapshotSAVDocument{Version: state.Version, Document: held.doc}, true); err != nil {
+		return nil, err
+	}
 	if err := bindOriginalWorldEffects(ms, src, view); err != nil {
 		return nil, err
 	}

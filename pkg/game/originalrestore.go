@@ -513,7 +513,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := restoreOriginalRandomState(ms, src.campaign.randomSession, src.currentRandom); err != nil {
 				return err
 			}
-			if err := importOriginalCellPlanes(ms, in.archives.Containers, in.table.ModTerrain()); err != nil {
+			if err := importOriginalCellPlanes(ms, in.archives.Containers, in.table.ModTerrain(), src.heldDocument); err != nil {
 				return err
 			}
 			if err := importSavedSackObjects(ms, ms.savedDocument); err != nil {
@@ -525,7 +525,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := importOriginalActorEffects(ms); err != nil {
 				return err
 			}
-			if err := importOriginalWorldEffects(ms, in.archives.Containers, src.heldDocument); err != nil {
+			if err := importOriginalWorldEffects(ms, in.archives.Containers, src.heldDocument, &r); err != nil {
 				return err
 			}
 			if err := restoreOriginalActions(ms, in.table); err != nil {

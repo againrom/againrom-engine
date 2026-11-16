@@ -7,15 +7,16 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/formats/sav"
 )
 
-type cellPlaneSource1115 struct {
+type cellPlaneSource struct {
 	raw     []byte
 	err     error
 	address string
 }
 
-func (s *cellPlaneSource1115) ReadFile(address string) ([]byte, error) {
+func (s *cellPlaneSource) ReadFile(address string) ([]byte, error) {
 	s.address = address
 	return s.raw, s.err
 }
@@ -25,7 +26,7 @@ func TestOriginalCellPlanes1115ParameterFailuresDoNotPartlyAdopt(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f, _, _ := crossingCellOriginalDoor1115(t, false, false)
 			ms := *f.live.mission.state
-			source := &cellPlaneSource1115{raw: synth.Reg(0x11, nil)}
+			source := &cellPlaneSource{raw: synth.Reg(0x11, nil)}
 			wantError := true
 			switch name {
 			case "missing":
@@ -46,7 +47,7 @@ func TestOriginalCellPlanes1115ParameterFailuresDoNotPartlyAdopt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = importOriginalCellPlanes(&ms, source, nil)
+			err = importOriginalCellPlanes(&ms, source, nil, nil)
 			if (err != nil) != wantError || source.address != "world/data/map.reg" {
 				t.Fatalf("read/admission: address=%q err=%v", source.address, err)
 			}
@@ -56,5 +57,27 @@ func TestOriginalCellPlanes1115ParameterFailuresDoNotPartlyAdopt(t *testing.T) {
 				t.Fatal("failed or unavailable parameters changed native state", marshalErr)
 			}
 		})
+	}
+}
+
+// A held document that carries saved area effects supplies the block rows the
+// cell planes need; one with no area effect leaves the World without planes.
+func TestOriginalCellPlanesHeldDocumentFollowsItsAreaEffects(t *testing.T) {
+	for _, effects := range []int{0, 1} {
+		f, _, _ := crossingCellOriginalDoor1115(t, false, false)
+		ms := *f.live.mission.state
+		ms.savedDocument = &SnapshotSAVDocument{}
+		held := &heldDocument{doc: &sav.DocumentData{World: &sav.DocumentWorldData{}}}
+		if effects > 0 {
+			held.doc.World.Effects = []uint16{1}
+		}
+		source := &cellPlaneSource{raw: synth.Reg(0x11, nil)}
+		if err := importOriginalCellPlanes(&ms, source, nil, held); err != nil {
+			t.Fatal(err)
+		}
+		_, present := ms.World.SavedCellPlanes()
+		if present != (effects > 0) {
+			t.Fatalf("%d area effects: planes present=%v", effects, present)
+		}
 	}
 }

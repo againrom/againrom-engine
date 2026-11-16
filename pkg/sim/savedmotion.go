@@ -158,7 +158,13 @@ func (w *World) ImportOriginalActorMotions(motions []SavedActorMotion, cells []S
 	staged := *w
 	staged.entities = slices.Clone(w.entities)
 	staged.routes = slices.Clone(w.routes)
-	staged.savedMotion = s
+	// Cell rows alone leave a native-mover World holding planes and records
+	// only, with no actor motion to carry.
+	kept := s
+	if motions == nil && blocks == nil && w.game.nativeMovers {
+		kept = nil
+	}
+	staged.savedMotion = kept
 	staged.cellRecords = records
 	for i := range s.Motions {
 		m := &s.Motions[i]
@@ -188,7 +194,7 @@ func (w *World) ImportOriginalActorMotions(motions []SavedActorMotion, cells []S
 	if err := staged.savedMotionFault(); err != nil {
 		return err
 	}
-	w.entities, w.savedMotion, w.routes, w.cellRecords = staged.entities, s, staged.routes, records
+	w.entities, w.savedMotion, w.routes, w.cellRecords = staged.entities, kept, staged.routes, records
 	w.dropMovers()
 	w.refreshSavedPlaneBlocks()
 	return nil
