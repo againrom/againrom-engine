@@ -1,0 +1,71 @@
+{
+  "window": "unitcompact",
+  "title": "editor.unit.label",
+  "titleArgs": ["kind", "name", "number", "x", "y"],
+  "titleHelp": "editor.unit.override.note",
+  "width": 1080,
+  "columns": 3,
+  "card": true,
+  "rows": [
+    {"kind": "choice", "label": "editor.unit.field.identity", "value": "identity", "help": "editor.unit.identity.note", "field": "identity"},
+    {"kind": "edit", "label": "editor.unit.field.name", "value": "name", "help": "editor.unit.name.note", "field": "name"},
+    {"kind": "choice", "label": "editor.unit.field.owner", "value": "owner", "field": "owner"},
+    {"kind": "edit", "label": "editor.unit.field.level", "value": "level", "help": "editor.unit.level.note", "field": "level"},
+    {"kind": "choice", "label": "editor.unit.field.facing", "value": "facing", "help": "editor.unit.facing.note", "field": "facing"},
+    {"kind": "choice", "label": "editor.unit.look", "value": "look", "help": "editor.unit.look.note", "field": "look"},
+    {"kind": "edit", "label": "editor.unit.field.gold", "value": "gold", "help": "editor.unit.gold.note", "field": "gold"},
+    {"kind": "switch", "label": "editor.unit.field.loot", "value": "loot", "help": "editor.unit.loot.note", "field": "loot"},
+    {"kind": "heading", "label": "editor.unit.group.equipment", "fold": "equipment"},
+    {"each": "equipment", "rows": [
+      {"kind": "choice", "when": "equipment", "labelBind": "label", "value": "value", "field": "slot"}
+    ]},
+    {"kind": "heading", "label": "editor.unit.group.vitals", "column": 1},
+    {"kind": "edit", "label": "editor.unit.override.hp", "column": 1, "value": "hp", "hintBind": "game.hp", "help": "editor.unit.zero.allowed", "field": "hp"},
+    {"kind": "edit", "label": "editor.unit.override.hpmax", "column": 1, "value": "hpmax", "hintBind": "game.hpmax", "help": "editor.unit.zero.refused", "field": "hpmax"},
+    {"kind": "edit", "label": "editor.unit.override.mana", "column": 1, "value": "mana", "hintBind": "game.mana", "help": "editor.unit.zero.allowed", "field": "mana"},
+    {"kind": "heading", "label": "editor.unit.group.attributes", "column": 1},
+    {"kind": "edit", "label": "editor.unit.override.body", "column": 1, "value": "body", "hintBind": "game.body", "help": "editor.unit.zero.refused", "field": "body"},
+    {"kind": "edit", "label": "editor.unit.override.mind", "column": 1, "value": "mind", "hintBind": "game.mind", "help": "editor.unit.zero.refused", "field": "mind"},
+    {"kind": "edit", "label": "editor.unit.override.spirit", "column": 1, "value": "spirit", "hintBind": "game.spirit", "help": "editor.unit.zero.refused", "field": "spirit"},
+    {"kind": "edit", "label": "editor.unit.override.reaction", "column": 1, "value": "reaction", "hintBind": "game.reaction", "help": "editor.unit.zero.refused", "field": "reaction"},
+    {"kind": "heading", "label": "editor.unit.group.skills", "column": 1, "fold": "skills"},
+    {"each": "skills", "rows": [
+      {"kind": "edit", "when": "skills", "labelBind": "label", "column": 1, "value": "value", "hintBind": "game", "help": "editor.unit.zero.refused", "field": "skill"}
+    ]},
+    {"kind": "heading", "label": "editor.unit.group.defence", "column": 2},
+    {"kind": "edit", "label": "editor.unit.override.defence", "column": 2, "value": "defence", "hintBind": "game.defence", "help": "editor.unit.zero.refused", "field": "defence"},
+    {"kind": "edit", "label": "editor.unit.override.absorption", "column": 2, "value": "absorption", "hintBind": "game.absorption", "help": "editor.unit.zero.refused", "field": "absorption"},
+    {"kind": "heading", "label": "editor.unit.group.motion", "column": 2},
+    {"kind": "edit", "label": "editor.unit.override.speed", "column": 2, "value": "speed", "hintBind": "game.speed", "help": "editor.unit.zero.refused", "field": "speed"},
+    {"kind": "edit", "label": "editor.unit.override.sight", "column": 2, "value": "sight", "hintBind": "game.sight", "help": "editor.unit.zero.refused", "field": "sight"},
+    {"kind": "heading", "label": "editor.unit.group.protections", "column": 2, "fold": "protections"},
+    {"each": "protections", "rows": [
+      {"kind": "edit", "when": "protections", "labelBind": "label", "column": 2, "value": "value", "hintBind": "game", "help": "editor.unit.zero.refused", "field": "protection"}
+    ]}
+  ],
+  "sample": {
+    "values": {"name": "Grok", "number": "12", "x": "40", "y": "25", "owner": "2", "level": "3", "gold": "",
+      "hp": "", "game.hp": "60", "hpmax": "80", "game.hpmax": "60", "mana": "", "game.mana": "0",
+      "body": "", "game.body": "28", "mind": "", "game.mind": "12", "spirit": "", "game.spirit": "14", "reaction": "", "game.reaction": "20",
+      "defence": "35", "game.defence": "25", "absorption": "", "game.absorption": "4",
+      "speed": "", "game.speed": "9", "sight": "", "game.sight": "8"},
+    "words": {"kind": "editor.unit.kind.creature", "identity": "editor.unit.groups.goblins", "facing": "editor.unit.facing.random",
+      "look": "editor.unit.look.inherit", "loot": "editor.unit.meaning.loot"},
+    "lists": {
+      "skills": [
+        {"words": {"label": "editor.unit.override.skill.blade"}, "values": {"game": "10"}},
+        {"words": {"label": "editor.unit.override.skill.axe"}, "values": {"game": "30"}},
+        {"words": {"label": "editor.unit.override.skill.bludgeon"}, "values": {"game": "5"}},
+        {"words": {"label": "editor.unit.override.skill.pike"}, "values": {"game": "5"}},
+        {"words": {"label": "editor.unit.override.skill.shooting"}, "values": {"game": "15"}}
+      ],
+      "protections": [
+        {"words": {"label": "editor.unit.override.protection.fire"}, "values": {"game": "0"}},
+        {"words": {"label": "editor.unit.override.protection.water"}, "values": {"game": "0"}},
+        {"words": {"label": "editor.unit.override.protection.air"}, "values": {"game": "0"}},
+        {"words": {"label": "editor.unit.override.protection.earth"}, "values": {"game": "10"}},
+        {"words": {"label": "editor.unit.override.protection.astral"}, "values": {"game": "0"}}
+      ]
+    }
+  }
+}

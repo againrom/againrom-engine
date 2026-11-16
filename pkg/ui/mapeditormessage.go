@@ -361,7 +361,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	if e.messagePage == NewMessagePage {
 		title = e.word("editor.message.newdialog")
 	}
-	s := popupSpec{Title: title, At: e.placedCorner(popObject, homeMessage), Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
+	s := popupSpec{Title: title, At: e.keptCorner(popObject), Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
 	o.rowField, o.rowOpen, o.rowActs = map[int]int{}, map[int]int{}, map[int][]string{}
 	if f := e.dialogChoiceField(); f >= 0 {
@@ -415,11 +415,6 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		s.Drag = &popupRowDrag{Row: e.dragCard - 1, At: e.pointer}
 	}
 	e.objectBackButton(&s)
-	if font := e.bodyFont(); font != nil {
-		for _, caption := range s.Buttons {
-			s.ButtonW = max(s.ButtonW, font.Advance(caption)+16)
-		}
-	}
 	if len(o.messageParts) == 1 && textRow >= 0 {
 		e.fitMessageText(&s, textRow)
 	} else {

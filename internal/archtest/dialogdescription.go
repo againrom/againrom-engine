@@ -11,19 +11,23 @@ import (
 	"strings"
 )
 
-// dialogDescription is the one type that describes a modal dialog.
-const dialogDescription = "popupSpec"
+// dialogDescription is the one type that describes a game's modal dialog.
+const dialogDescription = "Dialog"
 
 // retiredDialogTypes are the description types merged into it.
 var retiredDialogTypes = map[string]bool{"NoticeLayout": true, "noticeWindow": true, "NoticeShape": true}
 
-// retiredDialogPainters are the painters drawPopup replaced.
+// retiredDialogPainters are the painters the one painter replaced.
 var retiredDialogPainters = map[string]bool{
 	"renderDialogueNotice": true, "drawNoticeWindow": true, "dialogueButton": true, "drawHelpScrollbar": true,
 }
 
 // dialogPainter is the one function that paints a dialog's frame and buttons.
-const dialogPainter = "drawPopup"
+const dialogPainter = "paintDialog"
+
+// editorWindowPainter paints the map editor's windows, which a popupSpec
+// tree describes; it is the one painter of that kind, not a dialog's.
+const editorWindowPainter = "drawPopup"
 
 // DialogDescriptionSites lists the places in production code of pkg/ui and
 // pkg/game that are a second dialog description or a second dialog painter: a
@@ -96,7 +100,7 @@ func dialogDescriptionInSource(name string, src []byte, seen map[string]bool) []
 			if d.Body == nil {
 				continue
 			}
-			if isUI && d.Name.Name != dialogPainter && paintsFrameAndButton(d.Body) {
+			if isUI && d.Name.Name != dialogPainter && d.Name.Name != editorWindowPainter && paintsFrameAndButton(d.Body) {
 				key := name + " " + d.Name.Name
 				if _, known := dialogPainterBaseline[key]; known {
 					if seen != nil {

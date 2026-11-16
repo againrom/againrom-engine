@@ -24,7 +24,7 @@ func TestEditorPopupPlacementIsOneStore(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !holds {
-		t.Fatalf("%s no longer declares %v", popupStoreHome, popupStoreFuncs)
+		t.Fatalf("%s no longer declares %v, or declares one of %v", popupStoreHome, popupStoreFuncs, popupRetiredFuncs)
 	}
 	sites, err := PopupPlacementSites(root)
 	if err != nil {
@@ -77,7 +77,7 @@ var popupShifts map[int]P`, "pkg/ui/other.go:2 names a popup corner, shift or si
 func f(l *L) { l.Rect = image.Rect(0, 0, 1, 1) }`, "pkg/ui/editorpopup.go:2 writes a popup rectangle as a literal outside the placement store"},
 		// Look-alikes that are not a second path.
 		{"a spec corner from the store", editor, `package ui
-func f(e *E) popupSpec { s := popupSpec{At: e.placedCorner(1, h)}; s.At = e.promptCorner(c, z); return s }`, ""},
+func f(e *E) popupSpec { s := popupSpec{At: e.keptCorner(1)}; s.At = e.centreCorner(z, p); return s }`, ""},
 		{"a read of the store", editor, `package ui
 func f(e *E) P { return e.places[1].size }`, ""},
 		{"a drag row's pointer", editor, `package ui

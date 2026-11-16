@@ -3,13 +3,10 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-var editorGhost = color.RGBA{128, 128, 128, 128}
 
 type InspectionPlacementPreview interface {
 	PreviewPlacement(InspectionNewRecord) (*InspectionDocument, error)

@@ -38,7 +38,7 @@ const controlHitFuncsRemaining = 160
 // placeTip and holds no page edge test of its own.
 var tipPlacers = map[string]bool{
 	"pkg/ui/widgethover.go:placeHover": true,
-	"pkg/ui/editorpopup.go:popupTipAt": true,
+	"pkg/ui/editortip.go:layoutTip":    true,
 }
 
 // controlSwitchProducers are the functions that still return a rectangle

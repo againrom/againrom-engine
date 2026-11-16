@@ -25,7 +25,7 @@ type noticeRow []inkRun
 // dialogRun is one open notice window: its description, the first visible
 // line, the answer press latch and the bar's held gesture.
 type dialogRun struct {
-	popupSpec
+	Dialog
 	top   int
 	press buttonLatch
 	bar   scrollBarInput
@@ -51,15 +51,15 @@ var noticeAlertInk = color.RGBA{236, 76, 60, 255}
 
 // spec is the window's description as drawn: over panel, in art, with the
 // display and the first line the state holds.
-func (w *dialogRun) spec(panel image.Rectangle, art *DialogFrame, display func(string) string) popupSpec {
-	s := w.popupSpec
+func (w *dialogRun) spec(panel image.Rectangle, art *DialogFrame, display func(string) string) Dialog {
+	s := w.Dialog
 	s.Panel, s.Frame, s.Display, s.Top, s.Latch = panel, art, display, w.top, &w.press
 	return s
 }
 
 // layout lays w out over panel, the page under it, by its shape.
-func (w *dialogRun) layout(f *text.Font, panel image.Rectangle) popupLayout {
-	return layoutPopup(w.spec(panel, nil, nil), f, f)
+func (w *dialogRun) layout(f *text.Font, panel image.Rectangle) dialogLayout {
+	return layoutDialog(w.spec(panel, nil, nil), f)
 }
 
 // noticeAnswers places n answers of size, gap apart, centred in b and bottom
@@ -76,7 +76,7 @@ func noticeAnswers(b image.Rectangle, size image.Point, gap, bottom, n int) []im
 }
 
 // answerAt is the answer under p.
-func (l popupLayout) answerAt(p image.Point) (int, bool) {
+func (l dialogLayout) answerAt(p image.Point) (int, bool) {
 	for i, r := range l.Answers {
 		if p.In(r) {
 			return i, true
@@ -89,7 +89,7 @@ func (l popupLayout) answerAt(p image.Point) (int, bool) {
 // panel, the page under it: the body is the panel less noticeWindowInset, so
 // the page's own buttons lie under the window. The list takes the rows the
 // body leaves between the title and the hint.
-func newNoticeWindowLayout(f *text.Font, panel image.Rectangle, answers int) popupLayout {
+func newNoticeWindowLayout(f *text.Font, panel image.Rectangle, answers int) dialogLayout {
 	b := panel.Inset(noticeWindowInset)
 	m := noticeWindowMargin
 	buttons := noticeAnswers(b, image.Pt(noticeOKWidth, noticeOKHeight), m, 12, max(answers, 1))
@@ -102,7 +102,7 @@ func newNoticeWindowLayout(f *text.Font, panel image.Rectangle, answers int) pop
 	probe := newListBox(image.Rect(0, 0, 1, 0), 1, f)
 	rows := max((ok.Min.Y-8-hintHeight-8-listBottomExtra-top)/probe.Pitch, 1)
 	list := newListBox(image.Rect(b.Min.X+m, top, b.Max.X-m-widgetSpriteSize, top), rows, f)
-	return popupLayout{
+	return dialogLayout{
 		Rect:       b,
 		Body:       b,
 		HeadingBox: image.Rect(b.Min.X+8, b.Min.Y+10, b.Max.X-8, b.Min.Y+34),
@@ -115,8 +115,8 @@ func newNoticeWindowLayout(f *text.Font, panel image.Rectangle, answers int) pop
 // noticeLines wraps every row to the list's text width, or a text window's
 // width with no indent. display turns a run's text into the bytes the font
 // draws.
-func (w *dialogRun) noticeLines(f *text.Font, l popupLayout, display func(string) string) []noticeLine {
-	s := w.popupSpec
+func (w *dialogRun) noticeLines(f *text.Font, l dialogLayout, display func(string) string) []noticeLine {
+	s := w.Dialog
 	s.Display = display
 	return noticeWindowLines(s, f, l)
 }
@@ -147,7 +147,7 @@ func (w *dialogRun) scroll(d, lines, rows int) {
 }
 
 // noticeBar is the window's bar: its position is the first visible line.
-func noticeBar(l popupLayout, top, lines int) vScrollBar {
+func noticeBar(l dialogLayout, top, lines int) vScrollBar {
 	last := noticeMaxTop(lines, l.List.Rows)
 	return vScrollBar{Rect: l.List.Bar(), Pos: top, Count: last + 1, Disabled: last == 0}
 }
@@ -156,7 +156,7 @@ func noticeBar(l popupLayout, top, lines int) vScrollBar {
 // closes it: Enter takes the first, a released press the answer it began on.
 // In a list window the arrow, page, Home and End keys, the wheel and the bar
 // scroll the list. Escape is the caller's.
-func (w *dialogRun) step(in appInput, p image.Point, ok bool, l popupLayout, lines int) (int, bool) {
+func (w *dialogRun) step(in appInput, p image.Point, ok bool, l dialogLayout, lines int) (int, bool) {
 	if in.Unfocused {
 		w.press.Clear()
 		w.bar.reset()
@@ -181,7 +181,7 @@ func (w *dialogRun) step(in appInput, p image.Point, ok bool, l popupLayout, lin
 
 // scrollStep scrolls a list window by keys, wheel and bar and reports whether
 // the bar took the input.
-func (w *dialogRun) scrollStep(in appInput, p image.Point, ok bool, l popupLayout, lines int) bool {
+func (w *dialogRun) scrollStep(in appInput, p image.Point, ok bool, l dialogLayout, lines int) bool {
 	rows := l.List.Rows
 	wheel := noticeList.wheelStep(in)
 	switch {
@@ -214,9 +214,9 @@ func (w *dialogRun) scrollStep(in appInput, p image.Point, ok bool, l popupLayou
 // keeps a scrolled list's first line inside its rows.
 func (w *dialogRun) compose(dst *image.RGBA, f *text.Font, panel image.Rectangle, art *DialogFrame, frames []*image.RGBA, display func(string) string, pointer image.Point, pointerOK bool) {
 	s := w.spec(panel, art, display)
-	l := layoutPopup(s, f, f)
+	l := layoutDialog(s, f)
 	if l.LinePitch == 0 {
 		w.top = l.TopClamped
 	}
-	drawPopup(dst, f, f, frames, s, l, popupInk{}, pointer, pointerOK)
+	paintDialog(dst, f, frames, s, l, pointer, pointerOK)
 }

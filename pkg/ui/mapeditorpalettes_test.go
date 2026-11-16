@@ -395,7 +395,7 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 
 // A palette grid cell names itself after the pointer rests on it for the
 // editor's tooltip delay: none sooner, the name after, none once the
-// pointer leaves the cell. The game's hover box draws it.
+// pointer leaves the cell. The editor's one tip element draws it.
 func TestMapEditorPaletteCellTooltipWaitsForTheDelay(t *testing.T) {
 	if editorTipDelay < 200 || editorTipDelay > 300 {
 		t.Fatalf("the tooltip delay is %d ms", editorTipDelay)
@@ -426,14 +426,14 @@ func TestMapEditorPaletteCellTooltipWaitsForTheDelay(t *testing.T) {
 	}
 	boxes := 0
 	widgetRecord = func(c widgetCall) {
-		if lines, _ := c.state.([]string); c.kind == widgetHoverBox && slices.Equal(lines, []string{name}) {
+		if c.kind == widgetTip && c.state == name {
 			boxes++
 		}
 	}
 	e.ChromeImage()
 	widgetRecord = nil
 	if boxes != 1 {
-		t.Fatalf("the hover box drew the tooltip %d times", boxes)
+		t.Fatalf("the tip element drew the tooltip %d times", boxes)
 	}
 	move(image.Pt(cell.Max.X+40, cell.Max.Y+40), editorTipDelay*time.Millisecond+50*time.Millisecond)
 	if got := e.TipShown(); got != "" {

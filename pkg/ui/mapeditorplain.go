@@ -490,7 +490,7 @@ func (e *MapEditor) heldCardRows(s *popupSpec, links *[]int, v plainView, field 
 	identity := personColumn("identity", s.Columns)
 	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.person." + cardSection), Column: identity}), append(*links, 0)
 	s.CardScale = cardScale
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdCard, Lines: lines(cardSize(*s).Y), Column: identity}), append(*links, 0)
+	s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdCard, Lines: lines(cardSize(specWindow(*s)).Y), Column: identity}), append(*links, 0)
 	start, entries := len(s.Rows), e.cardEntries(v)
 	e.plainCardRows(s, links, v, entries, field, textWidth)
 	// A card field the card does not draw stands as its own row under the

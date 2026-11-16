@@ -71,7 +71,7 @@ func TestPopupLayoutIsThePaintAndTheHitTest(t *testing.T) {
 	widgetRecord = func(c widgetCall) { calls = append(calls, c) }
 	defer func() { widgetRecord = nil }()
 	pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
-	drawPopup(pic, f, f, nil, s, l, popupInk{Ground: editorPanel, Edge: editorGold, TitleGround: editorInk, Title: editorGold, Label: editorPaper, Value: editorLight}, image.Point{}, false)
+	drawPopup(pic, f, f, nil, s, l, editorPopupInk, image.Point{}, false)
 	kinds := map[widgetKind]int{}
 	for _, c := range calls {
 		kinds[c.kind]++
@@ -96,7 +96,7 @@ func TestPopupCardBesideTheRowsClearsAWrappedButtonRow(t *testing.T) {
 	s := popupSpec{Title: "Unit #0", Card: &subject, MaxRows: 3, Size: image.Pt(200, 60),
 		Rows:    []popupRow{{Kind: popupEdit, Label: "Group", Value: "2"}, {Kind: popupEdit, Label: "Player", Value: "1"}},
 		Buttons: []string{"Apply the changes", "Cancel the changes", "Reset the overrides"}}
-	s.Bounds = image.Rect(0, 0, cardAside(s)+200, 600)
+	s.Bounds = image.Rect(0, 0, cardAside(specWindow(s))+200, 600)
 	l := layoutPopup(s, f, f)
 	lines := map[int]bool{}
 	for i, b := range l.Buttons {

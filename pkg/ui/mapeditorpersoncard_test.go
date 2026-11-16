@@ -14,8 +14,8 @@ func TestEditorDetailedViewHoldsTheCardUnderIdentity(t *testing.T) {
 			e.Layout(1920, 1080)
 			e.Select(viewsUnit, false)
 			s, _, _ := e.objectSpec()
-			if s.Columns != 3 || !cardHeld(s) {
-				t.Fatalf("columns %d, card held %v", s.Columns, cardHeld(s))
+			if s.Columns != 3 || !cardHeld(specWindow(s)) {
+				t.Fatalf("columns %d, card held %v", s.Columns, cardHeld(specWindow(s)))
 			}
 			heading, card, figure := -1, -1, -1
 			for i, row := range s.Rows {

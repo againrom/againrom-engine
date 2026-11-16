@@ -87,7 +87,7 @@ func hostedFitProblems(e *MapEditor) []string {
 			pieces = append(pieces, piece{what: "field of " + row.Label, r: rr.Control})
 		}
 		for k, r := range rr.Buttons {
-			caption := rowButtons(s, row)[k]
+			caption := rowButtons(specWindow(s), row)[k]
 			if row.Kind != popupCard && body.Advance(caption)+8 > r.Dx() {
 				bad("row button %q cut in %d", caption, r.Dx())
 			}

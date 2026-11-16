@@ -5,6 +5,7 @@ import (
 	"errors"
 	"image"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -409,5 +410,30 @@ func TestEditorTextSpansRetainWhitespaceAndBoundaries(t *testing.T) {
 	spans = editorTextSpans("ab\rX", 3, func(s string) int { return len([]rune(s)) })
 	if spans[0].to != 3 {
 		t.Fatal("soft wrap dropped an embedded CR", spans)
+	}
+}
+
+// The edit field is one element: the Add window and the object window give
+// the row the keyboard types in the same text view, a multiline row its
+// multiline view, and leave every other row as it was.
+func TestTypedRowIsOneEditField(t *testing.T) {
+	e := NewMapEditor(nil, nil, nil)
+	e.openPrompt(editorPrompt{kind: promptNewMode, path: "one два"})
+	rows := []popupRow{{Kind: popupEdit}, {Kind: popupMultiline, First: 2}, {Kind: popupChoice}, {Kind: popupText}}
+	for typed := range rows {
+		s := e.typedRows(popupSpec{Rows: slices.Clone(rows)}, func(i int) bool { return i == typed })
+		for i, row := range s.Rows {
+			view := row.Edit != nil
+			if want := i == typed && (row.Kind == popupEdit || row.Kind == popupMultiline); view != want || view != row.Focus {
+				t.Fatalf("typing in row %d: row %d has a view %v and focus %v", typed, i, view, row.Focus)
+			}
+			if view && (row.Edit.text != "one два" || row.Edit.multiline != (row.Kind == popupMultiline) || row.Edit.first != row.First) {
+				t.Fatalf("typing in row %d: the view %+v", typed, *row.Edit)
+			}
+		}
+	}
+	s := e.addInputRows(popupSpec{Rows: []popupRow{{Kind: popupEdit}, {Kind: popupEdit, Focus: true}}})
+	if s.Rows[0].Edit != nil || s.Rows[1].Edit == nil {
+		t.Fatal("the new mode window's focused field carries no text view")
 	}
 }

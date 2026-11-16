@@ -189,7 +189,7 @@ const panelWidth, panelLabelWidth = 440, 120
 // panelSpec is the Map panel as a popup description, and the link of each
 // row; a wrapped value continues on rows that open the same place.
 func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
-	s := popupSpec{Title: e.word("editor.panel.title"), At: e.placedCorner(popList, homeListWindow), Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
+	s := popupSpec{Title: e.word("editor.panel.title"), At: e.keptCorner(popList), Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
 	p, ok := e.mapPanel()
 	if !ok {
 		return s, nil
@@ -551,19 +551,17 @@ func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupR
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1, Buttons: buttons, Rows: rows}
 	if f := e.bodyFont(); f != nil {
-		for _, b := range s.Buttons {
-			s.ButtonW = max(s.ButtonW, f.Advance(b)+16)
-		}
 		for _, r := range rows {
 			s.LabelWidth = max(s.LabelWidth, f.Advance(r.Label)+8)
 		}
-		s.Width = min(max(s.Width, len(buttons)*s.ButtonW+(len(buttons)+1)*popupPad), e.window.X-16)
 	}
+	fitButtons(&s, e.bodyFont())
+	s.Width = min(s.Width, e.window.X-16)
 	text := s.Width - 2*popupPad - 60
 	for _, n := range notes {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), n, text)...)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
+	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
 	return s
 }

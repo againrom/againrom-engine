@@ -24,9 +24,9 @@ func standAside(t *testing.T, e *MapEditor) {
 // moveAside is standAside's drag; an error when a popup did not move.
 func moveAside(e *MapEditor) error {
 	for _, c := range []struct {
-		id   editorPopupID
-		home popupHome
-	}{{popObject, homeObjectMap}, {popList, homeListMap}} {
+		id    editorPopupID
+		right bool
+	}{{popObject, true}, {popList, false}} {
 		s, ok := e.movableSpec(c.id)
 		if !ok {
 			continue
@@ -37,7 +37,11 @@ func moveAside(e *MapEditor) error {
 			continue
 		}
 		room := e.mapArea()
-		to := e.homeCorner(c.home)
+		// The object popup's corner is 420 wide in from the right.
+		to := image.Pt(room.Min.X+8, e.toolbarRect().Max.Y+8)
+		if c.right {
+			to.X = room.Max.X - 8 - 420
+		}
 		to.X = max(room.Min.X, min(to.X, room.Max.X-r.Dx()))
 		to.Y = max(room.Min.Y, min(to.Y, room.Max.Y-r.Dy()))
 		if to == r.Min {

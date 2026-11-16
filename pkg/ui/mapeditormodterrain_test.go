@@ -157,6 +157,7 @@ func (h manyGroundsHost) WorkspaceFields(scope string) []InspectionField {
 func manyGroundsEditor(t *testing.T, size image.Point, bare bool) (*MapEditor, *modesCalls, chan pathdialog.Request) {
 	t.Helper()
 	e := modesWordsEditor(t, "workspace", "en", size)
+	e.places[popObject].placed = false // W opens centred
 	requests := make(chan pathdialog.Request, 4)
 	bindEditorDialog(e, func(r pathdialog.Request) (pathdialog.Result, error) {
 		requests <- r
@@ -225,11 +226,13 @@ func TestChoiceListRisesToTheWindowBottom(t *testing.T) {
 		e, _, _ := manyGroundsEditor(t, size, true)
 		s, _, _ := e.modSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
+		// The lowest kind field at 640x480, the highest at 1024x768, where
+		// the centred window leaves the room below it.
 		var field image.Rectangle
 		var key string
 		for _, rr := range l.Rows {
 			i, ok := e.obj.rowField[rr.Index]
-			if ok && strings.HasSuffix(e.obj.fields[i].Key, "kind") && rr.Control.Max.Y <= l.RowsViewport.Max.Y && rr.Control.Min.Y >= field.Min.Y {
+			if ok && strings.HasSuffix(e.obj.fields[i].Key, "kind") && rr.Control.Max.Y <= l.RowsViewport.Max.Y && rr.Control.Min.Y >= field.Min.Y && (key == "" || size.Y == 480) {
 				field, key = rr.Control, e.obj.fields[i].Key
 			}
 		}
@@ -340,9 +343,9 @@ func TestModTerrainGridStaysInsideTheEditorWindow(t *testing.T) {
 		if !ok || cell.TipPicture == nil {
 			t.Fatalf("%v: no tip sheet over the last ground", size)
 		}
-		tip, at, ok := tooltipPicture(tooltipTarget{kind: tooltipText, id: "editor", lines: []string{cell.Tip}, font: e.bodyFont()}, center(last), window, nil, e.editorTipStyle(cell.TipPicture))
-		if !ok || !tip.Bounds().Add(at).In(window) {
-			t.Fatalf("%v: the tip %v at %v is not inside the window", size, tip.Bounds(), at)
+		tip, ok := e.tipAt(center(last))
+		if !ok || tip.Picture == nil || !tip.Rect.In(window) {
+			t.Fatalf("%v: the tip %v is not inside the window %v", size, tip.Rect, window)
 		}
 	}
 }

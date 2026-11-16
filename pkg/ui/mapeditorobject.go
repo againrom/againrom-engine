@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/render/text"
 )
 
 // The object popup edits every field of the selected record at once. Its
@@ -214,12 +216,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.Width = e.unitWindowWidth() - 32
 		if s.Card != nil && !holding {
 			// The column beside the card holds the figure at the game's size.
-			s.CardAside = max(compactPanelW, e.unitFigureSize().X)
+			s.CardAside = figureAside(e.unitFigureSize())
 			if aside := e.hostedAside(*s); aside > 0 && !plainShown {
 				s.Width -= aside + popupPad
 			}
 		}
-		s.At = e.personCorner(homePerson)
+		s.At = e.keptCorner(popObject)
 		if !plainShown {
 			sections := len(personSections)
 			if holding {
@@ -421,11 +423,6 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	s.Disabled = []bool{!e.objectDirty() || r.Kind == KindPlayer, false}
 	if native {
 		s.Buttons = append(s.Buttons, e.word("editor.person.reset"))
-		if body := e.bodyFont(); body != nil {
-			for _, label := range s.Buttons {
-				s.ButtonW = max(s.ButtonW, body.Advance(label)+20)
-			}
-		}
 	}
 	o.viewOffer = offer
 	if o.note != "" {
@@ -588,10 +585,10 @@ func (e *MapEditor) focusObjectField(i int) {
 		return
 	}
 	row := e.fieldRow(e.obj.focus)
-	if row >= 0 && row < len(s.Rows) && s.Rows[row].placed() && bandLines(s) > 0 && s.MaxRows > 0 {
+	if row >= 0 && row < len(s.Rows) && s.Rows[row].placed() && bandLines(specWindow(s)) > 0 && s.MaxRows > 0 {
 		// A card cell in a scrolling band brings its lines into view.
 		pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
-		start := popupRowCount(s) - bandLines(s)
+		start := popupRowCount(specWindow(s)) - bandLines(specWindow(s))
 		first, last := start+(s.Rows[row].Place.Min.Y+popupPad)/pitch, start+(s.Rows[row].Place.Max.Y+popupPad)/pitch
 		if first < s.Top {
 			e.objectTop = first
@@ -603,7 +600,7 @@ func (e *MapEditor) focusObjectField(i int) {
 	if row < 0 || row >= len(s.Rows) || s.Rows[row].placed() {
 		return // a row on the card never scrolls
 	}
-	_, line := popupRowPosition(s, row)
+	_, line := popupRowPosition(specWindow(s), row)
 	if line < s.Top {
 		e.objectTop = line
 	} else if s.MaxRows > 0 && line >= s.Top+s.MaxRows {
@@ -736,7 +733,7 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
-			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: e.choiceWindow(o.open, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight, ListBottom: e.window.Y}
+			d := e.rowDropdown(rr.Control, s.Rows[rr.Index].Value, o.choice, e.choiceWindow(o.open, o.choice.Len()), true)
 			if o.search != "" {
 				d.Text = e.editorHostText(o.search)
 			}
@@ -754,17 +751,29 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	return dropdown{}, false
 }
 
-// drawOpenDropdown paints the object popup's open drop-down over everything
-// but an open menu.
-func (e *MapEditor) drawOpenDropdown(pic *image.RGBA) {
-	d, ok := e.openDropdown()
-	if !ok {
-		return
+// rowDropdown is the editor's one drop-down of a choice row: the closed box
+// on the row's control showing value, and while open the list's rows below
+// it, risen to end inside the window.
+func (e *MapEditor) rowDropdown(control image.Rectangle, value string, list *Picker, rows int, open bool) dropdown {
+	return dropdown{Rect: control, Text: value, Open: open, List: list, Rows: rows, Focus: true, Fill: editorPanel, Ink: editorLight, ListBottom: e.window.Y}
+}
+
+// drawRowDropdowns paints the open list of a choice row, the object
+// window's or the area prompt's, over everything but an open menu.
+func (e *MapEditor) drawRowDropdowns(pic *image.RGBA) {
+	for _, open := range []func() (dropdown, bool){e.openDropdown, e.areaDropdown} {
+		if d, ok := open(); ok && d.Open {
+			d.Press = &e.buttonPress
+			e.drawEditorDropdown(pic, e.bodyFont(), d)
+		}
 	}
-	rows := d.List.Rows()
-	e.noteDropdown(d, e.bodyFont())
-	d.Press = &e.buttonPress
-	drawDropdown(pic, e.bodyFont(), nil, d, func(row, width int) string { return editorClip(e.bodyFont(), rows[row].Text, width) }, e.pointer, e.pointerOK)
+}
+
+// drawEditorDropdown paints drop-down d in font f, its rows cut to their
+// width, and notes its open list as a window the chrome drew.
+func (e *MapEditor) drawEditorDropdown(pic *image.RGBA, f *text.Font, d dropdown) {
+	e.noteDropdown(d, f)
+	drawDropdown(pic, f, nil, d, func(row, width int) string { return editorClip(f, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
 }
 
 func (e *MapEditor) openDropdownHit(p image.Point) bool {
@@ -1159,7 +1168,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		return popupSpec{}, nil, false
 	}
 	e.loadObject()
-	s := popupSpec{Title: e.groupLabel(g), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
+	s := popupSpec{Title: e.groupLabel(g), At: e.keptCorner(popObject), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
 	// The member pictures and Delete group stand here, as the Groups list
 	// showed them on the group's row.
 	links := []int{0, 0, 0}

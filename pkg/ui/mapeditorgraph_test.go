@@ -53,10 +53,13 @@ func modesGraph() CampaignGraphPage {
 	return p
 }
 
-// graphEditor is an editor whose W shows the graph page of page.
+// graphEditor is an editor whose W shows the graph page of page. W opens
+// centred, as every window does that was given no corner, so its canvas has
+// the room the nodes are pressed in.
 func graphEditor(t *testing.T, page CampaignGraphPage) (*MapEditor, *modesCalls) {
 	t.Helper()
 	e, calls := newModesEditor(t, "workspace")
+	e.places[popObject].placed = false
 	e.doc.Edits.(*modesWorkspace).graph = page
 	_ = e.Key("package")
 	_ = e.Key("package")

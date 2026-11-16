@@ -19,7 +19,11 @@ const popupStoreHome = "pkg/ui/mapeditorpopupstore.go"
 
 // popupStoreFuncs are the functions the store must keep, so that a rename
 // cannot leave the scan with nothing to exempt and nothing to find.
-var popupStoreFuncs = []string{"placedCorner", "homeCorner", "promptCorner", "personCorner", "placeSpec", "dragPopup", "resizeFloating", "placePopup", "dropForeignSize"}
+var popupStoreFuncs = []string{"keptCorner", "centreCorner", "placeSpec", "dragPopup", "resizeFloating", "placePopup", "dropForeignSize"}
+
+// popupRetiredFuncs are the first-open places the store no longer has: every
+// window opens centred (centreCorner) or at the place its kind states.
+var popupRetiredFuncs = []string{"placedCorner", "homeCorner", "promptCorner", "personCorner"}
 
 // popupStateNames are the fields a popup's place and size lived in, and the
 // store row that holds them now.
@@ -31,7 +35,7 @@ var popupStateNames = map[string]bool{
 
 // popupCornerSources are the store methods whose result may become a popup
 // spec's corner.
-var popupCornerSources = map[string]bool{"placedCorner": true, "homeCorner": true, "promptCorner": true, "personCorner": true}
+var popupCornerSources = map[string]bool{"keptCorner": true, "centreCorner": true}
 
 // popupSpecSize are the spec fields that hold a popup's size and slack.
 var popupSpecSize = map[string]bool{"Size": true, "MinWidth": true, "Slack": true}
@@ -86,7 +90,7 @@ func PopupPlacementSites(root string) ([]string, error) {
 }
 
 // PopupPlacementHomeHolds reports whether the store file still declares every
-// function of popupStoreFuncs.
+// function of popupStoreFuncs and none of popupRetiredFuncs.
 func PopupPlacementHomeHolds(root string) (bool, error) {
 	src, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(popupStoreHome)))
 	if err != nil {
@@ -104,6 +108,11 @@ func PopupPlacementHomeHolds(root string) (bool, error) {
 	}
 	for _, name := range popupStoreFuncs {
 		if !found[name] {
+			return false, nil
+		}
+	}
+	for _, name := range popupRetiredFuncs {
+		if found[name] {
 			return false, nil
 		}
 	}

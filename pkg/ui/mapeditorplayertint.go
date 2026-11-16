@@ -6,28 +6,6 @@ import (
 	"image/draw"
 )
 
-// editorPlayerTints is the one player-tint colour source: the colour of player
-// number n is entry n-1, so two players of a map never share one, whatever
-// colour field their map records carry.
-var editorPlayerTints = [16]color.RGBA{
-	{0xe6, 0x19, 0x4b, 255}, // 1 red
-	{0x3c, 0xb4, 0x4b, 255}, // 2 green
-	{0x43, 0x63, 0xd8, 255}, // 3 blue
-	{0xff, 0xe1, 0x19, 255}, // 4 yellow
-	{0xf5, 0x82, 0x31, 255}, // 5 orange
-	{0x91, 0x1e, 0xb4, 255}, // 6 purple
-	{0x42, 0xd4, 0xf4, 255}, // 7 cyan
-	{0xf0, 0x32, 0xe6, 255}, // 8 magenta
-	{0xbf, 0xef, 0x45, 255}, // 9 lime
-	{0xfa, 0xbe, 0xd4, 255}, // 10 pink
-	{0x46, 0x99, 0x90, 255}, // 11 teal
-	{0xdc, 0xbe, 0xff, 255}, // 12 lavender
-	{0x9a, 0x63, 0x24, 255}, // 13 brown
-	{0x80, 0x00, 0x00, 255}, // 14 maroon
-	{0x00, 0x00, 0x75, 255}, // 15 navy
-	{0xa9, 0xa9, 0xa9, 255}, // 16 grey
-}
-
 // playerCount is how many players the open map has: its player records.
 func (e *MapEditor) playerCount() int {
 	n := 0
@@ -94,9 +72,6 @@ func (e *MapEditor) keyPlayerTint(string) error {
 	e.view.playerColours = !e.view.playerColours
 	return nil
 }
-
-// legendMutedInk is the label colour of a legend row whose player is not shown.
-var legendMutedInk = color.RGBA{0x7a, 0x70, 0x5c, 255}
 
 // legendSwatch is the side of a player's colour square in the legend.
 const legendSwatch = 10

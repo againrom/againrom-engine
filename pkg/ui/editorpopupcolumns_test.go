@@ -13,7 +13,7 @@ func TestPopupColumnsTabsAndRowsUseOneLayout(t *testing.T) {
 		}
 	}
 	l := layoutPopup(s, nil, nil)
-	if popupRowCount(s) != 16 || len(l.Rows) != 45 || len(l.Tabs) != 4 || !l.Rect.In(s.Bounds) {
+	if popupRowCount(specWindow(s)) != 16 || len(l.Rows) != 45 || len(l.Tabs) != 4 || !l.Rect.In(s.Bounds) {
 		t.Fatal("column layout", l.Rect, len(l.Rows))
 	}
 	for i, rr := range l.Rows {

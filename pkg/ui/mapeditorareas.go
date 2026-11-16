@@ -12,12 +12,6 @@ import (
 // the trigger, a click inside an area does not. The Layers menu shows or
 // hides them.
 
-// areaInks tell overlapping triggers apart; gold is the selection's.
-var areaInks = []color.RGBA{
-	{0x4f, 0xd6, 0xe0, 255}, {0xe0, 0x6f, 0xd6, 255}, {0x8c, 0xe0, 0x4f, 255}, {0xf0, 0x9a, 0x3e, 255},
-	{0x7a, 0x9c, 0xff, 255}, {0xff, 0x7a, 0x8a, 255}, {0xd8, 0xe0, 0x6a, 255}, {0xb0, 0x86, 0xff, 255},
-}
-
 func areaInk(trigger int) color.RGBA { return areaInks[trigger%len(areaInks)] }
 
 // areasShown reports that the Layers menu shows the trigger areas.

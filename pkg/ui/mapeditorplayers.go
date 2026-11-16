@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"math"
 	"strconv"
 	"sync"
@@ -375,9 +374,8 @@ func relationNext(v int64) int64 {
 // relationIcons are the matrix's pictures, drawn here: a grey ring for
 // neutral, a red cross for hostile and a green disc for ally.
 var relationIcons = sync.OnceValue(func() []*image.RGBA {
-	inks := []color.RGBA{{176, 176, 176, 255}, {214, 48, 40, 255}, {64, 184, 72, 255}}
 	var out []*image.RGBA
-	for v, ink := range inks {
+	for v, ink := range relationInks {
 		img := image.NewRGBA(image.Rect(0, 0, 16, 16))
 		for y := range 16 {
 			for x := range 16 {

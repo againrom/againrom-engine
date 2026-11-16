@@ -2,44 +2,60 @@ package ui
 
 import (
 	"image"
-	"image/draw"
 	"time"
 )
 
-// The editor's hover tooltip over a palette's grid cells, the toolbar's
-// buttons and the rows of an open speaker list: the game's one tooltip clock
-// and hover box, in the editor's font and colours.
+// The editor's one tip (R10): a (?) mark's help shows at once; the whole
+// text of a cut row, a row's own tip, a grid head or cell, a canvas box, a
+// toolbar button and a picture choice's row show once the pointer has
+// rested editorTipDelay on them. layoutTip lays every one out and
+// drawPopupTip paints it.
 
-// editorTipDelay is how long the pointer rests on a grid cell before the
-// cell's tooltip shows, in milliseconds: one of the game's tooltip delays.
+// editorTipDelay is how long the pointer rests on an element before its tip
+// shows, in milliseconds: one of the game's tooltip delays.
 const editorTipDelay = 300
 
-// editorTip is the tooltip clock, the text of the cell it times and the
-// picture the tip shows under the text, nil for none.
+// editorTip is the tip clock and the windows the last chrome drew, in draw
+// order: the tip reads the foremost one under the pointer.
 type editorTip struct {
 	clock   tooltipController
-	text    string
-	picture image.Image
+	windows []tipWindow
+	// top is the first line a scrolled help tip shows, for the tip whose key
+	// is topKey.
+	top    int
+	topKey string
+	wheel  float64
 }
 
-// editorTipStyle is the game's hover box in the editor's body font, paper
-// ink, panel fill and gold bevel, with picture under the text.
-func (e *MapEditor) editorTipStyle(picture image.Image) *hoverStyle {
-	return hoverStyleFor(hoverStyleEditor, hoverParams{font: e.bodyFont(), picture: picture})
+// scrollTip moves the shown help tip's lines by the wheel's direction at p,
+// true when the wheel was used on a tip that scrolls.
+func (e *MapEditor) scrollTip(p image.Point, in wheelSource) bool {
+	tip, ok := e.tipAt(p)
+	if !ok || !tip.Help || tip.Rows <= 0 {
+		return false
+	}
+	e.tip.top, e.tip.topKey = tip.scrolled(tip.Top, editorWheelRows(&e.tip.wheel, in)).Top, tip.key()
+	return true
+}
+
+// tipWindow is a window the chrome drew: its spec and its layout.
+type tipWindow struct {
+	spec   popupSpec
+	layout popupLayout
 }
 
 // gridTipAt is the tip of the list popup's grid cell under p, and the cell's
 // corner; false over no cell that names itself or where another window
 // covers the popup.
 func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
-	cell, at, ok := e.gridCellAt(p)
-	return cell.Tip, at, ok
+	cell, r, ok := e.gridCellAt(p)
+	return cell.Tip, r.Min, ok
 }
 
 // gridCellAt is the grid cell under p that names itself, of the list popup
-// or the mod window, and its corner. A cell with TipPictures carries them
+// or the mod window, and its rectangle. A cell with TipPictures carries them
 // as one TipPicture: a sheet of them, each at the cell's picture size.
-func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool) {
+func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Rectangle, bool) {
 	var s popupSpec
 	ok := false
 	switch e.chromeHit(p) {
@@ -51,7 +67,7 @@ func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool)
 		}
 	}
 	if !ok || s.Grid == nil {
-		return popupGridCell{}, image.Point{}, false
+		return popupGridCell{}, image.Rectangle{}, false
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for i, r := range l.GridCells {
@@ -60,10 +76,10 @@ func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool)
 			if len(cell.TipPictures) > 0 {
 				cell.TipPicture = e.fitTipSheet(cell.Tip, cell.TipPictures, s.Grid.pictureSide(), e.popupBounds())
 			}
-			return cell, r.Min, true
+			return cell, r, true
 		}
 	}
-	return popupGridCell{}, image.Point{}, false
+	return popupGridCell{}, image.Rectangle{}, false
 }
 
 // fitTipSheet is the tip sheet of pics at side with the tip's text whole
@@ -71,10 +87,9 @@ func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool)
 // makes it fit.
 func (e *MapEditor) fitTipSheet(label string, pics []*image.RGBA, side int, bounds image.Rectangle) *image.RGBA {
 	sheet := tipSheet(pics, side)
-	target := tooltipTarget{kind: tooltipText, id: "editor", lines: []string{label}, font: e.bodyFont()}
 	size := sheet.Bounds().Size()
-	if img, _, ok := tooltipPicture(target, bounds.Min.Add(bounds.Size().Div(2)), bounds, nil, e.editorTipStyle(sheet)); ok {
-		size = img.Bounds().Size()
+	if body := e.bodyFont(); body != nil {
+		size = layoutTip(bounds, body, image.Rectangle{Min: bounds.Min}, label, sheet, tipShape{Fit: true}).Rect.Size()
 	}
 	if size.X <= bounds.Dx() && size.Y <= bounds.Dy() {
 		return sheet
@@ -96,80 +111,108 @@ func tipSheet(pics []*image.RGBA, side int) *image.RGBA {
 	rows := (len(pics) + cols - 1) / cols
 	sheet := image.NewRGBA(image.Rect(0, 0, cols*(side+2)-2, rows*(side+2)-2))
 	for i, pic := range pics {
-		if pic == nil || pic.Bounds().Empty() {
-			continue
-		}
 		at := image.Pt(i%cols*(side+2), i/cols*(side+2))
-		editorBlit(sheet, pic, addPreviewRect(pic.Bounds().Size(), image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}), false)
+		cell := image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}
+		drawEditorPicture(sheet, editorPicture{Pic: pic, Box: cell, Clip: cell})
 	}
 	return sheet
 }
 
 // choiceTipAt is the tip of the open list's row under p when the field shows
 // its pictures in the tip: the choice's label, its picture at full size and
-// the row's corner; false over no row or a choice with no picture.
-func (e *MapEditor) choiceTipAt(p image.Point) (string, image.Image, image.Point, bool) {
+// the row; false over no row or a choice with no picture.
+func (e *MapEditor) choiceTipAt(p image.Point) (string, image.Image, image.Rectangle, bool) {
 	o := &e.obj
 	d, ok := e.openDropdown()
 	if !ok || o.open >= len(o.fields) || !o.fields[o.open].IconTip || e.chromeHit(p) != popObject {
-		return "", nil, image.Point{}, false
+		return "", nil, image.Rectangle{}, false
 	}
 	f := o.fields[o.open]
 	part, row := d.hit(e.bodyFont(), p)
 	if part != dropdownRow || row >= len(f.Choices) {
-		return "", nil, image.Point{}, false
+		return "", nil, image.Rectangle{}, false
 	}
 	pic := f.Icons[f.Choices[row].Value]
 	if pic == nil {
-		return "", nil, image.Point{}, false
+		return "", nil, image.Rectangle{}, false
 	}
 	top, _ := d.List.Visible()
-	return f.Choices[row].Label, pic, d.listBox(e.bodyFont()).Row(row - top).Min, true
+	return f.Choices[row].Label, pic, d.listBox(e.bodyFont()).Row(row - top), true
 }
 
-// observeTip gives the tooltip clock a pointer sample: the clock restarts on
-// a new cell, toolbar button or list row and stops while a button is held or
-// none is under p.
-func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
-	e.tip.clock.setDelay(editorTipDelay)
-	if e.dragFades() {
-		e.tip.text, e.tip.picture = "", nil
-		e.tip.clock.observe(now, p, "", true)
-		return
+// tipAt is the one tip under p: a picture choice's row of the open list, a
+// grid cell of the list or mod window, a toolbar button, or what the
+// foremost window the last chrome drew under p explains (popupTipAt);
+// false for none, over an open menu or drop-down, or while a map drag
+// fades the chrome.
+func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
+	body := e.bodyFont()
+	if body == nil || e.dragFades() {
+		return popupTip{}, false
 	}
-	text, picture, at, ok := e.choiceTipAt(p)
-	if !ok {
-		var cell popupGridCell
-		cell, at, ok = e.gridCellAt(p)
-		text = cell.Tip
+	bounds := image.Rect(0, 0, e.window.X, e.window.Y)
+	if label, pic, r, ok := e.choiceTipAt(p); ok {
+		return hoverTip(bounds, body, r, label, pic), true
+	}
+	if cell, r, ok := e.gridCellAt(p); ok {
+		var pic image.Image
 		if cell.TipPicture != nil {
-			picture = cell.TipPicture
+			pic = cell.TipPicture
+		}
+		return hoverTip(bounds, body, r, cell.Tip, pic), true
+	}
+	switch id := e.chromeHit(p); {
+	case id == popToolbar:
+		if label, r, ok := e.toolTip(p); ok {
+			return hoverTip(bounds, body, r, label, nil), true
+		}
+	case id == popMenu || e.openDropdownHit(p) || e.areaDropdownHit(p):
+		return popupTip{}, false
+	}
+	for i := len(e.tip.windows) - 1; i >= 0; i-- {
+		w := e.tip.windows[i]
+		if part, _ := w.layout.hit(p); part != popupMiss {
+			tip, ok := popupTipAt(bounds, e.font, body, w.spec, w.layout, p, true)
+			if ok && tip.Help && tip.key() == e.tip.topKey {
+				tip = tip.scrolled(e.tip.top, 0)
+			}
+			return tip, ok
 		}
 	}
-	if !ok && e.chromeHit(p) == popToolbar {
-		text, at, ok = e.toolTip(p)
-	}
-	e.tip.text, e.tip.picture = text, picture
-	e.tip.clock.observe(now, at, text, held || !ok)
+	return popupTip{}, false
 }
 
-// TipShown is the text of the grid cell tooltip that shows now, empty for
-// none.
+// observeTip gives the tip clock a pointer sample: the clock restarts on
+// another element and stops while a button is held, none is under p or the
+// tip is a (?) mark's help, which needs no wait.
+func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
+	e.tip.clock.setDelay(editorTipDelay)
+	tip, ok := e.tipAt(p)
+	e.tip.clock.observe(now, tip.Anchor.Min, tip.key(), held || !ok || tip.Help)
+}
+
+// shownTip is the tip that shows now: a (?) mark's help at once, any other
+// once the pointer has rested editorTipDelay on its element.
+func (e *MapEditor) shownTip() (popupTip, bool) {
+	if !e.pointerOK {
+		return popupTip{}, false
+	}
+	tip, ok := e.tipAt(e.pointer)
+	if !ok || tip.Text == "" || !(tip.Help || e.tip.clock.visible(tip.key())) {
+		return popupTip{}, false
+	}
+	return tip, true
+}
+
+// TipShown is the text of the tip that shows now, empty for none.
 func (e *MapEditor) TipShown() string {
-	if e.tip.text == "" || !e.tip.clock.visible(e.tip.text) {
-		return ""
-	}
-	return e.tip.text
+	tip, _ := e.shownTip()
+	return tip.Text
 }
 
-// drawTip draws the shown tooltip, its lower left corner at the pointer.
+// drawTip draws the shown tip over everything else in the editor.
 func (e *MapEditor) drawTip(pic *image.RGBA) {
-	text := e.TipShown()
-	if text == "" {
-		return
-	}
-	t := tooltipTarget{kind: tooltipText, id: "editor", lines: []string{text}, font: e.bodyFont()}
-	if img, at, ok := tooltipPicture(t, e.pointer, pic.Bounds(), nil, e.editorTipStyle(e.tip.picture)); ok {
-		draw.Draw(pic, img.Bounds().Add(at), img, image.Point{}, draw.Over)
+	if tip, ok := e.shownTip(); ok {
+		drawPopupTip(pic, e.bodyFont(), tip, editorPopupInk)
 	}
 }

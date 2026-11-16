@@ -42,6 +42,7 @@ func run(args []string) error {
 	size := fs.String("size", "800x600", "the editor window's size, WxH")
 	out := fs.String("out", "", "the file to write (required)")
 	assets := fs.String("assets", "", "the install root, only read (default AGAINROM_ASSETS)")
+	mapSource := fs.String("map", "", "an install map whose first person a window with a card shows, only read")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -81,10 +82,18 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		m, err = x.Editor().Mockup(d, *lang, window)
+		e := x.Editor()
+		if *mapSource != "" {
+			if err := e.Open(*mapSource); err != nil {
+				return err
+			}
+		}
+		m, err = e.Mockup(d, *lang, window)
 		if err != nil {
 			return err
 		}
+	case *mapSource != "":
+		return errors.New("-map reads the install: pass -assets or set AGAINROM_ASSETS")
 	case args[0] == "png":
 		return errors.New("png paints with the install's fonts: pass -assets or set AGAINROM_ASSETS")
 	default:

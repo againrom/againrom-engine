@@ -215,7 +215,7 @@ func (e *MapEditor) toGroupSpec() popupSpec {
 		return editorClip(e.bodyFont(), rows[row].Text, width)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
+	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
 	return s
 }
 
@@ -466,7 +466,7 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 // in the right panel shows its members and deletes it.
 func (e *MapEditor) groupsSpec() popupSpec {
 	body := e.bodyFont()
-	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
+	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
 	text := s.Width - 2*popupPad - 8
 	if len(e.groups()) == 0 {
 		s.Notes = append(s.Notes, editorTextLines(body, e.word("editor.group.empty"), text)...)
@@ -478,11 +478,6 @@ func (e *MapEditor) groupsSpec() popupSpec {
 	}
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove")}
 	s.Disabled = []bool{units == 0, units == 0}
-	if body != nil {
-		for _, b := range s.Buttons {
-			s.ButtonW = max(s.ButtonW, body.Advance(b)+16)
-		}
-	}
 	return s
 }
 
@@ -572,7 +567,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	if !e.selectionWindow() || e.pick != pickNone && !e.addPicking() || e.messagePage != 0 {
 		return popupSpec{}, false
 	}
-	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
+	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.keptCorner(popObject), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
 	counts := map[RecordKind]int{}
 	groups := map[int]bool{}
 	at := e.recordIndex()
@@ -603,12 +598,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	units := counts[KindUnit]
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove"), e.word("editor.selection.delete")}
 	s.Disabled = []bool{units == 0, units == 0, false}
-	if f := e.bodyFont(); f != nil {
-		for _, b := range s.Buttons {
-			s.ButtonW = max(s.ButtonW, f.Advance(b)+16)
-		}
-		s.Width = max(s.Width, len(s.Buttons)*s.ButtonW+(len(s.Buttons)+1)*popupPad)
-	}
+	fitButtons(&s, e.bodyFont())
 	return s, true
 }
 

@@ -157,15 +157,24 @@ func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionFie
 // the game fits its mission frame to the window. Zero while the host gives
 // none.
 func (e *MapEditor) unitFigureSize() image.Point {
-	if p := e.obj.unit.picture; p != nil && p.Doll != nil {
-		size := p.Doll.Bounds().Size()
-		scale := frame.Fit(MissionFrameW, MissionFrameH, e.window.X, e.window.Y).Scale()
-		if scale <= 0 {
-			return size
-		}
-		return image.Pt(int(float64(size.X)*scale+0.5), int(float64(size.Y)*scale+0.5))
+	if p := e.obj.unit.picture; p != nil {
+		return gameFigureSize(p.Doll, e.window)
 	}
 	return image.Point{}
+}
+
+// gameFigureSize is the size of doll as the game draws it in a window of
+// size window, zero without a doll.
+func gameFigureSize(doll *image.RGBA, window image.Point) image.Point {
+	if doll == nil {
+		return image.Point{}
+	}
+	size := doll.Bounds().Size()
+	scale := frame.Fit(MissionFrameW, MissionFrameH, window.X, window.Y).Scale()
+	if scale <= 0 {
+		return size
+	}
+	return image.Pt(int(float64(size.X)*scale+0.5), int(float64(size.Y)*scale+0.5))
 }
 
 func (e *MapEditor) UnitCharacterSubject() (PanelSubject, bool) {

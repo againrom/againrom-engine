@@ -208,7 +208,7 @@ func (e *MapEditor) variableTitle(v scriptVariableView) string {
 
 func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) {
 	e.loadObject()
-	s := popupSpec{Title: e.variableTitle(v), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
+	s := popupSpec{Title: e.variableTitle(v), At: e.keptCorner(popObject), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
 	if _, ok := e.variableLabels(); ok {
 		s.Buttons = []string{e.word("editor.labels.edit"), e.word("editor.labels.clear"), e.word("editor.button.cancel")}
 		s.Disabled = []bool{false, v.label == "", false}

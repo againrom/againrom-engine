@@ -17,8 +17,9 @@ var screenFiles embed.FS
 
 // popupDesc is one editor window as data: the popupSpec it builds, with a
 // word key for every caption and a binding name for every value the map or
-// the editor gives. Sample is an example state in words and flags, for a
-// mockup without a map.
+// the editor gives. Card stands the person's card and figure in their own
+// column right of the field columns, as the unit window does. Sample is an
+// example state in words and flags, for a mockup without a map.
 type popupDesc struct {
 	Window     string            `json:"window"`
 	Title      string            `json:"title,omitempty"`
@@ -29,6 +30,7 @@ type popupDesc struct {
 	MinWidth   int               `json:"minWidth,omitempty"`
 	ButtonW    int               `json:"buttonWidth,omitempty"`
 	Columns    int               `json:"columns,omitempty"`
+	Card       bool              `json:"card,omitempty"`
 	Tabs       []string          `json:"tabs,omitempty"`
 	Rows       []popupDescRow    `json:"rows"`
 	Buttons    []popupDescButton `json:"buttons,omitempty"`
@@ -37,8 +39,9 @@ type popupDesc struct {
 
 // popupDescRow is one row, or with Each a block repeated for every item of
 // a list binding. When names the flag the row needs ("!name": needs it
-// unset). Label is a word key; LabelBind and Value name bindings. Wrap
-// marks a text row the window wraps to its width.
+// unset). Label is a word key; LabelBind, Value and HintBind name bindings.
+// Wrap marks a text row the window wraps to its width. Fold makes a heading
+// a block that opens and closes: open while the flag it names is set.
 type popupDescRow struct {
 	Kind      string            `json:"kind,omitempty"`
 	When      string            `json:"when,omitempty"`
@@ -47,8 +50,10 @@ type popupDescRow struct {
 	Label     string            `json:"label,omitempty"`
 	LabelBind string            `json:"labelBind,omitempty"`
 	Indent    int               `json:"indent,omitempty"`
+	Fold      string            `json:"fold,omitempty"`
 	Value     string            `json:"value,omitempty"`
 	Hint      string            `json:"hint,omitempty"`
+	HintBind  string            `json:"hintBind,omitempty"`
 	Help      string            `json:"help,omitempty"`
 	Ink       string            `json:"ink,omitempty"`
 	Column    int               `json:"column,omitempty"`
@@ -193,6 +198,11 @@ type popupMade struct {
 func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []popupMade) {
 	c := popupChain{b}
 	s := popupSpec{Width: d.Width, LabelWidth: d.LabelWidth, MinWidth: d.MinWidth, ButtonW: d.ButtonW, Columns: d.Columns}
+	if d.Card {
+		// The card's column, at the card's width until a figure widens it;
+		// the column shows once the window is given a person's card.
+		s.CardAside = compactPanelW
+	}
 	if d.Title != "" {
 		s.Title = word(d.Title)
 		if len(d.TitleArgs) > 0 {
@@ -256,6 +266,11 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 	}
 	if r.Hint != "" {
 		row.Hint = word(r.Hint)
+	} else if r.HintBind != "" {
+		row.Hint = c.text(r.HintBind, word)
+	}
+	if r.Fold != "" {
+		row.Fold = blockRow("", c.when(r.Fold)).Fold
 	}
 	if r.Help != "" {
 		row.Help = word(r.Help)
@@ -298,6 +313,10 @@ func checkPopupRows(rows []popupDescRow) error {
 			return fmt.Errorf("window description: unknown row kind %q", r.Kind)
 		case r.Each == "" && len(r.Rows) > 0:
 			return fmt.Errorf("window description: a %s row holds rows", r.Kind)
+		case r.Fold != "" && r.Kind != popupKindNames[popupHeading]:
+			return fmt.Errorf("window description: a %s row folds; only a heading does", r.Kind)
+		case r.Hint != "" && r.HintBind != "":
+			return fmt.Errorf("window description: a %s row has a hint word and a hint binding", r.Kind)
 		}
 		if err := checkPopupRows(r.Rows); err != nil {
 			return err

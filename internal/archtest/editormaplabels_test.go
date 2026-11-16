@@ -99,7 +99,7 @@ func mapLabelWidget(file, typ string) bool {
 	switch file + ":" + typ {
 	case "pkg/ui/townpointer.go:townTipOwner", "pkg/ui/chargen.go:ChargenTip",
 		"pkg/ui/roompaint.go:RoomLayer", "pkg/ui/tippanel.go:TipPanelView", "pkg/ui/widgetbutton.go:plaqueCaption",
-		"pkg/ui/widgetdropdown.go:dropdown":
+		"pkg/ui/widgetdropdown.go:dropdown", "pkg/ui/editortip.go:popupTip":
 		return true
 	}
 	return false

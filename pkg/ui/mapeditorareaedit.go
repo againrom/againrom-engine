@@ -548,7 +548,7 @@ func (e *MapEditor) areaTriggerSpec() popupSpec {
 	}
 	s.Rows = []popupRow{{Kind: popupChoice, Label: label, Value: value, Focus: true}}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
+	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
 	return s
 }
 
@@ -561,22 +561,10 @@ func (e *MapEditor) areaDropdown() (dropdown, bool) {
 	s := e.sizedPrompt(e.areaTriggerSpec())
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == 0 {
-			return dropdown{Rect: rr.Control, Text: s.Rows[0].Value, Open: a.open, List: a.choice, Rows: min(10, a.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}, true
+			return e.rowDropdown(rr.Control, s.Rows[0].Value, a.choice, min(10, a.choice.Len()), a.open), true
 		}
 	}
 	return dropdown{}, false
-}
-
-// drawAreaDropdown paints the trigger choice's open list over the prompt.
-func (e *MapEditor) drawAreaDropdown(pic *image.RGBA) {
-	d, ok := e.areaDropdown()
-	if !ok || !d.Open {
-		return
-	}
-	rows := d.List.Rows()
-	e.noteDropdown(d, e.bodyFont())
-	d.Press = &e.buttonPress
-	drawDropdown(pic, e.bodyFont(), nil, d, func(row, width int) string { return editorClip(e.bodyFont(), rows[row].Text, width) }, e.pointer, e.pointerOK)
 }
 
 // areaDropdownHit reports that p lies on the trigger choice's open list.

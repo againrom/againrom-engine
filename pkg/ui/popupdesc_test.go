@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"io/fs"
@@ -38,24 +39,26 @@ func unSymbol(s string) (id, bind string) {
 	return s, ""
 }
 
-// descFromSpec reads a description back from the spec and rows symbolic
-// bindings built from shape: kinds, word ids, bindings, indents, inks and
-// button words from what was built, the conditions, lists and fields from
-// shape.
+// descFromSpec reads a description back from the window tree of the spec
+// built from shape under symbolic bindings: kinds, word ids, bindings,
+// indents, inks and button words from the tree, the editor's fields and
+// actions from made, the conditions and lists from shape.
 func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
-	d := popupDesc{Window: shape.Window, TitleArgs: shape.TitleArgs, Width: s.Width, LabelWidth: s.LabelWidth,
-		MinWidth: s.MinWidth, ButtonW: s.ButtonW, Columns: s.Columns, Sample: shape.Sample}
-	d.Title, _ = unSymbol(s.Title)
-	d.TitleHelp, _ = unSymbol(s.TitleHelp)
-	for _, t := range s.Tabs {
+	w := windowOf(specTree(s))
+	d := popupDesc{Window: shape.Window, TitleArgs: shape.TitleArgs, Width: w.Place.Width, LabelWidth: w.Body.LabelWidth,
+		MinWidth: w.Place.MinWidth, ButtonW: w.Buttons.Least, Columns: w.Body.Columns, Card: w.Card.Aside > 0, Sample: shape.Sample}
+	d.Title, _ = unSymbol(w.Title.Text)
+	d.TitleHelp, _ = unSymbol(w.Title.Help)
+	for _, t := range w.Tabs.Captions {
 		id, _ := unSymbol(t)
 		d.Tabs = append(d.Tabs, id)
 	}
-	d.Rows = rowsFromSpec(shape.Rows, &made)
+	rows := w.Body.Rows
+	d.Rows = rowsFromSpec(shape.Rows, &rows, &made)
 	for i, bt := range shape.Buttons {
-		id, _ := unSymbol(s.Buttons[i])
+		id, _ := unSymbol(w.Buttons.Captions[i])
 		got := popupDescButton{Word: id, When: bt.When}
-		if s.Disabled[i] {
+		if w.Buttons.Disabled[i] {
 			got.Off = bt.Off
 		}
 		d.Buttons = append(d.Buttons, got)
@@ -63,7 +66,7 @@ func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
 	return d
 }
 
-func rowsFromSpec(shape []popupDescRow, made *[]popupMade) []popupDescRow {
+func rowsFromSpec(shape []popupDescRow, rows *[]popupRow, made *[]popupMade) []popupDescRow {
 	var out []popupDescRow
 	roles := map[color.RGBA]string{}
 	for _, role := range []string{"condition", "action", "warning"} {
@@ -71,19 +74,21 @@ func rowsFromSpec(shape []popupDescRow, made *[]popupMade) []popupDescRow {
 	}
 	for _, r := range shape {
 		if r.Each != "" {
-			out = append(out, popupDescRow{Each: r.Each, When: r.When, Rows: rowsFromSpec(r.Rows, made)})
+			out = append(out, popupDescRow{Each: r.Each, When: r.When, Rows: rowsFromSpec(r.Rows, rows, made)})
 			continue
 		}
-		m := (*made)[0]
-		*made = (*made)[1:]
-		row := m.Row
+		m, row := (*made)[0], (*rows)[0]
+		*made, *rows = (*made)[1:], (*rows)[1:]
 		got := popupDescRow{Kind: popupKindNames[row.Kind], When: r.When, Column: row.Column, Lines: row.Lines, Wrap: m.Wrap, Field: r.Field}
 		label := strings.TrimLeft(row.Label, " ")
 		got.Indent = len(row.Label) - len(label)
 		got.Label, got.LabelBind = unSymbol(label)
 		_, got.Value = unSymbol(row.Value)
-		got.Hint, _ = unSymbol(row.Hint)
+		got.Hint, got.HintBind = unSymbol(row.Hint)
 		got.Help, _ = unSymbol(row.Help)
+		if row.Fold == FoldOpen {
+			got.Fold = r.Fold // every flag holds, so a fold reads back open
+		}
 		got.Ink = roles[row.Ink]
 		for k, bt := range r.Buttons {
 			id, _ := unSymbol(row.Buttons[k])
@@ -352,5 +357,35 @@ func TestMockupPictureIsThePopupPainters(t *testing.T) {
 	}
 	if inside < m.layout.Rect.Dx()*m.layout.Rect.Dy()/2 || outside != 0 {
 		t.Errorf("%d painted pixels inside the window %v, %d outside", inside, m.layout.Rect, outside)
+	}
+}
+
+var pageInk = regexp.MustCompile(`#[0-9a-f]{6}`)
+
+// TestPageInksAreThePaintersTable: every colour a page names is an ink of
+// the table the painter reads, or a row's or the notes' own ink.
+func TestPageInksAreThePaintersTable(t *testing.T) {
+	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
+	k := editorPopupInk
+	if k.Hint != popupHintInk || k.Button != pushButtonIdleInk || k.BevelLight != dialogueBevelLight || k.BevelDark != dialogueBevelDark {
+		t.Fatalf("the table's hint and button inks %+v are not the painters'", k)
+	}
+	for name, d := range embeddedDescs(t) {
+		m, err := NewEditorMockup(d.encode(), "en", image.Pt(800, 600), nil, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		known := map[string]bool{}
+		for _, c := range []color.RGBA{k.Ground, k.Edge, k.TitleGround, k.Title, k.Label, k.Value, k.Hint, k.Button, k.BevelLight, k.BevelDark, m.plain.NoteInk} {
+			known[hex(c)] = true
+		}
+		for _, r := range m.plain.Rows {
+			known[hex(r.Ink)] = true
+		}
+		for _, got := range pageInk.FindAllString(string(m.Page()), -1) {
+			if !known[got] {
+				t.Errorf("%s: the page names %s, an ink outside the painter's table", name, got)
+			}
+		}
 	}
 }

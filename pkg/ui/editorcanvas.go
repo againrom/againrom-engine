@@ -175,7 +175,7 @@ func (c *popupCanvas) labels() []string {
 // the free height of a sized popup; else the sheet's height, up to the
 // spec's own Height or, when it names none, to the room below the popup's
 // corner.
-func fitCanvas(s popupSpec, rest, head, sizedH int, sized bool) *popupCanvas {
+func fitCanvas(s uiWindow, rest, head, sizedH int, sized bool) *popupCanvas {
 	c := s.Canvas
 	if c == nil {
 		return nil
@@ -190,7 +190,7 @@ func fitCanvas(s popupSpec, rest, head, sizedH int, sized bool) *popupCanvas {
 	case c.Height > 0:
 		fit.Height = min(c.Height, c.Sheet.Y)
 	case !room.Empty():
-		fit.Height = min(c.Sheet.Y, free(room.Max.Y-max(s.At.Y, room.Min.Y)))
+		fit.Height = min(c.Sheet.Y, free(room.Max.Y-max(s.Place.At.Y, room.Min.Y)))
 	default:
 		fit.Height = c.Sheet.Y
 	}
@@ -417,14 +417,8 @@ func canvasTipAt(bounds image.Rectangle, body *text.Font, c *popupCanvas, l popu
 		if !l.CanvasBoxes.holds(i, p) || c.Boxes[i].Tip == "" {
 			continue
 		}
-		lines := editorTextLines(body, c.Boxes[i].Tip, min(max(r.Dx(), popupTipW), bounds.Dx())-8)
-		w := 0
-		for _, line := range lines {
-			w = max(w, body.Advance(line))
-		}
-		h := len(lines)*fontHeight(body, 15) + 8
-		box := image.Rect(r.Min.X, r.Max.Y, r.Min.X+w+8, r.Max.Y+h)
-		return popupTip{Rect: placeTip(tipPlace{Box: box, PullRight: true, FlipBy: h + r.Dy()}, bounds), Lines: lines}, true
+		how := tipShape{Width: min(max(r.Dx(), popupTipW), bounds.Dx()), Fit: true, Pull: true}
+		return layoutTip(bounds, body, r, c.Boxes[i].Tip, nil, how), true
 	}
 	return popupTip{}, false
 }

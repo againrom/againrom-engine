@@ -39,7 +39,7 @@ func TestEditorFieldDrawsNoCharacterOutsideIt(t *testing.T) {
 	l := layoutPopup(s, f, f)
 	pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 	calls := text.Record(func() {
-		drawPopup(pic, f, f, nil, s, l, popupInk{Ground: editorPanel, Edge: editorGold, TitleGround: editorInk, Title: editorGold, Label: editorPaper, Value: editorLight}, image.Point{}, false)
+		drawPopup(pic, f, f, nil, s, l, editorPopupInk, image.Point{}, false)
 	})
 	if out := outsideGlyphs(calls); len(out) != 0 {
 		t.Errorf("unfocused edit and pick fields draw %d characters outside them, at x %v", len(out), out)

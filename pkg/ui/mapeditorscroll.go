@@ -12,6 +12,40 @@ type editorScroll struct {
 	// bar of anything else.
 	canvas int
 	grabY  int
+	// page is the window whose body the layout pass pages that the bar
+	// moves, popNone for none.
+	page editorPopupID
+}
+
+// pageBar is the row bar of a body the layout pass pages; the caller has
+// found the pointer on l.RowBar.
+func (e *MapEditor) pageBar(id editorPopupID, s popupSpec, l popupLayout) (vScrollBar, *Picker, bool) {
+	if s.MaxRows != 0 {
+		return vScrollBar{}, nil, false
+	}
+	w := l.window(s)
+	m := NewPicker(make([]PickerRow, popupRowCount(w)-w.Body.MaxRows+1)).SetWindow(1)
+	m.Select(w.Body.Top)
+	e.scroll.page = id
+	return vScrollBar{Rect: l.RowBar, Pos: w.Body.Top, Count: m.Len()}, m, true
+}
+
+// pagedLayout is window id's spec and layout when the layout pass pages its
+// body.
+func (e *MapEditor) pagedLayout(id editorPopupID) (popupSpec, popupLayout, bool) {
+	s, ok := e.movableSpec(id)
+	if !ok || s.MaxRows != 0 {
+		return popupSpec{}, popupLayout{}, false
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	return s, l, !l.RowBar.Empty()
+}
+
+// pageWheel moves the paged body of window id by the wheel; the caller has
+// found the pointer over its rows or its bar.
+func (e *MapEditor) pageWheel(id editorPopupID, s popupSpec, l popupLayout, wheel wheelSource) {
+	w := l.window(s)
+	*e.bodyPage(id) = max(0, min(w.Body.Top+editorWheelRows(&e.listWheel, wheel), popupRowCount(w)-w.Body.MaxRows))
 }
 
 func editorListStep(m *Picker, delta int) bool {
@@ -23,7 +57,7 @@ func editorListStep(m *Picker, delta int) bool {
 }
 
 func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
-	e.scroll.details, e.scroll.canvas = false, 0
+	e.scroll.details, e.scroll.canvas, e.scroll.page = false, 0, popNone
 	switch e.chromeHit(p) {
 	case popMenu:
 		if b, ok := e.openMenuEntry(); ok {
@@ -45,6 +79,11 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 			if l.HasList && p.In(l.List.Bar()) {
 				return listBar(l.List, s.List), s.List, e.prompt.kind == promptAdd
 			}
+			if p.In(l.RowBar) {
+				if b, m, ok := e.pageBar(popPrompt, s, l); ok {
+					return b, m, false
+				}
+			}
 		}
 	case popObject:
 		if d, ok := e.openDropdown(); ok {
@@ -56,7 +95,10 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 		if s, _, ok := e.objectSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if p.In(l.RowBar) {
-				m := NewPicker(make([]PickerRow, popupRowCount(s)-s.MaxRows+1)).SetWindow(1)
+				if b, m, ok := e.pageBar(popObject, s, l); ok {
+					return b, m, false
+				}
+				m := NewPicker(make([]PickerRow, popupRowCount(specWindow(s))-s.MaxRows+1)).SetWindow(1)
 				m.Select(s.Top)
 				e.scroll.details = true
 				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m, false
@@ -81,6 +123,11 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if l.HasList && p.In(l.List.Bar()) {
 				return listBar(l.List, s.List), s.List, false
+			}
+			if p.In(l.RowBar) {
+				if b, m, ok := e.pageBar(popList, s, l); ok {
+					return b, m, false
+				}
 			}
 		}
 	}
@@ -124,6 +171,9 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	}
 	if s.details {
 		e.objectTop = s.model.Selection()
+	}
+	if s.page != popNone {
+		*e.bodyPage(s.page) = s.model.Selection()
 	}
 	if s.canvas > 0 {
 		e.graphAt.Y = s.model.Selection() * s.canvas

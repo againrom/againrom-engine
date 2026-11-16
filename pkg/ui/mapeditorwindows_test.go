@@ -37,7 +37,7 @@ func TestPopupHeadingPaintsABand(t *testing.T) {
 	f := panelFont()
 	s := popupFixture()
 	l := layoutPopup(s, f, f)
-	ink := popupInk{Ground: editorPanel, Edge: editorGold, TitleGround: editorInk, Title: editorGold, Label: editorPaper, Value: editorLight}
+	ink := editorPopupInk
 	pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 	drawPopup(pic, f, f, nil, s, l, ink, image.Point{}, false)
 	band := func(i int) bool {
@@ -157,7 +157,7 @@ func TestPopupPicturesForTheNotes(t *testing.T) {
 	f := panelFont()
 	s := popupFixture()
 	l := layoutPopup(s, f, f)
-	ink := popupInk{Ground: editorPanel, Edge: editorGold, TitleGround: editorInk, Title: editorGold, Label: editorPaper, Value: editorLight}
+	ink := editorPopupInk
 	pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 	drawPopup(pic, f, f, nil, s, l, ink, image.Point{}, false)
 	crop := func(name string, r image.Rectangle, scale int) {

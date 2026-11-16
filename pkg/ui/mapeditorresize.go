@@ -79,7 +79,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	e.placeSpec(popObject, &s)
 	if s.MaxRows > 0 {
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
-		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
+		e.objectTop = max(0, min(e.objectTop, popupRowCount(specWindow(s))-s.MaxRows))
 		s.Top = e.objectTop
 	}
 	e.keepInRoom(popObject, &s)

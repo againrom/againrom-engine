@@ -192,3 +192,92 @@ func TestEditorAddSackBrowsesGroupsWithoutWritingNavigationValues(t *testing.T) 
 		t.Fatal("the grouped pick changed the sack writer input", calls.lines)
 	}
 }
+
+// A choice row's drop-down is one element wherever the row stands: the area
+// prompt's trigger list is the object window's, so in an editor too short to
+// hold it below the row it rises to end inside the window.
+func TestChoiceRowDropdownOpensInsideTheWindow(t *testing.T) {
+	e := NewMapEditor(nil, nil, nil)
+	e.SetBodyFont(wordsFont("en"))
+	e.Layout(640, 260)
+	rows := make([]PickerRow, 40)
+	for i := range rows {
+		rows[i] = PickerRow{Text: "trigger " + strings.Repeat("x", i%7), Choosable: true}
+	}
+	e.openPrompt(editorPrompt{kind: promptAreaTrigger, area: &areaPrompt{box: image.Rect(1, 1, 4, 4), choice: NewPicker(rows), open: true}})
+	d, ok := e.areaDropdown()
+	if !ok || !d.Open {
+		t.Fatal("the area prompt shows no open trigger list")
+	}
+	if want := e.rowDropdown(d.Rect, d.Text, d.List, d.Rows, true); d != want {
+		t.Fatalf("the area prompt's drop-down %+v is not the choice row's %+v", d, want)
+	}
+	if box := d.listBox(e.bodyFont()); box.Rect.Max.Y > e.window.Y || box.Rect.Min.Y < 0 || d.Rows != 10 {
+		t.Errorf("the open list of %d rows stands at %v in a window %v high", d.Rows, box.Rect, e.window.Y)
+	}
+}
+
+// Every button of a question takes its width from the one measure: its
+// caption's width with pad, at least popupButtonW, no screen setting a
+// width of its own.
+func TestQuestionButtonsTakeTheOneMeasure(t *testing.T) {
+	e := NewMapEditor(nil, nil, nil)
+	body := wordsFont("en")
+	e.SetBodyFont(body)
+	e.Layout(800, 600)
+	s := e.questionSpec("Leave", []string{"The map has changes."}, []string{"OK", "Leave without saving the map", "Cancel"})
+	if s.ButtonW != 0 {
+		t.Fatalf("the question sets its own button width %d", s.ButtonW)
+	}
+	want := popupButtonWidths(specWindow(s), body)
+	l := layoutPopup(s, e.font, body)
+	for i, b := range l.Buttons {
+		if b.Dx() != want[i] || b.Dx() < popupButtonW || !b.In(l.Rect) {
+			t.Errorf("button %q is %d wide at %v in %v; the measure gives %d", s.Buttons[i], b.Dx(), b, l.Rect, want[i])
+		}
+	}
+	if want[1] <= want[0] || want[0] != popupButtonW {
+		t.Errorf("the widths %v do not follow the captions", want)
+	}
+}
+
+// The picture element stands a picture in its box as its fit says and shows
+// only its part inside the clip.
+func TestEditorPictureFitsItsBox(t *testing.T) {
+	solid := func(w, h int) *image.RGBA {
+		p := image.NewRGBA(image.Rect(0, 0, w, h))
+		for i := 3; i < len(p.Pix); i += 4 {
+			p.Pix[i-3], p.Pix[i] = 255, 255
+		}
+		return p
+	}
+	painted := func(dst *image.RGBA) image.Rectangle {
+		var r image.Rectangle
+		for y := 0; y < dst.Bounds().Dy(); y++ {
+			for x := 0; x < dst.Bounds().Dx(); x++ {
+				if dst.RGBAAt(x, y).A != 0 {
+					r = r.Union(image.Rect(x, y, x+1, y+1))
+				}
+			}
+		}
+		return r
+	}
+	box := image.Rect(10, 10, 54, 54)
+	for _, c := range []struct {
+		name string
+		p    editorPicture
+		want image.Rectangle
+	}{
+		{"a small sprite grows by whole factors, centred", editorPicture{Pic: solid(10, 10), Box: box, Clip: box, Fit: pictureCentre}, image.Rect(12, 12, 52, 52)},
+		{"a large picture shrinks to the box's top right", editorPicture{Pic: solid(88, 22), Box: box, Clip: box, Fit: pictureCorner}, image.Rect(10, 10, 54, 21)},
+		{"a figure fills its box", editorPicture{Pic: solid(10, 20), Box: box, Clip: box, Fit: pictureFill}, box},
+		{"the clip cuts it", editorPicture{Pic: solid(10, 20), Box: box, Clip: image.Rect(0, 0, 30, 30), Fit: pictureFill}, image.Rect(10, 10, 30, 30)},
+		{"no picture draws nothing", editorPicture{Box: box, Clip: box}, image.Rectangle{}},
+	} {
+		dst := image.NewRGBA(image.Rect(0, 0, 64, 64))
+		drawEditorPicture(dst, c.p)
+		if got := painted(dst); got != c.want {
+			t.Errorf("%s: painted %v, want %v", c.name, got, c.want)
+		}
+	}
+}

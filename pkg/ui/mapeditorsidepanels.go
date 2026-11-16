@@ -689,7 +689,7 @@ func (e *MapEditor) panelWide() int {
 // its rows: all of it while the popup floats, none while the right panel
 // stands the card above the rows (cardOnTop).
 func (e *MapEditor) hostedAside(s popupSpec) int {
-	aside := cardAside(s)
+	aside := cardAside(specWindow(s))
 	if aside > 0 && e.objectInPanel() && cardOnTop(e.sidePanelRect(panelRight).Dx(), aside) {
 		return 0
 	}
@@ -714,12 +714,12 @@ func (e *MapEditor) hostedWrap(s popupSpec, natural int) int {
 func (e *MapEditor) hostedObject(s popupSpec) popupSpec {
 	s = e.inPanel(s, panelRight)
 	if s.MaxRows == 0 {
-		s.MaxRows = popupRowCount(s)
+		s.MaxRows = popupRowCount(specWindow(s))
 	}
 	// The rows that fit are counted from the first row shown; where they
 	// reach the last row, the first row shown is the least that still
 	// shows the last, so every row is in reach and the last page is full.
-	count, all := popupRowCount(s), s.MaxRows
+	count, all := popupRowCount(specWindow(s)), s.MaxRows
 	fit := func(top int) int {
 		s.Top, s.MaxRows = top, all
 		return max(1, layoutPopup(s, e.font, e.bodyFont()).RowsFit)
@@ -837,7 +837,9 @@ type reportNotes struct {
 // fitDocked keeps docked report s inside the bottom panel. While its frame
 // is taller than the panel, the notes show fewer lines, down to one, from
 // the line the wheel scrolled them to, and the last line shown carries the
-// mark that more follow; then the list keeps fewer rows, down to one.
+// mark that more follow; then the list keeps fewer rows, down to one. It
+// measures the frame before the layout pass gives way, so the report's
+// notes page here instead of folding behind the title's mark.
 func (e *MapEditor) fitDocked(s popupSpec) popupSpec {
 	n := &e.panels.notes
 	all := s.Notes
@@ -850,7 +852,7 @@ func (e *MapEditor) fitDocked(s popupSpec) popupSpec {
 	}
 	n.count, n.shown = len(all), len(all)
 	high := s.Bounds.Dy()
-	over := func() bool { return layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > high }
+	over := func() bool { return placeWindow(specWindow(s), e.font, e.bodyFont()).Rect.Dy() > high }
 	if !over() {
 		n.top = 0
 		return s

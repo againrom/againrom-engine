@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// The mockup places the trigger window at the corner, within the bounds and
-// with the row count the editor gives its own, before it centres it, at the
-// same window size.
+// The mockup gives the trigger window the bounds and the row count the editor
+// gives its own, and stands it centred, where the editor's placement store
+// first opens a window of its size at the same window size.
 func TestMockupPlacesTheTriggerWindowAsTheEditorDoes(t *testing.T) {
 	font := wordsFont("en")
 	for _, size := range []image.Point{{640, 480}, {800, 600}, {1920, 1080}} {
@@ -16,7 +16,7 @@ func TestMockupPlacesTheTriggerWindowAsTheEditorDoes(t *testing.T) {
 		e.SetBodyFont(font)
 		e.Layout(size.X, size.Y)
 		e.places[e.storeRow(popObject)] = popupStanding{}
-		want, _, ok := e.objectSpecBase()
+		want, _, ok := e.objectSpec()
 		if !ok {
 			t.Fatal("the editor builds no trigger window")
 		}
@@ -24,10 +24,14 @@ func TestMockupPlacesTheTriggerWindowAsTheEditorDoes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if m.paint.At != want.At || m.paint.Bounds != want.Bounds || m.paint.MaxRows != want.MaxRows {
-			t.Errorf("%v: mockup at %v bounds %v rows %d; editor at %v bounds %v rows %d",
-				size, m.paint.At, m.paint.Bounds, m.paint.MaxRows, want.At, want.Bounds, want.MaxRows)
+		if m.paint.Bounds != want.Bounds || m.paint.MaxRows != want.MaxRows {
+			t.Errorf("%v: mockup bounds %v rows %d; editor bounds %v rows %d",
+				size, m.paint.Bounds, m.paint.MaxRows, want.Bounds, want.MaxRows)
 		}
-		t.Logf("%v: at %v bounds %v rows %d", size, want.At, want.Bounds, want.MaxRows)
+		r := layoutPopup(m.paint, font, font).Rect
+		want.At = e.centreCorner(r.Size(), openPlace{})
+		if m.paint.At != want.At || r.Min.Y < m.paint.Bounds.Min.Y {
+			t.Errorf("%v: mockup window %v; a first-opened window of its size stands at %v", size, r, want.At)
+		}
 	}
 }

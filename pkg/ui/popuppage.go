@@ -8,6 +8,7 @@ import (
 	"html"
 	"image"
 	"image/color"
+	"strconv"
 
 	"againrom/pkg/render/text"
 	"againrom/pkg/words"
@@ -23,6 +24,19 @@ type EditorMockup struct {
 	plain, paint popupSpec
 	layout       popupLayout
 	title, body  *text.Font
+	// doll is the person's figure at the game's size figure, and missing
+	// the line its room shows without one.
+	doll    *image.RGBA
+	figure  image.Point
+	missing string
+}
+
+// mockupPerson is the person a description's card and figure show: the
+// card, the font it writes in and the doll. A nil card is the sample's.
+type mockupPerson struct {
+	card     *PanelSubject
+	cardFont *text.Font
+	doll     *image.RGBA
 }
 
 // ScreenDescription is the embedded description of the editor window name.
@@ -39,6 +53,10 @@ func ScreenDescription(name string) ([]byte, error) {
 // host text encoder; nil fonts lay out at layoutPopup's fallback sizes and
 // a nil encode keeps the text as it is.
 func NewEditorMockup(desc []byte, lang string, window image.Point, title, body *text.Font, encode func(string) string) (*EditorMockup, error) {
+	return newEditorMockup(desc, lang, window, title, body, encode, mockupPerson{})
+}
+
+func newEditorMockup(desc []byte, lang string, window image.Point, title, body *text.Font, encode func(string) string, person mockupPerson) (*EditorMockup, error) {
 	d, err := parsePopupDesc(desc)
 	if err != nil {
 		return nil, err
@@ -54,29 +72,101 @@ func NewEditorMockup(desc []byte, lang string, window image.Point, title, body *
 		sample = &popupScope{}
 	}
 	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body}
-	m.plain, _ = d.build(sample, words.For(lang).Text)
+	word := words.For(lang).Text
+	m.plain, _ = d.build(sample, word)
 	m.paint = encodedSpec(m.plain, encode)
 	fitButtons(&m.paint, body)
-	m.paint.At, m.paint.Bounds, m.paint.MaxRows = triggerPlace(title, body, window)
+	if d.Card {
+		if person.card == nil {
+			person.card = sample.card()
+		}
+		m.doll, m.figure, m.missing = person.doll, gameFigureSize(person.doll, window), encode(word("editor.unit.look.missing"))
+		m.paint.Card, m.paint.CardFont, m.paint.CardAside = person.card, person.cardFont, figureAside(m.figure)
+	}
+	triggerPlace(&m.paint, title, body, window, m.figure)
 	m.plain.Width, m.plain.Bounds, m.plain.At, m.plain.MaxRows = m.paint.Width, m.paint.Bounds, m.paint.At, m.paint.MaxRows
+	m.plain.Columns, m.plain.Size, m.plain.MinWidth = m.paint.Columns, m.paint.Size, m.paint.MinWidth
+	m.plain.Card, m.plain.CardFont, m.plain.CardAside = m.paint.Card, m.paint.CardFont, m.paint.CardAside
 	m.layout = layoutPopup(m.paint, title, body)
 	return m, nil
 }
 
-// Mockup is NewEditorMockup in the editor's own fonts and host text.
+// Mockup is NewEditorMockup in the editor's own fonts and host text; a
+// description with a card shows the first person of the open map that has
+// a figure, as the unit window builds the card and the figure.
 func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*EditorMockup, error) {
-	return NewEditorMockup(desc, lang, window, e.font, e.bodyFont(), e.editorHostText)
+	person := mockupPerson{cardFont: e.cardFont}
+	if d, err := parsePopupDesc(desc); err == nil && d.Card && e.doc != nil {
+		e.Layout(window.X, window.Y)
+		for i, r := range e.doc.Records {
+			if r.Kind != KindUnit || !e.Select(i, false) {
+				continue
+			}
+			e.loadObject()
+			card, _ := e.unitSettings()
+			if p := e.obj.unit.picture; card != nil && card.Char.Band == CharacterBandPerson && p != nil && p.Doll != nil {
+				person.card, person.doll = card, p.Doll
+				break
+			}
+		}
+	}
+	return newEditorMockup(desc, lang, window, e.font, e.bodyFont(), e.editorHostText, person)
 }
 
-// triggerPlace is where the editor first opens its trigger window in an
-// editor window of size window with these fonts: the corner, the bounds and
-// the rows it shows with its button row. It asks a bare editor, so the page
-// and the picture place the window as the editor does.
-func triggerPlace(title, body *text.Font, window image.Point) (at image.Point, bounds image.Rectangle, rows int) {
+// triggerPlace stands spec s where the editor first opens its trigger window
+// in an editor window of size window with these fonts: its bounds, the rows
+// it shows with its button row, and the corner the placement store gives it.
+// It asks a bare editor with its map catalog closed, so the page and the
+// picture place the window as the editor does when no list window stands.
+// A card widens the window by its column, field columns given up while the
+// window is wider than its bounds, and the window grows to hold a figure of
+// size figure under the card.
+func triggerPlace(s *popupSpec, title, body *text.Font, window, figure image.Point) {
 	e := NewMapEditor(title, nil, nil)
+	e.catalog = false
 	e.SetBodyFont(body)
 	e.Layout(window.X, window.Y)
-	return e.placedCorner(popObject, homeTrigger), e.popupBounds(), e.objectRowsShown(true)
+	s.At, s.Bounds, s.MaxRows = e.keptCorner(popObject), e.popupBounds(), e.objectRowsShown(true)
+	if s.Card != nil {
+		column := s.Width / max(1, s.Columns)
+		s.Width += cardAside(specWindow(*s)) + popupPad
+		for s.Columns > 1 && s.Width > s.Bounds.Dx() {
+			s.Columns, s.Width = s.Columns-1, s.Width-column
+		}
+		if l := layoutPopup(*s, title, body); figureHeight(*s, l, figure) != l.Rect.Dy() {
+			s.MaxRows = popupRowCount(specWindow(*s))
+			naturalSize(s, image.Pt(s.Width, min(figureHeight(*s, l, figure), s.Bounds.Dy())))
+			s.MaxRows = layoutPopup(*s, title, body).RowsFit
+		}
+	}
+	e.keepInRoom(popObject, s)
+}
+
+// card is the sample person's card: the name and every value the sample
+// gives, an override standing for the value in game it replaces.
+func (s *popupScope) card() *PanelSubject {
+	value := func(values map[string]string, name string) int {
+		n, err := strconv.Atoi(values[name])
+		if err != nil {
+			n, _ = strconv.Atoi(values["game."+name])
+		}
+		return n
+	}
+	v := func(name string) int { return value(s.Values, name) }
+	c := &PanelSubject{Kind: InspectionUnit, Name: s.Values["name"], HP: v("hp"), MaxHP: v("hpmax"), Mana: v("mana"), MaxMana: v("mana"), Speed: v("speed"),
+		Char:   UnitCharacter{Known: true, Band: CharacterBandPerson, Body: v("body"), Mind: v("mind"), Spirit: v("spirit"), Reaction: v("reaction")},
+		Combat: UnitCombat{Known: true, Defence: v("defence"), Absorption: v("absorption")}}
+	// The sample lists the five skills the card shows, slots 1 to 5.
+	for i, skill := range s.Lists["skills"] {
+		if i+1 < len(c.Char.Skills) {
+			n, err := strconv.Atoi(skill.Values["value"])
+			if err != nil {
+				n, _ = strconv.Atoi(skill.Values["game"])
+			}
+			c.Char.Skills[i+1] = n
+		}
+	}
+	return c
 }
 
 // encodedSpec is s with its text in the font's bytes.
@@ -109,18 +199,29 @@ func (m *EditorMockup) Picture() *image.RGBA {
 		dst.Pix[i], dst.Pix[i+1], dst.Pix[i+2], dst.Pix[i+3] = ground.R, ground.G, ground.B, ground.A
 	}
 	drawPopup(dst, m.title, m.body, nil, m.paint, m.layout, editorPopupInk, image.Point{}, false)
+	if m.paint.Card != nil {
+		drawFigure(dst, m.paint, m.layout, m.doll, m.figure, m.body, m.missing)
+	}
 	return dst
 }
 
 // Page is the window as one HTML page: every part of the layout placed at
 // its rectangle in the popup painter's inks, with the description inside.
-func (m *EditorMockup) Page() []byte { return popupPage(m.desc, m.plain, m.layout, m.lang, m.window) }
+func (m *EditorMockup) Page() []byte {
+	figure := image.Rectangle{}
+	if m.paint.Card != nil {
+		figure = figureRoom(m.paint, m.layout, m.figure)
+	}
+	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, m.lang, m.window)
+}
 
 // pageDescriptionTag opens the description a page carries.
 const pageDescriptionTag = `<script type="application/json" id="popup-description">`
 
-// popupPage writes the page from the layout l of s; it lays nothing out.
-func popupPage(d popupDesc, s popupSpec, l popupLayout, lang string, window image.Point) []byte {
+// popupPage writes the page from the window's tree w and its layout l, with
+// the person's figure room figure when the window has a card, in the inks
+// the painter reads; it lays nothing out.
+func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, lang string, window image.Point) []byte {
 	ink := editorPopupInk
 	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 	var b bytes.Buffer
@@ -133,8 +234,10 @@ func popupPage(d popupDesc, s popupSpec, l popupLayout, lang string, window imag
 	fmt.Fprintf(&b, ".title,.heading{background:%s;color:%s}\n.heading{border:1px solid %s}\n", hex(ink.TitleGround), hex(ink.Title), hex(ink.Edge))
 	fmt.Fprintf(&b, ".label{color:%s}\n.control{background:%s;border:1px solid %s}\n", hex(ink.Label), hex(ink.Ground), hex(ink.Edge))
 	fmt.Fprintf(&b, ".button{text-align:center;color:%s;border:1px solid;border-color:%s %s %s %s}\n",
-		hex(pushButtonIdleInk), hex(dialogueBevelLight), hex(dialogueBevelDark), hex(dialogueBevelDark), hex(dialogueBevelLight))
-	fmt.Fprintf(&b, ".off{color:%s}\n</style>\n</head>\n<body>\n<div id=\"screen\">\n", hex(popupHintInk))
+		hex(ink.Button), hex(ink.BevelLight), hex(ink.BevelDark), hex(ink.BevelDark), hex(ink.BevelLight))
+	fmt.Fprintf(&b, ".off{color:%s}\n</style>\n</head>\n<body>\n<div id=\"screen\">\n", hex(ink.Hint))
+	// tip is the text a (?) mark explains, shown as the element's own title.
+	tip := ""
 	part := func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt string) {
 		if r.Empty() {
 			return
@@ -142,6 +245,10 @@ func popupPage(d popupDesc, s popupSpec, l popupLayout, lang string, window imag
 		fmt.Fprintf(&b, `<div class="p %s" data-part="%s"`, class, name)
 		if row >= 0 {
 			fmt.Fprintf(&b, ` data-row="%d"`, row)
+		}
+		if tip != "" {
+			fmt.Fprintf(&b, ` title="%s"`, html.EscapeString(tip))
+			tip = ""
 		}
 		fmt.Fprintf(&b, ` data-box="%d %d %d %d" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;line-height:%dpx`,
 			r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Dy())
@@ -152,32 +259,41 @@ func popupPage(d popupDesc, s popupSpec, l popupLayout, lang string, window imag
 	}
 	none := color.RGBA{}
 	part("window", "window", -1, l.Rect, none, "")
-	part("title", "title", -1, l.Title, none, s.Title)
+	part("title", "title", -1, l.Title, none, w.Title.Text)
 	part("button", "close", -1, l.Close, none, "x")
+	tip = w.Title.Help
 	part("button", "title-help", -1, l.TitleHelp, none, "?")
+	tip = ""
 	for i, r := range l.Tabs {
-		part("button", "tab", i, r, none, s.Tabs[i])
+		part("button", "tab", i, r, none, w.Tabs.Captions[i])
 	}
 	for _, rr := range l.Rows {
-		row := s.Rows[rr.Index]
+		row := w.Body.Rows[rr.Index]
 		value := row.Ink
 		if value == none {
 			value = ink.Value
 		}
 		if row.Kind == popupHeading {
-			part("heading", "heading", rr.Index, rr.Rect, none, row.Label)
+			label := row.Label
+			if row.Fold != FoldNone {
+				label = rowFoldMarks[row.Fold] + " " + label
+			}
+			part("heading", "heading", rr.Index, rr.Rect, none, label)
 			continue
 		}
 		part("label", "label", rr.Index, rr.Label, none, row.Label)
-		switch row.Kind {
+		switch shown := row.Value; row.Kind {
 		case popupEdit, popupPick, popupMultiline, popupChoice, popupCard:
-			part("control", popupKindNames[row.Kind], rr.Index, rr.Control, value, row.Value)
+			if shown == "" && row.Hint != "" {
+				shown, value = row.Hint, ink.Hint
+			}
+			part("control", popupKindNames[row.Kind], rr.Index, rr.Control, value, shown)
 		case popupSwitch:
 			part("button", "switch", rr.Index, rr.Control, none, row.Value)
 		default:
 			part("value", "value", rr.Index, rr.Control, value, row.Value)
 		}
-		captions := rowButtons(s, row)
+		captions := rowButtons(w, row)
 		for k, r := range rr.Buttons {
 			class := "button"
 			if k < len(rr.Off) && rr.Off[k] {
@@ -189,18 +305,22 @@ func popupPage(d popupDesc, s popupSpec, l popupLayout, lang string, window imag
 			}
 			part(class, "row-button", rr.Index, r, none, caption)
 		}
+		tip = row.Help
 		part("button", "row-help", rr.Index, rr.Help, none, "?")
+		tip = ""
 	}
 	for i, r := range l.Notes {
-		part("note", "note", i, r, s.NoteInk, s.Notes[i])
+		part("note", "note", i, r, w.Notes.Ink, w.Notes.Lines[i])
 	}
 	for i, r := range l.Buttons {
 		class := "button"
-		if i < len(s.Disabled) && s.Disabled[i] {
+		if i < len(w.Buttons.Disabled) && w.Buttons.Disabled[i] {
 			class += " off"
 		}
-		part(class, "button", i, r, none, s.Buttons[i])
+		part(class, "button", i, r, none, w.Buttons.Captions[i])
 	}
+	part("control", "card", -1, l.Card, none, "")
+	part("control", "figure", -1, figure, none, "")
 	b.WriteString("</div>\n" + pageDescriptionTag)
 	desc, err := json.Marshal(d) // escapes <, > and &, so the block cannot end early
 	if err != nil {

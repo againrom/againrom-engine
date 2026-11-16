@@ -19,14 +19,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var editorInk = color.RGBA{0x20, 0x1b, 0x16, 255}
-var editorPanel = color.RGBA{0x30, 0x29, 0x1f, 255}
-var editorPaper = color.RGBA{0xd6, 0xc4, 0x9b, 255}
-var editorLight = color.RGBA{0xf3, 0xe5, 0xbe, 255}
-var editorGold = color.RGBA{0xb8, 0x95, 0x4f, 255}
-var editorWarning = color.RGBA{0xb8, 0x5e, 0x46, 255}
-var editorCondition = color.RGBA{0x78, 0xb6, 0xc2, 255}
-
 type InspectionRecord struct {
 	Key            uint64 // host-owned session identity, restored with document history
 	Kind           RecordKind
@@ -555,6 +547,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	if e.pathDialog.pending != nil {
 		return
+	}
+	if wheeled(in) && e.scrollTip(image.Pt(in.CursorX, in.CursorY), in) {
+		in.WheelY = 0
 	}
 	if in.Alt && wheeled(in) && e.brushActive() {
 		// Alt+wheel sizes the brush; the plain wheel still zooms and scrolls.

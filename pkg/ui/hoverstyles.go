@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image"
 	"image/color"
 
 	"againrom/pkg/render/text"
@@ -22,8 +21,6 @@ const (
 	// hoverStyleGame is the game's own hover style, from the generator
 	// description.
 	hoverStyleGame
-	// hoverStyleEditor is the editor's one tip, with the caller's picture.
-	hoverStyleEditor
 	// hoverStyleShop is the characteristics box beside the pointer on the
 	// shop and the town screens.
 	hoverStyleShop
@@ -34,8 +31,7 @@ const (
 // every '#' line as written, blank ones kept and none wrapped. A nil style
 // is the shared hover help. A box set names the fill and the bevel's two
 // colours in place of the hover box's own; a shape set names the box's
-// geometry in place of the hover box's own. A picture set draws at its own
-// size under the lines.
+// geometry in place of the hover box's own.
 type hoverStyle struct {
 	font     *text.Font
 	ink      color.RGBA
@@ -43,7 +39,6 @@ type hoverStyle struct {
 	authored bool
 	box      *hoverBoxInk
 	shape    *hoverShape
-	picture  image.Image
 }
 
 // hoverBoxInk is a hover box's fill and its bevel's light and dark colours.
@@ -65,11 +60,9 @@ type hoverShape struct {
 
 // hoverParams are the values a keyed style takes from its caller.
 type hoverParams struct {
-	font     *text.Font
 	ink      color.RGBA
 	shadow   *color.RGBA
 	authored bool
-	picture  image.Image
 }
 
 // The hover box's requested colours.
@@ -98,8 +91,6 @@ func hoverStyleFor(key hoverStyleKey, p hoverParams) *hoverStyle {
 	switch key {
 	case hoverStyleGame:
 		return &hoverStyle{ink: p.ink, shadow: p.shadow, authored: p.authored}
-	case hoverStyleEditor:
-		return &hoverStyle{font: p.font, ink: editorPaper, box: &hoverBoxInk{fill: editorPanel, light: editorGold, dark: editorInk}, picture: p.picture}
 	case hoverStyleShop:
 		return &hoverStyle{ink: shopTextColor, box: &hoverBoxInk{fill: shopScreenFill, light: invBorder}, shape: &hoverShopShape}
 	}

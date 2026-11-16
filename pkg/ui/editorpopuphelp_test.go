@@ -37,6 +37,20 @@ func TestPopupHelpMarkShowsItsHelpWrapped(t *testing.T) {
 	}
 }
 
+// In the editor a (?) mark's help shows at once, with no wait, in a box
+// popupHelpW wide inside the editor.
+func TestEditorHelpMarkShowsAtOnce(t *testing.T) {
+	help := strings.Repeat("What the field holds. ", 8)
+	e, l, rest := tipWindowEditor(t, popupSpec{Title: "Window", Width: 280, Rows: []popupRow{{Kind: popupEdit, Label: "Name", Help: help}}})
+	if got := rest(center(l.Rows[0].Help), 0); got != help {
+		t.Fatalf("the help shows %q at once", got)
+	}
+	tip, ok := e.shownTip()
+	if !ok || !tip.Help || tip.Rect.Dx() != popupHelpW || !tip.Rect.In(image.Rect(0, 0, e.window.X, e.window.Y)) {
+		t.Fatalf("the help box %v (help %v) in the editor %v", tip.Rect, tip.Help, e.window)
+	}
+}
+
 // Every page of the mod window has its title help in both languages, and
 // the Missions page shows it and its keys behind the title's mark, not as
 // lines in the window.

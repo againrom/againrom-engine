@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"againrom/pkg/render/terrain"
 )
@@ -54,20 +55,80 @@ func TestPopupHoverLineShowsACutRowWhole(t *testing.T) {
 	if _, ok := popupTipAt(image.Rect(0, 0, 1024, 768), f, f, s, l, center(l.Rows[2].Rect), false); ok {
 		t.Fatal("a hover line without a pointer")
 	}
-	// The painter draws the hover line's box over the popup.
-	count := func(p image.Point) int {
-		n := 0
-		widgetRecord = func(c widgetCall) {
-			if c.kind == widgetFrame {
-				n++
-			}
+	// The window's painter draws no tip; the one tip element draws it in one
+	// frame.
+	frames, tips := 0, 0
+	widgetRecord = func(c widgetCall) {
+		switch c.kind {
+		case widgetFrame:
+			frames++
+		case widgetTip:
+			tips++
 		}
-		defer func() { widgetRecord = nil }()
-		drawPopup(image.NewRGBA(image.Rect(0, 0, 1024, 768)), f, f, nil, s, l, editorPopupInk, p, true)
-		return n
 	}
-	if over, off := count(center(l.Rows[1].Rect)), count(center(l.Rows[0].Rect)); over != off+1 {
-		t.Fatalf("frames with the hover line %d, without %d", over, off)
+	defer func() { widgetRecord = nil }()
+	drawPopup(image.NewRGBA(image.Rect(0, 0, 1024, 768)), f, f, nil, s, l, editorPopupInk, center(l.Rows[1].Rect), true)
+	if tips != 0 {
+		t.Fatalf("the window painter drew %d tips", tips)
+	}
+	tip, _ := popupTipAt(image.Rect(0, 0, 1024, 768), f, f, s, l, center(l.Rows[1].Rect), true)
+	frames = 0
+	drawPopupTip(image.NewRGBA(image.Rect(0, 0, 1024, 768)), f, tip, editorPopupInk)
+	if frames != 1 || tips != 1 {
+		t.Fatalf("the tip element drew %d frames and %d tips", frames, tips)
+	}
+}
+
+// tipWindowEditor is an editor whose last chrome drew one window of spec s,
+// at its lower right corner, and a pointer that rests at p from t0 for d.
+func tipWindowEditor(t *testing.T, s popupSpec) (*MapEditor, popupLayout, func(p image.Point, d time.Duration) string) {
+	t.Helper()
+	e, _ := newModesEditor(t, "full")
+	s.Bounds = image.Rect(0, 0, e.window.X, e.window.Y)
+	s.At = image.Pt(e.window.X-s.Width-20, e.window.Y-200)
+	l := layoutPopup(s, e.font, e.bodyFont())
+	e.tip.windows = []tipWindow{{s, l}}
+	t0 := time.Unix(100, 0)
+	return e, l, func(p image.Point, d time.Duration) string {
+		e.pointer, e.pointerOK = p, true
+		e.observeTip(p, t0.Add(d), false)
+		return e.TipShown()
+	}
+}
+
+// In the editor a cut row's whole text shows once the pointer has rested
+// editorTipDelay (300 ms) on the row, none sooner, in one box inside the
+// editor; the same element draws it.
+func TestEditorRowTipWaitsTheDelay(t *testing.T) {
+	if editorTipDelay != 300 {
+		t.Fatalf("the tip delay is %d ms", editorTipDelay)
+	}
+	long := strings.Repeat("brigands gone mad ", 6)
+	e, l, rest := tipWindowEditor(t, popupSpec{Title: "Window", Width: 280, Rows: []popupRow{{Kind: popupText, Label: "Value", Value: long}}})
+	row := center(l.Rows[0].Rect)
+	if got := rest(row, 0); got != "" {
+		t.Fatalf("the tip %q shows at once", got)
+	}
+	if got := rest(row, editorTipDelay*time.Millisecond-time.Millisecond); got != "" {
+		t.Fatalf("the tip %q shows before the delay", got)
+	}
+	if got := rest(row, editorTipDelay*time.Millisecond); got != strings.TrimSpace("Value "+long) {
+		t.Fatalf("after the delay the tip is %q", got)
+	}
+	tip, ok := e.shownTip()
+	if !ok || !tip.Rect.In(image.Rect(0, 0, e.window.X, e.window.Y)) || tip.Help {
+		t.Fatalf("the tip box %v (help %v) leaves the editor %v", tip.Rect, tip.Help, e.window)
+	}
+	tips := 0
+	widgetRecord = func(c widgetCall) {
+		if c.kind == widgetTip {
+			tips++
+		}
+	}
+	defer func() { widgetRecord = nil }()
+	e.drawTip(image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y)))
+	if tips != 1 {
+		t.Fatalf("the editor drew %d tips", tips)
 	}
 }
 

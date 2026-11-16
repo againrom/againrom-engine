@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"math"
 	"sync"
 )
@@ -95,7 +94,7 @@ func (e *MapEditor) heightModePress(n int) {
 // a flat plateau for Level and rounded into a hill for Smooth. The lifted
 // part is green over the brown ground.
 var heightModeIcons = sync.OnceValue(func() []*image.RGBA {
-	ground, lifted := color.RGBA{150, 108, 60, 255}, color.RGBA{88, 176, 72, 255}
+	ground, lifted := heightIconGround, heightIconLifted
 	uneven := [24]int{12, 12, 11, 11, 12, 13, 13, 12, 11, 11, 12, 13, 13, 12, 12, 11, 11, 12, 13, 13, 12, 12, 11, 11}
 	var out []*image.RGBA
 	for m := range heightModeCount {

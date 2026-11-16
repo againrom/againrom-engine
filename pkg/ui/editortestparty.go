@@ -235,7 +235,7 @@ func (e *MapEditor) testPartySpec() popupSpec {
 	s.Disabled = disabled
 	body := e.bodyFont()
 	if !custom {
-		s.At = e.promptCorner(centreQuestion, layoutPopup(s, e.font, body).Rect.Size())
+		s.At = e.centreCorner(layoutPopup(s, e.font, body).Rect.Size(), openPlace{})
 		return s
 	}
 	heads := []string{e.word("editor.testparty.plays"), e.word("editor.testparty.skills"), e.word("editor.testparty.spells")}
@@ -268,7 +268,7 @@ func (e *MapEditor) testPartySpec() popupSpec {
 	}
 	s.Grid = g
 	s.Width = min(max(s.Width, 2*popupPad+g.HeadW+len(cards)*g.Side), e.window.X-16)
-	s.At = e.promptCorner(centreQuestion, layoutPopup(s, e.font, body).Rect.Size())
+	s.At = e.centreCorner(layoutPopup(s, e.font, body).Rect.Size(), openPlace{})
 	return s
 }
 

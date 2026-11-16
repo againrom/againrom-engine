@@ -36,14 +36,14 @@ func TestDialogDescriptionScanSeesEachShape(t *testing.T) {
 	const file = "pkg/ui/x.go"
 	for _, tc := range []struct{ name, src, want string }{
 		{"a retired type", `package ui
-type NoticeLayout struct{ X int }`, "pkg/ui/x.go:2 declares NoticeLayout, a dialog description beside popupSpec"},
+type NoticeLayout struct{ X int }`, "pkg/ui/x.go:2 declares NoticeLayout, a dialog description beside Dialog"},
 		{"a parallel description", `package ui
 type second struct {
 	Box   R
 	Frame *DialogFrame
-}`, "pkg/ui/x.go:2 declares second with a Box and a DialogFrame, a dialog description beside popupSpec"},
+}`, "pkg/ui/x.go:2 declares second with a Box and a DialogFrame, a dialog description beside Dialog"},
 		{"a retired painter", `package ui
-func renderDialogueNotice() {}`, "pkg/ui/x.go:2 declares renderDialogueNotice, a dialog painter beside drawPopup"},
+func renderDialogueNotice() {}`, "pkg/ui/x.go:2 declares renderDialogueNotice, a dialog painter beside paintDialog"},
 		{"a style branch", `package ui
 func f(l L) bool { return l.Style == NoticeStyleDialogue }`, "pkg/ui/x.go:2 branches on a notice style; read a row of noticeStyles"},
 		{"a style switch", `package ui
@@ -56,13 +56,23 @@ func f(l L) {
 func paintBox(d I, b B) {
 	drawFrame(d, f)
 	drawPushButton(d, b)
-}`, "pkg/ui/x.go:2 paintBox draws a frame and pushes a button itself; make it a value drawPopup paints"},
+}`, "pkg/ui/x.go:2 paintBox draws a frame and pushes a button itself; make it a value paintDialog paints"},
 		{"the one description", `package ui
-type popupSpec struct {
+type Dialog struct {
 	Box   R
 	Frame *DialogFrame
 }`, ""},
+		{"the dialog block back in the editor window", `package ui
+type popupSpec struct {
+	Box   R
+	Frame *DialogFrame
+}`, "pkg/ui/x.go:2 declares popupSpec with a Box and a DialogFrame, a dialog description beside Dialog"},
 		{"the one painter", `package ui
+func paintDialog(d I, b B) {
+	drawFrame(d, f)
+	drawPushButton(d, b)
+}`, ""},
+		{"the editor window painter", `package ui
 func drawPopup(d I, b B) {
 	drawFrame(d, f)
 	drawPushButton(d, b)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"slices"
 	"strings"
@@ -986,7 +985,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	if !palette || e.paletteListsRecords() {
 		m = e.syncList(kind, e.listWindow())
 	}
-	s := popupSpec{Title: e.listTitle(kind), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	s := popupSpec{Title: e.listTitle(kind), At: e.keptCorner(popList), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
 	if m != nil {
 		s.ListText = func(row, width int) string {
 			rows := m.Rows()
@@ -1037,7 +1036,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 		if e.filter == editorScriptsFilter {
 			// The palette is as wide as its three buttons need.
-			s.Width = e.popupWide(popList, max(400, buttonRowWidth(s, e.bodyFont())))
+			s.Width = e.popupWide(popList, max(400, buttonRowWidth(specWindow(s), e.bodyFont())))
 		}
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
@@ -1343,7 +1342,6 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		e.objectBackButton(&s)
 		return s, links, true
 	}
-	e.placedCorner(popObject, homeObjectMap)
 	r := e.doc.Records[e.selected]
 	e.loadObject()
 	if r.Kind == KindPlayer && e.barWindow() == "players" {
@@ -1359,7 +1357,7 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if r.Name != "" {
 		title = r.Name
 	}
-	s := popupSpec{Title: title, At: e.placedCorner(popObject, homeObjectMap), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
+	s := popupSpec{Title: title, At: e.keptCorner(popObject), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)
@@ -1388,17 +1386,13 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		// the widest; both every row high, scrolled only where the room is
 		// lower.
 		if e.PlainView() {
-			s.Width = popupMinWidth(s, e.bodyFont())
+			s.Width = popupMinWidth(specWindow(s), e.bodyFont())
 		}
 		room := e.popupRoom().Dy() - 16
 		l := layoutPopup(s, e.font, e.bodyFont())
-		height := l.Rect.Dy()
-		// The column beside or under the card holds the figure whole.
-		if s.Card != nil {
-			height += max(0, e.unitFigureSize().Y-l.CardRest.Dy())
-		}
+		height := figureHeight(s, l, e.unitFigureSize())
 		fit := func(height int) {
-			s.MaxRows = popupRowCount(s)
+			s.MaxRows = popupRowCount(specWindow(s))
 			naturalSize(&s, image.Pt(s.Width, min(height, room)))
 			s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		}
@@ -1412,12 +1406,12 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 			// the figure whole, at the game's size.
 			pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
 			s = natural
-			s.BandLines = (max(cardSize(s).Y, e.unitFigureSize().Y) + 2*popupPad + pitch - 1) / pitch
+			s.BandLines = (max(cardSize(specWindow(s)).Y, e.unitFigureSize().Y) + 2*popupPad + pitch - 1) / pitch
 			s.MaxRows = 0
-			s.Width = popupMinWidth(s, e.bodyFont())
+			s.Width = popupMinWidth(specWindow(s), e.bodyFont())
 			fit(layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
 		}
-		e.clampObjectTop(&s, popupRowCount(s))
+		e.clampObjectTop(&s, popupRowCount(specWindow(s)))
 		return s, links, true
 	}
 	if e.hasUsedBy() && !e.obj.usesShown {
@@ -1476,9 +1470,7 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		// A label over its field or a face takes more lines: the window
 		// shows fewer rows and keeps inside the editor.
 		e.clampObjectTop(&s, len(s.Rows))
-		for s.MaxRows > popupMinRows && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > e.popupBounds().Dy() {
-			s.MaxRows--
-		}
+		s.MaxRows = e.rowsFit(s)
 	}
 	e.clampObjectTop(&s, len(s.Rows))
 	return s, links, true
@@ -1510,7 +1502,7 @@ func (e *MapEditor) columnsLastTop(s popupSpec, most, count int) int {
 	last := map[int]int{}
 	for i, row := range s.Rows {
 		if !row.placed() {
-			column, _ := popupRowPosition(s, i)
+			column, _ := popupRowPosition(specWindow(s), i)
 			last[column] = i
 		}
 	}
@@ -1522,9 +1514,9 @@ func (e *MapEditor) columnsLastTop(s popupSpec, most, count int) int {
 			shown[rr.Index] = true
 		}
 		// A scrolling card band shows whole at the last top.
-		every := bandLines(s) == 0 || max(l.Card.Max.Y, l.CardRest.Max.Y) <= l.RowsViewport.Max.Y
+		every := bandLines(specWindow(s)) == 0 || max(l.Card.Max.Y, l.CardRest.Max.Y) <= l.RowsViewport.Max.Y
 		for _, i := range last {
-			_, line := popupRowPosition(s, i)
+			_, line := popupRowPosition(specWindow(s), i)
 			every = every && (shown[i] || line < top)
 		}
 		if every {
@@ -1615,7 +1607,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		s.Notes = append(s.Notes, e.word("editor.prompt.multiline"))
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
+	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
 	return s, true
 }
 
@@ -1694,8 +1686,6 @@ func (e *MapEditor) promptTitle() string {
 	return e.word("editor.prompt.open")
 }
 
-var editorPopupInk = popupInk{Ground: editorPanel, Edge: editorGold, TitleGround: editorInk, Title: editorGold, Label: editorPaper, Value: editorLight}
-
 // ChromeImage composes the window's chrome over a transparent window-size
 // picture: the bar, the status strip, the list and object popups, the prompt
 // and, last, an open drop-down. While a map drag has moved, the windows that
@@ -1713,6 +1703,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 // strip are drawn as they are, and chromeFaded draws the floating windows.
 func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	e.chromeWindows = e.chromeWindows[:0]
+	e.tip.windows = e.tip.windows[:0]
 	pic := e.chromeBlank()
 	bar := image.Rect(0, 0, e.window.X, e.barHeight())
 	drawFrame(pic, stripFrame(bar, edgeBottomBit))
@@ -1742,9 +1733,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 		e.drawFloating(pic, false)
 	}
 	if b, ok := e.openMenuEntry(); ok {
-		d := e.menuDropdown(b, true)
-		e.noteDropdown(d, e.font)
-		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
+		e.drawEditorDropdown(pic, e.font, e.menuDropdown(b, true))
 	}
 	e.drawTip(pic)
 	e.buttonPress.finish(pic)
@@ -1770,8 +1759,7 @@ func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
 		e.drawWindow(pic, s)
 		e.drawAddPreview(pic, s)
 	}
-	e.drawOpenDropdown(pic)
-	e.drawAreaDropdown(pic)
+	e.drawRowDropdowns(pic)
 }
 
 // ChromeWindow is one panel, floating window or open drop-down list the
@@ -1792,6 +1780,7 @@ func (e *MapEditor) ChromeWindows() []ChromeWindow { return slices.Clone(e.chrom
 func (e *MapEditor) drawWindow(pic *image.RGBA, s popupSpec) {
 	l := layoutPopup(s, e.font, e.bodyFont())
 	e.noteWindow(l.Rect)
+	e.tip.windows = append(e.tip.windows, tipWindow{s, l})
 	drawPopup(pic, e.font, e.bodyFont(), nil, s, l, editorPopupInk, e.pointer, e.pointerOK, &e.buttonPress)
 }
 
@@ -1829,53 +1818,17 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 	}
 	r := e.doc.Records[e.selected]
 	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
-		// The figure stands at the right of the room the layout leaves
-		// beside the card, at the game's size where the room holds it.
-		l := layoutPopup(s, e.font, e.bodyFont())
-		rest, size := l.CardRest, e.unitFigureSize()
-		// A row that holds the figure is its room, none while it is
-		// scrolled away.
-		held := slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Hold == holdFigure })
-		if held {
-			rest = image.Rectangle{}
-			for _, rr := range l.Rows {
-				if s.Rows[rr.Index].Hold == holdFigure {
-					rest = rr.Rect.Intersect(l.RowsViewport)
-				}
-			}
-			rest.Max.X = min(rest.Max.X, rest.Min.X+max(compactPanelW, size.X))
-		}
-		left := max(rest.Min.X, rest.Max.X-max(compactPanelW, size.X))
-		whole := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y)
-		box := whole.Intersect(pic.Bounds())
-		if bandLines(s) > 0 {
-			box = box.Intersect(l.RowsViewport) // the band scrolls with the rows
-		}
-		if box.Empty() {
-			return
-		}
-		var preview *image.RGBA
+		var doll *image.RGBA
 		if pictures := e.obj.unit.picture; pictures != nil {
-			preview = pictures.Doll
+			doll = pictures.Doll
 		}
-		if preview == nil || preview.Bounds().Empty() {
-			if f := e.bodyFont(); f != nil {
-				f.Draw(pic.SubImage(box).(*image.RGBA), e.word("editor.unit.look.missing"), box.Min.X, box.Min.Y, editorGold)
-			}
-			return
-		}
-		// The figure keeps the game's size; the window was sized to hold it.
-		at := screenRect{X: float64(whole.Max.X - size.X), Y: float64(whole.Min.Y), W: float64(size.X), H: float64(size.Y)}
-		editorBlit(pic.SubImage(box).(*image.RGBA), preview, at, false)
+		drawFigure(pic, s, layoutPopup(s, e.font, e.bodyFont()), doll, e.unitFigureSize(), e.bodyFont(), e.word("editor.unit.look.missing"))
 		return
 	}
 	if r.Preview == nil {
 		return
 	}
 	preview := r.Preview.RGBA()
-	if preview == nil || preview.Bounds().Empty() {
-		return
-	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for _, rr := range l.Rows {
 		if rr.Index != e.obj.data {
@@ -1883,9 +1836,60 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		}
 		box := image.Rect(rr.Rect.Max.X-previewW, rr.Rect.Min.Y, rr.Rect.Max.X, rr.Rect.Min.Y+previewH)
 		last := l.Rows[len(l.Rows)-1].Rect.Max.Y
-		clip := pic.SubImage(image.Rect(box.Min.X, box.Min.Y, box.Max.X, min(box.Max.Y, last))).(*image.RGBA)
-		editorBlit(clip, preview, fitRect(preview.Bounds().Size(), box), false)
+		drawEditorPicture(pic, editorPicture{Pic: preview, Box: box, Clip: image.Rect(box.Min.X, box.Min.Y, box.Max.X, last), Fit: pictureCorner})
 	}
+}
+
+// figureAside is the width of the column beside a person's card that holds
+// a figure of size figure: the card's width or the figure's, the wider.
+func figureAside(figure image.Point) int { return max(compactPanelW, figure.X) }
+
+// figureRoom is the room of a person's figure of size figure in window s
+// laid out as l: the right of the room the layout leaves beside or under the
+// card, or the row that holds the figure, none while it is scrolled away.
+func figureRoom(s popupSpec, l popupLayout, figure image.Point) image.Rectangle {
+	rest := l.CardRest
+	if slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Hold == holdFigure }) {
+		rest = image.Rectangle{}
+		for _, rr := range l.Rows {
+			if s.Rows[rr.Index].Hold == holdFigure {
+				rest = rr.Rect.Intersect(l.RowsViewport)
+			}
+		}
+		rest.Max.X = min(rest.Max.X, rest.Min.X+figureAside(figure))
+	}
+	return image.Rect(max(rest.Min.X, rest.Max.X-figureAside(figure)), rest.Min.Y, rest.Max.X, rest.Max.Y)
+}
+
+// figureHeight is the height of window s laid out as l once the column
+// beside or under its card holds a figure of size figure whole.
+func figureHeight(s popupSpec, l popupLayout, figure image.Point) int {
+	if s.Card == nil {
+		return l.Rect.Dy()
+	}
+	return l.Rect.Dy() + max(0, figure.Y-l.CardRest.Dy())
+}
+
+// drawFigure is the person window's figure: doll at the game's size figure
+// at the right of its room in window s laid out as l, or missing written
+// there without a doll. The window was sized to hold it.
+func drawFigure(pic *image.RGBA, s popupSpec, l popupLayout, doll *image.RGBA, figure image.Point, body *text.Font, missing string) {
+	whole := figureRoom(s, l, figure)
+	box := whole.Intersect(pic.Bounds())
+	if bandLines(specWindow(s)) > 0 {
+		box = box.Intersect(l.RowsViewport) // the band scrolls with the rows
+	}
+	if box.Empty() {
+		return
+	}
+	if doll == nil || doll.Bounds().Empty() {
+		if body != nil {
+			body.Draw(pic.SubImage(box).(*image.RGBA), missing, box.Min.X, box.Min.Y, editorGold)
+		}
+		return
+	}
+	at := image.Rect(whole.Max.X-figure.X, whole.Min.Y, whole.Max.X, whole.Min.Y+figure.Y)
+	drawEditorPicture(pic, editorPicture{Pic: doll, Box: at, Clip: box, Fit: pictureFill})
 }
 
 // fitRect scales size into box, never up, anchored at its top right.
@@ -2311,6 +2315,10 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 				return
 			}
 		}
+		if s, l, ok := e.pagedLayout(popList); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
+			e.pageWheel(popList, s, l, wheel)
+			return
+		}
 		if e.model != nil && e.listKind() != "panel" {
 			rows := editorWheelRows(&e.listWheel, wheel)
 			if e.listKind() == "catalog" {
@@ -2331,6 +2339,10 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 				}
 			}
 		}
+		if s, l, ok := e.pagedLayout(popObject); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
+			e.pageWheel(popObject, s, l, wheel)
+			return
+		}
 		e.objectTop = max(0, e.objectTop+editorWheelRows(&e.objectWheel, wheel))
 	case popMenu:
 		if e.menuModel != nil {
@@ -2341,9 +2353,14 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
 		}
 	case popPrompt:
-		if !e.areaWheel(wheel) {
-			e.addWheel(wheel)
+		if e.areaWheel(wheel) {
+			return
 		}
+		if s, l, ok := e.pagedLayout(popPrompt); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
+			e.pageWheel(popPrompt, s, l, wheel)
+			return
+		}
+		e.addWheel(wheel)
 	}
 }
 
@@ -2673,7 +2690,7 @@ func (e *MapEditor) gridLines() []editorLine {
 	v.showGrid = was
 	out := make([]editorLine, 0, len(segs))
 	for _, s := range segs {
-		out = append(out, editorLine{float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1), color.RGBA{0x60, 0x58, 0x48, 255}})
+		out = append(out, editorLine{float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1), editorGridInk})
 	}
 	return out
 }

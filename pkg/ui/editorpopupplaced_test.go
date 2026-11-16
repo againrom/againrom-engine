@@ -33,8 +33,8 @@ func TestPopupPlacesRowsOnAScaledCardUnderTheRows(t *testing.T) {
 	if got := l.Card.Size(); got != image.Pt(2*compactPanelW, 2*compactPanelH) {
 		t.Fatalf("card %v, want twice the panel", got)
 	}
-	if popupRowCount(s) != 2 {
-		t.Fatalf("%d row lines, want the two rows that are not placed", popupRowCount(s))
+	if popupRowCount(specWindow(s)) != 2 {
+		t.Fatalf("%d row lines, want the two rows that are not placed", popupRowCount(specWindow(s)))
 	}
 	bottom := 0
 	for _, rr := range l.Rows {

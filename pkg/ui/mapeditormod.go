@@ -557,7 +557,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
 	o.rowActs, o.modKeys = map[int][]string{}, nil
-	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(620, e.window.X-16)), At: e.personCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
+	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(620, e.window.X-16)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
 	if s.Tabs, s.ActiveTab = e.modTabs(); len(s.Tabs) > 0 {
 		s.TabSwitch = true
@@ -637,16 +637,13 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		}
 	}
 	s.MaxRows = max(3, (e.popupRoom().Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))
-	// Rows give way until a wrapped button row fits the editor window.
-	want := e.objectTop
-	for {
-		e.objectTop = max(0, min(want, max(0, popupRowCount(s)-s.MaxRows)))
-		s.Top = e.objectTop
-		if s.MaxRows <= 3 || layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() <= s.Bounds.Dy() {
-			break
-		}
-		s.MaxRows--
-	}
+	// The layout pass takes rows away until a wrapped button row fits the
+	// editor window, measured from the bounds' top wherever the window stands.
+	want, count := e.objectTop, popupRowCount(specWindow(s))
+	s.Top = max(0, min(want, count-s.MaxRows))
+	s.MaxRows = e.rowsFit(s)
+	e.objectTop = max(0, min(want, count-s.MaxRows))
+	s.Top = e.objectTop
 	// Only the graph page keeps its rows still above a canvas that scrolls
 	// alone; every other page is one list of rows that the wheel and the
 	// bar move together, so a one-column page shows the rows it scrolled to.
@@ -654,7 +651,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		s.ColumnTops = []int{0, e.objectTop}
 	}
 	// modPress hits this spec itself, so it stands where objectSpec does.
-	e.openCentred(popObject, &s)
+	e.keepInRoom(popObject, &s)
 	return s, links, true
 }
 

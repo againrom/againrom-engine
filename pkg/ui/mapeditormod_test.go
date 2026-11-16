@@ -285,6 +285,7 @@ func TestModWindowMissionRowsHaveNoDropdownInBothLanguages(t *testing.T) {
 func TestModWindowUsesSharedRowsAndFocusedFieldsBlockCanvasInBothLanguages(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		e, calls := newModesEditor(t, "workspace")
+		e.places[popObject].placed = false // W opens centred
 		e.SetWords(words.For(lang))
 		e.Layout(640, 480)
 		if err := e.Key("package"); err != nil {

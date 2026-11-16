@@ -213,7 +213,7 @@ func TestEditorPopupButtonsHoldTheirCaptionsInBothLanguages(t *testing.T) {
 				}
 				for _, id := range []editorPopupID{popList, popObject, popPrompt, popTree, popProps, popToolbar} {
 					s, ok := e.movableSpec(id)
-					if !ok || dialogGivenForm(s) {
+					if !ok {
 						continue
 					}
 					seen++
@@ -266,7 +266,7 @@ func TestModWindowLabelsAreWholeInBothLanguages(t *testing.T) {
 						whole[row.Label] = true
 					}
 				}
-				if e.objectTop != top || top >= popupRowCount(s) {
+				if e.objectTop != top || top >= popupRowCount(specWindow(s)) {
 					break
 				}
 			}

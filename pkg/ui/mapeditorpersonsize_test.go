@@ -18,7 +18,7 @@ import (
 func personCardBandScrolls(t *testing.T, e *MapEditor, lang string, low bool) {
 	t.Helper()
 	s, _, _ := e.objectSpec()
-	if got := bandLines(s) > 0; got != low {
+	if got := bandLines(specWindow(s)) > 0; got != low {
 		t.Fatalf("the card band scrolls %v, want %v", got, low)
 	}
 	if !low {
@@ -35,7 +35,7 @@ func personCardBandScrolls(t *testing.T, e *MapEditor, lang string, low bool) {
 	for range 200 {
 		s, _, _ = e.objectSpec()
 		l = layoutPopup(s, e.font, e.bodyFont())
-		if l.RowBar.Empty() || l.Card.Size() != cardSize(s) {
+		if l.RowBar.Empty() || l.Card.Size() != cardSize(specWindow(s)) {
 			t.Fatalf("top %d: no scroll bar or the card %v lost its size", s.Top, l.Card)
 		}
 		for _, rr := range l.Rows {
@@ -89,7 +89,7 @@ func TestEditorPersonWindowTakesTheSizeItsRowsNeed(t *testing.T) {
 					if len(s.Tabs) != 0 {
 						t.Error("the window has tabs", s.Tabs)
 					}
-					need := min(max(popupMinWidth(s, e.bodyFont()), buttonRowWidth(s, e.bodyFont())), e.popupBounds().Dx())
+					need := min(max(popupMinWidth(specWindow(s), e.bodyFont()), buttonRowWidth(specWindow(s), e.bodyFont())), e.popupBounds().Dx())
 					if plain && l.Rect.Dx() != need {
 						t.Errorf("plain view %d wide, its rows need %d", l.Rect.Dx(), need)
 					}
@@ -100,7 +100,7 @@ func TestEditorPersonWindowTakesTheSizeItsRowsNeed(t *testing.T) {
 					for _, rr := range l.Rows {
 						shown[rr.Index] = rr
 					}
-					scrolled := s.MaxRows > 0 && popupRowCount(s) > s.MaxRows
+					scrolled := s.MaxRows > 0 && popupRowCount(specWindow(s)) > s.MaxRows
 					if scrolled && l.Rect.Dy() < e.popupRoom().Dy()-16 {
 						t.Errorf("rows scroll in a window %d high, the room holds %d", l.Rect.Dy(), e.popupRoom().Dy()-16)
 					}

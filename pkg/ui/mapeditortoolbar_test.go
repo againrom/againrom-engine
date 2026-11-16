@@ -324,7 +324,7 @@ func TestMapEditorToolbarTipsAndIcons(t *testing.T) {
 				continue
 			}
 			rect, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: b.key})
-			if tip, at, ok := e.toolTip(center(rect)); !ok || tip != want || at != rect.Min {
+			if tip, at, ok := e.toolTip(center(rect)); !ok || tip != want || at != rect {
 				t.Errorf("%s tip %q at %v, want %q", b.key, tip, at, want)
 			}
 		}

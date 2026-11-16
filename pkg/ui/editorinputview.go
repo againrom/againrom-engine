@@ -90,39 +90,33 @@ func (e *MapEditor) objectInputRows(s popupSpec) popupSpec {
 	if !e.objectTyping() {
 		return s
 	}
-	m, _ := e.inputModel()
-	if m == nil {
-		return s
-	}
-	for i := range s.Rows {
-		row := &s.Rows[i]
-		if e.obj.rowField[i] != e.obj.focus {
-			continue
-		}
-		if _, exists := e.obj.rowField[i]; !exists {
-			continue
-		}
-		if row.Kind == popupEdit || row.Kind == popupPick || row.Kind == popupMultiline || row.Kind == popupChoice && m.Caret != m.Anchor {
-			row.Edit = e.inputView(editorTextSpan{0, len([]rune(m.Text))}, row.Kind == popupMultiline)
-			row.Edit.first = row.First
-			row.Focus = true
-		}
-	}
-	return s
+	return e.typedRows(s, func(i int) bool { f, ok := e.obj.rowField[i]; return ok && f == e.obj.focus })
 }
 
 func (e *MapEditor) addInputRows(s popupSpec) popupSpec {
 	if e.prompt.kind != promptAdd && e.prompt.kind != promptNewMode {
 		return s
 	}
+	return e.typedRows(s, func(i int) bool { return s.Rows[i].Focus })
+}
+
+// typedRows is the editor's one edit field in a window: the row typed
+// marks, when it is an edit, pick or multiline field, or a choice whose
+// text is selected, carries the keyboard's text view and the focus.
+func (e *MapEditor) typedRows(s popupSpec, typed func(int) bool) popupSpec {
 	m, _ := e.inputModel()
 	if m == nil {
 		return s
 	}
 	for i := range s.Rows {
 		row := &s.Rows[i]
-		if row.Focus && (row.Kind == popupEdit || row.Kind == popupPick || row.Kind == popupChoice && m.Caret != m.Anchor) {
-			row.Edit = e.inputView(editorTextSpan{0, len([]rune(m.Text))}, false)
+		if !typed(i) {
+			continue
+		}
+		if row.Kind == popupEdit || row.Kind == popupPick || row.Kind == popupMultiline || row.Kind == popupChoice && m.Caret != m.Anchor {
+			row.Edit = e.inputView(editorTextSpan{0, len([]rune(m.Text))}, row.Kind == popupMultiline)
+			row.Edit.first = row.First
+			row.Focus = true
 		}
 	}
 	return s
@@ -197,7 +191,7 @@ func drawEditRow(dst *image.RGBA, body *text.Font, row popupRow, box image.Recta
 		}
 		room := box.Dx() - 2 - editTextX
 		if row.Value == "" && row.Hint != "" {
-			body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, popupHintInk)
+			body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, ink.Hint)
 			return
 		}
 		body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Value, room), at.X, at.Y, value)
@@ -220,7 +214,7 @@ func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rect
 		drawEditField(dst, editField{Rect: box, TextH: fontHeight(f, 15), Focus: row.Focus, Phase: true, Caret: caret, SelFrom: lo, SelTo: hi}, func(at image.Point) {
 			clip := dst.SubImage(box.Inset(2)).(*image.RGBA)
 			if label == "" && row.Hint != "" {
-				f.Draw(clip, editorClip(f, row.Hint, box.Dx()-2-editTextX), at.X, at.Y, popupHintInk)
+				f.Draw(clip, editorClip(f, row.Hint, box.Dx()-2-editTextX), at.X, at.Y, ink.Hint)
 				return
 			}
 			shown, x := v.shownRun(spans[0], f, shift, 2-editTextX, box.Dx()-2-editTextX)
@@ -240,7 +234,7 @@ func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rect
 		}
 		if to > from {
 			r := image.Rect(box.Min.X+4+from, y, box.Min.X+4+to, y+fontHeight(f, 15)).Intersect(clip.Bounds())
-			draw.Draw(clip, r, image.NewUniform(color.RGBA{0x55, 0x65, 0x8c, 255}), image.Point{}, draw.Src)
+			draw.Draw(clip, r, image.NewUniform(editorSelectInk), image.Point{}, draw.Src)
 		}
 		f.Draw(clip, label, box.Min.X+4, y, value)
 		if row.Focus && v.caret >= span.from && v.caret <= span.lastCaret(runes) {

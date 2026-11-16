@@ -16,21 +16,21 @@ func nearCentre(r image.Rectangle, size image.Point) bool {
 	return d.X >= -3 && d.X <= 3 && d.Y >= -3 && d.Y <= 3
 }
 
-// The mod window opens from its home in the middle of the editor window, at
-// two window sizes; a dragged one reopens where it was dragged.
-func TestModWindowHomeOpensInTheMiddle(t *testing.T) {
+// The mod window first opens in the middle of the editor window, at two
+// window sizes; a dragged one reopens where it was dragged.
+func TestModWindowOpensInTheMiddle(t *testing.T) {
 	for _, size := range centreSizes {
 		e := newMapEditorFixture(t)
 		e.Layout(size.X, size.Y)
-		s := popupSpec{Title: "mod", At: e.personCorner(homeMod), Width: 620, Bounds: e.popupBounds(),
+		s := popupSpec{Title: "mod", At: e.keptCorner(popObject), Width: 620, Bounds: e.popupBounds(),
 			Rows: []popupRow{{Kind: popupEdit, Label: "a"}, {Kind: popupEdit, Label: "b"}}}
 		e.openCentred(popObject, &s)
 		if r := layoutPopup(s, e.font, e.bodyFont()).Rect; !nearCentre(r, size) {
 			t.Errorf("%dx%d: the mod window stands at %v", size.X, size.Y, r)
 		}
 		dragged := image.Pt(40, 90)
-		e.places[e.storeRow(popObject)] = popupStanding{at: dragged, placed: true, slack: true}
-		s.At = e.personCorner(homeMod)
+		e.places[e.storeRow(popObject)] = popupStanding{at: dragged, slack: true}
+		s.At = e.keptCorner(popObject)
 		e.openCentred(popObject, &s)
 		if s.At != dragged {
 			t.Errorf("%dx%d: a dragged mod window reopens at %v, want %v", size.X, size.Y, s.At, dragged)
@@ -38,31 +38,52 @@ func TestModWindowHomeOpensInTheMiddle(t *testing.T) {
 	}
 }
 
-// Every home a list or an object window opens from stands it in the middle of
-// the editor window at two window sizes, through keepInRoom, the route every
-// home popup's spec takes.
-func TestEveryPopupHomeOpensInTheMiddle(t *testing.T) {
-	homes := []struct {
-		name string
-		id   editorPopupID
-		home popupHome
-	}{
-		{"list on the map", popList, homeListMap}, {"list in the window", popList, homeListWindow},
-		{"object on the map", popObject, homeObjectMap}, {"object in the window", popObject, homeObjectWindow},
-		{"message", popObject, homeMessage}, {"trigger", popObject, homeTrigger},
-		{"person", popObject, homePerson}, {"mod", popObject, homeMod},
-	}
+// The list and the object window first open in the middle of the editor
+// window at two window sizes, through keepInRoom, the route both specs take.
+func TestListAndObjectWindowsFirstOpenInTheMiddle(t *testing.T) {
 	for _, size := range centreSizes {
-		for _, h := range homes {
+		for _, id := range []editorPopupID{popList, popObject} {
 			e := newMapEditorFixture(t)
 			e.Layout(size.X, size.Y)
-			s := popupSpec{Title: h.name, At: e.placedCorner(h.id, h.home), Width: 420, Bounds: e.popupBounds(),
+			s := popupSpec{Title: "window", At: e.keptCorner(id), Width: 420, Bounds: e.popupBounds(),
 				Rows: []popupRow{{Kind: popupEdit, Label: "a"}, {Kind: popupEdit, Label: "b"}, {Kind: popupEdit, Label: "c"}}}
-			corner := s.At
-			e.keepInRoom(h.id, &s)
+			e.keepInRoom(id, &s)
 			if r := layoutPopup(s, e.font, e.bodyFont()).Rect; !nearCentre(r, size) {
-				t.Errorf("%dx%d %s: the window from home corner %v stands at %v", size.X, size.Y, h.name, corner, r)
+				t.Errorf("%dx%d popup %d: the window stands at %v", size.X, size.Y, id, r)
 			}
+		}
+	}
+}
+
+// A prompt first opens in the middle of the editor window, as every window
+// does, and the drag of its title moves it from there; the Add window states
+// its own place, centred across with its top at an eighth of the height.
+func TestPromptsFirstOpenInTheMiddleAndTheAddWindowAtItsOwnPlace(t *testing.T) {
+	for _, size := range centreSizes {
+		f, rows := endless()
+		e, _ := mapPanelEditor(t, &mapPanelEdits{facts: f, rows: rows}, nil)
+		e.Layout(size.X, size.Y)
+		_ = e.Key("testplay")
+		s, ok := e.promptSpec()
+		if !ok || e.prompt.kind != promptNotice {
+			t.Fatalf("%dx%d: no notice", size.X, size.Y)
+		}
+		if r := layoutPopup(s, e.font, e.bodyFont()).Rect; !nearCentre(r, size) {
+			t.Errorf("%dx%d: the notice stands at %v", size.X, size.Y, r)
+		}
+		after := titleDragBy(t, e, image.Pt(30, 20))
+		s, _ = e.promptSpec()
+		if r := layoutPopup(s, e.font, e.bodyFont()).Rect; r.Min.Y != after.Min.Y {
+			t.Errorf("%dx%d: the dragged notice stands at %v, its title at %v", size.X, size.Y, r, after)
+		}
+
+		a, _ := newWalkEditor(t)
+		a.Layout(size.X, size.Y)
+		a.openAdd("Unit")
+		s, ok = a.promptSpec()
+		r := layoutPopup(s, a.font, a.bodyFont()).Rect
+		if mid := (r.Min.X + r.Max.X) / 2; !ok || mid < size.X/2-3 || mid > size.X/2+3 || r.Min.Y != size.Y/8 {
+			t.Errorf("%dx%d: the Add window stands at %v, want centred across with its top at %d", size.X, size.Y, r, size.Y/8)
 		}
 	}
 }

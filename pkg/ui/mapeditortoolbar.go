@@ -357,15 +357,15 @@ func (e *MapEditor) toolbarPress(p image.Point) {
 }
 
 // toolTip is the hover tip of the toolbar button under p, and the button's
-// corner: its word, and the key that does the same, when it has one.
-func (e *MapEditor) toolTip(p image.Point) (string, image.Point, bool) {
+// box: its word, and the key that does the same, when it has one.
+func (e *MapEditor) toolTip(p image.Point) (string, image.Rectangle, bool) {
 	for _, t := range e.toolbarEntries() {
 		if !p.In(t.rect) {
 			continue
 		}
-		return e.toolWord(t.toolButton), t.rect.Min, true
+		return e.toolWord(t.toolButton), t.rect, true
 	}
-	return "", image.Point{}, false
+	return "", image.Rectangle{}, false
 }
 
 // toolWord is a row's word as its tip and its menu row read it: the word,

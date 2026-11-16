@@ -846,8 +846,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	s.Buttons = []string{e.word("editor.button.back"), finish, e.word("editor.button.cancel")}
 	s.Disabled = []bool{r.at <= r.first(), false, false}
 	l := layoutPopup(s, e.font, body)
-	// The top stays put while the steps grow the window downward.
-	s.At = e.promptCorner(centreSteps, l.Rect.Size())
+	s.At = e.centreCorner(l.Rect.Size(), openSteps)
 	return s, acts
 }
 
@@ -968,10 +967,7 @@ func (e *MapEditor) drawAside(pic *image.RGBA, s popupSpec, preview *image.RGBA)
 		return
 	}
 	box := layoutPopup(s, e.font, e.bodyFont()).Aside
-	if box.Empty() {
-		return
-	}
-	editorBlit(pic.SubImage(box).(*image.RGBA), preview, addPreviewRect(preview.Bounds().Size(), box), false)
+	drawEditorPicture(pic, editorPicture{Pic: preview, Box: box, Clip: box})
 }
 
 // addPreviewRect fits a picture of size into box, centred: a large picture

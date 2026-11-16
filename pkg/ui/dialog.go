@@ -7,14 +7,135 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// Dialog names the modal dialog description (popupSpec) for the packages that
-// compose pages. A value is laid out by layoutPopup and painted by drawPopup.
-// Geometry comes from the rows, or from given rectangles (Box and the fields
-// beside it); the frame is art or colours by value, a dialog's parts are data
-// the painter reads the same way for every value. The editor's popups, the
-// notice windows, the gold editor, the game menu, the save page's frames and
-// buttons, the authored notices, the help panel and town talk are values of it.
-type Dialog = popupSpec
+// Dialog is the game's modal dialog description for the packages that compose
+// pages. A value is laid out by layoutDialog and painted by paintDialog.
+// Geometry comes from given rectangles (Box and the fields beside it, or a
+// notice window over Panel); the frame is art or colours by value, a dialog's
+// parts are data the painter reads the same way for every value. The notice
+// windows, the gold editor, the game menu, the save page's frames and
+// buttons, the authored notices, the help panel and town talk are values of
+// it. The map editor's windows are not: they are popupSpec trees.
+type Dialog struct {
+	// Title heads a notice window; Top is its first shown line.
+	Title string
+	Top   int
+
+	// Box and Panel give the dialog's geometry: Box is a composed picture of
+	// that size at the origin, Panel a notice window standing over that page
+	// rectangle. The frame is by value.
+	Box, Panel image.Rectangle
+	// Frame is the window art a framed dialog draws; Frames are frames by
+	// value drawn instead of it, an empty non-nil list none.
+	Frame  *DialogFrame
+	Frames []dialogFrame
+	// Lines, Pushes and Edit are parts stated as data; Bar is a scroll bar
+	// drawn over the frames argument (or BarFrames from a notice).
+	Lines  []dialogLine
+	Pushes []pushButton
+	Edit   *dialogEdit
+	Bar    *vScrollBar
+
+	// A notice window's words and answer shape. Runs are its rows, each a
+	// run of plain and alert ink; the zero ShapeSize lays out a list window
+	// with a title, list, hint and 96x24 answers; a ShapeSize a text window
+	// of that size, each line centred, its answers AnswerSize, AnswerGap
+	// apart and AnswerBottom above the bottom. Latch holds the answer pressed.
+	Runs                          []noticeRow
+	Hint                          string
+	Answers                       []string
+	ShapeSize, AnswerSize         image.Point
+	TextTop, TextWidth, LinePitch int
+	AnswerGap, AnswerBottom       int
+	Latch                         *buttonLatch
+	// Display turns a word into the bytes the font draws; nil is as given.
+	Display func(string) string
+
+	// An authored notice's look (the rest of the Box form), read by the one
+	// layout and painter. Box is its rectangle in the design space, not in
+	// window pixels: the map screen draws straight to the window, so the
+	// authored 640x480 rectangle would be a quarter-size box in a corner at
+	// the shipped startup scale; the composition happens at the authored
+	// size and the placement scales it. The rectangles below are relative
+	// to Box's origin, as the window's child rectangles are. A new value of
+	// this type replaces a notice's look (Viewer.SetNoticeLayouts).
+	//
+	// Style picks the row of noticeStyles the notice is laid out and painted
+	// by. Body and Face are what one notice shows; RenderNotice sets them.
+	Style              NoticeStyle
+	DialogueBackdrop   DialogueBackdrop
+	DialogueArithmetic DialogueArithmetic
+	ButtonState        DialogueButtonState
+	// Text and Button stand in the box; SecondaryButton is the campaign
+	// outcome panel's second control, empty on dialogue notices, and
+	// SecondaryState its pointer state.
+	Text            image.Rectangle
+	Button          image.Rectangle
+	SecondaryButton image.Rectangle
+	SecondaryState  DialogueButtonState
+	// Portrait is the speaker's pane and TextBesidePortrait the text area
+	// when the pane is there: both shapes of one window in one value, as
+	// the original's one routine holds both text rectangles and picks on a
+	// flag. WithPortrait is that pick; an empty Portrait is a layout with
+	// no pane at all. PortraitAt is the request point on the dialogue
+	// surface, PortraitWindow the picture's crop.
+	Portrait           image.Rectangle
+	TextBesidePortrait image.Rectangle
+	PortraitAt         image.Point
+	PortraitWindow     image.Rectangle
+	// ButtonLabel is the word on the primary button (the success panel's
+	// from dialogs.bin); SecondaryButtonLabel is empty where SecondaryButton
+	// is empty.
+	ButtonLabel, SecondaryButtonLabel string
+	SecondaryDisabled                 bool
+	// FirstLine is the first wrapped line drawn, Scrollbar the scroll bar
+	// beside the text and the two hot flags its endcap states; only the help
+	// panel sets them.
+	FirstLine                           int
+	Scrollbar                           image.Rectangle
+	ScrollbarTopHot, ScrollbarBottomHot bool
+	// Ink is the body text colour when its alpha is nonzero, the style's
+	// ink otherwise; only the help panel sets it. Pitch is added to the
+	// font's height to give the line pitch.
+	Ink   color.RGBA
+	Pitch int
+	// Fill and Border are the colours of a frameless notice, TextColor the
+	// plain style's body ink, ButtonFill, ButtonBorder and ButtonText the
+	// button's colours; none is read when the frame art is present.
+	Fill, Border, TextColor, ButtonFill, ButtonBorder, ButtonText color.RGBA
+	// GrowText makes Text hold every line of its body (WithBody, DIV-4229).
+	GrowText bool
+	// PortraitFill and PortraitBorder paint an empty pane, so a speaker
+	// whose picture was not found and a pane never built read differently.
+	PortraitFill, PortraitBorder color.RGBA
+	Body                         string
+	Face                         *image.RGBA
+}
+
+// dialogLayout is a laid out Dialog: every rectangle its painter fills and
+// its hit tests read.
+type dialogLayout struct {
+	Rect image.Rectangle
+	// Body, HeadingBox, Hint and Text are the dialog's rectangles, Answers
+	// its answer buttons and LinePitch a text window's line pitch.
+	Body, HeadingBox, Hint, Text image.Rectangle
+	Answers                      []image.Rectangle
+	LinePitch                    int
+	// List is a list window's list and TopClamped its first shown line
+	// after clamping.
+	List       listBox
+	TopClamped int
+	// Frames, Lines, Pushes, Edit, Bar and BarFrames are the painted parts;
+	// BarLive makes the bar answer the pointer as a list window's does.
+	Frames    []dialogFrame
+	Lines     []dialogLine
+	Pushes    []pushButton
+	Edit      *dialogEdit
+	Bar       *vScrollBar
+	BarFrames []*image.RGBA
+	BarLive   bool
+	// Portrait is a notice's pane, painted right after the frames.
+	Portrait image.Rectangle
+}
 
 // dialogLine is one line a dialog draws: its runs left to right from At,
 // inside Clip when that is set, a flat shadow Shadow pixels right and down
@@ -84,7 +205,7 @@ func drawDialogLines(dst *image.RGBA, f *text.Font, lines []dialogLine) {
 // drawDialogParts paints a given dialog's parts over its frames: the edit
 // field, the buttons, the scroll bar, the lines and the answers, each read
 // the same way for every value. The rows form has none of them.
-func drawDialogParts(dst *image.RGBA, f *text.Font, frames []*image.RGBA, s popupSpec, l popupLayout, pointer image.Point, pointerOK bool) {
+func drawDialogParts(dst *image.RGBA, f *text.Font, frames []*image.RGBA, s Dialog, l dialogLayout, pointer image.Point, pointerOK bool) {
 	if l.Edit != nil {
 		var label func(image.Point)
 		if line := l.Edit.Line; line != nil && f != nil {
@@ -127,18 +248,33 @@ func drawDialogParts(dst *image.RGBA, f *text.Font, frames []*image.RGBA, s popu
 
 // drawDialog lays s out and paints it over dst with no pointer: the one
 // layout and the one painter for a value whose parts are given.
-func drawDialog(dst *image.RGBA, f *text.Font, s popupSpec) {
-	drawPopup(dst, f, f, nil, s, layoutPopup(s, f, f), popupInk{}, image.Point{}, false)
+func drawDialog(dst *image.RGBA, f *text.Font, s Dialog) {
+	paintDialog(dst, f, nil, s, layoutDialog(s, f), image.Point{}, false)
 }
 
-// dialogGivenForm reports a description whose geometry is given rather than
-// derived from rows.
-func dialogGivenForm(s popupSpec) bool { return !s.Box.Empty() || !s.Panel.Empty() }
+// paintDialog is the one dialog painter: the frames, the portrait pane, then
+// the parts.
+func paintDialog(dst *image.RGBA, f *text.Font, frames []*image.RGBA, s Dialog, l dialogLayout, pointer image.Point, pointerOK bool) {
+	if dst == nil {
+		return
+	}
+	for _, fr := range l.Frames {
+		if fr.Body {
+			drawFrameBody(dst, fr.Spec)
+		} else {
+			drawFrame(dst, fr.Spec)
+		}
+	}
+	if !l.Portrait.Empty() {
+		s.styleRow().portrait(dst, s, s.Face)
+	}
+	drawDialogParts(dst, f, frames, s, l, pointer, pointerOK)
+}
 
-// layoutDialogGiven is the layout of a description with given geometry: a
-// notice box, authored in the design space and composed at the picture's
-// origin, or a notice window over its Panel.
-func layoutDialogGiven(s popupSpec, f *text.Font) popupLayout {
+// layoutDialog is the one dialog layout: a notice box, authored in the design
+// space and composed at the picture's origin, or a notice window over its
+// Panel.
+func layoutDialog(s Dialog, f *text.Font) dialogLayout {
 	if !s.Panel.Empty() {
 		return layoutNoticeWindow(s, f)
 	}
@@ -164,7 +300,7 @@ type noticeStyleRow struct {
 	frameShadows bool
 	secondary    bool
 	refuseOff    bool
-	portrait     func(*image.RGBA, popupSpec, *image.RGBA)
+	portrait     func(*image.RGBA, Dialog, *image.RGBA)
 }
 
 var noticeStyles = [...]noticeStyleRow{
@@ -174,7 +310,7 @@ var noticeStyles = [...]noticeStyleRow{
 }
 
 // styleRow is the value's row of noticeStyles; an unknown style is plain.
-func (s popupSpec) styleRow() noticeStyleRow {
+func (s Dialog) styleRow() noticeStyleRow {
 	if int(s.Style) < len(noticeStyles) {
 		return noticeStyles[s.Style]
 	}
@@ -186,10 +322,10 @@ func (s popupSpec) styleRow() noticeStyleRow {
 // given are used as they are; otherwise the frame is the art when it is
 // valid and the value's colours when it is not. Button, SecondaryButton,
 // Portrait, Text and Scrollbar become parts when they have area.
-func layoutNoticeBox(s popupSpec, f *text.Font) popupLayout {
+func layoutNoticeBox(s Dialog, f *text.Font) dialogLayout {
 	size := s.Box.Size()
 	row := s.styleRow()
-	l := popupLayout{Rect: image.Rectangle{Max: size}, Frames: s.Frames, Lines: s.Lines,
+	l := dialogLayout{Rect: image.Rectangle{Max: size}, Frames: s.Frames, Lines: s.Lines,
 		Edit: s.Edit, Bar: s.Bar, Portrait: s.Portrait}
 	if l.Frames == nil {
 		l.Frames = []dialogFrame{noticeBoxFrame(s, row, size)}
@@ -214,7 +350,7 @@ func layoutNoticeBox(s popupSpec, f *text.Font) popupLayout {
 // the style's shadow band, the art's body with the backdrop's pixel format
 // when the style's shadows fall on the scene, and the value's colours when
 // the art is not whole.
-func noticeBoxFrame(s popupSpec, row noticeStyleRow, size image.Point) dialogFrame {
+func noticeBoxFrame(s Dialog, row noticeStyleRow, size image.Point) dialogFrame {
 	body := image.Rect(0, 0, size.X-row.inset, size.Y-row.inset)
 	if !s.Frame.valid() {
 		return dialogFrame{Spec: panelFrame(body, s.Fill, s.Border)}
@@ -230,7 +366,7 @@ func noticeBoxFrame(s popupSpec, row noticeStyleRow, size image.Point) dialogFra
 
 // layoutNoticeBody lays out the body text and the scroll bar beside it: the
 // lines of Body by the style's rule, from FirstLine, as many as Text holds.
-func layoutNoticeBody(l *popupLayout, s popupSpec, f *text.Font, row noticeStyleRow) {
+func layoutNoticeBody(l *dialogLayout, s Dialog, f *text.Font, row noticeStyleRow) {
 	pitch := f.Height() + s.Pitch
 	if pitch <= 0 {
 		return
@@ -271,7 +407,7 @@ func layoutNoticeBody(l *popupLayout, s popupSpec, f *text.Font, row noticeStyle
 // the zero shape a list window (the panel less noticeWindowInset), a ShapeSize
 // a text window of that size centred on the panel, its lines wrapped to
 // TextWidth and each centred one every LinePitch pixels.
-func layoutNoticeWindow(s popupSpec, f *text.Font) popupLayout {
+func layoutNoticeWindow(s Dialog, f *text.Font) dialogLayout {
 	if s.ShapeSize != (image.Point{}) {
 		return layoutNoticeText(s, f)
 	}
@@ -305,7 +441,7 @@ func layoutNoticeWindow(s popupSpec, f *text.Font) popupLayout {
 }
 
 // layoutNoticeText is the text form of a notice window.
-func layoutNoticeText(s popupSpec, f *text.Font) popupLayout {
+func layoutNoticeText(s Dialog, f *text.Font) dialogLayout {
 	at := s.Panel.Min.Add(s.Panel.Size().Sub(s.ShapeSize).Div(2))
 	b := image.Rectangle{Min: at, Max: at.Add(s.ShapeSize)}
 	answers := noticeAnswers(b, s.AnswerSize, s.AnswerGap, s.AnswerBottom, len(s.Answers))
@@ -314,7 +450,7 @@ func layoutNoticeText(s popupSpec, f *text.Font) popupLayout {
 	if len(answers) > 0 {
 		bottom = answers[0].Min.Y
 	}
-	l := popupLayout{Rect: b, Body: b, Text: image.Rect(x, b.Min.Y+s.TextTop, x+s.TextWidth, bottom), Answers: answers, LinePitch: s.LinePitch}
+	l := dialogLayout{Rect: b, Body: b, Text: image.Rect(x, b.Min.Y+s.TextTop, x+s.TextWidth, bottom), Answers: answers, LinePitch: s.LinePitch}
 	l.Frames = []dialogFrame{{Spec: windowFrame(b, s.Frame)}}
 	if f == nil {
 		return l
@@ -344,7 +480,7 @@ func townShellTitleLine(f *text.Font, s string, r image.Rectangle) dialogLine {
 }
 
 // dialogDisplayOf is the description's Display, or the identity.
-func dialogDisplayOf(s popupSpec) func(string) string {
+func dialogDisplayOf(s Dialog) func(string) string {
 	if s.Display != nil {
 		return s.Display
 	}
@@ -353,7 +489,7 @@ func dialogDisplayOf(s popupSpec) func(string) string {
 
 // noticeWindowLines wraps every run row of a window to the list's text width,
 // or a text window's width with no indent.
-func noticeWindowLines(s popupSpec, f *text.Font, l popupLayout) []noticeLine {
+func noticeWindowLines(s Dialog, f *text.Font, l dialogLayout) []noticeLine {
 	width, indent := l.List.Rect.Dx()-2*listTextX, noticeWrapIndent
 	if l.LinePitch > 0 {
 		width, indent = l.Text.Dx(), 0

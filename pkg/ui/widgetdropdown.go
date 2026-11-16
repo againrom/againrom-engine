@@ -108,7 +108,7 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 	case d.Icon != nil:
 		drawIconButton(dst, iconButton{Rect: d.Rect, Icon: d.Icon, On: d.Open, Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled, Press: d.Press})
 	case d.Edit != nil:
-		drawEditRow(dst, d.EditFont, *d.Edit, d.Rect, popupInk{Ground: d.Fill, Edge: d.Ink}, d.Ink)
+		drawEditRow(dst, d.EditFont, *d.Edit, d.Rect, popupInk{Ground: d.Fill, Edge: d.Ink, Hint: popupHintInk}, d.Ink)
 	default:
 		drawDropdownBox(dst, f, d, pointer, pointerOK)
 	}
@@ -177,21 +177,20 @@ const (
 
 // hit reports the part under p and, for a row, the list index.
 func (d dropdown) hit(f *text.Font, p image.Point) (dropdownHit, int) {
+	if d.Open && d.List != nil {
+		// The open list is painted over the box, so it is hit first.
+		l := d.listBox(f)
+		if p.In(l.Bar()) {
+			return dropdownBar, 0
+		}
+		if row, ok := l.RowAt(p); ok {
+			if top, n := d.List.Visible(); row < n {
+				return dropdownRow, top + row
+			}
+		}
+	}
 	if p.In(d.Rect) {
 		return dropdownToggle, 0
-	}
-	if !d.Open || d.List == nil {
-		return dropdownMiss, 0
-	}
-	l := d.listBox(f)
-	if p.In(l.Bar()) {
-		return dropdownBar, 0
-	}
-	if row, ok := l.RowAt(p); ok {
-		top, n := d.List.Visible()
-		if row < n {
-			return dropdownRow, top + row
-		}
 	}
 	return dropdownMiss, 0
 }

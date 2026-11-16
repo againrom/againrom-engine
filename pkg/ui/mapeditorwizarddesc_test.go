@@ -14,7 +14,7 @@ type wizardFill func(scriptView, *popupSpec, func(popupRow, int, ...string), fun
 // rows: the same base, add and text, and the same row captions.
 func wizardWindowWith(e *MapEditor, v scriptView, fill wizardFill) (popupSpec, map[int]int, map[int][]string) {
 	o := &e.obj
-	s := popupSpec{At: e.placedCorner(popObject, homeTrigger), Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
+	s := popupSpec{At: e.keptCorner(popObject), Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
 	fields, acts := map[int]int{}, map[int][]string{}
 	width := e.popupWide(popObject, scriptPopupWidth) - 2*popupPad - 8
 	add := func(row popupRow, field int, a ...string) {

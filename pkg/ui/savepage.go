@@ -120,7 +120,7 @@ func (c PageConfirm) windowed() bool { return c.Window.ShapeSize != (image.Point
 // draws as label.
 func (c PageConfirm) question(label string) dialogRun {
 	s := strings.ReplaceAll(c.Before, "#", " ") + label + strings.ReplaceAll(c.After, "#", " ")
-	w := dialogRun{popupSpec: c.Window}
+	w := dialogRun{Dialog: c.Window}
 	w.Runs, w.Answers = []noticeRow{{{Text: s}}}, []string{c.Yes, c.No}
 	return w
 }
