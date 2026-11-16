@@ -87,7 +87,11 @@ var bankShopProfile = shopProfile{
 	order: func(s *Shop) func([]ShopItem) []int {
 		return func(items []ShopItem) []int { return s.tables.Order(secondItems(items)) }
 	},
-	join: func(a, b ShopItem) bool { return secondshop.Stacking.Merges(secondItem(a), secondItem(b)) },
+	join: func(a, b ShopItem) bool {
+		x, okA := secondItemOf(a)
+		y, okB := secondItemOf(b)
+		return okA && okB && secondshop.Stacking.Merges(x, y)
+	},
 	fill: func(s *Shop, _ *mapload.Table, src shopDrawSource) [shopShelfCount][]ShopItem {
 		tables := s.tables
 		tables.Rolls = secondshop.Rolls{Factor: int(s.stockMultiplier), Source: func() shopstock.Source {

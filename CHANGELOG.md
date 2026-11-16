@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
+- [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.
 
 ### For map makers and modders
 

@@ -37,9 +37,16 @@ func secondShopItems(t secondshop.Tables, items []secondshop.Item) []ShopItem {
 // secondItem is i read back from its bag unit, the only identity a place
 // made from the pack carries.
 func secondItem(i ShopItem) secondshop.Item {
-	it, _ := secondshop.FromInstance(i.Instance())
-	it.Count = i.Count
+	it, _ := secondItemOf(i)
 	return it
+}
+
+// secondItemOf is secondItem and whether i has a bag form at all. A worn item
+// a mission left, with its carried weight, has none.
+func secondItemOf(i ShopItem) (secondshop.Item, bool) {
+	it, ok := secondshop.FromInstance(i.Instance())
+	it.Count = i.Count
+	return it, ok
 }
 
 func secondItems(items []ShopItem) []secondshop.Item {
