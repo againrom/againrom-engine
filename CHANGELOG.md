@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] A new starter option keeps the mouse inside the game window on a computer with two monitors.
 - [BASE] A window switched from full screen now fits the screen, so its edges can be dragged.
+- [BASE] Game text, such as the name on the new-character screen of the second game, no longer shows a dark blurred rim when the window is larger than the original screen.
 - [BASE] Darkness darkens and Light brightens the ground and units under them again, also with the Lighting option off.
 - [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
 - [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.

@@ -42,7 +42,10 @@ type DrawCall struct {
 	// picture laid over the world. There is no raster of it in the frame to
 	// erase, and the cells the overlay may draw are the ones no later picture
 	// covers.
-	Erased     bool
+	Erased bool
+	// SourceOver marks a draw whose cells mix into what lay under them: with
+	// Flat, Color drawn over the cell by its own alpha; without, a coverage
+	// glyph's ink mixed in at the cell's level (DrawOver).
 	SourceOver bool
 }
 
@@ -66,7 +69,11 @@ func (c DrawCall) NativeColor(level uint8, cell int) color.RGBA {
 	}
 	ink := c.CellColor(level)
 	if c.SourceOver && cell >= 0 && cell < len(c.Under) {
-		ink = Tinted(ink, c.Under[cell])
+		if c.Flat {
+			ink = Tinted(ink, c.Under[cell])
+		} else {
+			ink = Mix(c.Under[cell], c.Color, level)
+		}
 	}
 	return Tinted(c.Tint, ink)
 }

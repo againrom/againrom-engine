@@ -339,7 +339,8 @@ func (f *Font) paint(dst *image.RGBA, s string, x, y int, c color.RGBA, mode pai
 		gx := x + penX
 		auditGlyph(g, record)
 		if record {
-			call := DrawCall{Glyph: g, X: gx, Y: y, Color: c, Flat: mode == paintFlat, Clip: dst.Bounds()}
+			call := DrawCall{Glyph: g, X: gx, Y: y, Color: c, Flat: mode == paintFlat, Clip: dst.Bounds(),
+				SourceOver: mode == paintOver && g.CoverageLevels}
 			if !skipRaster {
 				call.Under = recordUnder(dst, g, gx, y)
 			}

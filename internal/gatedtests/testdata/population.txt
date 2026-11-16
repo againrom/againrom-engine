@@ -1543,3 +1543,4 @@ pkg/game.TestShortcutInventoryFrames
 pkg/game.TestReleaseMapEditorSavesAnInstalledMapKeepingItsUntouchedBytes
 pkg/game.TestReleaseHeldDocumentDarknessAreaSurvivesLoad
 pkg/game.TestReleaseHeldDocumentDarknessCastAfterLoad
+pkg/ui.TestGameTextNameLineCrops
