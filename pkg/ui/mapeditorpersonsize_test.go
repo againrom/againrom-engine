@@ -67,9 +67,9 @@ func personCardBandScrolls(t *testing.T, e *MapEditor, lang string, low bool) {
 
 // Each view of the person window takes the size its rows need: the plain
 // view the least width that holds its rows, card and figure, as wide as the
-// room at most, its Kind row shown and changeable; the detailed view the
-// widest the window allows and no tabs; both every row high, or as high as
-// the room with the rows scrolled.
+// room at most, its Kind row shown and changeable; the detailed view as wide
+// as its columns need, the room at most, and no tabs; both every row high,
+// or as high as the room with the rows scrolled.
 func TestEditorPersonWindowTakesTheSizeItsRowsNeed(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, size := range []image.Point{{640, 480}, {1920, 1080}} {
@@ -93,7 +93,7 @@ func TestEditorPersonWindowTakesTheSizeItsRowsNeed(t *testing.T) {
 					if plain && l.Rect.Dx() != need {
 						t.Errorf("plain view %d wide, its rows need %d", l.Rect.Dx(), need)
 					}
-					if !plain && l.Rect.Dx() < e.unitWindowWidth()-32-e.hostedAside(s)-popupPad {
+					if !plain && l.Rect.Dx() < min(e.unitWindowWidth()-32-e.hostedAside(s)-popupPad, s.Columns*personColumnWidth) {
 						t.Errorf("detailed view %d wide, the window allows %d", l.Rect.Dx(), e.unitWindowWidth()-32)
 					}
 					shown := map[int]popupRowRect{}

@@ -708,7 +708,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 	}
 	s.MaxRows = e.objectRowsShown(true)
-	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
+	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-e.sizedRows(s.MaxRows)))
 	s.Top = e.objectTop
 	return s, links
 }

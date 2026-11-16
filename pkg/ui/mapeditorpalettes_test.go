@@ -260,7 +260,7 @@ func TestMapEditorPaletteOverTheSearchFieldMovesByItsTitle(t *testing.T) {
 	}
 	drag := func(d image.Point) image.Rectangle {
 		before, _ := e.FindControl(ControlQuery{Role: ControlTitle})
-		p := before.Min.Add(image.Pt(10, 4))
+		p := before.Min.Add(image.Pt(10, popupTopBand+2))
 		q := p.Add(d)
 		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 		e.Pointer(Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
@@ -270,8 +270,8 @@ func TestMapEditorPaletteOverTheSearchFieldMovesByItsTitle(t *testing.T) {
 	}
 	box := e.treeSearchBox()
 	title, _ := e.FindControl(ControlQuery{Role: ControlTitle})
-	over := drag(center(box).Sub(title.Min.Add(image.Pt(10, 4))))
-	if p := over.Min.Add(image.Pt(10, 4)); !p.In(box) {
+	over := drag(center(box).Sub(title.Min.Add(image.Pt(10, popupTopBand+2))))
+	if p := over.Min.Add(image.Pt(10, popupTopBand+2)); !p.In(box) {
 		t.Fatalf("the palette's title %v does not lie over the search field %v", over, box)
 	}
 	moved := drag(image.Pt(200, 100))

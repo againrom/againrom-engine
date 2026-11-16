@@ -117,7 +117,7 @@ func TestMapEditorSidePanelUndocksByTitleDrag(t *testing.T) {
 					t.Errorf("%s: the window is %v, want %v moved by %v", name, w.Rect, before, d)
 				}
 				// The window moves by its title row.
-				p := image.Pt(w.Title.Min.X+10, center(w.Title).Y)
+				p := image.Pt(w.Title.Min.X+10, w.Title.Min.Y+popupTopBand+2)
 				r.drag(p, image.Pt(-10, 5))
 				if _, m := panelWindow(t, e, i); m.Rect.Min != w.Rect.Min.Add(image.Pt(-10, 5)) {
 					t.Errorf("%s: the window moved to %v from %v", name, m.Rect.Min, w.Rect.Min)
@@ -294,7 +294,7 @@ func TestMapEditorFloatingRightPanelStandsWhereTheWindowHasNoRoom(t *testing.T) 
 			if e.chromeHit(center(l.Rect)) != popProps {
 				t.Fatalf("%s: a press inside the window does not reach it", name)
 			}
-			r.drag(image.Pt(l.Title.Min.X+10, center(l.Title).Y), image.Pt(15, 10))
+			r.drag(image.Pt(l.Title.Min.X+10, l.Title.Min.Y+popupTopBand+2), image.Pt(15, 10))
 			s, _ = e.propsSpec()
 			if m := layoutPopup(s, e.font, e.bodyFont()); m.Rect.Min != l.Rect.Min.Add(image.Pt(15, 10)) {
 				t.Errorf("%s: the hint window moved to %v from %v", name, m.Rect.Min, l.Rect.Min)

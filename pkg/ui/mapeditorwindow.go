@@ -1482,12 +1482,14 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 // the panel's height shows stays in reach.
 func (e *MapEditor) clampObjectTop(s *popupSpec, count int) {
 	if !e.objectInPanel() {
+		shown := *s
+		shown.MaxRows = e.sizedRows(s.MaxRows)
 		most := 0
-		if s.MaxRows > 0 {
-			most = count - s.MaxRows
+		if shown.MaxRows > 0 {
+			most = count - shown.MaxRows
 		}
-		if s.MaxRows > 0 && count > s.MaxRows {
-			most = e.columnsLastTop(*s, most, count)
+		if shown.MaxRows > 0 && count > shown.MaxRows {
+			most = e.columnsLastTop(shown, most, count)
 		}
 		e.objectTop = max(0, min(e.objectTop, most))
 	}

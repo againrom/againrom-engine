@@ -55,7 +55,7 @@ func TestPopupLayoutIsThePaintAndTheHitTest(t *testing.T) {
 		index int
 	}{
 		{center(l.Close), popupClose, 0},
-		{l.Title.Min.Add(image.Pt(10, 4)), popupTitle, 0},
+		{l.Title.Min.Add(image.Pt(10, popupTopBand+2)), popupTitle, 0},
 		{center(l.Rows[2].Control), popupRowControl, 2},
 		{center(l.Rows[3].Label), popupRowLine, 3},
 		{center(l.Rows[4].Button), popupRowButton, 4},

@@ -38,6 +38,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor: the Units tab places units for a chosen player with no window, the unit window shows corpse drops with the bag and the character card under the identity, and the Players window alone manages players.
 - [BASE] Map editor: every question, notice and list window first opens in the middle of the editor, and a window taller than the editor scrolls its rows, then shortens its list, then folds its notes behind the title's (?), so it fits at 640x480; tips show after 300 ms and a (?) at once, a choice list opens inside its window, and each button is as wide as its caption.
 - [BASE] A mod can turn a spell off, move it in the book and set the book's size; shops follow, and a spell a hero already knew comes back when the mod is removed.
+- [BASE] Map editor: a window dragged below the editor's bottom edge is shortened by pressing its top border (now as deep as the other borders) and dragging down, its rows scrolling inside, and the detailed unit window opens as wide as its columns need instead of the whole editor width.
 - [BASE] Mod window: a Characters page adds a guest character with its name in each language and a face, renames or re-faces a game character, and the mission's guest party offers the new characters.
 
 ### For developers

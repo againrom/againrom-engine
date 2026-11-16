@@ -228,6 +228,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				sections-- // the card holds the stats section
 			}
 			s.Columns = min(sections, max(1, s.Width/personColumnWidth))
+			// A window nobody resized is as wide as its columns need, not
+			// as wide as the editor allows.
+			if !e.objectInPanel() && e.places[e.storeRow(popObject)].size.X == 0 {
+				s.Width = min(s.Width, s.Columns*personColumnWidth)
+			}
 		}
 	}
 	textWidth := 378
@@ -1187,7 +1192,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	}
 	e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 	s.MaxRows = e.objectRowsShown(len(e.objectBack) > 0)
-	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
+	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-e.sizedRows(s.MaxRows)))
 	s.Top = e.objectTop
 	return s, links, true
 }

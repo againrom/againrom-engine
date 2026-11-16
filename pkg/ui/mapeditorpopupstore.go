@@ -27,6 +27,7 @@ type popupStanding struct {
 	minWide int         // the width it had when it was first sized
 	key     string      // the window it was sized for
 	slack   bool        // it was dragged, so it may hang past the window's edges
+	short   bool        // it was shortened from a place past the bottom edge, down to its least rows
 	shift   image.Point // an unsized prompt's offset from its own place
 	fit     int         // the list rows a sized list popup fits
 	page    int         // the first row its body shows where the layout pass pages it
@@ -105,7 +106,7 @@ func (e *MapEditor) keptCorner(id editorPopupID) image.Point {
 // drag of its title. It also gives the kept page.
 func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
 	p := &e.places[e.storeRow(id)]
-	s.Slack = p.slack
+	s.Slack, s.Short = p.slack, p.short
 	switch {
 	case p.size != (image.Point{}):
 		s.Size, s.MinWidth = p.size, p.minWide
@@ -372,7 +373,7 @@ func (e *MapEditor) adoptKept(id editorPopupID, s *popupSpec) {
 func (e *MapEditor) dropPopup(id editorPopupID, what popupReset) {
 	p := &e.places[id]
 	if what&resetSize != 0 {
-		p.size = image.Point{}
+		p.size, p.short = image.Point{}, false
 	}
 	if what&resetShift != 0 {
 		p.shift = image.Point{}
@@ -422,7 +423,7 @@ func (e *MapEditor) dropForeignSize(id editorPopupID, key string) bool {
 	if p.size == (image.Point{}) || p.key == key {
 		return false
 	}
-	p.size = image.Point{}
+	p.size, p.short = image.Point{}, false
 	if id == popList {
 		p.fit = 0
 	}
@@ -474,8 +475,15 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 		h = min(h+d.Y, bounds.Max.Y-r.Min.Y)
 	case e.dragEdge&edgeTop != 0:
 		h = min(h-d.Y, r.Max.Y-bounds.Min.Y)
+		// The title row stays inside the bounds, so the bottom stays put.
+		h = max(h, r.Max.Y-bounds.Max.Y+layoutPopup(s, e.font, e.bodyFont()).Title.Dy())
 	}
 	p := &e.places[e.storeRow(id)]
+	if r.Max.Y > bounds.Max.Y && e.dragEdge&(edgeTop|edgeBottom) != 0 {
+		// A window past the bottom edge stays where it stands and shortens
+		// to its least rows.
+		p.short, p.slack, s.Short, s.Slack = true, true, true, true
+	}
 	if p.size == (image.Point{}) {
 		p.minWide = r.Dx()
 		p.key = e.windowKey(id, s.Title)

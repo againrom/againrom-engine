@@ -40,7 +40,7 @@ func clearPopup(e *ui.MapEditor, points ...image.Point) {
 		if !ok || !title.Overlaps(pop) {
 			return
 		}
-		p := title.Min.Add(image.Pt(10, 4))
+		p := title.Min.Add(image.Pt(10, 10))
 		q := p.Add(d)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 		e.Pointer(ui.Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})

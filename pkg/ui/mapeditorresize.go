@@ -198,3 +198,13 @@ func (e *MapEditor) resizePopup(d image.Point) {
 	}
 	e.resizeFloating(d)
 }
+
+// sizedRows is how many rows the object window's clamp of its first row
+// counts as shown: the default count, or one for a window the player sized,
+// whose size path clamps the first row to the rows it fits.
+func (e *MapEditor) sizedRows(shown int) int {
+	if shown > 0 && e.places[e.storeRow(popObject)].size != (image.Point{}) {
+		return 1
+	}
+	return shown
+}

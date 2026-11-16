@@ -457,7 +457,11 @@ type popupSpec struct {
 	Room image.Rectangle
 	// Slack lets a dragged popup hang past the bounds, keeping its title row
 	// and popupKeepWide pixels of its width inside.
-	Slack   bool
+	Slack bool
+	// Short marks a popup the player shortened from a place past the bottom
+	// edge: it fits the height it was given down to the title row, one row
+	// and the button row.
+	Short   bool
 	Rows    []popupRow
 	Top     int
 	MaxRows int
@@ -1026,6 +1030,9 @@ func popupFit(s uiWindow, body *text.Font, flow popupFlow, pitch, titleH, h int)
 		cardLeast = titleH + popupPad + flow.cardH + popupPad + len(s.Notes.Lines)*pitch + flow.buttonLines*(pitch+4+popupPad)
 	}
 	minRows := popupMinRows
+	if s.Place.Short {
+		minRows = 1
+	}
 	if slices.ContainsFunc(s.Body.Rows, func(r popupRow) bool { return r.Kind == popupDirection }) {
 		minRows = 1
 	}
@@ -1062,16 +1069,27 @@ func popupFit(s uiWindow, body *text.Font, flow popupFlow, pitch, titleH, h int)
 		listBase = newListBox(image.Rect(0, 0, 10, 0), 0, body).Rect.Dy()
 		lp = newListBox(image.Rect(0, 0, 10, 0), 1, body).Rect.Dy() - listBase
 		fixed += listBase + popupPad + flow.listHeadH
+		// Paged rows above a list stand at their count; the list takes
+		// the rest.
+		for i, n := top, 0; flexRows && i < len(s.Body.Rows) && n < s.Body.MaxRows; i++ {
+			if !s.Body.Rows[i].placed() {
+				fixed += rowH(i)
+				n++
+			}
+		}
 	}
 	// The least height holds the flexible part at its least rows.
 	least, listLeast := fixed, popupMinRows
 	if s.List.Least > 0 {
 		listLeast = s.List.Least
 	}
+	if s.Place.Short {
+		listLeast = 1
+	}
 	if s.List.Picker != nil {
 		least += listLeast * lp
 	}
-	if flexRows {
+	if flexRows && s.List.Picker == nil {
 		for i := top; i < len(s.Body.Rows) && i < top+minRows; i++ {
 			least += rowH(i)
 		}
@@ -1082,6 +1100,9 @@ func popupFit(s uiWindow, body *text.Font, flow popupFlow, pitch, titleH, h int)
 	switch {
 	case s.List.Picker != nil:
 		listRows = max(listLeast, avail/lp)
+		if flexRows {
+			rowsFit = max(0, min(s.Body.MaxRows, popupRowCount(s)-top))
+		}
 	case flexRows:
 		used, full := 0, false
 		for i := top; i < len(s.Body.Rows); i++ {
@@ -1119,7 +1140,11 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 func layoutWindow(root uiNode, title, body *text.Font) popupLayout {
 	s := windowOf(root)
 	l := placeWindow(s, title, body)
-	if room := s.Place.Bounds.Dy(); !s.Place.Bounds.Empty() && l.Rect.Dy() > room {
+	room := s.Place.Bounds.Dy()
+	if s.Place.Short && s.Place.Size.Y > 0 {
+		room = min(room, s.Place.Size.Y)
+	}
+	if !s.Place.Bounds.Empty() && l.Rect.Dy() > room {
 		s, l = giveWay(s, l, room, title, body)
 	}
 	l.Window = &s
@@ -1137,22 +1162,37 @@ func giveWay(s uiWindow, l popupLayout, room int, title, body *text.Font) (uiWin
 		most, top = min(most, s.Body.MaxRows-1), s.Body.Top
 	}
 	sized := popupResizeEnabled && s.Place.Size.X > 0 && s.Place.Size.Y > 0
-	if len(s.Body.ColumnTops) == 0 && most >= popupMinRows && (!sized || s.Body.MaxRows == 0) {
+	fewest := popupMinRows
+	if s.Place.Short {
+		fewest = 1
+	}
+	if len(s.Body.ColumnTops) == 0 && most >= fewest && (!sized || s.Body.MaxRows == 0) {
 		page := func(n int) uiWindow {
 			t := s
 			t.Body.MaxRows, t.Body.Top = n, max(0, min(top, count-n))
 			return t
 		}
-		// The most rows that fit, popupMinRows the least.
-		n := sort.Search(most-popupMinRows+1, func(i int) bool {
-			return placeWindow(page(popupMinRows+i), title, body).Rect.Dy() > room
+		// The most rows that fit, fewest the least.
+		n := sort.Search(most-fewest+1, func(i int) bool {
+			return placeWindow(page(fewest+i), title, body).Rect.Dy() > room
 		})
-		s = page(max(popupMinRows, popupMinRows+n-1))
+		s = page(max(fewest, fewest+n-1))
+		if sized {
+			// A sized window shows the rows its height holds; the page
+			// keeps exactly those.
+			if fit := placeWindow(s, title, body).RowsFit; fit >= fewest && fit < s.Body.MaxRows {
+				s = page(fit)
+			}
+		}
 		if l = placeWindow(s, title, body); l.Rect.Dy() <= room {
 			return s, l
 		}
 	}
-	if least := cmp.Or(s.List.Least, popupMinRows); s.List.Picker != nil && s.List.Rows > least {
+	least := cmp.Or(s.List.Least, popupMinRows)
+	if s.Place.Short {
+		least = 1
+	}
+	if s.List.Picker != nil && s.List.Rows > least {
 		step := max(1, newListBox(image.Rect(0, 0, 10, 0), 1, body).Rect.Dy()-newListBox(image.Rect(0, 0, 10, 0), 0, body).Rect.Dy())
 		s.List.Rows = max(least, s.List.Rows-(l.Rect.Dy()-room+step-1)/step)
 		if l = placeWindow(s, title, body); l.Rect.Dy() <= room {
@@ -1859,8 +1899,9 @@ const (
 // square that resizes both ways.
 const (
 	popupEdgeBand = 8
-	// popupTopBand is the top border's band; the title row below it drags.
-	popupTopBand  = 4
+	// popupTopBand is the top border's band, as deep as the others; the
+	// title row below it drags.
+	popupTopBand  = popupEdgeBand
 	popupKeepWide = 48
 )
 

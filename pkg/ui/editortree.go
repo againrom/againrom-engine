@@ -49,6 +49,7 @@ type uiPlace struct {
 	Bounds   image.Rectangle
 	Room     image.Rectangle
 	Slack    bool
+	Short    bool
 	Size     image.Point
 	MinWidth int
 	Fit      bool
@@ -148,7 +149,7 @@ type uiWindow struct {
 // specTree is the tree of a window the builders wrote as a popupSpec.
 func specTree(s popupSpec) uiNode {
 	root := uiNode{Kind: uiWindowKind, Data: uiPlace{
-		At: s.At, Width: s.Width, Bounds: s.Bounds, Room: s.Room, Slack: s.Slack,
+		At: s.At, Width: s.Width, Bounds: s.Bounds, Room: s.Room, Slack: s.Slack, Short: s.Short,
 		Size: s.Size, MinWidth: s.MinWidth, Fit: s.Fit, Drag: s.Drag,
 	}}
 	add := func(n uiNode) { root.Children = append(root.Children, n) }

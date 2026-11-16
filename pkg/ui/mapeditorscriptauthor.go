@@ -234,7 +234,7 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 		e.scriptPopupLink(&s, &links, scriptPopupLink{record: v.constant, title: e.scriptRowText(v.constant, 2)})
 	}
 	s.MaxRows = e.objectRowsShown(true)
-	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
+	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-e.sizedRows(s.MaxRows)))
 	s.Top = e.objectTop
 	return s, links, true
 }

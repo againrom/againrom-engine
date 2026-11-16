@@ -96,7 +96,7 @@ func titleDragBy(t *testing.T, e *MapEditor, d image.Point) image.Rectangle {
 	if !ok {
 		t.Fatal("no popup title")
 	}
-	p := title.Min.Add(image.Pt(10, 4))
+	p := title.Min.Add(image.Pt(10, popupTopBand+2))
 	q := p.Add(d)
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
@@ -183,7 +183,7 @@ func TestWindowOpenedFromAnotherOpensOffsetFromIt(t *testing.T) {
 		if win.Rect.Min.Y < list.Title.Max.Y {
 			t.Errorf("%dx%d: the unit window %v covers the list's title bar %v", size.X, size.Y, win.Rect, list.Title)
 		}
-		if at := list.Title.Min.Add(image.Pt(4, 4)); e.chromeHit(at) != popList {
+		if at := list.Title.Min.Add(image.Pt(4, popupTopBand+2)); e.chromeHit(at) != popList {
 			t.Errorf("%dx%d: a press at %v on the list's title bar reaches %v, not the list", size.X, size.Y, at, e.chromeHit(at))
 		}
 		if !nearCentre(list.Rect, size) {

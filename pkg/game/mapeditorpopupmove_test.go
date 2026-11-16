@@ -17,7 +17,7 @@ func titleDrag(t *testing.T, e *ui.MapEditor, d image.Point) (image.Rectangle, i
 	if !ok {
 		t.Fatal("no popup")
 	}
-	p := before.Min.Add(image.Pt(10, 4))
+	p := before.Min.Add(image.Pt(10, 10))
 	q := p.Add(d)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: q.X, CursorY: q.Y, PrimaryDown: true}, time.Time{})
