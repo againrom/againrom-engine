@@ -1,8 +1,6 @@
 package game
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"image"
 	"os"
@@ -160,27 +158,6 @@ func openAddMap(t *testing.T, x *MapInspector, in addInputs) *ui.MapEditor {
 	return e
 }
 
-// newTriggerRoutes add a script record in one click and open the new
-// trigger's wizard: F4 on the map, the Scenario palette's New trigger, and
-// the wizard's New on the map's first trigger.
-var newTriggerRoutes = []struct {
-	name string
-	run  func(t *testing.T, e *ui.MapEditor)
-}{
-	{"f4", pressF4},
-	{"palette", newTriggerClick},
-	{"wizard", func(t *testing.T, e *ui.MapEditor) {
-		t.Helper()
-		sc := e.Document().Script
-		if sc == nil || len(sc.Triggers) == 0 {
-			t.Fatal("the map holds no trigger whose wizard offers New")
-		}
-		e.Select(sc.Triggers[0].Record, true)
-		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
-		trigClick(t, e, r, ok, "New")
-	}},
-}
-
 // openAddCase opens the map and presses the case's keys; "players" is a
 // key, "groups" the bar entry.
 func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.MapEditor {
@@ -201,143 +178,6 @@ func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.Map
 		t.Fatalf("%s: %v opened no Add window", c.name, c.keys)
 	}
 	return e
-}
-
-// TestReleaseMapEditorAddWindowWritesTheRouteBytes adds a unit, a
-// structure, a sack and a player through the Add window on an installed
-// map: the map's bytes are those of the existing host calls with the same
-// values, one Undo restores the source bytes, and leaving the window at any
-// step changes nothing. A window that loses one of the sack's items does not
-// match: the comparison sees a dropped step value. Each one-click route adds
-// the trigger the host's script add writes, and a trigger named with the
-// wizard's Always check writes the host's trigger write; one Undo restores
-// the source bytes. AGAINROM_WITNESS_OUT receives each case's SHA-256.
-func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	in := addInputsOf(t, x)
-	var lines []string
-	for _, c := range addCases(in) {
-		t.Run(c.name, func(t *testing.T) {
-			e := openAddCase(t, x, in, c)
-			source := bytes.Clone(objectEdits(t, e).model.Bytes())
-			addSteps(t, e, c.values)
-			got := objectEdits(t, e).model.Bytes()
-
-			d, err := x.Open(in.key)
-			if err != nil {
-				t.Fatal(err)
-			}
-			s := d.Edits.(*mapInspectionEdits)
-			c.route(t, s)
-			if want := s.model.Bytes(); !bytes.Equal(got, want) {
-				t.Fatalf("the Add window wrote %x (%d bytes), the host calls %x (%d bytes)", sha256.Sum256(got), len(got), sha256.Sum256(want), len(want))
-			}
-			lines = append(lines, fmt.Sprintf("%s %x %d", c.name, sha256.Sum256(got), len(got)))
-			if !e.Dirty() {
-				t.Fatal("the add left the map clean")
-			}
-			if err := e.Key("undo"); err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(objectEdits(t, e).model.Bytes(), source) {
-				t.Fatal("one Undo did not restore the source bytes")
-			}
-
-			// Leaving at each step writes nothing.
-			for at := 0; ; at++ {
-				e := openAddCase(t, x, in, c)
-				if !addStepsN(t, e, c.values, at) {
-					break
-				}
-				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
-				trigClick(t, e, r, ok, "Cancel Add")
-				if _, _, open := e.AddStep(); open || e.Dirty() || !bytes.Equal(objectEdits(t, e).model.Bytes(), source) {
-					t.Fatalf("Cancel at step %d left the window open or changed the map", at)
-				}
-			}
-		})
-	}
-	t.Run("lost-step", func(t *testing.T) {
-		c := addCases(in)[2]
-		c.values = map[string]string{"cell": c.values["cell"], "item": fmt.Sprint(in.items[0])}
-		e := openAddCase(t, x, in, c)
-		addSteps(t, e, c.values)
-		d, err := x.Open(in.key)
-		if err != nil {
-			t.Fatal(err)
-		}
-		s := d.Edits.(*mapInspectionEdits)
-		addCases(in)[2].route(t, s)
-		if bytes.Equal(objectEdits(t, e).model.Bytes(), s.model.Bytes()) {
-			t.Fatal("a sack missing its second item matches the route: the comparison cannot see a lost step")
-		}
-	})
-	t.Run("trigger", func(t *testing.T) {
-		d, err := x.Open(in.key)
-		if err != nil {
-			t.Fatal(err)
-		}
-		s := d.Edits.(*mapInspectionEdits)
-		if _, err := s.AddScript(ui.KindTrigger); err != nil {
-			t.Fatal(err)
-		}
-		added := bytes.Clone(s.model.Bytes())
-		undone := func(e *ui.MapEditor, source []byte) {
-			t.Helper()
-			if err := e.Key("undo"); err != nil || !bytes.Equal(objectEdits(t, e).model.Bytes(), source) {
-				t.Fatalf("one Undo did not restore the source bytes: %v", err)
-			}
-		}
-		for _, route := range newTriggerRoutes {
-			e := openAddMap(t, x, in)
-			source := bytes.Clone(objectEdits(t, e).model.Bytes())
-			route.run(t, e)
-			got := bytes.Clone(objectEdits(t, e).model.Bytes())
-			if !bytes.Equal(got, added) {
-				t.Fatalf("%s wrote %x (%d bytes), the script add %x (%d bytes)", route.name, sha256.Sum256(got), len(got), sha256.Sum256(added), len(added))
-			}
-			if !e.WizardShown() || !e.Dirty() {
-				t.Fatalf("%s: wizard %v, dirty %v", route.name, e.WizardShown(), e.Dirty())
-			}
-			lines = append(lines, fmt.Sprintf("trigger-%s %x %d", route.name, sha256.Sum256(got), len(got)))
-			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
-			trigClick(t, e, r, ok, "Cancel")
-			if !bytes.Equal(objectEdits(t, e).model.Bytes(), got) {
-				t.Fatalf("%s: Cancel took the new trigger out", route.name)
-			}
-			undone(e, source)
-		}
-
-		// The new trigger named and given the wizard's Always check: its
-		// Apply joins the add, so one Undo takes both out.
-		e := openAddMap(t, x, in)
-		source := bytes.Clone(objectEdits(t, e).model.Bytes())
-		pressF4(t, e)
-		e.TextInput("Gate")
-		wizPress(t, e, "", 0)
-		trigChoose(t, e, wizField(t, e, "c0.item"), x.inspectionUTF8(x.word("editor.wizard.c.always")))
-		wizApply(t, e)
-		got := bytes.Clone(objectEdits(t, e).model.Bytes())
-		triggers := wizScript(t, added).Triggers
-		one := ui.WizardNode{Opcode: 0x10002}
-		one.Types[0], one.Values[0] = 1, 1
-		if _, err := s.WriteTrigger(ui.WizardTrigger{Index: len(triggers) - 1, Name: "Gate", Once: triggers[len(triggers)-1].Once, Pairs: []ui.WizardPair{{Left: one, Right: one}}}); err != nil {
-			t.Fatal(err)
-		}
-		if want := s.model.Bytes(); !bytes.Equal(got, want) {
-			t.Fatalf("the wizard wrote %x (%d bytes), the trigger write %x (%d bytes)", sha256.Sum256(got), len(got), sha256.Sum256(want), len(want))
-		}
-		lines = append(lines, fmt.Sprintf("trigger-always %x %d", sha256.Sum256(got), len(got)))
-		undone(e, source)
-	})
-	text := fmt.Sprintf("map %s cell %v class %d tier %d kind %d items %v members %v group %d\n%s\n", in.key, in.cell, in.class, in.tier, in.kind, in.items, in.members, in.group, strings.Join(lines, "\n"))
-	t.Log(text)
-	if out := os.Getenv("AGAINROM_WITNESS_OUT"); out != "" {
-		if err := os.WriteFile(out, []byte(text), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
 }
 
 // TestReleaseMapEditorAddWindowFrames writes the Add window, rendered

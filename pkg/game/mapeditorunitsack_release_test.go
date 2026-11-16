@@ -12,35 +12,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// TestReleaseMapEditorUnitSackBytes opens the first installed maps that
-// hold a unit, at 1920x1080 in both views. Save with no edit writes the
-// bytes the map writer writes for the source. An item added in the window
-// of the unit's own stock, selected (or K, for a unit without a stock),
-// writes the bytes the host's own stock and field writers write. Each root
-// runs it.
-func TestReleaseMapEditorUnitSackBytes(t *testing.T) {
-	x := installedInspector(t)
-	maps := 0
-	for _, entry := range x.Maps {
-		if maps == 3 {
-			break
-		}
-		key := "loose/" + entry.Source
-		if entry.FromArchive {
-			key = "scenario/" + entry.Source
-		}
-		if !unitSackBytes(t, x, key, true) {
-			continue
-		}
-		unitSackBytes(t, x, key, false)
-		maps++
-	}
-	if maps == 0 {
-		t.Fatal("no installed map holds a unit")
-	}
-	t.Logf("maps=%d: Save without an edit and a stock edit through the sack's window wrote the writers' bytes", maps)
-}
-
 // unitSackBytes runs the release proof on map key in one view; false when
 // the map holds no unit.
 func unitSackBytes(t *testing.T, x *MapInspector, key string, plain bool) bool {

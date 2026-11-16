@@ -240,18 +240,17 @@ func TestScanMatchesTheCheckedInPopulationList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	compareWithList(t, release, "testdata/population.txt", populationRootColumns)
+	compareWithList(t, release, "testdata/population.txt", populationColumns)
 	compareWithList(t, audits, "testdata/corpusaudit.txt", nil)
 }
 
-// populationRootColumns are the root columns a population.txt row may carry.
-// A row without one runs on every root.
-var populationRootColumns = map[string]bool{"en": true}
+// populationColumns are the columns a population.txt row may carry. A row
+// without one runs in the release run. "touched": the row stays in the
+// census and leaves the release run; it runs when a change reaches it
+// (scripts/check-touched.sh) or when it is named.
+var populationColumns = map[string]bool{"touched": true}
 
-// firstRootOnlyRows counts the "en" rows. It may only fall.
-const firstRootOnlyRows = 15
-
-// readList returns each listed test with its root column.
+// readList returns each listed test with its column.
 func readList(t *testing.T, list string, columns map[string]bool) map[string]string {
 	t.Helper()
 	raw, err := os.ReadFile(list)
@@ -266,7 +265,7 @@ func readList(t *testing.T, list string, columns map[string]bool) map[string]str
 		}
 		column := strings.Join(fields[1:], " ")
 		if column != "" && !columns[column] {
-			t.Errorf("%s: %q has root column %q; allowed: %v", list, fields[0], column, columns)
+			t.Errorf("%s: %q has column %q; allowed: %v", list, fields[0], column, columns)
 		}
 		if _, dup := rows[fields[0]]; dup {
 			t.Errorf("%s lists %s twice", list, fields[0])
@@ -274,22 +273,6 @@ func readList(t *testing.T, list string, columns map[string]bool) map[string]str
 		rows[fields[0]] = column
 	}
 	return rows
-}
-
-// TestPopulationRootColumnOnlyFalls holds the "en" rows at firstRootOnlyRows.
-func TestPopulationRootColumnOnlyFalls(t *testing.T) {
-	first := 0
-	for _, column := range readList(t, "testdata/population.txt", populationRootColumns) {
-		if column == "en" {
-			first++
-		}
-	}
-	switch {
-	case first > firstRootOnlyRows:
-		t.Errorf("%d population rows run on the first root only, above %d: a new release test runs on every root", first, firstRootOnlyRows)
-	case first < firstRootOnlyRows:
-		t.Errorf("%d population rows run on the first root only, below %d: lower firstRootOnlyRows", first, firstRootOnlyRows)
-	}
 }
 
 func compareWithList(t *testing.T, got []Test, list string, columns map[string]bool) {

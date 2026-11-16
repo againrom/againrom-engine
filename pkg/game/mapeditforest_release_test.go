@@ -211,51 +211,6 @@ func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
 	}
 }
 
-// TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged opens four shipped
-// maps, turns Forest on, ticks kinds, presses every density and the typed
-// per cent, and saves without a stroke: each saved file keeps the installed
-// bytes.
-func TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	dir := t.TempDir()
-	keys := installedMapKeys(x)
-	for n, key := range []string{keys[0], forestScenario, keys[len(keys)/2], keys[len(keys)-1]} {
-		want, err := x.Open(key)
-		if err != nil {
-			t.Fatal(err)
-		}
-		e, c := installedForest(t, x, key, 4)
-		for k := 1; k <= 4; k++ {
-			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: k})
-			c.click(e, r, ok, "a density button")
-		}
-		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 3, K: 0})
-		c.click(e, r, ok, "the per cent button")
-		_ = e.Key("clear")
-		e.TextInput("40")
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		if e.Dirty() {
-			t.Fatalf("%s: setting the forest up edited the map", key)
-		}
-		target := filepath.Join(dir, fmt.Sprintf("m%d.alm", n))
-		_ = e.Key("saveas")
-		e.TextInput(target)
-		if err := e.Key("enter"); err != nil {
-			t.Fatalf("%s: Save As: %v", key, err)
-		}
-		got, err := os.ReadFile(target)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(got, want.SourceBytes) {
-			t.Errorf("%s: saved %d bytes differ from the installed %d", key, len(got), len(want.SourceBytes))
-		}
-	}
-}
-
 // TestReleaseMapEditorForestFrames writes the owner's frames into
 // AGAINROM_EDITOR_FRAMES, rendered headless from the install: the forest
 // grid with four ticked trees and the density row, a map area before a

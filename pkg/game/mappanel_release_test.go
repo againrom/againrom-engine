@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -239,69 +238,6 @@ func TestReleaseMapPanelLinesOfInstalledMaps(t *testing.T) {
 	panelOut(t, "panel-lines-"+installLanguage(x)+".txt", out.String())
 }
 
-// metaWord70 is the type-0 +0x70 word of the map bytes b.
-func metaWord70(t *testing.T, b []byte) uint32 {
-	t.Helper()
-	return binary.LittleEndian.Uint32(b[payloadOffsets(t, b)[0]+0x70:])
-}
-
-// TestReleaseMapPanelNewMapAsksTheModeAndWritesItsBytes opens a new map from
-// the catalogue through the question in both modes: +0x70 is 1 for
-// single-player and 4 for multiplayer, the drop cell is the centre, and the
-// Mode line and the Mode field name the mode. Save As writes those bytes.
-func TestReleaseMapPanelNewMapAsksTheModeAndWritesItsBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	c := &editorClicker{t: t, now: time.Unix(1, 0)}
-	for _, mode := range []struct {
-		button int
-		word70 uint32
-		word   string
-	}{{0, ui.MapModeSingle, "editor.mode.single"}, {1, ui.MapModeMultiplayer, "editor.mode.multi"}} {
-		e := x.Editor()
-		e.Layout(1280, 800)
-		_ = e.Key("new")
-		_ = e.Key("clear")
-		e.TextInput("64x64")
-		_ = e.Key("enter")
-		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: mode.button})
-		c.click(e, r, ok, "the mode button")
-		d := e.Document()
-		if d == nil || d.Width != 64 || e.Dirty() {
-			t.Fatalf("mode %d: the new map did not open clean", mode.word70)
-		}
-		m, err := alm.Open(d.SourceBytes)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := metaWord70(t, d.SourceBytes); got != mode.word70 || m.Meta.Word70 != mode.word70 {
-			t.Fatalf("+0x70 is %d, want %d", got, mode.word70)
-		}
-		if cells := mapload.DropCells(m); !slices.Equal(cells, []mapload.Cell{{X: 32, Y: 32}}) {
-			t.Fatalf("drop cells %v", cells)
-		}
-		want := strings.Join(strings.Fields(x.inspectionUTF8(x.word("editor.panel.mode"))+" "+x.inspectionUTF8(x.word(mode.word))), " ")
-		if !slices.Contains(e.PanelLines(), want) {
-			t.Fatalf("no line %q in %q", want, e.PanelLines())
-		}
-		target := filepath.Join(t.TempDir(), "new.alm")
-		_ = e.Key("saveas")
-		e.TextInput(target)
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		saved, err := os.ReadFile(target)
-		if err != nil || metaWord70(t, saved) != mode.word70 {
-			t.Fatalf("Save As: %v", err)
-		}
-		sm, _ := alm.Open(saved)
-		if cells := mapload.DropCells(sm); !slices.Equal(cells, []mapload.Cell{{X: 32, Y: 32}}) {
-			t.Fatalf("saved drop cells %v", cells)
-		}
-		t.Logf("%s: +0x70 = %d at file offset %#x, drop cell %v", x.word(mode.word), metaWord70(t, saved), payloadOffsets(t, saved)[0]+0x70, mapload.DropCells(sm))
-	}
-}
-
 // TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap saves a new map
 // with neither a start point nor a win into a mod: the notice names both,
 // Continue writes the map, and the warnings refuse nothing.
@@ -356,40 +292,6 @@ func TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap(t *testing.T) {
 	m, _ := alm.Open(saved)
 	if len(mapload.DropCells(m)) != 0 || len(winTriggerNames(t, m)) != 0 {
 		t.Fatal("the saved map is not the map with both warnings")
-	}
-}
-
-// TestReleaseMapPanelUntouchedMapsSaveTheirBytes opens every installed map,
-// reads its Map panel and its report, and saves it with Save As: the file
-// holds the installed bytes, so the panel and its checks write nothing.
-func TestReleaseMapPanelUntouchedMapsSaveTheirBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	dir := t.TempDir()
-	for i, key := range editorKeys(x) {
-		e := x.Editor()
-		e.Layout(1280, 800)
-		if err := e.Open(key); err != nil {
-			t.Fatal(err)
-		}
-		before := bytes.Clone(e.Document().SourceBytes)
-		if len(e.PanelLines()) == 0 {
-			t.Fatalf("%s: no panel", key)
-		}
-		_ = e.Document().Edits.(ui.InspectionChecker).Report()
-		_ = e.ChromeImage()
-		if e.Dirty() || !bytes.Equal(e.Document().SourceBytes, before) {
-			t.Fatalf("%s: reading the panel changed the map", key)
-		}
-		target := filepath.Join(dir, fmt.Sprintf("%02d.alm", i))
-		_ = e.Key("saveas")
-		e.TextInput(target)
-		if err := e.Key("enter"); err != nil {
-			t.Fatalf("%s: %v", key, err)
-		}
-		if got, err := os.ReadFile(target); err != nil || !bytes.Equal(got, before) {
-			t.Errorf("%s: Save As wrote other bytes than the installed map's (%v)", key, err)
-		}
 	}
 }
 

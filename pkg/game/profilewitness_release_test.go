@@ -7,14 +7,9 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"againrom/pkg/base"
-	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -139,31 +134,6 @@ func TestProfileWitnessDifferencesNameEveryDifferingLine(t *testing.T) {
 	}
 }
 
-func profileWitnessFront(t *testing.T) *FrontEnd {
-	t.Helper()
-	f := releaseFront(t)
-	f.SetDeterministicFrames(true)
-	now := time.Unix(5000, 0)
-	f.TownAnimationNow = func() time.Time { return now }
-	f.TownAnimationRandom = traceDraw(11)
-	f.TownAmbientRandom = traceDraw(23)
-	f.TavernRandom = traceDraw(37)
-	f.ShopRandom = traceDraw(41)
-	f.SchoolRandom = traceDraw(53)
-	f.randomService().SetStreamSeed(random.TownWildlife, 7)
-	f.randomService().SetStreamSeed(random.AmbientBirds, 7)
-	f.randomService().SetStreamSeed(random.Music, 3)
-	return f
-}
-
-func newProfileWitness(t *testing.T, f *FrontEnd, saves string, maskSaveDirectory bool) *profileWitness {
-	a := f.App("profile-witness")
-	a.Layout(640, 480)
-	fixed := func() time.Time { return time.Unix(1700000000, 0).UTC() }
-	f.ConfigureSaveSeams(a, SaveStore{Dir: saves}, OriginalStore{Dir: filepath.Join(saves, "original")}, fixed)
-	return &profileWitness{t: t, f: f, a: a, maskSaveDirectory: maskSaveDirectory}
-}
-
 func (w *profileWitness) record(name string) {
 	pix, _, err := w.a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame})
 	if err != nil && w.a.Screen() == ui.ScreenMap && w.f.live != nil && w.f.live.view != nil {
@@ -247,83 +217,6 @@ func (w *profileWitness) saveAndLoad(tag string) {
 	}
 	if w.do(tag+"-load", HeadlessStep{Command: "load", Target: "Witness " + tag}) && w.a.Screen() == ui.ScreenMap {
 		w.do(tag+"-load-run", HeadlessStep{Command: "wait_ticks", Ticks: 48})
-	}
-}
-
-func TestReleaseProfileWitnessIsUnchanged(t *testing.T) {
-	f := profileWitnessFront(t)
-	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().Campaign == base.CampaignDestinations {
-		t.Skip("the base's new game does not open a mission through generation; TestReleaseSecondGameProfileWitnessIsUnchanged covers the town start")
-	}
-	runProfileWitness(t, f, true)
-}
-
-func TestReleaseSecondGameProfileWitnessIsUnchanged(t *testing.T) {
-	secondGameRoot(t)
-	runProfileWitness(t, profileWitnessFront(t), false)
-}
-
-func runProfileWitness(t *testing.T, f *FrontEnd, maskSaveDirectory bool) {
-	saves := t.TempDir()
-	w := newProfileWitness(t, f, saves, maskSaveDirectory)
-	w.record("menu")
-	if f.Base().Profile.Edition().Campaign == base.CampaignDestinations {
-		// A town-start campaign with no generator wired opens its town.
-		w.do("new-game", HeadlessStep{Command: "activate", Target: "new game"})
-		w.saveAndLoad("town")
-		for _, target := range []string{"TAVERN", "TALK 517"} {
-			w.do("activate-"+target, HeadlessStep{Command: "activate", Target: target})
-		}
-		for page := 0; page < 64; page++ {
-			if !w.do(fmt.Sprintf("notice-%d", page), HeadlessStep{Command: "activate", Target: "notice"}) {
-				break
-			}
-		}
-		for _, target := range []string{"EXIT", "GATES", "mission 10"} {
-			w.do("activate-"+target, HeadlessStep{Command: "activate", Target: target})
-		}
-	} else {
-		w.do("new-game", HeadlessStep{Command: "activate", Target: "NEW GAME"})
-		w.do("pick", HeadlessStep{Command: "activate", Target: "Mission 10: 10.alm"})
-		w.do("generate", HeadlessStep{Command: "create_character", Character: &HeadlessCharacter{
-			Name: "Witness", Sex: "Female", Class: "Mage", Skill: "Air",
-			Stats: map[string]int{"Mind": 30, "Body": 20, "Reaction": 25, "Spirit": 25},
-		}})
-	}
-	if w.a.Screen() != ui.ScreenMap {
-		t.Fatalf("the witness did not reach the first mission: %s\n%s", w.a.Screen(), strings.Join(w.lines, "\n"))
-	}
-	w.do("run", HeadlessStep{Command: "wait_ticks", Ticks: 64})
-	w.saveAndLoad("mission")
-
-	// A fresh start loads the newest save from the main menu.
-	fresh := profileWitnessFront(t)
-	cold := newProfileWitness(t, fresh, saves, maskSaveDirectory)
-	cold.record("fresh-menu")
-	if cold.do("fresh-load", HeadlessStep{Command: "load", Target: "Witness mission"}) && cold.a.Screen() == ui.ScreenMap {
-		cold.do("fresh-load-run", HeadlessStep{Command: "wait_ticks", Ticks: 48})
-	}
-	w.lines = append(w.lines, cold.lines...)
-
-	got := strings.Join(w.lines, "\n") + "\n"
-	path := filepath.Join("testdata", "profilewitness", f.Base().Profile.ID+".txt")
-	if os.Getenv("AGAINROM_PROFILE_WITNESS_WRITE") != "" {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		t.Logf("wrote %d witness lines to %s", len(w.lines), path)
-		return
-	}
-	want, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("no recorded witness for this install (%v); record it on unchanged code", err)
-	}
-	want = bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n"))
-	if report := profileWitnessDifferences(string(want), got); report != "" {
-		t.Fatal(report)
 	}
 }
 

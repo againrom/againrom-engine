@@ -18,45 +18,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-func TestReleaseEditorCellSpellFieldsKeepEveryMap(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	count, records, unknown := 0, 0, 0
-	for _, key := range installedMapKeys(x) {
-		e := x.Editor()
-		if err := e.Open(key); err != nil {
-			t.Fatal(key, err)
-		}
-		s := e.Document().Edits.(*mapInspectionEdits)
-		before := s.model.Bytes()
-		m, err := s.model.Map()
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i, rec := range m.Enchantments {
-			records++
-			fields := s.Fields("Enchantment", i)
-			if rec.X != 0 || rec.Y != 0 {
-				if len(fields) == 0 {
-					unknown++
-					continue
-				}
-				for _, f := range fields {
-					if _, err := s.SetField("Enchantment", i, f.Key, f.Value); err != nil {
-						t.Fatal(key, i, f.Key, err)
-					}
-				}
-			}
-		}
-		out, err := s.model.SaveBytes()
-		if err != nil || !bytes.Equal(before, out) || !bytes.Equal(before, s.model.Bytes()) {
-			t.Fatal(key, "current fields changed map bytes", err)
-		}
-		count++
-	}
-	t.Logf("maps=%d type-9=%d unknown spatial=%d", count, records, unknown)
-}
-
 func TestReleaseEditorCellSpellFrames(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)

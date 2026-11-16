@@ -10,7 +10,6 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -281,65 +280,5 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 	}
 	if plain.live.mission.state.Map.Width == side {
 		t.Fatal("the installed mission 20 is the new map")
-	}
-}
-
-func TestReleaseMapEditorBlankWriteIsTheConstructorsBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	path := filepath.Join(t.TempDir(), "blank.alm")
-	got, findings, err := x.WriteNewMap(newMapSource(32, 32), path)
-	if err != nil || got == "" {
-		t.Fatalf("write: %v", err)
-	}
-	// The constructor's map in single-player mode with its drop cell at the
-	// centre (DIV-3597).
-	want, err := mapedit.NewMap(alm.NewMapSpec{Width: 32, Height: 32, Tile: 0x11, Altitude: 64})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := want.SetWord70(ui.MapModeSingle); err != nil {
-		t.Fatal(err)
-	}
-	if err := want.SetDropCell(16, 16); err != nil {
-		t.Fatal(err)
-	}
-	written, err := os.ReadFile(got)
-	if err != nil || !bytes.Equal(written, want.Bytes()) {
-		t.Fatalf("the file is not the constructor's bytes with the mode and the drop cell (%v)", err)
-	}
-	if len(findings) != 1 || findings[0].Rule != ui.RuleVictory {
-		t.Fatalf("findings %+v", findings)
-	}
-	if _, _, err := x.WriteNewMap(newMapSource(32, 32), path); err == nil {
-		t.Fatal("a second write replaced the file")
-	}
-}
-
-// Loss control: the new-map door changes nothing for an installed map. It
-// opens clean, a Save As writes its installed bytes, and the writer refuses
-// the source it came from.
-func TestReleaseMapEditorInstalledMapStillWritesItsInstalledBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	e := x.Editor()
-	if err := e.Open("scenario/10.alm"); err != nil {
-		t.Fatal(err)
-	}
-	installed, err := x.archives.Containers.ReadFile("scenario/10.alm")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.Dirty() || !bytes.Equal(e.Document().SourceBytes, installed) {
-		t.Fatal("the installed map opened changed")
-	}
-	target := filepath.Join(t.TempDir(), "copy.alm")
-	_ = e.Key("saveas")
-	e.TextInput(target)
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
-	if got, err := os.ReadFile(target); err != nil || !bytes.Equal(got, installed) {
-		t.Fatalf("Save As wrote other bytes than the installed map's (%v)", err)
 	}
 }

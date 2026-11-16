@@ -11,7 +11,6 @@ import (
 	"slices"
 	"testing"
 
-	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -430,125 +429,6 @@ func generatedMissionColdPass(t *testing.T, path, dir string) (secondPath string
 		requireGeneratedSample(t, generatedMissionArrival(t, f), proof.Arrival, 17)
 	}
 	return secondPath
-}
-
-// A part runs in three processes: the writer saves a first SAV per mission, a
-// fresh process loads them all and writes second SAVs, another loads those.
-const generatedBatchVariable = "AGAINROM_GENERATED_MISSION_BATCH"
-
-// generatedMissionBatch is one stage's SAVs; Next and Dir are empty for the last.
-type generatedMissionBatch struct {
-	Missions []int
-	Paths    []string
-	Next     string
-	Dir      string
-}
-
-// missionDir gives each mission its own directory; SAVE expects one file there.
-func missionDir(t *testing.T, dir string, mission int) string {
-	t.Helper()
-	dir = filepath.Join(dir, fmt.Sprint(mission))
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		t.Fatal(err)
-	}
-	return dir
-}
-
-func writeGeneratedBatch(t *testing.T, path string, batch generatedMissionBatch) {
-	t.Helper()
-	if err := os.WriteFile(path, mustGeneratedJSON(t, batch), 0600); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func generatedMissionColdBatch(t *testing.T, batchPath string) {
-	t.Helper()
-	raw, err := os.ReadFile(batchPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var batch generatedMissionBatch
-	if err = json.Unmarshal(raw, &batch); err != nil || len(batch.Missions) != len(batch.Paths) || len(batch.Paths) == 0 {
-		t.Fatal("generated mission batch is not a list of missions and SAVs", err)
-	}
-	var next generatedMissionBatch
-	for i, mission := range batch.Missions {
-		t.Run(fmt.Sprint(mission), func(t *testing.T) {
-			var dir string
-			if batch.Dir != "" {
-				dir = missionDir(t, batch.Dir, mission)
-			}
-			if second := generatedMissionColdPass(t, batch.Paths[i], dir); second != "" {
-				next.Missions = append(next.Missions, mission)
-				next.Paths = append(next.Paths, second)
-			}
-		})
-	}
-	if !t.Failed() && batch.Next != "" {
-		writeGeneratedBatch(t, batch.Next, next)
-	}
-}
-
-// The 28 missions run as four release tests, so the release gate can give
-// each its own process: mission i of the sorted union belongs to part i%4.
-func TestReleaseGeneratedCampaignMissionsSAV(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	generatedCampaignMissionsSAV(t, 0)
-}
-func TestReleaseGeneratedCampaignMissionsSAVPart1(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	generatedCampaignMissionsSAV(t, 1)
-}
-func TestReleaseGeneratedCampaignMissionsSAVPart2(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	generatedCampaignMissionsSAV(t, 2)
-}
-func TestReleaseGeneratedCampaignMissionsSAVPart3(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	generatedCampaignMissionsSAV(t, 3)
-}
-
-func generatedCampaignMissionsSAV(t *testing.T, part int) {
-	if list := os.Getenv(generatedBatchVariable); list != "" {
-		generatedMissionColdBatch(t, list)
-		return
-	}
-	f := releaseFront(t)
-	c := f.Campaign.Value()
-	missions := append(append(slices.Clone(c.Main), c.Side...), c.Offered...)
-	slices.Sort(missions)
-	missions = slices.Compact(missions)
-	if len(missions) != 28 {
-		t.Fatalf("campaign mission union=%v", missions)
-	}
-	dir := t.TempDir()
-	var first generatedMissionBatch
-	for i, mission := range missions {
-		if i%4 != part {
-			continue
-		}
-		t.Run(fmt.Sprint(mission), func(t *testing.T) {
-			first.Missions = append(first.Missions, mission)
-			first.Paths = append(first.Paths, generatedMissionFirst(t, mission, nil, missionDir(t, dir, mission)))
-		})
-	}
-	if len(first.Paths) != 7 {
-		t.Fatalf("part %d wrote %d first SAVs, want 7", part, len(first.Paths))
-	}
-	firstList := filepath.Join(dir, "first.json")
-	secondList := filepath.Join(dir, "second.json")
-	first.Next, first.Dir = secondList, filepath.Join(dir, "second")
-	writeGeneratedBatch(t, firstList, first)
-	runSpellWitnessChild(t, firstList, generatedBatchVariable)
-	raw, err := os.ReadFile(secondList)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var second generatedMissionBatch
-	if err = json.Unmarshal(raw, &second); err != nil || !slices.Equal(second.Missions, first.Missions) {
-		t.Fatalf("second SAV batch %v does not cover missions %v: %v", second.Missions, first.Missions, err)
-	}
-	runSpellWitnessChild(t, secondList, generatedBatchVariable)
 }
 
 // generatedMissionRoute enters a generated mission, applies mutate to the

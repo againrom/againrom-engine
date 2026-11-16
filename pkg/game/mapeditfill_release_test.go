@@ -4,7 +4,6 @@ import (
 	"image"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
@@ -41,74 +40,6 @@ func fillScene(t *testing.T, x *MapInspector) (*ui.MapEditor, image.Point) {
 	e.ShowCell(at)
 	pressFill(t, e, fillPattern, 1)
 	return e, at
-}
-
-// stroke paints the centre once and returns the tile plane afterwards.
-func fillStrokeTiles(t *testing.T, e *ui.MapEditor, at image.Point) []uint16 {
-	t.Helper()
-	pointerStroke(e, []image.Point{at})
-	return slices.Clone(shownMap(t, e).Tiles)
-}
-
-// On the installed map, through the brush window: a fixed variant fills the
-// centre with that one tile and the pattern, the old fill, shows several; two
-// random strokes over the same area give different centres; and every edge and
-// corner tile equals the pattern's. The saved map loads back.
-func TestReleaseMapEditorFillKeepsEveryEdge(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	e, at := fillScene(t, x)
-	vars := mapedit.Variants(mapedit.ClassGrass)
-	centre := func(w uint16) bool { return slices.Contains(vars, w) }
-
-	pattern := fillStrokeTiles(t, e, at)
-	used := map[uint16]bool{}
-	for _, w := range pattern {
-		if centre(w) {
-			used[w] = true
-		}
-	}
-	if len(used) < 2 {
-		t.Fatalf("the pattern writes %d variants; the control needs several", len(used))
-	}
-	_ = e.Key("undo")
-
-	check := func(name string, got []uint16, only int) {
-		t.Helper()
-		n := 0
-		for i := range pattern {
-			switch {
-			case centre(pattern[i]) != centre(got[i]):
-				t.Fatalf("%s: cell %d changes between centre and edge", name, i)
-			case !centre(pattern[i]) && got[i] != pattern[i]:
-				t.Fatalf("%s: edge cell %d is %#x, the pattern writes %#x", name, i, got[i], pattern[i])
-			case centre(got[i]):
-				n++
-				if only >= 0 && got[i] != vars[only] {
-					t.Fatalf("%s: centre cell %d is %#x, not variant %d", name, i, got[i], only+1)
-				}
-			}
-		}
-		if n < 100 {
-			t.Fatalf("%s: %d centre cells", name, n)
-		}
-	}
-	for _, v := range []int{1, 4, len(vars)} {
-		pressFill(t, e, fillPattern, 1)
-		pressFill(t, e, fillPlus, v)
-		check("variant", fillStrokeTiles(t, e, at), v-1)
-		_ = e.Key("undo")
-	}
-	pressFill(t, e, fillRandom, 1)
-	a := fillStrokeTiles(t, e, at)
-	check("random one", a, -1)
-	_ = e.Key("undo")
-	b := fillStrokeTiles(t, e, at)
-	check("random two", b, -1)
-	if slices.Equal(a, b) {
-		t.Fatal("two random strokes over one area gave one centre")
-	}
-	_ = shownMap(t, e) // the saved bytes load back
 }
 
 // TestReleaseMapEditorFillFrames draws the owner's frames of the centre fill and

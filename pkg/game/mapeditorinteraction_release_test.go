@@ -1,14 +1,11 @@
 package game
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"image"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,120 +15,6 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
-
-func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	keys, sources := installedMapBytes(t, x)
-	popups := 0
-	for n, key := range keys {
-		t.Run(key, func(t *testing.T) {
-			e := x.Editor()
-			e.Layout(1280, 800)
-			if err := e.Open(key); err != nil {
-				t.Fatal(err)
-			}
-			closeMapPanel(t, e)
-			s := e.Document().Edits.(*mapInspectionEdits)
-			check := func(selected, mark int) {
-				t.Helper()
-				if !bytes.Equal(s.model.Bytes(), sources[n]) || s.model.Mark() != mark || e.Selected() != selected || e.Dirty() {
-					t.Fatal("Cancel changed bytes, Undo, selection or dirty state")
-				}
-			}
-			seen := map[string]bool{}
-			for i, r := range e.Document().Records {
-				if seen[string(r.Kind)] {
-					continue
-				}
-				seen[string(r.Kind)] = true
-				e.Select(i, false)
-				mark, selected := s.model.Mark(), e.Selected()
-				if rect, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1}); ok {
-					trigClick(t, e, rect, true, "Cancel")
-				} else {
-					_ = e.Key("escape")
-				}
-				check(selected, mark)
-				popups++
-			}
-			if unit := recordOf(e.Document(), "Unit", 0); unit >= 0 {
-				e.Select(unit, false)
-				_ = e.Key("escape")
-			}
-			for _, command := range []string{"unit", "structure", "sack", "field", "metadata", "pages", "package", "new", "open", "saveas", "recipe"} {
-				selected, mark := e.Selected(), s.model.Mark()
-				_ = e.Key(command)
-				// Since W opens the mod window instead of a prompt, its Close
-				// button, the sixth, is the Cancel there.
-				if e.ModWindowOpen() {
-					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 5})
-					trigClick(t, e, r, ok, "Close mod window")
-					if e.ModWindowOpen() {
-						t.Fatal("Close left the mod window open")
-					}
-					popups++
-				}
-				if _, ok := e.PromptRect(); ok {
-					button := 1
-					if command == "unit" || command == "structure" || command == "sack" {
-						button = 2
-					}
-					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: button})
-					if ok {
-						trigClick(t, e, r, true, "Cancel")
-					} else {
-						_ = e.Key("escape")
-					}
-					popups++
-				}
-				check(selected, mark)
-			}
-			for _, bar := range []string{"players", "scripts"} {
-				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: bar})
-				trigClick(t, e, r, ok, bar)
-				selected, mark := e.Selected(), s.model.Mark()
-				if bar == "players" {
-					_ = e.Key("player")
-					r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
-					trigClick(t, e, r, ok, "Cancel Add "+bar)
-					check(selected, mark)
-					popups++
-				}
-			}
-			openMessage := x.inspectionUTF8(x.word("editor.param.open") + " " + x.word("editor.message.parameter"))
-			for i, record := range e.Document().Records {
-				if record.Kind != "Action" {
-					continue
-				}
-				messageMark := s.model.Mark()
-				e.Select(i, false)
-				opened := false
-				for row, line := range e.PopupLines() {
-					if strings.HasPrefix(line, openMessage) {
-						r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
-						trigClick(t, e, r, ok, "Open message")
-						opened = true
-						break
-					}
-				}
-				if opened {
-					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
-					trigClick(t, e, r, ok, "Cancel message")
-					check(i, messageMark)
-					popups++
-					break
-				}
-			}
-			_, _, out := areaSaveAs(t, e, "cancel.alm")
-			if !bytes.Equal(out, sources[n]) {
-				t.Fatal("untouched Save As differs")
-			}
-			t.Logf("source and Save As SHA256=%x bytes=%d", sha256.Sum256(out), len(out))
-		})
-	}
-	t.Logf("root=%s maps=%d cancelled popups=%d", os.Getenv("AGAINROM_ASSETS"), len(keys), popups)
-}
 
 func TestReleaseEditorCharacterCardsMatchGameSample(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)

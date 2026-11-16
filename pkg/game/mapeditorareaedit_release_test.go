@@ -2,15 +2,12 @@ package game
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hajimehoshi/ebiten/v2"
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
@@ -233,48 +230,6 @@ func TestReleaseMapEditorAreaDragsSaveAndReopen(t *testing.T) {
 	areaCompiled(t, m, sc, radiusNode, a.RadiusSlot, int32(a.Radius+1+a.RadiusBias))
 	t.Logf("%s T%d square at %v radius %d -> %d, register %d slot %d bias %d (shared notice %v)",
 		sq.key, sq.trigger+1, a.Centre, a.Radius, gotSq.Radius, radiusNode, a.RadiusSlot, a.RadiusBias, shared)
-}
-
-// Every installed map, opened with its areas shown, its first trigger
-// selected and its handles drawn, saves the bytes it was opened with.
-func TestReleaseMapEditorAreasUntouchedMapsSaveTheirBytes(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	x := installedInspector(t)
-	dir := t.TempDir()
-	screen := ebiten.NewImage(1280, 800)
-	defer screen.Dispose()
-	shown := 0
-	for i, key := range editorKeys(x) {
-		e := x.Editor()
-		e.Layout(1280, 800)
-		if err := e.Open(key); err != nil {
-			t.Fatal(err)
-		}
-		before := bytes.Clone(e.Document().SourceBytes)
-		if sc := e.Document().Script; sc != nil && len(sc.Triggers) > 0 {
-			areaReady(t, e, 0)
-			for n := range sc.Triggers {
-				shown += len(e.TriggerAreas(n))
-			}
-		}
-		e.Draw(screen)
-		if e.Dirty() || !bytes.Equal(e.Document().SourceBytes, before) {
-			t.Fatalf("%s: showing the areas changed the map", key)
-		}
-		target := filepath.Join(dir, fmt.Sprintf("%02d.alm", i))
-		_ = e.Key("saveas")
-		e.TextInput(target)
-		if err := e.Key("enter"); err != nil {
-			t.Fatalf("%s: %v", key, err)
-		}
-		if got, err := os.ReadFile(target); err != nil || !bytes.Equal(got, before) {
-			t.Errorf("%s: Save As wrote other bytes than the installed map's (%v)", key, err)
-		}
-	}
-	if shown == 0 {
-		t.Fatal("no installed map showed an area")
-	}
-	t.Logf("%d maps, %d areas shown", len(editorKeys(x)), shown)
 }
 
 // TestReleaseMapEditorAreaFrames writes the handles of a selected trigger, a

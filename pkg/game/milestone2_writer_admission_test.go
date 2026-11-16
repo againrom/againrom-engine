@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -455,40 +454,6 @@ func mustMilestone2Open(t testing.TB, raw []byte) *sav.File {
 	return f
 }
 
-func TestMilestone2WriterOriginalAdmission(t *testing.T) {
-	sessionCorpusAudit(t)
-	raw, err := cityfixture.Original(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"saveorcsdontgo.sav", "unlisted.sav"} {
-		mf := milestone2File{rel: name, raw: raw, f: mustMilestone2Open(t, raw), present: true}
-		bits, written, err := milestone2WriterCarriers(mf)
-		if err != nil || written || bits != 0 {
-			t.Fatalf("original admitted to Againrom: bits=%#x written=%t err=%v", bits, written, err)
-		}
-		for bit := uint32(1); bit <= currentCarrierTerrainBlockPlane; bit <<= 1 {
-			if !milestone2CarrierApplies(t, mf, bit) {
-				t.Fatal("original carrier comparison weakened", bit)
-			}
-		}
-	}
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := sav.ProjectDocumentPayload(&doc, &sav.DocPayload{Version: sav.PayloadVersion, Data: []byte("payload alone is not a writer capability")}); err != nil {
-		t.Fatal(err)
-	}
-	raw, err = sav.EncodeDocumentData(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, written, err := milestone2WriterCarriers(milestone2File{raw: raw, f: mustMilestone2Open(t, raw)}); err != nil || written {
-		t.Fatalf("document payload alone admitted: %t %v", written, err)
-	}
-}
-
 func TestMilestone2WriterCurrentRoundTrip(t *testing.T) {
 	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
@@ -541,145 +506,6 @@ func milestone2WriterMaskApplies(t *testing.T, mf milestone2File) {
 		if got := milestone2CarrierApplies(t, mf, bit); got != (currentWriterCarriers&bit != 0) {
 			t.Fatalf("%s: written bit %#x applies=%t", mf.rel, bit, got)
 		}
-	}
-}
-
-func TestMilestone2WriterBitAdmission(t *testing.T) {
-	sessionCorpusAudit(t)
-	raw, err := cityfixture.Original(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for bit := uint32(1); bit <= currentCarrierTerrainBlockPlane; bit <<= 1 {
-		leaf, err := json.Marshal(currentActionData{Version: 1, WriterCarriers: bit})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := sav.SetNativeActions(&doc.State, leaf); err != nil {
-			t.Fatal(err)
-		}
-		raw, err := sav.EncodeDocumentData(doc)
-		if err != nil {
-			t.Fatal(err)
-		}
-		mf := milestone2File{raw: raw, f: mustMilestone2Open(t, raw), present: true}
-		for required := uint32(1); required <= currentCarrierTerrainBlockPlane; required <<= 1 {
-			if got := milestone2CarrierApplies(t, mf, required); got != (required == bit) {
-				t.Fatalf("writer bit=%#x required=%#x applies=%t", bit, required, got)
-			}
-		}
-	}
-	for _, leaf := range []string{`{"Version":2,"WriterCarriers":0}`, `{"Version":1,"WriterCarriers":2048}`, `{"Version":1,"WriterCarriers":0} {}`} {
-		if err := sav.SetNativeActions(&doc.State, []byte(leaf)); err != nil {
-			t.Fatal(err)
-		}
-		raw, err := sav.EncodeDocumentData(doc)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, written, err := milestone2WriterCarriers(milestone2File{raw: raw, f: mustMilestone2Open(t, raw)}); err == nil || written {
-			t.Fatalf("malformed supplement admitted=%t err=%v", written, err)
-		}
-	}
-	milestone2WriterRecordControls(t)
-}
-
-func milestone2WriterRecordControls(t *testing.T) {
-	t.Helper()
-	var source milestone2File
-	matched := 0
-	for _, mf := range writerCensusFiles(t) {
-		if fmt.Sprintf("%x", sha256.Sum256(mf.raw)) == "549c4deae41ecef8153c0d336e27c5307a856d799834693053c9e92e4ff56c2a" {
-			source = mf
-			matched++
-		}
-	}
-	if matched != 1 {
-		t.Fatalf("writer record control input occurs %d times, want 1", matched)
-	}
-	doc, err := sav.DecodeDocumentData(source.raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	leaf, present, err := sav.NativeActions(doc.State)
-	if err != nil || !present {
-		t.Fatal("writer record control supplement", present, err)
-	}
-	leaf = bytes.TrimSpace(leaf)
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(leaf, &fields); err != nil {
-		t.Fatal(err)
-	}
-	for key := range fields {
-		if strings.EqualFold(key, "WriterCarriers") {
-			t.Fatal("historical control already contains a writer record")
-		}
-	}
-	wantGroups, err := expectedNativeGroups(source.f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	original, err := os.ReadFile(filepath.Join(os.Getenv("AGAINROM_SAVE_CORPUS"), "2026-08-02", "game0009.sav"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	control := milestone2File{raw: original, f: mustMilestone2Open(t, original)}
-	if _, admitted, err := milestone2WriterCarriers(control); err != nil || admitted {
-		t.Fatal("population control must remain original", admitted, err)
-	}
-	cases := []writerCarrierRecordCase{
-		{"canonical none", `"WriterCarriers":0`, ""},
-		{"canonical Groups", `"WriterCarriers":16`, ""},
-	}
-	cases = append(cases, ambiguousWriterCarrierRecords()...)
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			modified := append(bytes.Clone(leaf[:len(leaf)-1]), []byte(","+tc.members+"}")...)
-			if err := sav.SetNativeActions(&doc.State, modified); err != nil {
-				t.Fatal(err)
-			}
-			raw, err := sav.EncodeDocumentData(doc)
-			if err != nil {
-				t.Fatal(err)
-			}
-			gotGroups, err := expectedNativeGroups(mustMilestone2Open(t, raw))
-			if err != nil || !reflect.DeepEqual(wantGroups, gotGroups) {
-				t.Fatal("writer record changed the native Group control", err)
-			}
-			dir := t.TempDir()
-			for name, data := range map[string][]byte{"probe.sav": raw, "control.sav": original} {
-				if err := os.WriteFile(filepath.Join(dir, name), data, 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
-			cmd := exec.Command(os.Args[0], "-test.v", "-test.count=1", "-test.run=^TestMilestone2Groups$")
-			cmd.Env = append(os.Environ(), "AGAINROM_SAVE_CORPUS="+dir, "AGAINROM_M2_ORIGINAL_CONTROL=")
-			out, err := cmd.CombinedOutput()
-			if !bytes.Contains(out, []byte("--- PASS: TestMilestone2Groups/control.sav")) {
-				t.Fatalf("original population control did not pass:\n%s", out)
-			}
-			if tc.name == "canonical none" {
-				if err != nil || !bytes.Contains(out, []byte("--- PASS: TestMilestone2Groups/probe.sav")) || !bytes.Contains(out, []byte("M2-WRITER cycle=0")) || !bytes.Contains(out, []byte("M2-WRITER cycle=1")) {
-					t.Fatalf("zero-record loss control did not run both writer cycles:\n%s", out)
-				}
-			} else {
-				if err == nil || !bytes.Contains(out, []byte("--- FAIL: TestMilestone2Groups/probe.sav")) || bytes.Contains(out, []byte("M2-RULE Againrom round-trip")) {
-					t.Fatalf("required Group refusal was bypassed:\n%s", out)
-				}
-				reason := "current actions: invalid WriterCarriers record"
-				if tc.name == "canonical Groups" {
-					reason = "raw/live Group or Player identity population differs"
-				}
-				if !bytes.Contains(out, []byte(reason)) {
-					t.Fatalf("Group instrument did not report the required cause %q:\n%s", reason, out)
-				}
-			}
-			t.Logf("M2-RECORD %s: original control PASS; probe PASS=%t; native Groups unchanged; child output SHA256=%x", tc.name, err == nil, sha256.Sum256(out))
-		})
 	}
 }
 

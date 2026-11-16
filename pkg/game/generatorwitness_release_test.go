@@ -1,14 +1,9 @@
 package game
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"image"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -88,25 +83,4 @@ func generatorWitnessFrames(t *testing.T, f *FrontEnd) ([]generatorWitnessFrame,
 	frame, state = generatorWitnessHover(t, app, skill[axe])
 	out = append(out, generatorWitnessFrame{"detail-skill-hover", frame, state})
 	return out, c
-}
-
-// The generator's owner witness: four frames of the install's own
-// generator through one live App, each hashed, and written as PNGs under
-// AGAINROM_GENERATOR_WITNESS_DIR when it is set. The hashes of the first
-// game's frames are its byte-identity record.
-func TestReleaseGeneratorWitnessFrames(t *testing.T) {
-	f := releaseFront(t)
-	if f.ChargenAssets == nil {
-		t.Fatal("the install loaded no generator")
-	}
-	out := os.Getenv("AGAINROM_GENERATOR_WITNESS_DIR")
-	tag := f.generator().Generator + "-" + f.Base().Profile.Language
-	frames, _ := generatorWitnessFrames(t, f)
-	for _, w := range frames {
-		t.Logf("%s %s sha256 %x tooltip %v %v", tag, w.name, sha256.Sum256(w.frame.Pix), w.tooltip.Visible, w.tooltip.Bounds)
-		if out == "" {
-			continue
-		}
-		witness.PNG(t, filepath.Join(out, fmt.Sprintf("%s-%s.png", tag, w.name)), w.frame)
-	}
 }

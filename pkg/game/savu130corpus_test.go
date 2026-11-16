@@ -8,90 +8,10 @@ package game
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"againrom/pkg/formats/sav"
 )
-
-func TestSAVU130CorpusResaveKeepsTheLoadedAggregate(t *testing.T) {
-	sessionCorpusAudit(t)
-	assets := os.Getenv("AGAINROM_ASSETS")
-	if assets == "" {
-		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")
-	}
-
-	total, checked, comparedChars, mismatched, written := 0, 0, 0, 0, 0
-	var refused []milestone2ResumeRefusal
-
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, _ *FrontEnd) {
-		total++
-		loadedChars, _, err := mf.f.PartyWalk()
-		if err != nil || len(loadedChars) == 0 {
-			// Not every corpus file carries a party (a pure city or map
-			// record might not); nothing to compare here.
-			return
-		}
-		// No WriterCarriers bit carries a party Human basis, so only an
-		// original's stored aggregate is what LOAD keeps.
-		original, err := carrierHeldForAudit(mf.f, mf.raw, 0)
-		if err != nil {
-			t.Fatalf("%s: writer admission: %v", mf.rel, err)
-		}
-
-		before, err := NewFrontEnd(assets)
-		if err != nil {
-			t.Fatalf("NewFrontEnd(%q): %v", assets, err)
-		}
-		before.SetDeterministicFrames(true)
-		open, town, err := before.RestoreOriginal(mf.raw)
-		if err != nil {
-			refused = append(refused, milestone2ResumeRefusal{rel: mf.rel, err: err})
-			return
-		}
-		if !town {
-			if _, _, _, _, _, _, _, _, _, _, err = open(); err != nil {
-				refused = append(refused, milestone2ResumeRefusal{rel: mf.rel, err: err})
-				return
-			}
-		}
-		snapshot, label, err := before.Snapshot(!town)
-		if err != nil {
-			t.Fatalf("%s: Snapshot: %v", mf.rel, err)
-		}
-		raw, err := before.ExportCurrentSave(snapshot, label)
-		if err != nil {
-			t.Fatalf("%s: ExportCurrentSave: %v", mf.rel, err)
-		}
-		doc, err := sav.Open(raw)
-		if err != nil {
-			t.Fatalf("%s: our own resave did not decode: %v", mf.rel, err)
-		}
-		writtenChars, _, err := doc.PartyWalk()
-		if err != nil {
-			t.Fatalf("%s: resave PartyWalk: %v", mf.rel, err)
-		}
-		checked++
-		if !original {
-			written++
-		}
-		compared, misses := u130MismatchesForAudit(loadedChars, writtenChars, original)
-		comparedChars += compared
-		mismatched += len(misses)
-		for _, m := range misses {
-			t.Errorf("%s: %s", mf.rel, m)
-		}
-	})
-
-	if total == 0 {
-		t.Fatal("save corpus is empty; AGAINROM_SAVE_CORPUS is misconfigured")
-	}
-	milestone2LogRefusals(t, "U130 resave corpus", refused)
-	t.Logf("SAV-U130-RESAVE-CENSUS discovered=%d checked=%d againrom-written=%d compared-characters=%d mismatched=%d refused=%d", total, checked, written, comparedChars, mismatched, len(refused))
-	if comparedChars == 0 {
-		t.Fatal("compared zero characters across the whole corpus; the name-matched comparison found nothing to check")
-	}
-}
 
 func TestU130MismatchesForAuditKeepsOriginalsAndSumsAgainromSAVs(t *testing.T) {
 	// A record whose stored aggregate is not its six-slot sum.

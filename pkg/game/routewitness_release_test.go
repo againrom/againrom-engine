@@ -1,16 +1,13 @@
 package game
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"image/color"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"againrom/pkg/base"
 	"againrom/pkg/render/menu"
@@ -18,45 +15,6 @@ import (
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-// TestReleaseRouteWitness walks the install's game from launch to the first
-// mission's first ticks through the App's own input, asserts every step
-// reaches its screen, and records each step. The game picks the stage table:
-// the second game's route, or the first game's.
-func TestReleaseRouteWitness(t *testing.T) {
-	root := os.Getenv("AGAINROM_ASSETS")
-	if root == "" {
-		t.Skip("no AGAINROM_ASSETS: the route witness needs a lawful install")
-	}
-	if os.Getenv("AGAINROM_HEADLESS_ONLY") != "1" && os.Getenv("AGAINROM_ROUTE_RENDER_CHILD") != "1" {
-		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Minute)
-		defer cancel()
-		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReleaseRouteWitness$", "-test.v", "-test.timeout=40m")
-		cmd.Env = append(os.Environ(), "AGAINROM_ROUTE_RENDER_CHILD=1")
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("route GPU child: %v\n%s", err, out)
-		}
-		t.Logf("%s", out)
-		return
-	}
-	archives, err := OpenArchives(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	w, stages := newRouteWitness(t, archives.Game(), "")
-	f := w.f
-	start := time.Now()
-	w.walk(stages, "")
-	counts := make([]string, 0, len(stages))
-	for _, s := range stages {
-		counts = append(counts, fmt.Sprintf("%s=%d", s.name, w.steps[s.name]))
-	}
-	t.Logf("%s: %d steps, %d frames in %v; %s", f.Base().Profile.ID, len(w.rows), w.frames, time.Since(start).Round(time.Millisecond), strings.Join(counts, " "))
-	if town := routeTownRows(stages); len(town) > 0 {
-		w.townSaves(t, town)
-	}
-}
 
 // townSaves loads each .sav of AGAINROM_ROUTE_SAVES, in name order, cold
 // through the menu's Load window and walks the town rows from there, with

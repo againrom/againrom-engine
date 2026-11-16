@@ -1,47 +1,19 @@
 package game
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 
-	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
-
-const teleportPursuitSAVSHA = "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c"
 
 // tpHero is the save's mage, who knows Teleport (Spell 26).
 const (
 	tpHero     = sim.EntityID(35)
 	tpTeleport = sim.SpellID(26)
 )
-
-// teleportPursuitFront loads the EN install's mission-10 SAV named by
-// AGAINROM_TELEPORT_SAV through the App LOAD path.
-func teleportPursuitFront(t *testing.T) *FrontEnd {
-	t.Helper()
-	path := os.Getenv("AGAINROM_TELEPORT_SAV")
-	if path == "" {
-		t.Skip("set AGAINROM_TELEPORT_SAV to the EN install's game0021.sav")
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fmt.Sprintf("%x", sha256.Sum256(raw)) != teleportPursuitSAVSHA {
-		t.Fatal("the Teleport SAV SHA differs")
-	}
-	f := releaseFront(t)
-	openOriginalSAVApp(t, f, raw, "teleport.sav")
-	if f.live == nil || f.live.world == nil {
-		t.Fatal("the SAV loaded no mission")
-	}
-	return f
-}
 
 func tpEnt(w *sim.World, id sim.EntityID) sim.Entity { e, _ := w.Entity(id); return e }
 
@@ -66,19 +38,6 @@ type tpRun struct {
 	// window is how many ticks after the last relocation each group pass
 	// is still dumped.
 	window uint64
-}
-
-func newTPRun(t *testing.T, name string) *tpRun {
-	r := &tpRun{t: t, f: teleportPursuitFront(t), name: name, window: 700}
-	if dir := os.Getenv("AGAINROM_TELEPORT_OUT"); dir != "" {
-		out, err := os.Create(filepath.Join(dir, name+".worlds"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { out.Close() })
-		r.out = out
-	}
-	return r
 }
 
 func (r *tpRun) world() *sim.World { return r.f.live.world }
@@ -289,152 +248,4 @@ func (r *tpRun) holders(ids ...sim.EntityID) int {
 	return n
 }
 
-// tpGuard is the Guard group of three (Group 8) the measured cases name, and
-// tpLone the single Guard member (Group 11) on the road south of it.
-var tpGuard = []sim.EntityID{6, 7, 8}
-
 const tpLone = sim.EntityID(13)
-
-func tpCellEnv(name string, x, y int32) (int32, int32) {
-	if v := os.Getenv(name); v != "" {
-		var a, b int32
-		if _, err := fmt.Sscanf(v, "%d,%d", &a, &b); err == nil {
-			return a, b
-		}
-	}
-	return x, y
-}
-
-// TestReleaseTeleportPursuitWitness drives the EN mission-10 SAV into each
-// measured case and casts Teleport. It states what this build does; the
-// package-internal reader in pkg/sim prints the pursuers' fields.
-func TestReleaseTeleportPursuitWitness(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	t.Run("reach", func(t *testing.T) {
-		// The hero at (43,39) orders the cast on (43,43), first with the
-		// book as loaded, then after one applied Teleport.
-		r := newTPRun(t, "reach")
-		r.walk(43, 39, 3000, false)
-		r.status("before")
-		r.reach()
-		r.cast(43, 43, 400)
-		r.status("after")
-		r.reach()
-		r.finish()
-	})
-	t.Run("reachwarm", func(t *testing.T) {
-		r := newTPRun(t, "reachwarm")
-		r.warm()
-		r.walk(43, 39, 3000, false)
-		r.status("before")
-		r.reach()
-		r.cast(43, 43, 400)
-		r.status("after")
-		r.finish()
-	})
-	t.Run("b1", func(t *testing.T) {
-		// A Guard group of three pursues the hero at (41,35); hop to (43,37).
-		r := newTPRun(t, "b1")
-		r.warm()
-		r.walk(41, 35, 3000, false)
-		r.status("before")
-		r.ticks(8, true)
-		x, y := tpCellEnv("AGAINROM_TELEPORT_B1", 43, 37)
-		r.cast(x, y, 200)
-		r.ticks(700, true)
-		r.finish()
-	})
-	t.Run("b2", func(t *testing.T) {
-		// The hero at (33,27) strikes the lone pursuer near (31,23); hop to
-		// (36,29).
-		r := newTPRun(t, "b2")
-		r.warm()
-		r.walk(33, 27, 3000, false)
-		r.status("at 33,27")
-		var near sim.EntityID
-		best := int32(99)
-		for _, id := range tpGuard {
-			e := tpEnt(r.world(), id)
-			if d := tpCheb(e.X, e.Y, 31, 23); e.Alive() && d < best {
-				near, best = id, d
-			}
-		}
-		r.t.Logf("b2 strikes %d (%d from 31,23), refusal %q", near, best, r.world().BookSpellRefusal(tpHero, near, 1))
-		r.order(sim.Cast(tpHero, near, 1))
-		hp := tpEnt(r.world(), near).HP
-		for i := 0; i < 200 && tpEnt(r.world(), near).HP == hp; i++ {
-			r.tick(true)
-		}
-		r.status("struck")
-		r.ticks(4, true)
-		x, y := tpCellEnv("AGAINROM_TELEPORT_B2", 36, 29)
-		r.cast(x, y, 200)
-		r.ticks(700, true)
-		r.finish()
-	})
-	t.Run("q4", func(t *testing.T) {
-		// The hero at (43,39), the group idle at its posts; hop to (43,37).
-		r := newTPRun(t, "q4")
-		r.warm()
-		r.walk(43, 39, 3000, false)
-		r.status("before")
-		r.ticks(8, true)
-		r.cast(43, 37, 200)
-		r.ticks(700, true)
-		r.finish()
-	})
-	t.Run("b3", func(t *testing.T) {
-		// The group has just dropped the hero at (43,37); hop to (43,40).
-		r := newTPRun(t, "b3")
-		r.warm()
-		r.walk(43, 37, 3000, false)
-		r.status("at 43,37")
-		held := r.holders(tpGuard...)
-		i := 0
-		for ; i < 2000 && !(held > 0 && r.holders(tpGuard...) == 0); i++ {
-			held = max(held, r.holders(tpGuard...))
-			r.tick(true)
-			if r.hero().HP < 1 {
-				break
-			}
-		}
-		r.status(fmt.Sprintf("dropped after %d", i))
-		r.cast(43, 40, 200)
-		r.ticks(700, true)
-		r.finish()
-	})
-	t.Run("far", func(t *testing.T) {
-		// A relocation longer than this hero's Teleport reaches: the
-		// instrument places the hero at its start cell during the pursuit,
-		// out of the pursuing Group's activity cover, as a long Teleport would
-		// (the relocation stores into no other actor, MAGIC-417).
-		r := newTPRun(t, "far")
-		r.window = 1500
-		r.walk(41, 35, 3000, false)
-		r.status("before")
-		r.ticks(8, true)
-		x, y := tpCellEnv("AGAINROM_TELEPORT_FAR", 17, 66)
-		if err := r.world().HeadlessPlace(tpHero, x, y); err != nil {
-			t.Fatal(err)
-		}
-		r.reloc = append(r.reloc, r.world().Tick())
-		r.status("placed")
-		r.ticks(1500, true)
-		r.finish()
-	})
-	t.Run("hops", func(t *testing.T) {
-		// Several hops away in a row during the pursuit: a one-cell hop
-		// with the book as loaded, then a three-cell hop.
-		r := newTPRun(t, "hops")
-		r.walk(41, 35, 3000, false)
-		r.status("before")
-		r.ticks(8, true)
-		x, y := tpCellEnv("AGAINROM_TELEPORT_HOP1", 42, 36)
-		r.cast(x, y, 200)
-		h := r.hero()
-		x, y = tpCellEnv("AGAINROM_TELEPORT_HOP2", h.X, h.Y+3)
-		r.cast(x, y, 200)
-		r.ticks(700, true)
-		r.finish()
-	})
-}

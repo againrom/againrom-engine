@@ -47,49 +47,6 @@ func milestone2WriterCarrierBits() []uint32 {
 	return out
 }
 
-func milestone2WriterCarrierNames() string {
-	var names []string
-	for _, bit := range milestone2WriterCarrierBits() {
-		names = append(names, milestone2WriterCarriersChecked[bit].name)
-	}
-	return strings.Join(names, ",")
-}
-
-// milestone2WriterCarrierCheck runs each claimed carrier's per-file
-// comparison on one written file; a town file has no World and is not checked.
-func milestone2WriterCarrierCheck(t *testing.T, assets, rel string, raw []byte) (int, []string) {
-	t.Helper()
-	f, err := sav.Open(raw)
-	if err != nil {
-		return 0, []string{"written file: " + err.Error()}
-	}
-	if f.World == nil {
-		return 0, nil
-	}
-	fe, err := decodedInstallFront(assets)
-	if err != nil {
-		t.Fatalf("NewFrontEnd(%q): %v", assets, err)
-	}
-	cleanupFrontAudio(t, fe)
-	fe.SetDeterministicFrames(true)
-	mf := milestone2File{rel: rel, raw: raw, body: f.Body, f: f, present: true}
-	records := 0
-	var differences []string
-	for _, bit := range milestone2WriterCarrierBits() {
-		c := milestone2WriterCarriersChecked[bit]
-		r, err := c.check(t, mf, fe)
-		if err != nil {
-			differences = append(differences, c.name+": LOAD refused: "+err.Error())
-			continue
-		}
-		records += r.records
-		for _, d := range r.differences {
-			differences = append(differences, c.name+": "+d)
-		}
-	}
-	return records, differences
-}
-
 // milestone2WriterCarrierChild runs the named instrument tests over the files
 // in dir. The bits each file carries select the instrument.
 func milestone2WriterCarrierChild(dir string, names []string) ([]byte, error) {

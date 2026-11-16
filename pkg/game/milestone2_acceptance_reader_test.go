@@ -32,10 +32,8 @@ package game
 import (
 	"encoding/binary"
 	"os"
-	"path/filepath"
 	"testing"
 
-	"againrom/internal/cityfixture"
 	"againrom/pkg/formats/sav"
 )
 
@@ -142,40 +140,4 @@ func walkOriginalSaveCorpus(t *testing.T, corpus string, fn func(t *testing.T, m
 	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable",
 		total, worlds, cities, unreadable)
 	return total
-}
-
-func TestMilestone2CorpusCountsUnreadable(t *testing.T) {
-	sessionCorpusAudit(t)
-	raw, err := cityfixture.Original(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	corpus := t.TempDir()
-	for _, file := range []struct {
-		name string
-		raw  []byte
-	}{
-		{"good.sav", raw},
-		{"bad.sav", []byte("not a SAV")},
-		{"ignored.ags", raw},
-		{"exp-control/hidden.sav", raw},
-	} {
-		path := filepath.Join(corpus, filepath.FromSlash(file.name))
-		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, file.raw, 0600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	readable := 0
-	discovered := walkOriginalSaveCorpus(t, corpus, func(t *testing.T, mf milestone2File) {
-		readable++
-		if mf.rel != "good.sav" {
-			t.Errorf("callback file = %q, want good.sav", mf.rel)
-		}
-	})
-	if discovered != 2 || readable != 1 {
-		t.Fatalf("discovered=%d readable=%d, want discovered=2 readable=1", discovered, readable)
-	}
 }

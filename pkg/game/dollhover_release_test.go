@@ -244,3 +244,33 @@ func TestReleaseTownHeroDollHoverThroughAppFrame(t *testing.T) {
 		t.Fatal("no worn item of the school pane reached the hover")
 	}
 }
+
+// serviceOpen enters a building from the square through the App and answers
+// any offer conversation that opening starts.
+func serviceOpen(t *testing.T, f *FrontEnd, app *ui.App, door string, room townRoom) *townScreen {
+	t.Helper()
+	if err := app.HeadlessActivate(door); err != nil {
+		t.Fatal(door, err)
+	}
+	s := f.TownScreen().(*townScreen)
+	for n := 0; s.room == roomTalk && n < 64; n++ {
+		if err := app.HeadlessActivate("dialogue"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if s.room != room {
+		t.Fatalf("%s opened room %v", door, s.room)
+	}
+	return s
+}
+
+// serviceStore is a fresh save directory holding only the town SAV, so the
+// autosaves other subtests write beside it never reach the cold LOAD.
+func serviceStore(t *testing.T, raw []byte) SaveStore {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "Town.sav"), raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return SaveStore{Dir: dir}
+}

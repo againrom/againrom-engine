@@ -2,8 +2,6 @@ package game
 
 import (
 	"testing"
-
-	"againrom/pkg/data"
 )
 
 // installedCampaign is the installed scenario registry as production reads it
@@ -15,14 +13,4 @@ func installedCampaign(t *testing.T, f *FrontEnd) Campaign {
 		t.Fatal(err)
 	}
 	return c
-}
-
-// installedNPCDefs is the installed npc.reg as production reads it.
-func installedNPCDefs(t *testing.T, f *FrontEnd) *data.NPCDefs {
-	t.Helper()
-	catalog, err := LoadNPCCatalog(f.Archives.Containers)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return catalog.Defs
 }
