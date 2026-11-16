@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"againrom/pkg/editormcp"
 	"againrom/pkg/formats/alm"
@@ -128,7 +129,7 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
 			return []commandCall{{"add_record", map[string]any{"kind": "Structure", "x": 10, "y": 12, "values": map[string]any{"kind": 5}}}}
 		}},
-		{"add player", players, func(t *testing.T, e *ui.MapEditor) { addWindow(t, e, "player", nil) },
+		{"add player", players, func(t *testing.T, e *ui.MapEditor) { _ = e.Key("player") },
 			func(t *testing.T, e *ui.MapEditor) []commandCall {
 				return []commandCall{{"add_record", map[string]any{"kind": "Player"}}}
 			}},
@@ -141,12 +142,22 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 			return []commandCall{{"set_field", map[string]any{"kind": "Player", "index": 0, "key": key, "text": "Copper"}}}
 		}},
 		{"set_field number", players, func(t *testing.T, e *ui.MapEditor) {
-			if err := enterField(e, 1, "9"); err != nil {
-				t.Fatal(err)
+			// The Players matrix's cell of player 1 toward player 2.
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 1})
+			if !ok {
+				t.Fatal("matrix cell 1 is not shown")
 			}
+			p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
+			e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
+			e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Time{})
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
-			key := e.Document().Edits.Fields("Player", 0)[1].Key
-			return []commandCall{{"set_field", map[string]any{"kind": "Player", "index": 0, "key": key, "value": 9}}}
+			for _, f := range e.Document().Edits.Fields("Player", 0) {
+				if f.Toward == 2 {
+					return []commandCall{{"set_field", map[string]any{"kind": "Player", "index": 0, "key": f.Key, "value": (f.Value + 1) % 3}}}
+				}
+			}
+			t.Fatal("player 1 offers no relation toward player 2")
+			return nil
 		}},
 		{"delete_record", authoring, func(t *testing.T, e *ui.MapEditor) {
 			e.Select(1, true)

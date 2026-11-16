@@ -472,7 +472,6 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	_ = e.Key("down")
 	shot(e, "new-unit-tier", image.Rectangle{})
 
-	sheetHeading := x.inspectionUTF8(x.word("editor.unit.sheet"))
 	lootHeading := x.inspectionUTF8(x.word("editor.unit.loot"))
 	key, _, i := tieredPlacement(t, x)
 	e = opened(key)
@@ -485,19 +484,17 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 
 	e = opened(key)
 	e.Select(rec, true)
-	sectionTo(t, c, e, sheetHeading)
+	sectionTo(t, c, e, lootHeading)
 	cell := e.Document().Records[rec].Cell
 	p := e.CellPoint(cell)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, c.now)
-	shot(e, "creature-sheet-and-hover", image.Rectangle{})
+	shot(e, "creature-loot-and-hover", image.Rectangle{})
 
 	key, i = unitWhere(t, x, "an equipped human", func(u alm.Unit, r mapload.Resolution, s unitSheet) bool {
 		return r.Arm != mapload.ArmUnits && r.Found() && !s.Suppressed && slices.ContainsFunc(s.Worn[1:], func(it sim.ItemInstance) bool { return !it.Empty() })
 	})
 	e = opened(key)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
-	sectionTo(t, c, e, sheetHeading)
-	shot(e, "human-sheet", image.Rectangle{})
 	sectionTo(t, c, e, lootHeading)
 	shot(e, "human-loot", image.Rectangle{})
 
@@ -514,6 +511,6 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	})
 	e = opened(key)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
-	sectionTo(t, c, e, sheetHeading)
-	shot(e, "npc-arm-sheet", image.Rectangle{})
+	sectionTo(t, c, e, lootHeading)
+	shot(e, "npc-arm-loot", image.Rectangle{})
 }

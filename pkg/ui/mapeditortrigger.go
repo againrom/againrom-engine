@@ -930,9 +930,9 @@ type freshTrigger struct {
 }
 
 // addNow is the one-click add of a script record, the Scenario palette's New
-// trigger button and the New trigger command row: it adds the record the Add
-// steps of kind add with every proposal accepted, as one history entry. The
-// palette stays open. A trigger opens in the wizard, its name field focused
+// trigger button and the New trigger command row, and of a OneClick kind: it
+// adds the record the Add steps of kind add with every proposal accepted, as
+// one history entry. The palette stays open. A trigger opens in the wizard, its name field focused
 // with its text selected. A shown popup with unapplied edits keeps them and
 // says so.
 func (e *MapEditor) addNow(kind RecordKind) {
@@ -945,10 +945,13 @@ func (e *MapEditor) addNow(kind RecordKind) {
 		e.obj.note = e.word("editor.trigger.applyfirst")
 		return
 	}
-	if owner := e.barWindow(); owner != "" && owner != "scripts" {
-		e.closeBarWindow()
+	if !row.OneClick {
+		// A script record opens in the Scenario palette's window.
+		if owner := e.barWindow(); owner != "" && owner != "scripts" {
+			e.closeBarWindow()
+		}
+		e.barOwner = "scripts"
 	}
-	e.barOwner = "scripts"
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
 	run := &addRun{kind: row.Kind}
 	run.setSteps(row.Steps)
@@ -964,7 +967,7 @@ func (e *MapEditor) addNow(kind RecordKind) {
 	if ch.doc == nil {
 		return
 	}
-	e.selectNewest(KindTrigger, ch.doc.AddedRecord)
+	e.selectNewest(row.Kind, ch.doc.AddedRecord)
 	e.obj.doc = nil
 	e.loadObject()
 	if e.wizardOpen() == nil {

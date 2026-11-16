@@ -154,7 +154,7 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"speed": "card", "sight": "card", "facing": "main",
 		"hpmax": "card", "face": "", "sex": "", "gold": "", "noloot": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
-		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "resolved": "", "overrides": "",
+		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "loot": "",
 	},
 	ui.KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -235,6 +235,29 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 				t.Errorf("%s %s shows %v in the technical view", kind, f.Key, shown)
 			}
 		}
+	}
+}
+
+// The unit's detailed view states no read-only stat block: its corpse drops
+// stand once, under their own heading, in the bag and loot section.
+func TestEditorViewsUnitLootStandsWithTheBag(t *testing.T) {
+	s, _ := viewsMap(t)
+	heading := s.inspector.inspectionUTF8(s.inspector.word("editor.unit.loot"))
+	loot := 0
+	for _, f := range viewsWindow(t, s, false, ui.KindUnit).ObjectFields() {
+		if f.ReadOnly && f.Section == "stats" {
+			t.Errorf("the stats section holds the read-only %s", f.Key)
+		}
+		if f.Key != "loot" {
+			continue
+		}
+		loot++
+		if f.Section != "inventory" || len(f.Lines) == 0 || f.Lines[0].Text != heading {
+			t.Errorf("the loot field stands in %q headed %v", f.Section, f.Lines)
+		}
+	}
+	if loot != 1 {
+		t.Fatalf("the unit window has %d loot fields", loot)
 	}
 }
 

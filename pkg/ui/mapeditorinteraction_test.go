@@ -455,7 +455,7 @@ func TestEditorCancelClosesAndRestoresDraftAndPromptState(t *testing.T) {
 		})
 	}
 	for _, kind := range addKinds {
-		if len(kind.Steps) == 0 {
+		if len(kind.Steps) == 0 || kind.OneClick {
 			continue
 		}
 		e, calls := newModesEditor(t, "full")

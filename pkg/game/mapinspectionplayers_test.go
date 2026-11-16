@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"image"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -52,12 +53,27 @@ func TestMapEditorPlayersWindowEditsAreSeparateUndoSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	selectedPlayer(t, e, 0)
-	addWindow(t, e, "player", nil)
+	if err := e.Key("player"); err != nil {
+		t.Fatal(err)
+	}
 	selectedPlayer(t, e, 2)
 	if len(windowPlayers(t, e)) != 3 {
 		t.Fatal("add key did not create a third player")
 	}
 	history = append(history, bytes.Clone(e.Document().SourceBytes))
+	// The name is typed in the player's row; the numbers go through the
+	// editor's set_field command, the one the row switch and the matrix use.
+	_, must := editorMCP(t, e)
+	set := func(field int, value string) error {
+		if field == 0 {
+			return enterField(e, 0, value)
+		}
+		n, err := strconv.Atoi(value)
+		if err == nil {
+			must("set_field", map[string]any{"kind": "Player", "index": 2, "key": e.Document().Edits.Fields("Player", 2)[field].Key, "value": n})
+		}
+		return err
+	}
 	for _, step := range []struct {
 		field int
 		value string
@@ -68,7 +84,7 @@ func TestMapEditorPlayersWindowEditsAreSeparateUndoSteps(t *testing.T) {
 		{2, "0", func(g alm.Group) bool { return g.Participant == 0 }},
 		{3, "0", func(g alm.Group) bool { return g.Relation[0] == 0 }},
 	} {
-		if err := enterField(e, step.field, step.value); err != nil {
+		if err := set(step.field, step.value); err != nil {
 			t.Fatalf("field %d refused %q: %v", step.field, step.value, err)
 		}
 		if !step.check(windowPlayers(t, e)[2]) {
@@ -93,7 +109,11 @@ func TestMapEditorPlayersWindowEditsAreSeparateUndoSteps(t *testing.T) {
 		}
 	}
 	e.Select(recordIndex(t, e, "Player", 2), false)
-	if err := e.Key("delete"); err != nil || len(windowPlayers(t, e)) != 2 {
+	// Del asks first; Enter answers the question.
+	if err := e.Key("delete"); err != nil || len(windowPlayers(t, e)) != 3 {
+		t.Fatal("Del deleted before it asked", err)
+	}
+	if err := e.Key("enter"); err != nil || len(windowPlayers(t, e)) != 2 {
 		t.Fatal("delete unreferenced player", err)
 	}
 	if err := e.Key("undo"); err != nil || !bytes.Equal(history[len(history)-1], e.Document().SourceBytes) {
@@ -113,17 +133,23 @@ func TestMapEditorPlayersRefuseInvalidFieldsAndSpatialEdits(t *testing.T) {
 		t.Fatal("first-player refusal changed bytes or history")
 	}
 	_ = e.Key("escape")
+	tool, _ := editorMCP(t, e)
 	for _, tc := range []struct {
 		field int
-		value string
-	}{{0, strings.Repeat("x", 33)}, {0, "🙂"}, {1, "16"}, {2, "2"}, {3, "3"}} {
-		if err := enterField(e, tc.field, tc.value); err == nil || e.Message() == "" {
-			t.Fatalf("field %d accepted %q or gave no reason", tc.field, tc.value)
+		value any
+	}{{0, strings.Repeat("x", 33)}, {0, "🙂"}, {1, 16}, {2, 2}, {3, 3}} {
+		args := map[string]any{"kind": "Player", "index": 0, "key": e.Document().Edits.Fields("Player", 0)[tc.field].Key}
+		if text, ok := tc.value.(string); ok {
+			args["text"] = text
+		} else {
+			args["value"] = tc.value
+		}
+		if r := tool("set_field", args); !r.IsError || len(r.Content) == 0 || r.Content[0].Text == "" {
+			t.Fatalf("field %d accepted %v or gave no reason", tc.field, tc.value)
 		}
 		if !bytes.Equal(before, e.Document().SourceBytes) || e.Document().Edits.CanUndo() {
 			t.Fatal("invalid player field changed bytes or history")
 		}
-		_ = e.Key("escape")
 	}
 	_ = e.Key("clone")
 	clickCell(e, image.Pt(18, 18))
@@ -171,8 +197,13 @@ func TestMapEditorPlayerDeleteNamesEachReference(t *testing.T) {
 			_ = e.Key("players")
 			e.Select(recordIndex(t, e, "Player", 1), false)
 			before := bytes.Clone(e.Document().SourceBytes)
-			if err := e.Key("delete"); err == nil || !strings.Contains(strings.ToLower(e.Message()), kind) || !strings.Contains(e.Message(), "2") {
-				t.Fatal("the window did not name the player reference", err, e.Message())
+			// Del asks first; the answer meets the refusal.
+			if err := e.Key("delete"); err != nil || len(e.PromptNotes()) == 0 {
+				t.Fatal("Del did not ask before the delete", err)
+			}
+			_ = e.Key("enter")
+			if !strings.Contains(strings.ToLower(e.Message()), kind) || !strings.Contains(e.Message(), "2") {
+				t.Fatal("the window did not name the player reference", e.Message())
 			}
 			if !bytes.Equal(before, e.Document().SourceBytes) || e.Document().Edits.CanUndo() {
 				t.Fatal("a refused player delete changed bytes or history")
@@ -185,7 +216,7 @@ func TestMapEditorPlayersSaveAsReopensTheirBytes(t *testing.T) {
 	x, e, source := playerWindow(t)
 	before := bytes.Clone(e.Document().SourceBytes)
 	_ = e.Key("players")
-	addWindow(t, e, "player", nil)
+	_ = e.Key("player")
 	selectedPlayer(t, e, 2)
 	if err := enterField(e, 0, "Copper"); err != nil {
 		t.Fatal(err)

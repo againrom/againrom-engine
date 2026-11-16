@@ -711,6 +711,10 @@ func (e *MapEditor) selectedIn(rows []int) bool {
 
 // closeList closes what the list popup shows.
 func (e *MapEditor) closeList() {
+	if e.playersRowOnly() {
+		// The Players window leaves no window of its own behind.
+		e.objectHidden = true
+	}
 	switch e.listKind() {
 	case "catalog":
 		if e.doc != nil {
@@ -1037,7 +1041,12 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
+			if row, ok := e.placeOwnerRow(); ok {
+				s.Rows = append(s.Rows, row)
+			}
+			if note != "" {
+				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
+			}
 			e.placeSwitch(&s)
 		}
 		if g, rows, ok := e.relationGridSpec(); ok {
@@ -1337,6 +1346,11 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.placedCorner(popObject, homeObjectMap)
 	r := e.doc.Records[e.selected]
 	e.loadObject()
+	if r.Kind == KindPlayer && e.barWindow() == "players" {
+		// The Players window edits the player in its own row.
+		e.panels.hostable = false
+		return popupSpec{}, nil, false
+	}
 	if e.obj.move != nil {
 		r.Cell = *e.obj.move
 	}
@@ -1541,6 +1555,9 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return popupSpec{}, false
 	}
 	if e.prompt.kind == promptAdd {
+		if e.prompt.add != nil && e.prompt.add.quiet && e.message == "" {
+			return popupSpec{}, false
+		}
 		s, _ := e.addSpec()
 		return s, true
 	}
@@ -1563,6 +1580,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return e.groupWarnSpec(), true
 	case promptScriptForm:
 		return e.scriptFormSpec(), true
+	case promptDelete:
+		return e.playerDeleteSpec(), true
 	}
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -1813,8 +1832,19 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		// The figure stands at the right of the room the layout leaves
 		// beside the card, at the game's size where the room holds it.
 		l := layoutPopup(s, e.font, e.bodyFont())
-		rest := l.CardRest
-		size := e.unitFigureSize()
+		rest, size := l.CardRest, e.unitFigureSize()
+		// A row that holds the figure is its room, none while it is
+		// scrolled away.
+		held := slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Hold == holdFigure })
+		if held {
+			rest = image.Rectangle{}
+			for _, rr := range l.Rows {
+				if s.Rows[rr.Index].Hold == holdFigure {
+					rest = rr.Rect.Intersect(l.RowsViewport)
+				}
+			}
+			rest.Max.X = min(rest.Max.X, rest.Min.X+max(compactPanelW, size.X))
+		}
 		left := max(rest.Min.X, rest.Max.X-max(compactPanelW, size.X))
 		whole := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y)
 		box := whole.Intersect(pic.Bounds())
@@ -2390,6 +2420,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		case promptScriptForm:
 			e.scriptFormPress(p)
 			return
+		case promptDelete:
+			e.playerDeletePress(p)
+			return
 		}
 		s, _ := e.promptSpec()
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
@@ -2442,6 +2475,14 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		case popupRowButton:
 			if row, k, ok := l.rowButtonAt(p); ok && e.listKind() == "brush" {
 				e.brushRowButton(row, k)
+			} else if ok && s.Rows[row].HeadOf > 0 {
+				e.playerHeadPress(s.Rows[row])
+			} else if ok && s.Rows[row].Label == e.word("editor.place.player") {
+				e.placeOwnerTo(k)
+			}
+		case popupRowControl, popupRowLine:
+			if s.Rows[n].HeadOf > 0 {
+				e.playerHeadPress(s.Rows[n])
 			}
 		case popupGridPart:
 			switch {

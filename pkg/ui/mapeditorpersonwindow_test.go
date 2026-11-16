@@ -61,7 +61,12 @@ func TestEditorPersonDetailedViewShowsEverySectionAtOnce(t *testing.T) {
 			if len(s.Tabs) != 0 {
 				t.Fatal("the detailed view still has tabs", s.Tabs)
 			}
-			if want := min(4, max(1, (e.unitWindowWidth()-32-e.hostedAside(s)-popupPad)/personColumnWidth)); s.Columns != want {
+			want := min(4, max(1, (e.unitWindowWidth()-32-e.hostedAside(s)-popupPad)/personColumnWidth))
+			if cardHeld(s) {
+				// The card's block holds the stats section in the identity column.
+				want = min(3, max(1, (e.unitWindowWidth()-32)/personColumnWidth))
+			}
+			if s.Columns != want {
 				t.Errorf("columns %d, want %d", s.Columns, want)
 			}
 			shown := map[string]bool{}

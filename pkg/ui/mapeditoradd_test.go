@@ -109,7 +109,8 @@ func addKindNow(e *MapEditor) string {
 }
 
 // Every add route opens the one Add window: the old keys, the A key of each
-// list, each list's Add button and the trigger popup's New button.
+// list, each list's Add button and the trigger popup's New button. A
+// player adds at once (TestMapEditorPlayersAddOpensNoAddWindow).
 func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 	for _, c := range []struct{ key, kind string }{{"unit", "Unit"}, {"structure", "Structure"}, {"sack", "Sack"}} {
 		e, calls := newModesEditor(t, "full")
@@ -118,7 +119,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
 		}
 	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player"} {
+	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack"} {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		_ = e.Key("player")

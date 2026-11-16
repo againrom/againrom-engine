@@ -113,6 +113,9 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 	if e.pathDialog.pending != nil {
 		return nil, p, key
 	}
+	if r, ok := e.addRunning(); ok && r.quiet {
+		return nil, p, key
+	}
 	if e.prompt.open() {
 		switch e.prompt.kind {
 		case promptOpen, promptSave, promptRectangle, promptForestShare, promptSeed, promptNewMode, promptField, promptItemRecipe, promptWorkspace, promptAdd, promptSpeaker, promptMapsFolder:

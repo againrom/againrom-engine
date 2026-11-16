@@ -80,6 +80,8 @@ const (
 	promptTestParty
 	// promptMapsFolder takes a folder path where the host shows no folder window.
 	promptMapsFolder
+	// promptDelete asks before a player is deleted.
+	promptDelete
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -104,6 +106,8 @@ type editorPrompt struct {
 	speaker *speakerPrompt
 	// party is what the party window before a test play holds.
 	party *testPartyPrompt
+	// del is the record a promptDelete deletes.
+	del RecordRef
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

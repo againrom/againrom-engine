@@ -82,13 +82,8 @@ func (h *wideHost) Fields(kind RecordKind, index int) []InspectionField {
 		for _, s := range []string{"fire", "water", "air", "earth", "astral"} {
 			out = append(out, stat("protection."+s, strings.ToUpper(s[:1])+s[1:]+" protection", "Protections"))
 		}
-		var sheet []InspectionLine
-		for _, l := range []string{"Attack 12", "Defence 8", "Speed 4", "Scan range 9"} {
-			sheet = append(sheet, InspectionLine{Text: l})
-		}
-		return append(out,
-			InspectionField{Key: "resolved", ReadOnly: true, Section: "stats", Lines: sheet},
-			InspectionField{Key: "overrides", ReadOnly: true, Section: "stats", Lines: []InspectionLine{{Text: "No stat override"}}})
+		loot := []InspectionLine{{Text: "Corpse drops", Role: "heading"}, {Text: "Carried: Mace"}, {Text: "No gold"}}
+		return append(out, InspectionField{Key: "loot", ReadOnly: true, Section: "inventory", Lines: loot})
 	case KindSack:
 		out := []InspectionField{field("gold", "Gold", "", "")}
 		for n := 1; n <= 3; n++ {

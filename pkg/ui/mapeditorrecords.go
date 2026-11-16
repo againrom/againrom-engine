@@ -148,9 +148,24 @@ func (e *MapEditor) recordKey(key string) error {
 		if kind == KindUnit && e.askDelete([]RecordRef{{kind, index}}, true) {
 			return nil
 		}
+		if kind == KindPlayer && e.barWindow() != "players" {
+			// Only the Players window deletes a player.
+			return nil
+		}
+		if kind == KindPlayer && index > 0 {
+			e.askPlayerDelete(index)
+			return nil
+		}
 		return e.deleteSelected(kind, index)
 	case "field":
 		e.leave(leavePick | leavePrompt)
+		if kind == KindPlayer {
+			if e.barWindow() != "players" {
+				e.openRecords(editorPlayersFilter)
+			}
+			e.typePlayerName(index)
+			return nil
+		}
 		e.loadObject()
 		if e.nativeUnitWindow() {
 			e.objectHidden = false

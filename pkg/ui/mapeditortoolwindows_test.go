@@ -139,7 +139,8 @@ func TestMapEditorToolWindowsKeepSiblings(t *testing.T) {
 }
 
 func TestMapEditorToolWindowsReturnAdd(t *testing.T) {
-	for _, key := range []string{"players", "units", "sacks", "structures", "cellspells", "objects"} {
+	// The Players window adds a player at once, with no Add window.
+	for _, key := range []string{"units", "sacks", "structures", "cellspells", "objects"} {
 		t.Run(key, func(t *testing.T) {
 			e := toolWindowsEditor(t, key)
 			e.closeObject()
@@ -397,7 +398,8 @@ func TestMapEditorToolWindowsDropDraft(t *testing.T) {
 }
 
 func TestMapEditorToolWindowsReturnRecordWithoutPalette(t *testing.T) {
-	for _, key := range []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"} {
+	// A player has no record window: the Players window edits it.
+	for _, key := range []string{"scripts", "groups", "units", "sacks", "structures", "cellspells"} {
 		t.Run(key, func(t *testing.T) {
 			e := toolWindowsEditor(t, key)
 			e.closeList()

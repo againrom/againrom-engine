@@ -25,7 +25,9 @@ func TestEditorDetailedViewWheelScrollsOnlyWhereRowsOverflow(t *testing.T) {
 				after, _, _ := e.objectSpec()
 				l := layoutPopup(after, e.font, e.bodyFont())
 				if size.X == 1280 {
-					if after.Top == 0 || l.Rect.Dy() != rect.Dy() {
+					// The card's and the figure's rows are one line each and
+					// many tall, so the window's height follows the rows shown.
+					if after.Top == 0 || !l.Rect.In(after.Bounds) || !rect.In(before.Bounds) {
 						t.Fatalf("1280x720: top %d, window %v then %v", after.Top, rect, l.Rect)
 					}
 					return

@@ -78,8 +78,7 @@ func popupCases() []popupCase {
 		}},
 		{"Add", func(t *testing.T) *ui.MapEditor {
 			e := scriptMap(t)
-			_ = e.Key("players")
-			_ = e.Key("player")
+			_ = e.Key("sack")
 			return e
 		}},
 		{"Save As path", func(t *testing.T) *ui.MapEditor {

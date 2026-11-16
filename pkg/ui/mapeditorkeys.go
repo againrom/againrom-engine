@@ -476,7 +476,7 @@ func (e *MapEditor) keyEscape(string) error {
 		e.cancelPopup(popList)
 	case e.selectionShown():
 		e.clearSelection()
-	case e.groupSel.set && !e.objectHidden || e.selected != -1 && !e.objectHidden:
+	case e.groupSel.set && !e.objectHidden || e.selected != -1 && !e.objectHidden && !e.playersRowOnly():
 		e.cancelPopup()
 	case e.listShown:
 		e.cancelPopup(popList)
@@ -564,8 +564,13 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptScriptForm:
 		e.scriptFormGo()
 		return nil
+	case promptDelete:
+		e.playerDeleteGo()
+		return nil
 	case promptAdd:
-		e.addNext()
+		if !e.prompt.add.quiet {
+			e.addNext()
+		}
 		return nil
 	case promptField, promptWorkspace:
 		return e.setField(e.prompt.path)
@@ -622,7 +627,9 @@ func (e *MapEditor) brushKeyRow(key string) error {
 func (e *MapEditor) keyStep(key string) error {
 	delta := editorList.keyStep(key == "up", key != "up")
 	if e.prompt.kind == promptAdd {
-		e.addMove(delta)
+		if !e.prompt.add.quiet {
+			e.addMove(delta)
+		}
 		return nil
 	}
 	if e.prompt.kind == promptAreaTrigger {
@@ -768,4 +775,10 @@ func (e *MapEditor) keyPage(key string) error {
 		}
 	}
 	return nil
+}
+
+// playersRowOnly: the Players window edits a player in its own row and opens
+// no window for it, so Esc has no window to close there.
+func (e *MapEditor) playersRowOnly() bool {
+	return e.doc != nil && e.selected >= 0 && e.selected < len(e.doc.Records) && e.doc.Records[e.selected].Kind == KindPlayer && e.barWindow() == "players"
 }

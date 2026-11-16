@@ -138,11 +138,6 @@ func addCases(in addInputs) []addCase {
 				routeAdd(t, s, "Sack", func() error { _, err := s.AddSack(in.cell, in.items[0]); return err },
 					ui.InspectionFieldValue{Key: "additem", Value: in.items[1]})
 			}},
-		{"player", []string{"players", "player"}, map[string]string{"name": "Wizard", "colour": "3", "control": "1"},
-			func(t *testing.T, s *mapInspectionEdits) {
-				routeAdd(t, s, "Player", func() error { _, err := s.AddPlayer(); return err },
-					ui.InspectionFieldValue{Key: "name", Text: true, TextValue: "Wizard"}, ui.InspectionFieldValue{Key: "colour", Value: 3}, ui.InspectionFieldValue{Key: "control", Value: 1})
-			}},
 	}
 }
 

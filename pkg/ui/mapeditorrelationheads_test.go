@@ -41,8 +41,8 @@ func relationHeadsEditor(t *testing.T, book *words.Book, names []string) *MapEdi
 
 var fourPlayers = []string{"1: Self", "2: Enemy", "3: Friend", "4: Nobody"}
 
-// Each column of the relation matrix is headed with its row's head, written
-// upright from bottom to top in a head row as tall as the longest head and
+// Each column of the relation matrix is headed with its player's name (a
+// row's head holds the row's controls, no text), written upright from bottom to top in a head row as tall as the longest head and
 // no taller than relationHeadMax; a head too long for that row is cut as
 // editorClip cuts it, the way a cut row head ends.
 func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
@@ -51,8 +51,8 @@ func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
 		e := relationHeadsEditor(t, nil, names)
 		s, ok := e.listSpec()
 		g, body := s.Grid, e.bodyFont()
-		if !ok || g == nil || !slices.Equal(g.ColHeads, g.RowHeads) || !slices.Equal(g.RowHeads, names) {
-			t.Fatalf("the matrix's column heads %q are not its row heads %q", g.ColHeads, g.RowHeads)
+		if !ok || g == nil || !slices.Equal(g.ColHeads, names) || !slices.Equal(g.RowHeads, make([]string, len(names))) {
+			t.Fatalf("the matrix's column heads %q are not the names, or its row heads %q are not empty", g.ColHeads, g.RowHeads)
 		}
 		longest := 0
 		for _, n := range names {

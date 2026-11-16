@@ -395,7 +395,6 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 	entries := plainEntries(v, o.fields)
 	record := e.doc.Records[e.selected]
 	shown := ""
-	var card []plainEntry
 	for _, p := range entries {
 		at := slices.IndexFunc(v.blocks, func(b plainBlock) bool { return b.id == p.block })
 		if at < 0 || p.field >= 0 && hiddenField(record, o.fields[p.field]) {
@@ -406,7 +405,6 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 			continue
 		}
 		if b.card {
-			card = append(card, p)
 			continue
 		}
 		if p.block != shown {
@@ -474,9 +472,59 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 			}
 		}
 	}
-	if slices.ContainsFunc(v.blocks, func(b plainBlock) bool { return b.card }) {
-		e.plainCardRows(s, links, v, card, field, textWidth)
+	if slices.ContainsFunc(v.blocks, func(b plainBlock) bool { return b.card }) && s.Card != nil {
+		e.plainCardRows(s, links, v, e.cardEntries(v), field, textWidth)
+		s.CardBelow = true
+		// The window's own script uses stand in the detailed view.
+		o.usesShown = true
 	}
+}
+
+// heldCardRows adds the detailed view's card block at the end of the
+// identity column: its heading, the row that holds the card, the card's
+// inputs as plainCardRows stands them and the card fields the card does not
+// draw; then the row under the equipment that holds the figure.
+func (e *MapEditor) heldCardRows(s *popupSpec, links *[]int, v plainView, field func(i int, label string, heads bool) int, textWidth int) {
+	pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+	lines := func(h int) int { return max(1, (h+pitch-1)/pitch) }
+	identity := personColumn("identity", s.Columns)
+	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.person." + cardSection), Column: identity}), append(*links, 0)
+	s.CardScale = cardScale
+	s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdCard, Lines: lines(cardSize(*s).Y), Column: identity}), append(*links, 0)
+	start, entries := len(s.Rows), e.cardEntries(v)
+	e.plainCardRows(s, links, v, entries, field, textWidth)
+	// A card field the card does not draw stands as its own row under the
+	// card.
+	for _, p := range entries {
+		if p.field >= 0 && e.fieldRow(p.field) < 0 {
+			field(p.field, "", true)
+		}
+	}
+	for k := start; k < len(s.Rows); k++ {
+		s.Rows[k].Column = identity
+	}
+	figure := popupRow{Kind: popupText, Hold: holdFigure, Lines: lines(e.unitFigureSize().Y), Column: personColumn("equipment", s.Columns)}
+	s.Rows, *links = append(s.Rows, figure), append(*links, 0)
+}
+
+// cardEntries are the entries of v's card block that the shown record's
+// window shows: both views stand them on the card.
+func (e *MapEditor) cardEntries(v plainView) []plainEntry {
+	o := &e.obj
+	record := e.doc.Records[e.selected]
+	native := e.nativeUnitWindow()
+	var out []plainEntry
+	for _, p := range plainEntries(v, o.fields) {
+		at := slices.IndexFunc(v.blocks, func(b plainBlock) bool { return b.id == p.block })
+		if at < 0 || !v.blocks[at].card || p.field >= 0 && hiddenField(record, o.fields[p.field]) {
+			continue
+		}
+		if p.field >= 0 && native && o.fields[p.field].Parent != "" && o.fields[p.field].Parent != o.detail {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // plainCornerRow stands row n, a pad, in the lower left corner of the room
@@ -508,7 +556,8 @@ func (e *MapEditor) plainCornerRow(s *popupSpec, links *[]int, n int) {
 }
 
 // plainCardRows stands the card block's rows on the window's card, drawn
-// cardScale times its size under the rows. Each cell the card draws with a
+// cardScale times its size: under the rows in the plain view, at the row
+// that holds it in the detailed view. Each cell the card draws with a
 // value becomes a row at the cell's place, read from the card's own line
 // report: the input of the field whose table row names the cell's panel
 // field, built by field, or else a line stating the value the map does not
@@ -518,9 +567,7 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	if s.Card == nil {
 		return
 	}
-	s.CardScale, s.CardBelow = cardScale, true
-	// The window's own script uses stand in the detailed view.
-	o.usesShown = true
+	s.CardScale = cardScale
 	font, body := s.CardFont, e.bodyFont()
 	if font == nil {
 		font = body

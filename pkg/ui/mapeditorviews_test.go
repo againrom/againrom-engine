@@ -90,7 +90,7 @@ func (h *viewsHost) Fields(kind RecordKind, index int) []InspectionField {
 			stat("mind", "Mind", "Attributes"),
 			stat("skill.fire", "Fire", "Skills"),
 			stat("protection.fire", "Fire protection", "Protection"),
-			{Key: "resolved", ReadOnly: true, Section: "stats", Lines: []InspectionLine{{Text: "Attack 12"}}},
+			{Key: "loot", ReadOnly: true, Section: "inventory", Lines: []InspectionLine{{Text: "Corpse drops", Role: "heading"}}},
 			field("gear", "Gear set", "equipment"),
 			wear, material, recipe,
 			field("wear2", "Slot 2", "equipment"),

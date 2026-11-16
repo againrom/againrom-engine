@@ -226,10 +226,11 @@ func TestMapEditorBarTracksOtherDoors(t *testing.T) {
 				case "mcp":
 					e.closeList()
 					if key == "players" {
-						if _, _, ok := e.objectSpec(); !ok || !barWindowPressed(t, e, key) {
-							t.Fatal("closing the palette also closed its player window")
+						// The Players window edits a player in its own row and
+						// opens no window of its own: closing it leaves none.
+						if _, _, ok := e.objectSpec(); ok {
+							t.Fatal("closing the Players window left a player window")
 						}
-						e.closeObject()
 					}
 				}
 				if barWindowPressed(t, e, key) {

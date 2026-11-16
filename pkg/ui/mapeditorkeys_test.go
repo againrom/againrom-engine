@@ -265,7 +265,6 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"open prompt", []string{"open", "ui:text-7"}, false, escapes, false},
 		{"save prompt", []string{"saveas", "ui:text-7"}, false, escapes, false},
 		{"field prompt", []string{"ui:select0", "field", "tab"}, false, escapes, false},
-		{"player name prompt", []string{"players", "field"}, false, escapes, false},
 		{"new sack window", []string{"sack", "escape", "ui:text-7"}, false, escapes, false},
 		{"new unit window", []string{"unit", "escape", "ui:text-7"}, false, escapes, false},
 		{"new unit cell pick", []string{"unit", "enter", "enter", "ui:add-pick"}, false, escapes, false},

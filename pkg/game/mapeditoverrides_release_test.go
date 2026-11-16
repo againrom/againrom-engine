@@ -127,8 +127,6 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		t.Helper()
 		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", cover)
 	}
-	sheetHeading := x.inspectionUTF8(x.word("editor.unit.sheet"))
-	overHeading := x.inspectionUTF8(x.word("editor.unit.overrides"))
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
 	opened := func(key string, i int) (*ui.MapEditor, overrideTyper) {
 		t.Helper()
@@ -267,8 +265,6 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	}
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	fieldShot(e, i, "body", "human-fields-template")
-	scrollTo(t, e, sheetHeading)
-	shot(e, "human-sheet-before", image.Rectangle{})
 	for _, s := range []struct {
 		key string
 		v   int64
@@ -277,17 +273,11 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		e.Select(recordOf(e.Document(), "Unit", i), true)
 	}
 	fieldShot(e, i, "body", "human-fields-set")
-	scrollTo(t, e, sheetHeading)
-	shot(e, "human-sheet-after", image.Rectangle{})
-	scrollTo(t, e, overHeading)
-	shot(e, "human-overrides-set", image.Rectangle{})
 	for _, k := range []string{"body", "reaction", "skill.blade", "protection.fire", "gear"} {
 		typer.set(k, overrideAbsent(k))
 		e.Select(recordOf(e.Document(), "Unit", i), true)
 	}
-	typer.section("stats")
-	scrollTo(t, e, overHeading)
-	shot(e, "human-overrides-cleared", image.Rectangle{})
+	fieldShot(e, i, "body", "human-fields-cleared")
 	// The refusal's two note lines grow the popup over the key strip.
 	typer.set("body", 256)
 	shot(e, "human-refused", image.Rect(0, 760, 1280, 800))
@@ -299,6 +289,4 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	typer.set("protection.water", 80)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	fieldShot(e, i, "protection.water", "creature-fields-set")
-	scrollTo(t, e, overHeading)
-	shot(e, "creature-overrides-set", image.Rectangle{})
 }

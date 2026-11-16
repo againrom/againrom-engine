@@ -8,12 +8,18 @@ import (
 	"testing"
 )
 
-func playerPromptInput(t *testing.T, e *MapEditor, value string) {
+// playerNameInput gives the keyboard to the selected player's name field
+// in the Players window and replaces its text with value.
+func playerNameInput(t *testing.T, e *MapEditor, value string) {
 	t.Helper()
-	for e.prompt.path != "" {
-		if err := e.Key("backspace"); err != nil {
-			t.Fatal(err)
-		}
+	if err := e.Key("field"); err != nil {
+		t.Fatal(err)
+	}
+	if focus, _ := e.playerTyping(); focus < 0 || e.prompt.open() {
+		t.Fatal("E gave the keyboard to no player name", focus, e.prompt.kind)
+	}
+	if m, _ := e.inputModel(); m != nil {
+		m.SelectAll()
 	}
 	e.TextInput(value)
 }
@@ -34,45 +40,31 @@ func TestMapEditorPlayersUseRecordFieldsAndOneEditPerKey(t *testing.T) {
 	if e.doc.Records[e.selected].Index != 0 {
 		t.Fatal("Up did not select the first player")
 	}
-	for _, key := range []string{"player", "enter", "enter", "enter"} {
-		if err := e.Key(key); err != nil {
-			t.Fatal(err)
-		}
+	if err := e.Key("player"); err != nil {
+		t.Fatal(err)
 	}
-	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Player") || len(e.rows()) != 3 || e.doc.Records[e.selected].Index != 2 {
-		t.Fatal("add did not make one edit and select the appended player", calls.lines, e.selected)
-	}
-	for _, edit := range []struct {
-		tabs  int
-		value string
-		call  string
-	}{
-		{0, "  Northern Clans  ", "SetTextField Player 2 name \"  Northern Clans  \""},
-		{1, "15", "SetField Player 2 colour 15"},
-		{2, "0", "SetField Player 2 control 0"},
-		{3, "2", "SetField Player 2 relation:0 2"},
-	} {
-		before := len(calls.lines)
-		_ = e.Key("field")
-		for tab := 0; tab < edit.tabs; tab++ {
-			_ = e.Key("tab")
-		}
-		playerPromptInput(t, e, edit.value)
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		if len(calls.lines) != before+1 || calls.lines[before] != edit.call || e.prompt.open() || e.doc.Records[e.selected].Index != 2 {
-			t.Fatal("field edit did not use its table key exactly once", calls.lines, e.prompt)
-		}
+	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Player") || e.prompt.open() || len(e.rows()) != 3 || e.doc.Records[e.selected].Index != 2 {
+		t.Fatal("add did not make one edit and select the appended player", calls.lines, e.selected, e.prompt.kind)
 	}
 	before := len(calls.lines)
+	playerNameInput(t, e, "  Northern Clans  ")
+	if err := e.Key("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls.lines) != before+1 || calls.lines[before] != "SetTextField Player 2 name \"  Northern Clans  \"" || e.doc.Records[e.selected].Index != 2 {
+		t.Fatal("the name did not write its table key exactly once", calls.lines[before:])
+	}
+	before = len(calls.lines)
 	if err := e.Key("clone"); err != nil || e.pick != pickNone || len(calls.lines) != before {
 		t.Fatal("a player was armed for cloning", err, e.pick, calls.lines)
 	}
-	if err := e.Key("delete"); err != nil {
+	if err := e.Key("delete"); err != nil || e.prompt.kind != promptDelete || len(calls.lines) != before {
+		t.Fatal("Del on a player did not ask first", err, e.prompt.kind, calls.lines[before:])
+	}
+	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(calls.lines) != before+1 || calls.lines[before] != "Delete Player 2" || len(e.rows()) != 2 || e.doc.Records[e.selected].Index != 1 {
+	if len(calls.lines) != before+1 || calls.lines[before] != "Delete Player 2" || e.prompt.open() || len(e.rows()) != 2 || e.doc.Records[e.selected].Index != 1 {
 		t.Fatal("delete did not make one edit and select the surviving neighbour", calls.lines, e.selected)
 	}
 	_ = e.Key("players")
@@ -84,7 +76,7 @@ func TestMapEditorPlayersUseRecordFieldsAndOneEditPerKey(t *testing.T) {
 // The Players page shows the relations as a players x players matrix: row
 // i, column j a picture of player i's relation toward player j, the
 // diagonal inert. A click on a cell sets its next value as one host edit,
-// the SetField the field prompt writes; a value the claims do not name
+// the SetField the MCP set_field tool writes; a value the claims do not name
 // shows as its number and a click starts it over at 0.
 func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
@@ -94,7 +86,7 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	s, ok := e.listSpec()
 	g := s.Grid
 	if !ok || g == nil || g.Rows != 2 || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||
-		!slices.Equal(g.ColHeads, []string{"Self", "Enemy"}) || !slices.Equal(g.RowHeads, []string{"Self", "Enemy"}) {
+		!slices.Equal(g.ColHeads, []string{"Self", "Enemy"}) || !slices.Equal(g.RowHeads, []string{"", ""}) {
 		t.Fatalf("the Players page holds no 2x2 relation matrix: %+v", g)
 	}
 	legend := 0
@@ -157,34 +149,45 @@ func TestMapEditorPlayerPromptKeepsTextAndErrors(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("players")
 	_ = e.Key("down")
-	_ = e.Key("field")
 	name := strings.Repeat("Я", 32)
-	playerPromptInput(t, e, name)
-	e.SetHostTextEncoder(func(s string) string { return strings.ReplaceAll(s, "Я", "X") })
-	found := false
-	for _, row := range promptText(t, e) {
-		found = found || row == strings.Repeat("X", 32)
-	}
-	if e.prompt.path != name || !found {
-		t.Fatal("the common prompt lost a full-width UTF-8 player name", e.prompt.path, found)
+	playerNameInput(t, e, name)
+	if focus, typed := e.playerTyping(); focus != 1 || typed != name {
+		t.Fatal("the name field lost a full-width UTF-8 player name", focus, typed)
 	}
 	problem := fmt.Errorf("player name exceeds 32 encoded bytes")
 	e.doc.Edits = refusedPlayerFields{InspectionEdits: e.doc.Edits, problem: problem}
 	selected := e.selected
-	if err := e.Key("enter"); err != problem || e.Message() != problem.Error() || !e.prompt.open() || e.prompt.field != 0 || e.prompt.path != name || e.selected != selected || len(calls.lines) != 0 {
-		t.Fatal("text refusal lost the selected field or entered text", err, e.prompt, calls.lines)
+	_ = e.Key("enter")
+	if focus, typed := e.playerTyping(); focus != 1 || typed != name || e.selected != selected || len(calls.lines) != 0 {
+		t.Fatal("text refusal lost the typed name", focus, typed, calls.lines)
 	}
-	_ = e.Key("tab")
-	playerPromptInput(t, e, "not a number")
-	if err := e.Key("enter"); err == nil || e.Message() != "Enter a whole number." || !e.prompt.open() || e.prompt.field != 1 || e.prompt.path != "not a number" || len(calls.lines) != 0 {
-		t.Fatal("numeric refusal lost its field or made an edit", err, e.prompt, calls.lines)
+	if !slices.Contains(listRowLabels(t, e), problem.Error()) {
+		t.Fatal("the Players window does not say why the name was refused")
 	}
 	_ = e.Key("escape")
 	problem = fmt.Errorf("Player 2 still owns Unit #0")
 	e.doc.Edits = refusedPlayerFields{InspectionEdits: e.doc.Edits, problem: problem}
-	if err := e.Key("delete"); err != problem || e.Message() != problem.Error() || e.selected != selected || len(calls.lines) != 0 {
-		t.Fatal("delete refusal did not retain the referring-player message", err, e.Message())
+	_ = e.Key("delete")
+	if e.prompt.kind != promptDelete {
+		t.Fatal("Del on a player did not ask", e.prompt.kind)
 	}
+	if _ = e.Key("enter"); e.Message() != problem.Error() || e.selected != selected || len(calls.lines) != 0 {
+		t.Fatal("delete refusal did not retain the referring-player message", e.Message())
+	}
+}
+
+// listRowLabels are the labels of the shown list window's rows.
+func listRowLabels(t *testing.T, e *MapEditor) []string {
+	t.Helper()
+	s, ok := e.listSpec()
+	if !ok {
+		t.Fatal("no list window is shown")
+	}
+	var out []string
+	for _, row := range s.Rows {
+		out = append(out, row.Label)
+	}
+	return out
 }
 
 func TestMapEditorPlayersNeedOptionalAddAndTextHosts(t *testing.T) {
@@ -194,9 +197,13 @@ func TestMapEditorPlayersNeedOptionalAddAndTextHosts(t *testing.T) {
 	if len(e.rows()) != 2 || len(calls.lines) != 0 {
 		t.Fatal("a host without the Add window received an edit", calls.lines)
 	}
-	_ = e.Key("field")
-	if err := e.Key("enter"); err == nil || !e.prompt.open() || e.Message() != "This host cannot edit text fields." || len(calls.lines) != 0 {
-		t.Fatal("text editing silently succeeded without its optional host", err, calls.lines)
+	playerNameInput(t, e, "Rival")
+	_ = e.Key("enter")
+	if focus, typed := e.playerTyping(); focus != 0 || typed != "Rival" || len(calls.lines) != 0 {
+		t.Fatal("text editing silently succeeded without its optional host", focus, typed, calls.lines)
+	}
+	if !slices.Contains(listRowLabels(t, e), "This host cannot edit text fields.") {
+		t.Fatal("the Players window does not say the host cannot edit text")
 	}
 }
 

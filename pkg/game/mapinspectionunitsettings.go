@@ -23,16 +23,15 @@ type inspectionUnitViews struct {
 	// each unit's name without its authored one, in the font's bytes.
 	names     map[uint16]string
 	kindNames map[int]string
-	// source is the model bytes the world and templates were built from.
-	source    []byte
-	world     *mapWorld
-	worldMap  *alm.Map
-	templates []unitSheet
+	// source is the model bytes the world was built from.
+	source   []byte
+	world    *mapWorld
+	worldMap *alm.Map
 }
 
 func (c *inspectionUnitViews) forSource(model *mapedit.Editor) {
 	if b := model.Bytes(); !bytes.Equal(c.source, b) {
-		c.source, c.world, c.worldMap, c.templates = b, nil, nil, nil
+		c.source, c.world, c.worldMap = b, nil, nil
 	}
 }
 
@@ -55,20 +54,6 @@ func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	}
 	c.actual, _ = unitSheets(m, s.inspector.table)
 	return c.actual
-}
-
-// unitViewTemplates are the model's placements as their templates spawn them.
-func (s *mapInspectionEdits) unitViewTemplates(m *alm.Map) ([]unitSheet, error) {
-	c := s.unitViewCache()
-	c.forSource(s.model)
-	if c.templates == nil {
-		templates, err := templateSheets(m, s.inspector.table)
-		if err != nil {
-			return nil, err
-		}
-		c.templates = templates
-	}
-	return c.templates, nil
 }
 
 // unitWorld opens the model's map as the game would and fills c with each

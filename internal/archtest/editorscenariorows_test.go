@@ -14,15 +14,15 @@ import (
 // palette and the one-click adds rest on, the pkg/ui functions that may
 // name it: the palette's rows come from the tree's row builder, a new
 // record's proposals from the Add window's step offer, and the one-click
-// trigger and variable from one builder, reached from the command row, the
-// wizard's New and the palette's buttons, and run again by itself once the
-// map is extended.
+// trigger, variable and player from one builder, reached from the command
+// row, the wizard's New, the palette's buttons and the Add route of a
+// one-click kind, and run again by itself once the map is extended.
 var scenarioBuilderRefs = map[string][]string{
 	"treeMembers":   {"treeMatches", "treeRowsOf", "treeFollow"},
 	"treeRowsOf":    {"treeRows", "scenarioRows"},
 	"addAccepted":   {"addPlacement", "addNow"},
 	"NewRecordStep": {"addOffer", "placeChoices"},
-	"addNow":        {"menuAct", "newTrigger", "chromePress", "addNow"},
+	"addNow":        {"menuAct", "newTrigger", "chromePress", "addNow", "openAdd"},
 }
 
 // checkScenarioBuilders reports, in one non-test pkg/ui source file, a

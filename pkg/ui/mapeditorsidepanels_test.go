@@ -466,15 +466,19 @@ func TestMapEditorTreeChoiceIsAMapClick(t *testing.T) {
 	if p := byTree.CellPoint(image.Pt(10, 10)); !p.In(byTree.mapArea()) {
 		t.Fatalf("the chosen unit shows at %v, outside the map %v", p, byTree.mapArea())
 	}
-	// A trigger and a player row select for the right panel.
-	for _, n := range []int{7, 8} {
-		clickTreeRow(t, byTree, treeRowOf(byTree, n))
-		byMap.Select(n, false)
-		a, _, okA = byTree.objectSpec()
-		b, _, okB = byMap.objectSpec()
-		if byTree.selected != n || !okA || !okB || !byTree.panels.hosted || rowsText(a) != rowsText(b) {
-			t.Fatalf("record %d: tree selects %d, panels\n%s\n%s", n, byTree.selected, rowsText(a), rowsText(b))
-		}
+	// A trigger row selects for the right panel.
+	clickTreeRow(t, byTree, treeRowOf(byTree, 7))
+	byMap.Select(7, false)
+	a, _, okA = byTree.objectSpec()
+	b, _, okB = byMap.objectSpec()
+	if byTree.selected != 7 || !okA || !okB || !byTree.panels.hosted || rowsText(a) != rowsText(b) {
+		t.Fatalf("record 7: tree selects %d, panels\n%s\n%s", byTree.selected, rowsText(a), rowsText(b))
+	}
+	// A player row shows the Players window, which edits the player in its
+	// own row, and no record window.
+	clickTreeRow(t, byTree, treeRowOf(byTree, 8))
+	if _, _, ok := byTree.objectSpec(); byTree.selected != 8 || byTree.barWindow() != "players" || ok {
+		t.Fatalf("record 8: tree selects %d, window %q, record window %v", byTree.selected, byTree.barWindow(), ok)
 	}
 	// A group row chooses the group as its number key does.
 	byKey, _, _ := panelsEditor(t, 1280, 800, "")
@@ -510,7 +514,7 @@ func TestMapEditorTreeFollowsEdits(t *testing.T) {
 		}
 	}
 	treeText(e)
-	for _, key := range []string{"players", "player", "enter", "enter", "enter"} {
+	for _, key := range []string{"players", "player"} {
 		if err := e.Key(key); err != nil {
 			t.Fatal(err)
 		}
@@ -520,8 +524,11 @@ func TestMapEditorTreeFollowsEdits(t *testing.T) {
 	}
 	fresh("add")
 	p.units = p.units[:4]
-	if err := e.Key("delete"); err != nil {
-		t.Fatal(err)
+	// Del asks before a player goes; Enter answers the question.
+	for _, key := range []string{"delete", "enter"} {
+		if err := e.Key(key); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if !strings.Contains(treeText(e), " - Players (2)\n") || !strings.Contains(treeText(e), " - Units (4)\n") {
 		t.Fatalf("delete:\n%s", treeText(e))

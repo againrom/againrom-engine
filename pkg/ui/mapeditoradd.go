@@ -95,6 +95,9 @@ type addKindRow struct {
 	Word    string
 	Filters []int
 	Steps   []addStep
+	// OneClick kinds open no Add window: the list's Add adds the record at
+	// once with every proposal accepted, and the list's window stays.
+	OneClick bool
 }
 
 var (
@@ -122,7 +125,7 @@ var addKinds = []addKindRow{
 		addAt, {Key: "item", Word: "editor.add.items", Control: addMany}}},
 	{Kind: KindPlayer, Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
 		addNamed, {Key: "colour", Word: "editor.add.colour", Control: addNumber},
-		{Key: "control", Word: "editor.add.control", Control: addChoice}}},
+		{Key: "control", Word: "editor.add.control", Control: addChoice}}, OneClick: true},
 	{Kind: KindTrigger, Word: "editor.add.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
 	{Kind: KindMessage, Word: "editor.message.new"},
@@ -184,6 +187,9 @@ type addRun struct {
 	repeat bool
 	placed int
 	stroke *placeStroke
+	// quiet places without the window: it is not drawn and takes no key
+	// but Esc, and each copy's owner is the Units tab's chosen player.
+	quiet bool
 	// brush marks a placing the object brush's grid began: Esc ends it
 	// back in that brush.
 	brush bool
@@ -206,6 +212,10 @@ func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
 func (e *MapEditor) openAdd(kind RecordKind) {
 	row, ok := addKindOf(kind)
 	if !ok || !e.addKindOpen(kind) {
+		return
+	}
+	if row.OneClick {
+		e.addNow(kind)
 		return
 	}
 	run := &addRun{kind: row.Kind, title: e.word(row.Word)}
@@ -307,6 +317,13 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 		run.texts[r.at] = e.prompt.path
 		if v, err := strconv.ParseInt(strings.TrimSpace(e.prompt.path), 10, 64); err == nil && run.steps[r.at].Control == addMany && !slices.Contains(run.many[r.at], v) {
 			run.many[r.at] = append(run.many[r.at], v)
+		}
+	}
+	if owner, ok := e.placeOwner(); ok && r.quiet {
+		for i, st := range run.steps {
+			if st.Key == addOwner.Key {
+				run.texts[i] = strconv.FormatInt(owner, 10)
+			}
 		}
 	}
 	return e.addAccepted(host, &run, r.at, cell)

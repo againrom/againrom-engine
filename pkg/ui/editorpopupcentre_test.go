@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"slices"
 	"testing"
 	"time"
 )
@@ -127,7 +128,7 @@ func TestDraggedPopupReopensWhereItWasDragged(t *testing.T) {
 }
 
 // A window opened from another stands one step down and right of it: the
-// Players list opens in the middle, the player chosen from it opens at the
+// Units list opens in the middle, the unit chosen from it opens at the
 // list's corner plus the title row's height and popupPad, so the list's
 // title bar stays uncovered and takes a press. A lone window stays in the
 // middle and a dragged one keeps its place.
@@ -137,25 +138,29 @@ func TestWindowOpenedFromAnotherOpensOffsetFromIt(t *testing.T) {
 		e.Layout(size.X, size.Y)
 		// The fixture parks both windows off the screen; these stand as opened.
 		e.places[popList], e.places[popObject] = popupStanding{}, popupStanding{}
-		if err := e.Key("players"); err != nil {
-			t.Fatal(err)
+		c, _ := categoryByKey("units")
+		unit := slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return r.Kind == KindUnit })
+		openUnit := func() {
+			e.openRecords(c.filter)
+			e.Select(unit, false)
 		}
+		openUnit()
 		ls, ok := e.listSpec()
 		if !ok {
-			t.Fatalf("%dx%d: the Players list is not open", size.X, size.Y)
+			t.Fatalf("%dx%d: the Units list is not open", size.X, size.Y)
 		}
 		os, _, ok := e.objectSpec()
 		if !ok {
-			t.Fatalf("%dx%d: the player window is not open", size.X, size.Y)
+			t.Fatalf("%dx%d: the unit window is not open", size.X, size.Y)
 		}
 		list := layoutPopup(ls, e.font, e.bodyFont())
-		player := layoutPopup(os, e.font, e.bodyFont())
+		win := layoutPopup(os, e.font, e.bodyFont())
 		step := list.Title.Dy() + popupPad
-		if want := list.Rect.Min.Add(image.Pt(step, step)); player.Rect.Min != want {
-			t.Errorf("%dx%d: the player window's corner is %v, want the list's %v plus %d", size.X, size.Y, player.Rect.Min, list.Rect.Min, step)
+		if want := list.Rect.Min.Add(image.Pt(step, step)); win.Rect.Min != want {
+			t.Errorf("%dx%d: the unit window's corner is %v, want the list's %v plus %d", size.X, size.Y, win.Rect.Min, list.Rect.Min, step)
 		}
-		if player.Rect.Min.Y < list.Title.Max.Y {
-			t.Errorf("%dx%d: the player window %v covers the list's title bar %v", size.X, size.Y, player.Rect, list.Title)
+		if win.Rect.Min.Y < list.Title.Max.Y {
+			t.Errorf("%dx%d: the unit window %v covers the list's title bar %v", size.X, size.Y, win.Rect, list.Title)
 		}
 		if at := list.Title.Min.Add(image.Pt(4, 4)); e.chromeHit(at) != popList {
 			t.Errorf("%dx%d: a press at %v on the list's title bar reaches %v, not the list", size.X, size.Y, at, e.chromeHit(at))
@@ -164,19 +169,19 @@ func TestWindowOpenedFromAnotherOpensOffsetFromIt(t *testing.T) {
 			t.Errorf("%dx%d: the first window stands at %v, not in the middle", size.X, size.Y, list.Rect)
 		}
 
-		// The player window closed and opened again stands at the same offset.
-		_ = e.Key("players")
-		_ = e.Key("players")
-		if os2, _, ok := e.objectSpec(); !ok || layoutPopup(os2, e.font, e.bodyFont()).Rect.Min != player.Rect.Min {
-			t.Errorf("%dx%d: the reopened player window is not at %v", size.X, size.Y, player.Rect.Min)
+		// The unit window closed and opened again stands at the same offset.
+		e.closeBarWindow()
+		openUnit()
+		if os2, _, ok := e.objectSpec(); !ok || layoutPopup(os2, e.font, e.bodyFont()).Rect.Min != win.Rect.Min {
+			t.Errorf("%dx%d: the reopened unit window is not at %v", size.X, size.Y, win.Rect.Min)
 		}
 
-		// A dragged player window keeps its place beside the list.
+		// A dragged unit window keeps its place beside the list.
 		dragged := image.Pt(40, 90)
 		e.places[popObject] = popupStanding{at: dragged, placed: true, slack: true}
 		os, _, _ = e.objectSpec()
 		if os.At != dragged {
-			t.Errorf("%dx%d: a dragged player window stands at %v, want %v", size.X, size.Y, os.At, dragged)
+			t.Errorf("%dx%d: a dragged unit window stands at %v, want %v", size.X, size.Y, os.At, dragged)
 		}
 
 		// A window that cannot move off the list without leaving the room keeps the middle.

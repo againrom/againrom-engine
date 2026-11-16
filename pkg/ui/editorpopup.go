@@ -98,6 +98,30 @@ type popupRow struct {
 	Selected  int
 	// Help is what the row's (?) mark says on hover; empty draws no mark.
 	Help string
+	// Hold makes a text row of Lines rows' height that draws nothing of its
+	// own a place for what it holds: the spec's card, or a window's figure.
+	Hold popupHold
+	// HeadOf, when set, is 1 + the grid row whose head box the row stands
+	// in, at Place counted from the box's corner, instead of on the card: a
+	// matrix row's own controls left of its cells. Its label is not drawn.
+	HeadOf int
+}
+
+// popupHold is what a holding row keeps its place for.
+type popupHold uint8
+
+const (
+	holdNone popupHold = iota
+	// holdCard stands the spec's card at the row's corner, the room right
+	// of it the card's CardRest, instead of beside, above or under the rows.
+	holdCard
+	// holdFigure keeps the room the window draws its figure in.
+	holdFigure
+)
+
+// cardHeld reports that a row of s holds its card.
+func cardHeld(s popupSpec) bool {
+	return s.Card != nil && slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Hold == holdCard })
 }
 
 func (r popupRow) withChoices(choices []InspectionChoice, pad []image.Point, value string) popupRow {
@@ -785,7 +809,7 @@ func cardSize(s popupSpec) image.Point {
 // cardAside is the width of the card's column beside the rows, 0 without a
 // card.
 func cardAside(s popupSpec) int {
-	if s.Card == nil {
+	if s.Card == nil || cardHeld(s) {
 		return 0
 	}
 	return max(cardSize(s).X, s.CardAside)
@@ -1012,10 +1036,10 @@ func (f popupFlow) rowHeight(row popupRow, i, pitch int) int {
 	return h
 }
 
-// pictureRow is a read-only row that holds a picture in its label column and
-// takes Lines rows of height for it.
+// pictureRow is a read-only row that holds a picture in its label column, or
+// holds a place, and takes Lines rows of height for it.
 func pictureRow(row popupRow) bool {
-	return row.Kind == popupText && row.Portrait != nil && row.Lines > 0
+	return row.Kind == popupText && (row.Portrait != nil || row.Hold != holdNone) && row.Lines > 0
 }
 
 // multilineRows is a multi-line row's height in rows.
@@ -1064,6 +1088,8 @@ func popupMinWidth(s popupSpec, body *text.Font) int {
 		}
 	}
 	switch {
+	case cardHeld(s):
+		// The card stands at its row, inside the row's column.
 	case s.Card != nil && s.CardBelow:
 		// The band under the rows holds the card and, left of it, the
 		// column CardAside asks for; a band that scrolls keeps clear of
@@ -1185,6 +1211,12 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	if dialogGivenForm(s) {
 		return layoutDialogGiven(s, body)
+	}
+	// A card a row holds takes no place of its own: the rows are laid out as
+	// if there were none, then the card stands at its row.
+	subject := s.Card
+	if cardHeld(s) {
+		s.Card = nil
 	}
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := fontHeight(title, 15) + popupRowExtra
@@ -1478,9 +1510,18 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		cardBand(y + popupPad)
 		y = l.Card.Max.Y
 	}
+	if subject != nil && s.Card == nil {
+		for _, rr := range l.Rows {
+			if s.Rows[rr.Index].Hold == holdCard {
+				l.Card = image.Rectangle{Min: rr.Rect.Min, Max: rr.Rect.Min.Add(card)}
+				l.CardRest = image.Rect(l.Card.Max.X+popupPad, rr.Rect.Min.Y, rr.Rect.Max.X, rr.Rect.Max.Y)
+				break
+			}
+		}
+	}
 	for _, index := range shownRows {
 		row := s.Rows[index]
-		if !row.placed() || s.Card == nil {
+		if !row.placed() || row.HeadOf > 0 || subject == nil || l.Card.Empty() {
 			continue
 		}
 		box := row.Place.Add(l.Card.Min)
@@ -1531,6 +1572,17 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 				}
 				l.GridRowHeads = append(l.GridRowHeads, image.Rect(left, at, right, at+high))
 				l.GridHeadText = append(l.GridHeadText, row.Head)
+			}
+			for index, held := range s.Rows {
+				if held.HeadOf != l.GridTop+k+1 || !held.placed() {
+					continue
+				}
+				box := held.Place.Add(image.Pt(r.Min.X+popupPad, at))
+				rr := popupRowRect{Index: index, Rect: box, Control: box}
+				if len(held.Buttons) > 0 {
+					rr.Control, rr.Buttons, rr.Button, rr.Off = image.Rectangle{}, []image.Rectangle{box}, box, held.Disabled
+				}
+				l.Rows = append(l.Rows, rr)
 			}
 			for column, n := range row.Cells {
 				corner := image.Pt(x+column*side, at)
@@ -1927,7 +1979,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	if !l.RowBar.Empty() {
 		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: popupRowCount(s) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
 	}
-	if s.Card != nil {
+	if s.Card != nil && !l.Card.Empty() {
 		font := s.CardFont
 		if font == nil {
 			font = body
@@ -1939,8 +1991,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			text.Record(func() { pic = RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card) })
 			if pic != nil {
 				c, to := l.Card, dst
-				if bandLines(s) > 0 {
-					// A scrolling band shows only inside the rows' viewport.
+				if bandLines(s) > 0 || cardHeld(s) {
+					// A scrolling band, or a row holding the card, shows
+					// only inside the rows' viewport.
 					to = dst.SubImage(l.RowsViewport).(*image.RGBA)
 				}
 				editorBlit(to, pic, screenRect{X: float64(c.Min.X), Y: float64(c.Min.Y), W: float64(c.Dx()), H: float64(c.Dy())}, false)
@@ -1996,7 +2049,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		if value == (color.RGBA{}) {
 			value = ink.Value
 		}
-		if row.placed() && row.Kind != popupDirection {
+		if row.placed() && row.Kind != popupDirection && row.HeadOf == 0 {
 			if !rr.Control.Empty() {
 				// An input on the card replaces the card's value under it.
 				draw.Draw(dst, rr.Control.Intersect(l.Rect), &image.Uniform{C: ink.Ground}, image.Point{}, draw.Src)

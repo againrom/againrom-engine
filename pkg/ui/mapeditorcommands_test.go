@@ -168,8 +168,16 @@ func newWalkEditor(t *testing.T) (*MapEditor, *walkHost) {
 
 // The Add window and add_record build one record from the same answers for
 // every kind add_record adds: the window asked step by step with Enter, a
-// many step value by value.
+// many step value by value. A player is added at once with the defaults,
+// so add_record's player answers are checked against the fields they name.
 func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
+	m, _ := newWalkEditor(t)
+	rivals := map[string]json.RawMessage{"name": json.RawMessage(`"Rivals"`), "colour": json.RawMessage("4"), "control": json.RawMessage("2")}
+	if got, err := m.newRecordOf(KindPlayer, nil, nil, rivals, nil); err != nil || len(got.Values) != 3 ||
+		got.Values[0] != (InspectionFieldValue{Key: "name", Text: true, TextValue: "Rivals"}) ||
+		got.Values[1] != (InspectionFieldValue{Key: "colour", Value: 4}) || got.Values[2] != (InspectionFieldValue{Key: "control", Value: 2}) {
+		t.Fatalf("add_record builds the player %+v (%v)", got, err)
+	}
 	for _, c := range []struct {
 		kind   string
 		values map[string]any
@@ -177,7 +185,7 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 		{"Unit", nil}, {"Unit", map[string]any{"identity": 2, "owner": 2}},
 		{"Structure", nil}, {"Structure", map[string]any{"kind": 2, "owner": 2}},
 		{"Sack", nil}, {"Sack", map[string]any{"item": []int{2, 1}}},
-		{"Player", nil}, {"Player", map[string]any{"name": "Rivals", "colour": 4, "control": 2}},
+		{"Player", nil},
 		{"Trigger", nil}, {"Trigger", map[string]any{"name": "Gate", "once": 2}},
 		{"Enchantment", nil}, {"Enchantment", map[string]any{"template": 2, "link": 7, "spell": 2, "power": 9}},
 	} {

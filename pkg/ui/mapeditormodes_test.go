@@ -777,12 +777,12 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "list", "new", prompt, "", "New map: width x height / Enter", false, false},
 		{"full", "report", "new", prompt, "", "New map: width x height / Enter", false, false},
 		{"full", "list", "players", players, "", "", false, false},
-		{"full", "players", "field", prompt, "", "Name / Tab: next / Enter: set", false, false},
-		{"full", "player-name", "tab", prompt, "", "Colour (0..15) / Tab: next / Enter: set", false, false},
-		{"full", "players", "player", add, "", "Add player", false, false},
+		{"full", "players", "field", players, "", "", false, false},
+		{"full", "player-name", "tab", players, "", "", false, false},
+		{"full", "players", "player", players, "", "", false, false},
 		{"plain", "players", "player", players, "", "", false, false},
 		{"full", "players", "delete", players, "The first player cannot be deleted.", "", false, false},
-		{"full", "players", "escape", players, "", "", false, false}, // Esc closes the player's popup first
+		{"full", "players", "escape", keys, "", "", false, false}, // the Players window has no player popup: one Esc closes it
 		{"full", "players", "ui:esc-twice", keys, "", "", false, false},
 	}
 	for _, r := range rows {

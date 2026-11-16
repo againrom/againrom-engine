@@ -202,12 +202,17 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.Card = card
 		s.CardFont = e.cardFont
 	}
+	// The detailed view's card stands in its own block under the identity
+	// section and edits the stats section's fields; the figure stands under
+	// the equipment, in a window wide enough for a column per other section.
+	cardView, cardShown := e.plainOffer()
+	holding := native && !plainShown && s.Card != nil && cardShown && (e.unitWindowWidth()-32)/personColumnWidth >= len(personSections)-1
 	if native {
 		// The detailed view stands at the widest the window allows, every
 		// section in a column; the plain view's width is set from its rows
 		// once they are built.
 		s.Width = e.unitWindowWidth() - 32
-		if s.Card != nil {
+		if s.Card != nil && !holding {
 			// The column beside the card holds the figure at the game's size.
 			s.CardAside = max(compactPanelW, e.unitFigureSize().X)
 			if aside := e.hostedAside(*s); aside > 0 && !plainShown {
@@ -216,7 +221,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		s.At = e.personCorner(homePerson)
 		if !plainShown {
-			s.Columns = min(len(personSections), max(1, s.Width/personColumnWidth))
+			sections := len(personSections)
+			if holding {
+				sections-- // the card holds the stats section
+			}
+			s.Columns = min(sections, max(1, s.Width/personColumnWidth))
 		}
 	}
 	textWidth := 378
@@ -281,6 +290,21 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Portrait: f.Picture, Lines: 4}), append(*links, 0)
 			}
 			deferColumn()
+			return -1
+		}
+		if r.Kind == KindPlayer {
+			// A player's own window reads its fields; the Players window
+			// edits them.
+			value := fieldInput(f)
+			if len(f.Choices) > 0 {
+				value = choiceText(f, value)
+			} else if f.Text {
+				value = e.editorHostText(value)
+			}
+			if label == "" {
+				label = e.editorHostText(f.Label)
+			}
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value}), append(*links, 0)
 			return -1
 		}
 		n := len(s.Rows)
@@ -362,6 +386,13 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			})
 		}
 		section := ""
+		// onCard are the fields the held card edits: no column shows them.
+		onCard := map[int]bool{}
+		if holding {
+			for _, p := range e.cardEntries(cardView) {
+				onCard[p.field] = p.field >= 0
+			}
+		}
 		for _, i := range order {
 			f := o.fields[i]
 			if e.modWindow && e.modPage != modPageGraph && f.Action && f.Column == 0 {
@@ -371,7 +402,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				continue
 			}
 			if native {
-				if f.Parent != "" && f.Parent != o.detail {
+				if f.Parent != "" && f.Parent != o.detail || onCard[i] {
 					continue
 				}
 				if f.Section != section && slices.Contains(personSections, f.Section) {
@@ -382,9 +413,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 			fieldRows(i, "", true)
 		}
+		if holding {
+			e.heldCardRows(s, links, cardView, fieldRows, textWidth)
+		}
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
-	s.Disabled = []bool{!e.objectDirty(), false}
+	s.Disabled = []bool{!e.objectDirty() || r.Kind == KindPlayer, false}
 	if native {
 		s.Buttons = append(s.Buttons, e.word("editor.person.reset"))
 		if body := e.bodyFont(); body != nil {

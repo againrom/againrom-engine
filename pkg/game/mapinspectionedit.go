@@ -389,11 +389,10 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, gold)
 		}
 		if _, err := template.stock(); err == nil {
+			// The unit's corpse drops stand with its bag; its stats are the
+			// card's, which edits each map value.
 			if sheets := s.unitViewSheets(); index < len(sheets) {
-				out = append(out, ui.InspectionField{Key: "resolved", ReadOnly: true, Section: "stats", Lines: s.inspector.sheetLines(template.m.Units[index], mapload.Resolve(template.m.Units[index], s.inspector.table), sheets[index])})
-			}
-			if templates, err := s.unitViewTemplates(template.m); err == nil && index < len(templates) {
-				out = append(out, ui.InspectionField{Key: "overrides", ReadOnly: true, Section: "stats", Lines: s.inspector.overrideLines(s.model, index, templates[index])})
+				out = append(out, ui.InspectionField{Key: "loot", ReadOnly: true, Section: "inventory", Lines: s.inspector.corpseDropLines(sheets[index])})
 			}
 			for i := range out {
 				f := &out[i]

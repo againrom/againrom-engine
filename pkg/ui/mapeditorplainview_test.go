@@ -199,7 +199,7 @@ var plainShapes = map[RecordKind]map[string]string{
 		"identity": "main", "owner": "main", "group": "main",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "protection.*": "card",
 		"face": "", "sex": "", "gear": "", "wear#": "", "wearmaterial#": "", "wearrecipe#": "",
-		"carryadd": "", "carry#": "", "skill.*": "", "resolved": "",
+		"carryadd": "", "carry#": "", "skill.*": "", "loot": "",
 	},
 	KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",

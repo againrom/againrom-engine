@@ -15,7 +15,11 @@ var personHidden = []string{"speaker", "keys"}
 
 // personSections are the detailed view's sections in window order, each
 // under its heading; personColumnWidth is the least width of a column.
-var personSections = []string{"identity", "equipment", "inventory", "stats"}
+var personSections = []string{"identity", "equipment", "inventory", cardSection}
+
+// cardSection is the section whose fields the card edits: a window with a
+// card shows it as the card's block in the identity column, not a column.
+const cardSection = "stats"
 
 const personColumnWidth = 300
 

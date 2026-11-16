@@ -13,7 +13,9 @@ import (
 // host's own picture of it. Choosing one opens the Add window on its
 // settings at once, with the cell pick armed; each click on the map then
 // places one copy, and a press held over the map places one on every cell
-// it crosses. Each copy is one Add, one history entry.
+// it crosses. Each copy is one Add, one history entry. A unit's Add runs
+// quiet: no window, every step at the window's own start but the owner,
+// which is the player the Units tab's player row chose.
 
 // The object brush's one-kind mode shows the same grid over the structure
 // kinds of the Objects palette, and a press on its cell places copies the
@@ -33,6 +35,16 @@ type placeGrid struct {
 	choices       []InspectionChoice
 	groups        []InspectionChoiceGroup
 	palettes      map[int64]Palette
+	// owners is the player the Units tab places for, by map source.
+	owners map[string]placeOwnerPick
+}
+
+// placeOwnerPick is a player the Units tab was set to: its player record's
+// session key, which a rename keeps and a delete ends, and its owner value
+// for a host that keys no record.
+type placeOwnerPick struct {
+	key   uint64
+	value int64
 }
 
 // InspectionChoiceGroup places choice values under a block and row heading.
@@ -223,10 +235,17 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 	r, chosen, placing := e.placing(key)
 	placing = placing && r.kind == kind
 	note := e.word("editor.place.hint")
+	if kind == KindUnit {
+		// The Units tab's player row stands where the hint stood.
+		note = ""
+	}
 	for _, c := range choices {
 		pressed := placing && c.Value == chosen
 		if pressed {
 			note = fmt.Sprintf(e.word("editor.place.placing"), c.Label)
+			if r.quiet && r.note != "" {
+				note = r.note
+			}
 		}
 		cell := popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label}
 		if kind == KindUnit && key == "identity" {
@@ -343,11 +362,92 @@ func (e *MapEditor) placeChoose(n int) {
 	if fromBrush {
 		r.brush = true
 	}
-	r.repeat = true
+	r.repeat, r.quiet = true, kind == KindUnit && !fromBrush
 	e.prompt.path = strconv.FormatInt(choices[n].Value, 10)
 	e.addFollow()
 	e.addNext()
 	e.armPick(pickAddCell)
+}
+
+// placeOwners are the players a unit the Units tab places may belong to,
+// as the Add window offers its owner step, and the value that step starts
+// at. They are read from the open map each time, so a renamed or deleted
+// player shows at once.
+func (e *MapEditor) placeOwners() ([]InspectionChoice, int64) {
+	host, ok := e.addHost()
+	if !ok {
+		return nil, 0
+	}
+	offer, _ := e.addOffer(host, &addRun{kind: KindUnit, steps: []addStep{addOwner}}, 0)
+	return offer.Choices, offer.Value
+}
+
+// placeOwner is the player the Units tab places for: the one last chosen
+// on this map while the map still has it, at the slot it holds now, else the
+// owner step's start, else the first player.
+func (e *MapEditor) placeOwner() (int64, bool) {
+	choices, start := e.placeOwners()
+	if len(choices) == 0 {
+		return 0, false
+	}
+	listed := func(v int64) bool {
+		return slices.ContainsFunc(choices, func(c InspectionChoice) bool { return c.Value == v })
+	}
+	if pick, ok := e.place.owners[e.doc.Source]; ok {
+		v := pick.value
+		if pick.key != 0 {
+			v = 0
+			for _, r := range e.doc.Records {
+				if r.Kind == KindPlayer && r.Key == pick.key {
+					v = int64(r.Index) + 1
+				}
+			}
+		}
+		if listed(v) {
+			return v, true
+		}
+	}
+	if listed(start) {
+		return start, true
+	}
+	return choices[0].Value, true
+}
+
+// placeOwnerRow is the Units tab's player row: one button a player, the
+// chosen one pressed in. ok is false on any other tab.
+func (e *MapEditor) placeOwnerRow() (popupRow, bool) {
+	if kind, _, _, ok := e.placeGridOf(); !ok || kind != KindUnit || e.listKind() == "brush" {
+		return popupRow{}, false
+	}
+	choices, _ := e.placeOwners()
+	owner, ok := e.placeOwner()
+	if !ok {
+		return popupRow{}, false
+	}
+	row := popupRow{Kind: popupText, Label: e.word("editor.place.player")}
+	for _, c := range choices {
+		row.Buttons, row.Armed = append(row.Buttons, c.Label), append(row.Armed, c.Value == owner)
+	}
+	return row, true
+}
+
+// placeOwnerTo is a press on the player row's button k: the Units tab
+// places for that player from then on.
+func (e *MapEditor) placeOwnerTo(k int) {
+	choices, _ := e.placeOwners()
+	if k < 0 || k >= len(choices) || e.doc == nil {
+		return
+	}
+	if e.place.owners == nil {
+		e.place.owners = map[string]placeOwnerPick{}
+	}
+	pick := placeOwnerPick{value: choices[k].Value}
+	for _, r := range e.doc.Records {
+		if r.Kind == KindPlayer && int64(r.Index)+1 == pick.value {
+			pick.key = r.Key
+		}
+	}
+	e.place.owners[e.doc.Source] = pick
 }
 
 // controlPlaceGridCellRect is the window rectangle of cell n of the list popup's
