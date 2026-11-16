@@ -26,21 +26,33 @@ import (
 // liftedLimit is a refusal in the host's words of a limit the extended
 // record lifts; Unwrap gives the limit, so an edit on an original map can
 // ask to extend the script.
+// A refusal made where no editor language is known holds a word key and its
+// figures; checkWords reads it in the editor's language.
 type liftedLimit struct {
 	text  string
+	key   string
+	args  []any
 	limit *mapedit.ScriptLimitError
 }
 
-func (l *liftedLimit) Error() string { return l.text }
+func (l *liftedLimit) Error() string {
+	if l.key != "" {
+		return fmt.Sprintf(words.For("").Text(l.key), l.args...)
+	}
+	return l.text
+}
 func (l *liftedLimit) Unwrap() error { return l.limit }
 
-// lifted is err in the words text, keeping the limit it carries.
-func lifted(err error, text string) error {
+// lifted is err as the word key says it with args, keeping the limit it
+// carries.
+func lifted(err error, key string, args ...any) error {
+	l := &liftedLimit{key: key, args: args}
 	var limit *mapedit.ScriptLimitError
 	if errors.As(err, &limit) {
-		return &liftedLimit{text: text, limit: limit}
+		l.limit = limit
+		return l
 	}
-	return errors.New(text)
+	return errors.New(l.Error())
 }
 
 // formNeeded is the question an edit refused on original map m asks: the
@@ -50,7 +62,13 @@ func formNeeded(m *mapedit.Editor, err error) error {
 	if err == nil || m.Extended() || !errors.As(err, &limit) || !limit.Lifted() {
 		return nil
 	}
-	return &ui.ScriptFormNeeded{Why: err.Error()}
+	// Only the game's own words are shown; a bare limit from the editor
+	// library is in English and asks without them.
+	var own *liftedLimit
+	if errors.As(err, &own) {
+		return &ui.ScriptFormNeeded{Why: own.Error()}
+	}
+	return &ui.ScriptFormNeeded{}
 }
 
 // ExtendScript moves the map's triggers into the Againrom script record as

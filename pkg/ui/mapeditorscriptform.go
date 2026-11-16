@@ -51,7 +51,11 @@ func (e *MapEditor) scriptFormSpec() popupSpec {
 		return e.questionSpec(e.word("editor.scriptform.foldtitle"), []string{e.word("editor.scriptform.foldtext")},
 			[]string{e.word("editor.scriptform.foldgo"), e.word("editor.button.cancel")})
 	}
-	return e.questionSpec(e.word("editor.scriptform.title"), []string{e.word("editor.scriptform.text")},
+	notes := []string{e.word("editor.scriptform.text")}
+	if why := e.prompt.form.need.Why; why != "" {
+		notes = append([]string{e.editorHostText(why)}, notes...)
+	}
+	return e.questionSpec(e.word("editor.scriptform.title"), notes,
 		[]string{e.word("editor.scriptform.go"), e.word("editor.button.cancel")})
 }
 

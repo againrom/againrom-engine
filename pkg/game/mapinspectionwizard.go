@@ -45,9 +45,13 @@ func (s *mapInspectionEdits) checkWords(err error) error {
 	var taken registerTaken
 	switch {
 	case errors.As(err, &taken):
-		return fmt.Errorf(s.inspector.word("editor.wizard.registers"), taken.register)
+		return lifted(err, "editor.wizard.registers", taken.register)
 	case errors.Is(err, errChecksFull):
-		return lifted(err, s.inspector.word("editor.wizard.checksfull"))
+		return lifted(err, "editor.wizard.checksfull")
+	}
+	var own *liftedLimit
+	if errors.As(err, &own) && own.key != "" {
+		return &liftedLimit{text: fmt.Sprintf(s.inspector.word(own.key), own.args...), limit: own.limit}
 	}
 	return err
 }
@@ -129,9 +133,9 @@ func wizardRoom(t ui.WizardTrigger, extended bool) error {
 		return nil
 	}
 	if extended {
-		return lifted(limit, fmt.Sprintf("a trigger holds %d conditions and %d actions", limits.Pairs, limits.Actions))
+		return lifted(limit, "editor.script.triggerfullx", limits.Pairs, limits.Actions)
 	}
-	return lifted(limit, "a trigger holds three condition pairs and four actions")
+	return lifted(limit, "editor.script.triggerfull")
 }
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {

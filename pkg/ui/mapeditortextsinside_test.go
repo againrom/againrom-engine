@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"strings"
 	"testing"
 )
 
@@ -81,5 +82,20 @@ func TestSaveWindowSwitchPutsTheTextsInsideTheMap(t *testing.T) {
 	e.doc.Edits = edits
 	if _, _, ok := textsInsideSwitch(e); ok {
 		t.Fatal("a host without the switch shows the row")
+	}
+}
+
+// The script form question shows the host's refusal whole above its own
+// text, so the player reads what the extended map lifts.
+func TestScriptFormQuestionShowsTheRefusalWhole(t *testing.T) {
+	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
+	e.doc.Edits = &textsInsideEdits{editorTextEdits: edits}
+	why := "No slot is free for a new condition: it would take the slot of variable 50"
+	if !e.askScriptForm(&ScriptFormNeeded{Why: why}, func() {}) || e.prompt.kind != promptScriptForm {
+		t.Fatalf("the refusal did not open the question: kind %v", e.prompt.kind)
+	}
+	notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
+	if want := why + " " + e.word("editor.scriptform.text"); notes != want {
+		t.Fatalf("the question reads %q, want %q", notes, want)
 	}
 }

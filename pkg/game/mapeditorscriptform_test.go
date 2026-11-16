@@ -292,7 +292,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			apply()
 			asked := func() {
 				t.Helper()
-				if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) {
+				if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) {
 					t.Fatalf("no question to extend the map: %q %q", e.OpenWindows(), e.PromptNotes())
 				}
 			}
@@ -516,7 +516,7 @@ func TestTriggerWizardOrGroupAsksToExtendTheMap(t *testing.T) {
 	trigChoose(t, e, wizField(t, e, "c3.item"), w("editor.wizard.c.always"))
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
-	if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) {
+	if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) {
 		t.Fatalf("no question to extend the map: %q\n%s", e.PromptNotes(), trigLines(e))
 	}
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})

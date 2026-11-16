@@ -128,7 +128,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				e.TextInput(strconv.Itoa(trigger))
 				_ = e.Key("enter")
 				if trigger == 0 {
-					if !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.text")) || !bytes.Equal(e.Document().SourceBytes, b) {
+					if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) || !bytes.Equal(e.Document().SourceBytes, b) {
 						t.Fatalf("%s: a full trigger did not ask to extend the map: %q", name, e.PromptNotes())
 					}
 					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})

@@ -420,9 +420,9 @@ func TestTriggerWizardNewVariableThenANewConditionAreAccepted(t *testing.T) {
 }
 
 // When the 100 registers cannot hold a new variable and a new condition both,
-// the condition is refused in the editor's words, EN and RU, and nothing is
-// written.
-func TestTriggerWizardRefusesAConditionOnTheLastRegisterInTheEditorsWords(t *testing.T) {
+// the condition asks to extend the map in the editor's words, EN and RU, and
+// nothing is written.
+func TestTriggerWizardAsksToExtendTheMapForAConditionOnTheLastRegister(t *testing.T) {
 	for _, c := range []struct {
 		profile base.Profile
 		sel     int
@@ -446,8 +446,9 @@ func TestTriggerWizardRefusesAConditionOnTheLastRegisterInTheEditorsWords(t *tes
 		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
 		want := x.inspectionUTF8(fmt.Sprintf(book.Text("editor.wizard.registers"), 99))
-		if lines := trigLines(e); !strings.Contains(lines, want) || strings.Contains(lines, "would share") || !bytes.Equal(before, e.Document().SourceBytes) {
-			t.Fatalf("%s: the condition on the last register was not refused in the editor's words:\n%s", c.profile.Language, lines)
+		notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
+		if !slices.Contains(e.OpenWindows(), "prompt") || !strings.HasPrefix(notes, strings.Join(strings.Fields(want), " ")) || strings.Contains(notes, "would share") || !bytes.Equal(before, e.Document().SourceBytes) {
+			t.Fatalf("%s: the condition on the last register did not ask to extend the map in the editor's words:\n%q", c.profile.Language, notes)
 		}
 	}
 }

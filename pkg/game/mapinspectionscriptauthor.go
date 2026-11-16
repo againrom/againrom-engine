@@ -40,7 +40,7 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	if k == mapedit.KindTrigger {
 		if n := m.Count(k); n >= limits.Triggers {
 			return 0, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
-				fmt.Sprintf("the script already holds %d triggers", limits.Triggers))
+				"editor.script.triggersfull", limits.Triggers)
 		}
 		var err error
 		if rec, err = m.NewTrigger(alm.ScriptTrigger{Name: "Trigger", Once: 1}); err != nil {
@@ -88,7 +88,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, err
 		limits := scriptprofile.Of(sc.Extended)
 		if n := len(sc.Triggers); n >= limits.Triggers {
 			return false, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
-				fmt.Sprintf("the script already holds %d triggers", limits.Triggers))
+				"editor.script.triggersfull", limits.Triggers)
 		}
 		t := sc.Triggers[index]
 		checks := map[uint32]bool{}
@@ -371,7 +371,7 @@ func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
 	}
 	if limits := scriptprofile.First; variable >= uint32(limits.Registers) {
 		return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitVariables, Max: int64(limits.Registers), Got: int64(variable)},
-			fmt.Sprintf("variable register %d is outside 0..%d", variable, limits.Registers-1))
+			"editor.script.variableout", variable, limits.Registers-1)
 	}
 	if int(variable) < len(sc.Conditions) && sc.Conditions[variable].Opcode != 0x10002 {
 		return fmt.Errorf("variable register %d is overwritten by condition %d; use a constant/preset slot or a free register", variable, sc.Conditions[variable].ID)

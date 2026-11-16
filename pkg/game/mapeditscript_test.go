@@ -231,8 +231,8 @@ func TestAProtectCheckIsRefusedWhereAVariableTakesItsRegister(t *testing.T) {
 		Units: []synth.ALMUnit{{X: 12*256 + 128, Y: 14*256 + 128, ClassID: 40}, {X: 15*256 + 128, Y: 14*256 + 128, ClassID: 40}}}
 	e, _ := openGoalMap(t, built(t, o, nil, nil).Bytes())
 	s := scriptOf(t, e)
-	if _, err := s.SetGoalTarget(len(s.Goals())-1, "Unit", 1); err == nil || !strings.Contains(err.Error(), "register") {
-		t.Fatalf("variable 1 against the new check's register 1: %v", err)
+	if _, err := s.SetGoalTarget(len(s.Goals())-1, "Unit", 1); !isFormNeeded(err) {
+		t.Fatalf("variable 1 against the new check's register 1 did not ask to extend the map: %v", err)
 	}
 }
 

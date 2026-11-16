@@ -66,11 +66,11 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 			}
 		}
 		if pair < 0 {
-			text := fmt.Sprintf("trigger %d already has three condition pairs", trigger+1)
+			pairs := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(limits.Pairs) + 1}
 			if sc.Extended {
-				text = fmt.Sprintf("trigger %d already has %d conditions", trigger+1, limits.Pairs)
+				return lifted(pairs, "editor.script.pairsfullx", trigger+1, limits.Pairs)
 			}
-			return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(limits.Pairs) + 1}, text)
+			return lifted(pairs, "editor.script.pairsfull", trigger+1)
 		}
 	}
 	one, found := unsharedConstant(sc, 1)

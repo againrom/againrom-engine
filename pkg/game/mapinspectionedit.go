@@ -122,6 +122,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	if err == nil && changed {
 		err = raiseVariables(next)
 	}
+	err = s.checkWords(err)
 	if need := formNeeded(s.model, err); need != nil {
 		return nil, need
 	}

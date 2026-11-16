@@ -372,10 +372,16 @@ func registerCollision(sc alm.Script, added int) error {
 }
 
 // registerTaken refuses a new check whose register a script variable uses.
+// The extended record keeps variables apart from checks, so the refusal
+// carries a limit it lifts.
 type registerTaken struct{ register uint32 }
 
 func (r registerTaken) Error() string {
 	return fmt.Sprintf("script variable %d would share the register of the new check", r.register)
+}
+
+func (r registerTaken) Unwrap() error {
+	return &mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: int64(scriptprofile.First.Registers), Got: int64(r.register)}
 }
 
 // errChecksFull refuses a check beyond the register file, a limit the

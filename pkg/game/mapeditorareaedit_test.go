@@ -524,7 +524,7 @@ func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
 }
 
 // The box's new constant takes the register after the box's own; a script
-// variable that addresses it refuses the edit, in the prompt, and nothing is
+// variable that addresses it asks to extend the map, in the prompt, and nothing is
 // written. A variable on another register does not.
 func TestAreaDrawnBoxRefusesAVariableOnTheConstantRegister(t *testing.T) {
 	for _, c := range []struct {
@@ -537,7 +537,7 @@ func TestAreaDrawnBoxRefusesAVariableOnTheConstantRegister(t *testing.T) {
 		_ = e.Key("enter")
 		notes := strings.Join(e.PromptNotes(), "")
 		_, open := e.PromptRect()
-		if c.refused != strings.Contains(notes, "would share the register") || c.refused != open {
+		if c.refused != strings.Contains(notes, "conditions and variables share") || c.refused != open {
 			t.Fatalf("variable %d: refused %v, prompt open %v, notes %q", c.variable, c.refused, open, notes)
 		}
 		if c.refused == !bytes.Equal(e.Document().SourceBytes, b) {

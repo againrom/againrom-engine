@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Map editor: a new condition that would clash with a script variable now offers to switch the map to the extended script instead of refusing, and the question shows the reason.
 - The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.
 - The map editor's message box no longer shows question marks instead of Russian text, for example when a trigger copy is refused.
 - [BASE] Mod window: Terrain shows each ground as a picture with its variations on hover, Texts lists each text under where it shows, and Items starts new armour and weapons from a game item picked by name and picture; only names and numbers are typed.
