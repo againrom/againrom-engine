@@ -26,13 +26,14 @@ func TestCapturingSurfacesPassInputThroughOneBuilder(t *testing.T) {
 	for _, route := range []struct{ file, call string }{
 		{"cheatinput.go", "in.passing(passCheatChat)"},
 		{"app.go", "in.passing(passKeysCapture)"},
+		{"goldmodal.go", "in.passing(passGoldModal)"},
 	} {
 		src := read(route.file)
 		if !strings.Contains(src, route.call) {
 			t.Errorf("%s no longer builds its captured tick with %s", route.file, route.call)
 		}
 	}
-	for _, file := range []string{"cheatinput.go", "keyspage.go", "app.go"} {
+	for _, file := range []string{"cheatinput.go", "keyspage.go", "app.go", "goldmodal.go"} {
 		src := read(file)
 		if strings.Contains(src, "capturedByKeysPage") {
 			t.Errorf("%s: the hand field list capturedByKeysPage is back", file)

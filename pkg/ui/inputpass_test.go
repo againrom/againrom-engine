@@ -29,3 +29,18 @@ func TestPassingKeepsOnlyTheNamedGroups(t *testing.T) {
 		}
 	}
 }
+
+// The gold modal passes only pointer, focus and Close; focus is the top-level field.
+func TestGoldModalPassesOnlyPointerFocusAndClose(t *testing.T) {
+	a, v, _ := openPurseEditor(t)
+	in := appInput{
+		AnyKey: true, Keys: []ebiten.Key{ebiten.KeyA}, Close: true, Escape: true, Enter: true, Typed: "x",
+		CursorX: 3, CursorY: 4, PrimaryPressed: true, Help: true, Unfocused: true,
+		Viewer: Input{CursorX: 5, CursorY: 6, Ctrl: true, Alt: true, Unfocused: false},
+	}
+	want := appInput{CursorX: 3, CursorY: 4, Close: true, Unfocused: true,
+		Viewer: Input{CursorX: 5, CursorY: 6, Unfocused: true}}
+	if got := a.stepGoldModal(v, in); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v want %+v", got, want)
+	}
+}

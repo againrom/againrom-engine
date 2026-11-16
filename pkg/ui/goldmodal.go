@@ -472,8 +472,5 @@ func (a *App) stepGoldModal(v *Viewer, in appInput) appInput {
 	if !in.Unfocused {
 		v.stepGoldPointer(in.CursorX, in.CursorY, in.PrimaryPressed, in.PrimaryReleased)
 	}
-	return appInput{
-		CursorX: in.CursorX, CursorY: in.CursorY, Unfocused: in.Unfocused, Close: in.Close,
-		Viewer: Input{Unfocused: in.Viewer.Unfocused, CursorX: in.Viewer.CursorX, CursorY: in.Viewer.CursorY},
-	}
+	return in.passing(passGoldModal)
 }

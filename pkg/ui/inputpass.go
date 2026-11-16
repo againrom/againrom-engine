@@ -11,11 +11,13 @@ const (
 	passFocus
 	passKeys
 	passHelp
+	passClose
 )
 
 const (
 	passCheatChat   = passCursor | passAlt | passFocus | passHelp
 	passKeysCapture = passCursor | passButtons | passAlt | passCtrlShift | passFocus | passKeys
+	passGoldModal   = passCursor | passFocus | passClose
 )
 
 // passing keeps the named groups of in and drops the rest.
@@ -43,6 +45,9 @@ func (in appInput) passing(groups inputGroup) appInput {
 	}
 	if groups&passHelp != 0 {
 		out.Help, out.AltLetter = in.Help, in.AltLetter
+	}
+	if groups&passClose != 0 {
+		out.Close = in.Close
 	}
 	return out
 }
