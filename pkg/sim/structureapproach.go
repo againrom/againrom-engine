@@ -7,7 +7,7 @@ func (w *World) approachCell(scratch *routeScratch, i int, centre cell, radius i
 	for y := max(int64(0), int64(centre.y)-radius); y <= min(int64(w.bounds.Height)-1, int64(centre.y)+radius); y++ {
 		for x := max(int64(0), int64(centre.x)-radius); x <= min(int64(w.bounds.Width)-1, int64(centre.x)+radius); x++ {
 			at := cell{int32(x), int32(y)}
-			if (reaches == nil || reaches(at)) && w.open(scratch, terrainRelation, i, at.x, at.y) && w.restFree(scratch, i, at.x, at.y) {
+			if (reaches == nil || reaches(at)) && w.open(scratch, terrainRelation, i, at.x, at.y) {
 				candidates = append(candidates, at)
 			}
 		}

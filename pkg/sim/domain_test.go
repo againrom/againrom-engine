@@ -412,22 +412,16 @@ func domTrack(t *testing.T, w *World, ticks int) [][]Entity {
 	return nil
 }
 
-// TestTwoMovingFlyersInterpenetrate — AC-4. Two flyers ordered onto each other's
-// start cells meet on ONE cell and both still arrive. Two ground units on the
-// same row also both arrive — by going ROUND each other, since a near search
-// that cannot enter its waypoint settles for a cell beside it — but they never
-// share one, and that is the contrast: the flyers pass THROUGH, the ground pair
-// passes AROUND.
-//
-// The ground pair is not decoration. "The flyers shared a cell" says nothing
-// about a soft rule unless the same layout under the shipped rule does not.
-func TestTwoMovingFlyersInterpenetrate(t *testing.T) {
+// TestTwoMovingFlyersGoRoundEachOther: two flyers ordered onto each other's start
+// cells never share a cell and both still arrive, as two ground units on the
+// same row do.
+func TestTwoMovingFlyersGoRoundEachOther(t *testing.T) {
 	for _, tc := range []struct {
 		what              string
 		domain            Domain
 		wantShare, arrive bool
 	}{
-		{"two flyers", DomainAir, true, true},
+		{"two flyers", DomainAir, false, true},
 		{"two ground units", DomainGround, false, true},
 	} {
 		const west, east, row = 1, 7, 2
@@ -459,22 +453,16 @@ func TestTwoMovingFlyersInterpenetrate(t *testing.T) {
 	}
 }
 
-// TestAFlyerCrossesARestingFlyersCell — AC-5. A resting flyer stands on the
-// straight line to a free target, and the mover flies THROUGH its cell and lands
-// exactly on the target: no detour, so its row never changes.
-//
-// A ground unit on the same layout reaches the same target and NEVER stands on
-// the occupied cell: it leaves its row, goes round and comes back. So the two
-// halves are told apart by the row and not by the arrival — a hard collision
-// costs a detour, a soft one costs nothing, and "no detour" is what makes the
-// flyer's straight line evidence about the soft rule.
-func TestAFlyerCrossesARestingFlyersCell(t *testing.T) {
+// TestAFlyerGoesRoundARestingFlyersCell: a resting flyer on the straight line to
+// a free target is gone round as a standing ground unit is, and the target is
+// reached.
+func TestAFlyerGoesRoundARestingFlyersCell(t *testing.T) {
 	for _, tc := range []struct {
 		what                   string
 		domain                 Domain
 		crosses, moves, detour bool
 	}{
-		{"a flyer over a resting flyer", DomainAir, true, true, false},
+		{"a flyer past a resting flyer", DomainAir, false, true, true},
 		{"a ground unit past a standing ground unit", DomainGround, false, true, true},
 	} {
 		const row, sitter, goal = 2, 4, 8
@@ -513,23 +501,22 @@ func TestAFlyerCrossesARestingFlyersCell(t *testing.T) {
 	}
 }
 
-// TestAFlyerEntersItsLayerWhenItsOrderEnds — AC-4. The tick a flyer's order ends
-// is the tick it becomes visible: before it, a peer's predicate says its cell is
-// free; after it, the same predicate says it is taken.
-func TestAFlyerEntersItsLayerWhenItsOrderEnds(t *testing.T) {
+// TestAMovingFlyersCellIsClosedToItsPeer: a flyer holds its cell while walking
+// and at rest, so a peer's predicate says the cell is taken in both.
+func TestAMovingFlyersCellIsClosedToItsPeer(t *testing.T) {
 	w := mustWorldGrid(t, 1, Bounds{Width: 6, Height: 3}, ModeCanonical, nil, []Entity{
 		{ID: 1, X: 0, Y: 1, Domain: DomainAir},
 		{ID: 2, X: 5, Y: 1, Domain: DomainAir},
 	})
 	Step(w, []Command{{Entity: 1, X: 2, Y: 1}})
 
-	// While it is walking, its own cell is free to its peer.
+	// While it is walking, its own cell is closed to its peer.
 	if e := w.Entities()[0]; !e.HasTarget {
 		t.Fatalf("the flyer settled in one tick, at (%d,%d) — this fixture needs it still walking", e.X, e.Y)
 	}
 	moving := w.Entities()[0]
-	if s := newRouteScratch(w); !w.enterable(s, 1, moving.X, moving.Y) {
-		t.Errorf("a moving flyer's cell (%d,%d) is closed to its peer", moving.X, moving.Y)
+	if s := newRouteScratch(w); w.enterable(s, 1, moving.X, moving.Y) {
+		t.Errorf("a moving flyer's cell (%d,%d) is open to its peer", moving.X, moving.Y)
 	}
 
 	domRun(t, w, 32)
@@ -559,9 +546,8 @@ func domRestOverlap(ents []Entity) bool {
 	return false
 }
 
-// TestTwoFlyersOrderedOntoOneCellEndDistinct — AC-6. They interpenetrate while
-// moving and end on different cells, and at no tick are two RESTING flyers on
-// one cell. The second fixture starts them equidistant, so both would arrive on
+// TestTwoFlyersOrderedOntoOneCellEndDistinct — AC-6. They end on different
+// cells, and at no tick are two RESTING flyers on one cell. The second fixture starts them equidistant, so both would arrive on
 // the same tick if nothing separated them.
 func TestTwoFlyersOrderedOntoOneCellEndDistinct(t *testing.T) {
 	for _, tc := range []struct {
@@ -611,96 +597,6 @@ func TestTwoFlyersOrderedOntoOneCellEndDistinct(t *testing.T) {
 	}
 }
 
-// TestAFlyerOrderedOntoARestingFlyerSettlesBeside — AC-7. The order names the
-// substitute from the FIRST tick, so no later tick re-runs the sweep, and the
-// mover never stands on the resting flyer's cell at rest.
-func TestAFlyerOrderedOntoARestingFlyerSettlesBeside(t *testing.T) {
-	const sitX, sitY int32 = 6, 2
-	w := mustWorldGrid(t, 1, Bounds{Width: 9, Height: 5}, ModeCanonical, nil, []Entity{
-		{ID: 1, X: 0, Y: 2, Domain: DomainAir},
-		{ID: 2, X: sitX, Y: sitY, Domain: DomainAir},
-	})
-	Step(w, []Command{{Entity: 1, X: sitX, Y: sitY}})
-
-	after := w.Entities()[0]
-	if !after.HasTarget {
-		t.Fatalf("the order ended in the first tick, at (%d,%d)", after.X, after.Y)
-	}
-	if after.TargetX == sitX && after.TargetY == sitY {
-		t.Errorf("the order still names the resting flyer's cell (%d,%d) after one tick", sitX, sitY)
-	}
-	settled := cell{after.TargetX, after.TargetY}
-	if d := settled.chebyshevTo(cell{sitX, sitY}); d != 1 {
-		t.Errorf("the substitute (%d,%d) is %d cells from the cell ordered, want adjacent",
-			settled.x, settled.y, d)
-	}
-
-	frames := domTrack(t, w, 64)
-	for k, f := range frames {
-		if domRestOverlap(f) {
-			t.Fatalf("two resting flyers share a cell at tick %d", k+1)
-		}
-		// And the order never goes back to naming the occupied cell.
-		if f[0].HasTarget && f[0].TargetX == sitX && f[0].TargetY == sitY {
-			t.Fatalf("at tick %d the order names the occupied cell again — a later tick re-ran the sweep", k+1)
-		}
-	}
-	if last := frames[len(frames)-1][0]; last.X != settled.x || last.Y != settled.y {
-		t.Errorf("it ended at (%d,%d), not on the cell it settled for (%d,%d)",
-			last.X, last.Y, settled.x, settled.y)
-	}
-}
-
-// TestTheNonSettlingSearchRefusesAnOccupiedGoal — AC-13. The same fixture under
-// the mode whose search does not settle: the order ends in the FIRST tick, the
-// mover never reaches the peer's cell, and no later tick runs a search — which is
-// what the stored-route test would otherwise force every tick, unbounded.
-func TestTheNonSettlingSearchRefusesAnOccupiedGoal(t *testing.T) {
-	const sitX, sitY int32 = 6, 2
-	w := mustWorldGrid(t, 1, Bounds{Width: 9, Height: 5}, ModeOptimised, nil, []Entity{
-		{ID: 1, X: 0, Y: 2, Domain: DomainAir},
-		{ID: 2, X: sitX, Y: sitY, Domain: DomainAir},
-	})
-	Step(w, []Command{{Entity: 1, X: sitX, Y: sitY}})
-
-	e := w.Entities()[0]
-	if e.HasTarget {
-		t.Errorf("the order survived the first tick, aiming at (%d,%d)", e.TargetX, e.TargetY)
-	}
-	if e.X == sitX && e.Y == sitY {
-		t.Errorf("the mover reached the resting flyer's cell")
-	}
-	if len(w.routes[0]) != 0 {
-		t.Errorf("it holds a route of %d cell(s) with no order", len(w.routes[0]))
-	}
-	// A free goal on the same fixture still routes, so the refusal above is the
-	// rest term and not the mode refusing everything.
-	Step(w, []Command{{Entity: 1, X: 8, Y: 4}})
-	if !w.Entities()[0].HasTarget {
-		t.Errorf("a free goal was refused too, so the case above measures nothing")
-	}
-}
-
-// TestAFlyerReOrderedOntoItsOwnCellEndsCounted — AC-11's first half. A
-// zero-distance order clears in the tick it is given, and the flyer is in its
-// layer at the end of that tick — the re-seed fires on the settle and not only
-// on an advancing move.
-func TestAFlyerReOrderedOntoItsOwnCellEndsCounted(t *testing.T) {
-	w := mustWorldGrid(t, 1, Bounds{Width: 6, Height: 3}, ModeCanonical, nil, []Entity{
-		{ID: 1, X: 2, Y: 1, Domain: DomainAir},
-		{ID: 2, X: 5, Y: 1, Domain: DomainAir},
-	})
-	Step(w, []Command{{Entity: 1, X: 2, Y: 1}})
-
-	e := w.Entities()[0]
-	if e.HasTarget || e.X != 2 || e.Y != 1 {
-		t.Fatalf("after a zero-distance order it is %+v", e)
-	}
-	if s := newRouteScratch(w); w.restFree(s, 1, 2, 1) {
-		t.Errorf("its cell is free to a peer, so the settle did not count it")
-	}
-}
-
 // TestAFlyerSettlingOnItsOwnCellEndsItsOrder — AC-11, and the case the rest
 // filter could break. The mover's own cell is a candidate the picker may return,
 // meaning "it can get no nearer"; a filter that took the asker's own presence off
@@ -731,91 +627,8 @@ func TestAFlyerSettlingOnItsOwnCellEndsItsOrder(t *testing.T) {
 	if e.X != 2 || e.Y != 2 || e.Stall != 0 {
 		t.Errorf("it is %+v, want its own cell with no residue", e)
 	}
-	if s := newRouteScratch(w); w.restFree(s, 0, 2, 2) == false {
+	if s := newRouteScratch(w); w.occupancyOpenFootprint(s, 0, 2, 2) == false {
 		t.Errorf("its own cell reads as taken by itself — the self term is subtracted wrongly")
-	}
-}
-
-func TestAFlyerWhoseSearchFailsDoesNotPublishAnOccupiedRest(t *testing.T) {
-	const w0, h0 = 5, 5
-	grid := make([]byte, w0*h0)
-	for y := 0; y < h0; y++ {
-		for x := 0; x < w0; x++ {
-			if x != 2 || y != 2 {
-				grid[y*w0+x] = blockAir | blockGround
-			}
-		}
-	}
-	// Two flyers already sharing the one open cell: a world whose entities share
-	// a cell is advanced, not repaired.
-	w := mustWorldGrid(t, 1, Bounds{Width: w0, Height: h0}, ModeCanonical, grid, []Entity{
-		{ID: 1, X: 2, Y: 2, Domain: DomainAir},
-		{ID: 2, X: 2, Y: 2, Domain: DomainAir},
-	})
-	Step(w, []Command{{Entity: 2, X: 0, Y: 0}})
-
-	ents := w.Entities()
-	if !ents[1].HasTarget {
-		t.Errorf("the sealed flyer cleared the order whose resting transition was refused")
-	}
-	if domRestOverlap(ents) {
-		t.Errorf("the two flyers at (%d,%d) and (%d,%d) were both published as resting",
-			ents[0].X, ents[0].Y, ents[1].X, ents[1].Y)
-	}
-	s := newRouteScratch(w)
-	i, _ := w.cellIndex(2, 2)
-	if got := s.at(DomainAir.layer(), i); got != 1 {
-		t.Errorf("the occupied cell carries %d resting flyer(s), want only the pre-existing one", got)
-	}
-}
-
-// TestASettleSkipsARingCellAnotherFlyerRestsOn — AC-7, and the case the settle
-// filter is the only thing that answers.
-//
-// Two flyers rest side by side, and a third is ordered onto the FURTHER of them.
-// The picker rings outward from the cell ordered and takes the smallest label —
-// the cell cheapest to reach from the mover — and the nearer resting flyer's own
-// cell is exactly that: it is the one neighbour of the goal that lies straight
-// back along the mover's line, so every other candidate in the ring costs a
-// diagonal more.
-//
-// So a picker that filtered on the label alone would settle the mover ONTO its
-// peer. The centre is never probed, which is why AC-7's simpler fixture cannot
-// tell the two apart: there the only rest cell in reach is the goal itself.
-func TestASettleSkipsARingCellAnotherFlyerRestsOn(t *testing.T) {
-	const nearX, farX, row int32 = 5, 6, 2
-	w := mustWorldGrid(t, 1, Bounds{Width: 9, Height: 5}, ModeCanonical, nil, []Entity{
-		{ID: 1, X: 0, Y: row, Domain: DomainAir},
-		{ID: 2, X: nearX, Y: row, Domain: DomainAir},
-		{ID: 3, X: farX, Y: row, Domain: DomainAir},
-	})
-	Step(w, []Command{{Entity: 1, X: farX, Y: row}})
-
-	e := w.Entities()[0]
-	if !e.HasTarget {
-		t.Fatalf("the order ended in the first tick, at (%d,%d)", e.X, e.Y)
-	}
-	settled := cell{e.TargetX, e.TargetY}
-	if settled == (cell{nearX, row}) {
-		t.Fatalf("it settled for (%d,%d), which the nearer flyer is resting on", settled.x, settled.y)
-	}
-	if settled == (cell{farX, row}) {
-		t.Fatalf("it settled for the cell ordered, which the further flyer is resting on")
-	}
-	if d := settled.chebyshevTo(cell{farX, row}); d != 1 {
-		t.Errorf("it settled for (%d,%d), %d cells from the cell ordered, want a neighbour",
-			settled.x, settled.y, d)
-	}
-
-	frames := domTrack(t, w, 64)
-	for k, f := range frames {
-		if domRestOverlap(f) {
-			t.Fatalf("two resting flyers share a cell at tick %d", k+1)
-		}
-	}
-	if last := frames[len(frames)-1][0]; last.X != settled.x || last.Y != settled.y {
-		t.Errorf("it ended at (%d,%d), not on the cell it settled for (%d,%d)",
-			last.X, last.Y, settled.x, settled.y)
 	}
 }
 

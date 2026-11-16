@@ -41,7 +41,7 @@ func (w *World) pickerB(s *routeScratch, self int, start cell) (cell, bool) {
 	found := false
 	probe := func(c cell) {
 		l, ok := w.label(s, start, c.x, c.y)
-		if !ok || !w.restFree(s, self, c.x, c.y) || found && l >= bestLabel {
+		if !ok || found && l >= bestLabel {
 			return
 		}
 		best, bestLabel, found = c, l, true

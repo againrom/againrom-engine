@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] Two flying units no longer stand in one cell or fly through each other, as in the original; they go round or wait.
 - [BASE] A new starter option keeps the mouse inside the game window on a computer with two monitors.
 - [BASE] A window switched from full screen now fits the screen, so its edges can be dragged.
 - [BASE] Game text, such as the name on the new-character screen of the second game, no longer shows a dark blurred rim when the window is larger than the original screen.

@@ -48,7 +48,7 @@ func TestStructureCallersShareOneApproach(t *testing.T) {
 		if !calls["approachCell"] {
 			t.Errorf("%s bypasses approachCell", c.fn)
 		}
-		for _, banned := range []string{"searchRoute", "SliceStable", "restFree", "chebyshevTo"} {
+		for _, banned := range []string{"searchRoute", "SliceStable", "chebyshevTo"} {
 			if banned == "chebyshevTo" && c.fn == "advanceStructureUse" {
 				continue
 			}
@@ -58,7 +58,7 @@ func TestStructureCallersShareOneApproach(t *testing.T) {
 		}
 	}
 	calls := callsIn(t, "structureapproach.go", "approachCell")
-	for _, need := range []string{"searchRoute", "walkTo", "SliceStable", "restFree"} {
+	for _, need := range []string{"searchRoute", "walkTo", "SliceStable"} {
 		if !calls[need] {
 			t.Errorf("approachCell no longer calls %s", need)
 		}

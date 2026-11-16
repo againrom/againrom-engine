@@ -136,20 +136,6 @@ func (w *World) optimisedRoute(s *routeScratch, self int, r relation, half int32
 	if !win.holds(target.x, target.y) || !w.open(s, r, self, target.x, target.y) {
 		return nil, false
 	}
-	// A target the mover may not come to REST on is the same answer, and this is
-	// the one place that question is asked here. It is asked only of the call
-	// that would settle if this search settled -- the FAR one -- because the near
-	// search may not refuse a cell a flyer is merely passing over.
-	//
-	// This search takes no substitute: its plane holds costs TO the target and
-	// says nothing about what the mover can reach, so the distinctness it
-	// delivers is a REFUSAL and the order ends in the tick that gets it. Without
-	// this term the stored route would be discarded and rebuilt every tick by the
-	// staleness test that reads the same question, and this search has no
-	// generation budget to bound that with.
-	if settle == settleOrdered && !w.restFree(s, self, target.x, target.y) {
-		return nil, false
-	}
 
 	// The mover's domain, read once, exactly as the canonical search reads it.
 	dom := w.entities[self].Domain

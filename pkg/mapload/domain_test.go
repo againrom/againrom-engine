@@ -129,7 +129,7 @@ func TestTheBandStopsAWalkerAndNeitherOtherDomain(t *testing.T) {
 //
 // The two halves are the two sides of the layer split: a ghost shares the ground
 // mover's plane and so cannot come to rest on its cell, while flyers are on a
-// plane of their own and pass through each other while moving.
+// plane of their own, contend only with each other and never share a cell.
 func TestAGhostContendsWithAWalkerAndAFlyerDoesNot(t *testing.T) {
 	t.Run("a ghost and a walker end on distinct cells", func(t *testing.T) {
 		m := bandMap([]alm.Unit{
@@ -151,7 +151,7 @@ func TestAGhostContendsWithAWalkerAndAFlyerDoesNot(t *testing.T) {
 		}
 	})
 
-	t.Run("two flyers pass through each other", func(t *testing.T) {
+	t.Run("two flyers on crossing paths never share a cell", func(t *testing.T) {
 		m := bandMap([]alm.Unit{
 			at(14, southRow, 0x42),
 			at(20, southRow, 0x42),
@@ -171,17 +171,13 @@ func TestAGhostContendsWithAWalkerAndAFlyerDoesNot(t *testing.T) {
 			{Entity: 0, X: 20, Y: southRow},
 			{Entity: 1, X: 14, Y: southRow},
 		}
-		shared := false
 		sim.Step(w, cmds)
 		for tick := 1; tick < 200; tick++ {
-			sim.Step(w, nil)
 			a, b := w.Entities()[0], w.Entities()[1]
 			if a.X == b.X && a.Y == b.Y {
-				shared = true
+				t.Fatalf("the two flyers share the cell (%d,%d) after tick %d", a.X, a.Y, tick)
 			}
-		}
-		if !shared {
-			t.Error("the two flyers never occupied one cell; they routed around each other")
+			sim.Step(w, nil)
 		}
 		for i, want := range []int32{20, 14} {
 			if e := w.Entities()[i]; e.X != want || e.Y != southRow {

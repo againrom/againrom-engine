@@ -729,25 +729,16 @@ func (w *World) cellLayerOccupants(x, y int32) (ground, air []int) {
 
 // cellRecordHolds reports whether e stands in a cell record's actor slot.
 //
-// It is counted()'s life ladder without counted()'s flyer rule (route.go). An
-// off-map actor holds no ground at all; a body holds its slot while it dwells or
-// remains restorative-targetable, exactly as the route plane does. The flyer
-// rule is deliberately NOT here: a flyer with an order contends with no mover,
-// but it is still over the cell, and borrowing that rule would let a moving
-// flyer fly out of a Fire Ball.
+// It is counted()'s answer (route.go): an off-map actor holds no ground at all,
+// and a body holds its slot while it dwells or remains restorative-targetable,
+// exactly as the route plane does.
 //
 // Whether the original clears an actor's slot on death is not decoded. What is
 // decoded is that the slot holds an actor and that the removal clears it; this
 // build ties terminal removal to Dwell and keeps a restorable body's slot until
 // revival or the finished-body floor.
 func cellRecordHolds(e *Entity) bool {
-	if e.OffMap {
-		return false
-	}
-	if !e.Alive() {
-		return e.Dying() || e.restorativeTargetable()
-	}
-	return true
+	return counted(e)
 }
 
 func containsKey(a []uint16, k uint16) bool {

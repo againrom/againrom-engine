@@ -1145,11 +1145,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// closes to it, so its step is a straight line and never a detour. Where
 		// it may come to REST is the one place occupancy reaches it, and that is
 		// asked of the order and not of the step.
-		near := unitRelation
-		if e.Domain == DomainAir {
-			near = terrainRelation
-		}
-		step, ok := w.searchRoute(scratch, i, near, dynamicWindow, scaledBudget, settleStep, sub.x, sub.y)
+		step, ok := w.searchRoute(scratch, i, unitRelation, dynamicWindow, scaledBudget, settleStep, sub.x, sub.y)
 		if !ok || len(step) == 0 {
 			// A player's walk to a cell an enemy has taken ends beside it in
 			// the stand order, which strikes what is in reach.
@@ -1378,21 +1374,6 @@ func (w *World) subGoal(s *routeScratch, i int) (cell, bool) {
 		if !w.terrainOpenFootprint(*e, route[k].x, route[k].y) {
 			return cell{}, false
 		}
-	}
-	// A further way a stored route stops serving: its last cell is the mover's
-	// target, and the mover may no longer come to rest there. restFree answers
-	// true for every mover but a flyer, so this is the air domain's test and no
-	// other mover's route is ever discarded by it.
-	//
-	// It is asked AFTER the last-cell test, so only a route still ending at the
-	// target pays for it, and BEFORE the window test, so a discarded route costs
-	// no window arithmetic. It reads MID-TICK state -- which entities have
-	// already resolved -- where the three tests around it are pure world state.
-	// The walk is in ascending id exactly as the plane's own updates are, so
-	// determinism survives; what it costs is that this is no longer a function of
-	// the world alone.
-	if !w.restFree(s, i, last.x, last.y) {
-		return cell{}, false
 	}
 	sub := route[subGoalIndex(len(route))]
 	win := window{centre: cell{x: e.X, y: e.Y}, half: dynamicWindow}
@@ -2213,7 +2194,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 		return stepTurned
 	}
 	// A held cell still fires its trap, on the refused attempt (DIV-4527).
-	if e.Domain != DomainAir && !w.occupancyOpenFootprint(scratch, i, next.x, next.y) {
+	if !w.occupancyOpenFootprint(scratch, i, next.x, next.y) {
 		w.requestFootprintCasts(i, next.x, next.y)
 		return stepBlocked
 	}
@@ -2263,9 +2244,8 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 		w.requestFootprintCasts(i, e.X, e.Y)
 	}
 	e.startAction(w.tick, max(1, int64(e.TransitTotal)))
-	// Only a mover its plane counts WHILE IT MOVES tells the plane anything.
-	// A flyer under orders is counted nowhere, so it commits its position and
-	// touches no count — which is what lets two of them cross one cell.
+	// Only a mover the plane counts tells it anything; a flyer is counted like
+	// a ground mover, so its step moves its count too.
 	if w.savedMotion != nil {
 		scratch.occupy(w)
 	} else if counted(e) {

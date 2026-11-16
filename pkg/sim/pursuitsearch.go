@@ -92,12 +92,8 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 			goal = route[0]
 		}
 	}
-	near := unitRelation
-	if e.Domain == DomainAir {
-		near = terrainRelation
-	}
 	from := cell{x: e.X, y: e.Y}
-	step, ok := w.searchRoute(s, i, near, dynamicWindow, scaledBudget, settleVictim, goal.x, goal.y)
+	step, ok := w.searchRoute(s, i, unitRelation, dynamicWindow, scaledBudget, settleVictim, goal.x, goal.y)
 	if !ok || len(step) == 0 {
 		w.countPursuitPass(i, from)
 		// A human participant's order takes the stall count and the whole-map

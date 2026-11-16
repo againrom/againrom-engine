@@ -154,11 +154,10 @@ func TestWithdrawalAtReadyStillReplacesTheOrderImmediately(t *testing.T) {
 	}
 }
 
-// TestWithdrawalDeferredFleeKeepsAStandingFlyerInThePlane: a flyer is counted
-// in the occupancy plane only while it holds no destination, because a moving
-// flyer crosses its peers. One standing through a loaded cycle with the move
-// held behind it is not moving, so it stays counted until the walk starts.
-func TestWithdrawalDeferredFleeKeepsAStandingFlyerInThePlane(t *testing.T) {
+// TestWithdrawalDeferredFleeKeepsAFlyerInThePlane: a flyer is counted in the
+// occupancy plane standing through a loaded cycle with the move held behind it
+// and again once the walk starts, as a ground mover is.
+func TestWithdrawalDeferredFleeKeepsAFlyerInThePlane(t *testing.T) {
 	w := archerAndIntruderIn(t, DomainAir)
 	stepToFullTick(w)
 	held := w.entities[0]
@@ -174,8 +173,8 @@ func TestWithdrawalDeferredFleeKeepsAStandingFlyerInThePlane(t *testing.T) {
 		Step(w, nil)
 		if got := w.entities[0]; got.X != 20 || got.Y != 20 {
 			walked = true
-			if counted(&got) {
-				t.Error("a flyer walking its flee move is still counted")
+			if !counted(&got) {
+				t.Error("a flyer walking its flee move left the occupancy plane")
 			}
 		}
 	}

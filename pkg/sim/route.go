@@ -215,10 +215,8 @@ func (s *routeScratch) occupy(w *World) {
 // until damage/decay reaches the -10 finished-body floor. At that floor a body
 // releases the cell once its dwell is over, preserving terminal corpse routing.
 //
-// And an AIR mover is counted only while it holds NO TARGET — the soft rule: a
-// moving flyer is counted nowhere, so it neither blocks another mover nor is
-// blocked by one, and two flyers on crossing paths fly through each other. That
-// arm is a LIVING mover's alone now, a body holding no target of any kind.
+// A flyer is counted like a ground mover, under orders or at rest: it holds its
+// cell in the air layer, so another flyer neither steps into it nor rests on it.
 //
 // It is one function with THREE readers and not a condition written out
 // three times: the seed above, the self-presence term in enterable, and the
@@ -242,9 +240,7 @@ func counted(e *Entity) bool {
 	if !e.Alive() {
 		return e.Dying() || e.restorativeTargetable()
 	}
-	// A flyer standing through a loaded attack cycle is not moving whatever
-	// destination waits behind the cycle (DIV-1509), so it stays in the plane.
-	return e.Domain != DomainAir || !e.HasTarget || e.HasAttackTarget && e.AttackPhase != AttackReady
+	return true
 }
 
 // moved keeps the counts answering what a walk of the entity slice would answer:
@@ -672,30 +668,6 @@ func (w *World) enterable(s *routeScratch, self int, x, y int32) bool {
 	return w.terrainOpenSize(e.Domain, e.TokenSize, x, y) && w.occupancyOpenFootprint(s, self, x, y)
 }
 
-// restFree reports whether the entity at index self may come to REST with its
-// footprint anchored on (x, y): no OTHER mover of its own layer covers it.
-//
-// It answers TRUE for a ground and a ghost mover unconditionally, and that is
-// the whole of "this test is asked of an air mover and of no other". Their
-// occupancy is resolved by the near search, tick by tick, and a rule that
-// reached them here would be a second opinion about where they may stop.
-//
-// It is a second ANSWER and not a third relation. A relation is honoured by both
-// searches at every offer a wave makes, which is precisely the fly-through a
-// flyer's near search exists to have: the step is blind, and only the cell an
-// order ENDS on is asked about.
-//
-// The asker's own presence is taken off only where counted() wrote it. An air
-// mover under orders is absent from the plane, so no subtraction occurs; this
-// keeps its current footprint eligible when settleFor returns it.
-func (w *World) restFree(s *routeScratch, self int, x, y int32) bool {
-	e := &w.entities[self]
-	if e.Domain != DomainAir {
-		return true
-	}
-	return w.occupancyOpenFootprint(s, self, x, y)
-}
-
 // open is the offer both searches make about a cell: may a route over r put the
 // entity at index self on (x, y)?
 //
@@ -845,13 +817,6 @@ func (w *World) canonicalRoute(s *routeScratch, self int, r relation, half int32
 
 	s.reset()
 	goalOpen := win.holds(target.x, target.y) && w.open(s, r, self, target.x, target.y)
-	// A SETTLING search must be able to STOP on its goal, and stopping is resting.
-	// For a ground or a ghost mover restFree is true and this term changes
-	// nothing; for a flyer it is what makes a goal another flyer is resting on
-	// count as unreachable, so the wave runs on and the substitute path takes it.
-	if settle == settleOrdered {
-		goalOpen = goalOpen && w.restFree(s, self, target.x, target.y)
-	}
 	if start != target && !goalOpen && settle == exactGoal {
 		// Nothing but the start is ever labelled without being open under r, so a
 		// target that is not open cannot end up labelled however long the
@@ -1120,7 +1085,7 @@ func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, t
 			return false
 		}
 		l, ok := w.label(s, start, int32(x), int32(y))
-		if !ok || !w.restFree(s, self, int32(x), int32(y)) {
+		if !ok {
 			return false
 		}
 		if found && l >= bestLabel {
