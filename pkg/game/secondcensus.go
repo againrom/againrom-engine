@@ -258,7 +258,7 @@ func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
 // campaign carries a member only after his join.
 func secondCensusParty(defs *Definitions) []mapload.PartyMember {
 	s := &CampaignSession{Carried: MissionPartyAs(false, defs.StartWeapon, defs.Bodies, defs.Table)}
-	in := townInstall{table: defs.Table, bodies: defs.Bodies}
+	in := newTownInstall(defs.Table, defs.Bodies, Campaign{}, nil)
 	for _, p := range in.joins() {
 		if p.ServerID != 0 {
 			s.addPartyIdentity(in, p.Identity)

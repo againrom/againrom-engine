@@ -85,7 +85,7 @@ func entitySpeakers(m *alm.Map, t *mapload.Table) []speakerActor {
 		return nil
 	}
 	out := make([]speakerActor, 0, len(m.Units))
-	companions := (townInstall{table: t}).joins().byServerID()
+	companions := newTownInstall(t, data.BodyList{}, Campaign{}, nil).joins().byServerID()
 	for i, u := range m.Units {
 		r := mapload.Resolve(u, t)
 		if r.Arm == mapload.ArmUnits || !r.Found() {

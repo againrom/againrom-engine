@@ -396,7 +396,7 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 	if !whole || !files.humanSpeakers || t.Humans == nil && t.Units == nil {
 		return faces
 	}
-	companions := (townInstall{table: t}).joins().byServerID()
+	companions := newTownInstall(t, data.BodyList{}, Campaign{}, nil).joins().byServerID()
 	out := map[int32]data.NPCFace{}
 	if t.Humans != nil {
 		out = data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, companions, func(row int) data.Equipment {

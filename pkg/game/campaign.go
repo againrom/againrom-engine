@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"againrom/pkg/campaignset"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mod"
 	"againrom/pkg/vfs"
@@ -398,7 +399,7 @@ func (c Campaign) FirstMission() (int, bool) {
 // Town activation is that array's one consumer (REG-SCN-098, HERO-JOIN-127),
 // so every value it carries is a companion a town grants.
 func (c Campaign) townGrants(npc int) bool {
-	_, ok := (townInstall{campaign: c}).joins().townRow(-1, npc)
+	_, ok := newTownInstall(nil, data.BodyList{}, c, nil).joins().townRow(-1, npc)
 	return ok
 }
 

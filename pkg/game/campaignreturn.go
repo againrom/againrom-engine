@@ -30,9 +30,15 @@ type townInstall struct {
 	stockMultiplier int32
 }
 
+// newTownInstall is the one builder of a townInstall. Each route passes the
+// install values it holds; a field no route passes stays zero.
+func newTownInstall(table *mapload.Table, bodies data.BodyList, campaign Campaign, npcName func(index int, fallback string) string) townInstall {
+	return townInstall{table: table, bodies: bodies, campaign: campaign, npcName: npcName}
+}
+
 // townInstall is the install's definitions for a town operation.
 func (in *InstallResources) townInstall() townInstall {
-	return townInstall{table: in.Table, bodies: in.Bodies, campaign: in.Campaign.Value(), npcName: in.localizedNPCName}
+	return newTownInstall(in.Table, in.Bodies, in.Campaign.Value(), in.localizedNPCName)
 }
 
 func (f *FrontEnd) townInstall() townInstall {

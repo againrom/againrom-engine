@@ -563,16 +563,16 @@ func (s *mapInspectionEdits) testPlayOfferWorkspace() *editorWorkspaceState {
 // townInstall is the install's definitions as the game's member builder
 // reads them: the editor's table, body list and name lines.
 func (x *MapInspector) townInstall() townInstall {
-	in := townInstall{table: x.table, npcName: func(index int, fallback string) string {
+	var bodies data.BodyList
+	if x.archives != nil {
+		bodies, _ = ReadBodyList(x.archives.artSource())
+	}
+	return newTownInstall(x.table, bodies, Campaign{}, func(index int, fallback string) string {
 		if index < 0 || index >= len(x.table.NPCNames) || x.table.NPCNames[index] == "" {
 			return fallback
 		}
 		return x.table.NPCNames[index]
-	}}
-	if x.archives != nil {
-		in.bodies, _ = ReadBodyList(x.archives.artSource())
-	}
-	return in
+	})
 }
 
 // testPlayOffer are the party window's cards for a hero of kind hero and the
