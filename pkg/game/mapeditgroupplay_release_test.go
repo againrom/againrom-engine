@@ -370,6 +370,7 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 		p := e.CellPoint(cell)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: down}, now)
 	}
+	clearCells(e, from, to)
 	at(from, true)
 	at(to, true)
 	frame(e, "box")
@@ -389,6 +390,16 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 	c.click(e, r, ok, "the Groups entry")
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGroupsRow, N: 2, K: 2, Flag: false})
 	c.click(e, r, ok, "group 2's row")
+	var members []image.Point
+	for _, s := range e.SelectedRecords() {
+		for _, rec := range e.Document().Records {
+			if rec.Kind == s.Kind && rec.Index == s.Index {
+				p := e.CellPoint(rec.Cell)
+				members = append(members, p, p.Add(image.Pt(-30, -40)), p.Add(image.Pt(30, 0)))
+			}
+		}
+	}
+	clearPopup(e, members...)
 	if e.GroupBadges() == 0 || len(e.SelectedRecords()) == 0 {
 		t.Fatalf("group 2 shows %d badges over %d selected units", e.GroupBadges(), len(e.SelectedRecords()))
 	}

@@ -78,7 +78,10 @@ func armOpenButton(t *testing.T, e *ui.MapEditor, row int) image.Rectangle {
 	t.Helper()
 	for i := 0; i < 200; i++ {
 		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: row}); ok {
-			return r
+			clearPopup(e, r.Min.Add(r.Size().Div(2)))
+			if r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: row}); ok {
+				return r
+			}
 		}
 		_ = e.Key("pagedown")
 	}

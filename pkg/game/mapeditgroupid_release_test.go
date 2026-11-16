@@ -77,6 +77,7 @@ func trySelectUnits(t *testing.T, e *ui.MapEditor, units ...int) bool {
 	e.Select(recordOfUnit(t, e, units[0]), true)
 	for _, u := range units[1:] {
 		p := e.CellPoint(e.Document().Records[recordOfUnit(t, e, u)].Cell)
+		clearPopup(e, p)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true, Shift: true}, now)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, Shift: true}, now)
 	}

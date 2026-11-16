@@ -150,6 +150,7 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 			before[ui.RecordRef{Kind: b.Kind, Index: b.Index}] = b.Cell
 		}
 		pc, pd := e.CellPoint(centre), e.CellPoint(centre.Add(off))
+		clearPopup(e, pc, pd)
 		e.Pointer(ui.Input{CursorX: pc.X, CursorY: pc.Y, PrimaryDown: true}, now)
 		e.Pointer(ui.Input{CursorX: pd.X, CursorY: pd.Y, PrimaryDown: true}, now)
 		e.Pointer(ui.Input{CursorX: pd.X, CursorY: pd.Y}, now)

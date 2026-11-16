@@ -33,9 +33,10 @@ func TestReleaseMapEditorSetHeightEdit(t *testing.T) {
 	w := int(was.Width)
 	base := was.Altitudes[cell.Y*w+cell.X]
 	at := e.CellPoint(cell)
+	up := image.Pt(at.X, at.Y-30)
+	clearPopup(e, at, up)
 	now := time.Unix(1, 0)
 	e.Pointer(ui.Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}, now)
-	up := image.Pt(at.X, at.Y-30)
 	e.Pointer(ui.Input{CursorX: up.X, CursorY: up.Y, PrimaryDown: true}, now)
 	terrainFrame(t, x, e, "set-height-drag")
 	if bytes.Equal(before, e.Document().SourceBytes) == false {

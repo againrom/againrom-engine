@@ -537,6 +537,10 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	if err := e.Key("escape"); err != nil {
 		t.Fatal(err)
 	}
+	for _, a := range e.TriggerAreas(ti) {
+		p := e.CellPoint(a.Rect.Min)
+		clearPopup(e, p, p.Add(image.Pt(-30, -40)), p.Add(image.Pt(60, 20)))
+	}
 	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlAreaLabel, N: ti}); !ok {
 		t.Fatal("the highlighted trigger has no label on the map")
 	}

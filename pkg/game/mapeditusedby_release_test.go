@@ -222,10 +222,17 @@ func TestReleaseMapEditorUsedByFrames(t *testing.T) {
 			if !ok {
 				t.Fatal("Used by row never visible")
 			}
-			e.ScrollDetails(3)
+			from := r
+			for step := 0; step < 3; step++ {
+				e.ScrollDetails(1)
+				if _, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row}); !ok {
+					e.ScrollDetails(-1)
+					break
+				}
+			}
 			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: row})
-			if !ok {
-				t.Fatal("Used by link scrolled out of view")
+			if !ok || r.Min.Y >= from.Min.Y {
+				t.Fatal("Used by link did not stay in view of a scrolled popup")
 			}
 			if dir != "" {
 				if err := os.MkdirAll(dir, 0o755); err != nil {

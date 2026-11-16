@@ -8,13 +8,30 @@ import (
 	"againrom/pkg/ui"
 )
 
+// clearMoves are the least drags that uncover points, else edge drags.
+func clearMoves(e *ui.MapEditor, pop image.Rectangle, points []image.Point) []image.Point {
+	lo, hi := points[0], points[0]
+	for _, p := range points {
+		lo, hi = image.Pt(min(lo.X, p.X), min(lo.Y, p.Y)), image.Pt(max(hi.X, p.X), max(hi.Y, p.Y))
+	}
+	room := e.MapRect()
+	for _, d := range []image.Point{{lo.X - pop.Max.X, 0}, {hi.X + 1 - pop.Min.X, 0}, {0, hi.Y + 1 - pop.Min.Y}, {0, lo.Y - pop.Max.Y}} {
+		if r := pop.Add(d); r.In(room) {
+			return []image.Point{d}
+		}
+	}
+	return []image.Point{{-5000, 0}, {5000, 0}, {0, 5000}}
+}
+
 // clearPopup drags the front popup by its title bar, the editor's own move,
-// to the window's left, then right, then bottom edge while it covers one of
-// points, so a press there reaches the map. Popups open in the middle of the
-// window, over the cells a test presses; a drag is kept when the popup
-// reopens. A popup no drag clears stays, and the press lands on it.
+// off points while it covers one, so a press there reaches the map. A drag
+// is kept when the popup reopens. One no drag clears stays where it is.
 func clearPopup(e *ui.MapEditor, points ...image.Point) {
-	for _, d := range []image.Point{{-5000, 0}, {5000, 0}, {0, 5000}} {
+	pop, ok := e.PopupRect()
+	if !ok || !slices.ContainsFunc(points, func(p image.Point) bool { return p.In(pop) }) {
+		return
+	}
+	for _, d := range clearMoves(e, pop, points) {
 		pop, ok := e.PopupRect()
 		if !ok || !slices.ContainsFunc(points, func(p image.Point) bool { return p.In(pop) }) {
 			return

@@ -108,6 +108,7 @@ func areaSelect(t *testing.T, e *ui.MapEditor, n int) {
 // areaPress presses at from, moves to to and, when release, lets go there.
 func areaPress(e *ui.MapEditor, from, to image.Point, release bool) {
 	now := time.Unix(100, 0)
+	clearPopup(e, from, to)
 	e.Pointer(ui.Input{CursorX: from.X, CursorY: from.Y, PrimaryDown: true}, now)
 	mid := from.Add(to).Div(2)
 	e.Pointer(ui.Input{CursorX: mid.X, CursorY: mid.Y, PrimaryDown: true}, now)

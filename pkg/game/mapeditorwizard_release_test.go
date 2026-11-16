@@ -128,6 +128,7 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	wizPress(t, e, "c0.p1", 0)
 	from, to := e.CellPoint(image.Pt(60, 60)), e.CellPoint(image.Pt(70, 66))
 	now := time.Unix(1, 0)
+	clearPopup(e, from, to)
 	e.Pointer(ui.Input{CursorX: from.X, CursorY: from.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: to.X, CursorY: to.Y, PrimaryDown: true}, now)
 	editorShot(t, e, dir, "wizard-draw-on-map", image.Rectangle{})

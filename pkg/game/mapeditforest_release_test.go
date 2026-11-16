@@ -117,6 +117,7 @@ func forestCentre(t *testing.T, m *alm.Map, table *mapload.Table, r int) image.P
 // thin, with the view placed so the popup stands clear of the centre.
 func forestPress(e *ui.MapEditor, centre image.Point, right bool) {
 	e.ShowCell(centre.Sub(image.Pt(8, 0)))
+	clearCells(e, centre)
 	p := e.CellPoint(centre)
 	now := time.Unix(60, 0)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: !right, SecondaryDown: right}, now)

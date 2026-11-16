@@ -13,6 +13,21 @@ import (
 	"againrom/pkg/ui"
 )
 
+// cornerCell is the playable cell nearest the map area's top-left corner.
+func cornerCell(e *ui.MapEditor, w, h int) image.Point {
+	room := e.MapRect().Inset(30)
+	best, nearest := image.Point{}, -1
+	for y := 8; y < h-8; y++ {
+		for x := 8; x < w-8; x++ {
+			p := e.CellPoint(image.Pt(x, y))
+			if d := p.X - room.Min.X + p.Y - room.Min.Y; p.In(room) && (nearest < 0 || d < nearest) {
+				best, nearest = image.Pt(x, y), d
+			}
+		}
+	}
+	return best
+}
+
 func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 	x := installedInspector(t)
 	e := x.Editor()
@@ -105,6 +120,7 @@ func TestReleaseMapEditorIdentityGridUsesInstalledRowsAndTiers(t *testing.T) {
 			c.click(e, r, ok, "block edge identity")
 			cell := image.Pt(24, 24)
 			e.ShowCell(cell)
+			cell = cornerCell(e, 48, 48)
 			p := e.CellPoint(cell)
 			c.click(e, image.Rect(p.X-1, p.Y-1, p.X+2, p.Y+2), true, "placement cell")
 			placed := e.Document().Edits.(*mapInspectionEdits)

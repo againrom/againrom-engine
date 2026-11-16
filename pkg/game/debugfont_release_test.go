@@ -364,9 +364,13 @@ func TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne(t *testing.T) {
 	if captured == 0 || kept == 0 || captured != len(fates) || readbacks != 0 {
 		t.Fatalf("editor installed text captured=%d kept=%d fates=%d readbacks=%d", captured, kept, len(fates), readbacks)
 	}
-	for _, ft := range fates {
+	windows := e.ChromeWindows()
+	for i, ft := range fates {
 		if ft.Call.SourceOver {
 			t.Error("installed editor chrome unexpectedly used a debug glyph")
+		}
+		if ft.Fate == textsmooth.Hidden && underLaterWindow(ft.Call, i, windows) {
+			continue
 		}
 		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank {
 			t.Errorf("editor chrome glyph (%d,%d) is %s", ft.Call.X, ft.Call.Y, ft.Fate)

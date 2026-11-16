@@ -265,6 +265,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 			prev := e.Document()
 			e.Select(i, true)
 			from, to := e.CellPoint(r.Cell), e.CellPoint(r.Cell.Add(off))
+			clearPopup(e, from, to)
 			now := time.Unix(10, 0)
 			e.Pointer(ui.Input{CursorX: from.X, CursorY: from.Y, PrimaryDown: true}, now)
 			e.Pointer(ui.Input{CursorX: to.X, CursorY: to.Y, PrimaryDown: true}, now)
