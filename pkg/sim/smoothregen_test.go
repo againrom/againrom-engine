@@ -127,11 +127,7 @@ func TestSmoothRegenPartsSumToTheGain(t *testing.T) {
 		for _, k := range []int64{16, 64} {
 			var sum int64
 			for j := int64(0); j < k; j++ {
-				part, apply, fits := regenPart{j, k}.step(gain, 0)
-				if !fits {
-					sum = gain
-					break
-				}
+				part, apply := regenPart{j, k}.step(gain, 0)
 				if apply {
 					sum += part
 				}

@@ -81,18 +81,21 @@ func (p regenPart) applies(negative bool) bool {
 
 // step is the part of gain for a pool holding base; negatives go whole on the
 // closing part.
-func (p regenPart) step(gain, base int64) (part int64, apply, fits bool) {
+func (p regenPart) step(gain, base int64) (part int64, apply bool) {
 	negative := gain < 0 || base < 0
 	if !p.applies(negative) {
-		return 0, false, true
+		return 0, false
 	}
 	if p.k == 0 || negative {
-		return gain, true, true
+		return gain, true
 	}
-	if gain > math.MaxInt64/p.k {
-		return 0, true, false
-	}
-	return gain*(p.j+1)/p.k - gain*p.j/p.k, true, true
+	return gain/p.k + partShare(p, gain%p.k), true
+}
+
+// partShare is what part p adds to q for a nonnegative gain q*k+r, so no
+// product passes r*k.
+func partShare(p regenPart, r int64) int64 {
+	return r*(p.j+1)/p.k - r*p.j/p.k
 }
 
 // regenerateEach advances each on-map actor's pools by the mana part and by
@@ -161,12 +164,8 @@ func regenerate(cur *int32, max, period int32, rest *uint8, double int64, modifi
 		return
 	}
 	base := int64(*cur)*regenScale + int64(*rest)
-	gain, apply, fits := part.step(product*int64(rate)/int64(period), base)
+	gain, apply := part.step(product*int64(rate)/int64(period), base)
 	if !apply {
-		return
-	}
-	if !fits {
-		regenerateWide(cur, max, period, rest, product, rate, part)
 		return
 	}
 	if (base > 0 && gain > math.MaxInt64-base) || (base < 0 && gain < math.MinInt64-base) {
@@ -201,12 +200,9 @@ func regenerateWide(cur *int32, maximum, period int32, rest *uint8, product int6
 		return
 	}
 	if part.k != 0 && !negative {
-		var hi, lo big.Int
-		hi.Mul(&gain, big.NewInt(part.j+1))
-		hi.Quo(&hi, big.NewInt(part.k))
-		lo.Mul(&gain, big.NewInt(part.j))
-		lo.Quo(&lo, big.NewInt(part.k))
-		gain.Sub(&hi, &lo)
+		var r big.Int
+		gain.QuoRem(&gain, big.NewInt(part.k), &r)
+		gain.Add(&gain, big.NewInt(partShare(part, r.Int64())))
 	}
 	acc.SetInt64(base)
 	acc.Add(&acc, &gain)

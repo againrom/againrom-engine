@@ -48,7 +48,7 @@ func regenerateCurrentPart(cur *int32, maximum, period int32, rest *uint8, facto
 	}
 	product := m * factor * (int32(int16(modifier)) + 100) * rate
 	gain := product / p
-	part32, apply, _ := part.step(int64(gain), int64(c*100+int32(*rest)))
+	part32, apply := part.step(int64(gain), int64(c*100+int32(*rest)))
 	if !apply {
 		return
 	}

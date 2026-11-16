@@ -39,6 +39,12 @@ func TestRegenPartShareHasOneHome(t *testing.T) {
 		if name == "regen.go" && (strings.Contains(src, ".share(") || strings.Contains(src, "func (p regenPart) last")) {
 			t.Errorf("regen.go keeps a second route")
 		}
+		if name == "regen.go" && strings.Count(src, "func partShare(") != 1 {
+			t.Errorf("regen.go must declare the share once as partShare")
+		}
+		if name == "regen.go" && (strings.Contains(src, "gain*(p.j+1)") || strings.Contains(src, "Mul(&gain, big.NewInt(part.j")) {
+			t.Errorf("regen.go keeps a share beside partShare")
+		}
 		if name != "regen.go" && strings.Contains(src, "func (p regenPart)") {
 			t.Errorf("%s declares a regenPart method", name)
 		}
