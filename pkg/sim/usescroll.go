@@ -330,7 +330,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 		w.releaseScroll(ci, state, rule, power, obs)
 		ci = indexOfEntity(w.entities, state.Caster)
 		if ci >= 0 && w.entities[ci].Alive() {
-			w.entities[ci].CastWait = w.bookRecoveryTicks(ci, rule)
+			w.entities[ci].CastWait = uint8(w.castRecoveryTicks(ci, originScroll, rule))
 		}
 		if released == nil {
 			released = make(map[EntityID]bool)

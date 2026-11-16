@@ -74,6 +74,9 @@ type gameProfile struct {
 	// footprint gap. A book order at a unit keeps the footprint gap
 	// (R2-ENGINE-1143).
 	cellCastReach bool
+	// recoveryLowByte: a cast's recovery count is the low byte of its sum
+	// (R2-ENGINE-1261); the first game clamps a book or scroll count at 255.
+	recoveryLowByte bool
 	// releaseRevalidates: a release asks the whole admission again: reach
 	// and range (MAGIC-403 states the first game asks none).
 	releaseRevalidates bool
@@ -209,6 +212,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeShopUse:              true,
 		nativeWalkRefusal:          true,
 		cellCastReach:              true,
+		recoveryLowByte:            true,
 		releaseRevalidates:         true,
 		paysFacingAim:              true,
 		blowOrdersAttack:           true,

@@ -41,13 +41,13 @@ func (w *World) initializeActionClocks() {
 		if k, ok := w.bookCastIndex(e.ID); ok {
 			c := w.bookCasts[k]
 			if c.Phase == bookCharging {
-				n = max(n, int64(e.TurnRemaining)+int64(c.Remaining)+int64(castRecoveryTicks(*e)))
+				n = max(n, int64(e.TurnRemaining)+int64(c.Remaining)+w.castRecoveryTicks(i, originEstimate, SpellRule{}))
 			} else if c.Phase == bookRelaxing {
 				n = max(n, int64(c.Remaining))
 			}
 		}
 		if k, ok := w.scrollIndex(e.ID); ok && w.scrollCasts[k].Started {
-			n = max(n, int64(e.TurnRemaining)+int64(w.scrollCasts[k].Remaining)+int64(castRecoveryTicks(*e)))
+			n = max(n, int64(e.TurnRemaining)+int64(w.scrollCasts[k].Remaining)+w.castRecoveryTicks(i, originEstimate, SpellRule{}))
 		}
 		if m := w.motionFor(e.ID); m != nil && m.Current && m.Active {
 			total := int64(binary.LittleEndian.Uint16(m.Mover[0xaa:]))
@@ -62,5 +62,5 @@ func (w *World) initializeActionClocks() {
 // The run end uses the action's base wind-up/recovery, not later recovery RNG.
 func (w *World) startSpellAction(i int) {
 	e := &w.entities[i]
-	e.startAction(w.tick, int64(e.TurnRemaining)+int64(castWindupTicks(*e))+int64(castRecoveryTicks(*e)))
+	e.startAction(w.tick, int64(e.TurnRemaining)+int64(castWindupTicks(*e))+w.castRecoveryTicks(i, originEstimate, SpellRule{}))
 }

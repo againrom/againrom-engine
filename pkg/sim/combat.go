@@ -825,7 +825,11 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 	// The relax and the jitter are added in int64 and narrowed once, because the
 	// relax is carried whole: an int32 sum would wrap at the top of the range
 	// into a negative count the byte form refuses.
-	recovery := int32(relaxTicks(*e) + int64(w.rng.uniform(relaxJitter)) + w.humanoidPenalty(i))
+	source := originBlow
+	if !wasCharging {
+		source = originStaff
+	}
+	recovery := int32(w.castRecoveryTicks(i, source, rule))
 	// A weapon-area application may include its source. clearFelled has already
 	// removed the action at the damage site; the unconditional recovery draw is
 	// still consumed, but no phase or countdown is restored on a dead actor.

@@ -1042,7 +1042,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 			w.markSpellEffect(vi, rule.ID)
 		}
 		if w.entities[ci].Alive() {
-			w.entities[ci].CastWait = castRecoveryTicks(w.entities[ci])
+			w.entities[ci].CastWait = uint8(w.castRecoveryTicks(ci, originEstimate, rule))
 		}
 		if vi >= 0 {
 			obs.recordFrom(w, ci, vi, rule, false, castFromX, castFromY)
@@ -1059,7 +1059,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 	// unbidden alike, which is what makes the floor a property of the caster
 	// rather than of the arm that reached it.
 	if w.entities[ci].Alive() {
-		w.entities[ci].CastWait = castRecoveryTicks(w.entities[ci])
+		w.entities[ci].CastWait = uint8(w.castRecoveryTicks(ci, originEstimate, rule))
 	}
 	// AND THE OBSERVATION BESIDE THE MARK, on the same "applied only" terms:
 	// the mark says a unit was touched and the observation says by whom, which
@@ -1132,7 +1132,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	}
 	w.markSpellEffect(ci, rule.ID)
 	if w.entities[ci].Alive() {
-		w.entities[ci].CastWait = castRecoveryTicks(w.entities[ci])
+		w.entities[ci].CastWait = uint8(w.castRecoveryTicks(ci, originEstimate, rule))
 	}
 	// THE CELL FORM PAYS THE SAME ONE CAST AWARD THE UNIT FORM DOES (DIV-238).
 	// It used to pay for Teleport alone, which is the one row reaching this arm
@@ -1425,23 +1425,47 @@ func castWindupTicks(e Entity) uint8 {
 	return uint8(n)
 }
 
-func castRecoveryTicks(e Entity) uint8 {
-	n := e.AttackRelax
-	if n < 0 {
-		n = 0
-	}
-	if n > 255 {
-		n = 255
-	}
-	return uint8(n)
-}
+// castOrigin names what a cast spends, which decides what its recovery adds.
+type castOrigin uint8
 
-func (w *World) bookRecoveryTicks(ci int, rule SpellRule) uint8 {
-	n := relaxTicks(w.entities[ci]) + int64(w.rng.uniform(relaxJitter)) + w.humanoidPenalty(ci) + int64(rule.Complication)
-	if n > 255 {
-		n = 255
+const (
+	// originBook is a cast from the caster's own book: the only source whose
+	// recovery adds the spell's Complication (MAGIC-CADENCE-126,
+	// R2-ENGINE-1261).
+	originBook castOrigin = iota
+	// originStaff is a cast released by a worn weapon's spell.
+	originStaff
+	// originScroll is a cast from a scroll item; the item pointer it holds at
+	// recovery keeps the Complication out (HERO-196, MAGIC-317).
+	originScroll
+	// originBlow is a physical blow; it shares the staff cast's count.
+	originBlow
+	// originEstimate is the fixed part of the count with no draw, for the
+	// activity estimate.
+	originEstimate
+)
+
+// castRecoveryTicks is the one builder of the recovery count after a cast: the
+// relax, a 0..3 draw and the equipped-Humanoid penalty, plus the spell's
+// Complication on a book cast. A cast's count is a byte in both games; the
+// second game keeps its low byte (R2-ENGINE-1261), the first clamps a book or
+// scroll count at 255 and leaves a staff or blow count whole.
+func (w *World) castRecoveryTicks(ci int, src castOrigin, rule SpellRule) int64 {
+	e := w.entities[ci]
+	if src == originEstimate {
+		return min(relaxTicks(e), 255)
 	}
-	return uint8(n)
+	n := relaxTicks(e) + int64(w.rng.uniform(relaxJitter)) + w.humanoidPenalty(ci)
+	if src == originBook {
+		n += int64(rule.Complication)
+	}
+	if w.game.recoveryLowByte {
+		return n & 0xff
+	}
+	if (src == originBook || src == originScroll) && n > 255 {
+		return 255
+	}
+	return n
 }
 
 func (w *World) bookCastIndex(caster EntityID) (int, bool) {
@@ -2001,7 +2025,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			continue
 		}
 		rule, _ := w.findSpell(uint32(state.Spell))
-		recovery := w.bookRecoveryTicks(ci, rule)
+		recovery := uint8(w.castRecoveryTicks(ci, originBook, rule))
 		// Application can fell any set of book casters in an area. clearFelled
 		// removes their records at the damage site, so the releasing record can
 		// move to another index or be removed. Rebind it by caster id before any
