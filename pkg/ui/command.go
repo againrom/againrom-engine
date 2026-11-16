@@ -1391,6 +1391,17 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 					// — a different row, or the first press since a unit change already
 					// cleared it — selects the row it named.
 					v.clearArmedCast()
+					if entry := v.spellbook[idx]; in.PrimaryDouble && entry.SelfCastable {
+						// A double-click casts a self-castable spell on each selected
+						// holder, through the order the cast cursor's press makes.
+						var orders []order
+						for _, e := range bookCasters(presentSelected(v.sel, v.entities), entry.ID) {
+							orders = append(orders, order{kind: orderKindCast, entity: e.ID, victim: e.ID, spell: entry.ID})
+						}
+						v.selectedSpell = 0
+						v.held = false
+						return orders, len(orders) != 0
+					}
 					if id := v.spellbook[idx].ID; v.selectedSpell == id {
 						v.selectedSpell = 0
 					} else {

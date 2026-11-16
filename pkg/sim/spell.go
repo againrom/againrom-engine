@@ -569,6 +569,13 @@ func castsAtActor(rule SpellRule) bool {
 	return rule.Area || rule.TargetsUnit || spellArmOf(rule.arm()).atActor
 }
 
+// SpellMayTargetCaster reports a row a commanded book cast may name its own
+// caster as victim: the row lands on an actor and is not a damage row without
+// the self-cast flag. The cast admission refuses the rest by the same terms.
+func SpellMayTargetCaster(rule SpellRule) bool {
+	return spellApplicable(rule) && castsAtActor(rule) && (!rule.Damaging || rule.SelfCast)
+}
+
 // normaliseSpells is the constructor's own act over a caller's spell table:
 // a COPY, in the caller's own order — unlike normaliseSacks this does not
 // sort, because that order is the order a front end reads a book's spells

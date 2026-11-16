@@ -163,11 +163,28 @@ func TestTheBookCarriesTheAutocastFlagAndTheSpellsOwnLines(t *testing.T) {
 			Info: []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 7"}},
 		// Heal carries damage columns, and the record fills its damage bytes
 		// from them whatever the effect arm (TEXT-096).
-		{ID: 6, Name: "Heal", Autocast: true,
+		{ID: 6, Name: "Heal", Autocast: true, SelfCastable: true,
 			Info: []string{"Heal", "Mana cost: 10", "Damage: 10-20", "Range: 6"}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("book =\n %+v\nwant\n %+v", got, want)
+	}
+}
+
+func TestOnlyANonDamageUnitRowOffersTheDoubleClickCast(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		rule sim.SpellRule
+		want bool
+	}{
+		{"heal", sim.SpellRule{ID: 6, TargetsUnit: true, Restorative: true}, true},
+		{"damage", sim.SpellRule{ID: 1, TargetsUnit: true, Damaging: true}, false},
+		{"damage with self cast", sim.SpellRule{ID: 2, TargetsUnit: true, Damaging: true, SelfCast: true}, true},
+		{"area on a cell", sim.SpellRule{ID: 3, Area: true, Restorative: true}, false},
+	} {
+		if got := spellBookSelfCastable(c.rule); got != c.want {
+			t.Errorf("%s: selfCastable = %v, want %v", c.name, got, c.want)
+		}
 	}
 }
 
@@ -344,7 +361,7 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 	want := []ui.SpellEntry{
 		{ID: 26, Name: "Teleport", PointTarget: true, Autocast: true, Icon: pic,
 			Info: []string{"Teleport", "Mana cost: 90", "Range: 13-90"}},
-		{ID: 6, Name: "Heal", Icon: pic, Info: []string{"Heal", "Mana cost: 91", "Range: 8-91"}},
+		{ID: 6, Name: "Heal", SelfCastable: true, Icon: pic, Info: []string{"Heal", "Mana cost: 91", "Range: 8-91"}},
 		{ID: 89, Name: "Custom", Unavailable: true, Icon: pic, Info: []string{"Custom", "Mana cost: 2", "Range: 3"}},
 		{ID: 1, Name: "Fire Arrow", Icon: pic, Info: []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 7"}},
 	}
@@ -369,7 +386,7 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 	got, _ = selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want[0] = ui.SpellEntry{ID: 26, Name: "Teleport", PointTarget: true,
 		Info: []string{"Teleport", "Mana cost: 90", "Range: 13-90"}}
-	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Autocast: true,
+	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Autocast: true, SelfCastable: true,
 		Info: []string{"Heal", "Mana cost: 91", "Range: 11-91"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("changed book = %+v, want %+v", got, want)

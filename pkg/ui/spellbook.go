@@ -34,6 +34,9 @@ type SpellEntry struct {
 	// SelfOnly marks a spell cast on its own caster: the cast cursor shows
 	// only over the caster. False keeps the unit-target reading.
 	SelfOnly bool
+	// SelfCastable marks a spell whose unit-target cast may name its own
+	// caster: a double-click on its row casts it on each selected holder.
+	SelfCastable bool
 
 	// Icon is this spell's own picture, or nil for one that has none (0141;
 	// `MAGIC-ICON-024`). It arrives already CUT — the tier above takes it out

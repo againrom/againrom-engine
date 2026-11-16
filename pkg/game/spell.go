@@ -80,6 +80,13 @@ func spellSelfKind(rule sim.SpellRule) bool {
 	return spellSelfOnly(rule) || sim.SpellArmSelfAimed(rule.ArmID()) && !rule.TargetsUnit && rule.Area
 }
 
+// spellBookSelfCastable is a double-click's cast on the caster: a row whose
+// click order names a unit, not a cell, and whose rules admit the caster.
+func spellBookSelfCastable(rule sim.SpellRule) bool {
+	pointTarget := !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID()))
+	return !pointTarget && sim.SpellMayTargetCaster(rule)
+}
+
 // bookOrder lists the table in cell-row order when every row is in it (true), else in table order.
 func bookOrder(table []sim.SpellRule, rows []uint16) ([]sim.SpellRule, bool) {
 	byID := make(map[uint16]sim.SpellRule, len(table))
@@ -114,7 +121,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 		// strings and derives neither.
 		auto := e.AutoSpell != 0 && uint32(e.AutoSpell) == uint32(rule.ID)
 		characteristics := sim.SpellCharacteristicsFor(r, e, rule)
-		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: spellSelfKind(rule),
+		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: spellSelfKind(rule), SelfCastable: spellBookSelfCastable(rule),
 			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w, rows)}
 		// THE ICON IS OPTIONAL AND ITS ABSENCE IS ORDINARY (0141;
 		// `MAGIC-ICON-024`). Four shipped spells are in no slot of the icon
@@ -164,7 +171,7 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 			knowers = []spellKnower{{rule, sim.SpellCharacteristicsFor(r, selected[0], rule)}}
 		}
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], Unavailable: !known,
-			PointTarget: known && !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: known && spellSelfKind(rule),
+			PointTarget: known && !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: known && spellSelfKind(rule), SelfCastable: known && spellBookSelfCastable(rule),
 			Info: spellPopupLines(knowers, names[rule.ID], &w, rows)}
 		// Autocast remains the existing primary-unit gesture, not a new
 		// group policy inferred from the book-command population claim.

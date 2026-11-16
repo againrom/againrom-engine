@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
+
 ### For map makers and modders
 
 - The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.
