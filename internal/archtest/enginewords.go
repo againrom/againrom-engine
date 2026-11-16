@@ -31,6 +31,7 @@ var EngineWordsAllowed = map[string]string{
 	"pkg/game/screenart.go":           "embeds the screen art descriptions, not a word table",
 	"pkg/game/worldmapdescription.go": "embeds the world-map descriptions, not a word table",
 	"pkg/game/tiptable.go":            "embeds the tip tables, not a word table",
+	"pkg/ui/popupdesc.go":             "embeds the editor window descriptions, which name word keys, not a word table",
 }
 
 // EngineWordsDebt is the selector branches that remain, per file. Each converts

@@ -2,6 +2,7 @@ package words
 
 import (
 	"bufio"
+	"encoding/json"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -237,6 +238,26 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 			})
 		}
 	}
+	screens, err := filepath.Glob(filepath.Join("../ui/screens", "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range screens {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc any
+		if err := json.Unmarshal(data, &doc); err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range screenWordIDs(doc) {
+			used[id] = true
+			if !table[id] {
+				t.Errorf("%s names %q, which the English table lacks", filepath.Base(name), id)
+			}
+		}
+	}
 	var unused []string
 	for _, id := range ids {
 		// itemGroupWord forms these ids from the decoder's row keys; the
@@ -265,4 +286,43 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	if len(unused) != 0 {
 		t.Errorf("English ids no production source reads: %v", unused)
 	}
+}
+
+// screenWordIDs are the word ids an editor window description names: its
+// title, help, labels, hints, tabs, button words and sample words.
+func screenWordIDs(doc any) []string {
+	var ids []string
+	switch v := doc.(type) {
+	case map[string]any:
+		for k, x := range v {
+			switch k {
+			case "title", "titleHelp", "label", "hint", "help", "word":
+				if id, ok := x.(string); ok {
+					ids = append(ids, id)
+				}
+				continue
+			case "tabs", "words":
+				var list []any
+				if m, ok := x.(map[string]any); ok {
+					for _, w := range m {
+						list = append(list, w)
+					}
+				} else if l, ok := x.([]any); ok {
+					list = l
+				}
+				for _, w := range list {
+					if id, ok := w.(string); ok {
+						ids = append(ids, id)
+					}
+				}
+				continue
+			}
+			ids = append(ids, screenWordIDs(x)...)
+		}
+	case []any:
+		for _, x := range v {
+			ids = append(ids, screenWordIDs(x)...)
+		}
+	}
+	return ids
 }

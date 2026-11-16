@@ -271,6 +271,9 @@ var allow = map[string][]string{
 	"cmd/shopdump": {"pkg/ui", "pkg/game", "pkg/random", "pkg/secondshop"},
 	// a read-only installed-data witness over the headless app seams.
 	"cmd/innsleep": {"pkg/ui", "pkg/game", "pkg/vfs"},
+	// editormockup writes an editor window's description as a page or a
+	// picture; pkg/game opens the install read-only for the editor's fonts.
+	"cmd/editormockup": {"pkg/ui", "pkg/game", "pkg/locale"},
 	// screenshot composes named screens through the single seam pkg/ui/app.go's
 	// Draw itself now also goes through (composeScreen, HeadlessFrame,
 	// ComposeTownScreen), reaching them the same two ways cmd/shopdump and

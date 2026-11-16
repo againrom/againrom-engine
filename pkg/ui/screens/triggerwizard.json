@@ -1,0 +1,101 @@
+{
+  "window": "triggerwizard",
+  "title": "editor.trigger.title",
+  "titleArgs": ["number"],
+  "width": 560,
+  "labelWidth": 150,
+  "rows": [
+    {"kind": "edit", "label": "editor.trigger.name", "value": "name", "field": "name"},
+    {"kind": "switch", "label": "editor.trigger.once", "value": "once", "field": "once"},
+    {"each": "conditions", "rows": [
+      {"kind": "heading", "when": "newgroup", "label": "editor.wizard.orwhen"},
+      {"kind": "heading", "when": "first", "label": "editor.wizard.when"},
+      {"kind": "heading", "when": "second", "label": "editor.wizard.andif"},
+      {"kind": "choice", "label": "editor.wizard.condition", "value": "value", "ink": "condition", "field": "item", "buttons": [
+        {"word": "editor.wizard.configure", "act": "configure", "when": "configure"},
+        {"word": "editor.trigger.remove", "act": "removerow"}
+      ]},
+      {"each": "others", "rows": [
+        {"kind": "text", "labelBind": "text", "indent": 4, "wrap": true}
+      ]},
+      {"kind": "text", "when": "other", "label": "editor.wizard.otherhint", "indent": 4, "wrap": true},
+      {"each": "params", "rows": [
+        {"kind": "choice", "when": "choose", "labelBind": "label", "indent": 2, "value": "value", "field": "param", "buttons": [
+          {"word": "editor.object.pick", "act": "pickparam", "when": "onmap"}
+        ]},
+        {"kind": "edit", "when": "!choose", "labelBind": "label", "indent": 2, "value": "value", "field": "param", "buttons": [
+          {"word": "editor.object.pick", "act": "pick", "when": "cell"},
+          {"word": "editor.wizard.draw", "act": "draw", "when": "area"},
+          {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"}
+        ]}
+      ]},
+      {"kind": "choice", "when": "cmp", "label": "editor.trigger.comparison", "indent": 2, "value": "cmp", "field": "cmp"},
+      {"kind": "text", "when": "hint", "labelBind": "hint", "indent": 4, "wrap": true}
+    ]},
+    {"kind": "heading", "when": "noconditions", "label": "editor.wizard.when"},
+    {"kind": "text", "when": "pairroom", "buttons": [
+      {"word": "editor.wizard.addcondition", "act": "addpair"},
+      {"word": "editor.trigger.addgroup", "act": "addgroup", "when": "!noconditions"}
+    ]},
+    {"kind": "heading", "label": "editor.wizard.do"},
+    {"each": "actions", "rows": [
+      {"each": "gap", "rows": [
+        {"kind": "text"}
+      ]},
+      {"kind": "choice", "label": "editor.wizard.action", "value": "value", "ink": "action", "field": "item", "buttons": [
+        {"word": "editor.wizard.configure", "act": "configure", "when": "configure"},
+        {"word": "editor.trigger.remove", "act": "removerow"}
+      ]},
+      {"each": "others", "rows": [
+        {"kind": "text", "labelBind": "text", "indent": 4, "wrap": true}
+      ]},
+      {"kind": "text", "when": "other", "label": "editor.wizard.otherhint", "indent": 4, "wrap": true},
+      {"each": "params", "rows": [
+        {"kind": "choice", "when": "choose", "labelBind": "label", "indent": 2, "value": "value", "field": "param", "buttons": [
+          {"word": "editor.object.pick", "act": "pickparam", "when": "onmap"}
+        ]},
+        {"kind": "edit", "when": "!choose", "labelBind": "label", "indent": 2, "value": "value", "field": "param", "buttons": [
+          {"word": "editor.object.pick", "act": "pick", "when": "cell"},
+          {"word": "editor.wizard.draw", "act": "draw", "when": "area"},
+          {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"}
+        ]}
+      ]},
+      {"kind": "choice", "when": "cmp", "label": "editor.trigger.comparison", "indent": 2, "value": "cmp", "field": "cmp"},
+      {"kind": "text", "when": "hint", "labelBind": "hint", "indent": 4, "wrap": true}
+    ]},
+    {"kind": "text", "when": "actionroom", "buttons": [
+      {"word": "editor.wizard.addaction", "act": "addaction"}
+    ]},
+    {"kind": "text", "when": "nocondwarn", "label": "editor.wizard.nocondition", "ink": "warning", "wrap": true},
+    {"kind": "text", "when": "heroes", "label": "editor.wizard.multiplayer", "ink": "warning", "wrap": true}
+  ],
+  "buttons": [
+    {"word": "editor.button.apply", "off": "clean"},
+    {"word": "editor.button.cancel"},
+    {"word": "editor.trigger.new"},
+    {"word": "editor.trigger.delete"},
+    {"word": "editor.wizard.details"},
+    {"word": "editor.trigger.copy", "off": "nocopies"}
+  ],
+  "sample": {
+    "values": {"number": "1", "name": ""},
+    "words": {"once": "editor.trigger.once.no"},
+    "flags": ["pairroom", "actionroom", "clean", "nocopies"],
+    "lists": {
+      "conditions": [
+        {"words": {"value": "editor.wizard.c.unitnear"}, "flags": ["first"], "lists": {"params": [
+          {"words": {"label": "editor.wizard.p.unit", "value": "editor.wizard.p.unit"}, "flags": ["choose", "onmap"]},
+          {"words": {"label": "editor.wizard.p.point"}, "values": {"value": "40 25"}, "flags": ["area"]},
+          {"words": {"label": "editor.wizard.p.radius"}, "values": {"value": "3"}}
+        ]}}
+      ],
+      "actions": [
+        {"words": {"value": "editor.wizard.a.gold"}, "lists": {"params": [
+          {"words": {"label": "editor.wizard.p.player", "value": "editor.wizard.p.player"}, "flags": ["choose"]},
+          {"words": {"label": "editor.wizard.p.gold"}, "values": {"value": "500"}}
+        ]}},
+        {"words": {"value": "editor.wizard.a.win"}, "lists": {"gap": [{}]}}
+      ]
+    }
+  }
+}

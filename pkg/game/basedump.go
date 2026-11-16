@@ -123,17 +123,19 @@ func refuseBaseDumpInInstall(root, dir string) error {
 // at root, inside a preserved install beside it, or below any folder that
 // holds an install's archives, and which install that is.
 func insideInstall(root, dir string) (install string, inside bool, err error) {
-	resolvedRoot, err := resolvePathForSaveSafety(root)
-	if err != nil {
-		return "", false, err
-	}
-	for _, r := range append([]string{root}, preservedPairRoots(resolvedRoot)...) {
-		inside, err := pathWithin(r, dir)
+	if root != "" {
+		resolvedRoot, err := resolvePathForSaveSafety(root)
 		if err != nil {
 			return "", false, err
 		}
-		if inside {
-			return r, true, nil
+		for _, r := range append([]string{root}, preservedPairRoots(resolvedRoot)...) {
+			inside, err := pathWithin(r, dir)
+			if err != nil {
+				return "", false, err
+			}
+			if inside {
+				return r, true, nil
+			}
 		}
 	}
 	resolved, err := resolvePathForSaveSafety(dir)
@@ -141,6 +143,25 @@ func insideInstall(root, dir string) (install string, inside bool, err error) {
 		return "", false, err
 	}
 	return requiredArchiveAncestor(resolved)
+}
+
+// RefuseInstallWrite refuses a file path a tool may not write: inside the
+// install at root (none when root is empty), inside a preserved install
+// beside it, or below any folder that holds an install's archives. A
+// relative path is taken against the working directory.
+func RefuseInstallWrite(root, path string) error {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	install, inside, err := insideInstall(root, abs)
+	if err != nil {
+		return err
+	}
+	if inside {
+		return fmt.Errorf("%s is inside the install %s", path, install)
+	}
+	return nil
 }
 
 // baseDumpFolderState refuses an existing file at dir and a folder there
