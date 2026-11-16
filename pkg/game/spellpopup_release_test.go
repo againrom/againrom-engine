@@ -169,11 +169,11 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 		if pending := f.live.pending; len(pending) != 1 || pending[0].Kind != sim.KindCast || pending[0].Y != 23 {
 			t.Fatalf("cell 5 cast = %+v, want spell ID 23", pending)
 		}
-		indices, err := quickSpellsToOriginalIndices(spellSlots(0, 23, 6))
+		indices, err := quickSpellsToOriginalIndices(spellSlots(0, 23, 6), firstCampaignRules{})
 		if err != nil || indices[0] != 5 || indices[1] != 12 {
 			t.Fatalf("quick slot indices = %v, %v", indices, err)
 		}
-		slots, err := quickSpellsFromOriginalIndices(indices[:])
+		slots, err := quickSpellsFromOriginalIndices(indices[:], ui.FirstShortcutLayout)
 		if err != nil || slots != (spellSlots(0, 23, 6)) {
 			t.Fatalf("quick slot IDs = %v, %v", slots, err)
 		}

@@ -16,15 +16,12 @@ var originalBookIDs = data.FirstSpellPresentation().BookRows
 
 // Unknown book IDs use the ordinary unbound cell. Current SAV session policy
 // retains those custom bindings; ordinary edits to a bound cell take priority.
-func quickSpellsToOriginalIndices(slots ui.ShortcutSlots, profiles ...campaignService) (sav.CityShortcuts, error) {
+func quickSpellsToOriginalIndices(slots ui.ShortcutSlots, campaign campaignService) (sav.CityShortcuts, error) {
 	indices := sav.CityShortcuts{-1, -1, -1, -1}
 	if err := validateQuickSpells(slots); err != nil {
 		return indices, originalCityUnsupportedf("%v", err)
 	}
-	layout := ui.FirstShortcutLayout
-	if len(profiles) > 0 {
-		layout = profiles[0].shortcutLayout()
-	}
+	layout := campaign.shortcutLayout()
 	if !layout.HasCells() {
 		return indices, nil
 	}
@@ -52,7 +49,7 @@ func shortcutOriginalCell(bound ui.Shortcut) (int32, error) {
 	return originalCell(bound.Spell), nil
 }
 
-func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
+func quickSpellsFromOriginalIndices(indices []int32, layout ui.ShortcutLayout) (ui.ShortcutSlots, error) {
 	var slots ui.ShortcutSlots
 	if len(indices) != len(sav.CityShortcuts{}) {
 		return slots, fmt.Errorf("original quick spells: got %d slots, want four", len(indices))
@@ -64,7 +61,9 @@ func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
 		if index < 0 || index >= int32(len(originalBookIDs)) {
 			return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: slot %d index %d outside -1 or 0..23", i, index)
 		}
-		slots[ui.FirstShortcutLayout.CellSlot(i)].Spell = uint32(originalBookIDs[index])
+		if layout.HasCells() {
+			slots[layout.CellSlot(i)].Spell = uint32(originalBookIDs[index])
+		}
 	}
 	if err := validateQuickSpells(slots); err != nil {
 		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: %w", err)
@@ -76,13 +75,22 @@ func quickSpellsFromOriginalIndices(indices []int32) (ui.ShortcutSlots, error) {
 // the whole load, before either the town or mission adoption boundary. The
 // bounded policy is ours; malformed original runtime behaviour is Unknown.
 func originalQuickSpells(file *sav.File) (ui.ShortcutSlots, error) {
-	return fileQuickSpells(file, ui.FirstShortcutLayout)
+	return fileQuickSpells(file, firstCampaignRules{}, 0)
 }
 
-// fileQuickSpells reads the file's shortcut cells. A layout without cells admits
-// an empty array as no binding: the second game's files hold one, and no claim
-// reads its index domain (DIV-4154).
-func fileQuickSpells(file *sav.File, layout ui.ShortcutLayout) (ui.ShortcutSlots, error) {
+// loadedShortcutLayout is the row a file's cells load into in campaign's play;
+// a row without cells under the older slot numbering (0) loads the older row.
+func loadedShortcutLayout(campaign campaignService, numbering uint8) ui.ShortcutLayout {
+	layout := campaign.shortcutLayout()
+	if !layout.HasCells() && numbering == 0 {
+		return ui.OlderSecondShortcutLayout
+	}
+	return layout
+}
+
+// fileQuickSpells reads the file's shortcut cells into the loaded row. A row
+// without cells admits an empty array as no binding (DIV-4154).
+func fileQuickSpells(file *sav.File, campaign campaignService, numbering uint8) (ui.ShortcutSlots, error) {
 	value, present, err := file.StateLeaves().ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
 		return ui.ShortcutSlots{}, err
@@ -93,10 +101,10 @@ func fileQuickSpells(file *sav.File, layout ui.ShortcutLayout) (ui.ShortcutSlots
 	if value.Dir || value.Type != reg.TypeIntArray {
 		return ui.ShortcutSlots{}, fmt.Errorf("original quick spells: invalid source shape")
 	}
-	if len(value.Ints) == 0 && !layout.HasCells() {
+	if len(value.Ints) == 0 && !campaign.shortcutLayout().HasCells() {
 		return ui.ShortcutSlots{}, nil
 	}
-	return quickSpellsFromOriginalIndices(value.Ints)
+	return quickSpellsFromOriginalIndices(value.Ints, loadedShortcutLayout(campaign, numbering))
 }
 
 func quickSpellsFromState(state sav.DocumentStateData) (ui.ShortcutSlots, error) {
@@ -114,7 +122,7 @@ func quickSpellsFromState(state sav.DocumentStateData) (ui.ShortcutSlots, error)
 	for i := range indices {
 		indices[i] = int32(binary.LittleEndian.Uint32(value.Bytes[4*i:]))
 	}
-	return quickSpellsFromOriginalIndices(indices)
+	return quickSpellsFromOriginalIndices(indices, firstCampaignRules{}.shortcutLayout())
 }
 
 func writeQuickSpellLeaf(doc *sav.DocumentData, shortcuts sav.CityShortcuts) {

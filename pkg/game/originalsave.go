@@ -914,7 +914,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, state
 	if n == 0 {
 		restoredTown.lastMap = sf.Head.MapName
 	}
-	quickSpells, err = currentQuickSpells(quickSpells, currentSession)
+	quickSpells, err = currentQuickSpells(sf, quickSpells, currentSession)
 	if err != nil {
 		return nil, err
 	}

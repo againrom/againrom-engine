@@ -303,7 +303,7 @@ func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) {
 // fileState reads a Bsg& file's session from the campaign tail; an empty
 // shortcut array binds no cell (DIV-4153, DIV-4154).
 func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
-	quick, err := fileQuickSpells(sf, ui.SecondShortcutLayout)
+	quick, err := fileQuickSpells(sf, secondCampaignRules{}, 0)
 	if err != nil {
 		return originalFileState{}, err
 	}

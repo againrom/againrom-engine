@@ -167,7 +167,7 @@ func TestQuickSpellsMalformedOriginalAndNativeProvenanceAreAtomic(t *testing.T) 
 		}
 	}
 	for _, indices := range [][]int32{{}, {-1}, {-1, -1, -1}, {-1, -1, -1, -1, -1}} {
-		if _, err := quickSpellsFromOriginalIndices(indices); err == nil {
+		if _, err := quickSpellsFromOriginalIndices(indices, ui.FirstShortcutLayout); err == nil {
 			t.Fatal("non-four original slots accepted")
 		}
 	}

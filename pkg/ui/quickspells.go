@@ -24,6 +24,9 @@ var FirstShortcutLayout = ShortcutLayout{CellStart: 1, Cells: 4, OrdinalShift: 8
 
 var SecondShortcutLayout = ShortcutLayout{}
 
+// OlderSecondShortcutLayout holds an older second-game save's cells at slots 0 to 3.
+var OlderSecondShortcutLayout = ShortcutLayout{Cells: 4}
+
 func (l ShortcutLayout) HasCells() bool { return l.Cells > 0 }
 
 func (l ShortcutLayout) CellSlot(i int) int { return l.CellStart + i }

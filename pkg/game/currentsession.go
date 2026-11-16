@@ -278,20 +278,16 @@ func applyCurrentView(v *ui.SaveApplicationState, raw OriginalStateData, a *curr
 	}
 }
 
-func currentQuickSpells(ordinary ui.ShortcutSlots, session *currentSessionData) (ui.ShortcutSlots, error) {
+func currentQuickSpells(sf *sav.File, ordinary ui.ShortcutSlots, session *currentSessionData) (ui.ShortcutSlots, error) {
 	if session != nil {
-		layout := campaignOf(session.Game).shortcutLayout()
-		if !layout.HasCells() {
-			if session.ShortcutLayout == 0 {
-				first := ui.FirstShortcutLayout
-				for i := 0; i < first.Cells; i++ {
-					ordinary[i] = ordinary[first.CellSlot(i)]
-				}
-				ordinary[first.Cells] = ui.Shortcut{}
-			} else {
-				ordinary = ui.ShortcutSlots{}
+		play := campaignOf(session.Game)
+		if loadedShortcutLayout(play, session.ShortcutLayout) != loadedShortcutLayout(fileCampaign(sf), 0) {
+			var err error
+			if ordinary, err = fileQuickSpells(sf, play, session.ShortcutLayout); err != nil {
+				return ui.ShortcutSlots{}, err
 			}
 		}
+		layout := play.shortcutLayout()
 		for _, row := range session.QuickSpells {
 			slot := int(row.Slot)
 			if session.ShortcutLayout == 0 && layout.HasCells() {

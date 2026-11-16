@@ -110,13 +110,17 @@ func TestShortcutOriginalAndOlderSessionDefaults(t *testing.T) {
 	if _, _, err := f.RestoreOriginal(raw); err != nil || f.quickSpells != (ui.ShortcutSlots{}) {
 		t.Fatal("original defaults", f.quickSpells, err)
 	}
+	file, err := sav.Open(originalContainer(sav.Magic, savedTrailer(append(savedBody(0, tenActors()), 0)), shortcutsStore(0, 1, 2, 3)))
+	if err != nil {
+		t.Fatal(err)
+	}
 	old := &currentSessionData{QuickSpells: []currentQuickSpell{{Slot: 0, ID: 89}}}
-	got, err := currentQuickSpells(ui.ShortcutSlots{}, old)
+	got, err := currentQuickSpells(file, ui.ShortcutSlots{}, old)
 	if err != nil || got != spellSlots(0, 89) {
 		t.Fatal("old first-game residue", got, err)
 	}
 	old.Game = base.GameROM2
-	got, err = currentQuickSpells(spellSlots(0, 1, 2, 3, 4), old)
+	got, err = currentQuickSpells(file, spellSlots(0, 1, 2, 3, 4), old)
 	if err != nil || got != spellSlots(1, 2, 3, 4) {
 		t.Fatal("old second-game ordinary cells", got, err)
 	}
