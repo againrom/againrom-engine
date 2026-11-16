@@ -711,31 +711,37 @@ func (a *app) layout() []item {
 	if a.view == viewSettings {
 		// Parameters.
 		heading(10, 48, a.t(cHeadParams))
-		row := func(i int, label string) int { y := 66 + 24*i; textW(10, y+3, 300, label, toneNormal); return y }
+		label := func(y int, s string) { textW(10, y+3, 300, s, toneNormal) }
 		ctl := func(y int) image.Rectangle { return rect(320, y, winW-330, 22) }
-		for i, v := range optionViews {
-			if i > 0 && optionViews[i-1].row < advancedRow && v.row > advancedRow {
-				heading(10, 238, a.t(cHeadAdvanced))
-			}
-			st, _ := launch.ByKey(v.key)
-			y := row(v.row, a.labelText(st, v))
-			switch st.Kind {
-			case launch.Switch:
-				on := *v.value(&a.s).(*bool)
-				it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(on), checked: on, act: action{kind: v.act}})
-			case launch.Override, launch.Choice:
-				button(ctl(y), a.valueText(st, v, a.s.option(st)), action{kind: v.act})
-			default:
-				field(ctl(y), v.edit)
+		for i, r := range settingsRows {
+			y := 66 + 24*i
+			switch r.kind {
+			case rowHeading:
+				heading(10, y+r.dy, a.t(r.head))
+			case rowSetting:
+				v := viewOf(r.key)
+				st, _ := launch.ByKey(v.key)
+				label(y, a.labelText(st, v))
+				switch st.Kind {
+				case launch.Switch:
+					on := *v.value(&a.s).(*bool)
+					it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(on), checked: on, act: action{kind: v.act}})
+				case launch.Override, launch.Choice:
+					button(ctl(y), a.valueText(st, v, a.s.option(st)), action{kind: v.act})
+				default:
+					field(ctl(y), v.edit)
+				}
+			case rowCloseOnPlay:
+				label(y, a.t(cCloseAfterPlay))
+				it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
+			case rowGameProgram:
+				label(y, a.t(cGameProgram))
+				field(ctl(y), fAgainrom)
+			case rowAcceptUnmarked:
+				label(y, a.t(cLoadUnmarked))
+				it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 			}
 		}
-		heading(10, 428, a.t(cHeadStarter))
-		y := row(16, a.t(cCloseAfterPlay))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-		y = row(17, a.t(cGameProgram))
-		field(ctl(y), fAgainrom)
-		y = row(18, a.t(cLoadUnmarked))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 	} else {
 		// Base games.
 		heading(10, 48, a.t(cHeadBase))
@@ -1040,6 +1046,9 @@ func (a *app) apply(act action) {
 		return
 	}
 	a.dirty = true
+	if a.stepOption(act.kind) {
+		return
+	}
 	switch act.kind {
 	case aFocus:
 		a.focus = fieldID(act.i)
@@ -1088,8 +1097,6 @@ func (a *app) apply(act action) {
 	case aRescan:
 		a.rescan()
 		a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
-	case aSound, aVideo, aMovies, aMarkers, aChicken, aSmoothRegen, aWindowed, aPicker:
-		a.stepOption(act.kind)
 	case aAcceptUnmarked:
 		a.s.AcceptUnmarked = !a.s.AcceptUnmarked
 	case aCloseOnPlay:

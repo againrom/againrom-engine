@@ -4,13 +4,12 @@ import "againrom/pkg/launch"
 
 // optionView is how the starter keeps and shows one row of the launch
 // settings table: the settings field holding its value, the control that
-// edits it, the settings view row it is shown in and its captions.
+// edits it and its captions.
 type optionView struct {
 	key   string
 	value func(*settings) any // *bool for a Switch, else *string
 	edit  fieldID             // the field of a Number, Text or Arguments row
 	act   actionKind          // the button of a Switch, Override or Choice row
-	row   int
 	label captionID
 	// bounds marks a Number whose label takes Min and Max and whose refusal
 	// takes them after the value.
@@ -23,45 +22,86 @@ type optionView struct {
 
 // optionViews has one view for every row of launch.Settings.
 var optionViews = []optionView{
-	{key: launch.Sound.Key, value: func(s *settings) any { return &s.Sound }, act: aSound, row: 0, label: cSound,
+	{key: launch.Sound.Key, value: func(s *settings) any { return &s.Sound }, act: aSound, label: cSound,
 		values: []captionID{cValueDefault, cOn, cOff}},
-	{key: launch.Volume.Key, value: func(s *settings) any { return &s.Volume }, edit: fVolume, row: 1, label: cVolume, refusal: cBadVolume},
-	{key: launch.Movies.Key, value: func(s *settings) any { return &s.Movies }, act: aMovies, row: 2, label: cMovies},
-	{key: launch.Video.Key, value: func(s *settings) any { return &s.Video }, act: aVideo, row: 3, label: cMissionMovies,
+	{key: launch.Volume.Key, value: func(s *settings) any { return &s.Volume }, edit: fVolume, label: cVolume, refusal: cBadVolume},
+	{key: launch.Movies.Key, value: func(s *settings) any { return &s.Movies }, act: aMovies, label: cMovies},
+	{key: launch.Video.Key, value: func(s *settings) any { return &s.Video }, act: aVideo, label: cMissionMovies,
 		values: []captionID{cValueNormal, "", ""}},
-	{key: launch.Markers.Key, value: func(s *settings) any { return &s.Markers }, act: aMarkers, row: 4, label: cMarkers},
-	{key: launch.Saves.Key, value: func(s *settings) any { return &s.Saves }, edit: fSaves, row: 5, label: cSavesFolder},
-	{key: launch.Window.Key, value: func(s *settings) any { return &s.Windowed }, act: aWindowed, row: 6, label: cWindowed},
-	{key: launch.Mission.Key, value: func(s *settings) any { return &s.Mission }, edit: fMission, row: 8, label: cMissionNumber,
+	{key: launch.Markers.Key, value: func(s *settings) any { return &s.Markers }, act: aMarkers, label: cMarkers},
+	{key: launch.Saves.Key, value: func(s *settings) any { return &s.Saves }, edit: fSaves, label: cSavesFolder},
+	{key: launch.Window.Key, value: func(s *settings) any { return &s.Windowed }, act: aWindowed, label: cWindowed},
+	{key: launch.Mission.Key, value: func(s *settings) any { return &s.Mission }, edit: fMission, label: cMissionNumber,
 		refusal: cBadMission, clash: cPickerMission},
-	{key: launch.Picker.Key, value: func(s *settings) any { return &s.Picker }, act: aPicker, row: 9, label: cMapPicker},
-	{key: launch.Chicken.Key, value: func(s *settings) any { return &s.Chicken }, act: aChicken, row: 10, label: cChicken},
-	{key: launch.SmoothRegen.Key, value: func(s *settings) any { return &s.SmoothRegen }, act: aSmoothRegen, row: 11, label: cSmoothRegen},
-	{key: launch.Skill.Key, value: func(s *settings) any { return &s.Skill }, edit: fSkill, row: 12, label: cSkill},
+	{key: launch.Picker.Key, value: func(s *settings) any { return &s.Picker }, act: aPicker, label: cMapPicker},
+	{key: launch.Chicken.Key, value: func(s *settings) any { return &s.Chicken }, act: aChicken, label: cChicken},
+	{key: launch.SmoothRegen.Key, value: func(s *settings) any { return &s.SmoothRegen }, act: aSmoothRegen, label: cSmoothRegen},
+	{key: launch.Skill.Key, value: func(s *settings) any { return &s.Skill }, edit: fSkill, label: cSkill},
 	{key: launch.ShopStockMultiplier.Key, value: func(s *settings) any { return &s.ShopStockMultiplier }, edit: fShopStockMultiplier,
-		row: 13, label: cShopStockMultiplier, bounds: true, refusal: cBadShopStockMultiplier},
-	{key: launch.Extra.Key, value: func(s *settings) any { return &s.Extra }, edit: fExtra, row: 14, label: cExtraArgs, refusal: cExtraQuote},
+		label: cShopStockMultiplier, bounds: true, refusal: cBadShopStockMultiplier},
+	{key: launch.Extra.Key, value: func(s *settings) any { return &s.Extra }, edit: fExtra, label: cExtraArgs, refusal: cExtraQuote},
 }
 
-// advancedRow is the settings view row the advanced heading takes.
-const advancedRow = 7
+// settingsRowKind is what one line of the settings view shows.
+type settingsRowKind int
+
+const (
+	rowSetting settingsRowKind = iota
+	rowHeading
+	rowCloseOnPlay
+	rowGameProgram
+	rowAcceptUnmarked
+)
+
+// settingsRow is one line of the settings view. Its row is its index in
+// settingsRows: the line's top is 66+24*row.
+type settingsRow struct {
+	kind settingsRowKind
+	key  string    // the launch setting of a rowSetting
+	head captionID // the caption of a rowHeading
+	dy   int       // a heading's offset below its row's top
+}
+
+// settingsRows is the settings view in draw order.
+var settingsRows = []settingsRow{
+	{kind: rowSetting, key: launch.Sound.Key},
+	{kind: rowSetting, key: launch.Volume.Key},
+	{kind: rowSetting, key: launch.Movies.Key},
+	{kind: rowSetting, key: launch.Video.Key},
+	{kind: rowSetting, key: launch.Markers.Key},
+	{kind: rowSetting, key: launch.Saves.Key},
+	{kind: rowSetting, key: launch.Window.Key},
+	{kind: rowHeading, head: cHeadAdvanced, dy: 4},
+	{kind: rowSetting, key: launch.Mission.Key},
+	{kind: rowSetting, key: launch.Picker.Key},
+	{kind: rowSetting, key: launch.Chicken.Key},
+	{kind: rowSetting, key: launch.SmoothRegen.Key},
+	{kind: rowSetting, key: launch.Skill.Key},
+	{kind: rowSetting, key: launch.ShopStockMultiplier.Key},
+	{kind: rowSetting, key: launch.Extra.Key},
+	{kind: rowHeading, head: cHeadStarter, dy: 2},
+	{kind: rowCloseOnPlay},
+	{kind: rowGameProgram},
+	{kind: rowAcceptUnmarked},
+}
 
 // stepOption flips the Switch or steps the Override or Choice that the button
-// act edits.
-func (a *app) stepOption(act actionKind) {
+// act edits. It reports whether act is one of those buttons.
+func (a *app) stepOption(act actionKind) bool {
 	for _, v := range optionViews {
-		if v.act != act {
+		if act == aNone || v.act != act {
 			continue
 		}
 		st, _ := launch.ByKey(v.key)
 		if st.Kind == launch.Switch {
 			p := v.value(&a.s).(*bool)
 			*p = !*p
-			return
+			return true
 		}
 		a.s.setOption(st, st.Next(a.s.option(st)))
-		return
+		return true
 	}
+	return false
 }
 
 // viewOf is the view of the row with key.
