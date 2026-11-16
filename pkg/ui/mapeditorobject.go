@@ -956,7 +956,7 @@ func (e *MapEditor) applyObject() {
 		}
 		again := func() {
 			if _, err := e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values}); err != nil {
-				e.message = e.editorHostText(err.Error())
+				e.message = err.Error()
 			}
 		}
 		if e.askScriptForm(err, again) {

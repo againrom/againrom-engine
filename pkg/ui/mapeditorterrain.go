@@ -68,7 +68,7 @@ func (e *MapEditor) applyRandom(text string) error {
 	n, err := strconv.ParseUint(typed, 10, 32)
 	e.leave(leavePrompt)
 	if err != nil {
-		e.message = fmt.Sprintf(e.word("editor.random.badseed"), typed)
+		e.message = fmt.Sprintf(e.plainWord("editor.random.badseed"), typed)
 		return nil
 	}
 	if _, ok := e.wholeMapHost(); !ok {

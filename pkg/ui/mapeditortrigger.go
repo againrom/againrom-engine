@@ -958,7 +958,7 @@ func (e *MapEditor) addNow(kind RecordKind) {
 		return
 	}
 	if err != nil {
-		e.message = e.editorHostText(err.Error())
+		e.message = err.Error()
 		return
 	}
 	if ch.doc == nil {
@@ -1028,7 +1028,7 @@ func (e *MapEditor) copyOpen() (int, bool) {
 func (e *MapEditor) copySelectedTrigger() {
 	index, ok := e.copyOpen()
 	if !ok {
-		e.message = e.word("editor.trigger.copyfirst")
+		e.message = e.plainWord("editor.trigger.copyfirst")
 		return
 	}
 	e.copyTrigger(index)
@@ -1047,7 +1047,7 @@ func (e *MapEditor) copyTrigger(index int) {
 		return
 	}
 	if err != nil {
-		e.message = e.editorHostText(err.Error())
+		e.message = err.Error()
 		return
 	}
 	if ch.record == nil {

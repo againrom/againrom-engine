@@ -40,7 +40,7 @@ func (e *MapEditor) askScriptForm(err error, again func()) bool {
 // changed, as the editor's message.
 func (e *MapEditor) againNote(note string) {
 	if note != "" {
-		e.message = note
+		e.message = e.editorSearchText(note)
 	}
 }
 
@@ -77,7 +77,7 @@ func (e *MapEditor) scriptFormGo() {
 // edit again; a refusal is the message.
 func (e *MapEditor) changeScriptForm(q *formPrompt) {
 	if _, err := e.commandScriptForm(q.need.Fold); err != nil {
-		e.message = e.editorHostText(err.Error())
+		e.message = err.Error()
 		return
 	}
 	if !q.need.Fold {

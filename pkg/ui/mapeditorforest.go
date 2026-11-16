@@ -254,7 +254,7 @@ func (e *MapEditor) setForestShare(text string) {
 	n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimSpace(text), "%"))
 	if err != nil || n < 1 || n > 100 {
 		e.leave(leavePrompt)
-		e.message = fmt.Sprintf(e.word("editor.brush.share.bad"), strings.TrimSpace(text))
+		e.message = fmt.Sprintf(e.plainWord("editor.brush.share.bad"), strings.TrimSpace(text))
 		return
 	}
 	e.brush.forest.share = n
@@ -267,7 +267,7 @@ func (e *MapEditor) setForestShare(text string) {
 func (e *MapEditor) forestStroke(thin bool) (BrushForest, bool) {
 	kinds := e.forestTicked()
 	if len(kinds) == 0 {
-		e.message = e.word("editor.brush.forest.none")
+		e.message = e.plainWord("editor.brush.forest.none")
 		return BrushForest{}, false
 	}
 	return BrushForest{Kinds: kinds, Share: e.forestShare(), Thin: thin}, true

@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // copyPagesMap is a 32x32 map of one unit whose script holds three triggers
@@ -247,9 +248,9 @@ func TestTriggerCopyRefusesADropZone(t *testing.T) {
 	for _, l := range scriptAddLangs {
 		for _, route := range routes {
 			t.Run(l.name+"/"+route.name, func(t *testing.T) {
-				e, _, word := scriptAddEditor(t, l, copyPagesMap(t))
+				e, _, _ := scriptAddEditor(t, l, copyPagesMap(t))
 				start := bytes.Clone(e.Document().SourceBytes)
-				want := word("editor.trigger.copydropzone", 4)
+				want := fmt.Sprintf(words.For(l.profile.Language).Text("editor.trigger.copydropzone"), 4)
 				if want == "editor.trigger.copydropzone" || want == "" || e.Message() == want {
 					t.Fatal("the word book has no refusal line")
 				}

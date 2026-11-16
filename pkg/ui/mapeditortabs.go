@@ -180,7 +180,7 @@ func (e *MapEditor) nameOpenMaps(left *InspectionDocument) {
 func (e *MapEditor) addOpenMap(next *InspectionDocument) error {
 	if len(e.openDocs()) >= maxOpenMaps {
 		e.nameOpenMaps(nil)
-		e.message = fmt.Sprintf(e.word("editor.tabs.limit"), maxOpenMaps)
+		e.message = fmt.Sprintf(e.plainWord("editor.tabs.limit"), maxOpenMaps)
 		return fmt.Errorf("%s", fmt.Sprintf(e.plainWord("editor.tabs.limit"), maxOpenMaps))
 	}
 	left := e.doc

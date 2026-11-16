@@ -130,7 +130,7 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	if key == "field" && e.report.open && len(e.report.goals) == 0 && len(e.objectBack) == 0 {
 		if f, ok := e.selectedFinding(); ok && f.Kind == "" && f.Rule != keyListRule && f.Text != "" {
-			e.message = f.Text
+			e.message = e.editorSearchText(f.Text)
 			return nil
 		}
 	}
@@ -235,7 +235,7 @@ func (e *MapEditor) setField(text string) error {
 	if !field.Text {
 		v, parseErr := fieldNumber(field, text)
 		if errors.Is(parseErr, errStoredAsInherited) {
-			e.message = e.fieldNumberNote(field, parseErr)
+			e.message = e.editorSearchText(e.fieldNumberNote(field, parseErr))
 			return parseErr
 		}
 		if parseErr != nil {

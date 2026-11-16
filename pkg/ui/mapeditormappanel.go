@@ -500,7 +500,7 @@ func (e *MapEditor) askNewMode(source string) {
 func (e *MapEditor) newModeOpen(multi bool) error {
 	h, ok := newAltitude(e.prompt.path)
 	if !ok {
-		e.message = fmt.Sprintf(e.word("editor.newmap.badheight"), strings.TrimSpace(e.prompt.path))
+		e.message = fmt.Sprintf(e.plainWord("editor.newmap.badheight"), strings.TrimSpace(e.prompt.path))
 		return nil
 	}
 	source := newMapAltitudeSource(e.prompt.then.source, h)
@@ -518,7 +518,7 @@ func (e *MapEditor) newModeOpen(multi bool) error {
 func (e *MapEditor) newModeSpec() popupSpec {
 	notes := []string{e.word("editor.newmap.text")}
 	if e.message != "" {
-		notes = append(notes, e.message)
+		notes = append(notes, e.editorHostText(e.message))
 	}
 	row := popupRow{Kind: popupEdit, Label: e.word("editor.newmap.height"), Value: e.prompt.path, Focus: true}
 	if f := e.bodyFont(); f != nil {

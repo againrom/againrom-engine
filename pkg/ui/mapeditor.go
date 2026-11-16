@@ -816,8 +816,8 @@ func (e *MapEditor) drawPoints(screen *ebiten.Image) {
 	e.drawMCP(screen)
 }
 
-// Host paths/errors are UTF-8. Installed record and item labels are already in
-// the font's source encoding and must not pass through this conversion twice.
+// The message is UTF-8, converted once as the box draws. Installed labels are in
+// the font encoding already and never pass through this twice.
 func (e *MapEditor) editorHostText(s string) string {
 	if e.hostText != nil {
 		return e.hostText(s)

@@ -1516,7 +1516,7 @@ func (e *MapEditor) applyWizard(v scriptView) {
 	again := func() {
 		t.Join = false
 		if _, err := e.commandWriteTrigger(t); err != nil {
-			e.message = e.editorHostText(err.Error())
+			e.message = err.Error()
 		}
 	}
 	if e.askScriptForm(err, again) {

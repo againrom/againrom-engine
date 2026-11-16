@@ -336,7 +336,7 @@ func (e *MapEditor) keyPanel(key string) error {
 // for stays minimized and says so.
 func (e *MapEditor) togglePanel(i int) {
 	if !e.showPanel(i, !e.panelOn(i)) {
-		e.message = e.word(sidePanels[i].narrowWord)
+		e.message = e.plainWord(sidePanels[i].narrowWord)
 	}
 }
 

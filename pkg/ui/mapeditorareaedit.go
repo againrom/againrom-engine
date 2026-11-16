@@ -254,7 +254,7 @@ func (e *MapEditor) areaPress(p image.Point) (*areaHandle, bool) {
 		return nil, false
 	}
 	if e.objectDirty() {
-		e.message = e.word("editor.trigger.applyfirst")
+		e.message = e.plainWord("editor.trigger.applyfirst")
 		return nil, false
 	}
 	return h, true
@@ -494,11 +494,11 @@ func (e *MapEditor) keyDrawArea(string) error {
 		return nil
 	}
 	if _, ok := e.doc.Edits.(InspectionAreaAuthor); !ok || !e.editable() || e.doc.Script == nil {
-		e.message = e.word("editor.area.noscript")
+		e.message = e.plainWord("editor.area.noscript")
 		return nil
 	}
 	if p, ok := e.mapPanel(); ok && p.MapFacts().Mode > 1 {
-		e.message = e.word("editor.area.multiplayer")
+		e.message = e.plainWord("editor.area.multiplayer")
 		return nil
 	}
 	e.leave(leaveDrag | leavePrompt | leaveReport | leaveBrush)

@@ -69,12 +69,12 @@ func (e *MapEditor) switchTextsInside() {
 			e.openPrompt(editorPrompt{kind: promptSave, path: path})
 		}
 		if err := host.SetTextsInside(true); err != nil {
-			e.message = e.editorHostText(err.Error())
+			e.message = err.Error()
 		}
 	}) {
 		return
 	}
 	if err != nil {
-		e.message = e.editorHostText(err.Error())
+		e.message = err.Error()
 	}
 }

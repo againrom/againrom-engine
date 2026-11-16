@@ -102,7 +102,7 @@ func (e *MapEditor) speakerPictureFailed(back func(), err error) {
 	if err == nil {
 		err = pathdialog.ErrUnavailable
 	}
-	e.message = fmt.Sprintf(e.word("editor.speaker.add.nodialog"), err)
+	e.message = fmt.Sprintf(e.plainWord("editor.speaker.add.nodialog"), err)
 }
 
 // refreshSpeakerChoices asks the host again for the speaker lists of the open
