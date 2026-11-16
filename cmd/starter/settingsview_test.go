@@ -7,12 +7,40 @@ import (
 	"testing"
 
 	"againrom/pkg/ini"
+	"againrom/pkg/launch"
 )
+
+func TestCursorInWindowSettingRoundTrips(t *testing.T) {
+	st, ok := launch.ByKey("cursor-in-window")
+	if !ok || st.Default != "false" {
+		t.Fatal("cursor-in-window must be a launch setting, off by default")
+	}
+	a := rigWithLanguage(t, "english").app()
+	if a.s.option(st) != "false" {
+		t.Fatal("cursor confinement defaults on")
+	}
+	openSettings(t, a)
+	do(t, a, action{kind: viewOf(st.Key).act})
+	f := mustParse(t, "")
+	a.s.store(f)
+	f, problems := ini.Parse(f.Bytes())
+	if len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	s := loadSettings(f)
+	if s.option(st) != "true" {
+		t.Fatal("cursor confinement did not survive the settings file")
+	}
+	args, err := s.launchArgs(gameLaunch{Root: "root"})
+	if err != nil || !reflect.DeepEqual(args, []string{"-assets", "root", "-cursor-in-window"}) {
+		t.Fatalf("launch arguments %q, %v", args, err)
+	}
+}
 
 // settingsFields are the fields and actions the settings view owns.
 var (
 	settingsFieldIDs = []fieldID{fVolume, fSaves, fMission, fSkill, fShopStockMultiplier, fExtra, fAgainrom}
-	settingsActions  = []actionKind{aSound, aMovies, aVideo, aMarkers, aPicker, aChicken, aSmoothRegen, aWindowFilter, aCloseOnPlay, aAcceptUnmarked}
+	settingsActions  = []actionKind{aSound, aMovies, aVideo, aMarkers, aPicker, aChicken, aSmoothRegen, aWindowFilter, aCloseOnPlay, aAcceptUnmarked, aCursorInWindow}
 )
 
 func TestMainViewDrawsNoSettingsControl(t *testing.T) {

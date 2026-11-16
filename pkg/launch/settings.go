@@ -138,6 +138,8 @@ var (
 		Usage: "set the ROM1 #Chicken state at every mission start"}
 	Window = Setting{Key: "window", Kind: Switch, Default: "false", Flag: "window",
 		Usage: "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two"}
+	CursorInWindow = Setting{Key: "cursor-in-window", Kind: Switch, Default: "false", Flag: "cursor-in-window",
+		Usage: "keep the mouse in the focused game window (off by default)"}
 	Saves = Setting{Key: "saves", Kind: Text, Flag: "saves",
 		Usage: "directory for saved games (default: saves/ beside the binary; inside an install, Againrom/saves or the user configuration profile)"}
 	Mission = Setting{Key: "mission", Kind: Number, Min: 1, Read: ReadAtStart, Flag: "mission", Excludes: "picker",
@@ -155,7 +157,7 @@ var (
 )
 
 // Settings are the rows kept in [options], in the order of the file.
-var Settings = []Setting{Sound, Volume, Movies, Video, WindowFilter, Markers, Chicken, SmoothRegen, Window, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
+var Settings = []Setting{Sound, Volume, Movies, Video, WindowFilter, Markers, Chicken, SmoothRegen, Window, CursorInWindow, Saves, Mission, Picker, Skill, ShopStockMultiplier, Extra}
 
 // Table is every row, in the order the game's arguments pass them.
 var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked, Hero}, Settings...), Check, Version)

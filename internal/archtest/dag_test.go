@@ -353,6 +353,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// pkg/herokind is the shared selector and order leaf; pkg/scriptprofile
 	// the stdlib-only table of the map script's limits.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
+		"pkg/ui/cursorclip",
 		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
 		"pkg/scriptprofile", "pkg/savename"}
 
@@ -381,6 +382,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	}
 	for _, rel := range []string{
 		"pkg/render", "pkg/render/terrain", "pkg/render/camera",
+		"pkg/ui/cursorclip",
 		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video", "pkg/words", "pkg/pathdialog", "pkg/editormcp",
 		"pkg/herokind",
 	} {

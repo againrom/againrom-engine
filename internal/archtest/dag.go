@@ -163,6 +163,7 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
+		"pkg/ui/cursorclip",
 		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/ui/widgetkit", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold", "pkg/herokind",
 		"pkg/scriptprofile", "pkg/savename"},
 	"pkg/savename":   {"pkg/namefold"},
@@ -170,6 +171,7 @@ var allow = map[string][]string{
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
 	"pkg/ui/systemclick": {},
+	"pkg/ui/cursorclip":  {},
 	// widgetkit is the widgets the game and the launcher share; it knows no screen.
 	"pkg/ui/widgetkit": {},
 	// installinfo is the cheap look at a directory as an install.
@@ -537,6 +539,9 @@ var noExternalFormats = map[string]bool{
 }
 
 func externalAllowed(pkg, imp string) bool {
+	if pkg == "pkg/ui/cursorclip" {
+		return imp == "github.com/ebitengine/purego" || imp == "github.com/ebitengine/purego/objc" || imp == "golang.org/x/sys/windows"
+	}
 	if pkg == "pkg/pathdialog" {
 		return imp == "golang.org/x/sys/windows"
 	}

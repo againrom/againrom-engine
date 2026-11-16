@@ -645,8 +645,9 @@ type App struct {
 	// windowed is the form the game window has now: a decorated window when
 	// true, the whole screen when false. window is the window system a
 	// switch goes through; nil is the engine's own window calls.
-	windowed bool
-	window   windowSystem
+	windowed    bool
+	window      windowSystem
+	pointerClip cursorConfinement
 	// backgroundFlush waits for work the front end started off the frame
 	// thread, such as an automatic save being written.
 	backgroundFlush func()
@@ -1121,7 +1122,9 @@ func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Update gathers one tick of input and hands it to step. It holds no logic, so
 // nothing the front-end decides is out of a test's reach.
 func (a *App) Update() error {
-	if a.step(readAppInput(a.activeMissionKeys(), a.activePlayerKeys()), time.Now()) {
+	exit := a.step(readAppInput(a.activeMissionKeys(), a.activePlayerKeys()), time.Now())
+	a.applyPointerMode(false)
+	if exit {
 		return ebiten.Termination
 	}
 	return nil
@@ -3983,19 +3986,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 		a.drawCutscene(screen)
 		return
 	}
-	// THE MAP SCREEN AND THE MENU STANDING OVER ONE take the same path. The map
-	// is drawn exactly as it was, at window resolution and without the canvas,
-	// and the panel is composed over it afterwards. The dim between the two is
-	// the VIEWER'S, already drawn by the call below under the popup answer the
-	// menu raises — there is no dim statement here for the map path, and that
-	// is the inheritance working. Both branches draw a pointer of their own on
-	// some frames, and each used to keep its own "last told" cache of the one
-	// piece of global window state; the map branch returns before drawCursor,
-	// so entering the map left the engine hidden with nothing drawn. One call
-	// here, on every frame, is what makes "hidden exactly when something is
-	// drawn" a property of the frame rather than of the branch.
-	a.applyPointerMode()
-
+	a.applyPointerMode(true)
 	if a.flow.mapShowing() {
 		if v := a.flow.viewer; v != nil {
 			v.Draw(screen)
@@ -4192,16 +4183,12 @@ func (a *App) paintGameMenuOnWideCanvas(dst *ebiten.Image) {
 	logNativeIntoWide(&a.presentLog, &a.menuLog, plan)
 }
 
-// applyPointerMode tells the engine what flow.pointerWanted decided for this
-// frame, and is THE ONLY ebiten.SetCursorMode call site an App session makes.
-//
-// The engine is told on a CHANGE only, which is the cache's whole job — not
-// for cost, but so a program that never draws a cursor of its own never asks
-// the engine for anything, and so the standalone developer viewer's frame is
-// unchanged down to the calls it makes (pointerModeChange's own argument,
-// cursor.go). The cache lives on the shared CursorManager, so both draw sites
-// read and write one record rather than two that never met.
-func (a *App) applyPointerMode() {
+// applyPointerMode refreshes confinement on updates and visibility before drawing.
+func (a *App) applyPointerMode(draw bool) {
+	if !draw {
+		a.pointerClip.apply()
+		return
+	}
 	if !a.flow.syncPointerMode() {
 		return
 	}
@@ -4961,6 +4948,7 @@ func SetWindowIcon(images []image.Image) { widgetkit.SetWindowIcon(images) }
 func (a *App) Run() error {
 	defer a.StopAudio()
 	defer a.FlushBackground()
+	defer a.pointerClip.release()
 	ebiten.SetWindowClosingHandled(true)
 	defer ebiten.SetWindowClosingHandled(false)
 	ebiten.SetWindowTitle(a.title)

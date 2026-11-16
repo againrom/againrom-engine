@@ -47,6 +47,7 @@ func launchFlags(o *options, skill, mods *string) map[string]launchFlag {
 		"chicken":               {target: &o.chicken},
 		"smooth-regen":          {target: &o.smoothRegen},
 		"window":                {target: &o.window},
+		"cursor-in-window":      {target: &o.cursorInWindow},
 		"saves":                 {target: &o.saves},
 		"mission":               {target: &o.mission},
 		"picker":                {target: &o.picker},

@@ -309,7 +309,8 @@ type options struct {
 	shopStockMultiplier int
 	// window opens the game in a decorated window instead of over the whole
 	// screen; Alt+Enter switches between the two while the game runs.
-	window bool
+	window         bool
+	cursorInWindow bool
 	// seed is -seed, the fixed session seed, when seedSet; originalRandom is
 	// -original-random, the original's random number generator.
 	seed           uint64
@@ -976,6 +977,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	app := front.App(fmt.Sprintf("againrom [%s %s]", filepath.Base(source), stamp))
 	app.SetMenuLabel(menuLabel())
 	app.SetWindowed(o.window)
+	app.SetCursorInWindow(o.cursorInWindow)
 	if err := app.SetModScreens(game.ModScreens(modRun.Screens, modRun.Rules, front.Words.Engine)); err != nil {
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 2

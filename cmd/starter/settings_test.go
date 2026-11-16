@@ -84,7 +84,7 @@ func TestStoreWritesAFreshFileInDocumentedOrder(t *testing.T) {
 	s.addBase(root)
 	s.LastBase = "en"
 	s.store(f)
-	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nwindow-filter = catmull-rom\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
+	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nwindow-filter = catmull-rom\nmarkers = false\nchicken = false\nsmooth-regen = false\nwindow = false\ncursor-in-window = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}

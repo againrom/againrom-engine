@@ -62,7 +62,8 @@ type settings struct {
 	Extra               string // free arguments, split like a command line
 	// Windowed opens the game in a decorated window rather than over the
 	// whole screen.
-	Windowed bool
+	Windowed       bool
+	CursorInWindow bool
 }
 
 func defaultSettings() settings {

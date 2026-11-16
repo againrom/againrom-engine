@@ -104,6 +104,7 @@ const (
 	aSettingsOpen
 	aSettingsClose
 	aWindowed
+	aCursorInWindow
 	aSelectMission // choose the mission in row i of the panel mod's list
 	aStartMission  // start the game on the chosen mission
 )
@@ -411,7 +412,15 @@ func (a *app) outputBox() (image.Rectangle, int) {
 	if a.missionsShown() {
 		return image.Rect(10, scrollLists[listMissions].area.Max.Y+4, winW-10, winH-6), 2
 	}
-	return image.Rect(10, statusTop+22, winW-10, winH-6), outputLines
+	r := image.Rect(10, a.actionsY()+78, winW-10, winH-6)
+	return r, min(outputLines, (r.Dy()-4)/18)
+}
+
+func (a *app) actionsY() int {
+	if a.view == viewSettings {
+		return max(actionsTop, 66+24*len(settingsRows)+4)
+	}
+	return actionsTop
 }
 
 // declaredSetts is what reading a mod's settings.toml gave.
@@ -856,7 +865,7 @@ func (a *app) layout() []item {
 		}
 	}
 	// Actions.
-	by := actionsTop
+	by := a.actionsY()
 	button(rect(10, by, 100, 28), a.t(cPlay), action{kind: aPlay})
 	button(rect(118, by, 100, 28), a.t(cCheck), action{kind: aCheck})
 	button(rect(226, by, 140, 28), a.t(cSaveSettings), action{kind: aSave})
@@ -876,7 +885,7 @@ func (a *app) layout() []item {
 		st = toneBad
 	}
 	if a.status != "" {
-		text(10, statusTop, a.status, st)
+		text(10, by+56, a.status, st)
 	}
 	// Missions of the panel's mod, under the status line.
 	if id, _ := a.panelMod(); a.missionsShown() {
