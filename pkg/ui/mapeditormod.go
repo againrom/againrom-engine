@@ -430,7 +430,8 @@ func (e *MapEditor) modKey(key string) (bool, error) {
 			e.chooseObjectChoice(o.choice.Selection())
 			return true, nil
 		}
-		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Action {
+		// A button with Pick asks for its file below, as a file field does.
+		if o.focus >= 0 && o.focus < len(o.fields) && o.fields[o.focus].Action && len(o.fields[o.focus].Pick) == 0 {
 			return true, e.modAction(o.fields[o.focus].Key, "")
 		}
 		if ask := e.modPathShown(); ask != nil {
@@ -611,14 +612,17 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	if n := o.focus - len(o.fields); n >= 0 && n < len(s.Buttons) {
 		s.ButtonFocus = &n
 	}
-	status := e.modStatus
-	if status == "" && e.modPage == modPageGraph {
-		status = e.plainWord("editor.graph.keys")
+	// The title's (?) says what the page changes in the game, then its keys;
+	// the notes hold only what the modder must see now.
+	keys := e.plainWord("editor.mod.keys")
+	if e.modPage == modPageGraph {
+		keys = e.plainWord("editor.graph.keys")
 	}
-	if status == "" {
-		status = e.plainWord("editor.mod.keys")
+	s.TitleHelp = e.editorHostText(e.plainWord(modPageWords[e.modPage].helpWord) + "\n" + keys)
+	s.Notes = nil
+	if e.modStatus != "" {
+		s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(e.modStatus), s.Width-20)
 	}
-	s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(status), s.Width-20)
 	if host, ok := e.modEdits().(interface{ ModSummary() string }); ok {
 		s.Notes = append([]string{editorClip(e.bodyFont(), e.editorHostText(host.ModSummary()), s.Width-20)}, s.Notes...)
 	}
@@ -644,6 +648,8 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	if e.modPage == modPageGraph {
 		s.ColumnTops = []int{0, e.objectTop}
 	}
+	// modPress hits this spec itself, so it stands where objectSpec does.
+	e.openCentred(popObject, &s)
 	return s, links, true
 }
 

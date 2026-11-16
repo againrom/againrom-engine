@@ -181,7 +181,29 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	}
 	output, _ := x.publishFolder()
 	out = append(out, workspaceText("output", x.word("editor.mod.output"), output))
+	for i := range out {
+		if out[i].Meaning == "" {
+			out[i].Meaning = x.modFieldHelp(out[i].Key)
+		}
+	}
 	return out
+}
+
+// modFieldHelp is the (?) help of the Missions page field key, the word
+// "editor.mod.help.<key>" with the key's numbers dropped ("party.0.level"
+// reads "party.level"); "" when the table has none.
+func (x *MapInspector) modFieldHelp(key string) string {
+	var parts []string
+	for _, p := range strings.Split(key, ".") {
+		if _, err := strconv.Atoi(p); err != nil {
+			parts = append(parts, p)
+		}
+	}
+	id := "editor.mod.help." + strings.Join(parts, ".")
+	if h := x.word(id); h != id {
+		return h
+	}
+	return ""
 }
 
 func fieldLabel(f ui.InspectionField) string {

@@ -107,6 +107,7 @@ func openSelectionMap(t *testing.T, e *ui.MapEditor, name string, raw []byte) {
 
 // selectArea is a Shift drag from cell a to cell b.
 func selectArea(e *ui.MapEditor, a, b image.Point) {
+	clearCells(e, a, b)
 	p, q := e.CellPoint(a), e.CellPoint(b)
 	now := time.Unix(1, 0)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true, Shift: true}, now)

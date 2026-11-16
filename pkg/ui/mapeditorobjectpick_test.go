@@ -73,6 +73,7 @@ func TestMapObjectDragsAndDeletesAsAStructure(t *testing.T) {
 		t.Fatalf("Ctrl+C on a selected object copied: %q", h.calls.lines)
 	}
 
+	standAside(t, e)
 	boxDrag(e, tree, image.Pt(17, 15))
 	if got := lastCall(h.calls); got != fmt.Sprintf("Move Scenery %d %v", index, image.Pt(17, 15)) {
 		t.Fatalf("a drag from the object called %q", got)

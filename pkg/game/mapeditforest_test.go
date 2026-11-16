@@ -137,11 +137,13 @@ func (d *forestDriver) forest(n, r int) {
 }
 
 // stroke drags over cells with the left button, or the right one to thin.
-// The view centres on the first cell; a cell under the brush popup would
-// press the popup instead, so the test refuses it.
+// The view centres on the first cell and the brush popup is dragged clear of
+// the cells; a cell still under it would press the popup, so the test
+// refuses it.
 func (d *forestDriver) stroke(right bool, cells ...image.Point) {
 	d.t.Helper()
 	d.e.ShowCell(cells[0])
+	clearCells(d.e, cells...)
 	pop, _ := d.e.PopupRect()
 	for _, c := range cells {
 		p := d.e.CellPoint(c)

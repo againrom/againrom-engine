@@ -96,6 +96,8 @@ type popupRow struct {
 	Choices   []InspectionChoice
 	ChoicePad []image.Point
 	Selected  int
+	// Help is what the row's (?) mark says on hover; empty draws no mark.
+	Help string
 }
 
 func (r popupRow) withChoices(choices []InspectionChoice, pad []image.Point, value string) popupRow {
@@ -389,6 +391,9 @@ type popupSpec struct {
 	// inside the rows' viewport.
 	BandLines int
 	Title     string
+	// TitleHelp is what the title's (?) mark says on hover: what the window
+	// or its page is for. Empty draws no mark.
+	TitleHelp string
 	// CloseLabel is the title row button's caption; empty is the close
 	// button's x.
 	CloseLabel string
@@ -553,6 +558,8 @@ type popupRowRect struct {
 	Off                  []bool            // the row's Disabled buttons
 	// Grip is a card row's drag handle and Card the card's whole box.
 	Grip, Card image.Rectangle
+	// Help is the row's (?) mark; empty for a row without Help.
+	Help image.Rectangle
 }
 
 // popupLayout is a built popup: every rectangle the painter fills and the
@@ -561,6 +568,8 @@ type popupLayout struct {
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
+	// TitleHelp is the title's (?) mark, left of Close; empty without one.
+	TitleHelp image.Rectangle
 	// Body, HeadingBox, Hint and Text are a given dialog's rectangles,
 	// Answers its answer buttons and LinePitch a text window's line pitch.
 	Body, HeadingBox, Hint, Text image.Rectangle
@@ -644,6 +653,9 @@ const (
 	popupFitField = 2 * popupMinField
 	// popupTipW is the least width of the box a row's own Tip reads in.
 	popupTipW = 300
+	// popupHelpW is the width of the box a (?) mark's help reads in,
+	// wrapped to as many lines as it takes.
+	popupHelpW = 380
 )
 
 // tabStrip is one strip of tabs: the captions, the tab shown and whether the
@@ -1263,6 +1275,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		l.Tabs = tabStrip{Captions: s.Tabs, PerLine: flow.tabsPerLine}.rects(image.Pt(r.Min.X+popupPad, l.Title.Max.Y), w-2*popupPad, pitch)
 	}
 	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
+	if s.TitleHelp != "" {
+		l.TitleHelp = l.Close.Sub(image.Pt(l.Close.Dx()+4, 0))
+	}
 	contentRight := r.Max.X - popupPad
 	cardY := r.Min.Y + titleH + popupPad
 	card := cardSize(s)
@@ -1394,6 +1409,12 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 				}
 			}
 			rr.Button, rr.Off = rr.Buttons[0], row.Disabled
+		}
+		if row.Help != "" && !row.placed() {
+			// The (?) mark ends the label's line; the label is cut before it.
+			side := pitch - 4
+			rr.Help = image.Rect(rr.Label.Max.X-side-2, rr.Label.Min.Y+2, rr.Label.Max.X-2, rr.Label.Min.Y+2+side)
+			rr.Label.Max.X = rr.Help.Min.X - 2
 		}
 		l.Rows = append(l.Rows, rr)
 		y += rowH
@@ -1683,6 +1704,7 @@ const (
 	popupTitle                       // the title bar: a drag moves the popup
 	popupClose                       // the close button
 	popupRowLine                     // a row's label or value
+	popupRowHelp                     // a row's (?) mark: its help, never its action
 	popupRowControl                  // a row's control
 	popupRowButton                   // a row's own button
 	popupListRow                     // a list row
@@ -1727,6 +1749,8 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	for _, r := range l.Rows {
 		switch {
+		case p.In(r.Help):
+			return popupRowHelp, r.Index
 		case p.In(r.Grip):
 			return popupRowGrip, r.Index
 		case p.In(r.Control):
@@ -1904,7 +1928,12 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
 		drawPopupGrip(dst, l.Rect, ink.Edge)
 		if title != nil {
-			clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
+			end := l.Close.Min.X
+			if !l.TitleHelp.Empty() {
+				end = l.TitleHelp.Min.X
+				drawHelpMark(dst, body, l.TitleHelp, ink, pointerOK && pointer.In(l.TitleHelp))
+			}
+			clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, end-2, l.Title.Max.Y)).(*image.RGBA)
 			title.Draw(clip, editorClip(title, s.Title, clip.Bounds().Dx()), l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 		}
 		closeLabel := "x"
@@ -2052,6 +2081,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			drawPushButton(dst, body, pushButton{Press: held, Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 		}
 	}
+	for _, rr := range l.Rows {
+		if !rr.Help.Empty() {
+			drawHelpMark(canvas.SubImage(l.RowsViewport).(*image.RGBA), body, rr.Help, ink, pointerOK && pointer.In(rr.Help))
+		}
+	}
 	dst = canvas
 	if !l.Marker.Empty() {
 		draw.Draw(dst, l.Marker.Intersect(l.Rect), &image.Uniform{C: ink.Title}, image.Point{}, draw.Src)
@@ -2100,6 +2134,29 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			body.Draw(clip, line, tip.Rect.Min.X+4, tip.Rect.Min.Y+4+i*fontHeight(body, 15), ink.Value)
 		}
 	}
+}
+
+// drawHelpMark draws a (?) mark in box r, lit while the pointer is over it.
+func drawHelpMark(dst *image.RGBA, body *text.Font, r image.Rectangle, ink popupInk, hover bool) {
+	ground := ink.Ground
+	if hover {
+		ground = ink.TitleGround
+	}
+	drawFrame(dst, panelFrame(r, ground, ink.Edge))
+	if body != nil {
+		body.Draw(dst.SubImage(r).(*image.RGBA), "?", r.Min.X+(r.Dx()-body.Advance("?"))/2, r.Min.Y+(r.Dy()-fontHeight(body, 15))/2, ink.Title)
+	}
+}
+
+// helpTip is the box a (?) mark at r shows its help in: popupHelpW wide, the
+// help wrapped to as many body lines as it takes, under the mark or over it
+// where bounds end first.
+func helpTip(bounds image.Rectangle, body *text.Font, r image.Rectangle, help string) popupTip {
+	width := min(popupHelpW, bounds.Dx())
+	lines := editorTextLines(body, help, width-8)
+	h := len(lines)*fontHeight(body, 15) + 8
+	box := image.Rect(r.Min.X, r.Max.Y, r.Min.X+width, r.Max.Y+h)
+	return popupTip{Rect: placeTip(tipPlace{Box: box, PullRight: true, FlipBy: h + r.Dy()}, bounds), Lines: lines}
 }
 
 // popupTip is the hover line: the whole text of a row the painter cuts,
@@ -2165,11 +2222,17 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 	if !pointerOK || body == nil {
 		return popupTip{}, false
 	}
+	if p.In(l.TitleHelp) {
+		return helpTip(bounds, body, l.TitleHelp, s.TitleHelp), true
+	}
 	for _, rr := range l.Rows {
 		if !p.In(rr.Rect) {
 			continue
 		}
 		row := s.Rows[rr.Index]
+		if p.In(rr.Help) && p.In(l.RowsViewport) {
+			return helpTip(bounds, body, rr.Help, row.Help), true
+		}
 		full, cut := rowFull(title, body, row, rr)
 		width := rr.Rect.Dx()
 		onButton := false

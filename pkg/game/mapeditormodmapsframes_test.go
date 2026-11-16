@@ -31,7 +31,7 @@ func TestEditorModMapListDrawsInEachLanguage(t *testing.T) {
 		fonts, entries = a, []string{a.Base.Profile.Language}
 	}
 	roles := map[string][]string{
-		"en": {"guest 21 after 20, guest 22 after 21", "missing", "replaces 20 by name", "unused"},
+		"en": {"guest 21 after 20, guest 22 after 21", "missing", "is map 20 by name", "unused"},
 		"ru": {"гостевая 21 после 20, гостевая 22 после 21", "файла нет", "заменяет 20 по имени", "не используется"},
 	}
 	for _, entry := range entries {

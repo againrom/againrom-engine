@@ -26,6 +26,7 @@ func pressBrushButton(t *testing.T, e *MapEditor, row, k int) {
 
 // wheelAt turns the wheel by notches over cell, with Alt held or not.
 func wheelAt(e *MapEditor, cell image.Point, notches float64, alt bool) {
+	_ = moveAside(e)
 	pt := e.CellPoint(cell)
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y, WheelY: notches, Alt: alt}, time.Unix(5, 0))
 }
@@ -124,6 +125,7 @@ func TestMapEditorBrushMarkerOutlinesTheHostCells(t *testing.T) {
 	e, p := brushEditor(t)
 	_ = e.Key("terrain")
 	e.ShowCell(image.Pt(30, 30))
+	standAside(t, e)
 	pt := e.CellPoint(image.Pt(30, 30))
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y}, time.Unix(6, 0))
 	edges := func(cells []image.Point) int {

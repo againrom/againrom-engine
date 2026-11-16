@@ -138,6 +138,7 @@ func paletteEditorOn(t *testing.T, raw []byte) (*ui.MapEditor, *editorClicker) {
 // clickMapCell clicks the middle of cell c with the view on it.
 func clickMapCell(c *editorClicker, e *ui.MapEditor, cell image.Point) {
 	e.ShowCell(cell)
+	clearCells(e, cell)
 	p := e.CellPoint(cell)
 	c.click(e, image.Rect(p.X, p.Y, p.X+1, p.Y+1), true, "the map cell")
 }

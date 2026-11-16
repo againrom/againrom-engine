@@ -155,6 +155,11 @@ func TestVariablesTableListsEachUseAndFollowsEdits(t *testing.T) {
 				record int
 			}{{3, trigRecord(t, e, "Trigger", 1)}, {0, trigRecord(t, e, "Trigger", 0)}, {5, -5}} {
 				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: c.row})
+				if e.Selected() >= 0 {
+					// The trigger window opens in the middle, over the table.
+					clearPopup(e, r.Min.Add(r.Size().Div(2)))
+					r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListRow, N: c.row})
+				}
 				trigClick(t, e, r, ok, "table row "+strconv.Itoa(c.row))
 				if e.Selected() != c.record {
 					t.Fatalf("row %d selected %d, want %d", c.row, e.Selected(), c.record)

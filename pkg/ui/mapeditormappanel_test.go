@@ -252,7 +252,7 @@ func TestMapPanelOpensFirstAndFromTheMapMenu(t *testing.T) {
 	if slices.ContainsFunc(items, func(it menuItem) bool { return it.key == "panel" }) {
 		t.Fatalf("owner item 1: panel remains in File: %v", items)
 	}
-	s, _ := e.panelSpec()
+	s, _ := e.listSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())
 	e.Pointer(Input{CursorX: l.Close.Min.X + 2, CursorY: l.Close.Min.Y + 2, PrimaryDown: true}, time.Unix(1, 0))
 	e.Pointer(Input{CursorX: l.Close.Min.X + 2, CursorY: l.Close.Min.Y + 2}, time.Unix(1, 0))

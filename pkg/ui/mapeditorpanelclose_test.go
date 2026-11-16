@@ -53,7 +53,7 @@ var panelCloses = []struct {
 		name:  "panel, close button",
 		setup: func(*MapEditor) {},
 		close: func(e *MapEditor) error {
-			s, _ := e.panelSpec()
+			s, _ := e.listSpec()
 			panelClickAt(e, rectCentre(layoutPopup(s, e.font, e.bodyFont()).Close))
 			return nil
 		},

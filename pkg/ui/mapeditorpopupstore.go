@@ -21,12 +21,16 @@ const popupGripSide = 16
 type popupStanding struct {
 	at      image.Point // the kept corner; a sized prompt's corner
 	placed  bool        // at holds the corner the popup first opened at
+	homed   bool        // at is its home, so it opens in the window's middle
 	size    image.Point // the size it was dragged to; zero is its natural size
 	minWide int         // the width it had when it was first sized
 	key     string      // the window it was sized for
 	slack   bool        // it was dragged, so it may hang past the window's edges
 	shift   image.Point // an unsized prompt's offset from its own place
 	fit     int         // the list rows a sized list popup fits
+	open    bool        // its home-placed window stands open
+	offset  bool        // it opened while the list window stood, so it stands off it
+	stood   image.Point // the corner its home-placed window last stood at
 }
 
 // popupReset names the parts of a row a policy drops.
@@ -122,7 +126,7 @@ func (e *MapEditor) promptCorner(c popupCentre, size image.Point) image.Point {
 func (e *MapEditor) placedCorner(id editorPopupID, h popupHome) image.Point {
 	p := &e.places[e.storeRow(id)]
 	if !p.placed {
-		p.at, p.placed = e.homeCorner(h), true
+		p.at, p.placed, p.homed = e.homeCorner(h), true, true
 	}
 	return p.at
 }
@@ -151,23 +155,74 @@ func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
 	}
 }
 
-// keepInRoom moves spec s of popup id, while nobody dragged or sized it, left
-// and up by what its laid out window hangs past the map area's right and
-// bottom edges, never past the map area's left or top edge: a window wider or
-// taller than its home allows opens clear of the docked panels and strips at
-// the right and below.
+// keepInRoom stands spec s of popup id, while nobody dragged or sized it, in
+// the middle of the editor window, or offset from the window it opened from
+// (openCentred), then moves it left and up by what its laid out window hangs
+// past the map area's right and bottom edges, never past the map area's left
+// or top edge: a window wider or taller than the middle allows opens clear of
+// the docked panels and strips at the right and below. An offset window that
+// cannot stand at its offset inside the map area keeps the middle. Every popup
+// that opens from a home passes here.
 func (e *MapEditor) keepInRoom(id editorPopupID, s *popupSpec) {
-	p := e.places[e.storeRow(id)]
+	row := e.storeRow(id)
+	p := e.places[row]
 	if p.slack || p.size != (image.Point{}) {
+		e.places[row].open = false
 		return
 	}
-	room, r := e.mapArea(), layoutPopup(*s, e.font, e.bodyFont()).Rect
-	d := image.Pt(min(0, room.Max.X-r.Max.X), min(0, room.Max.Y-r.Max.Y))
-	if d == (image.Point{}) {
-		return
+	middle := e.openCentred(id, s)
+	room := e.mapArea()
+	keep := func(at image.Point) image.Point {
+		probe := *s
+		probe.At = at
+		r := layoutPopup(probe, e.font, e.bodyFont()).Rect
+		d := image.Pt(min(0, room.Max.X-r.Max.X), min(0, room.Max.Y-r.Max.Y))
+		at = r.Min.Add(d)
+		return image.Pt(max(at.X, min(r.Min.X, room.Min.X)), max(at.Y, min(r.Min.Y, room.Min.Y)))
 	}
-	at := r.Min.Add(d)
-	s.At = image.Pt(max(at.X, min(r.Min.X, room.Min.X)), max(at.Y, min(r.Min.Y, room.Min.Y)))
+	want := s.At
+	s.At = keep(want)
+	if want != middle && s.At != want {
+		s.At = keep(middle)
+	}
+	e.places[row].stood = s.At
+}
+
+// openCentred stands spec s of popup id, while nobody dragged or sized it,
+// in the middle of the editor window by the size it lays out to from the
+// bounds' top-left corner, so the size never depends on the corner it had,
+// its title never above the bar. A popup that opened while the home-placed
+// list popup stood open stands one step down and right of the list's corner
+// instead when it fits the room that way, the step being the title row's
+// height and popupPad, so the earlier window's title bar and left edge stay
+// clear. A dragged, sized or otherwise placed popup keeps its place. It
+// returns the middle corner.
+func (e *MapEditor) openCentred(id editorPopupID, s *popupSpec) image.Point {
+	row := e.storeRow(id)
+	p := &e.places[row]
+	if p.slack || p.size != (image.Point{}) || p.placed && !p.homed {
+		p.open = false
+		return s.At
+	}
+	top := e.popupBounds().Min
+	probe := *s
+	probe.At = top
+	l := layoutPopup(probe, e.font, e.bodyFont())
+	size := l.Rect.Size()
+	middle := image.Pt((e.window.X-size.X)/2, max(top.Y, (e.window.Y-size.Y)/2))
+	s.At = middle
+	if !p.open {
+		p.open, p.offset = true, row != popList && e.listStands()
+	}
+	if q := e.places[popList]; p.offset && q.open && e.listKind() != "" {
+		step := l.Title.Dy() + popupPad
+		at := q.stood.Add(image.Pt(step, step))
+		if r := l.Rect.Add(at.Sub(top)); r.Intersect(e.popupRoom()) == r {
+			s.At = at
+		}
+	}
+	p.stood = s.At
+	return middle
 }
 
 // floatPlace stands popup id's window at rectangle r: the corner and size of
@@ -335,7 +390,27 @@ func (e *MapEditor) dropPopup(id editorPopupID, what popupReset) {
 
 // popupOpened and popupClosed run the reset policy of popup id.
 func (e *MapEditor) popupOpened(id editorPopupID) { e.dropPopup(id, popupRecords[id].opened) }
-func (e *MapEditor) popupClosed(id editorPopupID) { e.dropPopup(id, popupRecords[id].closed) }
+func (e *MapEditor) popupClosed(id editorPopupID) {
+	e.dropPopup(id, popupRecords[id].closed)
+	e.popupHidden(id)
+}
+
+// listStands reports whether the list popup stands open, laying it out first
+// when its own window has not yet been, so the order the popups are laid out
+// in does not decide which one opens off the other.
+func (e *MapEditor) listStands() bool {
+	if e.listKind() == "" {
+		return false
+	}
+	if !e.places[popList].open {
+		_, _ = e.listSpec()
+	}
+	return e.places[popList].open
+}
+
+// popupHidden notes that popup id's home-placed window no longer stands, so
+// no later window opens offset from it.
+func (e *MapEditor) popupHidden(id editorPopupID) { e.places[e.storeRow(id)].open = false }
 
 // dropForeignSize returns popup id to its natural size when the window it
 // shows is not the one that was sized.

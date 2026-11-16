@@ -353,6 +353,7 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 	if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" || v.Index != 1 {
 		t.Fatalf("the label selected %+v", v)
 	}
+	clearCells(e, image.Pt(5, 6)) // Far's window opens in the middle
 	p := e.CellPoint(image.Pt(5, 6))
 	trigClick(t, e, image.Rect(p.X, p.Y, p.X+1, p.Y+1), true, "inside Near")
 	if n := e.Selected(); n != -1 {

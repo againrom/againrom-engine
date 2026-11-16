@@ -28,6 +28,9 @@ func setHeightEditor(t *testing.T) (*MapEditor, *brushProbe, image.Point) {
 }
 
 func pointerAt(e *MapEditor, at image.Point, down bool, tick int64) {
+	if down && !e.brush.down && e.brush.set == nil {
+		_ = moveAside(e)
+	}
 	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: down}, time.Unix(tick, 0))
 }
 

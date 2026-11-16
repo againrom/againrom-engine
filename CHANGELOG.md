@@ -49,6 +49,7 @@ modder or developer can notice gets no entry.
 - [ROM1] the editor's mod window has a Files page: replace install pictures, sounds and texts per language, checked by the game's rules, with the overrides of the enabled mods
 - [ROM1] Map editor: the Files page no longer lists override lines for a mod that is not enabled in the starter; it says so in one line instead.
 - The trigger window no longer names a variable "Constant / variable preset"; it shows "Variable N" unless the map's author gave it a name.
+- [BASE] Every page of the mod window and every editor window explains itself behind a (?) mark, editor windows first open centred, and the Terrain page lists every ground and adds a new one from a single picture.
 
 ## 0.155.0
 

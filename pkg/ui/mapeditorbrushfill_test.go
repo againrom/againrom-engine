@@ -22,6 +22,7 @@ func fillEditor(t *testing.T) (*MapEditor, *brushProbe) {
 	e.doc.Edits = fillProbe{p}
 	_ = e.Key("terrain")
 	e.ShowCell(image.Pt(30, 30))
+	standAside(t, e)
 	return e, p
 }
 

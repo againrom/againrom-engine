@@ -616,9 +616,10 @@ func (e *MapEditor) selectionWindow() bool {
 	return e.selectionShown() && !e.selection.hidden && !e.groupSel.set
 }
 
-// selectionPress is a press on the selection's popup.
+// selectionPress is a press on the selection's popup, laid out where
+// objectSpec stands it.
 func (e *MapEditor) selectionPress(p image.Point) {
-	s, _ := e.selectionSpec()
+	s, _, _ := e.objectSpec()
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.selection.hidden = true
@@ -640,7 +641,10 @@ func (e *MapEditor) selectionPress(p image.Point) {
 // controlSelectionButtonRect is the window rectangle of button n of the selection's
 // popup: 0 To group, 1 Remove from group, 2 Delete.
 func (e *MapEditor) controlSelectionButtonRect(n int) (image.Rectangle, bool) {
-	s, ok := e.selectionSpec()
+	if _, ok := e.selectionSpec(); !ok {
+		return image.Rectangle{}, false
+	}
+	s, _, ok := e.objectSpec()
 	if !ok {
 		return image.Rectangle{}, false
 	}

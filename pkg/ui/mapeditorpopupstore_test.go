@@ -11,11 +11,11 @@ import (
 )
 
 // popupTranscriptHash and popupTranscriptLines pin the answers every movable
-// editor popup gave before its placement became one store: where it opens, how
-// a title drag, every border drag and a window resize move it step by step,
-// and where it reopens.
+// editor popup gives: where it opens (the middle of the window, from every
+// home), how a title drag, every border drag and a window resize move it step
+// by step, and where it reopens.
 const (
-	popupTranscriptHash  = "1c14b079783a2eb5be57a282cd342694c6c51925e5920c7c445a88955e8c1f22"
+	popupTranscriptHash  = "670fdbc1eebb5feee92c374fc3abc9b067721f106dfad5b8f038c1865b90a43b"
 	popupTranscriptLines = 1155
 )
 

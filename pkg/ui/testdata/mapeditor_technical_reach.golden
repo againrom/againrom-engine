@@ -4,10 +4,10 @@ en panel 360 Sack : 2 button lines, rows 0..15, fields gold item1 item2 item3 ad
 en panel 520 Unit : 2 button lines, rows 0..33, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2
 en panel 520 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 en panel 520 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-en panel 800 Unit : 1 button lines, rows 0..59, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon
+en panel 800 Unit : 1 button lines, rows 0..55, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting protection.fire protection.water protection.air protection.earth protection.astral
 en panel 800 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 en panel 800 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-en panel 0 Unit : 1 button lines, rows 0..62, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting
+en panel 0 Unit : 1 button lines, rows 0..55, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting protection.fire protection.water protection.air protection.earth protection.astral
 en panel 0 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 en panel 0 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
 ru panel 360 Unit : 3 button lines, rows 0..22, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
@@ -16,9 +16,9 @@ ru panel 360 Sack : 2 button lines, rows 0..15, fields gold item1 item2 item3 ad
 ru panel 520 Unit : 2 button lines, rows 0..33, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2
 ru panel 520 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 ru panel 520 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-ru panel 800 Unit : 1 button lines, rows 0..59, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon
+ru panel 800 Unit : 1 button lines, rows 0..55, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting protection.fire protection.water protection.air protection.earth protection.astral
 ru panel 800 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 ru panel 800 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-ru panel 0 Unit : 1 button lines, rows 0..62, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting
+ru panel 0 Unit : 1 button lines, rows 0..55, fields identity owner group face sex gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 carryadd carry1 carry2 hp mana body mind spirit reaction defence absorption skill.blade skill.axe skill.bludgeon skill.pike skill.shooting protection.fire protection.water protection.air protection.earth protection.astral
 ru panel 0 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 ru panel 0 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3

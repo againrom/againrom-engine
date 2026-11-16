@@ -191,8 +191,9 @@ type InspectionField struct {
 	// Toward marks a player's relation field: the relation toward player
 	// Toward, counted from 1; zero for every other field.
 	Toward int
-	// ListAll opens the choice list with as many rows as fit below the
-	// field in the window, ten at least, instead of ten: a list read whole.
+	// ListAll opens the choice list with as many rows as fit in the window,
+	// ten at least, instead of ten, risen over the field where the rows do
+	// not fit below it: a list read whole.
 	ListAll bool
 	// Link, on a read-only field, is the record its row opens in the one
 	// window, with Back to this one: a unit's sack. The zero RecordRef

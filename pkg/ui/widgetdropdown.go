@@ -27,6 +27,9 @@ type dropdown struct {
 	// ListRight, when set, is the x the open list ends left of: a list that
 	// would pass it opens leftward from there.
 	ListRight int
+	// ListBottom, when set, is the y the open list ends above: a list that
+	// would pass it rises until it ends there, never above the window's top.
+	ListBottom int
 	// Icon, when set, draws the closed box as an icon button, sunk while
 	// the list is open: a toolbar's drop-down.
 	Icon *editorIcon
@@ -44,8 +47,9 @@ func (d dropdown) button() image.Rectangle {
 	return image.Rect(d.Rect.Max.X-w, d.Rect.Min.Y, d.Rect.Max.X, d.Rect.Max.Y)
 }
 
-// listBox is the open list's geometry: below the box, as wide as it less the
-// scroll bar, as many rows as the list holds up to Rows.
+// listBox is the open list's geometry: below the box, risen to end at
+// ListBottom when set, as wide as it less the scroll bar, as many rows as the
+// list holds up to Rows.
 func (d dropdown) listBox(f *text.Font) listBox {
 	rows := d.Rows
 	if d.List != nil {
@@ -56,7 +60,12 @@ func (d dropdown) listBox(f *text.Font) listBox {
 		x = max(0, d.ListRight-w)
 	}
 	r := image.Rect(x, d.Rect.Max.Y+1, x+w-widgetSpriteSize, d.Rect.Max.Y+1)
-	return newListBox(r, max(1, rows), f)
+	l := newListBox(r, max(1, rows), f)
+	if d.ListBottom > 0 && l.Rect.Max.Y > d.ListBottom {
+		r = r.Add(image.Pt(0, -min(r.Min.Y, l.Rect.Max.Y-d.ListBottom)))
+		l = newListBox(r, max(1, rows), f)
+	}
+	return l
 }
 
 // Bounds is everything the drop-down covers: the box, and the open list with

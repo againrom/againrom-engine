@@ -170,12 +170,16 @@ func (m *mapProbe) hears() mapHearing {
 	m.tick(ui.Input{}, p)
 	h.Pan = cam.X != x || cam.Y != y
 
-	_, p = m.aim()
-	x, y = cam.X, cam.Y
-	m.tick(ui.Input{MiddleDown: true}, p)
-	m.tick(ui.Input{MiddleDown: true, CursorX: -20, CursorY: -20}, p)
-	m.tick(ui.Input{CursorX: -20, CursorY: -20}, p)
-	h.Drag = cam.X != x || cam.Y != y
+	// The drag goes both ways: a camera stopped at the map's edge on one
+	// side still moves to the other.
+	for _, d := range []int{-20, 20} {
+		_, p = m.aim()
+		x, y = cam.X, cam.Y
+		m.tick(ui.Input{MiddleDown: true}, p)
+		m.tick(ui.Input{MiddleDown: true, CursorX: d, CursorY: d}, p)
+		m.tick(ui.Input{CursorX: d, CursorY: d}, p)
+		h.Drag = h.Drag || cam.X != x || cam.Y != y
+	}
 
 	want, p := m.aim()
 	if m.e.Selected() == want {

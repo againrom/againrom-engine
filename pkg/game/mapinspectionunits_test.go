@@ -62,6 +62,7 @@ func authoredUnits(t *testing.T, e *ui.MapEditor) []alm.Unit {
 }
 
 func clickCell(e *ui.MapEditor, cell image.Point) {
+	clearCells(e, cell)
 	p := e.CellPoint(cell)
 	now := time.Unix(1, 0)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)

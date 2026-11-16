@@ -117,6 +117,8 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 		t.Fatalf("selected %d", e.Selected())
 	}
 	to := e.CellPoint(image.Pt(13, 14))
+	// The unit's window opens in the middle; its title drag clears the cells.
+	clearPopup(e, image.Pt(from.X, from.Y), to)
 	must("pointer", map[string]any{"action": "drag", "x": from.X, "y": from.Y, "to_x": to.X, "to_y": to.Y})
 	if !e.Dirty() || !e.Document().Edits.CanUndo() {
 		t.Fatal("real model has no history")

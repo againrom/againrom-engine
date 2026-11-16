@@ -23,12 +23,13 @@ func TestMapEditorSampleHeightLevelsThePathToThePressedHeight(t *testing.T) {
 		altitudes[i] = byte(40 + (i%40+3*(i/40))%12)
 	}
 	e, _ := openGoalMap(t, synth.ALM(synth.ALMOptions{Width: 40, Height: 40, Altitudes: altitudes, Type7Payload: make([]byte, 12)}))
-	from, to := image.Pt(20, 20), image.Pt(26, 20) // clear of the brush list
+	from, to := image.Pt(20, 20), image.Pt(26, 20)
 	e.Fit()
 	_ = e.Key("height")
 	for range 3 {
 		_ = e.Key("down")
 	}
+	clearCells(e, from, to) // the brush list opens in the middle
 	start := bytes.Clone(e.Document().SourceBytes)
 	was, _ := editedMap(t, e)
 	sample := was.Altitudes[from.Y*40+from.X]

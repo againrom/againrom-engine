@@ -199,23 +199,23 @@ func bmpDepth(b []byte) int {
 }
 
 // decodeModPicture decodes a BMP as the game's decoder for bits per pixel
-// reads it and answers its bounds.
-func decodeModPicture(b []byte, bits int) (image.Rectangle, error) {
+// reads it.
+func decodeModPicture(b []byte, bits int) (image.Image, error) {
 	switch bits {
 	case bmp.BitsPerPixel:
 		pic, err := bmp.DecodeRGBA(b)
 		if err != nil {
-			return image.Rectangle{}, err
+			return nil, err
 		}
-		return pic.Bounds(), nil
+		return pic, nil
 	case bmp.IndexedBitsPerPixel:
 		pic, err := bmp.DecodePaletted(b)
 		if err != nil {
-			return image.Rectangle{}, err
+			return nil, err
 		}
-		return pic.Bounds(), nil
+		return pic, nil
 	}
-	return image.Rectangle{}, fmt.Errorf("bmp: %d bits per pixel; the game reads %d or %d", bits, bmp.IndexedBitsPerPixel, bmp.BitsPerPixel)
+	return nil, fmt.Errorf("bmp: %d bits per pixel; the game reads %d or %d", bits, bmp.IndexedBitsPerPixel, bmp.BitsPerPixel)
 }
 
 // checkModPicture refuses a picture the game cannot draw in place of the
@@ -232,8 +232,8 @@ func checkModPicture(installed, modded []byte) error {
 	if err != nil {
 		return fmt.Errorf("the game cannot decode this picture as the install's %d-bit picture: %v", bits, err)
 	}
-	if got.Size() != want.Size() {
-		return fmt.Errorf("the picture is %dx%d; the install's is %dx%d, the size the game draws it at", got.Dx(), got.Dy(), want.Dx(), want.Dy())
+	if g, w := got.Bounds(), want.Bounds(); g.Size() != w.Size() {
+		return fmt.Errorf("the picture is %dx%d; the install's is %dx%d, the size the game draws it at", g.Dx(), g.Dy(), w.Dx(), w.Dy())
 	}
 	return nil
 }

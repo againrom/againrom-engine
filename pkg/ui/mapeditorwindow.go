@@ -411,12 +411,13 @@ func (e *MapEditor) controlObjectSectionRect(section string) (image.Rectangle, b
 }
 
 // controlGroupMemberRect is the window rectangle of member row n of the group
-// popup, when that row is shown.
+// popup, when that row is shown, laid out where objectSpec stands the popup.
 func (e *MapEditor) controlGroupMemberRect(n int) (image.Rectangle, bool) {
-	s, links, ok := e.groupSpec()
+	_, links, ok := e.groupSpec()
 	if !ok || n < 0 || n >= len(e.groupSel.members) {
 		return image.Rectangle{}, false
 	}
+	s, _, _ := e.objectSpec()
 	row := slices.IndexFunc(links, func(l int) bool { return l < 0 }) + n
 	if row < n || row >= len(links) || links[row] != -(e.groupSel.members[n]+1) {
 		return image.Rectangle{}, false
@@ -1574,7 +1575,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		}
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
 		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
-			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
+			s.TitleHelp = e.editorHostText(fields[e.prompt.field].Meaning)
 		}
 	} else {
 		s.Title = e.word("editor.message.title")

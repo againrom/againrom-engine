@@ -177,6 +177,7 @@ func TestEditorMCPPipeDrivesWindowDoors(t *testing.T) {
 	if e.Selected() != 20 {
 		t.Fatalf("cell click selected %d", e.Selected())
 	}
+	standAside(t, e)
 	to := e.CellPoint(image.Pt(23, 20))
 	p.tool(t, "pointer", map[string]any{"action": "drag", "x": at.X, "y": at.Y, "to_x": to.X, "to_y": to.Y})
 	if !e.Dirty() || e.Document().Records[20].Cell != image.Pt(23, 20) {

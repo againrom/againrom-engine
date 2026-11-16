@@ -81,7 +81,7 @@ func modMapsOpen(t *testing.T, e *ui.MapEditor, n int) error {
 // own path and no row.
 func TestEditorListsAndOpensEveryMapOfTheMod(t *testing.T) {
 	for _, lang := range []struct{ book, group, rows, missing string }{
-		{"", "Maps of the mod", "[map1.alm: guest 21 after 20, guest 22 after 21] | gone.alm: missing | 20.alm: replaces 20 by name | spare.alm: unused",
+		{"", "Maps of the mod", "[map1.alm: guest 21 after 20, guest 22 after 21] | gone.alm: missing | 20.alm: is map 20 by name | spare.alm: unused",
 			"holds no file of this map"},
 		{"ru", "Карты мода", "[map1.alm: гостевая 21 после 20, гостевая 22 после 21] | gone.alm: файла нет | 20.alm: заменяет 20 по имени | spare.alm: не используется",
 			"нет файла этой карты"},

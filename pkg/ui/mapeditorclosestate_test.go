@@ -108,6 +108,8 @@ func TestMapPanelCloseStates(t *testing.T) {
 					if err := e.Open("new/64x64"); err != nil {
 						t.Fatal(err)
 					}
+					// The modals open in the middle; the panel's close stands clear of them.
+					standAside(t, e)
 					base := mapPanelCloseStateOf(e)
 					want := base
 					blocked := func() {

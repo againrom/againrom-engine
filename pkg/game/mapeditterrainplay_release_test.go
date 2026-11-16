@@ -37,6 +37,7 @@ func guestFrontWorld(t *testing.T, dir string, mission ...mod.Mission) *FrontEnd
 // release: the stroke the author makes with the brush.
 func pointerStroke(e *ui.MapEditor, cells []image.Point) {
 	now := time.Unix(1, 0)
+	clearCells(e, cells...)
 	for _, c := range cells {
 		p := e.CellPoint(c)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)

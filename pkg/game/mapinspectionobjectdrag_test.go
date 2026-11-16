@@ -47,6 +47,7 @@ func objectDragEditor(t *testing.T, objects map[image.Point]uint8) (*ui.MapEdito
 // pointerDrag presses on cell a, moves to cell b and releases there.
 func pointerDrag(e *ui.MapEditor, a, b image.Point) {
 	now := time.Unix(1, 0)
+	clearCells(e, a, b)
 	pa, pb := e.CellPoint(a), e.CellPoint(b)
 	e.Pointer(ui.Input{CursorX: pa.X, CursorY: pa.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: pb.X, CursorY: pb.Y, PrimaryDown: true}, now)

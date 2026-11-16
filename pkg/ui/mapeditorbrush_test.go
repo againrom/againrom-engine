@@ -96,6 +96,7 @@ func brushEditor(t *testing.T) (*MapEditor, *brushProbe) {
 }
 
 func drag(e *MapEditor, cells ...image.Point) {
+	_ = moveAside(e)
 	now := time.Unix(1, 0)
 	for _, c := range cells {
 		pt := e.CellPoint(c)
@@ -114,6 +115,7 @@ func TestMapEditorBrushStrokeIsOneEditAndKeepsTheView(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.ShowCell(image.Pt(20, 20))
+	standAside(t, e)
 	cam := *e.doc.Viewer.cam
 	old := e.doc.Viewer
 	drag(e, image.Pt(20, 20), image.Pt(23, 20))
@@ -139,7 +141,8 @@ func TestMapEditorBrushHeightRowsAndModeSwitch(t *testing.T) {
 	e.Key("radiusdown")
 	e.Key("radiusdown")
 	e.Key("radiusdown")
-	drag(e, image.Pt(30, 30)) // clear of the palette popup at the window's left
+	standAside(t, e)
+	drag(e, image.Pt(30, 30)) // clear of the palette popup at the map's left
 	if len(p.strokes) != 1 || p.strokes[0].Plane != BrushPlaneHeight || p.strokes[0].Value != -brushHeightStep || p.strokes[0].Radius != 0 {
 		t.Fatalf("height stroke %+v", p.strokes)
 	}
@@ -177,6 +180,7 @@ func TestMapEditorObjectsBrushStrokeCarriesTheRowCode(t *testing.T) {
 	}
 	_ = e.Key("down")
 	e.ShowCell(image.Pt(20, 20))
+	standAside(t, e)
 	drag(e, image.Pt(20, 20))
 	if len(p.strokes) != 1 || p.strokes[0].Plane != BrushPlaneObjects || p.strokes[0].Value != 3 {
 		t.Fatalf("strokes %+v", p.strokes)

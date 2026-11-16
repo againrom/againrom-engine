@@ -119,6 +119,7 @@ func point1118(e *ui.MapEditor, cell image.Point) image.Point {
 
 func dragInspectionRecord(e *ui.MapEditor, from, to image.Point) {
 	now := time.Unix(1, 0)
+	clearCells(e, from, to)
 	a, b := point1118(e, from), point1118(e, to)
 	e.Pointer(ui.Input{CursorX: a.X, CursorY: a.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: b.X, CursorY: b.Y, PrimaryDown: true}, now)

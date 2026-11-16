@@ -340,7 +340,9 @@ func (e *MapEditor) inputAt(p image.Point, press bool) (*editorTextView, image.R
 		return v, box
 	} else if v, box, ok := e.searchInputAt(p, press); ok {
 		return v, box
-	} else if s, _, ok := e.objectSpec(); ok {
+	} else if s, _, ok := e.objectSpec(); ok && (!press || e.chromeHit(p) == popObject) {
+		// A press takes an object field only where the object window is the
+		// foremost window: a menu or the notice may stand over it.
 		l := layoutPopup(s, e.font, e.bodyFont())
 		for _, rr := range l.Rows {
 			row := s.Rows[rr.Index]

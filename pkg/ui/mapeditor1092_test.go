@@ -110,6 +110,7 @@ func TestMapEditor1092CameraAndCataloguePointerDoors(t *testing.T) {
 		t.Fatal("list popup wheel did not move the list")
 	}
 	e.closeList()
+	standAside(t, e)
 	zoom := v.cam.Zoom
 	e.Pointer(Input{CursorX: 350, CursorY: 350, WheelY: 1}, time.Unix(1, 0))
 	if v.cam.Zoom <= zoom {
@@ -197,6 +198,7 @@ func TestMapEditor1092FractionalWheelOwnsTravelPerPopup(t *testing.T) {
 		e.doc.Records[30].Details = append(e.doc.Records[30].Details, fmt.Sprintf("item %02d", i))
 	}
 	e.ChromeImage()
+	standAside(t, e)
 	e.model.Select(0)
 	cameraBefore := *e.doc.Viewer.cam
 	listAt := listRowPoint(t, e, 0)

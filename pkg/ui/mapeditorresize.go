@@ -35,6 +35,7 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		return s, false
 	}
 	if e.reportDocked() {
+		e.popupHidden(popList)
 		return e.dockReport(s), true
 	}
 	e.adoptKept(popList, &s)
@@ -64,6 +65,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		return s, links, false
 	}
 	if e.panels.hosted {
+		e.popupHidden(popObject)
 		return e.objectInputRows(e.hostedObject(s)), links, true
 	}
 	if e.dropForeignSize(popObject, s.Title) {

@@ -253,12 +253,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		if heads && f.Group != group {
 			group = f.Group
-			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
-			if note := e.groupNote(f.Group); note != "" {
-				for _, part := range editorTextLines(e.bodyFont(), note, e.hostedWrap(*s, 378)) {
-					s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
-				}
-			}
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group), Help: e.groupNote(f.Group)}), append(*links, 0)
 		}
 		if f.ReadOnly {
 			for _, current := range fields {
@@ -317,20 +312,15 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if e.modWindow && f.Key == "source" {
 			row.Buttons = []string{e.word("editor.mod.up"), e.word("editor.mod.down")}
 		}
+		// The field's meaning is its (?) help, never lines in the window.
 		meaning := f.Meaning
-		if native && !f.Inherit && f.Key != o.detail && i != o.focus {
-			meaning = ""
-		}
 		if fields == nil && o.buf[i] != fieldInput(f) {
 			meaning = ""
 		}
 		inherited := f.Inherited
 		for _, current := range fields {
 			if current.Key == f.Key {
-				inherited = current.Inherited
-				if !native || f.Inherit || f.Key == o.detail || i == o.focus {
-					meaning = current.Meaning
-				}
+				inherited, meaning = current.Inherited, current.Meaning
 				break
 			}
 		}
@@ -349,13 +339,10 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				row.Caret = b.Advance(row.Value)
 			}
 		}
-		s.Rows, *links = append(s.Rows, row), append(*links, 0)
 		if meaning != "" {
-			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(meaning), textWidth) {
-				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: part})
-				*links = append(*links, 0)
-			}
+			row.Help = e.editorHostText(meaning)
 		}
+		s.Rows, *links = append(s.Rows, row), append(*links, 0)
 		deferColumn()
 		return n
 	}
@@ -611,7 +598,7 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		return
 	}
 	o.focus = i
-	if e.modWindow && o.fields[i].Action {
+	if e.modWindow && o.fields[i].Action && len(o.fields[i].Pick) == 0 {
 		_ = e.modAction(o.fields[i].Key, "")
 		return
 	}
@@ -672,19 +659,19 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 }
 
 // choiceWindow is the rows field i's open list of n choices shows: ten at
-// most, or for a field that lists all as many as fit below its row in the
-// window, ten at least.
+// most, or for a field that lists all as many as fit in the window's height,
+// ten at least; openDropdown raises such a list where it would pass the
+// window's bottom.
 func (e *MapEditor) choiceWindow(i, n int) int {
 	rows := min(10, n)
 	if i < 0 || i >= len(e.obj.fields) || !e.obj.fields[i].ListAll {
 		return rows
 	}
-	control, ok := e.fieldControl(i)
-	if !ok {
+	if _, ok := e.fieldControl(i); !ok {
 		return rows
 	}
 	pitch := newListBox(image.Rectangle{}, 1, e.bodyFont()).Pitch
-	fit := (e.window.Y - control.Max.Y - 1 - listBottomExtra) / pitch
+	fit := (e.window.Y - listBottomExtra) / pitch
 	return max(rows, min(n, fit))
 }
 
@@ -715,7 +702,7 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
-			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: e.choiceWindow(o.open, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}
+			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: e.choiceWindow(o.open, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight, ListBottom: e.window.Y}
 			if o.search != "" {
 				d.Text = e.editorHostText(o.search)
 			}

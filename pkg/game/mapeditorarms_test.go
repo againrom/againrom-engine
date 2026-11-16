@@ -96,7 +96,7 @@ func TestArmPopupAndScriptsEditHaveSameBytesAndUndo(t *testing.T) {
 	if !ok {
 		t.Fatal("arm Open missing")
 	}
-	trigClick(t, e, r, true, "arm Open")
+	clickArmOpen(t, e, 0)
 	if e.Selected() != recordOf(e.Document(), "Trigger", 0) {
 		t.Fatal("wrong trigger")
 	}
@@ -183,8 +183,7 @@ func TestArmOpenBackDeleteMatchesRow(t *testing.T) {
 				}
 				selected, lines := e.Selected(), e.PopupLines()
 				if opened {
-					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: row})
-					trigClick(t, e, r, ok, "arm Open")
+					clickArmOpen(t, e, row)
 					backFromArm(t, e)
 					if e.Selected() != selected || !reflect.DeepEqual(e.PopupLines(), lines) {
 						t.Errorf("Back changed visible record: selected=%d want=%d lines=%v want=%v", e.Selected(), selected, e.PopupLines(), lines)
@@ -221,4 +220,16 @@ func TestArmAddRowFieldKeepsSelectionRefusal(t *testing.T) {
 	if e.Selected() != -1 || e.Message() != "Select a unit, structure or sack first." {
 		t.Fatalf("E on add row: selected=%d message=%q", e.Selected(), e.Message())
 	}
+}
+
+// clickArmOpen presses the Open button of arm n. A window opened over the
+// list stands offset from it and may cover its body, so it is moved aside.
+func clickArmOpen(t *testing.T, e *ui.MapEditor, n int) {
+	t.Helper()
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: n})
+	if ok {
+		clearPopup(e, image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
+		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlGoalOpen, N: n})
+	}
+	trigClick(t, e, r, ok, "arm Open")
 }

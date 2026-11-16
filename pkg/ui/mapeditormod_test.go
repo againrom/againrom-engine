@@ -462,6 +462,9 @@ func TestModWindowOpensWithNoMapOpen(t *testing.T) {
 	if !e.modWindow || e.doc != nil {
 		t.Fatalf("a button left window %v map %v", e.modWindow, e.doc != nil)
 	}
+	// A status line grows the window, which stays in the middle.
+	s, _, _ = e.modSpec()
+	l = layoutPopup(s, e.font, e.bodyFont())
 	modesClick(e, center(l.Buttons[modButtonIndex("close")]))
 	if e.modWindow || !e.catalog {
 		t.Fatalf("Close left window %v catalog %v", e.modWindow, e.catalog)

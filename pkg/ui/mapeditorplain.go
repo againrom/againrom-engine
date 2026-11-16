@@ -568,6 +568,9 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 			tip = append(tip, e.groupNote(o.fields[i].Group))
 		}
 		var meaning []string
+		if h := s.Rows[n].Help; h != "" {
+			tip, meaning = append(tip, h), append(meaning, h)
+		}
 		for _, r := range s.Rows[n+1:] {
 			tip = append(tip, r.Label)
 			meaning = append(meaning, r.Label)

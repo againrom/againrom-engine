@@ -75,6 +75,7 @@ func recordIndex(t *testing.T, e *ui.MapEditor, kind string, index int) int {
 }
 
 func dragCell(e *ui.MapEditor, from, to image.Point) {
+	clearCells(e, from, to)
 	p, q := e.CellPoint(from), e.CellPoint(to)
 	now := time.Unix(1, 0)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)

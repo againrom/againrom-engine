@@ -88,8 +88,17 @@ const (
 	modPageFiles           // the install files the mod replaces
 )
 
-// modPageWords is the word of each page's tab, in the order of the pages.
-var modPageWords = []string{"editor.mod.missions", "editor.mod.overview", "editor.graph.tab", "editor.mod.terrain", "editor.mod.texts", "editor.mod.items", "editor.mod.files"}
+// modPageWords is each page's tab word and the help its title's (?) mark
+// shows, what the page changes in the game, in the order of the pages.
+var modPageWords = []struct{ tabWord, helpWord string }{
+	{tabWord: "editor.mod.missions", helpWord: "editor.mod.missions.help"},
+	{tabWord: "editor.mod.overview", helpWord: "editor.mod.overview.help"},
+	{tabWord: "editor.graph.tab", helpWord: "editor.graph.help"},
+	{tabWord: "editor.mod.terrain", helpWord: "editor.terrain.help"},
+	{tabWord: "editor.mod.texts", helpWord: "editor.texts.help"},
+	{tabWord: "editor.mod.items", helpWord: "editor.items.help"},
+	{tabWord: "editor.mod.files", helpWord: "editor.files.help"},
+}
 
 // The workspace scopes of W's pages of a scope of their own.
 const (
@@ -155,7 +164,7 @@ func (e *MapEditor) modTabs() ([]string, int) {
 	}
 	tabs := make([]string, len(pages))
 	for i, page := range pages {
-		tabs[i] = e.word(modPageWords[page])
+		tabs[i] = e.word(modPageWords[page].tabWord)
 	}
 	return tabs, slices.Index(pages, e.modPage)
 }

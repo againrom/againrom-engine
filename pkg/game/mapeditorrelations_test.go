@@ -59,6 +59,8 @@ func TestMapEditorRelationMatrixWritesOneRelationWord(t *testing.T) {
 			t.Fatalf("matrix cell %d is not shown", n)
 		}
 		p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
+		// The player's window opens in the middle over the list's matrix.
+		clearPopup(e, p)
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Time{})
 	}

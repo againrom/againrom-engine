@@ -2,17 +2,20 @@ package game
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"image"
+	"image/color"
 	"maps"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
+	"againrom/internal/synth"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -51,14 +54,23 @@ func setTerrain(t *testing.T, s *mapInspectionEdits, key, value string) {
 	}
 }
 
-// importStrips imports column b's strip of group g for each b given, a strip
-// of frames frames.
-func importStrips(t *testing.T, s *mapInspectionEdits, g, frames int, columns ...int) {
-	t.Helper()
-	for _, b := range columns {
-		source, _ := assetFile(t, fmt.Sprintf("strip%d.bmp", b), stripBMP(terrain.CellSize, frames))
-		setTerrain(t, s, fmt.Sprintf("%d.strip.%d", g, b), source)
+// squaresPicture is a test-made picture of across by down squares of 32
+// pixels, every pixel a colour of its own.
+func squaresPicture(across, down int) *image.RGBA {
+	pic := image.NewRGBA(image.Rect(0, 0, across*terrain.CellSize, down*terrain.CellSize))
+	for y := range pic.Bounds().Dy() {
+		for x := range pic.Bounds().Dx() {
+			pic.SetRGBA(x, y, color.RGBA{uint8(x * 2), uint8(y * 3), uint8(x + y), 0xff})
+		}
 	}
+	return pic
+}
+
+// groundPNG is the host file name holding pic as a PNG.
+func groundPNG(t *testing.T, name string, pic image.Image) string {
+	t.Helper()
+	source, _ := assetFile(t, name, witness.Bytes(t, pic))
+	return source
 }
 
 // keysOf is m's keys in order.
@@ -69,162 +81,193 @@ func groupBrush(s *mapInspectionEdits, g int) bool {
 	return slices.ContainsFunc(s.BrushTerrains(), func(b ui.BrushTerrain) bool { return b.Class == mapedit.GroupBrush(g) })
 }
 
-// The page offers the first free group from 13, adds it, and refuses a
-// number outside 13..31, a taken number, a value the loader refuses and a
-// strip the loader's strip rule refuses, each with no draft.
-func TestTerrainPageAddsAGroupAndRefusesWhatTheLoaderRefuses(t *testing.T) {
-	s, _ := terrainPage(t)
-	if f, ok := terrainField(s, "new"); !ok || f.TextValue != "13" {
-		t.Fatalf("the offered group %+v", f)
-	}
-	for _, n := range []string{"12", "32", "x"} {
-		if _, err := s.SetWorkspaceField(ui.ModTerrainScope, "new", n); err == nil || !strings.Contains(err.Error(), "from 13 to 31") {
-			t.Errorf("group %s: %v", n, err)
-		}
-	}
-	setTerrain(t, s, "add", "")
-	if f, ok := terrainField(s, "new"); !ok || f.TextValue != "14" {
-		t.Fatalf("the next offered group %+v", f)
-	}
-	if _, err := s.SetWorkspaceField(ui.ModTerrainScope, "new", "13"); err == nil || !strings.Contains(err.Error(), "already has group 13") {
-		t.Fatalf("a taken group: %v", err)
-	}
-	setTerrain(t, s, "13.name", "Glacier")
-	setTerrain(t, s, "13.kind", "8")
-	setTerrain(t, s, "13.minimap", "#A0C0E0")
-	rows, err := mod.ParseTerrain("glacier", mod.TerrainFile, s.workspace.Project.Files[mod.TerrainFile])
-	if g, ok := rows.Group(13); err != nil || !ok || g.Name != "Glacier" || g.Class != 8 || !g.HasMinimap || g.Minimap.B != 0xe0 {
-		t.Fatalf("the draft rows %+v: %v", rows.Groups, err)
-	}
-	steps := len(s.undoWorkspace)
-	for _, c := range []struct{ key, value, want string }{
-		{"13.minimap", "blue", "#rrggbb"},
-		{"13.name", strings.Repeat("x", 40), "1 to 32 bytes"},
-		{"13.name", "", "1 to 32 bytes"},
-		{"20.name", "Dune", "no field 20.name"},
-	} {
-		if _, err := s.SetWorkspaceField(ui.ModTerrainScope, c.key, c.value); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s = %q: %v, want %q", c.key, c.value, err, c.want)
-		}
-	}
-	for _, c := range []struct {
-		width, frames int
-		want          string
-	}{{33, 1, "33 px wide"}, {terrain.CellSize, terrain.MaxStripFrames + 1, "at most 14"}} {
-		source, _ := assetFile(t, "bad.bmp", stripBMP(c.width, c.frames))
-		_, err := s.SetWorkspaceField(ui.ModTerrainScope, "13.strip.0", source)
-		if err == nil || !strings.Contains(err.Error(), "strip 1 of group 13") || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("a strip %dx%d: %v, want %q", c.width, c.frames, err, c.want)
-		}
-	}
-	if len(s.undoWorkspace) != steps || slices.ContainsFunc(keysOf(s.workspace.Project.Files), func(k string) bool { return strings.HasPrefix(k, mod.FilesDir+"/") }) {
-		t.Fatalf("a refusal left a draft: %d steps, files %v", len(s.undoWorkspace)-steps, keysOf(s.workspace.Project.Files))
-	}
-	if f, ok := terrainField(s, "13.state"); !ok || !strings.Contains(f.TextValue, "0 of 4") {
-		t.Fatalf("the state of a group with no strips %+v", f)
-	}
+// near reports a colour within a few steps of want on each channel.
+func near(c color.Color, want color.RGBA) bool {
+	r, g, b, _ := c.RGBA()
+	d := func(v uint32, w uint8) int { return max(int(v>>8)-int(w), int(w)-int(v>>8)) }
+	return max(d(r, want.R), d(g, want.G), d(b, want.B)) <= 24
 }
 
-// A group and its strips are draft steps of the one history: the brush
-// offers the group once its four strips are in, before any save, and paints
-// it; undo takes the last strip and the group out of the brush and redo
-// brings them back. A second import of a strip asks first.
-func TestTerrainPageImportsUndoesAndOffersTheBrushBeforeSave(t *testing.T) {
+// Add ground takes one picture of 3 by 2 squares in more than 256 colours:
+// four 8-bit strips the bitmap decoder reads back, 6 frames in all cut in
+// reading order, the first free group, one row of land kind 1 with the
+// picture's name and average colour, as one step. The page lists the game's
+// ten grounds with pictures and no group number. The kind choice is a step;
+// a ground the open map paints is refused deletion naming the map; Delete
+// takes the row and its strips; Undo restores each step; the saved mod loads
+// with the ground.
+func TestTerrainPageAddsAGroundFromOnePicture(t *testing.T) {
 	s, dir := terrainPage(t)
 	before := tree(t, dir)
+	// The fixture's tileset draws some of the game's grounds; each it draws
+	// is the row's picture.
+	game, swatches := 0, s.inspector.terrainSwatches()
+	for _, f := range s.WorkspaceFields(ui.ModTerrainScope) {
+		if i, err := strconv.Atoi(strings.TrimPrefix(f.Key, "game.")); err == nil && f.ReadOnly && f.TextValue != "" && (f.Picture == nil) == (swatches[i] == nil) {
+			game++
+		}
+	}
+	add, ok := terrainField(s, "newground")
+	if game != len(mapedit.Palette) || !ok || !add.Action || !slices.Equal(add.Pick, []string{"png", "bmp"}) || add.Meaning == "" {
+		t.Fatalf("the empty page: %d game grounds, add %+v", game, add)
+	}
+	pic := squaresPicture(3, 2)
+	var sum [3]int
+	for i := 0; i < len(pic.Pix); i += 4 {
+		sum[0], sum[1], sum[2] = sum[0]+int(pic.Pix[i]), sum[1]+int(pic.Pix[i+1]), sum[2]+int(pic.Pix[i+2])
+	}
+	n := len(pic.Pix) / 4
+	average := color.RGBA{uint8((sum[0] + n/2) / n), uint8((sum[1] + n/2) / n), uint8((sum[2] + n/2) / n), 0xff}
 	steps := len(s.undoWorkspace)
-	setTerrain(t, s, "add", "")
-	importStrips(t, s, 13, 2, 0, 1, 2)
-	if groupBrush(s, 13) {
-		t.Fatal("the brush offers a group with three strips")
+	setTerrain(t, s, "newground", groundPNG(t, "Glacier.png", pic))
+	if len(s.undoWorkspace) != steps+1 {
+		t.Fatalf("the add took %d steps", len(s.undoWorkspace)-steps)
 	}
-	importStrips(t, s, 13, 2, 3)
-	if len(s.undoWorkspace) != steps+5 || !groupBrush(s, 13) {
-		t.Fatalf("steps %d, want %d; the brush %+v", len(s.undoWorkspace)-steps, 5, s.BrushTerrains())
+	files := s.workspace.Project.Files
+	frames := 0
+	var palette color.Palette
+	for b, want := range []int{2, 2, 1, 1} {
+		data := files[modStripFile(13, b)]
+		img, err := bmp.DecodePaletted(data)
+		if err != nil || len(data) < 30 || data[28] != 8 {
+			t.Fatalf("strip %d: %v", b, err)
+		}
+		strip, err := terrain.ReadStrip(data)
+		if err != nil || len(strip.SubCells) != want {
+			t.Fatalf("strip %d: %v, want %d frames", b, err, want)
+		}
+		frames += len(strip.SubCells)
+		if palette == nil {
+			palette = img.Palette
+		} else if !slices.Equal(palette, img.Palette) || len(palette) > 256 {
+			t.Fatalf("strip %d has a colour table of its own", b)
+		}
+		// Square i is strip i mod 4, frame i / 4: its top-left pixel.
+		for k := range want {
+			i := b + 4*k
+			at := image.Pt(i%3*terrain.CellSize, i/3*terrain.CellSize)
+			if c := strip.SubCells[k].At(0, 0); !near(c, pic.RGBAAt(at.X, at.Y)) {
+				t.Errorf("strip %d frame %d starts %v, want square %d's %v", b, k, c, i, pic.RGBAAt(at.X, at.Y))
+			}
+		}
 	}
-	if f, ok := terrainField(s, "13.strip.3"); !ok || !strings.Contains(f.Meaning, "2") || len(f.Pick) != 1 {
-		t.Fatalf("the held strip's field %+v", f)
-	}
-	if f, ok := terrainField(s, "13.state"); !ok || !strings.Contains(f.TextValue, "All four") {
-		t.Fatalf("the state of a whole group %+v", f)
-	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
-	}
-	if groupBrush(s, 13) {
-		t.Fatal("the brush keeps the group after the undo of its last strip")
-	}
-	if _, err := s.Redo(); err != nil {
-		t.Fatal(err)
+	rows, err := mod.ParseTerrain("glacier", mod.TerrainFile, files[mod.TerrainFile])
+	if g, ok := rows.Group(13); err != nil || frames != 6 || len(rows.Groups) != 1 || !ok || g.Name != "Glacier" || g.Class != 1 || !g.HasMinimap || g.Minimap != average {
+		t.Fatalf("%d frames; rows %+v, want average %v: %v", frames, rows.Groups, average, err)
 	}
 	if !groupBrush(s, 13) {
-		t.Fatal("the redo did not bring the group back to the brush")
+		t.Fatal("the brush does not offer the new ground")
 	}
-	source, _ := assetFile(t, "again.bmp", stripBMP(terrain.CellSize, 3))
-	_, err := s.SetWorkspaceField(ui.ModTerrainScope, "13.strip.0", source)
-	var ask *ui.WorkspaceConfirmation
-	if !errors.As(err, &ask) || ask.Action != modAssetReplaceKey {
-		t.Fatalf("a held strip: %v", err)
+	for _, f := range s.WorkspaceFields(ui.ModTerrainScope) {
+		if strings.Contains(f.Label, "13") || strings.Contains(f.Group, "13") {
+			t.Fatalf("a field shows the group number: %+v", f)
+		}
 	}
-	if _, err := s.SetWorkspaceField("package", modAssetReplaceKey, "confirmed"); err != nil {
-		t.Fatal(err)
+	if f, ok := terrainField(s, "13.picture"); !ok || f.Picture == nil || f.Group != "Glacier" {
+		t.Fatalf("the ground's picture %+v", f)
 	}
-	if f, _ := terrainField(s, "13.strip.0"); !strings.Contains(f.Meaning, "3") {
-		t.Fatalf("the replaced strip %+v", f)
+	setTerrain(t, s, "13.kind", "9")
+	rows, _ = mod.ParseTerrain("glacier", mod.TerrainFile, s.workspace.Project.Files[mod.TerrainFile])
+	if g, _ := rows.Group(13); g.Class != 9 || len(s.undoWorkspace) != steps+2 {
+		t.Fatalf("the kind: %+v, %d steps", g, len(s.undoWorkspace)-steps)
 	}
+
 	cell := image.Point{X: 20, Y: 20}
 	if _, err := s.Paint(ui.BrushStroke{Plane: ui.BrushPlaneTerrain, Value: mapedit.GroupBrush(13), Cells: []image.Point{cell}}); err != nil {
 		t.Fatal(err)
 	}
-	m, err := s.model.Map()
-	if err != nil || alm.TileGroup(m.Tiles[cell.Y*m.Width+cell.X]) != 13 {
-		t.Fatalf("painted %v", err)
+	_, err = s.SetWorkspaceField(ui.ModTerrainScope, "13.remove", "")
+	if own := s.ownMap(); own == "" || err == nil || !strings.Contains(err.Error(), "Glacier") || !strings.Contains(err.Error(), own) {
+		t.Fatalf("the delete of a painted ground: %v, want the map %q", err, own)
 	}
-	for range 7 {
-		if _, err := s.Undo(); err != nil {
-			t.Fatal(err)
-		}
+	if _, err := s.Undo(); err != nil {
+		t.Fatal(err)
 	}
-	if _, ok := s.workspace.Project.Files[mod.TerrainFile]; ok || groupBrush(s, 13) {
-		t.Fatalf("the undo of every step keeps the group: files %v", keysOf(s.workspace.Project.Files))
+	setTerrain(t, s, "13.remove", "")
+	strip := func(k string) bool {
+		return s.workspace.Project.Files[k] != nil && strings.HasPrefix(k, mod.FilesDir+"/")
+	}
+	if _, ok := s.workspace.Project.Files[mod.TerrainFile]; ok || groupBrush(s, 13) || slices.ContainsFunc(keysOf(s.workspace.Project.Files), strip) {
+		t.Fatalf("the delete left files %v", keysOf(s.workspace.Project.Files))
+	}
+	if _, err := s.Undo(); err != nil {
+		t.Fatal(err)
+	}
+	if f, ok := terrainField(s, "13.kind"); !ok || f.Value != 9 || !groupBrush(s, 13) {
+		t.Fatalf("the undo of the delete: %+v", f)
+	}
+	if _, err := s.Undo(); err != nil {
+		t.Fatal(err)
+	}
+	if f, _ := terrainField(s, "13.kind"); f.Value != 1 {
+		t.Fatalf("the undo of the kind: %+v", f)
+	}
+	if _, err := s.Undo(); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := terrainField(s, "13.name"); ok || groupBrush(s, 13) || len(s.undoWorkspace) != steps {
+		t.Fatal("the undo of the add keeps the ground")
 	}
 	if !slices.Equal(keysOf(before), keysOf(tree(t, dir))) {
 		t.Fatal("the page wrote into the mod folder before a save")
 	}
+	for range 2 {
+		if _, err := s.Redo(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
+	loaded, _, err := checkSnowField(t, dir)
+	g, ok := loaded.Group(13)
+	if err != nil || !ok || g.Class != 9 || g.Frames != [4]int{2, 2, 1, 1} {
+		t.Fatalf("the saved mod loads %+v: %v", loaded.Groups, err)
+	}
+}
+
+// A picture the editor cannot use is refused in the page's words with no
+// draft: a size that is not whole squares, more than 56 squares, bytes that
+// are no picture, no file. A BMP of one square makes four strips of it.
+func TestTerrainPageRefusesAPictureItCannotCut(t *testing.T) {
+	s, _ := terrainPage(t)
+	steps := len(s.undoWorkspace)
+	notPicture, _ := assetFile(t, "notes.png", []byte("not a picture"))
+	for _, c := range []struct{ source, want string }{
+		{groundPNG(t, "wide.png", image.NewRGBA(image.Rect(0, 0, 50, 32))), "50 by 32 pixels"},
+		{groundPNG(t, "many.png", squaresPicture(8, 8)), "64 squares"},
+		{notPicture, "cannot read this picture"},
+		{"", "pick the ground's picture"},
+	} {
+		if _, err := s.SetWorkspaceField(ui.ModTerrainScope, "newground", c.source); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.source, err, c.want)
+		}
+	}
+	if len(s.undoWorkspace) != steps {
+		t.Fatalf("a refusal left %d steps", len(s.undoWorkspace)-steps)
+	}
+	one, _ := assetFile(t, "Moss.bmp", synth.BMP24(squaresPicture(1, 1)))
+	setTerrain(t, s, "newground", one)
+	for b := range 4 {
+		strip, err := terrain.ReadStrip(s.workspace.Project.Files[modStripFile(13, b)])
+		if err != nil || len(strip.SubCells) != 1 {
+			t.Fatalf("strip %d of one square: %v", b, err)
+		}
+	}
+	if f, ok := terrainField(s, "13.name"); !ok || f.TextValue != "Moss" {
+		t.Fatalf("the name %+v", f)
+	}
 }
 
 // A mod made on the page alone saves through the project writer, keeping a
-// hand comment of its terrain file; a group with fewer than four strips is
-// refused at the save in the words of the check. The published mod passes
-// the launch's check, needs no entry file, and a map painted with its group
-// plays under it with the group's land kind.
+// hand comment of its terrain file. The published mod passes the launch's
+// check, needs no entry file, and a map painted with its ground plays under
+// it with the ground's land kind.
 func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 	s, dir := terrainPage(t)
 	made := tree(t, dir)
-	setTerrain(t, s, "add", "")
-	setTerrain(t, s, "13.name", "Glacier")
+	setTerrain(t, s, "newground", groundPNG(t, "Glacier.png", squaresPicture(3, 2)))
 	setTerrain(t, s, "13.kind", "8")
-	importStrips(t, s, 13, 2, 0, 1, 2, 3)
-	setTerrain(t, s, "add", "")
-	importStrips(t, s, 14, 1, 0, 1)
-
-	whole := filepath.Join(t.TempDir(), "authored-map")
-	for name, b := range made {
-		writeFileAll(t, filepath.Join(whole, filepath.FromSlash(name)), []byte(b))
-	}
-	for name, b := range s.workspace.Project.Files {
-		if b != nil {
-			writeFileAll(t, filepath.Join(whole, filepath.FromSlash(name)), b)
-		}
-	}
-	_, _, check := checkSnowField(t, whole)
-	if check == nil {
-		t.Fatal("the check takes a group with two strips")
-	}
-	if _, err := s.SaveIntoMod(); err == nil || !strings.Contains(err.Error(), check.Error()) {
-		t.Fatalf("the save of a group with two strips: %v, want the check's %q", err, check)
-	}
-	setTerrain(t, s, "14.remove", "")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +277,7 @@ func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 	}
 	want := append(keysOf(made), mod.TerrainFile)
 	for b := range 4 {
-		want = append(want, mod.FilesDir+"/"+mod.CommonFiles+"/"+terrain.GroupStripPath(13, b))
+		want = append(want, modStripFile(13, b))
 	}
 	slices.Sort(want)
 	if got := keysOf(saved); !slices.Equal(got, want) {
@@ -245,11 +288,11 @@ func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 	rows := filepath.Join(dir, filepath.FromSlash(mod.TerrainFile))
 	writeFileAll(t, rows, append([]byte("# made on the page\n"), saved[mod.TerrainFile]...))
 	s = openInW(t, s, dir)
-	setTerrain(t, s, "13.minimap", "#a0c0e0")
+	setTerrain(t, s, "13.name", "Ice")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(rows); !strings.HasPrefix(string(b), "# made on the page\n[[group]]\ngroup = 13\n") || !strings.Contains(string(b), "minimap = \"#a0c0e0\"") {
+	if b, _ := os.ReadFile(rows); !strings.HasPrefix(string(b), "# made on the page\n[[group]]\ngroup = 13\n") || !strings.Contains(string(b), `name = "Ice"`) {
 		t.Fatalf("the terrain file after the second save:\n%s", b)
 	}
 
@@ -301,7 +344,7 @@ func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 	}
 	planes, present := f.live.world.SavedCellPlanes()
 	if !present || planes.Static[20*256+20] != 1 {
-		t.Fatal("the group's mountain kind did not reach the cell's planes")
+		t.Fatal("the ground's mountain kind did not reach the cell's planes")
 	}
 	for range 10 {
 		f.live.tick()
@@ -313,39 +356,17 @@ func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 func stripBytes(dir string, g int) [4][]byte {
 	var out [4][]byte
 	for b := range 4 {
-		out[b], _ = os.ReadFile(filepath.Join(dir, filepath.FromSlash(mod.FilesDir+"/"+mod.CommonFiles+"/"+terrain.GroupStripPath(g, b))))
+		out[b], _ = os.ReadFile(filepath.Join(dir, filepath.FromSlash(modStripFile(g, b))))
 	}
 	return out
-}
-
-// wholeSavedGroup is a page with group 13 whole in the saved mod folder,
-// strips of 2, 3, 4 and 5 frames, opened again from its folder.
-func wholeSavedGroup(t *testing.T) (*mapInspectionEdits, string, [4][]byte) {
-	t.Helper()
-	s, dir := terrainPage(t)
-	setTerrain(t, s, "add", "")
-	for b := range 4 {
-		importStrips(t, s, 13, 2+b, b)
-	}
-	if _, err := s.SaveIntoMod(); err != nil {
-		t.Fatal(err)
-	}
-	strips := stripBytes(dir, 13)
-	for b, data := range strips {
-		if data == nil {
-			t.Fatalf("the save wrote no strip %d", b)
-		}
-	}
-	// A mod opened from its folder holds its strips only as files there.
-	return openInW(t, s, dir), dir, strips
 }
 
 // groupWhole fails the test unless the page reads group 13 whole, offers it
 // to the brush, and a save writes the strips want.
 func groupWhole(t *testing.T, s *mapInspectionEdits, dir string, want [4][]byte) {
 	t.Helper()
-	if f, ok := terrainField(s, "13.state"); !ok || !strings.Contains(f.TextValue, "All four") {
-		t.Fatalf("the state of the group %+v", f)
+	if _, ok := terrainField(s, "13.state"); ok {
+		t.Fatal("the page says the ground is not ready")
 	}
 	if !groupBrush(s, 13) {
 		t.Fatal("the brush does not offer the group")
@@ -361,17 +382,24 @@ func groupWhole(t *testing.T, s *mapInspectionEdits, dir string, want [4][]byte)
 	}
 }
 
-// Removing a whole group, saving and undoing brings the group back whole
-// with its strips' bytes, and the next save writes them back; the same after
-// a redo and a second undo.
-func TestTerrainPageUndoPastASaveRestoresARemovedGroup(t *testing.T) {
-	s, dir, strips := wholeSavedGroup(t)
+// Deleting a saved ground, saving and undoing brings it back whole with its
+// strips' bytes, and the next save writes them back; the same after a redo
+// and a second undo. A ground the folder holds with a strip missing reads
+// as not ready.
+func TestTerrainPageUndoPastASaveRestoresADeletedGround(t *testing.T) {
+	s, dir := terrainPage(t)
+	setTerrain(t, s, "newground", groundPNG(t, "Glacier.png", groupPictureOf(t)))
+	if _, err := s.SaveIntoMod(); err != nil {
+		t.Fatal(err)
+	}
+	strips := stripBytes(dir, 13)
+	s = openInW(t, s, dir)
 	setTerrain(t, s, "13.remove", "")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
 	if got := stripBytes(dir, 13); slices.ContainsFunc(got[:], func(b []byte) bool { return b != nil }) {
-		t.Fatalf("the save kept strips of the removed group")
+		t.Fatalf("the save kept strips of the deleted ground")
 	}
 	if _, err := s.Undo(); err != nil {
 		t.Fatal(err)
@@ -381,59 +409,23 @@ func TestTerrainPageUndoPastASaveRestoresARemovedGroup(t *testing.T) {
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Redo(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
+	for _, step := range []func() (*ui.InspectionDocument, error){s.Undo, s.Redo, s.Undo} {
+		if _, err := step(); err != nil {
+			t.Fatal(err)
+		}
 	}
 	groupWhole(t, s, dir, strips)
+	if err := os.Remove(filepath.Join(dir, filepath.FromSlash(modStripFile(13, 3)))); err != nil {
+		t.Fatal(err)
+	}
+	s = openInW(t, s, dir)
+	if f, ok := terrainField(s, "13.state"); !ok || f.TextValue == "" {
+		t.Fatalf("a ground with a strip missing %+v", f)
+	}
 }
 
-// Replacing strip 2 of a whole group, saving and undoing shows the old strip
-// and the next save writes the old bytes; the same after a redo and a second
-// undo.
-func TestTerrainPageUndoPastASaveRestoresAReplacedStrip(t *testing.T) {
-	s, dir, strips := wholeSavedGroup(t)
-	source, _ := assetFile(t, "new.bmp", stripBMP(terrain.CellSize, 7))
-	if _, err := s.SetWorkspaceField(ui.ModTerrainScope, "13.strip.1", source); err == nil {
-		t.Fatal("a held strip is replaced without asking")
-	}
-	if _, err := s.SetWorkspaceField("package", modAssetReplaceKey, "confirmed"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.SaveIntoMod(); err != nil {
-		t.Fatal(err)
-	}
-	if got := stripBytes(dir, 13); bytes.Equal(got[1], strips[1]) {
-		t.Fatal("the save kept the old strip")
-	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
-	}
-	if f, _ := terrainField(s, "13.strip.1"); !strings.Contains(f.Meaning, "3 frames") {
-		t.Fatalf("the strip after the undo %+v", f)
-	}
-	groupWhole(t, s, dir, strips)
-	if _, err := s.Redo(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
-	}
-	groupWhole(t, s, dir, strips)
-}
-
-// A minimap colour the loader refuses is refused naming its group and the
-// loader's reason.
-func TestTerrainPageRefusesAMinimapColourInTheLoadersWords(t *testing.T) {
-	s, _ := terrainPage(t)
-	setTerrain(t, s, "add", "")
-	_, err := s.SetWorkspaceField(ui.ModTerrainScope, "13.minimap", "#abcdeg")
-	if err == nil || !strings.Contains(err.Error(), "group 13") || !strings.Contains(err.Error(), `"#rrggbb"`) || strings.Contains(err.Error(), "ParseUint") {
-		t.Fatalf("the refusal %v", err)
-	}
+// groupPictureOf is a picture of 2 by 2 squares.
+func groupPictureOf(t *testing.T) image.Image {
+	t.Helper()
+	return squaresPicture(2, 2)
 }

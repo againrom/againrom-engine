@@ -330,6 +330,7 @@ func TestRecordPickedAfterABoxCopiesAsRecords(t *testing.T) {
 	pick := map[string]func(e *MapEditor){
 		"click": func(e *MapEditor) {
 			e.ShowCell(image.Pt(30, 30))
+			standAside(t, e)
 			now := time.Unix(2, 0)
 			p := e.CellPoint(image.Pt(30, 30))
 			e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)
