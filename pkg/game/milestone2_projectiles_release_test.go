@@ -182,6 +182,7 @@ func projectile1162MovedCorpseApp(t *testing.T, raw []byte) {
 		t.Fatal("loss control: a SAV with Prj266/actionx altered still matches")
 	}
 	for _, front := range []*FrontEnd{f, fresh} {
+		front.live.world.SetRandom(front.live.world.RandomMode(), 0xa9d063d26b04598e)
 		placeCorpse(front, 83, 111, 84, 113)
 		front.live.tick()
 		check(front, 20719, 28613, 2, 4, 1, 21632, 29056)

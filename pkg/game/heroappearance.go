@@ -35,9 +35,8 @@ const (
 //
 // A loaded list's name no arm matches keeps the class held before: in play
 // the stored one, else the creation class 1, or 23 for a mage (HERO-190). A
-// held body at decay stage 1 holds 1, or 24 for a mage; past it, in play he
-// keeps his stored class and at creation his slots derive it (HERO-191). The
-// body follows the slots throughout.
+// held body at decay stage 1 holds 1, or 24 for a mage (HERO-191); past it,
+// in play he keeps his stored one. The body follows the slots throughout.
 func heroAppearance(w *sim.World, id sim.EntityID, member mapload.PartyMember, list data.BodyList, at heroMoment) heroLook {
 	var look heroLook
 	var eq data.Equipment
@@ -60,7 +59,9 @@ func heroAppearance(w *sim.World, id sim.EntityID, member mapload.PartyMember, l
 		held = actor.Class
 	}
 	switch {
-	case look.Held && actor.Decay == sim.DecayFallen:
+	// Created past stage 1, he holds it too; HERO-191 derives it from
+	// slots. A loaded state equals the live one (DIV-4969).
+	case look.Held && actor.Decay != sim.DecayNone && (actor.Decay == sim.DecayFallen || at == heroCreated):
 		look.Class, _ = data.HeroBodyClass(data.HeroBodyName(data.BodyUnarmed, false, member.Mage, true))
 	case look.Held && actor.Decay != sim.DecayNone && at == heroInPlay:
 		look.Class = actor.Class

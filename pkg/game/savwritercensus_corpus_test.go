@@ -466,18 +466,18 @@ func writerCensusSackCell(r *sackByteRecord) [2]int32 {
 	return [2]int32{int32(b[2]), int32(b[3])}
 }
 
-// writerCensusSacks compares the written Sacks with the original's. An
-// original sack joins a written one on cell and runtime id and every field is
-// compared. Every contained item record is compared field by field with the
-// original record of the same class and Identity key; a record with a new key
-// must be split off an original stack whose other fields it repeats, with the
-// count conserved. An original sack absent from the written file is a
-// mismatch unless it is the one the party picked up. A written sack with no
-// original is constructed by the session and must carry a nonzero runtime id
-// no other record holds (MOVE-ID-016) and mask 2 at Token+0x18 (SAV-655).
-// verified records the item fields whose changes a rule confirmed, and
-// whether every sack's ITEM-SACK-010 value rests on item values equal to the
-// original's.
+// writerCensusSacks compares the written Sacks with the original's. A sack
+// joins the original of its cell and runtime id field by field. Each item
+// record a sack holds is compared with the original of its class and Identity
+// key; a record with a new key must be split off an original stack whose
+// other fields it repeats, with the count conserved. An original sack absent
+// from the written file is a mismatch unless the party picked it up; the
+// pick-up freed its runtime id (SAV-1370), so any written sack in its cell has
+// no original. A written sack with no original is constructed by the session
+// and must carry a nonzero runtime id no other record holds (MOVE-ID-016) and
+// mask 2 at Token+0x18 (SAV-655). verified records the item fields a rule
+// confirmed and whether each ITEM-SACK-010 value rests on original item
+// values.
 func writerCensusSacks(before, after sackByteSource, origDoc, writtenDoc *sav.DocumentData, w writerCensusWrite, mismatch map[string][]string, fields map[string]int, verified map[string]bool) {
 	type key struct {
 		cell [2]int32
@@ -548,7 +548,7 @@ func writerCensusSacks(before, after sackByteSource, origDoc, writtenDoc *sav.Do
 			continue
 		}
 		k := key{writerCensusSackCell(r), r.values["RuntimeID"]}
-		if old := origSacks[k]; old != nil {
+		if old := origSacks[k]; old != nil && !(w.pickedDone && k.cell == w.picked) {
 			matched[k] = true
 			for name, v := range r.values {
 				if old.values[name] != v {

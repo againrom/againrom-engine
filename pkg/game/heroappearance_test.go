@@ -150,8 +150,8 @@ func deadHeroMission(t *testing.T, e sim.Entity, member mapload.PartyMember, wor
 }
 
 // At mission open, the open after a LOAD, a hero dead at stage 1 holds 1, or
-// 24 for a mage, whatever he wears; one at stage 2 to 4 takes the class his
-// slots derive (HERO-191). The record's body follows the slots.
+// 24 for a mage, whatever he wears (HERO-191); one at stage 2 to 4 holds it
+// too (DIV-4969). The record's body follows the slots.
 func TestADeadHeroClassAtMissionOpenFollowsHisStage(t *testing.T) {
 	var sword [sim.EquipSlots]uint16
 	sword[0] = appearanceCode(equipRowSword)
@@ -166,9 +166,9 @@ func TestADeadHeroClassAtMissionOpenFollowsHisStage(t *testing.T) {
 		want  int32
 	}{
 		{"fighter at stage 1", fallen, 3, false, sword, 1},
-		{"fighter at stage 2", bones, 1, false, sword, 3},
+		{"fighter at stage 2", bones, 3, false, sword, 1},
 		{"mage at stage 1", fallen, 23, true, [sim.EquipSlots]uint16{}, 24},
-		{"mage at stage 2", bones, 24, true, [sim.EquipSlots]uint16{}, 23},
+		{"mage at stage 2", bones, 23, true, [sim.EquipSlots]uint16{}, 24},
 	} {
 		tc.body.Class = tc.class
 		mw, ms := deadHeroMission(t, tc.body, mapload.PartyMember{Mage: tc.mage}, tc.worn)
