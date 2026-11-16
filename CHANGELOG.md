@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.
+
 ## 0.156.0
 
 ### For players

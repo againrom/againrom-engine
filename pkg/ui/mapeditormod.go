@@ -756,7 +756,8 @@ func (e *MapEditor) modPress(p image.Point) bool {
 	if !e.modWindow {
 		return false
 	}
-	s, _, _ := e.modSpec()
+	// The press hits the window as drawn, after the room has stood it.
+	s, _, _ := e.objectSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())
 	part, n := l.hit(p)
 	if part == popupClose {

@@ -119,6 +119,10 @@ var modScopePages = []struct {
 	scope string
 }{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageItems, ModItemsScope}, {modPageFiles, ModFilesScope}}
 
+// modHeldPages are the pages of modScopePages kept out of W: no tab or key
+// reaches them.
+var modHeldPages = []int{modPageFiles}
+
 // modPageScope is the workspace scope of W's page n, "" for a page that
 // holds no fields of a scope of its own.
 func modPageScope(n int) string {
@@ -143,7 +147,7 @@ func (e *MapEditor) modPages() []int {
 	}
 	if host, ok := e.workspace(); ok {
 		for _, p := range modScopePages {
-			if len(host.WorkspaceFields(p.scope)) > 0 {
+			if !slices.Contains(modHeldPages, p.page) && len(host.WorkspaceFields(p.scope)) > 0 {
 				pages = append(pages, p.page)
 			}
 		}

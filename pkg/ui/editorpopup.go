@@ -845,8 +845,8 @@ func rowHasControl(row popupRow) bool {
 //   - a row whose own buttons do not fit beside its label and a field of
 //     popupFitField puts them on lines of their own under it.
 //
-// With Fit set also the tabs take as many lines as keep every caption
-// whole, and the card stands above the rows when cardOnTop says so.
+// The tabs of every popup take as many lines as keep every caption whole.
+// With Fit set the card stands above the rows when cardOnTop says so.
 func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	f := popupFlow{tabsPerLine: len(s.Tabs), rowExtra: make([]int, len(s.Rows)), labelOver: make([]bool, len(s.Rows))}
 	if len(s.Tabs) > 0 {
@@ -868,6 +868,22 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	} else if len(ws) > 0 {
 		f.buttonLine, f.buttonLines = flowLines(ws, popupPad, inner, 0)
 	}
+	// The tabs take as many lines as keep every caption whole.
+	if body != nil {
+		for f.tabsPerLine > 1 {
+			share, whole := inner/f.tabsPerLine, true
+			for _, t := range s.Tabs {
+				whole = whole && body.Advance(t)+16 <= share
+			}
+			if whole {
+				break
+			}
+			f.tabsPerLine--
+		}
+	}
+	if f.tabsPerLine > 0 {
+		f.tabLines = (len(s.Tabs) + f.tabsPerLine - 1) / f.tabsPerLine
+	}
 	columns := max(1, s.Columns)
 	if !s.Fit && columns == 1 {
 		return f
@@ -875,21 +891,6 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 	aside := cardAside(s)
 	if s.Fit {
 		f.cardTop = s.Card != nil && (s.CardBelow || cardOnTop(w, aside))
-		if body != nil {
-			for f.tabsPerLine > 1 {
-				share, whole := inner/f.tabsPerLine, true
-				for _, t := range s.Tabs {
-					whole = whole && body.Advance(t)+16 <= share
-				}
-				if whole {
-					break
-				}
-				f.tabsPerLine--
-			}
-		}
-		if f.tabsPerLine > 0 {
-			f.tabLines = (len(s.Tabs) + f.tabsPerLine - 1) / f.tabsPerLine
-		}
 	}
 	rowW := inner
 	if s.MaxRows > 0 && (columns == 1 || popupRowCount(s) > s.MaxRows) {
@@ -911,7 +912,7 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 		for i, row := range s.Rows {
 			if rowHasControl(row) && !row.placed() {
 				c, _ := popupRowPosition(s, i)
-				need[c] = max(need[c], body.Advance(row.Label)+8)
+				need[c] = max(need[c], body.Advance(row.Label)+8+helpMarkW(row, pitch))
 			}
 		}
 	}
@@ -926,7 +927,7 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 		}
 		c, _ := popupRowPosition(s, i)
 		labelW := f.columnLabelW[c]
-		if rowHasControl(row) && row.Label != "" && body != nil && body.Advance(row.Label)+8 > labelW {
+		if rowHasControl(row) && row.Label != "" && body != nil && body.Advance(row.Label)+8+helpMarkW(row, pitch) > labelW {
 			f.labelOver[i], f.rowExtra[i] = true, 1
 		}
 		bws := rowButtonWidths(s, row, body, pitch)
@@ -952,6 +953,14 @@ func popupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 		}
 	}
 	return f
+}
+
+// helpMarkW is the width a row's (?) mark takes from the end of its label.
+func helpMarkW(row popupRow, pitch int) int {
+	if row.Help == "" || row.placed() {
+		return 0
+	}
+	return pitch
 }
 
 // cardBand is the height the card takes above or under the rows, 0 while it

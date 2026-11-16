@@ -18,21 +18,23 @@ func (h filesHost) WorkspaceFields(scope string) []InspectionField {
 	return h.modesWorkspace.WorkspaceFields(scope)
 }
 
-// W shows the files page as a tab while the host gives its fields, and a
-// field of that page edits the files scope.
-func TestModWindowShowsTheFilesPageOfItsHost(t *testing.T) {
+// W holds the files page back: the host gives its fields and W shows no tab
+// for them, and no key or tab step reaches the page.
+func TestModWindowHoldsTheFilesPageBack(t *testing.T) {
 	e, _ := newModesEditor(t, "workspace")
 	e.doc.Edits = filesHost{e.doc.Edits.(*modesWorkspace)}
 	_ = e.Key("package")
-	tabs, _ := e.modTabs()
-	if len(tabs) != 2 || tabs[1] != "Files" {
+	if tabs, _ := e.modTabs(); len(tabs) != 0 {
 		t.Fatalf("tabs %v", tabs)
 	}
-	e.turnModPage(1)
-	if e.modPage != modPageFiles || e.modFieldScope() != ModFilesScope {
+	if e.modPages()[len(e.modPages())-1] == modPageFiles || e.turnModPage(1) {
+		t.Fatal("the files page is reachable")
+	}
+	_ = e.Key("package")
+	if e.modPage == modPageFiles || e.modFieldScope() == ModFilesScope {
 		t.Fatalf("page %d scope %q", e.modPage, e.modFieldScope())
 	}
-	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "Replace in COMMON") {
-		t.Fatalf("the files page lacks its fields:\n%s", lines)
+	if lines := strings.Join(e.PopupLines(), "|"); strings.Contains(lines, "Replace in COMMON") {
+		t.Fatalf("the files page shows: %s", lines)
 	}
 }
