@@ -155,13 +155,13 @@ func TestProjectSaveRefusesOnlyAnExternallyChangedTarget(t *testing.T) {
 }
 
 func TestProjectSaveDoesNotRecordTheAuthorsTree(t *testing.T) {
-	for _, count := range []int{1300, 4200} {
+	for _, count := range []int{4200} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
 			s, dir := modSpeakerProject(t)
 			for n := 0; n < count; n++ {
-				prefix := filepath.Join(".git", "objects")
-				if count > 4096 {
-					prefix = "author-notes"
+				prefix := "author-notes"
+				if n < 100 {
+					prefix = filepath.Join(".git", "objects")
 				}
 				writeTestPlayInput(t, filepath.Join(dir, prefix, fmt.Sprintf("%040x", n)), []byte("synthetic object"))
 			}

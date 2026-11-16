@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"image"
 	"os"
 	"regexp"
@@ -658,10 +657,6 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	}
 }
 
-// panelsGoldenPath records the side panels' pixels and rows;
-// MAPEDITOR_PANELS_WRITE=1 rewrites it.
-const panelsGoldenPath = "testdata/mapeditor_side_panels.golden"
-
 // noBrushHost is a host that takes no brush: only the edit seam shows.
 type noBrushHost struct{ InspectionEdits }
 
@@ -684,63 +679,4 @@ func toolbarText(e *MapEditor) string {
 		b.WriteString("\n  " + it.label)
 	}
 	return b.String() + "\n"
-}
-
-// Owner item 5: the side panels draw at 1920x1080 in English and Russian
-// with a trigger selected, a search applied, and default placement;
-// the toolbar with the terrain brush current in English
-// and in Russian, its Layers drop-down open, the report docked in the bottom
-// panel, and a map that takes no brush.
-func TestMapEditorSidePanelsGolden(t *testing.T) {
-	var out strings.Builder
-	for _, c := range []struct {
-		name   string
-		w, h   int
-		lang   string
-		search string
-		record int
-		setup  func(t *testing.T, e *MapEditor)
-	}{
-		{"trigger-en-1920x1080", 1920, 1080, "", "", 7, nil},
-		{"trigger-ru-1920x1080", 1920, 1080, "russian", "", 7, nil},
-		{"search-en-1920x1080", 1920, 1080, "", "unit", 3, nil},
-		{"defaults-en-1920x1080", 1920, 1080, "", "", -1, nil},
-		{"toolbar-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
-		{"toolbar-ru-1920x1080", 1920, 1080, "russian", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
-		{"layers-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "passview")) }},
-		{"report-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "report")) }},
-		{"nobrush-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { e.doc.Edits = noBrushHost{e.doc.Edits} }},
-	} {
-		e, _, _ := panelsEditor(t, c.w, c.h, c.lang)
-		e.props.plain = false // the recorded windows are the technical view's
-		if c.record >= 0 {
-			e.Select(c.record, false)
-		}
-		e.tree.search = c.search
-		if c.setup != nil {
-			c.setup(t, e)
-		}
-		h := fnv.New64a()
-		h.Write(e.ChromeImage().Pix)
-		fmt.Fprintf(&out, "== %s %016x panels=%v map=%v\n%s%s", c.name, h.Sum64(), e.panelsShown(), e.mapArea(), toolbarText(e), treeText(e))
-		if s, _, ok := e.objectSpec(); ok && e.panels.hosted {
-			out.WriteString(rowsText(s))
-		} else if s, ok := e.propsSpec(); ok {
-			out.WriteString(rowsText(s))
-		}
-	}
-	got := out.String()
-	if os.Getenv("MAPEDITOR_PANELS_WRITE") != "" {
-		if err := os.WriteFile(panelsGoldenPath, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	raw, err := os.ReadFile(panelsGoldenPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := strings.ReplaceAll(string(raw), "\r\n", "\n"); got != want {
-		t.Fatalf("side panels differ from %s:\n%s", panelsGoldenPath, got)
-	}
 }

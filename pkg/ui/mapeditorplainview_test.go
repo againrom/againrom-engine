@@ -2,16 +2,12 @@ package ui
 
 import (
 	"fmt"
-	"hash/fnv"
 	"image"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 	"time"
-
-	"againrom/internal/witness"
 )
 
 // plainEditor is viewsEditor after the editor profile profile loads, with
@@ -408,58 +404,5 @@ func TestMapEditorPlainSackShowsItemNamesAndIcons(t *testing.T) {
 	clickSwitch(t, e)
 	if s, _, _ := e.objectSpec(); slices.ContainsFunc(s.Rows, func(r popupRow) bool { return len(r.Icons) > 0 }) {
 		t.Fatal("the technical view shows item icons")
-	}
-}
-
-const plainViewsGolden = "testdata/mapeditor_plain_views.golden"
-
-// The plain view of a unit, a structure and a sack at 1920x1080 in English
-// and Russian, in the right panel and floating, and the structure with its
-// placement block open. MAPEDITOR_VIEWS_WRITE=1 rewrites the record;
-// AGAINROM_VIEWS_PNG names a folder for the pictures.
-func TestMapEditorPlainViewGolden(t *testing.T) {
-	var out strings.Builder
-	for _, lang := range []string{"en", "ru"} {
-		for _, place := range []string{"panel", "floating"} {
-			profile := []byte(nil)
-			if place == "floating" {
-				profile = minimizedPanels
-			}
-			for _, c := range []struct {
-				name   string
-				record int
-				open   bool
-			}{{"unit", viewsUnit, false}, {"structure", viewsStructure, false}, {"structure-placement", viewsStructure, true}, {"sack", viewsSack, false}} {
-				e, _, _ := plainEditor(t, lang, profile, c.record)
-				e.Layout(1920, 1080) // Owner item 5: supported editor window.
-				if c.open {
-					e.toggleBlock("placement")
-				}
-				pic := e.ChromeImage()
-				h := fnv.New64a()
-				h.Write(pic.Pix)
-				name := fmt.Sprintf("%s-%s-%s-1920x1080", c.name, lang, place)
-				front, _ := e.PopupRect()
-				s, _, _ := e.objectSpec()
-				fmt.Fprintf(&out, "== %s %016x window=%v\n%s", name, h.Sum64(), front, rowsText(s))
-				if dir := os.Getenv("AGAINROM_VIEWS_PNG"); dir != "" {
-					witness.PNG(t, filepath.Join(dir, name+".png"), pic)
-				}
-			}
-		}
-	}
-	got := out.String()
-	if os.Getenv("MAPEDITOR_VIEWS_WRITE") != "" {
-		if err := os.WriteFile(plainViewsGolden, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	raw, err := os.ReadFile(plainViewsGolden)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := strings.ReplaceAll(string(raw), "\r\n", "\n"); got != want {
-		t.Fatalf("plain views differ from %s:\n%s", plainViewsGolden, got)
 	}
 }

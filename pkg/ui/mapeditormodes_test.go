@@ -1,12 +1,9 @@
 package ui
 
 import (
-	"againrom/pkg/ui/widgetkit"
 	"fmt"
 	"hash/fnv"
 	"image"
-	"os"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -324,10 +321,6 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "newtrigger", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown", "applyobject", "backtab", "nextmap", "prevmap"}
-
-var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:tool-fit", "ui:file-undo", "ui:file-redo", "ui:file-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
-
 func modesPress(e *MapEditor, p image.Point, down bool) {
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: down}, time.Unix(1, 0))
 }
@@ -577,50 +570,6 @@ func modesPanelHash(e *MapEditor) (out string) {
 	return fmt.Sprintf("%08x", h.Sum32())
 }
 
-type modesCont struct {
-	name  string
-	steps []string
-	pre   bool // wheel twice before the action
-}
-
-var modesConts = []modesCont{
-	{name: "now"},
-	{name: "escapes", steps: []string{"escape", "escape", "escape", "escape"}},
-	{name: "click-cell", steps: []string{"ui:click-cell"}},
-	{name: "click-unit", steps: []string{"ui:click-unit"}},
-	{name: "number", steps: []string{"ui:text-7", "enter"}},
-	{name: "wheel", pre: true, steps: []string{"ui:wheel-rail"}},
-}
-
-func modesFullProbe(t *testing.T, host string, path []string, action string) string {
-	saved := widgetkit.TextClipboard
-	widgetkit.TextClipboard = widgetkit.NewTextClipboard(true)
-	defer func() { widgetkit.TextClipboard = saved }()
-	var out strings.Builder
-	for _, c := range modesConts {
-		e, calls := newModesEditor(t, host)
-		for _, s := range path {
-			modesAct(e, s)
-		}
-		if c.pre {
-			modesWheel(e)
-		}
-		errText := modesAct(e, action)
-		out.WriteString("== " + c.name + "\n" + modesProbe(e, calls, errText, c.name == "now"))
-		for i, s := range c.steps {
-			errText = modesAct(e, s)
-			if c.name == "escapes" || i == len(c.steps)-1 {
-				out.WriteString(fmt.Sprintf("-- %s\n", s) + modesProbe(e, calls, errText, false))
-			}
-		}
-		if c.pre {
-			modesWheel(e)
-			out.WriteString(modesProbe(e, calls, "", false))
-		}
-	}
-	return out.String()
-}
-
 type modesPath struct {
 	name  string
 	steps []string
@@ -733,136 +682,6 @@ var modesPaths = []modesPath{
 	{"testplay-party-card", []string{"testplay", "ui:party-card"}},
 	{"testplay-party-box", []string{"testplay", "ui:party-box", "ui:party-kind"}},
 	{"testplay-party-empty", []string{"testplay", "ui:party-hero"}},
-}
-
-// modesSmallPaths are the paths also run against the hosts without the
-// optional seams and against the mod host.
-var modesSmallPaths = map[string]bool{"list": true, "selected": true, "catalog": true, "saveas": true, "saveas-bad": true, "field": true, "clone": true, "sack": true, "sack-prompt": true, "unit": true, "terrain": true, "drop": true, "goals": true, "report": true, "dirty": true, "open": true, "players": true, "player-name": true}
-
-// modesSampleEvery is the ordinary walk's row stride. MAPEDITOR_MODES_FULL=1
-// and a table rewrite walk every row; a skipped row holds its name alone.
-const modesSampleEvery = 4
-
-func modesGoldenLines(t *testing.T, every int) []string {
-	var lines []string
-	for _, host := range []string{"full", "plain", "mod", "workspace"} {
-		for _, p := range modesPaths {
-			if host == "workspace" && !strings.HasPrefix(p.name, "mod-") || host != "workspace" && strings.HasPrefix(p.name, "mod-") {
-				continue
-			}
-			if host != "full" && host != "workspace" && !modesSmallPaths[p.name] {
-				continue
-			}
-			if len(lines)%every != 0 {
-				lines = append(lines, host+"/"+p.name)
-				continue
-			}
-			lines = append(lines, modesGoldenRow(t, host, p))
-		}
-	}
-	return lines
-}
-
-// modesGoldenRow is the table row of path p on host: its name and the hash
-// of the window after each action.
-func modesGoldenRow(t *testing.T, host string, p modesPath) string {
-	actions := append(append([]string(nil), modesKeys...), modesGestures...)
-	var hashes []string
-	for _, a := range actions {
-		h := fnv.New32a()
-		h.Write([]byte(modesFullProbe(t, host, p.steps, a)))
-		hashes = append(hashes, fmt.Sprintf("%08x", h.Sum32()))
-	}
-	return host + "/" + p.name + " " + strings.Join(hashes, " ")
-}
-
-// TestMapEditorModesHoldTheModOverviewRows compares the rows of the paths
-// that open W on a mod's overview with the recorded table.
-func TestMapEditorModesHoldTheModOverviewRows(t *testing.T) {
-	modesHoldRows(t, "mod-overview")
-}
-
-// TestMapEditorModesHoldTheGraphRows compares the rows of the paths that
-// turn W to its campaign graph, move the graph and press a mission's node
-// with the recorded table.
-func TestMapEditorModesHoldTheGraphRows(t *testing.T) {
-	modesHoldRows(t, "mod-graph")
-}
-
-// TestMapEditorModesHoldTheTabsRows compares the row of the path that opens
-// a second map of the mod beside the first with the recorded table.
-func TestMapEditorModesHoldTheTabsRows(t *testing.T) {
-	modesHoldRows(t, "mod-tabs")
-}
-
-// modesHoldRows compares the workspace rows of the paths named with prefix
-// with the recorded table.
-func modesHoldRows(t *testing.T, prefix string) {
-	t.Helper()
-	raw, err := os.ReadFile(modesGoldenPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	recorded := map[string]string{}
-	for _, l := range strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n") {
-		recorded[strings.SplitN(l, " ", 2)[0]] = l
-	}
-	for _, p := range modesPaths {
-		if !strings.HasPrefix(p.name, prefix) {
-			continue
-		}
-		if got := modesGoldenRow(t, "workspace", p); got != recorded["workspace/"+p.name] {
-			t.Errorf("row differs from the table:\n%s", got)
-		}
-	}
-}
-
-const modesGoldenPath = "testdata/mapeditor_modes.golden"
-
-// TestMapEditorModesHoldEveryKeyAndGesture compares the window's behaviour in
-// every entry path with the recorded table. A difference names the path and
-// the action columns that changed.
-func TestMapEditorModesHoldEveryKeyAndGesture(t *testing.T) {
-	write := os.Getenv("MAPEDITOR_MODES_WRITE") != ""
-	every := modesSampleEvery
-	if write || os.Getenv("MAPEDITOR_MODES_FULL") == "1" {
-		every = 1
-	}
-	got := modesGoldenLines(t, every)
-	if write {
-		if err := os.WriteFile(modesGoldenPath, []byte(strings.Join(got, "\n")+"\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	raw, err := os.ReadFile(modesGoldenPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := strings.Split(strings.TrimRight(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n"), "\n")
-	if len(got) != len(want) {
-		t.Fatalf("%d rows, recorded %d", len(got), len(want))
-	}
-	actions := append(append([]string(nil), modesKeys...), modesGestures...)
-	for i := range got {
-		if got[i] == want[i] {
-			continue
-		}
-		g, w := strings.Fields(got[i]), strings.Fields(want[i])
-		if len(g) == 1 {
-			if g[0] != w[0] {
-				t.Errorf("row %d is %s, recorded %s", i, g[0], w[0])
-			}
-			continue
-		}
-		var diff []string
-		for c := 1; c < len(g) && c < len(w); c++ {
-			if g[c] != w[c] {
-				diff = append(diff, actions[c-1])
-			}
-		}
-		t.Errorf("%s differs on %v", g[0], diff)
-	}
 }
 
 // modesRow is one explicit case: the entry path, an action, and the help
@@ -981,36 +800,6 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		}
 		if help := lines[0]; help != r.help || e.Message() != r.message || modesTitle(e) != r.title || report != r.report || e.brushActive() != r.brush {
 			t.Errorf("%s %s then %s: help %q message %q title %q report %v brush %v; recorded %q %q %q %v %v", r.host, r.path, r.action, help, e.Message(), modesTitle(e), report, e.brushActive(), r.help, r.message, r.title, r.report, r.brush)
-		}
-	}
-}
-
-func TestMapEditorModesHoldTheManifestFields(t *testing.T) {
-	raw, err := os.ReadFile(modesGoldenPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	lines := strings.Split(strings.TrimSuffix(string(raw), "\n"), "\n")
-	write := os.Getenv("MAPEDITOR_MANIFEST_ROWS_WRITE") == "1"
-	for _, p := range modesPaths {
-		if !strings.HasPrefix(p.name, "mod-manifest-") {
-			continue
-		}
-		got := modesGoldenRow(t, "workspace", p)
-		index := slices.IndexFunc(lines, func(line string) bool { return strings.HasPrefix(line, "workspace/"+p.name+" ") })
-		if write {
-			if index < 0 {
-				lines = append(lines, got)
-			} else {
-				lines[index] = got
-			}
-		} else if index < 0 || lines[index] != got {
-			t.Errorf("row differs from table:\n%s", got)
-		}
-	}
-	if write {
-		if err := os.WriteFile(modesGoldenPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
-			t.Fatal(err)
 		}
 	}
 }

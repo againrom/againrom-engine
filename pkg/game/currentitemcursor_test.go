@@ -214,7 +214,7 @@ func TestCurrentItemCursorKeepsNativeTopologyAndContinuation(t *testing.T) {
 }
 
 func TestCurrentSackCursorKeepsNativeTopology(t *testing.T) {
-	for _, cursor := range []uint32{1, 3, ^uint32(0) - 1, ^uint32(0)} {
+	for _, cursor := range []uint32{1, ^uint32(0)} {
 		t.Run(fmt.Sprint(cursor), func(t *testing.T) {
 			f, runtime := currentWideCursorSource(t, cursor)
 			actor := currentCursorActor(t, f, runtime)

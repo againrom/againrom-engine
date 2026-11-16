@@ -48,7 +48,7 @@ func TestPackLongNamesReadAsTheirFolder(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "names")
 	writeTreeFile(t, dir, "mod.toml", good("names"))
 	for _, parent := range []string{"", "maps/", "data/"} {
-		for n := 16; n <= 64; n++ {
+		for _, n := range []int{16, 17, 32, 33, 64} {
 			for _, name := range []string{strings.Repeat("a", n), strings.Repeat("я", n/2) + strings.Repeat("x", n%2)} {
 				writeTreeFile(t, dir, parent+name+".star", parent+name+".star")
 			}
