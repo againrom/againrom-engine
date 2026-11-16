@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.156.0
+
 ### For players
 
 - [ROM1] A withdrawing or retreating unit now measures a large enemy from its corner cell when it picks where to flee, a unit stepping north-east or south-west enters the next cell on both axes at once, and a spell cast given while a loaded game's unit is between cells waits for its step to end, all as the original does.
