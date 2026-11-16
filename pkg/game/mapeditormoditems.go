@@ -3,21 +3,24 @@ package game
 import (
 	"bytes"
 	"fmt"
-	"maps"
-	"path"
+	"image"
+	"image/draw"
 	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"againrom/pkg/data"
+	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 )
 
 // The items page's keys: a record's field is "<record>.<id>.<field>", the
 // record being an added "item" or "weapon" row by its key or a "change" or
-// "material" by its place in the file; the "new." fields add a record.
+// "material" by its place in the file; the "new." fields add a record from
+// the install item chosen.
 const (
 	itemsNewArmour   = "new.armour"
 	itemsNewWeapon   = "new.weapon"
@@ -30,6 +33,175 @@ var itemSuits = []struct {
 	suit int32
 	word string
 }{{mod.SuitAny, "editor.items.for.any"}, {mod.SuitFighter, "editor.items.for.fighter"}, {mod.SuitMage, "editor.items.for.mage"}}
+
+// itemNumberWords are the labels of an added armour row's numbers, which a
+// refused number names.
+var itemNumberWords = map[string]string{"defence": "editor.items.defence", "absorption": "editor.items.absorption",
+	"weight": "editor.items.weight", "price": "editor.items.price"}
+
+// installItem is one row of the install's armour, shield or weapon table as
+// the items page offers it: its table, its name as the items file spells it,
+// its row, the code class it composes and the code of its first allowed pair,
+// and the name the game shows for that code, in UTF-8.
+type installItem struct {
+	table, name, shown string
+	row, class         int
+	code               int64
+}
+
+// installItems is the one list of the install's item rows the items page
+// offers: armour, then shields, then weapons. A name a table holds twice is
+// offered once, as the item layer keys its first row; a weapon the game has
+// no name for is not offered, and an armour it has none for is its row's name.
+func (x *MapInspector) installItems() []installItem {
+	t := x.contextBase().table
+	if t == nil {
+		return nil
+	}
+	var out []installItem
+	for _, c := range []struct {
+		table string
+		base  data.Collection
+		class func([]int32) int
+	}{{"armour", t.Armors, data.ArmorShopClass}, {"shield", t.Shields, data.ShieldShopClass}, {"weapon", t.Weapons, data.WeaponShopClass}} {
+		if c.base == nil {
+			continue
+		}
+		masks, _ := c.base.(data.MaskTable)
+		seen := map[string]bool{}
+		for row := 1; row < c.base.Len(); row++ {
+			name := c.base.EntryName(row)
+			if name == "" || seen[name] {
+				continue
+			}
+			seen[name] = true
+			shape, material := 0, 0
+			if masks != nil {
+				shape, material = firstItemPair(data.ItemMasks(masks, row))
+			}
+			class := c.class(c.base.EntryParams(row))
+			code := data.ComposeItemCode(material, class, shape, row)
+			shown, ok := x.installItemName(code)
+			if !ok && c.table == "weapon" {
+				continue
+			}
+			if !ok {
+				shown = vfs.DecodeText([]byte(name))
+			}
+			out = append(out, installItem{table: c.table, name: name, shown: shown, row: row, class: class, code: int64(code)})
+		}
+	}
+	return out
+}
+
+// installItemName is the name the game shows for an item code, in UTF-8: the
+// install's own name, else the one its composer row builds; false for a code
+// the game names by no word. The install stores the name in its code page;
+// this is where the mod pages decode it, as the engine decodes stored text.
+func (x *MapInspector) installItemName(code data.ItemCode) (string, bool) {
+	name := mapload.ItemDisplayName(x.table, mapload.ItemSubject{Code: code, Form: mapload.ItemNameWeapon})
+	if name == "" {
+		return "", false
+	}
+	return vfs.DecodeText([]byte(name)), true
+}
+
+// firstItemPair is the first tier and material masks allow; the first of
+// each when they allow none.
+func firstItemPair(masks [data.ShopShapes]uint16) (shape, material int) {
+	for s, m := range masks {
+		for b := range data.ShopMaterials {
+			if m&(1<<uint(b)) != 0 {
+				return s, b
+			}
+		}
+	}
+	return 0, 0
+}
+
+// itemSlotName is the items file's name of the slot numbered no; "" for a
+// slot a mod item cannot take.
+func itemSlotName(no int) string {
+	for n, v := range mod.ItemSlots {
+		if v == no {
+			return n
+		}
+	}
+	return ""
+}
+
+// anyItem, armourBase, weaponBase and standInFor are the filters of the
+// install items each choice offers: any row, an armour or shield a mod
+// item can be worn as, a weapon, and an armour or shield worn in slot.
+func anyItem(installItem) bool { return true }
+
+func armourBase(it installItem) bool { return it.table != "weapon" && itemSlotName(it.class) != "" }
+
+func weaponBase(it installItem) bool { return it.table == "weapon" }
+
+func standInFor(slot int) func(installItem) bool {
+	return func(it installItem) bool { return it.table != "weapon" && it.class == slot }
+}
+
+// installFind is the install item named name; false for none.
+func installFind(items []installItem, name string) (installItem, bool) {
+	i := slices.IndexFunc(items, func(it installItem) bool { return it.name == name })
+	if i < 0 {
+		return installItem{}, false
+	}
+	return items[i], true
+}
+
+// itemChoice is a choice field of the install items keep admits, by their
+// game names and pictures, then of the weapon rows the mod adds in own; an
+// install item's value is its place in items counted from 1, an own row's
+// follows them. The record's item named current is the value; prompt
+// offers a first choice that picks none.
+func (s *mapInspectionEdits) itemChoice(key, label, help, current string, items []installItem, keep func(installItem) bool, own []mod.WeaponRow, prompt bool) ui.InspectionField {
+	x := s.inspector
+	f := ui.InspectionField{Key: key, Label: label, Meaning: help, Icons: map[int64]*image.RGBA{}}
+	if prompt {
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: 0, Label: x.inspectionUTF8(x.word("editor.items.pick"))})
+	}
+	for i, it := range items {
+		if !keep(it) {
+			continue
+		}
+		v := int64(i + 1)
+		_, icon := s.ItemLook(it.code)
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: v, Label: x.inspectionUTF8(it.shown)})
+		if icon != nil {
+			f.Icons[v] = icon
+		}
+		if it.name == current {
+			f.Value = v
+		}
+	}
+	for j, w := range own {
+		v := int64(len(items) + 1 + j)
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: v, Label: x.inspectionUTF8(itemPlaceName(w.Name, w.Key))})
+		if w.Key == current {
+			f.Value = v
+		}
+	}
+	return f
+}
+
+// pickedItem is the name the items file spells for the choice value of an
+// itemChoice over the same items, keep and own; false for a value it does
+// not offer.
+func pickedItem(value string, items []installItem, keep func(installItem) bool, own []mod.WeaponRow) (installItem, string, bool) {
+	v, err := strconv.Atoi(value)
+	switch {
+	case err != nil || v < 1:
+		return installItem{}, "", false
+	case v <= len(items) && keep(items[v-1]):
+		return items[v-1], items[v-1].name, true
+	case v > len(items) && v-len(items) <= len(own):
+		return installItem{}, own[v-len(items)-1].Key, true
+	}
+	return installItem{}, "", false
+}
 
 // itemRows is the open project's draft of the mod's items file: its records
 // as the items reader reads them, and its bytes. A name key the project's
@@ -57,6 +229,30 @@ func (s *mapInspectionEdits) itemRows(w *editorWorkspaceState) (mod.ItemData, []
 	return items, src, err
 }
 
+// itemsPicture is the picture the items page shows for a record: the
+// draft's picture at rel, else the game item's picture by code; nil for
+// none.
+func (s *mapInspectionEdits) itemsPicture(rel string, code int64) *image.RGBA {
+	if rel != "" {
+		d := s.workspace.Project
+		if d == nil {
+			d = s.inspector.mod.document()
+		}
+		pic, err := readItemPicture(d.Files[rel])
+		if err != nil {
+			return nil
+		}
+		out := image.NewRGBA(image.Rect(0, 0, pic.Bounds().Dx(), pic.Bounds().Dy()))
+		draw.Draw(out, out.Bounds(), pic, pic.Bounds().Min, draw.Src)
+		return out
+	}
+	if code > 0 {
+		_, icon := s.ItemLook(code)
+		return icon
+	}
+	return nil
+}
+
 // rowOff reports that a change of items switches the row key off.
 func rowOff(items mod.ItemData, key string) bool {
 	off := false
@@ -68,9 +264,10 @@ func rowOff(items mod.ItemData, key string) bool {
 	return off
 }
 
-// itemsFields is W's items page: each row the mod adds, each change of a
-// shipped row and each material mask, and the rows that add one; none
-// with no mod folder open.
+// itemsFields is W's items page: the choices that add a record, then each
+// row the mod adds, each change of a game item and each material record.
+// Every item is chosen by its game name and picture, every picture through
+// the file choice; names are typed per language and numbers as numbers.
 func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 	x := s.inspector
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
@@ -83,30 +280,56 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 	if err != nil {
 		return []ui.InspectionField{line("error", err.Error())}
 	}
-	var out []ui.InspectionField
+	project := s.workspace.Project
+	if project == nil {
+		project = x.mod.document()
+	}
+	sets, err := project.strings()
+	if err != nil {
+		return []ui.InspectionField{line("error", err.Error())}
+	}
+	install := x.installItems()
+	out := []ui.InspectionField{
+		s.itemChoice(itemsNewArmour, x.word("editor.items.new.armour"), x.word("editor.items.new.armour.help"), "", install, armourBase, nil, true),
+		s.itemChoice(itemsNewWeapon, x.word("editor.items.new.weapon"), x.word("editor.items.new.weapon.help"), "", install, weaponBase, nil, true),
+		s.itemChoice(itemsNewChange, x.word("editor.items.new.change"), x.word("editor.items.new.change.help"), "", install, anyItem, nil, true),
+		s.itemChoice(itemsNewMaterial, x.word("editor.items.new.material"), x.word("editor.items.new.material.help"), "", install, anyItem, items.Weapons, true),
+	}
 	group := func(head string, fields ...ui.InspectionField) {
 		for _, f := range fields {
 			f.Group = head
 			out = append(out, f)
 		}
 	}
-	choice := func(key, label string, value int64, words ...string) ui.InspectionField {
-		f := ui.InspectionField{Key: key, Label: x.word(label), Value: value}
+	choice := func(key, label, help string, value int64, words ...string) ui.InspectionField {
+		f := ui.InspectionField{Key: key, Label: x.word(label), Meaning: x.word(help), Value: value}
 		for i, w := range words {
 			f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(x.word(w))})
 		}
 		return f
 	}
-	num := func(key, label string, v int32) ui.InspectionField {
-		return workspaceText(key, x.word(label), strconv.Itoa(int(v)))
-	}
-	sprite := func(key, rel string) ui.InspectionField {
-		f := workspaceText(key, x.word("editor.items.sprite"), rel)
-		f.Meaning, f.Pick = x.word("editor.items.sprite.none"), []string{"png"}
-		if rel != "" {
-			f.Meaning = rel
-		}
+	num := func(key, label, help string, v int32) ui.InspectionField {
+		f := workspaceText(key, x.word(label), strconv.Itoa(int(v)))
+		f.Meaning = x.word(help)
 		return f
+	}
+	names := func(k, nameKey string) []ui.InspectionField {
+		var fs []ui.InspectionField
+		for _, l := range textLanguages() {
+			f := workspaceText(k+"name."+l, fmt.Sprintf(x.word("editor.items.name"), languageLabel(l)), sets[l][nameKey])
+			f.Meaning = x.word("editor.items.name.help")
+			fs = append(fs, f)
+		}
+		return fs
+	}
+	sprite := func(key, rel string, code int64) []ui.InspectionField {
+		f := workspaceText(key+"sprite", x.word("editor.items.sprite"), rel)
+		f.Meaning, f.Pick = x.word("editor.items.sprite.help"), []string{"png"}
+		fs := []ui.InspectionField{f}
+		if pic := s.itemsPicture(rel, code); pic != nil {
+			fs = append(fs, ui.InspectionField{Key: key + "look", ReadOnly: true, Picture: pic})
+		}
+		return fs
 	}
 	switchRow := func(key string, off bool) []ui.InspectionField {
 		label := x.word("editor.items.off")
@@ -120,16 +343,20 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 	remove := func(key string) ui.InspectionField {
 		return ui.InspectionField{Key: key + "remove", Label: x.word("editor.items.remove"), Action: true, Column: 1}
 	}
+	codeOf := func(name string) int64 {
+		if it, ok := installFind(install, name); ok {
+			return it.code
+		}
+		return 0
+	}
 	own := map[string]bool{}
 	slots := mod.ItemSlotNames()
 	for _, r := range items.Rows {
 		own[r.Key] = true
 		k := "item." + r.Key + "."
-		name := workspaceText(k+"name", x.word("editor.items.name"), r.NameKey)
-		name.Meaning = r.Name
-		slot := ui.InspectionField{Key: k + "slot", Label: x.word("editor.items.slot"), Value: int64(slices.Index(slots, r.Slot) + 1)}
+		slot := ui.InspectionField{Key: k + "slot", Label: x.word("editor.items.slot"), Meaning: x.word("editor.items.slot.help"), Value: int64(slices.Index(slots, r.Slot) + 1)}
 		for i, n := range slots {
-			slot.Choices = append(slot.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(n)})
+			slot.Choices = append(slot.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(x.equipmentSlotLabel(n))})
 		}
 		suit := int64(slices.IndexFunc(itemSuits, func(v struct {
 			suit int32
@@ -141,79 +368,111 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		if r.Stock {
 			shop = 2
 		}
-		fields := []ui.InspectionField{name, slot,
-			num(k+"defence", "editor.items.defence", r.Defence), num(k+"absorption", "editor.items.absorption", r.Absorption),
-			num(k+"weight", "editor.items.weight", r.Weight), num(k+"price", "editor.items.price", r.Price),
-			workspaceText(k+"stand-in", x.word("editor.items.standin"), r.StandIn),
-			choice(k+"for", "editor.items.for", suit, "editor.items.for.any", "editor.items.for.fighter", "editor.items.for.mage"),
-			choice(k+"shop", "editor.items.shop", shop, "editor.items.no", "editor.items.yes"),
-			sprite(k+"sprite", r.Sprite)}
+		fields := append(names(k, r.NameKey), slot,
+			s.itemChoice(k+"stand-in", x.word("editor.items.standin"), x.word("editor.items.standin.help"), r.StandIn, install, standInFor(r.SlotNo), nil, false),
+			choice(k+"for", "editor.items.for", "editor.items.for.help", suit, "editor.items.for.any", "editor.items.for.fighter", "editor.items.for.mage"),
+			choice(k+"shop", "editor.items.shop", "editor.items.shop.help", shop, "editor.items.no", "editor.items.yes"),
+			num(k+"defence", "editor.items.defence", "editor.items.defence.help", r.Defence),
+			num(k+"absorption", "editor.items.absorption", "editor.items.absorption.help", r.Absorption),
+			num(k+"weight", "editor.items.weight", "editor.items.weight.help", r.Weight),
+			num(k+"price", "editor.items.price", "editor.items.price.help", r.Price))
+		fields = append(fields, sprite(k, r.Sprite, codeOf(r.StandIn))...)
 		fields = append(fields, switchRow(k, rowOff(items, r.Key))...)
-		group(fmt.Sprintf(x.word("editor.items.armour"), r.Key), append(fields, remove(k))...)
+		group(fmt.Sprintf(x.word("editor.items.armour"), itemPlaceName(r.Name, r.Key)), append(fields, remove(k))...)
 	}
 	for _, w := range items.Weapons {
 		own[w.Key] = true
 		k := "weapon." + w.Key + "."
-		name := workspaceText(k+"name", x.word("editor.items.name"), w.NameKey)
-		name.Meaning = w.Name
-		fields := []ui.InspectionField{name, workspaceText(k+"base", x.word("editor.items.base"), w.Base), sprite(k+"sprite", w.Sprite)}
+		fields := append(names(k, w.NameKey), s.itemChoice(k+"base", x.word("editor.items.base"), x.word("editor.items.base.help"), w.Base, install, weaponBase, nil, false))
 		for _, wp := range mod.WeaponParams {
 			value := ""
 			if i := slices.IndexFunc(w.Params, func(v mod.WeaponParamValue) bool { return v.Key == wp.Key }); i >= 0 {
 				value = strconv.Itoa(int(w.Params[i].Value))
 			}
-			f := workspaceText(k+wp.Key, wp.Key, value)
-			f.Meaning = x.word("editor.items.param")
+			f := workspaceText(k+wp.Key, x.word("editor.items.param."+wp.Key), value)
+			f.Meaning = x.word("editor.items.param." + wp.Key + ".help")
 			fields = append(fields, f)
 		}
+		fields = append(fields, sprite(k, w.Sprite, codeOf(w.Base))...)
 		fields = append(fields, switchRow(k, rowOff(items, w.Key))...)
-		group(fmt.Sprintf(x.word("editor.items.weapon"), w.Key), append(fields, remove(k))...)
+		group(fmt.Sprintf(x.word("editor.items.weapon"), itemPlaceName(w.Name, w.Key)), append(fields, remove(k))...)
 	}
 	for i, c := range items.Changes {
 		if own[c.Item] {
 			continue
 		}
 		k := "change." + strconv.Itoa(i) + "."
-		var fields []ui.InspectionField
+		fields := []ui.InspectionField{s.itemChoice(k+"item", x.word("editor.items.pair.item"), x.word("editor.items.new.change.help"), c.Item, install, anyItem, nil, false)}
+		it, _ := installFind(install, c.Item)
 		for _, n := range []struct {
-			field, label string
-			v            *int32
-		}{{"defence", "editor.items.defence", c.Defence}, {"absorption", "editor.items.absorption", c.Absorption},
-			{"weight", "editor.items.weight", c.Weight}, {"price", "editor.items.price", c.Price}} {
+			field string
+			v     *int32
+		}{{"defence", c.Defence}, {"absorption", c.Absorption}, {"weight", c.Weight}, {"price", c.Price}} {
+			if it.table == "weapon" && (n.field == "defence" || n.field == "absorption") {
+				continue
+			}
 			value := ""
 			if n.v != nil {
 				value = strconv.Itoa(int(*n.v))
 			}
-			f := workspaceText(k+n.field, x.word(n.label), value)
-			f.Meaning = x.word("editor.items.unchanged")
+			f := workspaceText(k+n.field, x.word(itemNumberWords[n.field]), value)
+			f.Meaning = x.word(itemNumberWords[n.field]+".help") + " " + x.word("editor.items.unchanged")
 			fields = append(fields, f)
 		}
 		fields = append(fields, switchRow(k, c.Off != nil && *c.Off)...)
-		group(fmt.Sprintf(x.word("editor.items.change"), c.Item), append(fields, remove(k))...)
+		name := c.Item
+		if it.name != "" {
+			name = it.shown
+		}
+		group(fmt.Sprintf(x.word("editor.items.change"), name), append(fields, remove(k))...)
 	}
+	t := x.contextBase().table
 	for i, m := range items.Materials {
 		k := "material." + strconv.Itoa(i) + "."
 		allow := int64(2)
 		if m.Allow {
 			allow = 1
 		}
-		group(fmt.Sprintf(x.word("editor.items.material"), m.Item, m.Tier, m.Material),
-			choice(k+"allow", "editor.items.allow", allow, "editor.items.allow.yes", "editor.items.allow.no"), sprite(k+"sprite", m.Sprite), remove(k))
-	}
-	for _, n := range []struct{ key, label, hint string }{
-		{itemsNewArmour, x.word("editor.items.new.armour"), x.word("editor.items.new.hint")},
-		{itemsNewWeapon, x.word("editor.items.new.weapon"), x.word("editor.items.new.weapon.hint")},
-		{itemsNewChange, x.word("editor.items.new.change"), x.word("editor.items.new.change.hint")},
-		{itemsNewMaterial, x.word("editor.items.new.material"), x.word("editor.items.new.material.hint")},
-	} {
-		f := workspaceText(n.key, n.label, "")
-		f.Meaning = n.hint
-		if n.key == itemsNewWeapon {
-			f.Pick = []string{"png"}
+		fields := []ui.InspectionField{s.itemChoice(k+"item", x.word("editor.items.pair.item"), x.word("editor.items.pair.item.help"), m.Item, install, anyItem, items.Weapons, false)}
+		shape, material := -1, -1
+		if t != nil {
+			var f ui.InspectionField
+			f, shape = s.scaleChoice(k+"tier", x.word("editor.items.pair.tier"), x.word("editor.items.pair.tier.help"), "tier", t.Shapes, data.ShopShapes, m.Tier)
+			fields = append(fields, f)
+			f, material = s.scaleChoice(k+"material", x.word("editor.items.pair.material"), x.word("editor.items.pair.material.help"), "material", t.Materials, data.ShopMaterials, m.Material)
+			fields = append(fields, f)
 		}
-		out = append(out, f)
+		fields = append(fields, choice(k+"allow", "editor.items.allow", "editor.items.allow.help", allow, "editor.items.allow.yes", "editor.items.allow.no"))
+		name := m.Item
+		if it, ok := installFind(install, m.Item); ok {
+			name = it.shown
+			if shape >= 0 && material >= 0 {
+				fields = append(fields, sprite(k, m.Sprite, int64(data.ComposeItemCode(material, it.class, shape, it.row)))...)
+			}
+		} else if w := slices.IndexFunc(items.Weapons, func(w mod.WeaponRow) bool { return w.Key == m.Item }); w >= 0 {
+			name = itemPlaceName(items.Weapons[w].Name, m.Item)
+			fields = append(fields, sprite(k, m.Sprite, 0)...)
+		}
+		group(fmt.Sprintf(x.word("editor.items.material"), name), append(fields, remove(k))...)
 	}
 	return out
+}
+
+// scaleChoice is a choice of the first n entries of the tier or material
+// scale sc, each by its word on axis, valued by its place counted from 1;
+// the entry named current is the value, whose index it returns too.
+func (s *mapInspectionEdits) scaleChoice(key, label, help, axis string, sc data.ScaleTable, n int, current string) (ui.InspectionField, int) {
+	x := s.inspector
+	f := ui.InspectionField{Key: key, Label: label, Meaning: help}
+	at := -1
+	for i := 0; sc != nil && i < sc.Len() && i < n; i++ {
+		name := sc.EntryName(i)
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.itemGroupWord(axis, name, data.RowKey(name))})
+		if name == current {
+			f.Value, at = int64(i+1), i
+		}
+	}
+	return f, at
 }
 
 // shippedItemRow is the install's row named name in the armour, shield or
@@ -236,46 +495,32 @@ func (x *MapInspector) shippedItemRow(name string) (params []int32, ok bool) {
 	return nil, false
 }
 
-// newItemRow is the row "new.armour" or "new.weapon" adds under key: an
-// armour row of the slot of the install's first armour row, standing in
-// for it, or a weapon row copying the first weapon row; its name is the
-// text key "item.<key>".
-func (x *MapInspector) newItemRow(d *mod.ItemData, key string, weapon bool) {
-	t := x.contextBase().table
-	first := func(c data.Collection, fit func([]int32) bool) string {
-		masks, _ := c.(data.MaskTable)
-		for row := 1; c != nil && row < c.Len(); row++ {
-			if masks != nil && data.ItemMasks(masks, row) == ([data.ShopShapes]uint16{}) {
-				continue
-			}
-			if n := c.EntryName(row); n != "" && fit(c.EntryParams(row)) {
-				return n
-			}
-		}
-		return ""
+// newItemRow adds the row "new.armour" or "new.weapon" makes from the
+// install item it: an armour row worn where it is and standing in for it,
+// or a weapon row copying it. Its key is the record key rule's "armour" or
+// "weapon", numbered while held; its name, in every language, is the item's game name under
+// a key the one key maker makes.
+func (s *mapInspectionEdits) newItemRow(d *mod.ItemData, sets map[string]mod.Strings, it installItem) {
+	prefix := "armour"
+	if it.table == "weapon" {
+		prefix = "weapon"
 	}
-	name := "item." + key
-	if weapon {
-		base := ""
-		if t != nil {
-			base = first(t.Weapons, func([]int32) bool { return true })
-		}
-		d.Weapons = append(d.Weapons, mod.WeaponRow{Key: key, NameKey: name, Base: base})
+	key := mod.RecordKey(prefix, func(k string) bool {
+		return slices.ContainsFunc(d.Rows, func(r mod.ItemRow) bool { return r.Key == k }) || slices.ContainsFunc(d.Weapons, func(w mod.WeaponRow) bool { return w.Key == k })
+	})
+	nameKey := makeTextKey(sets, "item."+key)
+	name := []rune(it.shown)
+	if len(name) > 40 {
+		name = name[:40]
+	}
+	for _, l := range textLanguages() {
+		sets[l][nameKey] = string(name)
+	}
+	if it.table == "weapon" {
+		d.Weapons = append(d.Weapons, mod.WeaponRow{Key: key, NameKey: nameKey, Base: it.name})
 		return
 	}
-	slot, standIn := "body", ""
-	if t != nil {
-		standIn = first(t.Armors, func(p []int32) bool {
-			for n, no := range mod.ItemSlots {
-				if len(p) > 4 && int(p[4]) == no {
-					slot = n
-					return true
-				}
-			}
-			return false
-		})
-	}
-	d.Rows = append(d.Rows, mod.ItemRow{Key: key, NameKey: name, Slot: slot, SlotNo: mod.ItemSlots[slot], StandIn: standIn, Suit: mod.SuitAny})
+	d.Rows = append(d.Rows, mod.ItemRow{Key: key, NameKey: nameKey, Slot: itemSlotName(it.class), SlotNo: it.class, StandIn: it.name, Suit: mod.SuitAny})
 }
 
 // setItemsField makes one edit of the items page a draft step; a value the
@@ -290,21 +535,33 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 	}
 	value = strings.TrimSpace(value)
 	gone := fmt.Errorf(x.word("editor.items.err.gone"), key)
+	install := x.installItems()
+	prompts := []string{itemsNewArmour, itemsNewWeapon, itemsNewChange, itemsNewMaterial}
+	if value == "0" && slices.Contains(prompts, key) {
+		return nil, nil
+	}
 	switch key {
-	case itemsNewWeapon:
-		return s.newWeapon(value, false)
-	case itemsNewArmour:
-		return s.editItems(func(d *mod.ItemData, en mod.Strings) error {
-			x.newItemRow(d, value, false)
-			if _, held := en["item."+value]; !held {
-				en["item."+value] = value
-			}
+	case itemsNewArmour, itemsNewWeapon:
+		keep := armourBase
+		if key == itemsNewWeapon {
+			keep = weaponBase
+		}
+		it, _, ok := pickedItem(value, install, keep, nil)
+		if !ok {
+			return nil, gone
+		}
+		return s.editItems(func(d *mod.ItemData, sets map[string]mod.Strings) error {
+			s.newItemRow(d, sets, it)
 			return nil
 		})
 	case itemsNewChange:
-		return s.editItems(func(d *mod.ItemData, _ mod.Strings) error {
-			c := mod.ItemChange{Item: value}
-			if p, ok := x.shippedItemRow(value); ok && len(p) > 2 {
+		_, name, ok := pickedItem(value, install, anyItem, nil)
+		if !ok {
+			return nil, gone
+		}
+		return s.editItems(func(d *mod.ItemData, _ map[string]mod.Strings) error {
+			c := mod.ItemChange{Item: name}
+			if p, ok := x.shippedItemRow(name); ok && len(p) > 2 {
 				t := x.contextBase().table
 				price := data.ItemPrice(p[2], t.Shapes, t.Materials, data.ModItemShape, data.ModItemMaterial)
 				c.Price = &price
@@ -313,12 +570,12 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 			return nil
 		})
 	case itemsNewMaterial:
-		parts := strings.Split(value, ",")
-		if len(parts) != 3 {
-			return nil, fmt.Errorf(x.word("editor.items.err.material"), value)
-		}
-		return s.editItems(func(d *mod.ItemData, _ mod.Strings) error {
-			d.Materials = append(d.Materials, mod.ItemMaterial{Item: strings.TrimSpace(parts[0]), Tier: strings.TrimSpace(parts[1]), Material: strings.TrimSpace(parts[2])})
+		return s.editItems(func(d *mod.ItemData, _ map[string]mod.Strings) error {
+			it, name, ok := pickedItem(value, install, anyItem, d.Weapons)
+			if !ok {
+				return gone
+			}
+			d.Materials = append(d.Materials, x.newItemMaterial(it, name))
 			return nil
 		})
 	}
@@ -334,21 +591,21 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 	if field == "sprite" && value != "" && record == "material" {
 		return s.materialSprite(id, value, false)
 	}
-	number := func(dst *int32) error {
+	number := func(dst *int32, label string) error {
 		n, err := strconv.Atoi(value)
 		if err != nil {
-			return fmt.Errorf(x.word("editor.items.err.number"), field, value)
+			return fmt.Errorf(x.word("editor.items.err.number"), label, value)
 		}
 		*dst = int32(n)
 		return nil
 	}
-	optional := func(dst **int32) error {
+	optional := func(dst **int32, label string) error {
 		if value == "" {
 			*dst = nil
 			return nil
 		}
 		var n int32
-		if err := number(&n); err != nil {
+		if err := number(&n, label); err != nil {
 			return err
 		}
 		*dst = &n
@@ -361,7 +618,10 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 		}
 		return v - 1, nil
 	}
-	return s.editItems(func(d *mod.ItemData, _ mod.Strings) error {
+	return s.editItems(func(d *mod.ItemData, sets map[string]mod.Strings) error {
+		if lang, ok := strings.CutPrefix(field, "name."); ok && (record == "item" || record == "weapon") {
+			return setItemRowName(d, sets, record, id, lang, value, gone)
+		}
 		switch record {
 		case "item":
 			i := slices.IndexFunc(d.Rows, func(r mod.ItemRow) bool { return r.Key == id })
@@ -370,8 +630,6 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 			}
 			r := &d.Rows[i]
 			switch field {
-			case "name":
-				r.NameKey = value
 			case "slot":
 				n, err := pick(len(mod.ItemSlotNames()))
 				if err != nil {
@@ -379,16 +637,23 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 				}
 				r.Slot = mod.ItemSlotNames()[n]
 				r.SlotNo = mod.ItemSlots[r.Slot]
+				if j := slices.IndexFunc(install, standInFor(r.SlotNo)); j >= 0 && !standInFor(r.SlotNo)(installOf(install, r.StandIn)) {
+					r.StandIn = install[j].name
+				}
 			case "defence":
-				return number(&r.Defence)
+				return number(&r.Defence, x.word("editor.items.defence"))
 			case "absorption":
-				return number(&r.Absorption)
+				return number(&r.Absorption, x.word("editor.items.absorption"))
 			case "weight":
-				return number(&r.Weight)
+				return number(&r.Weight, x.word("editor.items.weight"))
 			case "price":
-				return number(&r.Price)
+				return number(&r.Price, x.word("editor.items.price"))
 			case "stand-in":
-				r.StandIn = value
+				_, name, ok := pickedItem(value, install, standInFor(r.SlotNo), nil)
+				if !ok {
+					return gone
+				}
+				r.StandIn = name
 			case "for":
 				n, err := pick(len(itemSuits))
 				if err != nil {
@@ -421,15 +686,17 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 				w.Params = slices.DeleteFunc(slices.Clone(w.Params), func(v mod.WeaponParamValue) bool { return v.Key == field })
 				if value != "" {
 					var n int32
-					if err := number(&n); err != nil {
+					if err := number(&n, x.word("editor.items.param."+field)); err != nil {
 						return err
 					}
 					w.Params = append(w.Params, mod.WeaponParamValue{WeaponParam: mod.WeaponParams[p], Value: n})
 				}
-			case field == "name":
-				w.NameKey = value
 			case field == "base":
-				w.Base = value
+				_, name, ok := pickedItem(value, install, weaponBase, nil)
+				if !ok {
+					return gone
+				}
+				w.Base = name
 			case field == "sprite":
 				w.Sprite = ""
 			case field == "off":
@@ -445,35 +712,19 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 				return gone
 			}
 			if record == "material" {
-				switch field {
-				case "allow":
-					v, err := pick(2)
-					if err != nil {
-						return err
-					}
-					d.Materials[n].Allow = v == 0
-					if !d.Materials[n].Allow {
-						d.Materials[n].Sprite, d.Materials[n].Name = "", ""
-					}
-				case "sprite":
-					d.Materials[n].Sprite = ""
-				case "remove":
-					d.Materials = slices.Delete(d.Materials, n, n+1)
-				default:
-					return gone
-				}
-				return nil
+				return x.setItemMaterial(d, n, field, value, install, pick, gone)
 			}
 			c := &d.Changes[n]
 			switch field {
-			case "defence":
-				return optional(&c.Defence)
-			case "absorption":
-				return optional(&c.Absorption)
-			case "weight":
-				return optional(&c.Weight)
-			case "price":
-				return optional(&c.Price)
+			case "item":
+				_, name, ok := pickedItem(value, install, anyItem, nil)
+				if !ok {
+					return gone
+				}
+				c.Item = name
+			case "defence", "absorption", "weight", "price":
+				dst := map[string]**int32{"defence": &c.Defence, "absorption": &c.Absorption, "weight": &c.Weight, "price": &c.Price}[field]
+				return optional(dst, x.word(itemNumberWords[field]))
 			case "off":
 				if c.Off != nil && *c.Off {
 					c.Off = nil
@@ -494,6 +745,116 @@ func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDoc
 		}
 		return nil
 	})
+}
+
+// installOf is the install item named name; the zero item for none.
+func installOf(items []installItem, name string) installItem {
+	it, _ := installFind(items, name)
+	return it
+}
+
+// setItemRowName sets the name of the added row id of record in lang: its
+// text under the row's name key, which the one key maker makes when the row
+// has none; an empty name leaves the language without the text.
+func setItemRowName(d *mod.ItemData, sets map[string]mod.Strings, record, id, lang, value string, gone error) error {
+	var nameKey *string
+	if record == "item" {
+		if i := slices.IndexFunc(d.Rows, func(r mod.ItemRow) bool { return r.Key == id }); i >= 0 {
+			nameKey = &d.Rows[i].NameKey
+		}
+	} else if i := slices.IndexFunc(d.Weapons, func(w mod.WeaponRow) bool { return w.Key == id }); i >= 0 {
+		nameKey = &d.Weapons[i].NameKey
+	}
+	if nameKey == nil || sets[lang] == nil {
+		return gone
+	}
+	if *nameKey == "" {
+		*nameKey = makeTextKey(sets, "item."+id)
+	}
+	if value == "" {
+		delete(sets[lang], *nameKey)
+		return nil
+	}
+	sets[lang][*nameKey] = value
+	return nil
+}
+
+// newItemMaterial is the material record "new.material" adds for the item
+// it, named name: the first tier and material its masks do not allow, the
+// first of each for a weapon row the mod adds or a row that allows them all.
+// It is not allowed yet: a picture chosen for it, or the allow choice, does.
+func (x *MapInspector) newItemMaterial(it installItem, name string) mod.ItemMaterial {
+	t := x.contextBase().table
+	shape, material := 0, 0
+	if t != nil && it.name != "" {
+		var base data.Collection = t.Armors
+		switch it.table {
+		case "shield":
+			base = t.Shields
+		case "weapon":
+			base = t.Weapons
+		}
+		if masks, ok := base.(data.MaskTable); ok {
+			m := data.ItemMasks(masks, it.row)
+		find:
+			for s := 0; s < len(m) && s < t.Shapes.Len(); s++ {
+				for b := 0; b < data.ShopMaterials && b < t.Materials.Len(); b++ {
+					if m[s]&(1<<uint(b)) == 0 {
+						shape, material = s, b
+						break find
+					}
+				}
+			}
+		}
+	}
+	m := mod.ItemMaterial{Item: name}
+	if t != nil {
+		m.Tier, m.Material = t.Shapes.EntryName(shape), t.Materials.EntryName(material)
+	}
+	return m
+}
+
+// setItemMaterial makes one edit of the material record n.
+func (x *MapInspector) setItemMaterial(d *mod.ItemData, n int, field, value string, install []installItem, pick func(int) (int, error), gone error) error {
+	m := &d.Materials[n]
+	t := x.contextBase().table
+	switch field {
+	case "item":
+		_, name, ok := pickedItem(value, install, anyItem, d.Weapons)
+		if !ok {
+			return gone
+		}
+		m.Item = name
+	case "tier", "material":
+		if t == nil {
+			return gone
+		}
+		sc, limit, dst := data.ScaleTable(t.Shapes), data.ShopShapes, &m.Tier
+		if field == "material" {
+			sc, limit, dst = t.Materials, data.ShopMaterials, &m.Material
+		}
+		v, err := pick(min(limit, sc.Len()))
+		if err != nil {
+			return err
+		}
+		*dst = sc.EntryName(v)
+	case "allow":
+		v, err := pick(2)
+		if err != nil {
+			return err
+		}
+		m.Allow = v == 0
+		if !m.Allow {
+			m.Sprite, m.Name = "", ""
+		}
+	case "sprite":
+		m.Sprite = ""
+	case "remove":
+		d.Materials = slices.Delete(d.Materials, n, n+1)
+	default:
+		return gone
+	}
+	return nil
 }
 
 // switchItemRow switches the added row key off with a change, or back on by
@@ -517,15 +878,15 @@ func removeItemRow(d *mod.ItemData, key string) {
 }
 
 // editItems is one draft step of the items file.
-func (s *mapInspectionEdits) editItems(edit func(*mod.ItemData, mod.Strings) error) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) editItems(edit func(*mod.ItemData, map[string]mod.Strings) error) (*ui.InspectionDocument, error) {
 	return s.editKind(func(k kindFiles) error { return s.writeItemsDraft(k.w, edit) })
 }
 
-// writeItemsDraft makes edit's change of the items file and of its English
-// text in the project w: each kind's writer writes its file over the
-// draft's bytes, and only a file whose content changed. A file with no
+// writeItemsDraft makes edit's change of the items file and of the text of
+// each language in the project w: each kind's writer writes its file over
+// the draft's bytes, and only a file whose content changed. A file with no
 // record left leaves the mod.
-func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(*mod.ItemData, mod.Strings) error) error {
+func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(*mod.ItemData, map[string]mod.Strings) error) error {
 	if w.Project == nil {
 		w.Project = s.inspector.mod.document()
 	}
@@ -537,12 +898,13 @@ func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(
 	if err != nil {
 		return err
 	}
-	en := textLanguages()[0]
-	if sets[en] == nil {
-		sets[en] = mod.Strings{}
+	for _, l := range textLanguages() {
+		if sets[l] == nil {
+			sets[l] = mod.Strings{}
+		}
 	}
-	was := maps.Clone(sets[en])
-	if err := edit(&items, sets[en]); err != nil {
+	was := cloneTexts(sets)
+	if err := edit(&items, sets); err != nil {
 		return err
 	}
 	kind, _ := mod.WrittenKind(mod.ItemsFile)
@@ -561,16 +923,7 @@ func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(
 			return err
 		}
 	}
-	if !maps.Equal(was, sets[en]) {
-		rel := mod.StringsFile(en)
-		kind, _ := mod.WrittenKind(rel)
-		out, err := kind.Write(rel, w.Project.Files[rel], mod.Data{Strings: sets})
-		if err != nil {
-			return err
-		}
-		return k.put(rel, out)
-	}
-	return nil
+	return k.putTexts(was, sets)
 }
 
 // ImportItemSprite copies the host file source into the open mod under
@@ -582,7 +935,7 @@ func (s *mapInspectionEdits) ImportItemSprite(key, source string, replace bool) 
 	return s.importItemSprite(source, replace, func() (*ui.InspectionDocument, error) {
 		_, d, err := s.ImportItemSprite(key, source, true)
 		return d, err
-	}, func(d *mod.ItemData, _ mod.Strings, rel string) error {
+	}, func(d *mod.ItemData, rel string) error {
 		if i := slices.IndexFunc(d.Rows, func(r mod.ItemRow) bool { return r.Key == key }); i >= 0 {
 			d.Rows[i].Sprite = rel
 			return nil
@@ -598,7 +951,7 @@ func (s *mapInspectionEdits) ImportItemSprite(key, source string, replace bool) 
 // importItemSprite imports the host picture source and makes edit's change
 // of the items with its path in the same draft step; again repeats the
 // import once a held file may be replaced.
-func (s *mapInspectionEdits) importItemSprite(source string, replace bool, again func() (*ui.InspectionDocument, error), edit func(*mod.ItemData, mod.Strings, string) error) (string, *ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) importItemSprite(source string, replace bool, again func() (*ui.InspectionDocument, error), edit func(*mod.ItemData, string) error) (string, *ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", nil, err
 	}
@@ -607,7 +960,7 @@ func (s *mapInspectionEdits) importItemSprite(source string, replace bool, again
 		return "", nil, err
 	}
 	return s.importModFile(rel, data, replace, again, func(w *editorWorkspaceState, rel string) error {
-		return s.writeItemsDraft(w, func(d *mod.ItemData, en mod.Strings) error { return edit(d, en, rel) })
+		return s.writeItemsDraft(w, func(d *mod.ItemData, _ map[string]mod.Strings) error { return edit(d, rel) })
 	})
 }
 
@@ -619,30 +972,12 @@ func (s *mapInspectionEdits) materialSprite(n, source string, replace bool) (*ui
 	gone := fmt.Errorf(s.inspector.word("editor.items.err.gone"), "material."+n+".sprite")
 	_, d, err := s.importItemSprite(source, replace, func() (*ui.InspectionDocument, error) {
 		return s.materialSprite(n, source, true)
-	}, func(d *mod.ItemData, _ mod.Strings, rel string) error {
+	}, func(d *mod.ItemData, rel string) error {
 		i, err := strconv.Atoi(n)
 		if err != nil || i < 0 || i >= len(d.Materials) {
 			return gone
 		}
 		d.Materials[i].Sprite, d.Materials[i].Allow = rel, true
-		return nil
-	})
-	return d, err
-}
-
-// newWeapon adds a weapon row with the host picture source as its sprite,
-// which a weapon the mod adds needs before the game takes it: the picture's
-// name less its extension is the row's key.
-func (s *mapInspectionEdits) newWeapon(source string, replace bool) (*ui.InspectionDocument, error) {
-	_, d, err := s.importItemSprite(source, replace, func() (*ui.InspectionDocument, error) {
-		return s.newWeapon(source, true)
-	}, func(d *mod.ItemData, en mod.Strings, rel string) error {
-		key := strings.TrimSuffix(path.Base(rel), path.Ext(rel))
-		s.inspector.newItemRow(d, key, true)
-		d.Weapons[len(d.Weapons)-1].Sprite = rel
-		if _, held := en["item."+key]; !held {
-			en["item."+key] = key
-		}
 		return nil
 	})
 	return d, err

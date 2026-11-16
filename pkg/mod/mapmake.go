@@ -66,8 +66,17 @@ func (d MissionData) ReplaceNumbers(candidates []int, held func(n int) error) []
 	return out
 }
 
-// mapKey is the stem as a row key, with _2, _3 and so on where d holds it.
+// mapKey is the stem as a mission row key, with _2, _3 and so on where d holds it.
 func mapKey(d MissionData, stem string) string {
+	return RecordKey(stem, func(key string) bool {
+		return slices.ContainsFunc(d.Missions, func(m Mission) bool { return m.Key == key })
+	})
+}
+
+// RecordKey is the one rule of a key the editor makes for a record of a mod:
+// the stem in lower-case letters, digits and underscores, led by a letter and
+// at most 28 bytes, with _2, _3 and so on while taken holds the key.
+func RecordKey(stem string, taken func(string) bool) string {
 	var b strings.Builder
 	for _, r := range namefold.ModTree(stem) {
 		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_' {
@@ -82,7 +91,7 @@ func mapKey(d MissionData, stem string) string {
 	}
 	stem = stem[:min(len(stem), 28)]
 	key := stem
-	for suffix := 2; slices.ContainsFunc(d.Missions, func(m Mission) bool { return m.Key == key }); suffix++ {
+	for suffix := 2; taken(key); suffix++ {
 		key = stem + "_" + strconv.Itoa(suffix)
 	}
 	return key

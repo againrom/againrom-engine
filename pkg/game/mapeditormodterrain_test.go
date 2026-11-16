@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -99,11 +98,14 @@ func near(c color.Color, want color.RGBA) bool {
 func TestTerrainPageAddsAGroundFromOnePicture(t *testing.T) {
 	s, dir := terrainPage(t)
 	before := tree(t, dir)
-	// The fixture's tileset draws some of the game's grounds; each it draws
-	// is the row's picture.
+	// The grid opens with the game's grounds in the brush's order; the
+	// fixture's tileset draws some of them, and each it draws is the cell's
+	// picture with every variation as the cell's hover pictures.
 	game, swatches := 0, s.inspector.terrainSwatches()
-	for _, f := range s.WorkspaceFields(ui.ModTerrainScope) {
-		if i, err := strconv.Atoi(strings.TrimPrefix(f.Key, "game.")); err == nil && f.ReadOnly && f.TextValue != "" && (f.Picture == nil) == (swatches[i] == nil) {
+	grid, _ := terrainField(s, terrainGridKey)
+	for i, c := range grid.Choices {
+		if want := int64(-i - 1); i < len(swatches) && c.Value == want && c.Label != "" && (grid.Icons[want] == nil) == (swatches[i] == nil) &&
+			len(grid.Variations[want]) <= len(mapedit.Variants(mapedit.Palette[i].Class)) {
 			game++
 		}
 	}
@@ -163,8 +165,23 @@ func TestTerrainPageAddsAGroundFromOnePicture(t *testing.T) {
 			t.Fatalf("a field shows the group number: %+v", f)
 		}
 	}
-	if f, ok := terrainField(s, "13.picture"); !ok || f.Picture == nil || f.Group != "Glacier" {
-		t.Fatalf("the ground's picture %+v", f)
+	// The new ground is the grid's last cell, pressed, named under its
+	// picture, with its six squares as its variations; its controls stand
+	// above the grid under its name.
+	grid, _ = terrainField(s, terrainGridKey)
+	last := grid.Choices[len(grid.Choices)-1]
+	if f, ok := terrainField(s, "13.name"); !ok || f.Group != "Glacier" || last.Value != 13 || last.Label != "Glacier" || grid.Value != 13 ||
+		grid.Icons[13] == nil || len(grid.Variations[13]) != 6 || len(grid.Choices) != len(mapedit.Palette)+1 {
+		t.Fatalf("the ground's cell %+v of %d, %d variations, name %+v", last, len(grid.Choices), len(grid.Variations[13]), f)
+	}
+	if _, err := s.SetWorkspaceField(ui.ModTerrainScope, terrainGridKey, "-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := terrainField(s, "13.name"); ok || len(s.undoWorkspace) != steps+1 {
+		t.Fatal("a press on a game ground keeps the mod ground's controls or makes a draft step")
+	}
+	if _, err := s.SetWorkspaceField(ui.ModTerrainScope, terrainGridKey, "13"); err != nil {
+		t.Fatal(err)
 	}
 	setTerrain(t, s, "13.kind", "9")
 	rows, _ = mod.ParseTerrain("glacier", mod.TerrainFile, s.workspace.Project.Files[mod.TerrainFile])

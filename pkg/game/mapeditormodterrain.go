@@ -67,9 +67,10 @@ func (x *MapInspector) terrainKindWord(class uint8) string {
 	return x.word("editor.terrain." + mod.TerrainKinds[class-1])
 }
 
-// terrainFields is W's terrain page: the button that adds a ground, each
-// ground the mod adds with its picture, name, kind and delete button, then
-// the game's own grounds with their pictures; none with no mod folder open.
+// terrainFields is W's terrain page: the button that adds a ground, the
+// pressed mod ground's name, kind and delete button, then one grid of every
+// ground, the game's then the mod's, each with its variations as its hover
+// pictures; none with no mod folder open.
 func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 	x := s.inspector
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
@@ -90,13 +91,39 @@ func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 	for i := range mod.TerrainKinds {
 		kinds = append(kinds, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(x.terrainKindWord(uint8(i + 1)))})
 	}
+	grid := ui.InspectionField{Key: terrainGridKey, Label: x.word("editor.terrain.grounds"), Grid: true, Value: int64(s.ground),
+		Icons: map[int64]*image.RGBA{}, Variations: map[int64][]*image.RGBA{}}
+	cell := func(value int64, name string, words []uint16) {
+		grid.Choices = append(grid.Choices, ui.InspectionChoice{Value: value, Label: x.inspectionUTF8(name)})
+		for _, w := range words {
+			if pic := swatchOf(x.tiles, w); pic != nil {
+				grid.Variations[value] = append(grid.Variations[value], pic)
+			}
+		}
+		if len(grid.Variations[value]) > 0 {
+			grid.Icons[value] = grid.Variations[value][0]
+		}
+	}
+	if _, held := rows.Group(s.ground); !held && len(rows.Groups) > 0 && s.ground >= 0 {
+		grid.Value = int64(rows.Groups[0].Group)
+	}
+	for i, p := range mapedit.Palette {
+		cell(int64(-i-1), x.terrainKindWord(p.Class), mapedit.Variants(p.Class))
+	}
 	for _, g := range rows.Groups {
-		key, start := strconv.Itoa(g.Group)+".", len(out)
 		held := x.mod.strips[g.Group]
-		if slices.Contains(held[:], 0) {
+		var words []uint16
+		if !slices.Contains(held[:], 0) {
+			g.Frames = held
+			words = groupWords(g)
+		}
+		cell(int64(g.Group), g.Name, words)
+		if int64(g.Group) != grid.Value {
+			continue
+		}
+		key, start := strconv.Itoa(g.Group)+".", len(out)
+		if words == nil {
 			out = append(out, line(key+"state", "", x.word("editor.terrain.incomplete")))
-		} else if pic := swatchOf(x.tiles, uint16(g.Group<<6)); pic != nil {
-			out = append(out, ui.InspectionField{Key: key + "picture", ReadOnly: true, Picture: pic})
 		}
 		name := workspaceText(key+"name", x.word("editor.terrain.name"), g.Name)
 		name.Meaning = x.word("editor.terrain.name.help")
@@ -107,20 +134,26 @@ func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 			out[i].Group = g.Name
 		}
 	}
-	swatches := x.terrainSwatches()
-	for i, p := range mapedit.Palette {
-		name := x.terrainKindWord(p.Class)
-		out = append(out, ui.InspectionField{Key: "game." + strconv.Itoa(i), Group: x.word("editor.terrain.game"), ReadOnly: true, Text: true, TextValue: name,
-			Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(name)}}, Picture: swatches[i]})
-	}
-	return out
+	return append(out, grid)
 }
+
+// terrainGridKey is the terrain page's grid of grounds; a press picks the
+// ground whose controls the page shows above it.
+const terrainGridKey = "grounds"
 
 // setTerrainField makes one edit of the terrain page a draft step; a value
 // the loader refuses is refused in its words.
 func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
+	}
+	if key == terrainGridKey {
+		g, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, err
+		}
+		s.ground = g
+		return nil, nil
 	}
 	x := s.inspector
 	if err := x.modWritable(); err != nil {
@@ -217,10 +250,14 @@ func (s *mapInspectionEdits) addGround(rows mod.TerrainData, source string) (*ui
 		put[modStripFile(g, b)] = data
 	}
 	row := mod.TerrainGroup{Group: g, Class: 1, Name: groundName(file), Minimap: averageColour(pic), HasMinimap: true}
-	return s.editTerrain(func(t *mod.TerrainData) error {
+	d, err := s.editTerrain(func(t *mod.TerrainData) error {
 		t.Groups = append(t.Groups, row)
 		return nil
 	}, nil, put)
+	if err == nil {
+		s.ground = g
+	}
+	return d, err
 }
 
 // groundSizeError carries a refusal of a picture's size in the page's words.

@@ -248,7 +248,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if fields != nil && !slices.ContainsFunc(fields, func(current InspectionField) bool { return current.Key == f.Key }) {
 			return -1
 		}
-		if hiddenField(r, f) {
+		if hiddenField(r, f) || f.Grid {
 			return -1
 		}
 		if heads && f.Group != group {

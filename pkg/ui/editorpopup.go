@@ -162,6 +162,9 @@ type popupGrid struct {
 	Rows   int
 	Top    int
 	Cols   int
+	// LeastRows is the fewest rows a grid of every row shows in a popup of
+	// its own size; zero is gridLeastRows.
+	LeastRows int
 	// RowHeads and ColHeads head a matrix: RowHeads[r] stands left of grid
 	// row r in a column HeadW pixels wide, ColHeads[c] above column c in a
 	// row one cell high. With HeadH set the column heads stand upright,
@@ -175,6 +178,16 @@ type popupGrid struct {
 	// shows every row.
 	HeadFlat bool
 	RowHigh  []int
+	// CaptionH is the band under each cell's picture that holds its Caption.
+	CaptionH int
+}
+
+// least is the fewest rows the grid shows when the room is short.
+func (g *popupGrid) least() int {
+	if g.LeastRows > 0 {
+		return g.LeastRows
+	}
+	return gridLeastRows
 }
 
 // rowHigh is the height of grid row r.
@@ -182,8 +195,11 @@ func (g *popupGrid) rowHigh(r int) int {
 	if r >= 0 && r < len(g.RowHigh) && g.RowHigh[r] > 0 {
 		return g.RowHigh[r]
 	}
-	return g.side()
+	return g.side() + g.CaptionH
 }
+
+// pictureSide is the side of the box a cell's picture is drawn into.
+func (g *popupGrid) pictureSide() int { return g.side() - 10 }
 
 // rowsHigh is the height of the n rows from row top on.
 func (g *popupGrid) rowsHigh(top, n int) int {
@@ -248,9 +264,14 @@ type popupGridCell struct {
 	Tip   string
 	// TipPicture is the picture the hover tip shows at full size beside Tip.
 	TipPicture *image.RGBA
-	Pressed    bool
-	Ticked     bool
-	Inert      bool
+	// TipPictures are pictures the hover tip shows side by side, each at the
+	// size of the cell's own picture: a ground's variations.
+	TipPictures []*image.RGBA
+	// Caption names the cell under its picture, in the grid's CaptionH band.
+	Caption string
+	Pressed bool
+	Ticked  bool
+	Inert   bool
 }
 
 // gridCellSide is a grid cell's side when the grid names none.
@@ -353,12 +374,12 @@ func fitGrid(s popupSpec, w, rest, sizedH int, sized bool) *popupGrid {
 	}
 	total := g.totalRows(g.columns(w - 2*popupPad - g.HeadW))
 	limit, room := total, gridRoom(s)
-	free := func(h int) int { return (h - rest - g.headHeight() - popupPad) / g.side() }
+	free := func(h int) int { return (h - rest - g.headHeight() - popupPad) / g.rowHigh(0) }
 	switch {
 	case sized:
 		limit = free(sizedH)
 	case !room.Empty():
-		limit = max(gridLeastRows, free(room.Max.Y-max(s.At.Y, room.Min.Y)))
+		limit = max(g.least(), free(room.Max.Y-max(s.At.Y, room.Min.Y)))
 	}
 	fit := *g
 	fit.Rows = max(1, min(total, limit))
@@ -2417,8 +2438,16 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		if cell.Pressed {
 			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
 		}
+		pic := c
+		if g.CaptionH > 0 {
+			pic.Max.Y -= g.CaptionH
+			if body != nil && cell.Caption != "" {
+				s := editorClip(body, cell.Caption, c.Dx()-4)
+				body.Draw(dst.SubImage(c).(*image.RGBA), s, c.Min.X+(c.Dx()-body.Advance(s))/2, pic.Max.Y-2, ink.Label)
+			}
+		}
 		if icon := cell.Icon; icon != nil && !icon.Bounds().Empty() {
-			box := c.Inset(4)
+			box := pic.Inset(4)
 			if cell.Pressed {
 				box = box.Add(image.Pt(1, 1))
 			}

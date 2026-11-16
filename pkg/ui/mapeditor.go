@@ -205,6 +205,11 @@ type InspectionField struct {
 	// Pick, on a text field of W, is the extensions of the host file a press
 	// or Enter asks for; the field takes the chosen path as its value.
 	Pick []string `json:",omitempty"`
+	// Grid, on a choice field of W, shows the choices as one grid of
+	// picture cells (Icons), each named under its picture; a press picks
+	// the choice. Variations are each choice's hover pictures.
+	Grid       bool                    `json:",omitempty"`
+	Variations map[int64][]*image.RGBA `json:"-"`
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

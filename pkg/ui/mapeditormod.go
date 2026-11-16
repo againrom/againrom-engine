@@ -571,6 +571,11 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		e.modGraphRows(&s, &links, page)
 	default:
 		e.objectFieldRows(&s, &links)
+		for _, f := range o.fields {
+			if f.Grid {
+				s.Grid = e.modGrid(f, s.Width)
+			}
+		}
 	}
 	for _, f := range o.fields {
 		if f.Key != "source" || e.modPage != modPageFields {
@@ -651,6 +656,30 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	// modPress hits this spec itself, so it stands where objectSpec does.
 	e.openCentred(popObject, &s)
 	return s, links, true
+}
+
+// modGridSide is a cell's side in a page's grid: a 32-pixel square drawn
+// twice its size, with the cell's frame.
+const modGridSide = 74
+
+// modGrid is the grid field f of a page as the one grid of picture cells:
+// each choice in order, named under its picture, its Variations its hover
+// pictures, its rows fitted and scrolled as every grid popup's are.
+func (e *MapEditor) modGrid(f InspectionField, width int) *popupGrid {
+	g := &popupGrid{Side: modGridSide, CaptionH: fontHeight(e.bodyFont(), 15) + 2, Top: e.modGridTop, LeastRows: 1}
+	for _, c := range f.Choices {
+		g.Cells = append(g.Cells, popupGridCell{Icon: f.Icons[c.Value], Caption: c.Label, Tip: c.Label, TipPictures: f.Variations[c.Value], Pressed: c.Value == f.Value})
+	}
+	return g
+}
+
+// modGridWheel scrolls the mod page's grid, laid out as l, by the wheel's rows.
+func (e *MapEditor) modGridWheel(l popupLayout, g *popupGrid, wheel wheelSource) {
+	if l.GridCols <= 0 {
+		return
+	}
+	rows := editorWheelRows(&e.objectWheel, wheel)
+	e.modGridTop = max(0, min(e.modGridTop+rows, g.totalRows(l.GridCols)-l.GridRows))
 }
 
 // ModMapButton is one button of a map's entry: caption, host key and value.
@@ -773,6 +802,14 @@ func (e *MapEditor) modPress(p image.Point) bool {
 		return true
 	}
 	if e.modConfirm != "" {
+		return true
+	}
+	if part == popupGridPart {
+		for _, f := range e.obj.fields {
+			if f.Grid && n >= 0 && n < len(f.Choices) {
+				_ = e.modAction(f.Key, strconv.FormatInt(f.Choices[n].Value, 10))
+			}
+		}
 		return true
 	}
 	if part == popupCanvasBox || part == popupCanvasGround {

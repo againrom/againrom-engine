@@ -2290,9 +2290,18 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			}
 		}
 	case popObject:
-		if !e.objectWheelDropdown(wheel) && !e.graphWheel(wheel) {
-			e.objectTop = max(0, e.objectTop+editorWheelRows(&e.objectWheel, wheel))
+		if e.objectWheelDropdown(wheel) || e.graphWheel(wheel) {
+			return
 		}
+		if e.modWindow {
+			if s, _, ok := e.modSpec(); ok && s.Grid != nil {
+				if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
+					e.modGridWheel(l, s.Grid, wheel)
+					return
+				}
+			}
+		}
+		e.objectTop = max(0, e.objectTop+editorWheelRows(&e.objectWheel, wheel))
 	case popMenu:
 		if e.menuModel != nil {
 			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))

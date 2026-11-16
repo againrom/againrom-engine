@@ -126,10 +126,7 @@ func TestProjectSaveRefusesOnlyAnExternallyChangedTarget(t *testing.T) {
 					t.Fatal(err)
 				}
 			case mod.MissionsFile:
-				if _, err := s.setTextsField(textsNewKey, "draft_title"); err != nil {
-					t.Fatal(err)
-				}
-				if err := s.pickMissionText(s.workspace, missionTitleKey, "1"); err != nil {
+				if _, err := s.SetWorkspaceField("package", missionTitleKey, "-1"); err != nil {
 					t.Fatal(err)
 				}
 			default:

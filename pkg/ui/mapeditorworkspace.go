@@ -202,7 +202,7 @@ func (e *MapEditor) showModPage(n int) {
 	if n != modPageGraph {
 		e.graphLink = false
 	}
-	e.modPage, e.objectTop, e.graphAt = n, 0, image.Point{}
+	e.modPage, e.objectTop, e.modGridTop, e.graphAt = n, 0, 0, image.Point{}
 	e.modUnfolded = nil
 	e.obj.focus = 0
 	if reload {

@@ -13,14 +13,17 @@ import (
 	"againrom/pkg/ui"
 )
 
-// The texts page's keys: a key's name is "name:<key>", its text in a
-// language "<lang>:<key>" and its removal from one "drop.<lang>:<key>";
-// "new" adds the typed key.
+// The texts page's fields: a text in a language is "<lang>:<key>" and its
+// removal from one "drop.<lang>:<key>"; "new" makes a text for the place
+// of the choice it picks, its key made by makeTextKey.
 const (
-	textsNameKey = "name:"
 	textsDropKey = "drop."
 	textsNewKey  = "new"
 )
+
+// missionTextNew is the value of a mission row's title or briefing choice
+// that makes a new text for it.
+const missionTextNew = -1
 
 // The mission row fields that pick a text key.
 const (
@@ -82,40 +85,129 @@ func textKeys(sets map[string]mod.Strings) []string {
 	return slices.Sorted(maps.Keys(held))
 }
 
-// textCitations is what cites each text key: the project's mission rows by
-// row, which a rename carries along, and the folder's files of every other
-// kind whose records cite text, by file, which the editor does not write.
-func (s *mapInspectionEdits) textCitations(d *editorModDocument) (rows, files map[string][]string) {
-	m := s.inspector.mod
-	rows, files = map[string][]string{}, map[string][]string{}
+// textPlaces is where each text key of the project d shows, in the page's
+// words: a mission row's name or briefing, an item's name, or a file of
+// another kind that cites it, which the editor does not write.
+func (s *mapInspectionEdits) textPlaces(d *editorModDocument) map[string][]string {
+	x, m := s.inspector, s.inspector.mod
+	out := map[string][]string{}
+	add := func(k, format string, a ...any) {
+		if place := fmt.Sprintf(format, a...); k != "" && !slices.Contains(out[k], place) {
+			out[k] = append(out[k], place)
+		}
+	}
 	for _, r := range d.Missions {
-		for _, k := range []string{r.TitleKey, r.BriefKey} {
-			if k != "" && !slices.Contains(rows[k], r.RowID()) {
-				rows[k] = append(rows[k], r.RowID())
-			}
+		add(r.TitleKey, x.word("editor.texts.at.title"), missionPlaceName(r))
+		add(r.BriefKey, x.word("editor.texts.at.brief"), missionPlaceName(r))
+	}
+	if items, _, err := s.itemRows(s.workspace); err == nil {
+		for _, r := range items.Rows {
+			add(r.NameKey, x.word("editor.texts.at.item"), itemPlaceName(r.Name, r.Key))
+		}
+		for _, r := range items.Weapons {
+			add(r.NameKey, x.word("editor.texts.at.item"), itemPlaceName(r.Name, r.Key))
+		}
+		for _, r := range items.Materials {
+			add(r.NameKey, x.word("editor.texts.at.material"), r.Item, r.Material)
 		}
 	}
 	for _, k := range mod.DataKinds() {
 		for _, rel := range k.Files {
-			if rel == mod.MissionsFile {
+			if rel == mod.MissionsFile || rel == mod.ItemsFile {
 				continue
 			}
 			src, err := modDataFile(m.dir, rel)
 			if err != nil || src == nil {
 				continue
 			}
-			keys, _ := k.Cites(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: s.inspector.pageLanguage()}, rel, src)
+			keys, _ := k.Cites(mod.DataReader{Mod: m.id, Dir: m.dir, Lang: x.pageLanguage()}, rel, src)
 			for _, key := range keys {
-				files[key] = append(files[key], rel)
+				add(key, x.word("editor.texts.at.file"), rel)
 			}
 		}
 	}
-	return rows, files
+	return out
 }
 
-// textsFields is W's texts page: a count of the keys and of those missing
-// in each language, then each key with its text in every language, what
-// cites it, and the row that adds a key; none with no mod folder open.
+// missionPlaceName names mission row r where a text of it shows: its title
+// once it has one, else its row.
+func missionPlaceName(r mod.Mission) string {
+	if r.Title != "" {
+		return r.Title
+	}
+	return r.RowID()
+}
+
+// itemPlaceName names an added item where its name shows: the name it
+// reads as, else its row.
+func itemPlaceName(name, key string) string {
+	if name != "" && name != "?" {
+		return name
+	}
+	return key
+}
+
+// textPlace is one place a new text can be made for: its words, the base
+// of its key and what cites the new key there.
+type textPlace struct {
+	label, base string
+	cite        func(d *editorModDocument, key string)
+}
+
+// newTextPlaces are the places the texts page makes a new text for: the
+// name and briefing of each mission row that shows none, then a text to
+// show later.
+func (s *mapInspectionEdits) newTextPlaces(d *editorModDocument) []textPlace {
+	x := s.inspector
+	var out []textPlace
+	for i, r := range d.Missions {
+		if r.Off {
+			continue
+		}
+		for _, title := range []bool{true, false} {
+			if (title && r.TitleKey != "") || (!title && r.BriefKey != "") {
+				continue
+			}
+			word := x.word("editor.texts.at.brief")
+			if title {
+				word = x.word("editor.texts.at.title")
+			}
+			out = append(out, textPlace{label: fmt.Sprintf(word, missionPlaceName(r)), base: missionTextBase(r, title),
+				cite: func(d *editorModDocument, key string) { citeMissionText(&d.Missions[i], title, key) }})
+		}
+	}
+	return append(out, textPlace{label: x.word("editor.texts.at.later"), base: "text", cite: func(*editorModDocument, string) {}})
+}
+
+// missionTextBase is the base of the key of mission row r's name or
+// briefing.
+func missionTextBase(r mod.Mission, title bool) string {
+	if title {
+		return "mission." + r.RowID() + ".name"
+	}
+	return "mission." + r.RowID() + ".briefing"
+}
+
+// citeMissionText makes row r's name or briefing cite key.
+func citeMissionText(r *mod.Mission, title bool, key string) {
+	if title {
+		r.TitleKey, r.Title = key, ""
+	} else {
+		r.BriefKey, r.Brief = key, ""
+	}
+}
+
+// makeTextKey is the key the editor adds a text under: the record key rule
+// over base, never a key sets hold.
+func makeTextKey(sets map[string]mod.Strings, base string) string {
+	held := textKeys(sets)
+	return mod.RecordKey(base, func(k string) bool { return slices.Contains(held, k) })
+}
+
+// textsFields is W's texts page: what the page is for, a count of the
+// texts and of those missing in each language, the choice that makes a
+// new text for a place, then each text under where it shows, in every
+// language; none with no mod folder open.
 func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	x := s.inspector
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
@@ -131,16 +223,33 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 		return []ui.InspectionField{line("error", "", err.Error())}
 	}
 	langs, keys := textLanguages(), textKeys(sets)
-	rows, files := s.textCitations(d)
+	places := s.textPlaces(d)
+	heads := map[string]string{}
+	unshown := 0
+	for _, k := range keys {
+		if len(places[k]) == 0 {
+			unshown++
+			heads[k] = fmt.Sprintf(x.word("editor.texts.at.nowhere"), unshown)
+		} else {
+			heads[k] = strings.Join(places[k], "; ")
+		}
+	}
+	slices.SortStableFunc(keys, func(a, b string) int { return strings.Compare(heads[a], heads[b]) })
 	missing := map[string]int{}
-	out := []ui.InspectionField{{}}
+	out := []ui.InspectionField{line("about", "", x.word("editor.texts.about")), {}}
+	newText := ui.InspectionField{Key: textsNewKey, Label: x.word("editor.texts.new"), Meaning: x.word("editor.texts.new.hint"),
+		Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.texts.new.pick"))}}}
+	for i, p := range s.newTextPlaces(d) {
+		newText.Choices = append(newText.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(p.label)})
+	}
+	out = append(out, newText)
 	for _, k := range keys {
 		var lacks []string
 		start := len(out)
-		out = append(out, workspaceText(textsNameKey+k, x.word("editor.texts.name"), k))
 		for _, l := range langs {
 			v, held := sets[l][k]
 			f := workspaceText(l+":"+k, fmt.Sprintf(x.word("editor.texts.value"), languageLabel(l)), v)
+			f.Meaning = x.word("editor.texts.value.help")
 			if !held {
 				lacks = append(lacks, languageLabel(l))
 				missing[l]++
@@ -148,15 +257,12 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 			}
 			out = append(out, f)
 			if held {
-				out = append(out, ui.InspectionField{Key: textsDropKey + l + ":" + k, Label: fmt.Sprintf(x.word("editor.texts.drop"), languageLabel(l)), Action: true, Column: 1})
+				out = append(out, ui.InspectionField{Key: textsDropKey + l + ":" + k, Label: fmt.Sprintf(x.word("editor.texts.drop"), languageLabel(l)), Meaning: x.word("editor.texts.drop.help"), Action: true, Column: 1})
 			}
 		}
-		if by := append(slices.Clone(rows[k]), files[k]...); len(by) > 0 {
-			out = append(out, line("used:"+k, "", fmt.Sprintf(x.word("editor.texts.used"), strings.Join(by, ", "))))
-		}
-		head := k
+		head := heads[k]
 		if len(lacks) > 0 {
-			head = fmt.Sprintf(x.word("editor.texts.lacks"), k, strings.Join(lacks, ", "))
+			head = fmt.Sprintf(x.word("editor.texts.lacks"), head, strings.Join(lacks, ", "))
 		}
 		for i := start; i < len(out); i++ {
 			out[i].Group = head
@@ -166,10 +272,8 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	for _, l := range langs {
 		counts = append(counts, fmt.Sprintf("%s %d", languageLabel(l), missing[l]))
 	}
-	out[0] = line("summary", "", fmt.Sprintf(x.word("editor.texts.summary"), len(keys), strings.Join(counts, ", ")))
-	f := workspaceText(textsNewKey, x.word("editor.texts.new"), "")
-	f.Meaning = x.word("editor.texts.new.hint")
-	return append(out, f)
+	out[1] = line("summary", "", fmt.Sprintf(x.word("editor.texts.summary"), len(keys), strings.Join(counts, ", ")))
+	return out
 }
 
 // setTextsField makes one edit of the texts page a draft step; a key name
@@ -191,60 +295,23 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 	if err != nil {
 		return nil, err
 	}
-	rows, files := s.textCitations(d)
 	held := func(k string) bool { return slices.Contains(textKeys(sets), k) }
-	name := func(k string) (string, error) {
-		k = strings.TrimSpace(k)
-		if err := mod.CheckTextKey(k); err != nil {
-			return "", fmt.Errorf(x.word("editor.texts.err.key"), k, err)
-		}
-		if held(k) {
-			return "", fmt.Errorf(x.word("editor.texts.err.taken"), k)
-		}
-		return k, nil
-	}
 	gone := fmt.Errorf(x.word("editor.texts.err.gone"), key)
 	switch {
 	case key == textsNewKey:
-		k, err := name(value)
-		if err != nil {
-			return nil, err
-		}
-		return s.editTexts(func(sets map[string]mod.Strings, _ *editorModDocument) error {
-			sets[locale.Fallback][k] = ""
-			return nil
-		})
-	case strings.HasPrefix(key, textsNameKey):
-		old := strings.TrimPrefix(key, textsNameKey)
-		if !held(old) {
+		places := s.newTextPlaces(d)
+		n, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil || n < 0 || n > len(places) {
 			return nil, gone
 		}
-		if strings.TrimSpace(value) == old {
+		if n == 0 {
 			return nil, nil
 		}
-		k, err := name(value)
-		if err != nil {
-			return nil, err
-		}
-		if len(files[old]) > 0 {
-			return nil, fmt.Errorf(x.word("editor.texts.err.cited"), old, strings.Join(files[old], ", "))
-		}
+		p := places[n-1]
 		return s.editTexts(func(sets map[string]mod.Strings, d *editorModDocument) error {
-			for _, set := range sets {
-				if v, ok := set[old]; ok {
-					delete(set, old)
-					set[k] = v
-				}
-			}
-			for i := range d.Missions {
-				r := &d.Missions[i]
-				if r.TitleKey == old {
-					r.TitleKey = k
-				}
-				if r.BriefKey == old {
-					r.BriefKey = k
-				}
-			}
+			k := makeTextKey(sets, p.base)
+			sets[locale.Fallback][k] = ""
+			p.cite(d, k)
 			return nil
 		})
 	case strings.HasPrefix(key, textsDropKey):
@@ -252,9 +319,9 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 		if _, ok := sets[l][k]; !ok {
 			return nil, gone
 		}
-		if by := append(slices.Clone(rows[k]), files[k]...); len(by) > 0 {
+		if by := s.textPlaces(d)[k]; len(by) > 0 {
 			if _, en := sets[locale.Fallback][k]; l == locale.Fallback || !en {
-				return nil, fmt.Errorf(x.word("editor.texts.err.used"), k, strings.Join(by, ", "))
+				return nil, fmt.Errorf(x.word("editor.texts.err.used"), strings.Join(by, "; "))
 			}
 		}
 		return s.editTexts(func(sets map[string]mod.Strings, _ *editorModDocument) error {
@@ -285,34 +352,50 @@ func (s *mapInspectionEdits) editTexts(edit func(map[string]mod.Strings, *editor
 		if err != nil {
 			return err
 		}
-		was := map[string]mod.Strings{}
-		for l, p := range sets {
-			was[l] = maps.Clone(p)
-		}
+		was := cloneTexts(sets)
 		if err := edit(sets, w.Project); err != nil {
 			return err
 		}
-		for _, l := range textLanguages() {
-			if maps.Equal(was[l], sets[l]) {
-				continue
-			}
-			rel := mod.StringsFile(l)
-			kind, _ := mod.WrittenKind(rel)
-			out, err := kind.Write(rel, w.Project.Files[rel], mod.Data{Strings: sets})
-			if err != nil {
-				return err
-			}
-			if len(sets[l]) == 0 && strings.TrimSpace(string(out)) == "" {
-				err = k.drop(rel)
-			} else {
-				err = k.put(rel, out)
-			}
-			if err != nil {
-				return err
-			}
+		if err := k.putTexts(was, sets); err != nil {
+			return err
 		}
 		return w.Project.citedTexts(x.pageLanguage())
 	})
+}
+
+// cloneTexts is a copy of the text of each language.
+func cloneTexts(sets map[string]mod.Strings) map[string]mod.Strings {
+	was := map[string]mod.Strings{}
+	for l, p := range sets {
+		was[l] = maps.Clone(p)
+	}
+	return was
+}
+
+// putTexts writes the strings file of each language whose pairs differ
+// between was and sets into the step k; a file left with no pair and no
+// other text leaves the mod.
+func (k kindFiles) putTexts(was, sets map[string]mod.Strings) error {
+	for _, l := range textLanguages() {
+		if maps.Equal(was[l], sets[l]) {
+			continue
+		}
+		rel := mod.StringsFile(l)
+		kind, _ := mod.WrittenKind(rel)
+		out, err := kind.Write(rel, k.w.Project.Files[rel], mod.Data{Strings: sets})
+		if err != nil {
+			return err
+		}
+		if len(sets[l]) == 0 && strings.TrimSpace(string(out)) == "" {
+			err = k.drop(rel)
+		} else {
+			err = k.put(rel, out)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // citedTexts makes each mission row's title and briefing the text of the
@@ -334,9 +417,9 @@ func (d *editorModDocument) citedTexts(lang string) error {
 	return nil
 }
 
-// missionTextField is the selected row's pick of the key its title or
-// briefing cites: none, or a key the project's strings files hold, each
-// shown with its text in the page's language.
+// missionTextField is the selected row's pick of the text its title or
+// briefing shows: none, a text the project's strings files hold, shown by
+// its text in the page's language, or a new text.
 func (s *mapInspectionEdits) missionTextField(key string) (ui.InspectionField, bool) {
 	x, d := s.inspector, s.workspace.Project
 	if x.mod == nil || d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) || d.Missions[d.Selected].Off {
@@ -351,20 +434,27 @@ func (s *mapInspectionEdits) missionTextField(key string) (ui.InspectionField, b
 	if key == missionBriefKey {
 		cited = d.Missions[d.Selected].BriefKey
 	}
-	f := ui.InspectionField{Key: key, Label: x.modFieldLabel(key), Column: 1, Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.texts.none"))}}}
+	f := ui.InspectionField{Key: key, Label: x.modFieldLabel(key), Meaning: x.word("editor.mod." + key + ".help"), Column: 1,
+		Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.texts.none"))}}}
 	for i, k := range textKeys(sets) {
 		v, _ := look(k)
-		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(k + ": " + v)})
+		if v == "" {
+			v = x.word("editor.texts.empty")
+		}
+		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(v)})
 		if k == cited {
 			f.Value = int64(i + 1)
 		}
 	}
+	f.Choices = append(f.Choices, ui.InspectionChoice{Value: missionTextNew, Label: x.inspectionUTF8(x.word("editor.texts.new.choice"))})
 	return f, true
 }
 
 // pickMissionText makes the selected row's title or briefing cite the key
-// of choice n of its field, 0 for none; a key English lacks is refused,
-// since the loader reads every language's text from English at last.
+// of choice n of its field, 0 for none, missionTextNew for a new empty
+// English text whose key makeTextKey makes; a key English lacks is
+// refused, since the loader reads every language's text from English at
+// last.
 func (s *mapInspectionEdits) pickMissionText(w *editorWorkspaceState, key, value string) error {
 	x, d := s.inspector, w.Project
 	if d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) {
@@ -376,21 +466,25 @@ func (s *mapInspectionEdits) pickMissionText(w *editorWorkspaceState, key, value
 	}
 	keys := textKeys(sets)
 	n, err := strconv.Atoi(strings.TrimSpace(value))
-	if err != nil || n < 0 || n > len(keys) {
+	if err != nil || n < missionTextNew || n > len(keys) {
 		return fmt.Errorf(x.word("editor.texts.err.gone"), value)
 	}
+	r, title := &d.Missions[d.Selected], key == missionTitleKey
 	k := ""
-	if n > 0 {
+	switch {
+	case n == missionTextNew:
+		was := cloneTexts(sets)
+		k = makeTextKey(sets, missionTextBase(*r, title))
+		sets[locale.Fallback][k] = ""
+		if err := (kindFiles{s: s, w: w}).putTexts(was, sets); err != nil {
+			return err
+		}
+	case n > 0:
 		k = keys[n-1]
 		if _, ok := sets[locale.Fallback][k]; !ok {
-			return fmt.Errorf(x.word("editor.texts.err.noen"), k)
+			return errors.New(x.word("editor.texts.err.noen"))
 		}
 	}
-	r := &d.Missions[d.Selected]
-	if key == missionTitleKey {
-		r.TitleKey, r.Title = k, ""
-	} else {
-		r.BriefKey, r.Brief = k, ""
-	}
+	citeMissionText(r, title, k)
 	return d.citedTexts(x.pageLanguage())
 }

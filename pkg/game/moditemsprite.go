@@ -22,6 +22,16 @@ const maxModIconSide = 80
 // modIconSprite converts PNG bytes into a .16a stream. The error says why the
 // picture was refused.
 func modIconSprite(src []byte) ([]byte, error) {
+	img, err := readItemPicture(src)
+	if err != nil {
+		return nil, err
+	}
+	return encodeSpriteA(img)
+}
+
+// readItemPicture decodes the PNG bytes of a mod item picture; the error
+// says why the picture was refused.
+func readItemPicture(src []byte) (image.Image, error) {
 	cfg, err := png.DecodeConfig(bytes.NewReader(src))
 	if err != nil {
 		return nil, fmt.Errorf("not a readable PNG: %v", err)
@@ -33,7 +43,7 @@ func modIconSprite(src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("not a readable PNG: %v", err)
 	}
-	return encodeSpriteA(img)
+	return img, nil
 }
 
 type iconPixel struct {

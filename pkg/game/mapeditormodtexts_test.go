@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -56,25 +57,78 @@ func textsSummary(t *testing.T, s *mapInspectionEdits) string {
 	return f.TextValue
 }
 
-// pickTitle makes the selected mission row's title or briefing cite key
-// through W's field, the choice that names it.
-func pickTitle(t *testing.T, s *mapInspectionEdits, field, key string) {
+// heldKeys is every text key of the open project.
+func heldKeys(t *testing.T, s *mapInspectionEdits) []string {
 	t.Helper()
-	for _, f := range s.WorkspaceFields("package") {
-		if f.Key != field {
-			continue
-		}
-		for _, c := range f.Choices {
-			if strings.HasPrefix(c.Label, key+": ") {
-				if _, err := s.SetWorkspaceField("package", field, strconv.FormatInt(c.Value, 10)); err != nil {
-					t.Fatalf("%s = %s: %v", field, key, err)
-				}
-				return
-			}
-		}
-		t.Fatalf("%s offers no key %q: %+v", field, key, f.Choices)
+	d := s.workspace.Project
+	if d == nil {
+		d = s.inspector.mod.document()
 	}
-	t.Fatalf("W has no field %s", field)
+	sets, err := d.strings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return textKeys(sets)
+}
+
+// madeKey is the one key of after that before lacks.
+func madeKey(t *testing.T, before, after []string) string {
+	t.Helper()
+	var made []string
+	for _, k := range after {
+		if !slices.Contains(before, k) {
+			made = append(made, k)
+		}
+	}
+	if len(made) != 1 {
+		t.Fatalf("keys made: %q", made)
+	}
+	return made[0]
+}
+
+// newText makes a text on the texts page for the place whose words hold
+// place, and is the key the editor made for it.
+func newText(t *testing.T, s *mapInspectionEdits, place string) string {
+	t.Helper()
+	f, ok := textsField(s, textsNewKey)
+	if !ok || f.Text {
+		t.Fatalf("the new text row %+v is no choice", f)
+	}
+	for _, c := range f.Choices {
+		if c.Value > 0 && strings.Contains(c.Label, place) {
+			before := heldKeys(t, s)
+			setTexts(t, s, textsNewKey, strconv.FormatInt(c.Value, 10))
+			return madeKey(t, before, heldKeys(t, s))
+		}
+	}
+	t.Fatalf("the new text row offers no place %q: %+v", place, f.Choices)
+	return ""
+}
+
+// newMissionText makes a new text for the selected mission row's title or
+// briefing through its field on the Missions page, and is its key.
+func newMissionText(t *testing.T, s *mapInspectionEdits, field string) string {
+	t.Helper()
+	before := heldKeys(t, s)
+	if _, err := s.SetWorkspaceField("package", field, strconv.Itoa(missionTextNew)); err != nil {
+		t.Fatalf("%s: new text: %v", field, err)
+	}
+	return madeKey(t, before, heldKeys(t, s))
+}
+
+// pickKey makes the selected mission row's title or briefing cite key
+// through W's field, by the choice that stands for it.
+func pickKey(s *mapInspectionEdits, field, key string) error {
+	sets, err := s.workspace.Project.strings()
+	if err != nil {
+		return err
+	}
+	n := slices.Index(textKeys(sets), key)
+	if n < 0 {
+		return fmt.Errorf("no key %q", key)
+	}
+	_, err = s.SetWorkspaceField("package", field, strconv.Itoa(n+1))
+	return err
 }
 
 // selectedRow is the project's selected mission row.
@@ -83,131 +137,133 @@ func selectedRow(s *mapInspectionEdits) mod.Mission {
 	return d.Missions[d.Selected]
 }
 
-// The page lists each key with its text in English and Russian, marks and
-// counts a key one language lacks, and refuses a key name the loader
-// refuses and a taken one in their words, with no draft.
-func TestTextsPageMarksAKeyMissingInOneLanguageAndRefusesABadKey(t *testing.T) {
+// noKeyField fails the test when a field of the texts page holds key as its
+// value or a label names a key: no key is a field the modder fills.
+func noKeyField(t *testing.T, s *mapInspectionEdits, key string) {
+	t.Helper()
+	for _, f := range s.WorkspaceFields(ui.ModTextsScope) {
+		if f.TextValue == key || strings.Contains(strings.ToLower(f.Label), "key") {
+			t.Fatalf("a field shows the key %q: %+v", key, f)
+		}
+	}
+}
+
+// The page says first what it is for, lists each text under where it shows
+// with its text in English and Russian, marks and counts a text one
+// language lacks, and refuses a place it does not offer.
+func TestTextsPageMarksATextMissingInOneLanguage(t *testing.T) {
 	s, _ := terrainPage(t)
-	if got := textsSummary(t, s); !strings.HasPrefix(got, "0 keys") {
+	if f := s.WorkspaceFields(ui.ModTextsScope); len(f) == 0 || f[0].Key != "about" || f[0].TextValue == "" {
+		t.Fatalf("the page does not open with what it is for: %+v", f)
+	}
+	if got := textsSummary(t, s); !strings.HasPrefix(got, "0 texts") {
 		t.Fatalf("a mod with no strings: %q", got)
 	}
-	setTexts(t, s, "new", "pass.title")
-	setTexts(t, s, "en:pass.title", "The Pass")
-	if got := textsSummary(t, s); got != "1 keys; missing: EN 0, RU 1" {
+	k := newText(t, s, "A text to show later")
+	setTexts(t, s, "en:"+k, "The Pass")
+	if got := textsSummary(t, s); got != "1 texts; missing: EN 0, RU 1" {
 		t.Fatalf("the count line %q", got)
 	}
-	f, ok := textsField(s, "ru:pass.title")
-	if !ok || f.Meaning == "" || !strings.Contains(f.Group, "missing in RU") {
-		t.Fatalf("the Russian field of a key Russian lacks: %+v", f)
+	f, ok := textsField(s, "ru:"+k)
+	if !ok || f.Meaning == "" || !strings.Contains(f.Group, "missing in RU") || !strings.HasPrefix(f.Group, "Not shown anywhere yet") {
+		t.Fatalf("the Russian field of a text Russian lacks: %+v", f)
 	}
-	if en, _ := textsField(s, "en:pass.title"); en.TextValue != "The Pass" || en.Meaning != "" {
+	if en, _ := textsField(s, "en:"+k); en.TextValue != "The Pass" || en.Meaning == "" {
 		t.Fatalf("the English field %+v", en)
 	}
-	if _, ok := textsField(s, "drop.ru:pass.title"); ok {
-		t.Fatal("the page offers to remove a key from a language that lacks it")
+	if drop, ok := textsField(s, "drop.en:"+k); !ok || drop.Meaning == "" {
+		t.Fatalf("the button that removes the English text has no help: %+v", drop)
 	}
-	setTexts(t, s, "ru:pass.title", "Перевал")
-	if got := textsSummary(t, s); got != "1 keys; missing: EN 0, RU 0" {
+	if _, ok := textsField(s, "drop.ru:"+k); ok {
+		t.Fatal("the page offers to remove a text from a language that lacks it")
+	}
+	setTexts(t, s, "ru:"+k, "Перевал")
+	if got := textsSummary(t, s); got != "1 texts; missing: EN 0, RU 0" {
 		t.Fatalf("the count line %q", got)
 	}
-	if f, _ := textsField(s, "ru:pass.title"); f.TextValue != "Перевал" || strings.Contains(f.Group, "missing") {
+	if f, _ := textsField(s, "ru:"+k); f.TextValue != "Перевал" || strings.Contains(f.Group, "missing") {
 		t.Fatalf("the Russian field %+v", f)
 	}
-	refusedTexts(t, s, "new", "  ", mod.CheckTextKey("").Error())
-	refusedTexts(t, s, "new", "pass.title", "already has text key")
-	refusedTexts(t, s, "name:pass.title", "", mod.CheckTextKey("").Error())
+	noKeyField(t, s, k)
+	refusedTexts(t, s, textsNewKey, "99", "no field")
 	refusedTexts(t, s, "en:no.such", "x", "no field")
+	if again := newText(t, s, "A text to show later"); again != k+"_2" {
+		t.Fatalf("the second text to show later is %q, want the key maker's %q", again, k+"_2")
+	}
 	b := s.workspace.Project.Files[mod.StringsFile("ru")]
-	if back, err := mod.ParseStrings(mod.StringsFile("ru"), b); err != nil || back["pass.title"] != "Перевал" {
+	if back, err := mod.ParseStrings(mod.StringsFile("ru"), b); err != nil || back[k] != "Перевал" {
 		t.Fatalf("the Russian draft %q: %v", b, err)
 	}
 }
 
-// Adding, editing and renaming a key are draft steps Undo and Redo walk; a
-// rename carries the mission row that cites the key, and the row's title
-// field shows the key's text.
-func TestTextsPageUndoesRedoesAndCarriesARenameThroughTheMissionRow(t *testing.T) {
+// A mission name made from the Missions page shows on the texts page under
+// the mission's name, with no key field; its words show as the row's
+// title. Making it, typing it and making the briefing from the texts page
+// are draft steps Undo and Redo walk.
+func TestTextsPageShowsAMissionNameMadeFromMissions(t *testing.T) {
 	s, _ := terrainPage(t)
-	setTexts(t, s, "new", "pass.title")
-	setTexts(t, s, "en:pass.title", "The Pass")
-	pickTitle(t, s, missionTitleKey, "pass.title")
-	if r := selectedRow(s); r.TitleKey != "pass.title" || r.Title != "The Pass" {
-		t.Fatalf("the row after the pick: %q %q", r.TitleKey, r.Title)
+	k := newMissionText(t, s, missionTitleKey)
+	row := selectedRow(s)
+	if want := makeTextKey(nil, missionTextBase(row, true)); row.TitleKey != k || k != want {
+		t.Fatalf("the row cites %q, the made key is %q, want %q", row.TitleKey, k, want)
 	}
-	if f, ok := textsField(s, "used:pass.title"); !ok || !strings.Contains(f.TextValue, selectedRow(s).RowID()) {
-		t.Fatalf("the used line %+v", f)
+	en, ok := textsField(s, "en:"+k)
+	if want := "Mission " + row.RowID() + ": name"; !ok || !strings.HasPrefix(en.Group, want) {
+		t.Fatalf("the new name's field %+v, want it under %q", en, want)
 	}
-	setTexts(t, s, "name:pass.title", "pass.name")
-	if r := selectedRow(s); r.TitleKey != "pass.name" || r.Title != "The Pass" {
-		t.Fatalf("the row after the rename: %q %q", r.TitleKey, r.Title)
+	noKeyField(t, s, k)
+	setTexts(t, s, "en:"+k, "The Pass")
+	if r := selectedRow(s); r.Title != "The Pass" {
+		t.Fatalf("the row's title after typing it: %q", r.Title)
 	}
-	if _, ok := textsField(s, "en:pass.title"); ok {
-		t.Fatal("the old key stays after the rename")
+	if f, _ := textsField(s, "en:"+k); !strings.HasPrefix(f.Group, "Mission The Pass: name") {
+		t.Fatalf("the name's place after typing it: %q", f.Group)
 	}
-	setTexts(t, s, "en:pass.name", "High Pass")
-	if r := selectedRow(s); r.Title != "High Pass" {
-		t.Fatalf("the row's title after an edit of its key: %q", r.Title)
+	nf, _ := textsField(s, textsNewKey)
+	for _, c := range nf.Choices {
+		if strings.Contains(c.Label, ": name") {
+			t.Fatalf("the new text row still offers the named mission's name: %+v", nf.Choices)
+		}
 	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
+	b := newText(t, s, "Mission The Pass: briefing")
+	if r := selectedRow(s); r.BriefKey != b {
+		t.Fatalf("the briefing made on the texts page: row cites %q, made %q", r.BriefKey, b)
 	}
-	if f, _ := textsField(s, "en:pass.name"); f.TextValue != "The Pass" || selectedRow(s).Title != "The Pass" {
-		t.Fatalf("after undoing the edit: %+v, row %q", f, selectedRow(s).Title)
+	for range 3 {
+		if _, err := s.Undo(); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if _, err := s.Undo(); err != nil {
-		t.Fatal(err)
+	if r := selectedRow(s); r.TitleKey != "" || r.BriefKey != "" || len(heldKeys(t, s)) != 0 {
+		t.Fatalf("after three undos: row %q %q, keys %q", r.TitleKey, r.BriefKey, heldKeys(t, s))
 	}
-	if _, ok := textsField(s, "en:pass.title"); !ok || selectedRow(s).TitleKey != "pass.title" {
-		t.Fatalf("after undoing the rename: row %q", selectedRow(s).TitleKey)
-	}
-	for range 2 {
+	for range 3 {
 		if _, err := s.Redo(); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if f, _ := textsField(s, "en:pass.name"); f.TextValue != "High Pass" || selectedRow(s).TitleKey != "pass.name" {
-		t.Fatalf("after redo: %+v, row %q", f, selectedRow(s).TitleKey)
+	if r := selectedRow(s); r.TitleKey != k || r.BriefKey != b || r.Title != "The Pass" {
+		t.Fatalf("after redo: row %q %q %q", r.TitleKey, r.BriefKey, r.Title)
 	}
 }
 
-// A key a mission row cites cannot leave English, and leaves Russian while
-// English holds it; a key a file of another kind cites is not renamed, and
-// the refusal names the file. A title cannot pick a key English lacks.
+// A text a mission row shows cannot leave English, and leaves Russian while
+// English holds it. A title cannot pick a text English lacks.
 func TestTextsPageRefusesWhatWouldLeaveACitationUnread(t *testing.T) {
-	s, dir := terrainPage(t)
-	writeFileAll(t, filepath.Join(dir, filepath.FromSlash(mod.ItemsFile)), []byte("[[weapon]]\nkey        = \"star\"\nname       = \"coat.name\"\nbase       = \"Dagger\"\n"))
-	setTexts(t, s, "new", "coat.name")
-	setTexts(t, s, "new", "pass.title")
-	setTexts(t, s, "ru:pass.title", "Перевал")
-	pickTitle(t, s, missionTitleKey, "pass.title")
-	refusedTexts(t, s, "drop.en:pass.title", "", selectedRow(s).RowID())
-	refusedTexts(t, s, "name:coat.name", "coat.label", mod.ItemsFile)
-	refusedTexts(t, s, "drop.en:coat.name", "", mod.ItemsFile)
-	if f, ok := textsField(s, "used:coat.name"); !ok || !strings.Contains(f.TextValue, mod.ItemsFile) {
-		t.Fatalf("the used line of a key the items cite: %+v", f)
-	}
-	setTexts(t, s, "drop.ru:pass.title", "")
-	if f, _ := textsField(s, "ru:pass.title"); f.Meaning == "" {
+	s, _ := terrainPage(t)
+	k := newMissionText(t, s, missionTitleKey)
+	setTexts(t, s, "ru:"+k, "Перевал")
+	refusedTexts(t, s, "drop.en:"+k, "", "Mission "+selectedRow(s).RowID()+": name")
+	setTexts(t, s, "drop.ru:"+k, "")
+	if f, _ := textsField(s, "ru:"+k); f.Meaning == "" {
 		t.Fatalf("the Russian field after its text left: %+v", f)
 	}
-	setTexts(t, s, "new", "only.ru")
-	setTexts(t, s, "ru:only.ru", "Только")
-	setTexts(t, s, "drop.en:only.ru", "")
-	before, tried := cloneWorkspace(s.workspace), false
-	for _, f := range s.WorkspaceFields("package") {
-		if f.Key == missionBriefKey {
-			for _, c := range f.Choices {
-				if strings.HasPrefix(c.Label, "only.ru: ") {
-					tried = true
-					if _, err := s.SetWorkspaceField("package", missionBriefKey, strconv.FormatInt(c.Value, 10)); err == nil || !strings.Contains(err.Error(), "no English") {
-						t.Fatalf("a briefing picked a key English lacks: %v", err)
-					}
-				}
-			}
-		}
-	}
-	if !tried {
-		t.Fatal("the briefing field offers no key English lacks")
+	only := newText(t, s, "A text to show later")
+	setTexts(t, s, "ru:"+only, "Только")
+	setTexts(t, s, "drop.en:"+only, "")
+	before := cloneWorkspace(s.workspace)
+	if err := pickKey(s, missionBriefKey, only); err == nil || !strings.Contains(err.Error(), "has no English") {
+		t.Fatalf("a briefing picked a text English lacks: %v", err)
 	}
 	if !reflect.DeepEqual(s.workspace, before) {
 		t.Fatal("the refused pick changed the draft")
@@ -222,13 +278,11 @@ func TestTextsPageRefusesWhatWouldLeaveACitationUnread(t *testing.T) {
 func TestTextsPageModSavesPublishesAndShowsTheTitle(t *testing.T) {
 	s, dir := terrainPage(t)
 	made := tree(t, dir)
-	setTexts(t, s, "new", "pass.title")
-	setTexts(t, s, "en:pass.title", "The Pass")
-	setTexts(t, s, "ru:pass.title", "Перевал")
-	setTexts(t, s, "new", "pass.brief")
-	setTexts(t, s, "en:pass.brief", "Cross \"the\" pass.")
-	pickTitle(t, s, missionTitleKey, "pass.title")
-	pickTitle(t, s, missionBriefKey, "pass.brief")
+	title := newMissionText(t, s, missionTitleKey)
+	setTexts(t, s, "en:"+title, "The Pass")
+	setTexts(t, s, "ru:"+title, "Перевал")
+	brief := newMissionText(t, s, missionBriefKey)
+	setTexts(t, s, "en:"+brief, "Cross \"the\" pass.")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
@@ -242,17 +296,17 @@ func TestTextsPageModSavesPublishesAndShowsTheTitle(t *testing.T) {
 			t.Fatalf("the save wrote no %s: %v", rel, keysOf(saved))
 		}
 	}
-	if rows := saved[mod.MissionsFile]; !strings.Contains(rows, "\"pass.title\"") || !strings.Contains(rows, "\"pass.brief\"") {
-		t.Fatalf("the saved row does not cite the key:\n%s", rows)
+	if rows := saved[mod.MissionsFile]; !strings.Contains(rows, strconv.Quote(title)) || !strings.Contains(rows, strconv.Quote(brief)) {
+		t.Fatalf("the saved row does not cite the keys:\n%s", rows)
 	}
 	en := filepath.Join(dir, filepath.FromSlash(mod.StringsFile("en")))
 	writeFileAll(t, en, append([]byte("# made on the page\n"), saved[mod.StringsFile("en")]...))
 	s = openInW(t, s, dir)
-	setTexts(t, s, "en:pass.title", "The High Pass")
+	setTexts(t, s, "en:"+title, "The High Pass")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(en); !strings.HasPrefix(string(b), "# made on the page\n\"pass.title\" = ") || !strings.Contains(string(b), "\"pass.brief\" = \"Cross \\\"the\\\" pass.\"\n") || !strings.Contains(string(b), "\"pass.title\" = \"The High Pass\"\n") {
+	if b, _ := os.ReadFile(en); !strings.HasPrefix(string(b), "# made on the page\n") || !strings.Contains(string(b), strconv.Quote(brief)+" = \"Cross \\\"the\\\" pass.\"\n") || !strings.Contains(string(b), strconv.Quote(title)+" = \"The High Pass\"\n") {
 		t.Fatalf("the English file after the second save:\n%s", b)
 	}
 	for lang, want := range map[string][2]string{"en": {"The High Pass", "Cross \"the\" pass."}, "ru": {"Перевал", "Cross \"the\" pass."}} {
@@ -260,7 +314,7 @@ func TestTextsPageModSavesPublishesAndShowsTheTitle(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		i := slices.IndexFunc(d.Missions, func(m mod.Mission) bool { return m.TitleKey == "pass.title" })
+		i := slices.IndexFunc(d.Missions, func(m mod.Mission) bool { return m.TitleKey == title })
 		if i < 0 || d.Missions[i].Title != want[0] || d.Missions[i].Brief != want[1] {
 			t.Fatalf("%s: the starter's rows %+v", lang, d.Missions)
 		}
@@ -281,7 +335,7 @@ func TestTextsPageModSavesPublishesAndShowsTheTitle(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: the check refused the published mod: %v", base, err)
 		}
-		i := slices.IndexFunc(res.Missions.Missions, func(m mod.Mission) bool { return m.TitleKey == "pass.title" })
+		i := slices.IndexFunc(res.Missions.Missions, func(m mod.Mission) bool { return m.TitleKey == title })
 		if i < 0 || res.Missions.Missions[i].Title != want {
 			t.Fatalf("%s: the published rows %+v", base, res.Missions.Missions)
 		}
@@ -296,8 +350,8 @@ func TestTextsPageEditKeepsAnUntouchedEmptyLanguageFile(t *testing.T) {
 		ru := filepath.Join(dir, filepath.FromSlash(mod.StringsFile("ru")))
 		writeFileAll(t, ru, []byte(body))
 		s = openInW(t, s, dir)
-		setTexts(t, s, "new", "a")
-		setTexts(t, s, "en:a", "one")
+		a := newText(t, s, "A text to show later")
+		setTexts(t, s, "en:"+a, "one")
 		if _, err := s.SaveIntoMod(); err != nil {
 			t.Fatal(err)
 		}
@@ -308,14 +362,14 @@ func TestTextsPageEditKeepsAnUntouchedEmptyLanguageFile(t *testing.T) {
 	}
 }
 
-// Adding a key, saving and undoing takes the strings file the save made out
-// of the folder at the next save; editing a value, saving and undoing writes
-// the old value back; the same after a redo and a second undo.
+// Adding a text, saving and undoing takes the strings file the save made
+// out of the folder at the next save; editing a value, saving and undoing
+// writes the old value back; the same after a redo and a second undo.
 func TestTextsPageUndoPastASaveRestoresTheStrings(t *testing.T) {
 	s, dir := terrainPage(t)
 	ru := filepath.Join(dir, filepath.FromSlash(mod.StringsFile("ru")))
-	setTexts(t, s, "new", "a")
-	setTexts(t, s, "ru:a", "один")
+	a := newText(t, s, "A text to show later")
+	setTexts(t, s, "ru:"+a, "один")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
@@ -331,11 +385,11 @@ func TestTextsPageUndoPastASaveRestoresTheStrings(t *testing.T) {
 	if _, err := os.Stat(ru); !os.IsNotExist(err) {
 		t.Fatalf("the Russian file the undone step made stays: %v", err)
 	}
-	setTexts(t, s, "ru:a", "один")
+	setTexts(t, s, "ru:"+a, "один")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
-	setTexts(t, s, "ru:a", "два")
+	setTexts(t, s, "ru:"+a, "два")
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +401,7 @@ func TestTextsPageUndoPastASaveRestoresTheStrings(t *testing.T) {
 	if _, err := s.SaveIntoMod(); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(ru); !strings.Contains(string(b), "\"a\" = \"один\"") {
+	if b, _ := os.ReadFile(ru); !strings.Contains(string(b), strconv.Quote(a)+" = \"один\"") && !strings.Contains(string(b), a+" = \"один\"") {
 		t.Fatalf("the Russian file after an undo past a save:\n%s", b)
 	}
 }

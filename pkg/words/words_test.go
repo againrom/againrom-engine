@@ -242,7 +242,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 		// itemGroupWord forms these ids from the decoder's row keys; the
 		// pkg/game test TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces
 		// holds them to those keys.
-		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") {
+		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") || strings.HasPrefix(id, "editor.item.tier.") {
 			continue
 		}
 		// The base menu action table holds these two as positional struct

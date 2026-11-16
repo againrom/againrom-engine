@@ -48,6 +48,7 @@ var itemNameAllowed = map[string]string{
 	"pkg/game/moditemlayer.go itemMaterialPatch " + itemNameRowName:                               "a mod patch field's key: the class and material words",
 	"pkg/game/moditemlayer.go checkWeaponDamage " + itemNameRowName:                               "a mod diagnostic names the class and material rows, not an item",
 	"pkg/game/moditemlayer.go pairPicturesOf " + itemNameRowName:                                  "a mod diagnostic names the class and material rows, not an item",
+	"pkg/game/mapeditormoditems.go (*MapInspector).newItemMaterial " + itemNameRowName:            "a mod material record's key: the tier and material words",
 	"pkg/game/table.go readUnder " + itemNameComposerRow:                                          "installs the game's composer row",
 }
 

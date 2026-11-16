@@ -36,23 +36,73 @@ func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
 	return cell.Tip, at, ok
 }
 
-// gridCellAt is the list popup's grid cell under p that names itself, and
-// its corner.
+// gridCellAt is the grid cell under p that names itself, of the list popup
+// or the mod window, and its corner. A cell with TipPictures carries them
+// as one TipPicture: a sheet of them, each at the cell's picture size.
 func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Point, bool) {
-	if e.chromeHit(p) != popList {
-		return popupGridCell{}, image.Point{}, false
+	var s popupSpec
+	ok := false
+	switch e.chromeHit(p) {
+	case popList:
+		s, ok = e.listSpec()
+	case popObject:
+		if e.modWindow {
+			s, _, ok = e.modSpec()
+		}
 	}
-	s, ok := e.listSpec()
 	if !ok || s.Grid == nil {
 		return popupGridCell{}, image.Point{}, false
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for i, r := range l.GridCells {
 		if n := l.gridIndex(i); p.In(r) && n < len(s.Grid.Cells) && s.Grid.Cells[n].Tip != "" {
-			return s.Grid.Cells[n], r.Min, true
+			cell := s.Grid.Cells[n]
+			if len(cell.TipPictures) > 0 {
+				cell.TipPicture = e.fitTipSheet(cell.Tip, cell.TipPictures, s.Grid.pictureSide(), e.popupBounds())
+			}
+			return cell, r.Min, true
 		}
 	}
 	return popupGridCell{}, image.Point{}, false
+}
+
+// fitTipSheet is the tip sheet of pics at side with the tip's text whole
+// inside bounds: at side while the tip fits, else at the largest side that
+// makes it fit.
+func (e *MapEditor) fitTipSheet(label string, pics []*image.RGBA, side int, bounds image.Rectangle) *image.RGBA {
+	sheet := tipSheet(pics, side)
+	target := tooltipTarget{kind: tooltipText, id: "editor", lines: []string{label}, font: e.bodyFont()}
+	size := sheet.Bounds().Size()
+	if img, _, ok := tooltipPicture(target, bounds.Min.Add(bounds.Size().Div(2)), bounds, nil, e.editorTipStyle(sheet)); ok {
+		size = img.Bounds().Size()
+	}
+	if size.X <= bounds.Dx() && size.Y <= bounds.Dy() {
+		return sheet
+	}
+	cols := min(len(pics), tipSheetColumns)
+	rows := (len(pics) + cols - 1) / cols
+	over := size.Sub(sheet.Bounds().Size())
+	side = min((bounds.Dx()-over.X+2)/cols-2, (bounds.Dy()-over.Y+2)/rows-2)
+	return tipSheet(pics, max(side, 1))
+}
+
+// tipSheetColumns is how many pictures a row of a tip sheet holds.
+const tipSheetColumns = 8
+
+// tipSheet is pics side by side in rows of tipSheetColumns, each drawn in a
+// square side pixels wide as a grid cell draws its picture, 2 pixels apart.
+func tipSheet(pics []*image.RGBA, side int) *image.RGBA {
+	cols := min(len(pics), tipSheetColumns)
+	rows := (len(pics) + cols - 1) / cols
+	sheet := image.NewRGBA(image.Rect(0, 0, cols*(side+2)-2, rows*(side+2)-2))
+	for i, pic := range pics {
+		if pic == nil || pic.Bounds().Empty() {
+			continue
+		}
+		at := image.Pt(i%cols*(side+2), i/cols*(side+2))
+		editorBlit(sheet, pic, addPreviewRect(pic.Bounds().Size(), image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}), false)
+	}
+	return sheet
 }
 
 // choiceTipAt is the tip of the open list's row under p when the field shows

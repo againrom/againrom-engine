@@ -35,8 +35,8 @@ func (x *MapInspector) itemChoiceGroups(choices []ui.InspectionChoice) []ui.Insp
 	return groups
 }
 
-// itemGroupWord is the caption of a group's kind or material: the word the
-// decoder's key names, else the row's own name.
+// itemGroupWord is the caption of a kind, material or tier row: the word
+// its row key names, else the row's own name.
 func (x *MapInspector) itemGroupWord(axis, name, key string) string {
 	if key != "" {
 		id := "editor.item." + axis + "." + key

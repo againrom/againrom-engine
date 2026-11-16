@@ -1447,6 +1447,29 @@ ID stays fixed after opening. Edits share the project draft and Undo/Redo;
 Ctrl+S writes them. API is written as 1 and is not a field. A packed mod refuses every change in W and every save
 into it, naming the packed file; opening another mod is allowed. New packages contain no generated entry script. An opened packed file stays read-only.
 
+On W's Terrain, Texts and Items pages a modder types only names, texts and
+plain numbers. A path, file name, text key, game row name, tier, material or
+mask is picked from a choice or a picture, or the editor makes it. Every
+editable row has a label and a (?) help line in the editor's language.
+
+- Terrain shows every ground the brush paints as one picture cell, the game's
+  own first and then the mod's, in a grid. Resting the pointer on a cell shows
+  a popup of all its variations at the preview's size. A click on a mod ground
+  opens its name, walking rule and delete.
+- Texts opens with a line saying what the page holds. Each text stands under
+  the place it shows: a mission's name or briefing, an item's name, or no place
+  yet. New text for offers the places that have no text; the key maker of the
+  mod text code names the new key, and its English and Russian texts are typed.
+- Items starts a new armour or weapon from a choice of the install's items, by
+  game name and picture. The row takes the next free key (`armour`,
+  `armour_2`, `weapon`, ...), the item's name in every language under a key the editor
+  makes, and for armour the item's slot and the item as its stand-in. The name
+  is typed per language. Stands in for, Copied from and Change a game item are
+  item choices. A material record is three choices: the item, the tier and the
+  material; it is allowed by choosing its picture or the Allowed choice. A
+  Picture row is the file choice; the row below shows the picture, or the game
+  item's own when the row has none.
+
 ## Towns
 
 `data/towns.toml` holds `[[town]]` tables. Each is a layer record over the

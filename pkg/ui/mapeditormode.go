@@ -115,6 +115,7 @@ func (p editorPrompt) fields() bool {
 type editorMode struct {
 	modWindow       bool
 	modPage         int          // W's page shown, one of the modPage constants
+	modGridTop      int          // the first row of the mod page's grid that shows
 	modUnfolded     map[int]bool // the overview's folded sections that are unfolded, by their place among the folded ones
 	modFoldRow      []int        // the row of each foldable heading of the overview page
 	modConfirm      string

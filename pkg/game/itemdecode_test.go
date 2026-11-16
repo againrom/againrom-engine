@@ -48,7 +48,8 @@ func TestDecodeItemReadsKindAndMaterialRows(t *testing.T) {
 }
 
 // itemGroupKeysToday are the kind and material row names that had a group
-// word, with the key each had, before the decoder derived keys.
+// word, with the key each had, before the decoder derived keys, and the
+// tier row names the items page words by the same rule.
 var itemGroupKeysToday = map[string]string{
 	"kind:BareHands":          "barehands",
 	"kind:Dagger":             "dagger",
@@ -135,6 +136,11 @@ var itemGroupKeysToday = map[string]string{
 	"material:Bone":           "bone",
 	"material:Crystal":        "crystal",
 	"material:None":           "none",
+	"tier:Common":             "common",
+	"tier:Uncommon":           "uncommon",
+	"tier:Rare":               "rare",
+	"tier:Very Rare":          "veryrare",
+	"tier:Elven":              "elven",
 }
 
 func TestItemRowKeysResolveAsTheyDidForTheInstalls(t *testing.T) {
@@ -187,7 +193,7 @@ func TestItemRowKeysResolveAsTheyDidForTheInstalls(t *testing.T) {
 }
 
 // TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces holds the English ids
-// under editor.item.kind. and editor.item.material., which itemGroupWord forms
+// under editor.item.kind., .material. and .tier., which itemGroupWord forms
 // at run time, to the keys of itemGroupKeysToday: every key has an id and every
 // id has a key. The carried and no-material keys are in the map too.
 func TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces(t *testing.T) {
@@ -197,7 +203,7 @@ func TestEditorItemWordsAreExactlyTheKeysTheDecoderProduces(t *testing.T) {
 	}
 	have := map[string]bool{}
 	for _, id := range ids {
-		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") {
+		if strings.HasPrefix(id, "editor.item.kind.") || strings.HasPrefix(id, "editor.item.material.") || strings.HasPrefix(id, "editor.item.tier.") {
 			have[id] = true
 		}
 	}
