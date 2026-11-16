@@ -88,7 +88,7 @@ func textKeys(sets map[string]mod.Strings) []string {
 // textPlaces is where each text key of the project d shows, in the page's
 // words: a mission row's name or briefing, an item's name, or a file of
 // another kind that cites it, which the editor does not write.
-func (s *mapInspectionEdits) textPlaces(d *editorModDocument) map[string][]string {
+func (s *mapInspectionEdits) textPlaces(d *editorModDocument, skipFiles ...string) map[string][]string {
 	x, m := s.inspector, s.inspector.mod
 	out := map[string][]string{}
 	add := func(k, format string, a ...any) {
@@ -113,10 +113,14 @@ func (s *mapInspectionEdits) textPlaces(d *editorModDocument) map[string][]strin
 	}
 	for _, k := range mod.DataKinds() {
 		for _, rel := range k.Files {
-			if rel == mod.MissionsFile || rel == mod.ItemsFile {
+			if rel == mod.MissionsFile || rel == mod.ItemsFile || slices.Contains(skipFiles, rel) {
 				continue
 			}
-			src, err := modDataFile(m.dir, rel)
+			src, held := d.Files[rel]
+			var err error
+			if !held {
+				src, err = modDataFile(m.dir, rel)
+			}
 			if err != nil || src == nil {
 				continue
 			}
@@ -361,6 +365,17 @@ func (s *mapInspectionEdits) editTexts(edit func(map[string]mod.Strings, *editor
 		}
 		return w.Project.citedTexts(x.pageLanguage())
 	})
+}
+
+func newModText(sets map[string]mod.Strings, kind string, values map[string]string) string {
+	key := makeTextKey(sets, kind)
+	for _, l := range textLanguages() {
+		if sets[l] == nil {
+			sets[l] = mod.Strings{}
+		}
+		sets[l][key] = values[l]
+	}
+	return key
 }
 
 // cloneTexts is a copy of the text of each language.

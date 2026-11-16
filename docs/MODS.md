@@ -1155,6 +1155,8 @@ the campaign's first town. A mission that names `class` or `sex` starts this way
 for a hero of that kind; for another hero the start is refused in a line
 that names both.
 
+The mod window's Characters page writes `data/characters.toml`.
+
 A `[[character]]` table with `key` adds a character to the catalog. Its keys
 are `key` (1 to 32 of a-z, 0-9 and `_`, starting with a letter; not `npc<n>`), `row` (a definition
 row, or a family of tier rows), `name` (a text key of the mod) and `face`.

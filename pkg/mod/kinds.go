@@ -189,7 +189,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the install's npc.reg records, read once, keyed `npc<n>`; `target` edits existing definition rows",
 		Shared: "catalog keys: " + mergedShared + "; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after",
-		read:   readCharacters, text: true,
+		read:   readCharacters, write: writeCharacters, text: true,
+		Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftCharacters,
 		summary: func(d Data) string {
 			if d.Characters.Empty() {
 				return ""

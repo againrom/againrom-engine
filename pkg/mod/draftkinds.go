@@ -203,6 +203,22 @@ func draftItems(r DataReader, d *Data, view DraftView, text func() (textLookup, 
 	return nil
 }
 
+func draftCharacters(r DataReader, d *Data, view DraftView, text func() (textLookup, error)) error {
+	src, _ := view.Draft(CharactersFile)
+	d.Characters.Rows = slices.DeleteFunc(d.Characters.Rows, func(c CharacterRow) bool {
+		return namefold.ModTree(c.File) == namefold.ModTree(CharactersFile)
+	})
+	if src == nil {
+		return nil
+	}
+	look, err := text()
+	if err != nil {
+		return err
+	}
+	r.Text = look
+	return readCharacters(r, d, CharactersFile, src)
+}
+
 // draftTerrain puts the draft of the terrain file over d's groups.
 func draftTerrain(r DataReader, d *Data, view DraftView, _ func() (textLookup, error)) error {
 	src, ok := view.Draft(TerrainFile)

@@ -192,28 +192,32 @@ func faceChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice 
 	if !ok {
 		return out
 	}
+	return append(out, s.inspector.figureFaceChoices(dir)...)
+}
+
+func (x *MapInspector) figureFaceChoices(dir data.FigureDir) []ui.InspectionChoice {
 	cache := fmt.Sprintf("face:%s", dir)
-	if s.inspector.recordOptions == nil {
-		s.inspector.recordOptions = map[string][]ui.InspectionChoice{}
+	if x.recordOptions == nil {
+		x.recordOptions = map[string][]ui.InspectionChoice{}
 	}
-	if choices, ok := s.inspector.recordOptions[cache]; ok {
-		return append(out, choices...)
+	if choices, ok := x.recordOptions[cache]; ok {
+		return choices
 	}
 	var choices []ui.InspectionChoice
 	pictures := map[int64]*image.RGBA{}
 	for face := int64(1); face <= 127; face++ {
-		doll, _ := composeFigure(s.inspector.archives.artSource(), figureOptions{Equipment: data.Equipment{}, Fig: figureID{Dir: dir, Face: int(face)}})
+		doll, _ := composeFigure(x.archives.artSource(), figureOptions{Equipment: data.Equipment{}, Fig: figureID{Dir: dir, Face: int(face)}})
 		if doll.Figure != nil {
 			choices = append(choices, ui.InspectionChoice{Value: face, Label: fmt.Sprintf("%d", face)})
 			pictures[face] = doll.Figure
 		}
 	}
-	s.inspector.recordOptions[cache] = choices
-	if s.inspector.recordPictures == nil {
-		s.inspector.recordPictures = map[string]map[int64]*image.RGBA{}
+	x.recordOptions[cache] = choices
+	if x.recordPictures == nil {
+		x.recordPictures = map[string]map[int64]*image.RGBA{}
 	}
-	s.inspector.recordPictures[cache] = pictures
-	return append(out, choices...)
+	x.recordPictures[cache] = pictures
+	return choices
 }
 
 func recipeItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {

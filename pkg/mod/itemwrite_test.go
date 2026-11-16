@@ -73,3 +73,17 @@ func TestItemChangeOffIsReadByTheItemsRule(t *testing.T) {
 		t.Fatalf("off = 1: %v", err)
 	}
 }
+
+func TestItemsWriterDeleteOfTheFirstRepeatKeepsTheOthersLines(t *testing.T) {
+	source := "# head\n[[change]]\nitem = \"Cap\" # A first\nprice = 7 # A price\n\n[[change]]\nitem = \"Cap\" # B second\nprice = 9 # B price\n"
+	d, err := ParseItems("m", ItemsFile, []byte(source), func(string) (string, bool) { return "-", true }, "en")
+	if err != nil || len(d.Changes) != 2 {
+		t.Fatalf("parse: %+v, %v", d, err)
+	}
+	d.Changes = d.Changes[1:]
+	out, err := writeItems("", []byte(source), Data{Items: d})
+	want := "# head\n\n[[change]]\nitem = \"Cap\" # B second\nprice = 9 # B price\n"
+	if err != nil || string(out) != want {
+		t.Fatalf("delete first: %q, %v; want %q", out, err, want)
+	}
+}

@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - The map editor's message box no longer shows question marks instead of Russian text, for example when a trigger copy is refused.
 - [BASE] Mod window: Terrain shows each ground as a picture with its variations on hover, Texts lists each text under where it shows, and Items starts new armour and weapons from a game item picked by name and picture; only names and numbers are typed.
 - [BASE] Map editor: the Units tab places units for a chosen player with no window, the unit window shows corpse drops with the bag and the character card under the identity, and the Players window alone manages players.
+- [BASE] Mod window: a Characters page adds a guest character with its name in each language and a face, renames or re-faces a game character, and the mission's guest party offers the new characters.
 
 ### For developers
 

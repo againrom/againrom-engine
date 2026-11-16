@@ -86,6 +86,7 @@ const (
 	modPageTexts           // the mod's text keys in each language
 	modPageItems           // the item rows the mod adds, changes or switches off
 	modPageFiles           // the install files the mod replaces
+	modPageCharacters
 )
 
 // modPageWords is each page's tab word and the help its title's (?) mark
@@ -98,6 +99,7 @@ var modPageWords = []struct{ tabWord, helpWord string }{
 	{tabWord: "editor.mod.texts", helpWord: "editor.texts.help"},
 	{tabWord: "editor.mod.items", helpWord: "editor.items.help"},
 	{tabWord: "editor.mod.files", helpWord: "editor.files.help"},
+	{tabWord: "editor.mod.characters", helpWord: "editor.characters.help"},
 }
 
 // The workspace scopes of W's pages of a scope of their own.
@@ -110,6 +112,8 @@ const (
 	ModItemsScope = "items"
 	// ModFilesScope is the fields of the install files the open mod replaces.
 	ModFilesScope = "installfiles"
+	// ModCharactersScope holds the mod's character names and faces.
+	ModCharactersScope = "characters"
 )
 
 // modScopePages is W's pages that hold the workspace fields of a scope of
@@ -117,7 +121,7 @@ const (
 var modScopePages = []struct {
 	page  int
 	scope string
-}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageItems, ModItemsScope}, {modPageFiles, ModFilesScope}}
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageFiles, ModFilesScope}}
 
 // modHeldPages are the pages of modScopePages kept out of W: no tab or key
 // reaches them.

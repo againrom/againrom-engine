@@ -3,7 +3,6 @@ package mod
 import (
 	"cmp"
 	"fmt"
-	"maps"
 	"slices"
 	"strconv"
 )
@@ -26,17 +25,7 @@ func writeItems(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	same := func(a, b sourceRow) bool {
-		pairs := func(r sourceRow) map[string]string {
-			m := map[string]string{}
-			for _, p := range r.pairs {
-				m[p.key] = p.value
-			}
-			return m
-		}
-		return a.table == b.table && a.identity == b.identity && maps.Equal(pairs(a), pairs(b))
-	}
-	if !slices.EqualFunc(itemSourceRows(back), after, same) {
+	if !sameRows(itemSourceRows(back), after) {
 		return nil, fmt.Errorf("%s: the written records do not read back as the records given", ItemsFile)
 	}
 	return out, nil
@@ -120,11 +109,10 @@ func itemSourceRows(d ItemData) []sourceRow {
 		}
 		return cmp.Compare(a.line, b.line)
 	})
-	rows, seen := make([]sourceRow, len(out)), map[string]int{}
+	rows, lines := make([]sourceRow, len(out)), make([]int, len(out))
 	for i, r := range out {
-		rows[i] = r.row
-		seen[r.row.identity]++
-		rows[i].identity += "\x00" + strconv.Itoa(seen[r.row.identity])
+		rows[i], lines[i] = r.row, r.line
 	}
+	numberRows(rows, lines)
 	return rows
 }

@@ -3,7 +3,9 @@ package game
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -235,4 +237,60 @@ func TestReleaseGuestPartyBuildsCharactersAtTheirLevels(t *testing.T) {
 		!strings.Contains(err.Error(), `character "npc999" is not in the character catalog`) {
 		t.Fatalf("an unknown character: %v", err)
 	}
+	t.Run("editor-made", func(t *testing.T) {
+		x := installedInspector(t)
+		e := x.Editor()
+		if err := e.Open(newMapSource(32, 32)); err != nil {
+			t.Fatal(err)
+		}
+		s := e.Document().Edits.(*mapInspectionEdits)
+		doc, err := s.SetWorkspaceField("package", "folder", filepath.Join(t.TempDir(), "authored-map"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		s = doc.Edits.(*mapInspectionEdits)
+		row := data.FindHumanByName(x.contextBase().table.Humans, "NPC06_1")
+		choice := identityChoiceValue(mapload.Identity{Kind: mapload.UnitPerson, Row: row})
+		if _, err := s.SetWorkspaceField(ui.ModCharactersScope, "begin", ""); err != nil {
+			t.Fatal(err)
+		}
+		setCharacter(t, s, "new", strconv.FormatInt(choice, 10))
+		setCharacter(t, s, "character.0.name.en", "Visitor")
+		setCharacter(t, s, "character.0.name.ru", "Гостья")
+		faces := characterField(t, s, "character.0.face")
+		if len(faces.Choices) < 2 {
+			t.Fatal("the install offers no face")
+		}
+		face := faces.Choices[len(faces.Choices)-1].Value
+		setCharacter(t, s, "character.0.face", strconv.FormatInt(face, 10))
+		if _, err := s.SaveIntoMod(); err != nil {
+			t.Fatal(err)
+		}
+		c := s.modCharacters()[0]
+		item := func(kind string) string {
+			for _, v := range x.recordCatalog("item") {
+				if name, ok := s.partyItemName(kind, v.Value); ok {
+					return name
+				}
+			}
+			t.Fatalf("the install offers no %s", kind)
+			return ""
+		}
+		weapon, shield := item("weapon"), item("shield")
+		game := &FrontEnd{InstallResources: InstallResources{Table: x.table, Archives: x.archives, Humans: x.table.Humans, Font: resolved(x.font, nil)}}
+		for _, level := range []int{1, 4} {
+			m := mod.Mission{Party: []mod.GuestMember{{Character: c.Key, Level: level, Weapon: &weapon, Shield: &shield}}}
+			party, err := game.guestParty(m, 30, ref, nil)
+			if err != nil || len(party) != 1 {
+				t.Fatalf("level %d: %+v, %v", level, party, err)
+			}
+			p := party[0]
+			eq := mapload.EquipmentFromParty(p)
+			w, _ := eq.Code(1)
+			sh, _ := eq.Code(2)
+			if int64(p.FigureFace) != face || p.Hero.Body != rowHero(t, game, "NPC06_"+strconv.Itoa(level)).Body || w == 0 || sh == 0 {
+				t.Fatalf("level %d: %+v", level, p)
+			}
+		}
+	})
 }

@@ -377,6 +377,7 @@ func workspaceScopeRows() []workspaceScope {
 		page("handout", (*edits).handoutFields, (*edits).setHandoutField),
 		page(ui.ModTerrainScope, (*edits).terrainFields, (*edits).setTerrainField),
 		page(ui.ModTextsScope, (*edits).textsFields, (*edits).setTextsField),
+		page(ui.ModCharactersScope, (*edits).charactersFields, (*edits).setCharactersField),
 		page(ui.ModItemsScope, (*edits).itemsFields, (*edits).setItemsField),
 		page(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
 	}

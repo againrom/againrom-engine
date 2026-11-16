@@ -3,6 +3,7 @@ package mod
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"path"
 	"slices"
 	"strconv"
@@ -332,4 +333,36 @@ func CloneMission(m Mission) Mission {
 		m.TextFiles = files
 	}
 	return m
+}
+
+// numberRows completes the identity of rows whose records may repeat: a row
+// that came from a source line is named by that line, so a delete of an
+// earlier repeat leaves the later one its own; a new row (line 0) takes the
+// next repeat number of its identity.
+func numberRows(rows []sourceRow, lines []int) {
+	seen := map[string]int{}
+	for i := range rows {
+		if lines[i] > 0 {
+			rows[i].identity += "\x00@" + strconv.Itoa(lines[i])
+			continue
+		}
+		seen[rows[i].identity]++
+		rows[i].identity += "\x00" + strconv.Itoa(seen[rows[i].identity])
+	}
+}
+
+func pairMap(r sourceRow) map[string]string {
+	m := map[string]string{}
+	for _, p := range r.pairs {
+		m[p.key] = p.value
+	}
+	return m
+}
+
+// sameRows reports whether a and b are the same rows in the same order by
+// table and pairs; the identity is of one reading of the source and is left out.
+func sameRows(a, b []sourceRow) bool {
+	return slices.EqualFunc(a, b, func(x, y sourceRow) bool {
+		return x.table == y.table && maps.Equal(pairMap(x), pairMap(y))
+	})
 }

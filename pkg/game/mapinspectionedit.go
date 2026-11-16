@@ -36,7 +36,8 @@ type mapInspectionEdits struct {
 	flowImage                    []byte
 	draftFlow                    *campaignFlow
 	handout                      string // the pick of the graph's selected town or hand-out
-	ground                       int    // the terrain page's pressed ground: a mod group, or below 0 one of the game's
+	characterAdding              bool
+	ground                       int // the terrain page's pressed ground: a mod group, or below 0 one of the game's
 	page                         string
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 
