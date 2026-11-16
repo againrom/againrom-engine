@@ -11,7 +11,7 @@ func TestShopBookAndCaptionSpellListsKeepTheirAnswers(t *testing.T) {
 	for _, game := range []rules.SpellGame{rules.SpellGameFirst, rules.SpellGameSecond} {
 		for id := -5; id <= 70; id++ {
 			want := id >= 2 && id <= 27 && id != 6 && id != 11 && id != 12 && id != 17 && id != 18 && id != 27
-			if got := shopBookSpellAdmitted(game, id); got != want {
+			if got := shopBookSpellAdmitted(rules.GameProfile(game), id); got != want {
 				t.Errorf("game %d shop book spell %d admitted = %v, today %v", game, id, got, want)
 			}
 			if got, want := rules.SpellShopScroll(game, id), id >= 1 && id <= 27; got != want {

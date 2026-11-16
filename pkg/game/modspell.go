@@ -27,6 +27,9 @@ func (f *FrontEnd) setModSpells(d mod.SpellData) ([]mod.Override, error) {
 			return nil, itemFileError(r.Mod, r.File, line, "%s", msg)
 		}
 	}
+	if _, at, msg := mapload.ModSpellProfile(f.Table, d); msg != "" {
+		return nil, itemFileError(at.Mod, at.File, at.Line, "%s", msg)
+	}
 	var names []string
 	if spells, err := data.LoadSpells(f.Table.Spells); err == nil {
 		for _, sp := range spells {

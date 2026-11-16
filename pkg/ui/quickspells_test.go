@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"image"
+	"slices"
 	"testing"
 	"time"
 
@@ -257,6 +258,7 @@ func TestQuickSpellMapFocusAndModalOwnership(t *testing.T) {
 
 func TestQuickSpellHeadlessAliasesAndScaledHover(t *testing.T) {
 	a, v, slots := quickSpellApp(t)
+	v.SetSpellbook(sbUnitID, append(slices.Clone(v.spellbook), SpellEntry{ID: 100}, SpellEntry{ID: 101}, SpellEntry{ID: 102}, SpellEntry{ID: 103}))
 	for i, key := range []string{"f4", "f5", "f6", "f7"} {
 		v.selectedSpell = uint32(100 + i)
 		if err := a.HeadlessKey("ctrl-" + key); err != nil {

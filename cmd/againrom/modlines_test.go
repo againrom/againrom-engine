@@ -86,8 +86,8 @@ func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 			}
 		}
 	}
-	if len(ids) != 18 {
-		t.Fatalf("%d fixture mods, want 18", len(ids))
+	if len(ids) != 19 {
+		t.Fatalf("%d fixture mods, want 19", len(ids))
 	}
 	sets := [][]string{}
 	for _, id := range ids {

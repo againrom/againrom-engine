@@ -91,7 +91,7 @@ func TestABookScrollCellIsNoSpellOfHisOwn(t *testing.T) {
 	v, _ := bookScrollFighter(t)
 	var autocast []uint32
 	v.SetAutocastSink(func(entity, spell uint32) { autocast = append(autocast, spell) })
-	if v.spellAvailable(24) || v.bookOffers(24) {
+	if v.bookOffers(24) {
 		t.Fatal("the scroll cell reads as an available spell")
 	}
 	x, y := bookCellCentre(t, v, 4)

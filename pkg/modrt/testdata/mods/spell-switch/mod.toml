@@ -1,0 +1,7 @@
+id          = "spell-switch"
+title       = "Spell switch"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Fire Ball is off, Wall of Fire takes the book's first position and Fire Arrow its third; the book has 23 positions."
+api         = 1
+applies-to  = ["rom1", "rom2-en", "rom2-ru"]

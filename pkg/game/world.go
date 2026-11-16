@@ -594,6 +594,9 @@ type mapWorld struct {
 	// one holding an empty string for it — spellbookOf (spell.go) never
 	// treats an absent name as an absent spell.
 	spellNames map[uint16]string
+	// bookRows is the book's display order under the mods, nil where they
+	// keep the game's own.
+	bookRows []uint16
 }
 
 // invPartyGear is invParty's own type (mapWorld, above): what rearm's
@@ -996,6 +999,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// door: resolved once off the same table t, and set directly on the struct
 	// so newMapWorldWith's own signature stays untouched.
 	mw.spellNames = spellNamesFrom(t, v.Words().SpellBookNames)
+	mw.bookRows = spellBookOrder(t, nil)
 	// WHO CAN SPEAK AND WHAT THEY LOOK LIKE (speakers.go), carried in rather
 	// than resolved here: the table is the campaign's and is read once.
 	mw.npcFaces = npcFaces
@@ -2326,6 +2330,7 @@ func openMapWorld(m *alm.Map, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// value only this function and openMission ever supply would touch every
 	// one of the package's own tests that build a mapWorld through it directly.
 	mw.spellNames = spellNamesFrom(t, v.Words().SpellBookNames)
+	mw.bookRows = spellBookOrder(t, nil)
 	return mw, nil
 }
 

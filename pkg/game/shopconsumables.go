@@ -31,9 +31,9 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 		return nil
 	}
 	var out []ShopItem
-	game := mapload.SpellGameOf(t)
+	profile := mapload.SpellGameProfileOf(t)
 	for spell := 1; spell < t.Spells.Len(); spell++ {
-		if !rules.SpellShopScroll(game, spell) {
+		if !profile.ShopScroll(spell) {
 			continue
 		}
 		params := t.Spells.EntryParams(spell)
@@ -59,9 +59,10 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 	return out
 }
 
-// shopBookSpellAdmitted reads the game's catalog profile (SHOP-CONSUME-073).
-func shopBookSpellAdmitted(game rules.SpellGame, id int) bool {
-	return rules.SpellShopBook(game, id)
+// shopBookSpellAdmitted reads the game's catalog profile under its mods
+// (SHOP-CONSUME-073).
+func shopBookSpellAdmitted(p rules.SpellGameProfile, id int) bool {
+	return p.ShopBook(id)
 }
 
 func shopPotionStock(t *mapload.Table, r shopDrawSource) []ShopItem {

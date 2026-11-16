@@ -1,0 +1,16 @@
+# Fire Ball leaves the book and the shops; Wall of Fire and Fire Arrow swap
+# places; the book's last position is gone.
+[global]
+book_size = 23
+
+[[spell]]
+target = "Fire_Ball"
+off    = true
+
+[[spell]]
+target        = "Wall_of_Fire"
+book_position = 1
+
+[[spell]]
+target        = "Fire_Arrow"
+book_position = 3

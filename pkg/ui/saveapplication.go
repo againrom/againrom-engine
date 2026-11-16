@@ -132,7 +132,7 @@ func (v *Viewer) RestoreSaveApplication(s SaveApplicationState) error {
 	v.armed, v.attackHeld = false, false
 	v.aimed = commandNone
 	v.clearArmedCast()
-	if s.PressedSpell != 0 && v.spellAvailable(s.PressedSpell) && canArmAttack(v.sel, v.entities, v.localOwner) {
+	if s.PressedSpell != 0 && v.bookOffers(s.PressedSpell) && canArmAttack(v.sel, v.entities, v.localOwner) {
 		v.armBookSpell()
 	}
 	v.applicationRestored = true

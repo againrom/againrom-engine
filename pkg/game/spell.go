@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -20,6 +21,30 @@ func spellBookRows(t *mapload.Table) []uint16 {
 		return data.SpellPresentationNamed(t.Edition.Spells).BookRows
 	}
 	return originalBookIDs
+}
+
+// spellBookOrder is the book's display order under t's mods, ground where
+// the mods keep the game's own order. Icons, names and quick-spell cells stay
+// on the game's own rows.
+func spellBookOrder(t *mapload.Table, ground []uint16) []uint16 {
+	rows := mapload.SpellGameProfileOf(t).BookRows()
+	if slices.Equal(rows, rules.SpellBookRows(mapload.SpellGameOf(t))) {
+		return ground
+	}
+	return rows
+}
+
+// markMovedSpells flags each cell of a book in rows' order whose ground
+// picture, drawn in ground's order, is another spell's.
+func markMovedSpells(book []ui.SpellEntry, rows, ground []uint16) {
+	if slices.Equal(rows, ground) {
+		return
+	}
+	for i, id := range rows {
+		if i < len(book) && id != 0 && (i >= len(ground) || ground[i] != id) {
+			book[i].Moved = true
+		}
+	}
 }
 
 // spellNamesFrom resolves the fixed book's installed cell names by spell ID.
@@ -88,6 +113,7 @@ func spellBookSelfCastable(rule sim.SpellRule) bool {
 }
 
 // bookOrder lists the table in cell-row order when every row is in it (true), else in table order.
+// A row 0 is an empty cell and lists a rule of ID 0.
 func bookOrder(table []sim.SpellRule, rows []uint16) ([]sim.SpellRule, bool) {
 	byID := make(map[uint16]sim.SpellRule, len(table))
 	for _, rule := range table {
@@ -97,6 +123,8 @@ func bookOrder(table []sim.SpellRule, rows []uint16) ([]sim.SpellRule, bool) {
 	for _, id := range rows {
 		if rule, ok := byID[id]; ok {
 			ordered = append(ordered, rule)
+		} else if id == 0 {
+			ordered = append(ordered, sim.SpellRule{})
 		}
 	}
 	if len(rows) != 0 && len(ordered) == len(rows) {
@@ -153,6 +181,10 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 	ordered, fixed := bookOrder(table, rows)
 	book := make([]ui.SpellEntry, 0, len(ordered))
 	for _, rule := range ordered {
+		if rule.ID == 0 {
+			book = append(book, ui.SpellEntry{})
+			continue
+		}
 		// The popup folds over every selected actor that carries the cell;
 		// the cell's own row is the first knower's. An unavailable cell
 		// states its row for the primary unit and shows no popup.
@@ -203,6 +235,7 @@ func (mw *mapWorld) pushSpellbook() {
 	if mw == nil || mw.view == nil || mw.world == nil {
 		return
 	}
+	mw.dropOffAutocast()
 	// The book of a unit the player does not own shows the no-hero state;
 	// the revealed map shows it (DIV-4313).
 	revealed := mw.view.FogRevealed()
@@ -214,8 +247,13 @@ func (mw *mapWorld) pushSpellbook() {
 		}
 	}
 	if len(selected) != 0 {
-		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows, mw.bookScrolls(selected)...)
+		ground, rows := mw.spells().BookRows, mw.bookRows
+		if rows == nil {
+			rows = ground
+		}
+		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, rows, mw.bookScrolls(selected)...)
 		if fixed {
+			markMovedSpells(book, rows, ground)
 			mw.view.SetSpellbookCatalog(uint32(selected[0].ID), book)
 		} else {
 			mw.view.SetSpellbook(uint32(selected[0].ID), book)
@@ -516,6 +554,20 @@ func (mw *mapWorld) setAutocast(entity, spell uint32) {
 	// is refreshed only by a tick, so Ctrl+A's reading is told here.
 	if e, ok := mw.entity(id); ok && mw.view != nil {
 		mw.view.SetEntityAutocast(entity, mw.autocastShown(id, e.AutoSpell))
+	}
+}
+
+// dropOffAutocast clears the player units' autocast of a spell the mods turn
+// off, so a setting made before the mod stops running. The unit keeps the spell.
+func (mw *mapWorld) dropOffAutocast() {
+	if mw.bookRows == nil {
+		return
+	}
+	for _, e := range mw.world.EntityView() {
+		if e.Owner == sim.SelfSlot && e.AutoSpell != 0 && mw.autocastShown(e.ID, e.AutoSpell) != 0 &&
+			!slices.Contains(mw.bookRows, e.AutoSpell) {
+			mw.setAutocast(uint32(e.ID), 0)
+		}
 	}
 }
 

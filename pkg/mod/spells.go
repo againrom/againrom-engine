@@ -87,6 +87,17 @@ type SpellRow struct {
 
 	Power, DamageFactor, RangeBonus SpellTable
 	DurationFactor, Magnitude       SpellTable
+
+	// Off takes the spell out of the book and the shops; BookPosition is its
+	// book position.
+	Off          SpellBool
+	BookPosition SpellInt
+}
+
+// SpellEdit is the row's switch and book position for the game's profile.
+func (r SpellRow) SpellEdit() rules.SpellEdit {
+	return rules.SpellEdit{Name: r.Target, Off: r.Off.Set && r.Off.Val, On: r.Off.Set && !r.Off.Val,
+		Position: int(r.BookPosition.Val)}
 }
 
 func (r SpellRow) Formulas() [5]SpellTable {
@@ -103,6 +114,11 @@ type SpellGlobal struct {
 	Duration SpellRatio
 
 	Power, DamageFactor, RangeBonus, DurationFactor SpellTable
+
+	// BookSize is the book's number of positions, set in BookSizeFile of
+	// mod BookSizeMod.
+	BookSize                  SpellInt
+	BookSizeMod, BookSizeFile string
 }
 
 func (g SpellGlobal) Formulas() [5]SpellTable {
@@ -204,6 +220,10 @@ func (r *SpellRow) overlay(src SpellRow) {
 	tables(&r.RangeBonus, src.RangeBonus)
 	tables(&r.DurationFactor, src.DurationFactor)
 	tables(&r.Magnitude, src.Magnitude)
+	if src.Off.Set {
+		r.Off = src.Off
+	}
+	ints(&r.BookPosition, src.BookPosition)
 }
 
 func (g SpellGlobal) Globals() []SpellGlobalKey {
@@ -222,6 +242,9 @@ func (g SpellGlobal) Globals() []SpellGlobalKey {
 			out = append(out, SpellGlobalKey{Key: rules.SpellFormula(f).String(), Line: t.Line})
 		}
 	}
+	if g.BookSize.Set {
+		out = append(out, SpellGlobalKey{Key: "book_size", Line: g.BookSize.Line})
+	}
 	return out
 }
 
@@ -232,7 +255,8 @@ type SpellGlobalKey struct {
 
 func SpellFieldNames() []string {
 	return []string{"mana", "range", "damage", "radius", "duration", "area_duration", "effect",
-		"heal_hostile", "self_cast", "area_hits", "rays", "power", "damage_factor", "range_bonus", "duration_factor", "magnitude"}
+		"heal_hostile", "self_cast", "area_hits", "rays", "power", "damage_factor", "range_bonus", "duration_factor", "magnitude",
+		"off", "book_position"}
 }
 
 func ParseSpells(id, file string, data []byte, setting func(name string) (int64, bool)) (SpellData, error) {
@@ -252,6 +276,9 @@ func ParseSpells(id, file string, data []byte, setting func(name string) (int64,
 			g, err := r.global(t)
 			if err != nil {
 				return SpellData{}, err
+			}
+			if g.BookSize.Set {
+				g.BookSizeMod, g.BookSizeFile = id, file
 			}
 			out.Global = g
 		case t.name == "spell" && t.array:
@@ -420,8 +447,15 @@ func (r spellReader) global(t tomlTable) (SpellGlobal, error) {
 			continue
 		case "magnitude":
 			return SpellGlobal{}, r.bad(p.line, "magnitude has no [global] table: each spell's magnitude arm has its own shape, so give it in a [[spell]]")
+		case "book_size":
+			v, err := r.ranged("book_size", p.val, p.line, 1, int64(rules.SpellBookPositions()))
+			if err != nil {
+				return SpellGlobal{}, err
+			}
+			g.BookSize = v
+			continue
 		default:
-			return SpellGlobal{}, r.bad(p.line, "unknown key %q in [global] (keys: damage_mul, heal_mul, mana_mul, range_mul, radius_mul, duration_mul, power, damage_factor, range_bonus, duration_factor)", p.key)
+			return SpellGlobal{}, r.bad(p.line, "unknown key %q in [global] (keys: damage_mul, heal_mul, mana_mul, range_mul, radius_mul, duration_mul, power, damage_factor, range_bonus, duration_factor, book_size)", p.key)
 		}
 		v, err := r.ratio(p.key, p.val, p.line)
 		if err != nil {
@@ -479,6 +513,10 @@ func (r spellReader) row(id string, t tomlTable) (SpellRow, error) {
 			row.DurationFactor, err = r.table(p.key, p.val, p.line)
 		case "magnitude":
 			row.Magnitude, err = r.table(p.key, p.val, p.line)
+		case "off":
+			row.Off, err = r.boolean("off", p.val, p.line)
+		case "book_position":
+			row.BookPosition, err = r.ranged("book_position", p.val, p.line, 1, int64(rules.SpellBookPositions()))
 		default:
 			err = r.bad(p.line, "unknown key %q in [[spell]] (keys: target, %s)", p.key, strings.Join(SpellFieldNames(), ", "))
 		}
@@ -492,6 +530,9 @@ func (r spellReader) row(id string, t tomlTable) (SpellRow, error) {
 	}
 	if !changes {
 		return SpellRow{}, r.bad(t.line, "[[spell]] of %q changes nothing", row.Target)
+	}
+	if row.Off.Val && row.BookPosition.Set {
+		return SpellRow{}, r.bad(row.BookPosition.Line, "%s is off, so book_position does not apply to it", row.Target)
 	}
 	return row, nil
 }

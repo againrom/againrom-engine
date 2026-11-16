@@ -93,7 +93,7 @@ func (v *Viewer) quickSpell(slot int, ctrl bool, x, y int) {
 			}
 		}
 		return
-	} else if s.Spell != 0 {
+	} else if held, _ := v.bookHolds(s.Spell); s.Spell != 0 && held {
 		v.selectedSpell = s.Spell
 	}
 	if id := v.quickSpells[slot].Spell; id != 0 && !ctrl {
@@ -105,7 +105,7 @@ func (v *Viewer) quickSpell(slot int, ctrl bool, x, y int) {
 		}
 	}
 	// Ctrl also reaches this test. A closed book never opens as a side effect.
-	if id := v.quickSpells[slot].Spell; id != 0 && !v.hudShown(hudPanelBook) && v.spellAvailable(id) &&
+	if id := v.quickSpells[slot].Spell; id != 0 && !v.hudShown(hudPanelBook) && v.bookOffers(id) &&
 		canArmAttack(v.sel, v.entities, v.localOwner) && v.commandCastActive() {
 		// The same one-shot arm as C (AI-QUICKINVOKE-279).
 		v.armSpell()
@@ -134,13 +134,10 @@ func (v *Viewer) bindShortcut(slot int, s Shortcut) {
 	v.quickSpells[slot] = s
 }
 
-func (v *Viewer) spellAvailable(id uint32) bool {
-	for _, entry := range v.spellbook {
-		if entry.ID == id {
-			return !entry.Unavailable
-		}
-	}
-	return false
+// selectedHeld reports whether the selected spell has a cell in the book.
+func (v *Viewer) selectedHeld() bool {
+	held, _ := v.bookHolds(v.selectedSpell)
+	return held
 }
 
 // castKey is the C key on the map (MENU-054, MENU-055). It reports whether the
@@ -159,7 +156,7 @@ func (v *Viewer) castKey() bool {
 	if summary&selSummaryNeutral != 0 {
 		return false
 	}
-	if summary&selSummarySpell != 0 && v.selectedSpell != 0 {
+	if summary&selSummarySpell != 0 && v.selectedSpell != 0 && v.selectedHeld() {
 		// A book that C itself opens belongs to this one cast; a book the
 		// player already had open is left as he opened it (DIV-2265).
 		once := v.castOnce || !v.hudShown(hudPanelBook)

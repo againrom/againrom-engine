@@ -1,6 +1,7 @@
 package mapload
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -278,4 +279,47 @@ func effectModeName(m data.SpellEffectMode) string {
 		}
 	}
 	return ""
+}
+
+// ModSpellProfile is t's game profile under d's switches, book positions and
+// book size. A refusal names the row, or the book size, that breaks it.
+func ModSpellProfile(t *Table, d mod.SpellData) (p rules.SpellGameProfile, at mod.SpellRow, msg string) {
+	p = rules.GameProfile(SpellGameOf(t))
+	var edits []rules.SpellEdit
+	var rows []mod.SpellRow
+	for _, r := range d.Rows {
+		if r.Off.Set || r.BookPosition.Set {
+			edits, rows = append(edits, r.SpellEdit()), append(rows, r)
+		}
+	}
+	if len(edits) == 0 && !d.Global.BookSize.Set {
+		return p, mod.SpellRow{}, ""
+	}
+	q, err := p.Edited(int(d.Global.BookSize.Val), edits)
+	var e *rules.SpellEditError
+	switch {
+	case err == nil:
+		return q, mod.SpellRow{}, ""
+	case !errors.As(err, &e) || e.Edit < 0:
+		g := d.Global
+		return p, mod.SpellRow{Mod: g.BookSizeMod, File: g.BookSizeFile, Line: g.BookSize.Line}, err.Error()
+	}
+	at = rows[e.Edit]
+	if at.BookPosition.Set {
+		at.Line = at.BookPosition.Line
+	} else if at.Off.Set {
+		at.Line = at.Off.Line
+	}
+	return p, at, e.Msg
+}
+
+// SpellGameProfileOf is t's game profile under its mods; the mod check has
+// refused a mod that breaks it, so a refusal here keeps the game's own.
+func SpellGameProfileOf(t *Table) rules.SpellGameProfile {
+	var d mod.SpellData
+	if t != nil {
+		d = t.Mods.Spells
+	}
+	p, _, _ := ModSpellProfile(t, d)
+	return p
 }

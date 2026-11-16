@@ -704,6 +704,35 @@ it names and keeps every other value an earlier row set, `self_cast` and
 | `Diamond_Dust` | - | 16 |
 | `Summon` | - | 25 |
 
+## Spell switch and book positions
+
+`data/spells.toml` sets which spells the book shows, and where:
+
+| field | where | value | effect |
+|---|---|---|---|
+| `off` | `[[spell]]` row | `true` or `false` | `true` takes the spell out of the book of the player's mage and party and out of every shop's books and scrolls; `false` keeps it on |
+| `book_position` | `[[spell]]` row | 1..24 | the spell's cell in the book, counted from 1 |
+| `book_size` | `[global]` | 1..24 | the number of cells the book shows; a spell whose cell is past it is off |
+
+Both games draw a book of 24 cells; 28 is the most a book can hold. A
+position is display order only: the save stores each spell under its own
+number, so a spell the party knew before the mod is hidden, not erased, and
+the save loaded without the mod shows it again. A map unit casts what the map
+gives it. The shops stock every spell that is on by their usual rules.
+
+The mod check refuses, naming the mod, the file and the line:
+
+- `book_size is N, outside 1..24` and `book_position is N, outside 1..24`;
+- `NAME is off, so book_position does not apply to it`;
+- `NAME has no place in this game's book, so it cannot be on or take a
+  book_position`, for a spell the game's book has no cell for;
+- `book_position of NAME is N, outside 1..S`, where S is `book_size`;
+- `NAME is on, but its book position P is past book_size S`;
+- `book_position P holds both NAME and NAME`: a spell keeps its cell unless
+  a row moves it or turns it off.
+
+Each of `off`, `book_position` and `book_size` is set by one mod.
+
 ## Spell damage columns
 
 For the first game, `data/spells.toml` accepts `damage = { min = N, max = N }`

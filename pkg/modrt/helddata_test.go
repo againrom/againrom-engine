@@ -83,8 +83,8 @@ func TestExplicitAddConfirmsHeldFileOnce(t *testing.T) {
 
 func TestFixtureDataWithoutScriptsAndOriginalDigests(t *testing.T) {
 	ids := fixtureMods(t)
-	if len(ids) != 18 {
-		t.Fatalf("%d fixtures, want 18", len(ids))
+	if len(ids) != 19 {
+		t.Fatalf("%d fixtures, want 19", len(ids))
 	}
 	for _, id := range ids {
 		t.Run(id, func(t *testing.T) {

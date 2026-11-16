@@ -378,9 +378,9 @@ func shopBookPool(t *mapload.Table, ceiling int32) []ShopItem {
 	}
 	pool := make([]ShopItem, 0, limit)
 	codes := shopBookCodes(t)
-	game := mapload.SpellGameOf(t)
+	profile := mapload.SpellGameProfileOf(t)
 	for spell := 1; spell < limit; spell++ {
-		if !shopBookSpellAdmitted(game, spell) {
+		if !shopBookSpellAdmitted(profile, spell) {
 			continue
 		}
 		params := t.Spells.EntryParams(spell)

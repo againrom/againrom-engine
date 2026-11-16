@@ -833,7 +833,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"sched":             true, "units": true, "view": true, "clock": true, "last": true,
 		"sounds": true, "swingSound": true, "spellSound": true, "semanticSound": true, "tiers": true, "chars": true, "art": true,
 		"figures": true, "npcFaces": true, "speakerActors": true, "actorNames": true,
-		"invParty": true, "spellNames": true,
+		"invParty": true, "spellNames": true, "bookRows": true,
 		"portraits": true, "figurePics": true, "figureMasks": true, "ownerFrames": true, "structureStateScratch": true, "structureOwners": true, "invIconCache": true,
 		"spellAtlasImg": true, "spellAtlasTried": true, "spellIcons": true,
 		"invSubject": true, "invSubjectSet": true, "invCodes": true,

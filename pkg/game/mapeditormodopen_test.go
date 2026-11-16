@@ -34,8 +34,8 @@ func fixtureMods(t *testing.T) []string {
 			names = append(names, e.Name())
 		}
 	}
-	if len(names) != 18 {
-		t.Fatalf("%d fixture mods, want 18: %v", len(names), names)
+	if len(names) != 19 {
+		t.Fatalf("%d fixture mods, want 19: %v", len(names), names)
 	}
 	return names
 }

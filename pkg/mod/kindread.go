@@ -247,6 +247,9 @@ func readSpells(r DataReader, d *Data, rel string, src []byte) error {
 	mergeTable(&g.DamageFactor, spells.Global.DamageFactor)
 	mergeTable(&g.RangeBonus, spells.Global.RangeBonus)
 	mergeTable(&g.DurationFactor, spells.Global.DurationFactor)
+	if b := spells.Global; b.BookSize.Set {
+		g.BookSize, g.BookSizeMod, g.BookSizeFile = b.BookSize, b.BookSizeMod, b.BookSizeFile
+	}
 	d.Spells.Rows = append(d.Spells.Rows, spells.Rows...)
 	return nil
 }
@@ -284,6 +287,10 @@ func spellFieldsOf(r SpellRow) []spellField {
 	if r.AreaHits.Set {
 		out = append(out, spellField{"area_hits", r.AreaHits.Line})
 	}
+	if r.Off.Set {
+		out = append(out, spellField{"off", r.Off.Line})
+	}
+	add("book_position", r.BookPosition)
 	if e := r.Effect; e != nil {
 		if e.Kind != "" {
 			out = append(out, spellField{"effect.kind", e.Line})

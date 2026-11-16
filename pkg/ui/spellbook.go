@@ -53,6 +53,9 @@ type SpellEntry struct {
 	// keeps no reference, so a producer reusing one buffer must hand it over
 	// again after changing it (ui.Dialogue.Face's own rule for the same shape).
 	Icon *image.RGBA
+	// Moved marks a cell whose installed book picture is another spell's: a
+	// mod moved this spell there, so the bar draws Icon over that picture.
+	Moved bool
 
 	// Info is the popup's lines for this spell, already composed on the far
 	// side of the seam — the same shape InventorySubject.SlotInfo already
@@ -416,9 +419,12 @@ func composeOriginalSpellBar(art *BottomHUDArt, entries []SpellEntry, selected u
 	drawBookGround(img, art)
 	for i, box := range bookCellRects(bar, bookColumns) {
 		box = box.Sub(bar.Min)
-		if i >= len(entries) || entries[i].ID == 0 || entries[i].covered() {
+		if i >= len(entries) || entries[i].ID == 0 || entries[i].covered() || entries[i].Moved && entries[i].Icon == nil {
 			blit(img, art.UnknownSpell, box.Min.X, box.Min.Y)
 			continue
+		}
+		if entries[i].Moved {
+			blit(img, entries[i].Icon, box.Min.X, box.Min.Y)
 		}
 		if entries[i].ID == selected {
 			liftPressedSlot(img, box)
@@ -628,14 +634,26 @@ func (v *Viewer) toggleAutocast() {
 	}
 }
 
-// bookOffers reports whether the book holds spell as an available entry.
-func (v *Viewer) bookOffers(spell uint32) bool {
+// bookHolds reports whether the book has a cell for spell, and whether that
+// cell is available. A spell the mods turn off has no cell. It is the one
+// test of what the player may select, arm and autocast. A viewer with no book
+// at all holds every spell, as its seam always did.
+func (v *Viewer) bookHolds(spell uint32) (held, offered bool) {
+	if len(v.spellbook) == 0 {
+		return true, false
+	}
 	for _, e := range v.spellbook {
 		if e.ID == spell {
-			return !e.Unavailable
+			return true, !e.Unavailable
 		}
 	}
-	return false
+	return false, false
+}
+
+// bookOffers reports whether the book holds spell as an available entry.
+func (v *Viewer) bookOffers(spell uint32) bool {
+	_, offered := v.bookHolds(spell)
+	return offered
 }
 
 // toggleAutocastAt is the spell-cell gesture's simulation boundary. The cell
