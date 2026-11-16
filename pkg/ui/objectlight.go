@@ -133,10 +133,11 @@ const (
 )
 
 // mergeLight reads the frame's light plane at cell. readLightCorners gives
-// the four corner scales (TL, TR, BL, BR) over the cell's shading, only with
-// Dynamic lighting on: a cell row's terrain scale replaces the shading, which
-// lets Darkness darken; a stamp then takes min(stamp, level), the larger
-// scale (MAGIC-273, DIV-2662), outside the black margin. The bit-set branch
+// the four corner scales (TL, TR, BL, BR) over the cell's shading: a cell
+// row's terrain scale replaces the shading, which lets Darkness darken, with
+// Dynamic lighting on or off (DIV-4974); a stamp then takes min(stamp, level),
+// the larger scale (MAGIC-273, DIV-2662), outside the black margin, only with
+// Dynamic lighting on. The bit-set branch
 // is absent (DIV-2660). readLightSprite gives the unit sprite factor: a
 // stamped corner's merged level, min(sum>>4, ambient>>2) over
 // max(stamp-32,0), replaces the cell row's level as the stamp sweep
@@ -145,16 +146,13 @@ const (
 func (v *Viewer) mergeLight(read lightRead, cell image.Point) (corners [4]float32, sprite float32) {
 	if read == readLightCorners {
 		sc := v.cornerShading(cell.X, cell.Y)
-		if v.graphics.DisableLighting {
-			return sc, 0
-		}
 		stampLit := v.Lit() && !v.borderDimmed(cell.X, cell.Y)
 		for i, c := range lightCornerOffsets {
 			vertex := cell.Add(c)
 			if brightness, ok := v.frameLight.cellTerrain[vertex]; ok {
 				sc[i] = brightness
 			}
-			if stamp, ok := v.frameLight.vertexStamps[vertex]; ok && stampLit {
+			if stamp, ok := v.frameLight.vertexStamps[vertex]; ok && stampLit && !v.graphics.DisableLighting {
 				if scale := terrain.ShadeScale(int(stamp)); scale > sc[i] {
 					sc[i] = scale
 				}
@@ -181,12 +179,6 @@ func (v *Viewer) mergeLight(read lightRead, cell image.Point) (corners [4]float3
 			sum += max(int(s)-lightStampFloor, 0)
 		}
 		row = min(max(min(sum>>4, ambient>>2), 0), terrain.SpriteRowCount-1)
-	}
-	if v.graphics.DisableLighting {
-		if stamped {
-			return corners, terrain.ShadeScale(4*row+32) / normal
-		}
-		return corners, 1
 	}
 	level := v.frameLight.cellLevels[cell]
 	if stamped {

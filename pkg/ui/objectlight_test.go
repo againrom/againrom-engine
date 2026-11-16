@@ -107,3 +107,40 @@ func TestDynamicLightingOffLightsUnitsAndNotGround(t *testing.T) {
 		t.Errorf("Dynamic lighting on: point stamp unit factor %v, want %v", got, lit)
 	}
 }
+
+// DIV-4974: the Darkness and Light cell rows reach the ground and the unit
+// factor whatever the Lighting option says; MAGIC-UNITLIGHT-057 reads none.
+func TestDarknessAndLightRowsApplyWithLightingOffAndOn(t *testing.T) {
+	for _, off := range []bool{false, true} {
+		for _, row := range []struct {
+			name    string
+			cell    SpellLightCell
+			darker  bool
+			sprites bool
+		}{
+			{"Darkness", SpellLightCell{Cell: image.Pt(1, 1), Terrain: 0.5, Sprite: 0.5}, true, true},
+			{"Light", SpellLightCell{Cell: image.Pt(1, 1), Terrain: 3, Sprite: 2}, false, true},
+		} {
+			v := lightStampViewer(t)
+			v.SetGraphicsOptions(GraphicsOptions{DisableLighting: off})
+			cell := row.cell.Cell
+			base := baseScales(v, cliffW, cliffH, cell.X, cell.Y)
+			baseFactor := v.spellSpriteFactor(cell)
+			v.SetLightSources(LightSources([]SpellLightCell{row.cell}, nil))
+			got := v.cornerScales(cell.X, cell.Y)
+			factor := v.spellSpriteFactor(cell)
+			for i := range got {
+				if row.darker && !(got[i] < base[i]) || !row.darker && !(got[i] > base[i]) {
+					t.Errorf("%s, Lighting off=%v: corner %d scale %v, unlit %v", row.name, off, i, got[i], base[i])
+				}
+			}
+			if row.darker && !(factor < baseFactor) || !row.darker && !(factor > baseFactor) {
+				t.Errorf("%s, Lighting off=%v: unit factor %v, unlit %v", row.name, off, factor, baseFactor)
+			}
+			v.SetLightSources(nil)
+			if v.cornerScales(cell.X, cell.Y) != base {
+				t.Errorf("%s, Lighting off=%v: the area outlived its sources", row.name, off)
+			}
+		}
+	}
+}

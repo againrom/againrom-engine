@@ -36,8 +36,8 @@ func TestGraphics1190DynamicLightKeepsDayNight(t *testing.T) {
 		t.Fatal("missing dynamic light")
 	}
 	v.SetGraphicsOptions(GraphicsOptions{DisableLighting: true})
-	if v.cornerScales(3, 3) != v.cornerShading(3, 3) || v.spellSpriteFactor(cell) != 1 || v.Sun() != sun || !v.TimeFlow() {
-		t.Fatal("dynamic switch changed day/night or retained light")
+	if v.cornerScales(3, 3) != ([4]float32{3, 3, 3, 3}) || v.spellSpriteFactor(cell) <= 1 || v.Sun() != sun || !v.TimeFlow() {
+		t.Fatal("dynamic switch changed day/night or dropped a Light cell row")
 	}
 	v.SetGraphicsOptions(GraphicsOptions{})
 	if v.cornerScales(3, 3) != ([4]float32{3, 3, 3, 3}) {
