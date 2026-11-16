@@ -40,7 +40,7 @@ gamebudget=${AGAINROM_FAST_GAME_BUDGET:-80}
 shards=${AGAINROM_FAST_GAME_SHARDS:-3}
 uishards=${AGAINROM_FAST_UI_SHARDS:-3}
 bound=${AGAINROM_FAST_BOUND:-60}
-. "$(dirname "$0")/timings.sh"
+. scripts/timings.sh || exit 2
 timings=$(timings_file "${1:-}")
 rc=0
 
