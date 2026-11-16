@@ -1,10 +1,13 @@
 param(
     [Parameter(Mandatory = $true)][string]$Version,
-    [Parameter(Mandatory = $true)][string]$Revision,
-    [string]$Changelog = 'CHANGELOG.md'
+    [string]$Revision,
+    [string]$Changelog = 'CHANGELOG.md',
+    [string[]]$Section = @()
 )
 # Print the release notes for one version: its CHANGELOG.md section, then the
-# install text. A release without a written section is refused.
+# install text. A release without a written section is refused. With -Section
+# only the named "### " parts are printed, headings included, with no install
+# text and no revision line (the Discord announcement uses this).
 $ErrorActionPreference = 'Stop'
 $text = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $Changelog)) -replace "`r`n", "`n"
 $pattern = '(?ms)^## ' + [regex]::Escape($Version) + '[ \t]*\n(.*?)(?=^## |\z)'
@@ -28,5 +31,18 @@ foreach ($line in $changes -split "`n") {
     }
 }
 $changes = $lines -join "`n"
+if ($Section.Count -gt 0) {
+    $kept = New-Object System.Collections.Generic.List[string]
+    $keep = $false
+    foreach ($line in $changes -split "`n") {
+        if ($line -match '^###\s+(.*?)\s*$') { $keep = $Section -contains $Matches[1] }
+        if ($keep) { $kept.Add($line) }
+    }
+    $picked = ($kept -join "`n").Trim()
+    if ($picked -eq '') { throw "CHANGELOG.md section $Version has none of the parts: $($Section -join ', ')." }
+    $picked
+    return
+}
+if ($Revision -eq '') { throw 'Revision is required without -Section.' }
 $install = 'Windows AMD64, macOS Intel and Apple Silicon, and Linux x86_64. Unpack into a separate folder and run starter.exe on Windows or ./starter on macOS and Linux, or make the Linux AppImage executable and run it. The map editor opens from the starter''s Map editor button. Mac builds are unsigned and not notarized; see README.md for Gatekeeper instructions and Linux system requirements. A lawfully owned game install is required. No game assets or player profiles are included.'
 "$changes`n`n---`n`n$install`n`nSource commit: $Revision"

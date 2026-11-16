@@ -218,3 +218,26 @@ jobs:
             & gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($release.id)" -F draft=false -f make_latest=true --silent
             if ($LASTEXITCODE -ne 0) { throw 'Cannot publish the verified draft.' }
           }
+
+  announce:
+    needs: [build, publish]
+    if: github.repository == 'againrom/againrom-engine'
+    runs-on: windows-2022
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+      RELEASE_VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.revision }}
+          persist-credentials: false
+      - name: Announce the published release in Discord
+        shell: pwsh
+        env:
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/announce-release.ps1 -Version $env:RELEASE_VERSION -Link "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/releases/tag/$env:RELEASE_TAG"
