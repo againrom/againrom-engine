@@ -363,7 +363,9 @@ var allow = map[string][]string{
 	"cmd/tippanelcheck":  {"pkg/game", "pkg/ui"},
 	"cmd/divcensus":      {"internal/divledger"},
 	"cmd/divreconstruct": {"internal/divledger"},
-	"cmd/plaqueseams":    {"pkg/game", "pkg/formats/bmp", "pkg/vfs", "pkg/intmath", "pkg/namefold"},
+	// touchedtests type-checks the checkout through the architecture tests' loader.
+	"cmd/touchedtests": {"internal/archtest"},
+	"cmd/plaqueseams":  {"pkg/game", "pkg/formats/bmp", "pkg/vfs", "pkg/intmath", "pkg/namefold"},
 	// plaquescreens is the same hotfix's before/after evidence tool, on
 	// schoolcheck's own pattern: it opens an install through pkg/game
 	// (NewFrontEnd, FinishMission, TownScreen) and composes the four

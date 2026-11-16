@@ -65,6 +65,11 @@ var (
 	moduleCache   = map[string]*TypeCheckedModule{}
 )
 
+// LoadTypeCheckedModule is loadTypeCheckedModule for a tool outside the package.
+func LoadTypeCheckedModule(root string) (*TypeCheckedModule, error) {
+	return loadTypeCheckedModule(root)
+}
+
 // loadTypeCheckedModule returns the module rooted at root, type-checking it
 // on first call and reusing the result for the rest of the process.
 func loadTypeCheckedModule(root string) (*TypeCheckedModule, error) {
@@ -236,7 +241,8 @@ func checkOnePackage(fset *token.FileSet, root string, imp types.Importer, p goL
 	if len(xFiles) > 0 {
 		cp.XTestFiles = xFiles
 		cp.XTestRelPaths = xRel
-		cp.XTestInfo = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}}
+		cp.XTestInfo = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{},
+			Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
 		conf := &types.Config{Importer: imp, Error: collect}
 		conf.Check(p.ImportPath+" [external test]", fset, xFiles, cp.XTestInfo)
 	}

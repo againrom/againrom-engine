@@ -40,7 +40,8 @@ gamebudget=${AGAINROM_FAST_GAME_BUDGET:-80}
 shards=${AGAINROM_FAST_GAME_SHARDS:-3}
 uishards=${AGAINROM_FAST_UI_SHARDS:-3}
 bound=${AGAINROM_FAST_BOUND:-60}
-timings=${1:-${AGAINROM_TEST_TIMINGS:-$(go env GOCACHE).test-timings.txt}}
+. "$(dirname "$0")/timings.sh"
+timings=$(timings_file "${1:-}")
 rc=0
 
 # now prints microseconds; secs <start> prints the seconds since, one decimal.
@@ -67,7 +68,7 @@ ui="$module/pkg/ui"
 sel=
 left=
 if [ -f "$timings" ]; then
-	sel=$(LC_ALL=C sort -t "$(printf '\t')" -k1,1 -k3,3n -k2,2 "$timings" | awk -F '\t' \
+	sel=$(timings_sorted "$timings" | awk -F '\t' \
 		-v limit="$limit" -v budget="$budget" -v gamebudget="$gamebudget" -v game="$game" '
 		$1 != pkg { pkg = $1; sum = 0; cap = ($1 == game ? gamebudget : budget) + 0 }
 		$3 + 0 >= limit + 0 { print $1 "\t" $2 "\tlimit\t" $3; next }

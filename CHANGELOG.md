@@ -22,6 +22,10 @@ modder or developer can notice gets no entry.
 - The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.
 - The map editor's message box no longer shows question marks instead of Russian text, for example when a trigger copy is refused.
 
+### For developers
+
+- scripts/check-touched.sh runs the ordinary and release tests a change can reach, selected from the type-checked call graph.
+
 ## 0.156.0
 
 ### For players

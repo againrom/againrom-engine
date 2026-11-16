@@ -133,7 +133,10 @@ commit and pull-request attribution.
    package compiled with its fast set: the ordinary tests faster than the
    limit, fastest first within the package's time budget, and every test the
    last full run did not time; bounded at 60 seconds) and the gates the brief
-   names. Whole packages, the full map editor modes walk, the whole
+   names. Also once, beside it: `scripts/check-touched.sh <base>` with
+   `AGAINROM_ASSETS` set to the Russian install. It runs the ordinary and
+   release tests the change can reach, within 180 seconds, and the lane returns
+   its counts (selected, run, passed, failed, left). Whole packages, the full map editor modes walk, the whole
    `go test ./...`, the release set and the scenarios run at a release, the
    guard packages at the landing; none runs in a lane unless it is the focused
    test of the change.
