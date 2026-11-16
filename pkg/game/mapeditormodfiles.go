@@ -81,12 +81,11 @@ func (x *MapInspector) installPaths() []string {
 // serveModFiles serves files on f's own file layer, a sound on a fork of the
 // install's sound archive, as the game's launch serves them.
 func (x *MapInspector) serveModFiles(f *FrontEnd, files mod.FileData) error {
-	layer := f.modFileLayer()
-	layer.order = files.Order
+	var sounds *vfs.FS
 	if s := x.installSounds(); s != nil {
-		layer.sounds = s.Fork()
+		sounds = s.Fork()
 	}
-	return layer.serveInstallFiles(f.Archives, files.Files)
+	return f.modFileLayer(files.Order, sounds).serveInstallFiles(f.Archives, files.Files)
 }
 
 // heldInstallFiles is the files of files/ the project d holds, by

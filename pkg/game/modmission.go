@@ -206,7 +206,7 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 		return nil, nil, err
 	}
 	warnings = append(unmatched, warnings...)
-	files := f.modFileLayer()
+	files := f.modFileLayer(mod.Precedence{}, nil)
 	selector := LanguageSelector(src)
 	for _, m := range d.Missions {
 		serve := func(address string, b []byte) error {

@@ -656,7 +656,7 @@ func (f *FrontEnd) setModItems(items mod.ItemData) ([]mod.Override, error) {
 	}
 
 	if f.Archives != nil && f.Archives.Containers != nil {
-		files := f.modFileLayer()
+		files := f.modFileLayer(mod.Precedence{}, nil)
 		fs := files.fs
 		if err := servePairPictures(files, pairPictures); err != nil {
 			return nil, err

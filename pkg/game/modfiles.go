@@ -41,17 +41,24 @@ type modFileEntry struct {
 	read               func() ([]byte, error)
 }
 
-// modFileLayer is the front end's boundary, made on first use: the archives
-// become this front end's own copy, whose containers fork the shared ones,
-// since the archives are shared by every front end over the install.
-func (f *FrontEnd) modFileLayer() *modFiles {
+// newModFileLayer is the one builder of a layer: entries go to archives'
+// containers, and sfx/ entries to sounds when it is not nil, in the mod order.
+func newModFileLayer(archives *Archives, order mod.Precedence, sounds *vfs.FS) *modFiles {
+	return &modFiles{fs: archives.Containers, sounds: sounds, order: order, owners: map[string]modFileEntry{}}
+}
+
+// modFileLayer is the front end's boundary, made on first use from order and
+// sounds: the archives become this front end's own copy, whose containers fork
+// the shared ones, since the archives are shared by every front end over the
+// install. A layer already made keeps its order and sounds.
+func (f *FrontEnd) modFileLayer(order mod.Precedence, sounds *vfs.FS) *modFiles {
 	if f.Archives.mods != nil {
 		return f.Archives.mods
 	}
 	fs := f.Archives.Containers.Fork()
 	own := *f.Archives
 	own.Containers = fs
-	own.mods = &modFiles{fs: fs, owners: map[string]modFileEntry{}}
+	own.mods = newModFileLayer(&own, order, sounds)
 	f.Archives = &own
 	return own.mods
 }

@@ -322,8 +322,7 @@ func TestTerrainPageModSavesPublishesAndPlays(t *testing.T) {
 	// so the packed mod plays on it without its mission rows; the mod's own
 	// mission on a whole campaign is the release test's.
 	f := modGroupCells(t, nil, held, groupCell{13, 20})
-	layer := f.modFileLayer()
-	layer.order = res.Files.Order
+	layer := f.modFileLayer(res.Files.Order, nil)
 	if err := layer.serveInstallFiles(f.Archives, res.Files.Files); err != nil {
 		t.Fatal(err)
 	}

@@ -49,8 +49,7 @@ func launchMods(t *testing.T, f *FrontEnd, dir string) (modrt.Result, error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	layer := f.modFileLayer()
-	layer.order = res.Files.Order
+	layer := f.modFileLayer(res.Files.Order, nil)
 	if err := layer.serveInstallFiles(f.Archives, res.Files.Files); err != nil {
 		t.Fatal(err)
 	}

@@ -65,7 +65,7 @@ func (f *FrontEnd) setModBodies(bodies mod.BodyData) ([]mod.Override, error) {
 // front end: served at ModBodyChoiceAddress for every reader of the list, and
 // the table's.
 func (f *FrontEnd) setBodyList(list data.BodyList) error {
-	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
+	if err := f.modFileLayer(mod.Precedence{}, nil).serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
 		return err
 	}
 	f.Bodies = list

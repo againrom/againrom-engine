@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 )
 
 // installShare is the install data every front end over one root reads the
@@ -86,10 +87,11 @@ func loadModInstallShare(root string, files mod.FileData, sounds *SoundBank) (*i
 	}
 	archives.Base = match
 	if !files.Empty() {
-		b := &modFiles{fs: archives.Containers, order: files.Order, owners: map[string]modFileEntry{}}
+		var snd *vfs.FS
 		if sounds != nil {
-			b.sounds = sounds.src
+			snd = sounds.src
 		}
+		b := newModFileLayer(archives, files.Order, snd)
 		archives.mods = b
 		if err := b.serveInstallFiles(archives, files.Files); err != nil {
 			return nil, err
