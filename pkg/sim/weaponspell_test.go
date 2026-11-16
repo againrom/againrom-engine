@@ -275,89 +275,144 @@ func TestAnEmptyManaPoolAndAnUnknownSpellStillCast(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------- AC-10, FR-3a
+// HERO-196, HERO-197, R2-ENGINE-1262.
+func TestWeaponSpellDivertReleasesAtWindupZero(t *testing.T) {
+	for _, game := range []struct {
+		name    string
+		dialect ScriptDialect
+	}{{"ROM1", ScriptROM1}, {"ROM2", ScriptROM2}} {
+		t.Run(game.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name            string
+				distance, extra int32
+				damaging        bool
+			}{{"contact", 1, 0, true}, {"ranged", 4, 5, true}, {"refused", 1, 0, false}} {
+				t.Run(tc.name, func(t *testing.T) {
+					rule := wpnRule(5, 5, 5)
+					rule.Complication, rule.Damaging = 99, tc.damaging
+					if game.dialect == ScriptROM2 {
+						rule = secondRow(rule)
+					}
+					caster := wpnCaster(1, 0, 0, 0, 0, 4, 6)
+					caster.Owner = SelfSlot
+					caster.DamageBase, caster.AlwaysHits, caster.Reach = 40, true, uint8(tc.distance)
+					caster.Mana, caster.KnownSpells = 0, 0
+					victim := spEnt(2, tc.distance, 0)
+					w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
+					w.game = newGameProfile(game.dialect)
+					if game.dialect == ScriptROM2 {
+						w.rom2 = &rom2ScriptState{}
+					}
+					i := indexOfEntity(w.entities, 1)
+					w.entities[i].Facing = w.headingBetween(caster, victim)
 
-// TestFR3aBothDirectionsOfEligibilityChangingMidWindUp is AC-10: an actor
-// that becomes eligible to cast while charging toward a blow never lands
-// that blow, and one that stops being eligible while winding up a cast
-// releases nothing — advanceAttack's own live re-ask (combat.go).
-//
-// THE LINE THIS TEST WITNESSES is `if wasCharging == casting { ...divert...
-// }` in advanceAttack. Delete the divert (fall straight through to
-// resolveBlow/releaseWeaponSpell by the wind-up's ORIGINAL kind alone) and
-// each subtest's victim moves on the diverting tick instead of staying put.
-func TestFR3aBothDirectionsOfEligibilityChangingMidWindUp(t *testing.T) {
-	rule := wpnRule(5, 5, 5)
+					Step(w, []Command{cbOrder(1, 2)})
+					if a := spAt(t, w, 1); a.AttackPhase != AttackCharging || a.AttackCountdown != 3+tc.extra {
+						t.Fatalf("fixture: cycle %v/%d, want AttackCharging/%d", a.AttackPhase, a.AttackCountdown, 3+tc.extra)
+					}
+					w.entities[i].WeaponSpell, w.entities[i].WeaponSpellLevel = 1, 30
+					for tick := int32(2); tick < 4+tc.extra; tick++ {
+						Step(w, nil)
+						if hp := spAt(t, w, 2).HP; hp != 100 {
+							t.Fatalf("released early at wind-up tick %d: HP %d", tick, hp)
+						}
+					}
+					if cd := spAt(t, w, 1).AttackCountdown; cd != 1 {
+						t.Fatalf("fixture: countdown before diversion = %d, want 1", cd)
+					}
+					before, beforeRNG := w.Entities(), w.rng.state
+					probe := w.rng
+					wantHP, wantDraws := int32(100), 1
+					if tc.damaging {
+						wantHP, wantDraws = 90, 2
+						if game.dialect == ScriptROM1 {
+							wantDraws = 4
+							probe.uniform(0)
+							probe.uniform(200)
+						}
+						probe.uniform(0)
+					}
+					recovery := 6 + probe.uniform(3)
 
-	t.Run("becomes eligible mid-charge: the blow never lands", func(t *testing.T) {
-		caster := wpnCaster(1, 0, 0, 0, 0, 4, 0) // WeaponSpell 0: not yet eligible
-		caster.DamageBase, caster.AlwaysHits = 40, true
-		victim := spEnt(2, 1, 0)
-		w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
+					Step(w, nil)
 
-		Step(w, []Command{cbOrder(1, 2)})
-		if p := spAt(t, w, 1).AttackPhase; p != AttackCharging {
-			t.Fatalf("fixture: phase is %v after the order, want AttackCharging", p)
-		}
-		Step(w, nil)
-		Step(w, nil)
-		i := indexOfEntity(w.entities, 1)
-		w.entities[i].WeaponSpell, w.entities[i].WeaponSpellLevel = 1, 30
-		if cd := spAt(t, w, 1).AttackCountdown; cd != 1 {
-			t.Fatalf("fixture: %d tick(s) owed before diverting, want exactly 1", cd)
-		}
-		before := spAt(t, w, 2).HP
-		beforeRNG := w.rng.state
+					if hp := spAt(t, w, 2).HP; hp != wantHP {
+						t.Errorf("HP at wind-up zero = %d, want %d", hp, wantHP)
+					}
+					a := spAt(t, w, 1)
+					if a.AttackPhase != AttackRelaxing || a.AttackCountdown != recovery {
+						t.Errorf("diverted cycle = %v/%d, want AttackRelaxing/%d without Complication", a.AttackPhase, a.AttackCountdown, recovery)
+					}
+					if a.Mana != 0 || a.WeaponSpell != 1 || a.WeaponSpellLevel != 30 {
+						t.Errorf("item cast changed mana or weapon: mana %d, spell %d/%d", a.Mana, a.WeaponSpell, a.WeaponSpellLevel)
+					}
+					if n := cbDraws(t, beforeRNG, w.rng.state); n != wantDraws {
+						t.Errorf("diverting tick draws = %d, want %d", n, wantDraws)
+					}
+					t.Logf("wind-up %d, HP %d, cycle %v/%d, draws %d", 4+tc.extra, spAt(t, w, 2).HP, a.AttackPhase, a.AttackCountdown, cbDraws(t, beforeRNG, w.rng.state))
+					if !tc.damaging {
+						wpnSameExceptCycle(t, 1, before, w.Entities())
+					}
+					for tick := int32(0); tick < recovery; tick++ {
+						Step(w, nil)
+					}
+					for _, phase := range []AttackPhase{AttackBoundaryOne, AttackBoundaryTwo, AttackReady} {
+						if a := spAt(t, w, 1); a.AttackPhase != phase || a.AttackCountdown != 0 {
+							t.Fatalf("recovery boundary = %v/%d, want %v/0", a.AttackPhase, a.AttackCountdown, phase)
+						}
+						if hp := spAt(t, w, 2).HP; hp != wantHP {
+							t.Fatalf("another release before the next wind-up: HP %d, want %d", hp, wantHP)
+						}
+						if phase != AttackReady {
+							Step(w, nil)
+						}
+					}
+				})
+			}
+		})
+	}
+}
 
-		Step(w, nil) // the countdown reaches zero here: the divert, not the blow
+func TestWeaponCastWithoutLoadedSpellReturnsReady(t *testing.T) {
+	for _, change := range []string{"mage eligibility lost", "weapon removed"} {
+		t.Run(change, func(t *testing.T) {
+			rule := wpnRule(5, 5, 5)
+			caster := wpnCaster(1, 0, 0, 1, 30, 4, 0)
+			victim := spEnt(2, 1, 0)
+			w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
 
-		if hp := spAt(t, w, 2).HP; hp != before {
-			t.Errorf("the victim's health moved from %d to %d — the blow this charge was loaded for landed anyway", before, hp)
-		}
-		a := spAt(t, w, 1)
-		if a.AttackPhase != AttackReady || a.AttackCountdown != 0 {
-			t.Errorf("the diverted actor is %v/%d, want AttackReady/0", a.AttackPhase, a.AttackCountdown)
-		}
-		// FR-3b: the divert still draws the site's own jitter, once, and
-		// discards it — it does not skip the draw just because the
-		// outcome changed.
-		if n := cbDraws(t, beforeRNG, w.rng.state); n != 1 {
-			t.Errorf("the diverting advance drew %d time(s), want exactly 1 (the discarded jitter)", n)
-		}
-	})
+			Step(w, []Command{cbOrder(1, 2)})
+			if p := spAt(t, w, 1).AttackPhase; p != AttackCasting {
+				t.Fatalf("fixture: phase is %v after the order, want AttackCasting", p)
+			}
+			Step(w, nil)
+			Step(w, nil)
+			i := indexOfEntity(w.entities, 1)
+			if change == "weapon removed" {
+				w.entities[i].WeaponSpell, w.entities[i].WeaponSpellLevel = 0, 0
+			} else {
+				w.entities[i].MaxMana = 0
+			}
+			if cd := spAt(t, w, 1).AttackCountdown; cd != 1 {
+				t.Fatalf("fixture: %d tick(s) owed before diverting, want exactly 1", cd)
+			}
+			before := spAt(t, w, 2).HP
+			beforeRNG := w.rng.state
 
-	t.Run("stops being eligible mid-cast: the release never fires", func(t *testing.T) {
-		caster := wpnCaster(1, 0, 0, 1, 30, 4, 0)
-		victim := spEnt(2, 1, 0)
-		w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
+			Step(w, nil)
 
-		Step(w, []Command{cbOrder(1, 2)})
-		if p := spAt(t, w, 1).AttackPhase; p != AttackCasting {
-			t.Fatalf("fixture: phase is %v after the order, want AttackCasting", p)
-		}
-		Step(w, nil)
-		Step(w, nil)
-		i := indexOfEntity(w.entities, 1)
-		w.entities[i].MaxMana = 0 // FR-2a no longer holds: not a mage
-		if cd := spAt(t, w, 1).AttackCountdown; cd != 1 {
-			t.Fatalf("fixture: %d tick(s) owed before diverting, want exactly 1", cd)
-		}
-		before := spAt(t, w, 2).HP
-		beforeRNG := w.rng.state
-
-		Step(w, nil)
-
-		if hp := spAt(t, w, 2).HP; hp != before {
-			t.Errorf("the victim's health moved from %d to %d — a release fired anyway", before, hp)
-		}
-		a := spAt(t, w, 1)
-		if a.AttackPhase != AttackReady || a.AttackCountdown != 0 {
-			t.Errorf("the diverted actor is %v/%d, want AttackReady/0", a.AttackPhase, a.AttackCountdown)
-		}
-		if n := cbDraws(t, beforeRNG, w.rng.state); n != 1 {
-			t.Errorf("the diverting advance drew %d time(s), want exactly 1 (the discarded jitter)", n)
-		}
-	})
+			if hp := spAt(t, w, 2).HP; hp != before {
+				t.Errorf("the victim's health moved from %d to %d — a release fired anyway", before, hp)
+			}
+			a := spAt(t, w, 1)
+			if a.AttackPhase != AttackReady || a.AttackCountdown != 0 {
+				t.Errorf("the diverted actor is %v/%d, want AttackReady/0", a.AttackPhase, a.AttackCountdown)
+			}
+			if n := cbDraws(t, beforeRNG, w.rng.state); n != 1 {
+				t.Errorf("the diverting advance drew %d time(s), want exactly 1 (the discarded jitter)", n)
+			}
+		})
+	}
 }
 
 // TestFR10sFiveRefusalsLeaveTheWorldUnchangedButForTheAttackersOwnCycle is

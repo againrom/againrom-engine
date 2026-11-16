@@ -628,35 +628,13 @@ func (w *World) walkTo(s *routeScratch, i int, x, y int32) {
 // hold, and wrapping it would turn a killing blow into a resurrection.
 const minHP int32 = -2147483648
 
-// advanceAttack is one attacking entity's turn: at most one phase event, and so
-// at most one blow or one release, whatever the world holds.
-//
-// It is written as a straight line and not as a loop over free transitions. Only
-// ONE transition here is free — a ready attacker loads its charge within the
-// same turn — and chaining them would be the way to make a zero cadence spin
-// forever inside a single tick.
-//
-// The order is the contract:
-//
-//   - an order whose victim the world no longer holds, has reached -10 health,
-//     has left the map or is invisible to this actor ENDS with no residue and
-//     with nothing drawn;
-//   - a READY attacker loads its charge, free, into AttackCasting when
-//     weaponSpell says it is eligible RIGHT NOW and into
-//     AttackCharging otherwise;
-//   - it pays one of what it owes, and if it still owes something its turn ends;
-//   - owing nothing, THE TRIGGER IS ASKED AGAIN (FR-3a's own live re-ask, at
-//     the same site it was asked when this wind-up was loaded): an attacker
-//     loaded toward a blow that has since become eligible does not land it, and
-//     one loaded toward a cast that has since stopped being eligible does not
-//     release it — both DIVERT (FR-3b, D-6) rather than fire. Otherwise a
-//     CHARGING attacker resolves its blow and a CASTING one releases its
-//     spell; either way it becomes relaxing and loads its relax, a fresh jitter
-//     and the Humanoid penalty. Recovery then crosses both scheduler boundaries.
-//
-// So consecutive physical blows are charge + rangedExtra + relax + [0,3] +
-// humanoidPenalty + 2 advances apart. A weapon-diverted release omits
-// rangedExtra and otherwise uses the same machine.
+// advanceAttack advances one attack cycle, with at most one blow or release.
+// Ready loads the wind-up and pays its first tick in the same turn. At zero,
+// a blow rechecks weaponSpell and releases an eligible staff spell immediately
+// (HERO-196, R2-ENGINE-1262), keeping the distance term already paid (HERO-197).
+// A loaded cast whose weaponSpell is no longer available returns to Ready;
+// the cycle holds no separate copy of its loaded spell. Recovery then crosses
+// both scheduler boundaries before the next wind-up.
 func (w *World) advanceAttack(i int, obs *castObs) {
 	e := &w.entities[i]
 
@@ -774,47 +752,24 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		return
 	}
 
-	// wasCharging is the kind of wind-up this advance LOADED; casting is
-	// whether weaponSpell says the actor is eligible RIGHT NOW, asked again
-	// rather than trusted to have held for the whole wind-up (FR-3a). The two
-	// disagreeing — loaded toward a blow but now eligible, or loaded toward a
-	// cast but no longer eligible — is exactly the DIVERT case (FR-3b, D-6):
-	// wasCharging == casting is that disagreement written as one comparison,
-	// true when the loaded kind is the wrong one for what the actor is now.
 	rule, casting := w.weaponSpell(*e)
 	if structure {
 		casting = false // direct physical orders only; no structure spell diversion/rider
 	}
-	wasCharging := e.AttackPhase == AttackCharging
-	if wasCharging == casting {
-		// The divert draws exactly what a straight advance always draws at
-		// this site — the relax jitter, unconditionally, on THE JITTER IS
-		// DRAWN ON EVERY STRIKE TURN's own rule above — and DISCARDS it
-		// rather than skip the draw: skipping would make the generator's
-		// stream depend on whether the actor is a caster, which is exactly
-		// the value a draw must never be skipped on (resolveBlow draws its roll
-		// on every blow, one level down). The discard is
-		// written as a discard and not hidden behind a variable nothing
-		// reads.
-		//
-		// It does NOT arm the casting or the charging cycle either: doing so
-		// here would store a count equal to its own maximum, a state
-		// attackFault refuses, since every other phase stores strictly below
-		// what it loaded. The arm happens on the NEXT advance, from
-		// AttackReady, at the top of this function — with nothing owed,
-		// which is what "diverts to READY" (D-6) means.
+	if e.AttackPhase == AttackCasting && !casting {
+		// Preserve the unavailable-cast fallback and its discarded jitter.
 		w.rng.uniform(relaxJitter)
 		e.AttackPhase, e.AttackCountdown = AttackReady, 0
 		return
 	}
-	if e.AttackPhase == AttackCharging {
+	if casting {
+		w.releaseWeaponSpell(i, ti, rule, obs)
+	} else {
 		if structure {
 			w.resolveStructureBlow(i)
 		} else {
 			w.resolveBlow(i, ti, obs)
 		}
-	} else {
-		w.releaseWeaponSpell(i, ti, rule, obs)
 	}
 	e = &w.entities[i]
 	// Crossing the target to -10 clears this attack at the damage site. Do not
@@ -826,7 +781,7 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 	// relax is carried whole: an int32 sum would wrap at the top of the range
 	// into a negative count the byte form refuses.
 	source := originBlow
-	if !wasCharging {
+	if casting {
 		source = originStaff
 	}
 	recovery := int32(w.castRecoveryTicks(i, source, rule))
