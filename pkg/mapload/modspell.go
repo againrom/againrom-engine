@@ -62,23 +62,24 @@ func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 			return e.Line, fmt.Sprintf("%s has no effect mode to keep; give effect.mode with effect.kind", sp.Name)
 		}
 	}
+	rule := modSpellRule(t, i+1)
 	if r.HealHostile.Set {
-		if _, restorative := data.ClassifySpell(i+1, sp.DamageMin, sp.DamageMax); !restorative {
+		if _, restorative := data.ClassifySpell(int(rule.ArmID()), sp.DamageMin, sp.DamageMax); !restorative {
 			return r.HealHostile.Line, fmt.Sprintf("%s does not heal, so heal_hostile does not apply to it", sp.Name)
 		}
 	}
 	if r.SelfCast.Set {
-		if damaging, _ := data.ClassifySpell(i+1, sp.DamageMin, sp.DamageMax); !damaging {
+		if damaging, _ := data.ClassifySpell(int(rule.ArmID()), sp.DamageMin, sp.DamageMax); !damaging {
 			return r.SelfCast.Line, fmt.Sprintf("%s does not damage, so self_cast does not apply to it", sp.Name)
 		}
 	}
 	if r.AreaHits.Set && !sp.Area {
 		return r.AreaHits.Line, fmt.Sprintf("%s is not an area spell, so area_hits does not apply to it", sp.Name)
 	}
-	if r.Rays.Set && !sim.SpellArmFiresRays(uint16(i+1)) {
+	if r.Rays.Set && !sim.SpellArmFiresRays(rule.ArmID()) {
 		return r.Rays.Line, fmt.Sprintf("%s does not fire rays, so rays does not apply to it", sp.Name)
 	}
-	return modSpellFormulaRefusal(sp, modSpellRule(t, i+1), r)
+	return modSpellFormulaRefusal(sp, rule, r)
 }
 
 // modSpellRule is spell number id as t's game runs it: its arm and format.
@@ -152,7 +153,7 @@ func applyModSpellTargets(rules []sim.SpellRule, spells []data.Spell, d mod.Spel
 		rule := &rules[i]
 		rule.HealHostile = r.HealHostile.Set && r.HealHostile.Val && rule.Restorative
 		rule.SelfCast = r.SelfCast.Set && r.SelfCast.Val && rule.Damaging
-		if r.Rays.Set && sim.SpellArmFiresRays(rule.ID) {
+		if r.Rays.Set && sim.SpellArmFiresRays(rule.ArmID()) {
 			rule.Rays, rule.Radius = uint8(r.Rays.Val), 0
 		}
 		if r.AreaHits.Set && rule.Area {
@@ -168,7 +169,7 @@ func applyModSpellTargets(rules []sim.SpellRule, spells []data.Spell, d mod.Spel
 	}
 }
 
-func applyModSpells(spells []data.Spell, d mod.SpellData, maxDamage int64) {
+func applyModSpells(t *Table, spells []data.Spell, d mod.SpellData, maxDamage int64) {
 	if d.Empty() {
 		return
 	}
@@ -215,6 +216,8 @@ func applyModSpells(spells []data.Spell, d mod.SpellData, maxDamage int64) {
 	g := d.Global
 	for i := range spells {
 		sp := &spells[i]
+		arm := int(modSpellRule(t, i+1).ArmID())
+		_, sp.Restorative = data.ClassifySpell(arm, sp.DamageMin, sp.DamageMax)
 		if g.Mana.Set && set[i]&fieldMana == 0 {
 			sp.ManaCost = scaleSpell(int64(sp.ManaCost), g.Mana, mod.SpellMaxMana)
 		}
@@ -245,7 +248,7 @@ func applyModSpells(spells []data.Spell, d mod.SpellData, maxDamage int64) {
 				sp.DamageMax = scaleSpell(int64(sp.DamageMax), ratio, maxDamage)
 			}
 		}
-		sp.Damaging, sp.Restorative = data.ClassifySpell(i+1, sp.DamageMin, sp.DamageMax)
+		sp.Damaging, sp.Restorative = data.ClassifySpell(arm, sp.DamageMin, sp.DamageMax)
 	}
 }
 

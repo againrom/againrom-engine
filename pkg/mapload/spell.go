@@ -275,7 +275,7 @@ func SpellRules(t *Table) []sim.SpellRule {
 	if t.SpellArms != nil {
 		maxDamage = 255
 	}
-	applyModSpells(spells, t.Mods.Spells, maxDamage)
+	applyModSpells(t, spells, t.Mods.Spells, maxDamage)
 	rules := spellRules(spells, t.SpellArms != nil)
 	if t.SpellArms != nil {
 		t.SpellArms(rules)

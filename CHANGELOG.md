@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
 - [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
 - [ROM2] A mod can now change the second game's spell numbers, such as power, damage, range, duration and effect strength, with the same tables as the first game's; a table a spell cannot use is refused by name.
+- [ROM2] A mod's `rays`, `heal_hostile` and `self_cast` on the second game now follow each spell's own behaviour, so Prismatic Spray takes `rays` and Heal takes `heal_hostile`, as in the first game.
 
 ## 0.157.1
 
