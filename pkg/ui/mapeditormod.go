@@ -759,7 +759,7 @@ func (e *MapEditor) mapsFolderQuestion() pathQuestion {
 // lines, broken to the window's width.
 func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverviewPage) {
 	o := &e.obj
-	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell, o.usesFold = nil, false, false, -1, 0
 	o.first, o.rowField = len(s.Rows), map[int]int{}
 	s.Columns = 1
 	e.modFoldRow = e.modFoldRow[:0]

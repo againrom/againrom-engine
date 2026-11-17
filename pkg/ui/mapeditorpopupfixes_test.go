@@ -31,7 +31,7 @@ func groupLinks(t *testing.T, e *MapEditor) []int {
 		t.Fatal("no group popup")
 	}
 	var out []int
-	for _, l := range links[3:] {
+	for _, l := range links[2:] {
 		if l < 0 && e.doc.Records[-l-1].Kind == "Unit" {
 			out = append(out, -l-1)
 		}
@@ -114,7 +114,7 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 	if got := fmt.Sprint(e.GroupMembers(), groupLinks(t, e)); got != "[2] [2]" {
 		t.Fatalf("after Redo: members and links %s", got)
 	}
-	chromeClick(e, center(objectRowRect(t, e, 3).Rect))
+	chromeClick(e, center(objectRowRect(t, e, 2).Rect))
 	if e.selected != 2 {
 		t.Fatalf("the member row opened record %d", e.selected)
 	}

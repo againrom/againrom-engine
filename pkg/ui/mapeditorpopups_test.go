@@ -327,7 +327,7 @@ func TestEditorObjectPopupWithoutFieldsIsReadOnly(t *testing.T) {
 	_ = e.Open("popups")
 	e.Select(6, false)
 	s, _ := objectLayout(t, e)
-	if len(s.Buttons) != 0 || len(e.obj.fields) != 0 || !strings.Contains(strings.Join(s.Notes, " "), "editor.object.readonly") && !strings.Contains(strings.Join(s.Notes, " "), "no editable") {
+	if len(s.Buttons) != 0 || len(e.obj.fields) != 0 || len(s.Notes) != 0 || !strings.Contains(s.TitleHelp, "editor.object.readonly") && !strings.Contains(s.TitleHelp, "no editable") {
 		t.Fatalf("scenery popup %+v", s)
 	}
 }
@@ -359,10 +359,10 @@ func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 	s, links := func() (popupSpec, []int) { s, l, _ := e.objectSpec(); return s, l }()
 	// The group's row with its members' pictures and Delete group stand in
 	// the group's window.
-	if len(s.Rows) != 6 || s.Rows[1].Label != "Group 1" || links[3] != -1 || links[4] != -3 || s.Rows[5].Label != "Used by: none" || !slices.Equal(s.Buttons, []string{"Delete group"}) {
+	if len(s.Rows) != 5 || s.Rows[1].Label != "Members" || links[2] != -1 || links[3] != -3 || s.Rows[4].Label != "Used by: none" || !slices.Equal(s.Buttons, []string{"Delete group"}) {
 		t.Fatalf("group popup rows %+v links %v buttons %q", s.Rows, links, s.Buttons)
 	}
-	chromeClick(e, center(objectRowRect(t, e, 4).Rect))
+	chromeClick(e, center(objectRowRect(t, e, 3).Rect))
 	if e.selected != 2 || len(e.GroupMembers()) != 0 {
 		t.Fatal("a member row did not open its unit")
 	}

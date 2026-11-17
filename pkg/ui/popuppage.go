@@ -29,15 +29,24 @@ type EditorMockup struct {
 	doll    *image.RGBA
 	figure  image.Point
 	missing string
+	// pictureNames are the names of the pictures the rows show, by row:
+	// a picture row's own first, then the icons after its value.
+	pictureNames map[int][]string
 }
 
 // mockupPerson is the person a description's card and figure show: the
 // card, the font it writes in and the doll. A nil card is the sample's.
+// picture is the picture a row names, nil for none.
 type mockupPerson struct {
 	card     *PanelSubject
 	cardFont *text.Font
 	doll     *image.RGBA
+	picture  func(name string) *image.RGBA
 }
+
+// mockupBlank stands for a picture nobody gave: the row keeps its room and
+// shows nothing.
+var mockupBlank = image.NewRGBA(image.Rect(0, 0, 1, 1))
 
 // ScreenDescription is the embedded description of the editor window name.
 func ScreenDescription(name string) ([]byte, error) {
@@ -73,7 +82,9 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	}
 	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body}
 	word := words.For(lang).Text
-	m.plain, _ = d.build(sample, word)
+	var made []popupMade
+	m.plain, made = d.build(sample, word)
+	m.pictureNames = rowPictures(m.plain.Rows, made, person.picture)
 	m.paint = encodedSpec(m.plain, encode)
 	fitButtons(&m.paint, body)
 	if d.Card {
@@ -89,6 +100,36 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	m.plain.Card, m.plain.CardFont, m.plain.CardAside = m.paint.Card, m.paint.CardFont, m.paint.CardAside
 	m.layout = layoutPopup(m.paint, title, body)
 	return m, nil
+}
+
+// rowPictures gives rows the pictures made names, through picture: a
+// picture row its portrait and a row its icons, a blank where none is
+// found, so the layout keeps their room. It returns each such row's
+// picture names, the portrait's first.
+func rowPictures(rows []popupRow, made []popupMade, picture func(string) *image.RGBA) map[int][]string {
+	find := func(name string) *image.RGBA {
+		if picture != nil {
+			if p := picture(name); p != nil {
+				return p
+			}
+		}
+		return mockupBlank
+	}
+	out := map[int][]string{}
+	for k, md := range made {
+		if md.Picture == "" && len(md.Icons) == 0 {
+			continue
+		}
+		var names []string
+		if md.Picture != "" {
+			rows[k].Portrait, names = find(md.Picture), []string{md.Picture}
+		}
+		for _, name := range md.Icons {
+			rows[k].Icons = append(rows[k].Icons, find(name))
+		}
+		out[k] = append(names, md.Icons...)
+	}
+	return out
 }
 
 // Mockup is NewEditorMockup in the editor's own fonts and host text; a
@@ -205,6 +246,35 @@ func (m *EditorMockup) Picture() *image.RGBA {
 	return dst
 }
 
+// pagePicture is a picture's box on the page and its name.
+type pagePicture struct {
+	row  int
+	box  image.Rectangle
+	name string
+}
+
+// pagePictures are the boxes of the pictures layout l's shown rows hold,
+// where the painter draws them (rowPictureBoxes), each named by names in
+// the same order, the portrait's first; a row names none without names.
+func pagePictures(body *text.Font, l popupLayout, rows []popupRow, names map[int][]string) []pagePicture {
+	var out []pagePicture
+	for _, rr := range l.Rows {
+		portrait, icons := rowPictureBoxes(body, rr, rows[rr.Index])
+		boxes := icons
+		if !portrait.Empty() {
+			boxes = append([]image.Rectangle{portrait}, icons...)
+		}
+		for k, box := range boxes {
+			name := ""
+			if k < len(names[rr.Index]) {
+				name = names[rr.Index][k]
+			}
+			out = append(out, pagePicture{rr.Index, box, name})
+		}
+	}
+	return out
+}
+
 // Page is the window as one HTML page: every part of the layout placed at
 // its rectangle in the popup painter's inks, with the description inside.
 func (m *EditorMockup) Page() []byte {
@@ -212,16 +282,16 @@ func (m *EditorMockup) Page() []byte {
 	if m.paint.Card != nil {
 		figure = figureRoom(m.paint, m.layout, m.figure)
 	}
-	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, m.lang, m.window)
+	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, pagePictures(m.body, m.layout, m.paint.Rows, m.pictureNames), m.lang, m.window)
 }
 
 // pageDescriptionTag opens the description a page carries.
 const pageDescriptionTag = `<script type="application/json" id="popup-description">`
 
 // popupPage writes the page from the window's tree w and its layout l, with
-// the person's figure room figure when the window has a card, in the inks
-// the painter reads; it lays nothing out.
-func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, lang string, window image.Point) []byte {
+// the person's figure room figure when the window has a card and the
+// rows' pictures, in the inks the painter reads; it lays nothing out.
+func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, pictures []pagePicture, lang string, window image.Point) []byte {
 	ink := editorPopupInk
 	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 	var b bytes.Buffer
@@ -321,6 +391,9 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, l
 	}
 	part("control", "card", -1, l.Card, none, "")
 	part("control", "figure", -1, figure, none, "")
+	for _, p := range pictures {
+		part("control", "picture", p.row, p.box, none, p.name)
+	}
 	b.WriteString("</div>\n" + pageDescriptionTag)
 	desc, err := json.Marshal(d) // escapes <, > and &, so the block cannot end early
 	if err != nil {

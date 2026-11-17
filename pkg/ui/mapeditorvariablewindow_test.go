@@ -63,7 +63,8 @@ func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.P
 			t.Errorf("%v: hit at the middle of grid cell %d gives part %d, index %d", size, i, part, index)
 		}
 	}
-	page := string(popupPage(popupDesc{}, specWindow(s), l, image.Rectangle{}, "en", size))
+	pictures := pagePictures(body, l, s.Rows, nil)
+	page := string(popupPage(popupDesc{}, specWindow(s), l, image.Rectangle{}, pictures, "en", size))
 	var got []pagePart
 	for _, p := range propertyPageBox.FindAllStringSubmatch(page, -1) {
 		n := func(i int) int { v, _ := strconv.Atoi(p[i]); return v }
@@ -71,7 +72,11 @@ func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.P
 			got = append(got, pagePart{p[1], image.Rect(n(3), n(4), n(3)+n(5), n(4)+n(6))})
 		}
 	}
-	if want := layoutParts(s, l); !reflect.DeepEqual(got, want) {
+	want := layoutParts(s, l)
+	for _, p := range pictures {
+		want = append(want, pagePart{"picture", p.box})
+	}
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("%v: page parts\n%v\nlayout\n%v", size, got, want)
 	}
 }

@@ -112,8 +112,8 @@ func TestEditorDraftPortraitUsesSpeakerBuilder(t *testing.T) {
 	}
 	for _, tc := range []struct{ file, function, builder, forbidden string }{
 		{"pkg/game/mapinspectionunitsettings.go", "UnitSettings", "SpeakerFace", "composeUnitFigure"},
-		{"pkg/ui/mapeditorwindow.go", "drawObjectPreview", "unitFigureSize", "drawNoticePortrait"},
-		{"pkg/ui/mapeditorwindow.go", "drawObjectPreview", "unitFigureSize", "blitNoticeWindow"},
+		{"pkg/ui/mapeditorwindow.go", "drawObjectFigure", "unitFigureSize", "drawNoticePortrait"},
+		{"pkg/ui/mapeditorwindow.go", "drawObjectFigure", "unitFigureSize", "blitNoticeWindow"},
 	} {
 		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, tc.file), nil, parser.SkipObjectResolution)
 		if err != nil {

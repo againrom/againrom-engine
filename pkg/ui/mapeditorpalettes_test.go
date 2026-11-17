@@ -362,8 +362,7 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 	if !ok || !e.panels.hosted || !e.groupSel.set {
 		t.Fatal("the chosen group is not in the right panel")
 	}
-	want := fmt.Sprintf(e.word("editor.group.number"), 1)
-	if len(s.Rows) < 4 || s.Rows[1].Label != want || len(s.Rows[1].Icons) != 2 || s.Rows[1].Value != fmt.Sprintf(e.word("editor.group.count"), 2) {
+	if len(s.Rows) < 4 || s.Rows[1].Label != e.word("editor.group.members") || len(s.Rows[1].Icons) != 2 || s.Rows[1].Value != "2" {
 		t.Fatalf("the group row %+v", s.Rows)
 	}
 	if !slices.Equal(s.Buttons, []string{e.word("editor.group.delete")}) {

@@ -346,8 +346,8 @@ func TestMapEditor1092ActualFourArtLayersReachDrawAndPreview(t *testing.T) {
 	}
 	e.Select(0, false)
 	pic := e.ChromeImage()
-	data := objectRowRect(t, e, e.obj.data).Rect // the picture stands right of the data
-	if got := pic.RGBAAt(data.Max.X-4, data.Min.Y+4); got != s.Palette[120] {
+	box := rowPortraitBox(objectRowRect(t, e, 0)) // the picture row leads the window
+	if got := pic.RGBAAt((box.Min.X+box.Max.X)/2, (box.Min.Y+box.Max.Y)/2); got != s.Palette[120] {
 		t.Fatalf("selected sack art pixel %v", got)
 	}
 	if len(e.markerLines()) != 6 {

@@ -101,7 +101,7 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 						e.objectTop = top
 						s, _, _ = e.objectSpec()
 						doll := image.NewRGBA(pic.Bounds())
-						e.drawObjectPreview(doll, s)
+						e.drawObjectFigure(doll, s)
 						for at := 0; at < len(doll.Pix); at += 4 {
 							painted = painted || doll.Pix[at+3] != 0
 						}

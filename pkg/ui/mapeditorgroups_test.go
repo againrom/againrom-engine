@@ -280,7 +280,7 @@ func TestMapEditorGroupsWindowRows(t *testing.T) {
 	}
 	chromeClick(e, center(r))
 	s, _, _ := e.objectSpec()
-	if len(s.Rows) < 2 || s.Rows[1].Value != "2 units" || len(s.Rows[1].Icons) != len(e.memberIcons(e.groupSel)) || len(s.Buttons) == 0 || s.Buttons[0] != "Delete group" {
+	if len(s.Rows) < 2 || s.Rows[1].Label != "Members" || s.Rows[1].Value != "2" || len(s.Rows[1].Icons) != len(e.memberIcons(e.groupSel)) || len(s.Buttons) == 0 || s.Buttons[0] != "Delete group" {
 		t.Fatalf("the group window lacks its pictures or Delete group: %+v %v", s.Rows, s.Buttons)
 	}
 }

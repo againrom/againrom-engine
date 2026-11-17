@@ -417,8 +417,8 @@ func (e *MapEditor) controlGroupMemberRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	s, _, _ := e.objectSpec()
-	row := slices.IndexFunc(links, func(l int) bool { return l < 0 }) + n
-	if row < n || row >= len(links) || links[row] != -(e.groupSel.members[n]+1) {
+	row := slices.Index(links, -(e.groupSel.members[n] + 1))
+	if row < 0 {
 		return image.Rectangle{}, false
 	}
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
@@ -1307,6 +1307,19 @@ func (e *MapEditor) markArmedPick(s *popupSpec) {
 	}
 }
 
+// recordTitle is the title of record r's own window: a structure the
+// scripts name by its number shows the name they give it, a unit its name,
+// any other record its kind and number.
+func (e *MapEditor) recordTitle(r InspectionRecord) string {
+	switch {
+	case r.Kind == KindStructure && r.ScriptID > 0:
+		return fmt.Sprintf(e.word("editor.param.structurechoice"), r.ScriptID, r.Label)
+	case r.Name != "":
+		return r.Name
+	}
+	return fmt.Sprintf("%s #%d", r.Kind, r.Index)
+}
+
 func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.panels.hostable = false
 	e.obj.viewOffer = false
@@ -1338,7 +1351,6 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.panels.hostable = true
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
-		e.obj.data = -1
 		e.objectBackButton(&s)
 		return s, links, true
 	}
@@ -1353,14 +1365,15 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		r.Cell = *e.obj.move
 	}
 	wide := e.popupWide(popObject, 420)
-	title := fmt.Sprintf("%s #%d", r.Kind, r.Index)
-	if r.Name != "" {
-		title = r.Name
-	}
-	s := popupSpec{Title: title, At: e.keptCorner(popObject), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
+	s := popupSpec{Title: e.recordTitle(r), At: e.keptCorner(popObject), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)
+	}
+	// The record's picture is the window's first row, three rows high in
+	// the label column, in either view; the person window shows its figure.
+	if r.Preview != nil && !e.nativeUnitWindow() {
+		add(popupRow{Kind: popupText, Portrait: r.Preview.RGBA(), Lines: 3}, 0)
 	}
 	// The person window moves its unit by a drag on the map; it shows no
 	// cell row.
@@ -1373,10 +1386,9 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		// fields on every section; a unit no trigger uses shows no list.
 		if e.hasUsedBy() && !e.obj.usesShown {
 			if rows := e.usedByRows(); len(rows) > 0 {
-				e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), rows)
+				e.usedBySection(&s, &links, rows)
 			}
 		}
-		e.obj.data = -1
 		e.viewSwitchButton(&s)
 		// Each mode stands every row high, scrolled only where the room is
 		// lower.
@@ -1404,25 +1416,19 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		return s, links, true
 	}
 	if e.hasUsedBy() && !e.obj.usesShown {
-		e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
+		e.usedBySection(&s, &links, e.usedByRows())
 	}
-	e.obj.data = len(s.Rows)
 	// The plain view keeps the record's data lines in a block that opens
 	// and closes, closed at first.
 	closed := false
 	if data := (plainBlock{id: "data", fold: true}); e.obj.rowBlock != nil {
 		e.obj.rowBlock[len(s.Rows)] = data.id
 		add(blockRow(e.word("editor.object.data"), e.blockOpen(data)), 0)
-		if closed = !e.blockOpen(data); closed {
-			e.obj.data = -1
-		}
+		closed = !e.blockOpen(data)
 	} else {
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
 	}
 	width := e.hostedWrap(s, wide-2*popupPad-4)
-	if r.Preview != nil {
-		width -= previewW + popupPad // the picture's column
-	}
 	var lines []InspectionLine
 	if r.Warning != "" && len(r.Lines) == 0 {
 		lines = append(lines, InspectionLine{Text: "! " + r.Warning, Role: "warning"})
@@ -1744,7 +1750,7 @@ func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
 	}
 	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		e.drawWindow(pic, s)
-		e.drawObjectPreview(pic, s)
+		e.drawObjectFigure(pic, s)
 	}
 	if s, ok := e.promptSpec(); ok {
 		e.drawWindow(pic, s)
@@ -1798,37 +1804,24 @@ func (e *MapEditor) drawListWindow(pic *image.RGBA, s popupSpec) {
 	e.drawBrushPreview(pic, s)
 }
 
-// previewW and previewH bound the record's picture in the object popup.
-const previewW, previewH = 96, 64
+// previewW is the width of the Add window's picture column.
+const previewW = 96
 
-// drawObjectPreview draws the selected record's picture at the right of its
-// data, from the data heading down, when that heading is shown.
-func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
+// drawObjectFigure draws a person's figure in the unit window's place for
+// it; any other record's picture is the window's picture row.
+func (e *MapEditor) drawObjectFigure(pic *image.RGBA, s popupSpec) {
 	if e.modWindow || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return // group popup, mod window
 	}
 	r := e.doc.Records[e.selected]
-	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
-		var doll *image.RGBA
-		if pictures := e.obj.unit.picture; pictures != nil {
-			doll = pictures.Doll
-		}
-		drawFigure(pic, s, layoutPopup(s, e.font, e.bodyFont()), doll, e.unitFigureSize(), e.bodyFont(), e.word("editor.unit.look.missing"))
+	if r.Kind != KindUnit || s.Card == nil || s.Card.Char.Band != CharacterBandPerson {
 		return
 	}
-	if r.Preview == nil {
-		return
+	var doll *image.RGBA
+	if pictures := e.obj.unit.picture; pictures != nil {
+		doll = pictures.Doll
 	}
-	preview := r.Preview.RGBA()
-	l := layoutPopup(s, e.font, e.bodyFont())
-	for _, rr := range l.Rows {
-		if rr.Index != e.obj.data {
-			continue
-		}
-		box := image.Rect(rr.Rect.Max.X-previewW, rr.Rect.Min.Y, rr.Rect.Max.X, rr.Rect.Min.Y+previewH)
-		last := l.Rows[len(l.Rows)-1].Rect.Max.Y
-		drawEditorPicture(pic, editorPicture{Pic: preview, Box: box, Clip: image.Rect(box.Min.X, box.Min.Y, box.Max.X, last), Fit: pictureCorner})
-	}
+	drawFigure(pic, s, layoutPopup(s, e.font, e.bodyFont()), doll, e.unitFigureSize(), e.bodyFont(), e.word("editor.unit.look.missing"))
 }
 
 // figureAside is the width of the column beside a person's card that holds

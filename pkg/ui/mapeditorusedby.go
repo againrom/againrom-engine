@@ -6,30 +6,64 @@ import (
 	"strings"
 )
 
+// scriptPopupLink is one link of an object window: the record it opens, its
+// text, the script nodes it names, and the spaces its lines stand in by.
 type scriptPopupLink struct {
 	record int
 	title  string
 	nodes  []int
+	indent int
 }
 
+// memberIndent is how far a group's member links stand in under its
+// members row.
+const memberIndent = 2
+
+// usesFoldMost is the most uses the used-by fold shows open at first.
+const usesFoldMost = 5
+
+// scriptPopupLink adds row's link: its text wrapped to the window's width,
+// each line under the first standing in by row.indent, and every line a
+// link to the record, so a press anywhere on it opens the record.
 func (e *MapEditor) scriptPopupLink(s *popupSpec, links *[]int, row scriptPopupLink) {
-	for i, part := range editorTextLines(e.bodyFont(), row.title, s.Width-2*popupPad-8) {
-		kind, link := popupText, 0
-		if i == 0 || row.nodes == nil {
-			kind, link = popupLink, -row.record-1
-		}
-		s.Rows, *links = append(s.Rows, popupRow{Kind: kind, Label: part}), append(*links, link)
+	pad := strings.Repeat(" ", row.indent)
+	width := s.Width - 2*popupPad - 8
+	if b := e.bodyFont(); b != nil {
+		width -= b.Advance(pad)
+	}
+	for _, part := range editorTextLines(e.bodyFont(), row.title, width) {
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: pad + part}), append(*links, -row.record-1)
 	}
 }
 
-func (e *MapEditor) scriptLinkSection(s *popupSpec, links *[]int, title string, rows []scriptPopupLink) {
+// scriptLinkSection adds a block of links under its heading title: "none"
+// after the title when there is no link, else a heading that folds as fold
+// says, the links shown unless it is closed.
+func (e *MapEditor) scriptLinkSection(s *popupSpec, links *[]int, title string, rows []scriptPopupLink, fold RowFold) {
 	if len(rows) == 0 {
-		title = fmt.Sprintf(e.word("editor.scripts.emptyheading"), title)
+		title, fold = fmt.Sprintf(e.word("editor.scripts.emptyheading"), title), FoldNone
 	}
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: title}), append(*links, 0)
+	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: title, Fold: fold}), append(*links, 0)
+	if fold == FoldClosed {
+		return
+	}
 	for _, row := range rows {
 		e.scriptPopupLink(s, links, row)
 	}
+}
+
+// usedBySection adds the shown object's used-by block: a fold over its
+// uses, closed when there are more than usesFoldMost and open otherwise,
+// until the map maker turns it.
+func (e *MapEditor) usedBySection(s *popupSpec, links *[]int, rows []scriptPopupLink) {
+	fold := FoldClosed
+	if (len(rows) <= usesFoldMost) != e.obj.usesTurned {
+		fold = FoldOpen
+	}
+	if len(rows) > 0 {
+		e.obj.usesFold = len(s.Rows) + 1
+	}
+	e.scriptLinkSection(s, links, e.word("editor.usedby.title"), rows, fold)
 }
 
 func (e *MapEditor) objectUses() []InspectionScriptUse {

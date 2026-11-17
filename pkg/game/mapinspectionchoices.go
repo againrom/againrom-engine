@@ -266,7 +266,8 @@ func recipeChoices(s *mapInspectionEdits, _ fieldChoiceAsk) []ui.InspectionChoic
 	if err != nil {
 		return nil
 	}
-	out := []ui.InspectionChoice{{Value: 0, Label: "No recipe (plain item)"}}
+	x := s.inspector
+	out := []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.norecipe"))}}
 	for i, recipe := range m.Enchantments {
 		if recipe.X == 0 && recipe.Y == 0 {
 			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Recipe %d: spell%d, %d effects", i+1, uint16(recipe.SpellRaw), len(recipe.Elements))})

@@ -244,7 +244,7 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 		for _, id := range group.ids {
 			rows = append(rows, scriptPopupLink{record: id, title: e.scriptRowText(id, 0)})
 		}
-		e.scriptLinkSection(&s, &links, group.title, rows)
+		e.scriptLinkSection(&s, &links, group.title, rows, FoldNone)
 	}
 	if v.constant >= 0 {
 		e.scriptPopupLink(&s, &links, scriptPopupLink{record: v.constant, title: e.scriptRowText(v.constant, 2)})

@@ -2112,10 +2112,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			label.Min.X += 18
 		}
 		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
-		drawRowPortrait(dst, l, rr, row)
 		if row.Edit != nil {
 			drawEditRow(dst, body, row, rr.Control, ink, value)
-			drawRowIcons(dst, body, l, rr, row)
+			drawRowPictures(dst, body, l, rr, row)
 			for k, b := range rr.Buttons {
 				drawPushButton(dst, body, pushButton{Press: held, Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.Pick.Armed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 			}
@@ -2167,7 +2166,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		default:
 			bodyText(rr.Control, editorClip(body, row.Value, rr.Control.Dx()-2), value)
 		}
-		drawRowIcons(dst, body, l, rr, row)
+		drawRowPictures(dst, body, l, rr, row)
 		for k, b := range rr.Buttons {
 			if row.Kind == popupDirection {
 				break
@@ -2351,24 +2350,30 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 	return layoutTip(bounds, body, at, full, nil, tipShape{Fit: true, Pull: true}), true
 }
 
-// drawRowIcons draws a row's pictures after its value, each square at the
-// control's height, as many as the control holds.
-func drawRowIcons(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRect, row popupRow) {
-	if len(row.Icons) == 0 || rr.Control.Empty() {
-		return
+// rowPictureBoxes are where shown row rr's pictures stand: its portrait in
+// the label's column at the control's height (empty without one), then its
+// icons after its value, each square at the control's height, as many as
+// the control holds.
+func rowPictureBoxes(body *text.Font, rr popupRowRect, row popupRow) (portrait image.Rectangle, icons []image.Rectangle) {
+	if rr.Control.Empty() {
+		return image.Rectangle{}, nil
+	}
+	if row.Portrait != nil {
+		portrait = rowPortraitBox(rr)
 	}
 	x := rr.Control.Min.X + 2
 	if body != nil && row.Value != "" {
 		x += body.Advance(row.Value) + popupPad
 	}
 	side := rr.Control.Dy()
-	for _, icon := range row.Icons {
+	for range row.Icons {
 		if x+side > rr.Control.Max.X {
-			return
+			break
 		}
-		drawEditorPicture(dst, editorPicture{Pic: icon, Box: image.Rect(x, rr.Control.Min.Y, x+side, rr.Control.Max.Y), Clip: rr.Control.Intersect(l.Rect)})
+		icons = append(icons, image.Rect(x, rr.Control.Min.Y, x+side, rr.Control.Max.Y))
 		x += side + 2
 	}
+	return portrait, icons
 }
 
 // rowPortraitBox is where a row's portrait stands: the label's column at the
@@ -2377,13 +2382,14 @@ func rowPortraitBox(rr popupRowRect) image.Rectangle {
 	return image.Rect(rr.Rect.Min.X+2, rr.Control.Min.Y, rr.Label.Max.X-2, rr.Control.Max.Y)
 }
 
-// drawRowPortrait draws a row's portrait in the column the label takes, fitted
-// to the control's height.
-func drawRowPortrait(dst *image.RGBA, l popupLayout, rr popupRowRect, row popupRow) {
-	if rr.Control.Empty() {
-		return
+// drawRowPictures draws a row's portrait and icons at rowPictureBoxes, each
+// by the editor's picture element.
+func drawRowPictures(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRect, row popupRow) {
+	portrait, icons := rowPictureBoxes(body, rr, row)
+	drawEditorPicture(dst, editorPicture{Pic: row.Portrait, Box: portrait, Clip: l.Rect})
+	for k, box := range icons {
+		drawEditorPicture(dst, editorPicture{Pic: row.Icons[k], Box: box, Clip: rr.Control.Intersect(l.Rect)})
 	}
-	drawEditorPicture(dst, editorPicture{Pic: row.Portrait, Box: rowPortraitBox(rr), Clip: l.Rect})
 }
 
 // headLines are the lines a flat column head s takes in a column width

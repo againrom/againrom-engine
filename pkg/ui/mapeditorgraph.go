@@ -211,7 +211,7 @@ func (e *MapEditor) modGraph() (CampaignGraphPage, bool) {
 // when a mod is open, and the graph as the popup's canvas.
 func (e *MapEditor) modGraphRows(s *popupSpec, links *[]int, page CampaignGraphPage) {
 	o := &e.obj
-	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell, o.usesFold = nil, false, false, -1, 0
 	o.first, o.rowField = len(s.Rows), map[int]int{}
 	s.Columns = 1
 	text := func(words string) {

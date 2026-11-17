@@ -68,7 +68,6 @@ func TestObjectWindowDrawsTheSelectedRecordsPicture(t *testing.T) {
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	e.drawWindow(pic, s)
-	e.drawObjectPreview(pic, s)
 	if n := countColour(pic, pic.Bounds(), color.RGBA{255, 0, 255, 255}); n == 0 {
 		t.Fatal("the object window draws no picture of its record")
 	}

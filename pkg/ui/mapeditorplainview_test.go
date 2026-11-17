@@ -91,7 +91,7 @@ func structureRows(tail ...string) []string {
 		"2 Script target | 3",
 		"2 Width | 0",
 		"2 Height | 0",
-		"1 Used by |",
+		"1 - Used by |",
 		"5 Trigger 1  Raid: Action 1  Burn the hall |",
 	}, tail...)
 }
@@ -317,7 +317,7 @@ func TestMapEditorViewChoiceRoundTrip(t *testing.T) {
 func TestMapEditorViewSwitchNamesBasicAndDetailed(t *testing.T) {
 	for _, c := range []struct{ lang, basic, detailed string }{
 		{"en", "View: Basic", "View: Detailed"},
-		{"ru", "Вид: Обычный", "Вид: Детальный"},
+		{"ru", "Вид: Обычный", "Вид: Подробный"},
 	} {
 		for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
 			e, _, _ := plainEditor(t, c.lang, minimizedPanels, record)

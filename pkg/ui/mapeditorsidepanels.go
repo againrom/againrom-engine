@@ -1062,7 +1062,7 @@ func (e *MapEditor) drawSidePanels(pic *image.RGBA, part sidePanelPart) {
 		if s, _, ok := e.objectSpec(); ok && e.panels.hosted {
 			draw(s, false)
 			if wanted(false) {
-				e.drawObjectPreview(pic, s)
+				e.drawObjectFigure(pic, s)
 			}
 		} else if s, ok := e.propsSpec(); ok {
 			draw(s, e.panelFloats(panelRight))

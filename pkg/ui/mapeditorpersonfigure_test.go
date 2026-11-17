@@ -23,7 +23,7 @@ func TestEditorPersonFigureStandsAtTheGameSize(t *testing.T) {
 				t.Fatalf("%v plain %v: the person window has no figure", size, plain)
 			}
 			pic := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
-			e.drawObjectPreview(pic, s)
+			e.drawObjectFigure(pic, s)
 			face := color.RGBA{R: byte(e.obj.unit.entity.HP), G: 80, A: 255}
 			body := color.RGBA{B: 180, A: 255}
 			faces, bodies := 0, 0

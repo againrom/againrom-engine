@@ -184,7 +184,7 @@ func TestEditorUnitCardRebuildsForDraftWithoutApply(t *testing.T) {
 	s.MaxRows = len(s.Rows)
 	s.Size = image.Point{}
 	preview := image.NewRGBA(image.Rect(0, 0, 1280, 800))
-	e.drawObjectPreview(preview, s)
+	e.drawObjectFigure(preview, s)
 	painted := false
 	for at := 0; at < len(preview.Pix); at += 4 {
 		painted = painted || preview.Pix[at] == 42 && preview.Pix[at+3] == 255
@@ -194,7 +194,7 @@ func TestEditorUnitCardRebuildsForDraftWithoutApply(t *testing.T) {
 	}
 	s.Card.Char.Band = CharacterBandCreature
 	creature := image.NewRGBA(preview.Bounds())
-	e.drawObjectPreview(creature, s)
+	e.drawObjectFigure(creature, s)
 	if !bytes.Equal(creature.Pix, make([]byte, len(creature.Pix))) {
 		t.Fatal("a creature received the human doll preview")
 	}

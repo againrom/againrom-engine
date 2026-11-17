@@ -93,7 +93,7 @@ func modPageProperties(t *testing.T, e *MapEditor, screen image.Rectangle, tag s
 		if p, _ := l.hit(boxMidpoint(l.Close)); p != popupClose {
 			t.Errorf("%s top %d: close hit %v", tag, top, p)
 		}
-		page := popupPage(popupDesc{Window: "mod"}, specWindow(s), l, image.Rectangle{}, "en", screen.Max)
+		page := popupPage(popupDesc{Window: "mod"}, specWindow(s), l, image.Rectangle{}, nil, "en", screen.Max)
 		var got []pagePart
 		for _, p := range pageTipBox.FindAllStringSubmatch(string(page), -1) {
 			n := func(i int) int { v, _ := strconv.Atoi(p[i]); return v }

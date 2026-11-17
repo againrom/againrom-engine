@@ -95,7 +95,7 @@ var sackPlainView = plainView{
 		{key: "item#", word: "editor.plain.code", order: 10, block: "details", show: plainCode},
 		{key: "recipe#", word: "editor.plain.recipe", order: 10, block: "details"},
 		{key: "recipe#.*", order: 10, block: "details"},
-		{key: "use#", order: 10, block: "details"},
+		{key: "use#", word: "editor.plain.dispatch", order: 10, block: "details"},
 	},
 	rest: "details",
 }
@@ -399,7 +399,7 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 		switch row.show {
 		case plainUses:
 			if e.hasUsedBy() {
-				e.scriptLinkSection(s, links, e.word("editor.usedby.title"), e.usedByRows())
+				e.usedBySection(s, links, e.usedByRows())
 				o.usesShown = true
 			}
 		case plainCode:

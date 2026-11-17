@@ -57,7 +57,6 @@ type objectEdit struct {
 	search  string
 	note    string
 	first   int // the spec row of the first field
-	data    int // the spec row of the data heading
 	cell    int // the spec row of the cell, -1 when it is not movable
 	// rowField maps a spec row to the field it edits; rowActs are the
 	// actions of a script popup row's buttons.
@@ -73,6 +72,10 @@ type objectEdit struct {
 	rowBlock  map[int]string
 	usesShown bool
 	viewOffer bool
+	// usesFold is 1 + the spec row of the used-by fold, 0 for none;
+	// usesTurned marks the fold opened or closed against its default.
+	usesFold   int
+	usesTurned bool
 	// band stands the unit window's card in a band under its rows, scrolled
 	// with them: the room is lower than the card held in its column.
 	band bool
@@ -174,7 +177,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if !e.modWindow {
 		r = e.doc.Records[e.selected]
 	}
-	o.rowBlock, o.usesShown, o.viewOffer, o.cell = nil, false, false, -1
+	o.rowBlock, o.usesShown, o.viewOffer, o.cell, o.usesFold = nil, false, false, -1, 0
 	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
@@ -182,7 +185,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	if len(o.fields) == 0 {
 		if !r.Kind.Fielded() {
-			s.Notes = append(s.Notes, e.word("editor.object.readonly"))
+			s.TitleHelp = e.word("editor.object.readonly")
 		}
 		return
 	}
@@ -629,6 +632,10 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	o := &e.obj
 	if id, ok := o.rowBlock[n]; ok {
 		e.toggleBlock(id)
+		return
+	}
+	if o.usesFold > 0 && n == o.usesFold-1 {
+		o.usesTurned = !o.usesTurned
 		return
 	}
 	if n == o.cell && part == popupRowButton {
@@ -1162,7 +1169,7 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
 	e.messagePage = 0
 	e.selected, e.focusedReference = -1, 0
-	e.objectBack = nil
+	e.objectBack, e.obj.usesTurned = nil, false
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0
 	e.selection.refs, e.selection.marquee, e.selection.hidden, e.selection.box = nil, nil, false, image.Rectangle{}
 	var box image.Rectangle
@@ -1187,24 +1194,24 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		return popupSpec{}, nil, false
 	}
 	e.loadObject()
+	e.obj.usesFold = 0
 	s := popupSpec{Title: e.groupLabel(g), At: e.keptCorner(popObject), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
 	// The member pictures and Delete group stand here, as the Groups list
-	// showed them on the group's row.
-	links := []int{0, 0, 0}
+	// showed them on the group's row: the members' count and pictures, then
+	// a link to each member under it.
+	links := []int{0, 0}
 	s.Rows = []popupRow{
 		{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)},
-		{Kind: popupText, Label: fmt.Sprintf(e.word("editor.group.number"), g.group), Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members)), Icons: e.memberIcons(g)},
-		{Kind: popupHeading, Label: e.word("editor.group.members")},
+		{Kind: popupText, Label: e.word("editor.group.members"), Value: strconv.Itoa(len(g.members)), Icons: e.memberIcons(g)},
 	}
 	s.Buttons, s.Disabled = []string{e.word("editor.group.delete")}, []bool{false}
 	fitButtons(&s, e.bodyFont())
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {
-			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: editorClip(e.bodyFont(), e.recordSummary(id), s.Width-2*popupPad-8)})
-			links = append(links, -(id + 1))
+			e.scriptPopupLink(&s, &links, scriptPopupLink{record: id, title: e.recordSummary(id), indent: memberIndent})
 		}
 	}
-	e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
+	e.usedBySection(&s, &links, e.usedByRows())
 	s.MaxRows = e.objectRowsShown(len(e.objectBack) > 0)
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-e.sizedRows(s.MaxRows)))
 	s.Top = e.objectTop

@@ -45,6 +45,13 @@ func TestEditorNativeChoiceWordsUseFontBytesInBothLanguages(t *testing.T) {
 				t.Fatal(err)
 			}
 			check("wear1", 1, "editor.equipment.npcempty")
+			// A sack item's recipe list opens with the plain item, in the
+			// map maker's language.
+			plain := map[string]string{"en": "No recipe (plain item)", "ru": "Без рецепта (простой предмет)"}[lang]
+			want, _ := textinput.EncodeText(plain, 0, textinput.Substitute)
+			if c := recipeChoices(s, fieldChoiceAsk{key: "recipe"}); len(c) == 0 || c[0].Label != want {
+				t.Fatalf("recipe choices %v, want %q first", c, plain)
+			}
 		})
 	}
 }
