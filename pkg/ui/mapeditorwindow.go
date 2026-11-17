@@ -1804,8 +1804,8 @@ const previewW, previewH = 96, 64
 // drawObjectPreview draws the selected record's picture at the right of its
 // data, from the data heading down, when that heading is shown.
 func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
-	if e.selected < 0 || e.selected >= len(e.doc.Records) {
-		return // the group popup has no one record
+	if e.modWindow || e.selected < 0 || e.selected >= len(e.doc.Records) {
+		return // group popup, mod window
 	}
 	r := e.doc.Records[e.selected]
 	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {

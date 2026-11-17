@@ -334,7 +334,7 @@ func (e *MapEditor) brushAside() int {
 // drawBrushPreview draws the highlighted object's picture beside the Objects
 // list, through the host's record-preview seam under the key "object".
 func (e *MapEditor) drawBrushPreview(pic *image.RGBA, s popupSpec) {
-	if e.brushAside() == 0 || s.ListAside == 0 {
+	if e.listKind() != "brush" || e.brushAside() == 0 || s.ListAside == 0 {
 		return
 	}
 	host, ok := e.brushHost().(InspectionNewRecords)
