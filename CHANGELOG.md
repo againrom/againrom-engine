@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 - [BASE] Game text, such as the name on the new-character screen of the second game, no longer shows a dark blurred rim when the window is larger than the original screen.
 - [BASE] Darkness darkens and Light brightens the ground and units under them again, also with the Lighting option off.
 - [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
+- [BASE] A group a map's script sets to guard keeps the guard distance the map gives it, as in the original, instead of always at least eight cells.
 - [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.
 - [ROM2] A Darkness area in a saved game is still there after loading the game: the covered ground stays dark and sight under it stays reduced.
 - [BASE] Hero names and labels in the map editor's windows no longer get a dark rim when the window is scaled; the starter offers a softer picture filter for the window.

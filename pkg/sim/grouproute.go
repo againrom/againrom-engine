@@ -23,17 +23,19 @@ type groupRouteProfile struct {
 	recentBlow bool
 	// endsTargetlessEngage (DIV-4691).
 	endsTargetlessEngage bool
-	// belowFloorAt18: the radius the mode-18 setter with no range argument
-	// writes for a widest sum below MinimalGuardRange (R2-ENGINE-843); zero
-	// raises the sum to MinimalGuardRange.
+	// belowFloorAt18: the radius the mode-18 setter with a zero range
+	// argument writes for a widest sum below MinimalGuardRange
+	// (R2-ENGINE-1253); zero raises the sum to MinimalGuardRange.
 	belowFloorAt18 uint8
 }
 
-// spreadRadius is radiusSpread for a Group at programme byte b: the widest
-// sum, or for a sum below MinimalGuardRange the floor, or belowFloorAt18 at
-// programme 18.
-func (p *groupRouteProfile) spreadRadius(sum, b uint8) uint8 {
+// spreadRadius is radiusSpread at programme b and range n: a nonzero n raises
+// the sum to n (AI-793, R2-ENGINE-1253); else the sum, or below the floor
+// MinimalGuardRange or belowFloorAt18 at programme 18.
+func (p *groupRouteProfile) spreadRadius(sum, b, n uint8) uint8 {
 	switch {
+	case n != 0:
+		return max(sum, n)
 	case sum >= minimalGuardRange:
 		return sum
 	case b == secondGuardRoute && p.belowFloorAt18 != 0:

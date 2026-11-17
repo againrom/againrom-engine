@@ -61,9 +61,10 @@ type groupOrder struct {
 	countsRoam bool
 }
 
-// groupValues are the given words of one write.
+// groupValues are the given words of one write; guardRange is radiusSpread's.
 type groupValues struct {
 	order, active, roam, notice, speed uint8
+	guardRange                         uint8
 	commanded                          cell
 }
 
@@ -75,9 +76,6 @@ var (
 	// rowOrderToCell is a script Swarm, Move or Swarm 2, or Roam: the order
 	// byte and the commanded cell.
 	rowOrderToCell = groupOrder{words: wordOrder | wordCommanded}
-	// rowScriptGuard is a script Guard: the order byte, the notice base and
-	// the working radius beside it (AI-741); no latch or counter store.
-	rowScriptGuard = groupOrder{words: wordOrder | wordNotice | wordRadius, notice: noticeCentroid, radius: radiusNotice}
 	// rowCommandIssue is a command's new Group: order byte, gate, commanded
 	// cell and notice base.
 	rowCommandIssue = groupOrder{words: wordOrder | wordActive | wordCommanded | wordNotice, notice: noticeCentroid}
@@ -89,11 +87,11 @@ var (
 	rowGate = groupOrder{words: wordActive}
 	// rowStanceStand is the constructed Stand Ground of a SelfSlot Group.
 	rowStanceStand = groupOrder{words: wordOrder, programme: true}
-	// rowStanceGuard is the load-time guard setter with no range argument
-	// (AI-450): the members' fine centroid at +0x24 and its cell at +0x28 and
-	// +0x00, their spread at +0x2a..+0x2c, +0x2d = +0x38 = +0x2c by the
-	// radius rule (spreadRadius) and +0x39 zero. An empty Group keeps the
-	// centroid.
+	// rowStanceGuard is the guard setter (AI-450): the members' fine
+	// centroid at +0x24 and its cell at +0x28 and +0x00, their spread at
+	// +0x2a..+0x2c, +0x2d = +0x38 = +0x2c by the radius rule (spreadRadius)
+	// and +0x39 zero. An empty Group keeps the centroid. A script Guard
+	// passes Par1's low byte as range (AI-792, R2-ENGINE-1252).
 	rowStanceGuard = groupOrder{words: wordOrder | wordGeometry | wordPost | wordRadius | wordNotice, programme: true,
 		centroid: fineSubCells, radius: radiusSpread, notice: noticeFromRadius}
 	// rowGuardSetter is that setter at its own programme byte 1, with no
@@ -192,7 +190,7 @@ func setGroupWords(w *World, g *SavedGroup, members []int, o groupOrder, v group
 		case radiusNotice:
 			g.AI[0x2d] = g.AI[0x38]
 		case radiusSpread:
-			g.AI[0x2d] = w.game.groupRoute.spreadRadius(g.AI[0x2c], g.AI[0x20])
+			g.AI[0x2d] = w.game.groupRoute.spreadRadius(g.AI[0x2c], g.AI[0x20], v.guardRange)
 		case radiusLatch:
 			w.latchWords(g)
 		}

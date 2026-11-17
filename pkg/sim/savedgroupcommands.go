@@ -346,11 +346,11 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 		point := cell{x: in.Args[1], y: in.Args[2]}
 		switch order {
 		case 1, 3:
-			row := rowOrder
+			row, v := rowOrder, groupValues{order: uint8(order)}
 			if order == 1 {
-				row = rowScriptGuard
+				row, v.guardRange = rowStanceGuard, uint8(in.Args[1])
 			}
-			setGroupWords(w, g, members, row, groupValues{order: uint8(order)})
+			setGroupWords(w, g, members, row, v)
 			for _, i := range members {
 				w.entities[i].PostX, w.entities[i].PostY = w.entities[i].X, w.entities[i].Y
 				w.syncSavedPost(i)
