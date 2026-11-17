@@ -26,6 +26,12 @@ func (e *MapEditor) keyTestPlay(string) error {
 	if !e.editable() {
 		return nil
 	}
+	if e.unitWindowShown() && e.objectDirty() {
+		e.applyObject()
+		if e.objectDirty() {
+			return fmt.Errorf("%s", e.obj.note)
+		}
+	}
 	e.leave(leaveDrag | leavePick | leavePrompt)
 	if g, ok := e.doc.Edits.(InspectionTestPlayGate); ok && g.TestPlayRefusal() != nil {
 		return e.testPlay()

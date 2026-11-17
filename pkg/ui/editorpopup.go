@@ -417,9 +417,11 @@ func fitGrid(s uiWindow, w, rest, sizedH int, sized bool) *popupGrid {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
+	CentreSize  image.Point
 	ColumnTops  []int
 	ButtonFocus *int
 	Columns     int
+	ColumnWidth int
 	Tabs        []string
 	ActiveTab   int
 	// TabSwitch draws the active tab pressed, a switch's chosen state,
@@ -845,10 +847,7 @@ func popupFlowOf(s uiWindow, body *text.Font, w, pitch int) popupFlow {
 	if s.Card.Subject != nil && !f.cardTop {
 		rowW -= aside + popupPad
 	}
-	if columns > 1 {
-		// layoutPopup's column: its share of the rows' width less the gap.
-		rowW = rowW/columns - popupPad
-	}
+	rowW = popupColumnWidth(s, rowW)
 	base := s.Body.LabelWidth
 	if base <= 0 {
 		base = rowW * 2 / 5
@@ -1016,6 +1015,16 @@ func popupRowsHeight(s uiWindow, flow popupFlow, pitch, shown int) int {
 		heights[column] += flow.rowHeight(s.Body.Rows[i], i, pitch)
 	}
 	return slices.Max(heights)
+}
+
+func popupColumnWidth(s uiWindow, room int) int {
+	if s.Body.Columns > 1 {
+		room = room/s.Body.Columns - popupPad
+	}
+	if s.Body.ColumnWidth > 0 {
+		room = min(room, s.Body.ColumnWidth)
+	}
+	return room
 }
 
 // popupFit is a sized popup's flexible part for outer height h: the list rows,
@@ -1397,9 +1406,12 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		if s.Body.Columns > 1 {
 			column, line := popupRowPosition(s, index)
 			columnW := (contentRight - r.Min.X - popupPad) / s.Body.Columns
-			left, right = left+column*columnW, left+(column+1)*columnW-popupPad
+			left, right = left+column*columnW, left+column*columnW+popupColumnWidth(s, contentRight-left)
 			y = contentY + (line-popupColumnTop(s, column))*pitch + columnExtra[column]
 			columnExtra[column] += flow.rowHeight(row, index, pitch) - pitch
+		}
+		if s.Body.Columns <= 1 {
+			right = left + popupColumnWidth(s, right-left)
 		}
 		rowH := flow.rowHeight(row, index, pitch)
 		extra, over := flow.rowExtra[index], flow.labelOver[index]

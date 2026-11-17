@@ -44,16 +44,17 @@ type uiNode struct {
 // the store gives it, the bounds and room it lies in, the size the user
 // dragged it to and the card a row drag holds.
 type uiPlace struct {
-	At       image.Point
-	Width    int
-	Bounds   image.Rectangle
-	Room     image.Rectangle
-	Slack    bool
-	Short    bool
-	Size     image.Point
-	MinWidth int
-	Fit      bool
-	Drag     *popupRowDrag
+	CentreSize image.Point
+	At         image.Point
+	Width      int
+	Bounds     image.Rectangle
+	Room       image.Rectangle
+	Slack      bool
+	Short      bool
+	Size       image.Point
+	MinWidth   int
+	Fit        bool
+	Drag       *popupRowDrag
 }
 
 // uiTitle is the title row: its words, the (?) mark's help and the close
@@ -74,13 +75,14 @@ type uiTabs struct {
 // column's width, and the body's scroll state (the first row shown and
 // how many rows show at most, and the first row a paged window shows).
 type uiBody struct {
-	Rows       []popupRow
-	Columns    int
-	ColumnTops []int
-	LabelWidth int
-	Top        int
-	MaxRows    int
-	Page       int
+	Rows        []popupRow
+	Columns     int
+	ColumnWidth int
+	ColumnTops  []int
+	LabelWidth  int
+	Top         int
+	MaxRows     int
+	Page        int
 }
 
 // uiCard is the character card: the subject, its font, the column beside
@@ -150,7 +152,7 @@ type uiWindow struct {
 func specTree(s popupSpec) uiNode {
 	root := uiNode{Kind: uiWindowKind, Data: uiPlace{
 		At: s.At, Width: s.Width, Bounds: s.Bounds, Room: s.Room, Slack: s.Slack, Short: s.Short,
-		Size: s.Size, MinWidth: s.MinWidth, Fit: s.Fit, Drag: s.Drag,
+		Size: s.Size, MinWidth: s.MinWidth, Fit: s.Fit, Drag: s.Drag, CentreSize: s.CentreSize,
 	}}
 	add := func(n uiNode) { root.Children = append(root.Children, n) }
 	add(uiNode{Kind: uiTitleKind, Word: s.Title, Data: uiTitle{Help: s.TitleHelp, Close: s.CloseLabel}})
@@ -158,7 +160,7 @@ func specTree(s popupSpec) uiNode {
 		add(uiNode{Kind: uiTabsKind, Data: uiTabs{Captions: s.Tabs, Active: s.ActiveTab, Switch: s.TabSwitch}})
 	}
 	add(uiNode{Kind: uiBodyKind, Data: uiBody{
-		Rows: s.Rows, Columns: s.Columns, ColumnTops: s.ColumnTops, LabelWidth: s.LabelWidth,
+		Rows: s.Rows, Columns: s.Columns, ColumnWidth: s.ColumnWidth, ColumnTops: s.ColumnTops, LabelWidth: s.LabelWidth,
 		Top: s.Top, MaxRows: s.MaxRows, Page: s.Page,
 	}})
 	if s.Card != nil || s.CardFont != nil || s.CardAside != 0 || s.CardScale != 0 || s.CardBelow || s.BandLines != 0 {

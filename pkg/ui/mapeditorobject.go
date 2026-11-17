@@ -222,6 +222,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		shown = e.unitSectionsShown(mode, s.Card)
 		s.Width = e.unitWindowWidth() - 32
 		column := e.unitColumnWidth(*s)
+		s.ColumnWidth = column - 2*popupPad
+		full := min(len(e.unitSectionsShown(unitModes[0], s.Card)), max(1, s.Width/column))
+		s.CentreSize = image.Pt(min(e.popupBounds().Dx(), full*column+widgetSpriteSize+2), e.popupRoom().Dy()-16)
 		s.Columns = min(len(shown), max(1, s.Width/column))
 		if o.band {
 			s.Columns = 1
@@ -407,6 +410,14 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			case section == "doll" && !o.band:
 				pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
 				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdFigure, Lines: max(1, (e.unitFigureSize().Y+pitch-1)/pitch), Column: column}), append(*links, 0)
+			}
+			if section == "doll" {
+				for _, f := range fields {
+					if f.Key == "speaker" && f.Picture != nil {
+						pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+						s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Portrait: f.Picture, Lines: (f.Picture.Bounds().Dy() + pitch - 1) / pitch, Column: column}), append(*links, 0)
+					}
+				}
 			}
 		}
 		if s.Card != nil && o.band {

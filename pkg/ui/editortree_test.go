@@ -78,6 +78,8 @@ func TestEditorTreeLaysOutModWindowsAsTheFlatSpec(t *testing.T) {
 
 func treeMatchesSpec(t *testing.T, name string, s popupSpec, title, body *text.Font) {
 	t.Helper()
+	// The flat reference predates fixed-width columns.
+	s.ColumnWidth = 0
 	got, want := layoutPopup(s, title, body), legacyLayoutPopup(s, title, body)
 	if !s.Bounds.Empty() && want.Rect.Dy() > s.Bounds.Dy() {
 		// A window taller than its bounds gives way; the flat spec ran past.

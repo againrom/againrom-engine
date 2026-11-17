@@ -43,6 +43,7 @@ const (
 // tier never claimed.
 type Sheet struct {
 	Band Band
+	Name string
 	// Mage selects the spell-school labels for the same six stored skill
 	// slots. It is a presentation fact of a person; creatures leave it false.
 	Mage bool
@@ -161,6 +162,9 @@ func PlacedSheets(m *alm.Map, t *Table) map[sim.EntityID]Sheet {
 			s, ok = personSheet(t.humans(), r.Index)
 		}
 		if ok {
+			if r.Arm == ArmNPC {
+				s.Name = placedHeroName(u, t, nil)
+			}
 			out[sim.EntityID(i)] = s
 		}
 	}

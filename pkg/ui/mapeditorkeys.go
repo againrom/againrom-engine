@@ -65,12 +65,13 @@ const (
 // only the help carries. A row with no help lines gives the reason it has none
 // in unlisted.
 type keyRow struct {
-	key      string
-	label    string // the key as the help writes it
-	live     promptLive
-	act      func(e *MapEditor, key string) error
-	help     []helpEntry
-	unlisted string
+	unitTyping bool
+	key        string
+	label      string // the key as the help writes it
+	live       promptLive
+	act        func(e *MapEditor, key string) error
+	help       []helpEntry
+	unlisted   string
 }
 
 const (
@@ -177,7 +178,7 @@ func init() {
 		{key: "variables", act: func(e *MapEditor, _ string) error { e.toggleVariables(); return nil }, unlisted: "Window menu"},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, linePlayers}, {screenPlayers, lineRoster}}},
 		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, lineRoster}}},
-		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},
+		{key: "testplay", label: "F5", unitTyping: true, act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},
 		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys(lineHelp)},
 		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "pages", label: "X", live: promptHears, act: (*MapEditor).keyWorkspace, help: keys(lineMap)},

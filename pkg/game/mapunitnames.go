@@ -193,8 +193,7 @@ func (s *mapInspectionEdits) setUnitName(m *mapedit.Editor, index int, name stri
 	return false, nil
 }
 
-// nameField is the unit window's name: the authored name, or empty with the
-// name the game gives the unit's kind shown in its place.
+// nameField edits the authored name; an empty input shows the game's name.
 func (s *mapInspectionEdits) nameField(index int) ui.InspectionField {
 	x := s.inspector
 	f := ui.InspectionField{Key: unitNameField, Label: x.word("editor.unit.field.name"), Text: true, Inherit: true,

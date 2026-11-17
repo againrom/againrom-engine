@@ -173,7 +173,9 @@ func (e *MapEditor) openCentred(id editorPopupID, s *popupSpec) image.Point {
 	probe := *s
 	probe.At = top
 	l := layoutPopup(probe, e.font, e.bodyFont())
-	middle := e.centreCorner(l.Rect.Size(), openPlace{})
+	size := l.Rect.Size()
+	size.X, size.Y = max(size.X, s.CentreSize.X), max(size.Y, s.CentreSize.Y)
+	middle := e.centreCorner(size, openPlace{})
 	s.At = middle
 	if !p.open {
 		p.open, p.offset = true, row != popList && e.listStands()
@@ -508,7 +510,7 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 // placePopup keeps popup id's corner at at, as far as the bounds allow.
 func (e *MapEditor) placePopup(id editorPopupID, at image.Point) {
 	row := e.storeRow(id)
-	e.places[row].at = at
+	e.places[row].at, e.places[row].placed = at, true
 	s, ok := e.movableSpec(id)
 	if !ok {
 		return

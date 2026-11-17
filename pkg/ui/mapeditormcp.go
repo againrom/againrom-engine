@@ -314,6 +314,9 @@ func (e *MapEditor) keyRowHeard(row *keyRow) bool {
 	if e.pathDialog.pending != nil {
 		return false
 	}
+	if !e.prompt.open() && e.objectTyping() && e.unitWindowShown() && row.unitTyping {
+		return true
+	}
 	if e.prompt.open() || e.objectTyping() {
 		return row.live == promptHears || row.live == promptFields && (e.prompt.fields() || e.objectTyping() || e.prompt.kind == promptAreaTrigger)
 	}

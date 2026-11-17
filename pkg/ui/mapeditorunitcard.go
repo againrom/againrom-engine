@@ -54,6 +54,9 @@ func (e *MapEditor) unitSectionsShown(m unitMode, card *PanelSubject) []string {
 	var out []string
 	for _, section := range unitColumns {
 		has := section == "identity" || section == "doll" && unitDoll(card)
+		if section == "doll" {
+			has = has || slices.ContainsFunc(e.obj.unit.fields, func(f InspectionField) bool { return f.Key == "speaker" && f.Picture != nil })
+		}
 		has = has || slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool {
 			return f.Section == section && !hiddenField(r, f) && !m.leaves(f)
 		})

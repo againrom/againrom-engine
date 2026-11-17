@@ -77,6 +77,7 @@ func characterBand(b mapload.Band) ui.CharacterBand {
 // be trusted, exactly as it does on the Sheet this was copied from.
 func sheetCharacter(s mapload.Sheet) ui.UnitCharacter {
 	c := ui.UnitCharacter{
+		Name:  s.Name,
 		Known: true,
 		Band:  characterBand(s.Band),
 		Mage:  s.Mage,

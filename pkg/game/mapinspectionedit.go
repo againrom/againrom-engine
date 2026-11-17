@@ -425,6 +425,9 @@ func unitSections(out []ui.InspectionField) []ui.InspectionField {
 		if f.Key == "face" || f.Key == "sex" || f.Key == unitNameField {
 			f.Section = "identity"
 		}
+		if f.Key == "speaker" {
+			f.Section = "doll"
+		}
 		if f.Key == "gear" {
 			f.Section = "equipment"
 		}
