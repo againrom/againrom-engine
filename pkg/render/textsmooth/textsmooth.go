@@ -4,8 +4,8 @@
 //
 // The default method is Crisp: each window pixel takes the area its square
 // overlaps of the glyph's native cells, so a cell is a solid block and only a
-// cell edge inside a window pixel blends. Bicubic (the map editor) uses a
-// Mitchell-Netravali kernel (B=C=1/3). The .16a class uses its encoded alpha
+// cell edge inside a window pixel blends, in the game and the map editor
+// alike. The .16a class uses its encoded alpha
 // ramp; .16 shades remain opaque. Compositing uses the destination's colour
 // space, matching the live GPU blend rather than linear light (DIV-1386).
 package textsmooth
@@ -19,48 +19,7 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// Method picks how native cells become window pixels; the zero value is Crisp.
-type Method uint8
-
-const (
-	// Crisp is box coverage: solid blocks, no ringing.
-	Crisp Method = iota
-	// Bicubic is the Mitchell-Netravali resample.
-	Bicubic
-)
-
-func (m Method) resize(src []float64, srcW, srcH, dstW, dstH int) []float64 {
-	if m == Bicubic {
-		return Resize(src, srcW, srcH, dstW, dstH)
-	}
-	return boxResize(src, srcW, srcH, dstW, dstH)
-}
-
-// mitchellB, mitchellC parameterize the Mitchell-Netravali kernel.
-const (
-	mitchellB = 1.0 / 3.0
-	mitchellC = 1.0 / 3.0
-)
-
-// kernel is the Mitchell-Netravali cubic convolution filter, zero outside
-// [-2, 2].
-func kernel(x float64) float64 {
-	if x < 0 {
-		x = -x
-	}
-	b, c := mitchellB, mitchellC
-	switch {
-	case x < 1:
-		return ((12-9*b-6*c)*x*x*x + (-18+12*b+6*c)*x*x + (6 - 2*b)) / 6
-	case x < 2:
-		return ((-b-6*c)*x*x*x + (6*b+30*c)*x*x + (-12*b-48*c)*x + (8*b + 24*c)) / 6
-	default:
-		return 0
-	}
-}
-
-// Remap clamps one resized coverage value to a legal coverage: the bicubic
-// kernel's negative lobes can overshoot either end.
+// Remap clamps one resized coverage value to a legal coverage.
 func Remap(v float64) float64 {
 	if v < 0 {
 		return 0
@@ -115,86 +74,6 @@ func shadeFields(g *text.Glyph, c color.RGBA, flat bool, tint color.RGBA) [3][]f
 			cov = float64(min(p.Level, text.MaxLevel)+1) / (text.MaxLevel + 1)
 		}
 		out[0][i], out[1][i], out[2][i] = float64(s.R)*cov, float64(s.G)*cov, float64(s.B)*cov
-	}
-	return out
-}
-
-// tap is one resampled output position: up to four source indices and the
-// (already normalised) weight the kernel gives each.
-type tap struct {
-	idx [4]int
-	w   [4]float64
-}
-
-// taps builds one 1D resampling plan per output position, srcN -> dstN, with
-// every source sample clamped to [0, srcN) — the glyph's own cell has no
-// more data past its edge, so a kernel radius that reaches past it repeats
-// the edge sample rather than reading black or reading another glyph.
-// Weights are normalised so a resize of a constant field reproduces that
-// same constant exactly, including at a clamped edge.
-func taps(srcN, dstN int) []tap {
-	out := make([]tap, dstN)
-	if srcN <= 0 || dstN <= 0 {
-		return out
-	}
-	scale := float64(srcN) / float64(dstN)
-	for d := 0; d < dstN; d++ {
-		center := (float64(d)+0.5)*scale - 0.5
-		base := int(math.Floor(center)) - 1
-		var t tap
-		sum := 0.0
-		for k := 0; k < 4; k++ {
-			s := base + k
-			w := kernel(center - float64(s))
-			if s < 0 {
-				s = 0
-			}
-			if s >= srcN {
-				s = srcN - 1
-			}
-			t.idx[k] = s
-			t.w[k] = w
-			sum += w
-		}
-		if sum != 0 {
-			for k := range t.w {
-				t.w[k] /= sum
-			}
-		}
-		out[d] = t
-	}
-	return out
-}
-
-// Resize resamples src (srcW x srcH, row-major) to dstW x dstH with the
-// Mitchell-Netravali kernel above, separably: a horizontal pass then a
-// vertical one. It answers nil for a non-positive size on either side, or a
-// source shorter than srcW*srcH.
-func Resize(src []float64, srcW, srcH, dstW, dstH int) []float64 {
-	if srcW <= 0 || srcH <= 0 || dstW <= 0 || dstH <= 0 || len(src) < srcW*srcH {
-		return nil
-	}
-	xTaps := taps(srcW, dstW)
-	yTaps := taps(srcH, dstH)
-
-	mid := make([]float64, dstW*srcH)
-	for y := 0; y < srcH; y++ {
-		row := src[y*srcW : y*srcW+srcW]
-		for x := 0; x < dstW; x++ {
-			t := xTaps[x]
-			v := row[t.idx[0]]*t.w[0] + row[t.idx[1]]*t.w[1] + row[t.idx[2]]*t.w[2] + row[t.idx[3]]*t.w[3]
-			mid[y*dstW+x] = v
-		}
-	}
-
-	out := make([]float64, dstW*dstH)
-	for x := 0; x < dstW; x++ {
-		for y := 0; y < dstH; y++ {
-			t := yTaps[y]
-			v := mid[t.idx[0]*dstW+x]*t.w[0] + mid[t.idx[1]*dstW+x]*t.w[1] +
-				mid[t.idx[2]*dstW+x]*t.w[2] + mid[t.idx[3]*dstW+x]*t.w[3]
-			out[y*dstW+x] = v
-		}
 	}
 	return out
 }
@@ -269,15 +148,14 @@ func TargetRect(nativeX, nativeY, nativeW, nativeH int, scale, originX, originY 
 // the transform the art was placed with. dst is a cleared overlay buffer or
 // holds earlier glyphs of the same frame.
 func Composite(dst *image.RGBA, calls []text.DrawCall, scale, originX, originY float64) {
-	composite(dst, calls, scale, originX, originY, nil, Crisp)
+	composite(dst, calls, scale, originX, originY, nil)
 }
 
 // Cache keeps each glyph's resampled output across frames; the resample is a
-// pure function of glyph, colour, tint, size and method. The zero value is
+// pure function of glyph, colour, tint, and size. The zero value is
 // ready to use.
 type Cache struct {
-	Method Method
-	plans  map[planKey][]planDot
+	plans map[planKey][]planDot
 }
 
 // cacheLimit bounds the plans a Cache holds; past it the cache starts over
@@ -290,7 +168,6 @@ type planKey struct {
 	flat bool
 	tint color.RGBA
 	w, h int
-	m    Method
 }
 
 // planDot is one output pixel a glyph's resample paints, at its offset
@@ -308,10 +185,10 @@ func (c *Cache) Composite(dst *image.RGBA, calls []text.DrawCall, scale, originX
 	if c.plans == nil || len(c.plans) > cacheLimit {
 		c.plans = make(map[planKey][]planDot)
 	}
-	return composite(dst, calls, scale, originX, originY, c.plans, c.Method)
+	return composite(dst, calls, scale, originX, originY, c.plans)
 }
 
-func composite(dst *image.RGBA, calls []text.DrawCall, scale, originX, originY float64, plans map[planKey][]planDot, m Method) image.Rectangle {
+func composite(dst *image.RGBA, calls []text.DrawCall, scale, originX, originY float64, plans map[planKey][]planDot) image.Rectangle {
 	var dirty image.Rectangle
 	if dst == nil {
 		return dirty
@@ -332,12 +209,12 @@ func composite(dst *image.RGBA, calls []text.DrawCall, scale, originX, originY f
 		if !call.Clip.Empty() {
 			limit = rect.Intersect(TargetRect(call.Clip.Min.X, call.Clip.Min.Y, call.Clip.Dx(), call.Clip.Dy(), scale, originX, originY))
 		}
-		key := planKey{g, call.Color, call.Flat, call.Tint, dw, dh, m}
+		key := planKey{g, call.Color, call.Flat, call.Tint, dw, dh}
 		plan, ok := plans[key]
 		if len(call.RasterColors) > 0 {
-			plan = rasterPlan(call, dw, dh, m)
+			plan = rasterPlan(call, dw, dh)
 		} else if !ok {
-			plan = resamplePlan(g, call.Color, call.Flat, call.Tint, dw, dh, m)
+			plan = resamplePlan(g, call.Color, call.Flat, call.Tint, dw, dh)
 			if plans != nil {
 				plans[key] = plan
 			}
@@ -369,16 +246,16 @@ func sourceCell(g *text.Glyph, col, row, dw, dh int) int {
 
 // resamplePlan is one glyph's resample at dw x dh: every output pixel it
 // paints, in the row-major order Composite blends them.
-func resamplePlan(g *text.Glyph, c color.RGBA, flat bool, tint color.RGBA, dw, dh int, m Method) []planDot {
-	resized := m.resize(coverage(g, flat), g.Width, g.Height, dw, dh)
+func resamplePlan(g *text.Glyph, c color.RGBA, flat bool, tint color.RGBA, dw, dh int) []planDot {
+	resized := boxResize(coverage(g, flat), g.Width, g.Height, dw, dh)
 	if resized == nil {
 		return nil
 	}
 	fields := shadeFields(g, c, flat, tint)
-	return resampleFields(g, c, dw, dh, resized, fields, m)
+	return resampleFields(g, c, dw, dh, resized, fields)
 }
 
-func rasterPlan(call text.DrawCall, dw, dh int, m Method) []planDot {
+func rasterPlan(call text.DrawCall, dw, dh int) []planDot {
 	g := call.Glyph
 	fields := shadeFields(g, call.Color, true, call.Tint)
 	for n, p := range g.Pixels {
@@ -387,13 +264,13 @@ func rasterPlan(call text.DrawCall, dw, dh int, m Method) []planDot {
 			fields[0][n], fields[1][n], fields[2][n] = float64(c.R), float64(c.G), float64(c.B)
 		}
 	}
-	return resampleFields(g, color.RGBA{A: 255}, dw, dh, m.resize(coverage(g, true), g.Width, g.Height, dw, dh), fields, m)
+	return resampleFields(g, color.RGBA{A: 255}, dw, dh, boxResize(coverage(g, true), g.Width, g.Height, dw, dh), fields)
 }
 
-func resampleFields(g *text.Glyph, c color.RGBA, dw, dh int, resized []float64, fields [3][]float64, m Method) []planDot {
+func resampleFields(g *text.Glyph, c color.RGBA, dw, dh int, resized []float64, fields [3][]float64) []planDot {
 	var shade [3][]float64
 	for k := range fields {
-		shade[k] = m.resize(fields[k], g.Width, g.Height, dw, dh)
+		shade[k] = boxResize(fields[k], g.Width, g.Height, dw, dh)
 	}
 	alphaScale := float64(c.A) / 255
 	if alphaScale <= 0 {

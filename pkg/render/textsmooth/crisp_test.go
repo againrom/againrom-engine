@@ -3,11 +3,8 @@ package textsmooth
 import (
 	"image"
 	"image/color"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"againrom/internal/witness"
 	"againrom/pkg/render/text"
 )
 
@@ -81,40 +78,6 @@ func TestCrispGlyphAtHalfScaleKeepsWholeCellsAndBoundsAlpha(t *testing.T) {
 			if a := int(p.A); a < lo-1 || a > hi+1 {
 				t.Fatalf("pixel %d,%d alpha %d outside the overlapped cells' range %d..%d", x, y, a, lo, hi)
 			}
-		}
-	}
-}
-
-// TestWriteTextCrops writes before (Bicubic) and after (Crisp) crops to AGAINROM_CROP_DIR.
-func TestWriteTextCrops(t *testing.T) {
-	dir := os.Getenv("AGAINROM_CROP_DIR")
-	if dir == "" {
-		t.Skip("AGAINROM_CROP_DIR not set")
-	}
-	g := crispGlyph()
-	for _, sc := range []struct {
-		name  string
-		scale float64
-	}{{"2", 2}, {"1.5", 1.5}} {
-		for _, m := range []struct {
-			name   string
-			method Method
-		}{{"before", Bicubic}, {"after", Crisp}} {
-			const n = 6
-			w, h := int(float64(5*n)*sc.scale)+4, int(5*sc.scale)+4
-			dst := image.NewRGBA(image.Rect(0, 0, w, h))
-			for i := range dst.Pix {
-				dst.Pix[i] = 30
-				if i%4 == 3 {
-					dst.Pix[i] = 255
-				}
-			}
-			calls := make([]text.DrawCall, n)
-			for i := range calls {
-				calls[i] = text.DrawCall{Glyph: g, X: i * 5, Color: color.RGBA{230, 200, 120, 255}}
-			}
-			composite(dst, calls, sc.scale, 2, 2, nil, m.method)
-			witness.PNG(t, filepath.Join(dir, "crop-"+m.name+"-scale"+sc.name+".png"), dst)
 		}
 	}
 }

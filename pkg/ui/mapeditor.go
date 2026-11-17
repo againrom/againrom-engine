@@ -14,7 +14,6 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textfit"
-	"againrom/pkg/render/textsmooth"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -296,7 +295,6 @@ type MapEditor struct {
 func NewMapEditor(font *text.Font, maps []EditorMap, open InspectionOpener) *MapEditor {
 	e := &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true,
 		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1, pickField: -1}}}
-	e.textOverlay.cache.Method = textsmooth.Bicubic
 	return e
 }
 
