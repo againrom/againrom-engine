@@ -82,10 +82,10 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 	baseZoom := v.Camera().Zoom
 	baseViewport := v.ViewportSize()
 	v.Layout(1920, 1080)
-	if got, want := v.FrameSize(), image.Pt(1366, 768); got != want {
+	if got, want := v.FrameSize(), image.Pt(1280, 720); got != want {
 		t.Fatalf("wide mission frame = %v, want %v", got, want)
 	}
-	if got, want := v.ViewportSize(), image.Pt(1206, 768); got != want {
+	if got, want := v.ViewportSize(), image.Pt(1120, 720); got != want {
 		t.Fatalf("wide mission viewport = %v, want %v", got, want)
 	}
 	if baseViewport != image.Pt(864, 768) || v.Camera().Zoom != baseZoom {

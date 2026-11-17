@@ -55,8 +55,8 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 		f := releaseFront(t)
 		app, _ := openOriginalSAVAppAt(t, f, raw, "game0018.sav", messageWitnessW, messageWitnessH)
 		live := f.live
-		if size := live.view.FrameSize(); size != image.Pt(1024, 768) {
-			t.Fatalf("the mission frame is %v at a %dx%d window, want the fixed 1024x768", size, messageWitnessW, messageWitnessH)
+		if size := live.view.FrameSize(); size != image.Pt(1024, 720) {
+			t.Fatalf("the mission frame is %v at a %dx%d window, want 1024x720 (a window below 768 rows)", size, messageWitnessW, messageWitnessH)
 		}
 		return f, app, live, live.mission.ids[0]
 	}
