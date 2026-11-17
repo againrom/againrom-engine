@@ -198,13 +198,13 @@ func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
-	if rule.secondArm().powerDuration {
-		// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
-		// application and in the spell record alike.
-		return uint16(min(int64(power)<<4, durationTickCeiling))
-	}
 	f, ok := r.SpellFormulaAt(rules.FormulaDuration, rule.ID, power)
-	if !ok {
+	if !ok || rule.secondArm().drawnDuration {
+		if rule.secondArm().powerDuration {
+			// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
+			// application and in the spell record alike.
+			return uint16(min(int64(power)<<4, durationTickCeiling))
+		}
 		return spellLastingTicks(rule, power)
 	}
 	base := int64(rule.SpellDuration)
@@ -217,11 +217,21 @@ func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
 	return uint16(min(base*16*int64(f)/1000, durationTickCeiling))
 }
 
+// lastingRule reports a row whose point effect lasts its power-scaled
+// duration: a lasting arm, or the second game's lasting area row.
+func lastingRule(rule SpellRule) bool {
+	return spellArmOf(rule.arm()).lastingDuration || rule.Second && areaRow(rule.arm()).secondLasting
+}
+
+// DurationTableRule reports a row whose cast reads the duration_factor
+// table. The second game's Stone Curse draws its duration up to a ceiling
+// of power instead (R2-ENGINE-025), so the table does not reach it.
+func DurationTableRule(rule SpellRule) bool {
+	return lastingRule(rule) && !rule.secondArm().drawnDuration
+}
+
 func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
-	if spellArmOf(rule.arm()).lastingDuration {
-		return spellLastingTicksUnder(r, rule, power)
-	}
-	if rule.Second && areaRow(rule.arm()).secondLasting {
+	if lastingRule(rule) {
 		return spellLastingTicksUnder(r, rule, power)
 	}
 	if rule.Area && areaRow(rule.arm()).heldToNextPulse {

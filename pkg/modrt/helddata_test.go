@@ -83,8 +83,8 @@ func TestExplicitAddConfirmsHeldFileOnce(t *testing.T) {
 
 func TestFixtureDataWithoutScriptsAndOriginalDigests(t *testing.T) {
 	ids := fixtureMods(t)
-	if len(ids) != 19 {
-		t.Fatalf("%d fixtures, want 19", len(ids))
+	if len(ids) != 20 {
+		t.Fatalf("%d fixtures, want 20", len(ids))
 	}
 	for _, id := range ids {
 		t.Run(id, func(t *testing.T) {
@@ -145,7 +145,12 @@ func TestFixtureDataWithoutScriptsAndOriginalDigests(t *testing.T) {
 				t.Fatal(entry.Err)
 			}
 			if _, err := os.Stat(filepath.Join(dir, mod.EntryName)); err != nil {
-				for _, base := range []string{"rom1-en", "rom1-ru"} {
+				game := func(g string) func(string) bool { return func(s string) bool { return strings.HasPrefix(s, g) } }
+				bases := []string{"rom1-en", "rom1-ru"}
+				if a := entry.Manifest.AppliesTo; !slices.ContainsFunc(a, game("rom1")) && slices.ContainsFunc(a, game("rom2")) {
+					bases = []string{"rom2-en", "rom2-ru"}
+				}
+				for _, base := range bases {
 					if _, err := Load([]mod.Entry{entry}, base, nil, Options{}); err != nil {
 						t.Fatalf("%s: a mod without a script: %v", base, err)
 					}

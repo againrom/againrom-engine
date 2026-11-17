@@ -78,20 +78,32 @@ func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 	if r.Rays.Set && !sim.SpellArmFiresRays(uint16(i+1)) {
 		return r.Rays.Line, fmt.Sprintf("%s does not fire rays, so rays does not apply to it", sp.Name)
 	}
-	return modSpellFormulaRefusal(sp, i+1, r)
+	return modSpellFormulaRefusal(sp, modSpellRule(t, i+1), r)
 }
 
-func modSpellFormulaRefusal(sp data.Spell, id int, r mod.SpellRow) (int, string) {
+// modSpellRule is spell number id as t's game runs it: its arm and format.
+func modSpellRule(t *Table, id int) sim.SpellRule {
+	rows := []sim.SpellRule{{ID: uint16(id)}}
+	if t.SpellArms != nil {
+		t.SpellArms(rows)
+	}
+	return rows[0]
+}
+
+func modSpellFormulaRefusal(sp data.Spell, rule sim.SpellRule, r mod.SpellRow) (int, string) {
 	if t := r.DamageFactor; t.Set && sp.DamageMin <= 0 && sp.DamageMax <= 0 {
 		return t.Line, fmt.Sprintf("%s has no damage or healing pair, so damage_factor does not apply to it", sp.Name)
 	}
 	if t := r.RangeBonus; t.Set && sp.MaxRange == 0 && (!r.Range.Set || r.Range.Val == 0) {
 		return t.Line, fmt.Sprintf("%s has range 0, so range_bonus does not apply to it", sp.Name)
 	}
-	if t := r.DurationFactor; t.Set && !sim.DurationArm(uint16(id)) {
+	if t := r.DurationFactor; t.Set && !sim.DurationTableRule(rule) {
+		if sim.DurationArm(rule.ArmID()) {
+			return t.Line, fmt.Sprintf("%s draws its duration from 0 up to a ceiling of power in this game, so duration_factor does not apply to it", sp.Name)
+		}
 		return t.Line, fmt.Sprintf("%s has no power-scaled duration, so duration_factor does not apply to it", sp.Name)
 	}
-	if t := r.Magnitude; t.Set && !sim.MagnitudeArm(uint16(id)) {
+	if t := r.Magnitude; t.Set && !sim.MagnitudeArm(rule.ArmID()) {
 		return t.Line, fmt.Sprintf("%s has no power-scaled magnitude, so magnitude does not apply to it", sp.Name)
 	}
 	return 0, ""
@@ -119,7 +131,7 @@ func SpellFormulas(t *Table, d mod.SpellData) (rules.SpellFormulaSet, error) {
 	}
 	for _, r := range d.Rows {
 		i := modSpellIndex(spells, r.Target)
-		if i < 0 || i+1 > rules.SpellIDs {
+		if i < 0 || i+1 > rules.SpellFormulaIDs {
 			continue
 		}
 		for f, tab := range r.Formulas() {

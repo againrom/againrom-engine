@@ -86,8 +86,8 @@ func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 			}
 		}
 	}
-	if len(ids) != 19 {
-		t.Fatalf("%d fixture mods, want 19", len(ids))
+	if len(ids) != 20 {
+		t.Fatalf("%d fixture mods, want 20", len(ids))
 	}
 	sets := [][]string{}
 	for _, id := range ids {
@@ -123,7 +123,7 @@ func TestModLinesKeepTheirBytesOnTheFixtures(t *testing.T) {
 			}
 		}
 	}
-	if want := []string{"rom1-en east-town", "rom1-ru east-town"}; !slices.Equal(refused, want) {
+	if want := []string{"rom1-en east-town", "rom1-en second-spell-tables", "rom1-ru east-town", "rom1-ru second-spell-tables"}; !slices.Equal(refused, want) {
 		t.Fatalf("refused %q, want %q", refused, want)
 	}
 }

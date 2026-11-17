@@ -30,6 +30,28 @@ func TestSpellFormulasAreAbsentByDefault(t *testing.T) {
 	}
 }
 
+func TestTheFormulaSetHoldsEveryNumberOfEitherGame(t *testing.T) {
+	if SpellFormulaIDs != len(SpellProfile(SpellGameSecond)) || SpellFormulaIDs < len(SpellProfile(SpellGameFirst)) {
+		t.Fatalf("SpellFormulaIDs %d", SpellFormulaIDs)
+	}
+	var s SpellFormulaSet
+	s.Global[FormulaDuration] = []int32{500}
+	s.Spell[FormulaMagnitude][SpellFormulaIDs] = []int32{-9}
+	r, err := Default().WithSpellFormulas(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v, ok := r.SpellFormulaAt(FormulaMagnitude, uint16(SpellFormulaIDs), 3); !ok || v != -9 {
+		t.Errorf("the last number's own table reads %d %v", v, ok)
+	}
+	if v, ok := r.SpellFormulaAt(FormulaDuration, uint16(SpellFormulaIDs), 3); !ok || v != 500 {
+		t.Errorf("the global table reaches the last number as %d %v", v, ok)
+	}
+	if _, ok := r.SpellFormulaAt(FormulaDuration, uint16(SpellFormulaIDs)+1, 3); ok {
+		t.Error("a number past every profile reads a table")
+	}
+}
+
 func TestASpellTableWinsOverTheGlobalOneAndReadsClamped(t *testing.T) {
 	var s SpellFormulaSet
 	s.Global[FormulaDamage] = []int32{30, 60, 90}
@@ -48,7 +70,7 @@ func TestASpellTableWinsOverTheGlobalOneAndReadsClamped(t *testing.T) {
 		want  int32
 		ok    bool
 	}{{1, 0, 30, true}, {1, 1, 60, true}, {1, 2, 90, true}, {1, 255, 90, true}, {1, -4, 30, true},
-		{4, 100, 5, true}, {28, 1, 60, true}, {0, 0, 0, false}, {29, 0, 0, false}} {
+		{4, 100, 5, true}, {29, 1, 60, true}, {0, 0, 0, false}, {30, 0, 0, false}} {
 		if got, ok := r.SpellFormulaAt(FormulaDamage, c.id, c.index); got != c.want || ok != c.ok {
 			t.Errorf("damage of %d at %d: %d %v, want %d %v", c.id, c.index, got, ok, c.want, c.ok)
 		}

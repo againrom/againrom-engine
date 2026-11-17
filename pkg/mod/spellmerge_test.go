@@ -42,6 +42,30 @@ func TestModsDocSpellNamesAreTheCatalog(t *testing.T) {
 	}
 }
 
+func TestModsDocStatesEachFormulaKeyWithItsLimitsAndRefusal(t *testing.T) {
+	doc, err := os.ReadFile(filepath.Join("..", "..", "docs", "MODS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, section, ok := strings.Cut(string(doc), "\n## Spell formula tables\n")
+	if !ok {
+		t.Fatal("docs/MODS.md has no Spell formula tables section")
+	}
+	section, _, _ = strings.Cut(section, "\n## ")
+	section = strings.Join(strings.Fields(section), " ")
+	for f := rules.FormulaPower; f <= rules.FormulaMagnitude; f++ {
+		lo, hi, entries := rules.FormulaBounds(f)
+		_, row, _ := strings.Cut(section, fmt.Sprintf("| `%s` |", f))
+		row, _, _ = strings.Cut(row, " | `")
+		if want := fmt.Sprintf("| 1..%d | %d..%d |", entries, lo, hi); !strings.Contains(row, want) {
+			t.Errorf("%s row %q lacks %q", f, row, want)
+		}
+		if refusal := fmt.Sprintf("so %s does not apply to it", f); f != rules.FormulaPower && !strings.Contains(section, refusal) {
+			t.Errorf("the section lacks the refusal %q", refusal)
+		}
+	}
+}
+
 func TestMergeSpellsKeysRowsByTheCatalogName(t *testing.T) {
 	parse := func(id, src string) SpellData {
 		d, err := ParseSpells(id, SpellsFile, []byte(src), nil)

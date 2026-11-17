@@ -1,0 +1,7 @@
+id          = "second-spell-tables"
+title       = "Second-game spell tables"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Ice Missile's damage and Invisibility's duration follow tables of power."
+api         = 1
+applies-to  = ["rom2-en", "rom2-ru"]

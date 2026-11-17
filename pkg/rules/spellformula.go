@@ -42,9 +42,13 @@ func FormulaBounds(f SpellFormula) (lo, hi int32, entries int) {
 	return -32768, 32767, MaxFormulaEntries
 }
 
+// SpellFormulaIDs is the most spell numbers a game's profile holds. A table
+// is kept under the number its own game gives the spell.
+const SpellFormulaIDs = max(len(firstGameSpells), len(secondGameSpells))
+
 type SpellFormulaSet struct {
 	Global [spellFormulas][]int32
-	Spell  [spellFormulas][SpellIDs + 1][]int32
+	Spell  [spellFormulas][SpellFormulaIDs + 1][]int32
 }
 
 func (s SpellFormulaSet) Empty() bool {
@@ -61,7 +65,7 @@ func (s SpellFormulaSet) Empty() bool {
 	return true
 }
 
-type spellTables [spellFormulas][SpellIDs + 1][]int32
+type spellTables [spellFormulas][SpellFormulaIDs + 1][]int32
 
 func (r Rules) WithSpellFormulas(s SpellFormulaSet) (Rules, error) {
 	if s.Empty() {
@@ -73,7 +77,7 @@ func (r Rules) WithSpellFormulas(s SpellFormulaSet) (Rules, error) {
 	}
 	var out spellTables
 	for k := SpellFormula(0); k < spellFormulas; k++ {
-		for id := 1; id <= SpellIDs; id++ {
+		for id := 1; id <= SpellFormulaIDs; id++ {
 			t := s.Spell[k][id]
 			if t == nil {
 				t = s.Global[k]
@@ -107,7 +111,7 @@ func checkFormula(k SpellFormula, t []int32) error {
 func (r Rules) HasSpellFormulas() bool { return r.spell != nil }
 
 func (r Rules) SpellFormulaTable(k SpellFormula, id uint16) []int32 {
-	if r.spell == nil || id < 1 || int(id) > SpellIDs || k >= spellFormulas {
+	if r.spell == nil || id < 1 || int(id) > SpellFormulaIDs || k >= spellFormulas {
 		return nil
 	}
 	return r.spell[k][id]

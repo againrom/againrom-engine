@@ -1,0 +1,12 @@
+# Entry n is read at power n; a power past the last entry reads the last.
+# Ice Missile's damage is its pair times the entry in thirtieths: once at
+# power 0, one and a half times at power 1, three times from power 2 on.
+[[spell]]
+target        = "Ice_Missile"
+damage_factor = [30, 45, 90]
+
+# Invisibility lasts 3 * 16 * entry / 1000 ticks: 48 at power 0, 96 at
+# power 1, 240 from power 2 on.
+[[spell]]
+target          = "Invisibility"
+duration_factor = [1000, 2000, 5000]

@@ -1,0 +1,580 @@
+spell 1 arm 1 power 0: 0
+spell 1 arm 1 power 31: 1
+spell 1 arm 1 power 60: 30
+spell 1 arm 1 power 130: 100
+spell 1 arm 1 power 200: 170
+spell 1 arm 1 power 285: 255
+spell 1 arm 1 power 400: 255
+spell 1 arm 1 power 510: 255
+spell 1 arm 1 at 0: damage 2-4 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 2
+spell 1 arm 1 at 1: damage 2-4 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 2
+spell 1 arm 1 at 2: damage 2-4 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 2
+spell 1 arm 1 at 29: damage 3-7 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 3
+spell 1 arm 1 at 30: damage 4-8 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 3
+spell 1 arm 1 at 45: damage 5-10 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 4
+spell 1 arm 1 at 99: damage 8-17 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 6
+spell 1 arm 1 at 100: damage 8-17 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 7
+spell 1 arm 1 at 101: damage 8-17 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 7
+spell 1 arm 1 at 170: damage 13-26 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 7
+spell 1 arm 1 at 200: damage 15-30 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 7
+spell 1 arm 1 at 255: damage 19-38 range 0/0 duration 8/0/1 effect 0 -3 8 1 rays 7
+spell 2 arm 2 power 0: 0
+spell 2 arm 2 power 31: 1
+spell 2 arm 2 power 60: 30
+spell 2 arm 2 power 130: 100
+spell 2 arm 2 power 200: 170
+spell 2 arm 2 power 285: 255
+spell 2 arm 2 power 400: 255
+spell 2 arm 2 power 510: 255
+spell 2 arm 2 at 0: damage 3-6 range 3/3 duration 9/16/33 effect 1 -2 9 1 rays 2
+spell 2 arm 2 at 1: damage 3-6 range 3/3 duration 9/16/34 effect 1 -2 9 1 rays 2
+spell 2 arm 2 at 2: damage 3-6 range 3/3 duration 9/16/36 effect 1 -2 9 1 rays 2
+spell 2 arm 2 at 29: damage 5-11 range 3/3 duration 9/32/79 effect 1 -2 9 1 rays 3
+spell 2 arm 2 at 30: damage 6-12 range 4/4 duration 9/33/81 effect 1 -2 9 1 rays 3
+spell 2 arm 2 at 45: damage 7-15 range 4/4 duration 9/48/105 effect 1 -2 9 1 rays 4
+spell 2 arm 2 at 99: damage 12-25 range 6/6 duration 9/184/191 effect 1 -2 9 1 rays 6
+spell 2 arm 2 at 100: damage 13-26 range 6/6 duration 9/189/193 effect 1 -2 9 1 rays 7
+spell 2 arm 2 at 101: damage 13-26 range 6/6 duration 9/193/194 effect 1 -2 9 1 rays 7
+spell 2 arm 2 at 170: damage 20-40 range 8/8 duration 9/1064/305 effect 1 -2 9 1 rays 7
+spell 2 arm 2 at 200: damage 23-46 range 9/9 duration 9/2233/353 effect 1 -2 9 1 rays 7
+spell 2 arm 2 at 255: damage 28-57 range 11/11 duration 9/8683/441 effect 1 -2 9 1 rays 7
+spell 3 arm 3 power 0: 0
+spell 3 arm 3 power 31: 1
+spell 3 arm 3 power 60: 30
+spell 3 arm 3 power 130: 100
+spell 3 arm 3 power 200: 170
+spell 3 arm 3 power 285: 255
+spell 3 arm 3 power 400: 255
+spell 3 arm 3 power 510: 255
+spell 3 arm 3 at 0: damage 4-8 range 6/6 duration 10/32/65 effect 2 -1 10 1 rays 2
+spell 3 arm 3 at 1: damage 4-8 range 6/6 duration 10/32/66 effect 2 -1 10 1 rays 2
+spell 3 arm 3 at 2: damage 4-8 range 6/6 duration 10/33/68 effect 2 -1 10 1 rays 2
+spell 3 arm 3 at 29: damage 7-15 range 6/6 duration 10/65/111 effect 2 -1 10 1 rays 3
+spell 3 arm 3 at 30: damage 8-16 range 7/7 duration 10/67/113 effect 2 -1 10 1 rays 3
+spell 3 arm 3 at 45: damage 10-20 range 7/7 duration 10/97/137 effect 2 -1 10 1 rays 4
+spell 3 arm 3 at 99: damage 17-34 range 9/9 duration 10/368/223 effect 2 -1 10 1 rays 6
+spell 3 arm 3 at 100: damage 17-34 range 9/9 duration 10/378/225 effect 2 -1 10 1 rays 7
+spell 3 arm 3 at 101: damage 17-34 range 9/9 duration 10/387/226 effect 2 -1 10 1 rays 7
+spell 3 arm 3 at 170: damage 26-53 range 11/11 duration 10/2129/337 effect 2 -1 10 1 rays 7
+spell 3 arm 3 at 200: damage 30-61 range 12/12 duration 10/4466/385 effect 2 -1 10 1 rays 7
+spell 3 arm 3 at 255: damage 38-76 range 14/14 duration 10/17367/473 effect 2 -1 10 1 rays 7
+spell 4 arm 5 power 0: 0
+spell 4 arm 5 power 31: 1
+spell 4 arm 5 power 60: 30
+spell 4 arm 5 power 130: 100
+spell 4 arm 5 power 200: 170
+spell 4 arm 5 power 285: 255
+spell 4 arm 5 power 400: 255
+spell 4 arm 5 power 510: 255
+spell 4 arm 5 at 0: damage 5-10 range 9/9 duration 48/48/1 effect 3 0 48 1 rays 2
+spell 4 arm 5 at 1: damage 5-10 range 9/9 duration 49/49/1 effect 3 0 49 1 rays 2
+spell 4 arm 5 at 2: damage 5-10 range 9/9 duration 50/50/1 effect 3 1 50 1 rays 2
+spell 4 arm 5 at 29: damage 9-19 range 9/9 duration 98/98/1 effect 3 14 98 1 rays 3
+spell 4 arm 5 at 30: damage 10-20 range 10/10 duration 100/100/1 effect 3 15 100 1 rays 3
+spell 4 arm 5 at 45: damage 12-25 range 10/10 duration 145/145/1 effect 3 22 145 1 rays 4
+spell 4 arm 5 at 99: damage 21-43 range 12/12 duration 553/553/1 effect 3 49 553 1 rays 6
+spell 4 arm 5 at 100: damage 21-43 range 12/12 duration 567/567/1 effect 3 50 567 1 rays 7
+spell 4 arm 5 at 101: damage 21-43 range 12/12 duration 581/581/1 effect 3 50 581 1 rays 7
+spell 4 arm 5 at 170: damage 33-66 range 14/14 duration 3193/3193/1 effect 3 85 3193 1 rays 7
+spell 4 arm 5 at 200: damage 38-76 range 15/15 duration 6699/6699/1 effect 3 100 6699 1 rays 7
+spell 4 arm 5 at 255: damage 47-95 range 17/17 duration 26051/26051/1 effect 3 127 26051 1 rays 7
+spell 5 arm 65535 power 0: 0
+spell 5 arm 65535 power 31: 1
+spell 5 arm 65535 power 60: 30
+spell 5 arm 65535 power 130: 100
+spell 5 arm 65535 power 200: 170
+spell 5 arm 65535 power 285: 255
+spell 5 arm 65535 power 400: 255
+spell 5 arm 65535 power 510: 255
+spell 5 arm 65535 at 0: damage 6-12 range 0/0 duration 12/64/33 effect 0 1 12 1 rays 2
+spell 5 arm 65535 at 1: damage 6-12 range 0/0 duration 12/65/34 effect 0 1 12 1 rays 2
+spell 5 arm 65535 at 2: damage 6-12 range 0/0 duration 12/67/36 effect 0 1 12 1 rays 2
+spell 5 arm 65535 at 29: damage 11-23 range 0/0 duration 12/130/79 effect 0 1 12 1 rays 3
+spell 5 arm 65535 at 30: damage 12-24 range 0/0 duration 12/134/81 effect 0 1 12 1 rays 3
+spell 5 arm 65535 at 45: damage 15-30 range 0/0 duration 12/194/105 effect 0 1 12 1 rays 4
+spell 5 arm 65535 at 99: damage 25-51 range 0/0 duration 12/737/191 effect 0 1 12 1 rays 6
+spell 5 arm 65535 at 100: damage 26-52 range 0/0 duration 12/756/193 effect 0 1 12 1 rays 7
+spell 5 arm 65535 at 101: damage 26-52 range 0/0 duration 12/774/194 effect 0 1 12 1 rays 7
+spell 5 arm 65535 at 170: damage 40-80 range 0/0 duration 12/4258/305 effect 0 1 12 1 rays 7
+spell 5 arm 65535 at 200: damage 46-92 range 0/0 duration 12/8932/353 effect 0 1 12 1 rays 7
+spell 5 arm 65535 at 255: damage 57-114 range 0/0 duration 12/34734/441 effect 0 1 12 1 rays 7
+spell 6 arm 8 power 0: 0
+spell 6 arm 8 power 31: 1
+spell 6 arm 8 power 60: 30
+spell 6 arm 8 power 130: 100
+spell 6 arm 8 power 200: 170
+spell 6 arm 8 power 285: 255
+spell 6 arm 8 power 400: 255
+spell 6 arm 8 power 510: 255
+spell 6 arm 8 at 0: damage 7-14 range 3/3 duration 0/64/65 effect 1 2 0 1 rays 2
+spell 6 arm 8 at 1: damage 7-14 range 3/3 duration 0/65/66 effect 1 2 0 1 rays 2
+spell 6 arm 8 at 2: damage 7-14 range 3/3 duration 0/67/68 effect 1 2 0 1 rays 2
+spell 6 arm 8 at 29: damage 13-27 range 3/3 duration 0/110/111 effect 1 3 0 1 rays 3
+spell 6 arm 8 at 30: damage 14-28 range 4/4 duration 0/112/113 effect 1 3 0 1 rays 3
+spell 6 arm 8 at 45: damage 17-35 range 4/4 duration 0/136/137 effect 1 4 0 1 rays 4
+spell 6 arm 8 at 99: damage 30-60 range 6/6 duration 0/222/223 effect 1 6 0 1 rays 6
+spell 6 arm 8 at 100: damage 30-60 range 6/6 duration 0/224/225 effect 1 6 0 1 rays 7
+spell 6 arm 8 at 101: damage 30-61 range 6/6 duration 0/225/226 effect 1 6 0 1 rays 7
+spell 6 arm 8 at 170: damage 46-93 range 8/8 duration 0/336/337 effect 1 9 0 1 rays 7
+spell 6 arm 8 at 200: damage 53-107 range 9/9 duration 0/384/385 effect 1 10 0 1 rays 7
+spell 6 arm 8 at 255: damage 66-133 range 11/11 duration 0/472/473 effect 1 13 0 1 rays 7
+spell 7 arm 21 power 0: 0
+spell 7 arm 21 power 31: 1
+spell 7 arm 21 power 60: 30
+spell 7 arm 21 power 130: 100
+spell 7 arm 21 power 200: 170
+spell 7 arm 21 power 285: 255
+spell 7 arm 21 power 400: 255
+spell 7 arm 21 power 510: 255
+spell 7 arm 21 at 0: damage 8-16 range 6/6 duration 14/16/1 effect 2 3 14 1 rays 2
+spell 7 arm 21 at 1: damage 8-16 range 6/6 duration 14/16/1 effect 2 3 14 1 rays 2
+spell 7 arm 21 at 2: damage 8-17 range 6/6 duration 14/16/1 effect 2 3 14 1 rays 2
+spell 7 arm 21 at 29: damage 15-31 range 6/6 duration 14/32/1 effect 2 3 14 1 rays 3
+spell 7 arm 21 at 30: damage 16-32 range 7/7 duration 14/33/1 effect 2 3 14 1 rays 3
+spell 7 arm 21 at 45: damage 20-40 range 7/7 duration 14/48/1 effect 2 3 14 1 rays 4
+spell 7 arm 21 at 99: damage 34-68 range 9/9 duration 14/184/1 effect 2 3 14 1 rays 6
+spell 7 arm 21 at 100: damage 34-69 range 9/9 duration 14/189/1 effect 2 3 14 1 rays 7
+spell 7 arm 21 at 101: damage 34-69 range 9/9 duration 14/193/1 effect 2 3 14 1 rays 7
+spell 7 arm 21 at 170: damage 53-106 range 11/11 duration 14/1064/1 effect 2 3 14 1 rays 7
+spell 7 arm 21 at 200: damage 61-122 range 12/12 duration 14/2233/1 effect 2 3 14 1 rays 7
+spell 7 arm 21 at 255: damage 76-152 range 14/14 duration 14/8683/1 effect 2 3 14 1 rays 7
+spell 8 arm 10 power 0: 0
+spell 8 arm 10 power 31: 1
+spell 8 arm 10 power 60: 30
+spell 8 arm 10 power 130: 100
+spell 8 arm 10 power 200: 170
+spell 8 arm 10 power 285: 255
+spell 8 arm 10 power 400: 255
+spell 8 arm 10 power 510: 255
+spell 8 arm 10 at 0: damage 9-18 range 9/9 duration 32/32/33 effect 3 0 32 1 rays 2
+spell 8 arm 10 at 1: damage 9-18 range 9/9 duration 32/32/34 effect 3 0 32 1 rays 2
+spell 8 arm 10 at 2: damage 9-19 range 9/9 duration 33/33/36 effect 3 1 33 1 rays 2
+spell 8 arm 10 at 29: damage 17-35 range 9/9 duration 65/65/79 effect 3 14 65 1 rays 3
+spell 8 arm 10 at 30: damage 18-36 range 10/10 duration 67/67/81 effect 3 15 67 1 rays 3
+spell 8 arm 10 at 45: damage 22-45 range 10/10 duration 97/97/105 effect 3 22 97 1 rays 4
+spell 8 arm 10 at 99: damage 38-77 range 12/12 duration 368/368/191 effect 3 49 368 1 rays 6
+spell 8 arm 10 at 100: damage 39-78 range 12/12 duration 378/378/193 effect 3 50 378 1 rays 7
+spell 8 arm 10 at 101: damage 39-78 range 12/12 duration 387/387/194 effect 3 50 387 1 rays 7
+spell 8 arm 10 at 170: damage 60-120 range 14/14 duration 2129/2129/305 effect 3 85 2129 1 rays 7
+spell 8 arm 10 at 200: damage 69-138 range 15/15 duration 4466/4466/353 effect 3 100 4466 1 rays 7
+spell 8 arm 10 at 255: damage 85-171 range 17/17 duration 17367/17367/441 effect 3 127 17367 1 rays 7
+spell 9 arm 9 power 0: 0
+spell 9 arm 9 power 31: 1
+spell 9 arm 9 power 60: 30
+spell 9 arm 9 power 130: 100
+spell 9 arm 9 power 200: 170
+spell 9 arm 9 power 285: 255
+spell 9 arm 9 power 400: 255
+spell 9 arm 9 power 510: 255
+spell 9 arm 9 at 0: damage 10-20 range 0/0 duration 16/48/65 effect 0 -2 16 1 rays 2
+spell 9 arm 9 at 1: damage 10-20 range 0/0 duration 16/49/66 effect 0 -2 16 1 rays 2
+spell 9 arm 9 at 2: damage 10-21 range 0/0 duration 16/50/68 effect 0 -2 16 1 rays 2
+spell 9 arm 9 at 29: damage 19-39 range 0/0 duration 16/98/111 effect 0 -2 16 1 rays 3
+spell 9 arm 9 at 30: damage 20-40 range 0/0 duration 16/100/113 effect 0 -2 16 1 rays 3
+spell 9 arm 9 at 45: damage 25-50 range 0/0 duration 16/145/137 effect 0 -2 16 1 rays 4
+spell 9 arm 9 at 99: damage 43-86 range 0/0 duration 16/553/223 effect 0 -2 16 1 rays 6
+spell 9 arm 9 at 100: damage 43-86 range 0/0 duration 16/567/225 effect 0 -2 16 1 rays 7
+spell 9 arm 9 at 101: damage 43-87 range 0/0 duration 16/581/226 effect 0 -2 16 1 rays 7
+spell 9 arm 9 at 170: damage 66-133 range 0/0 duration 16/3193/337 effect 0 -2 16 1 rays 7
+spell 9 arm 9 at 200: damage 76-153 range 0/0 duration 16/6699/385 effect 0 -2 16 1 rays 7
+spell 9 arm 9 at 255: damage 95-190 range 0/0 duration 16/26051/473 effect 0 -2 16 1 rays 7
+spell 10 arm 13 power 0: 0
+spell 10 arm 13 power 31: 1
+spell 10 arm 13 power 60: 30
+spell 10 arm 13 power 130: 100
+spell 10 arm 13 power 200: 170
+spell 10 arm 13 power 285: 255
+spell 10 arm 13 power 400: 255
+spell 10 arm 13 power 510: 255
+spell 10 arm 13 at 0: damage 11-22 range 3/3 duration 17/64/1 effect 1 -1 17 1 rays 2
+spell 10 arm 13 at 1: damage 11-22 range 3/3 duration 17/65/1 effect 1 -1 17 1 rays 2
+spell 10 arm 13 at 2: damage 11-23 range 3/3 duration 17/67/1 effect 1 -1 17 1 rays 2
+spell 10 arm 13 at 29: damage 21-43 range 3/3 duration 17/130/1 effect 1 -1 17 1 rays 3
+spell 10 arm 13 at 30: damage 22-44 range 4/4 duration 17/134/1 effect 1 -1 17 1 rays 3
+spell 10 arm 13 at 45: damage 27-55 range 4/4 duration 17/194/1 effect 1 -1 17 1 rays 4
+spell 10 arm 13 at 99: damage 47-94 range 6/6 duration 17/737/1 effect 1 -1 17 1 rays 6
+spell 10 arm 13 at 100: damage 47-95 range 6/6 duration 17/756/1 effect 1 -1 17 1 rays 7
+spell 10 arm 13 at 101: damage 48-96 range 6/6 duration 17/774/1 effect 1 -1 17 1 rays 7
+spell 10 arm 13 at 170: damage 73-146 range 8/8 duration 17/4258/1 effect 1 -1 17 1 rays 7
+spell 10 arm 13 at 200: damage 84-168 range 9/9 duration 17/8932/1 effect 1 -1 17 1 rays 7
+spell 10 arm 13 at 255: damage 104-209 range 11/11 duration 17/34734/1 effect 1 -1 17 1 rays 7
+spell 11 arm 14 power 0: 0
+spell 11 arm 14 power 31: 1
+spell 11 arm 14 power 60: 30
+spell 11 arm 14 power 130: 100
+spell 11 arm 14 power 200: 170
+spell 11 arm 14 power 285: 255
+spell 11 arm 14 power 400: 255
+spell 11 arm 14 power 510: 255
+spell 11 arm 14 at 0: damage 12-24 range 6/6 duration 18/32/33 effect 2 0 18 1 rays 2
+spell 11 arm 14 at 1: damage 12-24 range 6/6 duration 18/33/34 effect 2 0 18 1 rays 2
+spell 11 arm 14 at 2: damage 12-25 range 6/6 duration 18/35/36 effect 2 0 18 1 rays 2
+spell 11 arm 14 at 29: damage 23-47 range 6/6 duration 18/78/79 effect 2 0 18 1 rays 3
+spell 11 arm 14 at 30: damage 24-48 range 7/7 duration 18/80/81 effect 2 0 18 1 rays 3
+spell 11 arm 14 at 45: damage 30-60 range 7/7 duration 18/104/105 effect 2 0 18 1 rays 4
+spell 11 arm 14 at 99: damage 51-103 range 9/9 duration 18/190/191 effect 2 0 18 1 rays 6
+spell 11 arm 14 at 100: damage 52-104 range 9/9 duration 18/192/193 effect 2 0 18 1 rays 7
+spell 11 arm 14 at 101: damage 52-104 range 9/9 duration 18/193/194 effect 2 0 18 1 rays 7
+spell 11 arm 14 at 170: damage 80-160 range 11/11 duration 18/304/305 effect 2 0 18 1 rays 7
+spell 11 arm 14 at 200: damage 92-184 range 12/12 duration 18/352/353 effect 2 0 18 1 rays 7
+spell 11 arm 14 at 255: damage 114-228 range 14/14 duration 18/440/441 effect 2 0 18 1 rays 7
+spell 12 arm 15 power 0: 0
+spell 12 arm 15 power 31: 1
+spell 12 arm 15 power 60: 30
+spell 12 arm 15 power 130: 100
+spell 12 arm 15 power 200: 170
+spell 12 arm 15 power 285: 255
+spell 12 arm 15 power 400: 255
+spell 12 arm 15 power 510: 255
+spell 12 arm 15 at 0: damage 13-26 range 9/9 duration 0/0/65 effect 11 1 0 1 rays 2
+spell 12 arm 15 at 1: damage 13-26 range 9/9 duration 16/16/66 effect 11 1 16 1 rays 2
+spell 12 arm 15 at 2: damage 13-27 range 9/9 duration 32/32/68 effect 11 1 32 1 rays 2
+spell 12 arm 15 at 29: damage 25-51 range 9/9 duration 464/464/111 effect 11 1 464 1 rays 3
+spell 12 arm 15 at 30: damage 26-52 range 10/10 duration 480/480/113 effect 11 1 480 1 rays 3
+spell 12 arm 15 at 45: damage 32-65 range 10/10 duration 720/720/137 effect 11 1 720 1 rays 4
+spell 12 arm 15 at 99: damage 55-111 range 12/12 duration 1584/1584/223 effect 11 1 1584 1 rays 6
+spell 12 arm 15 at 100: damage 56-112 range 12/12 duration 1600/1600/225 effect 11 1 1600 1 rays 7
+spell 12 arm 15 at 101: damage 56-113 range 12/12 duration 1616/1616/226 effect 11 1 1616 1 rays 7
+spell 12 arm 15 at 170: damage 86-173 range 14/14 duration 2720/2720/337 effect 11 1 2720 1 rays 7
+spell 12 arm 15 at 200: damage 99-199 range 15/15 duration 3200/3200/385 effect 11 1 3200 1 rays 7
+spell 12 arm 15 at 255: damage 123-247 range 17/17 duration 4080/4080/473 effect 11 1 4080 1 rays 7
+spell 13 arm 16 power 0: 0
+spell 13 arm 16 power 31: 1
+spell 13 arm 16 power 60: 30
+spell 13 arm 16 power 130: 100
+spell 13 arm 16 power 200: 170
+spell 13 arm 16 power 285: 255
+spell 13 arm 16 power 400: 255
+spell 13 arm 16 power 510: 255
+spell 13 arm 16 at 0: damage 14-28 range 0/0 duration 32/32/1 effect 0 0 32 1 rays 2
+spell 13 arm 16 at 1: damage 14-28 range 0/0 duration 32/32/1 effect 0 0 32 1 rays 2
+spell 13 arm 16 at 2: damage 14-29 range 0/0 duration 33/33/1 effect 0 1 33 1 rays 2
+spell 13 arm 16 at 29: damage 27-55 range 0/0 duration 65/65/1 effect 0 14 65 1 rays 3
+spell 13 arm 16 at 30: damage 28-56 range 0/0 duration 67/67/1 effect 0 15 67 1 rays 3
+spell 13 arm 16 at 45: damage 35-70 range 0/0 duration 97/97/1 effect 0 22 97 1 rays 4
+spell 13 arm 16 at 99: damage 60-120 range 0/0 duration 368/368/1 effect 0 49 368 1 rays 6
+spell 13 arm 16 at 100: damage 60-121 range 0/0 duration 378/378/1 effect 0 50 378 1 rays 7
+spell 13 arm 16 at 101: damage 61-122 range 0/0 duration 387/387/1 effect 0 50 387 1 rays 7
+spell 13 arm 16 at 170: damage 93-186 range 0/0 duration 2129/2129/1 effect 0 85 2129 1 rays 7
+spell 13 arm 16 at 200: damage 107-214 range 0/0 duration 4466/4466/1 effect 0 100 4466 1 rays 7
+spell 13 arm 16 at 255: damage 133-266 range 0/0 duration 17367/17367/1 effect 0 127 17367 1 rays 7
+spell 14 arm 17 power 0: 0
+spell 14 arm 17 power 31: 1
+spell 14 arm 17 power 60: 30
+spell 14 arm 17 power 130: 100
+spell 14 arm 17 power 200: 170
+spell 14 arm 17 power 285: 255
+spell 14 arm 17 power 400: 255
+spell 14 arm 17 power 510: 255
+spell 14 arm 17 at 0: damage 15-30 range 3/3 duration 21/48/33 effect 1 -1 21 1 rays 2
+spell 14 arm 17 at 1: damage 15-31 range 3/3 duration 21/49/34 effect 1 -1 21 1 rays 2
+spell 14 arm 17 at 2: damage 16-32 range 3/3 duration 21/50/36 effect 1 -1 21 1 rays 2
+spell 14 arm 17 at 29: damage 29-59 range 3/3 duration 21/98/79 effect 1 -1 21 1 rays 3
+spell 14 arm 17 at 30: damage 30-60 range 4/4 duration 21/100/81 effect 1 -2 21 1 rays 3
+spell 14 arm 17 at 45: damage 37-75 range 4/4 duration 21/145/105 effect 1 -2 21 1 rays 4
+spell 14 arm 17 at 99: damage 64-129 range 6/6 duration 21/553/191 effect 1 -4 21 1 rays 6
+spell 14 arm 17 at 100: damage 65-130 range 6/6 duration 21/567/193 effect 1 -4 21 1 rays 7
+spell 14 arm 17 at 101: damage 65-131 range 6/6 duration 21/581/194 effect 1 -4 21 1 rays 7
+spell 14 arm 17 at 170: damage 100-200 range 8/8 duration 21/3193/305 effect 1 -6 21 1 rays 7
+spell 14 arm 17 at 200: damage 115-230 range 9/9 duration 21/6699/353 effect 1 -7 21 1 rays 7
+spell 14 arm 17 at 255: damage 142-285 range 11/11 duration 21/26051/441 effect 1 -9 21 1 rays 7
+spell 15 arm 12 power 0: 0
+spell 15 arm 12 power 31: 1
+spell 15 arm 12 power 60: 30
+spell 15 arm 12 power 130: 100
+spell 15 arm 12 power 200: 170
+spell 15 arm 12 power 285: 255
+spell 15 arm 12 power 400: 255
+spell 15 arm 12 power 510: 255
+spell 15 arm 12 at 0: damage 16-32 range 6/6 duration 22/64/65 effect 2 1 22 1 rays 2
+spell 15 arm 12 at 1: damage 16-33 range 6/6 duration 22/65/66 effect 2 1 22 1 rays 2
+spell 15 arm 12 at 2: damage 17-34 range 6/6 duration 22/67/68 effect 2 1 22 1 rays 2
+spell 15 arm 12 at 29: damage 31-62 range 6/6 duration 22/130/111 effect 2 1 22 1 rays 3
+spell 15 arm 12 at 30: damage 32-64 range 7/7 duration 22/134/113 effect 2 2 22 1 rays 3
+spell 15 arm 12 at 45: damage 40-80 range 7/7 duration 22/194/137 effect 2 2 22 1 rays 4
+spell 15 arm 12 at 99: damage 68-137 range 9/9 duration 22/737/223 effect 2 4 22 1 rays 6
+spell 15 arm 12 at 100: damage 69-138 range 9/9 duration 22/756/225 effect 2 4 22 1 rays 7
+spell 15 arm 12 at 101: damage 69-139 range 9/9 duration 22/774/226 effect 2 4 22 1 rays 7
+spell 15 arm 12 at 170: damage 106-213 range 11/11 duration 22/4258/337 effect 2 6 22 1 rays 7
+spell 15 arm 12 at 200: damage 122-245 range 12/12 duration 22/8932/385 effect 2 7 22 1 rays 7
+spell 15 arm 12 at 255: damage 152-304 range 14/14 duration 22/34734/473 effect 2 9 22 1 rays 7
+spell 16 arm 65535 power 0: 0
+spell 16 arm 65535 power 31: 1
+spell 16 arm 65535 power 60: 30
+spell 16 arm 65535 power 130: 100
+spell 16 arm 65535 power 200: 170
+spell 16 arm 65535 power 285: 255
+spell 16 arm 65535 power 400: 255
+spell 16 arm 65535 power 510: 255
+spell 16 arm 65535 at 0: damage 17-34 range 9/9 duration 23/0/1 effect 3 -2 23 1 rays 2
+spell 16 arm 65535 at 1: damage 17-35 range 9/9 duration 23/0/1 effect 3 -2 23 1 rays 2
+spell 16 arm 65535 at 2: damage 18-36 range 9/9 duration 23/0/1 effect 3 -2 23 1 rays 2
+spell 16 arm 65535 at 29: damage 33-66 range 9/9 duration 23/0/1 effect 3 -2 23 1 rays 3
+spell 16 arm 65535 at 30: damage 34-68 range 10/10 duration 23/0/1 effect 3 -2 23 1 rays 3
+spell 16 arm 65535 at 45: damage 42-85 range 10/10 duration 23/0/1 effect 3 -2 23 1 rays 4
+spell 16 arm 65535 at 99: damage 73-146 range 12/12 duration 23/0/1 effect 3 -2 23 1 rays 6
+spell 16 arm 65535 at 100: damage 73-147 range 12/12 duration 23/0/1 effect 3 -2 23 1 rays 7
+spell 16 arm 65535 at 101: damage 74-148 range 12/12 duration 23/0/1 effect 3 -2 23 1 rays 7
+spell 16 arm 65535 at 170: damage 113-226 range 14/14 duration 23/0/1 effect 3 -2 23 1 rays 7
+spell 16 arm 65535 at 200: damage 130-260 range 15/15 duration 23/0/1 effect 3 -2 23 1 rays 7
+spell 16 arm 65535 at 255: damage 161-323 range 17/17 duration 23/0/1 effect 3 -2 23 1 rays 7
+spell 17 arm 19 power 0: 0
+spell 17 arm 19 power 31: 1
+spell 17 arm 19 power 60: 30
+spell 17 arm 19 power 130: 100
+spell 17 arm 19 power 200: 170
+spell 17 arm 19 power 285: 255
+spell 17 arm 19 power 400: 255
+spell 17 arm 19 power 510: 255
+spell 17 arm 19 at 0: damage 18-36 range 0/0 duration 24/16/33 effect 0 -1 24 1 rays 2
+spell 17 arm 19 at 1: damage 18-37 range 0/0 duration 24/16/34 effect 0 -1 24 1 rays 2
+spell 17 arm 19 at 2: damage 19-38 range 0/0 duration 24/16/36 effect 0 -1 24 1 rays 2
+spell 17 arm 19 at 29: damage 35-70 range 0/0 duration 24/32/79 effect 0 -1 24 1 rays 3
+spell 17 arm 19 at 30: damage 36-72 range 0/0 duration 24/33/81 effect 0 -1 24 1 rays 3
+spell 17 arm 19 at 45: damage 45-90 range 0/0 duration 24/48/105 effect 0 -1 24 1 rays 4
+spell 17 arm 19 at 99: damage 77-154 range 0/0 duration 24/184/191 effect 0 -1 24 1 rays 6
+spell 17 arm 19 at 100: damage 78-156 range 0/0 duration 24/189/193 effect 0 -1 24 1 rays 7
+spell 17 arm 19 at 101: damage 78-157 range 0/0 duration 24/193/194 effect 0 -1 24 1 rays 7
+spell 17 arm 19 at 170: damage 120-240 range 0/0 duration 24/1064/305 effect 0 -1 24 1 rays 7
+spell 17 arm 19 at 200: damage 138-276 range 0/0 duration 24/2233/353 effect 0 -1 24 1 rays 7
+spell 17 arm 19 at 255: damage 171-342 range 0/0 duration 24/8683/441 effect 0 -1 24 1 rays 7
+spell 18 arm 20 power 0: 0
+spell 18 arm 20 power 31: 1
+spell 18 arm 20 power 60: 30
+spell 18 arm 20 power 130: 100
+spell 18 arm 20 power 200: 170
+spell 18 arm 20 power 285: 255
+spell 18 arm 20 power 400: 255
+spell 18 arm 20 power 510: 255
+spell 18 arm 20 at 0: damage 19-38 range 3/3 duration 32/32/65 effect 1 0 0 1 rays 2
+spell 18 arm 20 at 1: damage 19-39 range 3/3 duration 32/32/66 effect 1 0 4 1 rays 2
+spell 18 arm 20 at 2: damage 20-40 range 3/3 duration 33/33/68 effect 1 0 9 1 rays 2
+spell 18 arm 20 at 29: damage 37-74 range 3/3 duration 65/65/111 effect 1 0 139 1 rays 3
+spell 18 arm 20 at 30: damage 38-76 range 4/4 duration 67/67/113 effect 1 0 144 1 rays 3
+spell 18 arm 20 at 45: damage 47-95 range 4/4 duration 97/97/137 effect 1 0 216 1 rays 4
+spell 18 arm 20 at 99: damage 81-163 range 6/6 duration 368/368/223 effect 1 0 475 1 rays 6
+spell 18 arm 20 at 100: damage 82-164 range 6/6 duration 378/378/225 effect 1 0 480 1 rays 7
+spell 18 arm 20 at 101: damage 82-165 range 6/6 duration 410/410/226 effect 1 0 484 1 rays 7
+spell 18 arm 20 at 170: damage 126-253 range 8/8 duration 558/558/337 effect 1 0 816 1 rays 7
+spell 18 arm 20 at 200: damage 145-291 range 9/9 duration 756/756/385 effect 1 0 960 1 rays 7
+spell 18 arm 20 at 255: damage 180-361 range 11/11 duration 880/880/473 effect 1 0 1224 1 rays 7
+spell 19 arm 22 power 0: 0
+spell 19 arm 22 power 31: 1
+spell 19 arm 22 power 60: 30
+spell 19 arm 22 power 130: 100
+spell 19 arm 22 power 200: 170
+spell 19 arm 22 power 285: 255
+spell 19 arm 22 power 400: 255
+spell 19 arm 22 power 510: 255
+spell 19 arm 22 at 0: damage 20-40 range 6/6 duration 48/48/1 effect 2 0 48 1 rays 2
+spell 19 arm 22 at 1: damage 20-41 range 6/6 duration 49/49/1 effect 2 0 49 1 rays 2
+spell 19 arm 22 at 2: damage 21-42 range 6/6 duration 50/50/1 effect 2 1 50 1 rays 2
+spell 19 arm 22 at 29: damage 39-78 range 6/6 duration 98/98/1 effect 2 14 98 1 rays 3
+spell 19 arm 22 at 30: damage 40-80 range 7/7 duration 100/100/1 effect 2 15 100 1 rays 3
+spell 19 arm 22 at 45: damage 50-100 range 7/7 duration 145/145/1 effect 2 22 145 1 rays 4
+spell 19 arm 22 at 99: damage 86-172 range 9/9 duration 553/553/1 effect 2 49 553 1 rays 6
+spell 19 arm 22 at 100: damage 86-173 range 9/9 duration 567/567/1 effect 2 50 567 1 rays 7
+spell 19 arm 22 at 101: damage 87-174 range 9/9 duration 581/581/1 effect 2 50 581 1 rays 7
+spell 19 arm 22 at 170: damage 133-266 range 11/11 duration 3193/3193/1 effect 2 85 3193 1 rays 7
+spell 19 arm 22 at 200: damage 153-306 range 12/12 duration 6699/6699/1 effect 2 100 6699 1 rays 7
+spell 19 arm 22 at 255: damage 190-380 range 14/14 duration 26051/26051/1 effect 2 127 26051 1 rays 7
+spell 20 arm 23 power 0: 0
+spell 20 arm 23 power 31: 1
+spell 20 arm 23 power 60: 30
+spell 20 arm 23 power 130: 100
+spell 20 arm 23 power 200: 170
+spell 20 arm 23 power 285: 255
+spell 20 arm 23 power 400: 255
+spell 20 arm 23 power 510: 255
+spell 20 arm 23 at 0: damage 21-42 range 9/9 duration 64/64/33 effect 9 20 64 1 rays 2
+spell 20 arm 23 at 1: damage 21-43 range 9/9 duration 65/65/34 effect 9 20 65 1 rays 2
+spell 20 arm 23 at 2: damage 22-44 range 9/9 duration 67/67/36 effect 9 21 67 1 rays 2
+spell 20 arm 23 at 29: damage 41-82 range 9/9 duration 130/130/79 effect 9 43 130 1 rays 3
+spell 20 arm 23 at 30: damage 42-84 range 10/10 duration 134/134/81 effect 9 44 134 1 rays 3
+spell 20 arm 23 at 45: damage 52-105 range 10/10 duration 194/194/105 effect 9 56 194 1 rays 4
+spell 20 arm 23 at 99: damage 90-180 range 12/12 duration 737/737/191 effect 9 99 737 1 rays 6
+spell 20 arm 23 at 100: damage 91-182 range 12/12 duration 756/756/193 effect 9 100 756 1 rays 7
+spell 20 arm 23 at 101: damage 91-183 range 12/12 duration 774/774/194 effect 9 100 774 1 rays 7
+spell 20 arm 23 at 170: damage 140-280 range 14/14 duration 4258/4258/305 effect 9 156 4258 1 rays 7
+spell 20 arm 23 at 200: damage 161-322 range 15/15 duration 8932/8932/353 effect 9 180 8932 1 rays 7
+spell 20 arm 23 at 255: damage 199-399 range 17/17 duration 34734/34734/441 effect 9 224 34734 1 rays 7
+spell 21 arm 24 power 0: 0
+spell 21 arm 24 power 31: 1
+spell 21 arm 24 power 60: 30
+spell 21 arm 24 power 130: 100
+spell 21 arm 24 power 200: 170
+spell 21 arm 24 power 285: 255
+spell 21 arm 24 power 400: 255
+spell 21 arm 24 power 510: 255
+spell 21 arm 24 at 0: damage 22-44 range 0/0 duration 0/64/65 effect 0 1 0 1 rays 2
+spell 21 arm 24 at 1: damage 22-45 range 0/0 duration 0/65/66 effect 0 1 0 1 rays 2
+spell 21 arm 24 at 2: damage 23-46 range 0/0 duration 0/67/68 effect 0 1 0 1 rays 2
+spell 21 arm 24 at 29: damage 43-86 range 0/0 duration 0/110/111 effect 0 2 0 1 rays 3
+spell 21 arm 24 at 30: damage 44-88 range 0/0 duration 0/112/113 effect 0 3 0 1 rays 3
+spell 21 arm 24 at 45: damage 55-110 range 0/0 duration 0/136/137 effect 0 4 0 1 rays 4
+spell 21 arm 24 at 99: damage 94-189 range 0/0 duration 0/222/223 effect 0 7 0 1 rays 6
+spell 21 arm 24 at 100: damage 95-190 range 0/0 duration 0/224/225 effect 0 7 0 1 rays 7
+spell 21 arm 24 at 101: damage 96-192 range 0/0 duration 0/225/226 effect 0 7 0 1 rays 7
+spell 21 arm 24 at 170: damage 146-293 range 0/0 duration 0/336/337 effect 0 12 0 1 rays 7
+spell 21 arm 24 at 200: damage 168-337 range 0/0 duration 0/384/385 effect 0 14 0 1 rays 7
+spell 21 arm 24 at 255: damage 209-418 range 0/0 duration 0/472/473 effect 0 18 0 1 rays 7
+spell 22 arm 25 power 0: 0
+spell 22 arm 25 power 31: 1
+spell 22 arm 25 power 60: 30
+spell 22 arm 25 power 130: 100
+spell 22 arm 25 power 200: 170
+spell 22 arm 25 power 285: 255
+spell 22 arm 25 power 400: 255
+spell 22 arm 25 power 510: 255
+spell 22 arm 25 at 0: damage 23-46 range 3/3 duration 29/16/1 effect 1 -3 29 1 rays 2
+spell 22 arm 25 at 1: damage 23-47 range 3/3 duration 29/16/1 effect 1 -3 29 1 rays 2
+spell 22 arm 25 at 2: damage 24-49 range 3/3 duration 29/16/1 effect 1 -3 29 1 rays 2
+spell 22 arm 25 at 29: damage 45-90 range 3/3 duration 29/32/1 effect 1 -3 29 1 rays 3
+spell 22 arm 25 at 30: damage 46-92 range 4/4 duration 29/33/1 effect 1 -3 29 1 rays 3
+spell 22 arm 25 at 45: damage 57-115 range 4/4 duration 29/48/1 effect 1 -3 29 1 rays 4
+spell 22 arm 25 at 99: damage 98-197 range 6/6 duration 29/184/1 effect 1 -3 29 1 rays 6
+spell 22 arm 25 at 100: damage 99-199 range 6/6 duration 29/189/1 effect 1 -3 29 1 rays 7
+spell 22 arm 25 at 101: damage 100-200 range 6/6 duration 29/193/1 effect 1 -3 29 1 rays 7
+spell 22 arm 25 at 170: damage 153-306 range 8/8 duration 29/1064/1 effect 1 -3 29 1 rays 7
+spell 22 arm 25 at 200: damage 176-352 range 9/9 duration 29/2233/1 effect 1 -3 29 1 rays 7
+spell 22 arm 25 at 255: damage 218-437 range 11/11 duration 29/8683/1 effect 1 -3 29 1 rays 7
+spell 23 arm 26 power 0: 0
+spell 23 arm 26 power 31: 1
+spell 23 arm 26 power 60: 30
+spell 23 arm 26 power 130: 100
+spell 23 arm 26 power 200: 170
+spell 23 arm 26 power 285: 255
+spell 23 arm 26 power 400: 255
+spell 23 arm 26 power 510: 255
+spell 23 arm 26 at 0: damage 24-48 range 6/6 duration 30/32/33 effect 2 -2 30 1 rays 2
+spell 23 arm 26 at 1: damage 24-49 range 6/6 duration 30/32/34 effect 2 -2 30 1 rays 2
+spell 23 arm 26 at 2: damage 25-51 range 6/6 duration 30/33/36 effect 2 -2 30 1 rays 2
+spell 23 arm 26 at 29: damage 47-94 range 15/15 duration 30/65/79 effect 2 -2 30 1 rays 3
+spell 23 arm 26 at 30: damage 48-96 range 16/16 duration 30/67/81 effect 2 -2 30 1 rays 3
+spell 23 arm 26 at 45: damage 60-120 range 21/21 duration 30/97/105 effect 2 -2 30 1 rays 4
+spell 23 arm 26 at 99: damage 103-206 range 39/39 duration 30/368/191 effect 2 -2 30 1 rays 6
+spell 23 arm 26 at 100: damage 104-208 range 39/39 duration 30/378/193 effect 2 -2 30 1 rays 7
+spell 23 arm 26 at 101: damage 104-209 range 39/39 duration 30/387/194 effect 2 -2 30 1 rays 7
+spell 23 arm 26 at 170: damage 160-320 range 62/62 duration 30/2129/305 effect 2 -2 30 1 rays 7
+spell 23 arm 26 at 200: damage 184-368 range 72/72 duration 30/4466/353 effect 2 -2 30 1 rays 7
+spell 23 arm 26 at 255: damage 228-456 range 91/91 duration 30/17367/441 effect 2 -2 30 1 rays 7
+spell 24 arm 6 power 0: 0
+spell 24 arm 6 power 31: 1
+spell 24 arm 6 power 60: 30
+spell 24 arm 6 power 130: 100
+spell 24 arm 6 power 200: 170
+spell 24 arm 6 power 285: 255
+spell 24 arm 6 power 400: 255
+spell 24 arm 6 power 510: 255
+spell 24 arm 6 at 0: damage 25-50 range 9/9 duration 31/48/65 effect 3 -1 31 1 rays 2
+spell 24 arm 6 at 1: damage 25-51 range 9/9 duration 31/49/66 effect 3 -1 31 1 rays 2
+spell 24 arm 6 at 2: damage 26-53 range 9/9 duration 31/50/68 effect 3 -1 31 1 rays 2
+spell 24 arm 6 at 29: damage 49-98 range 9/9 duration 31/98/111 effect 3 -1 31 1 rays 3
+spell 24 arm 6 at 30: damage 50-100 range 10/10 duration 31/100/113 effect 3 -1 31 1 rays 3
+spell 24 arm 6 at 45: damage 62-125 range 10/10 duration 31/145/137 effect 3 -1 31 1 rays 4
+spell 24 arm 6 at 99: damage 107-215 range 12/12 duration 31/553/223 effect 3 -1 31 1 rays 6
+spell 24 arm 6 at 100: damage 108-216 range 12/12 duration 31/567/225 effect 3 -1 31 1 rays 7
+spell 24 arm 6 at 101: damage 109-218 range 12/12 duration 31/581/226 effect 3 -1 31 1 rays 7
+spell 24 arm 6 at 170: damage 166-333 range 14/14 duration 31/3193/337 effect 3 -1 31 1 rays 7
+spell 24 arm 6 at 200: damage 191-383 range 15/15 duration 31/6699/385 effect 3 -1 31 1 rays 7
+spell 24 arm 6 at 255: damage 237-475 range 17/17 duration 31/26051/473 effect 3 -1 31 1 rays 7
+spell 25 arm 65534 power 0: 0
+spell 25 arm 65534 power 31: 1
+spell 25 arm 65534 power 60: 30
+spell 25 arm 65534 power 130: 100
+spell 25 arm 65534 power 200: 170
+spell 25 arm 65534 power 285: 255
+spell 25 arm 65534 power 400: 255
+spell 25 arm 65534 power 510: 255
+spell 25 arm 65534 at 0: damage 26-52 range 0/0 duration 32/64/1 effect 0 0 32 1 rays 2
+spell 25 arm 65534 at 1: damage 26-53 range 0/0 duration 32/65/1 effect 0 0 32 1 rays 2
+spell 25 arm 65534 at 2: damage 27-55 range 0/0 duration 32/67/1 effect 0 0 32 1 rays 2
+spell 25 arm 65534 at 29: damage 51-102 range 0/0 duration 32/130/1 effect 0 0 32 1 rays 3
+spell 25 arm 65534 at 30: damage 52-104 range 0/0 duration 32/134/1 effect 0 0 32 1 rays 3
+spell 25 arm 65534 at 45: damage 65-130 range 0/0 duration 32/194/1 effect 0 0 32 1 rays 4
+spell 25 arm 65534 at 99: damage 111-223 range 0/0 duration 32/737/1 effect 0 0 32 1 rays 6
+spell 25 arm 65534 at 100: damage 112-225 range 0/0 duration 32/756/1 effect 0 0 32 1 rays 7
+spell 25 arm 65534 at 101: damage 113-227 range 0/0 duration 32/774/1 effect 0 0 32 1 rays 7
+spell 25 arm 65534 at 170: damage 173-346 range 0/0 duration 32/4258/1 effect 0 0 32 1 rays 7
+spell 25 arm 65534 at 200: damage 199-398 range 0/0 duration 32/8932/1 effect 0 0 32 1 rays 7
+spell 25 arm 65534 at 255: damage 247-494 range 0/0 duration 32/34734/1 effect 0 0 32 1 rays 7
+spell 26 arm 11 power 0: 0
+spell 26 arm 11 power 31: 1
+spell 26 arm 11 power 60: 30
+spell 26 arm 11 power 130: 100
+spell 26 arm 11 power 200: 170
+spell 26 arm 11 power 285: 255
+spell 26 arm 11 power 400: 255
+spell 26 arm 11 power 510: 255
+spell 26 arm 11 at 0: damage 27-54 range 3/3 duration 33/32/33 effect 1 1 33 1 rays 2
+spell 26 arm 11 at 1: damage 27-55 range 3/3 duration 33/33/34 effect 1 1 33 1 rays 2
+spell 26 arm 11 at 2: damage 28-57 range 3/3 duration 33/35/36 effect 1 1 33 1 rays 2
+spell 26 arm 11 at 29: damage 53-106 range 3/3 duration 33/78/79 effect 1 1 33 1 rays 3
+spell 26 arm 11 at 30: damage 54-108 range 4/4 duration 33/80/81 effect 1 1 33 1 rays 3
+spell 26 arm 11 at 45: damage 67-135 range 4/4 duration 33/104/105 effect 1 1 33 1 rays 4
+spell 26 arm 11 at 99: damage 116-232 range 6/6 duration 33/190/191 effect 1 1 33 1 rays 6
+spell 26 arm 11 at 100: damage 117-234 range 6/6 duration 33/192/193 effect 1 1 33 1 rays 7
+spell 26 arm 11 at 101: damage 117-235 range 6/6 duration 33/193/194 effect 1 1 33 1 rays 7
+spell 26 arm 11 at 170: damage 180-360 range 8/8 duration 33/304/305 effect 1 1 33 1 rays 7
+spell 26 arm 11 at 200: damage 207-414 range 9/9 duration 33/352/353 effect 1 1 33 1 rays 7
+spell 26 arm 11 at 255: damage 256-513 range 11/11 duration 33/440/441 effect 1 1 33 1 rays 7
+spell 27 arm 18 power 0: 0
+spell 27 arm 18 power 31: 1
+spell 27 arm 18 power 60: 30
+spell 27 arm 18 power 130: 100
+spell 27 arm 18 power 200: 170
+spell 27 arm 18 power 285: 255
+spell 27 arm 18 power 400: 255
+spell 27 arm 18 power 510: 255
+spell 27 arm 18 at 0: damage 28-56 range 6/6 duration 16/16/65 effect 2 3 16 1 rays 2
+spell 27 arm 18 at 1: damage 28-57 range 6/6 duration 16/16/66 effect 2 3 16 1 rays 2
+spell 27 arm 18 at 2: damage 29-59 range 6/6 duration 16/16/68 effect 2 3 16 1 rays 2
+spell 27 arm 18 at 29: damage 55-110 range 6/6 duration 32/32/111 effect 2 5 32 1 rays 3
+spell 27 arm 18 at 30: damage 56-112 range 7/7 duration 33/33/113 effect 2 6 33 1 rays 3
+spell 27 arm 18 at 45: damage 70-140 range 7/7 duration 48/48/137 effect 2 7 48 1 rays 4
+spell 27 arm 18 at 99: damage 120-240 range 9/9 duration 184/184/223 effect 2 12 184 1 rays 6
+spell 27 arm 18 at 100: damage 121-242 range 9/9 duration 189/189/225 effect 2 13 189 1 rays 7
+spell 27 arm 18 at 101: damage 122-244 range 9/9 duration 193/193/226 effect 2 13 193 1 rays 7
+spell 27 arm 18 at 170: damage 186-373 range 11/11 duration 1064/1064/337 effect 2 20 1064 1 rays 7
+spell 27 arm 18 at 200: damage 214-429 range 12/12 duration 2233/2233/385 effect 2 23 2233 1 rays 7
+spell 27 arm 18 at 255: damage 266-532 range 14/14 duration 8683/8683/473 effect 2 28 8683 1 rays 7
+spell 28 arm 27 power 0: 0
+spell 28 arm 27 power 31: 1
+spell 28 arm 27 power 60: 30
+spell 28 arm 27 power 130: 100
+spell 28 arm 27 power 200: 170
+spell 28 arm 27 power 285: 255
+spell 28 arm 27 power 400: 255
+spell 28 arm 27 power 510: 255
+spell 28 arm 27 at 0: damage 29-58 range 9/9 duration 32/32/1 effect 10 20 32 1 rays 2
+spell 28 arm 27 at 1: damage 29-59 range 9/9 duration 32/32/1 effect 10 20 32 1 rays 2
+spell 28 arm 27 at 2: damage 30-61 range 9/9 duration 33/33/1 effect 10 21 33 1 rays 2
+spell 28 arm 27 at 29: damage 57-114 range 9/9 duration 65/65/1 effect 10 43 65 1 rays 3
+spell 28 arm 27 at 30: damage 58-116 range 10/10 duration 67/67/1 effect 10 44 67 1 rays 3
+spell 28 arm 27 at 45: damage 72-145 range 10/10 duration 97/97/1 effect 10 56 97 1 rays 4
+spell 28 arm 27 at 99: damage 124-249 range 12/12 duration 368/368/1 effect 10 99 368 1 rays 6
+spell 28 arm 27 at 100: damage 125-251 range 12/12 duration 378/378/1 effect 10 100 378 1 rays 7
+spell 28 arm 27 at 101: damage 126-253 range 12/12 duration 387/387/1 effect 10 100 387 1 rays 7
+spell 28 arm 27 at 170: damage 193-386 range 14/14 duration 2129/2129/1 effect 10 156 2129 1 rays 7
+spell 28 arm 27 at 200: damage 222-444 range 15/15 duration 4466/4466/1 effect 10 180 4466 1 rays 7
+spell 28 arm 27 at 255: damage 275-551 range 17/17 duration 17367/17367/1 effect 10 224 17367 1 rays 7
+spell 29 arm 28 power 0: 0
+spell 29 arm 28 power 31: 1
+spell 29 arm 28 power 60: 30
+spell 29 arm 28 power 130: 100
+spell 29 arm 28 power 200: 170
+spell 29 arm 28 power 285: 255
+spell 29 arm 28 power 400: 255
+spell 29 arm 28 power 510: 255
+spell 29 arm 28 at 0: damage 30-60 range 0/0 duration 48/48/33 effect 0 -1 48 1 rays 2
+spell 29 arm 28 at 1: damage 31-62 range 0/0 duration 49/49/34 effect 0 -1 49 1 rays 2
+spell 29 arm 28 at 2: damage 32-64 range 0/0 duration 50/50/36 effect 0 -1 50 1 rays 2
+spell 29 arm 28 at 29: damage 59-118 range 0/0 duration 98/98/79 effect 0 -2 98 1 rays 3
+spell 29 arm 28 at 30: damage 60-120 range 0/0 duration 100/100/81 effect 0 -3 100 1 rays 3
+spell 29 arm 28 at 45: damage 75-150 range 0/0 duration 145/145/105 effect 0 -4 145 1 rays 4
+spell 29 arm 28 at 99: damage 129-258 range 0/0 duration 553/553/191 effect 0 -7 553 1 rays 6
+spell 29 arm 28 at 100: damage 130-260 range 0/0 duration 567/567/193 effect 0 -7 567 1 rays 7
+spell 29 arm 28 at 101: damage 131-262 range 0/0 duration 581/581/194 effect 0 -7 581 1 rays 7
+spell 29 arm 28 at 170: damage 200-400 range 0/0 duration 3193/3193/305 effect 0 -12 3193 1 rays 7
+spell 29 arm 28 at 200: damage 230-460 range 0/0 duration 6699/6699/353 effect 0 -14 6699 1 rays 7
+spell 29 arm 28 at 255: damage 285-570 range 0/0 duration 26051/26051/441 effect 0 -18 26051 1 rays 7

@@ -751,6 +751,57 @@ rows retain their existing delivery and popup routes. SAVE saturates an
 in-flight base or spread above 255 to 255;
 cold LOAD applies those saved bytes (`DIV-3002`, `DIV-2224`, `DIV-2327`).
 
+## Spell formula tables
+
+`data/spells.toml` can replace a spell's numbers with integer tables, in a
+`[[spell]]` row or, except `magnitude`, in `[global]` for every spell. Both
+games read the same keys in the same form. A row's table belongs to the spell
+the game the mod runs on gives that name (see Spell names), so the
+second game's Slow is its spell 29.
+
+| key | indexed by | entries | entry | the number a cast takes |
+|---|---|---|---|---|
+| `power` | skill level plus Mind | 1..511 | 0..255 | the cast power |
+| `damage_factor` | power | 1..256 | 0..30000 | each damage column times the entry / 30 |
+| `range_bonus` | power | 1..256 | 0..255 | the range column plus the entry, at most 255 |
+| `duration_factor` | power | 1..256 | 0..1000000 | the duration column × 16 × the entry / 1000 ticks, at most 65535 |
+| `magnitude` | power | 1..256 | -32768..32767 | the effect's magnitude |
+
+An index past the last entry reads the last entry. A row's table wins over
+the `[global]` one, and each table is set by one mod. Without a table every
+number is the game's own: power is skill level plus Mind less 30, held to
+0..255; the second game's damage is each column × (power + 30) / 30, the
+table that keeps it being entry n = n + 30. Invisibility's duration base is 3
+in both games, whatever its column holds; without a table the second game's
+Invisibility lasts power × 16 ticks.
+
+Which spells read a table:
+
+- `damage_factor`: a spell with a damage or healing pair.
+- `range_bonus`: a spell whose range is above 0.
+- `duration_factor`: the protections, Invisibility, Shield, Bless, Curse,
+  Haste and Slow in both games; Stone Curse in the first game; Poison Cloud
+  in the second game.
+- `magnitude`: the protections, Shield, Haste, Slow, Light, Darkness, Bless,
+  Curse and Poison Cloud in both games; Freezing Cloud in the first game.
+
+No table reaches an area's life, the Prismatic Spray rays (`rays` caps
+them) or the second game's Stone Curse duration, which a cast draws from 0
+up to power × 480 / 100 ticks (half that from a scroll or a weapon) times
+(100 − the target's Earth protection) / 100; a `[global]`
+`duration_factor` leaves that Stone Curse unchanged.
+
+The mod check refuses, naming the mod, the file and the line:
+
+- `KEY has N entries, want 1..M` and `KEY entry I is V, outside LO..HI`;
+- `NAME has no damage or healing pair, so damage_factor does not apply to it`;
+- `NAME has range 0, so range_bonus does not apply to it`;
+- `NAME has no power-scaled duration, so duration_factor does not apply to it`;
+- `NAME draws its duration from 0 up to a ceiling of power in this game, so
+  duration_factor does not apply to it`: the second game's Stone Curse;
+- `NAME has no power-scaled magnitude, so magnitude does not apply to it`;
+- `magnitude has no [global] table`.
+
 ## Weapon bodies
 
 `data/wpnbodies.toml` holds `[[weapon]]` tables. Each draws one weapon row
