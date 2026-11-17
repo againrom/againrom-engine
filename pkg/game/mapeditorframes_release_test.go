@@ -19,8 +19,8 @@ import (
 
 // writeEditorFrame draws the editor headless, checks that the window's text
 // overlay keeps every glyph outside cover, the hover lines, the open menu's
-// list and a window the chrome drew after the glyph, and writes the frame as a
-// PNG to path when write is set. A glyph its own window's parts hide fails.
+// list, a window the chrome drew after the glyph and a card glyph an input
+// replaces, and writes the frame as a PNG to path when write is set. A glyph its own window's parts hide fails.
 func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
 	t.Helper()
 	screen := ebiten.NewImage(1280, 800)
@@ -36,8 +36,18 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 	}
 	covers := append(e.PopupTipRects(), cover, menu)
 	windows := e.ChromeWindows()
+	var inputs []image.Rectangle
+	for n := 0; ; n++ {
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
+		if !ok && n > 200 {
+			break
+		}
+		if ok {
+			inputs = append(inputs, r)
+		}
+	}
 	for i, ft := range e.TextFates() {
-		if ft.Fate == textsmooth.Hidden && (slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) || underLaterWindow(ft.Call, i, windows)) {
+		if ft.Fate == textsmooth.Hidden && (slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) || underLaterWindow(ft.Call, i, windows) || underCardInput(ft.Call, inputs)) {
 			continue
 		}
 		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Repeat {
@@ -52,6 +62,29 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 		return
 	}
 	witness.PNG(t, path, pic)
+}
+
+// underCardInput reports whether c is a scaled card glyph whose cells all lie
+// under an input or outside its clip.
+func underCardInput(c text.DrawCall, inputs []image.Rectangle) bool {
+	g, k := c.Glyph, c.Times()
+	if g == nil || g.Width <= 0 || k < 2 {
+		return false
+	}
+	for n, p := range g.Pixels[:min(len(g.Pixels), g.Width*g.Height)] {
+		if !p.Painted {
+			continue
+		}
+		at := image.Pt(c.X+n%g.Width*k, c.Y+n/g.Width*k)
+		block := image.Rect(at.X, at.Y, at.X+k, at.Y+k)
+		if !c.Clip.Empty() && block.Intersect(c.Clip).Empty() {
+			continue
+		}
+		if !slices.ContainsFunc(inputs, at.In) {
+			return false
+		}
+	}
+	return true
 }
 
 // underLaterWindow reports whether every painted cell of glyph call c, the

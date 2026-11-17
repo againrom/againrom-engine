@@ -109,17 +109,29 @@ func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	rec := recordOf(e.Document(), "Unit", i)
 	e.Select(rec, true)
 	typer := overrideTyper{t: t, c: c, e: e, i: i, decode: x.messageUTF8}
-	vitals := x.inspectionUTF8(x.word("editor.unit.group.vitals"))
-	sectionTo(t, c, e, vitals)
+	vitals := func() {
+		t.Helper()
+		fields := objectEdits(t, e).Fields("Unit", i)
+		n := fieldIndex(t, fields, "hp")
+		typer.section(fields[n].Section)
+		e.ScrollDetails(-1000)
+		for k := 0; k < 60; k++ {
+			if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n}); ok {
+				break
+			}
+			e.ScrollDetails(1)
+		}
+	}
+	vitals()
 	shot(e, "unit-inherited")
 	typer.set("body", 40)
 	typer.set("hp", 50)
 	e.Select(rec, true)
-	sectionTo(t, c, e, vitals)
+	vitals()
 	shot(e, "unit-overridden")
 	typer.text("hp", "0")
 	e.Select(rec, true)
-	sectionTo(t, c, e, vitals)
+	vitals()
 	shot(e, "unit-health0")
 	_ = e.Key("escape")
 	e.ShowCell(e.Document().Records[rec].Cell)
