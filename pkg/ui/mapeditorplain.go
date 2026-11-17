@@ -9,62 +9,44 @@ import (
 	"strings"
 )
 
-// The object window shows a unit, a structure or a sack in one of two
-// views. The detailed view (the profile's "technical") is every field as
-// the host lists it. The basic view (the profile's "plain") shows fields,
-// built by the same row builder, in the order and the blocks of the record
-// kind's plain table, under plain words; a field the table leaves out
-// stands in the detailed view only. A unit's basic view is its character
-// card drawn larger, each stat the card draws an input at its place. The
-// switch changes what shows, never a value: both views edit the one draft
-// and Apply writes it through applyObject.
+// The object window shows a structure or a sack in one of two views. The
+// detailed view (the profile's "technical") is every field as the host lists
+// it. The basic view (the profile's "plain") shows fields, built by the same
+// row builder, in the order and the blocks of the record kind's plain table,
+// under plain words; a field the table leaves out stands in the detailed view
+// only. A unit's window has no plain table: its normal mode is its detailed
+// one with parts left out. The switch changes what shows, never a value: both
+// views edit the one draft and Apply writes it through applyObject.
 
 // plainShow is how the plain view presents a table row.
 type plainShow uint8
 
 const (
-	plainField    plainShow = iota // the field's own control
-	plainItem                      // the field's control showing the item's name and picture
-	plainCode                      // a line stating the field's number; the control stands elsewhere
-	plainBits                      // the field's control, then its word and known bits
-	plainName                      // the field's control, or a line with the card's name when the host gives none
-	plainUses                      // the script nodes that name the record
-	plainPanel                     // the field's input on the card, at the place the card draws its panel field
-	plainCorner                    // the field's pad in the lower left corner beside the card
-	plainPanelMax                  // the field's input on the second number of the card's pair
+	plainField plainShow = iota // the field's own control
+	plainItem                   // the field's control showing the item's name and picture
+	plainCode                   // a line stating the field's number; the control stands elsewhere
+	plainBits                   // the field's control, then its word and known bits
+	plainUses                   // the script nodes that name the record
 )
 
 // plainBlock is one block of a plain view: the word of its heading, none
 // for the block the window opens with; fold marks a block that opens and
-// closes, closed at first; groups keeps the fields' group headings in it;
-// card marks the block whose rows stand on the character card, drawn
-// cardScale times its size under the rows.
+// closes, closed at first; groups keeps the fields' group headings in it.
 type plainBlock struct {
 	id, word     string
 	fold, groups bool
-	card         bool
 }
-
-// cardScale is the size of the card a card block stands on, in times the
-// character panel's own: a line of the panel then holds the editor's text
-// field in the body font.
-const cardScale = 2
 
 // plainRow is one row of a record kind's plain table. Key names the field:
 // a "#" in it stands for a number, a final "*" for any rest; an empty key is
 // a row no field fills. Word is the plain label's word id, "" for the
-// field's own label; a "%d" in it takes the key's number. Panel is the
-// card's field a plainPanel row edits. Rows sort by block, then order, then
-// the key's number, then the host's field order.
+// field's own label; a "%d" in it takes the key's number. Rows sort by
+// block, then order, then the key's number, then the host's field order.
 type plainRow struct {
 	key, word string
 	order     int
 	block     string
 	show      plainShow
-	panel     PanelField
-	// digits is the digit count of the field's largest value when a card
-	// input must hold more than the four digits every card input holds.
-	digits int
 }
 
 // plainView is a record kind's plain table: its blocks in window order, its
@@ -77,46 +59,6 @@ type plainView struct {
 }
 
 var plainViews = map[RecordKind]plainView{
-	KindUnit: {
-		// The name, the player and the group, then who the unit is, which
-		// gives the card's lower part its template. Every stat the card
-		// draws stands on it; equipment, the bag, the look, the resolved
-		// values, the overrides and the map file fields stand in the
-		// detailed view only.
-		blocks: []plainBlock{
-			{id: "main"},
-			{id: "card", card: true},
-		},
-		rows: []plainRow{
-			{key: "name", word: "editor.plain.name", order: 1, block: "main", show: plainName},
-			{key: "owner", word: "editor.plain.player", order: 2, block: "main"},
-			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
-			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
-			{key: "level", order: 5, block: "main"},
-			{key: "facing", word: "editor.unit.field.facing", order: 6, block: "main", show: plainCorner},
-			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth, digits: 5},
-			{key: "hpmax", block: "card", show: plainPanelMax, panel: PanelFieldHealth, digits: 5},
-			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard, digits: 5},
-			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
-			{key: "reaction", block: "card", show: plainPanel, panel: PanelFieldReaction},
-			{key: "mind", block: "card", show: plainPanel, panel: PanelFieldMind},
-			{key: "spirit", block: "card", show: plainPanel, panel: PanelFieldSpirit},
-			{key: "absorption", block: "card", show: plainPanel, panel: PanelFieldAbsorption},
-			{key: "defence", block: "card", show: plainPanel, panel: PanelFieldDefence},
-			{key: "sight", block: "card", show: plainPanel, panel: PanelFieldSight},
-			{key: "speed", block: "card", show: plainPanel, panel: PanelFieldMoveSpeed},
-			{key: "skill.blade", block: "card", show: plainPanel, panel: PanelFieldSkillBlade},
-			{key: "skill.axe", block: "card", show: plainPanel, panel: PanelFieldSkillAxe},
-			{key: "skill.bludgeon", block: "card", show: plainPanel, panel: PanelFieldSkillBludgeon},
-			{key: "skill.pike", block: "card", show: plainPanel, panel: PanelFieldSkillPike},
-			{key: "skill.shooting", block: "card", show: plainPanel, panel: PanelFieldSkillShooting},
-			{key: "protection.fire", block: "card", show: plainPanel, panel: PanelFieldProtFire},
-			{key: "protection.water", block: "card", show: plainPanel, panel: PanelFieldProtWater},
-			{key: "protection.air", block: "card", show: plainPanel, panel: PanelFieldProtAir},
-			{key: "protection.earth", block: "card", show: plainPanel, panel: PanelFieldProtEarth},
-			{key: "protection.astral", block: "card", show: plainPanel, panel: PanelFieldProtAstral},
-		},
-	},
 	KindStructure: {
 		blocks: []plainBlock{
 			{id: "main"},
@@ -207,7 +149,7 @@ func plainEntries(v plainView, fields []InspectionField) []plainEntry {
 	var out []plainEntry
 	edited := map[int]bool{}
 	for r, row := range v.rows {
-		if row.key == "" || row.show == plainName && !slices.ContainsFunc(fields, func(f InspectionField) bool { return f.Key == row.key }) {
+		if row.key == "" {
 			out = append(out, plainEntry{row: r, field: -1, block: row.block})
 			continue
 		}
@@ -276,14 +218,30 @@ func (e *MapEditor) plainTable() (plainView, bool) {
 // plainOffer is the plain table of the shown record's window, whichever
 // view is chosen: the window that shows the switch.
 func (e *MapEditor) plainOffer() (plainView, bool) {
-	if e.modWindow || e.messagePage != 0 || e.doc == nil || e.selected < 0 || e.selected >= len(e.doc.Records) {
+	kind, ok := e.ownWindow()
+	if !ok {
 		return plainView{}, false
+	}
+	v, ok := plainViews[kind]
+	return v, ok
+}
+
+// ownWindow is the kind of the record whose own object window shows.
+func (e *MapEditor) ownWindow() (RecordKind, bool) {
+	if e.modWindow || e.messagePage != 0 || e.doc == nil || e.selected < 0 || e.selected >= len(e.doc.Records) {
+		return "", false
 	}
 	if _, ok := e.scriptPopup(); ok {
-		return plainView{}, false
+		return "", false
 	}
-	v, ok := plainViews[e.doc.Records[e.selected].Kind]
-	return v, ok
+	return e.doc.Records[e.selected].Kind, true
+}
+
+// unitWindowShown reports that the unit window shows: a unit's own window
+// whose host gives its fields sections.
+func (e *MapEditor) unitWindowShown() bool {
+	kind, ok := e.ownWindow()
+	return ok && kind == KindUnit && e.nativeUnitWindow()
 }
 
 // switchView turns the object window to the other view and keeps the
@@ -314,18 +272,29 @@ func (e *MapEditor) controlViewSwitchRect() (image.Rectangle, bool) {
 	return layoutPopup(s, e.font, e.bodyFont()).SwitchButton, true
 }
 
-// PlainView reports that the object window shows its plain view.
+// PlainView reports that the object window shows its plain view, or the
+// unit window its normal mode. It loads the shown record's fields, which
+// name the unit window, and builds no window.
 func (e *MapEditor) PlainView() bool {
+	if _, ok := e.ownWindow(); ok {
+		e.loadObject()
+	}
 	_, ok := e.plainTable()
-	return ok
+	return ok || e.props.plain && e.unitWindowShown()
+}
+
+// viewOffered reports that the shown record's window offers the view
+// switch: a plain table's, or the unit window's two modes.
+func (e *MapEditor) viewOffered() bool {
+	_, ok := e.plainOffer()
+	return ok || e.unitWindowShown()
 }
 
 // PlainFieldBlocks names, for each field of the shown object window, the
 // block of the plain view whose table row edits it; a field the table does
 // not name maps to "" and stands in the table's rest block, or in the
-// detailed view only when the table has none. A card field maps to its
-// block while the basic view shows its input on the card, to "" when the
-// card does not draw it. It is nil when the window has no plain view.
+// detailed view only when the table has none. It is nil when the window has
+// no plain view.
 func (e *MapEditor) PlainFieldBlocks() map[string]string {
 	e.objectSpec()
 	v, ok := e.plainOffer()
@@ -342,11 +311,6 @@ func (e *MapEditor) PlainFieldBlocks() map[string]string {
 		switch {
 		case p.rest:
 			out[key] = ""
-		case v.rows[p.row].show == plainPanel || v.rows[p.row].show == plainPanelMax:
-			out[key] = ""
-			if e.props.plain && e.fieldRow(p.field) >= 0 {
-				out[key] = p.block
-			}
 		case v.rows[p.row].show != plainCode:
 			out[key] = p.block
 		}
@@ -391,7 +355,6 @@ func (e *MapEditor) toggleBlock(id string) {
 func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, field func(i int, label string, heads bool) int, textWidth int) {
 	o := &e.obj
 	o.rowBlock = map[int]string{}
-	native := e.nativeUnitWindow()
 	entries := plainEntries(v, o.fields)
 	record := e.doc.Records[e.selected]
 	shown := ""
@@ -401,12 +364,6 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 			continue
 		}
 		b := v.blocks[at]
-		if p.field >= 0 && native && o.fields[p.field].Parent != "" && o.fields[p.field].Parent != o.detail {
-			continue
-		}
-		if b.card {
-			continue
-		}
 		if p.block != shown {
 			shown = p.block
 			switch {
@@ -434,16 +391,7 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 		text := func(value string) {
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value}), append(*links, 0)
 		}
-		show := row.show
-		if show == plainName && p.field >= 0 {
-			show = plainField
-		}
-		switch show {
-		case plainName:
-			if s.Card != nil && s.Card.Name != "" {
-				text(s.Card.Name)
-				s.Rows[len(s.Rows)-1].Tip = fmt.Sprintf(e.word("editor.plain.fixed"), label+" "+s.Card.Name)
-			}
+		switch row.show {
 		case plainUses:
 			if e.hasUsedBy() {
 				e.scriptLinkSection(s, links, e.word("editor.usedby.title"), e.usedByRows())
@@ -460,9 +408,6 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 			if row.show == plainItem {
 				e.plainItemRow(&s.Rows[n], p.field)
 			}
-			if row.show == plainCorner {
-				e.plainCornerRow(s, links, n)
-			}
 			if row.show == plainBits {
 				for _, line := range e.placementLines(p.field) {
 					for _, part := range editorTextLines(e.bodyFont(), line, textWidth) {
@@ -470,242 +415,6 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 					}
 				}
 			}
-		}
-	}
-	if slices.ContainsFunc(v.blocks, func(b plainBlock) bool { return b.card }) && s.Card != nil {
-		e.plainCardRows(s, links, v, e.cardEntries(v), field, textWidth)
-		s.CardBelow = true
-		// The window's own script uses stand in the detailed view.
-		o.usesShown = true
-	}
-}
-
-// heldCardRows adds the detailed view's card block at the end of the
-// identity column: its heading, the row that holds the card, the card's
-// inputs as plainCardRows stands them and the card fields the card does not
-// draw; then the row under the equipment that holds the figure.
-func (e *MapEditor) heldCardRows(s *popupSpec, links *[]int, v plainView, field func(i int, label string, heads bool) int, textWidth int) {
-	pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
-	lines := func(h int) int { return max(1, (h+pitch-1)/pitch) }
-	identity := personColumn("identity", s.Columns)
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.person." + cardSection), Column: identity}), append(*links, 0)
-	s.CardScale = cardScale
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdCard, Lines: lines(cardSize(specWindow(*s)).Y), Column: identity}), append(*links, 0)
-	start, entries := len(s.Rows), e.cardEntries(v)
-	e.plainCardRows(s, links, v, entries, field, textWidth)
-	// A card field the card does not draw stands as its own row under the
-	// card.
-	for _, p := range entries {
-		if p.field >= 0 && e.fieldRow(p.field) < 0 {
-			field(p.field, "", true)
-		}
-	}
-	for k := start; k < len(s.Rows); k++ {
-		s.Rows[k].Column = identity
-	}
-	figure := popupRow{Kind: popupText, Hold: holdFigure, Lines: lines(e.unitFigureSize().Y), Column: personColumn("equipment", s.Columns)}
-	s.Rows, *links = append(s.Rows, figure), append(*links, 0)
-}
-
-// cardEntries are the entries of v's card block that the shown record's
-// window shows: both views stand them on the card.
-func (e *MapEditor) cardEntries(v plainView) []plainEntry {
-	o := &e.obj
-	record := e.doc.Records[e.selected]
-	native := e.nativeUnitWindow()
-	var out []plainEntry
-	for _, p := range plainEntries(v, o.fields) {
-		at := slices.IndexFunc(v.blocks, func(b plainBlock) bool { return b.id == p.block })
-		if at < 0 || !v.blocks[at].card || p.field >= 0 && hiddenField(record, o.fields[p.field]) {
-			continue
-		}
-		if p.field >= 0 && native && o.fields[p.field].Parent != "" && o.fields[p.field].Parent != o.detail {
-			continue
-		}
-		out = append(out, p)
-	}
-	return out
-}
-
-// plainCornerRow stands row n, a pad, in the lower left corner of the room
-// beside the card, its label over its buttons; the lines its field added
-// after it become its tip. Without a card, or under a figure too tall to
-// leave the corner room, the row stays among the rows.
-func (e *MapEditor) plainCornerRow(s *popupSpec, links *[]int, n int) {
-	row := &s.Rows[n]
-	if s.Card == nil || row.Kind != popupDirection {
-		return
-	}
-	pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
-	w := 3 * pitch
-	if body := e.bodyFont(); body != nil {
-		w = max(w, body.Advance(row.Label)+4)
-	}
-	bottom := compactPanelH * cardScale
-	if e.unitFigureSize().Y+popupPad+4*pitch > bottom {
-		return // the figure above leaves the corner no room
-	}
-	tip := []string{row.Tip}
-	for _, r := range s.Rows[n+1:] {
-		tip = append(tip, r.Label)
-	}
-	s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
-	row = &s.Rows[n]
-	row.Place, row.RestLeft = image.Rect(0, bottom-4*pitch, w, bottom), true
-	row.Tip = strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
-}
-
-// plainCardRows stands the card block's rows on the window's card, drawn
-// cardScale times its size: under the rows in the plain view, at the row
-// that holds it in the detailed view. Each cell the card draws with a
-// value becomes a row at the cell's place, read from the card's own line
-// report: the input of the field whose table row names the cell's panel
-// field, built by field, or else a line stating the value the map does not
-// store. A card field the card does not draw has no row here.
-func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entries []plainEntry, field func(i int, label string, heads bool) int, textWidth int) {
-	o := &e.obj
-	if s.Card == nil {
-		return
-	}
-	s.CardScale = cardScale
-	font, body := s.CardFont, e.bodyFont()
-	if font == nil {
-		font = body
-	}
-	if font == nil {
-		return
-	}
-	edits, maxEdits, digits := map[PanelField]int{}, map[PanelField]int{}, map[int]int{}
-	for _, p := range entries {
-		if p.field < 0 || p.rest || o.fields[p.field].ReadOnly {
-			continue
-		}
-		digits[p.field] = v.rows[p.row].digits
-		switch v.rows[p.row].show {
-		case plainPanel:
-			edits[v.rows[p.row].panel] = p.field
-		case plainPanelMax:
-			maxEdits[v.rows[p.row].panel] = p.field
-		}
-	}
-	layout := CompactPanelLayout(nil)
-	lineH := font.Height() + layout.Gap
-	// An input holds four digits of the window's own font, or the digits
-	// of its field's largest value when that has more.
-	holds := func(i int) int {
-		if body == nil {
-			return 0
-		}
-		return body.Advance(strings.Repeat("0", max(4, digits[i]))) + 2*editTextX
-	}
-	// A stat whose stored value differs from the card's value, the one the
-	// game uses, is stated in words beside the card.
-	var differ []string
-	// input stands field i's row on box, where the card states number; it
-	// reports false when the field has no row.
-	input := func(i int, label, number string, box image.Rectangle, start, limit int) bool {
-		n := field(i, "", false)
-		if n < 0 {
-			return false
-		}
-		// The card states the value; the row is its input, the field's
-		// notes its tip.
-		tip := []string{e.editorHostText(o.fields[i].Label)}
-		if o.fields[i].Inherit {
-			tip = append(tip, e.groupNote(o.fields[i].Group))
-		}
-		var meaning []string
-		if h := s.Rows[n].Help; h != "" {
-			tip, meaning = append(tip, h), append(meaning, h)
-		}
-		for _, r := range s.Rows[n+1:] {
-			tip = append(tip, r.Label)
-			meaning = append(meaning, r.Label)
-		}
-		s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
-		row := &s.Rows[n]
-		least := holds(i)
-		box.Min.X = max(min(box.Min.X, limit-least), start)
-		box.Max.X = min(max(box.Max.X, box.Min.X+least), limit)
-		box.Min.Y++
-		box.Max.Y--
-		row.Place, row.Buttons, row.Tip = box, nil, strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
-		if stored := strings.TrimSpace(row.Value); stored != "" && !sameNumber(stored, number) {
-			name := strings.TrimSpace(label)
-			if name == "" {
-				name = e.editorHostText(o.fields[i].Label)
-			}
-			why := strings.Join(meaning, " ")
-			if why == "" {
-				why = fmt.Sprintf(e.word("editor.plain.derived"), number)
-			}
-			differ = append(differ, name+": "+why)
-		}
-		return true
-	}
-	cell := func(f PanelField, label, value string, pen, start, end, y int) {
-		if value == "" {
-			return
-		}
-		// A pair such as health's hp/max has an input on each number when
-		// the map stores both.
-		number, rest, pair := strings.Cut(value, "/")
-		box := image.Rectangle{Min: image.Pt(pen, y).Mul(cardScale), Max: image.Pt(pen+font.Advance(number), y+lineH).Mul(cardScale)}
-		if !pair {
-			box.Max.X = (pen + font.Advance(value)) * cardScale
-		}
-		limit := end * cardScale
-		if pair {
-			limit = min(limit, box.Max.X)
-		}
-		// The second input stands after the "/" and may reach the card's
-		// edge when the cell ends there; when that room cannot hold it, it
-		// takes the room and the first input ends before it.
-		second := image.Rectangle{Min: image.Pt(pen+font.Advance(number+"/"), y).Mul(cardScale), Max: image.Pt(pen+font.Advance(value), y+lineH).Mul(cardScale)}
-		reach := end * cardScale
-		if end == layout.Size.X-layout.Pad.X {
-			reach = layout.Size.X * cardScale
-		}
-		secondMax, hasMax := maxEdits[f]
-		hasMax = hasMax && pair
-		secondStart := second.Min.X
-		if hasMax {
-			secondStart = min(secondStart, reach-holds(secondMax))
-			limit = min(limit, secondStart)
-		}
-		if i, ok := edits[f]; ok && input(i, label, number, box, start*cardScale, limit) {
-			if hasMax {
-				input(secondMax, "", rest, second, secondStart, reach)
-			}
-			return
-		}
-		s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value, Place: box,
-			Tip: fmt.Sprintf(e.word("editor.plain.fixed"), strings.TrimSpace(label+" "+value))}), append(*links, 0)
-	}
-	for _, r := range CharacterPanelReport(layout, font, *s.Card) {
-		left := r.At.X + r.Indent
-		labelEnd := left
-		if r.Label != "" {
-			width, _ := font.Measure(r.Label)
-			labelEnd += width + layout.LabelGap
-		}
-		end := layout.Size.X - layout.Pad.X
-		if r.Right {
-			end = r.At.X + r.RightX - max(1, layout.ColumnGap/2)
-		}
-		cell(r.Field, r.Label, r.Value, left+r.ValueX, labelEnd, end, r.At.Y)
-		if r.Right {
-			right := r.At.X + r.RightX
-			if r.RightLabel != "" {
-				width, _ := font.Measure(r.RightLabel)
-				right += width + layout.LabelGap
-			}
-			cell(r.RightField, r.RightLabel, r.RightValue, r.At.X+r.RightX+r.RightValueX, right, layout.Size.X-layout.Pad.X, r.At.Y)
-		}
-	}
-	for _, line := range differ {
-		for _, part := range editorTextLines(body, line, textWidth) {
-			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
 		}
 	}
 }

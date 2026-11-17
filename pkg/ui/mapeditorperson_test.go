@@ -67,6 +67,9 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 							t.Fatal("pinned control outside popup", r)
 						}
 					}
+					// The wide window shows every slot without a section to
+					// choose; the probe's stats the card does not draw stand
+					// under the card and scroll the columns with them.
 					if size.X == 1280 && section == 0 {
 						for slot := 1; slot <= 12; slot++ {
 							key := fmt.Sprintf("wear%d", slot)
@@ -76,8 +79,14 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 									at = i
 								}
 							}
-							r, ok := e.FindControl(ControlQuery{Role: ControlField, N: at})
-							if !ok || r.Empty() {
+							found := false
+							for top := 0; top < len(s.Rows) && !found; top++ {
+								e.objectTop = top
+								r, ok := e.FindControl(ControlQuery{Role: ControlField, N: at})
+								found = ok && !r.Empty()
+							}
+							e.objectTop = 0
+							if !found {
 								t.Fatal("wide setup hides slot", slot)
 							}
 						}
@@ -86,12 +95,18 @@ func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 					if pic == nil || pic.Bounds().Size() != size {
 						t.Fatal("person painter size")
 					}
-					doll := image.NewRGBA(pic.Bounds())
-					e.drawObjectPreview(doll, s)
+					// The doll shows at some top of the window's one scroll.
 					painted := false
-					for at := 0; at < len(doll.Pix); at += 4 {
-						painted = painted || doll.Pix[at+3] != 0
+					for top := 0; top < len(s.Rows) && !painted; top++ {
+						e.objectTop = top
+						s, _, _ = e.objectSpec()
+						doll := image.NewRGBA(pic.Bounds())
+						e.drawObjectPreview(doll, s)
+						for at := 0; at < len(doll.Pix); at += 4 {
+							painted = painted || doll.Pix[at+3] != 0
+						}
 					}
+					e.objectTop = 0
 					if !painted {
 						t.Fatal("pinned doll not painted", size, section)
 					}

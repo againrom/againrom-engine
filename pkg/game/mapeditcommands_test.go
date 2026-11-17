@@ -543,10 +543,12 @@ func TestMapEditorCommandsRefuseZeroInAnInheritingField(t *testing.T) {
 	}
 	start := bytes.Clone(w.Document().SourceBytes)
 	w.Select(0, true)
-	if err := enterField(w, at, "0"); err == nil || !bytes.Equal(start, w.Document().SourceBytes) {
+	err := enterField(w, at, "0")
+	if err == nil || !bytes.Equal(start, w.Document().SourceBytes) {
 		t.Fatal("the window's field prompt took the 0")
 	}
-	want := w.Message()
+	// The unit window says the refusal in its own note.
+	want := err.Error()
 	if !strings.Contains(want, "inherit") {
 		t.Fatalf("the window says %q", want)
 	}

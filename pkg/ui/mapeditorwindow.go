@@ -1378,16 +1378,8 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		}
 		e.obj.data = -1
 		e.viewSwitchButton(&s)
-		if aside := e.hostedAside(s); aside > 0 {
-			s.Width += aside + popupPad
-		}
-		// Each view takes the size its rows need: the plain view the least
-		// width that holds them, the card and the figure, the detailed view
-		// the widest; both every row high, scrolled only where the room is
+		// Each mode stands every row high, scrolled only where the room is
 		// lower.
-		if e.PlainView() {
-			s.Width = popupMinWidth(specWindow(s), e.bodyFont())
-		}
 		room := e.popupRoom().Dy() - 16
 		l := layoutPopup(s, e.font, e.bodyFont())
 		height := figureHeight(s, l, e.unitFigureSize())
@@ -1396,20 +1388,17 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 			naturalSize(&s, image.Pt(s.Width, min(height, room)))
 			s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		}
-		natural := s
+		// A room lower than the held card's column down to the card's end
+		// stands the card in the band under the rows, which scrolls with
+		// them.
+		chrome := l.Rect.Dy() - l.RowsViewport.Dy()
+		if !e.obj.band && cardPastRoom(s.Rows, l.Pitch, room-chrome) {
+			e.obj.band = true
+			defer func() { e.obj.band = false }()
+			return e.objectSpecRows()
+		}
 		if height != l.Rect.Dy() || height > room {
 			fit(height)
-		}
-		if e.PlainView() && s.Card != nil && s.CardBelow && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > room {
-			// A room lower than the card band scrolls the band with the
-			// rows, in the window's one scroll; the band holds the card and
-			// the figure whole, at the game's size.
-			pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
-			s = natural
-			s.BandLines = (max(cardSize(specWindow(s)).Y, e.unitFigureSize().Y) + 2*popupPad + pitch - 1) / pitch
-			s.MaxRows = 0
-			s.Width = popupMinWidth(specWindow(s), e.bodyFont())
-			fit(layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
 		}
 		e.clampObjectTop(&s, popupRowCount(specWindow(s)))
 		return s, links, true

@@ -143,15 +143,16 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 
 // gameFieldShapes places every field shape the game's host gives the
 // fixture's unit, structure and sack: the block of the plain view whose row
-// edits it, "card" for an input on the unit's card, "" for a field only the
-// detailed view shows. A shape the host adds fails here until the plain
-// table and this table place it.
+// edits it; for the unit window's normal mode "card" for an input on the
+// card, else the row's section; "" for a field only the detailed view
+// shows. A shape the host adds fails here until the window and this table
+// place it.
 var gameFieldShapes = map[ui.RecordKind]map[string]string{
 	ui.KindUnit: {
-		"identity": "main", "name": "main", "owner": "main", "group": "main",
+		"identity": "identity", "name": "card", "owner": "identity", "group": "identity",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
-		"speed": "card", "sight": "card", "facing": "main",
+		"speed": "card", "sight": "card", "facing": "identity",
 		"hpmax": "card", "face": "", "sex": "", "gold": "", "noloot": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
 		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "loot": "",
@@ -202,6 +203,9 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 		c := &editorClicker{t: t}
 		plain := viewsWindow(t, s, true, kind)
 		blocks := plain.PlainFieldBlocks()
+		if kind == ui.KindUnit {
+			blocks = plain.UnitFieldPlaces()
+		}
 		openBlocks(t, plain, c)
 		fields := plain.ObjectFields()
 		if len(fields) == 0 {
@@ -351,7 +355,7 @@ func TestEditorViewsWriteTheSameBytes(t *testing.T) {
 			e := viewsWindow(t, s, mode != "technical", edit.kind)
 			if mode == "plain" {
 				openBlocks(t, e, c)
-				if block := e.PlainFieldBlocks()[edit.key]; edit.kind == ui.KindUnit && block != "card" {
+				if block := e.UnitFieldPlaces()[edit.key]; edit.kind == ui.KindUnit && block != "card" {
 					t.Fatalf("the unit's %s stands in block %q, not on the card", edit.key, block)
 				}
 			}

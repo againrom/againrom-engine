@@ -165,8 +165,9 @@ func TestEditorDetailedUnitWindowIsAsWideAsItsContent(t *testing.T) {
 			continue
 		}
 		bar := widgetSpriteSize + 2
-		if want := s.Columns * personColumnWidth; l.Rect.Dx() < want || l.Rect.Dx() > want+2*popupPad+bar || l.Rect.Dx() >= size.X-100 {
-			t.Errorf("%v: window %v is not as wide as its %d columns of %d need", size, l.Rect, s.Columns, personColumnWidth)
+		column := e.unitColumnWidth(s)
+		if want := s.Columns * column; l.Rect.Dx() < want || l.Rect.Dx() > want+2*popupPad+bar || l.Rect.Dx() >= size.X-100 {
+			t.Errorf("%v: window %v is not as wide as its %d columns of %d need", size, l.Rect, s.Columns, column)
 		}
 		for _, rr := range l.Rows {
 			if !rr.Rect.In(l.Rect) {

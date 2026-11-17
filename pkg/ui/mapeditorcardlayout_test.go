@@ -64,7 +64,7 @@ func TestEditorCardInputsKeepClearOfLabelsAndEdges(t *testing.T) {
 						t.Fatal("health/mana no longer follow the game's heading/value rows")
 					}
 					for _, rr := range l.Rows {
-						if rr.Control.Empty() {
+						if rr.Control.Empty() || s.Rows[rr.Index].Hold != holdNone {
 							continue
 						}
 						if !s.Rows[rr.Index].placed() {
@@ -89,7 +89,7 @@ func TestEditorCardInputsKeepClearOfLabelsAndEdges(t *testing.T) {
 						}
 						boxes = append(boxes, box)
 					}
-					if plain && len(boxes) != len(cardKeys)+len(motion) || !plain && len(boxes) != 0 {
+					if len(boxes) != len(cardKeys)+len(motion) {
 						t.Fatal("unexpected card input count", len(boxes))
 					}
 				})

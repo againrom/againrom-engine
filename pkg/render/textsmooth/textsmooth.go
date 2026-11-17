@@ -198,7 +198,8 @@ func composite(dst *image.RGBA, calls []text.DrawCall, scale, originX, originY f
 		if g == nil || g.Width <= 0 || g.Height <= 0 {
 			continue
 		}
-		rect := TargetRect(call.X, call.Y, g.Width, g.Height, scale, originX, originY)
+		size := call.Size()
+		rect := TargetRect(call.X, call.Y, size.X, size.Y, scale, originX, originY)
 		dw, dh := rect.Dx(), rect.Dy()
 		if dw <= 0 || dh <= 0 {
 			continue
@@ -480,7 +481,7 @@ func (o Oracle) dimOf(call text.DrawCall, clip image.Rectangle) color.RGBA {
 		if !p.Painted {
 			continue
 		}
-		at := image.Pt(call.X+n%g.Width, call.Y+n/g.Width)
+		at := call.Cell(n)
 		if !at.In(clip) {
 			continue
 		}
@@ -493,6 +494,47 @@ func (o Oracle) dimOf(call text.DrawCall, clip image.Rectangle) color.RGBA {
 		}
 	}
 	return color.RGBA{}
+}
+
+// scaled is o reading a glyph drawn k times its size: a glyph cell is the k
+// by k block from (x, y), and it holds want only when every pixel does.
+func (o Oracle) scaled(k int) Oracle {
+	if k <= 1 {
+		return o
+	}
+	block := func(x, y int, each func(x, y int) Verdict) Verdict {
+		v := Matches
+		for dy := range k {
+			for dx := range k {
+				switch each(x+dx, y+dy) {
+				case Differs:
+					return Differs
+				case Unknown:
+					v = Unknown
+				}
+			}
+		}
+		return v
+	}
+	out := o
+	out.Cell = func(x, y int, want color.RGBA) Verdict {
+		return block(x, y, func(x, y int) Verdict { return o.Cell(x, y, want) })
+	}
+	if o.Tint != nil {
+		out.Tint = func(x, y int, want color.RGBA) (color.RGBA, Verdict) {
+			t, v := o.Tint(x, y, want)
+			if v != Matches {
+				return t, v
+			}
+			return t, block(x, y, func(x, y int) Verdict {
+				if u, v := o.Tint(x, y, want); v != Matches || u == t {
+					return v
+				}
+				return Differs
+			})
+		}
+	}
+	return out
 }
 
 // Explain settles every call and answers its outcome, in call order.
@@ -517,6 +559,7 @@ func Explain(calls []text.DrawCall, bounds image.Rectangle, o Oracle) (out []Out
 		flat bool
 		tint color.RGBA
 		over bool
+		k    int
 	}
 	out = make([]Outcome, len(calls))
 	settled := make([]bool, len(calls))
@@ -527,7 +570,7 @@ func Explain(calls []text.DrawCall, bounds image.Rectangle, o Oracle) (out []Out
 			out[i].Fate, settled[i] = Unrecorded, true
 			continue
 		}
-		k := key{g, call.X, call.Y, call.Color, call.Flat, call.Tint, call.SourceOver}
+		k := key{g, call.X, call.Y, call.Color, call.Flat, call.Tint, call.SourceOver, call.Times()}
 		if previous, ok := seen[k]; ok && slices.Equal(call.RasterColors, calls[previous].RasterColors) && (!call.SourceOver || slices.Equal(call.Under, calls[previous].Under)) {
 			out[i].Fate, settled[i] = Repeat, true
 			continue
@@ -544,6 +587,7 @@ func Explain(calls []text.DrawCall, bounds image.Rectangle, o Oracle) (out []Out
 		call := calls[i]
 		g := call.Glyph
 		clip := clipOf(call, bounds)
+		o := o.scaled(call.Times())
 		dim := o.dimOf(call, clip)
 		states = slices.Grow(states[:0], len(g.Pixels))[:len(g.Pixels)]
 		clear(states)
@@ -555,7 +599,7 @@ func Explain(calls []text.DrawCall, bounds image.Rectangle, o Oracle) (out []Out
 				continue
 			}
 			inked = true
-			at := image.Pt(call.X+n%g.Width, call.Y+n/g.Width)
+			at := call.Cell(n)
 			if !at.In(clip) {
 				continue
 			}
@@ -782,12 +826,13 @@ func (o *owners) at(p image.Point, bounds image.Rectangle) (color.RGBA, bool) {
 			if !px.Painted {
 				continue
 			}
-			at := image.Pt(call.X+n%call.Glyph.Width, call.Y+n/call.Glyph.Width)
-			if !at.In(clip) {
-				continue
-			}
-			if _, taken := o.cells[at]; !taken {
-				o.cells[at] = call.NativeColor(px.Level, n)
+			r := block(call, n, clip)
+			for y := r.Min.Y; y < r.Max.Y; y++ {
+				for x := r.Min.X; x < r.Max.X; x++ {
+					if _, taken := o.cells[image.Pt(x, y)]; !taken {
+						o.cells[image.Pt(x, y)] = call.NativeColor(px.Level, n)
+					}
+				}
 			}
 		}
 	}
@@ -808,10 +853,21 @@ func Erase(frame *image.RGBA, kept []text.DrawCall) {
 		}
 		clip := clipOf(call, b)
 		for i, p := range g.Pixels {
-			at := image.Pt(call.X+i%g.Width, call.Y+i/g.Width)
-			if p.Painted && at.In(clip) && (call.Mask == nil || call.Mask[i]) {
-				frame.SetRGBA(at.X, at.Y, call.Under[i])
+			if p.Painted && (call.Mask == nil || call.Mask[i]) {
+				r := block(call, i, clip)
+				for y := r.Min.Y; y < r.Max.Y; y++ {
+					for x := r.Min.X; x < r.Max.X; x++ {
+						frame.SetRGBA(x, y, call.Under[i])
+					}
+				}
 			}
 		}
 	}
+}
+
+// block is the frame pixels inside clip that glyph cell n of call paints:
+// one pixel, or a k by k block for a glyph drawn k times its size.
+func block(call text.DrawCall, n int, clip image.Rectangle) image.Rectangle {
+	at, k := call.Cell(n), call.Times()
+	return image.Rect(at.X, at.Y, at.X+k, at.Y+k).Intersect(clip)
 }

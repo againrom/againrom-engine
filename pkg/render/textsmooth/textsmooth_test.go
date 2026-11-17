@@ -170,6 +170,61 @@ func TestSettleKeepsOnlyGlyphsVisibleInTheFrame(t *testing.T) {
 	}
 }
 
+// A glyph of a picture blitted twice its size settles as one glyph drawn
+// twice its size: each cell is a 2 by 2 block of the frame, shown only when
+// every pixel of the block is, erased whole, and composited over the block.
+func TestSettleReadsAScaledGlyphByBlocks(t *testing.T) {
+	cell := text.Glyph{Width: 2, Height: 2, Advance: 3, Pixels: []text.Pixel{
+		{Level: text.MaxLevel, Painted: true}, {Level: text.MaxLevel, Painted: true},
+		{Level: text.MaxLevel, Painted: true}, {Level: text.MaxLevel, Painted: true}}}
+	font := &text.Font{Glyphs: make([]text.Glyph, 224)}
+	for i := range font.Glyphs {
+		font.Glyphs[i] = cell
+	}
+	back, ink, cover := color.RGBA{10, 20, 30, 255}, color.RGBA{200, 180, 120, 255}, color.RGBA{1, 2, 3, 255}
+	pic := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	frame := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	for _, img := range []*image.RGBA{pic, frame} {
+		for i := 0; i < len(img.Pix); i += 4 {
+			copy(img.Pix[i:], []uint8{back.R, back.G, back.B, back.A})
+		}
+	}
+	at := image.Pt(2, 2)
+	calls := text.Record(func() {
+		start := text.CapturedLen()
+		font.Draw(pic, "A", 0, 0, ink)
+		for y := range 4 {
+			for x := range 4 {
+				frame.SetRGBA(at.X+x, at.Y+y, pic.RGBAAt(x/2, y/2))
+			}
+		}
+		text.ScaleCaptured(start, at, 2, frame.Bounds())
+	})
+	if len(calls) != 1 || calls[0].Times() != 2 || calls[0].Size() != image.Pt(4, 4) {
+		t.Fatalf("recorded %v, want one glyph twice its size", calls)
+	}
+	frame.SetRGBA(at.X+3, at.Y+3, cover)
+	kept := Settle(frame, calls)
+	if len(kept) != 1 || kept[0].Mask == nil || !kept[0].Mask[0] || kept[0].Mask[3] {
+		t.Fatalf("Settle kept %v, want the glyph less its covered cell", kept)
+	}
+	for y := range 2 {
+		for x := range 2 {
+			if got := frame.RGBAAt(at.X+x, at.Y+y); got != back {
+				t.Errorf("cell 0 pixel (%d, %d) = %v after Settle, want the background", x, y, got)
+			}
+		}
+	}
+	if got := frame.RGBAAt(at.X+2, at.Y+2); got != ink {
+		t.Errorf("the covered cell's uncovered pixel = %v after Settle, want the ink it kept", got)
+	}
+	dst := image.NewRGBA(frame.Bounds())
+	Composite(dst, kept, 1, 0, 0)
+	if dst.RGBAAt(at.X+1, at.Y+1).A == 0 || dst.RGBAAt(at.X+2, at.Y).A == 0 || dst.RGBAAt(at.X+4, at.Y).A != 0 {
+		t.Error("the overlay does not paint the glyph over its 4 by 4 block")
+	}
+}
+
 // shadedFont is a font whose glyphs carry every shade level, so a resample
 // exercises partial coverage and the colour fields.
 func shadedFont() *text.Font {

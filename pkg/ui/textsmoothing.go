@@ -181,7 +181,7 @@ func sameCalls(a, b []text.DrawCall, under bool) bool {
 	}
 	for i := range a {
 		x, y := &a[i], &b[i]
-		if x.Glyph != y.Glyph || x.X != y.X || x.Y != y.Y || x.Color != y.Color || x.Flat != y.Flat ||
+		if x.Glyph != y.Glyph || x.X != y.X || x.Y != y.Y || x.Times() != y.Times() || x.Color != y.Color || x.Flat != y.Flat ||
 			x.Tint != y.Tint || x.Clip != y.Clip || x.Erased != y.Erased || x.SourceOver != y.SourceOver || !slices.Equal(x.Mask, y.Mask) || !slices.Equal(x.RasterColors, y.RasterColors) {
 			return false
 		}
@@ -213,7 +213,8 @@ func glyphBounds(calls []text.DrawCall) image.Rectangle {
 	var r image.Rectangle
 	for _, c := range calls {
 		if g := c.Glyph; g != nil && g.Width > 0 {
-			r = r.Union(image.Rect(c.X, c.Y, c.X+g.Width, c.Y+len(g.Pixels)/g.Width))
+			k := c.Times()
+			r = r.Union(image.Rect(c.X, c.Y, c.X+g.Width*k, c.Y+len(g.Pixels)/g.Width*k))
 		}
 	}
 	return r
@@ -378,4 +379,13 @@ func shiftCapture(start int, at image.Point) {
 		return
 	}
 	text.ShiftCaptured(start, at.X, at.Y)
+}
+
+// scaleCapture is shiftCapture for a sub-picture blitted k times its size
+// with its corner at at, its glyphs clipped to within.
+func scaleCapture(start int, at image.Point, k int, within image.Rectangle) {
+	if start < 0 {
+		return
+	}
+	text.ScaleCaptured(start, at, k, within)
 }

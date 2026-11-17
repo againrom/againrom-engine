@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -390,40 +391,59 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if gold, ok := s.goldField(template); ok {
 			out = append(out, gold)
 		}
-		if _, err := template.stock(); err == nil {
-			// The unit's corpse drops stand with its bag; its stats are the
-			// card's, which edits each map value.
-			if sheets := s.unitViewSheets(); index < len(sheets) {
-				out = append(out, ui.InspectionField{Key: "loot", ReadOnly: true, Section: "inventory", Lines: s.inspector.corpseDropLines(sheets[index])})
-			}
-			for i := range out {
-				f := &out[i]
-				if f.Section != "" {
-					continue
-				}
-				f.Section = "identity"
-				if f.Inherit {
-					f.Section = "stats"
-				}
-				if f.Key == "face" || f.Key == "sex" || f.Key == unitNameField {
-					f.Section = "identity"
-				}
-				if f.Key == "gear" {
-					f.Section = "equipment"
-				}
-				if slot, _ := equipmentField(f.Key); slot > 0 {
-					f.Section = "equipment"
-					f.Parent = fmt.Sprintf("wear%d", slot)
-					if f.Key == f.Parent {
-						f.Parent = ""
-					}
-				}
-				if _, _, ok := carriedField(f.Key); ok || f.Key == unitGoldField || f.Key == "noloot" {
-					f.Section = "inventory"
-				}
+		// The unit's corpse drops stand with its bag; its stats are the
+		// card's, which edits each map value.
+		if sheets := s.unitViewSheets(); template != nil && index < len(sheets) {
+			out = append(out, ui.InspectionField{Key: "loot", ReadOnly: true, Lines: s.inspector.corpseDropLines(sheets[index])})
+		}
+		out = unitSections(out)
+	}
+	return out
+}
+
+// unitSections gives each field of a unit's window its section, for every
+// kind of unit alike: a creature has no equipment and no carried items, so
+// its window shows no such section. The bag lists the gold first, then what
+// the corpse drops, then what the unit carries.
+func unitSections(out []ui.InspectionField) []ui.InspectionField {
+	for i := range out {
+		f := &out[i]
+		if f.Section != "" {
+			continue
+		}
+		f.Section = "identity"
+		if f.Inherit {
+			f.Section = "stats"
+		}
+		if f.Key == "face" || f.Key == "sex" || f.Key == unitNameField {
+			f.Section = "identity"
+		}
+		if f.Key == "gear" {
+			f.Section = "equipment"
+		}
+		if slot, _ := equipmentField(f.Key); slot > 0 {
+			f.Section = "equipment"
+			f.Parent = fmt.Sprintf("wear%d", slot)
+			if f.Key == f.Parent {
+				f.Parent = ""
 			}
 		}
+		if _, _, ok := carriedField(f.Key); ok || f.Key == unitGoldField || f.Key == "noloot" || f.Key == "loot" {
+			f.Section = "inventory"
+		}
 	}
+	bag := func(f ui.InspectionField) int {
+		switch {
+		case f.Section != "inventory":
+			return 0
+		case f.Key == unitGoldField:
+			return 1
+		case f.Key == "noloot" || f.Key == "loot":
+			return 2
+		}
+		return 3
+	}
+	slices.SortStableFunc(out, func(a, b ui.InspectionField) int { return bag(a) - bag(b) })
 	return out
 }
 

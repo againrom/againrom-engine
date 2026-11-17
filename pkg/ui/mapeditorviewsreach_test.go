@@ -98,7 +98,6 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 					}
 					e.Select(record, false)
 					e.objectSpec()
-					blocks := e.PlainFieldBlocks()
 					reached := map[string]bool{}
 					for _, section := range wideSections(e) {
 						openSection(t, e, section)
@@ -119,13 +118,13 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 					var missed []string
 					for _, f := range e.obj.fields {
 						// The window shows no facing, speaker or map
-						// keys. The unit's basic view reaches the
-						// fields it places and no other: the rest stand in
-						// the detailed view.
+						// keys. The unit window's normal mode reaches the
+						// fields it keeps and no other: the rest stand in
+						// the detailed mode.
 						if hiddenField(e.doc.Records[record], f) {
 							continue
 						}
-						if basicUnit && blocks[f.Key] == "" {
+						if basicUnit && e.unitModeShown().leaves(f) {
 							if reached[f.Key] {
 								t.Errorf("%s panel %d: the basic view shows %s, which it leaves to the detailed view", lang, width, f.Key)
 							}
@@ -150,12 +149,6 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 func plainWordsOf(e *MapEditor, record int, placement, kind int64) []string {
 	w := e.word
 	switch record {
-	case viewsUnit:
-		var out []string
-		for _, id := range []string{"name", "player", "group", "who"} {
-			out = append(out, w("editor.plain."+id))
-		}
-		return out
 	case viewsStructure:
 		out := []string{w("editor.plain.position"), w("editor.plain.type"), w("editor.plain.owner"), w("editor.plain.target"),
 			w("editor.plain.width"), w("editor.plain.height"), w("editor.plain.placement"), w("editor.plain.word")}
@@ -200,7 +193,6 @@ func TestMapEditorPlainWordsShowWhole(t *testing.T) {
 		placement, kind int64
 	}
 	variants := []variant{
-		{viewsUnit, nil, 0, 0},
 		{viewsStructure, nil, 5, 51},
 		{viewsStructure, map[string]int64{"Structure/placement": 0}, 0, 51},
 		{viewsStructure, map[string]int64{"Structure/kind": 34}, 5, 34},

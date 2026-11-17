@@ -114,13 +114,13 @@ func drawnCells(e *MapEditor, s popupSpec) []drawnCell {
 	return out
 }
 
-// A unit's basic view is its card drawn twice its size under the name,
-// the player, the group and who the unit is: each stat
-// the card draws is the field's input at the place the card draws it, and
-// each other value the card draws a line whose tip says the map does not
-// store it. Equipment, the bag, the look, the facing, the dialogue line
-// and the map file fields are not shown. For a person and a creature, in English and Russian, floating and
-// in the right panel, at 1920x1080.
+// The unit window's normal mode is its card drawn twice its size under who
+// the unit is, the player and the group: each stat the card draws is the
+// field's input at the place the card draws it, and each other value the
+// card draws a line whose tip says the map does not store it. Equipment,
+// the bag, the look, the facing, the dialogue line and the map file fields
+// are not shown. For a person and a creature, in English and Russian,
+// floating and in the right panel, at 1920x1080.
 func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, panel := range []bool{false, true} {
@@ -128,7 +128,7 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 				name := fmt.Sprintf("%s class %d panel %v", lang, class, panel)
 				e, _ := cardEditor(t, lang, class, panel)
 				s, _, ok := e.objectSpec()
-				if !ok || s.Card == nil || s.CardScale != 2 || !s.CardBelow || !e.PlainView() {
+				if !ok || s.Card == nil || s.CardScale != 2 || !e.PlainView() {
 					t.Fatalf("%s: window %v card %v scale %d below %v", name, ok, s.Card != nil, s.CardScale, s.CardBelow)
 				}
 				if want := map[int64]CharacterBand{300: CharacterBandPerson, 301: CharacterBandCreature}[class]; s.Card.Char.Band != want {
@@ -149,17 +149,18 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 					if i, ok := e.obj.rowField[rr.Index]; ok {
 						keys[e.obj.fields[i].Key] = true
 					}
-					if !row.placed() {
-						if rr.Rect.Max.Y > l.Card.Min.Y {
+					if !row.placed() && row.Hold == holdNone {
+						if rr.Rect.Overlaps(l.Card) {
 							t.Errorf("%s: row %q stands over the card", name, row.Label)
 						}
-						if i, ok := e.obj.rowField[rr.Index]; ok {
+						above := rr.Rect.Max.Y <= l.Card.Min.Y && rr.Rect.Min.X < l.Card.Max.X
+						if i, ok := e.obj.rowField[rr.Index]; ok && above {
 							main = append(main, e.obj.fields[i].Key)
 						}
 						speaker = speaker || strings.HasPrefix(row.Label, "A mission-start dialogue")
 					}
 				}
-				if want := []string{"owner", "group", "identity"}; !slices.Equal(main, want) {
+				if want := []string{"identity", "owner", "group"}; !slices.Equal(main, want) {
 					t.Errorf("%s: rows above the card edit %q, want %q", name, main, want)
 				}
 				if speaker {

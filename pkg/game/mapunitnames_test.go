@@ -67,7 +67,7 @@ func TestEditorUnitNameInBothViews(t *testing.T) {
 						t.Fatalf("empty name: text %v inherit %v value %q shows %q", f.Text, f.Inherit, f.TextValue, f.Inherited)
 					}
 					if plain {
-						if block := e.PlainFieldBlocks()[unitNameField]; block != "main" {
+						if block := e.UnitFieldPlaces()[unitNameField]; block != "card" {
 							t.Fatalf("the basic view stands the name in %q", block)
 						}
 					}

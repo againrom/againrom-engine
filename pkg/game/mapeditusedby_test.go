@@ -150,7 +150,8 @@ func TestScriptUsedByEmptyAndUnopenable(t *testing.T) {
 	e := usedByEditor(t)
 	for _, kind := range []string{"Unit", "Structure", "Player"} {
 		e.Select(trigRecord(t, e, kind, 1), false)
-		if !strings.Contains(trigLines(e), "Used by: none") {
+		// The unit window lists no triggers for a unit no trigger uses.
+		if strings.Contains(trigLines(e), "Used by: none") != (kind != "Unit") || strings.Contains(trigLines(e), "Used by") != (kind != "Unit") {
 			t.Fatal(kind, e.PopupLines())
 		}
 	}

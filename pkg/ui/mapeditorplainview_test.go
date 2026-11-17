@@ -118,7 +118,6 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 		open   []string
 		want   []string
 	}{
-		{"unit", viewsUnit, nil, unitRows()},
 		{"structure", viewsStructure, nil, structureRows("1 + Placement word |", "1 + Data |")},
 		{"structure open", viewsStructure, []string{"+ Placement word", "+ Data"}, structureRows(
 			"1 - Placement word |",
@@ -152,55 +151,11 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 	}
 }
 
-// unitRows are the fixture unit's basic rows: the name, the player, the
-// group and who the unit is, with no cell, facing, dialogue line or map
-// keys, then a row on the card for each value the card draws, in the
-// card's order: the field's input where the fixture has the field, else a
-// line stating the value, then a line of words for a stat whose card value
-// differs from the stored one.
-func unitRows() []string {
-	return []string{
-		"0 Name | Guard",
-		"3 Player | Self",
-		"2 Group | 2",
-		"3 Kind | 300: Fighter",
-		"0  | Guard",
-		"2 Body | 12",
-		"0 AGILITY | 0",
-		"2 Health | 40",
-		"2 Mind |",
-		"0 SPIRIT | 0",
-		"2 Mana |",
-		"0 BLADE | 0",
-		"2 Fire protection |",
-		"0 AXE | 0",
-		"0 WATER | 0",
-		"0 BLUDGEON | 0",
-		"0 AIR | 0",
-		"0 PIKE | 0",
-		"0 EARTH | 0",
-		"0 SHOOTING | 0",
-		"0 ASTRAL | 0",
-		"0 WEIGHT | 0.0",
-		"0 XP | 1200",
-		"0 SIGHT | 0.0",
-		"0 BODY: Derived by the game from the unit; in game: 10 |",
-	}
-}
-
 // plainShapes places every field shape of the fixture: the block of the
 // plain view whose row edits it. A shape this table lacks fails until the
-// plain table and this table place it.
+// plain table and this table place it. The unit window has no plain table:
+// its normal mode is its detailed mode with less data.
 var plainShapes = map[RecordKind]map[string]string{
-	// A unit's field the basic view leaves out maps to "": it stands in the
-	// detailed view only. The fixture's skill.fire is no skill the card
-	// draws.
-	KindUnit: {
-		"identity": "main", "owner": "main", "group": "main",
-		"hp": "card", "mana": "card", "body": "card", "mind": "card", "protection.*": "card",
-		"face": "", "sex": "", "gear": "", "wear#": "", "wearmaterial#": "", "wearrecipe#": "",
-		"carryadd": "", "carry#": "", "skill.*": "", "loot": "",
-	},
 	KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
 		"placement": "placement",
@@ -227,8 +182,9 @@ func fieldShape(key string) string {
 	return key[:start] + "#" + key[end:]
 }
 
-// (c) Every field of the fixture's unit, structure and sack is placed in a
-// block of the plain view, and every field is reachable in the technical
+// (c) Every field of the fixture's structure and sack is placed in a block
+// of the plain view, every unit field has its row in the normal mode unless
+// the mode leaves it out, and every field is reachable in the technical
 // view: its row stands in the window in the section that holds it. A
 // unit's facing, speaker and map keys stand in neither view.
 func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
@@ -243,14 +199,18 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 				}
 				continue
 			}
+			// A unit field the normal mode leaves out has no row there; a
+			// read-only field shows lines, never an input row.
+			if kind == KindUnit {
+				i := slices.IndexFunc(e.ObjectFields(), func(g InspectionField) bool { return g.Key == f.Key })
+				if left := e.unitModeShown().leaves(f); !f.ReadOnly && left != (e.fieldRow(i) < 0) {
+					t.Errorf("%s %s: left out %v, normal mode row %d", kind, f.Key, left, e.fieldRow(i))
+				}
+				continue
+			}
 			want, listed := plainShapes[kind][fieldShape(f.Key)]
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
-			}
-			// A unit's field in no block of the basic view has no row there;
-			// a read-only field shows lines, never an input row.
-			if i := slices.IndexFunc(e.ObjectFields(), func(g InspectionField) bool { return g.Key == f.Key }); kind == KindUnit && !f.ReadOnly && (want == "") != (e.fieldRow(i) < 0) {
-				t.Errorf("%s %s: block %q, basic view row %d", kind, f.Key, want, e.fieldRow(i))
 			}
 		}
 		clickSwitch(t, e)

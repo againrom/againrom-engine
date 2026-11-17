@@ -61,10 +61,11 @@ func TestEditorPersonDetailedViewShowsEverySectionAtOnce(t *testing.T) {
 			if len(s.Tabs) != 0 {
 				t.Fatal("the detailed view still has tabs", s.Tabs)
 			}
-			want := min(4, max(1, (e.unitWindowWidth()-32-e.hostedAside(s)-popupPad)/personColumnWidth))
-			if cardHeld(specWindow(s)) {
-				// The card's block holds the stats section in the identity column.
-				want = min(3, max(1, (e.unitWindowWidth()-32)/personColumnWidth))
+			// A column per section the unit has data for, as many as the
+			// window holds; one under a card band.
+			want := min(len(e.unitSectionsShown(e.unitModeShown(), s.Card)), max(1, (e.unitWindowWidth()-32)/e.unitColumnWidth(s)))
+			if bandLines(specWindow(s)) > 0 {
+				want = 1
 			}
 			if s.Columns != want {
 				t.Errorf("columns %d, want %d", s.Columns, want)
@@ -78,8 +79,9 @@ func TestEditorPersonDetailedViewShowsEverySectionAtOnce(t *testing.T) {
 					t.Errorf("section %s is not shown", f.Section)
 				}
 			}
+			// The card's section stands on the card, under no heading.
 			for section := range shown {
-				if !slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Kind == popupHeading && r.Label == e.word("editor.person."+section) }) {
+				if section != cardSection && !slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Kind == popupHeading && r.Label == e.word("editor.person."+section) }) {
 					t.Errorf("section %s has no heading", section)
 				}
 			}

@@ -47,6 +47,24 @@ type DrawCall struct {
 	// Flat, Color drawn over the cell by its own alpha; without, a coverage
 	// glyph's ink mixed in at the cell's level (DrawOver).
 	SourceOver bool
+	// Scale draws the glyph that many times its size from (X, Y), each cell
+	// a Scale by Scale block of the destination: a glyph of a picture blitted
+	// scaled. 0 and 1 are the glyph's own size, and a record leaves them out.
+	Scale int `json:",omitempty"`
+}
+
+// Times is the call's scale, 1 for a glyph at its own size.
+func (c DrawCall) Times() int { return max(1, c.Scale) }
+
+// Cell is the destination pixel at the top left of glyph cell n.
+func (c DrawCall) Cell(n int) image.Point {
+	k, w := c.Times(), c.Glyph.Width
+	return image.Pt(c.X+n%w*k, c.Y+n/w*k)
+}
+
+// Size is the destination size the glyph covers.
+func (c DrawCall) Size() image.Point {
+	return image.Pt(c.Glyph.Width, c.Glyph.Height).Mul(c.Times())
 }
 
 // CellColor is the colour the call paints on a cell of the given level.
@@ -137,7 +155,7 @@ func TintSince(start int, within image.Rectangle, c color.RGBA) {
 			if !p.Painted {
 				continue
 			}
-			at := image.Pt(call.X+n%g.Width, call.Y+n/g.Width)
+			at := call.Cell(n)
 			if !call.Clip.Empty() && !at.In(call.Clip) {
 				continue
 			}
@@ -173,7 +191,7 @@ func Underlay(start int, backdrop *image.RGBA) {
 			if !p.Painted {
 				continue
 			}
-			if at := image.Pt(call.X+n%g.Width, call.Y+n/g.Width); at.In(b) {
+			if at := call.Cell(n); at.In(b) {
 				call.Under[n] = backdrop.RGBAAt(at.X, at.Y)
 			}
 		}
@@ -248,6 +266,30 @@ func ShiftCaptured(start, dx, dy int) {
 		captured[i].Y += dy
 		captured[i].Clip = captured[i].Clip.Add(image.Pt(dx, dy))
 	}
+}
+
+// ScaleCaptured moves the calls recorded since start from a picture onto
+// the frame it is blitted to, k times its size with its corner at at: each
+// call's place and clip scale by k and shift by at, its clip cut to within,
+// and its glyph draws k times its size. A call left no cell inside within is
+// dropped.
+func ScaleCaptured(start int, at image.Point, k int, within image.Rectangle) {
+	kept := max(start, 0)
+	for i := kept; i < len(captured); i++ {
+		c := captured[i]
+		size := c.Size().Mul(k)
+		c.X, c.Y = at.X+c.X*k, at.Y+c.Y*k
+		clip := image.Rect(c.X, c.Y, c.X+size.X, c.Y+size.Y)
+		if !c.Clip.Empty() {
+			clip = image.Rect(c.Clip.Min.X*k, c.Clip.Min.Y*k, c.Clip.Max.X*k, c.Clip.Max.Y*k).Add(at)
+		}
+		c.Clip, c.Scale = clip.Intersect(within), k*c.Times()
+		if !c.Clip.Empty() {
+			captured[kept] = c
+			kept++
+		}
+	}
+	captured = captured[:kept]
 }
 
 // Capturing reports whether a capture window is open.

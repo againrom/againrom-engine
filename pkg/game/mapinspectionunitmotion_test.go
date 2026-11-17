@@ -234,9 +234,9 @@ func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 						t.Fatalf("facing offers %v at %d", facing.Choices, facing.Value)
 					}
 					if plain {
-						blocks := e.PlainFieldBlocks()
-						if blocks["speed"] != "card" || blocks["sight"] != "card" || blocks["facing"] != "main" {
-							t.Fatalf("plain blocks speed %q sight %q facing %q", blocks["speed"], blocks["sight"], blocks["facing"])
+						places := e.UnitFieldPlaces()
+						if places["speed"] != "card" || places["sight"] != "card" || places["facing"] != "identity" {
+							t.Fatalf("normal mode places speed %q sight %q facing %q", places["speed"], places["sight"], places["facing"])
 						}
 					}
 					typeField(t, e, c, "speed", 37)

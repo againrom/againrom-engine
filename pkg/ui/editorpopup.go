@@ -1437,7 +1437,8 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		case popupHeading:
 			rr.Label, rr.Control = line, image.Rectangle{}
 		case popupText, popupLink:
-			if row.Value == "" && !pictureRow(row) { // a line of text runs across the row
+			// A line of text runs across the row; a held place is no field.
+			if row.Value == "" && !pictureRow(row) || row.Hold != holdNone {
 				rr.Label, rr.Control = line, image.Rectangle{}
 			}
 		case popupCard:
@@ -1838,7 +1839,8 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	if row, _, ok := l.rowButtonAt(p); ok {
 		return popupRowButton, row
 	}
-	for _, r := range l.Rows {
+	// The row drawn last stands on top, as a row placed on a held card.
+	for _, r := range slices.Backward(l.Rows) {
 		switch {
 		case p.In(r.Help):
 			return popupRowHelp, r.Index
@@ -1982,11 +1984,10 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			font = body
 		}
 		if s.Card.Scale > 1 {
-			// A scaled card's glyphs are pixels of the scaled picture: the
-			// text overlay, which draws a glyph at its own size, keeps none.
-			var pic *image.RGBA
-			text.Record(func() { pic = RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card.Subject) })
-			if pic != nil {
+			// A scaled card's glyphs scale with it: the text overlay draws
+			// each at the card's scale, at the device's resolution.
+			start := markCapture()
+			if pic := RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card.Subject); pic != nil {
 				c, to := l.Card, dst
 				if bandLines(s) > 0 || cardHeld(s) {
 					// A scrolling band, or a row holding the card, shows
@@ -1994,6 +1995,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 					to = dst.SubImage(l.RowsViewport).(*image.RGBA)
 				}
 				editorBlit(to, pic, screenRect{X: float64(c.Min.X), Y: float64(c.Min.Y), W: float64(c.Dx()), H: float64(c.Dy())}, false)
+				scaleCapture(start, c.Min, s.Card.Scale, to.Bounds())
 			}
 		} else {
 			start := markCapture()
@@ -2279,7 +2281,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 	if p.In(l.TitleHelp) {
 		return helpTip(bounds, body, l.TitleHelp, s.Title.Help), true
 	}
-	for _, rr := range l.Rows {
+	// The row drawn last stands on top: a row placed on a held card answers
+	// over the place that holds the card.
+	for _, rr := range slices.Backward(l.Rows) {
 		if !p.In(rr.Rect) {
 			continue
 		}

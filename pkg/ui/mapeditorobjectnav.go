@@ -13,28 +13,12 @@ import (
 // unit; Apply writes only the fields a row edits.
 var personHidden = []string{"speaker", "keys"}
 
-// personSections are the detailed view's sections in window order, each
-// under its heading; personColumnWidth is the least width of a column.
-var personSections = []string{"identity", "equipment", "inventory", cardSection}
-
-// cardSection is the section whose fields the card edits: a window with a
-// card shows it as the card's block in the identity column, not a column.
+// cardSection is the section whose fields the card edits: the card stands
+// in the identity column, the section has no column of its own.
 const cardSection = "stats"
 
+// personColumnWidth is the least width of a unit window's column.
 const personColumnWidth = 300
-
-// personColumns gives, per count of columns, the column of each section.
-var personColumns = map[int][]int{1: {0, 0, 0, 0}, 2: {0, 0, 1, 1}, 3: {0, 1, 2, 2}, 4: {0, 1, 2, 3}}
-
-// personColumn is the column of the detailed view's section in a window of
-// columns columns, 0 for one column or a field of no section.
-func personColumn(section string, columns int) int {
-	k := slices.Index(personSections, section)
-	if at, ok := personColumns[columns]; ok && k >= 0 {
-		return at[k]
-	}
-	return 0
-}
 
 // personQuiet are the keys of the person window's fields shown without the
 // lines that explain them.
@@ -181,6 +165,15 @@ func (e *MapEditor) backObject() {
 	e.loadObject()
 	e.obj.section = p.section
 	if p.draft != nil {
+		if len(p.draft.pending) > 0 && e.nativeUnitWindow() {
+			// The unit window holds a draft as the values it asked the host
+			// for and the fields the host answered with them.
+			o := &e.obj
+			o.pending, o.fields, o.buf = slices.Clone(p.draft.pending), slices.Clone(p.draft.fields), nil
+			for _, f := range o.fields {
+				o.buf = append(o.buf, fieldInput(f))
+			}
+		}
 		for i, f := range p.draft.fields {
 			if p.draft.buf[i] == fieldInput(f) {
 				continue

@@ -77,10 +77,10 @@ func TestEditorPersonWindowShowsTheKeptRows(t *testing.T) {
 	}
 	for _, c := range []struct{ lang, kind, player string }{{"", "Kind", "Player"}, {"ru", "Вид", "Игрок"}} {
 		book := words.For(c.lang)
-		if got := book.Text("editor.unit.field.identity"); got != c.kind || book.Text("editor.plain.who") != c.kind {
+		if got := book.Text("editor.unit.field.identity"); got != c.kind {
 			t.Errorf("%q: who the unit is reads %q, want %q", c.lang, got, c.kind)
 		}
-		if got := book.Text("editor.unit.field.owner"); got != c.player || book.Text("editor.plain.player") != c.player {
+		if got := book.Text("editor.unit.field.owner"); got != c.player {
 			t.Errorf("%q: the unit's player reads %q, want %q", c.lang, got, c.player)
 		}
 	}

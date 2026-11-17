@@ -2,9 +2,12 @@ package game
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -69,10 +72,37 @@ func clickCell(e *ui.MapEditor, cell image.Point) {
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)
 }
 
-// enterField opens the field prompt, tabs to the field-th row, replaces the
-// prefilled value with text and presses Enter.
+// enterField opens the field prompt, tabs to the field-th field the record
+// edits, replaces the prefilled value with text and presses Enter. In the
+// unit window, where Enter keeps the typed value as a draft, it then applies
+// the draft and returns the window's note as the refusal.
 func enterField(e *ui.MapEditor, field int, text string) error {
+	r := e.Document().Records[e.Selected()]
 	_ = e.Key("field")
+	if e.UnitFieldPlaces() != nil {
+		key := e.Document().Edits.Fields(r.Kind, r.Index)[field].Key
+		n := slices.IndexFunc(e.ObjectFields(), func(f ui.InspectionField) bool { return f.Key == key })
+		for range len(e.ObjectFields()) {
+			if at, _, _ := e.FieldFocus(); at == n {
+				break
+			}
+			_ = e.Key("tab")
+		}
+		if at, _, _ := e.FieldFocus(); at != n || n < 0 {
+			return fmt.Errorf("the unit window does not reach field %s", key)
+		}
+		for range 24 {
+			_ = e.Key("end")
+			_ = e.Key("backspace")
+		}
+		e.TextInput(text)
+		_ = e.Key("enter")
+		_ = e.Key("applyobject")
+		if note := e.ObjectNote(); note != "" {
+			return errors.New(note)
+		}
+		return nil
+	}
 	for i := 0; i < field; i++ {
 		_ = e.Key("tab")
 	}
@@ -141,7 +171,7 @@ func TestMapEditorDeletesTheSelectedUnit(t *testing.T) {
 	}
 }
 
-// The E prompt sets who the unit is (refusing a row the tables lack), its
+// The unit window sets who the unit is (refusing a row the tables lack), its
 // owner and its hit points, each one Undo step.
 func TestMapEditorSetsUnitFieldsWithChecks(t *testing.T) {
 	b, e := openAuthoring(t)
@@ -163,7 +193,7 @@ func TestMapEditorSetsUnitFieldsWithChecks(t *testing.T) {
 	history := [][]byte{b}
 	for _, s := range steps {
 		before := append([]byte(nil), e.Document().SourceBytes...)
-		if err := enterField(e, s.field, s.refuse); err == nil || e.Message() == "" || !bytes.Equal(e.Document().SourceBytes, before) {
+		if err := enterField(e, s.field, s.refuse); err == nil || err.Error() == "" || !bytes.Equal(e.Document().SourceBytes, before) {
 			t.Fatalf("field %d accepted %s", s.field, s.refuse)
 		}
 		_ = e.Key("escape")

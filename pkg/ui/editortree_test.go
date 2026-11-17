@@ -632,7 +632,7 @@ func legacyLayoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		case popupHeading:
 			rr.Label, rr.Control = line, image.Rectangle{}
 		case popupText, popupLink:
-			if row.Value == "" && !pictureRow(row) {
+			if row.Value == "" && !pictureRow(row) || row.Hold != holdNone {
 				rr.Label, rr.Control = line, image.Rectangle{}
 			}
 		case popupCard:

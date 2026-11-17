@@ -87,7 +87,7 @@ func TestEditorUnitBasicViewSetsTheMaximumHealth(t *testing.T) {
 			s.inspector.archives.Base.Profile.Language = lang
 			s.inspector.recordOptions = nil
 			e, c := motionWindow(t, s, lang, true, false)
-			if got := e.PlainFieldBlocks()["hpmax"]; got != "card" {
+			if got := e.UnitFieldPlaces()["hpmax"]; got != "card" {
 				t.Fatalf("the basic view places the maximum health in block %q, want the card", got)
 			}
 			typeField(t, e, c, "hpmax", 640)

@@ -73,6 +73,9 @@ type objectEdit struct {
 	rowBlock  map[int]string
 	usesShown bool
 	viewOffer bool
+	// band stands the unit window's card in a band under its rows, scrolled
+	// with them: the room is lower than the card held in its column.
+	band bool
 	// addedPair and addedAct mark a trigger's pairs and action slots shown
 	// before a node is chosen for them; types are a node's slot types as
 	// its chosen operation sets them; pickField is the field a cell pick
@@ -183,7 +186,6 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		return
 	}
-	_, offer := e.plainOffer()
 	plain, plainShown := e.plainTable()
 	if plainShown && r.Spatial && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Label = e.word("editor.plain.position")
@@ -193,7 +195,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	// does, the label column widened to them or a label over its field.
 	s.Fit = s.Fit || plainShown
 	native := e.nativeUnitWindow()
-	// The person window's sections head its fields.
+	// The unit window's sections head its fields.
 	if !e.modWindow && !plainShown && !native {
 		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
 	}
@@ -201,39 +203,35 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	o.rowField = map[int]int{}
 	card, fields := e.unitSettings()
 	if card != nil {
+		// A unit with no name and no class text has no name line on its card;
+		// a blank name keeps the line, so the name input stands on the card.
+		if _, named := PanelSubjectName(*card); !named && slices.ContainsFunc(fields, func(f InspectionField) bool { return f.Key == "name" && !f.ReadOnly }) {
+			blank := *card
+			blank.Name = " "
+			card = &blank
+		}
 		s.Card = card
 		s.CardFont = e.cardFont
 	}
-	// The detailed view's card stands in its own block under the identity
-	// section and edits the stats section's fields; the figure stands under
-	// the equipment, in a window wide enough for a column per other section.
-	cardView, cardShown := e.plainOffer()
-	holding := native && !plainShown && s.Card != nil && cardShown && (e.unitWindowWidth()-32)/personColumnWidth >= len(personSections)-1
+	// The unit window shows each section its mode keeps in a column, as
+	// many columns as the window's width holds; the card stands under the
+	// identity section.
+	mode := e.unitModeShown()
+	var shown []string
 	if native {
-		// The detailed view stands at the widest the window allows, every
-		// section in a column; the plain view's width is set from its rows
-		// once they are built.
+		shown = e.unitSectionsShown(mode, s.Card)
 		s.Width = e.unitWindowWidth() - 32
-		if s.Card != nil && !holding {
-			// The column beside the card holds the figure at the game's size.
-			s.CardAside = figureAside(e.unitFigureSize())
-			if aside := e.hostedAside(*s); aside > 0 && !plainShown {
-				s.Width -= aside + popupPad
-			}
+		column := e.unitColumnWidth(*s)
+		s.Columns = min(len(shown), max(1, s.Width/column))
+		if o.band {
+			s.Columns = 1
+		}
+		// A window nobody resized is as wide as its columns need, not as
+		// wide as the editor allows.
+		if !e.objectInPanel() && e.places[e.storeRow(popObject)].size.X == 0 {
+			s.Width = min(s.Width, s.Columns*column)
 		}
 		s.At = e.keptCorner(popObject)
-		if !plainShown {
-			sections := len(personSections)
-			if holding {
-				sections-- // the card holds the stats section
-			}
-			s.Columns = min(sections, max(1, s.Width/personColumnWidth))
-			// A window nobody resized is as wide as its columns need, not
-			// as wide as the editor allows.
-			if !e.objectInPanel() && e.places[e.storeRow(popObject)].size.X == 0 {
-				s.Width = min(s.Width, s.Columns*personColumnWidth)
-			}
-		}
 	}
 	textWidth := 378
 	if native {
@@ -255,7 +253,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				}
 			}
 			if native && s.Columns > 1 {
-				column := personColumn(f.Section, s.Columns)
+				column := unitColumn(f.Section, shown, s.Columns)
 				for k := start; k < len(s.Rows); k++ {
 					s.Rows[k].Column = column
 				}
@@ -377,30 +375,45 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		deferColumn()
 		return n
 	}
-	if plainShown {
+	switch {
+	case plainShown:
 		e.plainFieldRows(s, links, plain, fieldRows, textWidth)
-	} else {
+	case native:
+		// Each shown section under its heading, in its column: its fields,
+		// the card after the identity section's, the figure as the doll's.
+		// A group heading that repeats its section's heading is left out.
 		order := fieldOrder(o.fields)
-		if native {
-			// The detailed view shows every section at once, each under its
-			// heading, in its column.
-			sort.SliceStable(order, func(i, j int) bool {
-				a, b := o.fields[order[i]], o.fields[order[j]]
-				if sa, sb := slices.Index(personSections, a.Section), slices.Index(personSections, b.Section); sa != sb {
-					return sa < sb
+		sort.SliceStable(order, func(i, j int) bool {
+			return o.fields[order[i]].Parent == "" && o.fields[order[j]].Parent != ""
+		})
+		for _, section := range unitSectionOrder(shown, s.Columns) {
+			column := unitColumn(section, shown, s.Columns)
+			heading := e.word("editor.person." + section)
+			if section != "doll" {
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: heading, Column: column}), append(*links, 0)
+				group = ""
+			}
+			for _, i := range order {
+				f := o.fields[i]
+				in := f.Section == section || section == "identity" && !slices.Contains(unitColumns, f.Section)
+				if !in || f.Parent != "" && f.Parent != o.detail || s.Card != nil && e.onCard(i) || mode.leaves(f) {
+					continue
 				}
-				return a.Parent == "" && b.Parent != ""
-			})
-		}
-		section := ""
-		// onCard are the fields the held card edits: no column shows them.
-		onCard := map[int]bool{}
-		if holding {
-			for _, p := range e.cardEntries(cardView) {
-				onCard[p.field] = p.field >= 0
+				fieldRows(i, "", e.editorHostText(f.Group) != heading)
+			}
+			switch {
+			case section == "identity" && s.Card != nil && !o.band:
+				e.heldCardRows(s, links, fieldRows, textWidth, column)
+			case section == "doll" && !o.band:
+				pitch := fontHeight(e.bodyFont(), 15) + popupRowExtra
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Hold: holdFigure, Lines: max(1, (e.unitFigureSize().Y+pitch-1)/pitch), Column: column}), append(*links, 0)
 			}
 		}
-		for _, i := range order {
+		if s.Card != nil && o.band {
+			e.heldCardRows(s, links, fieldRows, textWidth, 0)
+		}
+	default:
+		for _, i := range fieldOrder(o.fields) {
 			f := o.fields[i]
 			if e.modWindow && e.modPage != modPageGraph && f.Action && f.Column == 0 {
 				continue
@@ -408,20 +421,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			if e.modWindow && f.Parent != "" && f.Parent != o.detail {
 				continue
 			}
-			if native {
-				if f.Parent != "" && f.Parent != o.detail || onCard[i] {
-					continue
-				}
-				if f.Section != section && slices.Contains(personSections, f.Section) {
-					section = f.Section
-					s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.person." + section), Column: personColumn(section, s.Columns)}), append(*links, 0)
-					group = ""
-				}
-			}
 			fieldRows(i, "", true)
-		}
-		if holding {
-			e.heldCardRows(s, links, cardView, fieldRows, textWidth)
 		}
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
@@ -429,7 +429,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if native {
 		s.Buttons = append(s.Buttons, e.word("editor.person.reset"))
 	}
-	o.viewOffer = offer
+	o.viewOffer = e.viewOffered()
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
 	}
@@ -922,6 +922,9 @@ func (e *MapEditor) searchableObjectChoices() bool { return e.modWindow || e.nat
 func (e *MapEditor) objectTyping() bool {
 	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.objectRecord()
 }
+
+// ObjectNote is the reason the object window shows for a refused value.
+func (e *MapEditor) ObjectNote() string { return e.obj.note }
 
 // FieldFocus is the record popup field the keyboard edits, -1 for none,
 // and the rune span its text selection covers, caret to caret when nothing
