@@ -119,6 +119,11 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Wor
 				name = line
 			}
 		}
+		// A person a map places from a row a mod renames shows the mod's name
+		// where it holds no name of its own.
+		if definitionName != "" && e.SourceBinding.ActorClass() == 2 && mw.mission.table != nil && (name == "" || name == label) {
+			name = mw.mission.table.Mods.ShownName("", definitionName, name)
+		}
 	}
 	// The map's own name for the placed unit is its last stage.
 	if authored, ok := mw.authoredName(e); ok {

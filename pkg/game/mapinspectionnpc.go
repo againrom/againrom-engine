@@ -283,10 +283,21 @@ func (x *MapInspector) npcName(e data.NPCEntry, roles bool) string {
 	if line := id - 1; name == "" && line >= 0 && line < int64(len(x.table.NPCNames)) {
 		name = x.table.NPCNames[line]
 	}
-	if name == "" {
-		name = e.Section
+	return x.messageUTF8([]byte(x.table.Mods.ShownName(name, x.npcRowName(id), e.Section)))
+}
+
+// npcRowName is the name of the Humans row a placement of npc record id
+// reaches, "" when the record composes from the starting hero or has no row.
+func (x *MapInspector) npcRowName(id int64) string {
+	if x.table == nil || x.table.Humans == nil || id < 0 || id > math.MaxInt32 {
+		return ""
 	}
-	return x.messageUTF8([]byte(name))
+	for _, ident := range mapload.Identities(x.table, x.identityMission) {
+		if ident.Kind == mapload.UnitNamed && ident.NPC == int32(id) && ident.Row > 0 && ident.Row < x.table.Humans.Len() {
+			return x.table.Humans.EntryName(ident.Row)
+		}
+	}
+	return ""
 }
 
 // speakerLabel is speaker id's label in UTF-8 as the message popup builds

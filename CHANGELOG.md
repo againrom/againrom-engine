@@ -54,6 +54,7 @@ modder or developer can notice gets no entry.
 - [BASE] Map editor: a window dragged below the editor's bottom edge is shortened by pressing its top border (now as deep as the other borders) and dragging down, its rows scrolling inside, and the detailed unit window opens as wide as its columns need instead of the whole editor width.
 - [BASE] Mod window: a Characters page adds a guest character with its name in each language and a face, renames or re-faces a game character, and the mission's guest party offers the new characters.
 - [BASE] Map editor: the unit card's hit points and mana inputs are one character wider, so the lowest value (-32768) fits.
+- [BASE] A person a map places from a character a mod renames now shows the mod's name in its panel, and a speaker built from that character is labelled with it; a person with its own name keeps it.
 
 ### For developers
 
