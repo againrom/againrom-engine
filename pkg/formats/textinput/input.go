@@ -5,11 +5,37 @@ package textinput
 
 import (
 	"fmt"
+	"sync"
 
 	"golang.org/x/text/encoding/charmap"
 
 	"againrom/pkg/locale"
 )
+
+// codePageCodes holds each rune's answer of codePageByte once it is
+// asked: the editor encodes every word of every frame.
+var codePageCodes sync.Map
+
+type codePageCode struct {
+	b  byte
+	ok bool
+}
+
+// codePageByte is the one Windows-1251 byte of r, false for a control byte
+// or a rune the code page cannot represent.
+func codePageByte(r rune) (byte, bool) {
+	if c, held := codePageCodes.Load(r); held {
+		return c.(codePageCode).b, c.(codePageCode).ok
+	}
+	c := codePageCode{}
+	if r >= 0x20 && r != 0x7f {
+		if b, err := charmap.Windows1251.NewEncoder().Bytes([]byte(string(r))); err == nil && len(b) == 1 && b[0] >= 0x20 && b[0] != 0x7f {
+			c = codePageCode{b[0], true}
+		}
+	}
+	codePageCodes.Store(r, c)
+	return c.b, c.ok
+}
 
 // EncodeRune encodes r as one Windows-1251 byte, the byte a typed character
 // stores in an install's character field, for every selector. Control bytes and
@@ -26,14 +52,10 @@ import (
 // here that byte is the shifted form of a letter in 0xC0..0xEF. 47 code points
 // are refused (0x98 is unassigned), Ё among them; DIV-2330.
 func EncodeRune(r rune, selector int) (byte, bool) {
-	if r < 0x20 || r == 0x7f {
+	v, ok := codePageByte(r)
+	if !ok {
 		return 0, false
 	}
-	b, err := charmap.Windows1251.NewEncoder().Bytes([]byte(string(r)))
-	if err != nil || len(b) != 1 || b[0] < 0x20 || b[0] == 0x7f {
-		return 0, false
-	}
-	v := b[0]
 	if locale.FontRemaps(selector) {
 		switch {
 		case v >= 0xc0 && v <= 0xef:

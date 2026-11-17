@@ -75,7 +75,7 @@ func (s *mapInspectionEdits) characterFace(key string, r mod.CharacterRow) ui.In
 
 func (s *mapInspectionEdits) charactersFields() []ui.InspectionField {
 	x := s.inspector
-	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
+	if !s.modPageHolds() {
 		return nil
 	}
 	read, err := s.heldRows(s.workspace.Project, s.characterNames, mod.CharactersFile)

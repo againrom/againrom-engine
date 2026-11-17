@@ -118,8 +118,12 @@ func ByBaseSuffix(base string) (Locale, bool) {
 // FontRemaps reports whether the installed font of selector moves a byte
 // before it selects a record.
 func FontRemaps(selector int) bool {
-	l, ok := BySelector(selector)
-	return ok && l.FontRemap
+	for i := range table {
+		if table[i].Selector == selector {
+			return table[i].FontRemap
+		}
+	}
+	return false
 }
 
 // CodePageOf is the code page of selector's text, zero for an unknown one.

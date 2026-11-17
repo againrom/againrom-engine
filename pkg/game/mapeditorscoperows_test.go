@@ -20,7 +20,7 @@ func TestWorkspaceScopeAddedAsARowShowsAndSetsItsFields(t *testing.T) {
 		func(_ *mapInspectionEdits, scope, key, value string) (*ui.InspectionDocument, error) {
 			set = append(set, scope+":"+key+"="+value)
 			return nil, nil
-		}})
+		}, nil})
 	s := &mapInspectionEdits{}
 	if got := s.WorkspaceFields("probe"); len(got) != 1 || got[0].Key != "probe.field" {
 		t.Fatalf("fields %+v", got)

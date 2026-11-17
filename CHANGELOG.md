@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor opens maximized, its mod window opens wide enough to show every page tab in one row, and F5 test play starts the game with the Chicken flag.
 - [BASE] The unit window keeps its first column steady when switching views and shows the dialogue portrait under the figure, including speaking animals.
 - [BASE] Named units show their own name in the editor card, and F5 applies the card's edits before preparing the test map.
+- [BASE] The map editor and its mod window draw a frame faster, so they no longer lag at a large window.
 - [BASE] The map editor's mod window no longer shows a stray tree picture.
 - [BASE] Map editor: a new condition that would clash with a script variable now offers to switch the map to the extended script instead of refusing, and the question shows the reason.
 - The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.

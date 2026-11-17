@@ -210,7 +210,7 @@ func makeTextKey(sets map[string]mod.Strings, base string) string {
 // language; none with no mod folder open.
 func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	x := s.inspector
-	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
+	if !s.modPageHolds() {
 		return nil
 	}
 	line := x.pageLine

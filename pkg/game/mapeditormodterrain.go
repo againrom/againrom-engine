@@ -60,7 +60,7 @@ func (x *MapInspector) terrainKindWord(class uint8) string {
 // pictures; none with no mod folder open.
 func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 	x := s.inspector
-	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
+	if !s.modPageHolds() {
 		return nil
 	}
 	line := x.pageLine

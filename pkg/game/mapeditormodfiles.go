@@ -108,7 +108,7 @@ func (s *mapInspectionEdits) heldInstallFiles(d *editorModDocument) map[string]s
 // folder, and the override lines; none with no mod folder open.
 func (s *mapInspectionEdits) filesFields() []ui.InspectionField {
 	x := s.inspector
-	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
+	if !s.modPageHolds() {
 		return nil
 	}
 	d := s.workspace.Project

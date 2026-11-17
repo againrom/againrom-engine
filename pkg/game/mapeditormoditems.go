@@ -258,7 +258,7 @@ func rowOff(items mod.ItemData, key string) bool {
 // the file choice; names are typed per language and numbers as numbers.
 func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 	x := s.inspector
-	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
+	if !s.modPageHolds() {
 		return nil
 	}
 	line := func(key, text string) ui.InspectionField {

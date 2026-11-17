@@ -357,6 +357,25 @@ type workspaceScope struct {
 	scope  string
 	fields func(s *mapInspectionEdits, scope string) []ui.InspectionField
 	set    func(s *mapInspectionEdits, scope, key, value string) (*ui.InspectionDocument, error)
+	// holds is whether the page has fields, answered without building them;
+	// nil asks the fields.
+	holds func(s *mapInspectionEdits) bool
+}
+
+// modPageHolds is whether a mod's own page shows: a mod folder is open, not
+// packed, and the workspace is ready. Each such page's fields give at least
+// one field then, and none otherwise.
+func (s *mapInspectionEdits) modPageHolds() bool {
+	x := s.inspector
+	return x.mod != nil && !x.mod.packed && s.prepareWorkspace() == nil
+}
+
+// WorkspaceHolds is whether WorkspaceFields(scope) gives a field.
+func (s *mapInspectionEdits) WorkspaceHolds(scope string) bool {
+	if r, ok := pageScope(scope); ok && r.holds != nil {
+		return r.holds(s)
+	}
+	return len(s.WorkspaceFields(scope)) > 0
 }
 
 // workspaceScopes is the pages of a scope of their own; a page is one row of
@@ -370,16 +389,21 @@ func workspaceScopeRows() []workspaceScope {
 	type edits = mapInspectionEdits
 	page := func(scope string, fields func(*edits) []ui.InspectionField, set func(*edits, string, string) (*ui.InspectionDocument, error)) workspaceScope {
 		return workspaceScope{scope, func(s *edits, _ string) []ui.InspectionField { return fields(s) },
-			func(s *edits, _, key, value string) (*ui.InspectionDocument, error) { return set(s, key, value) }}
+			func(s *edits, _, key, value string) (*ui.InspectionDocument, error) { return set(s, key, value) }, nil}
+	}
+	modPage := func(scope string, fields func(*edits) []ui.InspectionField, set func(*edits, string, string) (*ui.InspectionDocument, error)) workspaceScope {
+		r := page(scope, fields, set)
+		r.holds = (*edits).modPageHolds
+		return r
 	}
 	return []workspaceScope{
-		{"campaign.", (*edits).campaignFields, (*edits).setCampaignField},
+		{"campaign.", (*edits).campaignFields, (*edits).setCampaignField, nil},
 		page("handout", (*edits).handoutFields, (*edits).setHandoutField),
-		page(ui.ModTerrainScope, (*edits).terrainFields, (*edits).setTerrainField),
-		page(ui.ModTextsScope, (*edits).textsFields, (*edits).setTextsField),
-		page(ui.ModCharactersScope, (*edits).charactersFields, (*edits).setCharactersField),
-		page(ui.ModItemsScope, (*edits).itemsFields, (*edits).setItemsField),
-		page(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
+		modPage(ui.ModTerrainScope, (*edits).terrainFields, (*edits).setTerrainField),
+		modPage(ui.ModTextsScope, (*edits).textsFields, (*edits).setTextsField),
+		modPage(ui.ModCharactersScope, (*edits).charactersFields, (*edits).setCharactersField),
+		modPage(ui.ModItemsScope, (*edits).itemsFields, (*edits).setItemsField),
+		modPage(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
 	}
 }
 

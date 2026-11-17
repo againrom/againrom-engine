@@ -19,6 +19,21 @@ type InspectionWorkspace interface {
 	SetWorkspaceField(scope, key, value string) (*InspectionDocument, error)
 }
 
+// WorkspaceHolder is a host that states whether a scope's page has fields
+// without building them: the mod window asks it for every page of its tab
+// row on each frame. A host without it is asked for the fields.
+type WorkspaceHolder interface {
+	WorkspaceHolds(scope string) bool
+}
+
+// workspaceHolds reports that host gives scope at least one field.
+func workspaceHolds(host InspectionWorkspace, scope string) bool {
+	if h, ok := host.(WorkspaceHolder); ok {
+		return h.WorkspaceHolds(scope)
+	}
+	return len(host.WorkspaceFields(scope)) > 0
+}
+
 // ModOverviewSection is one heading of the overview page of the mod W has
 // open, with its lines. A Fold section shows its heading alone until a click
 // or Enter on the heading unfolds it.
@@ -151,7 +166,7 @@ func (e *MapEditor) modPages() []int {
 	}
 	if host, ok := e.workspace(); ok {
 		for _, p := range modScopePages {
-			if !slices.Contains(modHeldPages, p.page) && len(host.WorkspaceFields(p.scope)) > 0 {
+			if !slices.Contains(modHeldPages, p.page) && workspaceHolds(host, p.scope) {
 				pages = append(pages, p.page)
 			}
 		}
