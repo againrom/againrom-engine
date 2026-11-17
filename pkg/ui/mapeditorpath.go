@@ -51,14 +51,11 @@ func (e *MapEditor) SetMapsFolder(folder func() string) { e.pathDialog.mapsFolde
 // the window, its start-folder rule ("" keeps the base folder), what the
 // answer and a cancel do, and the typed fallback (err nil: no window).
 type pathQuestion struct {
-	kind        pathdialog.Kind
-	title       string
-	filters     []pathdialog.Filter
-	defaultName string
-	start       func() string
-	chosen      func(path string)
-	cancelled   func()
-	fallback    func(err error)
+	pathdialog.Question
+	start     func() string
+	chosen    func(path string)
+	cancelled func()
+	fallback  func(err error)
 }
 
 // questionRequest is the window q asks for, its start rule applied.
@@ -70,9 +67,7 @@ func (e *MapEditor) questionRequest(q pathQuestion) pathdialog.Request {
 	if start == "" {
 		start = e.pathDialog.baseDir
 	}
-	r := pathdialog.NewRequest(q.kind, q.title, start, q.filters...)
-	r.DefaultName = q.defaultName
-	return r
+	return q.Question.Request(start)
 }
 
 // askPathQuestion is the one opener of the host's window.
@@ -100,8 +95,10 @@ func (e *MapEditor) mapsStart() string {
 // typed Open or Save line.
 func (e *MapEditor) mapQuestion(kind pathdialog.Kind) pathQuestion {
 	q := pathQuestion{
-		kind: kind, title: "Open map",
-		filters:   []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}},
+		Question: pathdialog.Question{
+			Kind: kind, Title: "Open map",
+			Filters: []pathdialog.Filter{{Name: "ALM maps", Extensions: []string{"alm", "almx"}}, {Name: "All files", Extensions: []string{"*"}}},
+		},
 		start:     func() string { return e.mapStart(kind) },
 		chosen:    func(path string) { e.mapChosen(kind, path) },
 		cancelled: func() { e.cancelPopup() },
@@ -113,13 +110,13 @@ func (e *MapEditor) mapQuestion(kind pathdialog.Kind) pathQuestion {
 		ext = ".almx"
 	}
 	if kind == pathdialog.SaveFile {
-		q.title = "Save map as"
-		q.defaultName = "new-map" + ext
+		q.Title = "Save map as"
+		q.DefaultName = "new-map" + ext
 	}
 	if source := e.mapSource(); source != "" && kind == pathdialog.SaveFile {
-		q.defaultName = filepath.Base(filepath.FromSlash(source))
-		if x := filepath.Ext(q.defaultName); ext == ".almx" && !namefold.HostEqual(x, ext) {
-			q.defaultName = strings.TrimSuffix(q.defaultName, x) + ext
+		q.DefaultName = filepath.Base(filepath.FromSlash(source))
+		if x := filepath.Ext(q.DefaultName); ext == ".almx" && !namefold.HostEqual(x, ext) {
+			q.DefaultName = strings.TrimSuffix(q.DefaultName, x) + ext
 		}
 	}
 	return q

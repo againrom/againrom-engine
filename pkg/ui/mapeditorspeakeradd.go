@@ -68,9 +68,11 @@ func (e *MapEditor) speakerPromptStep(value string) error {
 	unit, back := p.unit, p.back
 	e.dropPrompt()
 	e.askPathQuestion(pathQuestion{
-		kind:      pathdialog.OpenFile,
-		title:     e.word("editor.speaker.add.picture"),
-		filters:   []pathdialog.Filter{{Name: e.word("editor.speaker.add.pictures"), Extensions: []string{"png"}}},
+		Question: pathdialog.Question{
+			Kind:    pathdialog.OpenFile,
+			Title:   e.word("editor.speaker.add.picture"),
+			Filters: []pathdialog.Filter{{Name: e.word("editor.speaker.add.pictures"), Extensions: []string{"png"}}},
+		},
 		start:     host.SpeakerPictureFolder,
 		chosen:    func(path string) { e.speakerPictureChosen(host, unit, name, path, back) },
 		cancelled: back,

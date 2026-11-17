@@ -32,9 +32,25 @@ type Request struct {
 	DefaultName string
 }
 
-// NewRequest is the one builder of a Request.
+// NewRequest builds a Request from its parts; hosts ask through Question.Request.
 func NewRequest(kind Kind, title, startDir string, filters ...Filter) Request {
 	return Request{Kind: kind, Title: title, StartDir: startDir, Filters: filters}
+}
+
+// Question is a window's question as data: its kind, title, filters and
+// default name. A host builds one per question and asks its Request.
+type Question struct {
+	Kind        Kind
+	Title       string
+	Filters     []Filter
+	DefaultName string
+}
+
+// Request is the window q asks, started in start ("" lets Show choose).
+func (q Question) Request(start string) Request {
+	r := NewRequest(q.Kind, q.Title, start, q.Filters...)
+	r.DefaultName = q.DefaultName
+	return r
 }
 
 type Result struct {

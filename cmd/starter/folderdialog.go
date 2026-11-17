@@ -46,11 +46,16 @@ type folderDialogResult struct {
 
 func (a *app) chooseBase() { a.chooseFolder(baseFolderChoice) }
 
+// folderQuestion is the folder window c asks, titled in the current language.
+func (a *app) folderQuestion(c folderChoice) pathdialog.Question {
+	return pathdialog.Question{Kind: pathdialog.ChooseFolder, Title: a.t(c.title)}
+}
+
 func (a *app) chooseFolder(c folderChoice) {
 	if a.folderDialogResults != nil {
 		return
 	}
-	req := pathdialog.NewRequest(pathdialog.ChooseFolder, a.t(c.title), c.start(a))
+	req := a.folderQuestion(c).Request(c.start(a))
 	dialog := a.deps.pathDialog
 	if dialog == nil {
 		a.folderDialogFailed(c, pathdialog.ErrUnavailable)

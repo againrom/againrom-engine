@@ -245,9 +245,11 @@ var modPathRows = map[string]func(*MapEditor) pathQuestion{
 // absolute path in field, else the maps folder; field's route takes the answer.
 func (e *MapEditor) modOpenQuestion(field string) pathQuestion {
 	return pathQuestion{
-		kind:    pathdialog.OpenFile,
-		title:   e.plainWord("editor.mod.openmod"),
-		filters: []pathdialog.Filter{{Name: e.plainWord("editor.mod.openfilter"), Extensions: []string{"toml", "res"}}},
+		Question: pathdialog.Question{
+			Kind:    pathdialog.OpenFile,
+			Title:   e.plainWord("editor.mod.openmod"),
+			Filters: []pathdialog.Filter{{Name: e.plainWord("editor.mod.openfilter"), Extensions: []string{"toml", "res"}}},
+		},
 		start: func() string {
 			start := e.mapsStart()
 			for _, f := range e.obj.fields {
@@ -290,9 +292,11 @@ func (e *MapEditor) modPathShown() func(*MapEditor) pathQuestion {
 // the maps folder; f's route takes the answer, else the path typed there.
 func (e *MapEditor) modPickQuestion(f InspectionField) pathQuestion {
 	return pathQuestion{
-		kind:     pathdialog.OpenFile,
-		title:    f.Label,
-		filters:  []pathdialog.Filter{{Name: "*." + strings.Join(f.Pick, ", *."), Extensions: f.Pick}},
+		Question: pathdialog.Question{
+			Kind:    pathdialog.OpenFile,
+			Title:   f.Label,
+			Filters: []pathdialog.Filter{{Name: "*." + strings.Join(f.Pick, ", *."), Extensions: f.Pick}},
+		},
 		start:    e.mapsStart,
 		chosen:   func(path string) { _ = e.modAction(f.Key, path) },
 		fallback: func(err error) { e.modOpenTyped(f.Key, err) },
@@ -733,10 +737,9 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 // typed maps folder line.
 func (e *MapEditor) mapsFolderQuestion() pathQuestion {
 	return pathQuestion{
-		kind:   pathdialog.ChooseFolder,
-		title:  e.plainWord("editor.mod.addmaps.title"),
-		start:  e.mapsStart,
-		chosen: func(path string) { _ = e.modAction("addmaps", path) },
+		Question: pathdialog.Question{Kind: pathdialog.ChooseFolder, Title: e.plainWord("editor.mod.addmaps.title")},
+		start:    e.mapsStart,
+		chosen:   func(path string) { _ = e.modAction("addmaps", path) },
 		fallback: func(err error) {
 			e.openPrompt(editorPrompt{kind: promptMapsFolder})
 			if err != nil && !errors.Is(err, pathdialog.ErrUnavailable) {
