@@ -35,19 +35,6 @@ const terrainAddKey = "newground"
 // strips of the most frames a strip takes.
 const groundSquares = 4 * terrain.MaxStripFrames
 
-// terrainRows is the open project's draft of the mod's terrain file: its
-// rows and its bytes, the file on disk until the page edits it.
-func (s *mapInspectionEdits) terrainRows(w *editorWorkspaceState) (mod.TerrainData, []byte, error) {
-	m := s.inspector.mod
-	d := w.Project
-	if d == nil {
-		d = m.document()
-	}
-	src := d.Files[mod.TerrainFile]
-	t, err := mod.ParseTerrain(m.id, mod.TerrainFile, src)
-	return t, src, err
-}
-
 // freeTerrainGroup is the first group number past the install's that rows
 // leave free; false when every one is taken.
 func freeTerrainGroup(rows mod.TerrainData) (int, bool) {
@@ -77,10 +64,11 @@ func (s *mapInspectionEdits) terrainFields() []ui.InspectionField {
 		return nil
 	}
 	line := x.pageLine
-	rows, _, err := s.terrainRows(s.workspace)
+	held, err := s.heldRows(s.workspace.Project, nil, mod.TerrainFile)
 	if err != nil {
 		return []ui.InspectionField{line("error", "", err.Error())}
 	}
+	rows := held.Terrain
 	var out []ui.InspectionField
 	if _, ok := freeTerrainGroup(rows); ok {
 		out = append(out, ui.InspectionField{Key: terrainAddKey, Label: x.word("editor.terrain.add"), Meaning: x.word("editor.terrain.add.help"), Action: true, Column: 1, Pick: []string{"png", "bmp"}})
@@ -163,10 +151,11 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 		d, _, err := s.setModAsset(key, value)
 		return d, err
 	}
-	rows, _, err := s.terrainRows(s.workspace)
+	held, err := s.heldRows(s.workspace.Project, nil, mod.TerrainFile)
 	if err != nil {
 		return nil, err
 	}
+	rows := held.Terrain
 	if key == terrainAddKey {
 		return s.addGround(rows, strings.TrimSpace(value))
 	}
@@ -391,29 +380,11 @@ func (s *mapInspectionEdits) groupPainters(g int) []string {
 }
 
 // editTerrain is one draft step of the terrain file: edit changes its rows
-// and the kind's writer writes them over the draft's bytes; the files drop
-// names leave the project with it and the files put holds enter it. A file
-// with no row left leaves the mod.
+// through editRows; the files drop names leave the project with it and the
+// files put holds enter it.
 func (s *mapInspectionEdits) editTerrain(edit func(*mod.TerrainData) error, drop []string, put map[string][]byte) (*ui.InspectionDocument, error) {
 	return s.editKind(func(k kindFiles) error {
-		rows, src, err := s.terrainRows(k.w)
-		if err != nil {
-			return err
-		}
-		rows.Groups = slices.Clone(rows.Groups)
-		if err := edit(&rows); err != nil {
-			return err
-		}
-		kind, _ := mod.WrittenKind(mod.TerrainFile)
-		out, err := kind.Write(mod.TerrainFile, src, mod.Data{Terrain: rows})
-		if err != nil {
-			return err
-		}
-		if len(rows.Groups) == 0 && strings.TrimSpace(string(out)) == "" {
-			err = k.drop(mod.TerrainFile)
-		} else {
-			err = k.put(mod.TerrainFile, out)
-		}
+		err := k.editRows(nil, []string{mod.TerrainFile}, func(d *mod.Data) error { return edit(&d.Terrain) })
 		for _, rel := range drop {
 			if err == nil {
 				err = k.drop(rel)
@@ -454,6 +425,70 @@ func (k kindFiles) put(rel string, out []byte) error {
 		return fmt.Errorf("the project holds no kind of %s", rel)
 	}
 	k.w.Project.Files[rel] = out
+	return nil
+}
+
+// rowText is a page's text lookup over the project d.
+type rowText func(d *editorModDocument) (func(key string) (string, bool), error)
+
+// heldRows is the records of the held files rels name in the project d
+// (nil: the mod's), each read by its kind's row; text, when set, is the
+// lookup a kind citing text asks.
+func (s *mapInspectionEdits) heldRows(d *editorModDocument, text rowText, rels ...string) (mod.Data, error) {
+	m := s.inspector.mod
+	if d == nil {
+		d = m.document()
+	}
+	r := mod.DataReader{Mod: m.id, Lang: s.inspector.pageLanguage()}
+	var out mod.Data
+	if text != nil {
+		look, err := text(d)
+		if err != nil {
+			return out, err
+		}
+		r.Text = look
+	}
+	for _, rel := range rels {
+		kind, ok := mod.WrittenKind(rel)
+		if !ok {
+			return out, fmt.Errorf("the editor writes no kind of %s", rel)
+		}
+		if err := kind.ReadHeld(r, &out, rel, d.Files[rel]); err != nil {
+			return out, err
+		}
+	}
+	return out, nil
+}
+
+// editRows is the one page step of the held files rels name: it reads
+// their records (heldRows), lets edit change them, and writes each file
+// through its kind's writer over the draft's bytes. A file whose bytes
+// change is put, or leaves the mod when it writes blank: each writer reads
+// its file back as the records given, so a blank file holds none.
+func (k kindFiles) editRows(text rowText, rels []string, edit func(*mod.Data) error) error {
+	d, err := k.s.heldRows(k.w.Project, text, rels...)
+	if err != nil {
+		return err
+	}
+	if err := edit(&d); err != nil {
+		return err
+	}
+	for _, rel := range rels {
+		kind, _ := mod.WrittenKind(rel)
+		src := k.w.Project.Files[rel]
+		out, err := kind.Write(rel, src, d)
+		switch {
+		case err != nil:
+		case bytes.Equal(out, src):
+		case strings.TrimSpace(string(out)) == "":
+			err = k.drop(rel)
+		default:
+			err = k.put(rel, out)
+		}
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

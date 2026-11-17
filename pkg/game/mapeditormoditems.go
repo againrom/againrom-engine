@@ -1,7 +1,6 @@
 package game
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/draw"
@@ -203,30 +202,19 @@ func pickedItem(value string, items []installItem, keep func(installItem) bool, 
 	return installItem{}, "", false
 }
 
-// itemRows is the open project's draft of the mod's items file: its records
-// as the items reader reads them, and its bytes. A name key the project's
-// strings lack reads as "?"; the mod's context refuses it in the reader's
-// words.
-func (s *mapInspectionEdits) itemRows(w *editorWorkspaceState) (mod.ItemData, []byte, error) {
-	m := s.inspector.mod
-	d := w.Project
-	if d == nil {
-		d = m.document()
-	}
-	src := d.Files[mod.ItemsFile]
-	lang := s.inspector.pageLanguage()
-	look, err := d.textLookup(lang)
+// itemNames is the items page's rowText: a name key the project's strings
+// lack reads as "?"; the mod's context refuses it in the reader's words.
+func (s *mapInspectionEdits) itemNames(d *editorModDocument) (func(key string) (string, bool), error) {
+	look, err := d.textLookup(s.inspector.pageLanguage())
 	if err != nil {
-		return mod.ItemData{}, nil, err
+		return nil, err
 	}
-	shown := func(key string) (string, bool) {
+	return func(key string) (string, bool) {
 		if v, ok := look(key); ok && v != "" && utf8.RuneCountInString(v) <= 40 {
 			return v, true
 		}
 		return "?", true
-	}
-	items, err := mod.ParseItems(m.id, mod.ItemsFile, src, shown, lang)
-	return items, src, err
+	}, nil
 }
 
 // itemsPicture is the picture the items page shows for a record: the
@@ -276,18 +264,15 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 	line := func(key, text string) ui.InspectionField {
 		return ui.InspectionField{Key: key, ReadOnly: true, Text: true, TextValue: text, Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(text)}}}
 	}
-	items, _, err := s.itemRows(s.workspace)
-	if err != nil {
-		return []ui.InspectionField{line("error", err.Error())}
-	}
 	project := s.workspace.Project
 	if project == nil {
 		project = x.mod.document()
 	}
-	sets, err := project.strings()
+	read, err := s.heldRows(project, s.itemNames, itemFiles()...)
 	if err != nil {
 		return []ui.InspectionField{line("error", err.Error())}
 	}
+	items, sets := read.Items, read.Strings
 	install := x.installItems()
 	out := []ui.InspectionField{
 		s.itemChoice(itemsNewArmour, x.word("editor.items.new.armour"), x.word("editor.items.new.armour.help"), "", install, armourBase, nil, true),
@@ -882,48 +867,16 @@ func (s *mapInspectionEdits) editItems(edit func(*mod.ItemData, map[string]mod.S
 	return s.editKind(func(k kindFiles) error { return s.writeItemsDraft(k.w, edit) })
 }
 
+// itemFiles are the items file and the strings files of its names.
+func itemFiles() []string { return append([]string{mod.ItemsFile}, textFiles()...) }
+
 // writeItemsDraft makes edit's change of the items file and of the text of
-// each language in the project w: each kind's writer writes its file over
-// the draft's bytes, and only a file whose content changed. A file with no
-// record left leaves the mod.
+// each language in the project w through editRows.
 func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(*mod.ItemData, map[string]mod.Strings) error) error {
 	if w.Project == nil {
 		w.Project = s.inspector.mod.document()
 	}
-	items, src, err := s.itemRows(w)
-	if err != nil {
-		return err
-	}
-	sets, err := w.Project.strings()
-	if err != nil {
-		return err
-	}
-	for _, l := range textLanguages() {
-		if sets[l] == nil {
-			sets[l] = mod.Strings{}
-		}
-	}
-	was := cloneTexts(sets)
-	if err := edit(&items, sets); err != nil {
-		return err
-	}
-	kind, _ := mod.WrittenKind(mod.ItemsFile)
-	out, err := kind.Write(mod.ItemsFile, src, mod.Data{Items: items})
-	if err != nil {
-		return err
-	}
-	k := kindFiles{s: s, w: w}
-	if !bytes.Equal(out, src) {
-		if items.Empty() && strings.TrimSpace(string(out)) == "" {
-			err = k.drop(mod.ItemsFile)
-		} else {
-			err = k.put(mod.ItemsFile, out)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return k.putTexts(was, sets)
+	return kindFiles{s: s, w: w}.editRows(s.itemNames, itemFiles(), func(d *mod.Data) error { return edit(&d.Items, d.Strings) })
 }
 
 // ImportItemSprite copies the host file source into the open mod under

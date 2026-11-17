@@ -53,19 +53,14 @@ func textLanguages() []string {
 // languageLabel is a language code as the texts page shows it.
 func languageLabel(code string) string { return strings.ToUpper(code) }
 
-// strings is the project's text of each language, as its strings files
-// read; a language without a file has none.
-func (d *editorModDocument) strings() (map[string]mod.Strings, error) {
-	out := map[string]mod.Strings{}
+// textFiles are the strings files of the text languages; a language
+// without its file reads with no text.
+func textFiles() []string {
+	var out []string
 	for _, l := range textLanguages() {
-		rel := mod.StringsFile(l)
-		s, err := mod.ParseStrings(rel, d.Files[rel])
-		if err != nil {
-			return nil, err
-		}
-		out[l] = s
+		out = append(out, mod.StringsFile(l))
 	}
-	return out, nil
+	return out
 }
 
 // textLookup is the one text lookup over the project's strings files for a
@@ -100,7 +95,8 @@ func (s *mapInspectionEdits) textPlaces(d *editorModDocument, skipFiles ...strin
 		add(r.TitleKey, x.word("editor.texts.at.title"), missionPlaceName(r))
 		add(r.BriefKey, x.word("editor.texts.at.brief"), missionPlaceName(r))
 	}
-	if items, _, err := s.itemRows(s.workspace); err == nil {
+	if read, err := s.heldRows(s.workspace.Project, s.itemNames, mod.ItemsFile); err == nil {
+		items := read.Items
 		for _, r := range items.Rows {
 			add(r.NameKey, x.word("editor.texts.at.item"), itemPlaceName(r.Name, r.Key))
 		}
@@ -222,10 +218,11 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	if d == nil {
 		d = x.mod.document()
 	}
-	sets, err := d.strings()
+	read, err := s.heldRows(d, nil, textFiles()...)
 	if err != nil {
 		return []ui.InspectionField{line("error", "", err.Error())}
 	}
+	sets := read.Strings
 	langs, keys := textLanguages(), textKeys(sets)
 	places := s.textPlaces(d)
 	heads := map[string]string{}
@@ -295,10 +292,11 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 	if d == nil {
 		d = x.mod.document()
 	}
-	sets, err := d.strings()
+	read, err := s.heldRows(d, nil, textFiles()...)
 	if err != nil {
 		return nil, err
 	}
+	sets := read.Strings
 	held := func(k string) bool { return slices.Contains(textKeys(sets), k) }
 	gone := fmt.Errorf(x.word("editor.texts.err.gone"), key)
 	switch {
@@ -343,27 +341,16 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 	})
 }
 
-// editTexts is one draft step of the strings files: edit changes the text
-// of each language and the project's rows, and the kind's writer writes
-// the file of each language whose pairs the edit changed over the draft's
-// bytes. A changed file with no pair and no other text leaves the mod; a
-// language the edit left alone keeps its file as it was.
+// editTexts is one draft step of the strings files through editRows: edit
+// changes the text of each language and the project's rows; a language the
+// edit left alone keeps its file as it was.
 func (s *mapInspectionEdits) editTexts(edit func(map[string]mod.Strings, *editorModDocument) error) (*ui.InspectionDocument, error) {
 	x := s.inspector
 	return s.editKind(func(k kindFiles) error {
-		w := k.w
-		sets, err := w.Project.strings()
-		if err != nil {
+		if err := k.editRows(nil, textFiles(), func(d *mod.Data) error { return edit(d.Strings, k.w.Project) }); err != nil {
 			return err
 		}
-		was := cloneTexts(sets)
-		if err := edit(sets, w.Project); err != nil {
-			return err
-		}
-		if err := k.putTexts(was, sets); err != nil {
-			return err
-		}
-		return w.Project.citedTexts(x.pageLanguage())
+		return k.w.Project.citedTexts(x.pageLanguage())
 	})
 }
 
@@ -376,41 +363,6 @@ func newModText(sets map[string]mod.Strings, kind string, values map[string]stri
 		sets[l][key] = values[l]
 	}
 	return key
-}
-
-// cloneTexts is a copy of the text of each language.
-func cloneTexts(sets map[string]mod.Strings) map[string]mod.Strings {
-	was := map[string]mod.Strings{}
-	for l, p := range sets {
-		was[l] = maps.Clone(p)
-	}
-	return was
-}
-
-// putTexts writes the strings file of each language whose pairs differ
-// between was and sets into the step k; a file left with no pair and no
-// other text leaves the mod.
-func (k kindFiles) putTexts(was, sets map[string]mod.Strings) error {
-	for _, l := range textLanguages() {
-		if maps.Equal(was[l], sets[l]) {
-			continue
-		}
-		rel := mod.StringsFile(l)
-		kind, _ := mod.WrittenKind(rel)
-		out, err := kind.Write(rel, k.w.Project.Files[rel], mod.Data{Strings: sets})
-		if err != nil {
-			return err
-		}
-		if len(sets[l]) == 0 && strings.TrimSpace(string(out)) == "" {
-			err = k.drop(rel)
-		} else {
-			err = k.put(rel, out)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // citedTexts makes each mission row's title and briefing the text of the
@@ -440,11 +392,12 @@ func (s *mapInspectionEdits) missionTextField(key string) (ui.InspectionField, b
 	if x.mod == nil || d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) || d.Missions[d.Selected].Off {
 		return ui.InspectionField{}, false
 	}
-	sets, err := d.strings()
+	read, err := s.heldRows(d, nil, textFiles()...)
 	look, lerr := d.textLookup(x.pageLanguage())
 	if err != nil || lerr != nil {
 		return ui.InspectionField{}, false
 	}
+	sets := read.Strings
 	cited := d.Missions[d.Selected].TitleKey
 	if key == missionBriefKey {
 		cited = d.Missions[d.Selected].BriefKey
@@ -475,10 +428,11 @@ func (s *mapInspectionEdits) pickMissionText(w *editorWorkspaceState, key, value
 	if d == nil || d.Selected < 0 || d.Selected >= len(d.Missions) {
 		return errors.New(x.word("editor.mod.err.nomission"))
 	}
-	sets, err := d.strings()
+	read, err := s.heldRows(d, nil, textFiles()...)
 	if err != nil {
 		return err
 	}
+	sets := read.Strings
 	keys := textKeys(sets)
 	n, err := strconv.Atoi(strings.TrimSpace(value))
 	if err != nil || n < missionTextNew || n > len(keys) {
@@ -488,10 +442,12 @@ func (s *mapInspectionEdits) pickMissionText(w *editorWorkspaceState, key, value
 	k := ""
 	switch {
 	case n == missionTextNew:
-		was := cloneTexts(sets)
-		k = makeTextKey(sets, missionTextBase(*r, title))
-		sets[locale.Fallback][k] = ""
-		if err := (kindFiles{s: s, w: w}).putTexts(was, sets); err != nil {
+		err := kindFiles{s: s, w: w}.editRows(nil, textFiles(), func(t *mod.Data) error {
+			k = makeTextKey(t.Strings, missionTextBase(*r, title))
+			t.Strings[locale.Fallback][k] = ""
+			return nil
+		})
+		if err != nil {
 			return err
 		}
 	case n > 0:

@@ -138,6 +138,9 @@ type DataKind struct {
 	// of d, keeping the bytes of every record d leaves unchanged; nil when
 	// the editor writes no file of the kind.
 	write func(rel string, source []byte, d Data) ([]byte, error)
+	// readHeld reads one file of a kind the editor writes and the game
+	// reads no other way into d's records; nil when read does.
+	readHeld func(rel string, src []byte, d *Data) error
 	// text marks a kind whose records cite text keys of the strings files.
 	text bool
 	// summary is the check's line on the kind's records; "" when none.
@@ -359,7 +362,7 @@ var dataKinds = []DataKind{
 	{Name: "manifest", Files: []string{ManifestName}, Format: "TOML subset", Language: "shared", Found: "required fixed path"},
 	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
 	{Name: "script modules", Paths: []string{"**/*.star"}, Format: "Starlark", Language: "shared", Found: "script load"},
-	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings, Draft: Drafting{Context: DraftCited, Held: true}, lookup: DraftText},
+	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings, readHeld: readHeldStrings, Draft: Drafting{Context: DraftCited, Held: true}, lookup: DraftText},
 	{Name: missionMapsKind, Paths: missionMapPaths, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
 	{Name: missionPagesKind, Paths: append(slices.Clone(missionPagePaths), "<N>.text/*.txt", "<N>.text/{lang}/*.txt"), Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
 	{Name: mapLabelsKind, Paths: mapLabelPaths, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
@@ -424,6 +427,18 @@ func (k DataKind) ReadNamed(r DataReader, d *Data, t Tree) (bool, error) {
 		return false, nil
 	}
 	return k.named(r, d, t)
+}
+
+// ReadHeld reads the file src at rel the editor writes into d's records:
+// the kind's reader, else its held-file reader.
+func (k DataKind) ReadHeld(r DataReader, d *Data, rel string, src []byte) error {
+	switch {
+	case k.read != nil:
+		return k.read(r, d, rel, src)
+	case k.readHeld != nil:
+		return k.readHeld(rel, src, d)
+	}
+	return fmt.Errorf("the editor reads no %s file", k.Name)
 }
 
 // Write is the kind's file source with its records made those of d: a kept

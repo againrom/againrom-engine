@@ -25,7 +25,7 @@ var DraftKindReaders = map[string][]string{
 	"pkg/game/mapinspectionworkspace.go": {"contextDraft"},
 	"pkg/game/modassetimport.go":         {"importedModFile"},
 	"pkg/game/mapeditormodcontext.go":    {"openModContext", "draftTerrain"},
-	"pkg/game/mapeditormodterrain.go":    {"editKind", "put", "drop"},
+	"pkg/game/mapeditormodterrain.go":    {"editKind", "put", "drop", "heldRows", "editRows"},
 }
 
 // DraftKindNames are the package mod names of a drafted kind's files.

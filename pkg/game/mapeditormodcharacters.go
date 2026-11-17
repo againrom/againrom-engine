@@ -18,14 +18,6 @@ import (
 	"againrom/pkg/words"
 )
 
-func (s *mapInspectionEdits) characterRows(w *editorWorkspaceState) (mod.CharacterData, error) {
-	look, err := w.Project.textLookup(s.inspector.pageLanguage())
-	if err != nil {
-		return mod.CharacterData{}, err
-	}
-	return mod.ParseCharacters(s.inspector.mod.id, mod.CharactersFile, w.Project.Files[mod.CharactersFile], look, s.inspector.pageLanguage())
-}
-
 func (s *mapInspectionEdits) characterSources(key, label, meaning string) ui.InspectionField {
 	x := s.inspector
 	choices, _ := x.identityChoices(s.mission())
@@ -86,10 +78,11 @@ func (s *mapInspectionEdits) charactersFields() []ui.InspectionField {
 	if x.mod == nil || x.mod.packed || s.prepareWorkspace() != nil {
 		return nil
 	}
-	rows, err := s.characterRows(s.workspace)
+	read, err := s.heldRows(s.workspace.Project, s.characterNames, mod.CharactersFile)
 	if err != nil {
 		return []ui.InspectionField{x.pageLine("error", "", err.Error())}
 	}
+	rows := read.Characters
 	if len(rows.Rows) == 0 && !s.characterAdding {
 		return []ui.InspectionField{{Key: "begin", Label: x.word("editor.characters.add"),
 			Meaning: x.word("editor.characters.add.hint"), Action: true, Column: 1}}
@@ -100,10 +93,10 @@ func (s *mapInspectionEdits) charactersFields() []ui.InspectionField {
 		out = append(out, ui.InspectionField{Key: "cancel", Label: x.word("editor.characters.cancel"),
 			Meaning: x.word("editor.characters.cancel.hint"), Action: true, Column: 1})
 	}
-	sets, err := s.workspace.Project.strings()
-	if err != nil {
+	if read, err = s.heldRows(s.workspace.Project, nil, textFiles()...); err != nil {
 		return []ui.InspectionField{x.pageLine("error", "", err.Error())}
 	}
+	sets := read.Strings
 	for i, r := range rows.Rows {
 		prefix := "character." + strconv.Itoa(i) + "."
 		name := r.Name
@@ -152,135 +145,131 @@ func (s *mapInspectionEdits) setCharactersField(key, value string) (*ui.Inspecti
 	}
 	gone := errors.New(x.word("editor.characters.err.gone"))
 	doc, err := s.editKind(func(k kindFiles) error {
-		d, err := s.characterRows(k.w)
-		if err != nil {
-			return err
-		}
-		sets, err := k.w.Project.strings()
-		if err != nil {
-			return err
-		}
-		was := cloneTexts(sets)
-		if key == "new" || key == "change" {
-			if value == "0" {
-				return nil
-			}
-			n, err := strconv.ParseInt(value, 10, 64)
-			choices := s.characterSources(key, "", "")
-			if err != nil || !slices.ContainsFunc(choices.Choices[1:], func(c ui.InspectionChoice) bool { return c.Value == n }) {
-				return gone
-			}
-			id, _ := x.identityOf(n)
-			base := x.contextBase().table.Humans
-			r := mod.CharacterRow{}
-			if key == "new" {
-				r.Key = mod.RecordKey("character", func(key string) bool {
-					return slices.ContainsFunc(d.Rows, func(c mod.CharacterRow) bool { return c.Key == key }) ||
-						slices.ContainsFunc(s.modCharacters(), func(c mod.Character) bool { return c.Key == key })
-				})
-				r.Row = base.EntryName(id.Row)
-			} else {
-				r.Target = base.EntryName(id.Row)
-				if slices.ContainsFunc(d.Rows, func(c mod.CharacterRow) bool { return c.Target == r.Target }) {
-					return errors.New(x.word("editor.characters.err.changed"))
-				}
-				def, err := data.NewHumanDef(r.Target, base.EntryParams(id.Row))
-				if err != nil {
-					return err
-				}
-				r.Face = max(1, min(mod.MaxFace, def.Face))
-			}
-			if key == "new" {
-				values := map[string]string{}
-				for _, l := range textLanguages() {
-					values[l] = fmt.Sprintf(words.For(l).Text("editor.characters.default"), len(d.Rows)+1)
-				}
-				r.NameKey = newModText(sets, "character.name", values)
-			}
-			d.Rows = append(d.Rows, r)
-		} else {
-			parts := strings.SplitN(key, ".", 3)
-			if len(parts) != 3 || parts[0] != "character" {
-				return gone
-			}
-			i, err := strconv.Atoi(parts[1])
-			if err != nil || i < 0 || i >= len(d.Rows) {
-				return gone
-			}
-			r := &d.Rows[i]
-			switch {
-			case parts[2] == "remove":
-				for _, m := range k.w.Project.Missions {
-					if r.Key != "" && slices.ContainsFunc(m.Party, func(g mod.GuestMember) bool { return g.Character == r.Key }) {
-						name := m.Title
-						if name == "" {
-							name = m.Key
-						}
-						return fmt.Errorf(x.word("editor.characters.err.used"), name, m.Number)
-					}
-				}
-				d.Rows = slices.Delete(d.Rows, i, i+1)
-			case parts[2] == "face" && !r.Off:
-				n, err := strconv.ParseInt(value, 10, 32)
-				f := s.characterFace(key, *r)
-				if err != nil || !slices.ContainsFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == n }) {
-					return gone
-				}
-				r.Face = int32(n)
-				if r.Target != "" && r.Face == 0 && r.NameKey == "" && r.Kind == "" && len(r.Strip) == 0 {
-					d.Rows = slices.Delete(d.Rows, i, i+1)
-				}
-			case strings.HasPrefix(parts[2], "name.") && !r.Off:
-				l := strings.TrimPrefix(parts[2], "name.")
-				if !slices.Contains(textLanguages(), l) {
-					return gone
-				}
-				if n := utf8.RuneCountInString(value); n == 0 || n > 40 || strings.TrimSpace(value) == "" {
-					return errors.New(x.word("editor.characters.err.name"))
-				}
-				values := map[string]string{}
-				for _, lang := range textLanguages() {
-					values[lang] = sets[lang][r.NameKey]
-					if values[lang] == "" && lang != l && r.Target != "" && (lang == s.installTextLanguage() || lang == locale.Fallback) {
-						values[lang] = s.gameCharacterName(r.Target)
-					}
-				}
-				shared := slices.ContainsFunc(d.Rows[:i], func(c mod.CharacterRow) bool { return c.NameKey == r.NameKey }) ||
-					slices.ContainsFunc(d.Rows[i+1:], func(c mod.CharacterRow) bool { return c.NameKey == r.NameKey })
-				shared = shared || len(s.textPlaces(k.w.Project, mod.CharactersFile)[r.NameKey]) > 0
-				if r.NameKey == "" || shared {
-					r.NameKey = newModText(sets, "character.name", values)
-					for _, lang := range textLanguages() {
-						if values[lang] == "" {
-							delete(sets[lang], r.NameKey)
-						}
-					}
-				}
-				if sets[l] == nil {
-					sets[l] = mod.Strings{}
-				}
-				sets[l][r.NameKey] = value
-			default:
-				return gone
-			}
-		}
-		if err := k.putTexts(was, sets); err != nil {
-			return err
-		}
-		kind, _ := mod.WrittenKind(mod.CharactersFile)
-		out, err := kind.Write(mod.CharactersFile, k.w.Project.Files[mod.CharactersFile], mod.Data{Characters: d})
-		if err != nil {
-			return err
-		}
-		if d.Empty() && strings.TrimSpace(string(out)) == "" {
-			return k.drop(mod.CharactersFile)
-		}
-		return k.put(mod.CharactersFile, out)
+		return k.editRows(s.characterNames, characterFiles(), func(rows *mod.Data) error {
+			return s.editCharacters(k, &rows.Characters, rows.Strings, key, value, gone)
+		})
 	})
 	if err == nil && (key == "new" || key == "change") && value != "0" {
 		s.characterAdding = false
 	}
 	return doc, err
+}
+
+// characterFiles are the characters file and the strings files of its names.
+func characterFiles() []string { return append([]string{mod.CharactersFile}, textFiles()...) }
+
+// characterNames is the characters page's rowText.
+func (s *mapInspectionEdits) characterNames(d *editorModDocument) (func(key string) (string, bool), error) {
+	return d.textLookup(s.inspector.pageLanguage())
+}
+
+// editCharacters makes the page's edit of key to value on d and sets.
+func (s *mapInspectionEdits) editCharacters(k kindFiles, d *mod.CharacterData, sets map[string]mod.Strings, key, value string, gone error) error {
+	x := s.inspector
+	if key == "new" || key == "change" {
+		if value == "0" {
+			return nil
+		}
+		n, err := strconv.ParseInt(value, 10, 64)
+		choices := s.characterSources(key, "", "")
+		if err != nil || !slices.ContainsFunc(choices.Choices[1:], func(c ui.InspectionChoice) bool { return c.Value == n }) {
+			return gone
+		}
+		id, _ := x.identityOf(n)
+		base := x.contextBase().table.Humans
+		r := mod.CharacterRow{}
+		if key == "new" {
+			r.Key = mod.RecordKey("character", func(key string) bool {
+				return slices.ContainsFunc(d.Rows, func(c mod.CharacterRow) bool { return c.Key == key }) ||
+					slices.ContainsFunc(s.modCharacters(), func(c mod.Character) bool { return c.Key == key })
+			})
+			r.Row = base.EntryName(id.Row)
+		} else {
+			r.Target = base.EntryName(id.Row)
+			if slices.ContainsFunc(d.Rows, func(c mod.CharacterRow) bool { return c.Target == r.Target }) {
+				return errors.New(x.word("editor.characters.err.changed"))
+			}
+			def, err := data.NewHumanDef(r.Target, base.EntryParams(id.Row))
+			if err != nil {
+				return err
+			}
+			r.Face = max(1, min(mod.MaxFace, def.Face))
+		}
+		if key == "new" {
+			values := map[string]string{}
+			for _, l := range textLanguages() {
+				values[l] = fmt.Sprintf(words.For(l).Text("editor.characters.default"), len(d.Rows)+1)
+			}
+			r.NameKey = newModText(sets, "character.name", values)
+		}
+		d.Rows = append(d.Rows, r)
+	} else {
+		parts := strings.SplitN(key, ".", 3)
+		if len(parts) != 3 || parts[0] != "character" {
+			return gone
+		}
+		i, err := strconv.Atoi(parts[1])
+		if err != nil || i < 0 || i >= len(d.Rows) {
+			return gone
+		}
+		r := &d.Rows[i]
+		switch {
+		case parts[2] == "remove":
+			for _, m := range k.w.Project.Missions {
+				if r.Key != "" && slices.ContainsFunc(m.Party, func(g mod.GuestMember) bool { return g.Character == r.Key }) {
+					name := m.Title
+					if name == "" {
+						name = m.Key
+					}
+					return fmt.Errorf(x.word("editor.characters.err.used"), name, m.Number)
+				}
+			}
+			d.Rows = slices.Delete(d.Rows, i, i+1)
+		case parts[2] == "face" && !r.Off:
+			n, err := strconv.ParseInt(value, 10, 32)
+			f := s.characterFace(key, *r)
+			if err != nil || !slices.ContainsFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == n }) {
+				return gone
+			}
+			r.Face = int32(n)
+			if r.Target != "" && r.Face == 0 && r.NameKey == "" && r.Kind == "" && len(r.Strip) == 0 {
+				d.Rows = slices.Delete(d.Rows, i, i+1)
+			}
+		case strings.HasPrefix(parts[2], "name.") && !r.Off:
+			l := strings.TrimPrefix(parts[2], "name.")
+			if !slices.Contains(textLanguages(), l) {
+				return gone
+			}
+			if n := utf8.RuneCountInString(value); n == 0 || n > 40 || strings.TrimSpace(value) == "" {
+				return errors.New(x.word("editor.characters.err.name"))
+			}
+			values := map[string]string{}
+			for _, lang := range textLanguages() {
+				values[lang] = sets[lang][r.NameKey]
+				if values[lang] == "" && lang != l && r.Target != "" && (lang == s.installTextLanguage() || lang == locale.Fallback) {
+					values[lang] = s.gameCharacterName(r.Target)
+				}
+			}
+			shared := slices.ContainsFunc(d.Rows[:i], func(c mod.CharacterRow) bool { return c.NameKey == r.NameKey }) ||
+				slices.ContainsFunc(d.Rows[i+1:], func(c mod.CharacterRow) bool { return c.NameKey == r.NameKey })
+			shared = shared || len(s.textPlaces(k.w.Project, mod.CharactersFile)[r.NameKey]) > 0
+			if r.NameKey == "" || shared {
+				r.NameKey = newModText(sets, "character.name", values)
+				for _, lang := range textLanguages() {
+					if values[lang] == "" {
+						delete(sets[lang], r.NameKey)
+					}
+				}
+			}
+			if sets[l] == nil {
+				sets[l] = mod.Strings{}
+			}
+			sets[l][r.NameKey] = value
+		default:
+			return gone
+		}
+	}
+	return nil
 }
 
 // installTextLanguage is the text language of the install the editor reads.

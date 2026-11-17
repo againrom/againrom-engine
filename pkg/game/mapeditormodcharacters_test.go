@@ -108,7 +108,7 @@ func TestModCharactersPageWritesNamesFacesAndGameEdits(t *testing.T) {
 				t.Fatalf("face choices: %+v, icons %v", face.Choices, face.Icons)
 			}
 			setCharacter(t, s, "character.0.face", "7")
-			rows, err := s.characterRows(s.workspace)
+			rows, err := heldCharacters(s)
 			if err != nil || len(rows.Rows) != 1 || rows.Rows[0].Key == "" || rows.Rows[0].Row != "Guard_1" || rows.Rows[0].Face != 7 {
 				t.Fatalf("new character: %+v, %v", rows, err)
 			}
@@ -129,7 +129,7 @@ func TestModCharactersPageWritesNamesFacesAndGameEdits(t *testing.T) {
 			addCharacter(t, s, "change")
 			setCharacter(t, s, "character.1.name.en", "Game guard")
 			setCharacter(t, s, "character.1.face", "7")
-			rows, err = s.characterRows(s.workspace)
+			rows, err = heldCharacters(s)
 			if err != nil || rows.Rows[1].Target != "Guard_1" || rows.Rows[1].Key != "" || x.table.Humans.EntryParams(1)[data.HumanSlotFace] != 7 {
 				t.Fatalf("game edit: %+v, %v", rows, err)
 			}
@@ -149,23 +149,23 @@ func TestModCharactersPageWritesNamesFacesAndGameEdits(t *testing.T) {
 func TestModCharactersPageNameKeepsOtherTextUses(t *testing.T) {
 	_, s, _ := charactersPage(t, "en")
 	addCharacter(t, s, "new")
-	rows, err := s.characterRows(s.workspace)
+	rows, err := heldCharacters(s)
 	if err != nil {
 		t.Fatal(err)
 	}
 	key := rows.Rows[0].NameKey
 	setCharacter(t, s, "character.0.name.en", "Visitor")
-	rows, err = s.characterRows(s.workspace)
+	rows, err = heldCharacters(s)
 	if err != nil || rows.Rows[0].NameKey != key {
 		t.Fatalf("unshared name changed its text key: %+v, %v", rows, err)
 	}
 	s.workspace.Project.Missions = append(s.workspace.Project.Missions, mod.Mission{Key: "escort", Number: 77, Title: "Visitor", TitleKey: key})
 	setCharacter(t, s, "character.0.name.en", "Guard")
-	rows, err = s.characterRows(s.workspace)
+	rows, err = heldCharacters(s)
 	if err != nil || rows.Rows[0].NameKey == key {
 		t.Fatalf("shared name kept its text key: %+v, %v", rows, err)
 	}
-	sets, err := s.workspace.Project.strings()
+	sets, err := heldTexts(s, s.workspace.Project)
 	if err != nil || sets["en"][key] != "Visitor" || sets["en"][rows.Rows[0].NameKey] != "Guard" {
 		t.Fatalf("character edit changed another use of its text: %+v, %v", sets, err)
 	}
@@ -197,7 +197,7 @@ func TestModCharactersPageDeleteRefusalUndoAndInvalidEdits(t *testing.T) {
 			t.Fatalf("invalid %s accepted or changed draft: %v", key, err)
 		}
 	}
-	rows, _ := s.characterRows(s.workspace)
+	rows, _ := heldCharacters(s)
 	key := rows.Rows[0].Key
 	s.workspace.Project.Missions = append(s.workspace.Project.Missions, mod.Mission{Key: "escort", Number: 77, Title: "Escort", Party: []mod.GuestMember{{Character: key}}})
 	before := workspaceBytes(s.workspace)
@@ -206,7 +206,7 @@ func TestModCharactersPageDeleteRefusalUndoAndInvalidEdits(t *testing.T) {
 	}
 	s.workspace.Project.Missions = s.workspace.Project.Missions[:len(s.workspace.Project.Missions)-1]
 	setCharacter(t, s, "character.0.remove", "")
-	if rows, err := s.characterRows(s.workspace); err != nil || !rows.Empty() || len(s.modCharacters()) != 0 {
+	if rows, err := heldCharacters(s); err != nil || !rows.Empty() || len(s.modCharacters()) != 0 {
 		t.Fatalf("delete left character: %+v, %v", rows, err)
 	}
 	if _, err := s.Undo(); err != nil || len(s.modCharacters()) != 1 {
@@ -253,7 +253,7 @@ func TestModCharactersPageGameFaceEditKeepsTheGameName(t *testing.T) {
 	x, s, _ := charactersPage(t, "en")
 	addCharacter(t, s, "change")
 	setCharacter(t, s, "character.0.face", "7")
-	rows, err := s.characterRows(s.workspace)
+	rows, err := heldCharacters(s)
 	if err != nil || len(rows.Rows) != 1 || rows.Rows[0].Target != "Guard_1" || rows.Rows[0].NameKey != "" || rows.Rows[0].Face != 7 {
 		t.Fatalf("face-only game edit: %+v, %v", rows, err)
 	}
@@ -326,11 +326,11 @@ func TestModCharactersPageGameRenameChangesOnlyTheTypedLanguage(t *testing.T) {
 				_, s, _ := charactersPage(t, lang)
 				addCharacter(t, s, "change")
 				setCharacter(t, s, "character.0.name."+typed, "Ivan")
-				rows, err := s.characterRows(s.workspace)
+				rows, err := heldCharacters(s)
 				if err != nil || len(rows.Rows) != 1 || rows.Rows[0].NameKey == "" {
 					t.Fatalf("rename: %+v, %v", rows, err)
 				}
-				sets, err := s.workspace.Project.strings()
+				sets, err := heldTexts(s, s.workspace.Project)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -350,7 +350,7 @@ func TestModCharactersPageNewCharactersTakeTheRecordKeyRule(t *testing.T) {
 	_, s, _ := charactersPage(t, "en")
 	addCharacter(t, s, "new")
 	addCharacter(t, s, "new")
-	rows, err := s.characterRows(s.workspace)
+	rows, err := heldCharacters(s)
 	if err != nil || len(rows.Rows) != 2 || rows.Rows[0].Key == rows.Rows[1].Key {
 		t.Fatalf("two new characters: %+v, %v", rows, err)
 	}

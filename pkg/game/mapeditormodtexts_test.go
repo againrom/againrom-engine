@@ -64,7 +64,7 @@ func heldKeys(t *testing.T, s *mapInspectionEdits) []string {
 	if d == nil {
 		d = s.inspector.mod.document()
 	}
-	sets, err := d.strings()
+	sets, err := heldTexts(s, d)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func newMissionText(t *testing.T, s *mapInspectionEdits, field string) string {
 // pickKey makes the selected mission row's title or briefing cite key
 // through W's field, by the choice that stands for it.
 func pickKey(s *mapInspectionEdits, field, key string) error {
-	sets, err := s.workspace.Project.strings()
+	sets, err := heldTexts(s, s.workspace.Project)
 	if err != nil {
 		return err
 	}

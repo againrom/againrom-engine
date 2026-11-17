@@ -215,6 +215,23 @@ func CheckTextKey(key string) error {
 	return nil
 }
 
+// readHeldStrings reads the strings file at rel into d's text of rel's
+// language, the one writeStrings writes.
+func readHeldStrings(rel string, src []byte, d *Data) error {
+	if !treeMatch(stringsPattern, rel) {
+		return fmt.Errorf("%s is not a strings file", rel)
+	}
+	s, err := ParseStrings(rel, src)
+	if err != nil {
+		return err
+	}
+	if d.Strings == nil {
+		d.Strings = map[string]Strings{}
+	}
+	d.Strings[strings.Split(namefold.ModTree(rel), "/")[1]] = s
+	return nil
+}
+
 // writeStrings is the strings file at rel with its pairs made those d holds
 // for rel's language: a kept pair keeps its line, a changed value is
 // rewritten in place, a key d lacks leaves with its line, and new keys in
