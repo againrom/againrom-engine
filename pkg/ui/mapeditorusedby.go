@@ -27,7 +27,10 @@ const usesFoldMost = 5
 // link to the record, so a press anywhere on it opens the record.
 func (e *MapEditor) scriptPopupLink(s *popupSpec, links *[]int, row scriptPopupLink) {
 	pad := strings.Repeat(" ", row.indent)
-	width := s.Width - 2*popupPad - 8
+	// A window of columns or a column width gives each row a place narrower
+	// than the window; the layout takes the same place for the row.
+	place := popupColumnWidth(uiWindow{Body: uiBody{Columns: s.Columns, ColumnWidth: s.ColumnWidth}}, s.Width-2*popupPad)
+	width := place - 8
 	if b := e.bodyFont(); b != nil {
 		width -= b.Advance(pad)
 	}
