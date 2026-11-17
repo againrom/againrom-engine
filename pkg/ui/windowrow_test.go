@@ -15,7 +15,7 @@ func TestWindowRowsHoldEachProgramsForm(t *testing.T) {
 		want WindowRow
 	}{
 		{"game", GameWindow, WindowRow{Resizable: true, MonitorAware: true}},
-		{"editor", EditorWindow, WindowRow{W: 1280, H: 800, MinW: 640, MinH: 480, Resizable: true}},
+		{"editor", EditorWindow, WindowRow{W: 1280, H: 800, MinW: 640, MinH: 480, Resizable: true, Maximized: true}},
 		{"viewer", ViewerWindow, WindowRow{W: 1024, H: 768, Resizable: true}},
 	} {
 		if tc.got != tc.want {

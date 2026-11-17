@@ -34,6 +34,10 @@ func modButtonIndex(action string) int {
 	return -1
 }
 
+// modWindowWidth is the mod window's width before a remembered size or the
+// editor's own width limits it: wide enough for every page tab whole in one row.
+const modWindowWidth = 1160
+
 func (e *MapEditor) FocusModField(key string) bool {
 	if !e.modWindow {
 		return false
@@ -561,7 +565,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
 	o.rowActs, o.modKeys = map[int][]string{}, nil
-	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(620, e.window.X-16)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
+	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(modWindowWidth, e.window.X-16)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
 	if s.Tabs, s.ActiveTab = e.modTabs(); len(s.Tabs) > 0 {
 		s.TabSwitch = true

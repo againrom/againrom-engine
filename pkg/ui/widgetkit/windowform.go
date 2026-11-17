@@ -25,6 +25,10 @@ type WindowRow struct {
 	MinW, MinH   int
 	Resizable    bool
 	MonitorAware bool
+	// Maximized opens the window filling its screen with its title bar kept,
+	// after the size above is set; the size is what the window restores to.
+	// It needs Resizable.
+	Maximized bool
 }
 
 // ApplyWindowRow applies a row that is not monitor-aware.
@@ -36,6 +40,7 @@ type WindowCalls struct {
 	Desktop    func() Desktop
 	Maximized  func() bool
 	Restore    func()
+	Maximize   func()
 	SetSize    func(w, h int)
 	Decorate   func(bool)
 	Place      func(x, y int)
@@ -56,6 +61,7 @@ func ApplyWindow(r WindowRow, f WindowForm) {
 		Desktop:    platformDesktop,
 		Maximized:  ebiten.IsWindowMaximized,
 		Restore:    ebiten.RestoreWindow,
+		Maximize:   ebiten.MaximizeWindow,
 		SetSize:    func(w, h int) { ebiten.SetWindowSize(w, h) },
 		Decorate:   ebiten.SetWindowDecorated,
 		Place:      ebiten.SetWindowPosition,
@@ -118,6 +124,9 @@ func applyWindow(c WindowCalls, r WindowRow, f WindowForm) {
 	c.Resizing(r.Resizable)
 	if r.MonitorAware {
 		c.Fullscreen(f.Fullscreen)
+	}
+	if r.Maximized && r.Resizable {
+		c.Maximize()
 	}
 }
 

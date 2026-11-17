@@ -214,6 +214,8 @@ func TestPlayArgs(root, modsDir string, n int, hero string, ids ...string) ([]st
 			return []string{strconv.Itoa(n)}
 		case launch.Hero.Key:
 			return []string{hero}
+		case launch.Chicken.Key:
+			return []string{"true"}
 		}
 		return []string{st.Load("")}
 	})

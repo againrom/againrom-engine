@@ -53,7 +53,7 @@ func windowPlan(monW, monH int, goos string, windowed bool) windowForm {
 // The game's, the editor's and the viewer's rows; the starter's is its own.
 var (
 	GameWindow   = WindowRow{Resizable: true, MonitorAware: true}
-	EditorWindow = WindowRow{W: 1280, H: 800, MinW: 640, MinH: 480, Resizable: true}
+	EditorWindow = WindowRow{W: 1280, H: 800, MinW: 640, MinH: 480, Resizable: true, Maximized: true}
 	ViewerWindow = WindowRow{W: DefaultWindowW, H: DefaultWindowH, Resizable: true}
 )
 

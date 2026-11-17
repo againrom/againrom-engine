@@ -305,6 +305,9 @@ func TestModWindowMovesByItsTitleAndStaysInside(t *testing.T) {
 			t.Fatalf("%s: a drag past the corner left the title at %v in %v", lang, far, bounds)
 		}
 		_, _ = dragTitle(t, e, image.Pt(-600, -600))
+		// The window opens as wide as its bounds allow here, so it is narrowed
+		// first to leave room for the border to grow it.
+		_, _ = edgeDrag(t, e, leftEdge, image.Pt(40, 0))
 		was, now := edgeDrag(t, e, leftEdge, image.Pt(-40, 0))
 		if now.Max.X != was.Max.X || now.Dx() != was.Dx()+40 {
 			t.Fatalf("%s: a left border drag sized %v to %v", lang, was, now)
