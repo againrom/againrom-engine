@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, a name typed into a unit's window now takes effect when you press Enter or save the map, instead of only when you press Apply.
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
 - [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
 - [ROM2] A mod can now change the second game's spell numbers, such as power, damage, range, duration and effect strength, with the same tables as the first game's; a table a spell cannot use is refused by name.

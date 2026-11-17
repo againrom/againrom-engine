@@ -526,6 +526,7 @@ func (e *MapEditor) keyEnter(string) error {
 		} else {
 			e.unitSettingsFor(true)
 			e.obj.focus = -1
+			e.applyUnitDraft()
 		}
 		return nil
 	}
@@ -670,6 +671,9 @@ func (e *MapEditor) keyStep(key string) error {
 }
 
 func (e *MapEditor) keySaveAs(string) error {
+	if err := e.saveUnitDraft(); err != nil {
+		return err
+	}
 	if m, ok := e.modSave(); ok {
 		if e.askNotice(noticeModSave) {
 			return nil

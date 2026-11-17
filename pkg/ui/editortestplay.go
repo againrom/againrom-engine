@@ -18,6 +18,23 @@ type InspectionTestPlayGate interface {
 	TestPlayRefusal() error
 }
 
+// applyUnitDraft writes the unit window's draft as Apply does.
+func (e *MapEditor) applyUnitDraft() {
+	if e.unitWindowShown() && e.objectDirty() {
+		e.applyObject()
+	}
+}
+
+// saveUnitDraft applies the draft before a save or test play; it answers the
+// window's refusal.
+func (e *MapEditor) saveUnitDraft() error {
+	e.applyUnitDraft()
+	if e.unitWindowShown() && e.objectDirty() {
+		return fmt.Errorf("%s", e.obj.note)
+	}
+	return nil
+}
+
 // keyTestPlay plays the open map in the game. The editor stays open; the map,
 // its saved file and its history are unchanged. A host refusal comes before
 // any window; where the host offers characters the party window asks who
@@ -26,11 +43,8 @@ func (e *MapEditor) keyTestPlay(string) error {
 	if !e.editable() {
 		return nil
 	}
-	if e.unitWindowShown() && e.objectDirty() {
-		e.applyObject()
-		if e.objectDirty() {
-			return fmt.Errorf("%s", e.obj.note)
-		}
+	if err := e.saveUnitDraft(); err != nil {
+		return err
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt)
 	if g, ok := e.doc.Edits.(InspectionTestPlayGate); ok && g.TestPlayRefusal() != nil {
