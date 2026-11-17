@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/sim"
 )
 
@@ -31,6 +32,9 @@ func darknessCells(f *FrontEnd, spell uint16) (painted, darkened int) {
 
 func loadOwnerDarknessSave(t *testing.T) (*FrontEnd, SaveStore) {
 	t.Helper()
+	if m, err := base.Detect(os.Getenv("AGAINROM_ASSETS"), nil); err == nil && m.Profile.HasFirstData() {
+		t.Skip("the owner's Darkness save is a second-game save; the root is a first-game install")
+	}
 	raw, err := os.ReadFile(ownerDarknessSave)
 	if err != nil {
 		t.Skip("the owner's Darkness save is absent")
@@ -46,7 +50,7 @@ func loadOwnerDarknessSave(t *testing.T) (*FrontEnd, SaveStore) {
 // A second-game SAV whose profile places no player formation block takes the
 // held-document LOAD. Its saved Darkness area keeps its cells, the lighting
 // plane darkens them, and a SAVE of the loaded game LOADs to the same effects.
-func TestReleaseHeldDocumentDarknessAreaSurvivesLoad(t *testing.T) {
+func TestReleaseSecondHeldDocumentDarknessAreaSurvivesLoad(t *testing.T) {
 	f, store := loadOwnerDarknessSave(t)
 	const darkness, want = 14, 57
 	if painted, darkened := darknessCells(f, darkness); painted != want || darkened != want {
@@ -67,7 +71,7 @@ func TestReleaseHeldDocumentDarknessAreaSurvivesLoad(t *testing.T) {
 
 // A Darkness cast after the held-document LOAD lays its own cells beside the
 // loaded area, and the cast area ends with its spell.
-func TestReleaseHeldDocumentDarknessCastAfterLoad(t *testing.T) {
+func TestReleaseSecondHeldDocumentDarknessCastAfterLoad(t *testing.T) {
 	f, _ := loadOwnerDarknessSave(t)
 	const darkness = 14
 	w := f.live.world

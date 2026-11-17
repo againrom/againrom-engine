@@ -17,12 +17,19 @@ import (
 
 // townKeptFields compares the carried actor fields of two records; the Mover
 // turn rate byte 10 is written from the Human's current basis and is compared
-// apart.
+// apart. A hired member of an earlier engine-written document holds 0 and 0 at
+// bytes 8 and 9; the SAVE writes the hire constructor's 5 and 0xff there, the
+// one change allowed at those bytes.
 func townKeptFields(a, b sav.TownActorState) map[string]bool {
+	constructed := len(a.Mover) > 9 && len(b.Mover) > 9 &&
+		a.Mover[8] == 0 && a.Mover[9] == 0 && b.Mover[8] == 5 && b.Mover[9] == 0xff
 	mover := func(m []byte) []byte {
 		out := slices.Clone(m)
 		if len(out) > 10 {
 			out[10] = 0
+		}
+		if constructed {
+			out[8], out[9] = 0, 0
 		}
 		return out
 	}

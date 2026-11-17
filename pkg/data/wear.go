@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -201,7 +202,19 @@ func ShieldFromCode(c ItemCode, shapes, materials ScaleTable, shields Collection
 		return Shield{}, fmt.Errorf("data: item code 0x%04x: row %d names no written Shields entry",
 			uint16(c), row)
 	}
-	return fillShield("", c.C(), c.A(), row, shapes, materials, shields), nil
+	name := codeItemName(c, shapes, ItemRows(c, nil, shields, nil, materials))
+	return fillShield(name, c.C(), c.A(), row, shapes, materials, shields), nil
+}
+
+// codeItemName is an item code's shape, material and row names joined as a
+// weapon's name is, the form the name resolvers read back.
+func codeItemName(c ItemCode, shapes ScaleTable, rows ItemRowNames) string {
+	var parts []string
+	if shapes != nil && c.C() < shapes.Len() {
+		parts = append(parts, shapes.EntryName(c.C()))
+	}
+	parts = append(parts, rows.Material, rows.Kind)
+	return strings.Join(slices.DeleteFunc(parts, func(p string) bool { return p == "" }), " ")
 }
 
 // ResolveArmor turns an armour's NAME into the row it names, the slot its
@@ -363,5 +376,6 @@ func ArmorFromCode(c ItemCode, shapes, materials ScaleTable, armors Collection) 
 		return Armor{}, fmt.Errorf("data: item code 0x%04x: row %d states Slot %d, not a wearable place",
 			uint16(c), row, piece.Slot)
 	}
+	piece.Name = codeItemName(c, shapes, ItemRows(c, nil, nil, armors, materials))
 	return piece, nil
 }
