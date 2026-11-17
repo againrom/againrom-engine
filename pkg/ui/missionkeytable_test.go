@@ -44,20 +44,20 @@ func missionKeyLine(b missionKeyBinding) string {
 func TestMissionKeyTableListsEveryKeyOnce(t *testing.T) {
 	both := []string{
 		"f no-ctrl = grab",
-		"a no-ctrl = attack", "a ctrl = autocast", "w no-ctrl = weapon-swap", "w ctrl = retreat-setting",
+		"a no-ctrl no-alt = attack", "a ctrl no-alt = autocast", "w no-ctrl = weapon-swap", "w ctrl = retreat-setting",
 		"f ctrl = formation", "n ctrl = time-flow", "o ctrl = smoothing", "u ctrl = auto-healing",
 		"h ctrl = show-health", "l ctrl = numerals",
-		"k ctrl shift = kill", "semicolon ctrl shift = chip", "f4 ctrl shift = reveal",
-		"f10 ctrl shift = grid", "f11 ctrl shift = readout", "f12 ctrl shift = fps",
-		"e = select-all", "i = inventory", "backquote = inventory", "x = worn", "b = book", "q = book",
+		"k ctrl shift = kill", "semicolon ctrl shift no-alt = chip", "f4 ctrl shift no-alt = reveal",
+		"f10 ctrl shift no-alt = grid", "f11 ctrl shift no-alt = readout", "f12 ctrl shift no-alt = fps",
+		"e = select-all", "i = inventory", "backquote no-alt = inventory", "x = worn", "b = book", "q = book",
 		"j = doll", "space no-shift no-alt = panels", "z no-ctrl no-alt hold = highlight",
-		"f1 = help", "pause = pause-text", "f2 no-ctrl = quick-save", "f2 ctrl = save-game",
-		"f3 no-ctrl = quick-load", "f3 ctrl = load-game",
+		"f1 no-alt = help", "pause no-alt = pause-text", "f2 no-ctrl no-alt = quick-save", "f2 ctrl no-alt = save-game",
+		"f3 no-ctrl no-alt = quick-load", "f3 ctrl no-alt = load-game",
 		"0 no-ctrl no-shift no-alt = pause", "numpad-0 no-ctrl no-shift no-alt = pause",
-		"equal = faster", "numpad-plus no-ctrl = faster", "minus = slower", "numpad-minus no-ctrl = slower",
-		"numpad-plus ctrl = unpaced", "numpad-minus ctrl = paced",
-		"home no-ctrl no-shift = zoom-reset", "end no-ctrl no-shift = speed-reset", "backspace no-alt = clear-messages",
-		"0 = group 0", "1 = group 1", "2 = group 2", "3 = group 3", "4 = group 4",
+		"equal no-alt = faster", "numpad-plus no-ctrl no-alt = faster", "minus no-alt = slower", "numpad-minus no-ctrl no-alt = slower",
+		"numpad-plus ctrl no-alt = unpaced", "numpad-minus ctrl no-alt = paced",
+		"home no-ctrl no-shift no-alt = zoom-reset", "end no-ctrl no-shift no-alt = speed-reset", "backspace no-alt = clear-messages",
+		"0 no-alt = group 0", "1 = group 1", "2 = group 2", "3 = group 3", "4 = group 4",
 		"5 = group 5", "6 = group 6", "7 = group 7", "8 = group 8", "9 = group 9",
 		"numpad-0 = group 0", "numpad-1 = group 1", "numpad-2 = group 2", "numpad-3 = group 3",
 		"numpad-4 = group 4", "numpad-5 = group 5", "numpad-6 = group 6", "numpad-7 = group 7",
@@ -160,40 +160,40 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 	bareZero := (pressed(ebiten.KeyDigit0) || pressed(ebiten.KeyNumpad0)) && !ctrl && !alt && !shift
 	in.Panels = pressed(ebiten.KeySpace) && !alt && !shift
 	in.Pause = bareZero
-	in.Faster = pressed(ebiten.KeyEqual) || pressed(ebiten.KeyNumpadAdd) && !ctrl
-	in.Slower = pressed(ebiten.KeyMinus) || pressed(ebiten.KeyNumpadSubtract) && !ctrl
-	in.Unpaced = pressed(ebiten.KeyNumpadAdd) && ctrl
-	in.Paced = pressed(ebiten.KeyNumpadSubtract) && ctrl
+	in.Faster = (pressed(ebiten.KeyEqual) || pressed(ebiten.KeyNumpadAdd) && !ctrl) && !alt
+	in.Slower = (pressed(ebiten.KeyMinus) || pressed(ebiten.KeyNumpadSubtract) && !ctrl) && !alt
+	in.Unpaced = pressed(ebiten.KeyNumpadAdd) && ctrl && !alt
+	in.Paced = pressed(ebiten.KeyNumpadSubtract) && ctrl && !alt
 	in.Kill = pressed(ebiten.KeyK) && ctrl && shift
-	in.Chip = pressed(ebiten.KeySemicolon) && ctrl && shift
+	in.Chip = pressed(ebiten.KeySemicolon) && ctrl && shift && !alt
 	in.Numerals = pressed(ebiten.KeyL) && ctrl
-	in.Attack = pressed(ebiten.KeyA) && !ctrl
+	in.Attack = pressed(ebiten.KeyA) && !ctrl && !alt
 	in.HighlightHeld = held(ebiten.KeyZ) && !ctrl && !alt
-	in.SaveGame = pressed(ebiten.KeyF2) && ctrl
-	in.LoadGame = pressed(ebiten.KeyF3) && ctrl
-	in.QuickSave = pressed(ebiten.KeyF2) && !ctrl
-	in.QuickLoad = pressed(ebiten.KeyF3) && !ctrl
+	in.SaveGame = pressed(ebiten.KeyF2) && ctrl && !alt
+	in.LoadGame = pressed(ebiten.KeyF3) && ctrl && !alt
+	in.QuickSave = pressed(ebiten.KeyF2) && !ctrl && !alt
+	in.QuickLoad = pressed(ebiten.KeyF3) && !ctrl && !alt
 	in.TimeFlow = pressed(ebiten.KeyN) && ctrl
 	in.Smoothing = pressed(ebiten.KeyO) && ctrl
 	in.AutoHealing = pressed(ebiten.KeyU) && ctrl
 	in.ShowHealth = pressed(ebiten.KeyH) && ctrl
 	in.Formation = pressed(ebiten.KeyF) && ctrl
 	in.Retreat = pressed(ebiten.KeyW) && ctrl
-	in.PauseText = pressed(ebiten.KeyPause)
-	in.Help = pressed(ebiten.KeyF1)
-	in.Inventory = pressed(ebiten.KeyI) || pressed(ebiten.KeyBackquote)
+	in.PauseText = pressed(ebiten.KeyPause) && !alt
+	in.Help = pressed(ebiten.KeyF1) && !alt
+	in.Inventory = pressed(ebiten.KeyI) || pressed(ebiten.KeyBackquote) && !alt
 	in.Worn = pressed(ebiten.KeyX)
 	in.SelectAll = pressed(ebiten.KeyE)
 	in.Book = pressed(ebiten.KeyB) || pressed(ebiten.KeyQ)
 	in.Doll = pressed(ebiten.KeyJ)
-	in.Autocast = pressed(ebiten.KeyA) && ctrl
+	in.Autocast = pressed(ebiten.KeyA) && ctrl && !alt
 	in.WeaponSwap = pressed(ebiten.KeyW) && !ctrl
-	in.ZoomReset = pressed(ebiten.KeyHome) && !ctrl && !shift
-	in.SpeedReset = pressed(ebiten.KeyEnd) && !ctrl && !shift
+	in.ZoomReset = pressed(ebiten.KeyHome) && !ctrl && !shift && !alt
+	in.SpeedReset = pressed(ebiten.KeyEnd) && !ctrl && !shift && !alt
 	in.ClearMessages = pressed(ebiten.KeyBackspace) && !alt
 	digit := -1
 	for n := 0; n <= 9; n++ {
-		if pressed(ebiten.Key(int(ebiten.KeyDigit0)+n)) || pressed(ebiten.Key(int(ebiten.KeyNumpad0)+n)) {
+		if pressed(ebiten.Key(int(ebiten.KeyDigit0)+n)) && !(n == 0 && alt) || pressed(ebiten.Key(int(ebiten.KeyNumpad0)+n)) {
 			digit = n
 			break
 		}
@@ -225,7 +225,7 @@ func baseMissionInput(second bool, pressed, held func(ebiten.Key) bool, ctrl, sh
 			}
 		}
 	}
-	if ctrl && shift {
+	if ctrl && shift && !alt {
 		in.Reveal = in.Reveal || pressed(ebiten.KeyF4)
 		in.Grid = in.Grid || pressed(ebiten.KeyF10)
 		in.Readout = in.Readout || pressed(ebiten.KeyF11)

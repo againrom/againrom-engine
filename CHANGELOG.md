@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] In a mission, a key pressed with Alt held now does nothing unless the original acts on it: F1, F2, F3, Pause, A, Home, End, `=`, `-`, numpad + and -, and 0 on the digit row no longer act with Alt.
 - [BASE] Missions now fit 1280x720 without shrinking the text, and use cleaner scaling at 1920x1080 and 2560x1440.
 - [BASE] Game and editor text is smooth again, as in the original, instead of stepped.
 - [BASE] Two flying units no longer stand in one cell or fly through each other, as in the original; they go round or wait.

@@ -39,8 +39,8 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 		missionKeySaveGame: ebiten.KeyF2, missionKeyLoadGame: ebiten.KeyF3,
 	} {
 		for _, p := range missionKeyGameProfiles {
-			if b := missionRow(t, p, action, key); b.ctrl != modHeld || b.shift != modAny || b.alt != modAny || b.hold {
-				t.Errorf("binding %v = %+v, want a Ctrl press edge", key, b)
+			if b := missionRow(t, p, action, key); b.ctrl != modHeld || b.shift != modAny || b.alt != modFree || b.hold {
+				t.Errorf("binding %v = %+v, want a Ctrl press edge without Alt", key, b)
 			}
 		}
 	}
