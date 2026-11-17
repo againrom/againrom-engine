@@ -24,6 +24,7 @@ type HumanTerms struct {
 // which only a stored modifier carries.
 type HumanInput struct {
 	Stat, StatCap            [4]int32
+	StatClamp                int32 // the game's derive-time ceiling before the modifier term (rules.StatClamp)
 	Skill                    [SkillSlots]int32
 	Active                   int32
 	Experience               int32
@@ -81,7 +82,7 @@ func HumanBaseSpeed(reaction int32, rider bool) int32 {
 func DeriveHuman(in HumanInput) (HumanOutput, error) {
 	var out HumanOutput
 	for i, v := range in.Stat {
-		out.Stat[i] = min(v, 50+in.StatCap[i])
+		out.Stat[i] = min(v, in.StatClamp+in.StatCap[i])
 	}
 	body, reaction, mind, spirit := out.Stat[0], out.Stat[1], out.Stat[2], out.Stat[3]
 	growth := logBase11(float64(in.Experience)/poolXPDivisor + 1)

@@ -81,7 +81,12 @@ type Rules struct {
 	spell      *spellTables
 	// schoolPools leaves skill slot 0 out of the pools' experience.
 	schoolPools bool
+	// classStatCaps caps each statistic at its class-and-sex base.
+	classStatCaps bool
 }
+
+// FirstGameStatCap is the base every statistic is capped at in the first game.
+const FirstGameStatCap int32 = 50
 
 // Default returns the engine's rules.
 func Default() Rules {
@@ -249,6 +254,45 @@ func (r Rules) StoredPoolExperience(word int32, xp [6]int32) int32 {
 	return r.PoolExperience(xp)
 }
 
+// StatCapBase is the value a hero's base Body, Reaction, Mind and Spirit can
+// be raised to by potions: 50 for all four in the first game, the second
+// game's own four per class and sex in the second (R2-ENGINE-290). It is a
+// ceiling for earned gains only, not a clamp on a stored or item-raised value.
+func (r Rules) StatCapBase(mage, female bool) [4]int32 {
+	if !r.classStatCaps {
+		return [4]int32{FirstGameStatCap, FirstGameStatCap, FirstGameStatCap, FirstGameStatCap}
+	}
+	switch {
+	case mage && female:
+		return [4]int32{46, 48, 50, 52}
+	case mage:
+		return [4]int32{48, 46, 52, 50}
+	case female:
+		return [4]int32{50, 52, 46, 48}
+	}
+	return [4]int32{52, 50, 48, 46}
+}
+
+// StatClamp is the value the derive holds a statistic to before the modifier
+// term joins: 50 in the first game; in the second the hard ceiling of 100, so a
+// base above its class cap (a SAV or map value) plays as stored.
+func (r Rules) StatClamp() int32 {
+	if r.classStatCaps {
+		return StatCeiling
+	}
+	return FirstGameStatCap
+}
+
+// StatCeiling is the highest a statistic can be.
+const StatCeiling int32 = 100
+
+// WithClassStatCaps is r with each statistic capped at its class-and-sex
+// base: the second game's rule (R2-ENGINE-290), not a parameter.
+func (r Rules) WithClassStatCaps() Rules {
+	r.classStatCaps = true
+	return r
+}
+
 // MainSkill is the main skill of the second game held for six skill levels:
 // the first of the school skills 1 to 5 whose level is largest
 // (R2-ENGINE-319; DIV-4305, DIV-4839).
@@ -282,3 +326,16 @@ var defaultTable = func() []int32 {
 	copy(t, rom1SkillXP[:])
 	return t
 }()
+
+// PotionRoom is the gain a potion can still give a statistic: its base under
+// the class cap and its live value under the hard ceiling, never negative.
+func PotionRoom(capBase, base, live int32) int32 {
+	return max(0, min(StatCeiling, capBase-base, StatCeiling-live))
+}
+
+// FemaleHeroTypeID reports a female hero type id: the second game stores a
+// hero's sex in its type word (0x22 female fighter, 0x24 female mage).
+func FemaleHeroTypeID(typeID int32) bool { return typeID == 0x22 || typeID == 0x24 }
+
+// ClassStatCaps reports whether statistics are capped by class and sex.
+func (r Rules) ClassStatCaps() bool { return r.classStatCaps }

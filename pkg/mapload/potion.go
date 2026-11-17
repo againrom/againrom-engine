@@ -2,6 +2,7 @@ package mapload
 
 import (
 	"againrom/pkg/data"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
@@ -14,14 +15,14 @@ func PotionHero(h data.Hero, gains [4]int32) data.Hero {
 	return h
 }
 
-// PotionHeadroom is the remaining single-use gain under the ordinary attribute
-// cap and the hard ceiling. Equipment bonuses remain modifiers, not earned stats.
-func PotionHeadroom(h data.Hero, d data.Derived) (out [4]int32) {
+// PotionHeadroom is the remaining single-use gain under the game's attribute
+// cap for the hero's class and sex and the hard ceiling. Equipment bonuses remain modifiers, not earned stats.
+func PotionHeadroom(h data.Hero, d data.Derived, p data.Profile, r sim.Rules) (out [4]int32) {
+	caps := r.StatCapBase(!p.Fighter, p.Female)
 	base := [4]int32{h.Body, h.Reaction, h.Mind, h.Spirit}
 	live := [4]int32{d.Body, d.Reaction, d.Mind, d.Spirit}
 	for i := range out {
-		out[i] = min(50-base[i], 100-live[i])
-		out[i] = max(0, min(100, out[i]))
+		out[i] = rules.PotionRoom(caps[i], base[i], live[i])
 	}
 	return out
 }
@@ -74,7 +75,7 @@ func initializePotions(w *sim.World, party []PartyMember, st Start, table *Table
 			break
 		}
 		d, _, _ := PartySpawnWithTable(p, table)
-		w.SetPotionHeadroom(st.IDs[i], PotionHeadroom(p.Hero, d))
+		w.SetPotionHeadroom(st.IDs[i], PotionHeadroom(p.Hero, d, p.Profile, TableRules(table)))
 		if p.PotionEffect == nil {
 			continue
 		}

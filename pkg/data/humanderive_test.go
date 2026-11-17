@@ -1,12 +1,17 @@
 package data
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/pkg/rules"
+)
 
 // humanDeriveInput is Body 30, Reaction 25, Mind 20, Spirit 35, a mage with a
 // mana pool, skills 4, 12, 0, 7, 0, 3 and their opening experience, wielding
 // slot 1. The expected numbers below are worked by hand from the claims.
 func humanDeriveInput() HumanInput {
-	in := HumanInput{Stat: [4]int32{30, 25, 20, 35}, Skill: [SkillSlots]int32{4, 12, 0, 7, 0, 3}, Active: 1, ManaPool: true}
+	in := HumanInput{Stat: [4]int32{30, 25, 20, 35}, Skill: [SkillSlots]int32{4, 12, 0, 7, 0, 3}, Active: 1, ManaPool: true,
+		StatClamp: rules.Rules{}.StatClamp()}
 	for _, level := range in.Skill {
 		in.Experience += SkillXPFor(level)
 	}

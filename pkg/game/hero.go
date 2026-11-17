@@ -371,6 +371,7 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		carriedItems[i] = mapload.ItemInstanceFromCode(code, in.Table)
 	}
 
+	in.Profile.Female = in.Table != nil && in.Table.ClassStatCaps && in.Dir.Female()
 	out := []mapload.PartyMember{{
 		ID:              "hero",
 		Name:            in.Name,

@@ -154,7 +154,7 @@ func ApplyRearmLoadout(w *sim.World, id sim.EntityID, h data.Hero, profile data.
 	}
 	wrote := w.SetDerived(id, DerivedBlock(derived, spellID, source))
 	if wrote {
-		w.SetPotionHeadroom(id, PotionHeadroom(h, derived))
+		w.SetPotionHeadroom(id, PotionHeadroom(h, derived, profile, loadout.Rules))
 	}
 	return weapon, wrote
 }

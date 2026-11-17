@@ -143,7 +143,7 @@ func (mw *mapWorld) recomputeRaisedSkills() {
 		mw.settleSkillBonus(c.id, loadout.Mod.SkillBonus)
 		mw.derivedSkills[c.id] = derivedSkillState{d.Skill, e.NativeTraining}
 		mw.derivedPotions[c.id] = e.PotionStats
-		mw.world.SetPotionHeadroom(c.id, mapload.PotionHeadroom(hero, d))
+		mw.world.SetPotionHeadroom(c.id, mapload.PotionHeadroom(hero, d, c.member.Profile, loadout.Rules))
 		mw.projectDerivedCharacter(c.id, d)
 	}
 }

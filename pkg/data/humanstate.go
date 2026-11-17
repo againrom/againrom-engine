@@ -184,7 +184,8 @@ func (h *HumanState) derive() error {
 		xp[i] = int32(v)
 	}
 	in := HumanInput{Active: int32(h.Attack.Active), Experience: h.gameRules().StoredPoolExperience(int32(h.Experience), xp), Fighter: h.Fighter,
-		ManaPool: h.ManaMax != 0, Rider: RiderTypeID(int32(h.TypeID)), TrainingCap: h.gameRules().SkillCap()}
+		ManaPool: h.ManaMax != 0, Rider: RiderTypeID(int32(h.TypeID)), TrainingCap: h.gameRules().SkillCap(),
+		StatClamp: h.gameRules().StatClamp()}
 	for i, v := range []uint16{h.Body, h.Reaction, h.Mind, h.Spirit} {
 		in.Stat[i], in.StatCap[i] = humanSigned(v), int32(m.StatCap[i])
 	}

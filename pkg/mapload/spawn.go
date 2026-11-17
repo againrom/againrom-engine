@@ -101,6 +101,10 @@ type Table struct {
 	// counts all six slots.
 	SchoolPoolExperience bool
 
+	// ClassStatCaps caps each statistic at its class-and-sex base
+	// (R2-ENGINE-290); false is the first game's 50.
+	ClassStatCaps bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules
@@ -1255,10 +1259,14 @@ func (t *Table) rules() sim.Rules {
 	if t == nil {
 		return sim.Rules{}
 	}
+	r := t.Rules
 	if t.SchoolPoolExperience {
-		return t.Rules.WithSchoolPoolExperience()
+		r = r.WithSchoolPoolExperience()
 	}
-	return t.Rules
+	if t.ClassStatCaps {
+		r = r.WithClassStatCaps()
+	}
+	return r
 }
 
 // ModContext is the mod set a session runs under.

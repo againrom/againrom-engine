@@ -286,9 +286,9 @@ func activeSkill(w *Weapon) int32 {
 // capStat is step 0 of the recompute, and it is DESTRUCTIVE: the smaller of the
 // stat and the cap is written back, so every term after it reads the capped
 // value rather than the stat.
-func capStat(v int32) int32 {
-	if v > StatCap {
-		return StatCap
+func capStat(v, base int32) int32 {
+	if v > base {
+		return base
 	}
 	return v
 }

@@ -223,6 +223,7 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		out.Name = c.Name
 		out.Profile.Fighter = c.Basis.Human.Fighter
 		out.Profile.Rider = data.RiderTypeID(int32(c.Basis.Human.TypeID))
+		out.Profile.Female = t != nil && t.ClassStatCaps && data.FemaleTypeID(int32(c.Basis.Human.TypeID))
 		if !nativeCitySiegeMember(out) {
 			typ, hired := originalMercenaryType(c, t)
 			out.MercenaryType = 0

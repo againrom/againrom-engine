@@ -137,7 +137,14 @@ func (w *World) sourcePotion(i int, kind uint8, amount int32) bool {
 	switch kind {
 	case 2, 3, 4, 5:
 		slot := [...]int{0, 0, 0, 2, 1, 3}[kind]
-		s.Stats[slot] = uint16(min(100, int32(int16(s.Stats[slot]))+amount))
+		stored := int32(int16(s.Stats[slot]))
+		// The first game leaves the cap to the derive; the second game's class
+		// cap bounds the gain as it does a native hero's (mapload.PotionHeadroom).
+		capBase := rules.StatCeiling
+		if w.rules.ClassStatCaps() {
+			capBase = w.rules.StatCapBase(!s.Fighter, rules.FemaleHeroTypeID(int32(s.TypeID)))[slot]
+		}
+		s.Stats[slot] = uint16(stored + min(amount, rules.PotionRoom(capBase, stored, stored)))
 	case 6:
 		s.Stats[8] = uint16(potionPool(e.HP, e.MaxHP, amount))
 	case 9:

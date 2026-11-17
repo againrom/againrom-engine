@@ -73,13 +73,20 @@ const (
 // this one only carries it.
 //
 // Rider is the +10 speed arm (HERO-SPEED-008).
-type Profile struct{ Fighter, HealthColumn, ManaColumn, Rider bool }
+type Profile struct {
+	Fighter, HealthColumn, ManaColumn, Rider bool
+	// Female is the hero's sex, which the second game's potion cap reads.
+	Female bool `json:",omitempty"`
+}
 
 // RiderSpeedBonus is the rider speed term.
 const RiderSpeedBonus int32 = 10
 
 // RiderTypeID reports a rider type id.
 func RiderTypeID(typeID int32) bool { return typeID == 0x13 || typeID == 0x15 }
+
+// FemaleTypeID reports a female hero type id: the second game stores a hero's sex in its type word (0x22 female fighter, 0x24 female mage).
+func FemaleTypeID(typeID int32) bool { return rules.FemaleHeroTypeID(typeID) }
 
 // EquipMod is the additive contribution every equipped item OTHER than the
 // weapon in hand folds into: a to-hit term, a damage base and a damage
@@ -343,8 +350,9 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 			Protection: mod.Protection, Resistance: mod.Resistance}}
 	// A native stat already holds its bonus, at most 100, as an effect writes
 	// it; the bonus raises the cap by the same amount (HERO-CAP-015).
+	in.StatClamp = l.Rules.StatClamp()
 	for i, pair := range [4][2]int32{{h.Body, mod.Body}, {h.Reaction, mod.Reaction}, {h.Mind, mod.Mind}, {h.Spirit, mod.Spirit}} {
-		in.Stat[i], in.StatCap[i] = effectStat(pair[0], pair[1]), pair[1]
+		in.Stat[i], in.StatCap[i] = effectStat(pair[0], pair[1], in.StatClamp), pair[1]
 	}
 	// A native Human holds the unencumbered sum; pkg/sim applies the load at
 	// its own speed producer (rules.NativeHumanSpeed).
@@ -379,8 +387,8 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 	}
 }
 
-func effectStat(base, bonus int32) int32 {
-	v := capStat(base) + bonus
+func effectStat(base, bonus, capBase int32) int32 {
+	v := capStat(base, capBase) + bonus
 	if v > 100 {
 		return 100
 	}

@@ -124,6 +124,8 @@ type gameFiles struct {
 	heroSpeaker   int32
 	// schoolPoolExperience grows the pools by the five school skills alone.
 	schoolPoolExperience bool
+	// classStatCaps caps each statistic at its class-and-sex base.
+	classStatCaps bool
 	// fallbackSpeakers adds data.FallbackSpeakerFace for every key that has
 	// no other record.
 	fallbackSpeakers    bool
@@ -353,6 +355,8 @@ var secondGameFiles = gameFiles{
 	heroSpeaker:   21,
 	// R2-ENGINE-579.
 	schoolPoolExperience: true,
+	// R2-ENGINE-290.
+	classStatCaps: true,
 	// R2-ASSET-150.
 	purseMoneyWord: true,
 	// R2-ENGINE-580.
