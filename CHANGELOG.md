@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] The spell book now shows Stone Curse's duration as the second game states it, 480 at power 100, instead of the first game's figure.
+
 ### For map makers and modders
 
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.

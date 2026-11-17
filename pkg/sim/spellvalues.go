@@ -242,6 +242,10 @@ func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 
 func spellRecordDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 	if rule.SpellDuration > 0 {
+		if rule.secondArm().drawnDuration {
+			// The record word is P*15*16*2/100 (R2-ENGINE-022).
+			return uint16(min(int64(max(power, 0))*15*16*2/100, durationTickCeiling))
+		}
 		return spellLastingTicksUnder(r, rule, power)
 	}
 	return spellRecordDuration(rule, power)

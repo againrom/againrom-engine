@@ -346,18 +346,18 @@ spell 18 arm 20 power 200: 170
 spell 18 arm 20 power 285: 255
 spell 18 arm 20 power 400: 255
 spell 18 arm 20 power 510: 255
-spell 18 arm 20 at 0: damage 19-38 range 3/3 duration 32/32/65 effect 1 0 0 1 rays 2
-spell 18 arm 20 at 1: damage 19-39 range 3/3 duration 32/32/66 effect 1 0 4 1 rays 2
-spell 18 arm 20 at 2: damage 20-40 range 3/3 duration 33/33/68 effect 1 0 9 1 rays 2
-spell 18 arm 20 at 29: damage 37-74 range 3/3 duration 65/65/111 effect 1 0 139 1 rays 3
-spell 18 arm 20 at 30: damage 38-76 range 4/4 duration 67/67/113 effect 1 0 144 1 rays 3
-spell 18 arm 20 at 45: damage 47-95 range 4/4 duration 97/97/137 effect 1 0 216 1 rays 4
-spell 18 arm 20 at 99: damage 81-163 range 6/6 duration 368/368/223 effect 1 0 475 1 rays 6
-spell 18 arm 20 at 100: damage 82-164 range 6/6 duration 378/378/225 effect 1 0 480 1 rays 7
-spell 18 arm 20 at 101: damage 82-165 range 6/6 duration 410/410/226 effect 1 0 484 1 rays 7
-spell 18 arm 20 at 170: damage 126-253 range 8/8 duration 558/558/337 effect 1 0 816 1 rays 7
-spell 18 arm 20 at 200: damage 145-291 range 9/9 duration 756/756/385 effect 1 0 960 1 rays 7
-spell 18 arm 20 at 255: damage 180-361 range 11/11 duration 880/880/473 effect 1 0 1224 1 rays 7
+spell 18 arm 20 at 0: damage 19-38 range 3/3 duration 32/0/65 effect 1 0 0 1 rays 2
+spell 18 arm 20 at 1: damage 19-39 range 3/3 duration 32/4/66 effect 1 0 4 1 rays 2
+spell 18 arm 20 at 2: damage 20-40 range 3/3 duration 33/9/68 effect 1 0 9 1 rays 2
+spell 18 arm 20 at 29: damage 37-74 range 3/3 duration 65/139/111 effect 1 0 139 1 rays 3
+spell 18 arm 20 at 30: damage 38-76 range 4/4 duration 67/144/113 effect 1 0 144 1 rays 3
+spell 18 arm 20 at 45: damage 47-95 range 4/4 duration 97/216/137 effect 1 0 216 1 rays 4
+spell 18 arm 20 at 99: damage 81-163 range 6/6 duration 368/475/223 effect 1 0 475 1 rays 6
+spell 18 arm 20 at 100: damage 82-164 range 6/6 duration 378/480/225 effect 1 0 480 1 rays 7
+spell 18 arm 20 at 101: damage 82-165 range 6/6 duration 410/484/226 effect 1 0 484 1 rays 7
+spell 18 arm 20 at 170: damage 126-253 range 8/8 duration 558/816/337 effect 1 0 816 1 rays 7
+spell 18 arm 20 at 200: damage 145-291 range 9/9 duration 756/960/385 effect 1 0 960 1 rays 7
+spell 18 arm 20 at 255: damage 180-361 range 11/11 duration 880/1224/473 effect 1 0 1224 1 rays 7
 spell 19 arm 22 power 0: 0
 spell 19 arm 22 power 31: 1
 spell 19 arm 22 power 60: 30

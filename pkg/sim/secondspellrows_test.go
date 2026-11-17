@@ -413,3 +413,19 @@ func TestIceMissileAndDiamondDustLandAsFireArrowExceptSchool(t *testing.T) {
 		t.Fatalf("victim health after Fire Arrow %d, Ice Missile %d, Diamond Dust %d", hp[1], hp[5], hp[16])
 	}
 }
+
+func TestSecondStoneCurseBookDurationIsTheRecordWord(t *testing.T) {
+	stone := secondRow(SpellRule{ID: 18, TargetsUnit: true, SpellDuration: 10})
+	for _, tc := range []struct {
+		power int32
+		want  uint16
+	}{{1, 4}, {50, 240}, {100, 480}, {255, 1224}} {
+		if got := spellDurationOf(Rules{}, stone, tc.power, durationRecord); got != tc.want {
+			t.Errorf("Stone Curse record word at power %d = %d, want P*15*16*2/100 = %d", tc.power, got, tc.want)
+		}
+	}
+	first := SpellRule{ID: 18, Arm: 20, SpellDuration: 10}
+	if got := spellDurationOf(Rules{}, first, 100, durationRecord); got != spellLastingTicks(first, 100) {
+		t.Errorf("the first game's Stone Curse record word %d moved", got)
+	}
+}
