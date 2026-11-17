@@ -123,9 +123,6 @@ const (
 	graphRegionPadY = 4
 )
 
-// graphRegionFill is the ground of a town's area, a shade over the sheet's.
-var graphRegionFill = color.RGBA{0x29, 0x23, 0x1a, 255}
-
 // The inks of the four mod marks, on a node and in the legend.
 var (
 	graphMapInk   = editorCondition
@@ -154,12 +151,12 @@ var graphKinds = [...]struct {
 	ink color.RGBA
 }{
 	graphKindStart:   {"start", editorLight},
-	graphKindMain:    {"main", color.RGBA{0xd8, 0x6a, 0x52, 255}},
-	graphKindSide:    {"side", color.RGBA{0x7c, 0xb0, 0x5c, 255}},
+	graphKindMain:    {"main", graphMainInk},
+	graphKindSide:    {"side", graphSideInk},
 	graphKindTown:    {"town", editorGold},
-	graphKindTalk:    {"talk", color.RGBA{0x62, 0x9c, 0xd8, 255}},
-	graphKindHandout: {"handout", color.RGBA{0xa8, 0x84, 0xd0, 255}},
-	graphKindFilm:    {"film", color.RGBA{0xd8, 0x84, 0xb4, 255}},
+	graphKindTalk:    {"talk", graphTalkInk},
+	graphKindHandout: {"handout", graphHandoutInk},
+	graphKindFilm:    {"film", graphFilmInk},
 }
 
 // GraphInk is the colour of node n's kind, from the one table.
@@ -306,7 +303,7 @@ func (e *MapEditor) graphBox(n CampaignGraphNode) canvasBox {
 	case GraphStart:
 		b.Lines, b.Tip = []string{e.word("editor.graph.start")}, e.word("editor.graph.start.tip")
 	case GraphTown:
-		b.Bare, b.Band = true, color.RGBA{}
+		b.Bare, b.Band = true, graphNoBand
 		b.Lines, b.Tip = []string{number(e.plainWord("editor.graph.town"))}, number(e.plainWord("editor.graph.town.tip"))
 	case GraphFilm:
 		files := e.editorHostText(n.Title)

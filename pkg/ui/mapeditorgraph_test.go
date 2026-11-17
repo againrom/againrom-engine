@@ -391,6 +391,39 @@ func TestCampaignGraphNodeOpensItsMissionsMap(t *testing.T) {
 	}
 }
 
+// The campaign graph window holds the layout properties at three sizes.
+func TestCampaignGraphWindowFitsItsWindowAtThreeSizes(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {800, 600}, {1920, 1080}} {
+		e, _ := graphEditor(t, modesGraph())
+		e.Layout(size.X, size.Y)
+		s, _, ok := e.modSpec()
+		if !ok || s.Canvas == nil {
+			t.Fatalf("%v: the mod window has no graph", size)
+		}
+		checkWindowProperties(t, e, s, size)
+		l := layoutPopup(s, e.font, e.bodyFont())
+		if size.X == 640 && l.CanvasBar.Empty() {
+			t.Errorf("%v: the graph's data does not page: the canvas takes no bar", size)
+		}
+		if !l.Canvas.In(l.Rect) || (!l.CanvasBar.Empty() && !l.CanvasBar.In(l.Rect)) {
+			t.Errorf("%v: the canvas %v or its bar %v lies outside the window %v", size, l.Canvas, l.CanvasBar, l.Rect)
+		}
+		for i, b := range s.Canvas.Boxes {
+			c := center(l.CanvasBoxes.rect(i))
+			if !c.In(l.Canvas) {
+				continue
+			}
+			want := popupCanvasBox
+			if b.Inert {
+				want = popupCanvasGround
+			}
+			if part, index := l.hit(c); part != want || (want == popupCanvasBox && index != i) {
+				t.Errorf("%v: hit at the middle of canvas box %d gives part %d, index %d", size, i, part, index)
+			}
+		}
+	}
+}
+
 // The graph's layout is its data alone: the same page lays the same canvas,
 // a node stands at its column and row, no two boxes overlap, every line
 // runs level or upright from its node's box to its target's, and each town

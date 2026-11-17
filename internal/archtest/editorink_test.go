@@ -21,7 +21,7 @@ func TestCheckEditorInkNamesEachShape(t *testing.T) {
 	}
 	want := map[string]string{
 		"pkg/ui/mapeditorfoo.go":         "outside the editor ink table",
-		"pkg/ui/mapeditorgraph.go":       "changed",
+		"pkg/ui/mapeditorgraph.go":       "outside the editor ink table",
 		"pkg/ui/mapeditorcapture.go":     "changed",
 		"pkg/ui/mapeditorpassability.go": "not scanned",
 	}

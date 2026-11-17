@@ -37,6 +37,20 @@ func heightStroke(t *testing.T, e *MapEditor, p *brushProbe, cells ...image.Poin
 	return p.strokes[n]
 }
 
+// The Height list holds the layout properties at three sizes.
+func TestHeightPaletteFitsItsWindowAtThreeSizes(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {800, 600}, {1920, 1080}} {
+		e, _ := brushEditor(t)
+		e.Layout(size.X, size.Y)
+		_ = e.Key("height")
+		s, ok := e.listSpec()
+		if !ok || s.Grid == nil {
+			t.Fatalf("%v: the Height tool shows no mode row", size)
+		}
+		checkWindowProperties(t, e, s, size)
+	}
+}
+
 // The Height tool's options carry the Strength row (its value with minus and
 // plus) and the mode row (a picture button per mode: Step, Level, Smooth).
 // Step and strength 8 are the defaults; the strength stays in 1..31 and,

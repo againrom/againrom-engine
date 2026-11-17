@@ -17,7 +17,6 @@ const editorInkTable = "pkg/ui/editorink.go"
 // editorInkRemaining are the editor files that still name their own
 // colours, with the count each holds.
 var editorInkRemaining = map[string]int{
-	"pkg/ui/mapeditorgraph.go":       6,
 	"pkg/ui/mapeditorpassability.go": 4,
 	"pkg/ui/mapeditorcapture.go":     2,
 }

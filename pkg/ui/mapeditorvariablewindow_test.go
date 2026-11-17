@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var propertyPageBox = regexp.MustCompile(`data-part="([a-z-]+)"(?: data-row="(\d+)")? data-box="(-?\d+) (-?\d+) (\d+) (\d+)"`)
+var propertyPageBox = regexp.MustCompile(`data-part="([a-z-]+)"(?: data-row="(\d+)")?(?: title="[^"]*")? data-box="(-?\d+) (-?\d+) (\d+) (\d+)"`)
 
 // checkWindowProperties holds a window spec to the four layout properties at
 // one size: every element inside the window, every label whole (at the
@@ -50,6 +50,17 @@ func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.P
 		}
 		if part, index := l.hit(b.Min.Add(b.Size().Div(2))); part != popupButton || index != i {
 			t.Errorf("%v: hit at the middle of button %d gives part %d, index %d", size, i, part, index)
+		}
+	}
+	for i, c := range l.GridCells {
+		if !c.In(l.Rect) {
+			t.Errorf("%v: grid cell %d at %v lies outside the window", size, i, c)
+		}
+		if l.GridInert[i] {
+			continue
+		}
+		if part, index := l.hit(c.Min.Add(c.Size().Div(2))); part != popupGridPart || index != l.gridIndex(i) {
+			t.Errorf("%v: hit at the middle of grid cell %d gives part %d, index %d", size, i, part, index)
 		}
 	}
 	page := string(popupPage(popupDesc{}, specWindow(s), l, image.Rectangle{}, "en", size))

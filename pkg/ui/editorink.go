@@ -25,6 +25,15 @@ var (
 	// The height mode icons' ground and the part a stroke lifts.
 	heightIconGround = color.RGBA{150, 108, 60, 255}
 	heightIconLifted = color.RGBA{88, 176, 72, 255}
+	// The campaign graph's kind inks, its town area's ground, and the zero
+	// ink of a box with no band.
+	graphMainInk    = color.RGBA{0xd8, 0x6a, 0x52, 255}
+	graphSideInk    = color.RGBA{0x7c, 0xb0, 0x5c, 255}
+	graphTalkInk    = color.RGBA{0x62, 0x9c, 0xd8, 255}
+	graphHandoutInk = color.RGBA{0xa8, 0x84, 0xd0, 255}
+	graphFilmInk    = color.RGBA{0xd8, 0x84, 0xb4, 255}
+	graphRegionFill = color.RGBA{0x29, 0x23, 0x1a, 255}
+	graphNoBand     color.RGBA
 )
 
 // areaInks tell overlapping triggers apart; gold is the selection's.
