@@ -89,7 +89,7 @@ func (w *World) trainedSkill(ai int, slot int32) int32 {
 }
 
 // skillAwardProfile is the steps of the skill award that differ by game. The
-// zero value is the first game's award.
+// first game's award is firstGameSkillAward.
 type skillAwardProfile struct {
 	// offMainDivisor, when positive, pays ceil(X / offMainDivisor) into a
 	// skill that is neither the actor's main skill nor freeSkill.
@@ -113,6 +113,10 @@ type skillAwardProfile struct {
 	// counts per attacker; an award for a counted kind pays 10X / (n + 10).
 	victimKinds int
 }
+
+// firstGameSkillAward is the first game's award: the refusal reads the
+// victim's owner's relation toward the attacker's.
+var firstGameSkillAward = skillAwardProfile{victimRow: true}
 
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
 // R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157).

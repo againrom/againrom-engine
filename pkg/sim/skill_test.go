@@ -67,7 +67,7 @@ func TestAwardSkillRefusesTheSameOwnerSlot(t *testing.T) {
 func TestAwardSkillRefusesALockedRelation(t *testing.T) {
 	a := skAwarder(1, 2)
 	s := skSource(2, 3)
-	rel := engRel(t, [3]uint32{2, 3, relationLocked})
+	rel := engRel(t, [3]uint32{3, 2, relationLocked})
 	w, err := NewRelatedWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, Terrain{},
 		[]Entity{a, s}, nil, rel)
 	if err != nil {

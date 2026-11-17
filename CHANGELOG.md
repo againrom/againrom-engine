@@ -19,7 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
-- [ROM2] Whether hitting another side's unit gives experience now depends on whether that side counts you as its ally, as in the original, not on whether you count it as yours.
+- [BASE] Whether hitting another side's unit gives experience now depends on whether that side counts you as its ally, as in the original, not on whether you count it as yours.
 - [BASE] The `+god` cheat now raises a new hero's elemental protections only as far as his Spirit allows, as in the original and as for a hero from a loaded save, and his card shows them at once; before, they went straight to 100 and the card kept the old values.
 - [BASE] The SPELLCASTER and ARMOR PIERCING captions on a character card now stand in the middle of the card instead of at its left edge.
 - [BASE] In a mission, a key pressed with Alt held now does nothing unless the original acts on it: F1, F2, F3, Pause, A, Home, End, `=`, `-`, numpad + and -, and 0 on the digit row no longer act with Alt.

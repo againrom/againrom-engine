@@ -78,7 +78,7 @@ func TestPayExperienceRefusesTheSameOwnerSlotAndALockedRelation(t *testing.T) {
 
 	t.Run("relation locked", func(t *testing.T) {
 		a, v := xpAttacker(2), xpTarget(3)
-		rel := engRel(t, [3]uint32{2, 3, relationLocked})
+		rel := engRel(t, [3]uint32{3, 2, relationLocked})
 		w, err := NewRelatedWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, Terrain{},
 			[]Entity{a, v}, nil, rel)
 		if err != nil {

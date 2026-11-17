@@ -181,7 +181,8 @@ type gameProfile struct {
 // form and the second game's wrapper).
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
-		return gameProfile{computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldNone}}
+		return gameProfile{skillAward: firstGameSkillAward,
+			computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldNone}}
 	}
 	return gameProfile{
 		spellGame:                  rules.SpellGameSecond,

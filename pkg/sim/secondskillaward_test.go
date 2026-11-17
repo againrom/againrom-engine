@@ -125,8 +125,8 @@ func TestAwardReadsTheProtectedRelationInEachGamesDirection(t *testing.T) {
 	}{
 		{"second, the attacker's row", ScriptROM2, SelfSlot, 3, true},
 		{"second, the victim's row", ScriptROM2, 3, SelfSlot, false},
-		{"first, the attacker's row", ScriptROM1, SelfSlot, 3, false},
-		{"first, the victim's row", ScriptROM1, 3, SelfSlot, true},
+		{"first, the attacker's row", ScriptROM1, SelfSlot, 3, true},
+		{"first, the victim's row", ScriptROM1, 3, SelfSlot, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			w := awardWorld(t, c.dialect, awardHero(true, 24, 1, chosenLevels(1)), awardVictim(3))
@@ -137,6 +137,33 @@ func TestAwardReadsTheProtectedRelationInEachGamesDirection(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFirstGameRefusalHealthGate(t *testing.T) {
+	// The attacker is owner SelfSlot, the victim's owner 3; the cell
+	// matrix[3][SelfSlot] holds the protected bit.
+	paid := func(w *World) bool { return w.entities[0].SkillXP[1] != awardXP(20) }
+	locked := func(hp int32) *World {
+		v := awardVictim(3)
+		v.HP = hp
+		w := awardWorld(t, ScriptROM1, awardHero(true, 24, 1, chosenLevels(1)), v)
+		w.relations.Set(3, SelfSlot, relationLocked)
+		return w
+	}
+	t.Run("strike leaving -5 pays", func(t *testing.T) {
+		w := locked(-5)
+		w.payExperience(0, 1, 50, true)
+		if !paid(w) {
+			t.Error("a victim left at -5 on a protected cell was refused")
+		}
+	})
+	t.Run("strike leaving 0 is refused", func(t *testing.T) {
+		w := locked(0)
+		w.payExperience(0, 1, 50, true)
+		if paid(w) {
+			t.Error("a victim left at 0 on a protected cell paid")
+		}
+	})
 }
 
 func TestSecondGameSpellDamagePaysTheMageBySphere(t *testing.T) {
