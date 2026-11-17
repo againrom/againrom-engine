@@ -1,6 +1,8 @@
 package mapload
 
 import (
+	"encoding/binary"
+
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -88,6 +90,22 @@ func ApplyItemEffects(loadout *data.Loadout, equipped [sim.EquipSlots]sim.ItemIn
 			case 49:
 				loadout.Mod.DamageBase += scalar
 			}
+		}
+	}
+}
+
+// ApplyModifierBlock puts a native actor's known modifier protections and
+// damage-kinds over the items' sum (R2-ENGINE-300).
+func ApplyModifierBlock(loadout *data.Loadout, b sim.NativeActorBasis) {
+	if loadout == nil {
+		return
+	}
+	for i := range loadout.Mod.Protection {
+		if at := 48 + 2*i; b.ModifierByteKnown(at) && b.ModifierByteKnown(at+1) {
+			loadout.Mod.Protection[i] = int32(int16(binary.LittleEndian.Uint16(b.Modifier[at:])))
+		}
+		if b.ModifierByteKnown(59 + i) {
+			loadout.Mod.Resistance[i] = int32(b.Modifier[59+i])
 		}
 	}
 }

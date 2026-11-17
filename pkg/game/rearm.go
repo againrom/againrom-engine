@@ -83,69 +83,83 @@ func (mw *mapWorld) installCharacterDerivations(ms *Mission, t *mapload.Table) {
 // recomputeRaisedSkills folds canonical awards into each live derived sheet.
 func (mw *mapWorld) recomputeRaisedSkills() {
 	for n := range mw.derives {
-		c := &mw.derives[n]
-		member := c.member
-		if current := mw.missionPartyMember(c.id); current != nil {
-			member.Hero = current.Hero
-		}
-		heroChanged := member.Hero != c.member.Hero
-		e, ok := mw.entity(c.id)
-		if ok && e.ActorLoad.Source.Class != 0 {
-			mw.refreshSourceCharacter(e)
-			mw.derivedSkills[c.id], mw.derivedPotions[c.id] = derivedSkillState{e.Skill, e.NativeTraining}, e.PotionStats
-			continue
-		}
-		if !ok || !heroChanged && (derivedSkillState{e.Skill, e.NativeTraining}) == mw.derivedSkills[c.id] && e.PotionStats == mw.derivedPotions[c.id] {
-			continue
-		}
-		items, ok := mw.world.EquippedItems(c.id)
-		if !ok {
-			continue
-		}
-		if !heroChanged && (mw.world.NativeTrainingNeedsProducer(c.id) || e.NativeTraining.Present) && e.PotionStats == mw.derivedPotions[c.id] &&
-			e.NativeTraining == mw.derivedSkills[c.id].training && mapload.EquippedSkillBonus(items, c.member.Profile.Fighter) == mw.skillBonus[c.id] {
-			mw.derivedSkills[c.id] = derivedSkillState{e.Skill, e.NativeTraining}
-			continue
-		}
-		var eq data.Equipment
-		for slot, item := range items {
-			eq.SetCode(slot+1, data.ItemCode(item.Code))
-		}
-		// Read the current member's weapon latch; entry derivation inputs are
-		// frozen and cannot record a later equip, unequip or sale.
-		everEquipped := mw.resolveWeaponMaterialized(mw.missionPartyMember(c.id), eq)
-		loadout, ok := mapload.ResolveItemLoadout(items, c.member.Weapon, everEquipped, c.table)
-		if !ok {
-			continue
-		}
-		loadout.RotationSpeed = mapload.RotationSpeedBase(c.member.Hired(), c.member.HiredRotationSpeed, c.member.Class, c.table)
-		mapload.ApplyItemEffects(&loadout, items, c.member.Profile.Fighter)
-		mapload.AddLayers(&loadout, mw.activeLayers(c.id), c.table)
-		hero := mapload.PotionHero(member.Hero, e.PotionStats)
-		hero.Skill = e.TrainedSkills(mw.skillBonus[c.id])
-		d := hero.RecomputeWithSkillXP(c.member.Profile, loadout, e.SkillXP)
-		if e.Humanoid {
-			d.RotationSpeed = mapload.HumanTurnRate(d.Speed)
-		}
-		// DIV-675: native modifier producers remain incomplete. Keep the
-		// observed pair; do not manufacture a new one from item arithmetic.
-		d.Combat.SecondBase, d.Combat.SecondSpread = e.SecondBase, e.SecondSpread
-		spellID, _ := mapload.SpellIDByToken(c.table, d.Combat.SpellName)
-		if e.WeaponSpellSource == sim.WeaponSpellInnate || e.WeaponSpellSource == sim.WeaponSpellLegacy {
-			spellID = e.WeaponSpell
-			d.Combat.SpellPower = e.WeaponSpellLevel
-		}
-		if !mw.world.SetDerived(c.id, simDerivedBlock(d, spellID, e.WeaponSpellSource)) {
-			continue
-		}
-		c.member.Hero = member.Hero
-		reportOriginalProfileRetirement(mw.world, e)
-		mw.settleSkillBonus(c.id, loadout.Mod.SkillBonus)
-		mw.derivedSkills[c.id] = derivedSkillState{d.Skill, e.NativeTraining}
-		mw.derivedPotions[c.id] = e.PotionStats
-		mw.world.SetPotionHeadroom(c.id, mapload.PotionHeadroom(hero, d, c.member.Profile, loadout.Rules))
-		mw.projectDerivedCharacter(c.id, d)
+		mw.recomputeCharacter(&mw.derives[n], false)
 	}
+}
+
+// recomputeDerived re-derives actor id now (R2-ENGINE-300).
+func (mw *mapWorld) recomputeDerived(id sim.EntityID) {
+	for n := range mw.derives {
+		if mw.derives[n].id == id {
+			mw.recomputeCharacter(&mw.derives[n], true)
+		}
+	}
+}
+
+// recomputeCharacter skips an unchanged sheet unless force.
+func (mw *mapWorld) recomputeCharacter(c *characterDerive, force bool) {
+	member := c.member
+	if current := mw.missionPartyMember(c.id); current != nil {
+		member.Hero = current.Hero
+	}
+	heroChanged := member.Hero != c.member.Hero
+	e, ok := mw.entity(c.id)
+	if ok && e.ActorLoad.Source.Class != 0 {
+		mw.refreshSourceCharacter(e)
+		mw.derivedSkills[c.id], mw.derivedPotions[c.id] = derivedSkillState{e.Skill, e.NativeTraining}, e.PotionStats
+		return
+	}
+	if !ok || !force && !heroChanged && (derivedSkillState{e.Skill, e.NativeTraining}) == mw.derivedSkills[c.id] && e.PotionStats == mw.derivedPotions[c.id] {
+		return
+	}
+	items, ok := mw.world.EquippedItems(c.id)
+	if !ok {
+		return
+	}
+	if !force && !heroChanged && (mw.world.NativeTrainingNeedsProducer(c.id) || e.NativeTraining.Present) && e.PotionStats == mw.derivedPotions[c.id] &&
+		e.NativeTraining == mw.derivedSkills[c.id].training && mapload.EquippedSkillBonus(items, c.member.Profile.Fighter) == mw.skillBonus[c.id] {
+		mw.derivedSkills[c.id] = derivedSkillState{e.Skill, e.NativeTraining}
+		return
+	}
+	var eq data.Equipment
+	for slot, item := range items {
+		eq.SetCode(slot+1, data.ItemCode(item.Code))
+	}
+	// Read the current member's weapon latch; entry derivation inputs are
+	// frozen and cannot record a later equip, unequip or sale.
+	everEquipped := mw.resolveWeaponMaterialized(mw.missionPartyMember(c.id), eq)
+	loadout, ok := mapload.ResolveItemLoadout(items, c.member.Weapon, everEquipped, c.table)
+	if !ok {
+		return
+	}
+	loadout.RotationSpeed = mapload.RotationSpeedBase(c.member.Hired(), c.member.HiredRotationSpeed, c.member.Class, c.table)
+	mapload.ApplyItemEffects(&loadout, items, c.member.Profile.Fighter)
+	mapload.ApplyModifierBlock(&loadout, e.NativeBasis)
+	mapload.AddLayers(&loadout, mw.activeLayers(c.id), c.table)
+	hero := mapload.PotionHero(member.Hero, e.PotionStats)
+	hero.Skill = e.TrainedSkills(mw.skillBonus[c.id])
+	d := hero.RecomputeWithSkillXP(c.member.Profile, loadout, e.SkillXP)
+	if e.Humanoid {
+		d.RotationSpeed = mapload.HumanTurnRate(d.Speed)
+	}
+	// DIV-675: native modifier producers remain incomplete. Keep the
+	// observed pair; do not manufacture a new one from item arithmetic.
+	d.Combat.SecondBase, d.Combat.SecondSpread = e.SecondBase, e.SecondSpread
+	spellID, _ := mapload.SpellIDByToken(c.table, d.Combat.SpellName)
+	if e.WeaponSpellSource == sim.WeaponSpellInnate || e.WeaponSpellSource == sim.WeaponSpellLegacy {
+		spellID = e.WeaponSpell
+		d.Combat.SpellPower = e.WeaponSpellLevel
+	}
+	if !mw.world.SetDerived(c.id, simDerivedBlock(d, spellID, e.WeaponSpellSource)) {
+		return
+	}
+	c.member.Hero = member.Hero
+	reportOriginalProfileRetirement(mw.world, e)
+	mw.settleSkillBonus(c.id, loadout.Mod.SkillBonus)
+	mw.derivedSkills[c.id] = derivedSkillState{d.Skill, e.NativeTraining}
+	mw.derivedPotions[c.id] = e.PotionStats
+	mw.world.SetPotionHeadroom(c.id, mapload.PotionHeadroom(hero, d, c.member.Profile, loadout.Rules))
+	mw.projectDerivedCharacter(c.id, d)
 }
 
 // projectDerivedCharacter copies a native actor's derived sheet into the
@@ -186,6 +200,7 @@ func (mw *mapWorld) refreshWornCharacter(id sim.EntityID) {
 	}
 	loadout.RotationSpeed = mapload.RotationSpeedBase(p.hired, p.hiredRotationSpeed, p.class, p.table)
 	mapload.ApplyItemEffects(&loadout, items, p.profile.Fighter)
+	mapload.ApplyModifierBlock(&loadout, e.NativeBasis)
 	mapload.AddLayers(&loadout, mw.activeLayers(id), p.table)
 	hero := mapload.PotionHero(p.hero, e.PotionStats)
 	hero.Skill = e.TrainedSkills(mw.skillBonus[id])

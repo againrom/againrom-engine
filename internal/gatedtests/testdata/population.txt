@@ -1551,3 +1551,5 @@ pkg/game.TestReleaseHeldDocumentDarknessAreaSurvivesLoad
 pkg/game.TestReleaseHeldDocumentDarknessCastAfterLoad
 pkg/ui.TestGameTextNameLineCrops
 pkg/ui.TestWriteGameTextCrop
+pkg/game.TestReleaseSecondStaffStrongestTrollPaysNoExperience
+pkg/game.TestReleaseSecondGodLeavesANativeHeroAtTheSourceDerive

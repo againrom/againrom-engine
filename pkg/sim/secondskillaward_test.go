@@ -116,6 +116,29 @@ func TestSecondGameBlowGates(t *testing.T) {
 	})
 }
 
+func TestAwardReadsTheProtectedRelationInEachGamesDirection(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		dialect  ScriptDialect
+		from, to uint32
+		paid     bool
+	}{
+		{"second, the attacker's row", ScriptROM2, SelfSlot, 3, true},
+		{"second, the victim's row", ScriptROM2, 3, SelfSlot, false},
+		{"first, the attacker's row", ScriptROM1, SelfSlot, 3, false},
+		{"first, the victim's row", ScriptROM1, 3, SelfSlot, true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			w := awardWorld(t, c.dialect, awardHero(true, 24, 1, chosenLevels(1)), awardVictim(3))
+			w.relations.Set(c.from, c.to, relationLocked)
+			w.payExperience(0, 1, 50, true)
+			if paid := w.entities[0].SkillXP[1] != awardXP(20); paid != c.paid {
+				t.Errorf("locked %d toward %d: paid %v, want %v", c.from, c.to, paid, c.paid)
+			}
+		})
+	}
+}
+
 func TestSecondGameSpellDamagePaysTheMageBySphere(t *testing.T) {
 	// The same X = 26 as the blow, Mind 24: 27 on the main Sphere, 4 on another.
 	for _, c := range []struct {

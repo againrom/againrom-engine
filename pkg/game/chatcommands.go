@@ -299,12 +299,12 @@ func (mw *mapWorld) chatModify(row chatCommandRow, arg string, hero sim.Entity, 
 		case chatModifyGod:
 			if army {
 				for _, e := range mw.world.Entities() {
-					if e.Owner == sim.SelfSlot {
-						mw.world.CheatGod(e.ID)
+					if e.Owner == sim.SelfSlot && mw.world.CheatGod(e.ID) {
+						mw.recomputeDerived(e.ID)
 					}
 				}
-			} else if hasHero {
-				mw.world.CheatGod(hero.ID)
+			} else if hasHero && mw.world.CheatGod(hero.ID) {
+				mw.recomputeDerived(hero.ID)
 			}
 		case chatModifySpell:
 			id := cheatInteger(arg[len(m.text):])

@@ -35,17 +35,25 @@ func (w *World) CheatGod(id EntityID) bool {
 		}
 	} else {
 		e.NativeBasis.ModifierPresent, e.NativeBasis.DefencePresent = true, true
+		slots := 6
+		if e.Humanoid {
+			slots = 1
+		}
 		for j := 0; j < 6; j++ {
 			at := 46 + 2*j
 			binary.LittleEndian.PutUint16(e.NativeBasis.Modifier[at:], 100)
 			e.NativeBasis.ModifierKnown |= uint64(3)<<at | uint64(1)<<(58+j)
 			e.NativeBasis.Modifier[58+j] = 100
-			binary.LittleEndian.PutUint16(e.NativeBasis.Defence[4+2*j:], 100)
-			e.NativeBasis.Defence[16+j] = 100
+			if j < slots {
+				binary.LittleEndian.PutUint16(e.NativeBasis.Defence[4+2*j:], 100)
+				e.NativeBasis.Defence[16+j] = 100
+				e.NativeBasis.DefenceKnown |= uint32(3)<<(4+2*j) | uint32(1)<<(16+j)
+			}
 		}
-		e.NativeBasis.DefenceKnown |= uint32((1<<18)-1) << 4
-		e.Protection = [5]int32{100, 100, 100, 100, 100}
-		e.Resistance = [5]uint8{100, 100, 100, 100, 100}
+		if !e.Humanoid {
+			e.Protection = [5]int32{100, 100, 100, 100, 100}
+			e.Resistance = [5]uint8{100, 100, 100, 100, 100}
+		}
 	}
 	*w = n
 	return true

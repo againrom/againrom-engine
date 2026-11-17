@@ -106,6 +106,9 @@ type skillAwardProfile struct {
 	ownedAttacker bool
 	// spellNeedsMage: spell damage pays a mage alone.
 	spellNeedsMage bool
+	// victimRow: the protected-relation refusal reads the victim's owner's
+	// relation toward the attacker's, not the attacker's toward the victim's.
+	victimRow bool
 	// victimKinds, when positive, is how many victim kinds the kill route
 	// counts per attacker; an award for a counted kind pays 10X / (n + 10).
 	victimKinds int
@@ -114,7 +117,7 @@ type skillAwardProfile struct {
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
 // R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157).
 var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raiseAtNext: true,
-	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true,
+	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true, victimRow: true,
 	victimKinds: maxVictimKinds}
 
 // mainSkill is the skill the off-main cut spares besides freeSkill: the
@@ -170,7 +173,11 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 			if a.Owner == s.Owner || award.ownedAttacker && a.Owner == 0 {
 				return false
 			}
-			if w.relations.Locked(a.Owner, s.Owner) {
+			from, to := a.Owner, s.Owner
+			if award.victimRow {
+				from, to = to, from
+			}
+			if w.relations.Locked(from, to) {
 				return false
 			}
 		}

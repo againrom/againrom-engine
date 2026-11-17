@@ -124,6 +124,7 @@ func ApplyRearmLoadout(w *sim.World, id sim.EntityID, h data.Hero, profile data.
 		return weapon, w.SetDerived(id, block)
 	}
 	ApplyItemEffects(&loadout, items, profile.Fighter)
+	ApplyModifierBlock(&loadout, before.NativeBasis)
 	derived := h.Recompute(profile, loadout)
 	if before.Humanoid {
 		derived.RotationSpeed = HumanTurnRate(derived.Speed)
