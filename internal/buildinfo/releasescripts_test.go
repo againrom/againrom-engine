@@ -1,6 +1,7 @@
 package buildinfo
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -177,5 +178,114 @@ func TestReleaseNotesScriptPrintsOneLinePerEntry(t *testing.T) {
 	}
 	if entries != 7 || headings != 2 {
 		t.Fatalf("0.129.0 prints %d entries and %d headings, want 7 and 2:\n%s", entries, headings, body)
+	}
+}
+
+// announceDescription runs scripts/announce-release.ps1 -DryRun on a changelog
+// file and returns the embed description.
+func announceDescription(t *testing.T, changelog, version string) string {
+	t.Helper()
+	shell := powershell(t)
+	abs, err := filepath.Abs(changelog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(shell, "-NoProfile", "-NonInteractive", "-File", "scripts/announce-release.ps1",
+		"-Version", version, "-Link", "https://example.invalid/r", "-Changelog", abs, "-DryRun")
+	cmd.Dir = "../.."
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("announce-release.ps1 -Version %s: %v", version, err)
+	}
+	var payload struct {
+		Embeds []struct{ Description string }
+	}
+	if err := json.Unmarshal(out, &payload); err != nil || len(payload.Embeds) != 1 {
+		t.Fatalf("dry run is not one embed: %v\n%s", err, out)
+	}
+	return payload.Embeds[0].Description
+}
+
+// The Discord post is short: 6 entries within 2000 characters, and it
+// ends with a line that links the full notes and counts the entries left out.
+func TestAnnouncementIsShortAndLinksTheFullNotes(t *testing.T) {
+	description := announceDescription(t, "../../CHANGELOG.md", "0.156.0")
+	var entries int
+	for _, line := range strings.Split(description, "\n") {
+		if strings.HasPrefix(line, "- ") {
+			entries++
+		}
+	}
+	if entries != 6 || len(description) > 2000 {
+		t.Fatalf("post holds %d entries and %d characters, want 6 and at most 2000:\n%s", entries, len(description), description)
+	}
+	if !regexp.MustCompile(`\n\n\+\d+ more changes: \[Full notes\]\(https://example\.invalid/r\)$`).MatchString(description) {
+		t.Fatalf("post does not end with the more-changes link line:\n%s", description)
+	}
+}
+
+// A section with nothing left out ends with the plain link.
+func TestAnnouncementWithNothingLeftOutEndsWithThePlainLink(t *testing.T) {
+	fixture := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	text := "# Changelog\n\n## 1.0.0\n\n### For players\n\n- One.\n- Two.\n\n### For map makers and modders\n\n- Three.\n"
+	if err := os.WriteFile(fixture, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	want := "**For players**\n- One.\n- Two.\n\n**For map makers and modders**\n- Three.\n\n[Full notes](https://example.invalid/r)"
+	if got := announceDescription(t, fixture, "1.0.0"); got != want {
+		t.Fatalf("post:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+// repeatedEntries returns the entries a CHANGELOG section holds twice. An
+// entry is a bullet with its wrapped lines, compared after trimming.
+func repeatedEntries(changelog string) []string {
+	var repeats []string
+	seen := map[string]bool{}
+	section := ""
+	var entry []string
+	flush := func() {
+		if len(entry) == 0 {
+			return
+		}
+		key := section + "\x00" + strings.Join(entry, " ")
+		if seen[key] {
+			repeats = append(repeats, section+": "+strings.Join(entry, " "))
+		}
+		seen[key] = true
+		entry = nil
+	}
+	for _, line := range strings.Split(strings.ReplaceAll(changelog, "\r\n", "\n"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "## "):
+			flush()
+			section = trimmed
+		case strings.HasPrefix(trimmed, "- "), strings.HasPrefix(trimmed, "* "), strings.HasPrefix(trimmed, "+ "):
+			flush()
+			entry = []string{trimmed}
+		case trimmed == "" || strings.HasPrefix(trimmed, "#"):
+			flush()
+		case len(entry) > 0:
+			entry = append(entry, trimmed)
+		}
+	}
+	flush()
+	return repeats
+}
+
+// A repeated entry in one section would reach the release notes twice, so the
+// repository's CHANGELOG.md must hold none, and the check must see one.
+func TestChangelogSectionsHoldNoRepeatedEntry(t *testing.T) {
+	fixture := "## Unreleased\n\n### For players\n\n- Same entry\n  wrapped.\n- Other.\n\n### For developers\n\n- Same entry wrapped.\n\n## 1.0.0\n\n- Same entry wrapped.\n"
+	if got := repeatedEntries(fixture); len(got) != 1 {
+		t.Fatalf("fixture repeats: %q, want exactly the one in Unreleased", got)
+	}
+	data, err := os.ReadFile("../../CHANGELOG.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := repeatedEntries(string(data)); len(got) != 0 {
+		t.Fatalf("CHANGELOG.md repeats an entry inside one section:\n%s", strings.Join(got, "\n"))
 	}
 }

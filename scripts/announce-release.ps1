@@ -4,12 +4,12 @@ param(
     [string]$Changelog = 'CHANGELOG.md',
     [switch]$DryRun
 )
-# Announce one published release in Discord: one embed with the version as the
-# title, the release page link, and the player and map-maker/modder parts of
-# the CHANGELOG section. The text comes from scripts/release-notes.ps1. The
-# webhook address is read from DISCORD_RELEASE_WEBHOOK, never printed, and an
-# empty or absent one makes a real run do nothing. -DryRun prints the JSON
-# instead of sending it.
+# Announce one published release in Discord: one short embed with the version
+# as the title, the release page link, and the first entries of the player and
+# map-maker/modder parts of the CHANGELOG section, then a link to the full
+# notes. The text comes from scripts/release-notes.ps1. The webhook address is
+# read from DISCORD_RELEASE_WEBHOOK, never printed, and an empty or absent one
+# makes a real run do nothing. -DryRun prints the JSON instead of sending it.
 $ErrorActionPreference = 'Stop'
 $webhook = $env:DISCORD_RELEASE_WEBHOOK
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($webhook)) {
@@ -18,12 +18,13 @@ if (-not $DryRun -and [string]::IsNullOrWhiteSpace($webhook)) {
 }
 $notes = (& (Join-Path $PSScriptRoot 'release-notes.ps1') -Version $Version -Changelog $Changelog -Section @('For players', 'For map makers and modders')) -join "`n"
 
-# Discord allows 4096 characters in an embed description and 6000 in the whole
-# embed. The description is cut at an entry boundary: a heading, or a top-level
-# bullet with its nested lines. A cut description ends with a line that links
-# the full notes.
-$limit = 4000
-$closing = "`n`n[Full notes]($Link)"
+# The description holds at most 6 entries and 2000 characters, players' entries
+# first, each cut at an entry boundary (a top-level bullet with its nested
+# lines); a heading shows only above an entry under it. Discord's own limits
+# (4096 in the description, 6000 in the embed) stay as guards. The description
+# ends with a line that links the full notes.
+$maxEntries = 6
+$limit = 2000
 $units = New-Object System.Collections.Generic.List[string]
 foreach ($line in $notes -split "`n") {
     if ($line -match '^\s*$') { continue }
@@ -35,20 +36,28 @@ foreach ($line in $notes -split "`n") {
         $units[$units.Count - 1] += "`n" + $line
     }
 }
+$total = @($units | Where-Object { $_ -notmatch '^\*\*' }).Count
 $description = ''
-$cut = $false
-for ($i = 0; $i -lt $units.Count; $i++) {
-    $next = if ($description -eq '') { $units[$i] } elseif ($units[$i] -match '^\*\*') { "$description`n`n$($units[$i])" } else { "$description`n$($units[$i])" }
-    if ($next.Length + $closing.Length -gt $limit) { $cut = $true; break }
+$heading = ''
+$taken = 0
+$full = $false
+foreach ($unit in $units) {
+    if ($unit -match '^\*\*') { $heading = $unit; continue }
+    if ($taken -ge $maxEntries) { break }
+    $next = if ($description -eq '') { $unit } else { "$description`n$unit" }
+    if ($heading -ne '') {
+        $next = if ($description -eq '') { "$heading`n$unit" } else { "$description`n`n$heading`n$unit" }
+    }
+    $left = $total - $taken - 1
+    $tail = if ($left -gt 0) { "`n`n+$left more changes: [Full notes]($Link)" } else { "`n`n[Full notes]($Link)" }
+    if ($next.Length + $tail.Length -gt $limit -and $taken -gt 0) { break }
     $description = $next
+    $heading = ''
+    $taken++
 }
-if ($cut) {
-    # Never end on a bare heading.
-    $trimmed = $description -replace '(\n\n)?\*\*[^\n]*\*\*$', ''
-    if ($trimmed -ne '') { $description = $trimmed }
-    if ($description -eq '') { $description = $units[0].Substring(0, [Math]::Min($units[0].Length, $limit - $closing.Length - 1)) + [char]0x2026 }
-    $description += $closing
-}
+$left = $total - $taken
+$description += if ($left -gt 0) { "`n`n+$left more changes: [Full notes]($Link)" } else { "`n`n[Full notes]($Link)" }
+if ($description.Length -gt 4096) { throw 'Announcement exceeds the Discord description limit.' }
 $title = "Againrom $Version"
 if ($title.Length + $description.Length -gt 6000) { throw 'Announcement exceeds the Discord embed limit.' }
 $payload = [ordered]@{

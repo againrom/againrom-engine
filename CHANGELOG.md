@@ -26,8 +26,6 @@ modder or developer can notice gets no entry.
 - [BASE] A new starter option keeps the mouse inside the game window on a computer with two monitors.
 - [BASE] A window switched from full screen now fits the screen, so its edges can be dragged.
 - [BASE] Game text, such as the name on the new-character screen of the second game, no longer shows a dark blurred rim when the window is larger than the original screen.
-- [BASE] Game text is sharp again, as in the original, at any window size; before, it was soft.
-- [BASE] Map editor text is sharp, as in the game, at any window size.
 - [BASE] Darkness darkens and Light brightens the ground and units under them again, also with the Lighting option off.
 - [BASE] A double-click on a spell in the book casts it on the selected heroes themselves when the spell can target its caster; other spells still select and clear.
 - [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.
@@ -55,6 +53,7 @@ modder or developer can notice gets no entry.
 ### For developers
 
 - scripts/check-touched.sh runs the ordinary and release tests a change can reach, selected from the type-checked call graph.
+- The release post in Discord is short and links the full notes, and a repeated changelog entry fails the check.
 
 ## 0.156.0
 
@@ -71,7 +70,6 @@ modder or developer can notice gets no entry.
 - [ROM2] Poison Cloud no longer hurts a unit the moment it first hits; the damage now starts with the first poison tick, as in the original.
 - [ROM2] In the Kaarg inn, a selected hire seat now shows each new animation frame at the same moment as in the original game.
 - [BASE] Item descriptions now write elemental damage without a colon, for example "Fire 5-8".
-- [ROM1] A withdrawing or retreating unit now measures a large enemy from its corner cell when it picks where to flee, a unit stepping north-east or south-west enters the next cell on both axes at once, and a spell cast given while a loaded game's unit is between cells waits for its step to end, all as the original does.
 - [BASE] Map editor: the basic view of the unit window now lets you set a unit's maximum health on the card.
 - [BASE] Map editor: the health and maximum health boxes on the unit window's card now hold five digits.
 - [BASE] A mod names a spell by one name in both games, and two mods' rows for one spell combine field by field.
@@ -83,7 +81,6 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] Map editor: a map's draft pages and labels now count and move with the map whatever their letter case or folder depth.
-- [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
 - [BASE] a data file in a mod loads by itself, with no script line; main.star is only for rules and settings, and the docs and example mods no longer call game.data.add.
 - [BASE] The map editor's unit window opens small with the Kind row or wide with every field and no tabs; it shows the unit's figure at game size, a facing pad with eight directions and random, maximum health, gold dropped and a drops-loot switch.
 - [ROM1] The mod window gains a Terrain page: add, edit and remove tile groups 13 to 31, import their four strips checked as the game reads them, paint a new group before saving, and publish it with no main.star line.
