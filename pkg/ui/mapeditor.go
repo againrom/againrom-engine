@@ -161,6 +161,9 @@ type InspectionField struct {
 	ChoicePad       []image.Point                                  `json:"-"`
 	// ChoiceLines holds each choice's label as the lines a list shows.
 	ChoiceLines [][]string `json:"-"`
+	// ValueWidth is the characters the field's widest value takes in decimal,
+	// sign included, from the editor's bound for it; a card input holds that.
+	ValueWidth int `json:"-"`
 	// Group is the heading the field shows under; "" for none.
 	Group string
 	// IconTip shows a choice's picture at full size in the editor's tip

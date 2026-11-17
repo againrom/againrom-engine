@@ -47,6 +47,7 @@ modder or developer can notice gets no entry.
 - [BASE] A mod can turn a spell off, move it in the book and set the book's size; shops follow, and a spell a hero already knew comes back when the mod is removed.
 - [BASE] Map editor: a window dragged below the editor's bottom edge is shortened by pressing its top border (now as deep as the other borders) and dragging down, its rows scrolling inside, and the detailed unit window opens as wide as its columns need instead of the whole editor width.
 - [BASE] Mod window: a Characters page adds a guest character with its name in each language and a face, renames or re-faces a game character, and the mission's guest party offers the new characters.
+- [BASE] Map editor: the unit card's hit points and mana inputs are one character wider, so the lowest value (-32768) fits.
 
 ### For developers
 

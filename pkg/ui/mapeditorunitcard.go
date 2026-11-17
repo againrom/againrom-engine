@@ -137,23 +137,20 @@ const cardScale = 2
 
 // cardInput is a field the card edits in place: the panel field the card
 // draws its value at, on the pair's second number when second is set.
-// digits is the digit count of the field's largest value when an input must
-// hold more than the four digits every input holds; whole stretches the
-// input across the card's line.
+// whole stretches the input across the card's line.
 type cardInput struct {
 	key    string
 	panel  PanelField
 	second bool
-	digits int
 	whole  bool
 }
 
 // unitCard is every field the unit window's card edits.
 var unitCard = []cardInput{
 	{key: "name", panel: PanelFieldName, whole: true},
-	{key: "hp", panel: PanelFieldHealth, digits: 5},
-	{key: "hpmax", panel: PanelFieldHealth, second: true, digits: 5},
-	{key: "mana", panel: PanelFieldManaCard, digits: 5},
+	{key: "hp", panel: PanelFieldHealth},
+	{key: "hpmax", panel: PanelFieldHealth, second: true},
+	{key: "mana", panel: PanelFieldManaCard},
 	{key: "body", panel: PanelFieldBody},
 	{key: "reaction", panel: PanelFieldReaction},
 	{key: "mind", panel: PanelFieldMind},
@@ -255,7 +252,7 @@ func (e *MapEditor) cardRows(s *popupSpec, links *[]int, field func(i int, label
 		if body == nil {
 			return 0
 		}
-		return body.Advance(strings.Repeat("0", max(4, inputs[i].digits))) + 2*editTextX
+		return body.Advance(strings.Repeat("0", max(4, o.fields[i].ValueWidth))) + 2*editTextX
 	}
 	// A stat whose stored value differs from the card's value, the one the
 	// game uses, is stated in words beside the card.

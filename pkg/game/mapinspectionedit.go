@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -194,6 +195,12 @@ func (s *mapInspectionEdits) Stored(d *ui.InspectionDocument) (ui.StoredMap, err
 	return out, nil
 }
 
+// fieldValueWidth is the characters of the field's widest value in decimal,
+// sign included, from the field table's bound.
+func fieldValueWidth(f mapedit.Field) int {
+	return max(len(strconv.FormatInt(f.Min, 10)), len(strconv.FormatInt(f.Max, 10)))
+}
+
 // cellWords keeps the source's fraction within the cell, as a move does.
 func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 	return uint32(cell.X)<<8 | x&255, uint32(cell.Y)<<8 | y&255
@@ -340,7 +347,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
 			continue
 		}
-		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward}
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f)}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
 			row.Label = s.inspector.word(f.Label)
 		}
