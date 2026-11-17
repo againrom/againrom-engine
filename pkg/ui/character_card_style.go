@@ -143,6 +143,15 @@ func fitCharacterCardLines(l PanelLayout, f *text.Font, lines []panelLine, items
 			rw, _ := f.Measure(ln.rightValue)
 			ln.rightValueX = max(f.Advance(ln.rightLabel)+l.LabelGap, end-rx-rw)
 			ln.rightX = rx - x
+			if items[i].rightCenter && ln.rightValue == "" {
+				// A caption beside a left cell is centred only where that
+				// place clears the cell.
+				cw, _ := f.Measure(ln.rightLabel)
+				cx := min(max(cardNameCentre-cw/2, left), max(left, right-cw))
+				if cx >= x+ln.valueX+vw+cardColumnGap {
+					ln.rightX = cx - x
+				}
+			}
 		} else {
 			if !items[i].fullWidth {
 				// A missing right cell does not turn an attribute into a
@@ -389,6 +398,12 @@ func placeCharacterCardRow(l PanelLayout, bg *image.RGBA, f *text.Font, ln *pane
 	}
 
 	switch {
+	case it.center && !it.right && it.value == "" && it.label != "":
+		// A caption standing alone on its row is centred on the card.
+		w, _ := f.Measure(it.label)
+		x := min(max(cardNameCentre-w/2, wl), max(wl, wr-w))
+		ln.at.X, ln.label, ln.value, ln.valueX, ln.width = x, it.label, "", 0, w
+		return true
 	case characterCardPoolField(ln.field) && !it.right:
 		x, label, value := centred(it.label, it.value)
 		ln.at.X, ln.label, ln.value = x, label, value

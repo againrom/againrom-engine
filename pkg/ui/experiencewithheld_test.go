@@ -80,8 +80,8 @@ func TestAWithheldExperienceRowLeavesNoHole(t *testing.T) {
 					}
 				}
 				if len(got) == len(control) {
-					if got[xp].Label != "ARMOR PIERCING" || got[xp].At != control[xp].At {
-						t.Fatalf("the shared row is %+v, want ARMOR PIERCING at %v", got[xp], control[xp].At)
+					if got[xp].Label != "ARMOR PIERCING" || got[xp].At.Y != control[xp].At.Y {
+						t.Fatalf("the shared row is %+v, want ARMOR PIERCING on y=%d", got[xp], control[xp].At.Y)
 					}
 					for i := xp + 1; i < len(got); i++ {
 						if got[i].At != control[i].At {

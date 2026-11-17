@@ -611,6 +611,11 @@ type OriginalPanelActor struct {
 type PanelCell struct {
 	Field PanelField
 	Label string
+
+	// Center stands a caption-only cell centred on the card: alone when the
+	// row's left cell states nothing, and beside the left cell only where the
+	// centred place clears that cell.
+	Center bool
 }
 
 // PanelRow is one line of the panel: which field it states, the label drawn
@@ -915,11 +920,11 @@ func AuthoredPanelLayout() PanelLayout {
 			// The photograph's own WEIGHT row, below the two columns and above the
 			// totals, which is where it sits on the compact card too.
 			{Field: PanelFieldWeight, Label: "WEIGHT",
-				Right: &PanelCell{Field: PanelFieldSpellcaster, Label: "SPELLCASTER"}},
+				Right: &PanelCell{Field: PanelFieldSpellcaster, Label: "SPELLCASTER", Center: true}},
 
 			// The totals, each on its own line, as the photograph has them.
 			{Field: PanelFieldExperience, Label: "XP",
-				Right: &PanelCell{Field: PanelFieldArmorPiercing, Label: "ARMOR PIERCING"}},
+				Right: &PanelCell{Field: PanelFieldArmorPiercing, Label: "ARMOR PIERCING", Center: true}},
 			{Field: PanelFieldSight, Label: "SIGHT"},
 			{Field: PanelFieldMoveSpeed, Label: "SPEED"},
 
@@ -1108,10 +1113,10 @@ func CompactPanelLayout(background *image.RGBA) PanelLayout {
 			// The photograph's own WEIGHT row, in the vertical space 1022 left for
 			// it: below the last resistance row and above the totals.
 			{Field: PanelFieldWeight, Label: "WEIGHT", FullWidth: true,
-				Right: &PanelCell{Field: PanelFieldSpellcaster, Label: "SPELLCASTER"}},
+				Right: &PanelCell{Field: PanelFieldSpellcaster, Label: "SPELLCASTER", Center: true}},
 
 			{Field: PanelFieldExperience, Label: "XP", FullWidth: true,
-				Right: &PanelCell{Field: PanelFieldArmorPiercing, Label: "ARMOR PIERCING"}},
+				Right: &PanelCell{Field: PanelFieldArmorPiercing, Label: "ARMOR PIERCING", Center: true}},
 			{Field: PanelFieldSight, Label: "SIGHT", Center: true},
 			{Field: PanelFieldMoveSpeed, Label: "SPEED", Center: true},
 		},
@@ -1448,6 +1453,10 @@ type panelItem struct {
 	// a row's own X coordinate is decided.
 	center bool
 
+	// rightCenter carries PanelCell.Center of a right cell that shares its row
+	// with a left cell.
+	rightCenter bool
+
 	// indent carries PanelRow.LabelIndent through unchanged.
 	indent int
 
@@ -1510,6 +1519,7 @@ func panelItems(l PanelLayout, s PanelSubject) []panelItem {
 			it.label, it.value = label, value
 			it.right, it.rightLabel, it.rightValue = true, rLabel, rValue
 			it.rightPreferValue = rLabel != r.Right.Label
+			it.rightCenter = r.Right.Center
 		case ok:
 			it.label, it.value = label, value
 		case rOK && l.CompactCard && (r.Right.Field == PanelFieldAbsorption || r.Right.Field == PanelFieldDefence):
@@ -1519,6 +1529,7 @@ func panelItems(l PanelLayout, s PanelSubject) []panelItem {
 			it.field = r.Right.Field
 			it.label, it.value = rLabel, rValue
 			it.preferValue = rLabel != r.Right.Label
+			it.center = it.center || r.Right.Center
 		default:
 			continue
 		}
@@ -1876,6 +1887,7 @@ func layoutLines(l PanelLayout, f *text.Font, items []panelItem) []panelLine {
 			}
 		}
 		ln := panelLine{field: it.field, rightField: it.rightField, label: it.label, value: it.value, valueX: valueX, width: width, leftIndent: it.indent}
+		leftWidth := width
 
 		if it.right {
 			rValueX, rWidth := panelCellMetrics(f, l.LabelGap, it.rightLabel, it.rightValue)
@@ -1902,9 +1914,20 @@ func layoutLines(l PanelLayout, f *text.Font, items []panelItem) []panelLine {
 		} else {
 			ln.at = it.at
 		}
+		if it.rightCenter && ln.right && ln.rightValue == "" && l.Size.X > 0 {
+			// A caption sharing its row with a left cell takes the centred
+			// place only where that place clears the left cell.
+			rw, _ := f.Measure(ln.rightLabel)
+			if cx := (l.Size.X-rw)/2 - ln.at.X; cx >= leftWidth+l.ColumnGap {
+				ln.rightX = cx
+			}
+		}
 		if it.center && l.Size.X > 0 {
 			// A centred row is not in the aligned column, so ln.width is the
 			// name's own measured width.
+			if it.value == "" && it.label != "" {
+				ln.width, _ = f.Measure(it.label)
+			}
 			x := (l.Size.X - ln.width) / 2
 			if x < 0 {
 				x = 0
