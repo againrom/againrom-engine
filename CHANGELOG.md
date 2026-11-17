@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.157.0
+
 ### For players
 
 - [BASE] Whether hitting another side's unit gives experience now depends on whether that side counts you as its ally, as in the original, not on whether you count it as yours.
