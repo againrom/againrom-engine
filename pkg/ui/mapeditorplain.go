@@ -249,7 +249,7 @@ func (e *MapEditor) unitWindowShown() bool {
 func (e *MapEditor) switchView() {
 	if e.unitWindowShown() && !e.objectInPanel() {
 		if s, _, ok := e.objectSpec(); ok {
-			e.placePopup(popObject, layoutPopup(s, e.font, e.bodyFont()).Rect.Min)
+			e.holdPopup(popObject, layoutPopup(s, e.font, e.bodyFont()).Rect.Min)
 		}
 	}
 	e.props.plain = !e.props.plain

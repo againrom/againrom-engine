@@ -64,7 +64,7 @@ func russianModWindow(t *testing.T) (*testPlayFixture, *ui.MapEditor) {
 	if !e.ModWindowOpen() {
 		t.Fatal("the mod window is not open")
 	}
-	e.Layout(1024, 768)
+	e.Layout(1280, 800)
 	return f, e
 }
 
@@ -303,7 +303,7 @@ func TestRussianModWindowLeavesTheMapItsInput(t *testing.T) {
 		if selected() != 1 || !e.ModWindowOpen() {
 			t.Fatalf("Open left mission %d open, window %v", selected(), e.ModWindowOpen())
 		}
-		e.Layout(1024, 768)
+		e.Layout(1280, 800)
 		if got := m.hears(); got != all {
 			t.Fatalf("after Open the map hears %+v", got)
 		}

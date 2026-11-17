@@ -165,7 +165,7 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 	if _, err := front.SetModMissions(res.Missions); err != nil {
 		t.Fatalf("the game refuses the test mod: %v", err)
 	}
-	want := []string{f.game, "-assets", f.root, "-mods", TestPlayModID, "-mods-dir", modsDir, "-mission", "21"}
+	want := []string{f.game, "-assets", f.root, "-mods", TestPlayModID, "-mods-dir", modsDir, "-chicken", "-mission", "21"}
 	if len(f.started) != 1 || !reflect.DeepEqual(f.started[0], want) {
 		t.Fatalf("started %q, want %q", f.started, want)
 	}

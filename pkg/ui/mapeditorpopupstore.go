@@ -507,10 +507,16 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 	e.placePopup(id, at)
 }
 
+// holdPopup places popup id at at and keeps it there.
+func (e *MapEditor) holdPopup(id editorPopupID, at image.Point) {
+	e.placePopup(id, at)
+	e.places[e.storeRow(id)].placed = true
+}
+
 // placePopup keeps popup id's corner at at, as far as the bounds allow.
 func (e *MapEditor) placePopup(id editorPopupID, at image.Point) {
 	row := e.storeRow(id)
-	e.places[row].at, e.places[row].placed = at, true
+	e.places[row].at = at
 	s, ok := e.movableSpec(id)
 	if !ok {
 		return

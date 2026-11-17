@@ -1397,7 +1397,7 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 			defer func() { e.obj.band = false }()
 			return e.objectSpecRows()
 		}
-		if height != l.Rect.Dy() || height > room {
+		if height != l.Rect.Dy() || height > room || e.obj.band {
 			fit(height)
 		}
 		e.clampObjectTop(&s, popupRowCount(specWindow(s)))
