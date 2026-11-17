@@ -27,11 +27,11 @@ func TestBottomPanelsDefineTheLiveMapSurface(t *testing.T) {
 		packRect   image.Rectangle
 		bookRect   image.Rectangle
 	}{
-		{name: "none", viewH: 768},
-		{name: "pack only", pack: true, viewH: 678, packRect: image.Rect(0, 678, 1206, 768)},
-		{name: "book only", book: true, viewH: 683, bookRect: image.Rect(0, 683, 1206, 768)},
-		{name: "both", pack: true, book: true, viewH: 593,
-			packRect: image.Rect(0, 678, 1206, 768), bookRect: image.Rect(0, 593, 1206, 678)},
+		{name: "none", viewH: 720},
+		{name: "pack only", pack: true, viewH: 630, packRect: image.Rect(0, 630, 1120, 720)},
+		{name: "book only", book: true, viewH: 635, bookRect: image.Rect(0, 635, 1120, 720)},
+		{name: "both", pack: true, book: true, viewH: 545,
+			packRect: image.Rect(0, 630, 1120, 720), bookRect: image.Rect(0, 545, 1120, 630)},
 	}
 
 	for _, tc := range tests {
@@ -41,8 +41,8 @@ func TestBottomPanelsDefineTheLiveMapSurface(t *testing.T) {
 			v.hudHidden[hudPanelBook] = !tc.book
 			v.syncMapViewport()
 
-			if got := v.ViewportSize(); got != image.Pt(1206, tc.viewH) {
-				t.Fatalf("viewport = %v, want (1206,%d)", got, tc.viewH)
+			if got := v.ViewportSize(); got != image.Pt(1120, tc.viewH) {
+				t.Fatalf("viewport = %v, want (1120,%d)", got, tc.viewH)
 			}
 			pack, _, packOK := v.packBar()
 			if packOK != tc.pack || (packOK && pack != tc.packRect) {
@@ -64,8 +64,8 @@ func TestBottomPanelsDefineTheLiveMapSurface(t *testing.T) {
 
 func TestClosingBottomPanelsRevealsDownwardAndBouncesOnlyAtTheMapEdge(t *testing.T) {
 	v := bottomPanelViewportFixture(t)
-	if v.ViewportSize().Y != 593 {
-		t.Fatalf("setup viewport height = %d, want 593", v.ViewportSize().Y)
+	if v.ViewportSize().Y != 545 {
+		t.Fatalf("setup viewport height = %d, want 545", v.ViewportSize().Y)
 	}
 
 	v.cam.X, v.cam.Y = 1000, 1000
@@ -73,8 +73,8 @@ func TestClosingBottomPanelsRevealsDownwardAndBouncesOnlyAtTheMapEdge(t *testing
 	before := v.cam.Y
 	v.toggleHudPanel(hudPanelPack)
 	v.toggleHudPanel(hudPanelBook)
-	if v.ViewportSize().Y != 768 {
-		t.Fatalf("closed viewport height = %d, want 768", v.ViewportSize().Y)
+	if v.ViewportSize().Y != 720 {
+		t.Fatalf("closed viewport height = %d, want 720", v.ViewportSize().Y)
 	}
 	if v.cam.Y != before {
 		t.Fatalf("closing away from the edge moved Y from %v to %v", before, v.cam.Y)
@@ -89,15 +89,15 @@ func TestClosingBottomPanelsRevealsDownwardAndBouncesOnlyAtTheMapEdge(t *testing
 	drawableBottom := v.cam.WorldH() - 256
 	v.cam.SetClampBounds(256, 256, v.cam.WorldW()-256, drawableBottom)
 	v.cam.Pan(0, 1e9)
-	if got, want := v.cam.Y, drawableBottom-593; got != want {
+	if got, want := v.cam.Y, drawableBottom-545; got != want {
 		t.Fatalf("short-surface bottom = %v, want %v", got, want)
 	}
 	v.toggleHudPanel(hudPanelPack)
-	if got, want := v.cam.Y, drawableBottom-683; got != want {
+	if got, want := v.cam.Y, drawableBottom-635; got != want {
 		t.Fatalf("book-only bounce = %v, want %v", got, want)
 	}
 	v.toggleHudPanel(hudPanelBook)
-	if got, want := v.cam.Y, drawableBottom-768; got != want {
+	if got, want := v.cam.Y, drawableBottom-720; got != want {
 		t.Fatalf("fully-open surface bounce = %v, want %v", got, want)
 	}
 }
@@ -106,8 +106,8 @@ func TestClosingBottomPanelsRevealsDownwardAndBouncesOnlyAtTheMapEdge(t *testing
 // surface and its scroll limit are the ones a selected hero gets.
 func TestNoSelectionKeepsTheBottomPanelsViewport(t *testing.T) {
 	v := bottomPanelViewportFixture(t)
-	if got := v.ViewportSize().Y; got != 593 {
-		t.Fatalf("selected viewport height = %d, want 593", got)
+	if got := v.ViewportSize().Y; got != 545 {
+		t.Fatalf("selected viewport height = %d, want 545", got)
 	}
 	v.cam.SetClampBounds(256, 256, v.cam.WorldW()-256, v.cam.WorldH()-256)
 	v.cam.Pan(0, 1e9)
@@ -116,8 +116,8 @@ func TestNoSelectionKeepsTheBottomPanelsViewport(t *testing.T) {
 	v.sel = selection{}
 	v.ClearSpellbook()
 	v.syncMapViewport()
-	if got := v.ViewportSize().Y; got != 593 {
-		t.Fatalf("no-selection viewport height = %d, want 593", got)
+	if got := v.ViewportSize().Y; got != 545 {
+		t.Fatalf("no-selection viewport height = %d, want 545", got)
 	}
 	v.cam.Pan(0, 1e9)
 	if v.cam.Y != selectedY {

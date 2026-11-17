@@ -83,9 +83,8 @@ func (v *Viewer) characterPaneRect() (image.Rectangle, bool) {
 	return characterPanelBoxRect(image.Pt(v.frameW, v.frameH))
 }
 
-// characterPaneModeFlag resolves TOWN-346's own `flag` from this frame's
-// pane in its own ABSOLUTE screen rectangle — characterPaneModeFlag's own
-// doc explains why that rect and no other.
+// characterPaneModeFlag resolves the shared card-fit gate from the mission's
+// right-edge pane in frame coordinates (DIV-312).
 func (v *Viewer) characterPaneModeFlag() bool {
 	rect, ok := v.characterPaneRect()
 	if !ok {
@@ -123,11 +122,8 @@ func (v *Viewer) heldItemBox() (image.Rectangle, bool) {
 // its hit tests are answered from — the shop's own shopCharacterView for the
 // mission.
 //
-// THE SESSION IS CharacterPaneMission, `TOWN-352`'s own value for the mission
-// frame, so rects A, B, C and F are live and the party picker's D and E are
-// gated off (`1 & 0x226 == 0`). That is the original's behaviour and it is a
-// change from what this build did: the two picker rectangles answered on every
-// screen that drew them, which `DIV-217` recorded.
+// CharacterPaneMission gates the party picker's D and E off (DIV-217).
+// Rect C follows the shared whole-card fit.
 //
 // PaneRect IS THE LOCAL BOX AND NOT THE SCREEN RECTANGLE. The picture is
 // composed into its own (160+characterPaneSeamW)x242 image and blitted at

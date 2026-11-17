@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"math"
 	"slices"
 	"sort"
 	"strconv"
@@ -852,12 +853,13 @@ func (a *App) HeadlessActivate(target string) error {
 			}
 			// Resolve the visible control, then drive the ordinary pointer
 			// dispatch. No headless-only destination bypasses the panel gates.
-			p := button.Min.Add(button.Max).Div(2)
 			_, at, scale, visible := v.noticePresent()
 			if !visible {
 				return fmt.Errorf("headless activate %q: outcome panel is not visible", target)
 			}
-			x, y, err := v.frameToWindow(at.Add(image.Pt(int(float64(p.X)*scale), int(float64(p.Y)*scale))), "headless outcome control")
+			button = image.Rect(int(math.Ceil(float64(button.Min.X)*scale)), int(math.Ceil(float64(button.Min.Y)*scale)),
+				int(math.Ceil(float64(button.Max.X)*scale)), int(math.Ceil(float64(button.Max.Y)*scale))).Add(at)
+			x, y, err := headlessControlPoint(button, v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless outcome control")
 			if err != nil {
 				return err
 			}

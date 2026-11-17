@@ -11,7 +11,7 @@ package ui
 // THE WINDOW POSITIONS ARE COMPUTED HERE, not read back from frame.Placement.
 // windowAt writes out origin + scale * (frame pixel + 1/2) from the scale and
 // origin the case names, and those two numbers are written out by hand from the
-// window size and the frame's own 1024x768. Nothing below asks the mapping under
+// window size and the selected frame. Nothing below asks the mapping under
 // test where a frame pixel went.
 //
 // Every fixture is synthetic, no window opens and nothing reads a game install.
@@ -66,7 +66,7 @@ func hitScaleViewer(t *testing.T, winW, winH int) *Viewer {
 	if v.Camera().Zoom != 1 {
 		t.Fatalf("fixture zoom = %v, want 1", v.Camera().Zoom)
 	}
-	if got, frameSize := v.ViewportSize(), v.FrameSize(); got != image.Pt(frameSize.X-MissionPanelW, MissionFrameH) {
+	if got, frameSize := v.ViewportSize(), v.FrameSize(); got != image.Pt(frameSize.X-MissionPanelW, frameSize.Y) {
 		t.Fatalf("fixture camera view = %v, want frame %v less the %d-pixel strip", got, frameSize, MissionPanelW)
 	}
 	v.SetEntities([]MapEntity{{ID: hitUnitID, Cell: image.Pt(hitUnitCol, hitUnitRow)}})
@@ -74,7 +74,7 @@ func hitScaleViewer(t *testing.T, winW, winH int) *Viewer {
 }
 
 // hitScales are the placements every hit test below is run at. The scale and
-// origin are written out from the window size and the frame's 1024x768 exactly
+// origin are written out from the window size and the selected frame exactly
 // as missiongeometry_test.go's own table does, and for the same reason.
 var hitScales = []struct {
 	name                 string
@@ -84,11 +84,10 @@ var hitScales = []struct {
 }{
 	{"1:1", 1024, 768, 1, 0, 0, 26, 944},
 	{"2:1", 2048, 1536, 2, 0, 0, 26, 944},
-	{"1:2", 512, 384, 0.5, 0, 0, 26, 944},
-	// ceil(1920*768/1080)=1366, scale 1920/1366, viewport 1206;
-	// column 36 is the last full cell and the strip probe is at 1286.
+	{"1:2", 512, 384, 0.5, 0, 12, 26, 944},
+	// A 1280x720 frame at scale 1.5 leaves a 1120-pixel viewport.
 	{"16:9, expanded to the side edges", 1920, 1080,
-		1920.0 / 1366.0, 0, (1080.0 - 768.0*1920.0/1366.0) / 2, 36, 1286},
+		1.5, 0, 0, 34, 1200},
 	{"4:5, letterboxed top and bottom", 1024, 1200, 1, 0, 216, 26, 944},
 }
 

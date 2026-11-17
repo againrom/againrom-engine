@@ -10,7 +10,7 @@ package ui
 // Layout, a real compose onto a real canvas.
 //
 // EVERY EXPECTED VALUE IS WRITTEN OUT BY HAND from the window size and the
-// fixed 768 logical height, with the arithmetic beside it. None of them is read
+// selected logical height, with the arithmetic beside it. None of them is read
 // back from frame.Fit, frame.Placement.Scale or frame.Placement.Origin, which
 // are the code under test.
 //
@@ -63,39 +63,29 @@ func geometryViewer(t *testing.T) *Viewer {
 	return v
 }
 
-// missionPlacements are the windows this file places the mission frame in. A
-// 4:3 or taller window retains 1024x768. A wider window gets
-// ceil(winW*768/winH) logical pixels, so width binds and no vertical bar is
-// left. The ceiling can leave less than one logical pixel split top/bottom.
+// missionPlacements states each frame and fit independently of Layout.
 var missionPlacements = []struct {
-	name          string
-	winW, winH    int
-	logicalW      int
-	scale, ox, oy float64
+	name               string
+	winW, winH         int
+	logicalW, logicalH int
+	scale, ox, oy      float64
 }{
-	// Both axes bind at once: the window is the frame's own size and a multiple
-	// of it, so nothing is letterboxed.
-	{"at the frame's own size", 1024, 768, 1024, 1, 0, 0},
-	{"at twice the frame", 2048, 1536, 1024, 2, 0, 0},
-	{"at half the frame", 512, 384, 1024, 0.5, 0, 0},
+	// The 768-row frames bind on both axes. The short half-width case has
+	// 12 window pixels above and below its 720-row frame.
+	{"at the frame's own size", 1024, 768, 1024, 768, 1, 0, 0},
+	{"at twice the frame", 2048, 1536, 1024, 768, 2, 0, 0},
+	{"at half width with a shorter frame", 512, 384, 1024, 720, 0.5, 0, 12},
 	// 1600/1024 and 1200/768 are both 25/16, so this one is 4:3 too.
-	{"at 1600x1200, 4:3 and not a whole multiple", 1600, 1200, 1024, 1.5625, 0, 0},
-	// 16:9: ceil(1920*768/1080) = 1366. Width binds at 1920/1366,
-	// putting the rounding remainder on the horizontal edges, not the sides.
-	{"at 1920x1080, expanded to both side edges", 1920, 1080, 1366,
-		1920.0 / 1366.0, 0, (1080.0 - 768.0*1920.0/1366.0) / 2},
-	// Same 16:9 geometry below 1:1.
-	{"at 1280x720, expanded and below 1:1", 1280, 720, 1366,
-		1280.0 / 1366.0, 0, (720.0 - 768.0*1280.0/1366.0) / 2},
-	// Ultrawide: ceil(3440*768/1440) = 1835.
-	{"at 3440x1440 ultrawide", 3440, 1440, 1835,
-		3440.0 / 1835.0, 0, (1440.0 - 768.0*3440.0/1835.0) / 2},
+	{"at 1600x1200, 4:3 and not a whole multiple", 1600, 1200, 1024, 768, 1.5625, 0, 0},
+	{"at 1920x1080, expanded to both side edges", 1920, 1080, 1280, 720, 1.5, 0, 0},
+	{"at 1280x720, expanded and native", 1280, 720, 1280, 720, 1, 0, 0},
+	{"at 3440x1440 ultrawide", 3440, 1440, 1720, 720, 2, 0, 0},
 	// Width binds: 1024/1024 = 1, the frame draws 768 tall, and 1200-768 = 432
 	// is split into two 216s.
-	{"at 1024x1200, letterboxed top and bottom", 1024, 1200, 1024, 1, 0, 216},
+	{"at 1024x1200, letterboxed top and bottom", 1024, 1200, 1024, 768, 1, 0, 216},
 	// A one-pixel-wider window gets one logical pixel rather than two half-pixel
 	// side bars.
-	{"at 1025x768, one extra logical pixel", 1025, 768, 1025, 1, 0, 0},
+	{"at 1025x768, one extra logical pixel", 1025, 768, 1025, 768, 1, 0, 0},
 }
 
 func TestMissionDrawComposesOnTheFrameAndPlacesIt(t *testing.T) {
@@ -110,7 +100,7 @@ func TestMissionDrawComposesOnTheFrameAndPlacesIt(t *testing.T) {
 			if rec.calls != 1 {
 				t.Fatalf("Draw made %d blits, want exactly 1", rec.calls)
 			}
-			if want := image.Rect(0, 0, tc.logicalW, MissionFrameH); rec.canvas != want {
+			if want := image.Rect(0, 0, tc.logicalW, tc.logicalH); rec.canvas != want {
 				t.Errorf("Draw composed on %v, want %v: the frame is composed at its own size and not the window's",
 					rec.canvas, want)
 			}
@@ -183,14 +173,14 @@ func TestMissionCanvasFollowsLogicalBounds(t *testing.T) {
 		t.Fatalf("scale-only resize replaced/disposed canvas: canvas=%p first=%p disposals=%d", v.canvas, first, disposals)
 	}
 
-	// 16:9 changes the logical width from 1024 to 1366.
+	// 16:9 changes both logical bounds to 1280x720.
 	v.Layout(1920, 1080)
 	if v.canvas != nil || disposals != 1 || disposed != first {
 		t.Fatalf("wide resize left canvas=%p, disposals=%d disposed=%p; want nil, 1, first %p", v.canvas, disposals, disposed, first)
 	}
 	v.Draw(ebiten.NewImage(1920, 1080))
-	if v.canvas == nil || v.canvas == first || v.canvas.Bounds() != image.Rect(0, 0, 1366, 768) {
-		t.Fatalf("replacement canvas=%p bounds=%v; want a new 1366x768 image", v.canvas, v.canvas.Bounds())
+	if v.canvas == nil || v.canvas == first || v.canvas.Bounds() != image.Rect(0, 0, 1280, 720) {
+		t.Fatalf("replacement canvas=%p bounds=%v; want a new 1280x720 image", v.canvas, v.canvas.Bounds())
 	}
 	if rec.calls != 2 {
 		t.Fatalf("two Draw calls made %d blits, want 2", rec.calls)
@@ -201,6 +191,14 @@ func TestMissionCanvasFollowsLogicalBounds(t *testing.T) {
 	v.Layout(2560, 1440)
 	if v.canvas != wide || disposals != 1 {
 		t.Fatalf("same-aspect resize replaced/disposed canvas: canvas=%p wide=%p disposals=%d", v.canvas, wide, disposals)
+	}
+	v.Layout(1280, 768)
+	if v.canvas != nil || disposals != 2 || disposed != wide {
+		t.Fatalf("height-only resize: canvas=%p disposals=%d disposed=%p; want nil, 2, %p", v.canvas, disposals, disposed, wide)
+	}
+	v.Draw(ebiten.NewImage(1280, 768))
+	if got := v.canvas.Bounds(); got != image.Rect(0, 0, 1280, 768) {
+		t.Fatalf("height-only replacement bounds %v, want 1280x768", got)
 	}
 }
 

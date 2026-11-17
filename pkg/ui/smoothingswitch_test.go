@@ -130,8 +130,8 @@ var smoothFrameHashes = map[string]string{
 	"menu":           "5491a7339a1b53e1f125051320b113a7c5d47fbf1358d4592e1750764fb40d0e",
 	"town":           "0f7cf1691b535aa480cf6a86edca4acf3ecc39eb4283b672c8fb1d5c771e852a",
 	"film":           "69d4fdb20e9972422f7512c95628b98be4670b8f283f74aa6aa7c922f948529a",
-	"mission":        "f5ac8ddda7af9abaf529671107170d511f8230107a47c25f7f785023839b4974",
-	"zoomed mission": "0ca6ec90c694c02bbed9b8aba0b02d72c9390e91a6e6c5b65d5baae86c935f06",
+	"mission":        "0d3dc2824e9e7598d3fc97ab5c20e87bc6f47e1c2e72e2666cc999acc4e9b958",
+	"zoomed mission": "837400d6de17649aaf0292bd7b5f92a3ee633e29e417f7230f41962307e4d53d",
 }
 
 func TestFilmSmoothingOffUsesHardPixels(t *testing.T) {

@@ -1,7 +1,11 @@
 package archtest
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -64,4 +68,45 @@ func TestMissionFrameHasOnePlanAndOneFilterRule(t *testing.T) {
 	for _, v := range CheckMissionFrame(files) {
 		t.Errorf("%s", v)
 	}
+}
+
+func TestMissionCardFitOwnsCharacterPaneModeFlag(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "pkg/ui/characterpane.go"), nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != "characterPaneModeFlag" {
+			continue
+		}
+		sharedFit := false
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "missionCardBoxRect" {
+					sharedFit = true
+				}
+			}
+			if expr, ok := n.(*ast.BinaryExpr); ok && expr.Op == token.SUB {
+				t.Error("characterPaneModeFlag must not compute a separate room threshold")
+			}
+			if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.INT && lit.Value != "0" {
+				t.Error("characterPaneModeFlag must not contain a height constant")
+			}
+			return true
+		})
+		if !sharedFit {
+			t.Error("characterPaneModeFlag must read missionCardBoxRect")
+		}
+		return
+	}
+	t.Fatal("missing characterPaneModeFlag")
 }

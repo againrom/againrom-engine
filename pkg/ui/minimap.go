@@ -692,13 +692,8 @@ type minimapGeom struct {
 // left seam, the terrain is centred across the complete art, not only its
 // 160-pixel right piece.
 //
-// THE ONE THING THAT CAN STILL SHRINK IT is the room the frame actually has
-// — `v.frameW`/`v.frameH`, always `MissionFrameW`/`MissionFrameH` for
-// every Viewer this package constructs, so at the shipped size neither
-// `maxW` nor `maxH` below ever binds and the box is the fixed 158 square
-// this comment already names. The bound stays in the arithmetic rather than
-// being replaced by the constant outright because nothing here assumes the
-// frame size can never change again.
+// The current frame bounds the square; both mission heights have room for
+// its full 158 pixels. Picture, hit test and click capture use this geometry.
 //
 // AN EMPTY GRID OR NO ROOM AT ALL ANSWERS false, and every
 // caller — the picture, the hit test and the click capture — is off together.

@@ -96,7 +96,11 @@ func TestMissionNoticeCaptureDraw(t *testing.T) {
 	if err := json.Unmarshal(raw, &golden); err != nil {
 		t.Fatal(err)
 	}
-	for _, size := range []image.Point{{1024, 768}, {1920, 1080}, {2048, 1536}} {
+	for _, c := range []struct {
+		window image.Point
+		height int
+	}{{image.Pt(1024, 768), 768}, {image.Pt(1920, 1080), 720}, {image.Pt(2048, 1536), 768}} {
+		size := c.window
 		{
 			t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
 				v := noticeViewer(t)
@@ -156,9 +160,9 @@ func TestMissionNoticeCaptureDraw(t *testing.T) {
 					if v.textEraser.buf == nil || !bytes.Equal(v.textEraser.buf.Pix, erased.Pix) {
 						t.Fatal("baked glyph eraser differs from independent native background")
 					}
-					logicalW := max(1024, int(math.Ceil(float64(size.X)*768/float64(size.Y))))
-					scale := math.Min(float64(size.X)/float64(logicalW), float64(size.Y)/768)
-					ox, oy := (float64(size.X)-float64(logicalW)*scale)/2, (float64(size.Y)-768*scale)/2
+					logicalW := max(1024, int(math.Ceil(float64(size.X)*float64(c.height)/float64(size.Y))))
+					scale := math.Min(float64(size.X)/float64(logicalW), float64(size.Y)/float64(c.height))
+					ox, oy := (float64(size.X)-float64(logicalW)*scale)/2, (float64(size.Y)-float64(c.height)*scale)/2
 					if rec.geom.Element(0, 0) != scale || rec.geom.Element(1, 1) != scale {
 						t.Fatal("final frame scale changed")
 					}

@@ -54,63 +54,23 @@ func hudStackTops(area image.Point) (pack, book int) {
 	return pack, book
 }
 
-// characterPaneFillerBGH is the mission column's fourth child's own
-// background strip height: `extra1024r.bmp`'s own decoded size, measured
-// 160x46 by a standalone probe against the lawful install through the
-// production vfs/bmp path (`TOWN-356`'s loader binding, `TOWN-093`'s own
-// shared blit). It is the only one of the two resolution-keyed backgrounds
-// this build loads: the mission's own frame is fixed at (MissionFrameW,
-// MissionFrameH) = (1024, 768) regardless of the player's chosen window
-// resolution (viewer.go), so `extra800r.bmp`'s own 800x600 case is never
-// reachable from this front end's own mission composition.
+// characterPaneFillerBGH is the 46-row background strip below the character
+// panel, read from extra1024r.bmp through the shared loader (TOWN-356).
+// Both mission frame heights keep this art and its position.
 const characterPaneFillerBGH = 46
 
-// hudLowerStack is the right column's lower half, TOP TO BOTTOM from
-// hudFloorY: the character panel's top, the fourth child's own background
-// top, then the worn box's — SHOP-FIGURE-041's own decoded order for ids 7
-// and 8 (contract 1023 B3), continued by authored choice for the worn set
-// (B5).
-//
-// worn IS WHERE THE WORN BOX STARTS, and it is offered for the same reason
-// wornBoxRect always was: rightColumnBox refuses a box with no room. It
-// starts immediately past the fourth child's own full height at 1024x768
-// (`characterPaneFillerBGH` + `compactPanelH`, the background strip plus the
-// borrowed panel height `TOWN-093`'s own readout occupies), which is exactly
-// the mission's own fixed frame height — 480+46+242 = 768 — so it is refused
-// at every shipped resolution, as it always was. `DIV-200` carries the worn
-// set itself as an authored feature with no decoded basis in this column.
-// THE ARITHMETIC IS UNCHANGED by the card's own name arriving between the
-// two: `card + compactPanelH` is the same 768 that
-// `filler + characterPaneFillerBGH + compactPanelH` was.
+// hudLowerStack keeps panel and filler fixed and fits the card above the bottom.
+// The latent worn box stays at 768 (DIV-200).
 func hudLowerStack(area image.Point) (panel, filler, card, worn int) {
 	panel = hudFloorY()
 	filler = panel + compactPanelH
 	card = filler + characterPaneFillerBGH
 	worn = card + compactPanelH
+	card = min(card, area.Y-compactPanelH)
 	return panel, filler, card, worn
 }
 
-// rightColumnBox places a box of height h with its top at y in the right-hand
-// column, and refuses a window with no room for the column at all.
-//
-// EVERY BOX IN THAT COLUMN GOES THROUGH IT, which is what makes "one column,
-// one width, one right edge" a property of one statement rather than of four
-// that happen to agree today.
-//
-// THE COLUMN IS FLUSH TO THE FRAME'S OWN EDGES, TOP, RIGHT AND BOTTOM. Round
-// 1 of this story placed the column `hudMargin` inside the frame on all three
-// — a leftover of the authored overlay this story replaced — where
-// `SESS-VIEW-028` gives the strip as the screen minus its own 160 pixels,
-// with nothing between the strip and the frame's own right edge, and
-// `SHOP-FIGURE-041` gives the four ids' own slots running from y=0 to
-// y=screenH with no margin at either end. Round 2 of adversarial review
-// found the mismatch (a press or a picture at the column's own edges landing
-// on the map instead) and removed `hudMargin` from every edge this function
-// computes; nothing else in the column reads it.
-//
-// hudFloorY IS WHERE THE COLUMN'S LOWER HALF MAY NOT REACH: the control panel's
-// own bottom edge. A box that would climb over the control panel is refused
-// instead, because the panel is what switches it back on.
+// rightColumnBox fits each whole box against the frame's right edge.
 func rightColumnBox(area image.Point, y, h int) (image.Rectangle, bool) {
 	if area.X < sidebarWidth || y < 0 || y+h > area.Y {
 		return image.Rectangle{}, false
@@ -240,15 +200,7 @@ func columnFillerRect(area image.Point) (image.Rectangle, bool) {
 	return rightColumnBox(area, y, characterPaneFillerBGH)
 }
 
-// missionCardBoxRect is where the mission's own statistics card stands, under
-// the fourth child's own background strip and flush with the frame's bottom
-// edge, or false for a frame with no room for it.
-//
-// ITS HEIGHT IS THE PANEL'S OWN, so the card composes through exactly the
-// layout the pane's own statistics mode uses and needs no second set of row
-// metrics. At the mission family's fixed height 768 that is 526..768, flush at
-// both ends: the strip above it ends at 526 and the frame ends at 768; expanded
-// width only moves the whole right column horizontally.
+// missionCardBoxRect fits the whole native card above the frame bottom.
 func missionCardBoxRect(area image.Point) (image.Rectangle, bool) {
 	_, _, y, _ := hudLowerStack(area)
 	return rightColumnBox(area, y, compactPanelH)

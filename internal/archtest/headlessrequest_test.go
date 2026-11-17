@@ -2,7 +2,11 @@ package archtest
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -70,5 +74,57 @@ func TestHeadlessRequestHasOneBuilder(t *testing.T) {
 	}
 	for _, v := range CheckHeadlessRequest(files) {
 		t.Error(v)
+	}
+}
+
+func TestHeadlessControlCentresUseOneFinder(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		file  string
+		names []string
+	}{
+		{"headless.go", []string{"HeadlessActivate"}},
+		{"headlesscommand.go", []string{"HeadlessCommandPoint"}},
+		{"headlesspointer.go", []string{"HeadlessWornCellPoint", "HeadlessDollBoxPoint", "HeadlessSpellPoint", "HeadlessShopPoint",
+			"HeadlessWorldMapMissionPoint", "HeadlessWorldMapTownPoint", "HeadlessDocumentPoint", "HeadlessHelpBarPoint", "HeadlessTipClosePoint"}},
+	} {
+		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "pkg/ui", c.file), nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range c.names {
+			found := false
+			for _, decl := range f.Decls {
+				fn, ok := decl.(*ast.FuncDecl)
+				if !ok || fn.Name.Name != name {
+					continue
+				}
+				ast.Inspect(fn.Body, func(n ast.Node) bool {
+					call, ok := n.(*ast.CallExpr)
+					if !ok {
+						return true
+					}
+					if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "headlessControlPoint" {
+						found = true
+					}
+					if sel, ok := call.Fun.(*ast.SelectorExpr); ok && (sel.Sel.Name == "FrameToWindow" || sel.Sel.Name == "frameToWindow" || sel.Sel.Name == "nativeFrameToWindow") {
+						if name != "HeadlessShopPoint" {
+							t.Errorf("%s.%s converts a control point beside headlessControlPoint", c.file, name)
+						}
+					}
+					return true
+				})
+			}
+			if !found {
+				t.Errorf("%s.%s must use headlessControlPoint", c.file, name)
+			}
+		}
 	}
 }

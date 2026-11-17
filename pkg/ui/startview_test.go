@@ -74,14 +74,14 @@ func TestStartViewKeepsBaseZoomAndWideWindowsRevealMore(t *testing.T) {
 	cell := image.Pt(100, 90)
 
 	for _, tc := range []struct {
-		name              string
-		winW, winH        int
-		frameW, viewportW int
+		name                      string
+		winW, winH                int
+		frameW, frameH, viewportW int
 	}{
-		{"the default 4:3 window", 1024, 768, 1024, 864},
-		{"a 1920x1080 window", 1920, 1080, 1366, 1206},
-		{"an ultrawide window", 3440, 1440, 1835, 1675},
-		{"a narrow tall window", 600, 1000, 1024, 864},
+		{"the default 4:3 window", 1024, 768, 1024, 768, 864},
+		{"a 1920x1080 window", 1920, 1080, 1280, 720, 1120},
+		{"an ultrawide window", 3440, 1440, 1720, 720, 1560},
+		{"a narrow tall window", 600, 1000, 1024, 768, 864},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			v := newViewer(t, bigGrid())
@@ -89,11 +89,11 @@ func TestStartViewKeepsBaseZoomAndWideWindowsRevealMore(t *testing.T) {
 			v.Layout(tc.winW, tc.winH)
 
 			assertCentred(t, v, cell)
-			if got := v.FrameSize(); got != image.Pt(tc.frameW, MissionFrameH) {
-				t.Fatalf("FrameSize = %v, want (%d,%d)", got, tc.frameW, MissionFrameH)
+			if got := v.FrameSize(); got != image.Pt(tc.frameW, tc.frameH) {
+				t.Fatalf("FrameSize = %v, want (%d,%d)", got, tc.frameW, tc.frameH)
 			}
-			if got := v.ViewportSize(); got != image.Pt(tc.viewportW, MissionFrameH) {
-				t.Fatalf("ViewportSize = %v, want (%d,%d)", got, tc.viewportW, MissionFrameH)
+			if got := v.ViewportSize(); got != image.Pt(tc.viewportW, tc.frameH) {
+				t.Fatalf("ViewportSize = %v, want (%d,%d)", got, tc.viewportW, tc.frameH)
 			}
 			if v.cam.Zoom != 1 {
 				t.Fatalf("opening zoom = %v, want base 1024-arm zoom 1", v.cam.Zoom)
@@ -110,8 +110,7 @@ func TestStartViewKeepsBaseZoomAndWideWindowsRevealMore(t *testing.T) {
 	}
 }
 
-// The owner keeps the mission's logical height fixed at 768. Window height
-// changes presentation scale, not the 24 logical map rows at opening zoom.
+// Opening zoom stays native at either logical height.
 func TestStartViewRowsStayAtTheFixedLogicalHeight(t *testing.T) {
 	rowsSpanned := func(winW, winH int) float64 {
 		v := newViewer(t, bigGrid())
@@ -120,9 +119,12 @@ func TestStartViewRowsStayAtTheFixedLogicalHeight(t *testing.T) {
 		return float64(v.cam.ViewH) / v.cam.Zoom / camera.CellSize
 	}
 
-	for _, win := range [][2]int{{1024, 768}, {1920, 1080}, {3440, 1440}, {600, 1000}} {
-		if got := rowsSpanned(win[0], win[1]); got != 24 {
-			t.Errorf("%dx%d opens on %v logical rows, want 24", win[0], win[1], got)
+	for _, c := range []struct {
+		w, h int
+		rows float64
+	}{{1024, 768, 24}, {1920, 1080, 22.5}, {3440, 1440, 22.5}, {600, 1000, 24}} {
+		if got := rowsSpanned(c.w, c.h); got != c.rows {
+			t.Errorf("%dx%d opens on %v logical rows, want %v", c.w, c.h, got, c.rows)
 		}
 	}
 }

@@ -29,7 +29,7 @@ func (a *App) HeadlessCommandPoint(cell int) (int, int, error) {
 		return 0, 0, fmt.Errorf("headless command point: invalid cell %d or no panel", cell)
 	}
 	r := commandCellRects(bar)[cell]
-	return v.frameToWindow(r.Min.Add(r.Max).Div(2), "headless command point")
+	return headlessControlPoint(r, v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless command point")
 }
 
 func (a *App) HeadlessMinimapPoint(col, row int) (int, int, error) {

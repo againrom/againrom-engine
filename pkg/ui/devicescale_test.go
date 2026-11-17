@@ -178,9 +178,9 @@ var pointsWindow = image.Pt(1280, 720)
 
 // pointsAt calls each point of the points window on a step at which the
 // point times the scale is a whole device pixel.
-func pointsAt(s float64, call func(p, d image.Point)) {
-	for y := 0; y < pointsWindow.Y; y += 4 {
-		for x := 0; x < pointsWindow.X; x += 4 {
+func pointsAt(window image.Point, s float64, call func(p, d image.Point)) {
+	for y := 0; y < window.Y; y += 4 {
+		for x := 0; x < window.X; x += 4 {
 			call(image.Pt(x, y), image.Pt(int(float64(x)*s), int(float64(y)*s)))
 		}
 	}
@@ -209,7 +209,7 @@ func TestFrontEndFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 		if math.Abs(a.place.Scale()-s*one.place.Scale()) > 1e-12 {
 			t.Fatalf("scale %v: placement x%v, want x%v", s, a.place.Scale(), s*one.place.Scale())
 		}
-		pointsAt(s, func(p, d image.Point) {
+		pointsAt(pointsWindow, s, func(p, d image.Point) {
 			want, wok := one.windowToNativeFrame(p.X, p.Y)
 			got, gok := a.windowToNativeFrame(d.X, d.Y)
 			if want != got || wok != gok {
@@ -229,31 +229,41 @@ func TestFrontEndFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 	}
 }
 
-// At every device scale the mission frame is drawn in the device pixels:
-// each picture is scaled once straight onto the window, the placement is the
-// device scale times that of scale 1, and a pointer on the device pixel under
-// a point lands on the same frame pixel and the same map cell.
+// The mission height follows device pixels. Each picture is scaled once onto
+// the window; pointers agree with a scale-1 window of the same device size.
 func TestMissionFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 	got := recordScaledBlits(t)
-	build := func(s float64) *Viewer {
+	build := func(window image.Point, s float64) *Viewer {
 		atDeviceScale(t, s)
 		v, err := NewViewer("scale", grid(60, 60), zoomTileset(false))
 		if err != nil {
 			t.Fatal(err)
 		}
 		v.SetGraphicsOptions(GraphicsOptions{Smoothing: true})
-		v.LayoutF(float64(pointsWindow.X), float64(pointsWindow.Y))
+		v.LayoutF(float64(window.X), float64(window.Y))
 		v.cam.SetZoom(1.2)
 		v.cam.X, v.cam.Y = 300.4, 280.7
 		return v
 	}
-	one := build(1)
-	cells := 0
-	for _, s := range deviceScales {
-		v := build(s)
-		device := image.Pt(int(float64(pointsWindow.X)*s), int(float64(pointsWindow.Y)*s))
-		if v.place.WindowSize() != device || math.Abs(v.place.Scale()-s*one.place.Scale()) > 1e-12 {
-			t.Fatalf("scale %v: placed in %v at x%v", s, v.place.WindowSize(), v.place.Scale())
+	for _, c := range []struct {
+		points image.Point
+		s      float64
+		frame  image.Point
+	}{
+		{pointsWindow, 1, image.Pt(1280, 720)},
+		{pointsWindow, 1.25, image.Pt(1366, 768)},
+		{pointsWindow, 1.5, image.Pt(1280, 720)},
+		{pointsWindow, 2, image.Pt(1280, 720)},
+		{image.Pt(1536, 864), 1.25, image.Pt(1280, 720)},
+	} {
+		s := c.s
+		device := image.Pt(int(float64(c.points.X)*s), int(float64(c.points.Y)*s))
+		one := build(device, 1)
+		v := build(c.points, s)
+		wantScale := min(float64(device.X)/float64(c.frame.X), float64(device.Y)/float64(c.frame.Y))
+		if v.FrameSize() != c.frame || v.place.WindowSize() != device || math.Abs(v.place.Scale()-wantScale) > 1e-12 {
+			t.Fatalf("points %v scale %v: frame %v placed in %v at x%v, want %v in %v at x%v",
+				c.points, s, v.FrameSize(), v.place.WindowSize(), v.place.Scale(), c.frame, device, wantScale)
 		}
 		*got = nil
 		screen := ebiten.NewImage(device.X, device.Y)
@@ -270,8 +280,9 @@ func TestMissionFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 				t.Fatalf("scale %v: blit %+v, want one per picture onto the window at %v", s, b, want)
 			}
 		}
-		pointsAt(s, func(p, d image.Point) {
-			wx, wy := one.windowToFrame(p.X, p.Y)
+		cells := 0
+		pointsAt(c.points, s, func(p, d image.Point) {
+			wx, wy := one.windowToFrame(d.X, d.Y)
 			gx, gy := v.windowToFrame(d.X, d.Y)
 			if wx != gx || wy != gy {
 				t.Fatalf("scale %v: point %v is frame (%d,%d), device %v is (%d,%d)", s, p, wx, wy, d, gx, gy)
@@ -285,9 +296,9 @@ func TestMissionFrameAndPointerAtEveryDeviceScale(t *testing.T) {
 				cells++
 			}
 		})
-	}
-	if cells == 0 {
-		t.Fatal("no point fell on a map cell")
+		if cells == 0 {
+			t.Fatalf("points %v scale %v: no point fell on a map cell", c.points, s)
+		}
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func failureApp1091(t *testing.T, entries []SaveEntry, load LoadGame) (*App, *noticeSeam) {
+func failureOutcomeApp(t *testing.T, entries []SaveEntry, load LoadGame) (*App, *noticeSeam) {
 	t.Helper()
 	a, seam := noticeApp(t)
 	paused := false
@@ -41,7 +41,7 @@ func TestTerminalDefeat1091NoSavesDisablesVisibleLoad(t *testing.T) {
 		{entries: []SaveEntry{{Name: "old.ags"}}},
 		{load: func(string) (MapOpener, bool, error) { return nil, false, nil }},
 	} {
-		a, seam := failureApp1091(t, tc.entries, tc.load)
+		a, seam := failureOutcomeApp(t, tc.entries, tc.load)
 		if !seam.v.noticeLayout().SecondaryDisabled {
 			t.Fatal("Load enabled without a usable store/loader")
 		}
@@ -62,7 +62,7 @@ func TestTerminalDefeat1091NoSavesDisablesVisibleLoad(t *testing.T) {
 }
 
 func TestTerminalDefeat1091DisclosureGateClearsWithNotice(t *testing.T) {
-	_, seam := failureApp1091(t, nil, nil)
+	_, seam := failureOutcomeApp(t, nil, nil)
 	v := seam.v
 	v.SetFont(nil)
 	v.SetNotice("lost", NoticeFailure)
@@ -93,7 +93,7 @@ func TestTerminalDefeat1091LoadRefusalsAndCancelKeepTheOldSession(t *testing.T) 
 				}
 				return nil, false, nil
 			}
-			a, seam := failureApp1091(t, []SaveEntry{{Name: "failed.ags", Label: "save"}}, load)
+			a, seam := failureOutcomeApp(t, []SaveEntry{{Name: "failed.ags", Label: "save"}}, load)
 			before := seam.ticks
 			if err := a.HeadlessActivate("load game"); err != nil {
 				t.Fatal(err)
@@ -122,7 +122,7 @@ func TestTerminalDefeat1091LoadRefusalsAndCancelKeepTheOldSession(t *testing.T) 
 
 func TestTerminalDefeat1091LoadSuccessReplacesSession(t *testing.T) {
 	opener := &successorOpener{}
-	a, seam := failureApp1091(t, []SaveEntry{{Name: "ok.ags"}}, func(string) (MapOpener, bool, error) { return opener.open, false, nil })
+	a, seam := failureOutcomeApp(t, []SaveEntry{{Name: "ok.ags"}}, func(string) (MapOpener, bool, error) { return opener.open, false, nil })
 	before := seam.ticks
 	if err := a.HeadlessActivate("load game"); err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ func TestTerminalDefeat1091LoadSuccessReplacesSession(t *testing.T) {
 }
 
 func TestTerminalDefeat1091ButtonsUseLocalizedWordsAndDisabledPaint(t *testing.T) {
-	a, seam := failureApp1091(t, nil, nil)
+	a, seam := failureOutcomeApp(t, nil, nil)
 	w := AuthoredWords()
 	w.MenuExitMain, w.MenuLoad = "~Exit test", "~Load test"
 	seam.v.SetWords(w)
@@ -163,7 +163,7 @@ func TestTerminalDefeat1091ButtonsUseLocalizedWordsAndDisabledPaint(t *testing.T
 }
 
 func TestTerminalDefeat1091MissingFontCannotResumePlay(t *testing.T) {
-	a, seam := failureApp1091(t, nil, nil)
+	a, seam := failureOutcomeApp(t, nil, nil)
 	seam.v.SetFont(nil)
 	before := seam.ticks
 	a.HeadlessStep()

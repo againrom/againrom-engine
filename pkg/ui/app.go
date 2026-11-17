@@ -628,7 +628,7 @@ type townDialogueRevision interface {
 // The native source and expanded presentation are two offscreen images. Native
 // art is moved in whole segments, never resampled independently; only the
 // finished logical frame receives the window's uniform fit. The mission family
-// owns a separate height-768 frame and expands its map viewport directly.
+// owns a separate mission frame and expands its map viewport directly.
 type App struct {
 	cheatInput     cheatInputState
 	screenshot     screenshotState
@@ -1104,7 +1104,7 @@ func (a *App) SetCursorRegistry(reg *CursorRegistry) {
 //
 // a.place is the TOWN FAMILY's native 640x480 frame: the main menu, picker,
 // chargen pages, town, shop, tavern, school and in-game menu. It remains 4:3
-// and is fitted uniformly. The map screen alone uses Viewer's height-768 frame
+// and is fitted uniformly. The map screen alone uses Viewer's mission frame
 // and expands horizontally to the window aspect. The window size is in device
 // pixels (LayoutF).
 func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -3979,7 +3979,7 @@ func (a *App) composeScreen() (*image.RGBA, error) {
 // Draw paints the current screen.
 //
 // Town-family screens retain their native 640x480 composition and are fitted
-// uniformly. Mission screens alone expand their height-768 logical frame.
+// uniformly. Mission screens alone expand their mission logical frame.
 func (a *App) Draw(screen *ebiten.Image) {
 	defer a.captureScreenshot(screen)
 	if a.cutscene != nil {
@@ -4003,7 +4003,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 			// its branch — never covered the map.
 			//
 			// The mission placement is the VIEWER's and not the App's: the
-			// map uses a height-768 logical frame while the other screens use
+			// map uses a mission logical frame while the other screens use
 			// height 480, with independently expanded widths, scales and origins
 			// (DIV-249, DIV-211).
 			ox, oy := v.place.Origin()
@@ -4265,7 +4265,7 @@ func (a *App) cursorPlacement() (CursorPlacement, bool) {
 // own frame on a 1920x1080 monitor. The hotspot is subtracted in frame pixels
 // (flow.cursorPresent), so the registration's own point still lands on the
 // pixel a click names. The map screen uses the same rule over its distinct
-// height-768 logical frame: the mission pointer is drawn 1:1 in mission-frame
+// mission logical frame: the mission pointer is drawn 1:1 in mission-frame
 // pixels and that frame receives its own uniform fit (see DIV-249, DIV-211).
 func (a *App) drawCursor(screen *ebiten.Image) {
 	c, ok := a.cursorPlacement()

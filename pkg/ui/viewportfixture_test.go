@@ -22,7 +22,7 @@ const wornBoxFixtureH = MenuWindowH + 128
 // and a fixture's frame coordinates are window coordinates again.
 //
 // IT IS A FIXTURE CONVENIENCE AND NOT A CLAIM ABOUT THE BUILD. The shipped
-// mission frame is at least MissionFrameW x MissionFrameH, grows horizontally
+// mission frame is at least MissionFrameW pixels wide, grows horizontally
 // with a wider window and is placed at whatever scale that window gives it.
 // What the fixtures calling this are about is
 // which surface a press lands on, not what the placement does to it; the

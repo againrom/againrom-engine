@@ -122,18 +122,8 @@ type TownCharacterView struct {
 
 	ScreenH int
 
-	// ModeFlag IS TOWN-346's OWN `flag`, PRECOMPUTED, not derived here from
-	// PaneRect and ScreenH. The mission composes this pane on a canvas of its
-	// own (PaneRect is (0,0)-(160,242), canvas-relative) and hit-tests it in
-	// window pixels (the pane's real screen rectangle) — two different
-	// `pane.Max.Y` values, and `characterPaneModeFlag` moves its own
-	// threshold with the one it is handed. Every town and shop screen composes this pane
-	// directly onto the full-screen canvas, so PaneRect is already the
-	// screen rectangle there and ModeFlag is correctly its own zero value,
-	// since CharacterPaneShop is never CharacterPaneMission and the flag is
-	// false regardless. The mission is the one caller that must set this
-	// explicitly, from `(*Viewer).characterPaneModeFlag`, which resolves the
-	// pane's real screen rectangle before computing it.
+	// ModeFlag is the mission's precomputed whole-card fit. Town and shop
+	// sessions leave it false. A local pane rect cannot supply frame dimensions.
 	ModeFlag bool
 
 	// PaneRect is where this pane stands. The zero rectangle means

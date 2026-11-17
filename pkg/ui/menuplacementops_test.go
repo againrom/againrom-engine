@@ -44,10 +44,9 @@ func pixHash(p *image.RGBA) string {
 	return fmt.Sprintf("%v:%x", p.Bounds(), s[:6])
 }
 
-// placementAnswersDigest is the digest of the same 512 answers taken through
-// the base's own branches (the window placed over the mission or not) before
-// the operations replaced them; the list is in the hotfix's notes.
-const placementAnswersDigest = "82bdbb8eeac8147cdaf73c4be69eb40a818fb202495843ae09d5151f18cf637b"
+// placementAnswersDigest pins both window sizes; the default frame also has
+// its own control so a change at the wide window cannot hide one there.
+const placementAnswersDigest = "42ca0f9b1ef6841d1552e32e12f430fbf82b5b11882633cdd00e3f1f4e658074"
 
 // TestPlacementOperationsAnswerAsTheBaseBranches asks each operation of both
 // games' placements, at two window sizes and five menu states, and compares
@@ -55,6 +54,7 @@ const placementAnswersDigest = "82bdbb8eeac8147cdaf73c4be69eb40a818fb202495843ae
 func TestPlacementOperationsAnswerAsTheBaseBranches(t *testing.T) {
 	var out []string
 	for _, size := range []image.Point{{1024, 768}, {1920, 1080}} {
+		start := len(out)
 		for _, g := range gameMenuProfiles {
 			for _, state := range []string{"menu", "load", "mod", "town", "map"} {
 				a := placementOpsApp(t, g.profile, state, size)
@@ -116,6 +116,11 @@ func TestPlacementOperationsAnswerAsTheBaseBranches(t *testing.T) {
 				}
 				add("wash", f.pages.menu.placement().wash == g.profile.MissionBackdrop)
 			}
+		}
+		digest := fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(out[start:], "\n"))))
+		t.Logf("window %v: %d answers, digest %s", size, len(out)-start, digest)
+		if size == image.Pt(1024, 768) && digest != "6f030989bb6240e6f5d3cbefd67ea2817196f1f593ae4c8b3478fc654217096d" {
+			t.Error("default-frame placement answers changed")
 		}
 	}
 	joined := strings.Join(out, "\n")

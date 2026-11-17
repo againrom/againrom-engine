@@ -7,6 +7,7 @@
 # TestScanMatchesTheCheckedInPopulationList requires an exact match with the
 # scan in both directions. pipeline/check-release-tests.sh independently
 # matches these IDs against its runtime JSON skip census.
+pkg/game.TestMissionFrameInstalledHeights
 pkg/game.TestReleaseSecondGameMissionMagePaletteInputs
 pkg/game.TestReleaseShopStockMultiplierDefaultMatchesMain
 pkg/game.TestReleaseShopStockMultiplierRollsEveryShelf touched

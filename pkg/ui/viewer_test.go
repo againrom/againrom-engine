@@ -66,8 +66,7 @@ func TestNewViewerSetsUpCamera(t *testing.T) {
 	}
 }
 
-// Layout holds the logical height at 768 and expands the logical width to a
-// wider window's aspect. The camera receives that frame less the fixed strip.
+// The camera receives the current logical frame less the fixed strip.
 func TestLayoutExpandsTheMissionFrameAndSizesTheViewport(t *testing.T) {
 	v, err := NewViewer("Map", grid(300, 300), &terrain.Tileset{})
 	if err != nil {
@@ -76,25 +75,25 @@ func TestLayoutExpandsTheMissionFrameAndSizesTheViewport(t *testing.T) {
 	v.hudHidden[hudPanelPack], v.hudHidden[hudPanelBook] = true, true
 
 	for _, tc := range []struct {
-		winW, winH        int
-		frameW, viewportW int
+		winW, winH                int
+		frameW, frameH, viewportW int
 	}{
-		{1280, 720, 1366, 1206},
-		{640, 480, 1024, 864},
-		{1600, 1200, 1024, 864},
-		{3440, 1440, 1835, 1675},
+		{1280, 720, 1280, 720, 1120},
+		{640, 480, 1024, 720, 864},
+		{1600, 1200, 1024, 768, 864},
+		{3440, 1440, 1720, 720, 1560},
 	} {
 		w, h := v.Layout(tc.winW, tc.winH)
 		if w != tc.winW || h != tc.winH {
 			t.Fatalf("Layout(%d,%d) returned (%d,%d), want the window size back", tc.winW, tc.winH, w, h)
 		}
-		if got := v.FrameSize(); got != image.Pt(tc.frameW, MissionFrameH) {
-			t.Fatalf("at %dx%d FrameSize = %v, want (%d,%d)", tc.winW, tc.winH, got, tc.frameW, MissionFrameH)
+		if got := v.FrameSize(); got != image.Pt(tc.frameW, tc.frameH) {
+			t.Fatalf("at %dx%d FrameSize = %v, want (%d,%d)", tc.winW, tc.winH, got, tc.frameW, tc.frameH)
 		}
-		if got := v.ViewportSize(); got != image.Pt(tc.viewportW, MissionFrameH) {
-			t.Fatalf("at %dx%d ViewportSize = %v, want (%d,%d)", tc.winW, tc.winH, got, tc.viewportW, MissionFrameH)
+		if got := v.ViewportSize(); got != image.Pt(tc.viewportW, tc.frameH) {
+			t.Fatalf("at %dx%d ViewportSize = %v, want (%d,%d)", tc.winW, tc.winH, got, tc.viewportW, tc.frameH)
 		}
-		if got, want := v.place, frame.Fit(tc.frameW, MissionFrameH, tc.winW, tc.winH); got != want {
+		if got, want := v.place, frame.Fit(tc.frameW, tc.frameH, tc.winW, tc.winH); got != want {
 			t.Fatalf("at a %dx%d window the placement is %+v, want expanded mission frame fitted into it, %+v",
 				tc.winW, tc.winH, got, want)
 		}

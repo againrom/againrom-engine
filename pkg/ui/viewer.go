@@ -50,17 +50,9 @@ const (
 	DefaultWindowW = 1024
 	DefaultWindowH = 768
 
-	// MissionFrameW and MissionFrameH are the mission screen's MINIMUM virtual
-	// frame size in frame pixels. MissionFrameH remains the logical height at
-	// every window size. MissionFrameW is retained at 4:3 and in narrower
-	// windows; wider windows grow the logical width so the picture reaches both
-	// horizontal edges instead of keeping a 4:3 pillarbox.
-	//
-	// THE SIZE IS THE OWNER'S, NOT A DECODE (owner, DIV-210). The original
-	// selects one of three literal arms at run time and its shipped default is
-	// 640x480; this build selects none and keeps 1024x768 as its minimum
-	// because he asked for it. What IS decoded is what that arm yields, and
-	// that is MissionPanelW below and the minimum viewport it leaves.
+	// MissionFrameW and MissionFrameH are the base mission frame. Layout
+	// selects its live height and expands its width to wider window aspects.
+	// These sizes follow owner direction (DIV-210).
 	MissionFrameW = 1024
 	MissionFrameH = 768
 
@@ -207,9 +199,8 @@ type Viewer struct {
 	textCalls []text.DrawCall
 
 	// frameW, frameH are the current virtual-frame size in logical pixels.
-	// frameH remains MissionFrameH. frameW begins at MissionFrameW and grows
-	// with a wider window's aspect; the right strip follows its right edge and
-	// the newly available width belongs to the map viewport.
+	// Layout chooses the height; width grows from MissionFrameW with the
+	// window's aspect. The right strip follows the frame's right edge.
 	frameW, frameH int
 
 	// startCell is the cell an armed start view opens on, and startArmed is
@@ -2567,8 +2558,8 @@ func (v *Viewer) ViewportSize() image.Point { return image.Pt(v.cam.ViewW, v.cam
 // reveal additional columns.
 func AuthoredStartColumns() int { return startColumns }
 
-// MissionViewportSize is the BASE map-view size inside the minimum mission
-// frame: 1024x768 minus the right strip. A live Viewer reports its expanded
+// MissionViewportSize is the BASE map-view size inside the 1024x768 mission
+// frame minus the right strip. A live Viewer reports its current
 // geometry through ViewportSize.
 //
 // It is SESS-VIEW-028's rect (0, 0, screenW - 0xa0, screenH) evaluated at the
@@ -2687,22 +2678,21 @@ func (v *Viewer) SetSAVStartView(cell image.Point) {
 	v.startSAV = true
 }
 
-// Layout keeps the mission's logical height at MissionFrameH and expands only
-// its logical width to cover wider window aspects. A 4:3 window therefore stays
-// byte-for-byte at the 1024x768 geometry, while 16:9 and ultrawide windows add
-// map viewport to the left of the fixed 160-pixel right HUD strip. Narrow/tall
-// windows retain the minimum width and may letterbox vertically.
-//
-// It is still where an armed start view is applied, because this is where a
-// viewer first learns it has been placed at all (SetStartView).
+// Layout selects 720 rows below 768 or at window heights divisible by 360,
+// otherwise 768, and expands the width to the window aspect (DIV-210).
+// It applies an armed start view once the live viewport is known.
 func (v *Viewer) Layout(outsideWidth, outsideHeight int) (int, int) {
 	if outsideWidth > 0 && outsideHeight > 0 {
 		if v.place.WindowSize() != image.Pt(outsideWidth, outsideHeight) && v.tooltip != nil {
 			v.tooltip.reset()
 		}
-		frameW := frame.ExpandedWidth(MissionFrameW, MissionFrameH, outsideWidth, outsideHeight)
-		if frameW != v.frameW || v.frameH != MissionFrameH {
-			v.frameW, v.frameH = frameW, MissionFrameH
+		frameH := MissionFrameH
+		if outsideHeight < MissionFrameH || outsideHeight%360 == 0 {
+			frameH = 720
+		}
+		frameW := frame.ExpandedWidth(MissionFrameW, frameH, outsideWidth, outsideHeight)
+		if frameW != v.frameW || v.frameH != frameH {
+			v.frameW, v.frameH = frameW, frameH
 			if v.canvas != nil {
 				disposeFrameCanvas(v.canvas)
 				v.canvas = nil
@@ -3305,7 +3295,7 @@ func (v *Viewer) shotScreenRects() []screenRect {
 // word, resolve it through the same water-substituting mapping and take the
 // same cached GPU image, so a cell's source pixels are a property of the
 // cell and the tick, never of the mode. Draw composes the mission screen on
-// its current height-768 canvas and then places that canvas in the window
+// its current logical canvas and then places that canvas in the window
 // with one uniform scale. Layout expands the logical width first, so wide
 // windows have no vertical pillarbox.
 //

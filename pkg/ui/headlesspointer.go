@@ -40,6 +40,37 @@ func (v *Viewer) frameToWindow(p image.Point, what string) (int, int, error) {
 	return wx, wy, nil
 }
 
+// headlessControlPoint finds the clickable pixel nearest the control's centre.
+// The inverse mapping is the pointer dispatch's; missing centre pixels are skipped.
+func headlessControlPoint(r image.Rectangle, window image.Point, toWindow func(image.Point) (int, int, bool), toFrame func(int, int) (image.Point, bool), what string) (int, int, error) {
+	centre := r.Min.Add(r.Max).Div(2)
+	if !r.Empty() {
+		if x, y, ok := toWindow(centre); ok && image.Pt(x, y).In(image.Rectangle{Max: window}) {
+			if p, hit := toFrame(x, y); hit && p == centre {
+				return x, y, nil
+			}
+		}
+		best, distance := image.Point{}, -1
+		for y := 0; y < window.Y; y++ {
+			for x := 0; x < window.X; x++ {
+				p, ok := toFrame(x, y)
+				if !ok || !p.In(r) {
+					continue
+				}
+				dx, dy := p.X-centre.X, p.Y-centre.Y
+				d := dx*dx + dy*dy
+				if distance < 0 || d < distance {
+					best, distance = image.Pt(x, y), d
+				}
+			}
+		}
+		if distance >= 0 {
+			return best.X, best.Y, nil
+		}
+	}
+	return 0, 0, fmt.Errorf("%s: no window pixel inside %v", what, r)
+}
+
 var HeadlessPointerActions = []string{
 	"hover", "press", "move", "release", "right-press", "right-move", "right-release",
 	"middle-press", "middle-move", "middle-release", "wheel-up", "wheel-down",
@@ -210,9 +241,7 @@ func (a *App) HeadlessWornCellPoint(cell int) (int, int, error) {
 	if cell < 0 || cell >= len(cells) || cells[cell].Empty() {
 		return 0, 0, fmt.Errorf("headless worn cell %d: no visible cell", cell)
 	}
-	r := cells[cell]
-	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
-	return v.frameToWindow(p, "headless worn cell")
+	return headlessControlPoint(cells[cell], v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless worn cell")
 }
 
 // HeadlessDollBoxPoint is a window pixel inside the doll BOX but not on any
@@ -228,8 +257,7 @@ func (a *App) HeadlessDollBoxPoint() (int, int, error) {
 	if !ok {
 		return 0, 0, fmt.Errorf("headless doll box: this frame draws none")
 	}
-	p := image.Pt((box.Min.X+box.Max.X)/2, (box.Min.Y+box.Max.Y)/2)
-	return v.frameToWindow(p, "headless doll box")
+	return headlessControlPoint(box, v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless doll box")
 }
 
 // HeadlessGroundPoint is a window pixel the map screen owns outright: inside
@@ -339,19 +367,7 @@ func (a *App) HeadlessSpellPoint(spell uint32) (int, int, error) {
 		cells := bookCellRects(bar, cols)
 		for i, entry := range v.spellbook {
 			if entry.ID == spell && i < len(cells) {
-				p := cells[i].Min.Add(cells[i].Max).Div(2)
-				if x, y, err := v.frameToWindow(p, "headless spell point"); err == nil {
-					return x, y, nil
-				}
-				// A downscaled window may not represent the exact centre pixel.
-				// Find another actual pixel in this same cell, not a neighbour.
-				for y := cells[i].Min.Y + 1; y < cells[i].Max.Y-1; y++ {
-					for x := cells[i].Min.X + 1; x < cells[i].Max.X-1; x++ {
-						if wx, wy, err := v.frameToWindow(image.Pt(x, y), "headless spell point"); err == nil {
-							return wx, wy, nil
-						}
-					}
-				}
+				return headlessControlPoint(cells[i], v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless spell point")
 			}
 		}
 	}
@@ -402,12 +418,7 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 		// the destination of a drag whose release names no marked slot, which
 		// the mask-driven scan below can never answer for.
 		figure := shopDollArea(view)
-		p := image.Pt((figure.Min.X+figure.Max.X)/2, (figure.Min.Y+figure.Max.Y)/2)
-		wx, wy, ok := a.nativeFrameToWindow(p)
-		if !ok {
-			return 0, 0, fmt.Errorf("headless shop doll box: stands outside the placed frame")
-		}
-		return wx, wy, nil
+		return headlessControlPoint(figure, image.Pt(a.winW, a.winH), a.nativeFrameToWindow, a.windowToNativeFrame, "headless shop doll box")
 	}
 	want := ShopControl{Index: index}
 	grid := true
@@ -586,11 +597,7 @@ func (a *App) HeadlessWorldMapMissionPoint(number int) (int, int, error) {
 				number, view.CardBase)
 		}
 		r := WorldMapCardRect(i - view.CardBase)
-		wx, wy, ok := a.nativeFrameToWindow(image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
-		if !ok {
-			return 0, 0, fmt.Errorf("headless world map mission %d: stands outside the placed frame", number)
-		}
-		return wx, wy, nil
+		return headlessControlPoint(r, image.Pt(a.winW, a.winH), a.nativeFrameToWindow, a.windowToNativeFrame, fmt.Sprintf("headless world map mission %d", number))
 	}
 	return 0, 0, fmt.Errorf("headless world map mission %d: no such mission is offered", number)
 }
@@ -602,11 +609,7 @@ func (a *App) HeadlessWorldMapTownPoint() (int, int, error) {
 		return 0, 0, err
 	}
 	r := WorldMapCardRect(-1)
-	wx, wy, ok := a.nativeFrameToWindow(image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
-	if !ok {
-		return 0, 0, fmt.Errorf("headless world map town card: stands outside the placed frame")
-	}
-	return wx, wy, nil
+	return headlessControlPoint(r, image.Pt(a.winW, a.winH), a.nativeFrameToWindow, a.windowToNativeFrame, "headless world map town card")
 }
 
 // HeadlessWorldMapMissPoint is a window pixel the world map screen answers
@@ -668,12 +671,7 @@ func (a *App) HeadlessDocumentPoint(control string) (int, int, error) {
 	if got, ok := documentControlAt(mid.X, mid.Y); !ok || got != want {
 		return 0, 0, fmt.Errorf("headless document point %q: the panel's hit test does not answer for its own rectangle's middle", control)
 	}
-	wx, wy, ok := a.nativeFrameToWindow(mid)
-	if !ok {
-		return 0, 0, fmt.Errorf("headless document point %q: frame pixel (%d,%d) has no window pixel at this placement",
-			control, mid.X, mid.Y)
-	}
-	return wx, wy, nil
+	return headlessControlPoint(rect, image.Pt(a.winW, a.winH), a.nativeFrameToWindow, a.windowToNativeFrame, "headless document point "+control)
 }
 
 // HeadlessHelpBarPoint is a window pixel on the open help panel's scroll bar:
@@ -710,21 +708,9 @@ func (a *App) HeadlessHelpBarPoint(part string) (int, int, error) {
 	if !ok {
 		return 0, 0, fmt.Errorf("headless help bar: the help panel draws no picture")
 	}
-	// Below 1:1 some panel pixels have no window pixel; take the one of the
-	// part nearest its middle that has one.
-	mid := r.Min.Add(r.Max).Div(2)
-	for d := 0; d < max(r.Dx(), r.Dy()); d++ {
-		for _, p := range []image.Point{mid.Add(image.Pt(0, d)), mid.Sub(image.Pt(0, d)), mid.Add(image.Pt(d, 0)), mid.Sub(image.Pt(d, 0))} {
-			if !p.In(r) {
-				continue
-			}
-			fp := image.Pt(at.X+int(float64(p.X)*scale), at.Y+int(float64(p.Y)*scale))
-			if x, y, ok := v.place.FrameToWindow(fp); ok {
-				return x, y, nil
-			}
-		}
-	}
-	return 0, 0, fmt.Errorf("headless help bar: no window pixel on the %s", part)
+	r = image.Rect(int(math.Ceil(float64(r.Min.X)*scale)), int(math.Ceil(float64(r.Min.Y)*scale)),
+		int(math.Ceil(float64(r.Max.X)*scale)), int(math.Ceil(float64(r.Max.Y)*scale))).Add(at)
+	return headlessControlPoint(r, v.place.WindowSize(), v.place.FrameToWindow, v.place.WindowToFrame, "headless help bar "+part)
 }
 
 // HeadlessCellPoint is the window pixel at the centre of one drawn map cell.
@@ -752,9 +738,5 @@ func (a *App) HeadlessTipClosePoint() (int, int, error) {
 		return 0, 0, fmt.Errorf("headless tip close point: no tip panel is showing on screen %s", a.flow.screen)
 	}
 	r := TipPanelCloseRect(v.Rect)
-	x, y, ok := a.nativeFrameToWindow(image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
-	if !ok {
-		return 0, 0, fmt.Errorf("headless tip close point: the button stands outside the placed frame")
-	}
-	return x, y, nil
+	return headlessControlPoint(r, image.Pt(a.winW, a.winH), a.nativeFrameToWindow, a.windowToNativeFrame, "headless tip close point")
 }

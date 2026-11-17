@@ -147,39 +147,15 @@ func CharacterPaneCornerRect(pane image.Rectangle, c CharacterPaneCorner) image.
 	return characterPaneRects(pane)[c]
 }
 
-// characterPaneModeFlag is the original's own `flag`, computed at
-// `L11877`..`L11878`: 1 when `screenH - B > B - T` and `sess == 1`
-// (`TOWN-346`). It gates rect C's hit test and rect C's art alike.
-//
-// `B - T` IS ALWAYS `0xf2`, so on the mission screen with `B = 480` the
-// condition reduces to `screenH > 722`, which of the three resolutions
-// `SESS-VIEW-028` enumerates only 1024x768 satisfies. `TOWN-346` states
-// plainly that this reduction assumes the containers above `campaign+0xd4`
-// contribute no vertical origin, which was not read; this function computes
-// the unreduced expression from the pane it is handed instead, so the
-// assumption is not baked in (`DIV-312`).
-//
-// A screenH of zero or less is read as "the caller does not know", and the
-// flag is 0. That is the value every shipped resolution but one produces, and
-// it is the value that keeps rect C live rather than silently removing the
-// pane's own mode control from a caller that forgot to fill the field in.
-//
-// PANE MUST BE THE PANE'S OWN ABSOLUTE SCREEN RECTANGLE, never a
-// canvas-relative one. `pane.Max.Y` is read directly and `B - T` alone is not
-// enough to reproduce `TOWN-346`'s own accumulated-origin assumption: a local
-// rect `(0,0)-(160,242)` and a screen rect `(864,238)-(1024,480)` share the
-// same height but different `Max.Y`, and this function's threshold moves with
-// it (`screenH > 484` against `screenH > 722`). Round-2 adversarial review
-// found the two callers passing different rects and agreeing only because
-// 768 clears both thresholds; `characterPaneModeFlag` is now called from
-// exactly one place, `(*Viewer).characterPaneModeFlag` (missionpane.go),
-// which always resolves the pane's own screen rectangle first, and every
-// other function in this file takes the resulting bool rather than a pane.
+// characterPaneModeFlag hides rect C when the mission's lower card fits whole.
+// The mission pane meets the frame's right edge, so Max.X is the frame width.
+// An unknown height leaves the corner live (DIV-312).
 func characterPaneModeFlag(pane image.Rectangle, s CharacterPaneSession, screenH int) bool {
 	if s != CharacterPaneMission || screenH <= 0 {
 		return false
 	}
-	return screenH-pane.Max.Y > pane.Max.Y-pane.Min.Y
+	_, fits := missionCardBoxRect(image.Pt(pane.Max.X, screenH))
+	return fits
 }
 
 // CharacterPaneCornerLive reports whether corner c answers a click, which is

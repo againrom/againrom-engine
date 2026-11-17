@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] Missions now fit 1280x720 without shrinking the text, and use cleaner scaling at 1920x1080 and 2560x1440.
 - [BASE] Two flying units no longer stand in one cell or fly through each other, as in the original; they go round or wait.
 - [BASE] A fighter-mage who equips a staff mid-swing casts its spell as the swing ends instead of winding up again.
 - [BASE] A new starter option keeps the mouse inside the game window on a computer with two monitors.
