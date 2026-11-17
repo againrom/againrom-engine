@@ -13,6 +13,7 @@ import (
 // The starter's window gets the starter icon before the window runs, and no
 // window opens.
 func TestRunWindowHandsTheStarterItsOwnIcon(t *testing.T) {
+	skipWindowSystemOffMainThread(t)
 	saved := desktop
 	t.Cleanup(func() { desktop = saved })
 	var calls []string
