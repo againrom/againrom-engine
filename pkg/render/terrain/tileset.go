@@ -75,6 +75,35 @@ type Tileset struct {
 	Missing []string          // entries that were absent or would not decode
 }
 
+// AllGroups is the metadata mask that enables every one of the loader's 32
+// groups.
+const AllGroups = ^uint32(0)
+
+// SlotAdmitted reports whether metadata mask bit i>>2 enables tiles[i]: each
+// enabled bit admits its four slots 4i..4i+3 (TERR-SLOTADMIT-166).
+func SlotAdmitted(mask uint32, i int) bool {
+	return i >= 0 && i < SlotCount && mask>>(uint(i)>>2)&1 == 1
+}
+
+// Admit is the tileset a map with metadata mask mask binds: the slots the
+// mask enables, and nil in every slot it excludes, whatever ts held there. The
+// result shares ts's strips; ts is not changed, so one loaded set serves every
+// map. A slot the mask enables but ts does not hold stays nil, as ts reports
+// it. A nil ts gives nil.
+func (ts *Tileset) Admit(mask uint32) *Tileset {
+	if ts == nil {
+		return nil
+	}
+	out := &Tileset{Dirt: ts.Dirt, Missing: ts.Missing}
+	for i := range out.Slots {
+		if s := ts.Slot(i); s != nil && SlotAdmitted(mask, i) {
+			out.Slots[i] = s
+			out.Loaded++
+		}
+	}
+	return out
+}
+
 // Slot returns the strip in tiles[i], or nil when i is outside the array or
 // the slot is absent. Callers resolve tile words to slot indices, so an
 // off-corpus word must not be able to index out of range.

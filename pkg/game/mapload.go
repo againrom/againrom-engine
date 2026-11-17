@@ -248,7 +248,7 @@ func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallback
 		Overlay:    m.Overlay,
 		Block:      mapload.Passability(m),
 		Structures: StructureRecords(m.Objects),
-	}, tiles, layer.Set, layer.Art, markers.Statics, layer.AnimGate, structures.Set, structures.Art)
+	}, tiles.Admit(m.Meta.Bitmask), layer.Set, layer.Art, markers.Statics, layer.AnimGate, structures.Set, structures.Art)
 	if err != nil {
 		return nil, err
 	}

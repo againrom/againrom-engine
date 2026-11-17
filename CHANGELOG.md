@@ -41,6 +41,7 @@ modder or developer can notice gets no entry.
 - [BASE] The unit window keeps its first column steady when switching views and shows the dialogue portrait under the figure, including speaking animals.
 - [BASE] Named units show their own name in the editor card, and F5 applies the card's edits before preparing the test map.
 - [BASE] The map editor and its mod window draw a frame faster, so they no longer lag at a large window.
+- [BASE] A map now draws only the terrain groups its terrain group mask enables, as in the original; a group missing from the mask is no longer drawn.
 - [BASE] The map editor's mod window no longer shows a stray tree picture.
 - [BASE] Map editor: a new condition that would clash with a script variable now offers to switch the map to the extended script instead of refusing, and the question shows the reason.
 - The map editor's mod window no longer shows the Files page, a click on any tab switches pages from every page, and labels such as "New key" show whole in English and Russian.

@@ -279,7 +279,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	// scripts, mission party substitution or runtime spawns.
 	g := terrain.Grid{Width: m.Width, Height: m.Height, Tiles: terrain.RenderTileWords(m.Tiles),
 		Altitudes: m.Altitudes, Overlay: m.Overlay, Structures: StructureRecords(m.Objects)}
-	v, err := ui.NewViewerWithStatics(source, g, x.tiles, x.statics, true, false,
+	v, err := ui.NewViewerWithStatics(source, g, x.tiles.Admit(m.Meta.Bitmask), x.statics, true, false,
 		terrain.AnimGateTiles, x.structures, true)
 	if err != nil {
 		return nil, err
