@@ -80,7 +80,7 @@ func TestUnitCardNameReachesTestPlayMap(t *testing.T) {
 func TestInstalledUnitRemarksFrames(t *testing.T) {
 	dir := os.Getenv("AGAINROM_UNIT_REMARK_FRAMES")
 	if dir == "" {
-		t.Skip("no frame output requested")
+		t.Skip("needs AGAINROM_UNIT_REMARK_FRAMES and AGAINROM_ASSETS")
 	}
 	x := installedInspector(t)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
