@@ -469,7 +469,7 @@ func (e *MapEditor) groupsSpec() popupSpec {
 	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
 	text := s.Width - 2*popupPad - 8
 	if len(e.groups()) == 0 {
-		s.Notes = append(s.Notes, editorTextLines(body, e.word("editor.group.empty"), text)...)
+		s.TitleHelp = e.word("editor.group.empty")
 	}
 	units := e.groupUnitsSelected()
 	s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.group.selected"), units))

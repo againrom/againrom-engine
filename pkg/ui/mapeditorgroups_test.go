@@ -536,3 +536,43 @@ func TestMapEditorRemoveFromGroupSkipsOtherPlayersUnits(t *testing.T) {
 		t.Fatalf("the outcome notes %q", note)
 	}
 }
+
+// The Groups palette's layout, at each size: every element lies in the
+// window, every label is whole and each button is hit at its rectangle.
+func TestMapEditorGroupsWindowLayoutProperties(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {800, 600}, {1920, 1080}} {
+		e, _ := groupsEditor(t)
+		e.Layout(size.X, size.Y)
+		e.showPanel(panelLeft, true)
+		chromeClick(e, barPoint(t, e, "groups"))
+		s, ok := e.listSpec()
+		if !ok {
+			t.Fatalf("%v: the Groups palette is not open", size)
+		}
+		l := layoutPopup(s, e.font, e.bodyFont())
+		bounds := image.Rect(0, 0, size.X, size.Y)
+		inside := []image.Rectangle{l.Rect, l.Title, l.Close, l.TitleHelp}
+		inside = append(append(inside, l.Notes...), l.Buttons...)
+		for _, r := range inside {
+			if !r.Empty() && !r.In(bounds) {
+				t.Errorf("%v: the element %v lies outside the window", size, r)
+			}
+		}
+		if size.X == 1920 {
+			body := e.bodyFont()
+			for i, r := range l.Notes {
+				if i < len(s.Notes) && body.Advance(s.Notes[i]) > r.Dx() {
+					t.Errorf("%v: the note %q is cut in %d px", size, s.Notes[i], r.Dx())
+				}
+			}
+		}
+		if got, _ := l.hit(center(l.Close)); got != popupClose {
+			t.Errorf("%v: the Close rectangle is hit as %v", size, got)
+		}
+		for i, r := range l.Buttons {
+			if part, n := l.hit(center(r)); part != popupButton || n != i {
+				t.Errorf("%v: button %d is hit as %v %d", size, i, part, n)
+			}
+		}
+	}
+}

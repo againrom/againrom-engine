@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
+- [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
 
 ## 0.157.1
 
