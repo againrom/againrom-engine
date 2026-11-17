@@ -426,6 +426,8 @@
 "editor.item.tier.elven" = "Эльфийский"
 "editor.item.unknownkind" = "Прочий тип %d, строка %d"
 "editor.inventory.recipecopy" = "Копия для этого предмета: %s"
+"editor.inventory.recipe" = "Рецепт %d: %s, эффектов: %d"
+"editor.inventory.spellnumber" = "Заклинание %d"
 "editor.inventory.norecipe" = "Без рецепта (простой предмет)"
 "editor.inventory.item" = "Предмет в сумке %d (одна штука)"
 "editor.inventory.added" = "Добавленные предметы в сумке"

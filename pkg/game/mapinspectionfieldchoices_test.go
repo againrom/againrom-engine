@@ -111,7 +111,7 @@ func referenceSackChoices(s *mapInspectionEdits, index int, key string) ([]ui.In
 		}
 		out := []ui.InspectionChoice{shared[0], {Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}
 		for _, c := range shared[1:] {
-			out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), c.Label))})
+			out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: fmt.Sprintf(x.inspectionUTF8(x.word("editor.inventory.recipecopy")), c.Label)})
 		}
 		return append(out, shared[1:]...), true
 	}
@@ -221,17 +221,7 @@ func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key s
 		return out
 	}
 	if strings.HasPrefix(key, "recipe") {
-		m, err := s.model.Map()
-		if err != nil {
-			return nil
-		}
-		out := []ui.InspectionChoice{{Value: 0, Label: "No recipe (plain item)"}}
-		for i, recipe := range m.Enchantments {
-			if recipe.X == 0 && recipe.Y == 0 {
-				out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Recipe %d: spell%d, %d effects", i+1, uint16(recipe.SpellRaw), len(recipe.Elements))})
-			}
-		}
-		return out
+		return recipeChoices(s, fieldChoiceAsk{})
 	}
 	category := key
 	if strings.HasPrefix(key, "item") || key == "additem" {

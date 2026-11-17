@@ -268,9 +268,18 @@ func recipeChoices(s *mapInspectionEdits, _ fieldChoiceAsk) []ui.InspectionChoic
 	}
 	x := s.inspector
 	out := []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.inventory.norecipe"))}}
+	spells := x.recordCatalog("spell")
 	for i, recipe := range m.Enchantments {
 		if recipe.X == 0 && recipe.Y == 0 {
-			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Recipe %d: spell%d, %d effects", i+1, uint16(recipe.SpellRaw), len(recipe.Elements))})
+			id := int64(uint16(recipe.SpellRaw))
+			spell := fmt.Sprintf(x.inspectionUTF8(x.word("editor.inventory.spellnumber")), id)
+			for _, c := range spells {
+				if c.Value == id {
+					spell = strings.TrimPrefix(c.Label, fmt.Sprintf("%d: ", id))
+					break
+				}
+			}
+			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf(x.inspectionUTF8(x.word("editor.inventory.recipe")), i+1, spell, len(recipe.Elements))})
 		}
 	}
 	return out
@@ -289,7 +298,7 @@ func stockRecipeChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.Inspection
 	x := s.inspector
 	out := []ui.InspectionChoice{shared[0], {Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}
 	for _, c := range shared[1:] {
-		out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), c.Label))})
+		out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: fmt.Sprintf(x.inspectionUTF8(x.word("editor.inventory.recipecopy")), c.Label)})
 	}
 	return append(out, shared[1:]...)
 }

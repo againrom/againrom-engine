@@ -242,7 +242,7 @@ func TestEditorSackViewListsTheItemRows(t *testing.T) {
 			has("recipe1", 0, "")
 			has("recipe1", -1, x.inspectionUTF8(x.word("editor.equipment.newrecipe")))
 			has("recipe1", int64(recipe+1), "")
-			copyLabel := x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), fmt.Sprintf("Recipe %d: spell0, 0 effects", recipe+1)))
+			copyLabel := x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), fmt.Sprintf(x.word("editor.inventory.recipe"), recipe+1, x.word("editor.param.nospell"), 0)))
 			has("recipe2", -int64(recipe+1)-1, copyLabel)
 			for _, key := range []string{"item1", "recipe1", "recipe1.power", "recipe1.addeffect", "recipe2"} {
 				if !showField(t, e, c, key) {

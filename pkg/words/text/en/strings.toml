@@ -432,6 +432,8 @@
 "editor.item.tier.elven" = "Elven"
 "editor.item.unknownkind" = "Other type %d, row %d"
 "editor.inventory.recipecopy" = "Copy for this item: %s"
+"editor.inventory.recipe" = "Recipe %d: %s, effects: %d"
+"editor.inventory.spellnumber" = "Spell %d"
 "editor.inventory.norecipe" = "No recipe (plain item)"
 "editor.inventory.item" = "Carried item %d (one item)"
 "editor.inventory.added" = "Added carried items"

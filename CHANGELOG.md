@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, sack recipe choices now use the editor's language and show spell names instead of spell numbers.
 - [BASE] In the map editor, a name typed into a unit's window now takes effect when you press Enter or save the map, instead of only when you press Apply.
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
 - [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
