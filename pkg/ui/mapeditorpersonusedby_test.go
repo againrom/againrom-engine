@@ -1,9 +1,35 @@
 package ui
 
 import (
+	"image"
 	"slices"
 	"testing"
 )
+
+// The person window with a Used by section holds the four layout properties
+// at the three sizes.
+func TestEditorPersonWindowUsedByHoldsTheLayoutProperties(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {800, 600}, {1920, 1080}} {
+		e, host := popupEditor(t)
+		_ = e.Open("popups")
+		e.doc.Edits = &personSettingsProbe{&settingsPreviewProbe{popupHost: host}}
+		id := len(e.doc.Records)
+		e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: "Action", Index: 0})
+		e.doc.Script = &InspectionScriptModel{
+			Actions: []InspectionScriptNode{{Record: id, Label: "Give the potion"}},
+			Targets: map[uint32][]InspectionScriptTarget{scriptUnit: {{Record: 0, Uses: []InspectionScriptUse{{Node: id}}}}},
+		}
+		e.Layout(size.X, size.Y)
+		e.Select(0, false)
+		e.objectSpec()
+		if !e.nativeUnitWindow() {
+			t.Fatalf("%v: the person window is not open", size)
+		}
+		e.obj.section = 0
+		s, _, _ := e.objectSpec()
+		checkWindowProperties(t, e, s, size)
+	}
+}
 
 // The person window lists the triggers that use its unit, on each of its
 // sections, as the unit popup does. Fails when the person window drops the

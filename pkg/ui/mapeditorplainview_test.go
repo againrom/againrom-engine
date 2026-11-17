@@ -91,7 +91,7 @@ func structureRows(tail ...string) []string {
 		"2 Script target | 3",
 		"2 Width | 0",
 		"2 Height | 0",
-		"0 Used by |",
+		"1 Used by |",
 		"5 Trigger 1  Raid: Action 1  Burn the hall |",
 	}, tail...)
 }

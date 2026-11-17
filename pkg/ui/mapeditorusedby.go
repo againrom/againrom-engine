@@ -26,7 +26,7 @@ func (e *MapEditor) scriptLinkSection(s *popupSpec, links *[]int, title string, 
 	if len(rows) == 0 {
 		title = fmt.Sprintf(e.word("editor.scripts.emptyheading"), title)
 	}
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: title}), append(*links, 0)
+	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: title}), append(*links, 0)
 	for _, row := range rows {
 		e.scriptPopupLink(s, links, row)
 	}
