@@ -2,8 +2,22 @@ package ui
 
 import (
 	"errors"
+	"fmt"
+	"image"
+	"strings"
 	"testing"
 )
+
+// The mod window's save state line wraps inside the window at each size: a
+// long state takes several rows, and every row stays on the screen.
+func TestModSaveStateLineHasFocusedLayoutProperties(t *testing.T) {
+	for _, size := range modPageSizes {
+		e := modesWordsEditor(t, "workspace", "en", size)
+		_ = e.Key("package")
+		e.modStatus = strings.Repeat("The save into the mod failed because the folder is read-only. ", 6)
+		modPageProperties(t, e, image.Rect(0, 0, size.X, size.Y), fmt.Sprint(size))
+	}
+}
 
 // modSaveEdits is a host that saves into a mod named target.
 type modSaveEdits struct {

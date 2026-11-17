@@ -3,10 +3,127 @@ package ui
 import (
 	"fmt"
 	"image"
+	"reflect"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
+
+// pageTipBox finds a page part's box, with the tip a (?) mark carries as its
+// title between the part's name and its box.
+var pageTipBox = regexp.MustCompile(`data-part="([a-z-]+)"(?: data-row="\d+")?(?: title="[^"]*")? data-box="(-?\d+) (-?\d+) (\d+) (\d+)"`)
+
+// modPageSizes are the window sizes the focused layout properties run at.
+var modPageSizes = []image.Point{{640, 480}, {800, 600}, {1920, 1080}}
+
+// modPageProperties checks a mod page at each paged top: every row, label,
+// control, button and (?) mark lies inside the screen; at 1920x1080 every
+// label is whole; hit answers each label, control, (?) mark, row button,
+// tab, close and window button at its rectangle with its index; the HTML
+// page places every part at the layout's rectangle.
+func modPageProperties(t *testing.T, e *MapEditor, screen image.Rectangle, tag string) {
+	t.Helper()
+	for top := 0; top < 14; top++ {
+		e.objectTop = top
+		s, _, ok := e.modSpec()
+		if !ok {
+			t.Fatalf("%s top %d: no window spec", tag, top)
+		}
+		l := layoutPopup(s, e.font, e.bodyFont())
+		if !l.Rect.In(screen) {
+			t.Errorf("%s top %d: window %v lies outside %v", tag, top, l.Rect, screen)
+		}
+		for _, r := range l.Rows {
+			for _, rect := range []image.Rectangle{r.Rect, r.Label, r.Control, r.Button, r.Help} {
+				if !rect.Empty() && !rect.In(screen) {
+					t.Errorf("%s top %d: row %d element %v lies outside %v", tag, top, r.Index, rect, screen)
+				}
+			}
+			for _, b := range r.Buttons {
+				if !b.In(screen) {
+					t.Errorf("%s top %d: row %d button %v lies outside %v", tag, top, r.Index, b, screen)
+				}
+			}
+			if screen.Dx() == 1920 && !r.Label.Empty() {
+				label := s.Rows[r.Index].Label
+				lines := editorTextLines(e.bodyFont(), label, r.Label.Dx())
+				if h := len(lines) * e.bodyFont().Height(); h > r.Label.Dy() {
+					t.Errorf("%s top %d: row %d label %q needs %d px in %v", tag, top, r.Index, label, h, r.Label)
+				}
+			}
+			if !r.Label.Empty() {
+				if p, at := l.hit(boxMidpoint(r.Label)); p != popupRowLine || at != r.Index {
+					t.Errorf("%s top %d: row %d label hit %v %d", tag, top, r.Index, p, at)
+				}
+			}
+			if !r.Control.Empty() {
+				if p, at := l.hit(boxMidpoint(r.Control)); p != popupRowControl || at != r.Index {
+					t.Errorf("%s top %d: row %d control hit %v %d", tag, top, r.Index, p, at)
+				}
+			}
+			if !r.Help.Empty() {
+				if p, at := l.hit(boxMidpoint(r.Help)); p != popupRowHelp || at != r.Index {
+					t.Errorf("%s top %d: row %d help hit %v %d", tag, top, r.Index, p, at)
+				}
+			}
+			for _, b := range r.Buttons {
+				if p, at := l.hit(boxMidpoint(b)); p != popupRowButton || at != r.Index {
+					t.Errorf("%s top %d: row %d button hit %v %d", tag, top, r.Index, p, at)
+				}
+			}
+		}
+		for n, b := range l.Buttons {
+			if !b.In(screen) {
+				t.Errorf("%s top %d: window button %d %v lies outside %v", tag, top, n, b, screen)
+			}
+			if p, at := l.hit(boxMidpoint(b)); p != popupButton || at != n {
+				t.Errorf("%s top %d: window button %d hit %v %d", tag, top, n, p, at)
+			}
+		}
+		for n, b := range l.Tabs {
+			if !b.In(screen) {
+				t.Errorf("%s top %d: tab %d %v lies outside %v", tag, top, n, b, screen)
+			}
+			if p, at := l.hit(boxMidpoint(b)); p != popupTab || at != n {
+				t.Errorf("%s top %d: tab %d hit %v %d", tag, top, n, p, at)
+			}
+		}
+		if p, _ := l.hit(boxMidpoint(l.Close)); p != popupClose {
+			t.Errorf("%s top %d: close hit %v", tag, top, p)
+		}
+		page := popupPage(popupDesc{Window: "mod"}, specWindow(s), l, image.Rectangle{}, "en", screen.Max)
+		var got []pagePart
+		for _, p := range pageTipBox.FindAllStringSubmatch(string(page), -1) {
+			n := func(i int) int { v, _ := strconv.Atoi(p[i]); return v }
+			got = append(got, pagePart{p[1], image.Rect(n(2), n(3), n(2)+n(4), n(3)+n(5))})
+		}
+		if want := layoutParts(s, l); !reflect.DeepEqual(got, want) {
+			t.Errorf("%s top %d: page parts\n%v\nlayout\n%v", tag, top, got, want)
+		}
+	}
+}
+
+// boxMidpoint is the middle point of r, where hit is asked.
+func boxMidpoint(r image.Rectangle) image.Point {
+	return r.Min.Add(r.Size().Div(2))
+}
+
+// The overview page keeps its rows, labels and buttons inside the window at
+// each size, with longOverview's lines paging through it.
+func TestModOverviewPageHasFocusedLayoutProperties(t *testing.T) {
+	for _, size := range modPageSizes {
+		e := modesWordsEditor(t, "workspace", "en", size)
+		host := e.doc.Edits.(*modesWorkspace)
+		host.overview = longOverview()
+		_ = e.Key("package")
+		if e.modPage != modPageOverview {
+			t.Fatalf("%v: W shows page %d, not the overview", size, e.modPage)
+		}
+		modPageProperties(t, e, image.Rect(0, 0, size.X, size.Y), fmt.Sprint(size))
+	}
+}
 
 // longOverview is an overview page of more lines than the window shows.
 func longOverview() ModOverviewPage {

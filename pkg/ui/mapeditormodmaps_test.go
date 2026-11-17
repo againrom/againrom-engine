@@ -1,12 +1,34 @@
 package ui
 
 import (
+	"fmt"
+	"image"
 	"strings"
 	"testing"
 
 	"againrom/pkg/words"
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+// The Missions page keeps its maps folder row (the Add folder button) inside
+// the window at each size, with nine map actions paging above it.
+func TestModMapsFolderRowHasFocusedLayoutProperties(t *testing.T) {
+	for _, size := range modPageSizes {
+		e := modesWordsEditor(t, "workspace", "en", size)
+		host := e.doc.Edits.(*modesWorkspace)
+		host.overview, host.graph = modesOverview, modesGraph()
+		host.actionsOpen = true
+		for i := range 9 {
+			host.actions = append(host.actions, ModMapAction{Label: fmt.Sprintf("map%d.alm: unused", i), Buttons: []ModMapButton{{Caption: "Make mission", Key: "makemission", Value: "x"}, {Caption: "Remove", Key: "removemap", Value: "x"}}})
+		}
+		_ = e.Key("package")
+		e.turnModPage(0)
+		if e.modPage != modPageFields {
+			t.Fatalf("%v: W shows page %d, not the Missions page", size, e.modPage)
+		}
+		modPageProperties(t, e, image.Rect(0, 0, size.X, size.Y), fmt.Sprint(size))
+	}
+}
 
 // The mod window has no page of the mod's maps: its tabs are the fields, the
 // overview and the graph, while the Open window still lists every map.
