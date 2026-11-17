@@ -45,6 +45,48 @@ func TestAlphaCoverageKeepsPaintedZeroAndClampsTheRamp(t *testing.T) {
 	}
 }
 
+// TestResizeConstantFieldStaysConstant checks the kernel's own weights are
+// normalised: a source grid that is one uniform coverage value resizes, at
+// every size this glyph pipeline actually uses (upscaling a small native
+// cell by 1.875x-3x), to that same value everywhere, including right at a
+// clamped edge — not just in the interior.
+func TestResizeConstantFieldStaysConstant(t *testing.T) {
+	for _, dims := range []struct{ sw, sh, dw, dh int }{
+		{4, 6, 8, 12},
+		{4, 6, 7, 11},  // 1.875x-ish, non-integer per axis
+		{1, 1, 3, 3},   // degenerate 1x1 source
+		{6, 8, 18, 24}, // 3x
+	} {
+		src := make([]float64, dims.sw*dims.sh)
+		for i := range src {
+			src[i] = 0.5
+		}
+		out := Resize(src, dims.sw, dims.sh, dims.dw, dims.dh)
+		if len(out) != dims.dw*dims.dh {
+			t.Fatalf("Resize(%+v): got %d values, want %d", dims, len(out), dims.dw*dims.dh)
+		}
+		for i, v := range out {
+			if !almostEqual(v, 0.5, 1e-9) {
+				t.Fatalf("Resize(%+v)[%d] = %v, want 0.5 (constant field must stay constant)", dims, i, v)
+			}
+		}
+	}
+}
+
+// TestResizeRejectsBadSizes matches the documented nil-on-non-positive-or-
+// short-source contract.
+func TestResizeRejectsBadSizes(t *testing.T) {
+	if Resize(nil, 0, 0, 4, 4) != nil {
+		t.Error("Resize with srcW=0 must answer nil")
+	}
+	if Resize([]float64{1, 2}, 2, 2, 4, 4) != nil {
+		t.Error("Resize with a source shorter than srcW*srcH must answer nil")
+	}
+	if Resize([]float64{1, 2, 3, 4}, 2, 2, 0, 4) != nil {
+		t.Error("Resize with dstW=0 must answer nil")
+	}
+}
+
 // TestTargetRectTilesWithNoGapOrOverlap is round-1's own recommendation 4:
 // two glyphs placed edge to edge natively must have their OUTPUT rectangles
 // share an edge exactly, at a non-integer scale, because each edge is
@@ -128,6 +170,18 @@ func TestCompositeKeepsShadedStrokeOpaque(t *testing.T) {
 	}
 	if bright.R <= dark.R || dark.R >= c.R {
 		t.Fatalf("stroke shade not carried: %+v %+v", bright, dark)
+	}
+}
+
+// The two cubic pieces meet at 1 and the outer piece reaches 0 at 2. A wrong
+// outer coefficient weighted distant samples and striped every upscaled glyph.
+func TestKernelIsContinuousAndCompact(t *testing.T) {
+	const eps = 1e-9
+	if d := kernel(1-eps) - kernel(1+eps); d > 1e-6 || d < -1e-6 {
+		t.Fatalf("kernel jumps at 1 by %v", d)
+	}
+	if v := kernel(2 - eps); v > 1e-6 || v < -1e-6 {
+		t.Fatalf("kernel(2) = %v, want 0", v)
 	}
 }
 
