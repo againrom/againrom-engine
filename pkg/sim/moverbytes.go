@@ -99,10 +99,9 @@ func (w *World) constructedMover(e Entity, joined bool) [MoverLen]byte {
 	return m
 }
 
-// SiegeHireMover is the Mover the city writer gives a hired Catapult or
-// Ballista: the mask of domain, the constructor's radius and +0x09, and rate.
-func SiegeHireMover(domain uint32, rate byte) [MoverLen]byte {
-	return siegeHireHead(MoverPassabilityMask(domain), rate).Record()
+// ApplyHireMover sets the hire constructor's radius and +0x09 in m.
+func ApplyHireMover(m []byte) {
+	EditMoverHead(m, func(h *MoverHead) { *h = siegeHireHead(h.Mask, h.Rate) })
 }
 
 func siegeHireHead(mask, rate byte) MoverHead {

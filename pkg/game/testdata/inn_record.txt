@@ -8,7 +8,7 @@ rom1 entry seat 0 hire result ""
 rom1 entry seat 0 hire dialogue "" npc 0 candidate 0 text ""
 rom1 entry seat 0 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 entry seat 0 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 entry seat 0 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 entry seat 0 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 entry seat 0 talk shown true enabled true label "Talk" value ""
 rom1 entry seat 0 talk result ""
 rom1 entry seat 0 talk dialogue "" npc 0 candidate 3 text "candidate words"
@@ -80,7 +80,7 @@ rom1 talk seat 0 hire result ""
 rom1 talk seat 0 hire dialogue "" npc 9 candidate 0 text "story words"
 rom1 talk seat 0 hire open party [hero npc:22 mercenary:3:3 mercenary:3:4] available [30:false 31:false] queue [30]
 rom1 talk seat 0 hire closed party [hero npc:22 mercenary:3:3 mercenary:3:4] available [30:false 31:false] queue [30]
-rom1 talk seat 0 hire SAV 5621 c6f24c69259fa7df8e61ff34dd6ee6ba1ab2adf7bc46d1cf485425465624782c
+rom1 talk seat 0 hire SAV 5621 907805861456771ab0a7a551c6c877c788977dc7c088945ca2d043138409dcfb
 rom1 talk seat 0 talk shown true enabled true label "Talk" value ""
 rom1 talk seat 0 talk result ""
 rom1 talk seat 0 talk dialogue "" npc 0 candidate 3 text "candidate words"
@@ -143,7 +143,7 @@ rom1 talk seat 2 sleep open party [hero npc:22] available [30:false 31:false] qu
 rom1 talk seat 2 sleep closed party [hero npc:22] available [30:false 31:false] queue [30]
 rom1 talk seat 2 sleep SAV 3907 652d24b0a467a19afe6a75e2a5ec0a00ef7d39337058af57511eab03e5429a19
 rom1 hired party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 0 key 2/3 offer {0 0 0} merc {3 2 2 50 true true} cell "Mercenary 3"/true/false
 rom1 hired seat 1 key 1/0 offer {0 30 9} merc {0 0 0 0 false false} cell "NPC 9"/true/true
 rom1 hired seat 2 key 1/1 offer {1 0 9} merc {0 0 0 0 false false} cell "NPC 9"/true/true
@@ -158,62 +158,62 @@ rom1 hired seat 0 talk result ""
 rom1 hired seat 0 talk dialogue "" npc 0 candidate 3 text "candidate words"
 rom1 hired seat 0 talk open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 0 talk closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 0 talk SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 0 talk SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 0 exit shown true enabled true label "EXIT" value "950"
 rom1 hired seat 0 exit result ""
 rom1 hired seat 0 exit dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 0 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 0 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 0 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 0 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 0 sleep shown true enabled false label "Sleep" value ""
 rom1 hired seat 0 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 0 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 0 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 0 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 0 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 1 hire shown true enabled false label "" value ""
 rom1 hired seat 1 hire dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 1 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 1 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 1 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 1 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 1 talk shown true enabled true label "Talk" value ""
 rom1 hired seat 1 talk result ""
 rom1 hired seat 1 talk dialogue "" npc 9 candidate 0 text "story words"
 rom1 hired seat 1 talk open party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue [30]
 rom1 hired seat 1 talk closed party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue [30]
-rom1 hired seat 1 talk SAV 5631 c5881f3c249f105406c3a300bd900dfd993953dcc8314f28f9b64afdb2d63546
+rom1 hired seat 1 talk SAV 5631 5a34894ea73f72009313c19b3536ac84c135571b7f1b9cf7205b8e03f5d0405d
 rom1 hired seat 1 exit shown true enabled true label "EXIT" value "950"
 rom1 hired seat 1 exit result ""
 rom1 hired seat 1 exit dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 1 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 1 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 1 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 1 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 1 sleep shown true enabled false label "Sleep" value ""
 rom1 hired seat 1 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 1 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 1 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 1 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 1 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 2 hire shown true enabled false label "" value ""
 rom1 hired seat 2 hire dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 2 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 2 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 2 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 2 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 2 talk shown true enabled true label "Talk" value ""
 rom1 hired seat 2 talk result ""
 rom1 hired seat 2 talk dialogue "" npc 9 candidate 0 text "story words"
 rom1 hired seat 2 talk open party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue []
 rom1 hired seat 2 talk closed party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue []
-rom1 hired seat 2 talk SAV 5631 c5881f3c249f105406c3a300bd900dfd993953dcc8314f28f9b64afdb2d63546
+rom1 hired seat 2 talk SAV 5631 5a34894ea73f72009313c19b3536ac84c135571b7f1b9cf7205b8e03f5d0405d
 rom1 hired seat 2 exit shown true enabled true label "EXIT" value "950"
 rom1 hired seat 2 exit result ""
 rom1 hired seat 2 exit dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 2 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 2 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 2 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 2 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 hired seat 2 sleep shown true enabled false label "Sleep" value ""
 rom1 hired seat 2 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 hired seat 2 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 hired seat 2 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 hired seat 2 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 hired seat 2 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 dismissed party [hero] available [30:false 31:false] queue []
 rom1 dismissed SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
 rom1 dismissed seat 0 key 2/3 offer {0 0 0} merc {3 2 2 50 false true} cell "Mercenary 3"/true/false
@@ -224,7 +224,7 @@ rom1 dismissed seat 0 hire result ""
 rom1 dismissed seat 0 hire dialogue "" npc 0 candidate 0 text ""
 rom1 dismissed seat 0 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 dismissed seat 0 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 dismissed seat 0 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 dismissed seat 0 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 dismissed seat 0 talk shown true enabled true label "Talk" value ""
 rom1 dismissed seat 0 talk result ""
 rom1 dismissed seat 0 talk dialogue "" npc 0 candidate 3 text "candidate words"
@@ -287,7 +287,7 @@ rom1 dismissed seat 2 sleep open party [hero] available [30:false 31:false] queu
 rom1 dismissed seat 2 sleep closed party [hero] available [30:false 31:false] queue []
 rom1 dismissed seat 2 sleep SAV 3035 8787c469916fcf929776719dbc53d05fb7f362ae6837244858ad8c00d8dc40fb
 rom1 loaded party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 0 key 2/3 offer {0 0 0} merc {3 2 2 50 true true} cell "Mercenary 3"/true/false
 rom1 loaded seat 1 key 1/0 offer {0 30 9} merc {0 0 0 0 false false} cell "NPC 9"/true/true
 rom1 loaded seat 2 key 1/1 offer {1 0 9} merc {0 0 0 0 false false} cell "NPC 9"/true/true
@@ -302,62 +302,62 @@ rom1 loaded seat 0 talk result ""
 rom1 loaded seat 0 talk dialogue "" npc 0 candidate 3 text "candidate words"
 rom1 loaded seat 0 talk open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 0 talk closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 0 talk SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 0 talk SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 0 exit shown true enabled true label "EXIT" value "950"
 rom1 loaded seat 0 exit result ""
 rom1 loaded seat 0 exit dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 0 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 0 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 0 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 0 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 0 sleep shown true enabled false label "Sleep" value ""
 rom1 loaded seat 0 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 0 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 0 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 0 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 0 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 1 hire shown true enabled false label "" value ""
 rom1 loaded seat 1 hire dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 1 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 1 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 1 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 1 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 1 talk shown true enabled true label "Talk" value ""
 rom1 loaded seat 1 talk result ""
 rom1 loaded seat 1 talk dialogue "" npc 9 candidate 0 text "story words"
 rom1 loaded seat 1 talk open party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue [30]
 rom1 loaded seat 1 talk closed party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue [30]
-rom1 loaded seat 1 talk SAV 5631 c5881f3c249f105406c3a300bd900dfd993953dcc8314f28f9b64afdb2d63546
+rom1 loaded seat 1 talk SAV 5631 5a34894ea73f72009313c19b3536ac84c135571b7f1b9cf7205b8e03f5d0405d
 rom1 loaded seat 1 exit shown true enabled true label "EXIT" value "950"
 rom1 loaded seat 1 exit result ""
 rom1 loaded seat 1 exit dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 1 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 1 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 1 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 1 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 1 sleep shown true enabled false label "Sleep" value ""
 rom1 loaded seat 1 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 1 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 1 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 1 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 1 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 2 hire shown true enabled false label "" value ""
 rom1 loaded seat 2 hire dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 2 hire open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 2 hire closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 2 hire SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 2 hire SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 2 talk shown true enabled true label "Talk" value ""
 rom1 loaded seat 2 talk result ""
 rom1 loaded seat 2 talk dialogue "" npc 9 candidate 0 text "story words"
 rom1 loaded seat 2 talk open party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue []
 rom1 loaded seat 2 talk closed party [hero mercenary:3:2 mercenary:3:3 npc:22] available [30:false 31:false] queue []
-rom1 loaded seat 2 talk SAV 5631 c5881f3c249f105406c3a300bd900dfd993953dcc8314f28f9b64afdb2d63546
+rom1 loaded seat 2 talk SAV 5631 5a34894ea73f72009313c19b3536ac84c135571b7f1b9cf7205b8e03f5d0405d
 rom1 loaded seat 2 exit shown true enabled true label "EXIT" value "950"
 rom1 loaded seat 2 exit result ""
 rom1 loaded seat 2 exit dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 2 exit open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 2 exit closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 2 exit SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 2 exit SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom1 loaded seat 2 sleep shown true enabled false label "Sleep" value ""
 rom1 loaded seat 2 sleep dialogue "" npc 0 candidate 0 text ""
 rom1 loaded seat 2 sleep open party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
 rom1 loaded seat 2 sleep closed party [hero mercenary:3:2 mercenary:3:3] available [30:false 31:false] queue []
-rom1 loaded seat 2 sleep SAV 4751 41361a68662e381fcbb23bca6f7284c5f45a80687a9795c2fb94629d38e8e343
+rom1 loaded seat 2 sleep SAV 4751 b5414a60215ad72f3c1a972de898d83dda69ded70e7347aadbfdf6ed187bd91d
 rom2 entry bank 512=0 769=0
 rom2 entry party [hero] available [2:2] queue []
 rom2 entry SAV 11620 5c51c150f1d3051e9dbc29dd343fad1e9a260caccc9d4e42a1208654c4d0726e

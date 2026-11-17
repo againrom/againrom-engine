@@ -89,7 +89,7 @@ func hiredActorWire(t *testing.T, raw []byte, table *mapload.Table, level int) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if values["U148"] != uint32(typ) || name != "" || values["T0E"] != uint32(def.TypeID) || values["T18"] != 2 {
+			if values["U148"] != uint32(typ) || name != "" || values["T0E"] != uint32(def.TypeID) || values["T18"] != 0 {
 				t.Errorf("type %d ordinary actor U148=%d Name=%q TypeID=%d publication=%d", typ, values["U148"], name, values["T0E"], values["T18"])
 			}
 		}

@@ -41,7 +41,6 @@ func nativeCitySiegeUnit(identity, owner uint32, member mapload.PartyMember, tab
 	scalar1 := make([]byte, 19)
 	domain := uint32(b.Domain) + 1
 	scalar1[0], scalar1[1], scalar1[2], scalar1[3] = b.TokenSize, byte(domain), binding.Face, binding.ClassFlags
-	binary.LittleEndian.PutUint32(scalar1[4:8], siegeHireStateWord)
 
 	scalar2 := make([]byte, 55)
 	for i, v := range s.Stats {
@@ -49,26 +48,39 @@ func nativeCitySiegeUnit(identity, owner uint32, member mapload.PartyMember, tab
 	}
 	binary.LittleEndian.PutUint16(scalar2[30:], s.ManaFloor)
 	binary.LittleEndian.PutUint16(scalar2[32:], s.Sight)
-	scalar2[34], scalar2[39], scalar2[40], scalar2[41] = s.Reach, s.AttackCharge, s.AttackRelax, siegeHireU136
+	scalar2[34], scalar2[39], scalar2[40] = s.Reach, s.AttackCharge, s.AttackRelax
 	binary.LittleEndian.PutUint32(scalar2[35:], s.Experience)
 	binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.TavernType()))
 
-	mover := sim.SiegeHireMover(domain, s.MoverSpeed)
+	mover := sim.MoverHead{Mask: sim.MoverPassabilityMask(domain), Rate: s.MoverSpeed}.Record()
 
-	return sav.CityUnitData{
-		Token:          token,
-		RawA6:          s.Attack[:],
-		RawBE:          s.Defence[:],
-		Raw114:         s.Base[:],
-		RawD4:          s.Modifier[:],
-		Raw154:         mover[:],
-		Raw158:         make([]byte, 148),
-		Scalar1:        scalar1,
-		Scalar2:        scalar2,
-		ContainerFlag:  1,
-		ContainerTails: [2]uint32{siegeHireInsertIndex, 0},
-		ScalarTail:     make([]byte, 17),
-	}, nil
+	unit := sav.CityUnitData{
+		Token:         token,
+		RawA6:         s.Attack[:],
+		RawBE:         s.Defence[:],
+		Raw114:        s.Base[:],
+		RawD4:         s.Modifier[:],
+		Raw154:        mover[:],
+		Raw158:        make([]byte, 148),
+		Scalar1:       scalar1,
+		Scalar2:       scalar2,
+		ContainerFlag: 1,
+		ScalarTail:    make([]byte, 17),
+	}
+	nativeCityHireConstructor(&unit)
+	return unit, nil
+}
+
+// nativeCityHireConstructor sets the hire constructor values of a Unit and a
+// Human alike; a retained container insert index is kept.
+func nativeCityHireConstructor(unit *sav.CityUnitData) {
+	binary.LittleEndian.PutUint16(unit.Token[23:25], 0)
+	binary.LittleEndian.PutUint32(unit.Scalar1[4:8], siegeHireStateWord)
+	unit.Scalar2[41] = siegeHireU136
+	sim.ApplyHireMover(unit.Raw154)
+	if unit.ContainerTails[0] == 0 {
+		unit.ContainerTails[0] = siegeHireInsertIndex
+	}
 }
 
 // cityMemberEquipment is the worn set a city SAVE writes for member. A hired

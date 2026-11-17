@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 - [ROM2] In a shop, an item put from the hero on the shelf no longer turns into a copy of the previous one.
 - [ROM2] A Darkness area in a saved game is still there after loading the game: the covered ground stays dark and sight under it stays reduced.
 - [BASE] Hero names and labels in the map editor's windows no longer get a dark rim when the window is scaled; the starter offers a softer picture filter for the window.
+- [ROM1] A hired mercenary in a saved city is now stored the way the original stores one, so the original reads the file as its own.
 
 ### For map makers and modders
 

@@ -356,6 +356,9 @@ func nativeCityDataConstruct(roster, hired []mapload.PartyMember, table *mapload
 		if err := human(&unit, member, table); err != nil {
 			return sav.CityData{}, err
 		}
+		if member.Hired() {
+			nativeCityHireConstructor(&unit)
+		}
 		objects = append(objects, sav.CityObjectData{Class: "Human", Unit: &unit})
 		actors = append(actors, uint16(len(objects)))
 	}
