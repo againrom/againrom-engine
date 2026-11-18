@@ -406,13 +406,6 @@ func (e *MapEditor) relationFit(s *popupSpec) {
 	g.Top = m.top
 }
 
-// relationGridWheel scrolls the matrix by the wheel's rows while the window
-// shows fewer rows than it has.
-func (e *MapEditor) relationGridWheel(l popupLayout, rows int) {
-	m := e.relationMatrixOf()
-	m.top = max(0, min(m.top+rows, len(m.players)-l.GridRows))
-}
-
 // relationPress is a press on matrix cell n: it sets the next relation
 // value of that row toward that column as one edit.
 func (e *MapEditor) relationPress(n int) {

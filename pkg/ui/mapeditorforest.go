@@ -156,15 +156,6 @@ func (e *MapEditor) forestGridSpec() (*popupGrid, bool) {
 	return g, true
 }
 
-// forestGridWheel scrolls the forest grid by the wheel's rows.
-func (e *MapEditor) forestGridWheel(l popupLayout, rows int) {
-	if l.GridCols <= 0 {
-		return
-	}
-	total := (len(e.forestKinds()) + l.GridCols - 1) / l.GridCols
-	e.brush.forest.top = max(0, min(e.brush.forest.top+rows, total-l.GridRows))
-}
-
 // forestGridPress is a press on forest grid cell n: it ticks or unticks the
 // class.
 func (e *MapEditor) forestGridPress(n int) {

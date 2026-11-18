@@ -377,20 +377,6 @@ func (e *MapEditor) placeSwitchTo(n int) {
 	*e.placeTop() = 0
 }
 
-// placeGridWheel scrolls the grid by the wheel's rows.
-func (e *MapEditor) placeGridWheel(l popupLayout, rows int) {
-	if l.GridCols <= 0 {
-		return
-	}
-	g, _, ok := e.placeGridSpec()
-	if !ok {
-		return
-	}
-	total := g.totalRows(l.GridCols)
-	top := e.placeTop()
-	*top = max(0, min(*top+rows, total-l.GridRows))
-}
-
 // placeChoose is a press on grid cell n: it arms the placing of that
 // choice, and each click on the map then places one record of it. A press
 // on the chosen cell ends the placing. On the Sacks palette the press ticks

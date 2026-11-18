@@ -32,7 +32,7 @@ func controlLayoutSurface(name string) bool {
 // controlHitFuncsRemaining ratchets the functions in pkg/ui and pkg/game that
 // hold a hit test outside the surfaces above. It may only fall: a surface
 // that moves to controlLayout lowers it in the same commit.
-const controlHitFuncsRemaining = 154
+const controlHitFuncsRemaining = 153
 
 // tipPlacers are the functions that place a tip box in its page; each asks
 // placeTip and holds no page edge test of its own.

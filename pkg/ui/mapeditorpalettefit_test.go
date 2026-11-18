@@ -121,7 +121,7 @@ func TestSpellPaletteShowsNumbersAndHoverNamesWithoutBookIcons(t *testing.T) {
 		q := ControlQuery{Role: ControlPlaceGridCell, N: id - 1}
 		at, ok := e.FindControl(q)
 		if !ok {
-			e.placeGridWheel(l, (id-1)/l.GridCols-l.GridTop-l.GridRows+1)
+			scrollGridRows(e, l, (id-1)/l.GridCols-l.GridTop-l.GridRows+1)
 			l = layoutPopup(mustListSpec(t, e), e.font, e.bodyFont())
 			at, ok = e.FindControl(q)
 		}

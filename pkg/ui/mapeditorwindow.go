@@ -2325,86 +2325,8 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 // chromeWheel scrolls the popup under the pointer.
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 	switch target {
-	case popLegend:
-		s, _ := e.legendSpec()
-		if l := layoutPopup(s, e.font, e.bodyFont()); !l.RowBar.Empty() {
-			e.pageWheel(popLegend, s, l, wheel)
-		}
-	case popList:
-		if e.placeOwnerWheel(wheel) {
-			return
-		}
-		if s, ok := e.listSpec(); ok && s.Grid != nil {
-			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
-				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
-					if e.forestOn() {
-						e.forestGridWheel(l, rows)
-					} else if e.brush.mode == brushObjects {
-						e.placeGridWheel(l, rows)
-					}
-				} else if e.filter == editorPlayersFilter {
-					e.relationGridWheel(l, rows)
-				} else {
-					e.placeGridWheel(l, rows)
-				}
-				return
-			}
-		}
-		if s, l, ok := e.pagedLayout(popList); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
-			e.pageWheel(popList, s, l, wheel)
-			return
-		}
-		if e.model != nil && e.listKind() != "panel" && (e.listKind() != "brush" || e.brushWindowOf().list) {
-			rows := editorWheelRows(&e.listWheel, wheel)
-			if e.listKind() == "catalog" {
-				e.catalogStep(rows)
-			} else {
-				e.model.Move(rows)
-			}
-		}
-	case popObject:
-		if e.objectWheelDropdown(wheel) || e.graphWheel(wheel) {
-			return
-		}
-		if e.modWindow {
-			if s, _, ok := e.modSpec(); ok && s.Grid != nil {
-				if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
-					e.gridWheel(&e.modGridTop, l, s.Grid, wheel)
-					return
-				}
-			}
-		}
-		if e.textWheel(wheel) {
-			return
-		}
-		if s, l, ok := e.pagedLayout(popObject); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
-			e.pageWheel(popObject, s, l, wheel)
-			return
-		}
-		e.objectTop = max(0, e.objectTop+editorWheelRows(&e.objectWheel, wheel))
-	case popMenu:
-		if e.menuModel != nil {
-			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))
-		}
-	case popTree:
-		if e.tree.model != nil {
-			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
-		}
-	case popPrompt:
-		if d, ok := e.promptDropdown(); ok && d.Open && d.Covers(e.bodyFont(), e.pointer) {
-			d.List.Move(editorWheelRows(&e.listWheel, wheel))
-			return
-		}
-		if s, ok := e.promptSpec(); ok && s.Grid != nil {
-			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
-				e.gridWheel(&e.prompt.gridTop, l, s.Grid, wheel)
-				return
-			}
-		}
-		if s, l, ok := e.pagedLayout(popPrompt); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
-			e.pageWheel(popPrompt, s, l, wheel)
-			return
-		}
+	case popLegend, popList, popObject, popMenu, popTree, popPrompt:
+		e.scrollWheel(target, wheel)
 	}
 }
 

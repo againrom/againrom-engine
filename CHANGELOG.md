@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor every scrolled area now scrolls the same way: the wheel works over the content and the bar, a click on the bar's track moves one page, and dragging the thumb moves the content. The item grids, such as the bag window's, answered only the wheel over their cells before.
 - [BASE] The map editor has no right panel. A selected object's window always opens as a floating window over the map, and the map gets the freed width.
 - [BASE] In the map editor, each item type has one group in the Sacks palette and item lists. Plate boots of every material are together, with separate groups for chain boots and soft boots.
 - [BASE] In the map editor, the (?) tips of a unit's equipment rows name the worn and carried items in readable Russian and English.

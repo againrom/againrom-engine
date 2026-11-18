@@ -192,6 +192,25 @@ func listKey(m *Picker, up, down, pageUp, pageDown bool) bool {
 	return true
 }
 
+// rangeBarRequest is the first position a bar over positions 0..count-1
+// moves to when it is at pos and asks req: line and page steps, or the
+// dragged position set.
+func rangeBarRequest(pos, count, page int, req barRequest, set int) int {
+	switch req {
+	case barLineUp:
+		pos--
+	case barLineDown:
+		pos++
+	case barPageUp:
+		pos -= page
+	case barPageDown:
+		pos += page
+	case barSetPos:
+		pos = set
+	}
+	return max(0, min(pos, count-1))
+}
+
 // listBarRequest applies a bar request to its list: line and page requests
 // act as the arrow and page keys, and a dragged position selects that item.
 func listBarRequest(m *Picker, req barRequest, pos int) bool {

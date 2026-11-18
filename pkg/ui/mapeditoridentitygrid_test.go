@@ -153,7 +153,7 @@ func TestMapEditorIdentityGridWheelStaysInTheChosenBlock(t *testing.T) {
 	if wantRows <= l.GridRows {
 		t.Fatalf("fixture fits: %d rows in %d", wantRows, l.GridRows)
 	}
-	e.placeGridWheel(l, 10000)
+	scrollGridRows(e, l, 10000)
 	if got := *e.placeTop(); got != wantRows-l.GridRows {
 		t.Fatalf("Creatures wheel top = %d, want %d: its heading and wrap rows, no People rows", got, wantRows-l.GridRows)
 	}
@@ -171,15 +171,15 @@ func TestMapEditorIdentityGridWheelStaysInTheChosenBlock(t *testing.T) {
 	s.Size = image.Pt(260, 280)
 	l = layoutPopup(s, e.font, e.bodyFont())
 	peopleRows := 1 + (2+l.GridCols-1)/l.GridCols
-	e.placeGridWheel(l, 10000)
+	scrollGridRows(e, l, 10000)
 	if got := *e.placeTop(); got != max(0, peopleRows-l.GridRows) {
 		t.Fatalf("People wheel top = %d, want %d", got, max(0, peopleRows-l.GridRows))
 	}
-	e.placeGridWheel(l, -10000)
+	scrollGridRows(e, l, -10000)
 	if got := *e.placeTop(); got != 0 {
 		t.Fatalf("People wheel up top = %d", got)
 	}
-	e.placeGridWheel(l, 10000)
+	scrollGridRows(e, l, 10000)
 	identityGridSwitch(t, e, 0)
 	if got := *e.placeTop(); got != 0 {
 		t.Fatalf("Creatures starts at row %d after the switch, want the top", got)

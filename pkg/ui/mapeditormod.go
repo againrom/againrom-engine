@@ -736,16 +736,6 @@ func (e *MapEditor) modGrid(f InspectionField, width int) *popupGrid {
 	return g
 }
 
-// gridWheel scrolls a window's grid g, laid out as l, by the wheel's rows
-// from its first shown row top: the mod page's and a field prompt's grid.
-func (e *MapEditor) gridWheel(top *int, l popupLayout, g *popupGrid, wheel wheelSource) {
-	if l.GridCols <= 0 {
-		return
-	}
-	rows := editorWheelRows(&e.objectWheel, wheel)
-	*top = max(0, min(*top+rows, g.totalRows(l.GridCols)-l.GridRows))
-}
-
 // ModMapButton is one button of a map's entry: caption, host key and value.
 type ModMapButton struct{ Caption, Key, Value string }
 
