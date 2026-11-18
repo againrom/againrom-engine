@@ -9,26 +9,33 @@ import (
 	"againrom/pkg/ui"
 )
 
+type itemChoiceKind struct {
+	word       string
+	class, row int
+}
+
 func (x *MapInspector) itemChoiceGroups(choices []ui.InspectionChoice) []ui.InspectionChoiceGroup {
 	var groups []ui.InspectionChoiceGroup
-	seen := map[[2]string]int{}
+	seen := map[itemChoiceKind]int{}
 	for _, choice := range choices {
 		if choice.Value <= 0 || choice.Value > 65535 {
 			continue
 		}
 		code := data.ItemCode(choice.Value)
 		d := mapload.DecodeItem(x.table, code)
-		kind, kindKey := d.Kind, d.KindKey
-		if kind == "" {
-			kind, kindKey = fmt.Sprintf(x.word("editor.item.unknownkind"), code.B(), code.D()), ""
+		key := itemChoiceKind{word: d.KindKey}
+		if key.word == "" {
+			key.class, key.row = code.B(), code.D()
 		}
-		material := d.Material
-		key := [2]string{kind, material}
 		i, ok := seen[key]
 		if !ok {
+			kind := d.Kind
+			if kind == "" {
+				kind = fmt.Sprintf(x.word("editor.item.unknownkind"), key.class, key.row)
+			}
 			i = len(groups)
 			seen[key] = i
-			groups = append(groups, ui.InspectionChoiceGroup{Block: x.itemGroupWord("kind", kind, kindKey), Head: x.itemGroupWord("material", material, d.MaterialKey)})
+			groups = append(groups, ui.InspectionChoiceGroup{Block: x.itemGroupWord("kind", kind, key.word)})
 		}
 		groups[i].Values = append(groups[i].Values, choice.Value)
 	}

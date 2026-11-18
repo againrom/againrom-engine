@@ -280,13 +280,10 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 			note = r.note
 		}
 		// One long grid: a head row per folder, its items under it.
-		for _, row := range groups {
-			if n := len(g.Groups); n > 0 && g.Groups[n-1].Head == row.Block {
-				g.Groups[n-1].Cells = append(g.Groups[n-1].Cells, row.Cells...)
-				continue
-			}
-			g.Groups = append(g.Groups, popupGridGroup{Head: row.Block, Cells: slices.Clone(row.Cells)})
+		for i := range groups {
+			groups[i].Head, groups[i].Block = groups[i].Block, ""
 		}
+		g.Groups = groups
 		return g, note, true
 	}
 	if len(blocks) < 2 {

@@ -307,7 +307,11 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 		if !slices.Contains(group.Values, value) {
 			continue
 		}
-		for _, label := range []string{group.Block + " >", group.Head + " >"} {
+		labels := []string{group.Block + " >"}
+		if group.Head != "" {
+			labels = append(labels, group.Head+" >")
+		}
+		for _, label := range labels {
 			row := slices.Index(e.DropdownChoices(), label)
 			if row < 0 {
 				t.Fatalf("%s's list has no group %q: %q", key, label, e.DropdownChoices())

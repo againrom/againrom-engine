@@ -55,6 +55,32 @@ func TestChoiceListBuildsFlatListsUnchanged(t *testing.T) {
 	}
 }
 
+func TestChoiceListOpensItemKindsWithTheSameCaptionSeparately(t *testing.T) {
+	l := choiceList{back: "Back", field: InspectionField{
+		Choices: []InspectionChoice{{1, "Iron boots"}, {2, "Custom boots"}, {3, "Steel boots"}},
+		Groups: []InspectionChoiceGroup{
+			{Block: "Boots", Values: []int64{1, 3}},
+			{Block: "Boots", Values: []int64{2}},
+		},
+	}}
+	if rows := l.rows(); len(rows) != 2 || rows[0].Text != "Boots >" || rows[1].Text != "Boots >" {
+		t.Fatalf("kind rows: %+v", rows)
+	}
+	l.take(0)
+	if rows := l.rows(); len(rows) != 3 || rows[0].Text != "Back" || rows[1].Text != "Iron boots" || rows[2].Text != "Steel boots" {
+		t.Fatalf("first kind rows: %+v", rows)
+	}
+	l.take(0)
+	l.rows()
+	l.take(1)
+	if rows := l.rows(); len(rows) != 2 || rows[1].Text != "Custom boots" {
+		t.Fatalf("second kind rows: %+v", rows)
+	}
+	if index, navigate := l.take(1); navigate || index != 1 {
+		t.Fatalf("second kind returned choice index %d, navigate %v", index, navigate)
+	}
+}
+
 func TestChoiceRowDropdownOpensInsideTheWindow(t *testing.T) {
 	e := NewMapEditor(nil, nil, nil)
 	e.SetBodyFont(wordsFont("en"))

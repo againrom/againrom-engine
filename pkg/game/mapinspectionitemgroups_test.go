@@ -13,26 +13,62 @@ import (
 	"againrom/pkg/ui"
 )
 
-func TestEditorItemGroupsPartitionCodesByTableRowAndMaterial(t *testing.T) {
+func TestEditorSackPaletteKeepsOneBlockPerItemKind(t *testing.T) {
+	s, _ := viewsMap(t)
+	e := viewsWindow(t, s, false, ui.KindSack)
+	x := s.inspector
+	x.archives.Base.Profile.Language = "russian"
+	x.table.Armors = dbCollection{{}, {name: "Plate Boots"}, {name: "Chain Boots"}, {name: "Soft Boots"}}
+	x.table.Materials = fixtureScale{names: []string{"Iron", "Meteoric"}}
+	x.table.Names = data.ItemNames{0x901: "iron plate boots", 0x902: "chain boots", 0x903: "soft boots", 0x1901: "meteoric plate boots"}
+	x.recordOptions = nil
+	e.Layout(1920, 1080)
+	dirty, raw := e.Dirty(), bytes.Clone(e.Document().SourceBytes)
+	if err := e.Key("sack"); err != nil {
+		t.Fatal(err)
+	}
+	var cells [4]image.Rectangle
+	for i := range cells {
+		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: i})
+		if !ok {
+			t.Fatalf("catalog cell %d is missing from Sacks", i)
+		}
+		cells[i] = r
+	}
+	if cells[0].Min.Y != cells[3].Min.Y || cells[0].Min.X >= cells[3].Min.X {
+		t.Fatalf("plate boots do not share one ordered block: iron at %v, meteoric at %v", cells[0], cells[3])
+	}
+	if cells[1].Min.Y <= cells[3].Min.Y || cells[2].Min.Y <= cells[1].Min.Y {
+		t.Fatalf("chain and soft boots need separate blocks in catalog order: %v", cells)
+	}
+	if e.Dirty() != dirty || !bytes.Equal(raw, e.Document().SourceBytes) {
+		t.Fatal("opening the palette edited the map")
+	}
+}
+
+func TestEditorItemGroupsPartitionCodesByKind(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		s, _ := viewsMap(t)
 		x := s.inspector
 		x.archives.Base.Profile.Language = lang
 		x.table.Materials = fixtureScale{names: []string{"Iron", "Meteoric"}}
-		x.table.Weapons = dbCollection{{}, {name: "Two Handed Sword"}, {name: "Shaman Staff"}}
-		x.table.Names = data.ItemNames{0x101: "sword", 0x121: "rare sword", 0x1101: "meteorite sword", 0x102: "staff", 0xe08: "potion"}
+		x.table.Weapons = dbCollection{{}, {name: "Two Handed Sword"}, {name: "Shaman Staff"}, {name: "custom sword"}, {name: "custom sword"}}
+		x.table.Names = data.ItemNames{
+			0x101: "sword", 0x121: "rare sword", 0x1101: "meteorite sword", 0x102: "staff",
+			0x103: "first custom sword", 0x1103: "meteorite custom sword", 0x104: "second custom sword", 0xe08: "potion",
+		}
 		x.recordOptions = nil
 		offer := s.fieldChoiceOffer(fieldChoiceAsk{kind: ui.KindSack, index: groundSack(t, s), key: "item1"})
 		if offer.Choices[0].Value != 0 || offer.Choices[1].Value != stockDuplicate {
 			t.Fatal("Remove and Duplicate are no longer first", offer.Choices)
 		}
-		want := [][]int64{{0x101, 0x121}, {0x102}, {0xe08}, {0x1101}}
+		want := [][]int64{{0x101, 0x121, 0x1101}, {0x102}, {0x103, 0x1103}, {0x104}, {0xe08}}
 		if len(offer.Groups) != len(want) {
 			t.Fatalf("groups=%+v", offer.Groups)
 		}
 		seen := map[int64]int{}
 		for i, g := range offer.Groups {
-			if !slices.Equal(g.Values, want[i]) {
+			if g.Head != "" || !slices.Equal(g.Values, want[i]) {
 				t.Fatalf("group %d=%+v want=%v", i, g, want[i])
 			}
 			for _, code := range g.Values {
@@ -44,11 +80,11 @@ func TestEditorItemGroupsPartitionCodesByTableRowAndMaterial(t *testing.T) {
 				t.Fatalf("code %d grouped %d times", c.Value, seen[c.Value])
 			}
 		}
-		if offer.Groups[0].Block != x.itemGroupWord("kind", "Two Handed Sword", "twohandedsword") || offer.Groups[3].Head != x.itemGroupWord("material", "Meteoric", "meteoric") {
-			t.Fatal("kind or material caption did not follow the table")
+		if offer.Groups[0].Block != x.itemGroupWord("kind", "Two Handed Sword", "twohandedsword") {
+			t.Fatal("kind caption did not follow the table")
 		}
-		if lang == "russian" && (offer.Groups[0].Block != x.inspectionUTF8("Двуручные мечи") || offer.Groups[3].Head != x.inspectionUTF8("Метеорит")) {
-			t.Fatal("Russian category captions are missing")
+		if lang == "russian" && offer.Groups[0].Block != x.inspectionUTF8("Двуручные мечи") {
+			t.Fatal("Russian kind caption is missing")
 		}
 	}
 }

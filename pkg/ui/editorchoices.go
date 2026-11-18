@@ -9,13 +9,13 @@ import (
 
 type choiceListEntry struct {
 	index int
-	path  []string
+	path  []int
 	label string
 }
 
 type choiceList struct {
 	field   InspectionField
-	path    []string
+	path    []int
 	back    string
 	plain   bool
 	entries []choiceListEntry
@@ -34,28 +34,31 @@ func (l *choiceList) rows() []PickerRow {
 			l.entries = append(l.entries, choiceListEntry{index: i})
 		}
 	}
+	var selected *InspectionChoiceGroup
 	if len(l.path) > 0 {
+		selected = &l.field.Groups[l.path[len(l.path)-1]]
 		l.entries = append(l.entries, choiceListEntry{index: -1, path: slices.Clone(l.path[:len(l.path)-1]), label: l.back})
 	}
 	seen := map[string]bool{}
-	for _, g := range l.field.Groups {
-		switch len(l.path) {
-		case 0:
-			if !seen[g.Block] {
-				l.entries = append(l.entries, choiceListEntry{index: -1, path: []string{g.Block}, label: g.Block + " >"})
-				seen[g.Block] = true
+	for n, g := range l.field.Groups {
+		switch {
+		case selected == nil:
+			if g.Head == "" || !seen[g.Block] {
+				l.entries = append(l.entries, choiceListEntry{index: -1, path: []int{n}, label: g.Block + " >"})
+				if g.Head != "" {
+					seen[g.Block] = true
+				}
 			}
-		case 1:
-			if g.Block == l.path[0] && !seen[g.Head] {
-				l.entries = append(l.entries, choiceListEntry{index: -1, path: []string{g.Block, g.Head}, label: g.Head + " >"})
+		case len(l.path) == 1 && selected.Head != "":
+			if g.Block == selected.Block && g.Head != "" && !seen[g.Head] {
+				l.entries = append(l.entries, choiceListEntry{index: -1, path: []int{l.path[0], n}, label: g.Head + " >"})
 				seen[g.Head] = true
 			}
-		case 2:
-			if g.Block == l.path[0] && g.Head == l.path[1] {
-				for i, c := range l.field.Choices {
-					if slices.Contains(g.Values, c.Value) {
-						l.entries = append(l.entries, choiceListEntry{index: i})
-					}
+		case len(l.path) == 1 && n == l.path[0],
+			len(l.path) == 2 && g.Block == selected.Block && g.Head == selected.Head:
+			for i, c := range l.field.Choices {
+				if slices.Contains(g.Values, c.Value) {
+					l.entries = append(l.entries, choiceListEntry{index: i})
 				}
 			}
 		}
