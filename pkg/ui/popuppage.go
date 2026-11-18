@@ -40,6 +40,7 @@ type EditorMockup struct {
 	// asideName names the picture beside the list.
 	asideName string
 	encode    func(string) string
+	chrome    *mockupChrome
 	panels    *mockupPanels
 }
 
@@ -93,6 +94,10 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 		sample = &popupScope{}
 	}
 	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body, encode: encode}
+	if d.Chrome != nil {
+		m.chrome, err = newMockupChrome(*d.Chrome, lang, window, title, body, encode, person.decode)
+		return m, err
+	}
 	if d.Panels != nil {
 		m.panels, err = buildMockupPanels(d, lang, window, title, body, encode, person.decode)
 		if err != nil {
@@ -392,6 +397,10 @@ func (m *EditorMockup) Picture() *image.RGBA {
 	for i := 0; i < len(dst.Pix); i += 4 {
 		dst.Pix[i], dst.Pix[i+1], dst.Pix[i+2], dst.Pix[i+3] = ground.R, ground.G, ground.B, ground.A
 	}
+	if m.chrome != nil {
+		m.chrome.draw(dst)
+		return dst
+	}
 	if m.panels != nil {
 		m.panels.draw(dst, m.title, m.body)
 		return dst
@@ -436,6 +445,9 @@ func pagePictures(body *text.Font, l popupLayout, rows []popupRow, names map[int
 // Page is the window as one HTML page: every part of the layout placed at
 // its rectangle in the popup painter's inks, with the description inside.
 func (m *EditorMockup) Page() []byte {
+	if m.chrome != nil {
+		return mockupPage(m.desc, m.lang, m.window, m.chrome.writePage)
+	}
 	if m.panels != nil {
 		return m.panels.page(m.desc, m.lang, m.window)
 	}

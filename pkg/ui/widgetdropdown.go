@@ -39,6 +39,7 @@ type dropdown struct {
 	EditFont           *text.Font
 	Press              *buttonPress
 	Button, ButtonRows bool
+	ListOnly           bool
 }
 
 // button is the arrow button at the closed box's right end.
@@ -78,11 +79,11 @@ func (d dropdown) Bounds(f *text.Font) image.Rectangle {
 	return d.Rect.Union(l.Rect.Inset(-1)).Union(l.Bar())
 }
 
-// Covers reports whether p lies on the drop-down: the box, or the open list
+// Covers reports whether p lies on the painted box or the open list
 // with its rim and bar. A list wider than the box leaves the strip beside the
 // box free, which Bounds' rectangle does not.
 func (d dropdown) Covers(f *text.Font, p image.Point) bool {
-	if p.In(d.Rect) {
+	if !d.ListOnly && p.In(d.Rect) {
 		return true
 	}
 	if !d.Open {
@@ -103,6 +104,7 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 	}
 	d.Press.cover(d.Rect)
 	switch {
+	case d.ListOnly:
 	case d.Button:
 		drawPushButton(dst, f, pushButton{Rect: d.Rect, Label: d.Text + " v", Literal: true, LabelRaise: labelRaise(f), Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled, Press: d.Press})
 	case d.Icon != nil:

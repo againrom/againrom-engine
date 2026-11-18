@@ -554,6 +554,9 @@ func (e *MapEditor) recordsOf(filter int) []int {
 
 func (e *MapEditor) Pointer(in Input, now time.Time) {
 	defer e.dropLostPick()
+	if !in.PrimaryDown && e.search.closeOnRelease {
+		defer e.searchLeave(false)
+	}
 	if in.SecondaryDown && e.pick != pickNone {
 		e.leave(leavePick)
 		if e.prompt.kind == promptPlace {

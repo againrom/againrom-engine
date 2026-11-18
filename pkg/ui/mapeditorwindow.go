@@ -166,18 +166,14 @@ func (e *MapEditor) barRowHeight() int {
 	return max(fontHeight(e.font, 15), fontHeight(e.bodyFont(), 15)) + 10
 }
 
-// barHeight is the top bar's height: one row, and more only in a window
-// narrower than the bar, where barRows wraps it. The map frame is the
-// window less the bar and the one-row status strip and sits at scale 1.
 func (e *MapEditor) barHeight() int {
-	entries := e.barRows()
-	return entries[len(entries)-1].rect.Max.Y + 3
+	return e.topBarLayout().Rect.Dy()
 }
 
 // mapArea is the window rectangle the map fills: the window between the
 // toolbar and the status strip, less the side panels and the bottom panel.
 func (e *MapEditor) mapArea() image.Rectangle {
-	top := e.toolbarRect().Max.Y
+	top := e.chromeContentTop()
 	shown := e.panelsShown()
 	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], max(top+1, e.mapBottom(top)-shown[panelBottom]))
 }
@@ -206,26 +202,34 @@ type barEntry struct {
 	rect       image.Rectangle
 }
 
-// barEntries is the top bar's entries in their rows, each with its state.
-func (e *MapEditor) barEntries() []barEntry {
-	entries := e.barRows()
+func (e *MapEditor) topBarEntries(l popupLayout) []barEntry {
+	entries := make([]barEntry, 0, len(l.Bar.Cells))
 	mode := e.barWindow()
-	for i := range entries {
-		if entries[i].menu {
-			continue
-		}
-		entries[i].on = entries[i].key == mode
-		switch entries[i].key {
-		case "objects", "trees":
-			entries[i].disabled = e.brushHost() == nil
-		case "panel":
-			_, ok := e.mapPanel()
-			entries[i].disabled = !ok
-		default:
-			entries[i].disabled = e.doc == nil
-		}
+	for _, cell := range l.Bar.Cells {
+		k := barKeys[cell.Index]
+		entries = append(entries, barEntry{key: k.key, label: cell.Caption, menu: k.menu, rect: cell.Rect,
+			on: !k.menu && k.key == mode, disabled: e.barDisabled(k)})
 	}
 	return entries
+}
+
+func (e *MapEditor) barDisabled(k barKey) bool {
+	if k.menu {
+		return false
+	}
+	switch k.key {
+	case "objects", "trees":
+		return e.brushHost() == nil
+	case "panel":
+		_, ok := e.mapPanel()
+		return !ok
+	default:
+		return e.doc == nil
+	}
+}
+
+func (e *MapEditor) barEntries() []barEntry {
+	return e.topBarEntries(e.topBarLayout())
 }
 
 // barKey is one top bar entry as data: its key, its word, whether it opens
@@ -256,44 +260,16 @@ func barKeyRows() []barKey {
 	)
 }
 
-// barRows places the top bar's entries, without their states, which the
-// window's layout does not read.
-func (e *MapEditor) barRows() []barEntry {
-	entries := make([]barEntry, len(barKeys))
+func (e *MapEditor) topBarLayout() popupLayout {
+	const inset, pad = 4, 3
+	bar := popupBar{Strip: true, Height: e.barRowHeight() - 2*pad, Inset: inset, Pad: pad, GroupGap: inset, CompactText: true}
+	entries := make([]popupBarEntry, len(barKeys))
+	bar.Groups = make([]popupBarGroup, len(barKeys))
 	for i, k := range barKeys {
-		entries[i] = barEntry{key: k.key, label: e.word(k.labelWord), menu: k.menu}
+		entries[i] = popupBarEntry{Index: i, Caption: e.word(k.labelWord), Menu: k.menu}
+		bar.Groups[i] = popupBarGroup{Right: k.right, Entries: entries[i : i+1]}
 	}
-	h := e.barRowHeight()
-	widths := make([]int, len(entries))
-	rightWidth := 0
-	for i := range entries {
-		w := 16
-		if e.font != nil {
-			w += e.font.Advance(entries[i].label)
-		}
-		if entries[i].menu && !entries[i].field {
-			w += h
-		}
-		widths[i] = w
-		if barKeys[i].right {
-			rightWidth += w + 4
-		}
-	}
-	x, top := 4, 0
-	for i := range entries {
-		w := widths[i]
-		if barKeys[i].right && (i == 0 || !barKeys[i-1].right) {
-			x = max(x, e.window.X-rightWidth)
-		}
-		// An entry that would pass the window's right edge starts the next
-		// row, so a window narrower than the bar still shows every entry.
-		if x > 4 && e.window.X > 0 && x+w > e.window.X-4 {
-			x, top = 4, top+h
-		}
-		entries[i].rect = image.Rect(x, top+3, x+w, top+h-3)
-		x += w + 4
-	}
-	return entries
+	return layoutPopup(popupSpec{Bar: &bar, Bounds: image.Rectangle{Max: e.window}}, e.font, e.bodyFont())
 }
 
 // controlBarRect is the window rectangle of a bar entry, such as file or panel.
@@ -450,7 +426,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 		return e.searchItems()
 	}
 	var out []menuItem
-	for _, t := range e.toolbarEntries() {
+	for _, t := range e.toolStates() {
 		if t.menu != menu {
 			continue
 		}
@@ -476,10 +452,9 @@ var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHei
 // whose list ends inside the window and is wide enough for its longest row;
 // a disabled row draws in the hint ink and cannot be chosen.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
-	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X, Press: &e.buttonPress, Button: !entry.field, ButtonRows: true}
+	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X, Press: &e.buttonPress, Button: !entry.field, ButtonRows: true, ListOnly: entry.field}
 	if entry.field {
-		row := e.searchRow()
-		d.Edit, d.EditFont, d.Ink = &row, e.bodyFont(), editorLight
+		d.Ink = editorLight
 	}
 	if open && e.menu == entry.key {
 		items := e.menuItems(entry.key)
@@ -1767,15 +1742,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	e.chromeWindows = e.chromeWindows[:0]
 	e.tip.windows = e.tip.windows[:0]
 	pic := e.chromeBlank()
-	bar := image.Rect(0, 0, e.window.X, e.barHeight())
-	drawFrame(pic, stripFrame(bar, edgeBottomBit))
-	for _, b := range e.barEntries() {
-		if b.menu {
-			drawDropdown(pic, e.font, nil, e.menuDropdown(b, false), nil, e.pointer, e.pointerOK)
-			continue
-		}
-		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Pressed: b.on, Inside: b.on, Hover: e.pointerOK && e.pointer.In(b.rect), Press: &e.buttonPress})
-	}
+	e.drawTopBar(pic)
 	e.drawMapTabs(pic)
 	e.drawToolbar(pic, false)
 	status := e.statusRect()
@@ -1791,6 +1758,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 			e.drawListWindow(pic, s)
 		}
 	}
+	e.drawSearchBar(pic)
 	if !fade {
 		e.drawFloating(pic)
 	}
@@ -1800,6 +1768,18 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	e.drawTip(pic)
 	e.buttonPress.finish(pic)
 	return pic
+}
+
+func (e *MapEditor) drawTopBar(pic *image.RGBA) {
+	l := e.topBarLayout()
+	for i, b := range e.topBarEntries(l) {
+		l.Bar.Cells[i].On, l.Bar.Cells[i].Disabled = b.on, b.disabled
+	}
+	e.drawBar(pic, l)
+}
+
+func (e *MapEditor) drawBar(pic *image.RGBA, l popupLayout) {
+	drawPopup(pic, e.font, e.bodyFont(), nil, popupSpec{}, l, editorPopupInk, e.pointer, e.pointerOK, &e.buttonPress)
 }
 
 // drawFloating draws the windows that float over the map in stacking order.
@@ -1846,6 +1826,10 @@ func (e *MapEditor) ChromeWindows() []ChromeWindow { return slices.Clone(e.chrom
 // drawWindow draws popup s as one window of the chrome.
 func (e *MapEditor) drawWindow(pic *image.RGBA, s popupSpec) {
 	l := layoutPopup(s, e.font, e.bodyFont())
+	e.drawPlacedWindow(pic, s, l)
+}
+
+func (e *MapEditor) drawPlacedWindow(pic *image.RGBA, s popupSpec, l popupLayout) {
 	e.noteWindow(l.Rect)
 	e.tip.windows = append(e.tip.windows, tipWindow{s, l})
 	drawPopup(pic, e.font, e.bodyFont(), nil, s, l, editorPopupInk, e.pointer, e.pointerOK, &e.buttonPress)
@@ -2219,6 +2203,9 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 			}
 		}
 	}
+	if e.searchRowShown() && p.In(e.searchLayout().Rect) {
+		return popMenu
+	}
 	// A hosted window takes a press on what it draws, the rectangle its
 	// layout fills, as a floating one does.
 	if objectOK && hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
@@ -2239,7 +2226,7 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
 		return popArea
 	}
-	if p.Y < e.barHeight() {
+	if p.In(e.topBarLayout().Rect) {
 		return popBar
 	}
 	if p.In(e.mapTabsRect()) {
@@ -2273,10 +2260,10 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	}
 	target := popNone
 	if pressed {
-		e.searchPressOff(p)
 		e.placeOwnerPressOff(p)
 		if e.drag == popNone && !e.uiDown {
 			target = e.chromeHit(p)
+			e.searchPressOff(target)
 			if e.menu == "" && !e.prompt.modal() && e.message == "" {
 				e.raisePopup(target)
 			}
@@ -2488,9 +2475,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			}
 		}
 	case popBar:
-		for _, b := range e.barEntries() {
-			if p.In(b.rect) && !b.disabled {
-				e.barAct(b.key)
+		if part, index := e.topBarLayout().hit(p); part == popupBarCellPart {
+			if k := barKeys[index]; !e.barDisabled(k) {
+				e.barAct(k.key)
 			}
 		}
 	case popMapTabs:

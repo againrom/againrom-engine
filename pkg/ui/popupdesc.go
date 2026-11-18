@@ -41,6 +41,7 @@ type popupDesc struct {
 	Buttons    []popupDescButton `json:"buttons,omitempty"`
 	Sample     *popupScope       `json:"sample,omitempty"`
 	Preview    *popupPreview     `json:"preview,omitempty"`
+	Chrome     *chromePreview    `json:"chrome,omitempty"`
 	// TitleHelpMore are word keys whose words follow the title help, each
 	// after a space: the keys line every prompt states once.
 	TitleHelpMore []string `json:"titleHelpMore,omitempty"`

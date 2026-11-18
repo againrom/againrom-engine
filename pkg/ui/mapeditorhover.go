@@ -20,21 +20,24 @@ const editorTipDelay = 300
 type editorTip struct {
 	clock   tooltipController
 	windows []tipWindow
-	// top is the first line a scrolled help tip shows, for the tip whose key
+	// top is the first line a scrolled tip shows, for the tip whose key
 	// is topKey.
 	top    int
 	topKey string
 	wheel  float64
 }
 
-// scrollTip moves the shown help tip's lines by the wheel's direction at p,
-// true when the wheel was used on a tip that scrolls.
+// scrollTip consumes the wheel over a shown, paged tip's anchor.
 func (e *MapEditor) scrollTip(p image.Point, in wheelSource) bool {
-	tip, ok := e.tipAt(p)
-	if !ok || !tip.Help || tip.Rows <= 0 {
+	tip, ok := e.shownTipAt(p)
+	if !ok || tip.Rows <= 0 {
 		return false
 	}
-	e.tip.top, e.tip.topKey = tip.scrolled(tip.Top, editorWheelRows(&e.tip.wheel, in)).Top, tip.key()
+	key := tip.key()
+	if key != e.tip.topKey {
+		e.tip.wheel = 0
+	}
+	e.tip.top, e.tip.topKey = tip.scrolled(tip.Top, editorWheelRows(&e.tip.wheel, in)).Top, key
 	return true
 }
 
@@ -168,20 +171,18 @@ func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
 	}
 	switch id := e.chromeHit(p); {
 	case id == popToolbar:
-		if label, r, ok := e.toolTip(p); ok {
-			return hoverTip(bounds, body, r, label, nil), true
+		if tip, ok := popupTipAt(bounds, e.font, body, popupSpec{}, e.toolbarLayout(), p, true); ok {
+			return tip, true
 		}
+	case id == popMenu && e.searchTyping():
+		return popupTipAt(bounds, e.font, body, popupSpec{}, e.searchLayout(), p, true)
 	case id == popMenu || e.openDropdownHit(p) || e.promptDropdownHit(p):
 		return popupTip{}, false
 	}
 	for i := len(e.tip.windows) - 1; i >= 0; i-- {
 		w := e.tip.windows[i]
 		if part, _ := w.layout.hit(p); part != popupMiss {
-			tip, ok := popupTipAt(bounds, e.font, body, w.spec, w.layout, p, true)
-			if ok && tip.Help && tip.key() == e.tip.topKey {
-				tip = tip.scrolled(e.tip.top, 0)
-			}
-			return tip, ok
+			return popupTipAt(bounds, e.font, body, w.spec, w.layout, p, true)
 		}
 	}
 	return popupTip{}, false
@@ -202,9 +203,17 @@ func (e *MapEditor) shownTip() (popupTip, bool) {
 	if !e.pointerOK {
 		return popupTip{}, false
 	}
-	tip, ok := e.tipAt(e.pointer)
-	if !ok || tip.Text == "" || !(tip.Help || e.tip.clock.visible(tip.key())) {
+	return e.shownTipAt(e.pointer)
+}
+
+func (e *MapEditor) shownTipAt(p image.Point) (popupTip, bool) {
+	tip, ok := e.tipAt(p)
+	key := tip.key()
+	if !ok || key == "" || !(tip.Help || e.tip.clock.visible(key)) {
 		return popupTip{}, false
+	}
+	if key == e.tip.topKey {
+		tip = tip.scrolled(e.tip.top, 0)
 	}
 	return tip, true
 }

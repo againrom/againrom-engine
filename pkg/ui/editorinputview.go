@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 )
 
 type editorTextSpan struct{ from, to int }
@@ -194,13 +195,20 @@ func drawEditRow(dst *image.RGBA, body *text.Font, row popupRow, box image.Recta
 		if body == nil {
 			return
 		}
-		room := box.Dx() - 2 - editTextX
-		if row.Value == "" && row.Hint != "" {
-			body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, ink.Hint)
-			return
+		shown, hint := editFieldText(body, row, box)
+		if hint {
+			value = ink.Hint
 		}
-		body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Value, room), at.X, at.Y, value)
+		body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), shown, at.X, at.Y, value)
 	})
+}
+
+func editFieldText(body *text.Font, row popupRow, box image.Rectangle) (string, bool) {
+	room := box.Dx() - 2 - editTextX
+	if row.Value == "" {
+		return editorClip(body, row.Hint, room), true
+	}
+	return editorClip(body, row.Value, room), false
 }
 
 func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rectangle, ink popupInk, value color.RGBA) {
@@ -219,10 +227,21 @@ func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rect
 		drawEditField(dst, editField{Rect: box, TextH: fontHeight(f, 15), Focus: row.Focus, Phase: true, Caret: caret, SelFrom: lo, SelTo: hi}, func(at image.Point) {
 			clip := dst.SubImage(box.Inset(2)).(*image.RGBA)
 			if label == "" && row.Hint != "" {
-				f.Draw(clip, editorClip(f, row.Hint, box.Dx()-2-editTextX), at.X, at.Y, ink.Hint)
+				shown, _ := editFieldText(f, row, box)
+				f.Draw(clip, shown, at.X, at.Y, ink.Hint)
 				return
 			}
-			shown, x := v.shownRun(spans[0], f, shift, 2-editTextX, box.Dx()-2-editTextX)
+			if row.FitEdit && shift == 0 && max(caret, hi) <= box.Dx()-2-editTextX-f.Advance(textfit.Mark) {
+				shown, _ := editFieldText(f, row, box)
+				f.Draw(clip, shown, at.X, at.Y, value)
+				return
+			}
+			left := 2 - editTextX
+			if row.FitEdit && shift > 0 {
+				f.Draw(clip, textfit.Mark, at.X, at.Y, value)
+				left = f.Advance(textfit.Mark)
+			}
+			shown, x := v.shownRun(spans[0], f, shift, left, box.Dx()-2-editTextX)
 			f.Draw(clip, shown, at.X+x, at.Y, value)
 		})
 		return

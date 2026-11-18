@@ -5,9 +5,102 @@ import (
 	"image"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+func TestMapEditorSearchOutsideClickUsesDisplayedMap(t *testing.T) {
+	e, _, _ := menuEditor(t, "en")
+	closed := e.mapArea()
+	const unit = 0
+	cell := e.doc.Records[unit].Cell
+	chromeClick(e, e.CellPoint(cell))
+	if e.selected != unit {
+		t.Fatalf("control click selected record %d, want %d", e.selected, unit)
+	}
+	e, _, _ = menuEditor(t, "en")
+	if err := e.Key(searchKey); err != nil {
+		t.Fatal(err)
+	}
+	open := e.mapArea()
+	at := e.CellPoint(cell)
+	if open.Min.Y <= closed.Min.Y || !at.In(open) {
+		t.Fatalf("search map %v, closed map %v, unit at %v", open, closed, at)
+	}
+	input := Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}
+	e.Pointer(input, time.Unix(1, 0))
+	e.Layout(1920, 1080)
+	held := e.mapArea()
+	input.PrimaryDown = false
+	e.Pointer(input, time.Unix(2, 0))
+	if e.selected != unit || held != open || e.mapArea() != closed || e.searchTyping() {
+		t.Fatalf("click at %v selected record %d with map %v while held and %v on release, want record %d and maps %v then %v",
+			at, e.selected, held, e.mapArea(), unit, open, closed)
+	}
+}
+
+func TestMapEditorSearchLeavesFloatingDockButtonUsable(t *testing.T) {
+	for _, x := range []int{40, 840} {
+		e, _, _ := menuEditor(t, "en")
+		e.openMaps = []*openMap{{doc: e.doc}, {doc: &InspectionDocument{Name: "Second map"}}}
+		e.undockToolbar(image.Pt(x, e.mapTabsRect().Max.Y+popupPad))
+		before := e.toolbarLayout()
+		at := center(before.Close)
+		if e.chromeHit(at) != popToolbar || !at.In(e.searchLayout().Rect) {
+			t.Fatalf("toolbar close %v does not exercise overlap with search %v", before.Close, e.searchLayout().Rect)
+		}
+		withoutSearch := e.ChromeImage()
+		if err := e.Key(searchKey); err != nil {
+			t.Fatal(err)
+		}
+		duringSearch := e.ChromeImage()
+		if got := e.toolbarLayout().Close; got != before.Close {
+			t.Fatalf("search moved the floating dock button from %v to %v", before.Close, got)
+		}
+		chromeClick(e, at)
+		if e.toolbarFloats() || e.searchTyping() {
+			t.Fatalf("press at %v left toolbar floating %v and search active %v", at, e.toolbarFloats(), e.searchTyping())
+		}
+		if !sameRectPixels(withoutSearch, before.Close, duringSearch, before.Close) {
+			t.Fatalf("search covered the dock button at %v", before.Close)
+		}
+	}
+}
+
+func TestMapEditorSearchTipWheelReachesQueryTail(t *testing.T) {
+	e, _, _ := menuEditor(t, "en")
+	e.SetBodyFont(wordsFont("en"))
+	if err := e.Key(searchKey); err != nil {
+		t.Fatal(err)
+	}
+	query := strings.Repeat("southern bridge guards ", 150) + "query tail"
+	e.TextInput(query)
+	at := center(e.searchEntry().rect)
+	input := Input{CursorX: at.X, CursorY: at.Y}
+	now := time.Unix(10, 0)
+	e.Pointer(input, now)
+	now = now.Add(time.Duration(editorTipDelay) * time.Millisecond)
+	e.Pointer(input, now)
+	first, ok := e.shownTip()
+	if !ok || first.Text != query || first.Rows <= 0 || first.Rows >= len(first.Lines) {
+		t.Fatalf("expected a settled, paged tip for %d query bytes, got %d bytes and %d of %d lines",
+			len(query), len(first.Text), first.Rows, len(first.Lines))
+	}
+	input.WheelY = -1
+	e.Pointer(input, now.Add(time.Millisecond))
+	step, _ := e.shownTip()
+	if step.Top <= first.Top {
+		t.Fatalf("the wheel left the first visible line at %d", step.Top)
+	}
+	input.WheelY = -float64(len(first.Lines))
+	e.Pointer(input, now.Add(2*time.Millisecond))
+	last, ok := e.shownTip()
+	lines := last.shown()
+	if !ok || last.Top != len(last.Lines)-last.Rows || !strings.HasSuffix(strings.Join(lines, " "), "query tail") {
+		t.Fatalf("the end of the tip shows from line %d with %d of %d lines", last.Top, last.Rows, len(last.Lines))
+	}
+}
 
 // searchView is the map view's place and zoom.
 func searchView(e *MapEditor) [3]float64 {

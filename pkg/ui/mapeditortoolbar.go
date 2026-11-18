@@ -4,15 +4,8 @@ import (
 	"image"
 )
 
-// The toolbar: one row across the window between the top bar and the map,
-// or a floating window. toolButtons is its one table and toolbarEntries its
-// one builder: the left group holds the tools, one of them current, the
-// right group the layer switches, the other switches and the actions; each
-// button's cell places it in the floating window's grid. A button performs
-// its row key through menuAct, the one path a menu row takes. A drag from the
-// grip at the row's left end floats the toolbar, and the window's close
-// button docks it again. The same table gives the bar's Tools, View and
-// Window menus their rows; a row with no icon stands in a menu only.
+// toolButtons supplies the toolbar and the menus. Each picture button and
+// its menu row perform the same key through menuAct.
 
 // toolKind is what a toolbar button is.
 type toolKind uint8
@@ -150,84 +143,59 @@ func (e *MapEditor) toggleToolbar() {
 	e.savePanels()
 }
 
-// toolbarRect is the toolbar's row: the window's width under the top bar,
-// as high as its buttons and padding; no height while the toolbar floats or
-// is hidden.
-func (e *MapEditor) toolbarRect() image.Rectangle {
-	top, high := e.mapTabsRect().Max.Y, 0
+func (e *MapEditor) toolbarBar() popupBar {
+	bar := popupBar{Gap: toolGap, Sizes: toolSizes[:], Groups: []popupBarGroup{{}, {Right: true}}}
+	for i, b := range toolButtons {
+		if b.onToolbar() {
+			group := &bar.Groups[b.group]
+			group.Entries = append(group.Entries, popupBarEntry{Index: i, Icon: b.icon, Cell: b.cell})
+		}
+	}
+	if e.toolbarFloats() {
+		bar.Inset, bar.Pad = popupPad, popupPad
+	} else {
+		bar.Strip, bar.Grip, bar.GripWidth = true, &iconGrip, toolGripW
+		bar.Inset, bar.Pad, bar.GroupGap, bar.MaxRows = toolInset, toolbarPad, toolGroupGap, 2
+	}
+	return bar
+}
+
+func (e *MapEditor) dockedToolbarLayout() popupLayout {
+	top := e.mapTabsRect().Max.Y
+	bounds := image.Rect(0, top, e.window.X, top)
 	if !e.toolbarFloats() && e.toolbarOn() {
-		high = e.toolSizeNow().side + 2*toolbarPad
+		bounds.Max.Y = max(top, e.mapBottom(top)-mapLeastHeight)
+		bar := e.toolbarBar()
+		return layoutPopup(popupSpec{Bar: &bar, Bounds: bounds}, e.font, e.bodyFont())
 	}
-	return image.Rect(0, top, e.window.X, top+high)
+	return popupLayout{Rect: bounds}
 }
 
-// toolSizeNow is the size the toolbar's buttons take: the largest whose
-// docked row fits the window's width, or whose floating window fits the
-// height floating windows stand in; else the smallest.
-func (e *MapEditor) toolSizeNow() toolSize {
-	last := toolSizes[len(toolSizes)-1]
-	for _, z := range toolSizes[:len(toolSizes)-1] {
-		if e.toolbarFloats() && e.toolFloatSize(z).Y <= e.popupBounds().Dy() || !e.toolbarFloats() && toolRowWidth(z) <= e.window.X {
-			return z
-		}
-	}
-	return last
-}
+func (e *MapEditor) toolbarRect() image.Rectangle { return e.dockedToolbarLayout().Rect }
 
-// toolRowWidth is the width the docked row takes at size z: the grip, the
-// left group, the gap between the groups and the right group, inset at each
-// end.
-func toolRowWidth(z toolSize) int {
-	var n [2]int
-	for _, b := range toolButtons {
-		if b.onToolbar() {
-			n[b.group]++
-		}
-	}
-	run := func(k int) int { return k*z.side + (k-1)*toolGap }
-	return 2*toolInset + toolGripW + toolGap + run(n[toolLeft]) + toolGroupGap + run(n[toolRight])
-}
-
-// toolGrid is the floating window's columns and rows: one past each
-// button's greatest cell.
-func toolGrid() image.Point {
-	var g image.Point
-	for _, b := range toolButtons {
-		if b.onToolbar() {
-			g = image.Pt(max(g.X, b.cell.X+1), max(g.Y, b.cell.Y+1))
-		}
-	}
-	return g
-}
-
-// toolFloatSize is the floating window's outer size at size z: the popup
-// builder's title row as its drag strip, over the button grid with popupPad
-// around it.
-func (e *MapEditor) toolFloatSize(z toolSize) image.Point {
-	g := toolGrid()
-	strip := layoutPopup(popupSpec{}, e.font, e.bodyFont()).Title.Dy()
-	return image.Pt(2*popupPad+g.X*z.side+(g.X-1)*toolGap, strip+2*popupPad+g.Y*z.side+(g.Y-1)*toolGap)
-}
-
-// toolbarSpec is the floating toolbar's window: a drag strip whose button
-// docks the toolbar, over the buttons, standing in its row of the placement
-// store at the size its buttons give; none while the toolbar is hidden.
 func (e *MapEditor) toolbarSpec() (popupSpec, bool) {
 	if !e.toolbarFloats() || !e.toolbarOn() {
 		return popupSpec{}, false
 	}
-	return e.contentSizedSpec(popupSpec{}, popToolbar, e.toolFloatSize(e.toolSizeNow())), true
+	bar := e.toolbarBar()
+	return e.floatSpec(popupSpec{Bar: &bar}, popToolbar), true
 }
 
-// toolbarGrip is the docked row's grip at its left end; empty while the
-// toolbar floats or is hidden.
-func (e *MapEditor) toolbarGrip() image.Rectangle {
-	if e.toolbarFloats() || !e.toolbarOn() {
-		return image.Rectangle{}
+func (e *MapEditor) toolbarLayout() popupLayout {
+	var l popupLayout
+	if s, ok := e.toolbarSpec(); ok {
+		l = layoutPopup(s, e.font, e.bodyFont())
+	} else {
+		l = e.dockedToolbarLayout()
 	}
-	y := e.toolbarRect().Min.Y + toolbarPad
-	return image.Rect(toolInset, y, toolInset+toolGripW, y+e.toolSizeNow().side)
+	for i := range l.Bar.Cells {
+		cell := &l.Bar.Cells[i]
+		cell.Tip = e.toolWord(toolButtons[cell.Index])
+	}
+	return l
 }
+
+func (e *MapEditor) toolbarGrip() image.Rectangle { return e.dockedToolbarLayout().Bar.Grip }
 
 // undockToolbar turns the toolbar into a floating window whose drag strip
 // holds the pointer at p: its row then shows nothing.
@@ -235,7 +203,8 @@ func (e *MapEditor) undockToolbar(p image.Point) {
 	e.panels.floats[popToolbar] = true
 	e.relayout()
 	at := p.Sub(image.Pt(popupPad+toolGripW/2, popupPad))
-	e.floatPlace(popToolbar, image.Rectangle{Min: at, Max: at.Add(e.toolFloatSize(e.toolSizeNow()))})
+	size := e.toolbarLayout().Rect.Size()
+	e.floatPlace(popToolbar, image.Rectangle{Min: at, Max: at.Add(size)})
 	e.placePopup(popToolbar, at)
 }
 
@@ -261,45 +230,16 @@ func (e *MapEditor) currentTool() string {
 	return "select"
 }
 
-// toolbarEntries is the toolbar's buttons in table order, placed and with
-// their states. Docked, the left group stands after the grip, the right
-// group against the window's right edge and never over the left one;
-// floating, each button stands at its cell of the window's grid. A row with
-// no button, and every row while the toolbar is hidden, has no rectangle;
-// its state is the menu row's.
 func (e *MapEditor) toolbarEntries() []toolEntry {
-	side := e.toolSizeNow().side
-	out := make([]toolEntry, len(toolButtons))
-	if s, ok := e.toolbarSpec(); ok {
-		l := layoutPopup(s, e.font, e.bodyFont())
-		origin := image.Pt(l.Rect.Min.X+popupPad, l.Title.Max.Y+popupPad)
-		for i, b := range toolButtons {
-			if b.onToolbar() {
-				at := origin.Add(b.cell.Mul(side + toolGap))
-				out[i].rect = image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}
-			}
-		}
-	} else if e.toolbarOn() {
-		bar := e.toolbarRect()
-		y := bar.Min.Y + toolbarPad
-		place := func(group toolGroup, x int) int {
-			for i, b := range toolButtons {
-				if b.onToolbar() && b.group == group {
-					out[i].rect = image.Rect(x, y, x+side, y+side)
-					x += side + toolGap
-				}
-			}
-			return x
-		}
-		right := 0
-		for _, b := range toolButtons {
-			if b.onToolbar() && b.group == toolRight {
-				right += side + toolGap
-			}
-		}
-		left := place(toolLeft, toolInset+toolGripW+toolGap) - toolGap + toolGroupGap
-		place(toolRight, max(left, bar.Max.X-toolInset-right+toolGap))
+	out := e.toolStates()
+	for _, cell := range e.toolbarLayout().Bar.Cells {
+		out[cell.Index].rect = cell.Rect
 	}
+	return out
+}
+
+func (e *MapEditor) toolStates() []toolEntry {
+	out := make([]toolEntry, len(toolButtons))
 	tool := e.currentTool()
 	for i, b := range toolButtons {
 		t := &out[i]
@@ -338,34 +278,20 @@ func (e *MapEditor) ToolbarState(key string) (on, disabled, ok bool) {
 	return false, false, false
 }
 
-// toolbarPress is a press at p on the toolbar: the floating window's close
-// button docks it, and a button that is not disabled performs its row key.
 func (e *MapEditor) toolbarPress(p image.Point) {
-	if s, ok := e.toolbarSpec(); ok {
-		if part, _ := layoutPopup(s, e.font, e.bodyFont()).hit(p); part == popupClose {
-			e.dockToolbar()
-			return
+	switch part, i := e.toolbarLayout().hit(p); part {
+	case popupClose:
+		e.dockToolbar()
+	case popupBarCellPart:
+		if t := e.toolStates()[i]; !t.closed {
+			e.menuAct(t.key)
 		}
-	}
-	for _, t := range e.toolbarEntries() {
-		if !p.In(t.rect) || t.closed {
-			continue
-		}
-		e.menuAct(t.key)
-		return
 	}
 }
 
-// toolTip is the hover tip of the toolbar button under p, and the button's
-// box: its word, and the key that does the same, when it has one.
 func (e *MapEditor) toolTip(p image.Point) (string, image.Rectangle, bool) {
-	for _, t := range e.toolbarEntries() {
-		if !p.In(t.rect) {
-			continue
-		}
-		return e.toolWord(t.toolButton), t.rect, true
-	}
-	return "", image.Rectangle{}, false
+	cell, ok := e.toolbarLayout().Bar.cellAt(p)
+	return cell.Tip, cell.Rect, ok
 }
 
 // toolWord is a row's word as its tip and its menu row read it: the word,
@@ -378,25 +304,20 @@ func (e *MapEditor) toolWord(b toolButton) string {
 	return w
 }
 
-// drawToolbar draws the toolbar when floating says where it stands: the
-// docked row's fill, gold rule and grip, or the floating window's chrome
-// through the one popup builder; then each button through the one icon
-// button painter. A hidden toolbar draws nothing.
 func (e *MapEditor) drawToolbar(pic *image.RGBA, floating bool) {
 	if floating != e.toolbarFloats() || !e.toolbarOn() {
 		return
 	}
-	scale := e.toolSizeNow().scale
-	if s, ok := e.toolbarSpec(); ok {
-		e.drawWindow(pic, s)
-	} else {
-		drawFrame(pic, stripFrame(e.toolbarRect(), edgeBottomBit))
-		drawIcon(pic, e.toolbarGrip(), &iconGrip, false, scale)
+	l := e.toolbarLayout()
+	states := e.toolStates()
+	for i := range l.Bar.Cells {
+		cell := &l.Bar.Cells[i]
+		t := states[cell.Index]
+		cell.On, cell.Disabled = t.shown, t.closed
 	}
-	for _, t := range e.toolbarEntries() {
-		if !t.onToolbar() {
-			continue
-		}
-		drawIconButton(pic, iconButton{Rect: t.rect, Icon: t.icon, On: t.shown, Hover: e.pointerOK && e.pointer.In(t.rect), Disabled: t.closed, Scale: scale, Press: &e.buttonPress})
+	if floating {
+		e.drawPlacedWindow(pic, popupSpec{}, l)
+		return
 	}
+	e.drawBar(pic, l)
 }

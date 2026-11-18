@@ -221,15 +221,6 @@ func (e *MapEditor) floatSpec(s popupSpec, id editorPopupID) popupSpec {
 	return s
 }
 
-// contentSizedSpec is spec s of the floating window in store row id whose
-// content gives its size: placed as floatSpec places it, at that size, and
-// never sized by hand.
-func (e *MapEditor) contentSizedSpec(s popupSpec, id editorPopupID, size image.Point) popupSpec {
-	s = e.floatSpec(s, id)
-	s.Size, s.MinWidth = size, 1
-	return s
-}
-
 // dockSpec places spec s in the rectangle r of a docked panel: it fills r, and
 // is never dragged.
 func dockSpec(s *popupSpec, r image.Rectangle, splitter popupEdge) {

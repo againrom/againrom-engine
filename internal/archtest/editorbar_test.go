@@ -20,7 +20,8 @@ func TestEditorBarWindowsShareStateAndClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, route := range []struct{ file, function, callee string }{
-		{"mapeditorwindow.go", "barEntries", "barWindow"},
+		{"mapeditorwindow.go", "barEntries", "topBarEntries"},
+		{"mapeditorwindow.go", "topBarEntries", "barWindow"},
 		{"mapeditorwindow.go", "barAct", "barWindow"},
 		{"mapeditorwindow.go", "barAct", "closeBarWindow"},
 		{"mapeditorwindow.go", "openRecords", "closeBarWindow"},

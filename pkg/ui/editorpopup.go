@@ -51,9 +51,10 @@ func blockRow(label string, open bool) popupRow {
 
 // popupRow is one row of a popup.
 type popupRow struct {
-	Column int
-	Edit   *editorTextView
-	Kind   popupRowKind
+	Column  int
+	Edit    *editorTextView
+	FitEdit bool
+	Kind    popupRowKind
 	// Fold marks a heading that opens and closes the rows under it, as a
 	// tree row's Fold does; FoldNone is a plain heading.
 	Fold         RowFold
@@ -432,6 +433,7 @@ func fitGrid(s uiWindow, w, rest, sizedH int, sized bool) *popupGrid {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
+	Bar         *popupBar
 	Docked      bool
 	Splitter    popupEdge
 	GripHover   bool
@@ -560,6 +562,7 @@ type popupRowRect struct {
 // popupLayout is a built popup: every rectangle the painter fills and the
 // hit test reads, and Window, the window as the pass laid it out.
 type popupLayout struct {
+	Bar                popupBarLayout
 	Window             *uiWindow
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
@@ -1233,6 +1236,11 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 // layout keeps the window as laid out for the painter and the hit tests.
 func layoutWindow(root uiNode, title, body *text.Font) popupLayout {
 	s := windowOf(root)
+	if s.Bar != nil && s.Bar.Strip {
+		l := layoutBarStrip(*s.Bar, s.Place.Bounds, title, body)
+		l.Window = &s
+		return l
+	}
 	l := placeWindow(s, title, body)
 	room := s.Place.Bounds.Dy()
 	if popupResizeEnabled && (s.Place.Short || s.Place.Fit) && s.Place.Size.Y > 0 {
@@ -1324,7 +1332,13 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	}
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := popupTitleHeight(title)
-	sized := popupResizeEnabled && s.Place.Size.X > 0 && s.Place.Size.Y > 0
+	size, minWidth := s.Place.Size, s.Place.MinWidth
+	var barSize toolSize
+	if s.Bar != nil {
+		size, barSize = pictureBarSize(*s.Bar, s.Place.Bounds, title)
+		minWidth = 1
+	}
+	sized := popupResizeEnabled && size.X > 0 && size.Y > 0
 	if !sized && !s.Place.Slack && s.Place.Fit && !s.Place.Room.Empty() {
 		bounds, room := &s.Place.Bounds, s.Place.Room
 		bounds.Min.X = max(bounds.Min.X, room.Min.X)
@@ -1341,10 +1355,10 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	}
 	if sized {
 		least := popupMinWidth(s, body)
-		if s.Place.MinWidth > 0 {
-			least = min(least, s.Place.MinWidth)
+		if minWidth > 0 {
+			least = min(least, minWidth)
 		}
-		w = max(s.Place.Size.X, least, fixedGridWidth(s))
+		w = max(size.X, least, fixedGridWidth(s))
 	}
 	if !s.Place.Bounds.Empty() {
 		w = min(w, s.Place.Bounds.Dx())
@@ -1354,8 +1368,8 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	s.Body.Rows = wholeRows(s, flow, body, w, pitch, titleH)
 	sizedH := 0
 	if sized {
-		lr, rf, extra, minH := popupFit(s, body, flow, pitch, titleH, s.Place.Size.Y)
-		sizedH = max(s.Place.Size.Y, minH)
+		lr, rf, extra, minH := popupFit(s, body, flow, pitch, titleH, size.Y)
+		sizedH = max(size.Y, minH)
 		if !s.Place.Bounds.Empty() {
 			sizedH = min(sizedH, max(minH, s.Place.Bounds.Dy()))
 		}
@@ -1443,6 +1457,9 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.List.Rows, RowsFit: s.Body.MaxRows,
 		docked: s.Place.Docked, splitter: s.Place.Splitter, gripHover: s.Place.GripHover}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
+	if s.Bar != nil {
+		l.Bar = placePictureBar(*s.Bar, image.Rect(r.Min.X, l.Title.Max.Y, r.Max.X, r.Max.Y), barSize)
+	}
 	if len(s.Tabs.Captions) > 0 {
 		l.Title.Max.Y -= flow.tabLines * pitch
 		l.Tabs = tabStrip{Captions: s.Tabs.Captions, PerLine: flow.tabsPerLine}.rects(image.Pt(r.Min.X+popupPad, l.Title.Max.Y), w-2*popupPad, pitch)
@@ -1976,6 +1993,7 @@ const (
 	popupCanvasBox    // a canvas box that takes a press; the index is the box's
 	popupCanvasGround // the canvas's ground: a drag moves the sheet
 	popupCanvasBar    // the canvas's scroll bar
+	popupBarCellPart
 )
 
 // gridIndex maps a visible rectangle to its unchanged source cell index.
@@ -1996,6 +2014,12 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	if p.In(l.Title) {
 		return popupTitle, 0
+	}
+	if cell, ok := l.Bar.cellAt(p); ok {
+		if cell.Edit != nil {
+			return popupRowControl, cell.Index
+		}
+		return popupBarCellPart, cell.Index
 	}
 	for i, tab := range l.Tabs {
 		if p.In(tab) {
@@ -2169,7 +2193,17 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		return
 	}
 	held.cover(l.Rect)
-	drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
+	frame := panelFrame(l.Rect, ink.Ground, ink.Edge)
+	if s.Bar != nil && s.Bar.Strip {
+		frame.Sides = edgeBottomBit
+	}
+	drawFrame(dst, frame)
+	if s.Bar != nil {
+		drawPopupBar(dst, title, body, *s.Bar, l, ink, pointer, pointerOK, held)
+		if s.Bar.Strip {
+			return
+		}
+	}
 	if !l.RowBar.Empty() {
 		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Body.Top, Count: popupRowCount(s) - s.Body.MaxRows + 1}.withPointer(pointer, pointerOK))
 	}
@@ -2481,6 +2515,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 	s := l.window(spec)
 	if !pointerOK || body == nil {
 		return popupTip{}, false
+	}
+	if s.Bar != nil {
+		return barTipAt(bounds, body, l, p)
 	}
 	if p.In(l.TitleHelp) {
 		return helpTip(bounds, body, l.TitleHelp, s.Title.Help), true

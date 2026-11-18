@@ -226,7 +226,7 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 		}
 	}
 	if open[panelBottom] {
-		top := e.toolbarRect().Max.Y
+		top := e.chromeContentTop()
 		high := e.mapBottom(top) - top - mapLeastHeight
 		least := e.reportDockMinHeight(e.window.X - w[panelLeft] - w[panelRight])
 		w[panelBottom] = min(e.panelSize(panelBottom, least), high)
@@ -259,7 +259,7 @@ func (e *MapEditor) sidePanelRect(i int) image.Rectangle {
 	if w == 0 {
 		return image.Rectangle{}
 	}
-	top := e.toolbarRect().Max.Y
+	top := e.chromeContentTop()
 	bottom := e.mapBottom(top)
 	switch sidePanels[i].place {
 	case placeLeft:
@@ -946,7 +946,7 @@ func (e *MapEditor) resizePanel(i int, d image.Point) {
 	}
 	if sidePanels[i].place == placeBottom {
 		least = e.reportDockMinHeight(e.window.X - shown[panelLeft] - shown[panelRight])
-		top := e.toolbarRect().Max.Y
+		top := e.chromeContentTop()
 		room = e.mapBottom(top) - top - mapLeastHeight
 	} else {
 		room = e.window.X - mapLeastWidth - shown[1-i]

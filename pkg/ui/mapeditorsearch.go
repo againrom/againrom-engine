@@ -15,23 +15,64 @@ const searchKey = "search"
 const searchFieldW = 220
 
 func (e *MapEditor) searchEntry() barEntry {
-	y := e.barHeight() + 3
-	return barEntry{key: searchKey, label: e.word("editor.bar.search"), menu: true, field: true,
-		rect: image.Rect(4, y, 4+searchFieldW, y+e.barRowHeight()-6)}
+	l := e.searchLayout()
+	entry := barEntry{key: searchKey, menu: true, field: true}
+	if len(l.Bar.Cells) > 0 {
+		entry.rect = l.Bar.Cells[0].Rect
+	}
+	return entry
+}
+
+func (e *MapEditor) searchLayout() popupLayout {
+	top := e.toolbarRect().Max.Y
+	bar := popupBar{Strip: true, Pad: popupPad, Height: fontHeight(e.bodyFont(), 15) + popupRowExtra}
+	for _, cell := range e.topBarLayout().Bar.Cells {
+		if barKeys[cell.Index].key == "file" {
+			bar.Inset = cell.Rect.Min.X
+			break
+		}
+	}
+	row := e.searchFieldRow()
+	bar.Groups = []popupBarGroup{{Entries: []popupBarEntry{{Edit: &row, PreferredWidth: searchFieldW}}}}
+	bounds := image.Rect(0, top, e.window.X, max(top, e.mapBottom(top)-mapLeastHeight))
+	return layoutPopup(popupSpec{Bar: &bar, Bounds: bounds}, e.font, e.bodyFont())
+}
+
+func (e *MapEditor) chromeContentTop() int {
+	if e.searchRowShown() {
+		return e.searchLayout().Rect.Max.Y
+	}
+	return e.toolbarRect().Max.Y
+}
+
+func (e *MapEditor) drawSearchBar(pic *image.RGBA) {
+	if !e.searchRowShown() {
+		return
+	}
+	l := e.searchLayout()
+	if len(l.Bar.Cells) > 0 {
+		row := e.searchRow()
+		l.Bar.Cells[0].Edit = &row
+		e.noteWindow(l.Rect)
+		e.drawBar(pic, l)
+	}
 }
 
 // searchRows is the most hits the open list shows at once.
 const searchRows = 16
 
-// barSearch is the search field's text and whether it takes the typed text.
 type barSearch struct {
-	text   string
-	typing bool
+	text           string
+	typing         bool
+	closeOnRelease bool
 }
 
-// searchTyping reports that the search field takes the typed text.
+func (e *MapEditor) searchRowShown() bool {
+	return e.search.closeOnRelease || e.searchTyping()
+}
+
 func (e *MapEditor) searchTyping() bool {
-	return e.search.typing && e.doc != nil && !e.prompt.open() && !e.objectTyping() && e.pathDialog.pending == nil
+	return e.search.typing && !e.search.closeOnRelease && e.doc != nil && !e.prompt.open() && !e.objectTyping() && e.pathDialog.pending == nil
 }
 
 // searchHits are the members the search text finds, category by category in
@@ -85,23 +126,28 @@ func (e *MapEditor) keySearch(string) error {
 	e.endFieldTyping()
 	e.menu = ""
 	e.tree.typing = false
-	e.search.typing = true
+	e.search.typing, e.search.closeOnRelease = true, false
 	if m, _ := e.inputModel(); m != nil {
 		m.SelectAll()
 	}
 	e.searchFollow()
+	e.relayout()
 	return nil
 }
 
 // searchLeave ends the field's typing and closes its list; clear also
 // empties its text, as Esc does.
 func (e *MapEditor) searchLeave(clear bool) {
-	e.search.typing = false
+	showing := e.searchRowShown()
+	e.search.typing, e.search.closeOnRelease = false, false
 	if clear {
 		e.search.text = ""
 	}
 	if e.menu == searchKey {
 		e.menu = ""
+	}
+	if showing {
+		e.relayout()
 	}
 }
 
@@ -133,12 +179,16 @@ func (e *MapEditor) chooseHit(n int) {
 // searchRow is the search field as a text field row: its text, its hint
 // while empty and, while it takes the typed text, its text view.
 func (e *MapEditor) searchRow() popupRow {
-	row := popupRow{Kind: popupEdit, Value: e.editorHostText(e.search.text), Hint: e.word("editor.bar.search")}
+	row := e.searchFieldRow()
 	if e.searchTyping() {
 		row.Focus = true
 		row.Edit = e.inputView(editorTextSpan{0, len([]rune(e.search.text))}, false)
 	}
 	return row
+}
+
+func (e *MapEditor) searchFieldRow() popupRow {
+	return popupRow{Kind: popupEdit, Value: e.editorHostText(e.search.text), Hint: e.word("editor.bar.search"), FitEdit: true}
 }
 
 // searchInputAt is the search field's text view under p: a press there makes
@@ -147,35 +197,31 @@ func (e *MapEditor) searchInputAt(p image.Point, press bool) (*editorTextView, i
 	if !e.searchTyping() {
 		return nil, image.Rectangle{}, false
 	}
-	box := e.searchEntry().rect
-	if press {
-		if !p.In(box) || e.doc == nil || e.prompt.open() {
-			return nil, image.Rectangle{}, false
-		}
-		if hit := e.chromeHit(p); hit != popBar && hit != popMenu {
-			return nil, image.Rectangle{}, false
-		}
-		if !e.search.typing {
-			_ = e.keySearch(searchKey)
-		}
-	} else if !e.searchTyping() {
+	l := e.searchLayout()
+	if len(l.Bar.Cells) == 0 {
 		return nil, image.Rectangle{}, false
+	}
+	box := l.Bar.Cells[0].Rect
+	if press {
+		if part, _ := l.hit(p); part != popupRowControl || e.chromeHit(p) != popMenu {
+			return nil, image.Rectangle{}, false
+		}
 	}
 	v := e.inputView(editorTextSpan{0, len([]rune(e.search.text))}, false)
 	return v, box, v != nil
 }
 
-// searchPressOff ends the field's typing on a press at p outside the field
-// and its open list.
-func (e *MapEditor) searchPressOff(p image.Point) {
-	if !e.search.typing {
+// searchPressOff yields input while the row holds its space through release.
+func (e *MapEditor) searchPressOff(target editorPopupID) {
+	if !e.search.typing || target == popMenu && e.menu == searchKey {
 		return
 	}
-	if p.In(e.searchEntry().rect) {
+	if !e.searchTyping() {
+		e.searchLeave(false)
 		return
 	}
-	if b, ok := e.openMenuEntry(); ok && b.key == searchKey && e.menuDropdown(b, true).Covers(e.font, p) {
-		return
+	e.search.closeOnRelease = true
+	if e.menu == searchKey {
+		e.menu = ""
 	}
-	e.searchLeave(false)
 }

@@ -29,6 +29,7 @@ const (
 	uiNotesKind
 	uiPickKind
 	uiButtonsKind
+	uiBarKind
 )
 
 // uiNode is one element: its kind, its word (the caption it shows, when it
@@ -152,6 +153,7 @@ type uiWindow struct {
 	Notes   uiNotes
 	Pick    uiPick
 	Buttons uiButtons
+	Bar     *popupBar
 }
 
 // specTree is the tree of a window the builders wrote as a popupSpec.
@@ -197,6 +199,9 @@ func specTree(s popupSpec) uiNode {
 	add(uiNode{Kind: uiButtonsKind, Data: uiButtons{
 		Captions: s.Buttons, Disabled: s.Disabled, Least: s.ButtonW, Focus: s.ButtonFocus, Switch: s.SwitchButton,
 	}})
+	if s.Bar != nil {
+		add(uiNode{Kind: uiBarKind, Data: s.Bar})
+	}
 	return root
 }
 
@@ -228,6 +233,8 @@ func windowOf(root uiNode) uiWindow {
 			w.Pick.Label = n.Word
 		case uiButtonsKind:
 			w.Buttons, _ = n.Data.(uiButtons)
+		case uiBarKind:
+			w.Bar, _ = n.Data.(*popupBar)
 		}
 	}
 	return w
