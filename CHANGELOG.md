@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A unit killed in the middle of a step now finishes that step as a body, without a health bar, and falls on the next cell, as in the original; before, it jumped at once to the cell it was walking to.
 - [BASE] An enemy killed by Poison Cloud no longer shows damage numbers rising from its body; the cloud still hurts the living units inside it.
 - [BASE] A spell that a mage began on an enemy in range, from his book or with a spell weapon, now hits that enemy even if it ran out of range while he cast, as in the original; before, the mage only waved his hands (and in the second game the mana was lost).
 - [BASE] With Smoothing on, the soft edge drawn over a unit, a hero or an object now sits centred on it, instead of a few pixels to one side where it looked like a pale second copy.

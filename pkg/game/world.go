@@ -146,6 +146,8 @@ type mapWorld struct {
 	scene            int
 	prev             map[sim.EntityID]image.Point
 	died             map[sim.EntityID]int
+	crossing         map[sim.EntityID]crossingMemo
+	deathSlide       map[sim.EntityID]crossingMemo
 	hurt             map[sim.EntityID]int
 	pendingDamage    []damageTickEvent
 	soundEntities    []ui.MapEntity
@@ -4256,6 +4258,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// BEFORE the push, so what the viewer receives is selected from the
 	// distance this tick produced and the push stays a pure read.
 	mw.advanceOdometers()
+	mw.advanceDeathSlides()
 	// The swing clocks advance for the tick that just ran, on the same terms
 	// and in the same window as the odometers: AFTER the step, so the state
 	// read is the state the push will select on, and BEFORE the push, so what
@@ -5116,6 +5119,12 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		} else if jump {
 			finePosition = false
 		}
+		transit, span := int(e.Transit), mw.crossingSpan(e)
+		if slide, sliding := mw.deathSlide[e.ID]; sliding && !e.Alive() && !stone {
+			// A body felled mid-step goes on to the cell it was entering.
+			step, jump, finePosition = slide.step, false, false
+			transit, span = slide.owed, slide.span
+		}
 		moving := !jump && (step != image.Point{} || mw.world.ActorMotionActive(e.ID))
 		if mw.drawnMoving == nil {
 			mw.drawnMoving = make(map[sim.EntityID]bool)
@@ -5295,7 +5304,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			Load: int(e.Load),
 			// The crossing this step is part of, for the window tier's
 			// displacement.
-			Transit: int(e.Transit), TransitSpan: mw.crossingSpan(e),
+			Transit: transit, TransitSpan: span,
 			FinePosition: finePosition, FineX: fineX, FineY: fineY,
 			// The live client class's own Sound array, including an
 			// equipment-derived hero class; corpse art does not participate.
