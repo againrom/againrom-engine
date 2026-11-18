@@ -5,9 +5,6 @@ import (
 	"image"
 	"strings"
 	"testing"
-	"time"
-
-	"againrom/pkg/render/textfit"
 )
 
 // dockSizes are the window sizes the docked report is proved at.
@@ -42,8 +39,7 @@ func statusPixels(e *MapEditor) []byte {
 // The docked report stays inside the bottom panel: for a finding of one,
 // two and five lines at the panel's least and default heights the frame
 // lies inside the panel, the status line draws as with no report, the
-// notes wrap at the panel's width, and every note line gets a screen row,
-// scrolled to by the wheel over the notes where they do not all show.
+// details wrap at the panel's width and remain readable at both heights.
 func TestMapEditorDockedReportStaysInsideTheBottomPanel(t *testing.T) {
 	for _, size := range dockSizes {
 		for _, lang := range []string{"en", "ru"} {
@@ -54,12 +50,11 @@ func TestMapEditorDockedReportStaysInsideTheBottomPanel(t *testing.T) {
 						e.panels.state[panelBottom] = panelState{Restored: true, Width: height}
 						e.relayout()
 						panel := e.sidePanelRect(panelBottom)
-						if panel.Dy() != height {
-							t.Fatalf("the panel is %v, want %d high", panel, height)
+						if want := max(height, e.reportDockMinHeight(panel.Dx())); panel.Dy() != want {
+							t.Fatalf("the panel is %v, want %d high", panel, want)
 						}
 						quiet := statusPixels(e)
-						mark := e.bodyFont().Advance(textfit.Mark)
-						width := panel.Dx() - 2*popupPad - 8 - mark
+						width := panel.Dx() - 2*popupPad - 8
 						text := textOfLines(t, e, lines, width)
 						e.openReport([]InspectionFinding{
 							{Error: true, Rule: "script-reference", Kind: "Unit", Index: 0, Cell: image.Pt(10, 10), HasCell: true, Text: text},
@@ -68,37 +63,24 @@ func TestMapEditorDockedReportStaysInsideTheBottomPanel(t *testing.T) {
 						if !e.reportDocked() {
 							t.Fatal("the report does not stand in the bottom panel")
 						}
+						panel = e.sidePanelRect(panelBottom)
 						want := editorTextLines(e.bodyFont(), text, width)
-						seen := make([]bool, len(want))
-						for step := 0; step <= len(want)+2; step++ {
-							s, ok := e.listSpec()
-							if !ok {
-								t.Fatal("no report popup")
-							}
-							l := layoutPopup(s, e.font, e.bodyFont())
-							if !l.Rect.In(panel) {
-								t.Fatalf("step %d: the report's frame %v leaves the panel %v", step, l.Rect, panel)
-							}
-							if got := statusPixels(e); string(got) != string(quiet) {
-								t.Fatalf("step %d: the report changes the status line", step)
-							}
-							for _, note := range s.Notes {
-								for i, w := range want {
-									if note == w || note == w+textfit.Mark {
-										seen[i] = true
-									}
-								}
-							}
-							if len(l.Notes) == 0 {
-								t.Fatal("the report shows no note line")
-							}
-							p := center(l.Notes[0])
-							e.Pointer(Input{CursorX: p.X, CursorY: p.Y, WheelY: -1}, time.Unix(1, 0))
+						s, ok := e.listSpec()
+						if !ok {
+							t.Fatal("no report popup")
 						}
-						for i, ok := range seen {
-							if !ok {
-								t.Errorf("note line %d %q never shows; lines %q", i, want[i], want)
-							}
+						l := layoutPopup(s, e.font, e.bodyFont())
+						if l.Rect != panel {
+							t.Fatalf("the report's frame %v differs from the panel %v", l.Rect, panel)
+						}
+						if got := statusPixels(e); string(got) != string(quiet) {
+							t.Fatal("the report changes the status line")
+						}
+						w := l.window(s)
+						notes := w.Notes.Lines[:len(w.Notes.Lines)-w.Notes.Keep]
+						got := strings.TrimPrefix(w.Title.Help, s.TitleHelp) + " " + strings.Join(notes, " ")
+						if collapseGaps(got) != collapseGaps(strings.Join(want, " ")) {
+							t.Fatal("the report lost the finding details")
 						}
 					})
 				}
@@ -113,8 +95,7 @@ func checkReportShown(e *MapEditor) bool {
 	if !ok || !e.report.open {
 		return false
 	}
-	errs, warnings := CountFindings(c.Report())
-	return e.report.note == fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings) && len(e.report.rows) == len(c.Report())
+	return e.report.note == e.checkReportTitle(c.Report()) && len(e.report.rows) == len(c.Report())
 }
 
 // The Report button shows on only while the check report shows; pressed,
@@ -130,8 +111,7 @@ func TestMapEditorReportButtonTellsTheCheckReportFromOtherLists(t *testing.T) {
 		{"none", func(*MapEditor) {}, false},
 		{"check", func(e *MapEditor) {
 			c, _ := e.checker()
-			errs, warnings := CountFindings(c.Report())
-			e.openReport(c.Report(), fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
+			e.openReport(c.Report(), e.checkReportTitle(c.Report()), nil)
 		}, true},
 		{"keys", func(e *MapEditor) { _ = e.Key("help") }, false},
 		{"mcp", func(e *MapEditor) { e.SetMCPConnection("MCP on", MCPDetail{Label: "Port: ", Value: "4711"}) }, false},

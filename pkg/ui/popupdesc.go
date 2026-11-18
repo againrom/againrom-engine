@@ -65,14 +65,6 @@ type popupDesc struct {
 	Panels *popupDescPanels `json:"panels,omitempty"`
 }
 
-type popupPreview struct {
-	Width       int  `json:"width,omitempty"`
-	Top         int  `json:"top,omitempty"`
-	HoverRow    *int `json:"hoverRow,omitempty"`
-	HoverList   bool `json:"hoverList,omitempty"`
-	HoverColumn int  `json:"hoverColumn,omitempty"`
-}
-
 // popupDescCanvas is a canvas shown as one picture.
 type popupDescCanvas struct {
 	Picture string `json:"picture"`
@@ -108,6 +100,10 @@ type popupDescList struct {
 	Rows    int                   `json:"rows,omitempty"`
 	Aside   *popupDescAside       `json:"aside,omitempty"`
 	Columns []popupDescListColumn `json:"columns,omitempty"`
+	Indent  string                `json:"indent,omitempty"`
+	Heading string                `json:"heading,omitempty"`
+	Open    string                `json:"open,omitempty"`
+	Closed  string                `json:"closed,omitempty"`
 }
 
 // popupDescAside is the picture element beside a list: the picture its
@@ -425,6 +421,18 @@ func (c popupChain) listBox(l *popupDescList, word func(string) string, picture 
 	for i, item := range c.list(l.Each) {
 		in := append(c[:len(c):len(c)], item)
 		row := PickerRow{Text: in.text(l.Bind, word), Choosable: l.Inert == "" || !in.when(l.Inert)}
+		if l.Indent != "" {
+			if n, err := strconv.ParseUint(in.text(l.Indent, word), 10, 8); err == nil {
+				row.Indent = int(n)
+			}
+		}
+		row.Heading = l.Heading != "" && in.when(l.Heading)
+		switch {
+		case l.Open != "" && in.when(l.Open):
+			row.Fold = FoldOpen
+		case l.Closed != "" && in.when(l.Closed):
+			row.Fold = FoldClosed
+		}
 		if l.Word != "" {
 			row.Text = in.format(l.Word, l.Args, word)
 		}
@@ -647,8 +655,8 @@ func parsePopupDesc(data []byte) (popupDesc, error) {
 		if d.Preview == nil {
 			d.Preview = &popupPreview{}
 		}
-		if d.Preview.HoverRow == nil {
-			d.Preview.HoverRow, d.Preview.HoverList, d.Preview.HoverColumn = &h.Row, true, h.Column
+		if d.Preview.Hover == nil {
+			d.Preview.Hover = &popupPreviewHover{Part: "list", Row: h.Row, Column: h.Column}
 		}
 	}
 	return d, checkPopupRows(d.Rows)

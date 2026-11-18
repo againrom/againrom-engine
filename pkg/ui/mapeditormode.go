@@ -389,6 +389,9 @@ func (e *MapEditor) openReport(rows []InspectionFinding, note string, goals []In
 		}
 	}
 	e.leave(leaveCatalog)
+	if e.panels.state[panelBottom].Restored {
+		e.relayout()
+	}
 }
 
 func (e *MapEditor) closeReport() {
@@ -398,6 +401,9 @@ func (e *MapEditor) closeReport() {
 	e.report = reportState{}
 	e.resetList(0)
 	e.releaseBarWindow()
+	if e.panels.state[panelBottom].Restored {
+		e.relayout()
+	}
 }
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a

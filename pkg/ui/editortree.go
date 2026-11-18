@@ -107,16 +107,18 @@ type uiList struct {
 	Picker  *Picker
 	Rows    int
 	Least   int
+	Most    int
 	Text    listRowText
 	Aside   int
 	Picture *image.RGBA
 	Columns []listColumn
 }
 
-// uiNotes is the note lines over the button row and their ink.
+// uiNotes holds note lines and the trailing lines that stay when details fold.
 type uiNotes struct {
 	Lines []string
 	Ink   color.RGBA
+	Keep  int
 }
 
 // uiPick is the pick-on-map button's caption and whether it is armed.
@@ -180,14 +182,14 @@ func specTree(s popupSpec) uiNode {
 	if s.Canvas != nil {
 		add(uiNode{Kind: uiCanvasKind, Data: s.Canvas})
 	}
-	if s.List != nil || s.ListRows != 0 || s.ListLeast != 0 || s.ListText != nil || s.ListAside != 0 || s.ListPicture != nil || len(s.ListColumns) > 0 {
+	if s.List != nil || s.ListRows != 0 || s.ListLeast != 0 || s.ListMost != 0 || s.ListText != nil || s.ListAside != 0 || s.ListPicture != nil || len(s.ListColumns) > 0 {
 		add(uiNode{Kind: uiListKind, Data: uiList{
-			Picker: s.List, Rows: s.ListRows, Least: s.ListLeast, Text: s.ListText,
+			Picker: s.List, Rows: s.ListRows, Least: s.ListLeast, Most: s.ListMost, Text: s.ListText,
 			Aside: s.ListAside, Picture: s.ListPicture, Columns: s.ListColumns,
 		}})
 	}
 	if len(s.Notes) > 0 || s.NoteInk != (color.RGBA{}) {
-		add(uiNode{Kind: uiNotesKind, Data: uiNotes{Lines: s.Notes, Ink: s.NoteInk}})
+		add(uiNode{Kind: uiNotesKind, Data: uiNotes{Lines: s.Notes, Ink: s.NoteInk, Keep: s.NotesKeep}})
 	}
 	if s.PickLabel != "" || s.PickArmed {
 		add(uiNode{Kind: uiPickKind, Word: s.PickLabel, Data: uiPick{Armed: s.PickArmed}})

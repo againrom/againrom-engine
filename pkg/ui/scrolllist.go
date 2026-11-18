@@ -77,8 +77,6 @@ var (
 	// editorList is every editor popup list; its wheel keeps the remainder of a
 	// fractional notch.
 	editorList = scrollSpec{unit: scrollRows, wheel: 3, whole: true, key: 1}
-	// notesList is the docked report's note lines, one line a notch.
-	notesList = scrollSpec{unit: scrollLines, wheel: 1, whole: true, key: 1}
 )
 
 // wheelSource is an input that carries a wheel reading.

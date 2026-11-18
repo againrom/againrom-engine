@@ -183,19 +183,13 @@ func (e *MapEditor) defeatLine(f InspectionMapFacts) mapLine {
 	return l
 }
 
-// panelWidth and panelLabelWidth are the panel's width and its label column.
-const panelWidth, panelLabelWidth = 440, 120
-
-// panelSpec is the Map panel as a popup description, and the link of each
-// row; a wrapped value continues on rows that open the same place.
 func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
-	s := popupSpec{Title: e.word("editor.panel.title"), At: e.keptCorner(popList), Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
+	s := popupSpec{Title: e.word("editor.panel.title"), TitleHelp: e.word("editor.panel.hint"), At: e.keptCorner(popList), Bounds: e.popupBounds(), Room: e.mapArea(), Fit: true}
 	p, ok := e.mapPanel()
 	if !ok {
 		return s, nil
 	}
 	var links []panelLink
-	width := e.popupWide(popList, panelWidth) - 2*popupPad - panelLabelWidth - 8
 	for _, l := range e.panelLines(p.MapFacts(), e.panelFindings()) {
 		kind := popupText
 		if l.link != linkNone {
@@ -205,23 +199,20 @@ func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
 		if l.warn {
 			ink = editorWarning
 		}
-		for n, part := range editorTextLines(e.bodyFont(), l.value, width) {
-			label := ""
-			if n == 0 {
-				label = l.label
-			}
-			s.Rows, links = append(s.Rows, popupRow{Kind: kind, Label: label, Value: part, Ink: ink}), append(links, l.link)
+		r := popupRow{Kind: kind, Label: l.label, Value: l.value, Ink: ink}
+		if strings.ContainsAny(r.Value, "\r\n") {
+			r.Value, r.Tip = collapseGaps(r.Value), r.Value
 		}
+		s.Rows, links = append(s.Rows, r), append(links, l.link)
 	}
-	s.Notes = editorTextLines(e.bodyFont(), e.word("editor.panel.hint"), e.popupWide(popList, panelWidth)-2*popupPad-4)
+	s.Width = naturalWidth(&s, e.font, e.bodyFont(), 0)
 	return s, links
 }
 
 // PanelOpen reports whether the Map panel is what the list popup shows.
 func (e *MapEditor) PanelOpen() bool { return e.listKind() == "panel" }
 
-// PanelLines are the shown panel's lines, label and value joined by a space;
-// a wrapped value is joined back into its line.
+// PanelLines are the shown panel's labels and values.
 func (e *MapEditor) PanelLines() []string {
 	if !e.PanelOpen() {
 		return nil
@@ -229,42 +220,19 @@ func (e *MapEditor) PanelLines() []string {
 	s, _ := e.panelSpec()
 	var out []string
 	for _, r := range s.Rows {
-		if r.Label == "" && len(out) > 0 {
-			out[len(out)-1] += " " + r.Value
-			continue
-		}
-		out = append(out, r.Label+" "+r.Value)
-	}
-	for i, l := range out {
-		out[i] = collapseGaps(l)
+		out = append(out, collapseGaps(r.Label+" "+r.Value))
 	}
 	return out
 }
 
-// panelLineRow is the row line n of the panel starts on, or -1.
-func panelLineRow(s popupSpec, n int) int {
-	line := -1
-	for i, r := range s.Rows {
-		if r.Label != "" {
-			line++
-		}
-		if line == n {
-			return i
-		}
-	}
-	return -1
-}
-
-// controlPanelRowRect is the window rectangle of the first row of the shown panel's
-// line n.
+// controlPanelRowRect is the rectangle of visible map row n.
 func (e *MapEditor) controlPanelRowRect(n int) (image.Rectangle, bool) {
 	if !e.PanelOpen() {
 		return image.Rectangle{}, false
 	}
 	s, _ := e.listSpec()
-	row := panelLineRow(s, n)
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if r.Index == row {
+		if r.Index == n {
 			return r.Rect, true
 		}
 	}

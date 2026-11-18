@@ -13,9 +13,9 @@ import (
 // included, and at least least. The width is the widest of the title with
 // its close and help marks, the button row, and each row at its natural
 // size: the label column, the value and the row's own buttons; a line
-// across the row with its mark and buttons; a heading. A multi-line text's
-// longest line and a note count up to the reading measure (questionMeasure):
-// past it they wrap. A plain list asks for its widest row and scrollbar.
+// across the row with its mark and buttons; a heading. Text values, multiline
+// values and notes count up to the reading measure. A plain list asks for
+// its widest row and scrollbar.
 func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	measure := func(t string) int { return 8 * len([]rune(t)) }
 	if body != nil {
@@ -74,6 +74,8 @@ func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 		default:
 			field := measure(r.Value) + 2
 			switch r.Kind {
+			case popupText, popupLink:
+				field = min(field, most+2)
 			case popupChoice, popupCard:
 				field += editTextX + pitch
 			case popupEdit, popupPick:

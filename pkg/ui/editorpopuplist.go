@@ -146,14 +146,11 @@ func listCellTip(bounds image.Rectangle, body *text.Font, list uiList, box listB
 		}
 		full, r = cells[k], box.Cell(row, k)
 	} else {
-		r.Min.X += listTextX + listRowLead(data, r.Dy(), listTextX)
-		r.Max.X -= listTextX
-		if data.Heading && box.HeadingFace != nil {
-			face = box.HeadingFace
-		}
+		r = box.rowTextBox(r, data)
+		face = box.rowFace(body, data)
 	}
 	if face.Advance(full) <= r.Dx() {
 		return popupTip{}, false
 	}
-	return layoutTip(bounds, body, r, full, nil, tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true}), true
+	return valueTip(bounds, body, r, full), true
 }

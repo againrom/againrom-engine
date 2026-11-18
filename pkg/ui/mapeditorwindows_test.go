@@ -90,7 +90,13 @@ func TestPopupResizeBandAndCorner(t *testing.T) {
 	if b, a := press(func(r image.Rectangle) image.Point { return image.Pt(r.Max.X-15, r.Max.Y-15) }); a.Dx() != b.Dx()+20 || a.Dy() != b.Dy()+20 {
 		t.Fatalf("a press in the corner: %v -> %v", b, a)
 	}
-	if b, a := press(func(r image.Rectangle) image.Point { return image.Pt(r.Min.X+r.Dx()/2, r.Min.Y+r.Dy()/2) }); a.Size() != b.Size() {
+	f, rows := endless()
+	e, _ := mapPanelEditor(t, &mapPanelEdits{facts: f, rows: rows}, nil)
+	body, ok := e.controlPanelRowRect(panelRow(t, e, e.word("editor.panel.size")))
+	if !ok {
+		t.Fatal("the read-only size row is missing")
+	}
+	if b, a := edgeDrag(t, e, func(image.Rectangle) image.Point { return center(body) }, image.Pt(20, 20)); a.Size() != b.Size() {
 		t.Fatalf("a press in the body resized: %v -> %v", b, a)
 	}
 }

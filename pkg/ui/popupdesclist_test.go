@@ -140,7 +140,7 @@ func TestDescriptionPlainListFitsPagesAndShowsFullRowTip(t *testing.T) {
 			d.Sample.Lists["keys"] = append(d.Sample.Lists["keys"],
 				popupScope{Values: map[string]string{"line": long}, Flags: []string{"selected"}})
 			hover := 3
-			d.Preview = &popupPreview{HoverRow: &hover, HoverList: true}
+			d.Preview = &popupPreview{Hover: &popupPreviewHover{Part: "list", Row: hover}}
 			m = mock()
 			top, shown := m.paint.List.Visible()
 			if top != 1 || shown != 3 || !m.layout.Rect.In(bounds) {
@@ -150,8 +150,8 @@ func TestDescriptionPlainListFitsPagesAndShowsFullRowTip(t *testing.T) {
 			if part, n := m.layout.hit(center(r)); part != popupListRow || n != 2 {
 				t.Fatalf("hovered row hit %v/%d", part, n)
 			}
-			tip, box, ok := m.previewTip()
-			if !ok || box != r || tip.Text != m.encode(long) || !tip.Rect.In(bounds) {
+			tip := m.previewTip()
+			if tip.Anchor != m.layout.List.rowTextBox(r, m.paint.List.Rows()[hover]) || tip.Text != m.encode(long) || !tip.Rect.In(bounds) {
 				t.Fatal("the shared tip lacks the whole row or exceeds the editor bounds")
 			}
 			painted := 0
@@ -185,9 +185,14 @@ func TestDescriptionPlainListFitsPagesAndShowsFullRowTip(t *testing.T) {
 }
 
 func TestDescriptionReadsLegacyListHoverAsPreview(t *testing.T) {
-	d, err := parsePopupDesc([]byte(`{"window":"list","rows":[],"hover":{"row":0,"column":2}}`))
-	if p := d.Preview; err != nil || p == nil || !p.HoverList || p.HoverRow == nil || *p.HoverRow != 0 || p.HoverColumn != 2 {
-		t.Fatalf("list preview %+v, error %v", p, err)
+	for _, source := range []string{
+		`{"window":"list","rows":[],"hover":{"row":0,"column":2}}`,
+		`{"window":"list","rows":[],"preview":{"hoverRow":0,"hoverList":true,"hoverColumn":2}}`,
+	} {
+		d, err := parsePopupDesc([]byte(source))
+		if p := d.Preview; err != nil || p == nil || p.Hover == nil || *p.Hover != (popupPreviewHover{Part: "list", Column: 2}) {
+			t.Fatalf("list preview %+v, error %v", p, err)
+		}
 	}
 }
 

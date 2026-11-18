@@ -157,13 +157,17 @@ func (e *MapEditor) reportKey() {
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveReport)
 	e.showPanel(panelBottom, true)
 	rows := c.Report()
-	errs, warnings := CountFindings(rows)
-	e.openReportAtFirstFinding(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings))
+	e.openReportAtFirstFinding(rows, e.checkReportTitle(rows))
 	e.report.outcome = e.word("editor.report.checked")
 }
 
 func (e *MapEditor) windowedResult() bool {
 	return e.listKind() == "report" && e.report.outcome != "" && !e.reportDocked()
+}
+
+func (e *MapEditor) checkReportTitle(rows []InspectionFinding) string {
+	errs, warnings := CountFindings(rows)
+	return fmt.Sprintf(e.word("editor.report.summary"), errs, warnings)
 }
 
 func (e *MapEditor) checker() (InspectionChecker, bool) {
@@ -189,8 +193,7 @@ func (e *MapEditor) refreshBarReport() {
 		}
 	} else if host, ok := e.checker(); ok && e.checkShown() {
 		rows := host.Report()
-		errs, warnings := CountFindings(rows)
-		e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
+		e.openReport(rows, e.checkReportTitle(rows), nil)
 		e.report.outcome = e.word("editor.report.checked")
 	}
 	e.report.sel = max(0, min(selected, len(e.report.rows)-1))
@@ -204,9 +207,9 @@ func (e *MapEditor) afterSave() {
 	}
 	if rows := c.Report(); len(rows) > 0 {
 		errs, warnings := CountFindings(rows)
-		note := fmt.Sprintf("Saved with %d warnings", warnings)
+		note := fmt.Sprintf(e.word("editor.report.saved.warnings"), warnings)
 		if errs > 0 {
-			note = fmt.Sprintf("Saved with %d errors, %d warnings", errs, warnings)
+			note = fmt.Sprintf(e.word("editor.report.saved.errors"), errs, warnings)
 		}
 		e.openReport(rows, note, nil)
 		e.report.outcome = e.word("editor.report.saved")
@@ -230,7 +233,7 @@ func (e *MapEditor) noteSave(errs int) {
 func (e *MapEditor) refuseSave(r *ReportRefusal) {
 	e.leave(leavePrompt)
 	errs, warnings := CountFindings(r.Findings)
-	e.openReportAtFirstFinding(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings))
+	e.openReportAtFirstFinding(r.Findings, fmt.Sprintf(e.word("editor.report.save.refused"), errs, warnings))
 	e.report.outcome = e.word("editor.report.refused")
 }
 

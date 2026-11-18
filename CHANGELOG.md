@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] Drag the inner edge to resize a docked map editor panel. The edge and the floating window's corner grip light up when you point at them. With no object selected, Properties shows one status line and puts its help behind the (?) button.
 - [BASE] Map editor lists size themselves to their contents and show the full text of a cut line when you hover. The Report window shows the check or save result below the list.
+- [BASE] The Map panel fits between the side docks and scrolls beneath its title. Long descriptions and object names show in full on hover, and the docked report keeps save instructions visible and room for up to three findings.
 
 - [BASE] Place units, structures, objects, sacks and spells directly from their palettes. Tick items for the next sack and choose a trigger in the condition window.
 - [BASE] Trigger windows fit their contents and keep warnings visible while you scroll. Help marks explain the fields, and hovering over a cut-off choice shows its full text.

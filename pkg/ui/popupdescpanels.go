@@ -171,7 +171,7 @@ func (s *mockupPanels) page(d popupDesc, lang string, window image.Point) []byte
 					name = p.kind
 				}
 				part(class, name, row, r, ink, txt, tip)
-			}, specWindow(p.plain), p.layout, image.Rectangle{}, nil)
+			}, specWindow(p.plain), p.layout, image.Rectangle{}, nil, false)
 			for _, mark := range []struct {
 				name string
 				rect image.Rectangle
@@ -183,6 +183,6 @@ func (s *mockupPanels) page(d popupDesc, lang string, window image.Point) []byte
 				part(class, mark.name, -1, mark.rect, noInk, "", "")
 			}
 		}
-		part.tip(s.tip, s.decode)
+		part.tip(s.tip, s.decode, "")
 	})
 }

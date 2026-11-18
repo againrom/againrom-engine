@@ -425,15 +425,15 @@ func TestDescriptionPreviewPagesBodyAndShowsClippedChoiceTip(t *testing.T) {
 				d.Rows = append(d.Rows, popupDescRow{Kind: "text", Label: "editor.wizard.when", Indent: 2})
 			}
 			d.Sample = &popupScope{Values: map[string]string{"long": full}, Words: map[string]string{"help": "editor.wizard.otherhint"}}
-			d.Preview = &popupPreview{Width: 700, HoverRow: &hover}
+			d.Preview = &popupPreview{Width: 700, Hover: &popupPreviewHover{Part: "row", Row: hover}}
 			font, size := wordsFont(lang), image.Pt(1920, 1080)
 			first, err := NewEditorMockup(d.encode(), lang, size, font, font, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			tip, control, ok := first.previewTip()
-			if !ok || control != first.layout.Rows[hover].Control || !strings.HasSuffix(tip.Text, full) || !tip.Rect.In(image.Rectangle{Max: size}) {
-				t.Fatalf("clipped value tip: control %v, found %t, tip %+v", control, ok, tip)
+			tip := first.previewTip()
+			if tip.Anchor != first.layout.Rows[hover].Rect || !strings.HasSuffix(tip.Text, full) || !tip.Rect.In(image.Rectangle{Max: size}) {
+				t.Fatalf("clipped value tip: %+v", tip)
 			}
 			page := string(first.Page())
 			box := fmt.Sprintf(`data-box="%d %d %d %d"`, tip.Rect.Min.X, tip.Rect.Min.Y, tip.Rect.Dx(), tip.Rect.Dy())
@@ -456,10 +456,20 @@ func TestDescriptionPreviewPagesBodyAndShowsClippedChoiceTip(t *testing.T) {
 				last.layout.Title != first.layout.Title || !reflect.DeepEqual(last.layout.Buttons, first.layout.Buttons) {
 				t.Fatal("scrolling did not move just the body to the last row")
 			}
-			if _, _, ok := last.previewTip(); ok {
+			if !last.previewTip().Rect.Empty() {
 				t.Fatal("the tip is shown for a row outside the viewport")
 			}
 		})
+	}
+}
+
+func TestDescriptionPreviewReadsEarlierPageAndHoverKeys(t *testing.T) {
+	d, err := parsePopupDesc([]byte(`{"window":"preview","rows":[],"preview":{"bodyTop":8,"hoverRow":3}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := d.Preview; p.Top != 8 || p.Hover == nil || p.Hover.Part != "row" || p.Hover.Row != 3 {
+		t.Fatalf("preview bindings: %+v", p)
 	}
 }
 

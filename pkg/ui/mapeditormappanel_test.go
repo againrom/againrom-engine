@@ -194,7 +194,7 @@ func TestMapPanelChecksMarkTheStartAndVictoryLines(t *testing.T) {
 	e, _ := mapPanelEditor(t, p, nil)
 	s, _ := e.panelSpec()
 	ink := func(label string) bool {
-		return s.Rows[panelLineRow(s, panelRow(t, e, label))].Ink == editorWarning
+		return s.Rows[panelRow(t, e, label)].Ink == editorWarning
 	}
 	for _, want := range []string{
 		"Start point none: the party lands at a random cell",

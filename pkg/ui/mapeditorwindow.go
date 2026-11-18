@@ -998,17 +998,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		m.SetWindow(s.ListRows)
 	}
 	if m != nil {
-		s.ListText = func(row, width int) string {
-			rows := m.Rows()
-			if row < 0 || row >= len(rows) {
-				return ""
-			}
-			face := e.bodyFont()
-			if rows[row].Heading {
-				face = listHeadFont(e.font, face)
-			}
-			return editorClip(face, rows[row].Text, width)
-		}
+		s.ListText = (listBox{HeadingFace: e.font}).captions(e.bodyFont(), m)
 	}
 	switch kind {
 	case "report":
@@ -1174,22 +1164,16 @@ func (e *MapEditor) continuedLine(line string, width int) string {
 }
 
 // noteWidth is the width the list popup's note lines wrap at: the popup's,
-// or while the report stands in the bottom panel the panel's less the room
-// of the mark a scrolled line may carry (fitDocked), so the mark cuts none.
+// or while the report stands in the bottom panel the panel's width.
 func (e *MapEditor) noteWidth(popupWidth int) int {
-	if !e.reportDocked() {
-		return popupWidth - 2*popupPad - 8
+	if e.reportDocked() {
+		popupWidth = e.sidePanelRect(panelBottom).Dx()
 	}
-	mark := len(textfit.Mark)
-	if font := e.bodyFont(); font != nil {
-		mark = font.Advance(textfit.Mark)
-	}
-	return e.dockedNoteWidth() - mark
+	return reportNoteWidth(popupWidth)
 }
 
-// dockedNoteWidth is the width of a note line in the bottom panel.
-func (e *MapEditor) dockedNoteWidth() int {
-	return e.sidePanelRect(panelBottom).Dx() - 2*popupPad - 8
+func reportNoteWidth(width int) int {
+	return width - 2*popupPad - 8
 }
 
 // listButtons are the keys and captions of the records list's buttons: on
@@ -2397,9 +2381,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 		if e.placeOwnerWheel(wheel) {
 			return
 		}
-		if s, ok := e.listSpec(); ok && e.notesWheel(layoutPopup(s, e.font, e.bodyFont()), wheel) {
-			return
-		} else if ok && s.Grid != nil {
+		if s, ok := e.listSpec(); ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
 					if e.forestOn() {

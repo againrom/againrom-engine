@@ -102,6 +102,10 @@ func hoverTip(bounds image.Rectangle, body *text.Font, anchor image.Rectangle, f
 	return layoutTip(bounds, body, anchor, full, picture, tipShape{Fit: true, Pull: true, Clip: true})
 }
 
+func valueTip(bounds image.Rectangle, body *text.Font, at image.Rectangle, full string) popupTip {
+	return layoutTip(bounds, body, at, full, nil, tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true})
+}
+
 // helpTip is the tip of a (?) mark at r: popupHelpW wide, the help wrapped
 // to as many body lines as it takes, kept inside bounds and scrolled where
 // the lines are more than bounds hold; it shows at once.

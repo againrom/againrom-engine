@@ -32,30 +32,6 @@ func gridPictures(g *popupGrid, names []string, picture func(string) *image.RGBA
 	}
 }
 
-// mockupFonts sets what the painter measures in the body font: the caret
-// after a focused row's value and the list rows' text, cut to the list; a
-// list of columns fits each cell to its own column.
-func mockupFonts(s *popupSpec, body *text.Font) {
-	for i, r := range s.Rows {
-		if r.Focus && body != nil {
-			s.Rows[i].Caret = body.Advance(r.Value)
-		}
-	}
-	if list := s.List; list != nil {
-		columns := len(s.ListColumns) > 0
-		s.ListText = func(row, width int) string {
-			rows := list.Rows()
-			if row < 0 || row >= len(rows) {
-				return ""
-			}
-			if columns {
-				return rows[row].Text
-			}
-			return editorClip(body, rows[row].Text, width)
-		}
-	}
-}
-
 // cardPicture is the portrait of the test party's card n for the first
 // kind of hero, a picture name "card:N"; nil for none.
 func (e *MapEditor) cardPicture(name string) *image.RGBA {

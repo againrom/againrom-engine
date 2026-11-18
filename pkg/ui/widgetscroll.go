@@ -354,13 +354,46 @@ type listRowText func(row int, width int) string
 // library and the Sound Options track list draw it alike.
 func listWell(l listBox) editField { return editField{Rect: l.Rect.Inset(-1)} }
 
+func (l listBox) textInset() int {
+	if l.Framed {
+		return editTextX
+	}
+	return listTextX
+}
+
+func (l listBox) rowTextBox(r image.Rectangle, row PickerRow) image.Rectangle {
+	x := l.textInset()
+	box := r
+	box.Min.X, box.Max.X = r.Min.X+x+listRowLead(row, r.Dy(), x), r.Max.X-x
+	return box
+}
+
+func (l listBox) rowFace(body *text.Font, row PickerRow) *text.Font {
+	if row.Heading && l.HeadingFace != nil {
+		return l.HeadingFace
+	}
+	return body
+}
+
+func (l listBox) captions(body *text.Font, list *Picker) listRowText {
+	return func(i, width int) string {
+		rows := list.Rows()
+		if i < 0 || i >= len(rows) {
+			return ""
+		}
+		row := rows[i]
+		if len(l.Columns) > 0 {
+			return row.Text
+		}
+		return editorClip(l.rowFace(body, row), row.Text, width)
+	}
+}
+
 // drawListBox paints the shared list's well, its visible rows and its bar.
 // The selected row is filled and outlined and drawn in the selected ink.
 func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox, m *Picker, rowText listRowText, pointer image.Point, pointerOK bool) {
 	recordWidget(widgetListBox, l.Rect, l)
-	textX := listTextX
 	if l.Framed {
-		textX = editTextX
 		for i := 0; i < l.Rows; i++ {
 			r := l.Row(i)
 			drawEditField(dst, editField{Rect: image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y-1)}, nil)
@@ -369,6 +402,9 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 		drawEditField(dst, listWell(l), nil)
 	}
 	if m != nil && f != nil {
+		if rowText == nil {
+			rowText = l.captions(f, m)
+		}
 		top, count := m.Visible()
 		for i := 0; i < count && i < l.Rows; i++ {
 			r := l.Row(i)
@@ -390,28 +426,25 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Ink != (color.RGBA{}) {
 				ink = rows[top+i].Ink
 			}
-			data := m.Rows()[top+i]
-			x := r.Min.X + textX
-			if data.Icon != nil || data.IconCell {
+			item := m.Rows()[top+i]
+			box := l.rowTextBox(r, item)
+			x, width := box.Min.X, box.Dx()
+			if item.Icon != nil || item.IconCell {
 				side := max(1, r.Dy()-2)
-				editorBlit(dst, data.Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
+				editorBlit(dst, item.Icon, screenRect{X: float64(r.Min.X + l.textInset()), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 			}
-			x += listRowLead(data, r.Dy(), textX)
-			width := r.Max.X - textX - x
-			if data.Fold != FoldNone {
-				f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowFoldMarks[data.Fold], x-listIndentStep, r.Min.Y+listTextY, ink)
+			if item.Fold != FoldNone {
+				f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowFoldMarks[item.Fold], x-listIndentStep, r.Min.Y+listTextY, ink)
 			}
-			face := f
-			if rows := m.Rows(); l.HeadingFace != nil && top+i < len(rows) && rows[top+i].Heading {
-				face = l.HeadingFace
-			}
+			face := l.rowFace(f, item)
 			row := dst.SubImage(r.Inset(1)).(*image.RGBA)
+			line := rowText(top+i, width)
 			if len(l.Columns) == 0 {
-				face.Draw(row, rowText(top+i, width), x, r.Min.Y+listTextY, ink)
+				face.Draw(row, line, x, r.Min.Y+listTextY, ink)
 				continue
 			}
 			stops := columnStops(l.Columns, width)
-			for k, cell := range strings.SplitN(l.fitCells(editorFit(face), rowText(top+i, width), width), "\t", len(l.Columns)) {
+			for k, cell := range strings.SplitN(l.fitCells(editorFit(face), line, width), "\t", len(l.Columns)) {
 				box := image.Rect(x+stops[k], r.Min.Y, x+stops[k+1]-listColumnGap/2, r.Max.Y)
 				face.Draw(row.SubImage(box).(*image.RGBA), cell, x+stops[k], r.Min.Y+listTextY, ink)
 			}

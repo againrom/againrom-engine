@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"againrom/pkg/editormcp"
-	"againrom/pkg/render/textfit"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -113,8 +112,6 @@ type editorPanels struct {
 	pull pullState
 	// reportRows is the list rows the report fits in the bottom panel.
 	reportRows int
-	// notes is the docked report's note window.
-	notes reportNotes
 	// hosted reports that the last object popup built stands in the right
 	// panel; hostable that the one being built is a window the panel takes.
 	hosted, hostable bool
@@ -174,12 +171,12 @@ func (e *MapEditor) panelStrip(i int) int {
 	return title + popupTitleInset
 }
 
-func (e *MapEditor) panelSize(i int) int {
+func (e *MapEditor) panelSize(i, least int) int {
 	if width := e.panels.state[i].Width; width > 0 {
-		return clampPanel(i, width)
+		return max(least, clampPanel(i, width))
 	}
 	if e.window.X < 1920 || e.window.Y < 1080 {
-		return sidePanels[i].width
+		return max(least, sidePanels[i].width)
 	}
 	switch i {
 	case panelLeft:
@@ -190,9 +187,7 @@ func (e *MapEditor) panelSize(i int) int {
 		s := e.emptyPropsSpec()
 		return clampPanel(i, naturalWidth(&s, e.font, e.bodyFont(), 0))
 	default:
-		s := e.reportHintContent(mapLeastWidth)
-		s.Width = mapLeastWidth
-		return clampPanel(i, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
+		return least
 	}
 }
 
@@ -214,7 +209,10 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 			continue
 		}
 		if s := e.panels.state[i]; s.Restored {
-			w[i], open[i] = e.panelSize(i), true
+			open[i] = true
+			if i != panelBottom {
+				w[i] = e.panelSize(i, sidePanels[i].least)
+			}
 		}
 	}
 	room := e.window.X - mapLeastWidth
@@ -227,10 +225,12 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 			w[i], open[i] = e.panelStrip(i), false
 		}
 	}
-	top := e.toolbarRect().Max.Y
-	if high := e.mapBottom(top) - top - mapLeastHeight; open[panelBottom] && w[panelBottom] > high {
-		w[panelBottom] = max(sidePanels[panelBottom].least, high)
-		if w[panelBottom] > high {
+	if open[panelBottom] {
+		top := e.toolbarRect().Max.Y
+		high := e.mapBottom(top) - top - mapLeastHeight
+		least := e.reportDockMinHeight(e.window.X - w[panelLeft] - w[panelRight])
+		w[panelBottom] = min(e.panelSize(panelBottom, least), high)
+		if w[panelBottom] < least {
 			w[panelBottom], open[panelBottom] = e.panelStrip(panelBottom), false
 		}
 	}
@@ -811,22 +811,50 @@ func (e *MapEditor) panelOf(id editorPopupID) (int, bool) {
 // reportDocked reports that the list popup shows the report in the restored
 // bottom panel. The script panel's arms keep their floating window.
 func (e *MapEditor) reportDocked() bool {
-	return e.listKind() == "report" && len(e.report.goals) == 0 && e.panelOpen(panelBottom)
+	return e.reportCanDock() && e.panelOpen(panelBottom)
 }
 
-// reportHintSpec is the restored bottom panel while it shows no report: its
-// title and one hint line.
+func (e *MapEditor) reportCanDock() bool {
+	return e.listKind() == "report" && len(e.report.goals) == 0
+}
+
+// reportHintSpec is the restored bottom panel's title and help without findings.
 func (e *MapEditor) reportHintSpec() (popupSpec, bool) {
 	if !e.panelOpen(panelBottom) || e.reportDocked() {
 		return popupSpec{}, false
 	}
-	return e.inPanel(e.reportHintContent(e.sidePanelRect(panelBottom).Dx()), panelBottom), true
+	s := popupSpec{Title: e.word(sidePanels[panelBottom].titleWord), TitleHelp: e.word("editor.side.noreport")}
+	return e.inPanel(s, panelBottom), true
 }
 
-func (e *MapEditor) reportHintContent(width int) popupSpec {
-	s := popupSpec{Title: e.word(sidePanels[panelBottom].titleWord), NoteInk: editorPaper}
-	for _, line := range editorTextLines(e.bodyFont(), e.word("editor.side.noreport"), width-2*popupPad-8) {
-		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
+func (e *MapEditor) reportDockMinHeight(width int) int {
+	rows := popupMinRows
+	if e.reportCanDock() {
+		rows = min(rows, len(e.report.rows))
+	}
+	s := popupSpec{Width: width, ListRows: rows}
+	if rows > 0 {
+		s.List = NewPicker(make([]PickerRow, rows))
+		s.Notes = []string{""}
+	}
+	s = e.dockReportContent(s, width)
+	return max(sidePanels[panelBottom].least, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
+}
+
+func (e *MapEditor) dockReportContent(s popupSpec, width int) popupSpec {
+	if s.List != nil && s.List.Len() > 0 {
+		n := s.List.Len()
+		s.ListRows = min(s.ListRows, n)
+		s.ListLeast, s.ListMost = min(popupMinRows, n), n
+		s.NotesKeep = 1
+	} else {
+		s.List, s.ListRows = nil, 0
+	}
+	if e.reportCanDock() && e.checkShown() {
+		s.Title = e.word(sidePanels[panelBottom].titleWord)
+		outcome := editorTextLines(e.bodyFont(), e.report.note, reportNoteWidth(width))
+		s.Notes = slices.Insert(s.Notes, len(s.Notes)-s.NotesKeep, outcome...)
+		s.NotesKeep += len(outcome)
 	}
 	return s
 }
@@ -834,86 +862,17 @@ func (e *MapEditor) reportHintContent(width int) popupSpec {
 // dockReport is the report's list popup s in the bottom panel, its list
 // fitted to the panel's height.
 func (e *MapEditor) dockReport(s popupSpec) popupSpec {
-	s = e.inPanel(s, panelBottom)
-	if s.List == nil {
-		return s
+	place := func(s popupSpec) popupSpec {
+		s = e.dockReportContent(s, e.sidePanelRect(panelBottom).Dx())
+		return e.inPanel(s, panelBottom)
 	}
-	s = e.fitDocked(s)
+	s = place(s)
 	if n := layoutPopup(s, e.font, e.bodyFont()).ListRows; n != e.panels.reportRows {
-		// The rows the panel fits are the list's window: build the popup
-		// again at that window, so its rows and its count line agree.
 		e.panels.reportRows = n
 		s, _ = e.listSpecBase()
-		s = e.fitDocked(e.inPanel(s, panelBottom))
-	}
-	s.ListRows = e.panels.reportRows
-	return s
-}
-
-// reportNotes is the window of the docked report's note lines: the first
-// line shown, how many show of how many, the wheel's remainder, and the
-// selection and first line the window belongs to.
-type reportNotes struct {
-	top, shown, count int
-	wheel             float64
-	key               string
-}
-
-// fitDocked keeps docked report s inside the bottom panel. While its frame
-// is taller than the panel, the notes show fewer lines, down to one, from
-// the line the wheel scrolled them to, and the last line shown carries the
-// mark that more follow; then the list keeps fewer rows, down to one. It
-// measures the frame before the layout pass gives way, so the report's
-// notes page here instead of folding behind the title's mark.
-func (e *MapEditor) fitDocked(s popupSpec) popupSpec {
-	n := &e.panels.notes
-	all := s.Notes
-	key := fmt.Sprint(e.report.sel, len(all))
-	if len(all) > 0 {
-		key += all[0]
-	}
-	if key != n.key {
-		*n = reportNotes{key: key}
-	}
-	n.count, n.shown = len(all), len(all)
-	high := s.Bounds.Dy()
-	over := func() bool { return placeWindow(specWindow(s), e.font, e.bodyFont()).Rect.Dy() > high }
-	if !over() {
-		n.top = 0
-		return s
-	}
-	asked := n.top
-	for n.shown > 1 {
-		n.shown--
-		n.top = max(0, min(asked, n.count-n.shown))
-		s.Notes = slices.Clone(all[n.top : n.top+n.shown])
-		if last := len(s.Notes) - 1; n.top+n.shown < n.count && !strings.HasSuffix(s.Notes[last], textfit.Mark) {
-			s.Notes[last] = e.continuedLine(s.Notes[last], e.dockedNoteWidth())
-		}
-		if !over() {
-			return s
-		}
-	}
-	for s.ListLeast = popupMinRows - 1; s.ListLeast > 1 && over(); s.ListLeast-- {
+		s = place(s)
 	}
 	return s
-}
-
-// notesWheel scrolls the docked report's note lines by the wheel while the
-// pointer stands on them and they do not all show; it reports whether it
-// took the wheel.
-func (e *MapEditor) notesWheel(l popupLayout, wheel wheelSource) bool {
-	n := &e.panels.notes
-	if !e.reportDocked() || n.shown >= n.count {
-		return false
-	}
-	for _, r := range l.Notes {
-		if e.pointer.In(r) {
-			n.top = max(0, min(n.count-n.shown, n.top+notesList.wheelAccumulated(&n.wheel, wheel)))
-			return true
-		}
-	}
-	return false
 }
 
 // panelSpecOf is the spec of the popup id that stands in a panel: the
@@ -975,6 +934,7 @@ func panelInnerEdge(i int) popupEdge {
 func (e *MapEditor) resizePanel(i int, d image.Point) {
 	shown := e.panelsShown()
 	w := shown[i]
+	least := sidePanels[i].least
 	var room int
 	switch sidePanels[i].place {
 	case placeLeft:
@@ -985,6 +945,7 @@ func (e *MapEditor) resizePanel(i int, d image.Point) {
 		w -= d.X
 	}
 	if sidePanels[i].place == placeBottom {
+		least = e.reportDockMinHeight(e.window.X - shown[panelLeft] - shown[panelRight])
 		top := e.toolbarRect().Max.Y
 		room = e.mapBottom(top) - top - mapLeastHeight
 	} else {
@@ -994,7 +955,7 @@ func (e *MapEditor) resizePanel(i int, d image.Point) {
 	if m := sidePanels[i].most; m > 0 {
 		w = min(m, w)
 	}
-	e.panels.state[i].Width = max(sidePanels[i].least, w)
+	e.panels.state[i].Width = max(least, w)
 	e.relayout()
 }
 
@@ -1436,13 +1397,6 @@ func (e *MapEditor) treeSpec() (popupSpec, bool) {
 		}
 	}
 	s.ListRows = e.tree.window
-	s.ListText = func(row, width int) string {
-		rows := m.Rows()
-		if row < 0 || row >= len(rows) {
-			return ""
-		}
-		return editorClip(e.bodyFont(), rows[row].Text, width)
-	}
 	return s, true
 }
 

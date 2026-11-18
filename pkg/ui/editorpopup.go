@@ -493,6 +493,7 @@ type popupSpec struct {
 	// ListLeast is the fewest list rows a sized popup keeps; zero is
 	// popupMinRows.
 	ListLeast int
+	ListMost  int
 	ListText  listRowText
 	// ListAside is a column right of the list kept free for a picture.
 	ListAside int
@@ -503,6 +504,7 @@ type popupSpec struct {
 	// head over its column, wrapped to its width.
 	ListColumns []listColumn
 	Notes       []string
+	NotesKeep   int
 	NoteInk     color.RGBA
 	Buttons     []string
 	Disabled    []bool
@@ -1189,6 +1191,9 @@ func popupFit(s uiWindow, body *text.Font, flow popupFlow, pitch, titleH, h int)
 	switch {
 	case s.List.Picker != nil:
 		listRows = max(listLeast, avail/lp)
+		if s.List.Most > 0 {
+			listRows = min(listRows, s.List.Most)
+		}
 		if flexRows {
 			rowsFit = max(0, min(s.Body.MaxRows, popupRowCount(s)-top))
 		}
@@ -1230,7 +1235,7 @@ func layoutWindow(root uiNode, title, body *text.Font) popupLayout {
 	s := windowOf(root)
 	l := placeWindow(s, title, body)
 	room := s.Place.Bounds.Dy()
-	if s.Place.Short && s.Place.Size.Y > 0 {
+	if popupResizeEnabled && (s.Place.Short || s.Place.Fit) && s.Place.Size.Y > 0 {
 		room = min(room, s.Place.Size.Y)
 	}
 	if !s.Place.Bounds.Empty() && l.Rect.Dy() > room {
@@ -1289,9 +1294,9 @@ func giveWay(s uiWindow, l popupLayout, room int, title, body *text.Font) (uiWin
 			return s, l
 		}
 	}
-	if len(s.Notes.Lines) > 0 {
-		s.Title.Help = strings.TrimSpace(s.Title.Help + " " + strings.Join(s.Notes.Lines, " "))
-		s.Notes.Lines = nil
+	if fold := len(s.Notes.Lines) - s.Notes.Keep; fold > 0 {
+		s.Title.Help = strings.TrimSpace(s.Title.Help + " " + strings.Join(s.Notes.Lines[:fold], " "))
+		s.Notes.Lines = s.Notes.Lines[fold:]
 		l = placeWindow(s, title, body)
 	}
 	return s, l
@@ -1319,11 +1324,16 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	}
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := popupTitleHeight(title)
+	sized := popupResizeEnabled && s.Place.Size.X > 0 && s.Place.Size.Y > 0
+	if !sized && !s.Place.Slack && s.Place.Fit && !s.Place.Room.Empty() {
+		bounds, room := &s.Place.Bounds, s.Place.Room
+		bounds.Min.X = max(bounds.Min.X, room.Min.X)
+		bounds.Max.X = min(bounds.Max.X, room.Max.X)
+	}
 	w := max(160, s.Place.Width)
 	if s.Body.MaxRows > 0 && popupRowCount(s) > s.Body.MaxRows {
 		w += widgetSpriteSize + 2
 	}
-	sized := popupResizeEnabled && s.Place.Size.X > 0 && s.Place.Size.Y > 0
 	if !sized {
 		// A popup at its own size is as wide as its button row; the row
 		// wraps only where the bounds hold less.
@@ -2373,7 +2383,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			drawVScrollBar(dst, frames, l.canvasBar(c).withPointer(pointer, pointerOK))
 		}
 	}
-	if l.HasList && s.List.Text != nil {
+	if l.HasList {
 		box := l.List
 		box.HeadingFace = title
 		drawListBox(dst, body, frames, box, s.List.Picker, s.List.Text, pointer, pointerOK)
@@ -2517,10 +2527,10 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 		if !cut {
 			return popupTip{}, false
 		}
-		how := tipShape{Width: width, Pull: row.Tip != "", Clip: row.Kind == popupDirection}
-		if row.Kind == popupChoice && row.Tip == "" {
-			how = tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true}
+		if row.Kind == popupLink || row.Kind == popupChoice && row.Tip == "" {
+			return valueTip(bounds, body, rr.Rect, full), true
 		}
+		how := tipShape{Width: width, Pull: row.Tip != "", Clip: row.Kind == popupDirection}
 		return layoutTip(bounds, body, rr.Rect, full, nil, how), true
 	}
 	if tip, ok := canvasTipAt(bounds, body, s.Canvas, l, p); ok {
