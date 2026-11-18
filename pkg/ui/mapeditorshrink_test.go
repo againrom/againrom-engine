@@ -164,7 +164,7 @@ func TestEditorWindowTitleMovesBelowTheTopBand(t *testing.T) {
 // the editor.
 func TestEditorDetailedUnitWindowIsAsWideAsItsContent(t *testing.T) {
 	for _, size := range []image.Point{{1920, 1080}, {1280, 1024}, {640, 480}} {
-		e := wideEditor(t, "en", 0, "technical", nil)
+		e := wideEditor(t, "en", 1920, "technical", nil)
 		e.Layout(size.X, size.Y)
 		e.Select(viewsUnit, false)
 		s, _, ok := e.objectSpec()

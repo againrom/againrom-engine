@@ -9,10 +9,10 @@ import (
 )
 
 // dockedToolbarHigh is the docked toolbar row's height in a window width
-// pixels wide: 36-pixel buttons where the 782-pixel row fits, else 22-pixel
+// pixels wide: 36-pixel buttons where the 744-pixel row fits, else 22-pixel
 // ones, with 3 pixels above and below them.
 func dockedToolbarHigh(width int) int {
-	if width >= 782 {
+	if width >= 744 {
 		return 42
 	}
 	return 28
@@ -37,7 +37,7 @@ func toolbarButtons(e *MapEditor) []toolEntry {
 // row on the left.
 var toolbarFloatGrid = map[string]image.Point{
 	"border": {0, 0}, "areas": {0, 1}, "drops": {0, 2}, "footprints": {0, 3}, "issues": {0, 4}, "heightlabels": {0, 5},
-	"passview": {0, 6}, "playertint": {0, 7}, "grid": {0, 8}, "fit": {0, 9}, "report": {0, 10}, "objectspanel": {0, 11}, "propertiespanel": {0, 12},
+	"passview": {0, 6}, "playertint": {0, 7}, "grid": {0, 8}, "fit": {0, 9}, "report": {0, 10}, "objectspanel": {0, 11},
 	"select": {1, 0}, "brush.terrain": {1, 1}, "brush.height": {1, 2}, "brush.objects": {1, 3}, "brush.passability": {1, 4}, "drawarea": {1, 5},
 	"brush.bridge": {1, 6},
 }
@@ -102,8 +102,8 @@ func toolbarGripPoint(e *MapEditor) image.Point {
 // toolEffect is what a toolbar button changes: the view switches, the tool,
 // the panels, the report, the list and the message.
 func toolEffect(e *MapEditor) string {
-	return fmt.Sprintf("view=%+v tool=%s panels=%v/%v/%v report=%v list=%q message=%q",
-		e.view, e.currentTool(), e.panelOn(panelLeft), e.panelOn(panelRight), e.panelOn(panelBottom), e.report.open, e.listKind(), e.message)
+	return fmt.Sprintf("view=%+v tool=%s panels=%v/%v report=%v list=%q message=%q",
+		e.view, e.currentTool(), e.panelOn(panelLeft), e.panelOn(panelBottom), e.report.open, e.listKind(), e.message)
 }
 
 // At 1024x768 and 1920x1080, in English and in Russian, each docked toolbar
@@ -133,7 +133,7 @@ func TestMapEditorToolbarDrawsIconsAtTwiceTheirSize(t *testing.T) {
 
 // At 640x480, in English and in Russian, the docked row takes today's
 // 22-pixel buttons: each lies whole inside the window, none overlaps another
-// and the groups stand apart. The larger buttons start at 782 pixels wide.
+// and the groups stand apart. The larger buttons start at 744 pixels wide.
 func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		e, _, _ := panelsEditor(t, 640, 480, lang)
@@ -158,7 +158,7 @@ func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 		if right.Min.X < left.Max.X+toolGroupGap {
 			t.Errorf("%q: the groups %v and %v stand closer than %d", lang, left, right, toolGroupGap)
 		}
-		for _, c := range []struct{ width, side int }{{781, 22}, {782, 36}} {
+		for _, c := range []struct{ width, side int }{{743, 22}, {744, 36}} {
 			e.Layout(c.width, 600)
 			if r, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); r.Dx() != c.side || e.toolbarRect().Dy() != dockedToolbarHigh(c.width) {
 				t.Errorf("%q: at %d wide select is %v in a row %d high, want side %d", lang, c.width, r, e.toolbarRect().Dy(), c.side)
@@ -209,10 +209,8 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 			if e.toolbarRect().Dy() != 0 || e.mapArea().Min.Y != top || e.chromeHit(image.Pt(size.X/2, barBefore.Max.Y-2)) == popToolbar {
 				t.Errorf("%s: floating, the row is %v and the map %v, want the map from %d", name, e.toolbarRect(), e.mapArea(), top)
 			}
-			for _, i := range []int{panelLeft, panelRight} {
-				if p := e.sidePanelRect(i); !p.Empty() && p.Min.Y != top {
-					t.Errorf("%s: panel %d at %v, want its top at %d", name, i, p, top)
-				}
+			if p := e.sidePanelRect(panelLeft); !p.Empty() && p.Min.Y != top {
+				t.Errorf("left panel at %v, want its top at %d", p, top)
 			}
 			entries := toolbarButtons(e)
 			side := entries[0].rect.Dx()
@@ -276,7 +274,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 }
 
 // The floating window takes the larger buttons where it fits under the top
-// bar: the top bar, the drag strip, 6 pixels around the grid and 13 rows of
+// bar: the top bar, the drag strip, 6 pixels around the grid and 12 rows of
 // 36-pixel buttons 2 pixels apart; a lower window takes today's buttons.
 func TestMapEditorFloatingToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
@@ -287,7 +285,7 @@ func TestMapEditorFloatingToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *test
 		if !ok {
 			t.Fatalf("%q: the grip drag did not float the toolbar", lang)
 		}
-		need := e.barHeight() + l.Title.Dy() + 2*6 + 13*36 + 12*2
+		need := e.barHeight() + l.Title.Dy() + 2*6 + 12*36 + 11*2
 		t.Logf("%q: the floating window takes 36-pixel buttons from %d pixels high", lang, need)
 		for _, c := range []struct{ high, side int }{{need - 1, 22}, {need, 36}} {
 			e.Layout(1024, c.high)

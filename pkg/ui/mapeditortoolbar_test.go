@@ -78,7 +78,7 @@ var baseViewToolsRows = []struct{ key, place, menu string }{
 	{"drops", "toolbar", "view"}, {"footprints", "toolbar", "view"}, {"issues", "toolbar", "view"}, {"grid", "toolbar", "view"},
 	{"passview", "toolbar", "view"}, {"heightlabels", "toolbar", "view"}, {"border", "toolbar", "view"}, {"areas", "toolbar", "view"},
 	{"playertint", "toolbar", "view"}, {"report", "toolbar", "view"}, {"fit", "toolbar", "view"}, {"drawarea", "toolbar", "tools"},
-	{"records", "file", ""}, {"objectspanel", "toolbar", "window"}, {"propertiespanel", "toolbar", "window"},
+	{"records", "file", ""}, {"objectspanel", "toolbar", "window"},
 	{"newtrigger", "tools", ""}, {"brush.terrain", "toolbar", "tools"}, {"brush.height", "toolbar", "tools"},
 	{"brush.objects", "toolbar", "tools"}, {"brush.passability", "toolbar", "tools"},
 	{"randomterrain", "tools", ""}, {"randomheights", "tools", ""},
@@ -119,7 +119,7 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 		t.Run(r.key, func(t *testing.T) {
 			var open fixture = full
 			switch r.key {
-			case "drawarea", "objectspanel", "propertiespanel":
+			case "drawarea", "objectspanel":
 				open = area
 			case "randomterrain", "randomheights":
 				open = land
@@ -147,12 +147,12 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 	for _, size := range []image.Point{{1280, 800}, {1024, 768}, {640, 480}} {
 		for _, st := range []struct {
-			name                string
-			left, right, bottom bool
-		}{{"both", true, true, false}, {"left", true, false, false}, {"right", false, true, false}, {"none", false, false, false}, {"bottom", true, true, true}} {
+			name         string
+			left, bottom bool
+		}{{"left", true, false}, {"none", false, false}, {"bottom", false, true}, {"both", true, true}} {
 			t.Run(fmt.Sprintf("%dx%d/%s", size.X, size.Y, st.name), func(t *testing.T) {
 				e, _, _ := panelsEditor(t, size.X, size.Y, "")
-				for i, open := range []bool{st.left, st.right, st.bottom} {
+				for i, open := range []bool{st.left, st.bottom} {
 					e.panels.state[i].Restored = open
 				}
 				e.relayout()
@@ -183,7 +183,7 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 					t.Errorf("groups at %v..%v and %v..%v", first, prev[toolLeft], layers, last)
 				}
 				shown := e.panelsShown()
-				base := image.Rect(shown[panelLeft], e.barHeight(), size.X-shown[panelRight], size.Y-e.barRowHeight())
+				base := image.Rect(shown[panelLeft], e.barHeight(), size.X, size.Y-e.barRowHeight())
 				want := image.Rect(base.Min.X, base.Min.Y+high, base.Max.X, base.Max.Y-shown[panelBottom])
 				if got := e.mapArea(); got != want {
 					t.Errorf("map %v, want %v", got, want)

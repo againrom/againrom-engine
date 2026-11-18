@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor has no right panel. A selected object's window always opens as a floating window over the map, and the map gets the freed width.
 - [BASE] In the map editor, each item type has one group in the Sacks palette and item lists. Plate boots of every material are together, with separate groups for chain boots and soft boots.
 - [BASE] In the map editor, the (?) tips of a unit's equipment rows name the worn and carried items in readable Russian and English.
 - [BASE] Close any map from its own tab, scroll long menus and search results, and point at a cut-off tab name or status line to read it in full.

@@ -216,7 +216,7 @@ func TestEditorPopupButtonsHoldTheirCaptionsInBothLanguages(t *testing.T) {
 				for _, step := range p.steps {
 					modesAct(e, step)
 				}
-				for _, id := range []editorPopupID{popList, popObject, popPrompt, popTree, popProps, popToolbar} {
+				for _, id := range []editorPopupID{popList, popObject, popPrompt, popTree, popToolbar} {
 					s, ok := e.movableSpec(id)
 					if !ok {
 						continue

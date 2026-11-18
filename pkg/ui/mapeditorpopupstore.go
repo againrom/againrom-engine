@@ -91,7 +91,7 @@ func (e *MapEditor) centreCorner(size image.Point, place openPlace) image.Point 
 // sized; else the bounds' top-left corner, which keepInRoom and openCentred
 // replace with the middle.
 func (e *MapEditor) keptCorner(id editorPopupID) image.Point {
-	p := e.places[e.storeRow(id)]
+	p := e.places[id]
 	if p.placed || p.slack || p.size != (image.Point{}) {
 		return p.at
 	}
@@ -102,7 +102,7 @@ func (e *MapEditor) keptCorner(id editorPopupID) image.Point {
 // popup id's record: a sized prompt's kept corner, an unsized one moved by the
 // drag of its title. It also gives the kept page.
 func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
-	p := &e.places[e.storeRow(id)]
+	p := &e.places[id]
 	s.Slack, s.Short = p.slack, p.short
 	switch {
 	case p.size != (image.Point{}):
@@ -126,10 +126,9 @@ func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
 // and object window passes here.
 func (e *MapEditor) keepInRoom(id editorPopupID, s *popupSpec) {
 	e.pageSpec(id, s)
-	row := e.storeRow(id)
-	p := e.places[row]
+	p := &e.places[id]
 	if p.slack || p.size != (image.Point{}) {
-		e.places[row].open = false
+		p.open = false
 		return
 	}
 	middle := e.openCentred(id, s)
@@ -147,7 +146,7 @@ func (e *MapEditor) keepInRoom(id editorPopupID, s *popupSpec) {
 	if want != middle && s.At != want {
 		s.At = keep(middle)
 	}
-	e.places[row].stood = s.At
+	p.stood = s.At
 }
 
 // openCentred stands spec s of popup id, while nobody dragged or sized it,
@@ -160,8 +159,7 @@ func (e *MapEditor) keepInRoom(id editorPopupID, s *popupSpec) {
 // clear. A dragged, sized or otherwise placed popup keeps its place. It
 // returns the middle corner.
 func (e *MapEditor) openCentred(id editorPopupID, s *popupSpec) image.Point {
-	row := e.storeRow(id)
-	p := &e.places[row]
+	p := &e.places[id]
 	if p.slack || p.size != (image.Point{}) || p.placed {
 		p.open = false
 		return s.At
@@ -175,7 +173,7 @@ func (e *MapEditor) openCentred(id editorPopupID, s *popupSpec) image.Point {
 	middle := e.centreCorner(size, openPlace{})
 	s.At = middle
 	if !p.open {
-		p.open, p.offset = true, row != popList && e.listStands()
+		p.open, p.offset = true, id != popList && e.listStands()
 	}
 	if q := e.places[popList]; p.offset && q.open && e.listKind() != "" {
 		step := l.Title.Dy() + popupPad
@@ -196,13 +194,13 @@ func (e *MapEditor) floatPlace(id editorPopupID, r image.Rectangle) {
 }
 
 func (e *MapEditor) restoreBarPlaces(places [popCount]popupStanding) {
-	for _, id := range []editorPopupID{popList, popObject, popPrompt, popProps} {
+	for _, id := range []editorPopupID{popList, popObject, popPrompt} {
 		e.places[id] = places[id]
 	}
 	e.places[popList].key = e.windowKey(popList, "")
 	e.places[popPrompt].key = e.windowKey(popPrompt, "")
 	if s, _, ok := e.objectSpecBase(); ok {
-		e.places[e.storeRow(popObject)].key = s.Title
+		e.places[popObject].key = s.Title
 	}
 }
 
@@ -237,17 +235,7 @@ func naturalSize(s *popupSpec, size image.Point) {
 
 // slackSpec gives spec s the slack of popup id's record.
 func (e *MapEditor) slackSpec(id editorPopupID, s *popupSpec) {
-	s.Slack = e.places[e.storeRow(id)].slack
-}
-
-// storeRow is the row of the store that popup id stands in: its own, except
-// that the object popup of a floating right panel is that panel's window, so
-// it keeps the panel's row.
-func (e *MapEditor) storeRow(id editorPopupID) editorPopupID {
-	if id == popObject && e.panelFloats(panelRight) {
-		return popProps
-	}
-	return id
+	s.Slack = e.places[id].slack
 }
 
 // rowsFit is the rows a window that sets MaxRows shows when the layout pass
@@ -260,7 +248,7 @@ func (e *MapEditor) rowsFit(s popupSpec) int {
 
 // bodyPage is the kept first row of popup id's paged body.
 func (e *MapEditor) bodyPage(id editorPopupID) *int {
-	return &e.places[e.storeRow(id)].page
+	return &e.places[id].page
 }
 
 // pageSpec gives a window that sets no MaxRows its kept page, and holds the
@@ -307,10 +295,7 @@ func (e *MapEditor) fitListRows(n int) { e.places[popList].fit = n }
 // width, or while the popup is sized the width the size leaves beside the
 // scroll bar.
 func (e *MapEditor) popupWide(id editorPopupID, natural int) int {
-	if id == popObject && e.objectInPanel() {
-		return e.panelWide()
-	}
-	if sz := e.places[e.storeRow(id)].size; sz.X > 0 {
+	if sz := e.places[id].size; sz.X > 0 {
 		return max(160, sz.X-widgetSpriteSize-2)
 	}
 	return natural
@@ -424,14 +409,11 @@ func (e *MapEditor) listStands() bool {
 
 // popupHidden notes that popup id's centred window no longer stands, so
 // no later window opens offset from it.
-func (e *MapEditor) popupHidden(id editorPopupID) { e.places[e.storeRow(id)].open = false }
+func (e *MapEditor) popupHidden(id editorPopupID) { e.places[id].open = false }
 
 // dropForeignSize returns popup id to its natural size when the window it
 // shows is not the one that was sized.
 func (e *MapEditor) dropForeignSize(id editorPopupID, key string) bool {
-	if e.storeRow(id) != id {
-		return false
-	}
 	p := &e.places[id]
 	if p.size == (image.Point{}) || p.key == key {
 		return false
@@ -454,7 +436,7 @@ func (e *MapEditor) dragPopup(d image.Point) {
 	}
 	from := s.At
 	shown := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
-	p := &e.places[e.storeRow(id)]
+	p := &e.places[id]
 	p.slack, s.Slack = true, true
 	s.At = shown.Add(d)
 	to := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
@@ -491,7 +473,7 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 		// The title row stays inside the bounds, so the bottom stays put.
 		h = max(h, r.Max.Y-bounds.Max.Y+layoutPopup(s, e.font, e.bodyFont()).Title.Dy())
 	}
-	p := &e.places[e.storeRow(id)]
+	p := &e.places[id]
 	if r.Max.Y > bounds.Max.Y && e.dragEdge&(edgeTop|edgeBottom) != 0 {
 		// A window past the bottom edge stays where it stands and shortens
 		// to its least rows.
@@ -521,16 +503,16 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 // holdPopup places popup id at at and keeps it there.
 func (e *MapEditor) holdPopup(id editorPopupID, at image.Point) {
 	e.placePopup(id, at)
-	e.places[e.storeRow(id)].placed = true
+	e.places[id].placed = true
 }
 
 // placePopup keeps popup id's corner at at, as far as the bounds allow.
 func (e *MapEditor) placePopup(id editorPopupID, at image.Point) {
-	row := e.storeRow(id)
-	e.places[row].at = at
+	p := &e.places[id]
+	p.at = at
 	s, ok := e.movableSpec(id)
 	if !ok {
 		return
 	}
-	e.places[row].at = layoutPopup(s, e.font, e.bodyFont()).Rect.Min
+	p.at = layoutPopup(s, e.font, e.bodyFont()).Rect.Min
 }

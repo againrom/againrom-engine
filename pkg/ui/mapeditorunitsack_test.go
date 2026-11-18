@@ -94,7 +94,7 @@ func sackEditor(t *testing.T, lang, view string) (*MapEditor, *sackHost) {
 		encoded, _ := textinput.EncodeText(s, e.font.Selector, textinput.Substitute)
 		return encoded
 	})
-	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{"minimized":false,"width":520,"view":%q}}`, view)), nil, nil)
+	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"record":{"view":%q}}`, view)), nil, nil)
 	e.Layout(1920, 1080)
 	if err := e.Open("views"); err != nil {
 		t.Fatal(err)
@@ -141,7 +141,7 @@ func openUnitBag(t *testing.T, e *MapEditor, view string) {
 // The unit's bag, in the detailed view, is the pick that adds an item to
 // the unit's sack and the sack's items; no row of it opens the sack, and
 // the basic view shows no bag. The unit's sack, selected, opens in the
-// window a selected sack takes, in the right panel.
+// floating window a selected sack opens.
 func TestMapEditorUnitBagIsThePickAndTheItems(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, view := range []string{"plain", "technical"} {
@@ -159,8 +159,8 @@ func TestMapEditorUnitBagIsThePickAndTheItems(t *testing.T) {
 					t.Fatalf("the bag edits %v, sack row %d:\n%s", keys, sackRow(e), strings.Join(e.PopupLines(), "\n"))
 				}
 				e.Select(sackStock, false)
-				if _, _, ok := e.objectSpec(); !ok || e.selected != sackStock || !e.panels.hosted || !e.objectInPanel() {
-					t.Fatal("the unit's sack, selected, stands in no sack window in the right panel")
+				if s, _, ok := e.objectSpec(); !ok || e.selected != sackStock || s.Docked {
+					t.Fatal("selecting the unit's sack did not open a floating window")
 				}
 			})
 		}

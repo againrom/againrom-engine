@@ -22,7 +22,7 @@ var popupResizeEnabled = true
 
 // resizable reports whether popup id is one of the three resizable places.
 func (e *MapEditor) resizable(id editorPopupID) bool {
-	floating := id == popTree && e.panelFloats(panelLeft) || id == popProps && e.panelFloats(panelRight)
+	floating := id == popTree && e.panelFloats(panelLeft)
 	return popupResizeEnabled && (id == popList || id == popObject || id == popPrompt || floating)
 }
 
@@ -60,25 +60,19 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	s, links, ok := e.objectSpecBase()
 	e.slackSpec(popObject, &s)
-	e.panels.hosted = ok && e.objectInPanel()
 	if !ok {
 		e.popupClosed(popObject)
 		return s, links, false
-	}
-	if e.panels.hosted {
-		e.popupHidden(popObject)
-		return e.objectInputRows(e.hostedObject(s)), links, true
 	}
 	if e.dropForeignSize(popObject, s.Title) {
 		s, links, ok = e.objectSpecBase()
 		e.slackSpec(popObject, &s)
 	}
-	if e.places[e.storeRow(popObject)].size == (image.Point{}) && s.Size == (image.Point{}) {
+	if e.places[popObject].size == (image.Point{}) && s.Size == (image.Point{}) {
 		e.keepInRoom(popObject, &s)
 		return e.objectInputRows(s), links, true
 	}
 	e.placeSpec(popObject, &s)
-	s.GripHover = e.panelFloats(panelRight)
 	if s.MaxRows > 0 {
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(specWindow(s))-s.MaxRows))
@@ -218,7 +212,7 @@ func (e *MapEditor) resizePopup(d image.Point) {
 // counts as shown: the default count, or one for a window the player sized,
 // whose size path clamps the first row to the rows it fits.
 func (e *MapEditor) sizedRows(shown int) int {
-	if shown > 0 && e.places[e.storeRow(popObject)].size != (image.Point{}) {
+	if shown > 0 && e.places[popObject].size != (image.Point{}) {
 		return 1
 	}
 	return shown

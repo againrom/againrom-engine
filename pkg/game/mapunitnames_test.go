@@ -34,8 +34,8 @@ func TestUnitNamesPageReadsAndWritesItsLines(t *testing.T) {
 	}
 }
 
-// A placed unit's name, in both views of the unit window, floating and in
-// the right panel, in English and Russian: the empty field shows the kind's
+// A placed unit's name, in both views of its floating window in English
+// and Russian. The empty field shows the kind's
 // name; a name set writes the unit's line in the map's names page and not a
 // byte of the map, and the card shows it; a name over 32 characters is
 // refused with the limit; an emptied field removes the line and the empty
@@ -43,9 +43,9 @@ func TestUnitNamesPageReadsAndWritesItsLines(t *testing.T) {
 // first block.
 func TestEditorUnitNameInBothViews(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
-		for _, docked := range []bool{false, true} {
+		for _, treeOpen := range []bool{false, true} {
 			for _, plain := range []bool{true, false} {
-				t.Run(fmt.Sprintf("%s/docked=%v/plain=%v", lang, docked, plain), func(t *testing.T) {
+				t.Run(fmt.Sprintf("%s/treeOpen=%v/plain=%v", lang, treeOpen, plain), func(t *testing.T) {
 					s, raw := viewsMap(t)
 					s.inspector.archives.Base.Profile.Language = lang
 					s.inspector.recordOptions = nil
@@ -60,7 +60,7 @@ func TestEditorUnitNameInBothViews(t *testing.T) {
 						t.Fatalf("the fixture unit has id %d: %v", id, err)
 					}
 					name := map[string]string{"": "Bjorn the Red", "russian": "Бьорн Рыжий"}[lang]
-					e, c := motionWindow(t, s, lang, plain, docked)
+					e, c := motionWindow(t, s, lang, plain, treeOpen)
 					fields := e.ObjectFields()
 					f := fields[fieldIndex(t, fields, unitNameField)]
 					if !f.Text || !f.Inherit || f.TextValue != "" || f.Inherited != "Kind" {
@@ -86,7 +86,7 @@ func TestEditorUnitNameInBothViews(t *testing.T) {
 					} else if plain {
 						t.Fatal("the basic view shows no card")
 					}
-					refused, rc := motionWindow(t, s, lang, plain, docked)
+					refused, rc := motionWindow(t, s, lang, plain, treeOpen)
 					typeText(t, refused, rc, unitNameField, strings.Repeat("x", maxUnitNameRunes+1))
 					if string(s.workspace.Pages[unitNamesPage]) != line {
 						t.Fatal("a name over the limit was written")

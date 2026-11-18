@@ -30,7 +30,7 @@ func TestMapEditorPanelFrameLayout(t *testing.T) {
 				}
 				return l
 			}
-			for i, id := range []editorPopupID{popTree, popProps, popReport} {
+			for i, id := range []editorPopupID{popTree, popReport} {
 				if i != panelBottom && e.sidePanelRect(i).Dx() == sidePanels[i].width {
 					t.Fatalf("fresh dock %d uses the old fixed size %d", i, sidePanels[i].width)
 				}
@@ -63,9 +63,6 @@ func TestMapEditorPanelFrameLayout(t *testing.T) {
 					t.Fatalf("splitter %v started drag %d on edge %d", l.splitterRect(), e.drag, e.dragEdge)
 				}
 				d := image.Pt(28, 0)
-				if i == panelRight {
-					d.X = -d.X
-				}
 				if i == panelBottom {
 					d = image.Pt(0, -28)
 				}
@@ -84,14 +81,6 @@ func TestMapEditorPanelFrameLayout(t *testing.T) {
 			if e.panelsShown() != before {
 				t.Fatalf("reopening profile changed panel sizes from %v to %v", before, e.panelsShown())
 			}
-			props, ok := e.propsSpec()
-			l := layoutPopup(props, e.font, e.bodyFont())
-			e.ChromeImage()
-			tip, hit := e.tipAt(center(l.TitleHelp))
-			if !ok || len(l.Notes) != 1 || len(l.Rows) != 0 || props.Notes[0] != e.word("editor.side.unselected") ||
-				props.TitleHelp != e.word("editor.side.none") || !hit || !tip.Help || !tip.Rect.In(screen) {
-				t.Fatalf("empty Properties has rows %v, notes %v and help %v", l.Rows, props.Notes, tip.Rect)
-			}
 		})
 	}
 }
@@ -100,28 +89,27 @@ func TestMapEditorDockHasOnlyAnInnerSplitter(t *testing.T) {
 	e, _, _ := panelsEditor(t, 1920, 1080, "")
 	rig := &undockRig{t: t, e: e}
 	pic := e.ChromeImage()
-	for _, id := range []editorPopupID{popTree, popProps} {
-		l := layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont())
-		p := l.Rect.Max.Sub(image.Pt(popupGripSide/2+1, popupGripSide/2+1))
-		rig.at(p, true)
-		if e.dragEdge != 0 {
-			t.Errorf("dock %d started a corner resize", id)
-		}
-		rig.at(p, false)
-		for y := l.Rect.Max.Y - popupGripSide; y < l.Rect.Max.Y-1; y++ {
-			for x := l.Rect.Max.X - popupGripSide; x < l.Rect.Max.X-1; x++ {
-				if pic.RGBAAt(x, y) == editorPopupInk.Edge {
-					t.Fatalf("dock %d paints the corner grip at (%d,%d)", id, x, y)
-				}
+	id := popTree
+	l := layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont())
+	p := l.Rect.Max.Sub(image.Pt(popupGripSide/2+1, popupGripSide/2+1))
+	rig.at(p, true)
+	if e.dragEdge != 0 {
+		t.Errorf("dock %d started a corner resize", id)
+	}
+	rig.at(p, false)
+	for y := l.Rect.Max.Y - popupGripSide; y < l.Rect.Max.Y-1; y++ {
+		for x := l.Rect.Max.X - popupGripSide; x < l.Rect.Max.X-1; x++ {
+			if pic.RGBAAt(x, y) == editorPopupInk.Edge {
+				t.Fatalf("dock %d paints the corner grip at (%d,%d)", id, x, y)
 			}
 		}
 	}
-	e.undockPanel(panelRight)
-	root := layoutPopup(e.panelSpecOf(popProps), e.font, e.bodyFont())
-	p := root.Rect.Max.Sub(image.Pt(popupGripSide/2, popupGripSide/2))
+	e.undockPanel(panelLeft)
+	root := layoutPopup(e.panelSpecOf(popTree), e.font, e.bodyFont())
+	p = root.Rect.Max.Sub(image.Pt(popupGripSide/2, popupGripSide/2))
 	rig.at(p, true)
-	if e.drag != popProps || e.dragEdge != edgeRight|edgeBottom {
-		t.Fatalf("floating Properties grip at %v started drag %d on edge %d", p, e.drag, e.dragEdge)
+	if e.drag != popTree || e.dragEdge != edgeRight|edgeBottom {
+		t.Fatalf("floating tree grip at %v started drag %d on edge %d", p, e.drag, e.dragEdge)
 	}
 	rig.at(p, false)
 }
@@ -153,11 +141,11 @@ func TestMapEditorResizeHandlesHighlightWithTheCursor(t *testing.T) {
 		}
 		t.Errorf("handle %v has no hover accent", handle)
 	}
-	dock := layoutPopup(e.panelSpecOf(popProps), e.font, e.bodyFont())
+	dock := layoutPopup(e.panelSpecOf(popTree), e.font, e.bodyFont())
 	y := center(dock.Rect).Y
-	check(dock, image.Rect(dock.Rect.Min.X, y-1, dock.Rect.Min.X+4, y+1), ebiten.CursorShapeEWResize)
-	e.undockPanel(panelRight)
-	float := layoutPopup(e.panelSpecOf(popProps), e.font, e.bodyFont())
+	check(dock, image.Rect(dock.Rect.Max.X-4, y-1, dock.Rect.Max.X, y+1), ebiten.CursorShapeEWResize)
+	e.undockPanel(panelLeft)
+	float := layoutPopup(e.panelSpecOf(popTree), e.font, e.bodyFont())
 	check(float, image.Rectangle{Min: float.Rect.Max.Sub(image.Pt(popupGripSide, popupGripSide)), Max: float.Rect.Max},
 		ebiten.CursorShapeNWSEResize)
 }

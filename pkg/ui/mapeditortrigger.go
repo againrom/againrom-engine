@@ -575,7 +575,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 		body := e.bodyFont()
 		s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, body, 0), s.Bounds.Dx()))
-		box := lineBox{Measure: advanceOf(body), Width: e.hostedWrap(s, s.Width-2*popupPad-8)}
+		box := lineBox{Measure: advanceOf(body), Width: s.Width - 2*popupPad - 8}
 		s.Rows, made = madeRowLines(s.Rows, made, box)
 		for i, m := range made {
 			if m.Field >= 0 {

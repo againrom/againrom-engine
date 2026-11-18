@@ -29,7 +29,7 @@ func TestModWindowOpensInTheMiddle(t *testing.T) {
 			t.Errorf("%dx%d: the mod window stands at %v", size.X, size.Y, r)
 		}
 		dragged := image.Pt(40, 90)
-		e.places[e.storeRow(popObject)] = popupStanding{at: dragged, slack: true}
+		e.places[popObject] = popupStanding{at: dragged, slack: true}
 		s.At = e.keptCorner(popObject)
 		e.openCentred(popObject, &s)
 		if s.At != dragged {

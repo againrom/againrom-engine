@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/words"
@@ -209,23 +208,22 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 	probe, _, _ := panelsEditor(t, 1280, 800, "")
 	s, low := probe.panelStrip(panelLeft), probe.panelStrip(panelBottom)
 	for _, c := range []struct {
-		w, h        int
-		left, right int
-	}{{1280, 800, 260, 520}, {1024, 768, 260, s}, {640, 480, 640 - mapLeastWidth - s, s}} {
+		w, h, left int
+	}{{1280, 800, 260}, {1024, 768, 260}, {640, 480, 640 - mapLeastWidth}} {
 		e, _, _ := panelsEditor(t, c.w, c.h, "")
-		if got := e.panelsShown(); got != [len(sidePanels)]int{c.left, c.right, low} {
-			t.Errorf("%dx%d shows panels %v, want %d and %d", c.w, c.h, got, c.left, c.right)
+		if got := e.panelsShown(); got != [len(sidePanels)]int{c.left, low} {
+			t.Errorf("%dx%d shows panels %v, want left %d and bottom %d", c.w, c.h, got, c.left, low)
 		}
 		area := e.mapArea()
-		if area.Min.X != c.left || area.Max.X != c.w-c.right || area.Dx() < mapLeastWidth {
+		if area.Min.X != c.left || area.Max.X != c.w || area.Dx() < mapLeastWidth {
 			t.Errorf("%dx%d map area %v", c.w, c.h, area)
 		}
 		if v := e.doc.Viewer; v.frameW != area.Dx() || v.frameH != area.Dy() {
 			t.Errorf("%dx%d map frame %dx%d for area %v", c.w, c.h, v.frameW, v.frameH, area)
 		}
-		l, r, b := e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight), e.sidePanelRect(panelBottom)
-		if c.left > 0 && (l.Max.X != area.Min.X || l.Min.Y != area.Min.Y || l.Max.Y != e.statusRect().Min.Y) || c.right > 0 && r.Min.X != area.Max.X {
-			t.Errorf("%dx%d panels %v %v beside map %v", c.w, c.h, l, r, area)
+		l, b := e.sidePanelRect(panelLeft), e.sidePanelRect(panelBottom)
+		if c.left > 0 && (l.Max.X != area.Min.X || l.Min.Y != area.Min.Y || l.Max.Y != e.statusRect().Min.Y) {
+			t.Errorf("%dx%d left panel %v beside map %v", c.w, c.h, l, area)
 		}
 		if b.Min.X != area.Min.X || b.Max.X != area.Max.X || b.Min.Y != area.Max.Y || b.Max.Y != e.statusRect().Min.Y {
 			t.Errorf("%dx%d bottom panel %v under map %v", c.w, c.h, b, area)
@@ -238,16 +236,13 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 			}
 		}
 	}
-	// A narrower window narrows the right panel to its least width and then
-	// minimizes it, then narrows the left, and a wider one restores both to
-	// their widths again.
+	// Less room narrows the left panel. The saved width returns when it fits.
 	e, _, _ := panelsEditor(t, 1280, 800, "")
 	for _, c := range []struct {
-		w           int
-		left, right int
-	}{{1260, 260, 520}, {1259, 260, 519}, {1100, 260, 360}, {1099, 260, s}, {740 + s, 260, s}, {739 + s, 259, s}, {640, 640 - mapLeastWidth - s, s}, {1280, 260, 520}} {
+		w, left int
+	}{{740, 260}, {739, 259}, {640, 640 - mapLeastWidth}, {1280, 260}} {
 		e.Layout(c.w, 800)
-		if got := e.panelsShown(); got != [len(sidePanels)]int{c.left, c.right, low} || e.mapArea().Dx() < mapLeastWidth {
+		if got := e.panelsShown(); got != [len(sidePanels)]int{c.left, low} || e.mapArea().Dx() < mapLeastWidth {
 			t.Errorf("window %d shows panels %v, map %v", c.w, got, e.mapArea())
 		}
 	}
@@ -258,60 +253,43 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 	if got := e.panelsShown()[panelLeft]; got != 270 {
 		t.Fatalf("the left edge dragged by 10 gives %d", got)
 	}
-	dragPanelEdge(t, e, popTree, 400)
-	if got := e.panelsShown(); got[panelLeft] != 1280-mapLeastWidth-520 || e.mapArea().Dx() != mapLeastWidth {
+	dragPanelEdge(t, e, popTree, 900)
+	if got := e.panelsShown(); got[panelLeft] != 1280-mapLeastWidth || e.mapArea().Dx() != mapLeastWidth {
 		t.Fatalf("the left edge dragged far gives %v, map %v", got, e.mapArea())
 	}
 	dragPanelEdge(t, e, popTree, -900)
 	if got := e.panelsShown()[panelLeft]; got != sidePanels[panelLeft].least {
 		t.Fatalf("the left edge dragged back gives %d", got)
 	}
-	dragPanelEdge(t, e, popProps, -100)
-	if got := e.panelsShown()[panelRight]; got != 620 {
-		t.Fatalf("the right edge dragged left gives %d", got)
-	}
-	dragPanelEdge(t, e, popProps, -900)
-	if got := e.panelsShown()[panelRight]; got != 1280-mapLeastWidth-sidePanels[panelLeft].least {
-		t.Fatalf("the right edge dragged far left gives %d", got)
-	}
-	dragPanelEdge(t, e, popProps, e.panelsShown()[panelRight]-620)
 	if len(*saved) == 0 || !bytes.Contains((*saved)[len(*saved)-1], []byte(fmt.Sprintf(`"left":{"minimized":false,"width":%d}`, sidePanels[panelLeft].least))) {
 		t.Fatalf("the dragged widths were not kept: %q", *saved)
 	}
-	// F6 and F7 minimize and restore the panels, and each change is kept.
+	// F6 minimizes the left panel and saves its width.
 	before := len(*saved)
-	for _, k := range []string{"objectspanel", "propertiespanel"} {
-		if err := e.Key(k); err != nil {
-			t.Fatal(err)
-		}
+	if err := e.Key("objectspanel"); err != nil {
+		t.Fatal(err)
 	}
-	if got := e.panelsShown(); got != [len(sidePanels)]int{s, s, low} || len(*saved) != before+2 || e.mapArea().Min.X != s || e.mapArea().Max.X != 1280-s {
-		t.Fatalf("F6 and F7 left panels %v, %d saves, map %v", got, len(*saved)-before, e.mapArea())
+	if got := e.panelsShown(); got != [len(sidePanels)]int{s, low} || len(*saved) != before+1 || e.mapArea().Min.X != s || e.mapArea().Max.X != 1280 {
+		t.Fatalf("F6 left panels %v, %d saves, map %v", got, len(*saved)-before, e.mapArea())
 	}
 	_ = e.Key("objectspanel")
 	if got := e.panelsShown(); got[panelLeft] != sidePanels[panelLeft].least {
 		t.Fatalf("F6 restored the left panel at %d", got[panelLeft])
 	}
-	// The toolbar's two panel buttons minimize and restore the panels, on
-	// while restored.
-	e, _, _ = panelsEditor(t, 1280, 800, "")
-	for i, key := range []string{"objectspanel", "propertiespanel"} {
-		if on, off, ok := e.ToolbarState(key); !ok || !on || off {
-			t.Fatalf("the toolbar's %s button: on %t, disabled %t, present %t", key, on, off, ok)
-		}
-		modesClick(e, toolPoint(t, e, key))
-		if e.panelOpen(i) || e.panelsShown()[i] != s {
-			t.Fatalf("the toolbar's %s left panel %d restored", key, i)
-		}
-		if on, _, _ := e.ToolbarState(key); on {
-			t.Fatalf("the toolbar's %s button stays on with its panel minimized", key)
-		}
+	key := sidePanels[panelLeft].key
+	if on, off, ok := e.ToolbarState(key); !ok || !on || off {
+		t.Fatalf("the toolbar's %s button: on %t, disabled %t, present %t", key, on, off, ok)
 	}
-	// A panel the window has no room for stays minimized and says so.
-	e, _, _ = panelsEditor(t, 1024, 768, "")
-	_ = e.Key("propertiespanel")
-	if e.panelOpen(panelRight) || e.message != e.word("editor.side.narrow") {
-		t.Fatalf("F7 at 1024 shows %v, message %q", e.panelsShown(), e.message)
+	modesClick(e, toolPoint(t, e, key))
+	if on, _, _ := e.ToolbarState(key); on || e.panelOpen(panelLeft) {
+		t.Fatal("the toolbar left the panel restored")
+	}
+
+	// Too little room keeps the panel minimized and explains why.
+	e.Layout(mapLeastWidth+sidePanels[panelLeft].least-1, 800)
+	_ = e.Key(key)
+	if e.panelOpen(panelLeft) || e.message != e.word("editor.side.narrow") {
+		t.Fatalf("F6 shows %v, message %q", e.panelsShown(), e.message)
 	}
 }
 
@@ -322,9 +300,6 @@ func dragPanelEdge(t *testing.T, e *MapEditor, id editorPopupID, dx int) {
 	i, _ := e.panelOf(id)
 	r := e.sidePanelRect(i)
 	x := r.Max.X - 1
-	if sidePanels[i].place == placeRight {
-		x = r.Min.X
-	}
 	at := image.Point{}
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		if e.panelEdgeAt(id, image.Pt(x, y)) != 0 {
@@ -445,7 +420,7 @@ func TestMapEditorTreeSearchKeepsMatchingRows(t *testing.T) {
 }
 
 // (e) A tree choice selects as a map click does: the same record, the same
-// right panel and the same marked tree row; a unit comes into view.
+// record window and the same marked tree row; a unit comes into view.
 func TestMapEditorTreeChoiceIsAMapClick(t *testing.T) {
 	byTree, _, _ := panelsEditor(t, 1280, 800, "")
 	byMap, _, _ := panelsEditor(t, 1280, 800, "")
@@ -457,8 +432,8 @@ func TestMapEditorTreeChoiceIsAMapClick(t *testing.T) {
 	}
 	a, _, okA := byTree.objectSpec()
 	b, _, okB := byMap.objectSpec()
-	if !okA || !okB || !byTree.panels.hosted || !byMap.panels.hosted || rowsText(a) != rowsText(b) {
-		t.Fatalf("right panels differ\n%s\n%s", rowsText(a), rowsText(b))
+	if !okA || !okB || rowsText(a) != rowsText(b) {
+		t.Fatalf("record windows differ\n%s\n%s", rowsText(a), rowsText(b))
 	}
 	if treeText(byTree) != treeText(byMap) || !strings.Contains(treeText(byMap), ">  Unit #0  unit0  P1  10,10\n") {
 		t.Fatalf("marked rows differ\n%s\n%s", treeText(byTree), treeText(byMap))
@@ -466,12 +441,12 @@ func TestMapEditorTreeChoiceIsAMapClick(t *testing.T) {
 	if p := byTree.CellPoint(image.Pt(10, 10)); !p.In(byTree.mapArea()) {
 		t.Fatalf("the chosen unit shows at %v, outside the map %v", p, byTree.mapArea())
 	}
-	// A trigger row selects for the right panel.
+	// A trigger row opens its record window.
 	clickTreeRow(t, byTree, treeRowOf(byTree, 7))
 	byMap.Select(7, false)
 	a, _, okA = byTree.objectSpec()
 	b, _, okB = byMap.objectSpec()
-	if byTree.selected != 7 || !okA || !okB || !byTree.panels.hosted || rowsText(a) != rowsText(b) {
+	if byTree.selected != 7 || !okA || !okB || rowsText(a) != rowsText(b) {
 		t.Fatalf("record 7: tree selects %d, panels\n%s\n%s", byTree.selected, rowsText(a), rowsText(b))
 	}
 	// A player row shows the Players window, which edits the player in its
@@ -550,76 +525,10 @@ func TestMapEditorTreeFollowsEdits(t *testing.T) {
 	fresh("load")
 }
 
-// (g) The right panel shows the window a floating one shows: the same rows,
-// words and values for an object, a trigger and a player.
-func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
-	for _, n := range []int{0, 5, 7, 8} {
-		e, _, _ := panelsEditor(t, 1280, 800, "")
-		e.Select(n, false)
-		hosted, _, ok := e.objectSpec()
-		if !ok || !e.panels.hosted {
-			t.Fatalf("record %d is not in the right panel", n)
-		}
-		if l := layoutPopup(hosted, e.font, e.bodyFont()); l.Rect != e.sidePanelRect(panelRight) {
-			t.Fatalf("record %d window %v, panel %v", n, l.Rect, e.sidePanelRect(panelRight))
-		}
-		// The same window floating at the panel's size.
-		width := e.sidePanelRect(panelRight).Dx()
-		e.panels.detached = e.detachKey()
-		floating, _, ok := e.objectSpec()
-		if !ok || e.panels.hosted {
-			t.Fatalf("record %d did not float", n)
-		}
-		e.places[popObject].size, e.places[popObject].key = image.Pt(width, 400), floating.Title
-		floating, _, _ = e.objectSpec()
-		if rowsText(hosted) != rowsText(floating) {
-			t.Fatalf("record %d\nin the panel\n%s\nfloating\n%s", n, rowsText(hosted), rowsText(floating))
-		}
-		// The panel then names where the window is.
-		if s, ok := e.propsSpec(); !ok || len(s.Rows) == 0 || s.Rows[0].Label != e.word("editor.side.floating") {
-			t.Fatalf("record %d floating leaves the panel %v", n, s.Rows)
-		}
-	}
-	// A double click on the hosted window's title takes it out to float.
-	e, _, _ := panelsEditor(t, 1280, 800, "")
-	e.Select(7, false)
-	s, _, _ := e.objectSpec()
-	title := layoutPopup(s, e.font, e.bodyFont()).Title
-	at := image.Pt(title.Min.X+20, center(title).Y)
-	now := time.Unix(1, 0)
-	for i := 0; i < 2; i++ {
-		e.Pointer(Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}, now)
-		e.Pointer(Input{CursorX: at.X, CursorY: at.Y}, now)
-	}
-	if _, _, ok := e.objectSpec(); !ok || e.panels.hosted {
-		t.Fatal("a double click on the title left the trigger window in the panel")
-	}
-	// Another selection comes back into the panel.
-	e.Select(0, false)
-	if _, _, ok := e.objectSpec(); !ok || !e.panels.hosted {
-		t.Fatal("the next selection stayed floating")
-	}
-	// With nothing selected the panel shows one status line and title help.
-	e, _, _ = panelsEditor(t, 1280, 800, "")
-	e.selected = -1
-	if s, ok := e.propsSpec(); !ok || len(s.Rows) != 0 || len(s.Notes) != 1 ||
-		s.Notes[0] != e.word("editor.side.unselected") || s.TitleHelp != e.word("editor.side.none") {
-		t.Fatalf("an empty right panel shows rows %v, notes %v and title help %q", s.Rows, s.Notes, s.TitleHelp)
-	}
-	// The person window's bag stands in the panel as its other tabs do.
-	e.Select(0, false)
-	e.obj.section = 2
-	if e.nativeUnitWindow() {
-		if _, _, ok := e.objectSpec(); !ok || !e.panels.hosted {
-			t.Fatal("the person window's bag left the panel")
-		}
-	}
-}
-
 // (h) The panel state goes to the profile and back; a missing or broken file
 // gives the defaults.
 func TestMapEditorPanelStateRoundTrip(t *testing.T) {
-	defaults := [len(sidePanels)]panelState{{true, 0}, {true, 0}, {false, 0}}
+	defaults := [len(sidePanels)]panelState{{true, 0}, {false, 0}}
 	for _, c := range []struct {
 		name string
 		data []byte
@@ -631,11 +540,10 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 		{"broken", []byte(`{"left":`), nil, defaults},
 		{"wrong", []byte(`{"left":{"minimized":"yes","width":300}}`), nil, defaults},
 		{"list", []byte(`[1,2]`), nil, defaults},
-		{"one side", []byte(`{"right":{"minimized":true,"width":700}}`), nil, [len(sidePanels)]panelState{{true, 0}, {false, 700}, {false, 0}}},
-		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1},"bottom":{"minimized":false,"width":9999}}`), nil, [len(sidePanels)]panelState{{true, 9999}, {true, 360}, {true, 480}}},
-		{"bottom", []byte(`{"bottom":{"minimized":false,"width":1}}`), nil, [len(sidePanels)]panelState{{true, 0}, {true, 0}, {true, 96}}},
+		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1},"bottom":{"minimized":false,"width":9999}}`), nil, [len(sidePanels)]panelState{{true, 9999}, {true, 480}}},
+		{"bottom", []byte(`{"bottom":{"minimized":false,"width":1}}`), nil, [len(sidePanels)]panelState{{true, 0}, {true, 96}}},
 		// A side an earlier build kept as closed reads as minimized.
-		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {true, 600}, {false, 0}}},
+		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {false, 0}}},
 	} {
 		if got := readPanelProfile(c.data, c.err).sides; got != c.want {
 			t.Errorf("%s: %v, want %v", c.name, got, c.want)
@@ -643,19 +551,18 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	}
 	e, _, saved := panelsEditor(t, 1280, 800, "")
 	dragPanelEdge(t, e, popTree, 20)
-	_ = e.Key("propertiespanel")
 	last := (*saved)[len(*saved)-1]
-	if string(last) != `{"bottom":{"minimized":true,"width":0},"left":{"minimized":false,"width":280},"right":{"minimized":true,"view":"plain","width":0}}`+"\n" {
+	if string(last) != `{"bottom":{"minimized":true,"width":0},"left":{"minimized":false,"width":280},"record":{"view":"plain"}}`+"\n" {
 		t.Fatalf("saved %q", last)
 	}
 	f, _, _ := panelsEditor(t, 1280, 800, "")
 	f.SetPanelProfile(last, nil, nil)
-	if f.panels.state != e.panels.state || f.panelsShown() != [len(sidePanels)]int{280, f.panelStrip(panelRight), f.panelStrip(panelBottom)} {
+	if f.panels.state != e.panels.state || f.panelsShown() != [len(sidePanels)]int{280, f.panelStrip(panelBottom)} {
 		t.Fatalf("read back %v from %v", f.panels.state, e.panels.state)
 	}
 	var kept map[string]map[string]any
-	if json.Unmarshal(last, &kept) != nil || len(kept) != len(sidePanels) {
-		t.Fatalf("the saved state is not one JSON object per side: %q", last)
+	if json.Unmarshal(last, &kept) != nil || len(kept) != len(sidePanels)+1 {
+		t.Fatalf("the saved state is missing a panel or record view: %q", last)
 	}
 	// A failed write says why and keeps the panels as they are.
 	e.SetPanelProfile(last, nil, func([]byte) error { return fmt.Errorf("disk full") })

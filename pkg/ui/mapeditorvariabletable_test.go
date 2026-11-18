@@ -127,7 +127,7 @@ func TestVariablesTableOpensFromTheWindowMenuWithItsColumns(t *testing.T) {
 }
 
 // A press on a table row selects its trigger as a Scripts list row does,
-// with the right panel docked and floating; a press on the row of a
+// with the objects panel docked and floating; a press on the row of a
 // variable no trigger uses selects that variable. The table follows an
 // edit on the next frame, moves by its title and keeps its corner when it
 // is closed and opened again.
@@ -136,10 +136,10 @@ func TestVariablesTableRowSelectsItsTriggerDockedAndFloating(t *testing.T) {
 		t.Run(fmt.Sprintf("float=%v", float), func(t *testing.T) {
 			e := variableTableEditor(t, "")
 			if float {
-				e.undockPanel(panelRight)
+				e.undockPanel(panelLeft)
 			}
-			if e.panelFloats(panelRight) != float || !e.panelOn(panelRight) {
-				t.Fatalf("right panel floats %v, shown %v", e.panelFloats(panelRight), e.panelOn(panelRight))
+			if e.panelFloats(panelLeft) != float || !e.panelOn(panelLeft) {
+				t.Fatalf("left panel floats %v, shown %v", e.panelFloats(panelLeft), e.panelOn(panelLeft))
 			}
 			openMenuRow(t, e, "window", "variables")
 			e.places[popList].at = image.Pt(e.mapArea().Min.X+8, e.mapArea().Min.Y+8)
@@ -164,12 +164,15 @@ func TestVariablesTableRowSelectsItsTriggerDockedAndFloating(t *testing.T) {
 			// shows the same trigger window.
 			f := variableTableEditor(t, "")
 			if float {
-				f.undockPanel(panelRight)
+				f.undockPanel(panelLeft)
 			}
 			openMenuRow(t, f, "window", "variables")
 			f.chooseListed(13)
-			if got, want := e.PopupLines(), f.PopupLines(); len(got) == 0 || !slices.Equal(got, want) || e.objectInPanel() != f.objectInPanel() {
+			if got, want := e.PopupLines(), f.PopupLines(); len(got) == 0 || !slices.Equal(got, want) {
 				t.Fatalf("the row shows\n%q\nthe Scripts route\n%q", got, want)
+			}
+			if err := e.Key("escape"); err != nil || e.listKind() != "variables" {
+				t.Fatalf("closing the record window left list %q, error %v", e.listKind(), err)
 			}
 			r, _ = e.FindControl(ControlQuery{Role: ControlListRow, N: 2})
 			modesClick(e, center(r))
@@ -405,6 +408,8 @@ func TestVariablesTableHoldsTheLayoutProperties(t *testing.T) {
 				if part, i := layoutPopup(s, e.font, e.bodyFont()).hit(center(r)); part != popupListRow || i != n-top {
 					t.Errorf("hit at row %d gives part %d, index %d", n, part, i)
 				}
+				// The previous row's floating window may cover this row.
+				e.closeObject()
 				modesClick(e, center(r))
 				if e.selected != rows[n].record || e.listKind() != "variables" {
 					t.Fatalf("a press on row %d selected %d, want %d; the list shows %q", n, e.selected, rows[n].record, e.listKind())

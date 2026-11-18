@@ -292,34 +292,30 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 			t.Fatalf("strip %d, bottom strip %d", strip, low)
 		}
 		dragPanelEdge(t, e, popTree, 10)
-		for i, want := range []int{270, 520} {
-			s, ok := e.treeSpec()
-			if i == panelRight {
-				s, ok = e.propsSpec()
-			}
-			if !ok || s.CloseLabel != e.word(sidePanels[i].minimizeWord) {
-				t.Fatalf("panel %d title button reads %q", i, s.CloseLabel)
-			}
-			r, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
-			if !ok || !r.In(e.sidePanelRect(i)) {
-				t.Fatalf("panel %d minimize button %v", i, r)
-			}
-			chromeClick(e, center(r))
-			if e.panelOpen(i) || e.panelsShown()[i] != strip || e.sidePanelRect(i).Dx() != strip {
-				t.Fatalf("panel %d minimized to %v", i, e.sidePanelRect(i))
-			}
-			st, ok := e.stripSpec(i)
-			if !ok || st.CloseLabel != e.word(sidePanels[i].restoreWord) || st.Title != "" {
-				t.Fatalf("panel %d strip %+v", i, st)
-			}
-			r, ok = e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
-			if !ok || !r.In(e.sidePanelRect(i)) {
-				t.Fatalf("panel %d restore button %v in strip %v", i, r, e.sidePanelRect(i))
-			}
-			chromeClick(e, center(r))
-			if !e.panelOpen(i) || e.panelsShown()[i] != want {
-				t.Fatalf("panel %d restored to %d, want %d", i, e.panelsShown()[i], want)
-			}
+		i, want := panelLeft, 270
+		s, ok := e.treeSpec()
+		if !ok || s.CloseLabel != e.word(sidePanels[i].minimizeWord) {
+			t.Fatalf("panel %d title button reads %q", i, s.CloseLabel)
+		}
+		r, ok := e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
+		if !ok || !r.In(e.sidePanelRect(i)) {
+			t.Fatalf("panel %d minimize button %v", i, r)
+		}
+		chromeClick(e, center(r))
+		if e.panelOpen(i) || e.panelsShown()[i] != strip || e.sidePanelRect(i).Dx() != strip {
+			t.Fatalf("panel %d minimized to %v", i, e.sidePanelRect(i))
+		}
+		st, ok := e.stripSpec(i)
+		if !ok || st.CloseLabel != e.word(sidePanels[i].restoreWord) || st.Title != "" {
+			t.Fatalf("panel %d strip %+v", i, st)
+		}
+		r, ok = e.FindControl(ControlQuery{Role: ControlPanelButton, N: i})
+		if !ok || !r.In(e.sidePanelRect(i)) {
+			t.Fatalf("panel %d restore button %v in strip %v", i, r, e.sidePanelRect(i))
+		}
+		chromeClick(e, center(r))
+		if !e.panelOpen(i) || e.panelsShown()[i] != want {
+			t.Fatalf("panel %d restored to %d, want %d", i, e.panelsShown()[i], want)
 		}
 		// The words come from the word tables of both languages.
 		for _, w := range []string{"editor.side.toleft", "editor.side.toright"} {
@@ -334,12 +330,12 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 			Minimized bool
 			Width     int
 		}
-		if err := json.Unmarshal(last, &kept); err != nil || !kept["left"].Minimized || kept["left"].Width != 270 || kept["right"].Minimized {
+		if err := json.Unmarshal(last, &kept); err != nil || !kept["left"].Minimized || kept["left"].Width != 270 {
 			t.Fatalf("saved %q", last)
 		}
 		g, _, _ := panelsEditor(t, 1280, 800, lang)
 		g.SetPanelProfile(last, nil, nil)
-		if g.panelOpen(panelLeft) || g.panelsShown() != [len(sidePanels)]int{strip, 520, low} {
+		if g.panelOpen(panelLeft) || g.panelsShown() != [len(sidePanels)]int{strip, low} {
 			t.Fatalf("read back %v", g.panelsShown())
 		}
 		_ = g.Key("objectspanel")
@@ -350,7 +346,7 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 }
 
 // The group's member pictures, its Delete group button and its Used by
-// lines, which its Groups list row held, stand in the right panel when the
+// lines, which its Groups list row held, stand in the group window when the
 // group is chosen in the tree; Delete group takes its units out of it.
 func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 	e, p, _ := panelsEditor(t, 1280, 800, "")
@@ -359,8 +355,8 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 	}
 	clickTreeRow(t, e, e.TreeMemberRow("groups", 0))
 	s, links, ok := e.objectSpec()
-	if !ok || !e.panels.hosted || !e.groupSel.set {
-		t.Fatal("the chosen group is not in the right panel")
+	if !ok || s.Docked || !e.groupSel.set {
+		t.Fatal("the chosen group has no floating window")
 	}
 	if len(s.Rows) < 4 || s.Rows[1].Label != e.word("editor.group.members") || len(s.Rows[1].Icons) != 2 || s.Rows[1].Value != "2" {
 		t.Fatalf("the group row %+v", s.Rows)
@@ -376,7 +372,7 @@ func TestMapEditorGroupWindowHoldsTheGroupRow(t *testing.T) {
 		t.Fatalf("the group window names no trigger that uses it: %+v", s.Rows)
 	}
 	r, ok := e.FindControl(ControlQuery{Role: ControlGroupDelete})
-	if !ok || !r.In(e.sidePanelRect(panelRight)) {
+	if !ok || !r.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		t.Fatalf("Delete group at %v", r)
 	}
 	// The group is used: Delete group asks first, as the list row's cross

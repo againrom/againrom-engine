@@ -465,9 +465,6 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	if e.tree.entry {
 		e.tree.entry, e.tree.followed = false, ""
 	}
-	if index != e.selected {
-		e.panels.detached = ""
-	}
 	e.messagePage = 0
 	_, variable := e.scriptVariableRow(index)
 	if !variable && (e.doc == nil || index < 0 || index >= len(e.doc.Records)) {

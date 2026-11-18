@@ -347,24 +347,6 @@ var (
 		"################",
 		"................",
 	}}
-	iconPropertiesPanel = editorIcon{rows: []string{
-		"................",
-		"################",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"#.......#gggggg#",
-		"################",
-		"................",
-	}}
 	// iconGrip marks the docked toolbar's grip: a drag from it floats the
 	// toolbar.
 	iconGrip = editorIcon{rows: []string{

@@ -4,41 +4,37 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"strings"
 	"testing"
-
-	"againrom/pkg/words"
 )
 
 func TestPanelDescriptionUsesTheEditorFrame(t *testing.T) {
 	window := image.Pt(1920, 1080)
 	room := image.Rectangle{Max: window}
 	cases := []struct {
-		right, hover, frame string
-	}{{"docked", "", "dock"}, {"docked", "help", "dock"}, {"hosted", "splitter", "dock"},
+		left, hover, frame string
+	}{{"docked", "", "dock"}, {"docked", "splitter", "dock"},
 		{"minimized", "", "strip"}, {"floating", "grip", "window"}}
 	for _, lang := range []string{"en", "ru"} {
 		font := wordsFont(lang)
-		book := words.For(lang)
 		encode := mockupHostEncoder(font)
 		for _, sample := range cases {
-			t.Run(lang+"/"+sample.right+"/"+sample.hover, func(t *testing.T) {
-				d := popupDesc{Window: "side-panels", Panels: &popupDescPanels{Right: sample.right, Hover: sample.hover},
+			t.Run(lang+"/"+sample.left+"/"+sample.hover, func(t *testing.T) {
+				d := popupDesc{Window: "side-panels", Panels: &popupDescPanels{Left: sample.left, Hover: sample.hover},
 					Sample: &popupScope{Values: map[string]string{"structure": "Watchtower"}}}
 				m, err := NewEditorMockup(d.encode(), lang, window, font, font, encode)
 				if err != nil {
 					t.Fatal(err)
 				}
 				p := m.panels
-				if len(p.panels) != 3 || !p.canvas.In(room) || p.canvas.Dx() < mapLeastWidth || p.canvas.Dy() < mapLeastHeight {
+				if len(p.panels) != 2 || !p.canvas.In(room) || p.canvas.Dx() < mapLeastWidth || p.canvas.Dy() < mapLeastHeight {
 					t.Fatalf("panels %d, canvas %v", len(p.panels), p.canvas)
 				}
-				left, bottom, right := p.panels[0], p.panels[1], p.panels[2]
-				if left.kind != "dock" || bottom.kind != "strip" || right.kind != sample.frame {
-					t.Fatalf("frame kinds: %s/%s/%s", left.kind, bottom.kind, right.kind)
+				bottom, left := p.panels[0], p.panels[1]
+				if left.kind != sample.frame || bottom.kind != "strip" {
+					t.Fatalf("frame kinds: %s/%s", left.kind, bottom.kind)
 				}
-				if right.layout.Rect.Overlaps(p.canvas) != (sample.frame == "window") {
-					t.Fatalf("right frame %v, canvas %v", right.layout.Rect, p.canvas)
+				if left.layout.Rect.Overlaps(p.canvas) != (sample.frame == "window") {
+					t.Fatalf("left frame %v, canvas %v", left.layout.Rect, p.canvas)
 				}
 				for _, part := range p.panels {
 					l := part.layout
@@ -59,26 +55,12 @@ func TestPanelDescriptionUsesTheEditorFrame(t *testing.T) {
 						t.Errorf("unexpected grip on %s", part.kind)
 					}
 				}
-				if sample.right == "docked" {
-					if right.spec.TitleHelp != encode(book.Text("editor.side.none")) || len(right.spec.Rows) != 0 ||
-						len(right.spec.Notes) != 1 || right.spec.Notes[0] != encode(book.Text("editor.side.unselected")) {
-						t.Error("the Properties instructions belong to title help and its status belongs to notes")
-					}
-				}
-				if sample.right == "hosted" && (!strings.Contains(right.spec.Title, "Watchtower") || len(right.layout.Rows) == 0) {
-					t.Error("the selected structure has no hosted title or rows")
-				}
-				if sample.right == "minimized" && (right.spec.Title != "" || right.spec.CloseLabel != "<" ||
-					len(right.layout.Rows) > 0 || !right.layout.splitterRect().Empty()) {
+				if sample.left == "minimized" && (left.spec.Title != "" || left.spec.CloseLabel != ">" ||
+					len(left.layout.Rows) > 0 || !left.layout.splitterRect().Empty()) {
 					t.Error("the side strip must contain only the restore button")
 				}
-				for _, dock := range []struct {
-					panel mockupPanel
-					edge  popupEdge
-				}{{left, edgeRight}, {right, edgeLeft}} {
-					if dock.panel.kind == "dock" && dock.panel.layout.edgeAt(center(dock.panel.layout.splitterRect())) != dock.edge {
-						t.Error("splitter mark missed the layout's inner resize edge")
-					}
+				if left.kind == "dock" && left.layout.edgeAt(center(left.layout.splitterRect())) != edgeRight {
+					t.Error("splitter mark missed the layout's inner resize edge")
 				}
 				page := m.Page()
 				wantBox := func(part string, r image.Rectangle) {
@@ -95,30 +77,26 @@ func TestPanelDescriptionUsesTheEditorFrame(t *testing.T) {
 				}
 				switch sample.hover {
 				case "splitter":
-					wantBox("splitter", right.layout.splitterRect())
-					if !p.pointer.In(right.layout.splitterRect()) || m.Picture().RGBAAt(p.pointer.X, p.pointer.Y) != editorPopupInk.Value {
+					wantBox("splitter", left.layout.splitterRect())
+					if !p.pointer.In(left.layout.splitterRect()) || m.Picture().RGBAAt(p.pointer.X, p.pointer.Y) != editorPopupInk.Value {
 						t.Error("the PNG does not paint the hovered splitter")
 					}
 				case "grip":
-					wantBox("grip", right.layout.gripRect())
-					if right.layout.edgeAt(p.pointer) != edgeRight|edgeBottom {
+					wantBox("grip", left.layout.gripRect())
+					if left.layout.edgeAt(p.pointer) != edgeRight|edgeBottom {
 						t.Error("the grip does not use the floating window's diagonal edge")
 					}
 					lit := false
 					pic := m.Picture()
-					for y := right.layout.gripRect().Min.Y; y < right.layout.gripRect().Max.Y; y++ {
-						for x := right.layout.gripRect().Min.X; x < right.layout.gripRect().Max.X; x++ {
+					for y := left.layout.gripRect().Min.Y; y < left.layout.gripRect().Max.Y; y++ {
+						for x := left.layout.gripRect().Min.X; x < left.layout.gripRect().Max.X; x++ {
 							lit = lit || pic.RGBAAt(x, y) == editorPopupInk.Value
 						}
 					}
 					if !lit {
 						t.Error("the PNG does not paint the hovered grip")
 					}
-				case "help":
-					wantBox("tip", p.tip.Rect)
-					if !p.tip.Help || p.tip.Rect.Empty() || !p.tip.Rect.In(room) {
-						t.Errorf("invalid help tip %v", p.tip)
-					}
+
 				}
 				got, err := PageDescription(page)
 				if err != nil || !bytes.Equal(got, d.encode()) {

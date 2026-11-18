@@ -19,7 +19,7 @@ func dragFadeEditor(t *testing.T) (*MapEditor, *modesCalls, popupLayout) {
 		t.Fatal("unit 0 does not select")
 	}
 	s, _, ok := e.objectSpec()
-	if !ok || e.panels.hosted {
+	if !ok || s.Docked {
 		t.Fatal("no floating object window")
 	}
 	return e, calls, layoutPopup(s, e.font, e.bodyFont())

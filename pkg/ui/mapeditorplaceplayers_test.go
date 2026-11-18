@@ -564,7 +564,7 @@ func TestOwnerListTakesAPressOverAnObjectWindowMovedUnderIt(t *testing.T) {
 		t.Fatal("a press on the owner box opened no list")
 	}
 	row := center(d.listBox(e.bodyFont()).Row(3))
-	e.places[e.storeRow(popObject)] = popupStanding{at: row.Sub(image.Pt(20, 20)), placed: true, slack: true}
+	e.places[popObject] = popupStanding{at: row.Sub(image.Pt(20, 20)), placed: true, slack: true}
 	object, _, ok := e.objectSpec()
 	if !ok || !row.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
 		t.Fatalf("the player's window does not stand under the list row at %v", row)

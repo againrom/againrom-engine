@@ -11,13 +11,13 @@ import (
 )
 
 // TestEditorTreeLaysOutAsTheFlatSpec lays out every movable window of the
-// views fixture, in both languages, at every right panel width, in every
+// views fixture, in both languages, at each window size, in every
 // view, record and section, at its own size and at a dragged size, once
 // through the tree and once through the flat-spec layout kept below, and
 // asks for the same geometry.
 func TestEditorTreeLaysOutAsTheFlatSpec(t *testing.T) {
 	seen := 0
-	ids := []editorPopupID{popList, popObject, popPrompt, popTree, popProps, popToolbar}
+	ids := []editorPopupID{popList, popObject, popPrompt, popTree, popToolbar}
 	for _, lang := range []string{"en", "ru"} {
 		for _, width := range wideWidths {
 			for _, view := range []string{"plain", "technical"} {
@@ -60,7 +60,7 @@ func TestEditorTreeLaysOutModWindowsAsTheFlatSpec(t *testing.T) {
 			for _, step := range p.steps {
 				modesAct(e, step)
 			}
-			for _, id := range []editorPopupID{popList, popObject, popPrompt, popTree, popProps, popToolbar} {
+			for _, id := range []editorPopupID{popList, popObject, popPrompt, popTree, popToolbar} {
 				s, ok := e.movableSpec(id)
 				if !ok {
 					continue

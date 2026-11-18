@@ -454,7 +454,7 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 // groupsSpec is the Groups palette as data: with no group yet a hint, the
 // selection's unit count and the two buttons that put the selection in a
 // group and take it out. The tree lists the groups; a chosen group's window
-// in the right panel shows its members and deletes it.
+// shows its members and deletes it.
 func (e *MapEditor) groupsSpec() popupSpec {
 	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Bounds: e.popupBounds(), NoteInk: editorPaper}
 	if len(e.groups()) == 0 {

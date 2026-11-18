@@ -29,7 +29,7 @@ var menuRowKeys = map[string][]string{
 	"file":   mapRowKeys,
 	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "copytrigger", "traparea", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
-	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel", "variables"},
+	"window": {"toolbar", "objectspanel", "reportpanel", "variables"},
 }
 
 // menuLabel is the label of the row key of menu, and whether it has one.
@@ -295,7 +295,7 @@ func TestMapEditorEveryToolbarButtonIsAMenuRow(t *testing.T) {
 	}
 }
 
-// The Window menu's panel rows toggle their panels as F6, F7 and F8 do. Its
+// The Window menu's panel rows toggle their panels as F6 and F8 do. Its
 // toolbar row hides the toolbar, docked or floating: while hidden the map
 // and the side panels start right under the bar, as while it floats, and no
 // press or tip reaches a button; a second press shows it where it stood.
@@ -315,7 +315,7 @@ func TestMapEditorWindowMenuTogglesEachPanelAndTheToolbar(t *testing.T) {
 				}
 			}
 			bar, mapDocked := e.toolbarRect(), e.mapArea()
-			panels := [2]image.Rectangle{e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight)}
+			left := e.sidePanelRect(panelLeft)
 			button, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"})
 			openMenuRow(t, e, "window", "toolbar")
 			top := e.barHeight()
@@ -323,10 +323,8 @@ func TestMapEditorWindowMenuTogglesEachPanelAndTheToolbar(t *testing.T) {
 			if e.toolbarOn() || e.toolbarRect().Dy() != 0 || mapHidden.Min.Y != top || e.chromeHit(image.Pt(1000, bar.Max.Y-2)) == popToolbar {
 				t.Fatalf("hidden, the toolbar is %v and the map %v, want the map from %d", e.toolbarRect(), mapHidden, top)
 			}
-			for _, i := range []int{panelLeft, panelRight} {
-				if r := e.sidePanelRect(i); r.Min.Y != top {
-					t.Errorf("hidden, panel %d stands at %v, want its top at %d", i, r, top)
-				}
+			if r := e.sidePanelRect(panelLeft); r.Min.Y != top {
+				t.Errorf("hidden, left panel stands at %v, want its top at %d", r, top)
 			}
 			if _, ok := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); ok {
 				t.Error("a hidden toolbar keeps a button")
@@ -336,7 +334,7 @@ func TestMapEditorWindowMenuTogglesEachPanelAndTheToolbar(t *testing.T) {
 			}
 			openMenuRow(t, e, "window", "toolbar")
 			if again, _ := e.FindControl(ControlQuery{Role: ControlToolbar, Key: "select"}); !e.toolbarOn() || e.toolbarRect() != bar || e.mapArea() != mapDocked || again != button ||
-				e.sidePanelRect(panelLeft) != panels[0] || e.sidePanelRect(panelRight) != panels[1] {
+				e.sidePanelRect(panelLeft) != left {
 				t.Fatalf("shown again, the toolbar is %v and the map %v, was %v and %v", e.toolbarRect(), e.mapArea(), bar, mapDocked)
 			}
 			e.undockToolbar(image.Pt(900, 400))

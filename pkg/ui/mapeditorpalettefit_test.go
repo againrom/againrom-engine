@@ -191,7 +191,6 @@ func paletteEditor(t *testing.T, w, h int) *MapEditor {
 	e, _ := newModesEditor(t, "full")
 	host := &cellCountHost{modesFull: e.doc.Edits.(*modesFull), units: 33, structures: 66, trees: 75}
 	host.self, e.doc.Edits = host, host
-	setRightPanel(e, sidePanels[panelRight].width) // both panels open, as at first start
 	e.Layout(w, h)
 	e.places[popList].placed = false // the palette opens at its default place
 	return e

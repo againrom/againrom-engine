@@ -15,7 +15,7 @@ func TestMockupPlacesTheTriggerWindowAsTheEditorDoes(t *testing.T) {
 		e.font = font
 		e.SetBodyFont(font)
 		e.Layout(size.X, size.Y)
-		e.places[e.storeRow(popObject)] = popupStanding{}
+		e.places[popObject] = popupStanding{}
 		want, _, ok := e.objectSpec()
 		if !ok {
 			t.Fatal("the editor builds no trigger window")

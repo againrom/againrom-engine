@@ -205,7 +205,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.Rows[len(s.Rows)-1].Label = e.word("editor.plain.position")
 	}
 	// The plain view's words show whole: its labels are not cut to a
-	// column, and the window fits them as a window in the right panel
+	// column, and the window fits them as a floating window
 	// does, the label column widened to them or a label over its field.
 	s.Fit = s.Fit || plainShown
 	native := e.nativeUnitWindow()
@@ -245,7 +245,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		// A window nobody resized is as wide as its columns need, not as
 		// wide as the editor allows.
-		if !e.objectInPanel() && e.places[e.storeRow(popObject)].size.X == 0 {
+		if e.places[popObject].size.X == 0 {
 			s.Width = min(s.Width, s.Columns*column)
 		}
 		s.At = e.keptCorner(popObject)
@@ -254,7 +254,6 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if native {
 		textWidth = max(100, s.Width/max(1, s.Columns)-2*popupPad-20)
 	}
-	textWidth = e.hostedWrap(*s, textWidth)
 	group := ""
 	// fieldRows adds field i's rows under label, its own when label is
 	// empty, after its group's heading where heads is set and the group
@@ -482,7 +481,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	o.viewOffer = e.viewOffered()
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), 400)...)
 	}
 }
 
@@ -1088,7 +1087,6 @@ func (e *MapEditor) closeObject() {
 	e.groupSel = editorGroup{}
 	e.objectBack = nil
 	e.selection.hidden = true
-	e.panels.detached = ""
 	e.releaseBarWindow()
 }
 

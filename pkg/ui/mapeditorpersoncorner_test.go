@@ -43,7 +43,7 @@ func (h *cornerHost) UnitSettings(index int, values []InspectionFieldValue) (Map
 
 func cornerEditor(t *testing.T, lang string) *MapEditor {
 	t.Helper()
-	e := wideEditor(t, lang, 0, "plain", map[string]int64{"Unit/identity": 300})
+	e := wideEditor(t, lang, 1920, "plain", map[string]int64{"Unit/identity": 300})
 	h := &cornerHost{cardHost: &cardHost{wideHost: e.doc.Edits.(*wideHost)}, pad: []image.Point{{0, 0}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}}}
 	w := words.For(words.Language(lang))
 	for n := range 9 {

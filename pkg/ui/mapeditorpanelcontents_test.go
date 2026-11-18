@@ -10,7 +10,7 @@ import (
 	"againrom/pkg/words"
 )
 
-func TestNaturalMapPanelFitsBetweenTheDocks(t *testing.T) {
+func TestNaturalMapPanelFitsBesideTheDock(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		t.Run(lang, func(t *testing.T) {
 			p := &mapPanelEdits{facts: playable()}
@@ -22,8 +22,8 @@ func TestNaturalMapPanelFitsBetweenTheDocks(t *testing.T) {
 			e.SetHostTextEncoder(mockupHostEncoder(e.font))
 			e.SetPanelProfile(nil, nil, nil)
 			e.Layout(1920, 1080)
-			if !e.panelOpen(panelLeft) || !e.panelOpen(panelRight) || e.bodyFont().Advance(p.facts.Description) <= e.window.X {
-				t.Fatal("the fixture needs two docks and a value wider than the window")
+			if !e.panelOpen(panelLeft) || e.bodyFont().Advance(p.facts.Description) <= e.window.X {
+				t.Fatal("the fixture needs the objects dock and a value wider than the window")
 			}
 			s, _ := e.listSpec()
 			l := layoutPopup(s, e.font, e.bodyFont())

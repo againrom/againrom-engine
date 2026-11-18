@@ -272,7 +272,7 @@ func (e *MapEditor) unitWindowShown() bool {
 // switchView turns the object window to the other view and keeps the
 // choice in the editor profile. The draft stays as typed.
 func (e *MapEditor) switchView() {
-	if e.unitWindowShown() && !e.objectInPanel() {
+	if e.unitWindowShown() {
 		if s, _, ok := e.objectSpec(); ok {
 			e.holdPopup(popObject, layoutPopup(s, e.font, e.bodyFont()).Rect.Min)
 		}

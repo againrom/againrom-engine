@@ -15,7 +15,7 @@ func TestMapEditorPlainBlocksTakeTheTreeFold(t *testing.T) {
 	marks := rowFoldMarks
 	defer func() { rowFoldMarks = marks }()
 	for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
-		e := wideEditor(t, "en", 520, "plain", nil)
+		e := wideEditor(t, "en", 1280, "plain", nil)
 		e.Select(record, false)
 		s, _, _ := e.objectSpec()
 		blocks := 0

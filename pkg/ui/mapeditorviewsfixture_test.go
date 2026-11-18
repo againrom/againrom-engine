@@ -162,15 +162,11 @@ func cardFont() *text.Font {
 	return f
 }
 
-// wideWidths are the right panel's widths the tests set: its least, its
-// default and its greatest, and 0 for the panel minimized, the window
-// floating.
-var wideWidths = []int{360, 520, 800, 0}
+// wideWidths are the editor widths used by the record window witnesses.
+var wideWidths = []int{1024, 1280, 1600, 1920}
 
-// wideEditor is the editor over a wideHost in language lang at 1920x1080,
-// in the installed fonts' size, after the profile with the right panel
-// restored at width (0 minimizes it) and the view named view loads. set
-// changes the host's values first.
+// wideEditor opens the fixture at the given width and 1080 pixels high,
+// with the selected record view and the supplied field values.
 func wideEditor(t *testing.T, lang string, width int, view string, set map[string]int64) *MapEditor {
 	t.Helper()
 	inner, _ := viewsEditor(t, lang)
@@ -190,13 +186,10 @@ func wideEditor(t *testing.T, lang string, width int, view string, set map[strin
 		encoded, _ := textinput.EncodeText(s, e.font.Selector, textinput.Substitute)
 		return encoded
 	})
-	right := `"minimized":true,"width":520`
-	if width > 0 {
-		right = fmt.Sprintf(`"minimized":false,"width":%d`, width)
-	}
+
 	e.SetCardFont(cardFont())
-	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{%s,"view":%q}}`, right, view)), nil, nil)
-	e.Layout(1920, 1080) // Owner item 5: supported editor window.
+	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"record":{"view":%q}}`, view)), nil, nil)
+	e.Layout(width, 1080)
 	if err := e.Open("views"); err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +223,7 @@ func openSection(t *testing.T, e *MapEditor, section string) {
 var wideNow = time.Unix(1, 0)
 
 // technicalReachText is, for each record and person window tab in the
-// technical view at each panel width, the button row's lines and the
+// technical view at each editor width, the button row's lines and the
 // fields the window shows before any scroll.
 func technicalReachText(t *testing.T) string {
 	var b strings.Builder
@@ -255,7 +248,7 @@ func technicalReachText(t *testing.T) string {
 							shown = append(shown, e.obj.fields[i].Key)
 						}
 					}
-					line := fmt.Sprintf("%s panel %d %s %s: %d button lines, rows %d..%d, fields %s", lang, width, e.doc.Records[record].Kind, section,
+					line := fmt.Sprintf("%s editor %d %s %s: %d button lines, rows %d..%d, fields %s", lang, width, e.doc.Records[record].Kind, section,
 						len(lines), s.Top, s.Top+len(l.Rows), strings.Join(shown, " "))
 					b.WriteString(strings.TrimRight(line, " ") + "\n")
 				}
@@ -268,7 +261,7 @@ func technicalReachText(t *testing.T) string {
 const technicalReachGolden = "testdata/mapeditor_technical_reach.golden"
 
 // The technical view keeps the rows the window showed before the plain
-// view: at each panel width and floating, in both languages, its button
+// view: at each editor width, in both languages, its button
 // row stays on its lines and the window shows the same fields before a
 // scroll, recorded from that editor. MAPEDITOR_VIEWS_WRITE=1 rewrites the
 // record.

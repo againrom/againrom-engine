@@ -8,19 +8,16 @@ import (
 // panelSizes are the window sizes the side panel proofs run at.
 var panelSizes = []image.Point{{640, 480}, {1024, 768}, {1920, 1080}}
 
-// The side panels have no greatest width: the inner-edge drag grows each of
-// them until the map keeps its least width beside the other panel's shown
-// width, and never further. The bottom panel stops at its greatest height.
+// The left panel leaves the map its least width. The bottom panel keeps its height limit.
 func TestMapEditorSidePanelsGrowToTheRoomTheMapLeaves(t *testing.T) {
 	for _, size := range panelSizes {
 		for _, lang := range []string{"", "russian"} {
 			name := size.String() + lang
-			// The left panel beside the other side panel's shown width.
 			e, _, _ := panelsEditor(t, size.X, size.Y, lang)
 			if e.panelOpen(panelLeft) {
 				dragPanelEdge(t, e, popTree, 3000)
 				shown := e.panelsShown()
-				if want := size.X - mapLeastWidth - shown[panelRight]; shown[panelLeft] != want {
+				if want := size.X - mapLeastWidth; shown[panelLeft] != want {
 					t.Errorf("%s: the left panel grew to %d, want the room %d", name, shown[panelLeft], want)
 				}
 				if got := e.mapArea().Dx(); got < mapLeastWidth {
@@ -28,22 +25,6 @@ func TestMapEditorSidePanelsGrowToTheRoomTheMapLeaves(t *testing.T) {
 				}
 				if size.X >= 1920 && shown[panelLeft] <= 420 {
 					t.Errorf("%s: the left panel stopped at %d", name, shown[panelLeft])
-				}
-			}
-			// The right panel, the left one minimized so that it fits.
-			e, _, _ = panelsEditor(t, size.X, size.Y, lang)
-			_ = e.Key(sidePanels[panelLeft].key)
-			if e.panelOpen(panelRight) {
-				dragPanelEdge(t, e, popProps, -3000)
-				shown := e.panelsShown()
-				if want := size.X - mapLeastWidth - shown[panelLeft]; shown[panelRight] != want {
-					t.Errorf("%s: the right panel grew to %d, want the room %d", name, shown[panelRight], want)
-				}
-				if got := e.mapArea().Dx(); got < mapLeastWidth {
-					t.Errorf("%s: the map keeps %d, less than %d", name, got, mapLeastWidth)
-				}
-				if size.X >= 1920 && shown[panelRight] <= 800 {
-					t.Errorf("%s: the right panel stopped at %d", name, shown[panelRight])
 				}
 			}
 			// The bottom panel keeps its greatest height.

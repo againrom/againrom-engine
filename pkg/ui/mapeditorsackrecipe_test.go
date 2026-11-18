@@ -57,7 +57,7 @@ func recipeSackEditor(t *testing.T, lang, view string) *MapEditor {
 		encoded, _ := textinput.EncodeText(s, e.font.Selector, textinput.Substitute)
 		return encoded
 	})
-	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{"minimized":false,"width":520,"view":%q}}`, view)), nil, nil)
+	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"record":{"view":%q}}`, view)), nil, nil)
 	e.Layout(1920, 1080)
 	if err := e.Open("views"); err != nil {
 		t.Fatal(err)

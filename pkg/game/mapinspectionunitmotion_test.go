@@ -20,9 +20,9 @@ import (
 )
 
 // motionWindow opens the views fixture's unit at 1920x1080 in lang, in the
-// plain or the technical view, floating or docked in the right panel, every
-// plain block open.
-func motionWindow(t *testing.T, s *mapInspectionEdits, lang string, plain, docked bool) (*ui.MapEditor, *editorClicker) {
+// plain or technical view. The objects panel follows treeOpen, and every
+// plain block is open.
+func motionWindow(t *testing.T, s *mapInspectionEdits, lang string, plain, treeOpen bool) (*ui.MapEditor, *editorClicker) {
 	t.Helper()
 	c := &editorClicker{t: t}
 	doc, err := s.project(s.model)
@@ -35,11 +35,7 @@ func motionWindow(t *testing.T, s *mapInspectionEdits, lang string, plain, docke
 	e.SetCardFont(viewsCardFont())
 	e.Layout(1920, 1080)
 	view := map[bool]string{true: "plain", false: "technical"}[plain]
-	right := `"minimized":true,"width":520`
-	if docked {
-		right = `"minimized":false,"width":520`
-	}
-	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{%s,"view":%q}}`, right, view)), nil, nil)
+	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":%t,"width":260},"record":{"view":%q}}`, !treeOpen, view)), nil, nil)
 	if err := e.Open("views.alm"); err != nil {
 		t.Fatal(err)
 	}
@@ -48,8 +44,8 @@ func motionWindow(t *testing.T, s *mapInspectionEdits, lang string, plain, docke
 	if e.PlainView() != plain {
 		t.Fatalf("plain %v, want %v", e.PlainView(), plain)
 	}
-	if r, ok := e.PopupRect(); !ok || docked != (r.Min.X >= 1920-520) {
-		t.Fatalf("the window stands at %v, docked %v", r, docked)
+	if r, ok := e.PopupRect(); !ok || !r.In(image.Rect(0, 0, 1920, 1080)) || e.MapRect().Max.X != 1920 {
+		t.Fatalf("record window %v, map %v", r, e.MapRect())
 	}
 	if plain {
 		openBlocks(t, e, c)
@@ -93,13 +89,13 @@ func TestEditorAddWindowAsksTheUnitsFacing(t *testing.T) {
 // through the host's field writer gives the old setter's bytes and save.
 func TestEditorHiddenFacingWritesTheOldSetterBytes(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
-		for _, docked := range []bool{false, true} {
+		for _, treeOpen := range []bool{false, true} {
 			for _, plain := range []bool{false, true} {
-				t.Run(fmt.Sprintf("%s/docked=%v/plain=%v", lang, docked, plain), func(t *testing.T) {
+				t.Run(fmt.Sprintf("%s/treeOpen=%v/plain=%v", lang, treeOpen, plain), func(t *testing.T) {
 					s, _ := viewsMap(t)
 					base := s.model.Clone()
 					s.inspector.archives.Base.Profile.Language = lang
-					e, c := motionWindow(t, s, lang, plain, docked)
+					e, c := motionWindow(t, s, lang, plain, treeOpen)
 					f := e.ObjectFields()[fieldIndex(t, e.ObjectFields(), "facing")]
 					wantPad := []image.Point{{0, 0}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}}
 					if !slices.Equal(f.ChoicePad, wantPad) {
@@ -204,8 +200,8 @@ func typeText(t *testing.T, e *ui.MapEditor, c *editorClicker, key, text string)
 	c.click(e, r, ok, "Apply")
 }
 
-// A placed unit's speed, sight and facing, in both views of the unit
-// window, floating and in the right panel, in English and Russian: an empty
+// A placed unit's speed, sight and facing, in both views of its floating
+// window in English and Russian. An empty
 // speed or sight shows the kind's value; each value set writes its byte; a
 // value outside the range is refused with its reason and writes nothing; an
 // emptied field clears its byte; Undo restores the record. The basic view
@@ -213,14 +209,14 @@ func typeText(t *testing.T, e *ui.MapEditor, c *editorClicker, key, text string)
 // which the host's field writer still writes.
 func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
-		for _, docked := range []bool{false, true} {
+		for _, treeOpen := range []bool{false, true} {
 			for _, plain := range []bool{true, false} {
-				t.Run(fmt.Sprintf("%s/docked=%v/plain=%v", lang, docked, plain), func(t *testing.T) {
+				t.Run(fmt.Sprintf("%s/treeOpen=%v/plain=%v", lang, treeOpen, plain), func(t *testing.T) {
 					s, raw := viewsMap(t)
 					s.inspector.archives.Base.Profile.Language = lang
 					s.inspector.recordOptions = nil
 					sheet := s.unitViewSheets()[0].Values
-					e, c := motionWindow(t, s, lang, plain, docked)
+					e, c := motionWindow(t, s, lang, plain, treeOpen)
 					fields := e.ObjectFields()
 					for key, kind := range map[string]int32{"speed": sheet.Speed, "sight": sheet.Sight} {
 						f := fields[fieldIndex(t, fields, key)]
@@ -255,7 +251,7 @@ func TestEditorUnitSpeedSightFacingInBothViews(t *testing.T) {
 					for _, bad := range []struct {
 						key, text, reason string
 					}{{"speed", "256", "0..255"}, {"sight", strconv.Itoa(alm.SightCells + 1), fmt.Sprintf("0..%d", alm.SightCells)}} {
-						refused, rc := motionWindow(t, s, lang, plain, docked)
+						refused, rc := motionWindow(t, s, lang, plain, treeOpen)
 						typeText(t, refused, rc, bad.key, bad.text)
 						if !bytes.Equal(s.model.Bytes(), set) {
 							t.Fatalf("%s %s was written", bad.key, bad.text)

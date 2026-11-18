@@ -36,7 +36,6 @@ const (
 	popStatus
 	popArea    // a trigger area's label on the map
 	popTree    // the left side panel's tree of the map
-	popProps   // the right side panel while it hosts no window
 	popReport  // the bottom panel while it shows no report, or its strip
 	popToolbar // the toolbar over the map
 	popMapTabs // the strip of the open maps' tabs
@@ -176,7 +175,7 @@ func (e *MapEditor) barHeight() int {
 func (e *MapEditor) mapArea() image.Rectangle {
 	top := e.chromeContentTop()
 	shown := e.panelsShown()
-	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], max(top+1, e.mapBottom(top)-shown[panelBottom]))
+	return image.Rect(shown[panelLeft], top, e.window.X, max(top+1, e.mapBottom(top)-shown[panelBottom]))
 }
 
 // MapRect is the window rectangle the map fills, between the toolbar, the
@@ -1384,7 +1383,6 @@ func (e *MapEditor) recordTitle(r InspectionRecord) string {
 }
 
 func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
-	e.panels.hostable = false
 	e.obj.viewOffer = false
 	if e.modWindow && !e.prompt.open() && (!e.catalog || e.modOverCatalog()) {
 		return e.modSpec()
@@ -1399,7 +1397,6 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	}
 	if s, links, ok := e.groupSpec(); ok {
 		e.objectBackButton(&s)
-		e.panels.hostable = true
 		return s, links, true
 	}
 	if s, ok := e.selectionSpec(); ok {
@@ -1409,9 +1406,6 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if e.doc == nil || e.objectBlocked() || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
-	// The record's own window and a script record's window stand in the
-	// right panel while it is shown; the windows above float.
-	e.panels.hostable = true
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
 		e.objectBackButton(&s)
@@ -1421,7 +1415,6 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.loadObject()
 	if r.Kind == KindPlayer && e.barWindow() == "players" {
 		// The Players window edits the player in its own row.
-		e.panels.hostable = false
 		return popupSpec{}, nil, false
 	}
 	if e.obj.move != nil {
@@ -1491,7 +1484,7 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	} else {
 		add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
 	}
-	width := e.hostedWrap(s, wide-2*popupPad-4)
+	width := wide - 2*popupPad - 4
 	var lines []InspectionLine
 	if r.Warning != "" && len(r.Lines) == 0 {
 		lines = append(lines, InspectionLine{Text: "! " + r.Warning, Role: "warning"})
@@ -1520,7 +1513,7 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	}
 	e.objectBackButton(&s)
 	e.viewSwitchButton(&s)
-	if aside := e.hostedAside(s); aside > 0 {
+	if aside := cardAside(specWindow(s)); aside > 0 {
 		s.Width += aside + popupPad
 	}
 	e.pageObjectRows(&s, len(s.Buttons) > 0 || e.objectHasFields())
@@ -1528,40 +1521,33 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 }
 
 // pageObjectRows pages the object window's body s: at most the rows of one
-// line the window holds, buttons counting their row; while it floats, the
+// line the window holds, buttons counting their row, and the
 // rows the layout pass fits from the kept first row, so a label over its
 // field, a face or a taller text shows fewer rows and the window keeps
 // inside the editor.
 func (e *MapEditor) pageObjectRows(s *popupSpec, buttons bool) {
 	s.MaxRows = e.objectRowsShown(buttons)
-	if !e.objectInPanel() {
-		// The first clamp, at the most rows the bounds could hold, finds the
-		// rows that fit; it does not keep the page it clamped.
-		top := e.objectTop
-		e.clampObjectTop(s, len(s.Rows))
-		s.MaxRows = e.rowsFit(*s)
-		e.objectTop = top
-	}
+	// The first clamp, at the most rows the bounds could hold, finds the
+	// rows that fit; it does not keep the page it clamped.
+	top := e.objectTop
+	e.clampObjectTop(s, len(s.Rows))
+	s.MaxRows = e.rowsFit(*s)
+	e.objectTop = top
 	e.clampObjectTop(s, len(s.Rows))
 }
 
-// clampObjectTop holds the object window's first shown row where its last
-// rows still fill the floating window, count rows in all. A window in the
-// right panel fits its own rows: hostedObject holds it there, so the tail
-// the panel's height shows stays in reach.
+// clampObjectTop keeps the last page of the object window full.
 func (e *MapEditor) clampObjectTop(s *popupSpec, count int) {
-	if !e.objectInPanel() {
-		shown := *s
-		shown.MaxRows = e.sizedRows(s.MaxRows)
-		most := 0
-		if shown.MaxRows > 0 {
-			most = count - shown.MaxRows
-		}
-		if shown.MaxRows > 0 && count > shown.MaxRows {
-			most = e.columnsLastTop(shown, most, count)
-		}
-		e.objectTop = max(0, min(e.objectTop, most))
+	shown := *s
+	shown.MaxRows = e.sizedRows(s.MaxRows)
+	most := 0
+	if shown.MaxRows > 0 {
+		most = count - shown.MaxRows
 	}
+	if shown.MaxRows > 0 && count > shown.MaxRows {
+		most = e.columnsLastTop(shown, most, count)
+	}
+	e.objectTop = max(0, min(e.objectTop, most))
 	s.Top = e.objectTop
 }
 
@@ -1708,8 +1694,6 @@ func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 		return e.promptSpec()
 	case popTree:
 		return e.treeSpec()
-	case popProps:
-		return e.propsSpec()
 	case popToolbar:
 		return e.toolbarSpec()
 	}
@@ -1806,7 +1790,7 @@ func (e *MapEditor) drawFloating(pic *image.RGBA) {
 				}
 			}
 		case popObject:
-			if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
+			if s, _, ok := e.objectSpec(); ok {
 				e.drawWindow(pic, s)
 				e.drawObjectFigure(pic, s)
 				e.drawCarry(pic, s)
@@ -2164,7 +2148,6 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if listOK && e.placeOwnerDropdownHit(p) {
 		return popList
 	}
-	hosted := e.panels.hosted
 	stack := e.popupStack()
 	for _, id := range slices.Backward(stack[:]) {
 		switch id {
@@ -2173,7 +2156,7 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 				return popList
 			}
 		case popObject:
-			if objectOK && !hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
+			if objectOK && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
 				return popObject
 			}
 		}
@@ -2181,23 +2164,13 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if s, ok := e.toolbarSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popToolbar
 	}
-	for _, id := range []editorPopupID{popProps, popTree} {
-		if i := panelOfRow(id); e.panelFloats(i) {
-			if s, ok := e.movableSpec(id); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
-				return id
-			}
+	if e.panelFloats(panelLeft) {
+		if s, ok := e.treeSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
+			return popTree
 		}
 	}
 	if e.searchRowShown() && p.In(e.searchLayout().Rect) {
 		return popMenu
-	}
-	// A hosted window takes a press on what it draws, the rectangle its
-	// layout fills, as a floating one does.
-	if objectOK && hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
-		return popObject
-	}
-	if p.In(e.sidePanelRect(panelRight)) {
-		return popProps
 	}
 	if p.In(e.sidePanelRect(panelLeft)) {
 		return popTree
@@ -2437,14 +2410,12 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 
 // chromePress is a press on a chrome part.
 func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool) {
-	if e.resizePress(target, p) || e.panelTitlePress(target, p, double) || e.titlePress(target, p) {
+	if e.resizePress(target, p) || e.panelTitlePress(target, p) || e.titlePress(target, p) {
 		return
 	}
 	switch target {
 	case popTree:
 		e.treePress(p)
-	case popProps:
-		e.propsPress(p)
 	case popReport:
 		e.reportPress(p)
 	case popToolbar:
@@ -2668,10 +2639,6 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupTab:
 		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
-		if e.panels.hosted || e.panelFloats(panelRight) && e.panels.hostable {
-			e.togglePanel(panelRight)
-			return
-		}
 		e.cancelPopup()
 	case popupRowGrip:
 		if e.messagePage != 0 {

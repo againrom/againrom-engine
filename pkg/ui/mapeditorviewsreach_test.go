@@ -80,10 +80,8 @@ func reachedFields(e *MapEditor, reached map[string]bool) {
 	})
 }
 
-// Every field of a human, a structure and a sack is in reach in the right
-// panel at its least, default and greatest width and floating, in both
-// views and both languages: after its tabs, blocks and slot details open,
-// the popup's scroll brings each field's control or line on screen.
+// The floating record window can scroll to each field in both views and
+// languages after its tabs, blocks and slot details open.
 func TestMapEditorWindowReachesEveryField(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		for _, width := range wideWidths {
@@ -126,7 +124,7 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 						}
 						if basicUnit && e.unitModeShown().leaves(f) {
 							if reached[f.Key] {
-								t.Errorf("%s panel %d: the basic view shows %s, which it leaves to the detailed view", lang, width, f.Key)
+								t.Errorf("%s editor %d: the basic view shows %s, which it leaves to the detailed view", lang, width, f.Key)
 							}
 							continue
 						}
@@ -135,7 +133,7 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 						}
 					}
 					if len(missed) > 0 {
-						t.Errorf("%s panel %d %s %s: out of reach %v", lang, width, view, e.doc.Records[record].Kind, missed)
+						t.Errorf("%s editor %d %s %s: out of reach %v", lang, width, view, e.doc.Records[record].Kind, missed)
 					}
 				}
 			}
@@ -182,10 +180,8 @@ func plainWordsOf(e *MapEditor, record int, placement, kind int64) []string {
 	return out
 }
 
-// Every word of the plain view and of the view switch shows whole in the
-// right panel at each width and floating, in English and Russian, in a
-// font as wide as the installed ones: a label in its column, a heading in
-// its band, a line of text, split by the line breaker, in its row.
+// The floating record window shows complete plain-view labels, headings
+// and wrapped text at each width in English and Russian.
 func TestMapEditorPlainWordsShowWhole(t *testing.T) {
 	type variant struct {
 		record          int
@@ -204,7 +200,7 @@ func TestMapEditorPlainWordsShowWhole(t *testing.T) {
 				e := wideEditor(t, lang, width, "plain", v.set)
 				e.Select(v.record, false)
 				e.objectSpec()
-				where := fmt.Sprintf("%s panel %d %s", lang, width, e.doc.Records[v.record].Kind)
+				where := fmt.Sprintf("%s editor %d %s", lang, width, e.doc.Records[v.record].Kind)
 				openBlocks(t, e)
 				want := plainWordsOf(e, v.record, v.placement, v.kind)
 				seen := map[string]bool{}

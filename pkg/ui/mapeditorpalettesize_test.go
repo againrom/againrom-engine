@@ -167,13 +167,13 @@ func TestMapEditorPaletteSizeLivesInTheProfile(t *testing.T) {
 
 // A broken windows entry costs the panels nothing.
 func TestMapEditorBrokenWindowEntryKeepsThePanelState(t *testing.T) {
-	data := []byte(`{"left":{"minimized":true,"width":300},"right":{"minimized":false,"width":600,"view":"technical"},"windows":5}`)
+	data := []byte(`{"left":{"minimized":true,"width":300},"left":{"minimized":true,"width":300},"record":{"view":"technical"},"windows":5}`)
 	e := paletteEditor(t, 1280, 800)
 	e.SetPanelProfile(data, nil, nil)
 	if s := e.panels.state[panelLeft]; s.Restored || s.Width != 300 {
 		t.Fatalf("left panel %+v", s)
 	}
-	if s := e.panels.state[panelRight]; !s.Restored || s.Width != 600 || e.props.plain {
-		t.Fatalf("right panel %+v, plain %v", s, e.props.plain)
+	if s := e.panels.state[panelLeft]; s.Restored || s.Width != 300 || e.props.plain {
+		t.Fatalf("left panel %+v, plain %v", s, e.props.plain)
 	}
 }

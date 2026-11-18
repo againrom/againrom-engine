@@ -116,18 +116,34 @@ func enterField(e *ui.MapEditor, field int, text string) error {
 func TestMapEditorClonesAUnitOntoAClickedCell(t *testing.T) {
 	b, e := openAuthoring(t)
 	e.Select(0, true)
-	clickCell(e, image.Pt(9, 10))
+	// The front window floats over the map: the target is the first cell
+	// from (9,10) to the right that the window leaves uncovered.
+	uncovered := func() image.Point {
+		cell := image.Pt(9, 10)
+		if w, ok := e.PopupRect(); ok {
+			for e.CellPoint(cell).In(w) && cell.X < 31 {
+				cell.X++
+			}
+		}
+		if !e.CellPoint(cell).In(e.MapRect()) {
+			t.Fatalf("cell %v is not shown beside the window", cell)
+		}
+		return cell
+	}
+	cell := uncovered()
+	clickCell(e, cell)
 	if len(authoredUnits(t, e)) != 2 {
 		t.Fatal("a click without C cloned")
 	}
 	e.Select(0, true)
 	_ = e.Key("clone")
-	clickCell(e, image.Pt(9, 10))
+	cell = uncovered()
+	clickCell(e, cell)
 	u := authoredUnits(t, e)
-	if len(u) != 3 || u[2].X != 9*256+128 || u[2].Y != 10*256+77 || u[2].ClassID != 40 || u[2].UnitID != 1 || u[2].GroupID != u[0].GroupID {
+	if len(u) != 3 || u[2].X != uint32(cell.X)*256+128 || u[2].Y != uint32(cell.Y)*256+77 || u[2].ClassID != 40 || u[2].UnitID != 1 || u[2].GroupID != u[0].GroupID {
 		t.Fatalf("clone %+v", u)
 	}
-	if r := e.Document().Records[e.Selected()]; r.Kind != "Unit" || r.Index != 2 || r.Cell != image.Pt(9, 10) {
+	if r := e.Document().Records[e.Selected()]; r.Kind != "Unit" || r.Index != 2 || r.Cell != cell {
 		t.Fatalf("the clone is not selected: %+v", r)
 	}
 	cloned := append([]byte(nil), e.Document().SourceBytes...)

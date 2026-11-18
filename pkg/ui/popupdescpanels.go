@@ -11,7 +11,7 @@ import (
 )
 
 type popupDescPanels struct {
-	Right string `json:"right"`
+	Left  string `json:"left"`
 	Hover string `json:"hover,omitempty"`
 }
 
@@ -19,28 +19,24 @@ func (p *popupDescPanels) check() error {
 	if p == nil {
 		return nil
 	}
-	switch p.Right {
-	case "docked", "hosted", "minimized", "floating":
+	switch p.Left {
+	case "docked", "minimized", "floating":
 	default:
-		return fmt.Errorf("panel description: invalid right panel state %q", p.Right)
+		return fmt.Errorf("panel description: invalid left panel state %q", p.Left)
 	}
 	switch p.Hover {
 	case "":
 		return nil
 	case "splitter":
-		if p.Right == "docked" || p.Right == "hosted" {
+		if p.Left == "docked" {
 			return nil
 		}
 	case "grip":
-		if p.Right == "floating" {
-			return nil
-		}
-	case "help":
-		if p.Right == "docked" || p.Right == "floating" {
+		if p.Left == "floating" {
 			return nil
 		}
 	}
-	return fmt.Errorf("panel description: hover %q does not fit right panel state %q", p.Hover, p.Right)
+	return fmt.Errorf("panel description: hover %q does not fit left panel state %q", p.Hover, p.Left)
 }
 
 type mockupPanel struct {
@@ -54,8 +50,6 @@ type mockupPanels struct {
 	panels  []mockupPanel
 	pointer image.Point
 	hover   string
-	tip     popupTip
-	decode  func(string) string
 }
 
 func buildMockupPanels(d popupDesc, lang string, window image.Point, title, body *text.Font, encode, decode func(string) string) (*mockupPanels, error) {
@@ -86,25 +80,14 @@ func buildMockupPanels(d popupDesc, lang string, window image.Point, title, body
 	e.doc = &InspectionDocument{Viewer: viewer, Width: side, Height: side, Records: []InspectionRecord{
 		{Key: 1, Kind: KindStructure, Label: label, ScriptID: 1, Cell: image.Pt(18, 24), Size: image.Pt(2, 2), Spatial: true},
 	}}
-	right := d.Panels.Right
-	switch right {
-	case "hosted":
-		e.Select(0, false)
+	switch d.Panels.Left {
 	case "minimized":
-		e.showPanel(panelRight, false)
+		e.showPanel(panelLeft, false)
 	case "floating":
-		s, _ := e.propsSpec()
-		s.Width = max(sidePanels[panelRight].least, naturalWidth(&s, title, body, s.LabelWidth))
-		s.Size, s.Bounds = image.Point{}, e.popupBounds()
-		s.Docked, s.Splitter = false, 0
-		size := layoutPopup(s, title, body).Rect.Size()
-		size.Y += popupMinRows * (fontHeight(body, 15) + popupRowExtra)
-		at := e.centreCorner(size, openPlace{})
-		e.floatAt(popProps, image.Rectangle{Min: at, Max: at.Add(size)})
-		e.relayout()
+		e.undockPanel(panelLeft)
 	}
 
-	scene := &mockupPanels{canvas: e.mapArea(), hover: d.Panels.Hover, pointer: image.Pt(-1, -1), decode: decode}
+	scene := &mockupPanels{canvas: e.mapArea(), hover: d.Panels.Hover, pointer: image.Pt(-1, -1)}
 	add := func(s popupSpec, i int) {
 		l := layoutPopup(s, title, body)
 		floating := e.panelFloats(i)
@@ -115,40 +98,27 @@ func buildMockupPanels(d popupDesc, lang string, window image.Point, title, body
 		if e.panelOpen(i) {
 			part.kind = "dock"
 		}
-		if i == panelRight {
+		if i == panelLeft {
 			var target image.Rectangle
 			switch scene.hover {
 			case "splitter":
 				target = l.splitterRect()
 			case "grip":
 				target = l.gripRect()
-			case "help":
-				target = l.TitleHelp
 			}
 			if !target.Empty() {
 				scene.pointer = target.Min.Add(target.Size().Div(2))
 			}
-			if scene.hover == "help" {
-				scene.tip, _ = popupTipAt(image.Rectangle{Max: window}, title, e.bodyFont(), s, l, scene.pointer, true)
-			}
 		}
 		scene.panels = append(scene.panels, part)
 	}
-	left, _ := e.treeSpec()
-	add(left, panelLeft)
+	left, minimized := e.stripSpec(panelLeft)
+	if !minimized {
+		left, _ = e.treeSpec()
+	}
 	report, _ := e.stripSpec(panelBottom)
 	add(report, panelBottom)
-	switch right {
-	case "hosted":
-		s, _, _ := e.objectSpec()
-		add(s, panelRight)
-	case "minimized":
-		s, _ := e.stripSpec(panelRight)
-		add(s, panelRight)
-	default:
-		s, _ := e.propsSpec()
-		add(s, panelRight)
-	}
+	add(left, panelLeft)
 	return scene, nil
 }
 
@@ -158,7 +128,6 @@ func (s *mockupPanels) draw(dst *image.RGBA, title, body *text.Font) {
 	for _, p := range s.panels {
 		drawPopup(dst, title, body, nil, p.spec, p.layout, ink, s.pointer, true)
 	}
-	drawPopupTip(dst, body, s.tip, ink)
 }
 
 func (s *mockupPanels) page(d popupDesc, lang string, window image.Point) []byte {
@@ -183,6 +152,5 @@ func (s *mockupPanels) page(d popupDesc, lang string, window image.Point) []byte
 				part(class, mark.name, -1, mark.rect, noInk, "", "")
 			}
 		}
-		part.tip(s.tip, s.decode, "")
 	})
 }

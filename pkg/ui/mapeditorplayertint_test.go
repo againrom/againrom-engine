@@ -387,14 +387,14 @@ func TestPlayerColourFollowsAMovedUnitThroughUndoAndRedo(t *testing.T) {
 }
 
 // The legend stands in the bottom left corner of the map the side panels
-// leave, with the left panel restored or minimized, and Y, F6 and F7 each
+// leave, with the left panel restored or minimized, and Y, F6 and F8 each
 // change only their own state.
 func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	x := newTintFixture(t)
 	e := x.e
-	e.panels.state = [len(sidePanels)]panelState{{Restored: true}, {Restored: true}, {}}
+	e.panels.state = [len(sidePanels)]panelState{{Restored: true}, {Restored: true}}
 	e.Layout(1280, 800)
-	if !e.panelOpen(panelLeft) || !e.panelOpen(panelRight) {
+	if !e.panelOpen(panelLeft) || !e.panelOpen(panelBottom) {
 		t.Fatalf("panels at 1280x800 shown %v, want both restored", e.panelsShown())
 	}
 	_ = e.Key("playertint")
@@ -402,15 +402,15 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 		t.Helper()
 		box, rows := playerLegendOf(e)
 		area := e.mapArea()
-		left, right := e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight)
+		left, bottom := e.sidePanelRect(panelLeft), e.sidePanelRect(panelBottom)
 		if box.Empty() || len(rows) != 3 {
 			t.Fatalf("%s: legend %v with %d rows", state, box, len(rows))
 		}
 		if !box.In(area) || box.Min.X != area.Min.X+6 || box.Max.Y != area.Max.Y-6 {
 			t.Fatalf("%s: legend %v is not in the map's bottom left corner %v", state, box, area)
 		}
-		if box.Overlaps(left) || box.Overlaps(right) || box.Min.X < left.Max.X {
-			t.Fatalf("%s: legend %v lies under a panel %v %v", state, box, left, right)
+		if box.Overlaps(left) || box.Overlaps(bottom) || box.Min.X < left.Max.X {
+			t.Fatalf("%s: legend %v lies under a panel %v %v", state, box, left, bottom)
 		}
 		pic := e.ChromeImage()
 		r := rows[0]
@@ -432,11 +432,11 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	if shut := corner("left minimized"); shut.Min.X != e.panelStrip(panelLeft)+6 || shut.Max.Y != open.Max.Y {
 		t.Fatalf("legend %v with the left strip, want left edge %d and bottom %d", shut, e.panelStrip(panelLeft)+6, open.Max.Y)
 	}
-	if err := e.Key("propertiespanel"); err != nil {
+	if err := e.Key("reportpanel"); err != nil {
 		t.Fatal(err)
 	}
-	if e.panelOpen(panelRight) || !e.view.playerColours {
-		t.Fatalf("F7: right restored %v, player colours %v", e.panelOpen(panelRight), e.view.playerColours)
+	if e.panelOpen(panelBottom) || !e.view.playerColours {
+		t.Fatalf("F8: bottom restored %v, player colours %v", e.panelOpen(panelBottom), e.view.playerColours)
 	}
 	shown := e.panelsShown()
 	_ = e.Key("playertint")
@@ -450,7 +450,7 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	if tools["playertint"] >= tools["grid"] {
 		t.Fatalf("toolbar order %v, want the layer switches before grid", tools)
 	}
-	if a, b := tools[sidePanels[panelLeft].key], tools[sidePanels[panelRight].key]; tools["report"] >= a || a >= b {
-		t.Fatalf("toolbar order %v, want report, then the two panels", tools)
+	if a := tools[sidePanels[panelLeft].key]; tools["report"] >= a {
+		t.Fatalf("toolbar order %v, want the report tool before the objects panel switch", tools)
 	}
 }

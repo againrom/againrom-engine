@@ -246,7 +246,7 @@ func TestMapEditorBarSearchMatchesTheTreeSearch(t *testing.T) {
 }
 
 // Choosing a hit selects it as a press on its tree row does: the same record,
-// the same right panel, the same view; the tree marks it and no side panel
+// the same record window and view; the tree marks it and no side panel
 // changes.
 func TestMapEditorBarSearchChoiceIsATreePress(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
@@ -280,8 +280,8 @@ func TestMapEditorBarSearchChoiceIsATreePress(t *testing.T) {
 			}
 			a, _, okA := e.objectSpec()
 			b, _, okB := twin.objectSpec()
-			if !okA || !okB || !e.panels.hosted || rowsText(a) != rowsText(b) {
-				t.Fatalf("right panels differ\n%s\n%s", rowsText(a), rowsText(b))
+			if !okA || !okB || a.Docked || rowsText(a) != rowsText(b) {
+				t.Fatalf("record windows differ\n%s\n%s", rowsText(a), rowsText(b))
 			}
 			if e.panelsShown() != shown || fmt.Sprint(e.tree.closed) != closed || e.tree.search != "" {
 				t.Fatalf("panels %v were %v, tree closed %v was %s, tree search %q", e.panelsShown(), shown, e.tree.closed, closed, e.tree.search)

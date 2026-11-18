@@ -50,14 +50,12 @@ func (h *cardHost) UnitSettings(index int, values []InspectionFieldValue) (MapEn
 	return entity, fields, preview, err
 }
 
-// cardEditor is the editor over a cardHost in language lang at 1920x1080,
-// the unit of class class selected in the basic view, its window floating
-// or in the right panel 520 wide.
-func cardEditor(t *testing.T, lang string, class int64, panel bool) (*MapEditor, *cardHost) {
+// cardEditor opens the floating unit card at 1280 or 1920 pixels wide.
+func cardEditor(t *testing.T, lang string, class int64, narrow bool) (*MapEditor, *cardHost) {
 	t.Helper()
-	width := 0
-	if panel {
-		width = 520
+	width := 1920
+	if narrow {
+		width = 1280
 	}
 	e := wideEditor(t, lang, width, "plain", map[string]int64{"Unit/identity": class})
 	h := &cardHost{wideHost: e.doc.Edits.(*wideHost)}
@@ -69,7 +67,6 @@ func cardEditor(t *testing.T, lang string, class int64, panel bool) (*MapEditor,
 	if err := e.Open("views"); err != nil {
 		t.Fatal(err)
 	}
-	e.Layout(1920, 1080)
 	e.Select(viewsUnit, false)
 	return e, h
 }
@@ -120,13 +117,13 @@ func drawnCells(e *MapEditor, s popupSpec) []drawnCell {
 // card draws a line whose tip says the map does not store it. Equipment,
 // the bag, the look, the facing, the dialogue line and the map file fields
 // are not shown. For a person and a creature, in English and Russian,
-// floating and in the right panel, at 1920x1080.
+// at both editor widths.
 func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, panel := range []bool{false, true} {
+		for _, narrow := range []bool{false, true} {
 			for _, class := range []int64{300, 301} {
-				name := fmt.Sprintf("%s class %d panel %v", lang, class, panel)
-				e, _ := cardEditor(t, lang, class, panel)
+				name := fmt.Sprintf("%s class %d narrow %v", lang, class, narrow)
+				e, _ := cardEditor(t, lang, class, narrow)
 				s, _, ok := e.objectSpec()
 				if !ok || s.Card == nil || s.CardScale != 2 || !e.PlainView() {
 					t.Fatalf("%s: window %v card %v scale %d below %v", name, ok, s.Card != nil, s.CardScale, s.CardBelow)
@@ -135,7 +132,7 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 					t.Fatalf("%s: band %v", name, s.Card.Char.Band)
 				}
 				if dir := os.Getenv("AGAINROM_VIEWS_PNG"); dir != "" {
-					witness.PNG(t, filepath.Join(dir, fmt.Sprintf("unit-basic-%s-%d-panel-%v.png", lang, class, panel)), e.ChromeImage())
+					witness.PNG(t, filepath.Join(dir, fmt.Sprintf("unit-basic-%s-%d-narrow-%v.png", lang, class, narrow)), e.ChromeImage())
 				}
 				l := layoutPopup(s, e.font, e.bodyFont())
 				if l.Card.Size() != image.Pt(2*compactPanelW, 2*compactPanelH) || !l.Card.In(l.Rect) {

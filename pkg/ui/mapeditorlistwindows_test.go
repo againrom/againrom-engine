@@ -314,7 +314,6 @@ func TestFloatingReportRowOpensRecordAboveItsList(t *testing.T) {
 				e.SetWords(words.For(lang))
 				e.SetHostTextEncoder(mockupHostEncoder(e.font))
 				e.Layout(listWindowScreen.X, listWindowScreen.Y)
-				e.showPanel(panelRight, false)
 				if err := e.Key("report"); err != nil {
 					t.Fatal(err)
 				}

@@ -20,32 +20,32 @@ func TestReadPanelProfileKeepsEachPartsAbsenceRule(t *testing.T) {
 		want func(p panelProfile) bool
 	}{
 		{"a broken side gives every side its default",
-			`{"left":{"minimized":false,"width":300},"right":{"width":"wide"},"bottom":{"minimized":false}}`,
+			`{"left":{"minimized":false,"width":300},"bottom":{"width":"wide"}}`,
 			func(p panelProfile) bool { return p.sides == defaults.sides }},
 		{"a side that is no object gives every side its default",
 			`{"left":{"minimized":false,"width":300},"bottom":5}`,
 			func(p panelProfile) bool { return p.sides == defaults.sides }},
 		{"a broken side costs no float, view or size",
-			`{"left":{"minimized":"x","float":{"x":1,"y":2,"width":300,"height":200}},"right":{"view":"technical","width":"x"},"windows":{"units":{"width":400,"height":300}}}`,
+			`{"left":{"minimized":"x","float":{"x":1,"y":2,"width":300,"height":200}},"record":{"view":"technical"},"windows":{"units":{"width":400,"height":300}}}`,
 			func(p panelProfile) bool {
 				return p.sides == defaults.sides && p.floats[0].at == image.Rect(1, 2, 301, 202) && !p.plain && p.windows["units"] == image.Pt(400, 300)
 			}},
 		{"a broken float costs that window only",
-			`{"left":{"minimized":false,"width":300,"float":{"x":"a"}},"right":{"float":{"x":5,"y":6,"width":100,"height":90}},"toolbar":{"hidden":true,"float":"no"}}`,
+			`{"left":{"minimized":false,"width":300,"float":{"x":"a"}},"toolbar":{"hidden":true,"float":"no"}}`,
 			func(p panelProfile) bool {
-				return p.sides[panelLeft].Restored && p.floats[0] == floatKept{} && p.floats[1].at == image.Rect(5, 6, 105, 96) && p.floats[1].floating && p.floats[2] == floatKept{}
+				return p.sides[panelLeft].Restored && p.floats[0] == floatKept{} && p.floats[1] == floatKept{}
 			}},
 		{"a float the window cannot take is docked and keeps hidden",
 			`{"toolbar":{"hidden":true,"float":{"x":0,"y":0,"width":0,"height":9}},"left":{"float":{"x":99999,"y":0,"width":9,"height":9}}}`,
 			func(p panelProfile) bool {
-				return p.floats[2] == floatKept{hidden: true} && p.floats[0] == floatKept{}
+				return p.floats[1] == floatKept{hidden: true} && p.floats[0] == floatKept{}
 			}},
 		{"a broken view gives the plain view",
-			`{"right":{"view":7}}`, func(p panelProfile) bool { return p.plain }},
+			`{"record":{"view":7}}`, func(p panelProfile) bool { return p.plain }},
 		{"a view other than technical is plain",
-			`{"right":{"view":"other"}}`, func(p panelProfile) bool { return p.plain }},
+			`{"record":{"view":"other"}}`, func(p panelProfile) bool { return p.plain }},
 		{"the technical view reads",
-			`{"right":{"view":"technical"}}`, func(p panelProfile) bool { return !p.plain }},
+			`{"record":{"view":"technical"}}`, func(p panelProfile) bool { return !p.plain }},
 		{"a broken size gives the default and costs no other",
 			`{"windows":{"units":{"width":"x","height":300},"structures":{"width":500,"height":600}}}`,
 			func(p panelProfile) bool {
@@ -69,7 +69,7 @@ func TestReadPanelProfileKeepsEachPartsAbsenceRule(t *testing.T) {
 // A profile written from a state reads back to the same state, and the bytes
 // for that state are fixed.
 func TestPanelProfileRoundTripAndBytes(t *testing.T) {
-	const profile = `{"bottom":{"minimized":true,"width":180},"left":{"float":{"height":400,"width":300,"x":10,"y":20},"minimized":true,"width":260},"right":{"minimized":false,"view":"technical","width":600},"toolbar":{"float":{"height":40,"width":500,"x":30,"y":40},"hidden":true},"windows":{"structures":{"height":333,"width":444},"units":{"height":300,"width":400}}}` + "\n"
+	const profile = `{"bottom":{"minimized":true,"width":180},"left":{"float":{"height":400,"width":300,"x":10,"y":20},"minimized":true,"width":260},"record":{"view":"technical"},"toolbar":{"float":{"height":40,"width":500,"x":30,"y":40},"hidden":true},"windows":{"structures":{"height":333,"width":444},"units":{"height":300,"width":400}}}` + "\n"
 	e, _, _ := panelsEditor(t, 1280, 800, "")
 	e.SetPanelProfile([]byte(profile), nil, nil)
 	got := e.panelStateBytes()

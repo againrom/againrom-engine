@@ -33,7 +33,7 @@ func moveAside(e *MapEditor) error {
 		}
 		r := layoutPopup(s, e.font, e.bodyFont()).Rect
 		p := r.Min.Add(image.Pt(10, popupTopBand+2))
-		if e.chromeHit(p) != c.id || e.places[e.storeRow(c.id)].slack {
+		if e.chromeHit(p) != c.id || e.places[c.id].slack {
 			continue
 		}
 		room := e.mapArea()
