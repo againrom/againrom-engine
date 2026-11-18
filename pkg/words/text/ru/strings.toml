@@ -330,7 +330,7 @@
 "editor.equipment.inherit" = "Предмет из строки"
 "editor.equipment.empty" = "Пусто"
 "editor.equipment.npcempty" = "Пусто недоступно: NPC-arm всегда надевает предметы строки"
-"editor.equipment.native" = "Нативный stock; Пусто отключает всю строку и копирует оставленные предметы."
+"editor.equipment.native" = "Изменения сохраняются в списке предметов отряда. «Пусто» отключает все снаряжение из шаблона и копирует оставленные предметы в этот список."
 "editor.equipment.effective" = "Надето в предпросмотре: %s"
 "editor.equipment.carried" = "В сумке предпросмотра: %s"
 "editor.equipment.magic" = "Магический рецепт"

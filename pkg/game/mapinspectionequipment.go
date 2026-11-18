@@ -98,9 +98,9 @@ func (s *mapInspectionEdits) equipmentFields(u *unitTemplateView) []ui.Inspectio
 		meaning := x.word("editor.equipment.native")
 		if sheets := s.unitViewSheets(); u.index < len(sheets) {
 			sheet := sheets[u.index]
-			meaning = fmt.Sprintf(x.word("editor.equipment.effective"), x.itemList(sheet.Worn[slot.Number-1:slot.Number]))
+			meaning = fmt.Sprintf(x.word("editor.equipment.effective"), x.itemList(sheet.Worn[slot.Number-1:slot.Number], true))
 			if slot.Number == 1 {
-				meaning += " / " + fmt.Sprintf(x.word("editor.equipment.carried"), x.itemList(sheet.Carried)) + " / " + x.word("editor.equipment.native")
+				meaning += " / " + fmt.Sprintf(x.word("editor.equipment.carried"), x.itemList(sheet.Carried, true)) + " / " + x.word("editor.equipment.native")
 			}
 		}
 		field := ui.InspectionField{Key: fmt.Sprintf("wear%d", slot.Number), Label: label, Group: x.word("editor.unit.group.equipment"), Value: value,

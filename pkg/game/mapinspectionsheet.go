@@ -86,9 +86,8 @@ func unitSheets(m *alm.Map, t *mapload.Table) ([]unitSheet, error) {
 	return out, nil
 }
 
-// itemList names items in order with the install's own name bytes, "none"
-// for none.
-func (x *MapInspector) itemList(items []sim.ItemInstance) string {
+// itemList names items in order for the font or for UTF-8 host text.
+func (x *MapInspector) itemList(items []sim.ItemInstance, hostText bool) string {
 	var names []string
 	for _, it := range items {
 		if !it.Empty() {
@@ -96,9 +95,18 @@ func (x *MapInspector) itemList(items []sim.ItemInstance) string {
 		}
 	}
 	if len(names) == 0 {
-		return x.inspectionUTF8(x.word("editor.unit.none"))
+		none := x.word("editor.unit.none")
+		if hostText {
+			return none
+		}
+		return x.inspectionUTF8(none)
 	}
-	return strings.Join(names, ", ")
+	list := strings.Join(names, ", ")
+	if hostText {
+		decoded, _ := decodeFontText([]byte(list), x.pageCode().Selector)
+		return string(decoded)
+	}
+	return list
 }
 
 // unitDefinition names the definition placement u sets, resolved as r, in
@@ -164,7 +172,7 @@ func (x *MapInspector) sheetLines(u alm.Unit, r mapload.Resolution, s unitSheet)
 	}
 	line(fmt.Sprintf(enc(x.word("editor.unit.spells")), spells))
 	if r.Arm != mapload.ArmUnits {
-		line(fmt.Sprintf(enc(x.word("editor.unit.worn")), x.itemList(s.Worn[:])))
+		line(fmt.Sprintf(enc(x.word("editor.unit.worn")), x.itemList(s.Worn[:], false)))
 	}
 	return append(out, x.corpseDropLines(s)...)
 }
@@ -180,15 +188,15 @@ func (x *MapInspector) corpseDropLines(s unitSheet) []ui.InspectionLine {
 		line(enc(x.word("editor.unit.loot.nothing")))
 	} else {
 		weapon := s.Worn[0]
-		line(fmt.Sprintf(enc(x.word("editor.unit.loot.carried")), x.itemList(s.Carried)))
-		line(fmt.Sprintf(enc(x.word("editor.unit.loot.worn")), x.itemList(s.Worn[1:])))
+		line(fmt.Sprintf(enc(x.word("editor.unit.loot.carried")), x.itemList(s.Carried, false)))
+		line(fmt.Sprintf(enc(x.word("editor.unit.loot.worn")), x.itemList(s.Worn[1:], false)))
 		switch {
 		case weapon.Empty():
 			line(fmt.Sprintf(enc(x.word("editor.unit.loot.weapon")), enc(x.word("editor.unit.none"))))
 		case weapon.InnateWeapon():
-			line(fmt.Sprintf(enc(x.word("editor.unit.loot.innate")), x.itemList(s.Worn[:1])))
+			line(fmt.Sprintf(enc(x.word("editor.unit.loot.innate")), x.itemList(s.Worn[:1], false)))
 		default:
-			line(fmt.Sprintf(enc(x.word("editor.unit.loot.weapon")), x.itemList(s.Worn[:1])))
+			line(fmt.Sprintf(enc(x.word("editor.unit.loot.weapon")), x.itemList(s.Worn[:1], false)))
 		}
 	}
 	if v.TypeID > 0x40 && v.GoldChance > 0 {

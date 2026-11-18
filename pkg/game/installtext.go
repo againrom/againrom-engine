@@ -297,7 +297,16 @@ func EncodeInstallTextFile(b []byte, selector int) []byte {
 // rune or the UTF-8 it makes does not encode back to b, so the caller never
 // writes text that changes the file.
 func DecodeInstallTextFile(b []byte, selector int) ([]byte, bool) {
+	out, ok := decodeFontText(b, selector)
+	if !ok || !bytes.Equal(EncodeInstallTextFile(out, selector), b) {
+		return nil, false
+	}
+	return out, true
+}
+
+func decodeFontText(b []byte, selector int) ([]byte, bool) {
 	out := make([]byte, 0, len(b)*2)
+	valid := true
 	for _, c := range b {
 		if c < 0x20 || c == 0x7f {
 			out = append(out, c)
@@ -305,14 +314,11 @@ func DecodeInstallTextFile(b []byte, selector int) ([]byte, bool) {
 		}
 		r, ok := textinput.DecodeByte(c, selector)
 		if !ok {
-			return nil, false
+			r, valid = '?', false
 		}
 		out = utf8.AppendRune(out, r)
 	}
-	if !utf8.Valid(out) || !bytes.Equal(EncodeInstallTextFile(out, selector), b) {
-		return nil, false
-	}
-	return out, true
+	return out, valid
 }
 
 // spellBookRowName is spells.txt's own two-field row, name and description

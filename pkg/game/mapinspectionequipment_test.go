@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/data"
+	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
 
@@ -29,6 +30,47 @@ func nativeEquipmentEditor(t *testing.T) (*FrontEnd, *mapInspectionEdits, []byte
 	f.Table.Names = data.ItemNames{0x101: "Sword", 0x102: "Mace", 0x201: "Ward", 0x701: "Mail", 0x1102: "Steel Mace", 0x122: "Rare Mace", 0x1122: "Rare Steel Mace"}
 	s.unitViews, s.inspector.recordOptions = nil, nil
 	return f, s, s.model.Bytes()
+}
+
+func TestInspectionEquipmentPreviewTipNames(t *testing.T) {
+	for _, tc := range []struct {
+		lang                string
+		selector            int
+		sword, mace, potion string
+	}{
+		{"english", 0, "Sword", "Mace", "Health potion"},
+		{"russian", 1, "Меч", "Булава", "Зелье здоровья"},
+	} {
+		t.Run(tc.lang, func(t *testing.T) {
+			f, s, raw := nativeInventoryEditor(t)
+			x := s.inspector
+			x.archives.Base.Profile.Language = tc.lang
+			x.font = &text.Font{Selector: tc.selector}
+			for code, name := range map[data.ItemCode]string{0x101: tc.sword, 0x102: tc.mace, 0x0e08: tc.potion} {
+				f.Table.Names[code] = EncodeInstallText(name, tc.selector)
+			}
+			_, fields, _, err := s.UnitSettings(0, []ui.InspectionFieldValue{
+				{Key: "carryadd", Value: 0x102, Step: 1},
+				{Key: "carryadd", Value: 0x0e08, Step: 2},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			meaning := fields[fieldIndex(t, fields, "wear1")].Meaning
+			drawn, ok := DecodeInstallTextFile([]byte(x.inspectionUTF8(meaning)), tc.selector)
+			if !ok || bytes.ContainsRune(drawn, '?') || !bytes.Contains(drawn, []byte(tc.sword)) ||
+				!bytes.Contains(drawn, []byte(tc.mace)) || !bytes.Contains(drawn, []byte(tc.potion)) {
+				t.Fatalf("weapon tip displays %q, want %q, %q and %q", drawn, tc.sword, tc.mace, tc.potion)
+			}
+			empty := fields[fieldIndex(t, fields, "wear5")].Meaning
+			if !strings.Contains(empty, x.word("editor.unit.none")) {
+				t.Fatalf("empty equipment slot tip = %q, want the localized empty list", empty)
+			}
+			if !bytes.Equal(raw, s.model.Bytes()) {
+				t.Fatal("equipment preview changed the map bytes")
+			}
+		})
+	}
 }
 
 func TestEditorWornRowsPreviewDisplacementAndNPCEmpty(t *testing.T) {

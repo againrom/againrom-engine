@@ -336,7 +336,7 @@
 "editor.equipment.inherit" = "Inherit row item"
 "editor.equipment.empty" = "Empty"
 "editor.equipment.npcempty" = "Empty unavailable: the NPC arm always equips its row"
-"editor.equipment.native" = "Native stock; Empty suppresses the whole row and copies its retained items."
+"editor.equipment.native" = "Changes are saved in the unit's item list. Empty skips all equipment from the template and copies the items you keep into that list."
 "editor.equipment.effective" = "Worn in preview: %s"
 "editor.equipment.carried" = "Carrier in preview: %s"
 "editor.equipment.magic" = "Magic recipe"

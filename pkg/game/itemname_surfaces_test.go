@@ -268,9 +268,9 @@ func itemNameSurfaces(t *testing.T) map[string][]string {
 	out["first/editorCatalog"] = catalog
 	var list []string
 	for _, code := range []uint16{0x0e01, 0x0e02, 0x0e04, 0x0101, 0x7777, 0x1234} {
-		list = append(list, x.itemList([]sim.ItemInstance{sim.PlainItem(code)}))
+		list = append(list, x.itemList([]sim.ItemInstance{sim.PlainItem(code)}, false))
 	}
-	list = append(list, x.itemList([]sim.ItemInstance{sim.PlainItem(0x0e01), sim.PlainItem(0x1234), sim.PlainItem(0x0101)}))
+	list = append(list, x.itemList([]sim.ItemInstance{sim.PlainItem(0x0e01), sim.PlainItem(0x1234), sim.PlainItem(0x0101)}, false))
 	out["first/editorItemList"] = list
 	details, choices := surfaceSack(t, first, []uint16{0x0e01, 0x0e04, 0x0101, 0x7777, 0x1234})
 	out["first/editorSack"], out["first/editorRecipeItems"] = details, choices
