@@ -189,15 +189,12 @@ func (e *MapEditor) scriptVariableRow(id int) (scriptVariableView, bool) {
 	return scriptVariableView{}, false
 }
 
+// variableTitle is variable v's row in the scripts list: its number, its
+// label after two spaces, and the condition it shares its register with.
 func (e *MapEditor) variableTitle(v scriptVariableView) string {
 	title := fmt.Sprintf(e.word("editor.scripts.variable"), v.register)
-	if v.label != "" {
-		title += "  " + e.editorHostText(v.label)
-	} else if v.constant >= 0 {
-		n, _ := e.scriptViewOf(v.constant)
-		if n.node.VariableLabel != "" {
-			title += "  " + e.editorHostText(n.node.VariableLabel)
-		}
+	if label := e.variableLabel(v); label != "" {
+		title += "  " + label
 	}
 	if v.shared >= 0 {
 		n, _ := e.scriptViewOf(v.shared)
@@ -206,34 +203,41 @@ func (e *MapEditor) variableTitle(v scriptVariableView) string {
 	return title
 }
 
-// variableWidth is the width the variable window asks for: its widest link or
-// note line whole, and no wider than the window leaves room for.
-func (e *MapEditor) variableWidth(v scriptVariableView) int {
-	f := e.bodyFont()
-	widest := f.Advance(e.word("editor.labels.unused"))
-	for _, ids := range [][]int{v.writers, v.readers} {
-		for _, id := range ids {
-			widest = max(widest, f.Advance(e.scriptRowText(id, 0)))
-		}
+// variableLabel is variable v's label as the editor shows it, else the label
+// of the constant it names, else empty.
+func (e *MapEditor) variableLabel(v scriptVariableView) string {
+	if v.label != "" {
+		return e.editorHostText(v.label)
 	}
-	if v.constant >= 0 {
-		widest = max(widest, f.Advance(e.scriptRowText(v.constant, 2)))
+	if n, ok := e.scriptViewOf(v.constant); ok && n.node != nil && n.node.VariableLabel != "" {
+		return e.editorHostText(n.node.VariableLabel)
 	}
-	return e.popupWide(popObject, min(widest+2*popupPad+8, e.window.X-16))
+	return ""
 }
 
+// variableSpec is the variable window: its title names the variable, its
+// (?) says what a variable is; the triggers that change it and those that
+// read it are links, then the condition it shares its register with, with
+// its own (?), and the constant it names. A variable no trigger addresses
+// says so in a note at the bottom.
 func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) {
 	e.loadObject()
-	s := popupSpec{Title: e.variableTitle(v), At: e.keptCorner(popObject), Width: e.variableWidth(v), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
+	title := fmt.Sprintf(e.word("editor.scripts.variable"), v.register)
+	if label := e.variableLabel(v); label != "" {
+		title = fmt.Sprintf(e.word("editor.scripts.variablenamed"), v.register, label)
+	}
+	s := popupSpec{Title: title, TitleHelp: e.word("editor.scripts.variable.help"), At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorPaper,
+		Buttons: []string{e.word("editor.button.cancel")}}
 	if _, ok := e.variableLabels(); ok {
 		s.Buttons = []string{e.word("editor.labels.edit"), e.word("editor.labels.clear"), e.word("editor.button.cancel")}
 		s.Disabled = []bool{false, v.label == "", false}
-		fitButtons(&s, e.bodyFont())
 	}
-	var links []int
 	if !v.addressed {
-		s.Rows, links = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.labels.unused")}), append(links, 0)
+		s.Notes = []string{e.word("editor.labels.unused")}
 	}
+	// The links wrap to the window's width: the widest a link may ask.
+	s.Width = min(e.window.X-16, e.popupWide(popObject, e.window.X-16))
+	var links []int
 	for _, group := range []struct {
 		title string
 		ids   []int
@@ -246,12 +250,17 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 		}
 		e.scriptLinkSection(&s, &links, group.title, rows, FoldNone)
 	}
+	if v.shared >= 0 {
+		n, _ := e.scriptViewOf(v.shared)
+		s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: fmt.Sprintf(e.word("editor.scripts.sharedlink"), n.index+1), Help: e.word("editor.scripts.sharedlink.help")})
+		links = append(links, -v.shared-1)
+	}
 	if v.constant >= 0 {
 		e.scriptPopupLink(&s, &links, scriptPopupLink{record: v.constant, title: e.scriptRowText(v.constant, 2)})
 	}
-	s.MaxRows = e.objectRowsShown(true)
-	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-e.sizedRows(s.MaxRows)))
-	s.Top = e.objectTop
+	s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, e.bodyFont(), 0), e.window.X-16))
+	s.Notes = wrapNotes(s.Notes, advanceOf(e.bodyFont()), s.Width)
+	e.pageObjectRows(&s, true)
 	return s, links, true
 }
 

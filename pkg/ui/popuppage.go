@@ -171,7 +171,7 @@ func rowPictures(rows []popupRow, made []popupMade, picture func(string) *image.
 // description with a card shows the first person of the open map that has
 // a figure, as the unit window builds the card and the figure.
 func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*EditorMockup, error) {
-	person := mockupPerson{cardFont: e.cardFont, picture: e.cardPicture}
+	person := mockupPerson{cardFont: e.cardFont, picture: e.mockupPicture}
 	if d, err := parsePopupDesc(desc); err == nil && d.Card && e.doc != nil {
 		e.Layout(window.X, window.Y)
 		for i, r := range e.doc.Records {
@@ -187,6 +187,34 @@ func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*Edito
 		}
 	}
 	return newEditorMockup(desc, lang, window, e.font, e.bodyFont(), e.editorHostText, person)
+}
+
+// mockupPicture is the picture a sample names on the open map, nil for
+// none: "card:N" a test party card's portrait (cardPicture), "message:P:K"
+// the portrait the message window shows beside part K of message page P,
+// the speaker's face as that part's heroes see it.
+func (e *MapEditor) mockupPicture(name string) *image.RGBA {
+	if p := e.cardPicture(name); p != nil {
+		return p
+	}
+	var page, part int
+	if _, err := fmt.Sscanf(name, "message:%d:%d", &page, &part); err != nil || e.doc == nil {
+		return nil
+	}
+	host, ok := e.doc.Edits.(InspectionMessages)
+	if !ok {
+		return nil
+	}
+	parts := host.MessageParts(uint32(page))
+	if part < 0 || part >= len(parts) {
+		return nil
+	}
+	p := parts[part]
+	f := host.MessageFields(uint32(page), p.Source, int(p.Heroes))
+	if len(f) != 2 {
+		return nil
+	}
+	return choicePicture(f[1], strconv.FormatInt(p.Speaker, 10))
 }
 
 // triggerPlace stands spec s where the editor first opens its trigger window
@@ -435,7 +463,11 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			if k < len(captions) {
 				caption = captions[k]
 			}
+			if k < len(row.ButtonTips) {
+				tip = row.ButtonTips[k]
+			}
 			part(class, "row-button", rr.Index, r, none, caption)
+			tip = ""
 		}
 		tip = row.Help
 		part("button", "row-help", rr.Index, rr.Help, none, "?")

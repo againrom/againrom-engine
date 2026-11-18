@@ -68,9 +68,17 @@ type popupRow struct {
 	Buttons  []string
 	Disabled []bool
 	Armed    []bool
+	// ButtonTips say on hover what each row button does; empty for none.
+	ButtonTips []string
 	// Lines is a multi-line row's height in rows, zero for six; First is
-	// the first text line it shows while it is not typed in.
+	// the first text line it shows while it is not typed in. Whole makes the
+	// layout grow a multi-line row, from Lines, until its text shows whole,
+	// as far as the window's bounds hold it.
 	Lines, First int
+	Whole        bool
+	// Scrolled keeps a focused row at First: the reader moved it, so it no
+	// longer follows the caret.
+	Scrolled bool
 	// Hint is an empty edit row's grey text: the value it stands for.
 	Hint string
 	// Icons are pictures drawn after the value, left to right, each square
@@ -536,6 +544,9 @@ type popupRowRect struct {
 	Grip, Card image.Rectangle
 	// Help is the row's (?) mark; empty for a row without Help.
 	Help image.Rectangle
+	// TextBar is the scroll bar inside a whole multi-line row's control
+	// when its text is taller than the control; empty when it shows whole.
+	TextBar image.Rectangle
 }
 
 // popupLayout is a built popup: every rectangle the painter fills and the
@@ -952,6 +963,30 @@ func pictureRow(row popupRow) bool {
 	return row.Kind == popupText && (row.Portrait != nil || row.Hold != holdNone) && row.Lines > 0
 }
 
+// multilineView is what a multi-line row shows in control: its text wrapped
+// to the control and how many lines the control holds.
+func multilineView(body *text.Font, row popupRow, control image.Rectangle) (lines []string, visible int) {
+	for _, line := range strings.Split(row.Value, "\n") {
+		lines = append(lines, editorTextLines(body, line, control.Dx()-8)...)
+	}
+	return lines, max(1, (control.Dy()-8)/fontHeight(body, 15))
+}
+
+// popupLabelWidth is the label column of row i in a body inner wide.
+func popupLabelWidth(s uiWindow, flow popupFlow, inner, i int) int {
+	if s.Body.Columns > 1 {
+		c, _ := popupRowPosition(s, i)
+		return flow.columnLabelW[c]
+	}
+	if flow.labelW > 0 {
+		return flow.labelW
+	}
+	if s.Body.LabelWidth > 0 {
+		return s.Body.LabelWidth
+	}
+	return inner * 2 / 5
+}
+
 // multilineRows is a multi-line row's height in rows.
 func multilineRows(row popupRow) int {
 	if row.Lines > 0 {
@@ -1182,7 +1217,8 @@ func giveWay(s uiWindow, l popupLayout, room int, title, body *text.Font) (uiWin
 	}
 	sized := popupResizeEnabled && s.Place.Size.X > 0 && s.Place.Size.Y > 0
 	fewest := popupMinRows
-	if s.Place.Short {
+	if s.Place.Short || slices.ContainsFunc(s.Body.Rows, func(r popupRow) bool { return r.Whole }) {
+		// A row that grows to its text may take the room of three.
 		fewest = 1
 	}
 	if len(s.Body.ColumnTops) == 0 && most >= fewest && (!sized || s.Body.MaxRows == 0) {
@@ -1270,6 +1306,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	}
 	flow := popupFlowOf(s, body, w, pitch)
 	titleH += flow.tabLines * pitch
+	s.Body.Rows = wholeRows(s, flow, body, w, pitch, titleH)
 	sizedH := 0
 	if sized {
 		lr, rf, extra, minH := popupFit(s, body, flow, pitch, titleH, s.Place.Size.Y)
@@ -1397,13 +1434,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		contentRight -= widgetSpriteSize + 2
 	}
 	l.RowsViewport = image.Rect(r.Min.X+popupPad, contentY, contentRight, contentY+rowsH)
-	labelW := s.Body.LabelWidth
-	if labelW <= 0 {
-		labelW = (contentRight - r.Min.X - popupPad) * 2 / 5
-	}
-	if flow.labelW > 0 {
-		labelW = flow.labelW
-	}
+	inner := contentRight - r.Min.X - popupPad
 	y := contentY
 	shownRows := popupShownRows(s, shown)
 	columnExtra := make([]int, max(1, s.Body.Columns))
@@ -1426,11 +1457,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		rowH := flow.rowHeight(row, index, pitch)
 		extra, over := flow.rowExtra[index], flow.labelOver[index]
 		rr := popupRowRect{Index: index, Rect: image.Rect(left, y, right, y+rowH)}
-		rowLabelW := labelW
-		if s.Body.Columns > 1 {
-			column, _ := popupRowPosition(s, index)
-			rowLabelW = flow.columnLabelW[column]
-		}
+		rowLabelW := popupLabelWidth(s, flow, inner, index)
 		// top is the control's line: under the label when the label takes a
 		// line of its own.
 		top, fieldH := y, pitch
@@ -1472,6 +1499,13 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 			if !row.Struck && row.Value == "" {
 				// A card with no drop-down: its number's line runs across.
 				rr.Label, rr.Control = line, image.Rectangle{}
+			}
+		}
+		if row.Kind == popupMultiline && row.Whole && body != nil {
+			// A text taller than its box leaves the box a bar at its right.
+			if lines, visible := multilineView(body, row, rr.Control); len(lines) > visible {
+				rr.TextBar = image.Rect(rr.Control.Max.X-widgetSpriteSize, rr.Control.Min.Y, rr.Control.Max.X, rr.Control.Max.Y)
+				rr.Control.Max.X = rr.TextBar.Min.X - 2
 			}
 		}
 		if ws := rowButtonWidths(s, row, body, pitch); len(ws) > 0 {
@@ -1710,6 +1744,66 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	}
 	l.Rows = visible
 	return l
+}
+
+// wholeRows are the rows of s at outer width w, each Whole multi-line row
+// grown from its Lines until its text, wrapped to its field as the painter
+// wraps it, shows whole. It grows no further than the bounds leave it: the
+// room under the title and over the notes and the button row, less the two
+// rows beside it. A text taller than that scrolls in its field. The rows are
+// copied only when one grows.
+func wholeRows(s uiWindow, flow popupFlow, body *text.Font, w, pitch, titleH int) []popupRow {
+	rows := s.Body.Rows
+	if body == nil {
+		return rows
+	}
+	inner := w - 2*popupPad
+	if s.Body.MaxRows > 0 && popupRowCount(s) > s.Body.MaxRows {
+		inner -= widgetSpriteSize + 2
+	}
+	if s.Card.Subject != nil && !flow.cardTop {
+		inner -= cardAside(s) + popupPad
+	}
+	room := 0
+	if !s.Place.Bounds.Empty() {
+		room = s.Place.Bounds.Dy() - titleH - 2*popupPad - flow.buttonLines*(pitch+4+popupPad) - len(s.Notes.Lines)*pitch - flow.cardBand()
+	}
+	line := fontHeight(body, 15)
+	out := rows
+	for i, row := range rows {
+		if !row.Whole || row.Kind != popupMultiline || row.placed() {
+			continue
+		}
+		labelW := popupLabelWidth(s, flow, inner, i)
+		field := popupColumnWidth(s, inner) - labelW - 4
+		if flow.labelOver[i] {
+			field = popupColumnWidth(s, inner)
+		}
+		count := 0
+		for _, part := range strings.Split(row.Value, "\n") {
+			count += max(1, len(editorTextLines(body, part, field-8)))
+		}
+		// The painter shows (height - 10) / line lines of a box of height
+		// lines*pitch - 2.
+		lines := max(multilineRows(row), (count*line+10+pitch-1)/pitch)
+		if room > 0 {
+			most := room
+			for _, next := range []int{i - 1, i + 1} {
+				if next >= 0 && next < len(rows) {
+					most -= flow.rowHeight(rows[next], next, pitch)
+				}
+			}
+			lines = min(lines, max(multilineRows(row), most/pitch))
+		}
+		if lines == multilineRows(row) {
+			continue
+		}
+		if len(out) > 0 && &out[0] == &rows[0] {
+			out = slices.Clone(rows)
+		}
+		out[i].Lines = lines
+	}
+	return out
 }
 
 // layoutCards gives each shown card row its card's box over the rows it
@@ -2119,9 +2213,17 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 				stroke := image.Rect(label.Min.X+4, mid+4*k-1, label.Min.X+14, mid+4*k+1)
 				draw.Draw(dst, stroke.Intersect(l.Rect), &image.Uniform{C: ink.Edge}, image.Point{}, draw.Src)
 			}
-			label.Min.X += 18
+			label.Min.X += cardGrip
 		}
 		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
+		if !rr.TextBar.Empty() && body != nil {
+			lines, visible := multilineView(body, row, rr.Control)
+			start := multilineStart(row, len(lines), visible)
+			if row.Edit != nil {
+				_, start = row.Edit.spans(rr.Control, body)
+			}
+			drawVScrollBar(dst, frames, vScrollBar{Rect: rr.TextBar, Pos: start, Count: len(lines) - visible + 1}.withPointer(pointer, pointerOK))
+		}
 		if row.Edit != nil {
 			drawEditRow(dst, body, row, rr.Control, ink, value)
 			drawRowPictures(dst, body, l, rr, row)
@@ -2140,15 +2242,8 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		case popupMultiline:
 			drawFrame(dst, panelFrame(rr.Control, ink.Ground, ink.Edge))
 			if body != nil {
-				var lines []string
-				for _, line := range strings.Split(row.Value, "\n") {
-					lines = append(lines, editorTextLines(body, line, rr.Control.Dx()-8)...)
-				}
-				visible := max(1, (rr.Control.Dy()-8)/fontHeight(body, 15))
-				start := max(0, min(row.First, len(lines)-visible))
-				if row.Focus {
-					start = max(0, len(lines)-visible)
-				}
+				lines, visible := multilineView(body, row, rr.Control)
+				start := multilineStart(row, len(lines), visible)
 				clip := dst.SubImage(rr.Control.Inset(3)).(*image.RGBA)
 				y := rr.Control.Min.Y + 4
 				for _, line := range lines[start:min(len(lines), start+visible)] {
@@ -2269,7 +2364,7 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 	}
 	label := rr.Label
 	if row.Kind == popupCard && !row.Struck {
-		label.Min.X += 18
+		label.Min.X += cardGrip
 	}
 	cut := row.Label != "" && body.Advance(row.Label) > label.Dx()-2
 	room := -1
@@ -2311,6 +2406,12 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 		row := s.Body.Rows[rr.Index]
 		if p.In(rr.Help) && p.In(l.RowsViewport) {
 			return helpTip(bounds, body, rr.Help, row.Help), true
+		}
+		for k, b := range rr.Buttons {
+			if k < len(row.ButtonTips) && row.ButtonTips[k] != "" && p.In(b) {
+				// A row button's tip says what it does.
+				return layoutTip(bounds, body, b, row.ButtonTips[k], nil, tipShape{Width: min(popupTipW, bounds.Dx()), Fit: true, Pull: true}), true
+			}
 		}
 		full, cut := rowFull(title, body, row, rr)
 		width := rr.Rect.Dx()

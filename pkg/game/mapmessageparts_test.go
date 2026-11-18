@@ -90,7 +90,7 @@ func TestMessageOutOfOrderPopupCancel(t *testing.T) {
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	opened := false
 	for i, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open Message") {
+		if strings.HasPrefix(line, "Open Dialog") {
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			opened = true

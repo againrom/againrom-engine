@@ -11,7 +11,7 @@ import (
 func openMessagePopup(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	for i, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open Message") || strings.HasPrefix(line, "Открыть сообщение") {
+		if strings.HasPrefix(line, "Open Dialog") || strings.HasPrefix(line, "Открыть диалог") {
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			return

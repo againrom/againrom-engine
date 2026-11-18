@@ -87,7 +87,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	}
 	opened := false
 	for i, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open Message") {
+		if strings.HasPrefix(line, "Open Dialog") {
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			opened = true
@@ -116,7 +116,7 @@ func TestMessagePopupMissingValueAndEPrompt(t *testing.T) {
 	if _, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2, K: 0, Flag: false}); ok {
 		t.Fatal("missing page has Open")
 	}
-	if strings.Contains(strings.Join(e.PopupLines(), "\n"), "Open Message") {
+	if strings.Contains(strings.Join(e.PopupLines(), "\n"), "Open Dialog") {
 		t.Fatal("missing page has Open link")
 	}
 	_ = e.Key("escape")

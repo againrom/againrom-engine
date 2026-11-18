@@ -351,7 +351,7 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 		{"write_message page", written, func(t *testing.T, e *ui.MapEditor) {
 			opened := false
 			for i, line := range e.PopupLines() {
-				if len(line) >= 12 && line[:12] == "Open Message" {
+				if len(line) >= 11 && line[:11] == "Open Dialog" {
 					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 					messageClick(t, e, r, ok)
 					opened = true
@@ -359,7 +359,7 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 				}
 			}
 			if !opened {
-				t.Fatalf("no Open Message link: %q", e.PopupLines())
+				t.Fatalf("no Open Dialog link: %q", e.PopupLines())
 			}
 			messageField(t, e, 0)
 			_ = e.Key("clear")

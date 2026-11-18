@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor, question windows such as leaving with unsaved changes or deleting a player are as wide as their text, name the window in the title, and keep what the choice means behind the (?) mark.
+- [BASE] In the map editor, the dialog window shows every message's text whole at the width it needs, and its x and + say what they do; the variable window names the variable and shows its shared condition as a link.
 - [BASE] In the map editor, sack recipe choices now use the editor's language and show spell names instead of spell numbers.
 - [BASE] In the map editor, the Used by links in the unit window's detailed view now wrap inside their column instead of running past it.
 - [BASE] In the map editor, a name typed into a unit's window now takes effect when you press Enter or save the map, instead of only when you press Apply.

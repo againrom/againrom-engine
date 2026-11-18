@@ -25,6 +25,8 @@ type editorTextView struct {
 	encode        func(string) string
 	multiline     bool
 	first         int
+	// scrolled keeps the view at first while the caret is elsewhere.
+	scrolled bool
 }
 
 // editorTextSpans breaks s into the rune spans of its lines: a newline ends a
@@ -115,7 +117,7 @@ func (e *MapEditor) typedRows(s popupSpec, typed func(int) bool) popupSpec {
 		}
 		if row.Kind == popupEdit || row.Kind == popupPick || row.Kind == popupMultiline || row.Kind == popupChoice && m.Caret != m.Anchor {
 			row.Edit = e.inputView(editorTextSpan{0, len([]rune(m.Text))}, row.Kind == popupMultiline)
-			row.Edit.first = row.First
+			row.Edit.first, row.Edit.scrolled = row.First, row.Scrolled
 			row.Focus = true
 		}
 	}
@@ -137,6 +139,9 @@ func (v *editorTextView) spans(box image.Rectangle, f *text.Font) ([]editorTextS
 		}
 	}
 	start := max(0, min(v.first, len(spans)-visible))
+	if v.scrolled {
+		return spans[start:min(len(spans), start+visible)], start
+	}
 	if line < start {
 		start = line
 	}

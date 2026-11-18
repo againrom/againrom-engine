@@ -94,6 +94,17 @@ type objectEdit struct {
 	messageChanged bool
 	// messageGone are the page numbers whose cards are struck until Apply.
 	messageGone map[int]bool
+	// textFirst is the first line a scrolled text field shows, by field; it
+	// holds while the field's text is the one it was scrolled at.
+	textFirst map[int]textScroll
+}
+
+// textScroll is a text field's first shown line and the text and caret it was
+// set for.
+type textScroll struct {
+	first int
+	of    string
+	caret int
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -936,7 +947,7 @@ func (e *MapEditor) searchableObjectChoices() bool { return e.modWindow || e.nat
 
 // objectTyping reports that the keyboard edits an object popup field.
 func (e *MapEditor) objectTyping() bool {
-	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.objectRecord()
+	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.messageFieldShown(e.obj.focus) && e.obj.doc == e.doc && e.obj.record == e.objectRecord()
 }
 
 // ObjectNote is the reason the object window shows for a refused value.

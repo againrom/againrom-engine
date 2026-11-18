@@ -236,7 +236,7 @@ func init() {
 		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "home", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 		{key: "end", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
-		{label: "Dialogue", help: keys(helpLine{Word: "editor.keys.dialogue"})},
+		{label: "Dialog", help: keys(helpLine{Word: "editor.keys.dialogue"})},
 		{label: "+", help: keys(helpLine{Word: "editor.keys.dialogue.add"})},
 		{label: "x", help: keys(helpLine{Word: "editor.keys.dialogue.remove"})},
 		{label: "Restore", help: keys(helpLine{Word: "editor.keys.dialogue.restore"})},

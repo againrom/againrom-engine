@@ -50,7 +50,7 @@ var speakerRoutes = []struct {
 	fresh bool
 	open  func(t *testing.T, e *ui.MapEditor, book words.Book)
 }{
-	{"the action's Open Message link", false, func(t *testing.T, e *ui.MapEditor, book words.Book) {
+	{"the action's Open Dialog link", false, func(t *testing.T, e *ui.MapEditor, book words.Book) {
 		e.Select(recordIndex(t, e, "Action", 0), false)
 		openMessageLink(t, e, book)
 	}},
@@ -58,7 +58,7 @@ var speakerRoutes = []struct {
 		e.Select(recordIndex(t, e, "Trigger", 0), false)
 		configure(t, e, "a0.item")
 	}},
-	{"Details, the action row, Open Message", false, func(t *testing.T, e *ui.MapEditor, book words.Book) {
+	{"Details, the action row, Open Dialog", false, func(t *testing.T, e *ui.MapEditor, book words.Book) {
 		e.Select(recordIndex(t, e, "Trigger", 0), false)
 		messageButton(t, e, 4)
 		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 11, K: 0, Flag: false})

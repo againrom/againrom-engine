@@ -1463,15 +1463,26 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if aside := e.hostedAside(s); aside > 0 {
 		s.Width += aside + popupPad
 	}
-	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
-	if !e.objectInPanel() {
-		// A label over its field or a face takes more lines: the window
-		// shows fewer rows and keeps inside the editor.
-		e.clampObjectTop(&s, len(s.Rows))
-		s.MaxRows = e.rowsFit(s)
-	}
-	e.clampObjectTop(&s, len(s.Rows))
+	e.pageObjectRows(&s, len(s.Buttons) > 0 || e.objectHasFields())
 	return s, links, true
+}
+
+// pageObjectRows pages the object window's body s: at most the rows of one
+// line the window holds, buttons counting their row; while it floats, the
+// rows the layout pass fits from the kept first row, so a label over its
+// field, a face or a taller text shows fewer rows and the window keeps
+// inside the editor.
+func (e *MapEditor) pageObjectRows(s *popupSpec, buttons bool) {
+	s.MaxRows = e.objectRowsShown(buttons)
+	if !e.objectInPanel() {
+		// The first clamp, at the most rows the bounds could hold, finds the
+		// rows that fit; it does not keep the page it clamped.
+		top := e.objectTop
+		e.clampObjectTop(s, len(s.Rows))
+		s.MaxRows = e.rowsFit(*s)
+		e.objectTop = top
+	}
+	e.clampObjectTop(s, len(s.Rows))
 }
 
 // clampObjectTop holds the object window's first shown row where its last
@@ -2330,6 +2341,9 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 					return
 				}
 			}
+		}
+		if e.textWheel(wheel) {
+			return
 		}
 		if s, l, ok := e.pagedLayout(popObject); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
 			e.pageWheel(popObject, s, l, wheel)

@@ -279,6 +279,20 @@ func (r lineRule) plain(box lineBox, s string) []string {
 	return out
 }
 
+// wrapNotes are a popup's notes broken by measure to a window width wide,
+// inside the text inset the painter draws a note line with. Without a
+// measure a character is 8 wide.
+func wrapNotes(notes []string, measure func(string) int, width int) []string {
+	if measure == nil {
+		measure = func(t string) int { return 8 * len([]rune(t)) }
+	}
+	var out []string
+	for _, n := range notes {
+		out = append(out, editorRule.plain(lineBox{Measure: measure, Width: width - 2*(popupPad+popupTextInset)}, n)...)
+	}
+	return out
+}
+
 func nonEmptyRuns(runs []inkRun) []inkRun {
 	var out []inkRun
 	for _, r := range runs {

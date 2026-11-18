@@ -11,7 +11,10 @@ type editorScroll struct {
 	// canvas is the pixels one bar position moves W's graph, zero for a
 	// bar of anything else.
 	canvas int
-	grabY  int
+	// text is one more than the field whose text the bar scrolls, zero for
+	// a bar of anything else.
+	text  int
+	grabY int
 	// page is the window whose body the layout pass pages that the bar
 	// moves, popNone for none.
 	page editorPopupID
@@ -57,7 +60,7 @@ func editorListStep(m *Picker, delta int) bool {
 }
 
 func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
-	e.scroll.details, e.scroll.canvas, e.scroll.page = false, 0, popNone
+	e.scroll.details, e.scroll.canvas, e.scroll.page, e.scroll.text = false, 0, popNone, 0
 	switch e.chromeHit(p) {
 	case popMenu:
 		if b, ok := e.openMenuEntry(); ok {
@@ -94,6 +97,14 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 		}
 		if s, _, ok := e.objectSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
+			for _, rr := range l.Rows {
+				if p.In(rr.TextBar) {
+					if b, m, field, ok := e.textBar(s, rr); ok {
+						e.scroll.text = field + 1
+						return b, m, false
+					}
+				}
+			}
 			if p.In(l.RowBar) {
 				if b, m, ok := e.pageBar(popObject, s, l); ok {
 					return b, m, false
@@ -172,6 +183,9 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	if s.details {
 		e.objectTop = s.model.Selection()
 	}
+	if s.text > 0 {
+		e.setTextFirst(s.text-1, s.model.Selection())
+	}
 	if s.page != popNone {
 		*e.bodyPage(s.page) = s.model.Selection()
 	}
@@ -180,4 +194,68 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	}
 	e.down, e.uiDown = in.PrimaryDown, in.PrimaryDown
 	return true
+}
+
+// multilineStart is the first of n wrapped lines a multi-line row shows when
+// its box holds visible: the line the reader scrolled to, or the end while
+// the row is typed in and not scrolled.
+func multilineStart(row popupRow, n, visible int) int {
+	if row.Focus && !row.Scrolled {
+		return max(0, n-visible)
+	}
+	return max(0, min(row.First, n-visible))
+}
+
+// textBar is the scroll bar of the whole multi-line row rr that layout l
+// shows, with its field; its model holds one position per hidden line.
+func (e *MapEditor) textBar(s popupSpec, rr popupRowRect) (vScrollBar, *Picker, int, bool) {
+	field, ok := e.obj.rowField[rr.Index]
+	if !ok || rr.TextBar.Empty() || rr.Index >= len(s.Rows) || field < 0 || field >= len(e.obj.buf) {
+		return vScrollBar{}, nil, 0, false
+	}
+	row := s.Rows[rr.Index]
+	lines, visible := multilineView(e.bodyFont(), row, rr.Control)
+	m := NewPicker(make([]PickerRow, max(1, len(lines)-visible+1))).SetWindow(1)
+	m.Select(multilineStart(row, len(lines), visible))
+	return vScrollBar{Rect: rr.TextBar, Pos: m.Selection(), Count: m.Len()}, m, field, true
+}
+
+// setTextFirst scrolls text field f to show line first at its top.
+func (e *MapEditor) setTextFirst(f, first int) {
+	if e.obj.textFirst == nil {
+		e.obj.textFirst = map[int]textScroll{}
+	}
+	e.obj.textFirst[f] = textScroll{first: first, of: e.obj.buf[f], caret: e.textCaret(f)}
+}
+
+// textCaret is the caret of text field f while the keyboard edits it, else 0.
+func (e *MapEditor) textCaret(f int) int {
+	if e.obj.focus == f && e.input.target == &e.obj.buf[f] {
+		return e.input.model.Caret
+	}
+	return 0
+}
+
+// textWheel scrolls the whole multi-line row under the pointer whose text is
+// taller than its box; it reports that one took the wheel.
+func (e *MapEditor) textWheel(wheel wheelSource) bool {
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return false
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	part, index := l.hit(e.pointer)
+	if part != popupRowControl && part != popupRowLine {
+		return false
+	}
+	for _, rr := range l.Rows {
+		if rr.Index != index || rr.TextBar.Empty() {
+			continue
+		}
+		if bar, m, field, ok := e.textBar(s, rr); ok {
+			e.setTextFirst(field, max(0, min(bar.Pos+editorWheelRows(&e.objectWheel, wheel), m.Len()-1)))
+			return true
+		}
+	}
+	return false
 }

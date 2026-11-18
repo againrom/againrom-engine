@@ -288,13 +288,13 @@ func openPageOne(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	for i, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open Message") {
+		if strings.HasPrefix(line, "Open Dialog") {
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: i})
 			messageClick(t, e, r, ok)
 			return
 		}
 	}
-	t.Fatalf("the action shows no Open Message link:\n%s", trigLines(e))
+	t.Fatalf("the action shows no Open Dialog link:\n%s", trigLines(e))
 }
 
 // A speaker picked on the map and then applied writes the same page as the

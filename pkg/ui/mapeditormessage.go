@@ -243,7 +243,29 @@ func (e *MapEditor) beginMessage(owner InspectionMessageOwner, back bool) {
 	e.messagePage, e.objectHidden, e.objectTop = NewMessagePage, false, 0
 	e.obj.doc = nil
 	e.loadObject()
-	e.obj.focus = 0
+	e.obj.focus = e.firstMessageField()
+}
+
+// firstMessageField is the first field the message window shows to type in:
+// the text of the first cell that has one, -1 when no cell has.
+func (e *MapEditor) firstMessageField() int {
+	for c, part := range e.obj.messageParts {
+		if !part.Never && !part.Ends {
+			return 2 * c
+		}
+	}
+	return -1
+}
+
+// messageFieldShown reports that the message window shows field f, or is
+// not a message window: a tag no hero reaches and a cell where the dialog
+// ends show neither a speaker nor a text.
+func (e *MapEditor) messageFieldShown(f int) bool {
+	if e.messagePage == 0 || f < 0 || f >= 2*len(e.obj.messageParts) {
+		return true
+	}
+	part := e.obj.messageParts[f/2]
+	return !part.Never && !part.Ends
 }
 
 func (e *MapEditor) messageField(field int) bool {
@@ -303,7 +325,7 @@ func (e *MapEditor) openMessage(page uint32) {
 	e.messagePage, e.objectHidden, e.objectTop = page, false, 0
 	e.obj.doc = nil
 	e.loadObject()
-	e.obj.focus = 0
+	e.obj.focus = e.firstMessageField()
 }
 
 func (e *MapEditor) refreshMessagePage() {
@@ -361,7 +383,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	if e.messagePage == NewMessagePage {
 		title = e.word("editor.message.newdialog")
 	}
-	s := popupSpec{Title: title, At: e.keptCorner(popObject), Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
+	s := popupSpec{Title: title, TitleHelp: e.word("editor.message.page.help"), At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
 	o.rowField, o.rowOpen, o.rowActs = map[int]int{}, map[int]int{}, map[int][]string{}
 	if f := e.dialogChoiceField(); f >= 0 {
@@ -370,7 +392,6 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	}
 	live := e.messageLive()
 	numbers := map[int]int{}
-	textRow := -1
 	pickCard := ""
 	for i, end := 0, 0; i < len(o.messageParts); i = end {
 		part := o.messageParts[i]
@@ -394,12 +415,11 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 				pickCard = strconv.Itoa(number)
 			}
 		}
-		textRow = e.messageCard(&s, i, end, number, live)
+		e.messageCard(&s, i, end, number, live)
 		s.Rows[head].Span = len(s.Rows) - head - 1
 	}
 	o.rowOpen[len(s.Rows)] = -1
-	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{"+"}})
-	s.LabelWidth = e.messageLabelWidth(s)
+	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{e.word("editor.message.mark.add")}, ButtonTips: []string{e.word("editor.message.add.tip")}})
 	if note := e.dialogSharedNote(); note != "" {
 		s.Notes = append(s.Notes, note)
 	}
@@ -408,22 +428,23 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	}
 	// A refused speaker pick answers at the card whose pick is armed.
 	if e.speakerPicking() && e.pickWhy != "" && pickCard != "" {
-		why := fmt.Sprintf(e.word("editor.speaker.why.card"), pickCard, e.pickWhy)
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), why, e.hostedWrap(s, 620))...)
+		s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.speaker.why.card"), pickCard, e.pickWhy))
 	}
 	if e.dragCard > 0 {
 		s.Drag = &popupRowDrag{Row: e.dragCard - 1, At: e.pointer}
 	}
 	e.objectBackButton(&s)
-	if len(o.messageParts) == 1 && textRow >= 0 {
-		e.fitMessageText(&s, textRow)
-	} else {
-		s.MaxRows = max(3, e.objectRowsShown(true)/2)
-		e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
-		s.Top = e.objectTop
-	}
+	// The window is as wide as its parts ask, the texts taking the room the
+	// cards leave; each text shows whole and the body pages.
+	s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, e.bodyFont(), messageFaceColumn), e.window.X-16))
+	s.Notes = wrapNotes(s.Notes, advanceOf(e.bodyFont()), s.Width)
+	e.pageObjectRows(&s, true)
 	return s, make([]int, len(s.Rows)), true
 }
+
+// messageFaceColumn is the dialog editor's least label column: the room a
+// message's portrait takes under its number.
+const messageFaceColumn = 64
 
 // The dialog editor's own row actions: a card's split by the hero's sex or
 // class, and the cross of a tag no hero reaches.
@@ -433,14 +454,16 @@ const (
 	actDropVariant = "dropvariant"
 )
 
-// messageCard appends the rows of the card of cells i to end, one part
-// number, and returns its last text row. A part of one variant keeps its
-// speaker on the card's head and its text under it. A part told apart by the
-// hero is one frame of stacked rows: its number alone on the head, then per
-// cell its audience label with its speaker, and its text. Each cell shows
-// the conditions its tag holds besides, or that its heroes' dialogue ends;
-// the tags no hero reaches close the card, each with a cross.
-func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
+// messageCard appends the rows of the message of cells i to end, one part
+// number. A part of one variant keeps its speaker on the card's head and its
+// text, whole, under it. A part told apart by the hero is one frame of
+// stacked rows: its number alone on the head, then per cell its audience
+// label with its speaker, and its text. Each cell shows the conditions its
+// tag holds besides; a cell where its heroes' dialog ends shows its audience
+// and the line that says so, no speaker and no text. The tags no hero
+// reaches close the card, each with a cross. A cross and "+" say in their
+// tips what they do.
+func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) {
 	o := &e.obj
 	var heroes []HeroAudience
 	first := -1
@@ -457,9 +480,9 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
 	head := popupRow{Kind: popupCard, Label: strconv.Itoa(number)}
 	var acts []string
 	if live > 1 {
-		head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
+		head.Buttons, head.ButtonTips, acts = []string{e.word("editor.message.mark.remove")}, []string{e.word("editor.message.remove.tip")}, []string{actRemoveRow}
 	}
-	if !branched && first >= 0 {
+	if !branched && first >= 0 && !o.messageParts[first].Ends {
 		speaker := 2*first + 1
 		head.Value, head.Focus = choiceText(o.fields[speaker], o.buf[speaker]), o.focus == speaker
 		head.Buttons, acts = append(head.Buttons, e.actWord(actPickParam)), append(acts, actPickParam)
@@ -470,10 +493,17 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
 	head.Armed[len(head.Buttons)-2], head.Armed[len(head.Buttons)-1] = sex, class
 	o.rowActs[len(s.Rows)] = acts
 	s.Rows = append(s.Rows, head)
-	textRow := -1
 	for c := i; c < end; c++ {
 		part := o.messageParts[c]
 		if part.Never {
+			continue
+		}
+		if part.Ends {
+			// The heroes' dialog ends here: no speaker and no text.
+			if branched {
+				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word(HeroWord(part.Heroes))})
+			}
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.ends")})
 			continue
 		}
 		speaker := 2*c + 1
@@ -482,42 +512,27 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
 			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(HeroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
 		}
 		if part.Other != "" {
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other)})
-		}
-		if part.Ends {
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.ends")})
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other), Help: e.word("editor.message.other.help")})
 		}
 		lines := strings.Split(o.buf[2*c], "\n")
 		for k := range lines {
 			lines[k] = e.editorHostText(strings.TrimSuffix(lines[k], "\r"))
 		}
-		textRow = len(s.Rows)
-		o.rowField[textRow] = 2 * c
-		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*c, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker]), PortraitTip: choiceNote(o.fields[speaker], o.buf[speaker])})
+		o.rowField[len(s.Rows)] = 2 * c
+		scroll, scrolled := o.textFirst[2*c]
+		if scrolled = scrolled && scroll.of == o.buf[2*c] && scroll.caret == e.textCaret(2*c); !scrolled {
+			scroll.first = 0
+		}
+		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*c, Lines: 3, Whole: true, First: scroll.first, Scrolled: scrolled, Portrait: choicePicture(o.fields[speaker], o.buf[speaker]), PortraitTip: choiceNote(o.fields[speaker], o.buf[speaker])})
 	}
 	for c := i; c < end; c++ {
 		if part := o.messageParts[c]; part.Never {
 			line, _, _ := strings.Cut(part.Body, "\n")
 			o.rowOpen[len(s.Rows)], o.rowActs[len(s.Rows)] = c, []string{actDropVariant}
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: fmt.Sprintf(e.word("editor.message.never"), e.editorHostText(strings.TrimSuffix(line, "\r"))), Buttons: []string{"x"}})
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: fmt.Sprintf(e.word("editor.message.never"), e.editorHostText(strings.TrimSuffix(line, "\r"))), Help: e.word("editor.message.never.help"),
+				Buttons: []string{e.word("editor.message.mark.remove")}, ButtonTips: []string{e.word("editor.message.never.remove.tip")}})
 		}
 	}
-	return textRow
-}
-
-// messageLabelWidth is the label column of the dialog editor: wide enough
-// for the longest label beside a control, from the 64 pixels of a card's
-// portrait, up to two fifths of the popup.
-func (e *MapEditor) messageLabelWidth(s popupSpec) int {
-	w := 64
-	if body := e.bodyFont(); body != nil {
-		for _, row := range s.Rows {
-			if rowHasControl(row) && row.Kind != popupMultiline {
-				w = max(w, body.Advance(row.Label)+8)
-			}
-		}
-	}
-	return min(w, s.Width*2/5)
 }
 
 // splitMessageCard tells the heroes of the card holding cell at apart by
@@ -599,32 +614,6 @@ func (e *MapEditor) reshapeMessageCards(parts []InspectionMessagePart) {
 	o.messageGone, o.messageChanged, o.open, o.focus = gone, true, -1, -1
 }
 
-// fitMessageText grows the text box of row k until it shows the whole
-// message, as far as the window allows; a longer text scrolls by the wheel,
-// from its first line.
-func (e *MapEditor) fitMessageText(s *popupSpec, k int) {
-	body := e.bodyFont()
-	if body == nil {
-		return
-	}
-	l := layoutPopup(*s, e.font, body)
-	if len(l.Rows) <= k {
-		return
-	}
-	width := l.Rows[k].Control.Dx() - 8
-	count := 0
-	for _, line := range strings.Split(s.Rows[k].Value, "\n") {
-		count += len(editorTextLines(body, line, width))
-	}
-	pitch, line := l.Pitch, fontHeight(body, 15)
-	spare := (s.Bounds.Dy() - l.Rect.Dy()) / pitch
-	rows := min(max(multilineRows(s.Rows[k]), (count*line+8+pitch-1)/pitch), multilineRows(s.Rows[k])+max(0, spare))
-	s.Rows[k].Lines = rows
-	visible := max(1, (rows*pitch-2-8)/line)
-	e.objectTop = max(0, min(e.objectTop, count-visible))
-	s.Rows[k].First = e.objectTop
-}
-
 // dialogStarters are the triggers, by index, with an action that starts
 // page.
 func (e *MapEditor) dialogStarters(page uint32) []int {
@@ -702,7 +691,7 @@ func (e *MapEditor) chooseDialog(value int64) {
 	e.messagePage, e.objectTop = page, 0
 	o.doc = nil
 	e.loadObject()
-	o.focus = 0
+	o.focus = e.firstMessageField()
 }
 
 // dialogOwner is the action the dialog editor was opened for, with its
@@ -803,7 +792,7 @@ func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
 		return
 	}
 	o := &e.obj
-	o.messageParts, o.fields, o.buf = slices.Clone(parts), nil, nil
+	o.messageParts, o.fields, o.buf, o.textFirst = slices.Clone(parts), nil, nil, nil
 	for _, part := range parts {
 		fields := host.MessageFields(e.messagePage, part.Source, int(part.Heroes))
 		if len(fields) != 2 {
@@ -1122,5 +1111,5 @@ func (e *MapEditor) configureDialog(field int) {
 	}
 	e.obj.doc = nil
 	e.loadObject()
-	e.obj.focus = 0
+	e.obj.focus = e.firstMessageField()
 }

@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -137,6 +138,12 @@ type popupDescRow struct {
 	// picture names separated by spaces, which the editor resolves.
 	Picture string `json:"picture,omitempty"`
 	Icons   string `json:"icons,omitempty"`
+	// LabelArgs fill the label word's verbs from bindings, as titleArgs do.
+	LabelArgs []string `json:"labelArgs,omitempty"`
+	// Struck names the flag that shows a card struck out.
+	Struck string `json:"struck,omitempty"`
+	// Whole makes a multiline row as tall as its text wrapped to its width.
+	Whole bool `json:"whole,omitempty"`
 }
 
 // popupDescButton is a button: its caption's word key, the row action it
@@ -149,6 +156,10 @@ type popupDescButton struct {
 	Off  string `json:"off,omitempty"`
 	// Args fill the caption's verbs from bindings, as titleArgs do.
 	Args []string `json:"args,omitempty"`
+	// Armed names the flag that draws a row button pressed in.
+	Armed string `json:"armed,omitempty"`
+	// Tip is the word key of what a row button does, its hover tip.
+	Tip string `json:"tip,omitempty"`
 }
 
 // popupKindNames names each popupRowKind in a description.
@@ -424,7 +435,11 @@ func (c popupChain) rows(rows []popupDescRow, word func(string) string, made *[]
 			continue
 		}
 		if r.Each == "" {
+			// A card holds the rows under it: its Span counts those made.
+			head := len(*made)
 			*made = append(*made, c.row(r, word))
+			c.rows(r.Rows, word, made)
+			(*made)[head].Row.Span = len(*made) - head - 1
 			continue
 		}
 		for _, item := range c.list(r.Each) {
@@ -437,7 +452,7 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 	kind, _ := popupKindNamed(r.Kind)
 	label := ""
 	if r.Label != "" {
-		label = word(r.Label)
+		label = c.format(r.Label, r.LabelArgs, word)
 	} else if r.LabelBind != "" {
 		label = c.text(r.LabelBind, word)
 	}
@@ -460,15 +475,28 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 		// A wrapped text row takes its role's ink as the window's text rows do.
 		row.Ink = inspectionRoleColor(r.Ink)
 	}
+	row.Struck, row.Whole = r.Struck != "" && c.when(r.Struck), r.Whole
 	m := popupMade{Field: -1, Wrap: r.Wrap, Role: r.Ink}
 	if r.Field != "" {
 		m.Field = c.field(r.Field)
 	}
 	for _, bt := range r.Buttons {
 		if c.when(bt.When) {
-			row.Buttons = append(row.Buttons, word(bt.Word))
+			tip := ""
+			if bt.Tip != "" {
+				tip = word(bt.Tip)
+			}
+			row.Buttons = append(row.Buttons, c.format(bt.Word, bt.Args, word))
+			row.Armed = append(row.Armed, bt.Armed != "" && c.when(bt.Armed))
+			row.ButtonTips = append(row.ButtonTips, tip)
 			m.Acts = append(m.Acts, bt.Act)
 		}
+	}
+	if !slices.Contains(row.Armed, true) {
+		row.Armed = nil
+	}
+	if !slices.ContainsFunc(row.ButtonTips, func(t string) bool { return t != "" }) {
+		row.ButtonTips = nil
 	}
 	if r.Picture != "" {
 		m.Picture = c.text(r.Picture, word)
@@ -501,14 +529,16 @@ func checkPopupRows(rows []popupDescRow) error {
 			return fmt.Errorf("window description: a repeated block %q has a kind", r.Each)
 		case r.Each == "" && !ok:
 			return fmt.Errorf("window description: unknown row kind %q", r.Kind)
-		case r.Each == "" && len(r.Rows) > 0:
+		case r.Each == "" && len(r.Rows) > 0 && r.Kind != popupKindNames[popupCard]:
 			return fmt.Errorf("window description: a %s row holds rows", r.Kind)
 		case r.Fold != "" && r.Kind != popupKindNames[popupHeading]:
 			return fmt.Errorf("window description: a %s row folds; only a heading does", r.Kind)
 		case r.Hint != "" && r.HintBind != "":
 			return fmt.Errorf("window description: a %s row has a hint word and a hint binding", r.Kind)
-		case r.Picture != "" && r.Kind != popupKindNames[popupText]:
-			return fmt.Errorf("window description: a %s row holds a picture; only a text row does", r.Kind)
+		case r.Picture != "" && r.Kind != popupKindNames[popupText] && r.Kind != popupKindNames[popupMultiline]:
+			return fmt.Errorf("window description: a %s row holds a picture; only a text or multiline row does", r.Kind)
+		case r.Whole && r.Kind != popupKindNames[popupMultiline]:
+			return fmt.Errorf("window description: a %s row is whole; only a multiline row is", r.Kind)
 		}
 		if err := checkPopupRows(r.Rows); err != nil {
 			return err

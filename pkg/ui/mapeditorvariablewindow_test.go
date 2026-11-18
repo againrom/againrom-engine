@@ -13,8 +13,9 @@ var propertyPageBox = regexp.MustCompile(`data-part="([a-z-]+)"(?: data-row="(\d
 // checkWindowProperties holds a window spec to the four layout properties at
 // one size: every element inside the window, every label whole (at the
 // largest size), hit returning each element at its rectangle, and the HTML
-// page's rectangles equal to the layout's (a card and its figure aside).
-// A row placed on a card is not held to the label check.
+// page's rectangles equal to the layout's (a window's card and its figure
+// aside; a card row's box counts). A row placed on a card is not held to
+// the label check.
 func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.Point) {
 	t.Helper()
 	body := e.bodyFont()
@@ -68,7 +69,7 @@ func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.P
 	var got []pagePart
 	for _, p := range propertyPageBox.FindAllStringSubmatch(page, -1) {
 		n := func(i int) int { v, _ := strconv.Atoi(p[i]); return v }
-		if p[1] != "card" && p[1] != "figure" {
+		if s.Card == nil || p[1] != "card" && p[1] != "figure" {
 			got = append(got, pagePart{p[1], image.Rect(n(3), n(4), n(3)+n(5), n(4)+n(6))})
 		}
 	}

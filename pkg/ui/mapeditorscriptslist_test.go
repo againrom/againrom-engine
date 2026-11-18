@@ -118,19 +118,28 @@ func TestScriptsListVariableLinksAndSharedRegister(t *testing.T) {
 			t.Fatalf("row %d = %q, want %q", i+3, rows[i+3].Text, want)
 		}
 	}
+	// The window's title names the variable; the shared register is a link
+	// row of its own with its (?), not a suffix of the title.
 	for _, tc := range []struct {
 		id     int
+		title  string
 		labels []string
 		links  []int
 	}{
-		{-2, []string{"Changed by triggers", "Trigger 1  Rule", "Read by triggers: none"}, []int{0, -3, 0}},
-		{-3, []string{"Changed by triggers", "Trigger 1  Rule", "Read by triggers: none", "Condition 2  Counter"}, []int{0, -3, 0, -4}},
-		{-4, []string{"Changed by triggers: none", "Read by triggers", "Trigger 1  Rule"}, []int{0, 0, -3}},
+		{-2, "Variable 0", []string{"Changed by triggers", "Trigger 1  Rule", "Read by triggers: none", "Shared with Condition 1"}, []int{0, -3, 0, -2}},
+		{-3, "Variable 1: Counter", []string{"Changed by triggers", "Trigger 1  Rule", "Read by triggers: none", "Condition 2  Counter"}, []int{0, -3, 0, -4}},
+		{-4, "Variable 67", []string{"Changed by triggers: none", "Read by triggers", "Trigger 1  Rule"}, []int{0, 0, -3}},
 	} {
 		e.Select(tc.id, false)
 		s, links, ok := e.objectSpec()
 		if !ok || !reflect.DeepEqual(links, tc.links) || len(s.Buttons) != 1 || len(s.Rows) != len(tc.labels) || e.objectHasFields() {
 			t.Fatalf("variable %d popup: %+v links=%v", tc.id, s, links)
+		}
+		if s.Title != tc.title || s.TitleHelp != e.word("editor.scripts.variable.help") {
+			t.Fatalf("variable %d title %q help %q, want %q", tc.id, s.Title, s.TitleHelp, tc.title)
+		}
+		if last := s.Rows[len(s.Rows)-1]; tc.id == -2 && last.Help != e.word("editor.scripts.sharedlink.help") {
+			t.Fatalf("the shared register row has no help: %+v", last)
 		}
 		for i, row := range s.Rows {
 			if row.Label != tc.labels[i] || links[i] != 0 && row.Kind != popupLink {

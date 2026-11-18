@@ -115,7 +115,7 @@ func (q question) spec(keys string, title, body *text.Font, encode func(string) 
 	if g := s.Grid; g != nil {
 		w = max(w, 2*popupPad+g.HeadW+g.Cols*g.side())
 	}
-	most := questionMeasure * max(1, measure(averageLetters)/len(averageLetters))
+	most := readingMeasure(measure)
 	for _, n := range q.notes {
 		w = max(w, 2*(popupPad+popupTextInset)+min(measure(n), most))
 	}
@@ -123,9 +123,7 @@ func (q question) spec(keys string, title, body *text.Font, encode func(string) 
 		w = wide(w)
 	}
 	s.Width = min(w, window.X-16)
-	for _, n := range q.notes {
-		s.Notes = append(s.Notes, editorRule.plain(lineBox{Measure: measure, Width: s.Width - 2*(popupPad+popupTextInset)}, n)...)
-	}
+	s.Notes = wrapNotes(q.notes, measure, s.Width)
 	return s
 }
 

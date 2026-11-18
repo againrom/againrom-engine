@@ -117,7 +117,7 @@ func TestTriggerWizardNewMessageUsesFourClicksAndOneUndo(t *testing.T) {
 				clicks += 2
 				messageField(t, e, 2)
 				clicks++
-				messageChoiceClick(t, e, "New message")
+				messageChoiceClick(t, e, "New dialog")
 				clicks++
 			} else {
 				// Configure on an action whose page is missing opens a new dialog.
