@@ -64,6 +64,13 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 		t.Run(c.key, func(t *testing.T) {
 			e, _ := newModesEditor(t, "full")
 			e.showRecords(c.filter)
+			if c.addsAtOnce {
+				// Sacks opens the Add window and no palette.
+				if _, ok := e.listSpec(); ok || addKindNow(e) == "" {
+					t.Fatalf("the %s entry shows a palette (%v) or no Add window", c.key, ok)
+				}
+				return
+			}
 			s, ok := e.listSpec()
 			if !ok || !e.paletteShown() && !e.groupsShown() {
 				t.Fatalf("the %s palette did not open", c.key)
@@ -110,10 +117,6 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				if s.Grid == nil || len(s.Rows) != rows || s.TitleHelp != e.word("editor.place.help") || !slices.Contains(s.Buttons, add) {
 					t.Errorf("the %s palette lost its grid, help or Add: %+v", c.key, s)
 				}
-			case "sacks":
-				if !slices.Equal(s.Buttons, []string{add}) {
-					t.Errorf("the sacks palette buttons %q", s.Buttons)
-				}
 			case "players":
 				if s.Grid == nil || len(s.Grid.ColHeads) != 2 || !slices.Contains(s.Buttons, add) {
 					t.Errorf("the players palette lost its matrix or Add: %+v", s)
@@ -158,6 +161,12 @@ func TestMapEditorPaletteRoutesLeaveTheSidePanels(t *testing.T) {
 	opened := func(t *testing.T, e *MapEditor, name, key string) {
 		t.Helper()
 		c, _ := categoryByKey(key)
+		if c.addsAtOnce {
+			if addKindNow(e) == "" {
+				t.Fatalf("the %s route opened no Add window", name)
+			}
+			return
+		}
 		if !e.paletteShown() && !e.groupsShown() || e.filter != c.filter {
 			t.Fatalf("the %s route shows %q filter %d", name, e.listKind(), e.filter)
 		}

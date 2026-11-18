@@ -106,7 +106,11 @@ func TestEditorWindowResizeMinimumAndMemory(t *testing.T) {
 				t.Fatalf("row %d button %v outside the least window %v", r.Index, b, small)
 			}
 		}
-		if r.Control.Dx() < 0 || r.Label.Dx() < 40 {
+		need := 8 * len(s.Rows[r.Index].Label)
+		if f := e.bodyFont(); f != nil {
+			need = f.Advance(s.Rows[r.Index].Label)
+		}
+		if r.Control.Dx() < 0 || r.Label.Dx() < need {
 			t.Fatalf("row %d label %v control %v", r.Index, r.Label, r.Control)
 		}
 	}
@@ -115,14 +119,19 @@ func TestEditorWindowResizeMinimumAndMemory(t *testing.T) {
 	if again != small {
 		t.Fatalf("below the least size the window went from %v to %v", small, again)
 	}
+	// The brush window opens at its least width, so a wider drag sets the
+	// size the next checks follow.
+	_, wide := edgeDrag(t, e, bottomRight, image.Pt(60, 40))
 	_ = e.Key("height") // the same window with another brush keeps its size
-	if r, _ := e.PopupRect(); r.Dx() > small.Dx() {
-		t.Fatalf("a new brush gave the window width %d, past the dragged %d", r.Dx(), small.Dx())
+	if r, _ := e.PopupRect(); r.Dx() != wide.Dx() {
+		t.Fatalf("a new brush gave the window width %d, not the dragged %d", r.Dx(), wide.Dx())
 	}
 	_ = e.Key("escape")
 	_ = e.Key("terrain")
-	if r, _ := e.PopupRect(); r.Dx() <= small.Dx() {
-		t.Fatalf("a reopened window has width %d, not its natural one", r.Dx())
+	fresh, _ := fillEditor(t)
+	natural, _ := fresh.PopupRect()
+	if r, _ := e.PopupRect(); r.Size() != natural.Size() || r.Size() == wide.Size() {
+		t.Fatalf("a reopened window has size %v, not its natural %v", r.Size(), natural.Size())
 	}
 }
 
@@ -255,8 +264,8 @@ func TestReplacedWindowOpensAtItsNaturalSize(t *testing.T) {
 		t.Fatal("no catalog")
 	}
 	e, _ := fillEditor(t)
-	if _, after := edgeDrag(t, e, bottomRight, image.Pt(70, 60)); after.Dx() <= 400 {
-		t.Fatalf("the brush list did not widen: %v", after)
+	if before, after := edgeDrag(t, e, bottomRight, image.Pt(70, 60)); after.Dx() <= before.Dx() {
+		t.Fatalf("the brush list did not widen: %v -> %v", before, after)
 	}
 	_ = e.Key("catalog")
 	if r, _ := e.PopupRect(); r != natural {

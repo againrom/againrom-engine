@@ -61,12 +61,12 @@ func (e *MapEditor) heightModeWord(m BrushHeightMode) string {
 
 // heightModeGridSpec is the Height tool's mode row as popup data: one grid
 // row headed by the row's word, a picture button per mode, the chosen one
-// pressed.
+// pressed. The head's width is the window's label column (brushFit).
 func (e *MapEditor) heightModeGridSpec() (*popupGrid, bool) {
 	if e.brush.mode != brushHeight {
 		return nil, false
 	}
-	g := &popupGrid{Side: heightModeSide, Rows: 1, Cols: int(heightModeCount), RowHeads: []string{e.word("editor.brush.mode")}, HeadW: brushLabelWidth}
+	g := &popupGrid{Side: heightModeSide, Rows: 1, Cols: int(heightModeCount), RowHeads: []string{e.word("editor.brush.mode")}}
 	for m := range heightModeCount {
 		g.Cells = append(g.Cells, popupGridCell{Icon: heightModeIcon(m), Pressed: m == e.brush.heightMode, Tip: e.heightModeWord(m)})
 	}

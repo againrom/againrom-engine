@@ -40,11 +40,12 @@ func TestMapEditorStructureGridRuinedSwitchOnlyChangesCopies(t *testing.T) {
 		chromeClick(e, barPoint(t, e, "structures"))
 		button, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "ruined"})
 		if !ok {
-			t.Fatalf("%s: Structures has no ruined switch beside Add", lang)
+			t.Fatalf("%s: Structures has no ruined switch in its button row", lang)
 		}
+		// The switch stands at the button row's left end, Add at its right.
 		add, _ := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
-		if button.Min.X < add.Max.X || button.Min.Y != add.Min.Y {
-			t.Fatalf("%s: Add %v and ruined %v are not adjacent", lang, add, button)
+		if button.Max.X > add.Min.X || button.Min.Y != add.Min.Y {
+			t.Fatalf("%s: ruined %v does not stand left of Add %v in its row", lang, button, add)
 		}
 		e.placeChoose(0)
 		standing := e.addPlacement(image.Pt(25, 20))

@@ -139,7 +139,8 @@ func (e *MapEditor) forestIcon(code int) *image.RGBA {
 }
 
 // forestGridSpec is the forest grid as data: one cell per class, ticked
-// where the class is in the mix.
+// where the class is in the mix, its cells as large as the Structures and
+// Objects grids'.
 func (e *MapEditor) forestGridSpec() (*popupGrid, bool) {
 	if !e.forestOn() {
 		return nil, false
@@ -148,20 +149,11 @@ func (e *MapEditor) forestGridSpec() (*popupGrid, bool) {
 	if len(kinds) == 0 {
 		return nil, false
 	}
-	g := &popupGrid{Top: e.brush.forest.top}
+	g := placeGridShell(KindStructure, e.brush.forest.top)
 	for _, o := range kinds {
 		g.Cells = append(g.Cells, popupGridCell{Icon: e.forestIcon(o.Code), Ticked: e.brush.forest.ticks[o.Code], Tip: e.objectWord(o)})
 	}
 	return g, true
-}
-
-// forestGridHeight is the room the brush window's list leaves the forest
-// grid: its least rows, and more where the room allows.
-func (e *MapEditor) forestGridHeight() int {
-	if !e.forestOn() {
-		return 0
-	}
-	return (&popupGrid{Rows: gridLeastRows}).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
 }
 
 // forestGridWheel scrolls the forest grid by the wheel's rows.
@@ -181,18 +173,6 @@ func (e *MapEditor) forestGridPress(n int) {
 	}
 }
 
-// forestShareWord names the share: the preset's word and its per cent, or
-// the per cent alone for a typed share.
-func (e *MapEditor) forestShareWord() string {
-	s := e.forestShare()
-	for i, p := range forestShares {
-		if p == s {
-			return fmt.Sprintf("%s %d%%", e.forestPresetWord(i), s)
-		}
-	}
-	return fmt.Sprintf("%d%%", s)
-}
-
 // forestPresetWord is the word of density preset i.
 func (e *MapEditor) forestPresetWord(i int) string {
 	switch i {
@@ -206,46 +186,28 @@ func (e *MapEditor) forestPresetWord(i int) string {
 	return e.word("editor.brush.density.solid")
 }
 
-// forestPopupRows are the object brush's rows below the shape: the tool
-// with its One kind and Forest buttons and, in Forest mode, the density with
-// the button that asks for a typed per cent, a row of the button that clears
-// the marks, off while none is marked, and the preset buttons, and the hint.
-func (e *MapEditor) forestPopupRows() []popupRow {
-	tool := e.word("editor.brush.tool.one")
-	if e.brush.forest.on {
-		tool = e.word("editor.brush.tool.forest")
+// forestDensityButton is a press on button k of the density row: a preset,
+// or past them the button that asks for a typed per cent.
+func (e *MapEditor) forestDensityButton(k int) {
+	if k >= 0 && k < len(forestShares) {
+		e.brush.forest.share = forestShares[k]
+		return
 	}
-	rows := []popupRow{{Kind: popupText, Label: e.word("editor.brush.tool"), Value: tool,
-		Buttons: []string{e.word("editor.brush.tool.one"), e.word("editor.brush.tool.forest")}}}
-	if !e.brush.forest.on {
-		return rows
-	}
-	buttons := make([]string, 0, len(forestShares)+1)
-	buttons = append(buttons, e.word("editor.brush.forest.clear"))
-	for i := range forestShares {
-		buttons = append(buttons, e.forestPresetWord(i))
-	}
-	rows = append(rows,
-		popupRow{Kind: popupText, Label: e.word("editor.brush.density"), Value: e.forestShareWord(), Buttons: []string{"%"}},
-		popupRow{Kind: popupText, Buttons: buttons, Disabled: []bool{len(e.forestTicked()) == 0}},
-		popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), e.word("editor.brush.forest.hint"), 480)})
-	return rows
+	e.openPrompt(editorPrompt{kind: promptForestShare, path: strconv.Itoa(e.forestShare())})
 }
 
-// forestRowButton is a press on button k of the tool row (row 2), the
-// density row's per cent button (row 3) or the presets row (row 4), whose
-// first button unticks every kind in the grid and the list at once.
-func (e *MapEditor) forestRowButton(row, k int) {
-	switch {
-	case row == 2:
-		e.setForest(k == 1)
-	case row == 3:
-		e.openPrompt(editorPrompt{kind: promptForestShare, path: strconv.Itoa(e.forestShare())})
-	case row == 4 && k == 0:
-		e.brush.forest.ticks, e.message = nil, ""
-	case row == 4 && k <= len(forestShares):
-		e.brush.forest.share = forestShares[k-1]
-	}
+// forestWindow gives the Forest mode's window its state: the count of the
+// ticked kinds as its note, and the button that unticks every kind at once,
+// off while none is ticked.
+func (e *MapEditor) forestWindow(s *popupSpec) {
+	ticked := len(e.forestTicked())
+	s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.brush.forest.count"), ticked))
+	s.Buttons, s.Disabled = append(s.Buttons, e.word("editor.brush.forest.clear")), append(s.Disabled, ticked == 0)
+}
+
+// forestClear unticks every kind in the grid.
+func (e *MapEditor) forestClear() {
+	e.brush.forest.ticks, e.message = nil, ""
 }
 
 // setForestShare takes the typed per cent; anything but a whole number from

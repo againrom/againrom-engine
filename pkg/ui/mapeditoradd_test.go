@@ -81,6 +81,13 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		}
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
+		if f == 3 {
+			// Sacks opens the Add window itself; it has no list.
+			if addKindNow(e) != kind {
+				t.Errorf("list %d opened %q, want the %s Add window", f, addKindNow(e), kind)
+			}
+			continue
+		}
 		s, ok := e.listSpec()
 		_, add := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
 		if !ok || !add {
@@ -119,7 +126,12 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
 		}
 	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack"} {
+	sacks, _ := newModesEditor(t, "full")
+	sacks.showRecords(3)
+	if addKindNow(sacks) != "Sack" {
+		t.Errorf("the Sacks entry opened %q, want the Sack Add window", addKindNow(sacks))
+	}
+	for f, kind := range map[int]string{1: "Unit", 2: "Structure"} {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		_ = e.Key("player")

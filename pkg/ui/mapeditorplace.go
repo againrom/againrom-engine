@@ -188,7 +188,7 @@ func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.R
 
 // placeTipPicture is the picture the hover tip of a cell of the grid of kind
 // and step key shows for choice value: the one picture the Add window's list
-// shows beside the choice.
+// shows beside the choice, and the brush windows beside their object list.
 func (e *MapEditor) placeTipPicture(kind RecordKind, key string, value int64) *image.RGBA {
 	host, ok := e.addHost()
 	if !ok {

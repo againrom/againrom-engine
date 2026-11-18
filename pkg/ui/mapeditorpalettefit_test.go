@@ -133,21 +133,24 @@ func TestMapEditorPaletteKeepsItsDraggedSize(t *testing.T) {
 	check("back on Units")
 }
 
-// A window that still shows a list keeps its list rows: the Trees brush
-// window's list is as long as the list window gives it, and its grid takes
-// at least its least rows below.
+// A window that shows a list keeps its list rows: the Trees brush window's
+// Forest mode shows its grid alone with at least its least rows, and its One
+// kind mode's list is as long as the list window gives it.
 func TestMapEditorBrushWindowKeepsItsListRows(t *testing.T) {
 	e := paletteEditor(t, 1280, 800)
 	s, l := paletteGrid(t, e, "trees")
+	if s.List != nil || l.GridRows < gridLeastRows {
+		t.Fatalf("the Forest window shows a list (%v) or %d grid rows, want at least %d", s.List != nil, l.GridRows, gridLeastRows)
+	}
+	e.brushRowButton(0, 0)
+	s = mustListSpec(t, e)
+	l = layoutPopup(s, e.font, e.bodyFont())
 	if s.List == nil {
-		t.Fatal("the Trees brush window shows no list")
+		t.Fatal("the One kind window shows no list")
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40
 	if want := max(3, min(18, avail/pitch)); s.ListRows != want || l.ListRows != want {
 		t.Fatalf("the list shows %d rows (spec %d), want %d", l.ListRows, s.ListRows, want)
-	}
-	if l.GridRows < gridLeastRows {
-		t.Fatalf("the forest grid shows %d rows, want at least %d", l.GridRows, gridLeastRows)
 	}
 }

@@ -118,16 +118,24 @@ func (d *forestDriver) button(row, k int, what string) {
 	d.c.click(d.e, r, ok, what)
 }
 
-// forest switches the object brush to Forest, ticks the first n kinds of
-// the grid and sets a square brush of radius r.
+// trees opens the Trees window by its bar entry, in Forest mode.
+func (d *forestDriver) trees() {
+	d.t.Helper()
+	r, ok := d.e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "trees"})
+	d.c.click(d.e, r, ok, "the Trees entry")
+}
+
+// forest opens the Trees window in Forest mode, ticks the first n kinds of
+// the grid and sets a square brush of radius r. The window's rows are Tool,
+// Size, Shape and Density.
 func (d *forestDriver) forest(n, r int) {
 	d.t.Helper()
-	d.button(2, 1, "the Forest button")
+	d.trees()
 	for i := 0; i < n; i++ {
 		rect, ok := d.e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: i})
 		d.c.click(d.e, rect, ok, "a forest grid cell")
 	}
-	d.button(1, 1, "the Square button")
+	d.button(2, 1, "the Square button")
 	for i := 0; i < 20; i++ {
 		d.key("radiusdown")
 	}
@@ -257,12 +265,12 @@ func TestMapEditorForestPlantsTheShareOnOpenCellsOnly(t *testing.T) {
 		share int
 		set   func()
 	}{
-		{"sparse", 10, func() { d.button(4, 1, "Sparse") }},
-		{"medium", 25, func() { d.button(4, 2, "Medium") }},
-		{"dense", 50, func() { d.button(4, 3, "Dense") }},
-		{"solid", 100, func() { d.button(4, 4, "Solid") }},
+		{"sparse", 10, func() { d.button(3, 0, "Sparse") }},
+		{"medium", 25, func() { d.button(3, 1, "Medium") }},
+		{"dense", 50, func() { d.button(3, 2, "Dense") }},
+		{"solid", 100, func() { d.button(3, 3, "Solid") }},
 		{"typed 37", 37, func() {
-			d.button(3, 0, "the per cent button")
+			d.button(3, 4, "the per cent button")
 			d.key("clear")
 			d.e.TextInput("37")
 			d.key("enter")
@@ -308,7 +316,7 @@ func TestMapEditorForestDragIsOneUndoStep(t *testing.T) {
 	d, x := newForestDriver(t, raw)
 	fenced := forestFenced(t, raw, x)
 	d.forest(2, 2)
-	d.button(4, 3, "Dense")
+	d.button(3, 2, "Dense")
 	path := []image.Point{{X: 24, Y: 16}, {X: 26, Y: 14}, {X: 30, Y: 20}, {X: 28, Y: 25}, {X: 32, Y: 26}}
 	d.stroke(false, path...)
 	planted := d.bytes()
@@ -350,11 +358,11 @@ func TestMapEditorForestRightButtonThinsTickedKindsOnly(t *testing.T) {
 	raw := forestMap(t)
 	d, _ := newForestDriver(t, raw)
 	d.forest(1, 16) // forestOakish alone
-	d.button(4, 4, "Solid")
+	d.button(3, 3, "Solid")
 	centre := image.Pt(20, 12)
 	d.stroke(false, centre)
 	planted := d.bytes()
-	d.button(4, 3, "Dense")
+	d.button(3, 2, "Dense")
 	d.stroke(true, centre)
 	thinned := d.bytes()
 	_, was := forestPlanes(t, planted)
@@ -403,7 +411,7 @@ func TestMapEditorForestRefusesNoKindAndABadShare(t *testing.T) {
 	if !bytes.Equal(d.bytes(), raw) || d.e.Message() == "" {
 		t.Fatalf("a stroke with no kind ticked wrote bytes or said nothing (%q)", d.e.Message())
 	}
-	d.button(3, 0, "the per cent button")
+	d.button(3, 4, "the per cent button")
 	d.key("clear")
 	d.e.TextInput("0")
 	d.key("enter")

@@ -493,6 +493,9 @@ type popupSpec struct {
 	ListText  listRowText
 	// ListAside is a column right of the list kept free for a picture.
 	ListAside int
+	// ListPicture is the picture the painter stands in that column; nil
+	// leaves it to a caller that draws its own.
+	ListPicture *image.RGBA
 	// ListColumns parts the list into columns (listBox's Columns), each
 	// head over its column, wrapped to its width.
 	ListColumns []listColumn
@@ -2308,6 +2311,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		box := l.List
 		box.HeadingFace = title
 		drawListBox(dst, body, frames, box, s.List.Picker, s.List.Text, pointer, pointerOK)
+	}
+	if l.HasList && s.List.Picture != nil {
+		drawEditorPicture(dst, editorPicture{Pic: s.List.Picture, Box: l.Aside, Clip: l.Aside})
 	}
 	for k, r := range l.ListHeads {
 		for j, line := range l.ListHeadLines[k] {

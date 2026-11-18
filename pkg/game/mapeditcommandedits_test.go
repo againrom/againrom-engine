@@ -385,14 +385,14 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 		{"paint forest", forest, func(t *testing.T, e *ui.MapEditor) {
 			d := &forestDriver{t: t, e: e, c: &editorClicker{t: t, now: time.Unix(1, 0)}, now: time.Unix(1, 0)}
 			d.forest(2, 2)
-			d.button(4, 3, "Dense")
+			d.button(3, 2, "Dense")
 			d.stroke(false, image.Pt(24, 16))
 		}, fixed(commandCall{"paint", map[string]any{"plane": "objects", "radius": 2, "shape": "square", "cells": [][]int{{24, 16}},
 			"forest": map[string]any{"kinds": []int{forestCodes[0], forestCodes[1]}, "share": 50}}})},
 		{"paint forest thin", forest, func(t *testing.T, e *ui.MapEditor) {
 			d := &forestDriver{t: t, e: e, c: &editorClicker{t: t, now: time.Unix(1, 0)}, now: time.Unix(1, 0)}
 			d.forest(1, 16)
-			d.button(4, 3, "Dense")
+			d.button(3, 2, "Dense")
 			d.stroke(true, image.Pt(20, 12))
 		}, fixed(commandCall{"paint", map[string]any{"plane": "objects", "radius": 16, "shape": "square", "cells": [][]int{{20, 12}},
 			"forest": map[string]any{"kinds": []int{forestCodes[0]}, "share": 50, "thin": true}}})},

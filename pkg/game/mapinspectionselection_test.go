@@ -530,7 +530,8 @@ func TestMapEditorBoxCopyOnAListTabTakesEveryKind(t *testing.T) {
 		_ = m.Delete(mapedit.KindUnit, 0)
 	}
 	second := m.Bytes()
-	for _, tab := range []string{"units", "groups", "structures", "sacks"} {
+	// The Sacks entry opens the Add window, not a list tab.
+	for _, tab := range []string{"units", "groups", "structures"} {
 		t.Run(tab, func(t *testing.T) {
 			e := groupEditor(t, raw)
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: tab})

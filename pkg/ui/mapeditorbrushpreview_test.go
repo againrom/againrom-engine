@@ -55,11 +55,12 @@ func TestMapEditorObjectsBrushShowsTheHighlightedObjectsPicture(t *testing.T) {
 	centre := func() color.RGBA {
 		pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 		s, _ := e.listSpec()
-		e.drawBrushPreview(pic, s)
+		e.drawListWindow(pic, s)
 		return pic.RGBAAt((box.Min.X+box.Max.X)/2, (box.Min.Y+box.Max.Y)/2)
 	}
-	if got := centre(); got != (color.RGBA{}) {
-		t.Fatalf("the clear row draws a picture %v", got)
+	empty := centre()
+	if empty == (color.RGBA{120, 90, 200, 255}) || empty == (color.RGBA{200, 90, 200, 255}) {
+		t.Fatalf("the clear row draws a picture %v", empty)
 	}
 	_ = e.Key("down")
 	first := centre()
@@ -70,8 +71,8 @@ func TestMapEditorObjectsBrushShowsTheHighlightedObjectsPicture(t *testing.T) {
 	if second := centre(); second != (color.RGBA{200, 90, 200, 255}) || second == first {
 		t.Fatalf("the Stone row draws %v after Oak's %v", second, first)
 	}
-	e.Key("terrain")
+	e.Key("height")
 	if s, _ := e.listSpec(); s.ListAside != 0 {
-		t.Fatalf("the terrain list keeps a picture column of %d", s.ListAside)
+		t.Fatalf("the height list keeps a picture column of %d", s.ListAside)
 	}
 }

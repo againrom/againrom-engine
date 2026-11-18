@@ -400,6 +400,7 @@ func (e *MapEditor) showDoc(next *InspectionDocument, kept *openMap) {
 	next.Viewer.editorView = true
 	next.Viewer.wheelZoomPercent = 0
 	e.doc = next
+	e.place.icons = nil
 	e.barSets, e.barOwner = nil, ""
 	e.formAgreed = false
 	e.saveStatus = saveNotice{}

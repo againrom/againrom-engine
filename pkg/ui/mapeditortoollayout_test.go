@@ -196,8 +196,8 @@ func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 		if got := e.menuItems("tools")[at-1].label; got != c.generate {
 			t.Errorf("%q: the Generate heading reads %q", c.lang, got)
 		}
-		if e.brushModeWord(brushOff) != "" {
-			t.Errorf("%q: the brush off reads %q", c.lang, e.brushModeWord(brushOff))
+		if off := (&MapEditor{}).brushWindowOf(); off.titleWord != "" || len(off.rows) != 0 {
+			t.Errorf("%q: the brush off has a window %+v", c.lang, off)
 		}
 	}
 	chromeClick(e, barPoint(t, e, "tools"))

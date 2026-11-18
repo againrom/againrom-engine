@@ -95,7 +95,8 @@ func TestMapEditorToolWindowsReturn(t *testing.T) {
 }
 
 func TestMapEditorToolWindowsKeepSiblings(t *testing.T) {
-	for _, key := range []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"} {
+	// Sacks opens the Add window and has no palette to keep.
+	for _, key := range []string{"scripts", "players", "groups", "units", "structures", "cellspells"} {
 		t.Run(key, func(t *testing.T) {
 			e := toolWindowsEditor(t, key)
 			if !e.listShown {

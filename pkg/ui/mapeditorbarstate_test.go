@@ -64,7 +64,7 @@ func TestMapEditorBarWindowToggle(t *testing.T) {
 			doc, raw := e.doc, bytes.Clone(e.doc.SourceBytes)
 			undo, redo := e.doc.Edits.CanUndo(), e.doc.Edits.CanRedo()
 			chromeClick(e, barPoint(t, e, key))
-			if e.listKind() == "" {
+			if e.listKind() == "" && (key != "sacks" || addKindNow(e) != "Sack") {
 				t.Fatal("first press opened no window")
 			}
 			if !barWindowPressed(t, e, key) {
@@ -89,7 +89,7 @@ func TestMapEditorBarWindowSwitch(t *testing.T) {
 			e, calls := barWindowEditor(t)
 			chromeClick(e, barPoint(t, e, key))
 			chromeClick(e, barPoint(t, e, next))
-			if e.prompt.open() || e.panel != (next == "panel") || e.brushActive() != (next == "objects" || next == "trees") {
+			if e.prompt.open() != (next == "sacks") || e.panel != (next == "panel") || e.brushActive() != (next == "objects" || next == "trees") {
 				t.Fatal("switch retained the previous mode")
 			}
 			if barWindowPressed(t, e, key) || !barWindowPressed(t, e, next) {
@@ -217,6 +217,11 @@ func TestMapEditorBarTracksOtherDoors(t *testing.T) {
 						_ = e.Key("escape")
 					}
 				case "close":
+					if key == "sacks" {
+						// Sacks opens the Add window, closed by its own button.
+						_, l := promptLayout(t, e)
+						chromeClick(e, center(l.Close))
+					}
 					for range 3 {
 						if e.listKind() == "" {
 							break
@@ -224,6 +229,9 @@ func TestMapEditorBarTracksOtherDoors(t *testing.T) {
 						chromeClick(e, center(listLayout(t, e).Close))
 					}
 				case "mcp":
+					if key == "sacks" {
+						e.cancelPopup(popPrompt)
+					}
 					e.closeList()
 					if key == "players" {
 						// The Players window edits a player in its own row and

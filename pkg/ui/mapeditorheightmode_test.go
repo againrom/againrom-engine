@@ -84,8 +84,8 @@ func TestHeightToolModeAndStrengthRows(t *testing.T) {
 			}
 		}
 	}
-	if title := e.brushStatus(); title != "Height: Raise  Step  size 2  strength 8" {
-		t.Fatalf("title %q", title)
+	if s := mustListSpec(t, e); s.Title != "Height" {
+		t.Fatalf("title %q", s.Title)
 	}
 	for range 10 {
 		pressBrushButton(t, e, 2, 0)
@@ -101,8 +101,8 @@ func TestHeightToolModeAndStrengthRows(t *testing.T) {
 	}
 	for n, word := range []string{"Level", "Smooth", "Step"} {
 		pressHeightMode(t, e, (n+1)%3)
-		if title := e.brushStatus(); !strings.Contains(title, "  "+word+"  ") {
-			t.Fatalf("title %q after mode %d", title, (n+1)%3)
+		if g, _ := e.heightModeGridSpec(); !g.Cells[(n+1)%3].Pressed || g.Cells[(n+1)%3].Tip != word {
+			t.Fatalf("mode %d (%s) is not the pressed cell: %+v", (n+1)%3, word, g.Cells)
 		}
 	}
 	pressHeightMode(t, e, 1)
@@ -116,8 +116,8 @@ func TestHeightToolModeAndStrengthRows(t *testing.T) {
 	}
 	_ = e.Key("down")
 	_ = e.Key("down")
-	if title := e.brushStatus(); strings.Contains(title, "strength") || strings.Contains(title, "Level") {
-		t.Fatalf("the Set height title %q names what the row does not read", title)
+	if s := mustListSpec(t, e); s.Title != "Height" || s.List.Selection() != heightSetRow {
+		t.Fatalf("the Set height row gives the title %q, the list row %d", s.Title, s.List.Selection())
 	}
 }
 

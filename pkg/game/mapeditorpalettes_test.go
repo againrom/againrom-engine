@@ -228,12 +228,11 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 	}
 
 	f, fc := paletteEditorOn(t, raw)
-	_ = f.Key("objects")
-	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
-	fc.click(f, r, ok, "the Forest button")
+	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "trees"})
+	fc.click(f, r, ok, "the Trees entry")
 	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
 	fc.click(f, r, ok, "the oak's Forest cell")
-	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 4})
+	r, ok = f.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 3, K: 3})
 	fc.click(f, r, ok, "Solid")
 	for range 20 {
 		_ = f.Key("radiusdown")
@@ -262,8 +261,8 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	r, ok = n.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
-	nc.click(n, r, ok, "the Forest button")
+	r, ok = n.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "trees"})
+	nc.click(n, r, ok, "the Trees entry")
 	if n.Dirty() {
 		t.Fatal("opening the palettes edited the map")
 	}

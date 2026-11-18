@@ -226,9 +226,18 @@ func brushWords(t *testing.T, e *MapEditor) []string {
 		if e.brush.mode != mode {
 			t.Fatalf("brush %d did not turn on", mode)
 		}
-		out = append(out, e.brushRows()[0], e.brushStatus())
+		out = append(out, e.brushRows()[0], e.listTitle("brush"))
 		if mode != brushObjects {
 			out = append(out, e.brushRows()...)
+		}
+		for _, r := range e.brushPopupRows() {
+			out = append(out, r.Label)
+			if r.Help != "" {
+				out = append(out, r.Help)
+			}
+		}
+		if s := mustListSpec(t, e); s.TitleHelp != "" {
+			out = append(out, s.TitleHelp)
 		}
 		out = append(out, e.helpLines()...)
 	}
@@ -266,7 +275,7 @@ func TestMapEditorBrushWordsAreTheInstallsLanguage(t *testing.T) {
 	en, b := brushEditor(t)
 	en.doc.Edits = &paletteHost{*b}
 	gotEN := brushWords(t, en)
-	for _, want := range []string{"Terrain brush", "Height brush", "Grass", "Road", "Raise", "Lower", "Block", "Unblock", "No object", "Terrain: Grass  size 2", "T: off / Drag: paint / [ ]: size", "Passable", "Water"} {
+	for _, want := range []string{"Terrain brush", "Height brush", "Grass", "Road", "Raise", "Lower", "Block", "Unblock", "No object", "Terrain", "Height", "Size", "Shape", "Strength", "T: off / Drag: paint / [ ]: size", "Passable", "Water"} {
 		if !slices.Contains(gotEN, want) {
 			t.Errorf("English install lacks %q", want)
 		}

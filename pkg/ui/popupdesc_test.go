@@ -326,6 +326,7 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 			add("list-row", l.List.Row(i))
 		}
 	}
+	add("switch-button", l.SwitchButton)
 	for _, r := range l.Buttons {
 		add("button", r)
 	}

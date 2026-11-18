@@ -71,26 +71,19 @@ func gridTips(t *testing.T, e *MapEditor) []string {
 	return out
 }
 
-// objectBrushOn turns the object brush on, in Forest mode when forest is set,
-// by its key and its Forest or One kind button.
+// objectBrushOn turns the object brush on by its bar entry: the Trees window
+// in Forest mode when forest is set, else the Objects window.
 func objectBrushOn(t *testing.T, e *MapEditor, forest bool) {
 	t.Helper()
-	if e.listKind() != "brush" || e.brush.mode != brushObjects {
-		if err := e.Key("objects"); err != nil {
-			t.Fatal(err)
-		}
-	}
-	k := 0
+	key := "objects"
 	if forest {
-		k = 1
+		key = "trees"
 	}
-	r, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 2, K: k})
-	if !ok {
-		t.Fatal("the object brush shows no Forest row")
+	if e.barWindow() != key {
+		chromeClick(e, barPoint(t, e, key))
 	}
-	chromeClick(e, center(r))
-	if e.forestOn() != forest {
-		t.Fatalf("the Forest row's button %d left Forest %v", k, e.forestOn())
+	if e.brush.mode != brushObjects || e.forestOn() != forest || e.barWindow() != key {
+		t.Fatalf("the %s entry left the object brush in mode %d, Forest %v", key, e.brush.mode, e.forestOn())
 	}
 }
 

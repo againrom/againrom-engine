@@ -150,7 +150,13 @@ func TestMapEditorBrushHeightRowsAndModeSwitch(t *testing.T) {
 	if e.brush.mode != brushTerrain {
 		t.Fatal("T did not switch to terrain mode")
 	}
-	e.Key("escape")
+	// Esc goes back to the window before T, the height brush, then ends it.
+	for range 2 {
+		e.Key("escape")
+	}
+	if e.brush.mode != brushOff {
+		t.Fatalf("two Esc presses left brush mode %d", e.brush.mode)
+	}
 	drag(e, image.Pt(11, 10))
 	if len(p.strokes) != 1 {
 		t.Fatal("a stroke was made outside a brush mode")

@@ -98,14 +98,15 @@ type uiCard struct {
 }
 
 // uiList is the list box under the rows: its model, its rows, the fewest
-// rows a sized window keeps, its text, the column kept free beside it and
-// its columns.
+// rows a sized window keeps, its text, the column kept free beside it, the
+// picture that column shows and its columns.
 type uiList struct {
 	Picker  *Picker
 	Rows    int
 	Least   int
 	Text    listRowText
 	Aside   int
+	Picture *image.RGBA
 	Columns []listColumn
 }
 
@@ -175,10 +176,10 @@ func specTree(s popupSpec) uiNode {
 	if s.Canvas != nil {
 		add(uiNode{Kind: uiCanvasKind, Data: s.Canvas})
 	}
-	if s.List != nil || s.ListRows != 0 || s.ListLeast != 0 || s.ListText != nil || s.ListAside != 0 || len(s.ListColumns) > 0 {
+	if s.List != nil || s.ListRows != 0 || s.ListLeast != 0 || s.ListText != nil || s.ListAside != 0 || s.ListPicture != nil || len(s.ListColumns) > 0 {
 		add(uiNode{Kind: uiListKind, Data: uiList{
 			Picker: s.List, Rows: s.ListRows, Least: s.ListLeast, Text: s.ListText,
-			Aside: s.ListAside, Columns: s.ListColumns,
+			Aside: s.ListAside, Picture: s.ListPicture, Columns: s.ListColumns,
 		}})
 	}
 	if len(s.Notes) > 0 || s.NoteInk != (color.RGBA{}) {

@@ -385,37 +385,23 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	return g, append(rows, e.playerHeadRows(m, g)...), true
 }
 
-// relationFit gives the Players window s its natural width: what the
+// relationFit gives the Players window s its natural width through listFit: what the
 // matrix's head column and cells ask for, the legend's label column with
 // its value and picture, or the button row, whichever is widest. The label
 // column is as wide as the widest legend label and its (?). The matrix
 // shows as many rows as the window's bounds hold, from the kept top row;
 // the wheel scrolls the rest (relationGridWheel).
 func (e *MapEditor) relationFit(s *popupSpec) {
-	body := e.bodyFont()
-	advance := func(s string) int {
-		if body == nil {
-			return 8 * len(s)
-		}
-		return body.Advance(s)
-	}
-	pitch := fontHeight(body, 15) + popupRowExtra
-	label, value := 0, 0
-	for _, r := range s.Rows {
-		if r.HeadOf == 0 && len(r.Icons) > 0 {
-			label = max(label, advance(r.Label)+8+helpMarkW(r, pitch))
-			value = max(value, advance(r.Value)+8+(pitch+2)*len(r.Icons))
-		}
-	}
-	if label > 0 {
-		s.LabelWidth = label
-	}
+	e.listFit(s, listFitIn{
+		Counts: func(r popupRow) bool { return r.HeadOf == 0 && len(r.Icons) > 0 },
+		Value: func(r popupRow, m listFitMeasure) int {
+			return m.Advance(r.Value) + 8 + (m.Pitch+2)*len(r.Icons)
+		},
+	})
 	g := s.Grid
-	need := max(g.HeadW+g.Cols*g.side()+widgetSpriteSize, label+4+value) + 2*popupPad
-	s.Width = e.popupWide(popList, max(need, buttonRowWidth(specWindow(*s), body)))
 	m := e.relationMatrixOf()
 	g.Top = m.top
-	shown := layoutPopup(*s, e.font, body).GridRows
+	shown := layoutPopup(*s, e.font, e.bodyFont()).GridRows
 	m.top = max(0, min(m.top, len(m.players)-shown))
 	g.Top = m.top
 }

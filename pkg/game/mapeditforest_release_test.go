@@ -49,16 +49,13 @@ func installedForest(t *testing.T, x *MapInspector, key string, r int) (*ui.MapE
 		closeMapPanel(t, e)
 	}
 	c := &editorClicker{t: t, now: time.Unix(50, 0)}
-	if err := e.Key("objects"); err != nil {
-		t.Fatal(err)
-	}
-	rect, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
-	c.click(e, rect, ok, "the Forest button")
+	rect, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlBar, Key: "trees"})
+	c.click(e, rect, ok, "the Trees entry")
 	for _, code := range forestTrees {
 		rect, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: forestGridIndex(t, x, code)})
 		c.click(e, rect, ok, fmt.Sprintf("the grid cell of class %d", code))
 	}
-	rect, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 1, K: 1})
+	rect, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 2, K: 1})
 	c.click(e, rect, ok, "the Square button")
 	for i := 0; i < 20; i++ {
 		_ = e.Key("radiusdown")
@@ -146,7 +143,7 @@ func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, before, x.table, radius)
 	e, _ := installedForest(t, x, forestScenario, radius)
-	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 3})
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 3, K: 2})
 	(&editorClicker{t: t, now: time.Unix(55, 0)}).click(e, r, ok, "Dense")
 	forestPress(e, centre, false)
 	if !e.Dirty() {
@@ -235,7 +232,7 @@ func TestReleaseMapEditorForestFrames(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, m, x.table, radius)
 	e, c := installedForest(t, x, forestScenario, radius)
-	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 4, K: 3})
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlListButton, N: 3, K: 2})
 	c.click(e, r, ok, "Dense")
 	e.ShowCell(centre.Sub(image.Pt(8, 0)))
 	frame(e, "grid")

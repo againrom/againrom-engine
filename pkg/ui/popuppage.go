@@ -35,16 +35,20 @@ type EditorMockup struct {
 	pictureNames map[int][]string
 	// gridNames are the names of the grid cells' pictures, by cell.
 	gridNames []string
+	// asideName names the picture beside the list.
+	asideName string
 }
 
 // mockupPerson is the person a description's card and figure show: the
 // card, the font it writes in and the doll. A nil card is the sample's.
-// picture is the picture a row names, nil for none.
+// picture is the picture a row names, nil for none; name is the install's
+// name a sample word key stands for, when it names one.
 type mockupPerson struct {
 	card     *PanelSubject
 	cardFont *text.Font
 	doll     *image.RGBA
 	picture  func(name string) *image.RGBA
+	name     func(key string) (string, bool)
 }
 
 // mockupBlank stands for a picture nobody gave: the row keeps its room and
@@ -85,11 +89,33 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	}
 	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body}
 	word := words.For(lang).Text
+	if person.name != nil {
+		table := word
+		word = func(key string) string {
+			if n, ok := person.name(key); ok {
+				return n
+			}
+			return table(key)
+		}
+	}
 	var made []popupMade
 	m.plain, made = d.build(sample, word)
 	m.pictureNames = rowPictures(m.plain.Rows, made, person.picture)
 	_, m.gridNames = popupChain{sample}.grid(d.Grid, word)
 	gridPictures(m.plain.Grid, m.gridNames, person.picture)
+	if g := m.plain.Grid; g != nil && body != nil && !g.HeadFlat {
+		// A flow grid row's head stands in a column as wide as its widest
+		// head.
+		for _, h := range g.RowHeads {
+			g.HeadW = max(g.HeadW, body.Advance(encode(h))+8)
+		}
+	}
+	if d.List != nil {
+		m.plain.List, m.plain.ListRows, m.plain.ListAside, m.asideName = (popupChain{sample}).listBox(d.List, word, person.picture)
+		if person.picture != nil && m.asideName != "" {
+			m.plain.ListPicture = person.picture(m.asideName)
+		}
+	}
 	if d.Question {
 		p := m.plain
 		q := question{title: p.Title, help: p.TitleHelp, rows: p.Rows, list: p.List, listRows: p.ListRows, grid: p.Grid,
@@ -171,7 +197,7 @@ func rowPictures(rows []popupRow, made []popupMade, picture func(string) *image.
 // description with a card shows the first person of the open map that has
 // a figure, as the unit window builds the card and the figure.
 func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*EditorMockup, error) {
-	person := mockupPerson{cardFont: e.cardFont, picture: e.mockupPicture}
+	person := mockupPerson{cardFont: e.cardFont, picture: e.mockupPicture, name: e.mockupName}
 	if d, err := parsePopupDesc(desc); err == nil && d.Card && e.doc != nil {
 		e.Layout(window.X, window.Y)
 		for i, r := range e.doc.Records {
@@ -189,14 +215,8 @@ func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*Edito
 	return newEditorMockup(desc, lang, window, e.font, e.bodyFont(), e.editorHostText, person)
 }
 
-// mockupPicture is the picture a sample names on the open map, nil for
-// none: "card:N" a test party card's portrait (cardPicture), "message:P:K"
-// the portrait the message window shows beside part K of message page P,
-// the speaker's face as that part's heroes see it.
-func (e *MapEditor) mockupPicture(name string) *image.RGBA {
-	if p := e.cardPicture(name); p != nil {
-		return p
-	}
+// messagePicture is the portrait a "message:P:K" sample names: the face the message window shows beside part K of message page P, as that part's heroes see it; nil for any other name or without a map.
+func (e *MapEditor) messagePicture(name string) *image.RGBA {
 	var page, part int
 	if _, err := fmt.Sscanf(name, "message:%d:%d", &page, &part); err != nil || e.doc == nil {
 		return nil
@@ -282,7 +302,7 @@ func encodedSpec(s popupSpec, encode func(string) string) popupSpec {
 		}
 		return out
 	}
-	s.Title, s.TitleHelp = encode(s.Title), encode(s.TitleHelp)
+	s.Title, s.TitleHelp, s.SwitchButton = encode(s.Title), encode(s.TitleHelp), encode(s.SwitchButton)
 	s.Tabs, s.Buttons, s.Notes = all(s.Tabs), all(s.Buttons), all(s.Notes)
 	rows := make([]popupRow, len(s.Rows))
 	for i, r := range s.Rows {
@@ -371,6 +391,9 @@ func (m *EditorMockup) Page() []byte {
 			pictures = append(pictures, pagePicture{-1, r, m.gridNames[n]})
 		}
 	}
+	if m.asideName != "" && !m.layout.Aside.Empty() {
+		pictures = append(pictures, pagePicture{-1, m.layout.Aside, m.asideName})
+	}
 	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, pictures, m.lang, m.window)
 }
 
@@ -394,7 +417,7 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 	fmt.Fprintf(&b, ".label{color:%s}\n.control{background:%s;border:1px solid %s}\n", hex(ink.Label), hex(ink.Ground), hex(ink.Edge))
 	fmt.Fprintf(&b, ".button{text-align:center;color:%s;border:1px solid;border-color:%s %s %s %s}\n",
 		hex(ink.Button), hex(ink.BevelLight), hex(ink.BevelDark), hex(ink.BevelDark), hex(ink.BevelLight))
-	fmt.Fprintf(&b, ".pressed{border:2px solid %s}\n", hex(ink.Title))
+	fmt.Fprintf(&b, ".pressed{border:2px solid %s}\n.ticked{outline:2px solid %s;outline-offset:-4px}\n", hex(ink.Title), hex(ink.Value))
 	fmt.Fprintf(&b, ".off{color:%s}\n</style>\n</head>\n<body>\n<div id=\"screen\">\n", hex(ink.Hint))
 	// tip is the text a (?) mark explains, shown as the element's own title.
 	tip := ""
@@ -503,6 +526,9 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			if c.Pressed {
 				class += " pressed"
 			}
+			if c.Ticked {
+				class += " ticked"
+			}
 			if c.Inert {
 				class += " off"
 			}
@@ -525,6 +551,7 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			part(class, "list-row", n, l.List.Row(i), none, rows[n].Text)
 		}
 	}
+	part("button", "switch-button", -1, l.SwitchButton, none, w.Buttons.Switch)
 	for i, r := range l.Buttons {
 		class := "button"
 		if i < len(w.Buttons.Disabled) && w.Buttons.Disabled[i] {
@@ -574,4 +601,65 @@ func PageDescription(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return d.encode(), nil
+}
+
+// mockupPicture is the picture of the open map's install a sample names:
+// "object:N" object class N's, "structure:N" structure kind N's grid
+// picture, "terrain:Name" the ground's swatch, "heightmode:N" the height
+// mode's button, "message:P:K" a message part's portrait, "card:N" the test
+// party's portrait; nil for any other name
+// or without a map.
+func (e *MapEditor) mockupPicture(name string) *image.RGBA {
+	kind, arg, _ := strings.Cut(name, ":")
+	n, err := strconv.Atoi(arg)
+	switch {
+	case kind == "card":
+		return e.cardPicture(name)
+	case kind == "message":
+		return e.messagePicture(name)
+	case kind == "object" && err == nil:
+		if h, ok := e.brushHost().(InspectionBrushIcons); ok {
+			return h.BrushObjectIcon(n)
+		}
+	case kind == "structure" && err == nil:
+		return e.placeIcon(KindStructure, "kind", int64(n))
+	case kind == "terrain":
+		if h := e.brushHost(); h != nil {
+			for _, t := range h.BrushTerrains() {
+				if t.Name == arg {
+					return t.Swatch
+				}
+			}
+		}
+	case kind == "heightmode" && err == nil:
+		return heightModeIcon(BrushHeightMode(n))
+	}
+	return nil
+}
+
+// mockupName is the name the open map's install gives what a sample's
+// word key "object:N" or "structure:N" names, as the palettes show it.
+func (e *MapEditor) mockupName(key string) (string, bool) {
+	kind, arg, _ := strings.Cut(key, ":")
+	n, err := strconv.Atoi(arg)
+	if err != nil {
+		return "", false
+	}
+	switch kind {
+	case "object":
+		if h := e.brushHost(); h != nil {
+			for _, o := range h.BrushObjects() {
+				if o.Code == n {
+					return e.objectWord(o), true
+				}
+			}
+		}
+	case "structure":
+		for _, c := range e.placeChoices(KindStructure, "kind") {
+			if c.Value == int64(n) {
+				return c.Label, true
+			}
+		}
+	}
+	return "", false
 }

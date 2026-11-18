@@ -647,12 +647,28 @@ func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
+	if c, ok := categoryOf(filter); ok && c.addsAtOnce {
+		e.addAtOnce(c)
+		return
+	}
 	if c, ok := categoryOf(filter); ok {
 		e.openPalette(c)
 		e.chooseFirstOf(filter)
 		return
 	}
 	e.openRecords(filter)
+}
+
+// addAtOnce opens the Add window of category c's kind as c's bar window.
+func (e *MapEditor) addAtOnce(c editorCategory) {
+	row, ok := addKindFor(c.filter)
+	if !ok {
+		return
+	}
+	e.openAdd(row.Kind)
+	if _, open := e.addRunning(); open {
+		e.barOwner = c.key
+	}
 }
 
 // openPalette shows category c's palette in the list popup; a category
@@ -887,7 +903,7 @@ func (e *MapEditor) listTitle(kind string) string {
 	case "report":
 		return e.report.note
 	case "brush":
-		return e.brushStatus()
+		return e.word(e.brushWindowOf().titleWord)
 	case "variables":
 		return e.word("editor.variables.title")
 	}
@@ -942,7 +958,7 @@ func (e *MapEditor) listWindow() int {
 		return p.fit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight() - e.heightModeGridHeight() - e.brushPlaceGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.heightModeGridHeight() - e.brushPlaceGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -983,7 +999,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	// New trigger.
 	palette := e.paletteShown()
 	var m *Picker
-	if !palette || e.paletteListsRecords() {
+	if (!palette || e.paletteListsRecords()) && (kind != "brush" || e.brushWindowOf().list) {
 		m = e.syncList(kind, e.listWindow())
 	}
 	s := popupSpec{Title: e.listTitle(kind), At: e.keptCorner(popList), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
@@ -1008,17 +1024,33 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			}
 		}
 	case "brush":
+		// One builder for every brush window; brushWindowOf is each as data.
+		w := e.brushWindowOf()
 		s.Rows = e.brushPopupRows()
-		s.Width, s.LabelWidth, s.ListAside = e.popupWide(popList, 520), brushLabelWidth, e.brushAside()
+		for _, k := range w.helpWords {
+			s.TitleHelp = strings.TrimSpace(s.TitleHelp + " " + e.word(k))
+		}
+		if pic, ok := e.brushPicture(); ok && m != nil {
+			s.ListAside, s.ListPicture = brushPreviewW+popupPad, pic
+		}
+		if m != nil {
+			// As many rows as the list holds, never fewer than a sized
+			// window keeps.
+			s.ListRows = min(s.ListRows, max(popupMinRows, m.Len()))
+			m.SetWindow(s.ListRows)
+		}
+		note := ""
 		if g, ok := e.forestGridSpec(); ok {
 			s.Grid = g
+			e.forestWindow(&s)
 		} else if g, ok := e.heightModeGridSpec(); ok {
 			s.Grid = g
-		} else if g, note, ok := e.placeGridSpec(); ok {
-			s.Grid = g
-			s.TitleHelp = e.word("editor.place.help")
-			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
+		} else if g, placing, ok := e.placeGridSpec(); ok {
+			s.Grid, note = g, placing
+			s.TitleHelp = strings.TrimSpace(s.TitleHelp + " " + e.word("editor.place.help"))
 		}
+		e.brushFit(&s)
+		s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 	case "catalog":
 		if e.doc == nil {
 			s.Notes = []string{e.word("editor.picker.hint")}
@@ -1048,6 +1080,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			}
 			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 			e.placeSwitch(&s)
+			e.placeRuinedSwitch(&s)
 		}
 		if g, rows, ok := e.relationGridSpec(); ok {
 			s.Grid, s.Rows = g, append(s.Rows, rows...)
@@ -1073,7 +1106,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	}
 	if counter {
 		top, n := m.Visible()
-		s.Notes[len(s.Notes)-1] = fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len())
+		s.Notes[len(s.Notes)-1] = fmt.Sprintf(e.word("editor.list.counter"), top+1, top+n, m.Len())
 	}
 	if palette && len(s.Rows) == 0 && len(s.Notes) == 0 && len(s.Buttons) == 0 && s.Grid == nil {
 		return popupSpec{}, false
@@ -1144,10 +1177,16 @@ func (e *MapEditor) listButtons() []menuItem {
 	if _, ok := e.listAdd(); ok {
 		out = append(out, menuItem{key: "add", label: e.word("editor.button.add")})
 	}
-	if kind, _, ok := e.placeGridKind(); ok && kind == KindStructure {
-		out = append(out, menuItem{key: "ruined", label: markWord(e.place.ruined, e.word("editor.place.ruined"))})
-	}
 	return out
+}
+
+// placeRuinedSwitch is the Structures palette's one switch on popup s: the
+// Ruined mark at the left end of its button row, set while copies are placed
+// ruined.
+func (e *MapEditor) placeRuinedSwitch(s *popupSpec) {
+	if kind, _, ok := e.placeGridKind(); ok && kind == KindStructure {
+		s.SwitchButton = markWord(e.place.ruined, e.word("editor.place.ruined"))
+	}
 }
 
 // scenarioNew are the Scenario palette's one-click add buttons: the key and
@@ -1167,6 +1206,9 @@ func (e *MapEditor) controlListButtonKeyRect(key string) (image.Rectangle, bool)
 		return image.Rectangle{}, false
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
+	if key == "ruined" && s.SwitchButton != "" {
+		return l.SwitchButton, true
+	}
 	for n, b := range e.listButtons() {
 		if b.key == key && n < len(l.Buttons) {
 			return l.Buttons[n], true
@@ -1178,6 +1220,9 @@ func (e *MapEditor) controlListButtonKeyRect(key string) (image.Rectangle, bool)
 // listAdd is the kind the shown records list's Add button adds.
 func (e *MapEditor) listAdd() (addKindRow, bool) {
 	if _, ok := e.addHost(); !ok || e.listKind() != "records" {
+		return addKindRow{}, false
+	}
+	if c, ok := categoryOf(e.filter); ok && c.addsAtOnce {
 		return addKindRow{}, false
 	}
 	return addKindFor(e.filter)
@@ -1800,12 +1845,10 @@ func (e *MapEditor) noteWindow(r image.Rectangle) {
 	}
 }
 
-// drawListWindow draws the list popup s with the links and the brush picture
-// that belong to it.
+// drawListWindow draws the list popup s with the links that belong to it.
 func (e *MapEditor) drawListWindow(pic *image.RGBA, s popupSpec) {
 	e.drawWindow(pic, s)
 	e.drawGoalLinks(pic, s)
-	e.drawBrushPreview(pic, s)
 }
 
 // previewW is the width of the Add window's picture column.
@@ -2322,7 +2365,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			e.pageWheel(popList, s, l, wheel)
 			return
 		}
-		if e.model != nil && e.listKind() != "panel" {
+		if e.model != nil && e.listKind() != "panel" && (e.listKind() != "brush" || e.brushWindowOf().list) {
 			rows := editorWheelRows(&e.listWheel, wheel)
 			if e.listKind() == "catalog" {
 				e.catalogStep(rows)
@@ -2546,12 +2589,20 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			double = double && row == e.lastRow
 			e.lastRow = row
 			e.listChoose(row, e.listKind() != "catalog" || double)
+		case popupSwitchButton:
+			if s.SwitchButton != "" {
+				e.place.ruined = !e.place.ruined
+			}
 		case popupButton:
 			if e.listKind() == "catalog" {
 				if n == 0 {
 					e.catalogOpen()
 				} else {
 					_ = e.Key("open")
+				}
+			} else if e.listKind() == "brush" {
+				if e.forestOn() && n == 0 && len(s.Disabled) > 0 && !s.Disabled[0] {
+					e.forestClear()
 				}
 			} else if bs := e.listButtons(); n < len(bs) {
 				switch bs[n].key {
@@ -2570,8 +2621,6 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 							e.addNow(kind.kind)
 						}
 					}
-				case "ruined":
-					e.place.ruined = !e.place.ruined
 				}
 			}
 		}

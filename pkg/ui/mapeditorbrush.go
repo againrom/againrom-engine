@@ -145,23 +145,6 @@ const (
 // brushKeyModes is the brush mode each brush key switches.
 var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability, "bridge": brushBridge}
 
-// brushModeWord is the word the list title gives mode.
-func (e *MapEditor) brushModeWord(mode brushMode) string {
-	switch mode {
-	case brushTerrain:
-		return e.word("editor.brush.terrain")
-	case brushHeight:
-		return e.word("editor.brush.height")
-	case brushObjects:
-		return e.word("editor.brush.objects")
-	case brushPassability:
-		return e.word("editor.brush.passability")
-	case brushBridge:
-		return e.word("editor.brush.bridge")
-	}
-	return ""
-}
-
 // terrainWord is the word the terrain list gives the palette row the host
 // names name; a name the table lacks reads as the host gave it.
 func (e *MapEditor) terrainWord(name string) string {
@@ -280,10 +263,13 @@ func (e *MapEditor) brushActive() bool {
 	return e.brush.mode != brushOff && e.brushHost() != nil && e.free() && len(e.report.goals) == 0
 }
 
+// brushRows are the brush window's list rows; none for a window without a
+// list.
 func (e *MapEditor) brushRows() []string {
+	if !e.brushWindowOf().list {
+		return nil
+	}
 	switch e.brush.mode {
-	case brushBridge:
-		return []string{e.word("editor.brush.bridge.hint")}
 	case brushTerrain:
 		var rows []string
 		if h := e.brushHost(); h != nil {
@@ -303,11 +289,7 @@ func (e *MapEditor) brushRows() []string {
 		var rows []string
 		if h := e.brushHost(); h != nil {
 			for _, o := range e.brushObjectRows() {
-				word := e.objectWord(o)
-				if e.forestOn() && o.Code != 0 {
-					word = markWord(e.brush.forest.ticks[o.Code], word)
-				}
-				rows = append(rows, word)
+				rows = append(rows, e.objectWord(o))
 			}
 		}
 		return rows
@@ -315,38 +297,36 @@ func (e *MapEditor) brushRows() []string {
 	return nil
 }
 
-// brushPreviewW is the width of the picture beside the Objects list, wider
-// than the Add window's previewW.
+// brushPreviewW is the width of the picture beside a brush window's list,
+// wider than the Add window's previewW.
 const brushPreviewW = 160
 
-// brushAside is the column the Objects list keeps for the highlighted object's
-// picture: none for another brush, or for a host that draws no pictures.
-func (e *MapEditor) brushAside() int {
-	if e.brush.mode != brushObjects {
-		return 0
+// brushPicture is the picture beside the brush window's list: the chosen
+// ground's swatch in the Terrain window, the chosen object's picture in the
+// Objects window and the Trees window's One kind mode, through the host's
+// record-preview seam under the key "object"; nil while the clear row is
+// chosen. ok is false for a window that keeps no column for a picture, or a
+// host that draws none.
+func (e *MapEditor) brushPicture() (pic *image.RGBA, ok bool) {
+	h := e.brushHost()
+	if h == nil || !e.brushWindowOf().picture {
+		return nil, false
 	}
-	if _, ok := e.brushHost().(InspectionNewRecords); !ok {
-		return 0
+	sel := e.brush.sel[e.brush.mode]
+	if e.brush.mode == brushTerrain {
+		if terrains := h.BrushTerrains(); sel >= 0 && sel < len(terrains) {
+			return terrains[sel].Swatch, true
+		}
+		return nil, true
 	}
-	return brushPreviewW + popupPad
-}
-
-// drawBrushPreview draws the highlighted object's picture beside the Objects
-// list, through the host's record-preview seam under the key "object".
-func (e *MapEditor) drawBrushPreview(pic *image.RGBA, s popupSpec) {
-	if e.listKind() != "brush" || e.brushAside() == 0 || s.ListAside == 0 {
-		return
-	}
-	host, ok := e.brushHost().(InspectionNewRecords)
-	if !ok {
-		return
+	if _, ok := h.(InspectionNewRecords); !ok {
+		return nil, false
 	}
 	objects := e.brushObjectRows()
-	sel := e.brush.sel[brushObjects]
 	if sel < 0 || sel >= len(objects) || objects[sel].Code == 0 {
-		return
+		return nil, true
 	}
-	e.drawAside(pic, s, host.NewRecordPreview("brush", "object", int64(objects[sel].Code)))
+	return e.placeTipPicture("brush", "object", int64(objects[sel].Code)), true
 }
 
 func (e *MapEditor) brushRadius() int {
@@ -393,32 +373,144 @@ func (e *MapEditor) brushShapeWord(shape BrushShape) string {
 	return e.word("editor.brush.circle")
 }
 
-// brushLabelWidth is the label column of the brush list's rows.
-const brushLabelWidth = 90
+// brushWindow is one brush window as data for the one brush window builder,
+// the brush branch of listSpecBase: the word of its title, the words its
+// title's (?) says, its rows in order, and whether it shows its list and a
+// picture beside the list.
+type brushWindow struct {
+	titleWord string
+	helpWords []string
+	rows      []brushRowKind
+	list      bool
+	picture   bool
+}
 
-// brushPopupRows are the list's rows above the palette: the size with its
-// minus and plus buttons, and the shape with a button for each; the Height
-// tool adds the strength with its minus and plus buttons.
+// brushRowKind is a row of a brush window.
+type brushRowKind uint8
+
+const (
+	brushRowTool     brushRowKind = iota // One kind or Forest
+	brushRowSize                         // the radius, less and more
+	brushRowShape                        // circle or square; the bridge's rectangle
+	brushRowStrength                     // a Raise or Lower stroke's change
+	brushRowFill                         // the ground's centre fill
+	brushRowDensity                      // the share a forest stroke takes
+)
+
+// brushWindowOf is the shown brush's window. The Objects window holds no
+// tool: Forest is the Trees window's. Forest mode ticks its kinds in the
+// grid alone and shows no list; the Bridge window shows none either. The
+// Terrain window's fill row shows for a ground with look-alike tiles.
+func (e *MapEditor) brushWindowOf() brushWindow {
+	sized := []brushRowKind{brushRowSize, brushRowShape}
+	switch e.brush.mode {
+	case brushTerrain:
+		w := brushWindow{titleWord: "editor.brush.terrain", helpWords: []string{"editor.brush.terrain.help"}, rows: sized, list: true, picture: true}
+		if e.brushVariants() > 1 {
+			w.rows = append(w.rows, brushRowFill)
+		}
+		return w
+	case brushHeight:
+		return brushWindow{titleWord: "editor.brush.height", helpWords: []string{"editor.brush.height.help"}, rows: append(sized, brushRowStrength), list: true}
+	case brushPassability:
+		return brushWindow{titleWord: "editor.brush.passability", rows: sized, list: true}
+	case brushBridge:
+		return brushWindow{titleWord: "editor.brush.bridge", helpWords: []string{"editor.brush.bridge.help"}, rows: sized}
+	case brushObjects:
+		if !e.brush.forest.trees && !e.brush.forest.on {
+			return brushWindow{titleWord: "editor.bar.objects", helpWords: []string{"editor.bar.objects.help"}, rows: sized, list: true, picture: true}
+		}
+		tool := append([]brushRowKind{brushRowTool}, sized...)
+		if e.brush.forest.on {
+			return brushWindow{titleWord: "editor.bar.trees", helpWords: []string{"editor.bar.trees.help"}, rows: append(tool, brushRowDensity)}
+		}
+		return brushWindow{titleWord: "editor.bar.trees", helpWords: []string{"editor.bar.trees.help"}, rows: tool, list: true, picture: true}
+	}
+	return brushWindow{}
+}
+
+// brushPopupRows are the brush window's rows above its grid and list.
 func (e *MapEditor) brushPopupRows() []popupRow {
-	rows := []popupRow{
-		{Kind: popupText, Label: e.word("editor.brush.size"), Value: fmt.Sprint(e.brushRadius()), Buttons: []string{"-", "+"}},
-		{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
-			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}},
-	}
-	if e.brush.mode == brushBridge {
-		rows[1] = popupRow{Kind: popupText, Value: e.word("editor.brush.bridge.floor")}
-	}
-	if e.brush.mode == brushHeight {
-		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.strength"), Value: fmt.Sprint(e.brushStrength()), Buttons: []string{"-", "+"}})
-	}
-	if e.brush.mode == brushTerrain && e.brushVariants() > 1 {
-		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.fill"), Value: e.brushFillWord(),
-			Buttons: []string{e.word("editor.brush.fill.pattern"), e.word("editor.brush.fill.random"), "-", "+"}})
-	}
-	if e.brush.mode == brushObjects {
-		rows = append(rows, e.forestPopupRows()...)
+	var rows []popupRow
+	for _, k := range e.brushWindowOf().rows {
+		rows = append(rows, e.brushRow(k))
 	}
 	return rows
+}
+
+// brushRow is row k of the brush window: its word, value, buttons and (?).
+func (e *MapEditor) brushRow(k brushRowKind) popupRow {
+	steps := []string{e.word("editor.brush.less"), e.word("editor.brush.more")}
+	switch k {
+	case brushRowTool:
+		tool := e.word("editor.brush.tool.one")
+		if e.brush.forest.on {
+			tool = e.word("editor.brush.tool.forest")
+		}
+		return popupRow{Kind: popupText, Label: e.word("editor.brush.tool"), Value: tool,
+			Buttons: []string{e.word("editor.brush.tool.one"), e.word("editor.brush.tool.forest")}}
+	case brushRowSize:
+		return popupRow{Kind: popupText, Label: e.word("editor.brush.size"), Value: fmt.Sprint(e.brushRadius()), Buttons: steps,
+			Help: e.word("editor.brush.size.help")}
+	case brushRowShape:
+		if e.brush.mode == brushBridge {
+			return popupRow{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.word("editor.brush.rectangle")}
+		}
+		return popupRow{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
+			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}}
+	case brushRowStrength:
+		return popupRow{Kind: popupText, Label: e.word("editor.brush.strength"), Value: fmt.Sprint(e.brushStrength()), Buttons: steps,
+			Help: e.word("editor.brush.strength.help")}
+	case brushRowFill:
+		return popupRow{Kind: popupText, Label: e.word("editor.brush.fill"), Value: e.brushFillWord(),
+			Buttons: append([]string{e.word("editor.brush.fill.pattern"), e.word("editor.brush.fill.random")}, steps...),
+			Help:    e.word("editor.brush.fill.help")}
+	}
+	buttons := make([]string, 0, len(forestShares)+1)
+	for i := range forestShares {
+		buttons = append(buttons, e.forestPresetWord(i))
+	}
+	return popupRow{Kind: popupText, Label: e.word("editor.brush.density"), Value: fmt.Sprintf(e.word("editor.brush.density.value"), e.forestShare()),
+		Buttons: append(buttons, e.word("editor.brush.density.typed")), Help: e.word("editor.brush.density.help")}
+}
+
+// brushFit gives the brush window its natural size through listFit: the label column as wide
+// as its widest label with its (?), the mode row's head as wide as that
+// column, and the window as wide as its widest row, its list's widest row
+// beside the picture column, its grid's columns, its empty-palette notes, its
+// title and its button row, so every label, value and name shows whole.
+func (e *MapEditor) brushFit(s *popupSpec) {
+	e.listFit(s, listFitIn{
+		Counts: rowHasControl,
+		Value: func(r popupRow, m listFitMeasure) int {
+			w := max(popupMinField, m.Advance(r.Value)+2*editTextX)
+			for _, bw := range rowButtonWidths(m.Window, r, m.Body, m.Pitch) {
+				w += bw + 4
+			}
+			return w
+		},
+		Heads:     true,
+		GridSlack: 2,
+		Rest: func(_ int, m listFitMeasure) int {
+			need := 0
+			if s.List != nil {
+				for _, r := range s.List.Rows() {
+					text := m.Advance(r.Text) + 2*listTextX
+					if r.Icon != nil || r.IconCell {
+						text += m.Pitch + listTextX
+					}
+					need = max(need, text+widgetSpriteSize+2+s.ListAside)
+				}
+			}
+			for _, n := range e.emptyPaletteNote() {
+				need = max(need, m.Advance(n)+8)
+			}
+			if e.font != nil {
+				need = max(need, e.font.Advance(s.Title)+2*m.Pitch)
+			}
+			return need
+		},
+	})
 }
 
 // brushVariants is how many look-alike tiles the selected terrain has, 0 when
@@ -487,23 +579,30 @@ func (e *MapEditor) setBrushFillButton(k int) {
 	e.brush.fill, e.brush.fillSet = f, true
 }
 
-// brushRowButton is a press on button k of the list's row: minus or plus on
-// the size row, Circle or Square on the shape row, minus or plus on the
-// Height tool's strength row.
+// brushRowButton is a press on button k of the brush window's row: One kind
+// or Forest on the tool row, less or more on the size and strength rows,
+// Circle or Square on the shape row, the fill row's buttons, and the density
+// row's presets and its button that asks for a typed per cent.
 func (e *MapEditor) brushRowButton(row, k int) {
-	switch row {
-	case 0:
+	rows := e.brushWindowOf().rows
+	if row < 0 || row >= len(rows) {
+		return
+	}
+	switch rows[row] {
+	case brushRowTool:
+		e.setForest(k == 1)
+	case brushRowSize:
 		e.setBrushRadius(e.brushRadius() + 2*k - 1)
-	case 1:
-		e.brush.shape = BrushShape(k)
-	case 2, 3, 4:
-		if e.brush.mode == brushHeight && row == 2 {
-			e.setBrushStrength(e.brushStrength() + 2*k - 1)
-		} else if e.brush.mode == brushObjects {
-			e.forestRowButton(row, k)
-		} else if row == 2 {
-			e.setBrushFillButton(k)
+	case brushRowShape:
+		if e.brush.mode != brushBridge {
+			e.brush.shape = BrushShape(k)
 		}
+	case brushRowStrength:
+		e.setBrushStrength(e.brushStrength() + 2*k - 1)
+	case brushRowFill:
+		e.setBrushFillButton(k)
+	case brushRowDensity:
+		e.forestDensityButton(k)
 	}
 }
 
@@ -548,27 +647,7 @@ func (e *MapEditor) brushKey(key string) bool {
 func (e *MapEditor) brushRowClick(n int) {
 	if n >= 0 && n < len(e.brushRows()) {
 		e.brush.sel[e.brush.mode] = n
-		if h := e.brushHost(); h != nil && e.forestOn() {
-			if objects := e.brushObjectRows(); n < len(objects) && objects[n].Code != 0 {
-				e.forestTick(objects[n].Code)
-			}
-		}
 	}
-}
-
-func (e *MapEditor) brushStatus() string {
-	rows := e.brushRows()
-	sel := e.brush.sel[e.brush.mode]
-	if sel >= len(rows) {
-		return ""
-	}
-	if e.forestOn() {
-		return fmt.Sprintf(e.word("editor.brush.forest.status"), len(e.forestTicked()), e.forestShare(), e.brushRadius())
-	}
-	if e.raisingHeight() {
-		return fmt.Sprintf(e.word("editor.brush.height.status"), e.brushModeWord(e.brush.mode), rows[sel], e.heightModeWord(e.brush.heightMode), e.brushRadius(), e.brushStrength())
-	}
-	return fmt.Sprintf(e.word("editor.brush.status"), e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
 }
 
 // objectBrush is the bar's Objects entry (forest false) and Trees entry
