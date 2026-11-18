@@ -151,6 +151,17 @@ func TestModWindowMissionsPageShowsEveryMapCaptionWhole(t *testing.T) {
 					e.objectTop = 0
 					s, _, _ := e.modSpec()
 					l := layoutPopup(s, e.font, e.bodyFont())
+					for _, rr := range l.Rows {
+						for i, caption := range s.Rows[rr.Index].Buttons {
+							if caption == "..." {
+								continue
+							}
+							if i >= len(rr.Buttons) || rr.Buttons[i].Dx() < popupButtonW ||
+								!rr.Buttons[i].In(l.Rect) || e.bodyFont().Advance(caption)+16 > rr.Buttons[i].Dx() {
+								t.Errorf("button %q does not fit row %d in %v", caption, rr.Index, l.Rect)
+							}
+						}
+					}
 					for _, a := range p.actions {
 						found := false
 						for _, r := range s.Rows {

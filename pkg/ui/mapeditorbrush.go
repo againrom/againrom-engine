@@ -482,7 +482,7 @@ func (e *MapEditor) brushFit(s *popupSpec) {
 	e.listFit(s, listFitIn{
 		Counts: rowHasControl,
 		Value: func(r popupRow, m listFitMeasure) int {
-			w := max(popupMinField, m.Advance(r.Value)+2*editTextX)
+			w := max(popupMinField, m.Advance(r.Value)+2*(editTextX+2))
 			for _, bw := range rowButtonWidths(m.Window, r, m.Body, m.Pitch) {
 				w += bw + 4
 			}

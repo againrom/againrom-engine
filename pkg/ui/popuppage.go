@@ -8,6 +8,7 @@ import (
 	"html"
 	"image"
 	"image/color"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -175,36 +176,18 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 		m.doll, m.figure, m.missing = person.doll, gameFigureSize(person.doll, window), encode(word("editor.unit.look.missing"))
 		m.paint.Card, m.paint.CardFont, m.paint.CardAside = person.card, person.cardFont, figureAside(m.figure)
 	}
+	if p := d.Preview; p != nil {
+		if p.Width > 0 {
+			m.paint.Width = max(buttonRowWidth(specWindow(m.paint), body), min(p.Width, window.X-16))
+		}
+		m.paint.Top = max(0, p.Top)
+	}
 	triggerPlace(&m.paint, title, body, window, m.figure)
 	m.plain.Width, m.plain.Bounds, m.plain.At, m.plain.MaxRows = m.paint.Width, m.paint.Bounds, m.paint.At, m.paint.MaxRows
 	m.plain.Columns, m.plain.Size, m.plain.MinWidth = m.paint.Columns, m.paint.Size, m.paint.MinWidth
 	m.plain.Card, m.plain.CardFont, m.plain.CardAside = m.paint.Card, m.paint.CardFont, m.paint.CardAside
 	m.layout = layoutPopup(m.paint, title, body)
 	return m, nil
-}
-
-// madeRowLines is rows with each Wrap text row cut into the lines the one
-// line breaker gives for its column, one text row each; the first line
-// keeps the row's buttons.
-func madeRowLines(rows []popupRow, made []popupMade, box lineBox) ([]popupRow, []popupMade) {
-	var outRows []popupRow
-	var outMade []popupMade
-	for k, r := range rows {
-		if !made[k].Wrap {
-			outRows, outMade = append(outRows, r), append(outMade, made[k])
-			continue
-		}
-		for i, line := range editorRule.plain(box, r.Label) {
-			row, md := r, made[k]
-			row.Label, md.Wrap = line, false
-			if i > 0 {
-				row.Buttons, md.Acts = nil, nil
-			}
-			md.Row = row
-			outRows, outMade = append(outRows, row), append(outMade, md)
-		}
-	}
-	return outRows, outMade
 }
 
 // rowPictures gives rows the pictures made names, through picture: a
@@ -295,6 +278,7 @@ func triggerPlace(s *popupSpec, title, body *text.Font, window, figure image.Poi
 	e.SetBodyFont(body)
 	e.Layout(window.X, window.Y)
 	s.At, s.Bounds, s.MaxRows = e.keptCorner(popObject), e.popupBounds(), e.objectRowsShown(true)
+	s.Top = min(s.Top, max(0, popupRowCount(specWindow(*s))-s.MaxRows))
 	if s.Card != nil {
 		column := s.Width / max(1, s.Columns)
 		s.Width += cardAside(specWindow(*s)) + popupPad
@@ -400,7 +384,24 @@ func (m *EditorMockup) Picture() *image.RGBA {
 	if m.paint.Card != nil {
 		drawFigure(dst, m.paint, m.layout, m.doll, m.figure, m.body, m.missing)
 	}
+	if tip, _, ok := m.previewTip(); ok {
+		drawPopupTip(dst, m.body, tip, editorPopupInk)
+	}
 	return dst
+}
+
+func (m *EditorMockup) previewTip() (popupTip, int, bool) {
+	p := m.desc.Preview
+	if p != nil && p.HoverRow != nil {
+		for _, rr := range m.layout.Rows {
+			if rr.Index == *p.HoverRow && m.paint.Rows[rr.Index].Kind == popupChoice && !rr.Control.Empty() {
+				at := rr.Control.Min.Add(rr.Control.Size().Div(2))
+				tip, ok := popupTipAt(m.paint.Bounds, m.title, m.body, m.paint, m.layout, at, true)
+				return tip, rr.Index, ok
+			}
+		}
+	}
+	return popupTip{}, -1, false
 }
 
 // pagePicture is a picture's box on the page and its name.
@@ -476,6 +477,19 @@ func (m *EditorMockup) Page() []byte {
 			l.ListHeadLines[k] = editorRule.plain(lineBox{Measure: headMeasure, Width: r.Dx() - listColumnGap/2}, w.List.Columns[k].Head)
 		}
 	}
+	if tip, i, ok := m.previewTip(); ok {
+		w.Body.Rows = slices.Clone(w.Body.Rows)
+		row := &w.Body.Rows[i]
+		full := strings.TrimSpace(row.Label + " " + row.Value)
+		tip.Lines = editorRule.plain(lineBox{Measure: measure, Width: tip.Rect.Dx() - 2*tipPad}, full)
+		for _, rr := range l.Rows {
+			if rr.Index == i {
+				row.Value = (textfit.Spec{Measure: measure}).Fit(row.Value, choiceTextRoom(rr.Control))
+				break
+			}
+		}
+		return popupPage(m.desc, w, l, figure, pictures, m.lang, m.window, tip)
+	}
 	return popupPage(m.desc, w, l, figure, pictures, m.lang, m.window)
 }
 
@@ -485,7 +499,7 @@ const pageDescriptionTag = `<script type="application/json" id="popup-descriptio
 // popupPage writes the page from the window's tree w and its layout l, with
 // the person's figure room figure when the window has a card and the
 // rows' pictures, in the inks the painter reads; it lays nothing out.
-func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, pictures []pagePicture, lang string, window image.Point) []byte {
+func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, pictures []pagePicture, lang string, window image.Point, tips ...popupTip) []byte {
 	ink := editorPopupInk
 	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 	var b bytes.Buffer
@@ -665,6 +679,12 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 	part("control", "figure", -1, figure, none, "")
 	for _, p := range pictures {
 		part("control", "picture", p.row, p.box, none, p.name)
+	}
+	if d.Preview != nil {
+		part("control", "row-scroll", -1, l.RowBar, none, "")
+	}
+	for _, t := range tips {
+		part("window", "tip", -1, t.Rect, ink.Value, strings.Join(t.shown(), "\n"))
 	}
 	b.WriteString("</div>\n" + pageDescriptionTag)
 	desc, err := json.Marshal(d) // escapes <, > and &, so the block cannot end early

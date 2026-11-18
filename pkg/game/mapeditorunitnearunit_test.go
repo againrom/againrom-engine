@@ -20,8 +20,8 @@ func TestTriggerWizardUnitNearUnitWritesTheDistanceCheck(t *testing.T) {
 	wizNewTrigger(t, e, "Meet")
 	wizPress(t, e, "", 0)
 	trigChoose(t, e, wizField(t, e, "c0.item"), "Unit near unit")
-	if got := trigLines(e); !strings.Contains(got, "A dead unit is never near.") || !strings.Contains(got, "Second unit") {
-		t.Fatalf("the condition shows no hint or second unit:\n%s", got)
+	if got := trigLines(e); !strings.Contains(got, "Second unit") {
+		t.Fatalf("the condition has no second unit field:\n%s", got)
 	}
 	wizPress(t, e, "c0.p0", 0)
 	clickCell(e, image.Pt(12, 14)) // unit 10

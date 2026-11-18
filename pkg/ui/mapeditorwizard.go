@@ -1015,32 +1015,8 @@ const (
 
 const actionGapRows = 1
 
-func actionGap(add func(popupRow, int, ...string), shown int) {
-	if shown == 0 {
-		return
-	}
-	for range actionGapRows {
-		add(popupRow{Kind: popupText}, -1)
-	}
-}
-
-// wizardSpec is the wizard as a popup, built from its description
-// (screens/triggerwizard.json) under the open trigger's bindings: the name,
-// the once switch, When, And if and Do with their rows, and the buttons
-// Apply, Cancel, New, Delete, Details and Copy. The window's place and
-// width stay scriptSpec's; a wrapped text row goes through text.
-func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, int, ...string), text func(string, string)) {
-	built, made := triggerWizardDesc().build(e.wizardScope(v), e.word)
-	for _, m := range made {
-		if m.Wrap {
-			text(m.Row.Label, m.Role)
-			continue
-		}
-		m.Row.Buttons = nil // scriptSpec captions the row's actions
-		add(m.Row, m.Field, m.Acts...)
-	}
-	s.Title, s.Buttons, s.Disabled = built.Title, built.Buttons, built.Disabled
-	fitButtons(s, e.bodyFont())
+func (e *MapEditor) wizardSpec(v scriptView) (popupSpec, []popupMade) {
+	return triggerWizardDesc().build(e.wizardScope(v), e.word)
 }
 
 // wizardRowButton is a press on button k of a wizard row: remove the row,

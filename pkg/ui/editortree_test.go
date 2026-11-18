@@ -171,21 +171,7 @@ func legacyCardAside(s popupSpec) int {
 }
 
 func legacyRowButtonWidths(s popupSpec, row popupRow, body *text.Font, pitch int) []int {
-	caps := legacyRowButtons(s, row)
-	ws := make([]int, len(caps))
-	for k, c := range caps {
-		ws[k] = popupButtonW
-		if len(row.Buttons) > 0 && body != nil {
-			ws[k] = max(48, body.Advance(c)+16)
-		}
-		if row.Kind == popupCard && !row.Struck {
-			ws[k] = pitch - 2
-			if body != nil && body.Advance(c)+4 > ws[k] {
-				ws[k] = body.Advance(c) + 16
-			}
-		}
-	}
-	return ws
+	return rowButtonWidths(specWindow(s), row, body, pitch)
 }
 
 func legacyPopupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
@@ -281,6 +267,9 @@ func legacyPopupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 		case row.Label != "" && body != nil:
 			left = body.Advance(row.Label) + 8
 		}
+		if !rowHasControl(row) {
+			left += helpMarkW(row, pitch)
+		}
 		beside := 0
 		for _, bw := range bws {
 			beside += bw + 4
@@ -295,17 +284,14 @@ func legacyPopupFlowOf(s popupSpec, body *text.Font, w, pitch int) popupFlow {
 
 func legacyPopupMinWidth(s popupSpec, body *text.Font) int {
 	w := max(240, legacyButtonRowWidth(s, body))
+	pitch := fontHeight(body, 15) + popupRowExtra
 	for _, row := range s.Rows {
-		caps := legacyRowButtons(s, row)
-		if len(caps) == 0 {
+		widths := legacyRowButtonWidths(s, row, body, pitch)
+		if len(widths) == 0 {
 			continue
 		}
 		need := 0
-		for _, c := range caps {
-			bw := popupButtonW
-			if len(row.Buttons) > 0 && body != nil {
-				bw = max(48, body.Advance(c)+16)
-			}
+		for _, bw := range widths {
 			need += bw + 4
 		}
 		if s.LabelWidth > 0 {
@@ -942,16 +928,6 @@ func legacySwitchButtonWidth(s popupSpec, body *text.Font) int {
 		return 0
 	}
 	return legacyPopupButtonWidths(popupSpec{Buttons: []string{s.SwitchButton}, ButtonW: 48}, body)[0]
-}
-
-func legacyRowButtons(s popupSpec, row popupRow) []string {
-	if len(row.Buttons) > 0 {
-		return row.Buttons
-	}
-	if row.Kind == popupPick {
-		return []string{s.PickLabel}
-	}
-	return nil
 }
 
 func legacyButtonRowWidth(s popupSpec, body *text.Font) int {

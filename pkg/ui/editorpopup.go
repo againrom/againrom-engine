@@ -759,13 +759,13 @@ func rowButtonWidths(s uiWindow, row popupRow, body *text.Font, pitch int) []int
 	caps := rowButtons(s, row)
 	ws := make([]int, len(caps))
 	for k, c := range caps {
-		ws[k] = popupButtonW
-		if len(row.Buttons) > 0 && body != nil {
-			ws[k] = max(48, body.Advance(c)+16)
+		least := popupButtonW
+		switch c {
+		case "+", "-", "x", "...":
+			least = 48
 		}
-		if row.Kind == popupCard && !row.Struck {
-			// A card's cross is a square; a caption that does not fit inside
-			// the square takes its own width.
+		ws[k] = popupCaptionWidth(body, c, least)
+		if row.Kind == popupCard && !row.Struck && c == "x" {
 			ws[k] = pitch - 2
 			if body != nil && body.Advance(c)+4 > ws[k] {
 				ws[k] = body.Advance(c) + 16
@@ -938,6 +938,9 @@ func popupFlowOf(s uiWindow, title, body *text.Font, w, pitch int) popupFlow {
 				left = min(left, rowW/2)
 			}
 		}
+		if !rowHasControl(row) {
+			left += helpMarkW(row, pitch)
+		}
 		beside := 0
 		for _, bw := range bws {
 			beside += bw + 4
@@ -1041,17 +1044,14 @@ const popupMinRows = 3
 // buttons and each row's own buttons still fit beside a label and a field.
 func popupMinWidth(s uiWindow, body *text.Font) int {
 	w := max(240, buttonRowWidth(s, body))
+	pitch := fontHeight(body, 15) + popupRowExtra
 	for _, row := range s.Body.Rows {
-		caps := rowButtons(s, row)
-		if len(caps) == 0 {
+		widths := rowButtonWidths(s, row, body, pitch)
+		if len(widths) == 0 {
 			continue
 		}
 		need := 0
-		for _, c := range caps {
-			bw := popupButtonW
-			if len(row.Buttons) > 0 && body != nil {
-				bw = max(48, body.Advance(c)+16)
-			}
+		for _, bw := range widths {
 			need += bw + 4
 		}
 		// A label, a field of at least popupMinField and the buttons.
@@ -1892,12 +1892,16 @@ func popupButtonWidths(s uiWindow, body *text.Font) []int {
 	}
 	ws := make([]int, len(s.Buttons.Captions))
 	for i, c := range s.Buttons.Captions {
-		ws[i] = bw
-		if body != nil {
-			ws[i] = max(bw, body.Advance(c)+16)
-		}
+		ws[i] = popupCaptionWidth(body, c, bw)
 	}
 	return ws
+}
+
+func popupCaptionWidth(body *text.Font, caption string, least int) int {
+	if body != nil {
+		return max(least, body.Advance(caption)+16)
+	}
+	return least
 }
 
 // switchButtonWidth is the width of s's SwitchButton, as wide as its
@@ -2407,7 +2411,7 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 	case row.Kind == popupSwitch:
 		room = c.Dx() - 12
 	case row.Kind == popupChoice || row.Kind == popupCard:
-		room = c.Dx() - min(c.Dx()/2, c.Dy()) - 2 - editTextX
+		room = choiceTextRoom(c)
 	case row.Kind == popupEdit || row.Kind == popupPick:
 		room = c.Dx() - 2 - editTextX
 	default:
@@ -2417,6 +2421,10 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 		cut = true
 	}
 	return full, cut
+}
+
+func choiceTextRoom(c image.Rectangle) int {
+	return c.Dx() - min(c.Dx()/2, c.Dy()) - 2 - editTextX
 }
 
 // popupTipAt is the tip of the shown row under p, false when the pointer is
@@ -2474,6 +2482,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 			return popupTip{}, false
 		}
 		how := tipShape{Width: width, Pull: row.Tip != "", Clip: row.Kind == popupDirection}
+		if row.Kind == popupChoice && row.Tip == "" {
+			how = tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true}
+		}
 		return layoutTip(bounds, body, rr.Rect, full, nil, how), true
 	}
 	if tip, ok := canvasTipAt(bounds, body, s.Canvas, l, p); ok {

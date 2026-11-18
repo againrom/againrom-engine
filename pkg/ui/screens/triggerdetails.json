@@ -1,0 +1,92 @@
+{
+  "window": "triggerdetails",
+  "title": "editor.trigger.title",
+  "titleArgs": ["number"],
+  "titleHelp": "editor.trigger.details.help",
+  "fit": true,
+  "noteInk": "warning",
+  "rows": [
+    {"kind": "edit", "label": "editor.trigger.name", "value": "name", "field": "name"},
+    {
+      "kind": "switch",
+      "label": "editor.trigger.once",
+      "value": "once",
+      "field": "once",
+      "help": "editor.trigger.once.help"
+    },
+    {"kind": "heading", "label": "editor.trigger.conditions"},
+    {"each": "pairs",
+      "rows": [
+        {"kind": "heading", "label": "editor.trigger.orgroup", "when": "or"},
+        {
+          "kind": "choice",
+          "label": "editor.trigger.pair",
+          "labelArgs": ["number"],
+          "ink": "condition",
+          "value": "left",
+          "field": "left",
+          "buttons": [{"word": "editor.trigger.edit", "act": "edit"}]
+        },
+        {"kind": "text", "labelBind": "leftParams", "indent": 4, "wrap": true, "when": "leftParamsShown"},
+        {
+          "kind": "choice",
+          "label": "editor.trigger.comparison",
+          "indent": 2,
+          "value": "cmp",
+          "field": "cmp",
+          "buttons": [{"word": "editor.trigger.remove", "act": "removepair"}]
+        },
+        {
+          "kind": "choice",
+          "label": "editor.trigger.with",
+          "indent": 2,
+          "ink": "condition",
+          "value": "right",
+          "field": "right",
+          "buttons": [{"word": "editor.trigger.edit", "act": "edit"}]
+        },
+        {"kind": "text", "labelBind": "rightParams", "indent": 4, "wrap": true, "when": "rightParamsShown"}
+      ]
+    },
+    {"kind": "text", "when": "pairroom", "help": "editor.trigger.pairs.help",
+      "buttons": [
+        {"word": "editor.trigger.addpair", "act": "addpair"},
+        {"word": "editor.trigger.addgroup", "act": "addgroup", "when": "!noconditions"}
+      ]
+    },
+    {"kind": "heading", "label": "editor.trigger.actions"},
+    {"each": "actions",
+      "rows": [
+        {"each": "gap", "rows": [{"kind": "text"}]},
+        {"kind": "choice", "label": "editor.trigger.action", "labelArgs": ["number"], "ink": "action", "value": "value", "field": "action",
+          "buttons": [{"word": "editor.trigger.edit", "act": "edit"}, {"word": "editor.trigger.remove", "act": "removeaction"}]
+        },
+        {"kind": "text", "labelBind": "params", "indent": 4, "wrap": true, "when": "paramsShown"}
+      ]
+    },
+    {
+      "kind": "text",
+      "when": "actionroom",
+      "help": "editor.trigger.actions.help",
+      "buttons": [{"word": "editor.trigger.addaction", "act": "addaction"}]
+    }
+  ],
+  "buttons": [
+    {"word": "editor.button.apply", "off": "clean"},
+    {"word": "editor.button.cancel"},
+    {"word": "editor.trigger.new"},
+    {"word": "editor.trigger.delete"},
+    {"word": "editor.wizard.back"},
+    {"word": "editor.trigger.copy", "off": "nocopies"}
+  ],
+  "notes": [{"word": "editor.trigger.nopair", "when": "noconditions"}],
+  "sample": {"values": {"number": "1", "name": ""}, "words": {"once": "editor.trigger.once.yes"}, "flags": ["pairroom", "actionroom", "clean"],
+    "lists": {"actions": [{"values": {"number": "1"}, "words": {"value": "editor.wizard.a.win"}}],
+      "pairs": [
+        {"values": {"number": "1", "leftParams": "1", "rightParams": "1"}, "flags": ["leftParamsShown", "rightParamsShown"],
+          "words": {"left": "editor.param.const", "right": "editor.param.const", "cmp": "editor.cmp.0"}
+        }
+      ]
+    }
+  }
+}

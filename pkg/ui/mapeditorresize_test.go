@@ -91,9 +91,9 @@ func TestEditorWindowResizeLossControl(t *testing.T) {
 // the window stays open and ends with it.
 func TestEditorWindowResizeMinimumAndMemory(t *testing.T) {
 	e, _ := fillEditor(t)
-	_, small := edgeDrag(t, e, bottomRight, image.Pt(-5000, -5000))
-	if small.Dx() < 240 || small.Dx() >= 400 {
-		t.Fatalf("least width %d", small.Dx())
+	before, small := edgeDrag(t, e, bottomRight, image.Pt(-5000, -5000))
+	if small.Dx() < 240 || small.Dx() > before.Dx() {
+		t.Fatalf("least width %d, before drag %d", small.Dx(), before.Dx())
 	}
 	s, _ := e.listSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())

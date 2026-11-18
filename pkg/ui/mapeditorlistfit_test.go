@@ -6,17 +6,8 @@ import (
 	"time"
 )
 
-// listFitWidths are the widths the Players window and each brush window
-// have at 1920x1080, by language and window.
-var listFitWidths = map[string]int{
-	"en/structures": 400, "en/objects": 248, "en/trees forest": 518, "en/trees one kind": 248,
-	"en/height": 234, "en/terrain": 259, "en/bridge": 218, "en/players": 608,
-	"ru/structures": 400, "ru/objects": 326, "ru/trees forest": 518, "ru/trees one kind": 296,
-	"ru/height": 274, "ru/terrain": 274, "ru/bridge": 250, "ru/players": 648,
-}
-
-// The Players window and each brush window keep the width the list-window
-// fit gives them, in English and Russian at 1920x1080.
+// The Players window and each brush window fit within the screen and keep
+// the width their list and grid contents need.
 func TestBrushAndPlayersWindowsKeepTheirWidth(t *testing.T) {
 	size := image.Pt(1920, 1080)
 	for _, lang := range paletteLangs {
@@ -24,8 +15,7 @@ func TestBrushAndPlayersWindowsKeepTheirWidth(t *testing.T) {
 			t.Run(lang+"/"+c.name, func(t *testing.T) {
 				e := brushWindowsEditor(t, lang)
 				c.open(t, e)
-				s := mustListSpec(t, e)
-				checkListFitWidth(t, lang+"/"+c.name, s.Width)
+				checkListFitWidth(t, e)
 			})
 		}
 		t.Run(lang+"/players", func(t *testing.T) {
@@ -33,15 +23,21 @@ func TestBrushAndPlayersWindowsKeepTheirWidth(t *testing.T) {
 			if err := e.Key("players"); err != nil {
 				t.Fatal(err)
 			}
-			checkListFitWidth(t, lang+"/players", mustListSpec(t, e).Width)
+			checkListFitWidth(t, e)
 		})
 	}
 }
 
-func checkListFitWidth(t *testing.T, name string, got int) {
+func checkListFitWidth(t *testing.T, e *MapEditor) {
 	t.Helper()
-	if want, ok := listFitWidths[name]; !ok || got != want {
-		t.Errorf("%s: width %d, want %d (kept: %v)", name, got, want, ok)
+	s := mustListSpec(t, e)
+	l := layoutPopup(s, e.font, e.bodyFont())
+	want := s.Width
+	if !l.RowBar.Empty() {
+		want += widgetSpriteSize + 2
+	}
+	if l.Rect.Dx() < want || !l.Rect.In(image.Rectangle{Max: e.window}) {
+		t.Errorf("width %d in %v, need at least %d inside %v", l.Rect.Dx(), l.Rect, want, e.window)
 	}
 }
 

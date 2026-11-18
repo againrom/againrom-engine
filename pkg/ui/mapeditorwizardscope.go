@@ -9,13 +9,8 @@ import (
 	"againrom/pkg/scriptprofile"
 )
 
-// wizardScope is the open trigger as the bindings of the wizard's
-// description: its number and name, the once switch, one item for each
-// condition and action with its parameters, and the flags that pick the
-// headings, add rows, warnings and disabled buttons.
-func (e *MapEditor) wizardScope(v scriptView) *popupScope {
+func (e *MapEditor) triggerScope(v scriptView) *popupScope {
 	o := &e.obj
-	w := o.wiz
 	once := "editor.trigger.once.no"
 	if strings.TrimSpace(o.buf[trigOnce]) != "0" {
 		once = "editor.trigger.once.yes"
@@ -26,8 +21,86 @@ func (e *MapEditor) wizardScope(v scriptView) *popupScope {
 		Fields: map[string]int{"name": trigName, "once": trigOnce},
 		Lists:  map[string][]popupScope{},
 	}
+	if !e.objectDirty() {
+		top.flag("clean")
+	}
+	if _, copies := e.copyOpen(); !copies {
+		top.flag("nocopies")
+	}
+	return top
+}
+
+func (e *MapEditor) detailsScope(v scriptView) *popupScope {
+	top := e.triggerScope(v)
+	o := &e.obj
+	pairs, actions, _ := o.triggerSlots()
+	var prevGroup int64
+	for p := range pairs {
+		if !o.shownPair(p) {
+			continue
+		}
+		left, cmp, right := pairField(p, 0), pairField(p, 1), pairField(p, 2)
+		leftName, lp := e.slotText(true, o.buf[left])
+		rightName, rp := e.slotText(true, o.buf[right])
+		code, _ := strconv.ParseInt(strings.TrimSpace(o.buf[cmp]), 10, 64)
+		row := popupScope{
+			Values: map[string]string{"number": strconv.Itoa(p + 1), "left": leftName, "right": rightName, "cmp": e.cmpWord(code),
+				"leftParams": lp, "rightParams": rp},
+			Fields: map[string]int{"left": left, "cmp": cmp, "right": right},
+		}
+		group := o.pairGroup(p)
+		if len(top.Lists["pairs"]) > 0 && group != prevGroup {
+			row.flag("or")
+		}
+		prevGroup = group
+		if lp != "" {
+			row.flag("leftParamsShown")
+		}
+		if rp != "" {
+			row.flag("rightParamsShown")
+		}
+		top.Lists["pairs"] = append(top.Lists["pairs"], row)
+	}
+	for a := range actions {
+		if !o.shownAction(a) {
+			continue
+		}
+		f := o.actField(a)
+		title, params := e.slotText(false, o.buf[f])
+		list := top.Lists["actions"]
+		row := popupScope{
+			Values: map[string]string{"number": strconv.Itoa(len(list) + 1), "value": title, "params": params},
+			Fields: map[string]int{"action": f},
+		}
+		if len(list) > 0 {
+			row.Lists = map[string][]popupScope{"gap": make([]popupScope, actionGapRows)}
+		}
+		if params != "" {
+			row.flag("paramsShown")
+		}
+		top.Lists["actions"] = append(list, row)
+	}
+	if len(top.Lists["pairs"]) == 0 {
+		top.flag("noconditions")
+	}
+	if len(top.Lists["pairs"]) < scriptprofile.Extended.Pairs {
+		top.flag("pairroom")
+	}
+	if len(top.Lists["actions"]) < scriptprofile.Extended.Actions {
+		top.flag("actionroom")
+	}
+	return top
+}
+
+// wizardScope is the open trigger as the bindings of the wizard's
+// description: its number and name, the once switch, one item for each
+// condition and action with its parameters, and the flags that pick the
+// headings, add rows, warnings and disabled buttons.
+func (e *MapEditor) wizardScope(v scriptView) *popupScope {
+	w := e.obj.wiz
+	top := e.triggerScope(v)
 	at := map[string]int{}
-	for i, f := range o.fields {
+	for i, f := range e.obj.fields {
 		at[f.Key] = i
 	}
 	conds, acts, heroes, drops := 0, 0, false, 0
@@ -67,7 +140,6 @@ func (e *MapEditor) wizardScope(v scriptView) *popupScope {
 	// The add rows reach the extended record's limits on any map: past the
 	// original record's, Apply asks to extend the map.
 	most := scriptprofile.Extended
-	_, copies := e.copyOpen()
 	for _, f := range []struct {
 		name string
 		on   bool
@@ -77,8 +149,6 @@ func (e *MapEditor) wizardScope(v scriptView) *popupScope {
 		{"actionroom", acts < most.Actions},
 		{"nocondwarn", conds == 0 && acts > drops},
 		{"heroes", heroes && e.multiplayer()},
-		{"clean", !e.objectDirty()},
-		{"nocopies", !copies},
 	} {
 		if f.on {
 			top.flag(f.name)
@@ -103,7 +173,7 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 		Lists:  map[string][]popupScope{},
 	}
 	if wr.item < 0 {
-		item.flag("other")
+		item.Values["itemHelp"] = e.word("editor.wizard.otherhint")
 		var texts []string
 		if wr.condition {
 			_, lp := e.slotText(true, strconv.FormatUint(uint64(wr.left), 10))
@@ -157,6 +227,9 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 		case wpBox:
 			param.flag("area")
 		}
+		if slices.Contains(param.Flags, "area") {
+			param.Words = map[string]string{"paramHelp": "editor.wizard.area.help"}
+		}
 		item.Lists["params"] = append(item.Lists["params"], param)
 	}
 	if it.chooseCmp {
@@ -166,8 +239,7 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 		item.Fields["cmp"] = i
 	}
 	if it.hintWord != "" {
-		item.flag("hint")
-		item.Words["hint"] = it.hintWord
+		item.Words["itemHelp"] = it.hintWord
 	}
 	return item
 }

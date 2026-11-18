@@ -32,7 +32,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] Place units, structures, objects, sacks and spells directly from their palettes. Tick items for the next sack and choose a trigger in the condition window.
-
+- [BASE] Trigger windows fit their contents and keep warnings visible while you scroll. Help marks explain the fields, and hovering over a cut-off choice shows its full text.
 - [BASE] In the map editor, question windows such as leaving with unsaved changes or deleting a player are as wide as their text, name the window in the title, and keep what the choice means behind the (?) mark.
 - [BASE] In the map editor, the dialog window shows every message's text whole at the width it needs, and its x and + say what they do; the variable window names the variable and shows its shared condition as a link.
 - [BASE] In the map editor, sack recipe choices now use the editor's language and show spell names instead of spell numbers.

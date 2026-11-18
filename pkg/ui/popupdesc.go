@@ -40,6 +40,7 @@ type popupDesc struct {
 	Rows       []popupDescRow    `json:"rows"`
 	Buttons    []popupDescButton `json:"buttons,omitempty"`
 	Sample     *popupScope       `json:"sample,omitempty"`
+	Preview    *popupPreview     `json:"preview,omitempty"`
 	// TitleHelpMore are word keys whose words follow the title help, each
 	// after a space: the keys line every prompt states once.
 	TitleHelpMore []string `json:"titleHelpMore,omitempty"`
@@ -61,6 +62,12 @@ type popupDesc struct {
 	// Switch is the check at the button row's left end: its word, marked
 	// while the flag On names is set.
 	Switch *popupDescSwitch `json:"switch,omitempty"`
+}
+
+type popupPreview struct {
+	Width    int  `json:"width,omitempty"`
+	Top      int  `json:"top,omitempty"`
+	HoverRow *int `json:"hoverRow,omitempty"`
 }
 
 // popupDescCanvas is a canvas shown as one picture.
@@ -166,6 +173,7 @@ type popupDescRow struct {
 	Hint      string            `json:"hint,omitempty"`
 	HintBind  string            `json:"hintBind,omitempty"`
 	Help      string            `json:"help,omitempty"`
+	HelpBind  string            `json:"helpBind,omitempty"`
 	Ink       string            `json:"ink,omitempty"`
 	Column    int               `json:"column,omitempty"`
 	Lines     int               `json:"lines,omitempty"`
@@ -321,15 +329,13 @@ func (c popupChain) list(name string) []popupBinds {
 }
 
 // popupMade is one built row with what the editor keeps beside it: the
-// field it edits (-1 none), its buttons' actions, and for a wrapped text
-// row its ink role; Picture and Icons are the names of the pictures the
+// field it edits (-1 none) and its buttons' actions. Picture and Icons name the pictures the
 // editor puts in its label column and after its value.
 type popupMade struct {
 	Row     popupRow
 	Field   int
 	Acts    []string
 	Wrap    bool
-	Role    string
 	Picture string
 	Icons   []string
 }
@@ -562,13 +568,15 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 	}
 	if r.Help != "" {
 		row.Help = word(r.Help)
+	} else if r.HelpBind != "" {
+		row.Help = c.text(r.HelpBind, word)
 	}
 	if r.Ink != "" || r.Wrap {
 		// A wrapped text row takes its role's ink as the window's text rows do.
 		row.Ink = inspectionRoleColor(r.Ink)
 	}
 	row.Struck, row.Whole = r.Struck != "" && c.when(r.Struck), r.Whole
-	m := popupMade{Field: -1, Wrap: r.Wrap, Role: r.Ink}
+	m := popupMade{Field: -1, Wrap: r.Wrap}
 	if r.Field != "" {
 		m.Field = c.field(r.Field)
 	}
@@ -665,12 +673,45 @@ func screenDesc(name string) (popupDesc, error) {
 	return parsePopupDesc(data)
 }
 
-// triggerWizardDesc is the trigger wizard's embedded description; a test
-// reads every embedded description, so a broken one fails before a build.
-var triggerWizardDesc = sync.OnceValue(func() popupDesc {
-	d, err := screenDesc("triggerwizard")
-	if err != nil {
-		panic(err)
+var triggerWizardDesc = embeddedPopupDesc("triggerwizard")
+var triggerDetailsDesc = embeddedPopupDesc("triggerdetails")
+
+func embeddedPopupDesc(name string) func() popupDesc {
+	return sync.OnceValue(func() popupDesc {
+		d, err := screenDesc(name)
+		if err != nil {
+			panic(err)
+		}
+		return d
+	})
+}
+
+// madeRowLines is rows with each Wrap text row cut into the lines the one
+// line breaker gives for its column, one text row each; the first line
+// keeps the row's buttons.
+func madeRowLines(rows []popupRow, made []popupMade, box lineBox) ([]popupRow, []popupMade) {
+	var outRows []popupRow
+	var outMade []popupMade
+	for k, r := range rows {
+		if !made[k].Wrap {
+			outRows, outMade = append(outRows, r), append(outMade, made[k])
+			continue
+		}
+		label := strings.TrimLeft(r.Label, " ")
+		indent := r.Label[:len(r.Label)-len(label)]
+		room := box
+		if box.Measure != nil {
+			room.Width -= box.Measure(indent)
+		}
+		for i, line := range editorRule.plain(room, label) {
+			row, md := r, made[k]
+			row.Label, md.Wrap = indent+line, false
+			if i > 0 {
+				row.Buttons, md.Acts = nil, nil
+			}
+			md.Row = row
+			outRows, outMade = append(outRows, row), append(outMade, md)
+		}
 	}
-	return d
-})
+	return outRows, outMade
+}

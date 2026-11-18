@@ -46,7 +46,7 @@ func unSymbol(s string) (id, bind string) {
 func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
 	w := windowOf(specTree(s))
 	d := popupDesc{Window: shape.Window, TitleArgs: shape.TitleArgs, Width: w.Place.Width, LabelWidth: w.Body.LabelWidth,
-		MinWidth: w.Place.MinWidth, ButtonW: w.Buttons.Least, Columns: w.Body.Columns, Card: w.Card.Aside > 0, Sample: shape.Sample}
+		MinWidth: w.Place.MinWidth, ButtonW: w.Buttons.Least, Columns: w.Body.Columns, Fit: w.Place.Fit, Card: w.Card.Aside > 0, Sample: shape.Sample}
 	d.Title, _ = unSymbol(w.Title.Text)
 	d.TitleHelp, _ = unSymbol(w.Title.Help)
 	for _, t := range w.Tabs.Captions {
@@ -62,6 +62,14 @@ func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
 			got.Off = bt.Off
 		}
 		d.Buttons = append(d.Buttons, got)
+	}
+	for i, line := range w.Notes.Lines {
+		n := shape.Notes[i]
+		n.Word, n.Bind = unSymbol(line)
+		d.Notes = append(d.Notes, n)
+	}
+	if w.Notes.Ink == editorWarning {
+		d.NoteInk = "warning"
 	}
 	return d
 }
@@ -85,7 +93,8 @@ func rowsFromSpec(shape []popupDescRow, rows *[]popupRow, made *[]popupMade) []p
 		got.Label, got.LabelBind = unSymbol(label)
 		_, got.Value = unSymbol(row.Value)
 		got.Hint, got.HintBind = unSymbol(row.Hint)
-		got.Help, _ = unSymbol(row.Help)
+		got.Help, got.HelpBind = unSymbol(row.Help)
+		got.LabelArgs = r.LabelArgs
 		if row.Fold == FoldOpen {
 			got.Fold = r.Fold // every flag holds, so a fold reads back open
 		}
@@ -123,6 +132,9 @@ func embeddedDescs(t *testing.T) map[string]popupDesc {
 // descWordIDs are the word ids a description names.
 func descWordIDs(d popupDesc) []string {
 	ids := append([]string{d.Title, d.TitleHelp}, d.Tabs...)
+	for _, n := range d.Notes {
+		ids = append(ids, n.Word)
+	}
 	for _, b := range d.Buttons {
 		ids = append(ids, b.Word)
 	}
@@ -394,6 +406,59 @@ func TestMockupPictureIsThePopupPainters(t *testing.T) {
 	}
 	if inside < m.layout.Rect.Dx()*m.layout.Rect.Dy()/2 || outside != 0 {
 		t.Errorf("%d painted pixels inside the window %v, %d outside", inside, m.layout.Rect, outside)
+	}
+}
+
+func TestDescriptionPreviewPagesBodyAndShowsClippedChoiceTip(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		t.Run(lang, func(t *testing.T) {
+			d := triggerWizardDesc()
+			d.Width, d.LabelWidth, d.Fit = 0, 0, true
+			hover := 1
+			full := strings.TrimSpace(strings.Repeat("Long choice caption ", 20))
+			d.Rows = []popupDescRow{
+				{Kind: "text", Label: "editor.wizard.when", HelpBind: "help", Buttons: []popupDescButton{{Word: "editor.wizard.addcondition"}}},
+				{Kind: "choice", Label: "editor.wizard.condition", Value: "long"},
+			}
+			for range 70 {
+				d.Rows = append(d.Rows, popupDescRow{Kind: "text", Label: "editor.wizard.when", Indent: 2})
+			}
+			d.Sample = &popupScope{Values: map[string]string{"long": full}, Words: map[string]string{"help": "editor.wizard.otherhint"}}
+			d.Preview = &popupPreview{Width: 700, HoverRow: &hover}
+			font, size := wordsFont(lang), image.Pt(1920, 1080)
+			first, err := NewEditorMockup(d.encode(), lang, size, font, font, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tip, row, ok := first.previewTip()
+			if !ok || row != hover || !strings.HasSuffix(tip.Text, full) || !tip.Rect.In(image.Rectangle{Max: size}) {
+				t.Fatalf("clipped value tip: row %d, found %t, tip %+v", row, ok, tip)
+			}
+			page := string(first.Page())
+			box := fmt.Sprintf(`data-box="%d %d %d %d"`, tip.Rect.Min.X, tip.Rect.Min.Y, tip.Rect.Dx(), tip.Rect.Dy())
+			if !strings.Contains(page, `data-part="tip" `+box) || !strings.Contains(page, `data-part="row-scroll"`) {
+				t.Fatal("the page lacks the layout's tip or scroll bar")
+			}
+			if first.plain.Rows[hover].Value != full {
+				t.Fatal("writing the page changed the bound value")
+			}
+			if r := first.layout.Rows[0]; len(r.Buttons) != 1 || r.Help.Empty() || !r.Buttons[0].In(r.Rect) {
+				t.Fatalf("text row button and bound help: %+v", r)
+			}
+			d.Preview.Top = len(d.Rows)
+			last, err := NewEditorMockup(d.encode(), lang, size, font, font, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows := last.layout.Rows
+			if len(rows) == 0 || rows[0].Index <= hover || rows[len(rows)-1].Index != len(d.Rows)-1 ||
+				last.layout.Title != first.layout.Title || !reflect.DeepEqual(last.layout.Buttons, first.layout.Buttons) {
+				t.Fatal("scrolling did not move just the body to the last row")
+			}
+			if _, _, ok := last.previewTip(); ok {
+				t.Fatal("the tip is shown for a row outside the viewport")
+			}
+		})
 	}
 }
 

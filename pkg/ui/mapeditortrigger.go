@@ -17,7 +17,7 @@ import (
 // edit state, drop-downs, typing and Apply serve them, over fields this file
 // builds from the document's script model.
 
-// scriptPopupWidth is the trigger and node popups' width.
+// scriptPopupWidth is the legacy node popup's width.
 const scriptPopupWidth = 560
 
 // scriptView is the script record the object popup shows: a trigger, a
@@ -560,8 +560,40 @@ const (
 func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	e.loadObject()
 	o := &e.obj
-	s := popupSpec{At: e.keptCorner(popObject), Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
+	s := popupSpec{At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorWarning}
 	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
+	if v.trigger != nil {
+		var made []popupMade
+		if o.wiz != nil {
+			s, made = e.wizardSpec(v)
+		} else {
+			s, made = triggerDetailsDesc().build(e.detailsScope(v), e.word)
+		}
+		s.At, s.Bounds = e.keptCorner(popObject), e.popupBounds()
+		if o.note != "" {
+			s.Notes = append(s.Notes, e.editorHostText(o.note))
+		}
+		body := e.bodyFont()
+		s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, body, 0), s.Bounds.Dx()))
+		box := lineBox{Measure: advanceOf(body), Width: e.hostedWrap(s, s.Width-2*popupPad-8)}
+		s.Rows, made = madeRowLines(s.Rows, made, box)
+		for i, m := range made {
+			if m.Field >= 0 {
+				o.rowField[i] = m.Field
+				s.Rows[i].Focus = m.Field == o.focus
+				if m.Row.Kind == popupEdit && s.Rows[i].Focus && body != nil {
+					s.Rows[i].Caret = body.Advance(m.Row.Value)
+				}
+			}
+			if len(m.Acts) > 0 {
+				o.rowActs[i] = m.Acts
+			}
+		}
+		s.Notes = wrapNotes(s.Notes, advanceOf(body), s.Width)
+		e.pageObjectRows(&s, true)
+		return s, make([]int, len(s.Rows))
+	}
+	s.Width, s.LabelWidth = e.popupWide(popObject, scriptPopupWidth), 150
 	var links []int
 	width := e.popupWide(popObject, scriptPopupWidth) - 2*popupPad - 8
 	add := func(row popupRow, field int, acts ...string) {
@@ -591,120 +623,43 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			add(popupRow{Kind: popupText, Label: indent + part, Ink: inspectionRoleColor(ink)}, -1)
 		}
 	}
-	if v.trigger != nil && o.wiz != nil {
-		e.wizardSpec(v, &s, add, text)
-	} else if v.trigger != nil {
-		s.Title = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1)
-		add(popupRow{Kind: popupEdit, Label: o.fields[trigName].Label, Value: e.editorHostText(o.buf[trigName])}, trigName)
-		once := e.word("editor.trigger.once.no")
-		if strings.TrimSpace(o.buf[trigOnce]) != "0" {
-			once = e.word("editor.trigger.once.yes")
-		}
-		add(popupRow{Kind: popupSwitch, Label: o.fields[trigOnce].Label, Value: once}, trigOnce)
-		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.conditions")}, -1)
-		pairs, group := 0, int64(0)
-		slots, actSlots, _ := o.triggerSlots()
-		for p := range slots {
-			if !o.shownPair(p) {
-				continue
-			}
-			// A pair in another group than the one before opens an OR group.
-			if g := o.pairGroup(p); pairs > 0 && g != group {
-				add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.orgroup")}, -1)
-				group = g
-			} else if pairs == 0 {
-				group = g
-			}
-			pairs++
-			for side := range pairSides {
-				f := pairField(p, side)
-				if side == 1 {
-					code, _ := strconv.ParseInt(strings.TrimSpace(o.buf[f]), 10, 64)
-					add(popupRow{Kind: popupChoice, Label: "  " + e.word("editor.trigger.comparison"), Value: e.cmpWord(code)}, f, actRemovePair)
-					continue
-				}
-				label := fmt.Sprintf(e.word("editor.trigger.pair"), p+1)
-				if side == 2 {
-					label = "  " + e.word("editor.trigger.with")
-				}
-				title, params := e.slotText(true, o.buf[f])
-				add(popupRow{Kind: popupChoice, Label: label, Value: title, Ink: editorCondition}, f, actEdit)
-				if params != "" {
-					text("    "+params, "")
-				}
-			}
-		}
-		if pairs == 0 {
-			text(e.word("editor.trigger.nopair"), "warning")
-		}
-		// The add rows reach the extended record's limits on any map: past
-		// the original record's, Apply asks to extend the map.
-		if most := scriptprofile.Extended; pairs == 0 {
-			add(popupRow{Kind: popupText}, -1, actAddPair)
-		} else if pairs < most.Pairs {
-			add(popupRow{Kind: popupText}, -1, actAddPair, actAddGroup)
-		}
-		add(popupRow{Kind: popupHeading, Label: e.word("editor.trigger.actions")}, -1)
-		acts := 0
-		for a := range actSlots {
-			if !o.shownAction(a) {
-				continue
-			}
-			actionGap(add, acts)
-			acts++
-			f := o.actField(a)
-			title, params := e.slotText(false, o.buf[f])
-			add(popupRow{Kind: popupChoice, Label: fmt.Sprintf(e.word("editor.trigger.action"), acts), Value: title, Ink: editorGold}, f, actEdit, actRemoveAct)
-			if params != "" {
-				text("    "+params, "")
-			}
-		}
-		if acts < scriptprofile.Extended.Actions {
-			add(popupRow{Kind: popupText}, -1, actAddAct)
-		}
-		_, copies := e.copyOpen()
-		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back"), e.word("editor.trigger.copy")}
-		s.Disabled = []bool{!e.objectDirty(), false, false, false, false, !copies}
-		fitButtons(&s, e.bodyFont())
-	} else {
-		s.Title = fmt.Sprintf(e.word("editor.node.action"), v.node.ID)
-		if v.condition {
-			s.Title = fmt.Sprintf(e.word("editor.node.condition"), v.node.ID)
-		}
-		for i, f := range o.fields {
-			row := popupRow{Kind: popupEdit, Label: f.Label, Value: o.buf[i]}
-			if f.Key == "name" {
-				row.Value = e.editorHostText(o.buf[i])
-			}
-			var acts []string
-			switch {
-			case strings.HasPrefix(f.Key, "cell"):
-				row.Kind, acts = popupPick, []string{actPick}
-			case len(f.Choices) > 0:
-				row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
-			}
-			if e.nodeFieldTarget(v, i) != targetNone {
-				acts = []string{actPickParam}
-			}
-			if f.Key == nodeTriggerKey {
-				row.Help = e.word("editor.node.trigger.help")
-			}
-			if f.Key == "opcode" {
-				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.operation")}, -1)
-				row.Label = ""
-			}
-			add(row, i, acts...)
-			e.parameterRows(i, &s, add, text)
-			if f.Key == "opcode" && e.doc.Script.Catalog.againrom(v.condition, v.node.Opcode) {
-				text(e.word("editor.node.againrom"), "warning")
-			}
-			if f.Key == "opcode" && len(o.fields) > 2 {
-				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)
-			}
-		}
-		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
-		s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
+	s.Title = fmt.Sprintf(e.word("editor.node.action"), v.node.ID)
+	if v.condition {
+		s.Title = fmt.Sprintf(e.word("editor.node.condition"), v.node.ID)
 	}
+	for i, f := range o.fields {
+		row := popupRow{Kind: popupEdit, Label: f.Label, Value: o.buf[i]}
+		if f.Key == "name" {
+			row.Value = e.editorHostText(o.buf[i])
+		}
+		var acts []string
+		switch {
+		case strings.HasPrefix(f.Key, "cell"):
+			row.Kind, acts = popupPick, []string{actPick}
+		case len(f.Choices) > 0:
+			row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
+		}
+		if e.nodeFieldTarget(v, i) != targetNone {
+			acts = []string{actPickParam}
+		}
+		if f.Key == nodeTriggerKey {
+			row.Help = e.word("editor.node.trigger.help")
+		}
+		if f.Key == "opcode" {
+			add(popupRow{Kind: popupHeading, Label: e.word("editor.node.operation")}, -1)
+			row.Label = ""
+		}
+		add(row, i, acts...)
+		e.parameterRows(i, &s, add, text)
+		if f.Key == "opcode" && e.doc.Script.Catalog.againrom(v.condition, v.node.Opcode) {
+			text(e.word("editor.node.againrom"), "warning")
+		}
+		if f.Key == "opcode" && len(o.fields) > 2 {
+			add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)
+		}
+	}
+	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
+	s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), width)...)
 	}
@@ -721,26 +676,6 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 
 func (e *MapEditor) actWord(a string) string {
 	switch a {
-	case actEdit:
-		return e.word("editor.trigger.edit")
-	case actRemovePair, actRemoveAct, actRemoveRow:
-		return e.word("editor.trigger.remove")
-	case actAddPair:
-		if e.obj.wiz != nil {
-			return e.word("editor.wizard.addcondition")
-		}
-		return e.word("editor.trigger.addpair")
-	case actAddAct:
-		if e.obj.wiz != nil {
-			return e.word("editor.wizard.addaction")
-		}
-		return e.word("editor.trigger.addaction")
-	case actAddGroup:
-		return e.word("editor.trigger.addgroup")
-	case actDraw:
-		return e.word("editor.wizard.draw")
-	case actConfigure:
-		return e.word("editor.wizard.configure")
 	case actPickArea:
 		return e.word("editor.wizard.pickarea")
 	}

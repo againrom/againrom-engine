@@ -68,10 +68,16 @@ func TestTriggerWindowReadsDiplomacyInPlainWords(t *testing.T) {
 	} {
 		e, _ := diplomacyEditor(t, tc.language, 1)
 		lines := strings.Join(e.PopupLines(), "\n")
-		for _, want := range append(tc.item[:], tc.names, tc.shown, tc.hint) {
+		for _, want := range append(tc.item[:], tc.names, tc.shown) {
 			if !strings.Contains(lines, want) {
 				t.Fatalf("%q: the window lacks %q:\n%s", tc.language, want, lines)
 			}
+		}
+		s, _, _ := e.objectSpec()
+		if !slices.ContainsFunc(s.Rows, func(row popupRow) bool {
+			return row.Value == tc.item[1] && strings.Contains(row.Help, tc.hint)
+		}) {
+			t.Fatalf("%q: action lacks the direction help %q", tc.language, tc.hint)
 		}
 		if strings.Contains(lines, "#") {
 			t.Fatalf("%q: a diplomacy row still reads as Other:\n%s", tc.language, lines)
