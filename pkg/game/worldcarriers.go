@@ -361,7 +361,7 @@ func seatTownPurse(c carrierSeat) error {
 // carries.
 func seatTownDiaries(c carrierSeat) error {
 	if d := c.r.town.knowledgeDiaries(); c.r.fresh() && len(d) != 0 {
-		c.ms.World.SetSavedDiaries(d)
+		c.ms.World.SetSavedDiaries(c.ms.World.FoldDiaryLooks(d))
 	}
 	return nil
 }

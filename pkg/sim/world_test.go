@@ -102,8 +102,8 @@ func init() {
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	// The Diary rules read install-derived rows set once per world.
-	worldMethods = append(worldMethods, "SetDiaryUnits", "CopyDiaryUnits", "KnowledgeLevel", "DiaryRows")
-	worldWriters = append(worldWriters, "SetDiaryUnits", "CopyDiaryUnits")
+	worldMethods = append(worldMethods, "SetDiaryUnits", "CopyDiaryUnits", "KnowledgeLevel", "DiaryRows", "SetDiaryFold", "FoldDiaryLooks")
+	worldWriters = append(worldWriters, "SetDiaryUnits", "CopyDiaryUnits", "SetDiaryFold")
 	// The loaded-record carrier the SAV LOAD writes and no tick reads.
 	worldMethods = append(worldMethods, "LoadedRecord", "SetLoadedRecord")
 	worldWriters = append(worldWriters, "SetLoadedRecord")
@@ -174,6 +174,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"Entity":               {reflect.ValueOf(EntityID(7))},
 	"EntityAlive":          {reflect.ValueOf(EntityID(7))},
 	"KnowledgeLevel":       {reflect.ValueOf(Entity{})},
+	"FoldDiaryLooks":       {reflect.ValueOf([]SavedDiary(nil))},
 	"AutoHealing":          {reflect.ValueOf(uint32(SelfSlot))},
 	"AutoCast":             {reflect.ValueOf(uint32(SelfSlot))},
 	"AutoCastStored":       {reflect.ValueOf(uint32(SelfSlot))},

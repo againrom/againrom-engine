@@ -395,6 +395,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		authored = m.AuthoredUnits
 	}
 	w.SetDiaryUnits(diaryRows(t), diaryUnits(authored, t))
+	w.SetDiaryFold(DiaryFold(t))
 	if err := bindCellTails(w, m); err != nil {
 		return nil, nil, err
 	}

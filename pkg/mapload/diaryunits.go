@@ -1,6 +1,7 @@
 package mapload
 
 import (
+	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
 )
@@ -12,6 +13,45 @@ func diaryRows(t *Table) int {
 		return 0
 	}
 	return t.Units.Len()
+}
+
+// firstLookRow is the first Units row that shares row's type and face, the row
+// one look is counted under; zero when row is its own first or the table
+// holds no pair for it. Rows of one look repeat only where a table lists a look
+// twice.
+func firstLookRow(t *Table, row int) uint16 {
+	if t == nil || t.Units == nil || row <= 0 || row >= t.Units.Len() {
+		return 0
+	}
+	typeID, face, ok := data.UnitKeyPair(t.Units.EntryParams(row))
+	if !ok {
+		return 0
+	}
+	if first := data.FindUnit(t.Units, typeID, face); first > 0 && first < row {
+		return uint16(first)
+	}
+	return 0
+}
+
+// DiaryFold maps every named Units row that repeats an earlier row's type and
+// face to the first row of that look. The first game's table has none.
+func DiaryFold(t *Table) map[uint16]uint16 {
+	if t == nil || t.Units == nil {
+		return nil
+	}
+	var out map[uint16]uint16
+	for row := 1; row < t.Units.Len() && row <= maxTokenRow; row++ {
+		if t.Units.EntryName(row) == "" {
+			continue
+		}
+		if first := firstLookRow(t, row); first != 0 {
+			if out == nil {
+				out = map[uint16]uint16{}
+			}
+			out[uint16(row)] = first
+		}
+	}
+	return out
 }
 
 // diaryUnits names the definition row and face each placement resolved to, keyed
@@ -28,7 +68,7 @@ func diaryUnits(units []alm.Unit, t *Table) map[uint16]sim.DiaryUnit {
 		if held, taken := out[u.UnitID]; taken && (held.Row <= 255 || r.Index > 255) {
 			continue
 		}
-		out[u.UnitID] = sim.DiaryUnit{Row: uint16(r.Index), Face: uint8(u.ClassSubID)}
+		out[u.UnitID] = sim.DiaryUnit{Row: uint16(r.Index), Face: uint8(u.ClassSubID), First: firstLookRow(t, r.Index)}
 	}
 	return out
 }

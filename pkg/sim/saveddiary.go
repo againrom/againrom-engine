@@ -128,6 +128,6 @@ func (w *World) ImportOriginalDiaries(diaries []SavedDiary) error {
 	diaries = slices.DeleteFunc(slices.Clone(diaries), func(d SavedDiary) bool {
 		return d.Owner.PlayerID != 0 && len(d.Entries) == 0 && d.Length == w.DiaryRows()
 	})
-	w.savedDiaries = cloneSavedDiaries(diaries)
+	w.savedDiaries = cloneSavedDiaries(w.FoldDiaryLooks(diaries))
 	return nil
 }

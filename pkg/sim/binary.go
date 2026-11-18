@@ -3347,7 +3347,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		savedCellRecords:  carriedResume.cellRecords,
 		savedSpellEffects: carriedResume.spellEffects,
 		savedProjectiles:  carriedResume.projectiles,
-		savedDiaries:      carriedResume.diaries,
+		savedDiaries:      w.FoldDiaryLooks(carriedResume.diaries),
 		carried:           carried,
 		equipment:         equipment,
 		purses:            purses,
