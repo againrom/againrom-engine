@@ -68,11 +68,12 @@ func TestChoiceRowDropdownOpensInsideTheWindow(t *testing.T) {
 	if !ok || !d.Open {
 		t.Fatal("the area prompt shows no open trigger list")
 	}
-	if want := e.rowDropdown(d.Rect, d.Text, d.List, d.Rows, true); d != want {
+	if want := e.rowDropdown(d.Rect, d.Text, d.List, d.Rows, true, false); !reflect.DeepEqual(d, want) {
 		t.Fatalf("the area prompt's drop-down %+v is not the choice row's %+v", d, want)
 	}
-	if box := d.listBox(e.bodyFont()); box.Rect.Max.Y > e.window.Y || box.Rect.Min.Y < 0 || d.Rows != 10 {
-		t.Errorf("the open list of %d rows stands at %v in a window %v high", d.Rows, box.Rect, e.window.Y)
+	frame := d.listFrame(e.bodyFont())
+	if !frame.In(image.Rectangle{Max: e.window}) || frame.Overlaps(d.Rect) || d.Rows < 1 || d.Rows >= 10 {
+		t.Errorf("the open list of %d rows stands at %v by %v in window %v", d.Rows, frame, d.Rect, e.window)
 	}
 }
 

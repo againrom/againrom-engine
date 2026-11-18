@@ -263,7 +263,8 @@ type listBox struct {
 	// left to right (the window layout gives each column's width in pixels):
 	// a row's text holds one cell per column, parted by a tab, each cell
 	// fitted to its column with the cut mark, and a rule parts the columns.
-	Columns []int
+	Columns   []int
+	wrapPitch int
 }
 
 // listColumnGap is the room between a column's text and the next column.
@@ -291,11 +292,19 @@ func columnStops(shares []int, width int) []int {
 // newListBox places a list of rows rows at the argument rectangle's top
 // left, as wide as it, for font f.
 func newListBox(r image.Rectangle, rows int, f *text.Font) listBox {
-	pitch := listFallbackPitch
+	return listAtPitch(r, rows, listRowPitch(f))
+}
+
+func listRowPitch(f *text.Font) int {
 	if f != nil && f.Height() > 0 {
-		pitch = f.Height() + listPitchExtra
+		return f.Height() + listPitchExtra
 	}
-	return listBox{Rect: image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+rows*pitch+listBottomExtra), Pitch: pitch, Rows: rows}
+	return listFallbackPitch
+}
+
+func listAtPitch(r image.Rectangle, rows, pitch int) listBox {
+	rect := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+rows*pitch+listBottomExtra)
+	return listBox{Rect: rect, Pitch: pitch, Rows: rows}
 }
 
 // Row is visible row i's rectangle.
@@ -304,13 +313,15 @@ func (l listBox) Row(i int) image.Rectangle {
 	return image.Rect(l.Rect.Min.X, y, l.Rect.Max.X, y+l.Pitch)
 }
 
+func listIconSide(pitch int) int { return max(1, pitch-2) }
+
 func listRowLead(row PickerRow, pitch, inset int) int {
 	lead := max(0, row.Indent) * listIndentStep
 	if row.Fold != FoldNone {
 		lead += listIndentStep
 	}
 	if row.Icon != nil || row.IconCell {
-		lead += max(1, pitch-2) + inset
+		lead += listIconSide(pitch) + inset
 	}
 	return lead
 }
@@ -361,10 +372,17 @@ func (l listBox) textInset() int {
 	return listTextX
 }
 
+func (l listBox) rowIconPitch(r image.Rectangle) int {
+	if l.wrapPitch > 0 {
+		return min(r.Dy(), l.wrapPitch)
+	}
+	return r.Dy()
+}
+
 func (l listBox) rowTextBox(r image.Rectangle, row PickerRow) image.Rectangle {
 	x := l.textInset()
 	box := r
-	box.Min.X, box.Max.X = r.Min.X+x+listRowLead(row, r.Dy(), x), r.Max.X-x
+	box.Min.X, box.Max.X = r.Min.X+x+listRowLead(row, l.rowIconPitch(r), x), r.Max.X-x
 	return box
 }
 
@@ -382,11 +400,17 @@ func (l listBox) captions(body *text.Font, list *Picker) listRowText {
 			return ""
 		}
 		row := rows[i]
-		if len(l.Columns) > 0 {
+		if l.wrapPitch > 0 || len(l.Columns) > 0 {
 			return row.Text
 		}
 		return editorClip(l.rowFace(body, row), row.Text, width)
 	}
+}
+
+func visibleListLines(face *text.Font, r image.Rectangle, full string) ([]string, bool) {
+	lines := editorTextLines(face, full, r.Dx())
+	visible := max(0, r.Dy()-listTextY) / max(1, face.Height())
+	return lines[:min(len(lines), visible)], len(lines) > visible
 }
 
 // drawListBox paints the shared list's well, its visible rows and its bar.
@@ -430,7 +454,7 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			box := l.rowTextBox(r, item)
 			x, width := box.Min.X, box.Dx()
 			if item.Icon != nil || item.IconCell {
-				side := max(1, r.Dy()-2)
+				side := listIconSide(l.rowIconPitch(r))
 				editorBlit(dst, item.Icon, screenRect{X: float64(r.Min.X + l.textInset()), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 			}
 			if item.Fold != FoldNone {
@@ -440,7 +464,15 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			row := dst.SubImage(r.Inset(1)).(*image.RGBA)
 			line := rowText(top+i, width)
 			if len(l.Columns) == 0 {
-				face.Draw(row, line, x, r.Min.Y+listTextY, ink)
+				if l.wrapPitch > 0 {
+					lines, _ := visibleListLines(face, box, line)
+					step := max(1, face.Height())
+					for i, line := range lines {
+						face.Draw(row, line, x, r.Min.Y+listTextY+i*step, ink)
+					}
+				} else {
+					face.Draw(row, line, x, r.Min.Y+listTextY, ink)
+				}
 				continue
 			}
 			stops := columnStops(l.Columns, width)

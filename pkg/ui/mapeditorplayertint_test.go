@@ -210,15 +210,35 @@ func TestPlayerColourTableHoldsSixteenDistinctColours(t *testing.T) {
 	}
 }
 
+type legendViewRow struct {
+	popupSwatch
+	rect  image.Rectangle
+	label string
+}
+
+func playerLegendOf(e *MapEditor) (image.Rectangle, []legendViewRow) {
+	s, ok := e.legendSpec()
+	if !ok {
+		return image.Rectangle{}, nil
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	rows := make([]legendViewRow, len(l.Rows))
+	for i, r := range l.Rows {
+		row := s.Rows[r.Index]
+		rows[i] = legendViewRow{*row.Swatch, r.Rect, row.Label}
+	}
+	return l.Rect, rows
+}
+
 func TestPlayerLegendListsEveryPlayerInItsColour(t *testing.T) {
 	x := newTintFixture(t)
 	e := x.e
 	base := e.ChromeImage()
-	if box, rows := e.playerLegend(); !box.Empty() || len(rows) != 0 {
+	if box, rows := playerLegendOf(e); !box.Empty() || len(rows) != 0 {
 		t.Fatal("legend shown with the mode off")
 	}
 	_ = e.Key("playertint")
-	box, rows := e.playerLegend()
+	box, rows := playerLegendOf(e)
 	if len(rows) != 3 {
 		t.Fatalf("%d legend rows, want one per player", len(rows))
 	}
@@ -380,7 +400,7 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	_ = e.Key("playertint")
 	corner := func(state string) image.Rectangle {
 		t.Helper()
-		box, rows := e.playerLegend()
+		box, rows := playerLegendOf(e)
 		area := e.mapArea()
 		left, right := e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight)
 		if box.Empty() || len(rows) != 3 {

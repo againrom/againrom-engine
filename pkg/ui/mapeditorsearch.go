@@ -97,13 +97,16 @@ func (e *MapEditor) searchHits() []treeMember {
 func (e *MapEditor) searchItems() []menuItem {
 	var out []menuItem
 	for _, m := range e.searchHits() {
-		label := m.text
-		if c, ok := categoryByKey(m.row.of); ok {
-			label = fmt.Sprintf("%s: %s", e.word(c.word), m.text)
-		}
-		out = append(out, menuItem{key: searchKey, label: label})
+		out = append(out, menuItem{key: searchKey, label: searchItemLabel(m.row.of, m.text, e.word)})
 	}
 	return out
+}
+
+func searchItemLabel(category, name string, word func(string) string) string {
+	if c, ok := categoryByKey(category); ok {
+		return fmt.Sprintf("%s: %s", word(c.word), name)
+	}
+	return name
 }
 
 // searchFollow keeps the field open while typing, with the first hit

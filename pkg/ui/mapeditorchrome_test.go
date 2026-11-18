@@ -51,12 +51,17 @@ func menuKeyRow(t *testing.T, e *MapEditor, menu, key string) int {
 
 func menuPoint(t *testing.T, e *MapEditor, n int) image.Point {
 	t.Helper()
-	b, ok := e.openMenuEntry()
-	if !ok {
-		t.Fatal("no menu open")
+	if r, ok := e.FindControl(ControlQuery{Role: ControlMenuRow, N: n}); ok {
+		return center(r)
 	}
-	d := e.menuDropdown(b, true)
-	return center(d.listBox(e.font).Row(n))
+	if e.menuModel != nil && n < e.menuModel.Len() {
+		e.menuModel.Select(n)
+		if r, ok := e.FindControl(ControlQuery{Role: ControlMenuRow, N: n}); ok {
+			return center(r)
+		}
+	}
+	t.Fatalf("no visible menu row %d", n)
+	return image.Point{}
 }
 
 func listLayout(t *testing.T, e *MapEditor) popupLayout {

@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Close any map from its own tab, scroll long menus and search results, and point at a cut-off tab name or status line to read it in full.
 - [BASE] Map editor search opens below the tabs and toolbar. Hover over a cut-off query to see it whole. The toolbar fits smaller buttons or moves a whole group to a second row when it needs more space.
 - [BASE] Drag the inner edge to resize a docked map editor panel. The edge and the floating window's corner grip light up when you point at them. With no object selected, Properties shows one status line and puts its help behind the (?) button.
 - [BASE] Map editor lists size themselves to their contents and show the full text of a cut line when you hover. The Report window shows the check or save result below the list.

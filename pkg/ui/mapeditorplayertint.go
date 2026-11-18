@@ -1,10 +1,6 @@
 package ui
 
-import (
-	"image"
-	"image/color"
-	"image/draw"
-)
+import "image"
 
 // playerCount is how many players the open map has: its player records.
 func (e *MapEditor) playerCount() int {
@@ -73,96 +69,33 @@ func (e *MapEditor) keyPlayerTint(string) error {
 	return nil
 }
 
-// legendSwatch is the side of a player's colour square in the legend.
-const legendSwatch = 10
-
-// legendRow is one player of the legend: its number, its record's label and
-// its colour. focus marks the selected player; muted marks the other rows
-// while one player is selected, since their colour is not shown on the map.
-type legendRow struct {
-	rect  image.Rectangle
-	label string
-	color color.RGBA
-	focus bool
-	muted bool
-}
-
-// playerLegend is the legend box and its rows, in window coordinates, while
-// the player colours are on. The box stands in the map view's bottom left
-// corner, just above the status strip: the bar is above the map, the panels
-// and the report open at its top corners, and nothing else of the editor is
-// anchored there. A popup the map maker drags over it is drawn after it.
-func (e *MapEditor) playerLegend() (image.Rectangle, []legendRow) {
+func (e *MapEditor) legendSpec() (popupSpec, bool) {
 	if !e.view.playerColours || e.doc == nil {
-		return image.Rectangle{}, nil
+		return popupSpec{}, false
 	}
-	f := e.bodyFont()
-	pitch := fontHeight(f, 15) + 2
-	labels := make([]string, len(editorPlayerTints))
-	have := make([]bool, len(editorPlayerTints))
-	width := 0
-	count := 0
+	var labels [len(editorPlayerTints)]string
+	var have [len(editorPlayerTints)]bool
 	for _, r := range e.doc.Records {
-		if r.Kind != KindPlayer || r.Index < 0 || r.Index >= len(labels) {
-			continue
-		}
-		labels[r.Index], have[r.Index] = r.Label, true
-		count++
-		if f != nil {
-			width = max(width, f.Advance(r.Label))
+		if r.Kind == KindPlayer && r.Index >= 0 && r.Index < len(labels) {
+			labels[r.Index], have[r.Index] = r.Label, true
 		}
 	}
-	if count == 0 {
-		return image.Rectangle{}, nil
-	}
-	const pad = 4
-	area := e.mapArea()
-	box := image.Rect(area.Min.X+6, 0, area.Min.X+6+pad+legendSwatch+pad+width+pad, 0)
-	box.Max.Y = area.Max.Y - 6
-	box.Min.Y = box.Max.Y - (2*pad + count*pitch)
-	box = box.Intersect(area)
 	focus := e.focusedPlayer()
-	var rows []legendRow
-	y := box.Min.Y + pad
-	for i := range labels {
-		if !have[i] {
-			continue
+	var rows []popupRow
+	for i, label := range labels {
+		if have[i] {
+			rows = append(rows, playerSwatchRow(i, focus, label))
 		}
-		rect := image.Rect(box.Min.X+pad, y, box.Max.X-pad, y+pitch)
-		rows = append(rows, legendRow{rect: rect, label: labels[i], color: editorPlayerTints[i],
-			focus: focus == i+1, muted: focus != 0 && focus != i+1})
-		y += pitch
 	}
-	return box, rows
+	if len(rows) == 0 {
+		return popupSpec{}, false
+	}
+	s := playerLegendSpec(e.mapArea(), rows, editorMeasure(e.bodyFont()), *e.bodyPage(popLegend))
+	return s, !s.Bounds.Empty()
 }
 
-// drawPlayerLegend paints the legend on the chrome picture with the editor's
-// box and text painters.
 func (e *MapEditor) drawPlayerLegend(pic *image.RGBA) {
-	box, rows := e.playerLegend()
-	if box.Empty() {
-		return
-	}
-	f := e.bodyFont()
-	draw.Draw(pic, box, image.NewUniform(editorInk), image.Point{}, draw.Src)
-	drawFrame(pic, panelFrame(box, editorInk, editorGold))
-	clip := pic.SubImage(box).(*image.RGBA)
-	for _, r := range rows {
-		swatch := image.Rect(r.rect.Min.X, r.rect.Min.Y+(r.rect.Dy()-legendSwatch)/2, r.rect.Min.X+legendSwatch, r.rect.Min.Y+(r.rect.Dy()-legendSwatch)/2+legendSwatch)
-		ink := editorPaper
-		switch {
-		case r.muted:
-			ink = legendMutedInk
-			draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
-			draw.Draw(clip, swatch.Inset(1), image.NewUniform(editorInk), image.Point{}, draw.Src)
-		default:
-			draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
-		}
-		if r.focus {
-			outline(clip, r.rect.Intersect(box), editorGold)
-		}
-		if f != nil {
-			f.Draw(clip, r.label, swatch.Max.X+4, r.rect.Min.Y+1, ink)
-		}
+	if s, ok := e.legendSpec(); ok {
+		e.drawWindow(pic, s)
 	}
 }

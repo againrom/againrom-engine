@@ -376,9 +376,6 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 // At 1280x800 the status strip holds its whole line with the keys help and
 // the pointer on a cell, and each brush's own help line whole.
 // With the passability view naming every terrain arm of the hovered cell, the
-// keys help gives up its leading lines and keeps the F1 line, which leads to
-// the rest. Its control: that whole line, measured in the same font, is
-// wider than the strip, so the check fails if the fit stops dropping lines.
 func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -392,57 +389,27 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	c := image.Pt(d.Width/2, d.Height/2)
 	d.Passability[c.Y*d.Width+c.X] = ui.PassArm(mapload.GroundBorder) | ui.PassArm(mapload.GroundMountain) | ui.PassArm(mapload.GroundWater) | ui.PassArm(mapload.GroundFlag) | ui.PassArm(mapload.GroundObject)
 	e.ShowCell(c)
-	tail, newMap := x.inspectionUTF8(x.word("editor.keys.help")), x.inspectionUTF8(x.word("editor.keys.new"))
-	check := func(what string, whole bool) string {
+	tail := x.inspectionUTF8(x.word("editor.keys.help"))
+	check := func() string {
 		t.Helper()
 		hoverStatus(e, c)
 		line, width, full, limit := e.StatusFit()
 		if width == 0 || width > limit {
-			t.Fatalf("%s: %q is %d wide; the strip holds %d", what, line, width, limit)
+			t.Fatalf("%q is %d wide; the strip holds %d", line, width, limit)
 		}
-		if whole && line != e.StatusLine() {
-			t.Fatalf("%s: the strip dropped part of %q (%d wide)", what, e.StatusLine(), full)
+		status := e.StatusLine()
+		if strings.Contains(status, tail) {
+			t.Fatalf("shortcut help is still part of the status %q", status)
 		}
-		return line
+		if full <= limit && line != status {
+			t.Fatalf("status %q fits but draws %q", status, line)
+		}
+		return status
 	}
-	if line := check("keys, view off", true); !strings.HasSuffix(line, tail) {
-		t.Fatalf("keys line %q", line)
-	}
-	// A brush leads its help with the size line every brush shares; the strip
-	// may drop it, and keeps the brush's own line whole.
-	own := map[string]string{"terrain": "editor.keys.terrain", "height": "editor.keys.height", "objects": "editor.keys.objects", "passability": "editor.keys.passbrush"}
-	brushCheck := func(key, what string) {
-		t.Helper()
-		if line := check(key+" brush"+what, false); !strings.HasSuffix(line, x.inspectionUTF8(x.word(own[key]))) {
-			t.Fatalf("%s brush%s: %q does not end with the brush's own line", key, what, line)
-		}
-	}
-	for _, key := range []string{"terrain", "height", "objects", "passability"} {
-		if err := e.Key(key); err != nil {
-			t.Fatal(err)
-		}
-		brushCheck(key, "")
-		if err := e.Key(key); err != nil {
-			t.Fatal(err)
-		}
-	}
+	without := check()
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlToolbar, Key: "passview"})
 	trigClick(t, e, r, ok, "Passability")
-	line := check("keys, view on", false)
-	_, _, full, limit := e.StatusFit()
-	if full <= limit {
-		t.Fatalf("control: the whole line with every arm is %d wide within %d; the case does not test the fit", full, limit)
-	}
-	if !strings.HasSuffix(line, tail) || !strings.Contains(e.StatusLine(), newMap) || strings.Contains(line, newMap) {
-		t.Fatalf("the fitted line %q does not keep the F1 line in place of the leading ones", line)
-	}
-	for _, key := range []string{"terrain", "height", "objects", "passability"} {
-		if err := e.Key(key); err != nil {
-			t.Fatal(err)
-		}
-		brushCheck(key, ", view on")
-		if err := e.Key(key); err != nil {
-			t.Fatal(err)
-		}
+	if with := check(); with == without || !strings.Contains(with, d.Source) {
+		t.Fatalf("the passability toggle left status %q (before %q)", with, without)
 	}
 }

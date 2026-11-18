@@ -44,7 +44,7 @@ func (e *MapEditor) runLeave(step leaveStep) error {
 	e.leave(leavePrompt)
 	e.saveThen = nil
 	if step.closeMap {
-		e.dropOpenMap()
+		e.dropOpenMapAt(e.shownMap)
 		return nil
 	}
 	if e.askNextLeave(step) {

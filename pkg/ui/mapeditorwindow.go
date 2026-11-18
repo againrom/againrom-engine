@@ -40,6 +40,7 @@ const (
 	popReport  // the bottom panel while it shows no report, or its strip
 	popToolbar // the toolbar over the map
 	popMapTabs // the strip of the open maps' tabs
+	popLegend
 	popCount
 )
 
@@ -289,7 +290,14 @@ func (e *MapEditor) controlMenuRowRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	d := e.menuDropdown(b, true)
-	return d.listBox(e.font).Row(n), true
+	if !d.Open {
+		return image.Rectangle{}, false
+	}
+	top, count := d.List.Visible()
+	if n < top || n >= top+count {
+		return image.Rectangle{}, false
+	}
+	return d.listBox(e.font).Row(n - top), true
 }
 
 // controlListRowRect is the window rectangle of row n of the open list popup, when
@@ -452,7 +460,7 @@ var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHei
 // whose list ends inside the window and is wide enough for its longest row;
 // a disabled row draws in the hint ink and cannot be chosen.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
-	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X, Press: &e.buttonPress, Button: !entry.field, ButtonRows: true, ListOnly: entry.field}
+	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, Disabled: entry.disabled, Press: &e.buttonPress, Button: !entry.field, ButtonRows: true, ListOnly: entry.field}
 	if entry.field {
 		d.Ink = editorLight
 	}
@@ -460,30 +468,37 @@ func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
 		for i, it := range items {
-			rows[i] = PickerRow{Text: it.label, Choosable: it.key != "" && !it.off}
-			switch {
-			case it.key == "":
-				rows[i].Heading, rows[i].Ink = true, editorGold
-			case it.off:
-				rows[i].Ink = popupHintInk
-			}
-			if e.font != nil {
-				d.ListWidth = max(d.ListWidth, e.font.Advance(it.label)+2*listTextX+widgetSpriteSize+8)
-			}
+			rows[i] = menuPickerRow(it)
 		}
 		if e.menuModel == nil {
 			e.menuModel = NewPicker(rows)
 		}
-		shown := len(rows)
-		if entry.field {
-			// A map's hits run to hundreds: the list scrolls.
-			shown = min(shown, searchRows)
-		}
 		e.menuModel.SetRows(rows)
-		e.menuModel.SetWindow(shown)
-		d.Open, d.List, d.Rows = shown > 0, e.menuModel, shown
+		d = e.fitMenuList(d, e.menuModel, entry.field)
 	}
 	return d
+}
+
+const menuRows = 13
+
+func (e *MapEditor) fitMenuList(d dropdown, list *Picker, search bool) dropdown {
+	limit := menuRows
+	if search {
+		limit = searchRows
+	}
+	d.Open, d.List = list.Len() > 0, list
+	return d.fitList(image.Rectangle{Max: e.window}, e.bodyFont(), 0, limit)
+}
+
+func menuPickerRow(item menuItem) PickerRow {
+	row := PickerRow{Text: item.label, Choosable: item.key != "" && !item.off}
+	switch {
+	case item.key == "":
+		row.Heading, row.Ink = true, editorGold
+	case item.off:
+		row.Ink = popupHintInk
+	}
+	return row
 }
 
 // openMenuEntry is the bar entry of the open menu.
@@ -1745,11 +1760,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	e.drawTopBar(pic)
 	e.drawMapTabs(pic)
 	e.drawToolbar(pic, false)
-	status := e.statusRect()
-	drawFrame(pic, stripFrame(status, edgeTopBit))
-	if f := e.bodyFont(); f != nil {
-		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
-	}
+	e.drawWindow(pic, e.statusSpec())
 	e.drawMapLabels(pic)
 	e.drawPlayerLegend(pic)
 	e.drawSidePanels(pic, panelsDocked)
@@ -1839,8 +1850,7 @@ func (e *MapEditor) drawPlacedWindow(pic *image.RGBA, s popupSpec, l popupLayout
 // frame drawDropdown draws around it.
 func (e *MapEditor) noteDropdown(d dropdown, f *text.Font) {
 	if d.Open && d.List != nil {
-		l := d.listBox(f)
-		e.noteWindow(l.Rect.Union(l.Bar()).Inset(-2))
+		e.noteWindow(d.listFrame(f))
 	}
 }
 
@@ -1932,78 +1942,45 @@ func fitRect(size image.Point, box image.Rectangle) screenRect {
 	return screenRect{X: float64(box.Max.X) - w, Y: float64(box.Min.Y), W: w, H: h}
 }
 
-// statusText is the strip's line: the cell under the pointer, the map's
-// saved state and the mode's keys.
 func (e *MapEditor) statusText() string {
-	parts, help := e.statusParts(e.wholeSelectionNote())
-	return statusJoin(parts, help)
+	return statusSummary(e.statusParts(e.wholeSelectionNote()))
 }
 
-// wholeSelectionNote is the group edit's note as the whole line names it.
 func (e *MapEditor) wholeSelectionNote() string {
 	return e.selectionNote(e.selection.refusals[:min(selectionShownRefusals, len(e.selection.refusals))])
 }
 
-// statusJoin is the strip's line of the lead parts and the help lines.
-func statusJoin(parts, help []string) string {
-	if len(help) == 0 {
-		return strings.Join(parts, "   |   ")
-	}
-	return strings.Join(append(parts, strings.Join(help, "  /  ")), "   |   ")
+func statusSummary(parts []string) string {
+	return strings.Join(parts, "   |   ")
 }
 
-// statusFitted is the line the strip draws in f within width: while the
-// whole line is wider, the help loses its first line, so the last, which
-// names F1 for every key, stays in view. A group edit's note that still does
-// not fit names its first refusal alone, cut to the room left, and counts the
-// rest; the last help line stays while that refusal keeps a part beside the
-// cut mark, and goes when it does not.
-func (e *MapEditor) statusFitted(f *text.Font, width int) string {
-	parts, help := e.statusParts(e.wholeSelectionNote())
-	line := statusJoin(parts, help)
-	for f != nil && len(help) > 1 && f.Advance(line) > width {
-		help = help[1:]
-		line = statusJoin(parts, help)
-	}
-	if f == nil || f.Advance(line) <= width || len(e.selection.refusals) == 0 {
-		return line
-	}
-	first := e.selection.refusals[0]
-	for _, h := range [][]string{help, nil} {
-		withFirst := func(r string) string {
-			p, _ := e.statusParts(e.selectionNote([]string{r}))
-			return statusJoin(p, h)
-		}
-		if l := withFirst(first); f.Advance(l) <= width {
-			return l
-		}
-		room := width - f.Advance(withFirst(""))
-		if cut := editorFit(f).Fit(first, room); strings.HasSuffix(cut, textfit.Mark) && len(cut) > len(textfit.Mark) {
-			if l := withFirst(cut); f.Advance(l) <= width {
-				return l
-			}
-		}
-	}
-	p, _ := e.statusParts(e.selectionNote(nil))
-	return statusJoin(p, nil)
+func statusStripSpec(r image.Rectangle, summary string, help []string) popupSpec {
+	return popupSpec{StripHeight: r.Dy(), Width: r.Dx(), Bounds: r,
+		Rows: []popupRow{{Label: summary, Help: strings.Join(help, "\n")}}}
 }
 
-// StatusFit is the status line as the strip draws it at the window's size,
-// its width and the whole line's width in the body font, and the strip's
-// width, for a headless driver.
+func (e *MapEditor) statusSpec() popupSpec {
+	return statusStripSpec(e.statusRect(), e.statusText(), e.helpLines())
+}
+
+func statusRowText(f *text.Font, full string, r image.Rectangle) string {
+	return (textfit.Spec{Measure: editorMeasure(f), Unit: textfit.Byte}).Fit(full, r.Dx()-popupTextInset)
+}
+
 func (e *MapEditor) StatusFit() (line string, width, whole, limit int) {
+	s := e.statusSpec()
 	f := e.bodyFont()
-	limit = e.statusRect().Dx() - 16
-	line = e.statusFitted(f, limit)
+	l := layoutPopup(s, e.font, f)
+	limit = l.Rows[0].Label.Dx() - popupTextInset
+	full := s.Rows[0].Label
+	line = statusRowText(f, full, l.Rows[0].Label)
 	if f == nil {
 		return line, 0, 0, limit
 	}
-	return line, f.Advance(line), f.Advance(e.statusText()), limit
+	return line, f.Advance(line), f.Advance(full), limit
 }
 
-// statusParts is the strip's lead parts, ending in the group's part with
-// note, and the mode's help lines.
-func (e *MapEditor) statusParts(note string) ([]string, []string) {
+func (e *MapEditor) statusParts(note string) []string {
 	var parts []string
 	if e.mcp.last != "" {
 		parts = append(parts, e.mcp.last)
@@ -2058,8 +2035,16 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 	case e.pick == pickPaste:
 		parts = append(parts, e.word("editor.selection.armed"))
 	}
+	if e.brushActive() {
+		for _, tool := range toolButtons {
+			if tool.key == e.currentTool() {
+				parts = append(parts, e.word(tool.word))
+				break
+			}
+		}
+	}
 	parts = append(parts, e.selectionStatus(note)...)
-	return parts, e.helpLines()
+	return parts
 }
 
 // drawChrome uploads the chrome over screen and reports the text calls the
@@ -2223,6 +2208,9 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 		}
 		return popReport
 	}
+	if s, ok := e.legendSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
+		return popLegend
+	}
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
 		return popArea
 	}
@@ -2235,7 +2223,7 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if p.In(e.toolbarRect()) {
 		return popToolbar
 	}
-	if p.Y >= e.statusRect().Min.Y {
+	if p.In(e.statusRect()) {
 		return popStatus
 	}
 	return popNone
@@ -2364,6 +2352,11 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 // chromeWheel scrolls the popup under the pointer.
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 	switch target {
+	case popLegend:
+		s, _ := e.legendSpec()
+		if l := layoutPopup(s, e.font, e.bodyFont()); !l.RowBar.Empty() {
+			e.pageWheel(popLegend, s, l, wheel)
+		}
 	case popList:
 		if e.placeOwnerWheel(wheel) {
 			return
@@ -2425,7 +2418,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
 		}
 	case popPrompt:
-		if d, ok := e.promptDropdown(); ok && d.Open && e.pointer.In(d.Bounds(e.bodyFont())) {
+		if d, ok := e.promptDropdown(); ok && d.Open && d.Covers(e.bodyFont(), e.pointer) {
 			d.List.Move(editorWheelRows(&e.listWheel, wheel))
 			return
 		}

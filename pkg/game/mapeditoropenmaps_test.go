@@ -260,7 +260,7 @@ func TestEditorKeepsSeveralMapsOfOneModOpen(t *testing.T) {
 				t.Fatal("the closed map opened again:", err, openMapsState(e), e.Document().Name)
 			}
 			_ = e.Key("escape")
-			closeAt, _ = e.FindControl(ui.ControlQuery{Role: ui.ControlMapTab, Flag: true})
+			closeAt, _ = e.FindControl(ui.ControlQuery{Role: ui.ControlMapTab, N: 2, Flag: true})
 			openMapsClick(e, closeAt.Min.Add(image.Pt(closeAt.Dx()/2, closeAt.Dy()/2)))
 			if _, open := e.PromptRect(); open || openMapsState(e) != "22* [23*]" {
 				t.Fatal("closing a clean tab:", openMapsState(e))

@@ -59,6 +59,7 @@ type popupRow struct {
 	// tree row's Fold does; FoldNone is a plain heading.
 	Fold         RowFold
 	Label, Value string
+	Swatch       *popupSwatch
 	Ink          color.RGBA // the value's ink; zero is the popup's paper
 	Focus        bool       // the keyboard edits this row
 	Caret        int        // the caret's pixel offset in a focused edit
@@ -433,6 +434,8 @@ func fitGrid(s uiWindow, w, rest, sizedH int, sized bool) *popupGrid {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
+	Bare        bool
+	StripHeight int
 	Bar         *popupBar
 	Docked      bool
 	Splitter    popupEdge
@@ -546,6 +549,9 @@ type popupSpec struct {
 // popupRowRect is the geometry of one shown row.
 type popupRowRect struct {
 	Index                int
+	Swatch               image.Rectangle
+	LabelLines           []string
+	LabelCut             bool
 	Rect, Label, Control image.Rectangle
 	Button               image.Rectangle   // the first row button; empty otherwise
 	Buttons              []image.Rectangle // every row button, left to right
@@ -562,6 +568,7 @@ type popupRowRect struct {
 // popupLayout is a built popup: every rectangle the painter fills and the
 // hit test reads, and Window, the window as the pass laid it out.
 type popupLayout struct {
+	TabControls        *tabLayout
 	Bar                popupBarLayout
 	Window             *uiWindow
 	Tabs               []image.Rectangle
@@ -649,35 +656,7 @@ type tabStrip struct {
 	Active   int
 	Switch   bool
 	PerLine  int
-}
-
-// rects is the strip's tabs from origin over width, each line pitch high.
-func (t tabStrip) rects(origin image.Point, width, pitch int) []image.Rectangle {
-	per := t.PerLine
-	if per <= 0 {
-		per = len(t.Captions)
-	}
-	var out []image.Rectangle
-	for i := range t.Captions {
-		left := origin.X + i%per*width/per
-		right := origin.X + (i%per+1)*width/per
-		top := origin.Y + i/per*pitch
-		out = append(out, image.Rect(left, top, right, top+pitch))
-	}
-	return out
-}
-
-// draw draws the strip's tabs in rects and, where closeAt has area, the close
-// button the strip ends in. part and at are what the pointer is over, as the
-// layout's hit reports it: that tab, or the close button, is lit.
-func (t tabStrip) draw(dst *image.RGBA, body *text.Font, rects []image.Rectangle, closeAt image.Rectangle, held *buttonPress, part popupPart, at int) {
-	for i, tab := range rects {
-		chosen := t.Switch && t.Active == i
-		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: t.Captions[i], Literal: true, LabelRaise: labelRaise(body), Focus: t.Active == i && !t.Switch, Pressed: chosen, Inside: chosen, Hover: part == popupTab && at == i})
-	}
-	if !closeAt.Empty() {
-		drawPushButton(dst, body, pushButton{Press: held, Rect: closeAt, Label: "x", Literal: true, LabelRaise: labelRaise(body), Hover: part == popupClose})
-	}
+	Closable bool
 }
 
 // popupFlow is how a popup lays out what its width cannot hold: the tabs on
@@ -887,6 +866,18 @@ func popupFlowOf(s uiWindow, title, body *text.Font, w, pitch int) popupFlow {
 	}
 	if f.tabsPerLine > 0 {
 		f.tabLines = (len(s.Tabs.Captions) + f.tabsPerLine - 1) / f.tabsPerLine
+	}
+	for i, row := range s.Body.Rows {
+		if row.Swatch == nil {
+			continue
+		}
+		room := inner
+		if s.Body.MaxRows > 0 && popupRowCount(s) > s.Body.MaxRows {
+			room -= widgetSpriteSize + 2
+		}
+		maxLines := max(1, (s.Place.Bounds.Dy()-2*popupPad)/pitch)
+		lines, _ := swatchLines(body, row.Label, room, maxLines)
+		f.rowExtra[i] = len(lines) - 1
 	}
 	columns := max(1, s.Body.Columns)
 	if !s.Place.Fit && columns == 1 {
@@ -1331,7 +1322,13 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		s.Card.Subject = nil
 	}
 	pitch := fontHeight(body, 15) + popupRowExtra
-	titleH := popupTitleHeight(title)
+	titleH, padY := popupTitleHeight(title), popupPad
+	if s.Place.Bare {
+		titleH = 0
+	}
+	if s.Place.StripHeight > 0 {
+		titleH, padY, pitch = 0, 0, s.Place.StripHeight
+	}
 	size, minWidth := s.Place.Size, s.Place.MinWidth
 	var barSize toolSize
 	if s.Bar != nil {
@@ -1421,13 +1418,13 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		rowsH = popupRowsHeight(s, flow, pitch, shown)
 		barH = rowsH
 	}
-	h := titleH + popupPad + flow.cardBand() + rowsH
+	h := titleH + padY + flow.cardBand() + rowsH
 	var list listBox
 	if s.List.Picker != nil {
 		list = newListBox(image.Rect(0, 0, w-2*popupPad-widgetSpriteSize, 0), max(1, s.List.Rows), body)
 		h += list.Rect.Dy() + popupPad + flow.listHeadH
 	}
-	h += len(s.Notes.Lines)*pitch + popupPad
+	h += len(s.Notes.Lines)*pitch + padY
 	h += flow.buttonLines * (pitch + 4 + popupPad)
 	s.Grid = fitGrid(s, w, h, sizedH, sized)
 	h += s.Grid.height()
@@ -1464,9 +1461,11 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		l.Title.Max.Y -= flow.tabLines * pitch
 		l.Tabs = tabStrip{Captions: s.Tabs.Captions, PerLine: flow.tabsPerLine}.rects(image.Pt(r.Min.X+popupPad, l.Title.Max.Y), w-2*popupPad, pitch)
 	}
-	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+popupTitleInset, r.Max.X-popupTitleInset, l.Title.Max.Y-popupTitleInset)
-	if s.Title.Help != "" {
-		l.TitleHelp = l.Close.Sub(image.Pt(l.Close.Dx()+4, 0))
+	if !l.Title.Empty() {
+		l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+popupTitleInset, r.Max.X-popupTitleInset, l.Title.Max.Y-popupTitleInset)
+		if s.Title.Help != "" {
+			l.TitleHelp = l.Close.Sub(image.Pt(l.Close.Dx()+4, 0))
+		}
 	}
 	contentRight := r.Max.X - popupPad
 	cardY := r.Min.Y + titleH + popupPad
@@ -1488,7 +1487,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 			contentRight -= cardAside(s) + popupPad
 		}
 	}
-	contentY := r.Min.Y + titleH + popupPad
+	contentY := r.Min.Y + titleH + padY
 	if !flow.cardBelow {
 		contentY += flow.cardBand()
 	}
@@ -1563,6 +1562,12 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 				// A card with no drop-down: its number's line runs across.
 				rr.Label, rr.Control = line, image.Rectangle{}
 			}
+		}
+		if row.Swatch != nil {
+			top := y + (pitch-legendSwatch)/2
+			rr.Swatch = image.Rect(left, top, left+legendSwatch, top+legendSwatch)
+			rr.Label = image.Rect(rr.Swatch.Max.X+popupPad, y, right, y+rowH)
+			rr.LabelLines, rr.LabelCut = swatchLines(body, row.Label, right-left, flow.rowExtra[index]+1)
 		}
 		if row.Kind == popupMultiline && row.Whole && body != nil {
 			// A text taller than its box leaves the box a bar at its right.
@@ -1974,20 +1979,21 @@ func (l popupLayout) rowButtonAt(p image.Point) (row, button int, ok bool) {
 type popupPart uint8
 
 const (
-	popupMiss       popupPart = iota // outside the popup
-	popupBody                        // the popup's ground: consumed, no action
-	popupTitle                       // the title bar: a drag moves the popup
-	popupClose                       // the close button
-	popupRowLine                     // a row's label or value
-	popupRowHelp                     // a row's (?) mark: its help, never its action
-	popupRowControl                  // a row's control
-	popupRowButton                   // a row's own button
-	popupListRow                     // a list row
-	popupListBar                     // the list's scroll bar
-	popupButton                      // a button of the button row
-	popupGridPart                    // a grid cell; the index is the cell's
-	popupGridBar                     // the grid's scroll bar
-	popupRowGrip                     // a card's grip: a drag moves the card
+	popupMiss    popupPart = iota // outside the popup
+	popupBody                     // the popup's ground: consumed, no action
+	popupTitle                    // the title bar: a drag moves the popup
+	popupClose                    // the close button
+	popupRowLine                  // a row's label or value
+	popupTabPage
+	popupRowHelp    // a row's (?) mark: its help, never its action
+	popupRowControl // a row's control
+	popupRowButton  // a row's own button
+	popupListRow    // a list row
+	popupListBar    // the list's scroll bar
+	popupButton     // a button of the button row
+	popupGridPart   // a grid cell; the index is the cell's
+	popupGridBar    // the grid's scroll bar
+	popupRowGrip    // a card's grip: a drag moves the card
 	popupTab
 	popupSwitchButton // the button row's SwitchButton
 	popupCanvasBox    // a canvas box that takes a press; the index is the box's
@@ -2021,10 +2027,8 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 		}
 		return popupBarCellPart, cell.Index
 	}
-	for i, tab := range l.Tabs {
-		if p.In(tab) {
-			return popupTab, i
-		}
+	if part, i := (tabLayout{rects: l.Tabs}).hit(p); part == popupTab {
+		return part, i
 	}
 	if row, _, ok := l.rowButtonAt(p); ok {
 		return popupRowButton, row
@@ -2196,6 +2200,8 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 	frame := panelFrame(l.Rect, ink.Ground, ink.Edge)
 	if s.Bar != nil && s.Bar.Strip {
 		frame.Sides = edgeBottomBit
+	} else if s.Place.StripHeight > 0 {
+		frame.Sides = edgeTopBit
 	}
 	drawFrame(dst, frame)
 	if s.Bar != nil {
@@ -2258,7 +2264,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		if pointerOK {
 			over, at = l.hit(pointer)
 		}
-		tabStrip{Captions: s.Tabs.Captions, Active: s.Tabs.Active, Switch: s.Tabs.Switch}.draw(dst, body, l.Tabs, image.Rectangle{}, held, over, at)
+		tabStrip{Switch: s.Tabs.Switch}.draw(dst, body, tabLayout{rects: l.Tabs, captions: s.Tabs.Captions, active: s.Tabs.Active}, held, over, at)
 	}
 	bodyText := func(r image.Rectangle, s string, c color.RGBA) {
 		if body == nil || s == "" {
@@ -2328,7 +2334,16 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			}
 			label.Min.X += cardGrip
 		}
-		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
+		if row.Swatch != nil {
+			drawPopupSwatch(dst, rr, *row.Swatch, ink)
+			for i, line := range rr.LabelLines {
+				bodyText(label.Add(image.Pt(0, i*l.Pitch)), line, value)
+			}
+		} else if s.Place.StripHeight > 0 {
+			bodyText(label, statusRowText(body, row.Label, label), ink.Label)
+		} else {
+			bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
+		}
 		if !rr.TextBar.Empty() && body != nil {
 			lines, visible := multilineView(body, row, rr.Control)
 			start := multilineStart(row, len(lines), visible)
@@ -2469,6 +2484,9 @@ func foldIndent(row popupRow) int {
 // painter cuts any part of it: the label to its column, a value to its
 // control, by the same widths the painter clips to.
 func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, bool) {
+	if row.Swatch != nil {
+		return row.Label, rr.LabelCut
+	}
 	if body == nil || row.Edit != nil || row.Kind == popupMultiline {
 		return "", false
 	}
@@ -2512,8 +2530,18 @@ func choiceTextRoom(c image.Rectangle) int {
 // row's whole text or the row's own Tip. Over the grid it is the whole
 // upright column head; a cell's Tip is the editor's hover tip (tipAt).
 func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, l popupLayout, p image.Point, pointerOK bool) (popupTip, bool) {
+	if !pointerOK {
+		return popupTip{}, false
+	}
+	if l.TabControls != nil {
+		anchor, full := l.TabControls.tip(p)
+		if full == "" {
+			return popupTip{}, false
+		}
+		return valueTip(bounds, body, anchor, full), true
+	}
 	s := l.window(spec)
-	if !pointerOK || body == nil {
+	if body == nil && s.Place.StripHeight == 0 {
 		return popupTip{}, false
 	}
 	if s.Bar != nil {
@@ -2537,6 +2565,12 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 				// A row button's tip says what it does.
 				return layoutTip(bounds, body, b, row.ButtonTips[k], nil, tipShape{Width: min(popupTipW, bounds.Dx()), Fit: true, Pull: true}), true
 			}
+		}
+		if s.Place.StripHeight > 0 {
+			if p.In(rr.Label) && (editorMeasure(body)(row.Label) > rr.Label.Dx()-popupTextInset) {
+				return valueTip(bounds, body, rr.Label, row.Label), true
+			}
+			return popupTip{}, false
 		}
 		full, cut := rowFull(title, body, row, rr)
 		width := rr.Rect.Dx()
@@ -2563,6 +2597,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 		}
 		if !cut {
 			return popupTip{}, false
+		}
+		if row.Swatch != nil {
+			return valueTip(bounds, body, rr.Label, full), true
 		}
 		if row.Kind == popupLink || row.Kind == popupChoice && row.Tip == "" {
 			return valueTip(bounds, body, rr.Rect, full), true

@@ -730,36 +730,11 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	}
 }
 
-// choiceWindow is the rows field i's open list of n choices shows: ten at
-// most, or for a field that lists all as many as fit in the window's height,
-// ten at least; openDropdown raises such a list where it would pass the
-// window's bottom.
 func (e *MapEditor) choiceWindow(i, n int) int {
-	rows := min(10, n)
-	if i < 0 || i >= len(e.obj.fields) || !e.obj.fields[i].ListAll {
-		return rows
+	if i >= 0 && i < len(e.obj.fields) && e.obj.fields[i].ListAll {
+		return n
 	}
-	if _, ok := e.fieldControl(i); !ok {
-		return rows
-	}
-	pitch := newListBox(image.Rectangle{}, 1, e.bodyFont()).Pitch
-	fit := (e.window.Y - listBottomExtra) / pitch
-	return max(rows, min(n, fit))
-}
-
-// fieldControl is the control rectangle of field i's row in the object
-// popup, false when the popup shows no row for it.
-func (e *MapEditor) fieldControl(i int) (image.Rectangle, bool) {
-	s, _, ok := e.objectSpec()
-	if !ok {
-		return image.Rectangle{}, false
-	}
-	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if rr.Index == e.fieldRow(i) {
-			return rr.Control, true
-		}
-	}
-	return image.Rectangle{}, false
+	return min(10, n)
 }
 
 // openDropdown is the object popup's open drop-down, placed on its row.
@@ -774,17 +749,9 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
-			d := e.rowDropdown(rr.Control, s.Rows[rr.Index].Value, o.choice, e.choiceWindow(o.open, o.choice.Len()), true)
+			d := e.rowDropdown(rr.Control, s.Rows[rr.Index].Value, o.choice, e.choiceWindow(o.open, o.choice.Len()), true, o.fields[o.open].ListAll)
 			if o.search != "" {
 				d.Text = e.editorHostText(o.search)
-			}
-			// A list with a choice it shuts is as wide as its longest row, so
-			// the reason reads whole.
-			if body := e.bodyFont(); body != nil && len(o.fields[o.open].Shut) > 0 {
-				for _, row := range o.choice.Rows() {
-					d.ListWidth = max(d.ListWidth, body.Advance(row.Text)+2*listTextX+widgetSpriteSize+8)
-				}
-				d.ListWidth = min(d.ListWidth, max(rr.Control.Dx(), e.window.X-rr.Control.Min.X-8))
 			}
 			return d, true
 		}
@@ -795,8 +762,9 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 // rowDropdown is the editor's one drop-down of a choice row: the closed box
 // on the row's control showing value, and while open the list's rows below
 // it, risen to end inside the window.
-func (e *MapEditor) rowDropdown(control image.Rectangle, value string, list *Picker, rows int, open bool) dropdown {
-	return dropdown{Rect: control, Text: value, Open: open, List: list, Rows: rows, Focus: true, Fill: editorPanel, Ink: editorLight, ListBottom: e.window.Y}
+func (e *MapEditor) rowDropdown(control image.Rectangle, value string, list *Picker, rows int, open, allRows bool) dropdown {
+	d := dropdown{Rect: control, Text: value, Open: open, List: list, allRows: allRows, Focus: true, Fill: editorPanel, Ink: editorLight}
+	return d.fitList(image.Rectangle{Max: e.window}, e.bodyFont(), 0, rows)
 }
 
 // drawRowDropdowns paints the open list of a choice row, the object
@@ -811,16 +779,15 @@ func (e *MapEditor) drawRowDropdowns(pic *image.RGBA) {
 	}
 }
 
-// drawEditorDropdown paints drop-down d in font f, its rows cut to their
-// width, and notes its open list as a window the chrome drew.
+// drawEditorDropdown paints drop-down d and notes its open list as a chrome window.
 func (e *MapEditor) drawEditorDropdown(pic *image.RGBA, f *text.Font, d dropdown) {
 	e.noteDropdown(d, f)
-	drawDropdown(pic, f, nil, d, func(row, width int) string { return editorClip(f, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
+	drawDropdown(pic, f, nil, d, nil, e.pointer, e.pointerOK)
 }
 
 func (e *MapEditor) openDropdownHit(p image.Point) bool {
 	d, ok := e.openDropdown()
-	return ok && p.In(d.Bounds(e.bodyFont()))
+	return ok && d.Open && d.Covers(e.bodyFont(), p)
 }
 
 // openDropdownPress is a press while a drop-down is open: a row chooses, the

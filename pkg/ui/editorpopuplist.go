@@ -149,7 +149,11 @@ func listCellTip(bounds image.Rectangle, body *text.Font, list uiList, box listB
 		r = box.rowTextBox(r, data)
 		face = box.rowFace(body, data)
 	}
-	if face.Advance(full) <= r.Dx() {
+	clipped := face.Advance(full) > r.Dx()
+	if k < 0 && box.wrapPitch > 0 {
+		_, clipped = visibleListLines(face, r, full)
+	}
+	if !clipped {
 		return popupTip{}, false
 	}
 	return valueTip(bounds, body, r, full), true

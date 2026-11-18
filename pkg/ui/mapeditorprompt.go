@@ -169,7 +169,7 @@ func (e *MapEditor) promptDropdown() (dropdown, bool) {
 	s := e.sizedPrompt(base)
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if s.Rows[rr.Index].Kind == popupChoice {
-			return e.rowDropdown(rr.Control, s.Rows[rr.Index].Value, list, min(10, list.Len()), open), true
+			return e.rowDropdown(rr.Control, s.Rows[rr.Index].Value, list, min(10, list.Len()), open, false), true
 		}
 	}
 	return dropdown{}, false
@@ -178,7 +178,7 @@ func (e *MapEditor) promptDropdown() (dropdown, bool) {
 // promptDropdownHit reports that p lies on the prompt's open list.
 func (e *MapEditor) promptDropdownHit(p image.Point) bool {
 	d, ok := e.promptDropdown()
-	return ok && d.Open && p.In(d.Bounds(e.bodyFont()))
+	return ok && d.Open && d.Covers(e.bodyFont(), p)
 }
 
 // openPromptList opens or closes the list of a field prompt's choice row.

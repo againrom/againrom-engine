@@ -557,7 +557,7 @@ func (e *MapEditor) placeOwnerDropdown() (dropdown, bool) {
 	at := e.placeOwnerAt(s)
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == at && at >= 0 {
-			return e.rowDropdown(rr.Control, s.Rows[at].Value, list, min(10, list.Len()), true), true
+			return e.rowDropdown(rr.Control, s.Rows[at].Value, list, min(10, list.Len()), true, false), true
 		}
 	}
 	return dropdown{}, false

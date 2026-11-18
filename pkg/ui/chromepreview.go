@@ -11,29 +11,42 @@ import (
 )
 
 type chromePreview struct {
-	Maps      []string `json:"maps"`
-	Floating  bool     `json:"floating,omitempty"`
-	HoverTool string   `json:"hoverTool,omitempty"`
-	Menu      string   `json:"menu,omitempty"`
-	Query     *string  `json:"query,omitempty"`
+	Maps        []string         `json:"maps,omitempty"`
+	Floating    bool             `json:"floating,omitempty"`
+	HoverTool   string           `json:"hoverTool,omitempty"`
+	Menu        string           `json:"menu,omitempty"`
+	Query       *string          `json:"query,omitempty"`
+	Active      int              `json:"active,omitempty"`
+	ListRows    int              `json:"listRows,omitempty"`
+	Hits        []chromeHitValue `json:"hits,omitempty"`
+	SelectedHit int              `json:"selectedHit,omitempty"`
+	Status      []string         `json:"status,omitempty"`
+	Players     []string         `json:"players,omitempty"`
+	FocusPlayer int              `json:"focusPlayer,omitempty"`
+	Hover       string           `json:"hover,omitempty"`
 }
 
 type mockupChrome struct {
-	editor *MapEditor
-	decode func(string) string
-	menu   dropdown
-	search popupLayout
-	tip    popupTip
+	editor                 *MapEditor
+	decode                 func(string) string
+	menu                   dropdown
+	search                 popupLayout
+	tip                    popupTip
+	body                   *text.Font
+	bounds                 image.Rectangle
+	tabLayout              tabLayout
+	statusSpec, legendSpec popupSpec
+	status, legend         popupLayout
 }
 
 func newMockupChrome(p chromePreview, lang string, window image.Point, title, body *text.Font, encode, decode func(string) string) (*mockupChrome, error) {
 	if window.X < 1920 || window.Y < 1080 {
 		return nil, fmt.Errorf("editor chrome needs at least 1920x1080")
 	}
-	if len(p.Maps) < 1 || len(p.Maps) > maxOpenMaps {
-		return nil, fmt.Errorf("chrome preview needs 1 to %d map names", maxOpenMaps)
+	if len(p.Maps) > maxOpenMaps {
+		return nil, fmt.Errorf("chrome preview accepts at most %d map names", maxOpenMaps)
 	}
-	if p.Query != nil && (p.Menu != "" || p.HoverTool != "") {
+	if p.Query != nil && ((p.Menu != "" && p.Menu != searchKey) || p.HoverTool != "") {
 		return nil, fmt.Errorf("search, an open menu and a tool hover are separate preview states")
 	}
 	if title == nil {
@@ -50,11 +63,13 @@ func newMockupChrome(p chromePreview, lang string, window image.Point, title, bo
 	e.book, e.hasBook = words.For(lang), true
 	e.SetHostTextEncoder(encode, decode)
 	e.catalog = false
-	e.doc = &InspectionDocument{Name: p.Maps[0]}
-	if len(p.Maps) > 1 {
+	e.doc = &InspectionDocument{}
+	if len(p.Maps) > 0 {
 		for _, name := range p.Maps {
 			e.openMaps = append(e.openMaps, &openMap{doc: &InspectionDocument{Name: name}})
 		}
+		e.shownMap = max(0, min(p.Active, len(e.openMaps)-1))
+		e.doc = e.openMaps[e.shownMap].doc
 	}
 	e.panels.floats[popToolbar] = p.Floating
 	if p.Floating {
@@ -62,9 +77,9 @@ func newMockupChrome(p chromePreview, lang string, window image.Point, title, bo
 		at := e.centreCorner(size, openPlace{})
 		e.floatPlace(popToolbar, image.Rectangle{Min: at, Max: at.Add(size)})
 	}
-	c := &mockupChrome{editor: e, decode: decode}
 	bounds := image.Rectangle{Max: window}
-	if p.Menu != "" {
+	c := &mockupChrome{editor: e, decode: decode, body: e.bodyFont(), bounds: bounds}
+	if p.Menu != "" && p.Menu != searchKey {
 		e.menu = p.Menu
 		b, ok := e.openMenuEntry()
 		if !ok {
@@ -88,6 +103,7 @@ func newMockupChrome(p chromePreview, lang string, window image.Point, title, bo
 		r := e.searchEntry().rect
 		c.tip, _ = popupTipAt(bounds, e.font, e.bodyFont(), popupSpec{}, c.search, r.Min.Add(r.Size().Div(2)), true)
 	}
+	c.layoutChromeExtras(p)
 	return c, nil
 }
 
@@ -99,6 +115,7 @@ func (c *mockupChrome) draw(dst *image.RGBA) {
 	if !c.search.Rect.Empty() {
 		e.drawBar(dst, c.search)
 	}
+	c.drawChromeExtras(dst)
 	e.drawToolbar(dst, true)
 	if c.menu.Open {
 		e.drawEditorDropdown(dst, e.font, c.menu)
@@ -123,12 +140,7 @@ func (c *mockupChrome) writePage(write pagePartWriter) {
 		}
 		part(chromeButtonClass(b.on, b.disabled), "bar-entry", i, b.rect, none, label)
 	}
-	t, tabs := e.mapTabsLayout()
-	part("window", "map-tabs", -1, tabs.Rect, none, "")
-	for i, r := range tabs.Tabs {
-		part(chromeButtonClass(i == t.Active, false), "map-tab", i, r, none, c.decode(t.Captions[i]))
-	}
-	part("button", "map-tabs-close", -1, tabs.Close, none, "x")
+	c.writeChromeExtras(write)
 	if s, ok := e.toolbarSpec(); ok {
 		l := layoutPopup(s, e.font, e.bodyFont())
 		part("window", "toolbar", -1, l.Rect, none, "")
@@ -152,15 +164,21 @@ func (c *mockupChrome) writePage(write pagePartWriter) {
 		part("control", "search-field", -1, cell.Rect, valueInk, c.decode(shown))
 	}
 	if c.menu.Open {
-		l := c.menu.listBox(e.font)
-		part("window", "menu-list", -1, l.Rect.Union(l.Bar()).Inset(-2), none, "")
-		for i, row := range c.menu.List.Rows() {
+		l := c.menu.listBox(c.body)
+		part("window", "dropdown", -1, c.menu.listFrame(c.body), none, "")
+		top, n := c.menu.List.Visible()
+		for i := range n {
+			row := c.menu.List.Rows()[top+i]
 			class := "label"
 			if row.Heading {
 				class = "heading"
 			}
-			part(class, "menu-row", i, l.Row(i), row.Ink, c.decode(row.Text))
+			if c.menu.List.Selection() == top+i {
+				class += " pressed"
+			}
+			part(class, "dropdown-row", top+i, l.Row(i), row.Ink, c.decode(row.Text))
 		}
+		part("control", "dropdown-scroll", -1, l.Bar(), none, "")
 	}
 	write.tip(c.tip, c.decode, c.decode(c.tip.Text))
 }

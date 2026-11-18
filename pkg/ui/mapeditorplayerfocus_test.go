@@ -123,14 +123,14 @@ func TestPlayerLegendMarksTheSelectedPlayer(t *testing.T) {
 	e := x.e
 	e.doc.Edits = &tintProbe{}
 	_ = e.Key("playertint")
-	_, rows := e.playerLegend()
+	_, rows := playerLegendOf(e)
 	for i, r := range rows {
 		if r.focus || r.muted {
 			t.Fatalf("row %d marked with nothing selected", i)
 		}
 	}
 	e.selected = 1
-	_, rows = e.playerLegend()
+	_, rows = playerLegendOf(e)
 	for i, r := range rows {
 		if r.focus != (i == 1) || r.muted != (i != 1) {
 			t.Fatalf("row %d focus=%v muted=%v with player 2 selected", i, r.focus, r.muted)

@@ -56,6 +56,7 @@ const tipPad = 4
 // box past the left or top edge moves back and is then cut to bounds.
 type tipShape struct {
 	Width           int
+	Measure         func(string) int // for a description preview without a font
 	Fit, Pull, Clip bool
 	// Scroll lets a text taller than bounds show as many lines as bounds
 	// hold, the rest reached by scrolling.
@@ -70,18 +71,22 @@ func layoutTip(bounds image.Rectangle, body *text.Font, anchor image.Rectangle, 
 	if width <= 0 {
 		width = bounds.Dx()
 	}
-	lines := editorTextLines(body, full, width-2*tipPad)
+	measure := advanceOf(body)
+	if how.Measure != nil {
+		measure = how.Measure
+	}
+	lines := editorRule.plain(lineBox{Measure: measure, Width: width - 2*tipPad}, full)
 	if how.Fit {
 		width = 0
 		for _, line := range lines {
-			width = max(width, body.Advance(line)+2*tipPad)
+			width = max(width, measure(line)+2*tipPad)
 		}
 	}
 	h := len(lines)*fontHeight(body, 15) + 2*tipPad
 	rows := 0
 	if how.Scroll && h > bounds.Dy() && picture == nil {
 		// The bar stands at the right edge, so the text wraps narrower.
-		lines = editorTextLines(body, full, width-2*tipPad-widgetSpriteSize)
+		lines = editorRule.plain(lineBox{Measure: measure, Width: width - 2*tipPad - widgetSpriteSize}, full)
 		rows = max(1, (bounds.Dy()-2*tipPad)/fontHeight(body, 15))
 		rows = min(rows, len(lines))
 		h = rows*fontHeight(body, 15) + 2*tipPad
@@ -103,7 +108,7 @@ func hoverTip(bounds image.Rectangle, body *text.Font, anchor image.Rectangle, f
 }
 
 func valueTip(bounds image.Rectangle, body *text.Font, at image.Rectangle, full string) popupTip {
-	return layoutTip(bounds, body, at, full, nil, tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true})
+	return layoutTip(bounds, body, at, full, nil, tipShape{Width: min(popupTipW, bounds.Dx()), Measure: editorMeasure(body), Pull: true, Clip: true, Scroll: true})
 }
 
 // helpTip is the tip of a (?) mark at r: popupHelpW wide, the help wrapped

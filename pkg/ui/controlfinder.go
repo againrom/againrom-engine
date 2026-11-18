@@ -39,7 +39,7 @@ const (
 	ControlFieldChoice
 	ControlPromptGridCell
 	// ControlMapTab is tab N of the open maps' strip; with Flag, the
-	// strip's close button.
+	// tab's close button.
 	ControlMapTab
 	// ControlPopupGridCell is cell N of the object popup's grid, counted
 	// over all its cells: a mod page's catalog.

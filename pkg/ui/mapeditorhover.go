@@ -170,11 +170,22 @@ func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
 		return hoverTip(bounds, body, r, cell.Tip, pic), true
 	}
 	switch id := e.chromeHit(p); {
+	case id == popMapTabs:
+		_, tabs := e.mapTabStrip()
+		return popupTipAt(bounds, e.font, body, popupSpec{}, popupLayout{TabControls: &tabs}, p, true)
+	case id == popStatus:
+		s := e.statusSpec()
+		return popupTipAt(bounds, e.font, body, s, layoutPopup(s, e.font, body), p, true)
 	case id == popToolbar:
 		if tip, ok := popupTipAt(bounds, e.font, body, popupSpec{}, e.toolbarLayout(), p, true); ok {
 			return tip, true
 		}
 	case id == popMenu && e.searchTyping():
+		d := e.menuDropdown(e.searchEntry(), true)
+		if d.Open && d.Covers(body, p) {
+			l := popupLayout{HasList: true, List: d.listBox(body)}
+			return popupTipAt(bounds, body, body, popupSpec{List: d.List}, l, p, true)
+		}
 		return popupTipAt(bounds, e.font, body, popupSpec{}, e.searchLayout(), p, true)
 	case id == popMenu || e.openDropdownHit(p) || e.promptDropdownHit(p):
 		return popupTip{}, false

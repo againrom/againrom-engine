@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"againrom/pkg/namefold"
+	"againrom/pkg/render/textfit"
 )
 
 // The open maps of one mod. The window shows one map and keeps the others
@@ -259,29 +260,43 @@ func (e *MapEditor) showOpenEdits(edits InspectionEdits) bool {
 // CloseOpenMap closes the map shown and shows its neighbour. With unsaved
 // changes of its own it asks first. The last open map does not close.
 func (e *MapEditor) CloseOpenMap() {
-	if len(e.openMaps) < 2 {
+	e.closeOpenMapAt(e.shownMap)
+}
+
+func (e *MapEditor) closeOpenMapAt(n int) {
+	if len(e.openMaps) < 2 || n < 0 || n >= len(e.openMaps) {
 		return
 	}
-	if h, ok := e.mapSet(); ok && h.MapDirty() {
+	if mapDirty(e.openDocs()[n]) {
+		e.ShowOpenMap(n)
 		e.askLeave(leaveStep{closeMap: true})
 		return
 	}
-	e.dropOpenMap()
+	e.dropOpenMapAt(n)
 }
 
-// dropOpenMap closes the map shown without asking.
-func (e *MapEditor) dropOpenMap() {
+func (e *MapEditor) dropOpenMapAt(n int) {
 	if len(e.openMaps) < 2 {
 		return
 	}
-	left := e.doc
-	e.brush.endStroke()
-	e.openMaps = append(e.openMaps[:e.shownMap], e.openMaps[e.shownMap+1:]...)
-	e.shownMap = min(e.shownMap, len(e.openMaps)-1)
-	m := e.openMaps[e.shownMap]
-	e.doc = m.doc
-	e.nameOpenMaps(left)
-	e.showDoc(m.doc, m)
+	left := e.openDocs()[n]
+	if n == e.shownMap {
+		e.brush.endStroke()
+	}
+	e.openMaps = append(e.openMaps[:n], e.openMaps[n+1:]...)
+	switch {
+	case n == e.shownMap:
+		e.shownMap = min(e.shownMap, len(e.openMaps)-1)
+		m := e.openMaps[e.shownMap]
+		e.doc = m.doc
+		e.nameOpenMaps(left)
+		e.showDoc(m.doc, m)
+	default:
+		if n < e.shownMap {
+			e.shownMap--
+		}
+		e.nameOpenMaps(nil)
+	}
 	if v := left.Viewer; v != nil && v.canvas != nil {
 		disposeFrameCanvas(v.canvas)
 		v.canvas = nil
@@ -380,18 +395,14 @@ func (e *MapEditor) mapTabs() (tabStrip, bool) {
 	if len(e.openMaps) < 2 {
 		return tabStrip{}, false
 	}
-	t := tabStrip{Active: e.shownMap, Switch: true}
+	t := tabStrip{Active: e.shownMap, Switch: true, Closable: true}
 	for _, d := range e.openDocs() {
 		t.Captions = append(t.Captions, e.mapTabCaption(d))
 	}
 	return t, true
 }
 
-// The strip's widest tab and its inset.
-const (
-	mapTabWidth = 240
-	mapTabPad   = 3
-)
+const mapTabPad = 3
 
 // mapTabsRect is the strip's row under the top bar; no height with fewer
 // than two maps open.
@@ -403,62 +414,52 @@ func (e *MapEditor) mapTabsRect() image.Rectangle {
 	return image.Rect(0, top, e.window.X, top+high)
 }
 
-// mapTabsLayout is the strip's tabs with their captions cut to fit, and its
-// close button at the right end, which closes the map shown: the parts of a
-// popup's layout, so the strip is hit as a popup's tabs and close are.
-func (e *MapEditor) mapTabsLayout() (tabStrip, popupLayout) {
-	t, ok := e.mapTabs()
-	if !ok {
-		return t, popupLayout{}
-	}
-	l := popupLayout{Rect: e.mapTabsRect()}
-	r := l.Rect.Inset(mapTabPad)
-	l.Close = image.Rect(r.Max.X-r.Dy(), r.Min.Y, r.Max.X, r.Max.Y)
-	width := min(l.Close.Min.X-mapTabPad-r.Min.X, len(t.Captions)*mapTabWidth)
-	l.Tabs = t.rects(r.Min, width, r.Dy())
-	if f := e.bodyFont(); f != nil {
-		for i := range t.Captions {
-			t.Captions[i] = editorClip(f, t.Captions[i], l.Tabs[i].Dx()-16)
+func (e *MapEditor) mapTabStrip() (tabStrip, tabLayout) {
+	t, _ := e.mapTabs()
+	fit := textfit.Spec{Measure: editorMeasure(e.font), Unit: textfit.Byte}
+	l := t.layout(e.mapTabsRect().Inset(mapTabPad), fit)
+	if len(l.rects) > 0 {
+		l.closeTip = e.word("editor.tabs.close")
+		for i, word := range tabPageWords {
+			l.pageTips[i] = e.word(word)
 		}
 	}
 	return t, l
 }
 
-// controlMapTabRect is the strip's tab n, or with closes its close button;
-// nothing with fewer than two maps open.
 func (e *MapEditor) controlMapTabRect(n int, closes bool) (image.Rectangle, bool) {
-	_, l := e.mapTabsLayout()
-	switch {
-	case closes:
-		return l.Close, !l.Close.Empty()
-	case n >= 0 && n < len(l.Tabs):
-		return l.Tabs[n], true
+	_, l := e.mapTabStrip()
+	i := n - l.first
+	if i < 0 || i >= len(l.rects) {
+		return image.Rectangle{}, false
 	}
-	return image.Rectangle{}, false
+	if closes {
+		return l.closes[i], true
+	}
+	return l.rects[i], true
 }
 
-// drawMapTabs draws the strip.
 func (e *MapEditor) drawMapTabs(pic *image.RGBA) {
-	t, l := e.mapTabsLayout()
-	if len(l.Tabs) == 0 {
+	t, l := e.mapTabStrip()
+	if len(l.rects) == 0 {
 		return
 	}
-	drawFrame(pic, stripFrame(l.Rect, edgeBottomBit))
-	over, at := popupMiss, 0
+	drawFrame(pic, stripFrame(e.mapTabsRect(), edgeBottomBit))
+	part, i := popupMiss, 0
 	if e.pointerOK {
-		over, at = l.hit(e.pointer)
+		part, i = l.hit(e.pointer)
 	}
-	t.draw(pic, e.bodyFont(), l.Tabs, l.Close, &e.buttonPress, over, at)
+	t.draw(pic, e.font, l, &e.buttonPress, part, i)
 }
 
-// mapTabsPress is a press on the strip: a tab shows its map, the close
-// button closes the map shown.
 func (e *MapEditor) mapTabsPress(p image.Point) {
-	_, l := e.mapTabsLayout()
+	_, l := e.mapTabStrip()
 	switch part, i := l.hit(p); part {
 	case popupClose:
-		e.CloseOpenMap()
+		e.closeOpenMapAt(l.first + i)
 	case popupTab:
-		e.ShowOpenMap(i)
+		e.ShowOpenMap(l.first + i)
+	case popupTabPage:
+		e.ShowOpenMap(l.pageTarget(i))
 	}
 }

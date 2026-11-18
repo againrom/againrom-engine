@@ -2,12 +2,14 @@ package ui
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
 	"image"
 	"image/color"
+	"image/png"
 	"slices"
 	"strconv"
 	"strings"
@@ -446,7 +448,13 @@ func pagePictures(body *text.Font, l popupLayout, rows []popupRow, names map[int
 // its rectangle in the popup painter's inks, with the description inside.
 func (m *EditorMockup) Page() []byte {
 	if m.chrome != nil {
-		return mockupPage(m.desc, m.lang, m.window, m.chrome.writePage)
+		var raster bytes.Buffer
+		if m.chrome.body != nil {
+			if err := png.Encode(&raster, m.Picture()); err != nil {
+				panic(err) // an RGBA image and an in-memory writer
+			}
+		}
+		return mockupPage(m.desc, m.lang, m.window, m.chrome.writePage, raster.Bytes())
 	}
 	if m.panels != nil {
 		return m.panels.page(m.desc, m.lang, m.window)
@@ -551,7 +559,7 @@ func (part pagePartWriter) tip(t popupTip, decode func(string) string, full stri
 	part("window tip", "tip", -1, t.Rect, editorPopupInk.Value, txt, full)
 }
 
-func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePartWriter)) []byte {
+func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePartWriter), raster ...[]byte) []byte {
 	ink := editorPopupInk
 	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 	var b bytes.Buffer
@@ -575,6 +583,9 @@ func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePar
 		fmt.Fprintf(&b, ".grip{cursor:nwse-resize;background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px);clip-path:polygon(100%% 0,100%% 100%%,0 100%%)}\n", hex(ink.Edge))
 		fmt.Fprintf(&b, ".grip.hover{background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px)}\n", hex(ink.Value))
 	}
+	if len(raster) > 0 && len(raster[0]) > 0 {
+		fmt.Fprintf(&b, "#screen{background-image:url(data:image/png;base64,%s)}\n#screen>.p{opacity:0}\n", base64.StdEncoding.EncodeToString(raster[0]))
+	}
 	b.WriteString("</style>\n</head>\n<body>\n<div id=\"screen\">\n")
 	write(func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt, tip string) {
 		if r.Empty() {
@@ -590,7 +601,9 @@ func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePar
 		}
 		fmt.Fprintf(&b, ` data-box="%d %d %d %d" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;line-height:%dpx`,
 			r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Dy()/(1+strings.Count(txt, "\n")))
-		if ink != (color.RGBA{}) {
+		if class == "swatch" {
+			fmt.Fprintf(&b, ";background:%s", hex(ink))
+		} else if ink != (color.RGBA{}) {
 			fmt.Fprintf(&b, ";color:%s", hex(ink))
 		}
 		fmt.Fprintf(&b, "\">%s</div>\n", html.EscapeString(txt))

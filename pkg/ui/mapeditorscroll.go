@@ -61,18 +61,25 @@ func editorListStep(m *Picker, delta int) bool {
 func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker) {
 	e.scroll.details, e.scroll.canvas, e.scroll.page, e.scroll.text = false, 0, popNone, 0
 	switch e.chromeHit(p) {
+	case popLegend:
+		s, _ := e.legendSpec()
+		if l := layoutPopup(s, e.font, e.bodyFont()); p.In(l.RowBar) {
+			if bar, m, ok := e.pageBar(popLegend, s, l); ok {
+				return bar, m
+			}
+		}
 	case popMenu:
 		if b, ok := e.openMenuEntry(); ok {
 			d := e.menuDropdown(b, true)
 			box := d.listBox(e.font)
-			if p.In(box.Bar()) {
+			if d.Open && p.In(box.Bar()) {
 				return listBar(box, d.List), d.List
 			}
 		}
 	case popPrompt:
 		if d, ok := e.openAreaDropdown(); ok {
 			box := d.listBox(e.bodyFont())
-			if p.In(box.Bar()) {
+			if d.Open && p.In(box.Bar()) {
 				return listBar(box, d.List), d.List
 			}
 		}
@@ -88,11 +95,12 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker) {
 			}
 		}
 	case popObject:
-		if d, ok := e.openDropdown(); ok {
+		if d, ok := e.openDropdown(); ok && d.Open && d.Covers(e.bodyFont(), p) {
 			box := d.listBox(e.bodyFont())
 			if p.In(box.Bar()) {
 				return listBar(box, d.List), d.List
 			}
+			return vScrollBar{}, nil
 		}
 		if s, _, ok := e.objectSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())

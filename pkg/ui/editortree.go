@@ -45,34 +45,28 @@ type uiNode struct {
 // the store gives it, the bounds and room it lies in, the size the user
 // dragged it to and the card a row drag holds.
 type uiPlace struct {
-	Docked     bool
-	Splitter   popupEdge
-	GripHover  bool
-	CentreSize image.Point
-	At         image.Point
-	Width      int
-	Bounds     image.Rectangle
-	Room       image.Rectangle
-	Slack      bool
-	Short      bool
-	Size       image.Point
-	MinWidth   int
-	Fit        bool
-	Drag       *popupRowDrag
+	Docked      bool
+	Splitter    popupEdge
+	GripHover   bool
+	CentreSize  image.Point
+	At          image.Point
+	Width       int
+	Bounds      image.Rectangle
+	Room        image.Rectangle
+	Slack       bool
+	Short       bool
+	Size        image.Point
+	MinWidth    int
+	Fit         bool
+	Bare        bool
+	StripHeight int
+	Drag        *popupRowDrag
 }
 
 // uiTitle is the title row: its words, the (?) mark's help and the close
 // button's caption.
 type uiTitle struct {
 	Text, Help, Close string
-}
-
-// uiTabs is the tab row: its captions, the active tab and whether the
-// active tab draws as a switch's chosen state.
-type uiTabs struct {
-	Captions []string
-	Active   int
-	Switch   bool
 }
 
 // uiBody is the rows: their columns and each column's first row, the label
@@ -144,7 +138,7 @@ type uiButtons struct {
 type uiWindow struct {
 	Place   uiPlace
 	Title   uiTitle
-	Tabs    uiTabs
+	Tabs    tabStrip
 	Body    uiBody
 	Card    uiCard
 	Grid    *popupGrid
@@ -161,12 +155,13 @@ func specTree(s popupSpec) uiNode {
 	root := uiNode{Kind: uiWindowKind, Data: uiPlace{
 		Docked: s.Docked, Splitter: s.Splitter, GripHover: s.GripHover,
 		At: s.At, Width: s.Width, Bounds: s.Bounds, Room: s.Room, Slack: s.Slack, Short: s.Short,
+		Bare: s.Bare, StripHeight: s.StripHeight,
 		Size: s.Size, MinWidth: s.MinWidth, Fit: s.Fit, Drag: s.Drag, CentreSize: s.CentreSize,
 	}}
 	add := func(n uiNode) { root.Children = append(root.Children, n) }
 	add(uiNode{Kind: uiTitleKind, Word: s.Title, Data: uiTitle{Help: s.TitleHelp, Close: s.CloseLabel}})
 	if len(s.Tabs) > 0 {
-		add(uiNode{Kind: uiTabsKind, Data: uiTabs{Captions: s.Tabs, Active: s.ActiveTab, Switch: s.TabSwitch}})
+		add(uiNode{Kind: uiTabsKind, Data: tabStrip{Captions: s.Tabs, Active: s.ActiveTab, Switch: s.TabSwitch}})
 	}
 	add(uiNode{Kind: uiBodyKind, Data: uiBody{
 		Rows: s.Rows, Columns: s.Columns, ColumnWidth: s.ColumnWidth, ColumnTops: s.ColumnTops, LabelWidth: s.LabelWidth,
@@ -215,7 +210,7 @@ func windowOf(root uiNode) uiWindow {
 			w.Title, _ = n.Data.(uiTitle)
 			w.Title.Text = n.Word
 		case uiTabsKind:
-			w.Tabs, _ = n.Data.(uiTabs)
+			w.Tabs, _ = n.Data.(tabStrip)
 		case uiBodyKind:
 			w.Body, _ = n.Data.(uiBody)
 		case uiCardKind:

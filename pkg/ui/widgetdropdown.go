@@ -22,14 +22,6 @@ type dropdown struct {
 	Disabled bool
 	Fill     color.RGBA
 	Ink      color.RGBA
-	// ListWidth widens the open list past the box; zero is the box's width.
-	ListWidth int
-	// ListRight, when set, is the x the open list ends left of: a list that
-	// would pass it opens leftward from there.
-	ListRight int
-	// ListBottom, when set, is the y the open list ends above: a list that
-	// would pass it rises until it ends there, never above the window's top.
-	ListBottom int
 	// Icon, when set, draws the closed box as an icon button, sunk while
 	// the list is open: a toolbar's drop-down.
 	Icon *editorIcon
@@ -39,6 +31,9 @@ type dropdown struct {
 	EditFont           *text.Font
 	Press              *buttonPress
 	Button, ButtonRows bool
+	listLayout         *listBox
+	listFont           *text.Font
+	allRows            bool
 	ListOnly           bool
 }
 
@@ -48,25 +43,21 @@ func (d dropdown) button() image.Rectangle {
 	return image.Rect(d.Rect.Max.X-w, d.Rect.Min.Y, d.Rect.Max.X, d.Rect.Max.Y)
 }
 
-// listBox is the open list's geometry: below the box, risen to end at
-// ListBottom when set, as wide as it less the scroll bar, as many rows as the
-// list holds up to Rows.
 func (d dropdown) listBox(f *text.Font) listBox {
+	if d.listLayout != nil {
+		return *d.listLayout
+	}
 	rows := d.Rows
 	if d.List != nil {
 		rows = max(1, min(rows, d.List.Len()))
 	}
-	x, w := d.Rect.Min.X, max(d.Rect.Dx(), d.ListWidth)
-	if d.ListRight > 0 && x+w > d.ListRight {
-		x = max(0, d.ListRight-w)
-	}
-	r := image.Rect(x, d.Rect.Max.Y+1, x+w-widgetSpriteSize, d.Rect.Max.Y+1)
-	l := newListBox(r, max(1, rows), f)
-	if d.ListBottom > 0 && l.Rect.Max.Y > d.ListBottom {
-		r = r.Add(image.Pt(0, -min(r.Min.Y, l.Rect.Max.Y-d.ListBottom)))
-		l = newListBox(r, max(1, rows), f)
-	}
-	return l
+	r := image.Rect(d.Rect.Min.X, d.Rect.Max.Y+1, d.Rect.Max.X-widgetSpriteSize, d.Rect.Max.Y+1)
+	return newListBox(r, max(1, rows), f)
+}
+
+func (d dropdown) listFrame(f *text.Font) image.Rectangle {
+	l := d.listBox(f)
+	return l.Rect.Union(l.Bar()).Inset(-dropdownRim)
 }
 
 // Bounds is everything the drop-down covers: the box, and the open list with
@@ -75,8 +66,7 @@ func (d dropdown) Bounds(f *text.Font) image.Rectangle {
 	if !d.Open {
 		return d.Rect
 	}
-	l := d.listBox(f)
-	return d.Rect.Union(l.Rect.Inset(-1)).Union(l.Bar())
+	return d.Rect.Union(d.listFrame(f))
 }
 
 // Covers reports whether p lies on the painted box or the open list
@@ -89,8 +79,7 @@ func (d dropdown) Covers(f *text.Font, p image.Point) bool {
 	if !d.Open {
 		return false
 	}
-	l := d.listBox(f)
-	return p.In(l.Rect.Inset(-1)) || p.In(l.Bar())
+	return p.In(d.listFrame(f))
 }
 
 // drawDropdown is the one drop-down builder: the closed box, an edit field's
@@ -118,8 +107,12 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 		return
 	}
 	l := d.listBox(f)
-	d.Press.cover(l.Rect.Union(l.Bar()).Inset(-2))
-	drawFrame(dst, panelFrame(l.Rect.Union(l.Bar()).Inset(-2), d.Fill, d.Ink))
+	frame := d.listFrame(f)
+	d.Press.cover(frame)
+	drawFrame(dst, panelFrame(frame, d.Fill, d.Ink))
+	if d.listFont != nil {
+		f = d.listFont
+	}
 	drawListBox(dst, f, frames, l, d.List, rowText, pointer, pointerOK)
 	if d.ButtonRows && d.Press != nil {
 		top, count := d.List.Visible()

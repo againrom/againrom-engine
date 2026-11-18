@@ -431,16 +431,14 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 	if width == 0 || width > limit {
 		t.Fatalf("the status line %q is %d wide; the strip holds %d", line, width, limit)
 	}
-	if whole <= limit {
-		t.Fatalf("control: the whole line is %d wide within %d; the case does not test the fit", whole, limit)
-	}
-	more := x.inspectionUTF8(fmt.Sprintf(x.word("editor.selection.more"), 2))
+	full := e.StatusLine()
+	more := x.inspectionUTF8(fmt.Sprintf(x.word("editor.selection.more"), 1))
 	head := x.inspectionUTF8(widest)
-	if cut := strings.Index(line, textfit.Mark); cut >= 0 {
-		head = head[:min(len(head), 8)]
-	}
 	esc := x.inspectionUTF8(x.word("editor.keys.selectionclear"))
-	if !strings.Contains(line, head) || !strings.Contains(line, more) || !strings.HasSuffix(line, esc) {
-		t.Fatalf("the fitted line %q does not name the first refusal (%q), count the rest (%q) and keep %q", line, head, more, esc)
+	if strings.Count(full, head) < 2 || !strings.Contains(full, more) || strings.Contains(full, esc) {
+		t.Fatalf("group feedback %q does not show the named refusals and count", full)
+	}
+	if whole > limit && !strings.HasSuffix(line, textfit.Mark) || whole <= limit && line != full {
+		t.Fatalf("fitted status %q for whole status %q", line, full)
 	}
 }

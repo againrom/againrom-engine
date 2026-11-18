@@ -220,9 +220,7 @@ func TestPressOnARowHelpMarkNeverRunsItsAction(t *testing.T) {
 	}
 }
 
-// An open choice list that does not fit below its field rises to end at the
-// editor window's bottom; where it fits it keeps its place below the field.
-func TestChoiceListRisesToTheWindowBottom(t *testing.T) {
+func TestChoiceListFitsInsideTheWindow(t *testing.T) {
 	for _, size := range []image.Point{{640, 480}, {1024, 768}} {
 		e, _, _ := manyGroundsEditor(t, size, true)
 		s, _, _ := e.modSpec()
@@ -249,14 +247,12 @@ func TestChoiceListRisesToTheWindowBottom(t *testing.T) {
 		if !ok {
 			t.Fatalf("%v: no last row", size)
 		}
-		if last.Max.Y > size.Y {
-			t.Fatalf("%v: the list ends at %d, past the window's %d", size, last.Max.Y, size.Y)
+		frame := d.listFrame(e.bodyFont())
+		if !frame.In(image.Rectangle{Max: size}) || !last.In(frame) || frame.Overlaps(d.Rect) {
+			t.Fatalf("%v: list %v row %v at anchor %v", size, frame, last, d.Rect)
 		}
-		if size.Y == 768 && d.listBox(e.bodyFont()).Rect.Min.Y != d.Rect.Max.Y+1 {
+		if size.Y == 768 && frame.Min.Y < d.Rect.Max.Y {
 			t.Fatalf("%v: a list that fits left its place below the field", size)
-		}
-		if size.Y == 480 && d.listBox(e.bodyFont()).Rect.Max.Y != size.Y {
-			t.Fatalf("%v: the list did not rise to end at the window bottom", size)
 		}
 		before := e.obj.open
 		modesClick(e, center(last))
