@@ -101,6 +101,7 @@ type reportState struct {
 	open    bool
 	rows    []InspectionFinding
 	note    string
+	outcome string
 	sel     int
 	flagged map[string]bool
 	goals   []InspectionGoal // set while the rows are the script panel's arms
@@ -157,8 +158,12 @@ func (e *MapEditor) reportKey() {
 	e.showPanel(panelBottom, true)
 	rows := c.Report()
 	errs, warnings := CountFindings(rows)
-	e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
-	e.selectFinding(0)
+	e.openReportAtFirstFinding(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings))
+	e.report.outcome = e.word("editor.report.checked")
+}
+
+func (e *MapEditor) windowedResult() bool {
+	return e.listKind() == "report" && e.report.outcome != "" && !e.reportDocked()
 }
 
 func (e *MapEditor) checker() (InspectionChecker, bool) {
@@ -186,6 +191,7 @@ func (e *MapEditor) refreshBarReport() {
 		rows := host.Report()
 		errs, warnings := CountFindings(rows)
 		e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
+		e.report.outcome = e.word("editor.report.checked")
 	}
 	e.report.sel = max(0, min(selected, len(e.report.rows)-1))
 }
@@ -203,6 +209,7 @@ func (e *MapEditor) afterSave() {
 			note = fmt.Sprintf("Saved with %d errors, %d warnings", errs, warnings)
 		}
 		e.openReport(rows, note, nil)
+		e.report.outcome = e.word("editor.report.saved")
 	}
 }
 
@@ -223,8 +230,8 @@ func (e *MapEditor) noteSave(errs int) {
 func (e *MapEditor) refuseSave(r *ReportRefusal) {
 	e.leave(leavePrompt)
 	errs, warnings := CountFindings(r.Findings)
-	e.openReport(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings), nil)
-	e.selectFinding(0)
+	e.openReportAtFirstFinding(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings))
+	e.report.outcome = e.word("editor.report.refused")
 }
 
 // askSaveWithErrors shows the report of a save the map's errors stopped and
@@ -233,14 +240,23 @@ func (e *MapEditor) refuseSave(r *ReportRefusal) {
 func (e *MapEditor) askSaveWithErrors(r *ReportRefusal, again func() error) {
 	e.leave(leavePrompt)
 	errs, _ := CountFindings(r.Findings)
-	e.openReport(r.Findings, fmt.Sprintf(e.word("editor.save.errors"), errs), nil)
-	e.selectFinding(0)
+	e.openReportAtFirstFinding(r.Findings, fmt.Sprintf(e.word("editor.save.errors"), errs))
+	e.report.outcome = e.word("editor.report.refused")
 	e.report.confirm = func() error {
 		if a, ok := e.doc.Edits.(InspectionErrorSave); ok {
 			a.AllowErrors()
 		}
 		e.saveErrors = errs
 		return again()
+	}
+}
+
+// Open the report above its automatically selected record.
+func (e *MapEditor) openReportAtFirstFinding(rows []InspectionFinding, note string) {
+	e.openReport(rows, note, nil)
+	e.selectFinding(0)
+	if !e.reportDocked() {
+		e.raisePopup(popList)
 	}
 }
 

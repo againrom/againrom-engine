@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -14,7 +15,7 @@ import (
 // size: the label column, the value and the row's own buttons; a line
 // across the row with its mark and buttons; a heading. A multi-line text's
 // longest line and a note count up to the reading measure (questionMeasure):
-// past it they wrap. A list's width is listFit's.
+// past it they wrap. A plain list asks for its widest row and scrollbar.
 func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	measure := func(t string) int { return 8 * len([]rune(t)) }
 	if body != nil {
@@ -84,6 +85,17 @@ func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	}
 	for _, n := range s.Notes {
 		width = max(width, 2*(popupPad+popupTextInset)+min(measure(n), most))
+	}
+	if s.List != nil && len(s.ListColumns) == 0 {
+		pitch := newListBox(image.Rectangle{}, 1, body).Pitch
+		for _, row := range s.List.Rows() {
+			advance := measure
+			if row.Heading && title != nil {
+				advance = title.Advance
+			}
+			lead := listRowLead(row, pitch, listTextX)
+			width = max(width, 2*popupPad+widgetSpriteSize+s.ListAside+2*listTextX+lead+advance(row.Text))
+		}
 	}
 	return width
 }

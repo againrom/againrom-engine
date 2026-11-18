@@ -2527,7 +2527,9 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 		return tip, true
 	}
 	if l.HasList {
-		if tip, ok := listCellTip(bounds, body, s.List, l.List, p); ok {
+		box := l.List
+		box.HeadingFace = title
+		if tip, ok := listCellTip(bounds, body, s.List, box, p); ok {
 			return tip, true
 		}
 	}

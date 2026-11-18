@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"image"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // Seam for the editor frame-time probe test (the external test package
 // cannot reach these fields): it feeds the editor's input seam, nativeInput,
@@ -85,3 +89,9 @@ func ProbeTreeTop(e *MapEditor) (int, bool) {
 
 // ProbeListOpen reports that a list, panel or tree popup is open.
 func ProbeListOpen(e *MapEditor) bool { return e.listKind() != "" || e.PanelOpen() }
+
+// ProbeListRect measures the list window at any layer.
+func ProbeListRect(e *MapEditor) (image.Rectangle, bool) {
+	l, ok := e.popupLayoutOf(popList)
+	return l.Rect, ok
+}

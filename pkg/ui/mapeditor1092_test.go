@@ -198,11 +198,16 @@ func TestMapEditor1092FractionalWheelOwnsTravelPerPopup(t *testing.T) {
 		e.doc.Records[30].Details = append(e.doc.Records[30].Details, fmt.Sprintf("item %02d", i))
 	}
 	e.ChromeImage()
-	standAside(t, e)
+	o, _ := objectLayout(t, e)
+	e.floatPlace(popObject, image.Rect(220, 45, 640, 465))
+	e.places[popObject].key = o.Title
+	e.floatPlace(popList, image.Rect(0, 45, 200, 345))
+	e.places[popList].key = e.windowKey(popList, "")
+	e.listSpec()
 	e.model.Select(0)
 	cameraBefore := *e.doc.Viewer.cam
 	listAt := listRowPoint(t, e, 0)
-	listAt.X = e.places[popList].at.X + popupPad + 4
+	listAt.X = listLayout(t, e).List.Rect.Min.X + 4
 	_, l := objectLayout(t, e)
 	objectAt := center(l.Rows[0].Rect)
 	if e.chromeHit(listAt) != popList || e.chromeHit(objectAt) != popObject {

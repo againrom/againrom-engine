@@ -60,8 +60,9 @@ func TestMCPConnectionPanelCopiesTheSelectedRowValue(t *testing.T) {
 			t.Fatalf("withMap=%v: after a click the clipboard holds %q, want the token", withMap, got)
 		}
 		spec, _ := e.listSpecBase()
-		if !slices.Contains(spec.Notes, e.word("editor.report.copyhint")) {
-			t.Fatalf("withMap=%v: the panel does not show the copy hint: %v", withMap, spec.Notes)
+		hint := e.word("editor.report.copyhint")
+		if e.reportDocked() && !slices.Contains(spec.Notes, hint) || !e.reportDocked() && spec.TitleHelp != hint {
+			t.Fatalf("withMap=%v: the panel does not show the copy hint: help %q, notes %v", withMap, spec.TitleHelp, spec.Notes)
 		}
 	}
 }

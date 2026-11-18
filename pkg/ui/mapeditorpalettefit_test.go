@@ -112,13 +112,19 @@ func TestSackPaletteTicksItemsInOneGridWithFolderHeads(t *testing.T) {
 
 func TestSpellPaletteShowsNumbersAndHoverNamesWithoutBookIcons(t *testing.T) {
 	e := newPlacementLayoutEditor(t, "en")
-	s, _ := paletteGrid(t, e, "cellspells")
+	s, l := paletteGrid(t, e, "cellspells")
 	for _, id := range []int{11, 17, 27, 28} {
 		cell := s.Grid.Cells[id-1]
 		if cell.Icon != nil || cell.Label != strconv.Itoa(id) || cell.Tip != fmt.Sprintf("Choice %d", id) {
 			t.Fatalf("spell %d shows %+v", id, cell)
 		}
-		at, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: id - 1})
+		q := ControlQuery{Role: ControlPlaceGridCell, N: id - 1}
+		at, ok := e.FindControl(q)
+		if !ok {
+			e.placeGridWheel(l, (id-1)/l.GridCols-l.GridTop-l.GridRows+1)
+			l = layoutPopup(mustListSpec(t, e), e.font, e.bodyFont())
+			at, ok = e.FindControl(q)
+		}
 		tip, shown := e.tipAt(center(at))
 		if !ok || !shown || len(tip.Lines) != 1 || tip.Lines[0] != cell.Tip {
 			t.Fatalf("spell %d tip: %+v, %v", id, tip, shown)

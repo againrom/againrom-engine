@@ -510,9 +510,16 @@ func modesWheel(e *MapEditor) {
 	if !ok {
 		return
 	}
-	p := center(layoutPopup(s, e.font, e.bodyFont()).List.Row(0))
-	for i := 0; i < 2; i++ {
-		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, WheelY: -0.1}, time.Unix(1, 0))
+	l := layoutPopup(s, e.font, e.bodyFont())
+	for _, r := range []image.Rectangle{l.List.Row(0), l.Title} {
+		for _, p := range []image.Point{center(r), image.Pt(r.Min.X+4, center(r).Y), image.Pt(r.Max.X-4, center(r).Y)} {
+			if e.chromeHit(p) == popList {
+				for i := 0; i < 2; i++ {
+					e.Pointer(Input{CursorX: p.X, CursorY: p.Y, WheelY: -0.1}, time.Unix(1, 0))
+				}
+				return
+			}
+		}
 	}
 }
 

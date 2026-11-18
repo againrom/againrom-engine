@@ -471,14 +471,16 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 		e.panels.detached = ""
 	}
 	e.messagePage = 0
-	if _, ok := e.scriptVariableRow(index); ok {
+	_, variable := e.scriptVariableRow(index)
+	if !variable && (e.doc == nil || index < 0 || index >= len(e.doc.Records)) {
+		return false
+	}
+	e.raisePopup(popObject)
+	if variable {
 		e.selected, e.objectTop, e.objectHidden = index, 0, false
 		e.groupSel, e.objectBack = editorGroup{}, nil
 		e.obj.open, e.obj.focus = -1, -1
 		return true
-	}
-	if e.doc == nil || index < 0 || index >= len(e.doc.Records) {
-		return false
 	}
 	e.selected, e.objectTop, e.objectHidden = index, 0, false
 	e.triggerDetails = 0

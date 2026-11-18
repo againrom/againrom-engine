@@ -31,6 +31,7 @@ type popupStanding struct {
 	shift   image.Point // an unsized prompt's offset from its own place
 	fit     int         // the list rows a sized list popup fits
 	page    int         // the first row its body shows where the layout pass pages it
+	layer   int
 	open    bool        // its centred window stands open
 	offset  bool        // it opened while the list window stood, so it stands off it
 	stood   image.Point // the corner its centred window last stood at
@@ -287,6 +288,27 @@ func (e *MapEditor) pageSpec(id editorPopupID, s *popupSpec) {
 	s.Page = *page
 }
 
+func (e *MapEditor) popupStack() [3]editorPopupID {
+	stack := [3]editorPopupID{popList, popObject, popPrompt}
+	if e.places[stack[0]].layer > e.places[stack[1]].layer {
+		stack[0], stack[1] = stack[1], stack[0]
+	}
+	return stack
+}
+
+func (e *MapEditor) raisePopup(id editorPopupID) {
+	stack := e.popupStack()
+	for _, window := range stack[:len(stack)-1] {
+		if id == window {
+			for i, peer := range stack[:len(stack)-1] {
+				e.places[peer].layer = i
+			}
+			e.places[id].layer = len(stack) - 1
+			return
+		}
+	}
+}
+
 // fitListRows keeps the list rows the sized list popup fits.
 func (e *MapEditor) fitListRows(n int) { e.places[popList].fit = n }
 
@@ -392,6 +414,7 @@ func (e *MapEditor) dropPopup(id editorPopupID, what popupReset) {
 func (e *MapEditor) popupOpened(id editorPopupID) { e.dropPopup(id, popupRecords[id].opened) }
 func (e *MapEditor) popupClosed(id editorPopupID) {
 	e.dropPopup(id, popupRecords[id].closed)
+	e.places[id].layer = 0
 	e.popupHidden(id)
 }
 

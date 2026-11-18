@@ -403,18 +403,36 @@ func (m *EditorMockup) Picture() *image.RGBA {
 	return dst
 }
 
-func (m *EditorMockup) previewTip() (popupTip, int, bool) {
+func (m *EditorMockup) previewTip() (popupTip, image.Rectangle, bool) {
 	p := m.desc.Preview
-	if p != nil && p.HoverRow != nil {
-		for _, rr := range m.layout.Rows {
-			if rr.Index == *p.HoverRow && m.paint.Rows[rr.Index].Kind == popupChoice && !rr.Control.Empty() {
-				at := rr.Control.Min.Add(rr.Control.Size().Div(2))
-				tip, ok := popupTipAt(m.paint.Bounds, m.title, m.body, m.paint, m.layout, at, true)
-				return tip, rr.Index, ok
+	if p == nil || p.HoverRow == nil {
+		return popupTip{}, image.Rectangle{}, false
+	}
+	row := *p.HoverRow
+	var box image.Rectangle
+	bounds := m.paint.Bounds
+	if p.HoverList {
+		if m.paint.List != nil && m.layout.HasList {
+			top, shown := m.paint.List.Visible()
+			if i := row - top; i >= 0 && i < min(shown, m.layout.List.Rows) {
+				box = m.layout.List.Row(i)
+				if len(m.layout.List.Columns) > 0 {
+					box = m.layout.List.Cell(i, p.HoverColumn)
+				}
+			}
+		}
+		bounds = image.Rectangle{Max: m.window}
+	} else {
+		for _, r := range m.layout.Rows {
+			if r.Index == row && m.paint.Rows[row].Kind == popupChoice {
+				box = r.Control
+				break
 			}
 		}
 	}
-	return popupTip{}, -1, false
+	at := box.Min.Add(box.Size().Div(2))
+	tip, ok := popupTipAt(bounds, m.title, m.body, m.paint, m.layout, at, !box.Empty())
+	return tip, box, ok
 }
 
 // pagePicture is a picture's box on the page and its name.
@@ -476,9 +494,14 @@ func (m *EditorMockup) Page() []byte {
 		return len([]rune(s)) * 8
 	}
 	l := m.layout
-	if len(w.List.Columns) > 0 && w.List.Picker != nil {
+	if w.List.Picker != nil {
 		w.List.Text = func(row, width int) string {
-			return l.List.fitCells(textfit.Spec{Measure: measure}, w.List.Picker.Rows()[row].Text, width)
+			full := w.List.Picker.Rows()[row].Text
+			fit := textfit.Spec{Measure: measure}
+			if len(w.List.Columns) == 0 {
+				return fit.Fit(full, width)
+			}
+			return l.List.fitCells(fit, full, width)
 		}
 	}
 	if len(w.List.Columns) > 0 {
@@ -493,17 +516,26 @@ func (m *EditorMockup) Page() []byte {
 			l.ListHeadLines[k] = editorRule.plain(lineBox{Measure: headMeasure, Width: r.Dx() - listColumnGap/2}, w.List.Columns[k].Head)
 		}
 	}
-	if tip, i, ok := m.previewTip(); ok {
-		w.Body.Rows = slices.Clone(w.Body.Rows)
-		row := &w.Body.Rows[i]
-		full := strings.TrimSpace(row.Label + " " + row.Value)
-		tip.Lines = editorRule.plain(lineBox{Measure: measure, Width: tip.Rect.Dx() - 2*tipPad}, full)
-		for _, rr := range l.Rows {
-			if rr.Index == i {
-				row.Value = (textfit.Spec{Measure: measure}).Fit(row.Value, choiceTextRoom(rr.Control))
-				break
+	if tip, box, ok := m.previewTip(); ok {
+		p := m.desc.Preview
+		i := *p.HoverRow
+		full := ""
+		if p.HoverList {
+			full = w.List.Picker.Rows()[i].Text
+			if cols := len(w.List.Columns); cols > 0 {
+				full = strings.SplitN(full, "\t", cols)[p.HoverColumn]
 			}
+		} else {
+			w.Body.Rows = slices.Clone(w.Body.Rows)
+			row := &w.Body.Rows[i]
+			full = strings.TrimSpace(row.Label + " " + row.Value)
+			row.Value = (textfit.Spec{Measure: measure}).Fit(row.Value, choiceTextRoom(box))
 		}
+		width := tip.Rect.Dx() - 2*tipPad
+		if tip.Rows > 0 {
+			width -= widgetSpriteSize
+		}
+		tip.Lines = editorRule.plain(lineBox{Measure: measure, Width: width}, full)
 		return popupPage(m.desc, w, l, figure, pictures, m.lang, m.window, tip)
 	}
 	return popupPage(m.desc, w, l, figure, pictures, m.lang, m.window)
@@ -556,12 +588,12 @@ func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePar
 		hex(ink.Button), hex(ink.BevelLight), hex(ink.BevelDark), hex(ink.BevelDark), hex(ink.BevelLight))
 	fmt.Fprintf(&b, ".pressed{border:2px solid %s}\n.ticked{outline:2px solid %s;outline-offset:-4px}\n", hex(ink.Title), hex(ink.Value))
 	fmt.Fprintf(&b, ".off{color:%s}\n", hex(ink.Hint))
+	fmt.Fprintf(&b, ".tip{background:%s;border:1px solid %s;padding:0 %dpx;white-space:pre}\n", hex(ink.TitleGround), hex(ink.Edge), tipPad)
 	if d.Panels != nil {
 		fmt.Fprintf(&b, ".map{background:%s;border:1px solid %s}\n", hex(ink.Ground), hex(editorGridInk))
 		fmt.Fprintf(&b, ".splitter{background:%s;cursor:ew-resize}\n.splitter.hover{background:%s}\n", hex(ink.Edge), hex(ink.Value))
 		fmt.Fprintf(&b, ".grip{cursor:nwse-resize;background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px);clip-path:polygon(100%% 0,100%% 100%%,0 100%%)}\n", hex(ink.Edge))
 		fmt.Fprintf(&b, ".grip.hover{background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px)}\n", hex(ink.Value))
-		fmt.Fprintf(&b, ".tip{background:%s;border:1px solid %s;white-space:pre}\n", hex(ink.TitleGround), hex(ink.Edge))
 	}
 	b.WriteString("</style>\n</head>\n<body>\n<div id=\"screen\">\n")
 	write(func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt, tip string) {
@@ -702,6 +734,7 @@ func writePopupParts(write pagePartWriter, w uiWindow, l popupLayout, figure ima
 		}
 		tip = ""
 	}
+	part("control", "grid-scroll", -1, l.GridBar, none, "")
 	for i, r := range l.Notes {
 		part("note", "note", i, r, w.Notes.Ink, w.Notes.Lines[i])
 	}
@@ -718,11 +751,19 @@ func writePopupParts(write pagePartWriter, w uiWindow, l popupLayout, figure ima
 				class = "button"
 			}
 			if len(l.List.Columns) == 0 {
-				text := rows[n].Text
-				if rows[n].Fold != FoldNone {
-					text = rowFoldMarks[rows[n].Fold] + " " + text
+				row, r := rows[n], l.List.Row(i)
+				shown := row.Text
+				if w.List.Text != nil {
+					width := r.Dx() - 2*listTextX - listRowLead(row, r.Dy(), listTextX)
+					shown = w.List.Text(n, width)
 				}
-				part(class, "list-row", n, l.List.Row(i), none, strings.Repeat("  ", rows[n].Indent)+text)
+				if shown != row.Text {
+					tip = row.Text
+				}
+				if row.Fold != FoldNone {
+					shown = rowFoldMarks[row.Fold] + " " + shown
+				}
+				part(class, "list-row", n, r, none, strings.Repeat("  ", max(0, row.Indent))+shown)
 			} else {
 				shown := strings.SplitN(rows[n].Text, "\t", len(l.List.Columns))
 				if w.List.Text != nil {
@@ -736,7 +777,7 @@ func writePopupParts(write pagePartWriter, w uiWindow, l popupLayout, figure ima
 				}
 			}
 		}
-		if len(l.List.Columns) > 0 {
+		if len(rows) > l.List.Rows || len(l.List.Columns) > 0 {
 			part("control", "list-scroll", -1, l.List.Bar(), none, "")
 		}
 	}
@@ -804,6 +845,11 @@ func (e *MapEditor) mockupPicture(name string) *image.RGBA {
 		}
 	case kind == "structure" && err == nil:
 		return e.placeIcon(KindStructure, "kind", int64(n))
+	case kind == "spell" && err == nil:
+		if offer, ok := e.castOffer("spell"); ok && offer.Pictures != nil {
+			value := int64(n)
+			return offer.Pictures([]InspectionChoice{{Value: value}})[value]
+		}
 	case kind == "terrain":
 		if h := e.brushHost(); h != nil {
 			for _, t := range h.BrushTerrains() {

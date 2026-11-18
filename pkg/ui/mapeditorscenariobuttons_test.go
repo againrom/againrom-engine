@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"slices"
 	"strings"
 	"testing"
 
@@ -31,8 +30,8 @@ func TestMapEditorScenarioPaletteButtonsAndHint(t *testing.T) {
 				t.Fatalf("buttons %q, want drop zones, %q", s.Buttons, want[1])
 			}
 			hint := e.word("editor.scripts.hint")
-			if !slices.Contains(s.Notes, hint) || strings.Contains(book.Text("editor.scripts.hint"), "A:") {
-				t.Fatalf("notes %q, hint %q", s.Notes, hint)
+			if s.TitleHelp != hint || strings.Contains(book.Text("editor.scripts.hint"), "A:") {
+				t.Fatalf("help %q, want %q", s.TitleHelp, hint)
 			}
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if len(l.Buttons) != 2 || !l.Rect.In(image.Rect(0, 0, 1920, 1080)) {

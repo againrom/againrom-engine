@@ -73,8 +73,7 @@ func (e *MapEditor) testPlayBy(play func() (string, error)) error {
 	if err != nil {
 		if r, ok := refusal(err); ok {
 			errs, warnings := CountFindings(r.Findings)
-			e.openReport(r.Findings, fmt.Sprintf(e.word("editor.testplay.refused"), errs, warnings), nil)
-			e.selectFinding(0)
+			e.openReportAtFirstFinding(r.Findings, fmt.Sprintf(e.word("editor.testplay.refused"), errs, warnings))
 			return err
 		}
 		e.message = err.Error()

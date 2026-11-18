@@ -127,23 +127,33 @@ func listColumnWidths(list uiList, heading, body *text.Font, width int) []int {
 	return out
 }
 
-// listCellTip reads a clipped cell's full model text through the one tip.
+// listCellTip reads a clipped list row or cell's full model text.
 func listCellTip(bounds image.Rectangle, body *text.Font, list uiList, box listBox, p image.Point) (popupTip, bool) {
 	row, k, ok := box.CellAt(p)
-	if !ok || k < 0 || list.Picker == nil {
+	if !ok || list.Picker == nil || len(box.Columns) > 0 && k < 0 {
 		return popupTip{}, false
 	}
 	top, shown := list.Picker.Visible()
 	if row >= shown {
 		return popupTip{}, false
 	}
-	cells := strings.SplitN(list.Picker.Rows()[top+row].Text, "\t", len(box.Columns))
-	if k >= len(cells) {
+	data := list.Picker.Rows()[top+row]
+	full, r, face := data.Text, box.Row(row), body
+	if k >= 0 {
+		cells := strings.SplitN(full, "\t", len(box.Columns))
+		if k >= len(cells) {
+			return popupTip{}, false
+		}
+		full, r = cells[k], box.Cell(row, k)
+	} else {
+		r.Min.X += listTextX + listRowLead(data, r.Dy(), listTextX)
+		r.Max.X -= listTextX
+		if data.Heading && box.HeadingFace != nil {
+			face = box.HeadingFace
+		}
+	}
+	if face.Advance(full) <= r.Dx() {
 		return popupTip{}, false
 	}
-	r := box.Cell(row, k)
-	if body.Advance(cells[k]) <= r.Dx() {
-		return popupTip{}, false
-	}
-	return layoutTip(bounds, body, r, cells[k], nil, tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true}), true
+	return layoutTip(bounds, body, r, full, nil, tipShape{Width: min(popupTipW, bounds.Dx()), Pull: true, Clip: true, Scroll: true}), true
 }

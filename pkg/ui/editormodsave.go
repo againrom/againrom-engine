@@ -58,7 +58,7 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 // mod when one is named.
 func (e *MapEditor) saveHelp() string {
 	if m, ok := e.modSave(); ok {
-		return editorClip(e.font, fmt.Sprintf(e.word("editor.keys.modsave"), m.ModTarget()), 300)
+		return e.editorHostText(fmt.Sprintf(e.plainWord("editor.keys.modsave"), m.ModTarget()))
 	}
-	return "Ctrl+Z / Ctrl+Y / Ctrl+S"
+	return e.word("editor.keys.save")
 }

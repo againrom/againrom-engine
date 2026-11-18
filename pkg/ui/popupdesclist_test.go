@@ -108,6 +108,89 @@ func mockupHostEncoder(f *text.Font) func(string) string {
 	}
 }
 
+func TestDescriptionPlainListFitsPagesAndShowsFullRowTip(t *testing.T) {
+	bounds := image.Rect(0, 0, 1920, 1080)
+	for _, lang := range []string{"en", "ru"} {
+		t.Run(lang, func(t *testing.T) {
+			word := words.For(lang).Text
+			short := word("editor.keys.brush")
+			long := strings.TrimSpace(strings.Repeat(short+" ", 14))
+			d := popupDesc{
+				Window: "keys", Title: "editor.keys.title",
+				List: &popupDescList{Each: "keys", Bind: "line", Rows: 3, Chosen: "selected", Inert: "heading"},
+				Sample: &popupScope{Lists: map[string][]popupScope{"keys": {
+					{Words: map[string]string{"line": "editor.keys.title"}, Flags: []string{"heading"}},
+					{Words: map[string]string{"line": "editor.keys.fields"}},
+					{Values: map[string]string{"line": short}},
+				}}},
+			}
+			f := wordsFont(lang)
+			mock := func() *EditorMockup {
+				t.Helper()
+				m, err := NewEditorMockup(d.encode(), lang, bounds.Size(), f, f, mockupHostEncoder(f))
+				if err != nil {
+					t.Fatal(err)
+				}
+				return m
+			}
+			m := mock()
+			if m.plain.List.Rows()[0].Choosable || m.layout.List.Rect.Dx()-2*listTextX < f.Advance(m.encode(short)) {
+				t.Fatalf("short list at %v does not fit or allows its heading to be chosen", m.layout.List.Rect)
+			}
+			d.Sample.Lists["keys"] = append(d.Sample.Lists["keys"],
+				popupScope{Values: map[string]string{"line": long}, Flags: []string{"selected"}})
+			hover := 3
+			d.Preview = &popupPreview{HoverRow: &hover, HoverList: true}
+			m = mock()
+			top, shown := m.paint.List.Visible()
+			if top != 1 || shown != 3 || !m.layout.Rect.In(bounds) {
+				t.Fatalf("visible rows %d/%d, popup %v", top, shown, m.layout.Rect)
+			}
+			r := m.layout.List.Row(2)
+			if part, n := m.layout.hit(center(r)); part != popupListRow || n != 2 {
+				t.Fatalf("hovered row hit %v/%d", part, n)
+			}
+			tip, box, ok := m.previewTip()
+			if !ok || box != r || tip.Text != m.encode(long) || !tip.Rect.In(bounds) {
+				t.Fatal("the shared tip lacks the whole row or exceeds the editor bounds")
+			}
+			painted := 0
+			for _, call := range recordWidgets(t, func() { m.Picture() }) {
+				if call.kind == widgetTip && call.rect == tip.Rect {
+					painted++
+				}
+			}
+			if painted != 1 {
+				t.Fatalf("painted %d tips at %v, want one", painted, tip.Rect)
+			}
+			page := m.Page()
+			for _, part := range []string{
+				fmt.Sprintf(`data-part="list-row" data-row="3" data-box="%d %d %d %d"`, r.Min.X, r.Min.Y, r.Dx(), r.Dy()),
+				fmt.Sprintf(`data-part="tip" data-box="%d %d %d %d"`, tip.Rect.Min.X, tip.Rect.Min.Y, tip.Rect.Dx(), tip.Rect.Dy()),
+				`data-part="list-scroll"`, `title="` + html.EscapeString(long) + `"`, textfit.Mark,
+			} {
+				if !bytes.Contains(page, []byte(part)) {
+					t.Errorf("page lacks %s", part)
+				}
+			}
+			round, err := PageDescription(page)
+			if err != nil || !bytes.Equal(round, d.encode()) {
+				t.Fatalf("description round trip: %v", err)
+			}
+			if _, ok := popupTipAt(bounds, f, f, m.paint, m.layout, center(m.layout.List.Row(1)), true); ok {
+				t.Fatal("a whole row shows a tip")
+			}
+		})
+	}
+}
+
+func TestDescriptionReadsLegacyListHoverAsPreview(t *testing.T) {
+	d, err := parsePopupDesc([]byte(`{"window":"list","rows":[],"hover":{"row":0,"column":2}}`))
+	if p := d.Preview; err != nil || p == nil || !p.HoverList || p.HoverRow == nil || *p.HoverRow != 0 || p.HoverColumn != 2 {
+		t.Fatalf("list preview %+v, error %v", p, err)
+	}
+}
+
 func shortColumnMockup(t *testing.T, lang string) (*EditorMockup, [][4]string) {
 	t.Helper()
 	book := words.For(lang)

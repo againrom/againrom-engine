@@ -110,6 +110,7 @@ func (e *MapEditor) restoreBarWindows(s barWindowSet) {
 	if s.report.open {
 		e.openReport(s.report.rows, s.report.note, s.report.goals)
 		e.report.sel, e.report.copies, e.report.hint = s.report.sel, s.report.copies, s.report.hint
+		e.report.outcome = s.report.outcome
 		if s.document != e.doc {
 			e.refreshBarReport()
 		}

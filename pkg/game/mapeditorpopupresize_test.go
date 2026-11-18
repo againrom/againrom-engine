@@ -2,6 +2,7 @@ package game
 
 import (
 	"image"
+	"slices"
 	"testing"
 	"time"
 
@@ -83,7 +84,20 @@ func TestEditorPopupsResizeByTheirBorders(t *testing.T) {
 				}
 				return image.Pt(r.Min.X+8, r.Min.Y+r.Dy()/2)
 			}
-			if b, a := borderDrag(t, e, mid, image.Pt(0, 0)); b != a {
+			if c.name == "scripts list" {
+				listBefore, ok := ui.ProbeListRect(e)
+				if !ok {
+					t.Fatal("Scenario is closed before the press")
+				}
+				b, a := borderDrag(t, e, mid, image.Pt(0, 0))
+				listAfter, ok := ui.ProbeListRect(e)
+				if !ok || listBefore != b || listAfter != listBefore {
+					t.Fatalf("a press in the body moved or resized Scenario %v to %v", listBefore, listAfter)
+				}
+				if a == listAfter || !slices.Contains(e.OpenWindows(), "object") {
+					t.Fatal("the Scenario row did not open its record above the list")
+				}
+			} else if b, a := borderDrag(t, e, mid, image.Pt(0, 0)); b != a {
 				t.Fatalf("a press in the body resized %v to %v", b, a)
 			}
 		})

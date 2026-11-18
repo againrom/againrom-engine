@@ -345,9 +345,7 @@ func (e *MapEditor) controlListButtonRect(n, k int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// OpenWindows names the windows open over the map, in the order a press
-// tests them: "menu" (a bar menu's drop-down), "prompt", "object" (the
-// record popup) and "list" (the list popup), for a headless driver.
+// OpenWindows lists the open menu, prompt, record and list windows in that order.
 func (e *MapEditor) OpenWindows() []string {
 	var out []string
 	if _, ok := e.openMenuEntry(); ok {
@@ -885,6 +883,9 @@ func (e *MapEditor) listTitle(kind string) string {
 	case "catalog":
 		return e.word("editor.picker.title")
 	case "report":
+		if e.windowedResult() {
+			return e.word("editor.side.report")
+		}
 		return e.report.note
 	case "brush":
 		return e.word(e.brushWindowOf().titleWord)
@@ -986,25 +987,51 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	if (!palette || e.paletteListsRecords()) && (kind != "brush" || e.brushWindowOf().list) {
 		m = e.syncList(kind, e.listWindow())
 	}
-	s := popupSpec{Title: e.listTitle(kind), At: e.keptCorner(popList), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	natural := kind == "catalog" || kind == "report" && !e.reportDocked() ||
+		kind == "records" && (!palette || e.filter == editorScriptsFilter || e.filter == editorCellSpellsFilter)
+	s := popupSpec{Title: e.listTitle(kind), At: e.keptCorner(popList), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	if !natural {
+		s.Width = e.popupWide(popList, 400)
+	}
+	if natural && m != nil && e.places[popList].size == (image.Point{}) {
+		s.ListRows = min(s.ListRows, max(1, m.Len()))
+		m.SetWindow(s.ListRows)
+	}
 	if m != nil {
 		s.ListText = func(row, width int) string {
 			rows := m.Rows()
 			if row < 0 || row >= len(rows) {
 				return ""
 			}
-			return editorClip(e.bodyFont(), rows[row].Text, width)
+			face := e.bodyFont()
+			if rows[row].Heading {
+				face = listHeadFont(e.font, face)
+			}
+			return editorClip(face, rows[row].Text, width)
 		}
 	}
 	switch kind {
 	case "report":
-		if len(e.report.goals) > 0 {
-			s.Width, s.ListAside = e.popupWide(popList, 560), 84
-			s.Notes = []string{e.word("editor.arms.hint")}
-		} else {
+		switch {
+		case len(e.report.goals) > 0:
+			s.ListAside = 84
+			s.TitleHelp = e.word("editor.arms.hint")
+		case e.reportDocked():
 			s.Notes = e.findingNotes(e.noteWidth(s.Width))
 			if e.report.hint != "" {
 				s.Notes = append(s.Notes, e.report.hint)
+			}
+		default:
+			s.TitleHelp = e.report.hint
+			if m.Len() > 0 && s.TitleHelp == "" {
+				s.TitleHelp = e.word("editor.report.copyhint")
+			}
+			if e.report.outcome != "" {
+				errs, warnings := CountFindings(e.report.rows)
+				s.Notes = append(s.Notes, e.report.outcome, fmt.Sprintf(e.word("editor.panel.reportvalue"), errs, warnings))
+				if e.report.confirm != nil {
+					s.Notes = append(s.Notes, e.report.note)
+				}
 			}
 		}
 	case "brush":
@@ -1040,24 +1067,20 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 	case "catalog":
 		if e.doc == nil {
-			s.Notes = []string{e.word("editor.picker.hint")}
+			s.TitleHelp = e.word("editor.picker.hint")
 		}
 		s.Buttons = []string{e.word("editor.button.open"), e.word("editor.button.file")}
 	case "variables":
 		e.variableTableSpec(&s, m)
 	case "records":
 		if e.filter == editorScriptsFilter {
-			s.Notes = []string{e.word("editor.scripts.hint")}
+			s.TitleHelp = e.word("editor.scripts.hint")
 			if len(e.rows()) == 0 && e.doc.ScriptNotice != "" {
 				s.Notes = append(s.Notes, e.doc.ScriptNotice)
 			}
 		}
 		for _, b := range e.listButtons() {
 			s.Buttons, s.Disabled = append(s.Buttons, b.label), append(s.Disabled, b.off)
-		}
-		if e.filter == editorScriptsFilter {
-			// The palette is as wide as its three buttons need.
-			s.Width = e.popupWide(popList, max(400, buttonRowWidth(specWindow(s), e.bodyFont())))
 		}
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
@@ -1067,14 +1090,19 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 				s.TitleHelp = e.word("editor.bar.sacks.help")
 			case editorCellSpellsFilter:
 				s.TitleHelp = e.word("editor.cast.palette.help")
-				s.Width, s.LabelWidth = e.popupWide(popList, 640), 200
 			}
 			if row, ok := e.placeOwnerRow(); ok {
 				s.Rows = append(s.Rows, row)
 			}
 			s.Rows = append(s.Rows, e.sackRows()...)
 			s.Rows = append(s.Rows, e.castRows()...)
-			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
+			if e.filter == editorCellSpellsFilter {
+				if note != "" {
+					s.Notes = append(s.Notes, note)
+				}
+			} else {
+				s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
+			}
 			e.placeSwitch(&s)
 			e.placeRuinedSwitch(&s)
 		}
@@ -1104,10 +1132,22 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		top, n := m.Visible()
 		s.Notes[len(s.Notes)-1] = fmt.Sprintf(e.word("editor.list.counter"), top+1, top+n, m.Len())
 	}
+	if natural {
+		e.fitListPopupWidth(popList, &s)
+		if kind == "report" && len(e.report.goals) == 0 {
+			s.Notes = append(s.Notes, e.findingNotes(e.noteWidth(s.Width))...)
+		}
+	}
 	if palette && len(s.Rows) == 0 && len(s.Notes) == 0 && len(s.Buttons) == 0 && s.Grid == nil {
 		return popupSpec{}, false
 	}
 	return s, true
+}
+
+func (e *MapEditor) fitListPopupWidth(id editorPopupID, s *popupSpec) {
+	body := e.bodyFont()
+	s.Width = min(s.Bounds.Dx(), e.popupWide(id, naturalWidth(s, e.font, body, 0)))
+	s.Notes = wrapNotes(s.Notes, advanceOf(body), s.Width)
 }
 
 // findingNotes is the selected finding's text, wrapped to width and cut at
@@ -1702,15 +1742,9 @@ func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 	return popupSpec{}, false
 }
 
-// controlTitleRect is the title bar of the front popup: the prompt, the object or
-// the list popup.
 func (e *MapEditor) controlTitleRect() (image.Rectangle, bool) {
-	for _, id := range []editorPopupID{popPrompt, popObject, popList} {
-		if s, ok := e.movableSpec(id); ok {
-			return layoutPopup(s, e.font, e.bodyFont()).Title, true
-		}
-	}
-	return image.Rectangle{}, false
+	l, ok := e.frontPopupLayout()
+	return l.Title, ok
 }
 
 // titlePress starts the editor's one popup drag when p lies on the title bar
@@ -1788,18 +1822,25 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 func (e *MapEditor) drawFloating(pic *image.RGBA) {
 	e.drawSidePanels(pic, panelsFloating)
 	e.drawToolbar(pic, true)
-	if !e.reportDocked() {
-		if s, ok := e.listSpec(); ok {
-			e.drawListWindow(pic, s)
+	for _, id := range e.popupStack() {
+		switch id {
+		case popList:
+			if !e.reportDocked() {
+				if s, ok := e.listSpec(); ok {
+					e.drawListWindow(pic, s)
+				}
+			}
+		case popObject:
+			if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
+				e.drawWindow(pic, s)
+				e.drawObjectFigure(pic, s)
+				e.drawCarry(pic, s)
+			}
+		case popPrompt:
+			if s, ok := e.promptSpec(); ok {
+				e.drawWindow(pic, s)
+			}
 		}
-	}
-	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
-		e.drawWindow(pic, s)
-		e.drawObjectFigure(pic, s)
-		e.drawCarry(pic, s)
-	}
-	if s, ok := e.promptSpec(); ok {
-		e.drawWindow(pic, s)
 	}
 	e.drawRowDropdowns(pic)
 }
@@ -2166,15 +2207,23 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if objectOK && e.openDropdownHit(p) {
 		return popObject
 	}
-	if _, ok := e.listSpec(); ok && e.placeOwnerDropdownHit(p) {
+	list, listOK := e.listSpec()
+	if listOK && e.placeOwnerDropdownHit(p) {
 		return popList
 	}
 	hosted := e.panels.hosted
-	if objectOK && !hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
-		return popObject
-	}
-	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
-		return popList
+	stack := e.popupStack()
+	for _, id := range slices.Backward(stack[:]) {
+		switch id {
+		case popList:
+			if listOK && !e.reportDocked() && p.In(layoutPopup(list, e.font, e.bodyFont()).Rect) {
+				return popList
+			}
+		case popObject:
+			if objectOK && !hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
+				return popObject
+			}
+		}
 	}
 	if s, ok := e.toolbarSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popToolbar
@@ -2198,6 +2247,9 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 		return popTree
 	}
 	if p.In(e.sidePanelRect(panelBottom)) {
+		if listOK && e.reportDocked() {
+			return popList
+		}
 		return popReport
 	}
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
@@ -2235,9 +2287,16 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
 		e.tree.typing = false
 	}
+	target := popNone
 	if pressed {
 		e.searchPressOff(p)
 		e.placeOwnerPressOff(p)
+		if e.drag == popNone && !e.uiDown {
+			target = e.chromeHit(p)
+			if e.menu == "" && !e.prompt.modal() && e.message == "" {
+				e.raisePopup(target)
+			}
+		}
 	}
 	if e.drag == popNone && e.inputPointer(in) {
 		return true
@@ -2290,7 +2349,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	if e.down {
 		return false
 	}
-	target := e.chromeHit(p)
+	if !pressed {
+		target = e.chromeHit(p)
+	}
 	modal := e.prompt.modal() || e.message != ""
 	barWindow := false
 	if target == popBar && e.barWindow() != "" {

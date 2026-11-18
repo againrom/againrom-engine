@@ -66,9 +66,11 @@ type popupDesc struct {
 }
 
 type popupPreview struct {
-	Width    int  `json:"width,omitempty"`
-	Top      int  `json:"top,omitempty"`
-	HoverRow *int `json:"hoverRow,omitempty"`
+	Width       int  `json:"width,omitempty"`
+	Top         int  `json:"top,omitempty"`
+	HoverRow    *int `json:"hoverRow,omitempty"`
+	HoverList   bool `json:"hoverList,omitempty"`
+	HoverColumn int  `json:"hoverColumn,omitempty"`
 }
 
 // popupDescCanvas is a canvas shown as one picture.
@@ -102,6 +104,7 @@ type popupDescList struct {
 	Args    []string              `json:"args,omitempty"`
 	Icon    string                `json:"icon,omitempty"`
 	Chosen  string                `json:"chosen,omitempty"`
+	Inert   string                `json:"inert,omitempty"`
 	Rows    int                   `json:"rows,omitempty"`
 	Aside   *popupDescAside       `json:"aside,omitempty"`
 	Columns []popupDescListColumn `json:"columns,omitempty"`
@@ -421,7 +424,7 @@ func (c popupChain) listBox(l *popupDescList, word func(string) string, picture 
 	chosen := 0
 	for i, item := range c.list(l.Each) {
 		in := append(c[:len(c):len(c)], item)
-		row := PickerRow{Text: in.text(l.Bind, word), Choosable: true}
+		row := PickerRow{Text: in.text(l.Bind, word), Choosable: l.Inert == "" || !in.when(l.Inert)}
 		if l.Word != "" {
 			row.Text = in.format(l.Word, l.Args, word)
 		}
@@ -624,14 +627,29 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 
 // parsePopupDesc reads a description and checks every row's kind.
 func parsePopupDesc(data []byte) (popupDesc, error) {
-	var d popupDesc
+	var input struct {
+		popupDesc
+		Hover *struct {
+			Row    int `json:"row"`
+			Column int `json:"column,omitempty"`
+		} `json:"hover,omitempty"`
+	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
-	if err := dec.Decode(&d); err != nil {
+	if err := dec.Decode(&input); err != nil {
 		return popupDesc{}, fmt.Errorf("window description: %w", err)
 	}
+	d := input.popupDesc
 	if err := d.Panels.check(); err != nil {
 		return popupDesc{}, err
+	}
+	if h := input.Hover; h != nil {
+		if d.Preview == nil {
+			d.Preview = &popupPreview{}
+		}
+		if d.Preview.HoverRow == nil {
+			d.Preview.HoverRow, d.Preview.HoverList, d.Preview.HoverColumn = &h.Row, true, h.Column
+		}
 	}
 	return d, checkPopupRows(d.Rows)
 }

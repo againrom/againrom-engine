@@ -456,19 +456,18 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 // group and take it out. The tree lists the groups; a chosen group's window
 // in the right panel shows its members and deletes it.
 func (e *MapEditor) groupsSpec() popupSpec {
-	body := e.bodyFont()
-	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
-	text := s.Width - 2*popupPad - 8
+	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Bounds: e.popupBounds(), NoteInk: editorPaper}
 	if len(e.groups()) == 0 {
 		s.TitleHelp = e.word("editor.group.empty")
 	}
 	units := e.groupUnitsSelected()
 	s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.group.selected"), units))
 	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = append(s.Notes, editorTextLines(body, note, text)...)
+		s.Notes = append(s.Notes, note)
 	}
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove")}
 	s.Disabled = []bool{units == 0, units == 0}
+	e.fitListPopupWidth(popList, &s)
 	return s
 }
 
@@ -529,7 +528,7 @@ func (e *MapEditor) GroupsText() []string {
 		return nil
 	}
 	s := e.groupsSpec()
-	rows, _ := e.groupsList(s.Width - 2*popupPad - 8)
+	rows, _ := e.groupsList(e.popupWide(popList, 460) - 2*popupPad - 8)
 	var out []string
 	for _, r := range rows {
 		out = append(out, strings.TrimSpace(r.Label+" "+r.Value))
@@ -558,7 +557,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	if !e.selectionWindow() || e.pick != pickNone && !e.addPicking() || e.messagePage != 0 {
 		return popupSpec{}, false
 	}
-	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.keptCorner(popObject), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
+	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorPaper}
 	counts := map[RecordKind]int{}
 	groups := map[int]bool{}
 	at := e.recordIndex()
@@ -584,12 +583,12 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.bar.groups"), Value: strings.Join(numbers, ", ")})
 	}
 	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = editorTextLines(e.bodyFont(), note, s.Width-2*popupPad-8)
+		s.Notes = []string{note}
 	}
 	units := counts[KindUnit]
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove"), e.word("editor.selection.delete")}
 	s.Disabled = []bool{units == 0, units == 0, false}
-	fitButtons(&s, e.bodyFont())
+	e.fitListPopupWidth(popObject, &s)
 	return s, true
 }
 

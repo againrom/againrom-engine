@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -107,15 +108,28 @@ func (e *MapEditor) sizedPrompt(s popupSpec) popupSpec {
 	return s
 }
 
-// PopupRect is the rectangle of the front popup: the prompt, the object
-// popup or the list.
+// PopupRect returns the front popup's rectangle.
 func (e *MapEditor) PopupRect() (image.Rectangle, bool) {
-	for _, id := range []editorPopupID{popPrompt, popObject, popList} {
-		if s, ok := e.movableSpec(id); ok {
-			return layoutPopup(s, e.font, e.bodyFont()).Rect, true
+	l, ok := e.frontPopupLayout()
+	return l.Rect, ok
+}
+
+func (e *MapEditor) frontPopupLayout() (popupLayout, bool) {
+	stack := e.popupStack()
+	for _, id := range slices.Backward(stack[:]) {
+		if l, ok := e.popupLayoutOf(id); ok {
+			return l, true
 		}
 	}
-	return image.Rectangle{}, false
+	return popupLayout{}, false
+}
+
+func (e *MapEditor) popupLayoutOf(id editorPopupID) (popupLayout, bool) {
+	s, ok := e.movableSpec(id)
+	if !ok {
+		return popupLayout{}, false
+	}
+	return layoutPopup(s, e.font, e.bodyFont()), true
 }
 
 // resizeEdgeAt is the border of popup id a press at p would grab, none when

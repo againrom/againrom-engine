@@ -329,6 +329,7 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 	for _, r := range l.GridCells {
 		add("cell", r)
 	}
+	add("grid-scroll", l.GridBar)
 	for _, r := range l.Notes {
 		add("note", r)
 	}
@@ -345,7 +346,7 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 				add("list-cell", l.List.Cell(i, k))
 			}
 		}
-		if len(l.List.Columns) > 0 {
+		if s.List.Len() > l.List.Rows || len(l.List.Columns) > 0 {
 			add("list-scroll", l.List.Bar())
 		}
 	}
@@ -430,9 +431,9 @@ func TestDescriptionPreviewPagesBodyAndShowsClippedChoiceTip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			tip, row, ok := first.previewTip()
-			if !ok || row != hover || !strings.HasSuffix(tip.Text, full) || !tip.Rect.In(image.Rectangle{Max: size}) {
-				t.Fatalf("clipped value tip: row %d, found %t, tip %+v", row, ok, tip)
+			tip, control, ok := first.previewTip()
+			if !ok || control != first.layout.Rows[hover].Control || !strings.HasSuffix(tip.Text, full) || !tip.Rect.In(image.Rectangle{Max: size}) {
+				t.Fatalf("clipped value tip: control %v, found %t, tip %+v", control, ok, tip)
 			}
 			page := string(first.Page())
 			box := fmt.Sprintf(`data-box="%d %d %d %d"`, tip.Rect.Min.X, tip.Rect.Min.Y, tip.Rect.Dx(), tip.Rect.Dy())

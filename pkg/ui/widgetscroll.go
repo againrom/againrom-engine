@@ -304,6 +304,17 @@ func (l listBox) Row(i int) image.Rectangle {
 	return image.Rect(l.Rect.Min.X, y, l.Rect.Max.X, y+l.Pitch)
 }
 
+func listRowLead(row PickerRow, pitch, inset int) int {
+	lead := max(0, row.Indent) * listIndentStep
+	if row.Fold != FoldNone {
+		lead += listIndentStep
+	}
+	if row.Icon != nil || row.IconCell {
+		lead += max(1, pitch-2) + inset
+	}
+	return lead
+}
+
 // Bar is the attached bar's rectangle.
 func (l listBox) Bar() image.Rectangle {
 	x := l.Rect.Max.X + l.BarGap
@@ -379,19 +390,16 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Ink != (color.RGBA{}) {
 				ink = rows[top+i].Ink
 			}
-			x, width := r.Min.X+textX, r.Dx()-2*textX
-			if rows := m.Rows(); top+i < len(rows) && (rows[top+i].Icon != nil || rows[top+i].IconCell) {
+			data := m.Rows()[top+i]
+			x := r.Min.X + textX
+			if data.Icon != nil || data.IconCell {
 				side := max(1, r.Dy()-2)
-				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
-				x, width = x+side+textX, width-side-textX
+				editorBlit(dst, data.Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 			}
-			if rows := m.Rows(); top+i < len(rows) && (rows[top+i].Indent > 0 || rows[top+i].Fold != FoldNone) {
-				row := rows[top+i]
-				x, width = x+row.Indent*listIndentStep, width-row.Indent*listIndentStep
-				if row.Fold != FoldNone {
-					f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowFoldMarks[row.Fold], x, r.Min.Y+listTextY, ink)
-					x, width = x+listIndentStep, width-listIndentStep
-				}
+			x += listRowLead(data, r.Dy(), textX)
+			width := r.Max.X - textX - x
+			if data.Fold != FoldNone {
+				f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowFoldMarks[data.Fold], x-listIndentStep, r.Min.Y+listTextY, ink)
 			}
 			face := f
 			if rows := m.Rows(); l.HeadingFace != nil && top+i < len(rows) && rows[top+i].Heading {
