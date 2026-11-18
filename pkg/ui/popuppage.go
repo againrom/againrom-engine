@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 	"againrom/pkg/words"
 )
 
@@ -37,6 +38,7 @@ type EditorMockup struct {
 	gridNames []string
 	// asideName names the picture beside the list.
 	asideName string
+	encode    func(string) string
 }
 
 // mockupPerson is the person a description's card and figure show: the
@@ -87,7 +89,7 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	if sample == nil {
 		sample = &popupScope{}
 	}
-	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body}
+	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body, encode: encode}
 	word := words.For(lang).Text
 	if person.name != nil {
 		table := word
@@ -138,6 +140,14 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	for i, r := range m.paint.Rows {
 		if r.Focus && body != nil {
 			m.paint.Rows[i].Caret = body.Advance(r.Value)
+		}
+	}
+	if m.paint.Width <= 0 && !d.Question {
+		// A window the description gives no width takes its natural width.
+		if len(m.paint.ListColumns) > 0 {
+			m.paint.Width = min(fitListWidth(&m.paint, body, listColumnsFit(&m.paint, title, window.X-16)), window.X-16)
+		} else {
+			m.paint.Width = min(naturalWidth(&m.paint, title, body, m.paint.LabelWidth), window.X-16)
 		}
 	}
 	fitButtons(&m.paint, body)
@@ -304,6 +314,11 @@ func encodedSpec(s popupSpec, encode func(string) string) popupSpec {
 	}
 	s.Title, s.TitleHelp, s.SwitchButton = encode(s.Title), encode(s.TitleHelp), encode(s.SwitchButton)
 	s.Tabs, s.Buttons, s.Notes = all(s.Tabs), all(s.Buttons), all(s.Notes)
+	columns := make([]listColumn, len(s.ListColumns))
+	for i, c := range s.ListColumns {
+		columns[i] = listColumn{Head: encode(c.Head), Share: c.Share}
+	}
+	s.ListColumns = columns
 	rows := make([]popupRow, len(s.Rows))
 	for i, r := range s.Rows {
 		r.Label, r.Value, r.Hint, r.Help = encode(r.Label), encode(r.Value), encode(r.Hint), encode(r.Help)
@@ -314,7 +329,12 @@ func encodedSpec(s popupSpec, encode func(string) string) popupSpec {
 	if s.List != nil {
 		var list []PickerRow
 		for _, r := range s.List.Rows() {
-			r.Text = encode(r.Text)
+			if len(s.ListColumns) > 0 {
+				// Tabs belong to the list structure, not the font alphabet.
+				r.Text = strings.Join(all(strings.SplitN(r.Text, "\t", len(s.ListColumns))), "\t")
+			} else {
+				r.Text = encode(r.Text)
+			}
 			list = append(list, r)
 		}
 		chosen := s.List.Selection()
@@ -394,7 +414,32 @@ func (m *EditorMockup) Page() []byte {
 	if m.asideName != "" && !m.layout.Aside.Empty() {
 		pictures = append(pictures, pagePicture{-1, m.layout.Aside, m.asideName})
 	}
-	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, pictures, m.lang, m.window)
+	w := specWindow(m.plain)
+	measure := func(s string) int {
+		if m.body != nil {
+			return m.body.Advance(m.encode(s))
+		}
+		return len([]rune(s)) * 8
+	}
+	l := m.layout
+	if len(w.List.Columns) > 0 && w.List.Picker != nil {
+		w.List.Text = func(row, width int) string {
+			return l.List.fitCells(textfit.Spec{Measure: measure}, w.List.Picker.Rows()[row].Text, width)
+		}
+	}
+	if len(w.List.Columns) > 0 {
+		headMeasure := func(s string) int {
+			if f := listHeadFont(m.title, m.body); f != nil {
+				return f.Advance(m.encode(s))
+			}
+			return len([]rune(s)) * 8
+		}
+		l.ListHeadLines = make([][]string, len(l.ListHeads))
+		for k, r := range l.ListHeads {
+			l.ListHeadLines[k] = editorRule.plain(lineBox{Measure: headMeasure, Width: r.Dx() - listColumnGap/2}, w.List.Columns[k].Head)
+		}
+	}
+	return popupPage(m.desc, w, l, figure, pictures, m.lang, m.window)
 }
 
 // pageDescriptionTag opens the description a page carries.
@@ -425,16 +470,17 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 		if r.Empty() {
 			return
 		}
-		fmt.Fprintf(&b, `<div class="p %s" data-part="%s"`, class, name)
-		if row >= 0 {
-			fmt.Fprintf(&b, ` data-row="%d"`, row)
-		}
+		fmt.Fprintf(&b, `<div class="p %s"`, class)
 		if tip != "" {
 			fmt.Fprintf(&b, ` title="%s"`, html.EscapeString(tip))
 			tip = ""
 		}
+		fmt.Fprintf(&b, ` data-part="%s"`, name)
+		if row >= 0 {
+			fmt.Fprintf(&b, ` data-row="%d"`, row)
+		}
 		fmt.Fprintf(&b, ` data-box="%d %d %d %d" style="left:%dpx;top:%dpx;width:%dpx;height:%dpx;line-height:%dpx`,
-			r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Dy())
+			r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Min.X, r.Min.Y, r.Dx(), r.Dy(), r.Dy()/(1+strings.Count(txt, "\n")))
 		if ink != (color.RGBA{}) {
 			fmt.Fprintf(&b, ";color:%s", hex(ink))
 		}
@@ -540,6 +586,9 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 		part("note", "note", i, r, w.Notes.Ink, w.Notes.Lines[i])
 	}
 	if l.HasList && w.List.Picker != nil {
+		for k, r := range l.ListHeads {
+			part("heading", "list-head", k, r, none, strings.Join(l.ListHeadLines[k], "\n"))
+		}
 		rows := w.List.Picker.Rows()
 		top, shown := w.List.Picker.Visible()
 		for i := 0; i < l.List.Rows && i < shown && top+i < len(rows); i++ {
@@ -548,7 +597,23 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			if n == w.List.Picker.Selection() {
 				class = "button"
 			}
-			part(class, "list-row", n, l.List.Row(i), none, rows[n].Text)
+			if len(l.List.Columns) == 0 {
+				part(class, "list-row", n, l.List.Row(i), none, rows[n].Text)
+			} else {
+				shown := strings.SplitN(rows[n].Text, "\t", len(l.List.Columns))
+				if w.List.Text != nil {
+					shown = strings.SplitN(w.List.Text(n, l.List.Rect.Dx()-2*listTextX), "\t", len(l.List.Columns))
+				}
+				for k, full := range strings.SplitN(rows[n].Text, "\t", len(l.List.Columns)) {
+					if shown[k] != full {
+						tip = full
+					}
+					part(class, "list-cell", n, l.List.Cell(i, k), none, shown[k])
+				}
+			}
+		}
+		if len(l.List.Columns) > 0 {
+			part("control", "list-scroll", -1, l.List.Bar(), none, "")
 		}
 	}
 	part("button", "switch-button", -1, l.SwitchButton, none, w.Buttons.Switch)

@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor, the Used by links in the unit window's detailed view now wrap inside their column instead of running past it.
 - [BASE] In the map editor, a name typed into a unit's window now takes effect when you press Enter or save the map, instead of only when you press Apply.
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
+- [BASE] In the map editor, the variables table is as wide as its columns need, within the screen; a trigger name too long to fit ends in "..." and shows whole in a tip, and the title's (?) says that Value is the number in the trigger's condition or action, not the variable's current value.
 - [BASE] In the map editor, the placing palette chooses its owner from one drop-down list, the Players window has palette-sized cells with a named legend, and a player's window shows every label whole, its control and relations as words, and its Data section folded.
 - [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
 - [BASE] In the map editor, a structure, sack or other object window shows its picture as the first row, a structure that scripts name is titled by that name, a group window shows its members' pictures, a long Used by line wraps and stays one link, and a Used by list of more than five uses starts folded.

@@ -953,6 +953,7 @@
 "editor.variables.how" = "Comparison or action"
 "editor.variables.trigger" = "Trigger"
 "editor.variables.none" = "The map's scripts use no variable."
+"editor.variables.help" = "One row per use of a variable. Value is the number in the trigger's condition or action, not the variable's current value. Select a row to open its trigger; an unused variable opens its variable window. Hover over a shortened cell to read the whole text."
 "editor.keys.heightlabels" = "V: height numbers (toolbar)"
 "editor.heights.on" = "Height numbers on: height of the top-left corner minus 64; zoomed out, every few vertices"
 "editor.heights.off" = "Height numbers off"

@@ -14,7 +14,7 @@ import (
 // size: the label column, the value and the row's own buttons; a line
 // across the row with its mark and buttons; a heading. A multi-line text's
 // longest line and a note count up to the reading measure (questionMeasure):
-// past it they wrap.
+// past it they wrap. A list's width is listFit's.
 func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	measure := func(t string) int { return 8 * len([]rune(t)) }
 	if body != nil {

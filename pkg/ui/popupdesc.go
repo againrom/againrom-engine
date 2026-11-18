@@ -78,14 +78,15 @@ type popupDescNote struct {
 // flag is set is the selection. Rows is how many rows show. Aside is the
 // picture beside the list.
 type popupDescList struct {
-	Each   string          `json:"each"`
-	Word   string          `json:"word,omitempty"`
-	Bind   string          `json:"bind,omitempty"`
-	Args   []string        `json:"args,omitempty"`
-	Icon   string          `json:"icon,omitempty"`
-	Chosen string          `json:"chosen,omitempty"`
-	Rows   int             `json:"rows,omitempty"`
-	Aside  *popupDescAside `json:"aside,omitempty"`
+	Each    string                `json:"each"`
+	Word    string                `json:"word,omitempty"`
+	Bind    string                `json:"bind,omitempty"`
+	Args    []string              `json:"args,omitempty"`
+	Icon    string                `json:"icon,omitempty"`
+	Chosen  string                `json:"chosen,omitempty"`
+	Rows    int                   `json:"rows,omitempty"`
+	Aside   *popupDescAside       `json:"aside,omitempty"`
+	Columns []popupDescListColumn `json:"columns,omitempty"`
 }
 
 // popupDescAside is the picture element beside a list: the picture its
@@ -94,6 +95,15 @@ type popupDescList struct {
 type popupDescAside struct {
 	Picture string `json:"picture"`
 	Width   int    `json:"width"`
+}
+
+// popupDescListColumn binds one cell per item and names its column's word.
+type popupDescListColumn struct {
+	Head  string   `json:"head"`
+	Share int      `json:"share"`
+	Bind  string   `json:"bind,omitempty"`
+	Word  string   `json:"word,omitempty"`
+	Args  []string `json:"args,omitempty"`
 }
 
 // popupDescGrid is the one grid form: a cell for every item of list Each.
@@ -366,6 +376,9 @@ func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []p
 	}
 	if d.List != nil {
 		s.List, s.ListRows, s.ListAside, _ = c.listBox(d.List, word, nil)
+		for _, col := range d.List.Columns {
+			s.ListColumns = append(s.ListColumns, listColumn{Head: word(col.Head), Share: col.Share})
+		}
 	}
 	s.Grid, _ = c.grid(d.Grid, word)
 	return s, made
@@ -383,6 +396,17 @@ func (c popupChain) listBox(l *popupDescList, word func(string) string, picture 
 		row := PickerRow{Text: in.text(l.Bind, word), Choosable: true}
 		if l.Word != "" {
 			row.Text = in.format(l.Word, l.Args, word)
+		}
+		if len(l.Columns) > 0 {
+			var cells []string
+			for _, col := range l.Columns {
+				cell := in.text(col.Bind, word)
+				if col.Word != "" {
+					cell = in.format(col.Word, col.Args, word)
+				}
+				cells = append(cells, cell)
+			}
+			row.Text = strings.Join(cells, "\t")
 		}
 		if l.Icon != "" {
 			row.IconCell = true

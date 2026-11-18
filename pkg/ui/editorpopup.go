@@ -690,10 +690,11 @@ type popupFlow struct {
 	cardBelow bool
 	// bandScrolls counts the band under the rows among the scrolled lines.
 	bandScrolls bool
-	// listHeads are the list columns' head lines and listHeadH the band
-	// they take over the list.
-	listHeads [][]string
-	listHeadH int
+	// listColumns are the list columns' widths, listHeads their head lines
+	// and listHeadH the band they take over the list.
+	listColumns []int
+	listHeads   [][]string
+	listHeadH   int
 }
 
 // listColumn is one column of a list: its head and its share of the width.
@@ -711,20 +712,22 @@ func listShares(columns []listColumn) []int {
 	return out
 }
 
-// listHeadLines are the heads of s's list columns, each wrapped to its
-// column at popup width w, and the height of their band.
-func listHeadLines(s uiWindow, body *text.Font, w int) ([][]string, int) {
+// listHeadLines are the widths of s's list columns at popup width w, their
+// heads, each wrapped in the heading face to its column, and the height of
+// their band.
+func listHeadLines(s uiWindow, heading, body *text.Font, w int) ([]int, [][]string, int) {
 	if s.List.Picker == nil || len(s.List.Columns) == 0 {
-		return nil, 0
+		return nil, nil, 0
 	}
-	stops := columnStops(listShares(s.List.Columns), w-2*popupPad-widgetSpriteSize-s.List.Aside-2*listTextX)
+	widths := listColumnWidths(s.List, heading, body, w-2*popupPad-widgetSpriteSize-s.List.Aside-2*listTextX)
+	stops := columnStops(widths, w-2*popupPad-widgetSpriteSize-s.List.Aside-2*listTextX)
 	heads := make([][]string, len(s.List.Columns))
 	lines := 1
 	for k, c := range s.List.Columns {
-		heads[k] = editorTextLines(body, c.Head, max(1, stops[k+1]-stops[k]-listColumnGap))
+		heads[k] = editorTextLines(heading, c.Head, max(1, stops[k+1]-stops[k]-listColumnGap))
 		lines = max(lines, len(heads[k]))
 	}
-	return heads, lines*fontHeight(body, 15) + popupPad
+	return widths, heads, lines*fontHeight(heading, 15) + popupPad
 }
 
 // cardSize is the card's drawn size: the character panel's own, times the
@@ -819,7 +822,7 @@ func rowHasControl(row popupRow) bool {
 //
 // The tabs of every popup take as many lines as keep every caption whole.
 // With Fit set the card stands above the rows when cardOnTop says so.
-func popupFlowOf(s uiWindow, body *text.Font, w, pitch int) popupFlow {
+func popupFlowOf(s uiWindow, title, body *text.Font, w, pitch int) popupFlow {
 	f := popupFlow{tabsPerLine: len(s.Tabs.Captions), rowExtra: make([]int, len(s.Body.Rows)), labelOver: make([]bool, len(s.Body.Rows))}
 	if len(s.Tabs.Captions) > 0 {
 		f.tabLines = 1
@@ -831,7 +834,7 @@ func popupFlowOf(s uiWindow, body *text.Font, w, pitch int) popupFlow {
 	}
 	f.cardH, f.cardBelow = cardSize(s).Y, s.Card.Subject != nil && s.Card.Below
 	f.cardTop, f.bandScrolls = f.cardBelow, bandLines(s) > 0
-	f.listHeads, f.listHeadH = listHeadLines(s, body, w)
+	f.listColumns, f.listHeads, f.listHeadH = listHeadLines(s, listHeadFont(title, body), body, w)
 	inner := w - 2*popupPad
 	// The switch button leads the first line, left of the buttons.
 	if sw := switchButtonWidth(s, body); sw > 0 {
@@ -1307,7 +1310,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	if !s.Place.Bounds.Empty() {
 		w = min(w, s.Place.Bounds.Dx())
 	}
-	flow := popupFlowOf(s, body, w, pitch)
+	flow := popupFlowOf(s, title, body, w, pitch)
 	titleH += flow.tabLines * pitch
 	s.Body.Rows = wholeRows(s, flow, body, w, pitch, titleH)
 	sizedH := 0
@@ -1671,7 +1674,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 	if s.List.Picker != nil {
 		if len(flow.listHeads) > 0 {
 			x := r.Min.X + popupPad + listTextX
-			stops := columnStops(listShares(s.List.Columns), r.Dx()-2*popupPad-widgetSpriteSize-s.List.Aside-2*listTextX)
+			stops := columnStops(flow.listColumns, r.Dx()-2*popupPad-widgetSpriteSize-s.List.Aside-2*listTextX)
 			for k := range flow.listHeads {
 				l.ListHeads = append(l.ListHeads, image.Rect(x+stops[k], y, x+stops[k+1]-listColumnGap/2, y+flow.listHeadH-popupPad))
 			}
@@ -1679,7 +1682,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 			y += flow.listHeadH
 		}
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.List.Aside, y), max(1, s.List.Rows), body)
-		l.List.Columns = listShares(s.List.Columns)
+		l.List.Columns = flow.listColumns
 		l.HasList = true
 		if s.List.Aside > 0 {
 			l.Aside = image.Rect(r.Max.X-popupPad-s.List.Aside+popupPad, y, r.Max.X-popupPad, l.List.Rect.Max.Y)
@@ -2315,9 +2318,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 	if l.HasList && s.List.Picture != nil {
 		drawEditorPicture(dst, editorPicture{Pic: s.List.Picture, Box: l.Aside, Clip: l.Aside})
 	}
-	for k, r := range l.ListHeads {
-		for j, line := range l.ListHeadLines[k] {
-			body.Draw(dst.SubImage(r).(*image.RGBA), line, r.Min.X, r.Min.Y+j*fontHeight(body, 15), ink.Title)
+	if heading := listHeadFont(title, body); heading != nil {
+		for k, r := range l.ListHeads {
+			for j, line := range l.ListHeadLines[k] {
+				heading.Draw(dst.SubImage(r).(*image.RGBA), line, r.Min.X, r.Min.Y+j*fontHeight(heading, 15), ink.Title)
+			}
 		}
 	}
 	for i, r := range l.Notes {
@@ -2450,6 +2455,11 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, spec popupSpec, 
 	}
 	if tip, ok := canvasTipAt(bounds, body, s.Canvas, l, p); ok {
 		return tip, true
+	}
+	if l.HasList {
+		if tip, ok := listCellTip(bounds, body, s.List, l.List, p); ok {
+			return tip, true
+		}
 	}
 	g := s.Grid
 	if g == nil {

@@ -35,7 +35,13 @@ type listFitIn struct {
 // head column and cells, the counted rows, the window's other parts and the
 // button row, whichever is widest. It is the one measure of that width.
 func (e *MapEditor) listFit(s *popupSpec, in listFitIn) {
-	body := e.bodyFont()
+	s.Width = e.popupWide(popList, fitListWidth(s, e.bodyFont(), in))
+}
+
+// fitListWidth is listFit's width before a map-maker's size: it also sets
+// the label column and the grid's head column of s. The mockup page of a
+// description list asks it with a window of its own.
+func fitListWidth(s *popupSpec, body *text.Font, in listFitIn) int {
 	m := listFitMeasure{Body: body, Advance: func(t string) int {
 		if body == nil {
 			return 8 * len(t)
@@ -75,5 +81,5 @@ func (e *MapEditor) listFit(s *popupSpec, in listFitIn) {
 	if in.Rest != nil {
 		need = max(need, in.Rest(label, m))
 	}
-	s.Width = e.popupWide(popList, max(need+2*popupPad, buttonRowWidth(m.Window, body)))
+	return max(need+2*popupPad, buttonRowWidth(m.Window, body))
 }

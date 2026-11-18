@@ -809,7 +809,9 @@ func legacyLayoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			y += flow.listHeadH
 		}
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
-		l.List.Columns = listShares(s.ListColumns)
+		if len(s.ListColumns) > 0 {
+			l.List.Columns = listShares(s.ListColumns)
+		}
 		l.HasList = true
 		if s.ListAside > 0 {
 			l.Aside = image.Rect(r.Max.X-popupPad-s.ListAside+popupPad, y, r.Max.X-popupPad, l.List.Rect.Max.Y)

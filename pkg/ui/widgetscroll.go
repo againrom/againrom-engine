@@ -260,8 +260,9 @@ type listBox struct {
 	// HeadingFace draws the rows marked Heading; nil draws them as any row.
 	HeadingFace *text.Font
 	// Columns, when set, are the shares of the row width its columns take,
-	// left to right: a row's text holds one cell per column, parted by a
-	// tab, each cell cut at its column's edge, and a rule parts the columns.
+	// left to right (the window layout gives each column's width in pixels):
+	// a row's text holds one cell per column, parted by a tab, each cell
+	// fitted to its column with the cut mark, and a rule parts the columns.
 	Columns []int
 }
 
@@ -311,11 +312,8 @@ func (l listBox) Bar() image.Rectangle {
 
 // RowAt is the visible row under p.
 func (l listBox) RowAt(p image.Point) (int, bool) {
-	if !p.In(l.Rect) {
-		return 0, false
-	}
-	i := (p.Y - l.Rect.Min.Y) / l.Pitch
-	return i, i < l.Rows
+	row, _, ok := l.CellAt(p)
+	return row, ok
 }
 
 // listBar is the bar bound to list m: position is the selected index and
@@ -405,7 +403,7 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 				continue
 			}
 			stops := columnStops(l.Columns, width)
-			for k, cell := range strings.SplitN(rowText(top+i, width), "\t", len(l.Columns)) {
+			for k, cell := range strings.SplitN(l.fitCells(editorFit(face), rowText(top+i, width), width), "\t", len(l.Columns)) {
 				box := image.Rect(x+stops[k], r.Min.Y, x+stops[k+1]-listColumnGap/2, r.Max.Y)
 				face.Draw(row.SubImage(box).(*image.RGBA), cell, x+stops[k], r.Min.Y+listTextY, ink)
 			}

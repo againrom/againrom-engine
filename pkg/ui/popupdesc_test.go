@@ -321,9 +321,20 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 		add("note", r)
 	}
 	if l.HasList && s.List != nil {
+		for _, r := range l.ListHeads {
+			add("list-head", r)
+		}
 		top, shown := s.List.Visible()
 		for i := 0; i < l.List.Rows && i < shown && top+i < s.List.Len(); i++ {
-			add("list-row", l.List.Row(i))
+			if len(l.List.Columns) == 0 {
+				add("list-row", l.List.Row(i))
+			}
+			for k := range l.List.Columns {
+				add("list-cell", l.List.Cell(i, k))
+			}
+		}
+		if len(l.List.Columns) > 0 {
+			add("list-scroll", l.List.Bar())
 		}
 	}
 	add("switch-button", l.SwitchButton)

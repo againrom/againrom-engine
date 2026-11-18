@@ -2,7 +2,8 @@ package ui
 
 import (
 	"strconv"
-	"strings"
+
+	"againrom/pkg/render/text"
 )
 
 // The variables table: the Window menu's list of every variable the map's
@@ -119,35 +120,53 @@ func (e *MapEditor) variableWrite(n InspectionScriptNode) string {
 	return ""
 }
 
-// columnCells is row text cut to the columns of shares at width: each
-// cell fitted to its column, the cells parted by a tab as listBox's Columns
-// read them.
-func (e *MapEditor) columnCells(text string, shares []int, width int) string {
-	stops := columnStops(shares, width)
-	cells := strings.SplitN(text, "\t", len(shares))
-	for k := range cells {
-		cells[k] = editorClip(e.bodyFont(), cells[k], stops[k+1]-stops[k]-listColumnGap)
-	}
-	return strings.Join(cells, "\t")
-}
-
-// variableTableSpec gives list popup s the table's columns, width, row text
-// and, with no row, the note that the map uses no variable.
+// variableTableSpec gives list popup s the table's columns, its help, row
+// text, the note that the map uses no variable when no row stands, and its
+// natural width: the list fits each cell to its column and a cut cell shows
+// its whole text in a tip.
 func (e *MapEditor) variableTableSpec(s *popupSpec, m *Picker) {
 	for _, c := range variableColumns {
 		s.ListColumns = append(s.ListColumns, listColumn{Head: e.word(c.word), Share: c.share})
 	}
-	shares := listShares(s.ListColumns)
-	s.Width = e.popupWide(popList, 680)
-	s.ListText = func(row, width int) string {
+	s.TitleHelp = e.word("editor.variables.help")
+	s.ListText = func(row, _ int) string {
 		rows := m.Rows()
 		if row < 0 || row >= len(rows) {
 			return ""
 		}
-		return e.columnCells(rows[row].Text, shares, width)
+		return rows[row].Text
 	}
 	if m.Len() == 0 {
 		s.Notes = []string{e.word("editor.variables.none")}
+	}
+	e.listFit(s, listColumnsFit(s, e.font, e.window.X-16))
+}
+
+// listColumnsFit is the data listFit takes for a list of columns: no row
+// counts, and the window as wide as its columns, notes and title ask, at
+// most limit wide. A cell and a head are measured by Advance, the measure
+// listFit and the cell tip use.
+func listColumnsFit(s *popupSpec, title *text.Font, limit int) listFitIn {
+	return listFitIn{
+		Counts: func(popupRow) bool { return false },
+		Rest: func(_ int, fm listFitMeasure) int {
+			list := uiList{Picker: s.List, Columns: s.ListColumns, Aside: s.ListAside}
+			need := widgetSpriteSize + list.Aside + 2*listTextX
+			for _, n := range listColumnNeeds(list, listHeadFont(title, fm.Body), fm.Body) {
+				need += n
+			}
+			for _, n := range s.Notes {
+				need = max(need, 2*popupTextInset+min(fm.Advance(n), readingMeasure(fm.Advance)))
+			}
+			if title != nil {
+				marks := fontHeight(title, 15) + popupRowExtra
+				if s.TitleHelp != "" {
+					marks = 2*marks + 4
+				}
+				need = max(need, title.Advance(s.Title)+marks)
+			}
+			return min(max(need, 160-2*popupPad), limit-2*popupPad)
+		},
 	}
 }
 

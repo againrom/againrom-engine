@@ -33,7 +33,8 @@ func gridPictures(g *popupGrid, names []string, picture func(string) *image.RGBA
 }
 
 // mockupFonts sets what the painter measures in the body font: the caret
-// after a focused row's value and the list rows' text, cut to the list.
+// after a focused row's value and the list rows' text, cut to the list; a
+// list of columns fits each cell to its own column.
 func mockupFonts(s *popupSpec, body *text.Font) {
 	for i, r := range s.Rows {
 		if r.Focus && body != nil {
@@ -41,10 +42,14 @@ func mockupFonts(s *popupSpec, body *text.Font) {
 		}
 	}
 	if list := s.List; list != nil {
+		columns := len(s.ListColumns) > 0
 		s.ListText = func(row, width int) string {
 			rows := list.Rows()
 			if row < 0 || row >= len(rows) {
 				return ""
+			}
+			if columns {
+				return rows[row].Text
 			}
 			return editorClip(body, rows[row].Text, width)
 		}

@@ -6,8 +6,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 )
 
 // variableTableEditor is the menu map with a trigger "Count" (record 13)
@@ -287,5 +289,228 @@ func TestVariablesTableReadsAPairFromTheCheckSide(t *testing.T) {
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("rows\n got %q\nwant %q", got, want)
+	}
+}
+
+// longTriggerName is a trigger name wider than a 1920 pixel screen.
+var longTriggerName = strings.Repeat("Open the northern gate after the scout returns ", 12)
+
+// variableTablePagedEditor is variableTableEditor with the trigger Count
+// renamed name and uses more triggers comparing register 30 with 7, enough
+// rows to page.
+func variableTablePagedEditor(t *testing.T, lang, name string, uses int) *MapEditor {
+	t.Helper()
+	e := variableTableEditor(t, lang)
+	s := e.doc.Script
+	s.Triggers[len(s.Triggers)-1].Name = name
+	for i := 0; i < uses; i++ {
+		record := len(e.doc.Records)
+		e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: "Trigger", Index: len(s.Triggers), Key: uint64(record + 1)})
+		s.Triggers = append(s.Triggers, InspectionTrigger{Record: record, Name: fmt.Sprintf("Use %d", i), Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Cmp: []uint32{0, 0, 0}, Acts: make([]uint32, 4)})
+	}
+	return e
+}
+
+// variableColumnNeeds are the widths the table's columns ask, measured here:
+// each head in the title face (its advance, or its ink when wider) and each
+// cell of every row in the body face by advance,
+// plus the gap between columns.
+func variableColumnNeeds(e *MapEditor, s popupSpec) [4]int {
+	var need [4]int
+	for k, c := range s.ListColumns {
+		ink, _ := e.font.Measure(c.Head)
+		need[k] = max(e.font.Advance(c.Head), ink)
+	}
+	for _, line := range e.ListLines() {
+		for k, cell := range strings.SplitN(line, "\t", 4) {
+			w := e.bodyFont().Advance(cell)
+			need[k] = max(need[k], w)
+		}
+	}
+	for k := range need {
+		need[k] += listColumnGap
+	}
+	return need
+}
+
+// At 1920x1080 the variables table, with rows enough to page and a trigger
+// name wider than the screen, lies inside the screen with every head whole
+// on one line; the cut cell ends in the cut mark and shows its whole text in
+// the tip after the shared delay through the editor's input; and a press on
+// each visible row, through the editor's input, chooses that row's record.
+func TestVariablesTableHoldsTheLayoutProperties(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		t.Run(fmt.Sprintf("%q", lang), func(t *testing.T) {
+			e := variableTablePagedEditor(t, lang, longTriggerName, 40)
+			openMenuRow(t, e, "window", "variables")
+			s, ok := e.listSpec()
+			if !ok {
+				t.Fatal("no list spec")
+			}
+			checkWindowProperties(t, e, s, image.Pt(1920, 1080))
+			l := layoutPopup(s, e.font, e.bodyFont())
+			screen := image.Rect(0, 0, 1920, 1080)
+			if s.List.Len() <= l.List.Rows || !l.List.Bar().In(l.Rect) {
+				t.Fatalf("%d rows in a list of %d rows with its bar at %v: the list does not page inside %v", s.List.Len(), l.List.Rows, l.List.Bar(), l.Rect)
+			}
+			for k, r := range l.ListHeads {
+				head := s.ListColumns[k].Head
+				if w, _ := e.font.Measure(head); len(l.ListHeadLines[k]) != 1 || l.ListHeadLines[k][0] != head || w > r.Dx() || !r.In(l.Rect) {
+					t.Errorf("head %d %q laid out as %q, %d wide in %v inside %v", k, head, l.ListHeadLines[k], w, r, l.Rect)
+				}
+			}
+			// The trigger Count is the first two rows' trigger.
+			cut := l.List.Cell(0, 3)
+			full := strings.SplitN(e.ListLines()[0], "\t", 4)[3]
+			if !cut.In(l.Rect) || !l.Rect.In(screen) {
+				t.Fatalf("the cut cell %v or the window %v leaves the screen", cut, l.Rect)
+			}
+			var painted []text.DrawCall
+			calls := text.Record(func() { e.chromeCompose(false) })
+			for _, c := range calls {
+				if c.Y == cut.Min.Y+listTextY && c.X >= cut.Min.X && c.X < cut.Max.X {
+					painted = append(painted, c)
+				}
+			}
+			shown := editorFit(e.bodyFont()).Fit(full, cut.Dx())
+			if !strings.HasSuffix(shown, textfit.Mark) || len(painted) != len(shown) {
+				t.Fatalf("the cut cell paints %d glyphs, want %d for %q", len(painted), len(shown), shown)
+			}
+			for _, c := range painted[len(painted)-len(textfit.Mark):] {
+				if c.Glyph != e.bodyFont().GlyphFor('.') || c.X+c.Glyph.Width > cut.Max.X {
+					t.Fatalf("the cut cell does not end in the cut mark inside %v", cut)
+				}
+			}
+			p := center(cut)
+			t0 := time.Unix(100, 0)
+			e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, t0)
+			if got := e.TipShown(); got != "" {
+				t.Fatalf("the cut cell's tip shows before the delay: %q", got)
+			}
+			e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, t0.Add(editorTipDelay*time.Millisecond))
+			if got := e.TipShown(); got != full {
+				t.Fatalf("the cut cell's tip reads %q, want the whole %q", got, full)
+			}
+			if _, ok := popupTipAt(screen, e.font, e.bodyFont(), s, l, center(l.List.Cell(0, 0)), true); ok {
+				t.Fatal("a whole cell shows a tip")
+			}
+			rows := e.variableTableRows()
+			top, count := e.model.Visible()
+			for n := top; n < top+min(count, l.List.Rows); n++ {
+				r, ok := e.FindControl(ControlQuery{Role: ControlListRow, N: n})
+				if !ok {
+					t.Fatalf("row %d is not shown", n)
+				}
+				s, _ := e.listSpec()
+				if part, i := layoutPopup(s, e.font, e.bodyFont()).hit(center(r)); part != popupListRow || i != n-top {
+					t.Errorf("hit at row %d gives part %d, index %d", n, part, i)
+				}
+				modesClick(e, center(r))
+				if e.selected != rows[n].record || e.listKind() != "variables" {
+					t.Fatalf("a press on row %d selected %d, want %d; the list shows %q", n, e.selected, rows[n].record, e.listKind())
+				}
+			}
+		})
+	}
+}
+
+// Owner answer 1: the head stays Value («Значение»), and the title's (?)
+// says that Value is the number in the trigger's condition or action, not
+// the variable's current value, in its tip.
+func TestVariablesTableHelpSaysWhatValueIs(t *testing.T) {
+	for _, c := range []struct {
+		lang, head string
+		says       []string
+	}{
+		{"", "Value", []string{"Value is the number in the trigger's condition or action", "not the variable's current value"}},
+		{"russian", "Значение", []string{"Значение: число в условии или действии триггера", "а не текущее значение переменной"}},
+	} {
+		t.Run(fmt.Sprintf("%q", c.lang), func(t *testing.T) {
+			e := variableTableEditor(t, c.lang)
+			openMenuRow(t, e, "window", "variables")
+			s, _ := e.listSpec()
+			if s.ListColumns[1].Head != c.head {
+				t.Fatalf("the value head reads %q, want %q", s.ListColumns[1].Head, c.head)
+			}
+			l := layoutPopup(s, e.font, e.bodyFont())
+			tip, ok := popupTipAt(image.Rect(0, 0, 1920, 1080), e.font, e.bodyFont(), s, l, center(l.TitleHelp), true)
+			if l.TitleHelp.Empty() || !ok || !tip.Help || tip.Text != e.word("editor.variables.help") {
+				t.Fatalf("the title's help mark at %v shows %+v (%v)", l.TitleHelp, tip, ok)
+			}
+			for _, say := range c.says {
+				if !strings.Contains(tip.Text, say) {
+					t.Errorf("the help %q does not say %q", tip.Text, say)
+				}
+			}
+		})
+	}
+}
+
+// Owner answer 2: with a trigger name wider than the screen the first three
+// columns take their natural width, the trigger column takes all the room
+// left in a window as wide as the screen allows, and its cut text ends in the
+// cut mark. With short names every column takes its natural width.
+func TestVariablesTableLongTriggerTakesTheRoomLeft(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		for _, long := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%q/long=%v", lang, long), func(t *testing.T) {
+				name := "Count"
+				if long {
+					name = longTriggerName
+				}
+				e := variableTablePagedEditor(t, lang, name, 0)
+				openMenuRow(t, e, "window", "variables")
+				s, _ := e.listSpec()
+				l := layoutPopup(s, e.font, e.bodyFont())
+				need := variableColumnNeeds(e, s)
+				row := l.List.Rect.Dx() - 2*listTextX
+				for k := 0; k < 3; k++ {
+					if got := l.List.Cell(0, k).Dx() + listColumnGap; got != need[k] {
+						t.Errorf("column %d is %d wide, its natural width is %d", k, got, need[k])
+					}
+				}
+				last := l.List.Cell(0, 3).Dx() + listColumnGap
+				if long {
+					if l.Rect.Dx() != e.window.X-16 || last != row-need[0]-need[1]-need[2] || last >= need[3] {
+						t.Fatalf("window %d wide (screen %d), trigger column %d of a %d row, natural %v", l.Rect.Dx(), e.window.X, last, row, need)
+					}
+					full := strings.SplitN(e.ListLines()[0], "\t", 4)[3]
+					if shown := editorFit(e.bodyFont()).Fit(full, l.List.Cell(0, 3).Dx()); !strings.HasSuffix(shown, textfit.Mark) {
+						t.Fatalf("the cut trigger reads %q", shown)
+					}
+					return
+				}
+				if last != need[3] {
+					t.Errorf("the trigger column is %d wide, its natural width is %d", last, need[3])
+				}
+			})
+		}
+	}
+}
+
+// The table's window is as wide as listFit makes it from the columns' need
+// by advance, the one text measure of a list window, and the brush and
+// Players windows keep their width.
+func TestVariablesTableWidthComesFromListFit(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		t.Run(fmt.Sprintf("%q", lang), func(t *testing.T) {
+			e := variableTablePagedEditor(t, lang, "Count", 0)
+			openMenuRow(t, e, "window", "variables")
+			s, _ := e.listSpec()
+			need := variableColumnNeeds(e, s)
+			want := 2*popupPad + widgetSpriteSize + s.ListAside + 2*listTextX
+			for _, n := range need {
+				want += n
+			}
+			if got := layoutPopup(s, e.font, e.bodyFont()).Rect.Dx(); got != want {
+				t.Fatalf("the table window is %d wide, the columns' advance need makes it %d", got, want)
+			}
+			fit := s
+			fit.Width = 0
+			e.listFit(&fit, listColumnsFit(&fit, e.font, e.window.X-16))
+			if fit.Width != s.Width {
+				t.Fatalf("listFit gives the table %d wide, the window spec has %d", fit.Width, s.Width)
+			}
+		})
 	}
 }
