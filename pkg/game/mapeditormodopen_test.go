@@ -121,7 +121,8 @@ func TestEditorOpensEveryFixtureMod(t *testing.T) {
 			} else if issues := overviewLines(page, x.word("editor.mod.overview.issues")); !slices.Contains(issues, x.word("editor.mod.readonly")+" "+err.Error()) {
 				t.Fatalf("refusals %q, want %q", issues, err)
 			}
-			if got := overviewLines(page, x.word("editor.mod.overview.report")); !slices.Equal(got, report) {
+			// The game's own check lines stand folded under the details.
+			if got := overviewLines(page, x.word("editor.mod.overview.more")); len(got) < len(report) || !slices.Equal(got[:len(report)], report) {
 				t.Fatalf("report\n%q\nwant\n%q", got, report)
 			}
 			if got := overviewLines(page, x.word("editor.mod.overview.files")); !slices.Contains(got, mod.ManifestName) {
@@ -141,7 +142,7 @@ func TestEditorShowsTheOverviewOfAModWithoutMissions(t *testing.T) {
 	}
 	x := f.x
 	lines := strings.Join(e.PopupLines(), "\n")
-	for _, want := range []string{x.word("editor.mod.overview.kinds"), "terrain: " + mod.TerrainFile, x.word("editor.mod.overview.report"), "1 mod(s) active on", x.word("editor.mod.overview.files")} {
+	for _, want := range []string{x.word("editor.mod.overview.kinds"), x.word("editor.mod.terrain") + ": ", x.word("editor.mod.overview.report"), x.word("editor.mod.overview.more"), x.word("editor.mod.overview.files")} {
 		if !strings.Contains(lines, want) {
 			t.Fatalf("overview lacks %q:\n%s", want, lines)
 		}

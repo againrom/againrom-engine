@@ -148,13 +148,14 @@ func noKeyField(t *testing.T, s *mapInspectionEdits, key string) {
 	}
 }
 
-// The page says first what it is for, lists each text under where it shows
-// with its text in English and Russian, marks and counts a text one
-// language lacks, and refuses a place it does not offer.
+// The page opens with its count line (what it is for is its title help),
+// lists each text under where it shows with its text in English and
+// Russian, each held language's Delete on that language's row, marks and
+// counts a text one language lacks, and refuses a place it does not offer.
 func TestTextsPageMarksATextMissingInOneLanguage(t *testing.T) {
 	s, _ := terrainPage(t)
-	if f := s.WorkspaceFields(ui.ModTextsScope); len(f) == 0 || f[0].Key != "about" || f[0].TextValue == "" {
-		t.Fatalf("the page does not open with what it is for: %+v", f)
+	if f := s.WorkspaceFields(ui.ModTextsScope); len(f) == 0 || f[0].Key != "summary" || slices.ContainsFunc(f, func(f ui.InspectionField) bool { return f.Key == "about" }) {
+		t.Fatalf("the page does not open with its count line: %+v", f)
 	}
 	if got := textsSummary(t, s); !strings.HasPrefix(got, "0 texts") {
 		t.Fatalf("a mod with no strings: %q", got)
@@ -171,8 +172,8 @@ func TestTextsPageMarksATextMissingInOneLanguage(t *testing.T) {
 	if en, _ := textsField(s, "en:"+k); en.TextValue != "The Pass" || en.Meaning == "" {
 		t.Fatalf("the English field %+v", en)
 	}
-	if drop, ok := textsField(s, "drop.en:"+k); !ok || drop.Meaning == "" {
-		t.Fatalf("the button that removes the English text has no help: %+v", drop)
+	if drop, ok := textsField(s, "drop.en:"+k); !ok || drop.Meaning == "" || drop.Of != "en:"+k {
+		t.Fatalf("the button that removes the English text has no help or stands off the English row: %+v", drop)
 	}
 	if _, ok := textsField(s, "drop.ru:"+k); ok {
 		t.Fatal("the page offers to remove a text from a language that lacks it")

@@ -9,9 +9,8 @@ import (
 // InspectionBook is a spell book a page of W shows under its grid, drawn by
 // the game's book painter from Art: Cells in book order, Chosen's cell lit,
 // each cell's tip. Grow is the tip of the + at each end of the book, which
-// takes no press. Drops are the page's drag and drop rules; Remove is the
-// value W's Remove button sends the field's key, "" for a button that does
-// nothing on the page.
+// takes no press. Drops are the page's drag and drop rules: a spell leaves
+// the book by a drop on the grid.
 type InspectionBook struct {
 	Art    *BottomHUDArt
 	Cells  []SpellEntry
@@ -19,7 +18,6 @@ type InspectionBook struct {
 	Tips   []string
 	Grow   string
 	Drops  []InspectionDrop
-	Remove string
 }
 
 // DropPlace is where a drag starts or ends on a page with a book.

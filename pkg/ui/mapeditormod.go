@@ -14,11 +14,10 @@ import (
 )
 
 // modButtons is W's button row in its order: the action each button runs and
-// the word of its caption.
+// the word of its caption. Each acts on the window; a mission's own actions
+// stand on the Missions page beside it.
 var modButtons = []struct{ action, word string }{
 	{action: "open", word: "editor.mod.openmod"},
-	{action: "add", word: "editor.mod.addshort"},
-	{action: "remove", word: "editor.mod.remove"},
 	{action: "save", word: "editor.mod.save"},
 	{action: "publish", word: "editor.mod.publish"},
 	{action: "close", word: "editor.mod.close"},
@@ -34,8 +33,9 @@ func modButtonIndex(action string) int {
 	return -1
 }
 
-// modWindowWidth is the mod window's width before a remembered size or the
-// editor's own width limits it: wide enough for every page tab whole in one row.
+// modWindowWidth is the mod window's least width before a remembered size or
+// the editor's own width limits it; a tab row that needs more widens it to
+// that, the same on every page (tabRowWidth).
 const modWindowWidth = 1160
 
 func (e *MapEditor) FocusModField(key string) bool {
@@ -161,8 +161,10 @@ func (e *MapEditor) modAction(key, value string) error {
 			e.obj.focus = len(e.obj.fields)
 			return nil
 		}
+		// The refusal is the editor's message; the window's notes hold only
+		// the save state.
 		e.obj.note = err.Error()
-		e.modStatus = err.Error()
+		e.message = err.Error()
 		return err
 	}
 	e.modConfirm = ""
@@ -188,11 +190,26 @@ func (e *MapEditor) modAction(key, value string) error {
 		e.graphMission, e.graphLink, e.graphPicked = 0, false, false
 		e.openModPage()
 	}
-	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {
-		e.modStatus = status.SaveNote()
-	}
 	e.objectSpec()
 	return nil
+}
+
+// modSaveState is the one line W's notes hold: a pending confirmation's
+// question while its buttons stand, else the save state the host reports,
+// else "not saved yet" while the host holds unsaved changes.
+func (e *MapEditor) modSaveState() string {
+	if e.modConfirm != "" {
+		return e.modStatus
+	}
+	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {
+		if note := status.SaveNote(); note != "" {
+			return note
+		}
+	}
+	if host, ok := e.modEdits().(interface{ Dirty() bool }); ok && host.Dirty() {
+		return e.plainWord("editor.mod.unsaved")
+	}
+	return ""
 }
 
 func (e *MapEditor) modButton(n int) error {
@@ -207,13 +224,6 @@ func (e *MapEditor) modButton(n int) error {
 		return nil
 	}
 	if n < 0 || n >= len(modButtons) {
-		return nil
-	}
-	if (e.modPage == modPageGraph || modPageScope(e.modPage) != "") && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
-		// A page with a book takes Remove out of its book.
-		if f, ok := e.modBookField(); ok && modButtons[n].action == "remove" && f.Book.Remove != "" {
-			return e.modAction(f.Key, f.Book.Remove)
-		}
 		return nil
 	}
 	key := modButtons[n].action
@@ -242,11 +252,54 @@ func (e *MapEditor) modButton(n int) error {
 }
 
 // modPathRows are the path questions of W's rows by the field, button or row
-// button key; Publish folder asks none: it is typed.
+// button key; the Publish folder field itself asks none: its row's Choose
+// button does.
 var modPathRows = map[string]func(*MapEditor) pathQuestion{
-	"folder":  func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
-	"open":    func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
-	"addmaps": (*MapEditor).mapsFolderQuestion,
+	"folder":             func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
+	"open":               func(e *MapEditor) pathQuestion { return e.modOpenQuestion("folder") },
+	"addmaps":            (*MapEditor).mapsFolderQuestion,
+	"folder" + modChoose: func(e *MapEditor) pathQuestion { return e.modFolderQuestion("folder") },
+	"output" + modChoose: func(e *MapEditor) pathQuestion { return e.modFolderQuestion("output") },
+}
+
+// modChoose ends the key of a folder row's Choose button.
+const modChoose = ".pick"
+
+// modChosenOnly reports W's field i chosen, not typed: its row carries a
+// Choose that asks the system folder window, and the host has that window.
+// A host without one types the field.
+func (e *MapEditor) modChosenOnly(i int) bool {
+	if !e.modWindow || !e.hasPathDialog() || i < 0 || i >= len(e.obj.fields) {
+		return false
+	}
+	key := e.obj.fields[i].Key
+	return slices.ContainsFunc(e.obj.fields, func(f InspectionField) bool { return f.Action && f.Of == key && f.Key == key+modChoose })
+}
+
+// modFolderQuestion asks the system folder window for W's folder field:
+// from the folder it holds, else the maps folder; the field's route takes
+// the answer, and a system without the window asks the typed prompt.
+func (e *MapEditor) modFolderQuestion(field string) pathQuestion {
+	title, start := "", ""
+	for _, f := range e.obj.fields {
+		if f.Key == field {
+			title = f.Label
+			if folder := strings.TrimSpace(f.TextValue); filepath.IsAbs(folder) {
+				start = filepath.Clean(folder)
+			}
+		}
+	}
+	return pathQuestion{
+		Question: pathdialog.Question{Kind: pathdialog.ChooseFolder, Title: title},
+		start: func() string {
+			if start != "" {
+				return start
+			}
+			return e.mapsStart()
+		},
+		chosen:   func(path string) { _ = e.modAction(field, path) },
+		fallback: func(err error) { e.modOpenTyped(field, err) },
+	}
 }
 
 // modOpenQuestion asks for a mod.toml or mod-<id>.res, from the folder of an
@@ -311,15 +364,17 @@ func (e *MapEditor) modPickQuestion(f InspectionField) pathQuestion {
 	}
 }
 
-// modOpenTyped focuses W's field and says to type the mod's path there; err
-// is why the host showed no window, nil when it has none.
+// modOpenTyped is the typed path prompt for W's field where the system has
+// no file window: the field's value typed there, the instruction inside the
+// prompt; err is why the host showed no window, nil when it has none.
 func (e *MapEditor) modOpenTyped(field string, err error) {
 	e.FocusModField(field)
-	if err == nil || errors.Is(err, pathdialog.ErrUnavailable) {
-		e.modStatus = e.plainWord("editor.mod.nodialog")
-		return
+	note := e.plainWord("editor.mod.nodialog")
+	if err != nil && !errors.Is(err, pathdialog.ErrUnavailable) {
+		note = fmt.Sprintf(e.plainWord("editor.mod.typepath"), err)
 	}
-	e.modStatus = fmt.Sprintf(e.plainWord("editor.mod.typepath"), err)
+	e.openPrompt(editorPrompt{kind: promptMapsFolder, scope: field})
+	e.message = note
 }
 
 func (e *MapEditor) modKey(key string) (bool, error) {
@@ -568,12 +623,13 @@ func (e *MapEditor) modNativeKeys(in editorNativeInput) (bool, error) {
 func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
-	o.rowActs, o.modKeys = map[int][]string{}, nil
-	s := popupSpec{Title: e.word("editor.mod.window"), Width: e.popupWide(popObject, min(modWindowWidth, e.window.X-16)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
+	o.rowActs, o.modKeys = map[int][]string{}, map[int][]string{}
+	s := popupSpec{Title: e.word("editor.mod.window"), At: e.keptCorner(popObject), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
 	if s.Tabs, s.ActiveTab = e.modTabs(); len(s.Tabs) > 0 {
 		s.TabSwitch = true
 	}
+	s.Width = e.popupWide(popObject, min(max(modWindowWidth, tabRowWidth(e.bodyFont(), s.Tabs)), e.window.X-16))
 	switch e.modPage {
 	case modPageOverview:
 		page, _ := e.modOverview()
@@ -596,12 +652,13 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		if f.Key != "source" || e.modPage != modPageFields {
 			continue
 		}
-		// Every mission of the mod is a row; the window's scroll reaches
-		// the ones the page has no room to show.
+		// Every mission of the mod is a row under the mod's maps; the
+		// window's scroll reaches the ones the page has no room to show.
+		s.Rows, links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.mod.maps")}), append(links, 0)
 		for n := range f.Choices {
 			// A choice's label is already in the font's bytes, as the
 			// Mission drop-down draws it.
-			row := popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), f.Choices[n].Label, s.Width/2-62), Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
+			row := popupRow{Kind: popupText, Label: f.Choices[n].Label, Tip: f.Choices[n].Label, Buttons: []string{e.word("editor.mod.open")}, Column: 0, Focus: int64(n+1) == f.Value}
 			index := len(s.Rows)
 			s.Rows = append(s.Rows, row)
 			links = append(links, 0)
@@ -614,15 +671,16 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	if e.modPage == modPageFields {
 		e.modMapRows(&s, &links)
 	}
+	// A page whose rows all stand in the first column is one column wide,
+	// its label column as wide as its labels need (Fit).
+	if e.modPage != modPageGraph && !slices.ContainsFunc(s.Rows, func(r popupRow) bool { return r.Column > 0 }) {
+		s.Columns, s.Fit = 1, true
+	}
 	s.Buttons = nil
 	for _, b := range modButtons {
 		s.Buttons = append(s.Buttons, e.word(b.word))
 	}
 	s.Disabled = nil
-	if book, ok := e.modBookField(); e.modPage == modPageGraph || ok {
-		s.Disabled = make([]bool, len(modButtons))
-		s.Disabled[modButtonIndex("add")], s.Disabled[modButtonIndex("remove")] = true, !ok || book.Book.Remove == ""
-	}
 	if e.modConfirm != "" {
 		s.Buttons = []string{e.word("editor.mod.confirm"), e.word("editor.button.cancel")}
 		if e.modConfirmLabel != "" {
@@ -640,16 +698,8 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	}
 	s.TitleHelp = e.editorHostText(e.plainWord(modPageWords[e.modPage].helpWord) + "\n" + keys)
 	s.Notes = nil
-	if e.modStatus != "" {
-		s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(e.modStatus), s.Width-20)
-	}
-	if host, ok := e.modEdits().(interface{ ModSummary() string }); ok {
-		s.Notes = append([]string{editorClip(e.bodyFont(), e.editorHostText(host.ModSummary()), s.Width-20)}, s.Notes...)
-	}
-	if host, ok := e.modEdits().(interface{ ModOutput() string }); ok {
-		if output := host.ModOutput(); output != "" {
-			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(output), s.Width-20)...)
-		}
+	if note := e.modSaveState(); note != "" {
+		s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(note), s.Width-20)
 	}
 	s.MaxRows = max(3, (e.popupRoom().Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))
 	// The layout pass takes rows away until a wrapped button row fits the
@@ -670,26 +720,16 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	return s, links, true
 }
 
-// modGridSide is a cell's side in a page's grid: a 32-pixel square drawn
-// twice its size, with the cell's frame.
-const modGridSide = 74
-
 // modGrid is the grid field f of a page as the one grid of picture cells:
-// each choice in order, named under its picture, its Variations its hover
+// each choice in order, named by its tip, its Variations its hover
 // pictures, its rows fitted and scrolled as every grid popup's are.
 func (e *MapEditor) modGrid(f InspectionField, width int) *popupGrid {
-	g := &popupGrid{Side: modGridSide, CaptionH: fontHeight(e.bodyFont(), 15) + 2, Top: e.modGridTop, LeastRows: 1}
-	if f.Small {
-		g.Side, g.CaptionH = gridCellSide, 0
-	}
+	g := &popupGrid{Side: gridCellSide, Top: e.modGridTop, LeastRows: 1}
 	for _, c := range f.Choices {
-		cell := popupGridCell{Icon: f.Icons[c.Value], Caption: c.Label, Tip: c.Label, TipPictures: f.Variations[c.Value], Pressed: c.Value == f.Value,
+		cell := popupGridCell{Icon: f.Icons[c.Value], Tip: c.Label, TipPictures: f.Variations[c.Value], Pressed: c.Value == f.Value,
 			Ticked: slices.Contains(f.Ticked, c.Value), Inert: slices.Contains(f.Shut, c.Value)}
-		if f.Small {
-			cell.Caption = ""
-			if cell.Icon == nil {
-				cell.Label = f.Marks[c.Value]
-			}
+		if f.Small && cell.Icon == nil {
+			cell.Label = f.Marks[c.Value]
 		}
 		g.Cells = append(g.Cells, cell)
 	}
@@ -733,7 +773,6 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 		return
 	}
 	o := &e.obj
-	o.modKeys = map[int][]string{}
 	add := func(row popupRow, keys, values []string) {
 		index := len(s.Rows)
 		s.Rows = append(s.Rows, row)
@@ -754,6 +793,129 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 	}
 	add(popupRow{Kind: popupText, Label: e.word("editor.mod.addmap.label"), Buttons: []string{e.word("editor.mod.addmap")}, Column: 0}, []string{"addmap"}, []string{""})
 	add(popupRow{Kind: popupText, Label: e.word("editor.mod.addmaps.label"), Buttons: []string{e.word("editor.mod.addmaps")}, Column: 0}, []string{"addmaps"}, []string{""})
+}
+
+// modListPages are W's pages of things laid as a list and a chosen thing
+// (modListRows); a page's things are its fields' groups. modListEmpty is
+// what each says while it holds none.
+var (
+	modListPages = []int{modPageTerrain, modPageCharacters, modPageItems}
+	modListEmpty = []struct {
+		page int
+		word string
+	}{{page: modPageTerrain, word: "editor.terrain.empty"}, {page: modPageCharacters, word: "editor.characters.empty"}, {page: modPageItems, word: "editor.items.empty"}}
+)
+
+// modListEmptyWord is the word list page n says while it holds no thing.
+func modListEmptyWord(n int) string {
+	for _, p := range modListEmpty {
+		if p.page == n {
+			return p.word
+		}
+	}
+	return ""
+}
+
+// modListRows lays a page of things: left, the page's adders (its fields of
+// no group) and the list of its things, one row each, none where the
+// page's grid lists them; right, the chosen thing's name line with its
+// actions as buttons, then its fields.
+func (e *MapEditor) modListRows(s *popupSpec, links *[]int, fieldRows func(int, string, bool) int) {
+	o := &e.obj
+	s.Columns = 2
+	column := func(at, c int) {
+		for k := at; k < len(s.Rows); k++ {
+			s.Rows[k].Column = c
+		}
+	}
+	var groups []string
+	grid := false
+	for i, f := range o.fields {
+		grid = grid || f.Grid
+		if f.Group != "" && !slices.Contains(groups, f.Group) {
+			groups = append(groups, f.Group)
+		}
+		if f.Group == "" {
+			at := len(s.Rows)
+			fieldRows(i, "", false)
+			column(at, 0)
+		}
+	}
+	if e.modChosen == nil {
+		e.modChosen = map[int]int{}
+	}
+	chosen := max(0, min(e.modChosen[e.modPage], len(groups)-1))
+	e.modListRow = map[int]int{}
+	if !grid && len(groups) > 0 {
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word(modPageWords[e.modPage].tabWord)}), append(*links, 0)
+		for k, g := range groups {
+			e.modListRow[len(s.Rows)] = k
+			label := e.editorHostText(g)
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Tip: label, Focus: k == chosen}), append(*links, 0)
+		}
+	}
+	if len(groups) == 0 {
+		at := len(s.Rows)
+		for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(e.plainWord(modListEmptyWord(e.modPage))), s.Width/2-40) {
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
+		}
+		column(at, 1)
+		return
+	}
+	g := groups[chosen]
+	head := popupRow{Kind: popupText, Label: e.editorHostText(g), Tip: e.editorHostText(g), Column: 1}
+	var keys []string
+	for _, f := range o.fields {
+		if f.Group == g && f.Action {
+			head.Buttons, keys = append(head.Buttons, e.editorHostText(f.Label)), append(keys, f.Key)
+		}
+	}
+	o.rowActs[len(s.Rows)], o.modKeys[len(s.Rows)] = make([]string, len(keys)), keys
+	s.Rows, *links = append(s.Rows, head), append(*links, 0)
+	for i, f := range o.fields {
+		if f.Group == g && !f.Action {
+			at := len(s.Rows)
+			fieldRows(i, "", false)
+			column(at, 1)
+		}
+	}
+}
+
+// ModChainKey is the Missions page's read-only field of the chosen mission's
+// campaign chain: its line, and a Value of 1 while the mission can move up
+// and down the mod's list.
+const ModChainKey = "chain"
+
+// modChainRow is the chain field f as one line in the Mission block, cut to
+// its width with the whole line in its tip, Move up and Move down on it.
+func (e *MapEditor) modChainRow(s *popupSpec, links *[]int, f InspectionField) {
+	line := ""
+	if len(f.Lines) > 0 {
+		line = f.Lines[0].Text
+	}
+	row := popupRow{Kind: popupText, Label: line, Tip: line}
+	var keys []string
+	if f.Value == 1 {
+		row.Buttons, keys = []string{e.word("editor.mod.up"), e.word("editor.mod.down")}, []string{"up", "down"}
+	}
+	e.obj.rowActs[len(s.Rows)], e.obj.modKeys[len(s.Rows)] = make([]string, len(keys)), keys
+	s.Rows, *links = append(s.Rows, row), append(*links, 0)
+}
+
+// modRowButtons puts on row n, the row of W's field key, the Action fields
+// that name key as their row (Of): each a button that runs its own key. A
+// row that carries a button of its own takes none.
+func (e *MapEditor) modRowButtons(row *popupRow, n int, key string) {
+	o := &e.obj
+	if len(row.Buttons) > 0 || o.rowActs == nil || o.modKeys == nil {
+		return
+	}
+	for _, f := range o.fields {
+		if f.Action && f.Of == key {
+			row.Buttons, row.ButtonTips = append(row.Buttons, e.editorHostText(f.Label)), append(row.ButtonTips, e.editorHostText(f.Meaning))
+			o.rowActs[n], o.modKeys[n] = append(o.rowActs[n], ""), append(o.modKeys[n], f.Key)
+		}
+	}
 }
 
 // mapsFolderQuestion asks for a folder of maps to add; the fallback is the
@@ -781,7 +943,7 @@ func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverview
 	o.rowBlock, o.usesShown, o.viewOffer, o.cell, o.usesFold = nil, false, false, -1, 0
 	o.first, o.rowField = len(s.Rows), map[int]int{}
 	s.Columns = 1
-	e.modFoldRow = e.modFoldRow[:0]
+	e.modFoldRow, e.modOverviewLinks = e.modFoldRow[:0], map[int]int{}
 	at := o.focus - len(o.fields) - e.modButtonCount()
 	folds := 0
 	for _, section := range page.Sections {
@@ -796,7 +958,17 @@ func (e *MapEditor) modOverviewRows(s *popupSpec, links *[]int, page ModOverview
 		if section.Fold && !e.modUnfolded[folds-1] {
 			continue
 		}
-		for _, line := range section.Lines {
+		for i, line := range section.Lines {
+			// A line that opens a page is one link; a press on it shows
+			// that page.
+			if i < len(section.Pages) {
+				if page, ok := modPageNamed(section.Pages[i]); ok {
+					text := e.editorHostText(line)
+					e.modOverviewLinks[len(s.Rows)] = page
+					s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: "> " + text, Tip: text}), append(*links, 0)
+					continue
+				}
+			}
 			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(line), s.Width-40) {
 				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
 			}
@@ -850,15 +1022,17 @@ func (e *MapEditor) modPress(p image.Point) bool {
 			e.toggleModFold(k)
 			return true
 		}
+		if page, ok := e.modOverviewLinks[n]; ok {
+			if k := slices.Index(e.modPages(), page); k >= 0 {
+				e.turnModPage(k)
+			}
+			return true
+		}
 	}
 	if part == popupRowButton {
 		if row, k, ok := l.rowButtonAt(p); ok {
 			if i, found := e.obj.rowField[row]; found && e.obj.fields[i].Key == "source" {
-				action := "up"
-				if k == 1 {
-					action = "down"
-				}
-				_ = e.modAction(action, "")
+				_ = e.modAction("remove", "")
 				return true
 			}
 			if actions := e.obj.rowActs[row]; k < len(actions) {
@@ -876,6 +1050,10 @@ func (e *MapEditor) modPress(p image.Point) bool {
 				return true
 			}
 		}
+	}
+	if k, ok := e.modListRow[n]; ok && part == popupRowLine && slices.Contains(modListPages, e.modPage) {
+		e.modChosen[e.modPage] = k
+		return true
 	}
 	if part == popupRowButton || part == popupRowControl || part == popupRowLine {
 		e.objectRowPress(part, n)

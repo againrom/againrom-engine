@@ -810,6 +810,24 @@ func rowHasControl(row popupRow) bool {
 	return true
 }
 
+// tabCaptionWidth is the width one tab needs for its caption: the caption
+// and the tab's side padding.
+func tabCaptionWidth(body *text.Font, caption string) int { return body.Advance(caption) + 16 }
+
+// tabRowWidth is the least outer width at which popupFlowOf keeps every
+// caption of tabs whole on one line: each tab as wide as the widest caption
+// needs. Zero for no tabs or no font.
+func tabRowWidth(body *text.Font, tabs []string) int {
+	if body == nil || len(tabs) == 0 {
+		return 0
+	}
+	widest := 0
+	for _, t := range tabs {
+		widest = max(widest, tabCaptionWidth(body, t))
+	}
+	return len(tabs)*widest + 2*popupPad
+}
+
 // popupFlowOf is popup s's flow at outer width w. Every popup's button row
 // takes as many lines as keep every button inside. With Fit set, and in
 // every popup of several columns for its rows:
@@ -848,7 +866,7 @@ func popupFlowOf(s uiWindow, title, body *text.Font, w, pitch int) popupFlow {
 		for f.tabsPerLine > 1 {
 			share, whole := inner/f.tabsPerLine, true
 			for _, t := range s.Tabs.Captions {
-				whole = whole && body.Advance(t)+16 <= share
+				whole = whole && tabCaptionWidth(body, t) <= share
 			}
 			if whole {
 				break
@@ -914,6 +932,11 @@ func popupFlowOf(s uiWindow, title, body *text.Font, w, pitch int) popupFlow {
 			left = labelW + 4 + popupFitField
 		case row.Label != "" && body != nil:
 			left = body.Advance(row.Label) + 8
+			// A text row whose tip holds its whole text is cut to keep its
+			// buttons beside it on one line.
+			if row.Tip != "" && !rowHasControl(row) {
+				left = min(left, rowW/2)
+			}
 		}
 		beside := 0
 		for _, bw := range bws {

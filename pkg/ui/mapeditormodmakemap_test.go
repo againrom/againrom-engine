@@ -133,7 +133,8 @@ func TestAddMapsFromFolderFallsBackToATypedFolder(t *testing.T) {
 
 func TestModWindowMissionsPageShowsEveryMapCaptionWhole(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, size := range []image.Point{{640, 480}, {1280, 800}} {
+		// The editor targets 1920x1080 and above (owner ruling).
+		for _, size := range []image.Point{{1920, 1080}} {
 			t.Run(fmt.Sprintf("%s/%dx%d", lang, size.X, size.Y), func(t *testing.T) {
 				e, p := modMapActionsEditor(t, lang, size)
 				p.actions[1].Label = "20.alm: " + fmt.Sprintf(e.plainWord("editor.mod.map.byname"), 20)

@@ -78,7 +78,9 @@ const (
 	promptSeed
 	// promptTestParty asks who plays the map before a test play.
 	promptTestParty
-	// promptMapsFolder takes a folder path where the host shows no folder window.
+	// promptMapsFolder takes a path for a row of the mod window where the host
+	// shows no file or folder window: scope is the row's key, "" the maps
+	// folder's, and the message says what to type.
 	promptMapsFolder
 	// promptDelete asks before a player is deleted.
 	promptDelete
@@ -123,22 +125,28 @@ func (p editorPrompt) fields() bool {
 
 // editorMode is every layer the window can be in.
 type editorMode struct {
-	modWindow       bool
-	modPage         int          // W's page shown, one of the modPage constants
-	modGridTop      int          // the first row of the mod page's grid that shows
-	modUnfolded     map[int]bool // the overview's folded sections that are unfolded, by their place among the folded ones
-	modFoldRow      []int        // the row of each foldable heading of the overview page
-	modConfirm      string
-	modConfirmLabel string
-	modStatus       string
-	catalog         bool
-	prompt          editorPrompt
-	pick            pickKind
-	pickNote        string // what the last click of the armed pick found
-	pickWhy         string // why that click found no speaker, whole, for the message popup
-	brush           brushState
-	report          reportState
-	panel           bool // the Map panel stands in the list popup under any list
+	modWindow   bool
+	modPage     int          // W's page shown, one of the modPage constants
+	modGridTop  int          // the first row of the mod page's grid that shows
+	modUnfolded map[int]bool // the overview's folded sections that are unfolded, by their place among the folded ones
+	modFoldRow  []int        // the row of each foldable heading of the overview page
+	// modOverviewLinks are the overview's rows that open a page, by row, to
+	// the page each opens.
+	modOverviewLinks map[int]int
+	// modChosen is the thing each list page shows, by page, its place among
+	// the page's things; modListRow maps the shown list's rows to theirs.
+	modChosen, modListRow map[int]int
+	modConfirm            string
+	modConfirmLabel       string
+	modStatus             string
+	catalog               bool
+	prompt                editorPrompt
+	pick                  pickKind
+	pickNote              string // what the last click of the armed pick found
+	pickWhy               string // why that click found no speaker, whole, for the message popup
+	brush                 brushState
+	report                reportState
+	panel                 bool // the Map panel stands in the list popup under any list
 }
 
 // keptMode is the part of the mode an open map keeps while another map is

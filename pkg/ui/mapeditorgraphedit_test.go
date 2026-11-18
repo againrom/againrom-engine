@@ -191,8 +191,13 @@ func TestCampaignGraphCanvasRefusalKeepsTheSourceAndWords(t *testing.T) {
 	host.graphRefusal = errors.New("data/missions.toml:5: AutoGetMission cycle from mission 10 through mission 10")
 	count := len(calls.lines)
 	graphEditClick(t, e, 10)
-	if len(calls.lines) != count || !e.graphLink || e.graphMission != 10 || e.modStatus != host.graphRefusal.Error() {
-		t.Fatalf("refused edit: %v %d %q", e.graphLink, e.graphMission, e.modStatus)
+	if len(calls.lines) != count || !e.graphLink || e.graphMission != 10 || e.message != host.graphRefusal.Error() {
+		t.Fatalf("refused edit: %v %d %q", e.graphLink, e.graphMission, e.message)
+	}
+	// The refusal stands in the editor's message; W's notes hold only the
+	// save state.
+	if s, _, _ := e.modSpec(); slices.ContainsFunc(s.Notes, func(n string) bool { return strings.Contains(n, "AutoGetMission cycle") }) {
+		t.Fatalf("W's notes hold the refusal: %q", s.Notes)
 	}
 }
 

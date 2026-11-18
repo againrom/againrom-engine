@@ -160,6 +160,9 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		p.multiline = e.multilinePrompt()
 		scope = e.prompt.scope
 	} else if e.objectTyping() {
+		if e.modChosenOnly(e.obj.focus) {
+			return nil, p, key
+		}
 		target, field = &e.obj.buf[e.obj.focus], &e.obj.fields[e.obj.focus]
 		p.multiline = e.messageTextField(e.obj.focus)
 		kind, _ = e.selectedRecord()

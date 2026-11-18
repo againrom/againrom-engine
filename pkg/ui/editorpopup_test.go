@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"slices"
 	"strings"
 	"testing"
 
@@ -110,8 +111,9 @@ func TestPopupCardBesideTheRowsClearsAWrappedButtonRow(t *testing.T) {
 	}
 }
 
-// W at 640x480 in Russian, whose button row wraps onto a second line, keeps
-// every button inside the editor window.
+// W at 640x480 in Russian keeps every button of its row inside the editor
+// window; the row holds the window's own buttons alone: Open, Save, Publish
+// and Close.
 func TestModWindowWrappedButtonsStayInsideTheEditor(t *testing.T) {
 	e := modesWordsEditor(t, "workspace", "ru", image.Pt(640, 480))
 	e.doc.Edits.(*modesWorkspace).fields = modWordFields("ru")
@@ -119,16 +121,18 @@ func TestModWindowWrappedButtonsStayInsideTheEditor(t *testing.T) {
 		t.Fatal(err)
 	}
 	s, _, _ := e.modSpec()
+	var own []string
+	for _, b := range modButtons {
+		own = append(own, e.word(b.word))
+	}
+	if !slices.Equal(s.Buttons, own) {
+		t.Errorf("the button row %q, want the window's own %q", s.Buttons, own)
+	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	lines := map[int]bool{}
 	for i, b := range l.Buttons {
-		lines[b.Min.Y] = true
 		if !b.In(e.popupBounds()) {
 			t.Errorf("button %q at %v lies outside %v", s.Buttons[i], b, e.popupBounds())
 		}
-	}
-	if len(lines) < 2 {
-		t.Fatalf("the button row did not wrap: %v", l.Buttons)
 	}
 }
 

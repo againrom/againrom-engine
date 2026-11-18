@@ -299,6 +299,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				}
 				s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: "> " + label}), append(*links, -(id+1))
 			}
+			if e.modWindow && f.Key == ModChainKey {
+				e.modChainRow(s, links, f)
+				deferColumn()
+				return -1
+			}
 			for _, line := range f.Lines {
 				kind := popupText
 				if line.Role == "heading" {
@@ -347,7 +352,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			row.Buttons = []string{"..."}
 		}
 		if e.modWindow && f.Key == "source" {
-			row.Buttons = []string{e.word("editor.mod.up"), e.word("editor.mod.down")}
+			row.Buttons = []string{e.word("editor.mod.remove")}
 		}
 		// The field's meaning is its (?) help, never lines in the window.
 		meaning := f.Meaning
@@ -378,6 +383,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		if meaning != "" {
 			row.Help = e.editorHostText(meaning)
+		}
+		if e.modWindow && !f.Action {
+			e.modRowButtons(&row, n, f.Key)
 		}
 		s.Rows, *links = append(s.Rows, row), append(*links, 0)
 		deferColumn()
@@ -453,10 +461,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		s.Fit = true
 		o.rowBlock = map[int]string{}
+	case e.modWindow && slices.Contains(modListPages, e.modPage):
+		e.modListRows(s, links, fieldRows)
 	default:
 		for _, i := range fieldOrder(o.fields) {
 			f := o.fields[i]
-			if e.modWindow && e.modPage != modPageGraph && f.Action && f.Column == 0 {
+			if e.modWindow && e.modPage != modPageGraph && f.Action && (f.Column == 0 || f.Of != "") {
 				continue
 			}
 			if e.modWindow && f.Parent != "" && f.Parent != o.detail {

@@ -150,8 +150,13 @@ func TestModWindowOpenWithoutAPathWindowAsksForTheTypedPath(t *testing.T) {
 		if tc.err == failed {
 			want = fmt.Sprintf(e.plainWord("editor.mod.typepath"), failed)
 		}
-		if e.modStatus != want {
-			t.Fatalf("%s: W says %q, not %q", tc.name, e.modStatus, want)
+		// The typed prompt stands for the window and says what to type
+		// inside it; W's notes hold only the save state.
+		if e.prompt.kind != promptMapsFolder || e.prompt.scope != "folder" || e.message != want {
+			t.Fatalf("%s: prompt %d for %q says %q, not %q", tc.name, e.prompt.kind, e.prompt.scope, e.message, want)
+		}
+		if s, _, _ := e.modSpec(); slices.ContainsFunc(s.Notes, func(n string) bool { return strings.Contains(want, n) }) {
+			t.Fatalf("%s: W's notes %q hold the instruction", tc.name, s.Notes)
 		}
 	}
 }
@@ -329,7 +334,8 @@ func TestModWindowWordsAreRussianInRussian(t *testing.T) {
 			continue
 		}
 		n++
-		if en.Text(id) == ru.Text(id) {
+		// A pure format ("%s: %d") holds no word of either language.
+		if en.Text(id) == ru.Text(id) && strings.Trim(en.Text(id), "%sd: ") != "" {
 			t.Errorf("%s reads %q in both languages", id, en.Text(id))
 		}
 	}

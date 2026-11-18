@@ -134,7 +134,7 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 	}
 	out = append(out, grid)
 
-	book := &ui.InspectionBook{Art: look.art, Grow: x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.full"), rules.SpellBookPositions())), Remove: "remove",
+	book := &ui.InspectionBook{Art: look.art, Grow: x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.full"), rules.SpellBookPositions())),
 		Drops: []ui.InspectionDrop{
 			{From: ui.DropBook, To: ui.DropBook, Word: "move"},
 			{From: ui.DropGrid, To: ui.DropBook, Word: "add"},
@@ -172,7 +172,7 @@ func (s *mapInspectionEdits) chosenSpellFields(base *mapload.Table, d mod.SpellD
 	g := mapload.SpellGameOf(base)
 	id, ok := rules.SpellNumber(g, s.spell)
 	if s.spell == "" || !ok {
-		return []ui.InspectionField{x.pageLine("chosen", "", x.word("editor.spells.none"))}
+		return []ui.InspectionField{x.pageLine("chosen", "", x.word("editor.spells.none")), x.pageLine("chosen.hint", "", x.word("editor.spells.none.hint"))}
 	}
 	// The install's name is in the font's bytes already.
 	head := fmt.Sprintf(x.inspectionUTF8(x.word("editor.spells.spell")), x.spellLabel(s.spell, id))

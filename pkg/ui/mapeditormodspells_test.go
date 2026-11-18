@@ -48,7 +48,7 @@ func (h spellsHost) WorkspaceFields(scope string) []InspectionField {
 			grid.Ticked = append(grid.Ticked, v)
 		}
 	}
-	book := &InspectionBook{Grow: "The book holds 24 cells", Remove: "remove", Drops: []InspectionDrop{
+	book := &InspectionBook{Grow: "The book holds 24 cells", Drops: []InspectionDrop{
 		{From: DropBook, To: DropBook, Word: "move"},
 		{From: DropGrid, To: DropBook, Word: "add"},
 		{From: DropBook, To: DropGrid, Word: "remove"},

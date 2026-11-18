@@ -6,10 +6,12 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"againrom/pkg/mod"
 )
 
-// A speaker added to a mod that had none shows in the overview's file and
-// kind lists at once, as a fresh open of the folder shows it.
+// A speaker added to a mod that had none shows in the overview's file list
+// at once, as a fresh open of the folder shows it.
 func TestEditorOverviewListsTheSpeakerJustAdded(t *testing.T) {
 	_, s, dir := modSpeakerEditor(t)
 	x := s.inspector
@@ -32,8 +34,10 @@ func TestEditorOverviewListsTheSpeakerJustAdded(t *testing.T) {
 			t.Errorf("%s after the add:\n%s\nfresh open:\n%s", heading, strings.Join(got, "\n"), strings.Join(want, "\n"))
 		}
 	}
-	if kinds := overviewLines(s.ModOverview(), x.word("editor.mod.overview.kinds")); !slices.ContainsFunc(kinds, func(l string) bool { return strings.HasPrefix(l, "speakers") }) {
-		t.Errorf("no speakers kind: %v", kinds)
+	// Speakers have no page of W, so no count line names them; the mod's
+	// folded file list does.
+	if files := overviewLines(s.ModOverview(), x.word("editor.mod.overview.files")); !slices.ContainsFunc(files, func(l string) bool { return strings.Contains(l, mod.SpeakersFile) }) {
+		t.Errorf("no speakers file: %v", files)
 	}
 }
 

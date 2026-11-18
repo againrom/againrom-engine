@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"againrom/pkg/mod"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
@@ -43,7 +42,7 @@ func TestEditorOpensAModWithNoMapOpen(t *testing.T) {
 		t.Fatalf("the mod is not the one the editor works in: %+v", x.mod)
 	}
 	lines := strings.Join(e.PopupLines(), "\n")
-	for _, want := range []string{x.word("editor.mod.overview.kinds"), "terrain: " + mod.TerrainFile, x.word("editor.mod.overview.report")} {
+	for _, want := range []string{x.word("editor.mod.overview.kinds"), x.word("editor.mod.terrain") + ": ", x.word("editor.mod.overview.report")} {
 		if !strings.Contains(lines, want) {
 			t.Fatalf("overview lacks %q:\n%s", want, lines)
 		}

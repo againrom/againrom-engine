@@ -937,7 +937,7 @@ func (e *MapEditor) graphPress(part popupPart, n int, p image.Point) {
 			return
 		}
 		if _, err := e.commandSetMapField(mapField{Scope: graphPickScope, Key: "select", Value: page.Nodes[n].Pick}); err != nil {
-			e.modStatus = err.Error()
+			e.message = err.Error()
 			return
 		}
 		e.graphMission, e.graphPicked = 0, true

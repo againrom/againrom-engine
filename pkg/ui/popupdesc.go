@@ -53,9 +53,19 @@ type popupDesc struct {
 	// List is a list of rows the window picks one of; Grid a grid of cells.
 	List *popupDescList `json:"list,omitempty"`
 	Grid *popupDescGrid `json:"grid,omitempty"`
+	// Tab is the shown tab of Tabs, from 0.
+	Tab int `json:"tab,omitempty"`
+	// Canvas is a sheet the editor draws below the grid (the spell book),
+	// shown in a mockup as the picture its Picture names.
+	Canvas *popupDescCanvas `json:"canvas,omitempty"`
 	// Switch is the check at the button row's left end: its word, marked
 	// while the flag On names is set.
 	Switch *popupDescSwitch `json:"switch,omitempty"`
+}
+
+// popupDescCanvas is a canvas shown as one picture.
+type popupDescCanvas struct {
+	Picture string `json:"picture"`
 }
 
 type popupDescSwitch struct {
@@ -200,7 +210,15 @@ var popupKindNames = [...]string{
 	popupLink: "link", popupSwitch: "switch", popupMultiline: "multiline", popupCard: "card", popupDirection: "direction",
 }
 
+// popupFileKind names the row that picks a file or a folder: its value is
+// the chosen name, never typed, and its button opens the system's file
+// dialog. It is laid out as a pick row.
+const popupFileKind = "file"
+
 func popupKindNamed(name string) (popupRowKind, bool) {
+	if name == popupFileKind {
+		return popupPick, true
+	}
 	for k, n := range popupKindNames {
 		if n == name {
 			return popupRowKind(k), true
@@ -338,6 +356,9 @@ func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []p
 	}
 	for _, t := range d.Tabs {
 		s.Tabs = append(s.Tabs, word(t))
+	}
+	if len(s.Tabs) > 0 {
+		s.ActiveTab, s.TabSwitch = min(d.Tab, len(s.Tabs)-1), true
 	}
 	var made []popupMade
 	c.rows(d.Rows, word, &made)
@@ -568,6 +589,16 @@ func (c popupChain) row(r popupDescRow, word func(string) string) popupMade {
 	}
 	if !slices.ContainsFunc(row.ButtonTips, func(t string) bool { return t != "" }) {
 		row.ButtonTips = nil
+	}
+	if r.Kind == popupFileKind {
+		// The file row's button and its empty value say the same on every
+		// page that picks a file; a row may name its own.
+		if len(row.Buttons) == 0 {
+			row.Buttons, m.Acts = []string{word("editor.pick.choose")}, append(m.Acts, popupFileKind)
+		}
+		if row.Hint == "" {
+			row.Hint = word("editor.pick.none")
+		}
 	}
 	if r.Picture != "" {
 		m.Picture = c.text(r.Picture, word)

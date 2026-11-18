@@ -30,6 +30,11 @@ func (e *MapEditor) promptTitle() string {
 	if e.prompt.kind == promptSeed {
 		return e.seedTitle()
 	}
+	if e.prompt.kind == promptMapsFolder && e.prompt.scope != "" {
+		if f, ok := e.modFocusField(); ok {
+			return e.editorHostText(f.Label)
+		}
+	}
 	if w, ok := promptWords[e.prompt.kind]; ok {
 		return e.word(w.title)
 	}

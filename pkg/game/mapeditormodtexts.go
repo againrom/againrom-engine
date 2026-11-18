@@ -204,10 +204,11 @@ func makeTextKey(sets map[string]mod.Strings, base string) string {
 	return mod.RecordKey(base, func(k string) bool { return slices.Contains(held, k) })
 }
 
-// textsFields is W's texts page: what the page is for, a count of the
-// texts and of those missing in each language, the choice that makes a
-// new text for a place, then each text under where it shows, in every
-// language; none with no mod folder open.
+// textsFields is W's texts page: a count of the texts and of those missing
+// in each language, the choice that makes a new text for a place, then each
+// text under where it shows, in every language, each held language's row
+// carrying its own Delete; none with no mod folder open. What the page is
+// for is its title help.
 func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	x := s.inspector
 	if !s.modPageHolds() {
@@ -237,7 +238,10 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	}
 	slices.SortStableFunc(keys, func(a, b string) int { return strings.Compare(heads[a], heads[b]) })
 	missing := map[string]int{}
-	out := []ui.InspectionField{line("about", "", x.word("editor.texts.about")), {}}
+	out := []ui.InspectionField{{}}
+	if len(keys) == 0 {
+		out = append(out, line("empty", "", x.word("editor.texts.empty.page")))
+	}
 	newText := ui.InspectionField{Key: textsNewKey, Label: x.word("editor.texts.new"), Meaning: x.word("editor.texts.new.hint"),
 		Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.texts.new.pick"))}}}
 	for i, p := range s.newTextPlaces(d) {
@@ -258,7 +262,7 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 			}
 			out = append(out, f)
 			if held {
-				out = append(out, ui.InspectionField{Key: textsDropKey + l + ":" + k, Label: fmt.Sprintf(x.word("editor.texts.drop"), languageLabel(l)), Meaning: x.word("editor.texts.drop.help"), Action: true, Column: 1})
+				out = append(out, ui.InspectionField{Key: textsDropKey + l + ":" + k, Label: x.word("editor.texts.drop"), Meaning: x.word("editor.texts.drop.help"), Action: true, Of: l + ":" + k})
 			}
 		}
 		head := heads[k]
@@ -273,7 +277,7 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 	for _, l := range langs {
 		counts = append(counts, fmt.Sprintf("%s %d", languageLabel(l), missing[l]))
 	}
-	out[1] = line("summary", "", fmt.Sprintf(x.word("editor.texts.summary"), len(keys), strings.Join(counts, ", ")))
+	out[0] = line("summary", "", fmt.Sprintf(x.word("editor.texts.summary"), len(keys), strings.Join(counts, ", ")))
 	return out
 }
 

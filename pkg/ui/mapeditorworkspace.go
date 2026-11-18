@@ -40,7 +40,26 @@ func workspaceHolds(host InspectionWorkspace, scope string) bool {
 type ModOverviewSection struct {
 	Heading string
 	Lines   []string
-	Fold    bool
+	// Pages, where set, are the page line i opens on a press: a scope of
+	// modScopePages, or ModMissionsPage; "" opens none.
+	Pages []string
+	Fold  bool
+}
+
+// ModMissionsPage names the Missions page as a page an overview line opens.
+const ModMissionsPage = "missions"
+
+// modPageNamed is W's page an overview line names, false for none.
+func modPageNamed(name string) (int, bool) {
+	if name == ModMissionsPage {
+		return modPageFields, true
+	}
+	for _, p := range modScopePages {
+		if p.scope == name && name != "" {
+			return p.page, true
+		}
+	}
+	return 0, false
 }
 
 // ModOverviewPage is that page: its sections, and whether W shows it first,

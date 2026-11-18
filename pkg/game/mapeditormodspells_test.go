@@ -265,8 +265,8 @@ func TestSpellsPageCatalogDropReplacesTheSpellInAHeldCell(t *testing.T) {
 	}
 }
 
-// A click on a book cell chooses its spell, and Remove switches the chosen
-// spell off; Add map writes nothing on this page.
+// A click on a book cell chooses its spell, and a drop of it on the catalog
+// switches it off; the window's buttons act on the window alone.
 func TestSpellsPageRemoveButtonTakesTheChosenSpellOut(t *testing.T) {
 	x, e, _ := spellsPage(t)
 	ground := rules.SpellBookRows(rules.SpellGameFirst)
@@ -276,16 +276,10 @@ func TestSpellsPageRemoveButtonTakesTheChosenSpellOut(t *testing.T) {
 	if s := e.Document().Edits.(*mapInspectionEdits).spell; s != c {
 		t.Fatalf("the click chose %q, want %s", s, c)
 	}
-	for _, n := range []int{1, 2} {
-		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: n})
-		if !ok {
-			t.Fatalf("no button %d in %q", n, e.PopupButtons())
-		}
-		spellsPointer(e, r, r)
-		if n == 1 && spellsSource(e) != "" {
-			t.Fatalf("Add map wrote:\n%s", spellsSource(e))
-		}
+	if buttons := e.PopupButtons(); len(buttons) != 4 {
+		t.Fatalf("window buttons %q, want Open, Save, Publish and Close", buttons)
 	}
+	spellsPointer(e, spellsBookCell(t, e, 5), catalogCell(t, e, "Curse"))
 	if src := spellsSource(e); !strings.Contains(src, "target = \""+c+"\"\noff = true\n") {
 		t.Fatalf("Remove did not switch %s off:\n%s", c, src)
 	}
@@ -303,7 +297,7 @@ func TestSpellsPageBookIsTheBookOfTheSavedMod(t *testing.T) {
 	spellsPointer(e, catalogCell(t, e, "Drain_Life"), spellsBookCell(t, e, 6))
 	spellsPointer(e, spellsBookCell(t, e, 9), catalogCell(t, e, "Curse"))
 	shown := pageBook(t, e)
-	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 3})
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
 	if !ok {
 		t.Fatalf("no Save button in %q", e.PopupButtons())
 	}

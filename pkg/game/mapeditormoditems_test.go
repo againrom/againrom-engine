@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -442,5 +443,61 @@ func TestItemsPageModPublishesAndShopsOfferIt(t *testing.T) {
 	}
 	if b, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(mod.ItemsFile))); err != nil || !strings.Contains(string(b), "shop = true") {
 		t.Fatalf("the saved items file %q, %v", b, err)
+	}
+}
+
+// The overview's Items line counts what the Items page lists: an added
+// armour and an added weapon, each switched off, and a change of a game
+// item are three things; the switch of an added row is no thing of its own.
+// The line opens the Items page.
+func TestOverviewCountsTheItemsThePageLists(t *testing.T) {
+	x, s, _ := itemsPage(t)
+	setItems(t, s, itemsNewArmour, installValue(t, x, "Soft Mail"))
+	setItems(t, s, itemsNewWeapon, installValue(t, x, "Dagger"))
+	setItems(t, s, itemsNewChange, installValue(t, x, "Cap"))
+	setItems(t, s, "item.armour.off", "")
+	setItems(t, s, "weapon.weapon.off", "")
+	want := x.word("editor.mod.items") + ": 3"
+	for _, sec := range s.ModOverview().Sections {
+		if sec.Heading != x.word("editor.mod.overview.kinds") {
+			continue
+		}
+		at := slices.Index(sec.Lines, want)
+		if at < 0 || at >= len(sec.Pages) || sec.Pages[at] != ui.ModItemsScope {
+			t.Fatalf("the overview counts %q opening %q, want %q opening the Items page", sec.Lines, sec.Pages, want)
+		}
+		return
+	}
+	t.Fatal("the overview has no section of what the mod changes")
+}
+
+// Two records made from one game item are two list rows: the page's groups
+// are one per record in both languages, and the overview counts the rows.
+func TestItemsPageListsTwoRecordsOfOneGameItemAsTwoRows(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		x, s, _ := itemsPage(t)
+		x.archives.Base.Profile.Language = map[string]string{"en": "english", "ru": "russian"}[lang]
+		for _, add := range []struct{ key, item string }{{itemsNewArmour, "Soft Mail"}, {itemsNewArmour, "Soft Mail"},
+			{itemsNewWeapon, "Dagger"}, {itemsNewWeapon, "Dagger"}, {itemsNewMaterial, "Soft Mail"}, {itemsNewMaterial, "Soft Mail"},
+			{itemsNewChange, "Cap"}, {itemsNewChange, "Cap"}} {
+			setItems(t, s, add.key, installValue(t, x, add.item))
+		}
+		var groups []string
+		for _, f := range s.WorkspaceFields(ui.ModItemsScope) {
+			if f.Group != "" && !slices.Contains(groups, f.Group) {
+				groups = append(groups, f.Group)
+			}
+		}
+		if len(groups) != 8 {
+			t.Fatalf("%s: the Items page lists %d rows %q, want 8", lang, len(groups), groups)
+		}
+		want := fmt.Sprintf("%s: %d", x.word("editor.mod.items"), len(groups))
+		found := false
+		for _, sec := range s.ModOverview().Sections {
+			found = found || slices.Contains(sec.Lines, want)
+		}
+		if !found {
+			t.Fatalf("%s: the overview has no line %q", lang, want)
+		}
 	}
 }

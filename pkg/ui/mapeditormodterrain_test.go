@@ -95,7 +95,8 @@ func TestModTerrainGridWrapsGroundsWithVariationTips(t *testing.T) {
 		lines := 0
 		for i, r := range l.GridCells {
 			c := s.Grid.Cells[l.gridIndex(i)]
-			if c.Caption != fmt.Sprintf("Ground %d", l.gridIndex(i)+1) || c.Pressed != (l.gridIndex(i) == 2) {
+			// A 44-pixel cell names its ground in its tip, no caption.
+			if c.Caption != "" || c.Tip != fmt.Sprintf("Ground %d", l.gridIndex(i)+1) || s.Grid.Side != gridCellSide || s.Grid.CaptionH != 0 || c.Pressed != (l.gridIndex(i) == 2) {
 				t.Fatalf("%v: cell %d is %+v", size, i, c)
 			}
 			if i > 0 && r.Min.Y > l.GridCells[i-1].Min.Y {

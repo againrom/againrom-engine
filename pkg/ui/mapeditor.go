@@ -214,6 +214,9 @@ type InspectionField struct {
 	// Book, on a field of W, is the spell book its page shows under the
 	// grid, drawn by the game's book painter.
 	Book *InspectionBook `json:"-"`
+	// Of, on an Action field of W, is the key of the field whose row
+	// carries it as a button; "" for a button of a row of its own.
+	Of string `json:",omitempty"`
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

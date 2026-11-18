@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -18,10 +19,13 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 	for i := range out {
 		f := &out[i]
 		f.Label = x.modFieldLabel(f.Key)
-		f.Column = 1
+		// The mod's own fields stand left under Mod, the chosen mission's
+		// right under Mission.
+		f.Column, f.Group = 1, x.word("editor.mod.source")
+		if _, manifest := mod.ManifestKeyNamed(f.Key); manifest || f.Key == "folder" || f.Key == "id" || f.Key == "title" {
+			f.Column, f.Group = 0, x.word("editor.mod.window")
+		}
 		switch f.Key {
-		case "folder", "id", "title", "source":
-			f.Column = 0
 		case "kind":
 			if p.Kind == mod.MissionCampaign {
 				f.ReadOnly, f.Text, f.TextValue = true, true, x.word("editor.mod.campaign")
@@ -180,13 +184,62 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 		out = append(out, ui.InspectionField{Key: action, Label: x.modFieldLabel(action), Action: true})
 	}
 	output, _ := x.publishFolder()
-	out = append(out, workspaceText("output", x.word("editor.mod.output"), output))
+	f := workspaceText("output", x.word("editor.mod.output"), output)
+	f.Group = x.word("editor.mod.window")
+	out = append(out, f)
+	// The working and publish folders are chosen in the system folder
+	// window: each row carries its Choose button.
+	for _, field := range []string{"folder", "output"} {
+		out = append(out, ui.InspectionField{Key: field + ".pick", Label: x.word("editor.pick.choose"), Action: true, Of: field, Meaning: x.word("editor.pick.folder.help")})
+	}
 	for i := range out {
 		if out[i].Meaning == "" {
 			out[i].Meaning = x.modFieldHelp(out[i].Key)
 		}
+		if out[i].Group == "" {
+			out[i].Group = x.word("editor.mod.source")
+			if out[i].Column == 0 {
+				out[i].Group = x.word("editor.mod.window")
+			}
+		}
 	}
-	return out
+	return s.missionBlock(out)
+}
+
+// missionBlock leads the Mission block with the mission choice, its chain
+// line with Move up and Move down, and, while the open map is no mission of
+// the mod, the button that adds it: the actions a mission has stand beside
+// it, not in the window's button row.
+func (s *mapInspectionEdits) missionBlock(out []ui.InspectionField) []ui.InspectionField {
+	x := s.inspector
+	chosen := false
+	if d := s.workspace.Project; d != nil && d.Selected >= 0 && d.Selected < len(d.Missions) && !d.Missions[d.Selected].Off {
+		chosen = true
+	}
+	summary := s.ModSummary()
+	head := []ui.InspectionField{}
+	if i := slices.IndexFunc(out, func(f ui.InspectionField) bool { return f.Key == "source" }); i >= 0 {
+		head = append(head, out[i])
+		out = slices.Delete(out, i, i+1)
+	}
+	if summary != "" {
+		chain := ui.InspectionField{Key: ui.ModChainKey, ReadOnly: true, Text: true, TextValue: summary, Column: 1, Group: x.word("editor.mod.source"),
+			Lines: []ui.InspectionLine{{Text: x.inspectionUTF8(summary)}}}
+		if chosen {
+			chain.Value = 1
+		}
+		head = append(head, chain)
+	}
+	if i := slices.IndexFunc(out, func(f ui.InspectionField) bool { return f.Key == "add" }); i >= 0 && !chosen {
+		out[i].Column, out[i].Group = 1, x.word("editor.mod.source")
+		head = append(head, out[i])
+		out = slices.Delete(out, i, i+1)
+	}
+	at := slices.IndexFunc(out, func(f ui.InspectionField) bool { return f.Column == 1 })
+	if at < 0 {
+		at = len(out)
+	}
+	return slices.Insert(out, at, head...)
 }
 
 // modFieldHelp is the (?) help of the Missions page field key, the word

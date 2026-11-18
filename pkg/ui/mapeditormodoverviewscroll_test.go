@@ -49,8 +49,9 @@ func modPageProperties(t *testing.T, e *MapEditor, screen image.Rectangle, tag s
 			if screen.Dx() == 1920 && !r.Label.Empty() {
 				label := s.Rows[r.Index].Label
 				lines := editorTextLines(e.bodyFont(), label, r.Label.Dx())
-				if h := len(lines) * e.bodyFont().Height(); h > r.Label.Dy() {
-					t.Errorf("%s top %d: row %d label %q needs %d px in %v", tag, top, r.Index, label, h, r.Label)
+				// A label cut to its one line shows its whole text in its tip.
+				if h := len(lines) * e.bodyFont().Height(); h > r.Label.Dy() && s.Rows[r.Index].Tip != label {
+					t.Errorf("%s top %d: row %d label %q needs %d px in %v, its tip %q", tag, top, r.Index, label, h, r.Label, s.Rows[r.Index].Tip)
 				}
 			}
 			if !r.Label.Empty() {

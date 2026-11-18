@@ -102,9 +102,19 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	}
 	var made []popupMade
 	m.plain, made = d.build(sample, word)
+	if body != nil && m.plain.Width > 0 {
+		measure := func(s string) int { return body.Advance(encode(s)) }
+		column := (m.plain.Width-2*popupPad)/max(1, m.plain.Columns) - popupPad
+		m.plain.Rows, made = madeRowLines(m.plain.Rows, made, lineBox{Measure: measure, Width: column})
+	}
 	m.pictureNames = rowPictures(m.plain.Rows, made, person.picture)
 	_, m.gridNames = popupChain{sample}.grid(d.Grid, word)
 	gridPictures(m.plain.Grid, m.gridNames, person.picture)
+	if d.Canvas != nil && person.picture != nil {
+		if p := person.picture(d.Canvas.Picture); p != nil {
+			m.plain.Canvas = &popupCanvas{Sheet: p.Bounds().Size(), Height: p.Bounds().Dy(), Picture: p}
+		}
+	}
 	if g := m.plain.Grid; g != nil && body != nil && !g.HeadFlat {
 		// A flow grid row's head stands in a column as wide as its widest
 		// head.
@@ -171,6 +181,30 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	m.plain.Card, m.plain.CardFont, m.plain.CardAside = m.paint.Card, m.paint.CardFont, m.paint.CardAside
 	m.layout = layoutPopup(m.paint, title, body)
 	return m, nil
+}
+
+// madeRowLines is rows with each Wrap text row cut into the lines the one
+// line breaker gives for its column, one text row each; the first line
+// keeps the row's buttons.
+func madeRowLines(rows []popupRow, made []popupMade, box lineBox) ([]popupRow, []popupMade) {
+	var outRows []popupRow
+	var outMade []popupMade
+	for k, r := range rows {
+		if !made[k].Wrap {
+			outRows, outMade = append(outRows, r), append(outMade, made[k])
+			continue
+		}
+		for i, line := range editorRule.plain(box, r.Label) {
+			row, md := r, made[k]
+			row.Label, md.Wrap = line, false
+			if i > 0 {
+				row.Buttons, md.Acts = nil, nil
+			}
+			md.Row = row
+			outRows, outMade = append(outRows, row), append(outMade, md)
+		}
+	}
+	return outRows, outMade
 }
 
 // rowPictures gives rows the pictures made names, through picture: a
@@ -410,6 +444,9 @@ func (m *EditorMockup) Page() []byte {
 		if n := m.layout.GridFirst + k; n < len(m.gridNames) && m.gridNames[n] != "" {
 			pictures = append(pictures, pagePicture{-1, r, m.gridNames[n]})
 		}
+	}
+	if m.desc.Canvas != nil && m.paint.Canvas != nil {
+		pictures = append(pictures, pagePicture{-1, m.layout.Canvas, m.desc.Canvas.Picture})
 	}
 	if m.asideName != "" && !m.layout.Aside.Empty() {
 		pictures = append(pictures, pagePicture{-1, m.layout.Aside, m.asideName})

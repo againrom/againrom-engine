@@ -252,6 +252,25 @@ func rowOff(items mod.ItemData, key string) bool {
 	return off
 }
 
+// ownItem reports that key names an armour or weapon row the mod adds.
+func ownItem(items mod.ItemData, key string) bool {
+	return slices.ContainsFunc(items.Rows, func(r mod.ItemRow) bool { return r.Key == key }) ||
+		slices.ContainsFunc(items.Weapons, func(w mod.WeaponRow) bool { return w.Key == key })
+}
+
+// itemThings is the number of things the items page lists: each added row,
+// each change of a game item and each material record. A change of an added
+// row is that row's switch, not a thing of its own.
+func itemThings(items mod.ItemData) int {
+	n := len(items.Rows) + len(items.Weapons) + len(items.Materials)
+	for _, c := range items.Changes {
+		if !ownItem(items, c.Item) {
+			n++
+		}
+	}
+	return n
+}
+
 // itemsFields is W's items page: the choices that add a record, then each
 // row the mod adds, each change of a game item and each material record.
 // Every item is chosen by its game name and picture, every picture through
@@ -280,7 +299,14 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		s.itemChoice(itemsNewChange, x.word("editor.items.new.change"), x.word("editor.items.new.change.help"), "", install, anyItem, nil, true),
 		s.itemChoice(itemsNewMaterial, x.word("editor.items.new.material"), x.word("editor.items.new.material.help"), "", install, anyItem, items.Weapons, true),
 	}
+	heads := map[string]bool{}
 	group := func(head string, fields ...ui.InspectionField) {
+		// Two records may carry one name (two armours from one game item); a
+		// group is one record, so a repeated heading takes its number.
+		for n := 2; heads[head]; n++ {
+			head = fmt.Sprintf("%s (%d)", head, n)
+		}
+		heads[head] = true
 		for _, f := range fields {
 			f.Group = head
 			out = append(out, f)
@@ -334,10 +360,8 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		}
 		return 0
 	}
-	own := map[string]bool{}
 	slots := mod.ItemSlotNames()
 	for _, r := range items.Rows {
-		own[r.Key] = true
 		k := "item." + r.Key + "."
 		slot := ui.InspectionField{Key: k + "slot", Label: x.word("editor.items.slot"), Meaning: x.word("editor.items.slot.help"), Value: int64(slices.Index(slots, r.Slot) + 1)}
 		for i, n := range slots {
@@ -366,7 +390,6 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		group(fmt.Sprintf(x.word("editor.items.armour"), itemPlaceName(r.Name, r.Key)), append(fields, remove(k))...)
 	}
 	for _, w := range items.Weapons {
-		own[w.Key] = true
 		k := "weapon." + w.Key + "."
 		fields := append(names(k, w.NameKey), s.itemChoice(k+"base", x.word("editor.items.base"), x.word("editor.items.base.help"), w.Base, install, weaponBase, nil, false))
 		for _, wp := range mod.WeaponParams {
@@ -383,7 +406,7 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		group(fmt.Sprintf(x.word("editor.items.weapon"), itemPlaceName(w.Name, w.Key)), append(fields, remove(k))...)
 	}
 	for i, c := range items.Changes {
-		if own[c.Item] {
+		if ownItem(items, c.Item) {
 			continue
 		}
 		k := "change." + strconv.Itoa(i) + "."
