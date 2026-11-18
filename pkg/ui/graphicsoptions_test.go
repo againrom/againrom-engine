@@ -135,8 +135,8 @@ func TestGraphics1190SmoothingDrawsPairedSackBoundary(t *testing.T) {
 	}
 	v.SetGraphicsOptions(GraphicsOptions{Smoothing: true})
 	got := v.planeSprites()
-	if len(got) != 2 || got[0].Frame != base || got[1].Frame != boundary || !got[1].Translucent || got[0].X != got[1].X || got[0].Y != got[1].Y {
-		t.Fatal("boundary pairing, order or origin changed")
+	if len(got) != 2 || got[0].Frame != base || got[1].Frame != boundary || !got[1].Translucent || got[0].X+got[0].W/2 != got[1].X+got[1].W/2 || got[0].Y != got[1].Y {
+		t.Fatal("boundary pairing, order or centre changed")
 	}
 	var drawn graphicsAlphaRecorder
 	v.drawPlane(&drawn)

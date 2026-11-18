@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] A spell that a mage began on an enemy in range, from his book or with a spell weapon, now hits that enemy even if it ran out of range while he cast, as in the original; before, the mage only waved his hands (and in the second game the mana was lost).
+- [BASE] With Smoothing on, the soft edge drawn over a unit, a hero or an object now sits centred on it, instead of a few pixels to one side where it looked like a pale second copy.
 - [ROM2] The spell book now shows Stone Curse's duration as the second game states it, 480 at power 100, instead of the first game's figure.
 
 ### For map makers and modders

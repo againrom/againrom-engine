@@ -339,15 +339,31 @@ func (v *Viewer) spritePair(base staticScreenRect, boundary *terrain.StaticFrame
 	sibling.Frame, sibling.Effect = boundary, nil
 	sibling.Inspection = InspectionSubject{}
 	sibling.W, sibling.H = float64(boundary.Width)*v.cam.Zoom, float64(boundary.Height)*v.cam.Zoom
-	if base.Mirror {
-		sibling.X += base.W - sibling.W
-	}
+	dx, dy := pairShift(base, boundary)
+	sibling.X += float64(dx) * v.cam.Zoom
+	sibling.Y += float64(dy) * v.cam.Zoom
 	sibling.Translucent = true
 	sibling.Unlit = base.Effect != nil
 	if spriteVisible(sibling.screenRect, v.cam) {
 		out = append(out, sibling)
 	}
 	return out
+}
+
+// pairShift is the sibling's top-left minus its body's, in art pixels. Each
+// draw centres its own frame on the shared anchor through StaticAnchor, so a
+// sibling of another size sits half the size difference away, mirrored or
+// not (TERR-SPR-043, TERR-SPR-067, HERO-APPEAR-056).
+func pairShift(base staticScreenRect, boundary *terrain.StaticFrame) (int, int) {
+	w, h := boundary.Width, boundary.Height
+	if base.Frame != nil {
+		w, h = base.Frame.Width, base.Frame.Height
+	} else if base.Effect != nil {
+		w, h = base.Effect.Width, base.Effect.Height
+	}
+	ax, ay, _, _ := terrain.StaticAnchor(0, 0, 0, 0, 0, 0, w, h, 0, 0)
+	bx, by, _, _ := terrain.StaticAnchor(0, 0, 0, 0, 0, 0, boundary.Width, boundary.Height, 0, 0)
+	return bx - ax, by - ay
 }
 
 func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {

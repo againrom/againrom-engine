@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"math"
 	"reflect"
 	"testing"
 
@@ -68,10 +69,12 @@ func TestSpritePairsReachEveryBodyPass(t *testing.T) {
 							t.Fatal("sibling lost the base look")
 						}
 						g0, g1 := spriteGeoM(pair[0], v.cam.Zoom), spriteGeoM(pair[1], v.cam.Zoom)
-						x0, y0 := g0.Apply(0, 0)
-						x1, y1 := g1.Apply(0, 0)
-						if x0 != x1 || y0 != y1 {
-							t.Fatalf("sprite origins differ: %v,%v / %v,%v", x0, y0, x1, y1)
+						l0, y0 := g0.Apply(0, 0)
+						r0, _ := g0.Apply(float64(base.Width), 0)
+						l1, y1 := g1.Apply(0, 0)
+						r1, _ := g1.Apply(float64(boundary.Width), 0)
+						if l0+r0 != l1+r1 || y0 != y1 {
+							t.Fatalf("sprite centres differ: %v,%v / %v,%v", (l0+r0)/2, y0, (l1+r1)/2, y1)
 						}
 					}
 				}
@@ -143,8 +146,8 @@ func TestSpritePairKeepsTheBaseLookAndMirrorPivot(t *testing.T) {
 				if len(rec.imgs) != 2 || rec.imgs[0] != v.tintedImage(base, stone, s.Tint.Color, s.Tint.Focus, 0) || rec.imgs[1] != v.tintedImage(boundary, stone, s.Tint.Color, s.Tint.Focus, 0) {
 					t.Fatal("sibling changed shade, stone or inspection tint")
 				}
-				if rec.geo[0] != rec.geo[1] {
-					t.Fatal("mirror pivot differs")
+				if drawnSpan(rec.geo[0], 8, mirror) != drawnSpan(rec.geo[1], 10, mirror) {
+					t.Fatal("mirror pivot differs: the sibling is not centred on its body")
 				}
 				if pair[1].Brightness != s.Brightness || pair[1].ShadeZero != s.ShadeZero {
 					t.Fatal("brightness or hover shade changed")
@@ -159,7 +162,42 @@ func TestSpritePairCullsItsFramesSeparately(t *testing.T) {
 	v.SetGraphicsOptions(GraphicsOptions{Smoothing: true})
 	base, boundary := sackFrame(8, 8), sackFrame(10, 9)
 	got := v.spritePair(staticScreenRect{screenRect: screenRect{X: -8, Y: 64, W: 8, H: 8}, Frame: base}, boundary)
-	if len(got) != 1 || got[0].Frame != boundary || got[0].X != -8 {
+	if len(got) != 1 || got[0].Frame != boundary || got[0].X != -9 {
 		t.Fatal("visible boundary was lost with its culled base", got)
+	}
+}
+
+// drawnSpan is the horizontal centre, doubled, and the top of a sprite drawn
+// w art pixels wide through the recorded transform geo.
+func drawnSpan(geo [6]float64, w int, mirror bool) [2]float64 {
+	left := geo[2]
+	if mirror {
+		left += float64(w) * geo[0]
+	}
+	return [2]float64{2*left + float64(w)*math.Abs(geo[0]), geo[5]}
+}
+
+// A sibling of another size is centred by its own size on its body's anchor,
+// at the camera's zoom and in either reflection.
+func TestSpritePairCentresASiblingOfAnotherSizeOnTheBodyAnchor(t *testing.T) {
+	v := sackIdentityViewer(t)
+	v.SetGraphicsOptions(GraphicsOptions{Smoothing: true})
+	v.Camera().Zoom = 1.5
+	for _, c := range []struct {
+		bw, bh, sw, sh int
+		dx, dy         float64
+	}{{40, 72, 48, 72, -4, 0}, {32, 56, 32, 64, 0, -4}, {32, 56, 32, 56, 0, 0}, {8, 8, 11, 9, -1, 0}} {
+		for _, mirror := range []bool{false, true} {
+			base := staticScreenRect{screenRect: screenRect{X: 16, Y: 16, W: float64(c.bw) * 1.5, H: float64(c.bh) * 1.5}, Frame: sackFrame(c.bw, c.bh), Mirror: mirror}
+			pair := v.spritePair(base, sackFrame(c.sw, c.sh))
+			if len(pair) != 2 {
+				t.Fatal("lost pair")
+			}
+			s := pair[1].screenRect
+			want := screenRect{X: 16 + c.dx*1.5, Y: 16 + c.dy*1.5, W: float64(c.sw) * 1.5, H: float64(c.sh) * 1.5}
+			if s != want || pair[1].Mirror != mirror {
+				t.Fatalf("%dx%d body, %dx%d sibling, mirror %v: sibling at %+v, want %+v", c.bw, c.bh, c.sw, c.sh, mirror, s, want)
+			}
+		}
 	}
 }
