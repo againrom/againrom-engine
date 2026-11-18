@@ -10,6 +10,7 @@
 pkg/game.TestInstalledMissionTenOwnNameInUnitCard
 pkg/game.TestInstalledUnitRemarksFrames
 pkg/game.TestMissionFrameInstalledHeights
+pkg/game.TestMockShots touched
 pkg/game.TestReleaseSecondGameMissionMagePaletteInputs
 pkg/game.TestReleaseShopStockMultiplierDefaultMatchesMain
 pkg/game.TestReleaseShopStockMultiplierRollsEveryShelf touched
