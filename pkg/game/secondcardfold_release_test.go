@@ -10,7 +10,7 @@ import (
 // A second-game save written before one look was one count holds counts on
 // the look's later Units rows. Its cold LOAD folds them onto the look's first
 // row, so recording, reading and writing see that row alone.
-func TestReleaseSecondEnemyCardOldSaveCountsFoldOnLoad(t *testing.T) {
+func TestReleaseSecondGameEnemyCardOldSaveCountsFoldOnLoad(t *testing.T) {
 	f, app := secondMissionSettledAt(t, 20)
 	w := f.live.world
 	units := f.Table.Units

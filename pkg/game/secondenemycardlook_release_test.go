@@ -11,7 +11,7 @@ import (
 // Creatures of one look share one count and one level, whichever of the
 // look's Units rows their placements name: two kills of two rows make every
 // instance of the look level 1.
-func TestReleaseSecondEnemyCardCountsOneLookAlike(t *testing.T) {
+func TestReleaseSecondGameEnemyCardCountsOneLookAlike(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("one look")
 	app.Layout(1024, 768)

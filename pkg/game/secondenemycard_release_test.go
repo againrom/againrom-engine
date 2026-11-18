@@ -40,7 +40,7 @@ func secondCardSetCount(w *sim.World, row int, count uint32) {
 // The second game's creature cards follow the Diary count of their Units row
 // for every creature type, a creature above type 80 included, and a SAVE and a
 // cold LOAD keep the count.
-func TestReleaseSecondEnemyCardKnowledgeFollowsKillsAndSurvivesLoad(t *testing.T) {
+func TestReleaseSecondGameEnemyCardKnowledgeFollowsKillsAndSurvivesLoad(t *testing.T) {
 	f, app := secondMissionSettledAt(t, 20)
 	live := f.live
 	w := live.world
@@ -117,7 +117,7 @@ func TestReleaseSecondEnemyCardKnowledgeFollowsKillsAndSurvivesLoad(t *testing.T
 
 // The Diary a second-game town carries between missions is written by a town
 // SAVE and restored by a cold LOAD, so the next mission opens with it.
-func TestReleaseSecondEnemyCardKnowledgeSurvivesTownSave(t *testing.T) {
+func TestReleaseSecondGameEnemyCardKnowledgeSurvivesTownSave(t *testing.T) {
 	f, app, _ := secondIglezJoins(t)
 	want := []sim.SavedDiary{{Owner: sim.SavedDiaryOwner{Player: true}, Length: 242,
 		Entries: []sim.SavedDiaryEntry{{Index: 200, Count: 5, Remaining: 1019}}}}

@@ -4,7 +4,7 @@ import "testing"
 
 // The mission-start autosave of the second game holds the Diary the previous
 // mission ended with, and a cold LOAD of it keeps the count.
-func TestReleaseSecondMissionStartAutosaveKeepsKnowledge(t *testing.T) {
+func TestReleaseSecondMissionSaveAtStartKeepsKnowledge(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("autosave knowledge")
 	app.Layout(1024, 768)
