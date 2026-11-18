@@ -508,7 +508,7 @@ func (w *World) attachEffectTransaction(ti int, caster EntityID, rule SpellRule,
 func (w *World) applyAttachedAt(i, ti int, poison bool) {
 	e := w.attached[i]
 	if poison {
-		w.applyPoisonAttachment(i, ti)
+		_ = w.applyPoisonAttachment(i, ti)
 	} else if applied, moved := w.applyEffectDelta(ti, e.Kind, e.Magnitude); moved && e.Mode&EffectContinuous == 0 {
 		w.attached[i].Magnitude = applied
 	}
@@ -555,7 +555,12 @@ func (w *World) stepAttachedEffects() {
 		if e.Mode&EffectContinuous != 0 && beforeRemaining > 0 && beforeRemaining%8 == 0 {
 			if ti := indexOfEntity(w.entities, e.Target); ti >= 0 {
 				if areaRow(w.spellArm(e.Spell)).poison {
-					w.applyPoisonAttachment(i, ti)
+					if !w.applyPoisonAttachment(i, ti) {
+						if !w.removeAttachedAt(i) {
+							i++
+						}
+						continue
+					}
 				} else if _, ok := w.applyEffectDelta(ti, e.Kind, e.Magnitude); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
 					i++
 					continue
