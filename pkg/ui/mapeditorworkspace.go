@@ -263,12 +263,12 @@ func (e *MapEditor) keyWorkspace(key string) error {
 		host, ok = e.modEdits().(InspectionWorkspace)
 	}
 	if !ok || e.catalog && !noMap {
-		e.message = "Open a map to edit its metadata, pages or mod package."
+		e.message = e.plainWord("editor.workspace.openfirst")
 		return nil
 	}
 	fields := host.WorkspaceFields(key)
 	if len(fields) == 0 {
-		e.message = "This map has no editable workspace fields."
+		e.message = e.plainWord("editor.workspace.nofields")
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leaveReport)

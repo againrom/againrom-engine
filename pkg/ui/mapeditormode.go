@@ -108,6 +108,12 @@ type editorPrompt struct {
 	party *testPartyPrompt
 	// del is the record a promptDelete deletes.
 	del RecordRef
+	// list is the open list of a field prompt's choice row, nil while it is
+	// closed, and choices its entries; gridTop is the first row the field's
+	// picture grid shows.
+	list    *Picker
+	choices *choiceList
+	gridTop int
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

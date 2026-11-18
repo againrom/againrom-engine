@@ -71,11 +71,11 @@ func TestFileMenuRowSwitchesTheTextsInsideTheMap(t *testing.T) {
 
 		e.openPrompt(editorPrompt{kind: promptSave, path: "bridge.almx"})
 		window, at, ok := textsInsideSwitch(e)
-		if !ok || window.Value != e.word("editor.save.textsinside.on") {
+		if !ok || window.Value != e.word("editor.switch.on") {
 			t.Fatalf("%q: the save window's row %+v shown %v", lang, window, ok)
 		}
 		modesClick(e, at)
-		if window, _, _ := textsInsideSwitch(e); host.TextsInside() || e.prompt.kind != promptSave || window.Value != e.word("editor.save.textsinside.off") {
+		if window, _, _ := textsInsideSwitch(e); host.TextsInside() || e.prompt.kind != promptSave || window.Value != e.word("editor.switch.off") {
 			t.Fatalf("%q: the window's press: inside %v row %+v", lang, host.TextsInside(), window)
 		}
 		e.leave(leavePrompt)

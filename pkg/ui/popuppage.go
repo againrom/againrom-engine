@@ -85,7 +85,27 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	var made []popupMade
 	m.plain, made = d.build(sample, word)
 	m.pictureNames = rowPictures(m.plain.Rows, made, person.picture)
+	if _, names := (popupChain{sample}).grid(d.Grid, word); person.picture != nil {
+		for i, name := range names {
+			m.plain.Grid.Cells[i].Icon = person.picture(name)
+		}
+	}
+	if body != nil && m.plain.Width > 0 {
+		// Notes are lines: each note wraps to the window's text width, as the
+		// prompt wraps its message.
+		measure := func(s string) int { return body.Advance(encode(s)) }
+		var lines []string
+		for _, n := range m.plain.Notes {
+			lines = append(lines, editorRule.plain(lineBox{Measure: measure, Width: m.plain.Width - 2*popupPad}, n)...)
+		}
+		m.plain.Notes = lines
+	}
 	m.paint = encodedSpec(m.plain, encode)
+	for i, r := range m.paint.Rows {
+		if r.Focus && body != nil {
+			m.paint.Rows[i].Caret = body.Advance(r.Value)
+		}
+	}
 	fitButtons(&m.paint, body)
 	if d.Card {
 		if person.card == nil {
@@ -377,6 +397,13 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 		}
 		tip = row.Help
 		part("button", "row-help", rr.Index, rr.Help, none, "?")
+		tip = ""
+	}
+	for i, r := range l.GridCells {
+		if w.Grid != nil {
+			tip = w.Grid.Cells[l.gridIndex(i)].Tip
+		}
+		part("control", "cell", i, r, none, "")
 		tip = ""
 	}
 	for i, r := range l.Notes {

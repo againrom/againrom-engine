@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -208,8 +209,13 @@ func (e *MapEditor) pathFallback(kind pathdialog.Kind, err error) {
 	}
 	e.leave(leaveDrag | leaveReport | leavePick)
 	e.openPrompt(editorPrompt{kind: prompt})
-	if err != nil {
-		e.message = fmt.Sprintf("System dialog unavailable: %v. Type a path below.", err)
+	// The typed path is the fallback; the note says why the dialog did not
+	// open.
+	switch {
+	case errors.Is(err, pathdialog.ErrUnavailable):
+		e.message = e.plainWord("editor.path.nodialog")
+	case err != nil:
+		e.message = fmt.Sprintf(e.plainWord("editor.path.dialogfailed"), err)
 	}
 }
 

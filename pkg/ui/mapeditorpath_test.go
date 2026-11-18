@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -162,7 +163,11 @@ func TestEditorDialogFailureKeepsTypedRoute(t *testing.T) {
 				}, t.TempDir())
 				_ = e.Key(key)
 				finishEditorDialog(t, e)
-				if !e.prompt.open() || !strings.Contains(e.message, failure.Error()) || !strings.Contains(e.message, "Type a path") || (e.prompt.kind == promptSave) != (key == "saveas") {
+				note := e.plainWord("editor.path.nodialog")
+				if failure != pathdialog.ErrUnavailable {
+					note = fmt.Sprintf(e.plainWord("editor.path.dialogfailed"), failure)
+				}
+				if !e.prompt.open() || e.message != note || (e.prompt.kind == promptSave) != (key == "saveas") {
 					t.Fatalf("fallback not visible: prompt=%+v message=%q", e.prompt, e.message)
 				}
 				e.TextInput("typed.alm")

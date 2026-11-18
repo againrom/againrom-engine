@@ -39,7 +39,7 @@ func TestOpenDropdownListIsHitBeforeItsBox(t *testing.T) {
 	e.Layout(640, 480)
 	e.openPrompt(editorPrompt{kind: promptAreaTrigger, area: &areaPrompt{box: image.Rect(1, 1, 4, 4), choice: NewPicker(triggerRows(40)), open: true}})
 	titleDragBy(t, e, image.Pt(0, 120))
-	d, ok := e.areaDropdown()
+	d, ok := e.promptDropdown()
 	if !ok || !d.Open {
 		t.Fatal("the area prompt shows no open trigger list")
 	}
@@ -49,7 +49,7 @@ func TestOpenDropdownListIsHitBeforeItsBox(t *testing.T) {
 	}
 	top, _ := d.List.Visible()
 	editorClickAt(e, p, time.Unix(1, 0))
-	after, _ := e.areaDropdown()
+	after, _ := e.promptDropdown()
 	if after.Open || after.List.Selection() != top+row {
 		t.Errorf("a press at %v on list row %d: open %v, selection %d, want closed and %d", p, row, after.Open, after.List.Selection(), top+row)
 	}

@@ -1,7 +1,8 @@
 package ui
 
 import (
-	"fmt"
+	"errors"
+	"image"
 	"strconv"
 	"strings"
 )
@@ -15,11 +16,28 @@ type InspectionRecordChoices interface {
 	RecordChoices(kind RecordKind, index int, key string) []InspectionChoice
 }
 
+// recipeItemField is the item recipe prompt's one field: the selected sack's
+// items by their place in it, each with the picture its item field's item
+// shows, so the prompt shows them as a picture grid.
 func (e *MapEditor) recipeItemField() []InspectionField {
-	f := InspectionField{Key: "recipeitem", Label: "Item number for magic recipe"}
+	f := InspectionField{Key: "recipeitem", Label: e.plainWord("editor.prompt.recipe")}
 	kind, index := e.selectedRecord()
 	if host, ok := e.doc.Edits.(InspectionRecordChoices); ok {
 		f.Choices = host.RecordChoices(kind, index, f.Key)
+	}
+	look, ok := e.doc.Edits.(InspectionItemLook)
+	if !ok || len(f.Choices) == 0 || index < 0 {
+		return []InspectionField{f}
+	}
+	codes := map[string]int64{}
+	for _, g := range e.doc.Edits.Fields(kind, index) {
+		codes[g.Key] = g.Value
+	}
+	f.Icons = map[int64]*image.RGBA{}
+	for _, c := range f.Choices {
+		if _, icon := look.ItemLook(codes["item"+strconv.FormatInt(c.Value, 10)]); icon != nil {
+			f.Icons[c.Value] = icon
+		}
 	}
 	return []InspectionField{f}
 }
@@ -39,7 +57,7 @@ func (e *MapEditor) keyRecords(key string) error {
 	kind, index := e.selectedRecord()
 	if key == "stock" {
 		if kind != KindUnit {
-			e.message = "Select a unit first; K creates its stock."
+			e.message = e.plainWord("editor.stock.selectunit")
 			return nil
 		}
 		// The new stock opens in its window as the unit's sack row opens
@@ -53,12 +71,12 @@ func (e *MapEditor) keyRecords(key string) error {
 		if ch.doc != nil {
 			e.selectNewest(KindStock)
 			e.objectBack = back
-			e.message = "Stock created. E adds items; I adds an item recipe."
+			e.message = e.plainWord("editor.stock.created")
 		}
 		return nil
 	}
 	if kind != KindStock && kind != KindSack {
-		e.message = "Select a sack or stock first; I creates an item recipe."
+		e.message = e.plainWord("editor.recipe.selectsack")
 		return nil
 	}
 	e.openPrompt(editorPrompt{kind: promptItemRecipe})
@@ -68,8 +86,8 @@ func (e *MapEditor) keyRecords(key string) error {
 func (e *MapEditor) setItemRecipe(text string) error {
 	n, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
 	if err != nil {
-		e.message = "Enter the item number, starting at 1."
-		return fmt.Errorf("%s", e.message)
+		e.message = e.plainWord("editor.recipe.choose")
+		return errors.New(e.message)
 	}
 	kind, index := e.selectedRecord()
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
@@ -83,7 +101,7 @@ func (e *MapEditor) setItemRecipe(text string) error {
 	e.leave(leavePrompt)
 	if ch.doc != nil {
 		e.selectNewest(KindEnchantment)
-		e.message = "Recipe created. E edits its spell and ordered effects."
+		e.message = e.plainWord("editor.recipe.created")
 	}
 	return nil
 }

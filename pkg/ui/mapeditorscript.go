@@ -187,7 +187,11 @@ func (e *MapEditor) goalAt(p image.Point) {
 		}
 		return
 	}
-	e.message = "Click a " + map[RecordKind]string{KindUnit: "unit", KindStructure: "structure"}[g.Pick] + " on the map."
+	if g.Pick == KindStructure {
+		e.message = e.plainWord("editor.goal.clickstructure")
+		return
+	}
+	e.message = e.plainWord("editor.goal.clickunit")
 }
 
 // dropMarkers are the cells the script drops the party on.

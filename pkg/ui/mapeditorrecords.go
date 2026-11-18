@@ -96,6 +96,7 @@ func (e *MapEditor) recordKey(key string) error {
 			if e.prompt.open() {
 				e.prompt.field = (e.prompt.field + 1) % len(fields)
 				e.prompt.path = fieldInput(fields[e.prompt.field])
+				e.prompt.list, e.prompt.gridTop = nil, 0
 			}
 			e.message = ""
 		}
@@ -136,7 +137,7 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 || (key != "field" && !kind.Editable() && !(key == "delete" && kind.Fielded())) {
-		e.message = "Select a unit, structure or sack first."
+		e.message = e.plainWord("editor.record.selectfirst")
 		return nil
 	}
 	e.leave(leaveDrag)
@@ -175,7 +176,7 @@ func (e *MapEditor) recordKey(key string) error {
 		}
 		fields := e.promptFields()
 		if len(fields) == 0 {
-			e.message = "This record has no settable fields."
+			e.message = e.plainWord("editor.record.nofields")
 			return nil
 		}
 		e.openPrompt(editorPrompt{kind: promptField, path: fieldInput(fields[0])})
@@ -224,15 +225,21 @@ func (e *MapEditor) fieldNumberNote(f InspectionField, err error) string {
 	return fmt.Sprintf("%s: %s", f.Label, e.word("editor.object.number"))
 }
 
+// fieldTitle is a field prompt's title, the field's name: for a record's
+// field the plain view's word where the record's plain table names one,
+// else the field's own label.
 func (e *MapEditor) fieldTitle() string {
 	fields := e.promptFields()
 	if e.prompt.field >= len(fields) {
-		return "Field / Enter: set"
+		return e.word("editor.prompt.field")
 	}
-	if e.prompt.kind == promptWorkspace && e.prompt.scope == "pages" {
-		return fmt.Sprintf(e.word("editor.pages.prompt"), e.editorHostText(choiceTitle(fields[e.prompt.field], e.prompt.path)))
+	f := fields[e.prompt.field]
+	if kind, _ := e.selectedRecord(); e.prompt.kind == promptField {
+		if label, ok := e.plainLabel(kind, f.Key); ok {
+			return label
+		}
 	}
-	return fmt.Sprintf("%s / Tab: next / Enter: set", choiceTitle(fields[e.prompt.field], e.prompt.path))
+	return e.editorHostText(f.Label)
 }
 
 func (e *MapEditor) setField(text string) error {
@@ -254,7 +261,7 @@ func (e *MapEditor) setField(text string) error {
 			return parseErr
 		}
 		if parseErr != nil {
-			e.message = "Enter a whole number."
+			e.message = e.plainWord("editor.add.whole")
 			return parseErr
 		}
 		if v == NewMessageChoice {
@@ -303,7 +310,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	if !ok {
-		e.message = "Click a map cell."
+		e.message = e.plainWord("editor.record.clickcell")
 		return
 	}
 	if pick == pickAddCell {
@@ -327,7 +334,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 || !kind.Editable() {
-		e.message = "Clone needs a selected unit, structure or sack."
+		e.message = e.plainWord("editor.record.clonefirst")
 		return
 	}
 	ch, err := e.commandClone(recordAt{Ref: RecordRef{Kind: kind, Index: index}, Cell: image.Pt(x, y)})

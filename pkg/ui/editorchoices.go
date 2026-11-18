@@ -3,6 +3,8 @@ package ui
 import (
 	"image/color"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 type choiceListEntry struct {
@@ -103,4 +105,27 @@ func (l *choiceList) take(row int) (int, bool) {
 		return -1, true
 	}
 	return entry.index, false
+}
+
+// openChoiceList is the editor's one open list of field f's choices, the
+// object window's and a field prompt's: its entries and its picker over the
+// rows window gives for the row count, the choice whose value text holds
+// selected.
+func (e *MapEditor) openChoiceList(f InspectionField, text string, window func(rows int) int) (choiceList, *Picker) {
+	l := choiceList{field: f, back: e.word("editor.button.back")}
+	rows := l.rows()
+	sel := 0
+	for k, entry := range l.entries {
+		if entry.index >= 0 && strconv.FormatInt(f.Choices[entry.index].Value, 10) == strings.TrimSpace(text) {
+			sel = k
+		}
+	}
+	n := window(len(rows))
+	p := NewPicker(rows)
+	if n > pickerVisible {
+		p.SetRowLimit(n)
+	}
+	p.SetWindow(n)
+	p.Select(sel)
+	return l, p
 }

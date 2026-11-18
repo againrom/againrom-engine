@@ -60,19 +60,36 @@ func TestTriggerNameIsDrawnThroughTheHostEncoder(t *testing.T) {
 	}
 }
 
-// A message longer than six lines ends its sixth line with one mark.
-func TestALongMessageIsMarkedOnce(t *testing.T) {
+// A message longer than six lines shows whole, every word and no mark, and
+// the window body pages when the message is taller than the window.
+func TestALongMessageShowsWhole(t *testing.T) {
 	e := textEditor(t)
-	e.message = strings.Repeat("word ", 400)
+	e.Layout(640, 480)
+	e.message = strings.TrimSpace(strings.Repeat("word ", 1200))
 	s, ok := e.promptSpec()
 	if !ok {
 		t.Fatal("no message popup")
 	}
-	if len(s.Notes) < 6 {
-		t.Fatalf("notes %q", s.Notes)
+	lines := messageLines(s)
+	if len(lines) <= 6 {
+		t.Fatalf("message lines %q", lines)
 	}
-	sixth := s.Notes[5]
-	if !strings.HasSuffix(sixth, textfit.Mark) || strings.HasSuffix(sixth, textfit.Mark+textfit.Mark) || strings.Count(sixth, textfit.Mark) != 1 {
-		t.Fatalf("the sixth line is %q", sixth)
+	got := strings.Join(strings.Fields(strings.Join(lines, " ")), " ")
+	if got != e.message || strings.Contains(got, textfit.Mark) {
+		t.Fatalf("the message shows %d of 1200 words, mark %v", len(strings.Fields(got)), strings.Contains(got, textfit.Mark))
 	}
+	if l := layoutPopup(s, e.font, e.bodyFont()); l.RowBar.Empty() || !l.Rect.In(image.Rect(0, 0, 640, 480)) {
+		t.Fatalf("the long message does not page inside the window: bar %v rect %v lines %d rows %d bounds %v", l.RowBar, l.Rect, len(lines), len(l.Rows), s.Bounds)
+	}
+}
+
+// messageLines are the lines the message window shows: its text rows.
+func messageLines(s popupSpec) []string {
+	var out []string
+	for _, r := range s.Rows {
+		if r.Kind == popupText {
+			out = append(out, r.Value)
+		}
+	}
+	return out
 }

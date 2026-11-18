@@ -214,7 +214,22 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					for i, v := range n.Values {
 						list, ok := v.(*ast.CompositeLit)
 						if ok && i < len(n.Names) && strings.HasSuffix(n.Names[i].Name, "Words") {
-							args = append(args, list.Elts...)
+							// A table of words holds its ids as elements,
+							// map values or the fields of an element.
+							var gather func(elts []ast.Expr)
+							gather = func(elts []ast.Expr) {
+								for _, x := range elts {
+									if kv, ok := x.(*ast.KeyValueExpr); ok {
+										x = kv.Value
+									}
+									if inner, ok := x.(*ast.CompositeLit); ok {
+										gather(inner.Elts)
+										continue
+									}
+									args = append(args, x)
+								}
+							}
+							gather(list.Elts)
 						}
 					}
 				}

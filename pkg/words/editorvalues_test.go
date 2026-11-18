@@ -38,10 +38,10 @@ func TestEditorUnitBlockWordsExistInBothLanguages(t *testing.T) {
 }
 
 func TestEditorKeptMessageSaysNothingWasLost(t *testing.T) {
-	if got := For("ru").Text("editor.message.kept"); got != "Карта и история правок не тронуты. Esc: назад" {
+	if got := For("ru").Text("editor.message.kept"); got != "Карта и история правок не тронуты." {
 		t.Fatalf("ru: %q", got)
 	}
-	if got := For("en").Text("editor.message.kept"); got != "Map and history retained. Esc: back" {
+	if got := For("en").Text("editor.message.kept"); got != "The map and its edit history are kept." {
 		t.Fatalf("en: %q", got)
 	}
 }

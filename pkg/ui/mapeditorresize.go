@@ -126,7 +126,7 @@ func (e *MapEditor) resizeEdgeAt(id editorPopupID, p image.Point) popupEdge {
 		}
 		return e.panelEdgeAt(id, p)
 	}
-	if !e.resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
+	if !e.resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.promptDropdownHit(p) {
 		return 0
 	}
 	s, ok := e.movableSpec(id)

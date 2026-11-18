@@ -232,7 +232,8 @@ func recipeItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 	var out []ui.InspectionChoice
 	for i, item := range loot.Records[a.index].Elements {
 		name := mapload.ItemDisplayName(s.inspector.table, mapload.ItemSubject{Code: data.ItemCode(item.ItemCode()), Form: mapload.ItemNameEditorList})
-		out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Item %d: %s", i+1, name)})
+		place := s.inspector.inspectionUTF8(fmt.Sprintf(s.inspector.word("editor.plain.item"), i+1))
+		out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: place + ": " + name})
 	}
 	return out
 }

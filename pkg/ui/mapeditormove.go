@@ -63,7 +63,7 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 			e.refuseSave(r)
 			return err
 		}
-		e.message = err.Error()
+		e.keptError(err)
 		return err
 	}
 	e.doc.Source = source

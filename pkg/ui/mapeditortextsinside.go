@@ -36,16 +36,17 @@ func (e *MapEditor) textsInsideOn() bool {
 	return ok && host.TextsInside()
 }
 
-// textsInsideRow is the save window's switch row, when the host has one.
+// textsInsideRow is the save window's labelled switch row, when the host has
+// one; its (?) holds the .almx rule.
 func (e *MapEditor) textsInsideRow() (popupRow, bool) {
 	if _, ok := e.textsInsideHost(); !ok || e.prompt.kind != promptSave {
 		return popupRow{}, false
 	}
-	value := e.word("editor.save.textsinside.off")
+	value := e.word("editor.switch.off")
 	if e.textsInsideOn() {
-		value = e.word("editor.save.textsinside.on")
+		value = e.word("editor.switch.on")
 	}
-	return popupRow{Kind: popupSwitch, Value: value}, true
+	return popupRow{Kind: popupSwitch, Label: e.word("editor.menu.textsinside"), Value: value, Help: e.word("editor.save.textsinside.almx")}, true
 }
 
 // switchTextsInside turns the switch over, for the File menu's row and the

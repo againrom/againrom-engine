@@ -43,7 +43,7 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 			e.refuseSave(r)
 			return err
 		}
-		e.message = err.Error()
+		e.keptError(err)
 		return err
 	}
 	e.doc.Source = source

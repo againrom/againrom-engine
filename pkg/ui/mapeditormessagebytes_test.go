@@ -55,10 +55,11 @@ func TestMapEditorMessageBoxShowsTextOnceConverted(t *testing.T) {
 				}
 				c.run(e)
 				s, ok := e.promptSpec()
-				if !ok || len(s.Notes) < 2 {
-					t.Fatalf("no message box: %v %v", ok, s.Notes)
+				lines := messageLines(s)
+				if !ok || len(lines) == 0 {
+					t.Fatalf("no message box: %v %v", ok, s.Rows)
 				}
-				got := strings.Join(s.Notes[:len(s.Notes)-1], " ")
+				got := strings.Join(lines, " ")
 				want := oneByteHost(c.want(e))
 				if got != want || strings.Contains(got, "?") && !strings.Contains(want, "?") {
 					t.Fatalf("the box shows %q, want %q", got, want)

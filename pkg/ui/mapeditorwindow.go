@@ -1576,34 +1576,48 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
 	text := w - 2*popupPad - 60
 	if e.prompt.open() {
-		s.Title = e.promptTitle()
-		s.Rows = e.promptInputRows(text)
-		if row, ok := e.textsInsideRow(); ok {
-			s.Rows = append(s.Rows, row)
-		}
+		s.Title, s.TitleHelp = e.promptTitle(), e.promptHelp()
+		e.promptRows(&s, text)
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
-		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
-			s.TitleHelp = e.editorHostText(fields[e.prompt.field].Meaning)
-		}
 	} else {
-		s.Title = e.word("editor.message.title")
+		s.Title, s.TitleHelp = e.word("editor.message.title"), e.word("editor.message.keys")
 		s.Buttons = []string{e.word("editor.button.ok")}
 	}
 	if e.message != "" {
-		errors := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
-		if len(errors) > 6 {
-			more := errors[5] + textfit.Mark
-			if f := e.bodyFont(); f != nil {
-				more = editorFit(f).Continued(errors[5], text)
+		// The message shows whole: in a prompt as its notes, alone as the
+		// window's rows, which page when the window is taller than its room.
+		lines := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
+		if e.prompt.open() {
+			s.Notes = append(s.Notes, lines...)
+		} else {
+			for _, line := range lines {
+				s.Rows = append(s.Rows, popupRow{Kind: popupText, Value: line, Ink: editorWarning})
 			}
-			errors = append(errors[:5], more)
 		}
-		s.Notes = append(s.Notes, errors...)
-		s.Notes = append(s.Notes, e.word("editor.message.kept"))
-	} else if e.multilinePrompt() {
-		s.Notes = append(s.Notes, e.word("editor.prompt.multiline"))
+		if e.message == e.messageKept {
+			s.Notes = append(s.Notes, e.word("editor.message.kept"))
+		}
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
+	if e.prompt.open() && e.message != "" && len(s.Notes) > 0 && len(l.Notes) == 0 {
+		// The notes do not page, so a message too long for the room would
+		// fold whole into the title's (?) help and take the kept line with
+		// it. The body keeps the first five lines, a continued sixth and the
+		// kept line; the help keeps the whole text.
+		lines := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
+		if len(lines) > 6 {
+			more := lines[5] + textfit.Mark
+			if f := e.bodyFont(); f != nil {
+				more = editorFit(f).Continued(lines[5], text)
+			}
+			s.Notes = append(slices.Clone(lines[:5]), more)
+			if e.message == e.messageKept {
+				s.Notes = append(s.Notes, e.word("editor.message.kept"))
+			}
+			s.TitleHelp = strings.TrimSpace(s.TitleHelp + " " + strings.Join(lines, " "))
+			l = layoutPopup(s, e.font, e.bodyFont())
+		}
+	}
 	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
 	return s, true
 }
@@ -1644,7 +1658,7 @@ func (e *MapEditor) controlTitleRect() (image.Rectangle, bool) {
 // titlePress starts the editor's one popup drag when p lies on the title bar
 // of popup id; an open drop-down over the bar takes the press instead.
 func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
-	if id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
+	if id == popObject && e.openDropdownHit(p) || id == popPrompt && e.promptDropdownHit(p) {
 		return false
 	}
 	s, ok := e.movableSpec(id)
@@ -1656,31 +1670,6 @@ func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
 	}
 	e.drag, e.dragFrom, e.dragEdge = id, p, 0
 	return true
-}
-
-func (e *MapEditor) promptTitle() string {
-	if r, ok := e.addRunning(); ok {
-		return r.title
-	}
-	switch {
-	case e.prompt.fields():
-		return e.fieldTitle()
-	case e.prompt.kind == promptItemRecipe:
-		return e.word("editor.prompt.recipe")
-	case e.prompt.kind == promptSave:
-		return e.word("editor.prompt.save")
-	case e.prompt.kind == promptRectangle:
-		return e.word("editor.prompt.newmap")
-	case e.prompt.kind == promptSpeaker:
-		return e.word("editor.speaker.add.name")
-	case e.prompt.kind == promptForestShare:
-		return e.word("editor.prompt.share")
-	case e.prompt.kind == promptSeed:
-		return e.seedTitle()
-	case e.prompt.kind == promptMapsFolder:
-		return e.word("editor.mod.addmaps.title")
-	}
-	return e.word("editor.prompt.open")
 }
 
 // ChromeImage composes the window's chrome over a transparent window-size
@@ -2117,7 +2106,7 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if b, ok := e.openMenuEntry(); ok && e.menuDropdown(b, true).Covers(e.font, p) {
 		return popMenu
 	}
-	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.areaDropdownHit(p)) {
+	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.promptDropdownHit(p)) {
 		return popPrompt
 	}
 	object, _, objectOK := e.objectSpec()
@@ -2318,7 +2307,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 		if e.modWindow {
 			if s, _, ok := e.modSpec(); ok && s.Grid != nil {
 				if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
-					e.modGridWheel(l, s.Grid, wheel)
+					e.gridWheel(&e.modGridTop, l, s.Grid, wheel)
 					return
 				}
 			}
@@ -2337,8 +2326,15 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
 		}
 	case popPrompt:
-		if e.areaWheel(wheel) {
+		if d, ok := e.promptDropdown(); ok && d.Open && e.pointer.In(d.Bounds(e.bodyFont())) {
+			d.List.Move(editorWheelRows(&e.listWheel, wheel))
 			return
+		}
+		if s, ok := e.promptSpec(); ok && s.Grid != nil {
+			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
+				e.gridWheel(&e.prompt.gridTop, l, s.Grid, wheel)
+				return
+			}
 		}
 		if s, l, ok := e.pagedLayout(popPrompt); ok && (e.pointer.In(l.RowsViewport) || e.pointer.In(l.RowBar)) {
 			e.pageWheel(popPrompt, s, l, wheel)
@@ -2425,11 +2421,18 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.playerDeletePress(p)
 			return
 		}
+		if e.promptListPress(p) {
+			return
+		}
 		s, _ := e.promptSpec()
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 		switch {
 		case (part == popupRowControl || part == popupRowLine) && s.Rows[n].Kind == popupSwitch:
 			e.switchTextsInside()
+		case (part == popupRowControl || part == popupRowLine) && s.Rows[n].Kind == popupChoice:
+			e.openPromptList()
+		case part == popupGridPart:
+			e.choosePromptChoice(n)
 		case part == popupClose || part == popupButton && n == 1:
 			e.cancelPopup()
 		case part == popupButton && n == 0:

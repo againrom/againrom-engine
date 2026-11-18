@@ -205,7 +205,7 @@ func TestChoiceRowDropdownOpensInsideTheWindow(t *testing.T) {
 		rows[i] = PickerRow{Text: "trigger " + strings.Repeat("x", i%7), Choosable: true}
 	}
 	e.openPrompt(editorPrompt{kind: promptAreaTrigger, area: &areaPrompt{box: image.Rect(1, 1, 4, 4), choice: NewPicker(rows), open: true}})
-	d, ok := e.areaDropdown()
+	d, ok := e.promptDropdown()
 	if !ok || !d.Open {
 		t.Fatal("the area prompt shows no open trigger list")
 	}

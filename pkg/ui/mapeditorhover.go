@@ -52,8 +52,8 @@ func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
 	return cell.Tip, r.Min, ok
 }
 
-// gridCellAt is the grid cell under p that names itself, of the list popup
-// or the mod window, and its rectangle. A cell with TipPictures carries them
+// gridCellAt is the grid cell under p that names itself, of the list popup,
+// the mod window or a field prompt, and its rectangle. A cell with TipPictures carries them
 // as one TipPicture: a sheet of them, each at the cell's picture size.
 func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Rectangle, bool) {
 	var s popupSpec
@@ -65,6 +65,8 @@ func (e *MapEditor) gridCellAt(p image.Point) (popupGridCell, image.Rectangle, b
 		if e.modWindow {
 			s, _, ok = e.modSpec()
 		}
+	case popPrompt:
+		s, ok = e.promptSpec()
 	}
 	if !ok || s.Grid == nil {
 		return popupGridCell{}, image.Rectangle{}, false
@@ -166,7 +168,7 @@ func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
 		if label, r, ok := e.toolTip(p); ok {
 			return hoverTip(bounds, body, r, label, nil), true
 		}
-	case id == popMenu || e.openDropdownHit(p) || e.areaDropdownHit(p):
+	case id == popMenu || e.openDropdownHit(p) || e.promptDropdownHit(p):
 		return popupTip{}, false
 	}
 	for i := len(e.tip.windows) - 1; i >= 0; i-- {

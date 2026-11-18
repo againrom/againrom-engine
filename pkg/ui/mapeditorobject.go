@@ -689,26 +689,7 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		}
 		o.open = i
 		o.search = ""
-		f := o.fields[i]
-		o.choices = choiceList{field: f, back: e.word("editor.button.back")}
-		rows := o.choices.rows()
-		sel := 0
-		for k, entry := range o.choices.entries {
-			if entry.index < 0 {
-				continue
-			}
-			c := f.Choices[entry.index]
-			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
-				sel = k
-			}
-		}
-		window := e.choiceWindow(i, len(rows))
-		o.choice = NewPicker(rows)
-		if window > pickerVisible {
-			o.choice.SetRowLimit(window)
-		}
-		o.choice.SetWindow(window)
-		o.choice.Select(sel)
+		o.choices, o.choice = e.openChoiceList(o.fields[i], o.buf[i], func(n int) int { return e.choiceWindow(i, n) })
 	}
 }
 
@@ -782,9 +763,9 @@ func (e *MapEditor) rowDropdown(control image.Rectangle, value string, list *Pic
 }
 
 // drawRowDropdowns paints the open list of a choice row, the object
-// window's or the area prompt's, over everything but an open menu.
+// window's or the prompt's, over everything but an open menu.
 func (e *MapEditor) drawRowDropdowns(pic *image.RGBA) {
-	for _, open := range []func() (dropdown, bool){e.openDropdown, e.areaDropdown} {
+	for _, open := range []func() (dropdown, bool){e.openDropdown, e.promptDropdown} {
 		if d, ok := open(); ok && d.Open {
 			d.Press = &e.buttonPress
 			e.drawEditorDropdown(pic, e.bodyFont(), d)

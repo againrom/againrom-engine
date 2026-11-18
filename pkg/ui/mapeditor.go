@@ -253,6 +253,7 @@ type MapEditor struct {
 	testPartyHero               int                       // the kind of hero the map maker last chose in the party window
 	testPartyCustom             bool                      // the party window's switch for a mission with its own party: false is Standard, true Custom
 	message                     string
+	messageKept                 string // the message of an error that left the map and its history as they were
 	down, moved                 bool
 	press                       image.Point
 	window                      image.Point
@@ -346,7 +347,7 @@ func (e *MapEditor) Open(source string) error {
 
 func (e *MapEditor) openMap(source string) error {
 	if e.open == nil {
-		e.message = "no map opener"
+		e.message = e.plainWord("editor.open.noopener")
 		return fmt.Errorf("%s", e.message)
 	}
 	next, err := e.open(source)
@@ -354,7 +355,7 @@ func (e *MapEditor) openMap(source string) error {
 		err = checkOpened(next)
 	}
 	if err != nil {
-		e.message = err.Error()
+		e.keptError(err)
 		return err
 	}
 	if _, ok := e.mapSet(); ok && ParseMapSource(source).Kind != SourceNew {

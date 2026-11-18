@@ -29,18 +29,6 @@ func (e *MapEditor) stepChoice(delta int) bool {
 	} else {
 		at = min(max(at+delta, 0), len(choices)-1)
 	}
-	e.prompt.path = strconv.FormatInt(choices[at].Value, 10)
+	e.prompt.path, e.prompt.list = strconv.FormatInt(choices[at].Value, 10), nil
 	return true
-}
-
-func choiceTitle(f InspectionField, input string) string {
-	value, err := strconv.ParseInt(input, 10, 64)
-	if err == nil {
-		for _, c := range f.Choices {
-			if c.Value == value {
-				return c.Label + " / Up, Down"
-			}
-		}
-	}
-	return f.Label
 }

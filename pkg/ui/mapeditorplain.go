@@ -134,6 +134,31 @@ func plainMatch(pattern, key string) (int, bool) {
 	return n, rest == tail
 }
 
+// plainRowLabel is the plain label of table row row over a field whose key
+// took number n, "" for a row that keeps the field's own label.
+func (e *MapEditor) plainRowLabel(row plainRow, n int) string {
+	if row.word == "" {
+		return ""
+	}
+	label := e.word(row.word)
+	if strings.Contains(label, "%d") {
+		label = fmt.Sprintf(label, n)
+	}
+	return label
+}
+
+// plainLabel is the plain view's word for the field key of a record of
+// kind, as the plain view labels its row; false where the kind's plain
+// table gives the field no word of its own.
+func (e *MapEditor) plainLabel(kind RecordKind, key string) (string, bool) {
+	for _, row := range plainViews[kind].rows {
+		if n, ok := plainMatch(row.key, key); ok && row.word != "" && row.show != plainCode {
+			return e.plainRowLabel(row, n), true
+		}
+	}
+	return "", false
+}
+
 // plainEntry is one row the plain view shows: table row row over field
 // field, -1 for a row no field fills, with the key's number.
 type plainEntry struct {
@@ -386,13 +411,7 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 		if !p.rest {
 			row = v.rows[p.row]
 		}
-		label := ""
-		if row.word != "" {
-			label = e.word(row.word)
-			if strings.Contains(label, "%d") {
-				label = fmt.Sprintf(label, p.number)
-			}
-		}
+		label := e.plainRowLabel(row, p.number)
 		text := func(value string) {
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value}), append(*links, 0)
 		}

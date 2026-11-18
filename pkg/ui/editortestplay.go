@@ -60,7 +60,7 @@ func (e *MapEditor) keyTestPlay(string) error {
 func (e *MapEditor) testPlay() error {
 	p, ok := e.doc.Edits.(InspectionTestPlay)
 	if !ok {
-		e.message = "Test play is not available for this map"
+		e.message = e.plainWord("editor.testplay.unavailable")
 		return nil
 	}
 	return e.testPlayBy(p.TestPlay)

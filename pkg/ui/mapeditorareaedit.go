@@ -552,33 +552,12 @@ func (e *MapEditor) areaTriggerSpec() popupSpec {
 	return s
 }
 
-// areaDropdown is the trigger choice's drop-down on its row.
-func (e *MapEditor) areaDropdown() (dropdown, bool) {
-	if e.prompt.kind != promptAreaTrigger || e.prompt.area == nil {
-		return dropdown{}, false
-	}
-	a := e.prompt.area
-	s := e.sizedPrompt(e.areaTriggerSpec())
-	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if rr.Index == 0 {
-			return e.rowDropdown(rr.Control, s.Rows[0].Value, a.choice, min(10, a.choice.Len()), a.open), true
-		}
-	}
-	return dropdown{}, false
-}
-
-// areaDropdownHit reports that p lies on the trigger choice's open list.
-func (e *MapEditor) areaDropdownHit(p image.Point) bool {
-	d, ok := e.areaDropdown()
-	return ok && d.Open && p.In(d.Bounds(e.bodyFont()))
-}
-
 // areaTriggerPress is a press on the trigger choice: the drop-down opens,
 // chooses and closes; Create adds the area, Cancel and the close button
 // leave.
 func (e *MapEditor) areaTriggerPress(p image.Point) {
 	a := e.prompt.area
-	if d, ok := e.areaDropdown(); ok {
+	if d, ok := e.promptDropdown(); ok {
 		switch part, row := d.hit(e.bodyFont(), p); part {
 		case dropdownToggle:
 			a.open = !a.open
@@ -607,15 +586,6 @@ func (e *MapEditor) areaStep(delta int) {
 	a := e.prompt.area
 	editorListStep(a.choice, delta)
 	a.note = ""
-}
-
-// areaWheel scrolls the trigger choice's open list.
-func (e *MapEditor) areaWheel(wheel wheelSource) bool {
-	if !e.areaDropdownHit(e.pointer) {
-		return false
-	}
-	e.prompt.area.choice.Move(editorWheelRows(&e.listWheel, wheel))
-	return true
 }
 
 // areaCreate adds the drawn box to the chosen trigger, or to a new one, as
@@ -711,7 +681,7 @@ func (e *MapEditor) AreaCornerPoint(c image.Point) image.Point {
 
 // controlAreaTriggerRect is the window rectangle of the trigger choice's box.
 func (e *MapEditor) controlAreaTriggerRect() (image.Rectangle, bool) {
-	d, ok := e.areaDropdown()
+	d, ok := e.promptDropdown()
 	return d.Rect, ok
 }
 
@@ -720,6 +690,6 @@ func (e *MapEditor) AreaDrawArmed() bool { return e.pick == pickArea }
 
 // openAreaDropdown is the trigger choice's drop-down while its list is open.
 func (e *MapEditor) openAreaDropdown() (dropdown, bool) {
-	d, ok := e.areaDropdown()
+	d, ok := e.promptDropdown()
 	return d, ok && d.Open
 }

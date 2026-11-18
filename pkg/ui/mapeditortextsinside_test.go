@@ -62,7 +62,7 @@ func TestSaveWindowSwitchPutsTheTextsInsideTheMap(t *testing.T) {
 	}
 	e.TextInput("bridge.alm")
 	row, at, ok := textsInsideSwitch(e)
-	if !ok || row.Value != e.word("editor.save.textsinside.off") {
+	if !ok || row.Value != e.word("editor.switch.off") {
 		t.Fatalf("the switch row %+v shown %v", row, ok)
 	}
 	modesClick(e, at)
@@ -72,11 +72,11 @@ func TestSaveWindowSwitchPutsTheTextsInsideTheMap(t *testing.T) {
 	e.scriptFormGo()
 	row, at, ok = textsInsideSwitch(e)
 	if host.extends != 1 || !host.TextsInside() || e.prompt.kind != promptSave || e.prompt.path != "bridge.almx" ||
-		!ok || row.Value != e.word("editor.save.textsinside.on") {
+		!ok || row.Value != e.word("editor.switch.on") {
 		t.Fatalf("after Yes: extends %d inside %v kind %v path %q row %+v", host.extends, host.TextsInside(), e.prompt.kind, e.prompt.path, row)
 	}
 	modesClick(e, at)
-	if row, _, _ := textsInsideSwitch(e); host.TextsInside() || host.extends != 1 || e.prompt.kind != promptSave || row.Value != e.word("editor.save.textsinside.off") {
+	if row, _, _ := textsInsideSwitch(e); host.TextsInside() || host.extends != 1 || e.prompt.kind != promptSave || row.Value != e.word("editor.switch.off") {
 		t.Fatalf("the second press: inside %v extends %d row %+v", host.TextsInside(), host.extends, row)
 	}
 	e.doc.Edits = edits

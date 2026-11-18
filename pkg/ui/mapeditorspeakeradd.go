@@ -59,11 +59,11 @@ func (e *MapEditor) speakerPromptStep(value string) error {
 	host, ok := e.speakerAddHost()
 	if p == nil || !ok {
 		e.dropPrompt()
-		return errors.New("this map cannot hold a speaker record")
+		return errors.New(e.plainWord("editor.speaker.add.noroom"))
 	}
 	name := strings.TrimSpace(value)
 	if name == "" {
-		return errors.New("the speaker needs a name")
+		return errors.New(e.plainWord("editor.speaker.add.noname"))
 	}
 	unit, back := p.unit, p.back
 	e.dropPrompt()

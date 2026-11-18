@@ -298,6 +298,9 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 		}
 		add("row-help", rr.Help)
 	}
+	for _, r := range l.GridCells {
+		add("cell", r)
+	}
 	for _, r := range l.Notes {
 		add("note", r)
 	}
