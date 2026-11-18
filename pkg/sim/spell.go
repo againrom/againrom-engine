@@ -981,10 +981,8 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	// 6. within the decoded power-scaled range, by the order's reach test.
-	if w.game.releaseRevalidates && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast), reachOrder) {
-		return false
-	}
+	// 6. the range was tested when the cast was decided; the release asks
+	// it no more.
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
 	// release the ordinary apply would refuse spends nothing (spec: a refusal,
 	// a release-time cancellation and an effect that cannot apply spend no
@@ -1107,9 +1105,8 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
 	// Point orders use the book's range, not the caster's personal sight. The
-	// first game's release asks no range again (MAGIC-403).
-	if _, inside := cellIndexIn(w.bounds, x, y); !inside || w.game.releaseRevalidates &&
-		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) ||
+	// release asks no range again (MAGIC-403).
+	if _, inside := cellIndexIn(w.bounds, x, y); !inside ||
 		w.orderState(caster).recoveryWaiting() || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
 		return false
 	}
@@ -1251,11 +1248,9 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 	if t.ID == a.ID {
 		return
 	}
-	// 3. within weaponCastInRange, the distance closedOn stops at. Sight is
-	// not tested (R2-ENGINE-1138; first game MAGIC-403).
-	if !w.weaponCastInRange(ai, ti) {
-		return
-	}
+	// 3. neither reach nor sight is tested again: the attack admitted the cast
+	// at weaponCastInRange, and a victim that has walked off since is still
+	// hit, as a book cast's release is (R2-ENGINE-1138; first game MAGIC-403).
 	// 4. and the row must actually land: weaponSpellApply's own refusals.
 	if spellArmOf(rule.arm()).prismatic {
 		victims := w.applyPrismaticItem(ai, ti, rule, a.WeaponSpellLevel, true)
@@ -2077,14 +2072,12 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 }
 
 // releaseBookRefusal is what the end of a wind-up asks before application.
-// The first game's release repeats no mana, reach, facing or sight gate
-// (MAGIC-403, MAGIC-406), so it keeps only the target's state and the
-// application's own checks (MAGIC-404); a creature therefore arms no
-// approach there. The second game asks the whole admission again.
+// A release repeats no mana, reach, facing or sight gate (MAGIC-403,
+// MAGIC-406), so it keeps only the target's state and the application's own
+// checks (MAGIC-404): a cast whose range test passed when it was decided
+// lands on a target that has since left the range, and a creature arms no
+// approach at release. This holds for both games.
 func (w *World) releaseBookRefusal(ci int, c bookCast) string {
-	if w.game.releaseRevalidates {
-		return w.retainedBookRefusal(ci, c)
-	}
 	return w.castRefusal(retainedRequest(ci, c), true)
 }
 

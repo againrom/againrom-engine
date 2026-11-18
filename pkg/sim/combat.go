@@ -560,7 +560,7 @@ func (w *World) stopWalkOrder(i int, arrival bool) {
 // to stop and act: approach's own stop test and no other caller's.
 //
 // A caster whose weaponSpell is eligible (FR-2b) is closed on at
-// weaponCastInRange, the distance its release also tests, and a striker at
+// weaponCastInRange, the distance its attack is admitted at, and a striker at
 // inReach. Sight is no term: the caster stops there whether or not it sees
 // the victim (R2-ENGINE-1136, R2-ENGINE-1139; first game MAGIC-410).
 func (w *World) closedOn(i, ti int) bool {
@@ -582,7 +582,7 @@ func (w *World) withinAttackRange(i, ti int) bool {
 }
 
 // weaponCastInRange reports whether caster ai stands close enough to victim
-// ti to begin and to release its weapon spell. The first game compares the
+// ti to begin its weapon spell; the release asks no distance. The first game compares the
 // edge distance with the weapon reach, the operand of both the approach stop
 // and the act gate; the spell's range is neither (MAGIC-409, MAGIC-410). The
 // second game admits a spell weapon's attack as any attack and turns it into

@@ -62,29 +62,56 @@ func releaseEvents(w *World, caster EntityID) []CastEvent {
 	return out
 }
 
-func TestAFirstGameCastReleasesAtATargetThatWalkedOutOfReach(t *testing.T) {
+// TestACastDecidedInRangeLandsOnATargetThatFledOutOfRange: a book cast whose
+// range test passed at the order lands on its target at the release frame,
+// whatever the distance then, for a missile, an instant effect and an area at
+// the target, in both games (MAGIC-403 for the first game; no second-game
+// claim states a range test at release).
+func TestACastDecidedInRangeLandsOnATargetThatFledOutOfRange(t *testing.T) {
+	missile := hlArrow()
+	missile.Delivery, missile.EffectSpeed = 2, 200
+	instant := hlArrow()
+	instant.Delivery = 1
+	area := SpellRule{ID: 1, ManaCost: 3, School: 1, MaxRange: 7, Area: true, Distribution: 2, Radius: 1,
+		Damaging: true, DamageMin: 10, DamageMax: 10, TargetsUnit: true}
 	for _, second := range []bool{false, true} {
-		w := releaseWorld(t, second, hlArrow())
-		admitCharging(t, w, 1, Cast(1, 2, 1))
-		relocate(t, w, 2, 15, 8)
-		if r := w.BookSpellRefusal(1, 2, 1); r != refusalTargetOutOfRange {
-			t.Fatalf("second=%v fixture: refusal %q, want %q", second, r, refusalTargetOutOfRange)
-		}
-		events := releaseEvents(w, 1)
-		hp, mana := spAt(t, w, 2).HP, spAt(t, w, 1).Mana
-		if second {
-			if len(events) != 0 || hp != 500 || mana != 100 {
-				t.Fatalf("second game: events %v, target %d, mana %d, want the old cancellation", events, hp, mana)
+		for name, rule := range map[string]SpellRule{"missile": missile, "instant": instant, "area": area} {
+			w := releaseWorld(t, second, rule)
+			admitCharging(t, w, 1, Cast(1, 2, 1))
+			relocate(t, w, 2, 15, 8)
+			if r := w.BookSpellRefusal(1, 2, 1); r != refusalTargetOutOfRange {
+				t.Fatalf("%s second=%v fixture: refusal %q, want %q", name, second, r, refusalTargetOutOfRange)
 			}
-			continue
-		}
-		if len(events) != 1 || events[0].Target != 2 || hp >= 500 || mana != 97 {
-			t.Fatalf("first game: events %v, target %d, mana %d, want one release paid once", events, hp, mana)
+			events := releaseEvents(w, 1)
+			if len(events) != 1 || events[0].Target != 2 || (spAt(t, w, 2).HP >= 500 && name != "missile") || spAt(t, w, 1).Mana != 97 {
+				t.Fatalf("%s second=%v: events %v, target %d, mana %d, want one release paid once",
+					name, second, events, spAt(t, w, 2).HP, spAt(t, w, 1).Mana)
+			}
 		}
 	}
 }
 
-func TestAFirstGameCellCastReleasesWithoutAReachTest(t *testing.T) {
+// TestACastDecidedOutOfRangeStillApproachesFirst: a cast ordered at a target
+// beyond the range is refused for range alone and walks the caster in before
+// the wind-up, in both games.
+func TestACastDecidedOutOfRangeStillApproachesFirst(t *testing.T) {
+	for _, second := range []bool{false, true} {
+		w := releaseWorld(t, second, hlArrow())
+		relocate(t, w, 2, 15, 8)
+		if r := w.BookSpellRefusal(1, 2, 1); r != refusalTargetOutOfRange {
+			t.Fatalf("second=%v fixture: refusal %q, want %q", second, r, refusalTargetOutOfRange)
+		}
+		Step(w, []Command{Cast(1, 2, 1)})
+		x0 := spAt(t, w, 1).X
+		events := releaseEvents(w, 1)
+		if spAt(t, w, 1).X <= x0 || len(events) != 1 {
+			t.Fatalf("second=%v: x %d to %d, events %v, want an approach then one release",
+				second, x0, spAt(t, w, 1).X, events)
+		}
+	}
+}
+
+func TestACellCastReleasesWithoutAReachTest(t *testing.T) {
 	ball := SpellRule{ID: 2, ManaCost: 5, School: 1, MaxRange: 5, Area: true, Distribution: 2, Radius: 1,
 		Damaging: true, DamageMin: 10, DamageMax: 10}
 	for _, second := range []bool{false, true} {
@@ -97,9 +124,8 @@ func TestAFirstGameCellCastReleasesWithoutAReachTest(t *testing.T) {
 		if r := w.BookSpellCellRefusal(1, 4, 8, 2); r != refusalCellOutOfRange {
 			t.Fatalf("second=%v fixture: refusal %q, want %q", second, r, refusalCellOutOfRange)
 		}
-		events := releaseEvents(w, 1)
-		if second != (len(events) == 0) {
-			t.Fatalf("second=%v: the cell cast released %d events", second, len(events))
+		if events := releaseEvents(w, 1); len(events) == 0 {
+			t.Fatalf("second=%v: the cell cast released no event", second)
 		}
 	}
 }
@@ -178,15 +204,9 @@ func TestAFirstGameCreatureCastReleasesWithoutArmingAnApproach(t *testing.T) {
 				break
 			}
 		}
-		if second {
-			if len(events) != 0 || !approached {
-				t.Fatalf("second game: events %v, approach %v, want the old approach at release", events, approached)
-			}
-			continue
-		}
 		if len(events) != 1 || events[0].Target != 2 || approached || spAt(t, w, 2).HP >= 100 {
-			t.Fatalf("first game: events %v, approach %v, target %d, want one release and no approach",
-				events, approached, spAt(t, w, 2).HP)
+			t.Fatalf("second=%v: events %v, approach %v, target %d, want one release and no approach",
+				second, events, approached, spAt(t, w, 2).HP)
 		}
 		if releasedAt != x {
 			t.Fatalf("first game: the mage moved from %d to %d before its release", x, releasedAt)

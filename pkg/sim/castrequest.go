@@ -7,7 +7,7 @@ package sim
 // (a pending row, an armed approach, a pending scroll). Every action that is
 // not a cast and waits for one asks castHolds. No row differs between the two
 // games; the games' differences around a cast stay gameProfile fields
-// (releaseRevalidates, creatureAim).
+// (creatureAim).
 
 // castIssuer names who asks for a cast.
 type castIssuer uint8

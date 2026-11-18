@@ -185,13 +185,13 @@ func TestAWeaponSpellWindsUpAndLandsOnAHiddenTarget(t *testing.T) {
 
 // TestAWeaponSpellWindUpLandsWhenSightIsLostInsideTheReach: sight lost
 // during the wind-up does not stop the release while the victim stays inside
-// the reach; a victim moved past the reach is not hit.
+// the reach, and a victim moved past the reach is hit as well.
 func TestAWeaponSpellWindUpLandsWhenSightIsLostInsideTheReach(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		at  int32
 		hit bool
-	}{{14, true}, {16, false}} {
+	}{{14, true}, {16, true}} {
 		rule := wpnRule(6, 6, 5)
 		caster := wpnCaster(1, 10, 10, 1, 30, 6, 1)
 		caster.Owner, caster.ScanRange, caster.Facing, caster.Reach = 1, 3, 64, 5

@@ -519,18 +519,6 @@ func TestFR10sFiveRefusalsLeaveTheVictimUntouched(t *testing.T) {
 			t.Errorf("the caster is at %d, want 100 unchanged — a release on oneself is refused", hp)
 		}
 	})
-
-	t.Run("the victim is one cell past MaxRange", func(t *testing.T) {
-		caster := wpnCaster(1, 0, 0, 1, 30, 2, 0)
-		victim := spEnt(2, 10, 0)
-		w := spWorld(t, 1, []SpellRule{wpnRule(5, 5, 1)}, caster, victim)
-		w.entities[0].AttackTarget, w.entities[0].HasAttackTarget = 2, true
-		w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCasting, 1
-		Step(w, nil) // release-time range revalidation
-		if hp := spAt(t, w, 2).HP; hp != 100 {
-			t.Errorf("the victim is at %d, want 100 unchanged — release moved outside MaxRange", hp)
-		}
-	})
 }
 
 // ---------------------------------------------------------------- R3-B1, positive cases

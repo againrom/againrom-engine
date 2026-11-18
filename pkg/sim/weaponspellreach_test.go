@@ -188,15 +188,14 @@ func TestAFemaleAndAMaleSpellWeaponMageStopAlike(t *testing.T) {
 	}
 }
 
-// TestTheWeaponCastReleaseTestsTheWeaponReach: a first-game wind-up ending
-// with the victim one cell past the reach releases nothing, though the spell's
-// Max Range of 7 covers it; at the reach it releases.
-func TestTheWeaponCastReleaseTestsTheWeaponReach(t *testing.T) {
+// TestTheWeaponCastReleaseTestsNoReach: a wind-up ending with the victim one
+// cell past the reach still releases, as at the reach.
+func TestTheWeaponCastReleaseTestsNoReach(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		x   int32
 		hit bool
-	}{{5, true}, {6, false}} {
+	}{{5, true}, {6, true}} {
 		caster := wpnCaster(1, 0, 0, 1, 30, 2, 0)
 		caster.Reach = 5
 		w := spWorld(t, 1, []SpellRule{staffFireArrow()}, caster, spEnt(2, tc.x, 0))
