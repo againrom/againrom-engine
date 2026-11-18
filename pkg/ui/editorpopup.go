@@ -191,6 +191,9 @@ type popupGrid struct {
 	// LeastRows is the fewest rows a grid of every row shows in a popup of
 	// its own size; zero is gridLeastRows.
 	LeastRows int
+	// RoomTop measures the room for the rows from the room's top, not the
+	// popup's: the bounds move a popup that grows past them back inside.
+	RoomTop bool
 	// RowHeads and ColHeads head a matrix: RowHeads[r] stands left of grid
 	// row r in a column HeadW pixels wide, ColHeads[c] above column c in a
 	// row one cell high. With HeadH set the column heads stand upright,
@@ -405,7 +408,11 @@ func fitGrid(s uiWindow, w, rest, sizedH int, sized bool) *popupGrid {
 	case sized:
 		limit = free(sizedH)
 	case !room.Empty():
-		limit = max(g.least(), free(room.Max.Y-max(s.Place.At.Y, room.Min.Y)))
+		top := max(s.Place.At.Y, room.Min.Y)
+		if g.RoomTop {
+			top = room.Min.Y
+		}
+		limit = max(g.least(), free(room.Max.Y-top))
 	}
 	fit := *g
 	fit.Rows = max(1, min(total, limit))

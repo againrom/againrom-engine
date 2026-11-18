@@ -156,6 +156,9 @@ func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
 	if label, pic, r, ok := e.choiceTipAt(p); ok {
 		return hoverTip(bounds, body, r, label, pic), true
 	}
+	if e.placeOwnerDropdownHit(p) {
+		return popupTip{}, false
+	}
 	if cell, r, ok := e.gridCellAt(p); ok {
 		var pic image.Image
 		if cell.TipPicture != nil {

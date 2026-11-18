@@ -22,7 +22,7 @@ func TestPopupGridWithoutUprightHeadsLaysOutAsBefore(t *testing.T) {
 		}
 		plain.Cells = append(plain.Cells, cell)
 	}
-	headed := &popupGrid{Side: relationSide, Rows: 2, Cols: 2, HeadW: 60, RowHeads: []string{"1: Self", "2: Enemy"}, ColHeads: []string{"1", "2"},
+	headed := &popupGrid{Side: 26, Rows: 2, Cols: 2, HeadW: 60, RowHeads: []string{"1: Self", "2: Enemy"}, ColHeads: []string{"1", "2"},
 		Cells: []popupGridCell{{Inert: true}, {Icon: relationIcon(2)}, {Label: "5"}, {Inert: true}}}
 	for _, tc := range []struct {
 		name         string

@@ -306,16 +306,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if r.Kind == KindPlayer {
 			// A player's own window reads its fields; the Players window
 			// edits them.
-			value := fieldInput(f)
-			if len(f.Choices) > 0 {
-				value = choiceText(f, value)
-			} else if f.Text {
-				value = e.editorHostText(value)
-			}
-			if label == "" {
-				label = e.editorHostText(f.Label)
-			}
-			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value}), append(*links, 0)
+			s.Rows, *links = append(s.Rows, e.playerFieldRow(f)), append(*links, 0)
 			return -1
 		}
 		n := len(s.Rows)
@@ -426,6 +417,31 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if s.Card != nil && o.band {
 			e.heldCardRows(s, links, fieldRows, textWidth, 0)
 		}
+	case r.Kind == KindPlayer:
+		// The player's own fields, then its relation toward each other
+		// player under the Relations heading; its relation to itself is
+		// left out. The labels show whole, over their values where the
+		// width is short; the data lines fold, closed at first.
+		order := fieldOrder(o.fields)
+		toward := func(f InspectionField) bool { return f.Toward > 0 && !f.Text }
+		others := false
+		for _, i := range order {
+			if f := o.fields[i]; !toward(f) {
+				fieldRows(i, "", false)
+			} else if f.Toward-1 != r.Index {
+				others = true
+			}
+		}
+		if others {
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.player.relations"), Help: e.word("editor.player.relations.help")}), append(*links, 0)
+			for _, i := range order {
+				if f := o.fields[i]; toward(f) && f.Toward-1 != r.Index {
+					fieldRows(i, "", false)
+				}
+			}
+		}
+		s.Fit = true
+		o.rowBlock = map[int]string{}
 	default:
 		for _, i := range fieldOrder(o.fields) {
 			f := o.fields[i]
@@ -763,9 +779,10 @@ func (e *MapEditor) rowDropdown(control image.Rectangle, value string, list *Pic
 }
 
 // drawRowDropdowns paints the open list of a choice row, the object
-// window's or the prompt's, over everything but an open menu.
+// window's, the prompt's or the place palette's player row, over
+// everything but an open menu.
 func (e *MapEditor) drawRowDropdowns(pic *image.RGBA) {
-	for _, open := range []func() (dropdown, bool){e.openDropdown, e.promptDropdown} {
+	for _, open := range []func() (dropdown, bool){e.openDropdown, e.promptDropdown, e.placeOwnerDropdown} {
 		if d, ok := open(); ok && d.Open {
 			d.Press = &e.buttonPress
 			e.drawEditorDropdown(pic, e.bodyFont(), d)

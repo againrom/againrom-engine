@@ -42,9 +42,9 @@ func relationHeadsEditor(t *testing.T, book *words.Book, names []string) *MapEdi
 var fourPlayers = []string{"1: Self", "2: Enemy", "3: Friend", "4: Nobody"}
 
 // Each column of the relation matrix is headed with its player's name (a
-// row's head holds the row's controls, no text), written upright from bottom to top in a head row as tall as the longest head and
-// no taller than relationHeadMax; a head too long for that row is cut as
-// editorClip cuts it, the way a cut row head ends.
+// row's head holds the row's controls, no text), written upright from bottom
+// to top in a head row as tall as the longest head, so every head is whole.
+// The cells are the palette's side.
 func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
 	long := "3: The brigands of the northern marshes and their kin"
 	for _, names := range [][]string{fourPlayers, {"1: Self", "2: Enemy", long, "4: Nobody"}} {
@@ -58,12 +58,11 @@ func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
 		for _, n := range names {
 			longest = max(longest, body.Advance(n))
 		}
-		want := min(relationHeadMax, max(relationSide, longest+8))
-		if g.HeadH != want || g.height() != 4*relationSide+want+popupPad {
-			t.Fatalf("head row %d high, grid %d high; want a head row of %d", g.HeadH, g.height(), want)
-		}
-		if longest+8 > relationHeadMax && want != relationHeadMax || want > relationHeadMax {
-			t.Fatalf("head row %d high for a %d-pixel head, the cap %d", want, longest, relationHeadMax)
+		want := max(gridCellSide, longest+8)
+		fit := *g
+		fit.Rows = layoutPopup(s, e.font, body).GridRows
+		if g.HeadH != want || fit.height() != 4*gridCellSide+want+popupPad {
+			t.Fatalf("head row %d high, grid %d high; want a head row of %d", g.HeadH, fit.height(), want)
 		}
 		l := layoutPopup(s, e.font, body)
 		if len(l.GridColHeads) != 4 {
@@ -72,14 +71,14 @@ func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
 		pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 		drawPopup(pic, e.font, body, nil, s, l, editorPopupInk, image.Pt(-1, -1), false)
 		for c, r := range l.GridColHeads {
-			if r.Dy() != want || r.Dx() != relationSide || r.Max.Y != l.Grid.Min.Y || r.Min.X != l.GridCells[c].Min.X-1 {
+			if r.Dy() != want || r.Dx() != gridCellSide || r.Max.Y != l.Grid.Min.Y || r.Min.X != l.GridCells[c].Min.X-1 {
 				t.Fatalf("column head %d at %v, cells from %v, want %d high", c, r, l.Grid, want)
 			}
 			// The head as the body font writes it flat, turned a quarter turn
 			// counter-clockwise: its first glyph at the bottom.
 			head := editorClip(body, names[c], r.Dy()-4)
-			if names[c] == long && (head == long || body.Advance(head) > relationHeadMax-4) {
-				t.Fatalf("the long head is drawn as %q", head)
+			if head != names[c] {
+				t.Fatalf("head %q is drawn as %q", names[c], head)
 			}
 			w, h := body.Advance(head), fontHeight(body, 15)
 			flat := image.NewRGBA(image.Rect(0, 0, w, h))
@@ -146,6 +145,13 @@ func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 				t.Fatalf("a row head has a hover line %q", tip.Lines)
 			}
 			for _, rr := range l.Rows {
+				if own := s.Rows[rr.Index].Tip; own != "" {
+					// The cross names what it does in its own hover line.
+					if tip, ok := tipAt(center(rr.Rect)); !ok || !slices.Equal(tip.Lines, []string{own}) {
+						t.Fatalf("the cross's hover line %v %q, want %q", ok, tip.Lines, own)
+					}
+					continue
+				}
 				full, cut := rowFull(e.font, body, s.Rows[rr.Index], rr)
 				tip, ok := tipAt(center(rr.Rect))
 				if ok != cut || ok && (!slices.Equal(tip.Lines, editorTextLines(body, full, rr.Rect.Dx()-8)) || tip.Rect.Min != image.Pt(rr.Rect.Min.X, rr.Rect.Max.Y)) {

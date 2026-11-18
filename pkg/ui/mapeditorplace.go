@@ -37,6 +37,8 @@ type placeGrid struct {
 	palettes      map[int64]Palette
 	// owners is the player the Units tab places for, by map source.
 	owners map[string]placeOwnerPick
+	// ownerList is the player row's open list of players, nil while closed.
+	ownerList *Picker
 }
 
 // placeOwnerPick is a player the Units tab was set to: its player record's
@@ -221,7 +223,7 @@ func (e *MapEditor) placing(key string) (*addRun, int64, bool) {
 }
 
 // placeGridSpec is the shown tab's grid as data, and the note naming the
-// chosen cell.
+// chosen cell, empty while none is.
 func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 	kind, key, _, ok := e.placeGridOf()
 	if !ok {
@@ -234,11 +236,9 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 	g := placeGridShell(kind, *e.placeTop())
 	r, chosen, placing := e.placing(key)
 	placing = placing && r.kind == kind
-	note := e.word("editor.place.hint")
-	if kind == KindUnit {
-		// The Units tab's player row stands where the hint stood.
-		note = ""
-	}
+	// The note is a state: what is being placed. How placing works is the
+	// title's (?), editor.place.help.
+	note := ""
 	for _, c := range choices {
 		pressed := placing && c.Value == chosen
 		if pressed {
@@ -266,6 +266,19 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		}
 	}
 	return g, note, true
+}
+
+// placeNoteRows are the note's lines in a window width wide, each wrapped
+// to the window's text width; none for an empty note.
+func (e *MapEditor) placeNoteRows(note string, width int) []popupRow {
+	if note == "" {
+		return nil
+	}
+	var rows []popupRow
+	for _, line := range editorTextLines(e.bodyFont(), note, width-2*popupPad-8) {
+		rows = append(rows, popupRow{Kind: popupText, Label: line})
+	}
+	return rows
 }
 
 // placeGroups are the grid's groups over choices, each with a cell, and the
@@ -413,8 +426,9 @@ func (e *MapEditor) placeOwner() (int64, bool) {
 	return choices[0].Value, true
 }
 
-// placeOwnerRow is the Units tab's player row: one button a player, the
-// chosen one pressed in. ok is false on any other tab.
+// placeOwnerRow is the Units tab's player row: one choice showing the
+// chosen player, whose list of players opens on its row. ok is false on any
+// other tab.
 func (e *MapEditor) placeOwnerRow() (popupRow, bool) {
 	if kind, _, _, ok := e.placeGridOf(); !ok || kind != KindUnit || e.listKind() == "brush" {
 		return popupRow{}, false
@@ -424,15 +438,116 @@ func (e *MapEditor) placeOwnerRow() (popupRow, bool) {
 	if !ok {
 		return popupRow{}, false
 	}
-	row := popupRow{Kind: popupText, Label: e.word("editor.place.player")}
+	row := popupRow{Kind: popupChoice, Label: e.word("editor.place.player")}
 	for _, c := range choices {
-		row.Buttons, row.Armed = append(row.Buttons, c.Label), append(row.Armed, c.Value == owner)
+		if c.Value == owner {
+			row.Value = c.Label
+		}
 	}
 	return row, true
 }
 
-// placeOwnerTo is a press on the player row's button k: the Units tab
-// places for that player from then on.
+// placeOwnerAt is the index of the player row among s's rows, -1 for none.
+func (e *MapEditor) placeOwnerAt(s popupSpec) int {
+	return slices.IndexFunc(s.Rows, func(r popupRow) bool {
+		return r.Kind == popupChoice && r.HeadOf == 0 && r.Label == e.word("editor.place.player")
+	})
+}
+
+// placeOwnerOpen is a press on the player row's box: it opens the list of
+// players on the chosen one, or closes the open list.
+func (e *MapEditor) placeOwnerOpen() {
+	if e.place.ownerList != nil {
+		e.place.ownerList = nil
+		return
+	}
+	choices, _ := e.placeOwners()
+	owner, ok := e.placeOwner()
+	if !ok {
+		return
+	}
+	rows, sel := make([]PickerRow, len(choices)), 0
+	for k, c := range choices {
+		rows[k] = PickerRow{Text: c.Label, Choosable: true}
+		if c.Value == owner {
+			sel = k
+		}
+	}
+	list := NewPicker(rows)
+	list.SetWindow(min(10, len(rows)))
+	list.Select(sel)
+	e.place.ownerList = list
+}
+
+// placeOwnerDropdown is the player row's drop-down while its list is open:
+// the editor's one row drop-down, on the row's box.
+func (e *MapEditor) placeOwnerDropdown() (dropdown, bool) {
+	list := e.place.ownerList
+	if list == nil {
+		return dropdown{}, false
+	}
+	s, ok := e.listSpec()
+	if !ok {
+		return dropdown{}, false
+	}
+	at := e.placeOwnerAt(s)
+	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if rr.Index == at && at >= 0 {
+			return e.rowDropdown(rr.Control, s.Rows[at].Value, list, min(10, list.Len()), true), true
+		}
+	}
+	return dropdown{}, false
+}
+
+// placeOwnerDropdownHit reports that p lies on the player row's open
+// drop-down: its box or its list.
+func (e *MapEditor) placeOwnerDropdownHit(p image.Point) bool {
+	d, ok := e.placeOwnerDropdown()
+	return ok && d.Covers(e.bodyFont(), p)
+}
+
+// placeOwnerPress is a press while the player list is open: a row chooses
+// that player and closes the list, the box closes it, the bar scrolls it,
+// and a press elsewhere closes it and goes on to what lies under it.
+func (e *MapEditor) placeOwnerPress(p image.Point) bool {
+	d, ok := e.placeOwnerDropdown()
+	if !ok {
+		return false
+	}
+	switch part, row := d.hit(e.bodyFont(), p); part {
+	case dropdownRow:
+		e.placeOwnerTo(row)
+		e.place.ownerList = nil
+		return true
+	case dropdownToggle:
+		e.place.ownerList = nil
+		return true
+	case dropdownBar:
+		return true
+	}
+	e.place.ownerList = nil
+	return false
+}
+
+// placeOwnerPressOff closes the player list on a press that reaches
+// neither the list nor its window.
+func (e *MapEditor) placeOwnerPressOff(p image.Point) {
+	if e.place.ownerList != nil && e.chromeHit(p) != popList {
+		e.place.ownerList = nil
+	}
+}
+
+// placeOwnerWheel scrolls the open player list under the pointer.
+func (e *MapEditor) placeOwnerWheel(wheel wheelSource) bool {
+	if !e.placeOwnerDropdownHit(e.pointer) {
+		return false
+	}
+	e.place.ownerList.Move(editorWheelRows(&e.listWheel, wheel))
+	return true
+}
+
+// placeOwnerTo chooses player k of the player list: the Units tab places
+// for that player from then on.
 func (e *MapEditor) placeOwnerTo(k int) {
 	choices, _ := e.placeOwners()
 	if k < 0 || k >= len(choices) || e.doc == nil {

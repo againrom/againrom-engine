@@ -298,6 +298,22 @@ func layoutParts(s popupSpec, l popupLayout) []pagePart {
 		}
 		add("row-help", rr.Help)
 	}
+	for _, r := range l.GridColHeads {
+		add("column-head", r)
+	}
+	if s.Grid != nil && l.GridCols > 0 {
+		var heads []string
+		for k, row := range s.Grid.rows(l.GridCols) {
+			if k >= l.GridTop && (row.Head != "" || len(s.Grid.Groups) == 0 && k < len(s.Grid.RowHeads)) {
+				heads = append(heads, row.Head)
+			}
+		}
+		for i, r := range l.GridRowHeads {
+			if i < len(heads) && heads[i] != "" {
+				add("grid-head", r)
+			}
+		}
+	}
 	for _, r := range l.GridCells {
 		add("cell", r)
 	}

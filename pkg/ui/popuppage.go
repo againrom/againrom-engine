@@ -325,6 +325,7 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 	fmt.Fprintf(&b, ".label{color:%s}\n.control{background:%s;border:1px solid %s}\n", hex(ink.Label), hex(ink.Ground), hex(ink.Edge))
 	fmt.Fprintf(&b, ".button{text-align:center;color:%s;border:1px solid;border-color:%s %s %s %s}\n",
 		hex(ink.Button), hex(ink.BevelLight), hex(ink.BevelDark), hex(ink.BevelDark), hex(ink.BevelLight))
+	fmt.Fprintf(&b, ".pressed{border:2px solid %s}\n", hex(ink.Title))
 	fmt.Fprintf(&b, ".off{color:%s}\n</style>\n</head>\n<body>\n<div id=\"screen\">\n", hex(ink.Hint))
 	// tip is the text a (?) mark explains, shown as the element's own title.
 	tip := ""
@@ -399,11 +400,36 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 		part("button", "row-help", rr.Index, rr.Help, none, "?")
 		tip = ""
 	}
+	for i, r := range l.GridColHeads {
+		part("heading", "column-head", i, r, none, w.Grid.ColHeads[i])
+	}
+	if w.Grid != nil && l.GridCols > 0 {
+		// The shown rows' heads, as the layout found them.
+		var heads []string
+		for k, row := range w.Grid.rows(l.GridCols) {
+			if k >= l.GridTop && (row.Head != "" || len(w.Grid.Groups) == 0 && k < len(w.Grid.RowHeads)) {
+				heads = append(heads, row.Head)
+			}
+		}
+		for i, r := range l.GridRowHeads {
+			if i < len(heads) && heads[i] != "" {
+				part("heading", "grid-head", i, r, none, heads[i])
+			}
+		}
+	}
 	for i, r := range l.GridCells {
 		if w.Grid != nil {
-			tip = w.Grid.Cells[l.gridIndex(i)].Tip
+			c := w.Grid.Cells[l.gridIndex(i)]
+			tip = c.Tip
+			class := "control"
+			if c.Pressed {
+				class += " pressed"
+			}
+			if c.Inert {
+				class += " off"
+			}
+			part(class, "cell", i, r, none, c.Label)
 		}
-		part("control", "cell", i, r, none, "")
 		tip = ""
 	}
 	for i, r := range l.Notes {

@@ -103,15 +103,19 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 			add := e.word("editor.button.add")
 			switch c.key {
 			case "units", "structures":
-				if s.Grid == nil || len(s.Rows) != 1 || !slices.Contains(s.Buttons, add) {
-					t.Errorf("the %s palette lost its grid, note or Add: %+v", c.key, s)
+				// How placing works is the title's (?); the Units tab holds
+				// its player row, the Structures tab no row while nothing is
+				// placed.
+				rows := map[string]int{"units": 1, "structures": 0}[c.key]
+				if s.Grid == nil || len(s.Rows) != rows || s.TitleHelp != e.word("editor.place.help") || !slices.Contains(s.Buttons, add) {
+					t.Errorf("the %s palette lost its grid, help or Add: %+v", c.key, s)
 				}
 			case "sacks":
 				if !slices.Equal(s.Buttons, []string{add}) {
 					t.Errorf("the sacks palette buttons %q", s.Buttons)
 				}
 			case "players":
-				if s.Grid == nil || s.Grid.Rows != 2 || !slices.Contains(s.Buttons, add) {
+				if s.Grid == nil || len(s.Grid.ColHeads) != 2 || !slices.Contains(s.Buttons, add) {
 					t.Errorf("the players palette lost its matrix or Add: %+v", s)
 				}
 			case "groups":

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"slices"
 	"strconv"
 	"sync"
 )
@@ -78,20 +79,15 @@ type relationMatrix struct {
 	names, control []InspectionField
 	// records are the players' document indices.
 	records []int
+	// top is the first matrix row shown while the window holds fewer rows
+	// than the matrix has; an edit's new document keeps it.
+	top int
 }
 
-// relationSide is a matrix cell's side; relationHeadMax caps the column
-// headings' height and relationNameMax a row's name field.
-const (
-	relationSide    = 26
-	relationHeadMax = 140
-	relationNameMax = 180
-)
-
-// relationValue is a value's short name and its legend description.
+// relationValue is a value's short name and what its (?) says.
 type relationValue struct {
 	nameWord string
-	descWord string
+	helpWord string
 }
 
 // relationValues name the values the claims give a meaning, by value: bit 0
@@ -99,9 +95,18 @@ type relationValue struct {
 // blocks that (AI-DIPLO-004); the shipped maps hold 0, 1 and 2
 // (AI-DIPLO-005).
 var relationValues = []relationValue{
-	{nameWord: "editor.relation.name.neutral", descWord: "editor.relation.neutral"},
-	{nameWord: "editor.relation.name.hostile", descWord: "editor.relation.hostile"},
-	{nameWord: "editor.relation.name.ally", descWord: "editor.relation.ally"},
+	{nameWord: "editor.relation.name.neutral", helpWord: "editor.relation.neutral.help"},
+	{nameWord: "editor.relation.name.hostile", helpWord: "editor.relation.hostile.help"},
+	{nameWord: "editor.relation.name.ally", helpWord: "editor.relation.ally.help"},
+}
+
+// relationName is value v's name, its number for a value the claims do not
+// name.
+func (e *MapEditor) relationName(v int64) string {
+	if v >= 0 && v < int64(len(relationValues)) {
+		return e.word(relationValues[v].nameWord)
+	}
+	return strconv.FormatInt(v, 10)
 }
 
 // relationMatrixOf reads the matrix of the open document once.
@@ -110,7 +115,7 @@ func (e *MapEditor) relationMatrixOf() *relationMatrix {
 	if e.doc == nil || m.doc == e.doc {
 		return m
 	}
-	*m = relationMatrix{doc: e.doc}
+	*m = relationMatrix{doc: e.doc, top: m.top}
 	for i, r := range e.doc.Records {
 		if r.Kind == KindPlayer {
 			m.players, m.labels, m.records = append(m.players, r.Index), append(m.labels, r.Label), append(m.records, i)
@@ -135,61 +140,97 @@ func (e *MapEditor) relationMatrixOf() *relationMatrix {
 	return m
 }
 
-// playerNameField and playerControlField are the keys of a player's name
-// and of its control, 0 human and 1 computer.
+// playerNameField, playerColourField and playerControlField are the keys
+// of a player's name, its colour slot and its control, 0 human and 1
+// computer.
 const (
 	playerNameField    = "name"
+	playerColourField  = "colour"
 	playerControlField = "control"
 )
 
 // playerHeadRows are the controls left of each matrix row, as rows that
 // stand in the row's head box: the human/computer switch, the player's
-// number, its name field and the cross that deletes it. The grid's head
-// column takes their width.
+// number, its name field and the cross that deletes it. placeHeadColumn
+// stands them in the grid's head column at their natural widths.
 func (e *MapEditor) playerHeadRows(m *relationMatrix, g *popupGrid) []popupRow {
-	body := e.bodyFont()
-	advance := func(s string) int {
-		if body == nil {
-			return 8 * len(s)
-		}
-		return body.Advance(e.editorHostText(s))
-	}
-	words := []string{e.word("editor.add.control.human"), e.word("editor.add.control.computer")}
-	switchW := max(advance(words[0]), advance(words[1])) + 16
-	numberW := advance(strconv.Itoa(len(m.players))) + 8
-	nameW := 96
-	for _, f := range m.names {
-		nameW = max(nameW, min(relationNameMax, advance(f.TextValue)+16))
-	}
-	side := g.side()
-	crossW := side - 4
-	at := []int{0, switchW + 4, switchW + numberW + 8, switchW + numberW + nameW + 12}
-	g.HeadW = at[3] + crossW + 4
-	box := func(x, w int) image.Rectangle { return image.Rect(x, 2, x+w, side-2) }
 	focus, typed := e.playerTyping()
 	var rows []popupRow
+	var cols []int
+	add := func(r popupRow, col int) {
+		rows, cols = append(rows, r), append(cols, col)
+	}
 	for i := range m.players {
 		head := i + 1
 		if f := m.control[i]; f.Key != "" {
-			value := words[0]
-			if f.Value != 0 {
-				value = words[1]
-			}
-			rows = append(rows, popupRow{Kind: popupSwitch, Value: value, Place: box(at[0], switchW), HeadOf: head})
+			add(popupRow{Kind: popupSwitch, Value: e.controlName(f.Value), HeadOf: head}, 0)
 		}
-		rows = append(rows, popupRow{Kind: popupText, Value: strconv.Itoa(m.players[i] + 1), Place: box(at[1], numberW), HeadOf: head})
+		add(popupRow{Kind: popupText, Value: strconv.Itoa(m.players[i] + 1), HeadOf: head}, 1)
 		if f := m.names[i]; f.Key != "" {
-			name := popupRow{Kind: popupEdit, Value: e.editorHostText(f.TextValue), Place: box(at[2], nameW), HeadOf: head}
+			name := popupRow{Kind: popupEdit, Value: e.editorHostText(f.TextValue), HeadOf: head}
 			if focus == i {
 				name.Value, name.Focus = e.editorHostText(typed), true
 				name.Edit = e.inputView(editorTextSpan{0, len([]rune(typed))}, false)
 			}
-			rows = append(rows, name)
+			add(name, 2)
 		}
 		// The first player is the one the map cannot lose.
-		rows = append(rows, popupRow{Kind: popupText, Buttons: []string{"x"}, Disabled: []bool{m.players[i] == 0}, Place: box(at[3], crossW), HeadOf: head})
+		add(popupRow{Kind: popupText, Buttons: []string{e.word("editor.players.delete")}, Disabled: []bool{m.players[i] == 0}, Tip: e.word("editor.players.delete.tip"), HeadOf: head}, 3)
 	}
+	placeHeadColumn(g, rows, cols, e.bodyFont())
 	return rows
+}
+
+// playerFieldRow is field f's row in a player's own window, which only
+// reads: the name, colour and control under their words, the control's
+// value named, and a relation under the other player's label with its
+// value's name and picture.
+func (e *MapEditor) playerFieldRow(f InspectionField) popupRow {
+	row := popupRow{Kind: popupText, Label: e.editorHostText(f.Label), Value: fieldInput(f)}
+	if len(f.Choices) > 0 {
+		row.Value = choiceText(f, row.Value)
+	} else if f.Text {
+		row.Value = e.editorHostText(row.Value)
+	}
+	switch {
+	case f.Key == playerNameField && f.Text:
+		row.Label = e.word("editor.add.name")
+	case f.Key == playerColourField && !f.Text:
+		row.Label = e.word("editor.player.colour")
+	case f.Key == playerControlField && !f.Text:
+		row.Label, row.Value = e.word("editor.add.control"), e.controlName(f.Value)
+	case f.Toward > 0 && !f.Text:
+		m := e.relationMatrixOf()
+		if k := slices.Index(m.players, f.Toward-1); k >= 0 {
+			row.Label = m.labels[k]
+		}
+		row.Value = e.relationName(f.Value)
+		if icon := relationIcon(f.Value); icon != nil {
+			row.Icons = []*image.RGBA{icon}
+		}
+	}
+	return row
+}
+
+// playerTitle is player record r's window title: its number and name.
+func (e *MapEditor) playerTitle(r InspectionRecord) string {
+	name := r.Label
+	m := e.relationMatrixOf()
+	if k := slices.Index(m.players, r.Index); k >= 0 && m.names[k].Key != "" {
+		name = e.editorHostText(m.names[k].TextValue)
+	}
+	return fmt.Sprintf(e.word("editor.player.title"), r.Index+1, name)
+}
+
+// controlWords name a player's control values: 0 human, 1 computer.
+var controlWords = []string{"editor.add.control.human", "editor.add.control.computer"}
+
+// controlName is control value v's name; any value but 0 is the computer.
+func (e *MapEditor) controlName(v int64) string {
+	if v == 0 {
+		return e.word(controlWords[0])
+	}
+	return e.word(controlWords[1])
 }
 
 // playerTyping is the matrix row whose name the keyboard edits and the text
@@ -292,21 +333,23 @@ func (e *MapEditor) playerDeleteGo() {
 // column j is player i's relation toward player j, a picture for a value
 // the claims name and its number for any other; the diagonal and a cell
 // the host offers no field for are inert. Each column is headed upright
-// with its row's head; a cell's hover line names both players and the
-// value. The rows are the matrix's heading and its legend.
+// and whole with its row's head; a cell's hover line names both players
+// and the value. The cells are the palette's side. The rows are the legend,
+// a row a named value with its picture and its (?).
 func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	if e.listKind() != "records" || e.filter != editorPlayersFilter {
 		return nil, nil, false
 	}
 	m := e.relationMatrixOf()
 	n, offered := len(m.players), false
-	g := &popupGrid{Side: relationSide, Rows: n, Cols: n, HeadH: relationSide}
+	g := &popupGrid{Cols: n, RoomTop: true}
+	g.HeadH = g.side()
 	for i := range n {
 		// A row's head box holds the player's own controls, not its label.
 		g.RowHeads = append(g.RowHeads, "")
 		g.ColHeads = append(g.ColHeads, m.labels[i])
 		if body := e.bodyFont(); body != nil {
-			g.HeadH = min(relationHeadMax, max(g.HeadH, body.Advance(m.labels[i])+8))
+			g.HeadH = max(g.HeadH, body.Advance(m.labels[i])+8)
 		}
 		for j := range n {
 			f := m.fields[i][j]
@@ -316,20 +359,15 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 				if cell.Icon = relationIcon(f.Value); cell.Icon == nil {
 					cell.Label = strconv.FormatInt(f.Value, 10)
 				}
-				name := strconv.FormatInt(f.Value, 10)
-				if f.Value >= 0 && f.Value < int64(len(relationValues)) {
-					name = e.word(relationValues[f.Value].nameWord)
-				}
-				cell.Tip = fmt.Sprintf(e.word("editor.relation.cell"), m.labels[i], m.labels[j], name)
+				cell.Tip = fmt.Sprintf(e.word("editor.relation.cell"), m.labels[i], m.labels[j], e.relationName(f.Value))
 			}
 			g.Cells = append(g.Cells, cell)
 		}
 	}
 	var rows []popupRow
 	if offered {
-		rows = append(rows, popupRow{Kind: popupHeading, Label: e.word("editor.relation.title")})
 		for v, r := range relationValues {
-			rows = append(rows, popupRow{Kind: popupText, Label: e.word(r.descWord), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}})
+			rows = append(rows, popupRow{Kind: popupText, Label: e.word(r.nameWord), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}, Help: e.word(r.helpWord)})
 		}
 	} else if n > 0 {
 		// No relation to set (one player): the rows stay for the players'
@@ -343,6 +381,48 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.obj.note})
 	}
 	return g, append(rows, e.playerHeadRows(m, g)...), true
+}
+
+// relationFit gives the Players window s its natural width: what the
+// matrix's head column and cells ask for, the legend's label column with
+// its value and picture, or the button row, whichever is widest. The label
+// column is as wide as the widest legend label and its (?). The matrix
+// shows as many rows as the window's bounds hold, from the kept top row;
+// the wheel scrolls the rest (relationGridWheel).
+func (e *MapEditor) relationFit(s *popupSpec) {
+	body := e.bodyFont()
+	advance := func(s string) int {
+		if body == nil {
+			return 8 * len(s)
+		}
+		return body.Advance(s)
+	}
+	pitch := fontHeight(body, 15) + popupRowExtra
+	label, value := 0, 0
+	for _, r := range s.Rows {
+		if r.HeadOf == 0 && len(r.Icons) > 0 {
+			label = max(label, advance(r.Label)+8+helpMarkW(r, pitch))
+			value = max(value, advance(r.Value)+8+(pitch+2)*len(r.Icons))
+		}
+	}
+	if label > 0 {
+		s.LabelWidth = label
+	}
+	g := s.Grid
+	need := max(g.HeadW+g.Cols*g.side()+widgetSpriteSize, label+4+value) + 2*popupPad
+	s.Width = e.popupWide(popList, max(need, buttonRowWidth(specWindow(*s), body)))
+	m := e.relationMatrixOf()
+	g.Top = m.top
+	shown := layoutPopup(*s, e.font, body).GridRows
+	m.top = max(0, min(m.top, len(m.players)-shown))
+	g.Top = m.top
+}
+
+// relationGridWheel scrolls the matrix by the wheel's rows while the window
+// shows fewer rows than it has.
+func (e *MapEditor) relationGridWheel(l popupLayout, rows int) {
+	m := e.relationMatrixOf()
+	m.top = max(0, min(m.top+rows, len(m.players)-l.GridRows))
 }
 
 // relationPress is a press on matrix cell n: it sets the next relation

@@ -1015,7 +1015,8 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Grid = g
 		} else if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
+			s.TitleHelp = e.word("editor.place.help")
+			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 		}
 	case "catalog":
 		if e.doc == nil {
@@ -1040,18 +1041,17 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
+			s.TitleHelp = e.word("editor.place.help")
 			if row, ok := e.placeOwnerRow(); ok {
 				s.Rows = append(s.Rows, row)
 			}
-			if note != "" {
-				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
-			}
+			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 			e.placeSwitch(&s)
 		}
 		if g, rows, ok := e.relationGridSpec(); ok {
 			s.Grid, s.Rows = g, append(s.Rows, rows...)
-			s.Width = e.popupWide(popList, max(400, g.HeadW+g.Cols*g.side()+2*popupPad+widgetSpriteSize))
-			s.LabelWidth = s.Width - 2*popupPad - 3*relationSide
+			s.TitleHelp = e.word("editor.players.help")
+			e.relationFit(&s)
 		}
 	}
 	for _, note := range e.emptyPaletteNote() {
@@ -1314,6 +1314,8 @@ func (e *MapEditor) recordTitle(r InspectionRecord) string {
 	switch {
 	case r.Kind == KindStructure && r.ScriptID > 0:
 		return fmt.Sprintf(e.word("editor.param.structurechoice"), r.ScriptID, r.Label)
+	case r.Kind == KindPlayer:
+		return e.playerTitle(r)
 	case r.Name != "":
 		return r.Name
 	}
@@ -1658,7 +1660,7 @@ func (e *MapEditor) controlTitleRect() (image.Rectangle, bool) {
 // titlePress starts the editor's one popup drag when p lies on the title bar
 // of popup id; an open drop-down over the bar takes the press instead.
 func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
-	if id == popObject && e.openDropdownHit(p) || id == popPrompt && e.promptDropdownHit(p) {
+	if id == popObject && e.openDropdownHit(p) || id == popPrompt && e.promptDropdownHit(p) || id == popList && e.placeOwnerDropdownHit(p) {
 		return false
 	}
 	s, ok := e.movableSpec(id)
@@ -2109,9 +2111,17 @@ func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.promptDropdownHit(p)) {
 		return popPrompt
 	}
+	// An open drop-down list is drawn over every window: it takes a press
+	// on what it draws before any window under it.
 	object, _, objectOK := e.objectSpec()
+	if objectOK && e.openDropdownHit(p) {
+		return popObject
+	}
+	if _, ok := e.listSpec(); ok && e.placeOwnerDropdownHit(p) {
+		return popList
+	}
 	hosted := e.panels.hosted
-	if objectOK && (!hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
+	if objectOK && !hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
 		return popObject
 	}
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
@@ -2178,6 +2188,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	}
 	if pressed {
 		e.searchPressOff(p)
+		e.placeOwnerPressOff(p)
 	}
 	if e.drag == popNone && e.inputPointer(in) {
 		return true
@@ -2272,6 +2283,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 	switch target {
 	case popList:
+		if e.placeOwnerWheel(wheel) {
+			return
+		}
 		if s, ok := e.listSpec(); ok && e.notesWheel(layoutPopup(s, e.font, e.bodyFont()), wheel) {
 			return
 		} else if ok && s.Grid != nil {
@@ -2282,7 +2296,9 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 					} else if e.brush.mode == brushObjects {
 						e.placeGridWheel(l, rows)
 					}
-				} else if e.filter != editorPlayersFilter {
+				} else if e.filter == editorPlayersFilter {
+					e.relationGridWheel(l, rows)
+				} else {
 					e.placeGridWheel(l, rows)
 				}
 				return
@@ -2457,6 +2473,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.groupsPress(p)
 			return
 		}
+		if e.placeOwnerPress(p) {
+			return
+		}
 		s, _ := e.listSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
 		if len(e.report.goals) > 0 {
@@ -2481,12 +2500,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				e.brushRowButton(row, k)
 			} else if ok && s.Rows[row].HeadOf > 0 {
 				e.playerHeadPress(s.Rows[row])
-			} else if ok && s.Rows[row].Label == e.word("editor.place.player") {
-				e.placeOwnerTo(k)
 			}
 		case popupRowControl, popupRowLine:
 			if s.Rows[n].HeadOf > 0 {
 				e.playerHeadPress(s.Rows[n])
+			} else if n == e.placeOwnerAt(s) {
+				e.placeOwnerOpen()
 			}
 		case popupGridPart:
 			switch {

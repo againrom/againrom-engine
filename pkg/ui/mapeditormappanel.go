@@ -557,7 +557,9 @@ func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupR
 	}
 	fitButtons(&s, e.bodyFont())
 	s.Width = min(s.Width, e.window.X-16)
-	text := s.Width - 2*popupPad - 60
+	// The notes wrap to the window's text width, the width each note line
+	// is laid out in.
+	text := s.Width - 2*popupPad
 	for _, n := range notes {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), n, text)...)
 	}

@@ -85,14 +85,14 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	e.places[popObject].at = image.Pt(0, 0)
 	s, ok := e.listSpec()
 	g := s.Grid
-	if !ok || g == nil || g.Rows != 2 || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||
+	if !ok || g == nil || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||
 		!slices.Equal(g.ColHeads, []string{"Self", "Enemy"}) || !slices.Equal(g.RowHeads, []string{"", ""}) {
 		t.Fatalf("the Players page holds no 2x2 relation matrix: %+v", g)
 	}
 	legend := 0
 	for _, row := range s.Rows {
 		for v, r := range relationValues {
-			if row.Label == e.word(r.descWord) && len(row.Icons) == 1 && row.Icons[0] == relationIcon(int64(v)) {
+			if row.Label == e.word(r.nameWord) && row.Help == e.word(r.helpWord) && len(row.Icons) == 1 && row.Icons[0] == relationIcon(int64(v)) {
 				legend++
 			}
 		}

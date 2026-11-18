@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor, the Used by links in the unit window's detailed view now wrap inside their column instead of running past it.
 - [BASE] In the map editor, a name typed into a unit's window now takes effect when you press Enter or save the map, instead of only when you press Apply.
 - [BASE] In the map editor, the variable window is as wide as its longest link text needs, within the screen, and the Used by section title is a heading.
+- [BASE] In the map editor, the placing palette chooses its owner from one drop-down list, the Players window has palette-sized cells with a named legend, and a player's window shows every label whole, its control and relations as words, and its Data section folded.
 - [BASE] In the map editor's Groups window, the "no groups yet" hint is now behind the (?) mark in the title.
 - [BASE] In the map editor, a structure, sack or other object window shows its picture as the first row, a structure that scripts name is titled by that name, a group window shows its members' pictures, a long Used by line wraps and stays one link, and a Used by list of more than five uses starts folded.
 - [BASE] In the map editor, the windows that ask for a value are titled by what they ask for, with what to type and the keys behind the (?) mark; a field with choices shows a drop-down, or a grid of pictures for a recipe's item, a record field is titled by its name in the plain view, a long message shows whole, and every text in these windows is in the game's language.

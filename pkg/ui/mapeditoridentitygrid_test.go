@@ -233,7 +233,7 @@ func TestMapEditorStructureGridSpecStaysUngrouped(t *testing.T) {
 	g, note, ok := e.placeGridSpec()
 	want := placeGridShell(KindStructure, 0)
 	want.Cells = []popupGridCell{{Tip: "1: Kind 1"}, {Tip: "3: Kind 3"}}
-	if !ok || note != e.word("editor.place.hint") || !reflect.DeepEqual(g, want) {
+	if !ok || note != "" || !reflect.DeepEqual(g, want) {
 		t.Fatalf("Structures spec changed: %+v, %q", g, note)
 	}
 	if s := mustListSpec(t, e); len(s.Tabs) != 0 {
