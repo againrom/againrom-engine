@@ -205,6 +205,15 @@ type InspectionField struct {
 	// the choice. Variations are each choice's hover pictures.
 	Grid       bool                    `json:",omitempty"`
 	Variations map[int64][]*image.RGBA `json:"-"`
+	// Small, on a Grid field, draws each cell at its picture's own size
+	// with no name under it: the tip names it, and a cell without a
+	// picture shows its Marks text. Ticked are the choices it ticks.
+	Small  bool             `json:",omitempty"`
+	Marks  map[int64]string `json:"-"`
+	Ticked []int64          `json:",omitempty"`
+	// Book, on a field of W, is the spell book its page shows under the
+	// grid, drawn by the game's book painter.
+	Book *InspectionBook `json:"-"`
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

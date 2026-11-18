@@ -285,8 +285,8 @@ func (g *popupGrid) rows(cols int) []popupGridRow {
 }
 
 // popupGridCell is one cell of a grid. Label is drawn on a cell without a
-// picture; an Inert cell is drawn flat and takes no press. Tip names the
-// cell in the hover tooltip, empty for none.
+// picture; an Inert cell is drawn flat, its Label faint, and takes no
+// press. Tip names the cell in the hover tooltip, empty for none.
 type popupGridCell struct {
 	Icon  *image.RGBA
 	Label string
@@ -514,6 +514,9 @@ type popupSpec struct {
 	Grid *popupGrid
 	// Canvas, when set, is a drawing between the grid and the list.
 	Canvas *popupCanvas
+	// Drops are the drag and drop rules between the grid's cells and the
+	// canvas's boxes (editordrag.go); none for a window that carries none.
+	Drops []popupDrop
 	// Drag is the card a row drag holds, nil for none.
 	Drag *popupRowDrag
 	// Fit makes the popup fit its content to its width, as a window in a
@@ -2460,6 +2463,10 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		cell := g.Cells[l.gridIndex(i)]
 		if cell.Inert {
 			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
+			if body != nil && cell.Icon == nil && cell.Label != "" {
+				s := editorClip(body, cell.Label, c.Dx()-4)
+				body.Draw(dst.SubImage(c).(*image.RGBA), s, c.Min.X+(c.Dx()-body.Advance(s))/2, c.Min.Y+(c.Dy()-fontHeight(body, 15))/2, ink.Hint)
+			}
 			continue
 		}
 		label, raise := "", 0

@@ -18,10 +18,13 @@ import (
 // view its free height. A box that is not Inert takes a press. Legend is
 // words stated over the view, each after a swatch of its ink; they stand
 // still while the sheet moves, and head is the height a layout gave them.
-// Areas lie under the lines and the boxes.
+// Areas lie under the lines and the boxes. Picture, when set, is drawn
+// content at the sheet's corner, under the areas: a picture another
+// painter made, such as the game's spell book.
 type popupCanvas struct {
 	Sheet, At image.Point
 	Height    int
+	Picture   *image.RGBA
 	Areas     []canvasArea
 	Boxes     []canvasBox
 	Lines     []canvasLine
@@ -34,17 +37,22 @@ type popupCanvas struct {
 // its own ink. An inert box is a flat frame of Fill and Edge; a box that
 // takes a press is a push button. Band, when set, is a strip across the
 // box's top in that colour, over the frame or the button alike. Tip reads
-// whole under the box. A Bare inert box has no frame: its band and text
-// stand on what lies under it.
+// whole under the box. A Bare box has no frame or button: its band and
+// text stand on what lies under it, a picture's cell that takes a press.
+// Empty marks a box that holds nothing: a carry starts from none, and a
+// drop rule set Empty lands only on one. Held is the picture a carry from
+// the box takes.
 type canvasBox struct {
 	Area       image.Rectangle
 	Lines      []string
 	Marks      []canvasMark
 	Inert      bool
 	Bare       bool
+	Empty      bool
 	Fill, Edge color.RGBA
 	Band       color.RGBA
 	Tip        string
+	Held       *image.RGBA
 }
 
 // canvasArea is a framed area of a canvas, Area in sheet pixels: a flat
@@ -283,6 +291,9 @@ func drawCanvasSheet(dst *image.RGBA, c *popupCanvas, l popupLayout, ink popupIn
 	drawFrame(dst, panelFrame(l.Canvas, ink.TitleGround, ink.Edge))
 	clip := dst.SubImage(l.Canvas.Inset(1)).(*image.RGBA)
 	shift := l.Canvas.Min.Sub(l.CanvasAt)
+	if c.Picture != nil {
+		draw.Draw(clip, c.Picture.Bounds().Add(shift), c.Picture, c.Picture.Bounds().Min, draw.Over)
+	}
 	for _, a := range c.Areas {
 		if r := a.Area.Add(shift); !r.Intersect(clip.Rect).Empty() {
 			drawFrame(clip, panelFrame(r, a.Fill, a.Edge))
@@ -308,12 +319,13 @@ func drawCanvasSheet(dst *image.RGBA, c *popupCanvas, l popupLayout, ink popupIn
 }
 
 // canvasButtons are the push buttons of canvas c that show: each box that
-// takes a press, the one under the pointer lit. The one painter pushes them,
-// cut at the view's edge.
+// takes a press, except a bare box over the canvas's picture (the book's
+// cell, which the picture draws), the one under the pointer lit. The one
+// painter pushes them, cut at the view's edge.
 func (l popupLayout) canvasButtons(c *popupCanvas, over int, held *buttonPress) []pushButton {
 	var out []pushButton
 	for i, b := range c.Boxes {
-		if !b.Inert && !l.canvasShown(i).Empty() {
+		if !b.Inert && !(b.Bare && c.Picture != nil) && !l.canvasShown(i).Empty() {
 			out = append(out, pushButton{Press: held, Rect: l.CanvasBoxes[i].rect, Hover: i == over})
 		}
 	}

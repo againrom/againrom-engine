@@ -210,8 +210,9 @@ func (e *SpellEditError) Error() string { return e.Msg }
 
 // Edited is p with size book positions (0 keeps p's) and edits applied. An
 // off spell, or one whose position falls past the size, leaves the book and
-// the shops' books and scrolls; its arm and number stay. Only a spell p's
-// book draws may be on or take a position.
+// the shops' books and scrolls; its arm and number stay. A spell p's book
+// draws no cell for may take a position, its cell drawn empty until it has a
+// picture; an explicit on alone needs a cell.
 func (p SpellGameProfile) Edited(size int, edits []SpellEdit) (SpellGameProfile, error) {
 	if size == 0 {
 		size = p.BookSize
@@ -232,8 +233,6 @@ func (p SpellGameProfile) Edited(size int, edits []SpellEdit) (SpellGameProfile,
 			return bad("%s is not a spell of this game's catalog", e.Name)
 		case e.Off && (e.Position != 0 || hasPosition), e.Position != 0 && off[i]:
 			return bad("%s is off, so book_position does not apply to it", e.Name)
-		case (e.On || e.Position != 0) && p.Spells[i].Slot == 0:
-			return bad("%s has no place in this game's book, so it cannot be on or take a book_position", e.Name)
 		case e.Position < 0 || e.Position > size:
 			return bad("book_position of %s is %d, outside 1..%d", e.Name, e.Position, size)
 		}
@@ -250,7 +249,12 @@ func (p SpellGameProfile) Edited(size int, edits []SpellEdit) (SpellGameProfile,
 	}
 	// An explicit on is tested against the cell the edits leave.
 	for k, e := range edits {
-		if i, ok := asked[k]; ok && !movedAt(moved, i) && int(p.Spells[i].Slot) > size {
+		i, ok := asked[k]
+		switch {
+		case !ok || movedAt(moved, i):
+		case p.Spells[i].Slot == 0:
+			return p, &SpellEditError{k, fmt.Sprintf("%s has no place in this game's book, so it is on only with a book_position", e.Name)}
+		case int(p.Spells[i].Slot) > size:
 			return p, &SpellEditError{k, fmt.Sprintf("%s is on, but its book position %d is past book_size %d", e.Name, p.Spells[i].Slot, size)}
 		}
 	}

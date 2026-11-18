@@ -724,14 +724,36 @@ The mod check refuses, naming the mod, the file and the line:
 
 - `book_size is N, outside 1..24` and `book_position is N, outside 1..24`;
 - `NAME is off, so book_position does not apply to it`;
-- `NAME has no place in this game's book, so it cannot be on or take a
-  book_position`, for a spell the game's book has no cell for;
+- `NAME has no place in this game's book, so it is on only with a
+  book_position`, for `off = false` alone on a spell the game's book has no
+  cell for; with a `book_position` such a spell enters the book, its cell
+  drawn empty while the game has no picture for it;
 - `book_position of NAME is N, outside 1..S`, where S is `book_size`;
 - `NAME is on, but its book position P is past book_size S`;
 - `book_position P holds both NAME and NAME`: a spell keeps its cell unless
   a row moves it or turns it off.
 
 Each of `off`, `book_position` and `book_size` is set by one mod.
+
+### The Spells page of the mod window
+
+The map editor's mod window has a Spells page that writes `data/spells.toml`.
+From the top it shows the chosen spell's numbers, each empty while the game's
+value stands, with the game's value as the hint; the All spells button unfolds
+the `[global]` ratios and `book_size`. Below stand the catalog of both games'
+spells, one picture per cell, and the mod's book, drawn as the game draws it.
+A spell of the other game is greyed and takes no press; a spell without a
+picture shows its initials.
+
+| gesture | what it writes |
+|---|---|
+| drag a book cell onto another | the two spells' `book_position` swap |
+| drag a catalog spell onto an empty cell | the spell's `book_position`, `off` cleared |
+| drag a book cell onto a catalog cell, or Remove with the spell chosen | `off = true`, `book_position` cleared |
+
+A position equal to the game's own cell is left out of the file. The note line
+names the rows a gesture wrote. The book holds 24 cells; the `+` at each end
+only explains that. The game run from the mod shows the page's book.
 
 ## Spell damage columns
 

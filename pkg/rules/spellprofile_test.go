@@ -54,6 +54,23 @@ func TestEditedSwitchesMovesAndSizesTheBook(t *testing.T) {
 	}
 }
 
+// A spell the game's book draws no cell for takes a position in a cell
+// another row emptied, in both games; on alone still needs a cell.
+func TestEditedPlacesASpellWithoutACell(t *testing.T) {
+	for _, g := range []SpellGame{SpellGameFirst, SpellGameSecond} {
+		p := GameProfile(g)
+		first := SpellProfile(g)[p.BookRows()[0]-1].Name
+		q, err := p.Edited(0, []SpellEdit{{Name: first, Off: true}, {Name: "Curse", Position: 1}})
+		curse, _ := SpellNumber(g, "Curse")
+		if err != nil || q.BookRows()[0] != uint16(curse) {
+			t.Fatalf("game %d: %v, book %v", g, err, q.BookRows())
+		}
+		if _, err := p.Edited(0, []SpellEdit{{Name: first, Off: true}, {Name: "Curse", On: true}}); err == nil {
+			t.Fatalf("game %d: Curse on without a position was admitted", g)
+		}
+	}
+}
+
 func TestEditedRefusesNameTheEditAndTheLimit(t *testing.T) {
 	p := GameProfile(SpellGameFirst)
 	for name, c := range map[string]struct {
@@ -68,7 +85,8 @@ func TestEditedRefusesNameTheEditAndTheLimit(t *testing.T) {
 		"off with position": {0, []SpellEdit{{Name: "Bless", Off: true, Position: 2}}, 0, "Bless is off, so book_position does not apply"},
 		"off then position": {0, []SpellEdit{{Name: "Bless", Off: true}, {Name: "Bless", Position: 2}}, 1, "Bless is off"},
 		"collision":         {0, []SpellEdit{{Name: "Bless", Position: 2}}, 0, "book_position 2 holds both Fire_Ball and Bless"},
-		"unslotted":         {0, []SpellEdit{{Name: "Drain_Life", On: true}}, 0, "Drain_Life has no place in this game's book"},
+		"unslotted":         {0, []SpellEdit{{Name: "Drain_Life", On: true}}, 0, "Drain_Life has no place in this game's book, so it is on only with a book_position"},
+		"unslotted taken":   {0, []SpellEdit{{Name: "Drain_Life", Position: 2}}, 0, "book_position 2 holds both Fire_Ball and Drain_Life"},
 		"unknown":           {0, []SpellEdit{{Name: "Ice_Missile", Position: 1}}, 0, "Ice_Missile is not a spell of this game's catalog"},
 		"on past the size":  {23, []SpellEdit{{Name: "Shield", On: true}}, 0, "Shield is on, but its book position 24 is past book_size 23"},
 	} {

@@ -210,6 +210,10 @@ func (e *MapEditor) modButton(n int) error {
 		return nil
 	}
 	if (e.modPage == modPageGraph || modPageScope(e.modPage) != "") && (modButtons[n].action == "add" || modButtons[n].action == "remove") {
+		// A page with a book takes Remove out of its book.
+		if f, ok := e.modBookField(); ok && modButtons[n].action == "remove" && f.Book.Remove != "" {
+			return e.modAction(f.Key, f.Book.Remove)
+		}
 		return nil
 	}
 	key := modButtons[n].action
@@ -583,6 +587,9 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 			if f.Grid {
 				s.Grid = e.modGrid(f, s.Width)
 			}
+			if f.Book != nil {
+				s.Canvas, s.Drops = e.modBook(f.Book, s.Width)
+			}
 		}
 	}
 	for _, f := range o.fields {
@@ -612,9 +619,9 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 		s.Buttons = append(s.Buttons, e.word(b.word))
 	}
 	s.Disabled = nil
-	if e.modPage == modPageGraph {
+	if book, ok := e.modBookField(); e.modPage == modPageGraph || ok {
 		s.Disabled = make([]bool, len(modButtons))
-		s.Disabled[modButtonIndex("add")], s.Disabled[modButtonIndex("remove")] = true, true
+		s.Disabled[modButtonIndex("add")], s.Disabled[modButtonIndex("remove")] = true, !ok || book.Book.Remove == ""
 	}
 	if e.modConfirm != "" {
 		s.Buttons = []string{e.word("editor.mod.confirm"), e.word("editor.button.cancel")}
@@ -672,8 +679,19 @@ const modGridSide = 74
 // pictures, its rows fitted and scrolled as every grid popup's are.
 func (e *MapEditor) modGrid(f InspectionField, width int) *popupGrid {
 	g := &popupGrid{Side: modGridSide, CaptionH: fontHeight(e.bodyFont(), 15) + 2, Top: e.modGridTop, LeastRows: 1}
+	if f.Small {
+		g.Side, g.CaptionH = gridCellSide, 0
+	}
 	for _, c := range f.Choices {
-		g.Cells = append(g.Cells, popupGridCell{Icon: f.Icons[c.Value], Caption: c.Label, Tip: c.Label, TipPictures: f.Variations[c.Value], Pressed: c.Value == f.Value})
+		cell := popupGridCell{Icon: f.Icons[c.Value], Caption: c.Label, Tip: c.Label, TipPictures: f.Variations[c.Value], Pressed: c.Value == f.Value,
+			Ticked: slices.Contains(f.Ticked, c.Value), Inert: slices.Contains(f.Shut, c.Value)}
+		if f.Small {
+			cell.Caption = ""
+			if cell.Icon == nil {
+				cell.Label = f.Marks[c.Value]
+			}
+		}
+		g.Cells = append(g.Cells, cell)
 	}
 	return g
 }
@@ -809,16 +827,17 @@ func (e *MapEditor) modPress(p image.Point) bool {
 	if e.modConfirm != "" {
 		return true
 	}
+	if e.carryPress(s, part, n, p) {
+		return true
+	}
 	if part == popupGridPart {
-		for _, f := range e.obj.fields {
-			if f.Grid && n >= 0 && n < len(f.Choices) {
-				_ = e.modAction(f.Key, strconv.FormatInt(f.Choices[n].Value, 10))
-			}
-		}
+		e.modGridPress(n)
 		return true
 	}
 	if part == popupCanvasBox || part == popupCanvasGround {
-		e.graphPress(part, n, p)
+		if e.modPage == modPageGraph {
+			e.graphPress(part, n, p)
+		}
 		return true
 	}
 	if part == popupRowButton || part == popupRowControl || part == popupRowLine {

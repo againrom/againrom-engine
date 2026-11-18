@@ -896,3 +896,36 @@ func TestCloseCrossingsOnOneSegmentDoNotOverlap(t *testing.T) {
 		t.Errorf("far crossings: upper line is %v, want %v", got, want)
 	}
 }
+
+// In mission-edit mode a town node is a bare box that takes a press: it is
+// drawn as a button and a press hits it. A book's bare cell over its picture
+// is not drawn as a button.
+func TestCampaignGraphTownDrawsAsAButtonInMissionEditMode(t *testing.T) {
+	page := modesGraph()
+	page.Mod = true
+	const town = 3
+	page.Nodes[town].Pick = "town"
+	e, _ := graphEditor(t, page)
+	e.graphEdit = true
+	s, l := graphLayout(t, e)
+	if !s.Canvas.Boxes[town].Bare || s.Canvas.Boxes[town].Inert {
+		t.Fatalf("the town box: bare %v inert %v", s.Canvas.Boxes[town].Bare, s.Canvas.Boxes[town].Inert)
+	}
+	var drawn bool
+	for _, b := range l.canvasButtons(s.Canvas, -1, nil) {
+		drawn = drawn || b.Rect == l.CanvasBoxes[town].rect
+	}
+	if !drawn {
+		t.Fatal("the town box is not drawn as a button")
+	}
+	if part, n := l.canvasHit(center(l.CanvasBoxes.rect(town))); part != popupCanvasBox || n != town {
+		t.Fatalf("a press at the town hit part %v box %d", part, n)
+	}
+
+	book := &popupCanvas{Picture: image.NewRGBA(image.Rect(0, 0, 40, 40)), Boxes: []canvasBox{{Area: image.Rect(2, 2, 20, 20), Bare: true}}}
+	f := panelFont()
+	bl := layoutPopup(popupSpec{Title: "Book", Width: 300, At: image.Pt(20, 20), Canvas: book, Buttons: []string{"Close"}}, f, f)
+	if got := bl.canvasButtons(book, -1, nil); len(got) != 0 {
+		t.Fatalf("a book cell is drawn as a button: %v", got)
+	}
+}

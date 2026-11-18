@@ -77,6 +77,7 @@ type editorChrome struct {
 	dragEdge               popupEdge              // the border a resize drag holds; zero is a move
 	dragCard               int                    // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
+	carry                  *popupCarry // the press a drop rule carries, nil for none
 	buttonPress            buttonPress
 	scroll                 editorScroll
 	objectTop              int
@@ -1742,6 +1743,7 @@ func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
 	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		e.drawWindow(pic, s)
 		e.drawObjectFigure(pic, s)
+		e.drawCarry(pic, s)
 	}
 	if s, ok := e.promptSpec(); ok {
 		e.drawWindow(pic, s)
@@ -2230,6 +2232,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	}
 	if e.uiDown {
 		e.graphDrag(p, in.PrimaryDown)
+		e.carryMove(p, in.PrimaryDown)
 		if !in.PrimaryDown {
 			e.uiDown = false
 			e.clicks.release()

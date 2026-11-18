@@ -48,6 +48,7 @@ func (e *MapEditor) cancelCheckpoint() func() {
 		}
 		e.scroll = editorScroll{}
 		e.drag, e.dragEdge, e.dragCard, e.uiDown = popNone, 0, 0, press.latch.Holds()
+		e.carry = nil
 	}
 }
 

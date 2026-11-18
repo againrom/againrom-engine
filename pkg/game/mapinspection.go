@@ -82,6 +82,9 @@ type MapInspector struct {
 	tiers           *tierCache // tiersOf's answers; nil computes each time
 	panelWords      *ui.Words
 	cardFont        *text.Font
+	// spellArt is the install's book art, icons and spell names the spells
+	// page draws with, nil until first asked.
+	spellArt *spellsLook
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {
@@ -102,9 +105,11 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	if x.units, err = LoadUnits(a.Containers); err != nil {
 		return nil, err
 	}
-	if x.table, err = LoadTable(a.Containers); err != nil {
+	defs, err := LoadDefinitionsFor(a.Containers, a.Game())
+	if err != nil {
 		return nil, err
 	}
+	x.table = defs.Table
 	x.sacks = LoadSackFrames(a.Containers)
 	panelWords := LoadInstallWords(a.Containers, InstallTextCode(a.Containers, a.Game().Edition())).Words()
 	x.panelWords = &panelWords

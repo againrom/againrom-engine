@@ -403,6 +403,7 @@ func workspaceScopeRows() []workspaceScope {
 		modPage(ui.ModTextsScope, (*edits).textsFields, (*edits).setTextsField),
 		modPage(ui.ModCharactersScope, (*edits).charactersFields, (*edits).setCharactersField),
 		modPage(ui.ModItemsScope, (*edits).itemsFields, (*edits).setItemsField),
+		modPage(ui.ModSpellsScope, (*edits).spellsFields, (*edits).setSpellsField),
 		modPage(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
 	}
 }

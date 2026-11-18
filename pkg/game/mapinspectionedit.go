@@ -41,6 +41,8 @@ type mapInspectionEdits struct {
 	characterAdding              bool
 	ground                       int // the terrain page's pressed ground: a mod group, or below 0 one of the game's
 	page                         string
+	spell                        string // the spells page's chosen spell, by catalog name
+	spellGlobals                 bool   // the spells page shows its globals unfolded
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 
 	errorsAllowed bool                   // the user confirmed the next save with the report's errors

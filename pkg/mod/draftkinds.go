@@ -219,6 +219,18 @@ func draftCharacters(r DataReader, d *Data, view DraftView, text func() (textLoo
 	return readCharacters(r, d, CharactersFile, src)
 }
 
+// draftSpells puts the draft of the spells file over d's spells: the run of
+// one mod reads its spells from the one file, so a project that holds no
+// spells file has none, whatever the folder holds.
+func draftSpells(r DataReader, d *Data, view DraftView, _ func() (textLookup, error)) error {
+	src, _ := view.Draft(SpellsFile)
+	d.Spells, d.spellGlobals, d.spellFields = SpellData{Order: d.Spells.Order}, nil, nil
+	if src == nil {
+		return nil
+	}
+	return readSpells(r, d, SpellsFile, src)
+}
+
 // draftTerrain puts the draft of the terrain file over d's groups.
 func draftTerrain(r DataReader, d *Data, view DraftView, _ func() (textLookup, error)) error {
 	src, ok := view.Draft(TerrainFile)

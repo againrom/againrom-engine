@@ -134,9 +134,11 @@ func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 
 // sourceRow is one table of a row file as the row writer sees it: its
 // table name, the identity that names it across an edit and the pairs it
-// writes, in order.
+// writes, in order. A plain row is a table of its own, [name], not a row of
+// the array [[name]].
 type sourceRow struct {
 	table, identity string
+	plain           bool
 	pairs           []missionPair
 }
 
@@ -215,7 +217,11 @@ func writeRows(source []byte, before, after []sourceRow, pad func(string) string
 			if out.Len() != 0 && !strings.HasSuffix(out.String(), "\n") {
 				out.WriteByte('\n')
 			}
-			fmt.Fprintf(&out, "[[%s]]\n", m.table)
+			header := "[[%s]]\n"
+			if m.plain {
+				header = "[%s]\n"
+			}
+			fmt.Fprintf(&out, header, m.table)
 			for _, p := range m.pairs {
 				fmt.Fprintf(&out, "%s = %s\n", pad(p.key), p.value)
 			}

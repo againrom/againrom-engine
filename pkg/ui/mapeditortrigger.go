@@ -1230,6 +1230,22 @@ func (e *MapEditor) PopupCanvasView() image.Rectangle {
 	return layoutPopup(s, e.font, e.bodyFont()).Canvas
 }
 
+// controlPopupGridCellRect is the window rectangle of cell n of the object
+// popup's grid, counted over all its cells; false while it is not shown.
+func (e *MapEditor) controlPopupGridCellRect(n int) (image.Rectangle, bool) {
+	s, _, ok := e.objectSpec()
+	if !ok || s.Grid == nil {
+		return image.Rectangle{}, false
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	for i, r := range l.GridCells {
+		if l.gridIndex(i) == n {
+			return r, true
+		}
+	}
+	return image.Rectangle{}, false
+}
+
 // PopupRowButtons are the captions of popup row n's own buttons.
 func (e *MapEditor) PopupRowButtons(n int) []string {
 	s, _, ok := e.objectSpec()

@@ -250,7 +250,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerKept, Owner: "the spell switch, position, book size and shop story",
 		Base:   "the spell rows of the definition table, each keyed by its catalog name; the rows of the mods merge one per spell",
 		Shared: "no: one field of one spell, and one global key, is set by one mod",
-		read:   readSpells,
+		read:   readSpells, write: writeSpells,
+		Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftSpells,
 		summary: func(d Data) string {
 			if d.Spells.Empty() {
 				return ""
@@ -565,6 +566,10 @@ type Data struct {
 	// and each field of a spell.
 	spellGlobals map[string]string
 	spellFields  map[string]string
+	// spellSettings are the settings the spells file was read with; its
+	// writer reads the source with them, so a value a setting gives keeps
+	// its text while the edit leaves it.
+	spellSettings []SettingValue
 }
 
 // SetOrder gives each merged kind that holds records the load order the

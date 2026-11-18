@@ -100,6 +100,10 @@ func (r SpellRow) SpellEdit() rules.SpellEdit {
 		Position: int(r.BookPosition.Val)}
 }
 
+// Bare reports that the row sets no field: it names its spell and changes
+// nothing, so its writer may take it out.
+func (r SpellRow) Bare() bool { return len(spellFieldsOf(r)) == 0 }
+
 func (r SpellRow) Formulas() [5]SpellTable {
 	return [5]SpellTable{rules.FormulaPower: r.Power, rules.FormulaDamage: r.DamageFactor,
 		rules.FormulaRange: r.RangeBonus, rules.FormulaDuration: r.DurationFactor, rules.FormulaMagnitude: r.Magnitude}
@@ -119,6 +123,8 @@ type SpellGlobal struct {
 	// mod BookSizeMod.
 	BookSize                  SpellInt
 	BookSizeMod, BookSizeFile string
+	// Line is the line of the [global] table, 0 when the file holds none.
+	Line int
 }
 
 func (g SpellGlobal) Formulas() [5]SpellTable {
@@ -280,6 +286,7 @@ func ParseSpells(id, file string, data []byte, setting func(name string) (int64,
 			if g.BookSize.Set {
 				g.BookSizeMod, g.BookSizeFile = id, file
 			}
+			g.Line = t.line
 			out.Global = g
 		case t.name == "spell" && t.array:
 			row, err := r.row(id, t)

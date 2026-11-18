@@ -193,15 +193,7 @@ func readSettings(_ DataReader, _ *Data, rel string, src []byte) error {
 }
 
 func readSpells(r DataReader, d *Data, rel string, src []byte) error {
-	setting := func(name string) (int64, bool) {
-		for _, v := range r.Settings {
-			if v.Key == name && v.Value.Kind == KindInt {
-				return v.Value.Int, true
-			}
-		}
-		return 0, false
-	}
-	spells, err := ParseSpells(r.Mod, rel, src, setting)
+	spells, err := ParseSpells(r.Mod, rel, src, settingOf(r.Settings))
 	if err != nil {
 		return err
 	}
@@ -250,7 +242,11 @@ func readSpells(r DataReader, d *Data, rel string, src []byte) error {
 	if b := spells.Global; b.BookSize.Set {
 		g.BookSize, g.BookSizeMod, g.BookSizeFile = b.BookSize, b.BookSizeMod, b.BookSizeFile
 	}
+	if spells.Global.Line != 0 {
+		g.Line = spells.Global.Line
+	}
 	d.Spells.Rows = append(d.Spells.Rows, spells.Rows...)
+	d.spellSettings = r.Settings
 	return nil
 }
 

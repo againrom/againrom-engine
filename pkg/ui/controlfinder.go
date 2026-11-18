@@ -41,6 +41,9 @@ const (
 	// ControlMapTab is tab N of the open maps' strip; with Flag, the
 	// strip's close button.
 	ControlMapTab
+	// ControlPopupGridCell is cell N of the object popup's grid, counted
+	// over all its cells: a mod page's catalog.
+	ControlPopupGridCell
 	controlRoleCount
 )
 
@@ -98,7 +101,8 @@ func init() {
 		ControlPromptGridCell: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) {
 			return e.controlPromptGridCellRect(q.N, q.K)
 		},
-		ControlMapTab: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlMapTabRect(q.N, q.Flag) },
+		ControlMapTab:        func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlMapTabRect(q.N, q.Flag) },
+		ControlPopupGridCell: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlPopupGridCellRect(q.N) },
 	}
 }
 
