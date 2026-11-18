@@ -446,8 +446,8 @@ func TestLoadedSecondMissionAbandonUsesOrdinaryArrival(t *testing.T) {
 				}
 			}
 			load(f, a)
-			if f.canLeaveMission(10, f.live.world) {
-				t.Fatal("a cold mission LOAD unexpectedly supplied a departure town")
+			if !f.canLeaveMission(10, f.live.world) {
+				t.Fatal("a mission LOAD lost the departure town")
 			}
 			inventory := func(g *FrontEnd) []string {
 				all := slices.Clone(*g.Town.second.heroBag())
@@ -473,7 +473,6 @@ func TestLoadedSecondMissionAbandonUsesOrdinaryArrival(t *testing.T) {
 			if err := control.partyItems(control.Table).arriveTown(); err != nil {
 				t.Fatal(err)
 			}
-			f.Town.second.entryTown = secondTown(1)
 			ms = f.live.mission.state
 			if dest, line, _ := f.continuity(10, ms, f.live.advanceNotice)(ui.NoticeAbandon); dest != ui.NoticeToTown {
 				t.Fatalf("abandon: destination=%v message=%q", dest, line)

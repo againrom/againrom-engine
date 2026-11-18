@@ -22,6 +22,9 @@ type currentSecondCampaign struct {
 	Shop      *currentSecondShop   `json:",omitempty"`
 	Party     []currentPartyMember `json:",omitempty"`
 	Kept      *secondTailKept      `json:",omitempty"`
+	// EntryTown is the town a running mission was entered from, absent for a
+	// mission entered from the map and in every document written before it.
+	EntryTown *currentSecondLocation `json:",omitempty"`
 }
 
 // secondTailKept is what a loaded campaign tail held: the pair list and each
@@ -109,6 +112,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 		Shop      *currentSecondShop
 		Party     []currentPartyMember
 		Kept      *secondTailKept
+		EntryTown *currentSecondLocation
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -123,7 +127,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop, Party: fields.Party, Kept: fields.Kept}
+	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop, Party: fields.Party, Kept: fields.Kept, EntryTown: fields.EntryTown}
 	copy(next.Bank[:], bank)
 	if next.Aux, err = decodeSecondAux(fields.Aux); err != nil {
 		return err
@@ -179,7 +183,13 @@ func (c *currentSecondCampaign) validate() error {
 		}
 	}
 	if c.Current.Kind == 2 {
+		if c.EntryTown != nil {
+			return fmt.Errorf("current second campaign names an entry town while standing in a town")
+		}
 		return c.validateTown()
+	}
+	if t := c.EntryTown; t != nil && (t.Kind != 2 || t.ID < 1 || t.ID > 3) {
+		return fmt.Errorf("current second campaign names an invalid entry town")
 	}
 	mission := c.Current
 	if mission.Kind != 1 || !secondSaveMission(mission.ID) || c.Room != nil {
@@ -239,6 +249,8 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 	if c.current.kind == placeTown {
 		room := c.room
 		out.Room = &room
+	} else if c.entryTown.kind == placeTown {
+		out.EntryTown = &currentSecondLocation{c.entryTown.kind, c.entryTown.id}
 	}
 	for _, l := range c.available {
 		out.Available = append(out.Available, currentSecondLocation{l.kind, l.id})
@@ -288,10 +300,25 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c.Room != nil {
 		out.room = *c.Room
 	}
+	out.entryTown = c.enteredFrom()
 	for _, l := range c.Available {
 		out.available = append(out.available, partyPlace{l.Kind, l.ID})
 	}
 	return out
+}
+
+// enteredFrom is the town the saved mission was entered from. A document
+// names it; one that does not, as every document written before the field and
+// every original file, takes the first town for mission 10, the only mission
+// that town opens (the first town's availability holds just it).
+func (c *currentSecondCampaign) enteredFrom() partyPlace {
+	switch {
+	case c.EntryTown != nil:
+		return partyPlace{c.EntryTown.Kind, c.EntryTown.ID}
+	case c.Current == currentSecondLocation{1, 10} && c.Bank[768] == 10:
+		return secondTown(1)
+	}
+	return partyPlace{}
 }
 
 func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base.Game) error {
