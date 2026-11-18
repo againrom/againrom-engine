@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [BASE] An enemy killed by Poison Cloud no longer shows damage numbers rising from its body; the cloud still hurts the living units inside it.
 - [BASE] A spell that a mage began on an enemy in range, from his book or with a spell weapon, now hits that enemy even if it ran out of range while he cast, as in the original; before, the mage only waved his hands (and in the second game the mana was lost).
 - [BASE] With Smoothing on, the soft edge drawn over a unit, a hero or an object now sits centred on it, instead of a few pixels to one side where it looked like a pale second copy.
+- [ROM2] A Teleport or Drain Life scroll in the pack now casts when you double-click it or press its bound key, instead of doing nothing; before, only the spell book worked.
 - [ROM2] The spell book now shows Stone Curse's duration as the second game states it, 480 at power 100, instead of the first game's figure.
 - [ROM2] After loading a save made inside a mission, the menu still offers to abandon the mission and return to the town, as it did before the save.
 

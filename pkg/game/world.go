@@ -2560,6 +2560,14 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 		return
 	}
 	code := data.ItemCode(stacks[idx].Code)
+	item := stacks[idx].Instance()
+	// A scroll arms its cast before the documents gate reads its code: the second
+	// game's Teleport and Drain Life scrolls sit on rows the gate's low-five-bit
+	// mask also matches.
+	if spell, _, scroll := sim.ScrollSpell(item); scroll {
+		mw.view.ArmItemCast(uint32(id), idx, uint32(spell), itemCastKey(item))
+		return
+	}
 	// THE CAMPAIGN DOCUMENTS ITEM OPENS THE PANEL INSTEAD OF EQUIPPING
 	// (ITEM-DOC-053, MENU-DOC-009).
 	//
@@ -2575,11 +2583,6 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 	// the equip questions below with a code none of them can answer for.
 	if data.RaisesDocuments(code) {
 		mw.view.RaiseCover(ui.CoverDocuments)
-		return
-	}
-	item := stacks[idx].Instance()
-	if spell, _, scroll := sim.ScrollSpell(item); scroll {
-		mw.view.ArmItemCast(uint32(id), idx, uint32(spell), itemCastKey(item))
 		return
 	}
 	if item.Kind == 3 {
