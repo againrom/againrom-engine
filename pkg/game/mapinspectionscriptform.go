@@ -50,25 +50,60 @@ func lifted(err error, key string, args ...any) error {
 	var limit *mapedit.ScriptLimitError
 	if errors.As(err, &limit) {
 		l.limit = limit
-		return l
 	}
-	return errors.New(l.Error())
+	return l
 }
 
 // formNeeded is the question an edit refused on original map m asks: the
 // refusal carries a limit the extended record lifts. Nil for any other.
-func formNeeded(m *mapedit.Editor, err error) error {
+func formNeeded(m *mapedit.Editor, err error, word func(string) string) error {
 	var limit *mapedit.ScriptLimitError
 	if err == nil || m.Extended() || !errors.As(err, &limit) || !limit.Lifted() {
 		return nil
 	}
-	// Only the game's own words are shown; a bare limit from the editor
-	// library is in English and asks without them.
 	var own *liftedLimit
 	if errors.As(err, &own) {
 		return &ui.ScriptFormNeeded{Why: own.Error()}
 	}
-	return &ui.ScriptFormNeeded{}
+	// A bare limit of the editor library is given the game's words: the
+	// limit by name and number.
+	return &ui.ScriptFormNeeded{Why: limitWords(limit, word)}
+}
+
+// limitWords is a script limit in the words table's text, the figures in
+// the order the text names them.
+func limitWords(l *mapedit.ScriptLimitError, word func(string) string) string {
+	switch l.Limit {
+	case mapedit.LimitPairs:
+		return fmt.Sprintf(word("editor.script.limit.pairs"), l.Max, l.Got)
+	case mapedit.LimitActions:
+		return fmt.Sprintf(word("editor.script.limit.actions"), l.Max, l.Got)
+	case mapedit.LimitCompare:
+		return fmt.Sprintf(word("editor.script.limit.compare"), l.Max, l.Got)
+	case mapedit.LimitGroups:
+		return fmt.Sprintf(word("editor.script.limit.groups"), l.Got)
+	case mapedit.LimitTriggers:
+		return fmt.Sprintf(word("editor.script.limit.triggers"), l.Got, l.Max)
+	case mapedit.LimitChecks:
+		return fmt.Sprintf(word("editor.script.limit.checks"), l.Got, l.Max)
+	case mapedit.LimitVariables:
+		return fmt.Sprintf(word("editor.script.limit.variables"), l.Max-1, l.Got)
+	}
+	return fmt.Sprintf(word("editor.script.limit.id"), l.Max, l.Got)
+}
+
+// wordErr is a refusal that holds a word key and its figures; the host
+// reads it in the editor's language (inLanguage).
+func wordErr(key string, args ...any) error { return &liftedLimit{key: key, args: args} }
+
+// inLanguage is err as the editor's words say it when it holds a word key,
+// the limit it carries kept; any other error as it is.
+func (x *MapInspector) inLanguage(err error) error {
+	var own *liftedLimit
+	if errors.As(err, &own) && own.key != "" {
+		return &liftedLimit{text: fmt.Sprintf(x.word(own.key), own.args...), limit: own.limit}
+	}
+	return err
 }
 
 // ExtendScript moves the map's triggers into the Againrom script record as

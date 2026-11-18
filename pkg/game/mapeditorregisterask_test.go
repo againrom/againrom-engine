@@ -72,17 +72,14 @@ func isFormNeeded(err error) bool {
 	return errors.As(err, &need)
 }
 
-// A bare limit of the editor library asks with no reason of its own; the
-// game's own refusal brings its words.
+// A lifted limit asks with the game's own words, not the library's; the
+// bare limit is worded in mapeditorhostwords_test.go.
 func TestFormQuestionCarriesOnlyTheGamesOwnWords(t *testing.T) {
 	e, _ := openGoalMap(t, registerMap(t))
 	m := formHost(e).model
 	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: 3, Got: 4}
 	var need *ui.ScriptFormNeeded
-	if !errors.As(formNeeded(m, limit), &need) || need.Why != "" {
-		t.Fatalf("a bare limit asks with %+v", need)
-	}
-	if !errors.As(formNeeded(m, lifted(limit, "own words")), &need) || need.Why != "own words" {
+	if !errors.As(formNeeded(m, lifted(limit, "own words"), formHost(e).inspector.word), &need) || need.Why != "own words" {
 		t.Fatalf("a lifted limit asks with %+v", need)
 	}
 }

@@ -127,7 +127,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 		err = raiseVariables(next)
 	}
 	err = s.checkWords(err)
-	if need := formNeeded(s.model, err); need != nil {
+	if need := formNeeded(s.model, err, s.inspector.word); need != nil {
 		return nil, need
 	}
 	named := stage.staged(s.workspaceImage)

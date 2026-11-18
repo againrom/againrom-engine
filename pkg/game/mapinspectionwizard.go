@@ -46,11 +46,7 @@ func (s *mapInspectionEdits) checkWords(err error) error {
 	if errors.As(err, &taken) {
 		err = lifted(err, "editor.wizard.registers", taken.register)
 	}
-	var own *liftedLimit
-	if errors.As(err, &own) && own.key != "" {
-		return &liftedLimit{text: fmt.Sprintf(s.inspector.word(own.key), own.args...), limit: own.limit}
-	}
-	return err
+	return s.inspector.inLanguage(err)
 }
 
 // wizardScript is m's decoded script.

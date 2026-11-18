@@ -255,6 +255,7 @@ func TestSpeakerFaceIsTheImport(t *testing.T) {
 			draft := workspaceBytes(s.workspace)
 			small, data := assetFile(t, "small.png", assetPNG(t, 4, 4, color.RGBA{A: 255}))
 			_, want := decodeSpeakerPicture(data)
+			want = s.inspector.inLanguage(want)
 			if _, err := s.AddSpeaker(speakerLady, "Lady", small); err == nil || err.Error() != want.Error() {
 				t.Fatalf("the small face answered %v, want %v", err, want)
 			}

@@ -26,11 +26,11 @@ func speakerPictureSize() image.Point { return ui.NoticeFaceWindow(0, 0).Size() 
 func decodeSpeakerPicture(b []byte) (*image.RGBA, error) {
 	decoded, err := png.Decode(bytes.NewReader(b))
 	if err != nil {
-		return nil, fmt.Errorf("the picture is not a PNG the game can read: %v", err)
+		return nil, wordErr("editor.speaker.err.notpng")
 	}
 	want := speakerPictureSize()
 	if got := decoded.Bounds().Size(); got != want {
-		return nil, fmt.Errorf("the picture is %dx%d; a speaker's picture is %dx%d, the message window's face", got.X, got.Y, want.X, want.Y)
+		return nil, wordErr("editor.speaker.err.size", got.X, got.Y, want.X, want.Y)
 	}
 	out := image.NewRGBA(image.Rect(0, 0, want.X, want.Y))
 	draw.Draw(out, out.Bounds(), decoded, decoded.Bounds().Min, draw.Src)
@@ -110,7 +110,7 @@ func (s *mapInspectionEdits) speakerUnitID(unit int) (uint16, error) {
 		return 0, err
 	}
 	if unit < 0 || unit >= len(m.Units) {
-		return 0, fmt.Errorf("no unit %d on this map", unit)
+		return 0, s.inspector.inLanguage(wordErr("editor.speaker.err.nounit", unit))
 	}
 	x, id := s.inspector, m.Units[unit].UnitID
 	if id == 0 {
@@ -195,17 +195,17 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	x := s.inspector
 	key, ok := s.speakerMapKey()
 	if !ok || x.mod.copyOnly {
-		return 0, errors.New("this map does not live in a mod the editor can write")
+		return 0, x.inLanguage(wordErr("editor.speaker.err.nomod"))
 	}
 	if refusal := x.modContextRefusal(); refusal != "" {
 		return 0, errors.New(refusal)
 	}
 	m := x.mod
 	if name == "" {
-		return 0, errors.New("the speaker needs a name")
+		return 0, x.inLanguage(wordErr("editor.speaker.add.noname"))
 	}
 	if _, err := encodeSaveLabel(name, x.speakerSelector()); err != nil {
-		return 0, fmt.Errorf("the name %q cannot be drawn by this install: %v", name, err)
+		return 0, x.inLanguage(wordErr("editor.speaker.err.undrawable", name))
 	}
 	unitID, err := s.speakerUnitID(unit)
 	if err != nil {
@@ -351,7 +351,7 @@ func (x *MapInspector) freeSpeakerNumber(src []byte) (int32, error) {
 			return id, nil
 		}
 	}
-	return 0, fmt.Errorf("every record number from %d to %d is taken", mod.FirstModSpeaker, mod.LastModSpeaker)
+	return 0, x.inLanguage(wordErr("editor.speaker.err.numbers", mod.FirstModSpeaker, mod.LastModSpeaker))
 }
 
 // carryModSpeakers puts the speaker records of the mod the open map lives in

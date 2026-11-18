@@ -149,7 +149,7 @@ func (x *MapInspector) hostFileBytes(source string, limit int64, check func([]by
 		return nil, err
 	}
 	if err := check(data); err != nil {
-		return nil, err
+		return nil, x.inLanguage(err)
 	}
 	return data, nil
 }
