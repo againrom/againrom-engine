@@ -297,8 +297,7 @@ func (e *MapEditor) brushRows() []string {
 	return nil
 }
 
-// brushPreviewW is the width of the picture beside a brush window's list,
-// wider than the Add window's previewW.
+// brushPreviewW is the width of the picture beside a brush window's list.
 const brushPreviewW = 160
 
 // brushPicture is the picture beside the brush window's list: the chosen

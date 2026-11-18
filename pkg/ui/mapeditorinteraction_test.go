@@ -252,7 +252,7 @@ func TestEditorReadOnlyDraftLinesCannotReceiveFocusOrWrites(t *testing.T) {
 }
 
 func TestEditorListsClampAndThumbFollowsPointer(t *testing.T) {
-	for _, where := range []string{"records", "add", "dropdown", "details"} {
+	for _, where := range []string{"records", "dropdown", "details"} {
 		t.Run(where, func(t *testing.T) {
 			e, _ := popupEditor(t)
 			_ = e.Open("popups")
@@ -262,18 +262,6 @@ func TestEditorListsClampAndThumbFollowsPointer(t *testing.T) {
 			case "records":
 				e.showRecords(0)
 				s, _ := e.listSpec()
-				l := layoutPopup(s, e.font, e.bodyFont())
-				m = s.List
-				bar = listBar(l.List, m)
-			case "add":
-				e, _ = newModesEditor(t, "full")
-				e.openAdd("Unit")
-				r, _ := e.addRunning()
-				for i := 0; i < 80; i++ {
-					r.offer.Choices = append(r.offer.Choices, InspectionChoice{Value: int64(i + 100), Label: fmt.Sprint(i)})
-				}
-				e.addList()
-				s, _ := e.addSpec()
 				l := layoutPopup(s, e.font, e.bodyFont())
 				m = s.List
 				bar = listBar(l.List, m)
@@ -383,7 +371,7 @@ func TestEditorAddArmedPlacementFrameAndRefusal(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	p := &placementPreviewProbe{modesFull: e.doc.Edits.(*modesFull), view: func() *InspectionDocument { preview, _ := newModesEditor(t, "full"); return preview.doc }()}
 	p.self, e.doc.Edits = p, p
-	e.openAdd("Unit")
+	e.placeStart(KindUnit, nil)
 	if !e.addPicking() {
 		t.Fatal("Add opened without armed pick")
 	}
@@ -407,19 +395,10 @@ func TestEditorAddArmedPlacementFrameAndRefusal(t *testing.T) {
 	if e.pick != pickNone {
 		t.Fatal("right click kept pick")
 	}
-	e.armPick(pickAddCell)
-	_ = e.Key("escape")
-	if e.pick != pickNone || !e.prompt.open() {
-		t.Fatal("Esc did not disarm")
-	}
-	_ = e.Key("escape")
-	if e.prompt.open() {
-		t.Fatal("Esc kept Add")
-	}
 	p.refused = false
-	e.openAdd("Unit")
+	e.placeStart(KindUnit, nil)
 	modesClick(e, point)
-	if len(calls.lines) != 1 || e.prompt.open() {
+	if len(calls.lines) != 1 || !e.addPicking() {
 		t.Fatalf("first map click did not place: %v", calls.lines)
 	}
 }
@@ -454,23 +433,7 @@ func TestEditorCancelClosesAndRestoresDraftAndPromptState(t *testing.T) {
 			}
 		})
 	}
-	for _, kind := range addKinds {
-		if len(kind.Steps) == 0 || kind.OneClick {
-			continue
-		}
-		e, calls := newModesEditor(t, "full")
-		e.showRecords(0)
-		e.listSpec()
-		e.model.Select(2)
-		listSelection := e.model.Selection()
-		before := e.editorMode
-		selected := e.selected
-		e.openAdd(kind.Kind)
-		e.cancelPopup()
-		if e.prompt.open() || e.pick != before.pick || e.selected != selected || e.model.Selection() != listSelection || len(calls.lines) != 0 {
-			t.Fatalf("%s Cancel changed state", kind.Kind)
-		}
-	}
+
 }
 
 func TestEditorObjectCellPickRemainsADraftOnCancel(t *testing.T) {
@@ -492,6 +455,9 @@ func TestEditorObjectCellPickRemainsADraftOnCancel(t *testing.T) {
 
 func TestEditorPromptCancelCensusRestoresSelectionAndUndo(t *testing.T) {
 	for kind := promptOpen; kind <= promptAreaShared; kind++ {
+		if kind == promptPlace {
+			continue
+		}
 		t.Run(fmt.Sprint(kind), func(t *testing.T) {
 			e, calls := newModesEditor(t, "full")
 			selected := e.selected

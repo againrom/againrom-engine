@@ -35,11 +35,10 @@ func scriptMap77(t *testing.T) *ui.MapEditor {
 }
 
 // promptSign is what a press on a prompt window can change: whether it is
-// open, its note lines and the Add step.
+// open, and its note lines.
 func promptSign(e *ui.MapEditor) string {
 	_, open := e.PromptRect()
-	key, _, _ := e.AddStep()
-	return fmt.Sprint(open, strings.Join(e.PromptNotes(), "|"), key)
+	return fmt.Sprint(open, strings.Join(e.PromptNotes(), "|"))
 }
 
 // pressPromptButton presses the drawn button n and reports whether the press

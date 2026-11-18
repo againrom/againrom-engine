@@ -177,15 +177,15 @@ func TestMapEditorUnitsTabPlacesForTheChosenPlayer(t *testing.T) {
 			if fmt.Sprint(h.owners) != "[2 2]" {
 				t.Fatalf("two clicks placed units owned by %v, want [2 2]", h.owners)
 			}
-			if _, ok := e.promptSpec(); ok || e.pick != pickAddCell {
+			if _, ok := e.promptSpec(); ok || e.pick != pickPlace {
 				t.Fatal("placing opened a window or ended the pick")
 			}
 			if _, pressed = ownerRow(t, e); pressed != 1 {
 				t.Fatalf("placing moved the player row to %d", pressed)
 			}
 			chromeClick(e, barPoint(t, e, "structures"))
-			if s, _ := e.listSpec(); s.TitleHelp != e.word("editor.place.help") || paletteSays(e, e.word("editor.place.player")) {
-				t.Fatal("the Structures tab lost its help or shows the player row")
+			if s, _ := e.listSpec(); s.TitleHelp != e.word("editor.place.help") || !paletteSays(e, e.word("editor.place.player")) {
+				t.Fatal("the Structures tab lost its help or hides the player row")
 			}
 		})
 	}

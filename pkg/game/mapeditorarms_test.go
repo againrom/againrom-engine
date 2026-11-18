@@ -145,7 +145,8 @@ func TestArmRowPopupMatchesNodeSelection(t *testing.T) {
 			want := recordOf(e.Document(), "Condition", node)
 			e.Select(want, false)
 			lines := e.PopupLines()
-			if len(lines) != 6 {
+			if arm == "Protect" && (len(lines) != 7 || lines[6] != "Trigger New trigger") ||
+				arm == "Win" && len(lines) != 6 {
 				t.Fatalf("node popup lines=%v", lines)
 			}
 			_ = e.Key("goals")
@@ -190,7 +191,7 @@ func TestArmOpenBackDeleteMatchesRow(t *testing.T) {
 					}
 				}
 				_ = e.Key("clone")
-				if e.Message() != "Select a unit, structure or sack first." || e.Selected() != selected || !bytes.Equal(b, e.Document().SourceBytes) {
+				if e.Message() != "Clone needs a selected unit, structure, sack or spell." || e.Selected() != selected || !bytes.Equal(b, e.Document().SourceBytes) {
 					t.Fatal("C must refuse the displayed condition before Open and after Back")
 				}
 				_ = e.Key("delete")

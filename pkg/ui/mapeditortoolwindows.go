@@ -16,21 +16,11 @@ type barWindowSet struct {
 	document            *InspectionDocument
 	report              reportState
 	brush               brushState
-	add                 barAddWindow
-	choice              int64
-	gridTop, brushTop   int
-	places              [popCount]popupStanding
-}
-
-type barAddWindow struct {
-	kind     RecordKind
-	title    string
-	steps    []addStep
-	seed     InspectionNewRecord
-	listed   uint32
-	register uint32
-	relabel  bool
-	repeat   bool
+	// placing is the kind a palette was placing, choice its grid's value.
+	placing           RecordKind
+	choice            int64
+	gridTop, brushTop int
+	places            [popCount]popupStanding
 }
 
 func (e *MapEditor) barWindowSet() barWindowSet {
@@ -57,19 +47,8 @@ func (e *MapEditor) barWindowSet() barWindowSet {
 		}
 	}
 	if run, ok := e.addRunning(); ok {
-		s.add = barAddWindow{kind: run.kind, title: run.title, steps: slices.Clone(run.steps),
-			seed: run.seed, listed: run.listed, repeat: run.repeat}
-		s.add.seed.Values = slices.Clone(run.seed.Values)
-		if run.relabel != nil {
-			s.add.register, s.add.relabel = *run.relabel, true
-		}
-		if run.repeat {
-			key := "kind"
-			if run.kind == KindUnit {
-				key = "identity"
-			}
-			_, s.choice, _ = e.placing(key)
-		}
+		s.placing = run.kind
+		_, s.choice, _ = e.placing(placeKey[run.kind])
 	}
 	return s
 }
@@ -145,32 +124,12 @@ func (e *MapEditor) restoreBarWindows(s barWindowSet) {
 		}
 		e.setSelection(refs)
 	}
-	if s.add.kind != "" {
-		if s.add.repeat {
-			for n, choice := range e.placeShown() {
-				if choice.Value == s.choice {
-					e.placeChoose(n)
-					break
-				}
-			}
-		} else {
-			run := &addRun{kind: s.add.kind, title: s.add.title, seed: s.add.seed, listed: s.add.listed}
-			valid := true
-			if s.add.relabel {
-				valid = false
-				for _, v := range e.scriptVariables() {
-					valid = valid || v.register == s.add.register
-				}
-				register := s.add.register
-				run.relabel = &register
-			}
-			if s.add.listed != 0 {
-				_, valid = e.nodeByID(true, s.add.listed)
-			}
-			if valid {
-				run.setSteps(s.add.steps)
-				e.openAddRun(run)
-			}
+	switch kind := s.placing; {
+	case kind == KindSack && len(e.place.sack) > 0:
+		e.placeStart(kind, nil)
+	case kind != "":
+		if slices.ContainsFunc(e.placeShown(), func(c InspectionChoice) bool { return c.Value == s.choice }) {
+			e.placeStart(kind, map[string]int64{placeKey[kind]: s.choice})
 		}
 	}
 	if s.metadata != "" {

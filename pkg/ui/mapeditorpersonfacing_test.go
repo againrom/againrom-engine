@@ -37,7 +37,7 @@ func TestEditorPersonWindowFacingPadInBothViews(t *testing.T) {
 					t.Fatalf("person window %v, plain %v", e.nativeUnitWindow(), e.PlainView())
 				}
 				for n := range 9 {
-					_, rr := facingPadRow(t, e, false)
+					_, rr := facingPadRow(t, e)
 					modesClick(e, center(rr.Buttons[n]))
 					if e.obj.buf[0] != strconv.Itoa(n) {
 						t.Fatalf("button %d chose %q", n, e.obj.buf[0])

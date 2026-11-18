@@ -40,13 +40,13 @@ func (e *MapEditor) keyPlayers(string) error {
 	return nil
 }
 
-// keyAdd opens the Add window on the kind the shown list holds.
+// keyAdd adds a player on the Players list and does nothing on any other.
 func (e *MapEditor) keyAdd(string) error {
 	if !e.listView() || e.brushActive() {
 		return nil
 	}
-	if row, ok := addKindFor(e.filter); ok {
-		e.openAdd(row.Kind)
+	if row, ok := e.listAdd(); ok {
+		e.addNow(row.Kind)
 	}
 	return nil
 }

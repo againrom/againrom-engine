@@ -112,12 +112,16 @@ func TestEditorObjectSpellsFollowOwnerWithoutWriting(t *testing.T) {
 func TestEditorCellSpellPaletteOffersAllKinds(t *testing.T) {
 	e := cellSpellFixture(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
-	choices := s.inspector.cellSpellPalette()
-	if len(choices) != 3 {
+	offer := s.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindEnchantment}, "template")
+	choices := offer.Choices
+	if len(choices) != 6 {
 		t.Fatal(choices)
 	}
 	for i, kind := range []uint16{0, 8, 4} {
-		if choices[i].Value != int64(mapedit.SpellConstructor(kind)) || choices[i].Label == "" {
+		v := int64(mapedit.SpellConstructor(kind))
+		target := []ui.RecordKind{"", ui.KindUnit, ui.KindStructure}[i]
+		want := ui.InspectionSpellTemplate{Constructor: v, Target: target}
+		if choices[i].Value != v || choices[i].Label == "" || offer.Templates[v] != want || offer.Templates[int64(i)] != want {
 			t.Fatal("palette kind", kind, choices)
 		}
 	}

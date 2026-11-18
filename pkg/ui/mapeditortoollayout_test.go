@@ -131,7 +131,7 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	if len(l.Buttons) != 2 || l.Buttons[0].Max.X > l.Buttons[1].Min.X || e.font.Advance(s.Buttons[0]) > l.Buttons[0].Dx() {
-		t.Fatalf("the toggle does not stand whole left of the add buttons: %v", l.Buttons)
+		t.Fatalf("the toggle does not stand whole left of New trigger: %v", l.Buttons)
 	}
 	modesClick(e, center(l.Buttons[0]))
 	if e.pick != pickDrop {
@@ -146,8 +146,8 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 		t.Fatal("a second press left the drop tool on")
 	}
 	e.showRecords(1)
-	if s, _ := e.listSpec(); !slices.Equal(s.Buttons, []string{"Add"}) {
-		t.Fatalf("the Units list's buttons are %q", s.Buttons)
+	if s, ok := e.listSpec(); !ok || s.Grid == nil || len(s.Buttons) != 0 || e.pick == pickDrop {
+		t.Fatalf("Units shows grid %v, buttons %q and pick %q", s.Grid != nil, s.Buttons, e.pick)
 	}
 	for _, key := range []string{"drop", "dropzones", "drawarea"} {
 		for _, menu := range []string{"file"} {

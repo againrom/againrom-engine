@@ -124,6 +124,17 @@ func spellRecordKnown(rec []byte) bool {
 	return k == 4 || k == 8 || k < 4 && len(rec) >= enchantmentHead+12
 }
 
+func notCellSpell(rec []byte) bool {
+	return !spellRecordKnown(rec) || binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0
+}
+
+func checkSpellCell(x, y uint32) error {
+	if x > 255 || y > 255 || x == 0 && y == 0 {
+		return fmt.Errorf("mapedit: spell cell is outside the nonzero byte-coordinate map")
+	}
+	return nil
+}
+
 // SpellConstructor is the AddSpellFrom template that names kind's new
 // record instead of a record of the map: every byte 0 but the kind, and a
 // trap's two elements (ALM-EDITT9-328).
@@ -149,6 +160,19 @@ func (e *Editor) spellTemplate(template int) ([]byte, bool, error) {
 	return rec, true, nil
 }
 
+// SpellTemplateFields describes the fields of a spell constructor or copy.
+func (e *Editor) SpellTemplateFields(template int) []Field {
+	rec, fresh, err := e.spellTemplate(template)
+	if err != nil || !fresh && notCellSpell(rec) {
+		return nil
+	}
+	if fresh {
+		// Give the constructor a cell for the field table's spell check.
+		rec[4] = 1
+	}
+	return enchantmentFields(e, rec)
+}
+
 // AddSpellFrom adds a cell spell at x, y bound to link: a copy of record
 // template, or a new record when template is a SpellConstructor. A new
 // trap's source and target start at its cell; word 2 of each element is 0
@@ -158,14 +182,17 @@ func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	if !spellRecordKnown(rec) || !fresh && binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
+	if !spellRecordKnown(rec) || !fresh && notCellSpell(rec) {
 		return -1, fmt.Errorf("mapedit: select a known cell spell template")
 	}
 	view, err := e.Map()
 	if err != nil {
 		return -1, err
 	}
-	if x > 255 || y > 255 || x >= uint32(view.Width) || y >= uint32(view.Height) || x == 0 && y == 0 {
+	if err := checkSpellCell(x, y); err != nil {
+		return -1, err
+	}
+	if x >= uint32(view.Width) || y >= uint32(view.Height) {
 		return -1, fmt.Errorf("mapedit: spell cell is outside the nonzero byte-coordinate map")
 	}
 	if binary.LittleEndian.Uint16(rec[12:]) == 4 {

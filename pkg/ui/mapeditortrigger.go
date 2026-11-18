@@ -442,8 +442,16 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 		}
 		out = append(out, f)
 	}
+	if e.listedCondition(v) {
+		out = append(out, InspectionField{Key: nodeTriggerKey, Label: e.word("editor.area.trigger"), Value: -1, Choices: e.triggerChoices()})
+	}
 	return out
 }
+
+// nodeTriggerKey is the Trigger row of a condition no pair names: the
+// trigger Apply places it in (listedToTrigger), -1 a new one. The editor
+// keeps it; the host never sees it.
+const nodeTriggerKey = "trigger"
 
 // loadScriptObject fills the edit state of a script record.
 func (e *MapEditor) loadScriptObject(v scriptView) {
@@ -509,7 +517,7 @@ func (e *MapEditor) retypeNode() {
 	o.buf = o.buf[:0]
 	for _, f := range o.fields {
 		b := fieldInput(f)
-		if t, kept := text[f.Key]; kept && (f.Key == "name" || f.Key == "opcode" || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
+		if t, kept := text[f.Key]; kept && (f.Key == "name" || f.Key == "opcode" || f.Key == nodeTriggerKey || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
 			b = t
 		}
 		o.buf = append(o.buf, b)
@@ -678,6 +686,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			if e.nodeFieldTarget(v, i) != targetNone {
 				acts = []string{actPickParam}
 			}
+			if f.Key == nodeTriggerKey {
+				row.Help = e.word("editor.node.trigger.help")
+			}
 			if f.Key == "opcode" {
 				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.operation")}, -1)
 				row.Label = ""
@@ -692,12 +703,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			}
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
-		s.Disabled = []bool{!e.objectDirty(), false}
-		if e.listedCondition(v) {
-			s.Buttons, s.Disabled = append(s.Buttons, e.word("editor.scripts.totrigger")), append(s.Disabled, false)
-			fitButtons(&s, e.bodyFont())
-		}
-
+		s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
 	}
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), width)...)
@@ -910,8 +916,6 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 		e.ShowTriggerDetails(false)
 	case v.trigger != nil && n == 5:
 		e.copyTrigger(v.index)
-	case n == 2 && e.listedCondition(v):
-		e.addToTrigger(v)
 	case v.node != nil && n == 2:
 		e.backObject()
 	}
@@ -955,7 +959,7 @@ func (e *MapEditor) addNow(kind RecordKind) {
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
 	run := &addRun{kind: row.Kind}
 	run.setSteps(row.Steps)
-	record := e.addAccepted(host, run, -1, image.Point{})
+	record := e.addAccepted(host, run, image.Point{})
 	ch, err := e.commandAddRecord(record)
 	if e.askScriptForm(err, func() { e.addNow(kind) }) {
 		return
@@ -1123,7 +1127,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 	}
 	var values []InspectionFieldValue
 	for i, f := range o.fields {
-		if o.buf[i] == fieldInput(f) && !(strings.HasPrefix(f.Key, "value") || strings.HasPrefix(f.Key, "cell")) {
+		if f.Key == nodeTriggerKey || o.buf[i] == fieldInput(f) && !(strings.HasPrefix(f.Key, "value") || strings.HasPrefix(f.Key, "cell")) {
 			continue
 		}
 		switch {

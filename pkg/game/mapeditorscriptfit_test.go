@@ -100,7 +100,7 @@ func TestScriptsPopupButtonsFitTheirCaptions(t *testing.T) {
 		}
 
 		e.Select(trigRecord(t, e, "Condition", 2), false)
-		check("listed condition", []string{"editor.button.apply", "editor.button.cancel", "editor.scripts.totrigger"})
+		check("listed condition", []string{"editor.button.apply", "editor.button.cancel"})
 
 		r0 := variableTarget(t, e)
 		newVariable(t, e, w, "Gold")

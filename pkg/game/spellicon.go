@@ -2,9 +2,11 @@ package game
 
 import (
 	"image"
+	"math"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/bmp"
+	"againrom/pkg/ui"
 )
 
 // The spell book's icons: one strip, cut by a fixed grid, at the position the
@@ -116,6 +118,37 @@ func (t *shopController) shopSpellIcon(id uint16) *image.RGBA {
 	}
 	t.shopSpellIcons[id] = pic
 	return pic
+}
+
+// spellPictures are the book icons of the editor's spell choices, by value,
+// cut from the same strip at the same slots as the book's; a spell with no
+// slot, and every spell of an install without the strip, has none.
+func (s *mapInspectionEdits) spellPictures(choices []ui.InspectionChoice) map[int64]*image.RGBA {
+	x := s.inspector
+	if x == nil || x.archives == nil {
+		return nil
+	}
+	if x.recordPictures == nil {
+		x.recordPictures = map[string]map[int64]*image.RGBA{}
+	}
+	pics := x.recordPictures["spell"]
+	if pics == nil {
+		pics = map[int64]*image.RGBA{}
+		x.recordPictures["spell"] = pics
+	}
+	var atlas *bmp.Image
+	for _, c := range choices {
+		if _, tried := pics[c.Value]; tried || c.Value <= 0 || c.Value > math.MaxUint16 {
+			continue
+		}
+		if atlas == nil {
+			if atlas = loadSpellAtlas(x.archives.Containers); atlas == nil {
+				return pics
+			}
+		}
+		pics[c.Value] = cutBookIcon(atlas, spellBookRows(x.table), uint16(c.Value))
+	}
+	return pics
 }
 
 func cutBookIcon(atlas *bmp.Image, rows []uint16, id uint16) *image.RGBA {

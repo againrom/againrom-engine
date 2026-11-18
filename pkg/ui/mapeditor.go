@@ -39,6 +39,9 @@ type InspectionRecord struct {
 	// ScriptID is the number a script parameter names a unit or structure
 	// by; 0 for any other record.
 	ScriptID int
+	// SpellLink is the number a cell spell record names a unit or structure
+	// by: a unit's id, a structure's binding id; 0 for any other record.
+	SpellLink int64
 	// Hover is the status strip's line while the pointer is on the record's
 	// cell, in the font's encoding; empty shows nothing.
 	Hover string
@@ -404,6 +407,7 @@ func (e *MapEditor) showDoc(next *InspectionDocument, kept *openMap) {
 	next.Viewer.wheelZoomPercent = 0
 	e.doc = next
 	e.place.icons = nil
+	e.place.sack, e.place.cast = nil, castPalette{}
 	e.barSets, e.barOwner = nil, ""
 	e.formAgreed = false
 	e.saveStatus = saveNotice{}
@@ -550,6 +554,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	defer e.dropLostPick()
 	if in.SecondaryDown && e.pick != pickNone {
 		e.leave(leavePick)
+		if e.prompt.kind == promptPlace {
+			e.leave(leavePrompt)
+		}
 		return
 	}
 	// A right press clears the brush as Esc does; in Forest mode the right
@@ -673,7 +680,7 @@ func (e *MapEditor) Update() error {
 	if handled, err := e.modNativeKeys(native); handled {
 		return err
 	}
-	typing, policy := e.updateTextInput(native, time.Now())
+	typing, _ := e.updateTextInput(native, time.Now())
 	for _, k := range []struct {
 		key  ebiten.Key
 		name string
@@ -697,10 +704,10 @@ func (e *MapEditor) Update() error {
 			}
 		}
 	}
-	if !e.prompt.open() && native.pressed(ebiten.KeyControl) && native.justPressed(ebiten.KeyF) {
+	if !e.prompt.modal() && native.pressed(ebiten.KeyControl) && native.justPressed(ebiten.KeyF) {
 		_ = e.Key(searchKey)
 	}
-	if !e.prompt.open() && !e.objectTyping() && !e.treeTyping() && !e.searchTyping() {
+	if !e.prompt.modal() && !e.objectTyping() && !e.treeTyping() && !e.searchTyping() {
 		for _, p := range sidePanels {
 			if native.justPressed(p.hotkey) {
 				_ = e.Key(p.key)
@@ -773,7 +780,7 @@ func (e *MapEditor) Update() error {
 		_ = e.Key("tab")
 	}
 	canvas := e.mcpCanvas(native.canvas)
-	if typing && !policy.panArrows {
+	if typing {
 		canvas.PanLeft, canvas.PanRight, canvas.PanUp, canvas.PanDown = false, false, false, false
 	}
 	e.Pointer(canvas, time.Now())

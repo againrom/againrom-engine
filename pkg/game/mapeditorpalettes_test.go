@@ -207,7 +207,6 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 	c.click(e, r, ok, "the Objects grid's fence")
 	clickMapCell(c, e, paletteMapCell)
 	_ = e.Key("escape")
-	_ = e.Key("escape")
 	if e.PlaceGridLen() != 1 {
 		t.Fatal("Esc did not end the placing back in the object brush")
 	}
@@ -222,8 +221,10 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 	}
 
 	w, _ := paletteEditorOn(t, raw)
-	addWindow(t, w, "structure", map[string]string{"kind": "2", "cell": "8,8"})
-	if !bytes.Equal(w.Document().SourceBytes, byGrid) {
+	if _, err := objectEdits(t, w).AddStructure(paletteMapCell, 2); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(objectEdits(t, w).model.Bytes(), byGrid) {
 		t.Fatal("the Add window and the Objects grid write different bytes for the fence")
 	}
 

@@ -167,7 +167,7 @@ func TestReleaseEditorNewTrapOnANewMapCastsInTestPlay(t *testing.T) {
 	if err := e.Key("casts"); err != nil {
 		t.Fatal(err)
 	}
-	addSteps(t, e, map[string]string{"template": strconv.Itoa(mapedit.SpellConstructor(0)), "link": "0",
+	addFixtureRecord(t, e, ui.KindEnchantment, map[string]string{"template": strconv.Itoa(mapedit.SpellConstructor(0)), "link": "0",
 		"cell": strconv.Itoa(cell.X) + "," + strconv.Itoa(cell.Y), "spell": "13", "power": "1"})
 	want := cellSpellBytes(0, uint32(cell.X), uint32(cell.Y), 0, 0, 13, 1,
 		[3]uint16{uint16(cell.X), uint16(cell.Y), 0}, [3]uint16{uint16(cell.X), uint16(cell.Y), 0})
@@ -238,7 +238,7 @@ func TestReleaseEditorOffAnchorCastingRecordEditsAndCopies(t *testing.T) {
 			if err := e.Key("casts"); err != nil {
 				t.Fatal(err)
 			}
-			addSteps(t, e, map[string]string{"template": strconv.Itoa(i), "cell": strconv.Itoa(cell.X) + "," + strconv.Itoa(cell.Y)})
+			addFixtureRecord(t, e, ui.KindEnchantment, map[string]string{"template": strconv.Itoa(i), "cell": strconv.Itoa(cell.X) + "," + strconv.Itoa(cell.Y)})
 			copied := bytes.Clone(want)
 			binary.LittleEndian.PutUint32(copied[4:], uint32(cell.X))
 			binary.LittleEndian.PutUint32(copied[8:], uint32(cell.Y))

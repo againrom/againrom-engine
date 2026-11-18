@@ -37,9 +37,9 @@ func TestMapEditorWindowCursorFollowsResizableBorders(t *testing.T) {
 	}{
 		{"inside", mid, ebiten.CursorShapeDefault},
 		{"bottom right corner", image.Pt(r.Max.X-3, r.Max.Y-3), ebiten.CursorShapeNWSEResize},
-		{"right side", image.Pt(r.Max.X-3, r.Min.Y+80), ebiten.CursorShapeEWResize},
+		{"right side", rightEdge(r), ebiten.CursorShapeEWResize},
 		{"bottom side", image.Pt(r.Min.X+60, r.Max.Y-3), ebiten.CursorShapeNSResize},
-		{"left side", image.Pt(r.Min.X+2, r.Min.Y+80), ebiten.CursorShapeEWResize},
+		{"left side", leftEdge(r), ebiten.CursorShapeEWResize},
 		{"outside", image.Pt(r.Max.X+40, r.Max.Y+40), ebiten.CursorShapeDefault},
 	} {
 		if got := at(c.p); got != c.want {

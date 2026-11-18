@@ -18,12 +18,61 @@ var castWords = map[string]struct{ Word string }{
 	"tile": {Word: "editor.cast.tile"}, "unit": {Word: "editor.cast.unit"}, "structure": {Word: "editor.cast.structure"},
 	"trap": {Word: "editor.cast.trap"}, "book": {Word: "editor.cast.book"}, "caster": {Word: "editor.cast.caster"}, "unknown": {Word: "editor.cast.unknown"},
 	"mode0": {Word: "editor.cast.mode0"}, "mode1": {Word: "editor.cast.mode1"}, "mode2": {Word: "editor.cast.mode2"}, "mode3": {Word: "editor.cast.mode3"},
-	"newtrap": {Word: "editor.cast.newtrap"}, "newbook": {Word: "editor.cast.newbook"}, "newcaster": {Word: "editor.cast.newcaster"},
+
 	"unbound": {Word: "editor.cast.unbound"}, "castpower": {Word: "editor.cast.castpower"},
 }
 
-// spellNewWord names the Add window's choice of each kind's new record.
-var spellNewWord = map[uint16]string{0: "newtrap", 8: "newbook", 4: "newcaster"}
+var cellSpellTemplates = []struct {
+	kind   uint16
+	word   string
+	target ui.RecordKind
+	check  mapedit.FieldCheck
+}{
+	{kind: 0, word: "editor.cast.where.cell"},
+	{kind: 8, word: "editor.cast.where.unit", target: ui.KindUnit, check: mapedit.CheckScriptUnit},
+	{kind: 4, word: "editor.cast.where.structure", target: ui.KindStructure, check: mapedit.CheckScriptStructure},
+}
+
+func cellSpellTemplateIndex(kind uint16) int {
+	if kind < 4 {
+		kind = 0
+	}
+	for i, t := range cellSpellTemplates {
+		if t.kind == kind {
+			return i
+		}
+	}
+	return -1
+}
+
+func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewStep {
+	out := ui.InspectionNewStep{Templates: make(map[int64]ui.InspectionSpellTemplate)}
+	for _, t := range cellSpellTemplates {
+		v := int64(mapedit.SpellConstructor(t.kind))
+		out.Choices = append(out.Choices, ui.InspectionChoice{Value: v, Label: s.inspector.inspectionUTF8(s.inspector.word(t.word))})
+		out.Templates[v] = ui.InspectionSpellTemplate{Constructor: v, Target: t.target}
+	}
+	out.Value = out.Choices[0].Value
+	for i := range view.Enchantments {
+		fields, err := s.model.Fields(mapedit.KindEnchantment, i)
+		if err != nil || len(fields) == 0 || fields[0].Key != "spell" {
+			continue
+		}
+		v := int64(i)
+		kind, _ := spellTemplateKindIn(view, v)
+		template := cellSpellTemplateIndex(kind)
+		if template < 0 {
+			continue
+		}
+		t := cellSpellTemplates[template]
+		out.Choices = append(out.Choices, ui.InspectionChoice{Value: v,
+			Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0).Label)})
+		out.Templates[v] = ui.InspectionSpellTemplate{
+			Constructor: int64(mapedit.SpellConstructor(t.kind)), Target: t.target,
+		}
+	}
+	return out
+}
 
 func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int) ui.InspectionRecord {
 	r := ui.InspectionRecord{Kind: ui.KindEnchantment, Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
@@ -105,16 +154,27 @@ func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int) erro
 	return s.admitCell(m, image.Pt(int(x), int(y)), "spell cell", ui.KindEnchantment, admitField)
 }
 
-// spellTemplateKind is the kind of cell spell the Add window's template
-// value v starts: a SpellConstructor's kind or the kind of record v.
 func spellTemplateKind(m *mapedit.Editor, v int64) (uint16, bool) {
-	for _, kind := range []uint16{0, 4, 8} {
-		if v == int64(mapedit.SpellConstructor(kind)) {
-			return kind, true
-		}
+	if v < 0 {
+		return spellTemplateKindIn(nil, v)
 	}
 	view, err := m.Map()
-	if err != nil || v < 0 || v >= int64(len(view.Enchantments)) {
+	if err != nil {
+		return 0, false
+	}
+	return spellTemplateKindIn(view, v)
+}
+
+func spellTemplateKindIn(view *alm.Map, v int64) (uint16, bool) {
+	if v < 0 {
+		for _, t := range cellSpellTemplates {
+			if v == int64(mapedit.SpellConstructor(t.kind)) {
+				return t.kind, true
+			}
+		}
+		return 0, false
+	}
+	if view == nil || v >= int64(len(view.Enchantments)) {
 		return 0, false
 	}
 	return view.Enchantments[v].A, true
@@ -123,11 +183,8 @@ func spellTemplateKind(m *mapedit.Editor, v int64) (uint16, bool) {
 // spellCheck is the object reference check of a unit spell or casting
 // structure record, and false for a kind that names no object.
 func spellCheck(kind uint16) (mapedit.FieldCheck, bool) {
-	switch kind {
-	case 8:
-		return mapedit.CheckScriptUnit, true
-	case 4:
-		return mapedit.CheckScriptStructure, true
+	if i := cellSpellTemplateIndex(kind); i >= 0 && cellSpellTemplates[i].target != "" {
+		return cellSpellTemplates[i].check, true
 	}
 	return 0, false
 }

@@ -647,28 +647,12 @@ func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
-	if c, ok := categoryOf(filter); ok && c.addsAtOnce {
-		e.addAtOnce(c)
-		return
-	}
 	if c, ok := categoryOf(filter); ok {
 		e.openPalette(c)
 		e.chooseFirstOf(filter)
 		return
 	}
 	e.openRecords(filter)
-}
-
-// addAtOnce opens the Add window of category c's kind as c's bar window.
-func (e *MapEditor) addAtOnce(c editorCategory) {
-	row, ok := addKindFor(c.filter)
-	if !ok {
-		return
-	}
-	e.openAdd(row.Kind)
-	if _, open := e.addRunning(); open {
-		e.barOwner = c.key
-	}
 }
 
 // openPalette shows category c's palette in the list popup; a category
@@ -757,7 +741,7 @@ func (e *MapEditor) listKind() string {
 		return "catalog"
 	case e.report.open:
 		return "report"
-	case e.brushActive() || e.prompt.kind == promptAdd && e.prompt.add != nil && e.prompt.add.brush && e.brush.mode == brushObjects:
+	case e.brushActive() || e.prompt.kind == promptPlace && e.prompt.add != nil && e.prompt.add.brush && e.brush.mode == brushObjects:
 		return "brush"
 	case e.listShown && e.doc != nil && e.filter == editorVariablesFilter:
 		return "variables"
@@ -1048,6 +1032,9 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		} else if g, placing, ok := e.placeGridSpec(); ok {
 			s.Grid, note = g, placing
 			s.TitleHelp = strings.TrimSpace(s.TitleHelp + " " + e.word("editor.place.help"))
+			if row, ok := e.placeOwnerRow(); ok {
+				s.Rows = append(s.Rows, row)
+			}
 		}
 		e.brushFit(&s)
 		s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
@@ -1075,9 +1062,18 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
 			s.TitleHelp = e.word("editor.place.help")
+			switch e.filter {
+			case 3:
+				s.TitleHelp = e.word("editor.bar.sacks.help")
+			case editorCellSpellsFilter:
+				s.TitleHelp = e.word("editor.cast.palette.help")
+				s.Width, s.LabelWidth = e.popupWide(popList, 640), 200
+			}
 			if row, ok := e.placeOwnerRow(); ok {
 				s.Rows = append(s.Rows, row)
 			}
+			s.Rows = append(s.Rows, e.sackRows()...)
+			s.Rows = append(s.Rows, e.castRows()...)
 			s.Rows = append(s.Rows, e.placeNoteRows(note, s.Width)...)
 			e.placeSwitch(&s)
 			e.placeRuinedSwitch(&s)
@@ -1217,15 +1213,17 @@ func (e *MapEditor) controlListButtonKeyRect(key string) (image.Rectangle, bool)
 	return image.Rectangle{}, false
 }
 
-// listAdd is the kind the shown records list's Add button adds.
+// listAdd is the kind the shown records list's Add button adds at once: a
+// player on the Players list. Every other record is placed from its
+// palette.
 func (e *MapEditor) listAdd() (addKindRow, bool) {
 	if _, ok := e.addHost(); !ok || e.listKind() != "records" {
 		return addKindRow{}, false
 	}
-	if c, ok := categoryOf(e.filter); ok && c.addsAtOnce {
-		return addKindRow{}, false
+	if row, ok := addKindFor(e.filter); ok && row.OneClick {
+		return row, true
 	}
-	return addKindFor(e.filter)
+	return addKindRow{}, false
 }
 
 // listChoose acts on list row n: open a map, pick a finding or a brush row,
@@ -1268,6 +1266,9 @@ func (e *MapEditor) listChoose(n int, open bool) {
 		}
 		if rows := e.rows(); n >= 0 && n < len(rows) {
 			e.chooseListed(rows[n])
+			if r := e.doc.Records[rows[n]]; e.filter == editorCellSpellsFilter && r.Kind == KindEnchantment {
+				e.castFromRecord(r)
+			}
 		}
 	}
 }
@@ -1602,12 +1603,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	if !e.prompt.open() && e.message == "" {
 		return popupSpec{}, false
 	}
-	if e.prompt.kind == promptAdd {
-		if e.prompt.add != nil && e.prompt.add.quiet && e.message == "" {
-			return popupSpec{}, false
-		}
-		s, _ := e.addSpec()
-		return s, true
+	if e.prompt.kind == promptPlace && e.message == "" {
+		return popupSpec{}, false
 	}
 	switch e.prompt.kind {
 	case promptLeave:
@@ -1634,7 +1631,9 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
 	text := w - 2*popupPad - 60
-	if e.prompt.open() {
+	// A placing asks nothing: only its message shows.
+	asking := e.prompt.open() && e.prompt.kind != promptPlace
+	if asking {
 		s.Title, s.TitleHelp = e.promptTitle(), e.promptHelp()
 		e.promptRows(&s, text)
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
@@ -1646,7 +1645,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		// The message shows whole: in a prompt as its notes, alone as the
 		// window's rows, which page when the window is taller than its room.
 		lines := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
-		if e.prompt.open() {
+		if asking {
 			s.Notes = append(s.Notes, lines...)
 		} else {
 			for _, line := range lines {
@@ -1658,7 +1657,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		}
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	if e.prompt.open() && e.message != "" && len(s.Notes) > 0 && len(l.Notes) == 0 {
+	if asking && e.message != "" && len(s.Notes) > 0 && len(l.Notes) == 0 {
 		// The notes do not page, so a message too long for the room would
 		// fold whole into the title's (?) help and take the kept line with
 		// it. The body keeps the first five lines, a continued sixth and the
@@ -1803,7 +1802,6 @@ func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
 	}
 	if s, ok := e.promptSpec(); ok {
 		e.drawWindow(pic, s)
-		e.drawAddPreview(pic, s)
 	}
 	e.drawRowDropdowns(pic)
 }
@@ -1850,9 +1848,6 @@ func (e *MapEditor) drawListWindow(pic *image.RGBA, s popupSpec) {
 	e.drawWindow(pic, s)
 	e.drawGoalLinks(pic, s)
 }
-
-// previewW is the width of the Add window's picture column.
-const previewW = 96
 
 // drawObjectFigure draws a person's figure in the unit window's place for
 // it; any other record's picture is the window's picture row.
@@ -2298,7 +2293,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		return false
 	}
 	target := e.chromeHit(p)
-	modal := e.prompt.open() && !e.addPicking() || e.message != ""
+	modal := e.prompt.modal() || e.message != ""
 	barWindow := false
 	if target == popBar && e.barWindow() != "" {
 		for _, b := range e.barEntries() {
@@ -2416,7 +2411,6 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 			e.pageWheel(popPrompt, s, l, wheel)
 			return
 		}
-		e.addWheel(wheel)
 	}
 }
 
@@ -2461,8 +2455,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 	case popMapTabs:
 		e.mapTabsPress(p)
 	case popPrompt:
-		if e.prompt.kind == promptAdd {
-			e.addPress(p, double)
+		if e.prompt.kind == promptPlace {
+			// Only a message shows over a placing: OK or the cross clears it.
+			s, _ := e.promptSpec()
+			if part, _ := layoutPopup(s, e.font, e.bodyFont()).hit(p); part == popupClose || part == popupButton {
+				e.message = ""
+			}
 			return
 		}
 		switch e.prompt.kind {
@@ -2556,9 +2554,13 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				e.cancelPopup(popList)
 			}
 		case popupRowButton:
-			if row, k, ok := l.rowButtonAt(p); ok && e.listKind() == "brush" {
+			row, k, ok := l.rowButtonAt(p)
+			switch {
+			case ok && e.listKind() == "brush":
 				e.brushRowButton(row, k)
-			} else if ok && s.Rows[row].HeadOf > 0 {
+			case ok && e.sackRowPress(s, row):
+			case ok && e.castRowPress(s, row, k):
+			case ok && s.Rows[row].HeadOf > 0:
 				e.playerHeadPress(s.Rows[row])
 			}
 		case popupRowControl, popupRowLine:
@@ -2614,7 +2616,7 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 					_ = e.Key("delete")
 				case "add":
 					row, _ := e.listAdd()
-					e.openAdd(row.Kind)
+					e.addNow(row.Kind)
 				case scenarioNew[0].key:
 					for _, kind := range scenarioNew {
 						if kind.key == bs[n].key {

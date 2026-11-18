@@ -16,6 +16,11 @@ import (
 
 func cellSpellFixture(t *testing.T) *ui.MapEditor {
 	t.Helper()
+	return cellSpellFixtureWithPower(t, 1)
+}
+
+func cellSpellFixtureWithPower(t *testing.T, power uint32) *ui.MapEditor {
+	t.Helper()
 	var recs [][]byte
 	for _, k := range []uint16{0, 8, 4, 12} {
 		rec := make([]byte, 38)
@@ -27,7 +32,7 @@ func cellSpellFixture(t *testing.T) *ui.MapEditor {
 		if k == 8 {
 			binary.LittleEndian.PutUint32(rec[14:], 0)
 		}
-		binary.LittleEndian.PutUint32(rec[18:], 13|1<<16)
+		binary.LittleEndian.PutUint32(rec[18:], 13|power<<16)
 		binary.LittleEndian.PutUint32(rec[22:], 2)
 		for i, v := range []uint16{5, 6, 0xdead, 3, 4, 0xbeef} {
 			binary.LittleEndian.PutUint16(rec[26+2*i:], v)
@@ -66,7 +71,7 @@ func addCellSpell(t *testing.T, e *ui.MapEditor, template int, cell image.Point,
 	if err := e.Key("casts"); err != nil {
 		t.Fatal(err)
 	}
-	addSteps(t, e, map[string]string{"template": strconv.Itoa(template), "cell": strconv.Itoa(cell.X) + "," + strconv.Itoa(cell.Y), "spell": "13", "power": "20", "link": link})
+	addFixtureRecord(t, e, ui.KindEnchantment, map[string]string{"template": strconv.Itoa(template), "cell": strconv.Itoa(cell.X) + "," + strconv.Itoa(cell.Y), "spell": "13", "power": "20", "link": link})
 }
 
 func TestEditorCellSpellsKeyPointerBytesAndClear(t *testing.T) {
@@ -217,11 +222,9 @@ func TestEditorCellSpellsNoneDeletesAndRefusesAdd(t *testing.T) {
 			}
 			before := s.model.Bytes()
 			e.Select(recordIndex(t, e, "Enchantment", template), false)
-			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: 0})
-			messageClick(t, e, r, ok)
-			_ = e.Key("selectall")
-			e.TextInput("0")
-			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
+			noSpell := s.inspector.inspectionUTF8(s.inspector.word("editor.param.nospell"))
+			trigChoose(t, e, 0, noSpell)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 			messageClick(t, e, r, ok)
 			if s.model.Count(mapedit.KindEnchantment) != 3 {
 				t.Fatal("None kept a cell spell record")
@@ -237,16 +240,7 @@ func TestEditorCellSpellsNoneDeletesAndRefusesAdd(t *testing.T) {
 			if _, err := s.AddRecord(add); err == nil || !strings.Contains(err.Error(), "spell") || !bytes.Equal(s.model.Bytes(), before) {
 				t.Fatal("Add with None was not refused with a reason", err)
 			}
-			if err := e.Key("casts"); err != nil {
-				t.Fatal(err)
-			}
-			addStepsN(t, e, map[string]string{"template": strconv.Itoa(template), "link": strconv.FormatInt(add.Values[1].Value, 10), "cell": "3,4"}, 3)
-			_ = e.Key("clear")
-			e.TextInput("0")
-			_ = e.Key("enter")
-			if key, note, ok := e.AddStep(); !ok || key != "spell" || note == "" || !bytes.Equal(s.model.Bytes(), before) {
-				t.Fatal("Add popup did not explain the None refusal", key, note)
-			}
+
 		})
 	}
 }

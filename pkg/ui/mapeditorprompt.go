@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"slices"
 	"strconv"
@@ -24,11 +25,11 @@ var promptWords = map[promptKind]struct{ title, help string }{
 
 // promptTitle is a typed prompt's title: the name of what it asks for.
 func (e *MapEditor) promptTitle() string {
-	if r, ok := e.addRunning(); ok {
-		return r.title
-	}
 	if e.prompt.kind == promptSeed {
 		return e.seedTitle()
+	}
+	if e.prompt.kind == promptVariableLabel {
+		return fmt.Sprintf(e.word("editor.labels.title"), e.prompt.register)
 	}
 	if e.prompt.kind == promptMapsFolder && e.prompt.scope != "" {
 		if f, ok := e.modFocusField(); ok {
@@ -96,7 +97,7 @@ func (e *MapEditor) promptRows(s *popupSpec, text int) {
 // promptChoiceField is the field a field prompt sets when that field has
 // choices.
 func (e *MapEditor) promptChoiceField() (InspectionField, bool) {
-	if !e.prompt.fields() || e.prompt.kind == promptAdd {
+	if !e.prompt.fields() {
 		return InspectionField{}, false
 	}
 	fields := e.promptFields()

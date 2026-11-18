@@ -75,23 +75,10 @@ func facingPadEditor(t *testing.T, lang string) (*MapEditor, *facingPadHost) {
 	return e, h
 }
 
-func facingPadRow(t *testing.T, e *MapEditor, add bool) (popupSpec, popupRowRect) {
+func facingPadRow(t *testing.T, e *MapEditor) (popupSpec, popupRowRect) {
 	t.Helper()
-	var s popupSpec
-	row := -1
-	if add {
-		var acts []addRowAct
-		s, acts = e.addSpec()
-		for n, a := range acts {
-			if a.asked {
-				row = n
-			}
-		}
-		s = e.sizedPrompt(s)
-	} else {
-		s, _, _ = e.objectSpec()
-		row = e.fieldRow(0)
-	}
+	s, _, _ := e.objectSpec()
+	row := e.fieldRow(0)
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == row {
 			if len(rr.Buttons) != 9 {
@@ -106,82 +93,64 @@ func facingPadRow(t *testing.T, e *MapEditor, add bool) (popupSpec, popupRowRect
 
 func TestEditorFacingPadUsesCompassButtons(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, add := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/add=%v", lang, add), func(t *testing.T) {
-				e, h := facingPadEditor(t, lang)
-				if add {
-					e.openAdd(KindUnit)
-					for i := 0; i < 8; i++ {
-						key, _, ok := e.AddStep()
-						if !ok {
-							t.Fatal("Add closed")
-						}
-						if key == "facing" {
-							break
-						}
-						addAdvance(t, e, 1)
-					}
+		t.Run(lang, func(t *testing.T) {
+			e, h := facingPadEditor(t, lang)
+			_, rr := facingPadRow(t, e)
+			for n, pos := range h.pad {
+				b := rr.Buttons[n]
+				if b.Size() != rr.Buttons[0].Size() || b.Dx() != b.Dy() {
+					t.Fatal("buttons are not equal squares")
 				}
-				_, rr := facingPadRow(t, e, add)
-				for n, pos := range h.pad {
-					b := rr.Buttons[n]
-					if b.Size() != rr.Buttons[0].Size() || b.Dx() != b.Dy() {
-						t.Fatal("buttons are not equal squares")
-					}
-					if center(b).Sub(center(rr.Buttons[0])) != pos.Mul(b.Dx()+2) {
-						t.Fatalf("value %d is at %v", n, b)
-					}
+				if center(b).Sub(center(rr.Buttons[0])) != pos.Mul(b.Dx()+2) {
+					t.Fatalf("value %d is at %v", n, b)
 				}
-				for n := range 9 {
-					_, rr = facingPadRow(t, e, add)
-					modesClick(e, center(rr.Buttons[n]))
-					value := e.prompt.path
-					if !add {
-						value = e.obj.buf[0]
-					}
-					if value != strconv.Itoa(n) {
-						t.Fatalf("button %d chose %q", n, value)
-					}
-					s, selected := facingPadRow(t, e, add)
-					l := layoutPopup(s, e.font, e.bodyFont())
-					if s.Rows[selected.Index].Selected != n {
-						t.Fatal("pressed choice did not follow the value")
-					}
-					var buttons []pushButton
-					widgetRecord = func(c widgetCall) {
-						if c.kind == widgetPushButton {
-							for _, b := range selected.Buttons {
-								if c.rect == b {
-									buttons = append(buttons, c.state.(pushButton))
-								}
+			}
+			for n := range 9 {
+				_, rr = facingPadRow(t, e)
+				modesClick(e, center(rr.Buttons[n]))
+				value := e.obj.buf[0]
+				if value != strconv.Itoa(n) {
+					t.Fatalf("button %d chose %q", n, value)
+				}
+				s, selected := facingPadRow(t, e)
+				l := layoutPopup(s, e.font, e.bodyFont())
+				if s.Rows[selected.Index].Selected != n {
+					t.Fatal("pressed choice did not follow the value")
+				}
+				var buttons []pushButton
+				widgetRecord = func(c widgetCall) {
+					if c.kind == widgetPushButton {
+						for _, b := range selected.Buttons {
+							if c.rect == b {
+								buttons = append(buttons, c.state.(pushButton))
 							}
 						}
 					}
-					drawPopup(image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y)), e.font, e.bodyFont(), nil, s, l, editorPopupInk, image.Point{}, false)
-					widgetRecord = nil
-					if len(buttons) != 9 {
-						t.Fatalf("the shared button painter drew %d pad buttons", len(buttons))
-					}
-					for k, b := range buttons {
-						if b.sunk() != (k == n) {
-							t.Fatalf("button %d pressed=%v after value %d", k, b.sunk(), n)
-						}
-					}
-					tip, ok := popupTipAt(image.Rect(0, 0, e.window.X, e.window.Y), e.font, e.bodyFont(), s, l, center(selected.Buttons[n]), true)
-					if !ok || strings.Join(tip.Lines, " ") != h.choices[n].Label {
-						t.Fatalf("value %d tip %v, want %q", n, tip, h.choices[n].Label)
+				}
+				drawPopup(image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y)), e.font, e.bodyFont(), nil, s, l, editorPopupInk, image.Point{}, false)
+				widgetRecord = nil
+				if len(buttons) != 9 {
+					t.Fatalf("the shared button painter drew %d pad buttons", len(buttons))
+				}
+				for k, b := range buttons {
+					if b.sunk() != (k == n) {
+						t.Fatalf("button %d pressed=%v after value %d", k, b.sunk(), n)
 					}
 				}
-				_ = e.Key("up")
-				if add && e.prompt.path != "7" || !add && e.obj.buf[0] != "7" {
-					t.Fatal("Up did not keep the choice keyboard order")
+				tip, ok := popupTipAt(image.Rect(0, 0, e.window.X, e.window.Y), e.font, e.bodyFont(), s, l, center(selected.Buttons[n]), true)
+				if !ok || strings.Join(tip.Lines, " ") != h.choices[n].Label {
+					t.Fatalf("value %d tip %v, want %q", n, tip, h.choices[n].Label)
 				}
-				_ = e.Key("down")
-				if add && e.prompt.path != "8" || !add && e.obj.buf[0] != "8" {
-					t.Fatal("Down did not keep the choice keyboard order")
-				}
-			})
-		}
+			}
+			_ = e.Key("up")
+			if e.obj.buf[0] != "7" {
+				t.Fatal("Up did not keep the choice keyboard order")
+			}
+			_ = e.Key("down")
+			if e.obj.buf[0] != "8" {
+				t.Fatal("Down did not keep the choice keyboard order")
+			}
+		})
 	}
 }
 
@@ -190,7 +159,7 @@ func TestEditorFacingPadKeepsSavedBytesAndCommandChoices(t *testing.T) {
 		t.Run(strconv.Itoa(n), func(t *testing.T) {
 			e, h := facingPadEditor(t, "en")
 			before := h.model.Bytes()
-			_, rr := facingPadRow(t, e, false)
+			_, rr := facingPadRow(t, e)
 			modesClick(e, center(rr.Buttons[n]))
 			e.applyObject()
 			want, _ := mapedit.New(before)
@@ -321,7 +290,7 @@ func TestEditorFacingPadFitsSizedRows(t *testing.T) {
 
 func TestEditorFacingPadRowsAndTipStayInViewport(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, surface := range []string{"plain", "detailed", "add"} {
+		for _, surface := range []string{"plain", "detailed"} {
 			t.Run(lang+"/"+surface, func(t *testing.T) {
 				e, h := facingPadEditor(t, lang)
 				e.font = wordsFont(lang)
@@ -336,27 +305,6 @@ func TestEditorFacingPadRowsAndTipStayInViewport(t *testing.T) {
 				}
 				if surface == "detailed" {
 					s.Columns = 3
-				}
-				if surface == "add" {
-					e.openAdd(KindUnit)
-					for n := 0; n < 8; n++ {
-						key, _, ok := e.AddStep()
-						if !ok {
-							t.Fatal("Add closed")
-						}
-						if key == "facing" {
-							break
-						}
-						addAdvance(t, e, 1)
-					}
-					var acts []addRowAct
-					s, acts = e.addSpec()
-					for n, a := range acts {
-						if a.asked {
-							s.Top = n
-						}
-					}
-					s.MaxRows = 1
 				}
 				l := layoutPopup(s, e.font, e.bodyFont())
 				viewport := image.Rect(l.Rect.Min.X+popupPad, l.Title.Max.Y+popupPad, l.Rect.Max.X-popupPad, l.Title.Max.Y+popupPad+3*l.Pitch)

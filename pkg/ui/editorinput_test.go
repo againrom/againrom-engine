@@ -302,7 +302,6 @@ func TestEditorInputsUseOneModel(t *testing.T) {
 		{"page-body", promptWorkspace, "pages"}, {"package-folder", promptWorkspace, "package"},
 		{"package-id", promptWorkspace, "package"}, {"package-title", promptWorkspace, "package"},
 		{"package-route", promptWorkspace, "package"}, {"package-number", promptWorkspace, "package"},
-		{"add-field", promptAdd, ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			clip := fakeTextClipboard(t)

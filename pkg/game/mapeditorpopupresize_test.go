@@ -76,7 +76,13 @@ func TestEditorPopupsResizeByTheirBorders(t *testing.T) {
 				t.Fatalf("least size %v from natural %v", tiny, before)
 			}
 			// A press below the title bar and inside the borders resizes nothing.
-			mid := func(r image.Rectangle) image.Point { return image.Pt(r.Min.X+8, r.Min.Y+r.Dy()/2) }
+			mid := func(r image.Rectangle) image.Point {
+				if e.PlaceGridLen() > 0 {
+					title, _ := e.FindControl(ui.ControlQuery{Role: ui.ControlTitle})
+					return image.Pt(r.Min.X+r.Dx()/2, title.Max.Y+2)
+				}
+				return image.Pt(r.Min.X+8, r.Min.Y+r.Dy()/2)
+			}
 			if b, a := borderDrag(t, e, mid, image.Pt(0, 0)); b != a {
 				t.Fatalf("a press in the body resized %v to %v", b, a)
 			}

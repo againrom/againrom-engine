@@ -64,7 +64,7 @@ func TestMapEditorBarWindowToggle(t *testing.T) {
 			doc, raw := e.doc, bytes.Clone(e.doc.SourceBytes)
 			undo, redo := e.doc.Edits.CanUndo(), e.doc.Edits.CanRedo()
 			chromeClick(e, barPoint(t, e, key))
-			if e.listKind() == "" && (key != "sacks" || addKindNow(e) != "Sack") {
+			if e.listKind() == "" {
 				t.Fatal("first press opened no window")
 			}
 			if !barWindowPressed(t, e, key) {
@@ -89,8 +89,13 @@ func TestMapEditorBarWindowSwitch(t *testing.T) {
 			e, calls := barWindowEditor(t)
 			chromeClick(e, barPoint(t, e, key))
 			chromeClick(e, barPoint(t, e, next))
-			if e.prompt.open() != (next == "sacks") || e.panel != (next == "panel") || e.brushActive() != (next == "objects" || next == "trees") {
+			if e.prompt.open() || e.panel != (next == "panel") || e.brushActive() != (next == "objects" || next == "trees") {
 				t.Fatal("switch retained the previous mode")
+			}
+			if next == "sacks" {
+				if kind, _, _, ok := e.placeGridOf(); !ok || kind != KindSack {
+					t.Fatal("switch did not open the Sacks palette")
+				}
 			}
 			if barWindowPressed(t, e, key) || !barWindowPressed(t, e, next) {
 				t.Fatal("pressed look did not move to the next entry")
@@ -115,14 +120,9 @@ func TestMapEditorBarClosesPlacingWindows(t *testing.T) {
 					t.Fatal("no placement cell")
 				}
 				chromeClick(e, center(r))
-				if run, ok := e.addRunning(); !ok || !run.repeat {
-					t.Fatal("grid opened no placing Add window")
+				if _, ok := e.addRunning(); !ok {
+					t.Fatal("grid did not arm placement")
 				}
-				_ = e.Key("escape")
-				if !e.prompt.open() || e.pick != pickNone {
-					t.Fatal("fixture did not leave Add modal after disarming its cell pick")
-				}
-				e.prompt.path = "uncommitted"
 				chromeClick(e, barPoint(t, e, next))
 				if e.prompt.open() || e.pick != pickNone || barWindowPressed(t, e, key) {
 					t.Fatal("bar retained the placing Add or its entry")
@@ -190,7 +190,7 @@ func TestMapEditorBarCloseKeepsPlacedCopies(t *testing.T) {
 					t.Fatal("no placement cell")
 				}
 				chromeClick(e, center(r))
-				e.addPicked(image.Pt(25, 20))
+				e.addPicked(image.Point{}, image.Pt(25, 20))
 				if len(calls.lines) != 1 || !e.prompt.open() {
 					t.Fatal("fixture did not place a copy and keep Add open", calls.lines)
 				}
@@ -217,11 +217,6 @@ func TestMapEditorBarTracksOtherDoors(t *testing.T) {
 						_ = e.Key("escape")
 					}
 				case "close":
-					if key == "sacks" {
-						// Sacks opens the Add window, closed by its own button.
-						_, l := promptLayout(t, e)
-						chromeClick(e, center(l.Close))
-					}
 					for range 3 {
 						if e.listKind() == "" {
 							break
@@ -229,9 +224,6 @@ func TestMapEditorBarTracksOtherDoors(t *testing.T) {
 						chromeClick(e, center(listLayout(t, e).Close))
 					}
 				case "mcp":
-					if key == "sacks" {
-						e.cancelPopup(popPrompt)
-					}
 					e.closeList()
 					if key == "players" {
 						// The Players window edits a player in its own row and

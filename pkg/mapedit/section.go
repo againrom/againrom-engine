@@ -31,6 +31,7 @@ type section struct {
 	typeID      uint32
 	count       int  // the type-0 word that counts the records
 	x, y        int  // fixed-point coordinate words, /256 is the cell
+	cellShift   uint // shift stored coordinates left to get fixed-point words
 	create      bool // Place may create this absent counted payload
 	insertAfter uint32
 
@@ -43,7 +44,8 @@ type section struct {
 	// does not fit.
 	length func(e *Editor, b []byte) int
 	// cellless reports a record whose coordinates the game never reads.
-	cellless func(rec []byte) bool
+	cellless  func(rec []byte) bool
+	checkCell func(x, y uint32) error
 	// renumber gives a clone its identity; nil copies every byte.
 	renumber func(e *Editor, w walk, rec []byte) error
 	// cloneParts copies into e what a clone of src's record source carries
@@ -91,8 +93,8 @@ func init() {
 			validatePlace: validatePlayerPlacement,
 			deleteParts:   playerDeleteParts,
 		},
-		KindEnchantment: {name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout,
-			length: enchantmentLength, cellless: func([]byte) bool { return true }, fields: enchantmentFields,
+		KindEnchantment: {name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout, x: 4, y: 8, cellShift: 8,
+			length: enchantmentLength, cellless: notCellSpell, checkCell: checkSpellCell, fields: enchantmentFields,
 			deleteParts: enchantmentDeleteParts,
 		},
 	}
@@ -257,7 +259,7 @@ func (e *Editor) Position(k Kind, i int) (x, y uint32, err error) {
 	if sec.cellless != nil && sec.cellless(rec) {
 		return 0, 0, fmt.Errorf("mapedit: %s %d has no map cell", sec.name, i)
 	}
-	return binary.LittleEndian.Uint32(rec[sec.x:]), binary.LittleEndian.Uint32(rec[sec.y:]), nil
+	return binary.LittleEndian.Uint32(rec[sec.x:]) << sec.cellShift, binary.LittleEndian.Uint32(rec[sec.y:]) << sec.cellShift, nil
 }
 
 // Place appends record after k's last record and returns its index. The
@@ -364,6 +366,12 @@ func (e *Editor) cloneFrom(src *Editor, copyOf bool, k Kind, i int, x, y uint32)
 			return -1, fmt.Errorf("mapedit: cannot clone %s %d: this map's %s records have another layout", w.sec.name, i, w.sec.name)
 		}
 	}
+	x, y = x>>w.sec.cellShift, y>>w.sec.cellShift
+	if w.sec.checkCell != nil {
+		if err := w.sec.checkCell(x, y); err != nil {
+			return -1, err
+		}
+	}
 	binary.LittleEndian.PutUint32(rec[w.sec.x:], x)
 	binary.LittleEndian.PutUint32(rec[w.sec.y:], y)
 	if w.sec.renumber != nil {
@@ -394,6 +402,12 @@ func (e *Editor) Move(k Kind, i int, x, y uint32) error {
 	at, l := w.at(i)
 	if w.sec.cellless != nil && w.sec.cellless(e.data[at:at+l]) {
 		return fmt.Errorf("mapedit: cannot move %s %d: it has no map cell", w.sec.name, i)
+	}
+	x, y = x>>w.sec.cellShift, y>>w.sec.cellShift
+	if w.sec.checkCell != nil {
+		if err := w.sec.checkCell(x, y); err != nil {
+			return err
+		}
 	}
 	var img [8]byte
 	binary.LittleEndian.PutUint32(img[0:], x)

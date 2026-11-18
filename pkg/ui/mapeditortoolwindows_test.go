@@ -95,7 +95,6 @@ func TestMapEditorToolWindowsReturn(t *testing.T) {
 }
 
 func TestMapEditorToolWindowsKeepSiblings(t *testing.T) {
-	// Sacks opens the Add window and has no palette to keep.
 	for _, key := range []string{"scripts", "players", "groups", "units", "structures", "cellspells"} {
 		t.Run(key, func(t *testing.T) {
 			e := toolWindowsEditor(t, key)
@@ -133,43 +132,34 @@ func TestMapEditorToolWindowsKeepSiblings(t *testing.T) {
 		}
 		e.barAct("structures")
 		e.barAct("units")
-		if _, _, ok := e.objectSpec(); !ok || !e.listShown || e.prompt.kind != promptAdd {
+		if _, _, ok := e.objectSpec(); !ok || !e.listShown || e.prompt.kind != promptPlace {
 			t.Fatal("record, Add and palette did not return together")
 		}
 	})
 }
 
-func TestMapEditorToolWindowsReturnAdd(t *testing.T) {
+func TestMapEditorToolWindowsReturnPlacement(t *testing.T) {
 	// The Players window adds a player at once, with no Add window.
 	for _, key := range []string{"units", "sacks", "structures", "cellspells", "objects"} {
 		t.Run(key, func(t *testing.T) {
 			e := toolWindowsEditor(t, key)
 			e.closeObject()
-			if key == "units" || key == "structures" || key == "objects" {
-				e.placeChoose(len(e.placeShown()) - 1)
-			} else {
-				c, _ := categoryByKey(key)
-				r, _ := addKindFor(c.filter)
-				e.openAdd(r.Kind)
-			}
+			kind, choiceKey, _, _ := e.placeGridOf()
+			e.placeChoose(len(e.placeShown()) - 1)
 			run, ok := e.addRunning()
 			if !ok {
 				t.Fatal("fixture opened no Add")
 			}
-			kind, repeat, brush := run.kind, run.repeat, run.brush
-			choiceKey := "kind"
-			if kind == KindUnit {
-				choiceKey = "identity"
-			}
-			_, choice, _ := e.placing(choiceKey)
+			brush := run.brush
+			_, choice, chosen := e.placing(choiceKey)
 			e.prompt.path = "unapplied input"
 			e.barAct("panel")
 			e.barAct(key)
 			run, ok = e.addRunning()
-			if !ok || run.kind != kind || run.repeat != repeat || run.brush != brush || e.prompt.path == "unapplied input" {
+			if !ok || run.kind != kind || run.brush != brush || e.prompt.path == "unapplied input" {
 				t.Fatal("Add did not return with its kind and without draft input")
 			}
-			if repeat {
+			if chosen {
 				if _, got, ok := e.placing(choiceKey); !ok || got != choice {
 					t.Fatal("placing Add did not retain the chosen grid value")
 				}

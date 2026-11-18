@@ -1116,9 +1116,6 @@ type editorCategory struct {
 	filter      int
 	members     categoryMembers
 	listRecords bool
-	// addsAtOnce opens the Add window of the category's kind from its bar
-	// entry; its palette holds nothing of its own.
-	addsAtOnce bool
 }
 
 // categoryMembers is how the tree reads a category's members.
@@ -1135,7 +1132,7 @@ var editorCategories = []editorCategory{
 	{key: "players", word: "editor.bar.players", filter: editorPlayersFilter},
 	{key: "groups", word: "editor.bar.groups", filter: editorGroupsFilter, members: membersGroups},
 	{key: "units", word: "editor.bar.units", filter: 1},
-	{key: "sacks", word: "editor.bar.sacks", filter: 3, addsAtOnce: true},
+	{key: "sacks", word: "editor.bar.sacks", filter: 3},
 	{key: "cellspells", word: "editor.cast.palette", filter: editorCellSpellsFilter, listRecords: true},
 	{key: "structures", word: "editor.bar.structures", filter: 2},
 }

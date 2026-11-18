@@ -47,7 +47,7 @@ func TestMapEditorStructureGridDrawsLargeCells(t *testing.T) {
 
 	chromeClick(e, center(cell))
 	run, ok := e.addRunning()
-	if !ok || run.kind != "Structure" || !run.repeat || e.pick != pickAddCell {
+	if !ok || run.kind != "Structure" || e.pick != pickPlace {
 		t.Fatalf("a press on the first cell's centre opened no placing: %+v", run)
 	}
 	if len(calls.lines) != 0 {

@@ -706,7 +706,7 @@ func (e *MapEditor) wizardFields(v scriptView) {
 
 // paramField is the field of parameter k of item i whose text is value: a
 // choice of what the parameter can name, or typed text. The wizard's rows
-// and the Add window's condition steps ask a parameter through it.
+// ask a parameter through it.
 func (e *MapEditor) paramField(condition bool, i, k int, value string) InspectionField {
 	it := wizItems(condition)[i]
 	p := it.params[k]

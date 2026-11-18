@@ -17,8 +17,8 @@ const (
 	pickDrop  pickKind = "drop"  // the cell the party drops on
 	pickGoal  pickKind = "goal"  // a unit or structure for the selected script arm
 	pickMove  pickKind = "move"  // a cell to move the selected record to
-	// pickAddCell is the cell step of the Add window.
-	pickAddCell pickKind = "addcell"
+	// pickPlace is a palette's placing: each click on the map places one.
+	pickPlace pickKind = "place"
 	// pickScriptCell is a cell for the open node popup's cell parameter.
 	pickScriptCell pickKind = "scriptcell"
 	// pickArea is the draw tool: the next drag on the map draws a new
@@ -48,7 +48,7 @@ const (
 	promptItemRecipe
 	promptRectangle
 	promptWorkspace
-	promptAdd // the Add window; its text is the current step's
+	promptPlace // a palette's placing run; no window, no typed text
 	// promptSpeaker takes a new speaker record's name; the picture's window
 	// follows it.
 	promptSpeaker
@@ -82,12 +82,14 @@ const (
 	// shows no file or folder window: scope is the row's key, "" the maps
 	// folder's, and the message says what to type.
 	promptMapsFolder
+	// promptVariableLabel asks for the label of the variable in register.
+	promptVariableLabel
 	// promptDelete asks before a player is deleted.
 	promptDelete
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
-// cycles to and, for the Add window, its run.
+// cycles to and, for a palette's placing, its run.
 type editorPrompt struct {
 	kind  promptKind
 	field int
@@ -110,6 +112,8 @@ type editorPrompt struct {
 	party *testPartyPrompt
 	// del is the record a promptDelete deletes.
 	del RecordRef
+	// register is the variable a promptVariableLabel labels.
+	register uint32
 	// list is the open list of a field prompt's choice row, nil while it is
 	// closed, and choices its entries; gridTop is the first row the field's
 	// picture grid shows.
@@ -119,8 +123,10 @@ type editorPrompt struct {
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
+
+func (p editorPrompt) modal() bool { return p.open() && p.kind != promptPlace }
 func (p editorPrompt) fields() bool {
-	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.kind == promptAdd
+	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace
 }
 
 // editorMode is every layer the window can be in.
@@ -250,7 +256,7 @@ func (e *MapEditor) barWindow() string {
 			return "objects"
 		}
 	case "":
-		if !e.objectHidden && (e.selected != -1 || e.groupSel.set || e.messagePage != 0) || e.selectionWindow() || e.prompt.kind == promptAdd {
+		if !e.objectHidden && (e.selected != -1 || e.groupSel.set || e.messagePage != 0) || e.selectionWindow() || e.prompt.kind == promptPlace {
 			if e.barOwner != "" {
 				return e.barOwner
 			}
@@ -334,10 +340,14 @@ func (e *MapEditor) keepPick(kind pickKind) { e.pick = kind }
 
 // openPrompt replaces the prompt.
 func (e *MapEditor) openPrompt(p editorPrompt) {
-	e.rememberCancel()
+	if p.kind != promptPlace {
+		e.rememberCancel()
+	}
 	e.input = editorInputState{}
 	e.prompt, e.message = p, ""
-	e.popupOpened(popPrompt)
+	if p.kind != promptPlace {
+		e.popupOpened(popPrompt)
+	}
 }
 
 // dropPrompt closes the prompt and keeps the popup's cancel point, for a step
@@ -390,13 +400,13 @@ func (e *MapEditor) closeReport() {
 }
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a
-// prompt covers it. The Add window's cell pick leaves the map to the click.
+// prompt covers it. A palette's placing leaves the map to the click.
 func (m *editorMode) blocksCanvas() bool {
-	return m.catalog || m.prompt.open() && !m.addPicking()
+	return m.catalog || m.prompt.modal()
 }
 
-// addPicking reports that the Add window waits for a cell click on the map.
-func (m *editorMode) addPicking() bool { return m.prompt.kind == promptAdd && m.pick == pickAddCell }
+// addPicking reports that a palette's placing waits for clicks on the map.
+func (m *editorMode) addPicking() bool { return m.prompt.kind == promptPlace && m.pick == pickPlace }
 
 func (e *MapEditor) objectBlocked() bool {
 	return e.catalog && !e.modOverCatalog() || e.objectHidden || e.pick != pickNone && !e.addPicking()

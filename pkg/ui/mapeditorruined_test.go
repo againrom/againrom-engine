@@ -20,14 +20,13 @@ func TestMapEditorStructureListButtonsHoldTheirCaptions(t *testing.T) {
 		if font == nil {
 			t.Fatal("the editor has no body font to measure captions with")
 		}
-		for _, b := range e.listButtons() {
-			r, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: b.key})
-			if !ok {
-				t.Fatalf("%s: no %s button", lang, b.key)
-			}
-			if need := font.Advance(b.label) + 16; r.Dx() < need {
-				t.Errorf("%s: %s button %v is narrower than its caption %q needs (%d)", lang, b.key, r, b.label, need)
-			}
+		s := mustListSpec(t, e)
+		r, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "ruined"})
+		if !ok {
+			t.Fatalf("%s: no Ruined switch", lang)
+		}
+		if need := font.Advance(s.SwitchButton) + 16; r.Dx() < need {
+			t.Errorf("%s: Ruined switch %v is narrower than its caption %q needs (%d)", lang, r, s.SwitchButton, need)
 		}
 	}
 }
@@ -42,10 +41,10 @@ func TestMapEditorStructureGridRuinedSwitchOnlyChangesCopies(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s: Structures has no ruined switch in its button row", lang)
 		}
-		// The switch stands at the button row's left end, Add at its right.
-		add, _ := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
-		if button.Max.X > add.Min.X || button.Min.Y != add.Min.Y {
-			t.Fatalf("%s: ruined %v does not stand left of Add %v in its row", lang, button, add)
+		s := mustListSpec(t, e)
+		l := layoutPopup(s, e.font, e.bodyFont())
+		if button.Min.X != l.Rect.Min.X+popupPad || button.Min.Y < l.Grid.Max.Y || len(l.Buttons) != 0 {
+			t.Fatalf("%s: ruined %v does not stand alone at the footer's left edge", lang, button)
 		}
 		e.placeChoose(0)
 		standing := e.addPlacement(image.Pt(25, 20))
@@ -67,9 +66,6 @@ func TestMapEditorStructureGridRuinedSwitchOnlyChangesCopies(t *testing.T) {
 				t.Fatalf("%s: switch changed the Objects brush: %+v", lang, got)
 			}
 		}
-		e.openAdd(KindStructure)
-		if got := e.addPlacement(standing.Cell); !reflect.DeepEqual(got, standing) {
-			t.Fatalf("%s: switch changed the separate Add window: %+v", lang, got)
-		}
+
 	}
 }

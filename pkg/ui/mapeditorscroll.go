@@ -6,7 +6,6 @@ type editorScroll struct {
 	input   scrollBarInput
 	bar     vScrollBar
 	model   *Picker
-	add     bool
 	details bool
 	// canvas is the pixels one bar position moves W's graph, zero for a
 	// bar of anything else.
@@ -59,7 +58,7 @@ func editorListStep(m *Picker, delta int) bool {
 	return true
 }
 
-func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
+func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker) {
 	e.scroll.details, e.scroll.canvas, e.scroll.page, e.scroll.text = false, 0, popNone, 0
 	switch e.chromeHit(p) {
 	case popMenu:
@@ -67,24 +66,24 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 			d := e.menuDropdown(b, true)
 			box := d.listBox(e.font)
 			if p.In(box.Bar()) {
-				return listBar(box, d.List), d.List, false
+				return listBar(box, d.List), d.List
 			}
 		}
 	case popPrompt:
 		if d, ok := e.openAreaDropdown(); ok {
 			box := d.listBox(e.bodyFont())
 			if p.In(box.Bar()) {
-				return listBar(box, d.List), d.List, false
+				return listBar(box, d.List), d.List
 			}
 		}
 		if s, ok := e.promptSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if l.HasList && p.In(l.List.Bar()) {
-				return listBar(l.List, s.List), s.List, e.prompt.kind == promptAdd
+				return listBar(l.List, s.List), s.List
 			}
 			if p.In(l.RowBar) {
 				if b, m, ok := e.pageBar(popPrompt, s, l); ok {
-					return b, m, false
+					return b, m
 				}
 			}
 		}
@@ -92,7 +91,7 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 		if d, ok := e.openDropdown(); ok {
 			box := d.listBox(e.bodyFont())
 			if p.In(box.Bar()) {
-				return listBar(box, d.List), d.List, false
+				return listBar(box, d.List), d.List
 			}
 		}
 		if s, _, ok := e.objectSpec(); ok {
@@ -101,48 +100,48 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 				if p.In(rr.TextBar) {
 					if b, m, field, ok := e.textBar(s, rr); ok {
 						e.scroll.text = field + 1
-						return b, m, false
+						return b, m
 					}
 				}
 			}
 			if p.In(l.RowBar) {
 				if b, m, ok := e.pageBar(popObject, s, l); ok {
-					return b, m, false
+					return b, m
 				}
 				m := NewPicker(make([]PickerRow, popupRowCount(specWindow(s))-s.MaxRows+1)).SetWindow(1)
 				m.Select(s.Top)
 				e.scroll.details = true
-				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m, false
+				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m
 			}
 			if s.Canvas != nil && p.In(l.CanvasBar) {
 				bar := l.canvasBar(s.Canvas)
 				m := NewPicker(make([]PickerRow, bar.Count)).SetWindow(1)
 				m.Select(bar.Pos)
 				e.scroll.canvas = max(1, l.Pitch)
-				return bar, m, false
+				return bar, m
 			}
 		}
 	case popTree:
 		if s, ok := e.treeSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if l.HasList && p.In(l.List.Bar()) {
-				return listBar(l.List, s.List), s.List, false
+				return listBar(l.List, s.List), s.List
 			}
 		}
 	case popList:
 		if s, ok := e.listSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if l.HasList && p.In(l.List.Bar()) {
-				return listBar(l.List, s.List), s.List, false
+				return listBar(l.List, s.List), s.List
 			}
 			if p.In(l.RowBar) {
 				if b, m, ok := e.pageBar(popList, s, l); ok {
-					return b, m, false
+					return b, m
 				}
 			}
 		}
 	}
-	return vScrollBar{}, nil, false
+	return vScrollBar{}, nil
 }
 
 func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
@@ -151,11 +150,11 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 		if !pressed {
 			return false
 		}
-		b, m, add := e.scrollTarget(p)
+		b, m := e.scrollTarget(p)
 		if m == nil {
 			return false
 		}
-		s.bar, s.model, s.add = b, m, add
+		s.bar, s.model = b, m
 		s.grabY = p.Y - b.Thumb().Min.Y
 	}
 	s.bar.Pos, s.bar.Count = max(s.model.Selection(), 0), s.model.Len()
@@ -169,9 +168,6 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	}
 	oldSelection := s.model.Selection()
 	if listBarRequest(s.model, req, pos) {
-		if s.add {
-			e.addTake(s.model.Selection())
-		}
 		if e.catalog && s.model == e.model && s.model.Len() > 0 && !s.model.Rows()[s.model.Selection()].Choosable {
 			delta := 1
 			if s.model.Selection() < oldSelection {

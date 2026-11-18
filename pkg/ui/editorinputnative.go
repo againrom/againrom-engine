@@ -47,9 +47,6 @@ func (e *MapEditor) updateTextInput(in editorNativeInput, now time.Time) (bool, 
 		held[k.name] = in.pressed(k.key)
 	}
 	for _, key := range m.Repeat(now, held, gateAtLeast.reached) {
-		if policy.panArrows && (key == "left" || key == "right" || key == "up" || key == "down") {
-			continue
-		}
 		_ = e.Key(policy.modifiedKey(key, ctrl, shift))
 	}
 	if ctrl {

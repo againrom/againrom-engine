@@ -115,12 +115,8 @@ func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 	if !ok || keys.ClassID != class {
 		t.Fatalf("Units row %d keys class %d (%v), want class %d", id.Row, keys.ClassID, ok, class)
 	}
-	_ = e.Key("unit")
-	if key, _, _ := e.AddStep(); key != "identity" || !bytes.Equal(e.Document().SourceBytes, before) {
-		t.Fatalf("the Add window first asks %q; the map changed: %v", key, !bytes.Equal(e.Document().SourceBytes, before))
-	}
 	want := keys.ClassSubID
-	addSteps(t, e, map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
+	addFixtureRecord(t, e, ui.KindUnit, map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	witness, err := mapedit.New(before)
 	if err != nil {
 		t.Fatal(err)
@@ -452,7 +448,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	addUnit := func(e *ui.MapEditor, cell image.Point, tr unitTier) {
 		t.Helper()
 		_, value := creatureIdentity(tr)
-		addWindow(t, e, "unit", map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
+		addFixturePlacement(t, e, "unit", map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	}
 
 	_, tiers := fourTierClass(t, x)

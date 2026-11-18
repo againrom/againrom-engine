@@ -8,7 +8,7 @@ import (
 )
 
 // The typed readers an agent needs beside the command table: a record by
-// reference, the records in a cell range, the Add window's kinds and steps,
+// reference, the records in a cell range, the new records' kinds and steps,
 // the brushes, the map report, the trigger wizard's items and the map's
 // property fields. Each reads through the reader the window itself uses, and
 // text in the font's encoding is given as UTF-8.
@@ -295,7 +295,7 @@ type addStepRead struct {
 	Refused  string             `json:"refused,omitempty"`
 }
 
-var addControlNames = map[addControl]string{addChoice: "choice", addSprites: "choice", addNumber: "number", addName: "text", addCell: "cell", addMany: "many"}
+var addControlNames = map[addControl]string{addChoice: "choice", addNumber: "number", addName: "text", addCell: "cell", addMany: "many"}
 
 func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 	a, err := decodeArgs[struct {
@@ -324,7 +324,7 @@ func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 		switch st.Control {
 		case addName:
 			s.Default = offer.Text
-		case addChoice, addSprites, addNumber:
+		case addChoice, addNumber:
 			s.Default = offer.Value
 		}
 		if refused != nil {

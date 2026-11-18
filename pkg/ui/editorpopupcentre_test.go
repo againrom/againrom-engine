@@ -58,7 +58,7 @@ func TestListAndObjectWindowsFirstOpenInTheMiddle(t *testing.T) {
 // A prompt first opens in the middle of the editor window, as every window
 // does, and the drag of its title moves it from there; the Add window states
 // its own place, centred across with its top at an eighth of the height.
-func TestPromptsFirstOpenInTheMiddleAndTheAddWindowAtItsOwnPlace(t *testing.T) {
+func TestPromptsFirstOpenInTheMiddle(t *testing.T) {
 	for _, size := range centreSizes {
 		f, rows := endless()
 		e, _ := mapPanelEditor(t, &mapPanelEdits{facts: f, rows: rows}, nil)
@@ -77,14 +77,6 @@ func TestPromptsFirstOpenInTheMiddleAndTheAddWindowAtItsOwnPlace(t *testing.T) {
 			t.Errorf("%dx%d: the dragged notice stands at %v, its title at %v", size.X, size.Y, r, after)
 		}
 
-		a, _ := newWalkEditor(t)
-		a.Layout(size.X, size.Y)
-		a.openAdd("Unit")
-		s, ok = a.promptSpec()
-		r := layoutPopup(s, a.font, a.bodyFont()).Rect
-		if mid := (r.Min.X + r.Max.X) / 2; !ok || mid < size.X/2-3 || mid > size.X/2+3 || r.Min.Y != size.Y/8 {
-			t.Errorf("%dx%d: the Add window stands at %v, want centred across with its top at %d", size.X, size.Y, r, size.Y/8)
-		}
 	}
 }
 

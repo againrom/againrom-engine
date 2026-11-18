@@ -76,7 +76,7 @@ func TestEditorAddWindowAsksTheUnitsFacing(t *testing.T) {
 			t.Fatalf("the facing step offers %v at %d", step.Choices, step.Value)
 		}
 		before := s.model.Count(mapedit.KindUnit)
-		addWindow(t, e, "unit", c.values)
+		addFixturePlacement(t, e, "unit", c.values)
 		s = e.Document().Edits.(*mapInspectionEdits)
 		if s.model.Count(mapedit.KindUnit) != before+1 {
 			t.Fatal("the Add window placed no unit")

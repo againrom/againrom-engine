@@ -14,7 +14,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-// The host of the editor's Add window. Each kind of new record is a row of
+// The host of palette placement and add_record. Each kind is a row of
 // newRecordKinds: the existing host call that adds it, the values that call
 // takes, and the record kind every other value is a field of. AddRecord runs
 // the call and then the fields as SetFields does, on one model and as one
@@ -310,7 +310,7 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 				if rec.A == 4 || rec.A == 8 {
 					out.Value = int64(uint32(rec.B) | uint32(rec.C)<<16)
 				}
-			} else if kind, ok := spellTemplateKind(s.model, i); ok {
+			} else if kind, ok := spellTemplateKindIn(view, i); ok {
 				out.Value = firstSpellObject(view, kind)
 			}
 		}
@@ -319,24 +319,21 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		if err != nil {
 			return out
 		}
-		out.Choices = s.inspector.cellSpellPalette()
-		for i := 0; i < s.model.Count(mapedit.KindEnchantment); i++ {
-			fields, err := s.model.Fields(mapedit.KindEnchantment, i)
-			if err == nil && len(fields) > 0 && fields[0].Key == "spell" {
-				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0).Label)})
+		return s.cellSpellPalette(view)
+	case "castkind", "range", "power":
+		for _, f := range s.model.SpellTemplateFields(int(recordValue(r, "template"))) {
+			if f.Key != key {
+				continue
 			}
-		}
-		first()
-	case "castkind", "range":
-		// A trap's kind and a casting structure's scan range are asked
-		// only of the kind that has the field.
-		kind, ok := spellTemplateKind(s.model, recordValue(r, "template"))
-		if !ok || key == "castkind" && kind >= 4 || key == "range" && kind != 4 {
-			out.Absent = true
+			out.Value, out.Text = s.newFieldDefault(r, key)
+			out.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
+			out.Bounds = &ui.InspectionStepBounds{Min: f.Min, Max: f.Max}
+			if key == "castkind" {
+				out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
+			}
 			return out
 		}
-		out.Value, out.Text = s.newFieldDefault(r, key)
-		out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
+		out.Absent = true
 	case "identity":
 		out.Choices, out.Shut = s.inspector.identityChoices(s.mission())
 		out.Groups = s.inspector.identityGroups(out.Choices)
@@ -361,7 +358,7 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		out.Value, out.Text = s.newFieldDefault(r, key)
 		switch key {
 		case "spell":
-			out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
+			out.Choices, out.Pictures = s.RecordChoices(ui.KindEnchantment, -1, key), s.spellPictures
 		case "owner":
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
 		case "group":
@@ -429,7 +426,7 @@ func (s *mapInspectionEdits) newFieldDefault(r ui.InspectionNewRecord, key strin
 	return 0, ""
 }
 
-// newUnitGroup is the group the Add window's group step starts a new unit
+// newUnitGroup is the group the record builder starts a new unit
 // in, given the values the record holds before the step (identity and
 // owner): the lowest group no unit of the map carries, so that a new unit
 // is a script group of its own until it is given another.

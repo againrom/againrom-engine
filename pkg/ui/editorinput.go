@@ -9,11 +9,9 @@ import (
 )
 
 type editorInputPolicy struct {
-	multiline  bool
-	panArrows  bool
-	choiceKeys bool
-	limit      int
-	bytes      func(rune) int
+	multiline bool
+	limit     int
+	bytes     func(rune) int
 }
 
 type InspectionInputRules interface {
@@ -113,31 +111,14 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 	if e.pathDialog.pending != nil {
 		return nil, p, key
 	}
-	if r, ok := e.addRunning(); ok && r.quiet {
-		return nil, p, key
-	}
 	if e.prompt.open() {
 		switch e.prompt.kind {
-		case promptOpen, promptSave, promptRectangle, promptForestShare, promptSeed, promptNewMode, promptField, promptItemRecipe, promptWorkspace, promptAdd, promptSpeaker, promptMapsFolder:
+		case promptOpen, promptSave, promptRectangle, promptForestShare, promptSeed, promptNewMode, promptField, promptItemRecipe, promptWorkspace, promptSpeaker, promptMapsFolder, promptVariableLabel:
 		default:
 			return nil, p, key
 		}
 		target = &e.prompt.path
 		key = fmt.Sprintf("%d/%s/%d", e.prompt.kind, e.prompt.scope, e.prompt.field)
-		if r, ok := e.addRunning(); ok {
-			p.panArrows = e.addPicking()
-			p.choiceKeys = r.steps[r.at].Control != addCell && len(r.offer.Choices) > 0
-			key += fmt.Sprintf("/%p/%d", r, r.at)
-			kind, name = r.kind, r.steps[r.at].Key
-			switch r.steps[r.at].Control {
-			case addChoice, addSprites, addNumber:
-				p.limit, p.bytes = 64, editorNumericBytes
-			case addCell:
-				p.limit, p.bytes = 64, editorCoordinateBytes
-			case addMany:
-				p.bytes = editorCoordinateBytes
-			}
-		}
 		if e.prompt.kind == promptForestShare || e.prompt.kind == promptSeed || e.prompt.kind == promptNewMode {
 			p.limit, p.bytes = 64, editorNumericBytes
 		}
@@ -213,10 +194,6 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 func (p editorInputPolicy) modifiedKey(key string, ctrl, shift bool) string {
 	if key == "up" || key == "down" {
 		ctrl = ctrl && p.multiline
-		shift = shift && !p.choiceKeys
-	}
-	if (key == "home" || key == "end") && p.choiceKeys {
-		ctrl = false
 	}
 	if shift {
 		key = "shift+" + key
@@ -257,9 +234,6 @@ func (e *MapEditor) inputChanged() {
 
 func (e *MapEditor) inputPropagate() {
 	*e.input.target = e.input.model.Text
-	if e.prompt.open() {
-		e.addFollow()
-	}
 	if e.input.key == searchKey {
 		e.searchFollow()
 	}
@@ -340,9 +314,6 @@ func (e *MapEditor) textKey(key string) bool {
 		if !policy.multiline && !shift {
 			return false
 		}
-	}
-	if (key == "home" || key == "end") && policy.choiceKeys && !ctrl && !shift {
-		return false
 	}
 	var err error
 	switch key {

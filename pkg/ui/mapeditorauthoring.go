@@ -47,7 +47,7 @@ func (e *MapEditor) keyRecords(key string) error {
 		return nil
 	}
 	if key == "structure" {
-		e.openAdd(KindStructure)
+		e.showRecords(2)
 		return nil
 	}
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {

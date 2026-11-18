@@ -206,53 +206,32 @@ func TestMapEditorEmptyPaletteSaysSoInPlainWords(t *testing.T) {
 	}
 }
 
-// A press on the Objects grid's cell places the decoration kind through the
-// one Add window: the copy it places on a cell is the host's same Add as the
-// Structure key's window with that kind and cell. Esc goes back to the
-// object brush, before a copy and after one.
-func TestMapEditorObjectsGridPlacesTheAddWindowsRecord(t *testing.T) {
+func TestMapEditorObjectsGridPlacesAndReturnsToBrush(t *testing.T) {
 	cell := image.Pt(25, 20)
-	var byGrid string
 	for _, copies := range []int{0, 1} {
 		e, calls := placeableHostEditor(t, paletteKinds, paletteObjects...)
 		objectBrushOn(t, e, false)
+		chooseOwner(t, e, 1)
 		r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0})
 		if !ok {
 			t.Fatal("the Objects grid shows no cell")
 		}
 		chromeClick(e, center(r))
 		run, ok := e.addRunning()
-		if !ok || !run.repeat || run.kind != KindStructure || e.pick != pickAddCell {
+		if !ok || run.kind != KindStructure || e.pick != pickPlace {
 			t.Fatalf("the grid press opened no placing Add window: %+v pick %q", run, e.pick)
 		}
 		if copies > 0 {
 			e.Fit()
 			modesClick(e, e.CellPoint(cell))
-			if len(calls.lines) != 1 {
+			if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "{owner 2 ") {
 				t.Fatalf("the click placed %v", calls.lines)
 			}
-			byGrid = calls.lines[0]
-		}
-		_ = e.Key("escape") // disarms the cell pick
-		if _, open := e.addRunning(); !open || e.pick != pickNone {
-			t.Fatalf("after %d copies the first Esc left the pick %q", copies, e.pick)
 		}
 		_ = e.Key("escape")
 		if _, open := e.addRunning(); open || e.listKind() != "brush" || e.brush.mode != brushObjects || e.forestOn() {
-			t.Fatalf("after %d copies Esc left the Add window %v, %q, brush mode %d, Forest %v", copies, open, e.listKind(), e.brush.mode, e.forestOn())
+			t.Fatalf("after %d copies Esc left placing %v, %q, brush mode %d, Forest %v", copies, open, e.listKind(), e.brush.mode, e.forestOn())
 		}
 	}
 
-	w, wcalls := placeableHostEditor(t, paletteKinds, paletteObjects...)
-	_ = w.Key("structure")
-	if addKindNow(w) != "Structure" {
-		t.Fatal("the Structure key opened no Add window")
-	}
-	w.prompt.path = "2"
-	addAdvance(t, w, 2) // kind, owner
-	w.prompt.path = fmt.Sprintf("%d,%d", cell.X, cell.Y)
-	_ = w.Key("enter")
-	if len(wcalls.lines) != 1 || wcalls.lines[0] != byGrid {
-		t.Fatalf("the Add window placed %v, the Objects grid %q", wcalls.lines, byGrid)
-	}
 }

@@ -207,7 +207,7 @@ func TestMapEditorIdentityGridPressesChooseEachBlocksEdges(t *testing.T) {
 			}
 			chromeClick(e, center(r))
 			run, value, placing := e.placing("identity")
-			if !placing || run.kind != KindUnit || value != int64(n+1) || e.pick != pickAddCell {
+			if !placing || run.kind != KindUnit || value != int64(n+1) || e.pick != pickPlace {
 				t.Fatalf("press %d selected %d, placing=%v, pick=%q", n, value, placing, e.pick)
 			}
 			g, note, _ := e.placeGridSpec()
@@ -220,7 +220,7 @@ func TestMapEditorIdentityGridPressesChooseEachBlocksEdges(t *testing.T) {
 			}
 			chromeClick(e, center(r))
 			_ = e.Key("escape")
-			if e.pick == pickAddCell {
+			if e.pick == pickPlace {
 				t.Fatal("Esc did not end the placement pick")
 			}
 		})

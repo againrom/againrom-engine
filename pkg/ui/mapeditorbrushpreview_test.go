@@ -34,8 +34,7 @@ func (p *previewProbe) NewRecordPreview(kind RecordKind, key string, value int64
 	return pic
 }
 
-// The Objects brush shows the highlighted object's picture in the Aside box,
-// a box wider than the Add window's, and the picture follows the highlight.
+// The Objects brush reserves its picture column and follows the highlight.
 func TestMapEditorObjectsBrushShowsTheHighlightedObjectsPicture(t *testing.T) {
 	e, p := brushEditor(t)
 	probe := &previewProbe{brushProbe: *p}
@@ -49,8 +48,8 @@ func TestMapEditorObjectsBrushShowsTheHighlightedObjectsPicture(t *testing.T) {
 		t.Fatalf("the Objects list keeps no picture column: %+v", s.ListAside)
 	}
 	box := layoutPopup(s, e.font, e.bodyFont()).Aside
-	if box.Dx() <= previewW {
-		t.Fatalf("the picture box is %d wide, not wider than the Add window's %d", box.Dx(), previewW)
+	if box.Dx() < brushPreviewW {
+		t.Fatalf("the picture box is %d wide, want at least %d", box.Dx(), brushPreviewW)
 	}
 	centre := func() color.RGBA {
 		pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))

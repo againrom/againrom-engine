@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -182,38 +181,8 @@ func TestEditorInstalledItemChoiceFirstOpenCost(t *testing.T) {
 	if err := e.Key("sack"); err != nil {
 		t.Fatal(err)
 	}
-	_ = e.Key("clear")
-	e.TextInput("32,32")
-	start := time.Now()
-	_ = e.Key("enter")
-	if step, note, ok := e.AddStep(); !ok || step != "item" {
-		t.Fatalf("item step did not open: %s %s %v", step, note, ok)
+	if e.PlaceGridLen() == 0 || e.Dirty() {
+		t.Fatal("Sacks did not open its item grid without editing the map")
 	}
-	rootCost := time.Since(start)
-	groups := x.itemGroups
-	if len(groups) == 0 {
-		t.Fatal("no item groups")
-	}
-	largestGroup := slices.MaxFunc(groups, func(a, b ui.InspectionChoiceGroup) int { return len(a.Values) - len(b.Values) })
-	start = time.Now()
-	var blocks, materials []string
-	for _, group := range groups {
-		if !slices.Contains(blocks, group.Block) {
-			blocks = append(blocks, group.Block)
-		}
-		if group.Block == largestGroup.Block && !slices.Contains(materials, group.Head) {
-			materials = append(materials, group.Head)
-		}
-	}
-	for _, row := range []int{slices.Index(blocks, largestGroup.Block), 1 + slices.Index(materials, largestGroup.Head)} {
-		for range row {
-			_ = e.Key("down")
-		}
-		_ = e.Key("enter")
-	}
-	groupCost := time.Since(start)
-	if len(x.recordPictures["item"]) != len(largestGroup.Values) || e.Dirty() {
-		t.Fatal("the group did not resolve exactly its own pictures, or navigation wrote the map")
-	}
-	t.Logf("COST map=%s dimensions=%dx%d maps=%d codes=%d groups=%d first_open=%s largest_group_open=%s group=%s/%s items=%d cached=%d", key, largest.Width, largest.Height, len(x.Maps), len(x.recordCatalog("item")), len(groups), rootCost, groupCost, largestGroup.Block, largestGroup.Head, len(largestGroup.Values), len(x.recordPictures["item"]))
+	t.Logf("COST map=%s grid_cells=%d", key, e.PlaceGridLen())
 }

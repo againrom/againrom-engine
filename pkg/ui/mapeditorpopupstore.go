@@ -75,10 +75,6 @@ var popupRecords = [popCount]popupRecord{
 // place is the middle of the window.
 type openPlace struct{ Top int }
 
-// openSteps is the Add window's own place: its top stays put while its steps
-// grow it downward.
-var openSteps = openPlace{Top: 8}
-
 // centreCorner is the corner a window of size first opens at: centred across
 // the editor window and, unless place states its top, down it, never above
 // the bounds' top.

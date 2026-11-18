@@ -2,9 +2,9 @@ package ui
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -166,81 +166,19 @@ func newWalkEditor(t *testing.T) (*MapEditor, *walkHost) {
 	return e, host
 }
 
-// The Add window and add_record build one record from the same answers for
-// every kind add_record adds: the window asked step by step with Enter, a
-// many step value by value. A player is added at once with the defaults,
-// so add_record's player answers are checked against the fields they name.
-func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
-	m, _ := newWalkEditor(t)
-	rivals := map[string]json.RawMessage{"name": json.RawMessage(`"Rivals"`), "colour": json.RawMessage("4"), "control": json.RawMessage("2")}
-	if got, err := m.newRecordOf(KindPlayer, nil, nil, rivals, nil); err != nil || len(got.Values) != 3 ||
-		got.Values[0] != (InspectionFieldValue{Key: "name", Text: true, TextValue: "Rivals"}) ||
-		got.Values[1] != (InspectionFieldValue{Key: "colour", Value: 4}) || got.Values[2] != (InspectionFieldValue{Key: "control", Value: 2}) {
-		t.Fatalf("add_record builds the player %+v (%v)", got, err)
+func TestEditorAddRecordAndAddStepsUseTheRecordBuilder(t *testing.T) {
+	e, host := newWalkEditor(t)
+	pipe := newMCPPipe(t, e)
+	steps := pipe.tool(t, "add_steps", map[string]any{"kind": "Sack"})
+	if steps.IsError || !strings.Contains(fmt.Sprint(steps), "item") {
+		t.Fatalf("add_steps: %+v", steps)
 	}
-	for _, c := range []struct {
-		kind   string
-		values map[string]any
-	}{
-		{"Unit", nil}, {"Unit", map[string]any{"identity": 2, "owner": 2}},
-		{"Structure", nil}, {"Structure", map[string]any{"kind": 2, "owner": 2}},
-		{"Sack", nil}, {"Sack", map[string]any{"item": []int{2, 1}}},
-		{"Player", nil},
-		{"Trigger", nil}, {"Trigger", map[string]any{"name": "Gate", "once": 2}},
-		{"Enchantment", nil}, {"Enchantment", map[string]any{"template": 2, "link": 7, "spell": 2, "power": 9}},
-	} {
-		w, wh := newWalkEditor(t)
-		w.openAdd(RecordKind(c.kind))
-		onCell := false
-		for n := 0; n < 16; n++ {
-			r, ok := w.addRunning()
-			if !ok {
-				break
-			}
-			st := r.steps[r.at]
-			v, given := c.values[st.Key]
-			switch {
-			case st.Control == addCell:
-				onCell, w.prompt.path = true, "25,20"
-			case st.Control == addMany && given:
-				for _, item := range v.([]int) {
-					w.prompt.path = strconv.Itoa(item)
-					_ = w.Key("enter")
-				}
-				w.prompt.path = ""
-			case st.Control == addMany:
-				w.addTake(0)
-				_ = w.Key("enter")
-			case given && st.Control == addName:
-				w.prompt.path = v.(string)
-			case given:
-				w.prompt.path = strconv.Itoa(v.(int))
-			}
-			_ = w.Key("enter")
-			if r.note != "" {
-				t.Fatalf("%s %v: the window refused step %s: %s", c.kind, c.values, st.Key, r.note)
-			}
-		}
-		if len(wh.added) != 1 {
-			t.Fatalf("%s %v: the window added %v", c.kind, c.values, wh.added)
-		}
-		m, _ := newWalkEditor(t)
-		values := map[string]json.RawMessage{}
-		for k, v := range c.values {
-			b, _ := json.Marshal(v)
-			values[k] = b
-		}
-		if c.kind == "Sack" && c.values == nil {
-			values["item"] = json.RawMessage("1")
-		}
-		var x, y *int
-		if onCell {
-			x, y = new(int), new(int)
-			*x, *y = 25, 20
-		}
-		got, err := m.newRecordOf(RecordKind(c.kind), x, y, values, nil)
-		if err != nil || !reflect.DeepEqual(got, wh.added[0]) {
-			t.Fatalf("%s %v: add_record builds %+v (%v), the Add window %+v", c.kind, c.values, got, err, wh.added[0])
-		}
+	res := pipe.tool(t, "add_record", map[string]any{
+		"kind": "Sack", "x": 25, "y": 20, "values": map[string]any{"item": []int{2, 1}},
+	})
+	want := InspectionNewRecord{Kind: KindSack, HasCell: true, Cell: image.Pt(25, 20),
+		Values: []InspectionFieldValue{{Key: "item", Value: 2}, {Key: "item", Value: 1}}}
+	if res.IsError || len(host.added) != 1 || !reflect.DeepEqual(host.added[0], want) {
+		t.Fatalf("add_record: %+v, wrote %+v", res, host.added)
 	}
 }

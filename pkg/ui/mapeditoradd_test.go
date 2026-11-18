@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,7 +14,7 @@ import (
 // one prompt or pick per kind and the per-list add keys.
 var retiredAddRoutes = []string{"promptNewSack", "promptNewUnit", "promptNewUnitTier", "promptNewStructure",
 	"promptNewScript", "pickSack", "pickUnit", "pickStructure", "keyPlayer", "addScriptKey", "askUnitTier",
-	"newRecordField", "InspectionUnitTiers", "InspectionScriptAuthor", "InspectionPlayers"}
+	"openAdd", "openAddRun", "promptAdd", "addSpec", "AddStep", "newRecordField", "InspectionUnitTiers", "InspectionScriptAuthor", "InspectionPlayers"}
 
 // retiredRoutesIn lists each non-test Go file of dir naming a retired route.
 func retiredRoutesIn(t *testing.T, dir string) []string {
@@ -42,7 +41,7 @@ func retiredRoutesIn(t *testing.T, dir string) []string {
 	return hits
 }
 
-// Every kind the Add window adds is a data row of the one builder: its
+// Every kind a palette or command adds is a data row of the one builder: its
 // title and step labels are words of both tables, every step is one of the
 // builder's controls, every list view that adds names its row, and no
 // per-kind prompt or pick of the old add routes is left in the editor.
@@ -63,7 +62,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		has(k.Word)
 		for _, st := range k.Steps {
 			has(st.Word)
-			if st.Key == "" || st.Control > addItem {
+			if st.Key == "" || st.Control > addMany {
 				t.Errorf("%s step %+v is not a builder step", k.Kind, st)
 			}
 		}
@@ -81,17 +80,9 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		}
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
-		if f == 3 {
-			// Sacks opens the Add window itself; it has no list.
-			if addKindNow(e) != kind {
-				t.Errorf("list %d opened %q, want the %s Add window", f, addKindNow(e), kind)
-			}
-			continue
-		}
-		s, ok := e.listSpec()
 		_, add := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
-		if !ok || !add {
-			t.Errorf("list %d shows no Add button: %v", f, s.Buttons)
+		if add != (f == editorPlayersFilter) {
+			t.Errorf("list %d shows Add = %v", f, add)
 		}
 	}
 	if hits := retiredRoutesIn(t, "."); len(hits) > 0 {
@@ -107,262 +98,28 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 	}
 }
 
-// addKindNow is the kind the open Add window adds, "" for none.
+func TestMapEditorKeysOpenPlacementPalettes(t *testing.T) {
+	for _, route := range []struct {
+		key    string
+		filter int
+	}{{"unit", 1}, {"structure", 2}, {"sack", 3}, {"casts", editorCellSpellsFilter}} {
+		e, calls := newModesEditor(t, "full")
+		if err := e.Key(route.key); err != nil {
+			t.Fatal(err)
+		}
+		if e.filter != route.filter || !e.listShown || e.prompt.open() || len(calls.lines) != 0 {
+			t.Fatalf("%s did not open its palette without writing", route.key)
+		}
+		_ = e.Key("player")
+		if len(calls.lines) != 0 || e.prompt.open() {
+			t.Fatalf("A on %s started an edit", route.key)
+		}
+	}
+}
+
 func addKindNow(e *MapEditor) string {
 	if r, ok := e.addRunning(); ok {
 		return string(r.kind)
 	}
 	return ""
-}
-
-// Every add route opens the one Add window: the old keys, the A key of each
-// list, each list's Add button and the trigger popup's New button. A
-// player adds at once (TestMapEditorPlayersAddOpensNoAddWindow).
-func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
-	for _, c := range []struct{ key, kind string }{{"unit", "Unit"}, {"structure", "Structure"}, {"sack", "Sack"}} {
-		e, calls := newModesEditor(t, "full")
-		_ = e.Key(c.key)
-		if addKindNow(e) != c.kind || len(calls.lines) != 0 {
-			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
-		}
-	}
-	sacks, _ := newModesEditor(t, "full")
-	sacks.showRecords(3)
-	if addKindNow(sacks) != "Sack" {
-		t.Errorf("the Sacks entry opened %q, want the Sack Add window", addKindNow(sacks))
-	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure"} {
-		e, _ := newModesEditor(t, "full")
-		e.showRecords(f)
-		_ = e.Key("player")
-		if addKindNow(e) != kind {
-			t.Errorf("A on list %d opened %q, want %s", f, addKindNow(e), kind)
-		}
-		e.leave(leavePrompt)
-		e.places[popObject].at = image.Pt(0, e.window.Y) // the selected player's popup stands clear of the list
-		button, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"})
-		if !ok {
-			t.Fatalf("list %d has no Add button", f)
-		}
-		modesClick(e, center(button))
-		if addKindNow(e) != kind {
-			t.Errorf("the Add button of list %d opened %q, want %s", f, addKindNow(e), kind)
-		}
-	}
-	e, _ := newModesEditor(t, "full")
-	e.newTrigger()
-	if addKindNow(e) != "" {
-		t.Error("the trigger popup's New opened", addKindNow(e))
-	}
-	plain, _ := newModesEditor(t, "plain")
-	_ = plain.Key("unit")
-	if addKindNow(plain) != "" {
-		t.Error("a host without the Add seam opened the window")
-	}
-}
-
-// addAdvance answers up to n steps of the open window with their defaults
-// and reports whether the window is still open.
-func addAdvance(t *testing.T, e *MapEditor, n int) bool {
-	t.Helper()
-	for i := 0; i < n; i++ {
-		r, ok := e.addRunning()
-		if !ok {
-			return false
-		}
-		switch r.steps[r.at].Control {
-		case addCell:
-			e.prompt.path = "25,20"
-		case addMany:
-			e.addTake(0)
-			_ = e.Key("enter")
-		}
-		_ = e.Key("enter")
-		if r.note != "" {
-			t.Fatalf("step %d refused: %s", i, r.note)
-		}
-	}
-	_, ok := e.addRunning()
-	return ok
-}
-
-// Leaving the Add window at any step, by Esc, Cancel or the close button,
-// writes nothing; finishing writes once.
-func TestMapEditorAddCancelAtEveryStepWritesNothing(t *testing.T) {
-	ways := map[string]func(e *MapEditor){
-		"escape": func(e *MapEditor) {
-			if e.pick != pickNone {
-				_ = e.Key("escape")
-			}
-			_ = e.Key("escape")
-		},
-		"cancel": func(e *MapEditor) {
-			s, _ := e.addSpec()
-			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[2]))
-		},
-		"close": func(e *MapEditor) {
-			s, _ := e.addSpec()
-			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Close))
-		},
-	}
-	for _, k := range addKinds {
-		if len(k.Steps) == 0 {
-			continue
-		}
-		if e, _ := newModesEditor(t, "full"); !e.addKindOpen(k.Kind) {
-			continue // the modes map has no script to place a check in
-		}
-		for at := 0; at < 16; at++ {
-			probe, _ := newModesEditor(t, "full")
-			probe.openAdd(k.Kind)
-			if !addAdvance(t, probe, at) {
-				break // at is past the last step
-			}
-			for way, leave := range ways {
-				e, calls := newModesEditor(t, "full")
-				e.openAdd(k.Kind)
-				addAdvance(t, e, at)
-				leave(e)
-				if addKindNow(e) != "" || e.prompt.open() || len(calls.lines) != 0 {
-					t.Errorf("%s: %s at step %d left %q open or wrote %v", k.Kind, way, at, addKindNow(e), calls.lines)
-				}
-			}
-		}
-		e, calls := newModesEditor(t, "full")
-		e.openAdd(k.Kind)
-		for n := 0; n < 16 && addKindNow(e) != ""; n++ {
-			addAdvance(t, e, 1)
-		}
-		if addKindNow(e) != "" || len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord ") {
-			t.Errorf("%s: finishing wrote %v", k.Kind, calls.lines)
-		}
-	}
-}
-
-// The cell step's pick button hands the next map click to the window; the
-// clicked cell places the object. Esc while picking disarms the pick.
-func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
-	e, calls := newModesEditor(t, "full")
-	_ = e.Key("unit")
-	addAdvance(t, e, 4) // class, owner, group, facing; the modes host offers no tier
-	if key, _, _ := e.AddStep(); key != "cell" {
-		t.Fatal("the window asks", key)
-	}
-	pick := func() {
-		s, _ := e.addSpec()
-		l := layoutPopup(s, e.font, e.bodyFont())
-		for _, r := range l.Rows {
-			if len(r.Buttons) > 0 {
-				modesClick(e, center(r.Buttons[0]))
-				return
-			}
-		}
-		t.Fatal("the cell step has no pick button")
-	}
-	pick()
-	if !e.addPicking() || e.helpScreen() != screenAddCell {
-		t.Fatal("the pick button did not arm the cell pick")
-	}
-	if s, ok := e.promptSpec(); !ok || len(s.Rows) == 0 {
-		t.Fatal("the armed Add window disappeared")
-	}
-	_ = e.Key("escape")
-	if e.addPicking() || addKindNow(e) != "Unit" {
-		t.Fatal("Esc while picking did not return to the window")
-	}
-	pick()
-	e.Fit()
-	modesClick(e, e.CellPoint(image.Pt(25, 20)))
-	if e.addPicking() || e.prompt.open() || len(calls.lines) != 1 {
-		t.Fatal("the clicked cell did not place immediately", e.prompt.path, calls.lines)
-	}
-	if addKindNow(e) != "" || len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Unit (25,20) true") {
-		t.Fatal("the picked cell did not reach the add", calls.lines)
-	}
-	if kind, index := e.selectedRecord(); kind != "Unit" || index < 0 {
-		t.Fatal("the new record's popup is not open", kind, index)
-	}
-}
-
-// identityHost offers the unit's identity step with two kinds under their
-// headings, which the list shows but does not take.
-type identityHost struct{ *modesFull }
-
-func (h *identityHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
-	if key == "identity" {
-		return InspectionNewStep{Choices: []InspectionChoice{{Value: -2, Label: "Creatures"}, {Value: 1, Label: "Wolf"}, {Value: 2, Label: "Bear"}, {Value: -3, Label: "Persons"}, {Value: 3, Label: "Guard"}}, Value: 1, Shut: []int64{-2, -3}}
-	}
-	return h.modesFull.NewRecordStep(r, key)
-}
-
-// The identity step walks its choices past the kind headings; Back walks the
-// asked steps and keeps their values; an invalid value says why and stays.
-func TestMapEditorAddIdentityBackAndRefusal(t *testing.T) {
-	e, calls := newModesEditor(t, "full")
-	host := &identityHost{e.doc.Edits.(*modesFull)}
-	host.self, e.doc.Edits = host, host
-	_ = e.Key("unit")
-	if key, _, _ := e.AddStep(); key != "identity" {
-		t.Fatal("the identity step is not asked first:", key)
-	}
-	_ = e.Key("down")
-	_ = e.Key("down")
-	if e.prompt.path != "3" || addFocus(t, e).Value != "Guard" {
-		t.Fatal("Down did not walk the choices past the heading", e.prompt.path)
-	}
-	_ = e.Key("enter")
-	s, _ := e.addSpec()
-	modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[0]))
-	if key, _, _ := e.AddStep(); key != "identity" || e.prompt.path != "3" {
-		t.Fatal("Back did not return to the identity with its value", key, e.prompt.path)
-	}
-	addAdvance(t, e, 4)
-	for _, bad := range []string{"", "x", "60,1", "-1,0"} {
-		e.prompt.path = bad
-		_ = e.Key("enter")
-		if r, _ := e.addRunning(); r.note != e.word("editor.add.cellbad") || len(calls.lines) != 0 {
-			t.Fatal("a bad cell was taken:", bad, r.note, calls.lines)
-		}
-	}
-	e.prompt.path = "1,1"
-	_ = e.Key("enter")
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "{identity 3 false  false}") {
-		t.Fatal("the identity did not reach the add", calls.lines)
-	}
-}
-
-// A many step adds each value once, removes one by its button, and does not
-// go on empty. A script record names its kind first and then asks that
-// kind's steps.
-func TestMapEditorAddManyAndScriptKinds(t *testing.T) {
-	e, calls := newModesEditor(t, "full")
-	_ = e.Key("sack")
-	addAdvance(t, e, 1)
-	_ = e.Key("enter")
-	if r, _ := e.addRunning(); r.note != e.word("editor.add.atleast") {
-		t.Fatal("an empty sack went on", r.note)
-	}
-	for _, v := range []string{"1", "2", "2"} {
-		e.prompt.path = v
-		_ = e.Key("enter")
-	}
-	r, _ := e.addRunning()
-	if len(r.many[r.at]) != 2 {
-		t.Fatal("the items are not each taken once", r.many[r.at])
-	}
-	s, acts := e.addSpec()
-	l := layoutPopup(s, e.font, e.bodyFont())
-	for i, a := range acts {
-		if a.button == "remove" && a.item == 0 {
-			modesClick(e, center(l.Rows[i].Buttons[0]))
-			break
-		}
-	}
-	if len(r.many[r.at]) != 1 || r.many[r.at][0] != 2 {
-		t.Fatal("Remove did not drop the first item", r.many[r.at])
-	}
-	_ = e.Key("enter")
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Sack (25,20) true [{item 2 false  false}]") {
-		t.Fatal("the sack add is wrong", calls.lines)
-	}
 }

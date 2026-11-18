@@ -242,7 +242,6 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	before := e.Document().SourceBytes
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "New")
-	addSteps(t, e, nil)
 	d, err := author.AddScript("Trigger")
 	if err != nil || !bytes.Equal(e.Document().SourceBytes, d.SourceBytes) {
 		t.Fatal("New wrote other bytes than AddScript", err)

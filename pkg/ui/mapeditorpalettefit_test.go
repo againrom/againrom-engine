@@ -3,9 +3,150 @@ package ui
 import (
 	"fmt"
 	"image"
+	"strconv"
 	"testing"
 	"time"
+
+	"againrom/pkg/words"
 )
+
+type placementLayoutHost struct {
+	*modesFull
+	templates InspectionNewStep
+	power     InspectionNewStep
+}
+
+func (h *placementLayoutHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
+	if key == "template" {
+		return h.templates
+	}
+	if key == "power" && h.power.Bounds != nil {
+		return h.power
+	}
+	if key != "kind" && key != "item" && key != "spell" {
+		return h.modesFull.NewRecordStep(r, key)
+	}
+	offer := InspectionNewStep{Value: 1}
+	for i := 1; i <= 250; i++ {
+		v := int64(i)
+		offer.Choices = append(offer.Choices, InspectionChoice{Value: v, Label: fmt.Sprintf("Choice %d", i)})
+		if key == "kind" {
+			if offer.Palettes == nil {
+				offer.Palettes = map[int64]Palette{}
+			}
+			offer.Palettes[v] = []Palette{PaletteStructures, PaletteObjects}[i%2]
+		}
+		if key == "item" {
+			if (i-1)%10 == 0 {
+				offer.Groups = append(offer.Groups, InspectionChoiceGroup{Block: fmt.Sprintf("Folder %d", (i+9)/10), Head: "Items"})
+			}
+			group := &offer.Groups[len(offer.Groups)-1]
+			group.Values = append(group.Values, v)
+		}
+	}
+	return offer
+}
+
+func newPlacementLayoutEditor(t *testing.T, lang string) *MapEditor {
+	e, _ := newModesEditor(t, "full")
+	book := words.For(lang)
+	h := &placementLayoutHost{modesFull: e.doc.Edits.(*modesFull), templates: InspectionNewStep{
+		Value: -30,
+		Choices: []InspectionChoice{
+			{Value: -30, Label: book.Text("editor.cast.where.cell")},
+			{Value: -70, Label: book.Text("editor.cast.where.unit")},
+			{Value: -80, Label: book.Text("editor.cast.where.structure")},
+		},
+		Templates: map[int64]InspectionSpellTemplate{
+			-30: {Constructor: -30}, -70: {Constructor: -70, Target: KindUnit}, -80: {Constructor: -80, Target: KindStructure},
+		},
+	}}
+	h.self, e.doc.Edits = h, h
+	e.SetWords(book)
+	e.Layout(1920, 1080)
+	return e
+}
+
+func TestChangedPlacementPalettesFitTheEditorTarget(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		for _, key := range []string{"structures", "objects", "sacks", "cellspells"} {
+			t.Run(lang+"/"+key, func(t *testing.T) {
+				e := newPlacementLayoutEditor(t, lang)
+				s, l := paletteGrid(t, e, key)
+				if l.GridBar.Empty() {
+					t.Fatal("the fixture needs more than one page")
+				}
+				holdsWindowProperties(t, e, popList, s, image.Pt(1920, 1080))
+			})
+		}
+	}
+}
+
+func TestSackPaletteTicksItemsInOneGridWithFolderHeads(t *testing.T) {
+	e := newPlacementLayoutEditor(t, "en")
+	s, l := paletteGrid(t, e, "sacks")
+	if len(s.Tabs) != 0 || len(s.Grid.Groups) != 25 {
+		t.Fatalf("the sack grid has %d tabs and %d folder heads", len(s.Tabs), len(s.Grid.Groups))
+	}
+	for i, group := range s.Grid.Groups {
+		if group.Head != fmt.Sprintf("Folder %d", i+1) || len(group.Cells) != 10 {
+			t.Fatalf("folder %d = %+v", i+1, group)
+		}
+	}
+	for _, n := range []int{0, 1} {
+		r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: n})
+		if !ok {
+			t.Fatalf("item %d has no cell in %+v", n+1, l.Grid)
+		}
+		chromeClick(e, center(r))
+	}
+	s = mustListSpec(t, e)
+	if !s.Grid.Cells[0].Ticked || !s.Grid.Cells[1].Ticked || !e.addPicking() {
+		t.Fatal("both items should be ticked for placement")
+	}
+	got := e.addPlacement(image.Pt(16, 16))
+	if len(got.Values) != 2 || got.Values[0].Value != 1 || got.Values[1].Value != 2 {
+		t.Fatalf("next sack holds %+v", got.Values)
+	}
+}
+
+func TestSpellPaletteShowsNumbersAndHoverNamesWithoutBookIcons(t *testing.T) {
+	e := newPlacementLayoutEditor(t, "en")
+	s, _ := paletteGrid(t, e, "cellspells")
+	for _, id := range []int{11, 17, 27, 28} {
+		cell := s.Grid.Cells[id-1]
+		if cell.Icon != nil || cell.Label != strconv.Itoa(id) || cell.Tip != fmt.Sprintf("Choice %d", id) {
+			t.Fatalf("spell %d shows %+v", id, cell)
+		}
+		at, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: id - 1})
+		tip, shown := e.tipAt(center(at))
+		if !ok || !shown || len(tip.Lines) != 1 || tip.Lines[0] != cell.Tip {
+			t.Fatalf("spell %d tip: %+v, %v", id, tip, shown)
+		}
+	}
+}
+
+func TestSpellPaletteUsesRussianRecordTerms(t *testing.T) {
+	e := newPlacementLayoutEditor(t, "ru")
+	e.SetHostTextEncoder(func(s string) string { return "font:" + s })
+	h := e.doc.Edits.(*placementLayoutHost)
+	for i := range h.templates.Choices {
+		c := &h.templates.Choices[i]
+		c.Label = e.editorHostText(c.Label)
+	}
+	paletteGrid(t, e, "cellspells")
+	for _, want := range []string{"Отряд: его заклинание", "Постройка: она колдует"} {
+		r, ok := e.FindControl(ControlQuery{Role: ControlListButton, N: 0, K: 1})
+		if !ok {
+			t.Fatal("the Where row has no next button")
+		}
+		chromeClick(e, center(r))
+		s := mustListSpec(t, e)
+		if s.Rows[0].Value != e.editorHostText(want) {
+			t.Fatalf("Where = %q, want %q", s.Rows[0].Value, want)
+		}
+	}
+}
 
 // cellCountHost offers 33 unit identities, and as many structure kinds and
 // tree kinds as the shipped first-game data does: 66 and 75.

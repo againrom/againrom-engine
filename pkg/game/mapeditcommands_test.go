@@ -120,12 +120,12 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 				return []commandCall{{"move_record", recordArgs(e, 0, map[string]any{"x": 13, "y": 14})}}
 			}},
 		{"add unit", authoring, func(t *testing.T, e *ui.MapEditor) {
-			addWindow(t, e, "unit", map[string]string{"identity": "1", "cell": "9,10"})
+			addFixturePlacement(t, e, "unit", map[string]string{"identity": "1", "cell": "9,10"})
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
 			return []commandCall{{"add_record", map[string]any{"kind": "Unit", "x": 9, "y": 10, "values": map[string]any{"identity": 1}}}}
 		}},
 		{"add structure", built, func(t *testing.T, e *ui.MapEditor) {
-			addWindow(t, e, "structure", map[string]string{"kind": "5", "cell": "10,12"})
+			addFixturePlacement(t, e, "structure", map[string]string{"kind": "5", "cell": "10,12"})
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
 			return []commandCall{{"add_record", map[string]any{"kind": "Structure", "x": 10, "y": 12, "values": map[string]any{"kind": 5}}}}
 		}},

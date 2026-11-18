@@ -96,7 +96,7 @@ func (e *MapEditor) objectInputRows(s popupSpec) popupSpec {
 }
 
 func (e *MapEditor) addInputRows(s popupSpec) popupSpec {
-	if e.prompt.kind != promptAdd && e.prompt.kind != promptNewMode {
+	if e.prompt.kind != promptNewMode {
 		return s
 	}
 	return e.typedRows(s, func(i int) bool { return s.Rows[i].Focus })

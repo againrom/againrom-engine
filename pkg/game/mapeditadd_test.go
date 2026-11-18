@@ -1,88 +1,54 @@
 package game
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
 	"againrom/pkg/ui"
 )
 
-// addSteps drives the open Add window to its end: a step named in values
-// takes that text in place of its own, every step then takes Enter. A many
-// step takes each of its "|"-separated values with an Enter and ends with
-// the next. It fails when a step refuses its value.
-func addSteps(t *testing.T, e *ui.MapEditor, values map[string]string) {
+func addFixtureRecord(t *testing.T, e *ui.MapEditor, kind ui.RecordKind, values map[string]string) {
 	t.Helper()
-	if addStepsN(t, e, values, -1) {
-		t.Fatal("the Add window did not end")
-	}
-}
-
-// addStepsN answers the first n steps of the open Add window as addSteps
-// does, all of them when n is negative, and reports whether the window is
-// still open.
-func addStepsN(t *testing.T, e *ui.MapEditor, values map[string]string, n int) bool {
-	t.Helper()
-	given := map[string]bool{}
-	done := 0
-	enter := func(key string) {
-		t.Helper()
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
+	fields := map[string]any{}
+	args := map[string]any{"kind": kind, "values": fields}
+	for key, value := range values {
+		if key == "cell" {
+			x, y, _ := strings.Cut(value, ",")
+			args["x"], _ = strconv.Atoi(x)
+			args["y"], _ = strconv.Atoi(y)
+			continue
 		}
-		if _, note, ok := e.AddStep(); ok && note != "" {
-			t.Fatalf("the Add window refused step %s: %s", key, note)
-		}
-	}
-	for i := 0; i < 32; i++ {
-		key, _, ok := e.AddStep()
-		if !ok {
-			return false
-		}
-		if done == n {
-			return true
-		}
-		if v, ok := values[key]; ok && !given[key] {
-			given[key] = true
-			parts := strings.Split(v, "|")
-			for _, p := range parts[:len(parts)-1] {
-				_ = e.Key("clear")
-				e.TextInput(p)
-				enter(key)
+		if strings.Contains(value, "|") {
+			var items []int64
+			for _, item := range strings.Split(value, "|") {
+				n, err := strconv.ParseInt(item, 10, 64)
+				if err != nil {
+					t.Fatal(err)
+				}
+				items = append(items, n)
 			}
-			_ = e.Key("clear")
-			e.TextInput(parts[len(parts)-1])
-		} else if given[key] {
-			addEndGroups(e)
+			fields[key] = items
+			continue
 		}
-		enter(key)
-		if next, _, ok := e.AddStep(); !ok || next != key {
-			done++
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err == nil {
+			fields[key] = n
+			continue
 		}
+		fields[key] = value
 	}
-	t.Fatal("the Add window did not end")
-	return false
-}
-
-// addEndGroups highlights, unchosen, the first grouped item, where an empty
-// Enter ends the step; on a group row Enter opens the group.
-func addEndGroups(e *ui.MapEditor) {
-	if lines := e.AddListLines(); len(lines) == 0 || !strings.HasSuffix(lines[0], " >") {
-		return
-	}
-	for _, key := range []string{"home", "enter", "down", "enter", "down", "clear"} {
-		_ = e.Key(key)
+	_, must := editorMCP(t, e)
+	must("add_record", args)
+	e.CloseMCP()
+	ref := e.Document().AddedRecord
+	if ref.Kind != "" {
+		e.Select(recordIndex(t, e, ref.Kind.String(), ref.Index), false)
 	}
 }
 
-// addWindow opens the Add window with key and drives it to its end.
-func addWindow(t *testing.T, e *ui.MapEditor, key string, values map[string]string) {
+func addFixturePlacement(t *testing.T, e *ui.MapEditor, key string, values map[string]string) {
 	t.Helper()
-	if err := e.Key(key); err != nil {
-		t.Fatal(err)
-	}
-	if _, _, ok := e.AddStep(); !ok {
-		t.Fatalf("%s opened no Add window", key)
-	}
-	addSteps(t, e, values)
+	kind := map[string]ui.RecordKind{"unit": ui.KindUnit, "structure": ui.KindStructure, "sack": ui.KindSack}[key]
+	addFixtureRecord(t, e, kind, values)
 }

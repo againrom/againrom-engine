@@ -1035,8 +1035,10 @@ func (e *MapEditor) applyObject() {
 		return
 	}
 	if v, ok := e.scriptPopup(); ok {
+		into := e.triggerRowPlacing(v)
 		values, err := e.scriptValues(v)
 		if err == nil && len(values) == 0 {
+			into()
 			return
 		}
 		if err == nil {
@@ -1045,7 +1047,9 @@ func (e *MapEditor) applyObject() {
 		again := func() {
 			if _, err := e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values}); err != nil {
 				e.message = err.Error()
+				return
 			}
+			into()
 		}
 		if e.askScriptForm(err, again) {
 			return
@@ -1055,6 +1059,7 @@ func (e *MapEditor) applyObject() {
 			return
 		}
 		o.open, o.note = -1, ""
+		into()
 		return
 	}
 	var values []InspectionFieldValue

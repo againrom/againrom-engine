@@ -1,7 +1,7 @@
 package ui
 
 // Palette is the bar palette a placeable record lists in: a structure kind
-// of the Add window's kind step or an object class of the object brush. The
+// of a new structure's kind step or an object class of the object brush. The
 // host decides it from the game's class data; each record lists in exactly
 // one palette. PaletteOwn is the palette of the record's own kind:
 // Structures for a structure kind, Objects for an object class.

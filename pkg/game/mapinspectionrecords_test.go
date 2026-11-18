@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
@@ -23,11 +24,15 @@ import (
 // kinds 5, 6 and 0x21 (kind 5 and 6 a 3x2 footprint) and names items 0x0101
 // and 0x0202.
 func openRecords(t *testing.T) ([]byte, *ui.MapEditor) {
+	return openRecordsWithBinding(t, 7)
+}
+
+func openRecordsWithBinding(t *testing.T, binding uint16) ([]byte, *ui.MapEditor) {
 	t.Helper()
 	raw := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12),
 		Units: []synth.ALMUnit{{X: 3*256 + 128, Y: 4*256 + 128, ClassID: 40, ClassSubID: 2}},
 		Objects: []synth.ALMObject{
-			{X: 3*256 + 128, Y: 4*256 + 128, Kind: 5, Field12: 7},
+			{X: 3*256 + 128, Y: 4*256 + 128, Kind: 5, Field12: binding},
 			{X: 8*256 + 128, Y: 9*256 + 128, Kind: 0x21, Ext: []byte{2, 0, 0, 0, 2, 0, 0, 0}},
 		}})
 	m, err := mapedit.New(raw)
@@ -44,6 +49,11 @@ func openRecords(t *testing.T) ([]byte, *ui.MapEditor) {
 	building := func(w, h int32) dbEntry { return dbEntry{name: "b", params: []int32{w, h, 0, 0, -1, -1, 0, 0}} }
 	table.Buildings = dbCollection{{}, building(1, 1), building(1, 1), building(1, 1), building(1, 1), building(3, 2), building(3, 2)}
 	table.Names = data.ItemNames{0x0101: "first", 0x0202: "second"}
+	spells := make(dbCollection, 29)
+	for i := range spells {
+		spells[i].name = fmt.Sprintf("Spell %d", i)
+	}
+	table.Spells = spells
 	set := &terrain.StructureSet{}
 	for _, k := range []int{5, 6, 0x21} {
 		set.Classes[k] = &terrain.StructureClass{ID: int32(k), Name: "s", TileWidth: 3, TileHeight: 2, FullHeight: 2}
@@ -161,26 +171,22 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	}
 	step("delete", func(m *alm.Map, _ []alm.LootRecord) bool { return len(m.Objects) == 2 })
 
-	// Add a sack: S opens the Add window, then the cell and the item code.
+	// S opens the Sacks palette. Tick an item and place the sack.
 	clickCell(e, image.Pt(14, 14))
 	if _, l := editedMap(t, e); len(l) != 1 {
 		t.Fatal("a click without S added a sack")
 	}
-	_ = e.Key("sack")
-	e.TextInput("14,14")
-	_ = e.Key("enter")
-	e.TextInput("999")
-	_ = e.Key("enter")
-	if _, note, _ := e.AddStep(); note == "" || !bytes.Equal(e.Document().SourceBytes, history[len(history)-1]) {
-		t.Fatal("an unnamed item was accepted or wrote")
+	if err := e.Key("sack"); err != nil {
+		t.Fatal(err)
 	}
-	for _, key := range []string{"clear", "enter", "down", "enter", "down"} {
-		_ = e.Key(key)
-	}
-	addSteps(t, e, map[string]string{"item": "257"})
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPlaceGridCell, N: 0})
+	messageClick(t, e, r, ok)
+	clickCell(e, image.Pt(14, 14))
+	_ = e.Key("escape")
 	step("add sack", func(_ *alm.Map, l []alm.LootRecord) bool {
 		return len(l) == 2 && l[1].Ground() && l[1].X == 14*256+128 && l[1].Y == 14*256+128 && len(l[1].Elements) == 1 && l[1].Elements[0].ItemCode() == 0x0101
 	})
+	e.Select(recordIndex(t, e, "Sack", 1), false)
 	if r := e.Document().Records[e.Selected()]; r.Kind != "Sack" || r.Index != 1 {
 		t.Fatalf("the new sack is not selected: %+v", r)
 	}

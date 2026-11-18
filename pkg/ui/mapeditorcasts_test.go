@@ -1,30 +1,34 @@
 package ui
 
 import (
-	"strings"
+	"image"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func TestEditorNativeCellSpellUsesAddBuilder(t *testing.T) {
-	e, calls := newModesEditor(t, "full")
+func TestEditorNativeCellSpellOpensPalette(t *testing.T) {
+	e, _ := newModesEditor(t, "full")
 	updateEditorKeys(t, e, ebiten.KeyF3)
-	if key, _, ok := e.AddStep(); !ok || key != "template" || e.prompt.add.kind != "Enchantment" {
-		t.Fatal("F3 did not open the shared Add builder", key, ok)
+
+	if e.filter != editorCellSpellsFilter || !e.listShown || e.prompt.open() {
+		t.Fatal("F3 did not open the Traps and spells palette")
 	}
-	updateEditorKeys(t, e, ebiten.KeyEscape)
-	if e.prompt.open() {
-		t.Fatal("native Cancel retained popup")
-	}
+}
+
+func TestEditorNativeSpellCloneWhilePlacing(t *testing.T) {
+	e, _ := newModesEditor(t, "full")
+	e.doc.Records = append(e.doc.Records, InspectionRecord{
+		Kind: KindEnchantment, Index: 0, Spatial: true, Cell: image.Pt(8, 8), Size: image.Pt(1, 1),
+	})
 	updateEditorKeys(t, e, ebiten.KeyF3)
-	for _, v := range []string{"-1", "7", "8,8", "13", "20", "1", "30"} {
-		_ = e.Key("clear")
-		e.TextInput(v)
-		updateEditorKeys(t, e, ebiten.KeyEnter)
+	e.Select(len(e.doc.Records)-1, false)
+	e.placeChoose(0)
+	if !e.addPicking() {
+		t.Fatal("spell choice did not arm placement")
 	}
-	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Enchantment") ||
-		!strings.Contains(calls.lines[0], "template -1") || !strings.Contains(calls.lines[0], "castkind 1") || !strings.Contains(calls.lines[0], "range 30") {
-		t.Fatal("native Enter did not reach AddRecord", calls.lines)
+	updateEditorKeys(t, e, ebiten.KeyC)
+	if e.pick != pickClone {
+		t.Fatalf("C while placing armed %q", e.pick)
 	}
 }

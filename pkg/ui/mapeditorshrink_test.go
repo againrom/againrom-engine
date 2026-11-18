@@ -39,8 +39,10 @@ func shrinkWindows() []struct {
 			e, _ := diplomacyEditor(t, "en", 0)
 			return e
 		}},
-		{"add unit", func(t *testing.T) *MapEditor {
-			e, _ := newGroupedAddEditor(t)
+		{"unit palette", func(t *testing.T) *MapEditor {
+			e, _ := newModesEditor(t, "full")
+			host := &cellCountHost{modesFull: e.doc.Edits.(*modesFull), units: 66}
+			host.self, e.doc.Edits = host, host
 			_ = e.Key("unit")
 			return e
 		}},
@@ -114,6 +116,18 @@ func TestEditorWindowPastTheBottomShortensByItsTopBorder(t *testing.T) {
 				}
 				if !last {
 					t.Fatalf("the wheel does not reach the last of %d rows in %v", len(s.Rows), l.Rect)
+				}
+			}
+			if s.Grid != nil {
+				if l.GridBar.Empty() {
+					t.Fatal("the shortened palette needs a scrollable grid")
+				}
+				at := center(l.Grid)
+				for range len(s.Grid.Cells) {
+					e.Pointer(Input{CursorX: at.X, CursorY: at.Y, WheelY: -1}, time.Unix(1, 0))
+				}
+				if _, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: len(s.Grid.Cells) - 1}); !ok {
+					t.Fatal("the wheel does not reach the last palette choice")
 				}
 			}
 		})

@@ -33,8 +33,7 @@ const (
 	screenPlayers // the roster list
 	screenPrompt
 	screenMove
-	screenAdd       // the Add window
-	screenAddCell   // the Add window's cell is armed
+	screenPlace     // a palette's placing is armed
 	screenSelection // several records are selected
 	screenCount
 )
@@ -107,8 +106,6 @@ var (
 	lineSelectClick   = helpLine{Word: "editor.keys.selectclick"}
 	lineCopy          = helpLine{Word: "editor.keys.copy"}
 	linePrompt        = helpLine{Word: "editor.keys.prompt"}
-	lineAddNext       = helpLine{Word: "editor.keys.addnext"}
-	lineAddChoose     = helpLine{Word: "editor.keys.addchoose"}
 	lineArms          = helpLine{Word: "editor.keys.arms"}
 	lineRoster        = helpLine{Word: "editor.keys.roster"}
 	lineRosterFields  = helpLine{Word: "editor.keys.rosterfields"}
@@ -123,7 +120,7 @@ var (
 	lineTargetCell    = helpLine{Word: "editor.keys.targetcell"}
 	lineTargetCancel  = helpLine{Word: "editor.keys.targetcancel"}
 	lineMoveCell      = helpLine{Word: "editor.keys.movecell"}
-	lineAddCell       = helpLine{Word: "editor.keys.addcell"}
+	linePlaceCell     = helpLine{Word: "editor.keys.placecell"}
 	lineCancel        = helpLine{Word: "editor.keys.cancel"}
 	lineRecords       = helpLine{Word: "editor.keys.records"}
 	lineBack          = helpLine{Word: "editor.keys.back"}
@@ -148,7 +145,7 @@ func init() {
 	bridgeLine := helpLine{Word: "editor.keys.bridge"}
 	brushes := []helpEntry{{screenTerrain, lineTerrain}, {screenHeight, lineHeight}, {screenObjects, lineObjects}, {screenPassability, linePassBrush}, {screenBridge, bridgeLine}}
 	editorKeyRows = []keyRow{
-		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, lineTarget}, {screenPrompt, linePrompt}, {screenAdd, lineAddNext}}},
+		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, lineTarget}, {screenPrompt, linePrompt}}},
 		{key: "clone", label: "C", act: (*MapEditor).recordKey, help: keys(lineMove)},
 		{key: "delete", label: "Del", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineMove}, {screenPlayers, lineRoster}, {screenSelection, lineSelectionMove}}},
 		{key: "field", label: "E", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineFields}, {screenPlayers, lineRosterFields}}},
@@ -172,7 +169,7 @@ func init() {
 		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
-		{key: "casts", label: "F3", act: func(e *MapEditor, _ string) error { e.openAdd(KindEnchantment); return nil }, help: keys(helpLine{Word: "editor.keys.casts"})},
+		{key: "casts", label: "F3", act: func(e *MapEditor, _ string) error { e.showRecords(editorCellSpellsFilter); return nil }, help: keys(helpLine{Word: "editor.keys.casts"})},
 		{key: "cellspells", act: func(e *MapEditor, _ string) error { e.showRecords(editorCellSpellsFilter); return nil }, unlisted: "palette entry"},
 		{key: "traparea", act: (*MapEditor).keyTrapArea, unlisted: "Tools menu and cell spell palette"},
 		{key: "variables", act: func(e *MapEditor, _ string) error { e.toggleVariables(); return nil }, unlisted: "Window menu"},
@@ -189,8 +186,8 @@ func init() {
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
 		{key: "newtrigger", label: "F4", act: (*MapEditor).menuKey, help: keys(helpLine{Word: "editor.keys.newtrigger"})},
 		{key: "copytrigger", act: (*MapEditor).menuKey, unlisted: "Tools menu and the trigger window's Copy"},
-		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
-		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenKeys, lineBoxMove}, {screenAddCell, linePlace}}},
+		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenPlace, linePlaceCell}}},
+		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenKeys, lineBoxMove}, {screenPlace, linePlace}}},
 		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},
 		{label: "Ctrl+1..9", help: []helpEntry{{screenKeys, lineToGroup}, {screenSelection, lineToGroup}}},
 		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},
@@ -201,9 +198,9 @@ func init() {
 		{key: "passview", label: "Z", act: (*MapEditor).keyPassView, help: keys(linePassView)},
 		{key: "heightlabels", label: "V", act: (*MapEditor).keyHeightLabels, help: keys(lineHeightLabels)},
 		{key: "playertint", label: "Y", act: (*MapEditor).keyPlayerTint, help: keys(linePlayerTint)},
-		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenAdd, lineAddNext}, {screenAddCell, lineBack}, {screenSelection, lineSelectionEsc}}},
-		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
-		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
+		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenPlace, lineBack}, {screenSelection, lineSelectionEsc}}},
+		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}}},
+		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}}},
 		{key: "close", live: promptHears, act: (*MapEditor).keyClose, unlisted: unlistedWindow},
 		{key: "open", act: (*MapEditor).keyOpen, unlisted: unlistedRail},
 		{key: "catalog", act: (*MapEditor).keyCatalog, unlisted: unlistedRail},
@@ -333,16 +330,13 @@ func (e *MapEditor) allHelpLines() []string {
 var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects, brushPassability: screenPassability, brushBridge: screenBridge}
 
 // pickScreens is the help screen of each armed pick.
-var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickDrop: screenDrop, pickGoal: screenGoal, pickMove: screenMove, pickAddCell: screenAddCell}
+var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickDrop: screenDrop, pickGoal: screenGoal, pickMove: screenMove, pickPlace: screenPlace}
 
 // helpScreen is the help for the window's mode: an active brush, the armed
 // pick, the script panel, or the keys.
 func (e *MapEditor) helpScreen() helpScreen {
-	if e.addPicking() {
-		return screenAddCell
-	}
-	if e.prompt.kind == promptAdd {
-		return screenAdd
+	if e.prompt.kind == promptPlace {
+		return screenPlace
 	}
 	if e.prompt.open() {
 		return screenPrompt
@@ -450,6 +444,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.leave(leaveDrag)
 	case e.prompt.kind == promptSpeaker:
 		e.cancelPopup()
+	case e.prompt.kind == promptPlace:
+		e.leave(leavePick | leavePrompt)
 	case e.pick != pickNone:
 		e.leave(leavePick)
 		e.message = ""
@@ -569,10 +565,7 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptDelete:
 		e.playerDeleteGo()
 		return nil
-	case promptAdd:
-		if !e.prompt.add.quiet {
-			e.addNext()
-		}
+	case promptPlace:
 		return nil
 	case promptField, promptWorkspace:
 		return e.setField(e.prompt.path)
@@ -592,6 +585,8 @@ func (e *MapEditor) keyEnter(string) error {
 		return e.saveAs(strings.TrimSpace(e.prompt.path))
 	case promptOpen:
 		return e.Open(strings.TrimSpace(e.prompt.path))
+	case promptVariableLabel:
+		return e.labelVariablePrompt()
 	case promptMapsFolder:
 		folder, key := strings.TrimSpace(e.prompt.path), e.prompt.scope
 		if key == "" {
@@ -631,10 +626,7 @@ func (e *MapEditor) brushKeyRow(key string) error {
 // keyStep moves the brush palette's row, else the report's selected finding.
 func (e *MapEditor) keyStep(key string) error {
 	delta := editorList.keyStep(key == "up", key != "up")
-	if e.prompt.kind == promptAdd {
-		if !e.prompt.add.quiet {
-			e.addMove(delta)
-		}
+	if e.prompt.kind == promptPlace {
 		return nil
 	}
 	if e.prompt.kind == promptAreaTrigger {
@@ -702,8 +694,11 @@ func (e *MapEditor) keyNew(string) error {
 	return nil
 }
 
+// keyUnit opens the Units palette.
 func (e *MapEditor) keyUnit(string) error {
-	e.unitKey()
+	if !e.catalog {
+		e.showRecords(1)
+	}
 	return nil
 }
 
@@ -748,9 +743,8 @@ func (e *MapEditor) keyPage(key string) error {
 	if e.paletteShown() && !e.paletteListsRecords() {
 		m = nil // no palette but Scenario's has a list
 	}
-	add := false
-	if r, ok := e.addRunning(); ok {
-		m, add = r.list, true
+	if _, ok := e.addRunning(); ok {
+		m = nil
 	} else if e.dropdownOpen() {
 		m = e.obj.choice
 	} else if e.prompt.kind == promptAreaTrigger {
@@ -768,12 +762,6 @@ func (e *MapEditor) keyPage(key string) error {
 		m.Select(0)
 	case "end":
 		m.Select(m.Len() - 1)
-	}
-	if add {
-		r, _ := e.addRunning()
-		if len(r.choices.field.Groups) == 0 || r.choices.index(m.Selection()) >= 0 {
-			e.addTake(m.Selection())
-		}
 	}
 	if e.catalog && m.Len() > 0 && !m.Rows()[m.Selection()].Choosable {
 		if key == "end" || key == "pagedown" {

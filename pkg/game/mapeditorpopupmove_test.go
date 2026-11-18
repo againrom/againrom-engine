@@ -40,9 +40,8 @@ func popupCases() []popupCase {
 		return e
 	}
 	return []popupCase{
-		{"record list", func(t *testing.T) *ui.MapEditor {
-			e := scriptMap(t)
-			_ = e.Key("escape")
+		{"Structures palette", func(t *testing.T) *ui.MapEditor {
+			_, e := openRecords(t)
 			_ = e.Key("structure")
 			return e
 		}},
@@ -76,8 +75,8 @@ func popupCases() []popupCase {
 			trigClick(t, e, r, ok, "variable row")
 			return e
 		}},
-		{"Add", func(t *testing.T) *ui.MapEditor {
-			e := scriptMap(t)
+		{"Sacks palette", func(t *testing.T) *ui.MapEditor {
+			_, e := openRecords(t)
 			_ = e.Key("sack")
 			return e
 		}},

@@ -270,8 +270,8 @@ func (e *MapEditor) commandSetGoalTarget(g goalTarget) (editorChange, error) {
 	return e.adopted(next, &g.Target)
 }
 
-// addValue is what add_record adds: a record through the Add window's
-// assembly, or a message action with its new page.
+// addValue is what add_record adds: a record its kind's steps assemble, or
+// a message action with its new page.
 type addValue struct {
 	record  InspectionNewRecord
 	message *messageWrite

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -67,33 +66,6 @@ func scriptAddEditor(t *testing.T, l scriptAddLang, b []byte) (*ui.MapEditor, *M
 	return e, x, func(id string, a ...any) string { return x.inspectionUTF8(fmt.Sprintf(book.Text(id), a...)) }
 }
 
-// addWalk drives the open Add window to its end: each step given in values
-// is typed, every other step keeps its default. It answers the keys of the
-// steps asked, in order, and stops at stop when that step comes.
-func addWalk(t *testing.T, e *ui.MapEditor, values map[string]string, stop string) []string {
-	t.Helper()
-	var keys []string
-	for i := 0; i < 32; i++ {
-		key, _, ok := e.AddStep()
-		if !ok || key == stop {
-			return keys
-		}
-		keys = append(keys, key)
-		if v, ok := values[key]; ok {
-			_ = e.Key("clear")
-			e.TextInput(v)
-		}
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		if next, note, ok := e.AddStep(); ok && note != "" {
-			t.Fatalf("the Add window refused step %s (now %s): %s", key, next, note)
-		}
-	}
-	t.Fatal("the Add window did not end")
-	return nil
-}
-
 // A condition no pair names offers Add to trigger in its popup, EN and RU.
 // The check the wizard reads as an item enters as that item's row, the
 // unit-to-unit check no item reads enters as Details enters a pair (== a
@@ -114,19 +86,15 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				name := fmt.Sprintf("%s condition %d into trigger %d", l.name, c.id, trigger)
 				e, x, w := scriptAddEditor(t, l, b)
 				e.Select(trigRecord(t, e, "Condition", c.index), false)
-				buttons := e.PopupButtons()
-				at := slices.Index(buttons, w("editor.scripts.totrigger"))
-				if at < 0 {
-					t.Fatalf("%s: the popup offers %q", name, buttons)
+				node := e.Document().Script.Conditions[c.index]
+				field := parameterField(node, len(node.Types))
+				choice := w("editor.area.newtrigger")
+				if trigger >= 0 {
+					choice = fmt.Sprintf("T%d %s", trigger+1, before.Triggers[trigger].Name)
 				}
-				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: at})
-				trigClick(t, e, r, ok, "Add to trigger")
-				if key, _, ok := e.AddStep(); !ok || key != "trigger" {
-					t.Fatalf("%s: Add to trigger asked %q %v", name, key, ok)
-				}
-				_ = e.Key("clear")
-				e.TextInput(strconv.Itoa(trigger))
-				_ = e.Key("enter")
+				trigChoose(t, e, field, choice)
+				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
+				trigClick(t, e, r, ok, "Apply")
 				if trigger == 0 {
 					if !slices.Contains(e.OpenWindows(), "prompt") || x.inspectionUTF8(e.PromptTitle()) != w("editor.scriptform.title") || !bytes.Equal(e.Document().SourceBytes, b) {
 						t.Fatalf("%s: a full trigger did not ask to extend the map: %q", name, e.PromptNotes())
@@ -141,9 +109,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 					}
 					continue
 				}
-				if _, note, ok := e.AddStep(); ok {
-					t.Fatalf("%s: the window stayed: %s", name, note)
-				}
+
 				sc := wizScript(t, e.Document().SourceBytes)
 				index, pair := trigger, 1
 				if trigger < 0 {
@@ -214,8 +180,9 @@ func newVariable(t *testing.T, e *ui.MapEditor, w func(string, ...any) string, l
 	openVariable(t, e, w("editor.scripts.variable", r0))
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Label...")
-	if keys := addWalk(t, e, map[string]string{"label": label}, ""); !slices.Equal(keys, []string{"label"}) {
-		t.Fatalf("Label... asked %q", keys)
+	e.TextInput(label)
+	if err := e.Key("enter"); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -324,8 +291,10 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 		}
 		r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Label...")
-		if keys := addWalk(t, e, map[string]string{"label": "Treasury"}, ""); !slices.Equal(keys, []string{"label"}) {
-			t.Fatalf("%s: Label... asked %q", l.name, keys)
+		_ = e.Key("selectall")
+		e.TextInput("Treasury")
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
 		}
 		if e.Document().Script.Labels[r0] != "Treasury" {
 			t.Fatalf("%s: the label reads %q", l.name, e.Document().Script.Labels[r0])

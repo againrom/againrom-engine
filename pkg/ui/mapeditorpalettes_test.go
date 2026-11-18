@@ -64,13 +64,6 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 		t.Run(c.key, func(t *testing.T) {
 			e, _ := newModesEditor(t, "full")
 			e.showRecords(c.filter)
-			if c.addsAtOnce {
-				// Sacks opens the Add window and no palette.
-				if _, ok := e.listSpec(); ok || addKindNow(e) == "" {
-					t.Fatalf("the %s entry shows a palette (%v) or no Add window", c.key, ok)
-				}
-				return
-			}
 			s, ok := e.listSpec()
 			if !ok || !e.paletteShown() && !e.groupsShown() {
 				t.Fatalf("the %s palette did not open", c.key)
@@ -82,7 +75,7 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				return
 			}
 			if c.listRecords {
-				if s.List == nil || len(s.Buttons) == 0 {
+				if s.List == nil {
 					t.Fatal("record palette lost its list or Add")
 				}
 				return
@@ -113,9 +106,9 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				// How placing works is the title's (?); the Units tab holds
 				// its player row, the Structures tab no row while nothing is
 				// placed.
-				rows := map[string]int{"units": 1, "structures": 0}[c.key]
-				if s.Grid == nil || len(s.Rows) != rows || s.TitleHelp != e.word("editor.place.help") || !slices.Contains(s.Buttons, add) {
-					t.Errorf("the %s palette lost its grid, help or Add: %+v", c.key, s)
+				rows := 1
+				if s.Grid == nil || len(s.Rows) != rows || s.TitleHelp != e.word("editor.place.help") || slices.Contains(s.Buttons, add) {
+					t.Errorf("the %s palette has unexpected grid, help or buttons: %+v", c.key, s)
 				}
 			case "players":
 				if s.Grid == nil || len(s.Grid.ColHeads) != 2 || !slices.Contains(s.Buttons, add) {
@@ -161,12 +154,6 @@ func TestMapEditorPaletteRoutesLeaveTheSidePanels(t *testing.T) {
 	opened := func(t *testing.T, e *MapEditor, name, key string) {
 		t.Helper()
 		c, _ := categoryByKey(key)
-		if c.addsAtOnce {
-			if addKindNow(e) == "" {
-				t.Fatalf("the %s route opened no Add window", name)
-			}
-			return
-		}
 		if !e.paletteShown() && !e.groupsShown() || e.filter != c.filter {
 			t.Fatalf("the %s route shows %q filter %d", name, e.listKind(), e.filter)
 		}

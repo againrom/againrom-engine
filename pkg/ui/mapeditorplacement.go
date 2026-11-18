@@ -99,14 +99,19 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 		}
 		f.Cells = []placementCells{{Rect: r.footprint().Add(f.Cell.Sub(r.Cell)), Refused: f.Refused}}
 	}
-	if e.pick == pickAddCell || e.pick == pickPaste {
+	if e.pick == pickPlace || e.pick == pickPaste {
 		host, ok := e.doc.Edits.(InspectionPlacementPreview)
 		if !ok {
 			return f, true
 		}
 		r := InspectionNewRecord{Cell: f.Cell, HasCell: true, Clip: e.selection.clip}
-		if e.pick == pickAddCell {
-			r = e.addPlacement(f.Cell)
+		if e.pick == pickPlace {
+			x, y := e.doc.Viewer.windowToFrame(e.pointer.X-e.mapArea().Min.X, e.pointer.Y)
+			r, ok = e.addPlacementAt(image.Pt(x, y), f.Cell)
+			if !ok {
+				f.Refused = true
+				return f, true
+			}
 		}
 		key := fmt.Sprint(r)
 		if r.Clip != nil {
@@ -145,7 +150,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 				if r.Kind == KindStructure {
 					kind = InspectionStructure
 				}
-				if r.Kind != KindSack && s.Inspection.Kind == kind && int(s.Inspection.ID) == index {
+				if (r.Kind == KindUnit || r.Kind == KindStructure) && s.Inspection.Kind == kind && int(s.Inspection.ID) == index {
 					f.Sprites = append(f.Sprites, s)
 				}
 			}

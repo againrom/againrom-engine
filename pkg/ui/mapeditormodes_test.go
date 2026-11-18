@@ -183,6 +183,11 @@ func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
 // 1 for a number; the tier gets none, so its step is left out.
 func (p *modesFull) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
 	switch key {
+	case "template":
+		return InspectionNewStep{
+			Value: -30, Choices: []InspectionChoice{{Value: -30, Label: "Cell"}},
+			Templates: map[int64]InspectionSpellTemplate{-30: {Constructor: -30}},
+		}
 	case "tier":
 		return InspectionNewStep{}
 	case "name":
@@ -363,16 +368,7 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:click-cell":
 		modesClick(e, cell(25, 20))
 	case "ui:click-unit":
-		// Over the Add unit window the click aims at its list's second entry
-		// when cell 10,10 misses the list, so the gesture still changes the
-		// unit choice whatever the window's height.
-		p := cell(10, 10)
-		if r, ok := e.PromptRect(); ok && p.In(r) && modesTitle(e) == "Add unit" && !modesOnListRow(e, p) {
-			if row, ok := e.FindControl(ControlQuery{Role: ControlPromptListRow, N: 1}); ok {
-				p = center(row)
-			}
-		}
-		modesClick(e, p)
+		modesClick(e, cell(10, 10))
 	case "ui:text-7":
 		e.TextInput("7")
 	case "ui:text-bad":
@@ -432,13 +428,9 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:esc-twice":
 		_ = e.Key("escape")
 		_ = e.Key("escape")
-	case "ui:add-pick":
-		if s, acts := e.addSpecOK(); acts != nil {
-			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-				if acts[rr.Index].button == "pick" {
-					modesClick(e, center(rr.Button))
-				}
-			}
+	case "ui:place-choice":
+		if r, ok := e.FindControl(ControlQuery{Role: ControlPlaceGridCell, N: 0}); ok {
+			modesClick(e, center(r))
 		}
 	case "ui:mod-manifest":
 		if p, ok := e.doc.Edits.(*modesWorkspace); ok {
@@ -607,8 +599,8 @@ var modesPaths = []modesPath{
 	{"unit-prompt", []string{"unit", "ui:click-cell"}},
 	{"unit-owner", []string{"unit", "enter"}},
 	{"unit-cell", []string{"unit", "enter", "enter"}},
-	{"unit-pick", []string{"unit", "enter", "enter", "ui:add-pick"}},
-	{"unit-picked", []string{"unit", "enter", "enter", "ui:add-pick", "ui:click-cell"}},
+	{"unit-pick", []string{"unit", "ui:place-choice"}},
+	{"unit-picked", []string{"unit", "ui:place-choice", "ui:click-cell"}},
 	{"add-player", []string{"players", "player"}},
 	{"add-script", []string{"scripts", "player"}},
 	{"new-structure", []string{"structure"}},
@@ -703,20 +695,6 @@ func modesTitle(e *MapEditor) string {
 	return editorClip(e.font, e.promptTitle(), 300)
 }
 
-func modesOnListRow(e *MapEditor, p image.Point) bool {
-	s, ok := e.promptSpec()
-	if !ok || s.List == nil {
-		return false
-	}
-	top, count := s.List.Visible()
-	for n := top; n < top+count; n++ {
-		if r, ok := e.FindControl(ControlQuery{Role: ControlPromptListRow, N: n}); ok && p.In(r) {
-			return true
-		}
-	}
-	return false
-}
-
 func modesPathSteps(name string) []string {
 	for _, p := range modesPaths {
 		if p.name == name {
@@ -731,18 +709,11 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 	keys := "N: new map / U: unit"
 	prompt := "Enter: set / Tab: next / Esc: back"
 	players := "P: records / A: add / Del: delete"
-	add := "Enter: next / Esc: cancel"
 	rows := []modesRow{
-		{"full", "list", "clone", keys, "Select a unit, structure or sack first.", "", false, false},
+		{"full", "list", "clone", keys, "Clone needs a selected unit, structure, sack or spell.", "", false, false},
 		{"full", "selected", "clone", "Clone: click a cell", "", "", false, false},
 		{"full", "selected", "ui:click-cell", keys, "", "", false, false},
 		{"full", "clone", "escape", keys, "", "", false, false},
-		{"full", "sack", "escape", add, "", "Add sack", false, false},
-		{"full", "list", "sack", "Cell: click a cell", "", "Add sack", false, false},
-		{"full", "list", "unit", "Cell: click a cell", "", "Add unit", false, false},
-		{"full", "unit-cell", "ui:add-pick", "Cell: click a cell", "", "Add unit", false, false},
-		{"full", "unit-pick", "ui:click-cell", keys, "", "", false, false},
-		{"full", "unit-pick", "escape", add, "", "Add unit", false, false},
 		{"plain", "list", "unit", keys, "", "", false, false},
 		{"full", "list", "drop", "Drop zones: click / drag / Del", "", "", false, false},
 		{"full", "list", "goals", "Enter: pick a target", "", "", true, false},
@@ -756,7 +727,7 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "terrain", "terrain", keys, "", "", false, false},
 		{"full", "terrain", "height", "H: off / Drag: shape / [ ]: size", "", "", false, true},
 		{"plain", "list", "terrain", keys, "", "", false, false},
-		{"full", "terrain", "clone", "T: off / Drag: paint / [ ]: size", "Select a unit, structure or sack first.", "", false, true},
+		{"full", "terrain", "clone", "T: off / Drag: paint / [ ]: size", "Clone needs a selected unit, structure, sack or spell.", "", false, true},
 		{"full", "terrain", "open", prompt, "", "Open map", false, false},
 		{"full", "terrain-open", "escape", "T: off / Drag: paint / [ ]: size", "", "", false, true},
 		{"full", "list", "open", prompt, "", "Open map", false, false},

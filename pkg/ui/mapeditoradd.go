@@ -6,17 +6,15 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"againrom/pkg/render/textfit"
 )
 
-// The Add window is the one builder of every new record. A record kind's
-// steps are data (addKinds); one popup asks them top to bottom, each step one
-// value with one control. The host offers each step's choices and default,
-// checks each value, and adds the record from every value as one history
-// entry. The window then closes and the new record's popup opens.
+// A new record is assembled from its kind's steps, kept as data (addKinds):
+// each step is one value the host offers choices and a default for and
+// checks. The palettes place records through it, one record and one history
+// entry per click, the one-click adds take every default, and the add_record
+// and add_steps commands walk the same steps headless (newRecordOf).
 
-// InspectionNewRecord is a new record as the Add window has asked it so far:
+// InspectionNewRecord is a new record as its steps have assembled it so far:
 // its kind, the cell once a step chose one, and every other step's value in
 // step order. A step that chooses several values gives one entry each. Clip,
 // when set, is the paste brush's clip instead: what PasteRecords would place
@@ -41,6 +39,9 @@ type InspectionNewStep struct {
 	Value     int64
 	Text      string
 	Absent    bool
+	Label     string
+	Bounds    *InspectionStepBounds
+	Templates map[int64]InspectionSpellTemplate
 	// Palettes is the bar palette each choice of a structure kind step
 	// lists in, by value; a value it lacks lists in its own kind's palette.
 	Palettes map[int64]Palette
@@ -49,11 +50,20 @@ type InspectionNewStep struct {
 	Shut []int64
 }
 
-// InspectionNewRecords is implemented by a host that adds records through
-// the Add window. NewRecordStep offers step key given the values before it;
-// CheckNewRecord refuses the value r holds for key, with the reason;
-// NewRecordPreview is a choice's picture, nil for none; AddRecord adds r as
-// one history entry and changes nothing when it refuses.
+type InspectionStepBounds struct{ Min, Max int64 }
+
+// InspectionSpellTemplate gives a choice's Where constructor and link target.
+// An empty target places the spell on the cell itself.
+type InspectionSpellTemplate struct {
+	Constructor int64
+	Target      RecordKind
+}
+
+// InspectionNewRecords is implemented by a host that adds new records.
+// NewRecordStep offers step key given the values before it; CheckNewRecord
+// refuses the value r holds for key, with the reason; NewRecordPreview is a
+// choice's picture, nil for none; AddRecord adds r as one history entry and
+// changes nothing when it refuses.
 type InspectionNewRecords interface {
 	NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep
 	CheckNewRecord(r InspectionNewRecord, key string) error
@@ -61,42 +71,36 @@ type InspectionNewRecords interface {
 	AddRecord(r InspectionNewRecord) (*InspectionDocument, error)
 }
 
-// addControl is the control a step asks its value with.
+// addControl is the kind of value a step takes.
 type addControl uint8
 
 const (
-	addChoice  addControl = iota // one of the host's choices, from a list
-	addSprites                   // a choice whose highlighted row shows its picture
-	addNumber                    // a typed whole number
-	addName                      // typed text
-	addCell                      // a cell picked on the map or typed x,y
-	addMany                      // one or more of the host's choices
-	addItem                      // the wizard condition item the window goes on with
+	addChoice addControl = iota // one of the host's choices
+	addNumber                   // a whole number
+	addName                     // text
+	addCell                     // a cell on the map
+	addMany                     // one or more of the host's choices
 )
 
 // addStep is one step: the host's key for its value, its label's word and
-// its control. An optional step is left out when the host marks it Absent
-// or a choice step is offered fewer than two choices. An Editor step is the
-// editor's own, offered and checked from the wizard's item table and the
-// script the editor holds (scriptStepOffer), not by the host; the host's add
-// takes no value of it.
+// the kind of its value. An optional step is left out when the host marks it
+// Absent or a choice step is offered fewer than two choices.
 type addStep struct {
 	Key      string
 	Word     string
 	Control  addControl
 	Optional bool
-	Editor   bool
 }
 
-// addKindRow is one record kind the window adds: the kind the host adds, the
-// title word, the list views whose Add button opens it and its steps.
+// addKindRow is one record kind a new record is assembled for: the kind the
+// host adds, its name's word, the list views it lists in and its steps.
 type addKindRow struct {
 	Kind    RecordKind
 	Word    string
 	Filters []int
 	Steps   []addStep
-	// OneClick kinds open no Add window: the list's Add adds the record at
-	// once with every proposal accepted, and the list's window stays.
+	// OneClick kinds are added by the list's Add button and the A key, at
+	// once with every default; the list's window stays.
 	OneClick bool
 }
 
@@ -106,7 +110,7 @@ var (
 	addNamed = addStep{Key: "name", Word: "editor.add.name", Control: addName}
 )
 
-// addKinds is every kind the Add window creates, as data.
+// addKinds is every kind a new record is assembled for, as data.
 var addKinds = []addKindRow{
 	{Kind: KindEnchantment, Word: "editor.cast.add", Filters: []int{5, editorCellSpellsFilter}, Steps: []addStep{
 		{Key: "template", Word: "editor.cast.template", Control: addChoice},
@@ -116,11 +120,11 @@ var addKinds = []addKindRow{
 		{Key: "castkind", Word: "editor.cast.kind", Control: addChoice, Optional: true},
 		{Key: "range", Word: "editor.cast.range", Control: addNumber, Optional: true}}},
 	{Kind: KindUnit, Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
-		{Key: "identity", Word: "editor.unit.field.identity", Control: addSprites},
+		{Key: "identity", Word: "editor.unit.field.identity", Control: addChoice},
 		addOwner, {Key: "group", Word: "editor.unit.field.group", Control: addNumber},
 		{Key: "facing", Word: "editor.unit.field.facing", Control: addChoice, Optional: true}, addAt}},
 	{Kind: KindStructure, Word: "editor.add.structure", Filters: []int{2}, Steps: []addStep{
-		{Key: "kind", Word: "editor.add.kind", Control: addSprites}, addOwner, addAt}},
+		{Key: "kind", Word: "editor.add.kind", Control: addChoice}, addOwner, addAt}},
 	{Kind: KindSack, Word: "editor.add.sack", Filters: []int{3}, Steps: []addStep{
 		addAt, {Key: "item", Word: "editor.add.items", Control: addMany}}},
 	{Kind: KindPlayer, Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
@@ -130,16 +134,8 @@ var addKinds = []addKindRow{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
 	{Kind: KindMessage, Word: "editor.message.new"},
 	{Kind: KindAction, Word: "editor.add.action"},
-	// A condition is a wizard item's check, with its parameters, placed in a
-	// trigger's first free pair as that item's row.
-	{Kind: KindCondition, Word: "editor.add.condition", Steps: []addStep{
-		{Key: "check", Word: "editor.wizard.condition", Control: addItem, Editor: true}, addTrigger}},
+	{Kind: KindCondition, Word: "editor.add.condition"},
 }
-
-var (
-	addTrigger = addStep{Key: "trigger", Word: "editor.area.trigger", Control: addChoice, Editor: true}
-	addLabel   = addStep{Key: "label", Word: "editor.labels.label", Control: addName, Editor: true}
-)
 
 func addKindOf(kind RecordKind) (addKindRow, bool) {
 	for _, k := range addKinds {
@@ -150,7 +146,7 @@ func addKindOf(kind RecordKind) (addKindRow, bool) {
 	return addKindRow{}, false
 }
 
-// addKindFor is the kind the list view filter adds.
+// addKindFor is the kind the list view filter lists.
 func addKindFor(filter int) (addKindRow, bool) {
 	for _, k := range addKinds {
 		for _, f := range k.Filters {
@@ -162,42 +158,22 @@ func addKindFor(filter int) (addKindRow, bool) {
 	return addKindRow{}, false
 }
 
-// addRun is an open Add window: the kind it adds, its steps, the step asked,
-// each step's text (the asked step's is the prompt's), each many step's
-// chosen values, the labels a kept step's choices read as, the steps left
-// out, the asked step's offer and list, and why the last step did not go on.
+// addRun is one new record's assembly: its kind, its steps, each step's
+// text, each many step's values and the steps the host leaves out. A
+// palette's placing keeps one as the placing prompt (promptPlace): placed
+// counts the records it placed, note is its last count or refusal, stroke
+// is a press held over the map, and brush marks a placing the object
+// brush's grid began, which Esc ends back in that brush.
 type addRun struct {
-	seed       InspectionNewRecord
-	kind       RecordKind
-	title      string
-	steps      []addStep
-	at         int
-	texts      []string
-	many       [][]int64
-	labels     []string
-	manyLabels [][]string
-	skip       []bool
-	offer      InspectionNewStep
-	list       *Picker
-	choices    choiceList
-	note       string
-	// repeat keeps the window and its cell pick after each record it adds,
-	// so the map takes copy after copy; placed counts them and stroke is a
-	// press held over the map.
-	repeat bool
+	kind   RecordKind
+	steps  []addStep
+	texts  []string
+	many   [][]int64
+	skip   []bool
+	note   string
 	placed int
 	stroke *placeStroke
-	// quiet places without the window: it is not drawn and takes no key
-	// but Esc, and each copy's owner is the Units tab's chosen player.
-	quiet bool
-	// brush marks a placing the object brush's grid began: Esc ends it
-	// back in that brush.
-	brush bool
-	// listed is the condition no pair names that the window puts into a
-	// trigger, 0 for a new one; relabel names the variable register the
-	// window labels, nil for a new variable.
-	listed  uint32
-	relabel *uint32
+	brush  bool
 }
 
 func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
@@ -208,71 +184,24 @@ func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
 	return h, ok
 }
 
-// openAdd opens the Add window on kind's first step.
-func (e *MapEditor) openAdd(kind RecordKind) {
-	row, ok := addKindOf(kind)
-	if !ok || !e.addKindOpen(kind) {
-		return
-	}
-	if row.OneClick {
-		e.addNow(kind)
-		return
-	}
-	run := &addRun{kind: row.Kind, title: e.word(row.Word)}
-	run.setSteps(row.Steps)
-	e.openAddRun(run)
-}
-
-// openAddRun opens the Add window on run's first step.
-func (e *MapEditor) openAddRun(run *addRun) {
-	row, _ := addKindOf(run.kind)
-	if _, host := e.addHost(); !host {
-		return
-	}
-	e.rememberCancel()
-	restore := e.cancelRestore
-	x := leaveDrag | leavePick | leavePrompt
-	if e.barWindow() != "objects" && e.barWindow() != "trees" {
-		x |= leaveBrush
-	}
-	e.leave(x)
-	e.cancelRestore = restore
-	e.openPrompt(editorPrompt{kind: promptAdd, add: run})
-	e.enterAddStep(0, 1)
-	if row.Kind.Placed() {
-		e.armPick(pickAddCell)
-	}
-}
-
 func (r *addRun) setSteps(steps []addStep) {
 	r.steps = append([]addStep(nil), steps...)
 	n := len(r.steps)
-	for len(r.texts) < n {
-		r.texts, r.many, r.skip = append(r.texts, ""), append(r.many, nil), append(r.skip, false)
-		r.labels, r.manyLabels = append(r.labels, ""), append(r.manyLabels, nil)
-	}
-	r.texts, r.many, r.skip, r.labels, r.manyLabels = r.texts[:n], r.many[:n], r.skip[:n], r.labels[:n], r.manyLabels[:n]
+	r.texts, r.many, r.skip = make([]string, n), make([][]int64, n), make([]bool, n)
 }
 
+// addRunning is the palette's placing run, ok false while none is armed.
 func (e *MapEditor) addRunning() (*addRun, bool) {
 	r := e.prompt.add
-	return r, e.prompt.kind == promptAdd && r != nil
+	return r, e.prompt.kind == promptPlace && r != nil
 }
 
-// addText is step i's text.
-func (e *MapEditor) addText(r *addRun, i int) string {
-	if i == r.at {
-		return e.prompt.path
-	}
-	return r.texts[i]
-}
-
-// addRecord is the record of every step before upTo that the window kept.
+// addRecord is the record of every step before upTo the host did not leave
+// out.
 func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
-	out := r.seed
-	out.Kind, out.Values = r.kind, slices.Clone(r.seed.Values)
+	out := InspectionNewRecord{Kind: r.kind}
 	for i := 0; i < upTo && i < len(r.steps); i++ {
-		st, text := r.steps[i], strings.TrimSpace(e.addText(r, i))
+		st, text := r.steps[i], strings.TrimSpace(r.texts[i])
 		if r.skip[i] {
 			continue
 		}
@@ -282,7 +211,7 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 				out.Cell, out.HasCell = c, true
 			}
 		case addName:
-			out.Values = append(out.Values, InspectionFieldValue{Key: st.Key, Text: true, TextValue: e.addText(r, i)})
+			out.Values = append(out.Values, InspectionFieldValue{Key: st.Key, Text: true, TextValue: r.texts[i]})
 		case addMany:
 			for _, v := range r.many[i] {
 				out.Values = append(out.Values, InspectionFieldValue{Key: st.Key, Value: v})
@@ -293,14 +222,13 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 			}
 		}
 	}
-	if r.repeat && !r.brush && r.kind == KindStructure && e.place.ruined {
-		out.Values = append(out.Values, InspectionFieldValue{Key: "placement", Value: 0})
-	}
 	return out
 }
 
-// addPlacement is the record a click on cell adds, and the placement
-// preview's: a copy of the open run, completed by addAccepted.
+// addPlacement is the record a click on cell places, and the placement
+// preview's: the placing run with the palette's values (placeValues),
+// completed by addAccepted. A structure the Ruined switch marks takes the
+// ruined placement.
 func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 	r, ok := e.addRunning()
 	host, hok := e.addHost()
@@ -313,31 +241,20 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 	for i, m := range r.many {
 		run.many[i] = slices.Clone(m)
 	}
-	if r.at >= 0 && r.at < len(run.steps) {
-		run.texts[r.at] = e.prompt.path
-		if v, err := strconv.ParseInt(strings.TrimSpace(e.prompt.path), 10, 64); err == nil && run.steps[r.at].Control == addMany && !slices.Contains(run.many[r.at], v) {
-			run.many[r.at] = append(run.many[r.at], v)
-		}
+	e.placeValues(&run)
+	out := e.addAccepted(host, &run, cell)
+	if !run.brush && run.kind == KindStructure && e.place.ruined {
+		out.Values = append(out.Values, InspectionFieldValue{Key: "placement", Value: 0})
 	}
-	if owner, ok := e.placeOwner(); ok && r.quiet {
-		for i, st := range run.steps {
-			if st.Key == addOwner.Key {
-				run.texts[i] = strconv.FormatInt(owner, 10)
-			}
-		}
-	}
-	return e.addAccepted(host, &run, r.at, cell)
+	return out
 }
 
-// addAccepted completes run the way the window would walk it, every step
-// after asked taking its proposal, then assembles it with addRecord: the
-// cell is the cell step's answer, a step the host leaves out stays out, and
-// a step with no answer takes the window's default (addDefault; a many step
-// with no value the first choice, the row the window's list highlights).
-// The placement takes the open run's answers so far; the one-click trigger
-// takes a new run with none (asked -1).
-func (e *MapEditor) addAccepted(host InspectionNewRecords, run *addRun, asked int, cell image.Point) InspectionNewRecord {
-	run.at = -1
+// addAccepted completes run, every step without a value taking the host's
+// default, then assembles it with addRecord: the cell is the cell step's
+// answer, a step the host leaves out stays out, and a step with no answer
+// takes its default (addDefault; a many step with no value the first
+// choice).
+func (e *MapEditor) addAccepted(host InspectionNewRecords, run *addRun, cell image.Point) InspectionNewRecord {
 	for i, st := range run.steps {
 		if st.Control == addCell {
 			run.texts[i] = fmt.Sprintf("%d,%d", cell.X, cell.Y)
@@ -351,9 +268,7 @@ func (e *MapEditor) addAccepted(host InspectionNewRecords, run *addRun, asked in
 		}
 		switch st.Control {
 		case addName:
-			if i > asked {
-				run.texts[i] = addDefault(st, offer)
-			}
+			run.texts[i] = addDefault(st, offer)
 		case addMany:
 			if len(run.many[i]) == 0 && len(offer.Choices) > 0 {
 				run.many[i] = []int64{offer.Choices[0].Value}
@@ -374,22 +289,17 @@ func parseCell(s string) (image.Point, bool) {
 	return image.Pt(x, y), ok && ex == nil && ey == nil
 }
 
-// addOffer is step i of r as the window walks it: the host's offer for the
-// record of the kept steps before it, and whether the window leaves the step
-// out. The window's steps and add_record both walk through it.
+// addOffer is step i of r: the host's offer for the record of the kept steps
+// before it, and whether the step is left out. Placing and add_record both
+// walk through it.
 func (e *MapEditor) addOffer(host InspectionNewRecords, r *addRun, i int) (InspectionNewStep, bool) {
 	st := r.steps[i]
-	var offer InspectionNewStep
-	if st.Editor {
-		offer = e.scriptStepOffer(r, i)
-	} else {
-		offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
-	}
+	offer := host.NewRecordStep(e.addRecord(r, i), st.Key)
 	return offer, st.Optional && (offer.Absent || st.Control != addNumber && len(offer.Choices) < 2)
 }
 
-// addDefault is the text an asked step starts at: the offer's value, its
-// text for a name, nothing for a cell or a many step.
+// addDefault is the text a step starts at: the offer's value, its text for a
+// name, nothing for a cell or a many step.
 func addDefault(st addStep, offer InspectionNewStep) string {
 	switch st.Control {
 	case addCell, addMany:
@@ -400,583 +310,47 @@ func addDefault(st addStep, offer InspectionNewStep) string {
 	return strconv.FormatInt(offer.Value, 10)
 }
 
-// enterAddStep asks step i, or the next step in direction dir the host
-// offers enough choices: its offer, its list and its text, the kept text or
-// the offer's default.
-func (e *MapEditor) enterAddStep(i, dir int) {
-	r, ok := e.addRunning()
-	host, hok := e.addHost()
-	if !ok || !hok {
-		return
+// addPicked places the record of a click at p on cell. A spell placed on a
+// unit or structure takes the number of the one under p as its link; a click
+// on none places nothing and names what the palette places on.
+func (e *MapEditor) addPlacementAt(p, cell image.Point) (InspectionNewRecord, bool) {
+	record := e.addPlacement(cell)
+	if record.Kind != KindEnchantment {
+		return record, true
 	}
-	for i >= 0 && i < len(r.steps) {
-		r.at = i
-		var offer InspectionNewStep
-		offer, r.skip[i] = e.addOffer(host, r, i)
-		if !r.skip[i] {
-			r.offer, r.note = offer, ""
-			e.prompt.path = r.texts[i]
-			if e.prompt.path == "" {
-				e.prompt.path = addDefault(r.steps[i], offer)
-			}
-			e.addList()
-			return
-		}
-		r.texts[i] = ""
-		if i += dir; i < 0 {
-			i, dir = 0, 1
-		}
+	target := e.castTemplateOffer().Templates[e.castTemplate()].Target
+	if target == "" {
+		return record, true
 	}
+	hits, _ := e.recordHitsAt(p, target)
+	if len(hits) == 0 {
+		return record, false
+	}
+	if i := slices.IndexFunc(record.Values, func(v InspectionFieldValue) bool { return v.Key == "link" }); i >= 0 {
+		record.Values[i].Value = e.doc.Records[hits[0]].SpellLink
+	}
+	return record, true
 }
 
-// addList builds the asked step's list, its highlight on the step's value.
-func (e *MapEditor) addList() {
-	r, _ := e.addRunning()
-	r.list = nil
-	if len(r.offer.Choices) == 0 {
-		return
-	}
-	r.choices = choiceList{field: InspectionField{Choices: r.offer.Choices, Groups: r.offer.Groups, Pictures: r.offer.Pictures, Shut: r.offer.Shut}, back: e.word("editor.button.back"), plain: true}
-	if r.steps[r.at].Control == addSprites {
-		r.choices.field.Groups = nil
-	}
-	rows := r.choices.rows()
-	sel := 0
-	for k, entry := range r.choices.entries {
-		if entry.index < 0 {
-			continue
-		}
-		c := r.offer.Choices[entry.index]
-		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(e.prompt.path) {
-			sel = k
-		}
-	}
-	r.list = NewPicker(rows).SetWindow(min(addListRows, len(rows)))
-	r.list.Select(sel)
-}
-
-const addListRows = 8
-
-// addChoiceAt is the asked step's choice whose value text holds.
-func (r *addRun) choiceAt(text string) (InspectionChoice, bool) {
-	v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
-	if err != nil {
-		return InspectionChoice{}, false
-	}
-	for _, c := range r.offer.Choices {
-		if c.Value == v {
-			return c, true
-		}
-	}
-	return InspectionChoice{}, false
-}
-
-// addNext checks the asked step's value and asks the next step, or adds the
-// record after the last. A refused value names its reason and the step
-// stays. On a many step, a typed or chosen value is added to the step and an
-// empty text goes on.
-func (e *MapEditor) addNext() {
-	r, ok := e.addRunning()
-	host, hok := e.addHost()
-	if !ok || !hok {
-		return
-	}
-	if len(r.choices.field.Groups) > 0 && r.list != nil && r.choices.index(r.list.Selection()) < 0 && strings.TrimSpace(e.prompt.path) == "" {
-		e.addTake(r.list.Selection())
-		return
-	}
-	e.message = ""
-	st, text := r.steps[r.at], strings.TrimSpace(e.prompt.path)
-	switch st.Control {
-	case addChoice, addSprites, addItem:
-		// A typed value off the list stands when the host's check passes it.
-		if _, err := strconv.ParseInt(text, 10, 64); err != nil {
-			r.note = e.word("editor.add.choose")
-			return
-		}
-	case addNumber:
-		if _, err := strconv.ParseInt(text, 10, 64); err != nil {
-			r.note = e.word("editor.add.whole")
-			return
-		}
-	case addCell:
-		c, ok := parseCell(text)
-		if !ok || !c.In(image.Rect(0, 0, e.doc.Width, e.doc.Height)) {
-			r.note = e.word("editor.add.cellbad")
-			return
-		}
-	case addMany:
-		if text != "" {
-			e.addManyValue(text)
-			return
-		}
-		if len(r.many[r.at]) == 0 {
-			r.note = e.word("editor.add.atleast")
-			return
-		}
-	}
-	if st.Editor {
-		if note := e.scriptStepRefusal(r, r.at, text); note != "" {
-			r.note = note
-			return
-		}
-	} else if st.Control != addMany {
-		if err := host.CheckNewRecord(e.addRecord(r, r.at+1), st.Key); err != nil {
-			r.note = e.editorHostText(err.Error())
-			return
-		}
-	}
-	if r.texts[r.at] != e.prompt.path {
-		for i := r.at + 1; i < len(r.steps); i++ {
-			r.texts[i], r.many[i] = "", nil
-		}
-	}
-	r.texts[r.at] = e.prompt.path
-	r.labels[r.at], r.manyLabels[r.at] = e.addValueText(r, r.at), nil
-	for _, v := range r.many[r.at] {
-		r.manyLabels[r.at] = append(r.manyLabels[r.at], r.labelOf(v))
-	}
-	if st.Control == addItem {
-		r.setSteps(e.itemSteps(r, r.at))
-	}
-	if r.at+1 < len(r.steps) {
-		e.enterAddStep(r.at+1, 1)
-		return
-	}
-	e.addFinish()
-}
-
-// addManyValue adds the value text names to the asked many step, once.
-func (e *MapEditor) addManyValue(text string) {
-	r, _ := e.addRunning()
-	host, _ := e.addHost()
-	v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
-	if err != nil {
-		r.note = e.word("editor.add.choose")
-		return
-	}
-	for _, have := range r.many[r.at] {
-		if have == v {
-			e.prompt.path = ""
-			return
-		}
-	}
-	r.many[r.at] = append(r.many[r.at], v)
-	if err := host.CheckNewRecord(e.addRecord(r, r.at+1), r.steps[r.at].Key); err != nil {
-		r.many[r.at] = r.many[r.at][:len(r.many[r.at])-1]
-		r.note = e.editorHostText(err.Error())
-		return
-	}
-	e.prompt.path, r.note = "", ""
-}
-
-// addBack asks the step before the asked one.
-func (e *MapEditor) addBack(to int) {
-	r, ok := e.addRunning()
-	if !ok || to < 0 || to >= r.at {
-		return
-	}
-	r.texts[r.at] = e.prompt.path
-	e.enterAddStep(to, -1)
-}
-
-// addFirst is the first step the window asks.
-func (r *addRun) first() int {
-	for i := range r.steps {
-		if !r.skip[i] {
-			return i
-		}
-	}
-	return 0
-}
-
-// addFinish adds the record through the host as one history entry, closes
-// the window and opens the new record's popup. A refusal keeps the window on
-// its last step with the reason.
-func (e *MapEditor) addFinish() {
-	r, _ := e.addRunning()
-	if e.scriptAddFinish(r) {
-		return
-	}
-	if r.kind == KindMessage {
-		if _, ok := e.doc.Edits.(InspectionMessages); ok {
-			e.leave(leavePrompt)
-			e.objectBack = nil
-			e.beginMessage(InspectionMessageOwner{Kind: KindMessage}, false)
-			return
-		}
-	}
-	ch, err := e.commandAddRecord(e.addRecord(r, len(r.steps)))
-	if err != nil {
-		r.note = e.editorHostText(err.Error())
-		return
-	}
-	next := ch.doc
-	if next == nil {
-		return
-	}
-	e.leave(leavePrompt)
-	if r.kind == KindMessage {
-		e.messagePage = 0
-		e.selectNewest(KindAction)
-		e.obj.doc = nil
-		e.loadObject()
-		for i, f := range e.obj.fields {
-			if f.Key == "value0" {
-				e.openParameter(i)
-				return
-			}
-		}
-		return
-	}
-	e.selectNewest(r.kind, next.AddedRecord)
-}
-
-// addMove steps the asked step's list by delta and takes its value.
-func (e *MapEditor) addMove(delta int) {
-	r, ok := e.addRunning()
-	if !ok || r.list == nil {
-		return
-	}
-	if len(r.choices.field.Groups) > 0 {
-		r.list.MoveChoice(delta)
-		e.prompt.path = ""
-		if index := r.choices.index(r.list.Selection()); index >= 0 {
-			e.prompt.path = strconv.FormatInt(r.offer.Choices[index].Value, 10)
-		}
-		return
-	}
-	switch _, ok := r.choiceAt(e.prompt.path); {
-	case ok && len(r.offer.Shut) > 0:
-		r.list.MoveChoice(delta) // a heading is not a value
-	case ok || r.steps[r.at].Control == addMany && e.prompt.path != "":
-		editorListStep(r.list, delta)
-	}
-	e.addTake(r.list.Selection())
-}
-
-// addTake makes choice row k the asked step's value.
-func (e *MapEditor) addTake(k int) {
-	r, _ := e.addRunning()
-	index, navigate := r.choices.take(k)
-	if navigate {
-		rows := r.choices.rows()
-		r.list = NewPicker(rows).SetWindow(min(addListRows, len(rows)))
-		return
-	}
-	if index < 0 {
-		return
-	}
-	row := k
-	k = index
-	if k < 0 || k >= len(r.offer.Choices) || slices.Contains(r.offer.Shut, r.offer.Choices[k].Value) {
-		return
-	}
-	r.list.Select(row)
-	e.prompt.path, r.note = strconv.FormatInt(r.offer.Choices[k].Value, 10), ""
-}
-
-// addFollow moves the list's highlight to the choice a typed value names.
-func (e *MapEditor) addFollow() {
-	r, ok := e.addRunning()
-	if !ok || r.list == nil {
-		return
-	}
-	for k, entry := range r.choices.entries {
-		if entry.index < 0 {
-			continue
-		}
-		c := r.offer.Choices[entry.index]
-		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(e.prompt.path) {
-			r.list.Select(k)
-			return
-		}
-	}
-}
-
-// addPicked takes a cell clicked on the map as the cell step's value.
-func (e *MapEditor) addPicked(cell image.Point) {
+func (e *MapEditor) addPicked(p, cell image.Point) {
 	r, ok := e.addRunning()
 	if !ok {
 		return
 	}
-	ch, err := e.commandAddRecord(e.addPlacement(cell))
+	record, ok := e.addPlacementAt(p, cell)
+	if !ok {
+		r.note = e.castWhere().Label
+		e.keepPick(pickPlace)
+		return
+	}
+	ch, err := e.commandAddRecord(record)
 	if err != nil {
 		r.note = e.editorHostText(err.Error())
-		e.armPick(pickAddCell)
+		e.armPick(pickPlace)
 		return
 	}
-	if next := ch.doc; next != nil {
-		if r.repeat {
-			e.placedNote(r)
-			e.keepPick(pickAddCell)
-			return
-		}
-		e.leave(leavePrompt)
-		e.selectNewest(r.kind, next.AddedRecord)
+	if ch.doc != nil {
+		e.placedNote(r)
+		e.keepPick(pickPlace)
 	}
-}
-
-// addRowAct is what a press on a row of the window does: ask a step again,
-// pick its cell, add the highlighted value, or remove a chosen value.
-type addRowAct struct {
-	step   int
-	item   int // a chosen value's position, -1 for the step's own row
-	asked  bool
-	button string
-}
-
-// labelOf is the asked step's label of choice value v.
-func (r *addRun) labelOf(v int64) string {
-	for _, c := range r.offer.Choices {
-		if c.Value == v {
-			return c.Label
-		}
-	}
-	return strconv.FormatInt(v, 10)
-}
-
-// addValueText is how a step's value reads in its row.
-func (e *MapEditor) addValueText(r *addRun, i int) string {
-	st, text := r.steps[i], e.addText(r, i)
-	switch st.Control {
-	case addName, addCell, addNumber:
-		if st.Control == addName {
-			return e.editorHostText(text)
-		}
-		return text
-	case addMany:
-		return fmt.Sprintf("%d", len(r.many[i]))
-	}
-	if i == r.at {
-		if c, ok := r.choiceAt(text); ok {
-			return c.Label
-		}
-		return text
-	}
-	return r.labels[i]
-}
-
-// addSpec is the Add window as data, with what each row does.
-func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
-	r, _ := e.addRunning()
-	w := e.popupWide(popPrompt, min(480, e.window.X-16))
-	s := popupSpec{Title: r.title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, PickLabel: e.word("editor.object.pick"), PickArmed: e.addPicking()}
-	var acts []addRowAct
-	body := e.bodyFont()
-	for i, st := range r.steps {
-		if r.skip[i] {
-			continue
-		}
-		row := popupRow{Kind: popupText, Label: e.word(st.Word)}
-		act := addRowAct{step: i, item: -1}
-		switch {
-		case i < r.at:
-			row.Value = e.addValueText(r, i)
-		case i == r.at:
-			act.asked = true
-			row.Focus = true
-			row.Value = e.addValueText(r, i)
-			switch st.Control {
-			case addChoice, addSprites, addItem:
-				row = row.withChoices(r.offer.Choices, r.offer.ChoicePad, e.prompt.path)
-			case addCell:
-				row.Kind = popupPick
-				act.button = "pick"
-			case addMany:
-				row.Kind, row.Value = popupEdit, e.prompt.path
-				row.Buttons, act.button = []string{e.word("editor.button.add")}, "add"
-			default:
-				row.Kind = popupEdit
-			}
-		}
-		if row.Value == "" && row.Kind == popupText {
-			row.Value = " "
-		}
-		if st.Control == addCell {
-			row.Kind = popupPick
-			act.button = "pick"
-		}
-		_, chosen := r.choiceAt(e.prompt.path)
-		if row.Focus && row.Kind != popupDirection && !(row.Kind == popupChoice && chosen) && body != nil {
-			// A typed value keeps its end, where the caret stands.
-			row.Value = textfit.Spec{Measure: body.Advance, Unit: textfit.Byte, Side: textfit.Start}.Fit(row.Value, w/2)
-			row.Caret = body.Advance(row.Value)
-		} else {
-			row.Value = editorClip(body, row.Value, w/2)
-		}
-		s.Rows, acts = append(s.Rows, row), append(acts, act)
-		if st.Control == addMany && i <= r.at {
-			for k, v := range r.many[i] {
-				label := r.labelOf(v)
-				if i < r.at && k < len(r.manyLabels[i]) {
-					label = r.manyLabels[i][k]
-				}
-				item := popupRow{Kind: popupText, Label: editorClip(body, "  "+label, w-140)}
-				if i == r.at {
-					item.Buttons = []string{e.word("editor.button.remove")}
-				}
-				s.Rows, acts = append(s.Rows, item), append(acts, addRowAct{step: i, item: k, button: "remove"})
-			}
-		}
-	}
-	if r.list != nil && len(r.offer.ChoicePad) == 0 {
-		s.List, s.ListRows = r.list, min(addListRows, r.list.Len())
-		list := r.list
-		s.ListText = func(row, width int) string {
-			rows := list.Rows()
-			if row < 0 || row >= len(rows) {
-				return ""
-			}
-			return editorClip(body, rows[row].Text, width)
-		}
-		if r.steps[r.at].Control == addSprites {
-			s.ListAside = previewW + popupPad
-		}
-	}
-	for _, note := range []string{r.note, e.editorHostText(e.message)} {
-		if note != "" {
-			s.Notes = append(s.Notes, editorTextLines(body, note, w-2*popupPad-8)...)
-		}
-	}
-	finish := e.word("editor.button.next")
-	if r.at == len(r.steps)-1 {
-		finish = e.word("editor.button.finish")
-	}
-	s.Buttons = []string{e.word("editor.button.back"), finish, e.word("editor.button.cancel")}
-	s.Disabled = []bool{r.at <= r.first(), false, false}
-	l := layoutPopup(s, e.font, body)
-	s.At = e.centreCorner(l.Rect.Size(), openSteps)
-	return s, acts
-}
-
-// AddStep is the key of the step the open Add window asks and the reason its
-// last value was refused; ok is false while no Add window is open. A headless
-// driver reads it to give each step its value.
-func (e *MapEditor) AddStep() (key, note string, ok bool) {
-	r, ok := e.addRunning()
-	if !ok {
-		return "", "", false
-	}
-	return r.steps[r.at].Key, r.note, true
-}
-
-// addSpecOK is the Add window as data while it is open, else no acts.
-func (e *MapEditor) addSpecOK() (popupSpec, []addRowAct) {
-	if _, ok := e.addRunning(); !ok {
-		return popupSpec{}, nil
-	}
-	return e.addSpec()
-}
-
-// addPress is a press on the Add window.
-func (e *MapEditor) addPress(p image.Point, double bool) {
-	r, _ := e.addRunning()
-	s, acts := e.addSpec()
-	s = e.sizedPrompt(s)
-	l := layoutPopup(s, e.font, e.bodyFont())
-	switch part, n := l.hit(p); part {
-	case popupClose:
-		e.cancelPopup()
-	case popupButton:
-		switch {
-		case n == 0 && !s.Disabled[0]:
-			e.addBack(e.addPrevious())
-		case n == 1:
-			e.addNext()
-		case n == 2:
-			e.cancelPopup()
-		}
-	case popupRowButton:
-		if s.Rows[n].Kind == popupDirection {
-			if _, k, ok := l.rowButtonAt(p); ok {
-				e.addTake(k)
-			}
-			return
-		}
-		a := acts[n]
-		switch a.button {
-		case "pick":
-			e.armPick(pickAddCell)
-		case "add":
-			if strings.TrimSpace(e.prompt.path) == "" && r.list != nil {
-				e.addTake(r.list.Selection())
-			}
-			e.addManyValue(e.prompt.path)
-		case "remove":
-			if a.step == r.at && a.item >= 0 && a.item < len(r.many[a.step]) {
-				r.many[a.step] = append(r.many[a.step][:a.item:a.item], r.many[a.step][a.item+1:]...)
-			}
-		}
-	case popupRowLine, popupRowControl:
-		if a := acts[n]; !a.asked && a.item < 0 && a.step < r.at {
-			e.addBack(a.step)
-		}
-	case popupListRow:
-		top, count := r.list.Visible()
-		if n >= count {
-			return
-		}
-		value := r.choices.index(top+n) >= 0
-		e.addTake(top + n)
-		if double && value {
-			e.addNext()
-		}
-	}
-}
-
-// addPrevious is the step before the asked one that the window asks.
-func (e *MapEditor) addPrevious() int {
-	r, _ := e.addRunning()
-	for i := r.at - 1; i >= 0; i-- {
-		if !r.skip[i] {
-			return i
-		}
-	}
-	return -1
-}
-
-// addWheel steps the Add window's list as Up and Down do.
-func (e *MapEditor) addWheel(wheel wheelSource) {
-	if r, ok := e.addRunning(); ok && r.list != nil {
-		if rows := editorWheelRows(&e.listWheel, wheel); rows != 0 {
-			e.addMove(rows)
-		}
-	}
-}
-
-// drawAddPreview draws the highlighted choice's picture beside the list of a
-// step whose choices have pictures.
-func (e *MapEditor) drawAddPreview(pic *image.RGBA, s popupSpec) {
-	r, ok := e.addRunning()
-	host, hok := e.addHost()
-	if !ok || !hok || r.list == nil || r.steps[r.at].Control != addSprites {
-		return
-	}
-	k := r.list.Selection()
-	if k < 0 || k >= len(r.offer.Choices) {
-		return
-	}
-	e.drawAside(pic, s, host.NewRecordPreview(r.kind, r.steps[r.at].Key, r.offer.Choices[k].Value))
-}
-
-// drawAside draws a picture, nil for none, fitted into the Aside box the popup
-// keeps beside its list: the one place a list's picture is drawn.
-func (e *MapEditor) drawAside(pic *image.RGBA, s popupSpec, preview *image.RGBA) {
-	if preview == nil || preview.Bounds().Empty() {
-		return
-	}
-	box := layoutPopup(s, e.font, e.bodyFont()).Aside
-	drawEditorPicture(pic, editorPicture{Pic: preview, Box: box, Clip: box})
-}
-
-// addPreviewRect fits a picture of size into box, centred: a large picture
-// shrinks to fit, a small sprite grows by the largest whole factor that fits.
-func addPreviewRect(size image.Point, box image.Rectangle) screenRect {
-	scale := min(float64(box.Dx())/float64(size.X), float64(box.Dy())/float64(size.Y))
-	if scale >= 1 {
-		scale = float64(int(scale))
-	}
-	w, h := float64(size.X)*scale, float64(size.Y)*scale
-	return screenRect{X: float64(box.Min.X) + (float64(box.Dx())-w)/2, Y: float64(box.Min.Y) + (float64(box.Dy())-h)/2, W: w, H: h}
 }

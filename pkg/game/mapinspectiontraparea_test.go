@@ -19,7 +19,8 @@ func trapAreaRequest(box image.Rectangle) ui.InspectionNewRecord {
 }
 
 func TestEditorTrapAreaMatchesSingleAddsAndDeletesOneStroke(t *testing.T) {
-	e := cellSpellFixture(t)
+	e := cellSpellFixtureWithPower(t, 40)
+	e.Layout(1920, 1080)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before := s.model.Bytes()
 	box := image.Rect(10, 10, 13, 12)
@@ -35,14 +36,12 @@ func TestEditorTrapAreaMatchesSingleAddsAndDeletesOneStroke(t *testing.T) {
 			}
 		}
 	}
+	palettePress(t, e, ui.ControlQuery{Role: ui.ControlBar, Key: "cellspells"})
+	palettePress(t, e, ui.ControlQuery{Role: ui.ControlListRow, N: 0})
 	if err := e.Key("traparea"); err != nil {
 		t.Fatal(err)
 	}
-	dragCell(e, image.Pt(10, 10), image.Pt(12, 11))
-	if step, _, ok := e.AddStep(); !ok || step != "spell" {
-		t.Fatal("rectangle did not open shared Add", step)
-	}
-	addSteps(t, e, map[string]string{"spell": "13", "power": "40"})
+	dragCell(e, box.Min, box.Max.Sub(image.Pt(1, 1)))
 	if !bytes.Equal(want.Bytes(), s.model.Bytes()) {
 		t.Fatal("area differs from six single Adds")
 	}

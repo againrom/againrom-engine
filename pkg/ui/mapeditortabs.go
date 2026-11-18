@@ -225,7 +225,7 @@ func (e *MapEditor) ShowOpenMap(n int) bool {
 // now shown. One open map has no other to show.
 func (e *MapEditor) keyMapStep(key string) error {
 	n := len(e.openMaps)
-	if n < 2 || e.prompt.open() {
+	if n < 2 || e.prompt.modal() {
 		return nil
 	}
 	step, window := 1, e.modWindow

@@ -63,7 +63,7 @@ func TestEditorCellSpellsAddWithoutATemplate(t *testing.T) {
 		if err := e.Key("casts"); err != nil {
 			t.Fatal(err)
 		}
-		addSteps(t, e, tc.values)
+		addFixtureRecord(t, e, ui.KindEnchantment, tc.values)
 		if n := s.model.Count(mapedit.KindEnchantment); n != i+1 {
 			t.Fatalf("%s: %d records, want %d", tc.name, n, i+1)
 		}
@@ -167,7 +167,7 @@ func TestEditorCellSpellsBindByIdAlone(t *testing.T) {
 	if err := e.Key("casts"); err != nil {
 		t.Fatal(err)
 	}
-	addSteps(t, e, map[string]string{"template": "0", "cell": "5,5"})
+	addFixtureRecord(t, e, ui.KindEnchantment, map[string]string{"template": "0", "cell": "5,5"})
 	copied := bytes.Clone(want)
 	binary.LittleEndian.PutUint32(copied[4:], 5)
 	binary.LittleEndian.PutUint32(copied[8:], 5)

@@ -217,7 +217,7 @@ func editorCommandRows() []editorCommand {
 				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth")), opt("forest", forestArg()),
 				opt("verbose", verboseArg())},
 			(*MapEditor).decodePaint, (*MapEditor).commandPaint),
-		typedCommand("add_record", "Add one record as the Add window does: values by step key (add_steps lists the steps and choices), x,y for a record on a cell; a Message takes parts and adds an action showing a new message page",
+		typedCommand("add_record", "Add one record as a palette places it: values by step key (add_steps lists the steps and choices), x,y for a record on a cell; a Message takes parts and adds an action showing a new message page",
 			[]commandArg{req("kind", textArg("Record kind", kindWords(addCommandKinds()...)...)), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),
 				opt("values", map[string]any{"type": "object", "description": "Step key to value: an integer, a text for a name step, a list of integers for a many step; a step left out takes its default",
 					"additionalProperties": map[string]any{"type": []string{"integer", "string", "array"}}}),
@@ -887,19 +887,19 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 	return op, nil
 }
 
-// addCommandKinds are the Add window kinds a command adds: each kind whose
-// steps the window asks before one host add.
+// addCommandKinds are the kinds add_record adds: each kind with steps
+// (addKinds), then the script kinds.
 func addCommandKinds() []RecordKind {
 	var out []RecordKind
 	for _, k := range addKinds {
-		if slices.ContainsFunc(k.Steps, func(st addStep) bool { return !st.Editor }) {
+		if len(k.Steps) > 0 {
 			out = append(out, k.Kind)
 		}
 	}
 	return append(out, KindAction, KindCondition, KindMessage)
 }
 
-// decodeAddRecord is a record the Add window's walk assembles, or for a
+// decodeAddRecord is a record its kind's steps assemble, or for a
 // Message the message editor's first Apply: an action showing a new page.
 func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 	a, err := decodeArgs[struct {
@@ -930,23 +930,22 @@ func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 }
 
 // addStepSeen is one step as newRecordOf walked it: the host's offer, whether
-// the window leaves the step out, and the host's refusal of its value.
+// the step is left out, and the host's refusal of its value.
 type addStepSeen func(st addStep, offer InspectionNewStep, skipped bool, refused error)
 
-// newRecordOf is the record the Add window adds for kind with the given
-// values. It walks an Add run through the window's own steps: addOffer gives
-// each step's offer and skip, each asked step takes its value or the window's
-// default, each value passes the host's check of its step as the window's
-// Enter checks it, and addRecord assembles the record. With seen it reads
-// instead of refusing: a missing cell or many value is left out and a
-// refused value is reported to seen.
+// newRecordOf is the record kind's steps (addKinds) assemble with the given
+// values, the one assembly the palettes place through: addOffer gives each
+// step's offer and skip, each step takes its value or the host's default,
+// each value passes the host's check of its step, and addRecord assembles
+// the record. With seen it reads instead of refusing: a missing cell or
+// many value is left out and a refused value is reported to seen.
 func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]json.RawMessage, seen addStepSeen) (InspectionNewRecord, error) {
 	row, ok := addKindOf(kind)
 	host, hok := e.addHost()
 	if !ok || !hok || kind == KindMessage {
 		return InspectionNewRecord{}, fmt.Errorf("add_record adds no %q record", kind)
 	}
-	r := &addRun{kind: kind, at: -1}
+	r := &addRun{kind: kind}
 	r.setSteps(row.Steps)
 	used, onCell := map[string]bool{}, false
 	check := func(i int, offer InspectionNewStep) error {
@@ -958,12 +957,6 @@ func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]js
 		return err
 	}
 	for i, st := range r.steps {
-		if st.Editor {
-			// The editor's own steps are the window's; a command adds the
-			// host's record without them.
-			r.skip[i] = true
-			continue
-		}
 		if st.Control == addCell {
 			onCell = true
 			if x == nil || y == nil {
@@ -1642,7 +1635,7 @@ var cellPlanes = []struct {
 // another size names its size and playable area instead.
 func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange, cells bool) map[string]any {
 	out := map[string]any{"changed": ch.doc != nil, "record": ch.record, "dirty": e.Dirty(),
-		"message": e.mcpDisplay(e.message), "prompt_open": e.prompt.open()}
+		"message": e.mcpDisplay(e.message), "prompt_open": e.prompt.modal()}
 	if r := ch.record; r != nil && !ch.removed && r.Kind.Addressed() {
 		if rec, err := e.recordOf(r.Kind, r.Index); err == nil {
 			out["script_id"] = rec.ScriptID

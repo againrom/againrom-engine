@@ -61,7 +61,7 @@ func recordAddInput(t *testing.T, e *ui.MapEditor, key string, cell image.Point,
 	if values == nil {
 		t.Fatalf("no Add window for %s", key)
 	}
-	addWindow(t, e, key, values)
+	addFixturePlacement(t, e, key, values)
 }
 
 func recordRecipeInput(t *testing.T, e *ui.MapEditor, magnitude int64) {
@@ -150,42 +150,12 @@ func authoredRecordsMod(t *testing.T, arm string) (string, uint16) {
 	recordAddInput(t, e, "sack", image.Pt(17, 12), code)
 	recordRecipeInput(t, e, 9)
 	before := bytes.Clone(e.Document().SourceBytes)
-	// The Add window refuses a unit on the border-ring cell 25,20 and names
-	// the playable area; Cancel leaves the map's bytes.
-	if err := e.Key("unit"); err != nil {
-		t.Fatal(err)
-	}
-	ring := ""
-	for i := 0; i < 32 && ring == ""; i++ {
-		key, _, ok := e.AddStep()
-		if !ok {
-			t.Fatal("the Add window ended before its cell step")
-		}
-		switch key {
-		case "identity":
-			_ = e.Key("clear")
-			e.TextInput(strconv.FormatInt(classIdentity(t, x, int64(class)), 10))
-		case "cell":
-			_ = e.Key("clear")
-			e.TextInput("25,20")
-		}
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		if _, note, ok := e.AddStep(); ok && note != "" {
-			if key != "cell" {
-				t.Fatalf("the Add window refused step %s: %s", key, note)
-			}
-			ring = note
-		}
-	}
-	if !strings.Contains(ring, "border ring") {
-		t.Fatalf("the Add window took a unit on the ring cell 25,20: %q", ring)
-	}
-	cancel, shown := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 2})
-	trigClick(t, e, cancel, shown, "Cancel Add")
-	if _, _, open := e.AddStep(); open || !bytes.Equal(before, e.Document().SourceBytes) {
-		t.Fatal("Cancel after the ring refusal left the window open or changed the map")
+	tool, _ := editorMCP(t, e)
+	refusal := tool("add_record", map[string]any{"kind": "Unit", "x": 25, "y": 20,
+		"values": map[string]any{"identity": classIdentity(t, x, int64(class))}})
+	e.CloseMCP()
+	if !refusal.IsError || !strings.Contains(fmt.Sprint(refusal), "border ring") || !bytes.Equal(before, e.Document().SourceBytes) {
+		t.Fatalf("ring placement changed the map or did not explain the refusal: %+v", refusal)
 	}
 	wantSaved, err := alm.SaveForm(before)
 	if err != nil {
@@ -458,34 +428,10 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 			rows = slices.DeleteFunc(rows, func(ch ui.InspectionChoice) bool { return !slices.Contains(g.Values, ch.Value) })
 		}
 		chosen[c.kind] = rows[0].Value
-		// The Add window's list walks with Down and Up; a many step takes the
-		// highlighted row with Enter and goes on with the next.
-		_ = e.Key(c.key)
-		for n := 0; n < 16; n++ {
-			key, _, open := e.AddStep()
-			if !open {
-				break
-			}
-			switch key {
-			case c.field:
-				keys := []string{"down", "up"}
-				if c.kind == "Sack" {
-					keys = []string{"enter", "down", "enter", "down", "enter"}
-				}
-				for _, k := range keys {
-					_ = e.Key(k)
-				}
-			case "cell":
-				_ = e.Key("clear")
-				e.TextInput(fmt.Sprintf("%d,%d", c.cell.X, c.cell.Y))
-			}
-			if err := e.Key("enter"); err != nil {
-				t.Fatalf("%s named choice refused: %v", c.kind, err)
-			}
-			if _, note, open := e.AddStep(); open && note != "" {
-				t.Fatalf("%s step %s refused: %s", c.kind, key, note)
-			}
-		}
+		addFixturePlacement(t, e, c.key, map[string]string{
+			c.field: fmt.Sprint(rows[0].Value),
+			"cell":  fmt.Sprintf("%d,%d", c.cell.X, c.cell.Y),
+		})
 	}
 	m, _ := alm.Open(e.Document().SourceBytes)
 	loot, _ := m.Loot()
@@ -497,7 +443,7 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 	}
 	if len(m.Objects) != 1 || int64(m.Objects[0].Kind) != chosen["Structure"] || len(m.Units) != 1 || unitIs != chosen["Unit"] ||
 		len(loot.Records) != 1 || int64(loot.Records[0].Elements[0].ItemCode()) != chosen["Sack"] {
-		t.Fatal("the keyboard choices did not reach the existing record constructors", m.Objects, m.Units, loot)
+		t.Fatal("the named choices did not reach the existing record constructors", m.Objects, m.Units, loot)
 	}
 	_ = e.Key("recipe")
 	_ = e.Key("down")

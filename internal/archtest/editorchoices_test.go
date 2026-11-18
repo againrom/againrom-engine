@@ -20,7 +20,7 @@ func TestEditorChoiceListsUseOneRowBuilder(t *testing.T) {
 	}
 	// The object window's row and the field prompt open their list through
 	// openChoiceList, which builds a choiceList and its rows.
-	for file, name := range map[string]string{"mapeditoradd.go": "addList", "editorchoices.go": "openChoiceList", "mapeditorobject.go": "objectRowPress", "mapeditorprompt.go": "openPromptList"} {
+	for file, name := range map[string]string{"editorchoices.go": "openChoiceList", "mapeditorobject.go": "objectRowPress", "mapeditorprompt.go": "openPromptList"} {
 		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "pkg", "ui", file), nil, 0)
 		if err != nil {
 			t.Fatal(err)

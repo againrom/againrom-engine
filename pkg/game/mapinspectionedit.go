@@ -250,6 +250,11 @@ func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Poi
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
+		if k == mapedit.KindEnchantment {
+			if err := spellRecordBound(m, index); err != nil {
+				return false, err
+			}
+		}
 		if err := s.admitCell(m, cell, "clone cell", kind, admitMove); err != nil {
 			return false, err
 		}

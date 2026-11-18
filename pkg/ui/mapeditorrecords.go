@@ -34,8 +34,6 @@ func (e *MapEditor) promptFields() []InspectionField {
 		return nil
 	case promptItemRecipe:
 		return e.recipeItemField()
-	case promptAdd:
-		return nil
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 {
@@ -66,7 +64,7 @@ func (e *MapEditor) sectionField(advance bool) int {
 }
 
 // recordKey handles the authoring keys: C arms a clone onto the next clicked
-// cell, S opens the Add window on a new sack, Delete removes the selected
+// cell, S opens the Sacks palette, Delete removes the selected
 // record, E opens the field prompt and Tab moves it to the next field. Each
 // accepted change is one history entry.
 func (e *MapEditor) recordKey(key string) error {
@@ -87,7 +85,7 @@ func (e *MapEditor) recordKey(key string) error {
 		e.focusObjectField(next)
 		return nil
 	}
-	if key == "tab" && e.prompt.kind == promptAdd {
+	if key == "tab" && e.prompt.kind == promptPlace {
 		return nil
 	}
 	if key == "tab" {
@@ -107,7 +105,7 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	if key == "sack" {
 		if !e.catalog {
-			e.openAdd(KindSack)
+			e.showRecords(3)
 		}
 		return nil
 	}
@@ -137,12 +135,17 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 || (key != "field" && !kind.Editable() && !(key == "delete" && kind.Fielded())) {
-		e.message = e.plainWord("editor.record.selectfirst")
+		if key == "clone" {
+			e.message = e.plainWord("editor.record.clonefirst")
+		} else {
+			e.message = e.plainWord("editor.record.selectfirst")
+		}
 		return nil
 	}
 	e.leave(leaveDrag)
 	switch key {
 	case "clone":
+		e.leave(leavePrompt)
 		e.armPick(pickClone)
 	case "delete":
 		e.leave(leavePick)
@@ -313,8 +316,8 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.message = e.plainWord("editor.record.clickcell")
 		return
 	}
-	if pick == pickAddCell {
-		e.addPicked(image.Pt(x, y))
+	if pick == pickPlace {
+		e.addPicked(p, image.Pt(x, y))
 		return
 	}
 	if pick == pickDrop {

@@ -203,8 +203,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenPlayers:     {"players"},
 		screenPrompt:      {"ui:select0", "field"},
 		screenMove:        {"ui:select0", "ui:pick-move"},
-		screenAdd:         {"unit", "escape"},
-		screenAddCell:     {"unit", "enter", "enter", "ui:add-pick"},
+		screenPlace:       {"unit", "ui:place-choice"},
 		screenSelection:   {"ui:group"},
 	}
 	inMod := map[string]bool{"nextmap": true, "prevmap": true}
@@ -265,15 +264,15 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"open prompt", []string{"open", "ui:text-7"}, false, escapes, false},
 		{"save prompt", []string{"saveas", "ui:text-7"}, false, escapes, false},
 		{"field prompt", []string{"ui:select0", "field", "tab"}, false, escapes, false},
-		{"new sack window", []string{"sack", "escape", "ui:text-7"}, false, escapes, false},
-		{"new unit window", []string{"unit", "escape", "ui:text-7"}, false, escapes, false},
-		{"new unit cell pick", []string{"unit", "enter", "enter", "ui:add-pick"}, false, escapes, false},
-		{"new unit completes", []string{"unit", "enter", "enter", "ui:add-pick", "ui:click-cell", "enter"}, false, nil, true},
+		{"sacks palette opens idle", []string{"sack"}, false, escapes, true},
+		{"units palette opens idle", []string{"unit"}, false, escapes, true},
+		{"unit placement", []string{"unit", "ui:place-choice"}, false, escapes, false},
+		{"unit copy leaves placement armed", []string{"unit", "ui:place-choice", "ui:click-cell"}, false, escapes, false},
 		{"field completes", []string{"ui:select0", "field", "ui:text-7", "enter"}, false, nil, true},
 		{"clone pick", []string{"ui:select0", "clone"}, false, escapes, false},
 		{"clone completes", []string{"ui:select0", "clone", "ui:click-cell"}, false, nil, true},
-		{"sack pick", []string{"sack"}, false, escapes, false},
-		{"unit pick", []string{"unit"}, false, escapes, false},
+		{"sack placement", []string{"sack", "ui:place-choice"}, false, escapes, false},
+		{"sack copy leaves placement armed", []string{"sack", "ui:place-choice", "ui:click-cell"}, false, escapes, false},
 		{"drop pick", []string{"drop"}, false, escapes, false},
 		{"drop completes", []string{"drop", "ui:click-cell"}, false, nil, true},
 		{"goal pick", []string{"goals", "enter"}, true, escapes, false},
@@ -317,7 +316,7 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 	}
 	// Opening another map leaves every mode the report, the prompt and the
 	// catalogue hold; the author's brush choice stays.
-	for _, enter := range [][]string{{"report"}, {"catalog"}, {"open", "ui:text-7"}, {"terrain", "ui:press-cell"}} {
+	for _, enter := range [][]string{{"report"}, {"catalog"}, {"open", "ui:text-7"}, {"terrain", "ui:press-cell"}, {"unit", "ui:place-choice"}, {"sack", "ui:place-choice"}} {
 		e, _ := newModesEditor(t, "full")
 		for _, s := range enter {
 			modesAct(e, s)

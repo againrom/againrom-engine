@@ -94,7 +94,7 @@ func hoverGhost(e *MapEditor, cell image.Point) {
 
 func TestEditorAddGhostMarksTheWholeFootprint(t *testing.T) {
 	e, h := newGhostEditor(t)
-	e.openAdd("Unit")
+	e.placeStart(KindUnit, nil)
 	hoverGhost(e, image.Pt(25, 20))
 	f, _ := e.placement()
 	if len(f.Cells) != 1 || f.Cells[0] != (placementCells{Rect: image.Rect(25, 20, 27, 22)}) {

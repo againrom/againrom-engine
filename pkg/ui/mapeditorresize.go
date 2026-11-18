@@ -178,7 +178,7 @@ func (e *MapEditor) windowCursor() {
 		shape = edgeCursorShape(e.dragEdge)
 	case e.drag == popNone && e.pointerOK && e.menu == "" && !e.down:
 		target := e.chromeHit(e.pointer)
-		modal := e.prompt.open() && !e.addPicking() || e.message != ""
+		modal := e.prompt.modal() || e.message != ""
 		if !modal || target == popPrompt {
 			shape = edgeCursorShape(e.resizeEdgeAt(target, e.pointer))
 		}

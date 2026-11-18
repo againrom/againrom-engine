@@ -126,7 +126,7 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	}
 	chromeClick(e, center(r))
 	run, ok := e.addRunning()
-	if !ok || !run.repeat || run.kind != "Unit" || e.pick != pickAddCell {
+	if !ok || run.kind != "Unit" || e.pick != pickPlace {
 		t.Fatalf("the grid press opened no placing Add window: %+v pick %q", run, e.pick)
 	}
 	g, note, _ := e.placeGridSpec()
@@ -138,7 +138,7 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Unit (40,20) true [{identity 2") {
 		t.Fatalf("a click placed %v", calls.lines)
 	}
-	if _, ok := e.addRunning(); !ok || e.pick != pickAddCell {
+	if _, ok := e.addRunning(); !ok || e.pick != pickPlace {
 		t.Fatal("the placing ended after one copy")
 	}
 	dragOnMap(e, image.Pt(40, 30), image.Pt(42, 30), image.Pt(41, 30))
@@ -161,14 +161,9 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 		t.Fatal("a press on the pressed cell did not end the placing")
 	}
 	// Loss control: the Add button still adds one record and closes.
-	before := len(calls.lines)
-	s, _ := e.listSpec()
-	chromeClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[0]))
-	if run, ok := e.addRunning(); !ok || run.repeat {
-		t.Fatal("the Add button opened a placing window")
-	}
-	if len(calls.lines) != before {
-		t.Fatal("opening the Add window wrote")
+
+	if _, ok := e.FindControl(ControlQuery{Role: ControlListButtonKey, Key: "add"}); ok {
+		t.Fatal("Units shows Add")
 	}
 }
 

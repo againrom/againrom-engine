@@ -26,38 +26,16 @@ func updateEditorKeys(t *testing.T, e *MapEditor, keys ...ebiten.Key) {
 	}
 }
 
-func TestEditorNativeAddCellArrowsPan(t *testing.T) {
-	for _, key := range []ebiten.Key{ebiten.KeyArrowLeft, ebiten.KeyArrowRight, ebiten.KeyArrowUp, ebiten.KeyArrowDown} {
-		t.Run(key.String(), func(t *testing.T) {
-			e, _ := newModesEditor(t, "full")
-			_ = e.Key("sack")
-			if !e.addPicking() || e.blocksCanvas() {
-				t.Fatal("not waiting for a cell")
-			}
-			e.prompt.path = "25,20"
-			m, _ := e.inputModel()
-			caret, anchor := m.Caret, m.Anchor
-			c := e.doc.Viewer.Camera()
-			c.Zoom, c.X, c.Y = 2, 400, 400
-			c.Clamp()
-			x, y := c.X, c.Y
-			updateEditorKeys(t, e, key)
-			if c.X == x && c.Y == y {
-				t.Error("Add cell arrow did not pan the map")
-			}
-			if e.prompt.path != "25,20" || m.Caret != caret || m.Anchor != anchor {
-				t.Errorf("map arrow edited coordinates: %q caret %d anchor %d", e.prompt.path, m.Caret, m.Anchor)
-			}
-		})
-	}
+func TestEditorNativePlacementArrowsPan(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	_ = e.Key("sack")
-	e.prompt.path = "25,20"
-	for _, key := range []ebiten.Key{ebiten.KeyHome, ebiten.KeyEnd, ebiten.KeyBackspace} {
-		updateEditorKeys(t, e, key)
-	}
-	if e.prompt.path != "25,2" || e.input.model.Caret != 4 {
-		t.Fatal("coordinate editing keys lost", e.prompt.path, e.input.model.Caret)
+	e.placeStart(KindUnit, nil)
+	c := e.doc.Viewer.Camera()
+	c.Zoom, c.X, c.Y = 2, 400, 400
+	c.Clamp()
+	x := c.X
+	updateEditorKeys(t, e, ebiten.KeyArrowLeft)
+	if c.X >= x || !e.addPicking() {
+		t.Fatal("arrow did not pan while placing")
 	}
 }
 
@@ -106,27 +84,6 @@ func TestEditorNativeModifiedPromptNavigation(t *testing.T) {
 			updateEditorKeys(t, e, ebiten.KeyControl, key)
 			if e.prompt.path != want {
 				t.Fatalf("Ctrl+%s lost plain prompt binding: %q want %q", key, e.prompt.path, want)
-			}
-		})
-	}
-	for _, test := range []struct {
-		key, modifier ebiten.Key
-		start, want   int
-	}{
-		{ebiten.KeyArrowUp, ebiten.KeyShift, 1, 0},
-		{ebiten.KeyArrowDown, ebiten.KeyShift, 0, 1},
-		{ebiten.KeyHome, ebiten.KeyControl, 1, 0},
-		{ebiten.KeyEnd, ebiten.KeyControl, 0, 1},
-	} {
-		t.Run("Add/"+test.modifier.String()+"+"+test.key.String(), func(t *testing.T) {
-			e, _ := newModesEditor(t, "full")
-			_ = e.Key("unit")
-			_ = e.Key("escape")
-			e.addTake(test.start)
-			updateEditorKeys(t, e, test.modifier, test.key)
-			r, ok := e.addRunning()
-			if !ok || r.list.Selection() != test.want || e.prompt.path != []string{"1", "2"}[test.want] {
-				t.Fatalf("modified Add list binding lost: %q, run %+v", e.prompt.path, r)
 			}
 		})
 	}

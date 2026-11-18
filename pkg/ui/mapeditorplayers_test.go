@@ -218,7 +218,7 @@ func TestMapEditorPlayerSelectionCannotFinishAClonePick(t *testing.T) {
 		}
 	}
 	e.pickAt(e.CellPoint(image.Pt(25, 20)))
-	if len(calls.lines) != 0 || e.pick != pickNone || e.Message() != "Clone needs a selected unit, structure or sack." {
+	if len(calls.lines) != 0 || e.pick != pickNone || e.Message() != "Clone needs a selected unit, structure, sack or spell." {
 		t.Fatal("an armed spatial clone accepted a subsequently selected player", calls.lines, e.pick, e.Message())
 	}
 }

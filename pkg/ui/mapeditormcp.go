@@ -314,10 +314,10 @@ func (e *MapEditor) keyRowHeard(row *keyRow) bool {
 	if e.pathDialog.pending != nil {
 		return false
 	}
-	if !e.prompt.open() && e.objectTyping() && e.unitWindowShown() && row.unitTyping {
+	if !e.prompt.modal() && e.objectTyping() && e.unitWindowShown() && row.unitTyping {
 		return true
 	}
-	if e.prompt.open() || e.objectTyping() {
+	if e.prompt.modal() || e.objectTyping() {
 		return row.live == promptHears || row.live == promptFields && (e.prompt.fields() || e.objectTyping() || e.prompt.kind == promptAreaTrigger)
 	}
 	return true
@@ -486,7 +486,7 @@ func (e *MapEditor) mcpState() map[string]any {
 	return map[string]any{
 		"status": e.mcpDisplay(e.StatusLine()), "message": e.Message(),
 		"panel": e.mcpLines(e.PanelLines()), "popup": e.mcpLines(e.PopupLines()),
-		"prompt": e.mcpLines(e.PromptNotes()), "prompt_open": e.prompt.open(), "prompt_text": e.prompt.path,
+		"prompt": e.mcpLines(e.PromptNotes()), "prompt_open": e.prompt.modal(), "prompt_text": e.prompt.path,
 		"report": report, "report_open": reportOpen, "groups": e.mcpLines(e.GroupsText()), "tree": e.mcpLines(e.TreeLines()),
 		"dropdown": e.mcpLines(e.DropdownChoices()), "catalog_open": e.catalog, "mode": e.helpScreen(),
 		"selection": e.SelectedRecords(), "selected": e.Selected(), "object_fields": fields,
@@ -585,7 +585,7 @@ func (e *MapEditor) mcpBusy() error {
 	switch {
 	case e.pathDialog.pending != nil:
 		return fmt.Errorf("the system file dialog is open and waits for the person at the window")
-	case e.prompt.open():
+	case e.prompt.modal():
 		title := ""
 		if s, ok := e.promptSpec(); ok {
 			title = e.mcpDisplay(s.Title)

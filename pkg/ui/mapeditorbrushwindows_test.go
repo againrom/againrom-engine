@@ -246,18 +246,16 @@ func TestMapEditorPlaceNamesStayTheRegistryNames(t *testing.T) {
 	}
 }
 
-// The Sacks entry opens the Add window for a sack at once, with no
-// palette between; its second press closes it.
-func TestMapEditorSacksEntryOpensTheAddWindow(t *testing.T) {
+func TestMapEditorSacksEntryTogglesItsPalette(t *testing.T) {
 	for _, lang := range paletteLangs {
 		e := brushWindowsEditor(t, lang)
 		chromeClick(e, barPoint(t, e, "sacks"))
-		if _, ok := e.listSpec(); ok || addKindNow(e) != string(KindSack) || e.barWindow() != "sacks" {
-			t.Fatalf("%s: the Sacks entry shows a palette %v, Add window %q, bar window %q", lang, ok, addKindNow(e), e.barWindow())
+		if s, ok := e.listSpec(); !ok || s.Grid == nil || e.prompt.open() || e.barWindow() != "sacks" {
+			t.Fatalf("%s: Sacks palette shown %v, bar window %q", lang, ok, e.barWindow())
 		}
 		chromeClick(e, barPoint(t, e, "sacks"))
 		if addKindNow(e) != "" || e.barWindow() != "" {
-			t.Fatalf("%s: the second press left the Add window %q", lang, addKindNow(e))
+			t.Fatalf("%s: the second press kept Sacks open", lang)
 		}
 	}
 }

@@ -129,7 +129,7 @@ func TestMapEditorScenarioNewTriggerButtonAddsInOneClick(t *testing.T) {
 				t.Fatalf("the button wrote %s, the Add window wrote %s", got, scenarioTriggerAddSum)
 			}
 			freshTriggerShown(t, e, triggers+1, true)
-			if _, _, open := e.AddStep(); open {
+			if _, open := e.PromptRect(); open {
 				t.Fatal("the button opened an Add window")
 			}
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
@@ -150,18 +150,18 @@ func TestMapEditorNoRouteOpensTheScriptAddWindow(t *testing.T) {
 		e, _, _ := scriptAddEditor(t, l, b)
 		scenarioOpen(t, e)
 		_ = e.Key("player")
-		if _, _, open := e.AddStep(); open {
+		if _, open := e.PromptRect(); open {
 			t.Fatalf("%s: the A key opened the Add window", l.name)
 		}
 		e.Select(trigRecord(t, e, "Trigger", 0), true)
 		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 		trigClick(t, e, r, ok, "New")
-		if _, _, open := e.AddStep(); open {
+		if _, open := e.PromptRect(); open {
 			t.Fatalf("%s: the wizard's New opened the Add window", l.name)
 		}
 		freshTriggerShown(t, e, triggers+1, true)
 		pressF4(t, e)
-		if _, _, open := e.AddStep(); open {
+		if _, open := e.PromptRect(); open {
 			t.Fatalf("%s: F4 opened the Add window", l.name)
 		}
 	}

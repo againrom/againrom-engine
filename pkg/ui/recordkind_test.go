@@ -78,7 +78,9 @@ func TestRecordKindAnswersMatchTheStringRules(t *testing.T) {
 		if got, want := k.Placed(), oldDragRank[w] > 0; got != want {
 			t.Errorf("%q: placed %v, was %v", w, got, want)
 		}
-		if got, want := k.Editable(), oldEditableKind(w); got != want {
+		// A cell spell clones as any record does: C copies the spell
+		// chosen in the Traps and spells palette.
+		if got, want := k.Editable(), oldEditableKind(w) || k == KindEnchantment; got != want {
 			t.Errorf("%q: editable %v, was %v", w, got, want)
 		}
 		if got, want := k.Fielded(), oldFieldKind(w); got != want {

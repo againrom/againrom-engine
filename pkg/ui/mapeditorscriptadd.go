@@ -9,11 +9,9 @@ import (
 	"againrom/pkg/scriptprofile"
 )
 
-// The Add window's script steps the editor offers and checks itself, from
-// the wizard's item table and the script it holds: a condition is a wizard
-// item's check placed in a trigger's first free pair as the item's row, a
-// condition no pair names goes into a trigger the same way, and a variable's
-// label is edited in the Add window.
+// The script records the editor places itself: a condition no pair names
+// goes into a trigger from its window's Trigger row, and a variable's label
+// is asked in a field prompt.
 
 // InspectionVariableLabels is implemented by a host that keeps the
 // mapmaker's labels of variable registers. LabelVariable sets a variable's
@@ -30,7 +28,7 @@ func (e *MapEditor) variableLabels() (InspectionVariableLabels, bool) {
 	return h, ok
 }
 
-// addKindOpen reports whether the Add window adds kind on this map: a
+// addKindOpen reports whether a one-click add adds kind on this map: a
 // condition needs the script the editor reads; every other kind is the
 // host's.
 func (e *MapEditor) addKindOpen(kind RecordKind) bool {
@@ -39,20 +37,6 @@ func (e *MapEditor) addKindOpen(kind RecordKind) bool {
 		return e.doc != nil && e.doc.Script != nil
 	}
 	return true
-}
-
-// AddListLines are the rows of the open Add window's list as text, in the
-// font's bytes, for a headless driver; nil while it shows none.
-func (e *MapEditor) AddListLines() []string {
-	r, ok := e.addRunning()
-	if !ok || r.list == nil {
-		return nil
-	}
-	var out []string
-	for _, row := range r.list.Rows() {
-		out = append(out, row.Text)
-	}
-	return out
 }
 
 // triggerChoices are the triggers a new condition pair can go into: a new
@@ -77,182 +61,6 @@ func (e *MapEditor) triggerFull(trigger int) string {
 		return fmt.Sprintf(e.word("editor.area.full"), trigger+1)
 	}
 	return ""
-}
-
-// addStepText is the text of r's step key, "" when r has none.
-func (e *MapEditor) addStepText(r *addRun, key string) string {
-	for i, st := range r.steps {
-		if st.Key == key {
-			return e.addText(r, i)
-		}
-	}
-	return ""
-}
-
-// addItemOf is the condition item r's item step names, -1 for none.
-func (e *MapEditor) addItemOf(r *addRun) int {
-	for i, st := range r.steps {
-		if st.Control != addItem {
-			continue
-		}
-		if n, err := strconv.Atoi(strings.TrimSpace(e.addText(r, i))); err == nil && n >= 0 && n < len(wizConditions) {
-			return n
-		}
-	}
-	return -1
-}
-
-// addParamOf is the parameter of r's item step i asks, false for a step
-// that asks none.
-func addParamOf(st addStep) (int, bool) {
-	k, err := strconv.Atoi(strings.TrimPrefix(st.Key, "p"))
-	return k, err == nil && strings.HasPrefix(st.Key, "p")
-}
-
-// itemSteps are r's steps once its item step at names an item: the steps up
-// to it, the item's parameters and comparison as its wizard row asks them,
-// then the kind's steps after the item step.
-func (e *MapEditor) itemSteps(r *addRun, at int) []addStep {
-	out := append([]addStep(nil), r.steps[:at+1]...)
-	if item := e.addItemOf(r); item >= 0 {
-		it := wizConditions[item]
-		defaults := e.wizardDefaults(true, item)
-		for k, p := range it.params {
-			control := addChoice
-			if e.paramField(true, item, k, defaults[k+1]).Text {
-				control = addName
-			}
-			out = append(out, addStep{Key: fmt.Sprintf("p%d", k), Word: p.labelWord, Control: control, Editor: true})
-		}
-		if it.chooseCmp {
-			out = append(out, addStep{Key: "cmp", Word: "editor.trigger.comparison", Control: addChoice, Editor: true})
-		}
-	}
-	row, _ := addKindOf(r.kind)
-	for k, st := range row.Steps {
-		if st.Control == addItem {
-			return append(out, row.Steps[k+1:]...)
-		}
-	}
-	return out
-}
-
-// scriptStepOffer is what the editor offers its step i of r: the wizard's
-// condition items under their headings, a parameter or the comparison as
-// the item's wizard row offers it with the row's default, the triggers, or
-// the variable's label.
-func (e *MapEditor) scriptStepOffer(r *addRun, i int) InspectionNewStep {
-	st := r.steps[i]
-	switch {
-	case st.Control == addItem:
-		choices, shut := e.itemChoices(&wizardState{rows: []wizRow{{condition: true, item: -2, origItem: -2}}}, 0)
-		offer := InspectionNewStep{Choices: choices, Shut: shut}
-		for _, c := range choices {
-			if !slices.Contains(shut, c.Value) {
-				offer.Value = c.Value
-				break
-			}
-		}
-		return offer
-	case st.Key == addTrigger.Key:
-		return InspectionNewStep{Choices: e.triggerChoices(), Value: -1}
-	case st.Key == addLabel.Key:
-		if r.relabel != nil {
-			for _, v := range e.scriptVariables() {
-				if v.register == *r.relabel {
-					return InspectionNewStep{Text: v.label}
-				}
-			}
-		}
-		return InspectionNewStep{}
-	}
-	item := e.addItemOf(r)
-	if item < 0 {
-		return InspectionNewStep{}
-	}
-	defaults := e.wizardDefaults(true, item)
-	f := e.cmpField(defaults[len(defaults)-1])
-	if k, ok := addParamOf(st); ok && k < len(wizConditions[item].params) {
-		f = e.paramField(true, item, k, defaults[k+1])
-	}
-	return InspectionNewStep{Choices: f.Choices, Value: f.Value, Text: f.TextValue}
-}
-
-// scriptStepRefusal is why the editor refuses text for its step i of r, in
-// its words; empty when the step takes it. A parameter is checked as the
-// wizard's Apply checks it, a trigger as the area tool does.
-func (e *MapEditor) scriptStepRefusal(r *addRun, i int, text string) string {
-	st := r.steps[i]
-	n, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
-	choose := e.word("editor.add.choose")
-	switch {
-	case st.Control == addItem:
-		if err != nil || n < 0 || n >= int64(len(wizConditions)) || slices.Contains(r.offer.Shut, n) {
-			return choose
-		}
-	case st.Key == addTrigger.Key:
-		if err != nil || n < -1 || e.doc.Script == nil || n >= int64(len(e.doc.Script.Triggers)) {
-			return choose
-		}
-		return e.triggerFull(int(n))
-	case st.Key == addLabel.Key:
-	case st.Key == "cmp":
-		if err != nil || n < 0 || n > scriptprofile.MaxCompare {
-			return choose
-		}
-	default:
-		item := e.addItemOf(r)
-		k, ok := addParamOf(st)
-		if item < 0 || !ok || k >= len(wizConditions[item].params) {
-			return choose
-		}
-		if _, err := e.wizardParam(wizConditions[item], k, text); err != nil {
-			return err.Error()
-		}
-	}
-	return ""
-}
-
-// scriptAddFinish ends a run the editor finishes itself, a condition or a
-// variable, and reports false for any other run.
-func (e *MapEditor) scriptAddFinish(r *addRun) bool {
-	switch r.kind {
-	case KindCondition:
-		e.addConditionFinish(r)
-	case KindVariable:
-		e.addVariableFinish(r)
-	default:
-		return false
-	}
-	return true
-}
-
-// addConditionFinish places the run's condition in the chosen trigger. A
-// refusal keeps the window on its last step with the reason.
-func (e *MapEditor) addConditionFinish(r *addRun) {
-	trigger, _ := strconv.Atoi(strings.TrimSpace(e.addStepText(r, addTrigger.Key)))
-	note := e.triggerFull(trigger)
-	if note == "" && r.listed != 0 {
-		note = e.listedToTrigger(r.listed, trigger)
-	} else if note == "" {
-		item := e.addItemOf(r)
-		if item < 0 {
-			r.note = e.word("editor.add.choose")
-			return
-		}
-		it := wizConditions[item]
-		row := wizRow{condition: true, item: item, origItem: -2, vals: []string{strconv.Itoa(item)}}
-		for k := range it.params {
-			row.vals = append(row.vals, e.addStepText(r, fmt.Sprintf("p%d", k)))
-		}
-		if it.chooseCmp {
-			row.vals = append(row.vals, e.addStepText(r, "cmp"))
-		}
-		note = e.placeCheck(trigger, row)
-	}
-	if note != "" {
-		r.note = note
-	}
 }
 
 // placeCheck writes row into trigger's first free pair, -1 a new trigger,
@@ -292,7 +100,7 @@ func (e *MapEditor) placeCheck(trigger int, row wizRow) string {
 func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 	n, ok := e.nodeByID(true, id)
 	if !ok {
-		return e.word("editor.add.choose")
+		return e.word("editor.trigger.choosefirst")
 	}
 	if row, ok := e.loneRow(n); ok {
 		return e.placeCheck(trigger, row)
@@ -333,27 +141,44 @@ func (e *MapEditor) listedCondition(v scriptView) bool {
 	return v.node != nil && v.condition && v.node.ID != 0 && slices.Contains(e.scriptSections()[2], v.node.Record)
 }
 
-// addToTrigger opens the Add window on the trigger a listed condition goes
-// into.
-func (e *MapEditor) addToTrigger(v scriptView) {
-	if e.objectDirty() {
-		e.obj.note = e.word("editor.trigger.applyfirst")
-		return
+// triggerRowPlacing is what Apply does once the fields of v are written: a
+// condition no pair names goes into the trigger its Trigger row names
+// (listedToTrigger); any other record does nothing more. The row is read
+// before the fields are written, since writing them reloads the window.
+func (e *MapEditor) triggerRowPlacing(v scriptView) func() {
+	o := &e.obj
+	at := slices.IndexFunc(o.fields, func(f InspectionField) bool { return f.Key == nodeTriggerKey })
+	if at < 0 || v.node == nil || e.doc.Script == nil {
+		return func() {}
 	}
-	run := &addRun{kind: KindCondition, title: e.word("editor.scripts.totrigger"), listed: v.node.ID}
-	run.setSteps([]addStep{addTrigger})
-	e.openAddRun(run)
+	trigger, err := strconv.Atoi(strings.TrimSpace(o.buf[at]))
+	if err != nil || trigger < -1 || trigger >= len(e.doc.Script.Triggers) {
+		return func() {}
+	}
+	id := v.node.ID
+	return func() {
+		note := e.triggerFull(trigger)
+		if note == "" {
+			note = e.listedToTrigger(id, trigger)
+		}
+		if note != "" {
+			e.loadObject()
+			e.obj.note = note
+		}
+	}
 }
 
-// addVariableFinish labels the variable the run relabels and shows it.
-func (e *MapEditor) addVariableFinish(r *addRun) {
-	_, register, err := e.commandLabelVariable(*r.relabel, e.addStepText(r, addLabel.Key))
+// labelVariablePrompt labels the variable the label prompt asks for with
+// the typed text and shows it; a refusal keeps the prompt with the reason.
+func (e *MapEditor) labelVariablePrompt() error {
+	_, register, err := e.commandLabelVariable(e.prompt.register, e.prompt.path)
 	if err != nil {
-		r.note = e.editorHostText(err.Error())
-		return
+		e.message = e.editorHostText(err.Error())
+		return nil
 	}
 	e.leave(leavePrompt)
 	e.selectVariable(register)
+	return nil
 }
 
 // commandLabelVariable labels register and answers it.
@@ -389,7 +214,7 @@ const (
 )
 
 // variableButton is a press on the variable window's button row: Label
-// asks the label in the Add window, Clear label clears it, Cancel closes.
+// asks the label in a field prompt, Clear label clears it, Cancel closes.
 func (e *MapEditor) variableButton(v scriptVariableView, n int) {
 	if _, ok := e.variableLabels(); !ok {
 		e.cancelPopup()
@@ -397,10 +222,8 @@ func (e *MapEditor) variableButton(v scriptVariableView, n int) {
 	}
 	switch n {
 	case variableLabelButton:
-		register := v.register
-		run := &addRun{kind: KindVariable, title: fmt.Sprintf(e.word("editor.labels.title"), v.register), relabel: &register}
-		run.setSteps([]addStep{addLabel})
-		e.openAddRun(run)
+		e.leave(leaveDrag | leavePick | leavePrompt)
+		e.openPrompt(editorPrompt{kind: promptVariableLabel, register: v.register, path: v.label})
 	case variableClearButton:
 		if v.label == "" {
 			return
