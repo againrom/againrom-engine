@@ -45,6 +45,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the mod window's Spells page, a catalog spell dropped on a book cell that already holds a spell now takes that cell, and the spell that was there leaves the book and shows in the catalog again; before, the drop did nothing.
 - [ROM2] A mod can now change the second game's spell numbers, such as power, damage, range, duration and effect strength, with the same tables as the first game's; a table a spell cannot use is refused by name.
 - [ROM2] A mod's `rays`, `heal_hostile` and `self_cast` on the second game now follow each spell's own behaviour, so Prismatic Spray takes `rays` and Heal takes `heal_hostile`, as in the first game.
+- [BASE] In the Russian map editor and in mod texts, ё and Ё show as е and Е, and the quote marks « » “ ” as straight quotes, instead of ?, Л or other letters; saved names and labels are unchanged.
 
 ## 0.157.1
 

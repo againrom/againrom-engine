@@ -194,12 +194,14 @@ func EncodeInstallText(s string, selector int) string {
 	return string(encodeInstallRunes(s, selector, false))
 }
 
-// modTextFallback is the plain form of each typographic character an author
-// types: the install has a byte for none of them (the installed pages are
-// ASCII or CP866 letters), so a mod's text meets the encoder's drop unless
-// this table gives the character a form first.
-var modTextFallback = map[rune]string{
+// textFallback is the plain form of each character the install has no drawable
+// byte for: the typographic marks an author types (the installed pages are
+// ASCII or CP866 letters) and Ё, ё, whose records the font does not hold. A
+// mod's text and the editor's host text meet the encoder's drop or placeholder
+// unless this table gives the character a form first.
+var textFallback = map[rune]string{
 	'«': `"`, '»': `"`, '“': `"`, '”': `"`, '„': `"`, '‟': `"`,
+	'Ё': string(rune(0x415)), 'ё': string(rune(0x435)),
 	'‘': `'`, '’': `'`, '‚': `'`, '‛': `'`, '‹': `'`, '›': `'`,
 	'‐': `-`, '‑': `-`, '‒': `-`, '–': `-`, '—': `-`, '―': `-`, '−': `-`,
 	'…': `...`,
@@ -207,27 +209,44 @@ var modTextFallback = map[rune]string{
 }
 
 // EncodeModText is EncodeInstallText for text a mod author wrote: a character
-// in modTextFallback becomes its plain form before the encoder runs.
+// in textFallback becomes its plain form before the encoder runs.
 func EncodeModText(s string, selector int) string {
 	return string(encodeInstallRunes(s, selector, true))
 }
 
+// plainForm replaces each rune of s that textFallback names by its plain form.
+func plainForm(s string) string {
+	var plain strings.Builder
+	for _, r := range s {
+		if p, ok := textFallback[r]; ok {
+			plain.WriteString(p)
+		} else {
+			plain.WriteRune(r)
+		}
+	}
+	return plain.String()
+}
+
 // encodeInstallRunes is the install text codec under its Drop policy. With
-// fallback set, a rune in modTextFallback is replaced by its plain form first.
+// fallback set, a rune in textFallback is replaced by its plain form first.
 func encodeInstallRunes(s string, selector int, fallback bool) []byte {
 	if fallback {
-		var plain strings.Builder
-		for _, r := range s {
-			if p, ok := modTextFallback[r]; ok {
-				plain.WriteString(p)
-			} else {
-				plain.WriteRune(r)
-			}
-		}
-		s = plain.String()
+		s = plainForm(s)
 	}
 	b, _ := textinput.EncodeText(s, selector, textinput.Drop)
 	return []byte(b)
+}
+
+// EncodeHostText is the editor's host text in the font's bytes: on a selector
+// that remaps the font a rune in textFallback takes its plain form, then the
+// codec's Substitute policy draws '?' for a rune with no byte or a byte that
+// draws another letter. Other selectors encode as before.
+func EncodeHostText(s string, selector int) string {
+	if locale.FontRemaps(selector) {
+		s = plainForm(s)
+	}
+	b, _ := textinput.EncodeText(s, selector, textinput.Substitute)
+	return b
 }
 
 // ModTextDropped reports the first rune of a mod's text file that the base
@@ -241,7 +260,7 @@ func ModTextDropped(b []byte, selector int) (rune, bool) {
 		if r < 0x20 || r == 0x7f || r == 0xfeff {
 			continue
 		}
-		if _, ok := modTextFallback[r]; ok {
+		if _, ok := textFallback[r]; ok {
 			continue
 		}
 		if _, ok := textinput.EncodeRune(r, selector); !ok {

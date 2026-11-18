@@ -10,7 +10,6 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -208,15 +207,14 @@ func (x *MapInspector) pageCode() TextCode {
 	return TextCode{Selector: x.font.Selector}
 }
 
-// inspectionUTF8 is the editor's host text in the font's bytes: the install
-// text codec under its Substitute policy.
+// inspectionUTF8 is the editor's host text in the font's bytes: the plain-form
+// table, then the install text codec under its Substitute policy.
 func (x *MapInspector) inspectionUTF8(s string) string {
 	selector := 0
 	if x.font != nil {
 		selector = x.font.Selector
 	}
-	b, _ := textinput.EncodeText(s, selector, textinput.Substitute)
-	return b
+	return EncodeHostText(s, selector)
 }
 
 // Open accepts a catalogue key or an explicit host ALM path. It returns a

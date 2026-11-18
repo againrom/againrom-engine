@@ -29,3 +29,21 @@ func TestEncodeTextStatesItsPolicy(t *testing.T) {
 		t.Errorf("selector 0 stores Ё: % x %v", got, err)
 	}
 }
+
+// No rune of the Windows-1251 range 0x80..0xBF reaches a byte in that range
+// under Substitute on the remapping selector: those bytes draw other letters.
+func TestSubstituteNeverDrawsAnotherLetter(t *testing.T) {
+	for b := 0x80; b <= 0xbf; b++ {
+		r, ok := DecodeByte(byte(b), 0)
+		if !ok {
+			continue
+		}
+		got, err := EncodeText(string(r), 1, Substitute)
+		if err != nil || len(got) != 1 || got[0] != '?' {
+			t.Errorf("%U (byte %#x) encodes to % x, want a placeholder", r, b, got)
+		}
+		if got, _ := EncodeText(string(r), 0, Substitute); len(got) != 1 || got[0] != byte(b) {
+			t.Errorf("%U at selector 0 encodes to % x, want %#x", r, got, b)
+		}
+	}
+}

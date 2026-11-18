@@ -112,7 +112,9 @@ const (
 	// Drop leaves the rune out: install and engine words, which are drawn.
 	Drop
 	// Substitute draws '?' for the rune: the map editor's host text, so a
-	// path or message keeps the place of every character.
+	// path or message keeps the place of every character. A rune whose byte
+	// the font draws as another letter (0xB0..0xBF on a remapping selector)
+	// is replaced too.
 	Substitute
 )
 
@@ -120,6 +122,13 @@ const (
 type RefusedError struct{ Rune rune }
 
 func (e RefusedError) Error() string { return fmt.Sprintf("textinput: %U has no byte", e.Rune) }
+
+// drawsOtherLetter reports whether the font draws stored byte c as a Cyrillic
+// letter other than the rune that made it: on a remapping selector 0xB0..0xBF
+// selects the records of the capitals shifted down into 0x80..0xAF.
+func drawsOtherLetter(c byte, selector int) bool {
+	return locale.FontRemaps(selector) && c >= 0xb0 && c <= 0xbf
+}
 
 // EncodeText is the install text codec: s rune by rune through EncodeRune
 // under selector, a refused rune handled by policy. Only Refuse returns an
@@ -129,6 +138,8 @@ func EncodeText(s string, selector int, policy Unrepresentable) (string, error) 
 	for _, r := range s {
 		c, ok := EncodeRune(r, selector)
 		switch {
+		case ok && policy == Substitute && drawsOtherLetter(c, selector):
+			b = append(b, '?')
 		case ok:
 			b = append(b, c)
 		case policy == Refuse:
