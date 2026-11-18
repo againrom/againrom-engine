@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func TestThePartyWindowSwitchesBetweenTheMissionsPartyAndTheChoice(t *testing.T)
 			e.SetPanelProfile(nil, nil, save)
 			_ = e.Key("testplay")
 			s, _ := e.promptSpec()
-			label := func(w string) string { return book.Text("editor.testparty.mode") + ": " + book.Text(w) }
+			label := func(w string) string { return fmt.Sprintf(book.Text("editor.testparty.partykind"), book.Text(w)) }
 			if len(s.Buttons) != 4 || s.Buttons[testPartyMode] != label("editor.testparty.standard") || s.Disabled[testPartyStart] || !s.Disabled[testPartyKind] {
 				t.Fatalf("Standard window: buttons %q disabled %v", s.Buttons, s.Disabled)
 			}

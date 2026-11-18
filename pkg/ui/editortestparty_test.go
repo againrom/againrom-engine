@@ -150,17 +150,18 @@ func TestTestPlayAsksWhoPlaysTheMap(t *testing.T) {
 	}
 }
 
-// The party window holds the lines the notice before a test play lists, and
-// a host that offers no cards keeps the notice.
+// The party window holds the warnings the notice before a test play lists,
+// what they mean behind its title's (?), and a host that offers no cards
+// keeps the notice.
 func TestThePartyWindowHoldsTheNoticeLines(t *testing.T) {
 	f, rows := endless()
 	p := &partyEdits{mapPanelEdits: mapPanelEdits{facts: f, rows: rows}, cards: partyCards()}
 	e := partyEditor(t, p, "en")
 	_ = e.Key("testplay")
 	s, _ := e.promptSpec()
-	if notes := strings.Join(s.Notes, " / "); !e.TestPartyOpen() || !strings.Contains(notes, "The map can be played, but:") ||
-		!strings.Contains(notes, "Start point:") || !strings.Contains(notes, "Victory:") {
-		t.Fatalf("the window's notes: %q", s.Notes)
+	if notes := strings.Join(s.Notes, " / "); !e.TestPartyOpen() || !strings.HasPrefix(notes, "Start point:") || !strings.Contains(notes, "Victory:") ||
+		!strings.Contains(s.TitleHelp, e.word("editor.notice.testplay.help")) {
+		t.Fatalf("the window's notes: %q help %q", s.Notes, s.TitleHelp)
 	}
 	_ = e.Key("enter")
 	if e.prompt.open() || len(p.chosen) != 1 {

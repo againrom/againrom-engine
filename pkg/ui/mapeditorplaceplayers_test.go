@@ -504,7 +504,15 @@ var wordID = regexp.MustCompile(`^[a-z]+(\.[a-z0-9]+)+$`)
 // No builder of these windows holds an English word: every string literal
 // is a words table id or holds no letter.
 func TestPlacePlayersBuildersHoldNoEnglishLiteral(t *testing.T) {
-	for file, names := range placePlayersBuilders {
+	checkNoEnglishLiteral(t, placePlayersBuilders)
+}
+
+// checkNoEnglishLiteral holds the builders, by file, to words only: every
+// string literal is a words table id or holds no letter, and no caption is
+// joined from a word and a literal.
+func checkNoEnglishLiteral(t *testing.T, builders map[string][]string) {
+	t.Helper()
+	for file, names := range builders {
 		f, err := parser.ParseFile(token.NewFileSet(), file, nil, parser.SkipObjectResolution)
 		if err != nil {
 			t.Fatal(err)
@@ -522,6 +530,9 @@ func TestPlacePlayersBuildersHoldNoEnglishLiteral(t *testing.T) {
 			ast.Inspect(fn, func(n ast.Node) bool {
 				if b, ok := n.(*ast.BinaryExpr); ok && (b.Op == token.EQL || b.Op == token.NEQ) {
 					keys[b.X], keys[b.Y] = true, true
+				}
+				if b, ok := n.(*ast.BinaryExpr); ok && b.Op == token.ADD && (joinsWord(b.X, b.Y) || joinsWord(b.Y, b.X)) {
+					t.Errorf("%s: %s joins a caption from a word and a literal", file, fn.Name.Name)
 				}
 				lit, ok := n.(*ast.BasicLit)
 				if !ok || lit.Kind != token.STRING || keys[lit] {

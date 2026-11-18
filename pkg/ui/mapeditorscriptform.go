@@ -44,19 +44,21 @@ func (e *MapEditor) againNote(note string) {
 	}
 }
 
-// scriptFormSpec is the question: what the change of form means for the
-// original game, in the editor's words.
+// scriptFormSpec is the question: the host's reason as its note and what
+// the change of form means for the original game behind the title's (?),
+// in the editor's words. Folding states a fact; extending answers a
+// refusal, so its reason is a warning.
 func (e *MapEditor) scriptFormSpec() popupSpec {
-	if e.prompt.form.need.Fold {
-		return e.questionSpec(e.word("editor.scriptform.foldtitle"), []string{e.word("editor.scriptform.foldtext")},
-			[]string{e.word("editor.scriptform.foldgo"), e.word("editor.button.cancel")})
-	}
-	notes := []string{e.word("editor.scriptform.text")}
+	var notes []string
 	if why := e.prompt.form.need.Why; why != "" {
-		notes = append([]string{e.editorHostText(why)}, notes...)
+		notes = []string{e.editorHostText(why)}
 	}
-	return e.questionSpec(e.word("editor.scriptform.title"), notes,
-		[]string{e.word("editor.scriptform.go"), e.word("editor.button.cancel")})
+	if e.prompt.form.need.Fold {
+		return e.questionSpec(question{title: e.word("editor.scriptform.foldtitle"), help: e.word("editor.scriptform.foldtitle.help"),
+			notes: notes, state: true, buttons: []string{e.word("editor.scriptform.foldgo"), e.word("editor.button.cancel")}})
+	}
+	return e.questionSpec(question{title: e.word("editor.scriptform.title"), help: e.word("editor.scriptform.title.help"),
+		notes: notes, buttons: []string{e.word("editor.scriptform.go"), e.word("editor.button.cancel")}})
 }
 
 // scriptFormPress is a press on the question.

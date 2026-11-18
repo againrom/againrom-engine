@@ -452,16 +452,18 @@ func (e *MapEditor) noticeContinue() error {
 
 // noticeSpec is the notice as a popup description.
 func (e *MapEditor) noticeSpec() popupSpec {
-	title := e.word("editor.notice.testplay")
+	title, help := e.word("editor.notice.testplay"), e.word("editor.notice.testplay.help")
 	if e.prompt.notice == noticeModSave {
-		title = e.word("editor.notice.modsave")
+		title, help = e.word("editor.notice.modsave"), e.word("editor.notice.modsave.help")
 	}
-	return e.questionSpec(title, e.noticeNotes(), []string{e.word("editor.notice.continue"), e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: title, help: help, notes: e.noticeNotes(),
+		buttons: []string{e.word("editor.notice.continue"), e.word("editor.button.cancel")}})
 }
 
-// noticeNotes are the notice's lines: its opening words, then each warning.
+// noticeNotes are the notice's lines: each warning the Map panel's checks
+// found. What they mean stands behind the title's (?).
 func (e *MapEditor) noticeNotes() []string {
-	notes := []string{e.word("editor.notice.text")}
+	var notes []string
 	for _, l := range e.panelWarnings() {
 		notes = append(notes, l.label+": "+l.value)
 	}
@@ -512,11 +514,11 @@ func (e *MapEditor) newModeOpen(multi bool) error {
 	return err
 }
 
-// newModeSpec is the new-map question as a popup description: the mode
-// note, the starting height the keyboard types, and the refusal of a height
-// outside 0..126.
+// newModeSpec is the new-map question as a popup description: what the
+// mode means behind the title's (?), the starting height the keyboard
+// types, and the refusal of a height outside 0..126.
 func (e *MapEditor) newModeSpec() popupSpec {
-	notes := []string{e.word("editor.newmap.text")}
+	var notes []string
 	if e.message != "" {
 		notes = append(notes, e.editorHostText(e.message))
 	}
@@ -524,8 +526,9 @@ func (e *MapEditor) newModeSpec() popupSpec {
 	if f := e.bodyFont(); f != nil {
 		row.Caret = f.Advance(row.Value)
 	}
-	return e.questionRowsSpec(e.word("editor.newmap.title"), notes, []popupRow{row},
-		[]string{e.word("editor.mode.single"), e.word("editor.mode.multi"), e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: e.word("editor.newmap.title"), help: e.word("editor.newmap.title.help"),
+		rows: []popupRow{row}, notes: notes,
+		buttons: []string{e.word("editor.mode.single"), e.word("editor.mode.multi"), e.word("editor.button.cancel")}})
 }
 
 // newModePress is a press on the new-map question.
@@ -538,32 +541,4 @@ func (e *MapEditor) newModePress(p image.Point) {
 	case part == popupButton && (n == newModeSingle || n == newModeMulti):
 		_ = e.newModeOpen(n == newModeMulti)
 	}
-}
-
-// questionSpec is a question in the window's middle: a title, wrapped note
-// lines and a row of buttons wide enough for the longest caption.
-func (e *MapEditor) questionSpec(title string, notes, buttons []string) popupSpec {
-	return e.questionRowsSpec(title, notes, nil, buttons)
-}
-
-// questionRowsSpec is questionSpec with rows above the note lines.
-func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupRow, buttons []string) popupSpec {
-	w := e.popupWide(popPrompt, min(560, e.window.X-16))
-	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1, Buttons: buttons, Rows: rows}
-	if f := e.bodyFont(); f != nil {
-		for _, r := range rows {
-			s.LabelWidth = max(s.LabelWidth, f.Advance(r.Label)+8)
-		}
-	}
-	fitButtons(&s, e.bodyFont())
-	s.Width = min(s.Width, e.window.X-16)
-	// The notes wrap to the window's text width, the width each note line
-	// is laid out in.
-	text := s.Width - 2*popupPad
-	for _, n := range notes {
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), n, text)...)
-	}
-	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
-	return s
 }

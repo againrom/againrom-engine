@@ -386,10 +386,8 @@ func (r registerTaken) Unwrap() error {
 
 // errChecksFull refuses a check beyond the register file, a limit the
 // extended record lifts: there each check owns a result of its own.
-var errChecksFull error = &liftedLimit{
-	text:  fmt.Sprintf("the script already uses %d check registers", scriptprofile.First.Registers),
-	limit: &mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: int64(scriptprofile.First.Registers), Got: int64(scriptprofile.First.Registers)},
-}
+var errChecksFull = lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: int64(scriptprofile.First.Registers), Got: int64(scriptprofile.First.Registers)},
+	"editor.wizard.checksfull")
 
 // registerCollides refuses check register next where a variable uses it; on
 // an extended map the variables are an array of their own, so none does.

@@ -85,8 +85,9 @@ func TestSaveWindowSwitchPutsTheTextsInsideTheMap(t *testing.T) {
 	}
 }
 
-// The script form question shows the host's refusal whole above its own
-// text, so the player reads what the extended map lifts.
+// The script form question shows the host's refusal whole as its note and
+// its own text behind the title's (?), so the player reads what the
+// extended map lifts.
 func TestScriptFormQuestionShowsTheRefusalWhole(t *testing.T) {
 	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
 	e.doc.Edits = &textsInsideEdits{editorTextEdits: edits}
@@ -95,7 +96,7 @@ func TestScriptFormQuestionShowsTheRefusalWhole(t *testing.T) {
 		t.Fatalf("the refusal did not open the question: kind %v", e.prompt.kind)
 	}
 	notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
-	if want := why + " " + e.word("editor.scriptform.text"); notes != want {
-		t.Fatalf("the question reads %q, want %q", notes, want)
+	if s, _ := e.promptSpec(); notes != why || !strings.HasPrefix(s.TitleHelp, e.word("editor.scriptform.title.help")) {
+		t.Fatalf("the question reads %q with help %q, want %q", notes, s.TitleHelp, why)
 	}
 }

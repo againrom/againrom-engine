@@ -39,15 +39,12 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDoc
 	return d, err
 }
 
-// checkWords is a refusal for want of a check register in the editor's
-// words; any other error as it is.
+// checkWords is a refusal the game words, a check register taken or full
+// among them, in the editor's words; any other error as it is.
 func (s *mapInspectionEdits) checkWords(err error) error {
 	var taken registerTaken
-	switch {
-	case errors.As(err, &taken):
-		return lifted(err, "editor.wizard.registers", taken.register)
-	case errors.Is(err, errChecksFull):
-		return lifted(err, "editor.wizard.checksfull")
+	if errors.As(err, &taken) {
+		err = lifted(err, "editor.wizard.registers", taken.register)
 	}
 	var own *liftedLimit
 	if errors.As(err, &own) && own.key != "" {

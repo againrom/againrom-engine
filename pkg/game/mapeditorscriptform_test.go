@@ -202,6 +202,12 @@ func sameWords(lines []string, want string) bool {
 	return strings.Join(strings.Fields(strings.Join(lines, " ")), " ") == strings.Join(strings.Fields(want), " ")
 }
 
+// foldAsked reports whether e asks to save as an original map, its note the
+// host's reason that the triggers fit again.
+func foldAsked(e *ui.MapEditor, x *MapInspector, w func(string, ...any) string) bool {
+	return x.inspectionUTF8(e.PromptTitle()) == w("editor.scriptform.foldtitle") && sameWords(e.PromptNotes(), w("editor.scriptform.fits"))
+}
+
 // Each edit an original trigger record cannot hold comes back from the host
 // as the question to extend the map and changes nothing; once the map is
 // extended the same call lands.
@@ -292,7 +298,7 @@ func TestTriggerWindowExtendsTheMapOnceAndSavesItAsAlmx(t *testing.T) {
 			apply()
 			asked := func() {
 				t.Helper()
-				if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) {
+				if !slices.Contains(e.OpenWindows(), "prompt") || x.inspectionUTF8(e.PromptTitle()) != w("editor.scriptform.title") {
 					t.Fatalf("no question to extend the map: %q %q", e.OpenWindows(), e.PromptNotes())
 				}
 			}
@@ -391,7 +397,7 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 	b := formMap(t, 2)
 	for _, l := range scriptAddLangs {
 		t.Run(l.name, func(t *testing.T) {
-			e, _, w := scriptAddEditor(t, l, b)
+			e, x, w := scriptAddEditor(t, l, b)
 			s := formHost(e)
 			own, _ := s.OwnFile()
 			dir := t.TempDir()
@@ -452,7 +458,7 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 			trigClick(t, e, r, ok, "the Save As row")
 			e.TextInput(plain)
 			_ = e.Key("enter")
-			if !sameWords(e.PromptNotes(), w("editor.scriptform.foldtext")) {
+			if !foldAsked(e, x, w) {
 				t.Fatalf("Save As to .alm asked %q", e.PromptNotes())
 			}
 			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 1})
@@ -466,7 +472,7 @@ func TestAnExtendedMapSavesAsAlmOnlyWhenItFitsAndTheQuestionAgrees(t *testing.T)
 				t.Fatalf("Save over the .alm: %v", err)
 			}
 			closeAll()
-			if err := e.Key("saveas"); !slices.Contains(e.OpenWindows(), "prompt") || !sameWords(e.PromptNotes(), w("editor.scriptform.foldtext")) {
+			if err := e.Key("saveas"); !slices.Contains(e.OpenWindows(), "prompt") || !foldAsked(e, x, w) {
 				t.Fatalf("Save over the .alm asked %q (%v)", e.PromptNotes(), err)
 			}
 			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
@@ -516,7 +522,7 @@ func TestTriggerWizardOrGroupAsksToExtendTheMap(t *testing.T) {
 	trigChoose(t, e, wizField(t, e, "c3.item"), w("editor.wizard.c.always"))
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 	trigClick(t, e, r, ok, "Apply")
-	if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) {
+	if !slices.Contains(e.OpenWindows(), "prompt") || e.PromptTitle() != w("editor.scriptform.title") {
 		t.Fatalf("no question to extend the map: %q\n%s", e.PromptNotes(), trigLines(e))
 	}
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})

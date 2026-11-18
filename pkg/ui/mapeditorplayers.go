@@ -298,8 +298,9 @@ func (e *MapEditor) askPlayerDelete(index int) {
 	e.openPrompt(editorPrompt{kind: promptDelete, del: RecordRef{Kind: KindPlayer, Index: index}})
 }
 
-// playerDeleteSpec is the question: the player's number and name, and that
-// the later players' numbers drop by one with the records naming them.
+// playerDeleteSpec is the question: the player's number and name as its
+// note, and behind the title's (?) that the later players' numbers drop by
+// one with the records naming them.
 func (e *MapEditor) playerDeleteSpec() popupSpec {
 	m, index, name := e.relationMatrixOf(), e.prompt.del.Index, ""
 	for i, p := range m.players {
@@ -308,7 +309,8 @@ func (e *MapEditor) playerDeleteSpec() popupSpec {
 		}
 	}
 	note := fmt.Sprintf(e.word("editor.players.deletetext"), index+1, name)
-	return e.questionSpec(e.word("editor.players.deletetitle"), []string{note}, []string{e.word("editor.players.deletego"), e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: e.word("editor.players.deletetitle"), help: e.word("editor.players.deletetitle.help"),
+		notes: []string{note}, buttons: []string{e.word("editor.players.deletego"), e.word("editor.button.cancel")}})
 }
 
 // playerDeletePress is a press on the question.

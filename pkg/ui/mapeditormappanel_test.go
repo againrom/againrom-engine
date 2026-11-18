@@ -366,7 +366,7 @@ func TestNewMapAsksSingleOrMultiplayer(t *testing.T) {
 					t.Fatalf("no question: prompt %+v opened %v", e.prompt, *opened)
 				}
 				s := e.newModeSpec()
-				if s.Title != "New map: single-player or multiplayer?" || fmt.Sprint(s.Buttons) != "[Single-player Multiplayer Cancel]" {
+				if s.Title != "New map mode" || fmt.Sprint(s.Buttons) != "[Single-player Multiplayer Cancel]" {
 					t.Fatalf("question %q %v", s.Title, s.Buttons)
 				}
 				c.act(e)

@@ -112,7 +112,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 		}{{2, 3, false}, {3, 4, true}} {
 			for _, trigger := range []int{-1, 1, 0} {
 				name := fmt.Sprintf("%s condition %d into trigger %d", l.name, c.id, trigger)
-				e, _, w := scriptAddEditor(t, l, b)
+				e, x, w := scriptAddEditor(t, l, b)
 				e.Select(trigRecord(t, e, "Condition", c.index), false)
 				buttons := e.PopupButtons()
 				at := slices.Index(buttons, w("editor.scripts.totrigger"))
@@ -128,7 +128,7 @@ func TestScriptsListedConditionGoesIntoATrigger(t *testing.T) {
 				e.TextInput(strconv.Itoa(trigger))
 				_ = e.Key("enter")
 				if trigger == 0 {
-					if !slices.Contains(e.OpenWindows(), "prompt") || !endsWords(e.PromptNotes(), w("editor.scriptform.text")) || !bytes.Equal(e.Document().SourceBytes, b) {
+					if !slices.Contains(e.OpenWindows(), "prompt") || x.inspectionUTF8(e.PromptTitle()) != w("editor.scriptform.title") || !bytes.Equal(e.Document().SourceBytes, b) {
 						t.Fatalf("%s: a full trigger did not ask to extend the map: %q", name, e.PromptNotes())
 					}
 					r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})

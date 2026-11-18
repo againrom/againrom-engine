@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // areaTrigger is a trigger of areaScript: up to three pairs as left, right
@@ -416,8 +417,8 @@ func TestAreaDrawnBoxGoesToTheChosenTrigger(t *testing.T) {
 		_ = e.Key("down")
 		_ = e.Key("enter")
 		notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
-		if !strings.Contains(notes, "the original game will not open it") {
-			t.Fatalf("a full trigger did not ask to extend the map: %q", notes)
+		if e.PromptTitle() != words.For("english").Text("editor.scriptform.title") || !strings.Contains(notes, "three condition pairs") {
+			t.Fatalf("a full trigger did not ask to extend the map: %q %q", e.PromptTitle(), notes)
 		}
 		if !yes {
 			_ = e.Key("escape")

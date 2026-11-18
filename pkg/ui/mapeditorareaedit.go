@@ -457,8 +457,8 @@ const (
 // areaSharedSpec is the notice before a change reaches other triggers or
 // pairs.
 func (e *MapEditor) areaSharedSpec() popupSpec {
-	return e.questionSpec(e.word("editor.area.sharedtitle"), e.prompt.area.notes,
-		[]string{e.word("editor.area.change"), e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: e.word("editor.area.sharedtitle"), notes: e.prompt.area.notes,
+		buttons: []string{e.word("editor.area.change"), e.word("editor.button.cancel")}})
 }
 
 // areaSharedPress is a press on the shared-node notice.
@@ -527,8 +527,10 @@ const (
 	areaCreateStay
 )
 
-// areaTriggerSpec is the trigger choice: what the box becomes, the trigger
-// drop-down and Create and Cancel.
+// areaTriggerSpec is the trigger choice: the box as its note, what the box
+// becomes behind the title's (?), the trigger drop-down and Create and
+// Cancel. The drop-down cuts a long trigger name with a mark and its hover
+// shows it whole. A refusal joins the box, and the notes then warn.
 func (e *MapEditor) areaTriggerSpec() popupSpec {
 	a := e.prompt.area
 	b := a.box
@@ -536,20 +538,14 @@ func (e *MapEditor) areaTriggerSpec() popupSpec {
 	if a.note != "" {
 		notes = append(notes, a.note)
 	}
-	s := e.questionSpec(e.word("editor.area.newtitle"), notes, []string{e.word("editor.area.create"), e.word("editor.button.cancel")})
-	label := e.word("editor.area.trigger")
-	s.LabelWidth = 120
-	if f := e.bodyFont(); f != nil {
-		s.LabelWidth = f.Advance(label) + 24
-	}
 	value := ""
 	if rows := a.choice.Rows(); a.choice.Selection() >= 0 && a.choice.Selection() < len(rows) {
-		value = editorClip(e.bodyFont(), rows[a.choice.Selection()].Text, s.Width-s.LabelWidth-60)
+		value = rows[a.choice.Selection()].Text
 	}
-	s.Rows = []popupRow{{Kind: popupChoice, Label: label, Value: value, Focus: true}}
-	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
-	return s
+	return e.questionSpec(question{title: e.word("editor.area.newtitle"), help: e.word("editor.area.newtitle.help"),
+		rows:  []popupRow{{Kind: popupChoice, Label: e.word("editor.area.trigger"), Value: value, Focus: true}},
+		notes: notes, state: a.note == "",
+		buttons: []string{e.word("editor.area.create"), e.word("editor.button.cancel")}})
 }
 
 // areaTriggerPress is a press on the trigger choice: the drop-down opens,

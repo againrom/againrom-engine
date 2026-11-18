@@ -82,6 +82,9 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
+		// A host that starts nothing: the test party's cards read the
+		// install, and the mockup runs no test play.
+		x.SetTestPlay(game.TestPlayHost{})
 		e := x.Editor()
 		if *mapSource != "" {
 			if err := e.Open(*mapSource); err != nil {

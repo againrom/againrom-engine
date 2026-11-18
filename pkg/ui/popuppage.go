@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/color"
 	"strconv"
+	"strings"
 
 	"againrom/pkg/render/text"
 	"againrom/pkg/words"
@@ -32,6 +33,8 @@ type EditorMockup struct {
 	// pictureNames are the names of the pictures the rows show, by row:
 	// a picture row's own first, then the icons after its value.
 	pictureNames map[int][]string
+	// gridNames are the names of the grid cells' pictures, by cell.
+	gridNames []string
 }
 
 // mockupPerson is the person a description's card and figure show: the
@@ -85,12 +88,17 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	var made []popupMade
 	m.plain, made = d.build(sample, word)
 	m.pictureNames = rowPictures(m.plain.Rows, made, person.picture)
-	if _, names := (popupChain{sample}).grid(d.Grid, word); person.picture != nil {
-		for i, name := range names {
-			m.plain.Grid.Cells[i].Icon = person.picture(name)
+	_, m.gridNames = popupChain{sample}.grid(d.Grid, word)
+	gridPictures(m.plain.Grid, m.gridNames, person.picture)
+	if d.Question {
+		p := m.plain
+		q := question{title: p.Title, help: p.TitleHelp, rows: p.Rows, list: p.List, listRows: p.ListRows, grid: p.Grid,
+			notes: p.Notes, state: p.NoteInk != editorWarning, buttons: p.Buttons, disabled: p.Disabled}
+		if d.Grid != nil {
+			q.high = d.Grid.High
 		}
-	}
-	if body != nil && m.plain.Width > 0 {
+		m.plain = q.spec(word("editor.question.keys"), title, body, encode, window, nil)
+	} else if body != nil && m.plain.Width > 0 {
 		// Notes are lines: each note wraps to the window's text width, as the
 		// prompt wraps its message.
 		measure := func(s string) int { return body.Advance(encode(s)) }
@@ -107,6 +115,13 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 		}
 	}
 	fitButtons(&m.paint, body)
+	mockupFonts(&m.paint, body)
+	if d.Question {
+		m.paint.At, m.paint.Bounds = questionPlace(m.paint, title, body, window)
+		m.plain.Bounds, m.plain.At = m.paint.Bounds, m.paint.At
+		m.layout = layoutPopup(m.paint, title, body)
+		return m, nil
+	}
 	if d.Card {
 		if person.card == nil {
 			person.card = sample.card()
@@ -156,7 +171,7 @@ func rowPictures(rows []popupRow, made []popupMade, picture func(string) *image.
 // description with a card shows the first person of the open map that has
 // a figure, as the unit window builds the card and the figure.
 func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*EditorMockup, error) {
-	person := mockupPerson{cardFont: e.cardFont}
+	person := mockupPerson{cardFont: e.cardFont, picture: e.cardPicture}
 	if d, err := parsePopupDesc(desc); err == nil && d.Card && e.doc != nil {
 		e.Layout(window.X, window.Y)
 		for i, r := range e.doc.Records {
@@ -248,6 +263,26 @@ func encodedSpec(s popupSpec, encode func(string) string) popupSpec {
 		rows[i] = r
 	}
 	s.Rows = rows
+	if s.List != nil {
+		var list []PickerRow
+		for _, r := range s.List.Rows() {
+			r.Text = encode(r.Text)
+			list = append(list, r)
+		}
+		chosen := s.List.Selection()
+		s.List = NewPicker(list).SetWindow(s.ListRows)
+		s.List.Select(chosen)
+	}
+	if s.Grid != nil {
+		g := *s.Grid
+		g.RowHeads, g.ColHeads = all(g.RowHeads), all(g.ColHeads)
+		g.Cells = make([]popupGridCell, len(s.Grid.Cells))
+		for i, c := range s.Grid.Cells {
+			c.Label, c.Tip = encode(c.Label), encode(c.Tip)
+			g.Cells[i] = c
+		}
+		s.Grid = &g
+	}
 	return s
 }
 
@@ -302,7 +337,13 @@ func (m *EditorMockup) Page() []byte {
 	if m.paint.Card != nil {
 		figure = figureRoom(m.paint, m.layout, m.figure)
 	}
-	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, pagePictures(m.body, m.layout, m.paint.Rows, m.pictureNames), m.lang, m.window)
+	pictures := pagePictures(m.body, m.layout, m.paint.Rows, m.pictureNames)
+	for k, r := range m.layout.GridCells {
+		if n := m.layout.GridFirst + k; n < len(m.gridNames) && m.gridNames[n] != "" {
+			pictures = append(pictures, pagePicture{-1, r, m.gridNames[n]})
+		}
+	}
+	return popupPage(m.desc, specWindow(m.plain), m.layout, figure, pictures, m.lang, m.window)
 }
 
 // pageDescriptionTag opens the description a page carries.
@@ -421,6 +462,11 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 		if w.Grid != nil {
 			c := w.Grid.Cells[l.gridIndex(i)]
 			tip = c.Tip
+			txt := c.Label
+			if c.Icon == nil && w.Grid.Cols > 0 {
+				// A grid of columns is boxes: the page writes each tick.
+				txt = strings.TrimSpace(CheckSpec{On: c.Ticked, Style: CheckText}.Mark() + txt)
+			}
 			class := "control"
 			if c.Pressed {
 				class += " pressed"
@@ -428,12 +474,24 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			if c.Inert {
 				class += " off"
 			}
-			part(class, "cell", i, r, none, c.Label)
+			part(class, "cell", i, r, none, txt)
 		}
 		tip = ""
 	}
 	for i, r := range l.Notes {
 		part("note", "note", i, r, w.Notes.Ink, w.Notes.Lines[i])
+	}
+	if l.HasList && w.List.Picker != nil {
+		rows := w.List.Picker.Rows()
+		top, shown := w.List.Picker.Visible()
+		for i := 0; i < l.List.Rows && i < shown && top+i < len(rows); i++ {
+			n := top + i
+			class := "control"
+			if n == w.List.Picker.Selection() {
+				class = "button"
+			}
+			part(class, "list-row", n, l.List.Row(i), none, rows[n].Text)
+		}
 	}
 	for i, r := range l.Buttons {
 		class := "button"

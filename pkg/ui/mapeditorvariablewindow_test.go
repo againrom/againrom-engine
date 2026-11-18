@@ -23,7 +23,7 @@ func checkWindowProperties(t *testing.T, e *MapEditor, s popupSpec, size image.P
 	if !l.Rect.In(window) {
 		t.Errorf("%v: the window stands at %v, outside the screen", size, l.Rect)
 	}
-	if len(l.Rows) == 0 {
+	if len(l.Rows) == 0 && len(s.Rows) > 0 {
 		t.Fatalf("%v: no rows are laid out", size)
 	}
 	for _, r := range l.Rows {

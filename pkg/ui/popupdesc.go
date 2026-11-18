@@ -41,23 +41,68 @@ type popupDesc struct {
 	// TitleHelpMore are word keys whose words follow the title help, each
 	// after a space: the keys line every prompt states once.
 	TitleHelpMore []string `json:"titleHelpMore,omitempty"`
-	// Notes are the window's notes lines, written in the ink role NoteInk.
-	Notes   []popupDescButton `json:"notes,omitempty"`
-	NoteInk string            `json:"noteInk,omitempty"`
-	// Grid is the window's picture grid, one cell per item of a list.
+	// Question makes the window the question element: the editor's one
+	// question builder lays it out from its title, help, rows, list, grid,
+	// notes and buttons.
+	Question bool `json:"question,omitempty"`
+	// Notes are the window's state lines, written in the ink role NoteInk.
+	Notes   []popupDescNote `json:"notes,omitempty"`
+	NoteInk string          `json:"noteInk,omitempty"`
+	// List is a list of rows the window picks one of; Grid a grid of cells.
+	List *popupDescList `json:"list,omitempty"`
 	Grid *popupDescGrid `json:"grid,omitempty"`
 }
 
-// popupDescGrid is a picture grid: a cell for every item of list Each,
-// showing the picture its Picture binding names, its Tip binding's text on
-// hover, pressed while the item's Chosen flag is set. Rows is how many grid
-// rows show.
+// popupDescNote is a note line: a word with its verbs filled, or without a
+// word the text of binding Bind; once, or with Each once for every item of
+// a list binding.
+type popupDescNote struct {
+	popupDescButton
+	Each string `json:"each,omitempty"`
+	Bind string `json:"bind,omitempty"`
+}
+
+// popupDescList is a list: a row for every item of list Each, its text the
+// word Word with the verbs Args fill, or without a word the text of binding
+// Bind; the item whose Chosen flag is set is the selection. Rows is how
+// many rows show.
+type popupDescList struct {
+	Each   string   `json:"each"`
+	Word   string   `json:"word,omitempty"`
+	Bind   string   `json:"bind,omitempty"`
+	Args   []string `json:"args,omitempty"`
+	Chosen string   `json:"chosen,omitempty"`
+	Rows   int      `json:"rows,omitempty"`
+}
+
+// popupDescGrid is the one grid form: a cell for every item of list Each.
+// Without Column each item is one cell, the grid's own popupDescGridCell,
+// and the cells flow into the columns the width holds, Rows of them shown
+// (zero every row that fits). With Column each item is a column headed by
+// its ColHead binding, the cells of Column top to bottom, each grid row
+// headed by the word of the same place in RowHeads. Side is a cell's side,
+// zero gridCellSide; High the height of a row whose cells show a picture.
 type popupDescGrid struct {
-	Each    string `json:"each"`
+	popupDescGridCell
+	Each     string              `json:"each"`
+	Rows     int                 `json:"rows,omitempty"`
+	ColHead  string              `json:"colHead,omitempty"`
+	RowHeads []string            `json:"rowHeads,omitempty"`
+	Column   []popupDescGridCell `json:"column,omitempty"`
+	Side     int                 `json:"side,omitempty"`
+	High     int                 `json:"high,omitempty"`
+}
+
+// popupDescGridCell is one cell of an item: the picture its Picture binding
+// names, the text its Label binding gives when no picture shows, its Tip
+// binding's text on hover; pressed while the Chosen flag is set, taking no
+// press while the Inert flag is.
+type popupDescGridCell struct {
 	Picture string `json:"picture,omitempty"`
+	Label   string `json:"label,omitempty"`
 	Tip     string `json:"tip,omitempty"`
 	Chosen  string `json:"chosen,omitempty"`
-	Rows    int    `json:"rows,omitempty"`
+	Inert   string `json:"inert,omitempty"`
 }
 
 // popupDescRow is one row, or with Each a block repeated for every item of
@@ -84,14 +129,14 @@ type popupDescRow struct {
 	Wrap      bool              `json:"wrap,omitempty"`
 	Field     string            `json:"field,omitempty"`
 	Buttons   []popupDescButton `json:"buttons,omitempty"`
+	// Focus marks the row the keyboard is in.
+	Focus bool `json:"focus,omitempty"`
 	// Picture names the binding of the picture a text row shows in its
 	// label column, Lines rows high (three when unset); Icons names the
 	// binding of the pictures drawn after the value. A binding's text is
 	// picture names separated by spaces, which the editor resolves.
 	Picture string `json:"picture,omitempty"`
 	Icons   string `json:"icons,omitempty"`
-	// Focus marks the edit row the keyboard types in.
-	Focus bool `json:"focus,omitempty"`
 }
 
 // popupDescButton is a button: its caption's word key, the row action it
@@ -256,40 +301,98 @@ func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []p
 	for _, m := range made {
 		s.Rows = append(s.Rows, m.Row)
 	}
-	s.Grid, _ = c.grid(d.Grid, word)
-	for _, n := range d.Notes {
-		if c.when(n.When) {
-			s.Notes = append(s.Notes, c.format(n.Word, n.Args, word))
-		}
-	}
-	if d.NoteInk != "" {
-		s.NoteInk = inspectionRoleColor(d.NoteInk)
-	}
 	for _, bt := range d.Buttons {
 		if c.when(bt.When) {
 			s.Buttons = append(s.Buttons, c.format(bt.Word, bt.Args, word))
 			s.Disabled = append(s.Disabled, bt.Off != "" && c.when(bt.Off))
 		}
 	}
+	for _, n := range d.Notes {
+		items := []popupChain{c}
+		if n.Each != "" {
+			items = nil
+			for _, item := range c.list(n.Each) {
+				items = append(items, append(c[:len(c):len(c)], item))
+			}
+		}
+		for _, in := range items {
+			switch {
+			case !in.when(n.When):
+			case n.Word == "":
+				s.Notes = append(s.Notes, in.text(n.Bind, word))
+			default:
+				s.Notes = append(s.Notes, in.format(n.Word, n.Args, word))
+			}
+		}
+	}
+	if d.NoteInk != "" {
+		s.NoteInk = inspectionRoleColor(d.NoteInk)
+	}
+	if l := d.List; l != nil {
+		var rows []PickerRow
+		chosen := 0
+		for i, item := range c.list(l.Each) {
+			in := append(c[:len(c):len(c)], item)
+			text := in.text(l.Bind, word)
+			if l.Word != "" {
+				text = in.format(l.Word, l.Args, word)
+			}
+			rows = append(rows, PickerRow{Text: text, Choosable: true})
+			if l.Chosen != "" && in.when(l.Chosen) {
+				chosen = i
+			}
+		}
+		shown := len(rows)
+		if l.Rows > 0 {
+			shown = min(l.Rows, len(rows))
+		}
+		s.List, s.ListRows = NewPicker(rows).SetWindow(shown), shown
+		s.List.Select(chosen)
+	}
+	s.Grid, _ = c.grid(d.Grid, word)
 	return s, made
 }
 
-// grid is the description's picture grid under the bindings, nil for none,
-// and the name of each cell's picture, which the editor resolves.
+// grid is the description's grid under the bindings, nil for none, and the
+// name of each cell's picture in the cells' order, which the editor
+// resolves ("" for none). A grid of columns ticks its chosen cells; its
+// heads' sizes are the fonts' and left unset.
 func (c popupChain) grid(g *popupDescGrid, word func(string) string) (*popupGrid, []string) {
 	if g == nil {
 		return nil, nil
 	}
-	out := &popupGrid{Rows: g.Rows}
-	var names []string
-	for _, item := range c.list(g.Each) {
-		in := append(c[:len(c):len(c)], item)
-		cell := popupGridCell{Pressed: g.Chosen != "" && in.when(g.Chosen)}
-		if g.Tip != "" {
-			cell.Tip = in.text(g.Tip, word)
+	items := c.list(g.Each)
+	out := &popupGrid{Rows: g.Rows, Side: g.Side}
+	column := []popupDescGridCell{g.popupDescGridCell}
+	if len(g.Column) > 0 {
+		column = g.Column
+		out = &popupGrid{Rows: len(column), Cols: len(items), Side: g.Side, HeadFlat: true}
+		for _, h := range g.RowHeads {
+			out.RowHeads = append(out.RowHeads, word(h))
 		}
-		out.Cells = append(out.Cells, cell)
-		names = append(names, in.text(g.Picture, func(string) string { return "" }))
+	}
+	var names []string
+	for k, cell := range column {
+		for _, item := range items {
+			in := append(c[:len(c):len(c)], item)
+			if len(g.Column) > 0 && k == 0 && g.ColHead != "" {
+				out.ColHeads = append(out.ColHeads, in.text(g.ColHead, word))
+			}
+			on := cell.Chosen != "" && in.when(cell.Chosen)
+			made := popupGridCell{Pressed: on, Ticked: on && len(g.Column) > 0, Inert: cell.Inert != "" && in.when(cell.Inert)}
+			if cell.Tip != "" {
+				made.Tip = in.text(cell.Tip, word)
+			}
+			name := ""
+			if cell.Picture != "" {
+				name = in.text(cell.Picture, func(string) string { return "" })
+			}
+			if name == "" && cell.Label != "" {
+				made.Label = in.text(cell.Label, word)
+			}
+			out.Cells = append(out.Cells, made)
+			names = append(names, name)
+		}
 	}
 	return out, names
 }
@@ -300,15 +403,19 @@ func (c popupChain) format(key string, args []string, word func(string) string) 
 	if len(args) == 0 {
 		return word(key)
 	}
-	values := make([]any, len(args))
+	values, texts := make([]any, len(args)), make([]any, len(args))
 	for i, a := range args {
 		t := c.text(a, word)
-		values[i] = t
+		values[i], texts[i] = t, t
 		if n, err := strconv.Atoi(t); err == nil {
 			values[i] = n
 		}
 	}
-	return fmt.Sprintf(word(key), values...)
+	// A number a %s verb takes stays its text.
+	if out := fmt.Sprintf(word(key), values...); !strings.Contains(out, "%!") {
+		return out
+	}
+	return fmt.Sprintf(word(key), texts...)
 }
 
 func (c popupChain) rows(rows []popupDescRow, word func(string) string, made *[]popupMade) {

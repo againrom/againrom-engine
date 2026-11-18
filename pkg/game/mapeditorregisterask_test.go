@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"againrom/internal/synth"
@@ -67,12 +66,6 @@ func TestCheckRegisterOfAVariableAsksToExtendTheMap(t *testing.T) {
 	}
 }
 
-// endsWords reports whether the wrapped note lines end with want: the
-// question's own text follows the refusal's.
-func endsWords(lines []string, want string) bool {
-	return strings.HasSuffix(strings.Join(strings.Fields(strings.Join(lines, " ")), " "), strings.Join(strings.Fields(want), " "))
-}
-
 // isFormNeeded reports whether err is the question to extend the map.
 func isFormNeeded(err error) bool {
 	var need *ui.ScriptFormNeeded
@@ -105,6 +98,31 @@ func TestFormQuestionForTheTriggerCountIsInTheEditorsLanguage(t *testing.T) {
 		_, err := formHost(e).AddScript(ui.KindTrigger)
 		var need *ui.ScriptFormNeeded
 		want := fmt.Sprintf(words.For(c.profile.Language).Text("editor.script.triggersfull"), 1000)
+		if !errors.As(err, &need) || need.Why != want {
+			t.Fatalf("%s: the question reads %v, want %q", c.profile.Language, err, want)
+		}
+	}
+}
+
+// A Russian editor's question for a condition past the 100 check registers
+// carries the refusal in Russian, an English one in English.
+func TestFormQuestionForTheChecksIsInTheEditorsLanguage(t *testing.T) {
+	conditions := make([]scriptNode, 100)
+	for i := range conditions {
+		conditions[i] = scriptNode{label: "Constant", opcode: 0x10002, id: uint32(i + 1), tags: []uint32{kInt}, values: []uint32{uint32(i % 2)}}
+	}
+	actions := []scriptNode{{label: "win", opcode: 4, id: 1}}
+	full := synth.ALM(synth.ALMOptions{Width: 40, Height: 40, Type7Payload: goalScript(actions, conditions,
+		[]goalTrigger{{name: "T", left: 1, right: 2, actions: []uint32{1}}})})
+	for _, c := range []struct {
+		profile base.Profile
+		sel     int
+	}{{base.Profile{Language: "english"}, 0}, {base.Profile{Language: "russian"}, text.SelectorConverting}} {
+		x := heroLabelInspector(t, c.profile, c.sel)
+		e := openHeroLabelMap(t, x, full)
+		_, err := formHost(e).AddScript(ui.KindCondition)
+		var need *ui.ScriptFormNeeded
+		want := words.For(c.profile.Language).Text("editor.wizard.checksfull")
 		if !errors.As(err, &need) || need.Why != want {
 			t.Fatalf("%s: the question reads %v, want %q", c.profile.Language, err, want)
 		}

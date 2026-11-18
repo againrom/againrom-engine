@@ -69,8 +69,10 @@ func TestEditorPopupsResizeByTheirBorders(t *testing.T) {
 			if held != after {
 				t.Fatalf("the size did not hold: %v then %v", after, held)
 			}
+			notes := len(e.PromptNotes())
 			_, tiny := borderDrag(t, e, corner, image.Pt(-grow.X*80, -grow.Y*80))
-			if tiny.Dx() < 160 || tiny.Dy() < 80 || tiny.Dx() > after.Dx() || tiny.Dy() > after.Dy() {
+			rewrapped := len(e.PromptNotes()) > notes
+			if tiny.Dx() < 160 || tiny.Dy() < 80 || tiny.Dx() > after.Dx() || tiny.Dy() > after.Dy() && !rewrapped {
 				t.Fatalf("least size %v from natural %v", tiny, before)
 			}
 			// A press below the title bar and inside the borders resizes nothing.

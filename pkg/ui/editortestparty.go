@@ -1,6 +1,9 @@
 package ui
 
-import "image"
+import (
+	"fmt"
+	"image"
+)
 
 // TestPlayHeroes is the number of kinds a hero is, in the order male
 // fighter, female fighter, male mage, female mage.
@@ -207,52 +210,36 @@ func (e *MapEditor) testPartyAny() bool {
 // testPartySpec is the party window as a popup description: one column per
 // card under the character's name, his portrait as the box that says he
 // plays, and under it the skills and spells boxes; a card whose character
-// does not cast has no spells box. The lines the notice before a test play
-// lists stand in the window, and Start takes no press with nobody chosen.
-// Standard shows no grid: the mission's own party plays and no box could
-// change it.
+// does not cast has no spells box. The warnings the notice before a test
+// play lists stand in the window, what they mean behind the title's (?),
+// and Start takes no press with nobody chosen. Standard shows no grid: the
+// mission's own party plays and no box could change it.
 // The middle button names the kind of hero the cards stand beside, since
 // the game composes three of the companions by the hero's class and sex; a
 // press takes the next kind. A name wider than its card takes two lines.
 func (e *MapEditor) testPartySpec() popupSpec {
 	cards := e.prompt.party.cards
-	var notes []string
+	q := question{title: e.word("editor.testparty.title"), help: e.word("editor.testparty.title.help"), high: testPartyHigh}
 	if e.noticeNeeded(noticeTestPlay) {
-		notes = e.noticeNotes()
+		q.notes = e.noticeNotes()
+		q.help += " " + e.word("editor.notice.testplay.help")
 	}
-	kind := e.word("editor.testparty.hero") + ": " + e.word(testPartyKinds[e.prompt.party.hero])
-	buttons := []string{e.word("editor.testparty.start"), kind, e.word("editor.button.cancel")}
+	kind := fmt.Sprintf(e.word("editor.testparty.herokind"), e.word(testPartyKinds[e.prompt.party.hero]))
+	q.buttons = []string{e.word("editor.testparty.start"), kind, e.word("editor.button.cancel")}
 	custom := !e.prompt.party.declared || e.testPartyCustom
-	disabled := []bool{custom && !e.testPartyAny(), !custom, false}
+	q.disabled = []bool{custom && !e.testPartyAny(), !custom, false}
 	if e.prompt.party.declared {
 		mode := e.word("editor.testparty.standard")
 		if e.testPartyCustom {
 			mode = e.word("editor.testparty.custom")
 		}
-		buttons, disabled = append(buttons, e.word("editor.testparty.mode")+": "+mode), append(disabled, false)
+		q.buttons, q.disabled = append(q.buttons, fmt.Sprintf(e.word("editor.testparty.partykind"), mode)), append(q.disabled, false)
 	}
-	s := e.questionSpec(e.word("editor.testparty.title"), notes, buttons)
-	s.Disabled = disabled
-	body := e.bodyFont()
 	if !custom {
-		s.At = e.centreCorner(layoutPopup(s, e.font, body).Rect.Size(), openPlace{})
-		return s
+		return e.questionSpec(q)
 	}
 	heads := []string{e.word("editor.testparty.plays"), e.word("editor.testparty.skills"), e.word("editor.testparty.spells")}
-	line := fontHeight(body, 15) + popupRowExtra
-	g := &popupGrid{Rows: testPartyRows, Cols: len(cards), RowHeads: heads, HeadW: 8, HeadH: line, HeadFlat: true}
-	if body != nil {
-		for _, h := range heads {
-			g.HeadW = max(g.HeadW, body.Advance(h)+8)
-		}
-	}
-	g.Side = max(24, min(testPartySide, (e.window.X-16-2*popupPad-g.HeadW)/len(cards)))
-	g.RowHigh = []int{min(g.Side, testPartyHigh), line + 4, line + 4}
-	for _, c := range cards {
-		if len(headLines(body, c.Name, g.Side-4)) > 1 {
-			g.HeadH = 2 * line
-		}
-	}
+	g := &popupGrid{Rows: testPartyRows, Cols: len(cards), RowHeads: heads, Side: testPartySide, HeadFlat: true}
 	choice := e.TestPartyChoice()
 	for row := range testPartyRows {
 		for i, c := range cards {
@@ -266,10 +253,8 @@ func (e *MapEditor) testPartySpec() popupSpec {
 			g.Cells = append(g.Cells, testPartyCell(row, c, name, choice[i], custom))
 		}
 	}
-	s.Grid = g
-	s.Width = min(max(s.Width, 2*popupPad+g.HeadW+len(cards)*g.Side), e.window.X-16)
-	s.At = e.centreCorner(layoutPopup(s, e.font, body).Rect.Size(), openPlace{})
-	return s
+	q.grid = g
+	return e.questionSpec(q)
 }
 
 // testPartyCell is the box of row on card c, named name, under choice m. A

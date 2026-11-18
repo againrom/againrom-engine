@@ -225,7 +225,7 @@ func TestQuestionButtonsTakeTheOneMeasure(t *testing.T) {
 	body := wordsFont("en")
 	e.SetBodyFont(body)
 	e.Layout(800, 600)
-	s := e.questionSpec("Leave", []string{"The map has changes."}, []string{"OK", "Leave without saving the map", "Cancel"})
+	s := e.questionSpec(question{title: "Leave", notes: []string{"The map has changes."}, buttons: []string{"OK", "Leave without saving the map", "Cancel"}})
 	if s.ButtonW != 0 {
 		t.Fatalf("the question sets its own button width %d", s.ButtonW)
 	}

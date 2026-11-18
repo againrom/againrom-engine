@@ -2054,7 +2054,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		if body == nil || s == "" {
 			return
 		}
-		body.Draw(dst.SubImage(r.Intersect(l.Rect)).(*image.RGBA), s, r.Min.X+2, r.Min.Y+popupRowExtra/2, c)
+		body.Draw(dst.SubImage(r.Intersect(l.Rect)).(*image.RGBA), s, r.Min.X+popupTextInset, r.Min.Y+popupRowExtra/2, c)
 	}
 	canvas := dst
 	for _, rr := range l.Rows {

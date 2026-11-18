@@ -99,8 +99,8 @@ func (e *MapEditor) leaveSpec() popupSpec {
 	if e.doc != nil {
 		name = e.leaveName(e.doc.Source)
 	}
-	return e.questionSpec(title, []string{fmt.Sprintf(e.word("editor.leave.text"), name)},
-		[]string{e.word("editor.leave.saveas"), proceed, e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: title, notes: []string{fmt.Sprintf(e.word("editor.leave.text"), name)},
+		buttons: []string{e.word("editor.leave.saveas"), proceed, e.word("editor.button.cancel")}})
 }
 
 // leaveName is the map as the question names it: a file by its own name, a

@@ -204,19 +204,8 @@ const groupListRows = 8
 func (e *MapEditor) toGroupSpec() popupSpec {
 	p := e.prompt.group
 	notes := append([]string{fmt.Sprintf(e.word("editor.group.totext"), len(p.units), p.player)}, p.skips...)
-	s := e.questionSpec(e.word("editor.group.totitle"), notes, []string{e.word("editor.button.ok"), e.word("editor.button.cancel")})
-	s.List, s.ListRows = p.list, min(groupListRows, p.list.Len())
-	list := p.list
-	s.ListText = func(row, width int) string {
-		rows := list.Rows()
-		if row < 0 || row >= len(rows) {
-			return ""
-		}
-		return editorClip(e.bodyFont(), rows[row].Text, width)
-	}
-	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.centreCorner(l.Rect.Size(), openPlace{})
-	return s
+	return e.questionSpec(question{title: e.word("editor.group.totitle"), list: p.list, listRows: min(groupListRows, p.list.Len()),
+		notes: notes, state: true, buttons: []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}})
 }
 
 // toGroupPress is a press on the To group question.
@@ -297,13 +286,15 @@ func (e *MapEditor) groupTo(units []RecordRef, group, player int, skips []string
 	e.noteSelection(strings.Join(append([]string{note}, skips...), "; "), nil)
 }
 
-// groupWarnSpec is the question before a group a trigger names is emptied.
+// groupWarnSpec is the question before a group a trigger names is emptied:
+// a head line per group, then a line per script row that names it.
 func (e *MapEditor) groupWarnSpec() popupSpec {
 	var notes []string
 	for _, w := range e.prompt.group.warn {
-		notes = append(notes, fmt.Sprintf(e.word("editor.group.warntext"), w.group, strings.Join(w.users, "; ")))
+		notes = append(append(notes, fmt.Sprintf(e.word("editor.group.warnhead"), w.group)), w.users...)
 	}
-	return e.questionSpec(e.word("editor.group.warntitle"), notes, []string{e.word("editor.group.warngo"), e.word("editor.button.cancel")})
+	return e.questionSpec(question{title: e.word("editor.group.warntitle"), notes: notes,
+		buttons: []string{e.word("editor.group.warngo"), e.word("editor.button.cancel")}})
 }
 
 // groupWarnPress is a press on the warning.
