@@ -50,7 +50,7 @@ func (h spellsHost) WorkspaceFields(scope string) []InspectionField {
 	}
 	book := &InspectionBook{Grow: "The book holds 24 cells", Remove: "remove", Drops: []InspectionDrop{
 		{From: DropBook, To: DropBook, Word: "move"},
-		{From: DropGrid, To: DropBook, Word: "add", Empty: true},
+		{From: DropGrid, To: DropBook, Word: "add"},
 		{From: DropBook, To: DropGrid, Word: "remove"},
 	}}
 	for i := range spellsBookCells {

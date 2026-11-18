@@ -200,17 +200,12 @@ func TestSpellsPageTakesASpellOutByDragOntoTheCatalog(t *testing.T) {
 
 // A catalog spell the game's book has no cell for, dragged onto an empty
 // cell, takes it: its row writes book_position and the game's book holds
-// it there. A catalog spell dropped on a cell that holds a spell writes
-// nothing.
+// it there.
 func TestSpellsPageAddsACatalogSpellIntoAnEmptyCell(t *testing.T) {
 	x, e, _ := spellsPage(t)
 	curse, _ := rules.SpellNumber(rules.SpellGameFirst, "Curse")
 	if p, _ := rules.GameSpellOf(rules.SpellGameFirst, curse); p.Slot != 0 {
 		t.Fatalf("Curse has cell %d in the game's book; the test needs a spell without one", p.Slot)
-	}
-	spellsPointer(e, catalogCell(t, e, "Curse"), spellsBookCell(t, e, 4))
-	if src := spellsSource(e); strings.Contains(src, "Curse") {
-		t.Fatalf("a drop on a held cell wrote:\n%s", src)
 	}
 	spellsPointer(e, spellsBookCell(t, e, 4), catalogCell(t, e, "Curse"))
 	spellsPointer(e, catalogCell(t, e, "Curse"), spellsBookCell(t, e, 4))
@@ -222,6 +217,51 @@ func TestSpellsPageAddsACatalogSpellIntoAnEmptyCell(t *testing.T) {
 	}
 	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "Curse: book_position = 4") {
 		t.Fatalf("the note does not state the row written:\n%s", lines)
+	}
+}
+
+// A catalog spell dropped on a cell that holds a spell takes the cell: the
+// spell there is written off the book as a drop on the catalog writes it and
+// is listed in the catalog again, the other cells keep their positions, and
+// the page outlines the held cell as it outlines an empty one.
+func TestSpellsPageCatalogDropReplacesTheSpellInAHeldCell(t *testing.T) {
+	x, e, _ := spellsPage(t)
+	ground := rules.SpellBookRows(rules.SpellGameFirst)
+	old := spellName(ground[3])
+	curse, _ := rules.SpellNumber(rules.SpellGameFirst, "Curse")
+	for _, f := range e.Document().Edits.(*mapInspectionEdits).WorkspaceFields(ui.ModSpellsScope) {
+		if f.Book == nil {
+			continue
+		}
+		for _, d := range f.Book.Drops {
+			if d.Word == "add" && d.Empty {
+				t.Fatalf("the catalog drop outlines only empty cells")
+			}
+		}
+	}
+	spellsPointer(e, catalogCell(t, e, "Curse"), spellsBookCell(t, e, 4))
+	src := spellsSource(e)
+	for _, want := range []string{"target = \"Curse\"\nbook_position = 4\n", "target = \"" + old + "\"\noff = true\n"} {
+		if !strings.Contains(src, want) {
+			t.Fatalf("the spells file lacks %q:\n%s", want, src)
+		}
+	}
+	book := contextBook(t, x)
+	want := slices.Clone(ground)
+	want[3] = uint16(curse)
+	if !slices.Equal(book, want) || !slices.Equal(pageBook(t, e), book) {
+		t.Fatalf("the game's book %v, the page %v, want %v", book, pageBook(t, e), want)
+	}
+	for _, f := range e.Document().Edits.(*mapInspectionEdits).WorkspaceFields(ui.ModSpellsScope) {
+		if f.Grid {
+			v := int64(slices.Index(rules.SpellCatalog(), old) + 1)
+			if slices.Contains(f.Ticked, v) {
+				t.Fatalf("%s is still ticked in the catalog", old)
+			}
+		}
+	}
+	if lines := strings.Join(e.PopupLines(), "\n"); !strings.Contains(lines, "Curse: book_position = 4; "+old+": off = true") {
+		t.Fatalf("the note does not state both rows:\n%s", lines)
 	}
 }
 

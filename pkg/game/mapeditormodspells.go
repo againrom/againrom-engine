@@ -137,7 +137,7 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 	book := &ui.InspectionBook{Art: look.art, Grow: x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.full"), rules.SpellBookPositions())), Remove: "remove",
 		Drops: []ui.InspectionDrop{
 			{From: ui.DropBook, To: ui.DropBook, Word: "move"},
-			{From: ui.DropGrid, To: ui.DropBook, Word: "add", Empty: true},
+			{From: ui.DropGrid, To: ui.DropBook, Word: "add"},
 			{From: ui.DropBook, To: ui.DropGrid, Word: "remove"},
 		}}
 	book.Cells = make([]ui.SpellEntry, len(rows))
@@ -413,7 +413,7 @@ func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDo
 		case len(words) == 3 && words[0] == "add":
 			v, err := strconv.Atoi(words[1])
 			to, in := position(words[2])
-			if err != nil || v < 1 || v > len(catalog) || !in || rows[to-1] != 0 {
+			if err != nil || v < 1 || v > len(catalog) || !in {
 				return nil, gone
 			}
 			name := catalog[v-1]
@@ -421,7 +421,20 @@ func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDo
 				return nil, fmt.Errorf(x.word("editor.spells.lacking"), strings.ReplaceAll(name, "_", " "))
 			}
 			touched = []string{name}
-			edit = func(d *mod.SpellData) error { placeSpell(d, g, name, to); return nil }
+			// A held cell gives its spell up: it leaves the book as a drop on
+			// the catalog writes it.
+			out, held := cell(words[2])
+			held = held && out != name
+			if held {
+				touched = append(touched, out)
+			}
+			edit = func(d *mod.SpellData) error {
+				if held {
+					takeSpellOut(d, out)
+				}
+				placeSpell(d, g, name, to)
+				return nil
+			}
 			s.spell = name
 		case len(words) == 3 && words[0] == "remove", value == "remove":
 			name := s.spell
