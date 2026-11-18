@@ -95,6 +95,9 @@ type carrierDecode struct {
 	actions *currentActionData
 	// terminal is the terminal actor rows of terminalRecord.
 	terminal []sim.CurrentTerminalActor
+	// table is the definition table an original LOAD reads the second game's
+	// kill-grade block through.
+	table *mapload.Table
 }
 
 // carrierStage is the point of the document producer a writer runs at.
@@ -190,6 +193,9 @@ type carrierTown struct {
 	w      *sim.World
 	player *sav.Record
 	doc    *sav.DocumentData
+	// table is the definition table an original city LOAD reads the second
+	// game's kill-grade block through.
+	table *mapload.Table
 }
 
 // carrierLoad is what a LOAD transform reads: the loaded World, its map and
@@ -260,7 +266,7 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World saved Diaries, by owner (sim.CompareSavedDiaryOwners)",
 			decode: map[carrierRecord]func(carrierDecode) error{
 				archiveLiving: func(c carrierDecode) error {
-					return applyOriginalDiaries(c.ms, c.src.diaryPlayerRec, c.src.diaryChars, c.report)
+					return applyOriginalDiaries(c.ms, c.src.diaryPlayerRec, c.src.diaryChars, c.report, c.table)
 				},
 				documentRecord: func(c carrierDecode) error { return importSavedDiaries(c.ms, c.state) }},
 			seat:   map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatTownDiaries},
@@ -268,7 +274,7 @@ func worldCarrierSet() []worldCarrier {
 			town: map[carrierTownPoint]func(carrierTown) error{
 				townCapture: func(c carrierTown) error { c.s.knowledge = slices.Clone(c.t.knowledge); return nil },
 				townRestore: func(c carrierTown) error { c.t.knowledge = slices.Clone(c.s.knowledge); return nil },
-				townArchive: func(c carrierTown) error { c.t.knowledge = savedPlayerDiary(c.player); return nil },
+				townArchive: func(c carrierTown) error { c.t.knowledge = savedPlayerDiary(c.player, c.table); return nil },
 				townCarry:   carryTownKnowledge,
 				townWrite:   func(c carrierTown) error { return projectTownKnowledge(c.doc, c.s.knowledge) }}},
 		{home: "World original dead bodies and their held state",
@@ -594,9 +600,18 @@ func projectTownKnowledge(doc *sav.DocumentData, knowledge []sim.SavedDiary) err
 // savedPlayerDiary is the local Player's Diary a loaded city file carries, as
 // the town's carried Diary. An all-default Diary carries no knowledge and
 // leaves the town without one.
-func savedPlayerDiary(player *sav.Record) []sim.SavedDiary {
+func savedPlayerDiary(player *sav.Record, table *mapload.Table) []sim.SavedDiary {
 	d, ok, err := sav.PlayerDiary(player)
-	if err != nil || !ok || len(d.Entries) == 0 {
+	if err != nil {
+		return nil
+	}
+	if !ok {
+		if grades, found := killGradeDiary(player, table); found {
+			return []sim.SavedDiary{grades}
+		}
+		return nil
+	}
+	if len(d.Entries) == 0 {
 		return nil
 	}
 	return []sim.SavedDiary{{Owner: sim.SavedDiaryOwner{Player: true}, Length: d.Length, Entries: savDiaryEntriesToSaved(d.Entries)}}

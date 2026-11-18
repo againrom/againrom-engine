@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A Teleport or Drain Life scroll in the pack now casts when you double-click it or press its bound key, instead of doing nothing; before, only the spell book worked.
 - [ROM2] The spell book now shows Stone Curse's duration as the second game states it, 480 at power 100, instead of the first game's figure.
 - [ROM2] After loading a save made inside a mission, the menu still offers to abandon the mission and return to the town, as it did before the save.
+- [ROM2] Creature info cards follow the original's kill rule: knowledge stops at 14 kills, #show map opens every card, and saves keep your kill counts in the original save format.
 
 ### For map makers and modders
 

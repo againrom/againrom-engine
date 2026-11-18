@@ -301,7 +301,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 			break
 		}
 	}
-	if err := seatTownCarriers(townArchive, carrierTown{t: s.Town, player: src.diaryPlayerRec}); err != nil {
+	if err := seatTownCarriers(townArchive, carrierTown{t: s.Town, player: src.diaryPlayerRec, table: in.table}); err != nil {
 		return report, modTownLoss{}, err
 	}
 	// A current SAV binds its group actors through its document, an
@@ -486,7 +486,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := admitOriginalActorRegistry(ms, registry, in.table, missionDocument); err != nil {
 				return err
 			}
-			if err := decodeWorldCarriersFrom(archiveLiving, carrierDecode{w: ms.World, ms: ms, src: src, report: &r}); err != nil {
+			if err := decodeWorldCarriersFrom(archiveLiving, carrierDecode{w: ms.World, ms: ms, src: src, report: &r, table: in.table}); err != nil {
 				return err
 			}
 			if err := applyOriginalSession(ms, session, hasSession, &r); err != nil {

@@ -16,7 +16,7 @@ var worldWriters = []string{"BindMergeOperands", "BindSourceDerive", "CompleteSa
 func init() {
 	worldMethods = append(worldMethods, "ReceiveStockItem")
 	worldWriters = append(worldWriters, "ReceiveStockItem")
-	worldMethods = append(worldMethods, "SpellGame", "NativeMovers", "KeepsCastRetain", "ResidueOverBookCasts", "SavesMissionFog", "RestoresCompanionObjective")
+	worldMethods = append(worldMethods, "SpellGame", "NativeMovers", "KeepsCastRetain", "ResidueOverBookCasts", "SavesMissionFog", "RestoresCompanionObjective", "ShowMapFullCard")
 	worldMethods = append(worldMethods, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode", "SetSmoothRegen")
 	worldWriters = append(worldWriters, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode", "SetSmoothRegen")
 	worldMethods = append(worldMethods, "PlayerParticipants", "RestorePlayerParticipants", "SetPlayerParticipant", "CurrentPlayers", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")

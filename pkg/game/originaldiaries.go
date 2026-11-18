@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -48,7 +49,7 @@ func savedDiaryEntriesToSav(entries []sim.SavedDiaryEntry) []sav.DiaryEntry {
 // characters RestoreParty kept. chars may repeat one archive record more
 // than once (PartyWalk's own contract); this dedupes by Character.Off before
 // resolving an owner, on f.Party()'s own precedent for the same list.
-func applyOriginalDiaries(ms *Mission, playerRec *sav.Record, chars []sav.Character, r *OriginalSaveResume) error {
+func applyOriginalDiaries(ms *Mission, playerRec *sav.Record, chars []sav.Character, r *OriginalSaveResume, table *mapload.Table) error {
 	if ms == nil || ms.World == nil {
 		return fmt.Errorf("original diaries: mission has no world")
 	}
@@ -63,6 +64,8 @@ func applyOriginalDiaries(ms *Mission, playerRec *sav.Record, chars []sav.Charac
 			Length:  playerDiary.Length,
 			Entries: savDiaryEntriesToSaved(playerDiary.Entries),
 		})
+	} else if grades, found := killGradeDiary(playerRec, table); found {
+		diaries = append(diaries, grades)
 	}
 	seen := make(map[int]bool, len(chars))
 	for _, c := range chars {

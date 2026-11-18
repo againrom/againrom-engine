@@ -11,7 +11,8 @@ import (
 // SavedDiary row the rest of the package already carries.
 
 const (
-	// DiaryCountCap is the largest count the original's writer stores.
+	// DiaryCountCap is the largest count the first game's writer stores; a
+	// profile may state its own.
 	DiaryCountCap = 17
 	// KnowledgeFull is the level at which every card group is drawn.
 	KnowledgeFull = 7
@@ -113,7 +114,7 @@ func (w *World) foldDiaryEntries(entries []SavedDiaryEntry) []SavedDiaryEntry {
 	for to, t := range sums {
 		kept = append(kept, SavedDiaryEntry{
 			Index:     to,
-			Count:     uint32(min(t.count, DiaryCountCap)),
+			Count:     uint32(min(uint32(t.count), w.game.diaryCap())),
 			Remaining: uint16(max(0, diaryDefaultRemaining-t.spent)),
 		})
 	}
@@ -218,8 +219,8 @@ func (w *World) recordDiaryKill(ti int) {
 }
 
 // addDiaryKill is the original's mutation on the local Player's Diary: the
-// word remainder falls while nonzero and the count rises while it is at most
-// 16.
+// word remainder falls while nonzero and the count rises while it is below
+// the profile's cap.
 func (w *World) addDiaryKill(row int) {
 	at := slices.IndexFunc(w.savedDiaries, func(d SavedDiary) bool { return d.Owner.Player })
 	if at < 0 {
@@ -240,7 +241,7 @@ func (w *World) addDiaryKill(row int) {
 	if e.Remaining != 0 {
 		e.Remaining--
 	}
-	if e.Count <= DiaryCountCap-1 {
+	if e.Count < w.game.diaryCap() {
 		e.Count++
 	}
 	d.Entries = entries

@@ -197,6 +197,9 @@ func (mw *mapWorld) cardKnowledge(e sim.Entity) int {
 	if mw.cheats.knowledge {
 		return 15
 	}
+	if mw.cheats.showMap && mw.world.ShowMapFullCard() {
+		return sim.KnowledgeFull
+	}
 	return mw.world.KnowledgeLevel(e)
 }
 

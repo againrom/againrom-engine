@@ -62,6 +62,10 @@ type Profile struct {
 	creatureSpells creatureSpellWindow
 }
 
+// KillGradeBlock is the second game's Player member that holds the kill
+// grades at +0x44: 2,560 bytes, one per creature serverID.
+const KillGradeBlock = "PRaw2560"
+
 // FirstGame is the first game's profile, the one every engine document uses.
 var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgramme,
 	cellLen: cellRecLen, cellTail: true, sessionLen: sessionLen, session: firstSessionLayout, maxSpellID: 28,
@@ -81,7 +85,8 @@ var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgram
 
 // secondForm is the second game's records written from an engine document:
 // the trailer's two words are 0xBADFACE1 (R2-SESSION-018); Player's 2,560
-// raw bytes are the zero a new Player is built with (R2-ENGINE-675) and its
+// raw bytes are the zero a new Player is built with (R2-ENGINE-675) until
+// the local Player's take the kill grades the document keeps (killBlock), and its
 // 36 preference bytes follow the engine's 32 (DIV-4305); Unit's sixth raw
 // block is the engine order's command post and creature spell slots, the
 // command word and zero bytes (DIV-4305, DIV-4471, DIV-4479, DIV-4490); the
@@ -105,9 +110,10 @@ var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArra
 	// null test (R2-ENGINE-936), and its order-3 setter stores a target
 	// (R2-ENGINE-937). An attack with no target to write is the record of
 	// a unit with no order: order 12, state 0 (R2-SESSION-356).
-	order: &formOrder{code: "U50", state: "U54", phase: "U58", from: "U158", into: "URaw184", attack: 3, idle: 12, target: 0x0c},
+	killBlock: KillGradeBlock,
+	order:     &formOrder{code: "U50", state: "U54", phase: "U58", from: "U158", into: "URaw184", attack: 3, idle: 12, target: 0x0c},
 	fields: []formField{
-		{site: formRaw, name: PlayerTailName, into: []formAdd{{"PRaw2560", zeroFill(2560)}, {"PRaw36", preferenceFill}}},
+		{site: formRaw, name: PlayerTailName, into: []formAdd{{KillGradeBlock, zeroFill(2560)}, {"PRaw36", preferenceFill}}},
 		{site: formRaw, name: "U158", into: []formAdd{{"URaw184", commandFill}}},
 		{site: formInline, name: "Diary"},
 		{site: formSlot, name: "Diary"},
@@ -233,7 +239,7 @@ func secondProgrammes() map[string][]step {
 	out["Humanoid"] = humanoidProgramme(false)
 	out["Player"] = []step{
 		{op: stpRun, members: playerMembers},
-		{op: stpRun, members: []Member{{Name: "PRaw2560", Kind: KindRaw, Len: 2560}}},
+		{op: stpRun, members: []Member{{Name: KillGradeBlock, Kind: KindRaw, Len: 2560}}},
 		{op: stpGroups, name: "Groups"},
 		{op: stpRun, members: []Member{{Name: "PRaw36", Kind: KindRaw, Len: 36}}},
 	}

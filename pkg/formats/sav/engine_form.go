@@ -34,6 +34,9 @@ type documentForm struct {
 	// order is the profile's rule for a Unit record's attack order; nil
 	// writes the engine's order code unchanged.
 	order *formOrder
+	// killBlock is the Player raw member that holds the kill grades, one
+	// byte per serverID; empty where the profile holds none.
+	killBlock string
 }
 
 // formOrder writes a Unit record's attack order with its target: an
@@ -90,6 +93,29 @@ type ProfileKeeps struct {
 	// held is false where the World has no building there. nil keeps the
 	// document's bytes.
 	BuildingPlanes func(cell uint16, static, dynamic byte) (s, d byte, held bool)
+	// KillGrades is the local Player's kill-grade block, one byte per
+	// serverID; nil keeps the zero block a new Player holds.
+	KillGrades []byte
+}
+
+// killGrades writes block into the profile's kill-grade raw member of the
+// local Player's record, the Player whose Participant word is 0.
+func (f *documentForm) killGrades(out *DocumentData, block []byte) error {
+	if f.killBlock == "" || block == nil {
+		return nil
+	}
+	for i := range out.Objects {
+		r := &out.Objects[i]
+		if r.Class != "Player" || !slices.ContainsFunc(r.Values, func(v DocumentValueData) bool { return v.Name == "Participant" && v.Value == 0 }) {
+			continue
+		}
+		at := slices.IndexFunc(r.Raw, func(v DocumentRawData) bool { return v.Name == f.killBlock })
+		if at < 0 || len(r.Raw[at].Bytes) != len(block) {
+			return fmt.Errorf("sav: the Player has no %d-byte %s block", len(block), f.killBlock)
+		}
+		r.Raw[at].Bytes = bytes.Clone(block)
+	}
+	return nil
 }
 
 // retype writes each record keeps names as the Pointer class with its word.
@@ -293,6 +319,9 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 		out.Objects[i] = p.form.record(out.Objects[i], held)
 	}
 	if err := p.form.pointer.retype(&out, keeps.Pointers); err != nil {
+		return DocumentData{}, false, err
+	}
+	if err := p.form.killGrades(&out, keeps.KillGrades); err != nil {
 		return DocumentData{}, false, err
 	}
 	writeCommandStrikes(&out, keeps.Commands)

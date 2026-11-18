@@ -173,7 +173,25 @@ type gameProfile struct {
 	// cardCreatures: the creature types and faces a card level is read for,
 	// from type 64 and face 1. The zero value is the first game's window.
 	cardCreatures cardWindow
+	// diaryCountCap: the largest kill count the Diary stores; zero is the
+	// first game's DiaryCountCap.
+	diaryCountCap uint32
+	// showMapFullCard: a card is drawn at the full level while the
+	// show-map cheat is on (R2-ENGINE-1269).
+	showMapFullCard bool
 }
+
+// diaryCap is the largest kill count the profile's Diary stores.
+func (g gameProfile) diaryCap() uint32 {
+	if g.diaryCountCap == 0 {
+		return DiaryCountCap
+	}
+	return g.diaryCountCap
+}
+
+// secondGameDiaryCountCap is the second game's kill count ceiling: a count
+// stops at 14, which grades 7 (R2-ENGINE-1269, R2-ENGINE-1272).
+const secondGameDiaryCountCap = 14
 
 // cardWindow is the last creature type and the last face whose card follows
 // the Diary; zero fields mean the first game's 80 and 4.
@@ -256,6 +274,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
 		cardCreatures:              secondGameCardWindow,
+		diaryCountCap:              secondGameDiaryCountCap,
+		showMapFullCard:            true,
 		nativeRegen:                true,
 		regenLife:                  LifeStanding,
 		nativeDecay:                true,
@@ -302,6 +322,10 @@ func (w *World) ResidueOverBookCasts() bool { return w.game.residueOverBookCasts
 // SavesMissionFog reports whether a SAVE writes the current mission's fog
 // residue.
 func (w *World) SavesMissionFog() bool { return w.game.savesMissionFog }
+
+// ShowMapFullCard reports whether the show-map cheat draws every card at the
+// full level.
+func (w *World) ShowMapFullCard() bool { return w.game.showMapFullCard }
 
 // RestoresCompanionObjective reports whether a current-SAV LOAD restores a
 // mission companion objective into the script.

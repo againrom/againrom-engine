@@ -37,10 +37,10 @@ func TestDiaryEntryConversionRoundTrips(t *testing.T) {
 // importer: a construction bug that reaches this call with no world must
 // fail loud, not silently skip diary restoration.
 func TestApplyOriginalDiariesRefusesAMissionWithNoWorld(t *testing.T) {
-	if err := applyOriginalDiaries(&Mission{}, nil, nil, nil); err == nil {
+	if err := applyOriginalDiaries(&Mission{}, nil, nil, nil, nil); err == nil {
 		t.Fatal("want an error for a mission with no world")
 	}
-	if err := applyOriginalDiaries(nil, nil, nil, nil); err == nil {
+	if err := applyOriginalDiaries(nil, nil, nil, nil, nil); err == nil {
 		t.Fatal("want an error for a nil mission")
 	}
 }

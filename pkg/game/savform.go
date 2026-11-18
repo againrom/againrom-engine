@@ -31,6 +31,9 @@ type savedForm struct {
 	keeps func(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error)
 	// tail writes the campaign tail after the state store; nil writes none.
 	tail func(s Snapshot) (*sav.SecondTail, error)
+	// killGrades is the kill-grade block the profile's local Player holds,
+	// read from the Diary the document carries; nil writes none.
+	killGrades func(doc *sav.DocumentData, table *mapload.Table) ([]byte, error)
 	// leaf is that the engine's own document travels in the AgainromForm
 	// leaf, which a LOAD reads (DIV-4304).
 	leaf bool
@@ -51,8 +54,8 @@ var firstSavedForms = savedForms{
 // SAVE has no World (exportable refuses one), so its records keep nothing
 // from it.
 var secondSavedForms = savedForms{
-	missionRecord: {records: sav.SecondGame, holders: secondFormHolders, keeps: secondFormKeeps, tail: secondCampaignTail, leaf: true},
-	townRecord:    {records: sav.SecondGame, holders: secondFormHolders, tail: secondCampaignTail, leaf: true},
+	missionRecord: {records: sav.SecondGame, holders: secondFormHolders, keeps: secondFormKeeps, tail: secondCampaignTail, killGrades: secondKillGrades, leaf: true},
+	townRecord:    {records: sav.SecondGame, holders: secondFormHolders, tail: secondCampaignTail, killGrades: secondKillGrades, leaf: true},
 }
 
 // savedFormKind is the document kind a snapshot writes.
@@ -78,6 +81,12 @@ func (form savedForm) write(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.
 	if form.keeps != nil {
 		var err error
 		if keeps, err = form.keeps(s, &doc); err != nil {
+			return sav.DocumentData{}, false, err
+		}
+	}
+	if form.killGrades != nil {
+		var err error
+		if keeps.KillGrades, err = form.killGrades(&doc, f.Table); err != nil {
 			return sav.DocumentData{}, false, err
 		}
 	}
