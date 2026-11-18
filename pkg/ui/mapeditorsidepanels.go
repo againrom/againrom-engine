@@ -42,7 +42,7 @@ const (
 )
 
 // sidePanel is one panel as data: its place, its name in the profile file,
-// its default and least widths and its greatest (heights for the bottom
+// its legacy and least widths and its greatest (heights for the bottom
 // panel; zero is none: a side panel grows until the map's least width is
 // left), the
 // word of its title, its key row's name, help label and keyboard key, the
@@ -88,7 +88,7 @@ func WritePanelState(file string, b []byte) error {
 }
 
 // panelState is a panel's kept state: restored or minimized, and its width.
-// The zero state is minimized at the default width.
+// A zero width follows the panel's content until resized.
 type panelState struct {
 	Restored bool
 	Width    int
@@ -136,12 +136,11 @@ type pullState struct {
 // not.
 const pullDistance = 6
 
-// clampPanel is width held between panel i's least and greatest widths; a
-// width of zero is the panel's default. A side panel has no greatest width.
+// clampPanel keeps a saved width within its limits or zero for automatic sizing.
 func clampPanel(i, width int) int {
 	p := sidePanels[i]
 	if width <= 0 {
-		return p.width
+		return 0
 	}
 	if p.most == 0 {
 		return max(p.least, width)
@@ -167,18 +166,34 @@ func panelStoreRow(i int) editorPopupID {
 	return popNone
 }
 
-// panelStrip is minimized panel i's width: the title row's one button with
-// two pixels of frame on each side. The bottom strip is as high as the one
-// popup builder lays out a title row alone, so it never draws over the
-// status strip.
 func (e *MapEditor) panelStrip(i int) int {
-	side := fontHeight(e.font, 15) + popupRowExtra + 2
-	if sidePanels[i].place != placeBottom {
-		return side
+	title := popupTitleHeight(e.font)
+	if sidePanels[i].place == placeBottom {
+		return title + 2*popupPad
 	}
-	s := popupSpec{Title: " "}
-	dockSpec(&s, image.Rect(0, 0, 4*side, side))
-	return layoutPopup(s, e.font, e.bodyFont()).Rect.Dy()
+	return title + popupTitleInset
+}
+
+func (e *MapEditor) panelSize(i int) int {
+	if width := e.panels.state[i].Width; width > 0 {
+		return clampPanel(i, width)
+	}
+	if e.window.X < 1920 || e.window.Y < 1080 {
+		return sidePanels[i].width
+	}
+	switch i {
+	case panelLeft:
+		s := e.treeSearchSpec()
+		s.Rows[0].Value = s.Rows[0].Hint
+		return clampPanel(i, naturalWidth(&s, e.font, e.bodyFont(), s.LabelWidth))
+	case panelRight:
+		s := e.emptyPropsSpec()
+		return clampPanel(i, naturalWidth(&s, e.font, e.bodyFont(), 0))
+	default:
+		s := e.reportHintContent(mapLeastWidth)
+		s.Width = mapLeastWidth
+		return clampPanel(i, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
+	}
 }
 
 // panelsLaid is each panel's shown width and whether it shows restored. A
@@ -199,7 +214,7 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 			continue
 		}
 		if s := e.panels.state[i]; s.Restored {
-			w[i], open[i] = clampPanel(i, s.Width), true
+			w[i], open[i] = e.panelSize(i), true
 		}
 	}
 	room := e.window.X - mapLeastWidth
@@ -261,9 +276,10 @@ func (e *MapEditor) sidePanelRect(i int) image.Rectangle {
 // placed through the store instead, and its title row button closes it.
 func (e *MapEditor) inPanel(s popupSpec, i int) popupSpec {
 	if e.panelFloats(i) {
+		s.GripHover = true
 		return e.floatSpec(s, panelStoreRow(i))
 	}
-	dockSpec(&s, e.sidePanelRect(i))
+	dockSpec(&s, e.sidePanelRect(i), panelInnerEdge(i))
 	s.CloseLabel = e.word(sidePanels[i].minimizeWord)
 	return s
 }
@@ -274,11 +290,11 @@ func (e *MapEditor) stripSpec(i int) (popupSpec, bool) {
 	if e.window.X <= 0 || e.panelOpen(i) || e.panelFloats(i) {
 		return popupSpec{}, false
 	}
-	s := e.inPanel(popupSpec{NoteInk: editorPaper}, i)
+	s := popupSpec{CloseLabel: e.word(sidePanels[i].restoreWord), NoteInk: editorPaper}
+	dockSpec(&s, e.sidePanelRect(i), 0)
 	if sidePanels[i].stripTitled {
 		s.Title = e.word(sidePanels[i].titleWord)
 	}
-	s.CloseLabel = e.word(sidePanels[i].restoreWord)
 	return s, true
 }
 
@@ -361,7 +377,7 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 		}
 	} else {
 		was := s.Restored
-		s.Restored, s.Width = true, clampPanel(i, s.Width)
+		s.Restored = true
 		if !e.panelOpen(i) {
 			s.Restored = was
 			return false
@@ -493,7 +509,7 @@ type profileEntry struct {
 func readPanelProfile(data []byte, readErr error) panelProfile {
 	out := panelProfile{plain: true}
 	for i, p := range sidePanels {
-		out.sides[i] = panelState{Restored: !p.startMinimized, Width: p.width}
+		out.sides[i] = panelState{Restored: !p.startMinimized}
 	}
 	var all map[string]json.RawMessage
 	if readErr != nil || json.Unmarshal(data, &all) != nil {
@@ -742,24 +758,29 @@ func (e *MapEditor) hostedObject(s popupSpec) popupSpec {
 	return s
 }
 
-// propsSpec is the restored right panel while it hosts no window: one hint
-// line.
+func (e *MapEditor) emptyPropsSpec() popupSpec {
+	return popupSpec{
+		Title: e.word(sidePanels[panelRight].titleWord), TitleHelp: e.word("editor.side.none"),
+		Notes: []string{e.word("editor.side.unselected")}, NoteInk: popupHintInk,
+	}
+}
+
+// propsSpec is the restored right panel while it hosts no object window.
 func (e *MapEditor) propsSpec() (popupSpec, bool) {
 	if !e.panelOn(panelRight) {
 		return popupSpec{}, false
 	}
-	hint := e.word("editor.side.none")
 	if _, _, ok := e.objectSpec(); ok {
 		if e.panels.hosted || e.panelFloats(panelRight) {
 			return popupSpec{}, false
 		}
-		hint = e.word("editor.side.floating")
+		s := popupSpec{Title: e.word(sidePanels[panelRight].titleWord), NoteInk: editorPaper}
+		for _, line := range editorTextLines(e.bodyFont(), e.word("editor.side.floating"), e.panelWidth(panelRight)-2*popupPad-8) {
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
+		}
+		return e.inPanel(s, panelRight), true
 	}
-	s := popupSpec{Title: e.word(sidePanels[panelRight].titleWord), NoteInk: editorPaper}
-	for _, line := range editorTextLines(e.bodyFont(), hint, e.panelWidth(panelRight)-2*popupPad-8) {
-		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
-	}
-	return e.inPanel(s, panelRight), true
+	return e.inPanel(e.emptyPropsSpec(), panelRight), true
 }
 
 // panelOf is the panel popup id stands in, if it stands in one.
@@ -799,11 +820,15 @@ func (e *MapEditor) reportHintSpec() (popupSpec, bool) {
 	if !e.panelOpen(panelBottom) || e.reportDocked() {
 		return popupSpec{}, false
 	}
+	return e.inPanel(e.reportHintContent(e.sidePanelRect(panelBottom).Dx()), panelBottom), true
+}
+
+func (e *MapEditor) reportHintContent(width int) popupSpec {
 	s := popupSpec{Title: e.word(sidePanels[panelBottom].titleWord), NoteInk: editorPaper}
-	for _, line := range editorTextLines(e.bodyFont(), e.word("editor.side.noreport"), e.sidePanelRect(panelBottom).Dx()-2*popupPad-8) {
+	for _, line := range editorTextLines(e.bodyFont(), e.word("editor.side.noreport"), width-2*popupPad-8) {
 		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
 	}
-	return e.inPanel(s, panelBottom), true
+	return s
 }
 
 // dockReport is the report's list popup s in the bottom panel, its list
@@ -929,14 +954,18 @@ func (e *MapEditor) panelEdgeAt(id editorPopupID, p image.Point) popupEdge {
 	if !ok || !popupResizeEnabled || !e.panelOpen(i) {
 		return 0
 	}
-	inner := edgeLeft
+	return layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont()).edgeAt(p)
+}
+
+func panelInnerEdge(i int) popupEdge {
 	switch sidePanels[i].place {
 	case placeLeft:
-		inner = edgeRight
+		return edgeRight
 	case placeBottom:
-		inner = edgeTop
+		return edgeTop
+	default:
+		return edgeLeft
 	}
-	return layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont()).edgeAt(p) & inner
 }
 
 // resizePanel moves panel i's inner border by d, no narrower than the
@@ -1044,44 +1073,38 @@ func (e *MapEditor) panelWidth(i int) int {
 // window, its hint line or its strip, and the bottom panel's hint line or
 // its strip; the report in the bottom panel draws as the list popup.
 func (e *MapEditor) drawSidePanels(pic *image.RGBA, part sidePanelPart) {
-	wanted := func(floats bool) bool { return part == panelsAll || (part == panelsFloating) == floats }
-	draw := func(s popupSpec, floats bool) {
-		if wanted(floats) {
+	floating := part == panelsFloating
+	if e.panelFloats(panelLeft) == floating {
+		if s, ok := e.stripSpec(panelLeft); ok {
+			e.drawWindow(pic, s)
+		} else if s, ok := e.treeSpec(); ok {
 			e.drawWindow(pic, s)
 		}
 	}
-	if s, ok := e.stripSpec(panelLeft); ok {
-		draw(s, false)
-	} else if s, ok := e.treeSpec(); ok {
-		draw(s, e.panelFloats(panelLeft))
-	}
-	switch s, ok := e.stripSpec(panelRight); {
-	case ok:
-		draw(s, false)
-	default:
-		if s, _, ok := e.objectSpec(); ok && e.panels.hosted {
-			draw(s, false)
-			if wanted(false) {
-				e.drawObjectFigure(pic, s)
-			}
+	if e.panelFloats(panelRight) == floating {
+		if s, ok := e.stripSpec(panelRight); ok {
+			e.drawWindow(pic, s)
+		} else if s, _, ok := e.objectSpec(); ok && e.panels.hosted {
+			e.drawWindow(pic, s)
+			e.drawObjectFigure(pic, s)
 		} else if s, ok := e.propsSpec(); ok {
-			draw(s, e.panelFloats(panelRight))
+			e.drawWindow(pic, s)
 		}
 	}
-	if s, ok := e.stripSpec(panelBottom); ok {
-		draw(s, false)
-	} else if s, ok := e.reportHintSpec(); ok {
-		draw(s, false)
+	if !floating {
+		if s, ok := e.stripSpec(panelBottom); ok {
+			e.drawWindow(pic, s)
+		} else if s, ok := e.reportHintSpec(); ok {
+			e.drawWindow(pic, s)
+		}
 	}
 }
 
-// sidePanelPart selects which of the panels drawSidePanels draws: all of
-// them, the docked ones or the floating ones.
+// sidePanelPart selects the docked or floating layer.
 type sidePanelPart uint8
 
 const (
-	panelsAll sidePanelPart = iota
-	panelsDocked
+	panelsDocked sidePanelPart = iota
 	panelsFloating
 )
 
@@ -1369,6 +1392,16 @@ func (e *MapEditor) treeTyping() bool {
 	return e.tree.typing && e.panelOn(panelLeft) && !e.prompt.open() && !e.objectTyping() && e.pathDialog.pending == nil
 }
 
+func (e *MapEditor) treeSearchSpec() popupSpec {
+	label := e.word("editor.side.search")
+	search := popupRow{Kind: popupEdit, Label: label, Hint: e.word("editor.side.searchhint")}
+	s := popupSpec{Title: e.word(sidePanels[panelLeft].titleWord), Rows: []popupRow{search}, NoteInk: editorPaper}
+	if f := e.bodyFont(); f != nil {
+		s.LabelWidth = f.Advance(label) + 2*popupPad
+	}
+	return s
+}
+
 // treeSpec is the restored left panel: the search field over the tree list.
 func (e *MapEditor) treeSpec() (popupSpec, bool) {
 	if !e.panelOn(panelLeft) {
@@ -1383,16 +1416,14 @@ func (e *MapEditor) treeSpec() (popupSpec, bool) {
 	}
 	m := e.tree.model
 	e.tree.rows = kinds
-	label := e.word("editor.side.search")
-	search := popupRow{Kind: popupEdit, Label: label, Value: e.editorHostText(e.tree.search), Hint: e.word("editor.side.searchhint")}
+	s := e.treeSearchSpec()
+	search := &s.Rows[0]
+	search.Value = e.editorHostText(e.tree.search)
 	if e.treeTyping() {
 		search.Focus = true
 		search.Edit = e.inputView(editorTextSpan{0, len([]rune(e.tree.search))}, false)
 	}
-	s := popupSpec{Title: e.word(sidePanels[panelLeft].titleWord), Rows: []popupRow{search}, List: m, ListRows: 1, NoteInk: editorPaper}
-	if f := e.bodyFont(); f != nil {
-		s.LabelWidth = f.Advance(label) + 2*popupPad
-	}
+	s.List, s.ListRows = m, 1
 	s = e.inPanel(s, panelLeft)
 	if n := layoutPopup(s, e.font, e.bodyFont()).ListRows; n != e.tree.window {
 		e.tree.window = n

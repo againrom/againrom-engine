@@ -599,11 +599,12 @@ func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
 	if _, _, ok := e.objectSpec(); !ok || !e.panels.hosted {
 		t.Fatal("the next selection stayed floating")
 	}
-	// With nothing selected the panel shows its one hint line.
+	// With nothing selected the panel shows one status line and title help.
 	e, _, _ = panelsEditor(t, 1280, 800, "")
 	e.selected = -1
-	if s, ok := e.propsSpec(); !ok || len(s.Rows) != 1 || s.Rows[0].Label != e.word("editor.side.none") {
-		t.Fatalf("an empty right panel shows %v", s.Rows)
+	if s, ok := e.propsSpec(); !ok || len(s.Rows) != 0 || len(s.Notes) != 1 ||
+		s.Notes[0] != e.word("editor.side.unselected") || s.TitleHelp != e.word("editor.side.none") {
+		t.Fatalf("an empty right panel shows rows %v, notes %v and title help %q", s.Rows, s.Notes, s.TitleHelp)
 	}
 	// The person window's bag stands in the panel as its other tabs do.
 	e.Select(0, false)
@@ -618,7 +619,7 @@ func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
 // (h) The panel state goes to the profile and back; a missing or broken file
 // gives the defaults.
 func TestMapEditorPanelStateRoundTrip(t *testing.T) {
-	defaults := [len(sidePanels)]panelState{{true, 260}, {true, 520}, {false, 180}}
+	defaults := [len(sidePanels)]panelState{{true, 0}, {true, 0}, {false, 0}}
 	for _, c := range []struct {
 		name string
 		data []byte
@@ -630,11 +631,11 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 		{"broken", []byte(`{"left":`), nil, defaults},
 		{"wrong", []byte(`{"left":{"minimized":"yes","width":300}}`), nil, defaults},
 		{"list", []byte(`[1,2]`), nil, defaults},
-		{"one side", []byte(`{"right":{"minimized":true,"width":700}}`), nil, [len(sidePanels)]panelState{{true, 260}, {false, 700}, {false, 180}}},
+		{"one side", []byte(`{"right":{"minimized":true,"width":700}}`), nil, [len(sidePanels)]panelState{{true, 0}, {false, 700}, {false, 0}}},
 		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1},"bottom":{"minimized":false,"width":9999}}`), nil, [len(sidePanels)]panelState{{true, 9999}, {true, 360}, {true, 480}}},
-		{"bottom", []byte(`{"bottom":{"minimized":false,"width":1}}`), nil, [len(sidePanels)]panelState{{true, 260}, {true, 520}, {true, 96}}},
+		{"bottom", []byte(`{"bottom":{"minimized":false,"width":1}}`), nil, [len(sidePanels)]panelState{{true, 0}, {true, 0}, {true, 96}}},
 		// A side an earlier build kept as closed reads as minimized.
-		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {true, 600}, {false, 180}}},
+		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {true, 600}, {false, 0}}},
 	} {
 		if got := readPanelProfile(c.data, c.err).sides; got != c.want {
 			t.Errorf("%s: %v, want %v", c.name, got, c.want)
@@ -644,7 +645,7 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	dragPanelEdge(t, e, popTree, 20)
 	_ = e.Key("propertiespanel")
 	last := (*saved)[len(*saved)-1]
-	if string(last) != `{"bottom":{"minimized":true,"width":180},"left":{"minimized":false,"width":280},"right":{"minimized":true,"view":"plain","width":520}}`+"\n" {
+	if string(last) != `{"bottom":{"minimized":true,"width":0},"left":{"minimized":false,"width":280},"right":{"minimized":true,"view":"plain","width":0}}`+"\n" {
 		t.Fatalf("saved %q", last)
 	}
 	f, _, _ := panelsEditor(t, 1280, 800, "")

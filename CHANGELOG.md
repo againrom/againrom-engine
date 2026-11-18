@@ -31,6 +31,8 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Drag the inner edge to resize a docked map editor panel. The edge and the floating window's corner grip light up when you point at them. With no object selected, Properties shows one status line and puts its help behind the (?) button.
+
 - [BASE] Place units, structures, objects, sacks and spells directly from their palettes. Tick items for the next sack and choose a trigger in the condition window.
 - [BASE] Trigger windows fit their contents and keep warnings visible while you scroll. Help marks explain the fields, and hovering over a cut-off choice shows its full text.
 - [BASE] In the map editor, question windows such as leaving with unsaved changes or deleting a player are as wide as their text, name the window in the title, and keep what the choice means behind the (?) mark.

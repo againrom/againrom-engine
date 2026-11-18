@@ -62,6 +62,7 @@ type popupDesc struct {
 	// Switch is the check at the button row's left end: its word, marked
 	// while the flag On names is set.
 	Switch *popupDescSwitch `json:"switch,omitempty"`
+	Panels *popupDescPanels `json:"panels,omitempty"`
 }
 
 type popupPreview struct {
@@ -628,6 +629,9 @@ func parsePopupDesc(data []byte) (popupDesc, error) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&d); err != nil {
 		return popupDesc{}, fmt.Errorf("window description: %w", err)
+	}
+	if err := d.Panels.check(); err != nil {
+		return popupDesc{}, err
 	}
 	return d, checkPopupRows(d.Rows)
 }

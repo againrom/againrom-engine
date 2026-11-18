@@ -296,7 +296,7 @@ func (e *MapEditor) chromeFaded() *image.RGBA {
 	layer := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	ok := e.pointerOK
 	e.pointerOK = false
-	text.Record(func() { e.drawFloating(layer, true) })
+	text.Record(func() { e.drawFloating(layer) })
 	e.pointerOK = ok
 	scale := float64(editorDragFadeAlpha)
 	k := uint32(scale * 256)

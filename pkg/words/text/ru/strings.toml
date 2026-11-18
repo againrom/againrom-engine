@@ -839,6 +839,7 @@
 "editor.side.search" = "Поиск"
 "editor.side.searchhint" = "имя или номер"
 "editor.side.none" = "Выберите объект на карте или в дереве."
+"editor.side.unselected" = "Объект не выбран."
 "editor.side.floating" = "Открыто в отдельном окне."
 "editor.side.narrow" = "Окно слишком узкое для этой панели."
 "editor.side.toleft" = "<"

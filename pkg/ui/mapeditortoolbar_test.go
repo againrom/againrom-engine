@@ -515,7 +515,7 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 	check("opening", false, strip)
 	_ = e.Key("reportpanel")
 	check("F8", true, 180)
-	if m, h := keptBottom(t, saved); m || h != 180 {
+	if m, h := keptBottom(t, saved); m || h != 0 {
 		t.Fatalf("F8 kept minimized=%v height %d", m, h)
 	}
 	if _, ok := e.reportHintSpec(); !ok {
@@ -566,7 +566,7 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 		err  error
 	}{"missing": {nil, os.ErrNotExist}, "broken": {[]byte("{\"bottom\":"), nil}, "unreadable": {[]byte(kept), errors.New("denied")}} {
 		again.SetPanelProfile(file.data, file.err, nil)
-		if s := again.panels.state[panelBottom]; s != (panelState{Restored: false, Width: 180}) || again.panelOpen(panelBottom) {
+		if s := again.panels.state[panelBottom]; s != (panelState{Restored: false}) || again.panelOpen(panelBottom) {
 			t.Errorf("a %s profile gives the bottom panel %+v", name, s)
 		}
 	}

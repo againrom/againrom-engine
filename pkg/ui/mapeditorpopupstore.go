@@ -231,8 +231,9 @@ func (e *MapEditor) contentSizedSpec(s popupSpec, id editorPopupID, size image.P
 
 // dockSpec places spec s in the rectangle r of a docked panel: it fills r, and
 // is never dragged.
-func dockSpec(s *popupSpec, r image.Rectangle) {
+func dockSpec(s *popupSpec, r image.Rectangle, splitter popupEdge) {
 	s.At, s.Size, s.Bounds, s.MinWidth, s.Slack, s.Fit = r.Min, r.Size(), r, 1, false, true
+	s.Docked, s.Splitter = true, splitter
 }
 
 // naturalSize gives spec s the size its content asks for, no narrower than its

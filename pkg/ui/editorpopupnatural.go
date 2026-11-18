@@ -35,7 +35,7 @@ func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	most := readingMeasure(measure)
 	width := max(160, buttonRowWidth(w, body))
 	if title != nil {
-		titleH := fontHeight(title, 15) + popupRowExtra
+		titleH := popupTitleHeight(title)
 		marks := titleH
 		if s.TitleHelp != "" {
 			marks += titleH + 4

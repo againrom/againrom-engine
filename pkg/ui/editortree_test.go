@@ -527,7 +527,8 @@ func legacyLayoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			r = r.Add(image.Pt(0, s.Bounds.Min.Y-r.Min.Y))
 		}
 	}
-	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.ListRows, RowsFit: s.MaxRows}
+	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.ListRows, RowsFit: s.MaxRows,
+		docked: s.Docked, splitter: s.Splitter, gripHover: s.GripHover}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
 	if len(s.Tabs) > 0 {
 		l.Title.Max.Y -= flow.tabLines * pitch

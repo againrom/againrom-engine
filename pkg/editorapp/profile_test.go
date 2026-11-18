@@ -26,7 +26,7 @@ func TestPanelStateLivesInTheEditorProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(file)
-	if want := `{"bottom":{"minimized":true,"width":180},"left":{"minimized":false,"width":300},"right":{"minimized":true,"view":"plain","width":520}}` + "\n"; err != nil || string(got) != want {
+	if want := `{"bottom":{"minimized":true,"width":0},"left":{"minimized":false,"width":300},"right":{"minimized":true,"view":"plain","width":520}}` + "\n"; err != nil || string(got) != want {
 		t.Fatalf("panel state %q, %v; want %q", got, err, want)
 	}
 	// A profile that cannot be resolved leaves the defaults and writes nothing.

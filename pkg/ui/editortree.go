@@ -44,6 +44,9 @@ type uiNode struct {
 // the store gives it, the bounds and room it lies in, the size the user
 // dragged it to and the card a row drag holds.
 type uiPlace struct {
+	Docked     bool
+	Splitter   popupEdge
+	GripHover  bool
 	CentreSize image.Point
 	At         image.Point
 	Width      int
@@ -152,6 +155,7 @@ type uiWindow struct {
 // specTree is the tree of a window the builders wrote as a popupSpec.
 func specTree(s popupSpec) uiNode {
 	root := uiNode{Kind: uiWindowKind, Data: uiPlace{
+		Docked: s.Docked, Splitter: s.Splitter, GripHover: s.GripHover,
 		At: s.At, Width: s.Width, Bounds: s.Bounds, Room: s.Room, Slack: s.Slack, Short: s.Short,
 		Size: s.Size, MinWidth: s.MinWidth, Fit: s.Fit, Drag: s.Drag, CentreSize: s.CentreSize,
 	}}

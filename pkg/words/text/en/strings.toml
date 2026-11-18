@@ -903,6 +903,7 @@
 "editor.side.search" = "Search"
 "editor.side.searchhint" = "name or ID"
 "editor.side.none" = "Select an object on the map or in the tree."
+"editor.side.unselected" = "No object selected."
 "editor.side.floating" = "Shown in a separate window."
 "editor.side.narrow" = "The window is too narrow for this panel."
 "editor.side.toleft" = "<"

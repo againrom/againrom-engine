@@ -432,6 +432,9 @@ func fitGrid(s uiWindow, w, rest, sizedH int, sized bool) *popupGrid {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
+	Docked      bool
+	Splitter    popupEdge
+	GripHover   bool
 	CentreSize  image.Point
 	ColumnTops  []int
 	ButtonFocus *int
@@ -559,6 +562,9 @@ type popupLayout struct {
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
+	docked             bool
+	splitter           popupEdge
+	gripHover          bool
 	// TitleHelp is the title's (?) mark, left of Close; empty without one.
 	TitleHelp image.Rectangle
 	// SwitchButton is the button row's SwitchButton, empty for none.
@@ -1312,7 +1318,7 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 		s.Card.Subject = nil
 	}
 	pitch := fontHeight(body, 15) + popupRowExtra
-	titleH := fontHeight(title, 15) + popupRowExtra
+	titleH := popupTitleHeight(title)
 	w := max(160, s.Place.Width)
 	if s.Body.MaxRows > 0 && popupRowCount(s) > s.Body.MaxRows {
 		w += widgetSpriteSize + 2
@@ -1424,13 +1430,14 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 			r = r.Add(image.Pt(0, s.Place.Bounds.Min.Y-r.Min.Y))
 		}
 	}
-	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.List.Rows, RowsFit: s.Body.MaxRows}
+	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.List.Rows, RowsFit: s.Body.MaxRows,
+		docked: s.Place.Docked, splitter: s.Place.Splitter, gripHover: s.Place.GripHover}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
 	if len(s.Tabs.Captions) > 0 {
 		l.Title.Max.Y -= flow.tabLines * pitch
 		l.Tabs = tabStrip{Captions: s.Tabs.Captions, PerLine: flow.tabsPerLine}.rects(image.Pt(r.Min.X+popupPad, l.Title.Max.Y), w-2*popupPad, pitch)
 	}
-	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
+	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+popupTitleInset, r.Max.X-popupTitleInset, l.Title.Max.Y-popupTitleInset)
 	if s.Title.Help != "" {
 		l.TitleHelp = l.Close.Sub(image.Pt(l.Close.Dx()+4, 0))
 	}
@@ -2049,12 +2056,38 @@ const (
 // popupGripSide (in the placement store) is the side of the bottom-right
 // square that resizes both ways.
 const (
-	popupEdgeBand = 8
+	popupEdgeBand   = 8
+	popupTitleInset = 2
 	// popupTopBand is the top border's band, as deep as the others; the
 	// title row below it drags.
 	popupTopBand  = popupEdgeBand
 	popupKeepWide = 48
 )
+
+func popupTitleHeight(title *text.Font) int {
+	return fontHeight(title, 15) + popupRowExtra
+}
+
+func (l popupLayout) gripRect() image.Rectangle {
+	if l.docked || l.Close.Empty() {
+		return image.Rectangle{}
+	}
+	return image.Rectangle{Min: l.Rect.Max.Sub(image.Pt(popupGripSide, popupGripSide)), Max: l.Rect.Max}.Intersect(l.Rect)
+}
+
+func (l popupLayout) splitterRect() image.Rectangle {
+	if l.splitter == 0 {
+		return image.Rectangle{}
+	}
+	r, x, y := l.Rect, l.Rect.Min.X+l.Rect.Dx()/2, l.Rect.Min.Y+l.Rect.Dy()/2
+	const thick = popupEdgeBand / 2
+	marks := controlLayout{
+		{int(edgeLeft), image.Rect(r.Min.X, y-popupGripSide, r.Min.X+thick, y+popupGripSide)},
+		{int(edgeRight), image.Rect(r.Max.X-thick, y-popupGripSide, r.Max.X, y+popupGripSide)},
+		{int(edgeTop), image.Rect(x-popupGripSide, r.Min.Y, x+popupGripSide, r.Min.Y+thick)},
+	}
+	return marks.rect(int(l.splitter)).Intersect(r)
+}
 
 // slackInside moves r the least that keeps its title row inside bounds and at
 // least popupKeepWide pixels of its width inside them.
@@ -2093,12 +2126,15 @@ func (l popupLayout) edgeAt(p image.Point) popupEdge {
 	case p.Y >= l.Rect.Max.Y-popupEdgeBand:
 		e |= edgeBottom
 	}
-	if p.X >= l.Rect.Max.X-popupGripSide && p.Y >= l.Rect.Max.Y-popupGripSide {
+	if p.In(l.gripRect()) {
 		return edgeRight | edgeBottom
 	}
 	// A row, list or button that reaches into the band keeps its press.
 	if part, _ := l.hit(p); part != popupBody && part != popupTitle {
 		return 0
+	}
+	if l.docked {
+		return e & l.splitter
 	}
 	return e
 }
@@ -2157,7 +2193,6 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 	}
 	if !l.Close.Empty() {
 		drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
-		drawPopupGrip(dst, l.Rect, ink.Edge)
 		if title != nil {
 			end := l.Close.Min.X
 			if !l.TitleHelp.Empty() {
@@ -2173,6 +2208,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		}
 		drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	}
+	drawPopupResizeHandle(dst, l, ink, pointer, pointerOK)
 	if len(l.Tabs) > 0 {
 		over, at := popupMiss, 0
 		if pointerOK {
@@ -2693,8 +2729,27 @@ func drawGridTick(dst *image.RGBA, c image.Rectangle, ink color.RGBA) {
 	}
 }
 
-// drawPopupGrip marks the bottom-right corner where a drag resizes the popup:
-// four diagonal strokes, two pixels thick, inside the grip square.
+func (l popupLayout) resizeHandleHovered(p image.Point) bool {
+	if !popupResizeEnabled || l.splitter == 0 && !l.gripHover {
+		return false
+	}
+	edge := l.edgeAt(p)
+	return edge != 0 && (edge == l.splitter || l.gripHover && edge == edgeRight|edgeBottom)
+}
+
+func drawPopupResizeHandle(dst *image.RGBA, l popupLayout, ink popupInk, p image.Point, pointerOK bool) {
+	c := ink.Edge
+	if pointerOK && l.resizeHandleHovered(p) {
+		c = ink.Value
+	}
+	if splitter := l.splitterRect(); !splitter.Empty() {
+		draw.Draw(dst, splitter, image.NewUniform(c), image.Point{}, draw.Src)
+	}
+	if grip := l.gripRect(); !grip.Empty() {
+		drawPopupGrip(dst, grip, c)
+	}
+}
+
 func drawPopupGrip(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
 	for k := 1; k <= 4; k++ {
 		for i := 0; i < 4*k-2; i++ {

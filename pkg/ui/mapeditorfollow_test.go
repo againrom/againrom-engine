@@ -12,7 +12,7 @@ import (
 func TestMapEditorTreeFollowsALaterSelectionOfTheEntrysRecord(t *testing.T) {
 	t.Run("scripts", func(t *testing.T) {
 		e, _, _ := panelsEditor(t, 1920, 1080, "")
-		e.doc.Script.Areas = []InspectionArea{{Trigger: 0, Rect: image.Rect(20, 20, 24, 24)}}
+		e.doc.Script.Areas = []InspectionArea{{Trigger: 0, Rect: image.Rect(18, 20, 22, 24)}}
 		e.tree.closed = map[string]bool{"scripts": true}
 		e.treeSpec()
 		chromeClick(e, barPoint(t, e, "scripts"))

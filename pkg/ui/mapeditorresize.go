@@ -77,6 +77,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		return e.objectInputRows(s), links, true
 	}
 	e.placeSpec(popObject, &s)
+	s.GripHover = e.panelFloats(panelRight)
 	if s.MaxRows > 0 {
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(specWindow(s))-s.MaxRows))

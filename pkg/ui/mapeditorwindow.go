@@ -1767,14 +1767,14 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	}
 	e.drawMapLabels(pic)
 	e.drawPlayerLegend(pic)
-	if fade {
-		e.drawSidePanels(pic, panelsDocked)
-		if s, ok := e.listSpec(); ok && e.reportDocked() {
+	e.drawSidePanels(pic, panelsDocked)
+	if e.reportDocked() {
+		if s, ok := e.listSpec(); ok {
 			e.drawListWindow(pic, s)
 		}
-	} else {
-		e.drawSidePanels(pic, panelsAll)
-		e.drawFloating(pic, false)
+	}
+	if !fade {
+		e.drawFloating(pic)
 	}
 	if b, ok := e.openMenuEntry(); ok {
 		e.drawEditorDropdown(pic, e.font, e.menuDropdown(b, true))
@@ -1784,16 +1784,14 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	return pic
 }
 
-// drawFloating draws the windows that float over the map: with only set the
-// floating panels first, then the floating toolbar, the list, the object
-// window, the prompt and the open drop-downs.
-func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
-	if only {
-		e.drawSidePanels(pic, panelsFloating)
-	}
+// drawFloating draws the windows that float over the map in stacking order.
+func (e *MapEditor) drawFloating(pic *image.RGBA) {
+	e.drawSidePanels(pic, panelsFloating)
 	e.drawToolbar(pic, true)
-	if s, ok := e.listSpec(); ok && !(only && e.reportDocked()) {
-		e.drawListWindow(pic, s)
+	if !e.reportDocked() {
+		if s, ok := e.listSpec(); ok {
+			e.drawListWindow(pic, s)
+		}
 	}
 	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		e.drawWindow(pic, s)

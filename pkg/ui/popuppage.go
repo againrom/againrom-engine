@@ -40,6 +40,7 @@ type EditorMockup struct {
 	// asideName names the picture beside the list.
 	asideName string
 	encode    func(string) string
+	panels    *mockupPanels
 }
 
 // mockupPerson is the person a description's card and figure show: the
@@ -52,6 +53,7 @@ type mockupPerson struct {
 	doll     *image.RGBA
 	picture  func(name string) *image.RGBA
 	name     func(key string) (string, bool)
+	decode   func(string) string
 }
 
 // mockupBlank stands for a picture nobody gave: the row keeps its room and
@@ -91,6 +93,13 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 		sample = &popupScope{}
 	}
 	m := &EditorMockup{desc: d, lang: lang, window: window, title: title, body: body, encode: encode}
+	if d.Panels != nil {
+		m.panels, err = buildMockupPanels(d, lang, window, title, body, encode, person.decode)
+		if err != nil {
+			return nil, err
+		}
+		return m, nil
+	}
 	word := words.For(lang).Text
 	if person.name != nil {
 		table := word
@@ -224,7 +233,7 @@ func rowPictures(rows []popupRow, made []popupMade, picture func(string) *image.
 // description with a card shows the first person of the open map that has
 // a figure, as the unit window builds the card and the figure.
 func (e *MapEditor) Mockup(desc []byte, lang string, window image.Point) (*EditorMockup, error) {
-	person := mockupPerson{cardFont: e.cardFont, picture: e.mockupPicture, name: e.mockupName}
+	person := mockupPerson{cardFont: e.cardFont, picture: e.mockupPicture, name: e.mockupName, decode: e.editorSearchText}
 	if d, err := parsePopupDesc(desc); err == nil && d.Card && e.doc != nil {
 		e.Layout(window.X, window.Y)
 		for i, r := range e.doc.Records {
@@ -330,7 +339,7 @@ func encodedSpec(s popupSpec, encode func(string) string) popupSpec {
 		}
 		return out
 	}
-	s.Title, s.TitleHelp, s.SwitchButton = encode(s.Title), encode(s.TitleHelp), encode(s.SwitchButton)
+	s.Title, s.TitleHelp, s.CloseLabel, s.SwitchButton = encode(s.Title), encode(s.TitleHelp), encode(s.CloseLabel), encode(s.SwitchButton)
 	s.Tabs, s.Buttons, s.Notes = all(s.Tabs), all(s.Buttons), all(s.Notes)
 	columns := make([]listColumn, len(s.ListColumns))
 	for i, c := range s.ListColumns {
@@ -379,6 +388,10 @@ func (m *EditorMockup) Picture() *image.RGBA {
 	ground := editorPopupInk.TitleGround
 	for i := 0; i < len(dst.Pix); i += 4 {
 		dst.Pix[i], dst.Pix[i+1], dst.Pix[i+2], dst.Pix[i+3] = ground.R, ground.G, ground.B, ground.A
+	}
+	if m.panels != nil {
+		m.panels.draw(dst, m.title, m.body)
+		return dst
 	}
 	drawPopup(dst, m.title, m.body, nil, m.paint, m.layout, editorPopupInk, image.Point{}, false)
 	if m.paint.Card != nil {
@@ -436,6 +449,9 @@ func pagePictures(body *text.Font, l popupLayout, rows []popupRow, names map[int
 // Page is the window as one HTML page: every part of the layout placed at
 // its rectangle in the popup painter's inks, with the description inside.
 func (m *EditorMockup) Page() []byte {
+	if m.panels != nil {
+		return m.panels.page(m.desc, m.lang, m.window)
+	}
 	figure := image.Rectangle{}
 	if m.paint.Card != nil {
 		figure = figureRoom(m.paint, m.layout, m.figure)
@@ -500,6 +516,31 @@ const pageDescriptionTag = `<script type="application/json" id="popup-descriptio
 // the person's figure room figure when the window has a card and the
 // rows' pictures, in the inks the painter reads; it lays nothing out.
 func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, pictures []pagePicture, lang string, window image.Point, tips ...popupTip) []byte {
+	return mockupPage(d, lang, window, func(part pagePartWriter) {
+		writePopupParts(part, w, l, figure, pictures)
+		if d.Preview != nil {
+			part("control", "row-scroll", -1, l.RowBar, color.RGBA{}, "", "")
+		}
+		for _, tip := range tips {
+			part.tip(tip, nil)
+		}
+	})
+}
+
+type pagePartWriter func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt, tip string)
+
+func (part pagePartWriter) tip(t popupTip, decode func(string) string) {
+	if t.Rect.Empty() {
+		return
+	}
+	txt := strings.Join(t.shown(), "\n")
+	if decode != nil {
+		txt = decode(txt)
+	}
+	part("window tip", "tip", -1, t.Rect, editorPopupInk.Value, txt, "")
+}
+
+func mockupPage(d popupDesc, lang string, window image.Point, write func(pagePartWriter)) []byte {
 	ink := editorPopupInk
 	hex := func(c color.RGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 	var b bytes.Buffer
@@ -514,17 +555,22 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 	fmt.Fprintf(&b, ".button{text-align:center;color:%s;border:1px solid;border-color:%s %s %s %s}\n",
 		hex(ink.Button), hex(ink.BevelLight), hex(ink.BevelDark), hex(ink.BevelDark), hex(ink.BevelLight))
 	fmt.Fprintf(&b, ".pressed{border:2px solid %s}\n.ticked{outline:2px solid %s;outline-offset:-4px}\n", hex(ink.Title), hex(ink.Value))
-	fmt.Fprintf(&b, ".off{color:%s}\n</style>\n</head>\n<body>\n<div id=\"screen\">\n", hex(ink.Hint))
-	// tip is the text a (?) mark explains, shown as the element's own title.
-	tip := ""
-	part := func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt string) {
+	fmt.Fprintf(&b, ".off{color:%s}\n", hex(ink.Hint))
+	if d.Panels != nil {
+		fmt.Fprintf(&b, ".map{background:%s;border:1px solid %s}\n", hex(ink.Ground), hex(editorGridInk))
+		fmt.Fprintf(&b, ".splitter{background:%s;cursor:ew-resize}\n.splitter.hover{background:%s}\n", hex(ink.Edge), hex(ink.Value))
+		fmt.Fprintf(&b, ".grip{cursor:nwse-resize;background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px);clip-path:polygon(100%% 0,100%% 100%%,0 100%%)}\n", hex(ink.Edge))
+		fmt.Fprintf(&b, ".grip.hover{background:repeating-linear-gradient(135deg,transparent 0 2px,%s 2px 4px)}\n", hex(ink.Value))
+		fmt.Fprintf(&b, ".tip{background:%s;border:1px solid %s;white-space:pre}\n", hex(ink.TitleGround), hex(ink.Edge))
+	}
+	b.WriteString("</style>\n</head>\n<body>\n<div id=\"screen\">\n")
+	write(func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt, tip string) {
 		if r.Empty() {
 			return
 		}
 		fmt.Fprintf(&b, `<div class="p %s"`, class)
 		if tip != "" {
 			fmt.Fprintf(&b, ` title="%s"`, html.EscapeString(tip))
-			tip = ""
 		}
 		fmt.Fprintf(&b, ` data-part="%s"`, name)
 		if row >= 0 {
@@ -536,11 +582,34 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 			fmt.Fprintf(&b, ";color:%s", hex(ink))
 		}
 		fmt.Fprintf(&b, "\">%s</div>\n", html.EscapeString(txt))
+	})
+	b.WriteString("</div>\n" + pageDescriptionTag)
+	desc, err := json.Marshal(d)
+	if err != nil {
+		panic(err)
+	}
+	b.Write(desc)
+	b.WriteString("</script>\n</body>\n</html>\n")
+	return b.Bytes()
+}
+
+func writePopupParts(write pagePartWriter, w uiWindow, l popupLayout, figure image.Rectangle, pictures []pagePicture) {
+	ink := editorPopupInk
+	tip := ""
+	part := func(class, name string, row int, r image.Rectangle, ink color.RGBA, txt string) {
+		if !r.Empty() {
+			write(class, name, row, r, ink, txt, tip)
+			tip = ""
+		}
 	}
 	none := color.RGBA{}
 	part("window", "window", -1, l.Rect, none, "")
 	part("title", "title", -1, l.Title, none, w.Title.Text)
-	part("button", "close", -1, l.Close, none, "x")
+	closeLabel := w.Title.Close
+	if closeLabel == "" {
+		closeLabel = "x"
+	}
+	part("button", "close", -1, l.Close, none, closeLabel)
 	tip = w.Title.Help
 	part("button", "title-help", -1, l.TitleHelp, none, "?")
 	tip = ""
@@ -649,7 +718,11 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 				class = "button"
 			}
 			if len(l.List.Columns) == 0 {
-				part(class, "list-row", n, l.List.Row(i), none, rows[n].Text)
+				text := rows[n].Text
+				if rows[n].Fold != FoldNone {
+					text = rowFoldMarks[rows[n].Fold] + " " + text
+				}
+				part(class, "list-row", n, l.List.Row(i), none, strings.Repeat("  ", rows[n].Indent)+text)
 			} else {
 				shown := strings.SplitN(rows[n].Text, "\t", len(l.List.Columns))
 				if w.List.Text != nil {
@@ -680,20 +753,6 @@ func popupPage(d popupDesc, w uiWindow, l popupLayout, figure image.Rectangle, p
 	for _, p := range pictures {
 		part("control", "picture", p.row, p.box, none, p.name)
 	}
-	if d.Preview != nil {
-		part("control", "row-scroll", -1, l.RowBar, none, "")
-	}
-	for _, t := range tips {
-		part("window", "tip", -1, t.Rect, ink.Value, strings.Join(t.shown(), "\n"))
-	}
-	b.WriteString("</div>\n" + pageDescriptionTag)
-	desc, err := json.Marshal(d) // escapes <, > and &, so the block cannot end early
-	if err != nil {
-		panic(err) // a description holds only strings, numbers and lists
-	}
-	b.Write(desc)
-	b.WriteString("</script>\n</body>\n</html>\n")
-	return b.Bytes()
 }
 
 // readPopupPage is the description a page carries.
