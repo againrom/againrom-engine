@@ -242,6 +242,8 @@ var secondFormHolders = []savedFormHolder{
 	// R2-ENGINE-319, R2-ENGINE-320: the experience block opens with the main
 	// skill.
 	{class: "Human", field: "H1CC", site: holderFirstWord, value: secondMainSkillHeld},
+	// R2-ENGINE-320: template load alone writes the hero's +0x1c.
+	{class: "Human", field: "T1C", site: holderValue, value: secondHeroRowExperience},
 	// R2-ENGINE-410: the bag constructor's insert index, which appends.
 	{class: "Human", field: "Inventory1C", site: holderPresentValue, value: holderConstant(0x7fff)},
 	// DIV-4153: the campaign's bag in the hero's Inventory.
@@ -522,6 +524,38 @@ func secondMainSkillHeld(h *formHolding, i int) (uint32, bool) {
 		return secondMainSkill(hero), true
 	}
 	return 0, true
+}
+
+// secondHeroRowExperience is the hero's +0x1c from the Humans row his record
+// names (secondRowExperience). Any other record keeps its field.
+func secondHeroRowExperience(h *formHolding, i int) (uint32, bool) {
+	if uint16(i+1) != h.hero {
+		return 0, false
+	}
+	row, err := savedStructureValue(&h.doc.Objects[i], "T0C")
+	if err != nil {
+		return 0, false
+	}
+	return secondRowExperience(h.table, row)
+}
+
+// secondRowExperience is a Human's +0x1c: trunc(0.01 x the experience of his
+// Humans row's school skills), which template load writes before the chosen
+// skill and nothing rewrites (R2-ENGINE-320, R2-SESSION-144). A row's -1
+// keeps the constructor's 0.
+func secondRowExperience(t *mapload.Table, row uint32) (uint32, bool) {
+	if t == nil || t.Humans == nil || row == 0 || int(row) >= t.Humans.Len() {
+		return 0, false
+	}
+	d, err := data.NewHumanDef(t.Humans.EntryName(int(row)), t.Humans.EntryParams(int(row)))
+	if err != nil {
+		return 0, false
+	}
+	var sum int64
+	for s := data.SkillBlade; s < data.SkillSlots; s++ {
+		sum += int64(data.SkillXPFor(max(0, d.Skill[s])))
+	}
+	return uint32(0.01 * float64(sum)), true
 }
 
 // secondCampaignBag writes the items the campaign's party carries as the

@@ -199,7 +199,7 @@ type generatorProfile struct {
 	// without it he keeps the constructor default (HERO-163, HERO-164).
 	classProfile bool
 	// campaignOutfit takes the hero's weapon and school skill levels from the
-	// description's campaign part (R2-ENGINE-290; DIV-2772), and a description
+	// description's campaign part (R2-ENGINE-290), and a description
 	// without one makes no party. Without it the hero holds the trained slot's
 	// weapon and keeps his row's skills.
 	campaignOutfit bool
@@ -541,8 +541,7 @@ func (f *FrontEnd) generatorBegin(start generatorStart, n int) func(ui.ChargenRe
 // The chosen sex and class pick the base row; with campaignOutfit the weapon
 // is the campaign part's for the chosen skill, the school skills are cleared
 // and the fifth and the chosen skill stand at the part's levels
-// (R2-ENGINE-290). Item modifiers and the experience the original computes
-// are not carried (DIV-2772).
+// (R2-ENGINE-290); the recompute derives experience from those levels.
 func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
 	p := f.generatorRow()
 	var outfit *secondGenerator
@@ -606,17 +605,23 @@ func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
 		Table:      f.Table,
 		Documents:  p.documents,
 	})
+	if p.templates && ok {
+		// Template load writes the row to +0xc (R2-ENGINE-319).
+		party[0].DefinitionRow = uint16(i)
+	}
 	if outfit != nil {
 		h := &party[0].Hero
 		for s := data.SkillBlade; s < data.SkillSlots; s++ {
 			h.Skill[s] = 0
 		}
-		h.Skill[data.SkillSlots-1] = outfit.FifthSkill
+		// The chosen skill is written before skill 5, so a chosen skill 5
+		// holds the fifth level (R2-ENGINE-320).
 		if slot > data.SkillGeneral && slot < data.SkillSlots {
 			h.Skill[slot] = outfit.ChosenSkill
 			// Chosen skill makes it the main skill (R2-ENGINE-320).
 			party[0].MainSkill = slot
 		}
+		h.Skill[data.SkillSlots-1] = outfit.FifthSkill
 	}
 	return party
 }
