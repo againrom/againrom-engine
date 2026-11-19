@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.158.0
+
 ### For players
 
 - [ROM2] Slow is now a spell you can cast: a hero loaded from an original save keeps it in his book, the two Necromancer creatures that know it cast it, a map can place it, and a book of Slow teaches it to a mage; before, Slow was dropped from every book.
