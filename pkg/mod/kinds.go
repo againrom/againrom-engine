@@ -237,7 +237,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the base grants every town companion on arrival, with no join condition",
 		Shared: mergedShared + "; `off` switches a condition off",
-		read:   readCompanions,
+		read:   readCompanions, write: writeCompanions,
+		Draft: Drafting{Held: true},
 		summary: func(d Data) string {
 			if d.Companions.Empty() {
 				return ""

@@ -15,6 +15,9 @@ const (
 // its record numbers as 16-bit values.
 const (
 	maxJoinNumber = 65535
+
+	// MaxJoinNumber is the largest number a join condition names.
+	MaxJoinNumber = maxJoinNumber
 )
 
 // CompanionJoin is one join condition: the campaign companion Companion, whom

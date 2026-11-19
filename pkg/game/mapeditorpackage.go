@@ -224,6 +224,9 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", err
 	}
+	if err := s.companionsGate(); err != nil {
+		return "", err
+	}
 	var b []byte
 	var err error
 	loose := ""

@@ -79,6 +79,7 @@ var modPageTab = map[string]string{
 	ui.ModItemsScope:      "editor.mod.items",
 	ui.ModSpellsScope:     "editor.mod.spells",
 	ui.ModTownsScope:      "editor.mod.towns",
+	ui.ModCompanionsScope: "editor.mod.companions",
 }
 
 // warningPage is the page that edits the file a check warning names, and
@@ -95,6 +96,7 @@ func warningPage(warning string) (string, bool) {
 		{ui.ModSpellsScope, []string{mod.SpellsFile}},
 		{ui.ModTownsScope, []string{mod.TownsFile}},
 		{ui.ModBodiesScope, append([]string{mod.BodiesFile}, mod.WeaponBodiesFiles...)},
+		{ui.ModCompanionsScope, []string{mod.CompanionsFile}},
 		{ui.ModTextsScope, textFiles()},
 	} {
 		for _, f := range p.files {
@@ -152,6 +154,7 @@ func (s *mapInspectionEdits) modPageCounts() (lines, pages []string) {
 	}
 	bodies := held(nil, bodyFiles(d)...).Bodies
 	count(ui.ModBodiesScope, len(bodies.Bodies)+len(bodies.Weapons))
+	count(ui.ModCompanionsScope, len(held(nil, mod.CompanionsFile).Companions.Joins))
 	return lines, pages
 }
 

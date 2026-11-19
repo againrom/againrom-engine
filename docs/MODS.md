@@ -971,6 +971,8 @@ and `"rom2-ru"`) in `applies-to`. `-check` prints `againrom: weapon bodies=N bod
 
 The map editor's Bodies page writes `data/bodies.toml` and `data/wpnbodies.toml`.
 
+The map editor's Companions page writes `data/companions.toml`: a row for each companion a town grants, with the chapter, the companion and the tavern conversation that makes the companion join. Save mod refuses a row the install's campaign cannot run, naming it.
+
 ## Missions
 
 `data/missions.toml` holds `[[mission]]` tables. A guest mission
