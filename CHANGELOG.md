@@ -74,7 +74,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A mod can now change the second game's spell numbers, such as power, damage, range, duration and effect strength, with the same tables as the first game's; a table a spell cannot use is refused by name.
 - [ROM2] A mod's `rays`, `heal_hostile` and `self_cast` on the second game now follow each spell's own behaviour, so Prismatic Spray takes `rays` and Heal takes `heal_hostile`, as in the first game.
 - [BASE] In the Russian map editor and in mod texts, ё and Ё show as е and Е, and the quote marks « » “ ” as straight quotes, instead of ?, Л or other letters; saved names and labels are unchanged.
-- The mod window has a Bodies page: add a body from a picture, set its frames, directions and timing, and choose which body a weapon uses.
+- [BASE] The mod window has a Bodies page: add a body from a picture, set its frames, directions and timing, and choose which body a weapon uses.
 
 ## 0.157.1
 
