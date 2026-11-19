@@ -107,7 +107,7 @@ func (w *World) sourceItemEffect(i int, effect ItemEffect, sign int32) bool {
 		}
 	case kind == 42:
 		if s.HasSpellbook {
-			if amount < 1 || amount > 28 {
+			if amount < 1 || amount > BookIDs {
 				return false
 			}
 			if _, ok := w.findSpell(uint32(amount)); !ok {

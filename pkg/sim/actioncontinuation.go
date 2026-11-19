@@ -695,7 +695,7 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 			if p.Kind == PendingActorCast {
 				target = n.currentActionKey(p.Target, AttackTargetUnit)
 			}
-			if p.Spell >= 1 && p.Spell <= 28 {
+			if p.Spell >= 1 && p.Spell <= BookWireSlots {
 				values := BookSlotValues(n.rules, e, n.spells)
 				reach = values[p.Spell-1].Range
 			}

@@ -10,6 +10,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -73,7 +74,7 @@ func TestScriptSpellChoicesRowsAndExclusions(t *testing.T) {
 		t.Run(strconv.Itoa(int(arm.opcode)), func(t *testing.T) {
 			e, slot := spellChoiceEditor(t, arm.opcode, 3)
 			var want []ui.InspectionChoice
-			for i := 1; i <= 28; i++ {
+			for i := 1; i <= sim.BookIDs; i++ {
 				if arm.opcode == 25 && i == 26 {
 					continue
 				}

@@ -6,9 +6,8 @@ import (
 	"againrom/pkg/sim"
 )
 
-// importedSpellbook is a saved book's presence and instances. A spell past
-// the book's slots (the second game's spell 29) keeps its membership in the
-// book's native mode and has no instance (DIV-4174).
+// importedSpellbook is a saved book's presence and instances. A spell no book
+// holds keeps its membership in the book's native mode and has no instance.
 func importedSpellbook(present bool, spells []sav.SavedSpell) sim.Spellbook {
 	b := sim.Spellbook{State: sim.BookAbsent}
 	if present {
@@ -16,11 +15,12 @@ func importedSpellbook(present bool, spells []sav.SavedSpell) sim.Spellbook {
 	}
 	native := false
 	for _, s := range spells {
-		if int(s.ID) > len(b.Slots) {
+		slot := b.Slot(uint16(s.ID))
+		if slot == nil {
 			native = true
 			continue
 		}
-		b.Slots[s.ID-1] = sim.BookSpell{Range: s.Range, Defensive: s.Defensive, ManaCost: s.ManaCost}
+		*slot = sim.BookSpell{Range: s.Range, Defensive: s.Defensive, ManaCost: s.ManaCost}
 	}
 	if native {
 		b.State = sim.BookNativeAbsent
@@ -90,7 +90,7 @@ func prepareCityTrainingBook(state *originalCitySaveState, graph *cityObjectTopo
 func cityBookUpdate(c sav.CityCharacter, book sim.Spellbook) []sav.SavedSpell {
 	spells := append([]sav.SavedSpell(nil), c.Spells...)
 	for i := range spells {
-		s := book.Slots[spells[i].ID-1]
+		s := *book.Slot(uint16(spells[i].ID))
 		spells[i].Range, spells[i].Defensive, spells[i].ManaCost = s.Range, s.Defensive, s.ManaCost
 	}
 	return spells

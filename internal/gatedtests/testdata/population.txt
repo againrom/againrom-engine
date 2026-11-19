@@ -1569,3 +1569,4 @@ pkg/ui.TestWriteGameTextCrop
 pkg/game.TestReleaseSecondStaffStrongestTrollPaysNoExperience
 pkg/game.TestReleaseSecondGodLeavesANativeHeroAtTheSourceDerive
 pkg/game.TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies
+pkg/game.TestReleaseSecondOriginalBookKeepsAndCastsSlow

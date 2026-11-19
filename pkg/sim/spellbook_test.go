@@ -22,7 +22,7 @@ func TestSourceBookLiteralWireAndInvalidStates(t *testing.T) {
 	if err != nil || back != book {
 		t.Fatal("literal book decode", err)
 	}
-	for _, state := range []byte{0, 1, 3, 255} {
+	for _, state := range []byte{0, 1, 255} {
 		broken := append([]byte(nil), want...)
 		broken[0] = state
 		if _, err := decodeSpellbook(broken, known); err == nil {
@@ -196,5 +196,21 @@ func TestSourceBookSignedCostAndRawDefensiveConsumers(t *testing.T) {
 		if resolved.Defensive != (defensive != 0) {
 			t.Fatalf("AI byte %d", defensive)
 		}
+	}
+}
+
+// An older form's native mode that names only ids a book holds decodes as the
+// ordinary mode of the same presence.
+func TestSourceBookNativeModeOfAHeldIDDecodesOrdinary(t *testing.T) {
+	want := make([]byte, spellbookRecordLen)
+	want[0] = byte(BookNativePresent)
+	back, err := decodeSpellbook(want, 0)
+	if err != nil || back.State != BookPresent {
+		t.Fatalf("native present decoded as %d: %v", back.State, err)
+	}
+	want[0] = byte(BookNativeAbsent)
+	back, err = decodeSpellbook(want, 0)
+	if err != nil || back.State != BookAbsent {
+		t.Fatalf("native absent decoded as %d: %v", back.State, err)
 	}
 }

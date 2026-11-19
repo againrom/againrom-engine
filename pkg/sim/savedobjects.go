@@ -159,7 +159,7 @@ type SavedItemRoot struct {
 // Book roots carry identity only. The actor's current book owns slot values.
 type SavedBookRoot struct {
 	Entity EntityID
-	Slots  [28]SavedObjectID
+	Slots  [BookWireSlots]SavedObjectID
 }
 
 // Values reuse the ordinary simulation types. CompareLive is mandatory at

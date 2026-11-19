@@ -10,6 +10,7 @@ import (
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/scriptprofile"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -79,7 +80,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	}
 	for _, spell := range x.recordCatalog("spell") {
 		value := uint32(spell.Value)
-		if value < 1 || value > 28 {
+		if value < 1 || value > uint32(sim.BookIDs) {
 			continue
 		}
 		add(ui.ScriptSpellParameter, value, -1, spell.Label, spell.Label, 0)

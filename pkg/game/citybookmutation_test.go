@@ -412,7 +412,7 @@ func TestCityBookNativeTrainingUsesCurrentGraphAndKeepsMemberPointer(t *testing.
 	f.Town.gold = 20000
 	f.Town.cityObjects = &cityObjectTopology{Version: cityObjectTopologyVersion, NextID: 2,
 		Spells: []sim.SavedObjectID{1}, Roots: []cityPartyObjectRoots{{PartyID: []byte("hero")}, {PartyID: []byte("other")}},
-		Books: []cityBookTopology{{PartyID: []byte("hero"), Slots: [28]sim.SavedObjectID{1}}, {PartyID: []byte("other"), Slots: [28]sim.SavedObjectID{1}}}}
+		Books: []cityBookTopology{{PartyID: []byte("hero"), Slots: [sim.BookWireSlots]sim.SavedObjectID{1}}, {PartyID: []byte("other"), Slots: [sim.BookWireSlots]sim.SavedObjectID{1}}}}
 	if msg := f.townUI.trainHeroSkill(1); !strings.HasPrefix(msg, "trained ") {
 		t.Fatal(msg)
 	}

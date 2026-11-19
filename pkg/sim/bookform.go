@@ -16,7 +16,7 @@ type bookForm struct {
 // The first game's book is the decoded Book object kind 5 with one teach
 // effect 42. The second game's is the bag's book ID, part 14 with row bit 7
 // (DIV-3043's codes); it is read by the first game's rule on owner direction
-// and teaches only spells 1..28 (DIV-4369).
+// and teaches only a spell the book holds, 1..29 (DIV-4369).
 var bookForms = [...]bookForm{
 	rules.SpellGameFirst:  {kind: 5, effect: 42},
 	rules.SpellGameSecond: {part: 14, row: 0x80, slotted: true},
@@ -70,5 +70,5 @@ func (i ItemInstance) BookSpell(game rules.SpellGame) (uint16, bool) {
 // bookTeaches reports whether a book of game's form may teach spell.
 func bookTeaches(game rules.SpellGame, spell uint16) bool {
 	f, ok := bookFormOf(game)
-	return ok && (!f.slotted || spell >= 1 && int(spell) <= len(Spellbook{}.Slots))
+	return ok && (!f.slotted || spell >= 1 && int(spell) <= BookIDs)
 }

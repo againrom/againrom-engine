@@ -48,7 +48,7 @@ type cityPartyObjectRoots struct {
 
 type cityBookTopology struct {
 	PartyID []byte
-	Slots   [28]sim.SavedObjectID
+	Slots   [sim.BookWireSlots]sim.SavedObjectID
 }
 
 type cityHumanTails struct {
@@ -65,7 +65,7 @@ type cityActorObjectBinding struct {
 type cityActorEntityBinding struct {
 	Entity  sim.EntityID
 	PartyID string
-	Books   [28]sim.SavedObjectID
+	Books   [sim.BookWireSlots]sim.SavedObjectID
 }
 
 func cityItemTopologyByID(items []cityItemTopology, id sim.SavedObjectID) *cityItemTopology {

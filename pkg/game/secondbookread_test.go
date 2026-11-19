@@ -84,7 +84,7 @@ func TestSecondGameMageLearnsABookInAMission(t *testing.T) {
 }
 
 // The refusals are the first game's: a fighter, a known spell; and a spell
-// the book has no slot for (DIV-4369). Each keeps the book and the reader.
+// the book has no slot for, 30 (DIV-4369). Each keeps the book and the reader.
 func TestSecondGameMissionBookRefusals(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -93,7 +93,7 @@ func TestSecondGameMissionBookRefusals(t *testing.T) {
 		known uint32
 	}{
 		{"fighter", false, []sim.ItemInstance{secondBookUnit(t, 5)}, 0},
-		{"spell 29", true, []sim.ItemInstance{secondBookUnit(t, 29)}, 0},
+		{"spell 30", true, []sim.ItemInstance{secondBookUnit(t, 30)}, 0},
 		{"known", true, []sim.ItemInstance{secondBookUnit(t, 26), secondBookUnit(t, 26)}, 1 << 26},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -130,13 +130,13 @@ func TestSecondGameMageLearnsABookInTheShop(t *testing.T) {
 		return u
 	}
 	doll := ui.ShopControl{Kind: ui.ShopControlDoll}
-	s, c := secondDollShop(t, bagBook(29), bagBook(5), bagBook(5))
+	s, c := secondDollShop(t, bagBook(30), bagBook(5), bagBook(5))
 	s.sess.Carried[0].Mage = true
 	before := secondDollNow(s, c)
 
 	s.ShopDrag(secondDollPack(s, 0), doll)
 	if got := secondDollNow(s, c); !reflect.DeepEqual(got, before) {
-		t.Fatalf("the book of spell 29 was read: known %#x, bag %+v", got.party[0].KnownSpells, got.bag)
+		t.Fatalf("the book of spell 30 was read: known %#x, bag %+v", got.party[0].KnownSpells, got.bag)
 	}
 	s.ShopDrag(secondDollPack(s, 1), doll)
 	after := secondDollNow(s, c)
@@ -152,5 +152,18 @@ func TestSecondGameMageLearnsABookInTheShop(t *testing.T) {
 	}
 	if err := captureSecondCampaign(c).validate(); err != nil {
 		t.Fatalf("SAVE refuses the bag after the read: %v", err)
+	}
+}
+
+// In a second-game town a mage who does not know Slow reads its bag book on
+// his doll: he knows spell 29 with its book slot and the book is used up.
+func TestSecondGameMageLearnsABookOfSlowInTheShop(t *testing.T) {
+	u, _ := secondshop.Tables{}.Instance(secondshop.Item{Table: secondshop.Book, Spell: 29, Price: 1000})
+	s, c := secondDollShop(t, u)
+	s.sess.Carried[0].Mage = true
+	s.ShopDrag(secondDollPack(s, 0), ui.ShopControl{Kind: ui.ShopControlDoll})
+	after := secondDollNow(s, c)
+	if after.party[0].KnownSpells != 1<<29 || len(after.bag) != 0 {
+		t.Fatalf("known %#x, bag %+v; want Slow and the book used up", after.party[0].KnownSpells, after.bag)
 	}
 }

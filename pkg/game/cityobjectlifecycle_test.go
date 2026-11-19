@@ -15,7 +15,7 @@ func TestCityTopologySnapshotAndRestoreOwnTheirGraph(t *testing.T) {
 		Items:   []cityItemTopology{{ID: 1, Effects: []sim.SavedObjectID{2}, Spell: 3}},
 		Effects: []sim.SavedObjectID{2}, Spells: []sim.SavedObjectID{3},
 		Roots: []cityPartyObjectRoots{{PartyID: []byte("hero"), Pack: []sim.SavedObjectID{1}}},
-		Books: []cityBookTopology{{PartyID: []byte("hero"), Slots: [28]sim.SavedObjectID{3}}}}
+		Books: []cityBookTopology{{PartyID: []byte("hero"), Slots: [sim.BookWireSlots]sim.SavedObjectID{3}}}}
 	if err := g.Validate(); err != nil {
 		t.Fatal(err)
 	}

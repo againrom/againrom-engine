@@ -26,7 +26,7 @@ func projectCurrentBookGraph(b *generatedDocumentBuilder, state *SnapshotSAVDocu
 	}
 	var requests []request
 	uses := map[uint16][]sim.SourceItemSpell{}
-	roots := map[sim.EntityID][28]sim.SavedObjectID{}
+	roots := map[sim.EntityID][sim.BookWireSlots]sim.SavedObjectID{}
 	indices := map[sim.SavedObjectID]uint16{}
 	if registry := world.SavedObjects(); registry != nil {
 		for _, root := range registry.BookRoots {
@@ -48,7 +48,7 @@ func projectCurrentBookGraph(b *generatedDocumentBuilder, state *SnapshotSAVDocu
 			e.Book.State = sim.BookPresent
 			e.KnownSpells &= 0x1ffffffe
 			for _, rule := range world.Spells() {
-				if rule.ID >= 1 && rule.ID <= 28 && e.KnownSpells&(1<<rule.ID) != 0 {
+				if rule.ID >= 1 && rule.ID <= sim.BookWireSlots && e.KnownSpells&(1<<rule.ID) != 0 {
 					e.Book.Slots[rule.ID-1].ManaCost = uint16(rule.ManaCost)
 					if rule.Defensive {
 						e.Book.Slots[rule.ID-1].Defensive = 1
@@ -95,7 +95,8 @@ func projectCurrentBookGraph(b *generatedDocumentBuilder, state *SnapshotSAVDocu
 			savedObjectSetValue(r, "SpellsHeader", header)
 		}
 		var slots []uint16
-		for slot, value := range e.Book.Slots {
+		for slot := range sim.BookIDs {
+			value := *e.Book.Slot(uint16(slot + 1))
 			if e.KnownSpells&(1<<uint(slot+1)) == 0 {
 				continue
 			}
@@ -106,8 +107,8 @@ func projectCurrentBookGraph(b *generatedDocumentBuilder, state *SnapshotSAVDocu
 			if slot < len(old) {
 				previous = old[slot]
 			}
-			if id := roots[a.EntityID][slot]; id != 0 {
-				previous = indices[id]
+			if id := roots[a.EntityID]; slot < len(id) && id[slot] != 0 {
+				previous = indices[id[slot]]
 				if previous == 0 {
 					return fmt.Errorf("current book root has no ordinary Spell binding")
 				}

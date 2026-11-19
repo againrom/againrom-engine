@@ -253,7 +253,7 @@ func TestTheSecondGameWorldHalfReadsItsWidths(t *testing.T) {
 	}
 }
 
-// The second game's book holds spell 29; the first game's refuses it.
+// A book holds spell 29; spell 30 has no place in a book of either game.
 func TestTheSecondGameBookHoldsSpellTwentyNine(t *testing.T) {
 	fx := secondTownFixture()
 	fx.chars[0].spells = 30
@@ -265,9 +265,9 @@ func TestTheSecondGameBookHoldsSpellTwentyNine(t *testing.T) {
 		t.Fatalf("book of %d spells", n)
 	}
 	first := walkFixture{mapName: "t.alm", mission: 2, chars: []wantChar{hero()}, town: true}
-	first.chars[0].spells = 30
+	first.chars[0].spells = 31
 	_, err = walkOpen(t, first).Party()
 	if !errors.Is(err, ErrSpellbook) {
-		t.Fatalf("first-game book with spell 29: %v, want ErrSpellbook", err)
+		t.Fatalf("book with spell 30: %v, want ErrSpellbook", err)
 	}
 }

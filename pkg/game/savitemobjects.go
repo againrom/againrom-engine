@@ -481,11 +481,11 @@ func attachSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, regist
 		if !present || actor.Retired {
 			continue
 		}
-		if len(refs) > 28 {
+		if len(refs) > sim.BookIDs {
 			return nil, fmt.Errorf("saved book exceeds native slot count")
 		}
 		root := sim.SavedBookRoot{Entity: actor.EntityID}
-		for slot, ref := range refs {
+		for slot, ref := range refs[:min(len(refs), len(root.Slots))] {
 			if ref == 0 {
 				continue
 			}

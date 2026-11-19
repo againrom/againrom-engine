@@ -19,7 +19,7 @@ func TestCurrentCityLegacyBookKeepsNativeExtraMembership(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.Carried[0].Book = sim.Spellbook{}
-	f.Carried[0].KnownSpells = 2 | 1 | 1<<29 | 1<<31
+	f.Carried[0].KnownSpells = 2 | 1 | 1<<30 | 1<<31
 	f.Carried[0].SpellbookRestored, f.Carried[0].SpellbookPresent = false, false
 	want := mapload.CloneParty(f.Carried)
 	s, label, err := f.Snapshot(false)
@@ -39,7 +39,7 @@ func TestCurrentNativeOnlyBookKeepsAbsentOrdinaryBook(t *testing.T) {
 	if _, town, err := f.RestoreOriginal(payload); err != nil || !town {
 		t.Fatal(err)
 	}
-	extra := uint32(1 | 1<<29 | 1<<31)
+	extra := uint32(1 | 1<<30 | 1<<31)
 	f.Carried[0].Book = sim.Spellbook{State: sim.BookNativeAbsent}
 	f.Carried[0].KnownSpells = extra
 	f.Carried[0].SpellbookRestored, f.Carried[0].SpellbookPresent = true, false
@@ -191,7 +191,7 @@ func TestCurrentTemplateLegacyBookOrdinaryLiteralsWin(t *testing.T) {
 }
 
 func TestCurrentMissionLegacyBookOrdinaryLiteralsWin(t *testing.T) {
-	for _, extra := range []uint32{0, 1 | 1<<29 | 1<<31} {
+	for _, extra := range []uint32{0, 1 | 1<<30 | 1<<31} {
 		f, s, source := currentPlayerSlotFixture(t, 1)
 		entities := source.Entities()
 		entities[0].KnownSpells = 2 | extra

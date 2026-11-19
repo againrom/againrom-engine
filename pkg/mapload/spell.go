@@ -44,7 +44,7 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 		if int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
 			continue
 		}
-		book.Slots[id-1] = bookSpell(rules[id-1])
+		*book.Slot(uint16(id)) = bookSpell(rules[id-1])
 		known |= uint32(1) << uint(id)
 		if cell+1 < len(params) {
 			slots[(cell-firstSpell)/2] = sim.CreatureSpellFor(id, params[cell+1])
@@ -133,14 +133,14 @@ func (b *CreatureBooks) rowFor(typeID, face int32) (CreatureBookRow, bool) {
 // add applies params' power and mask cells, then inserts the matched row's
 // spells into book and writes its skill words. Each spell is the installed
 // spell row, as a class cell spell is; a mask may name a spell the book
-// cannot hold, and that bit is dropped (DIV-2621).
+// cannot hold, and that bit is dropped.
 func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
 	rules, count := SpellRules(t), sim.BookSpellCount(SpellGameOf(t))
 	insert := func(id int32) {
 		if id < 1 || int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
 			return
 		}
-		book.Slots[id-1] = bookSpell(rules[id-1])
+		*book.Slot(uint16(id)) = bookSpell(rules[id-1])
 		*known |= uint32(1) << uint(id)
 	}
 	if b.PowerCell > 0 && b.PowerCell < len(params) {

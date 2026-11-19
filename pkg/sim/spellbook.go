@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"againrom/pkg/rules"
@@ -27,15 +28,40 @@ type BookSpell struct {
 	ManaCost         uint16
 }
 
+// BookIDs is the highest spell id a book holds. Ids 1..len(Slots) have a slot
+// in the entity record; the ids past them live in Beyond and ride in their own
+// section of the World form, so a World without one keeps its bytes.
+const BookIDs = BookWireSlots + 1
+
+// BookWireSlots is the number of book slots the first game's SAV format and
+// the entity record hold; every reader of that format bounds by it.
+const BookWireSlots = 28
+
+// bookIDMask is the known-spell bits of the ids a book holds.
+const bookIDMask = uint32(1)<<(BookIDs+1) - 2
+
 type Spellbook struct {
-	State BookState
-	Slots [28]BookSpell // index is spell ID minus one; KnownSpells owns membership
+	State  BookState
+	Slots  [BookWireSlots]BookSpell // index is spell ID minus one; KnownSpells owns membership
+	Beyond [BookIDs - BookWireSlots]BookSpell
+}
+
+// Slot is the instance of spell id in the book, nil for an id no book holds.
+// It is the one place that turns an id into book storage.
+func (b *Spellbook) Slot(id uint16) *BookSpell {
+	switch {
+	case id >= 1 && int(id) <= len(b.Slots):
+		return &b.Slots[id-1]
+	case int(id) > len(b.Slots) && int(id) <= BookIDs:
+		return &b.Beyond[int(id)-len(b.Slots)-1]
+	}
+	return nil
 }
 
 // BookSpellCount is the highest spell number a book of game g holds: the
-// game's spell count, at most the book's slot count.
+// game's spell count, at most BookIDs.
 func BookSpellCount(g rules.SpellGame) int {
-	return min(len(rules.SpellProfile(g)), len(Spellbook{}.Slots))
+	return min(len(rules.SpellProfile(g)), BookIDs)
 }
 
 func (b Spellbook) HasInstances() bool {
@@ -55,17 +81,17 @@ func (b Spellbook) Validate(known uint32) error {
 		return fmt.Errorf("invalid spellbook state %d", b.State)
 	}
 	if b.State == BookLegacy {
-		if b.Slots != ([28]BookSpell{}) {
+		if b.Slots != ([BookWireSlots]BookSpell{}) || b.Beyond != ([BookIDs - BookWireSlots]BookSpell{}) {
 			return fmt.Errorf("legacy spellbook has instance parameters")
 		}
 		return nil
 	}
-	if b.hasNativeSpells() != (known & ^uint32(0x1ffffffe) != 0) || !b.HasInstances() && known&0x1ffffffe != 0 {
+	if b.hasNativeSpells() != (known & ^bookIDMask != 0) || !b.HasInstances() && known&bookIDMask != 0 {
 		return fmt.Errorf("invalid source spellbook membership %#x", known)
 	}
-	for i, slot := range b.Slots {
-		if known&(uint32(1)<<uint(i+1)) == 0 && slot != (BookSpell{}) {
-			return fmt.Errorf("unlearned spell %d has parameters", i+1)
+	for id := uint16(1); id <= BookIDs; id++ {
+		if known&(uint32(1)<<id) == 0 && *b.Slot(id) != (BookSpell{}) {
+			return fmt.Errorf("unlearned spell %d has parameters", id)
 		}
 	}
 	return nil
@@ -77,13 +103,19 @@ func BookRuleFor(e Entity, rule SpellRule) (SpellRule, bool) {
 	if !knowsSpell(e, uint32(rule.ID)) {
 		return SpellRule{}, false
 	}
-	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (rule.ID < 1 || int(rule.ID) > len(e.Book.Slots)) {
+	slot := e.Book.Slot(rule.ID)
+	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && slot == nil {
 		return rule, true
 	}
-	if !e.Book.HasInstances() || rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) {
+	if !e.Book.HasInstances() || slot == nil {
 		return SpellRule{}, false
 	}
-	s := e.Book.Slots[rule.ID-1]
+	// A spell past the entity record's slots that holds no parameters is a
+	// book that predates them: it keeps the table row's values.
+	if int(rule.ID) > len(e.Book.Slots) && *slot == (BookSpell{}) {
+		return rule, true
+	}
+	s := *slot
 	rule.MaxRange, rule.ManaCost = s.Range, int32(int16(s.ManaCost))
 	rule.Defensive = s.Defensive != 0
 	rule.bookInstance, rule.bookDefensive = true, s.Defensive
@@ -123,13 +155,14 @@ func debitBook(e *Entity, rule SpellRule) {
 // LearnBookSpell is the no-book / already-known gate of teachSpell. A new
 // Spell receives constructor defaults, not another actor's cached parameters.
 func LearnBookSpell(e *Entity, id uint16, table []SpellRule) {
-	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && (id < 1 || int(id) > len(e.Book.Slots)) {
+	slot := e.Book.Slot(id)
+	if e.Book.State == BookLegacy || e.Book.hasNativeSpells() && slot == nil {
 		if id < 32 {
 			e.KnownSpells |= uint32(1) << id
 		}
 		return
 	}
-	if !e.Book.HasInstances() || id < 1 || int(id) > len(e.Book.Slots) || knowsSpell(*e, uint32(id)) {
+	if !e.Book.HasInstances() || slot == nil || knowsSpell(*e, uint32(id)) {
 		return
 	}
 	for _, rule := range table {
@@ -138,7 +171,7 @@ func LearnBookSpell(e *Entity, id uint16, table []SpellRule) {
 			if rule.Defensive {
 				defensive = 1
 			}
-			e.Book.Slots[id-1] = BookSpell{rule.MaxRange, defensive, uint16(rule.ManaCost)}
+			*slot = BookSpell{rule.MaxRange, defensive, uint16(rule.ManaCost)}
 			e.KnownSpells |= uint32(1) << id
 			return
 		}
@@ -152,14 +185,15 @@ func RefreshBook(r Rules, e *Entity, table []SpellRule) {
 		return
 	}
 	for _, rule := range table {
-		if rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) || !knowsSpell(*e, uint32(rule.ID)) {
+		slot := e.Book.Slot(rule.ID)
+		if slot == nil || !knowsSpell(*e, uint32(rule.ID)) {
 			continue
 		}
 		var level int32
 		if rule.School < skillSlots {
 			level = e.Skill[rule.School]
 		}
-		e.Book.Slots[rule.ID-1].Range = uint8(spellRangeOf(r, rule, spellPowerUnder(r, rule, level, e.Mind), rangeCast))
+		slot.Range = uint8(spellRangeOf(r, rule, spellPowerUnder(r, rule, level, e.Mind), rangeCast))
 	}
 }
 
@@ -170,14 +204,15 @@ func RefreshOriginalBook(e *Entity, table []SpellRule) {
 		return
 	}
 	for _, rule := range table {
-		if rule.ID < 1 || int(rule.ID) > len(e.Book.Slots) || !knowsSpell(*e, uint32(rule.ID)) {
+		slot := e.Book.Slot(rule.ID)
+		if slot == nil || !knowsSpell(*e, uint32(rule.ID)) {
 			continue
 		}
 		var level int32
 		if rule.School < skillSlots {
 			level = e.Skill[rule.School]
 		}
-		e.Book.Slots[rule.ID-1].Range = originalSpellRange(rule, level, e.Mind)
+		slot.Range = originalSpellRange(rule, level, e.Mind)
 	}
 }
 
@@ -214,4 +249,18 @@ func (w *World) refreshAppliedBook(ci int, id uint32) {
 		RefreshBook(w.rules, &w.entities[ci], []SpellRule{rule})
 		w.refreshSavedBookRoots(ci)
 	}
+}
+
+// MarshalJSON writes the beyond-slot spells only when one is held, so a book
+// of the first 28 spells keeps the form its records have always had.
+func (b Spellbook) MarshalJSON() ([]byte, error) {
+	out := struct {
+		State  BookState
+		Slots  [BookWireSlots]BookSpell
+		Beyond *[BookIDs - BookWireSlots]BookSpell `json:",omitempty"`
+	}{State: b.State, Slots: b.Slots}
+	if b.Beyond != ([BookIDs - BookWireSlots]BookSpell{}) {
+		out.Beyond = &b.Beyond
+	}
+	return json.Marshal(out)
 }

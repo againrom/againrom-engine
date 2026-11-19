@@ -78,7 +78,7 @@ func matchCurrentBookSelection(doc *sav.DocumentData, actions *currentActionData
 		}
 		refs, _ := savedObjectRefs(record, "Spells")
 		selected := row.Current.AdmittedBookSpell
-		if key == 0 && int(selected) > len(sim.Spellbook{}.Slots) {
+		if key == 0 && int(selected) > sim.BookIDs {
 			// A selection past the book's slots has no Spell record to
 			// match; the World admits it by its spell table (DIV-4174).
 			continue

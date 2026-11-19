@@ -594,7 +594,7 @@ func validateSavedItemBindingWorldDecoded(state *SnapshotSAVDocument, world *sim
 			return fmt.Errorf("saved SAV Book has no exact actor binding")
 		}
 		refs, present := savedObjectRefs(&state.Document.Objects[index-1], "Spells")
-		if !present || len(refs) > len(root.Slots) {
+		if !present || len(refs) > sim.BookIDs {
 			return fmt.Errorf("saved SAV Book slot presence differs")
 		}
 		for slot, id := range root.Slots {

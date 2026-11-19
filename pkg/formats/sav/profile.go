@@ -36,8 +36,9 @@ type Profile struct {
 	// extraList is the counted Token list after the Sacks that only the
 	// second game writes (R2-ENGINE-601).
 	extraList bool
-	// maxSpellID is the highest spell ID a book slot holds: 28 in the first
-	// game, 29 in the second (R2-ENGINE-019, R2-SESSION-237).
+	// maxSpellID is the highest spell ID a book slot holds. The first game's
+	// profile is the one every engine document uses, so it takes the longest
+	// book too; a first-game World refuses a book past its own spells.
 	maxSpellID uint32
 	// mainSkill is that Humanoid's 24-byte experience block opens with the
 	// main skill, then the experiences of skills 1..5 (R2-ENGINE-320); the
@@ -68,7 +69,7 @@ const KillGradeBlock = "PRaw2560"
 
 // FirstGame is the first game's profile, the one every engine document uses.
 var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgramme,
-	cellLen: cellRecLen, cellTail: true, sessionLen: sessionLen, session: firstSessionLayout, maxSpellID: 28,
+	cellLen: cellRecLen, cellTail: true, sessionLen: sessionLen, session: firstSessionLayout, maxSpellID: bookIDCeiling,
 	shortcutBytes: 16, playerFormation: PlayerTailName, creatureSpells: firstCreatureSpells}
 
 // SecondGame is the second game's `Bsg&` profile. Its Token head stores the
@@ -80,7 +81,7 @@ var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgr
 // experiences (R2-ENGINE-320).
 var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgrammes(), group: groupProgramme,
 	cellLen: secondCellLen, sessionLen: secondSessionLen, session: secondSessionLayout, leafState: true,
-	extraList: true, maxSpellID: 29, mainSkill: true, packedActorState: true, shortcutBytes: -1, scenarioTail: true, form: secondForm,
+	extraList: true, maxSpellID: bookIDCeiling, mainSkill: true, packedActorState: true, shortcutBytes: -1, scenarioTail: true, form: secondForm,
 	creatureSpells: secondCreatureSpells}
 
 // secondForm is the second game's records written from an engine document:
@@ -294,3 +295,7 @@ func (w *walker) groupSteps() []step {
 	}
 	return w.prof.group
 }
+
+// bookIDCeiling is the highest spell ID a book of either game holds
+// (R2-ENGINE-019, R2-SESSION-237); a first-game book holds 28 of them.
+const bookIDCeiling = 29

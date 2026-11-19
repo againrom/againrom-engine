@@ -41,8 +41,8 @@ func cityMemberStacks(p mapload.PartyMember, table *mapload.Table) []sim.ItemSta
 	return sim.FoldItems(mapload.MemberCarriedItems(p, table))
 }
 
-func cityMemberBook(p mapload.PartyMember, table *mapload.Table) [28]sim.SourceItemSpell {
-	var out [28]sim.SourceItemSpell
+func cityMemberBook(p mapload.PartyMember, table *mapload.Table) [sim.BookWireSlots]sim.SourceItemSpell {
+	var out [sim.BookWireSlots]sim.SourceItemSpell
 	for slot := range out {
 		id := uint16(slot + 1)
 		if p.KnownSpells&(1<<id) == 0 {

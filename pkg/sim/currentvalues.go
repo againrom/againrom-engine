@@ -129,7 +129,7 @@ func (e Entity) Values() ActorValues {
 		EquipmentRuntimePresent: e.ActorLoad.Source.EquipmentRuntimePresent, MovementPresent: e.HumanMovement.Present,
 		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SuppressRewards: e.SuppressRewards, Purse: e.Purse, SeeInvisible: e.SeeInvisible,
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
-		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^uint32(0x1ffffffe),
+		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^bookIDMask,
 		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell,
 		VictimKinds: e.victimKinds.counts(), KindWord: e.KindWord, MainSkill: e.MainSkill}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {

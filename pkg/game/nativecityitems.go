@@ -220,7 +220,7 @@ func nativeCityMemberSpells(member mapload.PartyMember, table *mapload.Table) ([
 	}
 	rules := mapload.SpellRules(table)
 	var out []sim.SpellRule
-	for bit := uint(1); bit <= 28; bit++ {
+	for bit := uint(1); bit <= sim.BookWireSlots; bit++ {
 		if member.KnownSpells&(uint32(1)<<bit) == 0 {
 			continue
 		}

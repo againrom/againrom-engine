@@ -96,7 +96,7 @@ func captureMissionCityBooks(graph *cityObjectTopology, registry *sim.SavedObjec
 			spells[spell.ID] = spell.Value
 		}
 	}
-	values := make(map[string][28]sim.SourceItemSpell)
+	values := make(map[string][sim.BookWireSlots]sim.SourceItemSpell)
 	for _, member := range party {
 		values[member.ID] = cityMemberBook(member, table)
 	}
@@ -105,7 +105,7 @@ func captureMissionCityBooks(graph *cityObjectTopology, registry *sim.SavedObjec
 		value  sim.SourceItemSpell
 	}
 	allocated := make(map[bookKey]sim.SavedObjectID)
-	nativeBooks := make(map[sim.EntityID][28]sim.SavedObjectID)
+	nativeBooks := make(map[sim.EntityID][sim.BookWireSlots]sim.SavedObjectID)
 	for _, root := range registry.BookRoots {
 		nativeBooks[root.Entity] = root.Slots
 	}

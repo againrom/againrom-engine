@@ -28,7 +28,7 @@ func (w *World) spellsPastBook(known uint32) bool {
 		return false
 	}
 	found := false
-	for id := len(Spellbook{}.Slots) + 1; id < SpellIDLimit; id++ {
+	for id := BookIDs + 1; id < SpellIDLimit; id++ {
 		if known&(1<<id) == 0 {
 			continue
 		}
@@ -83,6 +83,9 @@ func (w *World) ImportOriginalActorSpellbooks(books []OriginalActorSpellbook) er
 			}
 		default:
 			return fmt.Errorf("original actor spellbooks: entity %d has no source presence", book.ID)
+		}
+		if book.KnownSpells&bookIDMask>>(BookSpellCount(w.SpellGame())+1) != 0 {
+			return fmt.Errorf("original actor spellbooks: entity %d knows a spell past its game's book", book.ID)
 		}
 		if err := book.Book.Validate(book.KnownSpells); err != nil {
 			return fmt.Errorf("original actor spellbooks: entity %d: %w", book.ID, err)

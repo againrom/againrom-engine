@@ -69,7 +69,7 @@ func TestBookAdmissionRefusesASecondGameSpellWithNoSlot(t *testing.T) {
 			t.Errorf("first game refuses spell %d", spell)
 		}
 		r.Game = bookSecondGame
-		if got, want := r.Admits(spell), spell <= 28; got != want {
+		if got, want := r.Admits(spell), spell <= BookIDs; got != want {
 			t.Errorf("second game admits spell %d: %v, want %v", spell, got, want)
 		}
 	}
@@ -90,7 +90,7 @@ func TestSecondGameWorldReadsABookIntoItsSlot(t *testing.T) {
 	spells := []SpellRule{{ID: 5, ManaCost: 7, School: 1, MaxRange: 9, Defensive: true}}
 	mage := Entity{ID: 7, X: 3, Y: 3, HP: 10, MaxHP: 10, Mana: 20, MaxMana: 20, Book: Spellbook{State: BookPresent}}
 	book := ItemInstance{Code: 0x0e85, Price: 1000, Effects: []ItemEffect{{Kind: 42, Operand: 5}}}
-	slow := ItemInstance{Code: 0x0e9d, Price: 1000, Effects: []ItemEffect{{Kind: 42, Operand: 29}}}
+	slow := ItemInstance{Code: 0x0e9e, Price: 1000, Effects: []ItemEffect{{Kind: 42, Operand: 30}}}
 	s, err := NewROM2Script(nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +105,7 @@ func TestSecondGameWorldReadsABookIntoItsSlot(t *testing.T) {
 	}
 	Step(w, []Command{ReadBook(7, ItemSlot(0))})
 	if items, _ := w.CarriedItems(7); len(items) != 2 || w.entities[0].KnownSpells != 0 {
-		t.Fatalf("the book of spell 29 was read: carried %+v, known %#x", items, w.entities[0].KnownSpells)
+		t.Fatalf("the book of spell 30 was read: carried %+v, known %#x", items, w.entities[0].KnownSpells)
 	}
 	Step(w, []Command{ReadBook(7, ItemSlot(1))})
 	e := w.entities[0]
@@ -113,7 +113,7 @@ func TestSecondGameWorldReadsABookIntoItsSlot(t *testing.T) {
 		t.Fatalf("known %#x, slot 5 %+v; want spell 5 in slot 5 with its rule's range, side and cost", e.KnownSpells, e.Book.Slots[4])
 	}
 	if items, _ := w.CarriedItems(7); len(items) != 1 || items[0].Code != slow.Code {
-		t.Fatalf("carried %+v, want the book used up and the book of spell 29 kept", items)
+		t.Fatalf("carried %+v, want the book used up and the book of spell 30 kept", items)
 	}
 	Step(w, []Command{ReadBook(7, ItemSlot(0))})
 	b, err := w.MarshalBinary()
@@ -126,5 +126,42 @@ func TestSecondGameWorldReadsABookIntoItsSlot(t *testing.T) {
 	}
 	if back.Hash() != w.Hash() || back.entities[0].KnownSpells != e.KnownSpells || back.entities[0].Book != e.Book {
 		t.Fatalf("after the round trip hash %#x (was %#x), known %#x, book %+v", back.Hash(), w.Hash(), back.entities[0].KnownSpells, back.entities[0].Book)
+	}
+}
+
+// A second-game mage who does not know Slow reads its book: spell 29 goes
+// into its book with the row's range, side and cost, the book is used up, and
+// the World's byte form keeps the slot and its hash.
+func TestSecondGameWorldReadsABookOfSlow(t *testing.T) {
+	spells := []SpellRule{{ID: 29, ManaCost: 10, School: 5, MaxRange: 5}}
+	mage := Entity{ID: 7, X: 3, Y: 3, HP: 10, MaxHP: 10, Mana: 20, MaxMana: 20, Book: Spellbook{State: BookPresent}}
+	slow := ItemInstance{Code: 0x0e9d, Price: 1000, Effects: []ItemEffect{{Kind: 42, Operand: 29}}}
+	s, err := NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := NewStockedSpelledWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, Terrain{}, []Entity{mage}, s,
+		Relations{}, nil, []Stock{{ID: 7, ItemInstances: []ItemInstance{slow}}}, spells)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Step(w, []Command{ReadBook(7, ItemSlot(0))})
+	e := w.entities[0]
+	if e.KnownSpells != 1<<29 || *e.Book.Slot(29) != (BookSpell{Range: 5, ManaCost: 10}) || e.Book.State != BookPresent {
+		t.Fatalf("known %#x, slot 29 %+v, state %d; want Slow with its row's range and cost in a present book", e.KnownSpells, *e.Book.Slot(29), e.Book.State)
+	}
+	if items, _ := w.CarriedItems(7); len(items) != 0 {
+		t.Fatalf("carried %+v, want the book used up", items)
+	}
+	b, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back World
+	if err := back.UnmarshalBinary(b); err != nil {
+		t.Fatal(err)
+	}
+	if back.entities[0].Book != e.Book || back.Hash() != w.Hash() {
+		t.Fatal("the byte form lost Slow's book slot")
 	}
 }

@@ -346,7 +346,7 @@ func restoreCurrentObjects(ms *Mission, g *currentObjectGraph, rows []currentOwn
 	r := &sim.SavedObjects{Version: sim.SavedObjectsVersion, NextID: g.NextID}
 	metadata := &SnapshotSAVObjectBindings{Version: 2}
 	for _, row := range rows {
-		if p := row.Range; p != nil && (row.Kind != 3 || row.Object == 0 || row.ID == 0 || !p.Wire.Present || p.Wire.ID < 1 || p.Wire.ID > 28 || p.Wire.Range == p.Value) {
+		if p := row.Range; p != nil && (row.Kind != 3 || row.Object == 0 || row.ID == 0 || !p.Wire.Present || p.Wire.ID < 1 || p.Wire.ID > sim.BookWireSlots || p.Wire.Range == p.Value) {
 			return nil, fmt.Errorf("invalid current Spell range operand")
 		}
 		if err := validateCurrentItemCount(row); err != nil {
@@ -627,11 +627,11 @@ func restoreCurrentObjects(ms *Mission, g *currentObjectGraph, rows []currentOwn
 			return nil, fmt.Errorf("current book actor has no ordinary binding")
 		}
 		refs, _ := savedObjectRefs(&doc.Objects[object-1], "Spells")
-		if len(refs) > 28 {
+		if len(refs) > sim.BookIDs {
 			return nil, fmt.Errorf("current book exceeds ordinary slot count")
 		}
 		root := sim.SavedBookRoot{Entity: entity}
-		for slot, ref := range refs {
+		for slot, ref := range refs[:min(len(refs), len(root.Slots))] {
 			if id := byObject[ref]; id != 0 {
 				root.Slots[slot] = id
 				if incoming[ref] == 0 {

@@ -21,5 +21,14 @@ func decodeSpellbook(b []byte, known uint32) (Spellbook, error) {
 		o := 1 + 4*i
 		book.Slots[i] = BookSpell{b[o], b[o+1], binary.LittleEndian.Uint16(b[o+2:])}
 	}
+	// A native mode that names only ids a book holds is an older form of an
+	// ordinary book: its spell past the slots has no saved parameters.
+	if book.hasNativeSpells() && known & ^bookIDMask == 0 {
+		if book.State == BookNativePresent {
+			book.State = BookPresent
+		} else {
+			book.State = BookAbsent
+		}
+	}
 	return book, book.Validate(known)
 }

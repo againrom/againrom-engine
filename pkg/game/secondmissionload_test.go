@@ -488,7 +488,7 @@ func TestSecondMissionFileSaveColdLoadAndNextOrder(t *testing.T) {
 	hero.spells, hero.bookSlots = []uint8{24, 29}, 30
 	f, app, dir := secondMissionLoadFile(t, secondMissionFile(hero, secondMissionStore(8, 1, 6)))
 	loaded := secondMissionStateOf(t, f)
-	if loaded.known != 1<<24|1<<29 || loaded.book != sim.BookNativePresent {
+	if loaded.known != 1<<24|1<<29 || loaded.book != sim.BookPresent {
 		t.Fatalf("a book holding Slow %#x state %v", loaded.known, loaded.book)
 	}
 	if err := app.HeadlessKey("escape"); err != nil {

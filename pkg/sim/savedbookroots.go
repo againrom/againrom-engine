@@ -9,12 +9,12 @@ import (
 
 // BookSlotValues resolves legacy rules without changing the actor. Explicit
 // book instances keep their current literals, including unusual byte values.
-func BookSlotValues(r Rules, e Entity, rules []SpellRule) [28]SourceItemSpell {
-	var out [28]SourceItemSpell
+func BookSlotValues(r Rules, e Entity, rules []SpellRule) [BookWireSlots]SourceItemSpell {
+	var out [BookWireSlots]SourceItemSpell
 	if e.Book.State == BookLegacy {
 		e.Book = Spellbook{State: BookPresent}
 		for _, rule := range rules {
-			if rule.ID < 1 || rule.ID > 28 || e.KnownSpells&(1<<rule.ID) == 0 {
+			if rule.ID < 1 || rule.ID > BookWireSlots || e.KnownSpells&(1<<rule.ID) == 0 {
 				continue
 			}
 			v := &e.Book.Slots[rule.ID-1]
@@ -120,7 +120,7 @@ func (w *World) validateSavedBookRoots() error {
 		values := BookSlotValues(w.rules, e, w.spells)
 		if e.Book.State == BookLegacy && !w.rules.HasSpellFormulas() {
 			for _, rule := range w.spells {
-				if rule.ID >= 1 && rule.ID <= 28 && values[rule.ID-1].Present {
+				if rule.ID >= 1 && rule.ID <= BookWireSlots && values[rule.ID-1].Present {
 					var level int32
 					if rule.School < skillSlots {
 						level = e.Skill[rule.School]

@@ -10,7 +10,7 @@ func (w *World) syncCurrentActionCarriers() {
 	}
 	for _, cast := range w.bookCasts {
 		index := indexOfEntity(w.entities, cast.Caster)
-		if index < 0 || cast.Spell < 1 || cast.Spell > 28 {
+		if index < 0 || cast.Spell < 1 || cast.Spell > BookWireSlots {
 			continue
 		}
 		key := uint32(0)
@@ -47,7 +47,7 @@ func (w *World) syncCurrentActionCarriers() {
 		switch p.Kind {
 		case PendingActorCast, PendingCellCast:
 			key, reach := uint32(0), uint8(0)
-			if p.Spell >= 1 && p.Spell <= 28 {
+			if p.Spell >= 1 && p.Spell <= BookWireSlots {
 				values := BookSlotValues(w.rules, *e, w.spells)
 				reach = values[p.Spell-1].Range
 				if w.savedObjects != nil {

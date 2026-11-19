@@ -13,9 +13,8 @@ import (
 	"againrom/pkg/ui"
 )
 
-// secondMaskSpells is the fixture mask's book: spells 2 and 3. The mask
-// also names spell 29, which no book holds (DIV-2621).
-const secondMaskSpells = uint32(1)<<2 | uint32(1)<<3
+// secondMaskSpells is the fixture mask's book: spells 2, 3 and Slow (29).
+const secondMaskSpells = uint32(1)<<2 | uint32(1)<<3 | uint32(1)<<29
 
 // secondMaskSkills is the fixture row's five school skills after its mask.
 var secondMaskSkills = [5]int32{40, 50, 60, 70, 80}
@@ -32,7 +31,7 @@ func secondMaskCreatureMission(mask bool) secondMissionContent {
 	}
 	p[29], p[54], p[55] = 0x47, 30, secondSpellServerID
 	if mask {
-		p[56] = int32(secondMaskSpells | 1<<29)
+		p[56] = int32(secondMaskSpells)
 		copy(p[57:], secondMaskSkills[:])
 	}
 	c.creatures = map[int]dbEntry{2: {name: "Mask_Dragon", params: p}}

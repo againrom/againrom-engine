@@ -40,7 +40,7 @@ func TestSourceBookCanonicalPresenceAndAtomicDecode(t *testing.T) {
 	base := 34 + 3*int(binary.LittleEndian.Uint32(before[30:34])) + 341
 	for _, at := range []int{base, base + 5} {
 		bad := bytes.Clone(before)
-		bad[at] = 3 // invalid tag or parameters on the unlearned second slot
+		bad[at] = 9 // invalid tag or parameters on the unlearned second slot
 		if err := w.UnmarshalBinary(bad); err == nil {
 			t.Fatal("malformed instance accepted")
 		}

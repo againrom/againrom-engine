@@ -32,7 +32,7 @@ func RestoreBookMode(book Spellbook, known uint32, mode BookState, anchor *[32]b
 		book = Spellbook{}
 	}
 	known |= extra
-	if book.State != BookLegacy && known & ^uint32(0x1ffffffe) != 0 {
+	if book.State != BookLegacy && known & ^bookIDMask != 0 {
 		if book.HasInstances() {
 			book.State = BookNativePresent
 		} else {

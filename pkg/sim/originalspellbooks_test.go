@@ -164,16 +164,16 @@ func TestImportOriginalExplicitEmptyBookReplacesTheClassBook(t *testing.T) {
 func TestImportOriginalBookPastItsSlotsNeedsATableSpell(t *testing.T) {
 	book := Spellbook{State: BookNativePresent}
 	book.Slots[23] = BookSpell{Range: 7, ManaCost: 5}
-	known := uint32(1<<24 | 1<<29)
+	known := uint32(1<<24 | 1<<30)
 	for _, tc := range []struct {
 		name   string
 		spells []SpellRule
 		known  uint32
 		ok     bool
 	}{
-		{"table spell", []SpellRule{{ID: 24}, {ID: 29}}, known, true},
+		{"table spell", []SpellRule{{ID: 24}, {ID: 30}}, known, true},
 		{"no table spell", []SpellRule{{ID: 24}}, known, false},
-		{"spell zero", []SpellRule{{ID: 24}, {ID: 29}}, known | 1, false},
+		{"spell zero", []SpellRule{{ID: 24}, {ID: 30}}, known | 1, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := spWorld(t, 1105, tc.spells, spMage(0, 2, 2, 30, 50, 17, 1<<24))

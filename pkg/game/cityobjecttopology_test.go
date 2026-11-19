@@ -336,8 +336,8 @@ func cityTopologyRegistry() (*sim.SavedObjects, []cityActorEntityBinding) {
 		Containers: []sim.SavedObjectContainer{{Owner: pack, Present: true, Items: []sim.SavedObjectID{2, 1, 0, 2}}},
 	}
 	actors := []cityActorEntityBinding{
-		{Entity: 20, PartyID: "joined", Books: [28]sim.SavedObjectID{6}},
-		{Entity: 10, PartyID: "hero", Books: [28]sim.SavedObjectID{6, 0, 7}},
+		{Entity: 20, PartyID: "joined", Books: [sim.BookWireSlots]sim.SavedObjectID{6}},
+		{Entity: 10, PartyID: "hero", Books: [sim.BookWireSlots]sim.SavedObjectID{6, 0, 7}},
 	}
 	return r, actors
 }

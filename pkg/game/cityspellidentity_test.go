@@ -17,7 +17,7 @@ func TestCitySpellConstructorReservesOrdinaryAndRetainedKeys(t *testing.T) {
 			ItemRecords:   map[sim.SavedObjectID]sim.SavedItemObject{1: {ID: 1, Token: sim.SavedObjectToken{Identity: 0x01000001}}},
 			EffectRecords: map[sim.SavedObjectID]sim.SavedEffectObject{2: {ID: 2, Token: sim.SavedObjectToken{Identity: 0x01000002}}},
 			SpellRecords:  map[sim.SavedObjectID]sim.SavedSpellObject{4: {ID: 4, This: 0x01000003, Value: value}},
-			Books:         []cityBookTopology{{PartyID: []byte("first"), Slots: [28]sim.SavedObjectID{4, 5}}, {PartyID: []byte("second"), Slots: [28]sim.SavedObjectID{4, 6}}}},
+			Books:         []cityBookTopology{{PartyID: []byte("first"), Slots: [sim.BookWireSlots]sim.SavedObjectID{4, 5}}, {PartyID: []byte("second"), Slots: [sim.BookWireSlots]sim.SavedObjectID{4, 6}}}},
 		spells: map[sim.SavedObjectID]sim.SourceItemSpell{4: value, 5: value, 6: value},
 	}
 	raw := make([]byte, 9)

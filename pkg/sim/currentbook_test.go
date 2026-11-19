@@ -46,7 +46,7 @@ func TestCurrentBookModeFollowsOrdinaryValues(t *testing.T) {
 }
 
 func TestCurrentBookModeRetainsNativeMembershipAndConsumers(t *testing.T) {
-	extra := uint32(1 | 1<<29 | 1<<31)
+	extra := uint32(1 | 1<<30 | 1<<31)
 	ordinary := Spellbook{State: BookPresent}
 	ordinary.Slots[0] = BookSpell{Range: 19, Defensive: 2, ManaCost: 12345}
 	anchor := BookValueAnchor(ordinary, 2)
