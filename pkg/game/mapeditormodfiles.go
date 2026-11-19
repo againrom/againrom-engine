@@ -167,33 +167,27 @@ func (s *mapInspectionEdits) filesFields() []ui.InspectionField {
 // setFilesField makes one edit of the files page: the filter narrows the
 // list, an import or a removal is a draft step.
 func (s *mapInspectionEdits) setFilesField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.filesEdit, filesFilterKey)
+}
+
+func (s *mapInspectionEdits) filesEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
 	if key == filesFilterKey {
-		x.filesFilter = strings.TrimSpace(value)
+		x.filesFilter = value
 		return nil, nil
-	}
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	if isModAssetKey(key) {
-		d, _, err := s.setModAsset(key, value)
-		return d, err
 	}
 	if rel, ok := strings.CutPrefix(key, filesDropKey); ok {
 		held, ok := s.heldModFile(rel)
 		if !ok || !strings.HasPrefix(held, mod.FilesDir+"/") {
-			return nil, fmt.Errorf(x.word("editor.files.err.gone"), key)
+			return nil, x.modGone("editor.files.err.gone", key)
 		}
 		return s.editKind(func(k kindFiles) error { return k.drop(held) })
 	}
 	lang, address, ok := strings.Cut(key, ":")
 	if !ok {
-		return nil, fmt.Errorf(x.word("editor.files.err.gone"), key)
+		return nil, x.modGone("editor.files.err.gone", key)
 	}
-	_, d, err := s.ImportInstallFile(lang, address, strings.TrimSpace(value), false)
+	_, d, err := s.ImportInstallFile(lang, address, value, false)
 	return d, err
 }
 
@@ -206,14 +200,14 @@ func (s *mapInspectionEdits) ImportInstallFile(lang, address, source string, rep
 		return "", nil, err
 	}
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
+	if err := s.modPageGate(); err != nil {
 		return "", nil, err
 	}
 	if source == "" {
 		return "", nil, errors.New(x.word("editor.files.err.nofile"))
 	}
 	if !slices.Contains(mod.InstallLanguages(), lang) {
-		return "", nil, fmt.Errorf(x.word("editor.files.err.gone"), lang+":"+address)
+		return "", nil, x.modGone("editor.files.err.gone", lang+":"+address)
 	}
 	rel := mod.FilesDir + "/" + lang + "/" + address
 	check := func(data []byte) error {

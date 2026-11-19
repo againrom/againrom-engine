@@ -534,15 +534,12 @@ func (s *mapInspectionEdits) newItemRow(d *mod.ItemData, sets map[string]mod.Str
 // setItemsField makes one edit of the items page a draft step; a value the
 // items reader or the item layer refuses is refused in its words.
 func (s *mapInspectionEdits) setItemsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.itemsEdit)
+}
+
+func (s *mapInspectionEdits) itemsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.items.err.gone"), key)
+	gone := x.modGone("editor.items.err.gone", key)
 	install := x.installItems()
 	prompts := []string{itemsNewArmour, itemsNewWeapon, itemsNewChange, itemsNewMaterial}
 	if value == "0" && slices.Contains(prompts, key) {
@@ -907,7 +904,7 @@ func (s *mapInspectionEdits) writeItemsDraft(w *editorWorkspaceState, edit func(
 // it the sprite of the added row key, in one draft step through the one
 // file import.
 func (s *mapInspectionEdits) ImportItemSprite(key, source string, replace bool) (string, *ui.InspectionDocument, error) {
-	gone := fmt.Errorf(s.inspector.word("editor.items.err.gone"), key)
+	gone := s.inspector.modGone("editor.items.err.gone", key)
 	return s.importItemSprite(source, replace, func() (*ui.InspectionDocument, error) {
 		_, d, err := s.ImportItemSprite(key, source, true)
 		return d, err
@@ -945,7 +942,7 @@ func (s *mapInspectionEdits) importItemSprite(source string, replace bool, again
 // reader takes a sprite on an allowed pair only, and forbidding the pair
 // takes its sprite and name off.
 func (s *mapInspectionEdits) materialSprite(n, source string, replace bool) (*ui.InspectionDocument, error) {
-	gone := fmt.Errorf(s.inspector.word("editor.items.err.gone"), "material."+n+".sprite")
+	gone := s.inspector.modGone("editor.items.err.gone", "material."+n+".sprite")
 	_, d, err := s.importItemSprite(source, replace, func() (*ui.InspectionDocument, error) {
 		return s.materialSprite(n, source, true)
 	}, func(d *mod.ItemData, rel string) error {

@@ -19,44 +19,34 @@ const speakersAddKey = "newspeaker"
 // speakerName names a record where the page shows it.
 func speakerName(r mod.Speaker) string { return fmt.Sprintf("%s (%d)", r.Name, r.ID) }
 
-// speakersGate refuses a save while a speaker record of the project is one
-// the game cannot show, naming the record and what to do.
-func (s *mapInspectionEdits) speakersGate() error {
-	x := s.inspector
-	d := s.workspace.Project
-	if d == nil {
-		return nil
-	}
-	if _, ok := d.Files[mod.SpeakersFile]; !ok {
-		return nil
-	}
-	held, err := s.heldRows(d, nil, mod.SpeakersFile)
-	if err != nil {
-		return fmt.Errorf(x.word("editor.speakers.err.save"), mod.SpeakersFile, err)
-	}
-	for _, r := range held.Speakers.Speakers {
-		if r.Off {
-			continue
-		}
-		var problem string
-		switch {
-		case r.Name == "":
-			problem = x.word("editor.speakers.err.noname")
-		case len(r.PictureBytes) == 0:
-			problem = x.word("editor.speakers.err.nopicture")
-		default:
-			if _, err := decodeSpeakerPicture(r.PictureBytes); err != nil {
-				problem = x.inLanguage(err).Error()
-			} else if _, err := encodeSaveLabel(r.Name, x.speakerSelector()); err != nil {
-				problem = fmt.Sprintf(x.word("editor.speaker.err.undrawable"), r.Name)
+// speakersRows is the save gate of the speakers file: a speaker record the
+// game cannot show is refused, naming the record and what to do.
+var speakersRows = modRowsPage{save: "editor.speakers.err.save", rel: mod.SpeakersFile,
+	check: func(s *mapInspectionEdits, held mod.Data) error {
+		x := s.inspector
+		for _, r := range held.Speakers.Speakers {
+			if r.Off {
+				continue
+			}
+			var problem string
+			switch {
+			case r.Name == "":
+				problem = x.word("editor.speakers.err.noname")
+			case len(r.PictureBytes) == 0:
+				problem = x.word("editor.speakers.err.nopicture")
+			default:
+				if _, err := decodeSpeakerPicture(r.PictureBytes); err != nil {
+					problem = x.inLanguage(err).Error()
+				} else if _, err := encodeSaveLabel(r.Name, x.speakerSelector()); err != nil {
+					problem = fmt.Sprintf(x.word("editor.speaker.err.undrawable"), r.Name)
+				}
+			}
+			if problem != "" {
+				return fmt.Errorf(x.word("editor.speakers.err.save"), speakerName(r), problem)
 			}
 		}
-		if problem != "" {
-			return fmt.Errorf(x.word("editor.speakers.err.save"), speakerName(r), problem)
-		}
-	}
-	return nil
-}
+		return nil
+	}}
 
 // speakersFields is W's Speakers page: the Add button, then each record's
 // name, picture and removal.
@@ -110,25 +100,17 @@ func (s *mapInspectionEdits) editSpeakers(w *editorWorkspaceState, edit func(*mo
 
 // setSpeakersField makes one edit of the Speakers page a draft step.
 func (s *mapInspectionEdits) setSpeakersField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.speakersEdit)
+}
+
+func (s *mapInspectionEdits) speakersEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	if msg := x.modContextRefusal(); msg != "" {
-		return nil, errors.New(msg)
-	}
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.speakers.err.gone"), key)
+	gone := x.modGone("editor.speakers.err.gone", key)
 	if key == speakersAddKey {
 		return s.addSpeakerFrom(value)
 	}
-	kind, rest, _ := strings.Cut(key, ".")
-	index, field, _ := strings.Cut(rest, ".")
-	i, err := strconv.Atoi(index)
-	if err != nil || i < 0 || kind != "speaker" {
+	kind, i, field, ok := modRowKey(key)
+	if !ok || kind != "speaker" {
 		return nil, gone
 	}
 	if field == "picture" {

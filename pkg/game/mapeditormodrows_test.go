@@ -113,7 +113,7 @@ func TestModSettingsPageEditsSettings(t *testing.T) {
 			if got[0].Kind != mod.KindChoice || got[0].Default.Str != "fast" || len(got[0].Choices) != 2 || got[0].Labels["ru"] != "Скорость" {
 				t.Fatalf("the changed row: %+v", got[0])
 			}
-			if err := s.settingsGate(); err != nil {
+			if err := s.modRowsGate(settingsRows); err != nil {
 				t.Fatal(err)
 			}
 			parsed, err := mod.ParseSettings(s.workspace.Project.Files[mod.SettingsName])
@@ -143,11 +143,11 @@ func TestModSettingsPageKeepsFileAndGatesSave(t *testing.T) {
 	if got := string(s.workspace.Project.Files[mod.SettingsName]); got != src {
 		t.Fatalf("no-change edits wrote %q", got)
 	}
-	if err := s.settingsGate(); err != nil {
+	if err := s.modRowsGate(settingsRows); err != nil {
 		t.Fatal(err)
 	}
 	s.workspace.Project.Files[mod.SettingsName] = []byte(strings.Replace(src, "default = 3", "default = 30", 1))
-	if err := s.settingsGate(); err == nil || !strings.Contains(err.Error(), "speed") {
+	if err := s.modRowsGate(settingsRows); err == nil || !strings.Contains(err.Error(), "speed") {
 		t.Fatalf("the gate: %v", err)
 	}
 }
@@ -182,7 +182,7 @@ func TestModScreensPageEditsScreens(t *testing.T) {
 					t.Fatalf("texts of %s: %v %v", l, sets.Strings[l], err)
 				}
 			}
-			if err := s.screensGate(); err != nil {
+			if err := s.modRowsGate(screensRows); err != nil {
 				t.Fatal(err)
 			}
 			pageStep(t, s, ui.ModScreensScope, "screen.0.place", "2")
@@ -228,7 +228,7 @@ func TestModScreensPageKeepsFileSlotsAndGatesSave(t *testing.T) {
 	if got := string(s.workspace.Project.Files[mod.ScreensFile]); got != src {
 		t.Fatalf("no-change edits wrote %q", got)
 	}
-	if err := s.screensGate(); err != nil {
+	if err := s.modRowsGate(screensRows); err != nil {
 		t.Fatal(err)
 	}
 	pageStep(t, s, ui.ModScreensScope, screensAddKey, "")
@@ -239,7 +239,7 @@ func TestModScreensPageKeepsFileSlotsAndGatesSave(t *testing.T) {
 	pageRefused(t, s, ui.ModScreensScope, "screen.1.place", "1", "slots")
 	delete(s.workspace.Project.Files, mod.StringsFile("ru"))
 	s.workspace.Project.Files[mod.StringsFile("en")] = []byte("t = \"Title\"\nm = \"Menu\"\n")
-	if err := s.screensGate(); err == nil || !strings.Contains(err.Error(), "about") || !strings.Contains(err.Error(), "\"p\"") {
+	if err := s.modRowsGate(screensRows); err == nil || !strings.Contains(err.Error(), "about") || !strings.Contains(err.Error(), "\"p\"") {
 		t.Fatalf("the gate: %v", err)
 	}
 }
@@ -300,7 +300,7 @@ func TestModSpeakersPageEditsSpeakers(t *testing.T) {
 				t.Fatalf("the changed row: %+v", got[0])
 			}
 			pageRefused(t, s, ui.ModSpeakersScope, "speaker.0.name", "", "")
-			if err := s.speakersGate(); err != nil {
+			if err := s.modRowsGate(speakersRows); err != nil {
 				t.Fatal(err)
 			}
 			if p := pageField(t, s, ui.ModSpeakersScope, "speaker.0.name"); p.TextValue != "Karl" {

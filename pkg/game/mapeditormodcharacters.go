@@ -132,18 +132,15 @@ func (s *mapInspectionEdits) charactersFields() []ui.InspectionField {
 }
 
 func (s *mapInspectionEdits) setCharactersField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
-	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, func(k, _ string) (*ui.InspectionDocument, error) { return s.charactersEdit(k, value) })
+}
+
+func (s *mapInspectionEdits) charactersEdit(key, value string) (*ui.InspectionDocument, error) {
 	if key == "begin" || key == "cancel" {
 		s.characterAdding = key == "begin"
 		return nil, nil
 	}
-	gone := errors.New(x.word("editor.characters.err.gone"))
+	gone := s.inspector.modGone("editor.characters.err.gone")
 	doc, err := s.editKind(func(k kindFiles) error {
 		return k.editRows(s.characterNames, characterFiles(), func(rows *mod.Data) error {
 			return s.editCharacters(k, &rows.Characters, rows.Strings, key, value, gone)

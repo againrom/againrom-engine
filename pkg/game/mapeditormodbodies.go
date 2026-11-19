@@ -424,7 +424,7 @@ func (s *mapInspectionEdits) importBodyPicture(i int, light bool, source string,
 		var left []string
 		err := s.editBodies(w, func(b *mod.BodyData) error {
 			if i < 0 || i >= len(b.Bodies) || b.Bodies[i].Off {
-				return fmt.Errorf(x.word("editor.bodies.err.gone"), strconv.Itoa(i))
+				return x.modGone("editor.bodies.err.gone", strconv.Itoa(i))
 			}
 			path := &b.Bodies[i].Heroes
 			if light {
@@ -471,26 +471,16 @@ func dropSheets(k kindFiles, left []string, keep string) error {
 // setBodiesField makes one edit of the bodies page a draft step; a value the
 // reader refuses is refused in the page's words.
 func (s *mapInspectionEdits) setBodiesField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
-	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	if isModAssetKey(key) {
-		d, _, err := s.setModAsset(key, value)
-		return d, err
-	}
-	value = strings.TrimSpace(value)
+	return s.modPageEdit(key, value, s.bodiesEdit)
+}
+
+func (s *mapInspectionEdits) bodiesEdit(key, value string) (*ui.InspectionDocument, error) {
 	if key == bodiesAddKey {
 		return s.addBody(value, false)
 	}
-	gone := fmt.Errorf(x.word("editor.bodies.err.gone"), key)
-	kind, rest, _ := strings.Cut(key, ".")
-	index, field, _ := strings.Cut(rest, ".")
-	i, err := strconv.Atoi(index)
-	if key != bodiesWeaponKey && (err != nil || i < 0 || kind != "body" && kind != "weapon") {
+	gone := s.inspector.modGone("editor.bodies.err.gone", key)
+	kind, i, field, ok := modRowKey(key)
+	if key != bodiesWeaponKey && (!ok || kind != "body" && kind != "weapon") {
 		return nil, gone
 	}
 	if kind == "body" && (field == "picture" || field == "picturelight") {
@@ -564,7 +554,7 @@ func (s *mapInspectionEdits) editWeaponBody(b *mod.BodyData, i int, field, value
 func (s *mapInspectionEdits) editBody(b *mod.BodyData, i int, field, value string) ([]string, error) {
 	x := s.inspector
 	body := &b.Bodies[i]
-	gone := fmt.Errorf(x.word("editor.bodies.err.gone"), field)
+	gone := x.modGone("editor.bodies.err.gone", field)
 	if field == "remove" {
 		var users []string
 		for _, w := range b.Weapons {

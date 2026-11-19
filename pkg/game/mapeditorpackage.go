@@ -230,8 +230,8 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", err
 	}
-	for _, gate := range []func() error{s.companionsGate, s.screensGate, s.settingsGate, s.speakersGate} {
-		if err := gate(); err != nil {
+	for _, page := range []modRowsPage{companionsRows, screensRows, settingsRows, speakersRows} {
+		if err := s.modRowsGate(page); err != nil {
 			return "", err
 		}
 	}

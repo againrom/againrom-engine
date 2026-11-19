@@ -285,13 +285,11 @@ func (s *mapInspectionEdits) textsFields() []ui.InspectionField {
 // the loader refuses is refused in its words, and a key a record cites is
 // renamed through the mission rows or refused, naming what cites it.
 func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, func(k, _ string) (*ui.InspectionDocument, error) { return s.textsEdit(k, value) })
+}
+
+func (s *mapInspectionEdits) textsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
 	d := s.workspace.Project
 	if d == nil {
 		d = x.mod.document()
@@ -302,7 +300,7 @@ func (s *mapInspectionEdits) setTextsField(key, value string) (*ui.InspectionDoc
 	}
 	sets := read.Strings
 	held := func(k string) bool { return slices.Contains(textKeys(sets), k) }
-	gone := fmt.Errorf(x.word("editor.texts.err.gone"), key)
+	gone := x.modGone("editor.texts.err.gone", key)
 	switch {
 	case key == textsNewKey:
 		places := s.newTextPlaces(d)
@@ -440,7 +438,7 @@ func (s *mapInspectionEdits) pickMissionText(w *editorWorkspaceState, key, value
 	keys := textKeys(sets)
 	n, err := strconv.Atoi(strings.TrimSpace(value))
 	if err != nil || n < missionTextNew || n > len(keys) {
-		return fmt.Errorf(x.word("editor.texts.err.gone"), value)
+		return x.modGone("editor.texts.err.gone", value)
 	}
 	r, title := &d.Missions[d.Selected], key == missionTitleKey
 	k := ""

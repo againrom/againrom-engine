@@ -15,21 +15,9 @@ import (
 // settingsAddKey is the Settings page's adder.
 const settingsAddKey = "newsetting"
 
-// settingsGate refuses a save while the project's settings file is one the
-// game cannot read, naming the file and the row the reader names.
-func (s *mapInspectionEdits) settingsGate() error {
-	d := s.workspace.Project
-	if d == nil {
-		return nil
-	}
-	if _, ok := d.Files[mod.SettingsName]; !ok {
-		return nil
-	}
-	if _, err := s.heldRows(d, nil, mod.SettingsName); err != nil {
-		return fmt.Errorf(s.inspector.word("editor.settings.err.save"), mod.SettingsName, err)
-	}
-	return nil
-}
+// settingsRows is the save gate of the settings file: a file the game cannot
+// read is refused, naming the file and the row the reader names.
+var settingsRows = modRowsPage{save: "editor.settings.err.save", rel: mod.SettingsName}
 
 // settingsFields is W's Settings page: the Add button, then each setting's
 // label per language, type, default, bounds or choices, and removal.
@@ -101,24 +89,19 @@ func (s *mapInspectionEdits) editSettings(w *editorWorkspaceState, edit func(*mo
 
 // setSettingsField makes one edit of the Settings page a draft step.
 func (s *mapInspectionEdits) setSettingsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.settingsEdit)
+}
+
+func (s *mapInspectionEdits) settingsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.settings.err.gone"), key)
+	gone := x.modGone("editor.settings.err.gone", key)
 	if key == settingsAddKey {
 		return s.editKind(func(k kindFiles) error {
 			return s.editSettings(k.w, func(d *mod.SettingData) error { s.addSetting(d); return nil })
 		})
 	}
-	kind, rest, _ := strings.Cut(key, ".")
-	index, field, _ := strings.Cut(rest, ".")
-	i, err := strconv.Atoi(index)
-	if err != nil || i < 0 || kind != "setting" {
+	kind, i, field, ok := modRowKey(key)
+	if !ok || kind != "setting" {
 		return nil, gone
 	}
 	return s.editKind(func(k kindFiles) error {

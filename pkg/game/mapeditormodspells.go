@@ -400,15 +400,15 @@ func spellRowText(d mod.SpellData, name, asGame string) string {
 // Remove button and each field are one draft step of the spells file,
 // refused where the game's rule for a mod's book or a row refuses it.
 func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.spellsEdit, spellsGridKey, spellsGlobalsKey)
+}
+
+func (s *mapInspectionEdits) spellsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
 	base := x.contextBase().table
 	g := mapload.SpellGameOf(base)
 	catalog := rules.SpellCatalog()
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.spells.err.gone"), value)
+	gone := x.modGone("editor.spells.err.gone", value)
 	project := s.workspace.Project
 	if project == nil {
 		project = x.mod.document()
@@ -444,9 +444,6 @@ func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDo
 	case spellsGlobalsKey:
 		s.spellGlobals = !s.spellGlobals
 		return nil, nil
-	}
-	if err := x.modWritable(); err != nil {
-		return nil, err
 	}
 	var touched []string
 	var edit func(d *mod.SpellData) error

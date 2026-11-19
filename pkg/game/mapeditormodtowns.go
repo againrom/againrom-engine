@@ -277,21 +277,20 @@ func (s *mapInspectionEdits) offerOffFields(r town.OfferRow) []ui.InspectionFiel
 	return []ui.InspectionField{{Key: townsOfferName(town.TavernTable.Key(r)) + "drop", Label: x.word("editor.towns.offer.on"), Meaning: x.word("editor.towns.offer.on.hint"), Action: true, Column: 1, Group: group}}
 }
 
-// setTownsField makes one edit of the Towns page one draft step; the draft
+// setTownsField makes one edit of the Towns page one draft step, the value
+// untrimmed (a talk text keeps its spaces); the draft
 // passes the game's check or is refused with its words.
 func (s *mapInspectionEdits) setTownsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, func(k, _ string) (*ui.InspectionDocument, error) { return s.townsEdit(k, value) })
+}
+
+func (s *mapInspectionEdits) townsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
 	book := s.townsBook()
 	if book == nil || s.workspace.Project == nil {
-		return nil, errors.New(x.word("editor.towns.err.gone"))
+		return nil, x.modGone("editor.towns.err.gone")
 	}
-	gone := errors.New(x.word("editor.towns.err.gone"))
+	gone := x.modGone("editor.towns.err.gone")
 	switch {
 	case key == "add":
 		if value == "0" || value == "" {
@@ -372,7 +371,7 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 	d := w.Project
 	base, now, found, inGame := townValues(book, d, id)
 	if !inGame && found == nil {
-		return errors.New(x.word("editor.towns.err.gone"))
+		return x.modGone("editor.towns.err.gone")
 	}
 	i := slices.IndexFunc(d.TownRecords, func(r mod.TownRecord) bool { return r.Entry.ID == id })
 	rec := mod.TownRecord{Source: mod.Source{Mod: w.Package.ID, File: mod.TownsFile}, Entry: town.Entry{ID: id}}
@@ -414,7 +413,7 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 	case "opens":
 		n, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil || n < 0 {
-			return errors.New(x.word("editor.towns.err.gone"))
+			return x.modGone("editor.towns.err.gone")
 		}
 		rec.Entry.OpensAfter = n
 		set("opens-after", n != base.OpensAfter)
@@ -444,7 +443,7 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 		rec.Entry.MapPoint = town.MapPoint{Point: []int{p.X, p.Y}, Rect: []int{max(0, p.X-wd/2), max(0, p.Y-ht/2), wd, ht}}
 		set("map-point", true)
 	default:
-		return errors.New(x.word("editor.towns.err.gone"))
+		return x.modGone("editor.towns.err.gone")
 	}
 	if !rec.Off {
 		rec.Fields = slices.DeleteFunc(rec.Fields, func(f mod.PatchField) bool { return f.Name == mod.OffField })

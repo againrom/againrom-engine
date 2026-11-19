@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"strings"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
@@ -70,28 +69,18 @@ func (x *MapInspector) joinProblem(j mod.CompanionJoin) string {
 	return ""
 }
 
-// companionsGate refuses a save while a join condition of the project is one
-// the campaign cannot run, naming the row.
-func (s *mapInspectionEdits) companionsGate() error {
-	x := s.inspector
-	d := s.workspace.Project
-	if d == nil {
-		return nil
-	}
-	if _, ok := d.Files[mod.CompanionsFile]; !ok {
-		return nil
-	}
-	held, err := s.heldRows(d, nil, mod.CompanionsFile)
-	if err != nil {
-		return fmt.Errorf(x.word("editor.companions.err.save"), mod.CompanionsFile, err)
-	}
-	for _, j := range held.Companions.Joins {
-		if p := x.joinProblem(j); p != "" {
-			return fmt.Errorf(x.word("editor.companions.err.save"), s.joinName(j), p)
+// companionsRows is the save gate of the companions file: a join condition
+// the campaign cannot run is refused, naming the row.
+var companionsRows = modRowsPage{save: "editor.companions.err.save", rel: mod.CompanionsFile,
+	check: func(s *mapInspectionEdits, held mod.Data) error {
+		x := s.inspector
+		for _, j := range held.Companions.Joins {
+			if p := x.joinProblem(j); p != "" {
+				return fmt.Errorf(x.word("editor.companions.err.save"), s.joinName(j), p)
+			}
 		}
-	}
-	return nil
-}
+		return nil
+	}}
 
 // joinName names a condition by its companion and chapter.
 func (s *mapInspectionEdits) joinName(j mod.CompanionJoin) string {
@@ -173,24 +162,19 @@ func (s *mapInspectionEdits) editJoins(w *editorWorkspaceState, edit func(*mod.C
 
 // setCompanionsField makes one edit of the Companions page a draft step.
 func (s *mapInspectionEdits) setCompanionsField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.companionsEdit)
+}
+
+func (s *mapInspectionEdits) companionsEdit(key, value string) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.companions.err.gone"), key)
+	gone := x.modGone("editor.companions.err.gone", key)
 	if key == companionsAddKey {
 		return s.editKind(func(k kindFiles) error {
 			return s.editJoins(k.w, func(d *mod.CompanionData) error { return s.addJoin(d) })
 		})
 	}
-	kind, rest, _ := strings.Cut(key, ".")
-	index, field, _ := strings.Cut(rest, ".")
-	i, err := strconv.Atoi(index)
-	if err != nil || i < 0 || kind != "join" {
+	kind, i, field, ok := modRowKey(key)
+	if !ok || kind != "join" {
 		return nil, gone
 	}
 	return s.editKind(func(k kindFiles) error {

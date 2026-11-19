@@ -132,9 +132,10 @@ const terrainGridKey = "grounds"
 // setTerrainField makes one edit of the terrain page a draft step; a value
 // the loader refuses is refused in its words.
 func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
+	return s.modPageEdit(key, value, s.terrainEdit, terrainGridKey)
+}
+
+func (s *mapInspectionEdits) terrainEdit(key, value string) (*ui.InspectionDocument, error) {
 	if key == terrainGridKey {
 		g, err := strconv.Atoi(value)
 		if err != nil {
@@ -144,13 +145,6 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 		return nil, nil
 	}
 	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	if isModAssetKey(key) {
-		d, _, err := s.setModAsset(key, value)
-		return d, err
-	}
 	held, err := s.heldRows(s.workspace.Project, nil, mod.TerrainFile)
 	if err != nil {
 		return nil, err
@@ -162,7 +156,7 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 	number, field, _ := strings.Cut(key, ".")
 	g, err := strconv.Atoi(number)
 	if _, held := rows.Group(g); err != nil || !held {
-		return nil, fmt.Errorf(x.word("editor.terrain.err.gone"), key)
+		return nil, x.modGone("editor.terrain.err.gone", key)
 	}
 	var drop []string
 	if field == "remove" {
@@ -181,7 +175,7 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 		case "kind":
 			n, err := strconv.Atoi(strings.TrimSpace(value))
 			if err != nil || n < 1 || n > len(mod.TerrainKinds) {
-				return fmt.Errorf(x.word("editor.terrain.err.gone"), key)
+				return x.modGone("editor.terrain.err.gone", key)
 			}
 			r.Class = uint8(n)
 		case "name":
@@ -189,7 +183,7 @@ func (s *mapInspectionEdits) setTerrainField(key, value string) (*ui.InspectionD
 		case "remove":
 			t.Groups = slices.Delete(t.Groups, i, i+1)
 		default:
-			return fmt.Errorf(x.word("editor.terrain.err.gone"), key)
+			return x.modGone("editor.terrain.err.gone", key)
 		}
 		return nil
 	}, drop, nil)

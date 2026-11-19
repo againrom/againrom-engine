@@ -52,46 +52,38 @@ func screenPlace(s mod.Screen) int {
 // setScreenPlace makes s open from the menu screenPlaces[n] names.
 func setScreenPlace(s *mod.Screen, n int) { s.Main, s.Game = n != 1, n != 0 }
 
-// screensGate refuses a save while a screen of the project is one the game
-// cannot show, naming the screen: a text key with no text, a text too long
+// screensRows is the save gate of the screens file: a screen the game cannot
+// show is refused, naming the screen: a text key with no text, a text too long
 // for its place, or more entries than a menu has slots.
-func (s *mapInspectionEdits) screensGate() error {
-	x := s.inspector
-	d := s.workspace.Project
-	if d == nil {
-		return nil
-	}
-	src, ok := d.Files[mod.ScreensFile]
-	if !ok {
-		return nil
-	}
-	held, err := s.heldRows(d, s.screenStructure, mod.ScreensFile)
-	if err != nil {
-		return fmt.Errorf(x.word("editor.screens.err.save"), mod.ScreensFile, err)
-	}
-	for _, l := range textLanguages() {
-		look, err := d.textLookup(l)
-		if err != nil {
-			return err
-		}
-		_, err = mod.ParseScreens(x.mod.id, mod.ScreensFile, src, look, l)
-		if err == nil {
-			continue
-		}
-		name, msg := mod.ScreensFile, err.Error()
-		var item *mod.ItemFileError
-		if errors.As(err, &item) {
-			name, msg = mod.ScreensFile, item.Msg
-			for _, sc := range held.Screens.Screens {
-				if sc.Line <= item.Line {
-					name = sc.Key
+var screensRows = modRowsPage{save: "editor.screens.err.save", rel: mod.ScreensFile,
+	text: func(s *mapInspectionEdits) rowText { return s.screenStructure },
+	check: func(s *mapInspectionEdits, held mod.Data) error {
+		x := s.inspector
+		d := s.workspace.Project
+		src := d.Files[mod.ScreensFile]
+		for _, l := range textLanguages() {
+			look, err := d.textLookup(l)
+			if err != nil {
+				return err
+			}
+			_, err = mod.ParseScreens(x.mod.id, mod.ScreensFile, src, look, l)
+			if err == nil {
+				continue
+			}
+			name, msg := mod.ScreensFile, err.Error()
+			var item *mod.ItemFileError
+			if errors.As(err, &item) {
+				name, msg = mod.ScreensFile, item.Msg
+				for _, sc := range held.Screens.Screens {
+					if sc.Line <= item.Line {
+						name = sc.Key
+					}
 				}
 			}
+			return fmt.Errorf(x.word("editor.screens.err.save"), name, fmt.Sprintf(x.word("editor.screens.err.lang"), languageLabel(l), msg))
 		}
-		return fmt.Errorf(x.word("editor.screens.err.save"), name, fmt.Sprintf(x.word("editor.screens.err.lang"), languageLabel(l), msg))
-	}
-	return nil
-}
+		return nil
+	}}
 
 // screenKeyChoices are the choices of a text key of the strings files sets
 // hold: none (when offered), each key by its text, then cur when it is none
@@ -214,25 +206,19 @@ func (s *mapInspectionEdits) screensFields() []ui.InspectionField {
 
 // setScreensField makes one edit of the Screens page a draft step.
 func (s *mapInspectionEdits) setScreensField(key, value string) (*ui.InspectionDocument, error) {
-	if err := s.prepareWorkspace(); err != nil {
-		return nil, err
-	}
-	x := s.inspector
-	if err := x.modWritable(); err != nil {
-		return nil, err
-	}
-	value = strings.TrimSpace(value)
-	gone := fmt.Errorf(x.word("editor.screens.err.gone"), key)
+	return s.modPageEdit(key, value, s.screensEdit)
+}
+
+func (s *mapInspectionEdits) screensEdit(key, value string) (*ui.InspectionDocument, error) {
+	gone := s.inspector.modGone("editor.screens.err.gone", key)
 	return s.editKind(func(k kindFiles) error {
 		return k.editRows(s.screenStructure, screenFiles(), func(d *mod.Data) error {
 			switch key {
 			case screensAddKey, screensActionKey:
 				return s.addScreen(d, key == screensActionKey)
 			}
-			kind, rest, _ := strings.Cut(key, ".")
-			index, field, _ := strings.Cut(rest, ".")
-			i, err := strconv.Atoi(index)
-			if err != nil || i < 0 || kind != "screen" || i >= len(d.Screens.Screens) {
+			kind, i, field, ok := modRowKey(key)
+			if !ok || kind != "screen" || i >= len(d.Screens.Screens) {
 				return gone
 			}
 			return s.editScreen(d, i, field, value, gone)

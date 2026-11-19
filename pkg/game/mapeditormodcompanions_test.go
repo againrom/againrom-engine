@@ -124,11 +124,11 @@ func TestModCompanionsPageOffersCampaignChoicesAndGatesSave(t *testing.T) {
 		t.Fatalf("a new chapter keeps a conversation it lacks: %+v", got)
 	}
 	setJoin(t, s, "join.0.talk", "99")
-	if err := s.companionsGate(); err == nil || !strings.Contains(err.Error(), "chapter 31") || !strings.Contains(err.Error(), "99") {
+	if err := s.modRowsGate(companionsRows); err == nil || !strings.Contains(err.Error(), "chapter 31") || !strings.Contains(err.Error(), "99") {
 		t.Fatalf("the gate: %v", err)
 	}
 	setJoin(t, s, "join.0.talk", "7")
-	if err := s.companionsGate(); err != nil {
+	if err := s.modRowsGate(companionsRows); err != nil {
 		t.Fatal(err)
 	}
 }
