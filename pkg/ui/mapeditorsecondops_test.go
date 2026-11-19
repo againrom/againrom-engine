@@ -43,3 +43,27 @@ func TestSecondGameOperationNames(t *testing.T) {
 		t.Errorf("default profile %+v", p)
 	}
 }
+
+// On a second-game map only the parameter fields of a decoded operation are
+// editable; the label and the operation are shown, and every field of an
+// operation no claim decodes is shown.
+func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
+	e := newMapEditorFixture(t)
+	e.doc.Script = &InspectionScriptModel{Limits: scriptprofile.Second, Catalog: InspectionScriptCatalog{
+		Actions: []InspectionScriptOperation{{Opcode: 3, Named: true}},
+	}}
+	fields := func() []InspectionField {
+		return []InspectionField{{Key: "name"}, {Key: "opcode"}, {Key: "value0"}, {Key: "cell1"}}
+	}
+	for _, c := range []struct {
+		opcode uint32
+		want   []bool
+	}{{3, []bool{true, true, false, false}}, {7, []bool{true, true, true, true}}} {
+		v := scriptView{node: &InspectionScriptNode{Opcode: c.opcode}}
+		for i, f := range e.secondNodeFields(v, fields()) {
+			if f.ReadOnly != c.want[i] {
+				t.Errorf("operation %d field %s: read-only %v, want %v", c.opcode, f.Key, f.ReadOnly, c.want[i])
+			}
+		}
+	}
+}

@@ -351,7 +351,38 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 		extended := e.doc.Script != nil && e.doc.Script.Extended
 		return e.triggerFields(t, len(t.Left), len(t.Acts), extended)
 	}
-	return e.nodeFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+	fields := e.nodeFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+	if e.secondScript() {
+		fields = e.secondNodeFields(v, fields)
+	}
+	return fields
+}
+
+// secondScript reports that the shown map's script is the second game's.
+func (e *MapEditor) secondScript() bool {
+	return e.doc != nil && e.doc.Script != nil && e.doc.Script.Profile().Ops == scriptprofile.OpsSecond
+}
+
+// secondNodeFields keeps the parameter fields of a decoded operation
+// editable. The label, the operation and the trigger row are shown only, and
+// so is every field of an operation no claim decodes.
+func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []InspectionField {
+	decoded := e.doc.Script.Catalog.named(v.condition, v.node.Opcode)
+	for i := range fields {
+		fields[i].ReadOnly = !decoded || !strings.HasPrefix(fields[i].Key, "value") && !strings.HasPrefix(fields[i].Key, "cell")
+	}
+	return fields
+}
+
+// readOnlyValue is the text a shown-only field of a node popup carries.
+func (e *MapEditor) readOnlyValue(v scriptView, f InspectionField, buf string) string {
+	switch {
+	case f.Key == "opcode":
+		return e.opName(v.condition, v.node.Opcode)
+	case len(f.Choices) > 0:
+		return choiceText(f, buf)
+	}
+	return buf
 }
 
 // triggerFields are trigger t's fields spelling pairs pairs and acts action
@@ -677,14 +708,21 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			add(popupRow{Kind: popupHeading, Label: e.word("editor.node.operation")}, -1)
 			row.Label = ""
 		}
-		add(row, i, acts...)
-		e.parameterRows(i, &s, add, text)
+		if f.ReadOnly {
+			add(popupRow{Kind: popupText, Label: strings.TrimSpace(row.Label + " " + e.readOnlyValue(v, f, o.buf[i]))}, -1)
+		} else {
+			add(row, i, acts...)
+			e.parameterRows(i, &s, add, text)
+		}
 		if f.Key == "opcode" && e.doc.Script.Catalog.againrom(v.condition, v.node.Opcode) {
 			text(e.word("editor.node.againrom"), "warning")
 		}
 		if f.Key == "opcode" && len(o.fields) > 2 {
 			add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)
 		}
+	}
+	if e.secondScript() && !e.doc.Script.Catalog.named(v.condition, v.node.Opcode) {
+		text(e.word("editor.second.undecoded.reason"), "warning")
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
@@ -1090,7 +1128,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 	}
 	var values []InspectionFieldValue
 	for i, f := range o.fields {
-		if f.Key == nodeTriggerKey || o.buf[i] == fieldInput(f) && !(strings.HasPrefix(f.Key, "value") || strings.HasPrefix(f.Key, "cell")) {
+		if f.ReadOnly || f.Key == nodeTriggerKey || o.buf[i] == fieldInput(f) && !(strings.HasPrefix(f.Key, "value") || strings.HasPrefix(f.Key, "cell")) {
 			continue
 		}
 		switch {

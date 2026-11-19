@@ -141,7 +141,7 @@ func (e *MapEditor) listedToTrigger(id uint32, trigger int) string {
 // listedCondition reports a condition the Conditions list shows: no pair
 // names it and no variable is preset by it.
 func (e *MapEditor) listedCondition(v scriptView) bool {
-	return v.node != nil && v.condition && v.node.ID != 0 && slices.Contains(e.scriptSections()[2], v.node.Record)
+	return v.node != nil && v.condition && v.node.ID != 0 && !e.secondScript() && slices.Contains(e.scriptSections()[2], v.node.Record)
 }
 
 // triggerRowPlacing is what Apply does once the fields of v are written: a

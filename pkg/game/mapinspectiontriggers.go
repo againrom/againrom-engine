@@ -177,7 +177,8 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limi
 // the signatures the claims state.
 func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 	if limits.Ops == scriptprofile.OpsSecond {
-		// Signatures and parameter kinds are the first game's operations'.
+		// A parameter's kind is the type its node stores; the first game's
+		// message and variable arms are not the second game's.
 		family := func(condition bool) []ui.InspectionScriptOperation {
 			var out []ui.InspectionScriptOperation
 			for _, op := range mapload.ScriptOperationsIn(limits.Ops, condition) {
@@ -185,7 +186,13 @@ func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 			}
 			return out
 		}
-		return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false)}
+		return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false),
+			ParameterKind: func(_ bool, _ uint32, types [10]uint32, slot int) uint32 {
+				if types[slot] >= ui.ScriptVariableParameter {
+					return 0
+				}
+				return types[slot]
+			}}
 	}
 	family := func(condition bool) []ui.InspectionScriptOperation {
 		var out []ui.InspectionScriptOperation
