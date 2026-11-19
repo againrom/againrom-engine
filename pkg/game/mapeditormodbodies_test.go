@@ -86,6 +86,36 @@ func heldBodies(t *testing.T, s *mapInspectionEdits) mod.BodyData {
 	return d.Bodies
 }
 
+func TestModBodiesPageEmptyOffersWeaponBody(t *testing.T) {
+	_, s, folder := bodiesPage(t, "en")
+	before := tree(t, folder)
+	weapon, ok := bodyField(t, s, bodiesWeaponKey)
+	if !ok || len(weapon.Choices) != 4 {
+		t.Fatalf("the weapons offered: %+v", weapon.Choices)
+	}
+	setBody(t, s, bodiesWeaponKey, "3")
+	pick, ok := bodyField(t, s, "weapon.0.body")
+	if !ok || len(pick.Choices) < 2 {
+		t.Fatalf("the game bodies offered: %+v", pick.Choices)
+	}
+	other := pick.Choices[0].Value
+	if other == pick.Value {
+		other = pick.Choices[1].Value
+	}
+	setBody(t, s, "weapon.0.body", strconv.FormatInt(other, 10))
+	if w := heldBodies(t, s).Weapons; len(w) != 1 || w[0].Row != 3 || w[0].Body != pick.Choices[other-1].Label {
+		t.Fatalf("the weapon body: %+v", w)
+	}
+	for range 2 {
+		if _, err := s.Undo(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(heldBodies(t, s).Weapons) != 0 || !maps.Equal(tree(t, folder), before) {
+		t.Fatal("undo left a weapon body")
+	}
+}
+
 // The bodies page adds a body from a picture, sets its frames and timing,
 // gives a weapon that body, refuses to remove a body a weapon uses, and
 // every edit is one undo step that restores the files.
@@ -95,7 +125,7 @@ func TestModBodiesPageAddsBodiesAndGivesWeaponsTheirBody(t *testing.T) {
 			_, s, folder := bodiesPage(t, lang)
 			before := tree(t, folder)
 			fields := s.WorkspaceFields(ui.ModBodiesScope)
-			if len(fields) != 1 || fields[0].Key != bodiesAddKey || !fields[0].Action || len(fields[0].Pick) == 0 {
+			if len(fields) != 2 || fields[0].Key != bodiesAddKey || !fields[0].Action || len(fields[0].Pick) == 0 || fields[1].Key != bodiesWeaponKey {
 				t.Fatalf("the empty page holds %+v", fields)
 			}
 			setBody(t, s, bodiesAddKey, sheetFile(t, "Hammer Two.png", color.NRGBA{R: 0x30, G: 0x50, B: 0xc0, A: 0xff}))

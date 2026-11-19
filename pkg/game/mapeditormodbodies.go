@@ -201,9 +201,6 @@ func (s *mapInspectionEdits) bodiesFields() []ui.InspectionField {
 	}
 	out := []ui.InspectionField{{Key: bodiesAddKey, Label: x.word("editor.bodies.add"), Meaning: x.word("editor.bodies.add.help"), Action: true, Column: 1, Pick: []string{"png"}}}
 	bodies, weapons := held.Bodies.Bodies, held.Bodies.Weapons
-	if len(bodies) == 0 && len(weapons) == 0 {
-		return out
-	}
 	if rows := x.bodiesFreeRows(weapons); len(rows) > 0 {
 		pick := ui.InspectionField{Key: bodiesWeaponKey, Label: x.word("editor.bodies.weapon.add"), Meaning: x.word("editor.bodies.weapon.add.help"),
 			Choices: []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.bodies.weapon.choose"))}}}
