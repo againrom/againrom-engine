@@ -14,6 +14,9 @@ import (
 
 const cheatChatLimit = 256
 
+// cheatChatHistoryLimit is how many sent lines the session remembers.
+const cheatChatHistoryLimit = 50
+
 type cheatInputState struct {
 	chat     func(string)
 	alt      func(byte)
@@ -21,8 +24,13 @@ type cheatInputState struct {
 	viewer   *Viewer
 	open     bool
 	line     string
-	image    *ebiten.Image
-	overlay  textOverlay
+	// history is the session's sent lines, oldest first; pos indexes the
+	// recalled line (len(history) means the draft); draft is the typed line.
+	history []string
+	pos     int
+	draft   string
+	image   *ebiten.Image
+	overlay textOverlay
 }
 
 var altLetterKeys = [...]ebiten.Key{
@@ -100,6 +108,7 @@ func (a *App) stepCheatChat(in appInput) appInput {
 			return in
 		}
 		c.open, c.line, c.viewer = true, "", v
+		c.pos, c.draft = len(c.history), ""
 	} else if !in.Unfocused {
 		switch {
 		case in.Escape:
@@ -108,16 +117,51 @@ func (a *App) stepCheatChat(in appInput) appInput {
 			line := c.line
 			c.open, c.line = false, ""
 			if line != "" && c.chat != nil {
+				c.remember(line)
 				c.chat(line)
 			}
+		case in.Up || in.Down:
+			c.recall(in.Up)
 		default:
 			if !in.Viewer.Alt {
 				c.line = widgetkit.EditText(TextInputState{Text: c.line}, textInputKeys(in),
 					TextInputRules{AppendOnly: true, SplitLineBreaks: true, ByteLimit: cheatChatLimit}).Text
+				c.pos = len(c.history)
 			}
 		}
 	}
 	return in.passing(passCheatChat)
+}
+
+// remember keeps a sent line, once when it repeats the newest one.
+func (c *cheatInputState) remember(line string) {
+	if n := len(c.history); n > 0 && c.history[n-1] == line {
+		return
+	}
+	if len(c.history) == cheatChatHistoryLimit {
+		c.history = c.history[1:]
+	}
+	c.history = append(c.history, line)
+}
+
+// recall moves through the history; Down past the newest restores the draft.
+func (c *cheatInputState) recall(up bool) {
+	if c.pos == len(c.history) {
+		c.draft = c.line
+	}
+	switch {
+	case up && c.pos > 0:
+		c.pos--
+	case !up && c.pos < len(c.history):
+		c.pos++
+	default:
+		return
+	}
+	if c.pos == len(c.history) {
+		c.line = c.draft
+	} else {
+		c.line = c.history[c.pos]
+	}
 }
 
 func (a *App) cheatChatPicture() (*image.RGBA, image.Point) {

@@ -485,3 +485,48 @@ func TestCheatAltConsoleAndScreenshotUseMissionContext(t *testing.T) {
 		})
 	}
 }
+
+func TestCheatChatHistoryRecallsSessionLines(t *testing.T) {
+	a, _ := mkOnMap(t)
+	var chats []string
+	bind := func() { a.SetCheatCommands(func(line string) { chats = append(chats, line) }, nil) }
+	bind()
+	key := func(name string) {
+		t.Helper()
+		if err := a.HeadlessKey(name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, l := range []string{"#one", "#two", "#two", "#three"} {
+		key("enter")
+		if err := a.HeadlessType(l, false); err != nil {
+			t.Fatal(err)
+		}
+		key("enter")
+	}
+	key("enter")
+	key("enter") // an empty line is not remembered
+	// A map change closes the line and rebinds the command; the memory stays.
+	a.SetCheatCommands(nil, nil)
+	bind()
+	key("enter")
+	if err := a.HeadlessType("draft", false); err != nil {
+		t.Fatal(err)
+	}
+	state := func() string { line, _ := a.HeadlessChatState(); return line }
+	for _, want := range []string{"#three", "#two", "#one", "#one"} {
+		key("up")
+		if got := state(); got != want {
+			t.Fatalf("Up shows %q, want %q", got, want)
+		}
+	}
+	for _, want := range []string{"#two", "#three", "draft", "draft"} {
+		key("down")
+		if got := state(); got != want {
+			t.Fatalf("Down shows %q, want %q", got, want)
+		}
+	}
+	if len(chats) != 4 || len(a.cheatInput.history) != 3 {
+		t.Fatalf("sent %v, history %v", chats, a.cheatInput.history)
+	}
+}

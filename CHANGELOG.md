@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] The in-game chat and command line now remembers the last 50 lines you sent during the session; Up and Down step through them, and Down past the newest brings back what you were typing.
+
 ### For map makers and modders
 
 - [BASE] The mod window's Bodies page now offers the weapon body choice even while the mod holds no body, so a weapon can take a body from the game's bodies.
