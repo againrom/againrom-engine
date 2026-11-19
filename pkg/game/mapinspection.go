@@ -74,6 +74,9 @@ type MapInspector struct {
 	// first asked.
 	identityMission int
 	guestNumber     *int
+	// npcRows holds the Humans row name of each npc record, built once per
+	// table and mission (npcRowName).
+	npcRows npcRowCache
 	// speakerPictures and speakerFigures are the speaker list's class
 	// portraits by address and composed figures by figure and worn set.
 	speakerPictures map[string]*image.RGBA

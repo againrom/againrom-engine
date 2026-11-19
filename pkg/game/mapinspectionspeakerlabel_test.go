@@ -32,3 +32,26 @@ func TestSpeakerLabelIsTheNameOfTheRecordsLine(t *testing.T) {
 		t.Errorf("speaker 9 takes the name of line 8: %q", label)
 	}
 }
+
+// The speaker list names every npc record, and each name asks which Humans
+// row the record reaches. The rows are worked out once for a table and
+// mission, not once per record and per list built; a new mission rebuilds.
+func TestNpcRowNamesAreBuiltOncePerTableAndMission(t *testing.T) {
+	_, s, _ := nativeIdentityEditor(t)
+	x := s.inspector
+	first := x.npcChoices(255, true)
+	for range 5 {
+		x.npcChoices(255, true)
+	}
+	if x.npcRows.builds != 1 {
+		t.Fatalf("six speaker lists built the row names %d times, want 1", x.npcRows.builds)
+	}
+	x.identityMission++
+	again := x.npcChoices(255, true)
+	if x.npcRows.builds != 2 {
+		t.Fatalf("a new mission built the row names %d times in all, want 2", x.npcRows.builds)
+	}
+	if len(again) != len(first) {
+		t.Fatalf("the list has %d choices after the rebuild, %d before", len(again), len(first))
+	}
+}

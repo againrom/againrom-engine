@@ -292,12 +292,25 @@ func (x *MapInspector) npcRowName(id int64) string {
 	if x.table == nil || x.table.Humans == nil || id < 0 || id > math.MaxInt32 {
 		return ""
 	}
-	for _, ident := range mapload.Identities(x.table, x.identityMission) {
-		if ident.Kind == mapload.UnitNamed && ident.NPC == int32(id) && ident.Row > 0 && ident.Row < x.table.Humans.Len() {
-			return x.table.Humans.EntryName(ident.Row)
+	c := &x.npcRows
+	if c.rows == nil || c.table != x.table || c.mission != x.identityMission {
+		c.table, c.mission, c.rows, c.builds = x.table, x.identityMission, map[int32]string{}, c.builds+1
+		for _, ident := range mapload.Identities(x.table, x.identityMission) {
+			if _, seen := c.rows[ident.NPC]; !seen && ident.Kind == mapload.UnitNamed && ident.Row > 0 && ident.Row < x.table.Humans.Len() {
+				c.rows[ident.NPC] = x.table.Humans.EntryName(ident.Row)
+			}
 		}
 	}
-	return ""
+	return c.rows[int32(id)]
+}
+
+// npcRowCache is the name of the Humans row each npc record reaches, for the
+// table and mission it was built on.
+type npcRowCache struct {
+	table   *mapload.Table
+	mission int
+	rows    map[int32]string
+	builds  int
 }
 
 // speakerLabel is speaker id's label in UTF-8 as the message popup builds

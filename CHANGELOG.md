@@ -42,6 +42,7 @@ modder or developer can notice gets no entry.
 - [BASE] A mod whose records did not load now refuses edits on every mod page in the map editor, not only on Speakers.
 - [BASE] In the Dialog window a reply's text no longer turns into unreadable letters after you change its When unavailable, Only once or Transition choice or reopen the dialog; the text was converted to the font's encoding twice.
 - [BASE] The Dialog window no longer counts the sex or class word a tag holds as an extra condition on a cell already sorted by that sex or class, so an original message split by the hero's sex opens and applies; a tag attribute such as tips that a dialogue file cannot hold is now named in the refusal, with an x on its Also in the tag row that drops it from the file, and the never-shown, ending and extra-condition refusals each say which button fixes them.
+- The map editor's Dialog window now opens and edits its lines at once on a dialogue with many lines; before, a 21-line dialogue took about five seconds on every open and edit.
 
 ## 0.158.0
 
