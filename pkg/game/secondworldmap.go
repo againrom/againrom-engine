@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/random"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -202,8 +203,19 @@ func (p *worldMapPage) openWorldMap(from worldMapEntry, records []worldMapEntry)
 	if row.TravelOnOpen {
 		s.openTravel()
 	}
+	s.play = func(key string) town.Voice {
+		return t.scenePlay("map", town.SoundRequest{Source: "world-map", Key: key})
+	}
 	t.worldMap = s
 	return s
+}
+
+// stopMapSounds silences the open map's route sounds; the map's own leave
+// and a reset of the screen both pass here.
+func (t *townScreen) stopMapSounds() {
+	if t.worldMap != nil {
+		t.worldMap.stopSounds(townSceneHost{t: t, room: "map"}.StopSound)
+	}
 }
 
 func (p *worldMapPage) WorldMapView() ui.WorldMapView {
@@ -272,6 +284,7 @@ func (p *worldMapPage) chooseWorldRecord(i int) {
 }
 
 func (p *worldMapPage) leaveWorldMap() {
+	p.host.stopMapSounds()
 	if p.policy().Leave == "square" {
 		s := p.worldMapNow()
 		s.route, s.shown, s.cross, s.selected = nil, 0, 0, -1
@@ -289,6 +302,7 @@ var worldMapLocationEntries = map[string]func(*townScreen, ui.WorldMapMission) u
 
 func (p *worldMapPage) arriveWorldMap() ui.TownAction {
 	s, t, row := p.worldMapNow(), p.host, p.policy().Arrival
+	t.stopMapSounds()
 	i := s.selected
 	s.route, s.shown, s.selected = nil, 0, -1
 	if row.ClearCross {

@@ -12,6 +12,7 @@
     {"name": "umoirpath", "format": "mask", "key": "graphics/global.map/umoirpath.bmp", "cite": ["R2-ENGINE-433", "R2-ASSET-093"]},
     {"name": "ball", "format": "picture", "key": "graphics/global.map/ballmap.bmp", "transparent": "black", "cite": ["R2-ENGINE-429", "DIV-3069"]},
     {"name": "flag", "format": "sprites", "key": "graphics/global.map/flag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
+    {"name": "flag1", "format": "sprites", "key": "graphics/global.map/flag1/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
     {"name": "yourflag", "format": "sprites", "key": "graphics/global.map/yourflag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
     {"name": "cross", "format": "sprites", "key": "graphics/global.map/cross/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-432"]},
     {"name": "missionflag", "format": "sprites", "key": "graphics/global.map/missionflag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
@@ -91,6 +92,8 @@
     {"who": "target", "art": "missionflag", "at": [-5, -41], "cite": ["R2-ENGINE-430"]},
     {"who": "other", "art": "flagonmap", "at": [-5, -37], "cite": ["R2-ENGINE-430"]}
   ],
+  "cycle": {"markers": "flag1", "party": "flag"},
+  "sounds": {"route": ["point1.wav", "point2.wav"], "cite": ["R2-ENGINE-463"]},
   "text": {
     "source": "main/text/globalmap.txt",
     "name": {"1": "title%d", "2": "town%d"},

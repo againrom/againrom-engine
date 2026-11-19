@@ -354,3 +354,21 @@ func TestFirstGameMissionReadsNoArea(t *testing.T) {
 		t.Fatalf("first-game pick %d", m.AreaPick())
 	}
 }
+
+// The second game's map plays its one-entry list of map.wav under the music
+// flag and starts nothing with the flag off (R2-ENGINE-463).
+func TestSecondMapMusicFollowsTheMusicFlag(t *testing.T) {
+	for _, on := range []bool{true, false} {
+		source, device := &recordingMusicSource{}, &pausingMusicDevice{}
+		m := NewMusicController(secondMusic, source, device, random.NewStream(3))
+		m.SetPreferences(MusicPreferences{Enabled: on})
+		m.SetScene(MusicCampaign, false)
+		log := m.RequestLog()
+		if !slices.Equal(log, []string{"request:map.wav"}) {
+			t.Fatalf("music %v requests %v, want map.wav", on, log)
+		}
+		if started := slices.Contains(device.events, "start:map.wav"); started != on {
+			t.Fatalf("music %v: device events %v", on, device.events)
+		}
+	}
+}

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The second game's world map now plays the route sounds while the road to a place grows, and its flags and your party marker move at the original's pace; before, the map was silent and the flags cycled at their own pace.
 - [ROM2] The credits of the second game now rise at the original's speed; before, they rose about two thirds as fast.
 - [ROM2] Iglez and Dina from a save the original game wrote now show their names in the party and in the shop, as when they join in this game; before, their names were blank.
 - [BASE] A unit killed in the middle of a step now finishes that step as a body, without a health bar, and falls on the next cell, as in the original; before, it jumped at once to the cell it was walking to.

@@ -63,7 +63,26 @@ type WorldMapDescription struct {
 	RecordArt string               `json:"record-art"`
 	Markers   []WorldMapMarkerRule `json:"markers"`
 	Text      *WorldMapTextSpec    `json:"text"`
-	Cite      []string             `json:"cite"`
+	// Cycle names the sheets whose frame counts wrap the marker and party
+	// counters; an empty name wraps a counter by the drawn sheet's own count.
+	Cycle WorldMapCycle `json:"cycle"`
+	// Sounds are the sounds a growing route plays; nil for none.
+	Sounds *WorldMapSounds `json:"sounds"`
+	Cite   []string        `json:"cite"`
+}
+
+// WorldMapCycle names the art entries whose frame counts the counters wrap by.
+type WorldMapCycle struct {
+	Markers string `json:"markers"`
+	Party   string `json:"party"`
+}
+
+// WorldMapSounds is the pair of sounds a growing route alternates between.
+// A slot is started when the other slot's sound has no channel; the toggle
+// starts from slot 0, so slot 1 plays first.
+type WorldMapSounds struct {
+	Route []string `json:"route"`
+	Cite  []string `json:"cite"`
 }
 
 // WorldMapPagePolicy supplies the host conditions, record sources and actions
@@ -269,6 +288,12 @@ func decodeWorldMap(data []byte) (*WorldMapDescription, error) {
 		if m.Travel != "" && m.Travel != "first" {
 			return fail("mode %s travel %q is not first", m.Name, m.Travel)
 		}
+	}
+	if !art(d.Cycle.Markers) || !art(d.Cycle.Party) {
+		return fail("cycle names no art entry")
+	}
+	if d.Sounds != nil && len(d.Sounds.Route) != 2 {
+		return fail("sounds need exactly two route sounds")
 	}
 	for _, r := range d.Markers {
 		if (r.Who != "target" && r.Who != "other") || !art(r.Art) {

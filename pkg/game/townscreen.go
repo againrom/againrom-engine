@@ -238,6 +238,7 @@ func (t *townScreen) resetForNewGame() {
 	t.shopSuppressFigure, t.shopSuppressMask = nil, nil
 	t.resetWorldMarkers()
 	t.resetWorldPosition()
+	t.stopMapSounds()
 	t.worldMap, t.worldFlag1Frame = nil, 0
 	t.worldMapOf, t.worldMapAt = nil, nil
 	t.resetRoomTip()

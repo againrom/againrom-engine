@@ -112,14 +112,17 @@ type worldMapAssets struct {
 	// destination Cross, in stream order: each is drawn from a frame counter
 	// (`TOWN-529`, `TOWN-530`), so the picker at paint time needs the whole
 	// sheet. rules holds each marker rule's sheet, by rule index.
-	available   []*image.RGBA
-	cross       []*image.RGBA
-	rules       [][]*image.RGBA
-	scroll      [3]*image.RGBA
-	pressed     [3]*image.RGBA
-	markers     map[int]*image.RGBA
-	markerTried map[int]bool
-	texts       map[int]worldMapText
+	available []*image.RGBA
+	cross     []*image.RGBA
+	rules     [][]*image.RGBA
+	// markCycle and partyCycle are the frame counts the marker and party
+	// counters wrap by; zero wraps by the drawn sheet's own count.
+	markCycle, partyCycle int
+	scroll                [3]*image.RGBA
+	pressed               [3]*image.RGBA
+	markers               map[int]*image.RGBA
+	markerTried           map[int]bool
+	texts                 map[int]worldMapText
 	// recordText is the decoded text source of a description's text block.
 	recordText      string
 	recordTextTried bool
@@ -153,7 +156,7 @@ func (a *worldMapAssets) mode(i int) worldMapModeArt {
 // with the full cross (`TOWN-531`). Each returns nil for an undecoded or
 // empty sheet, which worldMapOptionalImage reports as absent.
 func (a *worldMapAssets) flagFrame(mode, n int) *image.RGBA {
-	return worldMapPickFrame(a.mode(mode).party, n)
+	return worldMapPickFrame(a.mode(mode).party, worldMapWrap(n, a.partyCycle))
 }
 func (a *worldMapAssets) availableFrame(n int) *image.RGBA { return worldMapPickFrame(a.available, n) }
 func (a *worldMapAssets) crossFrame(n int) *image.RGBA {
@@ -161,6 +164,14 @@ func (a *worldMapAssets) crossFrame(n int) *image.RGBA {
 		n = last
 	}
 	return worldMapPickFrame(a.cross, n)
+}
+
+// worldMapWrap wraps counter n by a cycle's frame count; no count leaves it.
+func worldMapWrap(n, cycle int) int {
+	if cycle > 0 {
+		n %= cycle
+	}
+	return n
 }
 
 func worldMapPickFrame(frames []*image.RGBA, n int) *image.RGBA {
@@ -291,6 +302,7 @@ func loadWorldMapAssets(archives *Archives, catalog *worldMapCatalog) *worldMapA
 	for _, r := range a.desc.Markers {
 		a.rules = append(a.rules, frames(r.Art))
 	}
+	a.markCycle, a.partyCycle = len(frames(a.desc.Cycle.Markers)), len(frames(a.desc.Cycle.Party))
 	if c := a.desc.Cards; c != nil {
 		for i := 0; i < 3; i++ {
 			a.scroll[i] = pic(fmt.Sprintf("%s/%d", c.Scroll, i))
@@ -421,6 +433,7 @@ func (t *townScreen) enterWorldMap() {
 func (t *townScreen) beginWorldMapReturn(mission int) {
 	a := t.art.worldMap()
 	t.atSquare()
+	t.stopMapSounds()
 	t.worldMap = nil
 	t.worldPosition, t.worldPositionSet = worldMapHome(t.partyTown(), a), true
 	if a.data == nil {

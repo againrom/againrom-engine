@@ -46,6 +46,12 @@ type worldMapState struct {
 	// frame count plus the description's hold, and arrival waits for that as
 	// well as for the reveal (`TOWN-121`, R2-ENGINE-432; DIV-1545).
 	cross int
+	// slot, voices and play are the growing route's alternating sounds: the
+	// slot last started, each slot's retained voice, and the request path
+	// the host gave (nil plays nothing).
+	slot   int
+	voices [2]town.Voice
+	play   func(key string) town.Voice
 }
 
 // home is the party's town's point on the map.
@@ -209,12 +215,38 @@ func (s *worldMapState) tick() bool {
 	if s.crossDrawn() {
 		s.cross++
 	}
+	s.routeSound()
 	s.shown = min(s.shown+worldMapRouteReveal, s.routeEnd())
 	lead := 0
 	if d := s.desc(); d != nil {
 		lead = d.RevealLead
 	}
 	return s.shown+lead >= s.routeEnd() && s.crossPassedEnd()
+}
+
+// routeSound alternates the description's two route sounds while the reveal
+// is short of the route's end: when the current slot's sound has no channel
+// the slot toggles and the other sound starts (R2-ENGINE-463).
+func (s *worldMapState) routeSound() {
+	d := s.desc()
+	if d == nil || d.Sounds == nil || s.play == nil || s.shown >= len(s.route) {
+		return
+	}
+	if v := s.voices[s.slot]; v != nil && v.Playing() {
+		return
+	}
+	s.slot = 1 - s.slot
+	s.voices[s.slot] = s.play(d.Sounds.Route[s.slot])
+}
+
+// stopSounds silences both route sounds through stop and forgets them.
+func (s *worldMapState) stopSounds(stop func(town.Voice)) {
+	for i, v := range s.voices {
+		if v != nil && stop != nil {
+			stop(v)
+		}
+		s.voices[i] = nil
+	}
 }
 
 func (s *worldMapState) crossDrawn() bool {
@@ -310,7 +342,7 @@ func (s *worldMapState) marker(i int) (image.Image, ui.WorldMapPlace) {
 		switch {
 		case r.Who == "target" && target, r.Who == "other" && !target && m.Anchor != s.current:
 			place := WorldMapPlace{At: &r.At}
-			return worldMapOptionalImage(worldMapPickFrame(s.assets.rules[k], s.marks)), place.place()
+			return worldMapOptionalImage(worldMapPickFrame(s.assets.rules[k], worldMapWrap(s.marks, s.assets.markCycle))), place.place()
 		}
 	}
 	return nil, ui.WorldMapPlace{}
