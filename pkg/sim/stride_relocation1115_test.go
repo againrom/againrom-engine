@@ -169,6 +169,12 @@ func TestNativeStrideRelocation1115ScrollDispatch(t *testing.T) {
 					if len(events) != 1 || events[0].Spell != 26 || events[0].ToX != 7 || events[0].ToY != 5 {
 						t.Fatalf("unexpected release: %+v", events)
 					}
+					if len(w.scrollCasts) == 0 {
+						released = true
+						break
+					}
+				}
+				if point && len(w.scrollCasts) == 0 {
 					released = true
 					break
 				}

@@ -35,6 +35,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Creature info cards follow the original's kill rule: knowledge stops at 14 kills, #show map opens every card, and saves keep your kill counts in the original save format.
 - [ROM2] Summon and Animate Dead now bring back a unit that has finished dying, as in the original, and Animate Dead raises the corpse that fell first on the cell, not the one with the lowest number.
 - [BASE] The mod window has a Towns page: rename a town, change when it opens, and set tavern offers with their talk texts.
+- [BASE] A warrior who reads a Teleport scroll now shows the start picture where he stands while he casts, as a mage does, and it no longer appears only at the moment he jumps.
 
 ### For map makers and modders
 

@@ -299,6 +299,9 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			w.standCaster(ci)
 			e = &w.entities[ci]
 			c.Started, c.Remaining = true, castWindupTicks(*e)
+			if c.AtCell && w.presentedAtAdmission(rule) {
+				obs.recordAdmission(w, ci, 0, true, rule, c.X, c.Y)
+			}
 			atCell := c.AtCell || indexOfEntity(w.entities, c.Target) < 0
 			w.turnToCastAim(ci, c.Target, atCell, c.X, c.Y)
 			w.startSpellAction(ci)
@@ -351,7 +354,9 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 		applied := false
 		if arm.teleport {
 			applied = true
-			obs.recordAt(w, ci, rule, c.X, c.Y)
+			if !w.presentedAtAdmission(rule) {
+				obs.recordAt(w, ci, rule, c.X, c.Y)
+			}
 			if w.attachFootprint(ci, c.X, c.Y) {
 				w.entities[ci].X, w.entities[ci].Y = c.X, c.Y
 				w.invalidateActorMotion(w.entities[ci].ID, "native teleport supersedes original movement")
