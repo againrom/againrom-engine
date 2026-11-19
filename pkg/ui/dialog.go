@@ -104,6 +104,10 @@ type Dialog struct {
 	Fill, Border, TextColor, ButtonFill, ButtonBorder, ButtonText color.RGBA
 	// GrowText makes Text hold every line of its body (WithBody, DIV-4229).
 	GrowText bool
+	// FrameInset is a shadow band kept inside Box beyond the style's own, and
+	// CenterText centres each body line on the text rectangle's middle.
+	FrameInset int
+	CenterText bool
 	// PortraitFill and PortraitBorder paint an empty pane, so a speaker
 	// whose picture was not found and a pane never built read differently.
 	PortraitFill, PortraitBorder color.RGBA
@@ -369,7 +373,8 @@ func layoutNoticeBox(s Dialog, f *text.Font) dialogLayout {
 // when the style's shadows fall on the scene, and the value's colours when
 // the art is not whole.
 func noticeBoxFrame(s Dialog, row noticeStyleRow, size image.Point) dialogFrame {
-	body := image.Rect(0, 0, size.X-row.inset, size.Y-row.inset)
+	inset := row.inset + s.FrameInset
+	body := image.Rect(0, 0, size.X-inset, size.Y-inset)
 	if !s.Frame.valid() {
 		return dialogFrame{Spec: panelFrame(body, s.Fill, s.Border)}
 	}
@@ -415,6 +420,9 @@ func layoutNoticeBody(l *dialogLayout, s Dialog, f *text.Font, row noticeStyleRo
 		x, width := s.Text.Min.X, s.Text.Dx()
 		if ln.indent {
 			x, width = x+row.indent, width-row.indent
+		}
+		if s.CenterText {
+			x += (width - f.Advance(ln.visible())) / 2
 		}
 		l.Lines = append(l.Lines, dialogLine{Runs: []inkRun{{Text: ln.visible()}}, At: image.Pt(x, s.Text.Min.Y+i*pitch), Ink: ink,
 			Shadow: row.textShadow, Justify: row.paragraphs && ln.justify, Width: width, Origin: s.Box.Min.X, Arithmetic: s.DialogueArithmetic})

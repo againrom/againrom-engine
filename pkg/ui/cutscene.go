@@ -249,7 +249,8 @@ func (a *App) stepCutscene(in appInput, now time.Time) {
 // is fitted aspect-preserving, nearest neighbour, inside a black 640x480 frame.
 // A 640x360 frame lands at a 60 row offset unscaled, a 640x480 frame fills it.
 func (a *App) composeCutscene() *image.RGBA {
-	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
+	screen := a.cutsceneScreen()
+	dst := image.NewRGBA(image.Rectangle{Max: screen})
 	for n := 3; n < len(dst.Pix); n += 4 {
 		dst.Pix[n] = 255
 	}
@@ -258,17 +259,8 @@ func (a *App) composeCutscene() *image.RGBA {
 		return dst
 	}
 	sw, sh := src.Rect.Dx(), src.Rect.Dy()
-	w, h := frame.W, sh*frame.W/sw
-	if h > frame.H {
-		h, w = frame.H, sw*frame.H/sh
-	}
-	if w < 1 {
-		w = 1
-	}
-	if h < 1 {
-		h = 1
-	}
-	x0, y0 := (frame.W-w)/2, (frame.H-h)/2
+	at := movieRect(screen, sw, sh)
+	w, h, x0, y0 := at.Dx(), at.Dy(), at.Min.X, at.Min.Y
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			c := src.RGBAAt(src.Rect.Min.X+x*sw/w, src.Rect.Min.Y+y*sh/h)
@@ -279,19 +271,53 @@ func (a *App) composeCutscene() *image.RGBA {
 	return dst
 }
 
+// movieRect is where a movie of sw x sh stands on a screen: fitted inside the
+// 640x480 frame and centred on the screen.
+func movieRect(screen image.Point, sw, sh int) image.Rectangle {
+	w, h := frame.W, sh*frame.W/sw
+	if h > frame.H {
+		h, w = frame.H, sw*frame.H/sh
+	}
+	w, h = max(w, 1), max(h, 1)
+	x0, y0 := (screen.X-w)/2, (screen.Y-h)/2
+	return image.Rect(x0, y0, x0+w, y0+h)
+}
+
+// cutsceneScreen is the size movies are composed at: the live frame for a game
+// whose movies stand on the screen, the 640x480 frame otherwise.
+func (a *App) cutsceneScreen() image.Point {
+	if a.flow == nil {
+		return image.Pt(frame.W, frame.H)
+	}
+	if v := a.flow.viewer; v != nil && v.missionScreen.MovieOnScreen && v.frameW >= frame.W && v.frameH >= frame.H {
+		return image.Pt(v.frameW, v.frameH)
+	}
+	return image.Pt(frame.W, frame.H)
+}
+
 func (a *App) drawCutscene(screen *ebiten.Image) {
 	ebiten.SetCursorMode(ebiten.CursorModeHidden)
 	// The ordinary draw path sees this same cache on the first restored frame.
 	a.flow.cursor.SetPointerHidden(true)
 	screen.Fill(color.Black)
-	if a.cutsceneCanvas == nil {
-		a.cutsceneCanvas = ebiten.NewImage(frame.W, frame.H)
+	pic := a.composeCutscene()
+	size := pic.Rect.Size()
+	if a.cutsceneCanvas != nil && a.cutsceneCanvas.Bounds().Size() != size {
+		a.cutsceneCanvas.Deallocate()
+		a.cutsceneCanvas = nil
 	}
-	a.cutsceneCanvas.WritePixels(a.composeCutscene().Pix)
-	if a.place.Valid() {
-		ox, oy := a.place.Origin()
+	if a.cutsceneCanvas == nil {
+		a.cutsceneCanvas = ebiten.NewImage(size.X, size.Y)
+	}
+	a.cutsceneCanvas.WritePixels(pic.Pix)
+	place := a.place
+	if size != image.Pt(frame.W, frame.H) {
+		place = frame.Fit(size.X, size.Y, a.winW, a.winH)
+	}
+	if place.Valid() {
+		ox, oy := place.Origin()
 		var op ebiten.DrawImageOptions
-		op.GeoM.Scale(a.place.Scale(), a.place.Scale())
+		op.GeoM.Scale(place.Scale(), place.Scale())
 		op.GeoM.Translate(ox, oy)
 		op.Filter = ebiten.FilterNearest
 		// The cutscene frame shares a.place with the town composite

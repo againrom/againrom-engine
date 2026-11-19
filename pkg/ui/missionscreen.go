@@ -22,12 +22,21 @@ type MissionScreen struct {
 	// keeps minimapLocalColor on the symbolic one and the owner's shade on the
 	// installed one.
 	MinimapLocal color.RGBA
+	// Outcome is the game's victory and failure page geometry.
+	Outcome OutcomeReport
+	// MovieOnScreen centres a movie on the live frame at its 640x480 place
+	// plus the centring offset, with black around it.
+	MovieOnScreen bool
 }
 
 // SetMissionScreen adopts the game's mission screen layout data.
 func (v *Viewer) SetMissionScreen(s MissionScreen) {
 	v.hover.valid = false
 	v.missionScreen = s
+	v.noticeLayouts[NoticeSuccess] = s.Outcome.Success.onto(v.noticeLayouts[NoticeSuccess], AuthoredSuccessLayout())
+	v.noticeLayouts[NoticeFailure] = s.Outcome.Failure.onto(v.noticeLayouts[NoticeFailure], AuthoredFailureLayout())
+	v.noticeSerial++
+	v.noticePic = nil
 	v.syncMapViewport()
 }
 

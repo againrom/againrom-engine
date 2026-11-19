@@ -315,7 +315,7 @@ var secondGameFiles = gameFiles{
 	planeCosts:          terrainCostsAddress,
 	missionPackClosed:   true,
 	missionHeroSelected: true,
-	missionScreen:       ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, PickUsableInExploredGround: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
+	missionScreen:       ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, PickUsableInExploredGround: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}, Outcome: ui.SecondGameOutcomeReport(), MovieOnScreen: true},
 	gameMenu:            secondGameMenu,
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
