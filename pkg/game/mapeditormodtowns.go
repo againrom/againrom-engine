@@ -258,11 +258,11 @@ func (s *mapInspectionEdits) townsFields() []ui.InspectionField {
 				out = append(out, f)
 			}
 		}
-		verb := "editor.towns.offer.remove"
+		label, hint := x.word("editor.towns.offer.remove"), x.word("editor.towns.offer.remove.hint")
 		if game {
-			verb = "editor.towns.offer.off"
+			label, hint = x.word("editor.towns.offer.off"), x.word("editor.towns.offer.off.hint")
 		}
-		out = append(out, ui.InspectionField{Key: prefix + "drop", Label: x.word(verb), Meaning: x.word(verb + ".hint"), Action: true, Column: 1})
+		out = append(out, ui.InspectionField{Key: prefix + "drop", Label: label, Meaning: hint, Action: true, Column: 1})
 		for j := start; j < len(out); j++ {
 			out[j].Group = group
 		}
@@ -358,12 +358,12 @@ func (s *mapInspectionEdits) townNeededBy(w *editorWorkspaceState, book *townBoo
 	return mod.Mission{}, false
 }
 
-func (s *mapInspectionEdits) neededError(key string, m mod.Mission) error {
+func (s *mapInspectionEdits) neededError(format string, m mod.Mission) error {
 	name := m.Title
 	if name == "" {
 		name = m.Key
 	}
-	return fmt.Errorf(s.inspector.word(key), name, m.Number)
+	return fmt.Errorf(format, name, m.Number)
 }
 
 // editTown applies the page's edit of field to town id in w's records.
@@ -401,7 +401,7 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 		return nil
 	case "off":
 		if m, ok := s.townNeededBy(w, book, id); ok {
-			return s.neededError("editor.towns.err.townneeded", m)
+			return s.neededError(s.inspector.word("editor.towns.err.townneeded"), m)
 		}
 		rec.Off, rec.Entry, rec.Fields = true, town.Entry{ID: id}, []mod.PatchField{{Name: mod.OffField}}
 	case "name":
@@ -500,7 +500,7 @@ func (s *mapInspectionEdits) offerNeeded(rows []town.OfferRow, r town.OfferRow, 
 			return o.Topic == m.Number && town.TavernTable.Key(o) != town.TavernTable.Key(r)
 		})
 		if !others {
-			return s.neededError("editor.towns.err.offerneeded", m)
+			return s.neededError(s.inspector.word("editor.towns.err.offerneeded"), m)
 		}
 	}
 	return nil
