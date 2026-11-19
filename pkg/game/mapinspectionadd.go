@@ -37,14 +37,14 @@ var newRecordKinds = map[ui.RecordKind]newRecordKind{
 			v := recordValue(r, "template")
 			kind, ok := spellTemplateKind(s.batch, v)
 			if !ok {
-				return -1, fmt.Errorf("select a cell spell template")
+				return -1, wordErr("editor.err.spelltemplate")
 			}
 			if err := s.admitCell(s.batch, r.Cell, "spell cell", ui.KindEnchantment, admitAdd); err != nil {
 				return -1, err
 			}
 			link := recordValue(r, "link")
 			if link < 0 || link > math.MaxUint32 {
-				return -1, fmt.Errorf("object id is outside 0..4294967295")
+				return -1, wordErr("editor.err.objectid")
 			}
 			if err := spellObjectAllowed(s.batch, kind, uint32(link)); err != nil {
 				return -1, err
@@ -138,7 +138,8 @@ func newRecordKindOf(kind ui.RecordKind) (newRecordKind, error) {
 
 // AddRecord adds the new record r as one edit: its kind's add call, then
 // every value the call does not take as a field of the new record.
-func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if r.Kind == ui.KindMessage {
 		return s.NewMessage(ui.InspectionMessageOwner{Kind: ui.KindMessage})
 	}
@@ -229,7 +230,8 @@ func (s *mapInspectionEdits) trialAdd(k newRecordKind, r ui.InspectionNewRecord)
 // CheckNewRecord refuses the value r holds for key: its own range and
 // reference, and, once r holds every value its add call needs, the whole
 // record as AddRecord would add it.
-func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string) error {
+func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string) (said error) {
+	defer s.worded(&said)
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil {
 		return err
@@ -250,7 +252,7 @@ func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string
 // checkNewValue is the range and reference check of r's values of key.
 func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string) error {
 	if r.Kind == ui.KindEnchantment && key == "spell" && recordValue(r, key) == 0 {
-		return fmt.Errorf("select a nonzero spell; None adds no cell spell record")
+		return wordErr("editor.err.spellnone")
 	}
 	view, err := s.model.Map()
 	if err != nil {
@@ -263,11 +265,11 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 		switch key {
 		case "identity":
 			if _, ok := s.identityOf(v); r.Kind == ui.KindUnit && !ok {
-				return fmt.Errorf("choose who the new unit is: a creature, a person or a named character")
+				return wordErr("editor.err.identity")
 			}
 		case "owner":
 			if v < 1 || v > math.MaxUint32 {
-				return fmt.Errorf("owner slot %d is not in the map's roster", v)
+				return wordErr("editor.err.owner", v)
 			}
 			if err := rosterSlotError(view, uint32(v)); err != nil {
 				return err
@@ -278,7 +280,7 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 			}
 		case "item":
 			if v <= 0 || v > math.MaxUint16 {
-				return fmt.Errorf("item code %d is outside 1..65535", v)
+				return wordErr("editor.err.itemcode", v)
 			}
 			if err := s.inspector.checkItem(v); err != nil {
 				return err

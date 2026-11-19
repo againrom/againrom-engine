@@ -253,22 +253,22 @@ func goalValue(m *alm.Map, param uint32, kind ui.RecordKind, index int) (uint32,
 	case param == scriptStructParam && kind == ui.KindStructure && index < len(m.Objects):
 		id := uint32(m.Objects[index].Field12)
 		if id == 0 {
-			return 0, fmt.Errorf("structure %d has no structure id", index)
+			return 0, wordErr("editor.err.structnoid", index)
 		}
 		for i, o := range m.Objects {
 			if i != index && uint32(o.Field12) == id {
-				return 0, fmt.Errorf("structure id %d is also structure %d's", id, i)
+				return 0, wordErr("editor.err.structdupid", id, i)
 			}
 		}
 		return id, nil
 	case param == scriptUnitParam && kind == ui.KindUnit && index < len(m.Units):
 		id := uint32(m.Units[index].UnitID)
 		if id == 0 {
-			return 0, fmt.Errorf("unit %d has no unit id", index)
+			return 0, wordErr("editor.err.unitnoid", index)
 		}
 		for i, u := range m.Units {
 			if i != index && uint32(u.UnitID) == id {
-				return 0, fmt.Errorf("unit id %d is also unit %d's", id, i)
+				return 0, wordErr("editor.err.unitdupid", id, i)
 			}
 		}
 		return id, nil
@@ -276,15 +276,16 @@ func goalValue(m *alm.Map, param uint32, kind ui.RecordKind, index int) (uint32,
 		if id := m.Units[index].GroupID; id != 0 {
 			return id, nil
 		}
-		return 0, fmt.Errorf("unit %d has no group id", index)
+		return 0, wordErr("editor.err.unitnogroup", index)
 	}
-	want := map[uint32]string{scriptUnitParam: "unit", scriptStructParam: "structure", scriptGroupParam: "unit (its group)"}[param]
-	return 0, fmt.Errorf("this target takes a %s", want)
+	want := map[uint32]wordRef{scriptUnitParam: wordRef("editor.err.target.unit"), scriptStructParam: wordRef("editor.err.target.structure"), scriptGroupParam: wordRef("editor.err.target.group")}[param]
+	return 0, wordErr("editor.err.target", want)
 }
 
 // SetGoalTarget points goal at the unit or structure record picked on the map,
 // as one edit, or adds a protect check for a picked unit.
-func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		view, err := m.Map()
 		if err != nil {
@@ -305,7 +306,7 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index i
 		}
 		if a, ok := addArms[g.add]; ok && g.node < 0 {
 			if g.add == addLoseUnit && view.Units[index].Owner != partySlot {
-				return false, fmt.Errorf("a lose arm takes a unit of the party's side, roster slot %d; unit %d belongs to slot %d", partySlot, view.Units[index].UnitID, view.Units[index].Owner)
+				return false, wordErr("editor.err.loseside", partySlot, view.Units[index].UnitID, view.Units[index].Owner)
 			}
 			if g.add == addWinStructure && s.inspector != nil && s.inspector.table != nil {
 				if err := structureStartsStanding(view, s.inspector.table, index); err != nil {
@@ -327,7 +328,7 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index i
 		}
 		for _, n := range sc.Conditions {
 			if n.Opcode == scriptCheckVIP && n.Type[0] == scriptUnitParam && n.Value[0] == value {
-				return false, fmt.Errorf("unit %d is already protected", value)
+				return false, wordErr("editor.err.protected", value)
 			}
 		}
 		if err := registerCollision(sc, 1); err != nil {
@@ -354,7 +355,7 @@ func structureStartsStanding(m *alm.Map, t *mapload.Table, index int) error {
 		return fmt.Errorf("no structure %d", index)
 	}
 	if int16(built[index].Field42) <= 0 {
-		return fmt.Errorf("structure %d starts the mission with no health, so the arm would win it at once", index)
+		return wordErr("editor.err.structnohealth", index)
 	}
 	return nil
 }
@@ -418,7 +419,8 @@ func registerCollides(sc alm.Script, next uint32) error {
 
 // SetDropCell moves the map's drop cell to cell as one edit, or adds a drop
 // action when the map has none (MISSION-DROP-002).
-func (s *mapInspectionEdits) SetDropCell(cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetDropCell(cell image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.admitCell(m, cell, "drop cell", ringDrop, admitAdd); err != nil {
 			return false, err

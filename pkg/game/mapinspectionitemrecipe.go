@@ -52,7 +52,7 @@ func (s *mapInspectionEdits) setUnitRecipeField(m *mapedit.Editor, index int, pr
 	}
 	loot, err := u.m.Loot()
 	if err != nil || stock < 0 {
-		return false, fmt.Errorf("select an item's recipe first")
+		return false, wordErr("editor.err.recipefirst")
 	}
 	element, part, carried := carriedField(prefix)
 	if carried && part != "recipe" {
@@ -70,7 +70,7 @@ func (s *mapInspectionEdits) setUnitRecipeField(m *mapedit.Editor, index int, pr
 		}
 	}
 	if element < 1 || element > len(loot.Records[stock].Elements) || carried && loot.Records[stock].Elements[element-1].Field04 != 0 {
-		return false, fmt.Errorf("select an item's recipe first")
+		return false, wordErr("editor.err.recipefirst")
 	}
 	return s.setItemRecipeField(m, stock, element, key, value)
 }
@@ -87,7 +87,7 @@ func recipeRefs(m *mapedit.Editor, stock, element int) (int, uint32, error) {
 		return 0, 0, err
 	}
 	if stock < 0 || stock >= len(loot.Records) || element < 1 || element > len(loot.Records[stock].Elements) {
-		return 0, 0, fmt.Errorf("select an item's recipe first")
+		return 0, 0, wordErr("editor.err.recipefirst")
 	}
 	link := loot.Records[stock].Elements[element-1].TileMarkerIndex
 	if link == 0 || link > uint32(len(view.Enchantments)) {
@@ -113,7 +113,7 @@ func (s *mapInspectionEdits) setItemRecipeField(m *mapedit.Editor, stock, elemen
 		return false, err
 	}
 	if refs == 0 {
-		return false, fmt.Errorf("select an item's recipe first")
+		return false, wordErr("editor.err.recipefirst")
 	}
 	mark := m.Mark()
 	recipe := int(link - 1)

@@ -169,7 +169,7 @@ func (s *mapInspectionEdits) setEquipment(m *mapedit.Editor, index, slot int, pa
 	}
 	if part == "recipe" {
 		if len(matches) == 0 {
-			return false, fmt.Errorf("choose an explicit worn item before its recipe")
+			return false, wordErr("editor.err.wornrecipe")
 		}
 		return s.setStockRecipe(m, stock, matches[len(matches)-1], value)
 	}
@@ -181,7 +181,7 @@ func (s *mapInspectionEdits) setEquipment(m *mapedit.Editor, index, slot int, pa
 			code := data.ItemCode(old.ItemCode())
 			material, tier := code.A(), code.C()
 			if value < 0 || part == "material" && value > 15 || part == "tier" && value > 7 {
-				return false, fmt.Errorf("item variant is outside its native field")
+				return false, wordErr("editor.err.variantfield")
 			}
 			if part == "material" {
 				material = int(value)
@@ -190,19 +190,19 @@ func (s *mapInspectionEdits) setEquipment(m *mapedit.Editor, index, slot int, pa
 			}
 			next := data.ComposeItemCode(material, code.B(), tier, code.D())
 			if next != code && t.Names[next] == "" {
-				return false, fmt.Errorf("item variant is not in the installed catalog")
+				return false, wordErr("editor.err.variantcatalog")
 			}
 			value = int64(next)
 		}
 	} else if part != "" {
-		return false, fmt.Errorf("choose an explicit worn item before its variant")
+		return false, wordErr("editor.err.wornvariant")
 	}
 	if value < -1 || value > 65535 || value == 0 && r.Arm == mapload.ArmNPC {
-		return false, fmt.Errorf("%s", s.inspector.word("editor.equipment.npcempty"))
+		return false, wordErr("editor.equipment.npcempty")
 	}
 	if value > 0 {
 		if target, ok := mapload.EquipTarget(data.ItemCode(value), t); !ok || target != slot {
-			return false, fmt.Errorf("item %#04x does not fit slot %d", value, slot)
+			return false, wordErr("editor.err.slotfit", value, slot)
 		}
 		if len(matches) > 0 && int64(loot.Records[stock].Elements[matches[len(matches)-1]-1].ItemCode()) == value {
 			return false, nil

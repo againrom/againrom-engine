@@ -55,7 +55,7 @@ func selectionKind(kind ui.RecordKind) (mapedit.Kind, error) {
 	if kind.Placed() {
 		return editKinds[kind], nil
 	}
-	return 0, fmt.Errorf("a %s record cannot be in a group", strings.ToLower(kind.String()))
+	return 0, wordErr("editor.err.groupkind")
 }
 
 // recordName is the status note's name of a record.
@@ -91,7 +91,8 @@ func selectionNote(format string, done, total int, extra []string) string {
 
 // CopyRecords copies the records: a model of the current map and each
 // record's cell.
-func (s *mapInspectionEdits) CopyRecords(refs []ui.RecordRef) (ui.InspectionClip, string, error) {
+func (s *mapInspectionEdits) CopyRecords(refs []ui.RecordRef) (_ ui.InspectionClip, _ string, said error) {
+	defer s.worded(&said)
 	source, err := mapedit.New(s.model.Bytes())
 	if err != nil {
 		return nil, "", err
@@ -114,7 +115,7 @@ func (s *mapInspectionEdits) CopyRecords(refs []ui.RecordRef) (ui.InspectionClip
 		clip.records = append(clip.records, clipRecord{ref: ref, kind: k, cell: cell})
 	}
 	if len(clip.records) == 0 {
-		return nil, "", fmt.Errorf("no records to copy")
+		return nil, "", wordErr("editor.err.copynone")
 	}
 	return clip, fmt.Sprintf(s.inspector.word("editor.selection.copied"), len(clip.records)), nil
 }
@@ -259,7 +260,8 @@ func (s *mapInspectionEdits) armWords(a mapload.GroundArm) []string {
 
 // MoveRecords moves every record by offset cells, each keeping its fraction
 // within the cell, as one edit.
-func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point) (ui.SelectionEdit, error) {
+func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point) (_ ui.SelectionEdit, said error) {
+	defer s.worded(&said)
 	if offset == (image.Point{}) || len(refs) == 0 {
 		return ui.SelectionEdit{}, nil
 	}
@@ -309,10 +311,11 @@ func (s *mapInspectionEdits) moveItems(refs []ui.RecordRef, offset image.Point) 
 // with a terrain patch writes it first, its top-left cell on cell and cut at
 // the map's edge, and the records then stand on the pasted terrain; patch
 // and records are one edit.
-func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point) (ui.SelectionEdit, error) {
+func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point) (_ ui.SelectionEdit, said error) {
+	defer s.worded(&said)
 	clip, ok := c.(*selectionClip)
 	if !ok || clip == nil || clip.Len() == 0 {
-		return ui.SelectionEdit{}, fmt.Errorf("nothing to paste")
+		return ui.SelectionEdit{}, wordErr("editor.err.pastenone")
 	}
 	same := clip.from == s.source
 	groups, err := s.pasteGroups(clip, same)
@@ -401,7 +404,7 @@ func (s *mapInspectionEdits) pasteGroups(clip *selectionClip, same bool) (map[in
 			continue
 		}
 		if next >= math.MaxUint32 {
-			return nil, fmt.Errorf("this map has no free group id left")
+			return nil, wordErr("editor.err.groupfull")
 		}
 		next++
 		groups[g] = int64(next)
@@ -497,7 +500,8 @@ func (s *mapInspectionEdits) groupEditOn(first func(*mapedit.Editor) (bool, erro
 
 // DeleteRecords removes every record as one edit, the highest index of each
 // kind first so the lower indices still name their records.
-func (s *mapInspectionEdits) DeleteRecords(refs []ui.RecordRef) (ui.SelectionEdit, error) {
+func (s *mapInspectionEdits) DeleteRecords(refs []ui.RecordRef) (_ ui.SelectionEdit, said error) {
+	defer s.worded(&said)
 	order := slices.Clone(refs)
 	slices.SortStableFunc(order, func(a, b ui.RecordRef) int {
 		if a.Kind != b.Kind {

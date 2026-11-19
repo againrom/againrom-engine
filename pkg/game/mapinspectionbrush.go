@@ -78,11 +78,12 @@ func (s *mapInspectionEdits) BrushObjects() []ui.BrushObject {
 }
 
 // Paint applies one stroke to the model as one edit.
-func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if op.Plane == ui.BrushPlaneObjects {
 		for i, code := range append([]int{op.Value}, op.Forest.Kinds...) {
 			if !slices.ContainsFunc(s.inspector.objectRows, func(r ui.BrushObject) bool { return r.Code == code }) || i > 0 && code == 0 {
-				return nil, fmt.Errorf("%d is not a class the object list offers", code)
+				return nil, wordErr("editor.err.notclass", code)
 			}
 		}
 	}
@@ -180,7 +181,7 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 	if g, ok := mapedit.BrushGroup(op.Value); ok && op.Plane == ui.BrushPlaneTerrain {
 		row, found := table.ModTerrainGroup(g)
 		if b.Words = groupWords(row); !found || len(b.Words) == 0 {
-			return false, fmt.Errorf("no mod open in the editor adds terrain group %d", g)
+			return false, wordErr("editor.err.terraingroup", g)
 		}
 	}
 	if op.Plane == ui.BrushPlaneTerrain {

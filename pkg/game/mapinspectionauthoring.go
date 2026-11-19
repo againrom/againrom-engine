@@ -1,14 +1,14 @@
 package game
 
 import (
-	"fmt"
 	"image"
 
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
 
-func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.admitCell(m, cell, "structure cell", ui.KindStructure, admitAdd); err != nil {
 			return false, err
@@ -36,20 +36,22 @@ func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.Ins
 	})
 }
 
-func (s *mapInspectionEdits) AddStock(unit int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddStock(unit int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		_, err := m.AddUnitStock(unit)
 		return err == nil, err
 	})
 }
 
-func (s *mapInspectionEdits) AddItemRecipe(kind ui.RecordKind, index int, item int64) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddItemRecipe(kind ui.RecordKind, index int, item int64) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if kind != ui.KindSack && kind != ui.KindStock {
-		return nil, fmt.Errorf("select a sack or stock before creating an item recipe")
+		return nil, wordErr("editor.err.recipepick")
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if item < 1 || item > int64(^uint(0)>>1) {
-			return false, fmt.Errorf("item number must be positive")
+			return false, wordErr("editor.err.itemnumber")
 		}
 		_, err := m.AddItemRecipe(index, int(item))
 		return err == nil, err

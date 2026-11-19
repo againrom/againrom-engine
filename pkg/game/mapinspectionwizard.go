@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"fmt"
 	"image"
 	"slices"
 
@@ -22,7 +21,8 @@ import (
 // WriteTrigger writes t as one edit, or with t.Join as part of the history
 // entry before it, so one undo takes back both. A refusal for want of a
 // register reads in the editor's words.
-func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	steps := len(s.undoWorkspace)
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
@@ -142,7 +142,7 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		return err
 	}
 	if t.Index < -1 || t.Index >= len(sc.Triggers) {
-		return fmt.Errorf("no trigger %d", t.Index+1)
+		return wordErr("editor.err.notrigger", t.Index+1)
 	}
 	var before []alm.ScriptTrigger
 	if t.Index >= 0 {
@@ -230,12 +230,12 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 			keepsCmp = p.Cmp == held
 		}
 		if p.Cmp > limits.MaxCompare && !keepsCmp {
-			return fmt.Errorf("condition %d: comparison %d is outside 0..%d", k+1, p.Cmp, limits.MaxCompare)
+			return wordErr("editor.err.condcompare", k+1, p.Cmp, limits.MaxCompare)
 		}
 		for side, n := range []ui.WizardNode{p.Left, p.Right} {
 			id, err := wizardNode(m, true, n, condRefs, planned)
 			if err != nil {
-				return fmt.Errorf("condition %d: %w", k+1, err)
+				return wordErr("editor.err.condition", k+1, err)
 			}
 			if side == 0 {
 				next.Left[slot] = id
@@ -248,7 +248,7 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	for k, a := range t.Actions {
 		id, err := wizardNode(m, false, a, actRefs, planned)
 		if err != nil {
-			return fmt.Errorf("action %d: %w", k+1, err)
+			return wordErr("editor.err.action", k+1, err)
 		}
 		next.Acts[actSlots[k]] = id
 	}
@@ -295,16 +295,16 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		return n.ID, nil // a kept slot stays as the map wrote it
 	}
 	if n.Opcode == 0 {
-		return 0, fmt.Errorf("no operation chosen")
+		return 0, wordErr("editor.err.noop")
 	}
 	if !condition && n.Opcode >= 0x10000 && n.Opcode != mapload.ScriptConstant {
-		return 0, fmt.Errorf("operation %d does not run as a trigger action", n.Opcode)
+		return 0, wordErr("editor.err.opaction", n.Opcode)
 	}
 	var params []mapedit.ScriptParam
 	last := 0
 	for s := range n.Types {
 		if n.Types[s] > 9 {
-			return 0, fmt.Errorf("parameter %d: type %d is outside 0..9", s+1, n.Types[s])
+			return 0, wordErr("editor.err.paramtype", s+1, n.Types[s])
 		}
 		if n.Types[s] != 0 {
 			last = s + 1
@@ -343,7 +343,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		return 0, err
 	}
 	if maxID := limits.MaxID; id > maxID {
-		return 0, fmt.Errorf("the next node ID exceeds %d", maxID)
+		return 0, wordErr("editor.err.nodeid", maxID)
 	}
 	rec, err := mapedit.NewScriptNode(label, n.Opcode, id, params...)
 	if err != nil {
@@ -406,13 +406,14 @@ func dropUnnamed(m *mapedit.Editor, before []alm.ScriptTrigger) error {
 // on either axis asks for the random fallback cell (MISSION-DROP-002).
 func (s *mapInspectionEdits) fixedDropCell(m *mapedit.Editor, cell image.Point) error {
 	if cell.X == 0 || cell.Y == 0 {
-		return fmt.Errorf("drop cell %d,%d: a zero on either axis makes the game pick a random cell instead; use a cell from 1", cell.X, cell.Y)
+		return wordErr("editor.err.dropcell", cell.X, cell.Y)
 	}
 	return s.admitCell(m, cell, "drop cell", ringDrop, admitAdd)
 }
 
 // AddDropZone adds a drop zone on cell as the shipped maps write one.
-func (s *mapInspectionEdits) AddDropZone(cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddDropZone(cell image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.fixedDropCell(m, cell); err != nil {
 			return false, err
@@ -423,7 +424,8 @@ func (s *mapInspectionEdits) AddDropZone(cell image.Point) (*ui.InspectionDocume
 }
 
 // MoveDropZone moves zone's cell to cell.
-func (s *mapInspectionEdits) MoveDropZone(zone int, cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) MoveDropZone(zone int, cell image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.fixedDropCell(m, cell); err != nil {
 			return false, err
@@ -451,7 +453,8 @@ func (s *mapInspectionEdits) MoveDropZone(zone int, cell image.Point) (*ui.Inspe
 
 // DeleteDropZone deletes zone's action; a trigger that named only it goes
 // with it, and another trigger's slot naming it is cleared.
-func (s *mapInspectionEdits) DeleteDropZone(zone int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) DeleteDropZone(zone int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
 		at, err := dropZoneAction(m, zone)
@@ -464,7 +467,7 @@ func (s *mapInspectionEdits) DeleteDropZone(zone int) (*ui.InspectionDocument, e
 		}
 		id := sc.Actions[at].ID
 		if nodeIndex(sc.Actions, id) < 0 {
-			return false, fmt.Errorf("drop zone %d's action ID %d names more than one action", zone+1, id)
+			return false, wordErr("editor.err.dropaction", zone+1, id)
 		}
 		for t := len(sc.Triggers) - 1; t >= 0; t-- {
 			tr := sc.Triggers[t]
@@ -511,7 +514,7 @@ func dropZoneAction(m *mapedit.Editor, zone int) (int, error) {
 		return 0, err
 	}
 	if zone < 0 || zone >= len(zones) {
-		return 0, fmt.Errorf("no drop zone %d", zone+1)
+		return 0, wordErr("editor.err.nodropzone", zone+1)
 	}
 	return zones[zone], nil
 }

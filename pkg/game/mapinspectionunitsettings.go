@@ -94,7 +94,8 @@ func (s *mapInspectionEdits) unitWorld(c *inspectionUnitViews) (*mapWorld, *alm.
 	return mw, m, nil
 }
 
-func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, *ui.InspectionUnitPreview, error) {
+func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (_ ui.MapEntity, _ []ui.InspectionField, _ *ui.InspectionUnitPreview, said error) {
+	defer s.worded(&said)
 	trial := *s
 	if len(values) > 0 {
 		trial.model = s.model.Clone()

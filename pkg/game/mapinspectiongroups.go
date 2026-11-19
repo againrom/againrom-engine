@@ -16,23 +16,24 @@ import (
 // SetUnitsGroup writes group on every unit refs names as one edit; group 0
 // takes them out of their groups. It refuses a record that is not a unit,
 // units of two players, and a number a unit of another player carries.
-func (s *mapInspectionEdits) SetUnitsGroup(refs []ui.RecordRef, group int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetUnitsGroup(refs []ui.RecordRef, group int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	view, err := s.model.Map()
 	if err != nil {
 		return nil, err
 	}
 	if group < 0 || int64(group) > math.MaxUint32 {
-		return nil, fmt.Errorf("group number %d is outside 0..%d", group, uint32(math.MaxUint32))
+		return nil, wordErr("editor.err.groupnumber", group, uint32(math.MaxUint32))
 	}
 	owner := int64(-1)
 	in := map[int]bool{}
 	for _, ref := range refs {
 		if ref.Kind != ui.KindUnit || ref.Index < 0 || ref.Index >= len(view.AuthoredUnits) {
-			return nil, fmt.Errorf("no unit %s #%d", ref.Kind, ref.Index)
+			return nil, wordErr("editor.err.groupunit", ref.Index)
 		}
 		u := view.AuthoredUnits[ref.Index]
 		if owner >= 0 && int64(u.Owner) != owner {
-			return nil, fmt.Errorf("units of players %d and %d cannot share a group", owner, u.Owner)
+			return nil, wordErr("editor.err.groupplayers", owner, u.Owner)
 		}
 		owner, in[ref.Index] = int64(u.Owner), true
 	}

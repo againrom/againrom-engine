@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, every refusal of an edit, a save, a paste, a script change or a mod file read now reads in the editor's language, English or Russian, and a mod file that does not read names its file and line; before, many refusals came out in English.
 - [BASE] In the map editor, a refusal when adding a speaker or importing its picture now reads in the editor's language, and the question to extend the script always says why, naming the limit and its number; before, some refusals were in English or empty.
 - [BASE] In the map editor every scrolled area now scrolls the same way: the wheel works over the content and the bar, a click on the bar's track moves one page, and dragging the thumb moves the content. The item grids, such as the bag window's, answered only the wheel over their cells before.
 - [BASE] The map editor has no right panel. A selected object's window always opens as a floating window over the map, and the map gets the freed width.

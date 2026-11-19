@@ -233,7 +233,7 @@ func (x *MapInspector) Open(source string) (*ui.InspectionDocument, error) {
 		b, err = os.ReadFile(source)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("open %s: %w", source, err)
+		return nil, wordCause(err, "editor.err.open", source)
 	}
 	return x.inspect(b, source)
 }
@@ -319,7 +319,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	// takes a fresh decode, being free to change the map it is given.
 	tiers := entityTiers(m, x.table)
 	var sheets, templates []unitSheet
-	sheetErr := fmt.Errorf("no installed tables")
+	sheetErr := wordErr("editor.err.notables")
 	if x.table != nil {
 		if built, err := model.Map(); err != nil {
 			sheetErr = err
@@ -405,7 +405,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			v := sheets[i].Values
 			r.Hover = r.Name + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
 		} else {
-			r.Lines = append(r.Lines, ui.InspectionLine{Text: x.inspectionUTF8(fmt.Sprintf(x.word("editor.unit.unavailable"), sheetErr)), Role: "warning"})
+			r.Lines = append(r.Lines, ui.InspectionLine{Text: x.inspectionUTF8(fmt.Sprintf(x.word("editor.unit.unavailable"), x.inLanguage(sheetErr))), Role: "warning"})
 		}
 		entities = append(entities, e)
 		add(r)

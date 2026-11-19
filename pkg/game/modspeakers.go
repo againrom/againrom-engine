@@ -229,7 +229,7 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	rec := mod.Speaker{ID: id, Name: name, Picture: face, Map: key, Unit: int32(unitID), Bound: true}
 	src := mod.AppendSpeaker(before, rec)
 	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, rec.Picture, pic)); err != nil {
-		return 0, err
+		return 0, s.inspector.libraryRefusal(err)
 	}
 	_, err = s.changeWorkspace(func(w *editorWorkspaceState) error {
 		if w.Project == nil {
@@ -367,7 +367,7 @@ func (s *mapInspectionEdits) carryModSpeakers(m *mod.Mission) error {
 	}
 	d, err := mod.ReadSpeakers(x.mod.id, x.mod.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, "", nil))
 	if err != nil {
-		return err
+		return x.libraryRefusal(err)
 	}
 	if m.Carried == nil {
 		m.Carried = map[string][]byte{}

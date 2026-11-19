@@ -10,6 +10,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/mod"
 	"againrom/pkg/namefold"
 	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
@@ -33,6 +34,9 @@ type liftedLimit struct {
 	key   string
 	args  []any
 	limit *mapedit.ScriptLimitError
+	// cause is the library's own error under a refusal worded at the host
+	// boundary: kept for logs and errors.As, never shown in the note.
+	cause error
 }
 
 func (l *liftedLimit) Error() string {
@@ -41,7 +45,16 @@ func (l *liftedLimit) Error() string {
 	}
 	return l.text
 }
-func (l *liftedLimit) Unwrap() error { return l.limit }
+func (l *liftedLimit) Unwrap() []error {
+	var out []error
+	if l.limit != nil {
+		out = append(out, l.limit)
+	}
+	if l.cause != nil {
+		out = append(out, l.cause)
+	}
+	return out
+}
 
 // lifted is err as the word key says it with args, keeping the limit it
 // carries.
@@ -94,21 +107,86 @@ func limitWords(l *mapedit.ScriptLimitError, word func(string) string) string {
 
 // wordErr is a refusal that holds a word key and its figures; the host
 // reads it in the editor's language (inLanguage).
-func wordErr(key string, args ...any) error { return &liftedLimit{key: key, args: args} }
+// An argument that is itself an error is read the same way, so a refusal
+// can name the reason it wraps.
+func wordErr(key string, args ...any) error {
+	l := &liftedLimit{key: key, args: args}
+	for _, a := range args {
+		var limit *mapedit.ScriptLimitError
+		if e, ok := a.(error); ok {
+			l.cause = e
+			if errors.As(e, &limit) {
+				l.limit = limit
+			}
+		}
+	}
+	return l
+}
+
+// worded is deferred over a public edit's refusal: whatever it returns reads
+// in the editor's language, the one place a host refusal is worded.
+func (s *mapInspectionEdits) worded(err *error) {
+	if *err != nil && s.inspector != nil {
+		*err = s.inspector.inLanguage(*err)
+	}
+}
+
+// wordRef is a word id given to wordErr as a figure: the host reads it in
+// the editor's language when it words the refusal.
+type wordRef string
+
+// String reads the word in the default language, for a log.
+func (w wordRef) String() string { return words.For("").Text(string(w)) }
+
+// wordCause is wordErr over a library error the note does not show: the
+// words name the reason, the library's own text stays with the cause.
+func wordCause(cause error, key string, args ...any) error {
+	l := wordErr(key, args...).(*liftedLimit)
+	l.cause = cause
+	return l
+}
 
 // inLanguage is err as the editor's words say it when it holds a word key,
-// the limit it carries kept; any other error as it is.
+// the limit it carries kept; a mod file refusal of the library is worded
+// by its file and line; any other error as it is.
 func (x *MapInspector) inLanguage(err error) error {
 	var own *liftedLimit
 	if errors.As(err, &own) && own.key != "" {
-		return &liftedLimit{text: fmt.Sprintf(x.word(own.key), own.args...), limit: own.limit}
+		args := make([]any, len(own.args))
+		for i, a := range own.args {
+			switch v := a.(type) {
+			case error:
+				a = x.inLanguage(v).Error()
+			case wordRef:
+				a = x.word(string(v))
+			}
+			args[i] = a
+		}
+		return &liftedLimit{text: fmt.Sprintf(x.word(own.key), args...), limit: own.limit, cause: own.cause}
 	}
 	return err
 }
 
+// libraryRefusal is a refusal of a pkg/mod reader at the host boundary: a
+// mod file that does not read is worded by its file and line, with the
+// library's own reason as the figure the words carry; the library error
+// stays under it. Any other error as it is.
+func (x *MapInspector) libraryRefusal(err error) error {
+	var layer *mod.LayerError
+	if errors.As(err, &layer) {
+		return x.inLanguage(wordCause(err, "editor.err.modfile", layer.File, layer.Line, layer.Msg))
+	}
+	var file *mod.ItemFileError
+	if errors.As(err, &file) {
+		return x.inLanguage(wordCause(err, "editor.err.modfile", file.File, file.Line, file.Msg))
+	}
+	return x.inLanguage(err)
+}
+
 // ExtendScript moves the map's triggers into the Againrom script record as
 // one edit.
-func (s *mapInspectionEdits) ExtendScript() (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) ExtendScript() (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		return true, m.ExtendScript()
 	})
@@ -116,7 +194,8 @@ func (s *mapInspectionEdits) ExtendScript() (*ui.InspectionDocument, error) {
 
 // FoldScript moves an extended map's triggers back into type-7 records as
 // one edit, when the original holds the script again.
-func (s *mapInspectionEdits) FoldScript() (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) FoldScript() (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		return true, foldScript(m)
 	})
@@ -235,7 +314,7 @@ func (s *mapInspectionEdits) setTriggerSlots(m *mapedit.Editor, index int, value
 		return nil, err
 	}
 	if index < 0 || index >= len(sc.Triggers) {
-		return nil, fmt.Errorf("no trigger %d", index+1)
+		return nil, wordErr("editor.err.notrigger", index+1)
 	}
 	old := sc.Triggers[index]
 	t := alm.ScriptTrigger{Name: old.Name, Once: old.Once}
@@ -281,7 +360,7 @@ func (s *mapInspectionEdits) setTriggerSlots(m *mapedit.Editor, index int, value
 			value = int64(id)
 		}
 		if value < 0 || value > math.MaxUint32 {
-			return nil, fmt.Errorf("%s: %d is outside 0..%d", v.Key, value, uint32(math.MaxUint32))
+			return nil, wordErr("editor.err.fieldrange", v.Key, value, uint32(math.MaxUint32))
 		}
 		if err := scriptFieldAllowed(m, mapedit.KindTrigger, index, v.Key, value); err != nil {
 			return nil, err
@@ -369,5 +448,5 @@ func extendedName(data []byte, name string) error {
 	if err != nil || !m.HasScriptRecord() && !m.HasTextsRecord() || namefold.HostEqual(filepath.Ext(name), extendedMapExt) {
 		return nil
 	}
-	return fmt.Errorf("%s: an extended map is saved under an %s name; the original game does not open it", filepath.Base(name), extendedMapExt)
+	return wordErr("editor.err.extendedname", filepath.Base(name), extendedMapExt)
 }

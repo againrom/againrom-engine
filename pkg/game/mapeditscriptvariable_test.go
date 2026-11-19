@@ -116,7 +116,7 @@ func TestScriptPackedVariableRefusesCollisionWithoutChangingHistory(t *testing.T
 				} else {
 					_, err = e.Document().Edits.SetField("Action", 0, "value1", 0)
 				}
-				if err == nil || !strings.Contains(err.Error(), "variable register 0 is overwritten by condition 1") {
+				if err == nil || !strings.Contains(err.Error(), "Variable register 0 is overwritten by condition 1") {
 					t.Fatalf("%s accepted a packed write to a check register: %v", route, err)
 				}
 				model := e.Document().Edits.(*mapInspectionEdits).model

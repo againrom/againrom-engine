@@ -15,14 +15,14 @@ func (x *MapInspector) lookFields(m *mapedit.Editor, index int, key string, valu
 	}
 	u := view.AuthoredUnits[index]
 	if !x.table.ClassPlacementFields() || !gearOffered(u, x.table) {
-		return nil, fmt.Errorf("face and sex placement fields require an ordinary Human; this placement takes the %s arm", mapload.Resolve(u, x.table).Arm)
+		return nil, wordErr("editor.err.faceplacement", mapload.Resolve(u, x.table).Arm)
 	}
 	if u.ClassSubID&0x7f != 0 {
 		return nil, nil
 	}
 	dir, face, ok := mapload.PlacedFigure(u, x.table)
 	if !ok || face < 1 || face > 127 {
-		return nil, fmt.Errorf("the inherited face cannot be represented by this placement")
+		return nil, wordErr("editor.err.facenone")
 	}
 	if key == "sex" {
 		return []mapedit.FieldSet{{Key: "face", Value: int64(face)}}, nil

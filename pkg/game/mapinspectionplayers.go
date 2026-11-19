@@ -7,7 +7,8 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (s *mapInspectionEdits) AddPlayer() (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddPlayer() (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		rec, err := m.NewPlayerRecord()
 		if err != nil {
@@ -18,7 +19,8 @@ func (s *mapInspectionEdits) AddPlayer() (*ui.InspectionDocument, error) {
 	})
 }
 
-func (s *mapInspectionEdits) SetTextField(kind ui.RecordKind, index int, key, value string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetTextField(kind ui.RecordKind, index int, key, value string) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err

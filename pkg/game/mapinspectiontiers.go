@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image"
 	"math"
 	"sync"
@@ -80,18 +79,19 @@ func (x *MapInspector) word(id string) string {
 // new record with that identity's class and secondary keys, keyed to it by
 // the identity field's writer, as one edit, owned by the map's second roster
 // slot when it has one and the first otherwise (DIV-3209).
-func (s *mapInspectionEdits) AddUnitIdentity(cell image.Point, value int64) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddUnitIdentity(cell image.Point, value int64) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.admitCell(m, cell, "unit cell", ui.KindUnit, admitAdd); err != nil {
 			return false, err
 		}
 		id, ok := s.identityOf(value)
 		if !ok {
-			return false, fmt.Errorf("choose who the new unit is: a creature, a person or a named character")
+			return false, wordErr("editor.err.identity")
 		}
 		keys, ok := mapload.Place(alm.Unit{}, id, s.inspector.table, s.mission())
 		if !ok {
-			return false, fmt.Errorf("the installed tables cannot key a unit to that choice")
+			return false, wordErr("editor.err.identitykey")
 		}
 		i, err := placeNewUnit(m, cell, keys.ClassID, keys.ClassSubID)
 		if err != nil {

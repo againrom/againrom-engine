@@ -73,7 +73,6 @@ var CaseFoldAllowed = map[string]string{
 	"pkg/game/mapinspectionedit.go#editKind":                                  "error text",
 	"pkg/game/mapinspectionedit.go#mapInspectionEdits.setField":               "error text",
 	"pkg/game/mapinspectionscript.go#goalListing":                             "report text",
-	"pkg/game/mapinspectionselection.go#selectionKind":                        "error text",
 	"pkg/game/mapinspectiontriggers.go#inspectionScript.node":                 "report text",
 	"pkg/game/mapinspectionworkspace.go#mapInspectionEdits.SetWorkspaceField": "matches a field name typed in the editor",
 	"pkg/game/music_preferences.go#FrontEnd.wireMusicPreferences":             "looks a music title up by its lower-case key",

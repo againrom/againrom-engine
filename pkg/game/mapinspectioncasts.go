@@ -149,7 +149,7 @@ func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int) erro
 	}
 	x, y := binary.LittleEndian.Uint32(rec[4:]), binary.LittleEndian.Uint32(rec[8:])
 	if x == 0 && y == 0 {
-		return fmt.Errorf("cell spells cannot use the item-recipe cell 0,0")
+		return wordErr("editor.err.spellcell")
 	}
 	return s.admitCell(m, image.Pt(int(x), int(y)), "spell cell", ui.KindEnchantment, admitField)
 }
@@ -207,7 +207,7 @@ func spellRecordBound(m *mapedit.Editor, index int) error {
 		return err
 	}
 	if !spellBound(view, view.Enchantments[index]) {
-		return fmt.Errorf("cell spell %d names no object; the game skips it, and only Delete changes it", index)
+		return wordErr("editor.err.spellnoobject", index)
 	}
 	return nil
 }

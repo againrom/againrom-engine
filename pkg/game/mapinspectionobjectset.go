@@ -7,7 +7,8 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (s *mapInspectionEdits) CheckObjectCell(kind ui.RecordKind, index int, cell image.Point) error {
+func (s *mapInspectionEdits) CheckObjectCell(kind ui.RecordKind, index int, cell image.Point) (said error) {
+	defer s.worded(&said)
 	trial := *s
 	trial.model = s.model.Clone()
 	trial.batch = trial.model
@@ -15,7 +16,8 @@ func (s *mapInspectionEdits) CheckObjectCell(kind ui.RecordKind, index int, cell
 	return err
 }
 
-func (s *mapInspectionEdits) SetObject(kind ui.RecordKind, index int, values []ui.InspectionFieldValue, cell *image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetObject(kind ui.RecordKind, index int, values []ui.InspectionFieldValue, cell *image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		trial := *s
 		trial.model, trial.batch = m, m

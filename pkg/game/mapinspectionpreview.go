@@ -13,7 +13,8 @@ import (
 // on r.Cell by PasteRecords on a copy of the model. An Add whose footprint
 // checkPlacement refuses answers the map with the refused record on it and
 // the refusal; a paste answers the records it refuses in Refused.
-func (s *mapInspectionEdits) PreviewPlacement(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) PreviewPlacement(r ui.InspectionNewRecord) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	var m *mapedit.Editor
 	var refused []ui.SelectionRefusal
 	var placement error

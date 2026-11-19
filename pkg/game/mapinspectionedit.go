@@ -210,7 +210,8 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 
 // Move moves the record onto cell, keeping its fraction within the cell, as
 // one edit. A Scenery record, a map object, moves as moveScenery moves it.
-func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if kind == ui.KindEnchantment {
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{
 			{Key: "triggerx", Value: int64(cell.X)}, {Key: "triggery", Value: int64(cell.Y)},
@@ -244,7 +245,8 @@ func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Poin
 
 // Clone copies the record onto cell, keeping the source's fraction within
 // the cell, as one edit. The model's section row chooses the copy's identity.
-func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Point) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -273,7 +275,8 @@ func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Poi
 
 // Delete removes the record as one edit; a Scenery record, a map object, goes
 // as deleteScenery clears it.
-func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if kind == ui.KindScenery {
 		return s.deleteScenery(index)
 	}
@@ -304,13 +307,14 @@ func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (*ui.Inspecti
 
 // AddSack places a new ground sack holding one item on cell, as one edit.
 // Its words sit at the cell's centre and it carries no gold (DIV-3134).
-func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.admitCell(m, cell, "sack cell", ui.KindSack, admitAdd); err != nil {
 			return false, err
 		}
 		if item <= 0 || item > math.MaxUint16 {
-			return false, fmt.Errorf("item code %d is outside 1..65535", item)
+			return false, wordErr("editor.err.itemcode", item)
 		}
 		if err := s.inspector.checkItem(item); err != nil {
 			return false, err
@@ -467,7 +471,8 @@ func unitSections(out []ui.InspectionField) []ui.InspectionField {
 // SetField writes one field of the record as one edit, after the field's
 // range, its reference check and the record's placement check pass on the
 // edited map.
-func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0" {
 		if view, err := s.model.Map(); err == nil {
 			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == ui.ScriptMessageParameter {
@@ -490,7 +495,8 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 // SetFields writes several fields of one record as one edit: each through
 // the checks SetField or SetTextField applies, the trigger order last. A
 // refused field refuses the set and the model is unchanged.
-func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -611,7 +617,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		return setUnitGold(m, index, value)
 	}
 	if k == mapedit.KindUnit && unitKeyFields[key] {
-		return false, fmt.Errorf("the unit's %s key is read-only: choose who the unit is, and the editor writes its keys", key)
+		return false, wordErr("editor.err.unitkey", key)
 	}
 	if k == mapedit.KindLoot {
 		if handled, changed, err := s.setStockItem(m, index, key, value); handled {
@@ -620,7 +626,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	if k == mapedit.KindTrigger && key == "order" {
 		if value < 0 || value >= int64(m.Count(k)) {
-			return false, fmt.Errorf("no trigger position %d", value)
+			return false, wordErr("editor.err.triggerposition", value)
 		}
 		if value == int64(index) {
 			return false, nil
@@ -664,7 +670,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && (value < f.Min || value > f.Max) {
-		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.word(f.Label), value, f.Min, f.Max)
+		return false, wordErr("editor.err.castrange", wordRef(f.Label), value, f.Min, f.Max)
 	}
 	was := s.footprintOf(m, k, index)
 	if err := m.SetFields(k, index, append(look, mapedit.FieldSet{Key: key, Value: value})...); err != nil {
@@ -698,9 +704,9 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	case mapedit.CheckItemRecipe:
 		if value != 0 {
 			if value > int64(len(view.Enchantments)) {
-				err = fmt.Errorf("recipe %d is outside 1..%d", value, len(view.Enchantments))
+				err = wordErr("editor.err.reciperange", value, len(view.Enchantments))
 			} else if r := view.Enchantments[value-1]; r.X != 0 || r.Y != 0 {
-				err = fmt.Errorf("recipe %d has cell coordinates and cannot enchant an item", value)
+				err = wordErr("editor.err.recipecell", value)
 			}
 		}
 	case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
@@ -829,7 +835,7 @@ func (s *mapInspectionEdits) placementError(view *alm.Map, feet recordFeet, k ma
 func (x *MapInspector) checkStructureKind(kind int64) error {
 	set := x.structures
 	if set == nil || kind <= 0 || kind >= int64(len(set.Classes)) || set.Classes[kind] == nil {
-		return fmt.Errorf("structure kind %d is not in the installed structures.reg", kind)
+		return wordErr("editor.err.structurekind", kind)
 	}
 	return nil
 }
@@ -839,15 +845,16 @@ func (x *MapInspector) checkStructureKind(kind int64) error {
 func (x *MapInspector) checkItem(code int64) error {
 	t := x.table
 	if t == nil {
-		return fmt.Errorf("no installed tables to check item code %d against", code)
+		return wordErr("editor.err.notables.item", code)
 	}
 	if _, ok := mapload.ShippedItemName(t, data.ItemCode(code)); !ok {
-		return fmt.Errorf("item code %d names no installed item", code)
+		return wordErr("editor.err.noitem", code)
 	}
 	return nil
 }
 
-func (s *mapInspectionEdits) Undo() (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Undo() (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if len(s.undoWorkspace) > 0 {
 		return s.travelWorkspace(true)
 	}
@@ -857,7 +864,8 @@ func (s *mapInspectionEdits) Undo() (*ui.InspectionDocument, error) {
 	return s.modelHistory(true)
 }
 
-func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Redo() (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if len(s.redoWorkspace) > 0 {
 		return s.travelWorkspace(false)
 	}
@@ -870,7 +878,8 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 // SaveAs writes the map the model holds. The map file is the save: a part the
 // editor cannot write beside it, the texts folder or its pages, is left out
 // and named by SaveNote, and its edits stay in the workspace.
-func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
+func (s *mapInspectionEdits) SaveAs(path string) (_ string, said error) {
+	defer s.worded(&said)
 	if path != "" && !filepath.IsAbs(path) {
 		if maps, _ := s.inspector.mapsFolder(); maps != "" {
 			path = filepath.Join(maps, path)
@@ -910,10 +919,11 @@ func (s *mapInspectionEdits) OwnFile() (string, bool) {
 // there is one. An extended map whose own file is an .alm is written beside
 // it as a new .almx of the same name, unless its script fits the original
 // records again, when the save asks to fold it first.
-func (s *mapInspectionEdits) SaveInPlace() (string, error) {
+func (s *mapInspectionEdits) SaveInPlace() (_ string, said error) {
+	defer s.worded(&said)
 	path, ok := s.OwnFile()
 	if !ok {
-		return "", fmt.Errorf("the map has no file of its own to save over")
+		return "", wordErr("editor.err.nofile")
 	}
 	if err := s.scriptSaveForm(path); err != nil {
 		if errors.As(err, new(*ui.ScriptFormNeeded)) {
@@ -1018,11 +1028,11 @@ func (s *mapInspectionEdits) noteUnwritten(err error) {
 func mapOutputDirectory(abs string) (string, error) {
 	dir := filepath.Dir(abs)
 	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("the folder %s does not exist; a save creates no folder", dir)
+		return "", wordErr("editor.err.nofolder", dir)
 	}
 	parent, err := editorPhysicalDirectory(dir)
 	if err != nil {
-		return "", fmt.Errorf("resolve map output directory: %w", err)
+		return "", wordCause(err, "editor.err.outputdir", dir)
 	}
 	return parent, nil
 }
@@ -1031,7 +1041,7 @@ func mapOutputDirectory(abs string) (string, error) {
 // source and returns the resolved folder and file it is written to.
 func editedMapTarget(root, source, path string, overwrite bool, grants ...*runtimeProfileAccess) (parent, target string, err error) {
 	if strings.TrimSpace(path) == "" || !isMapExt(filepath.Ext(path), namefold.HostEqual) {
-		return "", "", fmt.Errorf("Save As needs an explicit new .alm or .almx path")
+		return "", "", wordErr("editor.err.saveas.path")
 	}
 	// Require a resolvable existing parent. Unlike the shared save-directory
 	// helper, an ambiguous reparse point fails closed for this explicit writer.
@@ -1041,7 +1051,7 @@ func editedMapTarget(root, source, path string, overwrite bool, grants ...*runti
 	}
 	base := filepath.Base(abs)
 	if !editorOrdinaryFilename(base) {
-		return "", "", fmt.Errorf("Save As needs an ordinary new filename, not a device or alternate stream")
+		return "", "", wordErr("editor.err.saveas.name")
 	}
 	parent, err = mapOutputDirectory(abs)
 	if err != nil {
@@ -1064,11 +1074,11 @@ func editedMapTarget(root, source, path string, overwrite bool, grants ...*runti
 			return "", "", err
 		}
 		if sameSaveName(target, resolvedInput) {
-			return "", "", fmt.Errorf("Save As cannot replace the source map %s; Save writes over the map's own file", target)
+			return "", "", wordErr("editor.err.saveas.source", target)
 		}
 		if a, err := os.Stat(input); err == nil {
 			if b, err := os.Stat(target); err == nil && os.SameFile(a, b) {
-				return "", "", fmt.Errorf("Save As cannot replace a source alias")
+				return "", "", wordErr("editor.err.saveas.alias")
 			}
 		}
 	}
@@ -1085,7 +1095,7 @@ func fenceEditorWrite(root, parent, verb string, grants ...*runtimeProfileAccess
 	if root != "" {
 		resolvedRoot, err := editorPhysicalDirectory(root)
 		if err != nil {
-			return fmt.Errorf("resolve read-only install: %w", err)
+			return wordCause(err, "editor.err.installdir", root)
 		}
 		// A preserved pair is fenced explicitly, independently of the selected
 		// language and of whether its archives are presently readable.
@@ -1223,22 +1233,22 @@ func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, bin
 			return nil
 		}
 		if matches == 0 {
-			return fmt.Errorf("no unit on the map has unit id %d", value)
+			return wordErr("editor.err.nounitid", value)
 		}
-		return fmt.Errorf("unit id %d resolves to %d map units", value, matches)
+		return wordErr("editor.err.manyunitid", value, matches)
 	case mapedit.CheckScriptStructure:
 		if matches == 1 {
 			return nil
 		}
 		if matches == 0 {
-			return fmt.Errorf("no structure on the map has structure id %d", value)
+			return wordErr("editor.err.nostructid", value)
 		}
-		return fmt.Errorf("structure id %d resolves to %d structures", value, matches)
+		return wordErr("editor.err.manystructid", value, matches)
 	}
 	if matches > 0 {
 		return nil
 	}
-	return fmt.Errorf("no unit on the map holds group %d", value)
+	return wordErr("editor.err.nogroup", value)
 }
 
 // scriptReferenceCount is the number of the map's objects value names.

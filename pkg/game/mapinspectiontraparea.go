@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image"
 
 	"againrom/pkg/mapedit"
@@ -15,10 +14,10 @@ func (s *mapInspectionEdits) checkTrapArea(r ui.InspectionNewRecord) error {
 		return err
 	}
 	if r.Kind != ui.KindEnchantment || !ok || kind >= 4 {
-		return fmt.Errorf("a trap area requires a trap template")
+		return wordErr("editor.err.traptemplate")
 	}
 	if !r.Area.In(image.Rect(0, 0, min(view.Width, 256), min(view.Height, 256))) || image.Pt(0, 0).In(r.Area) || r.Cell != r.Area.Min {
-		return fmt.Errorf("trap area must fit the nonzero byte-coordinate map")
+		return wordErr("editor.err.traparea")
 	}
 	return nil
 }

@@ -55,14 +55,14 @@ func newMapSpec(source string) (alm.NewMapSpec, uint32, error) {
 		var a int
 		var rest string
 		if n, _ := fmt.Sscanf(source[at+len(ui.NewMapAltitude):], "%d%s", &a, &rest); n != 1 || a < 0 || a > alm.NewMapMaxAltitude {
-			return alm.NewMapSpec{}, 0, fmt.Errorf("new map %q: want %s<0..%d>", source, ui.NewMapAltitude, alm.NewMapMaxAltitude)
+			return alm.NewMapSpec{}, 0, wordErr("editor.err.newmapaltitude", source, ui.NewMapAltitude, alm.NewMapMaxAltitude)
 		}
 		source, spec.Altitude = source[:at], uint8(a)
 	}
 	var w, h int
 	var rest string
 	if n, _ := fmt.Sscanf(source, newMapPrefix+"%dx%d%s", &w, &h, &rest); n != 2 {
-		return alm.NewMapSpec{}, 0, fmt.Errorf("new map %q: want %s<width>x<height>", source, newMapPrefix)
+		return alm.NewMapSpec{}, 0, wordErr("editor.err.newmapsize", source, newMapPrefix)
 	}
 	spec.Width, spec.Height = w, h
 	return spec, mode, spec.Validate()
@@ -134,7 +134,7 @@ const newUnitFraction = 128
 // below the creature floor is a human, which the class key alone selects.
 func (x *MapInspector) secondaryKey(class int16) (uint16, error) {
 	if x.table == nil {
-		return 0, fmt.Errorf("no installed tables to check class %d against", class)
+		return 0, wordErr("editor.err.notables.class", class)
 	}
 	best, face := data.NotFound, uint16(0)
 	for k := 0; k <= math.MaxUint8; k++ {
@@ -144,7 +144,7 @@ func (x *MapInspector) secondaryKey(class int16) (uint16, error) {
 		}
 	}
 	if best == data.NotFound {
-		return 0, fmt.Errorf("class %d names no installed definition", class)
+		return 0, wordErr("editor.err.noclass", class)
 	}
 	return face, nil
 }

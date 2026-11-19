@@ -696,18 +696,18 @@ func (s *mapInspectionEdits) setMercenaryLevel(m *mapedit.Editor, index int, lev
 		return false, err
 	}
 	if index < 0 || index >= len(view.AuthoredUnits) {
-		return false, fmt.Errorf("no unit %d", index)
+		return false, wordErr("editor.speaker.err.nounit", index)
 	}
 	mission := s.mission()
 	x.identityChoices(mission)
 	id, _, ok := mapload.IdentifyAt(view.AuthoredUnits[index], x.table, mission)
 	typ, _, merc := x.mercenaryOf(id)
 	if !ok || !merc {
-		return false, fmt.Errorf("only a mercenary has a level")
+		return false, wordErr("editor.err.mercenary")
 	}
 	row, ok := x.mercenaryLevels[typ][int(min(max(level, 0), math.MaxInt32))]
 	if !ok {
-		return false, fmt.Errorf("mercenary type %d has no level %d", typ, level)
+		return false, wordErr("editor.err.mercenarylevel", typ, level)
 	}
 	return s.keyIdentity(m, index, mapload.Identity{Kind: mapload.UnitPerson, Row: row})
 }
@@ -787,7 +787,7 @@ func (s *mapInspectionEdits) setIdentity(m *mapedit.Editor, index int, value int
 	t := s.inspector.table
 	id, ok := s.identityOf(value)
 	if !ok || !t.ClassPlacementFields() {
-		return false, fmt.Errorf("choose who this unit is: a creature, a person or a named character")
+		return false, wordErr("editor.err.identity.this")
 	}
 	return s.keyIdentity(m, index, id)
 }
@@ -797,19 +797,19 @@ func (s *mapInspectionEdits) setIdentity(m *mapedit.Editor, index int, value int
 func (s *mapInspectionEdits) keyIdentity(m *mapedit.Editor, index int, id mapload.Identity) (bool, error) {
 	t := s.inspector.table
 	if !t.ClassPlacementFields() {
-		return false, fmt.Errorf("choose who this unit is: a creature, a person or a named character")
+		return false, wordErr("editor.err.identity.this")
 	}
 	view, err := m.Map()
 	if err != nil {
 		return false, err
 	}
 	if index < 0 || index >= len(view.AuthoredUnits) {
-		return false, fmt.Errorf("no unit %d", index)
+		return false, wordErr("editor.speaker.err.nounit", index)
 	}
 	u := view.AuthoredUnits[index]
 	want, ok := mapload.Place(u, id, t, s.mission())
 	if !ok {
-		return false, fmt.Errorf("the installed tables cannot key a unit to that choice")
+		return false, wordErr("editor.err.identitykey")
 	}
 	var sets []mapedit.FieldSet
 	if want.ClassID != u.ClassID {
@@ -825,7 +825,7 @@ func (s *mapInspectionEdits) keyIdentity(m *mapedit.Editor, index int, id maploa
 		sets = append(sets, mapedit.FieldSet{Key: "npcflag", Value: int64(want.Flags & 1)})
 	}
 	if want.Flags&^1 != u.Flags&^1 || want.ServerID != u.ServerID {
-		return false, fmt.Errorf("that choice needs a key this map's unit records do not hold")
+		return false, wordErr("editor.err.identityfield")
 	}
 	if len(sets) == 0 {
 		return false, nil

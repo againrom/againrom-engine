@@ -15,13 +15,15 @@ func seedSource(seed uint32) func(int) int { return random.NewGo(int64(seed)).In
 
 // RandomTerrain draws every tile word anew among its look-alikes from seed,
 // as one edit (TERR-248).
-func (s *mapInspectionEdits) RandomTerrain(seed uint32) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) RandomTerrain(seed uint32) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) { return m.RandomizeTerrain(seedSource(seed)) })
 }
 
 // RandomHeights lays a random relief over the height plane from seed, as one
 // edit (DIV-4013).
-func (s *mapInspectionEdits) RandomHeights(seed uint32) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) RandomHeights(seed uint32) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) { return m.RandomizeHeights(seedSource(seed)) })
 }
 
@@ -29,7 +31,8 @@ func (s *mapInspectionEdits) RandomHeights(seed uint32) (*ui.InspectionDocument,
 // heights and objects of the cell rectangle box, as one clip whose origin is
 // box's top-left cell, so a paste puts the records where they stood on the
 // terrain.
-func (s *mapInspectionEdits) CopyArea(refs []ui.RecordRef, box image.Rectangle) (ui.InspectionClip, string, error) {
+func (s *mapInspectionEdits) CopyArea(refs []ui.RecordRef, box image.Rectangle) (_ ui.InspectionClip, _ string, said error) {
+	defer s.worded(&said)
 	clip := &selectionClip{from: s.source}
 	if len(refs) > 0 {
 		c, _, err := s.CopyRecords(refs)
@@ -57,7 +60,8 @@ func (s *mapInspectionEdits) CopyArea(refs []ui.RecordRef, box image.Rectangle) 
 // objectPatch's patch with box's objects carried, so its paste writes the
 // object plane alone. The records then move as MoveRecords moves them, on the
 // moved objects. The moved box must lie on the map.
-func (s *mapInspectionEdits) MoveArea(refs []ui.RecordRef, box image.Rectangle, offset image.Point) (ui.SelectionEdit, error) {
+func (s *mapInspectionEdits) MoveArea(refs []ui.RecordRef, box image.Rectangle, offset image.Point) (_ ui.SelectionEdit, said error) {
+	defer s.worded(&said)
 	if offset == (image.Point{}) {
 		return ui.SelectionEdit{}, nil
 	}
@@ -85,7 +89,7 @@ func (s *mapInspectionEdits) MoveArea(refs []ui.RecordRef, box image.Rectangle, 
 func (s *mapInspectionEdits) sceneryCell(index int) (image.Rectangle, error) {
 	w, h := s.model.GridSize()
 	if index < 0 || index >= w*h {
-		return image.Rectangle{}, fmt.Errorf("scenery %d is not a cell of the %dx%d map", index, w, h)
+		return image.Rectangle{}, wordErr("editor.err.scenerycell", index, w, h)
 	}
 	c := image.Pt(index%w, index/w)
 	return image.Rectangle{Min: c, Max: c.Add(image.Pt(1, 1))}, nil
@@ -126,7 +130,7 @@ func (s *mapInspectionEdits) objectPatch(box image.Rectangle, offset image.Point
 	w, h := s.model.GridSize()
 	span = box.Union(box.Add(offset))
 	if box.Empty() || !span.In(image.Rect(0, 0, w, h)) {
-		return p, span, 0, fmt.Errorf("the cells %v moved by %v leave the %dx%d map", box, offset, w, h)
+		return p, span, 0, wordErr("editor.err.cellsmove", box, offset, w, h)
 	}
 	from, err := s.model.CopyPatch(box.Min.X, box.Min.Y, box.Dx(), box.Dy())
 	if err != nil {

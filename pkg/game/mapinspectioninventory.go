@@ -173,7 +173,7 @@ func (s *mapInspectionEdits) setStockRecipe(m *mapedit.Editor, stock, element in
 		return false, err
 	}
 	if stock < 0 || stock >= len(loot.Records) || element < 1 || element > len(loot.Records[stock].Elements) {
-		return false, fmt.Errorf("item recipe source is unavailable")
+		return false, wordErr("editor.err.recipefirst")
 	}
 	if value == int64(loot.Records[stock].Elements[element-1].TileMarkerIndex) {
 		return false, nil
@@ -192,7 +192,7 @@ func (s *mapInspectionEdits) copyStockRecipe(m *mapedit.Editor, stock, element i
 		return false, err
 	}
 	if value < -1 || value == 0 || value > int64(len(view.Enchantments)) {
-		return false, fmt.Errorf("item recipe is outside the map's native records")
+		return false, wordErr("editor.err.reciperecord")
 	}
 	template := -1
 	if value > 0 {
@@ -215,11 +215,11 @@ func (s *mapInspectionEdits) duplicateStockItem(m *mapedit.Editor, stock, elemen
 		return false, err
 	}
 	if stock < 0 || stock >= len(loot.Records) || element < 1 || element > len(loot.Records[stock].Elements) {
-		return false, fmt.Errorf("select an item to duplicate")
+		return false, wordErr("editor.err.dupselect")
 	}
 	item := loot.Records[stock].Elements[element-1]
 	if loot.Records[stock].Owner != 0 && item.Field04 != 0 {
-		return false, fmt.Errorf("a worn item is not duplicated: its slot holds one item")
+		return false, wordErr("editor.err.dupworn")
 	}
 	mark := m.Mark()
 	if err := m.SetField(mapedit.KindLoot, stock, fmt.Sprintf("duplicate%d", element), 1); err != nil {
@@ -294,7 +294,7 @@ func (s *mapInspectionEdits) setCarried(m *mapedit.Editor, index, element int, p
 	}
 	if part != "add" {
 		if stock < 0 || element < 1 || element > len(loot.Records[stock].Elements) || loot.Records[stock].Elements[element-1].Field04 != 0 {
-			return false, fmt.Errorf("select an authored carried item")
+			return false, wordErr("editor.err.carriedselect")
 		}
 	}
 	if part == "recipe" {
@@ -302,7 +302,7 @@ func (s *mapInspectionEdits) setCarried(m *mapedit.Editor, index, element int, p
 	}
 	if part == "add" {
 		if value < 1 || value > 65535 {
-			return false, fmt.Errorf("carried item code is outside its native word")
+			return false, wordErr("editor.err.carriedcode")
 		}
 		if err := s.inspector.checkItem(value); err != nil {
 			return false, err
@@ -316,7 +316,7 @@ func (s *mapInspectionEdits) setCarried(m *mapedit.Editor, index, element int, p
 		}
 	} else {
 		if value < 0 || value > 65535 {
-			return false, fmt.Errorf("carried item code is outside its native word")
+			return false, wordErr("editor.err.carriedcode")
 		}
 		if value > 0 {
 			if value == int64(loot.Records[stock].Elements[element-1].ItemCode()) {

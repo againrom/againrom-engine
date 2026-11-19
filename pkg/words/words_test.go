@@ -210,6 +210,14 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordErr" && len(n.Args) >= 1 {
 						args = append(args, n.Args[0])
 					}
+					// wordCause(err, id, figures...) and wordRef(id) hold ids
+					// the editor reads in its language.
+					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordCause" && len(n.Args) >= 2 {
+						args = append(args, n.Args[1])
+					}
+					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordRef" && len(n.Args) == 1 {
+						args = append(args, n.Args[0])
+					}
 					// lifted(err, id, figures...) holds the id the editor reads
 					// in its language.
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "lifted" && len(n.Args) >= 2 {

@@ -197,7 +197,7 @@ func TestArmOpenBackDeleteMatchesRow(t *testing.T) {
 				_ = e.Key("delete")
 				if !opened {
 					wantBytes, wantMessage = append([]byte(nil), e.Document().SourceBytes...), e.Message()
-					if arm == "Win" && (!bytes.Equal(b, wantBytes) || wantMessage != "node ID 1 is referenced by a trigger; clear its references first") {
+					if arm == "Win" && (!bytes.Equal(b, wantBytes) || wantMessage != "Node id 1 is referenced by a trigger; clear its references first.") {
 						t.Fatal("Win Del must refuse the referenced condition")
 					}
 					if arm == "Protect" && (bytes.Equal(b, wantBytes) || wantMessage != "") {

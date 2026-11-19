@@ -506,7 +506,8 @@ func opensMod(scope, key, value string) bool {
 	return key == "folder" && strings.TrimSpace(value) != "" && err == nil
 }
 
-func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	if r, ok := pageScope(scope); ok {
 		return r.set(s, scope, key, value)
 	}
@@ -529,7 +530,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		if key == "page" {
 			name := strings.ToLower(strings.TrimSpace(value))
 			if !missionPageName(name) {
-				return nil, fmt.Errorf("use title.txt, briefing.txt, briefmap.txt, %s or a canonical numbered event/tips page (01, 02, ..., 100, ...)", unitNamesPage)
+				return nil, wordErr("editor.err.pagename", unitNamesPage)
 			}
 			s.page = name
 			return nil, nil
@@ -539,20 +540,20 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		}
 		return s.changeWorkspace(func(w *editorWorkspaceState) error {
 			if !utf8.ValidString(value) || strings.ContainsRune(value, 0) {
-				return fmt.Errorf("page text must be UTF-8 without NUL")
+				return wordErr("editor.err.pagetext")
 			}
 			if len(value) > mod.MaxFileBytes {
-				return fmt.Errorf("page exceeds %d bytes", mod.MaxFileBytes)
+				return wordErr("editor.err.pagesize", mod.MaxFileBytes)
 			}
 			if _, exists := w.Pages[s.page]; !exists && len(w.Pages) >= mod.MaxMissionTexts {
-				return fmt.Errorf("a mission holds at most %d pages", mod.MaxMissionTexts)
+				return wordErr("editor.err.pagecount", mod.MaxMissionTexts)
 			}
 			selector := 0
 			if s.inspector.font != nil {
 				selector = s.inspector.font.Selector
 			}
 			if r, dropped := ModTextDropped([]byte(value), selector); dropped {
-				return fmt.Errorf("this install cannot display %U", r)
+				return wordErr("editor.err.pagechar", r)
 			}
 			w.Pages[s.page] = []byte(value)
 			return nil
@@ -685,7 +686,7 @@ func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDo
 		default:
 			v, parseErr := strconv.ParseUint(strings.TrimSpace(value), 0, 32)
 			if parseErr != nil {
-				return false, fmt.Errorf("raw metadata uses a u32, decimal or 0x hexadecimal: %w", parseErr)
+				return false, wordCause(parseErr, "editor.err.rawmeta")
 			}
 			switch key {
 			case "angle":

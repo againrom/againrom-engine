@@ -19,7 +19,8 @@ func scriptKind(k mapedit.Kind) bool {
 	return k == mapedit.KindAction || k == mapedit.KindCondition || k == mapedit.KindTrigger
 }
 
-func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	k, err := editKind(kind)
 	if err != nil || !kind.Scripted() {
 		return nil, fmt.Errorf("no script kind %q", kind)
@@ -55,7 +56,7 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 			return 0, err
 		}
 		if id > limits.MaxID {
-			return 0, fmt.Errorf("the next node ID exceeds %d", limits.MaxID)
+			return 0, wordErr("editor.err.nodeid", limits.MaxID)
 		}
 		op, value := uint32(2), uint32(1)
 		if k == mapedit.KindCondition {
@@ -75,7 +76,8 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 // the text of the original's page. The document's added record is the copy.
 // A new check is refused where the wizard refuses one, and a trigger with a
 // drop action is not copied.
-func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	at := -1
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		_, sc, err := wizardScript(m)
@@ -83,7 +85,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (*ui.InspectionDocument, err
 			return false, err
 		}
 		if index < 0 || index >= len(sc.Triggers) {
-			return false, fmt.Errorf("no trigger %d", index+1)
+			return false, wordErr("editor.err.notrigger", index+1)
 		}
 		limits := scriptprofile.Of(sc.Extended)
 		if n := len(sc.Triggers); n >= limits.Triggers {
@@ -225,10 +227,10 @@ func scriptDeleteAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 	}
 	nodes := scriptNodes(sc, k)
 	if index < 0 || index >= len(nodes) {
-		return fmt.Errorf("no script node %d", index)
+		return wordErr("editor.err.nonode", index)
 	}
 	if scriptReferenced(sc, k, nodes[index].ID) {
-		return fmt.Errorf("node ID %d is referenced by a trigger; clear its references first", nodes[index].ID)
+		return wordErr("editor.err.noderef", nodes[index].ID)
 	}
 	if k == mapedit.KindCondition {
 		for _, family := range []struct {
@@ -241,7 +243,7 @@ func scriptDeleteAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 				}
 				v := scriptVariable(n)
 				if v >= uint32(index) && v < uint32(len(nodes)) {
-					return fmt.Errorf("deleting condition %d would change variable register %d; remove its variable references first", nodes[index].ID, v)
+					return wordErr("editor.err.delvar", nodes[index].ID, v)
 				}
 			}
 		}
@@ -277,14 +279,14 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 				}
 			}
 			if matches != 1 {
-				return fmt.Errorf("reference %d resolves to %d executable nodes", value, matches)
+				return wordErr("editor.err.refresolves", value, matches)
 			}
 		}
 		return nil
 	}
 	nodes := scriptNodes(sc, k)
 	if index < 0 || index >= len(nodes) {
-		return fmt.Errorf("no script node %d", index)
+		return wordErr("editor.err.nonode", index)
 	}
 	if key == "opcode" {
 		found := false
@@ -294,7 +296,7 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 			}
 		}
 		if !found {
-			return fmt.Errorf("operation %d is not supported for authoring", value)
+			return wordErr("editor.err.opsupport", value)
 		}
 		if k == mapedit.KindCondition && value != 0x10002 {
 			if err := registerCollides(sc, uint32(index)); err != nil {
@@ -308,11 +310,11 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 	if key == "id" {
 		for i, n := range nodes {
 			if i != index && int64(n.ID) == value {
-				return fmt.Errorf("node ID %d is already used", value)
+				return wordErr("editor.err.nodeused", value)
 			}
 		}
 		if scriptReferenced(sc, k, nodes[index].ID) {
-			return fmt.Errorf("node ID %d is referenced; clear its references before renaming", nodes[index].ID)
+			return wordErr("editor.err.noderename", nodes[index].ID)
 		}
 	}
 	return nil
@@ -365,7 +367,7 @@ func scriptAddressesVariable(condition bool, opcode uint32) bool {
 func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
 	if limit := uint32(scriptprofile.Extended.Variables); sc.Extended {
 		if variable >= limit {
-			return fmt.Errorf("variable %d is outside 0..%d", variable, limit-1)
+			return wordErr("editor.script.variableout", variable, limit-1)
 		}
 		return nil
 	}
@@ -374,7 +376,7 @@ func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
 			"editor.script.variableout", variable, limits.Registers-1)
 	}
 	if int(variable) < len(sc.Conditions) && sc.Conditions[variable].Opcode != 0x10002 {
-		return fmt.Errorf("variable register %d is overwritten by condition %d; use a constant/preset slot or a free register", variable, sc.Conditions[variable].ID)
+		return wordErr("editor.err.regoverwrite", variable, sc.Conditions[variable].ID)
 	}
 	return nil
 }
@@ -449,14 +451,15 @@ func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key strin
 		limit = view.Height
 	}
 	if limit > 0 && (value < 0 || value >= int64(limit)) {
-		return fmt.Errorf("coordinate %d is outside 0..%d", value, limit-1)
+		return wordErr("editor.err.coordinate", value, limit-1)
 	}
 	return nil
 }
 
 // LabelVariable sets the label of a variable register; an empty label
 // clears it. The labels are workspace edits, saved in the labels file.
-func (s *mapInspectionEdits) LabelVariable(register uint32, label string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) LabelVariable(register uint32, label string) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	label = strings.TrimSpace(label)
 	if label != "" && !labelAllowed(label) {
 		return nil, fmt.Errorf(s.inspector.word("editor.labels.bad"), maxLabelRunes)

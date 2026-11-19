@@ -3,9 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
-	"os"
 	"regexp"
-	"strings"
 	"testing"
 )
 
@@ -40,20 +38,5 @@ func TestSpeakerHostRefusalsAreInTheEditorsLanguage(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// The editor host files that return a refusal to an editor window hold no
-// English literal in an error; their refusals are word keys.
-func TestEditorSpeakerHostErrorsHoldNoLiteral(t *testing.T) {
-	b, err := os.ReadFile("modspeakers.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	src := string(b)
-	for i, line := range strings.Split(src, "\n") {
-		if (strings.Contains(line, `errors.New("`) || strings.Contains(line, `fmt.Errorf("`)) && !strings.Contains(line, "install has no speaker records") {
-			t.Errorf("modspeakers.go:%d holds an English literal error: %s", i+1, strings.TrimSpace(line))
-		}
 	}
 }

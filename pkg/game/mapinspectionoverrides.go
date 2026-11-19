@@ -167,12 +167,12 @@ func (s *mapInspectionEdits) unitTemplate(k mapedit.Kind, index int, models ...*
 
 func (u *unitTemplateView) stock() (int, error) {
 	if u == nil || u.model == nil || u.s == nil || u.m == nil || u.index < 0 || u.index >= len(u.m.AuthoredUnits) {
-		return -1, fmt.Errorf("native Human placement is unavailable")
+		return -1, wordErr("editor.err.humanplacement")
 	}
 	t := u.s.inspector.table
 	r := mapload.Resolve(u.m.AuthoredUnits[u.index], t)
 	if !t.ClassPlacementFields() || !r.Found() || r.Arm == mapload.ArmUnits {
-		return -1, fmt.Errorf("item rows require a native Human placement")
+		return -1, wordErr("editor.err.humanrows")
 	}
 	return u.model.UnitStock(u.index)
 }
@@ -222,7 +222,7 @@ func (x *MapInspector) gearError(u alm.Unit) error {
 	if gearOffered(u, x.table) {
 		return nil
 	}
-	return fmt.Errorf("bit 7 reaches only a Human of the type-key or definition-id arm; this placement takes the %s arm", mapload.Resolve(u, x.table).Arm)
+	return wordErr("editor.err.bit7", mapload.Resolve(u, x.table).Arm)
 }
 
 // overrideLines are the unit popup's map-override section for placement i

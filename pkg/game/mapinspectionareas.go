@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image"
 
 	"againrom/pkg/formats/alm"
@@ -23,7 +22,8 @@ const boxAreaUnit = 10001
 
 // AddBoxArea adds a box check over box's cells, Max exclusive, to trigger
 // as one more pair, or to a new trigger when trigger is -1, as one edit.
-func (s *mapInspectionEdits) AddBoxArea(box image.Rectangle, trigger int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddBoxArea(box image.Rectangle, trigger int) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
 		if err := addBoxArea(m, box, trigger); err != nil {
@@ -44,10 +44,10 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		return err
 	}
 	if view.Meta.Word70 > 1 {
-		return fmt.Errorf("a map with player capacity above one cannot name a hero for the box")
+		return wordErr("editor.err.areahero")
 	}
 	if box.Empty() || !box.In(image.Rect(0, 0, min(view.Width, 256), min(view.Height, 256))) {
-		return fmt.Errorf("the box %v lies outside the map", box)
+		return wordErr("editor.err.areabox", box)
 	}
 	// On an extended map the pair is one more condition of the trigger's
 	// last group; on an original map it takes the first empty pair.
@@ -55,7 +55,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	pair := 0
 	if trigger >= 0 {
 		if trigger >= len(sc.Triggers) {
-			return fmt.Errorf("no trigger %d", trigger+1)
+			return wordErr("editor.err.notrigger", trigger+1)
 		}
 		pair = -1
 		t := sc.Triggers[trigger]
@@ -85,7 +85,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 		return err
 	}
 	if id > limits.MaxID || !found && id+1 > limits.MaxID {
-		return fmt.Errorf("the next node ID exceeds %d", limits.MaxID)
+		return wordErr("editor.err.nodeid", limits.MaxID)
 	}
 	rec, err := mapedit.NewScriptNode(mapload.ScriptOperationName(true, 2), 2, id,
 		mapedit.ScriptParam{Type: mapload.ScriptUnit, Value: boxAreaUnit},
