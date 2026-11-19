@@ -108,10 +108,20 @@ func (d *editorModDocument) clone() *editorModDocument {
 	return &n
 }
 
+// data is the draft's records and the ones it was opened with, as the
+// writers of missions and towns take them.
+func (d *editorModDocument) data() mod.Data {
+	return mod.Data{
+		Missions: mod.MissionData{Missions: d.Missions},
+		Towns:    mod.TownData{Offers: d.Towns},
+		Before:   mod.DataBefore{Missions: d.Original, Offers: d.TownsOriginal},
+	}
+}
+
 // townsDraft is the towns file the draft's offer records make of the
 // source, and whether it differs from the source.
 func (d *editorModDocument) townsDraft() ([]byte, bool, error) {
-	src, err := mod.WriteOfferRows(d.TownsSource, d.TownsOriginal, d.Towns)
+	src, err := writeHeld(mod.TownsFile, d.TownsSource, d.data())
 	return src, err == nil && !bytes.Equal(src, d.TownsSource), err
 }
 
@@ -179,7 +189,7 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 		}
 	}
 	finish := func(m mod.Mission, layout mod.LayoutChange) (map[string][]byte, []mod.Mission, mod.Mission, mod.LayoutChange, error) {
-		data, err := mod.WriteMissions(d.Source, d.Original, d.Missions)
+		data, err := writeHeld(mod.MissionsFile, d.Source, d.data())
 		if err != nil {
 			return nil, nil, m, none, err
 		}

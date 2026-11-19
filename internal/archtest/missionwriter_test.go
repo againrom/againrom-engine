@@ -6,27 +6,31 @@ import (
 	"testing"
 )
 
-func TestEditorMissionEmitterUsesTheSharedWriter(t *testing.T) {
-	b, err := os.ReadFile("../../pkg/game/mapedittestplay.go")
+// The editor's missions and towns files are written through their kinds'
+// writers: no game source calls the row writers itself.
+func TestEditorRowFilesAreWrittenThroughTheirKinds(t *testing.T) {
+	entries, err := os.ReadDir("../../pkg/game")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := string(b)
-	if !strings.Contains(s, "mod.WriteMissions(") || strings.Contains(s, `"[[mission]]`) {
-		t.Fatal("editor missions must use the shared declaration writer")
+	for _, e := range entries {
+		if !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile("../../pkg/game/" + e.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, call := range []string{"mod.WriteMissions(", "mod.WriteOfferRows(", `"[[mission]]`} {
+			if strings.Contains(string(src), call) {
+				t.Fatalf("%s uses %s; write through the kind", e.Name(), call)
+			}
+		}
 	}
 }
 
-// The editor's towns draft is written by the one row writer: the project
-// document asks mod.WriteOfferRows, and no game source spells an offer table.
-func TestEditorTownsDraftUsesTheSharedRowWriter(t *testing.T) {
-	b, err := os.ReadFile("../../pkg/game/mapeditormod.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(b), "mod.WriteOfferRows(") {
-		t.Fatal("the towns draft must use the shared row writer")
-	}
+// No game source spells an offer table.
+func TestEditorTownsDraftSpellsNoOfferTable(t *testing.T) {
 	entries, err := os.ReadDir("../../pkg/game")
 	if err != nil {
 		t.Fatal(err)

@@ -310,7 +310,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the campaign decoder's missions; rows add guest or campaign missions, replace maps, set AutoGetMission, Payment and parties",
 		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
-		read:   readMissions, named: readMissionMaps, text: true,
+		read:   readMissions, named: readMissionMaps, text: true, write: writeMissionRows,
 	},
 	{
 		Format: "TOML subset; JSON; BMP; UTF-8 TXT", Language: "shared; talk texts per language", Found: "held file; description; mod: art; talk install path", State: true,
@@ -319,7 +319,7 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
 		Base:   "the install's town catalog; its tavern rows are the scenario's, its inn rows the catalog's",
 		Shared: mergedShared + "; `off` switches a town, a tavern row or an inn row off",
-		read:   readTowns,
+		read:   readTowns, write: writeTownRows,
 		summary: func(d Data) string {
 			if d.Towns.Empty() {
 				return ""
@@ -557,6 +557,9 @@ type Data struct {
 	Bodies   BodyData
 	Missions MissionData
 	Towns    TownData
+	// Before is the records the writers of missions and towns diff
+	// against; a kind that needs none leaves it empty.
+	Before   DataBefore
 	Terrain  TerrainData
 	Speakers SpeakerData
 	// Strings are the text of each language by its code, as the editor

@@ -130,7 +130,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 				return "", wordErr("editor.err.tp.prefix", e)
 			}
 			missions, current = append(slices.Clone(missions), row), row
-			if files[mod.MissionsFile], e = mod.WriteMissions(ws.Project.Source, ws.Project.Original, missions); e != nil {
+			if files[mod.MissionsFile], e = writeHeld(mod.MissionsFile, ws.Project.Source, mod.Data{Missions: mod.MissionData{Missions: missions}, Before: mod.DataBefore{Missions: ws.Project.Original}}); e != nil {
 				return "", wordErr("editor.err.tp.prefix", e)
 			}
 		}
@@ -315,7 +315,7 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 
 // testPlayMissions is the test mod's data/missions.toml for m.
 func testPlayMissions(m mod.Mission) []byte {
-	b, _ := mod.WriteMissions(nil, nil, []mod.Mission{m})
+	b, _ := writeHeld(mod.MissionsFile, nil, mod.Data{Missions: mod.MissionData{Missions: []mod.Mission{m}}})
 	return b
 }
 

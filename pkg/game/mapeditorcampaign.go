@@ -173,7 +173,7 @@ func (s *mapInspectionEdits) insertCampaignRow(w *editorWorkspaceState, c Campai
 // missionDraft admits parsed project rows without publishing files or context.
 func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlow, error) {
 	x, d := s.inspector, w.Project
-	src, err := mod.WriteMissions(d.Source, d.Original, d.Missions)
+	src, err := writeHeld(mod.MissionsFile, d.Source, d.data())
 	if err != nil {
 		return nil, err
 	}

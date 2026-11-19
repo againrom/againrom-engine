@@ -470,13 +470,13 @@ func (k kindFiles) editRows(text rowText, rels []string, edit func(*mod.Data) er
 	if err != nil {
 		return err
 	}
+	d.Before = k.w.Project.data().Before
 	if err := edit(&d); err != nil {
 		return err
 	}
 	for _, rel := range rels {
-		kind, _ := mod.WrittenKind(rel)
 		src := k.w.Project.Files[rel]
-		out, err := kind.Write(rel, src, d)
+		out, err := writeHeld(rel, src, d)
 		switch {
 		case err != nil:
 		case bytes.Equal(out, src):
@@ -490,6 +490,15 @@ func (k kindFiles) editRows(text rowText, rels []string, edit func(*mod.Data) er
 		}
 	}
 	return nil
+}
+
+// writeHeld is the file source of rel's kind with the records of data.
+func writeHeld(rel string, source []byte, data mod.Data) ([]byte, error) {
+	kind, ok := mod.WrittenKind(rel)
+	if !ok {
+		return nil, wordErr("editor.err.nokind.written", rel)
+	}
+	return kind.Write(rel, source, data)
 }
 
 // drop takes the file rel names out of the project: the next save removes

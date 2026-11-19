@@ -372,3 +372,20 @@ func sameRows(a, b []sourceRow) bool {
 		return x.table == y.table && maps.Equal(pairMap(x), pairMap(y))
 	})
 }
+
+// DataBefore is the records a writer diffs its after records against: the
+// missions and the offer rows the file held when it was opened.
+type DataBefore struct {
+	Missions []Mission
+	Offers   []OfferRecord
+}
+
+// writeMissionRows is the missions kind's writer over d.Before.
+func writeMissionRows(_ string, source []byte, d Data) ([]byte, error) {
+	return WriteMissions(source, d.Before.Missions, d.Missions.Missions)
+}
+
+// writeTownRows is the towns kind's writer over d.Before.
+func writeTownRows(_ string, source []byte, d Data) ([]byte, error) {
+	return WriteOfferRows(source, d.Before.Offers, d.Towns.Offers)
+}
