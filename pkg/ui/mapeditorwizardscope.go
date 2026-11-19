@@ -2,12 +2,16 @@ package ui
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
 
 	"againrom/pkg/scriptprofile"
 )
+
+// dialogueParamWords is the hint of a dialogue name parameter.
+var dialogueParamWords = map[string]string{"paramHelp": "editor.dialogue.name.help"}
 
 func (e *MapEditor) triggerScope(v scriptView) *popupScope {
 	o := &e.obj
@@ -207,7 +211,7 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 			Fields: map[string]int{"param": i},
 		}
 		switch p.kind {
-		case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation, wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
+		case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation, wpVariable, wpItem, wpStructure, wpSpell, wpProperty, wpSource:
 			param.flag("choose")
 			param.Values["value"] = choiceText(o.fields[i], o.buf[i])
 			if p.kind == wpUnit || p.kind == wpGroup || p.kind == wpStructure {
@@ -217,6 +221,14 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 				if n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64); err == nil && n > 10000 {
 					*heroes = true
 				}
+			}
+		case wpDialogue:
+			param.flag("dialogue")
+			param.Words = maps.Clone(dialogueParamWords)
+			if e.dialogueExists(strings.TrimSpace(o.buf[i])) {
+				param.flag("exists")
+			} else {
+				param.flag("fresh")
 			}
 		case wpCell:
 			if wr.condition && it.hasRadius() {

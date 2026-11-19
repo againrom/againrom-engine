@@ -131,6 +131,8 @@ func (p editorPrompt) fields() bool {
 
 // editorMode is every layer the window can be in.
 type editorMode struct {
+	// dlg is the dialogue the dialogue window edits, nil when it is shut.
+	dlg         *dialogueSession
 	modWindow   bool
 	modPage     int          // W's page shown, one of the modPage constants
 	modGridTop  int          // the first row of the mod page's grid that shows
@@ -256,7 +258,7 @@ func (e *MapEditor) barWindow() string {
 			return "objects"
 		}
 	case "":
-		if !e.objectHidden && (e.selected != -1 || e.groupSel.set || e.messagePage != 0) || e.selectionWindow() || e.prompt.kind == promptPlace {
+		if !e.objectHidden && (e.selected != -1 || e.groupSel.set || e.messagePage != 0 || e.dlg != nil) || e.selectionWindow() || e.prompt.kind == promptPlace {
 			if e.barOwner != "" {
 				return e.barOwner
 			}

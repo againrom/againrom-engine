@@ -1384,6 +1384,9 @@ func (e *MapEditor) recordTitle(r InspectionRecord) string {
 
 func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.obj.viewOffer = false
+	if e.dlg != nil && !e.prompt.open() {
+		return e.dialogueSpec()
+	}
 	if e.modWindow && !e.prompt.open() && (!e.catalog || e.modOverCatalog()) {
 		return e.modSpec()
 	}
@@ -2575,6 +2578,12 @@ func (e *MapEditor) objectPress(p image.Point) {
 			}
 			return
 		}
+		if e.dlg != nil {
+			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
+				e.dialogueRowButton(row, k)
+			}
+			return
+		}
 		if e.messagePage != 0 {
 			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
 				e.messageRowButton(row, k)
@@ -2617,6 +2626,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupButton:
 		if len(e.objectBack) > 0 && n == len(s.Buttons)-1 {
 			e.backObject()
+			return
+		}
+		if e.dlg != nil {
+			e.dialogueWindowButton(n)
 			return
 		}
 		if v, ok := e.scriptVariableRow(e.selected); ok {

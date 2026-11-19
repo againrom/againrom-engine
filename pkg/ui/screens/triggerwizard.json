@@ -38,7 +38,9 @@
               "buttons": [
                 {"word": "editor.object.pick", "act": "pick", "when": "cell"},
                 {"word": "editor.wizard.draw", "act": "draw", "when": "area"},
-                {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"}
+                {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"},
+                {"word": "editor.dialogue.edit", "act": "editdialogue", "when": "exists"},
+                {"word": "editor.dialogue.new", "act": "newdialogue", "when": "fresh"}
               ]
             }
           ]
@@ -86,7 +88,9 @@
               "buttons": [
                 {"word": "editor.object.pick", "act": "pick", "when": "cell"},
                 {"word": "editor.wizard.draw", "act": "draw", "when": "area"},
-                {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"}
+                {"word": "editor.wizard.pickarea", "act": "pickarea", "when": "area"},
+                {"word": "editor.dialogue.edit", "act": "editdialogue", "when": "exists"},
+                {"word": "editor.dialogue.new", "act": "newdialogue", "when": "fresh"}
               ]
             }
           ]

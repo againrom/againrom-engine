@@ -420,7 +420,7 @@ func (e *MapEditor) showDoc(next *InspectionDocument, kept *openMap) {
 	e.selected, e.filter, e.listShown = -1, 0, false
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
 	e.objectBack = nil
-	e.messagePage = 0
+	e.messagePage, e.dlg = 0, nil
 	e.listWheel, e.objectWheel = 0, 0
 	e.placementKey, e.placementDoc, e.placementView, e.placementErr = "", nil, nil, nil
 	e.dragCheckKey, e.dragCheckDoc, e.dragCheck = "", nil, nil
@@ -465,7 +465,7 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	if e.tree.entry {
 		e.tree.entry, e.tree.followed = false, ""
 	}
-	e.messagePage = 0
+	e.messagePage, e.dlg = 0, nil
 	_, variable := e.scriptVariableRow(index)
 	if !variable && (e.doc == nil || index < 0 || index >= len(e.doc.Records)) {
 		return false
@@ -687,7 +687,7 @@ func (e *MapEditor) Update() error {
 	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
 		if native.justPressed(k.key) {
 			name := k.name
-			if (name == "up" || name == "down") && e.messagePage != 0 && native.pressed(ebiten.KeyAlt) {
+			if (name == "up" || name == "down") && (e.messagePage != 0 || e.dlg != nil) && native.pressed(ebiten.KeyAlt) {
 				name = "card" + name // the dialog editor's card moves, even while typing
 			}
 			if typing && name != "escape" && name != "enter" && name != "pageup" && name != "pagedown" && name != "cardup" && name != "carddown" {

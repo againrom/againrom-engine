@@ -965,6 +965,14 @@ func (e *MapEditor) moveMessageCard(at, to int) bool {
 // keyCard moves the focused card one place up or down, past the whole of
 // the neighbouring page number.
 func (e *MapEditor) keyCard(key string) error {
+	if e.dlg != nil {
+		by := 1
+		if key == "cardup" {
+			by = -1
+		}
+		e.dialogueMoveNode(by)
+		return nil
+	}
 	o := &e.obj
 	f := o.focus
 	if e.messagePage == 0 || f < 0 || f >= 2*len(o.messageParts) {

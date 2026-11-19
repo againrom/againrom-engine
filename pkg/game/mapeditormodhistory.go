@@ -75,6 +75,7 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 		}
 		d.Files[mod.MapLabelFile(m.Map)] = encodeMapLabels(labels)
 	}
+	s.syncDialogueDrafts(d, mod.MissionPlace{Map: m.Map}.Dialogs(), w.Dialogues)
 	for name, b := range w.Pages {
 		if bytes.Equal(b, oldPages[name]) {
 			continue

@@ -1,0 +1,36 @@
+[[node]]
+id = 1
+name = "start"
+en = "Goblins hold the old mill. Will you drive them out?"
+ru = "Гоблины заняли старую мельницу. Прогоните их?"
+
+[[reply]]
+en = "I will drive them out."
+ru = "Я прогоню их."
+next = 2
+once = true
+mark = 99
+do = [101]
+
+[[reply]]
+en = "Pay me first."
+ru = "Сначала заплатите."
+once = true
+mark = 98
+do = [102]
+
+[[reply]]
+en = "Not now."
+ru = "Не сейчас."
+
+[[reply]]
+en = "Tell me about the mill again."
+ru = "Расскажите о мельнице еще раз."
+unavailable = "disabled"
+when = [{ left = 5, right = 6, cmp = 0 }]
+
+[[node]]
+id = 2
+name = "thanks"
+en = "Thank you, the mill is ours again."
+ru = "Спасибо, мельница снова наша."

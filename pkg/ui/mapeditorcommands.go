@@ -1317,7 +1317,7 @@ func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, 
 	items := wizItems(condition)
 	at := -1
 	for i, it := range items {
-		if wizItemKey(it) == a.Item {
+		if at < 0 && wizItemKey(it) == a.Item {
 			at = i
 		}
 	}

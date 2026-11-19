@@ -122,6 +122,15 @@ func wizardRoom(t ui.WizardTrigger, extended bool) error {
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitActions, Max: int64(limits.Actions), Got: int64(len(t.Actions))}
 	case !extended && slices.ContainsFunc(t.Pairs, func(p ui.WizardPair) bool { return p.Group != 0 }):
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGroups, Max: 1, Got: 2}
+	case !extended && slices.ContainsFunc(t.Actions, func(a ui.WizardNode) bool { return !a.Keep && a.Opcode == 2 && a.Label != "" }):
+		n := 0
+		for _, a := range t.Actions {
+			if !a.Keep && a.Opcode == 2 && a.Label != "" {
+				n++
+			}
+		}
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitDialogue, Got: int64(n)}
+		return lifted(limit, "editor.script.limit.dialogue", n)
 	default:
 		return nil
 	}
@@ -313,13 +322,17 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	for s := 0; s < last; s++ {
 		params = append(params, mapedit.ScriptParam{Type: n.Types[s], Value: n.Values[s]})
 	}
-	if at >= 0 && nodes[at].Opcode == n.Opcode && nodes[at].Type == n.Types && nodes[at].Value == n.Values {
+	if at >= 0 && nodes[at].Opcode == n.Opcode && nodes[at].Type == n.Types && nodes[at].Value == n.Values &&
+		(n.Label == "" && !nodes[at].InteractiveMessage() || n.Label == nodes[at].Label) {
 		return n.ID, nil // the row names what the node already says
 	}
 	label := mapload.ScriptOperationName(condition, n.Opcode)
+	if n.Label != "" {
+		label = n.Label
+	}
 	vars := variableRegisters(sc)
 	if at >= 0 && refs[n.ID] == 1 && planned[[2]uint32{family, n.ID}] == 0x101 && !(condition && vars[uint32(at)]) {
-		if nodes[at].Opcode == n.Opcode {
+		if nodes[at].Opcode == n.Opcode && n.Label == "" && !nodes[at].InteractiveMessage() {
 			label = ""
 		}
 		if condition && n.Opcode != mapload.ScriptConstant {
@@ -357,19 +370,29 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 // names now, the highest index first, each where its deletion moves no
 // variable register.
 func dropUnnamed(m *mapedit.Editor, before []alm.ScriptTrigger) error {
-	type gone struct {
-		condition bool
-		id        uint32
-	}
-	var ids []gone
+	var ids []goneNode
 	for _, tr := range before {
 		for k := range tr.Left {
-			ids = append(ids, gone{true, tr.Left[k]}, gone{true, tr.Right[k]})
+			ids = append(ids, goneNode{true, tr.Left[k]}, goneNode{true, tr.Right[k]})
 		}
 		for _, id := range tr.Acts {
-			ids = append(ids, gone{false, id})
+			ids = append(ids, goneNode{false, id})
 		}
 	}
+	return dropNodes(m, ids, nil)
+}
+
+// goneNode is a script node a write may have left with no name.
+type goneNode struct {
+	condition bool
+	id        uint32
+}
+
+// dropNodes deletes the nodes of ids that no trigger names and held does not
+// hold, the highest index first, each where its deletion moves no variable
+// register.
+func dropNodes(m *mapedit.Editor, ids []goneNode, held func(g goneNode) bool) error {
+	type gone = goneNode
 	for {
 		_, sc, err := wizardScript(m)
 		if err != nil {
@@ -378,7 +401,7 @@ func dropUnnamed(m *mapedit.Editor, before []alm.ScriptTrigger) error {
 		condRefs, actRefs := wizardRefs(sc)
 		best, bestKind := -1, mapedit.KindAction
 		for _, g := range ids {
-			if g.id == 0 {
+			if g.id == 0 || held != nil && held(g) {
 				continue
 			}
 			nodes, refs, kind := sc.Actions, actRefs, mapedit.KindAction

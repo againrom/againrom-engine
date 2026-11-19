@@ -1,0 +1,6 @@
+[[mission]]
+key='mill'
+number=21
+map="maps/mill.almx"
+after=20
+party=[{character='npc22'}]

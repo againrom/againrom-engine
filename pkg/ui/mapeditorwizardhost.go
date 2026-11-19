@@ -19,10 +19,12 @@ type InspectionTriggerCopy interface {
 // WizardNode is one node a wizard row names. Keep names node ID as it
 // stands. Otherwise the node becomes Opcode with Types and Values: node ID
 // is rewritten in place when no other slot of any trigger names it, else a
-// new node is made; ID 0 always makes a new node.
+// new node is made; ID 0 always makes a new node. A Label other than "" is the
+// node's label (a dialogue's name on an interactive message action).
 type WizardNode struct {
 	ID            uint32
 	Keep          bool
+	Label         string
 	Opcode        uint32
 	Types, Values [10]uint32
 }

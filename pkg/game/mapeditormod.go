@@ -224,7 +224,7 @@ func (s *mapInspectionEdits) retainedPackageFiles(b []byte) (map[string][]byte, 
 		return finish(mod.Mission{}, none)
 	}
 	if d.Selected < 0 {
-		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels)) {
+		if s.model != nil && (!bytes.Equal(s.saved, s.model.Bytes()) || !reflect.DeepEqual(s.workspace.Pages, saved.Pages) || !reflect.DeepEqual(s.workspace.Labels, saved.Labels) || !reflect.DeepEqual(s.workspace.Dialogues, saved.Dialogues)) {
 			return nil, nil, mod.Mission{}, none, errors.New(s.inspector.word("editor.mod.err.unnamed"))
 		}
 		return finish(mod.Mission{}, none)

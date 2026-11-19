@@ -1,0 +1,8 @@
+id = "ambush"
+title = "Ambush"
+version = "1.0.0"
+author = "Againrom"
+description = "Mission 20 on another map."
+api = 1
+applies-to = ["rom1"]
+entry = "main.star"

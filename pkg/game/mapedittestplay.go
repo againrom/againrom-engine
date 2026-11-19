@@ -143,7 +143,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 			plan.Source = x.mod.dir
 		}
 	} else if ws != nil {
-		m.TextFiles = cloneWorkspace(ws).Pages
+		m.TextFiles, m.DialogueFiles = cloneWorkspace(ws).Pages, ws.dialogueFiles()
 	}
 	if plan == nil {
 		if err := s.carryModSpeakers(&m); err != nil {

@@ -378,7 +378,7 @@ func TestMapEditorMCPDialogueInOneCall(t *testing.T) {
 	}
 	for _, bad := range []map[string]any{
 		{"name": "T", "actions": []any{map[string]any{"item": "a.win", "parts": []any{map[string]any{"body": "x"}}}}},
-		{"name": "T", "actions": []any{map[string]any{"item": "a.dialog", "params": []any{0}, "parts": []any{map[string]any{"body": "x"}}}}},
+		{"name": "T", "actions": []any{map[string]any{"item": "a.dialog", "params": []any{0, 0}, "parts": []any{map[string]any{"body": "x"}}}}},
 	} {
 		if r := tool("write_trigger", bad); !r.IsError {
 			t.Fatalf("write_trigger took %v", bad)

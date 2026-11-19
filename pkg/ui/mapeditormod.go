@@ -131,6 +131,14 @@ func (e *MapEditor) modAction(key, value string) error {
 	if _, ok := e.workspace(); !ok {
 		return nil
 	}
+	if e.modPage == modPageDialogues {
+		switch name, open := strings.CutPrefix(key, DialogueOpenKey); {
+		case key == DialogueNewKey:
+			return e.NewDialogue()
+		case open:
+			return e.OpenDialogue(name)
+		}
+	}
 	focus, detail := e.obj.focus, e.obj.detail
 	button := -1
 	fieldKey := ""

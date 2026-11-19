@@ -13,9 +13,9 @@ import (
 // maps/<stem>.dialogs/<name>.toml. It holds [[node]] tables, each followed by
 // the [[reply]] tables that belong to it. A text is written once per language
 // under the language's code. A reply's next is the node it pages to (0 or
-// absent ends the dialogue); do lists action node ids and when lists
-// condition pairs by condition node ids and comparison code, as a trigger
-// does; once offers the reply until it is chosen and records the choice in
+// absent ends the dialogue); a node may carry the name the editor shows; do
+// lists action node ids and when lists condition pairs by condition node ids
+// and comparison code, as a trigger does; once offers the reply until it is chosen and records the choice in
 // script variable mark; unavailable is hidden (default) or disabled.
 
 // The dialogue file's bounds.
@@ -78,6 +78,7 @@ type DialogueReply struct {
 type DialogueNode struct {
 	Line    int
 	ID      int
+	Name    string
 	Text    DialogueText
 	Replies []DialogueReply
 }
@@ -195,6 +196,13 @@ func readDialogueNode(t tomlTable, bad dialogueBad) (DialogueNode, error) {
 			if err != nil {
 				return n, err
 			}
+			continue
+		}
+		if p.key == "name" {
+			if p.val.kind != tomlString || p.val.str == "" {
+				return n, bad(p.line, "name must be a non-empty string")
+			}
+			n.Name = p.val.str
 			continue
 		}
 		if p.key != "id" {

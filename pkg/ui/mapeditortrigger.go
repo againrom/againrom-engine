@@ -475,6 +475,10 @@ func (e *MapEditor) loadScriptObject(v scriptView) {
 // slots become the new operation's signature, where a claim states one; a
 // slot keeps its typed text while its type stays.
 func (e *MapEditor) retypeNode() {
+	if e.dlg != nil {
+		e.dialogueRetype()
+		return
+	}
 	o := &e.obj
 	v, ok := e.scriptPopup()
 	if ok && v.trigger != nil && o.wiz != nil {
@@ -556,6 +560,37 @@ const (
 	actPick       = "pick"
 )
 
+// madeSpec is a window built from a description laid out as the object
+// popup: placed, as wide as its rows need, its wrapped text rows cut into
+// lines, and each row bound to the field and the actions it was made for.
+func (e *MapEditor) madeSpec(s popupSpec, made []popupMade) (popupSpec, []int) {
+	o := &e.obj
+	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
+	s.At, s.Bounds = e.keptCorner(popObject), e.popupBounds()
+	if o.note != "" {
+		s.Notes = append(s.Notes, e.editorHostText(o.note))
+	}
+	body := e.bodyFont()
+	s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, body, 0), s.Bounds.Dx()))
+	box := lineBox{Measure: advanceOf(body), Width: s.Width - 2*popupPad - 8}
+	s.Rows, made = madeRowLines(s.Rows, made, box)
+	for i, m := range made {
+		if m.Field >= 0 {
+			o.rowField[i] = m.Field
+			s.Rows[i].Focus = m.Field == o.focus
+			if m.Row.Kind == popupEdit && s.Rows[i].Focus && body != nil {
+				s.Rows[i].Caret = body.Advance(m.Row.Value)
+			}
+		}
+		if len(m.Acts) > 0 {
+			o.rowActs[i] = m.Acts
+		}
+	}
+	s.Notes = wrapNotes(s.Notes, advanceOf(body), s.Width)
+	e.pageObjectRows(&s, true)
+	return s, make([]int, len(s.Rows))
+}
+
 // scriptSpec is the trigger or node popup as data.
 func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	e.loadObject()
@@ -569,29 +604,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		} else {
 			s, made = triggerDetailsDesc().build(e.detailsScope(v), e.word)
 		}
-		s.At, s.Bounds = e.keptCorner(popObject), e.popupBounds()
-		if o.note != "" {
-			s.Notes = append(s.Notes, e.editorHostText(o.note))
-		}
-		body := e.bodyFont()
-		s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, body, 0), s.Bounds.Dx()))
-		box := lineBox{Measure: advanceOf(body), Width: s.Width - 2*popupPad - 8}
-		s.Rows, made = madeRowLines(s.Rows, made, box)
-		for i, m := range made {
-			if m.Field >= 0 {
-				o.rowField[i] = m.Field
-				s.Rows[i].Focus = m.Field == o.focus
-				if m.Row.Kind == popupEdit && s.Rows[i].Focus && body != nil {
-					s.Rows[i].Caret = body.Advance(m.Row.Value)
-				}
-			}
-			if len(m.Acts) > 0 {
-				o.rowActs[i] = m.Acts
-			}
-		}
-		s.Notes = wrapNotes(s.Notes, advanceOf(body), s.Width)
-		e.pageObjectRows(&s, true)
-		return s, make([]int, len(s.Rows))
+		return e.madeSpec(s, made)
 	}
 	s.Width, s.LabelWidth = e.popupWide(popObject, scriptPopupWidth), 150
 	var links []int

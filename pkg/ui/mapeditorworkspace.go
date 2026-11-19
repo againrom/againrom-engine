@@ -121,9 +121,10 @@ const (
 	modPageItems           // the item rows the mod adds, changes or switches off
 	modPageFiles           // the install files the mod replaces
 	modPageCharacters
-	modPageSpells // the mod's spell book and the spells' numbers
-	modPageTowns  // the mod's towns and tavern offers
-	modPageBodies // the mod's body sheets and the bodies its weapons are drawn with
+	modPageSpells    // the mod's spell book and the spells' numbers
+	modPageDialogues // the dialogues of the open map
+	modPageTowns     // the mod's towns and tavern offers
+	modPageBodies    // the mod's body sheets and the bodies its weapons are drawn with
 )
 
 // modPageWords is each page's tab word and the help its title's (?) mark
@@ -138,6 +139,7 @@ var modPageWords = []struct{ tabWord, helpWord string }{
 	{tabWord: "editor.mod.files", helpWord: "editor.files.help"},
 	{tabWord: "editor.mod.characters", helpWord: "editor.characters.help"},
 	{tabWord: "editor.mod.spells", helpWord: "editor.spells.help"},
+	{tabWord: "editor.mod.dialogues", helpWord: "editor.dialogues.help"},
 	{tabWord: "editor.mod.towns", helpWord: "editor.towns.help"},
 	{tabWord: "editor.mod.bodies", helpWord: "editor.bodies.help"},
 }
@@ -156,10 +158,20 @@ const (
 	ModCharactersScope = "characters"
 	// ModSpellsScope is the mod's spell rows and its book.
 	ModSpellsScope = "spells"
+	// ModDialoguesScope is the open map's dialogues.
+	ModDialoguesScope = "dialogues"
 	// ModTownsScope is the mod's towns and tavern offers.
 	ModTownsScope = "towns"
 	// ModBodiesScope is the mod's body sheets and weapon bodies.
 	ModBodiesScope = "bodies"
+)
+
+// The keys of the Dialogues page's rows: a dialogue's summary and its Open
+// button end in the dialogue's name.
+const (
+	DialogueInfoKey = "info."
+	DialogueOpenKey = "open."
+	DialogueNewKey  = "new"
 )
 
 // modScopePages is W's pages that hold the workspace fields of a scope of
@@ -167,7 +179,7 @@ const (
 var modScopePages = []struct {
 	page  int
 	scope string
-}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageTowns, ModTownsScope}, {modPageBodies, ModBodiesScope}, {modPageFiles, ModFilesScope}}
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageDialogues, ModDialoguesScope}, {modPageTowns, ModTownsScope}, {modPageBodies, ModBodiesScope}, {modPageFiles, ModFilesScope}}
 
 // modHeldPages are the pages of modScopePages kept out of W: no tab or key
 // reaches them.

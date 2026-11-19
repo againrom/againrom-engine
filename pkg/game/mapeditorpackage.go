@@ -28,6 +28,9 @@ func missionPackageFiles(title, description string, m mod.Mission, game base.Gam
 	p.Manifest.Description = description
 	manifest, _ := p.manifestBytes(nil)
 	files := map[string][]byte{mod.ManifestName: manifest, mod.MissionsFile: testPlayMissions(m), m.Map: bytes.Clone(m.MapBytes)}
+	for name, b := range m.DialogueFiles {
+		files[place.Dialogs()+"/"+name+".toml"] = bytes.Clone(b)
+	}
 	for name, b := range m.TextFiles {
 		files[place.Pages(lang)+"/"+name] = bytes.Clone(b)
 	}
@@ -283,6 +286,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	m := p.mission(b, s.workspace.Pages, s.place())
+	m.DialogueFiles = s.workspace.dialogueFiles()
 	missions := []mod.Mission{m}
 	files := map[string][]byte{}
 	var layout mod.LayoutChange

@@ -71,6 +71,9 @@ type editorWorkspaceState struct {
 	// Labels are the mapmaker's names of variable registers, UTF-8; the
 	// labels file beside the map holds them.
 	Labels map[uint32]string `json:",omitempty"`
+	// Dialogues are the map's interactive dialogue files by name; a name held
+	// with no bytes is a dialogue removed since the last save.
+	Dialogues map[string][]byte `json:",omitempty"`
 }
 
 type editorWorkspaceSnapshot struct {
@@ -99,6 +102,12 @@ func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
 		next.Pages[name] = bytes.Clone(b)
 	}
 	next.Labels = maps.Clone(w.Labels)
+	if w.Dialogues != nil {
+		next.Dialogues = make(map[string][]byte, len(w.Dialogues))
+		for name, b := range w.Dialogues {
+			next.Dialogues[name] = bytes.Clone(b)
+		}
+	}
 	return &next
 }
 
@@ -177,6 +186,7 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 	} else if _, sc, err := wizardScript(s.model); err == nil {
 		w.Labels = liveLabels(sc, labels)
 	}
+	s.openDialogues(w)
 	w.Package.Manifest.ID, w.Package.Manifest.Title = w.Package.ID, w.Package.Title
 	s.workspace, s.workspaceImage = w, workspaceBytes(w)
 	s.savedWorkspace = s.workspaceImage
@@ -407,6 +417,7 @@ func workspaceScopeRows() []workspaceScope {
 		modPage(ui.ModTownsScope, (*edits).townsFields, (*edits).setTownsField),
 		modPage(ui.ModBodiesScope, (*edits).bodiesFields, (*edits).setBodiesField),
 		modPage(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
+		dialoguesPage(modPage(ui.ModDialoguesScope, (*edits).dialoguesFields, (*edits).setDialoguesField)),
 	}
 }
 

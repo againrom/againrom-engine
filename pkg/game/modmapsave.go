@@ -242,6 +242,9 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", err
 	}
+	if err := s.dialoguesGate(); err != nil {
+		return "", err
+	}
 	if s.workspace.Project != nil && s.workspace.Project.Selected < 0 && bytes.Equal(s.saved, s.model.Bytes()) {
 		return s.saveWorkspacePackage(m.dir)
 	}

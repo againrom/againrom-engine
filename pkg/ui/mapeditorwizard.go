@@ -36,6 +36,8 @@ const (
 	wpStructure // a choice of structures, or a click on one
 	wpSpell     // a choice of the spells the slot takes
 	wpProperty  // a choice of the unit properties a selector names
+	wpSource    // a choice of where a dialog comes from: a message page or a dialogue file
+	wpDialogue  // the name of a dialogue file, kept in the action's label
 )
 
 // wizParam is one parameter of an item: its kind, its label's word, its
@@ -84,6 +86,9 @@ type wizItem struct {
 	fixed         [][2]uint32
 	onePerTrigger bool
 	hintWord      string
+	// interactive marks the dialog item that starts a dialogue file: it and
+	// the message item are one list entry, the row's source choosing.
+	interactive bool
 }
 
 var (
@@ -109,6 +114,9 @@ var (
 	pRange     = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.range", def: 3, inNode: true}
 	pCommand   = wizParam{kind: wpCommand, labelWord: "editor.wizard.p.command", inNode: true}
 	pLastGroup = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, last: true}
+
+	pSource   = wizParam{kind: wpSource, labelWord: "editor.wizard.p.source"}
+	pDialogue = wizParam{kind: wpDialogue, labelWord: "editor.wizard.p.dialogue"}
 )
 
 // command is the command parameter with default c.
@@ -206,7 +214,7 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.gold", subject: subjectPlayers, opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
 	{labelWord: "editor.wizard.a.win", subject: subjectMission, opcode: 4},
 	{labelWord: "editor.wizard.a.lose", subject: subjectMission, opcode: 5},
-	{labelWord: "editor.wizard.a.dialog", subject: subjectMission, opcode: 2, params: []wizParam{{kind: wpMessage, labelWord: "editor.wizard.p.message", inNode: true}}, onePerTrigger: true},
+	{labelWord: "editor.wizard.a.dialog", subject: subjectMission, opcode: 2, params: []wizParam{pSource, {kind: wpMessage, labelWord: "editor.wizard.p.message", inNode: true}}, onePerTrigger: true},
 	{labelWord: "editor.wizard.a.giveunit", subject: subjectUnits, opcode: 19, params: []wizParam{pUnit, pPlayer}},
 	{labelWord: "editor.wizard.a.givegroup", subject: subjectGroups, opcode: 22, params: []wizParam{pGroup, pPlayer}},
 	{labelWord: "editor.wizard.a.move", subject: subjectUnits, opcode: 27, params: []wizParam{pUnit, pPoint}},
@@ -234,6 +242,24 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.order.attack", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(10), pUnit}},
 	{labelWord: "editor.wizard.a.order.defend", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(11), pUnit, pRange}},
 	{labelWord: "editor.wizard.a.order.follow", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, at: 2}, {kind: wpCommand, labelWord: "editor.wizard.p.command", def: 15, inNode: true, at: 1}, pUnit, pRange}},
+	{labelWord: "editor.wizard.a.dialog", variant: true, interactive: true, subject: subjectMission, opcode: 2, params: []wizParam{interactiveSource(), pDialogue}, fixed: [][2]uint32{{scriptInt, 0}, {scriptInt, 1}}, onePerTrigger: true},
+}
+
+// interactiveSource is the source parameter of the dialog item that starts
+// a dialogue file.
+func interactiveSource() wizParam {
+	p := pSource
+	p.def = 1
+	return p
+}
+
+// sourceValue is the source choice that offers item it: 1 for a dialogue
+// file, 0 for a message page.
+func (it wizItem) sourceValue() uint32 {
+	if it.interactive {
+		return 1
+	}
+	return 0
 }
 
 // scriptConstantOp is the build-time operation: a preset condition, or the
@@ -417,6 +443,12 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode, right bool, o
 		return false
 	}
 	for k, p := range it.params {
+		switch p.kind {
+		case wpSource:
+			out[k] = strconv.FormatUint(uint64(it.sourceValue()), 10)
+		case wpDialogue:
+			out[k] = n.Label
+		}
 		if at[k] < 0 {
 			continue
 		}
@@ -449,6 +481,9 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode, right bool, o
 // one, is item it's slots: for a target cell, 2, 4, 5 and 14
 // (TRIG-GROUPBOUNDS-136).
 func (e *MapEditor) itemCommands(it wizItem) []uint32 {
+	if slices.ContainsFunc(it.params, func(p wizParam) bool { return p.kind == wpSource }) {
+		return []uint32{it.sourceValue()}
+	}
 	want, _, _ := it.itemSlots(false)
 	var out []uint32
 	for _, c := range e.doc.Script.Catalog.GroupCommands {
@@ -563,6 +598,8 @@ func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
 			out = append(out, fmt.Sprintf("%d,%d,%d,%d", max(0, mid.X-2), max(0, mid.Y-2), mid.X+2, mid.Y+2))
 		case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
 			out = append(out, strconv.FormatInt(e.registryChoices(condition, it, len(out)-1, p.def)[0].Value, 10))
+		case wpDialogue:
+			out = append(out, "")
 		default:
 			out = append(out, strconv.FormatInt(p.def, 10))
 		}
@@ -659,13 +696,20 @@ func wizPart(r wizRow, k int) string {
 // text the row was read with, so only an edit makes it dirty.
 func (e *MapEditor) wizardFields(v scriptView) {
 	o := &e.obj
-	w := o.wiz
 	t := v.trigger
 	o.fields = []InspectionField{{Key: "name", Label: e.word("editor.trigger.name"), Text: true, TextValue: t.Name},
 		{Key: "once", Label: e.word("editor.trigger.once"), Value: int64(t.Once), Choices: []InspectionChoice{{1, e.word("editor.trigger.once.yes")}, {0, e.word("editor.trigger.once.no")}}}}
 	keep := []string{o.bufAt(0, t.Name), o.bufAt(1, strconv.FormatUint(uint64(t.Once), 10))}
 	o.buf = o.buf[:0]
 	o.buf = append(o.buf, keep...)
+	e.wizardRowFields()
+}
+
+// wizardRowFields appends each row's item, parameter and comparison fields
+// to the open window's fields.
+func (e *MapEditor) wizardRowFields() {
+	o := &e.obj
+	w := o.wiz
 	for r, row := range w.rows {
 		items := wizItems(row.condition)
 		choices, shut := e.itemChoices(w, r)
@@ -713,7 +757,7 @@ func (e *MapEditor) paramField(condition bool, i, k int, value string) Inspectio
 	f := InspectionField{Label: e.word(p.labelWord)}
 	n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 	switch p.kind {
-	case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation:
+	case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation, wpSource:
 		f.Value = n
 		f.Choices = e.wizardChoices(p.kind, n)
 	case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
@@ -814,11 +858,12 @@ func (e *MapEditor) commandItem(condition bool, i int, c uint32) int {
 // and another row of the trigger has it.
 func (w *wizardState) shut(r, i int) bool {
 	row := w.rows[r]
-	if i < 0 || i >= len(wizItems(row.condition)) || !wizItems(row.condition)[i].onePerTrigger || row.item == i {
+	items := wizItems(row.condition)
+	if i < 0 || i >= len(items) || !items[i].onePerTrigger || row.item == i {
 		return false
 	}
 	for k, other := range w.rows {
-		if k != r && other.condition == row.condition && other.item == i {
+		if k != r && other.condition == row.condition && other.item >= 0 && familyOf(items, other.item) == familyOf(items, i) {
 			return true
 		}
 	}
@@ -840,6 +885,8 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 	switch kind {
 	case wpMessage:
 		return e.parameterChoices(ScriptMessageParameter, value)
+	case wpSource:
+		return []InspectionChoice{{0, e.word("editor.wizard.source.legacy")}, {1, e.word("editor.wizard.source.interactive")}}
 	}
 	out := e.wizardTargets(kind)
 	if kind == wpUnit {
@@ -919,7 +966,7 @@ func (e *MapEditor) rewizard() {
 	o := &e.obj
 	w := o.wiz
 	v, ok := e.scriptPopup()
-	if !ok || v.trigger == nil || w == nil {
+	if w == nil || e.dlg == nil && (!ok || v.trigger == nil) {
 		return
 	}
 	e.pullWizard()
@@ -950,8 +997,25 @@ func (e *MapEditor) rewizard() {
 		}
 	}
 	if rebuilt {
-		e.wizardFields(v)
+		e.wizardRefill()
 		o.open = -1
+	}
+}
+
+// wizardRefill builds the open window's fields again from its rows: the
+// trigger's, or the selected reply's of the dialogue window.
+func (e *MapEditor) wizardRefill() {
+	if e.dlg != nil {
+		if w := e.obj.wiz; w != nil {
+			if r := e.dlg.shown(); r != nil {
+				r.rows = w.rows
+			}
+		}
+		e.dialogueFields()
+		return
+	}
+	if v, ok := e.scriptPopup(); ok {
+		e.wizardFields(v)
 	}
 }
 
@@ -963,7 +1027,7 @@ func (e *MapEditor) commandSwitch(row wizRow) (int, []string, bool) {
 		return 0, nil, false
 	}
 	items := wizItems(row.condition)
-	k := slices.IndexFunc(items[row.item].params, func(p wizParam) bool { return p.kind == wpCommand })
+	k := slices.IndexFunc(items[row.item].params, func(p wizParam) bool { return p.kind == wpCommand || p.kind == wpSource })
 	if k < 0 {
 		return 0, nil, false
 	}
@@ -1011,6 +1075,9 @@ const (
 	actPickParam = "pickparam" // a unit, structure or group clicked on the map
 	actPickArea  = "pickarea"  // a trigger area clicked on the map
 	actConfigure = "configure"
+
+	actEditDialogue = "editdialogue" // open the dialogue the row names
+	actNewDialogue  = "newdialogue"  // open an empty dialogue under the row's name
 )
 
 const actionGapRows = 1
@@ -1024,7 +1091,6 @@ func (e *MapEditor) wizardSpec(v scriptView) (popupSpec, []popupMade) {
 func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 	o := &e.obj
 	w := o.wiz
-	v, _ := e.scriptPopup()
 	e.pullWizard()
 	switch act {
 	case actRemoveRow:
@@ -1037,7 +1103,11 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 			}
 		}
 		o.focus = -1
-		e.wizardFields(v)
+		e.wizardRefill()
+	case actEditDialogue, actNewDialogue:
+		if hasField {
+			e.openDialogueFrom(f)
+		}
 	case actAddPair, actAddGroup, actAddAct:
 		condition := act != actAddAct
 		r := wizRow{condition: condition, origItem: -2}
@@ -1058,7 +1128,7 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		}
 		w.rows = append(w.rows[:at], append([]wizRow{r}, w.rows[at:]...)...)
 		w.changed = true
-		e.wizardFields(v)
+		e.wizardRefill()
 	case actDraw:
 		if !hasField {
 			return
@@ -1233,6 +1303,17 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 	_, rat, _ := it.itemSlots(true)
 	right := it.right
 	for k, p := range it.params {
+		switch p.kind {
+		case wpSource:
+			continue
+		case wpDialogue:
+			name := strings.TrimSpace(row.vals[k+1])
+			if !validDialogueName(name) {
+				return n, rn, 0, fmt.Errorf("%s: %s", e.word(p.labelWord), e.word("editor.dialogue.err.name"))
+			}
+			n.Label = name
+			continue
+		}
 		nums, err := e.wizardParam(it, k, row.vals[k+1])
 		if err != nil {
 			return n, rn, 0, err

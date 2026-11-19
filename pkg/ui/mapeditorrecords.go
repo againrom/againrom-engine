@@ -353,7 +353,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 
 // selectNewest selects the Add target, or the highest index of kind.
 func (e *MapEditor) selectNewest(kind RecordKind, target ...RecordRef) {
-	e.messagePage = 0
+	e.messagePage, e.dlg = 0, nil
 	best := -1
 	for i, r := range e.doc.Records {
 		if len(target) > 0 && target[0].Kind == kind && r.Index != target[0].Index {

@@ -120,6 +120,9 @@ const modObjectRecord = -3
 
 // objectRecord is the record the object window shows now.
 func (e *MapEditor) objectRecord() int {
+	if e.dlg != nil {
+		return dialogueObjectRecord
+	}
 	if e.modWindow {
 		return modObjectRecord
 	}
@@ -132,6 +135,10 @@ func (e *MapEditor) loadObject() {
 		return
 	}
 	*o = objectEdit{doc: e.doc, record: e.objectRecord(), focus: -1, open: -1, cell: -1, pickField: -1}
+	if e.dlg != nil {
+		e.loadDialogueObject()
+		return
+	}
 	if e.modWindow {
 		if host, ok := e.workspace(); ok {
 			o.fields = host.WorkspaceFields(e.modFieldScope())
@@ -574,6 +581,9 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
+	if e.dlg != nil {
+		return e.dialogueDirty()
+	}
 	if len(e.obj.pending) > 0 {
 		return true
 	}
@@ -946,6 +956,10 @@ func (e *MapEditor) endFieldTyping() {
 
 // objectButton is Apply (0) or Cancel (1).
 func (e *MapEditor) objectButton(n int) {
+	if e.dlg != nil {
+		e.dialogueWindowButton(n)
+		return
+	}
 	if e.modWindow {
 		e.modButton(n)
 		return
@@ -969,6 +983,10 @@ func (e *MapEditor) objectButton(n int) {
 // parse, or a field the host refuses, shows its reason in the popup and
 // changes nothing.
 func (e *MapEditor) applyObject() {
+	if e.dlg != nil {
+		e.applyDialogue()
+		return
+	}
 	if e.modWindow {
 		_ = e.applyModField()
 		return
@@ -1073,7 +1091,7 @@ func (e *MapEditor) closeObject() {
 	e.modWindow = false
 	e.graphLink = false
 	e.modConfirm = ""
-	e.messagePage = 0
+	e.messagePage, e.dlg = 0, nil
 	e.objectHidden = true
 	e.obj.open, e.obj.focus = -1, -1
 	e.groupSel = editorGroup{}
@@ -1148,7 +1166,7 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 // chooseGroup selects a group's members, highlights them and opens the
 // group popup; with frame set the view centres on the members' middle.
 func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
-	e.messagePage = 0
+	e.messagePage, e.dlg = 0, nil
 	e.selected, e.focusedReference = -1, 0
 	e.objectBack, e.obj.usesTurned = nil, false
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0

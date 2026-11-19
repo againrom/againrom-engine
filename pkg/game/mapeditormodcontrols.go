@@ -24,6 +24,7 @@ func (s *mapInspectionEdits) newModDocument(w *editorWorkspaceState) error {
 		return err
 	}
 	m := w.Package.mission(b, w.Pages, s.place())
+	m.DialogueFiles = w.dialogueFiles()
 	pages, err := s.exportPageTree("", nil)
 	if err != nil {
 		return err
