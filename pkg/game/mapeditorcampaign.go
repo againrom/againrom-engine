@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"againrom/pkg/mod"
+	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
 )
 
@@ -189,7 +190,8 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	if err != nil {
 		return nil, err
 	}
-	if err := x.missionFiles(parsed.Missions, projectView(x.mod.files, d.Files)); err != nil {
+	view := projectView(x.mod.files, d.Files)
+	if err := x.missionFiles(parsed.Missions, view); err != nil {
 		return nil, err
 	}
 	if x.mod.loaded == nil {
@@ -197,16 +199,38 @@ func (s *mapInspectionEdits) missionDraft(w *editorWorkspaceState) (*campaignFlo
 	}
 	result := *x.mod.loaded
 	result.Missions = parsed
+	// The project's install files stand over the mod's own, so a talk text
+	// the draft holds is served to the check.
+	var own, rest []mod.InstallFile
+	for _, f := range result.Files.Files {
+		if f.Mod == x.mod.id {
+			own = append(own, f)
+		} else {
+			rest = append(rest, f)
+		}
+	}
+	if own, err = mod.OverlayInstallFiles(x.mod.id, modrt.LanguageFor(x.mod.base), own, view); err != nil {
+		return nil, err
+	}
+	result.Files.Files = append(rest, own...)
 	// The towns draft replaces the mod's offer records, read as the game
 	// reads the file, so the check refuses a row with its file and line.
 	if towns, changed, err := d.townsDraft(); err != nil {
 		return nil, err
 	} else if changed {
-		_, offers, err := mod.ParseTowns(w.Package.ID, mod.TownsFile, towns)
+		records, offers, err := mod.ParseTowns(w.Package.ID, mod.TownsFile, towns)
 		if err != nil {
 			return nil, err
 		}
-		result.Towns.Offers = offers
+		for i := range records {
+			if j := slices.IndexFunc(result.Towns.Records, func(o mod.TownRecord) bool { return o.Entry.ID == records[i].Entry.ID }); j >= 0 {
+				records[i].Dir, records[i].Description = result.Towns.Records[j].Dir, result.Towns.Records[j].Description
+				if records[i].Description != nil {
+					records[i].Entry.Description = result.Towns.Records[j].Entry.Description
+				}
+			}
+		}
+		result.Towns.Records, result.Towns.Offers = records, offers
 	}
 	f, _, err := x.admittedFork(result)
 	if err != nil {

@@ -1641,6 +1641,8 @@ editable row has a label and a (?) help line in the editor's language.
 
 ## Towns
 
+The mod window's Towns page writes `data/towns.toml`.
+
 `data/towns.toml` holds `[[town]]` tables. Each is a layer record over the
 first game's town catalog, keyed by `id`, in the catalog's entry format
 (`docs/1485/story.md`). The install's catalog is layer 0; each mod's file is

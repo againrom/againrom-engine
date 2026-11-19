@@ -789,11 +789,11 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 // (modListRows); a page's things are its fields' groups. modListEmpty is
 // what each says while it holds none.
 var (
-	modListPages = []int{modPageTerrain, modPageCharacters, modPageItems}
+	modListPages = []int{modPageTerrain, modPageCharacters, modPageItems, modPageTowns}
 	modListEmpty = []struct {
 		page int
 		word string
-	}{{page: modPageTerrain, word: "editor.terrain.empty"}, {page: modPageCharacters, word: "editor.characters.empty"}, {page: modPageItems, word: "editor.items.empty"}}
+	}{{page: modPageTerrain, word: "editor.terrain.empty"}, {page: modPageCharacters, word: "editor.characters.empty"}, {page: modPageItems, word: "editor.items.empty"}, {page: modPageTowns, word: "editor.towns.empty"}}
 )
 
 // modListEmptyWord is the word list page n says while it holds no thing.

@@ -378,6 +378,7 @@ func sameRows(a, b []sourceRow) bool {
 type DataBefore struct {
 	Missions []Mission
 	Offers   []OfferRecord
+	Towns    []TownRecord
 }
 
 // writeMissionRows is the missions kind's writer over d.Before.
@@ -387,5 +388,5 @@ func writeMissionRows(_ string, source []byte, d Data) ([]byte, error) {
 
 // writeTownRows is the towns kind's writer over d.Before.
 func writeTownRows(_ string, source []byte, d Data) ([]byte, error) {
-	return WriteOfferRows(source, d.Before.Offers, d.Towns.Offers)
+	return WriteTownData(source, TownData{Records: d.Before.Towns, Offers: d.Before.Offers}, d.Towns)
 }

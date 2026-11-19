@@ -759,39 +759,98 @@ func offerPairs(r OfferRecord) []missionPair {
 	return out
 }
 
-// WriteOfferRows is the towns file source with the offer records before,
-// the ones it holds, made the records after, by the one row writer: a
-// record keeps its table's lines when after holds a record of its line, a
-// record of no line of source is appended, and every [[town]] table stays
-// as written.
+// townPairs are the pairs record r writes: its id, then each key it sets in
+// the catalog's key order, or off = true alone.
+func townPairs(r TownRecord) ([]missionPair, error) {
+	out := []missionPair{{"id", strconv.Itoa(r.Entry.ID)}}
+	if r.Off {
+		return append(out, missionPair{OffField, "true"}), nil
+	}
+	for _, k := range townKeys {
+		if !slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == k.name }) {
+			continue
+		}
+		v, ok := k.write(r.Entry)
+		if !ok {
+			return nil, fmt.Errorf("town %d: %s holds no value %s can write", r.Entry.ID, k.name, TownsFile)
+		}
+		out = append(out, missionPair{k.name, v})
+	}
+	if slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == OffField }) {
+		out = append(out, missionPair{OffField, "false"})
+	}
+	return out, nil
+}
+
+// WriteOfferRows is WriteTownData over the offer records alone: every
+// [[town]] table stays as written.
 func WriteOfferRows(source []byte, before, after []OfferRecord) ([]byte, error) {
+	return WriteTownData(source, TownData{Offers: before}, TownData{Offers: after})
+}
+
+// WriteTownData is the towns file source with the records before, the ones
+// it holds, made the records after, by the one row writer: a record keeps its
+// table's lines when after holds a record of its line, a record of no line of
+// source is appended and a record after lacks leaves. A [[town]] table
+// before holds no record of stays as written.
+func WriteTownData(source []byte, before, after TownData) ([]byte, error) {
 	tables, err := parseTOMLWith(source, tomlOptions{arrays: true})
 	if err != nil {
 		return nil, fileError(TownsFile, err)
 	}
 	identity := func(line int) string { return "line " + strconv.Itoa(line) }
-	row := func(r OfferRecord, line int) sourceRow {
+	offer := func(r OfferRecord, line int) sourceRow {
 		return sourceRow{table: string(r.Table), identity: identity(line), pairs: offerPairs(r)}
 	}
 	var old, next []sourceRow
 	lines := map[int]bool{}
 	for _, t := range tables[1:] {
 		lines[t.line] = true
+		if t.name == "town" && t.array {
+			i := slices.IndexFunc(before.Records, func(r TownRecord) bool { return r.Line == t.line })
+			if i < 0 {
+				kept := sourceRow{table: t.name, identity: identity(t.line)}
+				old, next = append(old, kept), append(next, kept)
+				continue
+			}
+			was, err := townPairs(before.Records[i])
+			if err != nil {
+				return nil, err
+			}
+			old = append(old, sourceRow{table: "town", identity: identity(t.line), pairs: was})
+			if j := slices.IndexFunc(after.Records, func(r TownRecord) bool { return r.Line == t.line }); j >= 0 {
+				now, err := townPairs(after.Records[j])
+				if err != nil {
+					return nil, err
+				}
+				next = append(next, sourceRow{table: "town", identity: identity(t.line), pairs: now})
+			}
+			continue
+		}
 		if _, ok := offerTables[town.OfferTable(t.name)]; !ok || !t.array {
 			kept := sourceRow{table: t.name, identity: identity(t.line)}
 			old, next = append(old, kept), append(next, kept)
 			continue
 		}
-		i := slices.IndexFunc(before, func(r OfferRecord) bool { return r.Line == t.line })
+		i := slices.IndexFunc(before.Offers, func(r OfferRecord) bool { return r.Line == t.line })
 		if i < 0 {
 			return nil, fmt.Errorf("%s: no record of the [[%s]] table at line %d", TownsFile, t.name, t.line)
 		}
-		old = append(old, row(before[i], t.line))
-		if j := slices.IndexFunc(after, func(r OfferRecord) bool { return r.Line == t.line }); j >= 0 {
-			next = append(next, row(after[j], t.line))
+		old = append(old, offer(before.Offers[i], t.line))
+		if j := slices.IndexFunc(after.Offers, func(r OfferRecord) bool { return r.Line == t.line }); j >= 0 {
+			next = append(next, offer(after.Offers[j], t.line))
 		}
 	}
-	for i, r := range after {
+	for i, r := range after.Records {
+		if !lines[r.Line] {
+			pairs, err := townPairs(r)
+			if err != nil {
+				return nil, err
+			}
+			next = append(next, sourceRow{table: "town", identity: "new town " + strconv.Itoa(i), pairs: pairs})
+		}
+	}
+	for i, r := range after.Offers {
 		if !lines[r.Line] {
 			next = append(next, sourceRow{table: string(r.Table), identity: "new " + strconv.Itoa(i), pairs: offerPairs(r)})
 		}

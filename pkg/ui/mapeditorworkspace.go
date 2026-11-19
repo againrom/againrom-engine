@@ -122,6 +122,7 @@ const (
 	modPageFiles           // the install files the mod replaces
 	modPageCharacters
 	modPageSpells // the mod's spell book and the spells' numbers
+	modPageTowns  // the mod's towns and tavern offers
 )
 
 // modPageWords is each page's tab word and the help its title's (?) mark
@@ -136,6 +137,7 @@ var modPageWords = []struct{ tabWord, helpWord string }{
 	{tabWord: "editor.mod.files", helpWord: "editor.files.help"},
 	{tabWord: "editor.mod.characters", helpWord: "editor.characters.help"},
 	{tabWord: "editor.mod.spells", helpWord: "editor.spells.help"},
+	{tabWord: "editor.mod.towns", helpWord: "editor.towns.help"},
 }
 
 // The workspace scopes of W's pages of a scope of their own.
@@ -152,6 +154,8 @@ const (
 	ModCharactersScope = "characters"
 	// ModSpellsScope is the mod's spell rows and its book.
 	ModSpellsScope = "spells"
+	// ModTownsScope is the mod's towns and tavern offers.
+	ModTownsScope = "towns"
 )
 
 // modScopePages is W's pages that hold the workspace fields of a scope of
@@ -159,7 +163,7 @@ const (
 var modScopePages = []struct {
 	page  int
 	scope string
-}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageFiles, ModFilesScope}}
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageTowns, ModTownsScope}, {modPageFiles, ModFilesScope}}
 
 // modHeldPages are the pages of modScopePages kept out of W: no tab or key
 // reaches them.

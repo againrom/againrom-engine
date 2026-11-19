@@ -24,6 +24,9 @@ type editorModDocument struct {
 	// the one row writer writes over the source.
 	TownsSource          []byte
 	TownsOriginal, Towns []mod.OfferRecord
+	// TownRecordsOriginal and TownRecords are the same for the [[town]]
+	// records.
+	TownRecordsOriginal, TownRecords []mod.TownRecord
 	// Loose is the path in the mod of the map the edits hold when no row
 	// names it; Selected is then -1.
 	Loose string `json:",omitempty"`
@@ -50,8 +53,9 @@ func (m *editorMod) document() *editorModDocument {
 		}
 	}
 	if src, err := modDataFile(m.dir, mod.TownsFile); err == nil && src != nil {
-		if _, offers, err := mod.ParseTowns(m.id, mod.TownsFile, src); err == nil {
+		if records, offers, err := mod.ParseTowns(m.id, mod.TownsFile, src); err == nil {
 			d.TownsSource, d.TownsOriginal, d.Towns = src, offers, cloneOffers(offers)
+			d.TownRecordsOriginal, d.TownRecords = records, cloneTownRecords(records)
 		}
 	}
 	// The project holds the files of each held kind whole: the folder files
@@ -105,6 +109,7 @@ func (d *editorModDocument) clone() *editorModDocument {
 		n.Files[k] = bytes.Clone(v)
 	}
 	n.TownsSource, n.TownsOriginal, n.Towns = bytes.Clone(d.TownsSource), cloneOffers(d.TownsOriginal), cloneOffers(d.Towns)
+	n.TownRecordsOriginal, n.TownRecords = cloneTownRecords(d.TownRecordsOriginal), cloneTownRecords(d.TownRecords)
 	return &n
 }
 
@@ -113,8 +118,8 @@ func (d *editorModDocument) clone() *editorModDocument {
 func (d *editorModDocument) data() mod.Data {
 	return mod.Data{
 		Missions: mod.MissionData{Missions: d.Missions},
-		Towns:    mod.TownData{Offers: d.Towns},
-		Before:   mod.DataBefore{Missions: d.Original, Offers: d.TownsOriginal},
+		Towns:    mod.TownData{Records: d.TownRecords, Offers: d.Towns},
+		Before:   mod.DataBefore{Missions: d.Original, Offers: d.TownsOriginal, Towns: d.TownRecordsOriginal},
 	}
 }
 

@@ -78,6 +78,7 @@ var modPageTab = map[string]string{
 	ui.ModCharactersScope: "editor.mod.characters",
 	ui.ModItemsScope:      "editor.mod.items",
 	ui.ModSpellsScope:     "editor.mod.spells",
+	ui.ModTownsScope:      "editor.mod.towns",
 }
 
 // warningPage is the page that edits the file a check warning names, and
@@ -92,6 +93,7 @@ func warningPage(warning string) (string, bool) {
 		{ui.ModCharactersScope, []string{mod.CharactersFile}},
 		{ui.ModItemsScope, []string{mod.ItemsFile}},
 		{ui.ModSpellsScope, []string{mod.SpellsFile}},
+		{ui.ModTownsScope, []string{mod.TownsFile}},
 		{ui.ModTextsScope, textFiles()},
 	} {
 		for _, f := range p.files {

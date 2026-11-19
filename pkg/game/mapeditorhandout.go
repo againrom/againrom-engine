@@ -52,6 +52,21 @@ func cloneOffers(records []mod.OfferRecord) []mod.OfferRecord {
 	return out
 }
 
+// cloneTownRecords is a copy of records that shares no list with them.
+func cloneTownRecords(records []mod.TownRecord) []mod.TownRecord {
+	if records == nil {
+		return nil
+	}
+	out := make([]mod.TownRecord, len(records))
+	for i, r := range records {
+		r.Fields = slices.Clone(r.Fields)
+		r.Entry.Missions, r.Entry.Cite = slices.Clone(r.Entry.Missions), slices.Clone(r.Entry.Cite)
+		r.Entry.MapPoint.Point, r.Entry.MapPoint.Rect = slices.Clone(r.Entry.MapPoint.Point), slices.Clone(r.Entry.MapPoint.Rect)
+		out[i] = r
+	}
+	return out
+}
+
 // handoutBuildings are the offer tables of the building choice, in its
 // order: the tavern's talk, the shop, the school.
 var handoutBuildings = []town.OfferTable{town.TavernTable, town.ShopTable, town.SchoolTable}
