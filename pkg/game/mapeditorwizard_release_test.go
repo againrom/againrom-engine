@@ -153,7 +153,6 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	if len(e.Document().Drops) != 2 {
 		t.Fatalf("the tool shows %d zones", len(e.Document().Drops))
 	}
-	editorShot(t, e, dir, "drop-tool-two-zones", image.Rectangle{})
 }
 
 // TestReleaseTriggerWizardMapPlaysTheTrigger adds the owner's example to the

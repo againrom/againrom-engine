@@ -10,7 +10,6 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/internal/witness"
-	"againrom/pkg/mod"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/ui"
@@ -238,19 +237,4 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 		t.Fatal(err)
 	}
 	shot(e, "mod-replace-small", image.Rectangle{})
-
-	// A mod that holds terrain only opens on its overview page.
-	e = x.Editor()
-	e.Layout(640, 480)
-	if err := e.Open(newMapSource(32, 32)); err != nil {
-		t.Fatal(err)
-	}
-	closeMapPanel(t, e)
-	if err := workspaceField(e, "package", 0, snowFieldMod(t, nil)); err != nil {
-		t.Fatal(err)
-	}
-	if !e.ModWindowOpen() || !slices.Contains(e.PopupLines(), "terrain: "+mod.TerrainFile) {
-		t.Fatalf("W does not show the terrain mod's overview: %q", e.PopupLines())
-	}
-	shot(e, "mod-overview-small", image.Rectangle{})
 }

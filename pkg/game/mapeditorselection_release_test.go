@@ -61,8 +61,8 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	closeMapPanel(t, e)
 
 	for _, b := range []struct{ key, word string }{
-		{"terrain", "editor.keys.terrain"}, {"height", "editor.keys.height"},
-		{"passability", "editor.keys.passbrush"}, {"objects", "editor.keys.objects"},
+		{"terrain", "editor.tool.terrain"}, {"height", "editor.tool.height"},
+		{"passability", "editor.tool.passability"}, {"objects", "editor.tool.objects"},
 	} {
 		if err := e.Key(b.key); err != nil {
 			t.Fatal(err)
