@@ -671,7 +671,7 @@ func (e *MapEditor) reportHintSpec() (popupSpec, bool) {
 	if !e.panelOpen(panelBottom) || e.reportDocked() {
 		return popupSpec{}, false
 	}
-	s := popupSpec{Title: e.word(sidePanels[panelBottom].titleWord), TitleHelp: e.word("editor.side.noreport")}
+	s, _ := reportHintDesc().build(&popupScope{}, e.word)
 	return e.inPanel(s, panelBottom), true
 }
 
@@ -1163,11 +1163,9 @@ func (e *MapEditor) treeTyping() bool {
 }
 
 func (e *MapEditor) treeSearchSpec() popupSpec {
-	label := e.word("editor.side.search")
-	search := popupRow{Kind: popupEdit, Label: label, Hint: e.word("editor.side.searchhint")}
-	s := popupSpec{Title: e.word(sidePanels[panelLeft].titleWord), Rows: []popupRow{search}, NoteInk: editorPaper}
-	if f := e.bodyFont(); f != nil {
-		s.LabelWidth = f.Advance(label) + 2*popupPad
+	s, _ := treeSearchDesc().build(&popupScope{}, e.word)
+	if f := e.bodyFont(); f != nil && len(s.Rows) > 0 {
+		s.LabelWidth = f.Advance(s.Rows[0].Label) + 2*popupPad
 	}
 	return s
 }

@@ -1,0 +1,46 @@
+{
+  "window": "selection",
+  "title": "editor.selection.count",
+  "titleArgs": [
+    "selected"
+  ],
+  "rows": [
+    {
+      "each": "kinds",
+      "rows": [
+        {
+          "kind": "text",
+          "labelBind": "kind",
+          "value": "count"
+        }
+      ]
+    },
+    {
+      "kind": "text",
+      "when": "grouped",
+      "label": "editor.bar.groups",
+      "value": "groups"
+    }
+  ],
+  "buttons": [
+    {
+      "word": "editor.group.togroup",
+      "off": "nounits"
+    },
+    {
+      "word": "editor.group.remove",
+      "off": "nounits"
+    },
+    {
+      "word": "editor.selection.delete"
+    }
+  ],
+  "notes": [
+    {
+      "word": "",
+      "when": "whole",
+      "bind": "whole"
+    }
+  ],
+  "noteInk": "paper"
+}

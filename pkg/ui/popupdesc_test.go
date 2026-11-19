@@ -49,6 +49,7 @@ func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
 		MinWidth: w.Place.MinWidth, ButtonW: w.Buttons.Least, Columns: w.Body.Columns, Fit: w.Place.Fit, Card: w.Card.Aside > 0, Sample: shape.Sample}
 	d.Title, _ = unSymbol(w.Title.Text)
 	d.TitleHelp, _ = unSymbol(w.Title.Help)
+	d.TitleHelpWhen = shape.TitleHelpWhen
 	for _, t := range w.Tabs.Captions {
 		id, _ := unSymbol(t)
 		d.Tabs = append(d.Tabs, id)
@@ -68,8 +69,11 @@ func descFromSpec(shape popupDesc, s popupSpec, made []popupMade) popupDesc {
 		n.Word, n.Bind = unSymbol(line)
 		d.Notes = append(d.Notes, n)
 	}
-	if w.Notes.Ink == editorWarning {
+	switch w.Notes.Ink {
+	case editorWarning:
 		d.NoteInk = "warning"
+	case editorPaper:
+		d.NoteInk = "paper"
 	}
 	return d
 }

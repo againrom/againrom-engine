@@ -4,10 +4,19 @@ import (
 	"bytes"
 	"html"
 	"image"
+	"os"
 	"testing"
 
 	"againrom/pkg/words"
 )
+
+func testdataDesc(name string) (popupDesc, error) {
+	data, err := os.ReadFile("testdata/" + name + ".json")
+	if err != nil {
+		return popupDesc{}, err
+	}
+	return parsePopupDesc(data)
+}
 
 // The unit window's compact detailed view stands its settings in three
 // columns: who the unit is, then health, mana and attributes, then defence,
@@ -16,7 +25,7 @@ import (
 // protections and equipment are blocks that stay closed until opened. The
 // whole window shows without a scroll bar in both languages at both sizes.
 func TestUnitCompactViewGroupsFieldsInColumns(t *testing.T) {
-	d, err := screenDesc("unitcompact")
+	d, err := testdataDesc("unitcompact")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +101,7 @@ func TestUnitCompactViewGroupsFieldsInColumns(t *testing.T) {
 // draws at the top, the figure at the game's size under it, and the whole
 // window inside the editor at both sizes, three field columns at 1920.
 func TestUnitCompactViewStandsCardAndFigureBesideColumns(t *testing.T) {
-	d, err := screenDesc("unitcompact")
+	d, err := testdataDesc("unitcompact")
 	if err != nil {
 		t.Fatal(err)
 	}

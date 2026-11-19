@@ -1,0 +1,41 @@
+{
+  "window": "message",
+  "title": "editor.message.title",
+  "titleHelp": "editor.message.keys",
+  "labelWidth": 1,
+  "rows": [
+    {
+      "when": "!asking",
+      "each": "lines",
+      "rows": [
+        {
+          "kind": "text",
+          "value": "line",
+          "ink": "warning"
+        }
+      ]
+    }
+  ],
+  "buttons": [
+    {
+      "word": "editor.button.ok"
+    },
+    {
+      "word": "editor.button.cancel",
+      "when": "asking"
+    }
+  ],
+  "notes": [
+    {
+      "word": "",
+      "when": "asking",
+      "each": "lines",
+      "bind": "line"
+    },
+    {
+      "word": "editor.message.kept",
+      "when": "kept"
+    }
+  ],
+  "noteInk": "warning"
+}

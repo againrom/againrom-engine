@@ -1,0 +1,31 @@
+{
+  "window": "groups",
+  "title": "editor.bar.groups",
+  "titleHelp": "editor.group.empty",
+  "titleHelpWhen": "nogroups",
+  "rows": null,
+  "buttons": [
+    {
+      "word": "editor.group.togroup",
+      "off": "nounits"
+    },
+    {
+      "word": "editor.group.remove",
+      "off": "nounits"
+    }
+  ],
+  "notes": [
+    {
+      "word": "editor.group.selected",
+      "args": [
+        "units"
+      ]
+    },
+    {
+      "word": "",
+      "when": "whole",
+      "bind": "whole"
+    }
+  ],
+  "noteInk": "paper"
+}

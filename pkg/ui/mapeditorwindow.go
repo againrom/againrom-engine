@@ -1629,32 +1629,28 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return e.playerDeleteSpec(), true
 	}
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
-	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
 	text := w - 2*popupPad - 60
-	// A placing asks nothing: only its message shows.
+	// A placing asks nothing: only its message shows. The message shows
+	// whole: in a prompt as its notes, alone as the window's rows, which
+	// page when the window is taller than its room.
 	asking := e.prompt.open() && e.prompt.kind != promptPlace
+	sc := &popupScope{Lists: map[string][]popupScope{}}
+	if asking {
+		sc.flag("asking")
+	}
+	if e.message != "" {
+		for _, line := range editorTextLines(e.bodyFont(), e.editorHostText(e.message), text) {
+			sc.Lists["lines"] = append(sc.Lists["lines"], popupScope{Values: map[string]string{"line": line}})
+		}
+		if e.message == e.messageKept {
+			sc.flag("kept")
+		}
+	}
+	s, _ := messageDesc().build(sc, e.word)
+	s.Width, s.Bounds = w, e.popupBounds()
 	if asking {
 		s.Title, s.TitleHelp = e.promptTitle(), e.promptHelp()
 		e.promptRows(&s, text)
-		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
-	} else {
-		s.Title, s.TitleHelp = e.word("editor.message.title"), e.word("editor.message.keys")
-		s.Buttons = []string{e.word("editor.button.ok")}
-	}
-	if e.message != "" {
-		// The message shows whole: in a prompt as its notes, alone as the
-		// window's rows, which page when the window is taller than its room.
-		lines := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
-		if asking {
-			s.Notes = append(s.Notes, lines...)
-		} else {
-			for _, line := range lines {
-				s.Rows = append(s.Rows, popupRow{Kind: popupText, Value: line, Ink: editorWarning})
-			}
-		}
-		if e.message == e.messageKept {
-			s.Notes = append(s.Notes, e.word("editor.message.kept"))
-		}
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	if asking && e.message != "" && len(s.Notes) > 0 && len(l.Notes) == 0 {

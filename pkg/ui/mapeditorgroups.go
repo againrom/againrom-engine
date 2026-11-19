@@ -456,17 +456,18 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 // group and take it out. The tree lists the groups; a chosen group's window
 // shows its members and deletes it.
 func (e *MapEditor) groupsSpec() popupSpec {
-	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.keptCorner(popList), Bounds: e.popupBounds(), NoteInk: editorPaper}
+	sc := &popupScope{Values: map[string]string{}}
 	if len(e.groups()) == 0 {
-		s.TitleHelp = e.word("editor.group.empty")
+		sc.flag("nogroups")
 	}
 	units := e.groupUnitsSelected()
-	s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.group.selected"), units))
-	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = append(s.Notes, note)
+	sc.Values["units"] = strconv.Itoa(units)
+	if units == 0 {
+		sc.flag("nounits")
 	}
-	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove")}
-	s.Disabled = []bool{units == 0, units == 0}
+	e.wholeNoteBind(sc)
+	s, _ := groupsDesc().build(sc, e.word)
+	s.At, s.Bounds = e.keptCorner(popList), e.popupBounds()
 	e.fitListPopupWidth(popList, &s)
 	return s
 }
@@ -557,7 +558,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	if !e.selectionWindow() || e.pick != pickNone && !e.addPicking() || e.messagePage != 0 {
 		return popupSpec{}, false
 	}
-	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorPaper}
+	sc := &popupScope{Values: map[string]string{"selected": strconv.Itoa(len(e.selection.refs))}, Lists: map[string][]popupScope{}}
 	counts := map[RecordKind]int{}
 	groups := map[int]bool{}
 	at := e.recordIndex()
@@ -572,7 +573,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		word string
 	}{{KindUnit, "editor.bar.units"}, {KindStructure, "editor.bar.structures"}, {KindSack, "editor.bar.sacks"}} {
 		if counts[k.kind] > 0 {
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word(k.word), Value: strconv.Itoa(counts[k.kind])})
+			sc.Lists["kinds"] = append(sc.Lists["kinds"], popupScope{Values: map[string]string{"count": strconv.Itoa(counts[k.kind])}, Words: map[string]string{"kind": k.word}})
 		}
 	}
 	var numbers []string
@@ -580,16 +581,26 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		numbers = append(numbers, strconv.Itoa(n))
 	}
 	if len(numbers) > 0 {
-		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.bar.groups"), Value: strings.Join(numbers, ", ")})
+		sc.Values["groups"] = strings.Join(numbers, ", ")
+		sc.flag("grouped")
 	}
-	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = []string{note}
+	e.wholeNoteBind(sc)
+	if counts[KindUnit] == 0 {
+		sc.flag("nounits")
 	}
-	units := counts[KindUnit]
-	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove"), e.word("editor.selection.delete")}
-	s.Disabled = []bool{units == 0, units == 0, false}
+	s, _ := selectionDesc().build(sc, e.word)
+	s.At, s.Bounds = e.keptCorner(popObject), e.popupBounds()
 	e.fitListPopupWidth(popObject, &s)
 	return s, true
+}
+
+// wholeNoteBind gives sc the selection's note as binding and flag "whole"
+// when there is one.
+func (e *MapEditor) wholeNoteBind(sc *popupScope) {
+	if note := e.wholeSelectionNote(); note != "" {
+		sc.Values["whole"] = note
+		sc.flag("whole")
+	}
 }
 
 func (e *MapEditor) selectionWindow() bool {

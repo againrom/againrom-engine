@@ -1,0 +1,12 @@
+{
+  "window": "treesearch",
+  "title": "editor.side.objects",
+  "rows": [
+    {
+      "kind": "edit",
+      "label": "editor.side.search",
+      "hint": "editor.side.searchhint"
+    }
+  ],
+  "noteInk": "paper"
+}

@@ -25,15 +25,17 @@ var screenFiles embed.FS
 // unit window does. Sample is an example state in words and flags, for a
 // mockup without a map.
 type popupDesc struct {
-	Window     string   `json:"window"`
-	Title      string   `json:"title,omitempty"`
-	TitleArgs  []string `json:"titleArgs,omitempty"`
-	TitleHelp  string   `json:"titleHelp,omitempty"`
-	Width      int      `json:"width,omitempty"`
-	LabelWidth int      `json:"labelWidth,omitempty"`
-	MinWidth   int      `json:"minWidth,omitempty"`
-	ButtonW    int      `json:"buttonWidth,omitempty"`
-	Columns    int      `json:"columns,omitempty"`
+	Window    string   `json:"window"`
+	Title     string   `json:"title,omitempty"`
+	TitleArgs []string `json:"titleArgs,omitempty"`
+	TitleHelp string   `json:"titleHelp,omitempty"`
+	// TitleHelpWhen names the flag the title help needs.
+	TitleHelpWhen string `json:"titleHelpWhen,omitempty"`
+	Width         int    `json:"width,omitempty"`
+	LabelWidth    int    `json:"labelWidth,omitempty"`
+	MinWidth      int    `json:"minWidth,omitempty"`
+	ButtonW       int    `json:"buttonWidth,omitempty"`
+	Columns       int    `json:"columns,omitempty"`
 	// FirstColumn is the share of the first of two columns, in percent.
 	FirstColumn int               `json:"firstColumn,omitempty"`
 	Fit         bool              `json:"fit,omitempty"`
@@ -357,7 +359,7 @@ func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []p
 	if d.Title != "" {
 		s.Title = c.format(d.Title, d.TitleArgs, word)
 	}
-	if d.TitleHelp != "" {
+	if d.TitleHelp != "" && c.when(d.TitleHelpWhen) {
 		s.TitleHelp = word(d.TitleHelp)
 	}
 	for _, k := range d.TitleHelpMore {
@@ -708,6 +710,11 @@ func screenDesc(name string) (popupDesc, error) {
 
 var triggerWizardDesc = embeddedPopupDesc("triggerwizard")
 var triggerDetailsDesc = embeddedPopupDesc("triggerdetails")
+var reportHintDesc = embeddedPopupDesc("reporthint")
+var treeSearchDesc = embeddedPopupDesc("treesearch")
+var groupsDesc = embeddedPopupDesc("groups")
+var selectionDesc = embeddedPopupDesc("selection")
+var messageDesc = embeddedPopupDesc("message")
 
 func embeddedPopupDesc(name string) func() popupDesc {
 	return sync.OnceValue(func() popupDesc {
