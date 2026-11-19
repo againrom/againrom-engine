@@ -66,6 +66,10 @@ func ProbeSpeakerPickArmed(e *MapEditor) bool { return e.speakerPicking() }
 // ProbeSpeakerPickButton is the centre of the "on the map" button of card
 // c's speaker row.
 func ProbeSpeakerPickButton(e *MapEditor, c int) (x, y int, ok bool) {
+	if c >= 0 && c < len(e.obj.messageParts) && e.obj.messageParts[c].Number != e.obj.sel {
+		e.selectLine(e.obj.messageParts[c].Number)
+		e.objectSpec()
+	}
 	row := e.fieldRow(2*c + 1)
 	for k, a := range e.obj.rowActs[row] {
 		if a == actPickParam {

@@ -215,7 +215,8 @@ func TestDialogEditorCrossRestoreAndApply(t *testing.T) {
 			e, s := dialogFixture(t)
 			openDialog(t, e)
 			model, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false}) // card 2's cross
+			e.DialogueSelect(2)
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 3, K: 0, Flag: false, Key: "head"}) // card 2's cross
 			trigClick(t, e, r, ok, "cross")
 			if !strings.Contains(trigLines(e), "Message removed") || strings.Contains(trigLines(e), "Two") {
 				t.Fatalf("the cross did not strike card 2:\n%s", trigLines(e))

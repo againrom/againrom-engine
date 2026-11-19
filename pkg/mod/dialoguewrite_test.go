@@ -37,6 +37,49 @@ func TestWriteDialogueReadsBackEqualThroughTheLoader(t *testing.T) {
 	}
 }
 
+func TestDialogueKeepsASpeakerHeroVariantsAndAContinuation(t *testing.T) {
+	d := Dialogue{File: "v.toml", Nodes: []DialogueNode{
+		{ID: 1, Speaker: 21, Speaks: true, Next: 2, Text: DialogueText{"en": "all", "ru": "все"},
+			Variants: map[string]DialogueText{"woman": {"en": "she", "ru": "она"}, "man": {"en": "he"}}},
+		{ID: 2, Speaker: 0, Speaks: true, Text: DialogueText{"en": "end"},
+			Variants: map[string]DialogueText{"man_mage": {"en": "a"}, "man_fighter": {"en": "b"}, "woman_mage": {"en": "c"}, "woman_fighter": {"en": "d"}}},
+	}}
+	out, err := WriteDialogue(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	back, err := ParseDialogue("v.toml", out)
+	if err != nil || !SameDialogue(d, back) {
+		t.Fatalf("reads back %v, %+v\n%s", err, back, out)
+	}
+	n := back.Nodes[0]
+	for _, c := range []struct {
+		lang         string
+		female, mage bool
+		want         string
+	}{{"en", true, false, "she"}, {"en", false, true, "he"}, {"ru", true, true, "она"}, {"ru", false, false, "все"}} {
+		if got := n.TextFor(c.lang, c.female, c.mage); got != c.want {
+			t.Errorf("%s female=%v mage=%v: %q, want %q", c.lang, c.female, c.mage, got, c.want)
+		}
+	}
+	if got := back.Nodes[1].TextFor("en", true, true); got != "c" {
+		t.Errorf("woman mage: %q", got)
+	}
+	plain, err := ParseDialogue("p.toml", []byte("[[node]]\nid = 1\nen = \"a\"\n"))
+	if err != nil || plain.Nodes[0].Speaks || plain.Nodes[0].Variants != nil || plain.Nodes[0].Next != 0 {
+		t.Errorf("a file without them reads as before: %v %+v", err, plain)
+	}
+	for name, src := range map[string]string{
+		"mixed kinds":   "[[node]]\nid = 1\nen = \"a\"\nen_woman = \"b\"\nen_mage = \"c\"\n",
+		"next nowhere":  "[[node]]\nid = 1\nen = \"a\"\nnext = 5\n",
+		"empty variant": "[[node]]\nid = 1\nen = \"a\"\nen_woman = \"\"\n",
+	} {
+		if _, err := ParseDialogue("x.toml", []byte(src)); err == nil {
+			t.Errorf("%s: read", name)
+		}
+	}
+}
+
 func TestCheckDialogueRefusesEachRuleWithItsIssue(t *testing.T) {
 	text := DialogueText{"en": "x"}
 	reply := DialogueReply{Text: text}

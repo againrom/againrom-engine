@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"regexp"
 	"strings"
@@ -58,9 +59,13 @@ func TestMessageWindowHoldsTheLayoutProperties(t *testing.T) {
 			if !l.TitleHelp.In(l.Rect) {
 				t.Errorf("the title's (?) at %v leaves the window %v", l.TitleHelp, l.Rect)
 			}
-			add := rowRectOf(t, l, len(s.Rows)-1)
-			if len(add.Buttons) != 1 || s.Rows[len(s.Rows)-1].Buttons[0] != e.word("editor.message.mark.add") {
-				t.Fatalf("the last row is not the + row: %+v", s.Rows[len(s.Rows)-1])
+			plus := plusRow(e, s)
+			if plus < 0 {
+				t.Fatal("the list has no + row")
+			}
+			add := rowRectOf(t, l, plus)
+			if len(add.Buttons) != 1 {
+				t.Fatalf("the + row has %d buttons", len(add.Buttons))
 			}
 			modesClick(e, center(add.Buttons[0]))
 			if n := e.messageLive(); n != 3 {
@@ -82,30 +87,33 @@ func TestMessageWindowHoldsTheLayoutProperties(t *testing.T) {
 	}
 }
 
-// The message window is as wide as its parts ask, not a fixed 660: a page
-// of short messages stands narrower, and a speaker's long name widens it
-// until the name and the head's buttons show whole.
-func TestMessageWindowTakesItsNaturalWidth(t *testing.T) {
-	e := messageWindowEditor(t, "en", nil)
-	s, _, _ := e.messageSpec()
-	if s.Width >= 660 {
-		t.Errorf("a page of two short messages is %d wide, want its natural width under 660", s.Width)
+// plusRow is the spec row of the list's + button, -1 for none.
+func plusRow(e *MapEditor, s popupSpec) int {
+	for i, r := range s.Rows {
+		if len(r.Buttons) == 1 && r.Buttons[0] == e.word("editor.message.mark.add") {
+			return i
+		}
 	}
-	e = messageWindowEditor(t, "en", nil)
+	return -1
+}
+
+// The list of lines takes a fifth of the window at most, the line on show the
+// rest; the line's head buttons stay inside the window.
+func TestMessageWindowListTakesAFifth(t *testing.T) {
+	e := messageWindowEditor(t, "en", nil)
 	e.doc.Edits.(*speakerPortraitEdits).labels[1] = "5: " + strings.Repeat("Anna Maria ", 9)
 	e.openMessage(1)
-	s, _, _ = e.messageSpec()
+	s, _, _ := e.messageSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())
+	for _, rr := range l.Rows {
+		if s.Rows[rr.Index].Kind == popupCard && rr.Rect.Dx() > l.Rect.Dx()*messageListShare/100+2*popupPad {
+			t.Errorf("list row %d is %d wide in a %d wide window", rr.Index, rr.Rect.Dx(), l.Rect.Dx())
+		}
+	}
 	head := rowRectOf(t, l, e.fieldRow(1))
-	if l.Rect.Dx() <= 660 {
-		t.Errorf("a long speaker leaves the window %d wide", l.Rect.Dx())
-	}
-	if need := e.bodyFont().Advance(s.Rows[e.fieldRow(1)].Value) + editTextX; head.Control.Dx() < need {
-		t.Errorf("the speaker %q is %d wide in a %d wide field", s.Rows[e.fieldRow(1)].Value, need, head.Control.Dx())
-	}
 	for k, b := range head.Buttons {
 		if !b.In(l.Rect) {
-			t.Errorf("head button %d at %v leaves the window %v", k, b, l.Rect)
+			t.Errorf("speaker button %d at %v leaves the window %v", k, b, l.Rect)
 		}
 	}
 }
@@ -134,8 +142,8 @@ func TestMessageWindowShowsEveryTextWhole(t *testing.T) {
 	e = messageWindowEditor(t, "en", parts)
 	s, _, _ = e.messageSpec()
 	l = layoutPopup(s, e.font, e.bodyFont())
-	if !l.Rect.In(image.Rect(0, 0, 1920, 1080)) || s.MaxRows <= 0 || s.MaxRows >= len(s.Rows) {
-		t.Errorf("a page of 30 messages stands at %v with %d of %d rows shown", l.Rect, s.MaxRows, len(s.Rows))
+	if !l.Rect.In(image.Rect(0, 0, 1920, 1080)) {
+		t.Errorf("a page of 30 messages stands at %v", l.Rect)
 	}
 }
 
@@ -148,12 +156,18 @@ func TestMessageWindowButtonsSayWhatTheyDo(t *testing.T) {
 			s, _, _ := e.messageSpec()
 			l := layoutPopup(s, e.font, e.bodyFont())
 			bounds := image.Rect(0, 0, e.window.X, e.window.Y)
+			head := -1
+			for i, r := range s.Rows {
+				if r.Kind == popupText && r.Label == fmt.Sprintf(e.word("editor.message.line"), 1) {
+					head = i
+				}
+			}
 			for _, tc := range []struct {
 				row       int
 				mark, tip string
 			}{
-				{e.fieldRow(1), "editor.message.mark.remove", "editor.message.remove.tip"},
-				{len(s.Rows) - 1, "editor.message.mark.add", "editor.message.add.tip"},
+				{head, "editor.message.mark.remove", "editor.message.remove.tip"},
+				{plusRow(e, s), "editor.message.mark.add", "editor.message.add.tip"},
 			} {
 				if got := s.Rows[tc.row].Buttons[0]; got != e.word(tc.mark) {
 					t.Errorf("row %d's first button is %q, want %q", tc.row, got, e.word(tc.mark))

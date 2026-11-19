@@ -7,9 +7,9 @@ import (
 	"againrom/pkg/ui"
 )
 
-// checksWindow opens the dialogue window of the mill on a map that names
-// variables 10 and 12, with node start and node thanks and, on start, replies
-// whose texts are English only.
+// checksWindow opens the dialog window on a map that names variables 10 and
+// 12, with the lines Hello and Thanks and, on Hello, a reply choice of the
+// given number of replies whose texts are English only.
 func checksWindow(t *testing.T, replies int) (*ui.MapEditor, *mapInspectionEdits) {
 	t.Helper()
 	e, _ := openGoalMap(t, millMap(t))
@@ -17,16 +17,15 @@ func checksWindow(t *testing.T, replies int) (*ui.MapEditor, *mapInspectionEdits
 	if _, err := s.ExtendScript(); err != nil {
 		t.Fatal(err)
 	}
-	startDialogueRow(t, e, "mill")
-	dlgType(t, e, "d.name", "start")
-	dlgType(t, e, "d.text.en", "Hello")
-	dlgPress(t, e, "d.node", "addnode")
-	dlgType(t, e, "d.name", "thanks")
-	dlgType(t, e, "d.text.en", "Thanks")
-	dlgChoose(t, e, "d.node", "start")
-	for i := 0; i < replies; i++ {
-		dlgPress(t, e, "d.reply", "addreply")
-		dlgType(t, e, "d.r.en", "Reply")
+	startDialogueRow(t, e)
+	dlgType(t, e, ui.DialogueLineText, "Hello")
+	dlgAddLine(t, e, "Thanks")
+	dlgSelect(t, e, 1)
+	dlgChoose(t, e, "d.after", "Reply choice")
+	dlgType(t, e, "d.rt", "Reply")
+	for i := 1; i < replies; i++ {
+		dlgPress(t, e, "addreply")
+		dlgType(t, e, "d.rt", "Reply")
 	}
 	return e, s
 }
@@ -42,29 +41,31 @@ func refusedWith(t *testing.T, e *ui.MapEditor, s *mapInspectionEdits, want stri
 	}
 }
 
-func TestDialogueWindowRefusesAFifthReply(t *testing.T) {
-	e, _ := checksWindow(t, 4)
-	dlgPress(t, e, "d.reply", "addreply")
-	if lines := trigLines(e); !strings.Contains(lines, "more than four replies") {
-		t.Fatalf("the fifth reply was not refused in words:\n%s", lines)
+func TestDialogueWindowOffersNoFifthReply(t *testing.T) {
+	e, _ := checksWindow(t, 3)
+	if _, ok := e.DialogueButton("addreply"); !ok {
+		t.Fatalf("a line with three replies offers no fourth:\n%s", trigLines(e))
+	}
+	dlgPress(t, e, "addreply")
+	dlgType(t, e, "d.rt", "Reply")
+	if _, ok := e.DialogueButton("addreply"); ok {
+		t.Fatalf("a line with four replies offers a fifth:\n%s", trigLines(e))
 	}
 }
 
-func TestDialogueWindowRefusesAMissingNextNode(t *testing.T) {
+func TestDialogueWindowRefusesAReplyToARemovedLine(t *testing.T) {
 	e, s := checksWindow(t, 1)
-	dlgChoose(t, e, "d.next", "thanks")
-	dlgChoose(t, e, "d.node", "thanks")
-	dlgPress(t, e, "d.node", "removenode")
-	dlgChoose(t, e, "d.node", "start")
-	refusedWith(t, e, s, "does not exist")
+	dlgChoose(t, e, "d.rnext", "Thanks")
+	dlgSelect(t, e, 2)
+	dlgPress(t, e, "removerow")
+	dlgSelect(t, e, 1)
+	refusedWith(t, e, s, "leads to a line that was removed")
 }
 
-func TestDialogueWindowRefusesAnEmptyAndATwiceUsedNodeName(t *testing.T) {
+func TestDialogueWindowRefusesAReplyChoiceWithNoReply(t *testing.T) {
 	e, s := checksWindow(t, 1)
-	dlgType(t, e, "d.name", "")
-	refusedWith(t, e, s, "has no name")
-	dlgType(t, e, "d.name", "thanks")
-	refusedWith(t, e, s, "Two nodes are named thanks")
+	dlgPress(t, e, "removereply")
+	refusedWith(t, e, s, "has no reply")
 }
 
 func TestDialogueWindowRefusesAnIncompleteOutcome(t *testing.T) {
@@ -73,7 +74,7 @@ func TestDialogueWindowRefusesAnIncompleteOutcome(t *testing.T) {
 	dlgChoose(t, e, "a0.item", "Set a variable")
 	dlgType(t, e, "a0.p1", "")
 	dlgApply(t, e)
-	if !e.DialogueOpen() || len(s.DialogueNames()) != 0 {
+	if len(s.DialogueNames()) != 0 {
 		t.Fatalf("an outcome with no value was written:\n%s", trigLines(e))
 	}
 }
@@ -81,12 +82,40 @@ func TestDialogueWindowRefusesAnIncompleteOutcome(t *testing.T) {
 func TestDialogueWindowTakesATextInOneLanguageAndRefusesAUsedDelete(t *testing.T) {
 	e, s := checksWindow(t, 2)
 	dlgApply(t, e)
-	if got := s.DialogueNames(); len(got) != 1 || got[0] != "mill" {
+	got := s.DialogueNames()
+	if len(got) != 1 {
 		t.Fatalf("a text in one language was refused:\n%s", trigLines(e))
 	}
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 2})
 	trigClick(t, e, r, ok, "Delete")
 	if !strings.Contains(trigLines(e), "Change those triggers first") || len(s.DialogueNames()) != 1 {
 		t.Fatalf("a dialogue a trigger starts was deleted:\n%s", trigLines(e))
+	}
+}
+
+// The When not available choice is written as the reply's own flag, which the
+// play tests of the offered replies read: hidden leaves the reply out and
+// disabled greys it.
+func TestDialogueReplyConditionIsWrittenHiddenOrDisabledAsSet(t *testing.T) {
+	for _, choice := range []string{"Hidden", "Disabled"} {
+		t.Run(choice, func(t *testing.T) {
+			e, s := checksWindow(t, 1)
+			dlgChoose(t, e, "d.runavail", choice)
+			dlgAdd(t, e, false)
+			dlgChoose(t, e, "c0.item", "Variable compared with a number")
+			dlgChoose(t, e, "c0.p0", "12")
+			dlgApply(t, e)
+			names := s.DialogueNames()
+			if len(names) != 1 {
+				t.Fatalf("the dialogue was refused:\n%s", trigLines(e))
+			}
+			d, err := s.ReadDialogue(names[0])
+			if err != nil || len(d.Nodes) == 0 || len(d.Nodes[0].Replies) != 1 {
+				t.Fatalf("the file holds %+v (%v)", d, err)
+			}
+			if r := d.Nodes[0].Replies[0]; len(r.Pairs) != 1 || r.Disabled != (choice == "Disabled") {
+				t.Fatalf("a %s reply was written %+v", choice, r)
+			}
+		})
 	}
 }

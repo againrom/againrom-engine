@@ -56,8 +56,11 @@ func TestDialoguePageButtonsArePainted(t *testing.T) {
 	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
 	e.doc.Edits = &dialogueInputEdits{edits}
 	e.openMessage(1)
-	pic := e.ChromeImage()
 	for part := -1; part < 3; part++ {
+		if part >= 0 {
+			e.selectLine(part + 1)
+		}
+		pic := e.ChromeImage()
 		for button := range 1 {
 			r, ok := e.FindControl(ControlQuery{Role: ControlRowButton, N: 2*part + 1, K: button, Flag: false})
 			if !ok {

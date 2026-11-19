@@ -76,6 +76,7 @@ type uiBody struct {
 	Rows        []popupRow
 	Columns     int
 	ColumnWidth int
+	FirstColumn int
 	ColumnTops  []int
 	LabelWidth  int
 	Top         int
@@ -164,7 +165,7 @@ func specTree(s popupSpec) uiNode {
 		add(uiNode{Kind: uiTabsKind, Data: tabStrip{Captions: s.Tabs, Active: s.ActiveTab, Switch: s.TabSwitch}})
 	}
 	add(uiNode{Kind: uiBodyKind, Data: uiBody{
-		Rows: s.Rows, Columns: s.Columns, ColumnWidth: s.ColumnWidth, ColumnTops: s.ColumnTops, LabelWidth: s.LabelWidth,
+		Rows: s.Rows, Columns: s.Columns, ColumnWidth: s.ColumnWidth, FirstColumn: s.FirstColumn, ColumnTops: s.ColumnTops, LabelWidth: s.LabelWidth,
 		Top: s.Top, MaxRows: s.MaxRows, Page: s.Page,
 	}})
 	if s.Card != nil || s.CardFont != nil || s.CardAside != 0 || s.CardScale != 0 || s.CardBelow || s.BandLines != 0 {

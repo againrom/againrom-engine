@@ -163,7 +163,7 @@ func TestReleaseMessagePickerCampaignPage(t *testing.T) {
 	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(e.PopupLines()) != 3 || len(s.workspace.Pages[messageFilename(number)]) != 0 || !bytes.Equal(before, s.model.Bytes()) {
+	if !strings.Contains(trigLines(e), ">1.") || len(s.workspace.Pages[messageFilename(number)]) != 0 || !bytes.Equal(before, s.model.Bytes()) {
 		t.Fatal("E New did not open an unmade page", e.PopupLines())
 	}
 	fields := s.MessageFields(ui.NewMessagePage)

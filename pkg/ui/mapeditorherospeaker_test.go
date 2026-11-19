@@ -34,9 +34,14 @@ func TestPortraitTipShowsOverAHeroSpeakersPortraitOnly(t *testing.T) {
 	if s.Rows[row].PortraitTip != note {
 		t.Fatalf("speaker 5 carries the tip %q", s.Rows[row].PortraitTip)
 	}
-	other := e.fieldRow(2)
-	if s.Rows[other].PortraitTip != "" {
-		t.Errorf("another speaker's card carries the tip %q", s.Rows[other].PortraitTip)
+	live := e.liveNumbers()
+	if len(live) < 2 {
+		t.Fatalf("the editor holds %d lines, want 2", len(live))
+	}
+	e.selectLine(live[1])
+	s, _, _ = e.messageSpec()
+	if other := e.fieldRow(2); other < 0 || s.Rows[other].PortraitTip != "" {
+		t.Errorf("another speaker's line shows row %d with the tip %q", other, s.Rows[max(other, 0)].PortraitTip)
 	}
 }
 

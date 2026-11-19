@@ -53,7 +53,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	messageField(t, e, 2)
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: 0})
 	messageClick(t, e, r, ok)
-	if len(e.PopupLines()) != 3 {
+	if !strings.Contains(trigLines(e), "Line 1") {
 		t.Fatal("New did not open the text", e.PopupLines())
 	}
 	unchanged("New")
@@ -77,7 +77,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\nFirst\nSecond" {
 		t.Fatal("Apply", string(s.workspace.Pages["event01.txt"]))
 	}
-	if !strings.Contains(e.PopupLines()[1], "First\nSecond") {
+	if !strings.Contains(trigLines(e), "First\nSecond") {
 		t.Fatal("multi-line display flattened or substituted newline", e.PopupLines())
 	}
 	messageButton(t, e, 2)
@@ -94,7 +94,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 			break
 		}
 	}
-	if !opened || len(e.PopupLines()) != 3 {
+	if !opened || !strings.Contains(trigLines(e), "Line 1") {
 		t.Fatal("Open link did not open page", e.PopupLines())
 	}
 	messageButton(t, e, 2)

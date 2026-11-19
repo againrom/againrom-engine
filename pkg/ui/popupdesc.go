@@ -25,23 +25,25 @@ var screenFiles embed.FS
 // unit window does. Sample is an example state in words and flags, for a
 // mockup without a map.
 type popupDesc struct {
-	Window     string            `json:"window"`
-	Title      string            `json:"title,omitempty"`
-	TitleArgs  []string          `json:"titleArgs,omitempty"`
-	TitleHelp  string            `json:"titleHelp,omitempty"`
-	Width      int               `json:"width,omitempty"`
-	LabelWidth int               `json:"labelWidth,omitempty"`
-	MinWidth   int               `json:"minWidth,omitempty"`
-	ButtonW    int               `json:"buttonWidth,omitempty"`
-	Columns    int               `json:"columns,omitempty"`
-	Fit        bool              `json:"fit,omitempty"`
-	Card       bool              `json:"card,omitempty"`
-	Tabs       []string          `json:"tabs,omitempty"`
-	Rows       []popupDescRow    `json:"rows"`
-	Buttons    []popupDescButton `json:"buttons,omitempty"`
-	Sample     *popupScope       `json:"sample,omitempty"`
-	Preview    *popupPreview     `json:"preview,omitempty"`
-	Chrome     *chromePreview    `json:"chrome,omitempty"`
+	Window     string   `json:"window"`
+	Title      string   `json:"title,omitempty"`
+	TitleArgs  []string `json:"titleArgs,omitempty"`
+	TitleHelp  string   `json:"titleHelp,omitempty"`
+	Width      int      `json:"width,omitempty"`
+	LabelWidth int      `json:"labelWidth,omitempty"`
+	MinWidth   int      `json:"minWidth,omitempty"`
+	ButtonW    int      `json:"buttonWidth,omitempty"`
+	Columns    int      `json:"columns,omitempty"`
+	// FirstColumn is the share of the first of two columns, in percent.
+	FirstColumn int               `json:"firstColumn,omitempty"`
+	Fit         bool              `json:"fit,omitempty"`
+	Card        bool              `json:"card,omitempty"`
+	Tabs        []string          `json:"tabs,omitempty"`
+	Rows        []popupDescRow    `json:"rows"`
+	Buttons     []popupDescButton `json:"buttons,omitempty"`
+	Sample      *popupScope       `json:"sample,omitempty"`
+	Preview     *popupPreview     `json:"preview,omitempty"`
+	Chrome      *chromePreview    `json:"chrome,omitempty"`
 	// TitleHelpMore are word keys whose words follow the title help, each
 	// after a space: the keys line every prompt states once.
 	TitleHelpMore []string `json:"titleHelpMore,omitempty"`
@@ -346,7 +348,7 @@ type popupMade struct {
 // nothing: layoutPopup lays the spec out.
 func (d popupDesc) build(b popupBinds, word func(string) string) (popupSpec, []popupMade) {
 	c := popupChain{b}
-	s := popupSpec{Width: d.Width, LabelWidth: d.LabelWidth, MinWidth: d.MinWidth, ButtonW: d.ButtonW, Columns: d.Columns, Fit: d.Fit}
+	s := popupSpec{Width: d.Width, LabelWidth: d.LabelWidth, MinWidth: d.MinWidth, ButtonW: d.ButtonW, Columns: d.Columns, FirstColumn: d.FirstColumn, Fit: d.Fit}
 	if d.Card {
 		// The card's column, at the card's width until a figure widens it;
 		// the column shows once the window is given a person's card.

@@ -475,7 +475,7 @@ func (e *MapEditor) loadScriptObject(v scriptView) {
 // slots become the new operation's signature, where a claim states one; a
 // slot keeps its typed text while its type stays.
 func (e *MapEditor) retypeNode() {
-	if e.dlg != nil {
+	if e.messagePage != 0 {
 		e.dialogueRetype()
 		return
 	}
@@ -1267,8 +1267,9 @@ func (e *MapEditor) PopupButtons() []string {
 // controlRowButtonRect is the window rectangle of button k of the shown row that
 // edits field n; n -1 with actions false is the add-pair row's button (k 1
 // adds an OR group), with actions true the add-action row's. In the dialog editor n 2c+1 is card
-// c's cross or Restore and n -1 the "+".
-func (e *MapEditor) controlRowButtonRect(n, k int, actions bool) (image.Rectangle, bool) {
+// c's cross or Restore and n -1 the "+"; head asks for the head row of the
+// line only, not the speaker row that edits the same field.
+func (e *MapEditor) controlRowButtonRect(n, k int, actions, head bool) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {
 		return image.Rectangle{}, false
@@ -1277,15 +1278,22 @@ func (e *MapEditor) controlRowButtonRect(n, k int, actions bool) (image.Rectangl
 	if actions {
 		want = actAddAct
 	}
-	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		f, has := e.obj.rowField[rr.Index]
-		if part, ok := e.obj.rowOpen[rr.Index]; e.messagePage != 0 && ok {
-			f, has = 2*part+1, true
+	l := layoutPopup(s, e.font, e.bodyFont())
+	// The row that edits the field first, then the head of the line it is in.
+	for pass := range 2 {
+		if head && pass == 0 {
+			continue
 		}
-		acts := e.obj.rowActs[rr.Index]
-		match := has && f == n || n < 0 && !has && len(acts) > 0 && acts[0] == want
-		if match && k >= 0 && k < len(rr.Buttons) {
-			return rr.Buttons[k], true
+		for _, rr := range l.Rows {
+			f, has := e.obj.rowField[rr.Index]
+			if part, ok := e.obj.rowOpen[rr.Index]; e.messagePage != 0 && ok && pass == 1 {
+				f, has = 2*part+1, true
+			}
+			acts := e.obj.rowActs[rr.Index]
+			match := has && f == n || n < 0 && !has && len(acts) > 0 && acts[0] == want
+			if match && k >= 0 && k < len(rr.Buttons) {
+				return rr.Buttons[k], true
+			}
 		}
 	}
 	return image.Rectangle{}, false

@@ -99,17 +99,12 @@ func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
 	if !ok {
 		t.Fatal("the message editor builds no popup")
 	}
-	first, second := s.Rows[e.fieldRow(0)], s.Rows[e.fieldRow(2)]
+	first := s.Rows[e.fieldRow(0)]
 	if first.Portrait != face {
 		t.Fatalf("speaker 5's text row carries %v, want its portrait", first.Portrait)
 	}
-	if second.Portrait != nil {
-		t.Fatalf("speaker 6's text row carries %v, want no portrait", second.Portrait)
-	}
-	for _, head := range []int{e.fieldRow(1), e.fieldRow(3)} {
-		if len(s.Rows[head].Icons) != 0 {
-			t.Fatalf("the speaker field %d carries the small face %v", head, s.Rows[head].Icons)
-		}
+	if head := e.fieldRow(1); len(s.Rows[head].Icons) != 0 {
+		t.Fatalf("the speaker field %d carries the small face %v", head, s.Rows[head].Icons)
 	}
 	pic := e.ChromeImage()
 	l := layoutPopup(s, e.font, e.bodyFont())
@@ -130,11 +125,16 @@ func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
 			if n := portraitPixels(pic, rr.Rect); n != 0 {
 				t.Errorf("speaker 5's speaker field draws %d portrait pixels", n)
 			}
-		case e.fieldRow(2):
-			if n := portraitPixels(pic, rr.Rect); n != 0 {
-				t.Errorf("speaker 6's card draws %d portrait pixels", n)
-			}
 		}
+	}
+	e.selectLine(e.obj.messageParts[1].Number)
+	s, _, _ = e.messageSpec()
+	if second := s.Rows[e.fieldRow(2)]; second.Portrait != nil {
+		t.Fatalf("speaker 6's text row carries %v, want no portrait", second.Portrait)
+	}
+	l = layoutPopup(s, e.font, e.bodyFont())
+	if n := portraitPixels(e.ChromeImage(), rowRectOf(t, l, e.fieldRow(2)).Rect); n != 0 {
+		t.Errorf("speaker 6's line draws %d portrait pixels", n)
 	}
 }
 

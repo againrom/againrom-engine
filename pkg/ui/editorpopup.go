@@ -448,6 +448,8 @@ type popupSpec struct {
 	ButtonFocus *int
 	Columns     int
 	ColumnWidth int
+	// FirstColumn is the first of two columns' share of the width, in percent; 0 parts them equally.
+	FirstColumn int
 	Tabs        []string
 	ActiveTab   int
 	// TabSwitch draws the active tab pressed, a switch's chosen state,
@@ -1099,6 +1101,9 @@ func popupRowsHeight(s uiWindow, flow popupFlow, pitch, shown int) int {
 func popupColumnWidth(s uiWindow, room int) int {
 	if s.Body.Columns > 1 {
 		room = room/s.Body.Columns - popupPad
+		if s.Body.FirstColumn > 0 && s.Body.Columns == 2 {
+			room = room * 2 * (100 - s.Body.FirstColumn) / 100
+		}
 	}
 	if s.Body.ColumnWidth > 0 {
 		room = min(room, s.Body.ColumnWidth)
@@ -1513,6 +1518,13 @@ func placeWindow(s uiWindow, title, body *text.Font) popupLayout {
 			column, line := popupRowPosition(s, index)
 			columnW := (contentRight - r.Min.X - popupPad) / s.Body.Columns
 			left, right = left+column*columnW, left+column*columnW+popupColumnWidth(s, contentRight-left)
+			if first := s.Body.FirstColumn; first > 0 && s.Body.Columns == 2 {
+				share := (contentRight - r.Min.X - popupPad) * first / 100
+				left, right = r.Min.X+popupPad+column*share, r.Min.X+popupPad+share-popupPad
+				if column == 1 {
+					right = contentRight
+				}
+			}
 			y = contentY + (line-popupColumnTop(s, column))*pitch + columnExtra[column]
 			columnExtra[column] += flow.rowHeight(row, index, pitch) - pitch
 		}
@@ -1859,9 +1871,20 @@ func wholeRows(s uiWindow, flow popupFlow, body *text.Font, w, pitch, titleH int
 		lines := max(multilineRows(row), (count*line+10+pitch-1)/pitch)
 		if room > 0 {
 			most := room
-			for _, next := range []int{i - 1, i + 1} {
-				if next >= 0 && next < len(rows) {
-					most -= flow.rowHeight(rows[next], next, pitch)
+			if s.Body.Columns > 1 {
+				// The box shares its column with the rows above and below
+				// it on the page.
+				column, _ := popupRowPosition(s, i)
+				for next := range rows {
+					if c, _ := popupRowPosition(s, next); next != i && c == column && !rows[next].placed() {
+						most -= flow.rowHeight(rows[next], next, pitch)
+					}
+				}
+			} else {
+				for _, next := range []int{i - 1, i + 1} {
+					if next >= 0 && next < len(rows) {
+						most -= flow.rowHeight(rows[next], next, pitch)
+					}
 				}
 			}
 			lines = min(lines, max(multilineRows(row), most/pitch))

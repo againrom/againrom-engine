@@ -155,7 +155,13 @@ func (s *mapInspectionEdits) ReadDialogue(name string) (ui.DialogueData, error) 
 	}
 	var out ui.DialogueData
 	for _, n := range f.Nodes {
-		node := ui.DialogueNodeData{ID: n.ID, Name: n.Name, Text: maps.Clone(n.Text)}
+		node := ui.DialogueNodeData{ID: n.ID, Name: n.Name, Text: maps.Clone(n.Text), Speaks: n.Speaks, Speaker: n.Speaker, Next: n.Next}
+		for k, v := range n.Variants {
+			if node.Variants == nil {
+				node.Variants = map[string]map[string]string{}
+			}
+			node.Variants[k] = maps.Clone(v)
+		}
 		for _, r := range n.Replies {
 			reply := ui.DialogueReplyData{Text: maps.Clone(r.Text), Next: r.Next, Once: r.Once, Mark: r.Mark, Disabled: r.Disabled}
 			for _, c := range r.When {
@@ -228,7 +234,13 @@ func dialogueVariables(m *mapedit.Editor) int {
 func toDialogue(name string, d ui.DialogueData, pairs [][][]mod.DialogueCondition, outs [][][]int) mod.Dialogue {
 	f := mod.Dialogue{File: name + ".toml"}
 	for i, n := range d.Nodes {
-		node := mod.DialogueNode{ID: n.ID, Name: n.Name, Text: mod.DialogueText(maps.Clone(n.Text))}
+		node := mod.DialogueNode{ID: n.ID, Name: n.Name, Text: mod.DialogueText(maps.Clone(n.Text)), Speaks: n.Speaks, Speaker: n.Speaker, Next: n.Next}
+		for k, v := range n.Variants {
+			if node.Variants == nil {
+				node.Variants = map[string]mod.DialogueText{}
+			}
+			node.Variants[k] = mod.DialogueText(maps.Clone(v))
+		}
 		for k, r := range n.Replies {
 			reply := mod.DialogueReply{Text: mod.DialogueText(maps.Clone(r.Text)), Next: r.Next, Once: r.Once, Mark: r.Mark, Disabled: r.Disabled}
 			if pairs != nil {
@@ -259,7 +271,8 @@ func (s *mapInspectionEdits) DialogueIssues(d ui.DialogueData) []ui.DialogueIssu
 		variables = dialogueVariables(s.model)
 	}
 	var out []ui.DialogueIssue
-	for _, i := range mod.CheckDialogue(toDialogue("", d, nil, nil), variables, true) {
+	f := toDialogue("", d, nil, nil)
+	for _, i := range mod.CheckDialogue(f, variables, f.NamedNodes()) {
 		out = append(out, ui.DialogueIssue{Rule: dialogueIssueWords[i.Rule], Node: i.Node, Reply: i.Reply, Other: i.Other})
 	}
 	return out
@@ -340,6 +353,21 @@ func dialogueUsers(sc alm.Script, name string) []string {
 // edit; the file reads back equal through the loader.
 func (s *mapInspectionEdits) WriteDialogue(name string, d ui.DialogueData) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
+	return s.writeDialogue(nil, name, d)
+}
+
+// WriteDialogueFor writes the dialogue as WriteDialogue does and the owner's
+// trigger as the plan holds it, whose action starts the dialogue, as one edit.
+func (s *mapInspectionEdits) WriteDialogueFor(owner ui.InspectionMessageOwner, name string, d ui.DialogueData) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
+	plan := owner.Trigger
+	if plan == nil || owner.Kind != ui.KindTrigger || owner.Action < 0 || owner.Action >= len(plan.Actions) {
+		return nil, wordErr("editor.message.unavailable")
+	}
+	return s.writeDialogue(plan, name, d)
+}
+
+func (s *mapInspectionEdits) writeDialogue(plan *ui.WizardTrigger, name string, d ui.DialogueData) (*ui.InspectionDocument, error) {
 	if !mod.ValidDialogueName(name) {
 		return nil, wordErr("editor.dialogue.err.name")
 	}
@@ -354,6 +382,11 @@ func (s *mapInspectionEdits) WriteDialogue(name string, d ui.DialogueData) (_ *u
 		mark := m.Mark()
 		if err := writeDialogueInto(m, st, name, d); err != nil {
 			return false, err
+		}
+		if plan != nil {
+			if err := writeWizardTrigger(m, *plan); err != nil {
+				return false, err
+			}
 		}
 		m.Squash(mark)
 		return m.Mark() != mark, nil

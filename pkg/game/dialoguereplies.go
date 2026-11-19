@@ -63,8 +63,11 @@ func (mw *mapWorld) openInteractive(idx int) bool {
 	}
 	m.open, m.kind, m.payload, m.part = true, ui.NoticeDialogue, nil, 0
 	m.dialogue = &interactiveDialogue{file: file, node: file.Nodes[0].ID, done: map[[2]int]bool{}}
-	m.dialogueAudience = EventAudience{}
+	m.dialogueAudience = mw.eventAudience(idx)
 	m.tips, m.portrait = 0, false
+	for _, n := range file.Nodes {
+		m.portrait = m.portrait || n.Speaks
+	}
 	mw.view.SetDialogue(mw.nodePage())
 	return true
 }
@@ -83,7 +86,11 @@ func (mw *mapWorld) nodePage() ui.Dialogue {
 	if l, ok := locale.BySelector(selector); ok {
 		lang = l.Code
 	}
-	shown := ui.Dialogue{Text: EncodeModText(node.Text.Words(lang), selector), Portrait: m.portrait}
+	aud := m.dialogueAudience
+	shown := ui.Dialogue{Text: EncodeModText(node.TextFor(lang, aud.HeroFemale, aud.HeroMage), selector), Portrait: m.portrait, Speaks: node.Speaks}
+	if node.Speaks {
+		shown.Face, shown.FaceWindow = m.speakerFace(node.Speaker)
+	}
 	m.replies = nil
 	var rows []dialogueReply
 	enabled := 0
@@ -108,6 +115,10 @@ func (mw *mapWorld) nodePage() ui.Dialogue {
 			enabled++
 		}
 		rows = append(rows, row)
+	}
+	if len(node.Replies) == 0 && node.Next > 0 {
+		// A page with no replies goes on to its next page at the button.
+		rows, enabled = []dialogueReply{{next: node.Next, mark: -1, node: node.ID, index: -1}}, 1
 	}
 	switch {
 	case enabled == 0:

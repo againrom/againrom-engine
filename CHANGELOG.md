@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor now edits plain and interactive dialogues in one Dialog window, opened from the Start dialog's Configure button and from the mod window's Dialogues page: a short list of lines on the left, the selected line on the right with its speaker, text, hero variants by sex or class and what follows the line, and up to four replies per line; message pages are written while no line has a reply choice and a dialogue file when one has, and the earlier separate dialogue window with its Legacy and Interactive switch is gone.
 - [BASE] The mod window has Screens, Settings and Speakers pages: list, add, change and remove each kind's rows, one Undo step per edit, with a speaker's picture changed through the asset import and a speaker a message still names kept until its uses are gone; Save mod refuses a row the game cannot use, naming it, and a mod saved with no edit keeps its files as they were.
 - [ROM2] The map editor opens scenario and root maps for viewing, with terrain, objects, units and structures; editing and saving stay off.
 - [ROM2] On a second-game map in the editor, the Units, Structures and Sacks palettes list the second game's own catalog by name, and a placed unit or structure shows its catalog name or says it has no catalog row; placing stays off.

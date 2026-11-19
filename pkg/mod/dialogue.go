@@ -5,6 +5,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strings"
 
 	"againrom/pkg/locale"
 )
@@ -12,7 +13,10 @@ import (
 // A dialogue file is one interactive dialogue of a mission, read from
 // maps/<stem>.dialogs/<name>.toml. It holds [[node]] tables, each followed by
 // the [[reply]] tables that belong to it. A text is written once per language
-// under the language's code. A reply's next is the node it pages to (0 or
+// under the language's code. A node may name its speaker (speaker = the
+// speaker record), tell its words apart by the hero's sex or class under keys
+// such as en_woman, en_mage or en_man_fighter, and continue to a node with
+// next when it has no replies. A reply's next is the node it pages to (0 or
 // absent ends the dialogue); a node may carry the name the editor shows; do
 // lists action node ids and when lists condition pairs by condition node ids
 // and comparison code, as a trigger does; once offers the reply until it is chosen and records the choice in
@@ -74,13 +78,55 @@ type DialogueReply struct {
 	Do       []int
 }
 
-// DialogueNode is one page of a dialogue and the replies it offers.
+// DialogueNode is one page of a dialogue and the replies it offers. Speaker
+// is the speaker record whose face the page shows when Speaks. Variants are
+// the page's words for the hero's sex or class, by variant key, each in the
+// languages the file wrote; Text is the words for every other hero. Next is the
+// node a page with no replies continues to (0 ends the dialogue).
 type DialogueNode struct {
-	Line    int
-	ID      int
-	Name    string
-	Text    DialogueText
-	Replies []DialogueReply
+	Line     int
+	ID       int
+	Name     string
+	Text     DialogueText
+	Speaker  int
+	Speaks   bool
+	Variants map[string]DialogueText
+	Next     int
+	Replies  []DialogueReply
+}
+
+// The hero variant keys, by the hero's sex, class or both. A node uses the
+// keys of one family.
+var dialogueVariantFamilies = [][]string{
+	{"woman", "man"},
+	{"mage", "fighter"},
+	{"woman_mage", "woman_fighter", "man_mage", "man_fighter"},
+}
+
+// DialogueVariantKeys are the keys a node's Variants may hold, family by family.
+func DialogueVariantKeys() []string {
+	return slices.Concat(dialogueVariantFamilies...)
+}
+
+func dialogueVariantKnown(key string) bool { return slices.Contains(DialogueVariantKeys(), key) }
+
+// TextFor is the page's words in lang for a hero of the sex and class given:
+// the variant of the hero's sex and class, of the sex, of the class, in that
+// order, in lang, else the page's own words.
+func (n DialogueNode) TextFor(lang string, female, mage bool) string {
+	sex, class := "man", "fighter"
+	if female {
+		sex = "woman"
+	}
+	if mage {
+		class = "mage"
+	}
+	for _, key := range []string{sex + "_" + class, sex, class} {
+		if s, ok := n.Variants[key][lang]; ok {
+			return s
+		}
+	}
+	return n.Text.Words(lang)
 }
 
 // Dialogue is a parsed dialogue file; its first node opens it.
@@ -148,6 +194,9 @@ func ParseDialogue(file string, data []byte) (Dialogue, error) {
 		return Dialogue{}, bad(0, "no [[node]]")
 	}
 	for _, n := range d.Nodes {
+		if _, ok := d.Node(n.Next); n.Next != 0 && !ok {
+			return Dialogue{}, bad(n.Line, "next = %d names no node", n.Next)
+		}
 		for _, r := range n.Replies {
 			if _, ok := d.Node(r.Next); r.Next != 0 && !ok {
 				return Dialogue{}, bad(r.Line, "next = %d names no node", r.Next)
@@ -198,6 +247,33 @@ func readDialogueNode(t tomlTable, bad dialogueBad) (DialogueNode, error) {
 			}
 			continue
 		}
+		if lang, variant, ok := strings.Cut(p.key, "_"); ok && locale.Known(lang) && dialogueVariantKnown(variant) {
+			var t DialogueText
+			if err := readVariantText(p, lang, n.Variants[variant], &t, bad); err != nil {
+				return n, err
+			}
+			if n.Variants == nil {
+				n.Variants = map[string]DialogueText{}
+			}
+			n.Variants[variant] = t
+			continue
+		}
+		switch p.key {
+		case "speaker":
+			v, err := dialogueInt(p, maxDialogueID, bad)
+			if err != nil {
+				return n, err
+			}
+			n.Speaker, n.Speaks = v, true
+			continue
+		case "next":
+			v, err := dialogueInt(p, maxDialogueID, bad)
+			if err != nil {
+				return n, err
+			}
+			n.Next = v
+			continue
+		}
 		if p.key == "name" {
 			if p.val.kind != tomlString || p.val.str == "" {
 				return n, bad(p.line, "name must be a non-empty string")
@@ -217,6 +293,9 @@ func readDialogueNode(t tomlTable, bad dialogueBad) (DialogueNode, error) {
 		}
 		n.ID, have = id, true
 	}
+	if err := checkVariantFamily(n.Variants, t.line, bad); err != nil {
+		return n, err
+	}
 	switch {
 	case !have:
 		return n, bad(t.line, "[[node]] has no id")
@@ -224,6 +303,35 @@ func readDialogueNode(t tomlTable, bad dialogueBad) (DialogueNode, error) {
 		return n, bad(t.line, "node %d has no text (write one key per language, such as en = \"...\")", n.ID)
 	}
 	return n, nil
+}
+
+// readVariantText reads one language of a variant's text, adding it to the
+// languages already read in have.
+func readVariantText(p tomlPair, lang string, have DialogueText, out *DialogueText, bad dialogueBad) error {
+	if p.val.kind != tomlString || p.val.str == "" {
+		return bad(p.line, "%s must be a non-empty string", p.key)
+	}
+	*out = DialogueText{}
+	maps.Copy(*out, have)
+	(*out)[lang] = p.val.str
+	return nil
+}
+
+// checkVariantFamily refuses a node whose variant keys mix families.
+func checkVariantFamily(v map[string]DialogueText, line int, bad dialogueBad) error {
+	for _, family := range dialogueVariantFamilies {
+		for key := range v {
+			if slices.Contains(family, key) {
+				for other := range v {
+					if !slices.Contains(family, other) {
+						return bad(line, "variants %q and %q are of different kinds (use woman and man, mage and fighter, or the four of both)", key, other)
+					}
+				}
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 func readDialogueReply(t tomlTable, bad dialogueBad) (DialogueReply, error) {

@@ -130,7 +130,7 @@ func (e *MapEditor) backObject() {
 	}
 	p := e.objectBack[len(e.objectBack)-1]
 	back := e.objectBack[:len(e.objectBack)-1]
-	e.messagePage, e.dlg = 0, nil
+	e.messagePage, e.dialog = 0, nil
 	if p.goals {
 		if s, ok := e.script(); ok && !e.report.open {
 			e.openGoals(s, p.goalRow)

@@ -24,7 +24,20 @@ func WriteDialogue(d Dialogue) ([]byte, error) {
 		if n.Name != "" {
 			b.WriteString("name = " + writeString(n.Name) + "\n")
 		}
+		if n.Speaks {
+			b.WriteString("speaker = " + strconv.Itoa(n.Speaker) + "\n")
+		}
+		if n.Next != 0 {
+			b.WriteString("next = " + strconv.Itoa(n.Next) + "\n")
+		}
 		writeDialogueText(&b, n.Text)
+		for _, key := range DialogueVariantKeys() {
+			for _, l := range locale.All() {
+				if s, ok := n.Variants[key][l.Code]; ok {
+					b.WriteString(l.Code + "_" + key + " = " + writeString(s) + "\n")
+				}
+			}
+		}
 		for _, r := range n.Replies {
 			b.WriteString("\n[[reply]]\n")
 			writeDialogueText(&b, r.Text)
@@ -78,11 +91,24 @@ func writeDialogueText(b *strings.Builder, t DialogueText) {
 func SameDialogue(a, b Dialogue) bool {
 	return slices.EqualFunc(a.Nodes, b.Nodes, func(x, y DialogueNode) bool {
 		return x.ID == y.ID && x.Name == y.Name && sameText(x.Text, y.Text) &&
+			x.Speaks == y.Speaks && (!x.Speaks || x.Speaker == y.Speaker) && x.Next == y.Next && sameVariants(x.Variants, y.Variants) &&
 			slices.EqualFunc(x.Replies, y.Replies, func(r, s DialogueReply) bool {
 				return r.Next == s.Next && r.Once == s.Once && (!r.Once || r.Mark == s.Mark) && r.Disabled == s.Disabled &&
 					sameText(r.Text, s.Text) && slices.Equal(r.When, s.When) && slices.Equal(r.Do, s.Do)
 			})
 	})
+}
+
+func sameVariants(a, b map[string]DialogueText) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if w, ok := b[k]; !ok || !sameText(v, w) {
+			return false
+		}
+	}
+	return true
 }
 
 func sameText(a, b DialogueText) bool {
@@ -135,6 +161,9 @@ func (i DialogueIssue) Text() string {
 	case RuleReplies:
 		return fmt.Sprintf("node %s offers more than %d replies", i.Node, MaxDialogueReplies)
 	case RuleNextMissing:
+		if i.Reply == 0 {
+			return fmt.Sprintf("node %s: next node %d does not exist", i.Node, i.Other)
+		}
 		return fmt.Sprintf("node %s reply %d: next node %d does not exist", i.Node, i.Reply, i.Other)
 	case RuleNameEmpty:
 		return "a node has no name"
@@ -174,6 +203,9 @@ func CheckDialogue(d Dialogue, variables int, names bool) []DialogueIssue {
 		}
 		if len(n.Replies) > MaxDialogueReplies {
 			out = append(out, DialogueIssue{Rule: RuleReplies, Node: label})
+		}
+		if _, ok := d.Node(n.Next); n.Next != 0 && !ok {
+			out = append(out, DialogueIssue{Rule: RuleNextMissing, Node: label, Other: n.Next})
 		}
 		for k, r := range n.Replies {
 			if len(r.Text) == 0 {

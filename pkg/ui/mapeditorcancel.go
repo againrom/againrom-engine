@@ -109,8 +109,7 @@ func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 		e.saveThen = nil
 		return
 	}
-	if e.dlg != nil {
-		e.cancelDialogue()
+	if e.closeDialogue() {
 		return
 	}
 	e.obj.doc = nil

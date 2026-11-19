@@ -9,6 +9,9 @@ type InspectionDialogues interface {
 	ReadDialogue(name string) (DialogueData, error)
 	// WriteDialogue writes the dialogue; a refusal names the check it broke.
 	WriteDialogue(name string, d DialogueData) (*InspectionDocument, error)
+	// WriteDialogueFor also writes the owner's trigger, whose planned action
+	// starts the dialogue, in the same edit.
+	WriteDialogueFor(owner InspectionMessageOwner, name string, d DialogueData) (*InspectionDocument, error)
 	RemoveDialogue(name string) (*InspectionDocument, error)
 	// DialogueUsers are the names of the triggers that start the dialogue.
 	DialogueUsers(name string) []string
@@ -51,10 +54,17 @@ type DialogueData struct {
 // DialogueNodeData is one node: its id, its name, its text by language code
 // and its replies (at most four).
 type DialogueNodeData struct {
-	ID      int
-	Name    string
-	Text    map[string]string
-	Replies []DialogueReplyData
+	ID   int
+	Name string
+	Text map[string]string
+	// Speaks says Speaker is the speaker record the page shows; Variants are
+	// the page's texts by hero variant key, each by language; Next is where a
+	// page with no replies goes on (0 ends).
+	Speaks   bool
+	Speaker  int
+	Variants map[string]map[string]string
+	Next     int
+	Replies  []DialogueReplyData
 }
 
 // DialogueReplyData is one reply: its texts, the node it leads to (0 ends

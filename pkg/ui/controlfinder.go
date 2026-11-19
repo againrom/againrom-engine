@@ -67,7 +67,7 @@ func init() {
 		ControlPopupButton: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlPopupButtonRect(q.N) },
 		ControlField:       func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlFieldRect(q.N) },
 		ControlRowButton: func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) {
-			return e.controlRowButtonRect(q.N, q.K, q.Flag)
+			return e.controlRowButtonRect(q.N, q.K, q.Flag, q.Key == "head")
 		},
 		ControlPromptButton:  func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlPromptButtonRect(q.N) },
 		ControlBar:           func(e *MapEditor, q ControlQuery) (image.Rectangle, bool) { return e.controlBarRect(q.Key) },

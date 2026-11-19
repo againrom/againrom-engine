@@ -14,12 +14,6 @@ import (
 	"againrom/pkg/words"
 )
 
-// dlgReplyAt selects the reply whose head starts with n.
-func dlgReplyAt(t *testing.T, e *ui.MapEditor, n string) {
-	t.Helper()
-	dlgChoose(t, e, "d.reply", n+". ")
-}
-
 // millMap is a 40 by 40 map with a drop location whose script holds four
 // constants and two actions that set variables 10 and 12, so both are
 // variables the map names.
@@ -42,38 +36,32 @@ func millMap(t *testing.T) []byte {
 // drive the goblins from the mill, and applies it.
 func buildMill(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	startDialogueRow(t, e, "mill")
-	dlgType(t, e, "d.name", "start")
-	dlgType(t, e, "d.text.en", "Goblins hold the old mill. Will you drive them out?")
-	dlgType(t, e, "d.text.ru", "Гоблины заняли старую мельницу. Прогоните их?")
-	dlgPress(t, e, "d.node", "addnode")
-	dlgType(t, e, "d.name", "thanks")
-	dlgType(t, e, "d.text.en", "Thank you, the mill is ours again.")
-	dlgType(t, e, "d.text.ru", "Спасибо, мельница снова наша.")
-	dlgChoose(t, e, "d.node", "start")
+	startDialogueRow(t, e)
+	dlgType(t, e, ui.DialogueLineText, "Goblins hold the old mill. Will you drive them out?")
+	dlgAddLine(t, e, "Thank you, the mill is ours again.")
+	dlgSelect(t, e, 1)
+	dlgChoose(t, e, "d.after", "Reply choice")
 
-	reply := func(n int, en, ru string) {
-		dlgPress(t, e, "d.reply", "addreply")
-		dlgType(t, e, "d.r.en", en)
-		dlgType(t, e, "d.r.ru", ru)
-	}
-	reply(1, "I will drive them out.", "Я прогоню их.")
-	dlgChoose(t, e, "d.next", "thanks")
-	dlgChoose(t, e, "d.once", "Yes")
+	dlgType(t, e, "d.rt", "I will drive them out.")
+	dlgChoose(t, e, "d.rnext", "Thank you")
+	dlgChoose(t, e, "d.ronce", "Yes")
 	dlgAdd(t, e, true)
 	dlgChoose(t, e, "a0.item", "Set a variable")
 	dlgChoose(t, e, "a0.p0", "10")
 	dlgType(t, e, "a0.p1", "1")
 
-	reply(2, "Pay me first.", "Сначала заплатите.")
-	dlgChoose(t, e, "d.once", "Yes")
+	dlgPress(t, e, "addreply")
+	dlgType(t, e, "d.rt", "Pay me first.")
+	dlgChoose(t, e, "d.ronce", "Yes")
 	dlgAdd(t, e, true)
 	dlgChoose(t, e, "a0.item", "Give gold")
 
-	reply(3, "Not now.", "Не сейчас.")
+	dlgPress(t, e, "addreply")
+	dlgType(t, e, "d.rt", "Not now.")
 
-	reply(4, "Tell me about the mill again.", "Расскажите о мельнице еще раз.")
-	dlgChoose(t, e, "d.unavailable", "Disabled")
+	dlgPress(t, e, "addreply")
+	dlgType(t, e, "d.rt", "Tell me about the mill again.")
+	dlgChoose(t, e, "d.runavail", "Disabled")
 	dlgAdd(t, e, false)
 	dlgChoose(t, e, "c0.item", "Variable compared with a number")
 	dlgChoose(t, e, "c0.p0", "12")
@@ -111,36 +99,56 @@ func TestMillModSavesItsDialogue(t *testing.T) {
 	}
 	buildMill(t, e)
 	dlgApply(t, e)
+	if len(s.DialogueNames()) != 1 {
+		t.Fatalf("Apply wrote no dialogue file:\n%s", trigLines(e))
+	}
+	dlgCancel(t, e)
+	_ = e.Key("escape")
 	saveMod(t, e)
 	saved := tree(t, own)
-	for _, rel := range millModFiles {
+	file := "maps/mill.dialogs/dialogue.toml"
+	for _, rel := range []string{"mod.toml", "maps/mill.almx", file} {
 		if _, ok := saved[rel]; !ok {
 			t.Fatalf("the saved mod holds no %s: %v", rel, saved)
 		}
 	}
 	if _, ok := saved["maps/mill.alm"]; ok {
-		t.Fatal("the map with an interactive dialogue stayed an .alm")
+		t.Fatal("the map with a reply choice stayed an .alm")
 	}
-	if !strings.Contains(saved[millDialogueFile], "Гоблины заняли старую мельницу") {
-		t.Fatalf("the saved dialogue:\n%s", saved[millDialogueFile])
+	d, err := mod.ParseDialogue("dialogue.toml", []byte(saved[file]))
+	if err != nil || len(d.Nodes) != 2 || len(d.Nodes[0].Replies) != 4 {
+		t.Fatalf("the saved dialogue (%v):\n%s", err, saved[file])
 	}
-	if out := os.Getenv("AGAINROM_MILL_OUT"); out != "" {
-		for _, rel := range millModFiles {
-			p := filepath.Join(out, filepath.FromSlash(rel))
-			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(p, []byte(saved[rel]), 0o644); err != nil {
-				t.Fatal(err)
-			}
-		}
-		return
+}
+
+// The committed mill dialogue opens in the window and Apply with no edit
+// writes the very same file.
+func TestMillDialogueOpensAndWritesUnchanged(t *testing.T) {
+	_, e, _ := millMod(t, "")
+	s := formHost(e)
+	if _, err := s.ExtendScript(); err != nil {
+		t.Fatal(err)
 	}
-	for _, rel := range millModFiles {
-		b, err := os.ReadFile(filepath.Join(millModFolder, filepath.FromSlash(rel)))
-		if err != nil || string(b) != saved[rel] {
-			t.Errorf("the committed fixture's %s is not what the editor saves (%v)", rel, err)
-		}
+	want, err := os.ReadFile(filepath.Join(millModFolder, filepath.FromSlash(millDialogueFile)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.prepareWorkspace(); err != nil || s.workspace == nil {
+		t.Fatal("the mod has no workspace", err)
+	}
+	if s.workspace.Dialogues == nil {
+		s.workspace.Dialogues = map[string][]byte{}
+	}
+	s.workspace.Dialogues["mill"] = want
+	if err := e.OpenDialogue("mill"); err != nil {
+		t.Fatal(err)
+	}
+	if e.DialogueLines() != 2 {
+		t.Fatalf("the mill lists %d lines:\n%s", e.DialogueLines(), trigLines(e))
+	}
+	dlgApply(t, e)
+	if got := s.dialogueHeld()["mill"]; string(got) != string(want) {
+		t.Fatalf("Apply rewrote the mill:\n%s\nwant:\n%s", got, want)
 	}
 }
 
@@ -209,6 +217,8 @@ func TestMillModPublishCarriesTheDialogueFile(t *testing.T) {
 	}
 	buildMill(t, e)
 	dlgApply(t, e)
+	dlgCancel(t, e)
+	_ = e.Key("escape")
 	saveMod(t, e)
 	out := t.TempDir()
 	if _, err := s.SetWorkspaceField("package", "output", out); err != nil {
@@ -225,7 +235,7 @@ func TestMillModPublishCarriesTheDialogueFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the published mod is refused: %v", err)
 	}
-	if len(res.Missions.Missions) != 1 || len(res.Missions.Missions[0].DialogueFiles["mill"]) == 0 {
+	if len(res.Missions.Missions) != 1 || len(res.Missions.Missions[0].DialogueFiles["dialogue"]) == 0 {
 		t.Fatalf("the published mission holds no dialogue file: %+v", res.Missions.Missions)
 	}
 }
@@ -252,11 +262,11 @@ func TestDialoguesPageListsOpensAndStartsDialogues(t *testing.T) {
 	for _, f := range s.WorkspaceFields(ui.ModDialoguesScope) {
 		lines = append(lines, f.Key+" "+f.Label+" "+f.TextValue)
 	}
-	want := "info.mill mill 2 nodes. Started by Mill"
-	if len(lines) != 3 || lines[0] != want || lines[1] != "open.mill Open dialogue " || lines[2] != "new New dialogue " {
+	want := "info.dialogue dialogue 2 nodes. Started by Mill"
+	if len(lines) != 3 || lines[0] != want || lines[1] != "open.dialogue Open dialogue " || lines[2] != "new New dialogue " {
 		t.Fatalf("the Dialogues page:\n%q", lines)
 	}
-	if err := e.OpenDialogue("mill"); err != nil || !e.DialogueOpen() {
+	if err := e.OpenDialogue("dialogue"); err != nil || !e.DialogueOpen() {
 		t.Fatalf("Open showed no dialogue: %v", err)
 	}
 	r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
@@ -265,27 +275,10 @@ func TestDialoguesPageListsOpensAndStartsDialogues(t *testing.T) {
 		t.Fatalf("New dialogue showed no window: %v", err)
 	}
 	dlgType(t, e, "d.file", "second")
-	dlgType(t, e, "d.text.en", "Hello")
+	dlgType(t, e, ui.DialogueLineText, "Hello")
 	dlgApply(t, e)
 	if got := s.DialogueNames(); len(got) != 2 || got[1] != "second" {
 		t.Fatalf("the new dialogue was not written:\n%s", trigLines(e))
-	}
-}
-
-// Save mod refuses a dialogue that a trigger starts and no file holds, with
-// the dialogue's name.
-func TestSaveModRefusesAnInteractiveActionWithNoDialogueFile(t *testing.T) {
-	_, e, _ := millMod(t, "")
-	s := formHost(e)
-	if _, err := s.ExtendScript(); err != nil {
-		t.Fatal(err)
-	}
-	startDialogueRow(t, e, "mill")
-	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 1})
-	trigClick(t, e, r, ok, "Cancel")
-	_ = e.Key("escape")
-	if _, err := s.SaveIntoMod(); err == nil || !strings.Contains(err.Error(), "dialogue mill, which has no file") {
-		t.Fatalf("Save mod took a dialogue with no file: %v", err)
 	}
 }
 
@@ -325,10 +318,7 @@ func TestMillDialogueBuiltThroughTheEditor(t *testing.T) {
 		t.Fatalf("the finished dialogue is refused: %v", got)
 	}
 	dlgApply(t, e)
-	if e.DialogueOpen() && !strings.Contains(trigLines(e), "start") {
-		t.Fatalf("Apply left the window in a strange state:\n%s", trigLines(e))
-	}
-	d, err := s.ReadDialogue("mill")
+	d, err := s.ReadDialogue("dialogue")
 	if err != nil {
 		t.Fatalf("%v (open %v, names %v):\n%s", err, e.DialogueOpen(), s.DialogueNames(), trigLines(e))
 	}
@@ -356,7 +346,7 @@ func TestDialogueOnceMarkZeroSurvivesAnEdit(t *testing.T) {
 	if err := e.OpenDialogue("zero"); err != nil {
 		t.Fatal(err)
 	}
-	dlgType(t, e, "d.text.en", "Hello again")
+	dlgType(t, e, ui.DialogueLineText, "Hello again")
 	dlgApply(t, e)
 	got, err := s.ReadDialogue("zero")
 	if err != nil || len(got.Nodes) != 1 || got.Nodes[0].Text["en"] != "Hello again" {

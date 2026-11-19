@@ -27,7 +27,14 @@ func TestSpeakerPickedOnTheMapWearsTheInfoWindowLook(t *testing.T) {
 		p = e.CellPoint(cell)
 		messageClick(t, e, image.Rectangle{Min: p, Max: p.Add(image.Pt(1, 1))}, true)
 	}
-	card := func() string { return e.PopupLines()[0] }
+	card := func() string {
+		for _, l := range e.PopupLines() {
+			if strings.HasPrefix(l, "Speaker ") {
+				return strings.TrimPrefix(l, "Speaker ")
+			}
+		}
+		return ""
+	}
 
 	press()
 	before := card()
@@ -39,7 +46,7 @@ func TestSpeakerPickedOnTheMapWearsTheInfoWindowLook(t *testing.T) {
 		t.Fatalf("the refused click is silent: status %q", e.StatusLine())
 	}
 	click(pickGoblinCell)
-	if !strings.HasPrefix(card(), "1 41:") {
+	if !strings.HasPrefix(card(), "41:") {
 		t.Fatalf("the goblin's click left the card %q, want speaker 41", card())
 	}
 	mw := missionStart(t, s)

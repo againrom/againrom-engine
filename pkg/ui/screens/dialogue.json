@@ -1,33 +1,11 @@
 {
   "window": "dialogue",
-  "title": "editor.dialogue.title",
-  "titleArgs": ["name"],
-  "titleHelp": "editor.dialogue.help",
-  "fit": true,
   "rows": [
-    {"kind": "edit", "when": "naming", "label": "editor.dialogue.file", "value": "file", "field": "file", "help": "editor.dialogue.file.help"},
-    {"kind": "choice", "label": "editor.dialogue.node", "value": "node", "field": "node", "help": "editor.dialogue.node.help",
-      "buttons": [
-        {"word": "editor.dialogue.addnode", "act": "addnode"},
-        {"word": "editor.dialogue.removenode", "act": "removenode", "when": "canremovenode"},
-        {"word": "editor.dialogue.nodeup", "act": "nodeup", "when": "canup"},
-        {"word": "editor.dialogue.nodedown", "act": "nodedown", "when": "candown"}
-      ]
-    },
-    {"kind": "edit", "label": "editor.dialogue.nodename", "value": "nodename", "field": "nodename", "help": "editor.dialogue.nodename.help"},
-    {"each": "texts", "rows": [{"kind": "edit", "labelBind": "label", "value": "value", "field": "text"}]},
-    {"kind": "heading", "label": "editor.dialogue.replies"},
-    {"kind": "choice", "label": "editor.dialogue.reply", "value": "reply", "field": "reply", "help": "editor.dialogue.reply.help",
-      "buttons": [
-        {"word": "editor.dialogue.addreply", "act": "addreply"},
-        {"word": "editor.dialogue.removereply", "act": "removereply", "when": "hasreply"}
-      ]
-    },
-    {"each": "replytexts", "rows": [{"kind": "edit", "labelBind": "label", "indent": 2, "value": "value", "field": "text"}]},
-    {"kind": "choice", "when": "hasreply", "label": "editor.dialogue.next", "indent": 2, "value": "next", "field": "next", "help": "editor.dialogue.next.help"},
-    {"kind": "choice", "when": "hasreply", "label": "editor.dialogue.once", "indent": 2, "value": "once", "field": "once", "help": "editor.dialogue.once.help"},
-    {"kind": "choice", "when": "hasreply", "label": "editor.dialogue.unavailable", "indent": 2, "value": "unavailable", "field": "unavailable", "help": "editor.dialogue.unavailable.help"},
-    {"kind": "heading", "when": "hasreply", "label": "editor.dialogue.when"},
+    {"kind": "edit", "label": "editor.dialogue.reply", "indent": 2, "value": "text", "field": "text", "help": "editor.dialogue.reply.help"},
+    {"kind": "choice", "label": "editor.dialogue.transition", "indent": 2, "value": "next", "field": "next", "help": "editor.dialogue.transition.help"},
+    {"kind": "choice", "label": "editor.dialogue.once", "indent": 2, "value": "once", "field": "once", "help": "editor.dialogue.once.help"},
+    {"kind": "choice", "label": "editor.dialogue.unavailable", "indent": 2, "value": "unavailable", "field": "unavailable", "help": "editor.dialogue.unavailable.help"},
+    {"kind": "heading", "label": "editor.dialogue.when"},
     {"each": "conditions",
       "rows": [
         {"kind": "choice", "label": "editor.wizard.condition", "value": "value", "ink": "condition", "field": "item", "helpBind": "itemHelp",
@@ -54,7 +32,7 @@
     {"kind": "text", "when": "nocondition", "help": "editor.dialogue.condition.help",
       "buttons": [{"word": "editor.wizard.addcondition", "act": "addpair"}]
     },
-    {"kind": "heading", "when": "hasreply", "label": "editor.dialogue.then"},
+    {"kind": "heading", "label": "editor.dialogue.then"},
     {"each": "actions",
       "rows": [
         {"kind": "choice", "label": "editor.wizard.action", "value": "value", "ink": "action", "field": "item", "helpBind": "itemHelp",
@@ -79,12 +57,7 @@
     },
     {"kind": "text", "when": "noaction", "help": "editor.dialogue.outcome.help",
       "buttons": [{"word": "editor.wizard.addaction", "act": "addaction"}]
-    }
-  ],
-  "buttons": [
-    {"word": "editor.button.apply", "off": "clean"},
-    {"word": "editor.button.cancel"},
-    {"word": "editor.dialogue.delete", "off": "fresh"}
-  ],
-  "noteInk": "warning"
+    },
+    {"kind": "text", "buttons": [{"word": "editor.dialogue.removereply", "act": "removereply"}]}
+  ]
 }

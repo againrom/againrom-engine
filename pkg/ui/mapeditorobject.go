@@ -92,6 +92,18 @@ type objectEdit struct {
 	wiz            *wizardState
 	messageParts   []InspectionMessagePart
 	messageChanged bool
+	// lines are the lines' drafts by card number, sel the number of the one
+	// on show, extra the first field after the cards' and the dialog choice,
+	// dialogAt 1 + the dialog choice's field (0 for none), shared the card
+	// numbers whose cells have one speaker; rowSelect and rowReply map a spec
+	// row to the line or the reply it shows.
+	lines     map[int]*dlgLine
+	sel       int
+	extra     int
+	dialogAt  int
+	shared    map[int]bool
+	rowSelect map[int]int
+	rowReply  map[int]int
 	// messageGone are the page numbers whose cards are struck until Apply.
 	messageGone map[int]bool
 	// textFirst is the first line a scrolled text field shows, by field; it
@@ -120,9 +132,6 @@ const modObjectRecord = -3
 
 // objectRecord is the record the object window shows now.
 func (e *MapEditor) objectRecord() int {
-	if e.dlg != nil {
-		return dialogueObjectRecord
-	}
 	if e.modWindow {
 		return modObjectRecord
 	}
@@ -135,10 +144,6 @@ func (e *MapEditor) loadObject() {
 		return
 	}
 	*o = objectEdit{doc: e.doc, record: e.objectRecord(), focus: -1, open: -1, cell: -1, pickField: -1}
-	if e.dlg != nil {
-		e.loadDialogueObject()
-		return
-	}
 	if e.modWindow {
 		if host, ok := e.workspace(); ok {
 			o.fields = host.WorkspaceFields(e.modFieldScope())
@@ -163,7 +168,12 @@ func (e *MapEditor) loadObject() {
 	}
 	if e.messagePage != 0 {
 		if host, ok := e.doc.Edits.(InspectionMessages); ok {
-			e.loadMessageFields(host.MessageParts(e.messagePage))
+			if e.dialog != nil {
+				o.lines = e.dialog.lines
+				e.loadMessageFields(e.dialog.parts)
+			} else {
+				e.loadMessageFields(host.MessageParts(e.messagePage))
+			}
 		}
 		return
 	}
@@ -581,9 +591,6 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
-	if e.dlg != nil {
-		return e.dialogueDirty()
-	}
 	if len(e.obj.pending) > 0 {
 		return true
 	}
@@ -676,6 +683,9 @@ func (e *MapEditor) focusObjectField(i int) {
 // objectRowPress is a press on a field row or the cell's pick button.
 func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	o := &e.obj
+	if e.messagePage != 0 && e.dialogRowPress(n) {
+		return
+	}
 	if id, ok := o.rowBlock[n]; ok {
 		e.toggleBlock(id)
 		return
@@ -956,12 +966,12 @@ func (e *MapEditor) endFieldTyping() {
 
 // objectButton is Apply (0) or Cancel (1).
 func (e *MapEditor) objectButton(n int) {
-	if e.dlg != nil {
-		e.dialogueWindowButton(n)
-		return
-	}
 	if e.modWindow {
 		e.modButton(n)
+		return
+	}
+	if n == 2 && e.messagePage != 0 && e.dialog != nil && !e.dialog.fresh {
+		e.deleteDialogue()
 		return
 	}
 	if n == 2 && e.nativeUnitWindow() {
@@ -983,10 +993,6 @@ func (e *MapEditor) objectButton(n int) {
 // parse, or a field the host refuses, shows its reason in the popup and
 // changes nothing.
 func (e *MapEditor) applyObject() {
-	if e.dlg != nil {
-		e.applyDialogue()
-		return
-	}
 	if e.modWindow {
 		_ = e.applyModField()
 		return
@@ -1091,7 +1097,7 @@ func (e *MapEditor) closeObject() {
 	e.modWindow = false
 	e.graphLink = false
 	e.modConfirm = ""
-	e.messagePage, e.dlg = 0, nil
+	e.messagePage, e.dialog = 0, nil
 	e.objectHidden = true
 	e.obj.open, e.obj.focus = -1, -1
 	e.groupSel = editorGroup{}
@@ -1166,7 +1172,7 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 // chooseGroup selects a group's members, highlights them and opens the
 // group popup; with frame set the view centres on the members' middle.
 func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
-	e.messagePage, e.dlg = 0, nil
+	e.messagePage, e.dialog = 0, nil
 	e.selected, e.focusedReference = -1, 0
 	e.objectBack, e.obj.usesTurned = nil, false
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0

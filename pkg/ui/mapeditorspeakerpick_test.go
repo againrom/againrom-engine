@@ -98,6 +98,10 @@ func pressSpeakerPick(t *testing.T, e *MapEditor, c int) {
 	if _, _, ok := e.objectSpec(); !ok {
 		t.Fatal("the message popup is not shown")
 	}
+	if n := e.obj.messageParts[c].Number; n != e.obj.sel {
+		e.selectLine(n)
+		e.objectSpec()
+	}
 	row := e.fieldRow(2*c + 1)
 	k := slices.Index(e.obj.rowActs[row], actPickParam)
 	if k < 0 {
@@ -201,19 +205,30 @@ func TestCardRowButtonCoversItsCaption(t *testing.T) {
 		t.Run(lang, func(t *testing.T) {
 			e, _ := speakerPickEditor(t, lang)
 			caption := e.actWord(actPickParam)
-			cross, okX := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 0, Flag: false})
-			pick, okP := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 1, Flag: false})
+			s, _, _ := e.objectSpec()
+			l := layoutPopup(s, e.font, e.bodyFont())
+			head := -1
+			for r := range s.Rows {
+				if at, ok := e.obj.rowOpen[r]; ok && at == 0 && s.Rows[r].Kind == popupText && len(s.Rows[r].Buttons) > 0 {
+					head = r
+				}
+			}
+			if head < 0 {
+				t.Fatal("the line shows no head row")
+			}
+			cross := rowRectOf(t, l, head).Buttons[0]
+			pick, okP := e.FindControl(ControlQuery{Role: ControlRowButton, N: 1, K: 0, Flag: false})
 			field, okF := e.FindControl(ControlQuery{Role: ControlField, N: 1})
-			if !okX || !okP || !okF {
-				t.Fatalf("the title row shows cross %v, button %v, field %v", okX, okP, okF)
+			if !okP || !okF {
+				t.Fatalf("the speaker row shows button %v, field %v", okP, okF)
 			}
 			if need := e.bodyFont().Advance(caption); pick.Dx() < need {
 				t.Errorf("the button is %d wide, its caption %q needs %d", pick.Dx(), caption, need)
 			}
-			if cross.Dx() != cross.Dy() {
-				t.Errorf("the cross is %v, not a square", cross)
+			if cross.Empty() {
+				t.Errorf("the cross is %v", cross)
 			}
-			for _, pair := range [][2]image.Rectangle{{cross, pick}, {field, cross}, {field, pick}} {
+			for _, pair := range [][2]image.Rectangle{{field, pick}} {
 				if pair[0].Overlaps(pair[1]) {
 					t.Errorf("%v overlaps %v", pair[0], pair[1])
 				}

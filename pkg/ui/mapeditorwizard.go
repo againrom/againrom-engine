@@ -253,6 +253,12 @@ func interactiveSource() wizParam {
 	return p
 }
 
+// isDialog reports a parameter that only the dialog window edits: where the
+// dialog comes from, the page it shows or the dialogue file's name.
+func (p wizParam) isDialog() bool {
+	return p.kind == wpMessage || p.kind == wpSource || p.kind == wpDialogue
+}
+
 // sourceValue is the source choice that offers item it: 1 for a dialogue
 // file, 0 for a message page.
 func (it wizItem) sourceValue() uint32 {
@@ -966,7 +972,7 @@ func (e *MapEditor) rewizard() {
 	o := &e.obj
 	w := o.wiz
 	v, ok := e.scriptPopup()
-	if w == nil || e.dlg == nil && (!ok || v.trigger == nil) {
+	if w == nil || e.messagePage == 0 && (!ok || v.trigger == nil) {
 		return
 	}
 	e.pullWizard()
@@ -1003,15 +1009,11 @@ func (e *MapEditor) rewizard() {
 }
 
 // wizardRefill builds the open window's fields again from its rows: the
-// trigger's, or the selected reply's of the dialogue window.
+// trigger's, or the open reply's of the dialog window.
 func (e *MapEditor) wizardRefill() {
-	if e.dlg != nil {
-		if w := e.obj.wiz; w != nil {
-			if r := e.dlg.shown(); r != nil {
-				r.rows = w.rows
-			}
-		}
-		e.dialogueFields()
+	if e.messagePage != 0 {
+		e.dialogSyncRows()
+		e.dialogFields()
 		return
 	}
 	if v, ok := e.scriptPopup(); ok {
@@ -1075,9 +1077,6 @@ const (
 	actPickParam = "pickparam" // a unit, structure or group clicked on the map
 	actPickArea  = "pickarea"  // a trigger area clicked on the map
 	actConfigure = "configure"
-
-	actEditDialogue = "editdialogue" // open the dialogue the row names
-	actNewDialogue  = "newdialogue"  // open an empty dialogue under the row's name
 )
 
 const actionGapRows = 1
@@ -1104,10 +1103,6 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		}
 		o.focus = -1
 		e.wizardRefill()
-	case actEditDialogue, actNewDialogue:
-		if hasField {
-			e.openDialogueFrom(f)
-		}
 	case actAddPair, actAddGroup, actAddAct:
 		condition := act != actAddAct
 		r := wizRow{condition: condition, origItem: -2}
@@ -1143,14 +1138,9 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 	case actConfigure:
 		key := o.fields[f].Key
 		for r := range w.rows {
-			if w.wizardKey(r, "item") != key || w.rows[r].item < 0 {
-				continue
-			}
-			for k, p := range wizItems(w.rows[r].condition)[w.rows[r].item].params {
-				if p.kind == wpMessage {
-					e.configureDialog(slices.IndexFunc(o.fields, func(x InspectionField) bool { return x.Key == w.wizardKey(r, fmt.Sprintf("p%d", k)) }))
-					return
-				}
+			if w.wizardKey(r, "item") == key {
+				e.configureDialog(r)
+				return
 			}
 		}
 	case actPickParam, actPickArea:

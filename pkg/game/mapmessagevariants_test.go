@@ -2,9 +2,11 @@ package game
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -58,19 +60,23 @@ func readerText(page []byte, n, h int) (text string, speaker int64, ok bool) {
 	return plain[:messageTextEnd(plain, len(plain))], speaker, true
 }
 
-// cardRows are the popup row indices of the card numbered label: its head
-// first, then every row up to the next card or the "+" row.
+// cardRows shows the line numbered label and gives the popup row indices of
+// its card: the head first, then every row up to the After the line row.
 func cardRows(t *testing.T, e *ui.MapEditor, label string) []int {
 	t.Helper()
+	n, _ := strconv.Atoi(label)
+	if !e.DialogueSelect(n) {
+		t.Fatalf("no line %s:\n%s", label, trigLines(e))
+	}
 	lines := e.PopupLines()
+	head := fmt.Sprintf(variantWord("editor.message.line"), n)
+	after := variantWord("editor.dialogue.one.after")
 	var rows []int
 	for i, line := range lines {
-		head := line == label || strings.HasPrefix(line, label+" ")
-		plus := reflect.DeepEqual(e.PopupRowButtons(i), []string{"+"})
 		switch {
-		case len(rows) == 0 && head:
+		case len(rows) == 0 && line == head:
 			rows = append(rows, i)
-		case len(rows) > 0 && (isCardHead(line) || plus):
+		case len(rows) > 0 && strings.HasPrefix(line, after):
 			return rows
 		case len(rows) > 0:
 			rows = append(rows, i)
@@ -82,27 +88,12 @@ func cardRows(t *testing.T, e *ui.MapEditor, label string) []int {
 	return rows
 }
 
-// isCardHead reports a popup line that heads a card: its number, then its
-// speaker or nothing.
-func isCardHead(line string) bool {
-	number, _, _ := strings.Cut(line, " ")
-	if number == "" {
-		return false
-	}
-	for _, c := range number {
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 // cardCells are the cells card label shows: for each, its audience label
 // (the line's word) and the text after it, read off the popup lines.
 func cardCells(t *testing.T, e *ui.MapEditor, label string) (labels, texts []string) {
 	t.Helper()
-	lines := e.PopupLines()
 	rows := cardRows(t, e, label)
+	lines := e.PopupLines()
 	for k, r := range rows[1:] {
 		label := ""
 		for _, id := range append(slices.Clone(heroLabels), "editor.message.hero.woman", "editor.message.hero.man", "editor.message.hero.mage", "editor.message.hero.fighter") {
@@ -136,7 +127,7 @@ func splitButton(t *testing.T, e *ui.MapEditor, label string, c int, id string) 
 	if k < 0 {
 		t.Fatalf("card %s offers %q, no %q", label, e.PopupRowButtons(head), variantWord(id))
 	}
-	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*c + 1, K: k, Flag: false})
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*c + 1, K: k, Flag: false, Key: "head"})
 	trigClick(t, e, r, ok, id)
 }
 
@@ -156,8 +147,8 @@ func TestDialogVariantsBySexAreOneCardOfTwoCells(t *testing.T) {
 			t.Errorf("cell %s shows %q, the reader gives %q", labels[k], texts[k], want)
 		}
 	}
-	if heads := strings.Count("\n"+trigLines(e)+"\n", "\n1\n"); heads != 1 {
-		t.Errorf("part 1 shows %d cards", heads)
+	if n := e.DialogueLines(); n != 2 {
+		t.Errorf("the three cells show %d lines, want 2", n)
 	}
 	if labels, _ := cardCells(t, e, "2"); len(labels) != 0 {
 		t.Errorf("one-variant card 2 shows hero labels %q", labels)
@@ -405,10 +396,6 @@ func TestDialogVariantGroupsStackInOneFrame(t *testing.T) {
 		label       string
 		part, cells int
 	}{{"1", 0, 4}, {"2", 4, 2}, {"3", 6, 0}} {
-		card, _, ok := e.CardRects(c.part)
-		if !ok {
-			t.Fatalf("card %s is not shown:\n%s", c.label, trigLines(e))
-		}
 		if labels, _ := cardCells(t, e, c.label); len(labels) != c.cells {
 			t.Fatalf("card %s shows cells %q:\n%s", c.label, labels, trigLines(e))
 		}
@@ -420,8 +407,8 @@ func TestDialogVariantGroupsStackInOneFrame(t *testing.T) {
 			switch {
 			case !ok:
 				t.Fatalf("card %s's row %d is not shown", c.label, r)
-			case !rr.In(card):
-				t.Errorf("card %s's row %d at %v stands outside its frame %v", c.label, r, rr, card)
+			case !rr.In(popup):
+				t.Errorf("card %s's row %d at %v stands outside the window %v", c.label, r, rr, popup)
 			case rr.Min.Y < below:
 				t.Errorf("card %s's row %d at %v stands beside the row above, not under it", c.label, r, rr)
 			case rr.Min.X != head.Min.X || rr.Max.X != head.Max.X:
@@ -429,7 +416,7 @@ func TestDialogVariantGroupsStackInOneFrame(t *testing.T) {
 			}
 			below = rr.Max.Y
 		}
-		t.Logf("card %s: popup %d wide, card %d wide", c.label, popup.Dx(), card.Dx())
+		t.Logf("card %s: popup %d wide, head %d wide", c.label, popup.Dx(), head.Dx())
 	}
 }
 

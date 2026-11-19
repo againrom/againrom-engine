@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"image"
 	"strings"
 	"testing"
 
@@ -20,30 +21,42 @@ func openMessagePopup(t *testing.T, e *ui.MapEditor) {
 	t.Fatal("message link absent", e.PopupLines())
 }
 
+// onSomeLine shows the lines of the message window in turn until find yields
+// a control: the window is a list and the one line on show.
+func onSomeLine(e *ui.MapEditor, find func() (image.Rectangle, bool)) (image.Rectangle, bool) {
+	e.ScrollDetails(-100)
+	if r, ok := find(); ok {
+		return r, true
+	}
+	for rank := 1; e.DialogueSelect(rank); rank++ {
+		e.ScrollDetails(-100)
+		if r, ok := find(); ok {
+			return r, true
+		}
+	}
+	return image.Rectangle{}, false
+}
+
 func dialogueField(t *testing.T, e *ui.MapEditor, field int) {
 	t.Helper()
-	e.ScrollDetails(-100)
-	for range 30 {
-		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field}); ok {
-			messageClick(t, e, r, ok)
-			return
-		}
-		e.ScrollDetails(1)
+	r, ok := onSomeLine(e, func() (image.Rectangle, bool) {
+		return e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: field})
+	})
+	if !ok {
+		t.Fatal("field absent", field, e.PopupLines())
 	}
-	t.Fatal("field absent", field, e.PopupLines())
+	messageClick(t, e, r, ok)
 }
 
 func dialogueButton(t *testing.T, e *ui.MapEditor, part, button int) {
 	t.Helper()
-	e.ScrollDetails(-100)
-	for range 30 {
-		if r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*part + 1, K: button, Flag: false}); ok {
-			messageClick(t, e, r, ok)
-			return
-		}
-		e.ScrollDetails(1)
+	r, ok := onSomeLine(e, func() (image.Rectangle, bool) {
+		return e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 2*part + 1, K: button, Flag: false, Key: "head"})
+	})
+	if !ok {
+		t.Fatal("card button absent", part, button)
 	}
-	t.Fatal("card button absent", part, button)
+	messageClick(t, e, r, ok)
 }
 
 func TestDialoguePopupUntaggedApply(t *testing.T) {
@@ -93,9 +106,13 @@ func TestDialoguePopupEditsEveryPageAndKeepsOtherBytes(t *testing.T) {
 	workspacePage(t, e, "event01.txt", raw)
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	openMessagePopup(t, e)
+	shown := ""
+	for rank := 1; e.DialogueSelect(rank); rank++ {
+		shown += strings.Join(e.PopupLines(), " ")
+	}
 	for _, word := range []string{"One", "Two", "Three", "51", "21"} {
-		if !strings.Contains(strings.Join(e.PopupLines(), " "), word) {
-			t.Fatal("page or speaker hidden", word, e.PopupLines())
+		if !strings.Contains(shown, word) {
+			t.Fatal("page or speaker hidden", word, shown)
 		}
 	}
 	dialogueField(t, e, 2)

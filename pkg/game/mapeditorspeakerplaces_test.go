@@ -88,7 +88,7 @@ func TestEverySpeakerPlaceOffersTheOnePick(t *testing.T) {
 					e.SetWords(book)
 				}
 				route.open(t, e, book)
-				if !slices.ContainsFunc(e.PopupLines(), func(l string) bool { return strings.HasPrefix(l, "1 ") }) {
+				if !slices.ContainsFunc(e.PopupLines(), func(l string) bool { return strings.HasPrefix(l, ">1.") }) {
 					t.Fatalf("the route shows no message popup:\n%s", trigLines(e))
 				}
 				r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlRowButton, N: 1, K: 0, Flag: false})

@@ -502,3 +502,22 @@ func TestPageInksAreThePaintersTable(t *testing.T) {
 		}
 	}
 }
+
+// A description's firstColumn gives the first of two columns that share of
+// the window's width and the second column the rest.
+func TestWindowDescriptionFirstColumnShare(t *testing.T) {
+	d := []byte(`{"window":"w","title":"t","width":1000,"columns":2,"firstColumn":20,"rows":[` +
+		`{"kind":"link","label":"a"},{"kind":"edit","label":"b","value":"v","column":1}],"sample":{"values":{"v":"x"}}}`)
+	m, err := NewEditorMockup(d, "en", image.Pt(1920, 1080), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := layoutPopup(m.paint, nil, nil)
+	if len(l.Rows) != 2 {
+		t.Fatalf("rows %d, want 2", len(l.Rows))
+	}
+	first, second := l.Rows[0].Rect, l.Rows[1].Rect
+	if first.Dx()*100 > l.Rect.Dx()*20 || second.Min.X < first.Max.X || second.Dx() <= first.Dx()*2 {
+		t.Errorf("first column %v, second %v in window %v", first, second, l.Rect)
+	}
+}

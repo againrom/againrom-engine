@@ -59,19 +59,15 @@ func TestEditorNotesAndDefaultNamesDrawWithoutReplacementMarks(t *testing.T) {
 		wizNewTrigger(t, e, "Mill")
 		wizPress(t, e, "+action", 0)
 		trigChoose(t, e, wizField(t, e, "a0.item"), enc(book.Text("editor.wizard.a.dialog")))
-		trigChoose(t, e, wizField(t, e, "a0.p0"), enc(book.Text("editor.wizard.source.interactive")))
-		wizType(t, e, "a0.p1", "Bad Name")
-		wizPress(t, e, "a0.p1", 0)
-		if tc.selector == 1 && !strings.Contains(strings.Join(e.PopupLines(), "\n"), enc(book.Text("editor.dialogue.err.name"))) {
-			t.Errorf("%s: the name refusal is not drawn in the editor's word:\n%s", where, x.messageUTF8([]byte(trigLines(e))))
-		}
-		noQuestions(t, e, x, where+" name refusal")
-		wizType(t, e, "a0.p1", "mill")
-		wizPress(t, e, "a0.p1", 0)
+		wizPress(t, e, "a0.item", 0)
 		noQuestions(t, e, x, where+" dialogue window")
-		if got := e.DialogueText("d.name"); got == "" || strings.Contains(x.messageUTF8([]byte(got)), "?") {
-			t.Errorf("%s: the default node name is %q", where, got)
+		trigChoose(t, e, dlgField(t, e, "d.after"), enc(book.Text("editor.dialogue.one.replychoice")))
+		dlgPress(t, e, "removereply")
+		dlgApply(t, e)
+		if tc.selector == 1 && !strings.Contains(strings.Join(e.PopupLines(), "\n"), enc(book.Text("editor.dialogue.one.after"))) {
+			t.Errorf("%s: the window is not drawn in the editor's words:\n%s", where, x.messageUTF8([]byte(trigLines(e))))
 		}
+		noQuestions(t, e, x, where+" refusal")
 	}
 }
 

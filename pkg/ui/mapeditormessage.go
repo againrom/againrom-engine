@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"maps"
@@ -249,8 +250,14 @@ func (e *MapEditor) beginMessage(owner InspectionMessageOwner, back bool) {
 // firstMessageField is the first field the message window shows to type in:
 // the text of the first cell that has one, -1 when no cell has.
 func (e *MapEditor) firstMessageField() int {
-	for c, part := range e.obj.messageParts {
-		if !part.Never && !part.Ends {
+	start, end := 0, len(e.obj.messageParts)
+	if n, ok := e.selectedNumber(); ok {
+		if s, en, found := e.cardOf(n); found {
+			start, end = s, en
+		}
+	}
+	for c := start; c < end; c++ {
+		if part := e.obj.messageParts[c]; !part.Never && !part.Ends {
 			return 2 * c
 		}
 	}
@@ -352,8 +359,8 @@ func (e *MapEditor) messageTextField(i int) bool {
 // dialogChoiceField is the field of the dialog choice, -1 when the popup
 // was not opened from a trigger's action.
 func (e *MapEditor) dialogChoiceField() int {
-	if f := 2 * len(e.obj.messageParts); e.messagePage != 0 && e.messageFor != nil && f < len(e.obj.fields) {
-		return f
+	if e.messagePage != 0 && e.obj.dialogAt > 0 {
+		return e.obj.dialogAt - 1
 	}
 	return -1
 }
@@ -383,15 +390,24 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	if e.messagePage == NewMessagePage {
 		title = e.word("editor.message.newdialog")
 	}
-	s := popupSpec{Title: title, TitleHelp: e.word("editor.message.page.help"), At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorWarning,
-		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
-	o.rowField, o.rowOpen, o.rowActs = map[int]int{}, map[int]int{}, map[int][]string{}
-	if f := e.dialogChoiceField(); f >= 0 {
-		o.rowField[len(s.Rows)] = f
-		s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: o.fields[f].Label, Value: choiceText(o.fields[f], o.buf[f]), Focus: o.focus == f})
+	help := e.word("editor.message.page.help")
+	if d := e.dialog; d != nil {
+		title, help = fmt.Sprintf(e.word("editor.dialogue.title"), cmp.Or(d.name, d.file)), e.word("editor.dialogue.help")
 	}
+	s := popupSpec{Title: title, TitleHelp: help, At: e.keptCorner(popObject), Bounds: e.popupBounds(), NoteInk: editorWarning,
+		Columns: 2, FirstColumn: messageListShare,
+		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
+	if e.dialog != nil && !e.dialog.fresh {
+		s.Buttons = append(s.Buttons, e.word("editor.dialogue.delete"))
+	}
+	o.rowField, o.rowOpen, o.rowActs = map[int]int{}, map[int]int{}, map[int][]string{}
+	o.rowSelect, o.rowReply = map[int]int{}, map[int]int{}
+	// The window is as wide as the dialogue's texts ask; the list takes its
+	// share, the line the rest.
+	s.Width = e.popupWide(popObject, min(e.window.X-16, messageWindowWidth))
 	live := e.messageLive()
-	numbers := map[int]int{}
+	selected, _ := e.selectedNumber()
+	ranks := e.lineRanks()
 	pickCard := ""
 	for i, end := 0, 0; i < len(o.messageParts); i = end {
 		part := o.messageParts[i]
@@ -403,23 +419,37 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 			s.Rows = append(s.Rows, popupRow{Kind: popupCard, Struck: true, Label: e.word("editor.message.removed"), Buttons: []string{e.word("editor.message.restore")}})
 			continue
 		}
-		number := part.Number
-		if o.messageChanged {
-			if _, ok := numbers[number]; !ok {
-				numbers[number] = len(numbers) + 1
-			}
-			number = numbers[number]
-		}
+		o.rowSelect[head] = part.Number
 		for f := 2*i + 1; f < 2*end; f += 2 {
 			if f == o.pickField {
-				pickCard = strconv.Itoa(number)
+				pickCard = strconv.Itoa(ranks[part.Number])
 			}
 		}
-		e.messageCard(&s, i, end, number, live)
-		s.Rows[head].Span = len(s.Rows) - head - 1
+		label := e.lineLabel(part.Number)
+		if part.Number == selected {
+			label = ">" + label
+		}
+		label = editorClip(e.bodyFont(), label, s.Width*messageListShare/100-2*popupPad-cardGrip-20)
+		s.Rows = append(s.Rows, popupRow{Kind: popupCard, Label: label, Help: e.word("editor.dialogue.one.line.help")})
 	}
-	o.rowOpen[len(s.Rows)] = -1
+	o.rowOpen[len(s.Rows)], o.rowActs[len(s.Rows)] = -1, []string{actAddLine}
 	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{e.word("editor.message.mark.add")}, ButtonTips: []string{e.word("editor.message.add.tip")}})
+	right := len(s.Rows)
+	if f := e.dialogChoiceField(); f >= 0 {
+		o.rowField[len(s.Rows)] = f
+		s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: o.fields[f].Label, Value: choiceText(o.fields[f], o.buf[f]), Focus: o.focus == f})
+	}
+	if f := e.dialogFieldAt(dlgFile); f >= 0 {
+		o.rowField[len(s.Rows)] = f
+		s.Rows = append(s.Rows, popupRow{Kind: popupEdit, Label: o.fields[f].Label, Help: e.word("editor.dialogue.file.help"), Value: e.editorHostText(o.buf[f]), Focus: o.focus == f})
+	}
+	if i, end, ok := e.cardOf(selected); ok {
+		e.messageCard(&s, i, end, ranks[selected], live)
+	}
+	e.dialogRows(&s, s.Width*(100-messageListShare)/100)
+	for k := right; k < len(s.Rows); k++ {
+		s.Rows[k].Column = 1
+	}
 	if note := e.dialogSharedNote(); note != "" {
 		s.Notes = append(s.Notes, note)
 	}
@@ -434,9 +464,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		s.Drag = &popupRowDrag{Row: e.dragCard - 1, At: e.pointer}
 	}
 	e.objectBackButton(&s)
-	// The window is as wide as its parts ask, the texts taking the room the
-	// cards leave; each text shows whole and the body pages.
-	s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, e.bodyFont(), messageFaceColumn), e.window.X-16))
+	s.LabelWidth = messageFaceColumn
 	s.Notes = wrapNotes(s.Notes, advanceOf(e.bodyFont()), s.Width)
 	e.pageObjectRows(&s, true)
 	return s, make([]int, len(s.Rows)), true
@@ -446,12 +474,20 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 // message's portrait takes under its number.
 const messageFaceColumn = 64
 
+// messageListShare is the list column's share of the window, in percent;
+// messageWindowWidth is the width the window asks for.
+const (
+	messageListShare   = 20
+	messageWindowWidth = 760
+)
+
 // The dialog editor's own row actions: a card's split by the hero's sex or
 // class, and the cross of a tag no hero reaches.
 const (
 	actSplitSex    = "splitsex"
 	actSplitClass  = "splitclass"
 	actDropVariant = "dropvariant"
+	actAddLine     = "addline"
 )
 
 // messageCard appends the rows of the message of cells i to end, one part
@@ -477,22 +513,22 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) {
 	}
 	sex, class := HeroSplit(heroes)
 	branched := sex || class
-	head := popupRow{Kind: popupCard, Label: strconv.Itoa(number)}
+	one := e.oneSpeaker(o.messageParts[i].Number)
+	head := popupRow{Kind: popupText, Label: fmt.Sprintf(e.word("editor.message.line"), number)}
 	var acts []string
 	if live > 1 {
 		head.Buttons, head.ButtonTips, acts = []string{e.word("editor.message.mark.remove")}, []string{e.word("editor.message.remove.tip")}, []string{actRemoveRow}
 	}
-	if !branched && first >= 0 && !o.messageParts[first].Ends {
-		speaker := 2*first + 1
-		head.Value, head.Focus = choiceText(o.fields[speaker], o.buf[speaker]), o.focus == speaker
-		head.Buttons, acts = append(head.Buttons, e.actWord(actPickParam)), append(acts, actPickParam)
-		o.rowField[len(s.Rows)] = speaker
-	}
 	head.Buttons, acts = append(head.Buttons, e.word("editor.message.bysex"), e.word("editor.message.byclass")), append(acts, actSplitSex, actSplitClass)
 	head.Armed = make([]bool, len(head.Buttons))
 	head.Armed[len(head.Buttons)-2], head.Armed[len(head.Buttons)-1] = sex, class
-	o.rowActs[len(s.Rows)] = acts
+	o.rowActs[len(s.Rows)], o.rowOpen[len(s.Rows)] = acts, i
 	s.Rows = append(s.Rows, head)
+	if (!branched || one) && first >= 0 && !o.messageParts[first].Ends {
+		speaker := 2*first + 1
+		o.rowField[len(s.Rows)], o.rowActs[len(s.Rows)] = speaker, []string{actPickParam}
+		s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: o.fields[speaker].Label, Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
+	}
 	for c := i; c < end; c++ {
 		part := o.messageParts[c]
 		if part.Never {
@@ -507,7 +543,12 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) {
 			continue
 		}
 		speaker := 2*c + 1
-		if branched {
+		if one && first >= 0 {
+			speaker = 2*first + 1
+		}
+		if branched && one {
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word(HeroWord(part.Heroes))})
+		} else if branched {
 			o.rowField[len(s.Rows)], o.rowActs[len(s.Rows)] = speaker, []string{actPickParam}
 			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(HeroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
 		}
@@ -724,6 +765,10 @@ func (e *MapEditor) applyMessage() {
 	if _, ok := e.doc.Edits.(InspectionMessages); !ok || !e.captureMessageParts() {
 		return
 	}
+	if e.dialogToFile() {
+		e.applyDialogue()
+		return
+	}
 	parts := e.liveMessageParts()
 	if e.messagePage == NewMessagePage {
 		e.createMessage(parts)
@@ -763,6 +808,11 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 			e.obj.note = e.editorHostText(err.Error())
 			return
 		}
+		// A dialogue file that no longer needs one becomes message pages.
+		if e.dialog != nil && owner.Trigger != nil && owner.Action < len(owner.Trigger.Actions) {
+			a := &owner.Trigger.Actions[owner.Action]
+			*a = dialogueNode(false, "", a.ID)
+		}
 	}
 	ch, err := e.commandWriteMessage(messageWrite{Owner: &owner, Page: NewMessagePage, Parts: parts})
 	if err != nil {
@@ -771,6 +821,10 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 	}
 	if ch.doc == nil {
 		return
+	}
+	if old := e.dialog; old != nil {
+		e.dialog, e.obj.lines = nil, nil
+		e.dropDialogue(old.name)
 	}
 	page := *ch.page
 	back := e.objectBack
@@ -804,7 +858,8 @@ func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
 			o.buf = append(o.buf, fieldInput(field))
 		}
 	}
-	if e.messageFor != nil && len(o.fields) == 2*len(parts) {
+	o.dialogAt = 0
+	if e.dialog == nil && e.messageFor != nil && len(o.fields) == 2*len(parts) {
 		value := int64(e.messagePage)
 		if e.messagePage == NewMessagePage {
 			value = NewMessageChoice
@@ -816,8 +871,17 @@ func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
 			}
 		}
 		o.fields, o.buf = append(o.fields, f), append(o.buf, fieldInput(f))
+		o.dialogAt = len(o.fields)
 	}
+	o.extra = len(o.fields)
+	e.dialogFields()
 	e.input = editorInputState{}
+}
+
+// oneSpeaker reports that the cells of line number share one speaker: the
+// line is written as a dialogue node.
+func (e *MapEditor) oneSpeaker(number int) bool {
+	return e.replyAllowed() && (e.dialog != nil || e.lineAt(number).after == afterReply)
 }
 
 func (e *MapEditor) captureMessageParts() bool {
@@ -833,6 +897,19 @@ func (e *MapEditor) captureMessageParts() bool {
 		}
 		o.messageParts[i].Body, o.messageParts[i].Speaker = o.buf[2*i], speaker
 	}
+	// The cells of a line with one speaker take the first cell's.
+	for i := 0; i < len(o.messageParts); i++ {
+		n := o.messageParts[i].Number
+		if o.messageParts[i].Never || o.messageParts[i].Ends || !e.oneSpeaker(n) {
+			continue
+		}
+		for c := i + 1; c < len(o.messageParts) && o.messageParts[c].Number == n; c++ {
+			if !o.messageParts[c].Never && !o.messageParts[c].Ends {
+				o.messageParts[c].Speaker, o.buf[2*c+1] = o.messageParts[i].Speaker, o.buf[2*i+1]
+			}
+		}
+	}
+	e.dialogPull()
 	return true
 }
 
@@ -841,6 +918,9 @@ func (e *MapEditor) captureMessageParts() bool {
 // "+".
 func (e *MapEditor) messageRowButton(row, button int) {
 	o := &e.obj
+	if e.dialogRowButton(row, button) {
+		return
+	}
 	if acts := o.rowActs[row]; button >= 0 && button < len(acts) {
 		at, open := o.rowOpen[row]
 		switch acts[button] {
@@ -875,6 +955,7 @@ func (e *MapEditor) messageRowButton(row, button int) {
 	if gone[number] {
 		delete(gone, number)
 		o.messageGone = gone
+		e.reselect()
 		return
 	}
 	if e.messageLive() < 2 {
@@ -887,7 +968,7 @@ func (e *MapEditor) messageRowButton(row, button int) {
 	if f := o.focus; f >= 0 && f < 2*len(o.messageParts) && o.messageParts[f/2].Number == number {
 		o.focus = -1
 	}
-	o.open = -1
+	e.reselect()
 }
 
 // addMessageCard adds an empty card at the end, the caret in its text.
@@ -899,9 +980,10 @@ func (e *MapEditor) addMessageCard() {
 	}
 	parts = append(parts, InspectionMessagePart{Source: -1, Number: id - 1, Speaker: -1})
 	gone := e.obj.messageGone
+	e.obj.messageGone, e.obj.sel = gone, id-1
 	e.loadMessageFields(parts)
-	e.obj.messageGone, e.obj.messageChanged, e.obj.focus, e.obj.open = gone, true, 2*(len(parts)-1), -1
-	e.objectTop = len(parts) * 2
+	e.obj.messageChanged, e.obj.focus, e.obj.open = true, 2*(len(parts)-1), -1
+	e.objectTop = 0
 }
 
 // moveMessageCard moves card at, with every card of its page number, to
@@ -965,20 +1047,19 @@ func (e *MapEditor) moveMessageCard(at, to int) bool {
 // keyCard moves the focused card one place up or down, past the whole of
 // the neighbouring page number.
 func (e *MapEditor) keyCard(key string) error {
-	if e.dlg != nil {
-		by := 1
-		if key == "cardup" {
-			by = -1
-		}
-		e.dialogueMoveNode(by)
-		return nil
-	}
 	o := &e.obj
-	f := o.focus
-	if e.messagePage == 0 || f < 0 || f >= 2*len(o.messageParts) {
+	if e.messagePage == 0 {
 		return nil
 	}
-	at := f / 2
+	at := -1
+	if f := o.focus; f >= 0 && f < 2*len(o.messageParts) {
+		at = f / 2
+	} else if n, ok := e.selectedNumber(); ok {
+		at, _, _ = e.cardOf(n)
+	}
+	if at < 0 {
+		return nil
+	}
 	parts := o.messageParts
 	number := parts[at].Number
 	if key == "cardup" {
@@ -1083,30 +1164,51 @@ func (e *MapEditor) newMessage(field int) {
 // configureDialog opens the dialog editor for the Start dialog action whose
 // message field is field: on the dialog it starts, or on a new one when it
 // starts none. A trigger with changes not yet applied is applied first.
-func (e *MapEditor) configureDialog(field int) {
+func (e *MapEditor) configureDialog(r int) {
 	v, ok := e.scriptPopup()
-	if !ok || v.trigger == nil || e.obj.wiz == nil || field < 0 || field >= len(e.obj.fields) {
+	if !ok || v.trigger == nil || e.obj.wiz == nil || r < 0 || r >= len(e.obj.wiz.rows) {
 		return
 	}
-	key := e.obj.fields[field].Key
 	if e.objectDirty() {
 		e.applyWizard(v)
 		if e.obj.note != "" {
 			return
 		}
 		e.loadObject()
-		if field = slices.IndexFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key }); field < 0 {
-			return
-		}
 	}
-	row, _ := e.wizardRowOf(field)
+	w := e.obj.wiz
+	if w == nil || r >= len(w.rows) || w.rows[r].condition || w.rows[r].item < 0 {
+		return
+	}
+	row := w.rows[r]
+	it := wizActions[row.item]
 	action := 0
-	for r := 0; r < row; r++ {
-		if !e.obj.wiz.rows[r].condition {
+	for k := 0; k < r; k++ {
+		if !w.rows[k].condition {
 			action++
 		}
 	}
 	owner := &InspectionMessageOwner{Kind: KindTrigger, Index: v.index, Action: action}
+	if it.interactive {
+		k := slices.IndexFunc(it.params, func(p wizParam) bool { return p.kind == wpDialogue })
+		if k < 0 || k+1 >= len(row.vals) {
+			return
+		}
+		name := strings.TrimSpace(row.vals[k+1])
+		if err := e.openDialogue(name, !e.dialogueExists(name), owner); err != nil {
+			e.obj.note = e.editorHostText(err.Error())
+		}
+		return
+	}
+	k := slices.IndexFunc(it.params, func(p wizParam) bool { return p.kind == wpMessage })
+	if k < 0 {
+		return
+	}
+	key := w.wizardKey(r, wizPart(row, k+1))
+	field := slices.IndexFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key })
+	if field < 0 {
+		return
+	}
 	if target, ok := e.parameterTarget(field); ok {
 		e.openMessage(target.Value)
 		e.messageFor, e.messageFrom = owner, target.Value

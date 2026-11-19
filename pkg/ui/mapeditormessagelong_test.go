@@ -77,8 +77,9 @@ func TestMessageWindowLongTextsStayInsideAndScroll(t *testing.T) {
 				}
 				for k := range parts {
 					field := 2 * k
+					e.selectLine(parts[k].Number)
 					e.obj.focus = -1
-					e.objectTop = max(0, e.fieldRow(field)-1)
+					e.objectTop = 0
 					s, _, _ = e.messageSpec()
 					l = layoutPopup(s, e.font, e.bodyFont())
 					at := e.fieldRow(field)
