@@ -60,7 +60,10 @@ type InspectionRecord struct {
 }
 
 type InspectionDocument struct {
-	ReadOnly      string // refusal reason; an empty value leaves capabilities to Edits
+	ReadOnly string // refusal reason; an empty value leaves capabilities to Edits
+	// Palettes lists the unit, structure and sack palettes of a map with no
+	// Edits; placing from them is refused.
+	Palettes      InspectionNewRecords
 	Viewer        *Viewer
 	Source, Name  string
 	Width, Height int

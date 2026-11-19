@@ -441,7 +441,7 @@ type UnitKeys interface {
 	// identities is every identity a placement's keys can name, in the
 	// order of its kinds, in a start of mission; place keys u to id
 	// (identity.go).
-	identities(t *Table, mission int) []Identity
+	identities(t *Table, mission int, keyed bool) []Identity
 	place(u alm.Unit, id Identity, t *Table) alm.Unit
 }
 

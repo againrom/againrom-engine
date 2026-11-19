@@ -102,6 +102,7 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 		if err == nil {
 			d.ReadOnly = s.inspector.word("editor.map.viewonly")
 			d.OpenNote = d.ReadOnly
+			d.Palettes = viewPalettes{s}
 		}
 		return d, err
 	}

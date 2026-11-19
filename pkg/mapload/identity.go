@@ -83,7 +83,14 @@ func npcPlacement(npc int32) (alm.Unit, bool) {
 // in a start of mission, its kinds in the rule's order. The named kind is
 // present only where the table has npc records.
 func Identities(t *Table, mission int) []Identity {
-	return t.unitKeys().identities(t, mission)
+	return t.unitKeys().identities(t, mission, true)
+}
+
+// CatalogIdentities is Identities without the test that a placement can be
+// keyed to the row: every named Units and Humans row of the table, for a list
+// of the catalog that places nothing.
+func CatalogIdentities(t *Table, mission int) []Identity {
+	return t.unitKeys().identities(t, mission, false)
 }
 
 // Place is u keyed to id in a start of mission: the keys id's rung reads
@@ -141,8 +148,24 @@ func rowIdentities(kind UnitKind, c data.Collection) []Identity {
 	return out
 }
 
-func (classKeys) identities(t *Table, mission int) []Identity {
-	out := placeable(t, mission, append(rowIdentities(UnitCreature, t.units()), rowIdentities(UnitPerson, t.humans())...))
+// rows are the Units and Humans rows' identities: those a placement can be
+// keyed to when keyed is set, else every row that has a name.
+func rows(t *Table, mission int, keyed bool) []Identity {
+	all := append(rowIdentities(UnitCreature, t.units()), rowIdentities(UnitPerson, t.humans())...)
+	if keyed {
+		return placeable(t, mission, all)
+	}
+	return slices.DeleteFunc(all, func(id Identity) bool {
+		c := t.units()
+		if id.Kind == UnitPerson {
+			c = t.humans()
+		}
+		return c.EntryName(id.Row) == ""
+	})
+}
+
+func (classKeys) identities(t *Table, mission int, keyed bool) []Identity {
+	out := rows(t, mission, keyed)
 	var named []Identity
 	if t != nil {
 		for _, e := range t.NPCCatalog.Records() {
@@ -212,8 +235,8 @@ func humanBand(u alm.Unit, p []int32) alm.Unit {
 	return u
 }
 
-func (serverKeys) identities(t *Table, mission int) []Identity {
-	return placeable(t, mission, append(rowIdentities(UnitCreature, t.units()), rowIdentities(UnitPerson, t.humans())...))
+func (serverKeys) identities(t *Table, mission int, keyed bool) []Identity {
+	return rows(t, mission, keyed)
 }
 
 // place writes the server-id rule's keys: the row's server id, and the

@@ -339,7 +339,14 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 	}
 	switch category {
 	case "kind":
-		if x.structures != nil {
+		if x.catalogPalettes() {
+			// Every Buildings row, by its own name.
+			for row := 1; x.table != nil && row < x.table.Buildings.Len(); row++ {
+				if _, name, ok := mapload.BuildingName(x.table, uint32(row)); ok && row <= math.MaxUint8 {
+					add(int64(row), x.inspectionUTF8(name))
+				}
+			}
+		} else if x.structures != nil {
 			for id, c := range x.structures.Classes {
 				if id > 0 && id <= math.MaxUint8 && c != nil {
 					add(int64(id), c.Name)
@@ -435,4 +442,9 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 		x.itemGroups = x.itemChoiceGroups(rows)
 	}
 	return rows
+}
+
+// catalogPalettes reports that the install's palettes list every catalog row.
+func (x *MapInspector) catalogPalettes() bool {
+	return filesOf(x.installGame()).catalogPalettes
 }

@@ -86,7 +86,7 @@ func (e *MapEditor) PaletteHolds(p Palette) (kinds []int64, objects []int) {
 		return nil, nil
 	}
 	if p != PaletteTrees {
-		if _, ok := e.addHost(); ok {
+		if _, ok := e.paletteHost(); ok {
 			for _, c := range e.placeIn(KindStructure, "kind", p) {
 				kinds = append(kinds, c.Value)
 			}

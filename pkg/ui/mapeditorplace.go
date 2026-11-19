@@ -79,10 +79,13 @@ func placeGridShell(kind RecordKind, top int) *popupGrid {
 // chooses: unit classes on the Units tab, structure kinds on the Structures
 // tab.
 func (e *MapEditor) placeGridKind() (kind RecordKind, key string, ok bool) {
-	if _, host := e.addHost(); !host || e.listKind() != "records" {
+	if _, host := e.paletteHost(); !host || e.listKind() != "records" {
 		return "", "", false
 	}
 	for _, kind := range []RecordKind{KindUnit, KindStructure, KindSack, KindEnchantment} {
+		if kind == KindEnchantment && !e.editable() {
+			continue
+		}
 		if recordKinds[kind].filter == e.filter {
 			return kind, placeKey[kind], true
 		}
@@ -110,7 +113,7 @@ func (e *MapEditor) placeGridOf() (kind RecordKind, key string, palette Palette,
 // placeChoices are the choices of the grid's step, as the host offers them
 // for the open document.
 func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice {
-	host, ok := e.addHost()
+	host, ok := e.paletteHost()
 	if !ok {
 		return nil
 	}
@@ -173,7 +176,7 @@ func (e *MapEditor) brushPlaceGridHeight() int {
 // placeIcon is the host's picture of choice value of kind's step key, read
 // once.
 func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.RGBA {
-	host, ok := e.addHost()
+	host, ok := e.paletteHost()
 	if !ok {
 		return nil
 	}
@@ -205,7 +208,7 @@ func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.R
 // and step key shows for choice value: the host's preview of the choice, the
 // one picture the brush windows show beside their object list.
 func (e *MapEditor) placeTipPicture(kind RecordKind, key string, value int64) *image.RGBA {
-	host, ok := e.addHost()
+	host, ok := e.paletteHost()
 	if !ok {
 		return nil
 	}
@@ -385,7 +388,7 @@ func (e *MapEditor) placeSwitchTo(n int) {
 func (e *MapEditor) placeChoose(n int) {
 	kind, key, _, ok := e.placeGridOf()
 	choices := e.placeShown()
-	if !ok || n < 0 || n >= len(choices) {
+	if !ok || n < 0 || n >= len(choices) || !e.editable() {
 		return
 	}
 	v := choices[n].Value

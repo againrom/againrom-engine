@@ -392,6 +392,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			r.Warning = joinInspectionWarning(r.Warning, "Definition unresolved")
 		}
 		r.Definition = x.unitDefinition(u, resolved)
+		if x.catalogPalettes() && !resolved.Found() {
+			r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf(x.inspectionUTF8(x.word("editor.unit.norow")), u.ServerID))
+		}
 		r.Name = x.unitLabel(u, x.testPlayNumber(w))
 		r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", u.X, u.Y), fmt.Sprintf("Class/sub: %d / %d", u.ClassID, u.ClassSubID),
 			fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
@@ -435,6 +438,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		}
 		r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", o.X, o.Y), fmt.Sprintf("Kind: %d (art key %d)", o.Kind, byte(o.Kind)),
 			fmt.Sprintf("Raw 0C/0E/12: %d / %d / %d", o.Field0C, o.Field0E, o.Field12), fmt.Sprintf("Extension: %x", o.Ext), fmt.Sprintf("Frame entries: %d", len(places))}
+		if x.catalogPalettes() {
+			r.Name = x.structureCatalogLine(o)
+			r.Hover = r.Name
+			r.Details = append([]string{r.Name}, r.Details...)
+		}
 		add(r)
 	}
 	loot, lootErr := m.Loot()

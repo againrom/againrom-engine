@@ -348,6 +348,10 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 	case "kind":
 		out.Palettes, _ = structurePalettes(s.inspector.structures, s.inspector.table)
 		for _, c := range s.RecordChoices(ui.KindStructure, -1, "kind") {
+			if out.Palettes[c.Value] == ui.PaletteNone && s.inspector.catalogPalettes() {
+				// A list of the catalog leaves no row out.
+				out.Palettes[c.Value] = ui.PaletteOwn
+			}
 			if out.Palettes[c.Value] != ui.PaletteNone {
 				out.Choices = append(out.Choices, c)
 			}

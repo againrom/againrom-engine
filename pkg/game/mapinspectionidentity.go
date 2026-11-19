@@ -255,6 +255,9 @@ func (x *MapInspector) unitLabel(u alm.Unit, mission int) string {
 	cell := unitCell(u)
 	id, _, ok := mapload.IdentifyAt(u, x.table, mission)
 	if !ok || x.table == nil {
+		if x.catalogPalettes() {
+			return fmt.Sprintf(enc(x.word("editor.unit.label.norow")), u.ServerID, u.UnitID, cell.X, cell.Y)
+		}
 		return fmt.Sprintf(enc(x.word("editor.unit.label.none")), u.ClassID, u.UnitID, cell.X, cell.Y)
 	}
 	return fmt.Sprintf(enc(x.word("editor.unit.label")), enc(x.word(identityKindWords[id.Kind].kindWord)), x.identityName(id), u.UnitID, cell.X, cell.Y)
@@ -272,6 +275,9 @@ func (x *MapInspector) identityChoices(mission int) ([]ui.InspectionChoice, []in
 		choices, x.identities, x.identityMission = nil, map[int64]mapload.Identity{}, mission
 		x.mercenaryLevels, x.identityDraws = map[int]map[int]int{}, nil
 		ids := mapload.Identities(x.table, mission)
+		if x.catalogPalettes() {
+			ids = mapload.CatalogIdentities(x.table, mission)
+		}
 		for _, id := range ids {
 			if typ, level, ok := x.mercenaryOf(id); ok {
 				if x.mercenaryLevels[typ] == nil {

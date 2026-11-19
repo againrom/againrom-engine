@@ -163,6 +163,19 @@ func buildingParams(o alm.Object, c data.Collection) ([]int32, bool) {
 	return c.EntryParams(k), true
 }
 
+// BuildingName is the Buildings row a structure kind names, by the same low
+// byte the footprint pass reads, and that row's name. ok is false when the
+// table has no such row or the row has no name.
+func BuildingName(t *Table, kind uint32) (row int, name string, ok bool) {
+	c := t.buildings()
+	row = int(uint8(kind))
+	if c == nil || row < 1 || row >= c.Len() {
+		return row, "", false
+	}
+	name = c.EntryName(row)
+	return row, name, name != ""
+}
+
 // StructureMaxHealth is the maximum health the definition entry of
 // structure kind gives a placed structure: position healthMaxSlot of the
 // entry buildingParams selects. ok is false when the table names no entry

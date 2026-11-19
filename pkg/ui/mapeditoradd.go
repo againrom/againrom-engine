@@ -354,3 +354,15 @@ func (e *MapEditor) addPicked(p, cell image.Point) {
 		e.keepPick(pickPlace)
 	}
 }
+
+// paletteHost is the host the palettes list from: the map's editing host, or
+// for a map with none the document's list-only Palettes.
+func (e *MapEditor) paletteHost() (InspectionNewRecords, bool) {
+	if h, ok := e.addHost(); ok {
+		return h, true
+	}
+	if e.doc != nil && e.doc.Edits == nil && !e.catalog && e.doc.Palettes != nil {
+		return e.doc.Palettes, true
+	}
+	return nil, false
+}

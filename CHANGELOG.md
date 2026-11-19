@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] The mod window has Screens, Settings and Speakers pages: list, add, change and remove each kind's rows, one Undo step per edit, with a speaker's picture changed through the asset import and a speaker a message still names kept until its uses are gone; Save mod refuses a row the game cannot use, naming it, and a mod saved with no edit keeps its files as they were.
 - [ROM2] The map editor opens scenario and root maps for viewing, with terrain, objects, units and structures; editing and saving stay off.
+- [ROM2] On a second-game map in the editor, the Units, Structures and Sacks palettes list the second game's own catalog by name, and a placed unit or structure shows its catalog name or says it has no catalog row; placing stays off.
 - [BASE] In the map editor, a window opened from another window, such as a trigger opened from the Scenario list, now stays open when its parent is closed by its close button or Cancel; the top bar entry and a change of mode still close them all.
 - [BASE] The mod window has a Companions page: add, change and remove the rows that make a town's companion join only when the hero opens a chosen tavern conversation; Save mod refuses a row the campaign cannot run, naming it.
 - [BASE] The mod window's Bodies page now offers the weapon body choice even while the mod holds no body, so a weapon can take a body from the game's bodies.
