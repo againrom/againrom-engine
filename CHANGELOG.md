@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, a window opened from another window, such as a trigger opened from the Scenario list, now stays open when its parent is closed by its close button or Cancel; the top bar entry and a change of mode still close them all.
 - [BASE] The mod window has a Companions page: add, change and remove the rows that make a town's companion join only when the hero opens a chosen tavern conversation; Save mod refuses a row the campaign cannot run, naming it.
 - [BASE] The mod window's Bodies page now offers the weapon body choice even while the mod holds no body, so a weapon can take a body from the game's bodies.
 - [BASE] The map editor now edits interactive dialogues: the Start dialog action chooses between a message page and a dialogue with replies, a window edits the dialogue's nodes, their texts in two languages and up to four replies each with its next node, once mark, hidden or disabled look, condition and outcome, and the mod window has a Dialogues page; Apply and Save mod refuse a broken dialogue in plain words, and a dialogue is saved and published with the mod.

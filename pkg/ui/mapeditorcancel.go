@@ -59,6 +59,18 @@ func (e *MapEditor) rememberListCancel(kind string) {
 	e.listRestore = e.cancelCheckpoint()
 }
 
+func (e *MapEditor) listChildStands() bool {
+	for _, id := range e.popupStack() {
+		if id == popList {
+			continue
+		}
+		if _, ok := e.movableSpec(id); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 	if len(target) > 0 && target[0] == popPrompt && !e.prompt.open() {
 		e.cancelRestore, e.saveThen = nil, nil
@@ -70,11 +82,13 @@ func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 		return
 	}
 	if len(target) > 0 && target[0] == popList {
+		child := e.listChildStands()
 		e.closeList()
 		if restore := e.listRestore; restore != nil {
 			e.listRestore = nil
-			restore()
-			return
+			if !child {
+				restore()
+			}
 		}
 		return
 	}
