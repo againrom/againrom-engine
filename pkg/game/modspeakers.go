@@ -231,8 +231,17 @@ func (s *mapInspectionEdits) AddSpeaker(unit int, name, picture string) (int64, 
 	if err != nil {
 		return 0, err
 	}
-	rec := mod.Speaker{ID: id, Name: name, Picture: face, Map: key, Unit: int32(unitID), Bound: true}
-	src := mod.AppendSpeaker(before, rec)
+	rec := mod.NewSpeaker(id, name, face)
+	rec.Bind(key, int32(unitID))
+	own, err := mod.ParseSpeakers(m.id, mod.SpeakersFile, before)
+	if err != nil {
+		return 0, s.inspector.libraryRefusal(err)
+	}
+	own.Speakers = append(own.Speakers, rec)
+	src, err := writeHeld(mod.SpeakersFile, before, mod.Data{Speakers: own})
+	if err != nil {
+		return 0, s.inspector.libraryRefusal(err)
+	}
 	if _, err := mod.ReadSpeakers(m.id, m.dir, mod.SpeakersFile, src, speakerDraftFiles(s.workspace, rec.Picture, pic)); err != nil {
 		return 0, s.inspector.libraryRefusal(err)
 	}

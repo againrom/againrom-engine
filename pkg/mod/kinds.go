@@ -221,7 +221,8 @@ var dataKinds = []DataKind{
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a mod's information screens and menu actions are additions to the menus; the base has no screen of this kind to change",
 		Shared: "no: a screen is its mod's own; one action is added by one mod",
-		read:   readScreens, text: true,
+		read:   readScreens, write: writeScreens, text: true,
+		Draft: Drafting{Held: true},
 		summary: func(d Data) string {
 			if d.Screens.Empty() {
 				return ""
@@ -348,8 +349,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: the install's records stand below the band of numbers a mod's record takes",
 		Shared: mergedShared + "; `off` switches a record off",
-		read:   readSpeakers,
-		Draft:  Drafting{Context: DraftAlways}, draft: draftSpeakers,
+		read:   readSpeakers, write: writeSpeakers,
+		Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftSpeakers,
 		summary: func(d Data) string {
 			if d.Speakers.Empty() {
 				return ""
@@ -364,7 +365,8 @@ var dataKinds = []DataKind{
 		Class: ConfigurationData, Layer: LayerOwn,
 		Base:   "a setting is a knob of its mod, chosen per launch and kept in the save's mod mark; the base has none",
 		Shared: "no: a setting is its mod's own",
-		read:   readSettings,
+		read:   readSettings, write: writeSettings,
+		Draft: Drafting{Held: true},
 	},
 	{Name: "manifest", Files: []string{ManifestName}, Format: "TOML subset", Language: "shared", Found: "required fixed path"},
 	{Name: "entry script", Files: []string{EntryName}, Format: "Starlark", Language: "shared", Found: "optional fixed path; existing manifest entry"},
@@ -541,6 +543,8 @@ type DataReader struct {
 	// Text, when set, is the text lookup the reader asks in place of the
 	// mod's strings files.
 	Text func(key string) (string, bool)
+	// Draft, when set, answers the bytes of a file the editor holds as a draft.
+	Draft func(rel string) ([]byte, bool)
 }
 
 // text is the lookup the readers ask: r's Text, else the mod's strings.
@@ -568,6 +572,8 @@ type Data struct {
 	Before   DataBefore
 	Terrain  TerrainData
 	Speakers SpeakerData
+	// Settings are the knobs the mod declares.
+	Settings SettingData
 	// Strings are the text of each language by its code, as the editor
 	// writes the strings files.
 	Strings map[string]Strings

@@ -42,7 +42,7 @@ func TestDraftedKindBranchesAreFound(t *testing.T) {
 		}
 		files[path] = strings.Replace(files[path], old, new, 1)
 	}
-	replace(DraftKindTable, "Draft:  Drafting{Context: DraftAlways}, draft: draftSpeakers,", "draft: draftSpeakers,")
+	replace(DraftKindTable, "Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftSpeakers,", "draft: draftSpeakers,")
 	replace("pkg/game/mapinspectionworkspace.go", "if !mod.RebuildsContext(name, holds) {", "if !mod.RebuildsContext(name, holds) && name != mod.TerrainFile {")
 	replace("pkg/game/modassetimport.go", "|| mod.HeldDraft(name)", "|| mod.HeldDraft(name) || name == mod.SpeakersFile")
 	replace("pkg/game/mapeditormod.go", "for _, rel := range k.DraftNames() {", "for _, rel := range append(k.DraftNames(), mod.StringsFile(\"en\")) {")

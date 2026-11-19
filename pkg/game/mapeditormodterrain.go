@@ -439,7 +439,7 @@ func (s *mapInspectionEdits) heldRows(d *editorModDocument, text rowText, rels .
 	if d == nil {
 		d = m.document()
 	}
-	r := mod.DataReader{Mod: m.id, Lang: s.inspector.pageLanguage()}
+	r := mod.DataReader{Mod: m.id, Lang: s.inspector.pageLanguage(), Draft: projectView(nil, d.Files).Draft}
 	var out mod.Data
 	if text != nil {
 		look, err := text(d)

@@ -80,6 +80,9 @@ var modPageTab = map[string]string{
 	ui.ModSpellsScope:     "editor.mod.spells",
 	ui.ModTownsScope:      "editor.mod.towns",
 	ui.ModCompanionsScope: "editor.mod.companions",
+	ui.ModScreensScope:    "editor.mod.screens",
+	ui.ModSettingsScope:   "editor.mod.settings",
+	ui.ModSpeakersScope:   "editor.mod.speakers",
 }
 
 // warningPage is the page that edits the file a check warning names, and
@@ -97,6 +100,9 @@ func warningPage(warning string) (string, bool) {
 		{ui.ModTownsScope, []string{mod.TownsFile}},
 		{ui.ModBodiesScope, append([]string{mod.BodiesFile}, mod.WeaponBodiesFiles...)},
 		{ui.ModCompanionsScope, []string{mod.CompanionsFile}},
+		{ui.ModScreensScope, []string{mod.ScreensFile}},
+		{ui.ModSettingsScope, []string{mod.SettingsName}},
+		{ui.ModSpeakersScope, []string{mod.SpeakersFile}},
 		{ui.ModTextsScope, textFiles()},
 	} {
 		for _, f := range p.files {
@@ -155,6 +161,9 @@ func (s *mapInspectionEdits) modPageCounts() (lines, pages []string) {
 	bodies := held(nil, bodyFiles(d)...).Bodies
 	count(ui.ModBodiesScope, len(bodies.Bodies)+len(bodies.Weapons))
 	count(ui.ModCompanionsScope, len(held(nil, mod.CompanionsFile).Companions.Joins))
+	count(ui.ModScreensScope, len(held(s.screenStructure, mod.ScreensFile).Screens.Screens))
+	count(ui.ModSettingsScope, len(held(nil, mod.SettingsName).Settings.Settings))
+	count(ui.ModSpeakersScope, len(held(nil, mod.SpeakersFile).Speakers.Speakers))
 	return lines, pages
 }
 

@@ -68,7 +68,7 @@ func readScreens(r DataReader, d *Data, rel string, src []byte) error {
 // readSpeakers reads the mod's speaker records. A picture the record names is
 // read here, so a missing one refuses the launch at its line.
 func readSpeakers(r DataReader, d *Data, rel string, src []byte) error {
-	speakers, err := ReadSpeakers(r.Mod, r.Dir, rel, src, nil)
+	speakers, err := ReadSpeakers(r.Mod, r.Dir, rel, src, r.Draft)
 	if err != nil {
 		return err
 	}
@@ -185,10 +185,12 @@ func readTowns(r DataReader, d *Data, rel string, src []byte) error {
 
 // readSettings validates a settings file; the settings themselves are read
 // by LoadSettings before the mod's script runs.
-func readSettings(_ DataReader, _ *Data, rel string, src []byte) error {
-	if _, err := ParseSettings(src); err != nil {
+func readSettings(_ DataReader, d *Data, rel string, src []byte) error {
+	list, err := ParseSettings(src)
+	if err != nil {
 		return fmt.Errorf("%s: %w", rel, err)
 	}
+	d.Settings.Settings = append(d.Settings.Settings, list...)
 	return nil
 }
 

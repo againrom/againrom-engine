@@ -129,8 +129,8 @@ holds a file of that name, the editor asks before it replaces it. A packed mod a
 an imported read-only mod take no import.
 
 Adding a speaker in the editor is this import: the face is copied to
-`assets/speakers/<id>.png`. The other kinds have no page in the mod window yet; the
-import of their files exists and is waiting for those pages.
+`assets/speakers/<id>.png`. Pages for the other kinds beyond Towns, Bodies, Companions,
+Dialogues, Screens, Settings and Speakers wait for the import of their files.
 
 ## Data kinds
 
@@ -972,6 +972,8 @@ and `"rom2-ru"`) in `applies-to`. `-check` prints `againrom: weapon bodies=N bod
 The map editor's Bodies page writes `data/bodies.toml` and `data/wpnbodies.toml`.
 
 The map editor's Companions page writes `data/companions.toml`: a row for each companion a town grants, with the chapter, the companion and the tavern conversation that makes the companion join. Save mod refuses a row the install's campaign cannot run, naming it.
+
+The map editor's Screens, Settings and Speakers pages write `data/screens.toml`, `data/settings.toml` and `data/speakers.toml` through the same row writer: a row kept keeps its comments, `off` rows and unknown keys, and an untouched file is written back unchanged. Screens lists each screen and action with its kind, place and the text keys it shows (new texts are made in every language; their words are edited on the Texts page). Settings lists each setting with its label per language, type, default, bounds or choices. Speakers renames a speaker, changes its picture through the asset import and removes it; a speaker a message names with `npc=` is not removed, and the refusal names the files that use it. Save mod refuses a row the game cannot use, naming the row and what to do.
 
 ## Missions
 

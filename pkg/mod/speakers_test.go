@@ -6,15 +6,16 @@ import (
 	"testing"
 )
 
-// AppendSpeaker writes only what the string reader reads: every name comes
+// The speaker writer writes only what the string reader reads: every name comes
 // back from the file as it went in.
-func TestAppendSpeakerRoundTripsEveryName(t *testing.T) {
+func TestSpeakerWriterRoundTripsEveryName(t *testing.T) {
 	for _, name := range []string{
 		"Lady", "Lady Ann", "Карл", `say "hi"`, `back\slash`, "tab\tstop", "line\nbreak", "cr\rend",
 		"#not a comment", "it's", "\x01\x7f", "Ё ",
 	} {
-		s := Speaker{ID: FirstModSpeaker, Name: name, Picture: "speakers/" + name + ".png", Map: "maps/" + name + ".alm", Unit: 7, Bound: true}
-		d, err := ParseSpeakers("m", SpeakersFile, AppendSpeaker(nil, s))
+		s := NewSpeaker(FirstModSpeaker, name, "speakers/"+name+".png")
+		s.Bind("maps/"+name+".alm", 7)
+		d, err := ParseSpeakers("m", SpeakersFile, appendSpeaker(t, nil, s))
 		if err != nil {
 			t.Fatalf("name %q: %v", name, err)
 		}
@@ -25,11 +26,11 @@ func TestAppendSpeakerRoundTripsEveryName(t *testing.T) {
 	}
 }
 
-// AppendSpeaker keeps the file's other text and starts its record on a line
+// The speaker writer keeps the file's other text and starts its record on a line
 // of its own.
-func TestAppendSpeakerKeepsTheFile(t *testing.T) {
+func TestSpeakerWriterKeepsTheFile(t *testing.T) {
 	src := []byte("[[speaker]]\nid = 20000\nname = 'Karl'\npicture = \"a.png\"")
-	d, err := ParseSpeakers("m", SpeakersFile, AppendSpeaker(src, Speaker{ID: 20001, Name: "Ann", Picture: "b.png"}))
+	d, err := ParseSpeakers("m", SpeakersFile, appendSpeaker(t, src, NewSpeaker(20001, "Ann", "b.png")))
 	if err != nil || len(d.Speakers) != 2 || d.Speakers[0].Name != "Karl" || d.Speakers[1].Name != "Ann" {
 		t.Fatalf("%v %+v", err, d.Speakers)
 	}
@@ -82,4 +83,23 @@ func TestSpeakerNumberBand(t *testing.T) {
 			t.Fatalf("id %d was accepted", id)
 		}
 	}
+}
+
+// appendSpeaker is src with record s added through the speakers writer.
+func appendSpeaker(t *testing.T, src []byte, s Speaker) []byte {
+	t.Helper()
+	var d Data
+	if len(src) != 0 {
+		parsed, err := ParseSpeakers("m", SpeakersFile, src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Speakers = parsed
+	}
+	d.Speakers.Speakers = append(d.Speakers.Speakers, s)
+	out, err := writeSpeakers(SpeakersFile, src, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }

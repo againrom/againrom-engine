@@ -417,6 +417,9 @@ func workspaceScopeRows() []workspaceScope {
 		modPage(ui.ModTownsScope, (*edits).townsFields, (*edits).setTownsField),
 		modPage(ui.ModBodiesScope, (*edits).bodiesFields, (*edits).setBodiesField),
 		modPage(ui.ModCompanionsScope, (*edits).companionsFields, (*edits).setCompanionsField),
+		modPage(ui.ModScreensScope, (*edits).screensFields, (*edits).setScreensField),
+		modPage(ui.ModSettingsScope, (*edits).settingsFields, (*edits).setSettingsField),
+		modPage(ui.ModSpeakersScope, (*edits).speakersFields, (*edits).setSpeakersField),
 		modPage(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
 		dialoguesPage(modPage(ui.ModDialoguesScope, (*edits).dialoguesFields, (*edits).setDialoguesField)),
 	}

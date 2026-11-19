@@ -77,6 +77,12 @@ type Screen struct {
 	Paragraphs []string
 	Items      []string
 	Rows       [][2]string
+
+	// The text keys the table names, kept for the editor's writer: the title,
+	// the menu label, an action's confirming row and the body's lines.
+	TitleKey, MenuKey, ConfirmKey string
+	TextKeys, ItemKeys            []string
+	RowKeys                       [][2]string
 }
 
 // ScreenData is the screens the mods of a set declare, in load order.
@@ -295,6 +301,7 @@ func screenFrom(id, file string, t tomlTable, text func(string) (string, bool), 
 			return Screen{}, bad(t.line, "kind %q needs %s", s.Kind, k)
 		}
 	}
+	s.TitleKey, s.MenuKey, s.TextKeys, s.ItemKeys, s.RowKeys = titleKey, menuKey, paragraphKeys, itemKeys, rowKeys
 	resolve := func(key string, line int, what string, maxRunes int) (string, error) {
 		v, ok := text(key)
 		if !ok {
@@ -383,6 +390,7 @@ func actionFrom(id, file string, t tomlTable, text func(string) (string, bool), 
 			return Screen{}, bad(t.line, "[[action]] has no %s", need)
 		}
 	}
+	s.MenuKey, s.ConfirmKey = menuKey, confirmKey
 	resolve := func(key string, line int, what string) (string, error) {
 		v, ok := text(key)
 		if !ok {

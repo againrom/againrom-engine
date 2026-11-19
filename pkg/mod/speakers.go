@@ -3,7 +3,6 @@ package mod
 import (
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"againrom/pkg/namefold"
@@ -210,21 +209,4 @@ func MoveSpeakerMaps(src []byte, moves []FileMove) (out []byte, moved bool, err 
 		moved = true
 	}
 	return []byte(strings.Join(lines, "")), moved, nil
-}
-
-// AppendSpeaker is the speakers file src with the record s added at its end.
-// It leaves the file's other text as it stands.
-func AppendSpeaker(src []byte, s Speaker) []byte {
-	var b strings.Builder
-	b.Write(src)
-	if len(src) != 0 && src[len(src)-1] != '\n' {
-		b.WriteByte('\n')
-	}
-	b.WriteString("[[speaker]]\n")
-	b.WriteString("id = " + strconv.Itoa(int(s.ID)) + "\n")
-	b.WriteString("name = " + writeString(s.Name) + "\npicture = " + writeString(s.Picture) + "\n")
-	if s.Bound {
-		b.WriteString("map = " + writeString(s.Map) + "\nunit = " + strconv.Itoa(int(s.Unit)) + "\n")
-	}
-	return []byte(b.String())
 }
