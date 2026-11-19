@@ -242,6 +242,16 @@ func savedStructureSetValue(record *sav.DocumentRecordData, name string, value u
 	return fmt.Errorf("missing structure value %s", name)
 }
 
+func savedStructureSetText(record *sav.DocumentRecordData, name, value string) error {
+	for i := range record.Texts {
+		if record.Texts[i].Name == name {
+			record.Texts[i].Value = value
+			return nil
+		}
+	}
+	return fmt.Errorf("missing structure text %s", name)
+}
+
 func savedStructureSetRaw(record *sav.DocumentRecordData, name string, raw []byte) error {
 	for i := range record.Raw {
 		if record.Raw[i].Name == name {

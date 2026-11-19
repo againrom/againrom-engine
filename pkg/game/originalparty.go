@@ -226,10 +226,15 @@ func restorePartyCharacters(chars []sav.Character, err error, fresh []mapload.Pa
 		out = append(out, restoredMember(c, bodies, t, &r))
 	}
 	// A member the edition's addition producer built carries his identity
-	// in his record (R2-ENGINE-106), and is that companion.
+	// in his record (R2-ENGINE-106), and is that companion. The original
+	// stores him with an empty name and shows the npcnames line of his
+	// identity (R2-SESSION-352, R2-ENGINE-908), the name his join gives.
 	for i, c := range chars {
 		if id, ok := originalPartyIdentity(c, t); ok {
 			out[i].CompanionNPC, out[i].ID = id, (mapload.Membership{Kind: mapload.CompanionMember, Identity: id}).ID(0)
+			if out[i].Name == "" && id-1 < len(t.NPCNames) {
+				out[i].Name = t.NPCNames[id-1]
+			}
 		}
 	}
 	// SAV records carry their Humans row, not this engine's CompanionNPC.

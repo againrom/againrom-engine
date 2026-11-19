@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] The credits of the second game now rise at the original's speed; before, they rose about two thirds as fast.
+- [ROM2] Iglez and Dina from a save the original game wrote now show their names in the party and in the shop, as when they join in this game; before, their names were blank.
 - [BASE] A unit killed in the middle of a step now finishes that step as a body, without a health bar, and falls on the next cell, as in the original; before, it jumped at once to the cell it was walking to.
 - [BASE] An enemy killed by Poison Cloud no longer shows damage numbers rising from its body; the cloud still hurts the living units inside it.
 - [BASE] A spell that a mage began on an enemy in range, from his book or with a spell weapon, now hits that enemy even if it ran out of range while he cast, as in the original; before, the mage only waved his hands (and in the second game the mana was lost).

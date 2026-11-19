@@ -33,9 +33,14 @@ func identityHero() mapload.PartyMember {
 
 // identityNames is an npcnames.txt whose line 21 names identity 22.
 func identityNames() synth.File {
+	return synth.File{Path: "text/npcnames.txt", Data: []byte(strings.Join(identityNameLines(), "\r\n"))}
+}
+
+// identityNameLines are the lines of identityNames.
+func identityNameLines() []string {
 	lines := make([]string, 23)
 	lines[20], lines[21], lines[22] = "Aldor", "Igles", "Dina"
-	return synth.File{Path: "text/npcnames.txt", Data: []byte(strings.Join(lines, "\r\n"))}
+	return lines
 }
 
 func carriedIdentities(party []mapload.PartyMember, t *mapload.Table) []int {

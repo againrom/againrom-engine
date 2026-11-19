@@ -192,6 +192,8 @@ type savedFormHolder struct {
 	// value is the field's value in the record at index i of the holding's
 	// document; false leaves the field as it is.
 	value func(h *formHolding, i int) (uint32, bool)
+	// text is a holderText field's text, as value is a value's.
+	text func(h *formHolding, i int) (string, bool)
 	// records writes a holderRecords field's records.
 	records func(h *formHolding) error
 }
@@ -209,6 +211,8 @@ const (
 	// holderRecords is a reference slot the source fills with records, or
 	// the state leaves it writes.
 	holderRecords
+	// holderText is a text every record of the class holds.
+	holderText
 )
 
 // formHolding is what the holders' sources read: the document being
@@ -228,6 +232,9 @@ type formHolding struct {
 var secondFormHolders = []savedFormHolder{
 	{class: "Unit", field: "U148", site: holderValue, value: secondActorTemplateKey},
 	{class: "Human", field: "U148", site: holderValue, value: secondActorTemplateKey},
+	// R2-SESSION-352, R2-ENGINE-908: an original stores a companion with no
+	// name and shows his identity's npcnames line, which LOAD gives back.
+	{class: "Human", field: "Name", site: holderText, text: secondCompanionName},
 	// R2-ENGINE-652, R2-ENGINE-900: a creature whose Units row holds a
 	// knownSpells mask is a mage; the engine keeps that in the row (DIV-4560).
 	{class: "Unit", field: "U4C", site: holderValue, value: secondUnitMageFlags},
@@ -406,6 +413,25 @@ func secondActorTemplateKey(h *formHolding, i int) (uint32, bool) {
 	return packed | uint32(word), true
 }
 
+// secondCompanionName empties a companion's name that is his identity's line.
+func secondCompanionName(h *formHolding, i int) (string, bool) {
+	r := &h.doc.Objects[i]
+	if h.table == nil || uint16(i+1) == h.hero {
+		return "", false
+	}
+	packed, err := savedStructureValue(r, "U148")
+	row, rowErr := savedStructureValue(r, "T0C")
+	if err != nil || rowErr != nil {
+		return "", false
+	}
+	id, ok := mapload.DecodePartyIdentity(packed, uint16(row), false, true, h.table)
+	if !ok || id-1 >= len(h.table.NPCNames) {
+		return "", false
+	}
+	at := slices.IndexFunc(r.Texts, func(v sav.DocumentTextData) bool { return v.Name == "Name" })
+	return "", at >= 0 && r.Texts[at].Value != "" && r.Texts[at].Value == h.table.NPCNames[id-1]
+}
+
 // writeSecondTownHolders writes each holder's field in doc's records from
 // its source, in the holders' order.
 func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s Snapshot, table *mapload.Table) error {
@@ -436,6 +462,14 @@ func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s 
 		for i := range doc.Objects {
 			r := &doc.Objects[i]
 			if r.Class != holder.class {
+				continue
+			}
+			if holder.site == holderText {
+				if v, ok := holder.text(h, i); ok {
+					if err := savedStructureSetText(r, holder.field, v); err != nil {
+						return err
+					}
+				}
 				continue
 			}
 			if _, err := savedStructureValue(r, holder.field); holder.site == holderPresentValue && err != nil {

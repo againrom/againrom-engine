@@ -14,10 +14,12 @@ import (
 	"againrom/pkg/ui"
 )
 
-// identityDollTable is the doll table with the identity rows 30 and 31.
+// identityDollTable is the doll table with the identity rows 30 and 31 and
+// the npcnames lines of identityNames.
 func identityDollTable() *mapload.Table {
 	t := secondDollTable()
 	t.Humans = identityTable().Humans
+	t.NPCNames = identityNameLines()
 	return t
 }
 
