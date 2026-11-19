@@ -116,6 +116,9 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (*ui.InspectionDocument, error) {
 	if s.batch != nil {
 		_, err := apply(s.batch)
+		if err != nil {
+			err = s.inspector.editRefusal(err)
+		}
 		return nil, err
 	}
 	stage := &workspaceStage{root: s}
@@ -129,6 +132,9 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	err = s.checkWords(err)
 	if need := formNeeded(s.model, err, s.inspector.word); need != nil {
 		return nil, need
+	}
+	if err != nil {
+		err = s.inspector.editRefusal(err)
 	}
 	named := stage.staged(s.workspaceImage)
 	if err != nil || !changed && !named {

@@ -137,7 +137,7 @@ new over an existing map: error fence=false create new map: open $T/m.alm: The f
 save over $T/m.alm: ok
   m.alm 9 -rw------- "map-three"
 under an install: error fence=true Save As: refusing to write original-format save under game install $T/inst
-under the root: error fence=false the folder $T/inst/maps does not exist; a save creates no folder
+under the root: error fence=false The folder $T/inst/maps does not exist; a save creates no folder.
 ## editor map pages
 new with pages $T/p.alm: ok
   p.alm 4 -rw------- "pmap"

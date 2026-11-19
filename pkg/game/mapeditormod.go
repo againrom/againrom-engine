@@ -260,7 +260,7 @@ func (s *mapInspectionEdits) treeLayout(d *editorModDocument, extended map[strin
 		b := d.Files[mv.From]
 		if b == nil {
 			if s.inspector.mod == nil {
-				return c, fmt.Errorf("%s: no such file in the project", mv.From)
+				return c, wordErr("editor.err.projectnofile", mv.From)
 			}
 			var err error
 			if b, _, err = mod.ReadInside(s.inspector.mod.dir, mv.From); err != nil {
@@ -481,7 +481,7 @@ func (x *MapInspector) checkMissionSet(missions []mod.Mission, view draftView) e
 			err = checkGuest(c, x.archives.Containers, d, m)
 		}
 		if err != nil {
-			return fmt.Errorf("%s: %w", m.Key, err)
+			return wordErr("editor.err.pathwhy", m.Key, err)
 		}
 	}
 	return nil

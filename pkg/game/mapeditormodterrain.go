@@ -210,7 +210,7 @@ func (s *mapInspectionEdits) addGround(rows mod.TerrainData, source string) (*ui
 	}
 	file := filepath.Base(source)
 	unread := func(err error) error { return fmt.Errorf(x.word("editor.terrain.err.picture"), file, err) }
-	data, err := x.hostFileBytes(source, mod.MaxFileBytes, func([]byte) error { return nil }, unread(errors.New("a folder")))
+	data, err := x.hostFileBytes(source, mod.MaxFileBytes, func([]byte) error { return nil }, unread(errors.New(x.word("editor.err.afolder"))))
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +422,7 @@ func (s *mapInspectionEdits) editKind(edit func(k kindFiles) error) (*ui.Inspect
 // put makes out the draft of the file rel names.
 func (k kindFiles) put(rel string, out []byte) error {
 	if !mod.HeldDraft(rel) {
-		return fmt.Errorf("the project holds no kind of %s", rel)
+		return wordErr("editor.err.nokind.held", rel)
 	}
 	k.w.Project.Files[rel] = out
 	return nil
@@ -451,7 +451,7 @@ func (s *mapInspectionEdits) heldRows(d *editorModDocument, text rowText, rels .
 	for _, rel := range rels {
 		kind, ok := mod.WrittenKind(rel)
 		if !ok {
-			return out, fmt.Errorf("the editor writes no kind of %s", rel)
+			return out, wordErr("editor.err.nokind.written", rel)
 		}
 		if err := kind.ReadHeld(r, &out, rel, d.Files[rel]); err != nil {
 			return out, err
@@ -496,7 +496,7 @@ func (k kindFiles) editRows(text rowText, rels []string, edit func(*mod.Data) er
 // it from the folder when the folder holds it.
 func (k kindFiles) drop(rel string) error {
 	if !mod.HeldDraft(rel) {
-		return fmt.Errorf("the project holds no kind of %s", rel)
+		return wordErr("editor.err.nokind.held", rel)
 	}
 	for _, name := range slices.Collect(maps.Keys(k.w.Project.Files)) {
 		if mod.FoldAddress(name) == mod.FoldAddress(rel) {

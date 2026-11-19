@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"strings"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -100,10 +101,11 @@ func TestMapEditorAddsNoSackOnTheEdgeCell(t *testing.T) {
 	if err := s.CheckNewRecord(rec, "cell"); err == nil || err.Error() != refusal(1) {
 		t.Fatalf("the Add window's cell step on %v: %v; want %q", edge, err, refusal(1))
 	}
-	if _, err := s.AddRecord(rec); err == nil || err.Error() != refusal(1) {
+	// The editor model's own refusal reads under the host's words for it.
+	if _, err := s.AddRecord(rec); err == nil || !strings.HasSuffix(err.Error(), refusal(1)) {
 		t.Fatalf("AddRecord on %v: %v; want %q", edge, err, refusal(1))
 	}
-	if _, err := s.AddSack(edge, 0x0101); err == nil || err.Error() != refusal(1) {
+	if _, err := s.AddSack(edge, 0x0101); err == nil || !strings.HasSuffix(err.Error(), refusal(1)) {
 		t.Fatalf("AddSack on %v: %v; want %q", edge, err, refusal(1))
 	}
 	if !bytes.Equal(s.model.Bytes(), before) {

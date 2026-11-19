@@ -161,7 +161,7 @@ func copyRefusal(err error, word func(string) string) error {
 	if r.Kind == mapedit.KindAction {
 		key = copyRefusals[r.Why].actionWord
 	}
-	return fmt.Errorf(word(key), r.ID)
+	return &liftedLimit{text: fmt.Sprintf(word(key), r.ID), cause: err}
 }
 
 // copyName is name in format, the copy mark's words, with as many of name's

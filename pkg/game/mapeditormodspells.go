@@ -498,7 +498,7 @@ func (s *mapInspectionEdits) editSpells(base *mapload.Table, edit func(*mod.Spel
 			if spells, err := data.LoadSpells(base.Spells); err == nil && len(spells) > 0 {
 				for _, r := range d.Spells.Rows {
 					if _, msg := mapload.ModSpellRefusal(base, r); msg != "" {
-						return errors.New(msg)
+						return wordErr("editor.err.library", msg)
 					}
 				}
 			}
@@ -517,7 +517,7 @@ func setSpellRowField(r *mod.SpellRow, field, value string) error {
 		}
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			return fmt.Errorf("%s: %q is not a whole number", field, value)
+			return wordErr("editor.err.spell.number", field, value)
 		}
 		*dst = mod.SpellInt{Set: true, Val: int32(v), Line: dst.Line}
 		return nil
@@ -548,7 +548,7 @@ func setSpellRowField(r *mod.SpellRow, field, value string) error {
 		a, errA := strconv.ParseInt(strings.TrimSpace(lo), 10, 32)
 		b, errB := strconv.ParseInt(strings.TrimSpace(hi), 10, 32)
 		if !ok || errA != nil || errB != nil {
-			return fmt.Errorf("damage: %q is not min-max", value)
+			return wordErr("editor.err.spell.minmax", value)
 		}
 		r.DamageMin = mod.SpellInt{Set: true, Val: int32(a), Line: r.DamageMin.Line}
 		r.DamageMax = mod.SpellInt{Set: true, Val: int32(b), Line: r.DamageMax.Line}
@@ -560,11 +560,11 @@ func setSpellRowField(r *mod.SpellRow, field, value string) error {
 		case "2":
 			r.Off, r.BookPosition = mod.SpellBool{Set: true, Val: true, Line: r.Off.Line}, mod.SpellInt{}
 		default:
-			return fmt.Errorf("%s: %q is not a choice", field, value)
+			return wordErr("editor.err.spell.choice", field, value)
 		}
 		return nil
 	}
-	return fmt.Errorf("%s is not a field of the spells page", field)
+	return wordErr("editor.err.spell.nofield", field)
 }
 
 // setSpellGlobal sets global field of g to the typed value: a ratio as
@@ -578,7 +578,7 @@ func setSpellGlobal(g *mod.SpellGlobal, field, value string) error {
 		}
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			return fmt.Errorf("book_size: %q is not a whole number", value)
+			return wordErr("editor.err.spell.number", "book_size", value)
 		}
 		g.BookSize = mod.SpellInt{Set: true, Val: int32(v), Line: g.BookSize.Line}
 		return nil
@@ -598,10 +598,10 @@ func setSpellGlobal(g *mod.SpellGlobal, field, value string) error {
 			den, err = strconv.ParseInt(strings.TrimSpace(d), 10, 64)
 		}
 		if err != nil || den <= 0 || num <= 0 || num > mod.SpellMaxRatio || den > mod.SpellMaxRatio {
-			return fmt.Errorf("%s: %q is not a ratio n or n/d", field, value)
+			return wordErr("editor.err.spell.ratio", field, value)
 		}
 		*r.v = mod.SpellRatio{Set: true, Num: num, Den: den, Line: r.v.Line}
 		return nil
 	}
-	return fmt.Errorf("%s is not a global of the spells page", field)
+	return wordErr("editor.err.spell.noglobal", field)
 }

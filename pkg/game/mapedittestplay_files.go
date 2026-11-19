@@ -52,35 +52,36 @@ func testPlayRecordBytes(names []string) []byte {
 // change the author's files. It may lie inside dir unless walked: a reader of
 // dir walks its subfolders and would take the package's files for dir's own.
 type packageGuard struct {
-	dir, name string
-	walked    bool
+	dir    string
+	name   wordRef
+	walked bool
 }
 
 func checkMissionPackageOverlap(folder, recordName string, protected []packageGuard) error {
-	noun := "the mod package folder"
+	noun := wordRef("editor.err.tp.noun.package")
 	if recordName == testPlayRecord {
-		noun = "the test folder"
+		noun = wordRef("editor.err.tp.noun.test")
 	}
 	for _, g := range protected {
 		inside, err := sameOrDescendantPhysical(g.dir, folder)
 		if err != nil {
-			return fmt.Errorf("%s: %w", folder, err)
+			return wordErr("editor.err.pathwhy", folder, err)
 		}
 		contains, err := sameOrDescendantPhysical(folder, g.dir)
 		if err != nil {
-			return fmt.Errorf("%s: %w", folder, err)
+			return wordErr("editor.err.pathwhy", folder, err)
 		}
-		relation := ""
+		relation := wordRef("")
 		switch {
 		case inside && contains:
-			relation = "is"
+			relation = wordRef("editor.err.tp.rel.is")
 		case contains:
-			relation = "contains"
+			relation = wordRef("editor.err.tp.rel.contains")
 		case inside && g.walked:
-			relation = "lies inside"
+			relation = wordRef("editor.err.tp.rel.inside")
 		}
 		if relation != "" {
-			return fmt.Errorf("%s %s %s %s %s", noun, folder, relation, g.name, g.dir)
+			return wordErr("editor.err.tp.overlap", noun, folder, relation, g.name, g.dir)
 		}
 	}
 	return nil
@@ -98,16 +99,16 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 		return nil, err
 	}
 	if !st.IsDir() || st.Mode()&os.ModeSymlink != 0 {
-		return nil, fmt.Errorf("%s is not an owned test mod folder", folder)
+		return nil, wordErr("editor.err.tp.notowned", folder)
 	}
 	physical, err := editorPhysicalDirectory(folder)
 	if err != nil || !sameSaveName(physical, folder) {
-		return nil, fmt.Errorf("%s redirects out of the test mod", folder)
+		return nil, wordErr("editor.err.tp.redirect", folder)
 	}
 	name := filepath.Join(folder, recordName)
 	st, err = os.Lstat(name)
 	if err != nil || !st.Mode().IsRegular() || st.Size() > 65536 {
-		return nil, fmt.Errorf("%s was not written by a test play", folder)
+		return nil, wordErr("editor.err.tp.notwritten", folder)
 	}
 	b, err := os.ReadFile(name)
 	if err != nil {
@@ -115,7 +116,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 	}
 	var record testPlayFileRecord
 	if err := json.Unmarshal(b, &record); err != nil || record.Version != 1 {
-		return nil, fmt.Errorf("%s has an invalid test play ownership record", folder)
+		return nil, wordErr("editor.err.tp.badrecord", folder)
 	}
 	seen := map[string]bool{}
 	for _, rel := range record.Files {
@@ -126,7 +127,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 		fixed := rel == mod.ManifestName || rel == mod.EntryName || rel == mod.MissionsFile || rel == testPlayMap || rel == testPlayMapExtended || mod.IsMissionFile(rel)
 		projectPath := recordName == editorPackageRecord && rel != "." && filepath.IsLocal(filepath.FromSlash(rel)) && !strings.Contains(rel, "\\")
 		if seen[rel] || !projectPath && !fixed && (page == rel || !missionPageName(page)) {
-			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)
+			return nil, wordErr("editor.err.tp.badpath", folder, rel)
 		}
 		seen[rel] = true
 	}
@@ -139,7 +140,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 			continue
 		}
 		if !seen[rel] && !(rel == testPlayMap && hasMap) {
-			return nil, fmt.Errorf("%s has an incomplete test play ownership record", folder)
+			return nil, wordErr("editor.err.tp.incomplete", folder)
 		}
 	}
 	return record.Files, nil
@@ -162,7 +163,7 @@ func testPlayTargets(folder string, old []string, files map[string][]byte) error
 			return err
 		}
 		if !st.Mode().IsRegular() || !slices.Contains(old, rel) {
-			return fmt.Errorf("%s is not a recorded test play file", full)
+			return wordErr("editor.err.tp.notrecorded", full)
 		}
 	}
 	return nil
@@ -257,7 +258,7 @@ func stageMissionPackage(profileDir, folder, root, id, record string, old []stri
 			receipt = plans[0].Receipt
 		}
 		if len(names) > 4096 || len(receipt) > 65536 {
-			return stage, errors.New("mod ownership record exceeds 65536 bytes")
+			return stage, wordErr("editor.err.tp.recordbig")
 		}
 		if err := writeTestModFile(guard, profileDir, dest, record, receipt, true); err != nil {
 			return stage, err
@@ -355,12 +356,12 @@ func walkRetainedTestMod(folder string, old []string, record string, guard func(
 			return nil
 		}
 		if d.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("%s redirects out of the test mod", path)
+			return wordErr("editor.err.tp.redirect", path)
 		}
 		if d.IsDir() {
 			physical, err := editorPhysicalDirectory(path)
 			if err != nil || !sameSaveName(physical, path) {
-				return fmt.Errorf("%s redirects out of the test mod", path)
+				return wordErr("editor.err.tp.redirect", path)
 			}
 			if guard != nil {
 				if err := guard(path); err != nil {
@@ -373,7 +374,7 @@ func walkRetainedTestMod(folder string, old []string, record string, guard func(
 			return nil
 		}
 		if !d.Type().IsRegular() {
-			return fmt.Errorf("%s is not a file of the test mod", path)
+			return wordErr("editor.err.tp.notmodfile", path)
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -389,11 +390,11 @@ func walkRetainedTestMod(folder string, old []string, record string, guard func(
 func checkModMapDirectory(root, dir, target, rel string, grants ...*runtimeProfileAccess) error {
 	folder, err := editorPhysicalDirectory(dir)
 	if err != nil {
-		return fmt.Errorf("resolve mod folder: %w", err)
+		return wordErr("editor.err.tp.resolvefolder", err)
 	}
 	lexical, err := filepath.Rel(dir, target)
 	if err != nil || lexical == ".." || strings.HasPrefix(lexical, ".."+string(filepath.Separator)) || filepath.IsAbs(lexical) {
-		return fmt.Errorf("%s leads outside the mod folder", rel)
+		return wordErr("editor.err.tp.leaves", rel)
 	}
 	existing := target
 	for {
@@ -402,24 +403,24 @@ func checkModMapDirectory(root, dir, target, rel string, grants ...*runtimeProfi
 			break
 		}
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("inspect map output directory: %w", err)
+			return wordErr("editor.err.tp.inspectout", err)
 		}
 		next := filepath.Dir(existing)
 		if next == existing {
-			return fmt.Errorf("%s leads outside the mod folder", rel)
+			return wordErr("editor.err.tp.leaves", rel)
 		}
 		existing = next
 	}
 	physical, err := editorPhysicalDirectory(existing)
 	if err != nil {
-		return fmt.Errorf("resolve map output directory: %w", err)
+		return wordErr("editor.err.tp.resolveout", err)
 	}
 	inside, err := pathWithin(folder, physical)
 	if err != nil {
-		return fmt.Errorf("resolve map output boundary: %w", err)
+		return wordErr("editor.err.tp.resolvebound", err)
 	}
 	if !inside {
-		return fmt.Errorf("%s leads outside the mod folder", rel)
+		return wordErr("editor.err.tp.leaves", rel)
 	}
 	return fenceEditorWrite(root, physical, "Save", grants...)
 }
@@ -481,7 +482,7 @@ func writeMapInMod(root, target string, data []byte, pages map[string][]byte, la
 				return true, err
 			}
 			if _, err := os.Lstat(target); !overwrite && !errors.Is(err, os.ErrNotExist) {
-				return true, fmt.Errorf("create new map: %w", os.ErrExist)
+				return true, wordCause(os.ErrExist, "editor.err.tp.mapexists")
 			}
 			rel, err := filepath.Rel(folder, target)
 			if err != nil {
@@ -490,7 +491,7 @@ func writeMapInMod(root, target string, data []byte, pages map[string][]byte, la
 			files := map[string][]byte{filepath.ToSlash(rel): data}
 			for name, b := range pages {
 				if !pageTreeName(name) || len(b) > mod.MaxFileBytes {
-					return true, fmt.Errorf("invalid map page %q", name)
+					return true, wordErr("editor.err.tp.mappage", name)
 				}
 				path, err := filepath.Rel(folder, filepath.Join(mapTextFolder(target), filepath.FromSlash(name)))
 				if err != nil {
@@ -545,7 +546,7 @@ func changedProjectFiles(folder string, files map[string][]byte, baseline map[st
 		}
 		path := filepath.Join(folder, filepath.FromSlash(rel))
 		if st, err := os.Lstat(path); err == nil && !st.Mode().IsRegular() {
-			return nil, fmt.Errorf("%s is not a file", rel)
+			return nil, wordErr("editor.err.notfile", rel)
 		}
 		current, err := os.ReadFile(path)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -555,7 +556,7 @@ func changedProjectFiles(folder string, files map[string][]byte, baseline map[st
 			continue
 		}
 		if baseline != nil && (known && sha256.Sum256(current) != prior || (err == nil) != known) {
-			return nil, fmt.Errorf("%s changed outside the editor; reopen the mod before saving", rel)
+			return nil, wordErr("editor.err.changedoutside", rel)
 		}
 		changed[rel] = data
 	}
@@ -620,7 +621,7 @@ func editorProjectSet(folder string, files map[string][]byte, snapshot map[strin
 			return err
 		}
 		if !bytes.Equal(current, row.Prior) || (err == nil) != (row.Seen == hostfile.SeenPresent) {
-			return fmt.Errorf("%s changed outside the editor; reopen the mod before saving", row.Path)
+			return wordErr("editor.err.changedoutside", row.Path)
 		}
 		if snapshot != nil {
 			rel, err := filepath.Rel(folder, row.Path)
@@ -629,7 +630,7 @@ func editorProjectSet(folder string, files map[string][]byte, snapshot map[strin
 			}
 			stamp, known := snapshot[namefold.ModTree(filepath.ToSlash(rel))]
 			if (row.Seen == hostfile.SeenPresent) != known || known && sha256.Sum256(row.Prior) != stamp {
-				return fmt.Errorf("%s changed outside the editor; reopen the mod before saving", row.Path)
+				return wordErr("editor.err.changedoutside", row.Path)
 			}
 		}
 		return nil
@@ -680,7 +681,7 @@ func editedMapSet(parent, target string, data []byte, overwrite bool) (hostfile.
 	perm := os.FileMode(0600)
 	if fi, err := os.Lstat(target); err == nil {
 		if !fi.Mode().IsRegular() {
-			return hostfile.Set{}, fmt.Errorf("Save cannot replace %s: not an ordinary file", filepath.Base(target))
+			return hostfile.Set{}, wordErr("editor.err.saveplain", filepath.Base(target))
 		}
 		perm = fi.Mode().Perm()
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -787,7 +788,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		return target, placeMapLabels(target, labels, overwrite, lang)
 	}
 	if !locale.Known(lang) {
-		return "", fmt.Errorf("unsupported page language %q", lang)
+		return "", wordErr("editor.err.pagelang", lang)
 	}
 	stage, err := hostfile.NewStage(parent, ".map-pages-")
 	if err != nil {
@@ -854,7 +855,7 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 	full := filepath.Join(folder, filepath.FromSlash(rel))
 	lexical, err := filepath.Rel(top, filepath.Dir(full))
 	if err != nil || !filepath.IsLocal(lexical) && lexical != "." {
-		return fmt.Errorf("%s leads outside the test mod", rel)
+		return wordErr("editor.err.tp.leavestest", rel)
 	}
 	dir := top
 	if err := guard(dir); err != nil {
@@ -874,11 +875,11 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 				return err
 			}
 			if !st.IsDir() || st.Mode()&os.ModeSymlink != 0 {
-				return fmt.Errorf("%s is not a folder of the test mod", dir)
+				return wordErr("editor.err.tp.notmodfolder", dir)
 			}
 			physical, err := editorPhysicalDirectory(dir)
 			if err != nil || !sameSaveName(physical, dir) {
-				return fmt.Errorf("%s redirects out of the test mod", dir)
+				return wordErr("editor.err.tp.redirect", dir)
 			}
 			if err := guard(dir); err != nil {
 				return err
@@ -887,7 +888,7 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 	}
 	target := filepath.Join(dir, filepath.Base(full))
 	if st, err := os.Lstat(target); err == nil && !st.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a file", target)
+		return wordErr("editor.err.notfile", target)
 	}
 	_, err = hostfile.Commit(hostfile.Set{
 		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},

@@ -219,7 +219,7 @@ func TestImportRefusesWhatTheKindsLoaderRefuses(t *testing.T) {
 				want       string
 			}{
 				{"items", "wide.png", wide, itemWords.Error()},
-				{"speakers", "small.png", small, faceWords.Error()},
+				{"speakers", "small.png", small, s.inspector.inLanguage(faceWords).Error()},
 				{"bodies", "sheet.png", []byte("text"), sheetWords.Error()},
 				{"towns", "east.json", []byte("{"), townWords.Error()},
 				{"towns", "square.bmp", []byte("text"), artWords.Error()},

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"os"
@@ -60,7 +59,10 @@ func (x *MapInspector) SetTestPlay(h TestPlayHost) { x.testPlay = &h }
 // starts the game in that mission. Nothing is written and nothing starts when
 // the report holds an error, the install is not the first game's, or the game
 // program is missing. It answers the line the window shows.
-func (s *mapInspectionEdits) TestPlay() (string, error) { return s.testPlayWith(nil, 0) }
+func (s *mapInspectionEdits) TestPlay() (_ string, said error) {
+	defer s.worded(&said)
+	return s.testPlayWith(nil, 0)
+}
 
 // testPlayWith is TestPlay with the party the test mission declares: party,
 // or the open package's own when party is nil. A chosen party plays for the
@@ -74,10 +76,10 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	}
 	h := x.testPlay
 	if h == nil {
-		return "", errors.New("Test play: this editor was started without the game program")
+		return "", wordErr("editor.err.tp.nogame")
 	}
 	if x.archives == nil {
-		return "", errors.New("Test play: no install is open")
+		return "", wordErr("editor.err.tp.noinstall")
 	}
 	if err := s.TestPlayRefusal(); err != nil {
 		return "", err
@@ -87,10 +89,10 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	}
 	b, err := s.mapBytes(mapSaveBare)
 	if err != nil {
-		return "", fmt.Errorf("Test play: %w", err)
+		return "", wordErr("editor.err.tp.prefix", err)
 	}
 	if len(b) > mod.MaxFileBytes {
-		return "", fmt.Errorf("Test play: the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
+		return "", wordErr("editor.err.tp.mapsize", len(b), mod.MaxFileBytes)
 	}
 	var pkg *editorPackageSpec
 	if ws != nil && !s.looseMap() {
@@ -104,7 +106,7 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	}
 	m, err := x.testPlayMission(s.source, b, pkg)
 	if err != nil {
-		return "", fmt.Errorf("Test play: %w", err)
+		return "", wordErr("editor.err.tp.prefix", err)
 	}
 	if pkg == nil && party != nil {
 		m.Party, m.Guest, m.Chapter, m.Carry = party, 0, 0, ""
@@ -113,24 +115,24 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	var plan *missionPackagePlan
 	if ws != nil && ws.Project != nil {
 		if err := s.unchangedModSource(); err != nil {
-			return "", fmt.Errorf("Test play: %w", err)
+			return "", wordErr("editor.err.tp.prefix", err)
 		}
 		files, missions, current, _, e := s.retainedPackageFiles(b)
 		if e != nil {
-			return "", fmt.Errorf("Test play: %w", e)
+			return "", wordErr("editor.err.tp.prefix", e)
 		}
 		if s.looseMap() {
 			row, e := s.looseTestRow(ws, party, hero)
 			if e != nil {
-				return "", fmt.Errorf("Test play: %w", e)
+				return "", wordErr("editor.err.tp.prefix", e)
 			}
 			missions, current = append(slices.Clone(missions), row), row
 			if files[mod.MissionsFile], e = mod.WriteMissions(ws.Project.Source, ws.Project.Original, missions); e != nil {
-				return "", fmt.Errorf("Test play: %w", e)
+				return "", wordErr("editor.err.tp.prefix", e)
 			}
 		}
 		if e := x.checkMissionSet(missions, projectView(nil, files)); e != nil {
-			return "", fmt.Errorf("Test play: %w", e)
+			return "", wordErr("editor.err.tp.prefix", e)
 		}
 		m = current
 		plan = &missionPackagePlan{ID: ws.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions, Word: x.word}
@@ -142,10 +144,10 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	}
 	if plan == nil {
 		if err := s.carryModSpeakers(&m); err != nil {
-			return "", fmt.Errorf("Test play: %w", err)
+			return "", wordErr("editor.err.tp.prefix", err)
 		}
 		if err := x.checkMissionRoute(m); err != nil {
-			return "", fmt.Errorf("Test play: %w", err)
+			return "", wordErr("editor.err.tp.prefix", err)
 		}
 		// The game loads the test mod through the same rule table; an error there
 		// would refuse the mod before the mission opens.
@@ -155,15 +157,15 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 		}
 	}
 	if st, err := os.Stat(h.Game); err != nil || !st.Mode().IsRegular() {
-		return "", fmt.Errorf("Test play: the game program %s is not beside the map editor", h.Game)
+		return "", wordErr("editor.err.tp.gamemissing", h.Game)
 	}
 	profile, err := h.Profile()
 	if err != nil {
-		return "", fmt.Errorf("Test play: no player profile: %w", err)
+		return "", wordErr("editor.err.tp.noprofile", err)
 	}
 	modsDir, err := writeTestMod(profile, x.archives.Root, m, plan, s.packageProtected()...)
 	if err != nil {
-		return "", fmt.Errorf("Test play: %w", err)
+		return "", wordErr("editor.err.tp.prefix", err)
 	}
 	id := TestPlayModID
 	if plan != nil {
@@ -175,12 +177,12 @@ func (s *mapInspectionEdits) testPlayWith(party []mod.GuestMember, hero herokind
 	}
 	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number, word, id)
 	if err != nil {
-		return "", fmt.Errorf("Test play: %w", err)
+		return "", wordErr("editor.err.tp.prefix", err)
 	}
 	if err := h.Start(h.Game, args); err != nil {
-		return "", fmt.Errorf("Test play: %s did not start: %v", filepath.Base(h.Game), err)
+		return "", wordErr("editor.err.tp.notstart", filepath.Base(h.Game), err)
 	}
-	return fmt.Sprintf("Test play: %s opens mission %d", filepath.Base(h.Game), m.Number), nil
+	return fmt.Sprintf(x.word("editor.testplay.opened"), filepath.Base(h.Game), m.Number), nil
 }
 
 func hasError(rows []ui.InspectionFinding) bool {
@@ -258,7 +260,7 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 // testPlayGuestMission is testPlayGuest of the install's campaign.
 func (x *MapInspector) testPlayGuestMission() (mod.Mission, error) {
 	if x.archives == nil {
-		return mod.Mission{}, errors.New("no install is open")
+		return mod.Mission{}, wordErr("editor.err.noinstall")
 	}
 	c, err := LoadCampaign(x.archives.Containers)
 	if err != nil {
@@ -305,7 +307,7 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 			}
 		}
 	}
-	return mod.Mission{}, errors.New("the campaign has no won mission whose town grants a companion, so no guest mission can be declared")
+	return mod.Mission{}, wordErr("editor.err.tp.noguest")
 }
 
 // testPlayMissions is the test mod's data/missions.toml for m.
@@ -318,7 +320,7 @@ func testPlayMissions(m mod.Mission) []byte {
 // admits replacement only of its own files and removal only of its old pages.
 func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *missionPackagePlan, protected ...packageGuard) (string, error) {
 	if profile.Directory == "" {
-		return "", errors.New("no player profile directory")
+		return "", wordErr("editor.err.tp.noprofiledir")
 	}
 	dir, err := filepath.Abs(profile.Directory)
 	if err != nil {
@@ -378,7 +380,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *miss
 			}
 			rel = filepath.ToSlash(rel)
 			if rel != record && !slices.Contains(old, rel) {
-				return fmt.Errorf("%s is not a recorded test play file", path)
+				return wordErr("editor.err.tp.notrecorded", path)
 			}
 			return nil
 		}); err != nil {
@@ -631,13 +633,14 @@ func (s *mapInspectionEdits) TestPlayCards(hero int) []ui.TestPlayCard {
 // chosen: each card that is on is a member of the test mission's party, with
 // the skills and spells keys its boxes set. A card whose character does not
 // cast takes no spells key.
-func (s *mapInspectionEdits) TestPlayParty(hero int, choice []ui.TestPlayMember) (string, error) {
+func (s *mapInspectionEdits) TestPlayParty(hero int, choice []ui.TestPlayMember) (_ string, said error) {
+	defer s.worded(&said)
 	if hero < 0 || hero >= ui.TestPlayHeroes {
-		return "", errors.New("Test play: the party window names no hero; press F5 again")
+		return "", wordErr("editor.err.tp.partyhero")
 	}
 	cards, members := s.testPlayOffer(herokind.Kind(hero))
 	if len(cards) == 0 || len(choice) != len(cards) {
-		return "", errors.New("Test play: the party window does not match this map; press F5 again")
+		return "", wordErr("editor.err.tp.partymatch")
 	}
 	var party []mod.GuestMember
 	for i, c := range choice {
@@ -654,7 +657,7 @@ func (s *mapInspectionEdits) TestPlayParty(hero int, choice []ui.TestPlayMember)
 		party = append(party, g)
 	}
 	if len(party) == 0 {
-		return "", errors.New("Test play: nobody is chosen to play the map")
+		return "", wordErr("editor.err.tp.partynone")
 	}
 	return s.testPlayWith(party, herokind.Kind(hero))
 }

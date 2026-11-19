@@ -6,15 +6,18 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 )
 
 // The files whose errors reach an editor window note: the map inspection
-// host (every mapinspection file) and the speaker host.
+// host (every mapinspection file), the speaker host, the test play host and
+// the mod, spells and terrain hosts.
 func editorHostWordFiles(t *testing.T) []string {
 	t.Helper()
 	files, err := filepath.Glob("mapinspection*.go")
@@ -30,7 +33,8 @@ func editorHostWordFiles(t *testing.T) []string {
 	if len(out) < 20 {
 		t.Fatalf("the scan found only %d host files", len(out))
 	}
-	return append(out, "modspeakers.go")
+	return append(out, "modspeakers.go", "mapedittestplay.go", "mapedittestplay_files.go", "mapeditormod.go",
+		"mapeditormodcontext.go", "mapeditormodpublish.go", "mapeditormodspells.go", "mapeditormodterrain.go")
 }
 
 // Errors that never reach a window as a note: a name the editor itself
@@ -52,6 +56,11 @@ var editorHostEnglishErrors = map[string][]string{
 	"modspeakers.go":               {"the install has no speaker records for the mods to add to"},
 }
 
+var (
+	formatVerb = regexp.MustCompile(`%[-+# 0-9.]*[a-zA-Z]`)
+	englishRun = regexp.MustCompile(`[A-Za-z]{2,}`)
+)
+
 // A refusal of an editor host file is a word key, not an English literal,
 // unless the file and its text are named above.
 func TestEditorHostErrorsHoldNoLiteral(t *testing.T) {
@@ -67,6 +76,12 @@ func TestEditorHostErrorsHoldNoLiteral(t *testing.T) {
 				at = strings.Index(line, `fmt.Errorf("`)
 			}
 			if at < 0 {
+				continue
+			}
+			// A format that holds only verbs and marks puts words together
+			// that were read in the editor's language already.
+			literal, _, _ := strings.Cut(line[at+strings.Index(line[at:], `"`)+1:], `"`)
+			if !englishRun.MatchString(formatVerb.ReplaceAllString(literal, "")) {
 				continue
 			}
 			allowed := false
@@ -142,6 +157,51 @@ func TestEditorLibraryRefusalIsWordedAtTheHost(t *testing.T) {
 				if !errors.Is(got, lib) || !strings.Contains(lib.Error(), "has no name") {
 					t.Errorf("%T: the library error is lost under the worded one", lib)
 				}
+			}
+		})
+	}
+}
+
+// A refusal of the test play, the mod file and the spells host reads in the
+// editor's language, and a library error that an edit returns is worded at
+// the host boundary with its own text kept under it.
+func TestEditorTestPlayAndModRefusalsAreInTheEditorsLanguage(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		t.Run(lang, func(t *testing.T) {
+			s, _, book := modAssetProject(t, lang)
+			file := filepath.Join(t.TempDir(), "plain")
+			if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			_, owned := missionPackageOwnership(file, testPlayRecord, nil)
+			library := errors.New("record 4 cannot move")
+			_, changed := s.change(func(*mapedit.Editor) (bool, error) { return false, library })
+			_, party := s.TestPlayParty(-1, nil)
+			_, started := s.TestPlay()
+			for _, c := range []struct {
+				name string
+				got  error
+				key  string
+				args []any
+			}{
+				{"test play party", party, "editor.err.tp.partyhero", nil},
+				{"test play start", started, "editor.err.tp.nogame", nil},
+				{"test mod files", s.inspector.inLanguage(owned), "editor.err.tp.notowned", []any{file}},
+				{"test folder overlap", s.inspector.inLanguage(checkMissionPackageOverlap(file, testPlayRecord, []packageGuard{{dir: file, name: wordRef("editor.err.tp.guard.map")}})), "editor.err.tp.overlap",
+					[]any{book.Text("editor.err.tp.noun.test"), file, book.Text("editor.err.tp.rel.is"), book.Text("editor.err.tp.guard.map"), file}},
+				{"spells", s.inspector.inLanguage(setSpellRowField(&mod.SpellRow{}, "mana", "x")), "editor.err.spell.number", []any{"mana", "x"}},
+				{"library error", changed, "editor.err.library", []any{library.Error()}},
+			} {
+				want := fmt.Sprintf(book.Text(c.key), c.args...)
+				if c.got == nil || c.got.Error() != want {
+					t.Errorf("%s: the refusal is %v, want %q", c.name, c.got, want)
+				}
+				if lang == "ru" && c.got != nil && !cyrillic.MatchString(c.got.Error()) {
+					t.Errorf("%s: the Russian refusal reads %q", c.name, c.got)
+				}
+			}
+			if !errors.Is(changed, library) {
+				t.Errorf("the library error is lost under the worded one")
 			}
 		})
 	}

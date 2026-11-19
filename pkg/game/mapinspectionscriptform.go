@@ -156,7 +156,7 @@ func (x *MapInspector) inLanguage(err error) error {
 		for i, a := range own.args {
 			switch v := a.(type) {
 			case error:
-				a = x.inLanguage(v).Error()
+				a = x.nested(v).Error()
 			case wordRef:
 				a = x.word(string(v))
 			}
@@ -172,6 +172,37 @@ func (x *MapInspector) inLanguage(err error) error {
 // library's own reason as the figure the words carry; the library error
 // stays under it. Any other error as it is.
 func (x *MapInspector) libraryRefusal(err error) error {
+	if r := x.modFileRefusal(err); r != nil {
+		return r
+	}
+	return x.inLanguage(err)
+}
+
+// editRefusal is an error that an edit of the editor model returned, at the
+// host boundary: one the host worded already reads as it is; any other is
+// the model's own, read under "the edit was refused" with the model's reason,
+// which stays English, and the error stays under it for logs and errors.As.
+// A mod file refusal is worded by libraryRefusal.
+func (x *MapInspector) editRefusal(err error) error {
+	if r := x.modFileRefusal(err); r != nil || err == nil || worded(err) {
+		return x.libraryRefusal(err)
+	}
+	return x.inLanguage(wordCause(err, "editor.err.library", err.Error()))
+}
+
+// worded reports whether err is a refusal of the host's own words: one that
+// holds a word key or one already read in the editor's language.
+func worded(err error) bool {
+	var own *liftedLimit
+	return errors.As(err, &own)
+}
+
+// modFileRefusal is err as a mod file refusal worded by its file and line,
+// nil when it is none or already worded.
+func (x *MapInspector) modFileRefusal(err error) error {
+	if worded(err) {
+		return nil
+	}
 	var layer *mod.LayerError
 	if errors.As(err, &layer) {
 		return x.inLanguage(wordCause(err, "editor.err.modfile", layer.File, layer.Line, layer.Msg))
@@ -179,6 +210,16 @@ func (x *MapInspector) libraryRefusal(err error) error {
 	var file *mod.ItemFileError
 	if errors.As(err, &file) {
 		return x.inLanguage(wordCause(err, "editor.err.modfile", file.File, file.Line, file.Msg))
+	}
+	return nil
+}
+
+// nested is an error given to a refusal as a figure, in the editor's
+// language: a mod file refusal by its file and line, a worded one by its
+// words, any other as it is.
+func (x *MapInspector) nested(err error) error {
+	if r := x.modFileRefusal(err); r != nil {
+		return r
 	}
 	return x.inLanguage(err)
 }

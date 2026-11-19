@@ -765,10 +765,10 @@ func (s *mapInspectionEdits) place() mod.MissionPlace {
 func (s *mapInspectionEdits) packageProtected() []packageGuard {
 	var out []packageGuard
 	if input, ok := mapHostPath(ui.ParseMapSource(s.source), s.inspector.archives); ok && s.source != "" {
-		out = append(out, packageGuard{dir: filepath.Dir(input), name: "the opened map's folder"})
+		out = append(out, packageGuard{dir: filepath.Dir(input), name: wordRef("editor.err.tp.guard.map")})
 	}
 	if s.inspector.mod != nil {
-		out = append(out, packageGuard{dir: s.inspector.mod.dir, name: "the selected mod folder", walked: true})
+		out = append(out, packageGuard{dir: s.inspector.mod.dir, name: wordRef("editor.err.tp.guard.mod"), walked: true})
 	}
 	return out
 }
