@@ -138,7 +138,10 @@ func TestEditorListWindowsLayoutAndActions(t *testing.T) {
 	}
 }
 
-func TestEditorListButtonsUseNaturalWindowWidth(t *testing.T) {
+// Every editor window is as wide as naturalWidth makes it: a list with
+// buttons, a selection, a question and the variables table, in two languages
+// for the table whose columns the width counts.
+func TestEditorWindowWidthIsOneStep(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.Layout(listWindowScreen.X, listWindowScreen.Y)
 	e.showRecords(editorScriptsFilter)
@@ -158,6 +161,22 @@ func TestEditorListButtonsUseNaturalWindowWidth(t *testing.T) {
 		t.Fatal("Selection window did not open")
 	}
 	assertWidth(s)
+	q := question{title: "Leave", notes: []string{"The map has changes."}, buttons: []string{"OK", "Leave without saving the map", "Cancel"}}
+	qs := e.questionSpec(q)
+	fit := qs
+	fit.Notes = q.notes
+	if want := min(naturalWidth(&fit, e.font, e.bodyFont(), qs.LabelWidth), e.window.X-16); qs.Width != want {
+		t.Errorf("question asks for %d, natural %d", qs.Width, want)
+	}
+	for _, lang := range []string{"", "russian"} {
+		te := variableTablePagedEditor(t, lang, "Count", 0)
+		openMenuRow(t, te, "window", "variables")
+		ts, _ := te.listSpec()
+		fit := ts
+		if want := min(naturalWidth(&fit, te.font, te.bodyFont(), 0), te.window.X-16); ts.Width != want {
+			t.Errorf("variables table (%q) asks for %d, natural %d", lang, ts.Width, want)
+		}
+	}
 }
 
 func TestWindowedReportKeepsTitleAndShowsOutcomeWithTotals(t *testing.T) {

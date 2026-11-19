@@ -492,30 +492,3 @@ func TestVariablesTableLongTriggerTakesTheRoomLeft(t *testing.T) {
 		}
 	}
 }
-
-// The table's window is as wide as listFit makes it from the columns' need
-// by advance, the one text measure of a list window, and the brush and
-// Players windows keep their width.
-func TestVariablesTableWidthComesFromListFit(t *testing.T) {
-	for _, lang := range []string{"", "russian"} {
-		t.Run(fmt.Sprintf("%q", lang), func(t *testing.T) {
-			e := variableTablePagedEditor(t, lang, "Count", 0)
-			openMenuRow(t, e, "window", "variables")
-			s, _ := e.listSpec()
-			need := variableColumnNeeds(e, s)
-			want := 2*popupPad + widgetSpriteSize + s.ListAside + 2*listTextX
-			for _, n := range need {
-				want += n
-			}
-			if got := layoutPopup(s, e.font, e.bodyFont()).Rect.Dx(); got != want {
-				t.Fatalf("the table window is %d wide, the columns' advance need makes it %d", got, want)
-			}
-			fit := s
-			fit.Width = 0
-			e.listFit(&fit, listColumnsFit(&fit, e.font, e.window.X-16))
-			if fit.Width != s.Width {
-				t.Fatalf("listFit gives the table %d wide, the window spec has %d", fit.Width, s.Width)
-			}
-		})
-	}
-}

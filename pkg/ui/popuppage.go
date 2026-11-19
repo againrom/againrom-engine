@@ -171,11 +171,7 @@ func newEditorMockup(desc []byte, lang string, window image.Point, title, body *
 	}
 	if m.paint.Width <= 0 && !d.Question {
 		// A window the description gives no width takes its natural width.
-		if len(m.paint.ListColumns) > 0 {
-			m.paint.Width = min(fitListWidth(&m.paint, body, listColumnsFit(&m.paint, title, window.X-16)), window.X-16)
-		} else {
-			m.paint.Width = min(naturalWidth(&m.paint, title, body, m.paint.LabelWidth), window.X-16)
-		}
+		m.paint.Width = min(naturalWidth(&m.paint, title, body, m.paint.LabelWidth), window.X-16)
 	}
 	fitButtons(&m.paint, body)
 	if d.Question {

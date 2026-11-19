@@ -211,6 +211,9 @@ type popupGrid struct {
 	// line over one shows it whole.
 	RowHeads, ColHeads []string
 	HeadW, HeadH       int
+	// LabelHeads makes the head column as wide as the window's label column
+	// (naturalWidth), the row heads counted in it.
+	LabelHeads bool
 	// HeadFlat lays the column heads flat in their HeadH row, a head wider
 	// than its column on two lines when the row holds two. RowHigh[r], where
 	// set, is matrix row r's height in place of the cell side; such a grid

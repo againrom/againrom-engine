@@ -13,9 +13,12 @@ import (
 // included, and at least least. The width is the widest of the title with
 // its close and help marks, the button row, and each row at its natural
 // size: the label column, the value and the row's own buttons; a line
-// across the row with its mark and buttons; a heading. Text values, multiline
-// values and notes count up to the reading measure. A plain list asks for
-// its widest row and scrollbar.
+// across the row with its mark and buttons; a heading; the pictures a row
+// shows after its value. Text values, multiline values and notes count up to
+// the reading measure. A plain list asks for its widest row and scrollbar; a
+// list of columns for its columns' need; a grid for its head column, its
+// columns and scrollbar. A grid with LabelHeads takes its head column from
+// the label column. It is the one measure of a window's width.
 func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 	measure := func(t string) int { return 8 * len([]rune(t)) }
 	if body != nil {
@@ -31,6 +34,12 @@ func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 		case rowHasControl(r):
 			s.LabelWidth = max(s.LabelWidth, measure(r.Label)+8+helpMarkW(r, pitch))
 		}
+	}
+	if g := s.Grid; g != nil && g.LabelHeads {
+		for _, h := range g.RowHeads {
+			s.LabelWidth = max(s.LabelWidth, measure(h)+8)
+		}
+		g.HeadW = s.LabelWidth
 	}
 	w := specWindow(*s)
 	most := readingMeasure(measure)
@@ -75,20 +84,38 @@ func naturalWidth(s *popupSpec, title, body *text.Font, least int) int {
 			field := measure(r.Value) + 2
 			switch r.Kind {
 			case popupText, popupLink:
-				field = min(field, most+2)
+				field = min(measure(r.Value), most) + 2*(editTextX+2)
 			case popupChoice, popupCard:
 				field += editTextX + pitch
 			case popupEdit, popupPick:
 				field += editTextX
 			}
-			need = s.LabelWidth + 4 + max(popupMinField, field) + buttons
+			need = s.LabelWidth + 4 + max(popupMinField, field) + buttons + (pitch+2)*len(r.Icons)
 		}
 		width = max(width, 2*popupPad+need)
 	}
 	for _, n := range s.Notes {
 		width = max(width, 2*(popupPad+popupTextInset)+min(measure(n), most))
 	}
-	if s.List != nil && len(s.ListColumns) == 0 {
+	if g := s.Grid; g != nil {
+		cols := g.Cols
+		if cols <= 0 {
+			cols = min(len(g.Cells), gridLeastCols)
+		}
+		need := 2*popupPad + g.HeadW + cols*g.side() + widgetSpriteSize
+		if g.Cols <= 0 {
+			need += 2
+		}
+		width = max(width, need)
+	}
+	if len(s.ListColumns) > 0 {
+		list := uiList{Picker: s.List, Columns: s.ListColumns, Aside: s.ListAside}
+		need := widgetSpriteSize + list.Aside + 2*listTextX
+		for _, n := range listColumnNeeds(list, listHeadFont(title, body), body) {
+			need += n
+		}
+		width = max(width, 2*popupPad+need)
+	} else if s.List != nil {
 		pitch := newListBox(image.Rectangle{}, 1, body).Pitch
 		for _, row := range s.List.Rows() {
 			advance := measure

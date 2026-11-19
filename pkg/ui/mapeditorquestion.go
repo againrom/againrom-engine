@@ -60,9 +60,9 @@ func (e *MapEditor) questionSpec(q question) popupSpec {
 }
 
 // spec is q as a popup in an editor window of size window: keys, filled
-// with the first button, ends the help; the width is its widest part, notes
-// counted up to the reading measure, as wide gives it and at most the
-// window less 16. encode is the font's bytes of a string; nil keeps it.
+// with the first button, ends the help; the width is naturalWidth, as wide
+// gives it and at most the window less 16. encode is the font's bytes of a
+// string; nil keeps it.
 func (q question) spec(keys string, title, body *text.Font, encode func(string) string, window image.Point, wide func(int) int) popupSpec {
 	if encode == nil {
 		encode = func(s string) string { return s }
@@ -87,38 +87,10 @@ func (q question) spec(keys string, title, body *text.Font, encode func(string) 
 		s.List, s.ListRows = q.list, q.listRows
 	}
 	sizeGrid(s.Grid, q.high, body, encode, window)
+	s.Notes = q.notes
 	enc := encodedSpec(s, encode)
-	w := 160
-	if title != nil {
-		titleH := layoutPopup(enc, title, body).Title.Dy()
-		marks := titleH
-		if s.TitleHelp != "" {
-			marks += titleH + 4
-		}
-		w = max(w, 2*popupPad+title.Advance(enc.Title)+marks)
-	}
-	w = max(w, buttonRowWidth(specWindow(enc), body))
-	pitch := fontHeight(body, 15) + popupRowExtra
-	for _, r := range s.Rows {
-		if r.Label != "" {
-			s.LabelWidth = max(s.LabelWidth, measure(r.Label)+8+helpMarkW(r, pitch))
-		}
-	}
-	for _, r := range s.Rows {
-		w = max(w, 2*popupPad+s.LabelWidth+max(popupMinField, measure(r.Value)+2*popupPad+widgetSpriteSize))
-	}
-	if s.List != nil {
-		for _, r := range s.List.Rows() {
-			w = max(w, 4*popupPad+measure(r.Text)+widgetSpriteSize+8)
-		}
-	}
-	if g := s.Grid; g != nil {
-		w = max(w, 2*popupPad+g.HeadW+g.Cols*g.side())
-	}
-	most := readingMeasure(measure)
-	for _, n := range q.notes {
-		w = max(w, 2*(popupPad+popupTextInset)+min(measure(n), most))
-	}
+	w := naturalWidth(&enc, title, body, s.LabelWidth)
+	s.LabelWidth, s.Notes = enc.LabelWidth, nil
 	if wide != nil {
 		w = wide(w)
 	}

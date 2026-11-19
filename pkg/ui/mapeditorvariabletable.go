@@ -1,10 +1,6 @@
 package ui
 
-import (
-	"strconv"
-
-	"againrom/pkg/render/text"
-)
+import "strconv"
 
 // The variables table: the Window menu's list of every variable the map's
 // scripts use, one row per use, in four columns: the register and its
@@ -139,35 +135,7 @@ func (e *MapEditor) variableTableSpec(s *popupSpec, m *Picker) {
 	if m.Len() == 0 {
 		s.Notes = []string{e.word("editor.variables.none")}
 	}
-	e.listFit(s, listColumnsFit(s, e.font, e.window.X-16))
-}
-
-// listColumnsFit is the data listFit takes for a list of columns: no row
-// counts, and the window as wide as its columns, notes and title ask, at
-// most limit wide. A cell and a head are measured by Advance, the measure
-// listFit and the cell tip use.
-func listColumnsFit(s *popupSpec, title *text.Font, limit int) listFitIn {
-	return listFitIn{
-		Counts: func(popupRow) bool { return false },
-		Rest: func(_ int, fm listFitMeasure) int {
-			list := uiList{Picker: s.List, Columns: s.ListColumns, Aside: s.ListAside}
-			need := widgetSpriteSize + list.Aside + 2*listTextX
-			for _, n := range listColumnNeeds(list, listHeadFont(title, fm.Body), fm.Body) {
-				need += n
-			}
-			for _, n := range s.Notes {
-				need = max(need, 2*popupTextInset+min(fm.Advance(n), readingMeasure(fm.Advance)))
-			}
-			if title != nil {
-				marks := fontHeight(title, 15) + popupRowExtra
-				if s.TitleHelp != "" {
-					marks = 2*marks + 4
-				}
-				need = max(need, title.Advance(s.Title)+marks)
-			}
-			return min(max(need, 160-2*popupPad), limit-2*popupPad)
-		},
-	}
+	s.Width = e.popupWide(popList, min(naturalWidth(s, e.font, e.bodyFont(), 0), e.window.X-16))
 }
 
 // variablesChoose is a press on table row n: it chooses the row's record.

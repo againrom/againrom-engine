@@ -473,43 +473,21 @@ func (e *MapEditor) brushRow(k brushRowKind) popupRow {
 		Buttons: append(buttons, e.word("editor.brush.density.typed")), Help: e.word("editor.brush.density.help")}
 }
 
-// brushFit gives the brush window its natural size through listFit: the label column as wide
-// as its widest label with its (?), the mode row's head as wide as that
-// column, and the window as wide as its widest row, its list's widest row
-// beside the picture column, its grid's columns, its empty-palette notes, its
-// title and its button row, so every label, value and name shows whole.
+// brushFit gives the brush window its natural width: the label column as
+// wide as its widest label with its (?), the mode row's head as wide as that
+// column, and the window as wide as its widest row, its list, its grid, its
+// empty-palette notes (measured as rows) and its title, so every label,
+// value and name shows whole.
 func (e *MapEditor) brushFit(s *popupSpec) {
-	e.listFit(s, listFitIn{
-		Counts: rowHasControl,
-		Value: func(r popupRow, m listFitMeasure) int {
-			w := max(popupMinField, m.Advance(r.Value)+2*(editTextX+2))
-			for _, bw := range rowButtonWidths(m.Window, r, m.Body, m.Pitch) {
-				w += bw + 4
-			}
-			return w
-		},
-		Heads:     true,
-		GridSlack: 2,
-		Rest: func(_ int, m listFitMeasure) int {
-			need := 0
-			if s.List != nil {
-				for _, r := range s.List.Rows() {
-					text := m.Advance(r.Text) + 2*listTextX
-					if r.Icon != nil || r.IconCell {
-						text += m.Pitch + listTextX
-					}
-					need = max(need, text+widgetSpriteSize+2+s.ListAside)
-				}
-			}
-			for _, n := range e.emptyPaletteNote() {
-				need = max(need, m.Advance(n)+8)
-			}
-			if e.font != nil {
-				need = max(need, e.font.Advance(s.Title)+2*m.Pitch)
-			}
-			return need
-		},
-	})
+	if s.Grid != nil {
+		s.Grid.LabelHeads = true
+	}
+	n := len(s.Rows)
+	for _, note := range e.emptyPaletteNote() {
+		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: note})
+	}
+	s.Width = e.popupWide(popList, naturalWidth(s, e.font, e.bodyFont(), 0))
+	s.Rows = s.Rows[:n]
 }
 
 // brushVariants is how many look-alike tiles the selected terrain has, 0 when
