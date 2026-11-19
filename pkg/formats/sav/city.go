@@ -7,8 +7,9 @@ import (
 	"sort"
 )
 
-// citySpellSlots is the SAV format's spell slot count, not a game's.
-const citySpellSlots = 28
+// BookSlots is the SAV format's own spell slot count, not a game's; the game
+// side ties to it by a test.
+const BookSlots = 28
 
 // CityCharacter is an immutable descriptor for one member of a lawful
 // original no-world save's current group. Identity is a provenance-local
@@ -252,7 +253,7 @@ func cityCharacterDescriptor(actor *cityObject, identity uint32, hero bool) (Cit
 			return CityCharacter{}, fmt.Errorf("%w: city character %#x slot %d has no valid Spell", ErrSpellbook, identity, slot+1)
 		}
 		id := spell.spell.fields[0]
-		if id == 0 || id > citySpellSlots || int(id) != slot+1 {
+		if id == 0 || id > BookSlots || int(id) != slot+1 {
 			return CityCharacter{}, fmt.Errorf("%w: city character %#x slot %d has spell ID %d", ErrSpellbook, identity, slot+1, id)
 		}
 		out.KnownSpells |= uint32(1) << id

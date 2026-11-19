@@ -408,7 +408,7 @@ func captureCityObjectTopologyWithRecords(doc *sav.DocumentData, actors []cityAc
 		party string
 		pack  []uint16
 		worn  [sim.EquipSlots]uint16
-		book  [28]uint16
+		book  [sim.BookWireSlots]uint16
 	}
 	var roots []wireRoots
 	parties, objects := make(map[string]bool), make(map[uint16]bool)

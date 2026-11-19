@@ -28,14 +28,15 @@ type BookSpell struct {
 	ManaCost         uint16
 }
 
-// BookIDs is the highest spell id a book holds. Ids 1..len(Slots) have a slot
-// in the entity record; the ids past them live in Beyond and ride in their own
-// section of the World form, so a World without one keeps its bytes.
+// BookIDs is the highest spell id a book holds: the widest game's spell count
+// (rules.SpellFormulaIDs, pinned by a test; untyped so ids compare as uint16).
+// Ids 1..len(Slots) have a slot in the entity record; the ids past them live in
+// Beyond and ride in their own section of the World form.
 const BookIDs = BookWireSlots + 1
 
-// BookWireSlots is the number of book slots the first game's SAV format and
-// the entity record hold; every reader of that format bounds by it.
-const BookWireSlots = 28
+// BookWireSlots is the number of book slots the SAV format and the entity
+// record hold; a test pins it to sav.BookSlots.
+const BookWireSlots = rules.SpellBookMax
 
 // bookIDMask is the known-spell bits of the ids a book holds.
 const bookIDMask = uint32(1)<<(BookIDs+1) - 2

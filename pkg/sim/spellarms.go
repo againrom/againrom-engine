@@ -451,8 +451,9 @@ func (w *World) spellIDTakesBody(id int64) bool {
 }
 
 // lastBookSpellID is the last id of the first game's spell book walk: its
-// table is the rows 1 through 28, each its own arm.
-const lastBookSpellID = 28
+// table is the rows 1 through the first game's count (rules.SpellIDs, pinned by
+// a test), each its own arm. Untyped, so it compares with a uint16 id.
+const lastBookSpellID = BookWireSlots
 
 // bookWalkTakes reports a row the engage book walk takes: 1 through 28.
 func bookWalkTakes(id uint16) bool {
