@@ -16,6 +16,9 @@ type burstState struct {
 	phases uint16
 	due    []burstCell
 	raises []controlSpiritRaise
+	// raised is the actor the last Control Spirit raise built, which a book
+	// cast's tail marks: a pooled id is not the next id.
+	raised EntityID
 }
 
 type burstCell struct {

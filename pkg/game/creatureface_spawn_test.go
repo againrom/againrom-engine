@@ -131,12 +131,13 @@ func TestRuntimeCreaturePortraitRoutes(t *testing.T) {
 				mw.world.DeclareSpellCreatures(creatures)
 				spell, target := sim.SpellID(25), sim.EntityID(1)
 				if route == "animate" {
-					spell, target, id = 22, 2, 3
+					// The pool returns the corpse itself, whose id the creature keeps.
+					spell, target = 22, 2
 				}
 				mw.pending = append(mw.pending, sim.Cast(1, target, spell))
 				for n := 0; n < 255; n++ {
 					mw.tick()
-					if _, ok := mw.world.Entity(id); ok {
+					if e, ok := mw.world.Entity(id); ok && e.Alive() {
 						break
 					}
 				}

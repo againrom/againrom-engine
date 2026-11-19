@@ -54,7 +54,7 @@ func TestSecondAnimateRewardMarkByteForm(t *testing.T) {
 
 func TestSecondAnimateKeepsItsSourceRowStores(t *testing.T) {
 	for kind := DecayStage(2); kind <= 4; kind++ {
-		w := animateWorld(t, animateCorpse(2, kind))
+		w := pooledAnimateWorld(t, animateCorpse(3, kind))
 		for i := range w.spellCreatures {
 			e := &w.spellCreatures[i].Actor
 			e.NativeBasis = NativeActorBasis{}
@@ -97,6 +97,18 @@ func animateWorld(t *testing.T, corpses ...Entity) *World {
 	return w
 }
 
+// pooledAnimateWorld is animateWorld with an older unit, 2, already in the
+// dead pool, so a raise takes that unit and copies the corpse; corpse ids
+// start at 3.
+func pooledAnimateWorld(t *testing.T, corpses ...Entity) *World {
+	t.Helper()
+	w := animateWorld(t, append([]Entity{goneBody(2, 30, 30)}, corpses...)...)
+	if !w.remove([]EntityID{2}) || len(w.CurrentTerminalActors()) != 1 {
+		t.Fatal("no pooled unit")
+	}
+	return w
+}
+
 func animateCorpse(id EntityID, kind DecayStage) Entity {
 	e := spEnt(id, 16, 16)
 	e.HP, e.MaxHP, e.Decay = -25, 121, kind
@@ -108,7 +120,7 @@ func animateCorpse(id EntityID, kind DecayStage) Entity {
 func TestSecondAnimateRaisesEachCorpseKind(t *testing.T) {
 	for kind := DecayStage(2); kind <= 4; kind++ {
 		t.Run(string(rune('0'+kind)), func(t *testing.T) {
-			w := animateWorld(t, animateCorpse(2, kind))
+			w := pooledAnimateWorld(t, animateCorpse(3, kind))
 			before := w.entities[0]
 			if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) {
 				t.Fatal("Animate Dead did not raise the corpse")
@@ -134,7 +146,7 @@ func TestSecondAnimateRaisesEachCorpseKind(t *testing.T) {
 				t.Fatalf("raised placement/owner/group/marks: %+v", got)
 			}
 			terminal := w.CurrentTerminalActors()
-			if w.entities[0] != before || len(terminal) != 1 || terminal[0].HP != -10001 || terminal[0].Stage != 5 {
+			if w.entities[0] != before || got.ID != 2 || len(terminal) != 1 || terminal[0].ID != 3 || terminal[0].HP != -10001 || terminal[0].Stage != 5 {
 				t.Fatal("caster or consumed corpse state differs")
 			}
 			cold := cloneWorld(t, w)
@@ -149,7 +161,8 @@ func TestSecondAnimatePicksKindBeforeListOrderAndSkipsUndeadTypes(t *testing.T) 
 	a, b, c, d := animateCorpse(2, 3), animateCorpse(3, 2), animateCorpse(4, 2), animateCorpse(5, 2)
 	b.TypeID, c.TypeID = 82, 98
 	w := animateWorld(t, a, b, c, d)
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 5 || indexOfEntity(w.entities, 5) >= 0 {
+	// The pool holds only the consumed corpse 5, so the creature takes id 5.
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 5 || w.entities[4].ID != 5 || !w.entities[4].Alive() {
 		for _, e := range w.entities {
 			t.Logf("id %d type %d kind %d", e.ID, e.TypeID, e.Decay)
 		}
@@ -168,10 +181,10 @@ func TestSecondAnimatePicksKindBeforeListOrderAndSkipsUndeadTypes(t *testing.T) 
 	}
 }
 
-func TestSecondAnimateFailedPlacementOnlyConsumesCorpse(t *testing.T) {
-	blocker := spEnt(3, 16, 16)
+func TestSecondAnimateFailedPlacementConsumesCorpseAndPooledUnit(t *testing.T) {
+	blocker := spEnt(4, 16, 16)
 	blocker.TokenSize = 1
-	w := animateWorld(t, animateCorpse(2, 2), blocker)
+	w := pooledAnimateWorld(t, animateCorpse(3, 2), blocker)
 	before := w.Entities()
 	groups := len(w.groups)
 	w.ordinaryEffectPayload(0, 1, w.spells[0], 17)

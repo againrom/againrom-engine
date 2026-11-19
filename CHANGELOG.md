@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 - [ROM2] The spell book now shows Stone Curse's duration as the second game states it, 480 at power 100, instead of the first game's figure.
 - [ROM2] After loading a save made inside a mission, the menu still offers to abandon the mission and return to the town, as it did before the save.
 - [ROM2] Creature info cards follow the original's kill rule: knowledge stops at 14 kills, #show map opens every card, and saves keep your kill counts in the original save format.
+- [ROM2] Summon and Animate Dead now bring back a unit that has finished dying, as in the original, and Animate Dead raises the corpse that fell first on the cell, not the one with the lowest number.
 
 ### For map makers and modders
 

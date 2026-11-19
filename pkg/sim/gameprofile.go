@@ -143,6 +143,9 @@ type gameProfile struct {
 	// nativeDecay: the decay ladder walks held dead and decaying health on
 	// the native tick; no session-clock dead ladder runs.
 	nativeDecay bool
+	// deadList: a body's teardown ranks it on the dead list, which Animate
+	// Dead walks (joinDeadList, R2-ENGINE-780).
+	deadList bool
 
 	// keepsCastRetain: a SAVE keeps the retain flag of a manual walk's cast
 	// order (MAGIC-253 states the first game clears it).
@@ -279,6 +282,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeRegen:                true,
 		regenLife:                  LifeStanding,
 		nativeDecay:                true,
+		deadList:                   true,
 		keepsCastRetain:            true,
 		residueOverBookCasts:       true,
 		savesMissionFog:            true,

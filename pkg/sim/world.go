@@ -777,6 +777,12 @@ type Entity struct {
 	// the byte form's victim kind section and SAV's current values
 	// (ActorValues.VictimKinds) hold it.
 	victimKinds victimKindList
+
+	// deadRank is the body's place on the second game's dead list: 0 for a
+	// body that joined before the World ranked it, else the rank its teardown
+	// took (joinDeadList). Only the order it gives is kept: the byte form's
+	// dead rank section and the SAV dead-actor roots carry that order.
+	deadRank uint32
 }
 
 // Guard is the constructor/felled default. Patrol, Defend, Follow and

@@ -288,6 +288,9 @@ func worldCarrierSet() []worldCarrier {
 				keysBuild:       func(c carrierBuild) error { return c.b.reserveRetainedDeadEffectKeys(c.w) },
 				deadRecordBuild: retainLoadedDead,
 				absentDeadBuild: writeDeadArt}},
+		{home: "World dead list order, read from the dead-actor roots rootDeadActors writes",
+			decode: map[carrierRecord]func(carrierDecode) error{
+				entryRecord: func(c carrierDecode) error { importSavedDeadList(c.w, c.ms.savedDocument); return nil }}},
 		{home: "town spell-effect owners",
 			writer: func(c carrierSave) error {
 				if c.s.Mission == 0 {

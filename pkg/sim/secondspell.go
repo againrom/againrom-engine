@@ -118,9 +118,10 @@ var SummonCreatureNames = [...]string{"Squirrel", "Turtle", "Foot_Animated"}
 // summonSkill is the Astral skill slot the Summon level reads.
 const summonSkill = 5
 
-// summonCreation is how Summon's creature is built: with the summoned mark,
-// in a Group under the guard setter (R2-ENGINE-788).
-var summonCreation = actorCreationProfile{suppressRewards: true, guards: true}
+// summonCreation is how Summon's creature is built: from the dead pool's
+// unit when there is one (R2-ENGINE-455), with the summoned mark, in a Group
+// under the guard setter (R2-ENGINE-788).
+var summonCreation = actorCreationProfile{suppressRewards: true, guards: true, pooled: true}
 
 // summonRadius is the radius of the placement search around the caster.
 const summonRadius = 6
@@ -143,8 +144,8 @@ func SummonCreatureName(astral, k int32) string {
 // caster's cell. A failed placement aborts the cast; the cost is already paid
 // at the cast's entry (R2-ENGINE-544). The creature carries the caster's key,
 // so the world pass caps it (summonCapPass) and the summoned mark, so its
-// death pays and drops nothing (R2-ENGINE-535). It is never a reused dead
-// unit (DIV-4152).
+// death pays and drops nothing (R2-ENGINE-535). It takes the dead pool's
+// unit first, whose id the creature keeps (poolCreation).
 func (w *World) castSummon(ci int) bool {
 	caster := w.entities[ci]
 	k := 1 + w.rng.uniform(secondDrawSpan(int64(len(SummonCreatureNames))))
@@ -154,12 +155,36 @@ func (w *World) castSummon(ci int) bool {
 	}
 	actor := c.Actor
 	actor.Owner, actor.summonKey = caster.Owner, summonKeyOf(caster.ID)
-	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true, summonCreation)
+	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true, w.poolCreation(summonCreation))
 	if err != nil {
 		return false
 	}
 	w.castObservation.recordCreatedActor(id, c.Name)
 	return true
+}
+
+// summonIDs are the ids at indices ci and ti before a Summon row applies,
+// nil for every other row: a creature that reuses a pooled id stands before
+// the actors above it in id order, so summonIndices finds both again.
+func (w *World) summonIDs(rule SpellRule, ci, ti int) []EntityID {
+	if !spellArmOf(rule.arm()).summon {
+		return nil
+	}
+	ids := []EntityID{^EntityID(0), ^EntityID(0)}
+	for k, i := range []int{ci, ti} {
+		if i >= 0 && i < len(w.entities) {
+			ids[k] = w.entities[i].ID
+		}
+	}
+	return ids
+}
+
+// summonIndices is ci and ti found again by the ids summonIDs took.
+func (w *World) summonIndices(ids []EntityID, ci, ti int) (int, int) {
+	if ids == nil {
+		return ci, ti
+	}
+	return indexOfEntity(w.entities, ids[0]), indexOfEntity(w.entities, ids[1])
 }
 
 // summonKeyOf is the key a caster gives its creatures: the id plus one, so a

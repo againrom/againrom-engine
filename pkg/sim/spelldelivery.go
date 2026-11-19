@@ -162,7 +162,9 @@ func (w *World) applySpellDelivery(d spellDelivery, obs *castObs) {
 		w.applyFrozenPoint(ci, ti, d.Rule, d.Payload)
 		return
 	}
+	ids := w.summonIDs(d.Rule, ci, ti)
 	if w.ordinaryEffect(ci, ti, d.Rule, d.Power) {
+		_, ti = w.summonIndices(ids, ci, ti)
 		w.markSpellEffect(ti, d.Rule.ID)
 	}
 }

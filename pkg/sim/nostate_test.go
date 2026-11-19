@@ -356,6 +356,9 @@ var nstPinned = []struct {
 		// The second game's repeated-victim list, carried by its own byte
 		// form section.
 		{"victimKinds", "sim.victimKindList"},
+		// The second game's dead list rank, carried by its own byte form
+		// section.
+		{"deadRank", "uint32"},
 	}},
 	{"RetreatContinuation", reflect.TypeOf(RetreatContinuation{}), []nstField{
 		{"Known", "bool"}, {"Pending", "bool"}, {"Failure", "bool"}, {"Complete", "bool"},

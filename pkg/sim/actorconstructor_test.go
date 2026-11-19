@@ -81,7 +81,7 @@ func TestRaisedGhostCarriesItsCensusFields(t *testing.T) {
 	corpse.Reaction, corpse.Mind, corpse.Spirit, corpse.MaxHP = 41, 37, 29, 90
 	corpse.ToHit, corpse.Defence, corpse.Facing, corpse.DesiredFacing = 71, 73, 5, 5
 	w := hlGhostWorld(t, 30, []SpellRule{csRule()}, g, caster, corpse)
-	got, ok := w.raisedGhost(0, 1, 12)
+	got, ok := w.raisedGhost(0, 1, 12, false)
 	if !ok {
 		t.Fatal("template not raisable")
 	}

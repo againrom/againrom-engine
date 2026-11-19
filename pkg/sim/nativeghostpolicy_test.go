@@ -6,7 +6,7 @@ func TestGhostTemplateNativeBasisValidationAndLegacyAbsence(t *testing.T) {
 	caster, corpse := spEnt(1, 1, 1), spEnt(2, 2, 1)
 	corpse.NativeBasis = (NativeActorBasis{}).WithBody(503).WithModifier([64]byte{18: 199})
 	legacy := hlGhostWorld(t, 47, nil, hlGhostTemplate(), caster, corpse)
-	raised, ok := legacy.raisedGhost(0, 1, 3)
+	raised, ok := legacy.raisedGhost(0, 1, 3, false)
 	if !ok || raised.NativeBasis.HasValues() {
 		t.Fatal("legacy template invented or copied corpse native history", raised.NativeBasis)
 	}

@@ -71,6 +71,8 @@ var worldCarrierOwners = map[string][]string{
 	"againrom/pkg/game.graftUnknownObjects":                                    {worldCarrierSet},
 	"againrom/pkg/game.graftUnknownSingletons":                                 {"againrom/pkg/game.graftUnknownObjects"},
 	"againrom/pkg/game.restoreSavedDeadArt":                                    {worldCarrierSet},
+	"againrom/pkg/game.importSavedDeadList":                                    {worldCarrierSet},
+	"againrom/pkg/sim.World.LoadDeadList":                                      {"againrom/pkg/game.importSavedDeadList"},
 	"againrom/pkg/game.writeDeadArt":                                           {worldCarrierSet},
 	"againrom/pkg/game.restoreResumedSessionHead":                              {worldCarrierSet},
 	"againrom/pkg/game.publishSessionEntry":                                    {worldCarrierSet},

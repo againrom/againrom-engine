@@ -1,6 +1,10 @@
 package sim
 
-import "fmt"
+import (
+	"cmp"
+	"fmt"
+	"slices"
+)
 
 // actorSearch finds the cell a created actor stands on. n is the candidate
 // World holding the actor at index i, off the map; a search may draw from n's
@@ -16,6 +20,11 @@ type actorCreationProfile struct {
 	// guards: the new Group then takes the guard setter at programme 1
 	// (rowGuardSetter); otherwise it keeps its order-none issue.
 	guards bool
+	// pooled: the creature first takes the dead pool's unit (poolCreation).
+	pooled bool
+	// reuse is the taken unit's id, which the creature keeps; 0 mints the
+	// next id.
+	reuse EntityID
 }
 
 // createActor is the one runtime builder of an actor and its group: the cheat
@@ -32,11 +41,14 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		p = profiles[0]
 	}
 	id, available := w.NextEntityID()
+	if p.reuse != 0 {
+		id, available = p.reuse, true
+	}
 	if !available || id >= 1<<28 {
 		return 0, fmt.Errorf("sim: actor creation identity space exhausted")
 	}
 	template.ID = id
-	template.victimKinds = victimKindList{}
+	template.victimKinds, template.deadRank = victimKindList{}, 0
 	if p.suppressRewards {
 		template.SuppressRewards = true
 	}
@@ -88,15 +100,16 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 	}
 	n.actorTraversal = append([]EntityID(nil), w.actorTraversal...)
 	n.casts = append([]scriptCast(nil), w.casts...)
-	n.entities = append(n.entities, template)
+	// A reused id keeps the unit's place in id order.
+	i, _ := slices.BinarySearchFunc(n.entities, id, func(e Entity, id EntityID) int { return cmp.Compare(e.ID, id) })
+	n.entities = slices.Insert(slices.Clone(n.entities), i, template)
 	if !p.inherited {
-		n.constructFacing(&n.entities[len(n.entities)-1])
+		n.constructFacing(&n.entities[i])
 	}
-	n.constructMover(n.entities[len(n.entities)-1])
-	n.routes = append(n.routes, nil)
-	n.carried = append(n.carried, held[0])
-	n.equipment = append(n.equipment, equipped[0])
-	i := len(n.entities) - 1
+	n.constructMover(n.entities[i])
+	n.routes = slices.Insert(slices.Clone(n.routes), i, nil)
+	n.carried = slices.Insert(slices.Clone(n.carried), i, held[0])
+	n.equipment = slices.Insert(slices.Clone(n.equipment), i, equipped[0])
 	px, py, found := search(&n, i)
 	if !found || !p.inherited && !n.placeAt(i, px, py) {
 		w.keepCandidateDraws(&n, keepDraws)

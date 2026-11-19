@@ -73,6 +73,9 @@ func init() {
 	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "CellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries")
 	// The burst picture's phase count is install-derived input, set once per world.
 	worldMethods = append(worldMethods, "SetBurstPhases", "WindUpElapsed")
+	// The dead list order: the SAV writer reads it and the SAV import loads it.
+	worldMethods = append(worldMethods, "DeadList", "LoadDeadList")
+	worldWriters = append(worldWriters, "LoadDeadList")
 	worldMethods = append(worldMethods, "WornWeight", "WornWeaponArm", "ContainerWeight")
 	worldMethods = append(worldMethods, "ReleaseCast", "ReleaseAreaBurst", "ProjectilePoint")
 	worldWriters = append(worldWriters, "ReleaseCast", "ReleaseAreaBurst")

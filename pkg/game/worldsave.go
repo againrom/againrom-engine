@@ -442,12 +442,13 @@ func rootDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
 		}
 		add(index)
 	}
-	for _, e := range world.Entities() {
-		if !e.Dead() || e.Decay < sim.DecayBones {
+	// Bodies follow in dead list order, which importSavedDeadList reads back.
+	for _, id := range world.DeadList() {
+		if e, ok := world.Entity(id); !ok || !e.Dead() {
 			continue
 		}
 		for _, a := range state.Actors {
-			if a.EntityID == e.ID && !a.Retired {
+			if a.EntityID == id && !a.Retired {
 				add(a.ObjectIndex)
 			}
 		}

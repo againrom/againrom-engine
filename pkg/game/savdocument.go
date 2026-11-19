@@ -445,3 +445,21 @@ func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.
 	}
 	return importSavedPlayerPurses(ms, &bound)
 }
+
+// importSavedDeadList joins the bodies the dead-actor roots name to the dead
+// list in root order, the order rootDeadActors writes. It runs once the
+// bodies are restored.
+func importSavedDeadList(w *sim.World, state *SnapshotSAVDocument) {
+	if state == nil || state.Document == nil {
+		return
+	}
+	var ids []sim.EntityID
+	for _, root := range state.Document.DeadActors {
+		for _, a := range state.Actors {
+			if a.ObjectIndex == root && !a.Retired {
+				ids = append(ids, a.EntityID)
+			}
+		}
+	}
+	w.LoadDeadList(ids)
+}

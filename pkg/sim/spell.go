@@ -249,8 +249,10 @@ func (w *World) ordinaryEffect(ci, ti int, rule SpellRule, power int32) bool {
 	if rule.Delivery == 2 {
 		return w.queuePointDelivery(ci, ti, rule, power)
 	}
+	ids := w.summonIDs(rule, ci, ti)
 	applied := w.ordinaryEffectPayload(ci, ti, rule, power)
 	if applied {
+		ci, ti = w.summonIndices(ids, ci, ti)
 		w.pointAttribution(ci, ti, rule)
 	}
 	return applied
@@ -503,8 +505,10 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 }
 
 // raisedGhost overlays the profile's corpse stores on its resolved template
-// (MAGIC-249, R2-ENGINE-781). Untouched fields stay the template's.
-func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
+// (MAGIC-249, R2-ENGINE-781). Untouched fields stay the template's. With
+// initialised the stores read the template, as when the corpse is the unit
+// the init loaded the template into.
+func (w *World) raisedGhost(ci, ti int, id EntityID, initialised bool) (Entity, bool) {
 	src, caster := w.entities[ti], w.entities[ci]
 	p := w.corpseRaiseProfile()
 	k, _ := p.kind(src)
@@ -516,6 +520,9 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 	e.ID, e.X, e.Y, e.Owner = id, src.X, src.Y, caster.Owner
 	if p.creation.inherited {
 		e.Group, e.Facing, e.DesiredFacing = caster.Group, src.Facing, src.Facing
+	}
+	if initialised {
+		src = c.Actor
 	}
 	e.HP, e.MaxHP = max(src.MaxHP/2, p.healthFloor), max(src.MaxHP/2, p.healthFloor)
 	if k.fullHealth {
@@ -1022,10 +1029,8 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 	}
 
 	arm := spellArmOf(rule.arm())
-	var raisedID EntityID
-	if arm.controlSpirit {
-		raisedID, _ = w.NextEntityID()
-	}
+	w.burst.raised = 0
+	summoned := w.summonIDs(rule, ci, vi)
 	var victims []CellPoint
 	if rule.Area {
 		w.landAreaAimed(areaAim{Target: victim, Has: true}, rule, uint16(power), caster.ID, true, caster.X, caster.Y, aimX, aimY, caster.Facing, true, obs)
@@ -1041,7 +1046,8 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		// indices resolved before apply no longer name the two actors. Rebind
 		// both before the common observation/training tail.
 		ci = indexOfEntity(w.entities, casterID)
-		vi = indexOfEntity(w.entities, raisedID)
+		vi = indexOfEntity(w.entities, w.burst.raised)
+		w.burst.raised = 0
 		w.markSpellEffect(ci, rule.ID)
 		if vi >= 0 {
 			w.markSpellEffect(vi, rule.ID)
@@ -1055,6 +1061,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		w.awardSkill(ci, int32(rule.School), (int64(rule.ManaCost)+1)/2, -1)
 		return true
 	}
+	ci, vi = w.summonIndices(summoned, ci, vi)
 
 	w.markSpellEffect(ci, rule.ID)
 	if rule.Delivery != 2 {

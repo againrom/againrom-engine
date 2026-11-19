@@ -1594,6 +1594,7 @@ func (w *World) clearFelled(i int) {
 				if w.dropTerminalLoot(i) {
 					w.entities[i].Decay = stage
 					w.detachSavedMember(w.entities[i].ID)
+					w.joinDeadList(i)
 				}
 			}
 		}
@@ -2027,6 +2028,7 @@ func (w *World) decayPass() {
 			if teardown {
 				w.releaseAtTeardown(i)
 				w.detachSavedMember(e.ID)
+				w.joinDeadList(i)
 			}
 		}
 		if wasTargetable && !e.OrdinaryTargetable() {

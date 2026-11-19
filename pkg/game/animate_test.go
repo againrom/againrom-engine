@@ -36,7 +36,11 @@ func TestCurrentSaveKeepsAnimatedCorpseAcrossColdLoad(t *testing.T) {
 	caster := sim.NewActor(sim.ActorDefinition{Class: 35, TypeID: 35, HP: 100, MaxHP: 100, Mana: 100, MaxMana: 100, Mind: 40, KnownSpells: 1 << 22, TokenSize: 1, ScanRange: 19}, sim.ActorPlacement{ID: 101, X: 14, Y: 14, Owner: sim.SelfSlot})
 	corpse := sim.NewActor(sim.ActorDefinition{Class: 35, TypeID: 35, HP: -11, MaxHP: 122, Reaction: 46, Mind: 38, Spirit: 30, ToHit: 72, Defence: 80, TokenSize: 1}, sim.ActorPlacement{ID: 102, X: 16, Y: 16})
 	corpse.Decay = 2
-	actors := append(f.live.world.Entities(), caster, corpse)
+	// Body 100 leaves on the first decay pass, so the dead pool holds a unit
+	// older than the corpse: the raise takes its id and copies the corpse.
+	gone := sim.NewActor(sim.ActorDefinition{Class: 35, TypeID: 35, HP: -700, MaxHP: 50, TokenSize: 1}, sim.ActorPlacement{ID: 100, X: 30, Y: 30})
+	gone.Decay = 4
+	actors := append(f.live.world.Entities(), gone, caster, corpse)
 	var stock []sim.Stock
 	for _, e := range f.live.world.Entities() {
 		pack, _ := f.live.world.CarriedStacks(e.ID)
@@ -64,11 +68,16 @@ func TestCurrentSaveKeepsAnimatedCorpseAcrossColdLoad(t *testing.T) {
 	for n := 0; n < 120; n++ {
 		sim.Step(w, commands)
 		commands = nil
-		if _, ok := w.Entity(103); ok {
+		if e, ok := w.Entity(100); ok && e.Alive() {
 			break
 		}
 	}
-	raised, ok := w.Entity(103)
+	raised, ok := w.Entity(100)
+	_, kept := w.Entity(102)
+	_, minted := w.Entity(103)
+	if kept || minted {
+		t.Fatalf("the corpse stayed (%v) or a new id was minted (%v)", kept, minted)
+	}
 	if !ok || raised.HP != 122 || raised.MaxHP != 122 || !raised.SuppressRewards || raised.SuppressCorpseLoot {
 		t.Fatalf("Animate Dead: raised=%v hp=%d/%d mark=%v actors=%d admission=%q", ok, raised.HP, raised.MaxHP, raised.SuppressRewards, len(w.Entities()), w.BookSpellRefusal(101, 102, 22))
 	}
@@ -91,7 +100,7 @@ func TestCurrentSaveKeepsAnimatedCorpseAcrossColdLoad(t *testing.T) {
 	if err != nil || town {
 		t.Fatal("cold animated corpse LOAD", town, err)
 	}
-	got, ok := cold.live.world.Entity(103)
+	got, ok := cold.live.world.Entity(100)
 	if !ok || got.HP != raised.HP || got.MaxHP != raised.MaxHP || got.Reaction != raised.Reaction || got.Mind != raised.Mind || got.Spirit != raised.Spirit || got.ToHit != raised.ToHit || got.Defence != raised.Defence || got.Owner != raised.Owner || got.Group != raised.Group || got.X != raised.X || got.Y != raised.Y || !got.SuppressRewards || got.SuppressCorpseLoot != raised.SuppressCorpseLoot {
 		t.Fatalf("cold SAV changed raised actor %d: health %d/%d, owner %d, cell %d,%d", got.ID, got.HP, got.MaxHP, got.Owner, got.X, got.Y)
 	}

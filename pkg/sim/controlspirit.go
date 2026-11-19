@@ -25,7 +25,7 @@ var firstCorpseRaise = corpseRaiseProfile{
 var secondCorpseRaise = corpseRaiseProfile{
 	kinds:         []corpseRaiseKind{{2, "F_Zombie.1", 1, true}, {3, "F_Skeleton.1", 2, false}, {4, "Ghost", 0, false}},
 	excludeUndead: true, placement: secondPlacement,
-	creation: actorCreationProfile{transient: true, suppressRewards: true},
+	creation: actorCreationProfile{transient: true, suppressRewards: true, pooled: true},
 }
 
 func RaisedCreatureNames() []string {
@@ -76,8 +76,8 @@ type controlSpiritRaise struct {
 
 func bonesCorpse(e Entity) bool { return !e.Alive() && e.Decay == DecayBones }
 
-// controlSpiritCorpseAt applies kind priority, then entity order at the cell
-// (MAGIC-251, R2-ENGINE-780); -1 when none.
+// controlSpiritCorpseAt applies kind priority, then dead-list order at the
+// cell (MAGIC-251, R2-ENGINE-780); -1 when none.
 func (w *World) controlSpiritCorpseAt(x, y int32, prefer int) int {
 	p := w.corpseRaiseProfile()
 	if p.prefer && prefer >= 0 && prefer < len(w.entities) {
@@ -85,8 +85,10 @@ func (w *World) controlSpiritCorpseAt(x, y int32, prefer int) int {
 			return prefer
 		}
 	}
+	corpses := w.corpseList()
 	for _, k := range p.kinds {
-		for i, e := range w.entities {
+		for _, i := range corpses {
+			e := w.entities[i]
 			if _, ok := p.kind(e); ok && e.Decay == k.stage && e.X == x && e.Y == y {
 				return i
 			}
@@ -163,10 +165,11 @@ func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) 
 	if !available {
 		return false, 0
 	}
-	ghost, ok := w.raisedGhost(ci, ti, next)
+	ghost, ok := w.raisedGhost(ci, ti, next, false)
 	if !ok {
 		return false, 0
 	}
+	initialised, _ := w.raisedGhost(ci, ti, next, true)
 	corpse, caster := w.entities[ti], w.entities[ci]
 	w.entities[ti].setCurrentHealth(controlSpiritCorpseHP)
 	w.entities[ti].Decay = DecayStage(consumedCorpseStage)
@@ -178,11 +181,17 @@ func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) 
 	if p.placement != nil {
 		search = p.placement(corpse.X, corpse.Y, 0)
 	}
+	creation := w.poolCreation(p.creation)
+	if creation.reuse == corpse.ID {
+		// The pool returned the consumed corpse itself (R2-ENGINE-781).
+		ghost = initialised
+	}
 	c, _ := w.raiseTemplate(corpse)
-	id, err := w.createActor(ghost, c.Pack, c.Worn, caster.X, caster.Y, search, true, p.creation)
+	id, err := w.createActor(ghost, c.Pack, c.Worn, caster.X, caster.Y, search, true, creation)
 	if err != nil {
 		return true, 0
 	}
+	w.burst.raised = id
 	if c.Name != "" {
 		w.castObservation.recordCreatedActor(id, c.Name)
 	}
