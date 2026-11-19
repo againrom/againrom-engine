@@ -203,36 +203,22 @@ func TestReleaseModAbandonReturnsToTheTownAsEntered(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil || a.Screen() != ui.ScreenGameMenu {
 		t.Fatalf("Escape in the mission: %v on %s", err, a.Screen())
 	}
-	label, confirm := abandonLabel(f, screen.MenuLabel), abandonLabel(f, screen.Title)
+	label := abandonLabel(f, screen.MenuLabel)
 	rows := a.HeadlessRows()
-	if len(rows) != 9 || rows[8].Text != label || !rows[8].Choosable {
-		t.Fatalf("the menu rows over the mission: %d, last %+v, want 9 ending %q", len(rows), rows[len(rows)-1], label)
+	if len(rows) != 8 {
+		t.Fatalf("the menu rows over the mission: %d, want 8 without the entry", len(rows))
+	}
+
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
+		t.Fatal(err)
+	}
+	page := a.HeadlessRows()
+	if a.Screen() != ui.ScreenGameMenu || len(page) != 5 || page[1].Text != label || !page[1].Choosable {
+		t.Fatalf("the end-mission page is %+v on %s", page, a.Screen())
 	}
 	panel := a.GameMenuPanel()
-	requireTemplate(t, "the entry label", panel, modTemplate(t, f, screen.MenuLabel), lastRowRegion(opaqueBounds(panel)))
-	writeAbandonShot(t, "game-menu-with-abandon", panel)
-
-	// The entry asks first; Return gives the mission back with nothing asked.
+	writeAbandonShot(t, "end-mission-with-abandon", panel)
 	if err := a.HeadlessActivate(label); err != nil {
-		t.Fatal(err)
-	}
-	asked := a.HeadlessRows()
-	if a.Screen() != ui.ScreenGameMenu || len(asked) != 2 || asked[0].Text != confirm || !asked[0].Choosable {
-		t.Fatalf("the confirming page is %+v on %s", asked, a.Screen())
-	}
-	askPanel := a.GameMenuPanel()
-	requireTemplate(t, "the confirming row", askPanel, modTemplate(t, f, screen.Title), image.Rect(100, 100, 440, 200))
-	writeAbandonShot(t, "abandon-confirm", askPanel)
-	if err := a.HeadlessActivate(asked[1].Text); err != nil || a.Screen() != ui.ScreenGameMenu || len(a.HeadlessRows()) != 9 {
-		t.Fatalf("Return from the confirming page: %v, %d rows on %s", err, len(a.HeadlessRows()), a.Screen())
-	}
-	if f.live != driver || a.Screen() != ui.ScreenGameMenu {
-		t.Fatal("asking and returning changed the mission")
-	}
-	if err := a.HeadlessActivate(label); err != nil {
-		t.Fatal(err)
-	}
-	if err := a.HeadlessActivate(confirm); err != nil {
 		t.Fatal(err)
 	}
 
@@ -383,15 +369,17 @@ func TestReleaseBaseMissionAbandonEntryFollowsTheTown(t *testing.T) {
 		t.Fatal(err)
 	}
 	label := abandonLabel(f, f.Words.Engine.Text("mission.abandon"))
-	if rows := a.HeadlessRows(); len(rows) != 9 || rows[8].Text != label {
-		t.Fatalf("the base town mission has no abandon row: %+v", rows)
+	if rows := a.HeadlessRows(); len(rows) != 8 {
+		t.Fatalf("the top-level menu has %d rows, want 8 without abandon", len(rows))
 	}
-	if err := a.HeadlessActivate(label); err != nil {
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
 		t.Fatal(err)
 	}
-	rows := a.HeadlessRows()
-	if len(rows) != 2 || rows[0].Text != abandonLabel(f, f.Words.Engine.Text("mission.abandon.confirm")) {
-		t.Fatalf("base confirmation: %+v", rows)
+	if rows := a.HeadlessRows(); len(rows) != 5 || rows[1].Text != label {
+		t.Fatalf("the base town mission has no abandon row in the end-mission page: %+v", rows)
+	}
+	if err := a.HeadlessActivate(label); err != nil || a.Screen() != ui.ScreenTown {
+		t.Fatalf("base abandon: %v on %s", err, a.Screen())
 	}
 }
 
@@ -412,10 +400,11 @@ func TestReleaseSecondBaseAbandonReturnsTheEntryItems(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"mission.abandon", "mission.abandon.confirm"} {
-		if err := a.HeadlessActivate(abandonLabel(f, f.Words.Engine.Text(key))); err != nil {
-			t.Fatal(err)
-		}
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.HeadlessActivate(abandonLabel(f, f.Words.Engine.Text("mission.abandon"))); err != nil {
+		t.Fatal(err)
 	}
 	pack, worn := secondBagTown(f)
 	bag := secondBagForm(*f.Town.second.heroBag())
@@ -487,7 +476,7 @@ func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
 	}
 	rows := a.HeadlessRows()
 	restart := abandonLabel(f, screens.Screens[1].MenuLabel)
-	if len(rows) != 10 || rows[9].Text != restart {
+	if len(rows) != 9 || rows[8].Text != restart {
 		t.Fatalf("the menu rows: %d, last %+v", len(rows), rows[len(rows)-1])
 	}
 	writeAbandonShot(t, "game-menu-with-restart", a.GameMenuPanel())
@@ -528,13 +517,13 @@ func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
 	}
 	requireAbandonTown(t, "after restart", f, entry)
 	// The restarted mission is a mission the menu can leave again.
-	if err := a.HeadlessKey("escape"); err != nil || len(a.HeadlessRows()) != 10 {
+	if err := a.HeadlessKey("escape"); err != nil || len(a.HeadlessRows()) != 9 {
 		t.Fatalf("the restarted mission's menu: %v, %d rows", err, len(a.HeadlessRows()))
 	}
-	if err := a.HeadlessActivate(abandonLabel(f, screens.Screens[0].MenuLabel)); err != nil {
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.HeadlessActivate(abandonLabel(f, screens.Screens[0].Title)); err != nil || a.Screen() != ui.ScreenTown || !s.AtWorldMap() {
+	if err := a.HeadlessActivate(abandonLabel(f, screens.Screens[0].MenuLabel)); err != nil || a.Screen() != ui.ScreenTown || !s.AtWorldMap() {
 		t.Fatalf("abandoning the restarted mission: %v on %s", err, a.Screen())
 	}
 	requireAbandonTown(t, "after restart and abandon", f, entry)

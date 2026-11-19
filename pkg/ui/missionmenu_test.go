@@ -297,7 +297,7 @@ func TestNativeMissionMenuModRowsFitAndClick(t *testing.T) {
 		if w, _ := a.flow.menuFont.Measure(title); w > 4*dialogSnapTileW-gameMenuRowLeft-gameMenuRowInsetR-gameMenuTextX {
 			t.Fatalf("fixture title is %d wide", w)
 		}
-		a.flow.modUI.screens = []ModScreen{{Kind: ModActionAbandon, Game: true, MenuLabel: "Abandon mission", Title: title}}
+		a.flow.modUI.screens = []ModScreen{{Kind: ModActionRestart, Game: true, MenuLabel: "Restart mission", Title: title}}
 		a.flow.modUI.pending = 1
 		a.flow.rebuildGameMenu(gameMenuModActionConfirmation, 0)
 		rows := a.flow.menuRows()

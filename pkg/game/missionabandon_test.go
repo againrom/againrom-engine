@@ -78,18 +78,9 @@ func TestBaseAbandonReturnsTheEntryPartyInBothGames(t *testing.T) {
 					t.Fatal("the loss control did not drop the packed mission weapon")
 				}
 			}
-			if err := a.HeadlessKey("escape"); err != nil {
-				t.Fatal(err)
-			}
-			if err := a.HeadlessActivate("Abandon mission"); err != nil {
-				t.Fatal(err)
-			}
-			rows := a.HeadlessRows()
-			if len(rows) != 2 || rows[0].Text != "Abandon, return to town" {
-				t.Fatalf("confirm rows: %+v", rows)
-			}
-			if err := a.HeadlessActivate(rows[0].Text); err != nil || a.Screen() != ui.ScreenTown {
-				t.Fatalf("confirm: %v on %s (%s)", err, a.Screen(), a.HeadlessMessage())
+			abandonViaEnd(t, a, "Abandon mission")
+			if a.Screen() != ui.ScreenTown {
+				t.Fatalf("abandon: on %s (%s)", a.Screen(), a.HeadlessMessage())
 			}
 			if second {
 				c := f.Town.second
@@ -195,14 +186,22 @@ func TestExampleModReplacesTheBaseAbandonAction(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
-	count := 0
-	for _, row := range a.HeadlessRows() {
-		if row.Text == "Abandon mission" {
-			count++
+	count := func() (n int) {
+		for _, row := range a.HeadlessRows() {
+			if row.Text == "Abandon mission" {
+				n++
+			}
 		}
+		return n
 	}
-	if count != 1 {
-		t.Fatalf("the example mod shows %d abandon entries", count)
+	if got := count(); got != 0 {
+		t.Fatalf("the top-level menu shows %d abandon entries", got)
+	}
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
+		t.Fatal(err)
+	}
+	if got := count(); got != 1 {
+		t.Fatalf("the end-mission page shows %d abandon entries", got)
 	}
 }
 
@@ -302,14 +301,7 @@ func TestAbandonKeepsEntryBackpackAndBag(t *testing.T) {
 					t.Fatalf("drop control did not lose the weapon: items=%v sacks=%v", bagLabels(dropped), mw.world.Sacks())
 				}
 				secondBagDrink(t, mw, potion.Code, 30, func() { mw.tick() })
-				if err := a.HeadlessKey("escape"); err != nil {
-					t.Fatal(err)
-				}
-				for _, label := range []string{menu, confirm} {
-					if err := a.HeadlessActivate(label); err != nil {
-						t.Fatal(err)
-					}
-				}
+				abandonViaEnd(t, a, menu)
 				if a.Screen() != ui.ScreenTown {
 					t.Fatalf("abandon left %s: %s", a.Screen(), a.HeadlessMessage())
 				}

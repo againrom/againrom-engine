@@ -59,11 +59,20 @@ func abandonLoadMission(t *testing.T, g *FrontEnd, a *ui.App, row int) {
 	}
 }
 
-// abandonThroughMenu chooses the action's menu entry and its confirming row.
+// abandonThroughMenu chooses the action's entry.
 func abandonThroughMenu(t *testing.T, g *FrontEnd, a *ui.App, screen mod.Screen) {
 	t.Helper()
 	if err := a.HeadlessKey("escape"); err != nil || a.Screen() != ui.ScreenGameMenu {
 		t.Fatalf("Escape in the mission: %v on %s", err, a.Screen())
+	}
+	if screen.Kind == mod.ActionAbandon {
+		if err := a.HeadlessGameMenuAction("end"); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.HeadlessActivate(abandonLabel(g, screen.MenuLabel)); err != nil {
+			t.Fatal(err)
+		}
+		return
 	}
 	if err := a.HeadlessActivate(abandonLabel(g, screen.MenuLabel)); err != nil {
 		t.Fatal(err)

@@ -58,9 +58,12 @@ func TestModActionRowsAppearOnlyOverAMissionThatCanBeLeft(t *testing.T) {
 	a.step(appInput{Escape: true}, atAt)
 	rows := a.flow.menuRows()
 	base := gameMenuBaseRows(gameMenuMission)
-	if len(rows) != base+2 || rows[base].Action != gameMenuModAction || rows[base].Label != "Abandon mission" ||
-		rows[base+1].Action != gameMenuModAction || rows[base+1].Label != "Restart mission" || !rows[base].Enabled || !rows[base].Literal {
+	if len(rows) != base+1 || rows[base].Action != gameMenuModAction || rows[base].Label != "Restart mission" || !rows[base].Enabled || !rows[base].Literal {
 		t.Fatalf("rows %+v", rows[base:])
+	}
+	endPage := endMissionRows(a)
+	if len(endPage) != 5 || endPage[1].Action != gameMenuModActionConfirm || endPage[1].Label != "Abandon mission" || !endPage[1].Enabled || !endPage[1].Literal {
+		t.Fatalf("end-mission rows %+v", endPage)
 	}
 	// The town menu has none of them.
 	town := newTestApp(t, appRows(1), okLoader(t))
@@ -71,15 +74,44 @@ func TestModActionRowsAppearOnlyOverAMissionThatCanBeLeft(t *testing.T) {
 	if got := town.flow.menuRows(); len(got) != gameMenuBaseRows(gameMenuTown) {
 		t.Fatalf("the town menu has %d rows", len(got))
 	}
+	if got := endMissionRows(town); hasLabel(got, "Abandon mission") {
+		t.Fatalf("the town's end page has the entry: %+v", got)
+	}
 	// Loss control: a mission that cannot be left shows none either.
 	b := actionApp(t, false, NoticeToTown, &asked, &again)
 	b.step(appInput{Escape: true}, atAt)
 	if got := b.flow.menuRows(); len(got) != base {
 		t.Fatalf("a mission with LeaveToTown false has %d rows", len(got))
 	}
+	if got := endMissionRows(b); hasLabel(got, "Abandon mission") {
+		t.Fatalf("a mission with LeaveToTown false has the entry in the end page: %+v", got)
+	}
 }
 
-func TestModActionAsksBeforeItActs(t *testing.T) {
+func hasLabel(rows []gameMenuRow, label string) bool {
+	for _, r := range rows {
+		if r.Label == label {
+			return true
+		}
+	}
+	return false
+}
+
+func endMissionRows(a *App) []gameMenuRow {
+	if a.Screen() != ScreenGameMenu {
+		a.flow.openGameMenu(ScreenTown)
+	}
+	for i, r := range a.flow.menuRows() {
+		if r.Action == gameMenuEndQuest {
+			a.flow.menuList.Select(i)
+			a.chooseGameMenu()
+			break
+		}
+	}
+	return a.flow.menuRows()
+}
+
+func TestModActionRestartAsksBeforeItActs(t *testing.T) {
 	var asked []NoticeAction
 	var again int
 	a := actionApp(t, true, NoticeToTown, &asked, &again)
@@ -91,7 +123,7 @@ func TestModActionAsksBeforeItActs(t *testing.T) {
 		t.Fatalf("page %v, asked %v, screen %v", a.flow.menuPage, asked, a.Screen())
 	}
 	rows := a.flow.menuRows()
-	if len(rows) != 2 || rows[0].Label != "Leave it" || rows[0].Action != gameMenuModActionConfirm || rows[1].Action != gameMenuPageReturn {
+	if len(rows) != 2 || rows[0].Label != "Again" || rows[0].Action != gameMenuModActionConfirm || rows[1].Action != gameMenuPageReturn {
 		t.Fatalf("confirm rows %+v", rows)
 	}
 	if a.flow.menuList.Selection() != 1 {
@@ -116,9 +148,8 @@ func TestModActionAbandonLeavesTheMapForTheTown(t *testing.T) {
 	var again int
 	a := actionApp(t, true, NoticeToTown, &asked, &again)
 	a.step(appInput{Escape: true}, atAt)
-	a.flow.menuList.Select(gameMenuBaseRows(gameMenuMission))
-	a.chooseGameMenu()
-	a.flow.menuList.Select(0)
+	endMissionRows(a)
+	a.flow.menuList.Select(1)
 	a.chooseGameMenu()
 	if len(asked) != 1 || asked[0] != NoticeAbandon {
 		t.Fatalf("asked %v", asked)
@@ -139,7 +170,7 @@ func TestModActionRestartReopensTheMission(t *testing.T) {
 	a := actionApp(t, true, NoticeToMission, &asked, &again)
 	first := a.flow.viewer
 	a.step(appInput{Escape: true}, atAt)
-	a.flow.menuList.Select(gameMenuBaseRows(gameMenuMission) + 1)
+	a.flow.menuList.Select(gameMenuBaseRows(gameMenuMission))
 	a.chooseGameMenu()
 	a.flow.menuList.Select(0)
 	a.chooseGameMenu()
@@ -156,9 +187,8 @@ func TestModActionStaysWhenTheSeamRefuses(t *testing.T) {
 	var again int
 	a := actionApp(t, true, NoticeStay, &asked, &again)
 	a.step(appInput{Escape: true}, atAt)
-	a.flow.menuList.Select(gameMenuBaseRows(gameMenuMission))
-	a.chooseGameMenu()
-	a.flow.menuList.Select(0)
+	endMissionRows(a)
+	a.flow.menuList.Select(1)
 	a.chooseGameMenu()
 	if len(asked) != 1 || a.Screen() != ScreenGameMenu || a.flow.menuPage != gameMenuRoot || a.flow.viewer == nil {
 		t.Fatalf("asked %v screen %v page %v", asked, a.Screen(), a.flow.menuPage)

@@ -9,11 +9,18 @@ import (
 	"againrom/pkg/ui"
 )
 
-// menuHasAbandon reports whether the in-mission menu of app lists the leave
-// entry, and closes the menu again.
-func menuHasAbandon(t *testing.T, label string, a *ui.App) bool {
+// menuHasAbandon reports whether the end page of app lists the leave entry.
+func menuHasAbandon(t *testing.T, f *FrontEnd, label string, a *ui.App) bool {
 	t.Helper()
 	if err := a.HeadlessKey("escape"); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range a.HeadlessRows() {
+		if row.Text == label {
+			t.Fatalf("the top-level menu lists %q", label)
+		}
+	}
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
 		t.Fatal(err)
 	}
 	found := false
@@ -22,10 +29,25 @@ func menuHasAbandon(t *testing.T, label string, a *ui.App) bool {
 			found = true
 		}
 	}
-	if err := a.HeadlessKey("escape"); err != nil {
-		t.Fatal(err)
+	for i := 0; i < 4 && a.Screen() == ui.ScreenGameMenu; i++ {
+		if err := a.HeadlessKey("escape"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return found
+}
+
+func abandonViaEnd(t *testing.T, a *ui.App, label string) {
+	t.Helper()
+	if err := a.HeadlessKey("escape"); err != nil || a.Screen() != ui.ScreenGameMenu {
+		t.Fatalf("Escape in the mission: %v on %s", err, a.Screen())
+	}
+	if err := a.HeadlessGameMenuAction("end"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.HeadlessActivate(label); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // The second game's mission-entered party that saves and loads still finds the
@@ -41,7 +63,7 @@ func TestLeaveEntrySurvivesLoadOfMissionSave(t *testing.T) {
 				} else if err := a.OpenMission(f.MissionOpener(n)); err != nil {
 					t.Fatal(err)
 				}
-				if !menuHasAbandon(t, f.Words.Engine.Text("mission.abandon"), a) {
+				if !menuHasAbandon(t, f, f.Words.Engine.Text("mission.abandon"), a) {
 					t.Fatal("the entry is missing before the save")
 				}
 				raw := skillExport(t, f, true, "leave after load")
@@ -56,7 +78,7 @@ func TestLeaveEntrySurvivesLoadOfMissionSave(t *testing.T) {
 				if err := b.OpenMission(open); err != nil {
 					t.Fatal(err)
 				}
-				if !menuHasAbandon(t, g.Words.Engine.Text("mission.abandon"), b) {
+				if !menuHasAbandon(t, g, g.Words.Engine.Text("mission.abandon"), b) {
 					t.Fatal("the leave entry is missing after the load")
 				}
 				dest, line, _ := g.continuity(n, g.live.mission.state, g.live.advanceNotice)(ui.NoticeAbandon)
@@ -91,7 +113,7 @@ func TestReleaseLeaveEntrySurvivesLoadOfMissionSave(t *testing.T) {
 		return f, a, n
 	}
 	f, a, n := enter()
-	if !menuHasAbandon(t, abandonLabel(f, f.Words.Engine.Text("mission.abandon")), a) {
+	if !menuHasAbandon(t, f, abandonLabel(f, f.Words.Engine.Text("mission.abandon")), a) {
 		t.Fatal("the entry is missing before the save")
 	}
 	raw := skillExport(t, f, true, "leave after load")
@@ -111,7 +133,7 @@ func TestReleaseLeaveEntrySurvivesLoadOfMissionSave(t *testing.T) {
 		if err := b.OpenMission(open); err != nil {
 			t.Fatal(err)
 		}
-		if !menuHasAbandon(t, abandonLabel(g, g.Words.Engine.Text("mission.abandon")), b) {
+		if !menuHasAbandon(t, g, abandonLabel(g, g.Words.Engine.Text("mission.abandon")), b) {
 			t.Fatalf("cold=%t: the leave entry is missing after the load", cold)
 		}
 	}

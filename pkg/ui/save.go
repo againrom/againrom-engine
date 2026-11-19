@@ -98,19 +98,19 @@ func (f *flow) menuRows() []gameMenuRow {
 		return append(rows, pageReturnRow())
 	case gameMenuEndQuestConfirmation:
 		if f.menuContext.CampaignVictory {
-			return []gameMenuRow{
-				{Label: f.words.MenuVictory, Fallback: 'V', Action: gameMenuVictory, Enabled: f.menuContext.VictoryAvailable},
-				{Label: f.words.MenuExitMain, Fallback: 'E', Action: gameMenuExitMain, Enabled: true},
-				{Label: f.words.MenuExitWindows, Fallback: 'W', Action: gameMenuExitWindows, Enabled: true},
-				{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true},
-			}
+			rows := []gameMenuRow{{Label: f.words.MenuVictory, Fallback: 'V', Action: gameMenuVictory, Enabled: f.menuContext.VictoryAvailable}}
+			rows = append(rows, f.abandonRows()...)
+			return append(rows,
+				gameMenuRow{Label: f.words.MenuExitMain, Fallback: 'E', Action: gameMenuExitMain, Enabled: true},
+				gameMenuRow{Label: f.words.MenuExitWindows, Fallback: 'W', Action: gameMenuExitWindows, Enabled: true},
+				gameMenuRow{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true})
 		}
-		return []gameMenuRow{
-			{Label: f.words.MenuChangeMap, Fallback: 'C', Action: gameMenuConfirmEndQuest, Enabled: true},
-			{Label: f.words.MenuExitMain, Fallback: 'E', Action: gameMenuExitMain, Enabled: true},
-			{Label: f.words.MenuExitWindows, Fallback: 'W', Action: gameMenuExitWindows, Enabled: true},
-			{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true},
-		}
+		rows := []gameMenuRow{{Label: f.words.MenuChangeMap, Fallback: 'C', Action: gameMenuConfirmEndQuest, Enabled: true}}
+		rows = append(rows, f.abandonRows()...)
+		return append(rows,
+			gameMenuRow{Label: f.words.MenuExitMain, Fallback: 'E', Action: gameMenuExitMain, Enabled: true},
+			gameMenuRow{Label: f.words.MenuExitWindows, Fallback: 'W', Action: gameMenuExitWindows, Enabled: true},
+			gameMenuRow{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true})
 	case gameMenuAbortGameConfirmation:
 		return []gameMenuRow{
 			{Label: f.words.MenuExitMain, Fallback: 'E', Action: gameMenuExitMain, Enabled: true},
@@ -146,7 +146,7 @@ func (f *flow) withModRows(rows []gameMenuRow) []gameMenuRow {
 		if f.modUI.screens[i].Kind.isAction() {
 			// An action entry belongs to a mission that can be left for its
 			// town; the town menu and any other mission have no such row.
-			if f.menuSurface == gameMenuTown || !f.menuContext.LeaveToTown {
+			if f.modUI.screens[i].Kind == ModActionAbandon || f.menuSurface == gameMenuTown || !f.menuContext.LeaveToTown {
 				continue
 			}
 			action = gameMenuModAction
@@ -162,6 +162,22 @@ func (f *flow) withModRows(rows []gameMenuRow) []gameMenuRow {
 		})
 	}
 	return rows
+}
+
+// abandonRows is the end page's abandon entry; it acts at once.
+func (f *flow) abandonRows() []gameMenuRow {
+	var out []gameMenuRow
+	if f.menuSurface == gameMenuTown || !f.menuContext.LeaveToTown {
+		return nil
+	}
+	for _, i := range f.modScreenIndexes(true) {
+		if f.modUI.screens[i].Kind != ModActionAbandon {
+			continue
+		}
+		label, width := f.fitMenuRowLabel(f.menuDisplayText(f.modUI.screens[i].MenuLabel))
+		out = append(out, gameMenuRow{Label: label, Action: gameMenuModActionConfirm, Enabled: true, Literal: true, Mod: i + 1, Width: width})
+	}
+	return out
 }
 
 // fitMenuRowLabel clips a label in the install's code page to a row of the
