@@ -254,8 +254,12 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if x.archives == nil || x.archives.Containers == nil {
 		return "", errors.New(x.word("editor.mod.err.noinstall"))
 	}
-	if err := campaignOf(x.archives.Game()).testPlayRefusal(); err != nil {
-		return "", err
+	// A save with a map writes the guest mission test play makes of it; a
+	// mod with no map open writes its pages alone.
+	if len(b) > 0 {
+		if err := campaignOf(x.archives.Game()).testPlayRefusal(); err != nil {
+			return "", err
+		}
 	}
 	p := s.workspace.Package
 	if !mod.ValidID(p.ID) || p.ID == TestPlayModID || !editorOrdinaryFilename(p.ID) {

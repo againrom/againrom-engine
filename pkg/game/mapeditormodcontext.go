@@ -67,7 +67,7 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 	if base.table == nil || x.archives == nil || x.archives.Containers == nil {
 		return nil, ModDataReport{}, nil
 	}
-	c, err := LoadCampaign(x.archives.Containers)
+	c, err := x.installCampaign()
 	if err != nil {
 		return nil, ModDataReport{}, err
 	}
@@ -262,4 +262,21 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	x.setEditorMod(&next)
 	s.speakers = nil
 	return nil
+}
+
+// installCampaign is the install's campaign as the editor reads it: the
+// registry's, or for a game whose campaign is a scenario bank with no
+// registry file, the missions its archive holds maps of.
+func (x *MapInspector) installCampaign() (Campaign, error) {
+	c, err := LoadCampaign(x.archives.Containers)
+	if err == nil || x.installGame().Edition().HasRegistry() {
+		return c, err
+	}
+	for _, e := range x.Maps {
+		if n, ok := missionNumber(e); ok {
+			c.Main = append(c.Main, n)
+		}
+	}
+	slices.Sort(c.Main)
+	return c, nil
 }

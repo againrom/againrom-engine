@@ -206,6 +206,10 @@ func (e Edition) PartyIdentity(id int) (PartyIdentity, bool) {
 	return PartyIdentity{}, false
 }
 
+// HasRegistry reports whether the game's campaign is declared by a scenario
+// registry file; a game of destinations has none.
+func (e Edition) HasRegistry() bool { return e.Campaign != CampaignDestinations }
+
 // Campaign names a campaign model.
 type Campaign int
 

@@ -554,7 +554,7 @@ func (x *MapInspector) installFlow() *campaignFlow {
 		return nil
 	}
 	if x.flow == nil {
-		c, err := LoadCampaign(x.archives.Containers)
+		c, err := x.installCampaign()
 		if err == nil {
 			c.Towns = townBookOf(x.archives.Base.Profile)
 		} else {

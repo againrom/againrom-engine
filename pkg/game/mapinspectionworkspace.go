@@ -240,8 +240,10 @@ func liveLabels(sc alm.Script, limits scriptprofile.Profile, labels map[uint32]s
 // or, with none, the file the open could not read left as it is.
 func (s *mapInspectionEdits) labelsForSave() []byte {
 	var labels map[uint32]string
-	if _, sc, err := wizardScript(s.model); err == nil && s.workspace != nil {
-		labels = liveLabels(sc, s.model.Profile(), s.workspace.Labels)
+	if s.model != nil && s.workspace != nil {
+		if _, sc, err := wizardScript(s.model); err == nil {
+			labels = liveLabels(sc, s.model.Profile(), s.workspace.Labels)
+		}
 	}
 	if len(labels) == 0 && s.labelsUnread {
 		return []byte{}

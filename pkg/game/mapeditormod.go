@@ -476,7 +476,7 @@ func (x *MapInspector) checkMissionSet(missions []mod.Mission, view draftView) e
 	if len(missions) == 1 {
 		return x.checkMissionRoute(missions[0])
 	}
-	c, err := LoadCampaign(x.archives.Containers)
+	c, err := x.installCampaign()
 	if err != nil {
 		return err
 	}

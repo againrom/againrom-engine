@@ -102,6 +102,20 @@ func (x *MapInspector) mapRefusal(err error, rel string, n int) error {
 	return err
 }
 
+// replaceCaption is the button that makes a map replace mission n. A game
+// with no mission titles file names the mission by its map's name when the
+// map has one, else by its number alone.
+func (x *MapInspector) replaceCaption(n int) string {
+	caption := fmt.Sprintf(x.word("editor.mod.makereplace"), n)
+	if x.installGame().Edition().HasRegistry() {
+		return caption
+	}
+	if title, _ := x.graphMission(n); title != "" {
+		caption += " " + title
+	}
+	return caption
+}
+
 // ModMapActions are the mod's maps that a mission can be made of: an unused
 // map, and a map that replaces a mission by its file name.
 func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
@@ -119,7 +133,7 @@ func (s *mapInspectionEdits) ModMapActions() ([]ui.ModMapAction, bool) {
 		case mod.MapUnused:
 			a.Buttons = []ui.ModMapButton{{Caption: x.word("editor.mod.makemission"), Key: "makemission", Value: e.Path}}
 			if numbers := x.replaceNumbers(data); len(numbers) > 0 {
-				a.Buttons = append(a.Buttons, ui.ModMapButton{Caption: fmt.Sprintf(x.word("editor.mod.makereplace"), numbers[0]), Key: "makemission", Value: strconv.Itoa(numbers[0]) + "|" + e.Path})
+				a.Buttons = append(a.Buttons, ui.ModMapButton{Caption: x.replaceCaption(numbers[0]), Key: "makemission", Value: strconv.Itoa(numbers[0]) + "|" + e.Path})
 			}
 		case mod.MapByName:
 			a.Buttons = []ui.ModMapButton{{Caption: x.word("editor.mod.makerow"), Key: "makerow", Value: e.Path}}
