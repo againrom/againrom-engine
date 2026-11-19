@@ -223,9 +223,9 @@ func fieldNumber(f InspectionField, text string) (int64, error) {
 // fieldNumberNote is the popup's reason a typed value of field f is refused.
 func (e *MapEditor) fieldNumberNote(f InspectionField, err error) string {
 	if errors.Is(err, errStoredAsInherited) {
-		return fmt.Sprintf(e.word("editor.unit.zero.error"), f.Label)
+		return fmt.Sprintf(e.plainWord("editor.unit.zero.error"), e.hostUTF8(f.Label))
 	}
-	return fmt.Sprintf("%s: %s", f.Label, e.word("editor.object.number"))
+	return fmt.Sprintf("%s: %s", e.hostUTF8(f.Label), e.plainWord("editor.object.number"))
 }
 
 // fieldTitle is a field prompt's title, the field's name: for a record's
@@ -260,7 +260,7 @@ func (e *MapEditor) setField(text string) error {
 	if !field.Text {
 		v, parseErr := fieldNumber(field, text)
 		if errors.Is(parseErr, errStoredAsInherited) {
-			e.message = e.editorSearchText(e.fieldNumberNote(field, parseErr))
+			e.message = e.fieldNumberNote(field, parseErr)
 			return parseErr
 		}
 		if parseErr != nil {

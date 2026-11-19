@@ -568,7 +568,7 @@ func (e *MapEditor) madeSpec(s popupSpec, made []popupMade) (popupSpec, []int) {
 	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
 	s.At, s.Bounds = e.keptCorner(popObject), e.popupBounds()
 	if o.note != "" {
-		s.Notes = append(s.Notes, e.editorHostText(o.note))
+		s.Notes = append(s.Notes, o.note)
 	}
 	body := e.bodyFont()
 	s.Width = e.popupWide(popObject, min(naturalWidth(&s, e.font, body, 0), s.Bounds.Dx()))
@@ -674,7 +674,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), width)...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), o.note, width)...)
 	}
 	for r, acts := range o.rowActs {
 		for _, a := range acts {
@@ -1022,7 +1022,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 	number := func(i int) (int64, error) {
 		n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64)
 		if err != nil {
-			return 0, fmt.Errorf("%s: %s", o.fields[i].Label, e.word("editor.object.number"))
+			return 0, fmt.Errorf("%s: %s", e.hostUTF8(o.fields[i].Label), e.plainWord("editor.object.number"))
 		}
 		return n, nil
 	}
@@ -1030,12 +1030,12 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		pairs, acts, grouped := o.triggerSlots()
 		for p := range pairs {
 			if o.shownPair(p) && (o.buf[pairField(p, 0)] == "0" || o.buf[pairField(p, 2)] == "0") {
-				return nil, fmt.Errorf(e.word("editor.trigger.sides"), p+1)
+				return nil, fmt.Errorf(e.plainWord("editor.trigger.sides"), p+1)
 			}
 		}
 		for a := range acts {
 			if marked(o.addedAct, a) && o.buf[o.actField(a)] == "0" {
-				return nil, fmt.Errorf(e.word("editor.trigger.noaction"), a+1)
+				return nil, fmt.Errorf(e.plainWord("editor.trigger.noaction"), a+1)
 			}
 		}
 		// Fields wider than the original record, or an extended map's, are
@@ -1069,7 +1069,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		case scriptPlayer, scriptUnit, scriptStructure: // the host accepts 0 only for a group and an item
 			n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64)
 			if err == nil && n == 0 && (o.types[s] != v.node.Types[s] || v.node.Values[s] != 0) {
-				return nil, fmt.Errorf("%s: %s", f.Label, e.word("editor.node.unset"))
+				return nil, fmt.Errorf("%s: %s", e.hostUTF8(f.Label), e.plainWord("editor.node.unset"))
 			}
 		}
 	}
@@ -1087,7 +1087,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 			x, errX := strconv.ParseInt(strings.TrimSpace(xs), 10, 64)
 			y, errY := strconv.ParseInt(strings.TrimSpace(ys), 10, 64)
 			if !ok || errX != nil || errY != nil {
-				return nil, fmt.Errorf("%s: %s", f.Label, e.word("editor.node.cell"))
+				return nil, fmt.Errorf("%s: %s", e.hostUTF8(f.Label), e.plainWord("editor.node.cell"))
 			}
 			for k, w := range []int64{x, y} {
 				if o.types[s+k] != v.node.Types[s+k] || int64(v.node.Values[s+k]) != w {

@@ -135,7 +135,7 @@ func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionFie
 				o.note = ""
 			}
 		} else if e.nativeUnitWindow() {
-			o.note = err.Error()
+			o.note = e.editorHostText(err.Error())
 		}
 	}
 	if !o.unit.ok {

@@ -488,7 +488,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	o.viewOffer = e.viewOffered()
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), 400)...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), o.note, 400)...)
 	}
 }
 
@@ -1031,7 +1031,7 @@ func (e *MapEditor) applyObject() {
 			return
 		}
 		if err != nil {
-			o.note = err.Error()
+			o.note = e.editorHostText(err.Error())
 			return
 		}
 		o.open, o.note = -1, ""
@@ -1054,7 +1054,7 @@ func (e *MapEditor) applyObject() {
 		if !f.Text {
 			n, err := fieldNumber(f, o.buf[i])
 			if err != nil {
-				o.note = e.fieldNumberNote(f, err)
+				o.note = e.editorHostText(e.fieldNumberNote(f, err))
 				return
 			}
 			v.Value = n
@@ -1066,7 +1066,7 @@ func (e *MapEditor) applyObject() {
 	}
 	section, detail, native := o.section, o.detail, e.nativeUnitWindow()
 	if _, err := e.commandSetObject(recordFields{Kind: kind, Index: index, Values: values, Move: o.move}); err != nil {
-		o.note = err.Error()
+		o.note = e.editorHostText(err.Error())
 		return
 	}
 	o.open, o.note = -1, ""

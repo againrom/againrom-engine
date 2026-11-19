@@ -171,7 +171,7 @@ func (e *MapEditor) modAction(key, value string) error {
 		}
 		// The refusal is the editor's message; the window's notes hold only
 		// the save state.
-		e.obj.note = err.Error()
+		e.obj.note = e.editorHostText(err.Error())
 		e.message = err.Error()
 		return err
 	}

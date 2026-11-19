@@ -1288,7 +1288,7 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 	// Past the original record's limits the host asks to extend the map;
 	// past the extended record's the plan is refused here.
 	if most := scriptprofile.Extended; len(t.Pairs) > most.Pairs || len(t.Actions) > most.Actions {
-		return t, fmt.Errorf("%s", e.word("editor.wizard.full"))
+		return t, fmt.Errorf("%s", e.plainWord("editor.wizard.full"))
 	}
 	return t, nil
 }
@@ -1309,7 +1309,7 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 		case wpDialogue:
 			name := strings.TrimSpace(row.vals[k+1])
 			if !validDialogueName(name) {
-				return n, rn, 0, fmt.Errorf("%s: %s", e.word(p.labelWord), e.word("editor.dialogue.err.name"))
+				return n, rn, 0, fmt.Errorf("%s: %s", e.plainWord(p.labelWord), e.plainWord("editor.dialogue.err.name"))
 			}
 			n.Label = name
 			continue
@@ -1349,7 +1349,7 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 		// A code outside the alphabet the row was read with stays choosable.
 		c, err := strconv.ParseInt(strings.TrimSpace(row.vals[len(it.params)+1]), 10, 64)
 		if err != nil || c < 0 || c > math.MaxUint32 || c > scriptprofile.MaxCompare && uint32(c) != row.cmp {
-			return n, rn, 0, fmt.Errorf("%s: %s", e.word("editor.trigger.comparison"), e.word("editor.object.number"))
+			return n, rn, 0, fmt.Errorf("%s: %s", e.plainWord("editor.trigger.comparison"), e.plainWord("editor.object.number"))
 		}
 		cmp = uint32(c)
 	}
@@ -1361,7 +1361,7 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 // unset unit or player.
 func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error) {
 	p := it.params[k]
-	label := e.word(p.labelWord)
+	label := e.plainWord(p.labelWord)
 	var nums []int64
 	for _, part := range strings.Split(strings.TrimSpace(text), ",") {
 		x, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
@@ -1370,18 +1370,18 @@ func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error)
 			break
 		}
 		if x < math.MinInt32 || x > math.MaxInt32 {
-			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.range"))
+			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.range"))
 		}
 		nums = append(nums, x)
 	}
 	if len(nums) != len(p.types()) {
 		switch p.kind {
 		case wpCell:
-			return nil, fmt.Errorf("%s: %s", label, e.word("editor.node.cell"))
+			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.node.cell"))
 		case wpBox:
-			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.badbox"))
+			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.badbox"))
 		}
-		return nil, fmt.Errorf("%s: %s", label, e.word("editor.object.number"))
+		return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.object.number"))
 	}
 	switch p.kind {
 	case wpCell, wpBox:
@@ -1391,15 +1391,15 @@ func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error)
 				limit = e.doc.Height
 			}
 			if x < 0 || x >= int64(min(limit, 256)) {
-				return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.outside"))
+				return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.outside"))
 			}
 		}
 		if p.kind == wpBox && (nums[0] > nums[2] || nums[1] > nums[3]) {
-			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.badbox"))
+			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.badbox"))
 		}
 	case wpUnit, wpPlayer:
 		if nums[0] <= 0 {
-			return nil, fmt.Errorf("%s: %s", label, e.word("editor.node.unset"))
+			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.node.unset"))
 		}
 	}
 	return nums, nil
@@ -1458,7 +1458,7 @@ func (e *MapEditor) applyWizard(v scriptView) {
 		return
 	}
 	if err != nil {
-		o.note = err.Error() // host text: the popup encodes its note
+		o.note = e.editorHostText(err.Error())
 		return
 	}
 	o.open, o.note = -1, ""

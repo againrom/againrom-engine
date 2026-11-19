@@ -200,7 +200,7 @@ func (e *MapEditor) openDialogue(name string, fresh, fromMod bool) error {
 	if fresh {
 		d.name = ""
 		d.file = name
-		d.nodes = []dlgNodeDraft{{id: 1, name: fmt.Sprintf(e.word("editor.dialogue.nodeword"), 1), text: map[string]string{}}}
+		d.nodes = []dlgNodeDraft{{id: 1, name: e.nodeName(1), text: map[string]string{}}}
 	} else {
 		data, err := h.ReadDialogue(name)
 		if err != nil {
@@ -260,7 +260,7 @@ func (e *MapEditor) openDialogueFrom(f int) {
 // window.
 func (e *MapEditor) OpenDialogue(name string) error {
 	if !validDialogueName(name) {
-		return fmt.Errorf("%s", e.word("editor.dialogue.err.name"))
+		return fmt.Errorf("%s", e.plainWord("editor.dialogue.err.name"))
 	}
 	return e.openDialogue(name, !e.dialogueExists(name), true)
 }
@@ -275,12 +275,27 @@ func (e *MapEditor) NewDialogue() error {
 
 func (e *MapEditor) loadDialogueObject() { e.dialogueFields() }
 
-// dialogueLabel is node n as the lists name it.
-func (e *MapEditor) dialogueLabel(n dlgNodeDraft) string {
+// dialogueName is node n's name as UTF-8 text.
+func (e *MapEditor) dialogueName(n dlgNodeDraft) string {
 	if n.name != "" {
-		return e.editorHostText(n.name)
+		return n.name
 	}
-	return fmt.Sprintf(e.word("editor.dialogue.nodeword"), n.id)
+	return e.nodeName(n.id)
+}
+
+// nodeName is the default name of node id: the editor's word, in English
+// when the face cannot draw the editor's letters.
+func (e *MapEditor) nodeName(id int) string {
+	s := fmt.Sprintf(e.plainWord("editor.dialogue.nodeword"), id)
+	if e.hostUTF8(e.editorHostText(s)) != s {
+		return fmt.Sprintf(words.For("").Text("editor.dialogue.nodeword"), id)
+	}
+	return s
+}
+
+// dialogueLabel is node n as the lists name it, in the font's encoding.
+func (e *MapEditor) dialogueLabel(n dlgNodeDraft) string {
+	return e.editorHostText(e.dialogueName(n))
 }
 
 // hostUTF8 is text typed or kept in the font's encoding as UTF-8.
@@ -500,7 +515,7 @@ func (e *MapEditor) dialogueData() (DialogueData, error) {
 			reply := DialogueReplyData{Text: maps.Clone(r.text), Next: r.next, Once: r.once, Mark: r.mark, Disabled: r.disabled}
 			plan, err := e.rowsPlan(WizardTrigger{}, r.rows)
 			if err != nil {
-				return data, fmt.Errorf(e.word("editor.dialogue.err.reply"), e.dialogueLabel(n), k+1, err.Error())
+				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.reply"), e.dialogueName(n), k+1, err.Error())
 			}
 			reply.Pairs, reply.Actions = plan.Pairs, plan.Actions
 			node.Replies = append(node.Replies, reply)
@@ -513,7 +528,7 @@ func (e *MapEditor) dialogueData() (DialogueData, error) {
 			if r.Once && r.Mark == 0 && !e.dlg.nodes[i].replies[k].markSet {
 				mark := h.FreeMark(data)
 				if mark < 0 {
-					return data, fmt.Errorf("%s", e.word("editor.dialogue.err.nomark"))
+					return data, fmt.Errorf("%s", e.plainWord("editor.dialogue.err.nomark"))
 				}
 				r.Mark = mark
 			}
@@ -524,7 +539,7 @@ func (e *MapEditor) dialogueData() (DialogueData, error) {
 
 // dialogueIssueText is a failed check in words.
 func (e *MapEditor) dialogueIssueText(i DialogueIssue) string {
-	return IssueText(e.word, i)
+	return IssueText(e.plainWord, i)
 }
 
 // IssueText is a failed dialogue check in the words word gives.
@@ -561,7 +576,7 @@ func (e *MapEditor) applyDialogue() {
 		return
 	}
 	if checks := e.DialogueChecks(); len(checks) > 0 {
-		o.note = strings.Join(checks, "\n")
+		o.note = e.editorHostText(strings.Join(checks, "\n"))
 		return
 	}
 	name := d.name
@@ -693,7 +708,7 @@ func (e *MapEditor) dialogueRowButton(r, k int) {
 		for _, n := range d.nodes {
 			id = max(id, n.id+1)
 		}
-		d.nodes = append(d.nodes, dlgNodeDraft{id: id, name: fmt.Sprintf(e.word("editor.dialogue.nodeword"), id), text: map[string]string{}})
+		d.nodes = append(d.nodes, dlgNodeDraft{id: id, name: e.nodeName(id), text: map[string]string{}})
 		d.node, d.reply = len(d.nodes)-1, -1
 		e.dialogueFields()
 	case actRemoveNode:

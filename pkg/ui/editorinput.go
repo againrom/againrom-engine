@@ -348,7 +348,7 @@ func (e *MapEditor) textKey(key string) bool {
 	}
 	if err != nil {
 		if e.objectTyping() {
-			e.obj.note = err.Error()
+			e.obj.note = e.editorHostText(err.Error())
 		} else {
 			e.message = err.Error()
 		}

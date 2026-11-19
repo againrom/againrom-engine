@@ -424,7 +424,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		s.Notes = append(s.Notes, note)
 	}
 	if o.note != "" {
-		s.Notes = append(s.Notes, e.editorHostText(o.note))
+		s.Notes = append(s.Notes, o.note)
 	}
 	// A refused speaker pick answers at the card whose pick is armed.
 	if e.speakerPicking() && e.pickWhy != "" && pickCard != "" {
@@ -683,7 +683,7 @@ func (e *MapEditor) chooseDialog(value int64) {
 	if page == NewMessagePage {
 		owner, err := e.dialogOwner()
 		if err != nil {
-			o.note = err.Error()
+			o.note = e.editorHostText(err.Error())
 			return
 		}
 		e.messageNew = owner
@@ -699,7 +699,7 @@ func (e *MapEditor) chooseDialog(value int64) {
 func (e *MapEditor) dialogOwner() (InspectionMessageOwner, error) {
 	owner := *e.messageFor
 	if owner.Index < 0 || owner.Index >= len(e.doc.Script.Triggers) {
-		return owner, fmt.Errorf("%s", e.word("editor.message.unavailable"))
+		return owner, fmt.Errorf("%s", e.plainWord("editor.message.unavailable"))
 	}
 	plan, err := e.keptPlan(owner.Index)
 	if err != nil {
@@ -735,7 +735,7 @@ func (e *MapEditor) applyMessage() {
 			_, err = e.commandWriteMessage(messageWrite{Owner: &owner, Page: e.messagePage, Parts: parts})
 		}
 		if err != nil {
-			e.obj.note = err.Error()
+			e.obj.note = e.editorHostText(err.Error())
 			return
 		}
 		e.messageFrom = e.messagePage
@@ -747,7 +747,7 @@ func (e *MapEditor) applyMessage() {
 		return
 	}
 	if _, err := e.commandWriteMessage(messageWrite{Page: e.messagePage, Parts: parts}); err != nil {
-		e.obj.note = err.Error()
+		e.obj.note = e.editorHostText(err.Error())
 		return
 	}
 	e.obj.doc = nil
@@ -760,13 +760,13 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 	if e.messageFor != nil {
 		var err error
 		if owner, err = e.dialogOwner(); err != nil {
-			e.obj.note = err.Error()
+			e.obj.note = e.editorHostText(err.Error())
 			return
 		}
 	}
 	ch, err := e.commandWriteMessage(messageWrite{Owner: &owner, Page: NewMessagePage, Parts: parts})
 	if err != nil {
-		e.obj.note = err.Error()
+		e.obj.note = e.editorHostText(err.Error())
 		return
 	}
 	if ch.doc == nil {
@@ -1066,7 +1066,7 @@ func (e *MapEditor) newMessage(field int) {
 	if v, ok := e.scriptPopup(); ok && v.trigger != nil && e.obj.wiz != nil {
 		plan, err := e.wizardPlan(v)
 		if err != nil {
-			e.obj.note = err.Error()
+			e.obj.note = e.editorHostText(err.Error())
 			return
 		}
 		row, _ := e.wizardRowOf(field)
