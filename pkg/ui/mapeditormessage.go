@@ -487,6 +487,7 @@ const (
 	actSplitSex    = "splitsex"
 	actSplitClass  = "splitclass"
 	actDropVariant = "dropvariant"
+	actDropOther   = "dropother"
 	actAddLine     = "addline"
 )
 
@@ -553,7 +554,9 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) {
 			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(HeroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
 		}
 		if part.Other != "" {
-			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other), Help: e.word("editor.message.other.help")})
+			o.rowOpen[len(s.Rows)], o.rowActs[len(s.Rows)] = c, []string{actDropOther}
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other), Help: e.word("editor.message.other.help"),
+				Buttons: []string{e.word("editor.message.mark.remove")}, ButtonTips: []string{e.word("editor.message.other.remove.tip")}})
 		}
 		lines := strings.Split(o.buf[2*c], "\n")
 		for k := range lines {
@@ -640,6 +643,18 @@ func (e *MapEditor) dropMessageVariant(at int) {
 		return
 	}
 	e.reshapeMessageCards(slices.Delete(slices.Clone(o.messageParts), at, at+1))
+}
+
+// dropMessageOther clears cell at's other tag conditions for the dialogue
+// file; the page keeps its tag as written.
+func (e *MapEditor) dropMessageOther(at int) {
+	o := &e.obj
+	if at < 0 || at >= len(o.messageParts) || o.messageParts[at].Other == "" || !e.captureMessageParts() {
+		return
+	}
+	parts := slices.Clone(o.messageParts)
+	parts[at].Other = ""
+	e.reshapeMessageCards(parts)
 }
 
 // reshapeMessageCards puts parts in the cards' place after a split, a merge
@@ -937,6 +952,11 @@ func (e *MapEditor) messageRowButton(row, button int) {
 		case actDropVariant:
 			if open {
 				e.dropMessageVariant(at)
+			}
+			return
+		case actDropOther:
+			if open {
+				e.dropMessageOther(at)
 			}
 			return
 		}

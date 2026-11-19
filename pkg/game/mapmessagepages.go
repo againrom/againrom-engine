@@ -349,7 +349,7 @@ func messageCells(d messageMarkupDocument, heroes [4]EventAudience) []ui.Inspect
 		if id, named := rules.speaker(tag.Tag); named {
 			speaker = int64(id)
 		}
-		return ui.InspectionMessagePart{Source: source, Number: n, Body: body, Tag: tag.Tag, Speaker: speaker, Other: tagOthers(tag.Tag)}
+		return ui.InspectionMessagePart{Source: source, Number: n, Body: body, Tag: tag.Tag, Speaker: speaker, Other: tagOthers(tag.Tag, 0)}
 	}
 	var out []ui.InspectionMessagePart
 	for _, n := range order {
@@ -368,6 +368,7 @@ func messageCells(d messageMarkupDocument, heroes [4]EventAudience) []ui.Inspect
 			part := ui.InspectionMessagePart{Source: -1, Number: n, Speaker: -1, Ends: true}
 			if source >= 0 {
 				part, reached[source] = cell(source, n), true
+				part.Other = tagOthers(part.Tag, h.Kinds())
 			}
 			part.Heroes = h
 			out = append(out, part)
@@ -384,10 +385,24 @@ func messageCells(d messageMarkupDocument, heroes [4]EventAudience) []ui.Inspect
 }
 
 // tagOthers are a tag's conditions besides its part number, speaker and hero
-// literals, as the dialog editor lists them.
-func tagOthers(tag string) string {
+// literals, as the dialog editor lists them. A plain sex or class word is
+// left out when it alone sorts the cell: the cell's heroes (stated) are all of
+// it and the tag names no hero literal of that axis.
+func tagOthers(tag string, stated herokind.Set) string {
 	rest := setHeroArms(setMessageAttribute(setMessageAttribute(tag, partMark, -1), speakerTag, -1))
-	return strings.Join(strings.FieldsFunc(rest, func(r rune) bool { return r == ',' || r == ' ' }), ", ")
+	female, male, mage, fighter := stated.Axes()
+	bySex := !containsFold(tag, "iamfemale") && !containsFold(tag, "iammale")
+	byClass := !containsFold(tag, "iammage") && !containsFold(tag, "iamfighter")
+	said := map[string]bool{"female": bySex && female && !male, "male": bySex && male && !female, "mage": byClass && mage && !fighter, "fighter": byClass && fighter && !mage}
+	words := strings.FieldsFunc(rest, func(r rune) bool { return r == ',' || r == ' ' })
+	return strings.Join(slices.DeleteFunc(words, func(w string) bool {
+		for lit, ok := range said {
+			if ok && len(w) == len(lit) && containsFold(w, lit) {
+				return true
+			}
+		}
+		return false
+	}), ", ")
 }
 
 func (s *mapInspectionEdits) MessageParts(page uint32) []ui.InspectionMessagePart {

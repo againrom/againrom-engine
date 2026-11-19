@@ -544,8 +544,17 @@ func (e *MapEditor) dialogData() (DialogueData, error) {
 		}
 		var heroes []HeroAudience
 		for _, cell := range c.cells {
-			if cell.Never || cell.Ends || cell.Other != "" {
-				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.cells"), k+1)
+			who := ""
+			if w := HeroWord(cell.Heroes); w != "" {
+				who = " (" + e.plainWord(w) + ")"
+			}
+			switch {
+			case cell.Never:
+				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.never"), k+1, who)
+			case cell.Ends:
+				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.ends"), k+1, who)
+			case cell.Other != "":
+				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.other"), k+1, who, cell.Other)
 			}
 			if cell.Speaker != c.cells[0].Speaker {
 				return data, fmt.Errorf(e.plainWord("editor.dialogue.err.speakers"), k+1)
@@ -1024,7 +1033,7 @@ func (e *MapEditor) dialogFields() {
 		return
 	}
 	lang := e.dialogueLanguage()
-	add(InspectionField{Key: dlgReplyText, Label: e.word("editor.dialogue.reply"), Text: true, TextValue: e.editorHostText(r.text[lang])})
+	add(InspectionField{Key: dlgReplyText, Label: e.word("editor.dialogue.reply"), Text: true, TextValue: r.text[lang]})
 	next := []InspectionChoice{{Value: 0, Label: e.word("editor.dialogue.one.end")}}
 	for _, n := range live {
 		next = append(next, InspectionChoice{Value: int64(n), Label: e.lineLabel(n)})
@@ -1081,10 +1090,10 @@ func (e *MapEditor) dialogPull() {
 			if r.text == nil {
 				r.text = map[string]string{}
 			}
-			if t := e.hostUTF8(v); strings.TrimSpace(t) == "" {
+			if strings.TrimSpace(v) == "" {
 				delete(r.text, lang)
 			} else {
-				r.text[lang] = t
+				r.text[lang] = v
 			}
 		case f.Key == dlgNext && err == nil:
 			r.next = n

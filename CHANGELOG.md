@@ -39,6 +39,8 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor now edits interactive dialogues: the Start dialog action chooses between a message page and a dialogue with replies, a window edits the dialogue's nodes, their texts in two languages and up to four replies each with its next node, once mark, hidden or disabled look, condition and outcome, and the mod window has a Dialogues page; Apply and Save mod refuse a broken dialogue in plain words, and a dialogue is saved and published with the mod.
 - [BASE] The map editor now draws its notes, refusals and default node names in Russian instead of question marks: text kept in the face's bytes was encoded a second time, and the default node name falls back to English when the face cannot draw the editor's letters.
 - [BASE] A mod whose records did not load now refuses edits on every mod page in the map editor, not only on Speakers.
+- [BASE] In the Dialog window a reply's text no longer turns into unreadable letters after you change its When unavailable, Only once or Transition choice or reopen the dialog; the text was converted to the font's encoding twice.
+- [BASE] The Dialog window no longer counts the sex or class word a tag holds as an extra condition on a cell already sorted by that sex or class, so an original message split by the hero's sex opens and applies; a tag attribute such as tips that a dialogue file cannot hold is now named in the refusal, with an x on its Also in the tag row that drops it from the file, and the never-shown, ending and extra-condition refusals each say which button fixes them.
 
 ## 0.158.0
 
