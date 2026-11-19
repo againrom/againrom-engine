@@ -26,8 +26,7 @@ const (
 )
 
 // DiaryUnit is the definition row and face a placed actor was built from. A
-// row up to 255 keys the Diary and the face selects the nibble the card reads;
-// every row keys the victim kind of an actor without a source binding.
+// row up to 255 keys the Diary and the face selects the nibble the card reads.
 type DiaryUnit struct {
 	Row  uint16
 	Face uint8

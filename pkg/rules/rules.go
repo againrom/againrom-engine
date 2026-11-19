@@ -295,7 +295,7 @@ func (r Rules) WithClassStatCaps() Rules {
 
 // MainSkill is the main skill of the second game held for six skill levels:
 // the first of the school skills 1 to 5 whose level is largest
-// (R2-ENGINE-319; DIV-4305, DIV-4839).
+// (R2-ENGINE-319; DIV-4305).
 func MainSkill(levels [6]int32) int32 {
 	best := int32(1)
 	for s := int32(2); s < int32(len(levels)); s++ {

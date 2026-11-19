@@ -28,7 +28,7 @@ func TestSecondActorTemplateKeysWriteLoadAndPreserveOtherBytes(t *testing.T) {
 	humans[1].params[24] = 2000
 	humans[2] = dbEntry{name: "party person", params: make([]int32, 25)}
 	humans[2].params[24] = 10220
-	table := &mapload.Table{Units: units, Humans: humans}
+	table := &mapload.Table{Units: units, Humans: humans, ActorKindWords: true}
 	marked, unmarked := true, false
 	for _, tc := range []struct {
 		name, class  string

@@ -125,6 +125,7 @@ func CarryParty(party []PartyMember, w *sim.World, ids []sim.EntityID) []PartyMe
 		}
 		// Carry trained inputs; bounded effective levels can hide an award.
 		out[i].Hero.Skill = e.TrainedSkills(EquippedSkillBonus(c.EquippedItems, out[i].Profile.Fighter))
+		out[i].MainSkill = e.MainSkill
 		out[i].Hero = PotionHero(out[i].Hero, e.PotionStats)
 		out[i].PotionEffect = nil
 		for _, effect := range w.ActiveEffects() {
@@ -302,6 +303,7 @@ func CarryRosterIDs(party []PartyMember, w *sim.World, ids []sim.EntityID,
 				}
 			}
 			p.Hero.Skill = e.TrainedSkills(EquippedSkillBonus(c.EquippedItems, p.Profile.Fighter))
+			p.MainSkill = e.MainSkill
 			p.KnownSpells = e.KnownSpells
 			p.Book = e.Book
 			break

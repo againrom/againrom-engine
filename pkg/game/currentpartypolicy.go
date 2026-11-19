@@ -25,6 +25,9 @@ type currentPartyPolicy struct {
 	// (heroRecordRow); his actor's record holds the row his map placement
 	// chose instead. None is no row.
 	HeroRow uint16 `json:",omitempty"`
+	// MainSkill is the member's second-game main skill; an older SAVE holds
+	// none and the party mint keeps the rule it wrote.
+	MainSkill int32 `json:",omitempty"`
 }
 
 type currentPartyFace struct {
@@ -56,7 +59,7 @@ func capturePartyPolicy(p mapload.PartyMember, c sav.DocumentCharacter, table *m
 		Mage: p.Mage, HealthColumn: p.Profile.HealthColumn, ManaColumn: p.Profile.ManaColumn,
 		HiredRotationSpeed: p.HiredRotationSpeed, SpellbookRestored: p.SpellbookRestored,
 		LegacySpellbookPresent: p.SpellbookPresent, StartingWeaponSpent: p.WeaponMaterialized,
-		Carry: p.Carry != nil, Saved: p.Saved != nil,
+		Carry: p.Carry != nil, Saved: p.Saved != nil, MainSkill: p.MainSkill,
 	}
 	if c.Character.Class == "Unit" {
 		out.UnitFighter = p.Profile.Fighter
@@ -74,7 +77,7 @@ func (p currentPartyPolicy) member() mapload.PartyMember {
 		CompanionNPC: p.CompanionNPC, Body: string(p.Body), BodyDir: string(p.BodyDir), FigureDir: string(p.FigureDir),
 		Mage: p.Mage, Profile: data.Profile{Fighter: p.UnitFighter, HealthColumn: p.HealthColumn, ManaColumn: p.ManaColumn},
 		HiredRotationSpeed: p.HiredRotationSpeed, SpellbookRestored: p.SpellbookRestored,
-		SpellbookPresent: p.LegacySpellbookPresent,
+		SpellbookPresent: p.LegacySpellbookPresent, MainSkill: p.MainSkill,
 	}
 	if p.StartingWeaponSpent {
 		materializeStartingWeapon(&out)

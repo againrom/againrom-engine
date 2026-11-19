@@ -106,6 +106,11 @@ type Table struct {
 	// (R2-ENGINE-290); false is the first game's 50.
 	ClassStatCaps bool
 
+	// ActorKindWords gives every actor the kind word and main skill its row
+	// and producer state (R2-ENGINE-319, R2-ENGINE-320, R2-ENGINE-525);
+	// false is the first game's, whose actors hold neither.
+	ActorKindWords bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules
@@ -1218,6 +1223,7 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID, rows ...int) (PartyMe
 		Weapon:             w,
 		SuppressCorpseLoot: SuppressesCorpseLoot(name),
 	}
+	_, p.MainSkill = RowActorKind(true, r.Index, t)
 	if r.Arm == ArmNPC {
 		p.CompanionNPC = int(u.ClassSubID)
 	}

@@ -10,7 +10,7 @@ import (
 func TestSecondAnimateNamePolicyKeepsLivingPersonExperience(t *testing.T) {
 	hero, victim := spEnt(1, 14, 14), spEnt(2, 16, 16)
 	hero.Humanoid, hero.GainsXP, hero.XPSlot, hero.Owner = true, true, 1, 7
-	hero.TypeID = HumanTypeID
+	hero.TypeID, hero.MainSkill = HumanTypeID, 1
 	victim.Humanoid, victim.SuppressCorpseLoot, victim.Owner = true, true, 8
 	victim.TypeID, victim.SkillXP[1] = 1, 400000
 	w := secondWorld(t, 53, Bounds{Width: 40, Height: 40}, nil, hero, victim)

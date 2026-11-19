@@ -95,6 +95,11 @@ type ActorValues struct {
 	// VictimKinds is the second game's repeated-victim list (DIV-4840); an
 	// actor with an empty list writes none.
 	VictimKinds []VictimKindCount `json:",omitempty"`
+	// KindWord and MainSkill are the second game's kind word and main skill,
+	// which its records hold in U148 and H1CC. An older SAVE writes neither:
+	// the actor keeps the values its LOAD read from those records.
+	KindWord  uint16 `json:",omitempty"`
+	MainSkill int32  `json:",omitempty"`
 }
 
 type actorNumericField struct {
@@ -126,7 +131,7 @@ func (e Entity) Values() ActorValues {
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^uint32(0x1ffffffe),
 		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell,
-		VictimKinds: e.victimKinds.counts()}
+		VictimKinds: e.victimKinds.counts(), KindWord: e.KindWord, MainSkill: e.MainSkill}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {
 		xp := e.SkillXP
 		v.UnitXP = &xp
@@ -340,6 +345,9 @@ func (e *Entity) restoreValues(v ActorValues) error {
 		return err
 	}
 	e.victimKinds = kinds
+	if v.KindWord != 0 || v.MainSkill != 0 {
+		e.KindWord, e.MainSkill = v.KindWord, v.MainSkill
+	}
 	return nil
 }
 

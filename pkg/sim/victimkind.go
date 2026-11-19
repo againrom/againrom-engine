@@ -45,13 +45,17 @@ func (l victimKindList) counts() []VictimKindCount {
 }
 
 // victimKindListOf is the list SAV carried: at most five entries, no kind
-// twice.
+// twice. An entry above a word is an older SAVE's definition row key, which
+// names no kind word; it is dropped.
 func victimKindListOf(counts []VictimKindCount) (victimKindList, error) {
 	var l victimKindList
 	if len(counts) > maxVictimKinds {
 		return l, fmt.Errorf("sim: a victim kind list holds %d entries", len(counts))
 	}
 	for _, c := range counts {
+		if c.Kind > 0xffff {
+			continue
+		}
 		if _, held := l.find(c.Kind); held {
 			return l, fmt.Errorf("sim: a victim kind list holds kind %d twice", c.Kind)
 		}
@@ -61,23 +65,9 @@ func victimKindListOf(counts []VictimKindCount) (victimKindList, error) {
 	return l, nil
 }
 
-// victimKind is the key a victim is counted under: its definition table and
-// row, the partition of the original's kind word +0x14c except for the rows
-// DIV-4844 names. A source binding states them; an actor without one states
-// the row its map placement resolved to, in the table SAVE writes it under.
-func (w *World) victimKind(e Entity) uint32 {
-	b := e.SourceBinding
-	if b.Class == 0 {
-		if u, ok := w.diary.units[e.MapUnitID]; ok {
-			class := uint32(1)
-			if e.Humanoid {
-				class = 2
-			}
-			return class<<16 | uint32(u.Row)
-		}
-	}
-	return uint32(b.ActorClass())<<16 | uint32(b.TokenRow)
-}
+// victimKind is the key a victim is counted under: its kind word +0x14c
+// (R2-ENGINE-1157).
+func victimKind(e Entity) uint32 { return uint32(e.KindWord) }
 
 // find returns the count of the first entry holding kind.
 func (l *victimKindList) find(kind uint32) (uint16, bool) {
@@ -117,7 +107,7 @@ func (w *World) countVictimKind(ai, ti int) {
 	if limit <= 0 || !a.GainsXP || !InPersistBand(a.TypeID) {
 		return
 	}
-	a.victimKinds.count(w.victimKind(w.entities[ti]), limit)
+	a.victimKinds.count(victimKind(w.entities[ti]), limit)
 }
 
 // victimKindCut is the repeated-victim cut X = 10X / (n + 10), computed as the

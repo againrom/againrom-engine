@@ -219,12 +219,13 @@ const (
 // formed, the snapshot, the installed table and the hero's record. keys is
 // each +4 a holder rewrote, the form's key by the engine's.
 type formHolding struct {
-	doc     *sav.DocumentData
-	s       Snapshot
-	table   *mapload.Table
-	hero    uint16
-	rewards map[int]bool
-	keys    map[uint32]uint32
+	doc   *sav.DocumentData
+	s     Snapshot
+	table *mapload.Table
+	hero  uint16
+	// values are the current values of the actor each record index holds.
+	values map[int]sim.ActorValues
+	keys   map[uint32]uint32
 }
 
 // secondFormHolders are the fields the second game's records hold that the
@@ -380,37 +381,32 @@ func secondActorTemplateKey(h *formHolding, i int) (uint32, bool) {
 	if err != nil {
 		return packed, false
 	}
-	if marked, present := h.rewards[i]; present {
+	v, present := h.values[i]
+	if present {
 		packed &= 0x00ffffff
-		if marked {
+		if v.SuppressRewards {
 			packed |= 1 << 24
+		}
+		if v.KindWord != 0 {
+			return packed&^0xffff | uint32(v.KindWord), true
 		}
 	}
 	if uint16(packed) != 0 || h.table == nil {
 		return packed, true
 	}
+	// A town record has no actor: the hero's identity, else the word his
+	// row's constructor stores.
 	if r.Class == "Human" && uint16(i+1) == h.hero {
 		if id, ok := mapload.PartyIdentity(nativeCityHeroOf(h.s.Party), h.table); ok {
 			return packed | uint32(uint16(id)), true
 		}
 	}
-	rows, serverID := h.table.Units, data.UnitServerID
-	if r.Class == "Human" {
-		rows, serverID = h.table.Humans, data.HumanServerID
-	}
 	row, err := savedStructureValue(r, "T0C")
-	if err != nil || rows == nil || row == 0 || uint64(row) >= uint64(rows.Len()) {
+	if err != nil || row == 0 || row > 0xffff {
 		return packed, true
 	}
-	key, ok := serverID(rows.EntryParams(int(row)))
-	if !ok || key <= 0 {
-		return packed, true
-	}
-	word := uint16(key)
-	if r.Class == "Human" {
-		word = mapload.PersonNPCWord(key)
-	}
-	return packed | uint32(word), true
+	kind, _ := mapload.RowActorKind(r.Class == "Human", int(row), h.table)
+	return packed | uint32(kind), true
 }
 
 // secondCompanionName empties a companion's name that is his identity's line.
@@ -445,10 +441,10 @@ func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s 
 		return err
 	}
 	if actions != nil {
-		h.rewards = make(map[int]bool)
+		h.values = make(map[int]sim.ActorValues)
 		for _, b := range actions.Bindings {
 			if v, present := actions.Values[b.ID]; present && !b.Structure && !b.Missing && b.Object != 0 {
-				h.rewards[int(b.Object)-1] = v.SuppressRewards
+				h.values[int(b.Object)-1] = v
 			}
 		}
 	}
@@ -502,15 +498,27 @@ func holderConstant(v uint32) func(*formHolding, int) (uint32, bool) {
 	return func(*formHolding, int) (uint32, bool) { return v, true }
 }
 
-// secondMainSkillHeld is a Human's main skill: the hero's from his party
-// member; one built from a `_Hero` or `Start_` template, such as a
-// companion's identity row, his largest school (R2-ENGINE-319); one built
-// from another the Humanoid initializer's 0 (DIV-4305).
+// secondMainSkillHeld is a Human's main skill: his actor's; in a town
+// record, which has no actor, the party member's whose identity the record
+// holds. A record of neither built from a `_Hero` or `Start_` template holds
+// his largest school (R2-ENGINE-319); one built from another the Humanoid
+// initializer's 0.
 func secondMainSkillHeld(h *formHolding, i int) (uint32, bool) {
-	if uint16(i+1) == h.hero {
-		return secondMainSkill(nativeCityHeroOf(h.s.Party).Hero), true
+	if v, present := h.values[i]; present {
+		return uint32(v.MainSkill), true
 	}
-	if hero, ok := secondTemplateHero(&h.doc.Objects[i], h.table); ok {
+	r := &h.doc.Objects[i]
+	if uint16(i+1) == h.hero {
+		return uint32(mapload.PartyMainSkill(nativeCityHeroOf(h.s.Party))), true
+	}
+	if key, err := savedStructureValue(r, "U148"); err == nil && h.table != nil {
+		for _, p := range h.s.Party {
+			if id, ok := mapload.PartyIdentity(p, h.table); ok && !p.StartingHero && uint16(id) == mapload.RecordKindWord(key) {
+				return uint32(mapload.PartyMainSkill(p)), true
+			}
+		}
+	}
+	if hero, ok := secondTemplateHero(r, h.table); ok {
 		return secondMainSkill(hero), true
 	}
 	return 0, true

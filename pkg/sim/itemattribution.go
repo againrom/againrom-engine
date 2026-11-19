@@ -110,11 +110,18 @@ func (w *World) processKillCredit(ti int) {
 	if ci < 0 {
 		return
 	}
-	// A mage's kill with spell 0 names no skill, so the award refuses it; the
-	// call still counts the victim's kind (R2-ENGINE-1158, R2-ENGINE-1157,
-	// DIV-4845).
+	// The second game calls the award for a killer whose health is not below
+	// zero, and for a non-mage only with spell 0; a mage's kill with spell 0
+	// names no skill, so the award refuses it, and the call still counts the
+	// victim's kind (R2-ENGINE-1158, R2-ENGINE-1157). A mage's spell with no
+	// row makes no call (DIV-4997).
+	award := w.game.skillAward
+	mage := skillMage(w.entities[ci])
+	if award.standingKiller && !w.entities[ci].InLife(LifeNonNegative) || award.spellNeedsMage && !mage && target.KillCreditSpell != 0 {
+		return
+	}
 	named := int32(0)
-	if skillMage(w.entities[ci]) && target.KillCreditSpell != 0 {
+	if mage && target.KillCreditSpell != 0 {
 		id := int32(target.KillCreditSpell)
 		if id <= 0 {
 			return

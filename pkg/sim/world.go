@@ -765,6 +765,16 @@ type Entity struct {
 	// (alm.Unit.UnitID) and the key type of pkg/mapload's own table.
 	MapUnitID uint16
 
+	// KindWord is the second game's kind word +0x14c: the word its row's
+	// server ID gives, the hire ID of a hire or 21 for the hero
+	// (R2-ENGINE-319, R2-ENGINE-525). The repeated-victim list keys on it.
+	// MainSkill is the second game's main skill +0x23c, the school the
+	// skill award spares its cut (R2-ENGINE-320, R2-ENGINE-480). NewActor
+	// sets both from the definition; both are zero in the first game. The
+	// byte form's actor kind section and SAV's current values carry them.
+	KindWord  uint16
+	MainSkill int32
+
 	// summonKey is the caster key a second-game Summon gives its creature:
 	// summonKeyOf(caster id), 0 for every other actor (R2-ENGINE-455). The world
 	// pass caps the summoned actors of each key, and a death clears it

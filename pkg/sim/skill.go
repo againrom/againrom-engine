@@ -104,8 +104,12 @@ type skillAwardProfile struct {
 	// ownedAttacker: an attacker with no owner is paid nothing for a victim
 	// whose health is not below zero.
 	ownedAttacker bool
-	// spellNeedsMage: spell damage pays a mage alone.
+	// spellNeedsMage: spell damage pays a mage alone, and a kill credited
+	// to a spell calls no award for a non-mage.
 	spellNeedsMage bool
+	// standingKiller: the kill route calls no award for a killer whose
+	// health is below zero.
+	standingKiller bool
 	// victimRow: the protected-relation refusal reads the victim's owner's
 	// relation toward the attacker's, not the attacker's toward the victim's.
 	victimRow bool
@@ -119,20 +123,11 @@ type skillAwardProfile struct {
 var firstGameSkillAward = skillAwardProfile{victimRow: true}
 
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
-// R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157).
+// R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157,
+// R2-ENGINE-1158).
 var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raiseAtNext: true,
-	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true, victimRow: true,
-	victimKinds: maxVictimKinds}
-
-// mainSkill is the skill the off-main cut spares besides freeSkill: the
-// main skill of the actor's trained levels (rules.MainSkill, DIV-4839).
-func (w *World) mainSkill(ai int) int32 {
-	var levels [skillSlots]int32
-	for s := int32(1); s < skillSlots; s++ {
-		levels[s] = w.trainedSkill(ai, s)
-	}
-	return rules.MainSkill(levels)
-}
+	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true, standingKiller: true,
+	victimRow: true, victimKinds: maxVictimKinds}
 
 // raisesSkill reports whether experience xp raises a skill whose trained
 // level is level.
@@ -216,11 +211,11 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 
 	gain := xpGain(amount, a.Mind)
 	if srcIdx >= 0 && award.victimKinds > 0 {
-		if n, held := a.victimKinds.find(w.victimKind(w.entities[srcIdx])); held {
+		if n, held := a.victimKinds.find(victimKind(w.entities[srcIdx])); held {
 			gain = victimKindCut(gain, n)
 		}
 	}
-	if d := award.offMainDivisor; d > 0 && slot != award.freeSkill && slot != w.mainSkill(ai) {
+	if d := award.offMainDivisor; d > 0 && slot != award.freeSkill && slot != a.MainSkill {
 		gain = (gain + d - 1) / d
 	}
 	if cap := int64(w.rules.SkillXP(level+1) - w.rules.SkillXP(level)); gain > cap {

@@ -350,6 +350,9 @@ var nstPinned = []struct {
 		// differing only in which map id a pursued unit carries would hash the
 		// same and resume as each other were it left off this table.
 		{"MapUnitID", "uint16"},
+		// The second game's kind word and main skill, carried by the actor
+		// kind byte form section.
+		{"KindWord", "uint16"}, {"MainSkill", "int32"},
 		// The second game's summoned caster key, carried by its own byte
 		// form section.
 		{"summonKey", "sim.EntityID"},

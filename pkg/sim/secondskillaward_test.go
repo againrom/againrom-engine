@@ -15,9 +15,17 @@ func awardXP(level int32) int32 { return Rules{}.SkillXP(level) }
 
 // awardHero is a player hero of the given class whose trained levels are
 // levels, each holding the experience of its level, against no worn bonus.
+// His main skill is the first school of the largest level, the chosen skill
+// of a generated hero.
 func awardHero(fighter bool, mind int32, xpSlot uint8, levels [skillSlots]int32) Entity {
 	e := cbEnt(1, 0, 0)
 	e.Owner, e.GainsXP, e.Mind, e.XPSlot, e.TypeID, e.Humanoid = SelfSlot, true, mind, xpSlot, HumanTypeID, true
+	e.MainSkill = 1
+	for s := 2; s < skillSlots; s++ {
+		if levels[s] > levels[e.MainSkill] {
+			e.MainSkill = int32(s)
+		}
+	}
 	e.NativeClass = NativeClass{Present: true, Fighter: fighter}
 	e.NativeTraining = NativeTraining{Present: true, Levels: levels}
 	e.Skill = levels
@@ -81,6 +89,27 @@ func TestSecondGameBlowPaysTheMainSkillWholeAndAnotherAnEighth(t *testing.T) {
 				t.Errorf("slot %d level %d, want %d", c.slot, got, c.wantLvl)
 			}
 		})
+	}
+}
+
+// The off-main cut spares the actor's own main skill, not the first school of
+// the largest level: a hero whose main skill is 3, with schools 2 and 3 both
+// at level 10, takes the blow whole into 3 and an eighth into 2
+// (R2-ENGINE-320, R2-ENGINE-480).
+func TestSecondGameAwardSparesTheActorsMainSkillAmongEqualSchools(t *testing.T) {
+	var levels [skillSlots]int32
+	levels[2], levels[3] = 10, 10
+	for _, c := range []struct {
+		slot uint8
+		want int32
+	}{{3, 27}, {2, 4}} {
+		h := awardHero(true, 24, c.slot, levels)
+		h.MainSkill = 3
+		w := awardWorld(t, ScriptROM2, h, awardVictim(3))
+		w.payExperience(0, 1, 50, w.paidBeforeBlow(w.entities[1]))
+		if got := w.entities[0].SkillXP[c.slot] - awardXP(10); got != c.want {
+			t.Errorf("slot %d gained %d, want %d", c.slot, got, c.want)
+		}
 	}
 }
 
@@ -250,8 +279,10 @@ func TestSecondGameSourceActorAward(t *testing.T) {
 			s := SourceActor{Class: 2, Fighter: true, Stats: [14]uint16{10, 20, 60, 10, 18, 0, 0, 101, 100, 100, 100, 0, 0, 50}, Experience: 2300}
 			s.Attack[16] = 3
 			binary.LittleEndian.PutUint16(s.Base[8:], 9)
+			w.entities[0].MainSkill = 3
 			if c.main1 {
 				binary.LittleEndian.PutUint16(s.Base[4:], 20)
+				w.entities[0].MainSkill = 1
 			}
 			s.SkillXP[3] = 1357
 			load := ActorLoadSnapshot{Inventory: ActorLoad{Present: true, ContainerPresent: true, Source: s}, Capacity: 101, Speed: 18, Movement: HumanMovement{Present: true, RawSpeed: 18, NativeSpeed: 18, Capacity: 101}}

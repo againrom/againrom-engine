@@ -614,6 +614,8 @@ func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
 		h.Skill[data.SkillSlots-1] = outfit.FifthSkill
 		if slot > data.SkillGeneral && slot < data.SkillSlots {
 			h.Skill[slot] = outfit.ChosenSkill
+			// Chosen skill makes it the main skill (R2-ENGINE-320).
+			party[0].MainSkill = slot
 		}
 	}
 	return party

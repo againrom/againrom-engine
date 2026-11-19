@@ -11,20 +11,21 @@ import (
 // a fighter at Mind 24 and a creature of value 100, so a kill offers
 // trunc(100 x 0.5) = 50 and the Mind scale makes it trunc(50 x 1.05) = 52.
 
-// vkWorld is the hero (index 0) and one creature per row (index 1 on), each
-// counted under its row of the units table.
-func vkWorld(t *testing.T, d ScriptDialect, hero Entity, rows ...uint16) *World {
+// vkWorld is the hero (index 0) and one creature per kind word (index 1 on),
+// each built from the units row of its own index.
+func vkWorld(t *testing.T, d ScriptDialect, hero Entity, kinds ...uint16) *World {
 	t.Helper()
 	ents := []Entity{hero}
-	for i := range rows {
+	for i := range kinds {
 		v := awardVictim(3)
 		v.ID, v.X = EntityID(2+i), int32(1+i)
 		ents = append(ents, v)
 	}
 	w := cbWorld(t, 1, ents...)
 	w.game = newGameProfile(d)
-	for i, row := range rows {
-		w.entities[1+i].SourceBinding = SourceBinding{Class: GeneratedUnitBinding, Identity: uint32(2 + i), TokenRow: row}
+	for i, kind := range kinds {
+		w.entities[1+i].SourceBinding = SourceBinding{Class: GeneratedUnitBinding, Identity: uint32(2 + i), TokenRow: uint16(10 + i)}
+		w.entities[1+i].KindWord = kind
 	}
 	return w
 }
@@ -50,8 +51,8 @@ func TestSecondGameKillsOfOneKindPayFullTwiceThenTheCut(t *testing.T) {
 		}
 	}
 	l := w.entities[0].victimKinds
-	if l.n != 1 || l.entries[0] != (victimKindEntry{kind: w.victimKind(w.entities[1]), count: 4}) {
-		t.Errorf("list %+v, want one entry of count 4", l)
+	if l.n != 1 || l.entries[0] != (victimKindEntry{kind: 10, count: 4}) {
+		t.Errorf("list %+v, want kind word 10 at count 4", l)
 	}
 }
 
@@ -67,11 +68,12 @@ func TestSecondGameTwoKindsAreCountedApart(t *testing.T) {
 	}
 }
 
-// A mission's placed actors carry no source binding: each is counted under
-// the row its map placement resolved to, a row past 255 included, so two
-// placement rows count apart. The Diary keeps reading rows up to 255.
-func TestSecondGameUnboundVictimsOfTwoPlacementRowsCountApart(t *testing.T) {
-	w := vkWorld(t, ScriptROM2, vkFighter(), 0, 0)
+// The list keys on the kind word, not the row: two placed creatures of
+// different rows and one kind word, such as two `2MercenaryKnight` rows, count
+// as one kind (R2-ENGINE-1157, R2-ENGINE-319). The Diary keeps reading rows up
+// to 255.
+func TestSecondGameVictimsOfTwoRowsWithOneKindWordCountTogether(t *testing.T) {
+	w := vkWorld(t, ScriptROM2, vkFighter(), 2, 2)
 	for i, id := range []uint16{21, 22} {
 		w.entities[1+i].SourceBinding = SourceBinding{}
 		w.entities[1+i].MapUnitID = id
@@ -80,12 +82,12 @@ func TestSecondGameUnboundVictimsOfTwoPlacementRowsCountApart(t *testing.T) {
 	for call, c := range []struct {
 		ti   int
 		want int32
-	}{{1, 52}, {1, 52}, {2, 52}, {2, 52}, {1, 47}, {2, 47}} {
+	}{{1, 52}, {1, 52}, {2, 47}, {2, 43}, {1, 40}, {2, 37}} {
 		if got := vkKill(w, c.ti, 1); got != c.want {
 			t.Errorf("call %d on creature %d paid %d, want %d", call+1, c.ti, got, c.want)
 		}
 	}
-	if got, want := w.entities[0].victimKinds.counts(), []VictimKindCount{{1<<16 | 10, 2}, {1<<16 | 300, 2}}; !slices.Equal(got, want) {
+	if got, want := w.entities[0].victimKinds.counts(), []VictimKindCount{{2, 5}}; !slices.Equal(got, want) {
 		t.Errorf("list %+v, want %+v", got, want)
 	}
 	if _, ok := w.diaryUnitOf(w.entities[2]); ok {
@@ -104,13 +106,20 @@ func TestSecondGameVictimListRidesTheCurrentValues(t *testing.T) {
 		vkKill(w, ti, 1)
 	}
 	v := w.entities[0].Values()
-	if want := []VictimKindCount{{1<<16 | 10, 1}, {1<<16 | 11, 0}}; !slices.Equal(v.VictimKinds, want) {
+	if want := []VictimKindCount{{10, 1}, {11, 0}}; !slices.Equal(v.VictimKinds, want) {
 		t.Fatalf("values carry %+v, want %+v", v.VictimKinds, want)
 	}
 	loaded := w.entities[0]
 	loaded.victimKinds = victimKindList{}
 	if err := loaded.restoreValues(v); err != nil || loaded.victimKinds != w.entities[0].victimKinds {
 		t.Fatalf("restored %+v (%v), want %+v", loaded.victimKinds, err, w.entities[0].victimKinds)
+	}
+	// An older SAVE keyed its entries on the definition row, class << 16 |
+	// row, which names no kind word: LOAD drops them.
+	old := v
+	old.VictimKinds = []VictimKindCount{{1<<16 | 10, 1}, {11, 0}}
+	if err := loaded.restoreValues(old); err != nil || !slices.Equal(loaded.victimKinds.counts(), []VictimKindCount{{11, 0}}) {
+		t.Fatalf("an older list restored as %+v (%v)", loaded.victimKinds.counts(), err)
 	}
 	if empty := w.entities[1].Values(); empty.VictimKinds != nil {
 		t.Errorf("an empty list writes %+v", empty.VictimKinds)
@@ -134,13 +143,13 @@ func TestSecondGameASixthKindDropsTheOldest(t *testing.T) {
 		vkKill(w, ti, 1)
 	}
 	l := w.entities[0].victimKinds
-	if l.n != maxVictimKinds || l.entries[0].kind != w.victimKind(w.entities[2]) || l.entries[4].kind != w.victimKind(w.entities[6]) {
+	if l.n != maxVictimKinds || l.entries[0].kind != victimKind(w.entities[2]) || l.entries[4].kind != victimKind(w.entities[6]) {
 		t.Fatalf("list %+v, want kinds 2..6", l)
 	}
 	if got := vkKill(w, 1, 1); got != 52 {
 		t.Errorf("the dropped kind paid %d, want 52", got)
 	}
-	if l := w.entities[0].victimKinds; l.n != maxVictimKinds || l.entries[0].kind != w.victimKind(w.entities[3]) || l.entries[4] != (victimKindEntry{kind: w.victimKind(w.entities[1])}) {
+	if l := w.entities[0].victimKinds; l.n != maxVictimKinds || l.entries[0].kind != victimKind(w.entities[3]) || l.entries[4] != (victimKindEntry{kind: victimKind(w.entities[1])}) {
 		t.Errorf("list %+v, want kinds 3..6 and kind 1 at count 0", l)
 	}
 }
@@ -231,6 +240,7 @@ func TestFirstGameKillsOfOneKindAreNotCut(t *testing.T) {
 
 func TestVictimKindListsRideTheirOwnFormSection(t *testing.T) {
 	w := cbWorld(t, 1, awardHero(true, 24, 1, chosenLevels(1)), awardVictim(3))
+	w.entities[0].MainSkill = 0
 	plain, err := w.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
@@ -266,5 +276,56 @@ func TestVictimKindListsRideTheirOwnFormSection(t *testing.T) {
 	}
 	if err := new(World).UnmarshalBinary(bad); err == nil {
 		t.Error("a list naming one kind twice decoded")
+	}
+}
+
+// A mage's kill with spell 0 calls the award, which refuses it, and the call
+// counts the victim's kind word.
+func TestKillRouteMageWithSpellZeroCountsTheKindWord(t *testing.T) {
+	w := vkWorld(t, ScriptROM2, awardHero(false, 24, 0, chosenLevels(1)), 9201)
+	before := w.entities[0].SkillXP
+	vkKill(w, 1, 1)
+	if w.entities[0].SkillXP != before {
+		t.Fatalf("a mage's kill with spell 0 paid: %v", w.entities[0].SkillXP)
+	}
+	if got := w.entities[0].victimKinds.counts(); !slices.Equal(got, []VictimKindCount{{9201, 0}}) {
+		t.Errorf("list %+v, want kind word 9201 at count 0", got)
+	}
+}
+
+// The kind word and the main skill ride their own form section, which a
+// World whose actors hold neither does not write.
+func TestActorKindsRideTheirOwnFormSection(t *testing.T) {
+	w := cbWorld(t, 1, awardHero(true, 24, 1, chosenLevels(1)), awardVictim(3))
+	w.entities[0].MainSkill = 0
+	plain, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain[0] == actorKindFormVersion {
+		t.Fatal("a World with no kind word or main skill wrote the actor kind form")
+	}
+	w.entities[0].KindWord, w.entities[0].MainSkill = 21, 3
+	w.entities[1].KindWord = 9201
+	form, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if form[0] != actorKindFormVersion {
+		t.Fatalf("form version %d, want %d", form[0], actorKindFormVersion)
+	}
+	var back World
+	if err := back.UnmarshalBinary(form); err != nil {
+		t.Fatal(err)
+	}
+	if e := back.entities; e[0].KindWord != 21 || e[0].MainSkill != 3 || e[1].KindWord != 9201 || e[1].MainSkill != 0 {
+		t.Errorf("decoded %d/%d and %d/%d", e[0].KindWord, e[0].MainSkill, e[1].KindWord, e[1].MainSkill)
+	}
+	var bare World
+	if err := bare.UnmarshalBinary(plain); err != nil {
+		t.Fatal(err)
+	}
+	if back.Hash() != w.Hash() || back.Hash() == bare.Hash() {
+		t.Error("the kind word and main skill do not hash as the form carries them")
 	}
 }

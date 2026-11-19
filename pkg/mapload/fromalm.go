@@ -821,6 +821,10 @@ type spawnBlock struct {
 
 	skill   [data.SkillSlots]int32
 	skillXP [data.SkillSlots]int32
+	// kindWord and mainSkill are the second game's kind word and main skill
+	// school (actorKind); the first game leaves both 0.
+	kindWord  uint16
+	mainSkill int32
 
 	// The resolved Human or Unit row supplies its spellbook. An unresolved
 	// placement leaves both fields empty.
@@ -988,7 +992,9 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty, equipment ...[sim.EquipSlot
 			}
 		}
 		_, _, taught := EquippedPoolEffects(hworn)
+		kind, main := RowActorKind(true, Resolve(u, t).Index, t)
 		return spawnBlock{class: class, health: der.HealthMax, hp: hp, hpSet: true, domain: domainForCode(h.MovementType),
+			kindWord: kind, mainSkill: main,
 			nativeBasis: nativeBasis.WithBody(uint16(der.Body)),
 			nativeClass: sim.NativeClass{Present: true, Fighter: h.Profile().Fighter},
 			humanoid:    true,
@@ -1071,7 +1077,8 @@ func unitRowBlock(class int32, index int, def data.UnitDef, worn [sim.EquipSlots
 	}
 	t.creatureBooks().add(def.TypeID, def.Face, params, t, &known, &book, &skill)
 	nativeBasis := nativeInitialModifier(nativeInitialBase(nil), &worn, t, skill[0], false, true)
-	return spawnBlock{class: class, health: def.HealthMax, domain: domainFor(def),
+	kind, _ := RowActorKind(false, index, t)
+	return spawnBlock{class: class, health: def.HealthMax, domain: domainFor(def), kindWord: kind,
 		nativeBasis: nativeBasis.WithBody(uint16(def.Body)),
 		speed:       def.Speed, sight: sightOf(def.ScanRange), seeInvisible: sightOf(def.SeeInvisible), dying: def.DyingTime,
 		withdraw: def.Withdraw, wimpy: def.Wimpy,

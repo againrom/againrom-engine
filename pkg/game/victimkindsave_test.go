@@ -8,8 +8,8 @@ import (
 	"againrom/pkg/sim"
 )
 
-// victimKindMission is mission 10 with two creatures of Player 2 on Units
-// rows 2 and 3, each of 1 hit point and value 100.
+// victimKindMission is mission 10 with three creatures of Player 2 placed by
+// the server ids 9201, 9202 and 9201, each of 1 hit point and value 100.
 func victimKindMission() secondMissionContent {
 	row := func(server int32) []int32 {
 		p := make([]int32, 62)
@@ -20,7 +20,7 @@ func victimKindMission() secondMissionContent {
 		return p
 	}
 	c := secondMissionContent{side: 128, players: 2, creatures: map[int]dbEntry{}}
-	for i, server := range []int32{9201, 9202} {
+	for i, server := range []int32{9201, 9202, 9201} {
 		c.creatures[2+i] = dbEntry{name: "Kind" + string(rune('A'+i)), params: row(server)}
 		c.units = append(c.units, alm.Unit{X: uint32(70+4*i)<<8 | 0x80, Y: 70<<8 | 0x80, ClassID: 9, ClassSubID: 1,
 			ServerID: uint32(server), Owner: 2, UnitID: uint16(11 + i), GroupID: 6})
@@ -40,35 +40,49 @@ func victimKindKill(t *testing.T, f *FrontEnd, hero sim.EntityID, id uint16) {
 			victim, found = e, true
 		}
 	}
-	h, _ := w.Entity(hero)
-	if err := w.HeadlessPlace(victim.ID, h.X+1, h.Y); !found || err != nil {
-		t.Fatalf("map unit %d cannot stand beside the hero: %v", id, err)
+	if !found {
+		t.Fatalf("no map unit %d", id)
 	}
-	f.live.strike(uint32(hero), uint32(victim.ID))
+	victimKindKillActor(t, f, hero, victim.ID)
+}
+
+// victimKindKillActor places the victim beside the hero and has the hero
+// strike it until it falls.
+func victimKindKillActor(t *testing.T, f *FrontEnd, hero, victim sim.EntityID) {
+	t.Helper()
+	w := f.live.world
+	h, _ := w.Entity(hero)
+	if err := w.HeadlessPlace(victim, h.X+1, h.Y); err != nil {
+		t.Fatalf("actor %d cannot stand beside the hero: %v", victim, err)
+	}
+	f.live.strike(uint32(hero), uint32(victim))
 	for range 3000 {
 		f.live.tick()
-		if v, _ := w.Entity(victim.ID); !v.Alive() {
+		if v, _ := w.Entity(victim); !v.Alive() {
 			return
 		}
 	}
-	t.Fatalf("the hero did not kill map unit %d", id)
+	t.Fatalf("the hero did not kill actor %d", victim)
 }
 
-// A new game's mission counts its placed creatures under their Units rows,
-// so two rows are two kinds; the hero's list crosses a mission SAVE and a
-// cold LOAD with the complete World.
+// A new game's mission counts its placed creatures under their kind words,
+// the low word of each Units row's server id (R2-ENGINE-1157,
+// R2-ENGINE-525); the hero's list and every
+// actor's kind word cross a mission SAVE and a cold LOAD with the complete
+// World.
 func TestSecondGameVictimListCrossesSaveAndColdLoad(t *testing.T) {
 	f, app, screen, dir := secondBagFrontOf(t, nil, victimKindMission())
 	secondBagEnter(t, f, app, screen)
 	hero := f.live.mission.ids[0]
 	victimKindKill(t, f, hero, 11)
 	victimKindKill(t, f, hero, 12)
+	victimKindKill(t, f, hero, 13)
 	for range 60 {
 		f.live.tick()
 	}
 	h, _ := f.live.world.Entity(hero)
 	list := h.Values().VictimKinds
-	if want := []sim.VictimKindCount{{Kind: 1<<16 | 2}, {Kind: 1<<16 | 3}}; !slices.Equal(list, want) {
+	if want := []sim.VictimKindCount{{Kind: 9201, Count: 1}, {Kind: 9202}}; !slices.Equal(list, want) {
 		t.Fatalf("the hero's list is %+v, want %+v", list, want)
 	}
 	if err := app.HeadlessKey("escape"); err != nil {

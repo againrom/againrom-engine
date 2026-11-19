@@ -126,6 +126,8 @@ type gameFiles struct {
 	schoolPoolExperience bool
 	// classStatCaps caps each statistic at its class-and-sex base.
 	classStatCaps bool
+	// actorKindWords gives every actor a kind word and a main skill.
+	actorKindWords bool
 	// fallbackSpeakers adds data.FallbackSpeakerFace for every key that has
 	// no other record.
 	fallbackSpeakers    bool
@@ -357,6 +359,8 @@ var secondGameFiles = gameFiles{
 	schoolPoolExperience: true,
 	// R2-ENGINE-290.
 	classStatCaps: true,
+	// R2-ENGINE-319, R2-ENGINE-320, R2-ENGINE-525.
+	actorKindWords: true,
 	// R2-ASSET-150.
 	purseMoneyWord: true,
 	// R2-ENGINE-580.

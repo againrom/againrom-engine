@@ -125,12 +125,16 @@ func CompanionIdentity(id int, t *Table) (base.PartyIdentity, bool) {
 	return p, source.identities() && ok && id != e.HeroIdentity
 }
 
+// RecordKindWord is the kind word a second-game record's template word holds
+// in its low word: a party identity or a row's kind (R2-ENGINE-525).
+func RecordKindWord(word uint32) uint16 { return uint16(word) }
+
 // DecodePartyIdentity validates the companion identity word and its Humans row.
 func DecodePartyIdentity(word uint32, row uint16, hero, human bool, t *Table) (int, bool) {
 	if hero || !human || t == nil || t.Humans == nil {
 		return 0, false
 	}
-	id := int(uint16(word))
+	id := int(RecordKindWord(word))
 	p, ok := CompanionIdentity(id, t)
 	if !ok || int(row) != data.FindHumanByServerID(t.Humans, p.ServerID) {
 		return 0, false

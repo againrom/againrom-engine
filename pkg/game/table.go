@@ -253,7 +253,7 @@ func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
 	t.CreatureDifficulty = files.creatureDifficulty
 	t.CarriedWornSpellBuild = files.storedWeaponSpell
 	t.SchoolPoolExperience = files.schoolPoolExperience
-	t.ClassStatCaps = files.classStatCaps
+	t.ClassStatCaps, t.ActorKindWords = files.classStatCaps, files.actorKindWords
 	t.ItemNamer = files.itemNamer
 	t.DeathItems = nil
 	if files.deathItems != nil {

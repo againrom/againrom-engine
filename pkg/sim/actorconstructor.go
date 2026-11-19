@@ -50,6 +50,11 @@ type ActorDefinition struct {
 	NativeBasis    NativeActorBasis
 	NativeClass    NativeClass
 	NativeTraining NativeTraining
+
+	// KindWord and MainSkill are the second game's kind word and main skill
+	// (Entity.KindWord); the first game's definitions leave both zero.
+	KindWord  uint16 `json:",omitempty"`
+	MainSkill int32  `json:",omitempty"`
 }
 
 // ActorPlacement is where and for whom a new actor stands: its id, cell and
@@ -98,6 +103,7 @@ func NewActor(d ActorDefinition, at ActorPlacement) Entity {
 		GoldChance: d.GoldChance, TreasureMin: d.TreasureMin, TreasureMax: d.TreasureMax, DeathItem: d.DeathItem,
 		Skill: d.Skill, SkillXP: d.SkillXP, SuppressCorpseLoot: d.SuppressCorpseLoot,
 		NativeBasis: d.NativeBasis, NativeClass: d.NativeClass, NativeTraining: d.NativeTraining,
+		KindWord: d.KindWord, MainSkill: d.MainSkill,
 	}
 }
 

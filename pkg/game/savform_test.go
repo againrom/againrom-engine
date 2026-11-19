@@ -220,6 +220,51 @@ func TestSecondTownSaveKeepsTheLoadedHeroRecord(t *testing.T) {
 	}
 }
 
+// TestSecondTownSaveKeepsTheHerosMainSkill: a hero whose skills 3 and 4
+// stand equal and whose file holds main skill 4 keeps main skill 4 through a
+// town LOAD, his party member and a town SAVE, twice (R2-ENGINE-320), where
+// the first of the equal schools is 3.
+func TestSecondTownSaveKeepsTheHerosMainSkill(t *testing.T) {
+	hero := secondFixtureHero()
+	hero.identity = 21
+	hero.skills = [6]uint16{0, 0, 0, 20, 20, 10}
+	hero.xp = [5]uint32{0, 0, 5727, 5727, 1593}
+	hero.experience = 13047
+	raw := secondFixtureTown("town", hero, 44)
+	humans := make(dbCollection, 30)
+	humans[28] = actorRegistryTable().Humans.(dbCollection)[1]
+	humans[28].name = "Start_Gildarius"
+	for round := range 2 {
+		cold, _, _ := secondCampaignFixtureFiles(t, false)
+		cold.Table = secondDollTable()
+		cold.Table.Humans = humans
+		if _, town, err := cold.RestoreOriginal(raw); err != nil || !town {
+			t.Fatal("cold town LOAD", round, town, err)
+		}
+		s, label, err := cold.Snapshot(false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p := nativeCityHeroOf(s.Party); p.Hero.Skill[3] != 20 || p.Hero.Skill[4] != 20 {
+			t.Fatalf("LOAD %d: the hero's skills %v, want schools 3 and 4 at 20", round, p.Hero.Skill)
+		}
+		if raw, err = cold.ExportCurrentSave(s, label); err != nil {
+			t.Fatal(err)
+		}
+		got, err := sav.DecodeDocumentData(withoutEngineDocument(t, raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		at, err := secondTownHeroRecord(got)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b := documentRawBytes(t, &got.Objects[at-1], "H1CC"); binary.LittleEndian.Uint32(b) != 4 {
+			t.Errorf("SAVE %d: the hero's main skill %d, want 4", round, binary.LittleEndian.Uint32(b))
+		}
+	}
+}
+
 // TestSaveFormKeepsTheEngineRecords: the first game writes the engine's own
 // records.
 func TestSaveFormKeepsTheEngineRecords(t *testing.T) {

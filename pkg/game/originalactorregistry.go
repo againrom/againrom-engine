@@ -312,6 +312,14 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 		e.ID, e.SourceBinding, e.MapUnitID = binding.ID, s, a.MapUnitID
 		if a.PackedTemplateState {
 			e.SuppressRewards = a.DisplayBacking&0xff000000 != 0
+			// The record's kind word and main skill (R2-ENGINE-320,
+			// R2-ENGINE-525); a Unit's record holds no main skill.
+			e.KindWord, e.MainSkill = mapload.RecordKindWord(a.DisplayBacking), int32(a.Character.MainSkill)
+		} else if table != nil && table.ActorKindWords && e.KindWord == 0 {
+			// The engine document inside a second-game SAVE: its kind
+			// section holds the word, and an older SAVE has none, so the
+			// word comes from the record's template word.
+			e.KindWord = mapload.RecordKindWord(a.DisplayBacking)
 		}
 		e.X, e.Y, e.PostX, e.PostY = int32(a.Cell&255), int32(a.Cell>>8), int32(a.Cell&255), int32(a.Cell>>8)
 		// A saved command post is the post the actor's order holds

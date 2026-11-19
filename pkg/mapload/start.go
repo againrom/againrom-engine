@@ -190,6 +190,9 @@ type PartyMember struct {
 
 	// Hero is the four statistics and six skill levels this member fights from.
 	Hero data.Hero
+	// MainSkill is the second game's main skill school, the one the award's
+	// off-main cut spares (R2-ENGINE-320, R2-ENGINE-480); 0 is none.
+	MainSkill int32 `json:",omitempty"`
 
 	// OriginalHuman is optional source-backed current city state. Old native
 	// saves omit it and keep their previous derivation behavior.
@@ -819,6 +822,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 				return nil, Start{}, err
 			}
 			carriedNativeHistory(p, &def.NativeBasis, &def.NativeClass)
+			def.KindWord, def.MainSkill = partyActorKind(p, b, t)
 			id := sim.EntityID(len(ents))
 			st.IDs[i] = id
 			ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: id, X: st.Cells[i].X, Y: st.Cells[i].Y,
@@ -956,6 +960,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			NativeTraining: sim.NativeTraining{Present: true, Levels: p.Hero.Skill},
 		}
 		carriedNativeHistory(p, &def.NativeBasis, &def.NativeClass)
+		def.KindWord, def.MainSkill = partyActorKind(p, spawnBlock{}, t)
 		st.IDs[i] = sim.EntityID(len(ents))
 		ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: st.IDs[i], X: st.Cells[i].X, Y: st.Cells[i].Y,
 			Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p), ClientClassFixed: p.Hired()}))
