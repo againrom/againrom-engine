@@ -13,7 +13,7 @@ func TestProfilesHoldTheEnginesLimits(t *testing.T) {
 	if First != want {
 		t.Errorf("First = %+v, want %+v", First, want)
 	}
-	want.Registers = 1000
+	want.Registers, want.Ops = 1000, OpsSecond
 	if Second != want {
 		t.Errorf("Second = %+v, want %+v", Second, want)
 	}

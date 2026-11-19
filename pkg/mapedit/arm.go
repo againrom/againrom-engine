@@ -40,10 +40,10 @@ const (
 	instantLose = 5
 )
 
-// script is the limits the editor writes a map's script to: the binder
-// numbers conditions into the register file and reads one latch byte per
-// trigger (MISSION-SLOT-008); an id above the cap is a suspicious reference
-// (TRIG-BIND-010).
+// script is the record limits both games share: the binder numbers
+// conditions into the register file and reads one latch byte per trigger
+// (MISSION-SLOT-008); an id above the cap is a suspicious reference
+// (TRIG-BIND-010). The registers differ by game and come from Editor.Profile.
 var script = scriptprofile.First
 
 // Arm is one row of the arm table: what the arm's records say. Target is the
@@ -60,14 +60,23 @@ type Arm struct {
 	ConstValue  uint32
 }
 
-var armTable = map[ArmKind]Arm{
-	ArmWinUnit: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
+// armKey is a row of the arm table: the game's operation vocabulary and the
+// arm.
+type armKey struct {
+	ops  scriptprofile.Ops
+	kind ArmKind
+}
+
+// armTable holds each game's rows. The second game has none: its map is
+// view-only and no claim reads a win or lose arm of it.
+var armTable = map[armKey]Arm{
+	{scriptprofile.OpsFirst, ArmWinUnit}: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
 		Check: checkAlive, CheckLabel: "Win unit alive?", Target: paramUnit, Compare: cmpEqual},
-	ArmWinGroup: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
+	{scriptprofile.OpsFirst, ArmWinGroup}: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
 		Check: checkGroupCount, CheckLabel: "Win group count", Target: paramGroup, Compare: cmpEqual},
-	ArmWinStructure: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
+	{scriptprofile.OpsFirst, ArmWinStructure}: {Name: "win", Instant: instantWin, ActionLabel: `Force "Mission Complete" state`, TriggerName: "Win",
 		Check: checkStructField, CheckLabel: "Win structure health", Target: paramStructure, Compare: cmpLessEqual},
-	ArmLoseUnit: {Name: "lose", Instant: instantLose, ActionLabel: `Force "Mission Fail" state`, TriggerName: "Lose",
+	{scriptprofile.OpsFirst, ArmLoseUnit}: {Name: "lose", Instant: instantLose, ActionLabel: `Force "Mission Fail" state`, TriggerName: "Lose",
 		Check: checkAlive, CheckLabel: "Lose unit alive?", Target: paramUnit, Compare: cmpEqual},
 }
 
@@ -81,7 +90,8 @@ const ArmConditions = 2
 // the unwritten bytes of each record are zero (DIV-3183). A map whose arrays
 // have no room for the arm is refused with nothing written.
 func (e *Editor) AddArm(kind ArmKind, target uint32) error {
-	arm, ok := armTable[kind]
+	limits := e.Profile()
+	arm, ok := armTable[armKey{limits.Ops, kind}]
 	if !ok {
 		return fmt.Errorf("mapedit: no arm %d", kind)
 	}
@@ -102,8 +112,8 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 	if err != nil {
 		return err
 	}
-	if actionID > script.MaxID || checkID+1 > script.MaxID {
-		return fmt.Errorf("mapedit: the next node id passes %d", script.MaxID)
+	if actionID > limits.MaxID || checkID+1 > limits.MaxID {
+		return fmt.Errorf("mapedit: the next node id passes %d", limits.MaxID)
 	}
 	action, err := NewScriptNode(arm.ActionLabel, arm.Instant, actionID)
 	if err != nil {

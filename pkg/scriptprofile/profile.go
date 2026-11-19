@@ -42,8 +42,18 @@ const (
 	ExtendedTriggers   = 10000
 )
 
+// Ops names which game's operation ids a profile's nodes use: the same
+// number is a different operation in each game.
+type Ops uint8
+
+const (
+	OpsFirst Ops = iota
+	OpsSecond
+)
+
 // Profile is one game's script limits.
 type Profile struct {
+	Ops            Ops    // the operation vocabulary of the game's nodes
 	Pairs, Actions int    // condition pairs and action ids per trigger
 	MaxCompare     uint32 // the highest comparison code
 	Registers      int    // check-result registers, 0 for one result per check
@@ -65,7 +75,7 @@ type Profile struct {
 var (
 	First = Profile{Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
 		Registers: FirstRegisters, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
-	Second = Profile{Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
+	Second = Profile{Ops: OpsSecond, Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
 		Registers: SecondRegisters, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
 	Extended = Profile{Pairs: ExtendedConditions, Actions: ExtendedActions, MaxCompare: MaxCompare,
 		Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,

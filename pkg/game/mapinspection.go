@@ -510,11 +510,12 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
-		inspectScript(d, m, script, x.inspectionUTF8)
-		d.Script.Labels = liveLabels(script, labels)
+		limits := model.Profile()
+		inspectScript(d, m, script, limits, x.inspectionUTF8)
+		d.Script.Labels = liveLabels(script, limits, labels)
 		d.Script.Targets = x.scriptTargets(d, m, script, pages)
 		inspectScriptUses(d)
-		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions", len(script.Triggers), len(script.Conditions), len(script.Actions))
+		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions / %d registers", len(script.Triggers), len(script.Conditions), len(script.Actions), max(limits.Registers, limits.Variables))
 		if len(script.Triggers) == 0 {
 			d.ScriptNotice = "No authored triggers"
 		}

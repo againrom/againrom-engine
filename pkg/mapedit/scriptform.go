@@ -72,10 +72,19 @@ func recordTriggerFields(rec []byte) []Field {
 // Extended reports that the map carries the Againrom script record.
 func (e *Editor) Extended() bool { return e.locate().carries(alm.ScriptRecordTypeID) }
 
+// Profile is the script limits and operation vocabulary of the map's game;
+// the only format the editor holds view-only is the second game's.
+func (e *Editor) Profile() scriptprofile.Profile {
+	if e.ViewOnly() {
+		return scriptprofile.Second
+	}
+	return scriptprofile.Of(e.Extended())
+}
+
 // scriptRoom refuses a write that adds checks conditions and triggers
 // triggers past the map's profile, with a *ScriptLimitError.
 func (e *Editor) scriptRoom(checks, triggers int) error {
-	p := scriptprofile.Of(e.Extended())
+	p := e.Profile()
 	if n := e.Count(KindCondition); checks > 0 && p.Registers > 0 && n+checks > p.Registers {
 		return &ScriptLimitError{Limit: LimitChecks, Max: int64(p.Registers), Got: int64(n)}
 	}

@@ -26,9 +26,10 @@ func inspectionOperation(kind ui.RecordKind, opcode uint32) string {
 }
 
 type inspectionScript struct {
-	doc  *ui.InspectionDocument
-	m    *alm.Map
-	text func(string) string // UTF-8 to the font's bytes
+	doc     *ui.InspectionDocument
+	profile scriptprofile.Profile
+	m       *alm.Map
+	text    func(string) string // UTF-8 to the font's bytes
 	// Slice-valued maps preserve duplicate identities rather than choosing one.
 	conditions, actions       map[uint32][]alm.ScriptNode
 	units, groups, structures map[uint32][]ui.InspectionTarget
@@ -37,8 +38,8 @@ type inspectionScript struct {
 // inspectScript adds the script's records and model to d. Records and lines
 // carry the font's bytes through text; the model's names stay UTF-8, the text
 // the name fields edit.
-func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text func(string) string) {
-	s := inspectionScript{doc: d, m: m, text: text, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
+func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limits scriptprofile.Profile, text func(string) string) {
+	s := inspectionScript{doc: d, m: m, profile: limits, text: text, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
 	for _, n := range script.Conditions {
 		s.conditions[n.ID] = append(s.conditions[n.ID], n)
 	}
@@ -166,7 +167,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		model.Areas = append(model.Areas, ui.InspectionArea{Trigger: a.Trigger, Node: node[a.Node].Record, Shape: int(a.Shape), Rect: a.Rect, Centre: a.Centre, Radius: a.Radius,
 			Slots: a.Slots, RadiusNode: radius, RadiusSlot: a.RadiusSlot, RadiusBias: a.RadiusBias})
 	}
-	model.Catalog = scriptCatalog()
+	model.Catalog, model.Limits = scriptCatalog(limits), limits
 	model.Extended, model.Variables = script.Extended, script.Variables
 	d.Script = model
 }
@@ -174,7 +175,18 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 // scriptCatalog is the decoder's knowledge of the operations, for the trigger
 // editor: each opcode with whether a claim names it, the group commands, and
 // the signatures the claims state.
-func scriptCatalog() ui.InspectionScriptCatalog {
+func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
+	if limits.Ops == scriptprofile.OpsSecond {
+		// Signatures and parameter kinds are the first game's operations'.
+		family := func(condition bool) []ui.InspectionScriptOperation {
+			var out []ui.InspectionScriptOperation
+			for _, op := range mapload.ScriptOperationsIn(limits.Ops, condition) {
+				out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: true})
+			}
+			return out
+		}
+		return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false)}
+	}
 	family := func(condition bool) []ui.InspectionScriptOperation {
 		var out []ui.InspectionScriptOperation
 		for _, op := range mapload.ScriptOperations(condition) {
@@ -195,6 +207,16 @@ func scriptCatalog() ui.InspectionScriptCatalog {
 		}}
 }
 
+// operation is the node's operation in the map's game: its name where a
+// claim reads it, else the raw id where the second game's is not decoded.
+func (s *inspectionScript) operation(kind ui.RecordKind, opcode uint32) string {
+	condition := kind == ui.KindCondition
+	if s.profile.Ops == scriptprofile.OpsSecond && !mapload.ScriptOperationDecoded(s.profile.Ops, condition, opcode) {
+		return fmt.Sprintf("Operation %d, not decoded", opcode)
+	}
+	return mapload.ScriptOperationNameIn(s.profile.Ops, condition, opcode)
+}
+
 func (s *inspectionScript) nodeMap(kind ui.RecordKind) map[uint32][]alm.ScriptNode {
 	if kind == ui.KindCondition {
 		return s.conditions
@@ -210,7 +232,7 @@ func (s *inspectionScript) nodeCaption(kind ui.RecordKind, id uint32) string {
 	if len(nodes) > 1 {
 		return fmt.Sprintf("Ambiguous %s ID %d (%d records)", kind, id, len(nodes))
 	}
-	return inspectionOperation(kind, nodes[0].Opcode)
+	return s.operation(kind, nodes[0].Opcode)
 }
 
 func (s *inspectionScript) line(r *ui.InspectionRecord, text, role string) {
@@ -233,13 +255,13 @@ func (s *inspectionScript) link(r *ui.InspectionRecord, label, role string, targ
 
 func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n alm.ScriptNode) {
 	role := strings.ToLower(kind.String())
-	op := inspectionOperation(kind, n.Opcode)
+	op := s.operation(kind, n.Opcode)
 	s.line(r, fmt.Sprintf("%s ID %d: %s", kind, n.ID, op), role)
 	s.line(r, fmt.Sprintf("Label: %s / opcode %d", s.text(n.Label), n.Opcode), "")
 	if len(s.nodeMap(kind)[n.ID]) > 1 {
 		s.issue(r, fmt.Sprintf("Ambiguous %s ID %d", kind, n.ID))
 	}
-	if op == "Unknown operation" {
+	if op == "Unknown operation" && s.profile.Ops == scriptprofile.OpsFirst {
 		s.issue(r, fmt.Sprintf("Unknown %s opcode %d (%#x)", kind, n.Opcode, n.Opcode))
 	}
 	for i, tag := range n.Type {
@@ -279,7 +301,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 	// distinct authored cells even when this node's center is byte-sized. Keep
 	// their raw point, but withhold a semantic map region instead of inventing
 	// an unmasked square or emulating the runtime's coordinate aliases.
-	if kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
+	if s.profile.Ops == scriptprofile.OpsFirst && kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
 		switch {
 		case n.Value[1] > 255 || n.Value[2] > 255 || s.m.Width > 256 || s.m.Height > 256:
 			s.issue(r, "Distance region withheld: byte-masked coordinates; authored point only")
@@ -290,7 +312,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 			s.link(r, fmt.Sprintf("Distance square: %d,%d radius %d", x, y, radius), role, []ui.InspectionTarget{{Cell: image.Pt(x-radius, y-radius), Size: image.Pt(2*radius+1, 2*radius+1)}})
 		}
 	}
-	if kind == ui.KindCondition && n.Opcode == 2 {
+	if s.profile.Ops == scriptprofile.OpsFirst && kind == ui.KindCondition && n.Opcode == 2 {
 		s.line(r, "Box endpoints authored; edge rules unknown", "")
 	}
 }

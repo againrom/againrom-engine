@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/scriptprofile"
 )
 
 func TestFirstGameMapOpensForEditingWhateverTheCaller(t *testing.T) {
@@ -58,6 +59,9 @@ func TestSecondMapFormatSurvivesCloneAndRefusesSave(t *testing.T) {
 		}
 		if b, err := model.SaveBytes(); err == nil || b != nil || !bytes.Equal(raw, model.Bytes()) || model.CanUndo() {
 			t.Fatal("view-only save exposed bytes or changed history")
+		}
+		if model.Profile() != scriptprofile.Second || model.AddArm(mapedit.ArmWinUnit, 1) == nil || model.CanUndo() {
+			t.Fatal("second-game script profile missing or an arm was written")
 		}
 	}
 }

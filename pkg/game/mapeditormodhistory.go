@@ -71,7 +71,7 @@ func (s *mapInspectionEdits) syncModDocument(w *editorWorkspaceState, oldPages m
 	if !maps.Equal(w.Labels, oldLabels) {
 		var labels map[uint32]string
 		if _, sc, err := wizardScript(s.model); err == nil {
-			labels = liveLabels(sc, w.Labels)
+			labels = liveLabels(sc, s.model.Profile(), w.Labels)
 		}
 		d.Files[mod.MapLabelFile(m.Map)] = encodeMapLabels(labels)
 	}

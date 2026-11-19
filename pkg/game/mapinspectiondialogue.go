@@ -13,7 +13,6 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
-	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -226,7 +225,7 @@ func dialogueVariables(m *mapedit.Editor) int {
 	if m.Extended() {
 		return m.ScriptVariables()
 	}
-	return scriptprofile.FirstRegisters
+	return m.Profile().Registers
 }
 
 // toFile is d as a dialogue file with ids for its nodes' references already

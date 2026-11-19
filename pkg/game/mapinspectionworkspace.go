@@ -184,7 +184,7 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 		s.labelsUnread = true
 		s.openNote = fmt.Sprintf(words.For(x.pageLanguage()).Text("editor.labels.unread"), err)
 	} else if _, sc, err := wizardScript(s.model); err == nil {
-		w.Labels = liveLabels(sc, labels)
+		w.Labels = liveLabels(sc, s.model.Profile(), labels)
 	}
 	s.openDialogues(w)
 	w.Package.Manifest.ID, w.Package.Manifest.Title = w.Package.ID, w.Package.Title
@@ -222,11 +222,11 @@ func (s *mapInspectionEdits) bindWorkspaceMod(w *editorWorkspaceState, source st
 // node addresses, or one no check result takes, at or above the condition
 // count; on an extended map any variable of the array. A label of any other
 // register is dropped.
-func liveLabels(sc alm.Script, labels map[uint32]string) map[uint32]string {
+func liveLabels(sc alm.Script, limits scriptprofile.Profile, labels map[uint32]string) map[uint32]string {
 	addressed := variableRegisters(sc)
 	var out map[uint32]string
 	for r, label := range labels {
-		if sc.Extended && r < scriptprofile.ExtendedVariables || r < scriptprofile.FirstRegisters && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
+		if sc.Extended && r < scriptprofile.ExtendedVariables || r < uint32(limits.Registers) && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
 			if out == nil {
 				out = map[uint32]string{}
 			}
@@ -241,7 +241,7 @@ func liveLabels(sc alm.Script, labels map[uint32]string) map[uint32]string {
 func (s *mapInspectionEdits) labelsForSave() []byte {
 	var labels map[uint32]string
 	if _, sc, err := wizardScript(s.model); err == nil && s.workspace != nil {
-		labels = liveLabels(sc, s.workspace.Labels)
+		labels = liveLabels(sc, s.model.Profile(), s.workspace.Labels)
 	}
 	if len(labels) == 0 && s.labelsUnread {
 		return []byte{}

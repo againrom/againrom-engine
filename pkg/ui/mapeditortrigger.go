@@ -134,6 +134,12 @@ func mark(marks *[]bool, i int, on bool) {
 // opName is the operation's word: its name where a claim names it, else
 // "Condition N" or "Action N".
 func (e *MapEditor) opName(condition bool, opcode uint32) string {
+	if e.doc.Script.Profile().Ops == scriptprofile.OpsSecond {
+		if w, ok := e.secondOpWord(condition, opcode); ok && e.doc.Script.Catalog.named(condition, opcode) {
+			return w
+		}
+		return fmt.Sprintf(e.word("editor.op.undecoded"), opcode)
+	}
 	if condition {
 		if w, ok := e.checkWord(opcode); ok && e.doc.Script.Catalog.named(true, opcode) {
 			return w
@@ -260,10 +266,19 @@ func groupCommand(condition bool, opcode uint32, values [10]uint32) uint32 {
 	return 0
 }
 
+// groupCommandNode reports a first-game group command action, whose first
+// parameter is a command word; the second game's action 6 is another arm.
+func (e *MapEditor) groupCommandNode(condition bool, opcode uint32) bool {
+	return !condition && opcode == scriptGroupCommand && e.doc.Script.Profile().Ops == scriptprofile.OpsFirst
+}
+
 // nodeParams are a node's parameters by meaning, one "label value" text each.
 func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]uint32) []string {
 	var out []string
-	command := groupCommand(condition, opcode, values)
+	command := uint32(0)
+	if e.groupCommandNode(condition, opcode) {
+		command = values[0]
+	}
 	for s := 0; s < len(types); s++ {
 		t, v := types[s], values[s]
 		if t == scriptNone {
@@ -275,7 +290,7 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 		case t == scriptX && s+1 < len(types) && types[s+1] == scriptY:
 			value = fmt.Sprintf("%d,%d", v, values[s+1])
 			s++
-		case !condition && opcode == scriptGroupCommand && s == 0 && t == scriptConst:
+		case e.groupCommandNode(condition, opcode) && s == 0 && t == scriptConst:
 			value = e.commandName(v)
 		case t == scriptInt && e.doc.Script.Catalog.againrom(condition, opcode):
 			value = strconv.FormatInt(slotValue(t, v), 10)
@@ -433,7 +448,7 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 				f.TextValue = fmt.Sprintf("%d,0", f.Value)
 			}
 			s++
-		case !v.condition && opcode == scriptGroupCommand && s == 0 && t == scriptConst:
+		case e.groupCommandNode(v.condition, opcode) && s == 0 && t == scriptConst:
 			for _, c := range e.doc.Script.Catalog.GroupCommands {
 				f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
 			}

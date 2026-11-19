@@ -25,10 +25,16 @@ type InspectionScriptModel struct {
 	// actions, up to scriptprofile.Extended, and Variables variables.
 	Extended  bool
 	Variables int
+	// Limits is the script profile of the map's game; its zero value is the
+	// first game's.
+	Limits scriptprofile.Profile
 }
 
-// Profile is the limits the map's script is written to.
+// Profile is the limits and operation vocabulary of the map's script.
 func (m *InspectionScriptModel) Profile() scriptprofile.Profile {
+	if m != nil && m.Limits.Pairs != 0 && !m.Extended {
+		return m.Limits
+	}
 	return scriptprofile.Of(m != nil && m.Extended)
 }
 
