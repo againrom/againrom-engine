@@ -108,7 +108,7 @@ func (mw *mapWorld) advanceSpellSoundCues() {
 			var ok bool
 			caster, ok = mw.liveBookCastSoundCaster(cue)
 			if !ok {
-				// The caster died, disappeared, turned out of the visible run, or
+				// The caster died, disappeared, or
 				// replaced/cancelled it. The animation event no longer exists.
 				continue
 			}
@@ -132,7 +132,7 @@ func (mw *mapWorld) advanceSpellSoundCues() {
 
 func (mw *mapWorld) liveBookCastSoundCaster(cue spellSoundCue) (sim.Entity, bool) {
 	e, ok := mw.entity(cue.caster)
-	if !ok || !e.Alive() || e.Turning() {
+	if !ok || !e.Alive() {
 		return sim.Entity{}, false
 	}
 	r, ok := mw.castRun[cue.caster]
