@@ -474,7 +474,7 @@ func (x *MapInspector) writeEditorProject(folder, id string, old []string, files
 	return installMissionPackage(stage, folder, id, replace, plan)
 }
 
-func writeMapInMod(root, target string, data []byte, pages map[string][]byte, labels []byte, overwrite, withLabels bool) (bool, error) {
+func writeMapInMod(root, target string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, overwrite, withLabels bool) (bool, error) {
 	for folder := filepath.Dir(target); ; folder = filepath.Dir(folder) {
 		if _, err := os.Lstat(filepath.Join(folder, mod.ManifestName)); err == nil {
 			x := &MapInspector{archives: &Archives{Root: root}}
@@ -494,6 +494,16 @@ func writeMapInMod(root, target string, data []byte, pages map[string][]byte, la
 					return true, wordErr("editor.err.tp.mappage", name)
 				}
 				path, err := filepath.Rel(folder, filepath.Join(mapTextFolder(target), filepath.FromSlash(name)))
+				if err != nil {
+					return true, err
+				}
+				files[filepath.ToSlash(path)] = b
+			}
+			for name, b := range dialogues {
+				if b == nil && !overwrite {
+					continue
+				}
+				path, err := filepath.Rel(folder, dialogueFile(target, name))
 				if err != nil {
 					return true, err
 				}
@@ -648,7 +658,7 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, nil, nil, overwrite, false); handled {
+	if handled, err := writeMapInMod(root, target, data, nil, nil, nil, overwrite, false); handled {
 		if err != nil {
 			return "", err
 		}
@@ -735,10 +745,59 @@ func placeMapLabels(target string, labels []byte, overwrite bool, lang string) e
 	return nil
 }
 
+// placeMapCompanions writes the files that belong beside a written map and are
+// not its pages: the dialogue files and the labels. A failure is one the map
+// survives, reported as unwritten.
+func placeMapCompanions(target string, labels []byte, dialogues map[string][]byte, overwrite bool, lang string) error {
+	if err := placeMapDialogues(target, dialogues, overwrite, lang); err != nil {
+		return labelsUnwritten{err}
+	}
+	return placeMapLabels(target, labels, overwrite, lang)
+}
+
+// dialogueFile is the file of dialogue name beside the map target, where the
+// mod loader reads it.
+func dialogueFile(target, name string) string {
+	return filepath.Join(mod.MissionPlace{Map: target}.Dialogs(), name+".toml")
+}
+
+// placeMapDialogues writes the dialogue files beside the written map target.
+// A nil file removes the map's own file of that name; a file that is already
+// as it should be is left alone.
+func placeMapDialogues(target string, dialogues map[string][]byte, overwrite bool, lang string) error {
+	for _, name := range slices.Sorted(maps.Keys(dialogues)) {
+		b, file := dialogues[name], dialogueFile(target, name)
+		if !mod.ValidDialogueName(name) || len(b) > mod.MaxFileBytes {
+			return fmt.Errorf(words.For(lang).Text("editor.pages.invalid"), name)
+		}
+		have, err := os.ReadFile(file)
+		switch {
+		case b == nil && (err != nil || !overwrite):
+			continue
+		case b == nil:
+			if err := os.Remove(file); err != nil {
+				return err
+			}
+		case err == nil && bytes.Equal(have, b):
+		default:
+			if _, err := hostfile.Commit(hostfile.Set{
+				Files: []hostfile.File{{
+					Path: file, Data: b, Perm: 0600,
+					Staging: hostfile.Direct, Overwrite: hostfile.Replace,
+				}},
+				Dirs: hostfile.Parents, DirPerm: 0700,
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // writeEditedMapPages writes the map and what the editor keeps beside it: the
-// texts folder of pages, unless the map holds its pages inside, and the
-// labels file of labels.
-func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+// texts folder of pages, unless the map holds its pages inside, the labels
+// file of labels and the folder of dialogue files.
+func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if err := extendedName(data, path); err != nil {
 		return "", err
 	}
@@ -775,7 +834,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		if err != nil {
 			return "", err
 		}
-		if handled, err := writeMapInMod(root, target, data, pages, labels, overwrite, true); handled {
+		if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, overwrite, true); handled {
 			if err != nil {
 				return "", err
 			}
@@ -785,7 +844,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		if err != nil {
 			return "", err
 		}
-		return target, placeMapLabels(target, labels, overwrite, lang)
+		return target, placeMapCompanions(target, labels, dialogues, overwrite, lang)
 	}
 	if !locale.Known(lang) {
 		return "", wordErr("editor.err.pagelang", lang)
@@ -813,7 +872,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, pages, labels, overwrite, true); handled {
+	if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, overwrite, true); handled {
 		if err != nil {
 			return "", err
 		}
@@ -842,7 +901,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if _, err := hostfile.Commit(set); err != nil {
 		return "", err
 	}
-	return target, placeMapLabels(target, labels, overwrite, lang)
+	return target, placeMapCompanions(target, labels, dialogues, overwrite, lang)
 }
 
 // writeTestModFile writes data to the slash path rel in folder, creating the

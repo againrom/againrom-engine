@@ -995,7 +995,7 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	}
 	maps, grant := s.inspector.mapsFolder()
 	labels := s.labelsForSave()
-	target, err := writeEditedMapPages(root, s.source, path, b, pages, labels, s.inspector.pageLanguage(), overwrite, grant)
+	target, err := writeEditedMapPages(root, s.source, path, b, pages, labels, s.dialogueHeld(), s.inspector.pageLanguage(), overwrite, grant)
 	if errors.As(err, new(labelsUnwritten)) && target != "" {
 		s.noteUnwritten(err)
 		err = nil

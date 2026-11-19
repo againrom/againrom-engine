@@ -485,16 +485,16 @@ func (r *hostRecord) editorFiles(t *testing.T) {
 	dir = r.root(t)
 	path = filepath.Join(dir, "p.alm")
 	pages := map[string][]byte{"en/briefing.txt": []byte("brief"), "title.txt": []byte("name")}
-	got, err = writeEditedMapPages("", "", path, []byte("pmap"), pages, []byte("labels-one"), "en", false)
+	got, err = writeEditedMapPages("", "", path, []byte("pmap"), pages, []byte("labels-one"), nil, "en", false)
 	r.err("new with pages "+got, err)
 	r.tree(dir)
-	_, err = writeEditedMapPages("", "", path, []byte("pmap2"), pages, nil, "en", false)
+	_, err = writeEditedMapPages("", "", path, []byte("pmap2"), pages, nil, nil, "en", false)
 	r.err("new over existing pages", err)
 	pages2 := map[string][]byte{"en/briefing.txt": []byte("brief-two")}
-	got, err = writeEditedMapPages("", "", path, []byte("pmap3"), pages2, []byte("labels-two"), "en", true)
+	got, err = writeEditedMapPages("", "", path, []byte("pmap3"), pages2, []byte("labels-two"), nil, "en", true)
 	r.err("save over with pages "+got, err)
 	r.tree(dir)
-	got, err = writeEditedMapPages("", "", path, []byte("pmap4"), nil, nil, "en", true)
+	got, err = writeEditedMapPages("", "", path, []byte("pmap4"), nil, nil, nil, "en", true)
 	r.err("save over without pages or labels "+got, err)
 	r.tree(dir)
 

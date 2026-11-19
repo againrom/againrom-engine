@@ -37,6 +37,12 @@ func millMap(t *testing.T) []byte {
 func buildMill(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
 	startDialogueRow(t, e)
+	fillMill(t, e)
+}
+
+// fillMill fills the open Dialog window as buildMill does.
+func fillMill(t *testing.T, e *ui.MapEditor) {
+	t.Helper()
 	dlgType(t, e, ui.DialogueLineText, "Goblins hold the old mill. Will you drive them out?")
 	dlgAddLine(t, e, "Thank you, the mill is ours again.")
 	dlgSelect(t, e, 1)
