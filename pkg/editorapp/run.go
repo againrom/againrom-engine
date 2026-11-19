@@ -324,6 +324,14 @@ func testPlayHost(self, userConfigDir, root, modsDir string) game.TestPlayHost {
 	return game.TestPlayHost{
 		ModsFolder:  launch.ProgramModsFolder(modsDir, filepath.Dir(self)),
 		EnabledMods: func() []string { return launch.StarterEnabled(filepath.Dir(self)) },
+		Installs: func() []string {
+			bases, _ := launch.StarterBases(filepath.Dir(self))
+			roots := make([]string, len(bases))
+			for i, b := range bases {
+				roots[i] = b.Path
+			}
+			return roots
+		},
 		Profile: func() (game.RuntimeProfile, error) {
 			return game.ResolveRuntimeProfile("", self, userConfigDir, root)
 		},

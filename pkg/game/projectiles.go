@@ -375,6 +375,11 @@ func effectFrames(src terrain.EntrySource, addr string) []*terrain.EffectFrame {
 	if err != nil {
 		return nil
 	}
+	return effectSheetFrames(b)
+}
+
+// effectSheetFrames is effectFrames over the bytes of a sheet.
+func effectSheetFrames(b []byte) []*terrain.EffectFrame {
 	sprite, err := spr16.DecodeA(b, true)
 	if err != nil || sprite == nil || len(sprite.Palette) == 0 {
 		return nil
@@ -423,6 +428,29 @@ func indexedEffectFrames(src terrain.EntrySource, addr string, shared bool, shar
 	if err != nil {
 		return nil
 	}
+	return indexedSheetFrames(b, shared, sharedTable)
+}
+
+// effectSheetCheck is the projectile loader's test of a mod's sheet read as
+// a .16a one (a16) or a .256 one: a frame reads from it. A .256 sheet may be
+// drawn through the install's shared table, so only its frames are asked of it.
+func effectSheetCheck(a16 bool) func([]byte) error {
+	return func(b []byte) error {
+		read := false
+		if a16 {
+			read = len(effectSheetFrames(b)) > 0
+		} else if sprite, err := spr256.Decode(b); err == nil {
+			read = len(sprite.Frames) > 0
+		}
+		if !read {
+			return wordErr("editor.spells.err.sheet")
+		}
+		return nil
+	}
+}
+
+// indexedSheetFrames is indexedEffectFrames over the bytes of a sheet.
+func indexedSheetFrames(b []byte, shared bool, sharedTable *[256]color.RGBA) []*terrain.EffectFrame {
 	sprite, err := spr256.Decode(b)
 	if err != nil {
 		return nil

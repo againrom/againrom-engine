@@ -31,6 +31,20 @@ func modSpellIndex(spells []data.Spell, target string) int {
 	return -1
 }
 
+// ModSpellNumber is the number t's spell table gives the spell a mod's row
+// names, false for a name the table lacks.
+func ModSpellNumber(t *Table, target string) (uint16, bool) {
+	if t == nil {
+		return 0, false
+	}
+	spells, err := data.LoadSpells(t.spells())
+	if err != nil {
+		return 0, false
+	}
+	i := modSpellIndex(spells, target)
+	return uint16(i + 1), i >= 0
+}
+
 func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 	if t == nil {
 		return r.Line, "the game has no spell table"

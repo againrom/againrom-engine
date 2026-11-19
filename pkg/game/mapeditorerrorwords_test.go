@@ -34,7 +34,7 @@ func editorHostWordFiles(t *testing.T) []string {
 		t.Fatalf("the scan found only %d host files", len(out))
 	}
 	return append(out, "modspeakers.go", "mapedittestplay.go", "mapedittestplay_files.go", "mapeditormod.go",
-		"mapeditormodcontext.go", "mapeditormodpublish.go", "mapeditormodspells.go", "mapeditormodterrain.go")
+		"mapeditormodcontext.go", "mapeditormodpublish.go", "mapeditormodspells.go", "mapeditormodspellpictures.go", "mapeditormodterrain.go")
 }
 
 // Errors that never reach a window as a note: a name the editor itself

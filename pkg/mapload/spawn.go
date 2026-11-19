@@ -2,6 +2,7 @@ package mapload
 
 import (
 	"fmt"
+	"image"
 	"strings"
 
 	"againrom/pkg/base"
@@ -1287,6 +1288,9 @@ type ModContext struct {
 	// Companions are the join conditions the mods declare.
 	Companions mod.CompanionData
 	Spells     mod.SpellData
+	// SpellIcons are the book icons the mods' spell rows give, by the game's
+	// spell number; the book draws one over the spell's cell.
+	SpellIcons map[uint16]*image.RGBA
 	// Bodies is the body list carrying the mods' weapon bodies, the list a
 	// save projects a drawn body name through (data.BodyList.SavedBody).
 	Bodies data.BodyList

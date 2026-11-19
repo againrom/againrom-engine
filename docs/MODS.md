@@ -25,7 +25,7 @@ mission number. Only the manifest is required.
 | characters | `data/characters.toml` | TOML subset | held file | shared |
 | screens | `data/screens.toml` | TOML subset | held file | shared |
 | companions | `data/companions.toml` | TOML subset | held file | shared |
-| spells | `data/spells.toml` | TOML subset | held file | shared |
+| spells | `data/spells.toml`, `assets/spells/*.png`, `assets/spells/*.16a`, `assets/spells/*.256` | TOML subset; PNG icons, projectile sheets | held file; row icon, cast and burst | shared |
 | body sheets | `data/bodies.toml`, `assets/bodies/**/*.png` | TOML subset; PNG sheets | held file; row heroes and heroes_l | shared |
 | weapon bodies | `data/wpnbodies.toml`, `data/weapon-bodies.toml` | TOML subset | held file | shared |
 | terrain | `data/terrain.toml` | TOML subset; 8-bit BMP strips | held file; strip group via install path | shared |
@@ -147,7 +147,7 @@ catalog. Every held data file is read automatically before the optional entry sc
 | characters | `data/characters.toml` | `key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows) | catalog, merged | catalog keys: yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after | Guest parties, `docs/1278/story.md`, `docs/1508/story.md`, `DIV-4002`, `DIV-4003` |
 | screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
-| spells | `data/spells.toml` | `target`, a spell name (Spell names), and the field; `[global]` keys | catalog, kept until the spell switch, position, book size and shop story | no: one field of one spell, and one global key, is set by one mod | Spell names, Spell damage columns, `docs/1341/story.md`, `docs/1673/story.md`, `DIV-2364` |
+| spells | `data/spells.toml` | `target`, a spell name (Spell names), and the field; `[global]` keys | catalog, kept until the spell switch, position, book size and shop story | no: one field of one spell, and one global key, is set by one mod | Spell names, Spell damage columns, Spell pictures, `docs/1341/story.md`, `docs/1673/story.md`, `docs/1700/story.md`, `DIV-2364` |
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (also `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
@@ -754,6 +754,54 @@ picture shows its initials.
 A position equal to the game's own cell is left out of the file. The note line
 names the rows a gesture wrote. The book holds 24 cells; the `+` at each end
 only explains that. The game run from the mod shows the page's book.
+
+Below the chosen spell's numbers stand three pickers, Book icon, Cast picture
+and Burst picture. A picked host file is checked as the game reads it, copied
+to `assets/spells/<name>` and named in the spell's row, in one undo step; an
+emptied picker takes the field out of the row. The catalog and the book draw
+the mod's icon, also for a spell the game's book has no picture for.
+
+Use the other game copies the chosen spell's pictures from the other game's
+install: its book icon cell as `assets/spells/<spell>.png`, and its cast
+picture and burst sheets with their registry rows as `<spell>-cast` and
+`<spell>-burst`. The row gets `imported = true`. The editor reads only the
+installs the starter lists in `starter.ini`; with none of the other game the
+button is shut and says so. The mod keeps no reference to an install.
+
+## Spell pictures
+
+A `[[spell]]` row of `data/spells.toml` can give its spell its own pictures:
+
+| field | value | effect |
+|---|---|---|
+| `icon` | `assets/spells/<name>.png`, 36x36 | the spell's cell in the book, the shops and the catalog |
+| `cast` | `assets/spells/<name>.16a` or `.256` | the flying picture, projectile row `2*spell+8` |
+| `cast_row` | `{ phases, rotation_phases, width, height, palette, flip }` | that picture's registry keys |
+| `burst` | `assets/spells/<name>.16a` or `.256` | the burst, projectile row `2*spell+9` |
+| `burst_row` | as `cast_row` | the burst's registry keys |
+| `imported` | `true` or `false` | marks pictures copied from a game install |
+
+Both games read these fields. A key `cast_row` or `burst_row` leaves out is
+taken from the sheet: phases its frame count, one rotation, width and height
+its first frame, palette 1, flip 0. Bounds: phases, width and height 1..1024,
+rotation_phases 1..64, palette and flip 0..1. A `.256` sheet with palette 0 is
+drawn through the install's shared projectile colour table. The spell's sound
+and homing stay the install's.
+
+The mod's rows govern the game the mod runs, the flight time of each cast
+included, so a game with such a mod may hash differently from one without it.
+A row copied with Use the other game equals that install's row and changes no
+timing. A game without a mod, or with a mod that names no picture, keeps the
+install's pictures, timing and hash, and the save holds no picture field.
+
+The mod check refuses, naming the mod, the file, the line and the picture: a
+file the mod lacks, an icon of another size or not a PNG, a sheet the
+projectile loader reads no frame from, a `cast_row` without `cast`, a
+`burst_row` without `burst`, and `imported` on a row that names no picture.
+A row marked `imported` warns: `the row's pictures are copied from a game
+install; publish the mod only where the game's rights allow it`. Publishing
+such a mod from the editor writes it and names those spells in the same
+warning.
 
 ## Spell damage columns
 

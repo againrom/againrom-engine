@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -96,5 +97,9 @@ func (s *mapInspectionEdits) publishEditorMod(action, value string) (err error) 
 		return err
 	}
 	s.saveNote = fmt.Sprintf("%s %s (%d)", x.word("editor.mod.published"), file, len(result.Missions.Missions))
+	// Pictures copied from a game install warn and do not refuse.
+	if imported := result.Spells.ImportedSpells(); len(imported) > 0 {
+		s.saveNote += " " + fmt.Sprintf(x.word("editor.mod.publishedimported"), strings.Join(imported, ", "))
+	}
 	return nil
 }

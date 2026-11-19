@@ -81,6 +81,20 @@ func (p *Projectiles) Len() int {
 	return len(p.byID)
 }
 
+// With is p with rows put in place of the records at their IDs, p unchanged.
+func (p *Projectiles) With(rows ...Projectile) *Projectiles {
+	out := &Projectiles{byID: make(map[int32]*Projectile, p.Len()+len(rows))}
+	if p != nil {
+		for id, r := range p.byID {
+			out.byID[id] = r
+		}
+	}
+	for _, r := range rows {
+		out.byID[r.ID] = &r
+	}
+	return out
+}
+
 // IDs lists the loaded picture addresses in numeric order.
 func (p *Projectiles) IDs() []int32 {
 	if p == nil {
@@ -172,11 +186,16 @@ func (p *Projectile) SpritePath() string {
 	if p.File == "" {
 		return ""
 	}
-	ext := ".256"
-	if p.A16 != 0 {
-		ext = ".16a"
+	return ProjectilePrefix + strings.ReplaceAll(p.File, "\\", "/") + ProjectileSheetExt(p.A16 != 0)
+}
+
+// ProjectileSheetExt is the extension of a projectile sheet the engine reads
+// as a .16a sprite (a16) or as a .256 one.
+func ProjectileSheetExt(a16 bool) string {
+	if a16 {
+		return ".16a"
 	}
-	return ProjectilePrefix + strings.ReplaceAll(p.File, "\\", "/") + ext
+	return ".256"
 }
 
 func (p *Projectile) OverlayPath() string {

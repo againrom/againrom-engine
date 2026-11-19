@@ -94,7 +94,12 @@ func Decode(data []byte) (*Sprite, error) {
 
 	// Read exactly frameCount records. A standard sprite's last record ends at
 	// trailerStart; a Bucket-B sprite leaves an appended section between the last
-	// frame and the trailer, which is intentionally left unread.
+	// frame and the trailer, which is intentionally left unread. Every record
+	// holds a header, so a count the frame region cannot seat is refused before
+	// any slice is sized from it.
+	if frameCount > (trailerStart-framesStart)/frameHeaderSize {
+		return nil, fmt.Errorf("spr256: %d frames do not fit the %d-byte frame region", frameCount, trailerStart-framesStart)
+	}
 	frames := make([]Frame, 0, frameCount)
 	cursor := framesStart
 	for i := 0; i < frameCount; i++ {

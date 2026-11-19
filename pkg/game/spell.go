@@ -34,14 +34,23 @@ func spellBookOrder(t *mapload.Table, ground []uint16) []uint16 {
 	return rows
 }
 
+// modSpellIcons are the book icons t's mods give, by spell number.
+func modSpellIcons(t *mapload.Table) map[uint16]*image.RGBA {
+	if t == nil {
+		return nil
+	}
+	return t.Mods.SpellIcons
+}
+
 // markMovedSpells flags each cell of a book in rows' order whose ground
-// picture, drawn in ground's order, is another spell's.
-func markMovedSpells(book []ui.SpellEntry, rows, ground []uint16) {
-	if slices.Equal(rows, ground) {
+// picture, drawn in ground's order, is another spell's, and each cell of a
+// spell with a mod's own icon: the bar draws the entry's icon over it.
+func markMovedSpells(book []ui.SpellEntry, rows, ground []uint16, own map[uint16]*image.RGBA) {
+	if slices.Equal(rows, ground) && len(own) == 0 {
 		return
 	}
 	for i, id := range rows {
-		if i < len(book) && id != 0 && (i >= len(ground) || ground[i] != id) {
+		if i < len(book) && id != 0 && (i >= len(ground) || ground[i] != id || own[id] != nil) {
 			book[i].Moved = true
 		}
 	}
@@ -253,7 +262,7 @@ func (mw *mapWorld) pushSpellbook() {
 		}
 		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, rows, mw.bookScrolls(selected)...)
 		if fixed {
-			markMovedSpells(book, rows, ground)
+			markMovedSpells(book, rows, ground, mw.bookIcons)
 			mw.view.SetSpellbookCatalog(uint32(selected[0].ID), book)
 		} else {
 			mw.view.SetSpellbook(uint32(selected[0].ID), book)

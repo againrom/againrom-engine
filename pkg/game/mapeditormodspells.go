@@ -25,6 +25,9 @@ const (
 	spellsGlobalsKey = "globals"
 	spellFieldPrefix = "spell."
 	spellGlobalKey   = "global."
+	// spellOtherGameKey copies the chosen spell's pictures from the other
+	// game's install.
+	spellOtherGameKey = spellFieldPrefix + "othergame"
 )
 
 // spellsLook is the install's book art, book icon strip and spell names,
@@ -33,6 +36,10 @@ type spellsLook struct {
 	art   *ui.BottomHUDArt
 	atlas *bmp.Image
 	names *TextTable
+	// other is the root of the install of the other game the starter lists,
+	// "" for none; looked for once.
+	other      string
+	otherTried bool
 }
 
 // spellsLook is the install's look of the book; empty parts without an
@@ -104,7 +111,8 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 	if err != nil {
 		return []ui.InspectionField{x.pageLine("error", "", err.Error())}
 	}
-	out := s.chosenSpellFields(base, read.Spells)
+	own := s.spellsPageIcons(project, read.Spells, g)
+	out := s.chosenSpellFields(base, read.Spells, own)
 	out = append(out, s.spellGlobalFields(read.Spells.Global)...)
 
 	look := x.spellsLook()
@@ -121,7 +129,7 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 			grid.Shut = append(grid.Shut, v)
 		}
 		grid.Choices = append(grid.Choices, ui.InspectionChoice{Value: v, Label: label})
-		if pic := cutBookIcon(look.atlas, ground, uint16(id)); ok && pic != nil {
+		if pic := cutBookIcon(look.atlas, ground, own, uint16(id)); ok && pic != nil {
 			grid.Icons[v] = pic
 		}
 		grid.Marks[v] = spellInitials(name)
@@ -148,10 +156,10 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 		}
 		name := rules.SpellProfile(g)[id-1].Name
 		label := x.spellLabel(name, int(id))
-		icon := cutBookIcon(look.atlas, ground, id)
+		icon := cutBookIcon(look.atlas, ground, own, id)
 		book.Cells[i] = ui.SpellEntry{ID: uint32(id), Name: label, Icon: icon}
 		tip := label
-		if !slices.Contains(ground, id) {
+		if !slices.Contains(ground, id) && own[id] == nil {
 			tip = x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.nopicture"), strings.ReplaceAll(name, "_", " ")))
 		}
 		book.Tips = append(book.Tips, tip)
@@ -159,15 +167,49 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 			book.Chosen = uint32(id)
 		}
 	}
-	markMovedSpells(book.Cells, rows, ground)
+	markMovedSpells(book.Cells, rows, ground, own)
 	out = append(out, ui.InspectionField{Key: spellsBookKey, Label: x.word("editor.spells.book"), Book: book})
 	return out
+}
+
+// spellsPageIcons are the book icons the rows d of the open project give,
+// by the spell number of game g, read and decoded as the game reads them;
+// a picture that does not read gives none.
+func (s *mapInspectionEdits) spellsPageIcons(project *editorModDocument, d mod.SpellData, g rules.SpellGame) map[uint16]*image.RGBA {
+	var out map[uint16]*image.RGBA
+	for _, r := range d.Rows {
+		id, ok := rules.SpellNumber(g, r.Target)
+		if !ok || !r.Icon.Set {
+			continue
+		}
+		if icon := s.spellsPageIcon(project, r.Icon); icon != nil {
+			if out == nil {
+				out = map[uint16]*image.RGBA{}
+			}
+			out[uint16(id)] = icon
+		}
+	}
+	return out
+}
+
+// spellsPageIcon is the book icon p names in the open project, nil for one
+// that does not read.
+func (s *mapInspectionEdits) spellsPageIcon(project *editorModDocument, p mod.SpellPicture) *image.RGBA {
+	if m := s.inspector.mod; m != nil {
+		p.Dir = m.dir
+	}
+	b, err := modSpellPicture(mod.SpellIcon, p, project.Files)
+	if err != nil {
+		return nil
+	}
+	icon, _ := decodeSpellIcon(b)
+	return icon
 }
 
 // chosenSpellFields are the fields of the page's chosen spell: each number
 // the mod may set, empty while the game's stands, the game's value its
 // hint; its book cell and its switch.
-func (s *mapInspectionEdits) chosenSpellFields(base *mapload.Table, d mod.SpellData) []ui.InspectionField {
+func (s *mapInspectionEdits) chosenSpellFields(base *mapload.Table, d mod.SpellData, own map[uint16]*image.RGBA) []ui.InspectionField {
 	x := s.inspector
 	g := mapload.SpellGameOf(base)
 	id, ok := rules.SpellNumber(g, s.spell)
@@ -211,12 +253,41 @@ func (s *mapInspectionEdits) chosenSpellFields(base *mapload.Table, d mod.SpellD
 		slot = strconv.Itoa(int(p.Slot))
 	}
 	num("book_position", "editor.spells.cell", text(row.BookPosition), slot)
+	out = append(out, s.spellPictureFields(row, own[uint16(id)])...)
 	off := ui.InspectionField{Key: spellFieldPrefix + mod.OffField, Label: x.word("editor.spells.off"), Meaning: x.word("editor.spells.off.help"), Value: 1,
 		Choices: []ui.InspectionChoice{{Value: 1, Label: x.inspectionUTF8(x.word("editor.spells.no"))}, {Value: 2, Label: x.inspectionUTF8(x.word("editor.spells.off"))}}}
 	if row.Off.Set && row.Off.Val {
 		off.Value = 2
 	}
 	return append(out, off)
+}
+
+// spellPictureFields are the chosen spell's pictures: a file picker each for
+// its book icon, the object that flies and the burst, the icon icon shows,
+// and the copy from the other game, or the line saying the starter lists
+// no install of it.
+func (s *mapInspectionEdits) spellPictureFields(row mod.SpellRow, icon *image.RGBA) []ui.InspectionField {
+	x := s.inspector
+	var out []ui.InspectionField
+	for _, p := range []struct {
+		field string
+		v     mod.SpellPicture
+		pick  []string
+	}{{"icon", row.Icon, []string{"png"}}, {"cast", row.Cast, []string{"16a", "256"}}, {"burst", row.Burst, []string{"16a", "256"}}} {
+		f := workspaceText(spellFieldPrefix+p.field, x.word("editor.spells."+p.field), p.v.Path)
+		f.Meaning, f.Pick = x.word("editor.spells."+p.field+".help"), p.pick
+		out = append(out, f)
+		if p.field == "icon" && icon != nil {
+			out = append(out, ui.InspectionField{Key: spellFieldPrefix + "icon.look", ReadOnly: true, Picture: icon})
+		}
+	}
+	if row.Imported.Val {
+		out = append(out, x.pageLine(spellFieldPrefix+"imported", "", x.word("editor.spells.imported")))
+	}
+	if _, ok := s.otherGameInstall(); !ok {
+		return append(out, x.pageLine(spellOtherGameKey, "", x.word("editor.spells.othergame.absent")))
+	}
+	return append(out, ui.InspectionField{Key: spellOtherGameKey, Label: x.word("editor.spells.othergame"), Meaning: x.word("editor.spells.othergame.help"), Action: true})
 }
 
 // spellGlobalFields are the page's globals in the right column: one button
@@ -457,6 +528,12 @@ func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDo
 			return nil, errors.New(x.word("editor.spells.none"))
 		}
 		field := strings.TrimPrefix(key, spellFieldPrefix)
+		switch {
+		case key == spellOtherGameKey:
+			return s.copyOtherGameSpell(base, name, false)
+		case value != "" && slices.Contains(spellPictureKeys, field):
+			return s.importSpellPicture(base, name, field, value, false)
+		}
 		edit = func(d *mod.SpellData) error { return setSpellRowField(spellRow(d, name), field, value) }
 	case strings.HasPrefix(key, spellGlobalKey):
 		field := strings.TrimPrefix(key, spellGlobalKey)
@@ -486,7 +563,13 @@ func (s *mapInspectionEdits) setSpellsField(key, value string) (*ui.InspectionDo
 // a row left setting nothing leaves the file, and the rows must pass the
 // game's checks for a mod's spell rows and its book.
 func (s *mapInspectionEdits) editSpells(base *mapload.Table, edit func(*mod.SpellData) error) (*ui.InspectionDocument, error) {
-	return s.editKind(func(k kindFiles) error {
+	return s.editKind(spellsDraft(base, edit))
+}
+
+// spellsDraft is the change of the spells file editSpells makes, for a
+// draft step of its own or an import's.
+func spellsDraft(base *mapload.Table, edit func(*mod.SpellData) error) func(k kindFiles) error {
+	return func(k kindFiles) error {
 		return k.editRows(nil, []string{mod.SpellsFile}, func(d *mod.Data) error {
 			if err := edit(&d.Spells); err != nil {
 				return err
@@ -504,7 +587,7 @@ func (s *mapInspectionEdits) editSpells(base *mapload.Table, edit func(*mod.Spel
 			}
 			return nil
 		})
-	})
+	}
 }
 
 // setSpellRowField sets field of row r to the typed value; empty leaves
@@ -552,6 +635,13 @@ func setSpellRowField(r *mod.SpellRow, field, value string) error {
 		}
 		r.DamageMin = mod.SpellInt{Set: true, Val: int32(a), Line: r.DamageMin.Line}
 		r.DamageMax = mod.SpellInt{Set: true, Val: int32(b), Line: r.DamageMax.Line}
+		return nil
+	case "icon", "cast", "burst":
+		if value != "" {
+			// A picture enters the mod through its picker, which copies it.
+			return spellPictureRefusal(field, value)
+		}
+		setSpellPicture(r, field, mod.SpellPicture{})
 		return nil
 	case mod.OffField:
 		switch value {

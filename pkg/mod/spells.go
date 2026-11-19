@@ -2,6 +2,7 @@ package mod
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"againrom/pkg/rules"
@@ -92,6 +93,93 @@ type SpellRow struct {
 	// book position.
 	Off          SpellBool
 	BookPosition SpellInt
+
+	// Dir is the folder or packed file of the mod the row is read from.
+	Dir string
+	// Icon is the spell's book picture; Cast and Burst are the object that
+	// flies and the burst, each drawn by its registry row. Imported marks
+	// pictures copied from a game install.
+	Icon, Cast, Burst SpellPicture
+	CastRow, BurstRow *SpellSheet
+	Imported          SpellBool
+}
+
+// SpellPicture is a row's picture field: the file of the mod it names, and
+// the mod, file and folder of the row that names it, which a merged row
+// keeps per field.
+type SpellPicture struct {
+	Set            bool
+	Path           string
+	Line           int
+	Mod, File, Dir string
+}
+
+// SpellSheet is the registry row a cast picture is drawn by; a key not set
+// is taken from the sheet.
+type SpellSheet struct {
+	Line                                                 int
+	Phases, RotationPhases, Width, Height, Palette, Flip SpellInt
+}
+
+// ImportedPicturesWarning is the check's line on a row whose pictures are
+// copies of a game install's.
+const ImportedPicturesWarning = "the row's pictures are copied from a game install; publish the mod only where the game's rights allow it"
+
+// ImportedSpells are the targets of d's rows whose pictures are copied from
+// a game install.
+func (d SpellData) ImportedSpells() []string {
+	var out []string
+	for _, r := range d.Rows {
+		if r.Imported.Val && len(r.Pictures()) > 0 {
+			out = append(out, r.Target)
+		}
+	}
+	return out
+}
+
+// SpellSheetKeys are the keys of a cast picture's registry row.
+func SpellSheetKeys() []string {
+	return []string{"phases", "rotation_phases", "width", "height", "palette", "flip"}
+}
+
+// Ints are the row's values in the order of SpellSheetKeys.
+func (s *SpellSheet) Ints() []*SpellInt {
+	return []*SpellInt{&s.Phases, &s.RotationPhases, &s.Width, &s.Height, &s.Palette, &s.Flip}
+}
+
+// NewSpellSheet is the registry row of values, in the order of
+// SpellSheetKeys; a value outside its key's bounds is left unset.
+func NewSpellSheet(values ...int32) *SpellSheet {
+	s := &SpellSheet{}
+	for i, dst := range s.Ints() {
+		if i < len(values) && int64(values[i]) >= spellSheetBounds[i][0] && int64(values[i]) <= spellSheetBounds[i][1] {
+			*dst = SpellInt{Set: true, Val: values[i]}
+		}
+	}
+	return s
+}
+
+// spellSheetBounds are the bounds of each key of SpellSheetKeys.
+var spellSheetBounds = [][2]int64{{1, 1024}, {1, 64}, {1, 1024}, {1, 1024}, {0, 1}, {0, 1}}
+
+// Pictures are the row's pictures that are set, each with the field that
+// names it.
+func (r SpellRow) Pictures() []SpellPictureField {
+	var out []SpellPictureField
+	for _, p := range []SpellPictureField{{"icon", r.Icon, nil}, {"cast", r.Cast, r.CastRow}, {"burst", r.Burst, r.BurstRow}} {
+		if p.Picture.Set {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// SpellPictureField is one picture of a row: its field, the file and, for
+// a cast picture, the registry row it states.
+type SpellPictureField struct {
+	Field   string
+	Picture SpellPicture
+	Row     *SpellSheet
 }
 
 // SpellEdit is the row's switch and book position for the game's profile.
@@ -139,6 +227,10 @@ type SpellData struct {
 	Rows   []SpellRow
 	// Order is the load order MergeSpells lays the rows in.
 	Order Precedence
+	// Pictures are the pictures under assets/spells by their clean path in
+	// the mod, read in place of the mod's file: the editor's drafts not
+	// written yet.
+	Pictures map[string][]byte
 }
 
 func (d SpellData) Empty() bool { return len(d.Rows) == 0 && len(d.Global.Globals()) == 0 }
@@ -166,7 +258,7 @@ func MergeSpells(d SpellData, base []string) (SpellData, []Override, error) {
 	if err != nil {
 		return SpellData{}, nil, err
 	}
-	out := SpellData{Global: d.Global, Order: d.Order}
+	out := SpellData{Global: d.Global, Order: d.Order, Pictures: d.Pictures}
 	for _, r := range l.Records {
 		if _, named := l.Named[r.Target]; named {
 			out.Rows = append(out.Rows, r)
@@ -230,6 +322,23 @@ func (r *SpellRow) overlay(src SpellRow) {
 		r.Off = src.Off
 	}
 	ints(&r.BookPosition, src.BookPosition)
+	pictures := func(dst *SpellPicture, row **SpellSheet, v SpellPicture, vrow *SpellSheet) {
+		if v.Set {
+			*dst = v
+			if dst.Mod == "" {
+				dst.Mod, dst.File, dst.Dir = src.Mod, src.File, src.Dir
+			}
+			if row != nil {
+				*row = vrow
+			}
+		}
+	}
+	pictures(&r.Icon, nil, src.Icon, nil)
+	pictures(&r.Cast, &r.CastRow, src.Cast, src.CastRow)
+	pictures(&r.Burst, &r.BurstRow, src.Burst, src.BurstRow)
+	if src.Imported.Set {
+		r.Imported = src.Imported
+	}
 }
 
 func (g SpellGlobal) Globals() []SpellGlobalKey {
@@ -262,7 +371,7 @@ type SpellGlobalKey struct {
 func SpellFieldNames() []string {
 	return []string{"mana", "range", "damage", "radius", "duration", "area_duration", "effect",
 		"heal_hostile", "self_cast", "area_hits", "rays", "power", "damage_factor", "range_bonus", "duration_factor", "magnitude",
-		"off", "book_position"}
+		"off", "book_position", "icon", "cast", "cast_row", "burst", "burst_row", "imported"}
 }
 
 func ParseSpells(id, file string, data []byte, setting func(name string) (int64, bool)) (SpellData, error) {
@@ -524,6 +633,18 @@ func (r spellReader) row(id string, t tomlTable) (SpellRow, error) {
 			row.Off, err = r.boolean("off", p.val, p.line)
 		case "book_position":
 			row.BookPosition, err = r.ranged("book_position", p.val, p.line, 1, int64(rules.SpellBookPositions()))
+		case "icon":
+			row.Icon, err = r.picture(id, SpellIcon, p)
+		case "cast":
+			row.Cast, err = r.picture(id, SpellEffect, p)
+		case "burst":
+			row.Burst, err = r.picture(id, SpellEffect, p)
+		case "cast_row":
+			row.CastRow, err = r.sheet(p)
+		case "burst_row":
+			row.BurstRow, err = r.sheet(p)
+		case "imported":
+			row.Imported, err = r.boolean("imported", p.val, p.line)
 		default:
 			err = r.bad(p.line, "unknown key %q in [[spell]] (keys: target, %s)", p.key, strings.Join(SpellFieldNames(), ", "))
 		}
@@ -541,7 +662,53 @@ func (r spellReader) row(id string, t tomlTable) (SpellRow, error) {
 	if row.Off.Val && row.BookPosition.Set {
 		return SpellRow{}, r.bad(row.BookPosition.Line, "%s is off, so book_position does not apply to it", row.Target)
 	}
+	if row.CastRow != nil && !row.Cast.Set {
+		return SpellRow{}, r.bad(row.CastRow.Line, "cast_row of %s needs cast, the picture it is the row of", row.Target)
+	}
+	if row.BurstRow != nil && !row.Burst.Set {
+		return SpellRow{}, r.bad(row.BurstRow.Line, "burst_row of %s needs burst, the picture it is the row of", row.Target)
+	}
+	if row.Imported.Val && len(row.Pictures()) == 0 {
+		return SpellRow{}, r.bad(row.Imported.Line, "imported marks the pictures of %s, and the row names none", row.Target)
+	}
 	return row, nil
+}
+
+// picture reads a row's picture field: a path the reference rule admits.
+func (r spellReader) picture(id string, ref Reference, p tomlPair) (SpellPicture, error) {
+	if p.val.kind != tomlString {
+		return SpellPicture{}, r.bad(p.line, "%s must be a path in the mod, not %s", p.key, p.val.kind)
+	}
+	rel, err := ref.Check(r.file, p.line, p.key, p.val.str)
+	if err != nil {
+		return SpellPicture{}, err
+	}
+	return SpellPicture{Set: true, Path: rel, Line: p.line, Mod: id, File: r.file}, nil
+}
+
+// sheet reads a cast picture's registry row.
+func (r spellReader) sheet(p tomlPair) (*SpellSheet, error) {
+	keys := SpellSheetKeys()
+	if p.val.kind != tomlInline {
+		return nil, r.bad(p.line, "%s must be { %s }, not %s", p.key, strings.Join(keys, ", "), p.val.kind)
+	}
+	s := &SpellSheet{Line: p.line}
+	dst := s.Ints()
+	for _, q := range p.val.tbl {
+		i := slices.Index(keys, q.key)
+		if i < 0 {
+			return nil, r.bad(p.line, "unknown key %q in %s (keys: %s)", q.key, p.key, strings.Join(keys, ", "))
+		}
+		v, err := r.ranged(p.key+"."+q.key, q.val, p.line, spellSheetBounds[i][0], spellSheetBounds[i][1])
+		if err != nil {
+			return nil, err
+		}
+		*dst[i] = v
+	}
+	if len(p.val.tbl) == 0 {
+		return nil, r.bad(p.line, "%s changes nothing", p.key)
+	}
+	return s, nil
 }
 
 func (r spellReader) damage(row *SpellRow, p tomlPair) error {

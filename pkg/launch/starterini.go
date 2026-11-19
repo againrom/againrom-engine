@@ -132,11 +132,17 @@ func SelectedBase(bases []NamedBase, last string) (string, bool) {
 // StarterBase is the selected base of the starter.ini in the folder dir. A
 // missing or unreadable file, and a file with no base, answer false.
 func StarterBase(dir string) (string, bool) {
+	bases, last := StarterBases(dir)
+	return SelectedBase(bases, last)
+}
+
+// StarterBases is ReadBases of the starter.ini in the folder dir; none when
+// it cannot be read.
+func StarterBases(dir string) (bases []NamedBase, last string) {
 	data, err := os.ReadFile(StarterINI(dir))
 	if err != nil {
-		return "", false
+		return nil, ""
 	}
 	f, _ := ini.Parse(data)
-	bases, last := ReadBases(f)
-	return SelectedBase(bases, last)
+	return ReadBases(f)
 }

@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] A mod can give any spell its own picture in the spell book and its own flying picture and burst, in both games. The map editor's Spells page picks the three picture files, or copies them from the other game's install the starter knows; publishing a mod with pictures copied from a game install warns.
 - [BASE] In the map editor, every refusal of an edit, a save, a paste, a script change or a mod file read now reads in the editor's language, English or Russian, and a mod file that does not read names its file and line; before, many refusals came out in English.
 - [BASE] In the map editor, the test play notes and refusals, the mod folder and file refusals, the spell and terrain page refusals, and an edit the map library refuses now read in the editor's language, English or Russian; a reason the library gives itself still shows in English after the editor's words.
 - [BASE] In the map editor, a refusal when adding a speaker or importing its picture now reads in the editor's language, and the question to extend the script always says why, naming the limit and its number; before, some refusals were in English or empty.

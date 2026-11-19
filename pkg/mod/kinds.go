@@ -244,9 +244,10 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
-		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
-
-		Name: "spells", Files: []string{SpellsFile}, Key: "`target`, a spell name (Spell names), and the field; `[global]` keys",
+		Format: "TOML subset; PNG icons, projectile sheets", Language: "shared", Found: "held file; row icon, cast and burst", State: true,
+		Paths:      []string{"assets/spells/*.png", "assets/spells/*.16a", "assets/spells/*.256"},
+		references: []Reference{SpellIcon, SpellEffect},
+		Name:       "spells", Files: []string{SpellsFile}, Key: "`target`, a spell name (Spell names), and the field; `[global]` keys",
 		Class: CatalogData, Layer: LayerKept, Owner: "the spell switch, position, book size and shop story",
 		Base:   "the spell rows of the definition table, each keyed by its catalog name; the rows of the mods merge one per spell",
 		Shared: "no: one field of one spell, and one global key, is set by one mod",

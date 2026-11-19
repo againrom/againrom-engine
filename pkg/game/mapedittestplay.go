@@ -50,6 +50,9 @@ type TestPlayHost struct {
 	// EnabledMods is the ids of the mods the starter enables in ModsFolder,
 	// read when asked; nil enables none.
 	EnabledMods func() []string
+	// Installs is the game roots the starter lists, read when asked; the
+	// spells page copies the other game's spell pictures from one of them.
+	Installs func() []string
 }
 
 // SetTestPlay names the host of the editor's test play.

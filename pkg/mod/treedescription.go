@@ -181,6 +181,13 @@ func (t Tree) Describe() (TreeDescription, error) {
 				if row.name == "mission" && k.Name == "missions" {
 					t.describeMissionPages(file, row, warn)
 				}
+				if row.name == "spell" && k.Name == "spells" {
+					for _, pair := range row.pairs {
+						if pair.key == "imported" && pair.val.kind == tomlBool && pair.val.flag {
+							warn(file, pair.line, ImportedPicturesWarning)
+						}
+					}
+				}
 			}
 		}
 	}

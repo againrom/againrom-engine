@@ -30,6 +30,12 @@ func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, p
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
+	return flightInputsWith(src, spells, profile, pictures)
+}
+
+// flightInputsWith is loadFlightInputs with the projectile records given:
+// the install's, or those the mods' spell rows put their pictures into.
+func flightInputsWith(src terrain.EntrySource, spells *data.SpellPresentation, profile flightProfile, pictures *data.Projectiles) (*sim.FlightInputs, error) {
 	classes, err := loadUnitClasses(src)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err

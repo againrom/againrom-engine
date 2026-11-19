@@ -88,7 +88,7 @@ func (mw *mapWorld) spellIcon(id uint16) *image.RGBA {
 	if pic, tried := mw.spellIcons[id]; tried {
 		return pic
 	}
-	pic := cutBookIcon(mw.spellAtlas(), mw.spells().BookRows, id)
+	pic := cutBookIcon(mw.spellAtlas(), mw.spells().BookRows, mw.bookIcons, id)
 	if mw.spellIcons == nil {
 		mw.spellIcons = make(map[uint16]*image.RGBA)
 	}
@@ -112,7 +112,7 @@ func (t *shopController) shopSpellIcon(id uint16) *image.RGBA {
 			t.shopSpellAtlasImg = loadSpellAtlas(t.in.Archives.Containers)
 		}
 	}
-	pic := cutBookIcon(t.shopSpellAtlasImg, spellBookRows(t.in.Table), id)
+	pic := cutBookIcon(t.shopSpellAtlasImg, spellBookRows(t.in.Table), modSpellIcons(t.in.Table), id)
 	if t.shopSpellIcons == nil {
 		t.shopSpellIcons = make(map[uint16]*image.RGBA)
 	}
@@ -137,21 +137,25 @@ func (s *mapInspectionEdits) spellPictures(choices []ui.InspectionChoice) map[in
 		x.recordPictures["spell"] = pics
 	}
 	var atlas *bmp.Image
+	tried := false
 	for _, c := range choices {
-		if _, tried := pics[c.Value]; tried || c.Value <= 0 || c.Value > math.MaxUint16 {
+		if _, held := pics[c.Value]; held || c.Value <= 0 || c.Value > math.MaxUint16 {
 			continue
 		}
-		if atlas == nil {
-			if atlas = loadSpellAtlas(x.archives.Containers); atlas == nil {
-				return pics
-			}
+		if !tried {
+			atlas, tried = loadSpellAtlas(x.archives.Containers), true
 		}
-		pics[c.Value] = cutBookIcon(atlas, spellBookRows(x.table), uint16(c.Value))
+		pics[c.Value] = cutBookIcon(atlas, spellBookRows(x.table), modSpellIcons(x.table), uint16(c.Value))
 	}
 	return pics
 }
 
-func cutBookIcon(atlas *bmp.Image, rows []uint16, id uint16) *image.RGBA {
+// cutBookIcon is spell id's book icon: the mods' own icon where own holds
+// one, else the atlas cell of the book position rows give it.
+func cutBookIcon(atlas *bmp.Image, rows []uint16, own map[uint16]*image.RGBA, id uint16) *image.RGBA {
+	if pic := own[id]; pic != nil {
+		return pic
+	}
 	for slot, row := range rows {
 		if row == id {
 			return cutSpellIcon(atlas, slot)

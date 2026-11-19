@@ -137,6 +137,22 @@ func spellSourceRows(d SpellData) []sourceRow {
 		pairs = tables(pairs, r.Formulas())
 		bools(OffField, r.Off)
 		ints("book_position", r.BookPosition)
+		for _, p := range r.Pictures() {
+			pairs = append(pairs, missionPair{p.Field, strconv.Quote(p.Picture.Path)})
+			if p.Row == nil {
+				continue
+			}
+			var parts []string
+			for i, v := range p.Row.Ints() {
+				if v.Set {
+					parts = append(parts, SpellSheetKeys()[i]+" = "+num(v.Val))
+				}
+			}
+			if len(parts) > 0 {
+				pairs = append(pairs, missionPair{p.Field + "_row", "{ " + strings.Join(parts, ", ") + " }"})
+			}
+		}
+		bools("imported", r.Imported)
 		out = append(out, record{r.Line, sourceRow{table: "spell", identity: "spell " + rules.SpellKey(r.Target), pairs: pairs}})
 	}
 	slices.SortStableFunc(out, func(a, b record) int {

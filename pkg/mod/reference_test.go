@@ -63,6 +63,16 @@ func rowFields() []rowField {
 				_, err := ReadSpeakers("m", dir, SpeakersFile, []byte(fmt.Sprintf("[[speaker]]\nid = 20000\nname = \"S\"\npicture = %q\n", value)), nil)
 				return err
 			}},
+		{name: "spell icon", ref: SpellIcon, strict: true, ext: ".png", good: "assets/spells/a.png", line: 3,
+			parse: func(_, value string) error {
+				_, err := ParseSpells("m", SpellsFile, []byte(fmt.Sprintf("[[spell]]\ntarget = \"Fire_Ball\"\nicon = %q\n", value)), nil)
+				return err
+			}},
+		{name: "spell cast", ref: SpellEffect, strict: true, ext: ".16a", good: "assets/spells/a.16a", line: 3,
+			parse: func(_, value string) error {
+				_, err := ParseSpells("m", SpellsFile, []byte(fmt.Sprintf("[[spell]]\ntarget = \"Fire_Ball\"\ncast = %q\n", value)), nil)
+				return err
+			}},
 		{name: "town description", ref: TownDescription, ext: ".json", good: "assets/towns/a.json", line: 3,
 			parse: func(dir, value string) error {
 				var d Data
@@ -113,7 +123,7 @@ func TestEveryRowFileFieldPassesTheReferenceRule(t *testing.T) {
 			if f.strict {
 				refusals[""] = "" // the row's own word for an empty value, at its line
 				refusals["art//a"+ext] = "is not a clean path inside the mod folder"
-				refusals["art/a.bmp"] = "is not a " + f.ext + " file"
+				refusals["art/a.bmp"] = "is not a " + f.ext
 			}
 			if f.ref.role == referenceMap || f.ref.role == referencePages {
 				refusals[""] = "is not a path inside the mod folder"
@@ -302,7 +312,7 @@ func TestMissionMapNameAtTheBoundLoads(t *testing.T) {
 }
 
 func TestAssetPlaces(t *testing.T) {
-	want := map[string]string{"items": "assets/items .png", "body sheets": "assets/bodies .png", "towns": "assets/towns .json .bmp", "speakers": "assets/speakers .png"}
+	want := map[string]string{"items": "assets/items .png", "body sheets": "assets/bodies .png", "towns": "assets/towns .json .bmp", "speakers": "assets/speakers .png", "spells": "assets/spells .png .16a .256"}
 	for _, k := range TreeKinds() {
 		place, exts := k.AssetPlace()
 		got := strings.TrimSpace(place + " " + strings.Join(exts, " "))

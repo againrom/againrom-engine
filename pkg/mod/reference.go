@@ -46,6 +46,8 @@ var (
 	TownDescription  = Reference{Kind: "towns", tables: []string{"town"}, fields: []string{"description"}, exts: []string{".json"}, loose: true, role: referenceTown}
 	TownArt          = Reference{Kind: "towns", loose: true}
 	SpeakerPicture   = Reference{Kind: "speakers", tables: []string{"speaker"}, fields: []string{"picture"}, loose: true}
+	SpellIcon        = Reference{Kind: "spells", tables: []string{"spell"}, fields: []string{"icon"}, exts: []string{".png"}}
+	SpellEffect      = Reference{Kind: "spells", tables: []string{"spell"}, fields: []string{"cast", "burst"}, exts: []string{".16a", ".256"}}
 )
 
 const errReferenceInside = "%q is not a path inside the mod folder"

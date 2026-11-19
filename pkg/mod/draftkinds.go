@@ -228,7 +228,18 @@ func draftSpells(r DataReader, d *Data, view DraftView, _ func() (textLookup, er
 	if src == nil {
 		return nil
 	}
-	return readSpells(r, d, SpellsFile, src)
+	if err := readSpells(r, d, SpellsFile, src); err != nil {
+		return err
+	}
+	for _, rel := range view.Drafted() {
+		if b, _ := view.Draft(rel); strings.HasPrefix(namefold.ModTree(rel), AssetsFolder+"/"+SpellIcon.Kind+"/") && b != nil {
+			if d.Spells.Pictures == nil {
+				d.Spells.Pictures = map[string][]byte{}
+			}
+			d.Spells.Pictures[rel] = b
+		}
+	}
+	return nil
 }
 
 // draftTerrain puts the draft of the terrain file over d's groups.

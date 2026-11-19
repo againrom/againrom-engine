@@ -36,6 +36,9 @@ var modAssets = []modAsset{
 	{folder: speakerAssets, ref: mod.SpeakerPicture, check: func(b []byte) error { _, err := decodeSpeakerPicture(b); return err }},
 	{folder: "towns", ref: mod.TownDescription, check: func(b []byte) error { _, err := town.Parse(b); return err }},
 	{folder: "towns", ref: mod.TownArt, check: func(b []byte) error { _, err := decodeModPicture(b, bmpDepth(b)); return err }},
+	{folder: mod.SpellIcon.Kind, ref: mod.SpellIcon, check: func(b []byte) error { _, err := decodeSpellIcon(b); return err }},
+	{folder: mod.SpellEffect.Kind, ref: mod.SpellEffect, check: effectSheetCheck(true)},
+	{folder: mod.SpellEffect.Kind, ref: mod.SpellEffect, check: effectSheetCheck(false)},
 }
 
 func init() {
@@ -83,6 +86,38 @@ func modAssetName(source string) string {
 // the bytes pass the check the kind's loader runs.
 func (s *mapInspectionEdits) modAssetDraft(kind, source, name string) (string, []byte, error) {
 	x := s.inspector
+	rel, asset, err := s.modAssetPlace(kind, name)
+	if err != nil {
+		return "", nil, err
+	}
+	data, err := x.hostFileBytes(source, mod.MaxFileBytes, asset.check, x.notModAsset(kind, name))
+	if err != nil {
+		return "", nil, err
+	}
+	return rel, data, nil
+}
+
+// modAssetBytes is modAssetDraft for bytes the editor holds rather than a
+// host file: a copy from a game install the editor reads.
+func (s *mapInspectionEdits) modAssetBytes(kind, name string, data []byte) (string, error) {
+	x := s.inspector
+	rel, asset, err := s.modAssetPlace(kind, name)
+	if err != nil {
+		return "", err
+	}
+	if int64(len(data)) > mod.MaxFileBytes {
+		return "", fmt.Errorf(x.word("editor.asset.err.size"), mod.MaxFileBytes)
+	}
+	if err := asset.check(data); err != nil {
+		return "", x.inLanguage(err)
+	}
+	return rel, nil
+}
+
+// modAssetPlace is the path in the open mod a file of kind named name
+// takes and the sort of asset it is.
+func (s *mapInspectionEdits) modAssetPlace(kind, name string) (string, *modAsset, error) {
+	x := s.inspector
 	if err := x.modWritable(); err != nil {
 		return "", nil, err
 	}
@@ -101,17 +136,25 @@ func (s *mapInspectionEdits) modAssetDraft(kind, source, name string) (string, [
 		return "", nil, fmt.Errorf(x.word("editor.asset.err.kind"), kind)
 	}
 	if asset == nil {
-		return "", nil, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", "))
+		return "", nil, x.notModAsset(kind, name)
 	}
 	rel, err := asset.ref.Path(mod.AssetsFolder + "/" + kind + "/" + name)
 	if err != nil {
 		return "", nil, err
 	}
-	data, err := x.hostFileBytes(source, mod.MaxFileBytes, asset.check, fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", ")))
-	if err != nil {
-		return "", nil, err
+	return rel, asset, nil
+}
+
+// notModAsset is the refusal of a file named name that is not of a sort
+// the mod keeps under assets/<kind>.
+func (x *MapInspector) notModAsset(kind, name string) error {
+	var takes []string
+	for _, a := range modAssets {
+		if a.folder == kind {
+			takes = append(takes, a.ext)
+		}
 	}
-	return rel, data, nil
+	return fmt.Errorf(x.word("editor.asset.err.type"), name, mod.AssetsFolder+"/"+kind, strings.Join(takes, ", "))
 }
 
 // modWritable refuses an import into no mod, a mod the editor may not
@@ -203,32 +246,58 @@ func (s *mapInspectionEdits) ImportModAsset(kind, source string, replace bool) (
 // set, otherwise the answer is the question to ask.
 // A with edit runs in the import's own draft step, given the file's path.
 func (s *mapInspectionEdits) importModFile(rel string, data []byte, replace bool, again func() (*ui.InspectionDocument, error), with ...func(*editorWorkspaceState, string) error) (string, *ui.InspectionDocument, error) {
-	if held, ok := s.heldModFile(rel); ok {
-		if !replace {
-			s.assetAsk = &modAssetRequest{again: again}
-			x := s.inspector
-			return "", nil, &ui.WorkspaceConfirmation{Action: modAssetReplaceKey, Message: fmt.Sprintf(x.word("editor.asset.replace"), held), Confirm: x.word("editor.mod.replacefile")}
+	var each []func(*editorWorkspaceState, []string) error
+	for _, edit := range with {
+		each = append(each, func(w *editorWorkspaceState, rels []string) error { return edit(w, rels[0]) })
+	}
+	rels, d, err := s.importModFiles([]modDraftFile{{rel, data}}, replace, again, each...)
+	if err != nil {
+		return "", nil, err
+	}
+	return rels[0], d, nil
+}
+
+// modDraftFile is one file an import puts into the open project.
+type modDraftFile struct {
+	rel  string
+	data []byte
+}
+
+// importModFiles is importModFile for files put together in one undo
+// step; with is given their paths in the order of files.
+func (s *mapInspectionEdits) importModFiles(files []modDraftFile, replace bool, again func() (*ui.InspectionDocument, error), with ...func(*editorWorkspaceState, []string) error) ([]string, *ui.InspectionDocument, error) {
+	rels := make([]string, len(files))
+	for i, f := range files {
+		rels[i] = f.rel
+		if held, ok := s.heldModFile(f.rel); ok {
+			if !replace {
+				s.assetAsk = &modAssetRequest{again: again}
+				x := s.inspector
+				return nil, nil, &ui.WorkspaceConfirmation{Action: modAssetReplaceKey, Message: fmt.Sprintf(x.word("editor.asset.replace"), held), Confirm: x.word("editor.mod.replacefile")}
+			}
+			rels[i] = held
 		}
-		rel = held
 	}
 	m := s.inspector.mod
 	d, err := s.changeWorkspace(func(w *editorWorkspaceState) error {
 		if w.Project == nil {
 			w.Project = m.document()
 		}
-		w.Project.Files[rel] = bytes.Clone(data)
+		for i, f := range files {
+			w.Project.Files[rels[i]] = bytes.Clone(f.data)
+		}
 		for _, edit := range with {
-			if err := edit(w, rel); err != nil {
+			if err := edit(w, rels); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
-	s.saveNote = fmt.Sprintf(s.inspector.word("editor.asset.imported"), rel)
-	return rel, d, nil
+	s.saveNote = fmt.Sprintf(s.inspector.word("editor.asset.imported"), strings.Join(rels, ", "))
+	return rels, d, nil
 }
 
 // setModAsset is the mod window's route to the import: the key names the

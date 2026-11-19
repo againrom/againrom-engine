@@ -24,13 +24,18 @@ func speakerPictureSize() image.Point { return ui.NoticeFaceWindow(0, 0).Size() 
 // decodeSpeakerPicture is the face a mod's PNG gives, refused unless it is a
 // PNG of the pane's size.
 func decodeSpeakerPicture(b []byte) (*image.RGBA, error) {
+	return decodeFixedPicture(b, speakerPictureSize(), wordRef("editor.speaker.err.size"))
+}
+
+// decodeFixedPicture is a mod's PNG of exactly want pixels; sizeWord is the
+// refusal of another size, given the size it is and the size it must be.
+func decodeFixedPicture(b []byte, want image.Point, sizeWord wordRef) (*image.RGBA, error) {
 	decoded, err := png.Decode(bytes.NewReader(b))
 	if err != nil {
 		return nil, wordErr("editor.speaker.err.notpng")
 	}
-	want := speakerPictureSize()
 	if got := decoded.Bounds().Size(); got != want {
-		return nil, wordErr("editor.speaker.err.size", got.X, got.Y, want.X, want.Y)
+		return nil, wordErr(string(sizeWord), got.X, got.Y, want.X, want.Y)
 	}
 	out := image.NewRGBA(image.Rect(0, 0, want.X, want.Y))
 	draw.Draw(out, out.Bounds(), decoded, decoded.Bounds().Min, draw.Src)

@@ -216,6 +216,10 @@ func TestRejectShortAndOversizedStreams(t *testing.T) {
 	// a panic, and no giant allocation (the guard fires before make).
 	oversize := concat(frameRecord(0xFFFFFFFF, 0xFFFFFFFF, []byte{0x00}), trailer(1, false))
 	assertReject(t, "oversized dimensions", oversize)
+
+	// A trailer counting about two billion frames over seven bytes is refused
+	// before the frame list is sized from the count.
+	assertReject(t, "frame count past the stream", []byte("not a sheet"))
 }
 
 // TestDecodeEmptyGridBetweenFrames - AC-8 / SC-8: a width=0 empty-grid frame

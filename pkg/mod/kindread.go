@@ -245,6 +245,15 @@ func readSpells(r DataReader, d *Data, rel string, src []byte) error {
 	if spells.Global.Line != 0 {
 		g.Line = spells.Global.Line
 	}
+	for i := range spells.Rows {
+		row := &spells.Rows[i]
+		row.Dir = r.Dir
+		for _, p := range []*SpellPicture{&row.Icon, &row.Cast, &row.Burst} {
+			if p.Set {
+				p.Dir = r.Dir
+			}
+		}
+	}
 	d.Spells.Rows = append(d.Spells.Rows, spells.Rows...)
 	d.spellSettings = r.Settings
 	return nil
@@ -287,6 +296,12 @@ func spellFieldsOf(r SpellRow) []spellField {
 		out = append(out, spellField{"off", r.Off.Line})
 	}
 	add("book_position", r.BookPosition)
+	for _, p := range r.Pictures() {
+		out = append(out, spellField{p.Field, p.Picture.Line})
+	}
+	if r.Imported.Set {
+		out = append(out, spellField{"imported", r.Imported.Line})
+	}
 	if e := r.Effect; e != nil {
 		if e.Kind != "" {
 			out = append(out, spellField{"effect.kind", e.Line})

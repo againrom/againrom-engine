@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"os"
@@ -15,6 +16,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/internal/witness"
+	"againrom/pkg/data"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/town"
@@ -224,7 +226,9 @@ func TestImportRefusesWhatTheKindsLoaderRefuses(t *testing.T) {
 				{"towns", "east.json", []byte("{"), townWords.Error()},
 				{"towns", "square.bmp", []byte("text"), artWords.Error()},
 				{"items", "notes.txt", small, strings.SplitN(book.Text("editor.asset.err.type"), "%s", 3)[1]},
-				{"spells", "icon.png", small, strings.SplitN(book.Text("editor.asset.err.kind"), "%q", 2)[0]},
+				{"spells", "icon.png", small, fmt.Sprintf(book.Text("editor.spells.err.iconsize"), 4, 4, data.SpellIconSide, data.SpellIconSide)},
+				{"spells", "burst.256", []byte("not a sheet"), book.Text("editor.spells.err.sheet")},
+				{"missions", "icon.png", small, strings.SplitN(book.Text("editor.asset.err.kind"), "%q", 2)[0]},
 				{"items", ".hidden.png", small, "dot"},
 			} {
 				source, _ := assetFile(t, tc.name, tc.data)
@@ -323,7 +327,7 @@ func TestImportTakesEverySortTheTreeKeepsUnderAssets(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("the import takes %v; the tree keeps %v", got, want)
 	}
-	if kinds := modAssetKinds(); !reflect.DeepEqual(kinds, []string{"items", "bodies", "speakers", "towns"}) {
+	if kinds := modAssetKinds(); !reflect.DeepEqual(kinds, []string{"items", "bodies", "speakers", "towns", "spells"}) {
 		t.Fatalf("the import's kinds are %v", kinds)
 	}
 
