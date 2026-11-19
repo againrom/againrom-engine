@@ -44,3 +44,23 @@ func TileGroupMask(words []uint16) uint32 {
 	}
 	return min(install, TileGroupBits) | mods
 }
+
+// tileMaskKeepsLoaded says, per format, whether the save ORs the groups of the
+// tile plane into the loaded type-0 +0x18 word instead of replacing it.
+var tileMaskKeepsLoaded = [...]bool{FirstFormat: false, SecondFormat: true}
+
+// SavedTileGroupMask is the +0x18 word the save of format f writes for a map
+// that loaded loaded and holds the tile words given: TileGroupMask for the
+// first game; for the second game the loaded word with the plane's install
+// groups ORed in, 0xf00 added above 0xff and the result bounded at TileGroupBits.
+func SavedTileGroupMask(f Format, loaded uint32, words []uint16) uint32 {
+	m := TileGroupMask(words)
+	if !tileMaskKeepsLoaded[f] {
+		return m
+	}
+	v := loaded | m&TileGroupBits
+	if v > 0xff {
+		v |= 0xf00
+	}
+	return min(v, TileGroupBits)
+}

@@ -18,6 +18,10 @@ const (
 	orphanUnitID = 1
 )
 
+// saveFormFixes says, per format, whether the save rewrites owners and loot
+// links. The second game's rows are unread, so its map is kept as loaded.
+var saveFormFixes = [...]bool{FirstFormat: true, SecondFormat: false}
+
 // SaveForm returns the bytes the original editor's save writes for the map in
 // data; every other byte rides the input, so a map the editor wrote itself
 // comes back equal. A file below version 990 is returned as it is.
@@ -28,13 +32,13 @@ const (
 //     loot record a unit links takes that unit's id as owner (ALM-SAVE-255).
 //   - A loot record with an owner takes the owner unit's position; one whose
 //     owner is no unit moves to the unit with id 1 (ALM-SAVE-255, DIV-3252).
-func SaveForm(data []byte) ([]byte, error) {
-	doc, err := OpenDocument(data)
+func SaveForm(data []byte, formats ...Format) ([]byte, error) {
+	doc, err := OpenDocument(data, formats...)
 	if err != nil {
 		return nil, err
 	}
 	out := doc.Write()
-	if doc.Version() < saveFormVersion {
+	if !saveFormFixes[doc.format] || doc.Version() < saveFormVersion {
 		return out, nil
 	}
 	m, err := doc.Map()

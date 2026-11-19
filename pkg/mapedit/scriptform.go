@@ -75,7 +75,7 @@ func (e *Editor) Extended() bool { return e.locate().carries(alm.ScriptRecordTyp
 // Profile is the script limits and operation vocabulary of the map's game;
 // the only format the editor holds view-only is the second game's.
 func (e *Editor) Profile() scriptprofile.Profile {
-	if e.ViewOnly() {
+	if e.NarrowTools() {
 		return scriptprofile.Second
 	}
 	return scriptprofile.Of(e.Extended())

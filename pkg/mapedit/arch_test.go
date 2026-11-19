@@ -32,7 +32,7 @@ type nameTable map[string][]string
 var almReferences = nameTable{
 	"editor.go/New":                         {"alm.FormatOf", "alm.OpenDocument"},
 	"editor.go/" + fileScope:                {"alm.Format"},
-	"editor.go/(*Editor).ViewOnly":          {"alm.SecondFormat"},
+	"editor.go/(*Editor).NarrowTools":       {"alm.SecondFormat"},
 	"editor.go/(*Editor).Document":          {"alm.Document", "alm.OpenDocument"},
 	"editor.go/(*Editor).SaveBytes":         {"alm.SaveForm"},
 	"editor.go/(*Editor).Map":               {"alm.Map", "alm.Open", "alm.OpenROM2", "alm.SecondFormat"},
@@ -57,7 +57,7 @@ var almReferences = nameTable{
 	// The Againrom script record: the frame finds it by its typeId, its
 	// trigger row measures and writes through the record's one trigger
 	// decoder and encoder, and the two form moves frame and decode it.
-	"editor.go/(*Editor).locate":                 {"alm.ScriptRecordTypeID"},
+	"editor.go/(*Editor).locate":                 {"alm.PayloadExtent", "alm.ScriptRecordTypeID"},
 	"editor.go/(frame).at":                       {"alm.ScriptRecordTypeID"},
 	"section.go/sectionFor":                      {"alm.ScriptRecordTypeID"},
 	"scriptform.go/" + fileScope:                 {"alm.ScriptRecordTypeID"},
@@ -79,7 +79,7 @@ var almReferences = nameTable{
 	"newmap.go/NewMap":                           {"alm.NewMap", "alm.NewMapSpec"},
 	"brush.go/(Brush).heights":                   {"alm.MaxHeight"},
 	"brush.go/(Brush).addHeights":                {"alm.MaxHeight"},
-	"brush.go/(*Editor).tileEdit":                {"alm.TileGroupMask"},
+	"brush.go/(*Editor).tileEdit":                {"alm.SavedTileGroupMask"},
 	"brush.go/waterIndex":                        {"alm.TileIndex"},
 	"groupbrush.go/(*Editor).groupStroke":        {"alm.TileGroup"},
 	"groupbrush.go/BrushGroup":                   {"alm.InstallTileGroups", "alm.TileGroupCount"},

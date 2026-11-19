@@ -60,6 +60,16 @@ func FormatOf(data []byte) Format {
 	return FirstFormat
 }
 
+// PayloadExtent is the byte length a loader of the format reads for a record
+// whose header declares size. The second game's editor declares 644 for the
+// type-0 record it writes with 660 bytes, and its loader reads 660.
+func PayloadExtent(f Format, typeID, size uint32) uint32 {
+	if f == SecondFormat && typeID == TypeMeta {
+		return rom2MetaSize
+	}
+	return size
+}
+
 // OpenROM2 reads a ROM2 map.
 func OpenROM2(data []byte) (*Map, error) { return open(data, dialectROM2) }
 

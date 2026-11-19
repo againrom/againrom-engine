@@ -18,7 +18,7 @@ func TestViewOnlyMapRefusesEveryEditCommand(t *testing.T) {
 	before := bytes.Clone(e.doc.SourceBytes)
 	for _, lang := range []string{"en", "ru"} {
 		e.SetWords(words.For(lang))
-		e.doc.ReadOnly = words.For(lang).Text("editor.map.viewonly")
+		e.doc.ReadOnly = words.For(lang).Text("editor.map.secondtool")
 		for _, cmd := range editorCommandRows() {
 			if cmd.opens {
 				continue

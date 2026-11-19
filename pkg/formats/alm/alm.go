@@ -637,9 +637,7 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 		}
 
 		payloadStart := cursor + RecordHeaderSize
-		if d == dialectROM2 && typeID == 0 {
-			payloadSize = rom2MetaSize
-		}
+		payloadSize = PayloadExtent(d, typeID, payloadSize)
 		payloadEnd := payloadStart + int64(payloadSize)
 		if payloadEnd > total {
 			return f, fmt.Errorf("alm: record %d payload (%d bytes) overruns EOF", i, payloadSize)

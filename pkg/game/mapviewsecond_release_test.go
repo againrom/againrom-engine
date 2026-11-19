@@ -62,8 +62,8 @@ func TestReleaseSecondMapEditorViewsEveryInstalledMap(t *testing.T) {
 			if d.Width != want.Width || d.Height != want.Height || counts[ui.KindScenery] != objects || counts[ui.KindUnit] != len(want.Units) || counts[ui.KindStructure] != len(want.Objects) || counts[ui.KindSection] != len(want.Records) {
 				t.Fatalf("size or counts differ: %dx%d, %v", d.Width, d.Height, counts)
 			}
-			if d.Edits != nil || d.OpenNote != x.word("editor.map.viewonly") || !bytes.Equal(raw, d.SourceBytes) {
-				t.Fatal("view exposes edits, omits its notice or changes bytes")
+			if _, ok := d.Edits.(secondEdits); !ok || d.ReadOnly != "" || !bytes.Equal(raw, d.SourceBytes) {
+				t.Fatal("a second-game map lacks its edit host or changes bytes")
 			}
 			after, err := read(entry.Source)
 			if err != nil || !bytes.Equal(raw, after) {
@@ -83,19 +83,11 @@ func TestReleaseSecondMapEditorViewsEveryInstalledMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := bytes.Clone(e.Document().SourceBytes)
-	for _, key := range []string{"brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "copytrigger", "traparea", "randomterrain", "randomheights", "saveas", "saveto", "undo", "redo", "testplay"} {
-		if _, disabled, exists := e.ToolbarState(key); !exists || !disabled {
-			t.Errorf("edit tool %s: exists %v, disabled %v", key, exists, disabled)
-		}
-	}
 	if err := e.Key("move"); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Key("saveas"); err == nil || err.Error() != x.word("editor.map.viewonly") {
-		t.Fatalf("save refusal: %v", err)
-	}
 	if e.Dirty() || !bytes.Equal(before, e.Document().SourceBytes) {
-		t.Fatal("refused edit changed document")
+		t.Fatal("a mode key changed the document")
 	}
 	if pic := e.ChromeImage(); pic.Bounds() != image.Rect(0, 0, 1920, 1080) {
 		t.Fatal("wrong chrome size")
@@ -107,7 +99,7 @@ func TestReleaseSecondMapEditorViewsEveryInstalledMap(t *testing.T) {
 	if out := os.Getenv("AGAINROM_EDITOR_FRAMES"); out != "" {
 		witness.PNG(t, filepath.Join(out, "second-map-"+installLanguage(x)+".png"), frame)
 	}
-	t.Logf("PASS: %d scenario maps, %d root maps; counts, 1920x1080 frame, edit/save refusal", scenarios, roots)
+	t.Logf("PASS: %d scenario maps, %d root maps; counts, edit host, 1920x1080 frame", scenarios, roots)
 }
 
 func TestReleaseFirstMapEditorStillOpensAndEdits(t *testing.T) {

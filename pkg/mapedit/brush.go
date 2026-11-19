@@ -324,8 +324,9 @@ func (e *Editor) tileEdit(f frame, w int, old, next []uint16, cleared []bool) ed
 	if len(ed) == 0 {
 		return nil
 	}
-	mask := alm.TileGroupMask(next)
-	if at := meta.abs(alm.MetaBitmask); e.u32(at) != mask {
+	at := meta.abs(alm.MetaBitmask)
+	mask := alm.SavedTileGroupMask(e.format, e.u32(at), next)
+	if e.u32(at) != mask {
 		var img [4]byte
 		binary.LittleEndian.PutUint32(img[:], mask)
 		ed = append(ed, replace(at, e.data[at:at+4], img[:]))

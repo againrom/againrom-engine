@@ -406,7 +406,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			if i < len(templates) {
 				template = templates[i]
 			}
-			if !model.ViewOnly() {
+			if !model.NarrowTools() {
 				r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
 			}
 			v := sheets[i].Values
@@ -488,7 +488,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		add(r)
 	}
 	spellSetSizes := map[int]int{}
-	if !model.ViewOnly() {
+	if !model.NarrowTools() {
 		for _, set := range model.SpellSets() {
 			for _, i := range set {
 				spellSetSizes[i] = len(set)
@@ -502,7 +502,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	for i, g := range m.Groups {
 		name := x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))
-		if model.ViewOnly() {
+		if model.NarrowTools() {
 			add(ui.InspectionRecord{Kind: ui.KindPlayer, Section: 5, Index: i, Label: fmt.Sprintf("%d: %s", i+1, name), Details: []string{fmt.Sprintf("Player raw: %+v", g)}})
 		} else {
 			add(inspectionPlayer(model, i, name))
@@ -567,7 +567,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	for i := range d.Records {
 		r := &d.Records[i]
-		if model.ViewOnly() {
+		if model.NarrowTools() {
 			r.Key = uint64(i + 1)
 			continue
 		}

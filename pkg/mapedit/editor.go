@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -25,6 +26,7 @@ type Editor struct {
 	setsAt  []spellSets
 	keysAt  []map[int]recordIdentity
 	nextKey *uint64
+	noSave  string // why the map is not saved; empty: it is
 }
 
 // New loads an ALM byte stream into a fresh edit model.
@@ -48,11 +50,16 @@ func New(data []byte) (*Editor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mapedit: %w", err)
 	}
-	return &Editor{format: format, data: doc.Write(), setsAt: []spellSets{nil}, keysAt: []map[int]recordIdentity{{}}, nextKey: new(uint64)}, nil
+	e := &Editor{format: format, data: doc.Write(), setsAt: []spellSets{nil}, keysAt: []map[int]recordIdentity{{}}, nextKey: new(uint64)}
+	if !bytes.Equal(e.data, data) {
+		e.noSave = "the map does not write back as the file it was read from"
+	}
+	return e, nil
 }
 
-// ViewOnly reports a format the editor cannot safely write.
-func (e *Editor) ViewOnly() bool { return e.format == alm.SecondFormat }
+// NarrowTools reports a map of the second game's format, whose edit tools are
+// the ones whose written fields are read.
+func (e *Editor) NarrowTools() bool { return e.format == alm.SecondFormat }
 
 // Document reads physical records with the same format as Map.
 func (e *Editor) Document() (*alm.Document, error) {
@@ -67,13 +74,13 @@ func (e *Editor) Bytes() []byte { return cloneBytes(e.data) }
 // SaveBytes preserves an untouched map and type-9-only edits verbatim.
 // Other edits use the original editor's save form (DIV-4485).
 func (e *Editor) SaveBytes() ([]byte, error) {
-	if e.ViewOnly() {
-		return nil, fmt.Errorf("a second-game map opens for viewing only")
+	if e.noSave != "" {
+		return nil, errors.New(e.noSave)
 	}
 	if e.onlySpellEdits() {
 		return e.Bytes(), nil
 	}
-	return alm.SaveForm(e.data)
+	return alm.SaveForm(e.data, e.format)
 }
 
 func (e *Editor) onlySpellEdits() bool {
@@ -100,7 +107,7 @@ func (e *Editor) onlySpellEdits() bool {
 func (e *Editor) Clone() *Editor {
 	keys := slices.Clone(e.keysAt)
 	keys[e.cursor] = maps.Clone(keys[e.cursor])
-	return &Editor{format: e.format, data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey}
+	return &Editor{format: e.format, data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey, noSave: e.noSave}
 }
 
 // Map reads a fresh byte copy in the map's format.
@@ -363,13 +370,14 @@ func (e *Editor) locate() frame {
 			break
 		}
 		start := cursor + alm.RecordHeaderSize
-		size := uint64(binary.LittleEndian.Uint32(e.data[cursor+alm.RecordPayloadSize:]))
+		tid := binary.LittleEndian.Uint32(e.data[cursor+alm.RecordTypeID:])
+		size := uint64(alm.PayloadExtent(e.format, tid, binary.LittleEndian.Uint32(e.data[cursor+alm.RecordPayloadSize:])))
 		if size > uint64(len(e.data)-start) {
 			break
 		}
 		sp := span{headerOff: cursor, payloadOff: start, payloadSize: int(size)}
 		f.physical = append(f.physical, sp)
-		if tid := binary.LittleEndian.Uint32(e.data[cursor+alm.RecordTypeID:]); tid < alm.TypeIDCount {
+		if tid < alm.TypeIDCount {
 			f.record[tid] = sp
 			f.present[tid] = true
 		} else if tid == alm.ScriptRecordTypeID {

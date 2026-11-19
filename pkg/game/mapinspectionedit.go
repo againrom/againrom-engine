@@ -97,12 +97,10 @@ func (s *mapInspectionEdits) CanRedo() bool {
 }
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
-	if m != nil && m.ViewOnly() {
+	if m != nil && m.NarrowTools() {
 		d, err := s.inspector.inspectModel(m, s.source, nil)
 		if err == nil {
-			d.ReadOnly = s.inspector.word("editor.map.viewonly")
-			d.OpenNote = d.ReadOnly
-			d.Palettes = viewPalettes{s}
+			d.Edits = secondEdits{s}
 		}
 		return d, err
 	}
@@ -159,7 +157,9 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	d, err := s.project(next)
 	s.workspace = old
 	if err == nil {
-		s.rememberWorkspace(true)
+		if !next.NarrowTools() {
+			s.rememberWorkspace(true)
+		}
 		s.model = next
 		if named {
 			s.workspace, s.workspaceImage = stage.next, workspaceBytes(stage.next)
@@ -955,8 +955,11 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if err := s.scriptSaveForm(path); err != nil {
 		return "", err
 	}
-	if err := s.gate(true); err != nil {
-		return "", err
+	second := s.model.NarrowTools()
+	if !second {
+		if err := s.gate(true); err != nil {
+			return "", err
+		}
 	}
 	b, err := s.encodeForSave()
 	if err != nil {
@@ -965,6 +968,16 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	root := ""
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
+	}
+	if second {
+		// The second game's map has no pages or labels beside it.
+		maps, grant := s.inspector.mapsFolder()
+		target, err := writeEditedMap(root, s.source, path, b, overwrite, grant)
+		if err != nil {
+			return "", s.inspector.fenceRefusal(err, maps)
+		}
+		s.saved, s.source = s.model.Bytes(), target
+		return target, nil
 	}
 	// A map whose own file holds its pages inside is saved with them or not
 	// at all: the pages go into the record or into the folder, and a save

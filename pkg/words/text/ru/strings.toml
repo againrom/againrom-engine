@@ -525,7 +525,7 @@
 "editor.object.pick" = "На карте"
 "editor.object.number" = "введите целое число."
 "editor.object.readonly" = "У этой записи нет изменяемых полей."
-"editor.map.viewonly" = "Карта второй игры открывается только для просмотра."
+"editor.map.secondtool" = "Карта второй игры принимает только правки кистью местности."
 "editor.view.switch" = "Вид: %s"
 "editor.view.basic" = "Обычный"
 "editor.view.detailed" = "Подробный"
