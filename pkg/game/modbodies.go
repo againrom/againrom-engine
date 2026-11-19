@@ -203,6 +203,15 @@ func shippedShieldFormInBoth(src entrySource, name data.HeroBody) bool {
 	return shippedBodyInBoth(src, name+data.HeroShieldSuffix)
 }
 
+// weaponRowName is the name the weapon table gives row, the name a mapping
+// states its weapon by; "" for a row the table leaves unnamed or lacks.
+func weaponRowName(weapons data.Collection, row int) string {
+	if row <= 0 || row >= weapons.Len() {
+		return ""
+	}
+	return weapons.EntryName(row)
+}
+
 // modWeaponRow resolves a mapping's weapon to its definition row: the row
 // whose name the mapping gives, the row it gives, and both agreeing when it
 // gives both.

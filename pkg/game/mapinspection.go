@@ -84,6 +84,8 @@ type MapInspector struct {
 	// spellArt is the install's book art, icons and spell names the spells
 	// page draws with, nil until first asked.
 	spellArt *spellsLook
+	// bodyArt is the install's body list and the class a new body starts from.
+	bodyArt *bodiesLook
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {

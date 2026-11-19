@@ -15,6 +15,13 @@ const (
 	maxWeaponRow     = 31
 )
 
+// MaxWeaponRow is the last weapon row a weapon body may name.
+const MaxWeaponRow = maxWeaponRow
+
+// ValidBodyName reports whether name is a body name: 1 to 32 of a-z, 0-9 and
+// _, starting with a letter.
+func ValidBodyName(name string) bool { return bodyNamePattern.MatchString(name) }
+
 // WeaponBody chooses the body one weapon is drawn with. Weapon is the row's
 // name in the weapon table, Row the row itself; a mapping gives one or both.
 // Body is a body the install ships or one a loaded mod's BodiesFile supplies.

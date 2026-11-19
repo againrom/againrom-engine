@@ -789,7 +789,7 @@ func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
 // (modListRows); a page's things are its fields' groups. modListEmpty is
 // what each says while it holds none.
 var (
-	modListPages = []int{modPageTerrain, modPageCharacters, modPageItems, modPageTowns}
+	modListPages = []int{modPageTerrain, modPageCharacters, modPageItems, modPageTowns, modPageBodies}
 	modListEmpty = []struct {
 		page int
 		word string
@@ -846,8 +846,10 @@ func (e *MapEditor) modListRows(s *popupSpec, links *[]int, fieldRows func(int, 
 	}
 	if len(groups) == 0 {
 		at := len(s.Rows)
-		for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(e.plainWord(modListEmptyWord(e.modPage))), s.Width/2-40) {
-			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
+		if word := modListEmptyWord(e.modPage); word != "" {
+			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(e.plainWord(word)), s.Width/2-40) {
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
+			}
 		}
 		column(at, 1)
 		return

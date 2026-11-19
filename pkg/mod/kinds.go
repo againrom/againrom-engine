@@ -269,7 +269,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "empty: a shipped body is a registry class and its sheets, not a body sheet; a sheet may not take a shipped name",
 		Shared: mergedShared + "; a later sheet replaces the whole sheet; `off` switches a sheet off",
-		read:   readBodies,
+		read:   readBodies, write: writeBodies,
+		Draft: Drafting{Held: true},
 	},
 	{
 		Format: "TOML subset", Language: "shared", Found: "held file", State: true,
@@ -278,7 +279,8 @@ var dataKinds = []DataKind{
 		Class: CatalogData, Layer: LayerMerged,
 		Base:   "the shipped body list: the body of each weapon row",
 		Shared: mergedShared + "; a weapon row is never switched off",
-		read:   readWeaponBodies,
+		read:   readWeaponBodies, write: writeWeaponBodies,
+		Draft: Drafting{Held: true},
 		summary: func(d Data) string {
 			if d.Bodies.Empty() {
 				return ""

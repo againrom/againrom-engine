@@ -94,6 +94,7 @@ func warningPage(warning string) (string, bool) {
 		{ui.ModItemsScope, []string{mod.ItemsFile}},
 		{ui.ModSpellsScope, []string{mod.SpellsFile}},
 		{ui.ModTownsScope, []string{mod.TownsFile}},
+		{ui.ModBodiesScope, append([]string{mod.BodiesFile}, mod.WeaponBodiesFiles...)},
 		{ui.ModTextsScope, textFiles()},
 	} {
 		for _, f := range p.files {
@@ -146,6 +147,11 @@ func (s *mapInspectionEdits) modPageCounts() (lines, pages []string) {
 	count(ui.ModCharactersScope, len(held(s.characterNames, mod.CharactersFile).Characters.Rows))
 	count(ui.ModItemsScope, itemThings(held(s.itemNames, mod.ItemsFile).Items))
 	count(ui.ModSpellsScope, len(held(nil, mod.SpellsFile).Spells.Rows))
+	if d == nil {
+		d = x.mod.document()
+	}
+	bodies := held(nil, bodyFiles(d)...).Bodies
+	count(ui.ModBodiesScope, len(bodies.Bodies)+len(bodies.Weapons))
 	return lines, pages
 }
 

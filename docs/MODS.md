@@ -969,6 +969,8 @@ body   = "hammer2h"
 A mod that loads on both games lists `"rom1"` and `"rom2"` (or `"rom2-en"`
 and `"rom2-ru"`) in `applies-to`. `-check` prints `againrom: weapon bodies=N body sheets=M`.
 
+The map editor's Bodies page writes `data/bodies.toml` and `data/wpnbodies.toml`.
+
 ## Missions
 
 `data/missions.toml` holds `[[mission]]` tables. A guest mission

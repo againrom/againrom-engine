@@ -45,6 +45,7 @@ var itemNameAllowed = map[string]string{
 	"pkg/game/shopconsumables.go shopPotionStock " + itemNameRowName:                              "name-to-row lookup",
 	"pkg/game/moditems.go resolveOriginalItem " + itemNameRowName:                                 "parses a mod cell's class and material words",
 	"pkg/game/modbodies.go modWeaponRow " + itemNameRowName:                                       "name-to-row lookup of a mod body's weapon",
+	"pkg/game/modbodies.go weaponRowName " + itemNameRowName:                                      "the weapon row a body mapping names, as the table spells it",
 	"pkg/game/moditemlayer.go itemMaterialPatch " + itemNameRowName:                               "a mod patch field's key: the class and material words",
 	"pkg/game/moditemlayer.go checkWeaponDamage " + itemNameRowName:                               "a mod diagnostic names the class and material rows, not an item",
 	"pkg/game/moditemlayer.go pairPicturesOf " + itemNameRowName:                                  "a mod diagnostic names the class and material rows, not an item",
