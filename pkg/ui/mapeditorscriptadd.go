@@ -32,6 +32,9 @@ func (e *MapEditor) variableLabels() (InspectionVariableLabels, bool) {
 // condition needs the script the editor reads; every other kind is the
 // host's.
 func (e *MapEditor) addKindOpen(kind RecordKind) bool {
+	if !e.offersKind(kind) {
+		return false
+	}
 	switch kind {
 	case KindCondition:
 		return e.doc != nil && e.doc.Script != nil

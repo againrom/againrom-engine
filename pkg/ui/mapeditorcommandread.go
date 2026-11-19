@@ -309,6 +309,9 @@ func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 	if a.Kind == "" {
 		kinds := []map[string]string{}
 		for _, k := range addCommandKinds() {
+			if !e.offersKind(k) {
+				continue
+			}
 			row, _ := addKindOf(k)
 			kinds = append(kinds, map[string]string{"kind": k.String(), "label": e.mcpDisplay(e.word(row.Word))})
 		}

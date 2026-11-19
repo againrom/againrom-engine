@@ -19,7 +19,7 @@ var castSettings = []struct {
 // deleted or an Undo restores it.
 func (e *MapEditor) castTemplateOffer() InspectionNewStep {
 	host, ok := e.addHost()
-	if !ok {
+	if !ok || !e.offersKind(KindEnchantment) {
 		return InspectionNewStep{}
 	}
 	c := &e.place.cast
@@ -72,7 +72,7 @@ func (e *MapEditor) castWhere() InspectionChoice {
 
 func (e *MapEditor) castOffer(key string) (InspectionNewStep, bool) {
 	host, ok := e.addHost()
-	if !ok {
+	if !ok || !e.offersKind(KindEnchantment) {
 		return InspectionNewStep{}, false
 	}
 	row, _ := addKindOf(KindEnchantment)

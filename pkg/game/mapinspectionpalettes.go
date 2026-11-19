@@ -33,3 +33,5 @@ func (v viewPalettes) AddRecord(ui.InspectionNewRecord) (*ui.InspectionDocument,
 func (v viewPalettes) refusal() error {
 	return errors.New(v.s.inspector.word("editor.map.secondtool"))
 }
+
+func (v viewPalettes) AddKinds() []ui.RecordKind { return v.s.AddKinds() }

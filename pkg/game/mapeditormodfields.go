@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"againrom/pkg/herokind"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 )
@@ -300,35 +299,21 @@ func (s *mapInspectionEdits) partyItemField(prefix, key, kind string, current *s
 	return f
 }
 
-// heroChoices are the class and sex fields' choices in order: the word the
-// mission table holds and the word book key of its label. Choice 0 names no
-// word, so the row leaves that axis open and the table holds no key.
-var heroChoices = map[string][3][2]string{
-	"class": {{"", "editor.mod.anyhero"}, {herokind.Fighter, "editor.message.hero.fighter"}, {herokind.Mage, "editor.message.hero.mage"}},
-	"sex":   {{"", "editor.mod.anyhero"}, {herokind.Male, "editor.unit.look.male"}, {herokind.Female, "editor.unit.look.female"}},
-}
-
+// heroField is the class or sex field over the install's hero choices; with
+// none it is one read-only line saying so.
 func (x *MapInspector) heroField(key, word string) ui.InspectionField {
+	choices, ok := x.editorTables().heroChoices[key]
+	if !ok {
+		return x.modLine(key, x.word("editor.tables.none"))
+	}
 	f := ui.InspectionField{Key: key, Label: x.modFieldLabel(key), Column: 1}
-	for i, c := range heroChoices[key] {
+	for i, c := range choices {
 		f.Choices = append(f.Choices, ui.InspectionChoice{Value: int64(i), Label: x.inspectionUTF8(x.word(c[1]))})
 		if c[0] == word {
 			f.Value = int64(i)
 		}
 	}
 	return f
-}
-
-// heroWord is the mission table word of key's choice value: the choice
-// index, or the word itself.
-func heroWord(key, value string) (string, bool) {
-	value = strings.TrimSpace(value)
-	for i, c := range heroChoices[key] {
-		if value == strconv.Itoa(i) || value != "" && value == c[0] {
-			return c[0], true
-		}
-	}
-	return "", false
 }
 
 // modLine is a read-only line of the mission page: key's label and text.

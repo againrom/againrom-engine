@@ -50,7 +50,7 @@ func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 	if len(step.Choices) != 65 || len(s.BrushObjects()) != 76 {
 		t.Errorf("the Add window offers %d structure kinds and the brush %d rows, want 65 and 76", len(step.Choices), len(s.BrushObjects()))
 	}
-	_, unsettled := structurePalettes(x.structures, x.table)
+	_, unsettled := structurePalettes(x.structures, x.table, x.editorTables())
 	var ids []int64
 	for id := range unsettled {
 		ids = append(ids, id)

@@ -58,7 +58,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		}
 	}
 	filters := map[int]string{}
-	for _, k := range addKinds {
+	for _, k := range addKindForms {
 		has(k.Word)
 		for _, st := range k.Steps {
 			has(st.Word)

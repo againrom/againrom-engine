@@ -29,7 +29,9 @@ type gameFiles struct {
 	// catalogPalettes: the editor's unit and structure palettes list every
 	// data.bin row by its name, and a placement names its row or says it has none.
 	catalogPalettes bool
-	compileScript   func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
+	// editorTables are the tables the map editor's routes read.
+	editorTables  editorTables
+	compileScript func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
 	// scriptDialect is the dialect compileScript gives the game's Worlds; a
 	// load outside a World asks sim's rules of the game by it.
 	scriptDialect  sim.ScriptDialect
@@ -214,6 +216,7 @@ const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
 	editorUnitWord:    "Definition",
+	editorTables:      firstEditorTables,
 	hire:              &tavernHires,
 	hover:             ui.KindRectangleHover,
 	cursorHotspots:    firstCursorHotspots,
@@ -266,6 +269,7 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 var secondGameFiles = gameFiles{
 	editorUnitWord:       "Flags +10",
 	catalogPalettes:      true,
+	editorTables:         secondEditorTables,
 	shippedPlayerColours: true,
 	hire:                 &bankHires,
 	dollSounds: dollSoundProfile{mixed: dollAnyGain,

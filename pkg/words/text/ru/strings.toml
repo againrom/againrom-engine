@@ -526,6 +526,7 @@
 "editor.object.number" = "введите целое число."
 "editor.object.readonly" = "У этой записи нет изменяемых полей."
 "editor.map.secondtool" = "Карта второй игры принимает только правки кистью местности."
+"editor.tables.none" = "Исследование не называет записей этого списка для открытой игры."
 "editor.view.switch" = "Вид: %s"
 "editor.view.basic" = "Обычный"
 "editor.view.detailed" = "Подробный"

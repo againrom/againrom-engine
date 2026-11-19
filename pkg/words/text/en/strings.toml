@@ -532,6 +532,7 @@
 "editor.object.number" = "enter a whole number."
 "editor.object.readonly" = "This record has no editable fields."
 "editor.map.secondtool" = "A second-game map takes terrain brush edits only."
+"editor.tables.none" = "The research names no entries of this list for the open game."
 "editor.view.switch" = "View: %s"
 "editor.view.basic" = "Basic"
 "editor.view.detailed" = "Detailed"

@@ -888,10 +888,11 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 }
 
 // addCommandKinds are the kinds add_record adds: each kind with steps
-// (addKinds), then the script kinds.
+// (addKindForms), then the script kinds; the command's schema lists them
+// all, and each install's host offers its own.
 func addCommandKinds() []RecordKind {
 	var out []RecordKind
-	for _, k := range addKinds {
+	for _, k := range addKindForms {
 		if len(k.Steps) > 0 {
 			out = append(out, k.Kind)
 		}
@@ -933,7 +934,7 @@ func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 // the step is left out, and the host's refusal of its value.
 type addStepSeen func(st addStep, offer InspectionNewStep, skipped bool, refused error)
 
-// newRecordOf is the record kind's steps (addKinds) assemble with the given
+// newRecordOf is the record kind's steps (addKindForms) assemble with the given
 // values, the one assembly the palettes place through: addOffer gives each
 // step's offer and skip, each step takes its value or the host's default,
 // each value passes the host's check of its step, and addRecord assembles
@@ -942,7 +943,7 @@ type addStepSeen func(st addStep, offer InspectionNewStep, skipped bool, refused
 func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]json.RawMessage, seen addStepSeen) (InspectionNewRecord, error) {
 	row, ok := addKindOf(kind)
 	host, hok := e.addHost()
-	if !ok || !hok || kind == KindMessage {
+	if !ok || !hok || kind == KindMessage || !e.offersKind(kind) {
 		return InspectionNewRecord{}, fmt.Errorf("add_record adds no %q record", kind)
 	}
 	r := &addRun{kind: kind}

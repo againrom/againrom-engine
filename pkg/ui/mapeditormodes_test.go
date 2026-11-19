@@ -201,6 +201,7 @@ func (p *modesFull) CheckNewRecord(InspectionNewRecord, string) error { return n
 func (p *modesFull) NewRecordPreview(RecordKind, string, int64) *image.RGBA {
 	return nil
 }
+func (p *modesFull) AddKinds() []RecordKind { return addCommandKinds() }
 func (p *modesFull) AddRecord(r InspectionNewRecord) (*InspectionDocument, error) {
 	if r.Kind == "Player" {
 		p.players = append(p.players, fmt.Sprintf("Player %d", len(p.players)+1))

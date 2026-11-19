@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// A new record is assembled from its kind's steps, kept as data (addKinds):
+// A new record is assembled from its kind's steps, kept as data (addKindForms):
 // each step is one value the host offers choices and a default for and
 // checks. The palettes place records through it, one record and one history
 // entry per click, the one-click adds take every default, and the add_record
@@ -69,6 +69,8 @@ type InspectionNewRecords interface {
 	CheckNewRecord(r InspectionNewRecord, key string) error
 	NewRecordPreview(kind RecordKind, key string, value int64) *image.RGBA
 	AddRecord(r InspectionNewRecord) (*InspectionDocument, error)
+	// AddKinds are the record kinds the open install assembles, in no order.
+	AddKinds() []RecordKind
 }
 
 // addControl is the kind of value a step takes.
@@ -110,8 +112,9 @@ var (
 	addNamed = addStep{Key: "name", Word: "editor.add.name", Control: addName}
 )
 
-// addKinds is every kind a new record is assembled for, as data.
-var addKinds = []addKindRow{
+// addKindForms is the form of every kind a new record can be assembled for,
+// as data; the host's AddKinds says which of them the open install offers.
+var addKindForms = []addKindRow{
 	{Kind: KindEnchantment, Word: "editor.cast.add", Filters: []int{5, editorCellSpellsFilter}, Steps: []addStep{
 		{Key: "template", Word: "editor.cast.template", Control: addChoice},
 		{Key: "link", Word: "editor.cast.link", Control: addNumber}, addAt,
@@ -137,8 +140,32 @@ var addKinds = []addKindRow{
 	{Kind: KindCondition, Word: "editor.add.condition"},
 }
 
+// addKindRows are the forms of the kinds the open install's host offers, in
+// the forms' order; none without a host.
+func (e *MapEditor) addKindRows() []addKindRow {
+	host, ok := e.addHost()
+	if !ok {
+		return nil
+	}
+	offered := host.AddKinds()
+	var out []addKindRow
+	for _, k := range addKindForms {
+		if slices.Contains(offered, k.Kind) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// offersKind reports that the open install's host assembles kind.
+func (e *MapEditor) offersKind(kind RecordKind) bool {
+	host, ok := e.addHost()
+	return ok && slices.Contains(host.AddKinds(), kind)
+}
+
+// addKindOf is kind's form.
 func addKindOf(kind RecordKind) (addKindRow, bool) {
-	for _, k := range addKinds {
+	for _, k := range addKindForms {
 		if k.Kind == kind {
 			return k, true
 		}
@@ -147,8 +174,8 @@ func addKindOf(kind RecordKind) (addKindRow, bool) {
 }
 
 // addKindFor is the kind the list view filter lists.
-func addKindFor(filter int) (addKindRow, bool) {
-	for _, k := range addKinds {
+func (e *MapEditor) addKindFor(filter int) (addKindRow, bool) {
+	for _, k := range e.addKindRows() {
 		for _, f := range k.Filters {
 			if f == filter {
 				return k, true

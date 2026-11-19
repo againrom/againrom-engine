@@ -648,7 +648,7 @@ func (s *mapInspectionEdits) editPackageField(w *editorWorkspaceState, key, valu
 			p.swapRoute()
 		}
 	case "class", "sex":
-		word, ok := heroWord(key, value)
+		word, ok := s.inspector.editorTables().heroWord(key, value)
 		if !ok {
 			return fmt.Errorf(s.inspector.word("editor.mod.err.packagefield"), key)
 		}

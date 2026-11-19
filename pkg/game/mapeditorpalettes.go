@@ -15,18 +15,13 @@ import (
 // that decides it; a placed record keeps its own record kind whatever
 // palette placed it.
 
-// objectsKinds are the structure kinds the owner placed in Objects, which
-// their class fields cannot separate from the fixed bridges and floor marks
-// that list in Structures: the Magic Symbol (structures.reg ID 27).
-var objectsKinds = map[int32]bool{27: true}
-
 var structureGridMapPalettes = map[ui.Palette]bool{ui.PaletteObjects: true}
 
 // paletteInput is the one input of the palette decision: the facts a record
 // family's decoder reads from a class. A family sets the fields its class
 // carries and leaves the rest false; the decision names no family.
 type paletteInput struct {
-	// Owner: the owner placed the kind in Objects (objectsKinds).
+	// Owner: the owner placed the kind in Objects (the install's object kinds).
 	Owner bool
 	// Unplaceable: a record of it loads and saves unchanged, and no palette
 	// offers it.
@@ -67,11 +62,11 @@ func editorPalette(r paletteInput) (ui.Palette, string) {
 
 // structurePaletteInput decodes structure class c, given whether the Buildings table
 // has an entry for it.
-func structurePaletteInput(c *terrain.StructureClass, inTable bool) paletteInput {
+func structurePaletteInput(c *terrain.StructureClass, inTable bool, tables editorTables) paletteInput {
 	switch {
 	case c == nil:
 		return paletteInput{Unsettled: "structures.reg: no class"}
-	case objectsKinds[c.ID]:
+	case tables.isObjectKind(c.ID):
 		return paletteInput{Owner: true}
 	case c.VariableSize && c.VariableLayout != terrain.VariableStructureVerticalNinePatch:
 		// A variable-size class the map format gives no extension and the
@@ -109,7 +104,7 @@ func objectPaletteInput(c *data.ObjectClass) paletteInput {
 
 // structurePalettes is the palette of every structure kind of set by value,
 // with the unsettled ones' failing field.
-func structurePalettes(set *terrain.StructureSet, table *mapload.Table) (map[int64]ui.Palette, map[int64]string) {
+func structurePalettes(set *terrain.StructureSet, table *mapload.Table, tables editorTables) (map[int64]ui.Palette, map[int64]string) {
 	palettes, unsettled := map[int64]ui.Palette{}, map[int64]string{}
 	if set == nil {
 		return palettes, unsettled
@@ -119,7 +114,7 @@ func structurePalettes(set *terrain.StructureSet, table *mapload.Table) (map[int
 			continue
 		}
 		_, ok := mapload.StructureMaxHealth(table, byte(id))
-		p, why := editorPalette(structurePaletteInput(c, ok))
+		p, why := editorPalette(structurePaletteInput(c, ok, tables))
 		palettes[int64(id)] = p
 		if why != "" {
 			unsettled[int64(id)] = why

@@ -67,10 +67,6 @@ func cloneTownRecords(records []mod.TownRecord) []mod.TownRecord {
 	return out
 }
 
-// handoutBuildings are the offer tables of the building choice, in its
-// order: the tavern's talk, the shop, the school.
-var handoutBuildings = []town.OfferTable{town.TavernTable, town.ShopTable, town.SchoolTable}
-
 // draftOf is the campaign of the draft w: the one W shows when w is the
 // workspace and the graph built it, else admitted now.
 func (s *mapInspectionEdits) draftOf(w *editorWorkspaceState) (*campaignFlow, error) {
@@ -139,9 +135,13 @@ func (s *mapInspectionEdits) handoutFields() []ui.InspectionField {
 	if !ok {
 		return []ui.InspectionField{line("gone", x.word("editor.handout.gone"))}
 	}
-	building := int64(slices.Index(handoutBuildings, town.TavernTable.Of(r)))
+	buildings := x.editorTables().handoutBuildings
+	if len(buildings) == 0 {
+		return []ui.InspectionField{line("none", x.word("editor.tables.none"))}
+	}
+	building := int64(slices.Index(buildings, town.TavernTable.Of(r)))
 	var choices []ui.InspectionChoice
-	for i, t := range handoutBuildings {
+	for i, t := range buildings {
 		choices = append(choices, ui.InspectionChoice{Value: int64(i), Label: x.inspectionUTF8(x.word("editor.handout.building." + string(t)))})
 	}
 	floor := int64(0)
@@ -311,13 +311,14 @@ func (s *mapInspectionEdits) editHandout(r town.OfferRow, key, value string) (to
 		return r, nil
 	case "building":
 		i, err := s.number(key, value)
-		if err == nil && (i < 0 || i >= len(handoutBuildings)) {
+		buildings := s.inspector.editorTables().handoutBuildings
+		if err == nil && (i < 0 || i >= len(buildings)) {
 			_, err = s.number(key, "")
 		}
 		if err != nil {
 			return r, err
 		}
-		r.Place = handoutBuildings[i].Place()
+		r.Place = buildings[i].Place()
 		if r.Place != "" {
 			r.NPC = 0
 		}

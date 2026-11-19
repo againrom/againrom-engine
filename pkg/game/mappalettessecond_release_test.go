@@ -64,8 +64,16 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 		if err != nil {
 			t.Fatal(entry.Source, err)
 		}
-		if d.Edits != nil || d.Palettes == nil {
-			t.Fatal("a viewed map lists palettes and edits nothing")
+		// The map takes the terrain brush; every other tool is refused.
+		pal, second := d.Edits.(secondEdits)
+		if !second {
+			t.Fatal("a second-game map's edit host is the terrain-brush host")
+		}
+		if _, err := d.Edits.Delete(ui.KindUnit, 0); err == nil {
+			t.Fatal("a second-game map must refuse a record delete")
+		}
+		if _, err := pal.AddRecord(ui.InspectionNewRecord{Kind: ui.KindUnit}); err == nil {
+			t.Fatal("a second-game map must refuse an add")
 		}
 		maps++
 		for _, r := range d.Records {
@@ -103,7 +111,8 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	identity := d.Palettes.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "identity")
+	pal, _ := d.Edits.(secondEdits)
+	identity := pal.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "identity")
 	creatures, persons := 0, 0
 	for _, c := range realChoices(identity.Choices) {
 		id, ok := x.identityOf(c.Value)
@@ -116,12 +125,12 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 			persons++
 		}
 	}
-	kinds := d.Palettes.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindStructure}, "kind")
-	items := d.Palettes.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindSack}, "item")
+	kinds := pal.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindStructure}, "kind")
+	items := pal.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindSack}, "item")
 	if creatures != units || persons != humans || len(kinds.Choices) != buildings || len(items.Choices) == 0 {
 		t.Fatalf("palette counts: units %d/%d, humans %d/%d, structures %d/%d, items %d", creatures, units, persons, humans, len(kinds.Choices), buildings, len(items.Choices))
 	}
-	if _, err := d.Palettes.AddRecord(ui.InspectionNewRecord{Kind: ui.KindUnit}); err == nil {
+	if _, err := pal.AddRecord(ui.InspectionNewRecord{Kind: ui.KindUnit}); err == nil {
 		t.Fatal("a viewed map accepted a placement")
 	}
 	e := x.Editor()

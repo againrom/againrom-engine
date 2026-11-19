@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -26,12 +27,6 @@ const (
 	itemsNewChange   = "new.change"
 	itemsNewMaterial = "new.material"
 )
-
-// itemSuits are the "for" choices of an added row, by choice value less one.
-var itemSuits = []struct {
-	suit int32
-	word string
-}{{mod.SuitAny, "editor.items.for.any"}, {mod.SuitFighter, "editor.items.for.fighter"}, {mod.SuitMage, "editor.items.for.mage"}}
 
 // itemNumberWords are the labels of an added armour row's numbers, which a
 // refused number names.
@@ -361,25 +356,29 @@ func (s *mapInspectionEdits) itemsFields() []ui.InspectionField {
 		return 0
 	}
 	slots := mod.ItemSlotNames()
+	suits := x.editorTables().itemSuits
+	var suitWords []string
+	for _, v := range suits {
+		suitWords = append(suitWords, v.word)
+	}
 	for _, r := range items.Rows {
 		k := "item." + r.Key + "."
 		slot := ui.InspectionField{Key: k + "slot", Label: x.word("editor.items.slot"), Meaning: x.word("editor.items.slot.help"), Value: int64(slices.Index(slots, r.Slot) + 1)}
 		for i, n := range slots {
 			slot.Choices = append(slot.Choices, ui.InspectionChoice{Value: int64(i + 1), Label: x.inspectionUTF8(x.equipmentSlotLabel(n))})
 		}
-		suit := int64(slices.IndexFunc(itemSuits, func(v struct {
-			suit int32
-			word string
-		}) bool {
-			return v.suit == r.Suit
-		}) + 1)
+		suit := int64(slices.IndexFunc(suits, func(v itemSuit) bool { return v.suit == r.Suit }) + 1)
+		forField := line(k+"for", x.word("editor.tables.none"))
+		if len(suits) > 0 {
+			forField = choice(k+"for", "editor.items.for", "editor.items.for.help", suit, suitWords...)
+		}
 		shop := int64(1)
 		if r.Stock {
 			shop = 2
 		}
 		fields := append(names(k, r.NameKey), slot,
 			s.itemChoice(k+"stand-in", x.word("editor.items.standin"), x.word("editor.items.standin.help"), r.StandIn, install, standInFor(r.SlotNo), nil, false),
-			choice(k+"for", "editor.items.for", "editor.items.for.help", suit, "editor.items.for.any", "editor.items.for.fighter", "editor.items.for.mage"),
+			forField,
 			choice(k+"shop", "editor.items.shop", "editor.items.shop.help", shop, "editor.items.no", "editor.items.yes"),
 			num(k+"defence", "editor.items.defence", "editor.items.defence.help", r.Defence),
 			num(k+"absorption", "editor.items.absorption", "editor.items.absorption.help", r.Absorption),
@@ -660,11 +659,15 @@ func (s *mapInspectionEdits) itemsEdit(key, value string) (*ui.InspectionDocumen
 				}
 				r.StandIn = name
 			case "for":
-				n, err := pick(len(itemSuits))
+				suits := s.inspector.editorTables().itemSuits
+				if len(suits) == 0 {
+					return errors.New(s.inspector.word("editor.tables.none"))
+				}
+				n, err := pick(len(suits))
 				if err != nil {
 					return err
 				}
-				r.Suit = itemSuits[n].suit
+				r.Suit = suits[n].suit
 			case "shop":
 				n, err := pick(2)
 				if err != nil {

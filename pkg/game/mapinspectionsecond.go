@@ -82,3 +82,5 @@ func (c secondEdits) NewRecordPreview(kind ui.RecordKind, key string, value int6
 func (c secondEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
 	return viewPalettes{c.s}.AddRecord(r)
 }
+
+func (c secondEdits) AddKinds() []ui.RecordKind { return viewPalettes{c.s}.AddKinds() }

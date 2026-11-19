@@ -75,3 +75,5 @@ func TestMapEditorObjectsBrushShowsTheHighlightedObjectsPicture(t *testing.T) {
 		t.Fatalf("the height list keeps a picture column of %d", s.ListAside)
 	}
 }
+
+func (p *previewProbe) AddKinds() []RecordKind { return addCommandKinds() }

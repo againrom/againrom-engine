@@ -15,7 +15,7 @@ import (
 // Choosing one arms the cell pick; each click on the map then places one
 // record, and a press held over the map places one on every cell it
 // crosses. Each record is one history entry, assembled from the kind's
-// steps (addKinds) at the palette's values: the player row's owner, the
+// steps (addKindForms) at the palette's values: the player row's owner, the
 // ticked items, the spell settings; every other step at the host's default.
 
 // The object brush's one-kind mode shows the same grid over the structure
@@ -408,11 +408,11 @@ func (e *MapEditor) placeChoose(n int) {
 
 // placeStart arms the placing of kind: no window, the cell pick armed, and
 // each click on the map adds one record through the kind's steps
-// (addKinds), each step at the value given or the palette's, else at the
+// (addKindForms), each step at the value given or the palette's, else at the
 // host's default (addAccepted). It replaces any placing armed before.
 func (e *MapEditor) placeStart(kind RecordKind, given map[string]int64) {
 	row, ok := addKindOf(kind)
-	if _, host := e.addHost(); !ok || !host {
+	if _, host := e.addHost(); !ok || !host || !e.offersKind(kind) {
 		return
 	}
 	fromBrush := e.listKind() == "brush"

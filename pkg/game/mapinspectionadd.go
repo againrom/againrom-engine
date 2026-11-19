@@ -346,7 +346,7 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 			}
 		}
 	case "kind":
-		out.Palettes, _ = structurePalettes(s.inspector.structures, s.inspector.table)
+		out.Palettes, _ = structurePalettes(s.inspector.structures, s.inspector.table, s.inspector.editorTables())
 		for _, c := range s.RecordChoices(ui.KindStructure, -1, "kind") {
 			if out.Palettes[c.Value] == ui.PaletteNone && s.inspector.catalogPalettes() {
 				// A list of the catalog leaves no row out.
@@ -485,7 +485,7 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 		}
 		if c := x.structures.Classes[value]; c != nil {
 			_, inTable := mapload.StructureMaxHealth(x.table, byte(value))
-			palette, _ := editorPalette(structurePaletteInput(c, inTable))
+			palette, _ := editorPalette(structurePaletteInput(c, inTable, x.editorTables()))
 			if key == "kind-grid" && (structureGridMapPalettes[palette] || c.Picture == sharedStructurePicture) {
 				w, h := max(3, c.TileWidth), max(2, c.TileHeight)
 				g := terrain.Grid{Width: w, Height: h, Structures: []terrain.StructureRecord{{Key: uint32(value), VariableWidth: w, VariableHeight: h}}}
@@ -526,3 +526,8 @@ func (s *mapInspectionEdits) unitPreview(c *terrain.UnitClass, tier int) *image.
 }
 
 var _ ui.InspectionNewRecords = (*mapInspectionEdits)(nil)
+
+// AddKinds are the record kinds the open install's tables assemble.
+func (s *mapInspectionEdits) AddKinds() []ui.RecordKind {
+	return s.inspector.editorTables().addKinds
+}

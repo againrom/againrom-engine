@@ -1233,7 +1233,7 @@ func (e *MapEditor) listAdd() (addKindRow, bool) {
 	if _, ok := e.addHost(); !ok || e.listKind() != "records" {
 		return addKindRow{}, false
 	}
-	if row, ok := addKindFor(e.filter); ok && row.OneClick {
+	if row, ok := e.addKindFor(e.filter); ok && row.OneClick {
 		return row, true
 	}
 	return addKindRow{}, false

@@ -41,7 +41,7 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 		{"Teleport Pad or Campfire: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
 		{"a fence", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},
 	} {
-		if p, why := editorPalette(structurePaletteInput(c.class, c.hpKnown)); p != c.want || why != c.why {
+		if p, why := editorPalette(structurePaletteInput(c.class, c.hpKnown, firstEditorTables)); p != c.want || why != c.why {
 			t.Errorf("%s: palette %d (%q), want %d (%q)", c.name, p, why, c.want, c.why)
 		}
 	}
@@ -148,7 +148,7 @@ func clickMapCell(c *editorClicker, e *ui.MapEditor, cell image.Point) {
 // Trees the oak.
 func TestEditorPalettesHoldTheTablesRecords(t *testing.T) {
 	e, _ := paletteEditorOn(t, forestMap(t))
-	_, unsettled := structurePalettes(paletteInspector().structures, paletteInspector().table)
+	_, unsettled := structurePalettes(paletteInspector().structures, paletteInspector().table, firstEditorTables)
 	if len(unsettled) != 1 || unsettled[3] == "" {
 		t.Fatalf("the unsettled kinds are %v, want the mark", unsettled)
 	}
@@ -277,7 +277,7 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 func TestEditorPalettesDropAKindWithoutLayout(t *testing.T) {
 	x := paletteInspector()
 	x.structures.Classes[37] = &terrain.StructureClass{ID: 37, Name: "Horizontal Bridge", VariableSize: true, Indestructible: true}
-	palettes, _ := structurePalettes(x.structures, x.table)
+	palettes, _ := structurePalettes(x.structures, x.table, x.editorTables())
 	if palettes[37] != ui.PaletteNone {
 		t.Fatalf("kind 37 lists in palette %d, want none", palettes[37])
 	}
