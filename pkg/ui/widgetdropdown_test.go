@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 )
 
@@ -59,6 +60,51 @@ func TestDropdownOpensScrollsAndChooses(t *testing.T) {
 	}
 	if kinds[widgetDropdown] != 1 || kinds[widgetListBox] != 1 || kinds[widgetPushButton] != 1 || kinds[widgetVScrollBar] != 1 {
 		t.Fatalf("open drop-down built %v", kinds)
+	}
+}
+
+// One press serves every drop-down: a row chooses, the box toggles, the bar
+// only scrolls, and a press beside it calls Off and is not taken.
+func TestDropdownPressChoosesTogglesAndLeaves(t *testing.T) {
+	f := panelFont()
+	d := dropdownFixture(true)
+	l := d.listBox(f)
+	var got []string
+	act := dropdownActs{
+		Choose: func(n int) { got = append(got, "choose", string(rune('0'+n))) },
+		Toggle: func() { got = append(got, "toggle") },
+		Off:    func() { got = append(got, "off") },
+	}
+	d.List.Scroll(2)
+	rowPoint := l.Row(1).Min.Add(image.Pt(3, 1))
+	for _, c := range []struct {
+		p     image.Point
+		taken bool
+		want  string
+	}{
+		{rowPoint, true, "choose 3"},
+		{image.Pt(100, 20), true, "toggle"},
+		{l.Bar().Min.Add(image.Pt(2, 2)), true, ""},
+		{image.Pt(280, 190), false, "off"},
+	} {
+		got = nil
+		if taken := d.press(f, c.p, act); taken != c.taken || strings.Join(got, " ") != c.want {
+			t.Errorf("press at %v: taken %v did %q, want %v %q", c.p, taken, got, c.taken, c.want)
+		}
+	}
+	if row, ok := d.rowAt(f, rowPoint); !ok || row != 3 {
+		t.Errorf("rowAt %d %v, want row 3", row, ok)
+	}
+	if !d.over(f, rowPoint) || d.over(f, image.Pt(280, 190)) {
+		t.Error("over does not follow the open list")
+	}
+	act.Off = nil
+	if d.press(f, image.Pt(280, 190), act) {
+		t.Error("a press beside the drop-down was taken")
+	}
+	d.Open = false
+	if _, ok := d.rowAt(f, rowPoint); ok || d.over(f, image.Pt(100, 20)) {
+		t.Error("a closed drop-down answers for its list")
 	}
 }
 

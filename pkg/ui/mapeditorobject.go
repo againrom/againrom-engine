@@ -806,7 +806,7 @@ func (e *MapEditor) drawEditorDropdown(pic *image.RGBA, f *text.Font, d dropdown
 
 func (e *MapEditor) openDropdownHit(p image.Point) bool {
 	d, ok := e.openDropdown()
-	return ok && d.Open && d.Covers(e.bodyFont(), p)
+	return ok && d.over(e.bodyFont(), p)
 }
 
 // openDropdownPress is a press while a drop-down is open: a row chooses, the
@@ -817,19 +817,8 @@ func (e *MapEditor) openDropdownPress(p image.Point) bool {
 	if !ok {
 		return false
 	}
-	o := &e.obj
-	switch part, row := d.hit(e.bodyFont(), p); part {
-	case dropdownRow:
-		e.chooseObjectChoice(row)
-		return true
-	case dropdownToggle:
-		o.open = -1
-		return true
-	case dropdownBar:
-		return true
-	}
-	o.open = -1
-	return false
+	shut := func() { e.obj.open = -1 }
+	return d.press(e.bodyFont(), p, dropdownActs{Choose: e.chooseObjectChoice, Toggle: shut, Off: shut})
 }
 
 // chooseObjectChoice sets the open drop-down's field to choice row and

@@ -553,19 +553,15 @@ func (e *MapEditor) areaTriggerSpec() popupSpec {
 // leave.
 func (e *MapEditor) areaTriggerPress(p image.Point) {
 	a := e.prompt.area
-	if d, ok := e.promptDropdown(); ok {
-		switch part, row := d.hit(e.bodyFont(), p); part {
-		case dropdownToggle:
-			a.open = !a.open
-			return
-		case dropdownRow:
+	if d, ok := e.promptDropdown(); ok && d.press(e.bodyFont(), p, dropdownActs{
+		Choose: func(row int) {
 			a.choice.Select(row)
 			a.open, a.note = false, ""
-			return
-		case dropdownBar:
-			return
-		}
-		a.open = false
+		},
+		Toggle: func() { a.open = !a.open },
+		Off:    func() { a.open = false },
+	}) {
+		return
 	}
 	s, _ := e.promptSpec()
 	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)

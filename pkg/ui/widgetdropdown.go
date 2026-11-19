@@ -190,6 +190,44 @@ func (d dropdown) hit(f *text.Font, p image.Point) (dropdownHit, int) {
 	return dropdownMiss, 0
 }
 
+// dropdownActs is what a press does on each part of a drop-down: Choose
+// takes list row n, Toggle answers the box and Off, when set, a press
+// beside the drop-down.
+type dropdownActs struct {
+	Choose func(n int)
+	Toggle func()
+	Off    func()
+}
+
+// press is every drop-down's press at p: a row chooses, the box toggles, the
+// list's bar scrolls and a press beside it calls Off. It reports whether
+// the drop-down took the press.
+func (d dropdown) press(f *text.Font, p image.Point, act dropdownActs) bool {
+	switch part, row := d.hit(f, p); part {
+	case dropdownRow:
+		act.Choose(row)
+		return true
+	case dropdownToggle:
+		act.Toggle()
+		return true
+	case dropdownBar:
+		return true
+	}
+	if act.Off != nil {
+		act.Off()
+	}
+	return false
+}
+
+// rowAt is the open list's row under p.
+func (d dropdown) rowAt(f *text.Font, p image.Point) (int, bool) {
+	part, row := d.hit(f, p)
+	return row, part == dropdownRow
+}
+
+// over reports whether p lies on the open drop-down, its box or its list.
+func (d dropdown) over(f *text.Font, p image.Point) bool { return d.Open && d.Covers(f, p) }
+
 // labelRaise centres a push button's label of font f on the button: the
 // shared painter's default raise suits its own dialogue buttons only.
 func labelRaise(f *text.Font) int { return max(1, fontHeight(f, 15)/2) }

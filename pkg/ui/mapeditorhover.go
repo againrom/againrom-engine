@@ -133,8 +133,8 @@ func (e *MapEditor) choiceTipAt(p image.Point) (string, image.Image, image.Recta
 		return "", nil, image.Rectangle{}, false
 	}
 	f := o.fields[o.open]
-	part, row := d.hit(e.bodyFont(), p)
-	if part != dropdownRow || row >= len(f.Choices) {
+	row, onRow := d.rowAt(e.bodyFont(), p)
+	if !onRow || row >= len(f.Choices) {
 		return "", nil, image.Rectangle{}, false
 	}
 	pic := f.Icons[f.Choices[row].Value]
@@ -182,7 +182,7 @@ func (e *MapEditor) tipAt(p image.Point) (popupTip, bool) {
 		}
 	case id == popMenu && e.searchTyping():
 		d := e.menuDropdown(e.searchEntry(), true)
-		if d.Open && d.Covers(body, p) {
+		if d.over(body, p) {
 			l := popupLayout{HasList: true, List: d.listBox(body)}
 			return popupTipAt(bounds, body, body, popupSpec{List: d.List}, l, p, true)
 		}

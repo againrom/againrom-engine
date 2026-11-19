@@ -170,3 +170,46 @@ func TestEditorLegacyFieldChoicesClamp(t *testing.T) {
 		t.Fatal("choice navigation wrote the map")
 	}
 }
+
+// A field prompt's choice row opens its list on a press on the box; a row
+// chooses and closes it, the bar keeps it open and the box closes it.
+func TestFieldPromptListOpensChoosesAndCloses(t *testing.T) {
+	e, _ := popupEditor(t)
+	e.SetBodyFont(wordsFont("en"))
+	e.Layout(1920, 1080)
+	if err := e.Open("popups"); err != nil {
+		t.Fatal(err)
+	}
+	e.Select(2, false)
+	e.openPrompt(editorPrompt{kind: promptField, field: 1, path: "1"})
+	s, _ := e.promptSpec()
+	var box image.Rectangle
+	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if s.Rows[rr.Index].Kind == popupChoice {
+			box = rr.Control
+		}
+	}
+	if box.Empty() {
+		t.Fatal("the field prompt shows no choice row")
+	}
+	chromeClick(e, center(box))
+	d, ok := e.promptDropdown()
+	if !ok || !d.Open || e.prompt.list == nil {
+		t.Fatal("a press on the box opened no list")
+	}
+	f := e.bodyFont()
+	chromeClick(e, center(d.listBox(f).Bar()))
+	if e.prompt.list == nil {
+		t.Fatal("a press on the bar closed the list")
+	}
+	top, _ := d.List.Visible()
+	chromeClick(e, center(d.listBox(f).Row(1-top)))
+	if e.prompt.list != nil || e.prompt.path != "2" {
+		t.Fatalf("choosing the second row left list %v and path %q", e.prompt.list != nil, e.prompt.path)
+	}
+	chromeClick(e, center(box))
+	chromeClick(e, center(box))
+	if e.prompt.list != nil {
+		t.Fatal("a second press on the box left the list open")
+	}
+}

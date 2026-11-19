@@ -564,19 +564,12 @@ func (e *MapEditor) placeOwnerPress(p image.Point) bool {
 	if !ok {
 		return false
 	}
-	switch part, row := d.hit(e.bodyFont(), p); part {
-	case dropdownRow:
+	shut := func() { e.place.ownerList = nil }
+	choose := func(row int) {
 		e.placeOwnerTo(row)
-		e.place.ownerList = nil
-		return true
-	case dropdownToggle:
-		e.place.ownerList = nil
-		return true
-	case dropdownBar:
-		return true
+		shut()
 	}
-	e.place.ownerList = nil
-	return false
+	return d.press(e.bodyFont(), p, dropdownActs{Choose: choose, Toggle: shut, Off: shut})
 }
 
 // placeOwnerPressOff closes the player list on a press that reaches

@@ -500,6 +500,19 @@ func menuPickerRow(item menuItem) PickerRow {
 	return row
 }
 
+// chooseMenuRow takes row of the open menu: a search hit, or an item that is
+// neither a heading nor disabled.
+func (e *MapEditor) chooseMenuRow(row int) {
+	if e.menu == searchKey {
+		e.chooseHit(row)
+		return
+	}
+	items := e.menuItems(e.menu)
+	if row < len(items) && items[row].key != "" && !items[row].off {
+		e.menuAct(items[row].key)
+	}
+}
+
 // openMenuEntry is the bar entry of the open menu.
 func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 	if e.menu == "" {
@@ -2340,22 +2353,11 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		e.toolbarPress(p)
 	case popMenu:
 		b, _ := e.openMenuEntry()
-		d := e.menuDropdown(b, true)
-		switch part, row := d.hit(e.font, p); part {
-		case dropdownToggle:
+		e.menuDropdown(b, true).press(e.font, p, dropdownActs{Choose: e.chooseMenuRow, Toggle: func() {
 			if e.menu != searchKey {
 				e.menu = ""
 			}
-		case dropdownRow:
-			if e.menu == searchKey {
-				e.chooseHit(row)
-				return
-			}
-			items := e.menuItems(e.menu)
-			if row < len(items) && items[row].key != "" && !items[row].off {
-				e.menuAct(items[row].key)
-			}
-		}
+		}})
 	case popBar:
 		if part, index := e.topBarLayout().hit(p); part == popupBarCellPart {
 			if k := barKeys[index]; !e.barDisabled(k) {

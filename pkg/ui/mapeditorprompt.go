@@ -178,7 +178,7 @@ func (e *MapEditor) promptDropdown() (dropdown, bool) {
 // promptDropdownHit reports that p lies on the prompt's open list.
 func (e *MapEditor) promptDropdownHit(p image.Point) bool {
 	d, ok := e.promptDropdown()
-	return ok && d.Open && d.Covers(e.bodyFont(), p)
+	return ok && d.over(e.bodyFont(), p)
 }
 
 // openPromptList opens or closes the list of a field prompt's choice row.
@@ -204,18 +204,8 @@ func (e *MapEditor) promptListPress(p image.Point) bool {
 		e.prompt.list = nil
 		return false
 	}
-	switch part, row := d.hit(e.bodyFont(), p); part {
-	case dropdownRow:
-		e.choosePromptRow(row)
-		return true
-	case dropdownToggle:
-		e.prompt.list = nil
-		return true
-	case dropdownBar:
-		return true
-	}
-	e.prompt.list = nil
-	return false
+	shut := func() { e.prompt.list = nil }
+	return d.press(e.bodyFont(), p, dropdownActs{Choose: e.choosePromptRow, Toggle: shut, Off: shut})
 }
 
 // choosePromptRow takes row of the field prompt's open list: a group opens
