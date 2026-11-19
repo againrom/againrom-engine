@@ -31,6 +31,9 @@ var scrollWheelReaders = map[string]map[string]bool{
 	"Wheel":        {"pkg/ui/app.go:readAppInput": true, "pkg/ui/viewer.go:readInput": true},
 	"wheelNotches": {"pkg/ui/mapeditorbrush.go:brushWheel": true},
 	"wheelSign":    {"pkg/ui/viewer.go:step": true},
+	// The editor's wheel has one route, scrollAreas through scrollWheel; the
+	// tooltip page is the one other reader.
+	"editorWheelRows": {"pkg/ui/mapeditorscroll.go:scrollWheel": true, "pkg/ui/mapeditorhover.go:scrollTip": true},
 }
 
 // scrollFocusMovers are the functions whose Move with a literal moves a

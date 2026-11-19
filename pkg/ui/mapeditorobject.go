@@ -812,14 +812,6 @@ func (e *MapEditor) openDropdownPress(p image.Point) bool {
 	return false
 }
 
-func (e *MapEditor) objectWheelDropdown(wheel wheelSource) bool {
-	if !e.openDropdownHit(e.pointer) {
-		return false
-	}
-	e.obj.choice.MoveChoice(editorWheelRows(&e.listWheel, wheel))
-	return true
-}
-
 // chooseObjectChoice sets the open drop-down's field to choice row and
 // closes it.
 func (e *MapEditor) chooseObjectChoice(row int) {

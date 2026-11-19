@@ -584,15 +584,6 @@ func (e *MapEditor) placeOwnerPressOff(p image.Point) {
 	}
 }
 
-// placeOwnerWheel scrolls the open player list under the pointer.
-func (e *MapEditor) placeOwnerWheel(wheel wheelSource) bool {
-	if !e.placeOwnerDropdownHit(e.pointer) {
-		return false
-	}
-	e.place.ownerList.Move(editorWheelRows(&e.listWheel, wheel))
-	return true
-}
-
 // placeOwnerTo chooses player k of the player list: the Units tab places
 // for that player from then on.
 func (e *MapEditor) placeOwnerTo(k int) {

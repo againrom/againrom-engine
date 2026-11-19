@@ -911,16 +911,6 @@ func (e *MapEditor) graphKey(key string) bool {
 	return true
 }
 
-// graphWheel moves the graph by the wheel when W shows it.
-func (e *MapEditor) graphWheel(wheel wheelSource) bool {
-	if !e.graphShown() {
-		return false
-	}
-	rows := editorWheelRows(&e.objectWheel, wheel)
-	e.graphPan(image.Pt(0, rows*(fontHeight(e.bodyFont(), 15)+popupRowExtra)))
-	return true
-}
-
 // graphPress is a press on the graph: on a mission's box it opens the
 // mission's map, on the ground it takes hold of the sheet.
 func (e *MapEditor) graphPress(part popupPart, n int, p image.Point) {

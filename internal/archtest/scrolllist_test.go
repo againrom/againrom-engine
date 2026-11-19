@@ -52,6 +52,8 @@ func f() float64 { _, wy := ebiten.Wheel(); return wy }`, "pkg/ui/screenx.go:2 W
 func f() float64 { _, wy := ebiten.Wheel(); return wy }`, "cmd/starter/x.go:2 Wheel is called outside the list model"},
 		{"a wheel accessor called", ui, `package ui
 func f(in appInput) float64 { return in.wheelNotches() }`, "pkg/ui/screenx.go:2 wheelNotches is called outside the list model"},
+		{"an editor wheel route beside scrollAreas", ui, `package ui
+func (e *MapEditor) listWheelX(w wheelSource) bool { e.list.Move(editorWheelRows(&e.listWheel, w)); return true }`, "pkg/ui/screenx.go:2 editorWheelRows is called outside the list model"},
 		{"the wheel sign called", ui, `package ui
 func f(in appInput) int { return wheelSign(in) }`, "pkg/ui/screenx.go:2 wheelSign is called outside the list model"},
 		{"a model function declared elsewhere", ui, `package ui
