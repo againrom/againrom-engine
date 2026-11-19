@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] Slow is now a spell you can cast: a hero loaded from an original save keeps it in his book, the two Necromancer creatures that know it cast it, a map can place it, and a book of Slow teaches it to a mage; before, Slow was dropped from every book.
+- [ROM2] Slow is not shown on the spell book page and no shop sells a book of Slow; a book of Slow that you find still teaches it, and creatures that know Slow still cast it.
 - [ROM2] Kills of creatures of one kind now count together toward learning their stats, also after a save and a load, and the hero keeps the skill chosen for him as his main skill, so its training is no longer cut; a fighter credited with a spell kill, or already dying when his victim falls, earns no skill for it, as in the original.
 - [ROM2] The second game's world map now plays the route sounds while the road to a place grows, and its flags and your party marker move at the original's pace; before, the map was silent and the flags cycled at their own pace.
 - [ROM2] The credits of the second game now rise at the original's speed; before, they rose about two thirds as fast.
