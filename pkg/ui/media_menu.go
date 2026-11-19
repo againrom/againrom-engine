@@ -238,8 +238,16 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 		case a.media.at.IsZero() && a.media.steps > 0:
 			a.media.at = now
 		case a.media.at.IsZero() || (cadence{period: creditsStepGap, gate: gateAtLeast}).due(a.media.at, now):
-			a.media.steps++
-			a.media.at = now
+			n := 1
+			if a.media.at.IsZero() || !a.assets.Bindings().CreditsCatchUp {
+				a.media.at = now
+			} else {
+				// A table with CreditsCatchUp takes every step the elapsed
+				// time holds and keeps the remainder (R2-ENGINE-565).
+				n = int(now.Sub(a.media.at) / creditsStepGap)
+				a.media.at = a.media.at.Add(time.Duration(n) * creditsStepGap)
+			}
+			a.media.steps += n
 		}
 		// The roll ends after creditsStart plus line count times line pitch
 		// steps (FAME-030).

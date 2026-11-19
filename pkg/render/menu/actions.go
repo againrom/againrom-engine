@@ -29,13 +29,16 @@ type Button struct {
 // nothing. EscapeStays makes Escape on the menu do nothing instead of ending
 // the program, and HallKeepsEscape makes the Hall of Fame the menu opens
 // ignore Escape. CaptionAfterMove shows no button under a resting pointer
-// after a return to the menu until the pointer moves.
+// after a return to the menu until the pointer moves. CreditsCatchUp makes the
+// credits roll take every one-pixel step the elapsed time holds, so it rises
+// one pixel per 23 ms whatever the tick rate (R2-ENGINE-565).
 type Actions struct {
 	Buttons          [ButtonCount]Button
 	LoadNeedsSave    bool
 	EscapeStays      bool
 	HallKeepsEscape  bool
 	CaptionAfterMove bool
+	CreditsCatchUp   bool
 }
 
 // FirstActions binds the first game's six decoded buttons; buttons 2 and 6
@@ -73,6 +76,7 @@ var SecondActions = Actions{
 	EscapeStays:      true,
 	HallKeepsEscape:  true,
 	CaptionAfterMove: true,
+	CreditsCatchUp:   true,
 }
 
 // Binding is button b's binding, or the zero Button outside 1..8 or without

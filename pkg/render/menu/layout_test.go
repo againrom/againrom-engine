@@ -64,8 +64,8 @@ var captureSecond = []menuFrame{
 }
 
 const (
-	captureFirstBindings  = `menu.Actions{Buttons:[8]menu.Button{menu.Button{Action:0x1, Name:"new game"}, menu.Button{Action:0x0, Name:""}, menu.Button{Action:0x4, Name:"cutscenes"}, menu.Button{Action:0x5, Name:"credits"}, menu.Button{Action:0x2, Name:"load game"}, menu.Button{Action:0x0, Name:""}, menu.Button{Action:0x3, Name:"hall of fame"}, menu.Button{Action:0x6, Name:"exit"}}, LoadNeedsSave:false, EscapeStays:false, HallKeepsEscape:false, CaptionAfterMove:false}`
-	captureSecondBindings = `menu.Actions{Buttons:[8]menu.Button{menu.Button{Action:0x1, Name:"new game"}, menu.Button{Action:0x0, Name:"multi player"}, menu.Button{Action:0x4, Name:"cutscenes"}, menu.Button{Action:0x5, Name:"credits"}, menu.Button{Action:0x2, Name:"load game"}, menu.Button{Action:0x0, Name:"server"}, menu.Button{Action:0x3, Name:"hall of fame"}, menu.Button{Action:0x6, Name:"exit"}}, LoadNeedsSave:true, EscapeStays:true, HallKeepsEscape:true, CaptionAfterMove:true}`
+	captureFirstBindings  = `menu.Actions{Buttons:[8]menu.Button{menu.Button{Action:0x1, Name:"new game"}, menu.Button{Action:0x0, Name:""}, menu.Button{Action:0x4, Name:"cutscenes"}, menu.Button{Action:0x5, Name:"credits"}, menu.Button{Action:0x2, Name:"load game"}, menu.Button{Action:0x0, Name:""}, menu.Button{Action:0x3, Name:"hall of fame"}, menu.Button{Action:0x6, Name:"exit"}}, LoadNeedsSave:false, EscapeStays:false, HallKeepsEscape:false, CaptionAfterMove:false, CreditsCatchUp:false}`
+	captureSecondBindings = `menu.Actions{Buttons:[8]menu.Button{menu.Button{Action:0x1, Name:"new game"}, menu.Button{Action:0x0, Name:"multi player"}, menu.Button{Action:0x4, Name:"cutscenes"}, menu.Button{Action:0x5, Name:"credits"}, menu.Button{Action:0x2, Name:"load game"}, menu.Button{Action:0x0, Name:"server"}, menu.Button{Action:0x3, Name:"hall of fame"}, menu.Button{Action:0x6, Name:"exit"}}, LoadNeedsSave:true, EscapeStays:true, HallKeepsEscape:true, CaptionAfterMove:true, CreditsCatchUp:true}`
 )
 
 func layoutSolid(w, h int, c color.RGBA) *image.RGBA {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/render/menu"
 	"againrom/pkg/render/text"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -229,6 +230,35 @@ func TestEndingMissingAndEmptyCreditsShowLocalizedFallback(t *testing.T) {
 			if !found || len(a.flow.ending.Credits) != 0 {
 				t.Fatal("missing localized fallback", selector, source)
 			}
+		}
+	}
+}
+
+// The second game's roll rises 440 pixels in 10.12 s of 60 Hz ticks
+// (R2-ENGINE-565); the first game's roll keeps one step per 23 ms or more
+// after the last step, so every second tick (FAME-030).
+func TestCreditsRollRateFollowsTheGamesTable(t *testing.T) {
+	const ticks = 607 // 10.12 s at 60 ticks a second
+	for _, c := range []struct {
+		name   string
+		assets *menu.Assets
+		want   int
+	}{
+		{"second", secondAppAssets(t), 440},
+		{"first", appAssets(t), 303},
+	} {
+		a := NewApp("t", c.assets, appRows(1), okLoader(t))
+		a.Layout(640, 480)
+		a.SetCredits(func() CreditsView { return CreditsView{Lines: make([]string, 100)} })
+		a.openCredits(ScreenMenu)
+		start := time.Unix(900, 0)
+		a.step(appInput{}, start)
+		first := a.media.steps
+		for i := 1; i <= ticks; i++ {
+			a.step(appInput{}, start.Add(time.Duration(i)*time.Second/60))
+		}
+		if got := a.media.steps - first; got < c.want-1 || got > c.want+1 {
+			t.Fatalf("%s roll rose %d pixels in 10.12 s, want %d", c.name, got, c.want)
 		}
 	}
 }
