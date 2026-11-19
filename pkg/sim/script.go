@@ -715,15 +715,16 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 	// what the map asked for.
 	poisoned := make([]bool, registers)
 	var gaps []ScriptGap
+	rows := newGameProfile(dialect).scriptRows
 	for i := range cp {
-		if scriptCheckSupported(cp[i].Op) || dialect == ScriptROM2 && rom2CheckSupported(cp[i].Op) {
+		if scriptCheckSupported(cp[i].Op) || rows.check[cp[i].Op] != nil {
 			continue
 		}
 		gaps = append(gaps, ScriptGap{Kind: ScriptGapCheck, Op: cp[i].Op, Index: int32(i)})
 		poisoned[cp[i].Register] = true
 	}
 	for i := range ip {
-		if scriptInstantSupported(ip[i]) || dialect == ScriptROM2 && rom2InstantSupported(ip[i].Op) {
+		if scriptInstantSupported(ip[i]) || rows.instant[ip[i].Op] != nil {
 			continue
 		}
 		g := ScriptGap{Kind: ScriptGapInstant, Op: ip[i].Op, Index: int32(i)}
@@ -1016,7 +1017,7 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 	// The session clock runs this slot even when no checks are compiled; a
 	// second-game World without a program keeps its inert register bank.
 	hasProgram := s != nil && (len(s.checks) != 0 || len(s.instants) != 0 || len(s.triggers) != 0)
-	if w.game.bankedScript && !hasProgram {
+	if w.game.inertWithoutProgram && !hasProgram {
 		return
 	}
 	// SAV-650: slot93 increments before both evaluators. Authored time
@@ -1201,8 +1202,8 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	defer func() {
 		tr.check(i, c, before, lostBefore, dispatched, wrote, silence, w)
 	}()
-	if w.game.bankedScript && rom2CheckSupported(c.Op) {
-		v, ok := w.rom2Check(c)
+	if body := w.game.scriptRows.check[c.Op]; body != nil {
+		v, ok := body(w, c)
 		if ok {
 			write(v)
 		} else {
@@ -1657,14 +1658,9 @@ func (w *World) runInstant(in ScriptInstant) {
 }
 
 func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
-	if w.game.bankedScript {
-		if in.Op == ScriptInstantMessage {
-			obs.recordScriptMessage(in.Args[0])
-			return
-		}
-		if w.rom2Instant(in, obs) {
-			return
-		}
+	if body := w.game.scriptRows.instant[in.Op]; body != nil {
+		body(w, in, obs)
+		return
 	}
 	switch in.Op {
 	case ScriptInstantMessage:
@@ -2300,7 +2296,7 @@ func (w *World) scriptReport() {
 	if w.outcome == OutcomeLost {
 		return
 	}
-	if w.game.bankedScript {
+	if w.game.countedOutcome {
 		if int32(w.lost) > 0 {
 			w.outcome = OutcomeLost
 		} else if w.won != 0 {

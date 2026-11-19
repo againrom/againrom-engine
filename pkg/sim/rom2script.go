@@ -44,9 +44,98 @@ func (s *Script) Dialect() ScriptDialect {
 	return s.dialect
 }
 
-func rom2CheckSupported(op int32) bool { return op >= ScriptCheckScenario && op <= ScriptCheckCentered }
-func rom2InstantSupported(op int32) bool {
-	return op >= ScriptInstantSetScenario && op <= ScriptInstantClearGroupActivity
+// scriptOpRows are the op bodies the second game adds to the shared ones. A
+// check row returns the register value and whether its unit exists; an instant
+// row applies the op. An op without a row runs the shared body.
+type scriptOpRows struct {
+	check   map[int32]func(*World, ScriptCheck) (int32, bool)
+	instant map[int32]func(*World, ScriptInstant, *castObs)
+}
+
+// secondGameRows is the one table of the second game's op bodies. Every
+// profile holds these same maps, so profiles compare equal by content.
+var secondGameRows = secondGameScriptRows()
+
+func secondGameScriptRows() scriptOpRows {
+	return scriptOpRows{
+		check: map[int32]func(*World, ScriptCheck) (int32, bool){
+			ScriptCheckScenario: func(w *World, c ScriptCheck) (int32, bool) {
+				v, _ := w.ROM2ScenarioValue(c.Args[0])
+				return v, true
+			},
+			ScriptCheckObjective: func(w *World, c ScriptCheck) (int32, bool) {
+				index := int64(752) + int64(c.Args[0]) // R2-ENGINE-045, DIV-2354
+				if index < 0 || index >= 1024 {
+					return 0, true
+				}
+				v, _ := w.ROM2ScenarioValue(int32(index))
+				return v, true
+			},
+			ScriptCheckCellEffect: func(w *World, c ScriptCheck) (int32, bool) {
+				if w.rom2CellEffect(cellKey(c.Args[0], c.Args[1]), c.Args[2]) {
+					return 1, true
+				}
+				return 0, true
+			},
+			ScriptCheckUnitEffect: func(w *World, c ScriptCheck) (int32, bool) {
+				e, ok := w.scriptEntity(c.Unit, c.HasUnit)
+				if !ok {
+					return 0, false
+				}
+				for _, effect := range w.attached {
+					if effect.Target == e.ID && uint32(effect.Spell)&31 == uint32(c.Args[0])&31 {
+						return 1, true
+					}
+				}
+				return 0, true
+			},
+			ScriptCheckCentered: func(w *World, c ScriptCheck) (int32, bool) {
+				e, ok := w.scriptEntity(c.Unit, c.HasUnit)
+				if !ok {
+					return 0, false
+				}
+				if e.X == c.Args[1] && e.Y == c.Args[2] && w.rom2Centered(e) {
+					return 1, true
+				}
+				return 0, true
+			},
+		},
+		instant: map[int32]func(*World, ScriptInstant, *castObs){
+			ScriptInstantMessage: func(_ *World, in ScriptInstant, obs *castObs) {
+				obs.recordScriptMessage(in.Args[0])
+			},
+			ScriptInstantSetScenario: func(w *World, in ScriptInstant, _ *castObs) {
+				w.setROM2Scenario(in.Args[0], in.Args[1])
+			},
+			ScriptInstantObjective: func(w *World, in ScriptInstant, obs *castObs) {
+				if event := WriteObjective(&w.rom2.Scenario, int64(in.Args[0]), in.Args[1]); event != objectiveNoEvent {
+					obs.recordScriptMessage(event)
+				}
+			},
+			ScriptInstantDiagnostic: func(*World, ScriptInstant, *castObs) {},
+			ScriptInstantTakeItemFromMap: func(w *World, in ScriptInstant, _ *castObs) {
+				if !in.HasItem {
+					return
+				}
+				for i := range w.entities {
+					if w.entities[i].OffMap {
+						continue
+					}
+					w.runInstant(ScriptInstant{Op: ScriptInstantTakeItem, Unit: w.entities[i].ID, HasUnit: true, Item: in.Item, HasItem: true})
+				}
+			},
+			ScriptInstantClearGroupActivity: func(w *World, in ScriptInstant, _ *castObs) {
+				if in.HasGroup {
+					if owner, ok := w.scriptGroupOwner(in.Group); ok {
+						w.setROM2GroupForced(owner, in.Group, false)
+					}
+				}
+			},
+			ScriptInstantLose: func(w *World, in ScriptInstant, _ *castObs) {
+				w.lost = uint32(in.Args[0])
+			},
+		},
+	}
 }
 
 func (w *World) ROM2ScenarioValue(index int32) (int32, bool) {
@@ -130,44 +219,6 @@ func (w *World) setROM2GroupForced(owner, group uint32, forced bool) {
 	}
 }
 
-func (w *World) rom2Check(c ScriptCheck) (int32, bool) {
-	switch c.Op {
-	case ScriptCheckScenario:
-		v, _ := w.ROM2ScenarioValue(c.Args[0])
-		return v, true
-	case ScriptCheckObjective:
-		index := int64(752) + int64(c.Args[0]) // R2-ENGINE-045, DIV-2354
-		if index < 0 || index >= 1024 {
-			return 0, true
-		}
-		v, _ := w.ROM2ScenarioValue(int32(index))
-		return v, true
-	case ScriptCheckCellEffect:
-		if w.rom2CellEffect(cellKey(c.Args[0], c.Args[1]), c.Args[2]) {
-			return 1, true
-		}
-		return 0, true
-	case ScriptCheckUnitEffect, ScriptCheckCentered:
-		e, ok := w.scriptEntity(c.Unit, c.HasUnit)
-		if !ok {
-			return 0, false
-		}
-		if c.Op == ScriptCheckUnitEffect {
-			for _, effect := range w.attached {
-				if effect.Target == e.ID && uint32(effect.Spell)&31 == uint32(c.Args[0])&31 {
-					return 1, true
-				}
-			}
-			return 0, true
-		}
-		if e.X == c.Args[1] && e.Y == c.Args[2] && w.rom2Centered(e) {
-			return 1, true
-		}
-		return 0, true
-	}
-	return 0, false
-}
-
 func (w *World) rom2Centered(e Entity) bool {
 	if w.savedMotion != nil {
 		for _, m := range w.savedMotion.Motions {
@@ -195,37 +246,4 @@ func (w *World) rom2CellEffect(key uint16, layer int32) bool {
 		}
 	}
 	return false
-}
-
-func (w *World) rom2Instant(in ScriptInstant, obs *castObs) bool {
-	switch in.Op {
-	case ScriptInstantSetScenario:
-		w.setROM2Scenario(in.Args[0], in.Args[1])
-	case ScriptInstantObjective:
-		if event := WriteObjective(&w.rom2.Scenario, int64(in.Args[0]), in.Args[1]); event != objectiveNoEvent {
-			obs.recordScriptMessage(event)
-		}
-	case ScriptInstantDiagnostic:
-	case ScriptInstantTakeItemFromMap:
-		if !in.HasItem {
-			return true
-		}
-		for i := range w.entities {
-			if w.entities[i].OffMap {
-				continue
-			}
-			w.runInstant(ScriptInstant{Op: ScriptInstantTakeItem, Unit: w.entities[i].ID, HasUnit: true, Item: in.Item, HasItem: true})
-		}
-	case ScriptInstantClearGroupActivity:
-		if in.HasGroup {
-			if owner, ok := w.scriptGroupOwner(in.Group); ok {
-				w.setROM2GroupForced(owner, in.Group, false)
-			}
-		}
-	case ScriptInstantLose:
-		w.lost = uint32(in.Args[0])
-	default:
-		return false
-	}
-	return true
 }

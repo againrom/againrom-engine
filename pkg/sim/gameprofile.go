@@ -29,9 +29,14 @@ type gameProfile struct {
 	nativeTick bool
 	// buildingCasters: the map's type-9 mode-4 records build casters.
 	buildingCasters bool
-	// bankedScript: the second game's script dialect: its checks, instants,
-	// message and outcome rules, and an inert bank without a program.
-	bankedScript bool
+	// scriptRows: the second game's script op bodies, added to the shared ones;
+	// a dialect without rows runs the shared bodies only.
+	scriptRows scriptOpRows
+	// inertWithoutProgram: a script slot without a program leaves its bank inert.
+	inertWithoutProgram bool
+	// countedOutcome: the outcome reads the lose and win counters as nonzero;
+	// the first game reads each as exactly one.
+	countedOutcome bool
 	// activityMask: Group and actor activity come from the second game's
 	// script activity mask; no first-game activity cover holds an actor.
 	activityMask bool
@@ -237,7 +242,9 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		deathItemRoll:              true,
 		nativeTick:                 true,
 		buildingCasters:            true,
-		bankedScript:               true,
+		scriptRows:                 secondGameRows,
+		inertWithoutProgram:        true,
+		countedOutcome:             true,
 		activityMask:               true,
 		cullClearsActionClock:      true,
 		formHoldsConstructedGroups: true,
