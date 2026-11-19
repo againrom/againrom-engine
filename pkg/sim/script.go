@@ -1102,11 +1102,45 @@ func (w *World) triggerHolds(t ScriptTrigger, tr *ScriptTrace, run int) bool {
 		if !holds {
 			continue
 		}
-		left, right := w.checkResult(p.Left), w.checkResult(p.Right)
-		holds = scriptCompare(p.Cmp, left, right)
+		var left, right int32
+		left, right, holds = w.pairHolds(p)
 		tr.triggerPair(run, i, p, left, right, holds)
 	}
 	return holds
+}
+
+// pairHolds is the one evaluation of a condition pair: the two check results
+// it names and whether its comparison holds on them. A trigger's pass and a
+// dialogue reply's availability both ask it.
+func (w *World) pairHolds(p ScriptPair) (left, right int32, holds bool) {
+	left, right = w.checkResult(p.Left), w.checkResult(p.Right)
+	return left, right, scriptCompare(p.Cmp, left, right)
+}
+
+// ConditionHolds reports whether pair p holds on the check results as the
+// last pass left them, as a trigger's pair does. A pair naming a check the
+// program does not have, and any pair of a world with no program, does not
+// hold.
+func (w *World) ConditionHolds(p ScriptPair) bool {
+	if w.script == nil {
+		return false
+	}
+	for _, r := range [2]int32{p.Left, p.Right} {
+		if r < 0 || int(r) >= len(w.script.checks) {
+			return false
+		}
+	}
+	_, _, holds := w.pairHolds(p)
+	return holds
+}
+
+// runScriptInstant runs compiled instant k, the action of a trigger, for a
+// command; an instant the script does not hold runs nothing.
+func (w *World) runScriptInstant(k int32) {
+	if w.script == nil || k < 0 || int(k) >= len(w.script.instants) {
+		return
+	}
+	w.runInstant(w.script.instants[k])
 }
 
 // scriptCompare applies one comparison code to two register values.

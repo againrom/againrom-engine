@@ -70,7 +70,7 @@ func init() {
 	worldWriters = append(worldWriters, "RestoreStructureUseMetadata", "RestoreStructureBlocking")
 	// SavedStructures is a detached reader. ImportOriginalStructures is an
 	// atomic construction-time writer, never an advancing simulation API.
-	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "CellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries")
+	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "CellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries", "ConditionHolds")
 	// The burst picture's phase count is install-derived input, set once per world.
 	worldMethods = append(worldMethods, "SetBurstPhases", "WindUpElapsed")
 	// The dead list order: the SAV writer reads it and the SAV import loads it.
@@ -223,6 +223,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"RouteCost":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(1))},
 	"SavedSackCellKey":     {reflect.ValueOf(uint16(0))},
 	"ScriptRegister":       {reflect.ValueOf(int32(0))},
+	"ConditionHolds":       {reflect.ValueOf(ScriptPair{})},
 	"ScriptLatched":        {reflect.ValueOf(int32(0))},
 	"ScriptTriggerBlocked": {reflect.ValueOf(int32(0))},
 	"Sight":                {reflect.ValueOf(uint32(0))},

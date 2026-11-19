@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] A trigger's dialogue can now be interactive: a dialogue file beside the map holds nodes with up to four replies, each with its condition, outcome and once flag, and the player picks one by key, arrows with Enter, or click; a pick can change gold or a variable and lead to another node.
 - [BASE] A mod can give any spell its own picture in the spell book and its own flying picture and burst, in both games. The map editor's Spells page picks the three picture files, or copies them from the other game's install the starter knows; publishing a mod with pictures copied from a game install warns.
 - [BASE] In the map editor, every refusal of an edit, a save, a paste, a script change or a mod file read now reads in the editor's language, English or Russian, and a mod file that does not read names its file and line; before, many refusals came out in English.
 - [BASE] In the map editor, the test play notes and refusals, the mod folder and file refusals, the spell and terrain page refusals, and an edit the map library refuses now read in the editor's language, English or Russian; a reason the library gives itself still shows in English after the editor's words.

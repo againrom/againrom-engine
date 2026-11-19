@@ -35,6 +35,7 @@ const (
 	stringsPattern       = "text/{lang}/strings.toml"
 	mapTextSuffix        = ".text"
 	mapVariablesSuffix   = ".variables"
+	mapDialogueSuffix    = ".dialogs"
 	pagePattern          = "**/*.txt"
 )
 
@@ -163,9 +164,10 @@ const (
 	missionMapsKind  = "mission maps"
 	missionPagesKind = "mission pages"
 	mapLabelsKind    = "map variable labels"
+	dialoguesKind    = "mission dialogues"
 )
 
-var missionMapPaths, missionPagePaths, mapLabelPaths = missionTreeRows()
+var missionMapPaths, missionPagePaths, mapLabelPaths, missionDialoguePaths = missionTreeRows()
 
 var dataKinds = []DataKind{
 	{
@@ -367,6 +369,7 @@ var dataKinds = []DataKind{
 	{Name: "strings", Paths: []string{stringsPattern}, Format: "TOML subset", Language: treeLanguages(" or "), Found: "fixed path per language", write: writeStrings, readHeld: readHeldStrings, Draft: Drafting{Context: DraftCited, Held: true}, lookup: DraftText},
 	{Name: missionMapsKind, Paths: missionMapPaths, Format: "ALM or ALMX", Language: "shared or " + treeLanguages("/"), Found: "mission row"},
 	{Name: missionPagesKind, Paths: append(slices.Clone(missionPagePaths), "<N>.text/*.txt", "<N>.text/{lang}/*.txt"), Format: "UTF-8 TXT", Language: "shared or " + treeLanguages("/"), Found: "beside map; row texts as lower layer"},
+	{Name: dialoguesKind, Paths: missionDialoguePaths, Format: "TOML subset", Language: "texts per language key", Found: "beside an .almx map; a message action's label names the file"},
 	{Name: mapLabelsKind, Paths: mapLabelPaths, Format: "JSON", Language: "shared", Found: "beside map; editor only"},
 	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture, Draft: installDrafts},
 	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound, Draft: installDrafts},

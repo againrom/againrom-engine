@@ -109,6 +109,14 @@ type Dialog struct {
 	PortraitFill, PortraitBorder color.RGBA
 	Body                         string
 	Face                         *image.RGBA
+	// Replies are a dialogue page's numbered answers, wrapped, and ReplyRows
+	// their rows, set together by WithReplies; ReplyLit is the lit reply,
+	// from 1, 0 none.
+	Replies   []string
+	ReplyRows []image.Rectangle
+	ReplyLit  int
+	// ReplyOff marks the rows shown greyed and not choosable.
+	ReplyOff []bool
 }
 
 // dialogLayout is a laid out Dialog: every rectangle its painter fills and
@@ -338,6 +346,16 @@ func layoutNoticeBox(s Dialog, f *text.Font) dialogLayout {
 	if second := s.SecondaryState; row.secondary && !s.SecondaryButton.Empty() {
 		l.Pushes = append(l.Pushes, pushButton{Rect: s.SecondaryButton, Label: s.SecondaryButtonLabel, Ramp: row.ramp, Hover: second.Hover,
 			Pressed: second.Pressed, Inside: second.Inside, Disabled: s.SecondaryDisabled, Policy: s.DialogueBackdrop})
+	}
+	for i, r := range s.ReplyRows {
+		label := ""
+		if i < len(s.Replies) {
+			label = s.Replies[i]
+		}
+		off := i < len(s.ReplyOff) && s.ReplyOff[i]
+		lit := s.ReplyLit == i+1 && !off
+		l.Pushes = append(l.Pushes, pushButton{Rect: r, Label: label, Literal: true, LabelLeft: replyRowInset, Ramp: row.ramp,
+			Hover: lit, Pressed: lit, Inside: lit, Disabled: off, Policy: s.DialogueBackdrop})
 	}
 	l.Pushes = append(l.Pushes, s.Pushes...)
 	if f != nil && !s.Text.Empty() {

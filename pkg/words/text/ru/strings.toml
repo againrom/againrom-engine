@@ -1253,6 +1253,7 @@
 "editor.script.limit.triggers" = "В скрипте уже %d триггеров из %d."
 "editor.script.limit.checks" = "В скрипте уже занято %d ячеек проверок из %d."
 "editor.script.limit.variables" = "Переменная от 0 до %d, а не %d."
+"editor.script.limit.dialogue" = "Действий-сообщений с интерактивным диалогом: %d. Такой диалог выполняет только расширенный скрипт."
 "editor.script.limit.id" = "Ячейка триггера называет id узла не выше %d, а не %d."
 "editor.speaker.why.card" = "Сообщение %s: %s"
 "editor.speaker.why.nounit" = "В этом месте нет отряда. Щелкните по отряду."

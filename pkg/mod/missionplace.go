@@ -75,13 +75,20 @@ func (p MissionPlace) Pages(lang string) string {
 	return folder
 }
 
+// Dialogs is the folder of the interactive dialogue files beside the map,
+// <stem>.dialogs.
+func (p MissionPlace) Dialogs() string {
+	return strings.TrimSuffix(p.Map, filepath.Ext(p.Map)) + mapDialogueSuffix
+}
+
 // Labels is the editor's variable labels file beside the map.
 func (p MissionPlace) Labels() string { return MapLabelFile(p.Map) }
 
 // Companion reports that f is the map's labels file or under its pages folder.
 func (p MissionPlace) Companion(f string) bool {
 	f = namefold.ModTree(f)
-	return f == namefold.ModTree(p.Labels()) || strings.HasPrefix(f, namefold.ModTree(p.Pages(""))+"/")
+	return f == namefold.ModTree(p.Labels()) || strings.HasPrefix(f, namefold.ModTree(p.Pages(""))+"/") ||
+		strings.HasPrefix(f, namefold.ModTree(p.Dialogs())+"/")
 }
 
 // InTree reports that the map lies in the tree's maps folder; a row map
@@ -128,7 +135,7 @@ func stemTaken(held []string, stem string) bool {
 // variable labels in the tree's rows.
 func IsMissionFile(rel string) bool {
 	for _, k := range dataKinds {
-		if (k.Name == missionMapsKind || k.Name == missionPagesKind || k.Name == mapLabelsKind) && k.takes(rel) {
+		if (k.Name == missionMapsKind || k.Name == missionPagesKind || k.Name == mapLabelsKind || k.Name == dialoguesKind) && k.takes(rel) {
 			return true
 		}
 	}
@@ -137,13 +144,15 @@ func IsMissionFile(rel string) bool {
 
 // missionTreeRows are the tree rows of the mission maps, their pages and
 // their labels, written from the place rule.
-func missionTreeRows() (maps, pages, labels []string) {
+func missionTreeRows() (maps, pages, labels, dialogues []string) {
 	for _, p := range []MissionPlace{PlaceMission("*", false), PlaceMission("*", true), PlaceLanguageMission(langToken, "*", false), PlaceLanguageMission(langToken, "*", true)} {
 		maps = append(maps, p.Map)
 		if path.Ext(p.Map) == MapExt {
 			pages = append(pages, p.Pages("")+"/*.txt", p.Pages(langToken)+"/*.txt")
 			labels = append(labels, p.Labels())
+		} else {
+			dialogues = append(dialogues, p.Dialogs()+"/*.toml")
 		}
 	}
-	return maps, pages, labels
+	return maps, pages, labels, dialogues
 }

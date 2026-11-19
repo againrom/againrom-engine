@@ -155,6 +155,7 @@ func (t Tree) Describe() (TreeDescription, error) {
 								add(rel, missionMapsKind)
 								patterns[namefold.ModTree(place.Pages("")+"/"+pagePattern)] = missionPagesKind
 								add(place.Labels(), mapLabelsKind)
+								patterns[namefold.ModTree(place.Dialogs()+"/*.toml")] = dialoguesKind
 							case referencePages:
 								patterns[namefold.ModTree(path.Join(rel, pagePattern))] = missionPagesKind
 								if locale.Known(path.Base(rel)) {

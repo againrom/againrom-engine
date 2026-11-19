@@ -179,3 +179,28 @@ func TestOriginalTriggerWritesNameTheLimitTheRecordLifts(t *testing.T) {
 		t.Fatal("a refused write entered the history")
 	}
 }
+
+// An extended map holding an interactive message action cannot fold: the
+// original record runs no interactive dialogue, so the fold is refused with a
+// limit the extended record lifts and nothing is written; a legacy message
+// folds as before.
+func TestFoldScriptRefusesAnInteractiveDialogue(t *testing.T) {
+	build := func(mode uint32) *mapedit.Editor {
+		e := newEditor(t, synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: scriptPayload(
+			testNodeRecord(0x10002, 1, [2]uint32{5, 5}, [2]uint32{6, 6}), testNodeRecord(4, 2),
+			testNodeRecord(2, 3, [2]uint32{1, 4}, [2]uint32{1, mode}))}))
+		if err := e.ExtendScript(); err != nil {
+			t.Fatal(err)
+		}
+		return e
+	}
+	e := build(1)
+	held := e.Bytes()
+	var limit *mapedit.ScriptLimitError
+	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitDialogue || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
+		t.Fatalf("a fold with an interactive dialogue answered %v", err)
+	}
+	if err := build(0).FoldScript(); err != nil {
+		t.Errorf("a fold with a legacy message answered %v", err)
+	}
+}

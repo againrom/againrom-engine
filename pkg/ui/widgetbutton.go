@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"strings"
 
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/latch"
@@ -74,7 +75,10 @@ type pushButton struct {
 	Literal bool
 	// LabelRaise replaces the default vertical anchor when positive.
 	LabelRaise int
-	Policy     DialogueBackdrop
+	// LabelLeft, when positive, starts the label that far in from the left
+	// edge instead of centring it.
+	LabelLeft int
+	Policy    DialogueBackdrop
 	// Face, when set, makes the button a picture plaque.
 	Face *plaqueFace
 	// Style, when set, makes the button a flat box: a fill and a border, no
@@ -229,24 +233,37 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 		shadow = 4
 	}
 	var calls []text.DrawCall
+	// A literal label may hold several lines, joined by line feeds, stacked
+	// about the row's middle; a label of one line stands where it always has.
+	var labels []string
 	if b.Label != "" && f != nil {
-		label := b.Label
+		labels = []string{b.Label}
+		if b.Literal {
+			labels = strings.Split(b.Label, "\n")
+		}
+	}
+	for li, label := range labels {
 		if !b.Literal {
 			label = gameMenuLabelText(label)
 		}
 		x := left + (right-left)/2 + 1 - f.Advance(label)/2
+		if b.LabelLeft > 0 {
+			x = left + b.LabelLeft
+		}
 		raise := dialogueLabelRaise
 		if b.LabelRaise > 0 {
 			raise = b.LabelRaise
 		}
-		y := top + (bottom-top)/2 - raise
+		y := top + (bottom-top)/2 - raise + (2*li-len(labels)+1)*f.Height()/2
 		ink := b.ink()
 		flat := quantize(messageShadowColor)
 		lw, lh := f.Measure(label)
 		before := saveRect(dst, image.Rect(x, y, x+lw+shadow, y+lh+shadow))
-		calls = text.Record(func() { f.DrawFlat(dst, label, x+shadow, y+shadow, flat); f.Draw(dst, label, x, y, ink) })
+		drawn := text.Record(func() { f.DrawFlat(dst, label, x+shadow, y+shadow, flat); f.Draw(dst, label, x, y, ink) })
+		first := len(calls)
+		calls = append(calls, drawn...)
 		before.restore()
-		for i := range calls {
+		for i := first; i < len(calls); i++ {
 			c := &calls[i]
 			if c.Glyph == nil || c.Glyph.Width <= 0 {
 				continue

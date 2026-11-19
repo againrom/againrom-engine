@@ -840,6 +840,9 @@ type Viewer struct {
 	noticeFace           *image.RGBA
 	noticeFaceWindow     image.Rectangle
 	noticeFaceSerial     int
+	noticeReplies        []string
+	noticeReplyOff       []bool
+	noticeReplyLit       int
 	noticeLayouts        [4]Dialog
 	dialogFrame          *DialogFrame
 	fogCanvas, fogInk    *ebiten.Image

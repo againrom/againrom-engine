@@ -1317,6 +1317,7 @@
 "editor.script.limit.triggers" = "The script already holds %d of %d triggers."
 "editor.script.limit.checks" = "The script already uses %d of %d check registers."
 "editor.script.limit.variables" = "A variable is 0..%d, not %d."
+"editor.script.limit.dialogue" = "%d message action(s) ask for an interactive dialogue, which only an extended script runs."
 "editor.script.limit.id" = "A trigger slot names a node id up to %d, not %d."
 "editor.speaker.why.card" = "Message %s: %s"
 "editor.speaker.why.nounit" = "No unit stands at that spot. Click a unit."

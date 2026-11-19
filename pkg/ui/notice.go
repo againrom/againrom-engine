@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strconv"
 	"strings"
 
 	"againrom/pkg/render/frame"
@@ -80,6 +81,12 @@ const (
 	NoticeAbandon
 	// NoticeRestart reopens the running mission from its entry point.
 	NoticeRestart
+	// NoticeReply1 to NoticeReply4 choose the reply of that number on a
+	// dialogue page that offers replies.
+	NoticeReply1
+	NoticeReply2
+	NoticeReply3
+	NoticeReply4
 )
 
 // NoticeDest is where advancing a notice sends the front-end. It is the
@@ -207,6 +214,69 @@ func (l Dialog) WithFaceWindow(w image.Rectangle) Dialog {
 	if w.Dx() > 0 && w.Dy() > 0 {
 		l.PortraitWindow = w
 	}
+	return l
+}
+
+// The reply rows: a row is a push button of the reply's lines, each the
+// font's height, plus replyRowPad, replyRowGap below the one above it and
+// twice that below the body's last line; its words stand replyRowInset in
+// from the left and wrap inside the row. The box grows by replyBoxStep, the
+// height step the original's panel constructor snaps a panel to
+// (DLG-PANEL-035), and stays centred.
+const (
+	replyRowPad   = 9
+	replyRowGap   = 2
+	replyRowInset = 6
+	replyBoxStep  = 64
+	// MaxReplies is the most replies a dialogue page offers.
+	MaxReplies = 4
+)
+
+// WithReplies is l resolved for a page that offers replies. Two to MaxReplies
+// replies take the button's place: one row each across the text column,
+// under the body's last line, the text rectangle cut to the lines above
+// them, and the box grown in whole steps until the button's bottom margin
+// stands below the last row. Fewer than two replies keep l, whose button is
+// the one reply. Replies holds each row's numbered words, wrapped, one line
+// per line feed. The rows are ReplyRows: the painter and the hit test both
+// read them.
+func (l Dialog) WithReplies(f *text.Font, body string, replies []string, off []bool, lit int) Dialog {
+	if len(replies) < 2 || len(replies) > MaxReplies || f == nil || l.Button.Empty() {
+		return l
+	}
+	pitch := f.Height() + l.Pitch
+	if pitch <= 0 {
+		return l
+	}
+	shown := min(len(noticeBodyLines(l, f, body, 0)), max(l.Text.Dy()/pitch, 0))
+	l.Text.Max.Y = l.Text.Min.Y + shown*pitch
+	margin := l.Box.Dy() - l.Button.Max.Y
+	row := l.styleRow()
+	width := l.Text.Dx() - 2*replyRowInset
+	y := l.Text.Max.Y + 2*replyRowGap
+	l.ReplyRows = make([]image.Rectangle, len(replies))
+	l.Replies = make([]string, len(replies))
+	for i, reply := range replies {
+		var lines []string
+		for _, ln := range dialogueLinesOf(row.rule, f, strconv.Itoa(i+1)+". "+reply, width) {
+			lines = append(lines, strings.TrimRight(ln.visible(), row.trim))
+		}
+		if len(lines) == 0 {
+			lines = []string{strconv.Itoa(i+1) + "."}
+		}
+		l.Replies[i] = strings.Join(lines, "\n")
+		h := len(lines)*f.Height() + replyRowPad
+		l.ReplyRows[i] = image.Rect(l.Text.Min.X, y, l.Text.Max.X, y+h)
+		y += h + replyRowGap
+	}
+	if grow := l.ReplyRows[len(replies)-1].Max.Y + margin - l.Box.Dy(); grow > 0 {
+		grow = (grow + replyBoxStep - 1) / replyBoxStep * replyBoxStep
+		l.Box.Max.Y += grow
+		l.Box = l.Box.Sub(image.Pt(0, grow/2))
+	}
+	l.Button = image.Rectangle{}
+	l.ReplyOff = off
+	l.ReplyLit = lit
 	return l
 }
 
@@ -670,6 +740,7 @@ type noticeKey struct {
 	button   DialogueButtonState
 	second   DialogueButtonState
 	policy   DialogueBackdrop
+	lit      int
 }
 
 // Dialogue is one part of a mission's event text as the map screen shows it:
@@ -699,12 +770,19 @@ type noticeKey struct {
 // states no window hands over, and it leaves the layout's own default standing;
 // it is written with the face and never separately, so a window can never be
 // presented over a picture it was not read for.
+//
+// Replies are the page's answers in order. Two or more stand as rows in place
+// of the button; one or none leaves the button, which is the one-reply case.
 type Dialogue struct {
 	Text       string
 	Portrait   bool
 	Speaks     bool
 	Face       *image.RGBA
 	FaceWindow image.Rectangle
+	Replies    []string
+	// RepliesOff is parallel to Replies: a true entry is a reply shown greyed
+	// and not choosable.
+	RepliesOff []bool
 }
 
 // SetDialogue explicitly shows a dialogue; repeating it compounds the backdrop.
@@ -742,7 +820,42 @@ func (v *Viewer) PageDialogue(d Dialogue) {
 		v.noticeFace, v.noticeFaceWindow = d.Face, d.FaceWindow
 		v.noticeFaceSerial++
 	}
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = d.Replies, d.RepliesOff, 0
 	v.noticePic = nil
+}
+
+// SetDialogueReplyLit lights reply i (from 1) of the open page, the one the
+// pointer is over or the keys moved to; 0 lights none.
+func (v *Viewer) SetDialogueReplyLit(i int) {
+	if v.noticeReplyLit != i {
+		v.noticeReplyLit = i
+		v.noticePic = nil
+	}
+}
+
+// NoticeReplyCount is how many reply rows the open dialogue page shows: 0
+// when it shows its one button.
+func (v *Viewer) NoticeReplyCount() int {
+	if v == nil || !v.NoticeOpen() || v.noticeKind != NoticeDialogue || v.help != nil {
+		return 0
+	}
+	return len(v.noticeLayout().ReplyRows)
+}
+
+// NoticeReplyOff reports that reply i (from 1) of the open page is shown
+// greyed and cannot be chosen.
+func (v *Viewer) NoticeReplyOff(i int) bool {
+	return i >= 1 && i <= len(v.noticeReplyOff) && v.noticeReplyOff[i-1]
+}
+
+// noticeReplyAt is the reply (from 1) under window point (x, y), asked of
+// the same hit test that finds the notice's buttons; 0 when the point is on
+// none.
+func (v *Viewer) noticeReplyAt(x, y int) int {
+	if id, ok := v.noticeButtonIDAt(x, y); ok && id >= noticeReplyButton {
+		return id - noticeReplyButton + 1
+	}
+	return 0
 }
 
 // NoticeSpeaker is the shape the open notice was pushed with and the picture
@@ -789,6 +902,7 @@ func (v *Viewer) SetNotice(s string, kind NoticeKind) {
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
 	v.noticeFaceSerial++
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = nil, nil, 0
 	v.noticePic = nil
 	if kind == NoticeFailure {
 		v.noticeTerminal = true
@@ -822,6 +936,7 @@ func (v *Viewer) ClearNotice() {
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
 	v.noticeFaceSerial++
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = nil, nil, 0
 	v.noticePic = nil
 }
 
@@ -884,6 +999,8 @@ func (v *Viewer) noticeLayout() Dialog {
 		l = l.WithDialogueButtonState(state).WithDialogueBackdrop(v.dialogueBackdrop.policy)
 		if v.help != nil {
 			l = v.helpApply(l)
+		} else {
+			l = l.WithReplies(v.font, v.notice, v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit)
 		}
 	} else {
 		state := v.noticeButtonState
@@ -943,7 +1060,8 @@ func (v *Viewer) noticePresent() (*image.RGBA, image.Point, float64, bool) {
 	}
 	l := v.noticeLayout()
 	key := noticeKey{text: v.notice, kind: v.noticeKind, serial: v.noticeSerial,
-		portrait: v.noticePortrait, face: v.noticeFaceSerial, button: l.ButtonState, second: l.SecondaryState, policy: l.DialogueBackdrop}
+		portrait: v.noticePortrait, face: v.noticeFaceSerial, button: l.ButtonState, second: l.SecondaryState, policy: l.DialogueBackdrop,
+		lit: v.noticeReplyLit}
 	if v.noticePic == nil || key != v.noticeKey {
 		v.noticeText = text.Record(func() {
 			v.noticePic, v.noticeFresh = RenderNotice(l, v.font, v.notice, v.noticeFace), true
@@ -1034,6 +1152,9 @@ func (v *Viewer) noticeActionAt(x, y int) (NoticeAction, bool) {
 const (
 	noticePrimaryButton = iota + 1
 	noticeSecondButton
+	// noticeReplyButton is the first reply row's id; row i has id
+	// noticeReplyButton+i-1.
+	noticeReplyButton
 )
 
 // noticeButtonIDAt is the enabled notice button under a window point.
@@ -1053,6 +1174,11 @@ func (v *Viewer) noticeButtonIDAt(x, y int) (int, bool) {
 	}
 	if !l.SecondaryDisabled && !l.SecondaryButton.Empty() && p.In(l.SecondaryButton) {
 		return noticeSecondButton, true
+	}
+	for i, r := range l.ReplyRows {
+		if p.In(r) {
+			return noticeReplyButton + i, true
+		}
 	}
 	return 0, false
 }

@@ -27,7 +27,7 @@ type currentPendingQueue struct {
 // pendingPlayerScoped reports a command that addresses a roster slot rather
 // than an actor, so it carries no issuer binding and never loses an endpoint.
 func pendingPlayerScoped(c sim.Command) bool {
-	return c.Kind == sim.KindPlayerParameter || c.Kind == sim.KindPlayerDropGold
+	return c.Kind == sim.KindPlayerParameter || c.Kind == sim.KindPlayerDropGold || c.Kind == sim.KindSetVariable || c.Kind == sim.KindRunInstant
 }
 
 func pendingKindValid(c sim.Command) bool {

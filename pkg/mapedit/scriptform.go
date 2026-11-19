@@ -237,6 +237,18 @@ func (f scriptForms) extended(t alm.ScriptTrigger) (alm.ScriptTrigger, error) {
 	return x, nil
 }
 
+// countInteractive is how many of the action nodes ask for an interactive
+// dialogue, which the original record cannot run.
+func countInteractive(nodes []alm.ScriptNode) int {
+	n := 0
+	for _, a := range nodes {
+		if a.InteractiveMessage() {
+			n++
+		}
+	}
+	return n
+}
+
 // ExtendScript moves the map's type-7 triggers into the Againrom script
 // record as one edit, in map order, each as extended reads it, with the
 // hundred registers as the record's first variables; the type-7 record
@@ -303,6 +315,13 @@ func (e *Editor) FoldScript() error {
 	}
 	if n := e.Count(KindCondition); n > first.Registers {
 		return &ScriptLimitError{Limit: LimitChecks, Max: int64(first.Registers), Got: int64(n)}
+	}
+	if m, err := e.Map(); err == nil {
+		if sc, err := m.Script(); err == nil {
+			if n := countInteractive(sc.Actions); n > 0 {
+				return &ScriptLimitError{Limit: LimitDialogue, Got: int64(n)}
+			}
+		}
 	}
 	w, err := e.walkRow(f, sections[KindTrigger], "fold the script")
 	if err != nil {

@@ -229,3 +229,17 @@ func SetPlayerParameter(player uint32, parameter PlayerParameter, value int32) C
 func DropGold(player uint32, amount uint32, at CellPoint) Command {
 	return Command{Kind: KindPlayerDropGold, Player: player, X: at.X, Y: at.Y, Group: amount}
 }
+
+// SetVariable asks the world to write value into script variable register,
+// the write a script's set-variable instant makes. The constructor assigns
+// fields only; a register the program does not have is ignored by the arm.
+func SetVariable(register, value int32) Command {
+	return Command{Kind: KindSetVariable, X: register, Y: value}
+}
+
+// RunInstant asks the world to run compiled instant k of its script, the
+// action a trigger runs when it fires. The constructor assigns fields only;
+// an instant the program does not have is ignored by the arm.
+func RunInstant(k int32) Command {
+	return Command{Kind: KindRunInstant, X: k}
+}

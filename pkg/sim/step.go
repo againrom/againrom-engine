@@ -194,6 +194,16 @@ const (
 	// value. Unlike entity commands it is applied before entity lookup: a player
 	// setting does not require that player to own a unit at this instant.
 	KindPlayerParameter uint8 = 0x46
+	// KindSetVariable is an Againrom command with no original opcode: X is a
+	// script variable and Y the value it takes, written as a script's
+	// set-variable instant writes it. Like KindPlayerParameter it is applied
+	// before entity lookup.
+	KindSetVariable uint8 = 0x47
+	// KindRunInstant is an Againrom command with no original opcode: X is the
+	// subscript of a compiled instant of the world's script, run as a trigger
+	// runs it. A subscript the script does not have is ignored. Like
+	// KindSetVariable it is applied before entity lookup.
+	KindRunInstant uint8 = 0x48
 )
 
 // OrderGuard, OrderStandGround and OrderSupport are the values KindGroupStance's
@@ -543,6 +553,14 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 		if c.Kind == KindPlayerDropGold {
 			w.applyPlayerDropGold(c.Player, c.Group, CellPoint{X: c.X, Y: c.Y})
+			continue
+		}
+		if c.Kind == KindSetVariable {
+			w.setRegisterAt(c.X, c.Y)
+			continue
+		}
+		if c.Kind == KindRunInstant {
+			w.runScriptInstant(c.X)
 			continue
 		}
 		// The group arm stands BEFORE the entity lookup, because a group order

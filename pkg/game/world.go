@@ -772,9 +772,10 @@ func (m *missionNotices) speakerFace(speaker int) (*image.RGBA, image.Rectangle)
 // part number and in nothing else, so building the push here is what keeps a
 // paged window from being assembled by a second rule that could disagree with
 // the opening one about the shape.
-func (m *missionNotices) dialogueOf(body string, n int) ui.Dialogue {
+func (m *missionNotices) dialogueOf(r dialogueRead, n int) ui.Dialogue {
 	speaker, named := EventPartSpeaker(m.payload, n, m.dialogueAudience)
-	d := ui.Dialogue{Text: body, Portrait: m.portrait, Speaks: named}
+	d := ui.Dialogue{Text: r.text, Portrait: m.portrait, Speaks: named}
+	m.replies = nil
 	if named {
 		d.Face, d.FaceWindow = m.speakerFace(speaker)
 	}
@@ -823,6 +824,10 @@ type missionNotices struct {
 	// what the same person was refused a moment earlier.
 	audience         EventAudience
 	dialogueAudience EventAudience
+	// replies are the open interactive page's replies as shown, and nil when
+	// it offers none; dialogue is that page's file and place.
+	replies  []dialogueReply
+	dialogue *interactiveDialogue
 
 	// open is whether a notice is up, kind which surface it is, payload the
 	// event text a dialogue notice is paging through and part which part of it
@@ -1942,13 +1947,16 @@ func (mw *mapWorld) showOutcome() {
 // reads any event text when a map is loaded.
 func (mw *mapWorld) openDialogue(event int) bool {
 	m := mw.mission
+	if idx, ok := mapload.InteractiveIndex(int32(event)); ok {
+		return mw.openInteractive(idx)
+	}
 	payload, ok := m.files().eventText(m.src, m.edition(), m.number, event)
 	if !ok {
 		return false
 	}
 	audience := mw.eventAudience(event)
 	r := readDialoguePart(payload, 1, audience, nil)
-	body, ok := r.text, r.ok
+	ok = r.ok
 	fallback := m.files().dialogueDefault
 	if !ok && fallback == "" {
 		return false
@@ -1964,7 +1972,7 @@ func (mw *mapWorld) openDialogue(event int) bool {
 	m.portrait = EventHasSpeaker(dialoguePayload(payload))
 	page := ui.Dialogue{Text: fallback, Portrait: m.portrait}
 	if ok {
-		page = m.dialogueOf(body, 1)
+		page = m.dialogueOf(r, 1)
 	}
 	mw.view.SetDialogue(page)
 	mw.view.QueueMusicTune(r.musicTune())
@@ -2042,28 +2050,58 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 		}
 		return ui.NoticeToMapList, TownNotBuiltMessage, nil
 	}
-	m.part++
-	// A NOTICE THIS TIER PAGED ITSELF comes first, because it carries no event
-	// payload and EventPart would answer "no next part" for it on the first
-	// dismiss — which is exactly how the load disclosure came to be one
-	// screen long (1032 return 1).
-	if len(m.pages) > 0 {
-		if m.part <= len(m.pages) {
-			mw.view.PageDialogue(ui.Dialogue{Text: m.pages[m.part-1]})
-			return ui.NoticeStay, "", nil
+	// A page that offers replies pages only by a reply; every other action is
+	// refused while they stand.
+	if len(m.replies) > 1 {
+		for k, a := range replyActions {
+			if action == a {
+				mw.chooseReply(k + 1)
+			}
 		}
-	} else {
-		m.noteTips(m.part)
-		r := readDialoguePart(m.payload, m.part, m.dialogueAudience, nil)
-		if r.ok {
-			mw.view.PageDialogue(m.dialogueOf(r.text, m.part))
-			mw.view.QueueMusicTune(r.musicTune())
-			return ui.NoticeStay, "", nil
-		}
+		return ui.NoticeStay, "", nil
 	}
-	mw.raiseMissionTip()
-	mw.settleNotices(messageAcknowledge)
+	if m.dialogue != nil {
+		if len(m.replies) == 1 {
+			mw.chooseReply(1)
+		} else {
+			mw.raiseMissionTip()
+			mw.settleNotices(messageAcknowledge)
+		}
+		return ui.NoticeStay, "", nil
+	}
+	m.part++
+	if !mw.showPart() {
+		mw.raiseMissionTip()
+		mw.settleNotices(messageAcknowledge)
+	}
 	return ui.NoticeStay, "", nil
+}
+
+// showPart shows part m.part of the open dialogue and reports whether there
+// was one.
+//
+// A NOTICE THIS TIER PAGED ITSELF comes first, because it carries no event
+// payload and EventPart would answer "no next part" for it on the first
+// dismiss — which is exactly how the load disclosure came to be one
+// screen long (1032 return 1).
+func (mw *mapWorld) showPart() bool {
+	m := mw.mission
+	if len(m.pages) > 0 {
+		if m.part > len(m.pages) {
+			return false
+		}
+		m.replies = nil
+		mw.view.PageDialogue(ui.Dialogue{Text: m.pages[m.part-1]})
+		return true
+	}
+	m.noteTips(m.part)
+	r := readDialoguePart(m.payload, m.part, m.dialogueAudience, nil)
+	if !r.ok {
+		return false
+	}
+	mw.view.PageDialogue(m.dialogueOf(r, m.part))
+	mw.view.QueueMusicTune(r.musicTune())
+	return true
 }
 
 // noteTips keeps the `tips=` value of the part's accepted tag, shown or not,
@@ -2103,6 +2141,7 @@ func (mw *mapWorld) closeNotice() {
 	m := mw.mission
 	m.open, m.payload, m.part, m.portrait, m.tips = false, nil, 0, false, 0
 	m.pages = nil
+	m.replies, m.dialogue = nil, nil
 	m.dialogueAudience = EventAudience{}
 	mw.view.ClearNotice()
 }

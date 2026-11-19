@@ -770,6 +770,8 @@ type App struct {
 	dialoguePress      dialoguePointerPress
 	// noticePress is an outcome panel's button press latch (MENU-116).
 	noticePress buttonLatch
+	// reply is the reply rows' press and pointer memory.
+	reply replyPress
 	// noticePressSerial is the notice serial the outcome latch was taken on.
 	noticePressSerial int
 	// blink is the edit fields' caret phase (MENU-126).
@@ -1537,8 +1539,11 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			}
 		}
 		if a.flow.noticeOpen() {
-			a.flow.advanceNotice(a.flow.viewer.noticeEscapeAction())
-			a.syncViewerLayout()
+			// A dialogue page that shows replies is left only by choosing one.
+			if a.flow.viewer.NoticeReplyCount() == 0 {
+				a.flow.advanceNotice(a.flow.viewer.noticeEscapeAction())
+				a.syncViewerLayout()
+			}
 			return false
 		}
 		// Pre-create Escape requests the page's escape sound unless it plays,
@@ -1587,7 +1592,11 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		// Dialogue owns its complete pointer gesture before the map sees input.
 		// The outcome panels retain their press actions and release suppression.
 		// Return selects the default action; Escape is handled above.
-		if a.flow.noticeOpen() {
+		if a.flow.noticeOpen() && a.flow.viewer.NoticeReplyCount() > 0 {
+			if k := a.stepDialogueReplies(&in); k > 0 {
+				a.flow.advanceNotice(NoticeReply1 + NoticeAction(k-1))
+			}
+		} else if a.flow.noticeOpen() {
 			if hv := a.flow.viewer; hv.help != nil {
 				hv.helpTab(in.PaneMode)
 				hv.helpKeys(in.Up, in.Down, in.PageUp, in.PageDown)

@@ -179,7 +179,7 @@ func TestFixedTreeEveryKindPacksAndKeepsBytesAndDigest(t *testing.T) {
 	files := map[string]string{
 		ManifestName: good("whole"), EntryName: "def init(game, settings):\n    pass\n", "lib/a.star": "x = 1\n",
 		SettingsName: "# no settings\n", "text/en/strings.toml": "\"a\" = \"A\"\n",
-		"maps/a.alm": "map", "maps/a.text/en/title.txt": "Title\r\n", "maps/a.variables": "{}",
+		"maps/a.alm": "map", "maps/a.text/en/title.txt": "Title\r\n", "maps/a.variables": "{}", "maps/b.almx": "map", "maps/b.dialogs/d.toml": "[[node]]\nid = 1\nen = \"a\"\n",
 		"assets/items/a.png": "PNG", "assets/bodies/a.png": "PNG", "assets/speakers/20000.png": "PNG", "assets/towns/a.json": "{}",
 		"files/common/graphics/a.bmp": "BM\r\n", "files/en/sounds/a.wav": "WAV", "files/ru/main/a.txt": "text\r\n",
 		"10.alm": "map", ReadmeName: "people\r\n",
@@ -323,8 +323,8 @@ func TestModsDocListsFixedTree(t *testing.T) {
 	}
 	part, _, _ = strings.Cut(part, "<!-- fixed-tree:end -->")
 	rows := []string{"| kind | paths | formats | found by | language |", "|---|---|---|---|---|"}
-	if len(TreeKinds()) != 24 {
-		t.Fatalf("%d tree kinds, want 24", len(TreeKinds()))
+	if len(TreeKinds()) != 25 {
+		t.Fatalf("%d tree kinds, want 25", len(TreeKinds()))
 	}
 	for _, k := range TreeKinds() {
 		paths := append(slices.Clone(k.Files), k.Paths...)

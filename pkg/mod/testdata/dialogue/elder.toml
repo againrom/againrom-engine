@@ -1,0 +1,47 @@
+# A fixture dialogue: the elder asks for help and the player answers.
+
+[[node]]
+id = 1
+en = "Strangers! Will you drive the raiders out?"
+ru = "Чужаки! Прогоните ли вы разбойников?"
+
+[[reply]]
+en = "We will."
+ru = "Прогоним."
+next = 2
+do = [12]
+
+[[reply]]
+en = "What will you pay?"
+ru = "Что вы заплатите?"
+next = 3
+once = true
+mark = 140
+
+[[reply]]
+en = "Take a hundred gold first."
+ru = "Сначала возьмите сто золотых."
+unavailable = "disabled"
+when = [{ left = 3, right = 5, cmp = 0 }]
+do = [13]
+
+[[reply]]
+en = "I know a secret."
+ru = "Я знаю тайну."
+when = [{ left = 3, right = 5, cmp = 0 }]
+do = [14]
+
+[[node]]
+id = 2
+en = "Thank you!"
+ru = "Спасибо!"
+
+[[node]]
+id = 3
+en = "A hundred gold."
+ru = "Сто золотых."
+
+[[reply]]
+en = "Agreed."
+ru = "Договорились."
+next = 1

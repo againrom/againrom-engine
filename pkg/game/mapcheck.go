@@ -848,7 +848,7 @@ func (c *mapCheck) modMissingPages(p *mod.MissionPages) []mapHit {
 	seen := map[int32]bool{}
 	var out []mapHit
 	for _, r := range report.Raises {
-		if r.Event <= 0 || r.Event == ReservedMessageNumber || seen[r.Event] {
+		if _, interactive := mapload.InteractiveIndex(r.Event); interactive || r.Event <= 0 || r.Event == ReservedMessageNumber || seen[r.Event] {
 			continue
 		}
 		seen[r.Event] = true

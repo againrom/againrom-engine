@@ -52,3 +52,44 @@ func TestExtendedRecordCompilesGroupsListsAndMisses(t *testing.T) {
 		t.Fatal("the second game compiled the extended record", err)
 	}
 }
+
+// An interactive message action of an extended script raises the event of the
+// dialogue its label names; a legacy one raises its event text number, and an
+// original script reads no choice at all.
+func TestInteractiveMessageRaisesItsDialogue(t *testing.T) {
+	src := alm.Script{
+		Actions: []alm.ScriptNode{
+			node("elder", 2, 1, par(1, 4), par(1, 1)),
+			node("", 2, 2, par(1, 5), par(1, 0)),
+			node("elder", 2, 3, par(1, 6), par(1, 1)),
+			node("Set", 3, 4, par(1, 140), par(1, 1)),
+		},
+		Conditions: []alm.ScriptNode{node("One", 0x10002, 1, par(1, 1))},
+		Triggers: []alm.ScriptTrigger{{Name: "T", Left: []uint32{1}, Right: []uint32{1}, Cmp: []uint32{0},
+			Acts: []uint32{1, 2, 3}}},
+		Extended: true, Variables: 150,
+	}
+	_, rep, err := mapload.CompileScriptFrom(src, mapload.ScriptRefs{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []mapload.ScriptRaise{{Event: mapload.InteractiveEvent(0)}, {Event: 5}, {Event: mapload.InteractiveEvent(0)}}
+	if !slices.Equal(rep.Raises, want) || !slices.Equal(rep.Dialogues, []string{"elder"}) {
+		t.Errorf("raises %+v dialogues %q", rep.Raises, rep.Dialogues)
+	}
+	if rep.ActionOf[4] != 3 || rep.CheckOf[1] != 0 {
+		t.Errorf("node maps %v %v", rep.ActionOf, rep.CheckOf)
+	}
+	if i, ok := mapload.InteractiveIndex(rep.Raises[0].Event); !ok || i != 0 {
+		t.Errorf("index %d %v", i, ok)
+	}
+	if _, ok := mapload.InteractiveIndex(255); ok {
+		t.Error("an event text number read as a dialogue")
+	}
+	src.Extended = false
+	src.Triggers = []alm.ScriptTrigger{{Name: "T", Left: []uint32{1}, Right: []uint32{1}, Cmp: []uint32{0}, Acts: []uint32{1, 2}}}
+	_, rep, err = mapload.CompileScriptFrom(src, mapload.ScriptRefs{})
+	if err != nil || len(rep.Dialogues) != 0 || len(rep.Raises) != 2 || rep.Raises[0].Event != 4 {
+		t.Errorf("original script: %+v %v", rep, err)
+	}
+}

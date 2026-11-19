@@ -7,6 +7,7 @@ package mapload
 
 import (
 	"fmt"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
@@ -270,6 +271,35 @@ type ScriptReport struct {
 	DiscardedActions  []uint32
 	Unresolved        []ScriptUnresolved
 	Raises            []ScriptRaise
+	// Dialogues are the dialogue names the interactive message actions of an
+	// extended script carry, in first-use order; a raise whose Event is
+	// InteractiveEvent(i) opens Dialogues[i].
+	Dialogues []string
+	// ActionOf and CheckOf map an extended script's action and condition node
+	// ids to the compiled instant subscript and check subscript they became,
+	// so a dialogue reply can name nodes of the map's own script.
+	ActionOf, CheckOf map[uint32]int32
+}
+
+// The message action's second parameter: 0 shows the event text page as the
+// original does, InteractiveMessage names a dialogue file in the node's label.
+const InteractiveMessage int32 = 1
+
+// interactiveEventBase is where the event numbers of interactive dialogues
+// begin, far above any event text number an install or a mod names.
+const interactiveEventBase int32 = 1 << 20
+
+// InteractiveEvent is the event number a raise carries for dialogue i of
+// ScriptReport.Dialogues.
+func InteractiveEvent(i int) int32 { return interactiveEventBase + int32(i) }
+
+// InteractiveIndex is the dialogue index an event number names, and whether
+// it names one.
+func InteractiveIndex(event int32) (int, bool) {
+	if event < interactiveEventBase {
+		return 0, false
+	}
+	return int(event - interactiveEventBase), true
 }
 
 // Empty reports whether the compile had nothing to say.
@@ -350,6 +380,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	instantOf := make(map[uint32]int32, len(src.Actions))
 	buildTime := make(map[uint32]bool)
 	unbuilt := make(map[uint32]bool)
+	interactive := map[int32]int32{}
 	slot := int32(-1)
 	for _, n := range src.Actions {
 		var args [10]int32
@@ -388,6 +419,14 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			continue
 		}
 		instantOf[n.ID] = int32(len(instants))
+		if src.Extended && int32(n.Opcode) == scriptMessageOpcode && args[1] == InteractiveMessage {
+			at := slices.Index(rep.Dialogues, n.Label)
+			if at < 0 {
+				at = len(rep.Dialogues)
+				rep.Dialogues = append(rep.Dialogues, n.Label)
+			}
+			interactive[int32(len(instants))] = InteractiveEvent(at)
+		}
 		var source int32
 		if dialect == sim.ScriptROM2 {
 			source = slot
@@ -466,7 +505,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			continue
 		}
 		if src.Extended {
-			triggers = append(triggers, extendedTrigger(i, t, registerOf, instantOf, buildTime, instants, &rep))
+			triggers = append(triggers, extendedTrigger(i, t, registerOf, instantOf, buildTime, instants, interactive, &rep))
 			continue
 		}
 		// A trigger whose FIRST pair's left id is zero is dropped whole, before
@@ -544,6 +583,9 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		triggers = append(triggers, out)
 	}
 
+	if src.Extended {
+		rep.ActionOf, rep.CheckOf = instantOf, registerOf
+	}
 	compile := sim.NewScript
 	switch {
 	case src.Extended && dialect != sim.ScriptROM1:
@@ -567,7 +609,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 // position. A condition id naming no built check reads ScriptNone, which
 // holds 0; an action id naming no built instant runs nothing.
 func extendedTrigger(i int, t alm.ScriptTrigger, registerOf, instantOf map[uint32]int32, buildTime map[uint32]bool,
-	instants []sim.ScriptInstant, rep *ScriptReport) sim.ScriptTrigger {
+	instants []sim.ScriptInstant, interactive map[int32]int32, rep *ScriptReport) sim.ScriptTrigger {
 	out := sim.ScriptTrigger{Once: t.Once != 0, Latch: int32(i)}
 	for k := range out.Instants {
 		out.Instants[k] = sim.ScriptNone
@@ -590,7 +632,11 @@ func extendedTrigger(i int, t alm.ScriptTrigger, registerOf, instantOf map[uint3
 			continue
 		}
 		if instants[idx].Op == scriptMessageOpcode {
-			rep.Raises = append(rep.Raises, ScriptRaise{Latch: out.Latch, Event: instants[idx].Args[0]})
+			event, ok := interactive[idx]
+			if !ok {
+				event = instants[idx].Args[0]
+			}
+			rep.Raises = append(rep.Raises, ScriptRaise{Latch: out.Latch, Event: event})
 		}
 		out.Actions = append(out.Actions, idx)
 	}

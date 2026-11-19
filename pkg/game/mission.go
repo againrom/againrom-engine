@@ -103,6 +103,14 @@ type Mission struct {
 	// actions become no instant and leave no runtime trigger slot.
 	Raises []mapload.ScriptRaise
 
+	// Dialogues, ActionOf and CheckOf are the compile's answers for an
+	// interactive dialogue: the file names a raise of mapload.InteractiveEvent
+	// opens, and the compiled subscripts of the action and condition node ids
+	// a reply names. They are nil for a script that raises no interactive
+	// dialogue.
+	Dialogues         []string
+	ActionOf, CheckOf map[uint32]int32
+
 	// RaiseErr is why Raises is empty, for a mission whose script would not
 	// decode. It is carried rather than returned for the reason FontErr is: the
 	// mission still starts, and an install whose map holds a script this build
@@ -246,7 +254,8 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
 	return &Mission{Number: n, Address: addr, Map: m, World: w, Start: st, Party: mapload.OwnParty(party),
-		Raises: rep.Raises, RaiseErr: raiseErr, OmittedActions: rep.OmittedActions, OmittedChecks: rep.OmittedChecks}, nil
+		Raises: rep.Raises, Dialogues: rep.Dialogues, ActionOf: rep.ActionOf, CheckOf: rep.CheckOf,
+		RaiseErr: raiseErr, OmittedActions: rep.OmittedActions, OmittedChecks: rep.OmittedChecks}, nil
 }
 
 // campaignScriptRefs resolves a map script's hero-band references against the

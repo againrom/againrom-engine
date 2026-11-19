@@ -57,7 +57,7 @@ func TestMissionPlaceNamesTheTreeRows(t *testing.T) {
 	if (MissionPlace{Map: "mission/{lang}/map.alm"}).InTree() {
 		t.Fatal("an old row map reads as a tree map")
 	}
-	maps, pages, labels := missionTreeRows()
+	maps, pages, labels, _ := missionTreeRows()
 	for name, want := range map[string][]string{missionMapsKind: maps, missionPagesKind: pages, mapLabelsKind: labels} {
 		i := slices.IndexFunc(dataKinds, func(k DataKind) bool { return k.Name == name })
 		if i < 0 || !slices.Equal(dataKinds[i].Paths[:len(want)], want) {

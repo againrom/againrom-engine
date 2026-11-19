@@ -120,6 +120,9 @@ type Mission struct {
 	TextFiles map[string][]byte
 	// OtherLanguageTexts names the TextFiles read from the other language.
 	OtherLanguageTexts map[string]bool
+	// DialogueFiles are the map's interactive dialogue files, keyed by name
+	// without the extension, as read from the mod folder.
+	DialogueFiles map[string][]byte
 }
 
 // GuestMember is one member of a guest party: a character of the character
@@ -740,6 +743,9 @@ func (m *Mission) ReadFiles(dir string) error {
 			return bad("map: %v", err)
 		}
 		m.MapBytes = b
+		if m.DialogueFiles, err = m.readDialogues(dir); err != nil {
+			return err
+		}
 	}
 	if m.Map == "" && m.Texts == "" {
 		return nil
@@ -750,6 +756,40 @@ func (m *Mission) ReadFiles(dir string) error {
 		return bad("texts: %v", err)
 	}
 	return nil
+}
+
+// readDialogues reads the dialogue files beside the map, each parsed once so
+// a malformed file is refused here, by file and line. A map with no dialogue
+// folder has none.
+func (m Mission) readDialogues(dir string) (map[string][]byte, error) {
+	folder := MissionPlace{Map: m.Map}.Dialogs()
+	t, err := OpenTree(dir)
+	if err != nil {
+		return nil, nil
+	}
+	entries, err := t.ReadDir(folder)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf("dialogues: %v", err)}
+	}
+	files := map[string][]byte{}
+	for _, e := range entries {
+		name, isTOML := strings.CutSuffix(e.Name(), ".toml")
+		if e.IsDir() || !isTOML || !ValidDialogueName(name) {
+			continue
+		}
+		b, _, err := t.ReadInside(folder + "/" + e.Name())
+		if err != nil {
+			return nil, &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf("dialogues: %v", err)}
+		}
+		if _, err := ParseDialogue(folder+"/"+e.Name(), b); err != nil {
+			return nil, err
+		}
+		files[name] = b
+	}
+	return files, nil
 }
 
 // ReadTexts reads the pages the map carries in its texts record first, then

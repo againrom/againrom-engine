@@ -39,6 +39,7 @@ mission number. Only the manifest is required.
 | strings | `text/{lang}/strings.toml` | TOML subset | fixed path per language | en or ru |
 | mission maps | `maps/*.alm`, `maps/*.almx`, `maps/{lang}/*.alm`, `maps/{lang}/*.almx` | ALM or ALMX | mission row | shared or en/ru |
 | mission pages | `maps/*.text/*.txt`, `maps/*.text/{lang}/*.txt`, `maps/{lang}/*.text/*.txt`, `maps/{lang}/*.text/{lang}/*.txt`, `<N>.text/*.txt`, `<N>.text/{lang}/*.txt` | UTF-8 TXT | beside map; row texts as lower layer | shared or en/ru |
+| mission dialogues | `maps/*.dialogs/*.toml`, `maps/{lang}/*.dialogs/*.toml` | TOML subset | beside an .almx map; a message action's label names the file | texts per language key |
 | map variable labels | `maps/*.variables`, `maps/{lang}/*.variables` | JSON | beside map; editor only | shared |
 | install pictures | `files/{layer}/**/*.bmp` | BMP | install path | common or en/ru |
 | install sounds | `files/{layer}/**/*.wav` | PCM or Microsoft ADPCM WAV | install path | common or en/ru |
@@ -1545,6 +1546,22 @@ appended after the script record and the record count rises by 1.
 
 The payload ends after the last page's text. A name out of order or twice,
 a byte after the last page, or two texts records is refused.
+
+### Interactive dialogues
+
+A message action whose second plain parameter is 1 and whose label is a name of
+lower-case letters, digits and underscores raises an interactive dialogue
+instead of an event text. The file is `maps/<map>.dialogs/<name>.toml` (or under
+`maps/{lang}/`). It holds `[[node]]` tables, each followed by its `[[reply]]`
+tables, at most four per node; the first node opens the dialogue. A node has
+`id` and a text per language (`en = "..."`, `ru = "..."`). A reply has a text
+the same way and, all optional, `next` (a node id; absent ends the dialogue),
+`do` (action node ids of the map, run as a trigger runs them), `when`
+(condition pairs `{ left = N, right = N, cmp = N }` over condition node ids, all
+of which must hold), `unavailable` (`"hidden"`, the default, or `"disabled"`,
+greyed and not choosable) and `once = true` with `mark = N`, the script variable
+that records the choice. A dialogue map is saved as `.almx` and cannot fold back
+to `.alm`. The first game only.
 
 ### Saves of an extended map
 

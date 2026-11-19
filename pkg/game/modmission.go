@@ -236,6 +236,11 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 				return nil, nil, err
 			}
 		}
+		for _, name := range slices.Sorted(maps.Keys(m.DialogueFiles)) {
+			if err := serve(dir+"dialogs/"+name+".toml", m.DialogueFiles[name]); err != nil {
+				return nil, nil, err
+			}
+		}
 		if m.Title != "" {
 			if err := serve(dir+"title.txt", []byte(EncodeModText(m.Title, selector))); err != nil {
 				return nil, nil, err
