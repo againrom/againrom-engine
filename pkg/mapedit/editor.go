@@ -11,13 +11,14 @@ import (
 	"againrom/pkg/formats/alm"
 )
 
-// Editor is a headless edit session over one accepted ROM1 .alm map.
+// Editor holds one accepted map; a format without a writer is view-only.
 //
 // Bytes and their edit log own map state. Session-only record sets follow the
 // same history; they are never serialized. Decoded values are read on demand.
 //
 // An Editor is a single-goroutine session and is not safe for concurrent use.
 type Editor struct {
+	format  alm.Format
 	data    []byte // the accepted stream
 	log     []edit // the accepted mutations, oldest first
 	cursor  int    // len(log) with nothing undone; the redo boundary otherwise
@@ -42,11 +43,20 @@ type Editor struct {
 // acceptance was taken on. The caller's slice is therefore never the edited
 // state, and mutating it afterwards changes nothing here.
 func New(data []byte) (*Editor, error) {
-	doc, err := alm.OpenDocument(data)
+	format := alm.FormatOf(data)
+	doc, err := alm.OpenDocument(data, format)
 	if err != nil {
 		return nil, fmt.Errorf("mapedit: %w", err)
 	}
-	return &Editor{data: doc.Write(), setsAt: []spellSets{nil}, keysAt: []map[int]recordIdentity{{}}, nextKey: new(uint64)}, nil
+	return &Editor{format: format, data: doc.Write(), setsAt: []spellSets{nil}, keysAt: []map[int]recordIdentity{{}}, nextKey: new(uint64)}, nil
+}
+
+// ViewOnly reports a format the editor cannot safely write.
+func (e *Editor) ViewOnly() bool { return e.format == alm.SecondFormat }
+
+// Document reads physical records with the same format as Map.
+func (e *Editor) Document() (*alm.Document, error) {
+	return alm.OpenDocument(e.Bytes(), e.format)
 }
 
 // Bytes returns the current serialized map in a fresh buffer. Mutating it
@@ -57,6 +67,9 @@ func (e *Editor) Bytes() []byte { return cloneBytes(e.data) }
 // SaveBytes preserves an untouched map and type-9-only edits verbatim.
 // Other edits use the original editor's save form (DIV-4485).
 func (e *Editor) SaveBytes() ([]byte, error) {
+	if e.ViewOnly() {
+		return nil, fmt.Errorf("a second-game map opens for viewing only")
+	}
 	if e.onlySpellEdits() {
 		return e.Bytes(), nil
 	}
@@ -87,18 +100,16 @@ func (e *Editor) onlySpellEdits() bool {
 func (e *Editor) Clone() *Editor {
 	keys := slices.Clone(e.keysAt)
 	keys[e.cursor] = maps.Clone(keys[e.cursor])
-	return &Editor{data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey}
+	return &Editor{format: e.format, data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey}
 }
 
-// Map returns the interpreted view of the current bytes: alm.Open of a fresh
-// copy of them, run per call.
-//
-// No decoded state is stored, so no accessor can report what the bytes do not
-// say, and every "the view is unchanged" clause of this package's contract
-// collapses to byte equality. The copy is not a courtesy to alm.Open: it is
-// what makes the guarantee this package's own rather than a consequence of
-// which pieces that reader happens to copy on its way out.
-func (e *Editor) Map() (*alm.Map, error) { return alm.Open(e.Bytes()) }
+// Map reads a fresh byte copy in the map's format.
+func (e *Editor) Map() (*alm.Map, error) {
+	if e.format == alm.SecondFormat {
+		return alm.OpenROM2(e.Bytes())
+	}
+	return alm.Open(e.Bytes())
+}
 
 // CanUndo reports whether there is an accepted mutation left to undo.
 func (e *Editor) CanUndo() bool { return e.cursor > 0 }

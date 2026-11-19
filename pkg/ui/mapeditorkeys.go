@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui/widgetkit"
 	"againrom/pkg/words"
+	"fmt"
 	"math"
 	"slices"
 	"strings"
@@ -666,6 +667,11 @@ func (e *MapEditor) keyStep(key string) error {
 }
 
 func (e *MapEditor) keySaveAs(string) error {
+	if e.doc != nil && e.doc.ReadOnly != "" {
+		err := fmt.Errorf("%s", e.doc.ReadOnly)
+		e.keptError(err)
+		return err
+	}
 	if err := e.saveUnitDraft(); err != nil {
 		return err
 	}

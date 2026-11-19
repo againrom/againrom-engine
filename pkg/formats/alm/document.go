@@ -21,42 +21,26 @@ type recordSpan struct {
 // turn out to mean. No byte of the copy is ever routed through a float32, so
 // a signalling-NaN bit pattern cannot be quieted by a conversion.
 type Document struct {
-	data  []byte       // the accepted stream, one private flat copy
-	spans []recordSpan // one per record the file header counts, file order
+	data   []byte       // the accepted stream, one private flat copy
+	spans  []recordSpan // one per record the file header counts, file order
+	format Format
 }
 
-// OpenDocument reads a ROM1 .alm map as a raw document. It accepts precisely
-// the byte streams Open accepts — the decision is taken by running Open on
-// the document's own copy of the input, so the two entry points cannot
-// drift — and rejects the rest with a wrapped error and a nil document, never
-// a partial result or a panic. dataSize and the per-map-constant words play
-// no part in the decision. The input is copied in: mutating the caller's
-// buffer afterwards does not change what Write emits.
-func OpenDocument(data []byte) (*Document, error) {
+// OpenDocument retains a map accepted by the shared reader in the selected
+// format, defaulting to the first game's. Its physical spans use the reader's
+// actual payload extents; declared lengths can differ in the second game.
+func OpenDocument(data []byte, formats ...Format) (*Document, error) {
 	buf := cloneBytes(data)
-	if _, err := Open(buf); err != nil {
+	format := selectedFormat(formats)
+	m, err := open(buf, format)
+	if err != nil {
 		return nil, fmt.Errorf("alm: document rejected: %w", err)
 	}
-
-	// Open has proven the frame: recordCount records, every header and payload
-	// in bounds. The walk is bounds-checked all the same, and that is not
-	// belt-and-braces — the count is now a FILE FIELD rather than the constant
-	// ten, so an arithmetic slip here would be a slice-bounds panic on valid
-	// input rather than an impossible state. Bytes after the last record, which
-	// acceptance no longer forbids, are covered by no span and ride the copy.
-	n := binary.LittleEndian.Uint32(buf[FileRecordCount:])
-	d := &Document{data: buf, spans: make([]recordSpan, 0, minRecordCount)}
-	cursor := 0 + FileHeaderSize
-	for i := uint32(0); i < n; i++ {
-		if cursor+RecordHeaderSize > len(buf) {
-			break
-		}
-		size := uint64(binary.LittleEndian.Uint32(buf[cursor+RecordPayloadSize:]))
-		if size > uint64(len(buf)-cursor-RecordHeaderSize) {
-			break
-		}
-		d.spans = append(d.spans, recordSpan{headerOff: cursor, payloadSize: int(size)})
-		cursor += RecordHeaderSize + int(size)
+	d := &Document{data: buf, format: format, spans: make([]recordSpan, 0, len(m.Records))}
+	cursor := FileHeaderSize
+	for _, rec := range m.Records {
+		d.spans = append(d.spans, recordSpan{headerOff: cursor, payloadSize: int(rec.PayloadSize)})
+		cursor += RecordHeaderSize + int(rec.PayloadSize)
 	}
 	return d, nil
 }
@@ -70,12 +54,9 @@ func (d *Document) Write() []byte {
 	return cloneBytes(d.data)
 }
 
-// Map returns the interpreted view of the document: Open of the document's
-// bytes, run per call, equal to Open of the original input in result and
-// error. For a document OpenDocument produced, that call already succeeded
-// at open time.
+// Map reads the retained bytes in the document's accepted format.
 func (d *Document) Map() (*Map, error) {
-	return Open(d.data)
+	return open(d.data, d.format)
 }
 
 // Version returns the file header's formatVersion, read from the u32 at

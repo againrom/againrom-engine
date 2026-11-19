@@ -175,7 +175,7 @@ func BuildMapList(loose, archive NamedReader) []MapEntry {
 			data, err := src.Read(name)
 			if err != nil {
 				e.Err = err
-			} else if info, err := alm.OpenInfo(data); err != nil {
+			} else if info, err := alm.OpenInfo(data, alm.FormatOf(data)); err != nil {
 				e.Err = err
 			} else {
 				e.Name = info.Name

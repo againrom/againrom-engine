@@ -71,7 +71,7 @@ func init() {
 	noMap := func(e *MapEditor) bool { return e.doc == nil }
 	noBrush := func(e *MapEditor) bool { return e.brushHost() == nil || e.catalog }
 	noEdit := func(e *MapEditor) bool { return !e.editable() }
-	noRandom := func(e *MapEditor) bool { return e.doc == nil || e.catalog }
+	noRandom := func(e *MapEditor) bool { return !e.editable() || e.catalog }
 	toolButtons = []toolButton{
 		{key: "new", word: "editor.menu.new", kind: toolAction, menu: "file"},
 		{key: "open", word: "editor.menu.open", kind: toolAction, menu: "file"},

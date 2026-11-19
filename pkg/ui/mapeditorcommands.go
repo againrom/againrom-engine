@@ -1520,6 +1520,9 @@ func (c editorCommand) mcpRun(e *MapEditor, raw json.RawMessage) (any, error) {
 		return nil, err
 	}
 	if !c.opens && (!e.editable() || e.catalog) {
+		if e.doc != nil && e.doc.ReadOnly != "" {
+			return nil, fmt.Errorf("%s", e.doc.ReadOnly)
+		}
 		return nil, fmt.Errorf("no editable map is open")
 	}
 	before := e.doc

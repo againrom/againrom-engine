@@ -30,9 +30,12 @@ type nameTable map[string][]string
 // deliberately spread one file per setter family, so a reference moving between
 // files is a change worth declaring rather than a refactor to absorb silently.
 var almReferences = nameTable{
-	"editor.go/New":                         {"alm.OpenDocument"},
+	"editor.go/New":                         {"alm.FormatOf", "alm.OpenDocument"},
+	"editor.go/" + fileScope:                {"alm.Format"},
+	"editor.go/(*Editor).ViewOnly":          {"alm.SecondFormat"},
+	"editor.go/(*Editor).Document":          {"alm.Document", "alm.OpenDocument"},
 	"editor.go/(*Editor).SaveBytes":         {"alm.SaveForm"},
-	"editor.go/(*Editor).Map":               {"alm.Map", "alm.Open"},
+	"editor.go/(*Editor).Map":               {"alm.Map", "alm.Open", "alm.OpenROM2", "alm.SecondFormat"},
 	"unit.go/(*Editor).highestScriptTarget": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetEncodedName":      {"alm.EncodeName", "alm.MapNameText"},
 	"meta.go/(*Editor).SetName":             {"alm.EncodeName"},
@@ -332,7 +335,7 @@ func TestNonTestSourceNamesOnlyItsDeclaredAlmIdentifiers(t *testing.T) {
 		t.Error(m)
 	}
 
-	for _, decoder := range []string{"alm.Open", "alm.OpenDocument"} {
+	for _, decoder := range []string{"alm.Open", "alm.OpenROM2"} {
 		var where []string
 		for key, names := range got {
 			if slices.Contains(names, decoder) {
@@ -379,8 +382,8 @@ func TestTheScanReadsParsedSyntaxAndNotFileText(t *testing.T) {
 		text += strings.Count(string(b), "alm.OpenDocument")
 	}
 
-	if parsed != 1 {
-		t.Errorf("the scan found alm.OpenDocument %d times, want the one call", parsed)
+	if parsed != 2 {
+		t.Errorf("the scan found alm.OpenDocument %d times, want acceptance and physical inspection", parsed)
 	}
 	if text <= parsed {
 		t.Errorf("the sources name alm.OpenDocument %d times as text and %d as syntax; with no prose mention left, this case witnesses nothing",

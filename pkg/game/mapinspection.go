@@ -264,7 +264,7 @@ func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument,
 	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), textsInside: inside, modDir: x.modFolder()}
 	s.savedInside = s.TextsInside()
 	d, err := s.project(model)
-	if err == nil {
+	if err == nil && d.OpenNote == "" {
 		d.OpenNote = s.openNote
 	}
 	return d, err
@@ -395,7 +395,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		r.Name = x.unitLabel(u, x.testPlayNumber(w))
 		r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", u.X, u.Y), fmt.Sprintf("Class/sub: %d / %d", u.ClassID, u.ClassSubID),
 			fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
-			fmt.Sprintf("Definition: %d (%s row %d)", u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),
+			fmt.Sprintf("%s: %d (%s row %d)", filesOf(x.installGame()).editorUnitWord, u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),
 			"Authored placement; idle pose, no simulation"}
 		if i < len(sheets) {
 			r.Lines = append(r.Lines, x.sheetLines(u, resolved, sheets[i])...)
@@ -403,7 +403,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			if i < len(templates) {
 				template = templates[i]
 			}
-			r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
+			if !model.ViewOnly() {
+				r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
+			}
 			v := sheets[i].Values
 			r.Hover = r.Name + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
 		} else {
@@ -478,9 +480,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		add(r)
 	}
 	spellSetSizes := map[int]int{}
-	for _, set := range model.SpellSets() {
-		for _, i := range set {
-			spellSetSizes[i] = len(set)
+	if !model.ViewOnly() {
+		for _, set := range model.SpellSets() {
+			for _, i := range set {
+				spellSetSizes[i] = len(set)
+			}
 		}
 	}
 	for i, e := range m.Enchantments {
@@ -489,7 +493,12 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		add(x.inspectionEnchantment(i, e, m, spellSetSizes[i]))
 	}
 	for i, g := range m.Groups {
-		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))))
+		name := x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))
+		if model.ViewOnly() {
+			add(ui.InspectionRecord{Kind: ui.KindPlayer, Section: 5, Index: i, Label: fmt.Sprintf("%d: %s", i+1, name), Details: []string{fmt.Sprintf("Player raw: %+v", g)}})
+		} else {
+			add(inspectionPlayer(model, i, name))
+		}
 	}
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
@@ -512,7 +521,10 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	// Every physical record remains inspectable, including duplicate/unknown
 	// sections ignored by the format's last-wins view. Raw bytes remain intact.
-	doc, _ := alm.OpenDocument(model.Bytes())
+	doc, err := model.Document()
+	if err != nil {
+		return nil, err
+	}
 	ids := doc.RecordTypeIDs()
 	last := map[uint32]int{}
 	for i, id := range ids {
@@ -546,6 +558,10 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	for i := range d.Records {
 		r := &d.Records[i]
+		if model.ViewOnly() {
+			r.Key = uint64(i + 1)
+			continue
+		}
 		switch r.Kind {
 		case ui.KindScenery:
 			r.Key = model.SceneryKey(r.Index)

@@ -25,6 +25,7 @@ type gameFiles struct {
 	cursorHotspots [28]image.Point
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
+	editorUnitWord string
 	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
 	// scriptDialect is the dialect compileScript gives the game's Worlds; a
 	// load outside a World asks sim's rules of the game by it.
@@ -209,6 +210,7 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
+	editorUnitWord:    "Definition",
 	hire:              &tavernHires,
 	hover:             ui.KindRectangleHover,
 	cursorHotspots:    firstCursorHotspots,
@@ -259,6 +261,7 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
+	editorUnitWord:       "Flags +10",
 	shippedPlayerColours: true,
 	hire:                 &bankHires,
 	dollSounds: dollSoundProfile{mixed: dollAnyGain,

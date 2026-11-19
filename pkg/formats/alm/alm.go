@@ -513,12 +513,17 @@ type Info struct {
 // well-framed stream whose later records are inconsistent decodes here and fails
 // there. A stream truncated inside a record fails both, because the walk
 // requires every header and payload it counts to lie in bounds.
-func OpenInfo(data []byte) (*Info, error) {
-	f, err := walkRecords(data)
+func OpenInfo(data []byte, formats ...Format) (*Info, error) {
+	format := selectedFormat(formats)
+	f, err := walkRecordsIn(data, format)
 	if err != nil {
 		return nil, err
 	}
-	_, info, _, err := decodeMetaPayload(f.payloads[TypeMeta])
+	decode := decodeMetaPayload
+	if format == SecondFormat {
+		decode = decodeMetaROM2
+	}
+	_, info, _, err := decode(f.payloads[TypeMeta])
 	if err != nil {
 		return nil, err
 	}

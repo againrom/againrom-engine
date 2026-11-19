@@ -27,15 +27,40 @@ const (
 	rom2DescAt   = 0x94
 )
 
-type dialect uint8
+// Format selects the map grammar of an install.
+type Format uint8
 
 const (
-	dialectROM1 dialect = iota
-	dialectROM2
+	FirstFormat Format = iota
+	SecondFormat
 )
 
-// OpenROM2 reads a ROM2 map. The grammar is the one the preserved versions
-// share; other versions are refused.
+type dialect = Format
+
+const (
+	dialectROM1 = FirstFormat
+	dialectROM2 = SecondFormat
+)
+
+func selectedFormat(formats []Format) Format {
+	if len(formats) > 0 {
+		return formats[0]
+	}
+	return FirstFormat
+}
+
+// FormatOf is the grammar the map's own header declares.
+func FormatOf(data []byte) Format {
+	if len(data) < FileFormatVersion+4 {
+		return FirstFormat
+	}
+	if v := binary.LittleEndian.Uint32(data[FileFormatVersion:]); v >= rom2MinVersion && v <= rom2MaxVersion {
+		return SecondFormat
+	}
+	return FirstFormat
+}
+
+// OpenROM2 reads a ROM2 map.
 func OpenROM2(data []byte) (*Map, error) { return open(data, dialectROM2) }
 
 func checkVersion(v uint32, d dialect) error {

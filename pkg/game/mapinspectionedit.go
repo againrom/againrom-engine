@@ -97,6 +97,14 @@ func (s *mapInspectionEdits) CanRedo() bool {
 }
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
+	if m != nil && m.ViewOnly() {
+		d, err := s.inspector.inspectModel(m, s.source, nil)
+		if err == nil {
+			d.ReadOnly = s.inspector.word("editor.map.viewonly")
+			d.OpenNote = d.ReadOnly
+		}
+		return d, err
+	}
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}

@@ -193,7 +193,13 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool, unn
 		}
 		return nil, err
 	}
-	next := candidate.Edits.(*mapInspectionEdits)
+	next, ok := candidate.Edits.(*mapInspectionEdits)
+	if !ok {
+		if x.mod != nil {
+			x.mod.selected = previous
+		}
+		return nil, fmt.Errorf("mapedit: %s does not open for editing", source)
+	}
 	w.Project.Selected, w.Project.Loose = index-1, loose
 	w.Package = modPackageSpec(entry, s.workspace.Package)
 	w.Pages = next.workspace.Pages

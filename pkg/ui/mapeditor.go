@@ -60,6 +60,7 @@ type InspectionRecord struct {
 }
 
 type InspectionDocument struct {
+	ReadOnly      string // refusal reason; an empty value leaves capabilities to Edits
 	Viewer        *Viewer
 	Source, Name  string
 	Width, Height int

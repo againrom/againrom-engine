@@ -1,10 +1,39 @@
 package alm_test
 
 import (
+	"bytes"
+	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/alm"
 )
+
+func TestSecondGameDocumentKeepsPhysicalRecordsAndBytes(t *testing.T) {
+	raw := rom2File(1600, 5, nil)
+	doc, err := alm.OpenDocument(raw, alm.SecondFormat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(doc.Write(), raw) || !reflect.DeepEqual(doc.RecordTypeIDs(), rom2Order) {
+		t.Fatal("physical records or bytes changed")
+	}
+	if len(doc.RecordPayload(0)) != 660 || len(doc.RecordPayload(1)) != 24 {
+		t.Fatal("record positions follow declared rather than actual metadata size")
+	}
+	got, err := doc.Map()
+	want, wantErr := alm.OpenROM2(raw)
+	if err != nil || wantErr != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("document map differs: %v / %v", err, wantErr)
+	}
+	info, err := alm.OpenInfo(raw, alm.SecondFormat)
+	if err != nil || info.Name != want.Name || info.Width != want.Width || info.Height != want.Height {
+		t.Fatalf("catalogue info: %+v / %v", info, err)
+	}
+	raw[0] = 0
+	if _, err := doc.Map(); err != nil {
+		t.Fatal("caller changed retained document", err)
+	}
+}
 
 var rom2Order = []uint32{0, 1, 2, 3, 5, 11, 4, 9, 8, 6, 7, 10, 12}
 
