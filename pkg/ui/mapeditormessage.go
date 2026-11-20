@@ -467,6 +467,8 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	s.LabelWidth = messageFaceColumn
 	s.Notes = wrapNotes(s.Notes, advanceOf(e.bodyFont()), s.Width)
 	e.pageObjectRows(&s, true)
+	// The list scrolls alone; the line's fields stay in view beside it.
+	s.ColumnTops = []int{e.objectTop, 0}
 	return s, make([]int, len(s.Rows)), true
 }
 
@@ -1107,7 +1109,8 @@ func (e *MapEditor) keyCard(key string) error {
 	return nil
 }
 
-// dropCard ends a card drag: the held card lands where the marker stood.
+// dropCard ends a card drag: the held card lands where the marker stood, and
+// one that stays put shows its line.
 func (e *MapEditor) dropCard() {
 	s, _, ok := e.objectSpec()
 	row := e.dragCard - 1
@@ -1132,7 +1135,10 @@ func (e *MapEditor) dropCard() {
 		}
 		card++
 	}
-	e.moveMessageCard(at, to)
+	if !e.moveMessageCard(at, to) {
+		// A card put back where it stood was a press on its row.
+		e.dialogRowPress(row)
+	}
 }
 
 // CardRects are the window rectangles of card c of the dialog editor, when

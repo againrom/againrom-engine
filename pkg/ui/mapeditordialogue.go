@@ -1147,9 +1147,31 @@ func (e *MapEditor) selectLine(number int) {
 		e.leave(leavePick)
 		o.pickField = -1
 	}
-	o.sel, o.open, o.focus, e.objectTop = number, -1, -1, 0
+	o.sel, o.open, o.focus = number, -1, -1
 	e.dialogFields()
 	o.focus = e.firstMessageField()
+	e.keepLineShown(number)
+}
+
+// keepLineShown leaves the list where it is scrolled and moves it the least
+// that shows the row of line number.
+func (e *MapEditor) keepLineShown(number int) {
+	s, _, ok := e.objectSpec()
+	if !ok || s.MaxRows <= 0 {
+		return
+	}
+	for row, n := range e.obj.rowSelect {
+		if n != number || row >= len(s.Rows) {
+			continue
+		}
+		_, line := popupRowPosition(specWindow(s), row)
+		if line < s.Top {
+			e.objectTop = line
+		} else if line >= s.Top+s.MaxRows {
+			e.objectTop = line - s.MaxRows + 1
+		}
+		return
+	}
 }
 
 // reselect rebuilds the reply part for the line on show after a card was

@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [BASE] The in-game chat and command line now remembers the last 50 lines you sent during the session; Up and Down step through them, and Down past the newest brings back what you were typing.
 - В окне диалога поле «Ответ» снова показывает русский текст читаемо, а строка ответа вдавливается только при нажатии, а не при наведении.
 - [BASE] Свиток, использованный во время заклинания или его восстановления, теперь ждёт и срабатывает следом; два свитка телепорта подряд срабатывают оба.
+- В редакторе карт окно «Диалог»: щелчок в любом месте строки списка выбирает реплику, а список больше не прыгает к началу после выбора.
 
 ### For map makers and modders
 
