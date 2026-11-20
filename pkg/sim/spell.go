@@ -975,7 +975,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 	target := &w.entities[vi]
 	// An area row cast at an actor lands where the actor stands at the
 	// release, so each repeat follows it (MAGIC-428).
-	aimX, aimY := target.X, target.Y
+	aimX, aimY := w.unitAimCell(target)
 	healthBefore := target.HP
 	// A target without a health system spends nothing. A commanded heal on a
 	// target at its maximum is cast: the cost is paid and the apply tail clamps
@@ -1233,11 +1233,12 @@ func (w *World) weaponSpellApply(ai, ti int, rule SpellRule, power int32, obs *c
 	}
 	if rule.Area {
 		t := w.entities[ti]
-		if w.areaLandingRefusal(rule, uint16(power), t.X, t.Y) != "" {
+		ax, ay := w.unitAimCell(&t)
+		if w.areaLandingRefusal(rule, uint16(power), ax, ay) != "" {
 			return false
 		}
 		a := w.entities[ai]
-		return w.landAreaAimed(areaAim{Target: t.ID, Has: true}, rule, uint16(power), a.ID, true, a.X, a.Y, t.X, t.Y, a.Facing, true, obs)
+		return w.landAreaAimed(areaAim{Target: t.ID, Has: true}, rule, uint16(power), a.ID, true, a.X, a.Y, ax, ay, a.Facing, true, obs)
 	}
 	if w.pointEffectRefusal(ai, ti, rule, power) != "" {
 		return false
@@ -1491,6 +1492,17 @@ const (
 	// reachChoice: the automatic cast's candidate test and a scroll cast.
 	reachChoice
 )
+
+// unitAimCell is the cell an area row cast at unit t lands on: the unit's
+// cell, or under bodyCentreAim the cell of its body's centre less one
+// sub-unit, half the side less one cells in from the anchor (R2-ENGINE-1138).
+func (w *World) unitAimCell(t *Entity) (int32, int32) {
+	off := int32(0)
+	if w.game.bodyCentreAim {
+		off = (footprintSide(t.TokenSize) - 1) >> 1
+	}
+	return t.X + off, t.Y + off
+}
 
 // withinCastReach is the unit-target cast gate. The caster itself is always
 // in reach and any other target is within the cast's reach when the
@@ -1806,7 +1818,8 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	// An area row delivered at a unit lands at that unit's own cell, so the
 	// instrument must ask the landing's refusals there too. It reported a cast
 	// at a cell already holding six records as admissible.
-	if r := w.areaLandingRefusal(rule, uint16(spellPowerUnder(w.rules, rule, level, caster.Mind)), target.X, target.Y); r != "" {
+	aimX, aimY := w.unitAimCell(&target)
+	if r := w.areaLandingRefusal(rule, uint16(spellPowerUnder(w.rules, rule, level, caster.Mind)), aimX, aimY); r != "" {
 		return r
 	}
 	if w.stoneCursed(ci) || w.castActionBusy(ci, gate) {

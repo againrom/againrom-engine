@@ -86,9 +86,6 @@ type gameProfile struct {
 	// wind-up starts facing the aim, not at the order (R2-ENGINE-543,
 	// R2-ENGINE-544, R2-ENGINE-926).
 	paysFacingAim bool
-	// blowOrdersAttack: an area blow orders a victim of another owner against
-	// the caster (DIV-1600); otherwise it runs the blow hook (answerAreaBlow).
-	blowOrdersAttack bool
 	// bookWalkNoFallback: the engage book walk has no fallback row.
 	bookWalkNoFallback bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
@@ -105,6 +102,9 @@ type gameProfile struct {
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
 	// step between cells instead of waiting for its centre.
 	castDropsLoadedStep bool
+	// bodyCentreAim: an area row cast at a unit lands on the cell of the
+	// body's centre less one sub-unit, not the anchor cell (R2-ENGINE-1138).
+	bodyCentreAim bool
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
@@ -274,13 +274,13 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		cellCastReach:              true,
 		recoveryLowByte:            true,
 		paysFacingAim:              true,
-		blowOrdersAttack:           true,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
 		uncorrectedStride:          true,
 		castDropsLoadedStep:        true,
+		bodyCentreAim:              true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
 		fleeSightExtra:             5,

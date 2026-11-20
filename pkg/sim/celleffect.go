@@ -881,7 +881,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// NO CAST AWARD IS PAID HERE (DIV-238): castSpell and castBookAt
 				// pay the cast's own single award.
 				if areaRow(rule.arm()).blow && ci >= 0 && ci != i {
-					w.answerAreaBlow(ci, i, w.entities[ci].ID)
+					w.answerAreaBlow(ci, i)
 				}
 			}
 		}
@@ -924,25 +924,11 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 // saved replay. The blow hook runs alone: turn flag, remembered cell and
 // diplomacy flip, and no order; a pursuit of the caster comes only from a
 // later group pass that finds it a candidate (AI-707, MAGIC-LIGHTDARK-044).
-// The second game reads the same for a victim of the caster's own owner and
-// for a side with no owner, where the hook does not run (R2-ENGINE-985,
-// R2-ENGINE-988); a victim of another owner is ordered against the caster
-// (DIV-1600), except a human participant's unit: the blow writes it no order
-// and a click stands (R2-ENGINE-987, owner direction in DIV-1600).
-func (w *World) answerAreaBlow(ci, ti int, caster EntityID) {
-	if w.game.blowOrdersAttack && (ci < 0 || w.ownersDiffer(ci, ti)) {
-		if !w.playerControlledUnit(w.entities[ti]) {
-			w.orderAttack(ti, caster)
-		}
-		return
-	}
+// The second game's hook tests no owner or relation and writes no target, so
+// it answers the same for every victim, whatever its owner (R2-ENGINE-985,
+// R2-ENGINE-987); a side with no owner runs no hook (flipOnBlow).
+func (w *World) answerAreaBlow(ci, ti int) {
 	w.flipOnBlow(ci, ti)
-}
-
-// ownersDiffer reports two entities of two different owners, neither none.
-func (w *World) ownersDiffer(ai, ti int) bool {
-	a, t := w.entities[ai].Owner, w.entities[ti].Owner
-	return a != 0 && t != 0 && a != t
 }
 
 func (w *World) areaHitAllowed(ci int, rule SpellRule, target Entity) bool {

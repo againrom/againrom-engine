@@ -31,10 +31,4 @@ func TestAreaBlowsAnswerThroughOneHelper(t *testing.T) {
 			t.Errorf("%s calls answerAreaBlow %d times, want once", f, n)
 		}
 	}
-	for f, src := range files {
-		n := strings.Count(src, "game.blowOrdersAttack")
-		if f == "pkg/sim/celleffect.go" && n != 1 || f != "pkg/sim/celleffect.go" && n != 0 {
-			t.Errorf("%s reads blowOrdersAttack %d times; only answerAreaBlow reads it", f, n)
-		}
-	}
 }

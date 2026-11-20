@@ -61,7 +61,8 @@ var sabCells = []uint16{cellKey(40, 40), cellKey(40, 41), cellKey(41, 41)}
 // member) and keeps the hero (R2-ENGINE-985, R2-ENGINE-987, R2-ENGINE-989);
 // the diagonal changes only when its low two bits are clear (R2-ENGINE-988);
 // the ownerless loner gets neither the hook nor an order (R2-ENGINE-985 step
-// 6); the stranger of another owner is still ordered at the caster (DIV-1600).
+// 6); the stranger of another owner runs the same hook and is ordered at
+// no one.
 func checkSecondAreaBlow(t *testing.T, w *World, diagonal, want byte) {
 	t.Helper()
 	m := laEnt(t, w, sabMember)
@@ -80,8 +81,11 @@ func checkSecondAreaBlow(t *testing.T, w *World, diagonal, want byte) {
 	if n := w.attackNoticeAt(indexOfEntity(w.entities, sabLoner)); n.Cell != 0 {
 		t.Errorf("the ownerless loner remembers cell %#x, want none", n.Cell)
 	}
-	if s := laEnt(t, w, sabStranger); !s.HasAttackTarget || s.AttackTarget != sabCaster {
-		t.Errorf("the stranger of another owner holds victim %d/%v, want the caster %d", s.AttackTarget, s.HasAttackTarget, sabCaster)
+	if s := laEnt(t, w, sabStranger); s.HasAttackTarget {
+		t.Errorf("the stranger of another owner holds victim %d, want none", s.AttackTarget)
+	}
+	if n := w.attackNoticeAt(indexOfEntity(w.entities, sabStranger)); n.Cell != 2|2<<8 {
+		t.Errorf("the stranger of another owner remembers cell %#x, want the caster's (2,2): the hit hook did not run", n.Cell)
 	}
 }
 

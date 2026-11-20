@@ -149,13 +149,17 @@ func TestAnAreaBlowDoesNotOrderAnIdlePlayerUnit(t *testing.T) {
 	}
 }
 
-// The control: a computer unit of another owner is still ordered at the
-// caster, the standing answer of DIV-1600.
-func TestAnAreaBlowStillOrdersAComputerUnitAtTheCaster(t *testing.T) {
+// A computer unit of another owner runs the hit hook and is sent at no one:
+// it remembers the caster's cell and holds no victim (R2-ENGINE-985,
+// R2-ENGINE-987).
+func TestAnAreaBlowRunsTheHookOnAComputerUnitAndOrdersNothing(t *testing.T) {
 	t.Parallel()
 	w, rule := abpWorld(t, nil)
 	abpPulse(t, w, rule, abpNeighbour)
-	if e := laEnt(t, w, abpNeighbour); !e.HasAttackTarget || e.AttackTarget != abpMage {
-		t.Errorf("the computer unit holds victim %d/%v, want the caster %d", e.AttackTarget, e.HasAttackTarget, abpMage)
+	if e := laEnt(t, w, abpNeighbour); e.HasAttackTarget {
+		t.Errorf("the computer unit holds victim %d, want none", e.AttackTarget)
+	}
+	if n := w.attackNoticeAt(indexOfEntity(w.entities, abpNeighbour)); n.Cell != 40|40<<8 {
+		t.Errorf("the computer unit remembers cell %#x, want the caster's (40,40)", n.Cell)
 	}
 }
