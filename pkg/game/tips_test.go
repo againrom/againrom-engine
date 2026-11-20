@@ -267,8 +267,12 @@ func TestEntryPaintRulePublishesTheRevision(t *testing.T) {
 func TestSecondTipRowDecidesTheRetext(t *testing.T) {
 	item := func(s *townScreen) {
 		shop := &Shop{}
+		if d := s.row.dealOf; d != nil && d(s.sess) != nil {
+			shop = d(s.sess)
+		} else {
+			s.sess.Shop = shop
+		}
 		shop.table = []ShopPlace{{}}
-		s.sess.Shop = shop
 	}
 	t.Run("first game as shipped", func(t *testing.T) {
 		s := tipTownFixture(t, []synth.File{{Path: "text/tips/shop1.txt", Data: []byte("one")}, {Path: "text/tips/shop2.txt", Data: []byte("two")}}).TownScreen().(*townScreen)
@@ -306,20 +310,18 @@ func TestSecondTipRowDecidesTheRetext(t *testing.T) {
 		s.loadRoomTip("shop")
 		item(s)
 		s.advanceShopSecondTip()
-		if strings.TrimSpace(s.tip.text) != "shop tip" || s.tip.second {
-			t.Fatalf("the second game's shop popup took a second text: %+v (DIV-2968)", s.tip)
+		if strings.TrimSpace(s.tip.text) != "shop second" || !s.tip.second {
+			t.Fatalf("the second game's shop popup took no second text: %+v", s.tip)
 		}
 	})
-	t.Run("second game with a second row", func(t *testing.T) {
-		withTipTable(t, "rom2", func(tt *ui.TipTable) {
-			tipRowNamed(tt, "shop").Second = ui.TipText{File: "main/text/town.txt", Section: "tips4"}
-		})
+	t.Run("second game without a second row", func(t *testing.T) {
+		withTipTable(t, "rom2", func(tt *ui.TipTable) { tipRowNamed(tt, "shop").Second = ui.TipText{} })
 		_, s := secondTipTown(t)
 		s.loadRoomTip("shop")
 		item(s)
 		s.advanceShopSecondTip()
-		if strings.TrimSpace(s.tip.text) != "shop second" || !s.tip.second {
-			t.Fatalf("a second row did not retext the second game's shop popup: %+v", s.tip)
+		if strings.TrimSpace(s.tip.text) != "shop tip" || s.tip.second {
+			t.Fatalf("a shop row without a second text retexted the second game's popup: %+v", s.tip)
 		}
 	})
 }

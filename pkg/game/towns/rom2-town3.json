@@ -192,8 +192,8 @@
           "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
          {"name": "left-stats-seam", "format": "picture", "key": "graphics/interface/inn/luover.bmp", "size": [16, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
          {"name": "left-picture-seam", "format": "picture", "key": "graphics/interface/inn/ldover.bmp", "size": [16, 242], "transparent": "black", "required": true, "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
-         {"name": "lower-seam", "format": "picture", "key": "graphics/interface/textbackl.bmp", "size": [16, 242], "transparent": "black", "required": true,
-          "cite": ["R2-ENGINE-368", "R2-ASSET-089", "DIV-2986"]},
+         {"name": "lower-seam", "format": "picture", "key": "graphics/interface/humanbackl.bmp", "size": [16, 242], "transparent": "black", "required": true,
+          "cite": ["R2-ENGINE-368", "R2-ASSET-089", "R2-ENGINE-1359", "R2-ENGINE-1360", "DIV-2986"]},
          {"name": "upper", "format": "picture", "key": "graphics/interface/shop_druid/shopmenu.bmp", "size": [176, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-246", "DIV-2964", "DIV-4440"]}
        ],
        "sounds": {"slots": [

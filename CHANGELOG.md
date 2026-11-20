@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The Kaarg inn taverner now runs its long animation for the original's 95 steps with its holds, a shop's second tip shows once the deal table holds an item, and the druid inn's lower-right edge starts as HumanBackL.
 - [ROM2] A mission's step costs on layered cells now follow the original's cell slots: after a second walker shares a cell, the cell keeps its decayed cost, and a mission SAVE keeps those slots.
 - [ROM2] A dead unit's body now sinks through its corpse stages and leaves the world as fast as in the original; before, it did so one and a half times slower, which also kept it raisable longer.
 - [ROM2] A new hero who picks Shooting or Astral now starts at level 10 in it, as in the original, and the town save writes the hero's template row and experience word as the original does.

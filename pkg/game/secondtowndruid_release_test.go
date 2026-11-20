@@ -512,7 +512,8 @@ func TestReleaseSecondTownDruidKeeperClicks(t *testing.T) {
 // water at (328,144) cycling its first nine files, and the taverner whose
 // wait rand()/16+3200 chooses a1, a2 or the still a30001 by (wait&3)+1 with 4
 // mapped to 3 (R2-ENGINE-258). The lower-right crop at (464,238) is
-// TextBackL (R2-ENGINE-368, DIV-2986). Exit and Escape return to the square.
+// HumanBackL, the picture of the panel field's initial nonzero value
+// (R2-ENGINE-368, R2-ENGINE-1359). Exit and Escape return to the square.
 func TestReleaseSecondTownDruidInnPage(t *testing.T) {
 	f, app, s, now := secondTownThree(t, 60)
 	c := f.Town.second
@@ -557,14 +558,14 @@ func TestReleaseSecondTownDruidInnPage(t *testing.T) {
 		for x := 0; x < 16; x++ {
 			if r, g, b, _ := seam.At(x, y).RGBA(); r|g|b != 0 {
 				if !druidProbe(dst, seam, image.Pt(464, 238), image.Pt(464+x, 238+y)) {
-					t.Fatalf("TextBackL pixel (%d,%d) not drawn at (464,238)", x, y)
+					t.Fatalf("HumanBackL pixel (%d,%d) not drawn at (464,238)", x, y)
 				}
 				drawn++
 			}
 		}
 	}
 	if drawn == 0 || seam.Bounds().Size() != image.Pt(16, 242) {
-		t.Fatalf("TextBackL %v with %d visible pixels", seam.Bounds(), drawn)
+		t.Fatalf("HumanBackL %v with %d visible pixels", seam.Bounds(), drawn)
 	}
 	water := inn.Actor("water").(*town.Loop)
 	seen := map[int]bool{}

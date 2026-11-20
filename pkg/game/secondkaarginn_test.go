@@ -65,6 +65,45 @@ var kaargSeries = []struct {
 	n    int
 }{{"a1", 15}, {"a2", 25}, {"a3", 3}, {"a4", 7}, {"a5", 29}}
 
+// kaargA5Steps is the taverner's 95-entry a5 step table: the element each
+// step shows (R2-ASSET-269).
+var kaargA5Steps = func() []int {
+	var t []int
+	run := func(f, n int) {
+		for i := 0; i < n; i++ {
+			t = append(t, f)
+		}
+	}
+	for f := 0; f < 4; f++ {
+		run(f, 1)
+	}
+	run(4, 9)
+	run(5, 1)
+	run(6, 1)
+	run(7, 1)
+	run(8, 12)
+	for f := 5; f <= 12; f++ {
+		run(f, 1)
+	}
+	run(13, 11)
+	for f := 14; f <= 19; f++ {
+		run(f, 1)
+	}
+	run(20, 11)
+	run(21, 1)
+	run(22, 1)
+	run(23, 1)
+	run(24, 10)
+	run(5, 1)
+	run(6, 1)
+	run(7, 1)
+	run(24, 11)
+	for f := 25; f <= 28; f++ {
+		run(f, 1)
+	}
+	return t
+}()
+
 func kaargInnArt() *town.Art {
 	a := &town.Art{Frames: map[string][]image.Image{}}
 	for i, s := range kaargSeries {
@@ -183,7 +222,7 @@ func TestKaargInnTavernerStepsEachSeriesOnce(t *testing.T) {
 	}
 	painted := map[string][]int{}
 	var order []string
-	for i := 0; i < 15+29; i++ {
+	for i := 0; i < 15+len(kaargA5Steps); i++ {
 		h.now = h.now.Add(100 * time.Millisecond)
 		s.Advance()
 		name, f, _ := kaargShown(t, s)
@@ -197,15 +236,16 @@ func TestKaargInnTavernerStepsEachSeriesOnce(t *testing.T) {
 		}
 		painted[name] = append(painted[name], f)
 	}
-	if fmt.Sprint(order) != "[a1 a5]" || len(painted["a1"]) != 15 || len(painted["a5"]) != 29 {
+	if fmt.Sprint(order) != "[a1 a5]" || len(painted["a1"]) != 15 || len(painted["a5"]) != 95 {
 		t.Fatalf("series %v painted %v", order, painted)
 	}
-	for name, frames := range painted {
-		for i, f := range frames {
-			if f != i {
-				t.Fatalf("%s painted %v, want each file once in order", name, frames)
-			}
+	for i, f := range painted["a1"] {
+		if f != i {
+			t.Fatalf("a1 painted %v, want each file once in order", painted["a1"])
 		}
+	}
+	if fmt.Sprint(painted["a5"]) != fmt.Sprint(kaargA5Steps) {
+		t.Fatalf("a5 painted %v, want the 95-step table %v", painted["a5"], kaargA5Steps)
 	}
 }
 
@@ -264,7 +304,7 @@ func TestKaargInnTavernerStateOutlivesEntry(t *testing.T) {
 		raw, steps int
 		want       string
 		frame      int
-	}{{6242, 5, "a5", 5}, {1561, 4, "a2", 0}} {
+	}{{6242, 5, "a5", kaargA5Steps[5]}, {1561, 4, "a2", 0}} {
 		proc := &town.Process{}
 		h := &kaargInnHost{draws: []int{c.raw}}
 		s := kaargInn(t, h, proc)

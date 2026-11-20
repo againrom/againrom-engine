@@ -186,7 +186,8 @@ func (t *townScreen) roomTipView(room string) ui.TipPanelView {
 }
 
 // advanceShopSecondTip retexts the built popup with its row's second text
-// once per build, while the shop's table holds an item (TOWN-517). It reads
+// once per build, while the shop page's deal table holds an item (TOWN-517,
+// R2-ENGINE-1352). It reads
 // no TipsMode: the popup has a text only if the option was on at the build,
 // and a closed popup still takes the second text.
 func (t *townScreen) advanceShopSecondTip() {
@@ -197,7 +198,11 @@ func (t *townScreen) advanceShopSecondTip() {
 	if row == nil || row.Second.File == "" {
 		return
 	}
-	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
+	deal := t.sess.Shop
+	if t.row.dealOf != nil {
+		deal = t.row.dealOf(t.sess)
+	}
+	if deal == nil || len(deal.Table()) == 0 {
 		return
 	}
 	t.tip.second = true

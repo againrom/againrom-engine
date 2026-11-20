@@ -537,11 +537,11 @@ func TestReleaseSecondTownKaargInnTaverner(t *testing.T) {
 	for n := 0; n < 15; n++ {
 		want = append(want, fmt.Sprintf("1.%d", n))
 	}
-	for n := 0; n < 29; n++ {
-		want = append(want, fmt.Sprintf("5.%d", n))
+	for _, f := range kaargA5Steps {
+		want = append(want, fmt.Sprintf("5.%d", f))
 	}
-	if strings.Join(painted, " ") != strings.Join(want, " ") {
-		t.Errorf("painted %v\nwant    %v", painted, want)
+	if got := strings.Join(painted, " "); got != strings.Join(want[:45], " ") {
+		t.Errorf("painted %v\nwant    %v", painted, want[:45])
 	}
 	var sounds []string
 	for _, line := range log.lines[start:] {
@@ -559,6 +559,14 @@ func TestReleaseSecondTownKaargInnTaverner(t *testing.T) {
 	// the dish at paint 40, every later draw 0: Kdish1, Kvox6, Kdish1.
 	if got := strings.Join(sounds, " "); got != "kman3 kvox8 kdish1 kdish1 kvox6 kdish1" {
 		t.Errorf("requested %q, want kman3 kvox8 kdish1 kdish1 kvox6 kdish1", got)
+	}
+	// The a5 series runs all 95 table steps with its repeated holds.
+	for i := 45; i < len(want); i++ {
+		kaargStep(s, now, 101*time.Millisecond)
+		painted = append(painted, fmt.Sprintf("%d.%d", tav.ShownState, tav.ShownFrame))
+	}
+	if strings.Join(painted, " ") != strings.Join(want, " ") {
+		t.Errorf("painted %v\nwant    %v", painted, want)
 	}
 	t.Logf("Kvox5 loop on %v; requests %v", scene.LoopOn(), log.lines[start:])
 }

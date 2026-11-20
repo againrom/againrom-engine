@@ -33,6 +33,41 @@ func secondTipShows(t *testing.T, what string, v ui.TipPanelView, text string, r
 	}
 }
 
+// R2-ENGINE-1352: the shop popup shows its first text at the entry, takes the
+// second once the deal table holds an item, and starts again at the next
+// entry.
+func TestReleaseSecondTownShopSecondTip(t *testing.T) {
+	f := secondGameFront(t)
+	app := f.App("second shop second tip")
+	app.Layout(640, 480)
+	s := f.TownScreen().(*townScreen)
+	app.SetTown(s)
+	f.SetTipsOff(false)
+	if err := app.HeadlessActivate("new game"); err != nil {
+		t.Fatal(err)
+	}
+	first, second := secondTipText(t, f, "tips3"), secondTipText(t, f, "tips4")
+	rect := image.Rect(164, 162, 476, 298)
+	for visit := 0; visit < 2; visit++ {
+		secondShopActivate(t, f, app, "SHOP")
+		secondTipStep(t, app)
+		secondTipShows(t, "shop entry", s.ShopScreen().TipPanel, first, rect)
+		secondTipStep(t, app)
+		secondTipShows(t, "empty table", s.ShopScreen().TipPanel, first, rect)
+		secondShopActivate(t, f, app, "ITEM 1")
+		if len(f.Town.second.shop.Table()) == 0 {
+			t.Fatal("the shelf click put nothing on the deal table")
+		}
+		secondTipStep(t, app)
+		secondTipShows(t, "item on the table", s.ShopScreen().TipPanel, second, rect)
+		secondShopActivate(t, f, app, "UNDO")
+		secondTipStep(t, app)
+		secondTipShows(t, "table emptied", s.ShopScreen().TipPanel, second, rect)
+		secondShopActivate(t, f, app, "EXIT")
+		secondTipStep(t, app)
+	}
+}
+
 // R2-ENGINE-308, R2-ENGINE-310, R2-ENGINE-312: the town 1 square, inn and
 // shop build their popup at each entry while the tips option is set; Close
 // holds until the next entry; the option cleared stops the next builds.
