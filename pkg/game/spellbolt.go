@@ -274,9 +274,10 @@ func (mw *mapWorld) startCastRun(id sim.EntityID) int {
 
 // teleportCastProfile is a game's Teleport caster: run plays the caster
 // class's Attack timeline, and messageSound voices the cast message as well
-// as the run's AttackDelay hook.
+// as the run's AttackDelay hook; soundAtStart places that hook at the cell the
+// cast began in (DIV-4289).
 type teleportCastProfile struct {
-	run, messageSound bool
+	run, messageSound, soundAtStart bool
 }
 
 // teleportBookCast reports a book cast event of Teleport.

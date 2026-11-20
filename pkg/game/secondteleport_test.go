@@ -221,7 +221,7 @@ func TestTheTeleportCasterProfilesAreGameData(t *testing.T) {
 	if got, want := firstGameFiles.teleportCast, (teleportCastProfile{run: true, messageSound: true}); got != want {
 		t.Errorf("first game's Teleport caster %+v, want %+v", got, want)
 	}
-	if got, want := secondGameFiles.teleportCast, (teleportCastProfile{run: true}); got != want {
+	if got, want := secondGameFiles.teleportCast, (teleportCastProfile{run: true, soundAtStart: true}); got != want {
 		t.Errorf("second game's Teleport caster %+v, want %+v", got, want)
 	}
 }

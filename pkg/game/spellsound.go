@@ -24,6 +24,11 @@ type spellSoundCue struct {
 	caster sim.EntityID
 	run    *castRunIdentity
 	phase  int
+
+	// start/fine hold the cell and fine position the cast began at, when the
+	// game voices a Teleport cast there rather than at the moved caster.
+	start bool
+	fine  image.Point
 }
 
 // castSpellSoundSlot is the slot a cast of spell voices in set's game: the
@@ -62,6 +67,18 @@ func (mw *mapWorld) actorSoundFine(e sim.Entity) image.Point {
 		fine = image.Pt(int(e.X)*256+int(x), int(e.Y)*256+int(y))
 	}
 	return fine
+}
+
+// semanticAt voices slot at a cell and fine position the caller kept.
+func (mw *mapWorld) semanticAt(source string, slot int, owner uint32, cell, fine image.Point) {
+	if slot <= 0 {
+		return
+	}
+	if mw.semanticSound != nil {
+		mw.semanticSound(source, slot, owner, cell, fine)
+	} else if mw.spellSound != nil {
+		mw.spellSound(slot, owner, cell)
+	}
 }
 
 func (mw *mapWorld) playActorSound(source string, slot int, e sim.Entity) {
@@ -119,9 +136,14 @@ func (mw *mapWorld) advanceSpellSoundCues() {
 				mw.playSpellSound(cue.slot, cue.owner, cue.cell, cue.source)
 			} else if mw.swing[cue.caster] == cue.phase {
 				// Unlike the independent direct message at CastEvent.FromX/Y,
-				// this hook belongs to the live caster animation. Teleport has
-				// already moved that caster, so both owner and cell are live.
-				mw.playActorSound("book-cast-animation", cue.slot, caster)
+				// this hook belongs to the live caster animation. A cue that
+				// kept its start cell sounds there; any other sounds at the
+				// caster's live cell.
+				if cue.start {
+					mw.semanticAt("book-cast-animation", cue.slot, caster.Owner, cue.cell, cue.fine)
+				} else {
+					mw.playActorSound("book-cast-animation", cue.slot, caster)
+				}
 			}
 			continue
 		}
@@ -161,9 +183,11 @@ func (mw *mapWorld) scheduleBookCastSound(ev sim.CastEvent, span int) {
 		return
 	}
 	phase := int(snd.AttackDelay)
-	mw.spellSoundCues = append(mw.spellSoundCues, spellSoundCue{
-		slot: slot, ticks: phase + 1, caster: ev.Caster, run: r.identity, phase: phase,
-	})
+	cue := spellSoundCue{slot: slot, ticks: phase + 1, caster: ev.Caster, run: r.identity, phase: phase}
+	if mw.files().teleportCast.soundAtStart && mw.teleportBookCast(ev) {
+		cue.start, cue.cell, cue.fine = true, image.Pt(int(e.X), int(e.Y)), mw.actorSoundFine(e)
+	}
+	mw.spellSoundCues = append(mw.spellSoundCues, cue)
 }
 
 // observeScriptCasts voices only temporary-caster records that the simulation

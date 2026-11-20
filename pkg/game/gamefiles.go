@@ -384,7 +384,7 @@ var secondGameFiles = gameFiles{
 	targetMarkOnRelease: true,
 	// R2-ENGINE-704: state 8 for the type's attack frame list, Sfx 554 at
 	// AttackDelay from that run and none from the cast message.
-	teleportCast: teleportCastProfile{run: true},
+	teleportCast: teleportCastProfile{run: true, soundAtStart: true},
 	heldMarks:    secondHeldMarks,
 	objectives:   objectivesProfile{subobjectives: true, lossEntries: true, npcKeys: true},
 	unitVoices:   secondGameVoices,
