@@ -34,11 +34,13 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 			o = w.savedOrder(2)
 			ax, ay := away(o)
 			walks := m.HasTarget && m.TargetX == ax && m.TargetY == ay && (ax != m.PostX || ay != m.PostY)
-			if want := false; walks != want {
+			// Guard B's case 4 walks a hurt member with no target to +0x9c
+			// while the blow is recent; guard A has no such case.
+			if want := prog == 18 && w.strikeRecent(indexOfEntity(w.entities, 2), o); walks != want {
 				t.Fatalf("programme %d: walks to +0x9c (%d,%d) = %v, want %v (at (%d,%d) target (%d,%d) %v post (%d,%d))",
 					prog, ax, ay, walks, want, m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget, m.PostX, m.PostY)
 			}
-			if !walksTo(w, cell{m.PostX, m.PostY}) {
+			if prog != 18 && !walksTo(w, cell{m.PostX, m.PostY}) {
 				t.Fatal("guard did not keep walking to its post")
 			}
 		})
@@ -64,7 +66,11 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 				t.Fatalf("fixture: recent blow with no pursuit or target: order %+v member %+v", o, m)
 			}
 			want := cell{m.PostX, m.PostY}
-			if !walksTo(w, want) || m.X != m.PostX || m.Y != m.PostY {
+			atPost := m.X == m.PostX && m.Y == m.PostY
+			if prog == 18 {
+				want, atPost = cell{int32(o.Strike.Away & 0xff), int32(o.Strike.Away >> 8)}, true
+			}
+			if !walksTo(w, want) || !atPost {
 				t.Fatalf("programme %d: at (%d,%d), walk %v to (%d,%d), want %v", prog, m.X, m.Y, m.HasTarget, m.TargetX, m.TargetY, want)
 			}
 		})

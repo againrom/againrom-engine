@@ -81,7 +81,7 @@ var secondGameGroupRoute = groupRouteProfile{
 	noHumanHealArm:             true,
 	recordsBlows:               true,
 	stampWindow:                true,
-	recentBlow:                 false,
+	recentBlow:                 true,
 	endsTargetlessEngage:       true,
 	belowFloorAt18:             20,
 }

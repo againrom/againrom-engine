@@ -207,7 +207,9 @@ func TestSecondGuardStruckOnTheWayHomeTakesTheStriker(t *testing.T) {
 	}
 }
 
-// A blow from outside the circle does not divert the return to the post.
+// A blow from outside the circle does not make the member take the striker; a
+// blow within ten fine ticks of the group tick sends a hurt member to +0x9c,
+// an older one leaves its return to the post.
 func TestSecondGuardHurtMemberOutsideTheCircleKeepsItsPost(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -237,6 +239,11 @@ func TestSecondGuardHurtMemberOutsideTheCircleKeepsItsPost(t *testing.T) {
 				t.Fatalf("the member took victim %v from beyond its circle", v)
 			}
 			want := cell{20, 20}
+			if o := w.savedOrder(2); c.wait == 10 {
+				// Case 4: a hurt member whose blow is within ten fine ticks
+				// walks to +0x9c (R2-ENGINE-844); an older blow leaves the return.
+				want = cell{int32(o.Strike.Away & 0xff), int32(o.Strike.Away >> 8)}
+			}
 			if !walksTo(w, want) {
 				m := leashAt(w, 2)
 				t.Fatalf("the member at (%d,%d) walks to (%d,%d)/%v, want %v", m.X, m.Y, m.TargetX, m.TargetY, m.HasTarget, want)
