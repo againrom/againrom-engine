@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"cmp"
 	"slices"
 	"sort"
 )
@@ -13,9 +14,13 @@ type ScrollCast struct {
 	X, Y            int32
 	Index           uint16
 	AtCell, Started bool
-	Remaining       uint8
-	Item            ItemInstance
-	Reservation     uint64
+	// Queued marks a scroll that waits as the caster's next order behind the
+	// cast in progress. It sorts after the caster's other record and owns
+	// no order until the cast and its recovery end.
+	Queued      bool
+	Remaining   uint8
+	Item        ItemInstance
+	Reservation uint64
 }
 
 func (w *World) ScrollCasts() []ScrollCast {
@@ -56,9 +61,37 @@ func (w *World) BookScrolls(id EntityID) []BookScroll {
 	return out
 }
 
+// scrollIndex is the caster's scroll cast in progress; a queued scroll is not
+// one.
 func (w *World) scrollIndex(id EntityID) (int, bool) {
 	i := sort.Search(len(w.scrollCasts), func(i int) bool { return w.scrollCasts[i].Caster >= id })
-	return i, i < len(w.scrollCasts) && w.scrollCasts[i].Caster == id
+	return i, i < len(w.scrollCasts) && w.scrollCasts[i].Caster == id && !w.scrollCasts[i].Queued
+}
+
+// queuedScrollIndex is the caster's waiting scroll, which follows its scroll
+// in progress.
+func (w *World) queuedScrollIndex(id EntityID) (int, bool) {
+	i := sort.Search(len(w.scrollCasts), func(i int) bool { return w.scrollCasts[i].Caster >= id })
+	for ; i < len(w.scrollCasts) && w.scrollCasts[i].Caster == id; i++ {
+		if w.scrollCasts[i].Queued {
+			return i, true
+		}
+	}
+	return i, false
+}
+
+// scrollOrder sorts scroll casts by caster, a caster's queued scroll last.
+func scrollOrder(a, b ScrollCast) int {
+	if c := cmp.Compare(a.Caster, b.Caster); c != 0 {
+		return c
+	}
+	if a.Queued != b.Queued {
+		if a.Queued {
+			return 1
+		}
+		return -1
+	}
+	return 0
 }
 
 func ScrollSpell(item ItemInstance) (uint16, int32, bool) {
@@ -76,9 +109,11 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 	}
 	e := w.entities[ci]
 	r := castRequest{issuer: castScroll, caster: ci, aim: castAim{target: target, x: x, y: y, atCell: atCell}}
-	if !e.Living() || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) || w.castOwned(r) {
+	if !e.Living() || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) {
 		return false
 	}
+	_, waiting := w.queuedScrollIndex(e.ID)
+	queued := w.castOwned(r) || waiting
 	if !w.sourceMutationReady(ci) {
 		return false
 	}
@@ -125,26 +160,20 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 	} else if !w.consumeCarriedUnit(ci, index) {
 		return false
 	}
-	progress := w.pendingLogicalProgress(ci)
-	if w.castStrikeWaits(r, "") {
-		w.entities[ci].releaseBetweenCycles(PendingScroll)
-		w.entities[ci].PendingOrder = PendingOrder{Kind: PendingScroll, RowAdmitted: progress == 0}
-	} else {
-		w.entities[ci].clearAttack()
-	}
-	w.clearOrder(ci)
-	c := ScrollCast{Caster: e.ID, Target: target, X: x, Y: y, AtCell: atCell, Index: uint16(index), Item: item.Clone(), Reservation: reservation}
+	c := ScrollCast{Caster: e.ID, Target: target, X: x, Y: y, AtCell: atCell, Index: uint16(index), Item: item.Clone(), Reservation: reservation, Queued: queued}
 	if atCell {
 		c.Target = 0
 	}
-	// A caster out of reach walks into it through the builder a book cast's
-	// approach uses; a caster in reach gets no move order (it stands and casts).
-	if _, power, _ := ScrollSpell(item); !w.scrollInReach(w.entities[ci], c, spellRangeOf(w.rules, rule, power, rangeCast)) {
-		w.armCastApproach(ci, &bookCast{Retained: true, X: x, Y: y}, 0, false)
+	k := sort.Search(len(w.scrollCasts), func(i int) bool { return w.scrollCasts[i].Caster >= e.ID })
+	if queued {
+		// A third scroll replaces the waiting one and returns its item.
+		if old, ok := w.queuedScrollIndex(e.ID); ok && !w.refundScroll(ci, old) {
+			return false
+		}
+		k = sort.Search(len(w.scrollCasts), func(i int) bool { return w.scrollCasts[i].Caster > e.ID })
 	} else {
-		w.commandGroup([]int{ci}, orderNone, cell{})
+		w.armScroll(ci, r, c, rule)
 	}
-	k, _ := w.scrollIndex(e.ID)
 	w.scrollCasts = append(w.scrollCasts, ScrollCast{})
 	copy(w.scrollCasts[k+1:], w.scrollCasts[k:])
 	w.scrollCasts[k] = c
@@ -157,11 +186,37 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 	return true
 }
 
+// armScroll gives the caster the order a scroll cast runs under: a pending
+// scroll behind a loaded strike, otherwise a clean slate, and the walk into
+// reach or the stand. It is the start of a scroll used at once and of a queued
+// scroll whose turn came.
+func (w *World) armScroll(ci int, r castRequest, c ScrollCast, rule SpellRule) {
+	progress := w.pendingLogicalProgress(ci)
+	if w.castStrikeWaits(r, "") {
+		w.entities[ci].releaseBetweenCycles(PendingScroll)
+		w.entities[ci].PendingOrder = PendingOrder{Kind: PendingScroll, RowAdmitted: progress == 0}
+	} else {
+		w.entities[ci].clearAttack()
+	}
+	w.clearOrder(ci)
+	// A caster out of reach walks into it through the builder a book cast's
+	// approach uses; a caster in reach gets no move order (it stands and casts).
+	if _, power, _ := ScrollSpell(c.Item); !w.scrollInReach(w.entities[ci], c, spellRangeOf(w.rules, rule, power, rangeCast)) {
+		w.armCastApproach(ci, &bookCast{Retained: true, X: c.X, Y: c.Y}, 0, false)
+	} else {
+		w.commandGroup([]int{ci}, orderNone, cell{})
+	}
+}
+
 func (w *World) cancelScroll(ci int) bool {
 	k, ok := w.scrollIndex(w.entities[ci].ID)
 	if !ok {
 		return true
 	}
+	return w.cancelScrollAt(ci, k)
+}
+
+func (w *World) cancelScrollAt(ci, k int) bool {
 	if !w.sourceMutationReady(ci) || !w.hasActorContainer(ci) {
 		return false
 	}
@@ -206,6 +261,10 @@ func (w *World) refundScroll(ci, k int) bool {
 	if !w.finishLoadMutation(ci, before) {
 		return false
 	}
+	if c.Queued {
+		// A waiting scroll owns no order: the cast in progress keeps its own.
+		return true
+	}
 	w.clearOrder(ci)
 	if w.entities[ci].PendingOrder.Kind == PendingScroll {
 		w.entities[ci].PendingOrder = PendingOrder{}
@@ -233,7 +292,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 		id, power, _ := ScrollSpell(c.Item)
 		rule, exists := w.findSpell(uint32(id))
 		if !exists || !w.entities[ci].Living() || w.entities[ci].OffMap {
-			if !w.cancelScroll(ci) {
+			if !w.cancelScrollAt(ci, k) {
 				k++
 			}
 			continue
@@ -241,12 +300,22 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 		if !c.AtCell {
 			ti := indexOfEntity(w.entities, c.Target)
 			if ti < 0 || !spellTargetable(w.entities[ti], rule) || prismaticBodyPrimary(w.entities[ti], rule) || w.entities[ti].OffMap {
-				if !w.cancelScroll(ci) {
+				if !w.cancelScrollAt(ci, k) {
 					k++
 				}
 				continue
 			}
 			c.X, c.Y = w.entities[ti].X, w.entities[ti].Y
+		}
+		if c.Queued {
+			// The waiting scroll starts once the cast in progress and its
+			// recovery have ended.
+			if !w.castHolds(ci, waitCastAction) && !w.admission(ci).waits(executeCast) {
+				w.armScroll(ci, castRequest{issuer: castScroll, caster: ci}, *c, rule)
+				c.Queued = false
+			}
+			k++
+			continue
 		}
 		e := &w.entities[ci]
 		if e.PendingOrder.Kind == PendingScroll {
@@ -277,7 +346,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 					// A prior search gave up. Preserve the item on this authored
 					// failure boundary rather than inventing original destruction.
 					if c.Remaining != 0 {
-						if !w.cancelScroll(ci) {
+						if !w.cancelScrollAt(ci, k) {
 							k++
 						}
 						continue

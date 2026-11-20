@@ -655,7 +655,7 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 		return err
 	}
 	n.scrollCasts = a.Scrolls
-	sort.Slice(n.scrollCasts, func(i, j int) bool { return n.scrollCasts[i].Caster < n.scrollCasts[j].Caster })
+	slices.SortStableFunc(n.scrollCasts, scrollOrder)
 	n.structureUses = slices.Clone(a.StructureUses)
 	slices.SortFunc(n.structureUses, func(a, b StructureUse) int {
 		if a.Entity < b.Entity {

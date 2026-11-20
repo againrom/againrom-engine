@@ -30,6 +30,9 @@ func (w *World) encodeScrolls(b []byte, off int) int {
 		if c.Started {
 			b[off+18] |= 2
 		}
+		if c.Queued {
+			b[off+18] |= 4
+		}
 		b[off+19] = c.Remaining
 		off = encodeItemAt(b, off+scrollRecordLen, c.Item)
 	}
@@ -41,7 +44,7 @@ func decodeScrolls(b []byte, entities []Entity, bounds Bounds, spells []SpellRul
 		return nil, 0, fmt.Errorf("sim: truncated scroll count")
 	}
 	n := uint64(binary.LittleEndian.Uint32(b))
-	if n > uint64(len(entities)) || n > uint64((len(b)-4)/scrollRecordLen) {
+	if n > 2*uint64(len(entities)) || n > uint64((len(b)-4)/scrollRecordLen) {
 		return nil, 0, fmt.Errorf("sim: invalid scroll count %d", n)
 	}
 	out, off := make([]ScrollCast, 0, int(n)), 4
@@ -49,14 +52,16 @@ func decodeScrolls(b []byte, entities []Entity, bounds Bounds, spells []SpellRul
 		if off > len(b)-scrollRecordLen {
 			return nil, 0, fmt.Errorf("sim: truncated scroll record")
 		}
-		c := ScrollCast{Caster: EntityID(binary.LittleEndian.Uint32(b[off:])), Target: EntityID(binary.LittleEndian.Uint32(b[off+4:])), X: int32(binary.LittleEndian.Uint32(b[off+8:])), Y: int32(binary.LittleEndian.Uint32(b[off+12:])), Index: binary.LittleEndian.Uint16(b[off+16:]), AtCell: b[off+18]&1 != 0, Started: b[off+18]&2 != 0, Remaining: b[off+19]}
-		if b[off+18]&^3 != 0 || c.AtCell && c.Target != 0 || !c.Started && c.Remaining > 1 || c.Started && c.Remaining == 0 {
+		c := ScrollCast{Caster: EntityID(binary.LittleEndian.Uint32(b[off:])), Target: EntityID(binary.LittleEndian.Uint32(b[off+4:])), X: int32(binary.LittleEndian.Uint32(b[off+8:])), Y: int32(binary.LittleEndian.Uint32(b[off+12:])), Index: binary.LittleEndian.Uint16(b[off+16:]), AtCell: b[off+18]&1 != 0, Started: b[off+18]&2 != 0, Queued: b[off+18]&4 != 0, Remaining: b[off+19]}
+		if b[off+18]&^7 != 0 || c.AtCell && c.Target != 0 || !c.Started && c.Remaining > 1 || c.Started && c.Remaining == 0 ||
+			c.Queued && (c.Started || c.Remaining != 0) {
 			return nil, 0, fmt.Errorf("sim: invalid scroll lifecycle")
 		}
 		if ci := indexOfEntity(entities, c.Caster); ci < 0 || !entities[ci].Living() || entities[ci].OffMap {
 			return nil, 0, fmt.Errorf("sim: invalid scroll caster")
 		}
-		if len(out) != 0 && out[len(out)-1].Caster >= c.Caster {
+		// A caster has one scroll cast and at most one queued scroll after it.
+		if p := len(out) - 1; p >= 0 && (out[p].Caster > c.Caster || out[p].Caster == c.Caster && (!c.Queued || out[p].Queued)) {
 			return nil, 0, fmt.Errorf("sim: unordered scroll casters")
 		}
 		if _, inside := cellIndexIn(bounds, c.X, c.Y); !inside {

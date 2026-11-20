@@ -47,7 +47,7 @@ func (w *World) orderTargetPresent(e *Entity, o *SavedActorOrder, cast bool) boo
 			}
 		}
 		for _, c := range w.scrollCasts {
-			if c.Caster == e.ID && !c.AtCell {
+			if c.Caster == e.ID && !c.AtCell && !c.Queued {
 				return indexOfEntity(w.entities, c.Target) >= 0
 			}
 		}
@@ -143,7 +143,7 @@ func (w *World) hasMissingTargetCast(e *Entity) bool {
 		}
 	}
 	for _, c := range w.scrollCasts {
-		if c.Caster == e.ID && !c.AtCell && indexOfEntity(w.entities, c.Target) < 0 {
+		if c.Caster == e.ID && !c.AtCell && !c.Queued && indexOfEntity(w.entities, c.Target) < 0 {
 			return true
 		}
 	}
@@ -153,7 +153,7 @@ func (w *World) hasMissingTargetCast(e *Entity) bool {
 func (w *World) dropMissingTargetCast(i int) bool {
 	id := w.entities[i].ID
 	for _, c := range w.scrollCasts {
-		if c.Caster == id && !c.AtCell && indexOfEntity(w.entities, c.Target) < 0 && !w.cancelScroll(i) {
+		if c.Caster == id && !c.AtCell && !c.Queued && indexOfEntity(w.entities, c.Target) < 0 && !w.cancelScroll(i) {
 			return false
 		}
 	}

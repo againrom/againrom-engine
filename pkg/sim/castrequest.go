@@ -52,8 +52,10 @@ const (
 	// ownedPasses asks nothing: the admission's guard decides, or no actor
 	// casts.
 	ownedPasses castOwned = iota
-	// ownedRefuses refuses the request.
-	ownedRefuses
+	// ownedQueues lets the request wait as the caster's next order behind any
+	// cast that owns the caster, its recovery included; the issuer holds the
+	// waiting request in its own record.
+	ownedQueues
 	// ownedReplaces rewrites the retained order the cast in flight carries
 	// with the request's spell; a request of no spell ends it (AI-376).
 	ownedReplaces
@@ -110,7 +112,7 @@ type castBusyRow struct {
 // meets no busy rule.
 var castBusyRows = [castIssuerCount]castBusyRow{
 	castManual:   {gate: gateNone, owned: ownedQueuesBehindPaid, repeatRunsOn: true, strike: strikeQueues},
-	castScroll:   {gate: gateNone, owned: ownedRefuses, strike: strikeQueues},
+	castScroll:   {gate: gateNone, owned: ownedQueues, strike: strikeQueues},
 	castScript:   {},
 	castCreature: {gate: gateFresh, manaWaits: true, owned: ownedReplaces, strike: strikeHolds, reaim: reaimSlot},
 	castEngage: {gate: gateFresh, manaWaits: true, owned: ownedReplaces, strike: strikeHolds,
@@ -153,7 +155,7 @@ func retainedRequest(ci int, c bookCast) castRequest {
 // first. A refused or queued request goes on as its issuer orders.
 func (w *World) castOwned(r castRequest) bool {
 	switch r.row().owned {
-	case ownedRefuses:
+	case ownedQueues:
 		return w.actorCastBusy(r.caster)
 	case ownedReplaces:
 		if !w.actorCastBusy(r.caster) {

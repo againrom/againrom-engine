@@ -251,6 +251,10 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 		}
 	}
 	for _, c := range actions.Scrolls {
+		if c.Queued {
+			// A waiting scroll owns no order; the action continuation carries it.
+			continue
+		}
 		id, _, ok := sim.ScrollSpell(c.Item)
 		if !ok {
 			return fmt.Errorf("current reservation is not a scroll")

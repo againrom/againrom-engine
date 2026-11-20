@@ -28,6 +28,9 @@ func (w *World) syncCurrentActionCarriers() {
 		w.syncCurrentCastOperands(cast.Caster, cast.Target, cast.AtCell, cast.X, cast.Y, key, values[cast.Spell-1].Range)
 	}
 	for _, cast := range w.scrollCasts {
+		if cast.Queued {
+			continue
+		}
 		index := indexOfEntity(w.entities, cast.Caster)
 		if index >= 0 && w.entities[index].PendingOrder.Kind == PendingScroll && !w.entities[index].PendingOrder.RowAdmitted {
 			if order := w.savedOrder(cast.Caster); order != nil {

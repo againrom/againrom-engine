@@ -54,7 +54,7 @@ func (w *World) RestoreActorIdentities(ids map[EntityID]EntityID, floor *uint64)
 		n.carried[i], n.equipment[i] = carried[from], equipment[from]
 	}
 	slices.SortFunc(n.bookCasts, func(a, b bookCast) int { return cmp.Compare(a.Caster, b.Caster) })
-	slices.SortFunc(n.scrollCasts, func(a, b ScrollCast) int { return cmp.Compare(a.Caster, b.Caster) })
+	slices.SortStableFunc(n.scrollCasts, scrollOrder)
 	slices.SortFunc(n.structureUses, func(a, b StructureUse) int { return cmp.Compare(a.Entity, b.Entity) })
 	slices.SortFunc(n.attached, func(a, b attachedEffect) int {
 		if c := cmp.Compare(a.Target, b.Target); c != 0 {
